@@ -155,8 +155,8 @@ class FileManager(object):
                             r.headers['content-length'] > fileSizeThreshold:
                             xenrt.TEC().logverbose("Using external cache")
                             sharedLocation = self._externalCacheLocation(localName)
-                except:
-                    xenrt.TEC().warning('File Manager failed to fetch file size.')
+                except Exception, e:
+                    xenrt.TEC().warning('File Manager failed to fetch file size on external cache: %s' % e)
 
                 perJobLocation = self._perJobCacheLocation(localName)
                 f = open("%s.fetching" % sharedLocation, "w")
@@ -261,14 +261,15 @@ class FileManager(object):
         return "%s/%s" % (dirname, self._filename(filename))
 
     def _externalCacheLocation(self, filename, ignoreError=False):
-        dirname = "%s/%s" % (xenrt.TEC().lookup("FILE_MANAGER_CACHE2_MNT"), hashlib.sha256(filename).hexdigest())
-        if not os.path.exists(dirname):
-            os.makedirs(dirname)
-        if not xenrt.command("stat -f -c \%T %s" % dirname) == "nfs":
-            if ignoreError:
-                return None
-            raise xenrt.XRTError("Location '%s' is not an external storage" % dirname)
-        return "%s/%s" % (dirname, self._filename(filename))
+        if xenrt.TEC().lookup("FILE_MANAGER_CACHE2_NFS", None):
+            m = xenrt.MountNFS(xenrt.TEC().lookup("FILE_MANAGER_CACHE2_NFS"))
+            dirname = "%s/%s" % (m.getMount(), hashlib.sha256(filename).hexdigest())
+            if not os.path.exists(dirname):
+                os.makedirs(dirname)
+            return "%s/%s" % (dirname, self._filename(filename))
+        if ignoreError:
+            return None
+        raise xenrt.XRTError("Location '%s' is not an external storage" % dirname)
 
     def removeFromCache(self, filename):
         sharedLocation = self._sharedCacheLocation(filename)

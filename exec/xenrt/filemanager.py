@@ -261,9 +261,13 @@ class FileManager(object):
         return "%s/%s" % (dirname, self._filename(filename))
 
     def _externalCacheLocation(self, filename, ignoreError=False):
-        if xenrt.TEC().lookup("FILE_MANAGER_CACHE2_NFS", None):
-            m = xenrt.MountNFS(xenrt.TEC().lookup("FILE_MANAGER_CACHE2_NFS"))
-            dirname = "%s/%s" % (m.getMount(), hashlib.sha256(filename).hexdigest())
+        nfssr = xenrt.TEC().lookup("FILE_MANAGER_CACHE2_NFS", None)
+        if nfssr:
+            cachedir="/tmp/cache"
+            if not os.path.exists(cachedir):
+                os.makedirs(cachedir)
+            xenrt.command("sudo mount -onfsvers=3 -t nfs %s %s" % (nfssr, cachedir))
+            dirname = "%s/%s" % (cachedir, hashlib.sha256(filename).hexdigest())
             if not os.path.exists(dirname):
                 os.makedirs(dirname)
             return "%s/%s" % (dirname, self._filename(filename))

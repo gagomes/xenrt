@@ -98,7 +98,7 @@ class _MachineBase(XenRTAPIv2Page):
                 "pool": rc[3].strip(),
                 "rawstatus": rc[4].strip(),
                 "status": self.getMachineStatus(rc[4].strip(), rc[7].strip() if rc[7] else None, rc[3].strip()),
-                "resources": rc[5].strip().split("/"),
+                "resources": dict([x.split("=") for x in rc[5].strip().split("/")]),
                 "flags": [],
                 "leaseuser": rc[7].strip() if rc[7] else None,
                 "leaseto": calendar.timegm(rc[8].timetuple()) if rc[8] else None,
@@ -474,7 +474,7 @@ class UpdateMachine(_MachineBase):
         "properties": {
             "params": {
                 "type": "object",
-                "description": "Key-value pairs of parameters to update (set null to delete a parameter)"
+                "description": "Key-value pairs parameter:value of parameters to update (set value to null to delete a parameter)"
             },
             "status": {
                 "type": "string",
@@ -498,6 +498,10 @@ class UpdateMachine(_MachineBase):
                 "type": "array",
                 "items": {"type": "string"},
                 "description": "Flags to remove from this machine"
+            },
+            "resources": {
+                "type": "object",
+                "description": "Key-value pair resource:value of resources to update. (set value to null to remove a resource)"
             }
         }
     }}
@@ -549,6 +553,16 @@ class UpdateMachine(_MachineBase):
                     if f in props:
                         props.remove(f)
                 self.updateMachineField(machine, "PROPS", ",".join(props), commit=False)
+        if "resources" in j:
+            resources = machines[machine]['resources']
+
+            for r in j['resources'].keys():
+                if j['resources'][r] == None and r in resources:
+                    del resources[r]
+                elif j['resources'][r] != None:
+                    resources[r] = str(j['resources'][r])
+
+            self.updateMachineField(machine, "RESOURCES", "/".join(["%s=%s" % (x,y) for (x,y) in resources.items()]), commit=False)
 
         self.getDB().commit()
         return {}

@@ -264,7 +264,7 @@ class FileManager(object):
         dirname = "%s/%s" % (xenrt.TEC().lookup("FILE_MANAGER_CACHE2_MNT"), hashlib.sha256(filename).hexdigest())
         if not os.path.exists(dirname):
             os.makedirs(dirname)
-        if not xenrt.command("stat -f -c %T %s" % dirname) == "nfs":
+        if not xenrt.command("stat -f -c \%T %s" % dirname) == "nfs":
             if ignoreError:
                 return None
             raise xenrt.XRTError("Location '%s' is not an external storage" % dirname)

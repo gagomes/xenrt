@@ -247,6 +247,12 @@ class FileManager(object):
             os.makedirs(dirname)
         return "%s/%s" % (dirname, self._filename(filename))
 
+    def _externalCacheLocation(self, filename):
+        dirname = "%s/%s" % (xenrt.TEC().lookup("FILE_MANAGER_CACHE2_MNT"), hashlib.sha256(filename).hexdigest())
+        if not os.path.exists(dirname):
+            os.makedirs(dirname)
+        return "%s/%s" % (dirname, self._filename(filename))
+
     def removeFromCache(self, filename):
         sharedLocation = self._sharedCacheLocation(filename)
         if os.path.exists(sharedLocation):
@@ -264,55 +270,59 @@ class FileManager(object):
     def __availableInCache(self, fnr):
 
         filename = fnr.localName
-        # First try the per-job cache
         perJobLocation = self._perJobCacheLocation(filename)
         sharedLocation = self._sharedCacheLocation(filename)
+        externalLocation = _externalCacheLocation(filename)
+
+        # First try the per-job cache
         if os.path.exists(perJobLocation):
             xenrt.TEC().logverbose("Found file in per-job cache")
             return perJobLocation
 
-        # If it's not in the per-job cache, try the global cache
-        # First, if someone else is fetching, wait until fetching is complete
-        if os.path.exists("%s.fetching" % sharedLocation):
-            xenrt.TEC().logverbose("File is fetching - waiting")
-            while True:
-                if not os.path.exists("%s.fetching" % sharedLocation):
-                    break
-                xenrt.sleep(15)
+        # If it's not in the per-job cache, try the global cache(s)
+        ## First, if someone else is fetching, wait until fetching is complete
+        for cache in [sharedLocation, externalLocation]:
+            if os.path.exists("%s.fetching" % cache):
+                xenrt.TEC().logverbose("File is fetching - waiting")
+                while True:
+                    if not os.path.exists("%s.fetching" % cache):
+                        break
+                    xenrt.sleep(15)
 
         # Now check whether the file is available
+        for cache in [sharedLocation, externalLocation]:
+            if os.path.exists(cache):
+                # If it is, hardlink it to the per-job cache
+                xenrt.TEC().logverbose("Found file in cache : %s" % cache)
 
-        if os.path.exists(sharedLocation):
-            # If it is, hardlink it to the per-job cache
-            xenrt.TEC().logverbose("Found file in shared cache")
+                if fnr.isSimpleFile:
+                    # Check the content length matches (i.e. the file hasn't been updated underneath us)
+                    expectedLength = None
+                    try:
+                        r = requests.head(fnr.url, allow_redirects=True)
+                        # We only trust the content-length if we got a 200 code, and the length is
+                        # >10M, this is to avoid situations where we have a script providing the
+                        # file where a HEAD request will give the size of the script not the file
+                        # it provides
+                        if r.status_code == 200 and 'content-length' in r.headers and \
+                           r.headers['content-length'] > (10 * xenrt.MEGA):
+                            expectedLength = int(r.headers['content-length'])
+                    except:
+                        # File is currently not available for some reason, still valid to use it from the cache
+                        pass
 
-            if fnr.isSimpleFile:
-                # Check the content length matches (i.e. the file hasn't been updated underneath us)
-                expectedLength = None
-                try:
-                    r = requests.head(fnr.url, allow_redirects=True)
-                    # We only trust the content-length if we got a 200 code, and the length is
-                    # >10M, this is to avoid situations where we have a script providing the
-                    # file where a HEAD request will give the size of the script not the file
-                    # it provides
-                    if r.status_code == 200 and 'content-length' in r.headers and \
-                       r.headers['content-length'] > (10 * xenrt.MEGA):
-                        expectedLength = int(r.headers['content-length'])
-                except:
-                    # File is currently not available for some reason, still valid to use it from the cache
-                    pass
+                    if expectedLength:
+                        s = os.stat(cache)
+                        if s.st_size != expectedLength:
+                            raise xenrt.XRTError("found in global cache, but content-length (%d) differs from original (%d)" % (s.st_size, expectedLength))
 
-                if expectedLength:
-                    s = os.stat(sharedLocation)
-                    if s.st_size != expectedLength:
-                        raise xenrt.XRTError("found in shared cache, but content-length (%d) differs from original (%d)" % (s.st_size, expectedLength))
+                os.link(cache, perJobLocation) 
 
-            os.link(sharedLocation, perJobLocation) 
+                # Return the cache location in the per-job cache
+                return perJobLocation
 
-            # Return the cache location in the per-job cache
-            return perJobLocation
-        else:
-            return None
+        # we reached till here, means file is not in cache.
+        return None
 
     def cleanup(self, days=None):
         if not days:

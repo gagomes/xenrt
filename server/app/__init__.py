@@ -15,6 +15,8 @@ class XenRTPage(Page):
         self._db = None
 
     def getUser(self):
+        if "X-Fake-User" in self.request.headers:
+            return self.request.headers['X-Fake-User']
         user = self.request.headers.get("X-Forwarded-User", "")
         if user == "(null)" or not user:
             return None

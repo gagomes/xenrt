@@ -285,7 +285,7 @@ class FileManager(object):
         filename = fnr.localName
         perJobLocation = self._perJobCacheLocation(filename)
         sharedLocation = self._sharedCacheLocation(filename)
-        externalLocation = _externalCacheLocation(filename)
+        externalLocation = self._externalCacheLocation(filename)
 
         # First try the per-job cache
         if os.path.exists(perJobLocation):

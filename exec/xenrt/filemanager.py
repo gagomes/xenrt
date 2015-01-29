@@ -145,6 +145,19 @@ class FileManager(object):
 
             else:
                 sharedLocation = self._sharedCacheLocation(localName)
+                # Check file size and decide which global cache to use. If file size is greater than
+                # FILE_SIZE_CACHE_LIMIT, we cache file on external storage.
+                try:
+                    fileSizeThreshold = float(xenrt.TEC().lookup("FILE_SIZE_CACHE_LIMIT", str(1 * xenrt.GIGA)))
+                    if fnr.isSimpleFile:
+                        r = requests.head(fnr.url, allow_redirects=True)
+                        if r.status_code == 200 and 'content-length' in r.headers and \
+                            r.headers['content-length'] > fileSizeThreshold:
+                            xenrt.TEC().logverbose("Using external cache")
+                            sharedLocation = self._externalCacheLocation(localName)
+                except:
+                    xenrt.TEC().warning('File Manager failed to fetch file size.')
+
                 perJobLocation = self._perJobCacheLocation(localName)
                 f = open("%s.fetching" % sharedLocation, "w")
                 f.write(str(xenrt.GEC().jobid()) or "nojob")
@@ -350,7 +363,7 @@ class FileManager(object):
             return xenrt.isUrlFetchable(fnr.url)
         finally:
             self.lock.release()
-    
+
 def getFileManager():
     global fm
     if not fm:

@@ -140,6 +140,8 @@ class UploadTestLog(_FilesBase):
         fh = self.request.POST['file'].file
         self.uploadFile(detailid, "test", fh)
 
+
+
 RegisterAPI(UploadAttachment)
 RegisterAPI(UploadJobLog)
 RegisterAPI(UploadTestLog)

@@ -8,7 +8,7 @@ import jsonschema
 
 class _MachineBase(XenRTAPIv2Page):
 
-    def getStatus(self,
+    def getMachineStatus(self,
                   status,
                   leaseuser,
                   pool):
@@ -97,7 +97,7 @@ class _MachineBase(XenRTAPIv2Page):
                 "cluster": rc[2].strip(),
                 "pool": rc[3].strip(),
                 "rawstatus": rc[4].strip(),
-                "status": self.getStatus(rc[4].strip(), rc[7].strip() if rc[7] else None, rc[3].strip()),
+                "status": self.getMachineStatus(rc[4].strip(), rc[7].strip() if rc[7] else None, rc[3].strip()),
                 "resources": rc[5].strip().split("/"),
                 "flags": [],
                 "leaseuser": rc[7].strip() if rc[7] else None,
@@ -185,6 +185,61 @@ class _MachineBase(XenRTAPIv2Page):
             finally:
                 cur.close()
     
+    def return_machine(self, machine, user, force, canForce=True, commit=True):
+        machines = self.getMachines(limit=1, machines=[machine])
+        if not machine in machines:
+            raise XenRTAPIError(HTTPNotFound, "Machine not found")
+
+        leasedTo = machines[machine]['leaseuser']
+        if not leasedTo:
+            raise XenRTAPIError(HTTPPreconditionFailed, "Machine is not leased")
+        elif leasedTo and leasedTo != user and not force:
+            raise XenRTAPIError(HTTPUnauthorized, "Machine is leased to %s" % leasedTo, canForce=canForce)
+        
+        db = self.getDB()
+        cur = db.cursor()
+        cur.execute("UPDATE tblMachines SET leaseTo = NULL, comment = NULL, leasefrom = NULL, leasereason = NULL "
+                    "WHERE machine = %s",
+                    [machine])
+        if commit:
+            db.commit()
+        cur.close()        
+
+    def lease(self, machine, user, duration, reason, force):
+        leaseFrom = time.strftime("%Y-%m-%d %H:%M:%S",
+                                time.gmtime(time.time()))
+        if duration:
+            leaseToTime = time.gmtime(time.time() + (duration * 3600))
+            leaseTo = time.strftime("%Y-%m-%d %H:%M:%S", leaseToTime)
+        else: 
+            leaseTo = "2030-01-01 00:00:00"
+            leaseToTime = time.strptime(leaseTo, "%Y-%m-%d %H:%M:%S")
+            duration = (calendar.timegm(leaseToTime) - time.time()) / 3600
+        
+
+        machines = self.getMachines(limit=1, machines=[machine])
+        if not machine in machines:
+            raise XenRTAPIError(HTTPNotFound, "Machine not found")
+
+        leasePolicy = machines[machine]['leasepolicy']
+        if leasePolicy and duration > leasePolicy:
+            raise XenRTAPIError(HTTPUnauthorized, "The policy for this machine only allows leasing for %d hours, please contact QA if you need a longer lease" % leasePolicy, canForce=False)
+        
+        leasedTo = machines[machine]['leaseuser']
+        if leasedTo and leasedTo != user and not force:
+            raise XenRTAPIError(HTTPUnauthorized, "Machine is already leased to %s" % leasedTo, canForce=True)
+        currentLeaseTime = machines[machine]['leaseto']
+        if currentLeaseTime and time.gmtime(currentLeaseTime) > leaseToTime and not force:
+            raise XenRTAPIError(HTTPNotAcceptable, "Machines is already leased for longer", canForce=True)
+
+        db = self.getDB()
+        cur = db.cursor()
+        cur.execute("UPDATE tblMachines SET leaseTo = %s, leasefrom = %s, comment = %s, leasereason = %s "
+                    "WHERE machine = %s",
+                    [leaseTo, leaseFrom, user, reason, machine])
+        db.commit()
+        cur.close()        
+
 
 class ListMachines(_MachineBase):
     PATH = "/machines"
@@ -339,41 +394,6 @@ class LeaseMachine(_MachineBase):
     OPERATION_ID = "lease_machine"
     PARAM_ORDER = ['name', 'duration', 'reason', 'force']
 
-    def lease(self, machine, user, duration, reason, force):
-        leaseFrom = time.strftime("%Y-%m-%d %H:%M:%S",
-                                time.gmtime(time.time()))
-        if duration:
-            leaseToTime = time.gmtime(time.time() + (duration * 3600))
-            leaseTo = time.strftime("%Y-%m-%d %H:%M:%S", leaseToTime)
-        else: 
-            leaseTo = "2030-01-01 00:00:00"
-            leaseToTime = time.strptime(leaseTo, "%Y-%m-%d %H:%M:%S")
-            duration = (calendar.timegm(leaseToTime) - time.time()) / 3600
-        
-
-        machines = self.getMachines(limit=1, machines=[machine])
-        if not machine in machines:
-            raise XenRTAPIError(HTTPNotFound, "Machine not found")
-
-        leasePolicy = machines[machine]['leasepolicy']
-        if leasePolicy and duration > leasePolicy:
-            raise XenRTAPIError(HTTPUnauthorized, "The policy for this machine only allows leasing for %d hours, please contact QA if you need a longer lease" % leasePolicy, canForce=False)
-        
-        leasedTo = machines[machine]['leaseuser']
-        if leasedTo and leasedTo != user and not force:
-            raise XenRTAPIError(HTTPUnauthorized, "Machine is already leased to %s" % leasedTo, canForce=True)
-        currentLeaseTime = machines[machine]['leaseto']
-        if currentLeaseTime and time.gmtime(currentLeaseTime) > leaseToTime and not force:
-            raise XenRTAPIError(HTTPNotAcceptable, "Machines is already leased for longer", canForce=True)
-
-        db = self.getDB()
-        cur = db.cursor()
-        cur.execute("UPDATE tblMachines SET leaseTo = %s, leasefrom = %s, comment = %s, leasereason = %s "
-                    "WHERE machine = %s",
-                    [leaseTo, leaseFrom, user, reason, machine])
-        db.commit()
-        cur.close()        
-
     def render(self):
         try: 
             params = json.loads(self.request.body)
@@ -416,25 +436,6 @@ class ReturnMachine(_MachineBase):
         }
     RESPONSES = { "200": {"description": "Successful response"}}
     OPERATION_ID = "return_leased_machine"
-
-    def return_machine(self, machine, user, force):
-        machines = self.getMachines(limit=1, machines=[machine])
-        if not machine in machines:
-            raise XenRTAPIError(HTTPNotFound, "Machine not found")
-
-        leasedTo = machines[machine]['leaseuser']
-        if not leasedTo:
-            raise XenRTAPIError(HTTPPreconditionFailed, "Machine is not leased")
-        elif leasedTo and leasedTo != user and not force:
-            raise XenRTAPIError(HTTPUnauthorized, "Machine is leased to %s" % leasedTo, canForce=True)
-        
-        db = self.getDB()
-        cur = db.cursor()
-        cur.execute("UPDATE tblMachines SET leaseTo = NULL, comment = NULL, leasefrom = NULL, leasereason = NULL "
-                    "WHERE machine = %s",
-                    [machine])
-        db.commit()
-        cur.close()        
 
     def render(self):
         try:

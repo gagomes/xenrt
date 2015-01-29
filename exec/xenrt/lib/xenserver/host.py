@@ -14348,7 +14348,7 @@ class ClearwaterPool(TampaPool):
         return socketCount
 
     #This is a temp license function once clearwater and trunk will be in sync this will become "license" funtion
-    def templicense(self, edition = "free", v6server = None, mockLicense = False):
+    def license(self, edition = "free", v6server = None, mockLicense = False,sku=None):
 
         if edition == "per-socket" or edition == "xendesktop":
             if not v6server and not mockLicense:

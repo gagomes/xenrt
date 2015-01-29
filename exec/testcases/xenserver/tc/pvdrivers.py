@@ -1153,8 +1153,8 @@ class TCPrepareDriverUpgrade(xenrt.TestCase):
     def run(self, arglist):
         args = xenrt.util.strlistToDict(arglist)
         template = args["template"]
-        tag = arg["tag"]
-        hotfix = arg["hotfix"]
+        tag = args["tag"]
+        hotfix = args["hotfix"]
 
         host = self.getDefaultHost()
 

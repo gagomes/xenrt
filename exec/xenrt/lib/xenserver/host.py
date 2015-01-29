@@ -22,7 +22,9 @@ import xenrt.lib.xenserver.jobtests
 from  xenrt.lib.xenserver import licensedfeatures
 import XenAPI
 from xenrt.lazylog import *
+from xenrt.lib.xenserver.iptablesutil import IpTablesFirewall
 from xenrt.lib.xenserver.licensing import LicenceManager, XenServerLicenceFactory
+
 
 # Symbols we want to export from the package.
 __all__ = ["Host",
@@ -6491,6 +6493,8 @@ fi
                         template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_1204")
             elif re.search("ubuntu1404", distro):
                 template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_1404")
+            elif re.search("coreos-", distro):
+                template = self.chooseTemplate("TEMPLATE_NAME_COREOS")
             elif re.search(r"other", distro):
                 template = self.chooseTemplate("TEMPLATE_OTHER_MEDIA")
             else:
@@ -8034,8 +8038,11 @@ rm -f /etc/xensource/xhad.conf || true
  
         license = XenServerLicenceFactory().maxLicenceSkuHost(self)
         LicenceManager().addLicensesToServer(v6server,license,getLicenseInUse=False)
-        self.license(edition = license.getEdition(), v6server=v6server)
+        self.license(edition = license.getEdition(), v6server=v6server,usev6testd=False)
         
+    def getIpTablesFirewall(self):
+        """IPTablesFirewall object used to create and delete iptables rules."""
+        return IpTablesFirewall(self)
 
 #############################################################################
 
@@ -10622,7 +10629,7 @@ class ClearwaterHost(TampaHost):
     DOM0_VCPU_NOT_PINNED = 'nopin'
     
     #This is a temp license function once clearwater and trunk will be in sync this will become "license" funtion
-    def license(self, edition = "free", v6server = None, mockLicense = False, sku=None):
+    def license(self, edition = "free", v6server = None, mockLicense = False, sku=None,usev6testd=False):
 
         if mockLicense == True:
 

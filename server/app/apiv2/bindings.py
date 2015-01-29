@@ -133,7 +133,10 @@ class Path(object):
 
     @property
     def description(self):
-        ret = "        \"\"\" %s\n            Parameters:\n" % (self.data['description'])
+        ret = "        \"\"\" %s\n" % (self.data['summary'])
+        if "description" in self.data:
+            ret += "            %s" % self.data['description']
+        ret += "            Parameters:\n"
         for p in self.argdesc:
             ret += "                 %s\n" % (p)
         ret += "        \"\"\""

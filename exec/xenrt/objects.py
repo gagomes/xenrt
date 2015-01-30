@@ -6529,7 +6529,7 @@ exit 0
     def getInstallDisk(self, ccissIfAvailable=False, legacySATA=False):
         return self._getMainDisks(ccissIfAvailable=ccissIfAvailable, count=1, legacySATA=legacySATA)[0]
 
-    def getGuestDisks(self, count=1, ccissIfAvailable=False, legaySATA=False):
+    def getGuestDisks(self, count=1, ccissIfAvailable=False, legacySATA=False):
         disks = self._getDisks("OPTION_GUEST_DISKS", False, count=count, ccissIfAvailable=ccissIfAvailable, legacySATA=legacySATA)
         if disks:
             return disks

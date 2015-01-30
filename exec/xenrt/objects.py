@@ -6505,7 +6505,7 @@ exit 0
         except:
             pass
         try:
-            if legaySATA:
+            if legacySATA:
                 disks = self.lookup([var, "LEGACY_SATA"], None)
             else:
                 disks = self.lookup([var, "SATA"], None)

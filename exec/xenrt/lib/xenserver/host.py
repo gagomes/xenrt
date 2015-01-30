@@ -1,4 +1,4 @@
-#
+   #
 # XenRT: Test harness for Xen and the XenServer product family
 #
 # Encapsulate a XenServer host.
@@ -288,7 +288,7 @@ def createHost(id=0,
                 nameserver = None
             hostname = m.name
 
-    guestdisks = host.getGuestDisks(ccissIfAvailable=host.USE_CCISS, count=diskCount)
+    guestdisks = host.getGuestDisks(ccissIfAvailable=host.USE_CCISS, count=diskCount, legacySATA=(not host.isCentOS7Dom0()))
 
     if diskCount > len(guestdisks):
         raise xenrt.XRTError("Wanted %u disks but we only have: %s" %
@@ -296,7 +296,7 @@ def createHost(id=0,
     if host.bootLun:
         primarydisk = "disk/by-id/scsi-%s" % host.bootLun.getID()
     else:
-        primarydisk = host.getInstallDisk(ccissIfAvailable=host.USE_CCISS)
+        primarydisk = host.getInstallDisk(ccissIfAvailable=host.USE_CCISS, legacySATA=(not host.isCentOS7Dom0()))
 
     handle = host.install(interfaces=interfaces,
                           nameserver=nameserver,
@@ -772,6 +772,8 @@ class Host(xenrt.GenericHost):
                     # In this situation a path that includes cciss- will not work. See CA-121184 for details
                     if "cciss" in primarydisk:
                         primarydisk = self.getInstallDisk(ccissIfAvailable=self.USE_CCISS)
+                    if "scsi-SATA" in primarydisk and self.isCentOS7Dom0():
+                        primarydisk = self.getInstallDisk(legacySATA=False)
                 else:
                     primarydisk = "sda"
 
@@ -8044,6 +8046,8 @@ rm -f /etc/xensource/xhad.conf || true
         """IPTablesFirewall object used to create and delete iptables rules."""
         return IpTablesFirewall(self)
 
+    def isCentOS7Dom0(self):
+        return False
 #############################################################################
 
 class MNRHost(Host):
@@ -10900,7 +10904,7 @@ class ClearwaterHost(TampaHost):
 <backup-disk>%s</backup-disk>
 <install-failed-script>%s</install-failed-script>
 </restore>
-""" % (self.getInstallDisk(ccissIfAvailable=self.USE_CCISS), furl)
+""" % (self.getInstallDisk(ccissIfAvailable=self.USE_CCISS, legacySATA=(not self.isCentOS7Dom0())), furl)
         ans.write(anstext)
         ans.close()
         packdir.copyIn(ansfile)

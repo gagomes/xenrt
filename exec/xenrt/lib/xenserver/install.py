@@ -68,7 +68,7 @@ class DundeeInstaller(object):
                     # Handle the case where its a cciss disk going into a Dundee+ host with CentOS 6.4+ udev rules
                     # In this situation a path that includes cciss- will not work. See CA-121184 for details
                     if "cciss" in primarydisk:
-                        primarydisk = self.host.getInstallDisk(ccissIfAvailable=self.host.USE_CCISS)
+                        primarydisk = self.host.getInstallDisk(ccissIfAvailable=self.host.USE_CCISS, legacySATA=(not self.host.isCentOS7Dom0()))
                 else:
                     primarydisk = "sda"
 

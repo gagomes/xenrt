@@ -130,6 +130,7 @@ class FileManager(object):
     def __init__(self):
         self.cachedir = xenrt.TempDirectory().path()
         self.lock = threading.Lock()
+        self.isUsingExternalCache = False
 
     def getFile(self, filename, multiple=False):
         try:
@@ -155,6 +156,7 @@ class FileManager(object):
                             r.headers['content-length'] > fileSizeThreshold:
                             xenrt.TEC().logverbose("Using external cache")
                             sharedLocation = self._externalCacheLocation(localName)
+                            self.isUsingExternalCache = True
                 except Exception, e:
                     xenrt.TEC().warning('File Manager failed to fetch file size on external cache: %s' % e)
 
@@ -185,7 +187,12 @@ class FileManager(object):
 
     def __getSingleFile(self, url, sharedLocation):
         try:
-            xenrt.util.command("wget%s -nv '%s' -O '%s.part'" % (self.__proxyflag, url, sharedLocation))
+            if self.isUsingExternalCache:
+                # we need to increase tiemout for two reasons: 1) File is huge and may require long time
+                # 2) Using external nfs might slow down file fetching.
+                xenrt.util.command("wget%s -nv '%s' -O '%s.part'" % (self.__proxyflag, url, sharedLocation), timeout = 6*3600)
+            else:
+                xenrt.util.command("wget%s -nv '%s' -O '%s.part'" % (self.__proxyflag, url, sharedLocation))
         except:
             os.unlink('%s.part' % sharedLocation)
             raise

@@ -244,7 +244,7 @@ def readMachineFromRackTables(machine,kvm=False):
                 xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"LOCAL_SR_POST_INSTALL"], "yes")
 
     # Other config
-    comment = o.getComment()
+    comment = o.getComment() or ""
     m = re.search("== XenRT config ==(.*)== XenRT config ==", comment, re.DOTALL|re.IGNORECASE)
     if m:
         try:

@@ -174,8 +174,10 @@ class FileManager(object):
                 else:
                     self.__getSingleFile(url, sharedLocation)
                 os.chmod(sharedLocation, stat.S_IRWXU | stat.S_IRWXG | stat.S_IROTH | stat.S_IXOTH)
-                os.link(sharedLocation, perJobLocation) 
 
+                if self.isUsingExternalCache:
+                    return sharedLocation
+                os.link(sharedLocation, perJobLocation) 
                 return perJobLocation
         except Exception, e:
             xenrt.TEC().logverbose("Warning - could not fetch %s - %s" % (filename, e))
@@ -268,19 +270,21 @@ class FileManager(object):
         return "%s/%s" % (dirname, self._filename(filename))
 
     def _externalCacheLocation(self, filename, ignoreError=False):
-        nfssr = xenrt.TEC().lookup("FILE_MANAGER_CACHE2_NFS", None)
-        if nfssr:
-            cachedir="/tmp/cache"
-            if not os.path.exists(cachedir):
+        cachedir="/tmp/cache"
+        try:
+            if not os.path.exists(cachedir) or not xenrt.command("stat -f -c %%T %s" % cachedir).strip() == "nfs":
+                xenrt.rootops.sudo("rm -rf %s" % (cachedir))
                 os.makedirs(cachedir)
-                xenrt.command("sudo mount -onfsvers=3 -t nfs %s %s" % (nfssr, cachedir))
-            dirname = "%s/%s" % (cachedir, hashlib.sha256(filename).hexdigest())
-            if not os.path.exists(dirname):
-                os.makedirs(dirname)
-            return "%s/%s" % (dirname, self._filename(filename))
-        if ignoreError:
-            return None
-        raise xenrt.XRTError("config variable FILE_MANAGER_CACHE2_NFS is not set.")
+                xenrt.command("sudo mount -onfsvers=3 -t nfs %s %s" % (xenrt.TEC().lookup("FILE_MANAGER_CACHE2_NFS"), cachedir))
+            if xenrt.command("stat -f -c %%T %s" % cachedir).strip() == "nfs":
+                dirname = "%s/%s" % (cachedir, hashlib.sha256(filename).hexdigest())
+                if not os.path.exists(dirname):
+                    os.makedirs(dirname)
+                return "%s/%s" % (dirname, self._filename(filename))
+        except Exception, e:
+            if ignoreError:
+                return None
+            raise xenrt.XRTError("_externalCacheLocation: %s" % str(e))
 
     def removeFromCache(self, filename):
         sharedLocation = self._sharedCacheLocation(filename)

@@ -6512,7 +6512,7 @@ exit 0
         except:
             pass
         if not disks:
-            disks = self.lookup("OPTION_CARBON_DISKS", None)
+            disks = self.lookup(var, None)
             # REQ-35: (Better) temp fix until we fix all of the config files
             if not legacySATA and disks and "scsi-SATA" in "".join(disks):
                 disks = None

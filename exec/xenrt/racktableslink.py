@@ -253,7 +253,7 @@ def readMachineFromRackTables(machine,kvm=False):
             xenrt.TEC().logverbose("Warning - could not load yaml config from racktables: %s" % str(e))
         else:
             for k in cfg.keys():
-                xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,k], cfg[k])
+                xenrt.GEC().config.config["HOST_CONFIGS"][machine][k] = cfg[k]
 
     # KVM (useful for DNS)
     try:

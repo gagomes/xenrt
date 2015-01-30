@@ -158,7 +158,7 @@ class FileManager(object):
                             sharedLocation = self._externalCacheLocation(localName)
                             self.isUsingExternalCache = True
                 except Exception, e:
-                    xenrt.TEC().warning('File Manager failed to fetch file size on external cache: %s' % e)
+                    xenrt.TEC().warning('Reverting:Using internal shared cache. File Manager failed: %s' % e)
 
                 perJobLocation = self._perJobCacheLocation(localName)
                 f = open("%s.fetching" % sharedLocation, "w")
@@ -280,7 +280,7 @@ class FileManager(object):
             return "%s/%s" % (dirname, self._filename(filename))
         if ignoreError:
             return None
-        raise xenrt.XRTError("Location '%s' is not an external storage" % dirname)
+        raise xenrt.XRTError("config variable FILE_MANAGER_CACHE2_NFS is not set.")
 
     def removeFromCache(self, filename):
         sharedLocation = self._sharedCacheLocation(filename)

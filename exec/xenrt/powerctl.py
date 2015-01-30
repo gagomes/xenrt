@@ -48,7 +48,7 @@ class _PowerCtlBase:
     def command(self, command, retval="string"):
         if self.verbose:
             sys.stderr.write("Executing %s\n" % command)
-        return xenrt.util.command(command, retval)
+        return xenrt.util.localOrRemoteCommand(command, retval)
 
     def setVerbose(self):
         self.verbose = True

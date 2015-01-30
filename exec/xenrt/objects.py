@@ -11999,10 +11999,10 @@ class XenMobileApplianceServer:
         dns = xenrt.TEC().lookup(["NETWORK_CONFIG", "DEFAULT", "NAMESERVERS"], "").split(",")[0].strip()
 
         # choose root passwd
-        self.guest.writeToConsole("%s\\n" % xenrt.TEC().lookup("ROOT_PASSWORD"))
+        self.guest.writeToConsole("%s\\n" % self.password)
         xenrt.sleep(2)
         # retype root passwd
-        self.guest.writeToConsole("%s\\n" % xenrt.TEC().lookup("ROOT_PASSWORD"))
+        self.guest.writeToConsole("%s\\n" % self.password)
         xenrt.sleep(2)
         # type static-ip
         self.guest.writeToConsole("%s\\n" % ip)

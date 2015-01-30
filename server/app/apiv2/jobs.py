@@ -1,4 +1,5 @@
 from app.apiv2 import *
+from machines import _MachineBase
 from pyramid.httpexceptions import *
 import app.constants
 import calendar
@@ -9,9 +10,9 @@ import urlparse
 import StringIO
 import requests
 
-class _JobsBase(XenRTAPIv2Page):
+class _JobsBase(_MachineBase):
 
-    def getStatus(self, status, removed):
+    def getJobStatus(self, status, removed):
         if removed == "yes":
             return "removed"
         else:
@@ -96,7 +97,7 @@ class _JobsBase(XenRTAPIv2Page):
                     "REMOVED": rc[8].strip(),
                 },
                 "user": rc[5].strip(),
-                "status": self.getStatus(rc[4].strip(), rc[8].strip()),
+                "status": self.getJobStatus(rc[4].strip(), rc[8].strip()),
                 "machines": rc[6].strip().split(",") if rc[6] else [],
                 "results": []
            }
@@ -404,12 +405,44 @@ class RemoveJob(_JobsBase):
          'in': 'path',
          'required': True,
          'description': 'Job ID to remove',
-         'type': 'integer'}]
+         'type': 'integer'},
+        {'name': 'body',
+         'in': 'body',
+         'required': True,
+         'description': 'Details of the update',
+         'schema': { "$ref": "#/definitions/removejob" }
+        }]
     RESPONSES = { "200": {"description": "Successful response"}}
     OPERATION_ID = "remove_job"
+    DEFINITIONS = {"removejob": {
+        "title": "Remove Job",
+        "type": "object",
+        "properties": {
+            "return_machines": {
+                "type": "boolean",
+                "description": "Whether to return the machines borrowed by this job"
+            }
+        }
+    }}
 
     def render(self):
-        self.updateJobField(int(self.request.matchdict['id']), "REMOVED", "yes")
+        try:
+            if self.request.body.strip():
+                j = json.loads(self.request.body)
+                jsonschema.validate(j, self.DEFINITIONS['removejob'])
+            else:
+                j = {}
+        except Exception, e:
+            raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
+        job = int(self.request.matchdict['id'])
+        jobinfo = self.getJobs(1, ids=[job], getParams=False,getResults=False,getLog=False)[job]
+        if jobinfo['status'] not in ('done', 'removed'):
+            self.updateJobField(job, "REMOVED", "yes")
+        if j.get('return_machines'):
+            for m in jobinfo['machines']:
+                self.return_machine(m, self.getUser(), False, canForce=False, commit=False)
+            self.getDB().commit()
+                 
         return {}
         
 class NewJob(_JobsBase):
@@ -641,9 +674,6 @@ class _GetAttachmentUrl(_JobsBase):
     RESPONSES = { "200": {"description": "Successful response"}}
     TAGS = ["jobs"]
 
-    def getServer(self, job, locationParam):
-        job = int(job)
-        
     def render(self):
         job = int(self.request.matchdict['id'])
         server = self.getJobs(1, ids=[job], getParams=True)[job]['params'][self.LOCATION_PARAM]
@@ -661,6 +691,31 @@ class GetAttachmentPostRun(_GetAttachmentUrl):
     PATH='/job/{id}/attachment/postrun/{file}'
     SUMMARY='Get URL for job attachment, uploaded after job ran'
     OPERATION_ID='get_job_attachment_post_run'
+
+class GetJobDeployment(_JobsBase):
+    PATH='/job/{id}/deployment'
+    REQTYPE='GET'
+    SUMMARY='Get deployment for job'
+    PARAMS = [
+        {'name': 'id',
+         'in': 'path',
+         'required': True,
+         'description': 'Job ID to get file from',
+         'type': 'integer'}]
+    TAGS = ["jobs"]
+    RESPONSES = { "200": {"description": "Successful response"}}
+
+    def render(self):
+        job = int(self.request.matchdict['id'])
+
+        try:
+            server = self.getJobs(1, ids=[job], getParams=True)[job]['params']['LOG_SERVER']
+            r = requests.get('http://%s/xenrt/api/v2/fileget/%d.deployment.json' % (server, job))
+            r.raise_for_status()
+            return r.json()
+        except Exception, e:
+            raise XenRTAPIError(HTTPNotFound, str(e))
+
 
 class UpdateJob(_JobsBase):
     REQTYPE="POST"
@@ -716,3 +771,4 @@ RegisterAPI(NewJob)
 RegisterAPI(UpdateJob)
 RegisterAPI(GetAttachmentPreRun)
 RegisterAPI(GetAttachmentPostRun)
+RegisterAPI(GetJobDeployment)

@@ -176,8 +176,9 @@ class FileManager(object):
                 os.chmod(sharedLocation, stat.S_IRWXU | stat.S_IRWXG | stat.S_IROTH | stat.S_IXOTH)
 
                 if self.isUsingExternalCache:
-                    return sharedLocation
-                os.link(sharedLocation, perJobLocation) 
+                    os.symlink(sharedLocation, perJobLocation)
+                else:
+                    os.link(sharedLocation, perJobLocation)
                 return perJobLocation
         except Exception, e:
             xenrt.TEC().logverbose("Warning - could not fetch %s - %s" % (filename, e))
@@ -276,6 +277,7 @@ class FileManager(object):
                 xenrt.rootops.sudo("rm -rf %s" % (cachedir))
                 os.makedirs(cachedir)
                 xenrt.command("sudo mount -onfsvers=3 -t nfs %s %s" % (xenrt.TEC().lookup("FILE_MANAGER_CACHE2_NFS"), cachedir))
+                xenrt.rootops.sudo("chmod 777 %s" % (cachedir))
             if xenrt.command("stat -f -c %%T %s" % cachedir).strip() == "nfs":
                 dirname = "%s/%s" % (cachedir, hashlib.sha256(filename).hexdigest())
                 if not os.path.exists(dirname):
@@ -350,8 +352,10 @@ class FileManager(object):
                         if s.st_size != expectedLength:
                             raise xenrt.XRTError("found in global cache, but content-length (%d) differs from original (%d)" % (s.st_size, expectedLength))
 
-                os.link(cache, perJobLocation) 
-
+                if cache == externalLocation:
+                    os.symlink(cache, perJobLocation)
+                else:
+                    os.link(cache, perJobLocation)
                 # Return the cache location in the per-job cache
                 return perJobLocation
 

@@ -307,6 +307,9 @@ class IPMIWithPDUFallback(_PowerCtlBase):
         self.ipmi = IPMI(machine)
         self.PDU = PDU(machine)
 
+    def setBootDev(self, dev, persist=False):
+        self.ipmi.setBootDev(dev, persist)
+
     def setVerbose(self):
         _PowerCtlBase.setVerbose(self)
         self.ipmi.setVerbose()

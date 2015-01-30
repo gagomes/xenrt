@@ -271,7 +271,7 @@ class FileManager(object):
         return "%s/%s" % (dirname, self._filename(filename))
 
     def _externalCacheLocation(self, filename, ignoreError=False):
-        cachedir="local/scratch/cache_nfs"
+        cachedir="/local/scratch/cache_nfs"
         try:
             if not os.path.exists(cachedir) or not xenrt.command("stat -f -c %%T %s" % cachedir).strip() == "nfs":
                 xenrt.rootops.sudo("rm -rf %s" % (cachedir))

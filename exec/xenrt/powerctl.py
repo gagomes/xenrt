@@ -363,7 +363,7 @@ class IPMI(_PowerCtlBase):
         cmd = "chassis bootdev %s" % dev
         if persist:
             cmd += " options=persistent"
-        self.ipmi(cmd)
+        self.ipmi(cmd, resetOnFailure=False)
 
     def triggerNMI(self):
         self.ipmi("chassis power diag")
@@ -436,7 +436,7 @@ class IPMI(_PowerCtlBase):
             else:
                 self.ipmi("chassis power on") # In case the machine was hard powered off
 
-    def ipmi(self, action):
+    def ipmi(self, action, resetOnFailure=True):
         # New method
         address = self.machine.host.lookup("BMC_ADDRESS", None)
         if not address:
@@ -454,7 +454,18 @@ class IPMI(_PowerCtlBase):
             user = ""
         command = "ipmitool -I %s -H %s %s %s %s" % \
                    (ipmiintf, address, auth, user, action)
-        return self.command(command)
+        try:
+            return self.command(command)
+        except Exception, e:
+            resetcmd = self.machine.host.lookup("BMC_RESET_COMMAND", None)
+            if resetcmd and resetOnFailure:
+                xenrt.TEC().logverbose("Could not execute command: %s" % str(e))
+                self.command(resetcmd) # Reset the BMC
+                xenrt.sleep(60) # Allow 1 minute for the IPMI controller to restart
+                return self.command(command)
+            else:
+                raise
+
 
 class Custom(_PowerCtlBase):
 

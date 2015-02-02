@@ -108,6 +108,8 @@ class _JobBase(_MachineBase):
                 jobs[rc[0]]['params']["UPLOADED"] = rc[7].strip()
        
         if len(jobs.keys()) == 0:
+            if exceptionIfEmpty:
+                raise XenRTAPIError(HTTPNotFound, "Job not found")
             return jobs
 
         jobidlist = ", ".join(["%s"] * len(jobs.keys()))
@@ -191,8 +193,6 @@ class _JobBase(_MachineBase):
             for j in jobs.keys():
                 del jobs[j]['params']
 
-        if exceptionIfEmpty and not jobs:
-            raise XenRTAPIError(HTTPNotFound, "Job not found")
             
 
         return jobs

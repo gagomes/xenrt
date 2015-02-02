@@ -128,7 +128,7 @@ class _JobBase(_MachineBase):
             jobs[j]['result'] = jobs[j]['params'].get("CHECK")
             jobs[j]['attachmentUploadUrl'] = "%s://%s%s/api/v2/job/%d/attachments" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
             jobs[j]['logUploadUrl'] = "%s://%s%s/api/v2/job/%d/log" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
-            if jobs[j]['params']['UPLOADED'] == "yes":
+            if jobs[j]['params'].get('UPLOADED') == "yes":
                 logUrl = "%s://%s%s/api/v2/fileget/%d" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
             else:
                 logUrl = None

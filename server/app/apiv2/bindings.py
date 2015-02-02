@@ -61,9 +61,11 @@ class Path(object):
                 else:
                     ret += """        if %s != None:\n            payload['%s'] = %s\n""" % (q, p, q)
         if self.method == "get":
-            ret += """        r = requests.get(path, params=paramdict, auth=(self.user, self.password))\n"""
+            ret += """        r = requests.get(path, params=paramdict, auth=(self.user, self.password), headers=self.customHeaders)\n"""
         else:
-            ret += """        r = requests.%s(path, params=paramdict, data=payload, files=files, auth=(self.user, self.password))\n""" % self.method
+            ret += """        myHeaders = {'content-type': 'application/json'}\n"""
+            ret += """        myHeaders.update(self.customHeaders)\n"""
+            ret += """        r = requests.%s(path, params=paramdict, data=payload, files=files, auth=(self.user, self.password), headers=myHeaders)\n""" % self.method
         ret += """        self.__raiseForStatus(r)\n"""
         if 'application/json' in self.data['produces']:
             ret += """        return r.json()"""
@@ -202,6 +204,7 @@ class XenRT(object):
         self.base = "%s://%s%s"
         self.user = user
         self.password = password
+        self.customHeaders = {}
 
     def __serializeForQuery(self, data):
         if isinstance(data, bool):

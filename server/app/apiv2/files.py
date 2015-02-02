@@ -1,11 +1,11 @@
 from app.apiv2 import *
-from app.apiv2.jobs import _JobsBase
+from app.apiv2.jobs import _JobBase
 from pyramid.httpexceptions import *
 import shutil
 import app.utils
 import mimetypes
 
-class _FilesBase(_JobsBase):
+class _FilesBase(_JobBase):
     def uploadFile(self, id, fn, fh):
         id = int(id)
         filename = app.utils.results_filename(fn, id, mkdir=1)

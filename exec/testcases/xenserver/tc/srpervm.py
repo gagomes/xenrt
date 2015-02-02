@@ -483,11 +483,17 @@ class ISCSIMPathScenario(BaseMultipathScenario):
 
 class ISCSIPathFail(BaseFailPath):
 
+    def setTestParams(self, arglist):
+        ISCSIMPathScenario.setTestParams(self, arglist)
+
     def disablePath(self, host):
         iptablesFirewall = host.getIpTablesFirewall()
         iptablesFirewall.blockIP(self.filerIP)
 
 class ISCSIPathRecover(ISCSIMPathScenario):
+
+    def setTestParams(self, arglist):
+        ISCSIMPathScenario.setTestParams(self, arglist)
 
     def enablePath(self, host):
         iptablesFirewall = host.getIpTablesFirewall()

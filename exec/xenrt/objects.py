@@ -7645,9 +7645,8 @@ class GenericGuest(GenericPlace):
                                  "< /etc/sysctl.conf.orig > /etc/sysctl.conf; "
                                  "echo 1 > /proc/sys/kernel/sysrq; ")
                     else:
-                        self.execguest("echo 'kernel.sysrq = 1' >> /etc/sysctl.conf;"
-                                   "echo 1 > /proc/sys/kernel/sysrq; "
-                                   "fi")
+                        self.execguest("echo 'kernel.sysrq = 1' >> /etc/sysctl.conf")
+                        self.execguest("echo 1 > /proc/sys/kernel/sysrq")
             except:
                 xenrt.TEC().warning("Error enabling syslog in %s" %
                                     (self.getName()))

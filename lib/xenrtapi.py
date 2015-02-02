@@ -4,6 +4,7 @@ import requests
 import json
 import httplib
 import os.path
+import netrc
 
 class XenRTAPIException(Exception):
     def __init__(self, code, reason, canForce):
@@ -18,10 +19,18 @@ class XenRTAPIException(Exception):
         return ret
 
 class XenRT(object):
-    def __init__(self, user, password):
+    def __init__(self, user=None, password=None):
         self.base = "http://api-dev.xenrt.citrite.net/xenrt/api/v2"
-        self.user = user
-        self.password = password
+
+        if not user:
+            auth = netrc.netrc().authenticators("api-dev.xenrt.citrite.net")
+            if not auth:
+                raise Exception("No authentication details specified by parameters or in .netrc for api-dev.xenrt.citrite.net")
+            self.user = auth[0]
+            self.password = auth[2]
+        else:
+            self.user = user
+            self.password = password
         self.customHeaders = {}
 
     def __serializeForQuery(self, data):

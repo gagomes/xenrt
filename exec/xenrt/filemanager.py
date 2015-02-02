@@ -130,13 +130,13 @@ class FileManager(object):
     def __init__(self):
         self.cachedir = xenrt.TempDirectory().path()
         self.lock = threading.Lock()
-        self.isUsingExternalCache = False
 
     def getFile(self, filename, multiple=False):
         try:
             xenrt.TEC().logverbose("getFile %s" % filename)
             self.lock.acquire()
             sharedLocation = None
+            isUsingExternalCache = False
             fnr = FileNameResolver(filename, multiple)
             url = fnr.url
             localName = fnr.localName
@@ -156,7 +156,7 @@ class FileManager(object):
                             r.headers['content-length'] > fileSizeThreshold:
                             xenrt.TEC().logverbose("Using external cache")
                             sharedLocation = self._externalCacheLocation(localName)
-                            self.isUsingExternalCache = True
+                            isUsingExternalCache = True
                 except Exception, e:
                     xenrt.TEC().warning('Reverting:Using internal shared cache. File Manager failed: %s' % e)
 
@@ -172,10 +172,10 @@ class FileManager(object):
                 elif fnr.singleFileWithWildcard:
                     self.__getSingleFileWithWildcard(url, sharedLocation)
                 else:
-                    self.__getSingleFile(url, sharedLocation)
+                    self.__getSingleFile(url, sharedLocation, isUsingExternalCache)
                 os.chmod(sharedLocation, stat.S_IRWXU | stat.S_IRWXG | stat.S_IROTH | stat.S_IXOTH)
 
-                if self.isUsingExternalCache:
+                if isUsingExternalCache:
                     os.symlink(sharedLocation, perJobLocation)
                 else:
                     os.link(sharedLocation, perJobLocation)
@@ -188,9 +188,9 @@ class FileManager(object):
                 os.unlink("%s.fetching" % sharedLocation)
             self.lock.release()
 
-    def __getSingleFile(self, url, sharedLocation):
+    def __getSingleFile(self, url, sharedLocation, isUsingExternalCache=False):
         try:
-            if self.isUsingExternalCache:
+            if isUsingExternalCache:
                 # we need to increase tiemout for two reasons: 1) File is huge and may require long time
                 # 2) Using external nfs might slow down file fetching.
                 xenrt.util.command("wget%s -nv '%s' -O '%s.part'" % (self.__proxyflag, url, sharedLocation), timeout = 6*3600)

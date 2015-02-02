@@ -17,34 +17,25 @@
         <network device="0" />
         <disk device="0" size="24" />
       </vm>
-      <vm name="rhel6">
-        <distro>rhel6</distro>
+      <vm name="ws08-x86">
+        <distro>ws08-x86</distro>
         <memory>1024</memory>
         <vcpus>2</vcpus>
         <network device="0" />
-        <disk device="0" size="8" />
-      </vm>
-      <vm name="win7-x86">
-        <distro>win7-x86</distro>
-        <memory>2048</memory>
-        <vcpus>2</vcpus>
-        <postinstall action="installDrivers" />
-        <network device="0" />
         <disk device="0" size="24" />
       </vm>
-     <vm name="vistaeesp2">
-        <distro>vistaeesp2</distro>
-        <memory>2048</memory>
+      <vm name="w2k3eesp2">
+        <distro>w2k3eesp2</distro>
+        <memory>512</memory>
         <vcpus>2</vcpus>
-        <postinstall action="installDrivers" />
         <network device="0" />
-        <disk device="0" size="24" />
+        <disk device="0" size="16" />
       </vm>
     </host>
   </prepare>
   <testsequence group="RdpXapi">
         <testcase id="xenserver.tc.rdpxapi.TC23790" tc="TC-23790" prio="3" >
-        <arg>guest=win81-x64</arg>
+        <arg>guestlist=win81-x64,ws08-x86,w2k3eesp2</arg>
         </testcase>
         <testcase id="xenserver.tc.rdpxapi.TC23791" tc="TC-23791" prio="3" >
         <arg>guest=rhel6</arg>

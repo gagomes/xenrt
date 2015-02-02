@@ -130,6 +130,8 @@ class FileManager(object):
     def __init__(self):
         self.cachedir = xenrt.TempDirectory().path()
         self.lock = threading.Lock()
+        self.defaultFetchTimeout = 3600
+        self.externalFetchTimeout = 6 * 3600
 
     def getFile(self, filename, multiple=False):
         try:
@@ -193,9 +195,9 @@ class FileManager(object):
             if isUsingExternalCache:
                 # we need to increase tiemout for two reasons: 1) File is huge and may require long time
                 # 2) Using external nfs might slow down file fetching.
-                xenrt.util.command("wget%s -nv '%s' -O '%s.part'" % (self.__proxyflag, url, sharedLocation), timeout = 6*3600)
+                xenrt.util.command("wget%s -nv '%s' -O '%s.part'" % (self.__proxyflag, url, sharedLocation), timeout = self.externalFetchTimeout)
             else:
-                xenrt.util.command("wget%s -nv '%s' -O '%s.part'" % (self.__proxyflag, url, sharedLocation))
+                xenrt.util.command("wget%s -nv '%s' -O '%s.part'" % (self.__proxyflag, url, sharedLocation), timeout = self.defaultFetchTimeout)
         except:
             os.unlink('%s.part' % sharedLocation)
             raise
@@ -321,10 +323,18 @@ class FileManager(object):
         for cache in globalCaches:
             if os.path.exists("%s.fetching" % cache):
                 xenrt.TEC().logverbose("File is fetching - waiting")
-                while True:
+                if cache == externalLocation:
+                    deadline = xenrt.util.timenow() + self.externalFetchTimeout
+                else:
+                    deadline = xenrt.util.timenow() + self.defaultFetchTimeout
+                while xenrt.util.timenow() < deadline:
                     if not os.path.exists("%s.fetching" % cache):
                         break
                     xenrt.sleep(15)
+
+                # we need to raise an alarm if any fetching file is not deleted.
+                if xenrt.util.timenow() > deadline:
+                    raise xenrt.XRTError("found %s.fetching, file exceeds its max possible download duration." % cache)
 
             # Now check whether the file is available
             if os.path.exists(cache):

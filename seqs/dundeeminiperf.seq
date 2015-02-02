@@ -1,0 +1,78 @@
+<xenrt>
+
+  <!-- minimal performance tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <perfcheck>
+    <!-- Sanity check performance -->
+    <limits>
+      <testcase name="TCnetperf">
+        <metric name="TX:TCP:131072:1496" min="700" max="1000"/>
+        <metric name="RX:TCP:131072:1496" min="700" max="1000"/>
+      </testcase>
+      <testcase name="TCbonnie">
+        <metric name="Read" min="32768" max="99999999"/>
+        <metric name="Write" min="32768" max="99999999"/>
+      </testcase>
+    </limits>
+  </perfcheck>
+
+  <prepare>
+      <sharedhost>
+        <vm name="controller">
+          <file>%CONTROLLER_XVA%</file>
+          <memory>512</memory>
+          <bootparams>rootssh</bootparams>
+          <postinstall action="start"/>
+        </vm>
+      </sharedhost>
+    <pool>
+      <host>
+        <vm name="w2k3eesp2">
+          <distro>w2k3eesp2</distro>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <network device="0"/>
+          <postinstall action="installDrivers"/>
+        </vm>
+        <vm name="ws08r2-x64">
+          <distro>ws08r2-x64</distro>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <network device="0"/>
+          <postinstall action="installDrivers"/>
+        </vm>
+      </host>
+      <NETWORK controller="controller"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="W2k3EESP2" guest="w2k3eesp2">
+      <testcase id="benchmarks.micro.TCnetperf" tc="TC-6961" prio="3"/>
+      <testcase id="benchmarks.micro.TCiometer" tc="TC-6957" prio="3"/>
+      <testcase id="benchmarks.app.TCspecjbb" tc="TC-6958" prio="3"/>
+      <testcase id="benchmarks.app.TCspecjbb2005" tc="TC-6959" prio="3"/>
+      <testcase id="benchmarks.app.TCSQLIO" tc="TC-6960" prio="3"/>
+    </serial>
+    <serial group="WS08R2x64" guest="ws08r2-x64">
+      <testcase id="benchmarks.micro.TCiometer" tc="TC-9587" prio="3"/>
+      <testcase id="benchmarks.app.TCspecjbb2005" tc="TC-9586" prio="3"/>
+      <!-- testcase id="benchmarks.app.TCSQLIO" tc="TC-9585" prio="3" -->
+    </serial>
+    <serial>
+      <finally>
+        <testcase id="guestops.basic.TCShutdown">
+          <arg>guest=controller</arg>
+          <arg>again</arg>
+        </testcase>
+      </finally>
+    </serial>
+  </testsequence>
+
+</xenrt>

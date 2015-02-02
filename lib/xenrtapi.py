@@ -592,7 +592,7 @@ class XenRT(object):
         return r.json()
 
 
-    def get_job(self, id):
+    def get_job_deployment(self, id):
         """ Get deployment for job
             Parameters:
                  id: integer - Job ID to get file from

@@ -7,12 +7,12 @@
 
 import sys, string, getopt, urllib, os, pwd, tempfile, xmlrpclib, shutil, json
 import os.path, re, glob, random, time
+import xenrtapi
 
 PROFILER_ENABLED = ("XENRT_PROFILE" in os.environ)
 XRTPROF = None
 XRTPROF_FILENAME = os.path.join(("TMP" in os.environ and os.environ["TMP"] or \
 	"/tmp"), "xenrt.prof")
-
 
 server_url_base = '@webcontrdir@'
 logserver_url_base = 'http://%s/share/control/'
@@ -34,24 +34,6 @@ _conserver = "@conserver@"
 _jenkins = "@jenkins@"
 _conskey = """@conskey@"""
 
-def urlopen_with_retry(*args, **kwargs):
-    i = 0
-    retryTimer = 2
-    exception = None
-    while i < 7:
-        try:
-            u = urllib.urlopen(*args, **kwargs)
-            if "getcode" in dir(u):
-                if u.getcode() >= 400:
-                    raise Exception("Invalid HTTP resonse code")
-            return u
-        except Exception, e:
-            time.sleep(retryTimer)
-            exception = e
-        i+= 1
-        retryTimer *= 2
-    raise e
-
 class XenRTCommand:
 
     name = "<default>"
@@ -66,6 +48,7 @@ class XenRTCommand:
     def __init__(self, commands):
         self.commands = commands
         self.proxies = None
+        self.xenrt = xenrtapi.XenRT()
 
     def getServerURL(self):
         return server_url
@@ -97,6 +80,9 @@ class XenRTCommand:
 
     def run(self, args):
         return 1
+
+    def boolToYN(self, val):
+        return "yes" if val else "no"
 
     def render(self, args, results):
         return 0
@@ -558,39 +544,20 @@ class XenRTStatus(XenRTCommand):
     group = "Job"
 
     def run(self, args):
-        details = {'action': 'status'}
-        details['USERID'] = pwd.getpwuid(os.getuid())[0]
-        if len(args) < 1:
-            sys.stderr.write("Invalid usage\n")
-            return None
-        id = string.atoi(args[0])
-        details["id"] = id
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            reply = self.parse_job(data)
-        u.close()
-
-        if not len(args[1:]):
-            return reply
-
-        for key in reply.keys():
-            if not key in args[1:]:
-                del reply[key]
-        
+        reply = self.xenrt.get_job(int(args[0]))
         return reply
 
     def render(self, args, results):
         # Print CHECK first (XRT-303)
-        if results.has_key("CHECK"):
-            self.printout("%s='%s'\n" % ("CHECK", results["CHECK"]))
-        for key in results.keys():
+        if results['result']:
+            self.printout("CHECK='%s'\n" % (results["result"]))
+        self.printout("JOBSTATUS='%s'\n" % (results["status"]))
+        self.printout("USERID='%s'\n" % (results["user"]))
+        self.printout("JOBID='%s'\n" % (results["id"]))
+        self.printout("PAUSED='%s'\n" % self.boolToYN("paused" in [x['result'] for x in results['results'].values()]))
+        for key in results['params'].keys():
             if key != "CHECK":
-                self.printout("%s='%s'\n" % (key, results[key]))
+                self.printout("%s='%s'\n" % (key, results['params'][key]))
         return 0
 
 class XenRTUtilisation(XenRTCommand):

@@ -158,4 +158,30 @@ class TC23793(xenrt.TestCase):
         self.guest.checkHealth()
 
 
+class TC23794(xenrt.TestCase):
+    """Test that post installation of tools collects the appropriate RDP settings."""
+
+    def prepare(self, arglist=None):
+        self.args  = self.parseArgsKeyValue(arglist)
+        self.guest = self.getGuest(self.args['guest'])
+        self.uninstallOnCleanup(self.guest)
+
+    def run(self, arglist=None):
+        xapiRdpObj = XapiRdp(self.guest)
+
+         # Enable the RDP on the guest
+        step(" Test is trying to enable the RDP on the guest by resetting fDenyTSConnections to 0")
+        self.guest.winRegAdd('HKLM', 'System\\CurrentControlSet\\Control\\Terminal Server\\', 'fDenyTSConnections',"DWORD", 0)
+        
+        #Install tools 
+        step("Installing the latest tools on the guest")
+        self.guest.installDrivers()
+        self.guest.waitForAgent(180)
+        self.guest.reboot()
+        self.guest.check()
+        
+        if not xapiRdpObj.isRdpEnabled():
+            raise xenrt.XRTFailure("After tools installation previous RDP settings lost on the guest %s " % (self.guest))
+        xenrt.TEC().logverbose("RDP settings made before new tools installation preserved on the guest %s" % (self.guest))
+        
 

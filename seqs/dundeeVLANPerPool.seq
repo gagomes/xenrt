@@ -13,7 +13,7 @@
   <testsequence>
   
     <!-- 800 VLANs per host(vswitch) -->
-    <testcase id="testcases.xenserver.tc.maxima.TC18881"/>
+    <testcase id="testcases.xenserver.tc.maxima.TC18881" blocker="yes"/>
     <!-- 800 VLANs per host(linux bridge) -->
     <testcase id="testcases.xenserver.tc.maxima.TC18846"/>
     

@@ -15,42 +15,42 @@ class TC23790(xenrt.TestCase):
 
     def prepare(self, arglist=None):
         self.args  = self.parseArgsKeyValue(arglist)
-        self.guest = self.getGuest(self.args['guest'])
-        self.uninstallOnCleanup(self.guest)
+        self.guestlist = self.getGuest(self.args['guestlist']).split(",")
 
     def run(self, arglist=None):
+        for self.guest in self.guestlist:
+            self.uninstallOnCleanup(self.guest)
+            xapiRdpObj = XapiRdp(self.guest)
 
-        xapiRdpObj = XapiRdp(self.guest)
+            # Check that RDP is disabled on the guest with no tools installed
+            if xapiRdpObj.isRdpEnabled():
+                raise xenrt.XRTFailure("RDP is enabled on the guest: %s with no tools %s ." % (self.guest))
+            xenrt.TEC().logverbose("RDP is currently diabled on the guest %s" % (self.guest))
 
-        # Check that RDP is disabled on the guest with no tools installed
-        if xapiRdpObj.isRdpEnabled():
-            raise xenrt.XRTFailure("RDP is enabled on the guest: %s with no tools %s ." % (self.guest))
-        xenrt.TEC().logverbose("RDP is currently diabled on the guest %s" % (self.guest))
+            # Check that XAPI can not switch RDP with no tools installed
+            if not xapiRdpObj.enableRdp():
+                raise xenrt.XRTFailure("XAPI enabled the RDP for the guest %s with no tools." % (self.guest))
+            xenrt.TEC().logverbose("XAPI couldn't enabled RDP for the guest %s with no tools" % (self.guest))
 
-        # Check that XAPI can not switch RDP with no tools installed
-        if not xapiRdpObj.enableRdp():
-            raise xenrt.XRTFailure("XAPI enabled the RDP for the guest %s with no tools." % (self.guest))
-        xenrt.TEC().logverbose("XAPI couldn't enabled RDP for the guest %s with no tools" % (self.guest))
+            #Install tools 
+            step("Installing the latest driver tools on the guest")
+            self.guest.installDrivers()
+            self.guest.waitForAgent(180)
+            self.guest.reboot()
+            self.guest.check()
 
-        #Install tools 
-        step("Installing the latest driver tools on the guest")
-        self.guest.installDrivers()
-        self.guest.waitForAgent(180)
-        self.guest.reboot()
-        self.guest.check()
+            # Check that XAPI can switch RDP with tools installed
+            if xapiRdpObj.enableRdp():
+                raise xenrt.XRTFailure("XAPI failed to enable the RDP on the guest %s with tools installed " % (self.guest))
+            xenrt.TEC().logverbose("XAPI successfully enabled the RDP for the guest: %s " % (self.guest))
+    
+            # win_guest_agent takes at max 10 seconds to update RDP status to data/ts
+            xenrt.sleep(10)
 
-        # Check that XAPI can switch RDP with tools installed
-        if xapiRdpObj.enableRdp():
-            raise xenrt.XRTFailure("XAPI failed to enable the RDP on the guest %s with tools installed " % (self.guest))
-        xenrt.TEC().logverbose("XAPI successfully enabled the RDP for the guest: %s " % (self.guest))
-
-        # win_guest_agent takes at max 10 seconds to update RDP status to data/ts
-        xenrt.sleep(10)
-
-        # Ensure that data/ts updated with latest RDP status
-        if not xapiRdpObj.isRdpEnabled():
-            raise xenrt.XRTFailure("Guest agent does not updated  data/ts about the RDP status change for the guest %s " % (self.guest))
-        xenrt.TEC().logverbose("Guest agent updated the RDP status in data/ts successfully for the guest %s" % (self.guest))
+            # Ensure that data/ts updated with latest RDP status
+            if not xapiRdpObj.isRdpEnabled():
+                raise xenrt.XRTFailure("Guest agent does not updated  data/ts about the RDP status change for the guest %s " % (self.guest))
+            xenrt.TEC().logverbose("Guest agent updated the RDP status in data/ts successfully for the guest %s" % (self.guest))
 
 class TC23791(xenrt.TestCase):
     """ Verify that XAPI cannot switch RDP for linux guests """

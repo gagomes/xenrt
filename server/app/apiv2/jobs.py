@@ -13,7 +13,7 @@ import requests
 class _JobBase(_MachineBase):
 
     def getJobStatus(self, status, removed):
-        if removed == "yes":
+        if removed and removed.strip() == "yes":
             return "removed"
         else:
             return status
@@ -96,14 +96,14 @@ class _JobBase(_MachineBase):
                     "OPTIONS": rc[3].strip(),
                     "UPLOADED": rc[7].strip(),
                 },
-                if rc[8] and rc[8].strip() == "yes":
-                    jobs[rc[0]]['params']["REMOVED"] = "yes"
-                    
                 "user": rc[5].strip(),
-                "status": self.getJobStatus(rc[4].strip(), rc[8].strip()),
+                "status": self.getJobStatus(rc[4].strip(), rc[8]),
                 "machines": rc[6].strip().split(",") if rc[6] else [],
                 "results": []
-           }
+            }
+            if rc[8] and rc[8].strip() == "yes":
+                jobs[rc[0]]['params']["REMOVED"] = "yes"
+            
        
         if len(jobs.keys()) == 0:
             return jobs

@@ -13,7 +13,7 @@ import requests
 class _JobBase(_MachineBase):
 
     def getJobStatus(self, status, removed):
-        if removed == "yes":
+        if removed and removed.strip() == "yes":
             return "removed"
         else:
             return status
@@ -90,18 +90,22 @@ class _JobBase(_MachineBase):
                 break
             jobs[rc[0]] = {
                 "id": rc[0],
-                "params": {
-                    "VERSION": rc[1].strip(),
-                    "REVISION": rc[2].strip(),
-                    "OPTIONS": rc[3].strip(),
-                    "UPLOADED": rc[7].strip(),
-                    "REMOVED": rc[8].strip(),
-                },
+                "params": {},
                 "user": rc[5].strip(),
-                "status": self.getJobStatus(rc[4].strip(), rc[8].strip()),
+                "status": self.getJobStatus(rc[4].strip(), rc[8]),
                 "machines": rc[6].strip().split(",") if rc[6] else [],
                 "results": []
-           }
+            }
+            if rc[8] and rc[8].strip():
+                jobs[rc[0]]['params']["REMOVED"] = rc[8].strip()
+            if rc[1] and rc[1].strip():
+                jobs[rc[0]]['params']["VERSION"] = rc[1].strip()
+            if rc[2] and rc[2].strip():
+                jobs[rc[0]]['params']["REVISION"] = rc[2].strip()
+            if rc[3] and rc[3].strip():
+                jobs[rc[0]]['params']["OPTIONS"] = rc[3].strip()
+            if rc[7] and rc[7].strip():
+                jobs[rc[0]]['params']["UPLOADED"] = rc[7].strip()
        
         if len(jobs.keys()) == 0:
             return jobs
@@ -124,7 +128,7 @@ class _JobBase(_MachineBase):
             jobs[j]['result'] = jobs[j]['params'].get("CHECK")
             jobs[j]['attachmentUploadUrl'] = "%s://%s%s/api/v2/job/%d/attachments" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
             jobs[j]['logUploadUrl'] = "%s://%s%s/api/v2/job/%d/log" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
-            if jobs[j]['params']['UPLOADED'] == "yes":
+            if jobs[j]['params'].get('UPLOADED') == "yes":
                 logUrl = "%s://%s%s/api/v2/fileget/%d" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
             else:
                 logUrl = None
@@ -151,7 +155,7 @@ class _JobBase(_MachineBase):
                 rc = cur.fetchone()
                 if not rc:
                     break
-                if rc[5].strip() == "yes":
+                if rc[5] and rc[5].strip() == "yes":
                     logUrl = "%s://%s%s/api/v2/fileget/%d.test" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), rc[2])
                 else:
                     logUrl = None
@@ -719,6 +723,7 @@ class GetJobDeployment(_JobBase):
          'type': 'integer'}]
     TAGS = ["jobs"]
     RESPONSES = { "200": {"description": "Successful response"}}
+    OPERATION_ID = 'get_job_deployment'
 
     def render(self):
         job = int(self.request.matchdict['id'])

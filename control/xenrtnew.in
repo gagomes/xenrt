@@ -642,27 +642,23 @@ class XenRTMachine(XenRTCommand):
     group = "Machine"
 
     def run(self, args):
-        details = {'action': 'machine'}
-        details['USERID'] = pwd.getpwuid(os.getuid())[0]
-        if len(args) != 1:
-            sys.stderr.write("Invalid usage\n")
-            return None
-        machine = args[0]
-        details["machine"] = machine
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            reply = self.parse_job(data)
-        u.close()
-        return reply
+        return self.xenrt.get_machine(args[0])
 
     def render(self, args, results):
-        for key in results.keys():
-            self.printout("%s='%s'\n" % (key, results[key]))
+        self.printout("STATUS='%s'\n" % results['rawstatus'])
+        for i in ('jobid', 'leasereason', 'pool', 'leaseuser', 'cluster', 'site'):
+            if results[i]:
+                self.printout("%s='%s'\n" % (i.upper(), results[i]))
+        for i in ('leaseto', 'leasefrom'):
+            if results[i]:
+                t = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(results[i]))
+                self.printout("%s='%s'\n" % (i.upper(), t))
+        if results['leaseuser']:
+            self.printout("COMMENT='%s'\n" % results['leaseuser'])
+        if results['resources']:
+            self.printout("RESOURCES='%s'\n" % "/".join(["=".join(x) for x in results['resources'].items()]))
+        for key in results['params'].keys():
+            self.printout("%s='%s'\n" % (key, results['params'][key]))
         return 0
 
 class XenRTShowLog(XenRTCommand):

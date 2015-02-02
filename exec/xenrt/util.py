@@ -21,6 +21,7 @@ __all__ = ["timenow",
            "parseXapiTime",
            "makeXapiTime",
            "waitForFile",
+           "localOrRemoteCommand",
            "command",
            "randomMAC",
            "randomMACXenSource",
@@ -381,6 +382,24 @@ def logFileDescriptors():
     except:
         pass
     
+
+def localOrRemoteCommand(command, retval="string", level=xenrt.RC_FAIL, timeout=3600):
+    if command.startswith("ssh://"):
+        m = re.match("ssh://(.+?):(.+?)@(.+?):(.+)", command)
+        username = m.group(1)
+        password = m.group(2)
+        host = m.group(3)
+        sshcommand = m.group(4)
+
+        return xenrt.ssh.SSH(host,
+                             sshcommand,
+                             username=username, 
+                             password=password,
+                             retval=retval,
+                             level=level,
+                             timeout=timeout)
+    else:
+        return xenrt.command(command, retval, level, timeout)
 
 def command(command, retval="string", level=xenrt.RC_FAIL, timeout=3600,
             ignoreerrors=False, strip=False, newlineok=False, nolog=False):

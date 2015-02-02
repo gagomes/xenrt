@@ -519,7 +519,7 @@ ifeq ($(DOCONSERVER),yes)
 	$(SUDOSH) 'echo -n "command=\"/usr/local/bin/cons\",no-port-forwarding,no-X11-forwarding,no-agent-forwarding " > /var/lib/cons/.ssh/authorized_keys'
 	$(SUDOSH) 'cat $(ROOT)/$(INTERNAL)/keys/ssh/id_rsa_cons.pub >> /var/lib/cons/.ssh/authorized_keys'
 	$(SUDO) chown -R cons:cons /var/lib/cons/.ssh
-	$(SUDO) chmod 600 /var/lib/cons/.ssh/*
+	$(SUDOSH) 'chmod 600 /var/lib/cons/.ssh/*'
 endif
 
 .PHONY: conserver-uninstall

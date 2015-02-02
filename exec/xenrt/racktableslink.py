@@ -1,4 +1,5 @@
 import re,socket
+import yaml
 import xenrt
 from racktables import RackTables
 
@@ -241,6 +242,18 @@ def readMachineFromRackTables(machine,kvm=False):
             if not xenrt.TEC().lookupHost(machine, "LOCAL_SR_POST_INSTALL", None) \
                     and xenrt.TEC().lookupHost(machine, "OPTION_CARBON_DISKS", None) != xenrt.TEC().lookupHost(machine, "OPTION_GUEST_DISKS", None):
                 xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"LOCAL_SR_POST_INSTALL"], "yes")
+
+    # Other config
+    comment = o.getComment() or ""
+    m = re.search("== XenRT config ==(.*)== XenRT config ==", comment, re.DOTALL|re.IGNORECASE)
+    if m:
+        try:
+            cfg = yaml.load(m.group(1))
+        except Exception, e:
+            xenrt.TEC().logverbose("Warning - could not load yaml config from racktables: %s" % str(e))
+        else:
+            for k in cfg.keys():
+                xenrt.GEC().config.config["HOST_CONFIGS"][machine][k] = cfg[k]
 
     # KVM (useful for DNS)
     try:

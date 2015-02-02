@@ -261,6 +261,7 @@ class BaseMultipathScenario(xenrt.TestCase):
     EXPECTED_MPATHS = None # Will be calculated.
     ATTEMPTS = None
 
+    FILER_NEEDED = False
     filerIP = None
 
     def setTestParams(self, arglist):
@@ -279,6 +280,21 @@ class BaseMultipathScenario(xenrt.TestCase):
 
         # Obtain the pool object to retrieve its hosts.
         self.pool = self.getDefaultPool()
+
+        if self.FILER_NEEDED:
+            # Set up for specific site. Going to assume that there is only one filer.
+            filerdict = xenrt.TEC().lookup("NETAPP_FILERS", None)
+            filers = filerdict.keys()
+            if len(filers) == 0:
+                raise xenrt.XRTError("No NETAPP_FILERS defined")
+            elif len(filers) > 1:
+                raise xenrt.XRTError("Unexpected number of filers. Expected: 1 Present: %s" % len(filers))
+            filerName = filers[0]
+
+            self.filerIP = xenrt.TEC().lookup(["NETAPP_FILERS",
+                                              filerName,
+                                              "TARGET"],
+                                             None)
 
     def checkPathCount(self, host, disabled=False):
         """Verify the host multipath path count for every device"""
@@ -451,27 +467,7 @@ class FCPathRecover(BaseRecoverPath):
 class ISCSIMPathScenario(BaseMultipathScenario):
     """Test multipath failover scenarios over iscsi"""
 
-    filerIP = None
-
-    def setTestParams(self, arglist):
-        """Set test case params"""
-
-        # Call the parent setTestParams.
-        BaseMultipathScenario.setTestParams(self, arglist)
-
-        # Set up for specific site. Going to assume that there is only one filer.
-        filerdict = xenrt.TEC().lookup("NETAPP_FILERS", None)
-        filers = filerdict.keys()
-        if len(filers) == 0:
-            raise xenrt.XRTError("No NETAPP_FILERS defined")
-        elif len(filers) > 1:
-            raise xenrt.XRTError("Unexpected number of filers. Expected: 1 Present: %s" % len(filers))
-        filerName = filers[0]
-
-        self.filerIP = xenrt.TEC().lookup(["NETAPP_FILERS",
-                                          filerName,
-                                          "TARGET"],
-                                         None)
+    FILER_NEEDED = True
 
     def disablePath(self, host):
         iptablesFirewall = host.getIpTablesFirewall()
@@ -483,8 +479,7 @@ class ISCSIMPathScenario(BaseMultipathScenario):
 
 class ISCSIPathFail(BaseFailPath):
 
-    def setTestParams(self, arglist):
-        ISCSIMPathScenario.setTestParams(self, arglist)
+    FILER_NEEDED = True
 
     def disablePath(self, host):
         iptablesFirewall = host.getIpTablesFirewall()
@@ -492,8 +487,7 @@ class ISCSIPathFail(BaseFailPath):
 
 class ISCSIPathRecover(ISCSIMPathScenario):
 
-    def setTestParams(self, arglist):
-        ISCSIMPathScenario.setTestParams(self, arglist)
+    FILER_NEEDED = True
 
     def enablePath(self, host):
         iptablesFirewall = host.getIpTablesFirewall()

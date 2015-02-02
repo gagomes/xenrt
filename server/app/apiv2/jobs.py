@@ -153,7 +153,7 @@ class _JobBase(_MachineBase):
                 rc = cur.fetchone()
                 if not rc:
                     break
-                if rc[5].strip() == "yes":
+                if rc[5] and rc[5].strip() == "yes":
                     logUrl = "%s://%s%s/api/v2/fileget/%d.test" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), rc[2])
                 else:
                     logUrl = None

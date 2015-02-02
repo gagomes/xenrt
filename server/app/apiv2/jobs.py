@@ -95,8 +95,10 @@ class _JobBase(_MachineBase):
                     "REVISION": rc[2].strip(),
                     "OPTIONS": rc[3].strip(),
                     "UPLOADED": rc[7].strip(),
-                    "REMOVED": rc[8].strip(),
                 },
+                if rc[8] and rc[8].strip() == "yes":
+                    jobs[rc[0]]['params']["REMOVED"] = "yes"
+                    
                 "user": rc[5].strip(),
                 "status": self.getJobStatus(rc[4].strip(), rc[8].strip()),
                 "machines": rc[6].strip().split(",") if rc[6] else [],

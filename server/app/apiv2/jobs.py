@@ -719,6 +719,7 @@ class GetJobDeployment(_JobBase):
          'type': 'integer'}]
     TAGS = ["jobs"]
     RESPONSES = { "200": {"description": "Successful response"}}
+    OPERATION_ID = 'get_job_deployment'
 
     def render(self):
         job = int(self.request.matchdict['id'])

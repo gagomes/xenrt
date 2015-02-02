@@ -123,6 +123,9 @@ class _MachineBase(XenRTAPIv2Page):
 
             ret[rc[0].strip()] = machine
         if len(ret.keys()) == 0:
+            if exceptionIfEmpty:
+                raise XenRTAPIError(HTTPNotFound, "Machine not found")
+
             return ret
         query = "SELECT machine, key, value FROM tblmachinedata WHERE %s" % self.generateInCondition("machine", ret.keys())
         cur.execute(query, ret.keys())
@@ -152,9 +155,6 @@ class _MachineBase(XenRTAPIv2Page):
             for m in ret.keys():
                 if not m in machinesToReturn:
                     del ret[m]
-
-        if exceptionIfEmpty and not ret:
-            raise XenRTAPIError(HTTPNotFound, "Machine not found")
 
         return ret
 

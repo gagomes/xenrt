@@ -31,6 +31,14 @@
         <network device="0" />
         <disk device="0" size="16" />
       </vm>
+      <vm name="win81-x64">
+        <distro>win81-x64</distro>
+        <arch>x86-64</arch>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="24" />
+      </vm>
     </host>
   </prepare>
   <testsequence group="RdpXapi">
@@ -45,6 +53,9 @@
         </testcase>
         <testcase id="xenserver.tc.rdpxapi.TC23793" tc="TC-23793" prio="3" >
         <arg>guest=vistaeesp2</arg>
+        </testcase>
+        <testcase id="xenserver.tc.rdpxapi.TC23794" tc="TC-23794" prio="3" >
+        <arg>guest=win81-x64</arg>
         </testcase>
   </testsequence>
 </xenrt>

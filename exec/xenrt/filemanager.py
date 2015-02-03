@@ -192,12 +192,9 @@ class FileManager(object):
 
     def __getSingleFile(self, url, sharedLocation, isUsingExternalCache=False):
         try:
-            if isUsingExternalCache:
-                # we need to increase tiemout for two reasons: 1) File is huge and may require long time
-                # 2) Using external nfs might slow down file fetching.
-                xenrt.util.command("wget%s -nv '%s' -O '%s.part'" % (self.__proxyflag, url, sharedLocation), timeout = self.externalFetchTimeout)
-            else:
-                xenrt.util.command("wget%s -nv '%s' -O '%s.part'" % (self.__proxyflag, url, sharedLocation), timeout = self.defaultFetchTimeout)
+            # Increase timeout if using external nfs.
+            timeout = self.externalFetchTimeout if isUsingExternalCache else self.defaultFetchTimeout
+            xenrt.util.command("wget%s -nv '%s' -O '%s.part'" % (self.__proxyflag, url, sharedLocation), timeout=timeout)
         except:
             os.unlink('%s.part' % sharedLocation)
             raise

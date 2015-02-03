@@ -805,7 +805,8 @@ users:
                     try:
                         mac, ip, vbridge = self.getVIF(vifname)
                         if self.use_ipv6:
-                            self.mainip = self.getIPv6AutoConfAddress(vifname)
+                            if not self.mainip:
+                                self.mainip = self.getIPv6AutoConfAddress(vifname)
                             break
                         elif ip:
                             if re.match("169\.254\..*", ip):
@@ -844,7 +845,8 @@ users:
                     vifname, bridge, mac, _ = (v for v in self.vifs if v[0] == vifs[0]).next()
 
                 if self.use_ipv6:
-                    self.mainip = self.getIPv6AutoConfAddress(vifname)
+                    if not self.mainip:
+                        self.mainip = self.getIPv6AutoConfAddress(vifname)
                     skipsniff = True
                 else:
                     xenrt.TEC().progress("Looking for VM IP address using arpwatch.")

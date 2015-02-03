@@ -11256,34 +11256,19 @@ class CreedenceHost(ClearwaterHost):
     def guestFactory(self):
         return xenrt.lib.xenserver.guest.CreedenceGuest
 
-    def enableReadCaching(self, sruuid=None):
-        if sruuid:
-            srlist = [sruuid]
-        else:
-            srlist = self.minimalList("sr-list")
 
-        for sr in srlist:
-            type = self.genParamGet("sr", sr, "type")
-            # Read cache only works for ext and nfs.
-            if type == 'nfs' or type == 'ext':
-                # When o_direct is not defined, it is on by default.
-                if 'o_direct' in self.genParamGet("sr", sr, "other-config"):
-                    self.genParamRemove("sr", sr, "other-config", "o_direct")
+    def readCachingController(self):
+        return xenrt.lib.xenserver.readcaching.ReadCachingController(self)
+
+    def enableReadCaching(self, sruuid=None):
+        rcc = self.readCachingController()
+        rcc.setSruuid(sruuid)
+        rcc.enable()
 
     def disableReadCaching(self, sruuid=None):
-        if sruuid:
-            srlist = [sruuid]
-        else:
-            srlist = self.minimalList("sr-list")
-
-        for sr in srlist:
-            type = self.genParamGet("sr", sr, "type")
-            # Read cache only works for ext and nfs.
-            if type == 'nfs' or type == 'ext':
-                oc = self.genParamGet("sr", sr, "other-config")
-                # When o_direct is not defined, it is on by default.
-                if 'o_direct' not in oc or 'true' not in self.genParamGet("sr", sr, "other-config", "o_direct"):
-                    self.genParamSet("sr", sr, "other-config", "true", "o_direct")
+        rcc = self.readCachingController()
+        rcc.setSruuid(sruuid)
+        rcc.disable()
 
     def vSwitchCoverageLog(self):
         self.vswitchAppCtl("coverage/show")

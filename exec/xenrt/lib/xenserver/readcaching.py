@@ -1,11 +1,32 @@
 from abc import ABCMeta, abstractmethod
 import re
 
+
 class Controller(object):
     __metaclass__ = ABCMeta
 
     def __init__(self, host):
         self.__host = host
+        self.__sruuids = []
+
+    def setSruuidList(self, value):
+        self.__sruuids = value
+
+    def setSruuid(self, value):
+        if value != None:
+            self.setSruuidList([value])
+        else:
+            self.setSruuidList([])
+
+    def sruuids(self):
+        if self.__sruuids == None or len(self.__sruuids) < 1:
+            self.__sruuids = self.__host.minimalList("sr-list")
+        return self.__sruuids
+
+    def srTypeIsSupported(self, sruuid):
+        # Read cache only works for ext and nfs.
+        srtype = self.__host.genParamGet("sr", sruuid, "type")
+        return srtype == 'nfs' or srtype == 'ext'
 
     @abstractmethod
     def isEnabled(self):
@@ -20,22 +41,21 @@ class Controller(object):
         pass
 
 
-class _XapiReadCacheController(Controller):
+class XapiReadCacheController(Controller):
 
     def isEnabled(self):
-        pass
-
+        raise NotImplementedError()
 
     def enable(self):
-        pass
-
+        raise NotImplementedError()
 
     def disable(self):
-        pass
+        raise NotImplementedError()
 
 
-class _LowLevelReadCacheController(Controller):
+class LowLevelReadCacheController(Controller):
     __TAP_CTRL_FLAG = "read_caching"
+    __RC_FLAG = "o_direct"
 
     def __fetchPidAndMinor(self, host):
         regex = re.compile("""{0}=(\w+) {1}=(\w+)""".format("pid", "minor"))
@@ -51,35 +71,40 @@ class _LowLevelReadCacheController(Controller):
         return output
 
     def enable(self):
-        pass
+        for sr in self.sruuids:
+            if self.srTypeIsSupported(sr):
+                # When o_direct is not defined, it is on by default.
+                if self.__RC_FLAG in self.__host.genParamGet("sr", sr, "other-config"):
+                    self.__host.genParamRemove("sr", sr, "other-config", self.__RC_FLAG)
 
     def disable(self):
-        pass
-
+        for sr in self.sruuids:
+            if self.srTypeIsSupported(sr):
+                oc = self.__host.genParamGet("sr", sr, "other-config")
+                # When o_direct is not defined, it is on by default.
+                if self.__RC_FLAG not in oc or 'true' not in self.__host.genParamGet("sr", sr, "other-config", self.__RC_FLAG):
+                    self.__host.genParamSet("sr", sr, "other-config", "true", self.__RC_FLAG)
 
 
 class ReadCachingController(Controller):
     """
-    Proxy for the other controller classes
+    Proxy certain methods for the other controller classes
     """
     def __init__(self, guest):
-        self.__xapi = self._XapiReadCacheController(guest)
-        self.__ll = self._LowLevelReadCacheController(guest)
-
+        self.__xapi = self.XapiReadCacheController(guest)
+        self.__ll = self.LowLevelReadCacheController(guest)
 
     def isEnabled(self, LowLevel=False):
         if LowLevel:
             return self.__ll.isEnabled()
         return self.__xapi.isEnabled()
 
-
     def enable(self, LowLevel=False):
         if LowLevel:
             return self.__ll.enable()
         return self.__xapi.enable()
 
-
     def disable(self, LowLevel=False):
         if LowLevel:
             return self.__ll.disable()
-        return self.__xapi.disable()
+        self.__xapi.disable()

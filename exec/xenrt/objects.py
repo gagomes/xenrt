@@ -9075,6 +9075,9 @@ class GenericGuest(GenericPlace):
             self.execguest("echo '    'address %s >> /etc/network/interfaces" % ipv6Addr)
             self.execguest("echo '    'netmask %s >> /etc/network/interfaces" % netmask)
             self.execguest("echo '    'gateway %s >> /etc/network/interfaces" % gateway)
+            # Note that we change the IP before the reboot. This is fine for toolstacks that have an out of band soft reboot
+            # mechanism, but may fail if we need to SSH to the guest to perform the reboot
+            self.mainip = ipv6Addr
             self.reboot()
             xenrt.sleep(10)
             try:

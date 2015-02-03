@@ -43,7 +43,7 @@ class _AbstractLinuxHostedNFSServer(object):
         # Create a dir and export it
         self._prepareSharedDirectory(guest)
         guest.execguest("echo '%s' > /etc/exports" % self._getExportsLine())
-        guest.execguest("/etc/init.d/portmap start")
+        guest.execguest("/etc/init.d/portmap start || /etc/init.d/rpcbind start")
         guest.execguest("/etc/init.d/nfs-common start || true")
         guest.execguest("/etc/init.d/nfs-kernel-server start || true")
 

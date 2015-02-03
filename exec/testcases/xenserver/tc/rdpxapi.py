@@ -161,16 +161,68 @@ class TC23794(xenrt.TestCase):
          # Enable the RDP on the guest
         step(" Test is trying to enable the RDP on the guest by resetting fDenyTSConnections to 0")
         self.guest.winRegAdd('HKLM', 'System\\CurrentControlSet\\Control\\Terminal Server\\', 'fDenyTSConnections',"DWORD", 0)
-        
+
         #Install tools 
         step("Installing the latest tools on the guest")
         self.guest.installDrivers()
         self.guest.waitForAgent(180)
         self.guest.reboot()
         self.guest.check()
-        
+
         if not xapiRdpObj.isRdpEnabled():
             raise xenrt.XRTFailure("After tools installation previous RDP settings lost on the guest %s " % (self.guest))
         xenrt.TEC().logverbose("RDP settings made before new tools installation preserved on the guest %s" % (self.guest))
-        
 
+class TC23795(xenrt.TestCase):
+    """Test Snapshot consistency in the guest for  RDP changes."""
+    def prepare(self, arglist=None):
+        self.args  = self.parseArgsKeyValue(arglist)
+        self.guest = self.getGuest(self.args['guest'])
+        self.uninstallOnCleanup(self.guest)
+
+    def run(self, arglist=None):
+        xapiRdpObj = XapiRdp(self.guest)
+
+        # Disable the RDP on the guest.
+        step(" Test is trying to set fDenyTSConnections on the guest to disable RDP")
+        self.guest.winRegAdd('HKLM', 'System\\CurrentControlSet\\Control\\Terminal Server\\', 'fDenyTSConnections',"DWORD", 1)
+
+        # Make sure RDP disabled field updated.
+        if xapiRdpObj.isRdpEnabled():
+            raise xenrt.XRTFailure("Guest agent does not updated data/ts about the RDP status change for the guest %s " % (self.guest))
+        xenrt.TEC().logverbose("Guest agent updated the RDP status in data/ts successfully for the guest %s" % (self.guest))
+
+        # Take snapshot of the guest
+        step("Test trying to take the snapshot of the guest")
+        snapuuid = self.guest.snapshot()
+
+        # Enable the RDP on the guest
+        if not xapiRdpObj.enableRdp():
+            raise xenrt.XRTFailure("XAPI failed to enable the RDP on the guest %s with tools installed" % (self.guest))
+        xenrt.TEC().logverbose("XAPI successfully enabled the RDP for the guest: %s " % (self.guest))
+
+        # Make sure RDP enabled field updated 
+        if not xapiRdpObj.isRdpEnabled():
+            raise xenrt.XRTFailure("Guest agent does not updated data/ts about the RDP status change for the guest %s " % (self.guest))
+        xenrt.TEC().logverbose("Guest agent updated the RDP status in data/ts successfully for the guest %s" % (self.guest))
+    
+        # Revert to snapshot
+        step("Test reverting the guest snapshot")
+        self.guest.revert(snapuuid)
+
+        # Check the status of RDP 
+        if xapiRdpObj.isRdpEnabled():
+            raise xenrt.XRTFailure("RDP settings changed after reverting from the snapshot for the guest %s " % (self.guest))
+        xenrt.TEC().logverbose("Old RDP settings preserved in the guest after reverting %s" % (self.guest))
+
+        # Enable the RDP 
+        if not xapiRdpObj.enableRdp():
+            raise xenrt.XRTFailure("XAPI failed to enable the RDP on the guest %s with tools installed" % (self.guest))
+        xenrt.TEC().logverbose("XAPI successfully enabled the RDP for the guest: %s " % (self.guest))
+
+        # Make sure RDP enabled field updated 
+        if not xapiRdpObj.isRdpEnabled():
+            raise xenrt.XRTFailure("Guest agent does not updated data/ts about the RDP status change for the guest %s " % (self.guest))
+        xenrt.TEC().logverbose("Guest agent updated the RDP status in data/ts successfully for the guest %s" % (self.guest))
+
+        self.guest.checkHealth()

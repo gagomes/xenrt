@@ -517,7 +517,7 @@ class _VIFScalability(_Scalability):
 
     def runTC(self,host):
         # Create a guest which we'll use to clone
-        guest = host.createGenericLinuxGuest(memory=128)
+        guest = host.createGenericLinuxGuest(memory=256)
         self.uninstallOnCleanup(guest)
 
         # Configure this guest to only have one VBD

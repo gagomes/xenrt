@@ -1759,7 +1759,7 @@ class TC13479(_VPXWLB):
         # Initialise WLB
         self.initialiseWLB()
         # Install a VM on host0
-        g1 = hosts[0].createGenericLinuxGuest(vcpus=1,memory=128)
+        g1 = hosts[0].createGenericLinuxGuest(vcpus=1,memory=256)
         self.uninstallOnCleanup(g1)
         g1.shutdown()
         t = 120
@@ -1769,7 +1769,7 @@ class TC13479(_VPXWLB):
         xenrt.TEC().logverbose("g1=[%s]" % g1_recs)
 
         # Install a VM2 on host0
-        g2 = hosts[0].createGenericLinuxGuest(vcpus=1,memory=128)
+        g2 = hosts[0].createGenericLinuxGuest(vcpus=1,memory=256)
         self.uninstallOnCleanup(g2)
         g2.shutdown()
         t = 120

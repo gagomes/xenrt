@@ -88,6 +88,7 @@ class TC23792(xenrt.TestCase):
         if not xapiRdpObj.enableRdp():
             raise xenrt.XRTFailure("XAPI failed to enable the RDP on the guest with tools installed %s ." % (self.guest))
         xenrt.TEC().logverbose("XAPI successfully enabled the RDP for the guest: %s " % (self.guest))
+        xenrt.sleep(10)
 
         step("Check that fDenyTSConnections on the guest is reset after XAPI enabled RDP")
         # Check RDP settings : Check fDenyTSConnections
@@ -161,6 +162,7 @@ class TC23794(xenrt.TestCase):
          # Enable the RDP on the guest
         step(" Test is trying to enable the RDP on the guest by resetting fDenyTSConnections to 0")
         self.guest.winRegAdd('HKLM', 'System\\CurrentControlSet\\Control\\Terminal Server\\', 'fDenyTSConnections',"DWORD", 0)
+        xenrt.sleep(10)
 
         #Install tools 
         step("Installing the latest tools on the guest")

@@ -40,13 +40,21 @@
         <network device="0" />
         <disk device="0" size="24" />
       </vm>
-      <vm name="win81-x64">
-        <distro>win81-x64</distro>
+     <vm name="winxpsp3">
+        <distro>winxpsp3</distro>
+        <memory>512</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="16" />
+      </vm>
+     <vm name="ws12-x64">
+        <distro>ws12-x64</distro>
         <arch>x86-64</arch>
         <memory>2048</memory>
         <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
         <network device="0" />
-        <disk device="0" size="24" />
+        <disk device="0" size="32" />
       </vm>
     </host>
   </prepare>
@@ -64,7 +72,10 @@
         <arg>guest=vistaeesp2</arg>
         </testcase>
         <testcase id="xenserver.tc.rdpxapi.TC23794" tc="TC-23794" prio="3" >
-        <arg>guest=win81-x64</arg>
+        <arg>guest=winxpsp3</arg>
+        </testcase>
+        <testcase id="xenserver.tc.rdpxapi.TC23795" tc="TC-23795" prio="3" >
+        <arg>guest=ws12-x64</arg>
         </testcase>
   </testsequence>
 </xenrt>

@@ -926,6 +926,8 @@ class Config:
         self.config["VERSION_CONFIG"]["Clearwater"]["DEFAULT_RPU_LINUX_VERSION"] = "rhel64"
         self.config["VERSION_CONFIG"]["Clearwater"]["MAX_VBDS_PER_HOST"] = "2048"
         self.config["VERSION_CONFIG"]["Clearwater"]["HVM_LINUX"] = "rhel7,centos7,oel7,ubuntu1404"
+        self.config["VERSION_CONFIG"]["Clearwater"]["GENERIC_LINUX_OS"] = "debian70"
+
         
         # Creedence
         self.config["VERSION_CONFIG"]["Creedence"] = {}

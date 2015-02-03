@@ -169,7 +169,7 @@ class TC23794(xenrt.TestCase):
         self.guest.reboot()
         self.guest.check()
         
-        if  not xapiRdpObj.isRdpEnabled():
+        if not xapiRdpObj.isRdpEnabled():
             raise xenrt.XRTFailure("After tools installation previous RDP settings lost on the guest %s " % (self.guest))
         xenrt.TEC().logverbose("RDP settings made before new tools installation preserved on the guest %s" % (self.guest))
         

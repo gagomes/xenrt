@@ -20,12 +20,12 @@ class XenRTAPIException(Exception):
 
 class XenRT(object):
     def __init__(self, user=None, password=None):
-        self.base = "http://api-dev.xenrt.citrite.net/xenrt/api/v2"
+        self.base = "http://xenrt.citrite.net/xenrt/api/v2"
 
         if not user:
-            auth = netrc.netrc().authenticators("api-dev.xenrt.citrite.net")
+            auth = netrc.netrc().authenticators("xenrt.citrite.net")
             if not auth:
-                raise Exception("No authentication details specified by parameters or in .netrc for api-dev.xenrt.citrite.net")
+                raise Exception("No authentication details specified by parameters or in .netrc for xenrt.citrite.net")
             self.user = auth[0]
             self.password = auth[2]
         else:
@@ -592,7 +592,7 @@ class XenRT(object):
         return r.json()
 
 
-    def get_job(self, id):
+    def get_job_deployment(self, id):
         """ Get deployment for job
             Parameters:
                  id: integer - Job ID to get file from

@@ -2165,7 +2165,7 @@ class TC18154(_VPXWLBReports):
         # Install a specific VM
         index = 0
         vmname = args_dictionary["vmname"]
-        g1 = hosts[index].createGenericLinuxGuest(name=vmname,vcpus=1,memory=128)
+        g1 = hosts[index].createGenericLinuxGuest(name=vmname,vcpus=1)
         self.uninstallOnCleanup(g1)
         host_name = str(hosts[index].getName())
         host_uuid = str(hosts[index].getMyHostUUID())
@@ -2189,7 +2189,7 @@ class TC21683(TC18154):
         # Install a specific VM
         index = 0
         vmname = args_dictionary["vmname"]
-        g1 = hosts[index].createGenericLinuxGuest(name=vmname,vcpus=1,memory=128)
+        g1 = hosts[index].createGenericLinuxGuest(name=vmname,vcpus=1)
         self.uninstallOnCleanup(g1)
         host_name = str(hosts[index].getName())
         host_uuid = str(hosts[index].getMyHostUUID())
@@ -2264,7 +2264,7 @@ class TC18157(_VPXWLBReports):
         self.initialiseWLB()
         # Install a specific VM
         index = 0
-        g1 = hosts[index].createGenericLinuxGuest(name=args_dictionary["vmname"],vcpus=1,memory=128)
+        g1 = hosts[index].createGenericLinuxGuest(name=args_dictionary["vmname"],vcpus=1)
         args_dictionary["vmuuid"] = str(g1.getInfo()[5])
         self.uninstallOnCleanup(g1)
         args_dictionary["host_name"] = str(hosts[index].getName())
@@ -2300,7 +2300,7 @@ class TC18158(_VPXWLBReports):
         self.initialiseWLB()
         # Install a specific VM
         index = 0
-        g1 = hosts[index].createGenericLinuxGuest(name=args_dictionary["vmname"],vcpus=1,memory=128)
+        g1 = hosts[index].createGenericLinuxGuest(name=args_dictionary["vmname"],vcpus=1)
         self.uninstallOnCleanup(g1)
         args_dictionary["vmuuid"] = str(g1.getInfo()[5])
         args_dictionary["host_name"] = str(hosts[index].getName())
@@ -2347,7 +2347,7 @@ class TC18165(_VPXWLBReports):
         self.initialiseWLB()
         # Install a specific VM
         index = 0
-        g1 = hosts[index].createGenericLinuxGuest(name=args_dictionary["vmname"],vcpus=1,memory=128)
+        g1 = hosts[index].createGenericLinuxGuest(name=args_dictionary["vmname"],vcpus=1)
         self.uninstallOnCleanup(g1)
         args_dictionary["vmuuid"] = str(g1.getInfo()[5])
         args_dictionary["host_name"] = str(hosts[index].getName())

@@ -438,7 +438,7 @@ class BaseRecoverPath(BaseMultipathScenario):
                                                             (xenrt.util.timenow() - overallEnableTime))
 
 
-class FCMPathScenario(xenrt.TestCase):
+class FCMPathScenario(BaseMultipathScenario):
     """Base class to test multipath scenarios over fibre channel for a pool of hosts"""
     def disablePath(self, host):
         host.disableFCPort(self.PATH)
@@ -485,7 +485,7 @@ class ISCSIPathFail(BaseFailPath):
         iptablesFirewall = host.getIpTablesFirewall()
         iptablesFirewall.blockIP(self.filerIP)
 
-class ISCSIPathRecover(ISCSIMPathScenario):
+class ISCSIPathRecover(BaseRecoverPath):
 
     FILER_NEEDED = True
 

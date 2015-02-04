@@ -434,8 +434,10 @@ dhcp
         xenrt.TEC().logverbose("Wrote iPXE config file %s" % (filename))
         return filename
 
-    def writeOut(self, machine, forcemac=None, forceip=None, suffix=None):
+    def writeOut(self, machine, forcemac=None, forceip=None, suffix=None, clearIPXE=True):
         """Write this config for the specified machine."""
+        if clearIPXE:
+            self.clearIPXEConfig(machine, forceip=forceip)
         pxedir = xenrt.TEC().lookup("PXE_CONF_DIR",
                                     self.tftpbasedir+"/pxelinux.cfg")
 

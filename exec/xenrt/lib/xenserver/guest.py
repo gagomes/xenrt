@@ -5950,7 +5950,7 @@ class DundeeGuest(CreedenceGuest):
                 # We support .NET 3.5 and .NET 4. This can be switched at the seq/suite level.
                 self.installDotNetRequiredForDrivers()
             
-            self.installCitrixCertificate(packagesToBeInstalled = True)
+            self.installCitrixCertificate(useNewCertificate = True)
                 
             # store domid before installation
             domid = self.host.getDomid(self)

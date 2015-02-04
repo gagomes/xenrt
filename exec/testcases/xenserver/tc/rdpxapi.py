@@ -57,7 +57,7 @@ class TestRdpWithTools(RdpVerification):
             raise xenrt.XRTFailure("Guest agent does not updated  data/ts about the RDP status change for the guest %s " % (self.guest))
         xenrt.TEC().logverbose("Guest agent updated the RDP status in data/ts successfully for the guest %s" % (self.guest))
 
-class TestRdpForLinux(xenrt.Testcase):
+class TestRdpForLinux(xenrt.TestCase):
     """ Verify that XAPI cannot switch RDP for linux guests """
 
     def prepare(self, arglist=None):

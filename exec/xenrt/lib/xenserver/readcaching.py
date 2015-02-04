@@ -6,31 +6,25 @@ from xenrt.lazylog import log
 class Controller(object):
     __metaclass__ = ABCMeta
 
-    def __init__(self, host):
+    def __init__(self, host, vdiuuid=None):
         self._host = host
-        self.__vdiuuids = []
-
-    def setVDIuuidList(self, value):
-        self.__vdiuuids = value
+        self.__vdiuuid = vdiuuid
 
     def setVDIuuid(self, value):
-        if value != None:
-            self.setVDIuuidList([value])
-        else:
-            self.setVDIuuidList([])
+        self.__vdiuuid = value
 
-    def srTypeIsSupported(self, vdiuuid):
-        sr = self.srForGivenVDI(vdiuuid)
+    def srTypeIsSupported(self):
+        sr = self.srForGivenVDI(self.vdiuuid)
         # Read cache only works for ext and nfs.
         return sr.srType() == 'nfs' or sr.srType() == 'ext'
 
-    def srForGivenVDI(self, vdiuuid):
+    def srForGivenVDI(self):
         host = self._host.asXapiObject()
-        return next((s for s in host.SR if vdiuuid in [v.uuid for v in s.VDIs]), None)
+        return next((s for s in host.SR if self.vdiuuid in [v.uuid for v in s.VDIs]), None)
 
     @property
-    def vdiuuids(self):
-        return self.__vdiuuids
+    def vdiuuid(self):
+        return self.__vdiuuid
 
     @abstractmethod
     def isEnabled(self):
@@ -76,43 +70,31 @@ class LowLevelReadCacheController(Controller):
         data = host.execdom0("tap-ctl list | cat")
         return regex.findall(data)
 
-    def __getVDIuuidFromTapCtlArgs(self, args):
-        if not args.startswith("vhd"):
-            raise ValueError("Couldn't parse non-vhd data: %s" % args)
-        return '-'.join(args.split('/')[-1].split('-')[1:])
+    def __getPidAndMinor(self):
+        for pid, minor, args in self.__fetchTapCtlFields(self._host):
+            if self.vdiuuid in args:
+                return pid, minor
+        raise RuntimeError("No PID and minor found for vdi %s" % self.vdiuuid)
 
     def isEnabled(self):
-        output = skipped = []
-        for pid, minor, args in self.__fetchTapCtlFields(self._host):
-            vdiuuid = self.__getVDIuuidFromTapCtlArgs(args)
-            log("From tapctl the vdi uuid = %s and listed vdis = %s" % (vdiuuid, self.vdiuuids))
-            if vdiuuid in self.vdiuuids:
-                readCacheDump = self._host.execdom0("tap-ctl stats -p %s -m %s" % (pid, minor))
-                output.append(self._searchForFlag(readCacheDump, self.__TAP_CTRL_FLAG))
-            else:
-                skipped.append(vdiuuid)
-
-        if len(skipped) == len(self.vdiuuids) and len(self.vdiuuids) > 0:
-            raise RuntimeError("Skipped all vdis set in the controller: %s" % skipped)
-
-        return output
+        pid, minor = self.__getPidAndMinor()
+        readCacheDump = self._host.execdom0("tap-ctl stats -p %s -m %s" % (pid, minor))
+        return self._searchForFlag(readCacheDump, self.__TAP_CTRL_FLAG)
 
     def enable(self):
-        for vdi in self.vdiuuids:
-            if self.srTypeIsSupported(vdi):
-                sr = self.srForGivenVDI(vdi)
-                # When o_direct is not defined, it is on by default.
-                if self.__RC_FLAG in self._host.xenrt.lib.xenserver.readcahcing("sr", sr.uuid, "other-config"):
-                    self._host.genParamRemove("sr", sr.uuid, "other-config", self.__RC_FLAG)
+        if self.srTypeIsSupported():
+            sr = self.srForGivenVDI()
+            # When o_direct is not defined, it is on by default.
+            if self.__RC_FLAG in self._host.xenrt.lib.xenserver.readcahcing("sr", sr.uuid, "other-config"):
+                self._host.genParamRemove("sr", sr.uuid, "other-config", self.__RC_FLAG)
 
     def disable(self):
-        for vdi in self.vdiuuids:
-            if self.srTypeIsSupported(vdi):
-                sr = self.srForGivenVDI(vdi)
-                oc = self._host.genParamGet("sr", sr.uuid, "other-config")
-                # When o_direct is not defined, it is on by default.
-                if self.__RC_FLAG not in oc or 'true' not in self._host.genParamGet("sr", sr.uuid, "other-config", self.__RC_FLAG):
-                    self._host.genParamSet("sr", sr.uuid, "other-config", "true", self.__RC_FLAG)
+        if self.srTypeIsSupported():
+            sr = self.srForGivenVDI()
+            oc = self._host.genParamGet("sr", sr.uuid, "other-config")
+            # When o_direct is not defined, it is on by default.
+            if self.__RC_FLAG not in oc or 'true' not in self._host.genParamGet("sr", sr.uuid, "other-config", self.__RC_FLAG):
+                self._host.genParamSet("sr", sr.uuid, "other-config", "true", self.__RC_FLAG)
 
 
 class ReadCachingController(Controller):

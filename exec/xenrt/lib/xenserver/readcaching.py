@@ -6,7 +6,7 @@ class Controller(object):
     __metaclass__ = ABCMeta
 
     def __init__(self, host):
-        self.__host = host
+        self._host = host
         self.__vdiuuids = []
 
     def setVDIuuidList(self, value):
@@ -24,7 +24,7 @@ class Controller(object):
         return sr.srType() == 'nfs' or sr.srType() == 'ext'
 
     def srForGivenVDI(self, vdiuuid):
-        host = self.__host.asXapiObject()
+        host = self._host.asXapiObject()
         return next((s for s in host.SR if vdiuuid in [v.uuid for v in s.VDIs]), None)
 
     @property
@@ -82,10 +82,10 @@ class LowLevelReadCacheController(Controller):
 
     def isEnabled(self):
         output = skipped = []
-        for pid, minor, args in self.__fetchTapCtlFields(self.__host):
+        for pid, minor, args in self.__fetchTapCtlFields(self._host):
             vdiuuid = self.__getVDIuuidFromTapCtlArgs(args)
             if vdiuuid in self.vdiuuids:
-                readCacheDump = self.__host.execdom0("tap-ctl stats -p %s -m %s" % (pid, minor))
+                readCacheDump = self._host.execdom0("tap-ctl stats -p %s -m %s" % (pid, minor))
                 output.append(self._searchForFlag(readCacheDump, self.__TAP_CTRL_FLAG))
             else:
                 skipped.append(vdiuuid)
@@ -100,17 +100,17 @@ class LowLevelReadCacheController(Controller):
             if self.srTypeIsSupported(vdi):
                 sr = self.srForGivenVDI(vdi)
                 # When o_direct is not defined, it is on by default.
-                if self.__RC_FLAG in self.__host.genParamGet("sr", sr.uuid, "other-config"):
-                    self.__host.genParamRemove("sr", sr.uuid, "other-config", self.__RC_FLAG)
+                if self.__RC_FLAG in self._host.xenrt.lib.xenserver.readcahcing("sr", sr.uuid, "other-config"):
+                    self._host.genParamRemove("sr", sr.uuid, "other-config", self.__RC_FLAG)
 
     def disable(self):
         for vdi in self.vdiuuids:
             if self.srTypeIsSupported(vdi):
                 sr = self.srForGivenVDI(vdi)
-                oc = self.__host.genParamGet("sr", sr.uuid, "other-config")
+                oc = self._host.genParamGet("sr", sr.uuid, "other-config")
                 # When o_direct is not defined, it is on by default.
-                if self.__RC_FLAG not in oc or 'true' not in self.__host.genParamGet("sr", sr.uuid, "other-config", self.__RC_FLAG):
-                    self.__host.genParamSet("sr", sr.uuid, "other-config", "true", self.__RC_FLAG)
+                if self.__RC_FLAG not in oc or 'true' not in self._host.genParamGet("sr", sr.uuid, "other-config", self.__RC_FLAG):
+                    self._host.genParamSet("sr", sr.uuid, "other-config", "true", self.__RC_FLAG)
 
 
 class ReadCachingController(Controller):

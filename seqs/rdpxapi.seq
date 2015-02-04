@@ -40,6 +40,8 @@
         <network device="0" />
         <disk device="0" size="12" />
      </vm>
+     </host>
+     <host id="1">
      <vm name="win81-x64">
         <distro>win81-x64</distro>
         <arch>x86-64</arch>

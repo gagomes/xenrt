@@ -3250,22 +3250,27 @@ DHCPServer = 1
             # Prerequisites
             if debversion:
                 self.execcmd("apt-get install libssl-dev --force-yes -y")
-                kernel = self.execcmd("uname -r").strip()
-                self.execcmd("apt-get install linux-headers-%s --force-yes -y" % kernel)
+                self.execcmd("apt-get install linux-headers-`uname -r` --force-yes -y")
             elif redhat:
                 self.execcmd("yum install -y openssl-devel kernel-headers")
 
             # Get and install the iscsi target
-            self.execcmd("cd /root && wget '%s/iscsitarget-1.4.20.2.tgz'" %
-                         (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
-            self.execcmd("cd /root && tar -xzf iscsitarget-1.4.20.2.tgz")
-            self.execcmd("cd /root/iscsitarget-1.4.20.2 && make")
-            self.execcmd("cd /root/iscsitarget-1.4.20.2 && make install")
-
+            
+            if debversion >= 7.0:
+                self.execcmd("apt-get install -y --force-yes iscsitarget iscsitarget-dkms")
+                self.execcmd('sed -i "s/false/true/" /etc/default/iscsitarget')
+                self.execcmd('/etc/init.d/iscsitarget restart')
+                self.execcmd('ln -s /etc/init.d/iscsitarget /etc/init.d/iscsi-target')
+            else:
+                self.execcmd("cd /root && wget '%s/iscsitarget-1.4.20.2.tgz'" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
+                self.execcmd("cd /root && tar -xzf iscsitarget-1.4.20.2.tgz")
+                self.execcmd("cd /root/iscsitarget-1.4.20.2 && make")
+                self.execcmd("cd /root/iscsitarget-1.4.20.2 && make install")
+            
             self.execcmd("rm /etc/iet/ietd.conf")
             self.execcmd("ln -s /etc/ietd.conf /etc/iet/ietd.conf")
-        else: # Legacy installation for etch
-
+        else: 
+            # Legacy installation for etch
             # Prerequisites
             self.execcmd("apt-get install libssl-dev --force-yes -y")
 
@@ -3280,12 +3285,10 @@ DHCPServer = 1
             # Workaround for incorrect symlink
             for path in self.execcmd("ls /lib/modules").split():
                 self.execcmd("rm -f /lib/modules/%s/build" % (path.strip()))
-                self.execcmd("ln -s /usr/src/linux-headers-%s "
-                             "/lib/modules/%s/build" % (path.strip(),path.strip()))
+                self.execcmd("ln -s /usr/src/linux-headers-%s /lib/modules/%s/build" % (path.strip(),path.strip()))
 
             # Setup iscsitarget
-            self.execcmd("cd /root && wget '%s/iscsitarget.tgz'" %
-                         (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
+            self.execcmd("cd /root && wget '%s/iscsitarget.tgz'" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
             self.execcmd("cd /root && tar -xzf iscsitarget.tgz")
             self.execcmd("cd /root/iscsitarget && patch -p1 < multihomed.patch")
             self.execcmd("cd /root/iscsitarget && make")
@@ -9066,6 +9069,9 @@ class GenericGuest(GenericPlace):
             self.execguest("echo '    'address %s >> /etc/network/interfaces" % ipv6Addr)
             self.execguest("echo '    'netmask %s >> /etc/network/interfaces" % netmask)
             self.execguest("echo '    'gateway %s >> /etc/network/interfaces" % gateway)
+            # Note that we change the IP before the reboot. This is fine for toolstacks that have an out of band soft reboot
+            # mechanism, but may fail if we need to SSH to the guest to perform the reboot
+            self.mainip = ipv6Addr
             self.reboot()
             xenrt.sleep(10)
             try:

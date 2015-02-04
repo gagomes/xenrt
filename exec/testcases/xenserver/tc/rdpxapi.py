@@ -9,9 +9,6 @@
 import xenrt
 from xenrt.lazylog import step, log
 from xenrt.lib.xenserver.xapirdp import XapiRdp
-from xenrt.lib.xenserver.signedpackages import SignedWindowsTools
-
-
 
 class RdpVerification(xenrt.TestCase):
     """ Base class for all the Rdp verification tests"""
@@ -45,7 +42,7 @@ class TestRdpWithTools(RdpVerification):
 
         #Install tools 
         step(" Test is installing latest tools on the guest")
-        SignedWindowsTools.installPackages(self.guest)
+        self.guest.installDrivers()
 
         # Check that XAPI can switch RDP with tools installed
         if not xapiRdpObj.enableRdp():
@@ -85,7 +82,7 @@ class TestRdpSettings(RdpVerification):
 
         #Install tools 
         step(" Test is installing latest tools on the guest")
-        SignedWindowsTools.installPackages(self.guest)
+        self.guest.installDrivers()
 
         # Disable the RDP on the guest
         step(" Test is trying to set fDenyTSConnections on the guest to disable RDP")
@@ -129,7 +126,7 @@ class TestGuestDisbableRdp(RdpVerification):
 
         #Install tools 
         step(" Test is installing latest tools on the guest")
-        SignedWindowsTools.installPackages(self.guest)
+        self.guest.installDrivers()
 
         # Enable RDP on the guest 
         if not xapiRdpObj.enableRdp():
@@ -166,7 +163,7 @@ class TestRdpOnPostInstall(RdpVerification):
         xenrt.sleep(10)
 
         #Install tools 
-        SignedWindowsTools.installPackages(self.guest)
+        self.guest.installDrivers()
 
         if not xapiRdpObj.isRdpEnabled():
             raise xenrt.XRTFailure("After tools installation previous RDP settings lost on the guest %s " % (self.guest))
@@ -180,7 +177,7 @@ class TestRdpWithSnapshot(RdpVerification):
 
         #Install latest tools
         step(" Test is installing latest tools on the guest")
-        SignedWindowsTools.installPackages(self.guest)
+        self.guest.installDrivers()
 
         # Disable the RDP on the guest.
         step(" Test is trying to set fDenyTSConnections on the guest to disable RDP")

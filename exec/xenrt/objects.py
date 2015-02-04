@@ -6499,16 +6499,16 @@ exit 0
         disks = None
         try:
             if ccissIfAvailable:
-                disks = self.lookup([var, "CCISS"], None)
+                disks = self.lookup([var, "CCISS"])
             else:
-                disks = self.lookup([var, "SCSI"], None)
+                disks = self.lookup([var, "SCSI"])
         except:
             pass
         try:
             if legacySATA:
-                disks = self.lookup([var, "LEGACY_SATA"], None)
+                disks = self.lookup([var, "LEGACY_SATA"])
             else:
-                disks = self.lookup([var, "SATA"], None)
+                disks = self.lookup([var, "SATA"])
         except:
             pass
         if not disks:

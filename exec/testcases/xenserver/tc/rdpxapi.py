@@ -14,10 +14,12 @@ from xenrt.lib.xenserver.signedpackages import SignedWindowsTools
 
 class RdpVerification(xenrt.TestCase):
     """ Base class for all the Rdp verification tests"""
+    snappoint = None
 
     def prepare(self, arglist=None):
         self.args  = self.parseArgsKeyValue(arglist)
         self.guest = self.getGuest(self.args['guest'])
+        log(self.snappoint)
         if self.snappoint is None:
             self.snappoint = self.guest.snapshot()
 

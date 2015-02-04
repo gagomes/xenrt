@@ -5789,7 +5789,7 @@ exit 0
 
         coreos = pxe2.addEntry("coreos", boot="linux")
         basepath = xenrt.TEC().lookup(["RPM_SOURCE", "coreos-stable", "x86-64", "HTTP"])
-        coreos.linuxSetKernel("%s/amd64-usr/current/coreos_production_pxe.vmlinuz" % basepath)
+        coreos.linuxSetKernel("%s/amd64-usr/current/coreos_production_pxe.vmlinuz" % basepath, abspath=True)
         coreos.linuxArgsKernelAdd("initrd=%s/amd64-usr/current/coreos_production_pxe_image.cpio.gz cloud-config-url=%s/cloudconfig.yaml" % (basepath, basepath))
     
         pxe2.setDefault("coreos")

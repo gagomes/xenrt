@@ -84,8 +84,11 @@ class PXEBootEntryLinux(PXEBootEntry):
         self.kernel = ""
         self.kernelArgs = []
 
-    def linuxSetKernel(self, str):
-        self.kernel = self.cfg.makeBootPath(str)
+    def linuxSetKernel(self, str, abspath=False):
+        if abspath:
+            self.kernel=str
+        else:
+            self.kernel = self.cfg.makeBootPath(str)
 
     def linuxArgsKernelAdd(self, str):
         self.kernelArgs.append(str)

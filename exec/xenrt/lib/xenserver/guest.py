@@ -12,6 +12,7 @@ import shutil, traceback, fnmatch, xml.dom.minidom, pipes
 import xenrt
 from PIL import Image
 from IPy import IP
+from xenrt.lazylog import *
 
 # Symbols we want to export from the package.
 __all__ = ["Guest",

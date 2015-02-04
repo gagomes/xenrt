@@ -5785,7 +5785,7 @@ exit 0
     
         pxe1.addEntry("ipxe", boot="ipxe")
         pxe1.setDefault("ipxe")
-        pxe1.writeOut(self.host.machine)
+        pxe1.writeOut(self.machine)
 
         coreos = pxe2.addEntry("coreos", boot="linux")
         basepath = xenrt.TEC().lookup(["RPM_SOURCE", "coreos-stable", "x86-64", "HTTP"])
@@ -5793,11 +5793,11 @@ exit 0
         coreos.linuxArgsKernelAdd("initrd=%s/amd64-usr/current/coreos_production_pxe_image.cpio.gz cloud-config-url=%s/cloudconfig.yaml" % (basepath, basepath))
     
         pxe2.setDefault("coreos")
-        filename = pxe2.writeOut(self.host.machine, suffix="_ipxe")
+        filename = pxe2.writeOut(self.machine, suffix="_ipxe")
         ipxescript = """set 209:string pxelinux.cfg/%s
 chain tftp://${next-server}/%s
 """ % (os.path.basename(filename), xenrt.TEC().lookup("PXELINUX_PATH", "pxelinux.0"))
-        pxe2.writeIPXEConfig(self.host.machine, ipxescript)
+        pxe2.writeIPXEConfig(self.machine, ipxescript)
         tries = 0
         while True:
             try:

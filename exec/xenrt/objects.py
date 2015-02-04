@@ -6504,6 +6504,7 @@ exit 0
                 disks = self.lookup([var, "SCSI"], None)
         except:
             pass
+        print disks
         try:
             if legacySATA:
                 disks = self.lookup([var, "LEGACY_SATA"], None)
@@ -6511,6 +6512,7 @@ exit 0
                 disks = self.lookup([var, "SATA"], None)
         except:
             pass
+        print disks
         if not disks:
             disks = self.lookup(var, None)
             # REQ-35: (Better) temp fix until we fix all of the config files

@@ -18,9 +18,10 @@
   <testsequence>
     <serial group="Cache">
       <testcase id="xenserver.tc.cache.TC12421"/>
-      <testcase id="xenserver.tc.cache.TC11869"/>
+      <!-- Temporary disabling due to tcpdump issue. -->
+      <!--<testcase id="xenserver.tc.cache.TC11869"/>
       <testcase id="xenserver.tc.cache.TC12068"/>
-      <testcase id="xenserver.tc.cache.TC11870"/>
+      <testcase id="xenserver.tc.cache.TC11870"/>-->
       <testcase id="xenserver.tc.cache.TC11942"/>
       <testcase id="xenserver.tc.cache.TC12060"/>
       <testcase id="xenserver.tc.cache.TC12066"/>

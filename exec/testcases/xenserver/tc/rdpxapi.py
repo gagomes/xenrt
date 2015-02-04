@@ -7,9 +7,10 @@
 # conditions as licensed by Citrix Systems, Inc. All other rights reserved.
 
 import xenrt
-from xenrt.lazylog import step
+from xenrt.lazylog import step, log
 from xenrt.lib.xenserver.xapirdp import XapiRdp
 from xenrt.lib.xenserver.signedpackages import SignedWindowsTools
+
 
 
 class RdpVerification(xenrt.TestCase):

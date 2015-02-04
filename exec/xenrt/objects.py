@@ -5775,12 +5775,12 @@ exit 0
         
         # Construct a PXE target
         pxe1 = xenrt.PXEBoot()
-        serport = self.host.lookup("SERIAL_CONSOLE_PORT", "0")
-        serbaud = self.host.lookup("SERIAL_CONSOLE_BAUD", "115200")
+        serport = self.lookup("SERIAL_CONSOLE_PORT", "0")
+        serbaud = self.lookup("SERIAL_CONSOLE_BAUD", "115200")
         pxe1.setSerial(serport, serbaud)
         pxe2 = xenrt.PXEBoot()
-        serport = self.host.lookup("SERIAL_CONSOLE_PORT", "0")
-        serbaud = self.host.lookup("SERIAL_CONSOLE_BAUD", "115200")
+        serport = self.lookup("SERIAL_CONSOLE_PORT", "0")
+        serbaud = self.lookup("SERIAL_CONSOLE_BAUD", "115200")
         pxe2.setSerial(serport, serbaud)
     
         pxe1.addEntry("ipxe", boot="ipxe")

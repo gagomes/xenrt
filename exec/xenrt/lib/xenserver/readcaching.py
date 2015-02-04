@@ -1,5 +1,6 @@
 from abc import ABCMeta, abstractmethod
 import re
+from xenrt.lazylog import log
 
 
 class Controller(object):
@@ -84,6 +85,7 @@ class LowLevelReadCacheController(Controller):
         output = skipped = []
         for pid, minor, args in self.__fetchTapCtlFields(self._host):
             vdiuuid = self.__getVDIuuidFromTapCtlArgs(args)
+            log("From tapctl the vdi uuid = %s and listed vdis = %s" % (vdiuuid, self.vdiuuids))
             if vdiuuid in self.vdiuuids:
                 readCacheDump = self._host.execdom0("tap-ctl stats -p %s -m %s" % (pid, minor))
                 output.append(self._searchForFlag(readCacheDump, self.__TAP_CTRL_FLAG))

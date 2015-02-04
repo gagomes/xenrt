@@ -31,14 +31,14 @@
         <memory>2048</memory>
         <vcpus>2</vcpus>
         <network device="0" />
-        <disk device="0" size="24" />
+        <disk device="0" size="12" />
       </vm>
       <vm name="vistaeesp2">
         <distro>vistaeesp2</distro>
         <memory>2048</memory>
         <vcpus>2</vcpus>
         <network device="0" />
-        <disk device="0" size="24" />
+        <disk device="0" size="12" />
      </vm>
      <vm name="win81-x64">
         <distro>win81-x64</distro>
@@ -46,14 +46,14 @@
         <memory>2048</memory>
         <vcpus>2</vcpus>
         <network device="0" />
-        <disk device="0" size="24" />
+        <disk device="0" size="12" />
       </vm>
      <vm name="winxpsp3">
         <distro>winxpsp3</distro>
         <memory>512</memory>
         <vcpus>2</vcpus>
         <network device="0" />
-        <disk device="0" size="16" />
+        <disk device="0" size="12" />
       </vm>
      <vm name="ws08r2-x64">
         <distro>ws08r2-x64</distro>
@@ -61,7 +61,7 @@
         <memory>2048</memory>
         <vcpus>2</vcpus>
         <network device="0" />
-        <disk device="0" size="32" />
+        <disk device="0" size="12" />
       </vm>
     </host>
   </prepare>

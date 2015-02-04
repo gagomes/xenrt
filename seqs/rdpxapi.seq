@@ -1,9 +1,12 @@
 <xenrt>
+  <default name="WINDISTROS" value="win7-x86,vistaeesp2,win81-x64,winxpsp3,ws08r2-x64"/>
+  <default name="LINUXDISTROS" value="rhel6,sles111"/>
   <variables>
     <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
     <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
   </variables>
+  
   <scheduler>
     <resources>memory&gt;=20G/disk1&gt;=140G</resources>
   </scheduler>
@@ -16,11 +19,17 @@
         <network device="0" />
         <disk device="0" size="8" />
       </vm>
+      <vm name="sles111">
+        <distro>sles111</distro>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="8" />
+      </vm>
       <vm name="win7-x86">
         <distro>win7-x86</distro>
         <memory>2048</memory>
         <vcpus>2</vcpus>
-        <postinstall action="installDrivers" />
         <network device="0" />
         <disk device="0" size="24" />
       </vm>
@@ -28,7 +37,6 @@
         <distro>vistaeesp2</distro>
         <memory>2048</memory>
         <vcpus>2</vcpus>
-        <postinstall action="installDrivers" />
         <network device="0" />
         <disk device="0" size="24" />
      </vm>
@@ -47,35 +55,41 @@
         <network device="0" />
         <disk device="0" size="16" />
       </vm>
-     <vm name="ws12-x64">
-        <distro>ws12-x64</distro>
+     <vm name="ws08r2-x64">
+        <distro>ws08r2-x64</distro>
         <arch>x86-64</arch>
         <memory>2048</memory>
         <vcpus>2</vcpus>
-        <postinstall action="installDrivers" />
         <network device="0" />
         <disk device="0" size="32" />
       </vm>
     </host>
   </prepare>
-  <testsequence group="RdpXapi">
-        <testcase id="xenserver.tc.rdpxapi.TC23790" tc="TC-23790" prio="3" >
-        <arg>guest=win81-x64</arg>
+  
+  <testsequence group="RdpXapiWindows">
+    <for iter="D" values="${WINDISTROS}">
+        <testcase id="xenserver.tc.rdpxapi.TestRdpWithTools" tc="TC-23790" prio="3" >
+        <arg>guest=${D}</arg>
         </testcase>
-        <testcase id="xenserver.tc.rdpxapi.TC23791" tc="TC-23791" prio="3" >
-        <arg>guest=rhel6</arg>
+        <testcase id="xenserver.tc.rdpxapi.TestRdpSettings" tc="TC-23792" prio="3" >
+        <arg>guest=${D}</arg>
         </testcase>
-        <testcase id="xenserver.tc.rdpxapi.TC23792" tc="TC-23792" prio="3" >
-        <arg>guest=win7-x86</arg>
+        <testcase id="xenserver.tc.rdpxapi.TestGuestDisbableRdp" tc="TC-23793" prio="3" >
+        <arg>guest=${D}</arg>
         </testcase>
-        <testcase id="xenserver.tc.rdpxapi.TC23793" tc="TC-23793" prio="3" >
-        <arg>guest=vistaeesp2</arg>
+        <testcase id="xenserver.tc.rdpxapi.TestRdpOnPostInstall" tc="TC-23794" prio="3" >
+        <arg>guest=${D}</arg>
         </testcase>
-        <testcase id="xenserver.tc.rdpxapi.TC23794" tc="TC-23794" prio="3" >
-        <arg>guest=winxpsp3</arg>
+        <testcase id="xenserver.tc.rdpxapi.TestRdpWithSnapshot" tc="TC-23795" prio="3" >
+        <arg>guest=${D}</arg>
         </testcase>
-        <testcase id="xenserver.tc.rdpxapi.TC23795" tc="TC-23795" prio="3" >
-        <arg>guest=ws12-x64</arg>
+     </for>
+  </testsequence>
+  <testsequence group="RdpXapiLinux">
+    <for iter="D" values="${LINUXDISTROS}">
+        <testcase id="xenserver.tc.rdpxapi.TestRdpForLinux" tc="TC-23791" prio="3" >
+        <arg>guest=${D}</arg>
         </testcase>
+   </for>
   </testsequence>
 </xenrt>

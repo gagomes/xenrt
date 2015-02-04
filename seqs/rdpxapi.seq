@@ -1,5 +1,5 @@
 <xenrt>
-  <default name="WINDISTROS" value="win7-x86,vistaeesp2,win81-x64,winxpsp3,ws08r2-x64"/>
+  <default name="WINDISTROS" value="vistaeesp2,win81-x64,winxpsp3,ws08r2-x64"/>
   <default name="LINUXDISTROS" value="rhel6,sles111"/>
   <variables>
     <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>

@@ -10,10 +10,10 @@ import urlparse
 import StringIO
 import requests
 
-class _JobsBase(_MachineBase):
+class _JobBase(_MachineBase):
 
     def getJobStatus(self, status, removed):
-        if removed == "yes":
+        if removed and removed.strip() == "yes":
             return "removed"
         else:
             return status
@@ -29,7 +29,8 @@ class _JobsBase(_MachineBase):
                 machines=[],
                 getParams=False,
                 getResults=False,
-                getLog=False):
+                getLog=False,
+                exceptionIfEmpty=False):
         cur = self.getDB().cursor()
         params = []
         conditions = []
@@ -89,20 +90,26 @@ class _JobsBase(_MachineBase):
                 break
             jobs[rc[0]] = {
                 "id": rc[0],
-                "params": {
-                    "VERSION": rc[1].strip(),
-                    "REVISION": rc[2].strip(),
-                    "OPTIONS": rc[3].strip(),
-                    "UPLOADED": rc[7].strip(),
-                    "REMOVED": rc[8].strip(),
-                },
+                "params": {},
                 "user": rc[5].strip(),
-                "status": self.getJobStatus(rc[4].strip(), rc[8].strip()),
+                "status": self.getJobStatus(rc[4].strip(), rc[8]),
                 "machines": rc[6].strip().split(",") if rc[6] else [],
                 "results": []
-           }
+            }
+            if rc[8] and rc[8].strip():
+                jobs[rc[0]]['params']["REMOVED"] = rc[8].strip()
+            if rc[1] and rc[1].strip():
+                jobs[rc[0]]['params']["VERSION"] = rc[1].strip()
+            if rc[2] and rc[2].strip():
+                jobs[rc[0]]['params']["REVISION"] = rc[2].strip()
+            if rc[3] and rc[3].strip():
+                jobs[rc[0]]['params']["OPTIONS"] = rc[3].strip()
+            if rc[7] and rc[7].strip():
+                jobs[rc[0]]['params']["UPLOADED"] = rc[7].strip()
        
         if len(jobs.keys()) == 0:
+            if exceptionIfEmpty:
+                raise XenRTAPIError(HTTPNotFound, "Job not found")
             return jobs
 
         jobidlist = ", ".join(["%s"] * len(jobs.keys()))
@@ -123,7 +130,7 @@ class _JobsBase(_MachineBase):
             jobs[j]['result'] = jobs[j]['params'].get("CHECK")
             jobs[j]['attachmentUploadUrl'] = "%s://%s%s/api/v2/job/%d/attachments" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
             jobs[j]['logUploadUrl'] = "%s://%s%s/api/v2/job/%d/log" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
-            if jobs[j]['params']['UPLOADED'] == "yes":
+            if jobs[j]['params'].get('UPLOADED') == "yes":
                 logUrl = "%s://%s%s/api/v2/fileget/%d" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
             else:
                 logUrl = None
@@ -150,7 +157,7 @@ class _JobsBase(_MachineBase):
                 rc = cur.fetchone()
                 if not rc:
                     break
-                if rc[5].strip() == "yes":
+                if rc[5] and rc[5].strip() == "yes":
                     logUrl = "%s://%s%s/api/v2/fileget/%d.test" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), rc[2])
                 else:
                     logUrl = None
@@ -186,15 +193,15 @@ class _JobsBase(_MachineBase):
             for j in jobs.keys():
                 del jobs[j]['params']
 
+            
+
         return jobs
 
     def updateJobField(self, jobid, key, value, commit=True, lookupExisting=True):
         db = self.getDB()
 
         if lookupExisting:
-            jobs = self.getJobs(1, ids=[jobid], getParams=True)
-            if not jobid in jobs:
-                raise XenRTAPIError(HTTPNotFound, "Job not found")
+            jobs = self.getJobs(1, ids=[jobid], getParams=True, exceptionIfEmpty=True)
 
             details = jobs[jobid]['params']
         else:
@@ -227,8 +234,21 @@ class _JobsBase(_MachineBase):
             finally:
                 cur.close()
     
+    def setJobStatus(self, id, status, commit=True):
 
-class ListJobs(_JobsBase):
+        db = self.getDB()
+
+        try:
+            cur = db.cursor()
+            cur.execute("UPDATE tbljobs SET jobstatus=%s WHERE jobid=%s;", [status,id])
+            if commit:
+                db.commit()
+
+        finally:
+            cur.close()
+
+
+class ListJobs(_JobBase):
     PATH = "/jobs"
     REQTYPE = "GET"
     SUMMARY = "Get jobs matching parameters"
@@ -339,7 +359,7 @@ class ListJobs(_JobsBase):
                             getResults=results,
                             getLog=logitems)
 
-class GetJob(_JobsBase):
+class GetJob(_JobBase):
     PATH = "/job/{id}"
     REQTYPE = "GET"
     SUMMARY = "Gets a specific job object"
@@ -361,12 +381,10 @@ class GetJob(_JobsBase):
     def render(self):
         job = int(self.request.matchdict['id'])
         logitems = self.request.params.get("logitems", "false") == "true"
-        jobs = self.getJobs(1, ids=[job], getParams=True, getResults=True, getLog=logitems)
-        if not job in jobs:
-            raise XenRTAPIError(HTTPNotFound, "Job not found")
+        jobs = self.getJobs(1, ids=[job], getParams=True, getResults=True, getLog=logitems, exceptionIfEmpty=True)
         return jobs[job]
 
-class GetTest(_JobsBase):
+class GetTest(_JobBase):
     PATH = "/test/{id}"
     REQTYPE = "GET"
     SUMMARY = "Gets a specific test object"
@@ -388,13 +406,11 @@ class GetTest(_JobsBase):
     def render(self):
         detail = int(self.request.matchdict['id'])
         logitems = self.request.params.get("logitems", "false") == "true"
-        jobs = self.getJobs(1, detailids=[detail], getResults=True, getLog=logitems)
-        if len(jobs.values()) == 0:
-            raise XenRTAPIError(HTTPNotFound, "Job not found")
+        jobs = self.getJobs(1, detailids=[detail], getResults=True, getLog=logitems, exceptionIfEmpty=True)
 
         return jobs.values()[0]['results'][detail]
 
-class RemoveJob(_JobsBase):
+class RemoveJob(_JobBase):
     WRITE = True
     PATH = "/job/{id}"
     REQTYPE = "DELETE"
@@ -435,7 +451,7 @@ class RemoveJob(_JobsBase):
         except Exception, e:
             raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
         job = int(self.request.matchdict['id'])
-        jobinfo = self.getJobs(1, ids=[job], getParams=False,getResults=False,getLog=False)[job]
+        jobinfo = self.getJobs(1, ids=[job], getParams=False,getResults=False,getLog=False, exceptionIfEmpty=True)[job]
         if jobinfo['status'] not in ('done', 'removed'):
             self.updateJobField(job, "REMOVED", "yes")
         if j.get('return_machines'):
@@ -445,7 +461,7 @@ class RemoveJob(_JobsBase):
                  
         return {}
         
-class NewJob(_JobsBase):
+class NewJob(_JobBase):
     WRITE = True
     PATH = "/jobs"
     REQTYPE = "POST"
@@ -544,7 +560,7 @@ class NewJob(_JobsBase):
     PARAM_ORDER=["machines", "pools", "flags", "resources", "specified_machines", "sequence", "custom_sequence", "params", "deployment", "job_group", "email", "inputdir", "lease_machines"]
 
     def updateJobField(self, field, value):
-        _JobsBase.updateJobField(self, self.jobid, field, value, commit=False, lookupExisting=False)
+        _JobBase.updateJobField(self, self.jobid, field, value, commit=False, lookupExisting=False)
 
     def newJob(self,
                pools=None,
@@ -596,6 +612,9 @@ class NewJob(_JobsBase):
             if customSequence:
                 self.updateJobField("CUSTOM_SEQUENCE", "yes")
 
+        if not params:
+            params = {}
+        
         if jobGroup:
             try:
                 cur.execute("DELETE FROM tblJobGroups WHERE "
@@ -605,10 +624,10 @@ class NewJob(_JobsBase):
                 pass
             cur.execute("INSERT INTO tblJobGroups (gid, jobid, description) VALUES " \
                         "(%s, %s, %s);", [jobGroup['id'], self.jobid, jobGroup['tag']])
+            params['JOBGROUP'] = jobGroup['id']
+            params['JOBGROUPTAG'] = jobGroup['tag']
             
 
-        if not params:
-            params = {}
 
         params['JOB_FILES_SERVER'] = config.log_server
         params['LOG_SERVER'] = config.log_server
@@ -628,7 +647,7 @@ class NewJob(_JobsBase):
 
         db.commit()
         cur.close()
-        ret = self.getJobs(1, ids=[self.jobid], getParams=True,getResults=False,getLog=False)[self.jobid]
+        ret = self.getJobs(1, ids=[self.jobid], getParams=True,getResults=False,getLog=False, exceptionIfEmpty=True)[self.jobid]
         if deployment:
             deploymentSeq = app.utils.create_seq_from_deployment(deployment)
             seqfile = StringIO.StringIO(deploymentSeq)
@@ -658,7 +677,7 @@ class NewJob(_JobsBase):
                            inputdir=j.get("inputdir"),
                            lease=j.get("lease_machines"))
 
-class _GetAttachmentUrl(_JobsBase):
+class _GetAttachmentUrl(_JobBase):
     REQTYPE = "GET"
     PARAMS = [
         {'name': 'id',
@@ -676,7 +695,7 @@ class _GetAttachmentUrl(_JobsBase):
 
     def render(self):
         job = int(self.request.matchdict['id'])
-        server = self.getJobs(1, ids=[job], getParams=True)[job]['params'][self.LOCATION_PARAM]
+        server = self.getJobs(1, ids=[job], getParams=True, exceptionIfEmpty=True)[job]['params'][self.LOCATION_PARAM]
 
         return {'url': 'http://%s/xenrt/api/v2/fileget/%d.%s' % (server, job, self.request.matchdict['file'])}
 
@@ -692,7 +711,7 @@ class GetAttachmentPostRun(_GetAttachmentUrl):
     SUMMARY='Get URL for job attachment, uploaded after job ran'
     OPERATION_ID='get_job_attachment_post_run'
 
-class GetJobDeployment(_JobsBase):
+class GetJobDeployment(_JobBase):
     PATH='/job/{id}/deployment'
     REQTYPE='GET'
     SUMMARY='Get deployment for job'
@@ -704,20 +723,20 @@ class GetJobDeployment(_JobsBase):
          'type': 'integer'}]
     TAGS = ["jobs"]
     RESPONSES = { "200": {"description": "Successful response"}}
+    OPERATION_ID = 'get_job_deployment'
 
     def render(self):
         job = int(self.request.matchdict['id'])
 
         try:
-            server = self.getJobs(1, ids=[job], getParams=True)[job]['params']['LOG_SERVER']
+            server = self.getJobs(1, ids=[job], getParams=True, exceptionIfEmpty=True)[job]['params']['LOG_SERVER']
             r = requests.get('http://%s/xenrt/api/v2/fileget/%d.deployment.json' % (server, job))
             r.raise_for_status()
             return r.json()
         except Exception, e:
             raise XenRTAPIError(HTTPNotFound, str(e))
 
-
-class UpdateJob(_JobsBase):
+class UpdateJob(_JobBase):
     REQTYPE="POST"
     WRITE = True
     PATH = "/job/{id}"
@@ -743,11 +762,15 @@ class UpdateJob(_JobsBase):
             "params": {
                 "type": "object",
                 "description": "Key-value pairs of parameters to update (set null to delete a parameter)"
+            },
+            "complete": {
+                "type": "boolean",
+                "description": "Set to true to complete the job"
             }
         }
     }}
     OPERATION_ID = "update_job"
-    PARAM_ORDER=["id", "params"]
+    PARAM_ORDER=["id", "params", "complete"]
     SUMMARY = "Update job details"
 
     def render(self):
@@ -756,9 +779,11 @@ class UpdateJob(_JobsBase):
             jsonschema.validate(j, self.DEFINITIONS['updatejob'])
         except Exception, e:
             raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
-        if j['params']:
+        if j.get('params'):
             for p in j['params'].keys():
                 self.updateJobField(int(self.request.matchdict['id']), p, j['params'][p], commit=False)
+        if j.get("complete"):
+            self.setJobStatus(int(self.request.matchdict['id']), "done", commit=False)
         self.getDB().commit()
         return {}
     

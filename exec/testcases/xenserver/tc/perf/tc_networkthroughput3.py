@@ -40,7 +40,7 @@ class TCNetworkThroughputMultipleVifs(tc_networkthroughput2.TCNetworkThroughputP
         #netback_per_cpu (tampa, clearwater) uses a "[netback" thread per cpu
         #netback_per_vif (sarasota onwards) uses a "[vif" thread per vif
         nr_netback_threads_per_cpu = int(host_endpoint.execcmd('ps aux| grep "\[netback/*." |grep -v grep | wc -l').strip())
-        nr_netback_threads_per_vif = int(host_endpoint.execcmd('ps aux| grep "\[vif*." |grep -v dealloc |grep -v grep | wc -l').strip())
+        nr_netback_threads_per_vif = int(host_endpoint.execcmd('ps aux| grep "\[vif*." |grep -v -- -dea |grep -v grep | wc -l').strip())
 
         # basic sanity checks
         if nr_netback_threads_per_cpu > 0 and nr_netback_threads_per_vif > 0:

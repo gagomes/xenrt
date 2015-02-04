@@ -61,9 +61,11 @@ class Path(object):
                 else:
                     ret += """        if %s != None:\n            payload['%s'] = %s\n""" % (q, p, q)
         if self.method == "get":
-            ret += """        r = requests.get(path, params=paramdict, auth=(self.user, self.password))\n"""
+            ret += """        r = requests.get(path, params=paramdict, auth=(self.user, self.password), headers=self.customHeaders)\n"""
         else:
-            ret += """        r = requests.%s(path, params=paramdict, data=payload, files=files, auth=(self.user, self.password))\n""" % self.method
+            ret += """        myHeaders = {'content-type': 'application/json'}\n"""
+            ret += """        myHeaders.update(self.customHeaders)\n"""
+            ret += """        r = requests.%s(path, params=paramdict, data=payload, files=files, auth=(self.user, self.password), headers=myHeaders)\n""" % self.method
         ret += """        self.__raiseForStatus(r)\n"""
         if 'application/json' in self.data['produces']:
             ret += """        return r.json()"""
@@ -184,6 +186,7 @@ import requests
 import json
 import httplib
 import os.path
+import netrc
 
 class XenRTAPIException(Exception):
     def __init__(self, code, reason, canForce):
@@ -198,10 +201,19 @@ class XenRTAPIException(Exception):
         return ret
 
 class XenRT(object):
-    def __init__(self, user, password):
+    def __init__(self, user=None, password=None):
         self.base = "%s://%s%s"
-        self.user = user
-        self.password = password
+
+        if not user:
+            auth = netrc.netrc().authenticators("%s")
+            if not auth:
+                raise Exception("No authentication details specified by parameters or in .netrc for %s")
+            self.user = auth[0]
+            self.password = auth[2]
+        else:
+            self.user = user
+            self.password = password
+        self.customHeaders = {}
 
     def __serializeForQuery(self, data):
         if isinstance(data, bool):
@@ -232,7 +244,7 @@ class XenRT(object):
                                         canForce)
         response.raise_for_status()
 
-""" % (self.scheme, self.host, self.base)
+""" % (self.scheme, self.host, self.base, self.host, self.host)
         for func in self.funcs:
             ret += "%s\n" % func.methodSignature
             ret += "%s\n" % func.description

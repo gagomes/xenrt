@@ -5302,14 +5302,13 @@ class GenericHost(GenericPlace):
             raise xenrt.XRTError("No %s repository for %s %s" %
                                  (method, arch, distro))
 
-        mainDisk=self.getInstallDisk(ccissIfAvailable=False)
-        if "scsi-SATA" in mainDisk and (re.search(r"rhel7", distro) or \
-                                        re.search(r"centos7", distro) or \
-                                        re.search(r"oel7", distro)):
-            # This is a hack to workaround the fact RHEL7 has different by-id entries
-            # It will break if certain USB disks etc are in use, but for now is a
-            # 'quick fix' (sorry!)
-            mainDisk = "sda"
+        if (re.search(r"rhel7", distro) or \
+                re.search(r"centos7", distro) or \
+                re.search(r"oel7", distro)):
+            legacySATA = False
+        else:
+            legacySATA = True
+        mainDisk=self.getInstallDisk(ccissIfAvailable=False, legacySATA=legacySATA)
 
         if re.search(r"oel5", distro) or re.search (r"rhel5", distro) or re.search(r"centos5", distro) or \
                 re.search(r"oel4", distro) or re.search (r"rhel4", distro) or re.search(r"centos4", distro):
@@ -5461,7 +5460,7 @@ class GenericHost(GenericPlace):
             raise xenrt.XRTError("No %s repository for %s %s" %
                                  (method, arch, distro))
         nfsdir = xenrt.NFSDirectory()
-        mainDisk = self.getInstallDisk(ccissIfAvailable=False)
+        mainDisk = self.getInstallDisk(ccissIfAvailable=False, legacySATA=True)
         ethDevice = self.getDefaultInterface()
         bootDiskSize = self.lookup("BOOTDISKSIZE", "100")
         ay=SLESAutoyastFile( distro,
@@ -5563,7 +5562,7 @@ class GenericHost(GenericPlace):
             raise xenrt.XRTError("No %s repository for %s %s" %
                                  (method, arch, distro))
 
-        mainDisk=self.getInstallDisk(ccissIfAvailable=False)
+        mainDisk=self.getInstallDisk(ccissIfAvailable=False, legacySATA=True)
 
         ethdev = self.getDefaultInterface()
         ethmac = xenrt.normaliseMAC(self.getNICMACAddress(0))
@@ -6496,51 +6495,46 @@ exit 0
 
         return subnetMask,gateway
 
-    def _getMainDisks(self, count=1, ccissIfAvailable=False):
+    def _getDisks(self, var, sdfallback, count, ccissIfAvailable, legacySATA):
         disks = None
         try:
             if ccissIfAvailable:
-                disks = self.lookup(["OPTION_CARBON_DISKS", "CCISS"], None)
+                disks = self.lookup([var, "CCISS"])
             else:
-                disks = self.lookup(["OPTION_CARBON_DISKS", "SCSI"], None)
+                disks = self.lookup([var, "SCSI"])
+        except:
+            pass
+        try:
+            if legacySATA:
+                disks = self.lookup([var, "LEGACY_SATA"])
+            else:
+                disks = self.lookup([var, "SATA"])
         except:
             pass
         if not disks:
-            disks = self.lookup("OPTION_CARBON_DISKS", None)
-
-        # REQ-35: Temp fix while we work out how to do this properly.
-        if isinstance(self, xenrt.lib.xenserver.DundeeHost) and self.isCentOS7Dom0():
-            if disks and "scsi-SATA" in "".join(disks):
+            disks = self.lookup(var, None)
+            # REQ-35: (Better) temp fix until we fix all of the config files
+            if not legacySATA and disks and "scsi-SATA" in "".join(disks):
                 disks = None
-
-        if not disks:
+        if not disks and sdfallback:
             disks = string.join(map(lambda x:"sd"+chr(97+x), range(count)))
-        return string.split(disks)[:count]
-
-    def getInstallDisk(self, ccissIfAvailable=False):
-        return self._getMainDisks(ccissIfAvailable=ccissIfAvailable, count=1)[0]
-
-    def getGuestDisks(self, count=1, ccissIfAvailable=False):
-        disks = None
-        try:
-            if ccissIfAvailable:
-                disks = self.lookup(["OPTION_GUEST_DISKS", "CCISS"])
-            else:
-                disks = self.lookup(["OPTION_GUEST_DISKS", "SCSI"])
-        except:
-            pass
         if not disks:
-            disks = self.lookup("OPTION_GUEST_DISKS", None)
-
-        # REQ-35: Temp fix while we work out how to do this properly.
-        if isinstance(self, xenrt.lib.xenserver.DundeeHost) and self.isCentOS7Dom0():
-            if disks and "scsi-SATA" in "".join(disks):
-                disks = None
-
-        if disks:
-            return string.split(disks)[:count]
+            return []
         else:
-            return self._getMainDisks(count=count, ccissIfAvailable=ccissIfAvailable)
+            return string.split(disks)[:count]
+
+    def _getMainDisks(self, count, ccissIfAvailable, legacySATA):
+        return self._getDisks("OPTION_CARBON_DISKS", True, count=count, ccissIfAvailable=ccissIfAvailable, legacySATA=legacySATA)
+
+    def getInstallDisk(self, ccissIfAvailable=False, legacySATA=False):
+        return self._getMainDisks(ccissIfAvailable=ccissIfAvailable, count=1, legacySATA=legacySATA)[0]
+
+    def getGuestDisks(self, count=1, ccissIfAvailable=False, legacySATA=False):
+        disks = self._getDisks("OPTION_GUEST_DISKS", False, count=count, ccissIfAvailable=ccissIfAvailable, legacySATA=legacySATA)
+        if disks:
+            return disks
+        else:
+            return self._getMainDisks(count=count, ccissIfAvailable=ccissIfAvailable, legacySATA=legacySATA)
 
     def getContainerHost(self):
         container = self.lookup("CONTAINER_HOST", None)
@@ -7645,9 +7639,8 @@ class GenericGuest(GenericPlace):
                                  "< /etc/sysctl.conf.orig > /etc/sysctl.conf; "
                                  "echo 1 > /proc/sys/kernel/sysrq; ")
                     else:
-                        self.execguest("echo 'kernel.sysrq = 1' >> /etc/sysctl.conf;"
-                                   "echo 1 > /proc/sys/kernel/sysrq; "
-                                   "fi")
+                        self.execguest("echo 'kernel.sysrq = 1' >> /etc/sysctl.conf")
+                        self.execguest("echo 1 > /proc/sys/kernel/sysrq")
             except:
                 xenrt.TEC().warning("Error enabling syslog in %s" %
                                     (self.getName()))

@@ -49,7 +49,8 @@ class XenRTAPIv2Swagger(XenRTPage):
             "securityDefinitions": {"Basic": {"type": "basic"}},
             "tags": [
                 {"name": "jobs", "description": "Operations on XenRT jobs"},
-                {"name": "machines", "description": "Operations on XenRT machines"}
+                {"name": "machines", "description": "Operations on XenRT machines"},
+                {"name": "sites", "description": "Operations on XenRT sites"}
             ],
             "definitions": {}
         }
@@ -105,3 +106,4 @@ import app.apiv2.bindings
 import app.apiv2.jobs
 import app.apiv2.machines
 import app.apiv2.files
+import app.apiv2.sites

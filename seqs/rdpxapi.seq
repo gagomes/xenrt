@@ -1,6 +1,5 @@
 <xenrt>
-  <default name="WINDISTROS" value="vistaeesp2,win81-x64,winxpsp3,ws08r2-x64"/>
-  <default name="LINUXDISTROS" value="rhel6,sles111"/>
+  <default name="WINDISTROS" value="vistaeesp2,win7-x86"/>
   <variables>
     <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
@@ -11,21 +10,7 @@
     <resources>memory&gt;=20G/disk1&gt;=140G</resources>
   </scheduler>
   <prepare>
-    <host id="0">
-      <vm name="rhel6">
-        <distro>rhel6</distro>
-        <memory>1024</memory>
-        <vcpus>2</vcpus>
-        <network device="0" />
-        <disk device="0" size="8" />
-      </vm>
-      <vm name="sles111">
-        <distro>sles111</distro>
-        <memory>1024</memory>
-        <vcpus>2</vcpus>
-        <network device="0" />
-        <disk device="0" size="8" />
-      </vm>
+  <host id="0">
       <vm name="win7-x86">
         <distro>win7-x86</distro>
         <memory>2048</memory>
@@ -40,31 +25,6 @@
         <network device="0" />
         <disk device="0" size="12" />
      </vm>
-     </host>
-     <host id="1">
-     <vm name="win81-x64">
-        <distro>win81-x64</distro>
-        <arch>x86-64</arch>
-        <memory>2048</memory>
-        <vcpus>2</vcpus>
-        <network device="0" />
-        <disk device="0" size="12" />
-      </vm>
-     <vm name="winxpsp3">
-        <distro>winxpsp3</distro>
-        <memory>512</memory>
-        <vcpus>2</vcpus>
-        <network device="0" />
-        <disk device="0" size="12" />
-      </vm>
-     <vm name="ws08r2-x64">
-        <distro>ws08r2-x64</distro>
-        <arch>x86-64</arch>
-        <memory>2048</memory>
-        <vcpus>2</vcpus>
-        <network device="0" />
-        <disk device="0" size="12" />
-      </vm>
     </host>
   </prepare>
   
@@ -86,12 +46,5 @@
         <arg>guest=${D}</arg>
         </testcase>
      </for>
-  </testsequence>
-  <testsequence group="RdpXapiLinux">
-    <for iter="D" values="${LINUXDISTROS}">
-        <testcase id="xenserver.tc.rdpxapi.TestRdpForLinux" tc="TC-23791" prio="3" >
-        <arg>guest=${D}</arg>
-        </testcase>
-   </for>
   </testsequence>
 </xenrt>

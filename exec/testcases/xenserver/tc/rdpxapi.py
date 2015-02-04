@@ -9,14 +9,23 @@
 import xenrt
 from xenrt.lazylog import step
 from xenrt.lib.xenserver.xapirdp import XapiRdp
+from xenrt.lib.xenserver.signedpackages import SignedWindowsTools
 
-class TC23790(xenrt.TestCase):
-    """ Verify that XAPI can switch RDP for windows guests with fresh installed tools."""
+
+class RdpVerification(xenrt.TestCase):
+    """ Base class for all the Rdp verification tests"""
 
     def prepare(self, arglist=None):
         self.args  = self.parseArgsKeyValue(arglist)
         self.guest = self.getGuest(self.args['guest'])
-        self.uninstallOnCleanup(self.guest)
+        if self.snappoint is None:
+            self.snappoint = self.guest.snapshot()
+
+    def postRun(self):
+        self.guest.revert(self.snappoint)
+
+class TestRdpWithTools(RdpVerification):
+    """ Verify that XAPI can switch RDP for windows guests with fresh installed tools."""
 
     def run(self, arglist=None):
         xapiRdpObj = XapiRdp(self.guest)
@@ -32,11 +41,8 @@ class TC23790(xenrt.TestCase):
         xenrt.TEC().logverbose("XAPI couldn't enabled RDP for the guest %s with no tools" % (self.guest))
 
         #Install tools 
-        step("Installing the latest driver tools on the guest")
-        self.guest.installDrivers()
-        self.guest.waitForAgent(180)
-        self.guest.reboot()
-        self.guest.check()
+        step(" Test is installing latest tools on the guest")
+        SignedWindowsTools.installPackages(self.guest)
 
         # Check that XAPI can switch RDP with tools installed
         if not xapiRdpObj.enableRdp():
@@ -51,13 +57,12 @@ class TC23790(xenrt.TestCase):
             raise xenrt.XRTFailure("Guest agent does not updated  data/ts about the RDP status change for the guest %s " % (self.guest))
         xenrt.TEC().logverbose("Guest agent updated the RDP status in data/ts successfully for the guest %s" % (self.guest))
 
-class TC23791(xenrt.TestCase):
+class TestRdpForLinux(xenrt.Testcase):
     """ Verify that XAPI cannot switch RDP for linux guests """
 
     def prepare(self, arglist=None):
         self.args  = self.parseArgsKeyValue(arglist)
         self.guest = self.getGuest(self.args['guest'])
-        self.uninstallOnCleanup(self.guest)
 
     def run(self, arglist=None):
         xapiRdpObj = XapiRdp(self.guest)
@@ -69,16 +74,15 @@ class TC23791(xenrt.TestCase):
 
         self.guest.checkHealth()
 
-class TC23792(xenrt.TestCase):
+class TestRdpSettings(RdpVerification):
     """Verify that RDP settings on the windows guests are made after XAPI enable/disable RDP"""
-
-    def prepare(self, arglist=None):
-        self.args  = self.parseArgsKeyValue(arglist)
-        self.guest = self.getGuest(self.args['guest'])
-        self.uninstallOnCleanup(self.guest)
 
     def run(self, arglist=None):
         xapiRdpObj = XapiRdp(self.guest)
+
+        #Install tools 
+        step(" Test is installing latest tools on the guest")
+        SignedWindowsTools.installPackages(self.guest)
 
         # Disable the RDP on the guest
         step(" Test is trying to set fDenyTSConnections on the guest to disable RDP")
@@ -114,16 +118,15 @@ class TC23792(xenrt.TestCase):
 
         self.guest.checkHealth()
 
-class TC23793(xenrt.TestCase):
+class TestGuestDisbableRdp(RdpVerification):
     """Verify that Manually disabling the RDP on the guest updates RDP disabled field in XAPI"""
-
-    def prepare(self, arglist=None):
-        self.args  = self.parseArgsKeyValue(arglist)
-        self.guest = self.getGuest(self.args['guest'])
-        self.uninstallOnCleanup(self.guest)
 
     def run(self, arglist=None):
         xapiRdpObj = XapiRdp(self.guest)
+
+        #Install tools 
+        step(" Test is installing latest tools on the guest")
+        SignedWindowsTools.installPackages(self.guest)
 
         # Enable RDP on the guest 
         if not xapiRdpObj.enableRdp():
@@ -148,13 +151,8 @@ class TC23793(xenrt.TestCase):
         self.guest.checkHealth()
 
 
-class TC23794(xenrt.TestCase):
+class TestRdpOnPostInstall(RdpVerification):
     """Test that post installation of tools collects the appropriate RDP settings."""
-
-    def prepare(self, arglist=None):
-        self.args  = self.parseArgsKeyValue(arglist)
-        self.guest = self.getGuest(self.args['guest'])
-        self.uninstallOnCleanup(self.guest)
 
     def run(self, arglist=None):
         xapiRdpObj = XapiRdp(self.guest)
@@ -165,25 +163,21 @@ class TC23794(xenrt.TestCase):
         xenrt.sleep(10)
 
         #Install tools 
-        step("Installing the latest tools on the guest")
-        self.guest.installDrivers()
-        self.guest.waitForAgent(180)
-        self.guest.reboot()
-        self.guest.check()
+        SignedWindowsTools.installPackages(self.guest)
 
         if not xapiRdpObj.isRdpEnabled():
             raise xenrt.XRTFailure("After tools installation previous RDP settings lost on the guest %s " % (self.guest))
         xenrt.TEC().logverbose("RDP settings made before new tools installation preserved on the guest %s" % (self.guest))
 
-class TC23795(xenrt.TestCase):
+class TestRdpWithSnapshot(RdpVerification):
     """Test Snapshot consistency in the guest for  RDP changes."""
-    def prepare(self, arglist=None):
-        self.args  = self.parseArgsKeyValue(arglist)
-        self.guest = self.getGuest(self.args['guest'])
-        self.uninstallOnCleanup(self.guest)
 
     def run(self, arglist=None):
         xapiRdpObj = XapiRdp(self.guest)
+
+        #Install latest tools
+        step(" Test is installing latest tools on the guest")
+        SignedWindowsTools.installPackages(self.guest)
 
         # Disable the RDP on the guest.
         step(" Test is trying to set fDenyTSConnections on the guest to disable RDP")

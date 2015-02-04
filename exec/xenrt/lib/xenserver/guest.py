@@ -6023,7 +6023,28 @@ class DundeeGuest(CreedenceGuest):
 
                 # wait for registry key to appear
                 time.sleep(30)
+                
+                offloadSettingsAfter = self.getVifOffloadSettings(0)
+                xenrt.TEC().logverbose("xenvif settings after installing tools: %s" % str(offloadSettingsAfter))
 
+                # if the VM is moving from old PV drivers to new PV drivers
+                # then we don't need to verify that offload settings are preserved
+                if legacy and offloadSettingsBefore:
+                    offloadSettingsBefore.verifyEqualTo(offloadSettingsAfter)
+
+                usepoolmem = xenrt.TEC().lookup("PVDRIVER_POOLMEM", False, boolean=True)
+
+                if usepoolmem:
+                    self.xmlrpcExec("verifier /flags 0x9 /driver xen.sys xenfilt.sys xenbus.sys xenvbd.sys xenvif.sys xennet.sys xeniface.sys")
+
+                if usepoolmem or extrareboot: 
+                    self.reboot()
+
+                if xenrt.TEC().lookup("DO_SYSPREP", False, boolean=True):
+                    self.xmlrpcDoSysprep()
+                    self.reboot()
+                    self.checkPVDevices()
+                    
                 for i in range(12):
                     if self.pvDriversUpToDate() or not expectUpToDate:
                         break

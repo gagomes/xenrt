@@ -9,20 +9,22 @@
 import xenrt
 from xenrt.lazylog import step, log
 from xenrt.lib.xenserver.xapirdp import XapiRdp
+global snappoint
 
 class RdpVerification(xenrt.TestCase):
     """ Base class for all the Rdp verification tests"""
-    snappoint = None
 
     def prepare(self, arglist=None):
         self.args  = self.parseArgsKeyValue(arglist)
         self.guest = self.getGuest(self.args['guest'])
-        log(self.snappoint)
-        if self.snappoint is None:
-            self.snappoint = self.guest.snapshot()
-
+        if self.args['takesnapshot']:
+            self.guest.snapshot(name="Testsnapshot")
+        if self.args['finally']:
+            self.uninstallOnCleanup(self.guest)
+        
     def postRun(self):
-        self.guest.revert(self.snappoint)
+        self.guest.revert(name="Testsnapshot")
+        self.guest.start()
 
 class TestRdpWithTools(RdpVerification):
     """ Verify that XAPI can switch RDP for windows guests with fresh installed tools."""
@@ -205,6 +207,7 @@ class TestRdpWithSnapshot(RdpVerification):
         # Revert to snapshot
         step("Test reverting the guest snapshot")
         self.guest.revert(snapuuid)
+        self.guest.start()
 
         # Check the status of RDP 
         if xapiRdpObj.isRdpEnabled():

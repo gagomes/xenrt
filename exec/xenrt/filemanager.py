@@ -155,7 +155,7 @@ class FileManager(object):
                     if fnr.isSimpleFile:
                         r = requests.head(fnr.url, allow_redirects=True)
                         if r.status_code == 200 and 'content-length' in r.headers and \
-                            r.headers['content-length'] > fileSizeThreshold:
+                            float(r.headers['content-length']) > fileSizeThreshold:
                             xenrt.TEC().logverbose("Using external cache")
                             sharedLocation = self._externalCacheLocation(localName)
                             isUsingExternalCache = True

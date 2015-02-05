@@ -38,6 +38,12 @@
         </Password>
       </AutoLogon>
     </component>
+    <component name="Microsoft-Windows-International-Core" processorArchitecture="%ARCH%" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+      <InputLocale>en-US</InputLocale>
+      <SystemLocale>en-US</SystemLocale>
+      <UILanguage>en-US</UILanguage>
+      <UserLocale>en-US</UserLocale>
+    </component>
   </settings>
 
 </unattend>

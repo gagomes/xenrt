@@ -66,7 +66,7 @@ class LowLevelReadCacheController(Controller):
         return False
 
     def __fetchTapCtlFields(self, host):
-        regex = re.compile("""{0}=(\w+) {1}=(\w+) {2}=(\w+) {3}=(\w+)""".format("pid", "minor", "states", "args"))
+        regex = re.compile("""{0}=(\w+) {1}=(\w+) {2}=(\w+) {3}=(.*)""".format("pid", "minor", "state", "args"))
         data = host.execdom0("tap-ctl list | cat")
         return regex.findall(data)
 
@@ -85,7 +85,7 @@ class LowLevelReadCacheController(Controller):
         if self.srTypeIsSupported():
             sr = self.srForGivenVDI()
             # When o_direct is not defined, it is on by default.
-            if self.__RC_FLAG in self._host.xenrt.lib.xenserver.readcahcing("sr", sr.uuid, "other-config"):
+            if self.__RC_FLAG in self._host.genParamGet("sr", sr.uuid, "other-config"):
                 self._host.genParamRemove("sr", sr.uuid, "other-config", self.__RC_FLAG)
 
     def disable(self):

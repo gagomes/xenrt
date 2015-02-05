@@ -12,6 +12,7 @@ import shutil, traceback, fnmatch, xml.dom.minidom, pipes
 import xenrt
 from PIL import Image
 from IPy import IP
+from xenrt.lib.scalextreme import SXAgent
 
 # Symbols we want to export from the package.
 __all__ = ["Guest",
@@ -4236,6 +4237,16 @@ exit /B 1
         time.sleep(60)
         app = xenrt.XenMobileApplianceServer(self)
         app.doFirstbootUnattendedSetup() 
+
+    def createScaleXtremeEnvironment(self):
+        """Install agent on the guest and create ScaleXtreme
+        Environment."""
+        agent = SXAgent()
+        agent.agentVM = self
+        agent.installAgent()
+        agent.setAsGateway()
+        agent.createEnvironment()
+
 
 #############################################################################
 

@@ -14,7 +14,7 @@ class Controller(object):
         self.__vdiuuid = value
 
     def srTypeIsSupported(self):
-        sr = self.srForGivenVDI(self.vdiuuid)
+        sr = self.srForGivenVDI()
         # Read cache only works for ext and nfs.
         return sr.srType() == 'nfs' or sr.srType() == 'ext'
 

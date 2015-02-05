@@ -283,18 +283,21 @@ class FileManager(object):
         return None
 
     def removeFromCache(self, filename):
-        sharedLocation = self._sharedCacheLocation(filename)
-        if os.path.exists(sharedLocation):
-            xenrt.TEC().logverbose("Found %s in cache" % sharedLocation)
-            os.unlink(sharedLocation)
-            return
-        # Now try a resolved file name
         fnr = FileNameResolver(filename, False)
         url = fnr.url
-        sharedLocation = self._sharedCacheLocation(url)
-        if os.path.exists(sharedLocation):
-            xenrt.TEC().logverbose("Found %s in cache" % sharedLocation)
-            os.unlink(sharedLocation) 
+        globalCaches = []
+        # try for both, filename and resolved filename
+        for f in [filename, url]:
+            globalCaches.append(self._sharedCacheLocation(f))
+            externalLocation = self._externalCacheLocation(f, ignoreError=True)
+            if externalLocation: 
+                globalCaches.append(externalLocation)
+
+        for cache in globalCaches:
+            if os.path.exists(cache):
+                xenrt.TEC().logverbose("Found %s in cache" % cache)
+                os.unlink(cache)
+                return
 
     def __availableInCache(self, fnr):
 
@@ -368,17 +371,15 @@ class FileManager(object):
         if not days:
             days=7
 
-        sharedDir = xenrt.TEC().lookup("FILE_MANAGER_CACHE")
-
-        entries = os.listdir(sharedDir)
-
-        toRemove = []
-        for entry in entries:
-            cachepath = "%s/%s" % (sharedDir, entry)
-            mtime = os.path.getmtime(cachepath)
-            if (time.time() - mtime) > (days*24*3600):
-                xenrt.TEC().logverbose("Removing %s" % cachepath)
-                shutil.rmtree(cachepath)
+        for sharedDir in [xenrt.TEC().lookup("FILE_MANAGER_CACHE"), xenrt.TEC().lookup("FILE_MANAGER_CACHE_NFS")]:
+            if os.path.exists(sharedDir):
+                entries = os.listdir(sharedDir)
+                for entry in entries:
+                    cachepath = "%s/%s" % (sharedDir, entry)
+                    mtime = os.path.getmtime(cachepath)
+                    if (time.time() - mtime) > (days*24*3600):
+                        xenrt.TEC().logverbose("Removing %s" % cachepath)
+                        shutil.rmtree(cachepath)
 
     def fileExists(self, filename):
         try:

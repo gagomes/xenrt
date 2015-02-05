@@ -25,8 +25,7 @@ class RdpVerification(xenrt.TestCase):
         snapUUID = self.host.minimalList("snapshot-list", "uuid", "snapshot-of=%s name-label=Testsnapshot" % self.guest.uuid)[0]
         self.guest.revert(snapUUID)
         self.guest.start()
-        #check this fails ?
-        self.guest.reboot()
+        self.guest.reboot(force=True)
 
 class TestRdpWithTools(RdpVerification):
     """ Verify that XAPI can switch RDP for windows guests with fresh installed tools."""

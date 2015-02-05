@@ -16,17 +16,14 @@ class RdpVerification(xenrt.TestCase):
     def prepare(self, arglist=None):
         self.args  = self.parseArgsKeyValue(arglist)
         self.guest = self.getGuest(self.args['guest'])
-        self.host = self.guest.getHost()
-        if self.args.has_key('takesnapshot'):
-            self.guest.snapshot(name="Testsnapshot")
+        if self.args.has_key('OLDTOOLS'):
+            self.oldTools = self.args['OLDTOOLS']
 
     def postRun(self):
-        self.guest.shutdown()
-        snapUUID = self.host.minimalList("snapshot-list", "uuid", "snapshot-of=%s name-label=Testsnapshot" % self.guest.uuid)[0]
-        self.guest.revert(snapUUID)
-        self.guest.start()
-        self.guest.reboot(force=True)
-
+        # Keep the guest in original state so that rest of the test can use the same
+        self.guest.winRegAdd('HKLM', 'System\\CurrentControlSet\\Control\\Terminal Server\\', 'fDenyTSConnections',"DWORD", 1)
+        self.guest.uninstallDrivers()
+    
 class TestRdpWithTools(RdpVerification):
     """ Verify that XAPI can switch RDP for windows guests with fresh installed tools."""
 
@@ -152,7 +149,6 @@ class TestGuestDisbableRdp(RdpVerification):
 
         self.guest.checkHealth()
 
-
 class TestRdpOnPostInstall(RdpVerification):
     """Test that post installation of tools collects the appropriate RDP settings."""
 
@@ -203,7 +199,7 @@ class TestRdpWithSnapshot(RdpVerification):
         if not xapiRdpObj.isRdpEnabled():
             raise xenrt.XRTFailure("Guest agent does not updated data/ts about the RDP status change for the guest %s " % (self.guest))
         xenrt.TEC().logverbose("Guest agent updated the RDP status in data/ts successfully for the guest %s" % (self.guest))
-    
+
         # Revert to snapshot
         step("Test reverting the guest snapshot")
         self.guest.revert(snapuuid)
@@ -225,3 +221,29 @@ class TestRdpWithSnapshot(RdpVerification):
         xenrt.TEC().logverbose("Guest agent updated the RDP status in data/ts successfully for the guest %s" % (self.guest))
 
         self.guest.checkHealth()
+
+class TestRdpWithToolsUpgrade(RdpVerification):
+    """Verify that XAPI can switch RDP on the guest with upgraded tools"""
+
+    def run(self, arglist=None):
+        xapiRdpObj = XapiRdp(self.guest)
+
+        #install old tools 
+        self.guest.installDrivers(source=self.oldTools)
+
+        if xapiRdpObj.enableRdp():
+            raise xenrt.XRTFailure("XAPI enabled the RDP on the guest %s with old tools installed" % (self.guest))
+        xenrt.TEC().logverbose("XAPI couldn't enabled the RDP for the guest %s with old tools installed " % (self.guest))
+
+        #Install latest tools
+        step("Test trying to install latest tools")
+        self.guest.installDrivers()
+
+        if not xapiRdpObj.enableRdp():
+            raise xenrt.XRTFailure("XAPI failed to enable RDP for the guest %s with upgraded tools" % (self.guest))
+        xenrt.TEC().logverbose("XAPI enabled the RDP for the guest %s with upgraded tools " % (self.guest))
+
+        # Make sure RDP enabled field updated 
+        if not xapiRdpObj.isRdpEnabled():
+            raise xenrt.XRTFailure("data/ts not updated for the guest %s with upgraded tools " % (self.guest))
+        xenrt.TEC().logverbose("Guest agent updated the RDP status in data/ts successfully for the guest %s" % (self.guest))

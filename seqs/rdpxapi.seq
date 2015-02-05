@@ -32,6 +32,7 @@
     <for iter="D" values="${WINDISTROS}">
         <testcase id="xenserver.tc.rdpxapi.TestRdpWithTools" tc="TC-23790" prio="3" >
         <arg>guest=${D}</arg>
+        <arg>takesnapshot</arg>
         </testcase>
         <testcase id="xenserver.tc.rdpxapi.TestRdpSettings" tc="TC-23792" prio="3" >
         <arg>guest=${D}</arg>
@@ -44,6 +45,7 @@
         </testcase>
         <testcase id="xenserver.tc.rdpxapi.TestRdpWithSnapshot" tc="TC-23795" prio="3" >
         <arg>guest=${D}</arg>
+        <arg>finally</arg>
         </testcase>
      </for>
   </testsequence>

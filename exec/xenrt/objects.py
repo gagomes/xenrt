@@ -4188,6 +4188,10 @@ Loop While not oex3.Stdout.atEndOfStream"""%(applicationEventLogger,systemEventL
         if not self.windows:
             raise xenrt.XRTError("This can only be performed on Windows installations")
 
+        if float(self.xmlrpcWindowsVersion()) > 5.99:
+            self.installPowerShell()
+            self.xmlrpcExec("""(Get-WmiObject -class "Win32_TSGeneralSetting" -Namespace root\\cimv2\\terminalservices -ComputerName $env:ComputerName -Filter "TerminalName='RDP-tcp'").SetUserAuthenticationRequired(0)""", powershell=True)
+
         with open("%s/data/sysprep/unattend.xml" % xenrt.TEC().lookup("XENRT_BASE")) as f:
             unattend = f.read()
 

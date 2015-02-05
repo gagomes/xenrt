@@ -3328,6 +3328,14 @@ class Config:
         
         # Nautilus - sm, xen-hyp, xen-tools, xapi, kexec, iSL. Rolls up XS62E014, XS62E017, XS62ESP1002, XS62ESP1004, XS62ESP1006, XS62ESP1007, XS62ESP1008, XS62ESP1011, XS62ESP1013, XS62ESP1015
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1016"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1016/90390/hotfix-XS62ESP1016/XS62ESP1016.xsupdate"
+        
+        #Creedence hotfixes
+        # Gloss: XenCenter, Rolls up nothing
+        self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E001"] = "/usr/groups/release/XenServer-6.x/XS-6.5/hotfixes/XS65E001/91026/hotfix-XS65E001/XS65E001.xsupdate"
+      
+        # Houston: xs-tools. Rolls up nothing.
+        self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E002"] = "/usr/groups/release/XenServer-6.x/XS-6.5/hotfixes/XS65E002/91034/hotfix-XS65E002/XS65E002.xsupdate"
+      
 
 
         return
@@ -3475,8 +3483,9 @@ class Config:
             self.config["CARBON_PATCHES_CREEDENCE"] = {}
 
         branch = self.lookup("HFX_BRANCH_CREEDENCE", self.lookup(["DEFAULT_HOTFIX_BRANCH", "Creedence"]))
-        #if branch == "RTM":
-        #    self.config["CARBON_PATCHES_CREEDENCE"]["HF01"] = self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E001"]
+        if branch == "RTM":
+            self.config["CARBON_PATCHES_CREEDENCE"]["HF01"] = self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E001"]
+            self.config["CARBON_PATCHES_CREEDENCE"]["HF02"] = self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E002"]
 
     def readFromFile(self, filename, path=None):
         """Read config from an XML file."""

@@ -4247,6 +4247,12 @@ exit /B 1
         agent.setAsGateway()
         agent.createEnvironment()
 
+    def convertToTemplate(self):
+        self.preCloneTailor()
+        if self.windows:
+            self.xmlrpcDoSysprep()
+        self.shutdown()
+        self.paramSet("is-a-template", "true")
 
 #############################################################################
 

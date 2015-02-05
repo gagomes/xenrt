@@ -21,9 +21,12 @@ class RdpVerification(xenrt.TestCase):
             self.guest.snapshot(name="Testsnapshot")
 
     def postRun(self):
+        self.guest.shutdown()
         snapUUID = self.host.minimalList("snapshot-list", "uuid", "snapshot-of=%s name-label=Testsnapshot" % self.guest.uuid)[0]
         self.guest.revert(snapUUID)
         self.guest.start()
+        #check this fails ?
+        self.guest.reboot()
 
 class TestRdpWithTools(RdpVerification):
     """ Verify that XAPI can switch RDP for windows guests with fresh installed tools."""
@@ -58,12 +61,8 @@ class TestRdpWithTools(RdpVerification):
             raise xenrt.XRTFailure("Guest agent does not updated  data/ts about the RDP status change for the guest %s " % (self.guest))
         xenrt.TEC().logverbose("Guest agent updated the RDP status in data/ts successfully for the guest %s" % (self.guest))
 
-class TestRdpForLinux(xenrt.TestCase):
+class TestRdpForLinux(RdpVerification):
     """ Verify that XAPI cannot switch RDP for linux guests """
-
-    def prepare(self, arglist=None):
-        self.args  = self.parseArgsKeyValue(arglist)
-        self.guest = self.getGuest(self.args['guest'])
 
     def run(self, arglist=None):
         xapiRdpObj = XapiRdp(self.guest)
@@ -74,6 +73,9 @@ class TestRdpForLinux(xenrt.TestCase):
         xenrt.TEC().logverbose("XAPI couldn't switch the RDP for the linux guest: %s " % (self.guest))
 
         self.guest.checkHealth()
+
+    def postRun(self):
+        pass
 
 class TestRdpSettings(RdpVerification):
     """Verify that RDP settings on the windows guests are made after XAPI enable/disable RDP"""

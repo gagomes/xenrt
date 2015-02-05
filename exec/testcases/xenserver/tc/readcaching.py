@@ -45,19 +45,26 @@ class TCXapiAndTapCtlAgree(ReadCacheTestCase):
     def run(self, arglist):
         host = self.getDefaultHost()
         rcc = host.readCaching()
-        assertions.assertTrue(rcc.isEnabled())
-        assertions.assertTrue(rcc.isEnabled(LowLevel=True))
+        self.__check(True, host, rcc)
 
         step("Switch off - low level")
         rcc.disable()
-        self._vm.migrateVM(host)
-        rcc.setVM(self._vm)
-        assertions.assertFalse(rcc.isEnabled())
-        assertions.assertFalse(rcc.isEnabled(LowLevel=True))
+        self.__check(False, host, rcc)
 
         step("Switch on - low level")
         rcc.enable()
+        self.__check(True, host, rcc)
+
+    def __check(self, expected, host, rcc):
         self._vm.migrateVM(host)
         rcc.setVM(self._vm)
-        assertions.assertTrue(rcc.isEnabled())
-        assertions.assertTrue(rcc.isEnabled(LowLevel=True))
+        assertions.assertEquals(expected, rcc.isEnabled(LowLevel=False))
+        assertions.assertEquals(expected, rcc.isEnabled(LowLevel=True))
+
+
+class TCRCForLifeCycleOps(ReadCacheTestCase):
+    def run(self, arglist):
+        host = self.getDefaultHost()
+        rcc = host.readCaching()
+
+

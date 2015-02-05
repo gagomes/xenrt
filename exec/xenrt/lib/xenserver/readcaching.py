@@ -45,13 +45,14 @@ class Controller(object):
 class XapiReadCacheController(Controller):
 
     def isEnabled(self):
-        raise NotImplementedError()
+        vdi = next(v for v in self._host.asXapiObject().SR().VDI() if v.uuid == self.vdiuuid)
+        return vdi.readcachingEnabled()
 
     def enable(self):
-        raise NotImplementedError()
+        raise NotImplementedError("This is not the method you're looking for")
 
     def disable(self):
-        raise NotImplementedError()
+        raise NotImplementedError("This is not the method you're looking for")
 
 
 class LowLevelReadCacheController(Controller):
@@ -104,21 +105,18 @@ class ReadCachingController(Controller):
     """
     Proxy certain methods for the other controller classes
     """
-    def __init__(self, guest):
-        self.__xapi = self.XapiReadCacheController(guest)
-        self.__ll = self.LowLevelReadCacheController(guest)
+    def __init__(self, host,  vdiuuid=None):
+        self.__xapi = XapiReadCacheController(host, vdiuuid)
+        self.__ll = LowLevelReadCacheController(host, vdiuuid)
+        super(ReadCachingController, self).__init__(host, vdiuuid)
 
     def isEnabled(self, LowLevel=False):
         if LowLevel:
             return self.__ll.isEnabled()
         return self.__xapi.isEnabled()
 
-    def enable(self, LowLevel=False):
-        if LowLevel:
-            return self.__ll.enable()
-        return self.__xapi.enable()
+    def enable(self):
+        return self.__ll.enable()
 
     def disable(self, LowLevel=False):
-        if LowLevel:
-            return self.__ll.disable()
-        self.__xapi.disable()
+        return self.__ll.disable()

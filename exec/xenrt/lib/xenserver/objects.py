@@ -207,12 +207,17 @@ class SR(NamedXapiObject):
 class VDI(NamedXapiObject):
     OBJECT_TYPE = "vdi"
     __SR_UUID = "sr-uuid"
+    __RC = "sm-config param-key=read-caching-enabled"
 
     def SR(self):
         return self.getObjectParam(SR.OBJECT_TYPE, self.__SR_UUID)
 
     def snapshot(self):
         return self.op("snapshot", returnObject="vdi")
+
+    def readcachingEnabled(self):
+        return self.getStringParam(self.__RC) == "true"
+
 
 """
 Setup global factory and accessor method

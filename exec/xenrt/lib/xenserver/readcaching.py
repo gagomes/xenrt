@@ -13,6 +13,9 @@ class Controller(object):
     def setVDIuuid(self, value):
         self.__vdiuuid = value
 
+    def setVM(self, vm, vdiIndex=0):
+        self.__vdiuuid = vm.asXapiObject().VDI()[vdiIndex].uuid
+
     def srTypeIsSupported(self):
         sr = self.srForGivenVDI()
         # Read cache only works for ext and nfs.

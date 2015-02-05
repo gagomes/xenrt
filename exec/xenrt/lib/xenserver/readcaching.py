@@ -20,7 +20,7 @@ class Controller(object):
 
     def srForGivenVDI(self):
         host = self._host.asXapiObject()
-        return next((s for s in host.SR if self.vdiuuid in [v.uuid for v in s.VDIs]), None)
+        return next((s for s in host.SR() if self.vdiuuid in [v.uuid for v in s.VDI()]), None)
 
     @property
     def vdiuuid(self):

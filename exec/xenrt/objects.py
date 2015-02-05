@@ -3871,14 +3871,14 @@ bootlocal.close()
 
                 self.waitforxmlrpc(20 * 60)
 
-            if not xenrt.TEC().lookup("DISABLE_EMULATED_DEVICES", False, boolean=True) and not xenrt.TEC().lookup("DISABLE_USB", False, boolean=True):
-                xenrt.TEC().logverbose("Re-enabling USB on Windows Blue")
-                self.xmlrpcShutdown()
-                self.poll("DOWN")
-                self.paramSet("platform:usb", "true")
-                self.lifecycleOperation("vm-start")
-                self.waitforxmlrpc(20 * 60)
-        
+                if not xenrt.TEC().lookup("DISABLE_EMULATED_DEVICES", False, boolean=True) and not xenrt.TEC().lookup("DISABLE_USB", False, boolean=True):
+                    xenrt.TEC().logverbose("Re-enabling USB on Windows Blue")
+                    self.xmlrpcShutdown()
+                    self.poll("DOWN")
+                    self.paramSet("platform:usb", "true")
+                    self.lifecycleOperation("vm-start")
+                    self.waitforxmlrpc(20 * 60)
+            
         applicationEventLogger = "wevtutil qe Application /c:50 /f:text"
         systemEventLogger = "wevtutil qe System /c:50 /f:text"
         setupEventLogger = "wevtutil qe Setup /c:50 /f:text"

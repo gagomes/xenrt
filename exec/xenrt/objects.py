@@ -4197,7 +4197,7 @@ Loop While not oex3.Stdout.atEndOfStream"""%(applicationEventLogger,systemEventL
 
         self.xmlrpcWriteFile("c:\\unattend.xml", unattend)
 
-        self.xmlrpcExec("c:\\windows\\system32\\sysprep\\sysprep.exe /unattend:c:\\unattend.xml /generalize /quiet /quit")
+        self.xmlrpcExec("c:\\windows\\system32\\sysprep\\sysprep.exe /unattend:c:\\unattend.xml /oobe /generalize /quiet /quit")
 
 class RunOnLocation(GenericPlace):
     def __init__(self, address):

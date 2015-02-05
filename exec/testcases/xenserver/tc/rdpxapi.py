@@ -9,7 +9,6 @@
 import xenrt
 from xenrt.lazylog import step, log
 from xenrt.lib.xenserver.xapirdp import XapiRdp
-global snappoint
 
 class RdpVerification(xenrt.TestCase):
     """ Base class for all the Rdp verification tests"""
@@ -17,9 +16,9 @@ class RdpVerification(xenrt.TestCase):
     def prepare(self, arglist=None):
         self.args  = self.parseArgsKeyValue(arglist)
         self.guest = self.getGuest(self.args['guest'])
-        if self.args['takesnapshot']:
+        if self.args.has_key('takesnapshot'):
             self.guest.snapshot(name="Testsnapshot")
-        if self.args['finally']:
+        if self.args.has_key('done'):
             self.uninstallOnCleanup(self.guest)
         
     def postRun(self):

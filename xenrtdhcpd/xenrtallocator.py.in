@@ -215,7 +215,7 @@ class XenRTDHCPAllocator(object):
                          ntp_servers = cfg['ntp'],
                          hostname=hostname)
         # Allow CCP to return first
-        if self.isCloudStackMAC(mac):
+        if self.isCloudStackMAC(str(mac)):
             time.sleep(3)
         return ret
 

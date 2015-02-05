@@ -7,7 +7,7 @@
   </variables>
   
   <scheduler>
-    <resources>memory&gt;=20G/disk1&gt;=140G</resources>
+    <resources>memory&gt;=200G/disk1&gt;=500G</resources>
   </scheduler>
   <prepare>
   <host id="0">

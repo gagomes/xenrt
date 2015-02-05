@@ -8,6 +8,13 @@
   </settings>
   <settings pass="oobeSystem">
     <component name="Microsoft-Windows-Shell-Setup" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" processorArchitecture="%ARCH%">
+      <FirstLogonCommands>
+        <SynchronousCommand wcm:action="add">
+          <CommandLine>c:\disablefirewall.cmd</CommandLine>
+          <Description>Post-install script.</Description>
+          <Order>20</Order>
+        </SynchronousCommand>
+      </FirstLogonCommands>
       <TimeZone>Greenwich Standard Time</TimeZone>
       <OOBE>
         <HideEULAPage>true</HideEULAPage>

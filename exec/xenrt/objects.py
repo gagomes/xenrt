@@ -4202,6 +4202,8 @@ Loop While not oex3.Stdout.atEndOfStream"""%(applicationEventLogger,systemEventL
 
         self.xmlrpcWriteFile("c:\\unattend.xml", unattend)
 
+        self.xmlrpcWriteFile("c:\\disablefirewall.cmd", "netsh firewall set opmode DISABLE\n")
+
         self.xmlrpcExec("c:\\windows\\system32\\sysprep\\sysprep.exe /unattend:c:\\unattend.xml /oobe /generalize /quiet /quit", returnerror=False)
 
 class RunOnLocation(GenericPlace):

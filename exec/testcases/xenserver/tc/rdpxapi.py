@@ -22,7 +22,7 @@ class RdpVerification(xenrt.TestCase):
     def postRun(self):
         # Keep the guest in original state so that rest of the test can use the same
         self.guest.winRegAdd('HKLM', 'System\\CurrentControlSet\\Control\\Terminal Server\\', 'fDenyTSConnections',"DWORD", 1)
-        self.guest.uninstallDrivers()
+        xenrt.sleep(10)
     
 class TestRdpWithTools(RdpVerification):
     """ Verify that XAPI can switch RDP for windows guests with fresh installed tools."""
@@ -79,10 +79,6 @@ class TestRdpSettings(RdpVerification):
     def run(self, arglist=None):
         xapiRdpObj = XapiRdp(self.guest)
 
-        #Install tools 
-        step(" Test is installing latest tools on the guest")
-        self.guest.installDrivers()
-
         # Disable the RDP on the guest
         step(" Test is trying to set fDenyTSConnections on the guest to disable RDP")
         self.guest.winRegAdd('HKLM', 'System\\CurrentControlSet\\Control\\Terminal Server\\', 'fDenyTSConnections',"DWORD", 1)
@@ -122,10 +118,6 @@ class TestGuestDisbableRdp(RdpVerification):
 
     def run(self, arglist=None):
         xapiRdpObj = XapiRdp(self.guest)
-
-        #Install tools 
-        step(" Test is installing latest tools on the guest")
-        self.guest.installDrivers()
 
         # Enable RDP on the guest 
         if not xapiRdpObj.enableRdp():
@@ -173,13 +165,10 @@ class TestRdpWithSnapshot(RdpVerification):
     def run(self, arglist=None):
         xapiRdpObj = XapiRdp(self.guest)
 
-        #Install latest tools
-        step(" Test is installing latest tools on the guest")
-        self.guest.installDrivers()
-
         # Disable the RDP on the guest.
         step(" Test is trying to set fDenyTSConnections on the guest to disable RDP")
         self.guest.winRegAdd('HKLM', 'System\\CurrentControlSet\\Control\\Terminal Server\\', 'fDenyTSConnections',"DWORD", 1)
+        xenrt.sleep(10)
 
         # Make sure RDP disabled field updated.
         if xapiRdpObj.isRdpEnabled():

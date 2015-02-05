@@ -16,14 +16,14 @@
         <memory>2048</memory>
         <vcpus>2</vcpus>
         <network device="0" />
-        <disk device="0" size="12" />
+        <disk device="0" size="14" />
       </vm>
       <vm name="vistaeesp2">
         <distro>vistaeesp2</distro>
         <memory>2048</memory>
         <vcpus>2</vcpus>
         <network device="0" />
-        <disk device="0" size="12" />
+        <disk device="0" size="14" />
      </vm>
     </host>
   </prepare>
@@ -45,7 +45,10 @@
         </testcase>
         <testcase id="xenserver.tc.rdpxapi.TestRdpWithSnapshot" tc="TC-23795" prio="3" >
         <arg>guest=${D}</arg>
-        <arg>finally</arg>
+        </testcase>
+        <testcase id="xenserver.tc.rdpxapi.TestRdpWithToolsUpgrade" tc="TC-23917" prio="3" >
+        <arg>guest=${D}</arg>
+        <arg>OLDTOOLS=http://www.uk.xensource.com/~bench/wintools-creedence-124.tar.gZ</arg>
         </testcase>
      </for>
   </testsequence>

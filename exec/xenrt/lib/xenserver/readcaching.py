@@ -66,12 +66,12 @@ class LowLevelReadCacheController(Controller):
         return False
 
     def __fetchTapCtlFields(self, host):
-        regex = re.compile("""{0}=(\w+) {1}=(\w+) {2}=(\w+)""".format("pid", "minor", "args"))
+        regex = re.compile("""{0}=(\w+) {1}=(\w+) {2}=(\w+) {3}=(\w+)""".format("pid", "minor", "states", "args"))
         data = host.execdom0("tap-ctl list | cat")
         return regex.findall(data)
 
     def __getPidAndMinor(self):
-        for pid, minor, args in self.__fetchTapCtlFields(self._host):
+        for pid, minor, state, args in self.__fetchTapCtlFields(self._host):
             if self.vdiuuid in args:
                 return pid, minor
         raise RuntimeError("No PID and minor found for vdi %s" % self.vdiuuid)

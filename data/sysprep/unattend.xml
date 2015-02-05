@@ -5,16 +5,24 @@
       <ComputerName>*</ComputerName>
       <ProductKey>%PRODUCTKEY%</ProductKey>
     </component>
+      <component name="Microsoft-Windows-TerminalServices-LocalSessionManager" processorArchitecture="%ARCH%" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+          <fDenyTSConnections>false</fDenyTSConnections>
+      </component>
+      <component name="Microsoft-Windows-TerminalServices-RDP-WinStationExtensions" processorArchitecture="%ARCH%" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+          <UserAuthentication>0</UserAuthentication>
+      </component>
+      <component name="Networking-MPSSVC-Svc" processorArchitecture="%ARCH%" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+          <FirewallGroups>
+              <FirewallGroup wcm:action="add" wcm:keyValue="rd1">
+                  <Active>true</Active>
+                  <Group>Remote Desktop</Group>
+                  <Profile>all</Profile>
+              </FirewallGroup>
+            </FirewallGroups>
+        </component>
   </settings>
   <settings pass="oobeSystem">
     <component name="Microsoft-Windows-Shell-Setup" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" processorArchitecture="%ARCH%">
-      <FirstLogonCommands>
-        <SynchronousCommand wcm:action="add">
-          <CommandLine>c:\disablefirewall.cmd</CommandLine>
-          <Description>Post-install script.</Description>
-          <Order>20</Order>
-        </SynchronousCommand>
-      </FirstLogonCommands>
       <TimeZone>Greenwich Standard Time</TimeZone>
       <OOBE>
         <HideEULAPage>true</HideEULAPage>

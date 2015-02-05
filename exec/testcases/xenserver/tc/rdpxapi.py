@@ -16,13 +16,13 @@ class RdpVerification(xenrt.TestCase):
     def prepare(self, arglist=None):
         self.args  = self.parseArgsKeyValue(arglist)
         self.guest = self.getGuest(self.args['guest'])
+        self.host = self.guest.getHost()
         if self.args.has_key('takesnapshot'):
             self.guest.snapshot(name="Testsnapshot")
-        if self.args.has_key('done'):
-            self.uninstallOnCleanup(self.guest)
-        
+
     def postRun(self):
-        self.guest.revert(name="Testsnapshot")
+        snapUUID = self.host.minimalList("snapshot-list", "uuid", "snapshot-of=%s name-label=Testsnapshot" % self.guest.uuid)[0]
+        self.guest.revert(snapUUID)
         self.guest.start()
 
 class TestRdpWithTools(RdpVerification):

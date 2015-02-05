@@ -17,9 +17,6 @@ class ReadCacheTestCase(xenrt.TestCase):
         step("Applying license: %s" % licence.getEdition())
         host.licenseApply(None, licence)
 
-    def _vdi(self, vm):
-        return vm.asXapiObject().VDI()[0].uuid
-
     def prepare(self, arglist):
         self._applyMaxLicense(self.getDefaultHost())
         args = self.parseArgsKeyValue(arglist)
@@ -36,6 +33,8 @@ class TCLicensingRCXapi(ReadCacheTestCase):
         rcc = host.readCaching()
         assertions.assertTrue(rcc.isEnabled())
         self._releaseLicense(host)
+        self._vm.migrateVM(host)
+        rcc.setVM(self._vm)
         assertions.assertFalse(rcc.isEnabled())
 
 
@@ -46,5 +45,19 @@ class TCXapiAndTapCtlAgree(ReadCacheTestCase):
     def run(self, arglist):
         host = self.getDefaultHost()
         rcc = host.readCaching()
+        assertions.assertTrue(rcc.isEnabled())
+        assertions.assertTrue(rcc.isEnabled(LowLevel=True))
+
+        step("Switch off - low level")
+        rcc.disable()
+        self._vm.migrateVM(host)
+        rcc.setVM(self._vm)
+        assertions.assertFalse(rcc.isEnabled())
+        assertions.assertFalse(rcc.isEnabled(LowLevel=True))
+
+        step("Switch on - low level")
+        rcc.enable()
+        self._vm.migrateVM(host)
+        rcc.setVM(self._vm)
         assertions.assertTrue(rcc.isEnabled())
         assertions.assertTrue(rcc.isEnabled(LowLevel=True))

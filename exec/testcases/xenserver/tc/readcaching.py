@@ -38,10 +38,14 @@ class TCLicensingRCXapi(ReadCacheTestCase):
         vm = self.vm(arglist)
         rcc = host.readCaching()
         rcc.setVM(vm)
+
+        step("Check Read Caching on...")
         assertions.assertTrue(rcc.isEnabled(), "RC is enabled")
         self._releaseLicense(host)
         vm.migrateVM(host)
         rcc.setVM(vm)
+
+        step("Check Read Caching off...")
         assertions.assertFalse(rcc.isEnabled(), "RC is disabled")
 
 
@@ -52,8 +56,9 @@ class TCXapiAndTapCtlAgree(ReadCacheTestCase):
     def run(self, arglist):
         vm = self.vm(arglist)
         host = self.getDefaultHost()
-        self._applyMaxLicense(host)
         rcc = host.readCaching()
+
+        step("Initial check - verify on")
         self.__check(True, host, rcc, vm)
 
         step("Switch off - low level")
@@ -67,13 +72,34 @@ class TCXapiAndTapCtlAgree(ReadCacheTestCase):
     def __check(self, expected, host, rcc, vm):
         vm.migrateVM(host)
         rcc.setVM(vm)
-        assertions.assertEquals(expected, rcc.isEnabled(LowLevel=False))
-        assertions.assertEquals(expected, rcc.isEnabled(LowLevel=True))
+        assertions.assertEquals(expected, rcc.isEnabled(LowLevel=True), "RC enabled via tap-ctl")
+        assertions.assertEquals(expected, rcc.isEnabled(LowLevel=False), "RC enabled via xapi")
 
 
 class TCRCForLifeCycleOps(ReadCacheTestCase):
     def run(self, arglist):
         host = self.getDefaultHost()
         rcc = host.readCaching()
+        vm = self.vm(arglist)
+        self.runSubcase(self.__lifecycle, (vm,rcc,vm.reboot)), "Reboot", "Reboot")
+        self.runSubcase(self.__lifecycle, (vm,rcc,self.__pauseResume,vm), "PauseResume", "PauseResume")
+        self.runSubcase(self.__lifecycle, (vm,rcc,self.__stopStart,vm), "StopStart", "StopStart")
+        self.runSubcase(self.__lifecycle, (vm,rcc,vm.migrateVM,host), "LocalHostMigrate", "LocalHostMigrate")
 
+    def __stopStart(vm):
+        vm.shutdown()
+        vm.start()
 
+    def __pauseResume(vm):
+        vm.pause()
+        vm.resume()
+
+    def __lifecycle(self, vm, rcc, op, *args):
+        self._applyMaxLicense()
+        rcc.setVM(vm)
+        op(*args)
+        assertions.assertTrue(rcc.isEnabled(), "RC is on")
+        self._releaseLicense()
+        rcc.setVM(vm)
+        op(*args)
+        assertions.assertFalse(rcc.isEnabled(), "RC is off")

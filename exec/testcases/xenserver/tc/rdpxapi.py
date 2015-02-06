@@ -224,9 +224,9 @@ class TestRdpWithToolsUpgrade(RdpVerification):
             raise xenrt.XRTFailure("XAPI enabled the RDP on the guest %s with old tools installed" % (self.guest))
         xenrt.TEC().logverbose("XAPI couldn't enabled the RDP for the guest %s with old tools installed " % (self.guest))
 
-        #Install latest tools
+        #Upgrade the tools to latest
         step("Test trying to install latest tools")
-        self.guest.installDrivers()
+        self.guest.upgradeTools()
 
         if not xapiRdpObj.enableRdp():
             raise xenrt.XRTFailure("XAPI failed to enable RDP for the guest %s with upgraded tools" % (self.guest))

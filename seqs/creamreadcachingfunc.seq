@@ -4,7 +4,7 @@
   </variables>
 
   <prepare>
-    <host id="0">
+    <host id="0" installsr="ext">
       <vm name="arnie">
         <distro>generic-linux</distro>
       </vm>

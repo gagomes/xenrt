@@ -1,5 +1,5 @@
 import xenrt
-from xenrt.lazylog import step
+from xenrt.lazylog import step, log
 from xenrt.lib import assertions
 from xenrt.lib.xenserver.licensing import XenServerLicenceFactory as LF
 from xenrt.enum import XenServerLicenceSKU
@@ -19,6 +19,8 @@ class ReadCacheTestCase(xenrt.TestCase):
 
     def prepare(self, arglist):
         self._applyMaxLicense(self.getDefaultHost())
+        vm = self.vm(arglist)
+        vm.migrateVM(host)
 
     def vm(self, arglist):
         args = self.parseArgsKeyValue(arglist)
@@ -32,9 +34,8 @@ class TCLicensingRCXapi(ReadCacheTestCase):
 
     def run(self, arglist):
         host = self.getDefaultHost()
-        self._applyMaxLicense(host)
-        rcc = host.readCaching()
         vm = self.vm(arglist)
+        rcc = host.readCaching()
 
         log(vm.asXapiObject().XapiHost().name())
 

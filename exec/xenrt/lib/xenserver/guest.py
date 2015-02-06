@@ -7,7 +7,7 @@
 # conditions as licensed by XenSource, Inc. All other rights reserved.
 #
 
-import sys, string, time, random, re, crypt, urllib, os, os.path, socket, copy
+import sys, string, time, random, re, crypt, urllib, os, os.path, socket, copy, IPy
 import shutil, traceback, fnmatch, xml.dom.minidom, pipes
 import xenrt
 from PIL import Image
@@ -223,7 +223,7 @@ class Guest(xenrt.GenericGuest):
                                    (nic, vbridge, mac))
             self.vifs.append((nic, vbridge, mac, ip))
             if self.use_ipv6:
-                if not self.mainip:
+                if not self.mainip or IPy.IP(self.mainip).version() != 6:
                     self.mainip = self.getIPv6AutoConfAddress(device=nic)
             else:
                 if not self.mainip or (re.match("169\.254\..*", self.mainip)
@@ -806,7 +806,7 @@ users:
                     try:
                         mac, ip, vbridge = self.getVIF(vifname)
                         if self.use_ipv6:
-                            if not self.mainip:
+                            if not self.mainip or IPy.IP(self.mainip).version() != 6:
                                 self.mainip = self.getIPv6AutoConfAddress(vifname)
                             break
                         elif ip:
@@ -846,7 +846,7 @@ users:
                     vifname, bridge, mac, _ = (v for v in self.vifs if v[0] == vifs[0]).next()
 
                 if self.use_ipv6:
-                    if not self.mainip:
+                    if not self.mainip or IPy.IP(self.mainip).version() != 6:
                         self.mainip = self.getIPv6AutoConfAddress(vifname)
                     skipsniff = True
                 else:

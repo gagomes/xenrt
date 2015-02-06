@@ -9439,15 +9439,8 @@ while True:
         self.reboot()
 
     def verifyGuestAsPVHVM(self):
-        if self.windows :
-            xenrt.log("The guest %s of Windows version" %self.getName())
-            return False
-        else:
-            if self.paramGet("HVM-boot-policy") == "BIOS order" and self.paramGet("PV-bootloader") == "":
-                xenrt.log("The guest %s is PVHVM" %self.getName())
-                return True
-            else :
-                return False
+
+        return self.paramGet("HVM-boot-policy") == "BIOS order" and self.paramGet("PV-bootloader") == ""
 
     def diskReadWorkload(self,timeInsecs,fileNameForTimeDiff=None):
 

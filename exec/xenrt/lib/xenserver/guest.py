@@ -223,7 +223,7 @@ class Guest(xenrt.GenericGuest):
                                    (nic, vbridge, mac))
             self.vifs.append((nic, vbridge, mac, ip))
             if self.use_ipv6:
-                if not self.mainip:
+                if not self.mainip or not ":" in self.mainip:
                     self.mainip = self.getIPv6AutoConfAddress(device=nic)
             else:
                 if not self.mainip or (re.match("169\.254\..*", self.mainip)
@@ -806,7 +806,7 @@ users:
                     try:
                         mac, ip, vbridge = self.getVIF(vifname)
                         if self.use_ipv6:
-                            if not self.mainip:
+                            if not self.mainip or not ":" in self.mainip:
                                 self.mainip = self.getIPv6AutoConfAddress(vifname)
                             break
                         elif ip:
@@ -846,7 +846,7 @@ users:
                     vifname, bridge, mac, _ = (v for v in self.vifs if v[0] == vifs[0]).next()
 
                 if self.use_ipv6:
-                    if not self.mainip:
+                    if not self.mainip or not ":" in self.mainip:
                         self.mainip = self.getIPv6AutoConfAddress(vifname)
                     skipsniff = True
                 else:

@@ -1097,17 +1097,14 @@ default:
             self.execguest("(sleep 4 && insmod panic.ko) > /dev/null 2>&1 < /dev/null &")
             xenrt.sleep(5)
 
-    def installCitrixCertificate(self, useNewCertificate=None):
+    def installCitrixCertificate(self):
         log("Installing citrix Certificate after checking the windows version")
         # Install the Citrix certificate to those VMs which require it (Vista and onwards)
         if self.windows and float(self.xmlrpcWindowsVersion()) > 5.99:
             xenrt.TEC().comment("Installing Citrix certificate")
-            certificateFile = "CitrixTrust.cer"
-            if useNewCertificate:
-                certificateFile = "CitrixNewTrust.cer"
             # Copy a version of certmgr.exe that takes command line arguments
             self.xmlrpcSendFile("%s/distutils/certmgr.exe" % xenrt.TEC().lookup("LOCAL_SCRIPTDIR"), "c:\\certmgr.exe")
-            self.xmlrpcSendFile("%s/data/certs/%s" % (xenrt.TEC().lookup("XENRT_BASE"), certificateFile),"c:\\CitrixTrust.cer")
+            self.xmlrpcSendFile("%s/data/certs/CitrixNewTrust.cer" % (xenrt.TEC().lookup("XENRT_BASE"), certificateFile),"c:\\CitrixTrust.cer")
             self.xmlrpcExec("c:\\certmgr.exe /add c:\\CitrixTrust.cer /s /r localmachine trustedpublisher")
 
     def _generateRunOnceScript(self):
@@ -1196,9 +1193,6 @@ at > c:\\xenrtatlog.txt
         if not self.windows:
             xenrt.TEC().skip("Non Windows guest, no drivers to install")
             return
-
-        if xenrt.TEC().lookup("ENABLE_CITRIXCERT", False, boolean=True):
-            self.installCitrixCertificate()
 
         if float(self.xmlrpcWindowsVersion()) == 6.1 and xenrt.TEC().lookup("STRESS_TEST", False, boolean=True):
             # CA-35591 update the default SCM timeout
@@ -5258,9 +5252,6 @@ class TampaGuest(BostonGuest):
 
         if legacy or xenrt.TEC().lookup("USE_LEGACY_DRIVERS", False, boolean=True):
 
-            if xenrt.TEC().lookup("ENABLE_CITRIXCERT", False, boolean=True):
-                self.installCitrixCertificate()
-
             self.installRunOncePVDriversInstallScript()
 
         if not legacy and (useLegacy or xenrt.TEC().lookup("USE_LEGACY_DRIVERS", False, boolean=True)):
@@ -5886,17 +5877,18 @@ default:
 
 class DundeeGuest(CreedenceGuest):
 
-    def getRandomPvDriverSource(self):
-        randomPvInstallSource = random.choice(xenrt.TEC().lookup("PV_DRIVER_INSTALLATION_SOURCE"))
+    def setRandomPvDriverSource(self):
+        randomPvDriverInstallSource = random.choice(xenrt.TEC().lookup("PV_DRIVER_INSTALLATION_SOURCE"))
         with xenrt.GEC().getLock("RND_PV_DRIVER_INSTALL_SOURCE"):
             dbVal = int(xenrt.TEC().lookup("RND_PV_DRIVER_INSTALL_SOURCE_VALUE", None))
             if dbVal != None:
                 return dbVal
             else:
-                xenrt.GEC().config.setVariable("RND_PV_DRIVER_INSTALL_SOURCE_VALUE",str(randomPvInstallSource))
-                xenrt.GEC().dbconnect.jobUpdate("RND_PV_DRIVER_INSTALL_SOURCE_VALUE",str(randomPvInstallSource))
+                xenrt.GEC().config.setVariable("RND_PV_DRIVER_INSTALL_SOURCE_VALUE",str(randomPvDriverInstallSource))
+                xenrt.GEC().dbconnect.jobUpdate("RND_PV_DRIVER_INSTALL_SOURCE_VALUE",str(randomPvDriverInstallSource))
+                return randomPvDriverInstallSource
     
-    def getRandomPvDriverList(self):
+    def setRandomPvDriverList(self):
         pvDriversList =xenrt.TEC().lookup("PV_DRIVERS_LIST")
         random.shuffle(pvDriversList)
         randomPvDriversList = pvDriversList
@@ -5907,11 +5899,13 @@ class DundeeGuest(CreedenceGuest):
             else:
                 xenrt.GEC().config.setVariable("RND_PV_DRIVERS_LIST_VALUE",randomPvDriversList)
                 xenrt.GEC().dbconnect.jobUpdate("RND_PV_DRIVERS_LIST_VALUE",randomPvDriversList)
-
+                return randomPvDriversList
+                
     def installDrivers(self, source=None, extrareboot=False, useLegacy=False, useHostTimeUTC=False, expectUpToDate=True, useGuestAgent=True, useDotNet=True):
         """
         Install PV Tools on Windows Guest
         """
+        log("Dundee Guest tools installation")
         #Check if it a windows guest , progress only if it is windows
         if not self.windows:
             xenrt.TEC().skip("Non Windows guest, no drivers to install")
@@ -5922,14 +5916,15 @@ class DundeeGuest(CreedenceGuest):
         ToolsISO : Install PV Drivers through ToolsISO
         Packages : Install PV Drivers from individual PV packages
         """
+        
         pvDriverSource = xenrt.TEC().lookup("PV_DRIVER_SOURCE", None)
-
-        # If source is "Random" then randomly select from ToolsISO or Packages
+        log(pvDriverSource)
         if pvDriverSource == "Random":
-            pvDriverSource = self.getRandomPvDriverSource()
+            pvDriverSource = self.setRandomPvDriverSource()
+            log(pvDriverSource)
 
         # If source is "ToolsISO" then install from xs tools
-        if pvDriverSource == "ToolsISO":
+        if pvDriverSource == "ToolsISO" or pvDriverSource == None:
             TampaGuest.installDrivers(self, source, extrareboot, useLegacy, useHostTimeUTC, expectUpToDate)
             
         #If source is "Packages" then install from PV Packages
@@ -5939,7 +5934,7 @@ class DundeeGuest(CreedenceGuest):
                 # We support .NET 3.5 and .NET 4. This can be switched at the seq/suite level.
                 self.installDotNetRequiredForDrivers()
             
-            self.installCitrixCertificate(useNewCertificate = True)
+            self.installCitrixCertificate()
                 
             if useGuestAgent:
                 self.installWindowsGuestAgent()
@@ -5950,7 +5945,7 @@ class DundeeGuest(CreedenceGuest):
             self.xmlrpcExtractTarball("c:\\tools.tgz", pvToolsDir)
             
             #Get the list of the Packages to be installed in random order
-            packages = self.getRandomPvDriverList()
+            packages = self.setRandomPvDriverList()
 
             #Install the PV Packages one by one
             for pkg in packages:

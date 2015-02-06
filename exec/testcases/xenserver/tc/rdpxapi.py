@@ -29,20 +29,10 @@ class TestRdpWithTools(RdpVerification):
 
     def run(self, arglist=None):
         xapiRdpObj = XapiRdp(self.guest)
-
-        # Check that RDP field is not exist in xenstore on the guest with no tools installed
-        if xapiRdpObj.isRdpEnabled():
-            raise xenrt.XRTFailure("RDP is enabled on the guest: %s with no tools" % (self.guest))
-        xenrt.TEC().logverbose("RDP is currently disabled on the guest %s" % (self.guest))
-
-        # Check that XAPI can not switch RDP with no tools installed
-        if xapiRdpObj.enableRdp():
-            raise xenrt.XRTFailure("XAPI enabled the RDP for the guest %s with no tools." % (self.guest))
-        xenrt.TEC().logverbose("XAPI couldn't enabled RDP for the guest %s with no tools" % (self.guest))
-
-        #Install tools 
-        step(" Test is installing latest tools on the guest")
-        self.guest.installDrivers()
+        
+        #Disable RDP
+        self.guest.winRegAdd('HKLM', 'System\\CurrentControlSet\\Control\\Terminal Server\\', 'fDenyTSConnections',"DWORD", 1)
+        xenrt.sleep(10)
 
         # Check that XAPI can switch RDP with tools installed
         if not xapiRdpObj.enableRdp():
@@ -147,6 +137,16 @@ class TestRdpOnPostInstall(RdpVerification):
     def run(self, arglist=None):
         xapiRdpObj = XapiRdp(self.guest)
 
+        # Check that RDP field is not exist in xenstore on the guest with no tools installed
+        if xapiRdpObj.isRdpEnabled():
+            raise xenrt.XRTFailure("RDP is enabled on the guest: %s with no tools" % (self.guest))
+        xenrt.TEC().logverbose("RDP is currently disabled on the guest %s" % (self.guest))
+
+        # Check that XAPI can not switch RDP with no tools installed
+        if xapiRdpObj.enableRdp():
+            raise xenrt.XRTFailure("XAPI enabled the RDP for the guest %s with no tools." % (self.guest))
+        xenrt.TEC().logverbose("XAPI couldn't enabled RDP for the guest %s with no tools" % (self.guest))
+
          # Enable the RDP on the guest
         step(" Test is trying to enable the RDP on the guest by resetting fDenyTSConnections to 0")
         self.guest.winRegAdd('HKLM', 'System\\CurrentControlSet\\Control\\Terminal Server\\', 'fDenyTSConnections',"DWORD", 0)
@@ -225,7 +225,7 @@ class TestRdpWithToolsUpgrade(RdpVerification):
         xenrt.TEC().logverbose("XAPI couldn't enabled the RDP for the guest %s with old tools installed " % (self.guest))
 
         #Upgrade the tools to latest
-        step("Test trying to install latest tools")
+        step("Test trying to upgrade tools")
         self.guest.upgradeTools()
 
         if not xapiRdpObj.enableRdp():

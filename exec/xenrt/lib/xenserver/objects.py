@@ -154,6 +154,7 @@ class VM(NamedXapiObject):
     OBJECT_TYPE = "vm"
     __NETWORK_ADDRESSES = "networks"
     __CPU_USAGE = "VCPUs-utilisation"
+    __RESIDENT = "resident-on"
 
     def VBD(self):
         return self.getObjectsReferencing(VBD.OBJECT_TYPE, self.OBJECT_TYPE)
@@ -165,7 +166,7 @@ class VM(NamedXapiObject):
         return self.getListParam(self.__NETWORK_ADDRESSES)
 
     def XapiHost(self):
-        return self.getObjectsReferencing(VM.OBJECT_TYPE, self.OBJECT_TYPE)[0]
+        return self.getObjectParam(XapiHost.OBJECT_TYPE, self.__RESIDENT)
 
     @property
     def cpuUsage(self):

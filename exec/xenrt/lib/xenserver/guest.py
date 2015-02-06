@@ -5340,12 +5340,13 @@ class TampaGuest(BostonGuest):
                     xenrt.sleep(30)
 
         # now wait for PV devices to be connected
-        for i in range(20):
+        count = 20
+        for i in range(count):
             try:
                 self.checkPVDevices()
                 break
             except xenrt.XRTException:
-                if i == 19:
+                if i == count-1:
                     raise
                 xenrt.sleep(120)
 
@@ -5367,14 +5368,6 @@ class TampaGuest(BostonGuest):
         if legacy and offloadSettingsBefore:
             offloadSettingsBefore.verifyEqualTo(offloadSettingsAfter)
 
-        usepoolmem = xenrt.TEC().lookup("PVDRIVER_POOLMEM", False, boolean=True)
-
-        if usepoolmem:
-            self.xmlrpcExec("verifier /flags 0x9 /driver xen.sys xenfilt.sys xenbus.sys xenvbd.sys xenvif.sys xennet.sys xeniface.sys")
-
-        if usepoolmem or extrareboot: 
-            self.reboot()
-
         if xenrt.TEC().lookup("DO_SYSPREP", False, boolean=True):
             self.xmlrpcDoSysprep()
             self.reboot()
@@ -5384,10 +5377,6 @@ class TampaGuest(BostonGuest):
             if self.pvDriversUpToDate() or not expectUpToDate:
                 break
             xenrt.sleep(10)
-
-        if xenrt.TEC().lookup("SET_DISK_TIMEOUT", False):
-            self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\Disk", "TimeOutValue", "DWORD", int(xenrt.TEC().lookup("SET_DISK_TIMEOUT")))
-            self.reboot()
 
     def uninstallDrivers(self, waitForDaemon=True):
 
@@ -5897,19 +5886,32 @@ default:
 
 class DundeeGuest(CreedenceGuest):
 
-    def getRandomPvDriversSource(self):
-        return random.choice(xenrt.TEC().lookup("PV_DRIVER_INSTALLATION_SOURCE"))
+    def getRandomPvDriverSource(self):
+        randomPvInstallSource = random.choice(xenrt.TEC().lookup("PV_DRIVER_INSTALLATION_SOURCE"))
+        with xenrt.GEC().getLock("RND_PV_DRIVER_INSTALL_SOURCE"):
+            dbVal = int(xenrt.TEC().lookup("RND_PV_DRIVER_INSTALL_SOURCE_VALUE", None))
+            if dbVal != None:
+                return dbVal
+            else:
+                xenrt.GEC().config.setVariable("RND_PV_DRIVER_INSTALL_SOURCE_VALUE",str(randomPvInstallSource))
+                xenrt.GEC().dbconnect.jobUpdate("RND_PV_DRIVER_INSTALL_SOURCE_VALUE",str(randomPvInstallSource))
     
-    def getRandomPvDriversList(self):
+    def getRandomPvDriverList(self):
         pvDriversList =xenrt.TEC().lookup("PV_DRIVERS_LIST")
         random.shuffle(pvDriversList)
-        return pvDriversList
+        randomPvDriversList = pvDriversList
+        with xenrt.GEC().getLock("RND_PV_DRIVERS_LIST"):
+            dbVal = int(xenrt.TEC().lookup("RND_PV_DRIVERS_LIST_VALUE", None))
+            if dbVal != None:
+                return dbVal
+            else:
+                xenrt.GEC().config.setVariable("RND_PV_DRIVERS_LIST_VALUE",randomPvDriversList)
+                xenrt.GEC().dbconnect.jobUpdate("RND_PV_DRIVERS_LIST_VALUE",randomPvDriversList)
 
     def installDrivers(self, source=None, extrareboot=False, useLegacy=False, useHostTimeUTC=False, expectUpToDate=True, useGuestAgent=True, useDotNet=True):
         """
         Install PV Tools on Windows Guest
         """
-        log("Dundeee guest install drivers")
         #Check if it a windows guest , progress only if it is windows
         if not self.windows:
             xenrt.TEC().skip("Non Windows guest, no drivers to install")
@@ -5924,7 +5926,7 @@ class DundeeGuest(CreedenceGuest):
 
         # If source is "Random" then randomly select from ToolsISO or Packages
         if pvDriverSource == "Random":
-            pvDriverSource = self.getRandomPvDriversSource()
+            pvDriverSource = self.getRandomPvDriverSource()
 
         # If source is "ToolsISO" then install from xs tools
         if pvDriverSource == "ToolsISO":
@@ -5932,127 +5934,53 @@ class DundeeGuest(CreedenceGuest):
             
         #If source is "Packages" then install from PV Packages
         if pvDriverSource == "Packages":
-            
-            # persist vif offload settings. If this is an upgrade we can compare these to the settings afterwards.
-            offloadSettingsBefore = None
-            try:
-                offloadSettingsBefore = self.getVifOffloadSettings(0)
-                xenrt.TEC().logverbose("xenvif settings before installing tools: %s" % str(offloadSettingsBefore))
-            except:
-                xenrt.TEC().logverbose("No xenvif settings found before installing tools. This must be a fresh install")
-            
-            # W2K3 and XP use the legacy drivers
-            legacy = self.usesLegacyDrivers()
-            
-            # WIC is required to be installed for W2K3
-            self.installWICIfRequired()
-            
+
             if useDotNet:
                 # We support .NET 3.5 and .NET 4. This can be switched at the seq/suite level.
                 self.installDotNetRequiredForDrivers()
             
             self.installCitrixCertificate(useNewCertificate = True)
                 
-            # store domid before installation
-            domid = self.host.getDomid(self)
+            if useGuestAgent:
+                self.installWindowsGuestAgent()
+                
+            # Get the Individual PV packages
+            self.xmlrpcSendFile(xenrt.TEC().getFile("xe-phase-1/%s" %(xenrt.TEC().lookup("PV_DRIVERS_LOCATION", None))), "c:\\tools.tgz")
+            pvToolsDir = self.xmlrpcTempDir()
+            self.xmlrpcExtractTarball("c:\\tools.tgz", pvToolsDir)
             
-            # Insert the tools ISO fro installing Guest Agent
-            self.changeCD("xs-tools.iso")
+            #Get the list of the Packages to be installed in random order
+            packages = self.getRandomPvDriverList()
+
+            #Install the PV Packages one by one
+            for pkg in packages:
+                self.installPVPackage(pkg, pvToolsDir)
+           
             xenrt.sleep(30)
-            
-            # Get VM ready for PV tools installation
-            if legacy or xenrt.TEC().lookup("USE_LEGACY_DRIVERS", False, boolean=True):
-
-                self.installRunOncePVDriversInstallScript()
-            
-            # Check whether to Install legacy tools or not
-            if not legacy and (useLegacy or xenrt.TEC().lookup("USE_LEGACY_DRIVERS", False, boolean=True)):
-                # We deliberately want to install the legacy drivers using xenlegacy.exe
-                # This means if necessary resetting the platform flag
-
+            self.reboot()
+                
+            # now wait for PV devices to be connected
+            count = 20
+            for i in range(count):
                 try:
-                    newDriversDeviceId = self.paramGet("platform", "device_id") == "0002"
-                except:
-                    newDriversDeviceId = False
-
-                if newDriversDeviceId:
-                    self.shutdown()
-                    self.paramRemove("platform", "device_id")
-                    self.start()
-                self.xmlrpcStart("D:\\xenlegacy.exe /AllowLegacyInstall /S")
-            else:
-            
-                if useGuestAgent:
-                    self.installWindowsGuestAgent()
-                    
-                # Get the Individual PV packages
-                self.xmlrpcSendFile(xenrt.TEC().getFile("xe-phase-1/%s" %(xenrt.TEC().lookup("PV_DRIVERS_LOCATION", None))), "c:\\tools.tgz")
-                pvToolsDir = self.xmlrpcTempDir()
-                self.xmlrpcExtractTarball("c:\\tools.tgz", pvToolsDir)
-                
-                #Get the list of the Packages to be installed in random order
-                packages = self.getRandomPvDriversList()
-
-                #Install the PV Packages one by one
-                for pkg in packages:
-                    self.installPVPackage(pkg, pvToolsDir)
-               
-                xenrt.sleep(30)
-                self.reboot()
-                
-                # Make sure the domid has changed after the guest reboot
-                if self.host.getDomid(self) == domid:
-                    raise xenrt.XRTFailure("VM domid is same on reboot after tools installation")
-                    
-                # now wait for PV devices to be connected
-                for i in range(20):
-                    try:
-                        self.checkPVDevices()
-                        break
-                    except xenrt.XRTException:
-                        if i == 19:
-                            raise
-                        xenrt.sleep(120)
-
-                # wait for guest agent
-                self.waitForAgent(300, checkPvDriversUpToDate=expectUpToDate)
-
-                self.enlightenedDrivers = True
-
-                self.waitForDaemon(120, desc="Daemon connect after driver install")
-
-                # wait for registry key to appear
-                time.sleep(30)
-                
-                offloadSettingsAfter = self.getVifOffloadSettings(0)
-                xenrt.TEC().logverbose("xenvif settings after installing tools: %s" % str(offloadSettingsAfter))
-
-                # if the VM is moving from old PV drivers to new PV drivers
-                # then we don't need to verify that offload settings are preserved
-                if legacy and offloadSettingsBefore:
-                    offloadSettingsBefore.verifyEqualTo(offloadSettingsAfter)
-
-                usepoolmem = xenrt.TEC().lookup("PVDRIVER_POOLMEM", False, boolean=True)
-
-                if usepoolmem:
-                    self.xmlrpcExec("verifier /flags 0x9 /driver xen.sys xenfilt.sys xenbus.sys xenvbd.sys xenvif.sys xennet.sys xeniface.sys")
-
-                if usepoolmem or extrareboot: 
-                    self.reboot()
-
-                if xenrt.TEC().lookup("DO_SYSPREP", False, boolean=True):
-                    self.xmlrpcDoSysprep()
-                    self.reboot()
                     self.checkPVDevices()
-                    
-                for i in range(12):
-                    if self.pvDriversUpToDate() or not expectUpToDate:
-                        break
-                    xenrt.sleep(10)
+                    break
+                except xenrt.XRTException:
+                    if i == count-1:
+                        raise
+                    xenrt.sleep(120)
 
-                if xenrt.TEC().lookup("SET_DISK_TIMEOUT", False):
-                    self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\Disk", "TimeOutValue", "DWORD", int(xenrt.TEC().lookup("SET_DISK_TIMEOUT")))
-                    self.reboot()
+            # wait for guest agent
+            self.waitForAgent(300, checkPvDriversUpToDate=expectUpToDate)
+
+            self.enlightenedDrivers = True
+
+            self.waitForDaemon(120, desc="Daemon connect after driver install")
+
+            for i in range(12):
+                if self.pvDriversUpToDate() or not expectUpToDate:
+                    break
+                xenrt.sleep(10)
 
     def installPVPackage(self, packageName = None, toolsDirectory = None):
         """ Installing Individual PV package """
@@ -6086,6 +6014,9 @@ class DundeeGuest(CreedenceGuest):
             self.xmlrpcStart("%s\\citrixguestagentx86.msi  /passive /norestart" %(pvToolsDir))
         
         xenrt.sleep(30)
+        
+        #Eject the tools CD from the VM.
+        self.changeCD(None)
 
 
 class StorageMotionObserver(xenrt.EventObserver):

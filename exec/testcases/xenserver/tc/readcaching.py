@@ -37,9 +37,6 @@ class TCLicensingRCXapi(ReadCacheTestCase):
         host = self.getDefaultHost()
         vm = self.vm(arglist)
         rcc = host.readCaching()
-
-        log(vm.asXapiObject().XapiHost().name())
-
         rcc.setVM(vm)
         assertions.assertTrue(rcc.isEnabled(), "RC is enabled")
         self._releaseLicense(host)

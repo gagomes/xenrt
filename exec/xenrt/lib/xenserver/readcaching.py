@@ -7,9 +7,8 @@ from xenrt.lazylog import log
 class Controller(object):
     __metaclass__ = ABCMeta
 
-    def __init__(self, vm, vdiuuid=None):
-        self._vm = vm
-        self._host = vm.getHost()
+    def __init__(self, host, vdiuuid=None):
+        self._host = host
         self.__vdiuuid = vdiuuid
 
     def setVDIuuid(self, value):

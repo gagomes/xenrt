@@ -4250,7 +4250,7 @@ exit /B 1
     def convertToTemplate(self):
         self.preCloneTailor()
         if self.windows:
-            self.xmlrpcDoSysprep()
+            self.sysPrepOOBE()
         self.shutdown()
         self.paramSet("is-a-template", "true")
 

@@ -3840,44 +3840,45 @@ bootlocal.close()
 
         if "win81" in self.distro or "ws12r2" in self.distro:
             domid = self.getDomid()
-            self.xmlrpcUnpackTarball("%s/bluewaterupdate.tgz" % xenrt.TEC().lookup("TEST_TARBALL_BASE"), "c:\\")
-            if self.xmlrpcGetArch() == "amd64":
-                self.xmlrpcStart('wusa "c:\\bluewaterupdate\\Windows8.1-KB2887595-v2-x64.msu" /quiet /log:C:\\bluewaterUpdateInstall.txt')
-            else:
-                self.xmlrpcStart('wusa "c:\\bluewaterupdate\\Windows8.1-KB2887595-v2-x86.msu" /quiet /log:C:\\bluewaterUpdateInstall.txt')
+            if not self.xmlrpcFileExists("C:\\bluewaterUpdateInstall.txt"):
+                self.xmlrpcUnpackTarball("%s/bluewaterupdate.tgz" % xenrt.TEC().lookup("TEST_TARBALL_BASE"), "c:\\")
+                if self.xmlrpcGetArch() == "amd64":
+                    self.xmlrpcStart('wusa "c:\\bluewaterupdate\\Windows8.1-KB2887595-v2-x64.msu" /quiet /log:C:\\bluewaterUpdateInstall.txt')
+                else:
+                    self.xmlrpcStart('wusa "c:\\bluewaterupdate\\Windows8.1-KB2887595-v2-x86.msu" /quiet /log:C:\\bluewaterUpdateInstall.txt')
 
-            deadline = xenrt.util.timenow() + 3600
-            while True:
-                try:
-                    if self.getDomid() != domid:
-                        break
-                except:
-                    pass
-                if xenrt.util.timenow() > deadline:
-                    logFile = xenrt.TEC().tempFile()
-                    f1=file(logFile,"w")
-                    data=self.xmlrpcReadFile("C:\\bluewaterUpdateInstall.txt")
-                    r=data.splitlines()
+                deadline = xenrt.util.timenow() + 3600
+                while True:
+                    try:
+                        if self.getDomid() != domid:
+                            break
+                    except:
+                        pass
+                    if xenrt.util.timenow() > deadline:
+                        logFile = xenrt.TEC().tempFile()
+                        f1=file(logFile,"w")
+                        data=self.xmlrpcReadFile("C:\\bluewaterUpdateInstall.txt")
+                        r=data.splitlines()
 
-                    s="[a-zA-Z0-9:,;.\\/ \(\)]"
-                    for y in range(len(r)):
-                        l=[x for x in r[y] if 0<=ord(x)<128 and re.search(s,str(x))]
-                        f1.write("".join(l)+"\n")
-                    f1.close()
-                    self.xmlrpcSendFile(logFile,"c:\\Windows\\Logs\\bluewaterUpdateInstallLogs.txt")
-                    raise xenrt.XRTFailure("Timed out waiting for bluewaterupdate initiated reboot")
-                xenrt.sleep(60)
+                        s="[a-zA-Z0-9:,;.\\/ \(\)]"
+                        for y in range(len(r)):
+                            l=[x for x in r[y] if 0<=ord(x)<128 and re.search(s,str(x))]
+                            f1.write("".join(l)+"\n")
+                        f1.close()
+                        self.xmlrpcSendFile(logFile,"c:\\Windows\\Logs\\bluewaterUpdateInstallLogs.txt")
+                        raise xenrt.XRTFailure("Timed out waiting for bluewaterupdate initiated reboot")
+                    xenrt.sleep(60)
 
-            self.waitforxmlrpc(20 * 60)
-
-            if not xenrt.TEC().lookup("DISABLE_EMULATED_DEVICES", False, boolean=True) and not xenrt.TEC().lookup("DISABLE_USB", False, boolean=True):
-                xenrt.TEC().logverbose("Re-enabling USB on Windows Blue")
-                self.xmlrpcShutdown()
-                self.poll("DOWN")
-                self.paramSet("platform:usb", "true")
-                self.lifecycleOperation("vm-start")
                 self.waitforxmlrpc(20 * 60)
-        
+
+                if not xenrt.TEC().lookup("DISABLE_EMULATED_DEVICES", False, boolean=True) and not xenrt.TEC().lookup("DISABLE_USB", False, boolean=True):
+                    xenrt.TEC().logverbose("Re-enabling USB on Windows Blue")
+                    self.xmlrpcShutdown()
+                    self.poll("DOWN")
+                    self.paramSet("platform:usb", "true")
+                    self.lifecycleOperation("vm-start")
+                    self.waitforxmlrpc(20 * 60)
+            
         applicationEventLogger = "wevtutil qe Application /c:50 /f:text"
         systemEventLogger = "wevtutil qe System /c:50 /f:text"
         setupEventLogger = "wevtutil qe Setup /c:50 /f:text"
@@ -4182,6 +4183,26 @@ Loop While not oex3.Stdout.atEndOfStream"""%(applicationEventLogger,systemEventL
                            "SZ",
                             name)
             self.reboot()
+
+    def sysPrepOOBE(self):
+        if not self.windows:
+            raise xenrt.XRTError("This can only be performed on Windows installations")
+
+        if float(self.xmlrpcWindowsVersion()) > 5.99:
+            self.installPowerShell()
+            self.xmlrpcExec("""(Get-WmiObject -class "Win32_TSGeneralSetting" -Namespace root\\cimv2\\terminalservices -ComputerName $env:ComputerName -Filter "TerminalName='RDP-tcp'").SetUserAuthenticationRequired(0)""", powershell=True)
+
+        with open("%s/data/sysprep/unattend.xml" % xenrt.TEC().lookup("XENRT_BASE")) as f:
+            unattend = f.read()
+
+        unattend = unattend.replace("%ARCH%", self.xmlrpcGetArch())
+        unattend = unattend.replace("%PASSWORD%", xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS", "ADMINISTRATOR_PASSWORD"], "xensource"))
+        pkey = xenrt.util.command("grep '%s ' /etc/xenrt/keys/windows | awk '{print $2}'" % self.distro).strip()
+        unattend = unattend.replace("%PRODUCTKEY%", pkey)
+
+        self.xmlrpcWriteFile("c:\\unattend.xml", unattend)
+
+        self.xmlrpcExec("c:\\windows\\system32\\sysprep\\sysprep.exe /unattend:c:\\unattend.xml /oobe /generalize /quiet /quit", returnerror=False)
 
 class RunOnLocation(GenericPlace):
     def __init__(self, address):

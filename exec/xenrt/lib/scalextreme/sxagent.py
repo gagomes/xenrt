@@ -140,7 +140,7 @@ class SXAgent(object):
             host = self.agentVM.host
 
         self.apiHandler.execute(method="POST", category="providers",
-            params = {"name": "SX_PoC",
+            params = {"name": xenrt.TEC().lookup("SX_ENVIRONMENT_NAME", "SX_PoC"),
                 "providercode": "xenserver",
                 "server": "http://" + host.getIP(),
                 "username": "root",

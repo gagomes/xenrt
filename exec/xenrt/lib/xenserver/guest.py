@@ -5889,6 +5889,9 @@ default:
         if reboot:
             self.reboot()
 
+    def readCaching(self):
+        return xenrt.lib.xenserver.readcaching.ReadCachingController(self)
+
 
 class DundeeGuest(CreedenceGuest):
     pass

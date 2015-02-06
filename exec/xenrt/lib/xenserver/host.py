@@ -11256,9 +11256,6 @@ class CreedenceHost(ClearwaterHost):
     def guestFactory(self):
         return xenrt.lib.xenserver.guest.CreedenceGuest
 
-    def readCaching(self):
-        return xenrt.lib.xenserver.readcaching.ReadCachingController(self)
-
     def enableReadCaching(self, sruuid=None):
         if sruuid:
             srlist = [sruuid]

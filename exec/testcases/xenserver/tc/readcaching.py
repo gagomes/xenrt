@@ -19,6 +19,7 @@ class ReadCacheTestCase(xenrt.TestCase):
 
     def prepare(self, arglist):
         self._applyMaxLicense(self.getDefaultHost())
+        host = self.getDefaultHost()
         vm = self.vm(arglist)
         vm.migrateVM(host)
 

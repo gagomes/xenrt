@@ -16,7 +16,7 @@ class Controller(object):
         self.__vdiuuid = value
 
     def setVM(self, vm, vdiIndex=0):
-        self.setVDIuuid = vm.asXapiObject().VDI()[vdiIndex].uuid
+        self.setVDIuuid(vm.asXapiObject().VDI()[vdiIndex].uuid)
 
     def srTypeIsSupported(self):
         sr = self.srForGivenVDI()
@@ -47,7 +47,7 @@ class Controller(object):
 class XapiReadCacheController(Controller):
 
     def isEnabled(self):
-        vdis = itertools.chain(*[v.VDI() for v in self._host.asXapiObject().SR()])
+        vdis = list(itertools.chain(*[v.VDI() for v in self._host.asXapiObject().SR()]))
         vdi = next((v for v in vdis if v.uuid == self.vdiuuid), None)
         if not vdi:
             raise RuntimeError("VDI with uuid %s could not be found in the list %s" %(self.vdiuuid, vdis))

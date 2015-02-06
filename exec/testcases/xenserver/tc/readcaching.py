@@ -32,9 +32,10 @@ class TCLicensingRCXapi(ReadCacheTestCase):
     def run(self, arglist):
         host = self.getDefaultHost()
         rcc = host.readCaching()
+        vm = self.vm(arglist)
+        rcc.setVM(vm)
         assertions.assertTrue(rcc.isEnabled())
         self._releaseLicense(host)
-        vm = self.vm(arglist)
         vm.migrateVM(host)
         rcc.setVM(vm)
         assertions.assertFalse(rcc.isEnabled())

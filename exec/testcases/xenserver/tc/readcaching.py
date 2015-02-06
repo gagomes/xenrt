@@ -19,9 +19,10 @@ class ReadCacheTestCase(xenrt.TestCase):
 
     def prepare(self, arglist):
         self._applyMaxLicense(self.getDefaultHost())
-        args = self.parseArgsKeyValue(arglist)
-        self._vm = self.getGuest(args["vm"])
 
+    def vm(self, arglist):
+        args = self.parseArgsKeyValue(arglist)
+        return self.getGuest(args["vm"])
 
 class TCLicensingRCXapi(ReadCacheTestCase):
     """
@@ -33,8 +34,9 @@ class TCLicensingRCXapi(ReadCacheTestCase):
         rcc = host.readCaching()
         assertions.assertTrue(rcc.isEnabled())
         self._releaseLicense(host)
-        self._vm.migrateVM(host)
-        rcc.setVM(self._vm)
+        vm = self.vm(arglist)
+        vm.migrateVM(host)
+        rcc.setVM(vm)
         assertions.assertFalse(rcc.isEnabled())
 
 
@@ -43,21 +45,22 @@ class TCXapiAndTapCtlAgree(ReadCacheTestCase):
     Check low-level and xapi hooks agree
     """
     def run(self, arglist):
+        vm = self.vm(arglist)
         host = self.getDefaultHost()
         rcc = host.readCaching()
-        self.__check(True, host, rcc)
+        self.__check(True, host, rcc, vm)
 
         step("Switch off - low level")
         rcc.disable()
-        self.__check(False, host, rcc)
+        self.__check(False, host, rcc, vm)
 
         step("Switch on - low level")
         rcc.enable()
-        self.__check(True, host, rcc)
+        self.__check(True, host, rcc, vm)
 
-    def __check(self, expected, host, rcc):
-        self._vm.migrateVM(host)
-        rcc.setVM(self._vm)
+    def __check(self, expected, host, rcc, vm):
+        vm.migrateVM(host)
+        rcc.setVM(vm)
         assertions.assertEquals(expected, rcc.isEnabled(LowLevel=False))
         assertions.assertEquals(expected, rcc.isEnabled(LowLevel=True))
 

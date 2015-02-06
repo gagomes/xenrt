@@ -47,7 +47,7 @@ class XapiReadCacheController(Controller):
 
     def isEnabled(self):
         vdis = itertools.chain(*[v.VDI() for v in self._host.asXapiObject().SR()])
-        vdi = next(v.uuid for v in vdis if v.uuid == self.vdiuuid)
+        vdi = next(v for v in vdis if v.uuid == self.vdiuuid)
         return vdi.readcachingEnabled()
 
     def enable(self):

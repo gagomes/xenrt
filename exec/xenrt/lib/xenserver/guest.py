@@ -4252,6 +4252,7 @@ exit /B 1
         if self.windows:
             self.sysPrepOOBE()
         self.shutdown()
+        self.changeCD(None)
         self.paramSet("is-a-template", "true")
 
 #############################################################################

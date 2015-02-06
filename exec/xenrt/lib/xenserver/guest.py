@@ -5795,8 +5795,8 @@ class DundeeGuest(CreedenceGuest):
     def setRandomPvDriverSource(self):
         randomPvDriverInstallSource = random.choice(xenrt.TEC().lookup("PV_DRIVER_INSTALLATION_SOURCE"))
         with xenrt.GEC().getLock("RND_PV_DRIVER_INSTALL_SOURCE"):
-            dbVal = int(xenrt.TEC().lookup("RND_PV_DRIVER_INSTALL_SOURCE_VALUE", None))
-            if dbVal != None:
+            dbVal = int(xenrt.TEC().lookup("RND_PV_DRIVER_INSTALL_SOURCE_VALUE", "0"))
+            if dbVal != 0:
                 return dbVal
             else:
                 xenrt.GEC().config.setVariable("RND_PV_DRIVER_INSTALL_SOURCE_VALUE",str(randomPvDriverInstallSource))
@@ -5808,8 +5808,8 @@ class DundeeGuest(CreedenceGuest):
         random.shuffle(pvDriversList)
         randomPvDriversList = pvDriversList
         with xenrt.GEC().getLock("RND_PV_DRIVERS_LIST"):
-            dbVal = int(xenrt.TEC().lookup("RND_PV_DRIVERS_LIST_VALUE", None))
-            if dbVal != None:
+            dbVal = int(xenrt.TEC().lookup("RND_PV_DRIVERS_LIST_VALUE", "0"))
+            if dbVal != 0:
                 return dbVal
             else:
                 xenrt.GEC().config.setVariable("RND_PV_DRIVERS_LIST_VALUE",randomPvDriversList)

@@ -1405,12 +1405,13 @@ class ISCSINativeLinuxLun(ISCSILun):
 class _WindowsSMBShare(CentralResource):
     """Base class for Windows-based SMB shares"""
     def createShare(self):
-        if not self.place.xmlrpcDirExists("c:\\shares"):
-            self.place.xmlrpcCreateDir("c:\\shares")
+        sharesPath = "c:\\shares"
+        if not self.place.xmlrpcDirExists(sharesPath):
+            self.place.xmlrpcCreateDir(sharesPath)
         shareName = xenrt.randomGuestName()
-        self.place.xmlrpcCreateDir("c:\\shares\\%s" % shareName)
-        self.place.xmlrpcExec("net share %s=c:\\shares\\%s /grant:Everyone,FULL" % (shareName, shareName))
-        self.place.xmlrpcExec("icacls c:\\shares\\%s /grant Users:(OI)(CI)F" % shareName)
+        self.place.xmlrpcCreateDir("%s\\%s" % (sharesPath, shareName))
+        self.place.xmlrpcExec("net share %s=%s\\%s /grant:Everyone,FULL" % (shareName, sharesPath, shareName))
+        self.place.xmlrpcExec("icacls %s\\%s /grant Users:(OI)(CI)F" % (sharesPath, shareName))
         self.shareName = shareName
         self.domain = None
         self.user = "Administrator"

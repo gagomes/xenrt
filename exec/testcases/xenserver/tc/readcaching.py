@@ -24,6 +24,7 @@ class ReadCacheTestCase(xenrt.TestCase):
         args = self.parseArgsKeyValue(arglist)
         return self.getGuest(args["vm"])
 
+
 class TCLicensingRCXapi(ReadCacheTestCase):
     """
     Use license state to switch on/off read caching and check xapi agrees
@@ -31,14 +32,18 @@ class TCLicensingRCXapi(ReadCacheTestCase):
 
     def run(self, arglist):
         host = self.getDefaultHost()
+        self._applyMaxLicense(host)
         rcc = host.readCaching()
         vm = self.vm(arglist)
+
+        log(vm.asXapiObject().XapiHost().name())
+
         rcc.setVM(vm)
-        assertions.assertTrue(rcc.isEnabled())
+        assertions.assertTrue(rcc.isEnabled(), "RC is enabled")
         self._releaseLicense(host)
         vm.migrateVM(host)
         rcc.setVM(vm)
-        assertions.assertFalse(rcc.isEnabled())
+        assertions.assertFalse(rcc.isEnabled(), "RC is disabled")
 
 
 class TCXapiAndTapCtlAgree(ReadCacheTestCase):
@@ -48,6 +53,7 @@ class TCXapiAndTapCtlAgree(ReadCacheTestCase):
     def run(self, arglist):
         vm = self.vm(arglist)
         host = self.getDefaultHost()
+        self._applyMaxLicense(host)
         rcc = host.readCaching()
         self.__check(True, host, rcc, vm)
 

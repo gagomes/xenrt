@@ -164,6 +164,8 @@ class VM(NamedXapiObject):
     def networkAddresses(self):
         return self.getListParam(self.__NETWORK_ADDRESSES)
 
+    def XapiHost(self):
+        return self.getObjectsReferencing(VM.OBJECT_TYPE, self.OBJECT_TYPE)[0]
 
     @property
     def cpuUsage(self):

@@ -1,5 +1,5 @@
 <xenrt>
-  <default name="WINDISTROS" value="win8-x86,win7-x86,ws08r2-x64,win81-x86,ws12-x64,winxpsp3"/>
+  <default name="WINDISTROS" value="win8-x86"/>
   <variables>
     <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
@@ -10,48 +10,6 @@
   </scheduler>
   <prepare>
   <host id="0">
-     <vm name="ws08r2-x64">
-        <distro>ws08r2-x64</distro>
-        <arch>x86-64</arch>
-        <memory>1024</memory>
-        <vcpus>2</vcpus>
-        <postinstall action="installDrivers" />
-        <network device="0" />
-        <disk device="0" size="14" />
-      </vm>
-      <vm name="win7-x86">
-        <distro>win7-x86</distro>
-        <memory>2048</memory>
-        <vcpus>2</vcpus>
-        <postinstall action="installDrivers" />
-        <network device="0" />
-        <disk device="0" size="14" />
-      </vm>
-      <vm name="win81-x86">
-        <distro>win81-x86</distro>
-        <memory>2048</memory>
-        <vcpus>2</vcpus>
-        <postinstall action="installDrivers" />
-        <network device="0" />
-        <disk device="0" size="14" />
-      </vm>
-      <vm name="ws12-x64">
-        <distro>ws12-x64</distro>
-        <arch>x86-64</arch>
-        <memory>2048</memory>
-        <vcpus>2</vcpus>
-        <postinstall action="installDrivers" />
-        <network device="0" />
-        <disk device="0" size="14" />
-      </vm>
-      <vm name="winxpsp3">
-        <distro>winxpsp3</distro>
-        <memory>512</memory>
-        <vcpus>2</vcpus>
-        <postinstall action="installDrivers" />
-        <network device="0" />
-        <disk device="0" size="14" />
-      </vm>
       <vm name="win8-x86">
         <distro>win8-x86</distro>
         <memory>2048</memory>
@@ -70,6 +28,5 @@
         <arg>OLDTOOLS=http://www.uk.xensource.com/~bench/wintools-creedence-124.tar.gz</arg>
         </testcase>
      </for>
-
   </testsequence>
 </xenrt>

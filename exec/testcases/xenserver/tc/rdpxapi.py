@@ -183,6 +183,7 @@ class TestRdpWithSnapshot(RdpVerification):
         if not xapiRdpObj.enableRdp():
             raise xenrt.XRTFailure("XAPI failed to enable the RDP on the guest %s with tools installed" % (self.guest))
         xenrt.TEC().logverbose("XAPI successfully enabled the RDP for the guest: %s " % (self.guest))
+        xenrt.sleep(20)
 
         # Make sure RDP enabled field updated 
         if not xapiRdpObj.isRdpEnabled():

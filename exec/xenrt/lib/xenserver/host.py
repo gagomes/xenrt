@@ -2721,7 +2721,7 @@ fi
             if proxy:
                 self.execdom0("sed -i '/proxy/d' /etc/yum.conf")
                 self.execdom0("echo 'proxy=http://%s' >> /etc/yum.conf" % proxy)
-            if isinstance(self, xenrt.lib.xenserver.DundeeHost) and self.isCentOS7Dom0():
+            if isinstance(self, xenrt.lib.xenserver.DundeeHost):
                 self.execdom0("yum install kernel-headers --disableexcludes=all -y")
             self.execdom0("yum --disablerepo=citrix --enablerepo=base,updates,extras install -y  gcc-c++")
             self.execdom0("yum --disablerepo=citrix --enablerepo=base install -y make")
@@ -11354,7 +11354,7 @@ class DundeeHost(CreedenceHost):
         self.installer = None
 
     def isCentOS7Dom0(self):
-        return xenrt.TEC().lookup("CENTOS7_DOM0", False, boolean=True)
+        return True
 
     def getTestHotfix(self, hotfixNumber):
         return xenrt.TEC().getFile("xe-phase-1/test-hotfix-%u-*.unsigned" % hotfixNumber)
@@ -11424,34 +11424,19 @@ class DundeeHost(CreedenceHost):
         return ifs
         
     def snmpdIsEnabled(self):
-        if self.isCentOS7Dom0():
-            return "enabled" in self.execdom0("service snmpd status | cat")
-        else:
-            return CreedenceHost.snmpdIsEnabled(self)
+        return "enabled" in self.execdom0("service snmpd status | cat")
             
     def disableSnmpd(self):
-        if self.isCentOS7Dom0():
-            self.execdom0("systemctl disable snmpd")
-        else:
-            CreedenceHost.disableSnmpd(self)
+        self.execdom0("systemctl disable snmpd")
             
     def enableSnmpd(self):
-        if self.isCentOS7Dom0():
-            self.execdom0("systemctl enable snmpd")
-        else:
-            CreedenceHost.enableSnmpd(self)
+        self.execdom0("systemctl enable snmpd")
 
     def scsiIdPath(self):
-        if self.isCentOS7Dom0():
-            return "/usr/lib/udev/scsi_id"
-        else:
-            return CreedenceHost.scsiIdPath(self)
+        return "/usr/lib/udev/scsi_id"
             
     def iptablesSave(self):
-        if self.isCentOS7Dom0():
-            self.execdom0("/usr/libexec/iptables/iptables.init save")
-        else:
-            CreedenceHost.iptablesSave(self)
+        self.execdom0("/usr/libexec/iptables/iptables.init save")
 
     def enableVirtualFunctions(self):
 

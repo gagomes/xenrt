@@ -1,5 +1,6 @@
 from abc import ABCMeta, abstractmethod
 import re
+import itertools
 from xenrt.lazylog import log
 
 
@@ -14,7 +15,7 @@ class Controller(object):
         self.__vdiuuid = value
 
     def setVM(self, vm, vdiIndex=0):
-        self.__vdiuuid = vm.asXapiObject().VDI()[vdiIndex].uuid
+        self.setVDIuuid = vm.asXapiObject().VDI()[vdiIndex].uuid
 
     def srTypeIsSupported(self):
         sr = self.srForGivenVDI()
@@ -45,7 +46,8 @@ class Controller(object):
 class XapiReadCacheController(Controller):
 
     def isEnabled(self):
-        vdi = next(v for v in self._host.asXapiObject().SR().VDI() if v.uuid == self.vdiuuid)
+        vdis = itertools.chain(*[v.VDI() for v in self._host.asXapiObject().SR()])
+        vdi = next(v.uuid for v in vdis if v.uuid = self.vdiuuid)
         return vdi.readcachingEnabled()
 
     def enable(self):
@@ -109,6 +111,11 @@ class ReadCachingController(Controller):
         self.__xapi = XapiReadCacheController(host, vdiuuid)
         self.__ll = LowLevelReadCacheController(host, vdiuuid)
         super(ReadCachingController, self).__init__(host, vdiuuid)
+
+    def setVDIuuid(self, value):
+        self.__xapi.setVDIuuid(value)
+        self.__ll.setVDIuuid(value)
+        super(ReadCachingController, self).setVDIuuid(value)
 
     def isEnabled(self, LowLevel=False):
         if LowLevel:

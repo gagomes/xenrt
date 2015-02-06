@@ -178,12 +178,13 @@ class _TCSmoketest(xenrt.TestCase):
         self.guest.shutdown()
 
     def migrate(self, live):
-        self.guest.migrateVM(self.guest.host, live=live)
-        time.sleep(10)
-        self.guest.check()
-        self.guest.migrateVM(self.guest.host, live=live)
-        time.sleep(10)
-        self.guest.check()
+        for i in range(int(xenrt.TEC().lookup("SMOKETEST_MIGRATE_COUNT", "1"))):
+            self.guest.migrateVM(self.guest.host, live=live)
+            time.sleep(10)
+            self.guest.check()
+            self.guest.migrateVM(self.guest.host, live=live)
+            time.sleep(10)
+            self.guest.check()
 
     def hibernate(self):
         self.guest.enableHibernation()

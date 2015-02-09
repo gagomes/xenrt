@@ -88,20 +88,20 @@ class TCRCForLifeCycleOps(ReadCacheTestCase):
         host = self.getDefaultHost()
         rcc = host.readCaching()
         vm = self.vm(arglist)
-        self.runSubcase("__lifecycle", (vm,rcc,vm.reboot), "Reboot", "Reboot")
-        self.runSubcase("__lifecycle", (vm,rcc,self.__pauseResume,vm), "PauseResume", "PauseResume")
-        self.runSubcase("__lifecycle", (vm,rcc,self.__stopStart,vm), "StopStart", "StopStart")
-        self.runSubcase("__lifecycle", (vm,rcc,vm.migrateVM,host), "LocalHostMigrate", "LocalHostMigrate")
+        self.runSubcase("lifecycle", (vm,rcc,vm.reboot), "Reboot", "Reboot")
+        self.runSubcase("lifecycle", (vm,rcc,self.pauseResume,vm), "PauseResume", "PauseResume")
+        self.runSubcase("lifecycle", (vm,rcc,self.stopStart,vm), "StopStart", "StopStart")
+        self.runSubcase("lifecycle", (vm,rcc,vm.migrateVM,host), "LocalHostMigrate", "LocalHostMigrate")
 
-    def __stopStart(vm):
+    def stopStart(vm):
         vm.shutdown()
         vm.start()
 
-    def __pauseResume(vm):
+    def pauseResume(vm):
         vm.pause()
         vm.resume()
 
-    def __lifecycle(self, vm, rcc, op, *args):
+    def lifecycle(self, vm, rcc, op, *args):
         self._applyMaxLicense()
         rcc.setVM(vm)
         op(*args)

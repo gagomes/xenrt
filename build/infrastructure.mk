@@ -440,6 +440,7 @@ httpd:
 	$(SUDO) ln -sfT $(SHAREDIR) $(WEBROOT)/share
 	$(SUDO) ln -sfT $(SHAREDIR)/control $(WEBROOT)/control
 	$(SUDO) ln -sfT $(SHAREDIR)/provision $(WEBROOT)/provision
+	$(SUDO) cp $(SHAREDIR)/infrastructure/apache2/unauth.html $(WEBROOT)/unauth.html
 	$(SUDO) chown -R $(USERID):$(GROUPID) $(SCRATCHDIR)/www
 	$(SUDO) mkdir -p /var/log/apache2 
 	$(SUDO) chown -R $(USERID):$(GROUPID) /var/log/apache2

@@ -5805,8 +5805,10 @@ class DundeeGuest(CreedenceGuest):
     
     def setRandomPvDriverList(self):
         pvDriversList =xenrt.TEC().lookup("PV_DRIVERS_LIST")
+        pvDriversList = pvDriversList.split(';')
         random.shuffle(pvDriversList)
-        randomPvDriversList = pvDriversList
+        randomPvDriversList = ';'.join(pvDriversList)
+        
         with xenrt.GEC().getLock("RND_PV_DRIVERS_LIST"):
             dbVal = int(xenrt.TEC().lookup("RND_PV_DRIVERS_LIST_VALUE", "0"))
             if dbVal != 0:
@@ -5861,7 +5863,7 @@ class DundeeGuest(CreedenceGuest):
             
             #Get the list of the Packages to be installed in random order
             packages = self.setRandomPvDriverList()
-
+            packages = packages.split(';')
             #Install the PV Packages one by one
             for pkg in packages:
                 self.installPVPackage(pkg, pvToolsDir)

@@ -5793,7 +5793,9 @@ default:
 class DundeeGuest(CreedenceGuest):
 
     def setRandomPvDriverSource(self):
+        #Randomly select PV Drivers Installation source
         randomPvDriverInstallSource = random.choice(xenrt.TEC().lookup("PV_DRIVER_INSTALLATION_SOURCE"))
+        
         with xenrt.GEC().getLock("RND_PV_DRIVER_INSTALL_SOURCE"):
             dbVal = int(xenrt.TEC().lookup("RND_PV_DRIVER_INSTALL_SOURCE_VALUE", "0"))
             if dbVal != 0:
@@ -5804,6 +5806,7 @@ class DundeeGuest(CreedenceGuest):
                 return randomPvDriverInstallSource
     
     def setRandomPvDriverList(self):
+        #Randomise the order of PV packages 
         pvDriversList =xenrt.TEC().lookup("PV_DRIVERS_LIST")
         pvDriversList = pvDriversList.split(';')
         random.shuffle(pvDriversList)
@@ -5822,7 +5825,7 @@ class DundeeGuest(CreedenceGuest):
         """
         Install PV Tools on Windows Guest
         """
-        log("Dundee Guest tools installation")
+
         #Check if it a windows guest , progress only if it is windows
         if not self.windows:
             xenrt.TEC().skip("Non Windows guest, no drivers to install")
@@ -5835,11 +5838,10 @@ class DundeeGuest(CreedenceGuest):
         """
         
         pvDriverSource = xenrt.TEC().lookup("PV_DRIVER_SOURCE", None)
-        log(pvDriverSource)
+
         if pvDriverSource == "Random":
             pvDriverSource = self.setRandomPvDriverSource()
-            log(pvDriverSource)
-
+            
         # If source is "ToolsISO" then install from xs tools
         if pvDriverSource == "ToolsISO" or pvDriverSource == None:
             TampaGuest.installDrivers(self, source, extrareboot, useLegacy, useHostTimeUTC, expectUpToDate)
@@ -5856,7 +5858,7 @@ class DundeeGuest(CreedenceGuest):
             if useGuestAgent:
                 self.installWindowsGuestAgent()
                 
-            # Get the Individual PV packages
+            # Download the Individual PV packages
             self.xmlrpcSendFile(xenrt.TEC().getFile("xe-phase-1/%s" %(xenrt.TEC().lookup("PV_DRIVERS_LOCATION", None))), "c:\\tools.tgz")
             pvToolsDir = self.xmlrpcTempDir()
             self.xmlrpcExtractTarball("c:\\tools.tgz", pvToolsDir)
@@ -5864,6 +5866,7 @@ class DundeeGuest(CreedenceGuest):
             #Get the list of the Packages to be installed in random order
             packages = self.setRandomPvDriverList()
             packages = packages.split(';')
+            
             #Install the PV Packages one by one
             for pkg in packages:
                 self.installPVPackage(pkg, pvToolsDir)
@@ -5888,7 +5891,8 @@ class DundeeGuest(CreedenceGuest):
             self.enlightenedDrivers = True
 
             self.waitForDaemon(120, desc="Daemon connect after driver install")
-
+            
+            #Check whether tools are up to date
             for i in range(12):
                 if self.pvDriversUpToDate() or not expectUpToDate:
                     break
@@ -5897,14 +5901,17 @@ class DundeeGuest(CreedenceGuest):
     def installPVPackage(self, packageName = None, toolsDirectory = None):
         """ Installing Individual PV package """
         
+        #If packageName is none then raise error
         if packageName is None:
             raise xenrt.XRTError("PV package to install not specified")
         
+        #Download the tools if not present already
         if toolsDirectory is None:
             self.xmlrpcSendFile(xenrt.TEC().getFile("xe-phase-1/%s" %(PV_DRIVERS_LOCATION)), "c:\\tools.tgz")
             toolsDirectory = self.xmlrpcTempDir()
             self.xmlrpcExtractTarball("c:\\tools.tgz", toolsDirectory)
-            
+        
+        #Get the Arch and install the appropriate Drivers 
         if self.xmlrpcGetArch().endswith('64'):
             arch = "x64"
         else:
@@ -5916,10 +5923,12 @@ class DundeeGuest(CreedenceGuest):
     def installWindowsGuestAgent(self):
         """ Install Windows Guest Agent from xs tools """
         
+        #Mount the tools CD 
         self.changeCD("xs-tools.iso")
         xenrt.sleep(30)
         pvToolsDir = "D:"
         
+        #Get the Arch and install the appropriate guest agent  
         if self.xmlrpcGetArch().endswith('64'):
             self.xmlrpcStart("%s\\citrixguestagentx64.msi  /passive /norestart" %(pvToolsDir))
         else:

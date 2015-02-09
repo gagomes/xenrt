@@ -1399,6 +1399,38 @@ class TCUpgradeMultipathedRootDisk(_SingleHostUpgrade):
                 "Multipathing fail actual={0} and exepcted={1}".format(mpOn,expectedOn))
 
 
+class TCUpgradeReadCaching(_SingleHostUpgrade):
+    """
+    A4. Surfaced read-caching (Cream) - check upgrade from Creedence
+    FQP - https://info.citrite.net/x/s4O7S
+    """
+    NO_VMS = False
+    EXTRASUBCASES = [("checkReadCaching", (), "ReadCaching", "Is Enabled")]
+
+    def installOld(self):
+        old = xenrt.TEC().lookup("OLD_PRODUCT_VERSION")
+        oldversion = xenrt.TEC().lookup("OLD_PRODUCT_INPUTDIR")
+        self.host = xenrt.lib.xenserver.createHost(id=0,
+                                                   version=oldversion,
+                                                   productVersion=old,
+                                                   installSRType="lvm")
+
+    def installVMs(self):
+        g = self.host.createGenericLinuxGuest()
+        rcc = self.host.readCaching()
+        rcc.setVM(g)
+        rcc.isEnabled(LowLevel=True)
+        g.shutdown()
+        self.guests.append(g)
+
+    def checkReadCaching(self):
+        g = self.guests[0]
+        rcc = self.host.readCaching()
+        rcc.setVM(g)
+        rcc.isEnabled(LowLevel=True)
+        rcc.isEnabled()
+
+
 class TC6929(_SingleHostUpgrade):
     """Single host upgrade from previous release using static IP addressing and a local LVM SR"""
 

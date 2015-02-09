@@ -1,11 +1,14 @@
 import xenrt
-from xenrt.lazylog import step, log
+from xenrt.lazylog import step
 from xenrt.lib import assertions
 from xenrt.lib.xenserver.licensing import XenServerLicenceFactory as LF
 from xenrt.enum import XenServerLicenceSKU
 
 
 class ReadCacheTestCase(xenrt.TestCase):
+    """
+    FQP - https://info.citrite.net/x/s4O7S
+    """
 
     def _releaseLicense(self, host):
         licence = LF().licenceForHost(host, XenServerLicenceSKU.Free)
@@ -30,7 +33,7 @@ class ReadCacheTestCase(xenrt.TestCase):
 
 class TCLicensingRCXapi(ReadCacheTestCase):
     """
-    Use license state to switch on/off read caching and check xapi agrees
+    A1. Use license state to switch on/off read caching and check xapi agrees
     """
 
     def run(self, arglist):
@@ -51,7 +54,7 @@ class TCLicensingRCXapi(ReadCacheTestCase):
 
 class TCXapiAndTapCtlAgree(ReadCacheTestCase):
     """
-    Check low-level and xapi hooks agree
+    A2. Check low-level and xapi hooks agree
     """
     def run(self, arglist):
         vm = self.vm(arglist)
@@ -77,14 +80,18 @@ class TCXapiAndTapCtlAgree(ReadCacheTestCase):
 
 
 class TCRCForLifeCycleOps(ReadCacheTestCase):
+    """
+    A6. Check lifecycle ops create a new tap-disk and hence trigger readcaching
+    (dis|en)ablement
+    """
     def run(self, arglist):
         host = self.getDefaultHost()
         rcc = host.readCaching()
         vm = self.vm(arglist)
-        self.runSubcase(self.__lifecycle, (vm,rcc,vm.reboot), "Reboot", "Reboot")
-        self.runSubcase(self.__lifecycle, (vm,rcc,self.__pauseResume,vm), "PauseResume", "PauseResume")
-        self.runSubcase(self.__lifecycle, (vm,rcc,self.__stopStart,vm), "StopStart", "StopStart")
-        self.runSubcase(self.__lifecycle, (vm,rcc,vm.migrateVM,host), "LocalHostMigrate", "LocalHostMigrate")
+        self.runSubcase("__lifecycle", (vm,rcc,vm.reboot), "Reboot", "Reboot")
+        self.runSubcase("__lifecycle", (vm,rcc,self.__pauseResume,vm), "PauseResume", "PauseResume")
+        self.runSubcase("__lifecycle", (vm,rcc,self.__stopStart,vm), "StopStart", "StopStart")
+        self.runSubcase("__lifecycle", (vm,rcc,vm.migrateVM,host), "LocalHostMigrate", "LocalHostMigrate")
 
     def __stopStart(vm):
         vm.shutdown()

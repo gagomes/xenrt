@@ -23,7 +23,7 @@
       <arg>bothChecks=no</arg>
     </testcase>
 
-    <testcase id="xenserver.install.TCApplyReqdPatches" tc="TC-20692" blocker="yes"/>
+    <!-- <testcase id="xenserver.install.TCApplyReqdPatches" tc="TC-20692" blocker="yes"/> -->
 
     <testcase id="testcases.xenserver.tc.readcaching.TCLicensingRCEnabled">
       <arg>bothChecks=yes</arg>

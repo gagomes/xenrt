@@ -1159,7 +1159,7 @@ class TCPrepareDriverUpgrade(xenrt.TestCase):
         host = self.getDefaultHost()
 
         # Get the hotfix file
-        hotfixFile = xenrt.TEC().getFile(xenrt.TEC().config.getHotfix(hotfix, host.productVersion))
+        hotfixFile = xenrt.TEC().getFile(xenrt.TEC().config.getHotfix(hotfix, None))
 
         # Extract the tools ISO from the hotfix
         workdir = xenrt.TempDirectory()

@@ -37,9 +37,7 @@
       <arg>bothChecks=yes</arg>
     </testcase>
 
-    <testcase id="testcases.xenserver.tc.readcaching.TCRCForLifeCycleOps">
-      <arg>bothChecks=yes</arg>
-    </testcase>
+    <testcase id="testcases.xenserver.tc.readcaching.TCRCForLifeCycleOps" />
 
 </testsequence>
 </xenrt>

@@ -23,7 +23,8 @@ class ReadCacheTestCase(xenrt.TestCase):
         host.licenseApply(None, licence)
 
     def prepare(self, arglist):
-        self.vm = self.getGuest(self.guestNames[0])
+        names = xenrt.TEC().registry.guestList()
+        self.vm = self.getGuest(names[0])
         self._applyMaxLicense()
         host = self.getDefaultHost()
         rcc = host.readCaching()
@@ -94,10 +95,11 @@ class TCRCForLifeCycleOps(ReadCacheTestCase):
         host = self.getDefaultHost()
         rcc = host.readCaching()
         vm = self.vm(arglist)
-        self.runSubcase("lifecycle", (vm,rcc,vm.reboot), "Lifecycle", "Reboot")
-        self.runSubcase("lifecycle", (vm,rcc,self.pauseResume,vm), "Lifecycle", "PauseResume")
-        self.runSubcase("lifecycle", (vm,rcc,self.stopStart,vm), "Lifecycle", "StopStart")
-        self.runSubcase("lifecycle", (vm,rcc,vm.migrateVM,host), "Lifecycle", "LocalHostMigrate")
+        lowlevel, both = self.getArgs(arglist)
+        self.runSubcase("lifecycle", (vm,rcc,lowlevel,both,vm.reboot), "Lifecycle", "Reboot")
+        self.runSubcase("lifecycle", (vm,rcc,lowlevel,both,self.pauseResume,vm), "Lifecycle", "PauseResume")
+        self.runSubcase("lifecycle", (vm,rcc,lowlevel,both,self.stopStart,vm), "Lifecycle", "StopStart")
+        self.runSubcase("lifecycle", (vm,rcc,lowlevel,both,vm.migrateVM,host), "Lifecycle", "LocalHostMigrate")
 
     def stopStart(self, vm):
         vm.shutdown()
@@ -107,14 +109,14 @@ class TCRCForLifeCycleOps(ReadCacheTestCase):
         vm.pause()
         vm.resume()
 
-    def lifecycle(self, vm, rcc, op, *args):
+    def lifecycle(self, vm, rcc, lowlevel, both, op, *args):
         host = self.getDefaultHost()
         self._applyMaxLicense(host)
         rcc.setVM(vm)
         log(*args)
         op(*args)
-        assertions.assertTrue(rcc.isEnabled(), "RC is on")
+        self.checkExpectedState(True, lowlevel, both)
         self._releaseLicense(host)
         rcc.setVM(vm)
         op(*args)
-        assertions.assertFalse(rcc.isEnabled(), "RC is off")
+        self.checkExpectedState(False, lowlevel, both)

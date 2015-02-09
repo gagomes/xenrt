@@ -33,13 +33,17 @@ class ReadCacheTestCase(xenrt.TestCase):
         self.vm.migrateVM(host)
 
     def checkExpectedState(self, expectedState, lowlevel=False, both=False):
+        step("Checking state - expected=%s, low-level=%s, bothChecks=%s" % (expectedState, lowlevel, both))
         host = self.getDefaultHost()
         rcc = host.readCaching()
         rcc.setVM(self.vm)
         if both:
+            step("Checking tapctl status....")
             assertions.assertEquals(expectedState, rcc.isEnabled(LowLevel=True), "RC is enabled status via. tap-ctl")
+            step("Checking xapi status....")
             assertions.assertEquals(expectedState, rcc.isEnabled(LowLevel=False), "RC is enabled status via. xapi")
         else:
+            step("Checking status of a single state..." )
             assertions.assertEquals(expectedState, rcc.isEnabled(LowLevel=lowlevel), "RC is enabled status")
 
     def getArgs(self, arglist):

@@ -1100,6 +1100,21 @@ class GenericPlace:
             self.checkHealth()
             raise
 
+    def xmlrpcInitializeDisk(self, diskid, driveLetter='e'):
+        """ Initialize disk, create a single partition on it, activate it and
+        assign a drive letter.
+        """
+        xenrt.TEC().logverbose("Initialize disk %s (letter %s)" % (diskid, driveLetter))
+        self.xmlrpcWriteFile("c:\\initdisk.txt",
+                             "select disk %s\n"
+                             "attributes disk clear readonly\n"
+                             "convert mbr\n"              # initialize
+                             "create partition primary\n" # create partition
+                             "active\n"                   # activate partition
+                             "assign letter=%s"           # assign drive letter
+                             % (diskid, driveLetter))
+        self.xmlrpcExec("diskpart /s c:\\initdisk.txt")
+
     def xmlrpcMarkDiskOnline(self, diskid=None):
         """ mark disk online by diskid. The function will fail if the diskid is
         invalid or the disk is already online . When diskid == None (default),

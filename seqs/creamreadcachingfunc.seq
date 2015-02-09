@@ -13,7 +13,7 @@
   </prepare>
 
   <testsequence>
-    <serial>
+    <serial group="RC">
       <testcase id="testcases.xenserver.tc.readcaching.TCLicensingRCEnabled">
         <arg>lowlevel=yes</arg>
         <arg>bothChecks=no</arg>

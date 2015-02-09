@@ -115,7 +115,6 @@ class TCRCForLifeCycleOps(ReadCacheTestCase):
     def lifecycle(self, vm, rcc, lowlevel, both, op, *args):
         self._applyMaxLicense()
         rcc.setVM(vm)
-        log("Args: %s" % *args)
         op(*args)
         self.checkExpectedState(True, lowlevel, both)
         self._releaseLicense()

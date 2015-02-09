@@ -3244,7 +3244,7 @@ class SharedHost:
         useHost.checkVersion()
         host = xenrt.lib.xenserver.hostFactory(useHost.productVersion)(useHost.machine, productVersion=useHost.productVersion)
         useHost.populateSubclass(host)
-        host.existing(doguests=doguests)
+        host.existing(doguests=doguests, guestsInRegistry=False)
         self.host = host
         xenrt.TEC().gec.registerCallback(self)
     

@@ -687,7 +687,7 @@ class Host(xenrt.GenericHost):
         """Create a simple guest object."""
         return self.guestFactory()(name, "", self)
 
-    def existing(self, doguests=True):
+    def existing(self, doguests=True, guestsInRegistry=True):
         """Initialise this host object from an existing installed host"""
         # Check the management host address
         ip = self.execdom0("xe host-param-get uuid=%s param-name=address" %
@@ -707,7 +707,8 @@ class Host(xenrt.GenericHost):
                     guest = self.guestFactory()(guestname, None)
                     guest.existing(self)
                     xenrt.TEC().logverbose("Found existing guest: %s" % (guestname))
-                    xenrt.TEC().registry.guestPut(guestname, guest)
+                    if guestsInRegistry:
+                        xenrt.TEC().registry.guestPut(guestname, guest)
                 except:
                     xenrt.TEC().logverbose("Could not load guest - perhaps it was deleted")
         self.distro = "XSDom0"
@@ -8122,8 +8123,8 @@ class MNRHost(Host):
             # No dbv field, so we're not using v6
             self.special['v6licensing'] = False
 
-    def existing(self, doguests=True):
-        Host.existing(self,doguests)
+    def existing(self, doguests=True, guestsInRegistry=True):
+        Host.existing(self,doguests, guestsInRegistry)
         self.__detect_vswitch()
         self.__detect_v6()
 

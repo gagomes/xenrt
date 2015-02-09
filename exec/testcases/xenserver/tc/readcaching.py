@@ -63,6 +63,7 @@ class TCLicensingRCEnabled(ReadCacheTestCase):
     def run(self, arglist):
         lowlevel, both = self.getArgs(arglist)
         step("Checking ReadCaching state enabled: LowLevel %s" % lowlevel)
+        self.vm.migrateVM(self.getDefaultHost())
         self.checkExpectedState(True, lowlevel, both)
 
 
@@ -71,6 +72,7 @@ class TCLicensingRCDisabled(ReadCacheTestCase):
     def run(self, arglist):
         lowlevel, both = self.getArgs(arglist)
         self._releaseLicense()
+        self.vm.migrateVM(self.getDefaultHost())
         step("Checking ReadCaching state disabled: LowLevel %s" % lowlevel)
         self.checkExpectedState(False, lowlevel, both)
 

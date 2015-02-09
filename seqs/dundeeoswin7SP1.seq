@@ -5,7 +5,6 @@
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
     <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
-    <PV_DRIVER_SOURCE>Random</PV_DRIVER_SOURCE> <!-- Temporary Change , Remove it-->
   </variables>
 
   <default name="PARALLEL" value="2" />

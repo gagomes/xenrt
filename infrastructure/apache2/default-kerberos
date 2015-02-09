@@ -87,8 +87,10 @@
     </Location>
 
     <LocationMatch /unauth.html>
-        Header always set WWW-Authenticate Negotiate
-        Header always add WWW-Authenticate 'Basic realm="@@KERBEROSREALM@@"'
+        SetEnvIf Cookie "xenrtkerb=1" is_xenrtkerb1
+        Header always set WWW-Authenticate 'Basic realm="@@KERBEROSREALM@@"'
+        Header always add WWW-Authenticate Negotiate env=!is_xenrtkerb1
+        Header always add Set-Cookie "xenrtkerb=1"
     </LocationMatch>
 
     RequestHeader unset X-Forwarded-User

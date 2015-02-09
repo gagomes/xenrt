@@ -3392,7 +3392,7 @@ class Config:
             releases = self.config["HOTFIXES"].keys()
             branches = {}
             for r in releases:
-                branches.update(self.config["HOTFIXES"][r])
+                branches.update({"%s_%s" % (r, branch): hfs for branch, hfs in self.config["HOTFIXES"][r].items()})
         else:
             if not self.config["HOTFIXES"].has_key(release):
                 raise xenrt.XRTError("Could not find hotfixes for %s" % (release))

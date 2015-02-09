@@ -44,6 +44,7 @@ class ReadCacheTestCase(xenrt.TestCase):
 
     def getArgs(self, arglist):
         args = self.parseArgsKeyValue(arglist)
+        log("Args: %s" % args)
         if args.has_key("lowlevel"):
             lowlevel = args["lowlevel"] in ("yes", "true")
         else:

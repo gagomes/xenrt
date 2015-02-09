@@ -1,7 +1,4 @@
 <xenrt>
-
-  <!-- Multipathed root disk tests for upgrades from clearwater to Dundee -->
-
   <variables>
     <PRODUCT_VERSION>Cream</PRODUCT_VERSION>
     <OLD_PRODUCT_INPUTDIR>/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446</OLD_PRODUCT_INPUTDIR>
@@ -10,8 +7,7 @@
 
   <testsequence>
     <serial group="Upgrade">
-      <testcase id="xenserver.tc.upgrade.TCUpgradeReadCaching"/>
+      <testcase id="xenserver.tc.upgrade.TCUpgradeReadCaching" />
     </serial>
   </testsequence>
-
 </xenrt>

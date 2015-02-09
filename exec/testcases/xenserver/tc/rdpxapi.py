@@ -16,8 +16,6 @@ class RdpVerification(xenrt.TestCase):
     def prepare(self, arglist=None):
         self.args  = self.parseArgsKeyValue(arglist)
         self.guest = self.getGuest(self.args['guest'])
-        if self.args.has_key('OLDTOOLS'):
-            self.oldTools = self.args['OLDTOOLS']
 
     def postRun(self):
         # Keep the guest in original state so that rest of the test can use the same
@@ -72,6 +70,7 @@ class TestRdpSettings(RdpVerification):
         # Disable the RDP on the guest
         step(" Test is trying to set fDenyTSConnections on the guest to disable RDP")
         self.guest.winRegAdd('HKLM', 'System\\CurrentControlSet\\Control\\Terminal Server\\', 'fDenyTSConnections',"DWORD", 1)
+        xenrt.sleep(10)
 
         # Enable RDP via XAPI
         if not xapiRdpObj.enableRdp():
@@ -91,6 +90,7 @@ class TestRdpSettings(RdpVerification):
         if not xapiRdpObj.disableRdp():
             raise xenrt.XRTFailure("XAPI failed to disable the RDP on the guest with tools installed %s ." % (self.guest))
         xenrt.TEC().logverbose("XAPI successfully disabled the RDP for the guest: %s " % (self.guest))
+        xenrt.sleep(10)
 
         # Check RDP settings : Check fDenyTSConnections
         step("Check that fDenyTSConnections on the guest is reset after XAPI disabled RDP")
@@ -116,6 +116,7 @@ class TestGuestDisbableRdp(RdpVerification):
 
         # win_guest_agent takes at max 10 seconds to update RDP status change to XAPI
         xenrt.sleep(10)
+
         if not xapiRdpObj.isRdpEnabled():
             raise xenrt.XRTFailure("Guest agent does not updated  data/ts about the RDP status change for the guest %s " % (self.guest))
         xenrt.TEC().logverbose("Guest agent updated the RDP status in data/ts successfully for the guest %s" % (self.guest))
@@ -183,7 +184,7 @@ class TestRdpWithSnapshot(RdpVerification):
         if not xapiRdpObj.enableRdp():
             raise xenrt.XRTFailure("XAPI failed to enable the RDP on the guest %s with tools installed" % (self.guest))
         xenrt.TEC().logverbose("XAPI successfully enabled the RDP for the guest: %s " % (self.guest))
-        xenrt.sleep(20)
+        xenrt.sleep(10)
 
         # Make sure RDP enabled field updated 
         if not xapiRdpObj.isRdpEnabled():
@@ -212,29 +213,3 @@ class TestRdpWithSnapshot(RdpVerification):
         xenrt.TEC().logverbose("Guest agent updated the RDP status in data/ts successfully for the guest %s" % (self.guest))
 
         self.guest.checkHealth()
-
-class TestRdpWithToolsUpgrade(RdpVerification):
-    """Verify that XAPI can switch RDP on the guest with upgraded tools"""
-
-    def run(self, arglist=None):
-        xapiRdpObj = XapiRdp(self.guest)
-
-        #install old tools 
-        self.guest.installDrivers(source=self.oldTools)
-
-        if xapiRdpObj.enableRdp():
-            raise xenrt.XRTFailure("XAPI enabled the RDP on the guest %s with old tools installed" % (self.guest))
-        xenrt.TEC().logverbose("XAPI couldn't enabled the RDP for the guest %s with old tools installed " % (self.guest))
-
-        #Upgrade the tools to latest
-        step("Test trying to upgrade tools")
-        self.guest.upgradeTools()
-
-        if not xapiRdpObj.enableRdp():
-            raise xenrt.XRTFailure("XAPI failed to enable RDP for the guest %s with upgraded tools" % (self.guest))
-        xenrt.TEC().logverbose("XAPI enabled the RDP for the guest %s with upgraded tools " % (self.guest))
-
-        # Make sure RDP enabled field updated 
-        if not xapiRdpObj.isRdpEnabled():
-            raise xenrt.XRTFailure("data/ts not updated for the guest %s with upgraded tools " % (self.guest))
-        xenrt.TEC().logverbose("Guest agent updated the RDP status in data/ts successfully for the guest %s" % (self.guest))

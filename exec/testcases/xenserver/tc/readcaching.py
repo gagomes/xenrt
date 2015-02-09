@@ -94,7 +94,7 @@ class TCRCForLifeCycleOps(ReadCacheTestCase):
     def run(self, arglist):
         host = self.getDefaultHost()
         rcc = host.readCaching()
-        vm = self.vm(arglist)
+        vm = self.vm
         lowlevel, both = self.getArgs(arglist)
         self.runSubcase("lifecycle", (vm,rcc,lowlevel,both,vm.reboot), "Lifecycle", "Reboot")
         self.runSubcase("lifecycle", (vm,rcc,lowlevel,both,self.pauseResume,vm), "Lifecycle", "PauseResume")

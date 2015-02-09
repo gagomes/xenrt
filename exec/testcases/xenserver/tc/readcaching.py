@@ -1,5 +1,5 @@
 import xenrt
-from xenrt.lazylog import step
+from xenrt.lazylog import step, log
 from xenrt.lib import assertions
 from xenrt.lib.xenserver.licensing import XenServerLicenceFactory as LF
 from xenrt.enum import XenServerLicenceSKU
@@ -10,73 +10,79 @@ class ReadCacheTestCase(xenrt.TestCase):
     FQP - https://info.citrite.net/x/s4O7S
     """
 
-    def _releaseLicense(self, host):
+    def _releaseLicense(self):
+        host = self.getDefaultHost()
         licence = LF().licenceForHost(host, XenServerLicenceSKU.Free)
         step("Applying license: %s" % licence.getEdition())
         host.licenseApply(None, licence)
 
-    def _applyMaxLicense(self, host):
+    def _applyMaxLicense(self):
+        host = self.getDefaultHost()
         licence = LF().maxLicenceSkuHost(host)
         step("Applying license: %s" % licence.getEdition())
         host.licenseApply(None, licence)
 
     def prepare(self, arglist):
-        self._applyMaxLicense(self.getDefaultHost())
-        host = self.getDefaultHost()
-        vm = self.vm(arglist)
-        vm.migrateVM(host)
-
-    def vm(self, arglist):
-        args = self.parseArgsKeyValue(arglist)
-        return self.getGuest(args["vm"])
-
-
-class TCLicensingRCXapi(ReadCacheTestCase):
-    """
-    A1. Use license state to switch on/off read caching and check xapi agrees
-    """
-
-    def run(self, arglist):
-        host = self.getDefaultHost()
-        vm = self.vm(arglist)
-        rcc = host.readCaching()
-        rcc.setVM(vm)
-
-        step("Check Read Caching on...")
-        assertions.assertTrue(rcc.isEnabled(), "RC is enabled via xapi")
-        self._releaseLicense(host)
-        vm.migrateVM(host)
-        rcc.setVM(vm)
-
-        step("Check Read Caching off...")
-        assertions.assertFalse(rcc.isEnabled(), "RC is disabled via xapi")
-
-
-class TCXapiAndTapCtlAgree(ReadCacheTestCase):
-    """
-    A2. Check low-level and xapi hooks agree
-    """
-    def run(self, arglist):
-        vm = self.vm(arglist)
+        self.vm = self.getGuest(self.guestNames[0])
+        self._applyMaxLicense()
         host = self.getDefaultHost()
         rcc = host.readCaching()
-
-        step("Initial check - verify on")
-        self.__check(True, host, rcc, vm)
-
-        step("Switch off - low level")
-        rcc.disable()
-        self.__check(False, host, rcc, vm)
-
-        step("Switch on - low level")
+        rcc.setVM(self.vm)
         rcc.enable()
-        self.__check(True, host, rcc, vm)
+        self.vm.migrateVM(host)
 
-    def __check(self, expected, host, rcc, vm):
-        vm.migrateVM(host)
-        rcc.setVM(vm)
-        assertions.assertEquals(expected, rcc.isEnabled(LowLevel=True), "RC enabled via tap-ctl")
-        assertions.assertEquals(expected, rcc.isEnabled(LowLevel=False), "RC enabled via xapi")
+    def checkExpectedState(self, expectedState, lowlevel=False, both=False):
+        host = self.getDefaultHost()
+        rcc = host.readCaching()
+        rcc.setVM(self.vm)
+        if both:
+            assertions.assertEquals(expectedState, rcc.isEnabled(LowLevel=True), "RC is enabled status via. tap-ctl")
+            assertions.assertEquals(expectedState, rcc.isEnabled(LowLevel=False), "RC is enabled status via. xapi")
+        else:
+            assertions.assertEquals(expectedState, rcc.isEnabled(LowLevel=lowlevel), "RC is enabled status")
+
+    def getArgs(self, arglist):
+        args = self.parseArgsKeyValue(arglist)
+        if args.has_key("lowlevel"):
+            lowlevel = args["lowlevel"] in ("yes", "true")
+        else:
+            lowlevel = False
+
+        if args.has_key("bothChecks"):
+            both = args["bothChecks"] in ("yes", "true")
+        else:
+            both = False
+
+        return lowlevel, both
+
+
+class TCLicensingRCEnabled(ReadCacheTestCase):
+
+    def run(self, arglist):
+        lowlevel, both = self.getArgs(arglist)
+        step("Checking ReadCaching state enabled: LowLevel %s" % lowlevel)
+        self.checkExpectedState(True, lowlevel, both)
+
+
+class TCLicensingRCDisabled(ReadCacheTestCase):
+
+    def run(self, arglist):
+        lowlevel, both = self.getArgs(arglist)
+        self._releaseLicense()
+        step("Checking ReadCaching state disabled: LowLevel %s" % lowlevel)
+        self.checkExpectedState(False, lowlevel, both)
+
+
+class TCOdirectRCDisabled(ReadCacheTestCase):
+
+    def run(self, arglist):
+        lowlevel, both = self.getArgs(arglist)
+        host = self.getDefaultHost()
+        rcc = host.readCaching()
+        rcc.setVM(self.vm)
+        rcc.disable()
+        step("Checking ReadCaching state disabled %s" % lowlevel)
+        self.checkExpectedState(False, lowlevel, both)
 
 
 class TCRCForLifeCycleOps(ReadCacheTestCase):
@@ -105,6 +111,7 @@ class TCRCForLifeCycleOps(ReadCacheTestCase):
         host = self.getDefaultHost()
         self._applyMaxLicense(host)
         rcc.setVM(vm)
+        log(*args)
         op(*args)
         assertions.assertTrue(rcc.isEnabled(), "RC is on")
         self._releaseLicense(host)

@@ -18,5 +18,9 @@
     <testcase id="testcases.xenserver.tc.readcaching.TCXapiAndTapCtlAgree">
       <arg>vm=arnie</arg>
     </testcase>
-  </testsequence>
+    <testcase id="testcases.xenserver.tc.readcaching.TCRCForLifeCycleOps">
+      <arg>vm=arnie</arg>
+    </testcase>
+
+</testsequence>
 </xenrt>

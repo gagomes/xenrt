@@ -40,13 +40,13 @@ class TCLicensingRCXapi(ReadCacheTestCase):
         rcc.setVM(vm)
 
         step("Check Read Caching on...")
-        assertions.assertTrue(rcc.isEnabled(), "RC is enabled")
+        assertions.assertTrue(rcc.isEnabled(), "RC is enabled via xapi")
         self._releaseLicense(host)
         vm.migrateVM(host)
         rcc.setVM(vm)
 
         step("Check Read Caching off...")
-        assertions.assertFalse(rcc.isEnabled(), "RC is disabled")
+        assertions.assertFalse(rcc.isEnabled(), "RC is disabled via xapi")
 
 
 class TCXapiAndTapCtlAgree(ReadCacheTestCase):

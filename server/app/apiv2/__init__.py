@@ -37,7 +37,7 @@ class XenRTAPIv2Swagger(XenRTPage):
             "info": {
                 "version": "1.0.0",
                 "title": "XenRT API",
-                "description": "<a href=\"%s://%s%s/bindings/xenrt.py\">Python bindings</a>" % (u.scheme, u.netloc, u.path.rstrip("/"))
+                "description": "<a href=\"%s://%s%s/bindings/xenrtapi.py\">Python bindings</a>" % (u.scheme, u.netloc, u.path.rstrip("/"))
             },
             "basePath": "%s/api/v2" % u.path.rstrip("/"),
             "host": u.netloc,
@@ -49,20 +49,29 @@ class XenRTAPIv2Swagger(XenRTPage):
             "securityDefinitions": {"Basic": {"type": "basic"}},
             "tags": [
                 {"name": "jobs", "description": "Operations on XenRT jobs"},
-                {"name": "machines", "description": "Operations on XenRT machines"}
+                {"name": "machines", "description": "Operations on XenRT machines"},
+                {"name": "sites", "description": "Operations on XenRT sites"}
             ],
             "definitions": {}
         }
         global _apiReg
         for cls in _apiReg.apis:
+            if cls.HIDDEN:
+                continue
             if not cls.PATH in spec['paths']:
                 spec['paths'][cls.PATH] = {}
             spec['paths'][cls.PATH][cls.REQTYPE.lower()] = {
-                "description": cls.DESCRIPTION,
+                "summary": cls.SUMMARY,
                 "tags": cls.TAGS,
                 "parameters": cls.PARAMS,
-                "responses": cls.RESPONSES
+                "responses": cls.RESPONSES,
+                "consumes": [cls.CONSUMES],
+                "produces": [cls.PRODUCES]
             }
+            if cls.DESCRIPTION:
+                spec['paths'][cls.PATH][cls.REQTYPE.lower()]['description'] = cls.DESCRIPTION
+            if cls.PARAM_ORDER:
+                spec['paths'][cls.PATH][cls.REQTYPE.lower()]['paramOrder'] = cls.PARAM_ORDER
             if cls.OPERATION_ID:
                 spec['paths'][cls.PATH][cls.REQTYPE.lower()]['operationId'] = cls.OPERATION_ID
             spec['definitions'].update(cls.DEFINITIONS)
@@ -72,10 +81,13 @@ PageFactory(XenRTAPIv2Swagger, "/swagger.json", reqType="GET", contentType="appl
 
 class XenRTAPIv2Page(XenRTPage):
     REQUIRE_AUTH_IF_ENABLED = True
+    DESCRIPTION = None
     PRODUCES = "application/json"
     CONSUMES = "application/json"
     DEFINITIONS = {}
     OPERATION_ID = None
+    PARAM_ORDER = []
+    HIDDEN = False
     
     def getMultiParam(self, paramName, delimiter=","):
         params = self.request.params.getall(paramName)
@@ -87,6 +99,11 @@ class XenRTAPIv2Page(XenRTPage):
     def generateInCondition(self, fieldname, items):
         return "%s IN (%s)" % (fieldname, ", ".join(["%s"] * len(items)))
 
+    def expandVariables(self, params):
+        return [self.getUser() if x=="${user}" else x for x in params]
+
 import app.apiv2.bindings
 import app.apiv2.jobs
 import app.apiv2.machines
+import app.apiv2.files
+import app.apiv2.sites

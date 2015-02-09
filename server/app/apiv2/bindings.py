@@ -14,72 +14,120 @@ class Path(object):
         self.argdesc = []
         self.jsonParams = []
         self.formParams = []
+        self.fileParams = []
         self.pathParams = []
         self.queryParams = []
         self.parseParams()
+
+    def pythonParamName(self, param):
+        if param == "file":
+            return "filepath"
+        else:
+            return param
+
+    def pythonType(self, typename):
+        if typename == "file":
+            return "file path"
+        elif typename == "object":
+            return "dictionary"
+        elif typename == "array":
+            return "list"
+        else:
+            return typename
 
     @property
     def methodContent(self):
         ret = """        path = "%%s%s" %% (self.base)\n""" % self.path
         for p in self.pathParams:
-            ret += """        path = path.replace("{%s}", %s)\n""" % (p, p)
+            q = self.pythonParamName(p)
+            ret += """        path = path.replace("{%s}", self.__serializeForPath(%s))\n""" % (p, q)
         ret += """        paramdict = {}\n"""
+        ret += """        files = {}\n"""
         for p in self.queryParams:
-            ret += """        if %s != None:\n            paramdict['%s'] = self.__serializeForQuery(%s)\n""" % (p, p, p)
+            q = self.pythonParamName(p)
+            ret += """        if %s != None:\n            paramdict['%s'] = self.__serializeForQuery(%s)\n""" % (q, p, q)
         ret += """        payload = {}\n"""
         if self.jsonParams:
             ret += """        j = {}\n"""
             for p in self.jsonParams:
-                ret += """        if %s != None:\n            j['%s'] = %s\n""" % (p, p, p)
+                q = self.pythonParamName(p)
+                ret += """        if %s != None:\n            j['%s'] = %s\n""" % (q, p, q)
             ret += """        payload = json.dumps(j)\n"""
         elif self.formParams:
             for p in self.formParams:
-                ret += """        if %s != None:\n            payload['%s'] = %s\n""" % (p, p, p)
+                q = self.pythonParamName(p)
+                if p in self.fileParams:
+                    ret += """        if %s != None:\n            files['%s'] = (os.path.basename(%s), open(%s, 'rb'))\n""" % (q, p, q, q)
+                else:
+                    ret += """        if %s != None:\n            payload['%s'] = %s\n""" % (q, p, q)
         if self.method == "get":
-            ret += """        r = requests.get(path, params=paramdict, auth=(self.user, self.password))\n"""
+            ret += """        r = requests.get(path, params=paramdict, auth=(self.user, self.password), headers=self.customHeaders)\n"""
         else:
-            ret += """        r = requests.%s(path, params=paramdict, data=payload, auth=(self.user, self.password))\n""" % self.method
+            ret += """        myHeaders = {'content-type': 'application/json'}\n"""
+            ret += """        myHeaders.update(self.customHeaders)\n"""
+            ret += """        r = requests.%s(path, params=paramdict, data=payload, files=files, auth=(self.user, self.password), headers=myHeaders)\n""" % self.method
         ret += """        self.__raiseForStatus(r)\n"""
-        ret += """        return r.json()"""
+        if 'application/json' in self.data['produces']:
+            ret += """        return r.json()"""
+        else:
+            ret += """        return r.content"""
         return ret
 
     def parseParams(self):
+        args = []
+        argdesc = {}
         for p in self.data.get('parameters', []):
             if p['in'] == "body":
                 objType = self.definitions[p['schema']['$ref'].split("/")[-1]]
                 for q in [x for x in objType['properties'].keys() if x in objType.get('required', [])]:
                     self.jsonParams.append(q)
-                    self.args.append(q)
-                    self.argdesc.append("%s: %s" % (q, objType['properties'][q]['description']))
+                    args.append((q,))
+                    argdesc[q] = "%s - %s" % (self.pythonType(objType['properties'][q]['type']), objType['properties'][q].get('description', ""))
                 for q in [x for x in objType['properties'].keys() if x not in objType.get('required', [])]:
                     self.jsonParams.append(q)
-                    if objType['properties'][q]['type'] == "boolean":
-                        default = "False"
-                    else:
-                        default = "None"
-                    self.args.append("%s=%s" % (q, default))
-                    self.argdesc.append("%s: %s" % (q, objType['properties'][q]['description']))
+                    args.append((q, "None"))
+                    argdesc[q] = "%s - %s" % (self.pythonType(objType['properties'][q]['type']), objType['properties'][q].get('description', ""))
             else:
                 if p['in'] == "path":
                     self.pathParams.append(p['name'])
                 elif p['in'] == "query":
                     self.queryParams.append(p['name'])
-                self.argdesc.append("%s: %s" % (p['name'], p['description']))
+                elif p['in'] == "formData":
+                    self.formParams.append(p['name'])
+
+                if p.get('type') == "file":
+                    self.fileParams.append(p['name'])
+                argdesc[p['name']] = "%s - %s" % (self.pythonType(p.get('type')), p.get('description',""))
                 if p.get('required'):
                     if not p.get('default'):
-                        self.args.append(p['name'])
+                        args.append((p['name'],))
                     else:
                         if p['type'] == "string" or (p['type'] == "array" and p['items']['type'] == "string"):
                             default = "\"%s\"" % p['default']
                         else:
                             default = p['default']
-                        self.args.append("%s=%s" % (p['name'], default))
+                        args.append((p['name'], default))
                 else:
-                    if p.get('type') == "boolean":
-                        default = "False"
-                    else:
-                        default = "None"
-                    self.args.append("%s=%s" % (p['name'], default))
+                    args.append((p['name'], "None"))
+        for p in self.data.get('paramOrder', []):
+            pp = [x for x in args if x[0] == p]
+            if not pp:
+                pp = [(p,)]
+            pname = self.pythonParamName(pp[0][0])
+            if len(pp[0]) == 1:
+                self.args.append(pname)
+            else:
+                self.args.append("%s=%s" % (pname, pp[0][1]))
+
+            self.argdesc.append("%s: %s" % (pname, argdesc.get(pp[0][0], "")))
+        for p in args:
+            if not p[0] in self.data.get('paramOrder', []):
+                pname = self.pythonParamName(p[0])
+                if len(p) == 1:
+                    self.args.append(pname)
+                else:
+                    self.args.append("%s=%s" % (pname, p[1]))
+                self.argdesc.append("%s: %s" % (pname, argdesc.get(p[0], "")))
 
     @property
     def methodSignature(self):
@@ -87,7 +135,10 @@ class Path(object):
 
     @property
     def description(self):
-        ret = "        \"\"\" %s\n            Parameters:\n" % (self.data['description'])
+        ret = "        \"\"\" %s\n" % (self.data['summary'])
+        if "description" in self.data:
+            ret += "            %s" % self.data['description']
+        ret += "            Parameters:\n"
         for p in self.argdesc:
             ret += "                 %s\n" % (p)
         ret += "        \"\"\""
@@ -108,6 +159,7 @@ class Path(object):
 
     @property
     def methodParams(self):
+        args = []
         return ", ".join(self.args)
 
 class PythonBindings(XenRTAPIv2Swagger):
@@ -122,6 +174,10 @@ class PythonBindings(XenRTAPIv2Swagger):
         for p in swagger['paths'].keys():
             for m in swagger['paths'][p].keys():
                 self.funcs.append(Path(self, p, m, swagger['paths'][p][m], swagger['definitions']))
+        
+        self.scheme = swagger['schemes'][0]
+        self.base = swagger['basePath']
+        self.host = swagger['host']
 
     def generateFile(self):
         ret = """#!/usr/bin/python
@@ -129,6 +185,8 @@ class PythonBindings(XenRTAPIv2Swagger):
 import requests
 import json
 import httplib
+import os.path
+import netrc
 
 class XenRTAPIException(Exception):
     def __init__(self, code, reason, canForce):
@@ -137,24 +195,36 @@ class XenRTAPIException(Exception):
         self.canForce = canForce
 
     def __str__(self):
-        ret = "%s %s: %s" % (self.code, httplib.responses[self.code], self.reason)
+        ret = "%%s %%s: %%s" %% (self.code, httplib.responses[self.code], self.reason)
         if self.canForce:
             ret += " (can force override)"
         return ret
 
 class XenRT(object):
-    def __init__(self, base, user, password):
-        self.base = base
-        self.user = user
-        self.password = password
+    def __init__(self, user=None, password=None):
+        self.base = "%s://%s%s"
+
+        if not user:
+            auth = netrc.netrc().authenticators("%s")
+            if not auth:
+                raise Exception("No authentication details specified by parameters or in .netrc for %s")
+            self.user = auth[0]
+            self.password = auth[2]
+        else:
+            self.user = user
+            self.password = password
+        self.customHeaders = {}
 
     def __serializeForQuery(self, data):
         if isinstance(data, bool):
             return str(data).lower()
         elif isinstance(data, (list, tuple)):
-            return ",".join(data)
+            return ",".join([str(x) for x in data])
         else:
-            return data
+            return str(data)
+
+    def __serializeForPath(self, data):
+        return str(data)
 
     def __raiseForStatus(self, response):
         try:
@@ -165,8 +235,8 @@ class XenRT(object):
             else:
                 reason = None
                 canForce = False
-        except Exception, e:
-            print e
+        except:
+            pass
         else:
             if reason:
                 raise XenRTAPIException(response.status_code,
@@ -174,7 +244,7 @@ class XenRT(object):
                                         canForce)
         response.raise_for_status()
 
-"""
+""" % (self.scheme, self.host, self.base, self.host, self.host)
         for func in self.funcs:
             ret += "%s\n" % func.methodSignature
             ret += "%s\n" % func.description
@@ -183,4 +253,4 @@ class XenRT(object):
     
         return ret
 
-PageFactory(PythonBindings, "bindings/xenrt.py", reqType="GET", contentType="text/plain")
+PageFactory(PythonBindings, "bindings/xenrtapi.py", reqType="GET", contentType="text/plain")

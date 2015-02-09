@@ -57,13 +57,15 @@ class TestMaxSupportedVCPU(XenRTUnitTestCase):
         return tmp
 
     @patch("xenrt.TEC")
-    def __run(self, args, tec):
+    @patch("xenrt.GEC")
+    def __run(self, args, gec, tec):
         guest = xenrt.lib.xenserver.guest.TampaGuest("Guest")
         tec.return_value.lookup = self.__lookup
+        tec.return_value.lookupHost = Mock(return_value = None)
         distro, arch, result = args
         guest.distro = distro
         guest.arch = arch
-        if distro.startswith("w"):
+        if distro.startswith("w") or distro.startswith("vista"):
             guest.windows = True
         else:
             guest.windows = False
@@ -88,21 +90,21 @@ class TestMaxSupportedVCPU(XenRTUnitTestCase):
     def testCreedenceRHEL(self):
         distros = ["rhel61", "rhel61", "rhel7"]
         archs = ["x86", "x86-64", "x86-64"]
-        results = [16, 16, 16]
+        results = [32, 32, 16]
 
         self.run_for_many(zip(distros, archs, results), self.__testCreedence)
 
     def testCreedenceDeb(self):
         distros = ["deb6", "deb6", "deb7", "deb7"]
         archs = ["x86", "x86-64", "x86", "x86-64"]
-        results = [16, 16, 16, 16]
+        results = [32, 32, 32, 32]
 
         self.run_for_many(zip(distros, archs, results), self.__testCreedence)
 
     def testCreedenceUbuntu(self):
         distros = ["ubuntu1204", "ubuntu1204", "ubuntu1404", "ubuntu1404"]
         archs = ["x86", "x86-64", "x86", "x86-64"]
-        results = [8, 16, 8, 16]
+        results = [8, 32, 8, 16]
 
         self.run_for_many(zip(distros, archs, results), self.__testCreedence)
 
@@ -169,21 +171,21 @@ class TestMaxSupportedVCPU(XenRTUnitTestCase):
     def testDundeeRHEL(self):
         distros = ["rhel61", "rhel61", "rhel7"]
         archs = ["x86", "x86-64", "x86-64"]
-        results = [16, 16, 16]
+        results = [32, 32, 16]
 
         self.run_for_many(zip(distros, archs, results), self.__testDundee)
 
     def testDundeeDeb(self):
         distros = ["deb6", "deb6", "deb7", "deb7"]
         archs = ["x86", "x86-64", "x86", "x86-64"]
-        results = [16, 16, 16, 16]
+        results = [32, 32, 32, 32]
 
         self.run_for_many(zip(distros, archs, results), self.__testDundee)
 
     def testDundeeUbuntu(self):
         distros = ["ubuntu1204", "ubuntu1204", "ubuntu1404", "ubuntu1404"]
         archs = ["x86", "x86-64", "x86", "x86-64"]
-        results = [8, 16, 8, 16]
+        results = [8, 32, 8, 16]
 
         self.run_for_many(zip(distros, archs, results), self.__testDundee)
 

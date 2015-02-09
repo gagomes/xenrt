@@ -508,7 +508,7 @@ class _WSMANProtocol(_CIMInterface):
 
         # Copy the PV tools ISO from the host to use as an example ISO
         # in our CIFS SR
-        remotefile = host.toolsISOPath("windows")
+        remotefile = host.toolsISOPath()
         if not remotefile:
             raise xenrt.XRTError("Could not find PV tools ISO in dom0")
         cd = "%s/xs-tools.iso" % (xenrt.TEC().getWorkdir())

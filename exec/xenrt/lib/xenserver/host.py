@@ -1,4 +1,4 @@
-#
+   #
 # XenRT: Test harness for Xen and the XenServer product family
 #
 # Encapsulate a XenServer host.
@@ -22,7 +22,9 @@ import xenrt.lib.xenserver.jobtests
 from  xenrt.lib.xenserver import licensedfeatures
 import XenAPI
 from xenrt.lazylog import *
-from xenrt.lib.xenserver.licensing import XenServerLicenceFactory
+from xenrt.lib.xenserver.iptablesutil import IpTablesFirewall
+from xenrt.lib.xenserver.licensing import LicenceManager, XenServerLicenceFactory
+
 
 # Symbols we want to export from the package.
 __all__ = ["Host",
@@ -286,7 +288,7 @@ def createHost(id=0,
                 nameserver = None
             hostname = m.name
 
-    guestdisks = host.getGuestDisks(ccissIfAvailable=host.USE_CCISS, count=diskCount)
+    guestdisks = host.getGuestDisks(ccissIfAvailable=host.USE_CCISS, count=diskCount, legacySATA=(not host.isCentOS7Dom0()))
 
     if diskCount > len(guestdisks):
         raise xenrt.XRTError("Wanted %u disks but we only have: %s" %
@@ -294,7 +296,7 @@ def createHost(id=0,
     if host.bootLun:
         primarydisk = "disk/by-id/scsi-%s" % host.bootLun.getID()
     else:
-        primarydisk = host.getInstallDisk(ccissIfAvailable=host.USE_CCISS)
+        primarydisk = host.getInstallDisk(ccissIfAvailable=host.USE_CCISS, legacySATA=(not host.isCentOS7Dom0()))
 
     handle = host.install(interfaces=interfaces,
                           nameserver=nameserver,
@@ -770,6 +772,8 @@ class Host(xenrt.GenericHost):
                     # In this situation a path that includes cciss- will not work. See CA-121184 for details
                     if "cciss" in primarydisk:
                         primarydisk = self.getInstallDisk(ccissIfAvailable=self.USE_CCISS)
+                    if "scsi-SATA" in primarydisk and self.isCentOS7Dom0():
+                        primarydisk = self.getInstallDisk(legacySATA=False)
                 else:
                     primarydisk = "sda"
 
@@ -1852,8 +1856,10 @@ fi
     def _upgrade(self, newVersion, suppackcds=None):
         # Upgrade to the current version
         self.install(upgrade=True, suppackcds=suppackcds)
-        
+       
         if not xenrt.TEC().lookup("OPTION_NO_AUTO_PATCH", False, boolean=True):
+            # Wait to allow Xapi database to be written out
+            xenrt.sleep(300)
             self.applyRequiredPatches()
 
     def applyWorkarounds(self):
@@ -2715,7 +2721,7 @@ fi
             if proxy:
                 self.execdom0("sed -i '/proxy/d' /etc/yum.conf")
                 self.execdom0("echo 'proxy=http://%s' >> /etc/yum.conf" % proxy)
-            if isinstance(self, xenrt.lib.xenserver.DundeeHost) and self.isCentOS7Dom0():
+            if isinstance(self, xenrt.lib.xenserver.DundeeHost):
                 self.execdom0("yum install kernel-headers --disableexcludes=all -y")
             self.execdom0("yum --disablerepo=citrix --enablerepo=base,updates,extras install -y  gcc-c++")
             self.execdom0("yum --disablerepo=citrix --enablerepo=base install -y make")
@@ -5805,30 +5811,19 @@ fi
                 raise xenrt.XRTFailure(\
                     "Timed out waiting for coalesce to complete", sruuid)
 
-    def toolsISOPath(self, which="windows"):
+    def toolsISOPath(self):
         """Return the dom0 path to the tools ISO."""
         vdi = self.parseListForUUID("vdi-list",
                                     "name-label",
                                     "xs-tools.iso")
-        try:
-            isobasename = self.genParamGet("vdi", vdi, "location")
-        except:
-            # Rio doesn't have a location field, assume the filename
-            # matches the name-label
-            isobasename = "xs-tools.iso"
+        
+        isobasename = self.genParamGet("vdi", vdi, "location")
         sruuid = self.genParamGet("vdi", vdi, "sr-uuid")
-        try:
-            pbd = self.parseListForUUID("pbd-list",
-                                        "sr-uuid",
-                                        sruuid,
-                                        "host-uuid=%s" %
-                                        (self.getMyHostUUID()))
-        except:
-            # Rio used host instead of host-uuid in the PBD record
-            pbd = self.parseListForUUID("pbd-list",
-                                        "sr-uuid",
-                                        sruuid,
-                                        "host=%s" % (self.getMyHostUUID()))
+        pbd = self.parseListForUUID("pbd-list",
+                                    "sr-uuid",
+                                    sruuid,
+                                    "host-uuid=%s" %
+                                    (self.getMyHostUUID()))
             
         isopath = self.genParamGet("pbd", pbd, "device-config", "location")
         return "%s/%s" % (isopath, isobasename)
@@ -6508,6 +6503,8 @@ fi
                         template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_1204")
             elif re.search("ubuntu1404", distro):
                 template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_1404")
+            elif re.search("coreos-", distro):
+                template = self.chooseTemplate("TEMPLATE_NAME_COREOS")
             elif re.search(r"other", distro):
                 template = self.chooseTemplate("TEMPLATE_OTHER_MEDIA")
             else:
@@ -8047,6 +8044,18 @@ rm -f /etc/xensource/xhad.conf || true
         xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'PXE_CHAIN_LOCAL_BOOT'], "hd0")
         return name
 
+    def applyFullLicense(self,v6server):
+ 
+        license = XenServerLicenceFactory().maxLicenceSkuHost(self)
+        LicenceManager().addLicensesToServer(v6server,license,getLicenseInUse=False)
+        self.license(edition = license.getEdition(), v6server=v6server,usev6testd=False)
+        
+    def getIpTablesFirewall(self):
+        """IPTablesFirewall object used to create and delete iptables rules."""
+        return IpTablesFirewall(self)
+
+    def isCentOS7Dom0(self):
+        return False
 #############################################################################
 
 class MNRHost(Host):
@@ -10631,21 +10640,10 @@ class ClearwaterHost(TampaHost):
     DOM0_VCPU_PINNED = 'xpin'
     DOM0_VCPU_NOT_PINNED = 'nopin'
     
-    def license(self, sku="XE Enterprise", edition=None, expirein=None, usev6testd=True, v6server=None, activateFree=True, applyEdition=True):
-
-        mockd = xenrt.TEC().getFile(self.V6MOCKD_LOCATION)
-        if mockd:
-            xenrt.TEC().logverbose("v6mockd present - using clearwater licensing")
-        else:
-            try:
-                TampaHost.license(self, sku, edition, expirein, usev6testd, v6server, activateFree, applyEdition)        
-            except:
-                xenrt.TEC().logverbose("Could not apply license - assuming clearwater licensing")
-
     #This is a temp license function once clearwater and trunk will be in sync this will become "license" funtion
-    def templicense(self, edition = "free", v6server = None, mockLicense = False):
+    def license(self, edition = "free", v6server = None, mockLicense = False, sku=None,usev6testd=False):
 
-        if (mockLicense == True or (edition != "free" and v6server == None)):
+        if mockLicense == True:
 
             expTime = datetime.datetime.now() + datetime.timedelta(days=365)
              
@@ -10914,7 +10912,7 @@ class ClearwaterHost(TampaHost):
 <backup-disk>%s</backup-disk>
 <install-failed-script>%s</install-failed-script>
 </restore>
-""" % (self.getInstallDisk(ccissIfAvailable=self.USE_CCISS), furl)
+""" % (self.getInstallDisk(ccissIfAvailable=self.USE_CCISS, legacySATA=(not self.isCentOS7Dom0())), furl)
         ans.write(anstext)
         ans.close()
         packdir.copyIn(ansfile)
@@ -11302,7 +11300,7 @@ class CreedenceHost(ClearwaterHost):
     def vSwitchCoverageLog(self):
         self.vswitchAppCtl("coverage/show")
 
-    def license(self, v6server=None, sku="enterprise-per-socket", usev6testd=True):
+    def license(self, v6server=None, sku="enterprise-per-socket", usev6testd=True, edition=None):
         """
         In order to keep backwards compatability "sku" arg is called sku
         but really it needs the edition to be passed in
@@ -11329,6 +11327,9 @@ class CreedenceHost(ClearwaterHost):
                     self.execdom0("service v6d restart")
                 else:
                     xenrt.XRTError("v6testd RPM nor found")
+         
+        if edition:
+            sku = edition
 
         args.append("edition=%s" % sku)
         if v6server:
@@ -11372,17 +11373,16 @@ class DundeeHost(CreedenceHost):
         self.installer = None
 
     def isCentOS7Dom0(self):
-        return xenrt.TEC().lookup("CENTOS7_DOM0", False, boolean=True)
+        return True
 
     def getTestHotfix(self, hotfixNumber):
         return xenrt.TEC().getFile("xe-phase-1/test-hotfix-%u-*.unsigned" % hotfixNumber)
 
-    # For now, skip creedence, as trunk doesn't have the creedence license changes yet
-    def license(self, sku="free",edition=None, usev6testd=True, v6server=None):
-        ClearwaterHost.license(self, sku=sku,edition=edition,usev6testd=usev6testd,v6server=v6server)
-
     def guestFactory(self):
         return xenrt.lib.xenserver.guest.DundeeGuest
+
+    def license(self, sku="free",edition=None, usev6testd=True, v6server=None):
+        xenrt.TEC().logverbose("No license is required for the time being as Clearwater licensing is still aplicable on trunk")
 
     def postInstall(self):
         CreedenceHost.postInstall(self)
@@ -11443,34 +11443,19 @@ class DundeeHost(CreedenceHost):
         return ifs
         
     def snmpdIsEnabled(self):
-        if self.isCentOS7Dom0():
-            return "enabled" in self.execdom0("service snmpd status | cat")
-        else:
-            return CreedenceHost.snmpdIsEnabled(self)
+        return "enabled" in self.execdom0("service snmpd status | cat")
             
     def disableSnmpd(self):
-        if self.isCentOS7Dom0():
-            self.execdom0("systemctl disable snmpd")
-        else:
-            CreedenceHost.disableSnmpd(self)
+        self.execdom0("systemctl disable snmpd")
             
     def enableSnmpd(self):
-        if self.isCentOS7Dom0():
-            self.execdom0("systemctl enable snmpd")
-        else:
-            CreedenceHost.enableSnmpd(self)
+        self.execdom0("systemctl enable snmpd")
 
     def scsiIdPath(self):
-        if self.isCentOS7Dom0():
-            return "/usr/lib/udev/scsi_id"
-        else:
-            return CreedenceHost.scsiIdPath(self)
+        return "/usr/lib/udev/scsi_id"
             
     def iptablesSave(self):
-        if self.isCentOS7Dom0():
-            self.execdom0("/usr/libexec/iptables/iptables.init save")
-        else:
-            CreedenceHost.iptablesSave(self)
+        self.execdom0("/usr/libexec/iptables/iptables.init save")
 
     def enableVirtualFunctions(self):
 
@@ -14360,7 +14345,7 @@ class ClearwaterPool(TampaPool):
         return socketCount
 
     #This is a temp license function once clearwater and trunk will be in sync this will become "license" funtion
-    def templicense(self, edition = "free", v6server = None, mockLicense = False):
+    def license(self, edition = "free", v6server = None, mockLicense = False,sku=None):
 
         if edition == "per-socket" or edition == "xendesktop":
             if not v6server and not mockLicense:

@@ -3112,13 +3112,41 @@ class StaticIP4AddrFileBased(_StaticIPAddr):
     POOLSTART = "STATICPOOLSTART"
     POOLEND = "STATICPOOLEND"
 
+class StaticIP4AddrDHCPRangeMarker(object):
+    def __init__(self, addrs):
+        self.addrs = addrs
+        xenrt.TEC().gec.registerCallback(self, mark=True, order=1)
+
+    def mark(self):
+        try:
+            DhcpXmlRpc().updateReservations(self.addrs)
+        except Exception, ex:
+            xenrt.TEC().logverbose("Error updating DHCP reservation: " + str(ex))
+            xenrt.TEC().warning("Error updating DHCP reservation: " + str(ex))
+
+    def callback(self):
+        self.release(atExit=True)
+
+    def release(self, atExit=False):
+        if not xenrt.util.keepSetup():
+            if atExit:
+                for host in xenrt.TEC().registry.hostList():
+                    if host == "SHARED":
+                        continue
+                    h = xenrt.TEC().registry.hostGet(host)
+                    h.machine.exitPowerOff()
+            DhcpXmlRpc().releaseAddresses(self.addrs)
+            xenrt.TEC().gec.unregisterCallback(self)
+
 class StaticIP4AddrDHCP(object):
-    def __init__(self, network, mac=None, ip=None, name=None):
+    def __init__(self, network, mac=None, ip=None, name=None, rangeObj=None):
         if ip:
             self.addr = ip
         else:
             self.addr = DhcpXmlRpc().reserveSingleAddress(self.networkToInterface(network), self.lockData(), mac, name)
-        xenrt.TEC().gec.registerCallback(self, mark=True, order=1)
+        self.rangeObj = rangeObj
+        if not self.rangeObj:
+            xenrt.TEC().gec.registerCallback(self, mark=True, order=1)
 
     def getAddr(self):
         return self.addr
@@ -3132,7 +3160,13 @@ class StaticIP4AddrDHCP(object):
                     h = xenrt.TEC().registry.hostGet(host)
                     h.machine.exitPowerOff()
             DhcpXmlRpc().releaseAddress(self.addr)
-            xenrt.TEC().gec.unregisterCallback(self)
+            if self.rangeObj:
+                try:
+                    self.rangeObj.addrs.remove(self.addr)
+                except:
+                    xenrt.TEC().logverbose("Could not remove address from range")
+            else:
+                xenrt.TEC().gec.unregisterCallback(self)
 
     @classmethod
     def getIPRange(cls, size, network, wait):
@@ -3147,7 +3181,8 @@ class StaticIP4AddrDHCP(object):
             else:
                 break
 
-        return [StaticIP4AddrDHCP(network, ip=x) for x in addrs]
+        r = StaticIP4AddrDHCPRangeMarker(addrs)
+        return [StaticIP4AddrDHCP(network, ip=x, rangeObj=r) for x in addrs]
      
 
     @classmethod
@@ -3164,7 +3199,11 @@ class StaticIP4AddrDHCP(object):
             return "eth0.%s" % (xenrt.TEC().lookup(["NETWORK_CONFIG","VLANS",network,"ID"]))
 
     def mark(self):
-        DhcpXmlRpc().updateReservation(self.addr)
+        try:
+            DhcpXmlRpc().updateReservation(self.addr)
+        except Exception, ex:
+            xenrt.TEC().logverbose("Error updating DHCP reservation: " + str(ex))
+            xenrt.TEC().warning("Error updating DHCP reservation: " + str(ex))
 
     def callback(self):
         self.release(atExit=True)

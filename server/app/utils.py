@@ -1,4 +1,4 @@
-import string, re, os
+import string, re, os, json
 
 import config
 
@@ -346,3 +346,15 @@ class XLogLocation(object):
 
     def __str__(self):
         return self.location
+
+def create_seq_from_deployment(deployment):
+    if not isinstance(deployment, basestring):
+        deployment = json.dumps(deployment, indent=2)
+    return """<xenrt>
+  <variables>
+    <OPTION_KEEP_SETUP>yes</OPTION_KEEP_SETUP>
+  </variables>
+  <prepare>
+%s
+  </prepare>
+</xenrt>""" % deployment

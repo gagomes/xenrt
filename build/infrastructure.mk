@@ -511,6 +511,15 @@ ifeq ($(DOCONSERVER),yes)
 	$(SUDO) mkdir -p /local/consoles
 	$(SUDO) chmod -R a+rw /local/consoles
 	$(SUDO) /etc/init.d/conserver-server start || $(SUDO) /etc/init.d/conserver-server reload
+	$(SUDO) mkdir -p /var/lib/cons
+	grep "^cons:" /etc/group || $(SUDO) groupadd cons
+	grep "^cons:" /etc/passwd || $(SUDO) useradd cons -g cons -d /var/lib/cons
+	$(SUDO) mkdir -p /var/lib/cons/.ssh
+	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/conserver/cons /usr/local/bin
+	$(SUDOSH) 'echo -n "command=\"/usr/local/bin/cons\",no-port-forwarding,no-X11-forwarding,no-agent-forwarding " > /var/lib/cons/.ssh/authorized_keys'
+	$(SUDOSH) 'cat $(ROOT)/$(INTERNAL)/keys/ssh/id_rsa_cons.pub >> /var/lib/cons/.ssh/authorized_keys'
+	$(SUDO) chown -R cons:cons /var/lib/cons/.ssh
+	$(SUDOSH) 'chmod 600 /var/lib/cons/.ssh/*'
 endif
 
 .PHONY: conserver-uninstall

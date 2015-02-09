@@ -14,31 +14,31 @@
 
   <testsequence>
     <serial group="RC">
-      <testcase id="testcases.xenserver.tc.readcaching.TCLicensingRCEnabled">
+      <testcase id="testcases.xenserver.tc.readcaching.TCLicensingRCEnabled" name="1">
         <arg>lowlevel=yes</arg>
         <arg>bothChecks=no</arg>
       </testcase>
 
-      <testcase id="testcases.xenserver.tc.readcaching.TCLicensingRCDisabled">
+      <testcase id="testcases.xenserver.tc.readcaching.TCLicensingRCDisabled" name="2">
         <arg>lowlevel=yes</arg>
         <arg>bothChecks=no</arg>
       </testcase>
 
-      <!-- <testcase id="xenserver.install.TCApplyReqdPatches" tc="TC-20692" blocker="yes"/> -->
+      <!-- <testcase id="xenserver.install.TCApplyReqdPatches" tc="TC-20692" blocker="yes"  name="3"/> -->
 
-      <testcase id="testcases.xenserver.tc.readcaching.TCLicensingRCEnabled">
+      <testcase id="testcases.xenserver.tc.readcaching.TCLicensingRCEnabled" name="4">
         <arg>bothChecks=yes</arg>
       </testcase>
 
-      <testcase id="testcases.xenserver.tc.readcaching.TCLicensingRCDisabled">
+      <testcase id="testcases.xenserver.tc.readcaching.TCLicensingRCDisabled" name="5">
         <arg>bothChecks=yes</arg>
       </testcase>
 
-      <testcase id="testcases.xenserver.tc.readcaching.TCOdirectRCDisabled">
+      <testcase id="testcases.xenserver.tc.readcaching.TCOdirectRCDisabled" name="6">
         <arg>bothChecks=yes</arg>
       </testcase>
 
-      <testcase id="testcases.xenserver.tc.readcaching.TCRCForLifeCycleOps" />
+      <testcase id="testcases.xenserver.tc.readcaching.TCRCForLifeCycleOps" name="7" />
     </serial>
   </testsequence>
 </xenrt>

@@ -8012,6 +8012,7 @@ rm -f /etc/xensource/xhad.conf || true
         
         (mac, ip) = netDetails[0]
         xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'MAC_ADDRESS'], mac)
+        xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'PXE_MAC_ADDRESS'], mac)
         xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'HOST_ADDRESS'], ip.getAddr())
         xenrt.GEC().dbconnect.jobUpdate("VXS_%s" % ip.getAddr(), name)
 

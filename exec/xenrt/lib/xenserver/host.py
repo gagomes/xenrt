@@ -3682,7 +3682,9 @@ fi
             sftp.close()
 
         # First de-sign the hotfix
-        self.execdom0("cd %s; gpg --batch --yes -q -d --skip-verify --output %s.raw %s" % (workdir, patchname, patchname))
+        with xenrt.GEC().getLock("GPG"):
+            self.execdom0("cd %s; gpg --batch --yes -q -d --skip-verify --output %s.raw %s" % (workdir, patchname, patchname))
+
         # Unpack it
         unpackDir = self.execdom0("cd %s; sh %s.raw unpack" % (workdir, patchname)).strip()
         # Remove the workdir

@@ -1164,7 +1164,7 @@ class TCPrepareDriverUpgrade(xenrt.TestCase):
         # Extract the tools ISO from the hotfix
         workdir = xenrt.TempDirectory()
         patchDir = host.unpackPatch(hotfixFile)
-        toolsIso = host.execdom0("find %s -name \"xs-tools*.iso\"").strip()
+        toolsIso = host.execdom0("find %s -name \"xs-tools*.iso\"" % patchDir).strip()
         sftp = host.sftpClient()
         localToolsIso = "%s/%s.iso" % (workdir, tag)
         sftp.copyFrom(toolsIso, localToolsIso)

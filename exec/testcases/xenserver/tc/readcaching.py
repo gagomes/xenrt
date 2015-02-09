@@ -109,13 +109,13 @@ class TCRCForLifeCycleOps(ReadCacheTestCase):
         vm.start()
 
     def pauseResume(self, vm):
-        vm.pause()
+        vm.suspend()
         vm.resume()
 
     def lifecycle(self, vm, rcc, lowlevel, both, op, *args):
         self._applyMaxLicense()
         rcc.setVM(vm)
-        log(*args)
+        log("Args: %s" % *args)
         op(*args)
         self.checkExpectedState(True, lowlevel, both)
         self._releaseLicense()

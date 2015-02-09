@@ -5843,7 +5843,7 @@ class DundeeGuest(CreedenceGuest):
             pvDriverSource = self.setRandomPvDriverSource()
             
         # If source is "ToolsISO" then install from xs tools
-        if pvDriverSource == "ToolsISO" or pvDriverSource == None:
+        if pvDriverSource == "ToolsISO" or pvDriverSource == None or useLegacy == True:
             TampaGuest.installDrivers(self, source, extrareboot, useLegacy, useHostTimeUTC, expectUpToDate)
             
         #If source is "Packages" then install from PV Packages

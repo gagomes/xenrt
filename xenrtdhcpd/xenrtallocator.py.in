@@ -119,11 +119,14 @@ class XenRTDHCPAllocator(object):
             return None
 
     def _findHostName(self, addr):
-        self._sql("SELECT reservedname FROM leases WHERE addr='%s' AND reserved IS NOT NULL" % addr)
-        r = self.cur.fetchone()
-        if r:
-            return r[0]
-        else:
+        try:
+            self._sql("SELECT reservedname FROM leases WHERE addr='%s' AND reserved IS NOT NULL" % addr)
+            r = self.cur.fetchone()
+            if r:
+                return r[0]
+            else:
+                return None
+        except:
             return None
 
     def _renewLease(self, intf, mac, ip):

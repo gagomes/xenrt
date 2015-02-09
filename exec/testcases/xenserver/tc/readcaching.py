@@ -102,11 +102,12 @@ class TCRCForLifeCycleOps(ReadCacheTestCase):
         vm.resume()
 
     def lifecycle(self, vm, rcc, op, *args):
-        self._applyMaxLicense()
+        host = self.getDefaultHost()
+        self._applyMaxLicense(host)
         rcc.setVM(vm)
         op(*args)
         assertions.assertTrue(rcc.isEnabled(), "RC is on")
-        self._releaseLicense()
+        self._releaseLicense(host)
         rcc.setVM(vm)
         op(*args)
         assertions.assertFalse(rcc.isEnabled(), "RC is off")

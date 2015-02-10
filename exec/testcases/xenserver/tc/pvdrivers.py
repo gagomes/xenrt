@@ -1166,7 +1166,7 @@ class TCPrepareDriverUpgrade(xenrt.TestCase):
         patchDir = host.unpackPatch(hotfixFile)
         toolsIso = host.execdom0("find %s -name \"xs-tools*.iso\"" % patchDir).strip()
         sftp = host.sftpClient()
-        localToolsIso = "%s/%s.iso" % (workdir, tag)
+        localToolsIso = "%s/%s.iso" % (workdir.path(), tag)
         sftp.copyFrom(toolsIso, localToolsIso)
         sftp.close()
         host.execdom0("rm -fr %s" % patchDir)
@@ -1174,8 +1174,8 @@ class TCPrepareDriverUpgrade(xenrt.TestCase):
         # Create a tarball from the tools ISO
         iso = xenrt.rootops.MountISO(localToolsIso)
         mountpoint = iso.getMount()
-        toolsTgz = "%s/%s.tgz" % (workdir, tag)
-        host.execdom0("cd %s; tar -czf %s *" % (mountpoint, toolsTgz))
+        toolsTgz = "%s/%s.tgz" % (workdir.path(), tag)
+        xenrt.command("cd %s; tar -czf %s *" % (mountpoint, toolsTgz))
         iso.unmount()
 
         # Clone the template VM

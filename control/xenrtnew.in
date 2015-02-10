@@ -660,7 +660,7 @@ class XenRTMachine(XenRTCommand):
                 self.printout("%s='%s'\n" % (i.upper(), results[i]))
         for i in ('leaseto', 'leasefrom'):
             if results[i]:
-                t = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(results[i]))
+                t = datetime.datetime.utcfromtimestamp(results[i]).isoformat(" ")
                 self.printout("%s='%s'\n" % (i.upper(), t))
         if results['leaseuser']:
             self.printout("COMMENT='%s'\n" % results['leaseuser'])

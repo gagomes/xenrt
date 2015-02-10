@@ -94,7 +94,7 @@ class XenRTAPIv2Page(XenRTPage):
         ret = []
         for p in params:
             ret.extend(p.split(delimiter))
-        return ret
+        return [x for x in ret if x != '']
 
     def generateInCondition(self, fieldname, items):
         return "%s IN (%s)" % (fieldname, ", ".join(["%s"] * len(items)))

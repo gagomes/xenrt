@@ -30,6 +30,7 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
         self.blocksizes = libperf.getArgument(arglist, "blocksizes",  str,
                                               "512,1024,2048,4096,8192,16384,32768,65536,131072,262144,524288,1048576,2097152,4194304")
         self.blocksizes = self.blocksizes.strip().split(",")
+        self.queuedepth = libperf.getArgument(arglist, "queue_depth", int, 1)
         self.vms_per_sr = libperf.getArgument(arglist, "vms_per_sr", int, 1)
         self.vbds_per_vm = libperf.getArgument(arglist, "vbds_per_vm", int, 1)
         self.vcpus_per_vm = libperf.getArgument(arglist, "vcpus_per_vm", int, None)
@@ -175,8 +176,6 @@ done
         # Get the netbios name of the master
         nbname = self.get_nbname(self.vm[0])
 
-        queueDepth = 1
-
         for blocksize in self.blocksizes:
             if blocksize == 'tesco':
                 accessSpecs = [
@@ -300,7 +299,7 @@ done
 	0,0,0
 'End default target settings for worker
 'Assigned access specs
-""" % (i+1, queueDepth)
+""" % (i+1, self.queuedepth)
 
                     for (name, _, _) in accessSpecs:
                         config += """	%s

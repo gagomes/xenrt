@@ -59,12 +59,12 @@
       </testcase>
 
       <!-- Test a series of lifecycle ops to check RC is disabled -->
-      <testcase id="testcases.xenserver.tc.readcaching.TCRCForLifeCycleOps" name="8" />
+      <testcase id="testcases.xenserver.tc.readcaching.TCRCForLifeCycleOps" name="8">
         <arg>vm=arnie</arg>
       </testcase>
 
       <!-- Test SR plug-unplug -->
-      <testcase id="testcases.xenserver.tc.readcaching.TCRCForSRPlug" name="9" />
+      <testcase id="testcases.xenserver.tc.readcaching.TCRCForSRPlug" name="9">
         <arg>bothChecks=yes</arg>
         <arg>vm=sly</arg>
       </testcase>

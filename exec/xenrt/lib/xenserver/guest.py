@@ -3062,6 +3062,9 @@ exit /B 1
     def instantiateSnapshot(self, uuid, name=None, timer=None, sruuid=None, noIP=False):
         return self._cloneCopyVM("instance", name, timer, sruuid, uuid=uuid, noIP=noIP)
 
+    def cloneTemplate(self, name=None, timer=None, sruuid=None, noIP=True):
+        return self._cloneCopyVM("instance", name, timer, sruuid, noIP=noIP)
+
     def _cloneCopyVM(self, operation, name, timer, sruuid, uuid=None, noIP=True):
         cli = self.getCLIInstance()
         g_uuid = None

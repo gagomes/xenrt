@@ -1180,7 +1180,7 @@ class TCPrepareDriverUpgrade(xenrt.TestCase):
 
         # Clone the template VM
         templateVM = self.getGuest(template)
-        guest = templateVM.instantiateSnapshot(name=tag)
+        guest = templateVM.cloneTemplate(name=tag)
 
         # Install drivers
         guest.start()

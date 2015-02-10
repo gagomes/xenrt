@@ -134,6 +134,18 @@ class XapiObject(object):
             ret = objectFactory().getObject(returnObject)(self.cli, returnObject, ret)
         return ret
 
+    def __repr__(self):
+        return ';'.join([self.OBJECT_TYPE, self.uuid])
+
+    def __hash__(self):
+        return hash(self.__repr())
+
+    def __eq__(self, other):
+        return self.uuid == other.uuid
+
+    def __ne__(self, other):
+        return self.uuid != other.uuid
+
     #Setter could be implemented like so....
     #def setParam(paramName, value): etc...
 

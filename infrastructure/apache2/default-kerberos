@@ -83,8 +83,15 @@
         KrbSaveCredentials off
         KrbVerifyKDC off
         Require Valid-User
+        ErrorDocument 401 /unauth.html
     </Location>
 
+    <LocationMatch /unauth.html>
+        SetEnvIf Cookie "xenrtkerb=1" is_xenrtkerb1
+        Header always set WWW-Authenticate 'Basic realm="@@KERBEROSREALM@@"'
+        Header always add WWW-Authenticate Negotiate env=!is_xenrtkerb1
+        Header always add Set-Cookie "xenrtkerb=1"
+    </LocationMatch>
 
     RequestHeader unset X-Forwarded-User
     RewriteEngine On

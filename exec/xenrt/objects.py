@@ -4188,16 +4188,12 @@ Loop While not oex3.Stdout.atEndOfStream"""%(applicationEventLogger,systemEventL
         if not self.windows:
             raise xenrt.XRTError("This can only be performed on Windows installations")
 
-        if float(self.xmlrpcWindowsVersion()) > 5.99:
-            self.installPowerShell()
-            self.xmlrpcExec("""(Get-WmiObject -class "Win32_TSGeneralSetting" -Namespace root\\cimv2\\terminalservices -ComputerName $env:ComputerName -Filter "TerminalName='RDP-tcp'").SetUserAuthenticationRequired(0)""", powershell=True)
-
         with open("%s/data/sysprep/unattend.xml" % xenrt.TEC().lookup("XENRT_BASE")) as f:
             unattend = f.read()
 
         unattend = unattend.replace("%ARCH%", self.xmlrpcGetArch())
         unattend = unattend.replace("%PASSWORD%", xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS", "ADMINISTRATOR_PASSWORD"], "xensource"))
-        pkey = xenrt.util.command("grep '%s ' /etc/xenrt/keys/windows | awk '{print $2}'" % self.distro).strip()
+        pkey = xenrt.util.command("grep '%s ' %s/keys/windows | awk '{print $2}'" % (self.distro, xenrt.TEC().lookup("XENRT_CONF"))).strip()
         unattend = unattend.replace("%PRODUCTKEY%", pkey)
 
         self.xmlrpcWriteFile("c:\\unattend.xml", unattend)
@@ -9555,6 +9551,57 @@ while True:
                FileNameForTimeDiff = 'writetime.txt'
            FileNameToBeWritten = 'test'
            script = getScriptToBeExecuted(timeInsecs,FileNameToBeWritten,FileNameForTimeDiff,self.getName())
+
+    def installPVHVMNvidiaGpuDrivers(self):
+        if not self.verifyGuestAsPVHVM():
+            raise xenrt.XRTError("This GPU drivers are for PVHVM guests only")
+
+        guestArch=self.execguest("uname -p")
+
+        if guestArch == "x86_64":
+            drivername=xenrt.TEC().lookup("PVHVM_GPU_NVDIA_X64")
+        else :
+            drivername=xenrt.TEC().lookup("PVHVM_GPU_NVDIA_X86")
+
+        #Get the file and put it into the VM
+        urlprefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
+        url = "%s/gpuDriver/PVHVM/%s" % (urlprefix, drivername)
+        installfile = xenrt.TEC().getFile(url)
+        if not installfile:
+            raise xenrt.XRTError("Failed to fetch PVHVM GPU NVidia driver.")
+        sftp = self.sftpClient()
+        sftp.copyTo(installfile, "/%s" % (os.path.basename(installfile)))
+        sftp.close()
+
+        #Call guest methods to install drivers
+        if self.distro.startswith("ubuntu"):
+            self.installUbuntuGpuDrivers(drivername)
+        else :
+            self.installRhelGpuDrivers(drivername)
+
+    def installUbuntuGpuDrivers(self ,drivername):
+        self.execcmd("echo 'blacklist nouveau' >> /etc/modprobe.d/blacklist.conf ")
+        self.execcmd("echo 'blacklist nvidiafb' >> /etc/modprobe.d/blacklist.conf ")
+        self.execcmd("sudo apt-get remove --purge nvidia*")
+        self.execcmd("sudo update-initramfs -u")
+        self.reboot()
+        self.execcmd("sh /./%s --silent" %(drivername))
+        self.reboot()
+        
+    def installRhelGpuDrivers(self,drivername):
+        self.execcmd("sed -i 's/GRUB_CMDLINE_LINUX.*\s[a-z,A_Z,0-9]*/& rdblacklist=nouveau/' /etc/default/grub")
+        self.execcmd("grub2-mkconfig -o /boot/grub2/grub.cfg")
+        self.execcmd("echo 'blacklist nouveau' >> /etc/modprobe.d/blacklist.conf ")
+        self.execcmd("echo 'blacklist nvidiafb' >> /etc/modprobe.d/blacklist.conf ")
+        self.execcmd("echo 'blacklist nouveau' >> /etc/modprobe.d/disable-nouveau.conf ")
+        self.execcmd("echo 'options nouveau modeset=0' >> /etc/modprobe.d/disable-nouveau.conf ")
+        self.reboot()
+        self.execcmd("sh /./%s --silent" %(drivername))
+        self.reboot()
+
+    def verifyGuestAsPVHVM(self):
+
+        return self.paramGet("HVM-boot-policy") == "BIOS order" and self.paramGet("PV-bootloader") == ""
 
     def diskReadWorkload(self,timeInsecs,fileNameForTimeDiff=None):
 

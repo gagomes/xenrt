@@ -171,6 +171,8 @@ done
         # Get the netbios name of the master
         nbname = self.get_nbname(self.vm[0])
 
+        queueDepth = 1
+
         for blocksize in self.blocksizes:
             config = """Version 1.1.0 
 'TEST SETUP ====================================================================
@@ -238,7 +240,7 @@ done
 	DISK
 'Default target settings for worker
 'Number of outstanding IOs,test connection rate,transactions per connection,use fixed seed,fixed seed value
-	1,DISABLED,1,DISABLED,0
+	%d,DISABLED,1,DISABLED,0
 'Disk maximum size,starting sector,Data pattern
 	0,0,0
 'End default target settings for worker
@@ -253,7 +255,7 @@ done
 'End target
 'End target assignments
 'End worker
-""" % (i + 1, i + 1)
+""" % (i + 1, queueDepth, i + 1)
 
                 config += "'End manager\n"
 

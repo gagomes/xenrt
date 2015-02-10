@@ -130,7 +130,7 @@ class TCRCForLifeCycleOps(ReadCacheTestCase):
         self.checkExpectedState(False, lowlevel, both)
 
 
-class TCRCForSRUnplug(ReadCacheTestCase):
+class TCRCForSRPlug(ReadCacheTestCase):
 
     def run(self, arglist):
         lowlevel, both = self.getArgs(arglist)

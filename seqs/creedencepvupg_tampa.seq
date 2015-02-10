@@ -12,14 +12,12 @@
       <vm name="win7sp1-x86">
         <distro>win7sp1-x86</distro>
         <network device="0"/>
-        <postinstall action="preCloneTailor"/>
-        <postinstall action="shutdown"/>
+        <postinstall action="convertToTemplate"/>
       </vm>
       <vm name="win7sp1-x64">
         <distro>win7sp1-x64</distro>
         <network device="0"/>
-        <postinstall action="preCloneTailor"/>
-        <postinstall action="shutdown"/>
+        <postinstall action="convertToTemplate"/>
       </vm>
     </host>
   </prepare>

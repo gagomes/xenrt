@@ -1188,7 +1188,7 @@ class TCPrepareDriverUpgrade(xenrt.TestCase):
 
         # Shutdown the clone
         guest.shutdown()
-        xenrt.TEC().registry.guestPut(hotfixTag, guest)
+        xenrt.TEC().registry.guestPut(tag, guest)
 
 class TCTestDriverUpgrade(xenrt.TestCase):
     """Test upgrading the drivers in the guest"""

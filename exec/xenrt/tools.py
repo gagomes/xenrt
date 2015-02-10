@@ -1932,8 +1932,7 @@ def driverUpgradeMatrix(oldRelease, newRelease, distros=["win7sp1-x86", "win7sp1
         vmPrepare += """      <vm name="%s">
         <distro>%s</distro>
         <network device="0"/>
-        <postinstall action="preCloneTailor"/>
-        <postinstall action="shutdown"/>
+        <postinstall action="convertToTemplate"/>
       </vm>
 """ % (d, d)
 

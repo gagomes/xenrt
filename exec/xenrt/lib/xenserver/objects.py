@@ -6,6 +6,7 @@ Xapi object model base and factory classes
 """
 __all__ = [ 'XapiObjectFactory', 'XapiObject', 'VM', 'VBD', 'objectFactory', 'XapiHost', 'SR', 'VDI']
 
+
 class XapiObjectFactory(object):
     """
     A factory class which allows class types to be registered and looked up
@@ -39,6 +40,7 @@ class XapiObjectFactory(object):
         @var a specialisation of the XapiObject class for a required object
         """
         self.__XapiObjects[classToRegister.OBJECT_TYPE] = classToRegister
+
 
 class XapiObject(object):
     """
@@ -97,7 +99,6 @@ class XapiObject(object):
             params[pair[0].strip()]=pair[1].strip()
         return params
 
-
     def getObjectParam(self, objType, paramName):
         """
         Get object-model form of a field referenced by the current object. For example if an object contains a ref to another object
@@ -136,6 +137,7 @@ class XapiObject(object):
     #Setter could be implemented like so....
     #def setParam(paramName, value): etc...
 
+
 class NamedXapiObject(XapiObject):
     __NAME = "name-label"
 
@@ -150,6 +152,7 @@ class NamedXapiObject(XapiObject):
 Additional class implementations
 NB: Don't forget to register any new implementations with the object factory
 """
+
 class VM(NamedXapiObject):
     OBJECT_TYPE = "vm"
     __NETWORK_ADDRESSES = "networks"
@@ -172,6 +175,7 @@ class VM(NamedXapiObject):
     def cpuUsage(self):
         return self.getDictParam(self.__CPU_USAGE)
 
+
 class VBD(XapiObject):
     OBJECT_TYPE = "vbd"
     __VM_UUID = "vm-uuid"
@@ -187,11 +191,13 @@ class VBD(XapiObject):
     def VDI(self):
         return self.getObjectParam(VDI.OBJECT_TYPE, self.__VDI_UUID)
 
+
 class XapiHost(NamedXapiObject):
     OBJECT_TYPE = "host"
 
     def SR(self):
         return self.getObjectsReferencingName(SR.OBJECT_TYPE, self.OBJECT_TYPE)
+
 
 class SR(NamedXapiObject):
     OBJECT_TYPE = "sr"
@@ -206,6 +212,13 @@ class SR(NamedXapiObject):
 
     def VDI(self):
         return self.getObjectsReferencing(VDI.OBJECT_TYPE, self.OBJECT_TYPE)
+
+    def forget(self):
+        self.op("forget")
+
+    def attach(self):
+        self.op("attach", returnObject=self.OBJECT_TYPE)
+
 
 class VDI(NamedXapiObject):
     OBJECT_TYPE = "vdi"

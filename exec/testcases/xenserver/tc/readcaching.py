@@ -23,8 +23,8 @@ class ReadCacheTestCase(xenrt.TestCase):
         host.licenseApply(None, licence)
 
     def prepare(self, arglist):
-        names = xenrt.TEC().registry.guestList()
-        self.vm = self.getGuest(names[0])
+        vmName = self.parseArgsKeyValue(arglist)["vm"]
+        self.vm = self.getGuest(vmName)
         self._applyMaxLicense()
         host = self.getDefaultHost()
         rcc = host.readCaching()
@@ -102,10 +102,14 @@ class TCRCForLifeCycleOps(ReadCacheTestCase):
         rcc = host.readCaching()
         vm = self.vm
         lowlevel, both = self.getArgs(arglist)
-        self.runSubcase("lifecycle", (vm,rcc,lowlevel,both,vm.reboot), "Lifecycle", "Reboot")
-        self.runSubcase("lifecycle", (vm,rcc,lowlevel,both,self.pauseResume,vm), "Lifecycle", "PauseResume")
-        self.runSubcase("lifecycle", (vm,rcc,lowlevel,both,self.stopStart,vm), "Lifecycle", "StopStart")
-        self.runSubcase("lifecycle", (vm,rcc,lowlevel,both,vm.migrateVM,host), "Lifecycle", "LocalHostMigrate")
+        self.runSubcase("lifecycle", (vm,rcc,lowlevel,both,vm.reboot),
+                        "Perform lifecycle", "Reboot")
+        self.runSubcase("lifecycle", (vm,rcc,lowlevel,both,self.pauseResume,vm),
+                        "Perform Lifecycle", "PauseResume")
+        self.runSubcase("lifecycle", (vm,rcc,lowlevel,both,self.stopStart,vm),
+                        "Perform Lifecycle", "StopStart")
+        self.runSubcase("lifecycle", (vm,rcc,lowlevel,both,vm.migrateVM,host),
+                        "Perform Lifecycle", "LocalHostMigrate")
 
     def stopStart(self, vm):
         vm.shutdown()
@@ -124,3 +128,16 @@ class TCRCForLifeCycleOps(ReadCacheTestCase):
         rcc.setVM(vm)
         op(*args)
         self.checkExpectedState(False, lowlevel, both)
+
+
+class TCRCForSRUnplug(ReadCacheTestCase):
+
+    def run(self, arglist):
+        lowlevel, both = self.getArgs(arglist)
+        self.checkExpectedState(True, lowlevel, both)
+        xsr = self.vm.asXapiObject().SR()
+        self.vm.shutdown()
+        xsr.forget()
+        xsr.attach()
+        self.vm.start()
+        self.checkExpectedState(True, lowlevel, both)

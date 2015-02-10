@@ -9,36 +9,66 @@
       <vm name="arnie">
         <distro>generic-linux</distro>
       </vm>
+      <vm name="sly">
+        <distro>generic-linux</distro>
+        <storage>nfssr</storage>
+      </vm>
+      <storage type="nfs" name="nfssr" />
     </host>
   </prepare>
 
   <testsequence>
     <serial group="RC">
+      <!-- Low level checks that licensing is enabled on RTM Creedence -->
       <testcase id="testcases.xenserver.tc.readcaching.TCLicensingRCEnabled" name="1">
         <arg>lowlevel=yes</arg>
         <arg>bothChecks=no</arg>
+        <arg>vm=arnie</arg>
       </testcase>
 
       <testcase id="testcases.xenserver.tc.readcaching.TCLicensingRCDisabled" name="2">
         <arg>lowlevel=yes</arg>
         <arg>bothChecks=no</arg>
+        <arg>vm=arnie</arg>
       </testcase>
 
+      <!-- Upgrade to Cream by hotfixing -->
       <!-- <testcase id="xenserver.install.TCApplyReqdPatches" tc="TC-20692" blocker="yes"  name="3"/> -->
 
+      <!-- Verify both xapi and tap-ctl are set by licensing state and the values agree -->
       <testcase id="testcases.xenserver.tc.readcaching.TCLicensingRCEnabled" name="4">
         <arg>bothChecks=yes</arg>
+        <arg>vm=arnie</arg>
       </testcase>
 
       <testcase id="testcases.xenserver.tc.readcaching.TCLicensingRCDisabled" name="5">
         <arg>bothChecks=yes</arg>
+        <arg>vm=arnie</arg>
       </testcase>
 
+      <!-- Switch off RC with a low level hook and check it is off -->
       <testcase id="testcases.xenserver.tc.readcaching.TCOdirectRCDisabled" name="6">
         <arg>bothChecks=yes</arg>
+        <arg>vm=arnie</arg>
       </testcase>
 
-      <testcase id="testcases.xenserver.tc.readcaching.TCRCForLifeCycleOps" name="7" />
+      <!-- The prepare should switch this back on so verify that again RC is back -->
+      <testcase id="testcases.xenserver.tc.readcaching.TCLicensingRCEnabled" name="7">
+        <arg>bothChecks=yes</arg>
+        <arg>vm=arnie</arg>
+      </testcase>
+
+      <!-- Test a series of lifecycle ops to check RC is disabled -->
+      <testcase id="testcases.xenserver.tc.readcaching.TCRCForLifeCycleOps" name="8" />
+        <arg>vm=arnie</arg>
+      </testcase>
+
+      <!-- Test SR plug-unplug -->
+      <testcase id="testcases.xenserver.tc.readcaching.TCRCForSRPlug" name="9" />
+        <arg>bothChecks=yes</arg>
+        <arg>vm=sly</arg>
+      </testcase>
+
     </serial>
   </testsequence>
 </xenrt>

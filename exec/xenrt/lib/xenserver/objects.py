@@ -171,6 +171,9 @@ class VM(NamedXapiObject):
     def XapiHost(self):
         return self.getObjectParam(XapiHost.OBJECT_TYPE, self.__RESIDENT)
 
+    def SR(self):
+        return list(set([v.SR() for v in self.VDI()]))
+
     @property
     def cpuUsage(self):
         return self.getDictParam(self.__CPU_USAGE)

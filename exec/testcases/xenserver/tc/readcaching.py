@@ -136,7 +136,7 @@ class TCRCForSRPlug(ReadCacheTestCase):
     def run(self, arglist):
         lowlevel, both = self.getArgs(arglist)
         self.checkExpectedState(True, lowlevel, both)
-        xsr = self.vm.asXapiObject().SR()
+        xsr = self.vm.asXapiObject().SR()[0]
         self.vm.shutdown()
         xsr.forget()
         xsr.attach()

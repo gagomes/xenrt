@@ -24,6 +24,7 @@ class ReadCacheTestCase(xenrt.TestCase):
 
     def prepare(self, arglist):
         vmName = self.parseArgsKeyValue(arglist)["vm"]
+        log("Using vm %s" % vmName)
         self.vm = self.getGuest(vmName)
         self._applyMaxLicense()
         host = self.getDefaultHost()

@@ -65,7 +65,8 @@
 
       <!-- Test SR plug-unplug -->
       <testcase id="testcases.xenserver.tc.readcaching.TCRCForSRPlug" name="9">
-        <arg>bothChecks=yes</arg>
+        <!--<arg>bothChecks=yes</arg>-->
+        <arg>lowlevel=yes</arg>
         <arg>vm=sly</arg>
       </testcase>
 

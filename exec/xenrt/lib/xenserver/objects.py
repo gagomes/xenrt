@@ -228,12 +228,6 @@ class SR(NamedXapiObject):
     def VDI(self):
         return self.getObjectsReferencing(VDI.OBJECT_TYPE, self.OBJECT_TYPE)
 
-    def forget(self):
-        self.op("forget")
-
-    def attach(self):
-        self.op("attach", returnObject=self.OBJECT_TYPE)
-
 
 class VDI(NamedXapiObject):
     OBJECT_TYPE = "vdi"

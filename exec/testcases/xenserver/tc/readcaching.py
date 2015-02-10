@@ -136,9 +136,9 @@ class TCRCForSRPlug(ReadCacheTestCase):
     def run(self, arglist):
         lowlevel, both = self.getArgs(arglist)
         self.checkExpectedState(True, lowlevel, both)
-        xsr = self.vm.asXapiObject().SR()[0]
         self.vm.shutdown()
-        xsr.forget()
-        xsr.attach()
+        sr = xenrt.lib.xenserver.NFSStorageRepository(self.getDefaultHost(), "nfssr")
+        sr.forget()
+        sr.introduce()
         self.vm.start()
         self.checkExpectedState(True, lowlevel, both)

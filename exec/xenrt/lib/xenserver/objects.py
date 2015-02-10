@@ -138,7 +138,7 @@ class XapiObject(object):
         return ';'.join([self.OBJECT_TYPE, self.uuid])
 
     def __hash__(self):
-        return hash(self.__repr())
+        return hash(self.__repr__())
 
     def __eq__(self, other):
         return self.uuid == other.uuid

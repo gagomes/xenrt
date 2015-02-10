@@ -753,82 +753,130 @@ class XenRTMList2(XenRTCommand):
     [-p]             Show machine properties
     [-v]             Show pseudohosts
     """
+    NEW = True
 
-    def run(self, args):
+    def render(self, args):
         self.controller = False
-        details = {'action': 'mlist2'}
-        details['USERID'] = pwd.getpwuid(os.getuid())[0]
+        details = {}
+        quiet = False
+        show=None
+        filterLeased = None
+        filterBroken = False
+        controllerFormat = False
         try:
-            optlist, optx = getopt.getopt(args, 's:c:o:qCrdR:pP:vf:mb:na', "broken")
+            optlist, optx = getopt.getopt(args, 's:c:o:qrCdR:pP:vf:mb:na', "broken")
             for argpair in optlist:
                 (flag, value) = argpair
                 if flag == "-s":
-                    details["site"] = value
-                elif flag == "-c":
-                    details["cluster"] = value
-                elif flag == "-o":
-                    details["pool"] = value
-                elif flag == "-q":
-                    details["quiet"] = "yes"
-                elif flag == "-r":
-                    details["res"] = "yes"
-                elif flag == "-d":
-                    details["desc"] = "yes"
+                    details["site"] = [value]
                 elif flag == "-C":
-                    details["controller"] = "yes"
-                    self.controller = True
+                    controllerFormat = True
+                    details["pseudohosts"] = True
+                elif flag == "-c":
+                    details["cluster"] = [value]
+                elif flag == "-o":
+                    details["pool"] = [value]
+                elif flag == "-q":
+                    quiet = True
+                elif flag == "-r":
+                    show = "Resources"
+                elif flag == "-d":
+                    show = "Description"
                 elif flag == "-R":
-                    details["rfilter"] = value
+                    details["resource"] = value.split("/")
                 elif flag == "-p":
-                    details["props"] = "yes"
+                    show = "Properties"
                 elif flag == "-P":
-                    details["pfilter"] = value
+                    if not "flag" in details:
+                        details['flag'] = []
+                    details["flag"].extend(value.split(","))
                 elif flag == "-f":
-                    details["ffilter"] = value
+                    if not "flag" in details:
+                        details['flag'] = []
+                    details["flag"].extend(value.split(","))
                 elif flag == "-b":
-                    details["leasefilter"] = value
+                    details["user"] = [value]
                 elif flag == "-m":
-                    details["leasefilter"] = details["USERID"]
+                    details["user"] = ["${user}"]
                 elif flag == "-n":
-                    details["notleased"] = "yes"
+                    filterLeased = False
                 elif flag == "-a":
-                    details["leased"] = "yes"
+                    filterLeased = True
                 elif flag == "-v":
-                    details["verbose"] = "yes"
+                    details["pseudohosts"] = True
                 elif flag == "--broken":
-                    details['broken'] = "yes"
+                    filterBroken = True
                 else:
-                    sys.stderr.write("Unknown argument '%s'\n" % (flag))
-                    return None
+                    raise Exception("Unknown argument '%s'\n" % (flag))
         except getopt.GetoptError:
-            sys.stderr.write("Unknown argument\n")
-            return None
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            if self.controller:
-                reply = []
-                lines = string.split(data, "\n")
-                for l in lines:
-                    if l != "":
-                        reply.append(string.split(l,","))
-            else:
-                reply = data
-        u.close()
-        return reply
+            raise Exception("Unknown argument\n")
+        machines = self.xenrt.get_machines(**details)
 
-    def render(self, args, results):
-        if results:
-            if self.controller:
-                for line in results:
-                    self.printout("%s\n" % (string.join(line, ",")))
+        jobids = [x['jobid'] for x in machines.values() if x['status'] == "running"]
+
+        jobs = self.xenrt.get_jobs(jobid=jobids, params=True)
+
+        if show:
+            chead = show
+        else:
+            chead = "Comment/Leased to"
+
+        fmt = "%-15s %-12s %-8s %-9s %-8s %s\n"
+        if not quiet and not controllerFormat:
+            self.printout(fmt % ("Machine", "Site", "Cluster", "Status", "Pool", chead))
+            self.printout("============================================================================\n")
+            
+        for m in sorted(machines.keys()):
+            if filterBroken and not machines[m]['broken']:
+                continue
+            if filterLeased and not machines[m]['leaseuser']:
+                continue
+            if filterLeased == False and machines[m]['leaseuser']:
+                continue
+            if controllerFormat:
+                self.printout("%s,%s,%s" % (m,machines[m]['rawstatus'],str(machines[m]['jobid']) if machines[m]['jobid'] else ""))
             else:
-                self.printout(results)
-        return 0
+                status = machines[m]['rawstatus']
+                if status == "scheduled":
+                    status = "%d (S)" % machines[m]['jobid']
+                elif status == "running":
+                    status = "%d" % machines[m]['jobid']
+                elif status == "slaved":
+                    status = "(%d)" % machines[m]['jobid']
+                if show == "Resources":
+                    comment = "/".join(machines[m]['resources'])
+                elif show == "Properties":
+                    comment = ",".join(machines[m]['flags'])
+                elif show == "Description":
+                    comment = machines[m]['description'] or ""
+                else:
+                    if machines[m]['broken']:
+                        comment = "Broken"
+                        brokenInfo = machines[m]['params'].get("BROKEN_INFO")
+                        brokenTicket = machines[m]['params'].get("BROKEN_TICKET")
+                        if brokenInfo or brokenTicket:
+                            comment += " -"
+                        if brokenInfo and brokenTicket and brokenTicket in brokenInfo:
+                            brokenTicket = None
+                        if brokenTicket:
+                            comment += " " + brokenTicket
+                        if brokenInfo:
+                            comment += " " + brokenInfo
+                    elif machines[m]['leaseuser']:
+                        dt = datetime.datetime.utcfromtimestamp(machines[m]['leaseto']).isoformat(" ")
+                        if machines[m]['leasereason']:
+                            userstr = "%s - %s" % (machines[m]['leaseuser'], machines[m]['leasereason'])
+                        else:
+                            userstr = machines[m]['leaseuser']
+                        comment = "%s (%s)" % (dt, userstr)
+                    elif machines[m]['status'] == "running":
+                        job = jobs[str(machines[m]['jobid'])]
+                        comment = "%s - %s" % (job["description"], job['user'])
+                    else:
+                        comment = ""
+                
+                self.printout(fmt % (m, machines[m]['site'], machines[m]['cluster'], status, machines[m]['pool'], comment))
+                    
 
 class XenRTMList(XenRTMList2):
     # Alias for xenrt mlist2

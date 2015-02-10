@@ -4188,16 +4188,12 @@ Loop While not oex3.Stdout.atEndOfStream"""%(applicationEventLogger,systemEventL
         if not self.windows:
             raise xenrt.XRTError("This can only be performed on Windows installations")
 
-        if float(self.xmlrpcWindowsVersion()) > 5.99:
-            self.installPowerShell()
-            self.xmlrpcExec("""(Get-WmiObject -class "Win32_TSGeneralSetting" -Namespace root\\cimv2\\terminalservices -ComputerName $env:ComputerName -Filter "TerminalName='RDP-tcp'").SetUserAuthenticationRequired(0)""", powershell=True)
-
         with open("%s/data/sysprep/unattend.xml" % xenrt.TEC().lookup("XENRT_BASE")) as f:
             unattend = f.read()
 
         unattend = unattend.replace("%ARCH%", self.xmlrpcGetArch())
         unattend = unattend.replace("%PASSWORD%", xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS", "ADMINISTRATOR_PASSWORD"], "xensource"))
-        pkey = xenrt.util.command("grep '%s ' /etc/xenrt/keys/windows | awk '{print $2}'" % self.distro).strip()
+        pkey = xenrt.util.command("grep '%s ' %s/keys/windows | awk '{print $2}'" % (self.distro, xenrt.TEC().lookup("XENRT_CONF"))).strip()
         unattend = unattend.replace("%PRODUCTKEY%", pkey)
 
         self.xmlrpcWriteFile("c:\\unattend.xml", unattend)

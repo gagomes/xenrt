@@ -3096,6 +3096,8 @@ exit /B 1
             g_uuid = cli.execute("vm-clone", string.join(args)).strip()
         # Instantiate a snapshot.
         elif operation == "instance":
+            if uuid is None:
+                uuid = self.getUUID()
             template = self.getHost().genParamGet("template", 
                                                   uuid, 
                                                   "name-label")

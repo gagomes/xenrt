@@ -184,7 +184,7 @@ class _JobBase(_MachineBase):
                             break
                         jobs[detailids[rc[0]]]['results'][rc[0]]['log'].append({
                             "ts": calendar.timegm(rc[1].timetuple()),
-                            "type": rc[2],
+                            "type": rc[2],strip(),
                             "log": rc[3].strip()
                             })
 

@@ -5274,6 +5274,9 @@ class TampaGuest(BostonGuest):
         if legacy and offloadSettingsBefore:
             offloadSettingsBefore.verifyEqualTo(offloadSettingsAfter)
 
+        if extrareboot:
+            self.reboot()
+        
         if xenrt.TEC().lookup("DO_SYSPREP", False, boolean=True):
             self.xmlrpcDoSysprep()
             self.reboot()
@@ -5794,34 +5797,34 @@ class DundeeGuest(CreedenceGuest):
 
     def setRandomPvDriverSource(self):
         #Randomly select PV Drivers Installation source
-        randomPvDriverInstallSource = random.choice(xenrt.TEC().lookup("PV_DRIVER_INSTALLATION_SOURCE"))
         
         with xenrt.GEC().getLock("RND_PV_DRIVER_INSTALL_SOURCE"):
-            dbVal = int(xenrt.TEC().lookup("RND_PV_DRIVER_INSTALL_SOURCE_VALUE", "0"))
-            if dbVal != 0:
+            dbVal = xenrt.TEC().lookup("RND_PV_DRIVER_INSTALL_SOURCE_VALUE", None)
+            if dbVal != None:
                 return dbVal
             else:
+                randomPvDriverInstallSource = random.choice(xenrt.TEC().lookup("PV_DRIVER_INSTALLATION_SOURCE"))
                 xenrt.GEC().config.setVariable("RND_PV_DRIVER_INSTALL_SOURCE_VALUE",str(randomPvDriverInstallSource))
                 xenrt.GEC().dbconnect.jobUpdate("RND_PV_DRIVER_INSTALL_SOURCE_VALUE",str(randomPvDriverInstallSource))
                 return randomPvDriverInstallSource
     
     def setRandomPvDriverList(self):
         #Randomise the order of PV packages 
-        pvDriversList =xenrt.TEC().lookup("PV_DRIVERS_LIST")
-        pvDriversList = pvDriversList.split(';')
-        random.shuffle(pvDriversList)
-        randomPvDriversList = ';'.join(pvDriversList)
-        
+
         with xenrt.GEC().getLock("RND_PV_DRIVERS_LIST"):
-            dbVal = int(xenrt.TEC().lookup("RND_PV_DRIVERS_LIST_VALUE", "0"))
-            if dbVal != 0:
+            dbVal = xenrt.TEC().lookup("RND_PV_DRIVERS_LIST_VALUE", None)
+            if dbVal != None:
                 return dbVal
             else:
+                pvDriversList =xenrt.TEC().lookup("PV_DRIVERS_LIST")
+                pvDriversList = pvDriversList.split(';')
+                random.shuffle(pvDriversList)
+                randomPvDriversList = ';'.join(pvDriversList)
                 xenrt.GEC().config.setVariable("RND_PV_DRIVERS_LIST_VALUE",randomPvDriversList)
                 xenrt.GEC().dbconnect.jobUpdate("RND_PV_DRIVERS_LIST_VALUE",randomPvDriversList)
                 return randomPvDriversList
                 
-    def installDrivers(self, source=None, extrareboot=False, useLegacy=False, useHostTimeUTC=False, expectUpToDate=True, useGuestAgent=True, useDotNet=True):
+    def installDrivers(self, source=None, extrareboot=False, useLegacy=False, useHostTimeUTC=False, expectUpToDate=True, installFullWindowsGuestAgent=True, useDotNet=True):
         """
         Install PV Tools on Windows Guest
         """
@@ -5843,7 +5846,7 @@ class DundeeGuest(CreedenceGuest):
             pvDriverSource = self.setRandomPvDriverSource()
             
         # If source is "ToolsISO" then install from xs tools
-        if pvDriverSource == "ToolsISO" or pvDriverSource == None or useLegacy == True:
+        if pvDriverSource == "ToolsISO" or pvDriverSource == None or useLegacy == True or xenrt.TEC().lookup("USE_LEGACY_DRIVERS", False, boolean=True):
             TampaGuest.installDrivers(self, source, extrareboot, useLegacy, useHostTimeUTC, expectUpToDate)
             
         #If source is "Packages" then install from PV Packages
@@ -5855,8 +5858,8 @@ class DundeeGuest(CreedenceGuest):
             
             self.installCitrixCertificate()
                 
-            if useGuestAgent:
-                self.installWindowsGuestAgent()
+            if installFullWindowsGuestAgent:
+                self.installFullWindowsGuestAgent()
                 
             # Download the Individual PV packages
             self.xmlrpcSendFile(xenrt.TEC().getFile("xe-phase-1/%s" %(xenrt.TEC().lookup("PV_DRIVERS_LOCATION", None))), "c:\\tools.tgz")
@@ -5892,6 +5895,9 @@ class DundeeGuest(CreedenceGuest):
 
             self.waitForDaemon(120, desc="Daemon connect after driver install")
             
+            if extrareboot:
+                self.reboot()
+            
             #Check whether tools are up to date
             for i in range(12):
                 if self.pvDriversUpToDate() or not expectUpToDate:
@@ -5920,7 +5926,7 @@ class DundeeGuest(CreedenceGuest):
         self.xmlrpcStart("%s\\%s\\%s\\dpinst.exe /sw" % (toolsDirectory, packageName, arch))
         xenrt.sleep(30)
 
-    def installWindowsGuestAgent(self):
+    def installFullWindowsGuestAgent(self):
         """ Install Windows Guest Agent from xs tools """
         
         #Mount the tools CD 

@@ -11521,6 +11521,21 @@ class StorageRepository:
         self.content_type = ""
         self.smconf = None
 
+    @classmethod
+    def fromExistingSR(cls, host, sruuid):
+        xsr = next([sr for sr in xhost.asXapiObject().SR() if sr.uuid == sruuid], None)
+
+        if not xsr:
+            raise ValueError("Could not find sruuid %s on host %s" %(sruuid, host))
+
+        instance = cls(host, xsr.name())
+        instance.uuid = xsr.uuid
+        instance.srtype = xsr.srType()
+        instance.dconf = xsr.SR().PBD()[0].deviceConfig()
+        instance.smconf = xsr.smConfig()
+        instance.content_type = xsr.contentType()
+        return instance
+
     def create(self, physical_size=0, content_type="", smconf={}):
         raise xenrt.XRTError("Unimplemented")
 

@@ -1,10 +1,9 @@
-from xenrt.lazylog import step, comment, log, warning
 import re
 
 """
 Xapi object model base and factory classes
 """
-__all__ = [ 'XapiObjectFactory', 'XapiObject', 'VM', 'VBD', 'objectFactory', 'XapiHost', 'SR', 'VDI']
+__all__ = [ 'XapiObjectFactory', 'XapiObject', 'VM', 'VBD', 'objectFactory', 'XapiHost', 'SR', 'VDI', 'PBD']
 
 
 class XapiObjectFactory(object):
@@ -214,6 +213,13 @@ class XapiHost(NamedXapiObject):
         return self.getObjectsReferencingName(SR.OBJECT_TYPE, self.OBJECT_TYPE)
 
 
+class PBD(XapiObject):
+    OBJECT_TYPE = "pbd"
+
+    def deviceConfig(self):
+        return self.getDictParam("device-config")
+
+
 class SR(NamedXapiObject):
     OBJECT_TYPE = "sr"
     __LOCAL = "Local storage"
@@ -227,6 +233,18 @@ class SR(NamedXapiObject):
 
     def VDI(self):
         return self.getObjectsReferencing(VDI.OBJECT_TYPE, self.OBJECT_TYPE)
+
+    def PBD(self):
+        return self.getObjectsReferencing(PBD.OBJECT_TYPE, self.OBJECT_TYPE)
+
+    def otherConfig(self):
+        return self.getStringParam("other-config")
+
+    def contentType(self):
+        return self.getStringParam("content-type")
+
+    def smConfig(self):
+        return self.getStringParam("sm-config")
 
 
 class VDI(NamedXapiObject):
@@ -262,6 +280,7 @@ def objectFactory():
 Register objects with factory - allows specialisations to be
 registered and hence returned by the factory class
 """
+objectFactory().registerObject(PBD)
 objectFactory().registerObject(VBD)
 objectFactory().registerObject(VM)
 objectFactory().registerObject(SR)

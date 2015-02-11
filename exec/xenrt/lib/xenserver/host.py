@@ -11523,7 +11523,7 @@ class StorageRepository:
 
     @classmethod
     def fromExistingSR(cls, host, sruuid):
-        xsr = next([sr for sr in xhost.asXapiObject().SR() if sr.uuid == sruuid], None)
+        xsr = next([sr for sr in host.asXapiObject().SR() if sr.uuid == sruuid], None)
 
         if not xsr:
             raise ValueError("Could not find sruuid %s on host %s" %(sruuid, host))

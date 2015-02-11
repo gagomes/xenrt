@@ -1184,7 +1184,7 @@ class TCPrepareDriverUpgrade(xenrt.TestCase):
 
         # Install drivers
         guest.start()
-        guest.installDrivers(source=toolsTgz)
+        guest.installDrivers(source=toolsTgz, expectUpToDate=False)
 
         # Shutdown the clone
         guest.shutdown()

@@ -1207,7 +1207,13 @@ class PrepareNode:
                         else:
                             nfsVersion = "3"
 
-                        server, path = xenrt.ExternalNFSShare(jumbo=jumbo, network=network, version=nfsVersion).getMount().split(":")
+                        hostIndexes = [(y.group(1), y.group(3)) for y in [re.match("host-(\d)(-([a-z]*))?", x) for x in s['options'].split(",")] if y]
+                        if hostIndexes:
+                            (hostIndex, device) = hostIndexes[0]
+                            server, path = xenrt.NativeLinuxNFSShare("RESOURCE_HOST_%s" % hostIndex, device=device).getMount().split(":")
+                        else:
+                            server, path = xenrt.ExternalNFSShare(jumbo=jumbo, network=network, version=nfsVersion).getMount().split(":")
+
                         if filesr:
                             sr = xenrt.productLib(host=host).FileStorageRepositoryNFS(host, s["name"])
                             sr.create(server, path)

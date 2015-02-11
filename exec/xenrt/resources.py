@@ -22,6 +22,7 @@ __all__ = ["WebDirectory",
            "ExternalNFSShare",
            "ExternalSMBShare",
            "NativeWindowsSMBShare",
+           "NativeLinuxNFSShare",
            "VMSMBShare",
            "SpecifiedSMBShare",
            "ISCSIIndividualLun",
@@ -1395,6 +1396,42 @@ class ISCSINativeLinuxLun(ISCSILun):
         self.initiatorcount = None
         self.initiatorstart = None
         self.initiatornames = {}
+
+    def acquire(self):
+        pass
+    
+    def release(self, atExit=False):
+        CentralResource.release(self, atExit)
+
+class NativeLinuxNFSShare(CentralResource):
+    """NFS share on a native (bare metal) linux host."""
+    def __init__(self, hostName="RESOURCE_HOST_0", device='sda'):
+        self.place = xenrt.GEC().registry.hostGet(hostName)
+
+        if device != 'sda':
+            self.place.execcmd("mkfs.ext3 -F /dev/%s" % (device)) # "-F" to suppress prompt for use of whole device
+
+        self.subdir = self.createShare(device)
+        self.address = self.place.getIP()
+
+    def createShare(self, device='sda'):
+        # TODO this assumes the native linux host is CentOS 6.5
+        sharepath = "/var/nfs"
+        self.place.execcmd("yum -y install nfs-utils nfs-utils-lib")
+        self.place.execcmd("chkconfig --levels 235 nfs on")
+        self.place.execcmd("/etc/init.d/nfs start")
+        self.place.execcmd("mkdir -p %s" % (sharepath))
+        self.place.execcmd("mount /dev/%s %s" % (device, sharepath))
+        self.place.execcmd("chown 65534:65534 %s" % (sharepath))
+        self.place.execcmd("chmod 755 %s" % (sharepath))
+        self.place.execcmd("echo '%s	*(rw,sync,no_subtree_check)' >> /etc/exports" % (sharepath))
+        self.place.execcmd("exportfs -a")
+        return sharepath
+
+    def getMount(self):
+        if not self.subdir:
+            raise xenrt.XRTError("No mount directory available")
+        return "%s:%s" % (self.address, self.subdir)
 
     def acquire(self):
         pass

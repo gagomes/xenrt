@@ -28,6 +28,7 @@
         <HideEULAPage>true</HideEULAPage>
         <NetworkLocation>Other</NetworkLocation>
         <ProtectYourPC>3</ProtectYourPC>
+        <SkipUserOOBE>true</SkipUserOOBE>
       </OOBE>
       <UserAccounts>
         <AdministratorPassword>

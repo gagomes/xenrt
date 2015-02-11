@@ -1669,7 +1669,7 @@ class FunctionalBase(VGPUAllocationModeBase):
             if arg.startswith('vgpuconfig'):
                 self.VGPU_CONFIG = map(int,arg.split('=')[1].split(','))
             if arg.startswith('typeofvgpu'):
-                self.TYPE_OF_VGPU = map(str,arg.split('=')[1].split(','))
+                self.TYPE_OF_VGPU = map(str,arg.split('=')[1].split(','))[0]
  
     def run(self,arglist):
 

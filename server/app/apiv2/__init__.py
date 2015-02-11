@@ -50,7 +50,8 @@ class XenRTAPIv2Swagger(XenRTPage):
             "tags": [
                 {"name": "jobs", "description": "Operations on XenRT jobs"},
                 {"name": "machines", "description": "Operations on XenRT machines"},
-                {"name": "sites", "description": "Operations on XenRT sites"}
+                {"name": "sites", "description": "Operations on XenRT sites"},
+                {"name": "apikeys", "description": "Operations on XenRT API keys"}
             ],
             "definitions": {}
         }
@@ -107,3 +108,4 @@ import app.apiv2.jobs
 import app.apiv2.machines
 import app.apiv2.files
 import app.apiv2.sites
+import app.apiv2.api

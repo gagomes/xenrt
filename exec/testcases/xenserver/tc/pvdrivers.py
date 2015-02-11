@@ -1217,5 +1217,12 @@ class TCTestDriverUpgrade(xenrt.TestCase):
         guest.setDriversBootStart()
 
         # Try upgrading drivers
-        guest.installDrivers()
-
+        try:
+            guest.installDrivers()
+        except xenrt.XRTFailure, e:
+            if e.reason.startswith("VIF and/or VBD PV device not used") and xenrt.TEC().lookup("WORKAROUND_CA159586", False, boolean=True):
+                # The VM may just need an extra reboot
+                guest.reboot()
+                guest.checkPVDevices()
+            else:
+                raise

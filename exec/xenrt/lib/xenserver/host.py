@@ -11531,7 +11531,9 @@ class StorageRepository:
         instance = cls(host, xsr.name())
         instance.uuid = xsr.uuid
         instance.srtype = xsr.srType()
-        instance.dconf = xsr.SR().PBD()[0].deviceConfig()
+
+        xpbd = next([p for p in xsr.SR().PBD() if p.host() == host.asXapiObject()], None)
+        instance.dconf = xpbd.deviceConfig()
         instance.smconf = xsr.smConfig()
         instance.content_type = xsr.contentType()
         return instance

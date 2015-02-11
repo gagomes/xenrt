@@ -1639,7 +1639,7 @@ class FunctionalBase(VGPUAllocationModeBase):
         self.host = self.getDefaultHost()
         self.pools =[]
 
-        self.parseArgs()
+        self.parseArgs(arglist)
 
         self.typeOfvGPU = self.typeOfvGPU()
 
@@ -1661,7 +1661,7 @@ class FunctionalBase(VGPUAllocationModeBase):
         if self.TYPE_OF_VGPU == self.getDiffvGPUName(DiffvGPUType.IntelWinvGPU):
             return IntelWindowsvGPU()
 
-    def parseArgs(self):
+    def parseArgs(self,arglist):
 
         for arg in arglist:
             if arg.startswith('distro'):

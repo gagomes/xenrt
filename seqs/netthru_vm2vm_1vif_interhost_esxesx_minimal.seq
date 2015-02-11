@@ -28,7 +28,6 @@
           <vcpus>2</vcpus>
           <memory>2048</memory>
           <postinstall action="installTools"/>
-          <postinstall action="changeToVMXNet3"/>
           <postinstall action="pause"/><!-- do not interfere with other vms  -->
         </vm>
 
@@ -48,7 +47,6 @@
           <vcpus>2</vcpus>
           <memory>2048</memory>
           <postinstall action="installTools"/>
-          <postinstall action="changeToVMXNet3"/>
           <postinstall action="pause"/><!-- do not interfere with other vms  -->
         </vm>
 

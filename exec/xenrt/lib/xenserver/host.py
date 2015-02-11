@@ -1,4 +1,4 @@
-#
+   #
 # XenRT: Test harness for Xen and the XenServer product family
 #
 # Encapsulate a XenServer host.
@@ -22,7 +22,9 @@ import xenrt.lib.xenserver.jobtests
 from  xenrt.lib.xenserver import licensedfeatures
 import XenAPI
 from xenrt.lazylog import *
-from xenrt.lib.xenserver.licensing import XenServerLicenceFactory
+from xenrt.lib.xenserver.iptablesutil import IpTablesFirewall
+from xenrt.lib.xenserver.licensing import LicenceManager, XenServerLicenceFactory
+
 
 # Symbols we want to export from the package.
 __all__ = ["Host",
@@ -36,6 +38,7 @@ __all__ = ["Host",
            "ClearwaterHost",
            "NFSStorageRepository",
            "NFSv4StorageRepository",
+           "SMBStorageRepository",
            "FileStorageRepository",
            "FileStorageRepositoryNFS",
            "ISCSIStorageRepository",
@@ -44,7 +47,7 @@ __all__ = ["Host",
            "NetAppStorageRepository",
            "EQLStorageRepository",
            "ISOStorageRepository",
-           "CIFSStorageRepository",
+           "CIFSISOStorageRepository",
            "FCStorageRepository",
            "SharedSASStorageRepository",
            "ISCSIHBAStorageRepository",
@@ -65,6 +68,7 @@ __all__ = ["Host",
            "TampaPool",
            "ClearwaterPool",
            "CreedencePool",
+           "DundeePool",
            "RollingPoolUpdate",
            "Tile",
            "IOvirt",
@@ -78,7 +82,7 @@ CLI_NATIVE = 3          # New style CLI
 def hostFactory(hosttype):
     if hosttype == "Dundee":
         return xenrt.lib.xenserver.DundeeHost
-    elif hosttype in ("Creedence"):
+    elif hosttype in ("Creedence", "Cream"):
         return xenrt.lib.xenserver.CreedenceHost
     elif hosttype in ("Clearwater"):
         return xenrt.lib.xenserver.ClearwaterHost
@@ -96,10 +100,12 @@ def hostFactory(hosttype):
 
 
 def poolFactory(mastertype):
-    if mastertype in ("Clearwater", "Dundee"):
-        return xenrt.lib.xenserver.ClearwaterPool
-    elif mastertype in ("Creedence"):
+    if mastertype in ("Dundee"):
+        return xenrt.lib.xenserver.DundeePool
+    elif mastertype in ("Creedence", "Cream"):
         return xenrt.lib.xenserver.CreedencePool
+    elif mastertype in ("Clearwater"):
+        return xenrt.lib.xenserver.ClearwaterPool
     elif mastertype in ("Boston", "BostonXCP", "Sanibel", "SanibelCC", "Tampa", "TampaXCP", "Tallahassee"):
         return xenrt.lib.xenserver.BostonPool
     elif mastertype in ("MNR", "Cowley", "Oxford"):
@@ -282,7 +288,7 @@ def createHost(id=0,
                 nameserver = None
             hostname = m.name
 
-    guestdisks = host.getGuestDisks(ccissIfAvailable=host.USE_CCISS, count=diskCount)
+    guestdisks = host.getGuestDisks(ccissIfAvailable=host.USE_CCISS, count=diskCount, legacySATA=(not host.isCentOS7Dom0()))
 
     if diskCount > len(guestdisks):
         raise xenrt.XRTError("Wanted %u disks but we only have: %s" %
@@ -290,7 +296,7 @@ def createHost(id=0,
     if host.bootLun:
         primarydisk = "disk/by-id/scsi-%s" % host.bootLun.getID()
     else:
-        primarydisk = host.getInstallDisk(ccissIfAvailable=host.USE_CCISS)
+        primarydisk = host.getInstallDisk(ccissIfAvailable=host.USE_CCISS, legacySATA=(not host.isCentOS7Dom0()))
 
     handle = host.install(interfaces=interfaces,
                           nameserver=nameserver,
@@ -681,7 +687,7 @@ class Host(xenrt.GenericHost):
         """Create a simple guest object."""
         return self.guestFactory()(name, "", self)
 
-    def existing(self, doguests=True):
+    def existing(self, doguests=True, guestsInRegistry=True):
         """Initialise this host object from an existing installed host"""
         # Check the management host address
         ip = self.execdom0("xe host-param-get uuid=%s param-name=address" %
@@ -701,7 +707,8 @@ class Host(xenrt.GenericHost):
                     guest = self.guestFactory()(guestname, None)
                     guest.existing(self)
                     xenrt.TEC().logverbose("Found existing guest: %s" % (guestname))
-                    xenrt.TEC().registry.guestPut(guestname, guest)
+                    if guestsInRegistry:
+                        xenrt.TEC().registry.guestPut(guestname, guest)
                 except:
                     xenrt.TEC().logverbose("Could not load guest - perhaps it was deleted")
         self.distro = "XSDom0"
@@ -766,6 +773,8 @@ class Host(xenrt.GenericHost):
                     # In this situation a path that includes cciss- will not work. See CA-121184 for details
                     if "cciss" in primarydisk:
                         primarydisk = self.getInstallDisk(ccissIfAvailable=self.USE_CCISS)
+                    if "scsi-SATA" in primarydisk and self.isCentOS7Dom0():
+                        primarydisk = self.getInstallDisk(legacySATA=False)
                 else:
                     primarydisk = "sda"
 
@@ -1848,8 +1857,10 @@ fi
     def _upgrade(self, newVersion, suppackcds=None):
         # Upgrade to the current version
         self.install(upgrade=True, suppackcds=suppackcds)
-        
+       
         if not xenrt.TEC().lookup("OPTION_NO_AUTO_PATCH", False, boolean=True):
+            # Wait to allow Xapi database to be written out
+            xenrt.sleep(300)
             self.applyRequiredPatches()
 
     def applyWorkarounds(self):
@@ -2711,7 +2722,7 @@ fi
             if proxy:
                 self.execdom0("sed -i '/proxy/d' /etc/yum.conf")
                 self.execdom0("echo 'proxy=http://%s' >> /etc/yum.conf" % proxy)
-            if isinstance(self, xenrt.lib.xenserver.DundeeHost) and self.isCentOS7Dom0():
+            if isinstance(self, xenrt.lib.xenserver.DundeeHost):
                 self.execdom0("yum install kernel-headers --disableexcludes=all -y")
             self.execdom0("yum --disablerepo=citrix --enablerepo=base,updates,extras install -y  gcc-c++")
             self.execdom0("yum --disablerepo=citrix --enablerepo=base install -y make")
@@ -3056,7 +3067,7 @@ fi
         guest.primaryMAC=primaryMAC
         guest.reservedIP=reservedIP
         repository = None
-        
+
         if guest.windows:
             isoname = xenrt.DEFAULT
         else:
@@ -3071,13 +3082,16 @@ fi
                     raise xenrt.XRTError("No HTTP repository for %s %s" %
                                          (arch, distro))
 
+        guest.distro = distro
+        guest.arch = arch
+
         if vcpus != None:
             guest.setVCPUs(vcpus)
         elif self.lookup("RND_VCPUS", default=False, boolean=True):
-            self.setRandomVcpus(guest)
+            guest.setRandomVcpus()
 
         if self.lookup("RND_CORES_PER_SOCKET", default=False, boolean=True):
-            self.setRandomCoresPerSocket(guest, vcpus)
+            guest.setRandomCoresPerSocket(self, vcpus)
 
         if memory != None:
             guest.setMemory(memory)
@@ -3086,7 +3100,6 @@ fi
                 disksize = 8192 # 8GB (in MB) by default
             else:
                 disksize = guest.DEFAULT
-        guest.arch = arch
         if primaryMAC:
             if bridge:
                 br = bridge
@@ -3118,60 +3131,6 @@ fi
         if not nodrivers:
             guest.check()
         return guest
-
-    def setRandomVcpus(self,guest):
-        xenrt.log("Setting random vcpus for VM ")
-        #maxVcpusSupported can be made variable later depending on host, guest and proudct limits
-        maxVcpusSupported =16
-        randomVcpus = random.randint(1,maxVcpusSupported)
-        with xenrt.GEC().getLock("RND_VCPUS"):
-            dbVal = int(xenrt.TEC().lookup("RND_VCPUS_VAL", "0"))
-            if dbVal != 0:
-                xenrt.TEC().logverbose("Using vcpus from DB: %d" %dbVal)
-                guest.setVCPUs(dbVal)
-            else:
-                xenrt.TEC().logverbose("Randomly choosen vcpus is %d" %randomVcpus)
-                guest.setVCPUs(randomVcpus)
-                xenrt.GEC().config.setVariable("RND_VCPUS_VAL",str(randomVcpus))
-                xenrt.GEC().dbconnect.jobUpdate("RND_VCPUS_VAL",str(randomVcpus))
-
-    def setRandomCoresPerSocket(self, guest, vcpus):
-        log("Setting random cores per socket....")
-
-        if not isinstance(self, xenrt.lib.xenserver.ClearwaterHost) or not guest.windows:
-            log("Refusing to set cores-per-socket on anything prior \
-                to Clearwater or non-windows guests")
-            return
-
-        # Max cores per socket makes sure we don't exceed the number of cores per socket on the host
-        cpuCoresOnHost = self.getCPUCores()
-        socketsOnHost  = self.getNoOfSockets()
-        maxCoresPerSocket = cpuCoresOnHost / socketsOnHost
-        xenrt.TEC().logverbose("cpuCoresonHost: %s, socketsonHost: %s, maxCoresPerSocket: %s" % (cpuCoresOnHost, socketsOnHost, maxCoresPerSocket))
-
-        if vcpus != None:
-            # This gives us all the factors of the vcpus specified
-            possibleCoresPerSocket = [x for x in range(1, vcpus+1) if vcpus % x == 0]
-            xenrt.TEC().logverbose("possibleCoresPerSocket is %s" % possibleCoresPerSocket)
-
-            # This eliminates the factors that would exceed the host's cores per socket
-            validCoresPerSocket = [x for x in possibleCoresPerSocket if x <= maxCoresPerSocket]
-            xenrt.TEC().logverbose("validCoresPerSocket is %s" % validCoresPerSocket)
-
-            # Then choose a value from here
-            coresPerSocket = random.choice(validCoresPerSocket)
-
-            with xenrt.GEC().getLock("RND_CORES_PER_SOCKET"):
-                dbVal = int(xenrt.TEC().lookup("RND_CORES_PER_SOCKET_VAL", "0"))
-
-                if dbVal in validCoresPerSocket:
-                    xenrt.TEC().logverbose("Using Randomly choosen cores-per-socket from DB: %d" % dbVal)
-                    guest.setCoresPerSocket(dbVal)
-                else:
-                    xenrt.TEC().logverbose("Randomly choosen cores-per-socket is %s" % coresPerSocket)
-                    guest.setCoresPerSocket(coresPerSocket)
-                    xenrt.GEC().config.setVariable("RND_CORES_PER_SOCKET_VAL", str(coresPerSocket))
-                    xenrt.GEC().dbconnect.jobUpdate("RND_CORES_PER_SOCKET_VAL", str(coresPerSocket))
 
     def getDefaultAdditionalCDList(self):
         """Return a list of additional CDs to be installed.
@@ -4071,7 +4030,7 @@ fi
 
     def enableCaching(self, sr=None):
         if not sr:
-            cacheDisk = self.lookup("INTELLICACHE_DISK", None)
+            cacheDisk = xenrt.TEC().lookup("INTELLICACHE_DISK", None)
             if not cacheDisk:
                 sr = self.getLocalSR()
             else:
@@ -5834,30 +5793,19 @@ fi
                 raise xenrt.XRTFailure(\
                     "Timed out waiting for coalesce to complete", sruuid)
 
-    def toolsISOPath(self, which="windows"):
+    def toolsISOPath(self):
         """Return the dom0 path to the tools ISO."""
         vdi = self.parseListForUUID("vdi-list",
                                     "name-label",
                                     "xs-tools.iso")
-        try:
-            isobasename = self.genParamGet("vdi", vdi, "location")
-        except:
-            # Rio doesn't have a location field, assume the filename
-            # matches the name-label
-            isobasename = "xs-tools.iso"
+        
+        isobasename = self.genParamGet("vdi", vdi, "location")
         sruuid = self.genParamGet("vdi", vdi, "sr-uuid")
-        try:
-            pbd = self.parseListForUUID("pbd-list",
-                                        "sr-uuid",
-                                        sruuid,
-                                        "host-uuid=%s" %
-                                        (self.getMyHostUUID()))
-        except:
-            # Rio used host instead of host-uuid in the PBD record
-            pbd = self.parseListForUUID("pbd-list",
-                                        "sr-uuid",
-                                        sruuid,
-                                        "host=%s" % (self.getMyHostUUID()))
+        pbd = self.parseListForUUID("pbd-list",
+                                    "sr-uuid",
+                                    sruuid,
+                                    "host-uuid=%s" %
+                                    (self.getMyHostUUID()))
             
         isopath = self.genParamGet("pbd", pbd, "device-config", "location")
         return "%s/%s" % (isopath, isobasename)
@@ -6537,6 +6485,8 @@ fi
                         template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_1204")
             elif re.search("ubuntu1404", distro):
                 template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_1404")
+            elif re.search("coreos-", distro):
+                template = self.chooseTemplate("TEMPLATE_NAME_COREOS")
             elif re.search(r"other", distro):
                 template = self.chooseTemplate("TEMPLATE_OTHER_MEDIA")
             else:
@@ -8063,6 +8013,7 @@ rm -f /etc/xensource/xhad.conf || true
         
         (mac, ip) = netDetails[0]
         xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'MAC_ADDRESS'], mac)
+        xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'PXE_MAC_ADDRESS'], mac)
         xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'HOST_ADDRESS'], ip.getAddr())
         xenrt.GEC().dbconnect.jobUpdate("VXS_%s" % ip.getAddr(), name)
 
@@ -8076,6 +8027,18 @@ rm -f /etc/xensource/xhad.conf || true
         xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'PXE_CHAIN_LOCAL_BOOT'], "hd0")
         return name
 
+    def applyFullLicense(self,v6server):
+ 
+        license = XenServerLicenceFactory().maxLicenceSkuHost(self)
+        LicenceManager().addLicensesToServer(v6server,license,getLicenseInUse=False)
+        self.license(edition = license.getEdition(), v6server=v6server,usev6testd=False)
+        
+    def getIpTablesFirewall(self):
+        """IPTablesFirewall object used to create and delete iptables rules."""
+        return IpTablesFirewall(self)
+
+    def isCentOS7Dom0(self):
+        return False
 #############################################################################
 
 class MNRHost(Host):
@@ -8160,8 +8123,8 @@ class MNRHost(Host):
             # No dbv field, so we're not using v6
             self.special['v6licensing'] = False
 
-    def existing(self, doguests=True):
-        Host.existing(self,doguests)
+    def existing(self, doguests=True, guestsInRegistry=True):
+        Host.existing(self,doguests, guestsInRegistry)
         self.__detect_vswitch()
         self.__detect_v6()
 
@@ -10660,21 +10623,10 @@ class ClearwaterHost(TampaHost):
     DOM0_VCPU_PINNED = 'xpin'
     DOM0_VCPU_NOT_PINNED = 'nopin'
     
-    def license(self, sku="XE Enterprise", edition=None, expirein=None, usev6testd=True, v6server=None, activateFree=True, applyEdition=True):
-
-        mockd = xenrt.TEC().getFile(self.V6MOCKD_LOCATION)
-        if mockd:
-            xenrt.TEC().logverbose("v6mockd present - using clearwater licensing")
-        else:
-            try:
-                TampaHost.license(self, sku, edition, expirein, usev6testd, v6server, activateFree, applyEdition)        
-            except:
-                xenrt.TEC().logverbose("Could not apply license - assuming clearwater licensing")
-
     #This is a temp license function once clearwater and trunk will be in sync this will become "license" funtion
-    def templicense(self, edition = "free", v6server = None, mockLicense = False):
+    def license(self, edition = "free", v6server = None, mockLicense = False, sku=None,usev6testd=False):
 
-        if (mockLicense == True or (edition != "free" and v6server == None)):
+        if mockLicense == True:
 
             expTime = datetime.datetime.now() + datetime.timedelta(days=365)
              
@@ -10943,7 +10895,7 @@ class ClearwaterHost(TampaHost):
 <backup-disk>%s</backup-disk>
 <install-failed-script>%s</install-failed-script>
 </restore>
-""" % (self.getInstallDisk(ccissIfAvailable=self.USE_CCISS), furl)
+""" % (self.getInstallDisk(ccissIfAvailable=self.USE_CCISS, legacySATA=(not self.isCentOS7Dom0())), furl)
         ans.write(anstext)
         ans.close()
         packdir.copyIn(ansfile)
@@ -11331,7 +11283,7 @@ class CreedenceHost(ClearwaterHost):
     def vSwitchCoverageLog(self):
         self.vswitchAppCtl("coverage/show")
 
-    def license(self, v6server=None, sku="enterprise-per-socket", usev6testd=True):
+    def license(self, v6server=None, sku="enterprise-per-socket", usev6testd=True, edition=None):
         """
         In order to keep backwards compatability "sku" arg is called sku
         but really it needs the edition to be passed in
@@ -11347,7 +11299,7 @@ class CreedenceHost(ClearwaterHost):
                              retval="code") != 0:
                 self.execdom0("mv -f /opt/xensource/libexec/v6d "
                               "/opt/xensource/libexec/v6d.orig")
-                rpm = xenrt.TEC().getFile("xe-phase-1/v6-test.rpm", "v6-test.rpm")
+                rpm = xenrt.TEC().getFile("binary-packages/RPMS/domain0/RPMS/x86_64/v6testd-0*.rpm", "v6-test.rpm")
                 if rpm:
                     sftp = self.sftpClient()
                     try:
@@ -11355,11 +11307,12 @@ class CreedenceHost(ClearwaterHost):
                     finally:
                         sftp.close()
                     self.execdom0("rpm -i --force /tmp/v6-test.rpm")
+                    self.execdom0("service v6d restart")
                 else:
-                    self.execdom0("cp -f %s/utils/v6testd-cre-l "
-                                  "/opt/xensource/libexec/v6d" %
-                              (xenrt.TEC().lookup("REMOTE_SCRIPTDIR")))
-                self.execdom0("service v6d restart")
+                    xenrt.XRTError("v6testd RPM nor found")
+         
+        if edition:
+            sku = edition
 
         args.append("edition=%s" % sku)
         if v6server:
@@ -11403,17 +11356,16 @@ class DundeeHost(CreedenceHost):
         self.installer = None
 
     def isCentOS7Dom0(self):
-        return xenrt.TEC().lookup("CENTOS7_DOM0", False, boolean=True)
+        return True
 
     def getTestHotfix(self, hotfixNumber):
         return xenrt.TEC().getFile("xe-phase-1/test-hotfix-%u-*.unsigned" % hotfixNumber)
 
-    # For now, skip creedence, as trunk doesn't have the creedence license changes yet
-    def license(self, sku="free",edition=None, usev6testd=True, v6server=None):
-        ClearwaterHost.license(self, sku=sku,edition=edition,usev6testd=usev6testd,v6server=v6server)
-
     def guestFactory(self):
         return xenrt.lib.xenserver.guest.DundeeGuest
+
+    def license(self, sku="free",edition=None, usev6testd=True, v6server=None):
+        xenrt.TEC().logverbose("No license is required for the time being as Clearwater licensing is still aplicable on trunk")
 
     def postInstall(self):
         CreedenceHost.postInstall(self)
@@ -11474,34 +11426,19 @@ class DundeeHost(CreedenceHost):
         return ifs
         
     def snmpdIsEnabled(self):
-        if self.isCentOS7Dom0():
-            return "enabled" in self.execdom0("service snmpd status | cat")
-        else:
-            return CreedenceHost.snmpdIsEnabled(self)
+        return "enabled" in self.execdom0("service snmpd status | cat")
             
     def disableSnmpd(self):
-        if self.isCentOS7Dom0():
-            self.execdom0("systemctl disable snmpd")
-        else:
-            CreedenceHost.disableSnmpd(self)
+        self.execdom0("systemctl disable snmpd")
             
     def enableSnmpd(self):
-        if self.isCentOS7Dom0():
-            self.execdom0("systemctl enable snmpd")
-        else:
-            CreedenceHost.enableSnmpd(self)
+        self.execdom0("systemctl enable snmpd")
 
     def scsiIdPath(self):
-        if self.isCentOS7Dom0():
-            return "/usr/lib/udev/scsi_id"
-        else:
-            return CreedenceHost.scsiIdPath(self)
+        return "/usr/lib/udev/scsi_id"
             
     def iptablesSave(self):
-        if self.isCentOS7Dom0():
-            self.execdom0("/usr/libexec/iptables/iptables.init save")
-        else:
-            CreedenceHost.iptablesSave(self)
+        self.execdom0("/usr/libexec/iptables/iptables.init save")
 
     def enableVirtualFunctions(self):
 
@@ -11992,7 +11929,7 @@ class DummyStorageRepository(StorageRepository):
     def create(self, size):
         self._create("dummy", {}, physical_size=size)
 
-class CIFSStorageRepository(StorageRepository):
+class CIFSISOStorageRepository(StorageRepository):
 
     def create(self,
                server,
@@ -12162,6 +12099,51 @@ class NFSStorageRepository(StorageRepository):
 
 class NFSv4StorageRepository(NFSStorageRepository):
     EXTRA_DCONF = {'nfsversion': '4'}
+
+class SMBStorageRepository(StorageRepository):
+    """Models a SMB SR"""
+
+    SHARED = True
+
+    def create(self, share=None):
+        if not share:
+            share = xenrt.ExternalSMBShare(version=3)
+
+        dconf = {}
+        smconf = {}
+        dconf["server"] = share.getLinuxUNCPath() 
+        if share.domain:
+            dconf['username'] = "%s\\\\%s" % (share.domain, share.user)
+        else:
+            dconf['username'] = share.user
+        dconf['password'] = share.password
+        self._create("cifs",
+                     dconf)
+
+    def check(self):
+        StorageRepository.checkCommon(self, "cifs")
+        if self.host.pool:
+            self.checkOnHost(self.host.pool.master)
+            for slave in self.host.pool.slaves.values():
+                self.checkOnHost(slave)
+        else:
+            self.checkOnHost(self.host)
+
+    def checkOnHost(self, host):
+        pass
+        # TODO update this to use the correct paths
+        #try:
+        #    host.execdom0("test -d /var/run/sr-mount/%s" % (self.uuid))
+        #except:
+        #    raise xenrt.XRTFailure("SR mountpoint /var/run/sr-mount/%s "
+        #                           "does not exist" % (self.uuid))
+        #smb = string.split(host.execdom0("mount | grep \""
+        #                                  "/run/sr-mount/%s \"" %
+        #                                  (self.uuid)))[0]
+        #shouldbe = "%s/%s" % (self.serverpath, self.uuid)
+        #if smb != shouldbe:
+        #    raise xenrt.XRTFailure("Mounted path '%s' is not '%s'" %
+        #                           (smb, shouldbe))
 
 
 class ISCSIStorageRepository(StorageRepository):
@@ -14346,7 +14328,7 @@ class ClearwaterPool(TampaPool):
         return socketCount
 
     #This is a temp license function once clearwater and trunk will be in sync this will become "license" funtion
-    def templicense(self, edition = "free", v6server = None, mockLicense = False):
+    def license(self, edition = "free", v6server = None, mockLicense = False,sku=None):
 
         if edition == "per-socket" or edition == "xendesktop":
             if not v6server and not mockLicense:

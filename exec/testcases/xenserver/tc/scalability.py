@@ -242,7 +242,7 @@ class _VMScalability(_Scalability):
 
         if self.DOM0CPUS or self.DOM0MEM or self.NET_BRIDGE:
             #rebooting the host
-            host.reboot(timeout=3600)
+            host.reboot(timeout=7200)
 
     def optimizeExistingGuests(self, host):
         for gname in host.listGuests():
@@ -317,11 +317,10 @@ class _VMScalability(_Scalability):
             if (self.max != 0 and self.currentNbrOfGuests >= self.max):
                 return
 
-            self.lock.acquire()
-            self.currentNbrOfGuests = self.currentNbrOfGuests + 1
-            guestNbr = self.currentNbrOfGuests
-            guestOnHostNbr = len(host.listGuests(running=True)) + 1
-            self.lock.release()
+            with self.lock:
+                self.currentNbrOfGuests = self.currentNbrOfGuests + 1
+                guestNbr = self.currentNbrOfGuests
+                guestOnHostNbr = len(host.listGuests(running=True)) + 1
 
             g = self.masterGuest[host].cloneVM(name=str(guestNbr)+"_" + self.DISTRO )
             self.guests.append(g)
@@ -377,12 +376,10 @@ class _VMScalability(_Scalability):
 
     def checkGuestThread(self):
         while True:
-            self.lock.acquire()
-            if len(self.guestsNotChecked)== 0:
-                self.lock.release()
-                return
-            g = self.guestsNotChecked.pop()
-            self.lock.release()
+            with self.lock:
+                if len(self.guestsNotChecked)== 0:
+                    return
+                g = self.guestsNotChecked.pop()
 
             isAlive = False
             isUp = False
@@ -403,12 +400,11 @@ class _VMScalability(_Scalability):
                 except:
                     xenrt.TEC().warning("Guest %s not up" % (g.getName()))
 
-            self.lock.acquire()
-            if isAlive:
-                self.nbrOfGuestsAlive = self.nbrOfGuestsAlive + 1
-            if isUp:
-                self.nbrOfGuestsUp = self.nbrOfGuestsUp + 1
-            self.lock.release()
+            with self.lock:
+                if isAlive:
+                    self.nbrOfGuestsAlive = self.nbrOfGuestsAlive + 1
+                if isUp:
+                    self.nbrOfGuestsUp = self.nbrOfGuestsUp + 1
 
     def checkGuests(self):
         nbrOfThreads = min(5*len(self.hosts),25)
@@ -431,12 +427,10 @@ class _VMScalability(_Scalability):
 
     def guestOperationThread(self, operation, iterationNbr = None):
         while True:
-            self.lock.acquire()
-            if len(self.guestsPendingOperation)== 0:
-                self.lock.release()
-                return
-            g = self.guestsPendingOperation.pop()
-            self.lock.release()
+            with self.lock:
+                if len(self.guestsPendingOperation)== 0:
+                    return
+                g = self.guestsPendingOperation.pop()
 
             passed = False
 
@@ -448,23 +442,23 @@ class _VMScalability(_Scalability):
                 passed = True
             except Exception, e:
                 if iterationNbr == None:
-                    xenrt.TEC().warning("Guest %s failed to %s" % (g.getName(), operation))
+                    xenrt.TEC().warning("Guest %s failed to %s." % (g.getName(), operation))
                     xenrt.TEC().logverbose("Guest %s failed to %s : %s" % (g.getName(), operation, str(e)))
                 else:
                     xenrt.TEC().warning("LOOP %s: Guest %s failed to %s" % (iterationNbr, g.getName(), operation))
                     xenrt.TEC().logverbose("Guest %s failed to %s : %s" % (g.getName(), operation, str(e)))
                     
-            self.lock.acquire()
-            if passed:
-                self.nbrOfPassedGuests = self.nbrOfPassedGuests+1
-            self.lock.release()
+            with self.lock:
+                if passed:
+                    self.nbrOfPassedGuests = self.nbrOfPassedGuests+1
 
-            if g.getDomid() <= 1:
-                raise xenrt.XRTFailure("Guest %s domid %s less than one - looks like host has crashed" % (g.getName(),g.getDomid()))
-
+            # disabled crash detection - this stops the test working after a reboot. CA-159775
+            #if g.getDomid() <= 1:
+            #     raise xenrt.XRTFailure("Guest %s domid %s less than one - looks like host has crashed" % (g.getName(),g.getDomid()))
 
     def loopingTest(self):
         nbrOfThreads = min(5*len(self.hosts),25)
+
         xenrt.TEC().logverbose("Shutting down all Guests")
         self.guestsPendingOperation = [g for g in self.guests]
         self.nbrOfPassedGuests = 0
@@ -525,7 +519,7 @@ class _VIFScalability(_Scalability):
 
     def runTC(self,host):
         # Create a guest which we'll use to clone
-        guest = host.createGenericLinuxGuest(memory=128)
+        guest = host.createGenericLinuxGuest(memory=256)
         self.uninstallOnCleanup(guest)
 
         # Configure this guest to only have one VBD
@@ -690,6 +684,10 @@ class TC19271(_VMScalability):
     #NET_BRIDGE = True
     DOM0CPUS = True
     FLOW_EVT_THRESHOLD = 8192
+    
+    def postRun(self):
+        # don't do any cleanup - it takes ages
+        pass
 
 class TC14899(_VMScalability):
     """Test that 160 cores can all be used"""
@@ -1512,14 +1510,11 @@ class _TCCloneVMs(_TimedTestCase):
     def doClones(self):
         # Worker thread function for cloning VMs.
         while True:
-            self.lock.acquire()
-            item = None
-            try:
+            with self.lock:
+                item = None
                 # Get a VM spec from the queue
                 if len(self.vmSpecs) > 0:
                     item = self.vmSpecs.pop()
-            finally:
-                self.lock.release()
             # If we didn't get a VM, then they're all cloned, so finish the thread
             if not item:
                 break
@@ -1528,9 +1523,8 @@ class _TCCloneVMs(_TimedTestCase):
             xenrt.TEC().logverbose("Cloning VM to %s on host %s" % (vmname, host.getName()))
             vm = self.cloneVM(vmname, host, gold)
             # Put it in the registry
-            self.lock.acquire()
-            xenrt.TEC().registry.guestPut(vmname, vm)
-            self.lock.release()
+            with self.lock:
+                xenrt.TEC().registry.guestPut(vmname, vm)
             # Set a variable to see where this VM was cloned from
             vm.special['gold'] = gold.getName()
 
@@ -1566,9 +1560,8 @@ class TCXenDesktopCloneVMs(_TCCloneVMs):
             vdi = vm.getHost().minimalList("vbd-list", args="vm-uuid=%s userdevice=0" % vm.getUUID(), params="vdi-uuid")[0]
             vm.getHost().genParamSet("vdi", vdi, "on-boot", "reset")
 
-        self.lock.acquire()
-        host.addGuest(vm)
-        self.lock.release()
+        with self.lock:
+            host.addGuest(vm)
 
         return vm
 
@@ -1665,22 +1658,19 @@ class _TCScaleVMOp(_TimedTestCase):
                 host.verifyHostFunctional(migrateVMs=True)
         except Exception,e:
             xenrt.TEC().reason("Failed to verify host %s - %s" % (host.getName(), str(e)))
-            self.lock.acquire()
-            self.failedHosts.append(host.getName())
-            self.lock.release()
+            with self.lock:
+                self.failedHosts.append(host.getName())
 
 
     def doVMWorker(self, func):
         # Worker thread function for performing operations on VMs.
         while True:
-            self.lock.acquire()
-            vm = None
-            # Get a VM from the queue
-            try:
+            with self.lock:
+                vm = None
+                # Get a VM from the queue
                 if len(self.vmsToOp) > 0:
                     vm = self.vms[self.vmsToOp.pop()]
-            finally:
-                self.lock.release()
+
             if not vm:
                 # If we didn't get a VM, then theye've all been operated on, so we can exit the loop
                 break
@@ -1692,9 +1682,8 @@ class _TCScaleVMOp(_TimedTestCase):
             except Exception, e:
                 xenrt.TEC().reason("Failed to perform operation on %s - %s" % (vm.getName(), str(e)))
                 # Add it to the list of failed VMs, but continue for now.
-                self.lock.acquire()
-                self.failedVMs.append(vm.getName())
-                self.lock.release()
+                with self.lock:
+                    self.failedVMs.append(vm.getName())
 
         # Now we wait for the completion threads to finish, then we can exit the worker thread.
         # It's the responsibility of the completion thread to implement any necessary timeouts
@@ -1744,9 +1733,8 @@ class _TCScaleVMLifecycle(_TCScaleVMOp):
         except Exception, e:
             # If it failed, continue, but mark it as failed for now.
             xenrt.TEC().reason("VM %s failed to boot - %s" % (vm.getName(), str(e)))
-            self.lock.acquire()
-            self.failedVMs.append(vm.getName())
-            self.lock.release()
+            with self.lock:
+                self.failedVMs.append(vm.getName())
 
     def start(self, vm):
         # Conventional start
@@ -1758,9 +1746,8 @@ class _TCScaleVMLifecycle(_TCScaleVMOp):
         self.addTiming("TIME_VM_STARTCOMPLETE_%s:%.3f" % (vm.getName(), xenrt.util.timenow(float=True)))
         # Asynchronously wait for it to boot
         t = xenrt.PTask(self.waitForVMBoot, vm)
-        self.lock.acquire()
-        self.completionThreads.append(t)
-        self.lock.release()
+        with self.lock:
+            self.completionThreads.append(t)
         t.start()
 
     def shutdown(self, vm):
@@ -1806,9 +1793,8 @@ class _TCScaleVMXenDesktopLifecycle(_TCScaleVMLifecycle):
         self.addTiming("TIME_VM_STARTCOMPLETE_%s:%.3f" % (vm.getName(), xenrt.util.timenow(float=True)))
         # Asynchronously wait for it to boot
         t = xenrt.PTask(self.waitForVMBoot, vm)
-        self.lock.acquire()
-        self.completionThreads.append(t)
-        self.lock.release()
+        with self.lock:
+            self.completionThreads.append(t)
         t.start()
 
 
@@ -1855,9 +1841,8 @@ class _TCScaleVMXenDesktopLifecycle(_TCScaleVMLifecycle):
 
             if xenrt.TEC().lookup("OPTION_ASYNC_VDIDESTROY", True, boolean=True):
                 # Destroy the VDI later
-                self.lock.acquire()
-                self.vdisToDestroy.append(vdiToDestroy)
-                self.lock.release()
+                with self.lock:
+                    self.vdisToDestroy.append(vdiToDestroy)
             else:
                 self.hosts[0].getCLIInstance().execute("vdi-destroy", "uuid=%s" % vdiToDestroy)
 
@@ -2133,9 +2118,8 @@ class _Stability(_TCScaleVMXenDesktopLifecycle):
             host.waitForSSH(600, "Host reboot")
         except Exception,e:
             xenrt.TEC().reason("Failed to Reboot host %s - %s" % (host.getName(), str(e)))
-            self.lock.acquire()
-            self.failedHosts.append(host.getName())
-            self.lock.release()
+            with self.lock:
+                self.failedHosts.append(host.getName())
             self.addTiming("TIME_HOST_REBOOT_FAILED_%s:%.3f" % (host.getName(),xenrt.util.timenow(float=True)))
             return
         self.addTiming("TIME_HOST_UP_%s:%.3f" % (host.getName(),xenrt.util.timenow(float=True)))
@@ -2257,17 +2241,15 @@ class _Stability(_TCScaleVMXenDesktopLifecycle):
                 # remove checked guests:
                 del domains[uuid]
             else: # else report an error
-                self.lock.acquire()
-                self.xapiDomainMismatch += ("Host %s: Guest %s (%s) seen as running in xapi, but corresponding domain not found in list_domains\n"
-                        % (host.getName(), guest.getName(), uuid) )
-                self.lock.release()
+                with self.lock:
+                    self.xapiDomainMismatch += ("Host %s: Guest %s (%s) seen as running in xapi, but corresponding domain not found in list_domains\n"
+                            % (host.getName(), guest.getName(), uuid) )
 
         # check that all domains found by list_domains (except for dom0) were listed by xapi
         if len(domains) > 0:
-            self.lock.acquire()
-            self.xapiDomainMismatch += ("Host %s: Following domains are running, but not reported as such by xapi: %s\n"
-                        % (host.getName(), domains.keys() ))
-            self.lock.release()
+            with self.lock:
+                self.xapiDomainMismatch += ("Host %s: Following domains are running, but not reported as such by xapi: %s\n"
+                            % (host.getName(), domains.keys() ))
 
 
     def run(self,arglist):
@@ -2437,9 +2419,8 @@ class TCStbltySRReboot(_Stability):
             guest.check()
         except xenrt.XRTFailure, e:
             self.addTiming("Failed to Check VM %s: %s" % (guest.getName(),e))
-            self.lock.acquire()
-            self.failedGuest.append(guest.getName())
-            self.lock.release()
+            with self.lock:
+                self.failedGuest.append(guest.getName())
 
 class TCStbltyAllReboot(_Stability):
     """All host reboot and block on every host"""
@@ -2534,9 +2515,8 @@ class TCPerfDiskWorkLoad(_TCScaleVMXenDesktopLifecycle):
             self.copyWriteScript(vm)
         except Exception, e:
             errorMessage = "DISK_WRITE_WORKLOAD FAILED on VM %s with error %s" % (vm.getName(),str(e))
-            self.lock.acquire()
-            self.errorMessages.append(errorMessage)
-            self.lock.release()
+            with self.lock:
+                self.errorMessages.append(errorMessage)
 
     def readScriptWrapper(self,vm):
 
@@ -2544,9 +2524,8 @@ class TCPerfDiskWorkLoad(_TCScaleVMXenDesktopLifecycle):
             self.copyReadScript(vm)
         except Exception, e:
             errorMessage = "DISK_READ_WORKLOAD FAILED on VM %s with error %s" % (vm.getName(),str(e))
-            self.lock.acquire()
-            self.errorMessages.append(errorMessage)
-            self.lock.release()
+            with self.lock:
+                self.errorMessages.append(errorMessage)
 
     def copyWriteScript(self,vm):
 
@@ -2574,9 +2553,8 @@ for i in range(50):
             vm.xmlrpcExec("python c:\\writeScript.py",timeout=14400,ignoreHealthCheck=True)
         except Exception, e:
             errorMessage = "Failed to execute write script on VM %s and failed with error : %s" % (vm.getName(),e)
-            self.lock.acquire()
-            self.errorMessages.append(errorMessage)
-            self.lock.release()
+            with self.lock:
+                self.errorMessages.append(errorMessage)
 
     def copyReadScript(self,vm):
 
@@ -2603,9 +2581,8 @@ for i in range(50):
             vm.xmlrpcExec("python c:\\readScript.py",timeout=1800,ignoreHealthCheck=True)
         except Exception, e:
             errorMessage = "Failed to execute read script on VM %s and failed with error : %s" % (vm.getName(),e)
-            self.lock.acquire()
-            self.errorMessages.append(errorMessage)
-            self.lock.release()
+            with self.lock:
+                self.errorMessages.append(errorMessage)
 
 class TCPerfCPUWorkLoad(_TCScaleVMXenDesktopLifecycle):
 

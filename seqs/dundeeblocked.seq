@@ -5,9 +5,6 @@
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
     <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
-    <!-- Override SUITE params to avoid TC failure due to # of vcpu -->
-    <RND_CORES_PER_SOCKET>no</RND_CORES_PER_SOCKET>
-    <RND_VCPUS>no</RND_VCPUS>
   </variables>
 
   <prepare>

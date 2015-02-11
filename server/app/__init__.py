@@ -2,16 +2,29 @@ from server import Page
 import app.db
 import config
 import time
+from pyramid.httpexceptions import *
 
 class XenRTPage(Page):
     WRITE = False
     DB_SYNC_CHECK_INTERVAL = 0.1
+    REQUIRE_AUTH = False
+    REQUIRE_AUTH_IF_ENABLED = False
 
     def __init__(self, request):
         super(XenRTPage, self).__init__(request)
         self._db = None
 
+    def getUser(self):
+        if "X-Fake-User" in self.request.headers:
+            return self.request.headers['X-Fake-User']
+        user = self.request.headers.get("X-Forwarded-User", "")
+        if user == "(null)" or not user:
+            return None
+        return user.split("@")[0]
+
     def renderWrapper(self):
+        if not self.getUser() and (self.REQUIRE_AUTH or (self.REQUIRE_AUTH_IF_ENABLED and config.auth_enabled == "yes")):
+            return HTTPUnauthorized()
         try:
             ret = self.render()
             return ret
@@ -125,6 +138,7 @@ class XenRTPage(Page):
 
 
 import app.api
+import app.apiv2
 import app.ui
 import app.compat
 import app.signal

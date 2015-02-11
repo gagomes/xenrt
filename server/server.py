@@ -3,8 +3,12 @@
 from pyramid.config import Configurator
 from pyramid.response import Response
 from pyramid.renderers import render_to_response
+from pyramid.httpexceptions import *
 
 import config
+
+import uuid
+import json
 
 #def launch_memory_usage_server(port = 8080):
 #    import cherrypy
@@ -25,13 +29,15 @@ class Server(object):
         self.appconfig.include("pyramid_chameleon")
         self.compatActions = {}
 
-    def addPage(self, name, location, function, renderer):
-        self.appconfig.add_route(name, location)
+    def addPage(self, location, function, renderer, reqType):
+        name = str(uuid.uuid4())
+        self.appconfig.add_route(name, location, request_method=reqType)
         self.appconfig.add_view(function, route_name=name, renderer=renderer)
-    
+
     def getApp(self):
         ### Add code to add static locations here ###
         self.appconfig.add_static_view(name='static', path='__main__:static')
+        self.appconfig.add_static_view(name='swagger', path='__main__:swagger')
         app = self.appconfig.make_wsgi_app()
         return app
 
@@ -45,9 +51,9 @@ class Server(object):
             return None
 
 class PageFactory(object):
-    def __init__(self, page, name, location, renderer="string", contentType=None, compatAction=None):
+    def __init__(self, page, location, renderer="string", contentType=None, compatAction=None, reqType=None):
         self.server = ServerInstance()
-        self.server.addPage(name, location, self, renderer)
+        self.server.addPage(location, self, renderer, reqType)
         self.page = page
         self.contentType = contentType
         if renderer == "string":
@@ -56,6 +62,7 @@ class PageFactory(object):
                 self.contentType = "text/plain"
         else:
             self.string = False
+        self.json = self.contentType == "application/json"
         if compatAction:
             self.server.addCompatAction(compatAction, page)
 
@@ -66,6 +73,8 @@ class PageFactory(object):
             request.response.content_type = self.contentType
         if self.string and ret and isinstance(ret, basestring) and not ret[-1] == "\n":
             ret += "\n"
+        if self.json and ret and not isinstance(ret, basestring) and not isinstance(ret, HTTPException):
+            ret = json.dumps(ret, indent=2, sort_keys=True, encoding="latin-1")
         return ret
 
 class Page(object):

@@ -216,6 +216,11 @@ class XenServerLicenceFactory(object):
     __TAM = "tampa"
     __CLR = "clearwater"
     __CRE = "creedence"
+    __SAN = "sanibel"
+    __BOS = "boston"
+    __COW = "cowley"
+    __MNR = "mnr"
+    __OXF = "oxford"
 
     def __getHostAge(self, xshost):
         return xshost.productVersion.lower()
@@ -262,6 +267,18 @@ class XenServerLicenceFactory(object):
     def licenceForHost(self, xshost, sku):
         lver = self.__getHostAge(xshost)
         return self.licence(lver, sku)
+
+    def maxLicenceSkuHost(self,xshost):
+        lver = self.__getHostAge(xshost)
+        if lver == self.__TAM or lver == self.__SAN or lver == self.__BOS or lver == self.__COW or lver == self.__MNR or lver == self.__OXF:
+            return TampaLicence(XenServerLicenceSKU.XSPlatinum)    
+        if lver == self.__CLR:
+            return ClearwaterLicence(XenServerLicenceSKU.PerSocket)
+        if lver == self.__CRE:
+            return CreedenceLicence(XenServerLicenceSKU.PerUserEnterprise)
+ 
+    def maxLicenceSkuPool(self,xspool):
+        self.maxLicenceSkuHost(xspool.master)
 
     def licence(self, productVersion, sku):
         lver = productVersion.lower()

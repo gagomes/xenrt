@@ -52,6 +52,7 @@ class Config:
         self.config["NFS_BASE_PATH"] = "/local/scratch/nfs"
         self.config["ISCSI_BASE_PATH"] = "/local/scratch/iscsi"
         self.config["FILE_MANAGER_CACHE"] = "/local/scratch/cache2"
+        self.config["FILE_MANAGER_CACHE_NFS"] = "/local/scratch/cache_nfs"
         self.config["CLEANUP_FLAGS_PATH"] = "/local/scratch/cleanup"
         self.config["RESOURCE_LOCK_DIR"] = "${NFS_BASE_PATH}/locks"
         self.config["DB_BUFFER_DIR"] = "${NFS_BASE_PATH}/dbconnect"
@@ -926,6 +927,8 @@ class Config:
         self.config["VERSION_CONFIG"]["Clearwater"]["DEFAULT_RPU_LINUX_VERSION"] = "rhel64"
         self.config["VERSION_CONFIG"]["Clearwater"]["MAX_VBDS_PER_HOST"] = "2048"
         self.config["VERSION_CONFIG"]["Clearwater"]["HVM_LINUX"] = "rhel7,centos7,oel7,ubuntu1404"
+        self.config["VERSION_CONFIG"]["Clearwater"]["GENERIC_LINUX_OS"] = "debian70"
+
         
         # Creedence
         self.config["VERSION_CONFIG"]["Creedence"] = {}
@@ -1023,6 +1026,7 @@ class Config:
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_CENTOS_66"] = "CentOS 6 (32-bit),CentOS 6.0 (32-bit),CentOS 6.0,CentOS 6.0 (32-bit),CentOS 6.0"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_CENTOS_66_64"] = "CentOS 6 (64-bit),CentOS 6.0 (64-bit),CentOS 6.0 x64,CentOS 6.0 (64-bit),CentOS 6.0 x64"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_CENTOS_7_64"] = "CentOS 7"
+        self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_COREOS"] = "CoreOS (experimental),CoreOS"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_UBUNTU_1004"] = "Ubuntu Lucid Lynx 10.04 (32-bit), Ubuntu Lucid Lynx 10.04"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_UBUNTU_1004_64"] = "Ubuntu Lucid Lynx 10.04 (64-bit), Ubuntu Lucid Lynx 10.04 x64"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_UBUNTU_1204"] = "Ubuntu Precise Pangolin 12.04 (32-bit),Ubuntu Precise Pangolin 12.04"
@@ -1079,7 +1083,7 @@ class Config:
         self.config["VERSION_CONFIG"]["Creedence"]["MIN_VM_MEMORY"] = "128"
         self.config["VERSION_CONFIG"]["Creedence"]["MAX_VM_MEMORY"] = "131072"
         self.config["VERSION_CONFIG"]["Creedence"]["MAX_VM_MEMORY_LINUX32BIT"] = "65536"
-        self.config["VERSION_CONFIG"]["Creedence"]["MAX_VM_VCPUS"] = "16"
+        self.config["VERSION_CONFIG"]["Creedence"]["MAX_VM_VCPUS"] = "32"
         # XenServer enforced minimum memory limitations
         self.config["VERSION_CONFIG"]["Creedence"]["VM_MIN_MEMORY_LIMITS"] = {}
         self.config["VERSION_CONFIG"]["Creedence"]["VM_MIN_MEMORY_LIMITS"]["w2k3eesp2pae"] = "256"
@@ -1117,7 +1121,7 @@ class Config:
         self.config["VERSION_CONFIG"]["Creedence"]["SUPPORTS_HIBERNATE"] = "no"
         self.config["VERSION_CONFIG"]["Creedence"]["GENERIC_WINDOWS_OS"] = "ws08sp2-x86"
         self.config["VERSION_CONFIG"]["Creedence"]["GENERIC_WINDOWS_OS_64"] = "ws08r2sp1-x64"
-        self.config["VERSION_CONFIG"]["Creedence"]["GENERIC_LINUX_OS"] = "debian60"
+        self.config["VERSION_CONFIG"]["Creedence"]["GENERIC_LINUX_OS"] = "debian70"
         self.config["VERSION_CONFIG"]["Creedence"]["GENERIC_LINUX_OS_64"] = "centos64"
         self.config["VERSION_CONFIG"]["Creedence"]["TILE_WIN_DISTRO"] = "ws08sp2-x86"
         self.config["VERSION_CONFIG"]["Creedence"]["TILE_LINUX_DISTRO"] = "centos57"
@@ -1819,172 +1823,214 @@ class Config:
         self.config["GUEST_LIMITATIONS"]["w2k3eesp2pae"]["MINMEMORY"] = "128"
         self.config["GUEST_LIMITATIONS"]["w2k3eesp2pae"]["MAXMEMORY"] = "65536"
         self.config["GUEST_LIMITATIONS"]["w2k3eesp2pae"]["MAXSOCKETS"] = "4"
+        self.config["GUEST_LIMITATIONS"]["w2k3eesp2pae"]["MAX_VM_VCPUS"] = "4"
         self.config["GUEST_LIMITATIONS"]["w2k3se"] = {}
         self.config["GUEST_LIMITATIONS"]["w2k3se"]["MINMEMORY"] = "128"
         self.config["GUEST_LIMITATIONS"]["w2k3se"]["MAXMEMORY"] = "4096"
         self.config["GUEST_LIMITATIONS"]["w2k3se"]["MAXSOCKETS"] = "4"
+        self.config["GUEST_LIMITATIONS"]["w2k3se"]["MAX_VM_VCPUS"] = "4"
         self.config["GUEST_LIMITATIONS"]["w2k3sesp1"] = {}
         self.config["GUEST_LIMITATIONS"]["w2k3sesp1"]["MINMEMORY"] = "128"
         self.config["GUEST_LIMITATIONS"]["w2k3sesp1"]["MAXMEMORY"] = "4096"
         self.config["GUEST_LIMITATIONS"]["w2k3sesp1"]["MAXSOCKETS"] = "4"
+        self.config["GUEST_LIMITATIONS"]["w2k3sesp1"]["MAX_VM_VCPUS"] = "4"
         self.config["GUEST_LIMITATIONS"]["w2k3ser2"] = {}
         self.config["GUEST_LIMITATIONS"]["w2k3ser2"]["MINMEMORY"] = "128"
         self.config["GUEST_LIMITATIONS"]["w2k3ser2"]["MAXMEMORY"] = "4096"
         self.config["GUEST_LIMITATIONS"]["w2k3ser2"]["MAXSOCKETS"] = "4"
+        self.config["GUEST_LIMITATIONS"]["w2k3ser2"]["MAX_VM_VCPUS"] = "4"
         self.config["GUEST_LIMITATIONS"]["w2k3sesp2"] = {}
         self.config["GUEST_LIMITATIONS"]["w2k3sesp2"]["MINMEMORY"] = "128"
         self.config["GUEST_LIMITATIONS"]["w2k3sesp2"]["MAXMEMORY"] = "4096"
         self.config["GUEST_LIMITATIONS"]["w2k3sesp2"]["MAXSOCKETS"] = "4"
+        self.config["GUEST_LIMITATIONS"]["w2k3sesp2"]["MAX_VM_VCPUS"] = "4"
         self.config["GUEST_LIMITATIONS"]["w2kprosp4"] = {}
         self.config["GUEST_LIMITATIONS"]["w2kprosp4"]["MINMEMORY"] = "128"
         self.config["GUEST_LIMITATIONS"]["w2kprosp4"]["MAXMEMORY"] = "4096"
         self.config["GUEST_LIMITATIONS"]["w2kprosp4"]["MAXCORES"] = "2"
+        self.config["GUEST_LIMITATIONS"]["w2kprosp4"]["MAX_VM_VCPUS"] = "2"
         self.config["GUEST_LIMITATIONS"]["w2kassp4"] = {}
         self.config["GUEST_LIMITATIONS"]["w2kassp4"]["MINMEMORY"] = "128"
         self.config["GUEST_LIMITATIONS"]["w2kassp4"]["MAXMEMORY"] = "8192"
         self.config["GUEST_LIMITATIONS"]["w2kassp4"]["MAXCORES"] = "8"
+        self.config["GUEST_LIMITATIONS"]["w2kassp4"]["MAX_VM_VCPUS"] = "8"
         self.config["GUEST_LIMITATIONS"]["winxpsp2"] = {}
         self.config["GUEST_LIMITATIONS"]["winxpsp2"]["MINMEMORY"] = "128"
         self.config["GUEST_LIMITATIONS"]["winxpsp2"]["MAXMEMORY"] = "4096"
         self.config["GUEST_LIMITATIONS"]["winxpsp2"]["MAXSOCKETS"] = "2"
         self.config["GUEST_LIMITATIONS"]["winxpsp2"]["MAXCORES"] = "4"
+        self.config["GUEST_LIMITATIONS"]["winxpsp2"]["MAX_VM_VCPUS"] = "4"
         self.config["GUEST_LIMITATIONS"]["winxpsp3"] = {}
         self.config["GUEST_LIMITATIONS"]["winxpsp3"]["MINMEMORY"] = "128"
         self.config["GUEST_LIMITATIONS"]["winxpsp3"]["MAXMEMORY"] = "4096"
         self.config["GUEST_LIMITATIONS"]["winxpsp3"]["MAXSOCKETS"] = "2"
         self.config["GUEST_LIMITATIONS"]["winxpsp3"]["MAXCORES"] = "4"
+        self.config["GUEST_LIMITATIONS"]["winxpsp3"]["MAX_VM_VCPUS"] = "2"
         self.config["GUEST_LIMITATIONS"]["w2k3ee"] = {}
         self.config["GUEST_LIMITATIONS"]["w2k3ee"]["MINMEMORY"] = "128"
         self.config["GUEST_LIMITATIONS"]["w2k3ee"]["MAXMEMORY"] = "65536"
         self.config["GUEST_LIMITATIONS"]["w2k3ee"]["MAXSOCKETS"] = "8"
+        self.config["GUEST_LIMITATIONS"]["w2k3ee"]["MAX_VM_VCPUS"] = "8"
         self.config["GUEST_LIMITATIONS"]["w2k3eesp1"] = {}
         self.config["GUEST_LIMITATIONS"]["w2k3eesp1"]["MINMEMORY"] = "128"
         self.config["GUEST_LIMITATIONS"]["w2k3eesp1"]["MAXMEMORY"] = "65536"
         self.config["GUEST_LIMITATIONS"]["w2k3eesp1"]["MAXSOCKETS"] = "8"
+        self.config["GUEST_LIMITATIONS"]["w2k3eesp1"]["MAX_VM_VCPUS"] = "8"
         self.config["GUEST_LIMITATIONS"]["w2k3eer2"] = {}
         self.config["GUEST_LIMITATIONS"]["w2k3eer2"]["MINMEMORY"] = "128"
         self.config["GUEST_LIMITATIONS"]["w2k3eer2"]["MAXMEMORY"] = "65536"
         self.config["GUEST_LIMITATIONS"]["w2k3eer2"]["MAXSOCKETS"] = "8"
+        self.config["GUEST_LIMITATIONS"]["w2k3eer2"]["MAX_VM_VCPUS"] = "8"
         self.config["GUEST_LIMITATIONS"]["w2k3eesp2"] = {}
         self.config["GUEST_LIMITATIONS"]["w2k3eesp2"]["MINMEMORY"] = "128"
         self.config["GUEST_LIMITATIONS"]["w2k3eesp2"]["MAXMEMORY"] = "65536"
         self.config["GUEST_LIMITATIONS"]["w2k3eesp2"]["MAXSOCKETS"] = "8"
+        self.config["GUEST_LIMITATIONS"]["w2k3eesp2"]["MAX_VM_VCPUS"] = "8"
         self.config["GUEST_LIMITATIONS"]["w2k3eesp2-x64"] = {}
         self.config["GUEST_LIMITATIONS"]["w2k3eesp2-x64"]["MINMEMORY"] = "128"
         self.config["GUEST_LIMITATIONS"]["w2k3eesp2-x64"]["MAXMEMORY"] = "1048576"
         self.config["GUEST_LIMITATIONS"]["w2k3eesp2-x64"]["MAXSOCKETS"] = "8"
+        self.config["GUEST_LIMITATIONS"]["w2k3eesp2-x64"]["MAX_VM_VCPUS"] = "8"
         self.config["GUEST_LIMITATIONS"]["w2k3eesp2-rc"] = {}
         self.config["GUEST_LIMITATIONS"]["w2k3eesp2-rc"]["MINMEMORY"] = "128"
         self.config["GUEST_LIMITATIONS"]["w2k3eesp2-rc"]["MAXMEMORY"] = "65536"
         self.config["GUEST_LIMITATIONS"]["w2k3eesp2-rc"]["MAXSOCKETS"] = "8"
+        self.config["GUEST_LIMITATIONS"]["w2k3eesp2-rc"]["MAX_VM_VCPUS"] = "8"
         self.config["GUEST_LIMITATIONS"]["vistaee"] = {}
         self.config["GUEST_LIMITATIONS"]["vistaee"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["vistaee"]["MAXMEMORY"] = "4096"
         self.config["GUEST_LIMITATIONS"]["vistaee"]["MAXSOCKETS"] = "2"
+        self.config["GUEST_LIMITATIONS"]["vistaee"]["MAX_VM_VCPUS"] = "2"
         self.config["GUEST_LIMITATIONS"]["vistaee-x64"] = {}
         self.config["GUEST_LIMITATIONS"]["vistaee-x64"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["vistaee-x64"]["MAXMEMORY"] = "131072"
         self.config["GUEST_LIMITATIONS"]["vistaee-x64"]["MAXSOCKETS"] = "2"
+        self.config["GUEST_LIMITATIONS"]["vistaee-x64"]["MAX_VM_VCPUS"] = "2"
         self.config["GUEST_LIMITATIONS"]["vistaeesp1"] = {}
         self.config["GUEST_LIMITATIONS"]["vistaeesp1"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["vistaeesp1"]["MAXMEMORY"] = "4096"
         self.config["GUEST_LIMITATIONS"]["vistaeesp1"]["MAXSOCKETS"] = "2"
+        self.config["GUEST_LIMITATIONS"]["vistaeesp1"]["MAX_VM_VCPUS"] = "2"
         self.config["GUEST_LIMITATIONS"]["vistaeesp1-x64"] = {}
         self.config["GUEST_LIMITATIONS"]["vistaeesp1-x64"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["vistaeesp1-x64"]["MAXMEMORY"] = "131072"
         self.config["GUEST_LIMITATIONS"]["vistaeesp1-x64"]["MAXSOCKETS"] = "2"
+        self.config["GUEST_LIMITATIONS"]["vistaeesp1-x64"]["MAX_VM_VCPUS"] = "2"
         self.config["GUEST_LIMITATIONS"]["vistaeesp2"] = {}
         self.config["GUEST_LIMITATIONS"]["vistaeesp2"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["vistaeesp2"]["MAXMEMORY"] = "4096"
         self.config["GUEST_LIMITATIONS"]["vistaeesp2"]["MAXSOCKETS"] = "2"
+        self.config["GUEST_LIMITATIONS"]["vistaeesp2"]["MAX_VM_VCPUS"] = "2"
         self.config["GUEST_LIMITATIONS"]["vistaeesp2-x64"] = {}
         self.config["GUEST_LIMITATIONS"]["vistaeesp2-x64"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["vistaeesp2-x64"]["MAXMEMORY"] = "131072"
         self.config["GUEST_LIMITATIONS"]["vistaeesp2-x64"]["MAXSOCKETS"] = "2"
+        self.config["GUEST_LIMITATIONS"]["vistaeesp2-x64"]["MAX_VM_VCPUS"] = "2"
         self.config["GUEST_LIMITATIONS"]["ws08-x86"] = {}
         self.config["GUEST_LIMITATIONS"]["ws08-x86"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["ws08-x86"]["MAXMEMORY"] = "65536"
         self.config["GUEST_LIMITATIONS"]["ws08-x86"]["MAXSOCKETS"] = "8"
+        self.config["GUEST_LIMITATIONS"]["ws08-x86"]["MAX_VM_VCPUS"] = "8"
         self.config["GUEST_LIMITATIONS"]["ws08-x64"] = {}
         self.config["GUEST_LIMITATIONS"]["ws08-x64"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["ws08-x64"]["MAXMEMORY"] = "1048576"
         self.config["GUEST_LIMITATIONS"]["ws08-x64"]["MAXSOCKETS"] = "8"
+        self.config["GUEST_LIMITATIONS"]["ws08-x64"]["MAX_VM_VCPUS"] = "8"
         self.config["GUEST_LIMITATIONS"]["ws08sp2-x86"] = {}
         self.config["GUEST_LIMITATIONS"]["ws08sp2-x86"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["ws08sp2-x86"]["MAXMEMORY"] = "65536"
         self.config["GUEST_LIMITATIONS"]["ws08sp2-x86"]["MAXSOCKETS"] = "8"
+        self.config["GUEST_LIMITATIONS"]["ws08sp2-x86"]["MAX_VM_VCPUS"] = "8"
         self.config["GUEST_LIMITATIONS"]["ws08sp2-x64"] = {}
         self.config["GUEST_LIMITATIONS"]["ws08sp2-x64"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["ws08sp2-x64"]["MAXMEMORY"] = "1048576"
         self.config["GUEST_LIMITATIONS"]["ws08sp2-x64"]["MAXSOCKETS"] = "8"
+        self.config["GUEST_LIMITATIONS"]["ws08sp2-x64"]["MAX_VM_VCPUS"] = "8"
         self.config["GUEST_LIMITATIONS"]["ws08dc-x86"] = {}
         self.config["GUEST_LIMITATIONS"]["ws08dc-x86"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["ws08dc-x86"]["MAXMEMORY"] = "65536"
         self.config["GUEST_LIMITATIONS"]["ws08dc-x86"]["MAXSOCKETS"] = "64"
+        self.config["GUEST_LIMITATIONS"]["ws08dc-x86"]["MAX_VM_VCPUS"] = "16"
         self.config["GUEST_LIMITATIONS"]["ws08dc-x64"] = {}
         self.config["GUEST_LIMITATIONS"]["ws08dc-x64"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["ws08dc-x64"]["MAXMEMORY"] = "1048576"
         self.config["GUEST_LIMITATIONS"]["ws08dc-x64"]["MAXSOCKETS"] = "64"
+        self.config["GUEST_LIMITATIONS"]["ws08dc-x64"]["MAX_VM_VCPUS"] = "16"
         self.config["GUEST_LIMITATIONS"]["ws08dcsp2-x86"] = {}
         self.config["GUEST_LIMITATIONS"]["ws08dcsp2-x86"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["ws08dcsp2-x86"]["MAXMEMORY"] = "65536"
         self.config["GUEST_LIMITATIONS"]["ws08dcsp2-x86"]["MAXSOCKETS"] = "64"
+        self.config["GUEST_LIMITATIONS"]["ws08dcsp2-x86"]["MAX_VM_VCPUS"] = "16"
         self.config["GUEST_LIMITATIONS"]["ws08dcsp2-x64"] = {}
         self.config["GUEST_LIMITATIONS"]["ws08dcsp2-x64"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["ws08dcsp2-x64"]["MAXMEMORY"] = "1048576"
         self.config["GUEST_LIMITATIONS"]["ws08dcsp2-x64"]["MAXSOCKETS"] = "64"
+        self.config["GUEST_LIMITATIONS"]["ws08dcsp2-x64"]["MAX_VM_VCPUS"] = "16"
         self.config["GUEST_LIMITATIONS"]["ws08r2-x64"] = {}
         self.config["GUEST_LIMITATIONS"]["ws08r2-x64"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["ws08r2-x64"]["MAXMEMORY"] = "2097152"
         self.config["GUEST_LIMITATIONS"]["ws08r2-x64"]["MAXSOCKETS"] = "8"
+        self.config["GUEST_LIMITATIONS"]["ws08r2-x64"]["MAX_VM_VCPUS"] = "8"
         self.config["GUEST_LIMITATIONS"]["ws08r2sp1-x64"] = {}
         self.config["GUEST_LIMITATIONS"]["ws08r2sp1-x64"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["ws08r2sp1-x64"]["MAXMEMORY"] = "2097152"
         self.config["GUEST_LIMITATIONS"]["ws08r2sp1-x64"]["MAXSOCKETS"] = "8"
+        self.config["GUEST_LIMITATIONS"]["ws08r2sp1-x64"]["MAX_VM_VCPUS"] = "8"
         self.config["GUEST_LIMITATIONS"]["ws08r2dcsp1-x64"] = {}
         self.config["GUEST_LIMITATIONS"]["ws08r2dcsp1-x64"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["ws08r2dcsp1-x64"]["MAXMEMORY"] = "2097152"
         self.config["GUEST_LIMITATIONS"]["ws08r2dcsp1-x64"]["MAXSOCKETS"] = "64"
+        self.config["GUEST_LIMITATIONS"]["ws08r2dcsp1-x64"]["MAX_VM_VCPUS"] = "16"
         self.config["GUEST_LIMITATIONS"]["win7-x86"] = {}
         self.config["GUEST_LIMITATIONS"]["win7-x86"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["win7-x86"]["MAXMEMORY"] = "4096"
         self.config["GUEST_LIMITATIONS"]["win7-x86"]["MAXSOCKETS"] = "2"
+        self.config["GUEST_LIMITATIONS"]["win7-x86"]["MAX_VM_VCPUS"] = "2"
         self.config["GUEST_LIMITATIONS"]["win7-x64"] = {}
         self.config["GUEST_LIMITATIONS"]["win7-x64"]["MINMEMORY"] = "2048"
         self.config["GUEST_LIMITATIONS"]["win7-x64"]["MAXMEMORY"] = "196608"
         self.config["GUEST_LIMITATIONS"]["win7-x64"]["MAXSOCKETS"] = "2"
+        self.config["GUEST_LIMITATIONS"]["win7-x64"]["MAX_VM_VCPUS"] = "2"
         self.config["GUEST_LIMITATIONS"]["win7sp1-x86"] = {}
         self.config["GUEST_LIMITATIONS"]["win7sp1-x86"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["win7sp1-x86"]["MAXMEMORY"] = "4096"
         self.config["GUEST_LIMITATIONS"]["win7sp1-x86"]["MAXSOCKETS"] = "2"
+        self.config["GUEST_LIMITATIONS"]["win7sp1-x86"]["MAX_VM_VCPUS"] = "2"
         self.config["GUEST_LIMITATIONS"]["win7sp1-x64"] = {}
         self.config["GUEST_LIMITATIONS"]["win7sp1-x64"]["MINMEMORY"] = "2048"
         self.config["GUEST_LIMITATIONS"]["win7sp1-x64"]["MAXMEMORY"] = "196608"
         self.config["GUEST_LIMITATIONS"]["win7sp1-x64"]["MAXSOCKETS"] = "2"
+        self.config["GUEST_LIMITATIONS"]["win7sp1-x64"]["MAX_VM_VCPUS"] = "2"
         self.config["GUEST_LIMITATIONS"]["win8-x86"] = {}
         self.config["GUEST_LIMITATIONS"]["win8-x86"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["win8-x86"]["MAXMEMORY"] = "131072"
         self.config["GUEST_LIMITATIONS"]["win8-x86"]["MAXSOCKETS"] = "2"
+        self.config["GUEST_LIMITATIONS"]["win8-x86"]["MAX_VM_VCPUS"] = "2"
         self.config["GUEST_LIMITATIONS"]["win8-x64"] = {}
         self.config["GUEST_LIMITATIONS"]["win8-x64"]["MINMEMORY"] = "2048"
         self.config["GUEST_LIMITATIONS"]["win8-x64"]["MAXMEMORY"] = "131072"
         self.config["GUEST_LIMITATIONS"]["win8-x64"]["MAXSOCKETS"] = "2"
+        self.config["GUEST_LIMITATIONS"]["win8-x64"]["MAX_VM_VCPUS"] = "2"
         self.config["GUEST_LIMITATIONS"]["win81-x86"] = {}
         self.config["GUEST_LIMITATIONS"]["win81-x86"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["win81-x86"]["MAXMEMORY"] = "131072"
         self.config["GUEST_LIMITATIONS"]["win81-x86"]["MAXSOCKETS"] = "2"
+        self.config["GUEST_LIMITATIONS"]["win81-x86"]["MAX_VM_VCPUS"] = "2"
         self.config["GUEST_LIMITATIONS"]["win81-x64"] = {}
         self.config["GUEST_LIMITATIONS"]["win81-x64"]["MINMEMORY"] = "2048"
         self.config["GUEST_LIMITATIONS"]["win81-x64"]["MAXMEMORY"] = "131072"
         self.config["GUEST_LIMITATIONS"]["win81-x64"]["MAXSOCKETS"] = "2"
+        self.config["GUEST_LIMITATIONS"]["win81-x64"]["MAX_VM_VCPUS"] = "2"
         self.config["GUEST_LIMITATIONS"]["ws12-x64"] = {}
         self.config["GUEST_LIMITATIONS"]["ws12-x64"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["ws12-x64"]["MAXMEMORY"] = "524288"
         self.config["GUEST_LIMITATIONS"]["ws12-x64"]["MAXSOCKETS"] = "64"
+        self.config["GUEST_LIMITATIONS"]["ws12-x64"]["MAX_VM_VCPUS"] = "16"
         self.config["GUEST_LIMITATIONS"]["ws12core-x64"] = {}
         self.config["GUEST_LIMITATIONS"]["ws12core-x64"]["MINMEMORY"] = "2048"
         self.config["GUEST_LIMITATIONS"]["ws12core-x64"]["MAXMEMORY"] = "524288"
         self.config["GUEST_LIMITATIONS"]["ws12core-x64"]["MAXSOCKETS"] = "64"
+        self.config["GUEST_LIMITATIONS"]["ws12core-x64"]["MAX_VM_VCPUS"] = "16"
         self.config["GUEST_LIMITATIONS"]["rhel38"] = {}
         self.config["GUEST_LIMITATIONS"]["rhel38"]["MINMEMORY"] = "64"
         self.config["GUEST_LIMITATIONS"]["rhel38"]["MAXMEMORY"] = "16384"
@@ -2320,7 +2366,7 @@ class Config:
         self.config["GUEST_LIMITATIONS"]["ubuntu1204"]["MAXMEMORY"] = "32768"
         self.config["GUEST_LIMITATIONS"]["ubuntu1204"]["MAXMEMORY64"] = "131072"
         self.config["GUEST_LIMITATIONS"]["ubuntu1204"]["MAX_VM_VCPUS"] = "8"
-        self.config["GUEST_LIMITATIONS"]["ubuntu1204"]["MAX_VM_VCPUS64"] = "32"
+        self.config["GUEST_LIMITATIONS"]["ubuntu1204"]["MAX_VM_VCPUS64"] = "64"
         self.config["GUEST_LIMITATIONS"]["ubuntu1404"] = {}
         self.config["GUEST_LIMITATIONS"]["ubuntu1404"]["MINMEMORY"] = "256"
         self.config["GUEST_LIMITATIONS"]["ubuntu1404"]["MAXMEMORY"] = "32768"
@@ -2376,9 +2422,11 @@ class Config:
         self.config["HOTFIXES"]["SanibelCC"] = {"RTM": {}}
         self.config["HOTFIXES"]["Tampa"] = {"RTM": {}}
         self.config["HOTFIXES"]["Clearwater"] = {"RTM": {}, "SP1": {}}
+        self.config["HOTFIXES"]["Creedence"] = {"RTM": {}}
 
         self.config["DEFAULT_HOTFIX_BRANCH"] = {}
         self.config["DEFAULT_HOTFIX_BRANCH"]["Clearwater"] = "SP1"
+        self.config["DEFAULT_HOTFIX_BRANCH"]["Creedence"] = "RTM"
         
         self.config["HOTFIXES"]["Orlando"]["RTM"]["HF1"] = "/usr/groups/release/XenServer-5.0.0-Update1RC3/XenServer-5.0.0-Update1.xsupdate"
         self.config["HOTFIXES"]["Orlando"]["RTM"]["HF2"] = "/usr/groups/release/XenServer-5.0.0-Update2RC3/XenServer-5.0.0-Update2.xsupdate"
@@ -3281,6 +3329,14 @@ class Config:
         
         # Nautilus - sm, xen-hyp, xen-tools, xapi, kexec, iSL. Rolls up XS62E014, XS62E017, XS62ESP1002, XS62ESP1004, XS62ESP1006, XS62ESP1007, XS62ESP1008, XS62ESP1011, XS62ESP1013, XS62ESP1015
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1016"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1016/90390/hotfix-XS62ESP1016/XS62ESP1016.xsupdate"
+        
+        #Creedence hotfixes
+        # Gloss: XenCenter, Rolls up nothing
+        self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E001"] = "/usr/groups/release/XenServer-6.x/XS-6.5/hotfixes/XS65E001/91026/hotfix-XS65E001/XS65E001.xsupdate"
+      
+        # Houston: xs-tools. Rolls up nothing.
+        self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E002"] = "/usr/groups/release/XenServer-6.x/XS-6.5/hotfixes/XS65E002/91034/hotfix-XS65E002/XS65E002.xsupdate"
+      
 
 
         return
@@ -3423,6 +3479,14 @@ class Config:
             self.config["CARBON_PATCHES_CLEARWATER"]["HF14"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1014"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF12"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1012"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF16"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1016"]
+
+        if not self.config.has_key("CARBON_PATCHES_CREEDENCE"):
+            self.config["CARBON_PATCHES_CREEDENCE"] = {}
+
+        branch = self.lookup("HFX_BRANCH_CREEDENCE", self.lookup(["DEFAULT_HOTFIX_BRANCH", "Creedence"]))
+        if branch == "RTM":
+            self.config["CARBON_PATCHES_CREEDENCE"]["HF01"] = self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E001"]
+            self.config["CARBON_PATCHES_CREEDENCE"]["HF02"] = self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E002"]
 
     def readFromFile(self, filename, path=None):
         """Read config from an XML file."""

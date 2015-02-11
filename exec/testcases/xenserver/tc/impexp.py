@@ -853,7 +853,7 @@ class TC18491(xenrt.TestCase):
         # install NFS server on guest
         self.guest.execguest("apt-get install -y --force-yes nfs-kernel-server nfs-common portmap")
         self.guest.execguest("echo '/ *(ro,sync,no_root_squash,insecure,subtree_check)' > /etc/exports")
-        self.guest.execguest("/etc/init.d/portmap start")
+        self.guest.execguest("/etc/init.d/portmap start || /etc/init.d/rpcbind start")
         self.guest.execguest("/etc/init.d/nfs-common start || true")
         self.guest.execguest("/etc/init.d/nfs-kernel-server start || true")
 

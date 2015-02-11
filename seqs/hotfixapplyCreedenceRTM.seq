@@ -1,0 +1,33 @@
+<xenrt>
+
+  <!-- Hotfix application tests for XenServer 6.5 RTM -->
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <PIDIR_MNR>/usr/groups/release/XenServer-5.6.0</PIDIR_MNR>
+    <PIDIR_COWLEY>/usr/groups/release/XenServer-5.x/XS-5.6.1-fp1/RTM-39265</PIDIR_COWLEY>
+    <PIDIR_OXFORD>/usr/groups/release/XenServer-5.x/XS-5.6.100-SP2/RTM-47101</PIDIR_OXFORD>
+    <PIDIR_BOSTON>/usr/groups/release/XenServer-6.x/XS-6.0/RTM-50762</PIDIR_BOSTON>
+    <PIDIR_SANIBEL>/usr/groups/release/XenServer-6.x/XS-6.0.2/RTM-53456</PIDIR_SANIBEL>
+    <PIDIR_TAMPA>/usr/groups/release/XenServer-6.x/XS-6.1/RTM-59235</PIDIR_TAMPA>
+    <PIDIR_CLEARWATER>/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446</PIDIR_CLEARWATER>
+    <PIDIR_CREEDENCE>/usr/groups/release/XenServer-6.x/XS-6.5/RTM-90233</PIDIR_CREEDENCE>
+    <PATCH_DESCRIPTIONS />
+    <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
+  </variables>
+
+  <default name="THIS_HOTFIX" value="ToBeSpecifiedOnSubmitCommandLine" />
+
+  <testsequence group="HF_CREEDENCE_RTM">
+
+    <testcase id="xenserver.tc.hotfix.TC23784" />
+    <testcase id="xenserver.tc.hotfix.TC23785" />
+    <testcase id="xenserver.tc.hotfix.TC23783" />
+    <testcase id="xenserver.tc.hotfix.TC19912" />
+    <testcase id="xenserver.tc.hotfix.TC16632" />
+    <testcase id="xenserver.tc.hotfix.TC15306" />
+    <testcase id="xenserver.tc.hotfix.TC15216" />
+    <testcase id="xenserver.tc.hotfix.TC14438" />
+  </testsequence>
+
+</xenrt>

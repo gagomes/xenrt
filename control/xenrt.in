@@ -32,6 +32,7 @@ _confdir = "@confdir@"
 _console = "@console@"
 _conserver = "@conserver@"
 _jenkins = "@jenkins@"
+_conskey = """@conskey@"""
 
 def urlopen_with_retry(*args, **kwargs):
     i = 0
@@ -3302,8 +3303,16 @@ class XenRTConsole(_XenRTControllerOperation):
                 addr = _conserver
             if self.overrideconsole:
                 console = self.overrideconsole
-
-            os.system("%s -p 3109 -U -M %s %s" % (console, addr, machine.split(".")[0].split("_")[0]))
+            if os.environ.get("SSH_CONSOLE") != "yes":
+                os.system("%s -p 3109 -U -M %s %s" % (console, addr, machine.split(".")[0].split("_")[0]))
+            else:
+                out = re.sub("(\S{64}) ", "\\1\n", _conskey)
+                out = re.sub("(-{5}) ", "\\1\n", out)
+                out = re.sub(" (-{5})", "\n\\1", out)
+                f = tempfile.NamedTemporaryFile()
+                f.file.write(out)
+                f.file.close()
+                os.system("ssh -t -i %s -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o CheckHostIP=no cons@%s %s" % (f.name, addr, machine.split(".")[0].split("_")[0]))
         return results
 
     def render(self, args, results):

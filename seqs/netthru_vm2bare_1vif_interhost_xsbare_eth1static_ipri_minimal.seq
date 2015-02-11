@@ -62,7 +62,7 @@
         <arg>endpoint0dev=1</arg>
         <arg>endpoint0ip=192.168.0.88</arg>
         <arg>endpoint1=RESOURCE_HOST_1</arg>
-        <arg>endpoint1dev=IPRI</arg>
+        <arg>endpoint1dev=NET_A</arg>
         <arg>endpoint1ip=192.168.0.99</arg>
       </testcase>
     </serial>
@@ -73,7 +73,7 @@
         <arg>endpoint0dev=1</arg>
         <arg>endpoint0ip=192.168.0.88</arg>
         <arg>endpoint1=RESOURCE_HOST_1</arg>
-        <arg>endpoint1dev=IPRI</arg>
+        <arg>endpoint1dev=NET_A</arg>
         <arg>endpoint1ip=192.168.0.99</arg>
       </testcase>
     </serial>

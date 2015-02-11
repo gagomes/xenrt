@@ -25,4 +25,4 @@ class XenRTSignal(XenRTPage):
 
         return "OK"
 
-PageFactory(XenRTSignal, "signal", "/signal")
+PageFactory(XenRTSignal, "/signal")

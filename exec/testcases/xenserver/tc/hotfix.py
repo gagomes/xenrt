@@ -120,10 +120,10 @@ class _Hotfix(xenrt.TestCase):
             v6 = self.getGuest("LicenseServer").getV6LicenseServer()
             self.uninstallOnCleanup(self.getGuest("LicenseServer"))
             v6.removeAllLicenses()
-            v6.addLicense("valid-platinum")
-            self.host.license(edition="platinum", usev6testd=False, v6server=v6)
+            self.host.applyFullLicense(v6)
             if self.POOLED:
-                self.slave.license(edition="platinum", usev6testd=False, v6server=v6)
+                v6.removeAllLicenses()
+                self.slave.applyFullLicense(v6)
             v6applied = True
 
         if self.POOLED:
@@ -193,11 +193,11 @@ class _Hotfix(xenrt.TestCase):
                     # Apply a v6 platinum license to this host
                     v6 = self.getGuest("LicenseServerForNonV6").getV6LicenseServer(host=self.host)
                     v6.removeAllLicenses()
-                    v6.addLicense("valid-platinum")
-                    self.host.license(edition="platinum", usev6testd=False, v6server=v6)
+                    self.host.applyFullLicense(v6)
                     if self.POOLED:
-                        self.slave.license(edition="platinum", usev6testd=False, v6server=v6)
-                    v6applied = True # This ensures we only apply the v6 license once
+                        v6.removeAllLicenses()
+                        self.slave.applyFullLicense(v6)
+                    v6applied = True
 
                 # Perform hotfixes for this version
                 self.doHotfixes(uver, ubranch, uhfs)
@@ -637,6 +637,13 @@ class _ClearwaterSP1(_ClearwaterRTM):
 class _ClearwaterSP1HFd(_ClearwaterSP1):
     INITIAL_HOTFIXES = ["XS62ESP1", "XS62ESP1002", "XS62ESP1003", "XS62ESP1004", "XS62ESP1005", "XS62ESP1006", "XS62ESP1007", "XS62ESP1008", "XS62ESP1009", "XS62ESP1011", "XS62ESP1012", "XS62ESP1013", "XS62ESP1014", "XS62ESP1015", "XS62ESP1016"]
     
+class _CreedenceRTM(_Hotfix):
+    INITIAL_VERSION = "Creedence"
+    INITIAL_BRANCH = "RTM"
+    
+class _CreedenceRTMHFd(_CreedenceRTM):
+    INITIAL_HOTFIXES = ["XS65E001", "XS65E002"]
+    
     
 # Upgrades
 class _OrlandoRTMviaMiamiHF3(_MiamiHF3):
@@ -809,6 +816,10 @@ class TC20927(_ClearwaterSP1HFd):
     """Apply hotfix to XenServer 6.2 SP1 with all previous released hotfixes applied"""
     pass
     
+class TC23786(_CreedenceRTMHFd):
+    """Apply hotfix to XenServer 6.5 RTM with all previous released (non-SP1) hotfixes applied"""
+    pass
+    
 # Negative tests (the hotfix should not apply to this base)
 class TC10545(_OrlandoRTM):
     """Apply hotfix to XenServer 5.0.0 RTM (should fail)"""
@@ -881,7 +892,19 @@ class TC19912(_TampaRTM):
 class TC20945(_ClearwaterRTM):
     """Apply hotfix to XenServer 6.2RTM (should fail)"""
     NEGATIVE = True
+
+class TC23783(_ClearwaterRTM):
+    """Apply XS-6.5 hotfix to XenServer 6.2 (should fail)"""
+    NEGATIVE = True
     
+class TC23785(_ClearwaterSP1):
+    """Apply XS-6.5 hotfix to XenServer 6.2 SP1(should fail)"""
+    NEGATIVE = True
+
+class TC23784(_CreedenceRTM):
+    """Apply XS 6.5 hotfix to XenServer 6.5 RTM"""
+    pass
+
 class TCvGPUTechPreview(_ClearwaterRTM):
     """Apply hotfix to XenServer 6.2 RTM with vGPU Tech Preview installed"""
     NEGATIVE = True
@@ -985,6 +1008,9 @@ class TC20946(_ClearwaterSP1):
     """Apply hotfix to XenServer 6.2 SP1 (pool)"""
     POOLED = True
     
+class TC23787(_CreedenceRTM):
+    """Apply XS 6.5 hotfix to XenServer 6.5 RTM (pool)"""
+    POOLED = True
 #############################################################################
 # Upgrade with a rollup
 
@@ -1903,7 +1929,6 @@ class TCUnsignedHotfixChecks(xenrt.TestCase):
             #Run sub-tests
             self.runSubcase("_checkDuplicateLines", (h, tmp, contents, hotfixHead), hotfixName, "Duplicate lines in CONTENTS")
             self.runSubcase("_checkVersionRegex", (hotfixHead), hotfixName, "Version regex formatting")
-            self.runSubcase("_checkBostonPreCheckUuid", (hotfixHead, contents), hotfixName, "Boston pre-check uuid")
             self.runSubcase("_checkSanibelBuildRegex", (hotfixHead), hotfixName, "Sanibel build regex value")
             self.runSubcase("_checkSweeneyBuildRegex", (hotfixHead), hotfixName, "Sweeney build regex value") 
             
@@ -1950,13 +1975,6 @@ class TCUnsignedHotfixChecks(xenrt.TestCase):
         if regexValue.count('^') != 1 or regexValue.count('\.') != 2 or regexValue.count('$') != 1:
             raise xenrt.XRTFailure("VERSION_REGEX value %s was misformed" % regexValue)
 
-    def _checkBostonPreCheckUuid(self, metadata, contents): 
-        bostonUuid="95ac709c-e408-423f-8d22-84b8134a149e"  
-        expectedLabel="XS60E001"
-        versionRegex="^6\.0\.0$"
-        verifySubstring = "verify_update"
-        self._checkPreCheckUuidNotMatchingLabel(metadata, contents, bostonUuid, expectedLabel, versionRegex, verifySubstring)
-        
     def _checkSanibelBuildRegex(self, metadata):
         """
         If the unsigned hotfix url contains sanibel-lcm then the unsigned hotfix contents must contain:
@@ -2041,6 +2059,18 @@ class TCUnsignedHotfixChecks(xenrt.TestCase):
             if toMatch in line:
                 return line.split("=")[-1].strip('"')
         return None
+
+class TCApplyHotfixes(xenrt.TestCase):
+    """Apply a defined set of hotfixes to the host"""
+
+    def run(self, arglist):
+        self.host = self.getDefaultHost()
+        patches = xenrt.TEC().lookup("BUNDLED_HOTFIX", {})
+        patchIdents = patches.keys()
+        patchIdents.sort()
+        for p in patchIdents:
+            self.host.applyPatch(xenrt.TEC().getFile(patches[p]), patchClean=True)
+        self.host.reboot()
 
 class TCRollingPoolUpdate(xenrt.TestCase):
     """

@@ -48,8 +48,8 @@ class XenRTMinimalFrame(XenRTPage):
 
         return {"matrix":matrix, "jobdetail": jobdetail, "testdetail":testdetail}
 
-PageFactory(XenRTIndex, "index", "/", renderer="__main__:templates/frames.pt")
-PageFactory(XenRTBlank, "blank", "/blank", renderer="__main__:templates/default.pt")
-PageFactory(XenRTJobQuery, "jobquery", "/jobquery", renderer="__main__:templates/default.pt")
-PageFactory(XenRTFrame, "frame", "/frame", renderer="__main__:templates/frames.pt")
-PageFactory(XenRTMinimalFrame, "minimalframe", "/minimalframe", renderer="__main__:templates/minimalframes.pt")
+PageFactory(XenRTIndex, "/", renderer="__main__:templates/frames.pt")
+PageFactory(XenRTBlank, "/blank", renderer="__main__:templates/default.pt")
+PageFactory(XenRTJobQuery, "/jobquery", renderer="__main__:templates/default.pt")
+PageFactory(XenRTFrame, "/frame", renderer="__main__:templates/frames.pt")
+PageFactory(XenRTMinimalFrame, "/minimalframe", renderer="__main__:templates/minimalframes.pt")

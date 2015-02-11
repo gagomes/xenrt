@@ -225,6 +225,7 @@ class TCCLI(xenrt.TestCase):
 
             if "debian-pv" in guests:
                 debianpv = host.createGenericLinuxGuest(name="debian-pv",
+                                                        vcpus=1,
                                                         sr=sruuid)
                 debianpv.setMemory(256)
                 debianpv.check()

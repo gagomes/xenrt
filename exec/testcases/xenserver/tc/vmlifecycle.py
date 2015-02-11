@@ -15,14 +15,11 @@ import testcases.xenserver.tc.guest
 
 def _setVCPUMax(guest):
 
-    if guest.getState() == "UP":
-        guest.shutdown()
-
-    guest.paramSet("VCPUs-max", "8")
+    guest.setState("DOWN")
+    guest.paramSet("VCPUs-max", guest.getMaxSupportedVCPUCount())
 
     # Even if the VM was shutdown before this function was called, it is powered on
-    if guest.getState() == "DOWN":
-        guest.start()
+    guest.setState("UP")
 
 class _NoNICBase(xenrt.TestCase):
 
@@ -397,15 +394,15 @@ class TC17439(_TC6869):
     """ Xenmotion of a sles 11.1 with "VCPUs-max > VCPU """
     xenrt.TEC().config.setVariable("VMLIFECYCLE_ITERS", "1")
     def installVM(self, host):
-    	sr = None
-    	sruuids = host.getSRs()
-    	for sruuid in sruuids:
+        sr = None
+        sruuids = host.getSRs()
+        for sruuid in sruuids:
             if host.getSRParam(uuid=sruuid, param='type') == 'nfs':
                 sr = sruuid
                 break
-    	if sr: 
+        if sr: 
             self.guest = host.createBasicGuest(distro="sles111",sr=sr) 
-    	else:
+        else:
             raise xenrt.XRTFailure("NFS SR not found on host")
 
         _setVCPUMax(self.guest)
@@ -449,7 +446,7 @@ class _BlockedOperations(xenrt.TestCase):
             self.guest = self.host.createGenericLinuxGuest(name=self.GUEST)
             xenrt.TEC().registry.guestPut(self.guest.getName(), self.guest)
             self.guest.shutdown()
-            self.guest.paramSet("VCPUs-max", "4")
+            self.guest.paramSet("VCPUs-max", str(self.guest.getMaxSupportedVCPUCount()))
         self.guest.paramClear("blocked-operations")
         try: self.guest.lifecycleOperation(self.PREPARE)
         except: pass
@@ -460,7 +457,7 @@ class _BlockedOperations(xenrt.TestCase):
                 xenrt.TEC().registry.guestPut(self.control.getName(),
                                               self.control)
                 self.control.shutdown()
-                self.control.paramSet("VCPUs-max", "4")
+                self.control.paramSet("VCPUs-max", str(self.guest.getMaxSupportedVCPUCount()))
             self.control.paramClear("blocked-operations")
             try: self.control.lifecycleOperation(self.PREPARE)
             except: pass
@@ -1719,7 +1716,7 @@ class _TCWinTimeZoneLifeCycle(testcases.xenserver.tc.guest._WinTimeZone):
         
     def localhostMigrate(self, timeZoneOffset, iterations=2):
         for i in range(iterations):
-            self.guest.migrateVM(guest.host, live='true')
+            self.guest.migrateVM(self.guest.host, live='true')
             self.verifyGuestTime(self.guest, self.host, timeZoneOffset)
 
     def poolMigrate(self, timeZoneOffset, iterations=2):

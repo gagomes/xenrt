@@ -333,7 +333,7 @@ Version 1.1.0
 
             # Start the master
             filename = "results-%s-%d-%s.csv" % (op, count, blocksize)
-            self.vm[0].xmlrpcExec("C:\\iometer.exe /c C:\\workload.icf /r C:\\%s /t 100" % filename)
+            self.vm[0].xmlrpcExec("C:\\iometer.exe /c C:\\workload.icf /r C:\\%s /t 100" % filename, timeout=1200)
 
             # Wait for the dynamo processes to finish
             for thread in threads:

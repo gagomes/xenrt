@@ -20,6 +20,15 @@
               </FirewallGroup>
             </FirewallGroups>
         </component>
+        <component name="Microsoft-Windows-Deployment" processorArchitecture="%ARCH%" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+            <RunSynchronous>
+                <RunSynchronousCommand wcm:action="add">
+                    <Description>Disable create user account</Description>
+                    <Path>reg add HKLM\Software\Microsoft\Windows\CurrentVersion\Setup\OOBE /v UnattendCreatedUser /t REG_DWORD /d 1 /f</Path>
+                    <Order>1</Order>
+                </RunSynchronousCommand>
+            </RunSynchronous>
+        </component>
   </settings>
   <settings pass="oobeSystem">
     <component name="Microsoft-Windows-Shell-Setup" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" processorArchitecture="%ARCH%">
@@ -28,6 +37,7 @@
         <HideEULAPage>true</HideEULAPage>
         <NetworkLocation>Other</NetworkLocation>
         <ProtectYourPC>3</ProtectYourPC>
+        <SkipUserOOBE>true</SkipUserOOBE>
       </OOBE>
       <UserAccounts>
         <AdministratorPassword>

@@ -2129,9 +2129,6 @@ class TCNovGPUTypeGiven(FunctionalBase):
 
 class TCReuseK2PGPU(FunctionalBase):
 
-    REQUIRED_DISTROS = [VGPUOS.Win7x86,VGPUOS.Win81x64]
-    VGPU_CONFIG = [VGPUConfig.K200,VGPUConfig.K240]
-
     def prepare(self,arglist):
 
         super(TCReuseK2PGPU, self).prepare(arglist)
@@ -2298,9 +2295,6 @@ class TCRevertvGPUSnapshot(FunctionalBase):
 
 class TCvGPUBalloon(FunctionalBase):
 
-    REQUIRED_DISTROS = [VGPUOS.Win7x64]
-    VGPU_CONFIG = [VGPUConfig.K240]
-
     def prepare(self,arglist):
 
         super(TCvGPUBalloon, self).prepare(arglist)
@@ -2412,9 +2406,6 @@ class TCvGPUBalloon(FunctionalBase):
 
 class TCRevertnonvGPUSnapshot(FunctionalBase):
 
-    REQUIRED_DISTROS = [VGPUOS.Win7x86]
-    VGPU_CONFIG = [VGPUConfig.K240]
-
     def prepare(self,arglist):
 
         super(TCRevertnonvGPUSnapshot, self).prepare(arglist)
@@ -2475,9 +2466,6 @@ class TCRevertnonvGPUSnapshot(FunctionalBase):
 
 class TCChangeK2vGPUType(TCRevertvGPUSnapshot):
 
-    REQUIRED_DISTROS = [VGPUOS.Win7x64,VGPUOS.Win81x64]
-    VGPU_CONFIG = [VGPUConfig.K200,VGPUConfig.K220, VGPUConfig.K240,VGPUConfig.K260, VGPUConfig.K280,VGPUConfig.K2PassThrough,VGPUConfig.K200]
-
     def run(self,arglist):
 
         for distro in self.REQUIRED_DISTROS:
@@ -2502,9 +2490,6 @@ class TCChangeK2vGPUType(TCRevertvGPUSnapshot):
                 self.typeOfvGPU.assertvGPURunningInVM(vm,self.getConfigurationName(config))
 
 class TCBasicVerifOfAllK2config(FunctionalBase):
-
-    REQUIRED_DISTROS = [VGPUOS.Win7x86,VGPUOS.Win7x64,VGPUOS.WS2008R2,VGPUOS.Win8x86,VGPUOS.Win8x64,VGPUOS.Win81x86,VGPUOS.Win81x64,VGPUOS.WS12x64,VGPUOS.WS12R2x64]
-    VGPU_CONFIG = [VGPUConfig.K200,VGPUConfig.K220,VGPUConfig.K240,VGPUConfig.K260,VGPUConfig.K280,VGPUConfig.K2PassThrough]
 
     def prepare(self,arglist):
 
@@ -2569,9 +2554,6 @@ class TCBasicVerifOfAllK2config(FunctionalBase):
             except: pass
 
 class TCAssignK2vGPUToVMhasGotvGPU(TCBasicVerifOfAllK2config):
-
-    REQUIRED_DISTROS = [VGPUOS.Win7x86]
-    VGPU_CONFIG = [VGPUConfig.K200]
 
     def insideRun(self,config,distro):
 
@@ -2638,9 +2620,6 @@ class TCAssignK2vGPUToVMhasGotvGPU(TCBasicVerifOfAllK2config):
 
 class TCOpsonK2vGPUToVMhasGotvGPU(TCBasicVerifOfAllK2config):
 
-    REQUIRED_DISTROS = [VGPUOS.Win7x86]
-    VGPU_CONFIG = [VGPUConfig.K200,VGPUConfig.K2PassThrough]
-
     def insideRun(self,config,distro):
 
         host = self.getDefaultHost()
@@ -2689,9 +2668,6 @@ class TCOpsonK2vGPUToVMhasGotvGPU(TCBasicVerifOfAllK2config):
         except: pass
 
 class TCCheckPerfModeAllVMs(TCBasicVerifOfAllK2config):
-
-    REQUIRED_DISTROS = [VGPUOS.Win7x86]
-    VGPU_CONFIG = [VGPUConfig.K200]
 
     def startVM(self,vm,vgpuType):
 
@@ -2880,9 +2856,6 @@ class TCExportImportK2GPU(FunctionalBase):
     on a guest VM with a vGPU.
     """
 
-    REQUIRED_DISTROS = [VGPUOS.Win81x86]
-    VGPU_CONFIG = [VGPUConfig.K240, VGPUConfig.K2PassThrough]
-
     def prepare(self, arglist):
 
         super(TCExportImportK2GPU, self).prepare(arglist)
@@ -3012,11 +2985,6 @@ class TCNonWindowsK1(FunctionalBase):
 
         vm.destroyvGPU()
         raise xenrt.XRTFailure("No error was raised, but it should have been")
-
-class TCNonWindowsK2(TCNonWindowsK1):
-
-    REQUIRED_DISTROS = [VGPUOS.DEBIAN]
-    VGPU_CONFIG = [VGPUConfig.K240]
 
 class TCAlloModeK200NFS(VGPUAllocationModeBase):
 

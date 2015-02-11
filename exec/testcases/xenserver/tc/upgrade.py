@@ -1203,7 +1203,7 @@ class TCAutoInstaller(xenrt.TestCase):
 
         self.host.checkVersion()
         
-        if self.host.productVersion == "Boston" and xenrt.TEC().lookup("PRODUCT_VERSION") == "Sanibel":
+        if self.host.productVersion == "Sanibel" and xenrt.TEC().lookup("PRODUCT_VERSION") == "Boston":
             # this is OK...if you put Sanibel in the sequence...you'll get Boston as the host product version
             return
         

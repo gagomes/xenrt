@@ -220,7 +220,7 @@ class PBD(XapiObject):
         return self.getDictParam("device-config")
 
     def host(self):
-        return self.getObjectsReferencing(XapiHost.OBJECT_TYPE, self.OBJECT_TYPE)
+        return self.getObjectParam(XapiHost.OBJECT_TYPE, "host-uuid")
 
 
 class SR(NamedXapiObject):

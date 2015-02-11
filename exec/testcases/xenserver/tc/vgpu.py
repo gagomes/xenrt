@@ -1665,11 +1665,11 @@ class FunctionalBase(VGPUAllocationModeBase):
 
         for arg in arglist:
             if arg.startswith('distro'):
-                self.REQUIRED_DISTROS = int(arg.split('=')[1].split(','))
+                self.REQUIRED_DISTROS = map(int,arg.split('=')[1].split(','))
             if arg.startswith('vgpuconfig'):
-                self.VGPU_CONFIG = int(arg.split('=')[1].split(','))
+                self.VGPU_CONFIG = map(int,arg.split('=')[1].split(','))
             if arg.startswith('typeofvgpu'):
-                self.TYPE_OF_VGPU = str(arg.split('=')[1].split(','))
+                self.TYPE_OF_VGPU = map(str,arg.split('=')[1].split(','))
  
     def run(self,arglist):
 

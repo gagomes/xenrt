@@ -258,9 +258,6 @@ class SR(NamedXapiObject):
     def smConfig(self):
         return self.getStringParam("sm-config")
 
-    def size(self):
-        return self.getIntParam("virtual-size")
-
 
 class VDI(NamedXapiObject):
     OBJECT_TYPE = "vdi"
@@ -275,6 +272,9 @@ class VDI(NamedXapiObject):
 
     def readcachingEnabled(self):
         return self.getStringParam(self.__RC) == "true"
+
+    def size(self):
+        return self.getIntParam("virtual-size")
 
 
 """

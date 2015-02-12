@@ -1,7 +1,7 @@
 from server import PageFactory
-from app import XenRTPage
+from app.uiv2 import XenRTUIPage
 
-class XenRTAPIKey(XenRTPage):
+class XenRTAPIKey(XenRTUIPage):
     def render(self):
         head = """
     <script>
@@ -65,6 +65,6 @@ $(function() {
 """
 
 
-        return {"head": head, "body": body, "title": "Manage API key"}
+        return {"head": head, "body": body, "title": "Manage API key", "user": self.loggedInAs()}
 
 PageFactory(XenRTAPIKey, "/ui/apikey", renderer="__main__:templates/newui.pt")

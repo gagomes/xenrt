@@ -1,7 +1,7 @@
 from server import PageFactory
-from app import XenRTPage
+from app.uiv2 import XenRTUIPage
 
-class XenRTBrowseLogs(XenRTPage):
+class XenRTBrowseLogs(XenRTUIPage):
     def render(self):
         head = """
   <script>
@@ -231,6 +231,6 @@ $(function() {
 """
 
 
-        return {"head": head, "body": body, "title": "Browse logs"}
+        return {"head": head, "body": body, "title": "Browse logs", "user": self.loggedInAs()}
 
 PageFactory(XenRTBrowseLogs, "/ui/logs", renderer="__main__:templates/newui.pt")

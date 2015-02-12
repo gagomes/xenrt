@@ -53,6 +53,7 @@ ${structure:head}
 </div>
 <p>
 <div id="mainbody">
+<div style="float:right">${structure:user}</div>
 ${structure:body}
 </div>
 </p>

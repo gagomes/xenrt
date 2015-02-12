@@ -36,10 +36,16 @@ ${structure:head}
          <li><a href='/xenrt/ui/apikey'><span>Manage my API Key</span></a></li>
       </ul>
    </li>
-   <li class='has-sub last'><a href='#'><span>XenRTCenter</span></a>
+   <li class='has-sub'><a href='#'><span>XenRTCenter</span></a>
      <ul>
          <li><a href='http://qa-01.xenrt.citrite.net/XRTCINSTALL/StartXenRTCenter.exe' target="_blank"><span>Download</span></a></li>
          <li><a href='https://info.citrite.net/display/CPGQA/XenRTCenter' target="_blank"><span>Documentation</span></a></li>
+     </ul>
+   </li>
+   <li class='has-sub last'><a href='#'><span>Jenkins</span></a>
+     <ul>
+         <li><a href='http://ci.xenrt.citrite.net' target="_blank"><span>XenRT CI</span></a></li>
+         <li><a href='http://jenkins1.xenrt.citrite.net:8080' target="_blank"><span>XenRT Maintenance</span></a></li>
      </ul>
    </li>
 </ul>

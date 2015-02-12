@@ -22,13 +22,13 @@
         <arg>vgpuconfig=11</arg>
       </testcase>
 
-      <testcase id="testcases.xenserver.tc.vgpu.TCvGPUBalloon">
+      <testcase id="testcases.xenserver.tc.vgpu.TCvGPUBalloon" name="TC-21552" tc="TC-21552">
         <arg>distro=10</arg>
         <arg>typeofvgpu=nvidialinuxvgpu</arg>
         <arg>vgpuconfig=11</arg>
       </testcase>
 
-      <testcase id="testcases.xenserver.tc.vgpu.TCvGPUBalloon">
+      <testcase id="testcases.xenserver.tc.vgpu.TCvGPUBalloon" name="TC-21552" tc="TC-21552">
         <arg>distro=14</arg>
         <arg>typeofvgpu=nvidialinuxvgpu</arg>
         <arg>vgpuconfig=11</arg>

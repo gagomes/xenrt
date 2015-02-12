@@ -143,5 +143,7 @@ class TCRCForSRPlug(ReadCacheTestCase):
         xvdi = xsr.VDI()[0]
         self.vm.createDisk(sizebytes=xvdi.size(), sruuid=xsr.uuid,
                            vdiuuid=xvdi.uuid, bootable=True)
+        #Have a rest - you deserve it
+        xenrt.sleep(10)
         self.vm.setState("UP")
         self.checkExpectedState(True, lowlevel, both)

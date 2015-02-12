@@ -1667,9 +1667,15 @@ class DestHostDownDuringMig(MidMigrateFailure):
     # Assuming only single VM/VDI is being migrated
 
     def hook(self):
-  
+
         destHost = self.observers[0].destHost
         destHost.reboot()
+
+    def postHook(self):
+
+    #Skip the snapshotvdi check ,hence set the flag true
+        self.test_config['ignore_snapshotvdi_check'] = True        
+        LiveMigrate.postHook(self)
 
 class SrcSRFailDuringMig(MidMigrateFailure):
     # Assuming only single VM/VDI is being migrated

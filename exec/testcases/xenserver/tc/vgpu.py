@@ -1462,7 +1462,7 @@ class VGPUAllocationModeBase(_VGPUOwnedVMsTest):
                 arch = "x86-64"
             else: 
                 arch = "x86-32"
-            guest = self.host.createBasicGuest(name = vmname,distro=ostype,sr=sr)
+            guest = self.host.createBasicGuest(name=vmname, distro=ostype, arch=arch, sr=sr)
             guest.preCloneTailor()
             xenrt.sleep(120)
             guest.shutdown()

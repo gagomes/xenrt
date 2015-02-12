@@ -50,16 +50,8 @@ class ReadCacheTestCase(xenrt.TestCase):
     def getArgs(self, arglist):
         args = self.parseArgsKeyValue(arglist)
         log("Args: %s" % args)
-        if args.has_key("lowlevel"):
-            lowlevel = args["lowlevel"] in ("yes", "true")
-        else:
-            lowlevel = False
-
-        if args.has_key("bothChecks"):
-            both = args["bothChecks"] in ("yes", "true")
-        else:
-            both = False
-
+        lowlevel = args["lowlevel"] in ("yes", "true") if args.has_key("lowlevel") else False
+        both = args["bothChecks"] in ("yes", "true") if args.has_key("bothChecks") else False
         return lowlevel, both
 
 
@@ -142,6 +134,11 @@ class TCRCForSRPlug(ReadCacheTestCase):
         sr = xenrt.lib.xenserver.NFSStorageRepository.fromExistingSR(self.getDefaultHost(), xsr.uuid)
         sr.forget()
         sr.introduce()
-        self.vm.plugDisk(self.vm.createDisk(sruuid=xsr.uuid,vdiuuid=xsr.VDI()[0].uuid))
+
+        xvdi = xsr.VDI()[0]
+        self.vm.plugDisk(self.vm.createDisk(sizebytes=xvdi.size(),
+                                            sruuid=xsr.uuid,
+                                            vdiuuid=xvdi.uuid,
+                                            bootable=True))
         self.vm.start()
         self.checkExpectedState(True, lowlevel, both)

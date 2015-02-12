@@ -61,6 +61,15 @@ class XapiObject(object):
         """
         return self.cli.execute("%s-param-get uuid=%s param-name=%s" % (self.type, self.uuid, paramName)).strip()
 
+    def getIntParam(self, paramName):
+        """
+        @var paramName: the name of a parameter to fetch from the xapidb
+        @type paramName: string
+        @return: the requested param value
+        @rtype int
+        """
+        return int(self.getStringParam(paramName))
+
     def getListParam(self, paramName, delimiter=';'):
         """
         Get the params from xapi, in the form of a list of strings - useful for composite fields
@@ -248,6 +257,9 @@ class SR(NamedXapiObject):
 
     def smConfig(self):
         return self.getStringParam("sm-config")
+
+    def size(self):
+        return self.getIntParam("virtual-size")
 
 
 class VDI(NamedXapiObject):

@@ -345,6 +345,14 @@ class VGPUTest(xenrt.TestCase, object):
     def installIntelWindowsDrivers(self,guest):
         guest.installIntelGPUDriver()
 
+    def assertvGPURunningInLinuxVM(self, vm, vGPUType, card):
+        if not vm.isGPUBeingUtilized(card):
+            raise xenrt.XRTFailure("vGPU not running in VM %s: %s" % (vm.getName(),vm.getUUID()))
+
+    def assertvGPUNotRunningInLinuxVM(self, vm, vGPUType, card):
+        if self.isGPUBeingUtilized(card):
+            raise xenrt.XRTFailure("vGPU running when not expected in VM %s: %s" % (vm.getName(),vm.getUUID()))
+
     def runWindowsWorkload(self,vm):
 
         unigine = graphics.UnigineTropics(vm)
@@ -1774,12 +1782,10 @@ class NvidiaLinuxvGPU(DifferentGPU):
         VGPUTest().installNvidiaLinuxDrivers(guest)
 
     def assertvGPURunningInVM(self, guest, vGPUType):
-        xenrt.TEC().logverbose("Not implemented")
-        pass        
+        VGPUTest().assertvGPURunningInLinuxVM(guest,vGPUType,"Nvidia")
 
     def assertvGPUNotRunningInVM(self, guest, vGPUType):
-        xenrt.TEC().logverbose("Not implemented")
-        pass
+        VGPUTest().assertvGPUNotRunningInLinuxVM(guest,vGPUType,"Nvidia")
 
     def runWorkload(self,vm):
         xenrt.TEC().logverbose("Not implemented")

@@ -9,15 +9,30 @@ class XenRTPage(Page):
     DB_SYNC_CHECK_INTERVAL = 0.1
     REQUIRE_AUTH = False
     REQUIRE_AUTH_IF_ENABLED = False
+    ALLOW_FAKE_USER = True
 
     def __init__(self, request):
         super(XenRTPage, self).__init__(request)
         self._db = None
 
+    def getUserFromAPIKey(self, apiKey):
+        cur = self.getDB().cursor()
+        cur.execute("SELECT userid FROM tblapikeys WHERE apikey=%s", [apiKey])
+        rc = cur.fetchone()
+        if rc:
+            return rc[0]
+        return None
+
     def getUser(self):
-        if "X-Fake-User" in self.request.headers:
-            return self.request.headers['X-Fake-User']
-        user = self.request.headers.get("X-Forwarded-User", "")
+        lcheaders = dict([(k.lower(), v)  for (k,v) in self.request.headers.iteritems()])
+        if "x-api-key" in lcheaders:
+            return self.getUserFromAPIKey(lcheaders['x-api-key'])
+        if "x-fake-user" in lcheaders:
+            if self.ALLOW_FAKE_USER:
+                return lcheaders['x-fake-user']
+            else:
+                raise HTTPForbidden()
+        user = lcheaders.get("x-forwarded-user", "")
         if user == "(null)" or not user:
             return None
         return user.split("@")[0]

@@ -2246,6 +2246,34 @@ fi
                                        (ld, str(e)))
         self.execdom0("sync")
 
+    def installHostSupPacks(self, isoPath, isoName, reboot=True):
+
+        #need to check if we can download ISO from URL otherwise from DISTFILES path
+        getItFromDist = True
+
+        #Download ISO file form DISTFILES path
+        if getItFromDist:
+            hostISOURL = "%s/%s" %(isoPath, isoName)
+            hostISO = xenrt.TEC().getFile(hostISOURL)
+            try:
+                xenrt.checkFileExists(hostISO)
+            except:
+                raise xenrt.XRTError("Host Suppack ISO not found")
+
+            hostPath = "/tmp/%s" % (isoName)
+
+            sh = self.sftpClient()
+            try:
+                sh.copyTo(hostISO, hostPath)
+            finally:
+                sh.close()
+        #Installing suppack
+        xenrt.TEC().logverbose("Installing Host Supplemental pack: %s" % isoName)
+        self.execdom0("xe-install-supplemental-pack %s" % hostPath)
+        if reboot:
+            self.reboot()
+        return True
+
     def applyRequiredPatches(self, applyGuidance=True, applyGuidanceAfterEachPatch=False):
         """Apply suitable patches from the list given by the user.
         Returns True if any patches were applied."""

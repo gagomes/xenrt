@@ -977,3 +977,50 @@ class TC10665(_SupplementalPacksPostInstall):
         # Restore the original index.html
         self.host.execdom0("cp /tmp/index.html /opt/xensource/www/")
 
+class _VgpuSuppackInstall(xenrt.TestCase):
+    #verify vGPU suppack install on host 
+    def isNvidiaVgpuSuppackInstalled(self, host):
+        try:
+            vgpuTypeList = host.execdom0("xe vgpu-type-list")
+        except:
+            return False
+        if "NVIDIA Corporation" not in vgpuTypeList:
+            return False
+        else:
+            return True
+
+class TCinstallNvidiaVgpuHostSupPacks(_VgpuSuppackInstall):
+    def run(self, arglist):
+        suppackISOpath = None
+        suppackISOname = None
+        isVgpuInstalled = False
+        for arg in arglist:
+            if arg.startswith('suppackISOpath'):
+                suppackISOpath = arg.split('=')[1]
+            if arg.startswith('suppackISOname'):
+                suppackISOname = arg.split('=')[1]
+        host = self.getDefaultHost()
+        #check if vGPU suppack already installed
+        isVgpuInstalled = self.isNvidiaVgpuSuppackInstalled(host)
+        if isVgpuInstalled:
+            xenrt.TEC().logverbose("Nvidia VGPU supplementary pack already installed")
+            return
+        #install suppack
+        host.installHostSupPacks(suppackISOpath, suppackISOname)
+        #Check installation successful or not
+        isVgpuInstalled = self.isNvidiaVgpuSuppackInstalled(host)
+        if isVgpuInstalled:
+            xenrt.TEC().logverbose("Nvidia VGPU supplementary pack installed successfully")
+        else:
+            xenrt.TEC().logverbose("Nvidia VGPU supplementary pack installation was not successful")
+
+class TCinstallVgpuPacksWithXenServer(_VgpuSuppackInstall):
+    def run(self, arglist):
+        isVgpuInstalled = False
+        host = self.getDefaultHost()
+        #Check installation successful or not
+        isVgpuInstalled = self.isNvidiaVgpuSuppackInstalled(host)
+        if isVgpuInstalled:
+            xenrt.TEC().logverbose("Nvidia VGPU supplementary pack installation along with xenserver was successful")
+        else:
+            xenrt.TEC().logverbose("Nvidia VGPU supplementary pack installationalong with xenserver was not successful")

@@ -9480,7 +9480,7 @@ sleep (3000)
 
         # Check if the GPU of given type is present.
         try:
-            componentList = self.execguest("lspci | grep %s" % gpuType)
+            componentList = self.execguest("lspci | grep -i %s" % gpuType)
         except:
             xenrt.TEC().logverbose("Could not find any devices of the given name: %s" % gpuType)
             return False

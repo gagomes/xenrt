@@ -1780,7 +1780,7 @@ class NvidiaLinuxvGPU(DifferentGPU):
         xenrt.TEC().logverbose("Not implemented")
         pass
 
-    def installGuestDrivers(self):
+    def installGuestDrivers(self, guest):
         VGPUTest().installNvidiaLinuxDrivers(guest)
 
     def assertvGPURunningInVM(self, guest, vGPUType):
@@ -1799,7 +1799,7 @@ class IntelWindowsvGPU(DifferentGPU):
         xenrt.TEC().logverbose("Not implemented")
         pass
 
-    def installGuestDrivers(self):
+    def installGuestDrivers(self, guest):
         VGPUTest().installIntelWindowsDrivers(guest)
 
     def assertvGPURunningInVM(self, guest, vGPUType):

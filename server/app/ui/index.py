@@ -3,7 +3,7 @@ from app import XenRTPage
 
 class XenRTIndex(XenRTPage):
     def render(self):
-        return {"matrix": "blank", "jobdetail": "blank", "testdetail": "blank"}
+        return HTTPFound(location="/xenrt/ui/")
 
 class XenRTJobQuery(XenRTPage):
     def render(self):

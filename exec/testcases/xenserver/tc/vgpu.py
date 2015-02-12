@@ -1762,7 +1762,7 @@ class NvidiaWindowsvGPU(DifferentGPU):
         VGPUTest().assertvGPUNotRunningInWinVM(guest, vGPUType)
 
     def runWorkload(self,vm):
-        VGPUTest().runWindowsWorkload(self,vm)
+        VGPUTest().runWindowsWorkload(vm)
 
 class NvidiaLinuxvGPU(DifferentGPU):
 

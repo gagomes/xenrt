@@ -124,21 +124,23 @@ class TCRCForLifeCycleOps(ReadCacheTestCase):
 
 
 class TCRCForSRPlug(ReadCacheTestCase):
-
+    """
+    A3. Verify SR re-attach persist status
+    """
     def run(self, arglist):
         lowlevel, both = self.getArgs(arglist)
         self.checkExpectedState(True, lowlevel, both)
         self.vm.shutdown()
 
-        xsr = self.vm.asXapiObject().SR()[0]
+        #Find the SR and forget/introduce
+        xsr = next((s for s in self.getDefaultHost().asXapiObject().SR() if s.srType() == "nfs"), None)
         sr = xenrt.lib.xenserver.NFSStorageRepository.fromExistingSR(self.getDefaultHost(), xsr.uuid)
         sr.forget()
         sr.introduce()
 
+        #Plug the VDI to the VM
         xvdi = xsr.VDI()[0]
-        self.vm.plugDisk(self.vm.createDisk(sizebytes=xvdi.size(),
-                                            sruuid=xsr.uuid,
-                                            vdiuuid=xvdi.uuid,
-                                            bootable=True))
+        self.vm.createDisk(sizebytes=xvdi.size(), sruuid=xsr.uuid,
+                           vdiuuid=xvdi.uuid, bootable=True)
         self.vm.start()
         self.checkExpectedState(True, lowlevel, both)

@@ -137,8 +137,11 @@ class TCRCForSRPlug(ReadCacheTestCase):
         lowlevel, both = self.getArgs(arglist)
         self.checkExpectedState(True, lowlevel, both)
         self.vm.shutdown()
-        sr = xenrt.lib.xenserver.NFSStorageRepository.fromExistingSR(self.getDefaultHost(), self.vm.asXapiObject().SR()[0].uuid)
+
+        xsr = self.vm.asXapiObject().SR()[0]
+        sr = xenrt.lib.xenserver.NFSStorageRepository.fromExistingSR(self.getDefaultHost(), xsr.uuid)
         sr.forget()
         sr.introduce()
+        self.vm.plugDisk(self.vm.createDisk(sruuid=xsr.uuid,vdiuuid=xsr.VDI()[0].uuid))
         self.vm.start()
         self.checkExpectedState(True, lowlevel, both)

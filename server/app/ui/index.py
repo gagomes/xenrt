@@ -1,5 +1,6 @@
 from server import PageFactory
 from app import XenRTPage
+from pyramid.httpexceptions import *
 
 class XenRTIndex(XenRTPage):
     def render(self):

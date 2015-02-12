@@ -60,7 +60,7 @@
     </serial>
 
     <serial group="Multipath">
-      <testcase id="xenserver.tc.srpervm.PathFail">
+      <testcase id="xenserver.tc.srpervm.FCPathFail">
         <arg>linuxvms=${LINUXVMS}</arg>
         <arg>windowsvms=${WINDOWSVMS}</arg>
         <arg>datadisk=${DATADISK}</arg>
@@ -73,7 +73,7 @@
     </serial>
 
     <serial group="Multipath">
-      <testcase id="xenserver.tc.srpervm.PathRecover">
+      <testcase id="xenserver.tc.srpervm.FCPathRecover">
         <arg>linuxvms=${LINUXVMS}</arg>
         <arg>windowsvms=${WINDOWSVMS}</arg>
         <arg>datadisk=${DATADISK}</arg>

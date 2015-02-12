@@ -2659,3 +2659,18 @@ class VMRevertedToSnapshot(LiveMigrate):
         vm.start()
         self.vm_config[vm.getName()]['snapshot'] = snapUUID
 
+        # Update vm_config with the right VDIs and VIFs after snapshot revert
+        attached_disks = vm.listDiskDevices()
+        attached_disks.sort()
+        attached_VDIs = [vm.getDiskVDIUUID(d) for d in attached_disks]
+        dest_SRs = self.vm_config[vm.getName()]['VDI_SR_map'].values()
+        self.vm_config[vm.getName()]['VDI_SR_map'] = dict(itertools.izip(attached_VDIs, dest_SRs))
+
+        destHost = self.vm_config[vm.getName()]['dest_host']
+        host = vm.getHost()
+        allVifs = host.minimalList('vm-vif-list uuid=%s' % vm.getUUID())
+        mainNWuuid = destHost.getManagementNetworkUUID()
+        vif_nw_map = {}
+        for vif in allVifs:
+            vif_nw_map.update({vif:mainNWuuid})
+        self.vm_config[vm.getName()]['VIF_NW_map'] = vif_nw_map

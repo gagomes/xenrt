@@ -1,4 +1,4 @@
-#
+   #
 # XenRT: Test harness for Xen and the XenServer product family
 #
 # Encapsulate a XenServer host.
@@ -288,7 +288,7 @@ def createHost(id=0,
                 nameserver = None
             hostname = m.name
 
-    guestdisks = host.getGuestDisks(ccissIfAvailable=host.USE_CCISS, count=diskCount)
+    guestdisks = host.getGuestDisks(ccissIfAvailable=host.USE_CCISS, count=diskCount, legacySATA=(not host.isCentOS7Dom0()))
 
     if diskCount > len(guestdisks):
         raise xenrt.XRTError("Wanted %u disks but we only have: %s" %
@@ -296,7 +296,7 @@ def createHost(id=0,
     if host.bootLun:
         primarydisk = "disk/by-id/scsi-%s" % host.bootLun.getID()
     else:
-        primarydisk = host.getInstallDisk(ccissIfAvailable=host.USE_CCISS)
+        primarydisk = host.getInstallDisk(ccissIfAvailable=host.USE_CCISS, legacySATA=(not host.isCentOS7Dom0()))
 
     handle = host.install(interfaces=interfaces,
                           nameserver=nameserver,
@@ -687,7 +687,7 @@ class Host(xenrt.GenericHost):
         """Create a simple guest object."""
         return self.guestFactory()(name, "", self)
 
-    def existing(self, doguests=True):
+    def existing(self, doguests=True, guestsInRegistry=True):
         """Initialise this host object from an existing installed host"""
         # Check the management host address
         ip = self.execdom0("xe host-param-get uuid=%s param-name=address" %
@@ -707,7 +707,8 @@ class Host(xenrt.GenericHost):
                     guest = self.guestFactory()(guestname, None)
                     guest.existing(self)
                     xenrt.TEC().logverbose("Found existing guest: %s" % (guestname))
-                    xenrt.TEC().registry.guestPut(guestname, guest)
+                    if guestsInRegistry:
+                        xenrt.TEC().registry.guestPut(guestname, guest)
                 except:
                     xenrt.TEC().logverbose("Could not load guest - perhaps it was deleted")
         self.distro = "XSDom0"
@@ -772,6 +773,8 @@ class Host(xenrt.GenericHost):
                     # In this situation a path that includes cciss- will not work. See CA-121184 for details
                     if "cciss" in primarydisk:
                         primarydisk = self.getInstallDisk(ccissIfAvailable=self.USE_CCISS)
+                    if "scsi-SATA" in primarydisk and self.isCentOS7Dom0():
+                        primarydisk = self.getInstallDisk(legacySATA=False)
                 else:
                     primarydisk = "sda"
 
@@ -2719,7 +2722,7 @@ fi
             if proxy:
                 self.execdom0("sed -i '/proxy/d' /etc/yum.conf")
                 self.execdom0("echo 'proxy=http://%s' >> /etc/yum.conf" % proxy)
-            if isinstance(self, xenrt.lib.xenserver.DundeeHost) and self.isCentOS7Dom0():
+            if isinstance(self, xenrt.lib.xenserver.DundeeHost):
                 self.execdom0("yum install kernel-headers --disableexcludes=all -y")
             self.execdom0("yum --disablerepo=citrix --enablerepo=base,updates,extras install -y  gcc-c++")
             self.execdom0("yum --disablerepo=citrix --enablerepo=base install -y make")
@@ -5790,30 +5793,19 @@ fi
                 raise xenrt.XRTFailure(\
                     "Timed out waiting for coalesce to complete", sruuid)
 
-    def toolsISOPath(self, which="windows"):
+    def toolsISOPath(self):
         """Return the dom0 path to the tools ISO."""
         vdi = self.parseListForUUID("vdi-list",
                                     "name-label",
                                     "xs-tools.iso")
-        try:
-            isobasename = self.genParamGet("vdi", vdi, "location")
-        except:
-            # Rio doesn't have a location field, assume the filename
-            # matches the name-label
-            isobasename = "xs-tools.iso"
+        
+        isobasename = self.genParamGet("vdi", vdi, "location")
         sruuid = self.genParamGet("vdi", vdi, "sr-uuid")
-        try:
-            pbd = self.parseListForUUID("pbd-list",
-                                        "sr-uuid",
-                                        sruuid,
-                                        "host-uuid=%s" %
-                                        (self.getMyHostUUID()))
-        except:
-            # Rio used host instead of host-uuid in the PBD record
-            pbd = self.parseListForUUID("pbd-list",
-                                        "sr-uuid",
-                                        sruuid,
-                                        "host=%s" % (self.getMyHostUUID()))
+        pbd = self.parseListForUUID("pbd-list",
+                                    "sr-uuid",
+                                    sruuid,
+                                    "host-uuid=%s" %
+                                    (self.getMyHostUUID()))
             
         isopath = self.genParamGet("pbd", pbd, "device-config", "location")
         return "%s/%s" % (isopath, isobasename)
@@ -8021,6 +8013,7 @@ rm -f /etc/xensource/xhad.conf || true
         
         (mac, ip) = netDetails[0]
         xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'MAC_ADDRESS'], mac)
+        xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'PXE_MAC_ADDRESS'], mac)
         xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'HOST_ADDRESS'], ip.getAddr())
         xenrt.GEC().dbconnect.jobUpdate("VXS_%s" % ip.getAddr(), name)
 
@@ -8044,6 +8037,8 @@ rm -f /etc/xensource/xhad.conf || true
         """IPTablesFirewall object used to create and delete iptables rules."""
         return IpTablesFirewall(self)
 
+    def isCentOS7Dom0(self):
+        return False
 #############################################################################
 
 class MNRHost(Host):
@@ -8128,8 +8123,8 @@ class MNRHost(Host):
             # No dbv field, so we're not using v6
             self.special['v6licensing'] = False
 
-    def existing(self, doguests=True):
-        Host.existing(self,doguests)
+    def existing(self, doguests=True, guestsInRegistry=True):
+        Host.existing(self,doguests, guestsInRegistry)
         self.__detect_vswitch()
         self.__detect_v6()
 
@@ -10900,7 +10895,7 @@ class ClearwaterHost(TampaHost):
 <backup-disk>%s</backup-disk>
 <install-failed-script>%s</install-failed-script>
 </restore>
-""" % (self.getInstallDisk(ccissIfAvailable=self.USE_CCISS), furl)
+""" % (self.getInstallDisk(ccissIfAvailable=self.USE_CCISS, legacySATA=(not self.isCentOS7Dom0())), furl)
         ans.write(anstext)
         ans.close()
         packdir.copyIn(ansfile)
@@ -11364,7 +11359,7 @@ class DundeeHost(CreedenceHost):
         self.installer = None
 
     def isCentOS7Dom0(self):
-        return xenrt.TEC().lookup("CENTOS7_DOM0", False, boolean=True)
+        return True
 
     def getTestHotfix(self, hotfixNumber):
         return xenrt.TEC().getFile("xe-phase-1/test-hotfix-%u-*.unsigned" % hotfixNumber)
@@ -11434,34 +11429,19 @@ class DundeeHost(CreedenceHost):
         return ifs
         
     def snmpdIsEnabled(self):
-        if self.isCentOS7Dom0():
-            return "enabled" in self.execdom0("service snmpd status | cat")
-        else:
-            return CreedenceHost.snmpdIsEnabled(self)
+        return "enabled" in self.execdom0("service snmpd status | cat")
             
     def disableSnmpd(self):
-        if self.isCentOS7Dom0():
-            self.execdom0("systemctl disable snmpd")
-        else:
-            CreedenceHost.disableSnmpd(self)
+        self.execdom0("systemctl disable snmpd")
             
     def enableSnmpd(self):
-        if self.isCentOS7Dom0():
-            self.execdom0("systemctl enable snmpd")
-        else:
-            CreedenceHost.enableSnmpd(self)
+        self.execdom0("systemctl enable snmpd")
 
     def scsiIdPath(self):
-        if self.isCentOS7Dom0():
-            return "/usr/lib/udev/scsi_id"
-        else:
-            return CreedenceHost.scsiIdPath(self)
+        return "/usr/lib/udev/scsi_id"
             
     def iptablesSave(self):
-        if self.isCentOS7Dom0():
-            self.execdom0("/usr/libexec/iptables/iptables.init save")
-        else:
-            CreedenceHost.iptablesSave(self)
+        self.execdom0("/usr/libexec/iptables/iptables.init save")
 
     def enableVirtualFunctions(self):
 

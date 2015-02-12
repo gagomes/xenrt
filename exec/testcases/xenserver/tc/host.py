@@ -1767,7 +1767,7 @@ class TC9995(TC9993):
     """Stress test system with large number of VIFs while SNMP daemon is processing queries"""
 
     NUMBER_VMS = 10
-    MEMORY = 128
+    MEMORY = 256
     ITERATIONS = 2 
     CLITIMEOUT = 1800
     ALLOWED_DIFF = 0.1 # 10%

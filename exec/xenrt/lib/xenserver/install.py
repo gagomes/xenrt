@@ -68,7 +68,7 @@ class DundeeInstaller(object):
                     # Handle the case where its a cciss disk going into a Dundee+ host with CentOS 6.4+ udev rules
                     # In this situation a path that includes cciss- will not work. See CA-121184 for details
                     if "cciss" in primarydisk:
-                        primarydisk = self.host.getInstallDisk(ccissIfAvailable=self.host.USE_CCISS)
+                        primarydisk = self.host.getInstallDisk(ccissIfAvailable=self.host.USE_CCISS, legacySATA=False)
                 else:
                     primarydisk = "sda"
 
@@ -717,9 +717,8 @@ sleep 30
         
         pxecfg.mbootArgsModule1Add("output=ttyS0")
 
-        if self.host.isCentOS7Dom0():
-            pxecfg.mbootArgsModule1Add("net.ifnames=0")
-            pxecfg.mbootArgsModule1Add("biosdevname=0")
+        pxecfg.mbootArgsModule1Add("net.ifnames=0")
+        pxecfg.mbootArgsModule1Add("biosdevname=0")
 
         mac = self.host.lookup("MAC_ADDRESS", None)
         if mac:

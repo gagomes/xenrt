@@ -43,7 +43,7 @@ class _AbstractLinuxHostedNFSServer(object):
         # Create a dir and export it
         self._prepareSharedDirectory(guest)
         guest.execguest("echo '%s' > /etc/exports" % self._getExportsLine())
-        guest.execguest("/etc/init.d/portmap start")
+        guest.execguest("/etc/init.d/portmap start || /etc/init.d/rpcbind start")
         guest.execguest("/etc/init.d/nfs-common start || true")
         guest.execguest("/etc/init.d/nfs-kernel-server start || true")
 
@@ -1363,7 +1363,7 @@ class TC6723(xenrt.TestCase):
 
             # Copy the PV tools ISO from the host to use as an example ISO
             # in our CIFS SR
-            remotefile = self.host.toolsISOPath("windows")
+            remotefile = self.host.toolsISOPath()
             if not remotefile:
                 raise xenrt.XRTError("Could not find PV tools ISO in dom0")
             cd = "%s/TC6723.iso" % (xenrt.TEC().getWorkdir())

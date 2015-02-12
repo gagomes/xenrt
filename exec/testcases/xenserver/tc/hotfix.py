@@ -642,7 +642,7 @@ class _CreedenceRTM(_Hotfix):
     INITIAL_BRANCH = "RTM"
     
 class _CreedenceRTMHFd(_CreedenceRTM):
-    INITIAL_HOTFIXES = []
+    INITIAL_HOTFIXES = ["XS65E001", "XS65E002"]
     
     
 # Upgrades

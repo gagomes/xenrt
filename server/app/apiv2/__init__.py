@@ -11,7 +11,7 @@ def XenRTAPIError(errtype, reason, canForce=None):
     ret = {"reason": reason}
     if canForce != None:
         ret['can_force'] = canForce
-    return errtype(body=json.dumps(ret))
+    return errtype(body=json.dumps(ret, encoding="latin-1"))
 
 class ApiRegistration(object):
     def __init__(self):
@@ -50,7 +50,8 @@ class XenRTAPIv2Swagger(XenRTPage):
             "tags": [
                 {"name": "jobs", "description": "Operations on XenRT jobs"},
                 {"name": "machines", "description": "Operations on XenRT machines"},
-                {"name": "sites", "description": "Operations on XenRT sites"}
+                {"name": "sites", "description": "Operations on XenRT sites"},
+                {"name": "apikeys", "description": "Operations on XenRT API keys"}
             ],
             "definitions": {}
         }
@@ -94,7 +95,7 @@ class XenRTAPIv2Page(XenRTPage):
         ret = []
         for p in params:
             ret.extend(p.split(delimiter))
-        return ret
+        return [x for x in ret if x != '']
 
     def generateInCondition(self, fieldname, items):
         return "%s IN (%s)" % (fieldname, ", ".join(["%s"] * len(items)))
@@ -107,3 +108,4 @@ import app.apiv2.jobs
 import app.apiv2.machines
 import app.apiv2.files
 import app.apiv2.sites
+import app.apiv2.api

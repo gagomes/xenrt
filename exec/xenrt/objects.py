@@ -198,6 +198,9 @@ class GenericPlace:
     def tailor(self):
         raise xenrt.XRTError("Unimplemented")
 
+    def createScaleXtremeEnvironment(self):
+        raise xenrt.XRTError("Unimplemented")
+
     def execdom0(self,
                  command,
                  username=None,
@@ -3250,22 +3253,27 @@ DHCPServer = 1
             # Prerequisites
             if debversion:
                 self.execcmd("apt-get install libssl-dev --force-yes -y")
-                kernel = self.execcmd("uname -r").strip()
-                self.execcmd("apt-get install linux-headers-%s --force-yes -y" % kernel)
+                self.execcmd("apt-get install linux-headers-`uname -r` --force-yes -y")
             elif redhat:
                 self.execcmd("yum install -y openssl-devel kernel-headers")
 
             # Get and install the iscsi target
-            self.execcmd("cd /root && wget '%s/iscsitarget-1.4.20.2.tgz'" %
-                         (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
-            self.execcmd("cd /root && tar -xzf iscsitarget-1.4.20.2.tgz")
-            self.execcmd("cd /root/iscsitarget-1.4.20.2 && make")
-            self.execcmd("cd /root/iscsitarget-1.4.20.2 && make install")
-
+            
+            if debversion >= 7.0:
+                self.execcmd("apt-get install -y --force-yes iscsitarget iscsitarget-dkms")
+                self.execcmd('sed -i "s/false/true/" /etc/default/iscsitarget')
+                self.execcmd('/etc/init.d/iscsitarget restart')
+                self.execcmd('ln -s /etc/init.d/iscsitarget /etc/init.d/iscsi-target')
+            else:
+                self.execcmd("cd /root && wget '%s/iscsitarget-1.4.20.2.tgz'" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
+                self.execcmd("cd /root && tar -xzf iscsitarget-1.4.20.2.tgz")
+                self.execcmd("cd /root/iscsitarget-1.4.20.2 && make")
+                self.execcmd("cd /root/iscsitarget-1.4.20.2 && make install")
+            
             self.execcmd("rm /etc/iet/ietd.conf")
             self.execcmd("ln -s /etc/ietd.conf /etc/iet/ietd.conf")
-        else: # Legacy installation for etch
-
+        else: 
+            # Legacy installation for etch
             # Prerequisites
             self.execcmd("apt-get install libssl-dev --force-yes -y")
 
@@ -3280,12 +3288,10 @@ DHCPServer = 1
             # Workaround for incorrect symlink
             for path in self.execcmd("ls /lib/modules").split():
                 self.execcmd("rm -f /lib/modules/%s/build" % (path.strip()))
-                self.execcmd("ln -s /usr/src/linux-headers-%s "
-                             "/lib/modules/%s/build" % (path.strip(),path.strip()))
+                self.execcmd("ln -s /usr/src/linux-headers-%s /lib/modules/%s/build" % (path.strip(),path.strip()))
 
             # Setup iscsitarget
-            self.execcmd("cd /root && wget '%s/iscsitarget.tgz'" %
-                         (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
+            self.execcmd("cd /root && wget '%s/iscsitarget.tgz'" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
             self.execcmd("cd /root && tar -xzf iscsitarget.tgz")
             self.execcmd("cd /root/iscsitarget && patch -p1 < multihomed.patch")
             self.execcmd("cd /root/iscsitarget && make")
@@ -3834,44 +3840,45 @@ bootlocal.close()
 
         if "win81" in self.distro or "ws12r2" in self.distro:
             domid = self.getDomid()
-            self.xmlrpcUnpackTarball("%s/bluewaterupdate.tgz" % xenrt.TEC().lookup("TEST_TARBALL_BASE"), "c:\\")
-            if self.xmlrpcGetArch() == "amd64":
-                self.xmlrpcStart('wusa "c:\\bluewaterupdate\\Windows8.1-KB2887595-v2-x64.msu" /quiet /log:C:\\bluewaterUpdateInstall.txt')
-            else:
-                self.xmlrpcStart('wusa "c:\\bluewaterupdate\\Windows8.1-KB2887595-v2-x86.msu" /quiet /log:C:\\bluewaterUpdateInstall.txt')
+            if not self.xmlrpcFileExists("C:\\bluewaterUpdateInstall.txt"):
+                self.xmlrpcUnpackTarball("%s/bluewaterupdate.tgz" % xenrt.TEC().lookup("TEST_TARBALL_BASE"), "c:\\")
+                if self.xmlrpcGetArch() == "amd64":
+                    self.xmlrpcStart('wusa "c:\\bluewaterupdate\\Windows8.1-KB2887595-v2-x64.msu" /quiet /log:C:\\bluewaterUpdateInstall.txt')
+                else:
+                    self.xmlrpcStart('wusa "c:\\bluewaterupdate\\Windows8.1-KB2887595-v2-x86.msu" /quiet /log:C:\\bluewaterUpdateInstall.txt')
 
-            deadline = xenrt.util.timenow() + 3600
-            while True:
-                try:
-                    if self.getDomid() != domid:
-                        break
-                except:
-                    pass
-                if xenrt.util.timenow() > deadline:
-                    logFile = xenrt.TEC().tempFile()
-                    f1=file(logFile,"w")
-                    data=self.xmlrpcReadFile("C:\\bluewaterUpdateInstall.txt")
-                    r=data.splitlines()
+                deadline = xenrt.util.timenow() + 3600
+                while True:
+                    try:
+                        if self.getDomid() != domid:
+                            break
+                    except:
+                        pass
+                    if xenrt.util.timenow() > deadline:
+                        logFile = xenrt.TEC().tempFile()
+                        f1=file(logFile,"w")
+                        data=self.xmlrpcReadFile("C:\\bluewaterUpdateInstall.txt")
+                        r=data.splitlines()
 
-                    s="[a-zA-Z0-9:,;.\\/ \(\)]"
-                    for y in range(len(r)):
-                        l=[x for x in r[y] if 0<=ord(x)<128 and re.search(s,str(x))]
-                        f1.write("".join(l)+"\n")
-                    f1.close()
-                    self.xmlrpcSendFile(logFile,"c:\\Windows\\Logs\\bluewaterUpdateInstallLogs.txt")
-                    raise xenrt.XRTFailure("Timed out waiting for bluewaterupdate initiated reboot")
-                xenrt.sleep(60)
+                        s="[a-zA-Z0-9:,;.\\/ \(\)]"
+                        for y in range(len(r)):
+                            l=[x for x in r[y] if 0<=ord(x)<128 and re.search(s,str(x))]
+                            f1.write("".join(l)+"\n")
+                        f1.close()
+                        self.xmlrpcSendFile(logFile,"c:\\Windows\\Logs\\bluewaterUpdateInstallLogs.txt")
+                        raise xenrt.XRTFailure("Timed out waiting for bluewaterupdate initiated reboot")
+                    xenrt.sleep(60)
 
-            self.waitforxmlrpc(20 * 60)
-
-            if not xenrt.TEC().lookup("DISABLE_EMULATED_DEVICES", False, boolean=True) and not xenrt.TEC().lookup("DISABLE_USB", False, boolean=True):
-                xenrt.TEC().logverbose("Re-enabling USB on Windows Blue")
-                self.xmlrpcShutdown()
-                self.poll("DOWN")
-                self.paramSet("platform:usb", "true")
-                self.lifecycleOperation("vm-start")
                 self.waitforxmlrpc(20 * 60)
-        
+
+                if not xenrt.TEC().lookup("DISABLE_EMULATED_DEVICES", False, boolean=True) and not xenrt.TEC().lookup("DISABLE_USB", False, boolean=True):
+                    xenrt.TEC().logverbose("Re-enabling USB on Windows Blue")
+                    self.xmlrpcShutdown()
+                    self.poll("DOWN")
+                    self.paramSet("platform:usb", "true")
+                    self.lifecycleOperation("vm-start")
+                    self.waitforxmlrpc(20 * 60)
+            
         applicationEventLogger = "wevtutil qe Application /c:50 /f:text"
         systemEventLogger = "wevtutil qe System /c:50 /f:text"
         setupEventLogger = "wevtutil qe Setup /c:50 /f:text"
@@ -4176,6 +4183,22 @@ Loop While not oex3.Stdout.atEndOfStream"""%(applicationEventLogger,systemEventL
                            "SZ",
                             name)
             self.reboot()
+
+    def sysPrepOOBE(self):
+        if not self.windows:
+            raise xenrt.XRTError("This can only be performed on Windows installations")
+
+        with open("%s/data/sysprep/unattend.xml" % xenrt.TEC().lookup("XENRT_BASE")) as f:
+            unattend = f.read()
+
+        unattend = unattend.replace("%ARCH%", self.xmlrpcGetArch())
+        unattend = unattend.replace("%PASSWORD%", xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS", "ADMINISTRATOR_PASSWORD"], "xensource"))
+        pkey = xenrt.util.command("grep '%s ' %s/keys/windows | awk '{print $2}'" % (self.distro, xenrt.TEC().lookup("XENRT_CONF"))).strip()
+        unattend = unattend.replace("%PRODUCTKEY%", pkey)
+
+        self.xmlrpcWriteFile("c:\\unattend.xml", unattend)
+
+        self.xmlrpcExec("c:\\windows\\system32\\sysprep\\sysprep.exe /unattend:c:\\unattend.xml /oobe /generalize /quiet /quit", returnerror=False)
 
 class RunOnLocation(GenericPlace):
     def __init__(self, address):
@@ -5302,14 +5325,13 @@ class GenericHost(GenericPlace):
             raise xenrt.XRTError("No %s repository for %s %s" %
                                  (method, arch, distro))
 
-        mainDisk=self.getInstallDisk(ccissIfAvailable=False)
-        if "scsi-SATA" in mainDisk and (re.search(r"rhel7", distro) or \
-                                        re.search(r"centos7", distro) or \
-                                        re.search(r"oel7", distro)):
-            # This is a hack to workaround the fact RHEL7 has different by-id entries
-            # It will break if certain USB disks etc are in use, but for now is a
-            # 'quick fix' (sorry!)
-            mainDisk = "sda"
+        if (re.search(r"rhel7", distro) or \
+                re.search(r"centos7", distro) or \
+                re.search(r"oel7", distro)):
+            legacySATA = False
+        else:
+            legacySATA = True
+        mainDisk=self.getInstallDisk(ccissIfAvailable=False, legacySATA=legacySATA)
 
         if re.search(r"oel5", distro) or re.search (r"rhel5", distro) or re.search(r"centos5", distro) or \
                 re.search(r"oel4", distro) or re.search (r"rhel4", distro) or re.search(r"centos4", distro):
@@ -5461,7 +5483,7 @@ class GenericHost(GenericPlace):
             raise xenrt.XRTError("No %s repository for %s %s" %
                                  (method, arch, distro))
         nfsdir = xenrt.NFSDirectory()
-        mainDisk = self.getInstallDisk(ccissIfAvailable=False)
+        mainDisk = self.getInstallDisk(ccissIfAvailable=False, legacySATA=True)
         ethDevice = self.getDefaultInterface()
         bootDiskSize = self.lookup("BOOTDISKSIZE", "100")
         ay=SLESAutoyastFile( distro,
@@ -5563,7 +5585,7 @@ class GenericHost(GenericPlace):
             raise xenrt.XRTError("No %s repository for %s %s" %
                                  (method, arch, distro))
 
-        mainDisk=self.getInstallDisk(ccissIfAvailable=False)
+        mainDisk=self.getInstallDisk(ccissIfAvailable=False, legacySATA=True)
 
         ethdev = self.getDefaultInterface()
         ethmac = xenrt.normaliseMAC(self.getNICMACAddress(0))
@@ -5769,32 +5791,33 @@ exit 0
 
     def bootRamdiskLinux(self):
         """Boot a Linux ramdisk image from the network"""
+
+        
+        # Construct a PXE target
+        pxe1 = xenrt.PXEBoot()
         serport = self.lookup("SERIAL_CONSOLE_PORT", "0")
         serbaud = self.lookup("SERIAL_CONSOLE_BAUD", "115200")
+        pxe1.setSerial(serport, serbaud)
+        pxe2 = xenrt.PXEBoot()
+        serport = self.lookup("SERIAL_CONSOLE_PORT", "0")
+        serbaud = self.lookup("SERIAL_CONSOLE_BAUD", "115200")
+        pxe2.setSerial(serport, serbaud)
+    
+        pxe1.addEntry("ipxe", boot="ipxe")
+        pxe1.setDefault("ipxe")
+        pxe1.writeOut(self.machine)
 
-        cr_extra_args = self.lookup("CLEANROOT_EXTRA_ARGS", None)
-
-        self.password = "xenroot"
-
-        # Set the boot files and options for PXE
-        pxe = xenrt.PXEBoot(abspath=True)
-        pxe.setSerial(serport, serbaud)
-        pxe.addEntry("local", boot="local")
-        pxecfg = pxe.addEntry("tcl", default=1, boot="linux")
-        barch = self.getBasicArch()
-        pxecfg.linuxSetKernel("tinycorelinux/vmlinuz")
-        pxecfg.linuxArgsKernelAdd("console=tty0")
-        pxecfg.linuxArgsKernelAdd("console=ttyS%s,%sn8" % (serport, serbaud))
-        ctrladdr = xenrt.TEC().lookup("XENRT_SERVER_ADDRESS", socket.getfqdn())
-        pxecfg.linuxArgsKernelAdd("initrd=tinycorelinux/core-xenrt.gz")
-        if cr_extra_args:
-            pxecfg.linuxArgsKernelAdd(cr_extra_args)
-
-        # Set up PXE for ramdisk boot
-        pxefile = pxe.writeOut(self.machine)
-        pfname = os.path.basename(pxefile)
-        xenrt.TEC().copyToLogDir(pxefile,target="%s.disklesslinux-pxe.txt" % (pfname))
-
+        coreos = pxe2.addEntry("coreos", boot="linux")
+        basepath = xenrt.TEC().lookup(["RPM_SOURCE", "coreos-stable", "x86-64", "HTTP"])
+        coreos.linuxSetKernel("%s/amd64-usr/current/coreos_production_pxe.vmlinuz" % basepath, abspath=True)
+        coreos.linuxArgsKernelAdd("initrd=%s/amd64-usr/current/coreos_production_pxe_image.cpio.gz cloud-config-url=%s/cloudconfig.yaml" % (basepath, basepath))
+    
+        pxe2.setDefault("coreos")
+        filename = pxe2.writeOut(self.machine, suffix="_ipxe")
+        ipxescript = """set 209:string pxelinux.cfg/%s
+chain tftp://${next-server}/%s
+""" % (os.path.basename(filename), xenrt.TEC().lookup("PXELINUX_PATH", "pxelinux.0"))
+        pxe2.writeIPXEConfig(self.machine, ipxescript)
         tries = 0
         while True:
             try:
@@ -5829,7 +5852,6 @@ exit 0
                 tries = tries + 1
                 if tries == 3:
                     raise
-        return pxe
 
     def createGenericLinuxGuest(self):
         raise xenrt.XRTError("Unimplemented")
@@ -6496,51 +6518,46 @@ exit 0
 
         return subnetMask,gateway
 
-    def _getMainDisks(self, count=1, ccissIfAvailable=False):
+    def _getDisks(self, var, sdfallback, count, ccissIfAvailable, legacySATA):
         disks = None
         try:
             if ccissIfAvailable:
-                disks = self.lookup(["OPTION_CARBON_DISKS", "CCISS"], None)
+                disks = self.lookup([var, "CCISS"])
             else:
-                disks = self.lookup(["OPTION_CARBON_DISKS", "SCSI"], None)
+                disks = self.lookup([var, "SCSI"])
+        except:
+            pass
+        try:
+            if legacySATA:
+                disks = self.lookup([var, "LEGACY_SATA"])
+            else:
+                disks = self.lookup([var, "SATA"])
         except:
             pass
         if not disks:
-            disks = self.lookup("OPTION_CARBON_DISKS", None)
-
-        # REQ-35: Temp fix while we work out how to do this properly.
-        if isinstance(self, xenrt.lib.xenserver.DundeeHost) and self.isCentOS7Dom0():
-            if disks and "scsi-SATA" in "".join(disks):
+            disks = self.lookup(var, None)
+            # REQ-35: (Better) temp fix until we fix all of the config files
+            if not legacySATA and disks and "scsi-SATA" in "".join(disks):
                 disks = None
-
-        if not disks:
+        if not disks and sdfallback:
             disks = string.join(map(lambda x:"sd"+chr(97+x), range(count)))
-        return string.split(disks)[:count]
-
-    def getInstallDisk(self, ccissIfAvailable=False):
-        return self._getMainDisks(ccissIfAvailable=ccissIfAvailable, count=1)[0]
-
-    def getGuestDisks(self, count=1, ccissIfAvailable=False):
-        disks = None
-        try:
-            if ccissIfAvailable:
-                disks = self.lookup(["OPTION_GUEST_DISKS", "CCISS"])
-            else:
-                disks = self.lookup(["OPTION_GUEST_DISKS", "SCSI"])
-        except:
-            pass
         if not disks:
-            disks = self.lookup("OPTION_GUEST_DISKS", None)
-
-        # REQ-35: Temp fix while we work out how to do this properly.
-        if isinstance(self, xenrt.lib.xenserver.DundeeHost) and self.isCentOS7Dom0():
-            if disks and "scsi-SATA" in "".join(disks):
-                disks = None
-
-        if disks:
-            return string.split(disks)[:count]
+            return []
         else:
-            return self._getMainDisks(count=count, ccissIfAvailable=ccissIfAvailable)
+            return string.split(disks)[:count]
+
+    def _getMainDisks(self, count, ccissIfAvailable, legacySATA):
+        return self._getDisks("OPTION_CARBON_DISKS", True, count=count, ccissIfAvailable=ccissIfAvailable, legacySATA=legacySATA)
+
+    def getInstallDisk(self, ccissIfAvailable=False, legacySATA=False):
+        return self._getMainDisks(ccissIfAvailable=ccissIfAvailable, count=1, legacySATA=legacySATA)[0]
+
+    def getGuestDisks(self, count=1, ccissIfAvailable=False, legacySATA=False):
+        disks = self._getDisks("OPTION_GUEST_DISKS", False, count=count, ccissIfAvailable=ccissIfAvailable, legacySATA=legacySATA)
+        if disks:
+            return disks
+        else:
+            return self._getMainDisks(count=count, ccissIfAvailable=ccissIfAvailable, legacySATA=legacySATA)
 
     def getContainerHost(self):
         container = self.lookup("CONTAINER_HOST", None)
@@ -9072,6 +9089,9 @@ class GenericGuest(GenericPlace):
             self.execguest("echo '    'address %s >> /etc/network/interfaces" % ipv6Addr)
             self.execguest("echo '    'netmask %s >> /etc/network/interfaces" % netmask)
             self.execguest("echo '    'gateway %s >> /etc/network/interfaces" % gateway)
+            # Note that we change the IP before the reboot. This is fine for toolstacks that have an out of band soft reboot
+            # mechanism, but may fail if we need to SSH to the guest to perform the reboot
+            self.mainip = ipv6Addr
             self.reboot()
             xenrt.sleep(10)
             try:
@@ -9531,6 +9551,57 @@ while True:
                FileNameForTimeDiff = 'writetime.txt'
            FileNameToBeWritten = 'test'
            script = getScriptToBeExecuted(timeInsecs,FileNameToBeWritten,FileNameForTimeDiff,self.getName())
+
+    def installPVHVMNvidiaGpuDrivers(self):
+        if not self.verifyGuestAsPVHVM():
+            raise xenrt.XRTError("This GPU drivers are for PVHVM guests only")
+
+        guestArch=self.execguest("uname -p")
+
+        if guestArch == "x86_64":
+            drivername=xenrt.TEC().lookup("PVHVM_GPU_NVDIA_X64")
+        else :
+            drivername=xenrt.TEC().lookup("PVHVM_GPU_NVDIA_X86")
+
+        #Get the file and put it into the VM
+        urlprefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
+        url = "%s/gpuDriver/PVHVM/%s" % (urlprefix, drivername)
+        installfile = xenrt.TEC().getFile(url)
+        if not installfile:
+            raise xenrt.XRTError("Failed to fetch PVHVM GPU NVidia driver.")
+        sftp = self.sftpClient()
+        sftp.copyTo(installfile, "/%s" % (os.path.basename(installfile)))
+        sftp.close()
+
+        #Call guest methods to install drivers
+        if self.distro.startswith("ubuntu"):
+            self.installUbuntuGpuDrivers(drivername)
+        else :
+            self.installRhelGpuDrivers(drivername)
+
+    def installUbuntuGpuDrivers(self ,drivername):
+        self.execcmd("echo 'blacklist nouveau' >> /etc/modprobe.d/blacklist.conf ")
+        self.execcmd("echo 'blacklist nvidiafb' >> /etc/modprobe.d/blacklist.conf ")
+        self.execcmd("sudo apt-get remove --purge nvidia*")
+        self.execcmd("sudo update-initramfs -u")
+        self.reboot()
+        self.execcmd("sh /./%s --silent" %(drivername))
+        self.reboot()
+        
+    def installRhelGpuDrivers(self,drivername):
+        self.execcmd("sed -i 's/GRUB_CMDLINE_LINUX.*\s[a-z,A_Z,0-9]*/& rdblacklist=nouveau/' /etc/default/grub")
+        self.execcmd("grub2-mkconfig -o /boot/grub2/grub.cfg")
+        self.execcmd("echo 'blacklist nouveau' >> /etc/modprobe.d/blacklist.conf ")
+        self.execcmd("echo 'blacklist nvidiafb' >> /etc/modprobe.d/blacklist.conf ")
+        self.execcmd("echo 'blacklist nouveau' >> /etc/modprobe.d/disable-nouveau.conf ")
+        self.execcmd("echo 'options nouveau modeset=0' >> /etc/modprobe.d/disable-nouveau.conf ")
+        self.reboot()
+        self.execcmd("sh /./%s --silent" %(drivername))
+        self.reboot()
+
+    def verifyGuestAsPVHVM(self):
+
+        return self.paramGet("HVM-boot-policy") == "BIOS order" and self.paramGet("PV-bootloader") == ""
 
     def diskReadWorkload(self,timeInsecs,fileNameForTimeDiff=None):
 

@@ -23,9 +23,9 @@ class ReadCacheTestCase(xenrt.TestCase):
         host.licenseApply(None, licence)
 
     def prepare(self, arglist):
-        vmName = self.parseArgsKeyValue(arglist)["vm"]
-        log("Using vm %s" % vmName)
-        self.vm = self.getGuest(vmName)
+        self.vmName = self.parseArgsKeyValue(arglist)["vm"]
+        log("Using vm %s" % self.vmName)
+        self.vm = self.getGuest(self.vmName)
         self._applyMaxLicense()
         host = self.getDefaultHost()
         rcc = host.readCaching()
@@ -139,8 +139,9 @@ class TCRCForSRPlug(ReadCacheTestCase):
         sr.introduce()
 
         #Plug the VDI to the VM
+        xsr = next((s for s in self.getDefaultHost().asXapiObject().SR() if s.srType() == "nfs"), None)
         xvdi = xsr.VDI()[0]
         self.vm.createDisk(sizebytes=xvdi.size(), sruuid=xsr.uuid,
                            vdiuuid=xvdi.uuid, bootable=True)
-        self.vm.start()
+        self.vm.setState("UP")
         self.checkExpectedState(True, lowlevel, both)

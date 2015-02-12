@@ -2234,9 +2234,6 @@ class TCReuseK2PGPU(FunctionalBase):
 
 class TCRevertvGPUSnapshot(FunctionalBase):
 
-    REQUIRED_DISTROS = [VGPUOS.Win7x86]
-    VGPU_CONFIG = [VGPUConfig.K240]
-
     def prepare(self,arglist):
 
         super(TCRevertvGPUSnapshot, self).prepare(arglist)

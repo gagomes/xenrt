@@ -1,9 +1,8 @@
-from server import PageFactory
-from app.uiv2 import XenRTUIPage
+<!doctype html>
+<html lang=''>
+<head>
+${commonhead | n}
 
-class XenRTBrowseLogs(XenRTUIPage):
-    def render(self):
-        head = """
   <script>
 $(function() {
 
@@ -46,17 +45,17 @@ $(function() {
     }
 
     function jobHTML(data) {
-        var out = "<div id=\\"job" + data['id'] + "\\" class=\\"ui-widget-content ui-corner-all\\">";
-        out += "<div id=\\"jobheader" + data['id'] + "\\" class=\\"ui-widget-header ui-corner-all\\">";
+        var out = "<div id=\"job" + data['id'] + "\" class=\"ui-widget-content ui-corner-all\">";
+        out += "<div id=\"jobheader" + data['id'] + "\" class=\"ui-widget-header ui-corner-all\">";
         out += "<h3>"
         if (data['result'])
         {
-            out += "<span style=\\"background-color: " + resultToColor(data['result']) + "\\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> ";
+            out += "<span style=\"background-color: " + resultToColor(data['result']) + "\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> ";
         }
         out += "Job " + data['id'] + " (" + data['status'] + ")</h3>";
-        out += "<p><a href=\\"#\\" id=\\"togglejobdetail" + data['id'] + "\\">Toggle details</a>";
+        out += "<p><a href=\"#\" id=\"togglejobdetail" + data['id'] + "\">Toggle details</a>";
         if (data['params']['UPLOADED'] == "yes") {
-            out += " | <a href=\\"http://" + data['params']['LOG_SERVER'] + "/xenrt/logs/job/" + data['id'] + "/browse\\" target=\\"_blank\\">Show Logs</a>";
+            out += " | <a href=\"http://" + data['params']['LOG_SERVER'] + "/xenrt/logs/job/" + data['id'] + "/browse\" target=\"_blank\">Show Logs</a>";
         }
         out += " | User: " + data['user'];
         if (data['result'])
@@ -65,18 +64,21 @@ $(function() {
         }
         if (data['machines'].length > 0) {
             if (data['machines'].length == 1) { 
-                out += " | Ran on machine: "+  data['machines'][0] + "</p>";
+                out += " | Ran on machine: "+  data['machines'][0];
             }
             else {
-                out += " | Ran on machines: "+  data['machines'].join(", ") + "</p>";
+                out += " | Ran on machines: "+  data['machines'].join(", ");
             }
+        }
+        if ("PREPARE_FAILED" in data['params']) {
+            out += " | Failure message: " + data['params']['PREPARE_FAILED'];
         }
         out += "</p>";
         out += "</div>";
-        out += "<div id=\\"jobdetail" + data['id'] + "\\" style=\\"display:none;\\" class=\\"ui-widget-content ui-corner-all\\">";
+        out += "<div id=\"jobdetail" + data['id'] + "\" style=\"display:none;\" class=\"ui-widget-content ui-corner-all\">";
         out += jobDetailsHTML(data);
         out += "</div>";
-        out += "<div id=\\"jobresults" + data['id'] + "\\">";
+        out += "<div id=\"jobresults" + data['id'] + "\">";
         out += resultsHTML(data);
         out += "</div>";
         out += "</div>";
@@ -84,13 +86,13 @@ $(function() {
     }
 
     function jobDetailsHTML(data) {
-        var out = "<table style=\\"width: 100%\\">";
+        var out = "<table style=\"width: 100%\">";
         var i = 0;
         for (var key in data['params']) {
             if (i % 4 == 0) {
                 out += "<tr>";
             }
-            out += "<td style=\\"word-break: break-all; width: 25%\\">" + key + ": " + data['params'][key] + "</td>";
+            out += "<td style=\"word-break: break-all; width: 25%\">" + key + ": " + data['params'][key] + "</td>";
             i++;
             if (i % 4 == 0) {
                 out += "</tr>";
@@ -143,21 +145,35 @@ $(function() {
         var out = ""
         for (var key in data['results']) {
             test = data['results'][key];
-            out += "<div id=\\"test" + key + "\\" class=\\"ui-widget-content ui-corner-all\\">";
-            out += "<span style=\\"background-color: " + resultToColor(test['result']) + "\\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> ";
-            out += "<span style=\\"font-weight:bold\\">";
+            out += "<div id=\"test" + key + "\" class=\"ui-widget-content ui-corner-all\">";
+            out += "<span style=\"background-color: " + resultToColor(test['result']) + "\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> ";
+            out += "<span style=\"font-weight:bold\">";
             out += test['phase'] + "/" + test['test'] + ": " + test['result'];
             out += "</span>";
-            out += " | <a href=\\"#\\" id=\\"toggletestdetail" + key + "\\">Toggle details</a>";
+            out += " | <a href=\"#\" id=\"toggletestdetail" + key + "\">Toggle details</a>";
             if (test['logUploaded']) {
-                out += " | <a href=\\"http://" + data['params']['LOG_SERVER'] + "/xenrt/logs/test/" + key + "/browse\\" target=\\"_blank\\">Show Logs</a>";
+                out += " | <a href=\"http://" + data['params']['LOG_SERVER'] + "/xenrt/logs/test/" + key + "/browse\" target=\"_blank\">Show Logs</a>";
             }
-            out += "<div id=\\"testdetail" + key + "\\" style=\\"display:none;\\">";
+            var failure = getFailureMessage(test);
+            if (failure) {
+                out += " | Failure message: " + failure;
+            }
+            out += "<div id=\"testdetail" + key + "\" style=\"display:none;\">";
             out += testDetailHTML(test);
             out += "</div>";
             out += "</div>";
         }
         return out
+    }
+
+    function getFailureMessage(test) {
+        for (var i in test['log']) {
+            item = test['log'][i];
+            if (item['type'] == "reason") {
+                return item['log'];
+            }
+        }
+        return null;
     }
 
     function testDetailHTML(test) {
@@ -166,7 +182,7 @@ $(function() {
             item = test['log'][i]
             out += "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
             if (item['type'] == "result") {
-                out += "<span style=\\"background-color: " + resultToColor(item['log']) + "\\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> ";
+                out += "<span style=\"background-color: " + resultToColor(item['log']) + "\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> ";
             }
             else {
                 out += "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "
@@ -222,15 +238,18 @@ $(function() {
 
 });
 </script>
-"""
-        body = """
+
+</head>
+<body>
+${commonbody | n}
+
+<div id="mainbody">
+
 <h2>Browse XenRT Logs</h2>
 <p>Jobs: <input id="jobs" type="text" width="12">
 <button id="displayjobbutton" class="ui-state-default ui-corner-all">Display</button></p>
 <div id="logs"></div>
-"""
 
-
-        return {"head": head, "body": body, "title": "Browse logs", "user": self.loggedInAs()}
-
-PageFactory(XenRTBrowseLogs, "/ui/logs", renderer="__main__:templates/newui.pt")
+</div>
+</body>
+<html>

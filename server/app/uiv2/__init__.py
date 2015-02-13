@@ -32,7 +32,11 @@ class XenRTUIPage(XenRTPage):
 
   </style>
 """
-        commonbody = """
+
+        commonbody = ""
+
+        if self.request.params.get("menu") != "false":
+            commonbody += """
 <div id="overlay"></div>
 <div id="loading"></div>
 
@@ -62,8 +66,10 @@ class XenRTUIPage(XenRTPage):
        </li>
      </ul>
    </li>
-</ul>
+</ul>i
 <div id='righttitle'>Citrix XenRT</div>
+            """
+        commonbody += """
 </div>
 <p>
 <div id="user"><div style="float:right">%s</div></div>

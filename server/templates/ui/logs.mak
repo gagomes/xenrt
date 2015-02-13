@@ -144,7 +144,7 @@ $(function() {
     function resultsHTML(data) {
         var out = ""
         for (var key in data['results']) {
-            test = data['results'][key];
+            var test = data['results'][key];
             out += "<div id=\"test" + key + "\" class=\"ui-widget-content ui-corner-all\">";
             out += "<span style=\"background-color: " + resultToColor(test['result']) + "\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> ";
             out += "<span style=\"font-weight:bold\">";
@@ -168,7 +168,7 @@ $(function() {
 
     function getFailureMessage(test) {
         for (var i in test['log']) {
-            item = test['log'][i];
+            var item = test['log'][i];
             if (item['type'] == "reason") {
                 return item['log'];
             }
@@ -179,7 +179,7 @@ $(function() {
     function testDetailHTML(test) {
         var out = ""
         for (var i in test['log']) {
-            item = test['log'][i]
+            var item = test['log'][i]
             out += "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
             if (item['type'] == "result") {
                 out += "<span style=\"background-color: " + resultToColor(item['log']) + "\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> ";

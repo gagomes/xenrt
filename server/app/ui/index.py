@@ -30,7 +30,14 @@ class XenRTBlank(XenRTPage):
     def render(self):
         return ""
 
+class XenRTDetailFrame(XenRTPage):
+    def render(self):
+        url = "/xenrt/ui/logs"
+        url += "?menu=false&%s" % self.request.query_string
+        return HTTPFound(location=url)
+
 PageFactory(XenRTIndex, "/")
 PageFactory(XenRTFrame, "/frame")
 PageFactory(XenRTFrame, "/minimalframe")
+PageFactory(XenRTDetailFrame, "/detailframe")
 PageFactory(XenRTBlank, "/blank")

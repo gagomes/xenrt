@@ -11,7 +11,7 @@
   <testsequence>
     <serial group="LinuxGPUPassthrough">
       <testcase id="testcases.xenserver.tc.vgpu.TCBasicVerifOfAllK2config">
-        <arg>distro=10,11,12,13,14</arg>
+        <arg>distro=11,12,13,14</arg>
         <arg>typeofvgpu=nvidialinuxvgpu</arg>
         <arg>vgpuconfig=11</arg>
       </testcase>
@@ -23,7 +23,7 @@
       </testcase>
 
       <testcase id="testcases.xenserver.tc.vgpu.TCvGPUBalloon" name="TC-23920" tc="TC-23920">
-        <arg>distro=10</arg>
+        <arg>distro=11</arg>
         <arg>typeofvgpu=nvidialinuxvgpu</arg>
         <arg>vgpuconfig=11</arg>
       </testcase>

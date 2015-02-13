@@ -37,13 +37,12 @@ class XenRTAPIv2Swagger(XenRTPage):
             "info": {
                 "version": "1.0.0",
                 "title": "XenRT API",
-                "description": """XenRT API can be authenticated in 3 ways:
-<ul>
-    <li>Kerberos on the Citrite AD domain</li>
-    <li>Basic authentication using Citrite domain credentials</li>
-    <li>API Key, by passing your API key (obtain <a href="/xenrt/ui/apikey">here</a>) in the x-api-key HTTP header</li>
-</ul>
-                <a href="/xenrt/bindings/xenrtapi.py">Download python bindings</a>"""
+                "description": """XenRT API can be authenticated in 3 ways<br />
+- Kerberos on the Citrite AD domain<br />
+- Basic authentication using Citrite domain credentials<br />
+- API Key, by passing your API key (obtain <a href="/xenrt/ui/apikey">here</a>) in the x-api-key HTTP header<br />
+<br />
+<a href="/xenrt/bindings/xenrtapi.py">Download python bindings</a>"""
             },
             "basePath": "%s/api/v2" % u.path.rstrip("/"),
             "host": u.netloc,

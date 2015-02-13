@@ -26,6 +26,11 @@ class XenRTFrame(XenRTPage):
             url += "?%s" % self.request.query_string
         return HTTPFound(location=url)
 
+class XenRTBlank(XenRTPage):
+    def render(self):
+        return ""
+
 PageFactory(XenRTIndex, "/")
 PageFactory(XenRTFrame, "/frame")
 PageFactory(XenRTFrame, "/minimalframe")
+PageFactory(XenRTBlank, "/blank")

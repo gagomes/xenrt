@@ -2512,7 +2512,8 @@ class TCBasicVerifOfAllK2config(FunctionalBase):
             log("Creating Master VM of type %s" % osType)
             vm = self.createMaster(osType)
             vm.setState("UP")
-            vm.enableFullCrashDump()
+            if vm.windows:
+                vm.enableFullCrashDump()
             self.masterVMsSnapshot[osType] = vm.snapshot()
 
     def insideRun(self,config,distro):

@@ -27,6 +27,7 @@ class Server(object):
     def __init__(self):
         self.appconfig = Configurator()
         self.appconfig.include("pyramid_chameleon")
+        self.appconfig.include("pyramid_mako")
         self.compatActions = {}
 
     def addPage(self, location, function, renderer, reqType):

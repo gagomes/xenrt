@@ -1,9 +1,8 @@
-from server import PageFactory
-from app.uiv2 import XenRTUIPage
+<!doctype html>
+<html lang=''>
+<head>
 
-class XenRTAPIKey(XenRTUIPage):
-    def render(self):
-        head = """
+${commonhead | n}
     <script>
 $(function() {
     $( "#getkey" ).click(function() {
@@ -16,7 +15,7 @@ $(function() {
         var keyget = "/xenrt/api/v2/apikey"
         $.getJSON (keyget, {})
             .done(function(data) {
-                var out = "<p>My API key is <span style=\\"font-weight:bold\\">" + data["key"] + "</span></p>";
+                var out = "<p>My API key is <span style=\"font-weight:bold\">" + data["key"] + "</span></p>";
                 $( out ).appendTo( "#apikey" );
             });
         $( "#overlay" ).hide();
@@ -40,7 +39,7 @@ $(function() {
             type: 'DELETE',
             async: false,
             success: function(data) {
-                var out = "<p>API key revoked successfully. To create a new key, click \\"Get my API key\\" above</p>";
+                var out = "<p>API key revoked successfully. To create a new key, click \"Get my API key\" above</p>";
                 $( out ).appendTo( "#revokestatus" );
             }
         });
@@ -50,8 +49,13 @@ $(function() {
     }); 
 });
     </script>
-"""
-        body = """
+
+</head>
+<body>
+
+${commonbody | n}
+<div id="mainbody">
+
 <h2>Manage my API key</h2>
 <p>
 <button id="getkey" class="ui-state-default ui-corner-all">Get my API key</button>
@@ -62,9 +66,7 @@ $(function() {
 <div id="revokestatus"></div>
 </p>
 
-"""
 
-
-        return {"head": head, "body": body, "title": "Manage API key", "user": self.loggedInAs()}
-
-PageFactory(XenRTAPIKey, "/ui/apikey", renderer="__main__:templates/newui.pt")
+</div>
+</body>
+<html>

@@ -50,7 +50,7 @@ class XapiReadCacheController(Controller):
         vdis = list(itertools.chain(*[v.VDI() for v in self._host.asXapiObject().SR()]))
         vdi = next((v for v in vdis if v.uuid == self.vdiuuid), None)
         if not vdi:
-            raise RuntimeError("VDI with uuid %s could not be found in the list %s" %(self.vdiuuid, vdis))
+            raise RuntimeError("VDI with uuid %s could not be found in the list %s" % (self.vdiuuid, vdis))
         return vdi.readcachingEnabled()
 
     def enable(self):

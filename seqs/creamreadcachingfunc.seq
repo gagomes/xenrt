@@ -1,4 +1,6 @@
 <xenrt>
+
+  <!-- Read Caching Funcitonal Tests -->
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
     <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
@@ -33,7 +35,7 @@
       </testcase>
 
       <!-- Upgrade to Cream by hotfixing -->
-      <!-- <testcase id="xenserver.install.TCApplyReqdPatches" tc="TC-20692" blocker="yes"  name="3"/> -->
+      <testcase id="xenserver.install.TCApplyReqdPatches" tc="TC-20692" ename="3"/>
 
       <!-- Verify both xapi and tap-ctl are set by licensing state and the values agree -->
       <testcase id="testcases.xenserver.tc.readcaching.TCLicensingRCEnabled" name="4">
@@ -65,8 +67,7 @@
 
       <!-- Test SR plug-unplug -->
       <testcase id="testcases.xenserver.tc.readcaching.TCRCForSRPlug" name="9">
-        <!--<arg>bothChecks=yes</arg>-->
-        <arg>lowlevel=yes</arg>
+        <arg>bothChecks=yes</arg>
         <arg>vm=sly</arg>
       </testcase>
 

@@ -44,14 +44,14 @@ class ReadCacheTestCase(xenrt.TestCase):
             step("Checking xapi status....")
             assertions.assertEquals(expectedState, rcc.isEnabled(LowLevel=False), "RC is enabled status via. xapi")
         else:
-            step("Checking status of a single state..." )
+            step("Checking status of a single state...")
             assertions.assertEquals(expectedState, rcc.isEnabled(LowLevel=lowlevel), "RC is enabled status")
 
     def getArgs(self, arglist):
         args = self.parseArgsKeyValue(arglist)
         log("Args: %s" % args)
-        lowlevel = args["lowlevel"] in ("yes", "true") if args.has_key("lowlevel") else False
-        both = args["bothChecks"] in ("yes", "true") if args.has_key("bothChecks") else False
+        lowlevel = args["lowlevel"] in ("yes", "true") if "lowlevel" in args else False
+        both = args["bothChecks"] in ("yes", "true") if "bothChecks" in args else False
         return lowlevel, both
 
 
@@ -95,13 +95,13 @@ class TCRCForLifeCycleOps(ReadCacheTestCase):
         rcc = host.readCaching()
         vm = self.vm
         lowlevel, both = self.getArgs(arglist)
-        self.runSubcase("lifecycle", (vm,rcc,lowlevel,both,vm.reboot),
+        self.runSubcase("lifecycle", (vm, rcc, lowlevel, both, vm.reboot),
                         "Perform lifecycle", "Reboot")
-        self.runSubcase("lifecycle", (vm,rcc,lowlevel,both,self.pauseResume,vm),
+        self.runSubcase("lifecycle", (vm, rcc, lowlevel, both, self.pauseResume, vm),
                         "Perform Lifecycle", "PauseResume")
-        self.runSubcase("lifecycle", (vm,rcc,lowlevel,both,self.stopStart,vm),
+        self.runSubcase("lifecycle", (vm, rcc, lowlevel, both, self.stopStart, vm),
                         "Perform Lifecycle", "StopStart")
-        self.runSubcase("lifecycle", (vm,rcc,lowlevel,both,vm.migrateVM,host),
+        self.runSubcase("lifecycle", (vm, rcc, lowlevel, both, vm.migrateVM, host),
                         "Perform Lifecycle", "LocalHostMigrate")
 
     def stopStart(self, vm):
@@ -127,23 +127,31 @@ class TCRCForSRPlug(ReadCacheTestCase):
     """
     A3. Verify SR re-attach persist status
     """
-    def run(self, arglist):
-        lowlevel, both = self.getArgs(arglist)
-        self.checkExpectedState(True, lowlevel, both)
-        self.vm.shutdown()
 
-        #Find the SR and forget/introduce
+    def __plugReplugSR(self):
         xsr = next((s for s in self.getDefaultHost().asXapiObject().SR() if s.srType() == "nfs"), None)
         sr = xenrt.lib.xenserver.NFSStorageRepository.fromExistingSR(self.getDefaultHost(), xsr.uuid)
         sr.forget()
         sr.introduce()
 
-        #Plug the VDI to the VM
+    def __replugVm(self):
+        # Plug the VDI to the VM
         xsr = next((s for s in self.getDefaultHost().asXapiObject().SR() if s.srType() == "nfs"), None)
         xvdi = xsr.VDI()[0]
-        self.vm.createDisk(sizebytes=xvdi.size(), sruuid=xsr.uuid,
-                           vdiuuid=xvdi.uuid, bootable=True)
-        #Have a rest - you deserve it
-        xenrt.sleep(30)
+        self.vm.createDisk(sizebytes=xvdi.size(), sruuid=xsr.uuid, vdiuuid=xvdi.uuid, bootable=True)
+
+    def run(self, arglist):
+        lowlevel, both = self.getArgs(arglist)
+        self.checkExpectedState(True, lowlevel, both)
+        self.vm.shutdown()
+
+        # Find the SR and forget/introduce
+        self.__plugReplugSR()
+        self.__replugVm()
+
+        # Have a rest - you deserve it
+        # At this point we could potentially have 2 vbds, one dangling and the new one, just added.
+        # We need to wait for the xapi GC to kick in and clear the dangling ref otherwise we'll get an invalid handle
+        xenrt.sleep(60)
         self.vm.setState("UP")
         self.checkExpectedState(True, lowlevel, both)

@@ -1199,6 +1199,7 @@ class TCTestDriverUpgrade(xenrt.TestCase):
 
         # Find the VM and snapshot it
         guest = self.getGuest(hotfixTag)
+        self.guest = guest
         snapshot = guest.snapshot()
 
         xenrt.TEC().logdelimit("Testing normal driver upgrade")
@@ -1226,3 +1227,10 @@ class TCTestDriverUpgrade(xenrt.TestCase):
                 guest.checkPVDevices()
             else:
                 raise
+
+    def postRun(self, arglist):
+        try:
+            self.guest.shutdown()
+        except:
+            pass
+

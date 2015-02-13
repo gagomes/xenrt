@@ -81,6 +81,7 @@ extrapackages-install:
 	$(SUDO) easy_install --upgrade requests_oauthlib
 	$(SUDO) easy_install --upgrade pyramid
 	$(SUDO) easy_install --upgrade pyramid_chameleon
+	$(SUDO) easy_install --upgrade pyramid_mako
 	$(SUDO) easy_install --upgrade flup
 	$(SUDO) easy_install paramiko==1.12.3
 	$(SUDO) easy_install --upgrade uwsgi

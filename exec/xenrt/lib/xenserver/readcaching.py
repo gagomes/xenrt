@@ -108,7 +108,7 @@ class LowLevelReadCacheController(Controller):
 
 class ReadCachingController(Controller):
     """
-    Proxy certain methods for the other controller classes
+    Composite certain methods for the other controller classes
     """
     def __init__(self, host,  vdiuuid=None):
         self.__xapi = XapiReadCacheController(host, vdiuuid)

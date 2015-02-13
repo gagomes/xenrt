@@ -641,17 +641,17 @@ users:
 
         self.shutdown()
 
-    #def installDockerRpms(self):
-    #    """Install Docker environment into a guest"""
+    def installDockerRpms(self):
+        """Install Docker environment into a guest"""
 
-    #    if self.distro.startsWith("rhel"):
-    #        return RHELDockerInstall(self).install()
-    #    elif self.distro.startsWith("ubuntu"):
-    #        return UbuntuDockerInstall(self).install()
-    #    elif self.distro.startsWith("coreos"):
-    #        return CoreOSDockerInstall(self).install()
-    #    else:
-    #        raise xenrt.XRTFailure("Docker installation unimplemented on distro %s" % self.distro)
+        if self.distro.startsWith("rhel"):
+            return xenrt.lib.xenserver.dockerinstall.RHELDockerInstall(self).install()
+        elif self.distro.startsWith("ubuntu"):
+            return xenrt.lib.xenserver.dockerinstall.UbuntuDockerInstall(self).install()
+        elif self.distro.startsWith("coreos"):
+            return xenrt.lib.xenserver.dockerinstall.CoreOSDockerInstall(self).install()
+        else:
+            raise xenrt.XRTFailure("Docker installation unimplemented on distro %s" % self.distro)
 
     def installWindows(self, isoname):
         """Install Windows into a VM"""

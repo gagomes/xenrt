@@ -340,7 +340,7 @@ class VGPUTest(xenrt.TestCase, object):
         guest.installNvidiaVGPUDriver(self.driverType)
 
     def installNvidiaLinuxDrivers(self,guest):
-        guest.installPvhvmNvidiaGpuDrivers()
+        guest.installPVHVMNvidiaGpuDrivers()
 
     def installIntelWindowsDrivers(self,guest):
         guest.installIntelGPUDriver()

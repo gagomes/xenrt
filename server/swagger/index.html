@@ -61,7 +61,7 @@
         log("key: " + key);
         if(key && key.trim() != "") {
             log("added key " + key);
-            window.authorizations.add("api_key", new ApiKeyAuthorization("api_key", key, "query"));
+            window.authorizations.add("api_key", new ApiKeyAuthorization("x-api-key", key, "header"));
         }
       }
 
@@ -75,13 +75,6 @@
         $('#input_apiKey').val(apiKey);
         addApiKeyAuthorization();
       */
-      var updateAuth = function() {
-        var auth = "Basic " + btoa($('#input_user')[0].value + ":" + $('#input_pass')[0].value);
-        window.authorizations.add("key", new ApiKeyAuthorization("Authorization", auth, "header"));
-      };
-
-      $('#input_user').change(updateAuth);
-      $('#input_pass').change(updateAuth);
 
       window.swaggerUi.load();
   });
@@ -93,8 +86,7 @@
   <div class="swagger-ui-wrap">
     <a id="logo" href="http://swagger.io">swagger</a>
     <form id='api_selector'>
-      <div class='input'><input placeholder="user" id="input_user" name="user" type="text" size="10"/></div>    
-      <div class='input'><input placeholder="pass" id="input_pass" name="pass" type="password" size="10"/></div>
+      <div class='input'><input placeholder="api_key" id="input_apiKey" name="apiKey" type="text"/></div>
     </form>
   </div>
 </div>

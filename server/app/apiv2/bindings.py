@@ -61,11 +61,11 @@ class Path(object):
                 else:
                     ret += """        if %s != None:\n            payload['%s'] = %s\n""" % (q, p, q)
         if self.method == "get":
-            ret += """        r = requests.get(path, params=paramdict, auth=(self.user, self.password), headers=self.customHeaders)\n"""
+            ret += """        r = requests.get(path, params=paramdict, headers=self.customHeaders)\n"""
         else:
             ret += """        myHeaders = {'content-type': 'application/json'}\n"""
             ret += """        myHeaders.update(self.customHeaders)\n"""
-            ret += """        r = requests.%s(path, params=paramdict, data=payload, files=files, auth=(self.user, self.password), headers=myHeaders)\n""" % self.method
+            ret += """        r = requests.%s(path, params=paramdict, data=payload, files=files, headers=myHeaders)\n""" % self.method
         ret += """        self.__raiseForStatus(r)\n"""
         if 'application/json' in self.data['produces']:
             ret += """        return r.json()"""
@@ -186,7 +186,7 @@ import requests
 import json
 import httplib
 import os.path
-import netrc
+import base64
 
 class XenRTAPIException(Exception):
     def __init__(self, code, reason, canForce):
@@ -201,19 +201,17 @@ class XenRTAPIException(Exception):
         return ret
 
 class XenRT(object):
-    def __init__(self, user=None, password=None):
+    def __init__(self, apikey=None, user=None, password=None):
         self.base = "%s://%s%s"
 
-        if not user:
-            auth = netrc.netrc().authenticators("%s")
-            if not auth:
-                raise Exception("No authentication details specified by parameters or in .netrc for %s")
-            self.user = auth[0]
-            self.password = auth[2]
-        else:
-            self.user = user
-            self.password = password
         self.customHeaders = {}
+        if apikey:
+            self.customHeaders['x-api-key'] = apikey
+        elif user and password:
+            base64string = base64.encodestring('%%s:%%s' %% (user, password)).replace('\\n', '')
+            self.customHeaders["Authorization"] = "Basic %%s" %% base64string
+
+
 
     def set_fake_user(self, user):
         if not user and "X-Fake-User" in self.customHeaders:
@@ -250,7 +248,7 @@ class XenRT(object):
                                         canForce)
         response.raise_for_status()
 
-""" % (self.scheme, self.host, self.base, self.host, self.host)
+""" % (self.scheme, self.host, self.base)
         for func in self.funcs:
             ret += "%s\n" % func.methodSignature
             ret += "%s\n" % func.description

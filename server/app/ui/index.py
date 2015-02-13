@@ -19,38 +19,13 @@ class XenRTJobQuery(XenRTPage):
     """
         return {"title": "Job Query", "main": out}
 
-class XenRTBlank(XenRTPage):
-    def render(self):
-        return {"title": "", "main": ""}
-
 class XenRTFrame(XenRTPage):
     def render(self):
-        matrix = "blank"
-        jobdetail = "blank"
-        testdetail = "blank"
-        if self.request.params.has_key("jobs"):
-            matrix = "matrix?jobs=%s" % self.request.params["jobs"]
-        elif self.request.params.has_key("detailid"):
-            matrix = "matrix?detailid=%s" % self.request.params["detailid"]
-            testdetail = "detailframe?detailid=%s" % self.request.params["detailid"]
+        url = "/xenrt/ui/logs"
+        if self.request.query_string:
+            url += "?%s" % self.request.query_string
+        return HTTPFound(location=url)
 
-        return {"matrix":matrix, "jobdetail": jobdetail, "testdetail":testdetail}
-
-class XenRTMinimalFrame(XenRTPage):
-    def render(self):
-        matrix = "blank"
-        jobdetail = "blank"
-        testdetail = "blank"
-        if self.request.params.has_key("jobs"):
-            matrix = "matrix?jobs=%s" % self.request.params["jobs"]
-        elif self.request.params.has_key("detailid"):
-            matrix = "matrix?detailid=%s" % self.request.params["detailid"]
-            testdetail = "detailframe?detailid=%s" % self.request.params["detailid"]
-
-        return {"matrix":matrix, "jobdetail": jobdetail, "testdetail":testdetail}
-
-PageFactory(XenRTIndex, "/", renderer="__main__:templates/frames.pt")
-PageFactory(XenRTBlank, "/blank", renderer="__main__:templates/default.pt")
-PageFactory(XenRTJobQuery, "/jobquery", renderer="__main__:templates/default.pt")
-PageFactory(XenRTFrame, "/frame", renderer="__main__:templates/frames.pt")
-PageFactory(XenRTMinimalFrame, "/minimalframe", renderer="__main__:templates/minimalframes.pt")
+PageFactory(XenRTIndex, "/")
+PageFactory(XenRTFrame, "/frame")
+PageFactory(XenRTFrame, "/minimalframe")

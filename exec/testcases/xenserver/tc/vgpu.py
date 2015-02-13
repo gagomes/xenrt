@@ -2234,8 +2234,6 @@ class TCReuseK2PGPU(FunctionalBase):
             supportedTypes = self.host.genParamGet('pgpu',pgpu,'supported-VGPU-types').replace(";", ",").replace(" ", "")
             self.host.genParamSet('pgpu', pgpu, 'enabled-VGPU-types', supportedTypes)
 
-class 
-
 class TCRevertvGPUSnapshot(FunctionalBase):
 
     def prepare(self,arglist):

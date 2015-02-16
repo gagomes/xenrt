@@ -248,9 +248,11 @@ class WindowsHost(xenrt.GenericHost):
         cmd = "netsh interface ipv4 add dnsservers \"%s\" %s" % (ifname, dns)
         self.xmlrpcExec(cmd)
 
-    def disableOtherNics(self):
+    def disableOtherNics(self, ip=None):
+        if not ip:
+            ip = self.machine.ipaddr
         data = self.getWindowsIPConfigData()
-        eths = [x for x in data.keys() if data[x].has_key('IPv4 Address') and not (data[x]['IPv4 Address'] == self.machine.ipaddr or data[x]['IPv4 Address'] == "%s(Preferred)" % self.machine.ipaddr)]
+        eths = [x for x in data.keys() if data[x].has_key('IPv4 Address') and not (data[x]['IPv4 Address'] == ip or data[x]['IPv4 Address'] == "%s(Preferred)" % ip)]
         for e in eths:
             cmd = "netsh interface set interface \"%s\" disabled" % (e)
             try:

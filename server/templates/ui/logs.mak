@@ -187,7 +187,8 @@ $(function() {
             else {
                 out += "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "
             }
-            out += item['ts'] + " " + item['type'] + " " + item['log']
+            var d = new Date(item['ts'] * 1000);
+            out += d.toLocaleString() + " " + item['type'] + " " + item['log']
             out += "<br />"
         }
         return out

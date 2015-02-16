@@ -76,6 +76,9 @@
 
     RewriteCond %{HTTP:x-api-key} .+
     RewriteRule ^/xenrt/(.*) /xenrtkey/$1 [PT]
+    
+    RewriteCond %{QUERY_STRING} apikey=
+    RewriteRule ^/xenrt/(.*) /xenrtkey/$1 [PT]
     <Location /xenrt/api/v2>
         AuthName @@KERBEROSREALM@@
         AuthType Kerberos

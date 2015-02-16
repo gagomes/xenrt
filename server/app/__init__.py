@@ -27,6 +27,8 @@ class XenRTPage(Page):
         lcheaders = dict([(k.lower(), v)  for (k,v) in self.request.headers.iteritems()])
         if "x-api-key" in lcheaders:
             return self.getUserFromAPIKey(lcheaders['x-api-key'])
+        if "apikey" in self.request.GET:
+            return self.getUserFromAPIKey(self.request.GET['apikey'])
         if "x-fake-user" in lcheaders:
             if self.ALLOW_FAKE_USER:
                 return lcheaders['x-fake-user']

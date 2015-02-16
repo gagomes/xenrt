@@ -12,7 +12,7 @@
 
   <scheduler>
     <resources>memory&gt;=20G/disk1&gt;=140G</resources>
-    <param>SUPPLEMENTAL_PACK_CDS=/usr/groups/build/creedence-docker/latest/xe-phase-2/xscontainer-6.5.0-130.iso</param>
+    <param>SUPPLEMENTAL_PACK_CDS=xe-phase-2/xscontainer-6.5.0-130.iso</param>
   </scheduler>
 
   <prepare>

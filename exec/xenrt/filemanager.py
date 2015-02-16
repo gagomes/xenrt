@@ -277,6 +277,8 @@ class FileManager(object):
                 if not os.path.exists(dirname):
                     os.makedirs(dirname)
                 return "%s/%s" % (dirname, self._filename(filename))
+            elif os.path.exists(cachedir):
+                raise xenrt.XRTError("External cache directory exists but is not external storage.")
         except Exception, e:
             if not ignoreError:
                 raise xenrt.XRTError("_externalCacheLocation: %s" % str(e))

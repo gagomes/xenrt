@@ -1832,8 +1832,21 @@ done
             self.execdom0('xe pif-set-primary-address-type primary_address_type=ipv6 uuid=%s' % pif)
             self.execdom0('xe host-management-reconfigure pif-uuid=%s' % pif)
             self.waitForSSH(300, "%s host-management-reconfigure (IPv6)" % self.getName())
-        
+
+        syslogfmt = xenrt.TEC().lookup("DOM0_SYSLOG_FORMAT", None)
+        if syslogfmt:
+            self.changeSyslogFormat(syslogfmt)
+
         return None
+
+    # Change the timestamp formatting in syslog
+    # For rsyslog (in Dundee):
+    # - TraditionalFileFormat: 1s resolution, default backwards compatible format
+    # - FileFormat: us resolution, useful for precise measurement of events in tests
+    def changeSyslogFormat(self, new="TraditionalFileFormat"):
+        orig="TraditionalFileFormat"
+        self.execdom0("sed -i 's/RSYSLOG_%s/RSYSLOG_%s' /etc/rsyslog.conf" % (orig, new) )
+        self.execdom0("service rsyslog restart")
 
     def swizzleSymlinksToUseNonDebugXen(self, pathprefix):
             return """

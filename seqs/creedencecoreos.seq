@@ -1,6 +1,6 @@
 <xenrt>
 
-  <!-- Docker test sequecne -->
+  <!-- Docker test sequence -->
 
   <default name="COREOSDISTRO" value="coreos-alpha" />
 
@@ -12,6 +12,7 @@
 
   <scheduler>
     <resources>memory&gt;=20G/disk1&gt;=140G</resources>
+    <param>SUPPLEMENTAL_PACK_CDS=/usr/groups/build/creedence-docker/latest/xe-phase-2/xscontainer-6.5.0-130.iso</param>
   </scheduler>
 
   <prepare>

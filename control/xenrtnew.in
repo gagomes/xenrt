@@ -49,7 +49,21 @@ class XenRTCommand:
     def __init__(self, commands):
         self.commands = commands
         self.proxies = None
-        self.xenrt = xenrtapi.XenRT()
+
+    def getAPIKey(self):
+        if os.getenv("XENRT_APIKEY"):
+            return os.getenv("XENRT_APIKEY")
+        else:
+            path = "%s/.xenrtrc" % os.path.expanduser("~")
+            if not os.path.exists(path):
+                return None
+            with open(path) as f:
+                for l in f.readlines():
+                    ll = l.strip().split("=", 1)
+                    if len(ll) != 2:
+                        continue
+                    if ll[0] == "apikey":
+                        return ll[1]
 
     def getServerURL(self):
         return server_url
@@ -59,6 +73,7 @@ class XenRTCommand:
         return logserver_url % logserver
 
     def dispatch(self, args, raw=0):
+        self.xenrt = xenrtapi.XenRT(apikey=self.getAPIKey())
 
         if len(args) > 0 and args[0] in ("--help", "-h"):
             print "%s\n" % (self. summary)

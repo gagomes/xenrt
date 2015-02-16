@@ -4,7 +4,7 @@ import requests
 import json
 import httplib
 import os.path
-import netrc
+import base64
 
 class XenRTAPIException(Exception):
     def __init__(self, code, reason, canForce):
@@ -19,19 +19,23 @@ class XenRTAPIException(Exception):
         return ret
 
 class XenRT(object):
-    def __init__(self, user=None, password=None):
+    def __init__(self, apikey=None, user=None, password=None):
         self.base = "http://xenrt.citrite.net/xenrt/api/v2"
 
-        if not user:
-            auth = netrc.netrc().authenticators("xenrt.citrite.net")
-            if not auth:
-                raise Exception("No authentication details specified by parameters or in .netrc for xenrt.citrite.net")
-            self.user = auth[0]
-            self.password = auth[2]
-        else:
-            self.user = user
-            self.password = password
         self.customHeaders = {}
+        if apikey:
+            self.customHeaders['x-api-key'] = apikey
+        elif user and password:
+            base64string = base64.encodestring('%s:%s' % (user, password)).replace('\n', '')
+            self.customHeaders["Authorization"] = "Basic %s" % base64string
+
+
+
+    def set_fake_user(self, user):
+        if not user and "X-Fake-User" in self.customHeaders:
+            del self.customHeaders["X-Fake-User"]
+        elif user:
+            self.customHeaders["X-Fake-User"] = user
 
     def __serializeForQuery(self, data):
         if isinstance(data, bool):
@@ -74,7 +78,7 @@ class XenRT(object):
         paramdict = {}
         files = {}
         payload = {}
-        r = requests.get(path, params=paramdict, auth=(self.user, self.password), headers=self.customHeaders)
+        r = requests.get(path, params=paramdict, headers=self.customHeaders)
         self.__raiseForStatus(r)
         return r.json()
 
@@ -111,7 +115,7 @@ class XenRT(object):
         payload = json.dumps(j)
         myHeaders = {'content-type': 'application/json'}
         myHeaders.update(self.customHeaders)
-        r = requests.post(path, params=paramdict, data=payload, files=files, auth=(self.user, self.password), headers=myHeaders)
+        r = requests.post(path, params=paramdict, data=payload, files=files, headers=myHeaders)
         self.__raiseForStatus(r)
         return r.json()
 
@@ -128,7 +132,7 @@ class XenRT(object):
         payload = {}
         myHeaders = {'content-type': 'application/json'}
         myHeaders.update(self.customHeaders)
-        r = requests.delete(path, params=paramdict, data=payload, files=files, auth=(self.user, self.password), headers=myHeaders)
+        r = requests.delete(path, params=paramdict, data=payload, files=files, headers=myHeaders)
         self.__raiseForStatus(r)
         return r.json()
 
@@ -143,7 +147,7 @@ class XenRT(object):
         paramdict = {}
         files = {}
         payload = {}
-        r = requests.get(path, params=paramdict, auth=(self.user, self.password), headers=self.customHeaders)
+        r = requests.get(path, params=paramdict, headers=self.customHeaders)
         self.__raiseForStatus(r)
         return r.json()
 
@@ -171,7 +175,7 @@ class XenRT(object):
         payload = json.dumps(j)
         myHeaders = {'content-type': 'application/json'}
         myHeaders.update(self.customHeaders)
-        r = requests.post(path, params=paramdict, data=payload, files=files, auth=(self.user, self.password), headers=myHeaders)
+        r = requests.post(path, params=paramdict, data=payload, files=files, headers=myHeaders)
         self.__raiseForStatus(r)
         return r.json()
 
@@ -193,7 +197,7 @@ class XenRT(object):
         payload = json.dumps(j)
         myHeaders = {'content-type': 'application/json'}
         myHeaders.update(self.customHeaders)
-        r = requests.delete(path, params=paramdict, data=payload, files=files, auth=(self.user, self.password), headers=myHeaders)
+        r = requests.delete(path, params=paramdict, data=payload, files=files, headers=myHeaders)
         self.__raiseForStatus(r)
         return r.json()
 
@@ -218,7 +222,7 @@ class XenRT(object):
         payload = json.dumps(j)
         myHeaders = {'content-type': 'application/json'}
         myHeaders.update(self.customHeaders)
-        r = requests.post(path, params=paramdict, data=payload, files=files, auth=(self.user, self.password), headers=myHeaders)
+        r = requests.post(path, params=paramdict, data=payload, files=files, headers=myHeaders)
         self.__raiseForStatus(r)
         return r.json()
 
@@ -240,7 +244,7 @@ class XenRT(object):
         payload = json.dumps(j)
         myHeaders = {'content-type': 'application/json'}
         myHeaders.update(self.customHeaders)
-        r = requests.delete(path, params=paramdict, data=payload, files=files, auth=(self.user, self.password), headers=myHeaders)
+        r = requests.delete(path, params=paramdict, data=payload, files=files, headers=myHeaders)
         self.__raiseForStatus(r)
         return r.json()
 
@@ -258,7 +262,7 @@ class XenRT(object):
         if logitems != None:
             paramdict['logitems'] = self.__serializeForQuery(logitems)
         payload = {}
-        r = requests.get(path, params=paramdict, auth=(self.user, self.password), headers=self.customHeaders)
+        r = requests.get(path, params=paramdict, headers=self.customHeaders)
         self.__raiseForStatus(r)
         return r.json()
 
@@ -299,12 +303,12 @@ class XenRT(object):
         payload = json.dumps(j)
         myHeaders = {'content-type': 'application/json'}
         myHeaders.update(self.customHeaders)
-        r = requests.post(path, params=paramdict, data=payload, files=files, auth=(self.user, self.password), headers=myHeaders)
+        r = requests.post(path, params=paramdict, data=payload, files=files, headers=myHeaders)
         self.__raiseForStatus(r)
         return r.json()
 
 
-    def get_machines(self, status=None, site=None, pool=None, cluster=None, user=None, machine=None, resource=None, flag=None, limit=None, offset=None):
+    def get_machines(self, status=None, site=None, pool=None, cluster=None, user=None, machine=None, resource=None, flag=None, limit=None, offset=None, pseudohosts=None):
         """ Get machines matching parameters
             Parameters:
                  status: list - Filter on machine status. Any of "idle", "running", "leased", "offline", "broken" - can specify multiple
@@ -317,6 +321,7 @@ class XenRT(object):
                  flag: list - Filter on a flag - can specify multiple
                  limit: integer - Limit the number of results. Defaults to unlimited
                  offset: integer - Offset to start the results at, for paging with limit enabled.
+                 pseudohosts: boolean - Get pseudohosts, defaults to false
         """
         path = "%s/machines" % (self.base)
         paramdict = {}
@@ -341,8 +346,10 @@ class XenRT(object):
             paramdict['limit'] = self.__serializeForQuery(limit)
         if offset != None:
             paramdict['offset'] = self.__serializeForQuery(offset)
+        if pseudohosts != None:
+            paramdict['pseudohosts'] = self.__serializeForQuery(pseudohosts)
         payload = {}
-        r = requests.get(path, params=paramdict, auth=(self.user, self.password), headers=self.customHeaders)
+        r = requests.get(path, params=paramdict, headers=self.customHeaders)
         self.__raiseForStatus(r)
         return r.json()
 
@@ -382,7 +389,7 @@ class XenRT(object):
         payload = json.dumps(j)
         myHeaders = {'content-type': 'application/json'}
         myHeaders.update(self.customHeaders)
-        r = requests.post(path, params=paramdict, data=payload, files=files, auth=(self.user, self.password), headers=myHeaders)
+        r = requests.post(path, params=paramdict, data=payload, files=files, headers=myHeaders)
         self.__raiseForStatus(r)
         return r.json()
 
@@ -399,7 +406,7 @@ class XenRT(object):
         payload = {}
         myHeaders = {'content-type': 'application/json'}
         myHeaders.update(self.customHeaders)
-        r = requests.delete(path, params=paramdict, data=payload, files=files, auth=(self.user, self.password), headers=myHeaders)
+        r = requests.delete(path, params=paramdict, data=payload, files=files, headers=myHeaders)
         self.__raiseForStatus(r)
         return r.json()
 
@@ -414,7 +421,7 @@ class XenRT(object):
         paramdict = {}
         files = {}
         payload = {}
-        r = requests.get(path, params=paramdict, auth=(self.user, self.password), headers=self.customHeaders)
+        r = requests.get(path, params=paramdict, headers=self.customHeaders)
         self.__raiseForStatus(r)
         return r.json()
 
@@ -470,7 +477,7 @@ class XenRT(object):
         payload = json.dumps(j)
         myHeaders = {'content-type': 'application/json'}
         myHeaders.update(self.customHeaders)
-        r = requests.post(path, params=paramdict, data=payload, files=files, auth=(self.user, self.password), headers=myHeaders)
+        r = requests.post(path, params=paramdict, data=payload, files=files, headers=myHeaders)
         self.__raiseForStatus(r)
         return r.json()
 
@@ -516,7 +523,7 @@ class XenRT(object):
         if logitems != None:
             paramdict['logitems'] = self.__serializeForQuery(logitems)
         payload = {}
-        r = requests.get(path, params=paramdict, auth=(self.user, self.password), headers=self.customHeaders)
+        r = requests.get(path, params=paramdict, headers=self.customHeaders)
         self.__raiseForStatus(r)
         return r.json()
 
@@ -551,7 +558,7 @@ class XenRT(object):
         payload = json.dumps(j)
         myHeaders = {'content-type': 'application/json'}
         myHeaders.update(self.customHeaders)
-        r = requests.post(path, params=paramdict, data=payload, files=files, auth=(self.user, self.password), headers=myHeaders)
+        r = requests.post(path, params=paramdict, data=payload, files=files, headers=myHeaders)
         self.__raiseForStatus(r)
         return r.json()
 
@@ -570,7 +577,50 @@ class XenRT(object):
         if flag != None:
             paramdict['flag'] = self.__serializeForQuery(flag)
         payload = {}
-        r = requests.get(path, params=paramdict, auth=(self.user, self.password), headers=self.customHeaders)
+        r = requests.get(path, params=paramdict, headers=self.customHeaders)
+        self.__raiseForStatus(r)
+        return r.json()
+
+
+    def replace_apikey(self):
+        """ Replace API key for logged in User
+            Parameters:
+        """
+        path = "%s/apikey" % (self.base)
+        paramdict = {}
+        files = {}
+        payload = {}
+        myHeaders = {'content-type': 'application/json'}
+        myHeaders.update(self.customHeaders)
+        r = requests.put(path, params=paramdict, data=payload, files=files, headers=myHeaders)
+        self.__raiseForStatus(r)
+        return r.json()
+
+
+    def remove_apikey(self):
+        """ Remove API key for logged in User
+            Parameters:
+        """
+        path = "%s/apikey" % (self.base)
+        paramdict = {}
+        files = {}
+        payload = {}
+        myHeaders = {'content-type': 'application/json'}
+        myHeaders.update(self.customHeaders)
+        r = requests.delete(path, params=paramdict, data=payload, files=files, headers=myHeaders)
+        self.__raiseForStatus(r)
+        return r.json()
+
+
+    def get_apikey(self):
+        """ Get API key for logged in User
+            Parameters:
+        """
+        path = "%s/apikey" % (self.base)
+        paramdict = {}
+        files = {}
+        payload = {}
+        r = requests.get(path, params=paramdict, headers=self.customHeaders)
         self.__raiseForStatus(r)
         return r.json()
 
@@ -587,7 +637,7 @@ class XenRT(object):
         paramdict = {}
         files = {}
         payload = {}
-        r = requests.get(path, params=paramdict, auth=(self.user, self.password), headers=self.customHeaders)
+        r = requests.get(path, params=paramdict, headers=self.customHeaders)
         self.__raiseForStatus(r)
         return r.json()
 
@@ -602,7 +652,7 @@ class XenRT(object):
         paramdict = {}
         files = {}
         payload = {}
-        r = requests.get(path, params=paramdict, auth=(self.user, self.password), headers=self.customHeaders)
+        r = requests.get(path, params=paramdict, headers=self.customHeaders)
         self.__raiseForStatus(r)
         return r.json()
 
@@ -620,7 +670,7 @@ class XenRT(object):
         if logitems != None:
             paramdict['logitems'] = self.__serializeForQuery(logitems)
         payload = {}
-        r = requests.get(path, params=paramdict, auth=(self.user, self.password), headers=self.customHeaders)
+        r = requests.get(path, params=paramdict, headers=self.customHeaders)
         self.__raiseForStatus(r)
         return r.json()
 

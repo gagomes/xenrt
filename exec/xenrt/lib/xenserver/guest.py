@@ -13,6 +13,7 @@ import xenrt
 from PIL import Image
 from IPy import IP
 from xenrt.lib.scalextreme import SXAgent
+from xenrt.lazylog import *
 
 # Symbols we want to export from the package.
 __all__ = ["Guest",
@@ -5806,8 +5807,68 @@ default:
 
 
 class DundeeGuest(CreedenceGuest):
-    pass
+    
+    def uninstallDrivers(self, waitForDaemon=True):
+        
+        installed = True
+        i = 0
+        while installed and i < 10:
+            try:
+                regValue = self.winRegLookup('HKLM', "SOFTWARE\\Wow6432Node\\Citrix\\XenToolsInstaller", "InstallStatus", healthCheckOnFailure=False)
+            except:
+                try:
+                    regValue = self.winRegLookup('HKLM', "SOFTWARE\\Citrix\\XenToolsInstaller", "InstallStatus", healthCheckOnFailure=False)
+                except:
+                    installed = False
 
+            if installed:
+                xenrt.sleep(30)
+            i = i + 1
+
+        if installed:
+            #Drivers are installed using the tools ISO ,
+            TampaGuest.uninstallDrivers(self, waitForDaemon)
+        else:
+            #Drivers are installed using PV Packages uninstall them separately
+            self.enablePowerShellUnrestricted()
+            
+            #Get the OEM files to be deleted after uninstalling drivers
+            oemFileList = self.xmlrpcExec("C:\\devcon64.exe dp_enum | select-string 'Citrix' -Context 1,0 | findstr 'oem'" , returndata = True, powershell=True).strip().splitlines()
+            oemFileList = [item.strip() for item in oemFileList][1:]
+            
+            batch = ""
+            
+            batch = batch + "C:\\devcon64.exe remove *XENVIF*\r\n"
+            batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
+            batch = batch + "C:\\devcon64.exe remove *XENBUS*\r\n"
+            batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
+            batch = batch + "C:\\devcon64.exe remove *VEN_5853*\r\n"
+            batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
+
+            for file in oemFileList:
+                batch = batch + "pnputil.exe -f -d %s\r\n" %(file) 
+                batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
+            batch = batch + "shutdown -r\r\n"
+            
+            self.xmlrpcWriteFile("c:\\uninst.bat", batch)
+            self.xmlrpcStart("c:\\uninst.bat")
+            
+        # wait for reboot
+        xenrt.sleep(6 * 60)
+
+        if not self.xmlrpcIsAlive():
+            raise xenrt.XRTFailure("XML-RPC not alive after tools uninstallation")
+        
+        # Verify PV devices have been removed after tools uninstallation
+        try:
+            self.checkPVDevices()
+        except:
+            pass
+        else:
+            raise xenrt.XRTFailure("PV devices still detected after uninstalling driver Packages")
+                                       
+        self.enlightenedDrivers = False
+        
 
 class StorageMotionObserver(xenrt.EventObserver):
 

@@ -644,11 +644,11 @@ users:
     def installDockerRpms(self):
         """Install Docker environment into a guest"""
 
-        if self.distro.startsWith("rhel"):
+        if self.distro.startswith("rhel"):
             return xenrt.lib.xenserver.dockerinstall.RHELDockerInstall(self).install()
-        elif self.distro.startsWith("ubuntu"):
+        elif self.distro.startswith("ubuntu"):
             return xenrt.lib.xenserver.dockerinstall.UbuntuDockerInstall(self).install()
-        elif self.distro.startsWith("coreos"):
+        elif self.distro.startswith("coreos"):
             return xenrt.lib.xenserver.dockerinstall.CoreOSDockerInstall(self).install()
         else:
             raise xenrt.XRTFailure("Docker installation unimplemented on distro %s" % self.distro)

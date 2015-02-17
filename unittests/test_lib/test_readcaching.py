@@ -27,11 +27,11 @@ class TestReadCachingLowLevelController(XenRTUnitTestCase):
                 ("2", "3", "2-3", """{"reqs_oustanding": 0, "read_caching": "true" }""")]
         host = self.__createMockHost(data)
         rc = ReadCachingController(host, "2-3")
-        self.assertTrue(rc.isEnabled())
+        self.assertTrue(rc.isEnabled(lowLevel=True))
 
     def testTapCtlWithExpectedOutputReadCacheDisabled(self):
         data = [("1", "2", "1-2", """{"reqs_oustanding": 0, "read_caching": "false" }"""),
                 ("2", "3", "2-3", """{"reqs_oustanding": 0, "read_caching": "true" }""")]
         host = self.__createMockHost(data)
         rc = ReadCachingController(host, "1-2")
-        self.assertFalse(rc.isEnabled())
+        self.assertFalse(rc.isEnabled(lowLevel=True))

@@ -9473,10 +9473,13 @@ sleep (3000)
 
         # RHEL based systems need to install lspci/lshw
         if not self.distro.lower().startswith("ubuntu"):
-            self.execguest("yum -y install pciutils")
-            self.execguest("wget -nv '%slshw.tgz' -O - | tar -zx -C /tmp" %
-                                            (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
-            self.execguest("yum -y install /tmp/lshw/lshw-2.17-1.e17.rf.x86_64.rpm")
+            if not self.checkRPMInstalled("pciutils"):
+                self.execguest("yum -y install pciutils")
+
+            if not self.checkRPMInstalled("lshw"):
+                self.execguest("wget -nv '%slshw.tgz' -O - | tar -zx -C /tmp" %
+                                                (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
+                self.execguest("yum -y install /tmp/lshw/lshw-2.17-1.e17.rf.x86_64.rpm")
 
         # Check if the GPU of given type is present.
         try:

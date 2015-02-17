@@ -314,6 +314,7 @@ $(GENCODE): $(addsuffix .gen,$(GENCODE))
 check: install
 	$(info Performing XenRT sanity checks ...)
 	$(SHAREDIR)/exec/main.py --sanity-check
+	$(SHAREDIR)/server/check.py
 	$(SHAREDIR)/unittests/runner.sh $(SHAREDIR)
 	$(eval XSD = $(shell mktemp))
 	sed 's/\\\$$/\\$$/' seqs/seq.xsd > $(XSD)
@@ -324,6 +325,7 @@ check: install
 minimal-check: install
 	$(info Performing XenRT sanity checks ...)
 	$(SHAREDIR)/exec/main.py --sanity-check
+	$(SHAREDIR)/server/check.py
 	$(SHAREDIR)/unittests/quickrunner.sh $(SHAREDIR)
 	$(eval XSD = $(shell mktemp))
 	sed 's/\\\$$/\\$$/' seqs/seq.xsd > $(XSD)

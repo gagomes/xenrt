@@ -81,6 +81,7 @@ extrapackages-install:
 	$(SUDO) easy_install --upgrade requests_oauthlib
 	$(SUDO) easy_install --upgrade pyramid
 	$(SUDO) easy_install --upgrade pyramid_chameleon
+	$(SUDO) easy_install --upgrade pyramid_mako
 	$(SUDO) easy_install --upgrade flup
 	$(SUDO) easy_install paramiko==1.12.3
 	$(SUDO) easy_install --upgrade uwsgi
@@ -436,6 +437,7 @@ httpd:
 	$(SUDO) sed -i "s/APACHE_RUN_USER=.*/APACHE_RUN_USER=$(USERNAME)/" /etc/apache2/envvars
 	$(SUDO) mkdir -p $(SCRATCHDIR)/www
 	$(SUDO) ln -sfT $(SCRATCHDIR)/www $(WEBROOT)/export
+	$(SUDO) ln -sf $(SHAREDIR)/xenrt-cli.tar.gz $(WEBROOT)/xenrt-cli.tar.gz
 	$(SUDO) ln -sfT $(TFTPROOT) $(WEBROOT)/tftp
 	$(SUDO) ln -sfT $(SHAREDIR) $(WEBROOT)/share
 	$(SUDO) ln -sfT $(SHAREDIR)/control $(WEBROOT)/control

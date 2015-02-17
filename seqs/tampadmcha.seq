@@ -5,6 +5,7 @@
   <variables>
     <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
     <PREPARE_WORKERS>2</PREPARE_WORKERS>
+    <SR_ISCSI_MINSIZE>100</SR_ISCSI_MINSIZE>
   </variables>
 
   <prepare>

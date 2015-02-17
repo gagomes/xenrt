@@ -1651,15 +1651,13 @@ class SRFunctions(_CimBase):
 
             time.sleep(300)
  
-            count = 1 
-            while 1:
-                line = tempStr.splitlines()[count]
-                if "<SCSIid>" in line:
-                    scsiId = tempStr.splitlines()[count +1]
-                    scsiId = scsiId.strip()
-                    break
-                count = count +1
-           
+            tempStr = '\n'.join(tempStr.split('\n')[2:])
+            temp = parseString(tempStr)
+            ids = temp.getElementsByTagName('SCSIid')
+            for id in ids:
+                for node in id.childNodes:
+                    scsiId = (node.nodeValue).strip()
+
             ret = self.protocolObj.createISCSISR(self.isoSRName,targetIp,iqn,scsiId,user,password)
 
             try:            

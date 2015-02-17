@@ -8,7 +8,7 @@
     RewriteRule ^/debian/(.*) /apt/apt-cacher-cgi.pl/ftp.us.debian.org/debian/$1
     RewriteRule ^/debian-backports/(.*) /apt/apt-cacher-cgi.pl/www.backports.org/debian/$1
     RewriteRule ^/XenServer/([^/]+)/debian/(.*) /apt/apt-cacher-cgi.pl/updates.xensource.com/XenServer/$1/debian/$2
-    RewriteRule ^/$ /share/control/ [L,NC,R=301]
+    RewriteRule ^/$ /xenrt/ui/ [L,NC,R=301]
     RewriteRule ^/xenrt$ /xenrt/ [L,NC,R=301]
     RewriteRule ^/xenrt/swagger$ /xenrt/swagger/ [L,NC,R=301]
     RewriteRule ^/share/control$ /share/control/ [L,NC,R=301]
@@ -67,11 +67,18 @@
     ProxyPreserveHost   On
     ProxyPass           /xenrt http://localhost:1025/share/control retry=0
     ProxyPassReverse    /xenrt http://localhost:1025/share/control retry=0
+    ProxyPass           /xenrtkey http://localhost:1025/share/control retry=0
+    ProxyPassReverse    /xenrtkey http://localhost:1025/share/control retry=0
     ProxyPass           /control http://localhost:1025/share/control retry=0
     ProxyPassReverse    /control http://localhost:1025/share/control retry=0
     ProxyPass           /share/control http://localhost:1025/share/control retry=0
     ProxyPassReverse    /share/control http://localhost:1025/share/control retry=0
 
+    RewriteCond %{HTTP:x-api-key} .+
+    RewriteRule ^/xenrt/(.*) /xenrtkey/$1 [PT]
+    
+    RewriteCond %{QUERY_STRING} apikey=
+    RewriteRule ^/xenrt/(.*) /xenrtkey/$1 [PT]
     <Location /xenrt/api/v2>
         AuthName @@KERBEROSREALM@@
         AuthType Kerberos
@@ -86,6 +93,20 @@
         ErrorDocument 401 /unauth.html
     </Location>
 
+    <Location /xenrt/ui>
+        AuthName @@KERBEROSREALM@@
+        AuthType Kerberos
+        Krb5Keytab /etc/xenrt/keytab
+        KrbServiceName HTTP
+        KrbAuthRealms @@KERBEROSREALM@@
+        KrbMethodNegotiate on
+        KrbMethodK5Passwd on
+        KrbSaveCredentials off
+        KrbVerifyKDC off
+        Require Valid-User
+        ErrorDocument 401 /unauth.html
+    </Location>
+    
     <LocationMatch /unauth.html>
         SetEnvIf Cookie "xenrtkerb=1" is_xenrtkerb1
         Header always set WWW-Authenticate 'Basic realm="@@KERBEROSREALM@@"'

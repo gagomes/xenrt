@@ -340,7 +340,7 @@ class VGPUTest(xenrt.TestCase, object):
         guest.installNvidiaVGPUDriver(self.driverType)
 
     def installNvidiaLinuxDrivers(self,guest):
-        guest.installPvhvmNvidiaGpuDrivers()
+        guest.installPVHVMNvidiaGpuDrivers()
 
     def installIntelWindowsDrivers(self,guest):
         guest.installIntelGPUDriver()
@@ -1462,7 +1462,9 @@ class VGPUAllocationModeBase(_VGPUOwnedVMsTest):
                 arch = "x86-64"
             else: 
                 arch = "x86-32"
-            guest = self.host.createBasicGuest(name = vmname,distro=ostype,sr=sr)
+
+            distro = string.split(ostype, "_")[0]
+            guest = self.host.createBasicGuest(name=vmname, distro=distro, arch=arch, sr=sr, vcpus=1)
             guest.preCloneTailor()
             xenrt.sleep(120)
             guest.shutdown()
@@ -1778,7 +1780,7 @@ class NvidiaLinuxvGPU(DifferentGPU):
         xenrt.TEC().logverbose("Not implemented")
         pass
 
-    def installGuestDrivers(self):
+    def installGuestDrivers(self, guest):
         VGPUTest().installNvidiaLinuxDrivers(guest)
 
     def assertvGPURunningInVM(self, guest, vGPUType):
@@ -1797,7 +1799,7 @@ class IntelWindowsvGPU(DifferentGPU):
         xenrt.TEC().logverbose("Not implemented")
         pass
 
-    def installGuestDrivers(self):
+    def installGuestDrivers(self, guest):
         VGPUTest().installIntelWindowsDrivers(guest)
 
     def assertvGPURunningInVM(self, guest, vGPUType):
@@ -2511,6 +2513,7 @@ class TCBasicVerifOfAllK2config(FunctionalBase):
 
             log("Creating Master VM of type %s" % osType)
             vm = self.createMaster(osType)
+            vm.enlightenedDrivers = True
             vm.setState("UP")
             if vm.windows:
                 vm.enableFullCrashDump()

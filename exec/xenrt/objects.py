@@ -9897,6 +9897,29 @@ while True:
         self.paramSet("platform:parallel", "none")
         self.start()
 
+    def checkRPMInstalled(self, rpm):
+        """
+        Check if a specific rpm is installed
+        @param rpm: the rpm name including or excluding the extension '.rpm'
+        @type rpm: string
+        @return If the rpm provided is installed already
+        @rtype boolean
+        """
+        if self.windows:
+            raise XRTError("Function can only be used to check for installed RPMs on linux.")
+
+        #rpm should NOT contain file extn .rpm, so split off any file extension
+        fileWithoutExt = os.path.splitext(rpm)[0]
+        try:
+            data = self.execguest("rpm -qi %s" % fileWithoutExt)
+        except:
+            return False
+
+        if "is not installed" in data:
+            return False
+        else:
+            return True
+
 class EventObserver(xenrt.XRTThread):
 
     def __init__(self,host,session,eventClass,taskRef,timeout):

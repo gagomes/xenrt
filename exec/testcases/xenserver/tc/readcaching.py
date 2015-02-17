@@ -40,12 +40,12 @@ class ReadCacheTestCase(xenrt.TestCase):
         rcc.setVM(self.vm)
         if both:
             step("Checking tapctl status....")
-            assertions.assertEquals(expectedState, rcc.isEnabled(LowLevel=True), "RC is enabled status via. tap-ctl")
+            assertions.assertEquals(expectedState, rcc.isEnabled(lowLevel=True), "RC is enabled status via. tap-ctl")
             step("Checking xapi status....")
-            assertions.assertEquals(expectedState, rcc.isEnabled(LowLevel=False), "RC is enabled status via. xapi")
+            assertions.assertEquals(expectedState, rcc.isEnabled(lowLevel=False), "RC is enabled status via. xapi")
         else:
             step("Checking status of a single state...")
-            assertions.assertEquals(expectedState, rcc.isEnabled(LowLevel=lowlevel), "RC is enabled status")
+            assertions.assertEquals(expectedState, rcc.isEnabled(lowLevel=lowlevel), "RC is enabled status")
 
     def getArgs(self, arglist):
         args = self.parseArgsKeyValue(arglist)
@@ -59,7 +59,7 @@ class TCLicensingRCEnabled(ReadCacheTestCase):
 
     def run(self, arglist):
         lowlevel, both = self.getArgs(arglist)
-        step("Checking ReadCaching state enabled: LowLevel %s" % lowlevel)
+        step("Checking ReadCaching state enabled: lowLevel %s" % lowlevel)
         self.checkExpectedState(True, lowlevel, both)
 
 
@@ -69,7 +69,7 @@ class TCLicensingRCDisabled(ReadCacheTestCase):
         lowlevel, both = self.getArgs(arglist)
         self._releaseLicense()
         self.vm.migrateVM(self.getDefaultHost())
-        step("Checking ReadCaching state disabled: LowLevel %s" % lowlevel)
+        step("Checking ReadCaching state disabled: lowLevel %s" % lowlevel)
         self.checkExpectedState(False, lowlevel, both)
 
 

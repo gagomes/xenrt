@@ -2994,12 +2994,6 @@ class TCNonWindowsK1(FunctionalBase):
         raise xenrt.XRTFailure("No error was raised, but it should have been")
 
 class BootstormBase(FunctionalBase):
-
-    def prepare(self, arglist=[]):
-        """Need to do the steps for figuring out the hardware setup.
-        Children can then choose VMs based on that.
-        """
-        pass
     
     def run(self, arglist):
         """Should perform the bootstorm steps with all available vms."""
@@ -3008,11 +3002,11 @@ class BootstormBase(FunctionalBase):
         for vm in self.vms:
             vm.shutdown()
 
-        # Start all VMs.
+        # Start all VMs in parallel.
         pt = [xenrt.PTask(self.bootstormStartVM, vm) for vm in self.vms]
         xenrt.pfarm(pt)
 
-        # WaitforDaemon for all VMs.
+        # Wait for the VMs to be up in parallel.
         pt = [xenrt.PTask(vm.poll, "UP") for vm in self.vms]
         xenrt.pfarm(pt)
 
@@ -3031,23 +3025,39 @@ class LinuxGPUBootstorm(BootstormBase):
     
     def prepare(self, arglist=[]):
 
-        installer = VGPUInstaller(self.host, VGPUConfig.K1PassThrough)
-        capacity = self.host.remainingGpuCapacity(installer.groupUUID(), installer.typeUUID())
+        super(LinuxGPUBootstorm, self).prepare(arglist)
+
+        # Assert that this length is only == 1.
+        if len(self.REQUIRED_DISTROS) > 1:
+            raise xenrt.XRTError("This testcase configured to take only one distro at a time.")
+
+        installer = VGPUInstaller(self.host, self.VGPU_CONFIG[0])
 
         # Create master.
+        osType = self.getOSType(self.REQUIRED_DISTROS[0])
+        vm = self.createMaster(osType)
 
-        # Clone the master that amount of times.
-            # Adding them to vmlist. self.vms?
-        
-        # For every vm that I now have, install the gpu for it..
-        for vm in self.vms:
-            installer.createOnGuest(vm)
+        installer.createOnGuest(vm)
+
+        # Use the object to do smart drivers.
+        self.typeOfvGPU.installNvidiaLinuxDrivers(vm)
+
+        remainingCapacity = self.host.remainingGpuCapacity(installer.groupUUID(), installer.typeUUID())
+
+        # Clone the master to fill up the rest of the host.
+        """
+        for i in range(remainingCapacity):
+            # Clone.
+            pass
+        """
+
 
 class MixedGPUBootstorm(BootstormBase):
     
     def prepare(self, arglist=[]):
-        pass
 
+        super(LinuxGPUBootstorm, self).prepare(arglist)
+        
 class TestingBootstorm(BootstormBase):
 
     def prepare(self, arglist=[]):

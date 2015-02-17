@@ -10,7 +10,10 @@
 
   <testsequence>
     <serial group="LinuxGPUPassthroughTesting">
-      <testcase id="testcases.xenserver.tc.vgpu.TestingBootstorm">
+      <testcase id="testcases.xenserver.tc.vgpu.LinuxGPUBootstorm">
+        <arg>distro=14</arg>
+        <arg>typeofvgpu=nvidialinuxvgpu</arg>
+        <arg>vgpuconfig=5</arg>
       </testcase>
     </serial>
   </testsequence>

@@ -2999,9 +2999,10 @@ class BootstormBase(FunctionalBase):
         """Need to do the steps for figuring out the hardware setup.
         Children can then choose VMs based on that.
         """
+        capacity = self.host.remainingGpuCapacity(self._vGPUCreator.groupUUID(), self._vGPUCreator.typeUUID())
         pass
     
-    def run(self):
+    def run(self, arglist):
         """Should perform the bootstorm steps with all available vms."""
         
         # Shut down all the vms.
@@ -3030,7 +3031,16 @@ class BootstormBase(FunctionalBase):
 class LinuxGPUBootstorm(BootstormBase):
     
     def prepare(self, arglist=[]):
-        pass
+        installer = VGPUInstaller(self.host, "K1PassThrough")
+
+        capacity = self.host.remainingGpuCapacity(installer.groupUUID(), installer.typeUUID())
+
+        # Need to create a bunch of VMs based on the amount of space.
+            # The amount of space needs to be worked out in the parent I think.
+
+        
+        for vm in self.vms:
+            installer.createOnGuest(vm)
 
 class MixedGPUBootstorm(BootstormBase):
     

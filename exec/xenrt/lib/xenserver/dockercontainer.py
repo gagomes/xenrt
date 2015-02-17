@@ -6,8 +6,8 @@
 # copyrighted material is governed by and subject to terms and
 # conditions as licensed by Citrix Systems, Inc. All other rights reserved.
 
-import xenrt, string
-import xml.dom.minidom, xmltodict
+import xenrt, string, random
+import xmltodict
 
 __all__ = ["ContainerCreateMethod",
             "ContainerState", "ContainerOperations", "ContainerNames",
@@ -22,7 +22,7 @@ class ContainerCreateMethod:
     viaXapi="ViaXapi"
 
 class ContainerState:
-    STARTED  = "STARTED"
+    RUNNING  = "RUNNING"
     STOPPED  = "STOPPED"
     PAUSED   = "PAUSED"
     UNPAUSED = "UNPAUSED"
@@ -47,48 +47,51 @@ class ContainerNames:
     TOMCAT = "tomcat"
 
 """
-Using Bridge pattern to relaise the docker feature testing.
+Using Bridge pattern to realise the docker feature testing.
 """
 
 # Implementor
 class ContainerController(object):
 
-    def containerSelection(self, cname):
+    def containerSelection(self, ctype, cname):
 
-        if cname == ContainerNames.BUSYBOX:
+        if not cname:
+            cname = "%s_%08x" % (ctype, (random.randint(0, 0x7fffffff)))
+
+        if ctype == ContainerNames.BUSYBOX:
             xenrt.TEC().logverbose("Create BusyBox Container using Xapi")
-            return "'docker run -d --name hadoop busybox /bin/sh -c \"while true; do echo Hello World; sleep 1; done\"'"
-        elif cname == ContainerNames.MYSQL:
+            return "'docker run -d --name " + cname + " busybox /bin/sh -c \"while true; do echo Hello World; sleep 1; done\"'"
+        elif ctype == ContainerNames.MYSQL:
             xenrt.TEC().logverbose("Create MySQL Container using Xapi")
-            return "'docker run -d --name mysql -e MYSQL_ROOT_PASSWORD=mysecretpassword mysql'"
-        elif cname == ContainerNames.TOMCAT: 
+            return "'docker run -d --name " + cname + " -e MYSQL_ROOT_PASSWORD=mysecretpassword mysql'"
+        elif ctype == ContainerNames.TOMCAT: 
             xenrt.TEC().logverbose("Create Tomcat Container using Xapi")
-            return "'docker run -d --name tomcat -p 8080:8080 -it tomcat'"
+            return "'docker run -d --name " + cname + " -p 8080:8080 -it tomcat'"
         else:
-            raise xenrt.XRTFailure("Docker container name is not recognised")
+            raise xenrt.XRTFailure("Docker container type %s is not recognised" % ctype)
 
-    def registerContainer(self, cname, host, guest): pass
+    def registerContainer(self, ctype, host, guest): pass
 
-    def createContainer(self, cname, host, guest): pass
-    def removeContainer(self, cname, host, guest): pass
-    def checkContainer(self, cname, host, guest): pass
-
-    # Other functions.
-    def startContainer(self, cname, host, guest): pass
-    def stopContainer(self, cname, host, guest): pass
-    def pauseContainer(self, cname, host, guest): pass
-    def unpauseContainer(self, cname, host, guest): pass
-    def restartContainer(self, cname, host, guest): pass
-
-    def inspectContainer(self, cname, host, guest): pass
-    def gettopContainer(self, cname, host, guest): pass
-    def statusContainer(self, cname, host, guest): pass
+    def createContainer(self, ctype, host, guest): pass
+    def removeContainer(self, ctype, host, guest): pass
+    def checkContainer(self, ctype, host, guest): pass
 
     # Other functions.
-    def getDockerInfo(self, cname, host, guest): pass
-    def getDockerPS(self, cname, host, guest): pass
-    def getDockerVersion(self, cname, host, guest): pass
-    def getDockerOtherConfig(self, cname, host, guest): pass
+    def startContainer(self, ctype, host, guest): pass
+    def stopContainer(self, ctype, host, guest): pass
+    def pauseContainer(self, ctype, host, guest): pass
+    def unpauseContainer(self, ctype, host, guest): pass
+    def restartContainer(self, ctype, host, guest): pass
+
+    def inspectContainer(self, ctype, host, guest): pass
+    def gettopContainer(self, ctype, host, guest): pass
+    def statusContainer(self, ctype, host, guest): pass
+
+    # Other functions.
+    def getDockerInfo(self, ctype, host, guest): pass
+    def getDockerPS(self, ctype, host, guest): pass
+    def getDockerVersion(self, ctype, host, guest): pass
+    def getDockerOtherConfig(self, ctype, host, guest): pass
 
 # ConcreteImplementor to create containers using Xapi.
 class UsingXapi(ContainerController):
@@ -101,38 +104,40 @@ class UsingXapi(ContainerController):
 
         xenrt.TEC().logverbose("XSContainer passthrough command is enabled")
 
-    def containerXapiLCOperations(self, operation, cname, host, guest):
+    def containerXapiLCOperations(self, operation, host, guest, ctype, cname):
 
         args = []
         args.append("plugin=xscontainer")
         args.append("fn=%s" % operation)
         args.append("args:vmuuid=%s" % guest.getUUID())
         if operation not in [ContainerOperations.INSPECT, ContainerOperations.GETTOP]:
-            args.append("args:container=%s" % cname)
+            args.append("args:container=%s" % ctype)
         else:
-            args.append("args:object=%s" % cname)
+            args.append("args:object=%s" % ctype)
 
         cli = host.getCLIInstance()
         result = cli.execute("host-call-plugin", "%s host-uuid=%s" %
                                 (string.join(args), host.getMyHostUUID()))
 
-        xenrt.TEC().logverbose("containerXapiLCOperations - Result: %s" % result)
+        #xenrt.TEC().logverbose("containerXapiLCOperations - Result: %s" % result)
 
-        if not result[:4] == "True":
+        if result[:4] == "True" and result[4:] == None: # True and None -> Failure.
+                                                        # True with some docker uuid's is a success.
             raise xenrt.XRTFailure("XSContainer:%s operation on %s:%s is failed" %
                                                                 (operation, guest, cname))
         else:
-            return result[4:]
+            return result[4:] # stop , start, pause, unpause, retruns empty string.
+                              # inspect and gettop leaves an xml.
 
-    def createAndRemoveContainer(self, operation, cname, host, guest):
+    def createAndRemoveContainer(self, host, guest, ctype, cname, operation=ContainerOperations.CREATE):
 
         # Enable the passthrough command in Dom0.
         self.workaroundInDom0(host)
 
         if operation == ContainerOperations.CREATE:
-            dockerCmd = self.containerSelection(cname)
+            dockerCmd = self.containerSelection(ctype, cname)
         elif operation == ContainerOperations.REMOVE:
-            dockerCmd ="\"docker ps -a -f name=\'" + cname + "\' | tail -n +2 | awk \'{print \$1}\' | xargs docker rm\""
+            dockerCmd ="\"docker ps -a -f name=\'" + ctype + "\' | tail -n +2 | awk \'{print \$1}\' | xargs docker rm\""
         else:
             raise xenrt.XRTFailure("XSContainer:%s operation is not recognised" % operation)
 
@@ -146,117 +151,140 @@ class UsingXapi(ContainerController):
         result = cli.execute("host-call-plugin", "host-uuid=%s %s " %
                                 (host.getMyHostUUID(), string.join(args)))
 
-        xenrt.TEC().logverbose("createAndRemoveContainer - Result: %s" % result)
+        #xenrt.TEC().logverbose("createAndRemoveContainer - Result: %s" % result)
 
-        if result:
-            xenrt.TEC().logverbose("XSContainer:%s Operation succeeded on container %s using %s:%s" %
-                                                                        (operation, cname, host, guest))
-        else:
+        if result[:4] == "True" and result[4:] == None:
             raise xenrt.XRTError("XSContainer:%s Operation failed on a container %s using %s:%s" %
                                                                         (operation, cname, host, guest))
+        else:
+            return result[4:] # create and remove returns some docker uuid's.
 
-    def registerContainer(self, cname, host, guest):
-        self.containerXapiLCOperations(ContainerOperations.REGISTER, cname, host, guest)
+    def registerContainer(self, host, guest, ctype, cname):
+        self.containerXapiLCOperations(ContainerOperations.REGISTER, host, guest, ctype, cname)
 
-    def createContainer(self, cname, host, guest):
-        result = self.createAndRemoveContainer(ContainerOperations.CREATE, cname, host, guest)
+    def createContainer(self, host, guest, ctype, cname):
+        result = self.createAndRemoveContainer(host, guest, ctype, cname)
 
         xenrt.TEC().logverbose("createContainer - result: %s" % result)
 
-    def removeContainer(self, cname, host, guest):
-        self.createAndRemoveContainer(ContainerOperations.REMOVE, cname, host, guest)
+    def removeContainer(self, host, guest, ctype, cname):
+        if self.statusContainer(host, guest, ctype, cname) == ContainerState.STOPPED:
+            self.createAndRemoveContainer(host, guest, ctype, cname, ContainerOperations.REMOVE)
+        else:
+            raise xenrt.XRTError("removeContainer: Please stop the container %s before removing it" % cname)
 
-    def checkContainer(self, cname, host, guest):
+    def checkContainer(self, host, guest, ctype, cname):
         pass
 
     # Container lifecycle operations.
-    def startContainer(self, cname, host, guest):
-        self.containerXapiLCOperations(ContainerOperations.START, cname, host, guest)
-    def stopContainer(self, cname, host, guest):
-        self.containerXapiLCOperations(ContainerOperations.STOP, cname, host, guest)
-    def pauseContainer(self, cname, host, guest):
-        self.containerXapiLCOperations(ContainerOperations.PAUSE, cname, host, guest)
-    def unpauseContainer(self, cname, host, guest):
-        self.containerXapiLCOperations(ContainerOperations.UNPAUSE, cname, host, guest)
-    def restartContainer(self, cname, host, guest):
+    def startContainer(self, host, guest, ctype, cname):
+        if self.statusContainer(ctype, cname, host, guest) == ContainerState.STOPPED:
+            self.containerXapiLCOperations(ContainerOperations.START, host, guest, ctype, cname)
+        else:
+            raise xenrt.XRTError("startContainer: Container %s can be started if stopped" % cname)
+
+    def stopContainer(self, host, guest, ctype, cname):
+        if self.statusContainer(host, guest, ctype, cname) == ContainerState.RUNNING:
+            self.containerXapiLCOperations(ContainerOperations.STOP, host, guest, ctype, cname)
+        else:
+            raise xenrt.XRTError("stopContainer: Container %s can be stopped if running" % cname)
+
+    def pauseContainer(self, host, guest, ctype, cname):
+        if self.statusContainer(ctype, cname, host, guest) == ContainerState.RUNNING:
+            self.containerXapiLCOperations(ContainerOperations.PAUSE, host, guest, ctype, cname)
+        else:
+            raise xenrt.XRTError("pauseContainer: Container %s can be paused if running" % cname)
+
+    def unpauseContainer(self, host, guest, ctype, cname):
+        if self.statusContainer(host, guest, ctype, cname) == ContainerState.PAUSED:
+            self.containerXapiLCOperations(ContainerOperations.UNPAUSE, host, guest, ctype, cname)
+        else:
+            raise xenrt.XRTError("pauseContainer: Container %s can be unpaused if paused" % cname)
+
+    def restartContainer(self, host, guest, ctype, cname):
         raise xenrt.XRTError("XENAPI: host-call-plugin call restart is not supported")
 
-    def inspectContainer(self, cname, host, guest):
-        dockerInspectXML = self.containerXapiLCOperations(ContainerOperations.INSPECT, cname, host, guest)
+    def inspectContainer(self, host, guest, ctype, cname):
+        dockerInspectXML = self.containerXapiLCOperations(ContainerOperations.INSPECT, host, guest, ctype, cname)
 
-        xenrt.TEC().logverbose("inspectContainer - dockerInspectXML: %s" % dockerInspectXML)
+        #xenrt.TEC().logverbose("inspectContainer - dockerInspectXML: %s" % dockerInspectXML)
 
-        xmldict = xmltodict.
+        dockerInspectDict = xmltodict.parse(dockerInspectXML)
 
-        #xmldoc = xml.dom.minidom.parseString(dockerInspectXML)
-        return xmldoc
-        #dockerInspect = xmldoc.getElementsByTagName('docker_inspect')
-
-        #if len(dockerInspect) < 1:
-        #    raise xenrt.XRTError("inspectContainer: XSContainer - get_inspect returned an empty xml")
-        #else:
-        #    return dockerInspect[0] # There is only one item in the list.
-
-    def gettopContainer(self, cname, host, guest):
-        dockerGetTopXML = self.containerXapiLCOperations(ContainerOperations.GETTOP, cname, host, guest)
-        dom = xml.dom.minidom.parseString(dockerGetTopXML)
-
-        xenrt.TEC().logverbose("dockerGetTopXML - xmldoc: %s" % dom)
-
-    def statusContainer(self, cname, host, guest):
-
-        inspectXML = self.inspectContainer(cname, host, guest)
-        containerState = inspectXML.getElementsByTagName('State') # There os only one item in the list.
-
-        if len(containerState) < 1:
-            raise xenrt.XRTError("statusContainer: XSContainer - get_inspect XML does not have a state item")
-
-        if containerState[0].attributes['Paused'].value == "True":
-            return ContainerState.PAUSED
-        elif containerState[0].attributes['Restarting'].value == "True":
-            return ContainerState.RESTARTED
-        elif containerState[0].attributes['Running'].value == "True":
-            return ContainerState.STARTED
-        if containerState[0].attributes['Paused'].value == "True":
-            return ContainerState.PAUSED
+        if not dockerInspectDict.has_key('docker_inspect'):
+                raise xenrt.XRTError("inspectContainer: XSContainer - get_inspect failed to get the xml")
         else:
-            return ContainerState.UNKNOWN
+            return dockerInspectDict['docker_inspect']# has keys State, NetworkSettings, Config etc.
+
+    def gettopContainer(self, host, guest, ctype, cname):
+        dockerGetTopXML = self.containerXapiLCOperations(ContainerOperations.GETTOP, host, guest, ctype, cname)
+
+        xenrt.TEC().logverbose("gettopContainer - dockerGetTopXML: %s" % dockerGetTopXML)
+
+        dockerGetTopDict = xmltodict.parse(dockerGetTopXML)
+
+        if not dockerGetTopDict.has_key('docker_top'):
+                raise xenrt.XRTError("gettopContainer: XSContainer - docker_top failed to get the xml")
+        else:
+            return dockerGetTopDict['docker_top']# has keys Process etc.
+
+    def statusContainer(self, host, guest, ctype, cname):
+
+        inspectXML = self.inspectContainer(host, guest, ctype, cname)
+
+        if not inspectXML.has_key('State'):
+                raise xenrt.XRTError("statusContainer: XSContainer - state key is missing in docker_inspect xml")
+        else:
+            containerState = inspectXML['State']
+
+            if containerState['Running'] == "True":
+                return ContainerState.RUNNING
+            elif containerState['Paused'] == "True":
+                return ContainerState.PAUSED
+            elif containerState['Paused'] == "False" and containerState['Running'] == "False":
+                return ContainerState.STOPPED
+            elif containerState['Restarting'] == "True":
+                return ContainerState.RESTARTED
+            else:
+                return ContainerState.UNKNOWN
 
     # Other functions.
-    def getDockerInfo(self, cname, host, guest):pass
-    def getDockerPS(self, cname, host, guest):pass
-    def getDockerVersion(self, cname, host, guest):pass
-    def getDockerOtherConfig(self, cname, host, guest):pass
+    def getDockerInfo(self, host, guest, ctype, cname):pass
+    def getDockerPS(self, host, guest, ctype, cname):pass
+    def getDockerVersion(self, host, guest, ctype, cname):pass
+    def getDockerOtherConfig(self, host, guest, ctype, cname):pass
 
 # ConcreteImplementor to create containers using CoreOS.
 class UsingCoreOS(ContainerController):
 
-    def registerContainer(self, cname, host, guest):pass
+    def registerContainer(self, host, guest, ctype, cname):pass
 
-    def createContainer(self, cname, host, guest):
-        guest.execguest(self.containerSelection(cname))
+    def createContainer(self, host, guest, ctype, cname):
+        guest.execguest(self.containerSelection(ctype, cname))
 
-    def removeContainer(self, cname, host, guest):pass
+    def removeContainer(self, host, guest, ctype, cname):pass
 
-    def checkContainer(self, cname, host, guest):pass
+    def checkContainer(self, host, guest, ctype, cname):pass
 
     # Container lifecycle operations.
-    def startContainer(self, cname, host, guest):pass
-    def stopContainer(self, cname, host, guest):pass
-    def pauseContainer(self, cname, host, guest):pass
-    def unpauseContainer(self, cname, host, guest):pass
-    def restartContainer(self, cname, host, guest):pass
+    def startContainer(self, host, guest, ctype, cname):pass
+    def stopContainer(self, host, guest, ctype, cname):pass
+    def pauseContainer(self, host, guest, ctype, cname):pass
+    def unpauseContainer(self, host, guest, ctype, cname):pass
+    def restartContainer(self, host, guest, ctype, cname):pass
 
-    def inspectContainer(self, cname, host, guest):pass
-    def gettopContainer(self, cname, host, guest):pass
-
-    def statusContainer(self, cname, host, guest):pass
+    def inspectContainer(self, ctype, cname, host, guest):
+        return "To be implemented"
+    def gettopContainer(self, host, guest, ctype, cname):
+        return "To be implemented"
+    def statusContainer(self, host, guest, ctype, cname):
+        return "To be implemented"
 
     # Other functions.
-    def getDockerInfo(self, cname, host, guest):pass
-    def getDockerPS(self, cname, host, guest):pass
-    def getDockerVersion(self, cname, host, guest):pass
-    def getDockerOtherConfig(self, cname, host, guest):pass
+    def getDockerInfo(self, host, guest, ctype, cname):pass
+    def getDockerPS(self, host, guest, ctype, cname):pass
+    def getDockerVersion(self, host, guest, ctype, cname):pass
+    def getDockerOtherConfig(self, host, guest, ctype, cname):pass
 
 # Abstraction
 class Container(object):
@@ -280,44 +308,45 @@ class Container(object):
 # Refined Abstraction
 class GenericContainer(Container):
 
-    def __init__(self, cname, host, guest, ContainerController):
+    def __init__(self, ContainerController, host, guest, ctype, cname="random"):
+        self.ctype = ctype
         self.cname = cname
         self.host = host
         self.guest =guest
         self.ContainerController = ContainerController()
  
     def create(self):
-        self.ContainerController.createContainer(self.cname, self.host, self.guest)
+        self.ContainerController.createContainer(self.host, self.guest, self.ctype, self.cname)
     def remove(self):
-        self.ContainerController.removeContainer(self.cname, self.host, self.guest)
+        self.ContainerController.removeContainer(self.host, self.guest, self.ctype, self.cname)
     def check(self):
-        self.ContainerController.checkContainer(self.cname, self.host, self.guest)
+        self.ContainerController.checkContainer(self.host, self.guest, self.ctype, self.cname)
 
     # Container lifecycle operations.
     def start(self):
-        self.ContainerController.startContainer(self.cname, self.host, self.guest)
+        self.ContainerController.startContainer(self.host, self.guest, self.ctype, self.cname)
     def stop(self):
-        self.ContainerController.stopContainer(self.cname, self.host, self.guest)
+        self.ContainerController.stopContainer(self.host, self.guest, self.ctype, self.cname)
     def pause(self):
-        self.ContainerController.pauseContainer(self.cname, self.host, self.guest)
+        self.ContainerController.pauseContainer(self.host, self.guest, self.ctype, self.cname)
     def unpause(self):
-        self.ContainerController.unpauseContainer(self.cname, self.host, self.guest)
+        self.ContainerController.unpauseContainer(self.host, self.guest, self.ctype, self.cname)
     def restart(self):
-        self.ContainerController.restartContainer(self.cname, self.host, self.guest)
+        self.ContainerController.restartContainer(self.host, self.guest, self.ctype, self.cname)
 
     # Other functions.
     def inspect(self):
-        self.ContainerController.inspectContainer(self.cname, self.host, self.guest)
+        return self.ContainerController.inspectContainer(self.host, self.guest, self.ctype, self.cname)
     def getTop(self):
-        self.ContainerController.gettopContainer(self.cname, self.host, self.guest)
+        self.ContainerController.gettopContainer(self.host, self.guest, self.ctype, self.cname)
     def getState(self):
-        self.ContainerController.statusContainer(self.cname, self.host, self.guest)
+        return self.ContainerController.statusContainer(self.host, self.guest, self.ctype, self.cname)
 
     def getInfo(self):
-        self.ContainerController.getDockerInfo(self.cname, self.host, self.guest)
+        self.ContainerController.getDockerInfo(self.host, self.guest, self.ctype, self.cname)
     def getPS(self):
-        self.ContainerController.getDockerPS(self.cname, self.host, self.guest)
+        self.ContainerController.getDockerPS(self.host, self.guest, self.ctype, self.cname)
     def getVersion(self):
-        self.ContainerController.getDockerVersion(self.cname, self.host, self.guest)
+        self.ContainerController.getDockerVersion(self.host, self.guest, self.ctype, self.cname)
     def getOtherConfig(self):
-        self.ContainerController.getDockerOtherConfig(self.cname, self.host, self.guest)
+        self.ContainerController.getDockerOtherConfig(self.host, self.guest, self.ctype, self.cname)

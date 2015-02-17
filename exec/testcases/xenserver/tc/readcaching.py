@@ -28,7 +28,7 @@ class ReadCacheTestCase(xenrt.TestCase):
         self.vm = self.getGuest(self.vmName)
         self._applyMaxLicense()
         host = self.getDefaultHost()
-        rcc = host.readCaching()
+        rcc = host.getReadCachingController()
         rcc.setVM(self.vm)
         rcc.enable()
         self.vm.migrateVM(host)
@@ -36,7 +36,7 @@ class ReadCacheTestCase(xenrt.TestCase):
     def checkExpectedState(self, expectedState, lowlevel=False, both=False):
         step("Checking state - expected=%s, low-level=%s, bothChecks=%s" % (expectedState, lowlevel, both))
         host = self.getDefaultHost()
-        rcc = host.readCaching()
+        rcc = host.getReadCachingController()
         rcc.setVM(self.vm)
         if both:
             step("Checking tapctl status....")
@@ -78,7 +78,7 @@ class TCOdirectRCDisabled(ReadCacheTestCase):
     def run(self, arglist):
         lowlevel, both = self.getArgs(arglist)
         host = self.getDefaultHost()
-        rcc = host.readCaching()
+        rcc = host.getReadCachingController()
         rcc.setVM(self.vm)
         rcc.disable()
         step("Checking ReadCaching state disabled %s" % lowlevel)
@@ -92,7 +92,7 @@ class TCRCForLifeCycleOps(ReadCacheTestCase):
     """
     def run(self, arglist):
         host = self.getDefaultHost()
-        rcc = host.readCaching()
+        rcc = host.getReadCachingController()
         vm = self.vm
         lowlevel, both = self.getArgs(arglist)
         self.runSubcase("lifecycle", (vm, rcc, lowlevel, both, vm.reboot),

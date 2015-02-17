@@ -3013,7 +3013,7 @@ class BootstormBase(FunctionalBase):
         xenrt.pfarm(pt)
 
         # WaitforDaemon for all VMs.
-        pt = [xenrt.PTask(vm.waitForDaemon, 1800) for vm in self.vms]
+        pt = [xenrt.PTask(vm.poll, "UP") for vm in self.vms]
         xenrt.pfarm(pt)
 
         # Check VMs utilizing GPU.
@@ -3031,10 +3031,10 @@ class LinuxGPUBootstorm(BootstormBase):
     
     def prepare(self, arglist=[]):
 
-        # Create master.
-
         installer = VGPUInstaller(self.host, VGPUConfig.K1PassThrough)
         capacity = self.host.remainingGpuCapacity(installer.groupUUID(), installer.typeUUID())
+
+        # Create master.
 
         # Clone the master that amount of times.
             # Adding them to vmlist. self.vms?

@@ -1833,10 +1833,6 @@ done
             self.execdom0('xe host-management-reconfigure pif-uuid=%s' % pif)
             self.waitForSSH(300, "%s host-management-reconfigure (IPv6)" % self.getName())
 
-        syslogfmt = xenrt.TEC().lookup("DOM0_SYSLOG_FORMAT", None)
-        if syslogfmt:
-            self.changeSyslogFormat(syslogfmt)
-
         return None
 
     # Change the timestamp formatting in syslog
@@ -2162,6 +2158,10 @@ fi
             # Check to ensure that there is a multipath topology if we did multipath boot.
             if not len(self.getMultipathInfo()) > 0 :
                 raise xenrt.XRTFailure("There is no multipath topology found with multipath boot")
+
+        syslogfmt = xenrt.TEC().lookup("DOM0_SYSLOG_FORMAT", None)
+        if syslogfmt:
+            self.changeSyslogFormat(syslogfmt)
 
     def waitForFirstBootScriptsToComplete(self):
         ret = ""

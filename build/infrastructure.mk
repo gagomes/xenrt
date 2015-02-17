@@ -437,6 +437,7 @@ httpd:
 	$(SUDO) sed -i "s/APACHE_RUN_USER=.*/APACHE_RUN_USER=$(USERNAME)/" /etc/apache2/envvars
 	$(SUDO) mkdir -p $(SCRATCHDIR)/www
 	$(SUDO) ln -sfT $(SCRATCHDIR)/www $(WEBROOT)/export
+	$(SUDO) ln -sf $(SHAREDIR)/xenrt-cli.tar.gz $(WEBROOT)/xenrt-cli.tar.gz
 	$(SUDO) ln -sfT $(TFTPROOT) $(WEBROOT)/tftp
 	$(SUDO) ln -sfT $(SHAREDIR) $(WEBROOT)/share
 	$(SUDO) ln -sfT $(SHAREDIR)/control $(WEBROOT)/control

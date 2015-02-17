@@ -80,7 +80,6 @@ pythonlibs:
 tar:
 	tar -C $(SHAREDIR)/control -cvzf xenrt-cli.tar.gz ./xenrt
 	mv xenrt-cli.tar.gz $(SHAREDIR)
-	$(SUDO) ln -sf $(SHAREDIR)/xenrt-cli.tar.gz $(WEBROOT)/xenrt-cli.tar.gz
 
 .PHONY: precommit precommit-all
 precommit: xmllint pylint

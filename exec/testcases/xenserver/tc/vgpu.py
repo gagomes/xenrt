@@ -2993,6 +2993,59 @@ class TCNonWindowsK1(FunctionalBase):
         vm.destroyvGPU()
         raise xenrt.XRTFailure("No error was raised, but it should have been")
 
+class BootstormBase(FunctionalBase):
+
+    def prepare(self, arglist=[]):
+        """Need to do the steps for figuring out the hardware setup.
+        Children can then choose VMs based on that.
+        """
+        pass
+    
+    def run(self):
+        """Should perform the bootstorm steps with all available vms."""
+        
+        # Shut down all the vms.
+        for vm in self.vms:
+            vm.shutdown()
+
+        # Start all VMs.
+        pt = [xenrt.PTask(self.bootstormStartVM, vm) for vm in self.vms]
+        xenrt.pfarm(pt)
+
+        # WaitforDaemon for all VMs.
+        pt = [xenrt.PTask(vm.waitForDaemon, 1800) for vm in self.vms]
+        xenrt.pfarm(pt)
+
+        # Check VMs utilizing GPU.
+
+    def bootstormStartVM(self, vm):
+        try:
+            name = vm.getName()
+            name = name.replace(" ", "\ ")
+            cmd = "xe vm-start vm=%s" % name
+            self.runAsync(self.host, cmd, timeout=3600, ignoreSSHErrors=False)
+        except Exception, e:
+            raise xenrt.XRTFailure("Failed to start vm %s - %s" % (vm.getName(), str(e)))
+
+class LinuxGPUBootstorm(BootstormBase):
+    
+    def prepare(self, arglist=[]):
+        pass
+
+class MixedGPUBootstorm(BootstormBase):
+    
+    def prepare(self, arglist=[]):
+        pass
+
+class TestingBootstorm(BootstormBase):
+
+    def prepare(self, arglist=[]):
+        # Run a provision on a normal host.
+        # Pick up the guests from that and add to list.
+        host = self.getDefaultHost()
+        self.vms = [host.getGuest(g) for g in host.listGuests(running=True)]
+
+
 class TCAlloModeK200NFS(VGPUAllocationModeBase):
 
     """

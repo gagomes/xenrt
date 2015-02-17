@@ -1,0 +1,18 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <serial group="LinuxGPUPassthroughTesting">
+      <testcase id="testcases.xenserver.tc.vgpu.TestingBootstorm">
+      </testcase>
+    </serial>
+  </testsequence>
+
+</xenrt>

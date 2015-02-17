@@ -947,9 +947,9 @@ class XenRTList(XenRTCommand):
         except getopt.GetoptError:
             sys.stderr.write("Unknown argument\n")
             return None
-        jobs = self.xenrt.get_jobs(params=True, limit=10000, **details)
+        jobs = self.xenrt.get_jobs(params=True, limit=10000, results=True, **details)
         
-        fieldwidths = [6, 8, 12, 9, 13, 18, 7]
+        fieldwidths = [7, 8, 12, 9, 13, 18, 7]
         fmt = string.join(map(lambda x:"%%-%us" % x, fieldwidths))
         fmt = fmt + "\n"
         if not quiet:
@@ -968,7 +968,11 @@ class XenRTList(XenRTCommand):
                 
                 if jobdesc and j['description'] != jobdesc:
                     continue
-                 
+                status = j['status']
+
+                if "paused" in [x['result'] for x in j['results'].values()]:
+                    status = "paused"
+
                 if showsr and j['suiterun']:
                     desc = "SR%d %s" % (j['suiterun'], j['description'] or "")
                 else:
@@ -976,7 +980,7 @@ class XenRTList(XenRTCommand):
 
                 ll = [
                     str(j['id']),
-                    j['status'],
+                    status,
                     ",".join(j['machines']),
                     j['params'].get("VERSION", ""),
                     j['params'].get("REVISION", ""),

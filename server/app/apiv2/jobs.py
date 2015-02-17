@@ -171,7 +171,7 @@ class _JobBase(_MachineBase):
                     "logUploadUrl": "%s://%s%s/api/v2/test/%d/log" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), rc[2]),
                     "logUrl": logUrl,
                     "logUploaded": rc[5] and rc[5].strip() == "yes",
-                    "jobId": j
+                    "jobId": rc[0]
                 }
                 detailids[rc[2]] = rc[0]
             if getLog:

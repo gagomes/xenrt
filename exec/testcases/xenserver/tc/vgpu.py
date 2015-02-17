@@ -2999,7 +2999,6 @@ class BootstormBase(FunctionalBase):
         """Need to do the steps for figuring out the hardware setup.
         Children can then choose VMs based on that.
         """
-        capacity = self.host.remainingGpuCapacity(self._vGPUCreator.groupUUID(), self._vGPUCreator.typeUUID())
         pass
     
     def run(self, arglist):
@@ -3031,14 +3030,16 @@ class BootstormBase(FunctionalBase):
 class LinuxGPUBootstorm(BootstormBase):
     
     def prepare(self, arglist=[]):
-        installer = VGPUInstaller(self.host, "K1PassThrough")
 
+        # Create master.
+
+        installer = VGPUInstaller(self.host, VGPUConfig.K1PassThrough)
         capacity = self.host.remainingGpuCapacity(installer.groupUUID(), installer.typeUUID())
 
-        # Need to create a bunch of VMs based on the amount of space.
-            # The amount of space needs to be worked out in the parent I think.
-
+        # Clone the master that amount of times.
+            # Adding them to vmlist. self.vms?
         
+        # For every vm that I now have, install the gpu for it..
         for vm in self.vms:
             installer.createOnGuest(vm)
 
@@ -3052,8 +3053,8 @@ class TestingBootstorm(BootstormBase):
     def prepare(self, arglist=[]):
         # Run a provision on a normal host.
         # Pick up the guests from that and add to list.
-        host = self.getDefaultHost()
-        self.vms = [host.getGuest(g) for g in host.listGuests(running=True)]
+        self.host = self.getDefaultHost()
+        self.vms = [self.host.getGuest(g) for g in self.host.listGuests(running=True)]
 
 
 class TCAlloModeK200NFS(VGPUAllocationModeBase):

@@ -9556,9 +9556,11 @@ while True:
         if not self.verifyGuestAsPVHVM():
             raise xenrt.XRTError("This GPU drivers are for PVHVM guests only")
 
-        guestArch=self.execguest("uname -p")
+        #guestArch=self.execguest("uname -p")
+        xenrt.log("Guest distro is %s"%self.distro)
+        xenrt.log("Guest arch is %s"%self.arch)
 
-        if guestArch == "x86_64":
+        if "64" in self.arch:
             drivername=xenrt.TEC().lookup("PVHVM_GPU_NVDIA_X64")
         else :
             drivername=xenrt.TEC().lookup("PVHVM_GPU_NVDIA_X86")

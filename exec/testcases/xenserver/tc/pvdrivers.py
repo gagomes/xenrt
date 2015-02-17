@@ -1228,7 +1228,7 @@ class TCTestDriverUpgrade(xenrt.TestCase):
             else:
                 raise
 
-    def postRun(self, arglist):
+    def postRun(self):
         try:
             self.guest.shutdown()
         except:

@@ -5827,9 +5827,20 @@ class DundeeGuest(CreedenceGuest):
 
         if installed:
             #Drivers are installed using the tools ISO ,
+            
             TampaGuest.uninstallDrivers(self, waitForDaemon)
         else:
+            
             #Drivers are installed using PV Packages uninstall them separately
+            
+            if self.xmlrpcGetArch().endswith('64'):
+                devconexe = "devcon64.exe"
+            else:
+                devconexe = "devcon.exe"
+                
+            if not self.xmlrpcFileExists("c:\\%s" % devconexe):
+                self.xmlrpcSendFile("%s/distutils/%s" % (xenrt.TEC().lookup("LOCAL_SCRIPTDIR"), devconexe), "c:\\%s" % devconexe)
+                
             self.enablePowerShellUnrestricted()
             
             #Get the OEM files to be deleted after uninstalling drivers

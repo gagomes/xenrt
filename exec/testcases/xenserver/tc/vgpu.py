@@ -2320,7 +2320,7 @@ class TCRevertvGPUSnapshot(FunctionalBase):
             if not vgpuType:
                 raise xenrt.XRTFailure("VM has not got any vGPU")
 
-            if not (expVGPUType in vgpuType):
+            if not ((expVGPUType.lower() in vgpuType.lower()) or (vgpuType.lower() in expVGPUType.lower())):
                 raise xenrt.XRTFailure("VM has not got expected vGPU type which is %s" % (expVGPUType))
 
 class TCvGPUBalloon(FunctionalBase):

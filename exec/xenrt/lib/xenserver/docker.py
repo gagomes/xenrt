@@ -12,7 +12,7 @@ import xmltodict
 __all__ = ["ContainerCreateMethod",
             "ContainerState", "ContainerOperations", "ContainerNames",
             "UsingXapi", "UsingLinux",
-            "CoreOSDocker", "RHELDocker"]
+            "CoreOSDocker", "RHELDocker", "UbuntuDocker"]
 
 """
 Factory class for docker container.
@@ -97,14 +97,6 @@ class ContainerController(object):
 # Concrete Implementor
 class UsingXapi(ContainerController):
 
-    def workaroundInDom0(self): 
-        """Workaround in Dom0 to enable the passthrough command so that we can create docker container"""
-
-        self.host.execdom0("mkdir -p /opt/xensource/packages/files/xscontainer")
-        self.host.execdom0("touch /opt/xensource/packages/files/xscontainer/devmode_enabled")
-
-        xenrt.TEC().logverbose("XSContainer passthrough command is enabled")
-
     def containerXapiLCOperations(self, operation, container):
 
         args = []
@@ -131,9 +123,6 @@ class UsingXapi(ContainerController):
                               # inspect and gettop leaves an xml.
 
     def createAndRemoveContainer(self, container, operation=ContainerOperations.CREATE):
-
-        # Enable the passthrough command in Dom0.
-        self.workaroundInDom0()
 
         if operation == ContainerOperations.CREATE:
             dockerCmd = self.containerSelection(container)

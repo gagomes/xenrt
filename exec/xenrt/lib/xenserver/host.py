@@ -11339,6 +11339,20 @@ class CreedenceHost(ClearwaterHost):
     def licenseApply(self, v6server, licenseObj):
         self.license(v6server,sku=licenseObj.getEdition())
 
+    def enableDockerPassthrough(self): 
+        """Workaround in Dom0 to enable the passthrough plugin to create docker container"""
+
+        self.execdom0("mkdir -p /opt/xensource/packages/files/xscontainer")
+        self.execdom0("touch /opt/xensource/packages/files/xscontainer/devmode_enabled")
+
+        xenrt.TEC().logverbose("XSContainer: Passthrough plugin in Dom0 to create docker container is enabled")
+
+    def postInstall(self):
+        ClearwaterHost.postInstall(self)
+
+        if xenrt.TEC().lookup("DOCKER_PASSTHROUGH_PLUGIN", False, boolean=True):
+            # Enable the passthrough command in Dom0.
+            self.enableDockerPassthrough()
 
 #############################################################################
 class DundeeHost(CreedenceHost):

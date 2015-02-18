@@ -642,9 +642,9 @@ users:
         self.shutdown()
 
     def dockerInstall(self):
-        """Install docker into a guest"""
+        """Installs docker into a guest"""
 
-        self.docker.install()
+        self.docker().install()
 
     def docker(self):
         if self.distro.startswith("rhel"):

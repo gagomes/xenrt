@@ -105,6 +105,32 @@ class _AclBase(XenRTAPIv2Page):
         db.commit()
         return self.getAcls(limit=1, ids=[aclid], exceptionIfEmpty=True)
 
+    def removeAcl(self, aclid):
+        # Check the ACL isn't in use anywhere
+        db = self.getDB()
+        cur = db.cursor()
+        cur.execute("SELECT COUNT(*) FROM tblmachines WHERE aclid=%s", [aclid])
+        rc = cur.fetchone()
+        count = rc[0]
+        if count > 0:
+            raise XenRTAPIError(HTTPPreconditionFailed, "ACL in use by %d machines" % count)
+        cur.execute("DELETE FROM tblacls WHERE aclid=%s", [aclid])
+        db.commit()
+
+    def checkAcl(self, aclid, user):
+        """Check the ACL exists and is accessible by the given user"""
+
+        # TODO: Allow XenRT admins to perform operations here
+        db = self.getDB()
+        cur = db.cursor()
+        cur.execute("SELECT owner FROM tblacls WHERE aclid=%s", [aclid])
+        rc = cur.fetchone()
+        if not rc:
+            raise XenRTAPIError(HTTPNotFound, "ACL not found")
+        owner = rc[0].strip()
+        if owner != user:
+            raise XenRTAPIError(HTTPForbidden, "You are not the owner of this ACL")
+
 class ListAcls(_AclBase):
     PATH = "/acls"
     REQTYPE = "GET"
@@ -248,13 +274,15 @@ class UpdateAcl(_AclBase):
             }
         }
     }}
-    RESPONSES = { "200": {"description": "Successful response"}}
+    RESPONSES = { "200": {"description": "Successful response"},
+                  "404": {"description": "ACL not found"},
+                  "413": {"description": "No permission to update the specified ACL"}}
     OPERATION_ID = "update_acl"
     PARAM_ORDER=["name", "parent"]
 
     def render(self):
         aclid = self.getIntFromMatchdict("id")
-        # TODO: Verify this user owns the specified ACL
+        self.checkAcl(aclid, self.getUser())
         try:
             j = json.loads(self.request.body)
             jsonschema.validate(j, self.DEFINITIONS['updateacl'])
@@ -262,7 +290,33 @@ class UpdateAcl(_AclBase):
             raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
         return self.updateAcl(aclid, name=j.get("name"), parent=j.get("parent"))
 
+class RemoveAcl(_AclBase):
+    WRITE = True
+    PATH = "/acl/{id}"
+    REQTYPE = "DELETE"
+    SUMMARY = "Removes an ACL"
+    TAGS = ["acls"]
+    PARAMS = [
+        {'name': 'id',
+         'in': 'path',
+         'required': True,
+         'description': 'ACL ID to remove',
+         'type': 'integer'}
+    ]
+    RESPONSES = { "200": {"description": "Successful response"},
+                  "404": {"description": "ACL not found"},
+                  "412": {"description": "ACL in use by one or more machines"},
+                  "413": {"description": "No permission to remove the specified ACL"}}
+    OPERATION_ID = "remove_acl"
+
+    def render(self):
+        aclid = self.getIntFromMatchdict("id")
+        self.checkAcl(aclid, self.getUser())
+        self.removeAcl(aclid)
+        return {}
+
 RegisterAPI(ListAcls)
 RegisterAPI(GetAcl)
 RegisterAPI(NewAcl)
 RegisterAPI(UpdateAcl)
+RegisterAPI(RemoveAcl)

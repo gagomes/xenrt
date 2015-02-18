@@ -1659,7 +1659,10 @@ class FunctionalBase(VGPUAllocationModeBase):
         self.sr = self.host.getSRs(type="lvm", local=True)[0]
         self.prepareGPUGroups()
 
-    def typeOfvGPU(self):
+    def typeOfvGPU(self, typeOfvGPU = None):
+
+        if typeOfvGPU:
+            self.TYPE_OF_VGPU = typeOfvGPU
 
         if not self.TYPE_OF_VGPU:
             raise xenrt.XRTFailure("Type of vGPU not defined")
@@ -2142,9 +2145,12 @@ class TCReuseK2PGPU(FunctionalBase):
         super(TCReuseK2PGPU, self).prepare(arglist)
 
         distro = self.REQUIRED_DISTROS[0]
+        self.VMs = {}
 
         step("Creating %d vGPUs configurations." % (len(self.VGPU_CONFIG)))
         self.vGPUCreator = {}
+        self.nvidWinvGPU = self.typeOfvGPU(typeOfvGPU = self.getDiffvGPUName(DiffvGPUType.NvidiaWinvGPU))
+        self.nvidLinvGPU = self.typeOfvGPU(typeOfvGPU = self.getDiffvGPUName(DiffvGPUType.NvidiaLinuxvGPU))
 
         for i in range(len(self.REQUIRED_DISTROS)):
 
@@ -2157,38 +2163,35 @@ class TCReuseK2PGPU(FunctionalBase):
 
             log("Creating Master VM of type %s" % osType)
             vm = self.createMaster(osType)
+            if vm.windows:
+                obj = self.nvidWinvGPU
+            else:
+                obj = self.nvidLinvGPU
 
             log("Creating vGPU of type %s" % (self.getConfigurationName(config)))
             self.configureVGPU(config, vm)
             vm.setState("UP")
 
             log("Install guest drivers for %s" % str(vm))
-            self.typeOfvGPU.installGuestDrivers(vm)
+            obj.installGuestDrivers(vm)
 
             log("Checking whether vGPU is runnnig on the VM or not")
-            self.typeOfvGPU.assertvGPURunningInVM(vm,self.getConfigurationName(config))
+            obj.assertvGPURunningInVM(vm,self.getConfigurationName(config))
 
             vm.setState("DOWN")
 
-            log("Setting the enable type of all the pGPUs except 2 to passthrough")
-            config = "passthrough"
+        log("Setting the enable type of all the pGPUs except 1 to None")
 
-            self.pGPUs = self.host.minimalList("pgpu-list", "")
-            if len(self.pGPUs) > 2:
-                typeUUID = self.host.getSupportedVGPUTypes()[config]
-                extrapGPU = len(self.pGPUs) - 2
-                for i in range(extrapGPU):
-                    self.host.genParamSet('pgpu', self.pGPUs[i], 'enabled-VGPU-types', typeUUID)
+        self.pGPUs = self.host.minimalList("pgpu-list", "")
+        if len(self.pGPUs) > len(self.REQUIRED_DISTROS):
+            #typeUUID = self.host.getSupportedVGPUTypes()[config]
+            typeUUID = ""
+            extrapGPU = len(self.pGPUs) - len(self.REQUIRED_DISTROS)
+            for i in range(len(self.pGPUs) - 1):
+                self.host.genParamSet('pgpu', self.pGPUs[i], 'enabled-VGPU-types', typeUUID)
 
-    def run(self,arglist):
-
-        #Assuming now only 2 pGPUs are available for other configs
-        VMs ={}
-        leftVMs = {}
-
-        for config in self.VGPU_CONFIG:
-            VMs[config] = []
-            leftVMs[config] = ''
+        for config in vgpuConfig:
+            self.VMs[config] = []
 
         for i in range(len(self.REQUIRED_DISTROS)):
 
@@ -2201,38 +2204,60 @@ class TCReuseK2PGPU(FunctionalBase):
             for n in range(nVMs+1):
                 log("Cloning %dth VM from Master VM" % n)
                 g = self.cloneVM(osType)
-                VMs[config].append(g)
+                self.VMs[config].append(g)
 
-        for config in self.VGPU_CONFIG:
-            totalVMsUP = 0
-            for vm in VMs[config]:
-                if totalVMsUP < MaxNumOfVGPUPerPGPU[config]:
-                    vm.setState("UP")
-                    log("Checking whether vGPU is runnnig on the VM or not")
-                    self.typeOfvGPU.assertvGPURunningInVM(vm,self.getConfigurationName(config))
-                else:
-                    leftVMs[config] = vm
-                totalVMsUP = totalVMsUP + 1
+    def run(self,arglist):
 
-        for config in leftVMs:
-            try:
-                leftVMs[config].setState("UP")
-                raise xenrt.XRTFailure("VM is able to boot up but it should'nt be")
-            except:
-                pass
+        self.rubSubcase("actualTest",(self.VGPU_CONFIG,self.REQUIRED_DISTROS),"vGPU Config 1-> vGPU config 2","vGPU Config 1-> vGPU config 2")
+        self.rubSubcase("actualTest",(list(reversed(self.VGPU_CONFIG)),list(reversed(self.REQUIRED_DISTROS))),"vGPU Config 2-> vGPU config 1","vGPU Config 2-> vGPU config 1")
+        self.runSubcase("resetGPUs",(),"reseting pGPUs","reseting pGPUs")
 
-        for config in self.VGPU_CONFIG:
-            log("Shuting down 1 VM of vGPU config %s" % self.getConfigurationName(config))
-            VMs[config][0].setState("DOWN")
-
-        for config in leftVMs:
-            log("Starting the already shutdown VM")
-            leftVMs[config].setState("UP")
-            self.typeOfvGPU.assertvGPURunningInVM(leftVMs[config],self.getConfigurationName(config))
+    def resetGPUs(self):
 
         for pgpu in self.pGPUs:
             supportedTypes = self.host.genParamGet('pgpu',pgpu,'supported-VGPU-types').replace(";", ",").replace(" ", "")
             self.host.genParamSet('pgpu', pgpu, 'enabled-VGPU-types', supportedTypes)
+
+    def actualTest(self,vgpuConfig,requiredDistros):
+
+        leftVMs = {}
+
+        for config in vgpuConfig:
+            self.VMs[config].setState("DOWN")
+
+        for config in vgpuConfig:
+            leftVMs[config] = ''
+            totalVMsUP = 0
+            for vm in self.VMs[config]:
+                if totalVMsUP < MaxNumOfVGPUPerPGPU[config]:
+                    vm.setState("UP")
+                    if vm.windows:
+                        obj = self.nvidWinvGPU
+                    else:
+                        obj = self.nvidLinvGPU
+                    log("Checking whether vGPU is runnnig on the VM or not")
+                    obj.assertvGPURunningInVM(vm,self.getConfigurationName(config))
+                else:
+                    leftVMs[config] = vm
+                totalVMsUP = totalVMsUP + 1
+
+            #shutting down one VM so that other VM can be restarted
+            for vm in self.VMs[config]:
+                if not vm in leftVMs[config]:
+                    vm.setState("DOWN")
+                    break
+
+            leftVMs[config].setState("UP")
+            if leftVMs[config].windows:
+                obj = self.nvidWinvGPU
+            else:
+                obj = self.nvidLinvGPU
+
+            obj.assertvGPURunningInVM(leftVMs[config],self.getConfigurationName(config))
+
+            for vm in self.VMs[config]:
+                log("Shuting down VM of vGPU config %s" % self.getConfigurationName(config))
+                vm.setState("DOWN")
 
 class TCRevertvGPUSnapshot(FunctionalBase):
 
@@ -4120,6 +4145,7 @@ class TCRestictedGPUOperations(TCBasicVerifOfAllK2config):
             raise xenrt.XRTFailure("VM's live vdi migration is successful on a vGPU capable VM")
         except:
             pass
+        self.pause("Mayur Paused it")
 
         g.setState("DOWN")
         log("Uninstalling guest %s" % str(g))

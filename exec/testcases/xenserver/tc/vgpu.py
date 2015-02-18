@@ -350,7 +350,7 @@ class VGPUTest(xenrt.TestCase, object):
             raise xenrt.XRTFailure("vGPU not running in VM %s: %s" % (vm.getName(),vm.getUUID()))
 
     def assertvGPUNotRunningInLinuxVM(self, vm, vGPUType, card):
-        if self.isGPUBeingUtilized(card):
+        if vm.isGPUBeingUtilized(card):
             raise xenrt.XRTFailure("vGPU running when not expected in VM %s: %s" % (vm.getName(),vm.getUUID()))
 
     def runWindowsWorkload(self,vm):
@@ -1812,7 +1812,7 @@ class IntelWindowsvGPU(DifferentGPU):
         VGPUTest().assertvGPUNotRunningInWinVM(guest, vGPUType)
 
     def runWorkload(self,vm):
-        VGPUTest().runWindowsWorkload(self,vm)
+        VGPUTest().runWindowsWorkload(vm)
 
 """ Negative Test Cases """
 
@@ -2190,7 +2190,7 @@ class TCReuseK2PGPU(FunctionalBase):
             for i in range(len(self.pGPUs) - 1):
                 self.host.genParamSet('pgpu', self.pGPUs[i], 'enabled-VGPU-types', typeUUID)
 
-        for config in vgpuConfig:
+        for config in self.VGPU_CONFIG:
             self.VMs[config] = []
 
         for i in range(len(self.REQUIRED_DISTROS)):

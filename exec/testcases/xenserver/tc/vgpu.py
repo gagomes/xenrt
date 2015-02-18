@@ -2208,8 +2208,8 @@ class TCReuseK2PGPU(FunctionalBase):
 
     def run(self,arglist):
 
-        self.rubSubcase("actualTest",(self.VGPU_CONFIG,self.REQUIRED_DISTROS),"vGPU Config 1-> vGPU config 2","vGPU Config 1-> vGPU config 2")
-        self.rubSubcase("actualTest",(list(reversed(self.VGPU_CONFIG)),list(reversed(self.REQUIRED_DISTROS))),"vGPU Config 2-> vGPU config 1","vGPU Config 2-> vGPU config 1")
+        self.runSubcase("actualTest",(self.VGPU_CONFIG,self.REQUIRED_DISTROS),"vGPU Config 1-> vGPU config 2","vGPU Config 1-> vGPU config 2")
+        self.runSubcase("actualTest",(list(reversed(self.VGPU_CONFIG)),list(reversed(self.REQUIRED_DISTROS))),"vGPU Config 2-> vGPU config 1","vGPU Config 2-> vGPU config 1")
         self.runSubcase("resetGPUs",(),"reseting pGPUs","reseting pGPUs")
 
     def resetGPUs(self):

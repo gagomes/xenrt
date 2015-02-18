@@ -276,7 +276,7 @@ class UpdateAcl(_AclBase):
     }}
     RESPONSES = { "200": {"description": "Successful response"},
                   "404": {"description": "ACL not found"},
-                  "413": {"description": "No permission to update the specified ACL"}}
+                  "403": {"description": "No permission to update the specified ACL"}}
     OPERATION_ID = "update_acl"
     PARAM_ORDER=["name", "parent"]
 
@@ -306,7 +306,7 @@ class RemoveAcl(_AclBase):
     RESPONSES = { "200": {"description": "Successful response"},
                   "404": {"description": "ACL not found"},
                   "412": {"description": "ACL in use by one or more machines"},
-                  "413": {"description": "No permission to remove the specified ACL"}}
+                  "403": {"description": "No permission to remove the specified ACL"}}
     OPERATION_ID = "remove_acl"
 
     def render(self):

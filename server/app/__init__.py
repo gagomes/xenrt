@@ -160,3 +160,4 @@ import app.ui
 import app.uiv2
 import app.compat
 import app.signal
+import app.ad

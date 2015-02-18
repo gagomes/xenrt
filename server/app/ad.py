@@ -31,8 +31,9 @@ class ActiveDirectory(object):
         if 'person' in group['objectClass']:
             return [group['sAMAccountName'][0]]
         members = []
-        for m in group['member']:
-            members += self.get_all_members_of_group(m, _isDN=True, _visitedGroups=_visitedGroups)
+        if group.has_key('member'):
+            for m in group['member']:
+                members += self.get_all_members_of_group(m, _isDN=True, _visitedGroups=_visitedGroups)
         return members
 
     def get_groups_for_user(self, username, _isDN=False, _visitedGroups=[]):

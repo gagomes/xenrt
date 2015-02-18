@@ -3074,13 +3074,11 @@ class LinuxGPUBootstorm(BootstormBase):
         remainingCapacity = self.host.remainingGpuCapacity(installer.groupUUID(), installer.typeUUID())
         xenrt.TEC().logverbose("Remaining Capacity is: %s" % remainingCapacity)
 
-        # Clone the master to fill up the rest of the host.
-        """
+        self.vms.append(vm)
+        
         for i in range(remainingCapacity):
-            # Clone.
-            pass
-        """
-
+            g = vm.cloneVM()
+            self.vms.append(g)
 
 class MixedGPUBootstorm(BootstormBase):
     

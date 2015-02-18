@@ -238,14 +238,12 @@ class UsingXapi(DockerController):
         else:
             containerState = inspectXML['State']
 
-            if containerState['Running'] == "True":
+            if containerState['Paused'] == "False" and containerState['Running'] == "True":
                 return ContainerState.RUNNING
-            elif containerState['Paused'] == "True":
+            elif containerState['Paused'] == "True" and containerState['Running'] == "False":
                 return ContainerState.PAUSED
             elif containerState['Paused'] == "False" and containerState['Running'] == "False":
                 return ContainerState.STOPPED
-            elif containerState['Restarting'] == "True":
-                return ContainerState.RESTARTED
             else:
                 return ContainerState.UNKNOWN
 
@@ -283,7 +281,10 @@ class Docker(object):
         self.containers.append(self.DockerController.createContainer(container))
 
     def rmContainer(self, container):
-        self.containers.remove(self.DockerController.rmContainer(container))
+        containerID = self.DockerController.rmContainer(container)
+        # receive the container ID: 5fbb53340080 from docker. Populate this ISD in container.
+        # check and delete.
+        self.containers.remove(container)
 
     # Container lifecycle operations.
 
@@ -334,7 +335,7 @@ class Docker(object):
             xenrt.sleep(10)
             self.pauseContainer(container)
             xenrt.sleep(10)
-            self.unpauseContainer(container)
+            #self.unpauseContainer(container) - there is a issue.
             xenrt.sleep(10)
 
     def startAllContainer(self):

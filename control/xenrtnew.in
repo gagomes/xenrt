@@ -6,7 +6,7 @@
 # James Bulpin, November-December 2005
 
 import sys, string, getopt, urllib, os, pwd, tempfile, xmlrpclib, shutil, json
-import os.path, re, glob, random, time, datetime
+import os.path, re, glob, random, time, datetime, getpass
 import xenrtapi
 
 PROFILER_ENABLED = ("XENRT_PROFILE" in os.environ)
@@ -33,6 +33,7 @@ _console = "@console@"
 _conserver = "@conserver@"
 _jenkins = "@jenkins@"
 _conskey = """@conskey@"""
+_authrealm = """@authrealm@"""
 
 class XenRTCommand:
 
@@ -51,19 +52,30 @@ class XenRTCommand:
         self.proxies = None
 
     def getAPIKey(self):
-        if os.getenv("XENRT_APIKEY"):
-            return os.getenv("XENRT_APIKEY")
-        else:
-            path = "%s/.xenrtrc" % os.path.expanduser("~")
-            if not os.path.exists(path):
-                return None
-            with open(path) as f:
-                for l in f.readlines():
-                    ll = l.strip().split("=", 1)
-                    if len(ll) != 2:
-                        continue
-                    if ll[0] == "apikey":
-                        return ll[1]
+        path = "%s/.xenrtrc" % os.path.expanduser("~")
+        if not os.path.exists(path):
+            return None
+        with open(path) as f:
+            for l in f.readlines():
+                ll = l.strip().split("=", 1)
+                if len(ll) != 2:
+                    continue
+                if ll[0].strip() == "apikey":
+                    return ll[1].strip()
+
+    def retrieveAPIKeyFromServer(self):
+        global _authrealm
+        defaultuser = getpass.getuser()
+        user = raw_input("Enter your %s username [%s]: " % (_authrealm, defaultuser))
+        if not user.strip():
+            user = defaultuser
+        password = getpass.getpass()
+        xrt = xenrtapi.XenRT(user=user, password=password)
+        apikey = xrt.get_apikey()['key']
+        path = "%s/.xenrtrc" % os.path.expanduser("~")
+        print "Writing %s as API key in ~/.xenrtrc" % apikey
+        with open(path, "w") as f:
+            f.write("apikey = %s" % apikey)
 
     def getServerURL(self):
         return server_url
@@ -73,6 +85,10 @@ class XenRTCommand:
         return logserver_url % logserver
 
     def dispatch(self, args, raw=0):
+        apikey = self.getAPIKey()
+        if not apikey:
+            self.retrieveAPIKeyFromServer()
+            apikey = self.getAPIKey()
         self.xenrt = xenrtapi.XenRT(apikey=self.getAPIKey())
 
         if len(args) > 0 and args[0] in ("--help", "-h"):
@@ -829,7 +845,7 @@ class XenRTMList2(XenRTCommand):
 
         jobids = [x['jobid'] for x in machines.values() if x['status'] == "running"]
 
-        jobs = self.xenrt.get_jobs(jobid=jobids, params=True)
+        jobs = self.xenrt.get_jobs(jobid=jobids, params=True, limit=0)
 
         if show:
             chead = show
@@ -858,6 +874,7 @@ class XenRTMList2(XenRTCommand):
                     status = "%d" % machines[m]['jobid']
                 elif status == "slaved":
                     status = "(%d)" % machines[m]['jobid']
+
                 if show == "Resources":
                     comment = "/".join(machines[m]['resources'])
                 elif show == "Properties":
@@ -884,7 +901,7 @@ class XenRTMList2(XenRTCommand):
                         else:
                             userstr = machines[m]['leaseuser']
                         comment = "%s (%s)" % (dt, userstr)
-                    elif machines[m]['status'] == "running":
+                    elif machines[m]['status'] == "running" and str(machines[m]['jobid']) in jobs:
                         job = jobs[str(machines[m]['jobid'])]
                         comment = "%s - %s" % (job["description"], job['user'])
                     else:

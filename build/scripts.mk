@@ -11,6 +11,7 @@ JENKINS ?= http://xenrt.hq.xensource.com:8080
 WSGIWORKERS ?= 16
 WSGITHREADS ?= 1
 CURRENT_DIR ?= $(shell pwd)
+AUTH_REALM ?= citrite
 
 include build/config.mk
 include build/tools.mk
@@ -284,6 +285,7 @@ $(SCRIPTS): $(addsuffix .in,$(SCRIPTS))
 	sed -i 's#@confdir@#$(CONFDIR)#g' $@
 	sed -i 's#@vardir@#$(VARDIR)#g' $@
 	sed -i 's#@webcontrdir@#$(WEB_CONTROL_PATH)#g' $@
+	sed -i 's#@authrealm@#$(AUTH_REALM)#g' $@
 	sed -i 's#@jenkins@#$(JENKINS)#g' $@
 	@-grep "@conskey@" $@ && sed -i 's#@conskey@#$(CONSKEY)#g' $@
 	sed -i 's#@wsgiworkers@#$(WSGIWORKERS)#g' $@

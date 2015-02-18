@@ -431,9 +431,13 @@ EOF
             self.execdom0("service cgconfig stop")
             self.execdom0("service cgconfig start")
 
-        # Set up /etc/cloudstack/agent/agent.properties
-        self.execdom0("echo 'public.network.device=cloudbr0' >> /etc/cloudstack/agent/agent.properties")
-        self.execdom0("echo 'private.network.device=cloudbr0' >> /etc/cloudstack/agent/agent.properties")
+        try:
+            # Set up /etc/cloudstack/agent/agent.properties
+            self.execdom0("echo 'public.network.device=cloudbr0' >> /etc/cloudstack/agent/agent.properties")
+            self.execdom0("echo 'private.network.device=cloudbr0' >> /etc/cloudstack/agent/agent.properties")
+        except:
+            self.execdom0("echo 'public.network.device=cloudbr0' >> /etc/cloud/agent/agent.properties", level=xenrt.RC_OK)
+            self.execdom0("echo 'private.network.device=cloudbr0' >> /etc/cloud/agent/agent.properties", level=xenrt.RC_OK)
 
         # Log the commit
         commit = None

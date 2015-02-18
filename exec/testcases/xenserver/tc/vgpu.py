@@ -3082,7 +3082,7 @@ class MixedGPUBootstorm(BootstormBase):
     
     def prepare(self, arglist=[]):
 
-        super(LinuxGPUBootstorm, self).prepare(arglist)
+        super(MixedGPUBootstorm, self).prepare(arglist)
         
 class TestingBootstorm(BootstormBase):
 

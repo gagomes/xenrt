@@ -112,7 +112,7 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
 
                     if cluster['hypervisor'].lower() == "xenserver":
                         if cluster.has_key('XRT_MasterHostId'):
-                            cluster['XRT_MasterHostName'] = "RESORUCE_HOST_%d" % cluster['XRT_MasterHostId']
+                            cluster['XRT_MasterHostName'] = "RESOURCE_HOST_%d" % cluster['XRT_MasterHostId']
                         if not cluster.has_key('XRT_MasterHostName'):
                             if cluster.has_key('XRT_ContainerHostId'):
                                 cluster['XRT_ContainerHostIds'] = [cluster['XRT_ContainerHostId']] * cluster['XRT_Hosts']

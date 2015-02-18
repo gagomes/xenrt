@@ -32,6 +32,7 @@ class _MachineBase(XenRTAPIv2Page):
                     users=[],
                     machines=[],
                     flags=[],
+                    aclids=[],
                     limit=None,
                     offset=0,
                     pseudoHosts=False,
@@ -59,6 +60,10 @@ class _MachineBase(XenRTAPIv2Page):
         if machines:
             conditions.append(self.generateInCondition("m.machine", machines))
             params.extend(machines)
+ 
+        if aclids:
+            conditions.append(self.generateInCondition("m.aclid", aclids))
+            params.extend(aclids)
 
         if status:
             statuscond = []
@@ -80,7 +85,7 @@ class _MachineBase(XenRTAPIv2Page):
             conditions.append("m.machine != ('_' || s.site)")
 
 
-        query = "SELECT m.machine, m.site, m.cluster, m.pool, m.status, m.resources, m.flags, m.comment, m.leaseto, m.leasereason, m.leasefrom, m.leasepolicy, s.flags, m.jobid, m.descr FROM tblmachines m INNER JOIN tblsites s ON m.site=s.site"
+        query = "SELECT m.machine, m.site, m.cluster, m.pool, m.status, m.resources, m.flags, m.comment, m.leaseto, m.leasereason, m.leasefrom, m.leasepolicy, s.flags, m.jobid, m.descr, m.aclid FROM tblmachines m INNER JOIN tblsites s ON m.site=s.site"
         if conditions:
             query += " WHERE %s" % " AND ".join(conditions)
 
@@ -109,6 +114,7 @@ class _MachineBase(XenRTAPIv2Page):
                 "leasepolicy": rc[11],
                 "jobid": rc[13],
                 "broken": rc[3].strip().endswith("x"),
+                "aclid": rc[15],
                 "params": {}
             }
 
@@ -169,7 +175,7 @@ class _MachineBase(XenRTAPIv2Page):
             raise XenRTAPIError(HTTPForbidden, "Can't update this field")
         if key.lower() in ("status", "jobid") and not allowReservedField:
             raise XenRTAPIError(HTTPForbidden, "Can't update this field")
-        if key.lower() in ("site", "cluster", "pool", "status", "resources", "flags", "descr", "jobid", "leasepolicy"):
+        if key.lower() in ("site", "cluster", "pool", "status", "resources", "flags", "descr", "jobid", "leasepolicy", "aclid"):
             cur = db.cursor()
             try:
                 cur.execute("UPDATE tblmachines SET %s=%%s WHERE machine=%%s;" % (key.lower()), (value, machine))
@@ -334,6 +340,13 @@ class ListMachines(_MachineBase):
           'name': 'flag',
           'required': False,
           'type': 'array'},
+         {'collectionFormat': 'multi',
+          'description': 'Filter on an ACL id - can specify multiple',
+          'in': 'query',
+          'items': {'type': 'integer'},
+          'name': 'aclid',
+          'required': False,
+          'type': 'array'},
          {'description': 'Limit the number of results. Defaults to unlimited',
           'in': 'query',
           'name': 'limit',
@@ -363,6 +376,7 @@ class ListMachines(_MachineBase):
                                 users = self.getMultiParam("user"),
                                 machines = self.getMultiParam("machine"),
                                 flags = self.getMultiParam("flags"),
+                                aclids = self.getMultiParam("aclid"),
                                 pseudoHosts = self.request.params.get("pseudohosts") == "true",
                                 limit=int(self.request.params.get("limit", 0)),
                                 offset=int(self.request.params.get("offset", 0)))

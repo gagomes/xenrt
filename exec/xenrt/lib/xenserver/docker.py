@@ -278,12 +278,12 @@ class Docker(object):
 
     def createContainer(self, ctype, cname="random"):
         if cname.startswith("random"):
-            cname = "%s_%08x" % (ctype, (random.randint(0, 0x7fffffff)))
+            cname = "%s%08x" % (ctype, (random.randint(0, 0x7fffffff)))
         container = Container(ctype, cname)
         self.containers.append(self.DockerController.createContainer(container))
 
     def rmContainer(self, container):
-        self.containers.pop(self.DockerController.rmContainer(container))
+        self.containers.remove(self.DockerController.rmContainer(container))
 
     # Container lifecycle operations.
 
@@ -321,15 +321,21 @@ class Docker(object):
         return self.DockerController.getDockerOtherConfig()
 
     # Useful functions.
+    def getContainer(self, cname):pass
+        # returns a container object.
 
     def listContainers(self):
         return self.containers
 
     def lifeCycleContainers(self, container):
             self.stopContainer(container)
+            xenrt.sleep(10)
             self.startContainer(container)
+            xenrt.sleep(10)
             self.pauseContainer(container)
+            xenrt.sleep(10)
             self.unpauseContainer(container)
+            xenrt.sleep(10)
 
     def startAllContainer(self):
          for c in self.containers:

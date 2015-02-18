@@ -75,7 +75,7 @@ class _AclBase(XenRTAPIv2Page):
                     "maxleasehours": rc[7]
                 }
                 entries[rc[0]] = entry
-            acl['entries'] = entries
+            ret[a]['entries'] = entries
 
         if limit:
             aclsToReturn = sorted(ret.keys())[offset:offset+limit]
@@ -85,6 +85,18 @@ class _AclBase(XenRTAPIv2Page):
                     del ret[m]
 
         return ret
+
+    def newAcl(self, name, parent, owner):
+        db = self.getDB()
+        cur = db.cursor()
+        if parent:
+            cur.execute("INSERT INTO tblacls (parent, owner, name) VALUES (%s, %s, %s) RETURNING aclid", [parent, owner, name])
+        else:
+            cur.execute("INSERT INTO tblacls (owner, name) VALUES (%s, %s) RETURNING aclid", [owner, name])
+        rc = cur.fetchone()
+        aclid = rc[0]
+        db.commit()
+        return self.getAcls(limit=1, ids=[aclid], exceptionIfEmpty=True)
 
 
 class ListAcls(_AclBase):
@@ -154,5 +166,49 @@ class GetAcl(_AclBase):
         acls = self.getAcls(limit=1, ids=[aclid], exceptionIfEmpty=True)
         return acls[aclid]
 
+class NewAcl(_AclBase):
+    WRITE = True
+    PATH = "/acls"
+    REQTYPE = "POST"
+    SUMMARY = "Submits a new ACL"
+    TAGS = ["acls"]
+    PARAMS = [
+        {'name': 'body',
+         'in': 'body',
+         'required': True,
+         'description': 'Details of the ACL required',
+         'schema': { "$ref": "#/definitions/newacl" }
+        }
+    ]
+    DEFINITIONS = {"newacl": {
+        "title": "New ACL",
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+            "name": {
+                "type": "string",
+                "description": "Name for new ACL"
+            },
+            "parent": {
+                "type": "integer",
+                "description": "ID of any parent ACL"
+            }
+        }
+    }}
+    RESPONSES = { "200": {"description": "Successful response"}}
+    OPERATION_ID = "new_acl"
+    PARAM_ORDER=["name", "parent"]
+
+    def render(self):
+        try:
+            j = json.loads(self.request.body)
+            jsonschema.validate(j, self.DEFINITIONS['newacl'])
+        except Exception, e:
+            raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
+        return self.newAcl(name=j.get("name"),
+                           parent=j.get("parent"),
+                           owner=self.getUser())
+
 RegisterAPI(ListAcls)
 RegisterAPI(GetAcl)
+RegisterAPI(NewAcl)

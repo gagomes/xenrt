@@ -66,7 +66,7 @@
       </testcase>
 
       <!-- Test SR plug-unplug -->
-      <testcase id="testcases.xenserver.tc.readcaching.TCRCForSRPlug" tc="TC-23927" name=="TC-23927i">
+      <testcase id="testcases.xenserver.tc.readcaching.TCRCForSRPlug" tc="TC-23927" name="TC-23927i">
         <arg>bothChecks=yes</arg>
         <arg>vm=sly</arg>
       </testcase>

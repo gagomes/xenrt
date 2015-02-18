@@ -13,6 +13,7 @@ import socket, re, string, time, traceback, sys, random, copy, os, os.path, urll
 
 import xenrt, xenrt.lib.xenserver, XenAPI
 import xml.dom.minidom
+from xml.dom.minidom import parseString
 import urllib2
 import datetime, random
 from xenrt.lazylog import log, warning

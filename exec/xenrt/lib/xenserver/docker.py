@@ -9,18 +9,13 @@
 import xenrt, string, random
 import xmltodict
 
-__all__ = ["ContainerCreateMethod",
-            "ContainerState", "ContainerOperations", "ContainerNames",
-            "UsingXapi", "UsingLinux",
-            "CoreOSDocker", "RHELDocker", "UbuntuDocker"]
+__all__ = ["ContainerState", "ContainerOperation", "ContainerType",
+           "UsingXapi", "UsingLinux",
+           "CoreOSDocker", "RHELDocker", "UbuntuDocker"]
 
 """
 Factory class for docker container.
 """
-
-class ContainerCreateMethod:
-    coreOS="CoreOS"
-    viaXapi="ViaXapi"
 
 class ContainerState:
     RUNNING  = "RUNNING"
@@ -30,7 +25,7 @@ class ContainerState:
     RESTARTED = "RESTARTED"
     UNKNOWN = "UNKNOWN"
 
-class ContainerOperations:
+class ContainerOperation:
     START  = "start"
     STOP  = "stop"
     RESTART = "restarted"
@@ -42,7 +37,7 @@ class ContainerOperations:
     CREATE = "create"
     REMOVE = "remove"
 
-class ContainerNames:
+class ContainerType:
     BUSYBOX = "busybox"
     MYSQL = "mysql"
     TOMCAT = "tomcat"
@@ -72,13 +67,13 @@ class DockerController(object):
 
     def containerSelection(self, container):
 
-        if container.ctype == ContainerNames.BUSYBOX:
+        if container.ctype == ContainerType.BUSYBOX:
             xenrt.TEC().logverbose("Create BusyBox Container using Xapi")
             return "'docker run -d --name " + container.cname + " busybox /bin/sh -c \"while true; do echo Hello World; sleep 1; done\"'"
-        elif container.ctype == ContainerNames.MYSQL:
+        elif container.ctype == ContainerType.MYSQL:
             xenrt.TEC().logverbose("Create MySQL Container using Xapi")
             return "'docker run -d --name " + container.cname + " -e MYSQL_ROOT_PASSWORD=mysecretpassword mysql'"
-        elif container.ctype == ContainerNames.TOMCAT:
+        elif container.ctype == ContainerType.TOMCAT:
             xenrt.TEC().logverbose("Create Tomcat Container using Xapi")
             return "'docker run -d --name " + container.cname + " -p 8080:8080 -it tomcat'"
         else:
@@ -109,13 +104,13 @@ class DockerController(object):
 # Concrete Implementor
 class UsingXapi(DockerController):
 
-    def containerXapiLCOperations(self, operation, container):
+    def containerXapiLCOperation(self, operation, container):
 
         args = []
         args.append("plugin=xscontainer")
         args.append("fn=%s" % operation)
         args.append("args:vmuuid=%s" % self.guest.getUUID())
-        if operation not in [ContainerOperations.INSPECT, ContainerOperations.GETTOP]:
+        if operation not in [ContainerOperation.INSPECT, ContainerOperation.GETTOP]:
             args.append("args:container=%s" % container.cname)
         else:
             args.append("args:object=%s" % container.cname)
@@ -124,7 +119,7 @@ class UsingXapi(DockerController):
         result = cli.execute("host-call-plugin", "%s host-uuid=%s" %
                                 (string.join(args), self.host.getMyHostUUID()))
 
-        #xenrt.TEC().logverbose("containerXapiLCOperations - Result: %s" % result)
+        #xenrt.TEC().logverbose("containerXapiLCOperation - Result: %s" % result)
 
         if result[:4] == "True" and result[4:] == None: # True and None -> Failure.
                                                         # True with some docker uuid's is a success.
@@ -134,11 +129,11 @@ class UsingXapi(DockerController):
             return result[4:] # stop , start, pause, unpause, retruns empty string.
                               # inspect and gettop leaves an xml.
 
-    def createAndRemoveContainer(self, container, operation=ContainerOperations.CREATE):
+    def createAndRemoveContainer(self, container, operation=ContainerOperation.CREATE):
 
-        if operation == ContainerOperations.CREATE:
+        if operation == ContainerOperation.CREATE:
             dockerCmd = self.containerSelection(container)
-        elif operation == ContainerOperations.REMOVE:
+        elif operation == ContainerOperation.REMOVE:
             dockerCmd ="\"docker ps -a -f name=\'" + container.cname + "\' | tail -n +2 | awk \'{print \$1}\' | xargs docker rm\""
         else:
             raise xenrt.XRTFailure("XSContainer:%s operation is not recognised" % operation)
@@ -170,32 +165,32 @@ class UsingXapi(DockerController):
     def rmContainer(self, container):
 
         if self.statusContainer(container) == ContainerState.STOPPED:
-            self.createAndRemoveContainer(container, ContainerOperations.REMOVE)
+            self.createAndRemoveContainer(container, ContainerOperation.REMOVE)
         else:
             raise xenrt.XRTError("removeContainer: Please stop the container %s before removing it" % container.cname)
 
     # Container lifecycle operations.
     def startContainer(self, container):
         if self.statusContainer(container) == ContainerState.STOPPED:
-            self.containerXapiLCOperations(ContainerOperations.START, container)
+            self.containerXapiLCOperation(ContainerOperation.START, container)
         else:
             raise xenrt.XRTError("startContainer: Container %s can be started if stopped" % container.cname)
 
     def stopContainer(self, container):
         if self.statusContainer(container) == ContainerState.RUNNING:
-            self.containerXapiLCOperations(ContainerOperations.STOP, container)
+            self.containerXapiLCOperation(ContainerOperation.STOP, container)
         else:
             raise xenrt.XRTError("stopContainer: Container %s can be stopped if running" % container.cname)
 
     def pauseContainer(self, container):
         if self.statusContainer(container) == ContainerState.RUNNING:
-            self.containerXapiLCOperations(ContainerOperations.PAUSE, container)
+            self.containerXapiLCOperation(ContainerOperation.PAUSE, container)
         else:
             raise xenrt.XRTError("pauseContainer: Container %s can be paused if running" % container.cname)
 
     def unpauseContainer(self, container):
         if self.statusContainer(container) == ContainerState.PAUSED:
-            self.containerXapiLCOperations(ContainerOperations.UNPAUSE, container)
+            self.containerXapiLCOperation(ContainerOperation.UNPAUSE, container)
         else:
             raise xenrt.XRTError("pauseContainer: Container %s can be unpaused if paused" % container.cname)
 
@@ -210,7 +205,7 @@ class UsingXapi(DockerController):
                                                                         (self.host.getMyHostUUID(), self.guest.getUUID()))
 
     def inspectContainer(self, container):
-        dockerInspectXML = self.containerXapiLCOperations(ContainerOperations.INSPECT, container)
+        dockerInspectXML = self.containerXapiLCOperation(ContainerOperation.INSPECT, container)
 
         dockerInspectDict = xmltodict.parse(dockerInspectXML)
 
@@ -220,7 +215,7 @@ class UsingXapi(DockerController):
             return dockerInspectDict['docker_inspect']# has keys State, NetworkSettings, Config etc.
 
     def gettopContainer(self, container):
-        dockerGetTopXML = self.containerXapiLCOperations(ContainerOperations.GETTOP, container)
+        dockerGetTopXML = self.containerXapiLCOperation(ContainerOperation.GETTOP, container)
 
         dockerGetTopDict = xmltodict.parse(dockerGetTopXML)
 
@@ -274,7 +269,7 @@ class Docker(object):
 
     def install(self): pass
 
-    def createContainer(self, ctype=ContainerNames.BUSYBOX, cname="random"):
+    def createContainer(self, ctype=ContainerType.BUSYBOX, cname="random"):
         if cname.startswith("random"):
             cname = "%s%08x" % (ctype, (random.randint(0, 0x7fffffff)))
         container = Container(ctype, cname)

@@ -37,9 +37,9 @@ class TCSanityTest(xenrt.TestCase):
     def run(self, arglist=None):
 
         # Create a container of choice.
-        self.docker.createContainer(ContainerNames.BUSYBOX) # with default container type and name.
-        self.docker.createContainer(ContainerNames.MYSQL)
-        self.docker.createContainer(ContainerNames.TOMCAT)
+        self.docker.createContainer(ContainerType.BUSYBOX) # with default container type and name.
+        self.docker.createContainer(ContainerType.MYSQL)
+        self.docker.createContainer(ContainerType.TOMCAT)
 
         # Lifecycle tests on all containers.
         self.docker.lifeCycleAllContainers()

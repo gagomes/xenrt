@@ -13,7 +13,7 @@
       <testcase id="testcases.xenserver.tc.vgpu.TCBasicVerifOfAllK2config">
         <arg>distro=14,10,11,12,13</arg>
         <arg>typeofvgpu=nvidialinuxvgpu</arg>
-        <arg>vgpuconfig=11</arg>
+        <arg>vgpuconfig=5</arg>
       </testcase>
 
       <testcase id="testcases.xenserver.tc.vgpu.TCRevertvGPUSnapshot">

@@ -38,7 +38,7 @@ class TCSanityTest(xenrt.TestCase):
     def run(self, arglist=None):
 
         # Create a container of choice.
-        self.docker.createContainer(ContainerNames.BUSYBOX) # with default container name.
+        self.docker.createContainer(ContainerNames.BUSYBOX) # with default container type and name.
 
         # Lifecycle tests.
         for container in self.docker.containers:

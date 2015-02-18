@@ -240,7 +240,7 @@ class UsingXapi(DockerController):
 
             if containerState['Paused'] == "False" and containerState['Running'] == "True":
                 return ContainerState.RUNNING
-            elif containerState['Paused'] == "True" and containerState['Running'] == "False":
+            elif containerState['Paused'] == "True" and containerState['Running'] == "True":
                 return ContainerState.PAUSED
             elif containerState['Paused'] == "False" and containerState['Running'] == "False":
                 return ContainerState.STOPPED
@@ -274,7 +274,7 @@ class Docker(object):
 
     def install(self): pass
 
-    def createContainer(self, ctype, cname="random"):
+    def createContainer(self, ctype=ContainerNames.BUSYBOX, cname="random"):
         if cname.startswith("random"):
             cname = "%s%08x" % (ctype, (random.randint(0, 0x7fffffff)))
         container = Container(ctype, cname)
@@ -330,13 +330,13 @@ class Docker(object):
 
     def lifeCycleContainers(self, container):
             self.stopContainer(container)
-            xenrt.sleep(10)
+            xenrt.sleep(15)
             self.startContainer(container)
-            xenrt.sleep(10)
+            xenrt.sleep(15)
             self.pauseContainer(container)
-            xenrt.sleep(10)
-            #self.unpauseContainer(container) - there is a issue.
-            xenrt.sleep(10)
+            xenrt.sleep(15)
+            self.unpauseContainer(container)
+            xenrt.sleep(15)
 
     def startAllContainer(self):
          for c in self.containers:

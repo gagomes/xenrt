@@ -136,17 +136,18 @@ class ListAcls(_AclBase):
                             offset=int(self.request.params.get("offset", 0)))
 
 class GetAcl(_AclBase):
-    PATH = "/acls/{id}"
+    PATH = "/acl/{id}"
     REQTYPE = "GET"
     SUMMARY = "Gets a specific ACL"
     TAGS = ["acls"]
     PARAMS = [
-        {'id': 'id',
+        {'name': 'id',
          'in': 'path',
          'required': True,
          'description': 'ACL id to fetch',
          'type': 'integer'}]
-    RESPONSES = { "200": {"description": "Successful response"}}
+    RESPONSES = { "200": {"description": "Successful response"},
+                  "404": {"description": "ACL not found"}}
 
     def render(self):
         aclid = self.getIntFromMatchdict("id")

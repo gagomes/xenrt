@@ -350,7 +350,7 @@ class VGPUTest(xenrt.TestCase, object):
             raise xenrt.XRTFailure("vGPU not running in VM %s: %s" % (vm.getName(),vm.getUUID()))
 
     def assertvGPUNotRunningInLinuxVM(self, vm, vGPUType, card):
-        if self.isGPUBeingUtilized(card):
+        if vm.isGPUBeingUtilized(card):
             raise xenrt.XRTFailure("vGPU running when not expected in VM %s: %s" % (vm.getName(),vm.getUUID()))
 
     def runWindowsWorkload(self,vm):

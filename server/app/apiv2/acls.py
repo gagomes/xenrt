@@ -7,6 +7,45 @@ import time
 import jsonschema
 
 class _AclBase(XenRTAPIv2Page):
+    _ACLENTRIES = {
+        "title": "ACL entry",
+        "type": "object",
+        "required": ["prio", "type", "userid"],
+        "properties": {
+            "prio": {
+                "type": "integer",
+                "description": "ACL entry priority"
+            },
+            "type": {
+                "type": "string",
+                "description": "user or group"
+            },
+            "userid": {
+                "type": "string",
+                "description": "username or group CN"
+            },
+            "grouplimit": {
+                "type": "integer",
+                "description": "Absolute number of machines group can use"
+            },
+            "grouppercent": {
+                "type": "integer",
+                "description": "Percentage of machines group can use"
+            },
+            "userlimit": {
+                "type": "integer",
+                "description": "Absolute number of machines user can use"
+            },
+            "userpercent": {
+                "type": "integer",
+                "description": "Percentage of machines user can use"
+            },
+            "maxleasehours": {
+                "type": "integer",
+                "description": "Number of hours machine can be leased by this user/group"
+            }
+        }
+    }
 
     def getAcls(self,
                 owners=[],
@@ -60,12 +99,13 @@ class _AclBase(XenRTAPIv2Page):
             # Get the ACL entries
             query = "SELECT ae.prio, ae.type, ae.userid, ae.grouplimit, ae.grouppercent, ae.userlimit, ae.userpercent, ae.maxleasehours FROM tblaclentries ae WHERE ae.aclid=%s ORDER BY ae.prio"
             cur.execute(query, [a])
-            entries = {}
+            entries = []
             while True:
                 rc = cur.fetchone()
                 if not rc:
                     break
                 entry = {
+                    "prio": rc[0],
                     "type": rc[1].strip(),
                     "userid": rc[2].strip(),
                     "grouplimit": rc[3],
@@ -74,7 +114,7 @@ class _AclBase(XenRTAPIv2Page):
                     "userpercent": rc[6],
                     "maxleasehours": rc[7]
                 }
-                entries[rc[0]] = entry
+                entries.append(entry)
             ret[a]['entries'] = entries
 
         if limit:
@@ -86,7 +126,7 @@ class _AclBase(XenRTAPIv2Page):
 
         return ret
 
-    def newAcl(self, name, parent, owner):
+    def newAcl(self, name, parent, owner, entries):
         db = self.getDB()
         cur = db.cursor()
         if parent:
@@ -95,13 +135,43 @@ class _AclBase(XenRTAPIv2Page):
             cur.execute("INSERT INTO tblacls (owner, name) VALUES (%s, %s) RETURNING aclid", [owner, name])
         rc = cur.fetchone()
         aclid = rc[0]
+
+        for e in entries:
+            self._insertAclEntry(cur, aclid, e)
+
         db.commit()
         return self.getAcls(limit=1, ids=[aclid], exceptionIfEmpty=True)
 
-    def updateAcl(self, aclid, name, parent):
+    def _insertAclEntry(self, cur, aclid, entry):
+        fields = ["aclid", "prio", "type", "userid"]
+        # TODO: Validate userid
+        values = [aclid, entry['prio'], entry['type'], entry['userid']]
+        for f in ['grouplimit', 'grouppercent', 'userlimit', 'userpercent', 'maxleasehours']:
+            if entry.has_key(f) and entry[f]:
+                fields.append(f)
+                values.append(entry[f])
+
+        cur.execute("INSERT INTO tblaclentries (%s) VALUES (%s)" % (",".join(fields), ",".join(["%s" for i in range(len(values))])), values)
+
+    def updateAcl(self, aclid, name, parent, entries):
         db = self.getDB()
         cur = db.cursor()
-        cur.execute("UPDATE tblacls SET name=%s, parent=%s WHERE aclid=%s", [name, parent, aclid])
+        sqlset = {}
+        if name:
+            sqlset['name'] = name
+        if parent:
+            sqlset['parent'] = parent
+        if sqlset:
+            sql = ",".join(map(lambda s: "%s=%%s" % s, sqlset.keys()))
+            values = sqlset.values()
+            values.append(aclid)
+            cur.execute("UPDATE tblacls SET %s WHERE aclid=%%s" % sql, values)
+
+        if entries:
+            cur.execute("DELETE FROM tblaclentries WHERE aclid=%s", [aclid])
+            for e in entries:
+                self._insertAclEntry(cur, aclid, e)
+
         db.commit()
         return self.getAcls(limit=1, ids=[aclid], exceptionIfEmpty=True)
 
@@ -114,6 +184,7 @@ class _AclBase(XenRTAPIv2Page):
         count = rc[0]
         if count > 0:
             raise XenRTAPIError(HTTPPreconditionFailed, "ACL in use by %d machines" % count)
+        cur.execute("DELETE FROM tblaclentries WHERE aclid=%s", [aclid])
         cur.execute("DELETE FROM tblacls WHERE aclid=%s", [aclid])
         db.commit()
 
@@ -215,7 +286,7 @@ class NewAcl(_AclBase):
     DEFINITIONS = {"newacl": {
         "title": "New ACL",
         "type": "object",
-        "required": ["name"],
+        "required": ["name", "entries"],
         "properties": {
             "name": {
                 "type": "string",
@@ -224,9 +295,18 @@ class NewAcl(_AclBase):
             "parent": {
                 "type": "integer",
                 "description": "ID of any parent ACL"
+            },
+            "entries": {
+                "type": "array",
+                "items": {
+                    "$ref": "#/definitions/aclentries"
+                }
             }
+        },
+        "definitions": {
+            "aclentries": _AclBase._ACLENTRIES
         }
-    }}
+    }, "aclentries": _AclBase._ACLENTRIES }
     RESPONSES = { "200": {"description": "Successful response"}}
     OPERATION_ID = "new_acl"
     PARAM_ORDER=["name", "parent"]
@@ -239,7 +319,8 @@ class NewAcl(_AclBase):
             raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
         return self.newAcl(name=j.get("name"),
                            parent=j.get("parent"),
-                           owner=self.getUser())
+                           owner=self.getUser(),
+                           entries=j.get("entries"))
 
 class UpdateAcl(_AclBase):
     WRITE = True
@@ -271,9 +352,18 @@ class UpdateAcl(_AclBase):
             "parent": {
                 "type": "integer",
                 "description": "ID of any parent ACL"
+            },
+            "entries": {
+                "type": "array",
+                "items": {
+                    "$ref": "#/definitions/aclentries"
+                }
             }
+        },
+        "definitions": {
+            "aclentries": _AclBase._ACLENTRIES
         }
-    }}
+    }, "aclentries": _AclBase._ACLENTRIES }
     RESPONSES = { "200": {"description": "Successful response"},
                   "404": {"description": "ACL not found"},
                   "403": {"description": "No permission to update the specified ACL"}}
@@ -288,7 +378,7 @@ class UpdateAcl(_AclBase):
             jsonschema.validate(j, self.DEFINITIONS['updateacl'])
         except Exception, e:
             raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
-        return self.updateAcl(aclid, name=j.get("name"), parent=j.get("parent"))
+        return self.updateAcl(aclid, name=j.get("name"), parent=j.get("parent"), entries=j.get("entries"))
 
 class RemoveAcl(_AclBase):
     WRITE = True

@@ -2248,25 +2248,24 @@ fi
 
     def installHostSupPacks(self, isoPath, isoName, reboot=True):
 
-        #need to check if we can download ISO from URL otherwise from DISTFILES path
-        getItFromDist = True
-
         #Download ISO file form DISTFILES path
-        if getItFromDist:
-            hostISOURL = "%s/%s" %(isoPath, isoName)
-            hostISO = xenrt.TEC().getFile(hostISOURL)
-            try:
-                xenrt.checkFileExists(hostISO)
-            except:
-                raise xenrt.XRTError("Host Suppack ISO not found")
+        hostISOURL = "%s/%s" %(isoPath, isoName)
+        hostISO = xenrt.TEC().getFile(hostISOURL)
+        try:
+            xenrt.checkFileExists(hostISO)
+        except:
+            raise xenrt.XRTError("Host Suppack ISO not found")
+        if not hostISO: 
+            raise xenrt.XRTError("Failed to fetch host supppack ISO.")
 
-            hostPath = "/tmp/%s" % (isoName)
+        hostPath = "/tmp/%s" % (isoName)
 
-            sh = self.sftpClient()
-            try:
-                sh.copyTo(hostISO, hostPath)
-            finally:
-                sh.close()
+        sh = self.sftpClient()
+        try:
+            sh.copyTo(hostISO, hostPath)
+        finally:
+            sh.close()
+
         #Installing suppack
         xenrt.TEC().logverbose("Installing Host Supplemental pack: %s" % isoName)
         self.execdom0("xe-install-supplemental-pack %s" % hostPath)

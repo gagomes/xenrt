@@ -1012,7 +1012,7 @@ class TCinstallNvidiaVgpuHostSupPacks(_VgpuSuppackInstall):
         if isVgpuInstalled:
             xenrt.TEC().logverbose("Nvidia VGPU supplementary pack installed successfully")
         else:
-            xenrt.TEC().logverbose("Nvidia VGPU supplementary pack installation was not successful")
+            raise xenrt.XRTFailure("Nvidia VGPU supplementary pack not installed successfully")
 
 class TCinstallVgpuPacksWithXenServer(_VgpuSuppackInstall):
     def run(self, arglist):
@@ -1023,4 +1023,4 @@ class TCinstallVgpuPacksWithXenServer(_VgpuSuppackInstall):
         if isVgpuInstalled:
             xenrt.TEC().logverbose("Nvidia VGPU supplementary pack installation along with xenserver was successful")
         else:
-            xenrt.TEC().logverbose("Nvidia VGPU supplementary pack installationalong with xenserver was not successful")
+            raise xenrt.XRTFailure("Nvidia VGPU supplementary pack installation along with xenserver was not successful")

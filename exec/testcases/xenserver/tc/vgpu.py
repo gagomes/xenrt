@@ -3065,9 +3065,10 @@ class LinuxGPUBootstorm(BootstormBase):
         installer.createOnGuest(vm)
 
         # Use the object to do smart drivers.
-        self.typeOfvGPU.installNvidiaLinuxDrivers(vm)
+        self.typeOfvGPU.installGuestDrivers(vm)
 
         remainingCapacity = self.host.remainingGpuCapacity(installer.groupUUID(), installer.typeUUID())
+        xenrt.TEC().logverbose("Remaining Capacity is: %s" % remainingCapacity)
 
         # Clone the master to fill up the rest of the host.
         """

@@ -3029,7 +3029,7 @@ class BootstormBase(FunctionalBase):
         
         # Shut down all the vms.
         for vm in self.vms:
-            vm.shutdown()
+            vm.setState("DOWN")
 
         # Start all VMs in parallel.
         pt = [xenrt.PTask(self.bootstormStartVM, vm) for vm in self.vms]
@@ -3067,6 +3067,8 @@ class LinuxGPUBootstorm(BootstormBase):
         vm = self.createMaster(osType)
 
         installer.createOnGuest(vm)
+
+        vm.setState("UP")
 
         # Use the object to do smart drivers.
         self.typeOfvGPU.installGuestDrivers(vm)

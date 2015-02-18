@@ -328,19 +328,21 @@ class Docker(object):
     def listContainers(self):
         return self.containers
 
-    def lifeCycleContainers(self, container):
-            self.stopContainer(container)
-            xenrt.sleep(15)
-            self.startContainer(container)
-            xenrt.sleep(15)
-            self.pauseContainer(container)
-            xenrt.sleep(15)
-            self.unpauseContainer(container)
-            xenrt.sleep(15)
+    def lifeCycleAllContainers(self):
+        """Life Cycle method on all containers"""
+        for container in self.containers:
+            self.lifeCycleContainer(container)
 
-    def startAllContainer(self):
-         for c in self.containers:
-            return self.DockerController.startContainer(c)
+    def lifeCycleContainer(self, container):
+        """Life Cycle method on a specified container"""
+        self.stopContainer(container)
+        xenrt.sleep(15)
+        self.startContainer(container)
+        xenrt.sleep(15)
+        self.pauseContainer(container)
+        xenrt.sleep(15)
+        self.unpauseContainer(container)
+        xenrt.sleep(15)
 
 """
 Refined abstractions

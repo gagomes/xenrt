@@ -6,7 +6,6 @@
 # copyrighted material is governed by and subject to terms and
 # conditions as licensed by Citrix Systems, Inc. All other rights reserved.
 
-#import socket, re, string, time, traceback, sys, random, copy, math
 import xenrt, xenrt.lib.xenserver
 from xenrt.lib.xenserver.docker import *
 
@@ -39,7 +38,8 @@ class TCSanityTest(xenrt.TestCase):
 
         # Create a container of choice.
         self.docker.createContainer(ContainerNames.BUSYBOX) # with default container type and name.
+        self.docker.createContainer(ContainerNames.MYSQL)
+        self.docker.createContainer(ContainerNames.TOMCAT)
 
-        # Lifecycle tests.
-        for container in self.docker.containers:
-            self.docker.lifeCycleContainers(container)
+        # Lifecycle tests on all containers.
+        self.docker.lifeCycleAllContainers()

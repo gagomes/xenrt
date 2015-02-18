@@ -1222,8 +1222,11 @@ class TCTestDriverUpgrade(xenrt.TestCase):
             guest.installDrivers()
         except xenrt.XRTFailure, e:
             if e.reason.startswith("VIF and/or VBD PV device not used") and xenrt.TEC().lookup("WORKAROUND_CA159586", False, boolean=True):
-                # The VM may just need an extra reboot
-                guest.reboot()
+                # The VM may just need an extra reboot or two
+                try:
+                    guest.reboot()
+                except:
+                    guest.reboot()
                 guest.checkPVDevices()
             else:
                 raise

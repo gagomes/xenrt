@@ -782,4 +782,4 @@ class XenRTSchedule(XenRTAPIPage):
         # TODO
         return []
 
-PageFactory(XenRTSchedule, "schedule", "/api/schedule", compatAction="schedule")
+PageFactory(XenRTSchedule, "/api/schedule", compatAction="schedule")

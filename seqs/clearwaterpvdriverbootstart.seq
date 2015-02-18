@@ -1,0 +1,20 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <parallel group="PVDrivers">
+      <testcase id="testcases.xenserver.tc.pvdrivers.TCBootStartDriverUpgrade" tc="TC-23780">
+        <arg>distro=win7sp1-x86</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.pvdrivers.TCBootStartDriverUpgrade" name="TCBootStartDriverUpgradeX64" tc="TC-23781">
+        <arg>distro=win7sp1-x64</arg>
+      </testcase>
+    </parallel>
+  </testsequence>
+</xenrt>

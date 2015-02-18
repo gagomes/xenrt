@@ -13,5 +13,6 @@
     <testcase tc="TC-20681" id="testcases.xenserver.security.TCXSA30" />
     <testcase tc="TC-20679" id="testcases.xenserver.security.TCXSA26" />
     <testcase tc="TC-20683" id="testcases.xenserver.security.TCXSA44" />
+    <testcase tc="TC-23743" id="testcases.xenserver.security.TCXSA87" />
   </testsequence>
 </xenrt>

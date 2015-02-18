@@ -14,7 +14,7 @@
 
 import sys, string, os.path, traceback, time, tempfile, stat, threading, re
 import socket, os, shutil, xml.dom.minidom, thread, glob, inspect, types, urllib2
-import signal, popen2, IPy, urllib
+import signal, popen2, IPy, urllib, json
 from zope.interface import providedBy
 
 def irregularName(obj):
@@ -3295,6 +3295,14 @@ class GlobalExecutionContext:
                 except Exception, ex2:
                     xenrt.TEC().logverbose("Exception getting logs: %s" % str(ex2))
 
+            try:
+                logdir = self.anontec.getLogdir()
+                record = xenrt.GEC().registry.getDeploymentRecord()
+                with open("%s/deployment.json" % logdir, "w") as f:
+                    f.write(json.dumps(record, indent=2))
+                self.dbconnect.jobUpload("%s/deployment.json" % logdir, prefix="deployment.json")
+            except Exception, e:
+                xenrt.TEC().logverbose("Exception getting deployment record: %s" % str(e))
 
             self.results.report(sys.stdout)
             if self.harnesserror:
@@ -3618,7 +3626,7 @@ from xenrt.util import *
 from xenrt.registry import *
 from xenrt.objects import *
 from xenrt.config import *
-from xenrt.sequence import *
+from xenrt.seq import *
 from xenrt.results import *
 from xenrt.formatter import *
 from xenrt.filemanager import *

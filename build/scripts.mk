@@ -33,6 +33,7 @@ NEWDIRS		:= $(addprefix $(SHAREDIR)/,$(NEWDIRS))
 
 REVISION	= $(GIT) --git-dir=$(1)/.git --work-tree=$(1) log -1 --pretty=format:"$(notdir $(1)):%H"
 
+CONSKEY=$(shell cat $(ROOT)/$(INTERNAL)/keys/ssh/id_rsa_cons)
 
 .PHONY: update 
 update: $(XENRT) $(INTERNAL)
@@ -284,11 +285,13 @@ $(SCRIPTS): $(addsuffix .in,$(SCRIPTS))
 	sed -i 's#@vardir@#$(VARDIR)#g' $@
 	sed -i 's#@webcontrdir@#$(WEB_CONTROL_PATH)#g' $@
 	sed -i 's#@jenkins@#$(JENKINS)#g' $@
+	@-grep "@conskey@" $@ && sed -i 's#@conskey@#$(CONSKEY)#g' $@
 	sed -i 's#@wsgiworkers@#$(WSGIWORKERS)#g' $@
 	sed -i 's#@wsgithreads@#$(WSGITHREADS)#g' $@
 	sed -i 's#@user@#$(USERNAME)#g' $@
 	sed -i 's#@group@#$(GROUPNAME)#g' $@
 	sed -i 's#@stablebranch@#$(STABLE_BRANCH)#g' $@
+	sed -i 's#@authenabled@#$(KERBEROS)#g' $@
 	chmod --reference $@.in $@
 	
 .PHONY: $(GENCODE)
@@ -302,6 +305,7 @@ $(GENCODE): $(addsuffix .gen,$(GENCODE))
 	sed -i 's#@vardir@#$(VARDIR)#g' $@.tmp
 	sed -i 's#@webcontrdir@#$(WEB_CONTROL_PATH)#g' $@.tmp
 	sed -i 's#@jenkins@#$(JENKINS)#g' $@.tmp
+	sed -i 's#@authenabled@#$(KERBEROS)#g' $@.tmp
 	python $@.tmp > $@
 	rm $@.tmp
 	chmod --reference $@.gen $@
@@ -310,6 +314,7 @@ $(GENCODE): $(addsuffix .gen,$(GENCODE))
 check: install
 	$(info Performing XenRT sanity checks ...)
 	$(SHAREDIR)/exec/main.py --sanity-check
+	$(SHAREDIR)/server/check.py
 	$(SHAREDIR)/unittests/runner.sh $(SHAREDIR)
 	$(eval XSD = $(shell mktemp))
 	sed 's/\\\$$/\\$$/' seqs/seq.xsd > $(XSD)
@@ -320,6 +325,7 @@ check: install
 minimal-check: install
 	$(info Performing XenRT sanity checks ...)
 	$(SHAREDIR)/exec/main.py --sanity-check
+	$(SHAREDIR)/server/check.py
 	$(SHAREDIR)/unittests/quickrunner.sh $(SHAREDIR)
 	$(eval XSD = $(shell mktemp))
 	sed 's/\\\$$/\\$$/' seqs/seq.xsd > $(XSD)

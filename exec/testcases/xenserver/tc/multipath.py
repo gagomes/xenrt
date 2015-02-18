@@ -4207,7 +4207,7 @@ class TC18156(xenrt.TestCase):
         eqlmpconf += "\\t\\tproduct \"100E-00\"\\n"
         eqlmpconf += "\\t\\tpath_grouping_policy multibus\\n"
         
-        if isinstance(self.host, xenrt.lib.xenserver.DundeeHost) and self.host.isCentOS7Dom0():
+        if isinstance(self.host, xenrt.lib.xenserver.DundeeHost):
             eqlmpconf += "\\t\\tgetuid_callout \"" + self.host.scsiIdPath() + " -g -u --devices /dev/%n\"\\n"
         else:
             eqlmpconf += "\\t\\tgetuid_callout \"" + self.host.scsiIdPath() + " -g -u -s /block/%n\"\\n"

@@ -8,9 +8,6 @@
 
   <variables>
     <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
-<!--
-    <INPUTDIR>/usr/groups/xen/carbon/trunk/latest/</INPUTDIR>
--->
     <OLD_PRODUCT_INPUTDIR>/usr/groups/release/XenServer-5.x/XS-5.6.1-fp1/RTM-39265/</OLD_PRODUCT_INPUTDIR>
     <OLD_PRODUCT_VERSION>MNR</OLD_PRODUCT_VERSION>
     <EXTRA_TIME>yes</EXTRA_TIME>

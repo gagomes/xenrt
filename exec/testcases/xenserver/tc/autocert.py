@@ -60,7 +60,7 @@ class _XSAutoCertKit(xenrt.TestCase):
                     build = "88844"
             else:
                 if isinstance(host, xenrt.lib.xenserver.DundeeHost):
-                    if host.isCentOS7Dom0(self):
+                    if host.isCentOS7Dom0():
                         branch = "trunk-c7"
                     else:
                         branch = "trunk"

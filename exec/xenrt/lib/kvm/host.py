@@ -45,7 +45,8 @@ def createHost(id=0,
                vHostCpus=2,
                vHostMemory=4096,
                vHostDiskSize=50,
-               vHostSR=None):
+               vHostSR=None,
+               vNetworks=None):
 
     if containerHost != None:
         raise xenrt.XRTError("Nested hosts not supported for this host type")
@@ -323,6 +324,16 @@ class KVMHost(xenrt.lib.libvirt.Host):
         """Verify the topology specified by XML on this host. Takes either
         a string containing XML or a XML DOM node."""
         pass
+
+    def getAssumedId(self, friendlyname):
+        # cloudbrX -> MAC         virsh iface-mac
+        #          -> assumedid   h.listSecondaryNICs
+
+        brname = friendlyname
+        nicmac = self.execvirt("virsh iface-mac %s" % brname).strip()
+        assumedids = self.listSecondaryNICs(macaddr=nicmac)
+        xenrt.TEC().logverbose("getAssumedId (KVMHost: %s): MAC %s corresponds to assumedids %s" % (self, nicmac, assumedids))
+        return assumedids[0]
 
     def tailorForCloudStack(self, isCCP, isLXC=False):
         """Tailor this host for use with ACS/CCP"""

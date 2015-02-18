@@ -21,7 +21,7 @@
 
   <xs:simpleType name="storageType">
     <xs:restriction base="xs:string">
-      <xs:pattern value="nfs|lvmoiscsi|fc|eql|netapp|icvsmeql|icvsmnetapp|icvsmfc|icvsmsmisiscsi|icvsmsmisfc|cvsmnetapp|cvsmeql|cvsmsmisiscsi|cvsmfc|cvsmsmisfc"/>
+      <xs:pattern value="nfs|lvmoiscsi|fc|eql|netapp|icvsmeql|icvsmnetapp|icvsmfc|icvsmsmisiscsi|icvsmsmisfc|cvsmnetapp|cvsmeql|cvsmsmisiscsi|cvsmfc|cvsmsmisfc|smb"/>
     </xs:restriction>
   </xs:simpleType>
 
@@ -76,35 +76,7 @@
             <xs:group minOccurs="0" maxOccurs="unbounded" ref="storage"/>
             <xs:group minOccurs="0" maxOccurs="1" ref="network"/>
             <xs:element name ="allhosts" minOccurs="0" maxOccurs="1"/>
-            <xs:element name ="host" minOccurs="0" maxOccurs="unbounded">
-              <xs:complexType>
-                <xs:choice minOccurs="1" maxOccurs="unbounded">
-                  <xs:group minOccurs="0" maxOccurs ="1" ref="vmgroup"/>
-                  <xs:group minOccurs="0" maxOccurs="unbounded" ref="vm"/>
-                  <xs:group minOccurs="0" maxOccurs="1" ref="network"/>
-                  <xs:element name="bridge" minOccurs="0" maxOccurs="1">
-                    <xs:complexType>
-                      <xs:attribute name="name" use="optional">
-                      </xs:attribute>
-                    </xs:complexType>
-                  </xs:element>
-                </xs:choice>
-                <xs:attribute name="id" use="optional" type="xs:string" />
-                <xs:attribute name="noisos" use="optional" type="xbool"/>
-                <xs:attribute name="default" use="optional" type="xbool"/>
-                <xs:attribute name="license" use="optional" type="licenseType"/>
-                <xs:attribute name="productType" use="optional" type="xs:string" />
-                <xs:attribute name="productVersion" use="optional" type="xs:string" />
-                <xs:attribute name="version" use="optional" type="xs:string" />
-                <xs:attribute name="diskCount" use="optional" type="xs:positiveInteger" />
-                <xs:attribute name="usev6testd" use="optional" type="xbool" />
-                <xs:attribute name="installsr" use="optional" type="installsrType" />
-                <xs:attribute name="suppackcds" use="optional" type="xs:string" />
-                <xs:attribute name="alias" use="optional" type="xs:string" />
-                <xs:attribute name="ipv6" use="optional" type="ipv6Type" />
-                <xs:attribute name="cpufreqgovernor" use="optional" type="xs:string" />
-              </xs:complexType>
-            </xs:element>
+            <xs:group minOccurs="0" maxOccurs="unbounded" ref="host"/>
           </xs:choice>
           <xs:attribute name="id" use="optional" type="xs:string"/>
           <xs:attribute name="master" use="optional" type="xs:string" />
@@ -121,6 +93,7 @@
         <xs:complexType>
           <xs:choice minOccurs="0" maxOccurs="unbounded">
             <xs:group minOccurs="0" maxOccurs="unbounded" ref="storage"/>
+            <xs:group minOccurs="0" maxOccurs ="1" ref="vmgroup"/>
             <xs:group minOccurs="0" maxOccurs="unbounded" ref="vm"/>
             <xs:group minOccurs="0" maxOccurs="1" ref="network"/>
             <xs:element name="bridge" minOccurs="0" maxOccurs="1">
@@ -150,6 +123,7 @@
           <xs:attribute name="vmemory" use="optional" type="xs:string" />
           <xs:attribute name="vdisksize" use="optional" type="xs:string" />
           <xs:attribute name="vsr" use="optional" type="xs:string" />
+          <xs:attribute name="vnetworks" use="optional" type="xs:string" />
         </xs:complexType>
       </xs:element>
     </xs:sequence>
@@ -552,12 +526,16 @@
           </xs:complexType>
         </xs:element>
         <xs:element name="preprepare" minOccurs="0" maxOccurs="1" >
-          <xs:complexType>
+          <xs:complexType mixed="true">
             <xs:choice minOccurs="1" maxOccurs="unbounded">
               <xs:group ref="sharedhost" minOccurs="0" maxOccurs="unbounded"/>
               <xs:element name ="allhosts" minOccurs="0" maxOccurs="1"/>
+              <xs:group ref ="vlan" minOccurs="0" maxOccurs="unbounded"/>
               <xs:group ref ="host" minOccurs="0" maxOccurs="unbounded"/>
               <xs:group ref="pool" minOccurs="0" maxOccurs="unbounded"/>
+              <xs:group ref="cloud" minOccurs="0" maxOccurs="unbounded"/>
+              <xs:group ref="template" minOccurs="0" maxOccurs="unbounded"/>
+              <xs:group ref="instance" minOccurs="0" maxOccurs="unbounded"/>
             </xs:choice>
           </xs:complexType>
         </xs:element>
@@ -573,7 +551,7 @@
           </xs:complexType>
         </xs:element>
         <xs:element name="prepare" minOccurs="0" maxOccurs="1" >
-          <xs:complexType>
+          <xs:complexType mixed="true">
             <xs:choice minOccurs="1" maxOccurs="unbounded">
               <xs:group ref="sharedhost" minOccurs="0" maxOccurs="unbounded"/>
               <xs:element name ="allhosts" minOccurs="0" maxOccurs="1"/>

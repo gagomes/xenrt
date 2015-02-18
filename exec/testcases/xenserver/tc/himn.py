@@ -12,9 +12,9 @@ import socket, re, string, time, traceback, sys, random, copy, os, subprocess, u
 import xenrt, xenrt.lib.xenserver
 
 class _TCHIMN(xenrt.TestCase):
-    
     GUEST1NAME = "guest1"
     GUEST2NAME = "guest2"
+    HIMN_IP = "169.254.0.1"
     
     def __init__(self, tcid=None):
         xenrt.TestCase.__init__(self, tcid=tcid)
@@ -37,20 +37,7 @@ class _TCHIMN(xenrt.TestCase):
         xenrt.GEC().registry.guestPut(name, g)
         return g
         
-    def getHimnHostIP(self, guest):
-        ret = guest.execguest("route -n | grep eth1 | grep 'UG[ \t]' | awk '{print $2}'").strip()
-        
-        if not ret or len(ret) < 9:
-            raise xenrt.XRTFailure("Could not get host IP on HIMN")
-            
-        # this IP address wil most likely never change - test for that here.
-        if ret != "169.254.0.1":
-            raise xenrt.XRTFailure("HIMN server ip should be 169.254.0.1. It's actually %s." % (ret))
-            
-        return ret
-        
     def getGuests(self):
-        
         g1 = xenrt.GEC().registry.guestGet(self.GUEST1NAME)
         if not g1:
             g1 = self._createGuest(self.master, self.GUEST1NAME)
@@ -93,16 +80,13 @@ class TCAccessXapiXmlRpc(_TCHIMN):
     def run(self, args):
         for g in self.getGuests():
             
-            # get host IP on HIMN
-            hostIP = self.getHimnHostIP(g)
-            
             # script to access host XAPI using XMLRPC from the guest using the HIMN
             scr = """#!/usr/bin/python
 import xmlrpclib
 s = xmlrpclib.Server('http://%s')
 session = s.session.login_with_password('root','%s')
 print s.VM.get_all_records(session['Value'])
-""" % (hostIP, self.master.lookup("ROOT_PASSWORD"))
+""" % (self.HIMN_IP, self.master.lookup("ROOT_PASSWORD"))
             
             # write script to guest
             self.writeGuestFile(g, "/himn", scr)
@@ -119,8 +103,6 @@ class TCAccessXapiSsh(_TCHIMN):
     
     def run(self, args):
         for g in self.getGuests():
-            hostIP = self.getHimnHostIP(g)
-            
             if g.execguest("test -e /root/.ssh/id_rsa", retval="code") != 0:
                 
                 # generate new key pair on guest and use for SSH
@@ -147,7 +129,7 @@ class TCAccessXapiSsh(_TCHIMN):
                 g.host.execdom0("cat /root/id_rsa.pub >> /root/.ssh/authorized_keys")
             
             # do simple SSH command to dom0 from guest using the HIMN
-            ret = g.execguest("ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null root@%s ls /" % (hostIP))
+            ret = g.execguest("ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null root@%s ls /" % (self.HIMN_IP))
             
             if not ret or not "root" in ret:
                 raise xenrt.XRTFailure("Could not access dom0 via SSH using HIMN")
@@ -157,7 +139,6 @@ class TCVMExport(_TCHIMN):
     
     def run(self, args):
         g = self.getGuests()[0]
-        hostIP = self.getHimnHostIP(g)
         
         # create a guest to export
         toExport = g.host.createGenericLinuxGuest(name="toExport" + g.name, start=False)
@@ -171,7 +152,7 @@ session = s.session.login_with_password('root','%s')
 task = s.task.create(session['Value'], "exporttask", "exporttask")
 url = "http://%s/export?session_id=%%s&uuid=%s&task_id=%%s" %% (session['Value'], task['Value'])
 os.system('wget "%%s" -O /tmp/exported' %% (url))
-""" % (hostIP, self.master.lookup("ROOT_PASSWORD"), hostIP, toExport.uuid)
+""" % (self.HIMN_IP, self.master.lookup("ROOT_PASSWORD"), self.HIMN_IP, toExport.uuid)
             
         xenrt.TEC().logverbose('script used for vm-export:\n%s' % scr)
         
@@ -198,14 +179,12 @@ class TCHttps(_TCHIMN):
 
     def run(self, args):
         for g in self.getGuests():
-            hostIP = self.getHimnHostIP(g)
-            
             # script to check can access server with https
             scr = """#!/usr/bin/python
 import xmlrpclib, os
 s = xmlrpclib.Server('https://%s')
 session = s.session.login_with_password('root','%s')
-""" % (hostIP, self.master.lookup("ROOT_PASSWORD"))
+""" % (self.HIMN_IP, self.master.lookup("ROOT_PASSWORD"))
 
             # write script to guest
             self.writeGuestFile(g, "/httpscheck", scr)

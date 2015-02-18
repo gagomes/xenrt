@@ -6,7 +6,7 @@ import app.constants
 import config
 
 import string
-from pyramid.httpexceptions import HTTPServiceUnavailable
+from pyramid.httpexceptions import *
 import requests
 
 class XenRTAPIPage(XenRTPage):
@@ -401,8 +401,8 @@ class DumpHeaders(XenRTAPIPage):
         return out
 
 
-PageFactory(XenRTLogServer, "logserver", "/api/logserver", compatAction="getlogserver")
-PageFactory(DumpHeaders, "dumpheaders", "/api/dumpheaders")
+PageFactory(XenRTLogServer, "/api/logserver", compatAction="getlogserver")
+PageFactory(DumpHeaders, "/api/dumpheaders")
 
 import app.api.jobs
 import app.api.sites

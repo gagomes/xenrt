@@ -1,973 +1,38 @@
-#
-# XenRT: Test harness for Xen and the XenServer product family
-#
-# Test sequence specification
-#
-# Copyright (c) 2006 XenSource, Inc. All use and distribution of this
-# copyrighted material is governed by and subject to terms and
-# conditions as licensed by XenSource, Inc. All other rights reserved.
-#
+__all__=["PrepareNodeParserJSON", "PrepareNodeParserXML", "PrepareNode"]
 
-"""
-Parses an XML test sequence specification.
-"""
-
-import sys, string, time, os, xml.dom.minidom, threading, traceback, re, random, json, uuid
+import sys, string, time, os, xml.dom.minidom, threading, traceback, re, random, yaml, uuid, copy, json
 import xenrt
 import pprint
 
-__all__ = ["Fragment",
-           "SingleTestCase",
-           "Serial",
-           "Parallel",
-           "TestSequence",
-           "findSeqFile"]
+class PrepareNodeParserBase(object):
+    def __init__(self, parent, data):
+        self.data = data
+        self.parent = parent
 
-def findSeqFile(seqfile):
-    """
-    Construct the path to the sequence files given a name of the file
-    @param seqfile: the name of the sequence file
-    @type seqfile: string
-    @rtype: string 
-    @return an absolute path to a sequence file given the basename.
-    """
-    SEQ_LOC = "seqs"
-    path = os.path.join(xenrt.TEC().lookup("XENRT_BASE", None), SEQ_LOC)
-    xenrt.TEC().logverbose("Looking for seq file in %s ..." % (path))
-    filename = os.path.join(path, seqfile)
-    if not os.path.exists(filename):
-        raise xenrt.XRTError("Cannot find sequence file %s" % (filename))
+    def expand(self, s):
+        return xenrt.seq.expand(s, self.parent.params)
 
-    return filename
-
-def _expandVar(m):
-    return xenrt.TEC().lookup(m.group(1))
-
-def expand(s, p):
-    """Expand a string with parameter names"""
-    if not s:
-        return s
-    s = str(s)
-    if p:
-        for k in p.keys():
-            if type(p[k]) == type(""):
-                s = string.replace(s, "${%s}" % (k), p[k])
-    s = re.sub("%(.+?)%", _expandVar, s)
-    return s
-
-class Fragment(threading.Thread):
-    """A test sequence fragment"""
-    def __init__(self, parent, steps, isfinally=False, jiratc=None, tcsku=None):
-        threading.Thread.__init__(self)
-        self.blocker = False
-        self.blocked = None
-        self.blockedticket = None
-        self.iamtc = False
-        self.steps = []
-        self.finallysteps = []
-        self.isfinally = isfinally
-        self.jiratc = jiratc
-        self.tcsku = tcsku
-        self.ticket = None
-        self.ticketIsFailure = True
-        if parent and parent.isfinally:
-            self.isfinally = True
-        if steps:
-            for s in steps:
-                self.addStep(s)
-        if parent:
-            self.locationHost = parent.locationHost
-            self.locationGuest = parent.locationGuest
-            self.group = parent.group
-            self.prio = parent.prio
-            self.ttype = parent.ttype
-        else:
-            self.locationHost = None
-            self.locationGuest = None
-            self.group = None
-            self.prio = None
-            self.ttype = None
-        self.semaphore = None
-
-    def addStep(self, step):
-        """
-        Add a test case step 
-        @param step: Data to create a instance of Fragment from. 
-        @type step: tuple of data required to construct a SingleTestCase with 2 or 3 args or an instance of Fragment
-        """
-
-        if len(step) > 2:
-            tc, args, name = step
-            self.steps.append(SingleTestCase(tc, args, name=name))
-        elif len(step) > 1:
-            tc, args = step
-            self.steps.append(SingleTestCase(tc, args))
-        else:
-            if not hasattr(step, "runThis"):
-                raise xenrt.XRTError("Type mismatch when adding a step")
-            self.steps.append(step)
-
-    def addFinally(self, step):
-        if len(step) > 2:
-            tc, args, name = step
-            self.finallysteps.append(SingleTestCase(tc, args, name=name))
-        elif len(step) > 1:
-            tc, args = step
-            self.finallysteps.append(SingleTestCase(tc, args))
-        else:
-            self.finallysteps.append(step)
-
-    def handleSubNode(self, toplevel, node, params=None):
-        if node.nodeType == node.ELEMENT_NODE:
-            f = node.getAttribute("filter")
-            if f and params and params.has_key("__excludes"):
-                if f in params["__excludes"]:
-                    return
-        if node.localName == "serial":
-            tc = expand(node.getAttribute("tc"), params)
-            tcsku = expand(node.getAttribute("sku"), params) or self.tcsku
-            newfrag = Serial(self,jiratc=tc,tcsku=tcsku)
-            newfrag.handleXMLNode(toplevel, node, params)
-            self.addStep(newfrag)
-        elif node.localName == "parallel":
-            tc = expand(node.getAttribute("tc"), params)
-            tcsku = expand(node.getAttribute("sku"), params) or self.tcsku
-            newfrag = Parallel(self,jiratc=tc,tcsku=tcsku)
-            a = expand(node.getAttribute("workers"), params)
-            if a:
-                newfrag.workers = int(a)
-            newfrag.handleXMLNode(toplevel, node, params)
-            self.addStep(newfrag)
-        elif node.localName == "action":
-            action = expand(node.getAttribute("action"), params)
-            args = []
-            for x in node.childNodes:
-                if x.nodeType == x.ELEMENT_NODE:
-                    if x.localName == "arg":
-                        for a in x.childNodes:
-                            if a.nodeType == a.TEXT_NODE:
-                                args.append(expand(str(a.data), params))
-            newfrag = Action(self, action=action, args=args)
-            newfrag.handleXMLNode(toplevel, node, params)
-            self.addStep(newfrag)
-        elif node.localName == "finally":
-            if not xenrt.TEC().lookup(["CLIOPTIONS", "NOFINALLY"], False,
-                                      boolean=True):
-                newfrag = Finally(self)
-                newfrag.handleXMLNode(toplevel, node, params)
-                self.addFinally(newfrag)
-        elif node.localName == "for":
-            iters = string.split(expand(str(node.getAttribute("iter")),
-                                        params), ',')
-            valuestring = expand(str(node.getAttribute("values")), params)
-            defaults = string.split(expand(str(node.getAttribute("defaults")),
-                                           params), ',')
-            if valuestring == "-":
-                valuestring = ""
-            if len(iters) == 1:
-                values = string.split(valuestring, ',')
-            else:
-                r = re.findall(r"\(.*?\)", valuestring)
-                values = map(lambda x:re.findall(r"([^,\(\)]+)", x), r)
-            for value in values:
-                newparams = {}
-                if params:
-                    for k in params.keys():
-                        newparams[k] = params[k]
-                if len(iters) == 1:
-                    newparams[iters[0]] = value
-                else:
-                    for i in range(min(len(iters), len(value))):
-                        newparams[iters[i]] = value[i]
-                    for i in range(len(value), len(iters)):
-                        # Use defaults for unspecified arguments
-                        if len(defaults) > 1:
-                            newparams[iters[i]] = defaults[i]
-                        else:
-                            newparams[iters[i]] = "XXX"
-                for x in node.childNodes:
-                    self.handleSubNode(toplevel, x, newparams)
-        elif node.localName == "ifin":
-            item = expand(str(node.getAttribute("item")), params)
-            itemlist = string.split(expand(str(node.getAttribute("list")),
-                                           params), ",")
-            if item in itemlist:
-                for x in node.childNodes:
-                    self.handleSubNode(toplevel, x, params)
-        elif node.localName == "ifnotin":
-            item = expand(str(node.getAttribute("item")), params)
-            itemlist = string.split(expand(str(node.getAttribute("list")),
-                                           params), ",")
-            if not item in itemlist:
-                for x in node.childNodes:
-                    self.handleSubNode(toplevel, x, params)
-        elif node.localName == "ifeq":
-            v1 = expand(str(node.getAttribute("x")), params)
-            v2 = expand(str(node.getAttribute("y")), params)
-            if v1 == v2:
-                for x in node.childNodes:
-                    self.handleSubNode(toplevel, x, params)
-        elif node.localName == "ifnoteq":
-            v1 = expand(str(node.getAttribute("x")), params)
-            v2 = expand(str(node.getAttribute("y")), params)
-            if v1 != v2:
-                for x in node.childNodes:
-                    self.handleSubNode(toplevel, x, params)
-        elif node.localName == "include":
-            collection = expand(str(node.getAttribute("collection")), params)
-            if not collection:
-                raise xenrt.XRTError("Found include without collection name "
-                                     "in sequence file")
-            excludes = node.getAttribute("exclude")
-            if not toplevel.collections.has_key(collection):
-                raise xenrt.XRTError("Collection %s not found" % (collection))
-            newparams = {}
-            if params:
-                for k in params.keys():
-                    newparams[k] = params[k]
-            for x in node.childNodes:
-                if x.nodeType == x.ELEMENT_NODE and x.localName == "param":
-                    n = x.getAttribute("name")
-                    v = x.getAttribute("value")
-                    if not n:
-                        sys.stderr.write("param without name\n")
-                    if not v:
-                        sys.stderr.write("param %s without value\n" % (n))
-                    if n and v:
-                        newparams[str(n)] = expand(str(v), params)
-            if excludes:
-                if not newparams.has_key("__excludes"):
-                    newparams["__excludes"] = []
-                newparams["__excludes"].extend(string.split(excludes, ","))
-            for c in toplevel.collections[collection].childNodes:
-                if c.nodeType == c.ELEMENT_NODE:
-                    self.handleSubNode(toplevel, c, newparams)
-        elif node.localName == "testcase" or node.localName == "marvintests":
-            if node.localName == "testcase":
-                tcid = expand(node.getAttribute("id"), params)
-                name = expand(node.getAttribute("name"), params)
-                group = expand(node.getAttribute("group"), params)
-                marvinTestConfig = None
-            else:
-                tcid = 'xenrt.lib.cloud.marvinwrapper.TCMarvinTestRunner'
-                group = 'MarvinGroup'
-                name = 'MarvinTests'
-                marvinTestConfig = {}
-                if expand(node.getAttribute("path"), params) != '':
-                    marvinTestConfig['path'] = expand(node.getAttribute("path"), params)
-                    group = marvinTestConfig['path']
-                    group = len(group) > 32 and group[len(group)-32:] or group
-                if expand(node.getAttribute("class"), params) != '':
-                    if not marvinTestConfig.has_key('path'):
-                        raise xenrt.XRTError('marvintests does not support just specifying a class - you must also specify a path in the sequence')
-                    marvinTestConfig['cls'] = expand(node.getAttribute("class"), params)
-                    name = marvinTestConfig['cls']
-                    name = len(name) > 32 and name[len(name)-32:] or name
-                if expand(node.getAttribute("tags"), params) != '':
-                    marvinTestConfig['tags'] = expand(node.getAttribute("tags"), params).split(',')
-
-            host = expand(node.getAttribute("host"), params)
-            guest = expand(node.getAttribute("guest"), params)
-            prios = expand(node.getAttribute("prio"), params)
-            ttype = expand(node.getAttribute("ttype"), params)
-            depend = expand(node.getAttribute("depends"), params)
-            tc = expand(node.getAttribute("tc"), params) or self.jiratc
-            tcsku = expand(node.getAttribute("sku"), params) or self.tcsku
-            blocker = None
-            a = expand(node.getAttribute("blocker"), params)           
-            if a:
-                a = string.lower(a)
-                if a[0] == "y" or a == "0" or a[0] == "t":
-                    blocker = True
-                elif a[0] == "n" or a == "1" or a[0] == "f":
-                    blocker = False
-            if prios:
-                prio = int(prios)
-            else:
-                prio = None
-            args = []
-            for x in node.childNodes:
-                if x.nodeType == x.ELEMENT_NODE:
-                    if x.localName == "arg":
-                        for a in x.childNodes:
-                            if a.nodeType == a.TEXT_NODE:
-                                args.append(expand(str(a.data), params))
-            try:
-                newtc = SingleTestCase("testcases.%s" % (tcid),
-                                       args,
-                                       name,
-                                       self,
-                                       group,
-                                       host=host,
-                                       guest=guest,
-                                       prio=prio,
-                                       ttype=ttype,
-                                       depend=depend,
-                                       blocker=blocker,
-                                       jiratc=tc,
-                                       tcsku=tcsku,
-                                       marvinTestConfig=marvinTestConfig)
-            except Exception as e:
-                exception_type,exception_value,exception_traceback = sys.exc_info()
-                xenrt.TEC().logverbose("Failed to import file %s with exception values %s,%s,%s"%(tcid,exception_type,exception_value,exception_traceback))
-                if exception_type == ImportError:
-                    sys.exc_clear()
-                else:
-                    raise exception_value
-
-                newtc = SingleTestCase("%s" % (tcid),
-                                       args,
-                                       name,
-                                       self,
-                                       group,
-                                       host=host,
-                                       guest=guest,
-                                       prio=prio,
-                                       ttype=ttype,
-                                       depend=depend,
-                                       blocker=blocker,
-                                       jiratc=tc,
-                                       tcsku=tcsku,
-                                       marvinTestConfig=marvinTestConfig)
-            self.addStep(newtc)        
-
-    def handleXMLNode(self, toplevel, node, params=None):
-        a = expand(node.getAttribute("host"), params)
-        if a:
-            self.locationHost = a
-        a =  expand(node.getAttribute("guest"), params)
-        if a:
-            self.locationGuest = a
-        a = expand(node.getAttribute("group"), params)
-        if a:
-            self.group = a
-        a = expand(node.getAttribute("prio"), params)
-        if a:
-            self.prio = int(a)
-        a = expand(node.getAttribute("ttype"), params)
-        if a:
-            self.ttype = a
-        a = expand(node.getAttribute("blocker"), params)
-        if a:
-            a = string.lower(a)
-            if a[0] == "y" or a == "0" or a[0] == "t":
-                self.blocker = True
-        for i in node.childNodes:
-            if i.nodeType == i.ELEMENT_NODE:
-                self.handleSubNode(toplevel, i, params)
-
-    def runThis(self):
-        """Run the sequence of testcases"""
-        raise xenrt.XRTError("Never call Fragment.run directly")
-
-    def run(self):
-        if self.semaphore:
-            self.semaphore.acquire()
-        try:
-            self.runThis()
-        finally:
-            if self.semaphore:
-                self.semaphore.release()
-
-    def setSemaphore(self, semaphore):
-        self.semaphore = semaphore
-
-    def block(self, blocked, blockedticket):
-        self.blocked = blocked
-        self.blockedticket = blockedticket
-        xenrt.TEC().logverbose("Blocking seq fragment %s" % (str(self)))
-
-    def __len__(self):
-        return 1
-
-    def __str__(self):
-        return "Fragment"
-
-    def debugPrint(self, fd, indent=""):
-        fd.write("%s%s\n" % (indent, str(self)))
-        for s in self.steps:
-            s.debugPrint(fd, indent + "  ")
-        if len(self.finallysteps) > 0:
-            fd.write("%sFinally:\n" % (indent))
-            for s in self.finallysteps:
-                s.debugPrint(fd, indent + "  ")
-
-    def listTCs(self):
-        reply = []
-        if self.jiratc:
-            if self.tcsku:
-                reply.append("_".join([self.jiratc, self.tcsku]))
-            else:
-                reply.append(self.jiratc)
-        for s in self.steps:
-            reply.extend(s.listTCs())
-        return reply
-
-    def jiraProcess(self):
-        if self.jiratc:
-            try:
-                # We have a TC code, so lets do something
-                jl = xenrt.jiralink.getJiraLink()
-                jl.processFragment(self.jiratc,self.blocked,ticket=self.ticket,
-                                   ticketIsFailure=self.ticketIsFailure,blockedticket=self.blockedticket,tcsku = self.tcsku)
-                self.ticket = None
-            except Exception, e:
-                xenrt.GEC().logverbose("Jira Link Exception: %s" % (e),
-                                       pref='WARNING')
-
-class SingleTestCase(Fragment):
-    def __init__(self,
-                 tc,
-                 args,
-                 name=None,
-                 parent=None,
-                 group=None,
-                 host=None,
-                 guest=None,
-                 prio=None,
-                 ttype=None,
-                 depend=None,
-                 blocker=None,
-                 jiratc=None,
-                 tcsku=None,
-                 marvinTestConfig=None):
-        xenrt.TEC().logverbose("Creating testcase object for %s" % (tc))
-        Fragment.__init__(self, parent, None)
-        package = string.join(string.split(tc, ".")[:-1], ".")
-        module = string.split(tc, ".")[0]
-        try:
-            d = dir(eval(package))
-        except Exception, e:
-            xenrt.TEC().logverbose(str(e))
-            xenrt.TEC().logverbose("Trying to import %s." % (package))
-            globals()[module] = __import__(package, globals(),  locals(), [])
-            xenrt.TEC().logverbose("Imported module %s" % (package))
-        self.tc = eval(tc)
-        self.tcid = tc
-        self.tcsku = tcsku
-        self.args = args
-        if group:
-            self.group = group
-        self.tcname = name
-        self.runon = None
-        if host:
-            self.locationHost = host
-        if guest:
-            self.locationGuest = guest
-        if prio:
-            self.prio = prio
-        if ttype:
-            self.ttype = ttype
-        self.depend = depend
-        self.blocker = blocker
-        self.jiratc = jiratc
-        self.tcsku = tcsku
-        self.marvinTestConfig = marvinTestConfig
-
-    def runThis(self):
-        try:
-            t = xenrt.GEC().runTC(self.tc,
-                              self.args,
-                              blocked=self.blocked,
-                              blockedticket=self.blockedticket,
-                              name=self.tcname,
-                              host=self.locationHost,
-                              guest=self.locationGuest,
-                              runon=self.runon,
-                              group=self.group,
-                              prio=self.prio,
-                              ttype=self.ttype,
-                              depend=self.depend,
-                              isfinally=self.isfinally,
-                              blocker=self.blocker,
-                              jiratc=self.jiratc,
-                              tcsku = self.tcsku,
-                              marvinTestConfig = self.marvinTestConfig)
-            if t and t.ticket:
-                self.ticket = t.ticket
-                self.ticketIsFailure = t.ticketIsFailure
-        except xenrt.XRTBlocker, e:
-            self.blocked = e
-            t = e.testcase
-            if t and t.ticket:
-                self.ticket = t.ticket
-                self.ticketIsFailure = t.ticketIsFailure
-            raise e
-
-    def getGrpAndTest(self):
-        if self.tcname:
-            name = self.tcname
-        else:
-            name = self.tcid.split(".")[-1]
-        if self.group:
-            gdisp = "%s/" % (self.group)
-        else:
-            gdisp = ""
-        return "%s%s" % (gdisp,name)
-
-    def __str__(self):
-        if self.tcname:
-            name = self.tcname
-        else:
-            name = self.tcid
-        if self.group:
-            gdisp = "%s/" % (self.group)
-        else:
-            gdisp = ""
-        if self.prio:
-            p =  "(P%u)" % (self.prio)
-        else:
-            p = ""
-        if self.ttype:
-            p = p + " (T %s)" % (self.ttype)
-        return "%s%s [%s] %s" % (gdisp, name, string.join(self.args, ", "), p)
-
-    def debugPrint(self, fd, indent=""):
-        fd.write("%s%s\n" % (indent, str(self)))
-
-    def listTCs(self):
-        if self.jiratc:
-            if self.tcsku:
-                return ["%s_%s" % (self.jiratc, self.tcsku)]
-            else:
-                return [self.jiratc]
-        r = re.search(r"\.TC(\d+)$", self.tcid)
-        if r:
-            if self.tcsku:
-                return ["TC-%s_%s" % (r.group(1), self.tcsku)]
-            else:
-                return ["TC-%s" % (r.group(1))]
-        return []
-
-class Action(Fragment):
-    def __init__(self, parent=None, action=None, args=None):
-        Fragment.__init__(self, parent, None)
-        self.action = action
-        self.args = args
-        self.blocker = True
-
-    def runThis(self):
-        try:
-            if xenrt.GEC().abort:
-                raise xenrt.XRTError("Aborting on command")
-            if self.action == "sleep":
-                if self.args and len(self.args) > 0:
-                    d = int(self.args[0])
-                xenrt.TEC().logverbose("Sleeping for %u seconds..." % (d))
-                xenrt.sleep(d)
-            elif self.action == "prepare":
-                xenrt.TEC().logverbose("Re-preparing system...")
-                xenrt.GEC().reprepare()
-            else:
-                raise xenrt.XRTError("Unknown action '%s'" % (self.action))
-        except Exception, e:
-            xenrt.TEC().logverbose("Action '%s' got exception %s" %
-                                   (self.action, str(e)))
-            if self.blocker:
-                raise xenrt.XRTBlocker("Blocked by action: %s" % (self.action))
-
-    def __str__(self):
-        return "%s [%s]" % (self.action, string.join(self.args, ", "))
-
-    def debugPrint(self, fd, indent=""):
-        fd.write("%s%s\n" % (indent, str(self)))
-
-    def listTCs(self):
-        return ""
-
-class Serial(Fragment):
-    """A serial test sequence fragment"""
-    def __init__(self, parent=None, steps=None, isfinally=False, jiratc=None, tcsku=None):
-        Fragment.__init__(self, parent, steps, isfinally=isfinally, jiratc=jiratc, tcsku=tcsku)
-
-    def runThis(self):
-        """Run the sequence of testcases"""
-        if xenrt.GEC().preparefailed:
-            self.blocked = xenrt.GEC().preparefailed
-            self.blockedticket = xenrt.GEC().prepareticket
-        if xenrt.TEC().lookup("RANDOMISE_TEST_ORDER", False, boolean=True):
-            random.shuffle(self.steps)
-        for t in self.steps:
-            try:
-                if self.blocked:
-                    t.block(self.blocked, self.blockedticket)
-                xenrt.TEC().logverbose("Starting seq fragment %s" % (str(t)))
-                t.run()
-            except xenrt.XRTBlocker, e:
-                self.blocked = e
-                if (not self.blockedticket) and t.ticket:
-                    self.blockedticket = t.ticket
-                if (not self.blockedticket) and t.blockedticket:
-                    self.blockedticket = t.blockedticket
-                    
-            if (not self.ticket) and t.ticket:
-                self.ticket = t.ticket
-                self.ticketIsFailure = t.ticketIsFailure
-        self.jiraProcess()
-        fblocked = False
-        fblockedticket = None
-        for t in self.finallysteps:
-            try:
-                if fblocked:
-                    t.block(fblocked, fblockedticket)
-                xenrt.TEC().logverbose("Starting seq finally fragment %s" %
-                                       (str(t)))
-                t.run()
-            except xenrt.XRTBlocker, e:
-                fblocked = e
-                if (not fblockedticket) and t.ticket:
-                    fblockedticket = t.ticket
-                if (not fblockedticket) and t.blockedticket:
-                    fblockedticket = t.blockedticket
-            except Exception, e:
-                sys.stderr.write(str(e))
-                traceback.print_exc(file=sys.stderr)
-        if self.blocked and self.blocker:
-            raise self.blocked
-
-    def __str__(self):
-        return "Serial"
-
-class Parallel(Fragment):
-    """A serial test sequence fragment"""
-    def __init__(self, parent=None, steps=None, isfinally=False, jiratc=None, tcsku=None):
-        Fragment.__init__(self, parent, steps, isfinally, jiratc=jiratc, tcsku=tcsku)
-        self.workers = None        
-
-    def runThis(self):
-        """Run the sequence of testcases"""
-        if self.workers != None:
-            semaphore = threading.Semaphore(self.workers)
-        else:
-            semaphore = None
-        if xenrt.TEC().lookup("RANDOMISE_TEST_ORDER", False, boolean=True):
-            random.shuffle(self.steps)
-        for s in self.steps:
-            xenrt.TEC().logverbose("Starting seq fragment %s" % (str(s)))
-            if semaphore:
-                s.setSemaphore(semaphore)
-            if self.blocked:
-                s.block(self.blocked, self.blockedticket)
-            s.start()
-        for s in self.steps:
-            s.join()
-            if (not self.ticket) and s.ticket:
-                self.ticket = s.ticket
-                self.ticketIsFailure = s.ticketIsFailure
-            if s.blocked and not self.blocked:
-                self.blocked = s.blocked
-                if (not self.blockedticket) and s.ticket:
-                    self.blockedticket = s.ticket
-                if (not self.blockedticket) and s.blockedticket:
-                    self.blockedticket = s.blockedticket
-        self.jiraProcess()
-        fblocked = False
-        fblockedticket = None
-        for t in self.finallysteps:
-            try:
-                if fblocked:
-                    t.block(fblocked, fblockedticket)
-                xenrt.TEC().logverbose("Starting seq finally fragment %s" %
-                                       (str(t)))
-                t.run()
-            except xenrt.XRTBlocker, e:
-                fblocked = e
-                if (not self.blockedticket) and t.ticket:
-                    self.blockedticket = t.ticket
-                if (not self.blockedticket) and t.blockedticket:
-                    self.blockedticket = t.blockedticket
-            except Exception, e:
-                sys.stderr.write(str(e))
-                traceback.print_exc(file=sys.stderr)
-        if self.blocked and self.blocker:
-            raise self.blocked
-
-    def __str__(self):
-        return "Parallel"
-
-class Finally(Serial):
-    def __init__(self, parent=None, steps=None):
-        Serial.__init__(self, parent, steps, isfinally=True)
-    def __str__(self):
-        return "Finally"
-
-class TestSequence(Serial):
-    """An entire test sequence."""
-    def __init__(self, filename, tc=None, tcsku=None):
-        Serial.__init__(self)
-        self.collections = {}
-        self.scripts = {} 
-        self.params = {}
-        self.prepare = None
-        self.preprepare = None
-        self.schedulerinfo = None
-        self.seqdir = os.path.dirname(filename)
-        cfg = xml.dom.minidom.parse(filename)
-        if tc:
-            self.jiratc = tc
-        else:
-            self.jiratc = xenrt.TEC().lookup("TESTRUN_TC", None)
-        self.tcsku = tcsku
-        for i in cfg.childNodes:
-            if i.nodeType == i.ELEMENT_NODE:
-                if i.localName == "xenrt":
-                    for n in i.childNodes:
-                        if n.nodeType == n.ELEMENT_NODE:
-                            if n.localName == "testsequence":
-                                xenrt.GEC().prepareonly = False
-                                self.handleXMLNode(self, n, self.params)
-                            elif n.localName == "variables":
-                                if not xenrt.TEC().lookup("SEQ_PARSING_ONLY", False, boolean=True):
-                                    xenrt.TEC().config.parseXMLNode(n)
-                            elif n.localName == "semaphores":
-                                for s in n.childNodes:
-                                    if s.nodeType == s.ELEMENT_NODE:
-                                        semclass = str(s.localName)
-                                        count = expand(s.getAttribute("count"),
-                                                       self.params)
-                                        if not count:
-                                            count = "1"
-                                        xenrt.GEC().semaphoreCreate(semclass,
-                                                                    int(count))
-                            elif n.localName == "collection":
-                                name = n.getAttribute("name")
-                                if not name:
-                                    raise xenrt.XRTError("Found collection "
-                                                         "without name in "
-                                                         "sequence file.")
-                                self.collections[name] = n
-                            elif n.localName == "default":
-                                name = n.getAttribute("name")
-                                value = n.getAttribute("value")
-                                if name == None:
-                                    raise xenrt.XRTError("Found default "
-                                                         "without name in "
-                                                         "sequence file.")
-                                if value == None:
-                                    raise xenrt.XRTError("Found default "
-                                                         "without value in "
-                                                         "sequence file.")
-                                self.params[str(name)] = \
-                                                       xenrt.TEC().lookup(\
-                                        str(name), str(value))
-                                xenrt.TEC().config.setVariable(str(name), self.params[str(name)])
-                            elif n.localName == "include":
-                                iname = n.getAttribute("filename")
-                                if not iname:
-                                    raise xenrt.XRTError("Found include "
-                                                         "without filename.")
-                                self.incFile(iname)
-                            elif n.localName == "script":
-                                filename = n.getAttribute("filename")
-                                format = n.getAttribute("type")
-                                if not filename:
-                                    raise xenrt.XRTError("Found script "
-                                                         "without filename.")
-                                self.scriptFile(filename, format)
-                            elif n.localName == "prepare":
-                                self.prepare = PrepareNode(self, n, self.params)
-                            elif n.localName == "preprepare":
-                                self.preprepare = PrepareNode(self, n, self.params)
-                            elif n.localName == "perfcheck":
-                                xenrt.GEC().perfCheckParse(n)
-                                xenrt.TEC().logverbose(str(xenrt.GEC().perfChecks))
-                            elif n.localName == "scheduler":
-                                self.schedulerinfo = n
-                else:
-                    raise xenrt.XRTError("No 'xenrt' tag found.")
- 
-    def doPrepare(self):
-        """Run the prepare actions. This can be called again later if we
-        want to reset the system to the fresh state.""" 
-        noprepare = xenrt.TEC().lookup(["CLIOPTIONS", "NOPREPARE"],
-                                         False,
-                                         boolean=True)
-        if self.prepare and not noprepare:
-            self.prepare.runThis()
-
-    def doPreprepare(self):
-        """Run the preprepare actions. This can be called again later if we
-        want to reset the system to the fresh state.""" 
-        noprepare = xenrt.TEC().lookup(["CLIOPTIONS", "NOPREPARE"],
-                                         False,
-                                         boolean=True)
-        if self.preprepare and not noprepare:
-            self.preprepare.runThis()
-
-    def runThis(self):
-        xenrt.GEC().sequence = self
-        try:
-            self.doPreprepare()
-            if xenrt.TEC().lookup("PAUSE_AFTER_PREPREPARE", False, boolean=True):
-                xenrt.GEC().dbconnect.jobUpdate("PREPARE_PAUSED", "yes")
-                xenrt.TEC().tc.pause("Preprepare completed")
-                xenrt.GEC().dbconnect.jobUpdate("PREPARE_PAUSED", "no")
-            self.doPrepare()
-            if xenrt.TEC().lookup("PAUSE_AFTER_PREPARE", False, boolean=True):
-                xenrt.GEC().dbconnect.jobUpdate("PREPARE_PAUSED", "yes")
-                xenrt.TEC().tc.pause("Prepare completed")
-                xenrt.GEC().dbconnect.jobUpdate("PREPARE_PAUSED", "no")
-        except Exception, e:
-            xenrt.TEC().logverbose(traceback.format_exc())
-            xenrt.TEC().logverbose("Prepare failed with %s" % (str(e)))
-            try:
-                xenrt.GEC().dbconnect.jobUpdate("PREPARE_FAILED", str(e)[:250].replace("'", ""))
-            except Exception, ex:
-                xenrt.TEC().logverbose("Couldn't write PREPARE_FAILED to DB: " + str(ex))
-            xenrt.GEC().preparefailed = e
-            if xenrt.TEC().lookup("PAUSE_ON_PREPARE_FAIL", False, boolean=True):
-                xenrt.GEC().dbconnect.jobUpdate("PREPARE_PAUSED", "yes")
-                xenrt.TEC().tc.pause("Prepare failed")
-                xenrt.GEC().dbconnect.jobUpdate("PREPARE_PAUSED", "no")
-        Serial.runThis(self)
-
-    def findFile(self, filename):
-        search = [self.seqdir]
-        p = xenrt.TEC().lookup("XENRT_CONF", None)
-        if p:
-            search.append("%s/seqs" % (p))
-        p = xenrt.TEC().lookup("XENRT_BASE", None)
-        if p:
-            search.append("%s/seqs" % (p))
-        for p in search:
-            xenrt.TEC().logverbose("Looking for file in %s ..." % (p))
-            f = "%s/%s" % (p, filename)
-            if os.path.exists(f):
-                return f
-        p = xenrt.TEC().lookup("CUSTOM_SEQUENCE", None)
-        if p:
-            xenrt.TEC().logverbose("Looking for file on controller ...")
-            data = xenrt.GEC().dbconnect.jobDownload(filename)
-            f = xenrt.TEC().tempFile()
-            file(f, "w").write(data)
-            return f
-
-    def scriptFile(self, filename, format):
-        """Parse a script file"""
-        if not format:
-            format = "cmd"
-        f = self.findFile(filename)
-        self.scripts[filename] = (file(f, "r").read(), format)
-
-    def incFile(self, filename):
-        """Parse an include file"""
-        f = self.findFile(filename)
-        cfg = xml.dom.minidom.parse(f)
-        for i in cfg.childNodes:
-            if i.nodeType == i.ELEMENT_NODE:
-                if i.localName == "xenrt":
-                    for n in i.childNodes:
-                        if n.nodeType == n.ELEMENT_NODE:
-                            if n.localName == "variables":
-                                if not xenrt.TEC().lookup("SEQ_PARSING_ONLY", False, boolean=True):
-                                    xenrt.TEC().config.parseXMLNode(n)
-                            elif n.localName == "semaphores":
-                                for s in n.childNodes:
-                                    if s.nodeType == s.ELEMENT_NODE:
-                                        semclass = str(s.localName)
-                                        count = expand(s.getAttribute("count"),
-                                                       self.params)
-                                        if not count:
-                                            count = "1"
-                                        xenrt.GEC().semaphoreCreate(semclass,
-                                                                    int(count))
-                            elif n.localName == "collection":
-                                name = n.getAttribute("name")
-                                if not name:
-                                    raise xenrt.XRTError("Found collection "
-                                                         "without name in "
-                                                         "sequence file.")
-                                self.collections[name] = n
-                            elif n.localName == "default":
-                                name = n.getAttribute("name")
-                                value = n.getAttribute("value")
-                                if not name:
-                                    raise xenrt.XRTError("Found default "
-                                                         "without name in "
-                                                         "sequence file.")
-                                if value == None:
-                                    raise xenrt.XRTError("Found default "
-                                                         "without value in "
-                                                         "sequence file.")
-                                if value != None:
-                                    value = expand(value, self.params)
-                                if name and value != None:
-                                    self.params[str(name)] = \
-                                                           xenrt.TEC().lookup(\
-                                        str(name), str(value))
-                            elif n.localName == "include":
-                                iname = n.getAttribute("filename")
-                                if not iname:
-                                    raise xenrt.XRTError("Found include "
-                                                         "without filename.")
-                                self.incFile(iname)
-                else:
-                    raise xenrt.XRTError("No 'xenrt' tag found.")
-
-class PrepareNode:
-
-    def __init__(self, toplevel, node, params):
-        self.toplevel = toplevel
-        self.vms = []
-        self.templates = []
-        self.instances = []
-        self.hosts = []
-        self.pools = []
-        self.bridges = []
-        self.srs = []
-        self.privatevlans = []
-        self.cloudSpec = {}
-        self.networksForHosts = {}
-        self.networksForPools = {}
-        self.controllersForHosts = {}
-        self.controllersForPools = {}
-        self.preparecount = 0
-        self.containerHosts = []
-
-        # Ignore cloud nodes on the first pass
-        for n in node.childNodes:
-            if n.localName == "pool":
-                self.handlePoolNode(n, params)
-            elif n.localName == "host":
-                self.handleHostNode(n, params)
-            elif n.localName == "sharedhost":
-                self.handleSharedHostNode(n, params)
-            elif n.localName == "allhosts":
-                # Create a host for each machine known to this job
-                if n.hasAttribute("start"):
-                    i = int(n.getAttribute("start"))
-                else:
-                    i = 0
-                if n.hasAttribute("stop"):
-                    stop = int(n.getAttribute("stop"))
-                else:
-                    stop = None
-                while xenrt.TEC().lookup("RESOURCE_HOST_%u" % (i), None):
-                    host = self.handleHostNode(n, params, id=i)
-                    if i == stop:
-                        break
-                    i = i + 1
-            elif n.localName == "template":
-                self.handleInstanceNode(n, params, template=True)
-            elif n.localName == "instance":
-                self.handleInstanceNode(n, params, template=False)
-            elif n.localName == "vlan":
-                self.handleVlanNode(n, params)
+class PrepareNodeParserJSON(PrepareNodeParserBase):
+    def parse(self):
+        for x in self.data.get("pools", []):
+            self.handlePoolNode(x)
+        for x in self.data.get("hosts", []):
+            self.handleHostNode(x)
+        for x in self.data.get("utilityvms", []):
+            self.handleUtilityVMNode(x)
+        for x in self.data.get("templates", []):
+            self.handleInstanceNode(x, template=True)
+        for x in self.data.get("instances", []):
+            self.handleInstanceNode(x, template=False)
+        for x in self.data.get("vlans", []):
+            self.handleVLANNode(x)
         
-        # Do the cloud nodes now the other hosts have been allocated
-        for n in node.childNodes:
-            if n.localName == "cloud":
-                self.handleCloudNode(n, params)
+        if "multihosts" in self.data:
+            self.handleMultiHostNode(self.data['multihosts'])
 
-        # Insert preprepare if required for any containerHosts
-        if len(self.containerHosts) > 0 and self.toplevel.preprepare is None \
-           and node.localName != "preprepare":
-            preprepareNode = xml.dom.minidom.Element("preprepare")
-            for c in self.containerHosts:
-                hostNode = xml.dom.minidom.Element("host")
-                hostNode.setAttribute("id", c)
-                preprepareNode.appendChild(hostNode)
-            self.toplevel.preprepare = PrepareNode(self.toplevel, preprepareNode, params)
+        if "cloud" in self.data:
+            self.handleCloudNode(self.data['cloud'])
+
 
     def __minAvailable(self, allocated):
         i = 0
@@ -977,21 +42,40 @@ class PrepareNode:
             i += 1
 
     def __minAvailableHost(self, additionalHosts=[]):
-        hosts = [int(x['id']) for x in self.hosts]
+        hosts = [int(x['id']) for x in self.parent.hosts]
         hosts.extend(additionalHosts)
-        return str(self.__minAvailable(hosts))
+        return self.__minAvailable(hosts)
 
     def __minAvailablePool(self):
-        return str(self.__minAvailable([int(x['id']) for x in self.pools]))
+        return self.__minAvailable([int(x['id']) for x in self.parent.pools])
 
-    def handleCloudNode(self, node, params):
+    def handleMultiHostNode(self, node, pool=None):
+        i = node.get('start', 0)
+        end = node.get('end', None)
+        hosts = []
+        while xenrt.TEC().lookup("RESOURCE_HOST_%u" % (i), None):
+            hnode = copy.deepcopy(node)
+            hnode['id'] = i
+            host = self.handleHostNode(hnode)
+            if pool:
+                host["pool"] = pool["name"]
+                if not pool["master"]:
+                    pool["master"] = "RESOURCE_HOST_%s" % (i)
+            hosts.append(host)
+            if i == end:
+                break
+            i = i + 1
+        return hosts
+
+
+    def handleCloudNode(self, node):
         # Load the JSON block from the sequence file
-        self.cloudSpec = json.loads(expand(node.childNodes[0].data, params))
+        self.parent.cloudSpec = node
 
 
         job = xenrt.GEC().jobid() or "nojob"
 
-        for zone in self.cloudSpec['zones']:
+        for zone in self.parent.cloudSpec['zones']:
 #TODO - Remove
             if not zone.has_key('physical_networks'):
                 xenrt.TEC().warning('LEGACY_CLOUD_BLOCK add physical_networks element to legacy cloud block')
@@ -1027,39 +111,45 @@ class PrepareNode:
                     xenrt.TEC().config.setVariable("CLOUD_REQ_SYS_TMPLS", sysTemplates)
 
                     if cluster['hypervisor'].lower() == "xenserver":
-                        if not cluster.has_key('XRT_MasterHostId'):
-
-                            simplePoolNode = xml.dom.minidom.Element('pool')
+                        if cluster.has_key('XRT_MasterHostId'):
+                            cluster['XRT_MasterHostName'] = "RESORUCE_HOST_%d" % cluster['XRT_MasterHostId']
+                        if not cluster.has_key('XRT_MasterHostName'):
+                            if cluster.has_key('XRT_ContainerHostId'):
+                                cluster['XRT_ContainerHostIds'] = [cluster['XRT_ContainerHostId']] * cluster['XRT_Hosts']
                             poolId = self.__minAvailablePool()
-                            simplePoolNode.setAttribute('id', poolId)
+                            simplePoolNode = {'id': poolId, 'hosts':[]}
+                            
                             poolHosts = []
                             for h in xrange(cluster['XRT_Hosts']):
-                                simpleHostNode = xml.dom.minidom.Element('host')
-                                hostId = self.__minAvailableHost(poolHosts)
-                                poolHosts.append(int(hostId))
-                                simpleHostNode.setAttribute('id', hostId)
-                                simpleHostNode.setAttribute('noisos', 'yes')
-                                simplePoolNode.appendChild(simpleHostNode)
+                                simpleHostNode = {'noisos': True}
+                                if cluster.has_key('XRT_ContainerHostIds'):
+                                    simpleHostNode['container'] = cluster['XRT_ContainerHostIds'][h]
+                                else:
+                                    hostId = self.__minAvailableHost(poolHosts)
+                                    poolHosts.append(int(hostId))
+                                    simpleHostNode['id'] = hostId
+                                simplePoolNode['hosts'].append(simpleHostNode)
 
 # TODO: Create storage if required                        if cluster.has_key('primaryStorageSRName'):
                             
 
-                            self.handlePoolNode(simplePoolNode, params)
-                            poolSpec = filter(lambda x:x['id'] == str(poolId), self.pools)[0]
-                            cluster['XRT_MasterHostId'] = int(poolSpec['master'].split('RESOURCE_HOST_')[1])
+                            self.handlePoolNode(simplePoolNode)
+                            poolSpec = filter(lambda x:x['id'] == str(poolId), self.parent.pools)[0]
+                            cluster['XRT_MasterHostName'] = poolSpec['master']
                     elif cluster['hypervisor'].lower() == "kvm":
                         if not cluster.has_key('XRT_KVMHostIds'):
                             hostIds = []
                             for h in xrange(cluster['XRT_Hosts']):
                                 hostId = self.__minAvailableHost()
                                 hostIds.append(hostId)
-                                simpleHostNode = xml.dom.minidom.Element('host')
-                                simpleHostNode.setAttribute('id', str(hostId))
-                                simpleHostNode.setAttribute('productType', 'kvm')
-                                simpleHostNode.setAttribute('productVersion', xenrt.TEC().lookup('CLOUD_KVM_DISTRO', 'rhel63-x64'))
-                                simpleHostNode.setAttribute('noisos', 'yes')
-                                simpleHostNode.setAttribute('installsr', 'no')
-                                self.handleHostNode(simpleHostNode, params)
+                                simpleHostNode = {'id': hostId,
+                                                  'product_type': 'kvm',
+                                                  'product_version': xenrt.TEC().lookup('CLOUD_KVM_DISTRO', 'rhel63-x64'),
+                                                  'noisos': True,
+                                                  'install_sr_type': 'no'
+
+                                }
+                                self.handleHostNode(simpleHostNode)
                             cluster['XRT_KVMHostIds'] = string.join(map(str, hostIds),',')
 
                     elif cluster['hypervisor'].lower() == "lxc":
@@ -1068,13 +158,13 @@ class PrepareNode:
                             for h in xrange(cluster['XRT_Hosts']):
                                 hostId = self.__minAvailableHost()
                                 hostIds.append(hostId)
-                                simpleHostNode = xml.dom.minidom.Element('host')
-                                simpleHostNode.setAttribute('id', str(hostId))
-                                simpleHostNode.setAttribute('productType', 'kvm')
-                                simpleHostNode.setAttribute('productVersion', xenrt.TEC().lookup('CLOUD_KVM_DISTRO', 'rhel63-x64'))
-                                simpleHostNode.setAttribute('noisos', 'yes')
-                                simpleHostNode.setAttribute('installsr', 'no')
-                                self.handleHostNode(simpleHostNode, params)
+                                simpleHostNode = {'id': hostId,
+                                                  'product_type': 'kvm',
+                                                  'product_version': xenrt.TEC().lookup('CLOUD_KVM_DISTRO', 'rhel63-x64'),
+                                                  'noisos': True,
+                                                  'install_sr_type': 'no'
+                                }
+                                self.handleHostNode(simpleHostNode)
                             cluster['XRT_LXCHostIds'] = string.join(map(str, hostIds),',')
 
                     elif cluster['hypervisor'].lower() == "hyperv":
@@ -1089,14 +179,14 @@ class PrepareNode:
                             for h in xrange(cluster['XRT_Hosts']):
                                 hostId = self.__minAvailableHost()
                                 hostIds.append(hostId)
-                                simpleHostNode = xml.dom.minidom.Element('host')
-                                simpleHostNode.setAttribute('id', str(hostId))
-                                simpleHostNode.setAttribute('productType', 'hyperv')
-                                simpleHostNode.setAttribute('productVersion', xenrt.TEC().lookup('CLOUD_HYPERV_DISTRO', 'ws12r2-x64'))
-                                simpleHostNode.setAttribute('noisos', 'yes')
-                                simpleHostNode.setAttribute('installsr', 'no')
-                                simpleHostNode.setAttribute('extraConfig', '{"cloudstack":true}')
-                                self.handleHostNode(simpleHostNode, params)
+                                simpleHostNode = {'id': hostId,
+                                                  'product_type': 'hyperv',
+                                                  'product_version': xenrt.TEC().lookup('CLOUD_HYPERV_DISTRO', 'ws12r2-x64'),
+                                                  'noisos': True,
+                                                  'install_sr_type': 'no',
+                                                  'extra_config': {'cloudstack':True}
+                                }
+                                self.handleHostNode(simpleHostNode)
                             cluster['XRT_HyperVHostIds'] = string.join(map(str, hostIds),',')
                     elif cluster['hypervisor'].lower() == "vmware":
                         if zone.get("networktype", "Basic") == "Advanced" and not zone.has_key('XRT_ZoneNetwork'):
@@ -1117,59 +207,338 @@ class PrepareNode:
                             for h in xrange(cluster['XRT_Hosts']):
                                 hostId = self.__minAvailableHost()
                                 hostIds.append(hostId)
-                                simpleHostNode = xml.dom.minidom.Element('host')
-                                simpleHostNode.setAttribute('id', str(hostId))
-                                simpleHostNode.setAttribute('productType', 'esx')
-                                simpleHostNode.setAttribute('productVersion', xenrt.TEC().lookup('ESXI_VERSION', '5.5.0-update02'))
-                                simpleHostNode.setAttribute('noisos', 'yes')
-                                simpleHostNode.setAttribute('installsr', 'no')
-                                simpleHostNode.setAttribute('extraConfig', '{"dc":"%s", "cluster": "%s", "virconn": false}' % (zone['XRT_VMWareDC'], cluster['XRT_VMWareCluster']))
-                                self.handleHostNode(simpleHostNode, params)
+                                simpleHostNode = {'id': hostId,
+                                                  'product_type': 'esx',
+                                                  'product_version': xenrt.TEC().lookup('ESXI_VERSION', '5.5.0-update02'),
+                                                  'noisos': True,
+                                                  'install_sr_type': 'no',
+                                                  'extra_config': {"dc": zone['XRT_VMWareDC'], "cluster": cluster['XRT_VMWareCluster'], "virconn": False}
+                                }
+                                self.handleHostNode(simpleHostNode)
                             cluster['XRT_VMWareHostIds'] = string.join(map(str, hostIds),',')
 
-    def handleInstanceNode(self, node, params, template=False):
+    def handlePoolNode(self, node):
+        pool = {}
+        hosts = []
+
+        pool["id"] = str(node.get("id", 0))
+        pool["name"] = node.get("name", "RESOURCE_POOL_%s" % (pool["id"]))
+        pool["master"] = node.get("master")
+        pool["ssl"] = node.get("ssl", False)
+
+        for x in node.get("hosts", []):
+            host = self.handleHostNode(x)
+            host['pool'] = pool['name']
+            hosts.append(host)
+            if not pool["master"]:
+                if host.has_key("vHostName"):
+                    pool["master"] = "vhost-%s" % host["vHostName"]
+                else:
+                    pool["master"] = "RESOURCE_HOST_%s" % (host["id"])
+
+        if "multihosts" in node:
+            hosts.extend(self.handleMultiHostNode(node['multihosts'], pool))
+
+        otherNodes = []
+        hasAdvancedNet = False
+        self.handleSRs(node, pool['master'])
+        self.handleBridges(node, pool['master'])
+        for x in node.get("vms", []):
+            vm = self.handleVMNode(x)
+            vm["host"] = pool["master"] 
+            
+        for x in node.get("vm_groups", []):
+            vmgroup = self.handleVMGroupNode(x)
+            for vm in vmgroup:
+                vm["host"] = pool["master"] 
+        
+        if "network" in node:
+            # This is a network topology description we can use
+            # with createNetworkTopology. Record the whole DOM node
+            self.parent.networksForPools[pool["name"]] = x['topology']
+            if "controller" in x:
+                self.parent.controllersForPools[host["name"]] = x["controller"]
+            hasAdvancedNet = True
+        
+        self.parent.pools.append(pool)
+
+        if hasAdvancedNet:
+            for h in hosts:
+                h['basicNetwork'] = False
+
+        return pool
+
+    def handleSRs(self, node, host):
+        for x in node.get("srs", []):
+            type = x.get("type")
+            name = x.get("name")
+            default = x.get("default")
+            options = x.get("options", "")
+            network = x.get("network", "")
+            blkbackPoolSize = x.get("blkbackpoolsize", "")
+            vmhost = x.get("vmhost", "")
+            size = x.get("size", "")
+            self.parent.srs.append({"type":type, 
+                             "name":name, 
+                             "host":host,
+                             "default":default,
+                             "options":options,
+                             "network":network,
+                             "blkbackPoolSize":blkbackPoolSize,
+                             "vmhost":vmhost,
+                             "size":size})
+
+    def handleBridges(self, node, host):
+        for x in node.get("bridges", []):
+            type = x.get("type", "")
+            name = x.get("name", "")
+            self.parent.bridges.append({"type":type, 
+                                 "name":name, 
+                                 "host":host})
+        
+    def handleHostNode(self, node):
+        host = {}        
+        host["pool"] = None
+
+        container = node.get("container")
+        if container != None:
+            host['containerHost'] = int(container)
+            host['vHostName'] = node.get("vname", xenrt.randomGuestName())
+            host['name'] = node.get("name", "vhost-%s" % host['vHostName'])
+            vHostCpus = node.get("vcpus")
+            if vHostCpus:
+                host['vHostCpus'] = int(vHostCpus)
+            vHostMemory = node.get("vmemory")
+            if vHostMemory:
+                host['vHostMemory'] = int(vHostMemory)
+            vHostDiskSize = node.get("vdisksize")
+            if vHostDiskSize:
+                host['vHostDiskSize'] = int(vHostDiskSize)
+            vHostSR = node.get("vsr")
+            if vHostSR:
+                host['vHostSR'] = vHostSR
+            vNetworks = node.get("vnetworks")
+            if vNetworks:
+                host['vNetworks'] = vNetworks
+
+            if not str(container) in self.parent.containerHosts:
+                self.parent.containerHosts.append(str(container))
+            
+        else:
+            host["id"] = str(node['id'])
+            host["name"] = node.get("name", str("RESOURCE_HOST_%s" % (host["id"])))
+        host["version"] = node.get("version")
+        host["productType"] = node.get("product_type", xenrt.TEC().lookup("PRODUCT_TYPE", "xenserver"))
+        host["productVersion"] = node.get("product_version")
+        host["installSRType"] = node.get("install_sr_type")
+        host["dhcp"] = node.get("dhcp", True)
+        host['ipv6'] = node.get("ipv6", "")
+        host['noipv4'] = node.get("noipv4", False)
+        host['diskCount'] = node.get("disk_count", 1)
+        if "license" in node:
+            if node['license'] == True:
+                host["license"] = True
+            elif node['license'] == False:
+                host["license"] = False
+            else:
+                host["license"] = node['license']
+        else:
+            ls = xenrt.TEC().lookup("OPTION_LIC_SKU", None)
+            if ls:
+                host["license"] = ls
+        
+        if "usev6testd" in node:
+            host["usev6testd"] = node["usev6testd"]
+        if "noisos" in node:
+            host["noisos"] = node.get("noisos", False)
+        host["suppackcds"] = node.get("suppackcds")
+        if "disablefw" in node:
+            host["disablefw"] = node.get("disablefw")
+        # cpufreqgovernor is usually one of {userspace, performance, powersave, ondemand}.
+        host['cpufreqgovernor'] = node.get("cpufreqgovernor", xenrt.TEC().lookup("CPUFREQ_GOVERNOR", None))
+        host['extraConfig'] = node.get("extra_config", {})
+        
+        hasAdvancedNet = False
+        self.handleSRs(node, host['name'])
+        self.handleBridges(node, host)
+
+        for x in node.get("vms", []):
+            vm = self.handleVMNode(x)
+            vm["host"] = host["name"] 
+            
+        for x in node.get("vm_groups", []):
+            vmgroup = self.handleVMGroupNode(x)
+            for vm in vmgroup:
+                vm["host"] = host["name"]      
+            
+        if "network" in node:
+            # This is a network topology description we can use
+            # with createNetworkTopology. Record the whole DOM node
+            self.parent.networksForHosts[host["name"]] = x['topology']
+            if "controller" in x:
+                self.parent.controllersForHosts[host["name"]] = x["controller"]
+            hasAdvancedNet = True
+
+        host['basicNetwork'] = not hasAdvancedNet
+
+        self.parent.hosts.append(host)
+
+        return host
+
+    def handleUtilityVMNode(self, node):
+        vm = self.handleVMNode(node, suffixjob=True)
+        vm["host"] = "SHARED"
+    
+    def handleVLANNode(self, node):
+        self.parent.privatevlans.append(node['name'])
+
+    def handleVMGroupNode(self, node):
+        vmgroup = []
+        basename = node['basename']
+        number = node['number']
+        for i in range(number):
+            x = copy.deepcopy(node)
+            del x['basename']
+            del x['number']
+            x['name'] = "%s-%s" % (basename, i)
+            vmgroup.append(self.handleVMNode(x))
+        return vmgroup
+
+    def handleVMNode(self, node, suffixjob=False):
+        vm = {} 
+
+        vm["guestname"] = node['name']
+        vm["vifs"] = []       
+        vm["ips"] = {}       
+        vm["disks"] = []
+        vm["postinstall"] = []
+        if suffixjob:
+            vm["suffix"] = xenrt.GEC().dbconnect.jobid()
+
+        if "distro" in node:
+            vm['distro'] = node["distro"]
+        if "vcpus" in node:
+            vm['vcpus'] = node["vcpus"]
+        if "cores_per_socket" in node:
+            vm['corespersocket'] = node["cores_per_socket"]
+        if "memory" in node:
+            vm['memory'] = node["memory"]
+        if "guestparams" in node:
+            vm['guestparams'] = []
+            for x in sorted(node['guestparams'].keys()):
+                vm['guestparams'].append([x, node['guestparams'], x])
+        if "sr" in node:
+            vm['sr'] = node["sr"]
+        if "arch" in node:
+            vm['arch'] = node["arch"]
+        for x in node.get("vifs", []):
+            device = x.get("device")
+            bridge = x.get("network", "")
+            ip = x.get("ip")
+            vm["vifs"].append([str(device), bridge, xenrt.randomMAC(), None])
+            if ip:
+                vm["ips"][device] = ip
+        for x in node.get("disks", []):
+            device = x.get("device")
+            size = x.get("size")
+            format = x.get("format", False)
+            number = x.get("count", 1)
+            for i in range(int(number)):
+                vm["disks"].append([str(device+i), str(size), format])
+        for x in node.get("postinstall", []):
+            vm['postinstall'].append(x['action'])
+        for x in node.get("scripts", []):
+            vm['postinstall'].append(self.parent.toplevel.scripts[x])
+        if "file_name" in node:
+            vm['filename'] = node['file_name']
+            vm['userfile'] = node.get("user", False)
+        if "boot_params" in node:
+            vm['bootparams'] = node['boot_params']
+        
+        self.parent.vms.append(vm)
+
+        return vm
+
+    def handleInstanceNode(self, node, template=False):
         instance = {}
 
-        instance["distro"] = expand(node.getAttribute("distro"), params)
+        instance["distro"] = node["distro"]
         if not template:
-            instance["name"] = expand(node.getAttribute("name"), params)
-        instance["zone"] = expand(node.getAttribute("zone"), params)
-        instance["installTools"] = node.getAttribute("installTools") is None or node.getAttribute("installTools")[0] in ('y', 't', '1', 'Y', 'T')
-        instance["hypervisorType"] = expand(node.getAttribute("hypervisorType"), params)
-        
-        # TODO: vifs
-        for x in node.childNodes:
-            if x.nodeType == x.ELEMENT_NODE:
-                if x.localName == "vcpus":
-                    for a in x.childNodes:
-                        if a.nodeType == a.TEXT_NODE:
-                            instance["vcpus"] = int(expand(str(a.data), params))
-                elif x.localName == "memory":
-                    for a in x.childNodes:
-                        if a.nodeType == a.TEXT_NODE:
-                            instance["memory"] = int(expand(str(a.data), params))
-                elif x.localName == "rootdisk":
-                    for a in x.childNodes:
-                        if a.nodeType == a.TEXT_NODE:
-                            instance["rootdisk"] = int(expand(str(a.data), params))
+            instance["name"] = node.get("name")
+        instance["zone"] = node.get("zone")
+        instance["installTools"] = node.get("install_tools", True)
+        instance["hypervisorType"] = node.get("hypervisor_type")
+       
+        if "vcpus" in node:
+            instance['vcpus'] = node['vcpus']
+        if "memory" in node:
+            instance['memory'] = node['memory']
+        if "rootdisk" in node:
+            instance['rootdisk'] = node['root_disk']
 
         if template:
-            self.templates.append(instance)
+            self.parent.templates.append(instance)
         else:
-            self.instances.append(instance)
+            self.parent.instances.append(instance)
         return instance
 
-    def handlePoolNode(self, node, params):
+
+class PrepareNodeParserXML(PrepareNodeParserBase):
+
+    def __init__(self, parent, data):
+        PrepareNodeParserBase.__init__(self, parent, data)
+        self.jsonParser = PrepareNodeParserJSON(self.parent, None)
+
+    def parse(self):
+        # Ignore cloud nodes on the first pass
+        for n in self.data.childNodes:
+            if n.localName == "pool":
+                self.handlePoolNode(n)
+            elif n.localName == "host":
+                self.handleHostNode(n)
+            elif n.localName == "sharedhost":
+                self.handleSharedHostNode(n)
+            elif n.localName == "allhosts":
+                # Create a host for each machine known to this job
+                if n.hasAttribute("start"):
+                    i = int(n.getAttribute("start"))
+                else:
+                    i = 0
+                if n.hasAttribute("stop"):
+                    stop = int(n.getAttribute("stop"))
+                else:
+                    stop = None
+                while xenrt.TEC().lookup("RESOURCE_HOST_%u" % (i), None):
+                    host = self.handleHostNode(n, id=i)
+                    if i == stop:
+                        break
+                    i = i + 1
+            elif n.localName == "template":
+                self.handleInstanceNode(n, template=True)
+            elif n.localName == "instance":
+                self.handleInstanceNode(n, template=False)
+            elif n.localName == "vlan":
+                self.handleVLANNode(n)
+        
+        # Do the cloud nodes now the other hosts have been allocated
+        for n in self.data.childNodes:
+            if n.localName == "cloud":
+                self.handleCloudNode(n)
+
+    def handleCloudNode(self, node):
+        self.jsonParser.handleCloudNode(yaml.load(self.expand(node.childNodes[0].data)))
+    
+    def handlePoolNode(self, node):
         pool = {}
 
-        pool["id"] = expand(node.getAttribute("id"), params)
+        pool["id"] = self.expand(node.getAttribute("id"))
         if not pool["id"]:
             pool["id"] = 0
-        pool["name"] = expand(node.getAttribute("name"), params)
+        pool["name"] = self.expand(node.getAttribute("name"))
         if not pool["name"]:
             pool["name"] = "RESOURCE_POOL_%s" % (pool["id"])
-        pool["master"] = expand(node.getAttribute("master"), params)
-        ssl = expand(node.getAttribute("ssl"), params)
+        pool["master"] = self.expand(node.getAttribute("master"))
+        ssl = self.expand(node.getAttribute("ssl"))
         if ssl and ssl[0] in ('y', 't', '1', 'Y', 'T'):
             pool["ssl"] = True
         else:
@@ -1189,11 +558,14 @@ class PrepareNode:
         # determine who the master is (XRT-6100 + XRT-6101)
         for x in hostNodes:
             if x.localName == "host":
-                host = self.handleHostNode(x, params)
+                host = self.handleHostNode(x)
                 host["pool"] = pool["name"]
                 hosts.append(host)
                 if not pool["master"]:
-                    pool["master"] = "RESOURCE_HOST_%s" % (host["id"])
+                    if host.has_key("vHostName"):
+                        pool["master"] = "vhost-%s" % host["vHostName"]
+                    else:
+                        pool["master"] = "RESOURCE_HOST_%s" % (host["id"])
             elif x.localName == "allhosts":
                 # Create a host for each machine known to this job
                 if x.hasAttribute("start"):
@@ -1205,7 +577,7 @@ class PrepareNode:
                 else:
                     stop = None
                 while xenrt.TEC().lookup("RESOURCE_HOST_%u" % (i), None):
-                    host = self.handleHostNode(x, params, id=i)
+                    host = self.handleHostNode(x, id=i)
                     host["pool"] = pool["name"]
                     hosts.append(host)
                     if not pool["master"]:
@@ -1216,15 +588,15 @@ class PrepareNode:
         hasAdvancedNet = False
         for x in otherNodes:
             if x.localName == "storage":
-                type = expand(x.getAttribute("type"), params)
-                name = expand(x.getAttribute("name"), params)
-                default = expand(x.getAttribute("default"), params)
-                options = expand(x.getAttribute("options"), params)
-                network = expand(x.getAttribute("network"), params)
-                blkbackPoolSize = expand(x.getAttribute("blkbackpoolsize"), params)
-                vmhost = expand(x.getAttribute("vmhost"), params)
-                size = expand(x.getAttribute("size"), params)
-                self.srs.append({"type":type, 
+                type = self.expand(x.getAttribute("type"))
+                name = self.expand(x.getAttribute("name"))
+                default = self.expand(x.getAttribute("default"))
+                options = self.expand(x.getAttribute("options"))
+                network = self.expand(x.getAttribute("network"))
+                blkbackPoolSize = self.expand(x.getAttribute("blkbackpoolsize"))
+                vmhost = self.expand(x.getAttribute("vmhost"))
+                size = self.expand(x.getAttribute("size"))
+                self.parent.srs.append({"type":type, 
                                  "name":name, 
                                  "host":pool["master"],
                                  "default":(lambda x:x == "true")(default),
@@ -1234,26 +606,26 @@ class PrepareNode:
                                  "vmhost":vmhost,
                                  "size":size})
             elif x.localName == "bridge":
-                type = expand(x.getAttribute("type"), params)
-                name = expand(x.getAttribute("name"), params)
-                self.bridges.append({"type":type, 
+                type = self.expand(x.getAttribute("type"))
+                name = self.expand(x.getAttribute("name"))
+                self.parent.bridges.append({"type":type, 
                                      "name":name, 
                                      "host":pool["master"]})
             elif x.localName == "vm":
-                vm = self.handleVMNode(x, params)
+                vm = self.handleVMNode(x)
                 vm["host"] = pool["master"] 
             elif x.localName == "vmgroup":
-                vmgroup = self.handleVMGroupNode(x, params)
+                vmgroup = self.handleVMGroupNode(x)
                 for vm in vmgroup:
                     vm["host"] = host["name"]      
             elif x.localName == "NETWORK":
                 # This is a network topology description we can use
                 # with createNetworkTopology. Record the whole DOM node
                 if x.getAttribute("controller"):
-                    self.controllersForPools[pool["name"]] = expand(x.getAttribute("controller"), params)
-                self.networksForPools[pool["name"]] = x.parentNode
+                    self.parent.controllersForPools[pool["name"]] = self.expand(x.getAttribute("controller"))
+                self.parent.networksForPools[pool["name"]] = x.parentNode
                 hasAdvancedNet = True
-        self.pools.append(pool)
+        self.parent.pools.append(pool)
 
         if hasAdvancedNet:
             for h in hosts:
@@ -1261,51 +633,76 @@ class PrepareNode:
 
         return pool
 
-    def handleVlanNode(self, node, params):
-        self.privatevlans.append(expand(node.getAttribute("name"), params))
-
-    def handleHostNode(self, node, params, id=0):
+    def handleHostNode(self, node, id=0):
         host = {}        
         host["pool"] = None
 
-        host["id"] = expand(node.getAttribute("id"), params)
-        if not host["id"]:
-            host["id"] = str(id)
-        host["name"] = expand(node.getAttribute("alias"), params)
-        if not host["name"]:
-            host["name"] = str("RESOURCE_HOST_%s" % (host["id"]))
-        host["version"] = expand(node.getAttribute("version"), params)
+        host["name"] = self.expand(node.getAttribute("alias"))
+        container = self.expand(node.getAttribute("container"))
+        if container:
+            containerHost = int(container)
+            host['containerHost'] = containerHost
+            host['vHostName'] = self.expand(node.getAttribute("vname"))
+            if not host['vHostName']:
+                host['vHostName'] = xenrt.randomGuestName()
+            if not host['name']:
+                host['name'] = "vhost-%s" % host['vHostName']
+            vHostCpus = self.expand(node.getAttribute("vcpus"))
+            if vHostCpus:
+                host['vHostCpus'] = int(vHostCpus)
+            vHostMemory = self.expand(node.getAttribute("vmemory"))
+            if vHostMemory:
+                host['vHostMemory'] = int(vHostMemory)
+            vHostDiskSize = self.expand(node.getAttribute("vdisksize"))
+            if vHostDiskSize:
+                host['vHostDiskSize'] = int(vHostDiskSize)
+            vHostSR = self.expand(node.getAttribute("vsr"))
+            if vHostSR:
+                host['vHostSR'] = vHostSR
+            vNetworks = self.expand(node.getAttribute("vnetworks"))
+            if vNetworks:
+                host['vNetworks'] = vNetworks.split(",")
+
+            if not container in self.parent.containerHosts:
+                self.parent.containerHosts.append(container)
+        else:
+            host["id"] = self.expand(node.getAttribute("id"))
+            if not host["id"]:
+                host["id"] = str(id)
+            if not host["name"]:
+                host["name"] = str("RESOURCE_HOST_%s" % (host["id"]))
+        host["version"] = self.expand(node.getAttribute("version"))
         if not host["version"] or host["version"] == "DEFAULT":
             host["version"] = None
-        host["productType"] = expand(node.getAttribute("productType"), params)
+        host["productType"] = self.expand(node.getAttribute("productType"))
         if not host["productType"]:
             host["productType"] = xenrt.TEC().lookup("PRODUCT_TYPE", "xenserver")
-        host["productVersion"] = expand(node.getAttribute("productVersion"), params)
+        host["productVersion"] = self.expand(node.getAttribute("productVersion"))
         if not host["productVersion"] or host["productVersion"] == "DEFAULT":
             host["productVersion"] = None
-        host["installSRType"] = expand(node.getAttribute("installsr"), params)
+        host["installSRType"] = self.expand(node.getAttribute("installsr"))
         if not host["installSRType"]:
             host["installSRType"] = None
-        dhcp = expand(node.getAttribute("dhcp"), params)
+        dhcp = self.expand(node.getAttribute("dhcp"))
         if not dhcp:
             host["dhcp"] = True
         elif dhcp[0] in ('y', 't', '1', 'Y', 'T'):
             host["dhcp"] = True
         else:
             host["dhcp"] = False
-        host['ipv6'] = expand(node.getAttribute("ipv6"), params)
-        noipv4 = expand(node.getAttribute("noipv4"), params)
+        host['ipv6'] = self.expand(node.getAttribute("ipv6"))
+        noipv4 = self.expand(node.getAttribute("noipv4"))
         if not noipv4:
             host['noipv4'] = False
         elif noipv4[0] in set(['y', 't', '1', 'Y', 'T']):
             host['noipv4'] = True
         if not host['ipv6']:
             host['noipv4'] = False
-        dc = expand(node.getAttribute("diskCount"), params)
+        dc = self.expand(node.getAttribute("diskCount"))
         if not dc:
             dc = "1"
         host["diskCount"] = int(dc)
-        license = expand(node.getAttribute("license"), params)
+        license = self.expand(node.getAttribute("license"))
         if license:
             if license[0] in ('y', 't', '1', 'Y', 'T'):
                 host["license"] = True
@@ -1317,23 +714,23 @@ class PrepareNode:
             ls = xenrt.TEC().lookup("OPTION_LIC_SKU", None)
             if ls:
                 host["license"] = ls
-        usev6testd = expand(node.getAttribute("usev6testd"), params)
+        usev6testd = self.expand(node.getAttribute("usev6testd"))
         if usev6testd:
             if usev6testd[0] in ('y', 't', '1', 'Y', 'T'):
                 host["usev6testd"] = True
             else:
                 host["usev6testd"] = False
-        noisos = expand(node.getAttribute("noisos"), params)
+        noisos = self.expand(node.getAttribute("noisos"))
         if noisos:
             if noisos[0] in ('y', 't', '1', 'Y', 'T'):
                 host["noisos"] = True
             else:
                 host["noisos"] = False
-        defaultHost = expand(node.getAttribute("default"), params)
+        defaultHost = self.expand(node.getAttribute("default"))
         if defaultHost and defaultHost[0] in ('y', 't', '1', 'Y', 'T'):
             host['default'] = True
-        host["suppackcds"] = expand(node.getAttribute("suppackcds"), params)
-        disablefw = expand(node.getAttribute("disablefw"), params)
+        host["suppackcds"] = self.expand(node.getAttribute("suppackcds"))
+        disablefw = self.expand(node.getAttribute("disablefw"))
         if disablefw:
             if disablefw[0] in ('y', 't', '1', 'Y', 'T'):
                 host["disablefw"] = True
@@ -1342,52 +739,30 @@ class PrepareNode:
         if not host["suppackcds"]:
             host["suppackcds"] = None
         # cpufreqgovernor is usually one of {userspace, performance, powersave, ondemand}.
-        cpufreqGovernor = expand(node.getAttribute("cpufreqgovernor"), params)
+        cpufreqGovernor = self.expand(node.getAttribute("cpufreqgovernor"))
         if cpufreqGovernor:
             host["cpufreqgovernor"] = cpufreqGovernor
         else:
             host["cpufreqgovernor"] = xenrt.TEC().lookup("CPUFREQ_GOVERNOR", None)
-        extraCfg = expand(node.getAttribute("extraConfig"), params)
+        extraCfg = self.expand(node.getAttribute("extraConfig"))
         if not extraCfg:
             host['extraConfig'] = {}
         else:
-            host['extraConfig'] = json.loads(extraCfg)
-        container = expand(node.getAttribute("container"), params)
-        if container:
-            containerHost = int(container)
-            host['containerHost'] = containerHost
-            vHostName = expand(node.getAttribute("vname"), params)
-            if vHostName:
-                host['vHostName'] = vHostName
-            vHostCpus = expand(node.getAttribute("vcpus"), params)
-            if vHostCpus:
-                host['vHostCpus'] = int(vHostCpus)
-            vHostMemory = expand(node.getAttribute("vmemory"), params)
-            if vHostMemory:
-                host['vHostMemory'] = int(vHostMemory)
-            vHostDiskSize = expand(node.getAttribute("vdisksize"), params)
-            if vHostDiskSize:
-                host['vHostDiskSize'] = int(vHostDiskSize)
-            vHostSR = expand(node.getAttribute("vsr"), params)
-            if vHostSR:
-                host['vHostSR'] = vHostSR
-
-            if not container in self.containerHosts:
-                self.containerHosts.append(container)
+            host['extraConfig'] = yaml.load(extraCfg)
         
         hasAdvancedNet = False
         for x in node.childNodes:
             if x.nodeType == x.ELEMENT_NODE:
                 if x.localName == "storage":
-                    type = expand(x.getAttribute("type"), params)
-                    name = expand(x.getAttribute("name"), params)
-                    default = expand(x.getAttribute("default"), params)
-                    options = expand(x.getAttribute("options"), params)
-                    network = expand(x.getAttribute("network"), params)
-                    blkbackPoolSize = expand(x.getAttribute("blkbackpoolsize"), params)
-                    vmhost = expand(x.getAttribute("vmhost"), params)
-                    size = expand(x.getAttribute("size"), params)
-                    self.srs.append({"type":type, 
+                    type = self.expand(x.getAttribute("type"))
+                    name = self.expand(x.getAttribute("name"))
+                    default = self.expand(x.getAttribute("default"))
+                    options = self.expand(x.getAttribute("options"))
+                    network = self.expand(x.getAttribute("network"))
+                    blkbackPoolSize = self.expand(x.getAttribute("blkbackpoolsize"))
+                    vmhost = self.expand(x.getAttribute("vmhost"))
+                    size = self.expand(x.getAttribute("size"))
+                    self.parent.srs.append({"type":type, 
                                      "name":name, 
                                      "host":host["name"],
                                      "default":(lambda x:x == "true")(default),
@@ -1397,51 +772,54 @@ class PrepareNode:
                                      "vmhost":vmhost,
                                      "size":size})
                 elif x.localName == "bridge":
-                    type = expand(x.getAttribute("type"), params)
-                    name = expand(x.getAttribute("name"), params)
-                    self.bridges.append({"type":type, 
+                    type = self.expand(x.getAttribute("type"))
+                    name = self.expand(x.getAttribute("name"))
+                    self.parent.bridges.append({"type":type, 
                                          "name":name, 
                                          "host":host})
                 elif x.localName == "vm":
-                    vm = self.handleVMNode(x, params)
+                    vm = self.handleVMNode(x)
                     vm["host"] = host["name"] 
                 elif x.localName == "vmgroup":
-                    vmgroup = self.handleVMGroupNode(x, params)
+                    vmgroup = self.handleVMGroupNode(x)
                     for vm in vmgroup:
                         vm["host"] = host["name"]      
                 elif x.localName == "NETWORK":
                     # This is a network topology description we can use
                     # with createNetworkTopology. Record the whole DOM node
-                    self.networksForHosts[host["name"]] = x.parentNode
+                    self.parent.networksForHosts[host["name"]] = x.parentNode
                     if x.getAttribute("controller"):
-                        self.controllersForHosts[host["name"]] = expand(x.getAttribute("controller"), params)
+                        self.parent.controllersForHosts[host["name"]] = self.expand(x.getAttribute("controller"))
                     hasAdvancedNet = True
         host['basicNetwork'] = not hasAdvancedNet
 
-        self.hosts.append(host)
+        self.parent.hosts.append(host)
 
         return host
 
-    def handleSharedHostNode(self, node, params):
+    def handleSharedHostNode(self, node):
         for x in node.childNodes:
             if x.nodeType == x.ELEMENT_NODE:
                 if x.localName == "vm":
-                    vm = self.handleVMNode(x, params, suffixjob=True)
+                    vm = self.handleVMNode(x, suffixjob=True)
                     vm["host"] = "SHARED" 
-
-    def handleVMGroupNode(self, node, params):
+    
+    def handleVLANNode(self, node):
+        self.parent.privatevlans.append(self.expand(node.getAttribute("name")))
+    
+    def handleVMGroupNode(self, node):
         vmgroup = []
-        basename = expand(node.getAttribute("basename"), params)
-        number = expand(node.getAttribute("number"), params)
+        basename = self.expand(node.getAttribute("basename"))
+        number = self.expand(node.getAttribute("number"))
         for i in range(int(number)):
             node.setAttribute("name", "%s-%s" % (basename, i))
-            vmgroup.append(self.handleVMNode(node, params))
+            vmgroup.append(self.handleVMNode(node))
         return vmgroup
 
-    def handleVMNode(self, node, params, suffixjob=False):
+    def handleVMNode(self, node, suffixjob=False):
         vm = {} 
 
-        vm["guestname"] = expand(node.getAttribute("name"), params)
+        vm["guestname"] = self.expand(node.getAttribute("name"))
         vm["vifs"] = []       
         vm["ips"] = {}       
         vm["disks"] = []
@@ -1454,43 +832,43 @@ class PrepareNode:
                 if x.localName == "distro":
                     for a in x.childNodes:
                         if a.nodeType == a.TEXT_NODE:
-                            vm["distro"] = expand(str(a.data), params)
+                            vm["distro"] = self.expand(str(a.data))
                 elif x.localName == "vcpus":
                     for a in x.childNodes:
                         if a.nodeType == a.TEXT_NODE:
-                            vm["vcpus"] = int(expand(str(a.data), params))
+                            vm["vcpus"] = int(self.expand(str(a.data)))
                 elif x.localName == "corespersocket":
                     for a in x.childNodes:
                         if a.nodeType == a.TEXT_NODE:
-                            vm["corespersocket"] = int(expand(str(a.data), params))
+                            vm["corespersocket"] = int(self.expand(str(a.data)))
                 elif x.localName == "memory":
                     for a in x.childNodes:
                         if a.nodeType == a.TEXT_NODE:
-                            vm["memory"] = int(expand(str(a.data), params))
+                            vm["memory"] = int(self.expand(str(a.data)))
                 elif x.localName == "guestparams":
                     for a in x.childNodes:
                         if a.nodeType == a.TEXT_NODE:
-                            vm["guestparams"] = map(lambda x:x.split('='),  string.split(expand(str(a.data), params), ","))
+                            vm["guestparams"] = map(lambda x:x.split('='),  string.split(self.expand(str(a.data)), ","))
                 elif x.localName == "storage":
                     for a in x.childNodes:
                         if a.nodeType == a.TEXT_NODE:
-                            vm["sr"] = expand(str(a.data), params)
+                            vm["sr"] = self.expand(str(a.data))
                 elif x.localName == "arch":
                     for a in x.childNodes:
                         if a.nodeType == a.TEXT_NODE:
-                            vm["arch"] = expand(str(a.data), params)
+                            vm["arch"] = self.expand(str(a.data))
                 elif x.localName == "network":
-                    device = expand(x.getAttribute("device"), params)
-                    bridge = expand(x.getAttribute("bridge"), params)
-                    ip = expand(x.getAttribute("ip"), params)
+                    device = self.expand(x.getAttribute("device"))
+                    bridge = self.expand(x.getAttribute("bridge"))
+                    ip = self.expand(x.getAttribute("ip"))
                     vm["vifs"].append([device, bridge, xenrt.randomMAC(), None])
                     if ip:
                         vm["ips"][int(device)] = ip
                 elif x.localName == "disk":
-                    device = expand(x.getAttribute("device"), params)
-                    size = expand(x.getAttribute("size"), params)
-                    format = expand(x.getAttribute("format"), params)
-                    number = expand(x.getAttribute("number"), params)
+                    device = self.expand(x.getAttribute("device"))
+                    size = self.expand(x.getAttribute("size"))
+                    format = self.expand(x.getAttribute("format"))
+                    number = self.expand(x.getAttribute("number"))
                     if format == "true" or format == "yes": 
                         format = True
                     else: format = False
@@ -1498,29 +876,104 @@ class PrepareNode:
                     for i in range(int(number)):
                         vm["disks"].append([str(int(device)+i), size, format])
                 elif x.localName == "postinstall":
-                    action = expand(x.getAttribute("action"), params)
+                    action = self.expand(x.getAttribute("action"))
                     vm["postinstall"].append(action)
                 elif x.localName == "script":
-                    name = expand(x.getAttribute("name"), params)
-                    vm["postinstall"].append(self.toplevel.scripts[name])
+                    name = self.expand(x.getAttribute("name"))
+                    vm["postinstall"].append(self.parent.toplevel.scripts[name])
                 elif x.localName == "file":
+                    usertext = self.expand(x.getAttribute("user"))
+                    vm["userfile"] = usertext == "true" or usertext == "yes"
                     for a in x.childNodes:
-                        usertext = expand(x.getAttribute("user"), params)
-                        vm["filename"] = expand(str(a.data), params)
-                        vm["userfile"] = usertext == "true" or usertext == "yes"
-                        break
+                        if a.nodeType == a.TEXT_NODE:
+                            vm["filename"] = self.expand(str(a.data))
                 elif x.localName == "bootparams":
                     for a in x.childNodes:
                         if a.nodeType == a.TEXT_NODE:
-                            vm["bootparams"] = expand(str(a.data), params)
+                            vm["bootparams"] = self.expand(str(a.data))
                 elif x.localName == "packages":
                     for a in x.childNodes:
                         if a.nodeType == a.TEXT_NODE:
-                            vm["packages"] = expand(str(a.data), params).split(",")
+                            vm["packages"] = self.expand(str(a.data)).split(",")
 
-        self.vms.append(vm)
+        self.parent.vms.append(vm)
 
         return vm
+
+    def handleInstanceNode(self, node, template=False):
+        instance = {}
+
+        instance["distro"] = self.expand(node.getAttribute("distro"))
+        if not template:
+            instance["name"] = self.expand(node.getAttribute("name"))
+        instance["zone"] = self.expand(node.getAttribute("zone"))
+        instance["installTools"] = node.getAttribute("installTools") is None or node.getAttribute("installTools")[0] in ('y', 't', '1', 'Y', 'T')
+        instance["hypervisorType"] = self.expand(node.getAttribute("hypervisorType"))
+        
+        # TODO: vifs
+        for x in node.childNodes:
+            if x.nodeType == x.ELEMENT_NODE:
+                if x.localName == "vcpus":
+                    for a in x.childNodes:
+                        if a.nodeType == a.TEXT_NODE:
+                            instance["vcpus"] = int(self.expand(str(a.data)))
+                elif x.localName == "memory":
+                    for a in x.childNodes:
+                        if a.nodeType == a.TEXT_NODE:
+                            instance["memory"] = int(self.expand(str(a.data)))
+                elif x.localName == "rootdisk":
+                    for a in x.childNodes:
+                        if a.nodeType == a.TEXT_NODE:
+                            instance["rootdisk"] = int(self.expand(str(a.data)))
+
+        if template:
+            self.parent.templates.append(instance)
+        else:
+            self.parent.instances.append(instance)
+        return instance
+
+class PrepareNode:
+
+    def __init__(self, toplevel, node, params):
+        self.toplevel = toplevel
+        self.vms = []
+        self.templates = []
+        self.instances = []
+        self.hosts = []
+        self.pools = []
+        self.bridges = []
+        self.srs = []
+        self.privatevlans = []
+        self.cloudSpec = {}
+        self.networksForHosts = {}
+        self.networksForPools = {}
+        self.controllersForHosts = {}
+        self.controllersForPools = {}
+        self.preparecount = 0
+        self.params = params
+        self.containerHosts = []
+
+        parser = None
+        for n in node.childNodes:
+            if n.nodeType == n.TEXT_NODE and n.data.strip():
+                parser = xenrt.seq.PrepareNodeParserJSON(self, yaml.load(n.data))
+                break
+
+        if not parser:
+            parser = xenrt.seq.PrepareNodeParserXML(self, node)
+
+        parser.parse()
+
+        # Insert preprepare if required for any containerHosts
+        if len(self.containerHosts) > 0 and self.toplevel.preprepare is None \
+           and node.localName != "preprepare":
+            xenrt.TEC().logverbose("Creating preprepare node becuase we have nested hosts")
+            preprepareNode = xml.dom.minidom.Element("preprepare")
+            for c in self.containerHosts:
+                hostNode = xml.dom.minidom.Element("host")
+                hostNode.setAttribute("id", c)
+                preprepareNode.appendChild(hostNode)
+            self.toplevel.preprepare = PrepareNode(self.toplevel, preprepareNode, params)
 
     def debugDisplay(self):
         xenrt.TEC().logverbose("Hosts:\n" + pprint.pformat(self.hosts))
@@ -1660,20 +1113,20 @@ class PrepareNode:
                 if self.preparecount == 1:
                     for host in masters:
                         if not host.has_key("noisos") or not host["noisos"]:
-                            self.srs.append({"host":host["name"], 
-                                             "name":"XenRT ISOs",
-                                             "type":"iso",
-                                             "path":xenrt.TEC().lookup("EXPORT_ISO_NFS"),
-                                             "default":False,
-                                             "blkbackPoolSize":""})
+                            self.srs.insert(0, {"host":host["name"], 
+                                                "name":"XenRT ISOs",
+                                                "type":"iso",
+                                                "path":xenrt.TEC().lookup("EXPORT_ISO_NFS"),
+                                                "default":False,
+                                                "blkbackPoolSize":""})
                             isos2 = xenrt.TEC().lookup("EXPORT_ISO_NFS_STATIC", None)
                             if isos2:
-                                self.srs.append({"host":host["name"],
-                                                 "name":"XenRT static ISOs",
-                                                 "type":"iso",
-                                                 "path":isos2,
-                                                 "default":False,
-                                                 "blkbackPoolSize":""})
+                                self.srs.insert(0, {"host":host["name"],
+                                                    "name":"XenRT static ISOs",
+                                                    "type":"iso",
+                                                    "path":isos2,
+                                                    "default":False,
+                                                    "blkbackPoolSize":""})
 
                 # If needed, create lun groups
                 iscsihosts = {}
@@ -1764,6 +1217,17 @@ class PrepareNode:
                             else:
                                 sr = xenrt.productLib(host=host).NFSStorageRepository(host, s["name"])
                             sr.create(server, path, nosubdir=nosubdir)
+                    elif s["type"] == "smb":
+                        vm = s["options"] and "vm" in s["options"].split(",")
+                        hostIndexes = [y.group(1) for y in [re.match("host-(\d)", x) for x in s['options'].split(",")] if y]
+                        if hostIndexes:
+                            share = xenrt.NativeWindowsSMBShare("RESOURCE_HOST_%s" % hostIndexes[0])
+                        elif vm:
+                            share = xenrt.VMSMBShare()
+                        else:
+                            share = xenrt.ExternalSMBShare(version=3)
+                        sr = xenrt.productLib(host=host).SMBStorageRepository(host, s["name"])
+                        sr.create(share)
                     elif s["type"] == "iso":
                         sr = xenrt.productLib(host=host).ISOStorageRepository(host, s["name"])
                         server, path = s["path"].split(":")
@@ -2135,6 +1599,19 @@ class PrepareNode:
 
             raise
 
+#        self.__createDeploymentRecord()
+
+    def __createDeploymentRecord(self):
+        deploymentRec = {}
+        # Process Hosts - first get a list of unique host objects
+        deploymentRec['hosts'] = []
+        hostObjList = list(set(map(lambda x:xenrt.TEC().registry.hostGet(x), xenrt.TEC().registry.hostList())))
+        for host in hostObjList:
+            deploymentRec['hosts'].append( { 'name': host.getName(), 'mgmt_ipv4': host.getIP(), 'root_user': 'root', 'root_password': host.password } )
+
+        with open(os.path.join(xenrt.TEC().getLogdir(), 'deployment.json'), 'w') as fh:
+            json.dump(deploymentRec, fh)
+
 class InstallWorkQueue:
     """Queue of install work items to perform."""
     def __init__(self):
@@ -2196,7 +1673,7 @@ class _InstallWorker(xenrt.XRTThread):
 class HostInstallWorker(_InstallWorker):
     """Worker thread for parallel host installs"""
     def doWork(self, work):
-        if not xenrt.TEC().lookup("RESOURCE_HOST_%s" % (work["id"]), False):
+        if work.has_key("id") and not xenrt.TEC().lookup("RESOURCE_HOST_%s" % (work["id"]), False):
             raise xenrt.XRTError("We require RESOURCE_HOST_%s but it has not been specified." % (work["id"]))
         initialVersion = xenrt.TEC().lookup("INITIAL_INSTALL_VERSION", None)
         versionPath = xenrt.TEC().lookup("INITIAL_VERSION_PATH", None)
@@ -2320,3 +1797,4 @@ class InstanceInstallWorker(_InstallWorker):
     def doWork(self, work):
         toolstack = xenrt.TEC().registry.toolstackGetDefault()
         toolstack.createInstance(**work) 
+

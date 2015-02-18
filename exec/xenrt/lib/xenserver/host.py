@@ -1,4 +1,4 @@
-#
+   #
 # XenRT: Test harness for Xen and the XenServer product family
 #
 # Encapsulate a XenServer host.
@@ -17,9 +17,14 @@ import IPy
 import xenrt
 import xenrt.lib.xenserver
 import xenrt.lib.xenserver.guest
+import xenrt.lib.xenserver.install
 import xenrt.lib.xenserver.jobtests
+from  xenrt.lib.xenserver import licensedfeatures
 import XenAPI
 from xenrt.lazylog import *
+from xenrt.lib.xenserver.iptablesutil import IpTablesFirewall
+from xenrt.lib.xenserver.licensing import LicenceManager, XenServerLicenceFactory
+
 
 # Symbols we want to export from the package.
 __all__ = ["Host",
@@ -33,6 +38,7 @@ __all__ = ["Host",
            "ClearwaterHost",
            "NFSStorageRepository",
            "NFSv4StorageRepository",
+           "SMBStorageRepository",
            "FileStorageRepository",
            "FileStorageRepositoryNFS",
            "ISCSIStorageRepository",
@@ -41,7 +47,7 @@ __all__ = ["Host",
            "NetAppStorageRepository",
            "EQLStorageRepository",
            "ISOStorageRepository",
-           "CIFSStorageRepository",
+           "CIFSISOStorageRepository",
            "FCStorageRepository",
            "SharedSASStorageRepository",
            "ISCSIHBAStorageRepository",
@@ -61,6 +67,8 @@ __all__ = ["Host",
            "BostonPool",
            "TampaPool",
            "ClearwaterPool",
+           "CreedencePool",
+           "DundeePool",
            "RollingPoolUpdate",
            "Tile",
            "IOvirt",
@@ -74,7 +82,7 @@ CLI_NATIVE = 3          # New style CLI
 def hostFactory(hosttype):
     if hosttype == "Dundee":
         return xenrt.lib.xenserver.DundeeHost
-    elif hosttype in ("Creedence"):
+    elif hosttype in ("Creedence", "Cream"):
         return xenrt.lib.xenserver.CreedenceHost
     elif hosttype in ("Clearwater"):
         return xenrt.lib.xenserver.ClearwaterHost
@@ -92,7 +100,11 @@ def hostFactory(hosttype):
 
 
 def poolFactory(mastertype):
-    if mastertype in ("Clearwater", "Creedence", "Dundee"):
+    if mastertype in ("Dundee"):
+        return xenrt.lib.xenserver.DundeePool
+    elif mastertype in ("Creedence", "Cream"):
+        return xenrt.lib.xenserver.CreedencePool
+    elif mastertype in ("Clearwater"):
         return xenrt.lib.xenserver.ClearwaterPool
     elif mastertype in ("Boston", "BostonXCP", "Sanibel", "SanibelCC", "Tampa", "TampaXCP", "Tallahassee"):
         return xenrt.lib.xenserver.BostonPool
@@ -164,14 +176,15 @@ def createHost(id=0,
                vHostCpus=2,
                vHostMemory=4096,
                vHostDiskSize=50,
-               vHostSR=None):
+               vHostSR=None,
+               vNetworks=None):
 
     # noisos isn't used here, it is present in the arg list to
     # allow its use as a flag in PrepareNode in sequence.py
 
     if containerHost != None:
         container = xenrt.GEC().registry.hostGet("RESOURCE_HOST_%d" % containerHost)
-        machine = container.createNestedHost(name=vHostName, cpus=vHostCpus, memory=vHostMemory, diskSize=vHostDiskSize, sr=vHostSR)
+        machine = container.createNestedHost(name=vHostName, cpus=vHostCpus, memory=vHostMemory, diskSize=vHostDiskSize, sr=vHostSR, networks=vNetworks)
     else:
         machine = str("RESOURCE_HOST_%s" % (id))
     
@@ -275,7 +288,7 @@ def createHost(id=0,
                 nameserver = None
             hostname = m.name
 
-    guestdisks = host.getGuestDisks(ccissIfAvailable=host.USE_CCISS, count=diskCount)
+    guestdisks = host.getGuestDisks(ccissIfAvailable=host.USE_CCISS, count=diskCount, legacySATA=(not host.isCentOS7Dom0()))
 
     if diskCount > len(guestdisks):
         raise xenrt.XRTError("Wanted %u disks but we only have: %s" %
@@ -283,7 +296,7 @@ def createHost(id=0,
     if host.bootLun:
         primarydisk = "disk/by-id/scsi-%s" % host.bootLun.getID()
     else:
-        primarydisk = host.getInstallDisk(ccissIfAvailable=host.USE_CCISS)
+        primarydisk = host.getInstallDisk(ccissIfAvailable=host.USE_CCISS, legacySATA=(not host.isCentOS7Dom0()))
 
     handle = host.install(interfaces=interfaces,
                           nameserver=nameserver,
@@ -332,15 +345,12 @@ def createHost(id=0,
         xenrt.TEC().logverbose("After changing cpufreq governor: %s" % (output,))
 
     xenrt.TEC().registry.hostPut(machine, host)
-    xenrt.TEC().registry.hostPut(name, host)
+    if name:
+        xenrt.TEC().registry.hostPut(name, host)
 
     host.check()
     host.applyWorkarounds()
     host.postInstall()
-    # The DHCP server won't give the name out for dynamic nested XenServers, so set it explicitly here
-    if containerHost != None:
-        hostUUID = host.minimalList("host-list")[0]
-        host.genParamSet("host", hostUUID, "name-label", machine)
     papp = False
     
     if not xenrt.TEC().lookup("OPTION_NO_AUTO_PATCH", False, boolean=True):
@@ -588,7 +598,6 @@ class Host(xenrt.GenericHost):
         self.i_extracds = None
         self.i_upgrade = None
         self.i_async = None
-        self.i_installsource = None
         self.i_suppackcds = None
         self.rebootingforbugtool = False
         self.defaultsr = None
@@ -646,7 +655,6 @@ class Host(xenrt.GenericHost):
         x.i_extracds = self.i_extracds
         x.i_upgrade = self.i_upgrade
         x.i_async = self.i_async
-        x.i_installsource = self.i_installsource
         x.i_suppackcds = self.i_suppackcds
         x.defaultsr = self.defaultsr
         x.srs = self.srs
@@ -679,7 +687,7 @@ class Host(xenrt.GenericHost):
         """Create a simple guest object."""
         return self.guestFactory()(name, "", self)
 
-    def existing(self, doguests=True):
+    def existing(self, doguests=True, guestsInRegistry=True):
         """Initialise this host object from an existing installed host"""
         # Check the management host address
         ip = self.execdom0("xe host-param-get uuid=%s param-name=address" %
@@ -699,7 +707,8 @@ class Host(xenrt.GenericHost):
                     guest = self.guestFactory()(guestname, None)
                     guest.existing(self)
                     xenrt.TEC().logverbose("Found existing guest: %s" % (guestname))
-                    xenrt.TEC().registry.guestPut(guestname, guest)
+                    if guestsInRegistry:
+                        xenrt.TEC().registry.guestPut(guestname, guest)
                 except:
                     xenrt.TEC().logverbose("Could not load guest - perhaps it was deleted")
         self.distro = "XSDom0"
@@ -711,7 +720,6 @@ class Host(xenrt.GenericHost):
                      ntpserver=self.i_ntpserver, nameserver=self.i_nameserver,
                      hostname=self.i_hostname, extracds=self.i_extracds,
                      upgrade=self.i_upgrade, async=self.i_async, 
-                     installsource=self.i_installsource, 
                      suppackcds=self.i_suppackcds)
     
     def install(self,
@@ -728,7 +736,6 @@ class Host(xenrt.GenericHost):
                 upgrade=False,
                 riotorio=False,
                 async=False,
-                installsource=None,
                 installSRType=None,
                 bootloader=None,
                 overlay=None,
@@ -754,7 +761,6 @@ class Host(xenrt.GenericHost):
             self.i_extracds = extracds
             self.i_upgrade = upgrade
             self.i_async = async
-            self.i_installsource = installsource
             self.i_suppackcds = suppackcds
             self.resetDisk()
 
@@ -767,6 +773,8 @@ class Host(xenrt.GenericHost):
                     # In this situation a path that includes cciss- will not work. See CA-121184 for details
                     if "cciss" in primarydisk:
                         primarydisk = self.getInstallDisk(ccissIfAvailable=self.USE_CCISS)
+                    if "scsi-SATA" in primarydisk and self.isCentOS7Dom0():
+                        primarydisk = self.getInstallDisk(legacySATA=False)
                 else:
                     primarydisk = "sda"
 
@@ -780,18 +788,17 @@ class Host(xenrt.GenericHost):
                 xenrt.TEC().warning("Exception getting bugtool before upgrade:"
                                     " %s" % (str(e)))
 
-        if not installsource:
-            # Check and lookup variables and files
-            if not cd:
-                imageName = xenrt.TEC().lookup("CARBON_CD_IMAGE_NAME", 'main.iso')
-                xenrt.TEC().logverbose("Using XS install image name: %s" % (imageName))
-                imagePath = xenrt.TEC().lookup("CD_PATH_%s" % self.productVersion.upper(), 
-                                               xenrt.TEC().lookup('CD_PATH', 'xe-phase-1'))
-                cd = xenrt.TEC().getFile(os.path.join(imagePath, imageName), imageName)
-            if not cd:
-                raise xenrt.XRTError("No CD image supplied.")
-            xenrt.checkFileExists(cd)
-            self.cd = cd
+        # Check and lookup variables and files
+        if not cd:
+            imageName = xenrt.TEC().lookup("CARBON_CD_IMAGE_NAME", 'main.iso')
+            xenrt.TEC().logverbose("Using XS install image name: %s" % (imageName))
+            imagePath = xenrt.TEC().lookup("CD_PATH_%s" % self.productVersion.upper(), 
+                                           xenrt.TEC().lookup('CD_PATH', 'xe-phase-1'))
+            cd = xenrt.TEC().getFile(os.path.join(imagePath, imageName), imageName)
+        if not cd:
+            raise xenrt.XRTError("No CD image supplied.")
+        xenrt.checkFileExists(cd)
+        self.cd = cd
 
         serport = self.lookup("SERIAL_CONSOLE_PORT", "0")
         serbaud = self.lookup("SERIAL_CONSOLE_BAUD", "115200")
@@ -814,139 +821,133 @@ class Host(xenrt.GenericHost):
         # Get a PXE directory to put boot files in
         pxe = xenrt.PXEBoot(iSCSILUN = self.bootLun)
         use_mboot_img = xenrt.TEC().lookup("USE_MBOOT_IMG", False, boolean=True)
-        
-        if installsource:
-            packdir, mountpoint = installsource
-            pidir = xenrt.WebDirectory()
-            pxe.copyIn("%s/boot/*" % (mountpoint))
-            pxe.copyIn("%s/install.img" % (mountpoint))
+       
+        # Pull installer boot files from CD image and put into PXE
+        # directory
+        xenrt.TEC().logverbose("Using ISO %s" % (cd))
+        mount = xenrt.MountISO(cd)
+        mountpoint = mount.getMount()
+        pxe.copyIn("%s/boot/*" % (mountpoint))
+        instimg = xenrt.TEC().lookup("CUSTOM_INSTALL_IMG", None)
+        if instimg:
+            pxe.copyIn(xenrt.TEC().getFile(instimg), "install.img")
         else:
-            # Pull installer boot files from CD image and put into PXE
-            # directory
-            xenrt.TEC().logverbose("Using ISO %s" % (cd))
-            mount = xenrt.MountISO(cd)
-            mountpoint = mount.getMount()
-            pxe.copyIn("%s/boot/*" % (mountpoint))
-            instimg = xenrt.TEC().lookup("CUSTOM_INSTALL_IMG", None)
-            if instimg:
-                pxe.copyIn(xenrt.TEC().getFile(instimg), "install.img")
-            else:
-                pxe.copyIn("%s/install.img" % (mountpoint))
-            # For NetScaler SDX
-            if use_mboot_img:
-                imagePath = xenrt.TEC().lookup("CD_PATH_%s" % self.productVersion.upper(), 
-                                               xenrt.TEC().lookup('CD_PATH', 'xe-phase-1'))
-                pxe.copyIn(xenrt.TEC().getFile(os.path.join(imagePath, "mboot.img")), "mboot.img")
-            # Copy installer packages to a web/nfs directory
-            if source == "url":
-                packdir = xenrt.WebDirectory()
-                pidir = xenrt.WebDirectory()
-            elif source == "nfs":
-                packdir = xenrt.NFSDirectory()
-                pidir = xenrt.NFSDirectory()
-            else:
-                raise xenrt.XRTError("Unknown install source method '%s'." %
-                                     (source))
-            if os.path.exists("%s/packages" % (mountpoint)):
-                # Pre 0.4.3-1717 layout
-                packdir.copyIn("%s/packages/*" % (mountpoint))
-            else:
-                # Split ISO layout
-                packdir.copyIn("%s/packages.*" % (mountpoint))
+            pxe.copyIn("%s/install.img" % (mountpoint))
+        # For NetScaler SDX
+        if use_mboot_img:
+            imagePath = xenrt.TEC().lookup("CD_PATH_%s" % self.productVersion.upper(), 
+                                           xenrt.TEC().lookup('CD_PATH', 'xe-phase-1'))
+            pxe.copyIn(xenrt.TEC().getFile(os.path.join(imagePath, "mboot.img")), "mboot.img")
+        # Copy installer packages to a web/nfs directory
+        if source == "url":
+            packdir = xenrt.WebDirectory()
+            pidir = xenrt.WebDirectory()
+        elif source == "nfs":
+            packdir = xenrt.NFSDirectory()
+            pidir = xenrt.NFSDirectory()
+        else:
+            raise xenrt.XRTError("Unknown install source method '%s'." %
+                                 (source))
+        if os.path.exists("%s/packages" % (mountpoint)):
+            # Pre 0.4.3-1717 layout
+            packdir.copyIn("%s/packages/*" % (mountpoint))
+        else:
+            # Split ISO layout
+            packdir.copyIn("%s/packages.*" % (mountpoint))
 
-            # If there's an XS-REPOSITORY-LIST, copy it in
+        # If there's an XS-REPOSITORY-LIST, copy it in
+        if os.path.exists("%s/XS-REPOSITORY-LIST" % (mountpoint)):
+            packdir.copyIn("%s/XS-REPOSITORY-LIST" % (mountpoint))
+            dstfile = "%s/XS-REPOSITORY-LIST" % packdir.dir
+            os.chmod(dstfile, os.stat(dstfile)[stat.ST_MODE]|stat.S_IWUSR)
+
+        # If we have any extra CDs, copy the extra packages as well
+        if extracds:
+            ecds = extracds
+        else:
+            ecds = self.getDefaultAdditionalCDList()
+        if ecds:
+            for ecdi in string.split(ecds, ","):
+                if os.path.exists(ecdi):
+                    # XRT-813 transition, remove this eventually
+                    ecd = ecdi
+                else:
+                    ecd = xenrt.TEC().getFile("xe-phase-1/%s" % (os.path.basename(ecdi)),
+                                              os.path.basename(ecdi))
+                if not ecd:
+                    raise xenrt.XRTError("Couldn't find %s." % (ecdi))
+                xenrt.TEC().logverbose("Using extra CD %s" % (ecd))
+                emount = xenrt.MountISO(ecd)
+                emountpoint = emount.getMount()
+                packdir.copyIn("%s/packages.*" % (emountpoint))
+                emount.unmount()
+
+        # If we have any supplemental pack CDs, copy their contents as well
+        # and contruct the XS-REPOSITORY-LIST file
+        if suppackcds is None:
+            suppackcds = self.getSupplementalPackCDs()
+        supptarballs = xenrt.TEC().lookup("SUPPLEMENTAL_PACK_TGZS", None)
+        suppdirs = xenrt.TEC().lookup("SUPPLEMENTAL_PACK_DIRS", None)
+        
+        if suppackcds or supptarballs or suppdirs:
+            repofile = "%s/XS-REPOSITORY-LIST" % (workdir)
+            repo = file(repofile, "w")
             if os.path.exists("%s/XS-REPOSITORY-LIST" % (mountpoint)):
-                packdir.copyIn("%s/XS-REPOSITORY-LIST" % (mountpoint))
-                dstfile = "%s/XS-REPOSITORY-LIST" % packdir.dir
-                os.chmod(dstfile, os.stat(dstfile)[stat.ST_MODE]|stat.S_IWUSR)
-
-            # If we have any extra CDs, copy the extra packages as well
-            if extracds:
-                ecds = extracds
-            else:
-                ecds = self.getDefaultAdditionalCDList()
-            if ecds:
-                for ecdi in string.split(ecds, ","):
-                    if os.path.exists(ecdi):
-                        # XRT-813 transition, remove this eventually
-                        ecd = ecdi
-                    else:
-                        ecd = xenrt.TEC().getFile("xe-phase-1/%s" % (os.path.basename(ecdi)),
-                                                  os.path.basename(ecdi))
-                    if not ecd:
-                        raise xenrt.XRTError("Couldn't find %s." % (ecdi))
-                    xenrt.TEC().logverbose("Using extra CD %s" % (ecd))
-                    emount = xenrt.MountISO(ecd)
-                    emountpoint = emount.getMount()
-                    packdir.copyIn("%s/packages.*" % (emountpoint))
-                    emount.unmount()
-
-            # If we have any supplemental pack CDs, copy their contents as well
-            # and contruct the XS-REPOSITORY-LIST file
-            if suppackcds is None:
-                suppackcds = self.getSupplementalPackCDs()
-            supptarballs = xenrt.TEC().lookup("SUPPLEMENTAL_PACK_TGZS", None)
-            suppdirs = xenrt.TEC().lookup("SUPPLEMENTAL_PACK_DIRS", None)
-            
-            if suppackcds or supptarballs or suppdirs:
-                repofile = "%s/XS-REPOSITORY-LIST" % (workdir)
-                repo = file(repofile, "w")
-                if os.path.exists("%s/XS-REPOSITORY-LIST" % (mountpoint)):
-                    f = file("%s/XS-REPOSITORY-LIST" % (mountpoint), "r")
-                    repo.write(f.read())
-                    f.close()
-                if supptarballs:
-                    for supptar in supptarballs.split(","):
-                        tarball = xenrt.TEC().getFile(supptar)
-                        if not tarball:
-                            tarball = xenrt.TEC().getFile("xe-phase-1/%s" % (supptar))
-                        if not tarball:
-                            tarball = xenrt.TEC().getFile("xe-phase-2/%s" % (supptar))
-                        if not tarball:
-                            raise xenrt.XRTError("Couldn't find %s." % (supptar))
-                        xenrt.TEC().comment("Using supplemental pack tarball %s." % (tarball))
-                        tdir = xenrt.TEC().tempDir()
-                        xenrt.util.command("tar -zxf %s -C %s" % (tarball, tdir)) 
-                        mnt = xenrt.MountISO("%s/*.iso" % (tdir))
-                        extrapi = file("%s/post-install.sh" % (tdir)).read()
-                        extrapi = re.sub("exit.*", "", extrapi)
-                        packdir.copyIn("%s/*" % (mnt.getMount()),
-                                       "/packages.%s/" % (os.path.basename(tarball).strip(".tgz")))
-                        repo.write("packages.%s\n" % (os.path.basename(tarball).strip(".tgz")))
-                if suppackcds:    
-                    for spcdi in string.split(suppackcds, ","):
-                        # Try a fetch from the inputdir first
-                        spcd = xenrt.TEC().getFile(spcdi)
-                        if not spcd:
-                            # Try the local test inputs
-                            spcd = "%s/suppacks/%s" % (\
-                                xenrt.TEC().lookup("TEST_TARBALL_ROOT"),
-                                os.path.basename(spcdi))
-                            if not os.path.exists(spcd):
-                                raise xenrt.XRTError(\
-                                    "Supplemental pack CD not found locally or "
-                                    "remotely: %s" % (spcdi))
-                                
-                        xenrt.TEC().comment("Using supplemental pack CD %s" % (spcd))
-                        spmount = xenrt.MountISO(spcd)
-                        spmountpoint = spmount.getMount()
-                        packdir.copyIn("%s/*" % (spmountpoint),
-                                       "/packages.%s/" % (os.path.basename(spcdi)))
-                        repo.write("packages.%s\n" % (os.path.basename(spcdi)))
-                if suppdirs:
-                    for sd in string.split(suppdirs, ","):
-                        tgz = xenrt.TEC().getFile(sd)
-                        if not tgz:
-                            raise xenrt.XRTError("Supplemental pack dir not found: %s" % sd)
-                        t = xenrt.resources.TempDirectory()
-                        xenrt.util.command("tar -C %s -xvzf %s" % (t.dir, tgz))
-                        packdir.copyIn("%s/*" % t.dir, "/packages.%s/" % os.path.basename(tgz))
-                        repo.write("packages.%s\n" % (os.path.basename(tgz)))
-                        t.remove()
-                repo.close()
-                packdir.copyIn(repofile)
-                xenrt.TEC().copyToLogDir(repofile,
-                                         target="XS-REPOSITORY-LIST-%s" % self.getName())
+                f = file("%s/XS-REPOSITORY-LIST" % (mountpoint), "r")
+                repo.write(f.read())
+                f.close()
+            if supptarballs:
+                for supptar in supptarballs.split(","):
+                    tarball = xenrt.TEC().getFile(supptar)
+                    if not tarball:
+                        tarball = xenrt.TEC().getFile("xe-phase-1/%s" % (supptar))
+                    if not tarball:
+                        tarball = xenrt.TEC().getFile("xe-phase-2/%s" % (supptar))
+                    if not tarball:
+                        raise xenrt.XRTError("Couldn't find %s." % (supptar))
+                    xenrt.TEC().comment("Using supplemental pack tarball %s." % (tarball))
+                    tdir = xenrt.TEC().tempDir()
+                    xenrt.util.command("tar -zxf %s -C %s" % (tarball, tdir)) 
+                    mnt = xenrt.MountISO("%s/*.iso" % (tdir))
+                    extrapi = file("%s/post-install.sh" % (tdir)).read()
+                    extrapi = re.sub("exit.*", "", extrapi)
+                    packdir.copyIn("%s/*" % (mnt.getMount()),
+                                   "/packages.%s/" % (os.path.basename(tarball).strip(".tgz")))
+                    repo.write("packages.%s\n" % (os.path.basename(tarball).strip(".tgz")))
+            if suppackcds:    
+                for spcdi in string.split(suppackcds, ","):
+                    # Try a fetch from the inputdir first
+                    spcd = xenrt.TEC().getFile(spcdi)
+                    if not spcd:
+                        # Try the local test inputs
+                        spcd = "%s/suppacks/%s" % (\
+                            xenrt.TEC().lookup("TEST_TARBALL_ROOT"),
+                            os.path.basename(spcdi))
+                        if not os.path.exists(spcd):
+                            raise xenrt.XRTError(\
+                                "Supplemental pack CD not found locally or "
+                                "remotely: %s" % (spcdi))
+                            
+                    xenrt.TEC().comment("Using supplemental pack CD %s" % (spcd))
+                    spmount = xenrt.MountISO(spcd)
+                    spmountpoint = spmount.getMount()
+                    packdir.copyIn("%s/*" % (spmountpoint),
+                                   "/packages.%s/" % (os.path.basename(spcdi)))
+                    repo.write("packages.%s\n" % (os.path.basename(spcdi)))
+            if suppdirs:
+                for sd in string.split(suppdirs, ","):
+                    tgz = xenrt.TEC().getFile(sd)
+                    if not tgz:
+                        raise xenrt.XRTError("Supplemental pack dir not found: %s" % sd)
+                    t = xenrt.resources.TempDirectory()
+                    xenrt.util.command("tar -C %s -xvzf %s" % (t.dir, tgz))
+                    packdir.copyIn("%s/*" % t.dir, "/packages.%s/" % os.path.basename(tgz))
+                    repo.write("packages.%s\n" % (os.path.basename(tgz)))
+                    t.remove()
+            repo.close()
+            packdir.copyIn(repofile)
+            xenrt.TEC().copyToLogDir(repofile,
+                                     target="XS-REPOSITORY-LIST-%s" % self.getName())
 
         # Create an NFS directory for the installer to signal completion
         nfsdir = xenrt.NFSDirectory()
@@ -1675,10 +1676,6 @@ done
         
         pxecfg.mbootArgsModule1Add("output=ttyS0")
 
-        if isinstance(self, xenrt.lib.xenserver.DundeeHost) and self.isCentOS7Dom0():
-            pxecfg.mbootArgsModule1Add("net.ifnames=0")
-            pxecfg.mbootArgsModule1Add("biosdevname=0")
-
         mac = self.lookup("MAC_ADDRESS", None)
         if mac:
             pxecfg.mbootArgsModule1Add("answerfile_device=%s" % (mac))
@@ -1746,9 +1743,8 @@ done
             ipfname = os.path.basename(ipxefile)
             xenrt.TEC().copyToLogDir(ipxefile,target="%s.ipxe.txt" % (ipfname))
 
-        if not installsource:
-            # We're done with the ISO now
-            mount.unmount()
+        # We're done with the ISO now
+        mount.unmount()
         
         # Reboot the host into the installer
         if self.lookup("INSTALL_DISABLE_FC", False, boolean=True):
@@ -1861,8 +1857,10 @@ fi
     def _upgrade(self, newVersion, suppackcds=None):
         # Upgrade to the current version
         self.install(upgrade=True, suppackcds=suppackcds)
-        
+       
         if not xenrt.TEC().lookup("OPTION_NO_AUTO_PATCH", False, boolean=True):
+            # Wait to allow Xapi database to be written out
+            xenrt.sleep(300)
             self.applyRequiredPatches()
 
     def applyWorkarounds(self):
@@ -2719,6 +2717,13 @@ fi
     def installIperf(self, version=""):
         """Installs the iperf application on the host"""
         if self.execdom0("test -f /usr/bin/iperf", retval="code") != 0:
+            # Add a proxy if we know about one
+            proxy = xenrt.TEC().lookup("HTTP_PROXY", None)
+            if proxy:
+                self.execdom0("sed -i '/proxy/d' /etc/yum.conf")
+                self.execdom0("echo 'proxy=http://%s' >> /etc/yum.conf" % proxy)
+            if isinstance(self, xenrt.lib.xenserver.DundeeHost):
+                self.execdom0("yum install kernel-headers --disableexcludes=all -y")
             self.execdom0("yum --disablerepo=citrix --enablerepo=base,updates,extras install -y  gcc-c++")
             self.execdom0("yum --disablerepo=citrix --enablerepo=base install -y make")
             xenrt.objects.GenericPlace.installIperf(self, version)
@@ -3062,7 +3067,7 @@ fi
         guest.primaryMAC=primaryMAC
         guest.reservedIP=reservedIP
         repository = None
-        
+
         if guest.windows:
             isoname = xenrt.DEFAULT
         else:
@@ -3077,13 +3082,16 @@ fi
                     raise xenrt.XRTError("No HTTP repository for %s %s" %
                                          (arch, distro))
 
+        guest.distro = distro
+        guest.arch = arch
+
         if vcpus != None:
             guest.setVCPUs(vcpus)
         elif self.lookup("RND_VCPUS", default=False, boolean=True):
-            self.setRandomVcpus(guest)
+            guest.setRandomVcpus()
 
         if self.lookup("RND_CORES_PER_SOCKET", default=False, boolean=True):
-            self.setRandomCoresPerSocket(guest, vcpus)
+            guest.setRandomCoresPerSocket(self, vcpus)
 
         if memory != None:
             guest.setMemory(memory)
@@ -3092,7 +3100,6 @@ fi
                 disksize = 8192 # 8GB (in MB) by default
             else:
                 disksize = guest.DEFAULT
-        guest.arch = arch
         if primaryMAC:
             if bridge:
                 br = bridge
@@ -3124,60 +3131,6 @@ fi
         if not nodrivers:
             guest.check()
         return guest
-
-    def setRandomVcpus(self,guest):
-        xenrt.log("Setting random vcpus for VM ")
-        #maxVcpusSupported can be made variable later depending on host, guest and proudct limits
-        maxVcpusSupported =16
-        randomVcpus = random.randint(1,maxVcpusSupported)
-        with xenrt.GEC().getLock("RND_VCPUS"):
-            dbVal = int(xenrt.TEC().lookup("RND_VCPUS_VAL", "0"))
-            if dbVal != 0:
-                xenrt.TEC().logverbose("Using vcpus from DB: %d" %dbVal)
-                guest.setVCPUs(dbVal)
-            else:
-                xenrt.TEC().logverbose("Randomly choosen vcpus is %d" %randomVcpus)
-                guest.setVCPUs(randomVcpus)
-                xenrt.GEC().config.setVariable("RND_VCPUS_VAL",str(randomVcpus))
-                xenrt.GEC().dbconnect.jobUpdate("RND_VCPUS_VAL",str(randomVcpus))
-
-    def setRandomCoresPerSocket(self, guest, vcpus):
-        log("Setting random cores per socket....")
-
-        if not isinstance(self, xenrt.lib.xenserver.ClearwaterHost) or not guest.windows:
-            log("Refusing to set cores-per-socket on anything prior \
-                to Clearwater or non-windows guests")
-            return
-
-        # Max cores per socket makes sure we don't exceed the number of cores per socket on the host
-        cpuCoresOnHost = self.getCPUCores()
-        socketsOnHost  = self.getNoOfSockets()
-        maxCoresPerSocket = cpuCoresOnHost / socketsOnHost
-        xenrt.TEC().logverbose("cpuCoresonHost: %s, socketsonHost: %s, maxCoresPerSocket: %s" % (cpuCoresOnHost, socketsOnHost, maxCoresPerSocket))
-
-        if vcpus != None:
-            # This gives us all the factors of the vcpus specified
-            possibleCoresPerSocket = [x for x in range(1, vcpus+1) if vcpus % x == 0]
-            xenrt.TEC().logverbose("possibleCoresPerSocket is %s" % possibleCoresPerSocket)
-
-            # This eliminates the factors that would exceed the host's cores per socket
-            validCoresPerSocket = [x for x in possibleCoresPerSocket if x <= maxCoresPerSocket]
-            xenrt.TEC().logverbose("validCoresPerSocket is %s" % validCoresPerSocket)
-
-            # Then choose a value from here
-            coresPerSocket = random.choice(validCoresPerSocket)
-
-            with xenrt.GEC().getLock("RND_CORES_PER_SOCKET"):
-                dbVal = int(xenrt.TEC().lookup("RND_CORES_PER_SOCKET_VAL", "0"))
-
-                if dbVal in validCoresPerSocket:
-                    xenrt.TEC().logverbose("Using Randomly choosen cores-per-socket from DB: %d" % dbVal)
-                    guest.setCoresPerSocket(dbVal)
-                else:
-                    xenrt.TEC().logverbose("Randomly choosen cores-per-socket is %s" % coresPerSocket)
-                    guest.setCoresPerSocket(coresPerSocket)
-                    xenrt.GEC().config.setVariable("RND_CORES_PER_SOCKET_VAL", str(coresPerSocket))
-                    xenrt.GEC().dbconnect.jobUpdate("RND_CORES_PER_SOCKET_VAL", str(coresPerSocket))
 
     def getDefaultAdditionalCDList(self):
         """Return a list of additional CDs to be installed.
@@ -3647,7 +3600,7 @@ fi
             self.dom0uuid = self.getInventoryItem("CONTROL_DOMAIN_UUID")
         return self.dom0uuid
         
-    def applyPatch(self, patchfile, returndata=False, applyGuidance=False):
+    def applyPatch(self, patchfile, returndata=False, applyGuidance=False, patchClean=False):
         """Upload and apply a patch to the host"""
         
         self.addHotfixFistFile(patchfile)
@@ -3713,6 +3666,9 @@ fi
             guidance = self.genParamGet("patch", patch_uuid,"after-apply-guidance")
             self.applyGuidance(guidance)
         
+        if patchClean:
+            cli.execute("patch-clean", "uuid=\"%s\"" %(patch_uuid))
+            
         if returndata:
             return data
     
@@ -4074,7 +4030,7 @@ fi
 
     def enableCaching(self, sr=None):
         if not sr:
-            cacheDisk = self.lookup("INTELLICACHE_DISK", None)
+            cacheDisk = xenrt.TEC().lookup("INTELLICACHE_DISK", None)
             if not cacheDisk:
                 sr = self.getLocalSR()
             else:
@@ -4215,7 +4171,8 @@ fi
         data = cli.execute("host-license-view", "host-uuid=%s" %
                                                 (self.getMyHostUUID()))
         params = ["sku_type", "version", "serialnumber", "expiry", "name",
-                  "company", "sku_marketing_name", "grace", "earlyrelease","restrict_hotfix_apply"]
+                  "company", "sku_marketing_name", "grace", "earlyrelease","restrict_hotfix_apply",
+                  "restrict_read_caching", "restrict_wlb", "restrict_vgpu"]
         returnData = {}
         for p in params:
             r = re.search(r"%s.*: (.*)" % (p), data)
@@ -4236,7 +4193,7 @@ fi
                 except:
                     pass
             finally:
-                self.logoutAPISession(session)            
+                self.logoutAPISession(session)
 
         return returnData
 
@@ -4537,6 +4494,35 @@ fi
         data = self.execdom0("ethtool -k %s 2> /dev/null" % (interface))
         info = xenrt.util.strlistToDict(data.splitlines(), sep=":", keyonly=False)
         return dict([(key,info[key]) for key in info if len(info[key]) > 0])
+
+    def getAssumedId(self, friendlyname):
+	# Get the network-uuid
+	netuuid = self.getNetworkUUID(friendlyname)
+	xenrt.TEC().logverbose("getAssumedId: network uuid of network '%s' is %s" % (friendlyname, netuuid))
+	if netuuid == '':
+            raise xenrt.XRTError("couldn't get network uuid for network '%s'" % (friendlyname))
+
+	# Look up PIF for this network
+	args = "host-uuid=%s" % (self.getMyHostUUID())
+	pifuuid = self.parseListForUUID("pif-list", "network-uuid", netuuid, args)
+	xenrt.TEC().logverbose("getAssumedId: PIF on network %s is %s" % (netuuid, pifuuid))
+	if pifuuid == '':
+            raise xenrt.XRTError("couldn't get PIF uuid for network with uuid '%s'" % (netuuid))
+
+	# Get the assumed enumeration ID for this PIF
+	pifdev = self.genParamGet("pif", pifuuid, "device")
+	xenrt.TEC().logverbose("getAssumedId: PIF with uuid %s is %s" % (pifuuid, pifdev))
+	if pifdev.startswith("bond"):
+            # Get the first bond-slave
+            bonduuid = self.genParamGet("pif", pifuuid, "bond-master-of")
+            slaveuuids = self.genParamGet("bond", bonduuid, "slaves").split("; ")
+            pifuuid = slaveuuids[0]
+            pifdev = self.genParamGet("pif", pifuuid, "device")
+            xenrt.TEC().logverbose("getAssumedId: bond uuid is %s; using first slave (uuid %s, device %s)" % (bonduuid, pifuuid, pifdev))
+
+	assumedid = self.getNICEnumerationId(pifdev)
+	xenrt.TEC().logverbose("getAssumedId: PIF %s corresponds to assumedid %d" % (pifdev, assumedid))
+	return assumedid
 
     def getSecondaryNIC(self, assumedid):
         """ Return the product enumeration name (e.g. "eth2") for the
@@ -5807,30 +5793,19 @@ fi
                 raise xenrt.XRTFailure(\
                     "Timed out waiting for coalesce to complete", sruuid)
 
-    def toolsISOPath(self, which="windows"):
+    def toolsISOPath(self):
         """Return the dom0 path to the tools ISO."""
         vdi = self.parseListForUUID("vdi-list",
                                     "name-label",
                                     "xs-tools.iso")
-        try:
-            isobasename = self.genParamGet("vdi", vdi, "location")
-        except:
-            # Rio doesn't have a location field, assume the filename
-            # matches the name-label
-            isobasename = "xs-tools.iso"
+        
+        isobasename = self.genParamGet("vdi", vdi, "location")
         sruuid = self.genParamGet("vdi", vdi, "sr-uuid")
-        try:
-            pbd = self.parseListForUUID("pbd-list",
-                                        "sr-uuid",
-                                        sruuid,
-                                        "host-uuid=%s" %
-                                        (self.getMyHostUUID()))
-        except:
-            # Rio used host instead of host-uuid in the PBD record
-            pbd = self.parseListForUUID("pbd-list",
-                                        "sr-uuid",
-                                        sruuid,
-                                        "host=%s" % (self.getMyHostUUID()))
+        pbd = self.parseListForUUID("pbd-list",
+                                    "sr-uuid",
+                                    sruuid,
+                                    "host-uuid=%s" %
+                                    (self.getMyHostUUID()))
             
         isopath = self.genParamGet("pbd", pbd, "device-config", "location")
         return "%s/%s" % (isopath, isobasename)
@@ -6510,6 +6485,8 @@ fi
                         template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_1204")
             elif re.search("ubuntu1404", distro):
                 template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_1404")
+            elif re.search("coreos-", distro):
+                template = self.chooseTemplate("TEMPLATE_NAME_COREOS")
             elif re.search(r"other", distro):
                 template = self.chooseTemplate("TEMPLATE_OTHER_MEDIA")
             else:
@@ -6748,7 +6725,7 @@ fi
         args.append("host-uuid=%s" % (self.getMyHostUUID()))
         args.append("--force")
         cli.execute("host-disable-external-auth", string.join(args)).strip()
-        self.removeDNSServer(authserver.place.getIP())
+        self.resetToDefaultNetworking()
 
     def disableMultipathing(self, mpp_rdac=False):
         self.setHostParam("other-config:multipathing", "false")
@@ -7342,12 +7319,28 @@ logger "Stopping xentrace loop, host has less than 512M disk space free"
         try:
             cli.execute("pif-reconfigure-ip", string.join(args))
         except xenrt.XRTException, e:
+            if e.data and (("Lost connection to the server." in e.data) or
+                           ("You attempted an operation which involves a host which could not be contacted." in e.data)):
+                pass
+            else:
+                raise
+        xenrt.sleep(5) # give the server a few seconds to update resolv.conf
+    
+    def resetToDefaultNetworking(self):
+        cli = self.getCLIInstance()
+        pifuuid = self.minimalList("pif-list",args="host-uuid=%s management=true" % (self.getMyHostUUID()))[0]
+        args = []
+        args.append("uuid=%s" % (pifuuid))
+        args.append("mode=dhcp")
+        try:
+            cli.execute("pif-reconfigure-ip", string.join(args))
+        except xenrt.XRTException, e:
             if e.data and re.search("Lost connection to the server.", e.data):
                 pass
             else:
-                raise e
-        time.sleep(300)
-        
+                raise
+        xenrt.sleep(5) # give the server a few seconds to update resolv.conf
+
     def setIPAddressOnSecondaryInterface(self, assumedid):
         """Enable a DHCP IP address on a non-management dom0 network
         interface. This is used for storage traffic for example. Takes
@@ -7576,17 +7569,17 @@ rm -f /etc/xensource/xhad.conf || true
 
         # Make an attempt at clearing out logs
         try:
-            self.execdom0("/etc/init.d/syslog stop || true")
-            self.execdom0("rm -f /var/log/messages*")
-            self.execdom0("rm -f /var/log/xensource*")
-            self.execdom0("rm -fr /var/log/xen/* || true")
+            self.execdom0("service syslog stop || true")
+            self.execdom0("rm -f /var/log/messages* || true")
+            self.execdom0("touch /var/log/messages")
+            self.execdom0("rm -f /var/log/xensource* || true")
+            self.execdom0("touch /var/log/xensource")
+            self.execdom0("rm -rf /var/log/xen/* || true")
             self.execdom0("rm -f /var/log/xha*")
-            self.execdom0("mv -f /var/crash /var/crash_`date +%d%m%Y-%H%M%S` "
-                          "|| true")
+            self.execdom0("mv -f /var/crash /var/crash_`date +%d%m%Y-%H%M%S` || true")
             self.execdom0("mkdir -p /var/crash")
         except:
-            xenrt.TEC().logverbose("Exception while cleaning up logs in "
-                                   "resetToFreshInstall")
+            xenrt.TEC().logverbose("Exception while cleaning up logs in resetToFreshInstall")
 
         # Delete any fist points that exist
         self.execdom0("rm -f /tmp/fist_*")
@@ -7963,7 +7956,7 @@ rm -f /etc/xensource/xhad.conf || true
             self.execdom0('/opt/xensource/libexec/xen-cmdline --set-%s %s=%s' % (set, key, value))
 
     def _findXenBinary(self, binary):
-        paths = ["/usr/lib64/xen/bin", "/usr/lib/xen/bin", "/opt/xensource/bin"]
+        paths = ["/usr/lib64/xen/bin", "/usr/lib/xen/bin", "/opt/xensource/bin", "/usr/libexec/xen/bin"]
         for p in paths:
             joinedPath = os.path.join(p, binary)
             if self.execdom0('ls %s' % (joinedPath), retval="code") == 0:
@@ -7990,28 +7983,62 @@ rm -f /etc/xensource/xhad.conf || true
                          cpus=2,
                          memory=4096,
                          diskSize=50,
-                         sr=None):
+                         sr=None,
+                         networks=None):
         if not name:
             name = xenrt.randomGuestName()
         if not sr:
             sr="DEFAULT"
-        name = "vhost_%s" % name
-        mac = xenrt.randomMACXenSource()
-        ip = xenrt.StaticIP4Addr(mac=mac)
+        name = "vhost-%s" % name
         g = self.createGenericEmptyGuest(memory=memory, vcpus=cpus, name=name)
-        g.createVIF(bridge="NPRI", mac=mac)
+        if not networks:
+            networks = ["NPRI"]
+        if networks[0] != "NPRI":
+            raise xenrt.XRTError("First network must be NPRI")
+        netDetails = []
+        for i in range(len(networks)):
+            mac = xenrt.randomMACXenSource()
+            if i == 0:
+                nicname = name
+            else:
+                nicname = "%s-nic%d" % (name, i)
+            ip = xenrt.StaticIP4Addr(mac=mac, network=networks[i], name=name)
+            g.createVIF(bridge=networks[i], mac=mac)
+            netDetails.append((mac, ip))
         diskSize = diskSize * xenrt.GIGA
         g.createDisk(sizebytes=diskSize, sruuid=sr, bootable=True)
         g.paramSet("HVM-boot-params-order", "nc")
         if xenrt.TEC().lookup("NESTED_HVM", False, boolean=True):
             g.paramSet("platform:exp-nested-hvm", "1")
-
+        
+        (mac, ip) = netDetails[0]
         xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'MAC_ADDRESS'], mac)
+        xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'PXE_MAC_ADDRESS'], mac)
         xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'HOST_ADDRESS'], ip.getAddr())
-        xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'CONTAINER_HOST'], self.getIP())
         xenrt.GEC().dbconnect.jobUpdate("VXS_%s" % ip.getAddr(), name)
+
+        for i in range(1, len(netDetails)):
+            (mac, ip) = netDetails[i]
+            xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'NICS', 'NIC%d' % i, 'MAC_ADDRESS'], mac)
+            xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'NICS', 'NIC%d' % i, 'IP_ADDRESS'], ip.getAddr())
+            xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'NICS', 'NIC%d' % i, 'NETWORK'], networks[i])
+
+        xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'CONTAINER_HOST'], self.getIP())
+        xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'PXE_CHAIN_LOCAL_BOOT'], "hd0")
         return name
 
+    def applyFullLicense(self,v6server):
+ 
+        license = XenServerLicenceFactory().maxLicenceSkuHost(self)
+        LicenceManager().addLicensesToServer(v6server,license,getLicenseInUse=False)
+        self.license(edition = license.getEdition(), v6server=v6server,usev6testd=False)
+        
+    def getIpTablesFirewall(self):
+        """IPTablesFirewall object used to create and delete iptables rules."""
+        return IpTablesFirewall(self)
+
+    def isCentOS7Dom0(self):
+        return False
 #############################################################################
 
 class MNRHost(Host):
@@ -8096,8 +8123,8 @@ class MNRHost(Host):
             # No dbv field, so we're not using v6
             self.special['v6licensing'] = False
 
-    def existing(self, doguests=True):
-        Host.existing(self,doguests)
+    def existing(self, doguests=True, guestsInRegistry=True):
+        Host.existing(self,doguests, guestsInRegistry)
         self.__detect_vswitch()
         self.__detect_v6()
 
@@ -10562,6 +10589,18 @@ class TampaHost(BostonHost):
             self.reboot()
             self.waitForSSH(300, desc="host reboot after enabling virtual functions")
 
+    def validLicenses(self, xenserverOnly=False):
+        """
+        Get a licence object which contains the details of a licence settings
+        for a given SKU
+        sku: XenServerLicenceSKU member
+        """
+        factory = XenServerLicenceFactory()
+        if xenserverOnly:
+            return factory.xenserverOnlyLicences(self)
+        return factory.allLicences(self)
+
+
 #############################################################################
 class TampaXCPHost(TampaHost):
 
@@ -10584,21 +10623,10 @@ class ClearwaterHost(TampaHost):
     DOM0_VCPU_PINNED = 'xpin'
     DOM0_VCPU_NOT_PINNED = 'nopin'
     
-    def license(self, sku="XE Enterprise", edition=None, expirein=None, usev6testd=True, v6server=None, activateFree=True, applyEdition=True):
-
-        mockd = xenrt.TEC().getFile(self.V6MOCKD_LOCATION)
-        if mockd:
-            xenrt.TEC().logverbose("v6mockd present - using clearwater licensing")
-        else:
-            try:
-                TampaHost.license(self, sku, edition, expirein, usev6testd, v6server, activateFree, applyEdition)        
-            except:
-                xenrt.TEC().logverbose("Could not apply license - assuming clearwater licensing")
-
     #This is a temp license function once clearwater and trunk will be in sync this will become "license" funtion
-    def templicense(self, edition = "free", v6server = None, mockLicense = False):
+    def license(self, edition = "free", v6server = None, mockLicense = False, sku=None,usev6testd=False):
 
-        if (mockLicense == True or (edition != "free" and v6server == None)):
+        if mockLicense == True:
 
             expTime = datetime.datetime.now() + datetime.timedelta(days=365)
              
@@ -10797,7 +10825,7 @@ class ClearwaterHost(TampaHost):
             line = line.replace('any cpu', 'any-cpu')
 
             fields = line.split()
-            if len(fields) != 7:
+            if len(fields) < 7:
                 xenrt.TEC().warning("Invalid data from %s: %s" % (command, line))
             else:
                 domId = int(fields[1])
@@ -10867,7 +10895,7 @@ class ClearwaterHost(TampaHost):
 <backup-disk>%s</backup-disk>
 <install-failed-script>%s</install-failed-script>
 </restore>
-""" % (self.getInstallDisk(ccissIfAvailable=self.USE_CCISS), furl)
+""" % (self.getInstallDisk(ccissIfAvailable=self.USE_CCISS, legacySATA=(not self.isCentOS7Dom0())), furl)
         ans.write(anstext)
         ans.close()
         packdir.copyIn(ansfile)
@@ -11255,8 +11283,11 @@ class CreedenceHost(ClearwaterHost):
     def vSwitchCoverageLog(self):
         self.vswitchAppCtl("coverage/show")
 
-    def license(self, v6server=None, sku="free", usev6testd=True):
-
+    def license(self, v6server=None, sku="enterprise-per-socket", usev6testd=True, edition=None):
+        """
+        In order to keep backwards compatability "sku" arg is called sku
+        but really it needs the edition to be passed in
+        """
         cli = self.getCLIInstance()
         args = []
         args.append("host-uuid=%s" % (self.getMyHostUUID()))
@@ -11268,7 +11299,7 @@ class CreedenceHost(ClearwaterHost):
                              retval="code") != 0:
                 self.execdom0("mv -f /opt/xensource/libexec/v6d "
                               "/opt/xensource/libexec/v6d.orig")
-                rpm = xenrt.TEC().getFile("xe-phase-1/v6-test.rpm", "v6-test.rpm")
+                rpm = xenrt.TEC().getFile("binary-packages/RPMS/domain0/RPMS/x86_64/v6testd-0*.rpm", "v6-test.rpm")
                 if rpm:
                     sftp = self.sftpClient()
                     try:
@@ -11276,13 +11307,12 @@ class CreedenceHost(ClearwaterHost):
                     finally:
                         sftp.close()
                     self.execdom0("rpm -i --force /tmp/v6-test.rpm")
+                    self.execdom0("service v6d restart")
                 else:
-                    self.execdom0("cp -f %s/utils/v6testd-cre-l "
-                                  "/opt/xensource/libexec/v6d" %
-                              (xenrt.TEC().lookup("REMOTE_SCRIPTDIR")))
-                self.execdom0("service v6d restart")
-
-            sku = "per-socket"
+                    xenrt.XRTError("v6testd RPM nor found")
+         
+        if edition:
+            sku = edition
 
         args.append("edition=%s" % sku)
         if v6server:
@@ -11290,6 +11320,25 @@ class CreedenceHost(ClearwaterHost):
             args.append("license-server-port=%s" % (v6server.getPort()))
 
         cli.execute("host-apply-edition", string.join(args))
+        self.checkLicenseState(sku)
+
+    def licensedFeatures(self):
+        return LicensedFeatureFactory().allFeatures(self)
+
+    def checkLicenseState(self, edition):
+
+        details = self.getLicenseDetails()
+
+        if not details.has_key("edition"):
+            raise xenrt.XRTFailure("Host %s doesnt have any license edition" % (self.getName()))
+        if not (edition == details["edition"]):
+            raise xenrt.XRTFailure("Host %s is not licensed with %s. Is has got edition %s" % (self.getName() , edition , details["edition"]))
+
+        xenrt.TEC().logverbose("Edition is same on host as expected")
+
+    def licenseApply(self, v6server, licenseObj):
+        self.license(v6server,sku=licenseObj.getEdition())
+
 
 #############################################################################
 class DundeeHost(CreedenceHost):
@@ -11304,18 +11353,19 @@ class DundeeHost(CreedenceHost):
         self.registerJobTest(xenrt.lib.xenserver.jobtests.JTGro)
         self.registerJobTest(xenrt.lib.xenserver.jobtests.JTDeadLetter)
 
+        self.installer = None
+
     def isCentOS7Dom0(self):
-        return xenrt.TEC().lookup("CENTOS7_DOM0", False, boolean=True)
+        return True
 
     def getTestHotfix(self, hotfixNumber):
         return xenrt.TEC().getFile("xe-phase-1/test-hotfix-%u-*.unsigned" % hotfixNumber)
 
-    # For now, skip creedence, as trunk doesn't have the creedence license changes yet
-    def license(self, sku="free",edition=None, usev6testd=True, v6server=None):
-        ClearwaterHost.license(self, sku=sku,edition=edition,usev6testd=usev6testd,v6server=v6server)
-
     def guestFactory(self):
         return xenrt.lib.xenserver.guest.DundeeGuest
+
+    def license(self, sku="free",edition=None, usev6testd=True, v6server=None):
+        xenrt.TEC().logverbose("No license is required for the time being as Clearwater licensing is still aplicable on trunk")
 
     def postInstall(self):
         CreedenceHost.postInstall(self)
@@ -11376,34 +11426,19 @@ class DundeeHost(CreedenceHost):
         return ifs
         
     def snmpdIsEnabled(self):
-        if self.isCentOS7Dom0():
-            return "enabled" in self.execdom0("service snmpd status | cat")
-        else:
-            return CreedenceHost.snmpdIsEnabled(self)
+        return "enabled" in self.execdom0("service snmpd status | cat")
             
     def disableSnmpd(self):
-        if self.isCentOS7Dom0():
-            self.execdom0("systemctl disable snmpd")
-        else:
-            CreedenceHost.disableSnmpd(self)
+        self.execdom0("systemctl disable snmpd")
             
     def enableSnmpd(self):
-        if self.isCentOS7Dom0():
-            self.execdom0("systemctl enable snmpd")
-        else:
-            CreedenceHost.enableSnmpd(self)
+        self.execdom0("systemctl enable snmpd")
 
     def scsiIdPath(self):
-        if self.isCentOS7Dom0():
-            return "/usr/lib/udev/scsi_id"
-        else:
-            return CreedenceHost.scsiIdPath(self)
+        return "/usr/lib/udev/scsi_id"
             
     def iptablesSave(self):
-        if self.isCentOS7Dom0():
-            self.execdom0("/usr/libexec/iptables/iptables.init save")
-        else:
-            CreedenceHost.iptablesSave(self)
+        self.execdom0("/usr/libexec/iptables/iptables.init save")
 
     def enableVirtualFunctions(self):
 
@@ -11424,6 +11459,19 @@ class DundeeHost(CreedenceHost):
             self.execdom0('/bin/sh /boot/initrd-*.img.cmd')
             self.reboot()
             self.waitForSSH(300, desc="host reboot after enabling virtual functions")
+
+    def getInstaller(self):
+        if not self.installer:
+            self.installer = xenrt.lib.xenserver.install.DundeeInstaller(self)
+        return self.installer
+
+    def install(self,
+                *args,
+                **kwargs):
+
+        xenrt.TEC().logverbose("Using DundeeHost.install")
+
+        self.getInstaller().install(*args, **kwargs)
 
 #############################################################################
 
@@ -11876,11 +11924,12 @@ class CVSMStorageRepository(StorageRepository):
         pass
 
 class DummyStorageRepository(StorageRepository):
+    SHARED=True
 
     def create(self, size):
         self._create("dummy", {}, physical_size=size)
 
-class CIFSStorageRepository(StorageRepository):
+class CIFSISOStorageRepository(StorageRepository):
 
     def create(self,
                server,
@@ -12050,6 +12099,51 @@ class NFSStorageRepository(StorageRepository):
 
 class NFSv4StorageRepository(NFSStorageRepository):
     EXTRA_DCONF = {'nfsversion': '4'}
+
+class SMBStorageRepository(StorageRepository):
+    """Models a SMB SR"""
+
+    SHARED = True
+
+    def create(self, share=None):
+        if not share:
+            share = xenrt.ExternalSMBShare(version=3)
+
+        dconf = {}
+        smconf = {}
+        dconf["server"] = share.getLinuxUNCPath() 
+        if share.domain:
+            dconf['username'] = "%s\\\\%s" % (share.domain, share.user)
+        else:
+            dconf['username'] = share.user
+        dconf['password'] = share.password
+        self._create("cifs",
+                     dconf)
+
+    def check(self):
+        StorageRepository.checkCommon(self, "cifs")
+        if self.host.pool:
+            self.checkOnHost(self.host.pool.master)
+            for slave in self.host.pool.slaves.values():
+                self.checkOnHost(slave)
+        else:
+            self.checkOnHost(self.host)
+
+    def checkOnHost(self, host):
+        pass
+        # TODO update this to use the correct paths
+        #try:
+        #    host.execdom0("test -d /var/run/sr-mount/%s" % (self.uuid))
+        #except:
+        #    raise xenrt.XRTFailure("SR mountpoint /var/run/sr-mount/%s "
+        #                           "does not exist" % (self.uuid))
+        #smb = string.split(host.execdom0("mount | grep \""
+        #                                  "/run/sr-mount/%s \"" %
+        #                                  (self.uuid)))[0]
+        #shouldbe = "%s/%s" % (self.serverpath, self.uuid)
+        #if smb != shouldbe:
+        #    raise xenrt.XRTFailure("Mounted path '%s' is not '%s'" %
+        #                           (smb, shouldbe))
 
 
 class ISCSIStorageRepository(StorageRepository):
@@ -12793,8 +12887,14 @@ class Pool:
         
             # Perform the master switch
             cli = self.getCLIInstance()
-            cli.execute("pool-designate-new-master", "host-uuid=%s" %
-                        (host.getMyHostUUID()))
+            try:
+                cli.execute("pool-designate-new-master", "host-uuid=%s" %
+                            (host.getMyHostUUID()))
+            except xenrt.XRTException, e:
+                if e.data and re.search("Lost connection to the server.", e.data):
+                    pass
+                else:
+                    raise
             xenrt.sleep(300)
         
         # Update harness metadata
@@ -13632,7 +13732,7 @@ class Pool:
         else:
             return None
 
-    def applyPatch(self, patchfile, returndata=False, applyGuidance=False):
+    def applyPatch(self, patchfile, returndata=False, applyGuidance=False, patchClean=False):
         """Upload and apply a patch to the pool"""
         
         for h in self.getHosts():
@@ -13667,6 +13767,9 @@ class Pool:
                     xenrt.TEC().logverbose("Restarting toolstack on slave %s after patch-apply based on after-apply-guidance" % (slave.getName()))
                     slave.restartToolstack()
                 
+        if patchClean:
+            cli.execute("patch-pool-clean", "uuid=\"%s\"" %(patch_uuid))
+            
         if returndata:
             return data
 
@@ -13737,6 +13840,11 @@ class Pool:
                 args.append("config:disable_modules=%s" % (disable_modules))
             try:
                 cli.execute("pool-enable-external-auth", string.join(args)).strip()
+            except xenrt.XRTException, e:
+                if e.data and "External authentication in this pool is already enabled for at least one host." in e.data:
+                    pass
+                else:
+                    raise
             finally:
                 if use_tcpdump:
                     self.master.execdom0('killall tcpdump; exit 0')
@@ -13750,7 +13858,7 @@ class Pool:
             args.append("config:pass=%s" % (authserver.place.password))
         cli.execute("pool-disable-external-auth", string.join(args)).strip()
         for host in self.slaves.values() + [self.master]:
-            host.removeDNSServer(authserver.place.getIP())
+            host.resetToDefaultNetworking()
 
     def addRole(self, subject, role):
         self.master.addRole(subject, role)
@@ -14195,8 +14303,6 @@ class ClearwaterPool(TampaPool):
 
     def checkLicenseState(self, edition):
 
-        failure = []
-
         poolEdition = ""
         poolLicenseState = self.getPoolParam("license-state")
         
@@ -14208,15 +14314,6 @@ class ClearwaterPool(TampaPool):
 
         if not (edition == poolEdition):
             raise xenrt.XRTFailure("Pool edition is not similar to %s" % edition)
-
-        #for h in self.getHosts():
-        #    try:
-        #        h.checkHostLicenseState(edition ,licensed)
-        #    except Exception, e:
-        #        failure.append(str(e))
-        if failure:
-            xenrt.TEC().logverbose("Following hosts have not got same editions")
-            raise xenrt.XRTFailure(failure)
 
     def getNoOfSockets(self):
 
@@ -14231,7 +14328,7 @@ class ClearwaterPool(TampaPool):
         return socketCount
 
     #This is a temp license function once clearwater and trunk will be in sync this will become "license" funtion
-    def templicense(self, edition = "free", v6server = None, mockLicense = False):
+    def license(self, edition = "free", v6server = None, mockLicense = False,sku=None):
 
         if edition == "per-socket" or edition == "xendesktop":
             if not v6server and not mockLicense:
@@ -14251,6 +14348,39 @@ class ClearwaterPool(TampaPool):
         cli.execute("pool-apply-edition", string.join(args))
 
         self.checkLicenseState(edition)
+
+#############################################################################
+
+class CreedencePool(ClearwaterPool):
+    """A pool of Creedence Hosts """
+
+    def hostFactory(self):
+        return xenrt.lib.xenserver.CreedenceHost
+
+    def license(self,v6server=None, sku="enterprise-per-socket", usev6testd=True):
+
+        args = []
+        cli = self.master.getCLIInstance()
+        args.append("uuid=%s" % (self.getUUID()))
+        args.append("edition=%s" % (sku))
+
+        if v6server:
+            args.append("license-server-address=%s" % (v6server.getAddress()))
+            args.append("license-server-port=%s" % (v6server.getPort()))
+
+        cli.execute("pool-apply-edition", string.join(args))
+
+        self.checkLicenseState(sku)
+
+    def licenseApply(self, v6server, licenseObj):
+        self.license(v6server,sku=licenseObj.getEdition())
+
+    def validLicenses(self, xenserverOnly=False):
+        """
+        option: xenserverOnly - return the SKUs for just XenServer
+        """
+
+        return self.master.validLicenses(xenserverOnly=xenserverOnly)
 
 #############################################################################
 

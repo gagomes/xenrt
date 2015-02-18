@@ -1,0 +1,22 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+      <host id="0">
+        <vm name="win81-x64">
+          <distro>win81-x64</distro>
+          <memory>1024</memory>
+          <vcpus>1</vcpus>
+          <disk device="0" size="10"/>
+          <network device="0"/>
+       </vm>
+      </host>
+  </prepare>
+   <testsequence group="Signedcomponenet">
+        <testcase id="xenserver.tc.pvdrivers.TestSignedComponent" prio="3" tc="TC-23774" >
+        <arg>guest=win81-x64</arg>
+        </testcase>
+   </testsequence>
+</xenrt>

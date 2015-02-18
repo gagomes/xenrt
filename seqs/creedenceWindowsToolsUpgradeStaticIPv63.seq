@@ -104,14 +104,14 @@
       </testcase>
     </serial>
     <serial group="UpgVM">
-      <testcase id="xenserver.tc.upgrade.TC19904"/>
-      <testcase id="xenserver.tc.upgrade.TC19905"/>
-      <testcase id="xenserver.tc.upgrade.TC19906"/>
-      <testcase id="xenserver.tc.upgrade.TC19907"/>
-      <testcase id="xenserver.tc.upgrade.TC20720"/>
-      <testcase id="xenserver.tc.upgrade.TC20721"/>
-      <testcase id="xenserver.tc.upgrade.TC20722"/>
-      <testcase id="xenserver.tc.upgrade.TC20723"/>
+      <testcase id="xenserver.tc.upgrade.TC19904" sku="RTM" name="TC19904_RTM"/>
+      <testcase id="xenserver.tc.upgrade.TC19905" sku="RTM" name="TC19905_RTM"/>
+      <testcase id="xenserver.tc.upgrade.TC19906" sku="RTM" name="TC19906_RTM"/>
+      <testcase id="xenserver.tc.upgrade.TC19907" sku="RTM" name="TC19907_RTM"/>
+      <testcase id="xenserver.tc.upgrade.TC20720" sku="RTM" name="TC20720_RTM"/>
+      <testcase id="xenserver.tc.upgrade.TC20721" sku="RTM" name="TC20721_RTM"/>
+      <testcase id="xenserver.tc.upgrade.TC20722" sku="RTM" name="TC20722_RTM"/>
+      <testcase id="xenserver.tc.upgrade.TC20723" sku="RTM" name="TC20723_RTM"/>
     </serial>
   </testsequence>
 

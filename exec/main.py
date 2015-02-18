@@ -164,6 +164,7 @@ def usage(fd):
     --poweroff <machine>                  Power off a machine
     --poweron <machine>                   Power on a machine
     --powercycle <machine>                Power cycle a machine
+    --bootdev <device>                     When power cycleing, boot a machine with a specific target (e.g. "bios")
     --nmi <machine>                       Sent NMI to a machine
     --mconfig <machine>                   See XML config for a machine
     --bootdiskless <machine>              Boot a machine into diskless Linux
@@ -244,6 +245,7 @@ cleanupvcenter = False
 powercontrol = False
 powerhost = None
 poweroperation = None
+bootdev = None
 bootdiskless = False
 boothost = None
 bootwinpe = None
@@ -360,6 +362,7 @@ try:
                                       'poweroff=',
                                       'poweron=',
                                       'powercycle=',
+                                      'bootdev=',
                                       'nmi=',
                                       'mconfig=',
                                       'bootdiskless=',
@@ -738,6 +741,9 @@ try:
             powercontrol = True
             powerhost = value
             poweroperation = "cycle"
+            aux = True
+        elif flag == "--bootdev":
+            bootdev = value 
             aux = True
         elif flag == "--nmi":
             powercontrol = True
@@ -1659,6 +1665,7 @@ if listlocks:
             print "%s,No,," % (l[0])
 
 if cleanupnfsdirs:
+    jobsForMachinePowerOff = [] 
     nfsConfig = xenrt.TEC().lookup("EXTERNAL_NFS_SERVERS")
     for n in nfsConfig.keys():
         try:
@@ -1674,6 +1681,7 @@ if cleanupnfsdirs:
                 try:
                     if xenrt.canCleanJobResources(j):
                         xenrt.rootops.sudo("rm -rf %s/%s-*" % (mp, j))
+                        jobsForMachinePowerOff.append(j) 
                 except Exception, e:
                     xenrt.TEC().logverbose(str(e))
                     continue
@@ -1697,6 +1705,7 @@ if cleanupnfsdirs:
                 try:
                     if xenrt.canCleanJobResources(j):
                         xenrt.rootops.sudo("rm -rf %s/%s-*" % (mp, j))
+                        jobsForMachinePowerOff.append(j) 
                 except:
                     continue
             if m:
@@ -1704,6 +1713,13 @@ if cleanupnfsdirs:
         except:
             pass
 
+    for j in set(jobsForMachinePowerOff):
+        machinesToPowerOff = xenrt.staleMachines(j)
+        for m in machinesToPowerOff:
+            machine = xenrt.PhysicalHost(m, ipaddr="0.0.0.0")
+            xenrt.GenericHost(machine)
+            machine.powerctl.off()
+    
 if cleanupnfsdir:
     nfsConfig = xenrt.TEC().lookup("EXTERNAL_NFS_SERVERS")
     (cleanupAddress, cleanupPath) = cleanupnfsdir.split(":", 1)
@@ -2074,6 +2090,9 @@ if powercontrol:
     elif poweroperation == "off":
         machine.powerctl.off()
     elif poweroperation == "cycle":
+        if bootdev:
+            machine.powerctl.setBootDev(bootdev)
+            config.setVariable("IPMI_SET_PXE", "no")
         machine.powerctl.cycle()
     elif poweroperation == "nmi":
         machine.powerctl.triggerNMI()

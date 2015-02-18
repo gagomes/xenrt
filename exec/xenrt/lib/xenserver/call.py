@@ -165,7 +165,7 @@ rm -f /etc/firstboot.d/data/host.conf || true
 rm -f /etc/firstboot.d/05-filesystem-summarise || true
 echo master > /etc/xensource/pool.conf
 /etc/init.d/xapi start
-/etc/init.d/firstboot start
+/etc/init.d/firstboot restart
 xe host-apply-edition edition=platinum"""
         master = self.context.entities["Pool"].ref.master
         #from Clearwater onwards no platinum licensing present

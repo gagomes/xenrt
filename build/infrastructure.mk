@@ -81,6 +81,7 @@ extrapackages-install:
 	$(SUDO) easy_install --upgrade requests_oauthlib
 	$(SUDO) easy_install --upgrade pyramid
 	$(SUDO) easy_install --upgrade pyramid_chameleon
+	$(SUDO) easy_install --upgrade pyramid_mako
 	$(SUDO) easy_install --upgrade flup
 	$(SUDO) easy_install paramiko==1.12.3
 	$(SUDO) easy_install --upgrade uwsgi
@@ -96,6 +97,7 @@ extrapackages-install:
 	$(SUDO) easy_install --upgrade kerberos
 	$(SUDO) easy_install --upgrade pywinrm
 	$(SUDO) easy_install --upgrade pyyaml
+	$(SUDO) easy_install --upgrade jsonschema
 
 	$(SUDO) ln -sf `which genisoimage` /usr/bin/mkisofs
 	$(SUDO) apt-get install -y --force-yes python-m2crypto
@@ -376,6 +378,16 @@ network-uninstall:
 	$(call RESTORE,$(MODULES))
 	$(call RESTORE,$(INTERFACES))
 
+$(TFTPROOT)/ipxe.embedded.0:
+	$(info Building undionly.kpxe)
+	mkdir -p $(SHAREDIR)/ipxe
+	rsync -axl $(TEST_INPUTS)/ipxe/src $(SHAREDIR)/ipxe
+	echo "#!ipxe" > $(SHAREDIR)/ipxe/src/ipxe.script
+	echo dhcp >> $(SHAREDIR)/ipxe/src/ipxe.script
+	echo chain http://`ip addr | grep 'state UP' -A2 | grep inet | head -1 | awk '{print $$2}' | cut -d "/" -f 1`/tftp/default-ipxe.cgi >> $(SHAREDIR)/ipxe/src/ipxe.script
+	make -C $(SHAREDIR)/ipxe/src bin/undionly.kpxe EMBED=ipxe.script
+	$(SUDO) cp $(SHAREDIR)/ipxe/src/bin/undionly.kpxe $@
+
 .PHONY: tftp
 tftp:
 	$(info Installing TFTP...)
@@ -403,8 +415,11 @@ tftp:
 	-$(SUDO) cp $(TEST_INPUTS)/tinycorelinux/output/vmlinuz $(TFTPROOT)/tinycorelinux/
 	-$(SUDO) cp $(TEST_INPUTS)/tinycorelinux/output/core-xenrt.gz $(TFTPROOT)/tinycorelinux/
 	-$(SUDO) wget -O $(TFTPROOT)/grubx64.efi $(UEFI_GRUB_SOURCE)
-	$(SUDO) ln -sfT $(WEBROOT)/wininstall/netinstall/default $(TFTPROOT)/winpe
+ifdef WINDOWS_ISOS
+	$(SUDO) ln -sfT $(WINDOWS_ISOS)/winpe $(TFTPROOT)/winpe
+endif
 	$(SUDO) chown -R $(USERID):$(GROUPID) $(TFTPROOT)
+	-make $(TFTPROOT)/ipxe.embedded.0
 
 .PHONY: tftp-uninstall
 tftp-uninstall:
@@ -422,10 +437,12 @@ httpd:
 	$(SUDO) sed -i "s/APACHE_RUN_USER=.*/APACHE_RUN_USER=$(USERNAME)/" /etc/apache2/envvars
 	$(SUDO) mkdir -p $(SCRATCHDIR)/www
 	$(SUDO) ln -sfT $(SCRATCHDIR)/www $(WEBROOT)/export
+	$(SUDO) ln -sf $(SHAREDIR)/xenrt-cli.tar.gz $(WEBROOT)/xenrt-cli.tar.gz
 	$(SUDO) ln -sfT $(TFTPROOT) $(WEBROOT)/tftp
 	$(SUDO) ln -sfT $(SHAREDIR) $(WEBROOT)/share
 	$(SUDO) ln -sfT $(SHAREDIR)/control $(WEBROOT)/control
 	$(SUDO) ln -sfT $(SHAREDIR)/provision $(WEBROOT)/provision
+	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/apache2/unauth.html $(WEBROOT)/unauth.html
 	$(SUDO) chown -R $(USERID):$(GROUPID) $(SCRATCHDIR)/www
 	$(SUDO) mkdir -p /var/log/apache2 
 	$(SUDO) chown -R $(USERID):$(GROUPID) /var/log/apache2
@@ -497,6 +514,15 @@ ifeq ($(DOCONSERVER),yes)
 	$(SUDO) mkdir -p /local/consoles
 	$(SUDO) chmod -R a+rw /local/consoles
 	$(SUDO) /etc/init.d/conserver-server start || $(SUDO) /etc/init.d/conserver-server reload
+	$(SUDO) mkdir -p /var/lib/cons
+	grep "^cons:" /etc/group || $(SUDO) groupadd cons
+	grep "^cons:" /etc/passwd || $(SUDO) useradd cons -g cons -d /var/lib/cons
+	$(SUDO) mkdir -p /var/lib/cons/.ssh
+	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/conserver/cons /usr/local/bin
+	$(SUDOSH) 'echo -n "command=\"/usr/local/bin/cons\",no-port-forwarding,no-X11-forwarding,no-agent-forwarding " > /var/lib/cons/.ssh/authorized_keys'
+	$(SUDOSH) 'cat $(ROOT)/$(INTERNAL)/keys/ssh/id_rsa_cons.pub >> /var/lib/cons/.ssh/authorized_keys'
+	$(SUDO) chown -R cons:cons /var/lib/cons/.ssh
+	$(SUDOSH) 'chmod 600 /var/lib/cons/.ssh/*'
 endif
 
 .PHONY: conserver-uninstall
@@ -597,7 +623,7 @@ cron-uninstall:
 	$(SUDO) crontab -r
 
 .PHONY: infrastructure
-infrastructure: ssh httpd winpe files prompt autofs dhcpd dhcpd6 hosts network nagios conserver logrotate cron sitecontrollercmd nfs tftp httpd iscsi sudoers aptcacher ftp snmp extrapackages loop dsh ntp $(SHAREDIR)/images/vms/etch-4.1.img symlinks libvirt
+infrastructure: ssh httpd winpe files prompt autofs dhcpd dhcpd6 hosts network nagios conserver logrotate cron sitecontrollercmd nfs tftp httpd iscsi sudoers aptcacher ftp snmp extrapackages loop dsh ntp $(SHAREDIR)/images/vms/etch-4.1.img symlinks samba libvirt
 	$(info XenRT infrastructure installed.)
 
 

@@ -4,28 +4,12 @@
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
-    <PREPARE_WORKERS>16</PREPARE_WORKERS>
+    <PREPARE_WORKERS>6</PREPARE_WORKERS>
+    <NESTED_HVM>yes</NESTED_HVM>
   </variables>
 
-  <prepare>
-    <pool>
-      <host id="0"/>
-      <host id="1"/>
-      <host id="2"/>
-      <host id="3"/>
-      <host id="4"/>
-      <host id="5"/>
-      <host id="6"/>
-      <host id="7"/>
-      <host id="8"/>
-      <host id="9"/>
-      <host id="10"/>
-      <host id="11"/>
-      <host id="12"/>
-      <host id="13"/>
-      <host id="14"/>
-    </pool>
-    <host id="15">
+  <preprepare>
+    <host id="0">
       <vm name="AUTHSERVER">
         <distro>ws08sp2-x86</distro>
         <network device="0"/>
@@ -33,6 +17,8 @@
         <postinstall action="installPowerShell"/>
         <postinstall action="enablePowerShellUnrestricted"/>
       </vm>
+    </host>
+    <host id="1">
       <vm name="ALTAUTHSERVER">
         <distro>ws08sp2-x86</distro>
         <network device="0"/>
@@ -41,6 +27,27 @@
         <postinstall action="enablePowerShellUnrestricted"/>
       </vm>
     </host>
+    <host id="2" />
+  </preprepare>
+
+  <prepare>
+    <pool>
+      <host container="0" vname="xs0"/>
+      <host container="1" vname="xs1"/>
+      <host container="2" vname="xs2"/>
+      <host container="0" vname="xs3"/>
+      <host container="1" vname="xs4"/>
+      <host container="2" vname="xs5"/>
+      <host container="0" vname="xs6"/>
+      <host container="1" vname="xs7"/>
+      <host container="2" vname="xs8"/>
+      <host container="0" vname="xs9"/>
+      <host container="1" vname="xs10"/>
+      <host container="2" vname="xs11"/>
+      <host container="0" vname="xs12"/>
+      <host container="1" vname="xs13"/>
+      <host container="2" vname="xs14"/>
+    </pool>
   </prepare>
 
   <testsequence>

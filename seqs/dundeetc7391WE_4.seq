@@ -8,7 +8,6 @@
   </prepare>
   <testsequence>
     <parallel group="VM1G2C_4" workers="1">
-      <testcase id="xenserver.tc.smoketest.TC11798" prio="4" tc="TC-11798"/>
       <testcase id="xenserver.tc.smoketest.TC11799" prio="4" tc="TC-11799"/>
       <testcase id="xenserver.tc.smoketest.TC11919" prio="4" tc="TC-11919"/>
       <testcase id="xenserver.tc.smoketest.TC13179" prio="4" tc="TC-13179"/>

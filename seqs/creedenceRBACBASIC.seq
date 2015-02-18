@@ -8,26 +8,31 @@
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
     <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
     <CLEAR_EVENT_LOGS_ON_FETCH>true</CLEAR_EVENT_LOGS_ON_FETCH>
+    <NESTED_HVM>yes</NESTED_HVM>
   </variables>
 
-  <prepare>
-    <pool>
-      <host id="0" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}"/>
-    </pool>
-    <host id="1" >
+  <preprepare>
+    <host id="0">
       <vm name="AUTHSERVER">
         <distro>ws08sp2-x86</distro>
-        <network device="0" />
-        <postinstall action="installDrivers" />
-        <postinstall action="installPowerShell" />
-        <postinstall action="enablePowerShellUnrestricted" />
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="installPowerShell"/>
+        <postinstall action="enablePowerShellUnrestricted"/>
       </vm>
-    </host>
+    </host> 
+  </preprepare>
+  
+  <prepare>
+    <pool>
+      <host container="0" vname="xs0" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}"/>
+    </pool>
   </prepare>
 
   <testsequence>
     <serial group="RBAC">
       <testcase id="xenserver.install.TCXenServerUpgrade">
+        <arg>vhost-xs0</arg>
         <arg>input=DEFAULT</arg>
         <arg>suspendDuringUpgrade</arg>
       </testcase>

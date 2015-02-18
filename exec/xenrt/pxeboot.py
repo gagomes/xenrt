@@ -65,7 +65,14 @@ class PXEBootEntryIPXE(PXEBootEntry):
         PXEBootEntry.__init__(self, cfg, label)
 
     def generate(self):
-        return """
+        if xenrt.TEC().lookup("EXTERNAL_PXE", False, boolean=True):
+            self.cfg.copyIn("/tftpboot/ipxe.embedded.0") 
+            return """
+LABEL %s
+    KERNEL %s
+""" % (self.label, self.cfg.makeBootPath("ipxe.embedded.0"))
+        else:
+            return """
 LABEL %s
     KERNEL %s
 """ % (self.label, xenrt.TEC().lookup("IPXE_KERNEL", "ipxe.0"))
@@ -77,8 +84,11 @@ class PXEBootEntryLinux(PXEBootEntry):
         self.kernel = ""
         self.kernelArgs = []
 
-    def linuxSetKernel(self, str):
-        self.kernel = self.cfg.makeBootPath(str)
+    def linuxSetKernel(self, str, abspath=False):
+        if abspath:
+            self.kernel=str
+        else:
+            self.kernel = self.cfg.makeBootPath(str)
 
     def linuxArgsKernelAdd(self, str):
         self.kernelArgs.append(str)
@@ -427,8 +437,10 @@ dhcp
         xenrt.TEC().logverbose("Wrote iPXE config file %s" % (filename))
         return filename
 
-    def writeOut(self, machine, forcemac=None, forceip=None, suffix=None):
+    def writeOut(self, machine, forcemac=None, forceip=None, suffix=None, clearIPXE=True):
         """Write this config for the specified machine."""
+        if clearIPXE:
+            self.clearIPXEConfig(machine, forceip=forceip)
         pxedir = xenrt.TEC().lookup("PXE_CONF_DIR",
                                     self.tftpbasedir+"/pxelinux.cfg")
 

@@ -2,7 +2,7 @@
     ServerAdmin webmaster@localhost
     
     DocumentRoot /var/www/
-    RedirectMatch ^/$ /share/control/
+    RedirectMatch ^/$ /xenrt/ui/
     RedirectMatch ^/xenrt$ /xenrt/
     RedirectMatch ^/share/control$ /share/control/
     RedirectMatch ^/control$ /control/
@@ -60,6 +60,7 @@
         Allow from all
     </Proxy>
 
+    RewriteRule ^(.+)//+(.*)$ $1/$2 [L,NC,R=301]
     ProxyRequests       Off
     ProxyPreserveHost   On
     ProxyPass           /xenrt http://localhost:1025/share/control retry=0

@@ -2,16 +2,46 @@ from server import Page
 import app.db
 import config
 import time
+from pyramid.httpexceptions import *
 
 class XenRTPage(Page):
     WRITE = False
     DB_SYNC_CHECK_INTERVAL = 0.1
+    REQUIRE_AUTH = False
+    REQUIRE_AUTH_IF_ENABLED = False
+    ALLOW_FAKE_USER = True
 
     def __init__(self, request):
         super(XenRTPage, self).__init__(request)
         self._db = None
 
+    def getUserFromAPIKey(self, apiKey):
+        cur = self.getDB().cursor()
+        cur.execute("SELECT userid FROM tblapikeys WHERE apikey=%s", [apiKey])
+        rc = cur.fetchone()
+        if rc:
+            return rc[0]
+        return None
+
+    def getUser(self):
+        lcheaders = dict([(k.lower(), v)  for (k,v) in self.request.headers.iteritems()])
+        if "x-api-key" in lcheaders:
+            return self.getUserFromAPIKey(lcheaders['x-api-key'])
+        if "apikey" in self.request.GET:
+            return self.getUserFromAPIKey(self.request.GET['apikey'])
+        if "x-fake-user" in lcheaders:
+            if self.ALLOW_FAKE_USER:
+                return lcheaders['x-fake-user']
+            else:
+                raise HTTPForbidden()
+        user = lcheaders.get("x-forwarded-user", "")
+        if user == "(null)" or not user:
+            return None
+        return user.split("@")[0]
+
     def renderWrapper(self):
+        if not self.getUser() and (self.REQUIRE_AUTH or (self.REQUIRE_AUTH_IF_ENABLED and config.auth_enabled == "yes")):
+            return HTTPUnauthorized()
         try:
             ret = self.render()
             return ret
@@ -125,6 +155,8 @@ class XenRTPage(Page):
 
 
 import app.api
+import app.apiv2
 import app.ui
+import app.uiv2
 import app.compat
 import app.signal

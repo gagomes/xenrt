@@ -86,19 +86,19 @@ def parseRequest(args):
     return echoRequest
 
 
-def write_to_path(data, path):
+def writeToPath(data, path):
     fhandle = open(path, 'w')
     fhandle.write(data)
     fhandle.close()
 
 
-def echo_main(session, args):
+def echo(session, args):
     import sys
     echoRequest = parseRequest(args)
     data = echoRequest.data
 
     if echoRequest.path:
-        write_to_path(data, echoRequest.path)
+        writeToPath(data, echoRequest.path)
 
     if echoRequest.stdout:
         sys.stdout.write(data)
@@ -122,4 +122,4 @@ def toXapiArgs(args):
 
 if __name__ == "__main__":
     import XenAPIPlugin
-    XenAPIPlugin.dispatch({ECHO_FN_NAME: echo_main})
+    XenAPIPlugin.dispatch({ECHO_FN_NAME: echo})

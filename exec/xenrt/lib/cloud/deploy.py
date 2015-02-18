@@ -314,9 +314,9 @@ class DeployerPlugin(object):
     def getHostsForCluster(self, key, ref):
         xenrt.TEC().logverbose('getHostsForCluster, %s, %s' % (key, ref))
         hosts = []
-        if ref.has_key('hypervisor') and ref['hypervisor'].lower() == 'xenserver' and ref.has_key('XRT_MasterHostId'):
+        if ref.has_key('hypervisor') and ref['hypervisor'].lower() == 'xenserver' and ref.has_key('XRT_MasterHostName'):
             # TODO - move this to the host notify block (in notifyNewElement)
-            hostObject = xenrt.TEC().registry.hostGet('RESOURCE_HOST_%d' % (ref['XRT_MasterHostId']))
+            hostObject = xenrt.TEC().registry.hostGet(ref['XRT_MasterHostName'])
             try:
                 hostObject.tailorForCloudStack()
             except:

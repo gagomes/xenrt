@@ -32,6 +32,7 @@ _confdir = "@confdir@"
 _console = "@console@"
 _conserver = "@conserver@"
 _jenkins = "@jenkins@"
+_conskey = """@conskey@"""
 
 def urlopen_with_retry(*args, **kwargs):
     i = 0
@@ -3115,13 +3116,15 @@ class _XenRTControllerOperation(XenRTCommand):
         site = None
         self.overrideconsole = None
         try:
-            optlist, optx = getopt.getopt(args, 's:',['override-console='])
+            optlist, optx = getopt.getopt(args, 's:',['override-console=', 'bootdev='])
             for argpair in optlist:
                 (flag, value) = argpair
                 if flag == "-s":
                     site = value
                 elif flag == "--override-console":
                     self.overrideconsole = value
+                elif flag == "--bootdev":
+                    self.bootdev = value
                 else:
                     sys.stderr.write("Unknown argument '%s'\n" % (flag))
                     return None
@@ -3238,6 +3241,7 @@ class XenRTPower(_XenRTControllerOperation):
             sys.stderr.write("Invalid usage\n")
             return None
         machine = args[0]
+        self.bootdev = None
         addr = self.getControllerAddrForMachine(machine, args[2:])
         if not addr:
             sys.stderr.write("Controller for machine %s not found\n" % machine)
@@ -3249,6 +3253,8 @@ class XenRTPower(_XenRTControllerOperation):
             return None
         details["powerop"] = args[1]
         details["machine"] = machine
+        if self.bootdev:
+            details['bootdev'] = self.bootdev
         u = urlopen_with_retry("http://%s/share/control/queue.cgi" % addr + "?" + urllib.urlencode(details),
                            proxies=self.proxies)
         data = u.read()
@@ -3297,8 +3303,16 @@ class XenRTConsole(_XenRTControllerOperation):
                 addr = _conserver
             if self.overrideconsole:
                 console = self.overrideconsole
-
-            os.system("%s -p 3109 -U -M %s %s" % (console, addr, machine.split(".")[0].split("_")[0]))
+            if os.environ.get("SSH_CONSOLE") != "yes":
+                os.system("%s -p 3109 -U -M %s %s" % (console, addr, machine.split(".")[0].split("_")[0]))
+            else:
+                out = re.sub("(\S{64}) ", "\\1\n", _conskey)
+                out = re.sub("(-{5}) ", "\\1\n", out)
+                out = re.sub(" (-{5})", "\n\\1", out)
+                f = tempfile.NamedTemporaryFile()
+                f.file.write(out)
+                f.file.close()
+                os.system("ssh -t -i %s -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o CheckHostIP=no cons@%s %s" % (f.name, addr, machine.split(".")[0].split("_")[0]))
         return results
 
     def render(self, args, results):

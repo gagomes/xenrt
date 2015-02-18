@@ -10,7 +10,7 @@ GITPATH             = git://hg.uk.xensource.com/xenrt
 
 PRODUCTIONCONFIG    = no
 
-WINDOWS_ISOS        = /local/inputs/windows
+WINDOWS_ISOS_INPUTS        = /local/inputs/windows
 TEST_INPUTS         = /local/inputs/tests
 
 SHAREDIR            = $(shell pwd)/output

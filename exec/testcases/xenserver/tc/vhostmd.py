@@ -155,7 +155,7 @@ class TC15961(xenrt.TestCase):
     def prepare(self, arglist=[]):
         # Get a host to install on
         self.host = self.getDefaultHost()
-        self.guest = self.host.createGenericLinuxGuest()
+        self.guest = self.host.createGenericLinuxGuest(vcpus=1)
 
     def run(self, arglist):
         # vhostmd and the SHM SR type should be disabled in a newly installed

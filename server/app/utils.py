@@ -1,4 +1,4 @@
-import string, re, os
+import string, re, os, json
 
 import config
 
@@ -251,7 +251,8 @@ def check_input(commandline):
     Check that an argument conforms to the format specified in XRT-66. Return 0
     if the input is correctly formed, 1 otherwise.
     """	
-
+    if commandline == "":
+        return 0
     if re.match('([A-Za-z0-9_]+(<=|>=|=|<|>)[0-9]+[kMGT]?/)*([A-Za-z0-9_]+(<=|>=|=|>|<)[0-9]+[kMGT]?$)', 
 		commandline) == None:
         return 1
@@ -345,3 +346,15 @@ class XLogLocation(object):
 
     def __str__(self):
         return self.location
+
+def create_seq_from_deployment(deployment):
+    if not isinstance(deployment, basestring):
+        deployment = json.dumps(deployment, indent=2)
+    return """<xenrt>
+  <variables>
+    <OPTION_KEEP_SETUP>yes</OPTION_KEEP_SETUP>
+  </variables>
+  <prepare>
+%s
+  </prepare>
+</xenrt>""" % deployment

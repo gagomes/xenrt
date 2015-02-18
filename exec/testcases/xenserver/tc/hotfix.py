@@ -39,7 +39,7 @@ class _Hotfix(xenrt.TestCase):
                 self.host.reboot()
                 self.slave.reboot()
             else:
-                self.host.applyPatch(xenrt.TEC().getFile(patch))
+                self.host.applyPatch(xenrt.TEC().getFile(patch), patchClean=True)
                 self.host.reboot()
                 
                 if "XS" in hf:
@@ -120,10 +120,10 @@ class _Hotfix(xenrt.TestCase):
             v6 = self.getGuest("LicenseServer").getV6LicenseServer()
             self.uninstallOnCleanup(self.getGuest("LicenseServer"))
             v6.removeAllLicenses()
-            v6.addLicense("valid-platinum")
-            self.host.license(edition="platinum", usev6testd=False, v6server=v6)
+            self.host.applyFullLicense(v6)
             if self.POOLED:
-                self.slave.license(edition="platinum", usev6testd=False, v6server=v6)
+                v6.removeAllLicenses()
+                self.slave.applyFullLicense(v6)
             v6applied = True
 
         if self.POOLED:
@@ -193,11 +193,11 @@ class _Hotfix(xenrt.TestCase):
                     # Apply a v6 platinum license to this host
                     v6 = self.getGuest("LicenseServerForNonV6").getV6LicenseServer(host=self.host)
                     v6.removeAllLicenses()
-                    v6.addLicense("valid-platinum")
-                    self.host.license(edition="platinum", usev6testd=False, v6server=v6)
+                    self.host.applyFullLicense(v6)
                     if self.POOLED:
-                        self.slave.license(edition="platinum", usev6testd=False, v6server=v6)
-                    v6applied = True # This ensures we only apply the v6 license once
+                        v6.removeAllLicenses()
+                        self.slave.applyFullLicense(v6)
+                    v6applied = True
 
                 # Perform hotfixes for this version
                 self.doHotfixes(uver, ubranch, uhfs)
@@ -220,7 +220,7 @@ class _Hotfix(xenrt.TestCase):
                 if self.POOLED:
                     self.pool.applyPatch(xenrt.TEC().getFile(patch))
                 else:
-                    self.host.applyPatch(xenrt.TEC().getFile(patch))
+                    self.host.applyPatch(xenrt.TEC().getFile(patch), patchClean=True)
                     
             except xenrt.XRTFailure, e:
                 if "required_version" in e.data and "6.2_vGPU_Tech_Preview" in e.data:
@@ -249,7 +249,7 @@ class _Hotfix(xenrt.TestCase):
                     raise xenrt.XRTFailure("slave /etc/xensource/pool.conf changed after hotfix application")
             
             else:
-                self.host.applyPatch(xenrt.TEC().getFile(patch))
+                self.host.applyPatch(xenrt.TEC().getFile(patch), patchClean=True)
             patches2 = self.host.minimalList("patch-list")
             self.host.execdom0("xe patch-list")
             if len(patches2) <= len(patches):
@@ -562,7 +562,7 @@ class _GeorgeU2(_Hotfix):
     INITIAL_BRANCH = "RTM"
     
 class _GeorgeU2HFd(_GeorgeRTM):
-    INITIAL_HOTFIXES = ["HF1", "HF2", "XS55EU2004", "XS55EU2005", "XS55EU2006", "XS55EU2007", "XS55EU2008", "XS55EU2009", "XS55EU2010", "XS55EU2011", "XS55EU2012", "XS55EU2013", "XS55EU2014", "XS55EU2015", "XS55EU2016", "XS55EU2017", "XS55EU2018", "XS55EU2019", "XS55EU2020", "XS55EU2021", "XS55EU2022", "XS55EU2023", "XS55EU2024"]
+    INITIAL_HOTFIXES = ["HF1", "HF2", "XS55EU2004", "XS55EU2005", "XS55EU2006", "XS55EU2007", "XS55EU2008", "XS55EU2009", "XS55EU2010", "XS55EU2011", "XS55EU2012", "XS55EU2013", "XS55EU2014", "XS55EU2015", "XS55EU2016", "XS55EU2017", "XS55EU2018", "XS55EU2019", "XS55EU2020", "XS55EU2021", "XS55EU2022", "XS55EU2023", "XS55EU2024", "XS55EU2025"]
 
 class _MNRRTM(_Hotfix):
     INITIAL_VERSION = "MNR"
@@ -602,26 +602,26 @@ class _BostonBritney(_BostonRTM):
     INITIAL_HOTFIXES = ["XS60E001"]
 
 class _BostonHFd(_BostonRTM):
-    INITIAL_HOTFIXES = ["XS60E001", "XS60E002", "XS60E003", "XS60E004", "XS60E005", "XS60E006", "XS60E007", "XS60E008", "XS60E010", "XS60E012", "XS60E013", "XS60E014", "XS60E015", "XS60E016", "XS60E017", "XS60E018", "XS60E019", "XS60E020", "XS60E021", "XS60E022", "XS60E023", "XS60E024", "XS60E025", "XS60E026", "XS60E027", "XS60E028", "XS60E029", "XS60E030", "XS60E031", "XS60E032", "XS60E033", "XS60E034", "XS60E035", "XS60E036","XS60E037","XS60E038", "XS60E039","XS60E040", "XS60E041", "XS60E042"]
+    INITIAL_HOTFIXES = ["XS60E001", "XS60E002", "XS60E003", "XS60E004", "XS60E005", "XS60E006", "XS60E007", "XS60E008", "XS60E010", "XS60E012", "XS60E013", "XS60E014", "XS60E015", "XS60E016", "XS60E017", "XS60E018", "XS60E019", "XS60E020", "XS60E021", "XS60E022", "XS60E023", "XS60E024", "XS60E025", "XS60E026", "XS60E027", "XS60E028", "XS60E029", "XS60E030", "XS60E031", "XS60E032", "XS60E033", "XS60E034", "XS60E035", "XS60E036","XS60E037","XS60E038", "XS60E039","XS60E040", "XS60E041", "XS60E042", "XS60E043"]
 
 class _SanibelRTM(_Hotfix):
     INITIAL_VERSION = "Sanibel"
     
 class _SanibelHFd(_SanibelRTM):
-    INITIAL_HOTFIXES = ["XS602E004", "XS602E005", "XS602E006", "XS602E007", "XS602E008", "XS602E009", "XS602E010", "XS602E011", "XS602E013", "XS602E014", "XS602E016", "XS602E017", "XS602E018", "XS602E019", "XS602E020", "XS602E021", "XS602E022", "XS602E023", "XS602E024", "XS602E025", "XS602E026", "XS602E027", "XS602E028", "XS602E029", "XS602E030", "XS602E031", "XS602E032", "XS602E033", "XS602E034", "XS602E035", "XS602E036", "XS602E037", "XS602E038"]
+    INITIAL_HOTFIXES = ["XS602E004", "XS602E005", "XS602E006", "XS602E007", "XS602E008", "XS602E009", "XS602E010", "XS602E011", "XS602E013", "XS602E014", "XS602E016", "XS602E017", "XS602E018", "XS602E019", "XS602E020", "XS602E021", "XS602E022", "XS602E023", "XS602E024", "XS602E025", "XS602E026", "XS602E027", "XS602E028", "XS602E029", "XS602E030", "XS602E031", "XS602E032", "XS602E033", "XS602E034", "XS602E035", "XS602E036", "XS602E037", "XS602E038", "XS602E039"]
     
 class _SanibelCCRTM(_Hotfix):
     INITIAL_VERSION = "SanibelCC"
     CC = True
     
 class _SanibelCCHFd(_SanibelCCRTM):
-    INITIAL_HOTFIXES = ["XS602ECC001", "XS602ECC002", "XS602ECC003", "XS602ECC004", "XS602ECC005", "XS602ECC006", "XS602ECC007", "XS602ECC008", "XS602ECC009", "XS602ECC010", "XS602ECC011", "XS602ECC012", "XS602ECC013", "XS602ECC014"]
+    INITIAL_HOTFIXES = ["XS602ECC001", "XS602ECC002", "XS602ECC003", "XS602ECC004", "XS602ECC005", "XS602ECC006", "XS602ECC007", "XS602ECC008", "XS602ECC009", "XS602ECC010", "XS602ECC011", "XS602ECC012", "XS602ECC013", "XS602ECC014", "XS602ECC015"]
 
 class _TampaRTM(_Hotfix):
     INITIAL_VERSION = "Tampa"
     
 class _TampaHFd(_TampaRTM):
-    INITIAL_HOTFIXES = ["XS61E001", "XS61E003", "XS61E004", "XS61E008", "XS61E009", "XS61E010", "XS61E013", "XS61E015", "XS61E017",  "XS61E018", "XS61E019", "XS61E020", "XS61E021", "XS61E022", "XS61E023", "XS61E024", "XS61E025", "XS61E026", "XS61E027", "XS61E028", "XS61E029", "XS61E030", "XS61E032", "XS61E033", "XS61E034", "XS61E035", "XS61E036", "XS61E037", "XS61E038", "XS61E039", "XS61E040", "XS61E041", "XS61E042", "XS61E043", "XS61E044", "XS61E045"]
+    INITIAL_HOTFIXES = ["XS61E001", "XS61E003", "XS61E004", "XS61E008", "XS61E009", "XS61E010", "XS61E013", "XS61E015", "XS61E017",  "XS61E018", "XS61E019", "XS61E020", "XS61E021", "XS61E022", "XS61E023", "XS61E024", "XS61E025", "XS61E026", "XS61E027", "XS61E028", "XS61E029", "XS61E030", "XS61E032", "XS61E033", "XS61E034", "XS61E035", "XS61E036", "XS61E037", "XS61E038", "XS61E039", "XS61E040", "XS61E041", "XS61E042", "XS61E043", "XS61E044", "XS61E045", "XS61E046", "XS61E048"]
     
 class _ClearwaterRTM(_Hotfix):
     INITIAL_VERSION = "Clearwater"
@@ -635,7 +635,14 @@ class _ClearwaterSP1(_ClearwaterRTM):
     INITIAL_HOTFIXES = ["XS62ESP1"]
     
 class _ClearwaterSP1HFd(_ClearwaterSP1):
-    INITIAL_HOTFIXES = ["XS62ESP1", "XS62ESP1002", "XS62ESP1003", "XS62ESP1004", "XS62ESP1005", "XS62ESP1006", "XS62ESP1007", "XS62ESP1008", "XS62ESP1009", "XS62ESP1011", "XS62ESP1012", "XS62ESP1013", "XS62ESP1014", "XS62ESP1015"]
+    INITIAL_HOTFIXES = ["XS62ESP1", "XS62ESP1002", "XS62ESP1003", "XS62ESP1004", "XS62ESP1005", "XS62ESP1006", "XS62ESP1007", "XS62ESP1008", "XS62ESP1009", "XS62ESP1011", "XS62ESP1012", "XS62ESP1013", "XS62ESP1014", "XS62ESP1015", "XS62ESP1016", "XS62ESP1017"]
+    
+class _CreedenceRTM(_Hotfix):
+    INITIAL_VERSION = "Creedence"
+    INITIAL_BRANCH = "RTM"
+    
+class _CreedenceRTMHFd(_CreedenceRTM):
+    INITIAL_HOTFIXES = ["XS65E001", "XS65E002", "XS65E003"]
     
     
 # Upgrades
@@ -809,6 +816,10 @@ class TC20927(_ClearwaterSP1HFd):
     """Apply hotfix to XenServer 6.2 SP1 with all previous released hotfixes applied"""
     pass
     
+class TC23786(_CreedenceRTMHFd):
+    """Apply hotfix to XenServer 6.5 RTM with all previous released (non-SP1) hotfixes applied"""
+    pass
+    
 # Negative tests (the hotfix should not apply to this base)
 class TC10545(_OrlandoRTM):
     """Apply hotfix to XenServer 5.0.0 RTM (should fail)"""
@@ -881,7 +892,19 @@ class TC19912(_TampaRTM):
 class TC20945(_ClearwaterRTM):
     """Apply hotfix to XenServer 6.2RTM (should fail)"""
     NEGATIVE = True
+
+class TC23783(_ClearwaterRTM):
+    """Apply XS-6.5 hotfix to XenServer 6.2 (should fail)"""
+    NEGATIVE = True
     
+class TC23785(_ClearwaterSP1):
+    """Apply XS-6.5 hotfix to XenServer 6.2 SP1(should fail)"""
+    NEGATIVE = True
+
+class TC23784(_CreedenceRTM):
+    """Apply XS 6.5 hotfix to XenServer 6.5 RTM"""
+    pass
+
 class TCvGPUTechPreview(_ClearwaterRTM):
     """Apply hotfix to XenServer 6.2 RTM with vGPU Tech Preview installed"""
     NEGATIVE = True
@@ -985,6 +1008,9 @@ class TC20946(_ClearwaterSP1):
     """Apply hotfix to XenServer 6.2 SP1 (pool)"""
     POOLED = True
     
+class TC23787(_CreedenceRTM):
+    """Apply XS 6.5 hotfix to XenServer 6.5 RTM (pool)"""
+    POOLED = True
 #############################################################################
 # Upgrade with a rollup
 
@@ -1903,7 +1929,6 @@ class TCUnsignedHotfixChecks(xenrt.TestCase):
             #Run sub-tests
             self.runSubcase("_checkDuplicateLines", (h, tmp, contents, hotfixHead), hotfixName, "Duplicate lines in CONTENTS")
             self.runSubcase("_checkVersionRegex", (hotfixHead), hotfixName, "Version regex formatting")
-            self.runSubcase("_checkBostonPreCheckUuid", (hotfixHead, contents), hotfixName, "Boston pre-check uuid")
             self.runSubcase("_checkSanibelBuildRegex", (hotfixHead), hotfixName, "Sanibel build regex value")
             self.runSubcase("_checkSweeneyBuildRegex", (hotfixHead), hotfixName, "Sweeney build regex value") 
             
@@ -1950,13 +1975,6 @@ class TCUnsignedHotfixChecks(xenrt.TestCase):
         if regexValue.count('^') != 1 or regexValue.count('\.') != 2 or regexValue.count('$') != 1:
             raise xenrt.XRTFailure("VERSION_REGEX value %s was misformed" % regexValue)
 
-    def _checkBostonPreCheckUuid(self, metadata, contents): 
-        bostonUuid="95ac709c-e408-423f-8d22-84b8134a149e"  
-        expectedLabel="XS60E001"
-        versionRegex="^6\.0\.0$"
-        verifySubstring = "verify_update"
-        self._checkPreCheckUuidNotMatchingLabel(metadata, contents, bostonUuid, expectedLabel, versionRegex, verifySubstring)
-        
     def _checkSanibelBuildRegex(self, metadata):
         """
         If the unsigned hotfix url contains sanibel-lcm then the unsigned hotfix contents must contain:
@@ -2041,6 +2059,18 @@ class TCUnsignedHotfixChecks(xenrt.TestCase):
             if toMatch in line:
                 return line.split("=")[-1].strip('"')
         return None
+
+class TCApplyHotfixes(xenrt.TestCase):
+    """Apply a defined set of hotfixes to the host"""
+
+    def run(self, arglist):
+        self.host = self.getDefaultHost()
+        patches = xenrt.TEC().lookup("BUNDLED_HOTFIX", {})
+        patchIdents = patches.keys()
+        patchIdents.sort()
+        for p in patchIdents:
+            self.host.applyPatch(xenrt.TEC().getFile(patches[p]), patchClean=True)
+        self.host.reboot()
 
 class TCRollingPoolUpdate(xenrt.TestCase):
     """

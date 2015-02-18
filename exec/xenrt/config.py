@@ -60,7 +60,7 @@ class Config:
 
         self.config["LOCALURL"] = "http://${XENRT_SERVER_ADDRESS}"
         self.config["HTTP_BASE_URL"] = "${LOCALURL}/export"
-        self.config["TEST_TARBALL_BASE"] = "${LOCALURL}/share/tests/"
+        self.config["TEST_TARBALL_BASE"] = "${LOCALURL}/share/tests"
         self.config["NFS_BASE_URL"] = "nfs://${XENRT_SERVER_ADDRESS}:${NFS_BASE_PATH}"
 
         self.config["EXPORT_ISO_NFS"] = "${XENRT_SERVER_ADDRESS}:${XENRT_BASE}/images/iso"

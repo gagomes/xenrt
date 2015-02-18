@@ -26,7 +26,7 @@
           <vcpus>2</vcpus>
           <network device="0" />
           <disk device="0" size="5" />
-          <postinstall action="installDockerRpms" />
+          <postinstall action="dockerInstall" />
         </vm>
       </host>
     </pool>

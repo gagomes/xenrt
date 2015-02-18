@@ -641,15 +641,18 @@ users:
 
         self.shutdown()
 
-    def installDockerRpms(self):
-        """Install Docker environment into a guest"""
+    def dockerInstall(self):
+        """Install docker into a guest"""
 
+        self.docker.install()
+
+    def docker(self):
         if self.distro.startswith("rhel"):
-            return xenrt.lib.xenserver.dockerinstall.RHELDockerInstall(self).install()
-        elif self.distro.startswith("ubuntu"):
-            return xenrt.lib.xenserver.dockerinstall.UbuntuDockerInstall(self).install()
+            return xenrt.lib.xenserver.docker.RHELDocker()
         elif self.distro.startswith("coreos"):
-            return xenrt.lib.xenserver.dockerinstall.CoreOSDockerInstall(self).install()
+            return xenrt.lib.xenserver.docker.CoreOSDocker()
+        elif self.distro.startswith("ubuntu"):
+            return xenrt.lib.xenserver.docker.UbuntuDocker()
         else:
             raise xenrt.XRTFailure("Docker installation unimplemented on distro %s" % self.distro)
 

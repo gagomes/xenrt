@@ -119,7 +119,7 @@ class _MachineBase(XenRTAPIv2Page):
                 machine['resources'][key] = value
                 
 
-            siteflags = rc[12].strip().split(",") if rc[12].split(",") else []
+            siteflags = rc[12].strip().split(",") if rc[12] and rc[12].split(",") else []
             machine['flags'].extend(siteflags)
 
             ret[rc[0].strip()] = machine

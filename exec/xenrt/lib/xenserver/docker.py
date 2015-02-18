@@ -56,15 +56,15 @@ class Container(object):
     def __init__(self, ctype, cname):
         self.ctype = ctype
         self.cname = cname
-    def __str__(self):
-        return ';'.join([self.ctype, self.cname])
+    #def __str__(self):
+    #    return ';'.join([self.ctype, self.cname])
 
 """
 Using Bridge pattern to realise the docker feature testing.
 """
 
 # Implementor
-class ContainerController(object):
+class DockerController(object):
 
     def __init__(self, host, guest):
         self.host = host
@@ -94,8 +94,20 @@ class ContainerController(object):
     def unpauseContainer(self, container): pass
     def restartContainer(self, container): pass
 
+    # Other functions.
+    def registerGuest(self):pass
+    def inspectContainer(self, container):pass
+    def gettopContainer(self, container):pass
+    def statusContainer(self, container):pass
+
+    # Misc functions.
+    def getDockerInfo(self):pass
+    def getDockerPS(self):pass
+    def getDockerVersion(self):pass
+    def getDockerOtherConfig(self):pass
+
 # Concrete Implementor
-class UsingXapi(ContainerController):
+class UsingXapi(DockerController):
 
     def containerXapiLCOperations(self, operation, container):
 
@@ -162,36 +174,6 @@ class UsingXapi(ContainerController):
         else:
             raise xenrt.XRTError("removeContainer: Please stop the container %s before removing it" % container.cname)
 
-    def inspectContainer(self, container):
-        dockerInspectXML = self.containerXapiLCOperations(ContainerOperations.INSPECT, container)
-
-        dockerInspectDict = xmltodict.parse(dockerInspectXML)
-
-        if not dockerInspectDict.has_key('docker_inspect'):
-                raise xenrt.XRTError("inspectContainer: XSContainer - get_inspect failed to get the xml")
-        else:
-            return dockerInspectDict['docker_inspect']# has keys State, NetworkSettings, Config etc.
-
-    def statusContainer(self, container):
-
-        inspectXML = self.inspectContainer(container)
-
-        if not inspectXML.has_key('State'):
-                raise xenrt.XRTError("statusContainer: XSContainer - state key is missing in docker_inspect xml")
-        else:
-            containerState = inspectXML['State']
-
-            if containerState['Running'] == "True":
-                return ContainerState.RUNNING
-            elif containerState['Paused'] == "True":
-                return ContainerState.PAUSED
-            elif containerState['Paused'] == "False" and containerState['Running'] == "False":
-                return ContainerState.STOPPED
-            elif containerState['Restarting'] == "True":
-                return ContainerState.RESTARTED
-            else:
-                return ContainerState.UNKNOWN
-
     # Container lifecycle operations.
     def startContainer(self, container):
         if self.statusContainer(container) == ContainerState.STOPPED:
@@ -220,7 +202,60 @@ class UsingXapi(ContainerController):
     def restartContainer(self, container):
         raise xenrt.XRTError("XENAPI: host-call-plugin call restart is not supported")
 
-class UsingLinux(ContainerController):
+    # Other functions.
+    def registerGuest(self):
+        """Register a guest for container monitoring""" 
+    
+        self.host.execdom0("xe host-call-plugin host-uuid=%s plugin=xscontainer fn=register args:vmuuid=%s" %
+                                                                        (self.host.getMyHostUUID(), self.guest.getUUID()))
+
+    def inspectContainer(self, container):
+        dockerInspectXML = self.containerXapiLCOperations(ContainerOperations.INSPECT, container)
+
+        dockerInspectDict = xmltodict.parse(dockerInspectXML)
+
+        if not dockerInspectDict.has_key('docker_inspect'):
+                raise xenrt.XRTError("inspectContainer: XSContainer - get_inspect failed to get the xml")
+        else:
+            return dockerInspectDict['docker_inspect']# has keys State, NetworkSettings, Config etc.
+
+    def gettopContainer(self, container):
+        dockerGetTopXML = self.containerXapiLCOperations(ContainerOperations.GETTOP, container)
+
+        dockerGetTopDict = xmltodict.parse(dockerGetTopXML)
+
+        if not dockerGetTopDict.has_key('docker_top'):
+                raise xenrt.XRTError("gettopContainer: XSContainer - docker_top failed to get the xml")
+        else:
+            return dockerGetTopDict['docker_top']# has keys Process etc.
+
+    def statusContainer(self, container):
+
+        inspectXML = self.inspectContainer(container)
+
+        if not inspectXML.has_key('State'):
+                raise xenrt.XRTError("statusContainer: XSContainer - state key is missing in docker_inspect xml")
+        else:
+            containerState = inspectXML['State']
+
+            if containerState['Running'] == "True":
+                return ContainerState.RUNNING
+            elif containerState['Paused'] == "True":
+                return ContainerState.PAUSED
+            elif containerState['Paused'] == "False" and containerState['Running'] == "False":
+                return ContainerState.STOPPED
+            elif containerState['Restarting'] == "True":
+                return ContainerState.RESTARTED
+            else:
+                return ContainerState.UNKNOWN
+
+    # Misc functions.
+    def getDockerInfo(self):pass
+    def getDockerPS(self):pass
+    def getDockerVersion(self):pass
+    def getDockerOtherConfig(self):pass
+
+class UsingLinux(DockerController):
 
     def createContainer(self, name, ctype): pass
 
@@ -233,16 +268,72 @@ Abstraction
 
 class Docker(object):
 
-    def __init__(self, host, guest, ContainerController):
+    def __init__(self, host, guest, DockerController):
         self.host = host
         self.guest = guest
         self.containers = []
-        self.ContainerController = ContainerController(host, guest)
-    def install(self): pass
-    def createContainer(self, ctype, cname): pass
-    def rmContainer(self, container): pass
-    def listContainers(self): pass
+        self.DockerController = DockerController(host, guest)
 
+    def install(self): pass
+
+    def createContainer(self, ctype, cname="random"):
+        if cname.startswith("random"):
+            cname = "%s_%08x" % (ctype, (random.randint(0, 0x7fffffff)))
+        container = Container(ctype, cname)
+        self.containers.append(self.DockerController.createContainer(container))
+
+    def rmContainer(self, container):
+        self.containers.pop(self.DockerController.rmContainer(container))
+
+    # Container lifecycle operations.
+
+    def startContainer(self, container):
+        return self.DockerController.startContainer(container)
+    def stopContainer(self, container):
+        return self.DockerController.stopContainer(container)
+    def pauseContainer(self, container):
+        return self.DockerController.pauseContainer(container)
+    def unpauseContainer(self, container):
+        return self.DockerController.unpauseContainer(container)
+    def restartContainer(self, container):
+        return self.DockerController.restartContainer(container)
+
+    # Other functions.
+
+    def registerGuest(self):
+        return self.DockerController.registerGuest()
+    def inspectContainer(self, container):
+        return self.DockerController.inspectContainer(container)
+    def gettopContainer(self, container):
+        return self.DockerController.gettopContainer(container)
+    def statusContainer(self, container):
+        return self.DockerController.statusContainer(container)
+
+    # Misc functions.
+
+    def getDockerInfo(self, container):
+        return self.DockerController.getDockerInfo()
+    def getDockerPS(self, container):
+        return self.DockerController.getDockerPS()
+    def getDockerVersion(self, container):
+        return self.DockerController.getDockerVersion()
+    def getDockerOtherConfig(self, container):
+        return self.DockerController.getDockerOtherConfig()
+
+    # Useful functions.
+
+    def listContainers(self):
+        return self.containers
+
+    def lifeCycleContainers(self, container):
+            self.stopContainer(container)
+            self.startContainer(container)
+            self.pauseContainer(container)
+            self.unpauseContainer(container)
+
+    def startAllContainer(self):
+         for c in self.containers:
+            return self.DockerController.startContainer(c)
 
 """
 Refined abstractions
@@ -254,71 +345,14 @@ class RHELDocker(Docker):
     def install(self):
         xenrt.TEC().logverbose("Docker installation on RHEL to be implemented")
 
-    def createContainer(self, ctype, cname="random"):
-
-        if cname.startswith("random"):
-            cname = "%s_%08x" % (ctype, (random.randint(0, 0x7fffffff)))
-
-        container = Container(ctype, cname)
-        return self.ContainerController.createContainer(container)
-
-    def rmContainer(self, container):
-        self.ContainerController.rmContainer(container)
-
-    def listContainers(self): pass
-
 class UbuntuDocker(Docker):
     """Represents a docker installed on ubuntu guest"""
 
     def install(self):
         xenrt.TEC().logverbose("Docker installation on Ubuntu to be implemented")
 
-    def createContainer(self, ctype, cname="random"):
-
-        if cname.startswith("random"):
-            cname = "%s_%08x" % (ctype, (random.randint(0, 0x7fffffff)))
-
-        container = Container(ctype, cname)
-        return self.ContainerController.createContainer(container)
-
-    def rmContainer(self, container):
-        self.ContainerController.rmContainer(container)
-
-    def listContainers(self): pass
-
 class CoreOSDocker(Docker):
     """Represents a docker integrated in coreos guest"""
 
     def install(self):
         xenrt.TEC().logverbose("CoreOS has the docker environment by default")
-
-    def listContainers(self): pass
-
-    def createContainer(self, ctype, cname="random"):
-
-        if cname.startswith("random"):
-            cname = "%s_%08x" % (ctype, (random.randint(0, 0x7fffffff)))
-
-        container = Container(ctype, cname)
-        return self.ContainerController.createContainer(container)
-
-    def rmContainer(self, container):
-        self.containers.pop(self.ContainerController.rmContainer(container))
-
-    # Container lifecycle operations.
-    def startContainer(self, container, all=False):
-
-        if all:
-         for c in self.containers:
-            return self.ContainerController.startContainer(c)
-        else:
-            return self.ContainerController.startContainer(container)
-
-    def stopContainer(self, container):
-        return self.ContainerController.stopContainer(container)
-    def pauseContainer(self, container):
-        return self.ContainerController.pauseContainer(container)
-    def unpauseContainer(self, container):
-        return self.ContainerController.unpauseContainer(container)
-    def restartContainer(self, container):
-        return self.ContainerController.restartContainer(container)

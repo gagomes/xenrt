@@ -647,12 +647,14 @@ users:
         self.docker().install()
 
     def docker(self):
+
+        # The method by default uses docker interactions through Xapi.
         if self.distro.startswith("rhel"):
-            return xenrt.lib.xenserver.docker.RHELDocker()
+            return xenrt.lib.xenserver.docker.RHELDocker(self.getHost(), self, xenrt.lib.xenserver.docker.UsingXapi)
         elif self.distro.startswith("coreos"):
-            return xenrt.lib.xenserver.docker.CoreOSDocker()
+            return xenrt.lib.xenserver.docker.CoreOSDocker(self.getHost(), self, xenrt.lib.xenserver.docker.UsingXapi)
         elif self.distro.startswith("ubuntu"):
-            return xenrt.lib.xenserver.docker.UbuntuDocker()
+            return xenrt.lib.xenserver.docker.UbuntuDocker(self.getHost(), self, xenrt.lib.xenserver.docker.UsingXapi)
         else:
             raise xenrt.XRTFailure("Docker installation unimplemented on distro %s" % self.distro)
 

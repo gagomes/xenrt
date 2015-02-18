@@ -28,6 +28,17 @@ class TCSanityTest(xenrt.TestCase):
         # Obtain the CoreOS guest object. 
         self.coreos = self.getGuest(self.distro)
 
+        # Obtain the docker environment to work with Xapi plugins.
+        self.docker = CoreOSDocker(self.host, self.coreos, UsingXapi)
+
+        # Register the guest for container monitoring.
+        self.docker.registerGuest()
+
     def run(self, arglist=None):
 
-        pass
+        # Create a container of choice.
+        self.docker.createContainer(ContainerNames.BUSYBOX) # with default container name.
+
+        # Lifecycle tests.
+        for container in self.docker.containers:
+            self.docker.lifeCycleContainers(container)

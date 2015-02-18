@@ -29,14 +29,6 @@ class XenRT(object):
             base64string = base64.encodestring('%s:%s' % (user, password)).replace('\n', '')
             self.customHeaders["Authorization"] = "Basic %s" % base64string
 
-
-
-    def set_fake_user(self, user):
-        if not user and "X-Fake-User" in self.customHeaders:
-            del self.customHeaders["X-Fake-User"]
-        elif user:
-            self.customHeaders["X-Fake-User"] = user
-
     def __serializeForQuery(self, data):
         if isinstance(data, bool):
             return str(data).lower()

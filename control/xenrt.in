@@ -924,7 +924,7 @@ class XenRTList(XenRTCommand):
         return reply
 
     def render(self, args, results):
-        fieldwidths = [6, 8, 12, 9, 13, 18, 7]
+        fieldwidths = [7, 8, 12, 9, 13, 18, 7]
         fmt = string.join(map(lambda x:"%%-%us" % x, fieldwidths))
         fmt = fmt + "\n"
         if not self.quiet:

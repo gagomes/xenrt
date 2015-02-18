@@ -143,6 +143,8 @@ class _JobBase(_MachineBase):
                 mlist = mlist.replace(",,",",")
                 mlist = mlist.strip()
                 mlist = mlist.strip(",")
+            if not mlist and "MACHINE" in jobs[j]['params']:
+                mlist = jobs[j]['params']["MACHINE"]
             if mlist:
                 jobs[j]['machines'] = mlist.split(",")
             jobs[j]['description'] = jobs[j]['params'].get("JOBDESC", jobs[j]['params'].get("DEPS"))
@@ -169,7 +171,7 @@ class _JobBase(_MachineBase):
                     "logUploadUrl": "%s://%s%s/api/v2/test/%d/log" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), rc[2]),
                     "logUrl": logUrl,
                     "logUploaded": rc[5] and rc[5].strip() == "yes",
-                    "jobId": j
+                    "jobId": rc[0]
                 }
                 detailids[rc[2]] = rc[0]
             if getLog:
@@ -339,6 +341,9 @@ class ListJobs(_JobBase):
         machines = self.getMultiParam("machine")
         excludeusers = self.getMultiParam("excludeuser")
         limit = int(self.request.params.get("limit", 100))
+
+        if limit == 0:
+            limit = 10000
        
         suiteruns = self.getMultiParam("suiterun")
 

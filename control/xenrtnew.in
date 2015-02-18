@@ -6,7 +6,7 @@
 # James Bulpin, November-December 2005
 
 import sys, string, getopt, urllib, os, pwd, tempfile, xmlrpclib, shutil, json
-import os.path, re, glob, random, time, datetime
+import os.path, re, glob, random, time, datetime, getpass
 import xenrtapi
 
 PROFILER_ENABLED = ("XENRT_PROFILE" in os.environ)
@@ -33,6 +33,7 @@ _console = "@console@"
 _conserver = "@conserver@"
 _jenkins = "@jenkins@"
 _conskey = """@conskey@"""
+_authrealm = """@authrealm@"""
 
 class XenRTCommand:
 
@@ -51,19 +52,30 @@ class XenRTCommand:
         self.proxies = None
 
     def getAPIKey(self):
-        if os.getenv("XENRT_APIKEY"):
-            return os.getenv("XENRT_APIKEY")
-        else:
-            path = "%s/.xenrtrc" % os.path.expanduser("~")
-            if not os.path.exists(path):
-                return None
-            with open(path) as f:
-                for l in f.readlines():
-                    ll = l.strip().split("=", 1)
-                    if len(ll) != 2:
-                        continue
-                    if ll[0] == "apikey":
-                        return ll[1]
+        path = "%s/.xenrtrc" % os.path.expanduser("~")
+        if not os.path.exists(path):
+            return None
+        with open(path) as f:
+            for l in f.readlines():
+                ll = l.strip().split("=", 1)
+                if len(ll) != 2:
+                    continue
+                if ll[0].strip() == "apikey":
+                    return ll[1].strip()
+
+    def retrieveAPIKeyFromServer(self):
+        global _authrealm
+        defaultuser = getpass.getuser()
+        user = raw_input("Enter your %s username [%s]: " % (_authrealm, defaultuser))
+        if not user.strip():
+            user = defaultuser
+        password = getpass.getpass()
+        xrt = xenrtapi.XenRT(user=user, password=password)
+        apikey = xrt.get_apikey()['key']
+        path = "%s/.xenrtrc" % os.path.expanduser("~")
+        print "Writing %s as API key in ~/.xenrtrc" % apikey
+        with open(path, "w") as f:
+            f.write("apikey = %s" % apikey)
 
     def getServerURL(self):
         return server_url
@@ -73,6 +85,10 @@ class XenRTCommand:
         return logserver_url % logserver
 
     def dispatch(self, args, raw=0):
+        apikey = self.getAPIKey()
+        if not apikey:
+            self.retrieveAPIKeyFromServer()
+            apikey = self.getAPIKey()
         self.xenrt = xenrtapi.XenRT(apikey=self.getAPIKey())
 
         if len(args) > 0 and args[0] in ("--help", "-h"):
@@ -829,7 +845,7 @@ class XenRTMList2(XenRTCommand):
 
         jobids = [x['jobid'] for x in machines.values() if x['status'] == "running"]
 
-        jobs = self.xenrt.get_jobs(jobid=jobids, params=True)
+        jobs = self.xenrt.get_jobs(jobid=jobids, params=True, limit=0)
 
         if show:
             chead = show
@@ -858,6 +874,7 @@ class XenRTMList2(XenRTCommand):
                     status = "%d" % machines[m]['jobid']
                 elif status == "slaved":
                     status = "(%d)" % machines[m]['jobid']
+
                 if show == "Resources":
                     comment = "/".join(machines[m]['resources'])
                 elif show == "Properties":
@@ -884,7 +901,7 @@ class XenRTMList2(XenRTCommand):
                         else:
                             userstr = machines[m]['leaseuser']
                         comment = "%s (%s)" % (dt, userstr)
-                    elif machines[m]['status'] == "running":
+                    elif machines[m]['status'] == "running" and str(machines[m]['jobid']) in jobs:
                         job = jobs[str(machines[m]['jobid'])]
                         comment = "%s - %s" % (job["description"], job['user'])
                     else:
@@ -914,67 +931,45 @@ class XenRTList(XenRTCommand):
     [ -D <description> ]     show only jobs matching the given JOBDESC
     """
     group = "Scheduler"
+    NEW = True
 
-    def run(self, args):
-        self.showsr = False
-        details = {'action': 'list',
-                   'fields': 'MACHINE,VERSION,REVISION,DEPS,JOBDESC,USERID,TESTRUN_SR'}
-        self.quiet = False
+    def render(self, args):
+        showsr = False
+        details = {}
+        quiet = False
+        jobdesc = None
         try:
             optlist, optx = getopt.getopt(args, 'mU:nrsS:qD:')
             for argpair in optlist:
                 (flag, value) = argpair
                 if flag == "-U":
-                    details["filter_USERID"] = value
+                    details["user"] = [value]
                 elif flag == "-S":
-                    details["filter_TESTRUN_SR"] = value
+                    details["suiterun"] = [value]
                 elif flag == "-m":
-                    details["filter_USERID"] = pwd.getpwuid(os.getuid())[0]
+                    details["user"] = "${user}"
                 elif flag == "-n":
-                    details["filter_JOBSTATUS"] = "new"
+                    details["status"] = ["new"]
                 elif flag == "-r":
-                    details["filter_JOBSTATUS"] = "running"
+                    details["status"] = ["running"]
                 elif flag == "-s":
-                    self.showsr = True
+                    showsr = True
                 elif flag == "-q":
-                    self.quiet = True
+                    quiet = True
                 elif flag == "-D":
-                    details["filter_JOBDESC"] = value
+                    jobdesc = value
                 else:
                     sys.stderr.write("Unknown argument '%s'\n" % (flag))
                     return None
         except getopt.GetoptError:
             sys.stderr.write("Unknown argument\n")
             return None
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = []
-        error = 0
-        while 1:
-            line = u.readline()
-            if not line:
-                break
-            if line[0:5] == "ERROR":
-                sys.stderr.write(line)
-                error = 1
-            else:
-                if line[-1] == "\n":
-                    ll = string.split(line[:-1], "\t")
-                else:
-                    ll = string.split(line, "\t")
-                while len(ll) < 7:
-                    ll.append("")
-                reply.append(ll)
-        u.close()
-        if error:
-            return None
-        return reply
-
-    def render(self, args, results):
-        fieldwidths = [6, 8, 12, 9, 13, 18, 7]
+        jobs = self.xenrt.get_jobs(params=True, limit=10000, results=True, **details)
+        
+        fieldwidths = [7, 8, 12, 9, 13, 18, 7]
         fmt = string.join(map(lambda x:"%%-%us" % x, fieldwidths))
         fmt = fmt + "\n"
-        if not self.quiet:
+        if not quiet:
             self.printout(fmt % ("ID",
                                  "Status",
                                  "Host(s)",
@@ -984,18 +979,36 @@ class XenRTList(XenRTCommand):
                                  "User"))
             self.printout("--------------------------------------------------"
                           "-----------------------------\n")
-        for ll in results:
-            if ll[6] != "":
-                ll[5] = ll[6]
-            ll[6] = ll[7]
-            if ll[8] and self.showsr:
-                ll[5] = ll[5].split("&")[0]
-                ll[5] = "SR%s " % (ll[8]) + ll[5]
-            for i in range(len(fieldwidths)):
-                if len(ll[i]) > fieldwidths[i]:
-                    ll[i] = ll[i][0:fieldwidths[i]]
-            self.printout(fmt %
-                          (ll[0], ll[1], ll[2], ll[3], ll[4], ll[5], ll[6]))
+        for s in ['new', 'running']:
+            for job in sorted([x for x in jobs.keys() if jobs[x]['status'] == s], key=int, reverse=True):
+                j = jobs[job]
+                
+                if jobdesc and j['description'] != jobdesc:
+                    continue
+                status = j['status']
+
+                if "paused" in [x['result'] for x in j['results'].values()]:
+                    status = "paused"
+
+                if showsr and j['suiterun']:
+                    desc = "SR%d %s" % (j['suiterun'], j['description'] or "")
+                else:
+                    desc = j['description'] or ""
+
+                ll = [
+                    str(j['id']),
+                    status,
+                    ",".join(j['machines']),
+                    j['params'].get("VERSION", ""),
+                    j['params'].get("REVISION", ""),
+                    desc,
+                    j['user']]
+
+                for i in range(len(fieldwidths)):
+                    if len(ll[i]) > fieldwidths[i]:
+                        ll[i] = ll[i][0:fieldwidths[i]]
+
+                self.printout(fmt % tuple(ll))
                           
         
 class XenRTComplete(XenRTCommand):

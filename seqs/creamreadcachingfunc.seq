@@ -22,13 +22,13 @@
   <testsequence>
     <serial group="RC">
       <!-- Low level checks that licensing is enabled on RTM Creedence -->
-      <testcase id="testcases.xenserver.tc.readcaching.TCLicensingRCEnabled" tc="TC-23921" name=tc="TC-23921a">
+      <testcase id="testcases.xenserver.tc.readcaching.TCLicensingRCEnabled" tc="TC-23921" name="TC-23921a">
         <arg>lowlevel=yes</arg>
         <arg>bothChecks=no</arg>
         <arg>vm=arnie</arg>
       </testcase>
 
-      <testcase id="testcases.xenserver.tc.readcaching.TCLicensingRCDisabled" tc="TC-23922" name=="TC-23922b">
+      <testcase id="testcases.xenserver.tc.readcaching.TCLicensingRCDisabled" tc="TC-23922" name="TC-23922b">
         <arg>lowlevel=yes</arg>
         <arg>bothChecks=no</arg>
         <arg>vm=arnie</arg>

@@ -3019,6 +3019,10 @@ class TCNonWindowsK1(FunctionalBase):
         raise xenrt.XRTFailure("No error was raised, but it should have been")
 
 class BootstormBase(FunctionalBase):
+
+    def prepare(self, arglist=[]):
+        super(BootstormBase, self).prepare(arglist)
+        self.vms = []
     
     def run(self, arglist):
         """Should perform the bootstorm steps with all available vms."""

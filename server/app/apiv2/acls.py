@@ -98,6 +98,12 @@ class _AclBase(XenRTAPIv2Page):
         db.commit()
         return self.getAcls(limit=1, ids=[aclid], exceptionIfEmpty=True)
 
+    def updateAcl(self, aclid, name, parent):
+        db = self.getDB()
+        cur = db.cursor()
+        cur.execute("UPDATE tblacls SET name=%s, parent=%s WHERE aclid=%s", [name, parent, aclid])
+        db.commit()
+        return self.getAcls(limit=1, ids=[aclid], exceptionIfEmpty=True)
 
 class ListAcls(_AclBase):
     PATH = "/acls"
@@ -209,6 +215,54 @@ class NewAcl(_AclBase):
                            parent=j.get("parent"),
                            owner=self.getUser())
 
+class UpdateAcl(_AclBase):
+    WRITE = True
+    PATH = "/acl/{id}"
+    REQTYPE = "POST"
+    SUMMARY = "Update ACL details"
+    TAGS = ["acls"]
+    PARAMS = [
+        {'name': 'id',
+         'in': 'path',
+         'required': True,
+         'description': 'ACL ID to update',
+         'type': 'integer'},
+        {'name': 'body',
+         'in': 'body',
+         'required': True,
+         'description': 'Details of the update',
+         'schema': { "$ref": "#/definitions/updateacl" }
+        }
+    ]
+    DEFINITIONS = {"updateacl": {
+        "title": "Update ACL",
+        "type": "object",
+        "properties": {
+            "name": {
+                "type": "string",
+                "description": "Name of ACL"
+            },
+            "parent": {
+                "type": "integer",
+                "description": "ID of any parent ACL"
+            }
+        }
+    }}
+    RESPONSES = { "200": {"description": "Successful response"}}
+    OPERATION_ID = "update_acl"
+    PARAM_ORDER=["name", "parent"]
+
+    def render(self):
+        aclid = self.getIntFromMatchdict("id")
+        # TODO: Verify this user owns the specified ACL
+        try:
+            j = json.loads(self.request.body)
+            jsonschema.validate(j, self.DEFINITIONS['updateacl'])
+        except Exception, e:
+            raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
+        return self.updateAcl(aclid, name=j.get("name"), parent=j.get("parent"))
+
 RegisterAPI(ListAcls)
 RegisterAPI(GetAcl)
 RegisterAPI(NewAcl)
+RegisterAPI(UpdateAcl)

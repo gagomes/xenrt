@@ -17,6 +17,7 @@ class Path(object):
         self.fileParams = []
         self.pathParams = []
         self.queryParams = []
+        self.returnKey = None
         self.parseParams()
 
     def pythonParamName(self, param):
@@ -57,7 +58,7 @@ class Path(object):
             for p in self.formParams:
                 q = self.pythonParamName(p)
                 if p in self.fileParams:
-                    ret += """        if %s != None:\n            files['%s'] = (os.path.basename(%s), open(%s, 'rb'))\n""" % (q, p, q, q)
+                    ret += """        if %s != None:\n            files['%s'] = (os.path.basename(%s), open(%s, 'rb'))\n        else:\n            files['%s'] = ('stdin', sys.stdin)\n""" % (q, p, q, q, p)
                 else:
                     ret += """        if %s != None:\n            payload['%s'] = %s\n""" % (q, p, q)
         if self.method == "get":
@@ -68,7 +69,10 @@ class Path(object):
             ret += """        r = requests.%s(path, params=paramdict, data=payload, files=files, headers=myHeaders)\n""" % self.method
         ret += """        self.__raiseForStatus(r)\n"""
         if 'application/json' in self.data['produces']:
-            ret += """        return r.json()"""
+            if self.returnKey:
+                ret += """        return r.json()['%s']""" % self.returnKey
+            else:
+                ret += """        return r.json()"""
         else:
             ret += """        return r.content"""
         return ret
@@ -129,6 +133,9 @@ class Path(object):
                     self.args.append("%s=%s" % (pname, p[1]))
                 self.argdesc.append("%s: %s" % (pname, argdesc.get(p[0], "")))
 
+        if self.data.get('returnKey'):
+            self.returnKey = self.data.get('returnKey')
+
     @property
     def methodSignature(self):
         return "    def %s(%s):" % (self.methodName, self.methodParams)
@@ -187,6 +194,7 @@ import json
 import httplib
 import os.path
 import base64
+import sys
 
 class XenRTAPIException(Exception):
     def __init__(self, code, reason, canForce):

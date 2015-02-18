@@ -48,6 +48,7 @@ class GetAPIKey(_APIKeyBase):
     PARAMS = []
     TAGS = ["apikeys"]
     OPERATION_ID = "get_apikey"
+    RETURN_KEY = "key"
 
     def render(self):
         key = self._getAPIKey()

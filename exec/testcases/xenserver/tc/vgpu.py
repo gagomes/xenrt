@@ -1651,7 +1651,7 @@ class FunctionalBase(VGPUAllocationModeBase):
 
         self.parseArgs(arglist)
 
-        self.typeOfvGPU = self.typeOfvGPU()
+        self.typeOfvGPU = self.typeofvGPU()
 
         step("Install host drivers")
         self.typeOfvGPU.installHostDrivers()
@@ -1659,7 +1659,7 @@ class FunctionalBase(VGPUAllocationModeBase):
         self.sr = self.host.getSRs(type="lvm", local=True)[0]
         self.prepareGPUGroups()
 
-    def typeOfvGPU(self, typeOfvGPU = None):
+    def typeofvGPU(self, typeOfvGPU = None):
 
         if typeOfvGPU:
             self.TYPE_OF_VGPU = typeOfvGPU
@@ -2149,8 +2149,8 @@ class TCReuseK2PGPU(FunctionalBase):
 
         step("Creating %d vGPUs configurations." % (len(self.VGPU_CONFIG)))
         self.vGPUCreator = {}
-        self.nvidWinvGPU = self.typeOfvGPU(typeOfvGPU = self.getDiffvGPUName(DiffvGPUType.NvidiaWinvGPU))
-        self.nvidLinvGPU = self.typeOfvGPU(typeOfvGPU = self.getDiffvGPUName(DiffvGPUType.NvidiaLinuxvGPU))
+        self.nvidWinvGPU = self.typeofvGPU(typeOfvGPU = self.getDiffvGPUName(DiffvGPUType.NvidiaWinvGPU))
+        self.nvidLinvGPU = self.typeofvGPU(typeOfvGPU = self.getDiffvGPUName(DiffvGPUType.NvidiaLinuxvGPU))
 
         for i in range(len(self.REQUIRED_DISTROS)):
 

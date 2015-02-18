@@ -4105,6 +4105,22 @@ class TCRestictedGPUOperations(TCBasicVerifOfAllK2config):
             raise xenrt.XRTFailure("VM suspend is successful on a vGPU capable VM")
         except:
             pass
+            
+        try:
+            g.migrateVM(host=host,live="true")
+            raise xenrt.XRTFailure("VM Live Migration is successful on a vGPU capable VM")
+        except:
+            pass
+        
+        try:
+            vbd = host.minimalList("vbd-list", args="vm-uuid=%s type=Disk" % g.getUUID())        
+            vdi = host.minimalList("vdi-list", args="vbd-uuids=%s " % vbd[0])
+            dest_sr=host.getSRs(type="nfs")[0]
+            host.getCLIInstance().execute("vdi-pool-migrate uuid=%s sr-uuid=%s" % (vdi, dest_sr))            
+            raise xenrt.XRTFailure("VM's live vdi migration is successful on a vGPU capable VM")
+        except:
+            pass
+        self.pause("Mayur Paused it")
 
         g.setState("DOWN")
         log("Uninstalling guest %s" % str(g))

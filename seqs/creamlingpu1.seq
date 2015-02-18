@@ -5,7 +5,10 @@
   </variables>
 
   <prepare>
+  <pool id="0">
     <host license="enterprise-per-socket"/>
+    <storage type="nfs" name="nfs_sourceSR" />
+  </pool>  
   </prepare>
 
   <testsequence>
@@ -23,7 +26,7 @@
       </testcase>-->
       
       <testcase id="testcases.xenserver.tc.vgpu.TCRestictedGPUOperations">
-        <arg>distro=13,14</arg>
+        <arg>distro=14</arg>
         <arg>typeofvgpu=nvidialinuxvgpu</arg>
         <arg>vgpuconfig=11</arg>
       </testcase>

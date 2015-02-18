@@ -9477,9 +9477,16 @@ sleep (3000)
                 self.execguest("yum -y install pciutils")
 
             if not self.checkRPMInstalled("lshw"):
-                self.execguest("wget -nv '%slshw.tgz' -O - | tar -zx -C /tmp" %
-                                                (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
-                self.execguest("yum -y install /tmp/lshw/lshw-2.17-1.e17.rf.x86_64.rpm")
+                urlprefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
+                url = "%s/gpuDriver/PVHVM/gputools/lshw-2.17-1.el7.rf.x86_64.rpm" % (urlprefix)
+                installfile = xenrt.TEC().getFile(url)
+                if not installfile:
+                    raise xenrt.XRTError("Failed to fetch lshw .rpm")
+                sftp = self.sftpClient()
+                sftp.copyTo(installfile, "/%s" % (os.path.basename(installfile)))
+                sftp.close()
+
+                self.execguest("yum -y install /lshw-2.17-1.e17.rf.x86_64.rpm")
 
         # Check if the GPU of given type is present.
         try:

@@ -26,10 +26,11 @@ class TCSanityTest(xenrt.TestCase):
             self.host = self.pool.master 
 
         # Obtain the CoreOS guest object. 
-        self.coreos = self.getGuest(self.distro)
+        self.guest = self.getGuest(self.distro)
 
         # Obtain the docker environment to work with Xapi plugins.
-        self.docker = CoreOSDocker(self.host, self.coreos, UsingXapi)
+        self.docker = self.guest.getDocker() # OR CoreOSDocker(self.host, self.coreos, UsingXapi)
+                                             # OR CoreOSDocker(self.host, self.coreos, UsingLinux)
 
         # Register the guest for container monitoring.
         self.docker.registerGuest()

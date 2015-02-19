@@ -328,6 +328,9 @@ DEFAULT %s
     def _getIPXEDir(self):
         return xenrt.TEC().lookup("IPXE_CONF_DIR", self.tftpbasedir+"/ipxe.cfg")
 
+    def _getUefiDir(self):
+        return xenrt.TEC().lookup("EFI_DIR", self.tftpbasedir+"/EFI")
+
     def clearISCSINICs(self):
         self.iSCSINICs = []
 
@@ -356,7 +359,13 @@ DEFAULT %s
             self._rmtree("%s/%s" % (self._getIPXEDir(), machine.pxeipaddr))
         if forceip and self._exists("%s/%s" % (self._getIPXEDir(), forceip)):
             self._rmtree("%s/%s" % (self._getIPXEDir(), forceip))
-            
+    
+    def clearUefi(self, machine, forceip=None):
+        xenrt.TEC().logverbose("Clearing UEFI grub config")
+        if machine and self._exists("%s/%s" % (self._getUefiDir(), machine.pxeipaddr)):
+            self._rmtree("%s/%s" % (self._getUefiDir(), machine.pxeipaddr))
+        if forceip and self._exists("%s/%s" % (self._getUefiDir(), forceip)):
+            self._rmtree("%s/%s" % (self._getUefiDir(), forceip))
 
     def writeIPXEExit(self, machine, forceip=None):
         filename = self.getIPXEFile(machine, forceip)
@@ -437,10 +446,12 @@ dhcp
         xenrt.TEC().logverbose("Wrote iPXE config file %s" % (filename))
         return filename
 
-    def writeOut(self, machine, forcemac=None, forceip=None, suffix=None, clearIPXE=True):
+    def writeOut(self, machine, forcemac=None, forceip=None, suffix=None, clearIPXE=True, clearUefi=True):
         """Write this config for the specified machine."""
         if clearIPXE:
             self.clearIPXEConfig(machine, forceip=forceip)
+        if clearUefi:
+            self.clearUefi(machine, forceip=forceip)
         pxedir = xenrt.TEC().lookup("PXE_CONF_DIR",
                                     self.tftpbasedir+"/pxelinux.cfg")
 

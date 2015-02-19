@@ -8,7 +8,7 @@
 # conditions as licensed by XenSource, Inc. All other rights reserved.
 #
 
-import string, os.path, os, pwd
+import string, os.path, os, pwd, shutil
 import xenrt, xenrt.resources
 
 # Symbols we want to export from the package.
@@ -21,7 +21,8 @@ __all__ = ["PXEBootEntry",
            "PXEBoot",
            "PXEGrubBoot",
            "pxeHexIP",
-           "pxeMAC"]
+           "pxeMAC",
+           "PXEBootUefi"]
 
 class PXEBootEntry:
     """An individual boot entry in a PXE config."""
@@ -211,7 +212,6 @@ LABEL %s
     APPEND %s -- %s
 """ % (self.label, self.mbootimg, self.mbootGetArgsKernelString(),
        self.mbootGetArgsModule1String())
-
 
 class PXEBoot(xenrt.resources.DirectoryResource):
     """A directory on a PXE server."""
@@ -636,3 +636,64 @@ def pxeMAC(mac):
 def pxeGrubMAC(mac):
     ocs = string.split(mac, ":")
     return "01"+string.upper("".join(["%s" % oc for oc in ocs]))
+
+class PXEBootUefi(xenrt.resources.DirectoryResource):
+    def __init__(self):
+        self.tftpbasedir = xenrt.TEC().lookup("TFTP_BASE")
+        self.pxebasedir = os.path.normpath(
+            self.tftpbasedir + "/" + \
+            xenrt.TEC().lookup("TFTP_SUBDIR", default="xenrt"))
+        xenrt.resources.DirectoryResource.__init__(\
+            self, self.pxebasedir)
+        xenrt.TEC().gec.registerCallback(self)
+        self.bootdir = None
+        self.entries = {}
+        self.defaultEntry = None
+
+    def setDefault(self, label):
+        self.defaultEntry = label
+
+    def addGrubEntry(self, label, text, default=False):
+        self.entries[label] = text
+        if default:
+            self.defaultEntry = label
+
+    def installGrub(self, location, machine, forceip=None):
+        ip = forceip or machine.pxeipaddr
+        path = "%s/EFI/%s" % (self.tftpbasedir, ip)
+        if not self._exists(path):
+            os.makedirs(path)
+        shutil.copyfile(location, "%s/boot.efi" % path)
+
+    def writeOut(self, machine, forceip=None):
+        ip = forceip or machine.pxeipaddr
+        path = "%s/EFI/xenserver" % self.tftpbasedir
+        if not self._exists(path):
+            os.makedirs(path)
+        with open("%s/grub.cfg" % path, "w") as f:
+            f.write("configfile /EFI/xenserver/$net_default_ip.cfg\n")
+        with open("%s/%s.cfg" % (path, ip), "w") as f:
+            f.write("timout 5\n\n")
+            f.write("menuentry '%s' {\n" % self.defaultEntry)
+            f.write(self.entries[self.defaultEntry])
+            f.write("}\n")
+
+    def tftpPath(self):
+        preflen = len(os.path.normpath(self.tftpbasedir))
+        return self.path()[preflen:]
+
+    def callback(self):
+        self.remove()
+
+    def remove(self):
+        if self.removeOnExit and self.bootdir:
+            if self._exists(self.bootdir):
+                self._rmtree(self.bootdir)
+            if self._exists("%s.xenrt.bak" % self.bootdir):
+                try:
+                    xenrt.util.command("mv %s.xenrt.bak %s" % (self.bootdir, self.bootdir))
+                except:
+                    xenrt.rootops.sudo("mv %s.xenrt.bak %s" % (self.bootdir, self.bootdir))
+        self._delegate.remove() 
+        xenrt.TEC().gec.unregisterCallback(self)
+

@@ -9,6 +9,8 @@ import config
 import urlparse
 import StringIO
 import requests
+import time
+import smtplib
 
 class _JobBase(_MachineBase):
 
@@ -583,6 +585,9 @@ class NewJob(_JobBase):
                inputdir=None,
                lease=None):
 
+        if params.has_key("JOBGROUP") and params.has_key("JOBGROUPTAG") and not jobGroup:
+            jobGroup = {"id": params['JOBGROUP'], "tag": params['JOBGROUPTAG']}
+        
         db = self.getDB()
         cur = db.cursor()
         cur.execute("LOCK TABLE tbljobs IN EXCLUSIVE MODE")
@@ -698,6 +703,7 @@ class _GetAttachmentUrl(_JobBase):
          'type': 'string'}]
     RESPONSES = { "200": {"description": "Successful response"}}
     TAGS = ["jobs"]
+    RETURN_KEY="url"
 
     def render(self):
         job = int(self.request.matchdict['id'])
@@ -793,7 +799,73 @@ class UpdateJob(_JobBase):
         self.getDB().commit()
         return {}
     
+class EmailJob(_JobBase):
+    PATH = "/job/{id}/email"
+    REQTYPE = "POST"
+    SUMMARY = "Gets a specific job object"
+    TAGS = ["backend"]
+    PARAMS = [
+        {'name': 'id',
+         'in': 'path',
+         'required': True,
+         'description': 'Job ID to fetch',
+         'type': 'integer'}]
+    RESPONSES = { "200": {"description": "Successful response"}}
+    OPERATION_ID = "send_job_email"
 
+    def textLog(self, job):
+        out = ""
+        for r in sorted(job['results'].keys(), key=int):
+            out += "%s/%s: %s\n" % (
+                job['results'][r]['phase'],
+                job['results'][r]['test'],
+                job['results'][r]['result'])
+        return out
+
+    def render(self):
+        id = int(self.request.matchdict['id'])
+        job = self.getJobs(1, ids=[id], getParams=True, getResults=True, getLog=False, exceptionIfEmpty=True)[id]
+        if job['params'].has_key("EMAIL"):
+            machine = ",".join(job['machines'])
+            if not machine:
+                machine = "unknown"
+            result = job['result']
+            if not result:
+                result = "unknown"
+            if job['params'].has_key("JOBDESC"):
+                jobdesc = "%s (JobID %u)" % (job['params']["JOBDESC"], id)
+            else:
+                jobdesc = "JobID %u" % (id)
+            emailto = job['params']["EMAIL"].split(",")
+            subject = "[xenrt] %s %s %s" % (jobdesc, machine, result)
+            summary = self.textLog(job)
+            message = """
+================ Summary =============================================
+%s/ui/logs?jobs=%u
+======================================================================
+%s
+======================================================================
+""" % (config.url_base.rstrip("/"), id, summary.strip())
+            for key in job['params'].keys():
+                message =  message + "%s='%s'\n" % (key, job['params'][key])
+            self.sendMail(config.email_sender, emailto, subject, message, reply=emailto[0])
+        return {}
+
+    def sendMail(self, fromaddr, toaddrs, subject, message, reply=None):
+        if not config.smtp_server:
+            return
+        now = time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime())
+        msg = ("Date: %s\r\nFrom: %s\r\nTo: %s\r\nSubject: %s\r\n"
+               % (now, fromaddr, ", ".join(toaddrs), subject))
+        if reply:
+            msg = msg + "Reply-To: %s\r\n" % (reply)
+        msg = msg + "\r\n" + message
+
+        server = smtplib.SMTP(config.smtp_server)
+        server.sendmail(fromaddr, toaddrs, msg)
+        server.quit()
+
+RegisterAPI(EmailJob)
 RegisterAPI(ListJobs)
 RegisterAPI(GetJob)
 RegisterAPI(GetTest)

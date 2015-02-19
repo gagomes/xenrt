@@ -192,7 +192,7 @@ class XenRT(object):
             files['file'] = (os.path.basename(filepath), open(filepath, 'rb'))
         else:
             files['file'] = ('stdin', sys.stdin)
-        myHeaders = {'content-type': 'application/json'}
+        myHeaders = {}
         myHeaders.update(self.customHeaders)
         r = requests.post(path, params=paramdict, data=payload, files=files, headers=myHeaders)
         self.__raiseForStatus(r)
@@ -881,7 +881,7 @@ class XenRT(object):
             files['file'] = (os.path.basename(filepath), open(filepath, 'rb'))
         else:
             files['file'] = ('stdin', sys.stdin)
-        myHeaders = {'content-type': 'application/json'}
+        myHeaders = {}
         myHeaders.update(self.customHeaders)
         r = requests.post(path, params=paramdict, data=payload, files=files, headers=myHeaders)
         self.__raiseForStatus(r)

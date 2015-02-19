@@ -99,7 +99,6 @@ class DockerController(object):
     def getDockerInfo(self):pass
     def getDockerPS(self):pass
     def getDockerVersion(self):pass
-    def getDockerOtherConfig(self):pass
 
 # Concrete Implementor
 class UsingXapi(DockerController):
@@ -242,11 +241,35 @@ class UsingXapi(DockerController):
             else:
                 return ContainerState.UNKNOWN
 
-    # Misc functions.
-    def getDockerInfo(self):pass
-    def getDockerPS(self):pass
-    def getDockerVersion(self):pass
-    def getDockerOtherConfig(self):pass
+    # Misc functions to work with vm:other-config param.
+
+    def dockerGeneralInfo(self, dcommand):
+
+        dockerGeneralList = self.host.minimalList("vm-param-get",
+                                args="uuid=%s param-name=other-config param-key=%s" %
+                                                            (self.guest.getUUID(), dcommand))
+        if len(dockerGeneralList) < 1:
+            raise xenrt.XRTError("dockerGeneralInfo: General docker info for %s is not found" % dcommand)
+
+        dockerGeneralDict = xmltodict.parse(dockerGeneralList[0])
+        if not dockerGeneralDict.has_key(dcommand):
+                raise xenrt.XRTError("dockerGeneralInfo: Failed to find %s tag on the xml" % dcommand)
+        return dockerGeneralDict[dcommand] # returning ordered dict.
+
+    def getDockerInfo(self):
+        return self.dockerGeneralInfo('docker_info')
+
+    def getDockerPS(self):
+        ##### put a try catch here as it returns an invalid xml some time.
+        return self.dockerGeneralInfo('docker_ps')
+
+    def getDockerVersion(self):
+
+        dockerVersionDict = self.dockerGeneralInfo('docker_version')
+        if dockerVersionDict.has_key('Version'): # has other keys such as KernelVersion, ApiVersion, GoVersion etc.
+            return dockerVersionDict['Version']
+        else:
+            raise xenrt.XRTError("getDockerVersion: Version key is missing in docker_version xml")
 
 class UsingLinux(DockerController):
 
@@ -307,14 +330,12 @@ class Docker(object):
 
     # Misc functions.
 
-    def getDockerInfo(self, container):
+    def getDockerInfo(self):
         return self.DockerController.getDockerInfo()
-    def getDockerPS(self, container):
+    def getDockerPS(self):
         return self.DockerController.getDockerPS()
-    def getDockerVersion(self, container):
+    def getDockerVersion(self):
         return self.DockerController.getDockerVersion()
-    def getDockerOtherConfig(self, container):
-        return self.DockerController.getDockerOtherConfig()
 
     # Useful functions.
     def getContainer(self, cname):pass
@@ -347,6 +368,7 @@ class RHELDocker(Docker):
     """Represents a docker installed on rhel guest"""
 
     def install(self):
+        # https://access.redhat.com/articles/881893
         xenrt.TEC().logverbose("Docker installation on RHEL to be implemented")
 
 class UbuntuDocker(Docker):

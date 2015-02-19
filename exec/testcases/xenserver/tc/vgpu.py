@@ -3040,6 +3040,11 @@ class BootstormBase(FunctionalBase):
         xenrt.pfarm(pt)
 
         # Check VMs utilizing GPU.
+        # Going to need something here to tell what type they are?
+            # This is where the problems come in..
+            # Going to have to sort them myself.
+
+        # Any other assertions that need to be made about the vms after starting.
 
     def bootstormStartVM(self, vm):
         try:
@@ -3093,7 +3098,7 @@ class MixedGPUBootstorm(BootstormBase):
 
     def prepare(self, arglist=[]):
         super(MixedGPUBootstorm, self).prepare(arglist)
-        
+
         masters = {}
 
         for distro in (self.LINUX_TYPE, self.WINDOWS_TYPE):
@@ -3111,6 +3116,10 @@ class MixedGPUBootstorm(BootstormBase):
         # Installer for vGPU
 
         # Filling the vGPU stuff.
+
+
+        # Once again end up with some vms at the end. The run doesn't care what type.
+        self.vms = []
 
         
 

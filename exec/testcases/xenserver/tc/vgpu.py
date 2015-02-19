@@ -3060,10 +3060,13 @@ class LinuxGPUBootstorm(BootstormBase):
         if len(self.REQUIRED_DISTROS) > 1:
             raise xenrt.XRTError("This testcase configured to take only one distro at a time.")
 
-        installer = VGPUInstaller(self.host, self.VGPU_CONFIG[0])
+        config = self.VGPU_CONFIG[0]
+        distro = self.REQUIRED_DISTROS[0]
+
+        installer = VGPUInstaller(self.host, config)
 
         # Create master.
-        osType = self.getOSType(self.REQUIRED_DISTROS[0])
+        osType = self.getOSType(distro)
         vm = self.createMaster(osType)
 
         installer.createOnGuest(vm)

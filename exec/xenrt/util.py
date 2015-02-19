@@ -1441,6 +1441,7 @@ def getMarvinFile():
            re.search('[/-]3\.0\.[1-7]', xenrt.TEC().lookup("CLOUDINPUTDIR_RHEL6", '')) != None:
             marvinversion = "3.0."
 
+    marvinFile = None
     if marvinversion:
         if marvinversion.startswith("3."):
             marvinFile = xenrt.TEC().getFile(xenrt.TEC().lookup(["MARVIN_FILE", "3.x"]))

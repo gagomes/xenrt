@@ -209,8 +209,10 @@ class XenRTAPIException(Exception):
         return ret
 
 class XenRT(object):
-    def __init__(self, apikey=None, user=None, password=None):
-        self.base = "%s://%s%s"
+    def __init__(self, apikey=None, user=None, password=None, server=None):
+        if not server:
+            server ="%s"
+        self.base = "%s://%%s%s" %% server
 
         self.customHeaders = {}
         if apikey:
@@ -248,7 +250,7 @@ class XenRT(object):
                                         canForce)
         response.raise_for_status()
 
-""" % (self.scheme, self.host, self.base)
+""" % (self.host, self.scheme, self.base)
         for func in self.funcs:
             ret += "%s\n" % func.methodSignature
             ret += "%s\n" % func.description

@@ -9486,7 +9486,7 @@ sleep (3000)
                 sftp.copyTo(installfile, "/tmp/%s" % (os.path.basename(installfile)))
                 sftp.close()
 
-                self.execguest("yum -y install /tmp/lshw-2.17-1.e17.rf.x86_64.rpm")
+                self.execguest("yum -y install /tmp/lshw-2.17-1.el7.rf.x86_64.rpm")
 
         # Check if the GPU of given type is present.
         try:

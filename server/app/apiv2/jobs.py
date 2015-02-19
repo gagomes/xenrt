@@ -567,8 +567,10 @@ class NewJob(_JobBase):
     OPERATION_ID = "new_job"
     PARAM_ORDER=["machines", "pools", "flags", "resources", "specified_machines", "sequence", "custom_sequence", "params", "deployment", "job_group", "email", "inputdir", "lease_machines"]
 
-    def updateJobField(self, field, value):
+    def updateJobField(self, field, value, params={}):
         _JobBase.updateJobField(self, self.jobid, field, value, commit=False, lookupExisting=False)
+        if field in params:
+            del params[field]
 
     def newJob(self,
                pools=None,
@@ -584,6 +586,9 @@ class NewJob(_JobBase):
                email=None,
                inputdir=None,
                lease=None):
+        
+        if not params:
+            params = {}
 
         if params.has_key("JOBGROUP") and params.has_key("JOBGROUPTAG") and not jobGroup:
             jobGroup = {"id": params['JOBGROUP'], "tag": params['JOBGROUPTAG']}
@@ -599,32 +604,29 @@ class NewJob(_JobBase):
         db.commit() # Commit to release the lock
 
         if specifiedMachines:
-            self.updateJobField("MACHINE", ",".join(specifiedMachines))
-            self.updateJobField("MACHINES_SPECIFIED", "yes")
-            self.updateJobField("MACHINES_REQUIRED", str(len(specifiedMachines)))
+            self.updateJobField("MACHINE", ",".join(specifiedMachines), params)
+            self.updateJobField("MACHINES_SPECIFIED", "yes", params)
+            self.updateJobField("MACHINES_REQUIRED", str(len(specifiedMachines)), params)
         else:
             if resources:
-                self.updateJobField("RESOURCES_REQUIRED", ",".join(resources))
+                self.updateJobField("RESOURCES_REQUIRED", ",".join(resources), params)
             if flags:
-                self.updateJobField("FLAGS", ",".join(flags))
+                self.updateJobField("FLAGS", ",".join(flags), params)
             if pools:
-                self.updateJobField("POOL", ",".join(pools))
+                self.updateJobField("POOL", ",".join(pools), params)
             if numberMachines:
-                self.updateJobField("MACHINES_REQUIRED", str(numberMachines))
-            else:
-                self.updateJobField("MACHINES_REQUIRED", "1")
+                self.updateJobField("MACHINES_REQUIRED", str(numberMachines), params)
+            elif not "MACHINES_REQUIRED" in params:
+                self.updateJobField("MACHINES_REQUIRED", "1", params)
 
         if deployment:
             sequence = "deployment.seq"
             customSequence = True
 
         if sequence:
-            self.updateJobField("DEPS", sequence)
+            self.updateJobField("DEPS", sequence, params)
             if customSequence:
-                self.updateJobField("CUSTOM_SEQUENCE", "yes")
-
-        if not params:
-            params = {}
+                self.updateJobField("CUSTOM_SEQUENCE", "yes", params)
         
         if jobGroup:
             try:
@@ -643,18 +645,18 @@ class NewJob(_JobBase):
         params['JOB_FILES_SERVER'] = config.log_server
         params['LOG_SERVER'] = config.log_server
 
-        for p in params.keys():
-            self.updateJobField(p, params[p])
-
         if email:
-            self.updateJobField("EMAIL", email)
+            self.updateJobField("EMAIL", email, params)
 
         if inputdir:
-            self.updateJobField("INPUTDIR", inputdir)
+            self.updateJobField("INPUTDIR", inputdir, params)
 
         if lease and lease.get("duration"):
-            self.updateJobField("MACHINE_HOLD_FOR", lease['duration'] * 60)
-            self.updateJobField("MACHINE_HOLD_REASON", lease.get("reason", ""))
+            self.updateJobField("MACHINE_HOLD_FOR", lease['duration'] * 60, params)
+            self.updateJobField("MACHINE_HOLD_REASON", lease.get("reason", ""), params)
+
+        for p in params.keys():
+            self.updateJobField(p, params[p])
 
         db.commit()
         cur.close()

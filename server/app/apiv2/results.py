@@ -264,10 +264,10 @@ class NewLogData(XenRTAPIv2Page):
                         [id, phase, test])
             rc = cur.fetchone()
             if not rc:
-                return "ERROR Could not get detailid for test"
                 cur.close()
                 db.rollback()
                 db.close()
+                raise XenRTAPIError(HTTPNotFound, "Could not find test in database")
             else:
                 detailid = int(rc[0])
         else:
@@ -305,7 +305,7 @@ class NewLogData(XenRTAPIv2Page):
             
         db.commit()
         cur.close()
-        return "OK"
+        return {}
 
 class SetResult(XenRTAPIv2Page):
     WRITE = True
@@ -387,7 +387,7 @@ class SetResult(XenRTAPIv2Page):
         rc = cur.fetchone()
         if not rc:
             cur.close()
-            return "ERROR Could not get detailid for test"
+            raise XenRTAPIError(HTTPNotFound, "Could not find test in database")
         else:
             detailid = int(rc[0])
             cur.execute(

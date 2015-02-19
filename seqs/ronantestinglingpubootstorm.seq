@@ -15,6 +15,14 @@
         <arg>typeofvgpu=nvidialinuxvgpu</arg>
         <arg>vgpuconfig=5</arg>
       </testcase>
+
+      <testcase id="testcases.xenserver.tc.vgpu.MixedGPUBootstorm">
+        <!-- Got rid of disto for this one, check if anything relys on it, even if we aren't using it -->
+        <arg>linuxtype=99</arg>
+        <arg>windowstype=99</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+        <arg>vgpuconfig=5</arg> <!-- This might not mean aything, need new args for each. -->
+      </testcase>
     </serial>
   </testsequence>
 

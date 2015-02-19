@@ -3093,14 +3093,26 @@ class MixedGPUBootstorm(BootstormBase):
 
     def prepare(self, arglist=[]):
         super(MixedGPUBootstorm, self).prepare(arglist)
-
-        # Have two types and want to set up the masters.
+        
         masters = {}
 
         for distro in (self.LINUX_TYPE, self.WINDOWS_TYPE):
             osType = self.getOSType(distro)
             vm = self.createMaster(osType)
             masters[distro] = vm
+
+        # Get remaining capacity..
+            # Fill with X (75%), of GPU passthrough. Half Lin / Win.
+
+        # Installer for passthrough.
+
+        # Filling the passthrough stuff.
+
+        # Installer for vGPU
+
+        # Filling the vGPU stuff.
+
+        
 
 
     def parseArgs(self, arglist):

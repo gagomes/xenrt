@@ -9483,10 +9483,10 @@ sleep (3000)
                 if not installfile:
                     raise xenrt.XRTError("Failed to fetch lshw .rpm")
                 sftp = self.sftpClient()
-                sftp.copyTo(installfile, "/%s" % (os.path.basename(installfile)))
+                sftp.copyTo(installfile, "/tmp/%s" % (os.path.basename(installfile)))
                 sftp.close()
 
-                self.execguest("yum -y install /lshw-2.17-1.e17.rf.x86_64.rpm")
+                self.execguest("yum -y install /tmp/lshw-2.17-1.e17.rf.x86_64.rpm")
 
         # Check if the GPU of given type is present.
         try:

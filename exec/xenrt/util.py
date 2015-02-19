@@ -1444,15 +1444,15 @@ def getMarvinFile():
     marvinFile = None
     if marvinversion:
         if marvinversion.startswith("3."):
-            marvinFile = xenrt.TEC().getFile(xenrt.TEC().lookup(["MARVIN_FILE", "3.x"]))
+            marvinFile = xenrt.TEC().getFile(xenrt.TEC().lookup(["MARVIN_FILE", "3.x"]), replaceExistingIfDiffers=True)
         elif marvinversion.startswith("4."):
-            marvinFile = xenrt.TEC().getFile(xenrt.TEC().lookup(["MARVIN_FILE", "4.x"]))
+            marvinFile = xenrt.TEC().getFile(xenrt.TEC().lookup(["MARVIN_FILE", "4.x"]), replaceExistingIfDiffers=True)
         elif marvinversion.startswith("http://") or marvinversion.startswith("https://"):
-            marvinFile = xenrt.TEC().getFile(marvinversion)
+            marvinFile = xenrt.TEC().getFile(marvinversion, replaceExistingIfDiffers=True)
 
     if not marvinFile:
         xenrt.TEC().comment('Failed to determine marvin version, Looking for default.')
-        marvinFile = xenrt.TEC().getFile(xenrt.TEC().lookup(["MARVIN_FILE", "DEFAULT"]))
+        marvinFile = xenrt.TEC().getFile(xenrt.TEC().lookup(["MARVIN_FILE", "DEFAULT"]), replaceExistingIfDiffers=True)
 
     xenrt.TEC().comment('Using Marvin Version: %s' % (marvinFile))
     return marvinFile

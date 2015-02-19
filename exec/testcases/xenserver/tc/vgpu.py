@@ -3087,9 +3087,30 @@ class LinuxGPUBootstorm(BootstormBase):
 
 class MixedGPUBootstorm(BootstormBase):
     
-    def prepare(self, arglist=[]):
+    # From seq file.
+    LINUX_TYPE = None
+    WINDOWS_TYPE = None
 
+    def prepare(self, arglist=[]):
         super(MixedGPUBootstorm, self).prepare(arglist)
+
+        # Have two types and want to set up the masters.
+        masters = {}
+
+        for distro in (self.LINUX_TYPE, self.WINDOWS_TYPE):
+            osType = self.getOSType(distro)
+            vm = self.createMaster(osType)
+            masters[distro] = vm
+
+
+    def parseArgs(self, arglist):
+        super(MixedGPUBootstorm, self).parseArgs(arglist)
+
+        for arg in arglist:
+            if arg.startswith('linuxtype'):
+                self.LINUX_TYPE = int(arg.split('=')[1])
+            if arg.startswith('windowstype'):
+                self.WINDOWS_TYPE = int(arg.split('=')[1])
         
 class TestingBootstorm(BootstormBase):
 

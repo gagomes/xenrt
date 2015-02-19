@@ -313,7 +313,16 @@ class XenRTBrowseBinary(XenRTBrowseFile):
         self.request.response.body_file = fd
         (ctype, encoding) = mimetypes.guess_type(self.filename)
         if not ctype:
-            ctype = "application/octet-stream"
+            if self.filename.endswith("/messages") \
+                    or self.filename.endswith(".log") \
+                    or self.filename.endswith(".out") \
+                    or self.filename.endswith("/SMlog") \
+                    or self.filename.endswith("/syslog"):
+                ctype = "text/plain"
+            elif self.filename.endswith(".db"):
+                ctype = "application/xml"
+            else:
+                ctype = "application/octet-stream"
         self.request.response.content_type = ctype
         if encoding:
             self.request.response.content_encoding=encoding

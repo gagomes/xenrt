@@ -14,4 +14,17 @@ class LogServer(XenRTAPIv2Page):
     def render(self):
         return {"server": config.log_server }
 
+class GetUser(XenRTAPIv2Page):
+    PATH = "/loggedinuser"
+    REQTYPE = "GET"
+    SUMMARY = "Get the currently logged in user"
+    PARAMS = []
+    RESPONSES = { "200": {"description": "Successful response"}}
+    TAGS = ["misc"]
+    RETURN_KEY = "user"
+
+    def render(self):
+        return {"user": self.getUser()}
+
 RegisterAPI(LogServer)
+RegisterAPI(GetUser)

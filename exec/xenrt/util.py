@@ -1434,9 +1434,6 @@ def getDistroAndArch(distrotext):
     return (distro, arch)
 
 def getMarvinFile():
-    # Default to using the Goleta version of Marvin
-    marvinFile = "/usr/share/xenrt/marvin-4.4.tar.gz"
-
     marvinversion = xenrt.TEC().lookup("MARVIN_VERSION", None)
     if not marvinversion:
         # The user has not specified the Marvin version to use
@@ -1446,11 +1443,15 @@ def getMarvinFile():
 
     if marvinversion:
         if marvinversion.startswith("3."):
-            marvinFile = "/usr/share/xenrt/marvin-3.x.tar.gz"
-        elif marvinversion == "4.3":
-            marvinFile = "/usr/share/xenrt/marvin.tar.gz"
+            marvinFile = xenrt.TEC().getFile(xenrt.TEC().lookup(["MARVIN_FILE", "3.x"]))
+        elif marvinversion.startswith("4."):
+            marvinFile = xenrt.TEC().getFile(xenrt.TEC().lookup(["MARVIN_FILE", "4.x"]))
         elif marvinversion.startswith("http://") or marvinversion.startswith("https://"):
             marvinFile = xenrt.TEC().getFile(marvinversion)
+
+    if not marvinFile:
+        xenrt.TEC().comment('Failed to determine marvin version, Looking for default.')
+        marvinFile = xenrt.TEC().getFile(xenrt.TEC().lookup(["MARVIN_FILE", "DEFAULT"]))
 
     xenrt.TEC().comment('Using Marvin Version: %s' % (marvinFile))
     return marvinFile

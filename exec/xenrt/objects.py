@@ -9478,7 +9478,7 @@ sleep (3000)
 
             if not self.checkRPMInstalled("lshw"):
                 urlprefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
-                url = "%s/gpuDriver/PVHVM/gputools/lshw-2.17-1.el7.rf.x86_64_new.rpm" % (urlprefix)
+                url = "%s/gpuDriver/PVHVM/gputools/lshw-2.17-1.el7.rf.x86_64.rpm" % (urlprefix)
                 installfile = xenrt.TEC().getFile(url)
                 if not installfile:
                     raise xenrt.XRTError("Failed to fetch lshw .rpm")

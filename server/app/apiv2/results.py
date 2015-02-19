@@ -237,8 +237,6 @@ class NewLogData(XenRTAPIv2Page):
             raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
         db = self.getDB()
         timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))
-        if not form.has_key("id"):
-            return "ERROR No job ID supplied"
         id = string.atoi(self.request.matchdict["id"])
         phase = self.request.matchdict['phase']
         test = self.request.matchdict['test']

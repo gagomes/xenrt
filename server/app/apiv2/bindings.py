@@ -64,7 +64,10 @@ class Path(object):
         if self.method == "get":
             ret += """        r = requests.get(path, params=paramdict, headers=self.customHeaders)\n"""
         else:
-            ret += """        myHeaders = {'content-type': 'application/json'}\n"""
+            if self.formParams:
+                ret += """        myHeaders = {}\n"""
+            else:
+                ret += """        myHeaders = {'content-type': 'application/json'}\n"""
             ret += """        myHeaders.update(self.customHeaders)\n"""
             ret += """        r = requests.%s(path, params=paramdict, data=payload, files=files, headers=myHeaders)\n""" % self.method
         ret += """        self.__raiseForStatus(r)\n"""

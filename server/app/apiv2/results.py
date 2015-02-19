@@ -40,7 +40,7 @@ class UploadSubResults(XenRTAPIv2Page):
 
     def render(self):
         """Parse XML to update tblSubResults"""
-        jobid = self.request.matchdict['jobid']
+        jobid = self.request.matchdict['id']
         phase = self.request.matchdict['phase']
         test = self.request.matchdict['test']
 

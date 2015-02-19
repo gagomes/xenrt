@@ -222,14 +222,12 @@ class XenRTCommand:
                     updates = []                
                     for u in string.split(value, ","):
                         if not os.path.exists(u):
-                            sys.stderr.write("Update %s doesn't exist on this machine." % u)
-                            return None, None
+                            raise Exception("Update %s doesn't exist on this machine." % u)
                         known_formats = ["rpm", "tar", "tar.gz", "tgz", "tar.bz", "tbz"]                    
                         if len(filter(lambda ext: u.endswith("." + ext), known_formats)) == 0:
-                            sys.stderr.write("Update %s has an unknown format ."
+                            raise Exception("Update %s has an unknown format ."
                                              "Only the following formats are supported: %s"
                                              % (u, known_formats))
-                            return None, None
                         updates.append(os.path.basename(u))
                     details['CUSTOM_UPDATES'] = string.join(updates, ",")
                     secondary['customupdates'] = value
@@ -332,19 +330,14 @@ class XenRTCommand:
                     try:
                         var, varval = string.split(value, "=", 1)
                         if len(var) > 24:
-                            sys.stderr.write(\
-                                "-D parameter too long (24 chars max): %s" % (var))
-                            return None, None
+                            raise Exception("-D parameter too long (24 chars max): %s" % (var))
                         if len(varval) > 255:
-                            sys.stderr.write(\
-                                "-D value too long (255 chars max): %s=%s" %
+                            raise Exception("-D value too long (255 chars max): %s=%s" %
                                 (var, varval))
-                            return None, None
                         details[var] = varval
                     except:
-                        sys.stderr.write("Error parsing -D variable '%s'\n" %
+                        raise Exception("Error parsing -D variable '%s'\n" %
                                          (value))
-                        return None, None
                 elif flag == "--removepassed":
                     details['OPTION_REMOVE_PASSED'] = "yes"
                 elif flag == "--pq":
@@ -382,11 +375,9 @@ class XenRTCommand:
                 elif flag == "--xenrtpqname":
                     details['XENRT_PQ_NAME'] = value
                 else:
-                    sys.stderr.write("Unknown argument '%s'\n" % (flag))
-                    return None, None
+                    raise Exception("Unknown argument '%s'\n" % (flag))
         except getopt.GetoptError, e:
-            sys.stderr.write("Unknown argument: %s\n" % (str(e)))
-            return None, None
+            raise Exception("Unknown argument: %s\n" % (str(e)))
 
         if details.has_key('USER_BUILD_OPTIONS') and \
                details['USER_BUILD_OPTIONS'] == "supervisor_mode_kernel=y":
@@ -513,7 +504,6 @@ class XenRTStatus(XenRTCommand):
         for key in results['params'].keys():
             if key != "CHECK" and self.printVar(key):
                 self.printout("%s='%s'\n" % (key, results['params'][key]))
-        return 0
 
 class XenRTMachine(XenRTCommand):
 
@@ -538,7 +528,6 @@ class XenRTMachine(XenRTCommand):
             self.printout("RESOURCES='%s'\n" % "/".join(["=".join(x) for x in results['resources'].items()]))
         for key in results['params'].keys():
             self.printout("%s='%s'\n" % (key, results['params'][key]))
-        return 0
 
 class XenRTShowLog(XenRTCommand):
 
@@ -554,8 +543,7 @@ class XenRTShowLog(XenRTCommand):
 
     def run(self, args):
         if len(args) < 1:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         verbose=False
         wide=False
         times=False
@@ -795,11 +783,9 @@ class XenRTList(XenRTCommand):
                 elif flag == "-D":
                     jobdesc = value
                 else:
-                    sys.stderr.write("Unknown argument '%s'\n" % (flag))
-                    return None
+                    raise Exception("Unknown argument '%s'\n" % (flag))
         except getopt.GetoptError:
-            sys.stderr.write("Unknown argument\n")
-            return None
+            raise Exception("Unknown argument\n")
         jobs = self.xenrt.get_jobs(params=True, limit=10000, results=True, **details)
         
         fieldwidths = [7, 8, 12, 9, 13, 18, 7]
@@ -856,8 +842,7 @@ class XenRTComplete(XenRTCommand):
 
     def run(self, args):
         if len(args) != 1:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         id = string.atoi(args[0])
         self.xenrt.update_job(id, complete=True)
 
@@ -870,8 +855,7 @@ class XenRTEmail(XenRTCommand):
 
     def run(self, args):
         if len(args) != 1:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         id = string.atoi(args[0])
         self.xenrt.send_job_email(id)
 
@@ -893,8 +877,7 @@ class XenRTSetResult(XenRTCommand):
 
     def run(self, args):
         if len(args) != 4:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         self.xenrt.set_result(int(args[0]), args[1], args[2], args[3])
 
 class XenRTEvent(XenRTCommand):
@@ -906,8 +889,7 @@ class XenRTEvent(XenRTCommand):
     
     def run(self, args):
         if len(args) != 3:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         self.xenrt.new_event(args[0], args[1], args[2])
     
 class XenRTLogData(XenRTCommand):
@@ -919,8 +901,7 @@ class XenRTLogData(XenRTCommand):
     
     def run(self, args):
         if len(args) != 5:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         self.xenrt.new_logdata(int(args[0]), args[1], args[2], args[3], args[4])
 
 class XenRTRemove(XenRTCommand):
@@ -932,8 +913,7 @@ class XenRTRemove(XenRTCommand):
 
     def run(self, args):
         if len(args) != 1:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         id = string.atoi(args[0])
         self.xenrt.remove_job(id)
 
@@ -957,7 +937,7 @@ class XenRTSubmit(XenRTCommand):
         defaults.update(details)
         details = defaults
         if not details:
-            return None
+            raise Exception("No parameters specified")
         for key in details.keys():
             if len(details[key]) == 0:
                 del details[key]
@@ -1007,8 +987,7 @@ preserve such possibilities.
 
     def run(self, args):
         if len(args) < 1:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         jobid = args[0]
         options = self.xenrt.get_job(int(jobid))['params']
         if len(args) < 2:
@@ -1021,8 +1000,7 @@ preserve such possibilities.
             mode = args[1]
             noptions = args[2:]
         else:
-            sys.stderr.write("Invalid rerun mode\n")
-            return None
+            raise Exception("Invalid rerun mode\n")
         # Exclude patterns
         excludes = []
         # Include options dict
@@ -1046,8 +1024,7 @@ class XenRTUpdate(XenRTCommand):
     
     def run(self, args):
         if len(args) != 3:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         id = string.atoi(args[0])
         self.xenrt.update_job(id, {args[1]: args[2]})
 
@@ -1059,8 +1036,7 @@ class XenRTMBroken(XenRTCommand):
 
     def run(self, args):
         if len(args) < 2:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         machine = args[0]
         reason = " ".join(args[1:])
 
@@ -1080,8 +1056,7 @@ class XenRTMFixed(XenRTCommand):
 
     def run(self, args):
         if len(args) != 1:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         machine = args[0]
         self.xenrt.update_machine(machine, broken = {"broken": False})
 
@@ -1095,8 +1070,7 @@ class XenRTMUpdate(XenRTCommand):
 
     def run(self, args):
         if len(args) != 3:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         machine = args[0]
         self.xenrt.update_machine(machine, params={args[1]: args[2]})
 
@@ -1108,11 +1082,9 @@ class XenRTMRes(XenRTMUpdate):
 
     def run(self, args):
         if len(args) != 2:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         if len(args[1].split("=", 1)) != 2:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         machine = args[0]
         (resource, value) = args[1].split("=", 1)
         self.xenrt.update_machine(machine, resources={resource: value})
@@ -1126,8 +1098,7 @@ class XenRTMStatus(XenRTCommand):
 
     def run(self, args):
         if len(args) != 2:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
 
         machine = args[0]
         self.xenrt.update_machine(machine, status=args[1])
@@ -1146,8 +1117,7 @@ class XenRTBorrow(XenRTCommand):
 
     def run(self, args):
         if len(args) == 0:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         machine = args[0]
         duration = 24
         reason = ""
@@ -1170,8 +1140,7 @@ class XenRTBorrow(XenRTCommand):
                 elif flag == "--force":
                     force = True
         except getopt.GetoptError:
-            sys.stderr.write("Unknown argument\n")
-            return None
+            raise Exception("Unknown argument\n")
         if user:
             self.xenrt.customHeaders['X-Fake-User'] = user
 
@@ -1186,8 +1155,7 @@ class XenRTReturn(XenRTCommand):
 
     def run(self, args):
         if len(args) == 0:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         machine = args[0]
         force = False
         try:
@@ -1197,8 +1165,7 @@ class XenRTReturn(XenRTCommand):
                 if flag == "--force":
                     details["force"] = "yes"
         except getopt.GetoptError:
-            sys.stderr.write("Unknown argument\n")
-            return None
+            raise Exception("Unknown argument\n")
         self.xenrt.return_leased_machine(machine, force=force)
 
 class XenRTProp(XenRTCommand):
@@ -1210,8 +1177,7 @@ class XenRTProp(XenRTCommand):
 
     def run(self, args):
         if len(args) != 3:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         machine = args[0]
         details = {}
         if args[1] == "add":
@@ -1219,8 +1185,7 @@ class XenRTProp(XenRTCommand):
         elif args[1] == "del" or args[1] == "rem":
             details["delflags"] = [args[2]]
         else:
-            sys.stderr.write("Invalid usage: need \"add\" or \"del\".\n")
-            return None
+            raise Exception("Invalid usage: need \"add\" or \"del\".\n")
         self.xenrt.update_machine(machine, **details)
 
 class XenRTSFlag(XenRTCommand):
@@ -1232,8 +1197,7 @@ class XenRTSFlag(XenRTCommand):
 
     def run(self, args):
         if len(args) != 3:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         machine = args[0]
         details = {}
         if args[1] == "add":
@@ -1241,8 +1205,7 @@ class XenRTSFlag(XenRTCommand):
         elif args[1] == "del" or args[1] == "rem":
             details["delflags"] = [args[2]]
         else:
-            sys.stderr.write("Invalid usage: need \"add\" or \"del\".\n")
-            return None
+            raise Exception("Invalid usage: need \"add\" or \"del\".\n")
         self.xenrt.update_site(machine, **details)
 
 class XenRTPool(XenRTCommand):
@@ -1258,8 +1221,7 @@ moves the machine to the "DEFAULT" pool.
 
     def run(self, args):
         if len(args) < 1:
-            sys.stderr.write("Invalid usage\n")            
-            return None
+            raise Exception("Invalid usage\n")            
 
         # Machine update
         machine = args[0]
@@ -1277,8 +1239,7 @@ class XenRTDetailID(XenRTCommand):
 
     def run(self, args):
         if len(args) <> 3:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         jobid = int(args[0])
         phase = args[1]
         test = args[2]
@@ -1330,8 +1291,16 @@ class XenRTSubResults(XenRTCommand):
 
     def run(self, args):
         if len(args) < 3:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
+        filename = None
+        try:
+            optlist, optx = getopt.getopt(args[3:], 'f:')
+            for argpair in optlist:
+                (flag, value) = argpair
+                if flag == '-f':
+                    filename = value
+        except getopt.GetoptError:
+            raise Exception("Unknown argument\n")
         self.xenrt.upload_subresults(int(args[0]), args[1], args[2], filename)
 
 class XenRTPerfData(XenRTCommand):
@@ -1352,8 +1321,7 @@ class XenRTPerfData(XenRTCommand):
                 if flag == '-f':
                     filename = value
         except getopt.GetoptError:
-            sys.stderr.write("Unknown argument\n")
-            return None
+            raise Exception("Unknown argument\n")
         self.xenrt.upload_perfdata(filename)
 
 class XenRTUpload(XenRTCommand):
@@ -1370,8 +1338,7 @@ class XenRTUpload(XenRTCommand):
     def run(self, args):
         details = {'action': 'upload'}
         if len(args) < 1:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         id = string.atoi(args[0])
         filename = None
         prefix = None
@@ -1390,8 +1357,7 @@ class XenRTUpload(XenRTCommand):
                 if flag == '-P':
                     prefix = value
         except getopt.GetoptError:
-            sys.stderr.write("Unknown argument\n")
-            return None
+            raise Exception("Unknown argument\n")
 
         job = self.xenrt.get_job(id) 
         remoteFn = None
@@ -1425,8 +1391,7 @@ class XenRTDownload(XenRTCommand):
     def run(self, args):
         filename = None
         if len(args) < 1:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         id = string.atoi(args[0])
         prerun = False
         prefix = None
@@ -1447,8 +1412,7 @@ class XenRTDownload(XenRTCommand):
                 elif flag == "-o":
                     prerun = True
         except getopt.GetoptError:
-            sys.stderr.write("Unknown argument\n")
-            return None
+            raise Exception("Unknown argument\n")
 
         if prefix:
             if prerun:
@@ -1506,8 +1470,7 @@ class XenRTSchedule(XenRTCommand):
                 elif flag == "-j":
                     showstatus = True
         except getopt.GetoptError:
-            sys.stderr.write("Unknown argument\n")
-            return None        
+            raise Exception("Unknown argument\n")
         url = self.xenrt.base.replace("/v2", "/schedule")
         r = requests.get(url, params=details)
         r.raise_for_status()
@@ -1532,8 +1495,7 @@ class XenRTMDefine(XenRTCommand):
 
     def run(self, args):
         if len(args) < 2:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         machine = args[0]
         site = args[1]
         details = {}
@@ -1552,8 +1514,7 @@ class XenRTMDefine(XenRTCommand):
                 if flag == '-d':
                     details["description"] = value
         except getopt.GetoptError:
-            sys.stderr.write("Unknown argument\n")
-            return None        
+            raise Exception("Unknown argument\n")
         self.xenrt.new_machine(machine, site, **details)
 
 class XenRTMUndefine(XenRTCommand):
@@ -1565,8 +1526,7 @@ class XenRTMUndefine(XenRTCommand):
 
     def run(self, args):
         if len(args) != 1:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         self.xenrt.remove_machine(args[0])
 
 class XenRTInteract(XenRTCommand):
@@ -1598,8 +1558,7 @@ class XenRTInteract(XenRTCommand):
     def run(self, args):
 
         if len(args) == 0:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         if string.find(args[0], ":") > -1:
             hostport = args[0]
         else:
@@ -1610,8 +1569,7 @@ class XenRTInteract(XenRTCommand):
             
             job = self.xenrt.get_job(id)
             if not "XMLRPC" in job['params']:
-                sys.stderr.write("Job has no XMLRPC variable\n")
-                return
+                raise Exception("Job has no XMLRPC variable\n")
             hostport = job['params']["XMLRPC"]
         s = xmlrpclib.Server("http://%s" % (hostport))
         shell = False
@@ -1644,8 +1602,7 @@ class XenRTInteract(XenRTCommand):
                     elif l[1] == 'SKIPPED':
                         result = 5
                     else:
-                        sys.stderr.write("Unknown result '%s'" % (l[1]))
-                        return None
+                        raise Exception("Unknown result '%s'" % (l[1]))
                     s.setTestResult(testcase, result)
                 elif flag == '-C':
                     for t in s.getRunningTests():
@@ -1662,9 +1619,8 @@ class XenRTInteract(XenRTCommand):
                             var = string.split(var, "/")
                         s.setConfigVariable(var, varval)
                     except:
-                        sys.stderr.write("Error parsing -D variable '%s'\n" %
+                        raise Exception("Error parsing -D variable '%s'\n" %
                                          (value))
-                        return None
                 elif flag == "-d":
                     print s.dumpConfig()
                 elif flag == "-A":
@@ -1684,9 +1640,8 @@ class XenRTInteract(XenRTCommand):
                 elif flag == "-r":
                     ll = string.split(value, ":", 1)
                     if len(ll) != 2:
-                        sys.stderr.write("Error parsing -r variable '%s'\n" %
+                        raise Exception("Error parsing -r variable '%s'\n" %
                                          (value))
-                        return None
                     data = s.getGuestFile(ll[0], ll[1])
                     sys.stdout.write(data.data)
                 elif flag == "-s":
@@ -1695,8 +1650,7 @@ class XenRTInteract(XenRTCommand):
                     logger = True
                     
         except getopt.GetoptError:
-            sys.stderr.write("Unknown argument\n")
-            return None
+            raise Exception("Unknown argument\n")
 
         if shell:
             print "XenRT interactive Python shell."
@@ -1734,11 +1688,9 @@ class XenRTSList(XenRTCommand):
                 elif flag == "-p":
                     props = True
                 else:
-                    sys.stderr.write("Unknown argument '%s'\n" % (flag))
-                    return None
+                    raise Exception("Unknown argument '%s'\n" % (flag))
         except getopt.GetoptError:
-            sys.stderr.write("Unknown argument\n")
-            return None
+            raise Exception("Unknown argument\n")
 
         sites = self.xenrt.get_sites()
 
@@ -1773,8 +1725,7 @@ class XenRTSDefine(XenRTCommand):
 
     def run(self, args):
         if len(args) < 1:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         details = {}
         try:
             optlist, optx = getopt.getopt(args[1:], 'f:d:')
@@ -1785,8 +1736,7 @@ class XenRTSDefine(XenRTCommand):
                 elif flag == '-d':
                     details["description"] = value
         except getopt.GetoptError:
-            sys.stderr.write("Unknown argument\n")
-            return None
+            raise Exception("Unknown argument\n")
         
         self.xenrt.new_site(args[0], **details)
 
@@ -1799,8 +1749,7 @@ class XenRTSUndefine(XenRTCommand):
 
     def run(self, args):
         if len(args) != 1:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         self.xenrt.remove_site(args[0])
 
 class XenRTSUpdate(XenRTCommand):
@@ -1813,8 +1762,7 @@ class XenRTSUpdate(XenRTCommand):
     def run(self, args):
         details = {'action': 'supdate'}
         if len(args) != 3:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         site = args[0]
         
         key = args[1].lower()
@@ -1835,8 +1783,7 @@ class XenRTSite(XenRTCommand):
 
     def run(self, args):
         if len(args) != 1:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         site = self.xenrt.get_site(args[0])
         
         self.printout("SITE='%s'\n" % site['name'])
@@ -1925,8 +1872,7 @@ class XenRTRunSuite(XenRTCommand):
         global _jenkins
         self.verbose = False
         if len(args) < 2:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         
         self.cookie = str(random.randint(0, 2**31-1))
         jenkins = {"Update Mercurial": "false",
@@ -1982,11 +1928,9 @@ class _XenRTControllerOperation(XenRTCommand):
                 elif flag == "--bootdev":
                     self.bootdev = value
                 else:
-                    sys.stderr.write("Unknown argument '%s'\n" % (flag))
-                    return None
+                    raise Exception("Unknown argument '%s'\n" % (flag))
         except getopt.GetoptError:
-            sys.stderr.write("Unknown argument\n")
-            return None
+            raise Exception("Unknown argument\n")
         if not site:
             site = self.xenrt.get_machine(machine)['site']
         return self.getControllerAddr(site)
@@ -2002,8 +1946,7 @@ class XenRTSNetwork(_XenRTControllerOperation):
     
     def run(self, args):
         if len(args) < 1:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         site = args[0]
         details = {'action': 'network'}
         details['USERID'] = pwd.getpwuid(os.getuid())[0]
@@ -2025,8 +1968,7 @@ class XenRTMConfig(_XenRTControllerOperation):
     def run(self, args):
         details = {}
         if len(args) == 0:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         machine = args[0]
         details["machine"] = machine
         try:
@@ -2036,8 +1978,7 @@ class XenRTMConfig(_XenRTControllerOperation):
                 if flag == '--generated':
                     details["generated"] = "yes"
         except getopt.GetoptError:
-            sys.stderr.write("Unknown argument\n")
-            return None
+            raise Exception("Unknown argument\n")
         addr = self.getControllerAddrForMachine(machine, [])
         r = requests.get("http://%s/xenrt/api/controller/machinecfg" % addr, params=details)
         r.raise_for_status()
@@ -2054,18 +1995,15 @@ class XenRTPower(_XenRTControllerOperation):
 
     def run(self, args):
         if len(args) < 2:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         machine = args[0]
         self.bootdev = None
         addr = self.getControllerAddrForMachine(machine, args[2:])
         if not addr:
-            sys.stderr.write("Controller for machine %s not found\n" % machine)
-            return None
+            raise Exception("Controller for machine %s not found\n" % machine)
         details = {}
         if args[1] not in ["off", "on", "reboot", "nmi"]:
-            sys.stderr.write("Invalid power operation - must be one of off, on or reboot\n")
-            return None
+            raise Exception("Invalid power operation - must be one of off, on or reboot\n")
         details["powerop"] = args[1]
         details["machine"] = machine
         if self.bootdev:
@@ -2081,8 +2019,7 @@ class XenRTConsole(_XenRTControllerOperation):
 
     def run(self, args):
         if len(args) < 1:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         global _console
         global _conserver
         results = None
@@ -2126,7 +2063,7 @@ class XenRTGlobalResLock(XenRTCommand):
 
     def run(self, args):
         data = self.xenrt.lock_global_resource(args[0], args[2], int(args[1]))
-        return data
+        self.printout(json.dumps(data))
 
 
 class XenRTGlobalResRelease(XenRTCommand):
@@ -2150,13 +2087,11 @@ class XenRTMGetResource(_XenRTControllerOperation):
 
     def run(self, args):
         if len(args) < 2:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         machine = args[0]
         addr = self.getControllerAddrForMachine(machine, args[2:])
         if not addr:
-            sys.stderr.write("Controller for machine %s not found\n" % machine)
-            return None
+            raise Exception("Controller for machine %s not found\n" % machine)
         details = {"machine": args[0], "type": args[1]}
         if len(args) > 2:
             details['args'] = " ".join(args[2:])
@@ -2171,13 +2106,11 @@ class XenRTMListResources(_XenRTControllerOperation):
 
     def run(self, args):
         if len(args) < 1:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         machine = args[0]
         addr = self.getControllerAddrForMachine(machine, args[1:])
         if not addr:
-            sys.stderr.write("Controller for machine %s not found\n" % machine)
-            return None
+            raise Exception("Controller for machine %s not found\n" % machine)
         details = {"machine": args[0]}
         r = requests.get("http://%s/xenrt/api/controller/listresources" % addr, params=details)
         r.raise_for_status()
@@ -2190,13 +2123,11 @@ class XenRTMReleaseResources(_XenRTControllerOperation):
 
     def run(self, args):
         if len(args) < 2:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         machine = args[0]
         addr = self.getControllerAddrForMachine(machine, args[1:])
         if not addr:
-            sys.stderr.write("Controller for machine %s not found\n" % machine)
-            return None
+            raise Exception("Controller for machine %s not found\n" % machine)
         details = {"resource": []}
         for r in args[1:]:
             details['resource'].append(r)

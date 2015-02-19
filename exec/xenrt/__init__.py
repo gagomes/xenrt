@@ -2256,9 +2256,7 @@ logdata call."""
         """Look up a name with the file manager."""
         if not self.gec.filemanager:
             raise XRTError("No filemanager object")
-        replaceExistingIfDiffers = False
-        if "replaceExistingIfDiffers" in kwargs:
-            replaceExistingIfDiffers = kwargs["replaceExistingIfDiffers"]
+        replaceExistingIfDiffers = kwargs.get("replaceExistingIfDiffers", False)
         ret = None
         for f in filename:
             ret = self.gec.filemanager.getFile(f, replaceExistingIfDiffers=replaceExistingIfDiffers)

@@ -6,7 +6,7 @@
 # James Bulpin, November-December 2005
 
 import sys, string, getopt, urllib, os, pwd, tempfile, xmlrpclib, shutil, json
-import os.path, re, glob, random, time, datetime, getpass, requests
+import os.path, re, glob, random, time, datetime, getpass, requests, ConfigParser
 import xenrtapi
 
 PROFILER_ENABLED = ("XENRT_PROFILE" in os.environ)
@@ -47,15 +47,12 @@ class XenRTCommand:
             return os.getenv("XENRT_APIKEY")
         else:
             path = "%s/.xenrtrc" % os.path.expanduser("~")
-            if not os.path.exists(path):
+            try:
+                config = ConfigParser.ConfigParser()
+                config.read(path)
+                return config.get("xenrt", "apikey").strip()
+            except:
                 return None
-            with open(path) as f:
-                for l in f.readlines():
-                    ll = l.strip().split("=", 1)
-                    if len(ll) != 2:
-                        continue
-                    if ll[0].strip() == "apikey":
-                        return ll[1].strip()
 
     def retrieveAPIKeyFromServer(self):
         global _authrealm
@@ -68,8 +65,11 @@ class XenRTCommand:
         apikey = xrt.get_apikey()
         path = "%s/.xenrtrc" % os.path.expanduser("~")
         print "Writing %s as API key in ~/.xenrtrc" % apikey
-        with open(path, "w") as f:
-            f.write("apikey = %s\n" % apikey)
+        config = ConfigParser.ConfigParser()
+        config.add_section("xenrt")
+        config.set("xenrt", "apikey", apikey)
+        with open(path, "wb") as f:
+            config.write(f)
 
     def dispatch(self, args):
         apikey = self.getAPIKey()

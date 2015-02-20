@@ -1756,9 +1756,9 @@ done
             
         xenrt.TEC().progress("Rebooted host to start installation.")
         if async:
-            handle = (nfsdir, None, pxe)
+            handle = (nfsdir, None, pxe, False) # Not UEFI
             return handle
-        handle = (nfsdir, packdir, pxe)
+        handle = (nfsdir, packdir, pxe, False) # Not UEFI
         if xenrt.TEC().lookup("OPTION_BASH_SHELL", False, boolean=True):
             xenrt.TEC().tc.pause("Pausing due to bash-shell option")
             
@@ -1907,7 +1907,7 @@ fi
         return usbdevice
 
     def installComplete(self, handle, waitfor=False, upgrade=False):
-        nfsdir, packdir, pxe = handle
+        nfsdir, packdir, pxe, uefi = handle
 
         if waitfor:
             # Monitor for installation complete
@@ -1973,6 +1973,16 @@ fi
 
             # Boot the local disk  - we need to update this before the machine
             # reboots after setting the signal flag.
+            if uefi:
+                with open("%s/bootlabel" % nfsdir) as f:
+                    bootlabel = f.read().strip()
+                xenrt.TEC().logverbose("Found %s a boot partition" % bootlabel)
+                localEntry = """
+                    search --label --set root %s
+                    chainloader /EFI/xenserver/grubx64.efi
+                """ % bootlabel
+                pxe.addGrubEntry("local", localEntry)
+
             pxe.setDefault("local")
             pxe.writeOut(self.machine)
             if self.bootLun:
@@ -14039,7 +14049,7 @@ def watchForInstallCompletion(installs):
     waiting = {}
     for x in installs:
         host, handle = x
-        nfsdir, packdir, pxe = handle
+        nfsdir, packdir, pxe, uefi = handle
         filename = "%s/.xenrtsuccess" % (nfsdir.path())
         waiting[filename] = (host, pxe)
 
@@ -14063,6 +14073,16 @@ def watchForInstallCompletion(installs):
                                      "for host boot." % (host.getName()))
                 # Boot the local disk  - we need to update this before the
                 # machine reboots after setting the signal flag.
+                if uefi:
+                    with open("%s/bootlabel" % nfsdir) as f:
+                        bootlabel = f.read().strip()
+                    xenrt.TEC().logverbose("Found %s a boot partition" % bootlabel)
+                    localEntry = """
+                        search --label --set root %s
+                        chainloader /EFI/xenserver/grubx64.efi
+                    """ % bootlabel
+                    pxe.addGrubEntry("local", localEntry)
+
                 pxe.setDefault("local")
                 pxe.writeOut(host.machine)
                 del waiting[filename]

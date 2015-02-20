@@ -156,9 +156,9 @@ class DundeeInstaller(object):
             
         xenrt.TEC().progress("Rebooted host to start installation.")
         if async:
-            handle = (self.signaldir, None, pxe)
+            handle = (self.signaldir, None, pxe, uefi)
             return handle
-        handle = (self.signaldir, self.packdir, pxe)
+        handle = (self.signaldir, self.packdir, pxe, uefi)
         if xenrt.TEC().lookup("OPTION_BASH_SHELL", False, boolean=True):
             xenrt.TEC().tc.pause("Pausing due to bash-shell option")
             
@@ -176,6 +176,12 @@ class DundeeInstaller(object):
            
             # now fix-up the pxe file for local boot
             xenrt.TEC().logverbose("Setting PXE file to be local boot by default")
+            if uefi:
+                localEntry = """
+                    root=(%s,gpt4)
+                    chainloader /EFI/xenserver/grubx64.efi
+                """
+                pxe.addGrubEntry("local", localEntry)
             pxe.setDefault("local")
             pxe.writeOut(self.host.machine)
             if self.host.bootLun:
@@ -530,10 +536,20 @@ echo '%s' > root/xenrt-installation-cookie
         return "service sshd stop || true\n"
 
     @property
+    def postInstallSendBootLabel(self):
+        return """
+# Write the boot label
+mkdir -p /tmp/xenrttmpmount
+mount -t nfs %s /tmp/xenrttmpmount
+echo `blkid | grep BOOT | sed -n 's/.*LABEL=\"\([^\"]*\)\".*/\1/p'` > /tmp/xenrttmpmount/bootlabel
+umount /tmp/xenrttmpmount
+""" % self.signaldir.getMountURL("")
+    
+    @property
     def postInstallSignal(self):
         return """
 # Signal XenRT that we've finished
-mkdir /tmp/xenrttmpmount
+mkdir -p /tmp/xenrttmpmount
 mount -t nfs %s /tmp/xenrttmpmount
 touch /tmp/xenrttmpmount/.xenrtsuccess
 umount /tmp/xenrttmpmount
@@ -698,13 +714,8 @@ sleep 30
             module2 %s/install.img
         """ % (pxe.tftpPath(), " ".join(xenargs), pxe.tftpPath(), " ".join(dom0args), pxe.tftpPath())
 
-        localEntry = """
-            root=(%s,gpt1)
-            chainloader /EFI/grub/grubx64.efi
-        """ % (self.host.lookup("PXE_CHAIN_LOCAL_BOOT", "hd0"))
 
         pxe.addGrubEntry("carboninstall", installEntry, default=True)
-        pxe.addGrubEntry("local", localEntry)
 
         pxe.writeOut(self.host.machine)
 
@@ -1079,6 +1090,7 @@ sleep 30
         if uefi:
             postInstall.append(self.postInstallUefiBootMods)
             postInstall.append(self.forceEfiBootViaPxe)
+            postInstall.append(self.postInstallSendBootLabel)
         else:
             postInstall.append(self.postInstallBootMods)
         postInstall.append(self.postInstallSSHKey)

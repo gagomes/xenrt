@@ -3048,9 +3048,6 @@ class BootstormBase(FunctionalBase):
             else:
                 NvidiaLinuxvGPU().assertvGPURunningInVM(vm, None)
 
-        # Any other assertions that need to be made about the vms after starting.
-
-
     def postRun(self):
         for vm in self.vms:
             try:
@@ -3102,7 +3099,7 @@ class LinuxGPUBootstorm(BootstormBase):
         vm.setState("DOWN")
         
         for i in range(remainingCapacity):
-            g = vm.cloneVM()
+            g = vm.cloneVM(noIP=False)
             self.vms.append(g)
 
 class MixedGPUBootstorm(BootstormBase):
@@ -3110,6 +3107,11 @@ class MixedGPUBootstorm(BootstormBase):
     # From seq file.
     LINUX_TYPE = None
     WINDOWS_TYPE = None
+
+    # Amount of space to be used for passthrough. Passthrough is split 50/50 as linux/windows.
+    # Rest of space is filled with vGPU.
+    PASSTHROUGH_ALLOCATION = 0.75
+    VGPU_TYPE = VGPUConfig.K160
 
     def prepare(self, arglist=[]):
         super(MixedGPUBootstorm, self).prepare(arglist)
@@ -3121,22 +3123,58 @@ class MixedGPUBootstorm(BootstormBase):
             vm = self.createMaster(osType)
             masters[distro] = vm
 
-        # Install gpu on linux master.
-        # Clone X Times.
+        config = self.VGPU_CONFIG[0]
+        installer = VGPUInstaller(self.host, config)
 
-        # Clone needed gpu pass windows,
-        # Install gpu on them after.
+        remainingCapacity = self.host.remainingGpuCapacity(installer.groupUUID(), installer.typeUUID())
+        passthroughAllocation = remainingCapacity * self.PASSTHROUGH_ALLOCATION
+        linuxAllocation = passthroughAllocation / 2;
+        windowsAllocation = passthroughAllocation / 2;
+
+        linuxMaster = masters[self.LINUX_TYPE]
+        
+        # Install gpu on linux master.
+        installer.createOnGuest(linuxMaster)
+        linuxMaster.setState("UP")
+        NvidiaLinuxvGPU().installGuestDrivers(linuxMaster)
+        linuxMaster.setState("DOWN")
+        self.vms.append(linuxMaster)
+        
+        for i in range(linuxAllocation - 1):
+            g = linuxMaster.cloneVM(noIP=False)
+            self.vms.append(g)
+
+        # Branch the windows master, so can use for both passthrough and vGPU
+        windowsMaster = masters[self.WINDOWS_TYPE]
+        windowsMaster.setState("DOWN")
+
+        winPassthroughMaster = windowsMaster.cloneVM(noIP=False)
+        installer.createOnGuest(winPassthroughMaster)
+        winPassthroughMaster.setState("UP")
+        NvidiaWindowsvGPU().installGuestDrivers(winPassthroughMaster)
+        winPassthroughMaster.setState("DOWN")
+        self.vms.append(winPassthroughMaster)
+
+        for i in range(windowsAllocation - 1):
+            g = winPassthroughMaster.cloneVM(noIP=False)
+            self.vms.append(g)
 
         # Switch gpu type to vGpu
+        config = self.VGPU_TYPE
+        installer = VGPUInstaller(self.host, config)
 
-        # Clone the needed vGPU vms.
-        # Install the vGPU after.
+        # Space left for vGPU
+        remainingCapacity = self.host.remainingGpuCapacity(installer.groupUUID(), installer.typeUUID())
 
-        # Adding them all to a list of vms.
+        installer.createOnGuest(windowsMaster)
+        windowsMaster.setState("UP")
+        NvidiaWindowsvGPU().installGuestDrivers(windowsMaster)
+        windowsMaster.setState("DOWN")
+        self.vms.append(windowsMaster)
 
-
-        # Once again end up with some vms at the end. The run doesn't care what type.
-        self.vms = []
+        for i in range(remainingCapacity - 1):
+            g = windowsMaster.cloneVM(noIP=False)
+            self.vms.append(g)
 
     def parseArgs(self, arglist):
         super(MixedGPUBootstorm, self).parseArgs(arglist)
@@ -3146,15 +3184,6 @@ class MixedGPUBootstorm(BootstormBase):
                 self.LINUX_TYPE = int(arg.split('=')[1])
             if arg.startswith('windowstype'):
                 self.WINDOWS_TYPE = int(arg.split('=')[1])
-        
-class TestingBootstorm(BootstormBase):
-
-    def prepare(self, arglist=[]):
-        # Run a provision on a normal host.
-        # Pick up the guests from that and add to list.
-        self.host = self.getDefaultHost()
-        self.vms = [self.host.getGuest(g) for g in self.host.listGuests(running=True)]
-
 
 class TCAlloModeK200NFS(VGPUAllocationModeBase):
 

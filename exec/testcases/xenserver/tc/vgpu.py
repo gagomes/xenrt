@@ -3027,6 +3027,8 @@ class BootstormBase(FunctionalBase):
     def run(self, arglist):
         """Should perform the bootstorm steps with all available vms."""
         
+        xenrt.TEC().logverbose("Starting Bootstorm with existing vms.")
+
         # Shut down all the vms.
         for vm in self.vms:
             vm.setState("DOWN")
@@ -3044,7 +3046,21 @@ class BootstormBase(FunctionalBase):
             # This is where the problems come in..
             # Going to have to sort them myself.
 
+        # This will only work for groups of vms of the same type, where typeOfvGPU is valid for all. Need new solution for mixed case.
+        for vm in self.vms:
+            self.typeOfvGPU.assertvGPURunningInVM(vm, None) # Need to pass vGPU type here but it doesn't do anything. Refactor?
+
         # Any other assertions that need to be made about the vms after starting.
+
+
+    def postRun(self):
+        for vm in self.vms:
+            try:
+                    self.host.removeGuest(vm)
+                    vm.uninstall()
+            except: pass
+
+        super(BootstormBase, self).postRun()
 
     def bootstormStartVM(self, vm):
         try:

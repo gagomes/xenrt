@@ -209,10 +209,11 @@ class DundeeInstaller(object):
 
     @property
     def forceUefiBootViaPxe(self):
-        # We need to do this otherwise the local disk will boot first and XenServer will never boot
-        # Temporary hack to see what happens if we don't
-        return ""
-        return "efibootmgr -B -b `efibootmgr -v | grep XenServer | awk '{print $1}' | sed 's/Boot//'`"
+        if self.host.lookup("PXE_CHAIN_UEFI_BOOT", False, boolean=True):
+            # We need to do this otherwise the local disk will boot first and XenServer will never boot
+            return "efibootmgr -B -b `efibootmgr -v | grep XenServer | awk '{print $1}' | sed 's/Boot//'`"
+        else:
+            return ""
 
     @property
     def postInstallBootMods(self):

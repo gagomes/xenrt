@@ -16,14 +16,12 @@
         <arg>vgpuconfig=5</arg>
       </testcase>
 
-      <!--
       <testcase id="testcases.xenserver.tc.vgpu.MixedGPUBootstorm">
-        <arg>linuxtype=99</arg>
-        <arg>windowstype=99</arg>
+        <arg>linuxtype=10</arg>
+        <arg>windowstype=1</arg>
         <arg>typeofvgpu=nvidiawinvgpu</arg>
         <arg>vgpuconfig=5</arg>
       </testcase>
-      -->
 
     </serial>
   </testsequence>

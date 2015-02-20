@@ -3380,6 +3380,7 @@ class Config:
       
         # Houston: xs-tools. Rolls up nothing.
         self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E002"] = "/usr/groups/release/XenServer-6.x/XS-6.5/hotfixes/XS65E002/91034/hotfix-XS65E002/XS65E002.xsupdate"
+        self.config["TOOLS_HOTFIXES"]["Creedence"]["RTM"].append("XS65E002")
         
         # Ghost: glibc. Rolls up nothing.
         self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E003"] = "/usr/groups/build/creedence-lcm/91307/hotfix-XS65E003/XS65E003.xsupdate"

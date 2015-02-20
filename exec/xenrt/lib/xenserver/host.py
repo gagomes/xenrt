@@ -11483,7 +11483,7 @@ class DundeeHost(CreedenceHost):
         self.getInstaller().install(*args, **kwargs)
 
     def writeUefiLocalBoot(self, nfsdir, pxe):
-        if not self.host.lookup("PXE_CHAIN_UEFI_BOOT", False, boolean=True):
+        if not self.lookup("PXE_CHAIN_UEFI_BOOT", False, boolean=True):
             pxe.uninstallBootloader(self.machine)
         else:
             with open("%s/bootlabel" % nfsdir.path()) as f:

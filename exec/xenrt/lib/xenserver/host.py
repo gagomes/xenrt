@@ -1974,14 +1974,7 @@ fi
             # Boot the local disk  - we need to update this before the machine
             # reboots after setting the signal flag.
             if uefi:
-                with open("%s/bootlabel" % nfsdir.path()) as f:
-                    bootlabel = f.read().strip()
-                xenrt.TEC().logverbose("Found %s as boot partition" % bootlabel)
-                localEntry = """
-                    search --label --set root %s
-                    chainloader /EFI/xenserver/grubx64.efi
-                """ % bootlabel
-                pxe.addGrubEntry("local", localEntry)
+                self.writeUefiLocalBoot(nfsdir, pxe)
 
             pxe.setDefault("local")
             pxe.writeOut(self.machine)
@@ -8049,6 +8042,9 @@ rm -f /etc/xensource/xhad.conf || true
 
     def isCentOS7Dom0(self):
         return False
+
+    def writeUefiLocalBoot(self, nfsdir, pxe):
+        raise xenrt.XRTError("UEFI is not supported on this version")
 #############################################################################
 
 class MNRHost(Host):
@@ -11486,6 +11482,16 @@ class DundeeHost(CreedenceHost):
 
         self.getInstaller().install(*args, **kwargs)
 
+    def writeUefiLocalBoot(self, nfsdir, pxe):
+        with open("%s/bootlabel" % nfsdir.path()) as f:
+            bootlabel = f.read().strip()
+        xenrt.TEC().logverbose("Found %s as boot partition" % bootlabel)
+        localEntry = """
+            search --label --set root %s
+            chainloader /EFI/xenserver/grubx64.efi
+        """ % bootlabel
+        pxe.addGrubEntry("local", localEntry)
+
 #############################################################################
 
 class StorageRepository:
@@ -14074,14 +14080,7 @@ def watchForInstallCompletion(installs):
                 # Boot the local disk  - we need to update this before the
                 # machine reboots after setting the signal flag.
                 if uefi:
-                    with open("%s/bootlabel" % nfsdir.path()) as f:
-                        bootlabel = f.read().strip()
-                    xenrt.TEC().logverbose("Found %s as boot partition" % bootlabel)
-                    localEntry = """
-                        search --label --set root %s
-                        chainloader /EFI/xenserver/grubx64.efi
-                    """ % bootlabel
-                    pxe.addGrubEntry("local", localEntry)
+                    host.writeUefiLocalBoot(nfsdir, pxe)
 
                 pxe.setDefault("local")
                 pxe.writeOut(host.machine)

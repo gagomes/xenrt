@@ -10,10 +10,12 @@
     <host id="0" installsr="ext">
       <vm name="arnie">
         <distro>generic-linux</distro>
+        <postinstall action="snapshot" />
       </vm>
       <vm name="sly">
         <distro>generic-linux</distro>
         <storage>nfssr</storage>
+        <postinstall action="snapshot" />
       </vm>
       <storage type="nfs" name="nfssr" />
     </host>

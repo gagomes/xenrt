@@ -541,7 +541,7 @@ echo '%s' > root/xenrt-installation-cookie
 # Write the boot label
 mkdir -p /tmp/xenrttmpmount
 mount -t nfs %s /tmp/xenrttmpmount
-echo `blkid | grep BOOT | sed -n 's/.*LABEL=\"\([^\"]*\)\".*/\1/p'` > /tmp/xenrttmpmount/bootlabel
+echo `blkid | grep BOOT | sed -n 's/.*LABEL=\\"\\([^\\"]*\\)\\".*/\\1/p'` > /tmp/xenrttmpmount/bootlabel
 umount /tmp/xenrttmpmount
 """ % self.signaldir.getMountURL("")
     

@@ -1974,7 +1974,7 @@ fi
             # Boot the local disk  - we need to update this before the machine
             # reboots after setting the signal flag.
             if uefi:
-                with open("%s/bootlabel" % nfsdir) as f:
+                with open("%s/bootlabel" % nfsdir.path()) as f:
                     bootlabel = f.read().strip()
                 xenrt.TEC().logverbose("Found %s a boot partition" % bootlabel)
                 localEntry = """
@@ -14074,7 +14074,7 @@ def watchForInstallCompletion(installs):
                 # Boot the local disk  - we need to update this before the
                 # machine reboots after setting the signal flag.
                 if uefi:
-                    with open("%s/bootlabel" % nfsdir) as f:
+                    with open("%s/bootlabel" % nfsdir.path()) as f:
                         bootlabel = f.read().strip()
                     xenrt.TEC().logverbose("Found %s a boot partition" % bootlabel)
                     localEntry = """

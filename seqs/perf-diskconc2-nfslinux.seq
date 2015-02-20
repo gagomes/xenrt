@@ -1,0 +1,32 @@
+  <xenrt>
+    <variables>
+      <PREPARE_WORKERS>2</PREPARE_WORKERS>
+      <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+      <OPTION_DEFAULT_SR>true</OPTION_DEFAULT_SR>
+    </variables>
+
+    <prepare>
+      <host id="0">
+        <storage type="nfs" name="nfs-on-nativelinux" options="host-1-sdb" />
+        <NETWORK>
+          <PHYSICAL network="ANY" speed="10G" name="NET_A">
+            <MANAGEMENT/>
+            <NIC/>
+          </PHYSICAL>
+        </NETWORK>
+      </host>
+      <host id="1" productType="nativelinux" productVersion="centos65-x64">
+        <NETWORK>
+          <PHYSICAL network="ANY" speed="10G" name="NET_A">
+            <MANAGEMENT/>
+            <NIC/>
+          </PHYSICAL>
+        </NETWORK>
+      </host>
+    </prepare>
+
+    <testsequence>
+      <testcase id="xenserver.tc.perf.tc_diskconc2.TCDiskConcurrent2" host="RESOURCE_HOST_0">
+      </testcase>
+    </testsequence>
+  </xenrt>

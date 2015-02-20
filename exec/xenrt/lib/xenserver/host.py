@@ -1976,7 +1976,7 @@ fi
             if uefi:
                 with open("%s/bootlabel" % nfsdir.path()) as f:
                     bootlabel = f.read().strip()
-                xenrt.TEC().logverbose("Found %s a boot partition" % bootlabel)
+                xenrt.TEC().logverbose("Found %s as boot partition" % bootlabel)
                 localEntry = """
                     search --label --set root %s
                     chainloader /EFI/xenserver/grubx64.efi
@@ -14076,7 +14076,7 @@ def watchForInstallCompletion(installs):
                 if uefi:
                     with open("%s/bootlabel" % nfsdir.path()) as f:
                         bootlabel = f.read().strip()
-                    xenrt.TEC().logverbose("Found %s a boot partition" % bootlabel)
+                    xenrt.TEC().logverbose("Found %s as boot partition" % bootlabel)
                     localEntry = """
                         search --label --set root %s
                         chainloader /EFI/xenserver/grubx64.efi

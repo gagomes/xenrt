@@ -18,7 +18,8 @@ class _AclBase(XenRTAPIv2Page):
             },
             "type": {
                 "type": "string",
-                "description": "user or group"
+                "description": "user or group",
+                "enum": ["user", "group"]
             },
             "userid": {
                 "type": "string",

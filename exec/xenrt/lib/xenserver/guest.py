@@ -1281,9 +1281,14 @@ at > c:\\xenrtatlog.txt
 
         # If the file is tar.bz2 then it's probably a Carbon package
         # file containing an ISO. Unpack it
+        decompress = None
         if tmpfile[-8:] == ".tar.bz2" or re.search(r"bzip2", ftype):
+            decompress = "j"
+        elif tmpfile[-4:] == ".tgz" or tmpfile[-7:] == ".tar.gz" or re.search(r"gzip", ftype):
+            decompress = "z"
+        if decompress:
             unpack = xenrt.TEC().tempDir()
-            xenrt.util.command("tar -jxf %s -C %s" % (tmpfile, unpack))
+            xenrt.util.command("tar -%sxf %s -C %s" % (decompress, tmpfile, unpack))
             tmpfile = string.strip(xenrt.util.command("find %s -type f | "
                                                       "head -n 1" % (unpack)))
             if tmpfile == "":

@@ -494,7 +494,7 @@ class XenRTStatus(XenRTCommand):
         if results['result'] and self.printVar("CHECK"):
             self.printout("CHECK='%s'\n" % (results["result"]))
         if self.printVar("JOBSTATUS"):
-            self.printout("JOBSTATUS='%s'\n" % (results["status"]))
+            self.printout("JOBSTATUS='%s'\n" % (results["rawstatus"]))
         if self.printVar("USERID"):
             self.printout("USERID='%s'\n" % (results["user"]))
         if self.printVar("JOBID"):

@@ -703,8 +703,8 @@ sleep 30
             chainloader /EFI/grub/grubx64.efi
         """ % (self.host.lookup("PXE_CHAIN_LOCAL_BOOT", "hd0"))
 
-        pxe.addEntry("carboninstall", installEntry, default=True)
-        pxe.addEntry("local", localEntry)
+        pxe.addGrubEntry("carboninstall", installEntry, default=True)
+        pxe.addGrubEntry("local", localEntry)
 
         pxe.writeOut(self.host.machine)
 

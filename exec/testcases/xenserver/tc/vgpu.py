@@ -2223,7 +2223,8 @@ class TCReuseK2PGPU(FunctionalBase):
         leftVMs = {}
 
         for config in vgpuConfig:
-            self.VMs[config].setState("DOWN")
+            for vm in self.VMs[config]:
+                vm.setState("DOWN")
 
         for config in vgpuConfig:
             leftVMs[config] = ''

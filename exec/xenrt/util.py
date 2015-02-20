@@ -1462,8 +1462,10 @@ def dictToXML(d, indent):
     for k in sorted(d.keys()):
         if isinstance(d[k], dict):
             out += "%s<%s>\n%s%s</%s>\n" % (indent, k, dictToXML(d[k], indent + "  "),indent, k)
+        elif isinstance(d[k], bool):
+            out += "%s<%s>%s</%s>\n" % (indent, k, "yes" if d[k] else "no", k)
         else:
-            out += "%s<%s>%s</%s>\n" % (indent, k, xml.sax.saxutils.escape(d[k]), k)
+            out += "%s<%s>%s</%s>\n" % (indent, k, xml.sax.saxutils.escape(str(d[k])), k)
     return out
 
 def getNetworkParam(network, param):

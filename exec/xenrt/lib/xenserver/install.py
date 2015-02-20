@@ -207,6 +207,7 @@ class DundeeInstaller(object):
 
     @property
     def postInstallUefiBootMods(self):
+        # TODO work out how to do this for grub
         return ""
 
     @property

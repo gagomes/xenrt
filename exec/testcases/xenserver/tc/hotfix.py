@@ -2221,15 +2221,15 @@ class TCDiscSpacePlugins(xenrt.TestCase):
         availSpace = self.getAvailHostDiskSpace()
         
         step("Call check_patch_upload plugin with size > dom0 available disk space: should returns false")
-        if self.checkPatchUpload(availSpace/2 + 100):
+        if self.checkPatchUpload(availSpace):
             raise xenrt.XRTFailure("check_patch_upload plugin returned True, Expected False")
         
         step("Call check_patch_upload plugin with size ~ dom0 available disk space: should returns true")
-        if not self.checkPatchUpload(availSpace/2 - 20):
+        if not self.checkPatchUpload(availSpace/2 - 2*xenrt.MEGA):
            raise xenrt.XRTFailure("check_patch_upload plugin returned False, Expected True")
 
         step("Call check_patch_upload plugin with size < dom0 available disk space: should returns true")
-        if not self.checkPatchUpload(availSpace/2 - 100):
+        if not self.checkPatchUpload(availSpace/2 - 50*xenrt.MEGA):
             raise xenrt.XRTFailure("check_patch_upload plugin returned False, Expected True")
 
     def testGetReclaimableSpacePlugin(self):

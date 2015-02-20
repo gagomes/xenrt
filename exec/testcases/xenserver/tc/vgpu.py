@@ -2221,6 +2221,7 @@ class TCReuseK2PGPU(FunctionalBase):
     def actualTest(self,vgpuConfig,requiredDistros):
 
         leftVMs = {}
+        lastvm = None
 
         for config in vgpuConfig:
             for vm in self.VMs[config]:
@@ -2240,13 +2241,11 @@ class TCReuseK2PGPU(FunctionalBase):
                     obj.assertvGPURunningInVM(vm,self.getConfigurationName(config))
                 else:
                     leftVMs[config] = vm
+                lastvm = vm
                 totalVMsUP = totalVMsUP + 1
 
             #shutting down one VM so that other VM can be restarted
-            for vm in self.VMs[config]:
-                if not vm in leftVMs[config]:
-                    vm.setState("DOWN")
-                    break
+            lastvm.setState("DOWN")
 
             leftVMs[config].setState("UP")
             if leftVMs[config].windows:

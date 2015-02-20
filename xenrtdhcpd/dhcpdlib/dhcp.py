@@ -523,7 +523,7 @@ class _DHCPServer(libpydhcpserver.dhcp.DHCPServer):
                 )
                 wrapper.markAddressed()
             else:
-                raise _PacketSourceBlacklist("unknown MAC and server is not authoritative; ignoring because rejection is impossible")
+                raise Exception("unknown MAC and server is not authoritative; ignoring because rejection is impossible")
                 
     @_dhcpHandler(_PACKET_TYPE_INFORM)
     def _handleDHCPInform(self, wrapper):

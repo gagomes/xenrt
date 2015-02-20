@@ -1665,6 +1665,7 @@ if listlocks:
             print "%s,No,," % (l[0])
 
 if cleanupnfsdirs:
+    jobsForMachinePowerOff = [] 
     nfsConfig = xenrt.TEC().lookup("EXTERNAL_NFS_SERVERS")
     for n in nfsConfig.keys():
         try:
@@ -1680,6 +1681,7 @@ if cleanupnfsdirs:
                 try:
                     if xenrt.canCleanJobResources(j):
                         xenrt.rootops.sudo("rm -rf %s/%s-*" % (mp, j))
+                        jobsForMachinePowerOff.append(j) 
                 except Exception, e:
                     xenrt.TEC().logverbose(str(e))
                     continue
@@ -1703,6 +1705,7 @@ if cleanupnfsdirs:
                 try:
                     if xenrt.canCleanJobResources(j):
                         xenrt.rootops.sudo("rm -rf %s/%s-*" % (mp, j))
+                        jobsForMachinePowerOff.append(j) 
                 except:
                     continue
             if m:
@@ -1710,6 +1713,13 @@ if cleanupnfsdirs:
         except:
             pass
 
+    for j in set(jobsForMachinePowerOff):
+        machinesToPowerOff = xenrt.staleMachines(j)
+        for m in machinesToPowerOff:
+            machine = xenrt.PhysicalHost(m, ipaddr="0.0.0.0")
+            xenrt.GenericHost(machine)
+            machine.powerctl.off()
+    
 if cleanupnfsdir:
     nfsConfig = xenrt.TEC().lookup("EXTERNAL_NFS_SERVERS")
     (cleanupAddress, cleanupPath) = cleanupnfsdir.split(":", 1)

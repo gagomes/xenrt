@@ -143,7 +143,6 @@ class WindowsHost(xenrt.GenericHost):
 
         # Now Construct a PXE target for local boot
         pxe = xenrt.PXEBoot()
-        pxe.clearIPXEConfig(self.machine)
         serport = self.lookup("SERIAL_CONSOLE_PORT", "0")
         serbaud = self.lookup("SERIAL_CONSOLE_BAUD", "115200")
         pxe.setSerial(serport, serbaud)

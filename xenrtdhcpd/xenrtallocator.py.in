@@ -25,12 +25,21 @@ class XenRTDHCPAllocator(object):
             self._parseCfg(i)
             self._setupDB(i)
 
+        self.rejectedCSAddrs = {}
         self.xmlrpc = SimpleXMLRPCServer(("localhost", 1500), allow_none=True)
         self.xmlrpc.register_introspection_functions()
         self.xmlrpc.register_instance(XMLRPCAllocator(self))
         thread = threading.Thread(target=self.startXMLRPC, name="XMLRPC")
         thread.daemon=True
         thread.start()
+
+    def respondToCSAddr(self, mac):
+        # First clean up the list of old addresses
+        for a in self.rejectedCSAddrs.keys():
+            if self.rejectedCSAddrs[a] > time.time() + 60:
+                del self.rejectedCSAddrs[a]
+        # If we've rejected it once, we can respond this time (after a 3s delay)
+        return self.rejectedCSAddrs.has_key(mac)
 
     def startXMLRPC(self):
         _logger.info("Starting XML/RPC server")
@@ -110,11 +119,14 @@ class XenRTDHCPAllocator(object):
             return None
 
     def _findHostName(self, addr):
-        self._sql("SELECT reservedname FROM leases WHERE addr='%s' AND reserved IS NOT NULL" % addr)
-        r = self.cur.fetchone()
-        if r:
-            return r[0]
-        else:
+        try:
+            self._sql("SELECT reservedname FROM leases WHERE addr='%s' AND reserved IS NOT NULL" % addr)
+            r = self.cur.fetchone()
+            if r:
+                return r[0]
+            else:
+                return None
+        except:
             return None
 
     def _renewLease(self, intf, mac, ip):
@@ -130,9 +142,13 @@ class XenRTDHCPAllocator(object):
     def _blacklistIp(self, ip):
         self._sql("UPDATE leases SET mac='INVALID',expiry=%d WHERE addr='%s'" % (int(time.time() + 24*3600), ip))
 
-    def _getNewLease(self, intf, mac):
+    def isCloudStackMAC(self, mac):
+        return mac.startswith("02:") or mac.startswith("06:")
+
+    def _getNewLease(self, intf, mac, cs=False):
         # Exclude Cloudstack MACs
-        if mac.startswith("02:") or mac.startswith("06:"):
+        if self.isCloudStackMAC(mac) and not cs:
+            self.rejectedCSAddrs[mac] = time.time()
             return None
         intfcfg = self.config['interfaces'][intf]
         self._sql("SELECT addr FROM leases WHERE interface='%s' AND reserved IS NULL AND (mac IS NULL OR expiry<%d) ORDER BY addr LIMIT 1" % (intf, int(time.time())))
@@ -172,7 +188,7 @@ class XenRTDHCPAllocator(object):
                     except:
                         _logger.warn("Warning: could not renew lease for %s" % currentIp)
                 if not ip:
-                    ip = self._getNewLease(intf, str(mac))
+                    ip = self._getNewLease(intf, str(mac), cs=self.respondToCSAddr(str(mac)))
                 if not ip:
                     _logger.warn("Could not allocate lease for %s on %s" % (str(mac), intf))
                     return None
@@ -201,7 +217,9 @@ class XenRTDHCPAllocator(object):
                          domain_name_servers = cfg['dns'],
                          ntp_servers = cfg['ntp'],
                          hostname=hostname)
-
+        # Allow CCP to return first
+        if self.isCloudStackMAC(str(mac)):
+            time.sleep(3)
         return ret
 
     def _populatePXEInfo(self, packet, intf):

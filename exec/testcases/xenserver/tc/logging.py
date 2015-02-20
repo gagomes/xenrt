@@ -42,7 +42,7 @@ class TC6710(xenrt.TestCase):
         step("Configure the VM as a syslog server")
         # This might be Debian squeeze
         release = guest.execguest("which lsb_release > /dev/null && lsb_release -c || true").strip()
-        if release.endswith("squeeze"):
+        if release.endswith("squeeze") or release.endswith("wheezy"):
             self.setupRsyslog(guest)
             useRsyslog = True
         else:

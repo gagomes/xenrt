@@ -13,6 +13,7 @@ import socket, re, string, time, traceback, sys, random, copy, os, os.path, urll
 
 import xenrt, xenrt.lib.xenserver, XenAPI
 import xml.dom.minidom
+from xml.dom.minidom import parseString
 import urllib2
 import datetime, random
 from xenrt.lazylog import log, warning
@@ -508,7 +509,7 @@ class _WSMANProtocol(_CIMInterface):
 
         # Copy the PV tools ISO from the host to use as an example ISO
         # in our CIFS SR
-        remotefile = host.toolsISOPath("windows")
+        remotefile = host.toolsISOPath()
         if not remotefile:
             raise xenrt.XRTError("Could not find PV tools ISO in dom0")
         cd = "%s/xs-tools.iso" % (xenrt.TEC().getWorkdir())
@@ -1651,15 +1652,13 @@ class SRFunctions(_CimBase):
 
             time.sleep(300)
  
-            count = 1 
-            while 1:
-                line = tempStr.splitlines()[count]
-                if "<SCSIid>" in line:
-                    scsiId = tempStr.splitlines()[count +1]
-                    scsiId = scsiId.strip()
-                    break
-                count = count +1
-           
+            tempStr = '\n'.join(tempStr.split('\n')[2:])
+            temp = parseString(tempStr)
+            ids = temp.getElementsByTagName('SCSIid')
+            for id in ids:
+                for node in id.childNodes:
+                    scsiId = (node.nodeValue).strip()
+
             ret = self.protocolObj.createISCSISR(self.isoSRName,targetIp,iqn,scsiId,user,password)
 
             try:            

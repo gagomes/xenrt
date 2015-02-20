@@ -735,6 +735,12 @@ class _ExternalFileShare(CentralResource):
                 xenrt.TEC().logverbose("Not deleting file export %s" %
                                        (self.getMount()))
             else:
+                if atExit:
+                    for host in xenrt.TEC().registry.hostList():
+                        if host == "SHARED":
+                            continue
+                        h = xenrt.TEC().registry.hostGet(host)
+                        h.machine.exitPowerOff()
                 # Mount it here to remove the tree
                 m = self.mount("%s:%s" % (self.address, self.base))
                 mp = m.getMount()
@@ -1081,7 +1087,7 @@ class ISCSILunGroup(_ISCSILunBase):
         if xenrt.util.keepSetup():
             return
         for l in self.luns:
-            l.release()
+            l.release(atExit=atExit)
         CentralResource.release(self, atExit)
 
 
@@ -1278,6 +1284,12 @@ class ISCSILun(_ISCSILunBase):
             except Exception, e:
                 traceback.print_exc(file=sys.stderr)
 
+        if atExit:
+            for host in xenrt.TEC().registry.hostList():
+                if host == "SHARED":
+                    continue
+                h = xenrt.TEC().registry.hostGet(host)
+                h.machine.exitPowerOff()
         CentralResource.release(self, atExit)
 
     def getInitiatorName(self, allocate=False):
@@ -3244,7 +3256,7 @@ class SharedHost:
         useHost.checkVersion()
         host = xenrt.lib.xenserver.hostFactory(useHost.productVersion)(useHost.machine, productVersion=useHost.productVersion)
         useHost.populateSubclass(host)
-        host.existing(doguests=doguests)
+        host.existing(doguests=doguests, guestsInRegistry=False)
         self.host = host
         xenrt.TEC().gec.registerCallback(self)
     

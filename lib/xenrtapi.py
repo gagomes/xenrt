@@ -4,7 +4,8 @@ import requests
 import json
 import httplib
 import os.path
-import netrc
+import base64
+import sys
 
 class XenRTAPIException(Exception):
     def __init__(self, code, reason, canForce):
@@ -19,19 +20,17 @@ class XenRTAPIException(Exception):
         return ret
 
 class XenRT(object):
-    def __init__(self, user=None, password=None):
-        self.base = "http://xenrt.citrite.net/xenrt/api/v2"
+    def __init__(self, apikey=None, user=None, password=None, server=None):
+        if not server:
+            server ="xenrt.citrite.net"
+        self.base = "http://%s/xenrt/api/v2" % server
 
-        if not user:
-            auth = netrc.netrc().authenticators("xenrt.citrite.net")
-            if not auth:
-                raise Exception("No authentication details specified by parameters or in .netrc for xenrt.citrite.net")
-            self.user = auth[0]
-            self.password = auth[2]
-        else:
-            self.user = user
-            self.password = password
         self.customHeaders = {}
+        if apikey:
+            self.customHeaders['x-api-key'] = apikey
+        elif user and password:
+            base64string = base64.encodestring('%s:%s' % (user, password)).replace('\n', '')
+            self.customHeaders["Authorization"] = "Basic %s" % base64string
 
     def __serializeForQuery(self, data):
         if isinstance(data, bool):
@@ -62,19 +61,51 @@ class XenRT(object):
                                         canForce)
         response.raise_for_status()
 
-    def get_job_attachment_post_run(self, id, filepath):
-        """ Get URL for job attachment, uploaded after job ran
+    def lock_global_resource(self, restype, site, job):
+        """ Locks a global resource
             Parameters:
-                 id: integer - Job ID to get file from
-                 filepath: string - File to download
+                 restype: string - Type of lock required
+                 site: string - Site where the lock is required
+                 job: integer - Job ID requesting the lock
         """
-        path = "%s/job/{id}/attachment/postrun/{file}" % (self.base)
-        path = path.replace("{id}", self.__serializeForPath(id))
-        path = path.replace("{file}", self.__serializeForPath(filepath))
+        path = "%s/globalresources/lock" % (self.base)
         paramdict = {}
         files = {}
         payload = {}
-        r = requests.get(path, params=paramdict, auth=(self.user, self.password), headers=self.customHeaders)
+        j = {}
+        if job != None:
+            j['job'] = job
+        if restype != None:
+            j['restype'] = restype
+        if site != None:
+            j['site'] = site
+        payload = json.dumps(j)
+        myHeaders = {'content-type': 'application/json'}
+        myHeaders.update(self.customHeaders)
+        r = requests.post(path, params=paramdict, data=payload, files=files, headers=myHeaders)
+        self.__raiseForStatus(r)
+        return r.json()
+
+
+    def release_global_resource(self, name=None, job=None):
+        """ Releases a global resource lock
+            Parameters:
+                 name: string - Release the lock on this named resource
+                 job: integer - Release the locks on all resources from this job
+        """
+        path = "%s/globalresources/lock" % (self.base)
+        paramdict = {}
+        files = {}
+        payload = {}
+        j = {}
+        if job != None:
+            j['job'] = job
+        if name != None:
+            j['name'] = name
+        payload = json.dumps(j)
+        myHeaders = {'content-type': 'application/json'}
+        myHeaders.update(self.customHeaders)
+        r = requests.delete(path, params=paramdict, data=payload, files=files, headers=myHeaders)
         self.__raiseForStatus(r)
         return r.json()
 
@@ -111,7 +142,7 @@ class XenRT(object):
         payload = json.dumps(j)
         myHeaders = {'content-type': 'application/json'}
         myHeaders.update(self.customHeaders)
-        r = requests.post(path, params=paramdict, data=payload, files=files, auth=(self.user, self.password), headers=myHeaders)
+        r = requests.post(path, params=paramdict, data=payload, files=files, headers=myHeaders)
         self.__raiseForStatus(r)
         return r.json()
 
@@ -128,7 +159,7 @@ class XenRT(object):
         payload = {}
         myHeaders = {'content-type': 'application/json'}
         myHeaders.update(self.customHeaders)
-        r = requests.delete(path, params=paramdict, data=payload, files=files, auth=(self.user, self.password), headers=myHeaders)
+        r = requests.delete(path, params=paramdict, data=payload, files=files, headers=myHeaders)
         self.__raiseForStatus(r)
         return r.json()
 
@@ -143,122 +174,27 @@ class XenRT(object):
         paramdict = {}
         files = {}
         payload = {}
-        r = requests.get(path, params=paramdict, auth=(self.user, self.password), headers=self.customHeaders)
+        r = requests.get(path, params=paramdict, headers=self.customHeaders)
         self.__raiseForStatus(r)
         return r.json()
 
 
-    def lease_machine(self, name, duration, reason, force=None):
-        """ Lease a machine
+    def upload_perfdata(self, filepath):
+        """ Add performance data from XML file
             Parameters:
-                 name: string - Machine to lease
-                 duration: integer - Time in hours to lease the machine. 0 means forever
-                 reason: string - Reason the machine is to be leased
-                 force: boolean - Whether to force lease if another use has the machine leased
+                 filepath: file path - File to upload
         """
-        path = "%s/machine/{name}/lease" % (self.base)
-        path = path.replace("{name}", self.__serializeForPath(name))
+        path = "%s/perfdata" % (self.base)
         paramdict = {}
         files = {}
         payload = {}
-        j = {}
-        if duration != None:
-            j['duration'] = duration
-        if reason != None:
-            j['reason'] = reason
-        if force != None:
-            j['force'] = force
-        payload = json.dumps(j)
-        myHeaders = {'content-type': 'application/json'}
+        if filepath != None:
+            files['file'] = (os.path.basename(filepath), open(filepath, 'rb'))
+        else:
+            files['file'] = ('stdin', sys.stdin)
+        myHeaders = {}
         myHeaders.update(self.customHeaders)
-        r = requests.post(path, params=paramdict, data=payload, files=files, auth=(self.user, self.password), headers=myHeaders)
-        self.__raiseForStatus(r)
-        return r.json()
-
-
-    def return_leased_machine(self, name, force=None):
-        """ Return a leased machine
-            Parameters:
-                 name: string - Machine to lease
-                 force: boolean - Whether to force return if another use has the machine leased
-        """
-        path = "%s/machine/{name}/lease" % (self.base)
-        path = path.replace("{name}", self.__serializeForPath(name))
-        paramdict = {}
-        files = {}
-        payload = {}
-        j = {}
-        if force != None:
-            j['force'] = force
-        payload = json.dumps(j)
-        myHeaders = {'content-type': 'application/json'}
-        myHeaders.update(self.customHeaders)
-        r = requests.delete(path, params=paramdict, data=payload, files=files, auth=(self.user, self.password), headers=myHeaders)
-        self.__raiseForStatus(r)
-        return r.json()
-
-
-    def update_job(self, id, params=None, complete=None):
-        """ Update job details
-            Parameters:
-                 id: integer - Job ID to update
-                 params: dictionary - Key-value pairs of parameters to update (set null to delete a parameter)
-                 complete: boolean - Set to true to complete the job
-        """
-        path = "%s/job/{id}" % (self.base)
-        path = path.replace("{id}", self.__serializeForPath(id))
-        paramdict = {}
-        files = {}
-        payload = {}
-        j = {}
-        if params != None:
-            j['params'] = params
-        if complete != None:
-            j['complete'] = complete
-        payload = json.dumps(j)
-        myHeaders = {'content-type': 'application/json'}
-        myHeaders.update(self.customHeaders)
-        r = requests.post(path, params=paramdict, data=payload, files=files, auth=(self.user, self.password), headers=myHeaders)
-        self.__raiseForStatus(r)
-        return r.json()
-
-
-    def remove_job(self, id, return_machines=None):
-        """ Removes a job
-            Parameters:
-                 id: integer - Job ID to remove
-                 return_machines: boolean - Whether to return the machines borrowed by this job
-        """
-        path = "%s/job/{id}" % (self.base)
-        path = path.replace("{id}", self.__serializeForPath(id))
-        paramdict = {}
-        files = {}
-        payload = {}
-        j = {}
-        if return_machines != None:
-            j['return_machines'] = return_machines
-        payload = json.dumps(j)
-        myHeaders = {'content-type': 'application/json'}
-        myHeaders.update(self.customHeaders)
-        r = requests.delete(path, params=paramdict, data=payload, files=files, auth=(self.user, self.password), headers=myHeaders)
-        self.__raiseForStatus(r)
-        return r.json()
-
-
-    def get_job(self, id, logitems=None):
-        """ Gets a specific job object
-            Parameters:
-                 id: integer - Job ID to fetch
-                 logitems: boolean - Return the log items for all testcases in the job. Defaults to false
-        """
-        path = "%s/job/{id}" % (self.base)
-        path = path.replace("{id}", self.__serializeForPath(id))
-        paramdict = {}
-        files = {}
-        if logitems != None:
-            paramdict['logitems'] = self.__serializeForQuery(logitems)
-        payload = {}
-        r = requests.get(path, params=paramdict, auth=(self.user, self.password), headers=self.customHeaders)
+        r = requests.post(path, params=paramdict, data=payload, files=files, headers=myHeaders)
         self.__raiseForStatus(r)
         return r.json()
 
@@ -299,12 +235,12 @@ class XenRT(object):
         payload = json.dumps(j)
         myHeaders = {'content-type': 'application/json'}
         myHeaders.update(self.customHeaders)
-        r = requests.post(path, params=paramdict, data=payload, files=files, auth=(self.user, self.password), headers=myHeaders)
+        r = requests.post(path, params=paramdict, data=payload, files=files, headers=myHeaders)
         self.__raiseForStatus(r)
         return r.json()
 
 
-    def get_machines(self, status=None, site=None, pool=None, cluster=None, user=None, machine=None, resource=None, flag=None, limit=None, offset=None):
+    def get_machines(self, status=None, site=None, pool=None, cluster=None, user=None, machine=None, resource=None, flag=None, limit=None, offset=None, pseudohosts=None):
         """ Get machines matching parameters
             Parameters:
                  status: list - Filter on machine status. Any of "idle", "running", "leased", "offline", "broken" - can specify multiple
@@ -317,6 +253,7 @@ class XenRT(object):
                  flag: list - Filter on a flag - can specify multiple
                  limit: integer - Limit the number of results. Defaults to unlimited
                  offset: integer - Offset to start the results at, for paging with limit enabled.
+                 pseudohosts: boolean - Get pseudohosts, defaults to false
         """
         path = "%s/machines" % (self.base)
         paramdict = {}
@@ -341,8 +278,10 @@ class XenRT(object):
             paramdict['limit'] = self.__serializeForQuery(limit)
         if offset != None:
             paramdict['offset'] = self.__serializeForQuery(offset)
+        if pseudohosts != None:
+            paramdict['pseudohosts'] = self.__serializeForQuery(pseudohosts)
         payload = {}
-        r = requests.get(path, params=paramdict, auth=(self.user, self.password), headers=self.customHeaders)
+        r = requests.get(path, params=paramdict, headers=self.customHeaders)
         self.__raiseForStatus(r)
         return r.json()
 
@@ -382,7 +321,7 @@ class XenRT(object):
         payload = json.dumps(j)
         myHeaders = {'content-type': 'application/json'}
         myHeaders.update(self.customHeaders)
-        r = requests.post(path, params=paramdict, data=payload, files=files, auth=(self.user, self.password), headers=myHeaders)
+        r = requests.post(path, params=paramdict, data=payload, files=files, headers=myHeaders)
         self.__raiseForStatus(r)
         return r.json()
 
@@ -399,7 +338,7 @@ class XenRT(object):
         payload = {}
         myHeaders = {'content-type': 'application/json'}
         myHeaders.update(self.customHeaders)
-        r = requests.delete(path, params=paramdict, data=payload, files=files, auth=(self.user, self.password), headers=myHeaders)
+        r = requests.delete(path, params=paramdict, data=payload, files=files, headers=myHeaders)
         self.__raiseForStatus(r)
         return r.json()
 
@@ -414,7 +353,142 @@ class XenRT(object):
         paramdict = {}
         files = {}
         payload = {}
-        r = requests.get(path, params=paramdict, auth=(self.user, self.password), headers=self.customHeaders)
+        r = requests.get(path, params=paramdict, headers=self.customHeaders)
+        self.__raiseForStatus(r)
+        return r.json()
+
+
+    def get_loggedinuser(self):
+        """ Get the currently logged in user
+            Parameters:
+        """
+        path = "%s/loggedinuser" % (self.base)
+        paramdict = {}
+        files = {}
+        payload = {}
+        r = requests.get(path, params=paramdict, headers=self.customHeaders)
+        self.__raiseForStatus(r)
+        return r.json()['user']
+
+
+    def get_test(self, id, logitems=None):
+        """ Gets a specific test object
+            Parameters:
+                 id: integer - Job ID to fetch
+                 logitems: boolean - Return the log items for all testcases in the job. Defaults to false
+        """
+        path = "%s/test/{id}" % (self.base)
+        path = path.replace("{id}", self.__serializeForPath(id))
+        paramdict = {}
+        files = {}
+        if logitems != None:
+            paramdict['logitems'] = self.__serializeForQuery(logitems)
+        payload = {}
+        r = requests.get(path, params=paramdict, headers=self.customHeaders)
+        self.__raiseForStatus(r)
+        return r.json()
+
+
+    def get_logserver(self):
+        """ Get default log server
+            Parameters:
+        """
+        path = "%s/logserver" % (self.base)
+        paramdict = {}
+        files = {}
+        payload = {}
+        r = requests.get(path, params=paramdict, headers=self.customHeaders)
+        self.__raiseForStatus(r)
+        return r.json()['server']
+
+
+    def set_result(self, id, phase, test, result):
+        """ Set the result of a test
+            Parameters:
+                 id: integer - Job ID to add result to
+                 phase: string - Test phase to add result to
+                 test: string - Testcase to add result to
+                 result: string - Result of the test
+        """
+        path = "%s/job/{id}/tests/{phase}/{test}" % (self.base)
+        path = path.replace("{id}", self.__serializeForPath(id))
+        path = path.replace("{phase}", self.__serializeForPath(phase))
+        path = path.replace("{test}", self.__serializeForPath(test))
+        paramdict = {}
+        files = {}
+        payload = {}
+        j = {}
+        if result != None:
+            j['result'] = result
+        payload = json.dumps(j)
+        myHeaders = {'content-type': 'application/json'}
+        myHeaders.update(self.customHeaders)
+        r = requests.post(path, params=paramdict, data=payload, files=files, headers=myHeaders)
+        self.__raiseForStatus(r)
+        return r.json()
+
+
+    def update_job(self, id, params=None, complete=None):
+        """ Update job details
+            Parameters:
+                 id: integer - Job ID to update
+                 params: dictionary - Key-value pairs of parameters to update (set null to delete a parameter)
+                 complete: boolean - Set to true to complete the job
+        """
+        path = "%s/job/{id}" % (self.base)
+        path = path.replace("{id}", self.__serializeForPath(id))
+        paramdict = {}
+        files = {}
+        payload = {}
+        j = {}
+        if params != None:
+            j['params'] = params
+        if complete != None:
+            j['complete'] = complete
+        payload = json.dumps(j)
+        myHeaders = {'content-type': 'application/json'}
+        myHeaders.update(self.customHeaders)
+        r = requests.post(path, params=paramdict, data=payload, files=files, headers=myHeaders)
+        self.__raiseForStatus(r)
+        return r.json()
+
+
+    def remove_job(self, id, return_machines=None):
+        """ Removes a job
+            Parameters:
+                 id: integer - Job ID to remove
+                 return_machines: boolean - Whether to return the machines borrowed by this job
+        """
+        path = "%s/job/{id}" % (self.base)
+        path = path.replace("{id}", self.__serializeForPath(id))
+        paramdict = {}
+        files = {}
+        payload = {}
+        j = {}
+        if return_machines != None:
+            j['return_machines'] = return_machines
+        payload = json.dumps(j)
+        myHeaders = {'content-type': 'application/json'}
+        myHeaders.update(self.customHeaders)
+        r = requests.delete(path, params=paramdict, data=payload, files=files, headers=myHeaders)
+        self.__raiseForStatus(r)
+        return r.json()
+
+
+    def get_job(self, id, logitems=None):
+        """ Gets a specific job object
+            Parameters:
+                 id: integer - Job ID to fetch
+                 logitems: boolean - Return the log items for all testcases in the job. Defaults to false
+        """
+        path = "%s/job/{id}" % (self.base)
+        path = path.replace("{id}", self.__serializeForPath(id))
+        paramdict = {}
+        files = {}
+        if logitems != None:
+            paramdict['logitems'] = self.__serializeForQuery(logitems)
+        payload = {}
+        r = requests.get(path, params=paramdict, headers=self.customHeaders)
         self.__raiseForStatus(r)
         return r.json()
 
@@ -470,7 +544,7 @@ class XenRT(object):
         payload = json.dumps(j)
         myHeaders = {'content-type': 'application/json'}
         myHeaders.update(self.customHeaders)
-        r = requests.post(path, params=paramdict, data=payload, files=files, auth=(self.user, self.password), headers=myHeaders)
+        r = requests.post(path, params=paramdict, data=payload, files=files, headers=myHeaders)
         self.__raiseForStatus(r)
         return r.json()
 
@@ -516,7 +590,7 @@ class XenRT(object):
         if logitems != None:
             paramdict['logitems'] = self.__serializeForQuery(logitems)
         payload = {}
-        r = requests.get(path, params=paramdict, auth=(self.user, self.password), headers=self.customHeaders)
+        r = requests.get(path, params=paramdict, headers=self.customHeaders)
         self.__raiseForStatus(r)
         return r.json()
 
@@ -551,7 +625,7 @@ class XenRT(object):
         payload = json.dumps(j)
         myHeaders = {'content-type': 'application/json'}
         myHeaders.update(self.customHeaders)
-        r = requests.post(path, params=paramdict, data=payload, files=files, auth=(self.user, self.password), headers=myHeaders)
+        r = requests.post(path, params=paramdict, data=payload, files=files, headers=myHeaders)
         self.__raiseForStatus(r)
         return r.json()
 
@@ -570,9 +644,160 @@ class XenRT(object):
         if flag != None:
             paramdict['flag'] = self.__serializeForQuery(flag)
         payload = {}
-        r = requests.get(path, params=paramdict, auth=(self.user, self.password), headers=self.customHeaders)
+        r = requests.get(path, params=paramdict, headers=self.customHeaders)
         self.__raiseForStatus(r)
         return r.json()
+
+
+    def get_global_resource(self, name):
+        """ Get details of one global resource
+            Parameters:
+                 name: string - Resource to fetch
+        """
+        path = "%s/globalresource/{name}" % (self.base)
+        path = path.replace("{name}", self.__serializeForPath(name))
+        paramdict = {}
+        files = {}
+        payload = {}
+        r = requests.get(path, params=paramdict, headers=self.customHeaders)
+        self.__raiseForStatus(r)
+        return r.json()
+
+
+    def new_event(self, event_type, subject, data):
+        """ Add an event to the database
+            Parameters:
+                 event_type: string - Event type
+                 subject: string - Subject
+                 data: string - Data
+        """
+        path = "%s/events" % (self.base)
+        paramdict = {}
+        files = {}
+        payload = {}
+        j = {}
+        if data != None:
+            j['data'] = data
+        if event_type != None:
+            j['event_type'] = event_type
+        if subject != None:
+            j['subject'] = subject
+        payload = json.dumps(j)
+        myHeaders = {'content-type': 'application/json'}
+        myHeaders.update(self.customHeaders)
+        r = requests.post(path, params=paramdict, data=payload, files=files, headers=myHeaders)
+        self.__raiseForStatus(r)
+        return r.json()
+
+
+    def lease_machine(self, name, duration, reason, force=None):
+        """ Lease a machine
+            Parameters:
+                 name: string - Machine to lease
+                 duration: integer - Time in hours to lease the machine. 0 means forever
+                 reason: string - Reason the machine is to be leased
+                 force: boolean - Whether to force lease if another use has the machine leased
+        """
+        path = "%s/machine/{name}/lease" % (self.base)
+        path = path.replace("{name}", self.__serializeForPath(name))
+        paramdict = {}
+        files = {}
+        payload = {}
+        j = {}
+        if duration != None:
+            j['duration'] = duration
+        if reason != None:
+            j['reason'] = reason
+        if force != None:
+            j['force'] = force
+        payload = json.dumps(j)
+        myHeaders = {'content-type': 'application/json'}
+        myHeaders.update(self.customHeaders)
+        r = requests.post(path, params=paramdict, data=payload, files=files, headers=myHeaders)
+        self.__raiseForStatus(r)
+        return r.json()
+
+
+    def return_leased_machine(self, name, force=None):
+        """ Return a leased machine
+            Parameters:
+                 name: string - Machine to lease
+                 force: boolean - Whether to force return if another use has the machine leased
+        """
+        path = "%s/machine/{name}/lease" % (self.base)
+        path = path.replace("{name}", self.__serializeForPath(name))
+        paramdict = {}
+        files = {}
+        payload = {}
+        j = {}
+        if force != None:
+            j['force'] = force
+        payload = json.dumps(j)
+        myHeaders = {'content-type': 'application/json'}
+        myHeaders.update(self.customHeaders)
+        r = requests.delete(path, params=paramdict, data=payload, files=files, headers=myHeaders)
+        self.__raiseForStatus(r)
+        return r.json()
+
+
+    def get_job_attachment_post_run(self, id, filepath):
+        """ Get URL for job attachment, uploaded after job ran
+            Parameters:
+                 id: integer - Job ID to get file from
+                 filepath: string - File to download
+        """
+        path = "%s/job/{id}/attachment/postrun/{file}" % (self.base)
+        path = path.replace("{id}", self.__serializeForPath(id))
+        path = path.replace("{file}", self.__serializeForPath(filepath))
+        paramdict = {}
+        files = {}
+        payload = {}
+        r = requests.get(path, params=paramdict, headers=self.customHeaders)
+        self.__raiseForStatus(r)
+        return r.json()['url']
+
+
+    def replace_apikey(self):
+        """ Replace API key for logged in User
+            Parameters:
+        """
+        path = "%s/apikey" % (self.base)
+        paramdict = {}
+        files = {}
+        payload = {}
+        myHeaders = {'content-type': 'application/json'}
+        myHeaders.update(self.customHeaders)
+        r = requests.put(path, params=paramdict, data=payload, files=files, headers=myHeaders)
+        self.__raiseForStatus(r)
+        return r.json()
+
+
+    def remove_apikey(self):
+        """ Remove API key for logged in User
+            Parameters:
+        """
+        path = "%s/apikey" % (self.base)
+        paramdict = {}
+        files = {}
+        payload = {}
+        myHeaders = {'content-type': 'application/json'}
+        myHeaders.update(self.customHeaders)
+        r = requests.delete(path, params=paramdict, data=payload, files=files, headers=myHeaders)
+        self.__raiseForStatus(r)
+        return r.json()
+
+
+    def get_apikey(self):
+        """ Get API key for logged in User
+            Parameters:
+        """
+        path = "%s/apikey" % (self.base)
+        paramdict = {}
+        files = {}
+        payload = {}
+        r = requests.get(path, params=paramdict, headers=self.customHeaders)
+        self.__raiseForStatus(r)
+        return r.json()['key']
 
 
     def get_job_attachment_pre_run(self, id, filepath):
@@ -587,9 +812,9 @@ class XenRT(object):
         paramdict = {}
         files = {}
         payload = {}
-        r = requests.get(path, params=paramdict, auth=(self.user, self.password), headers=self.customHeaders)
+        r = requests.get(path, params=paramdict, headers=self.customHeaders)
         self.__raiseForStatus(r)
-        return r.json()
+        return r.json()['url']
 
 
     def get_job_deployment(self, id):
@@ -602,25 +827,92 @@ class XenRT(object):
         paramdict = {}
         files = {}
         payload = {}
-        r = requests.get(path, params=paramdict, auth=(self.user, self.password), headers=self.customHeaders)
+        r = requests.get(path, params=paramdict, headers=self.customHeaders)
         self.__raiseForStatus(r)
         return r.json()
 
 
-    def get_test(self, id, logitems=None):
-        """ Gets a specific test object
+    def send_job_email(self, id):
+        """ Gets a specific job object
             Parameters:
                  id: integer - Job ID to fetch
-                 logitems: boolean - Return the log items for all testcases in the job. Defaults to false
         """
-        path = "%s/test/{id}" % (self.base)
+        path = "%s/job/{id}/email" % (self.base)
         path = path.replace("{id}", self.__serializeForPath(id))
         paramdict = {}
         files = {}
-        if logitems != None:
-            paramdict['logitems'] = self.__serializeForQuery(logitems)
         payload = {}
-        r = requests.get(path, params=paramdict, auth=(self.user, self.password), headers=self.customHeaders)
+        myHeaders = {'content-type': 'application/json'}
+        myHeaders.update(self.customHeaders)
+        r = requests.post(path, params=paramdict, data=payload, files=files, headers=myHeaders)
+        self.__raiseForStatus(r)
+        return r.json()
+
+
+    def get_global_resources(self):
+        """ List all of the global resources
+            Parameters:
+        """
+        path = "%s/globalresources" % (self.base)
+        paramdict = {}
+        files = {}
+        payload = {}
+        r = requests.get(path, params=paramdict, headers=self.customHeaders)
+        self.__raiseForStatus(r)
+        return r.json()
+
+
+    def upload_subresults(self, id, phase, test, filepath):
+        """ Add sub results to a test from an XML file
+            Parameters:
+                 id: integer - Job ID to add subresults to
+                 phase: string - Test phase to add subresults to
+                 test: string - Testcase to add subresults to
+                 filepath: file path - File to upload
+        """
+        path = "%s/job/{id}/tests/{phase}/{test}/subresults" % (self.base)
+        path = path.replace("{id}", self.__serializeForPath(id))
+        path = path.replace("{phase}", self.__serializeForPath(phase))
+        path = path.replace("{test}", self.__serializeForPath(test))
+        paramdict = {}
+        files = {}
+        payload = {}
+        if filepath != None:
+            files['file'] = (os.path.basename(filepath), open(filepath, 'rb'))
+        else:
+            files['file'] = ('stdin', sys.stdin)
+        myHeaders = {}
+        myHeaders.update(self.customHeaders)
+        r = requests.post(path, params=paramdict, data=payload, files=files, headers=myHeaders)
+        self.__raiseForStatus(r)
+        return r.json()
+
+
+    def new_logdata(self, id, phase, test, key, value):
+        """ Add log data to a test
+            Parameters:
+                 id: integer - Job ID to add result to
+                 phase: string - Test phase to add result to
+                 test: string - Testcase to add result to
+                 key: string - Log data key
+                 value: string - Log data value
+        """
+        path = "%s/job/{id}/tests/{phase}/{test}/logdata" % (self.base)
+        path = path.replace("{id}", self.__serializeForPath(id))
+        path = path.replace("{phase}", self.__serializeForPath(phase))
+        path = path.replace("{test}", self.__serializeForPath(test))
+        paramdict = {}
+        files = {}
+        payload = {}
+        j = {}
+        if value != None:
+            j['value'] = value
+        if key != None:
+            j['key'] = key
+        payload = json.dumps(j)
+        myHeaders = {'content-type': 'application/json'}
+        myHeaders.update(self.customHeaders)
+        r = requests.post(path, params=paramdict, data=payload, files=files, headers=myHeaders)
         self.__raiseForStatus(r)
         return r.json()
 

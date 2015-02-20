@@ -80,7 +80,7 @@ class _MachineBase(XenRTAPIv2Page):
             conditions.append("m.machine != ('_' || s.site)")
 
 
-        query = "SELECT m.machine, m.site, m.cluster, m.pool, m.status, m.resources, m.flags, m.comment, m.leaseto, m.leasereason, m.leasefrom, m.leasepolicy, s.flags, m.jobid FROM tblmachines m INNER JOIN tblsites s ON m.site=s.site"
+        query = "SELECT m.machine, m.site, m.cluster, m.pool, m.status, m.resources, m.flags, m.comment, m.leaseto, m.leasereason, m.leasefrom, m.leasepolicy, s.flags, m.jobid, m.descr FROM tblmachines m INNER JOIN tblsites s ON m.site=s.site"
         if conditions:
             query += " WHERE %s" % " AND ".join(conditions)
 
@@ -100,6 +100,7 @@ class _MachineBase(XenRTAPIv2Page):
                 "rawstatus": rc[4].strip(),
                 "status": self.getMachineStatus(rc[4].strip(), rc[7].strip() if rc[7] else None, rc[3].strip()),
                 "flags": [],
+                "description": rc[14].strip() if rc[14] and rc[14].strip() else None,
                 "resources": {},
                 "leaseuser": rc[7].strip() if rc[7] else None,
                 "leaseto": calendar.timegm(rc[8].timetuple()) if rc[8] else None,
@@ -118,7 +119,7 @@ class _MachineBase(XenRTAPIv2Page):
                 machine['resources'][key] = value
                 
 
-            siteflags = rc[12].strip().split(",") if rc[12].split(",") else []
+            siteflags = rc[12].strip().split(",") if rc[12] and rc[12].strip() else []
             machine['flags'].extend(siteflags)
 
             ret[rc[0].strip()] = machine
@@ -343,7 +344,12 @@ class ListMachines(_MachineBase):
           'in': 'query',
           'name': 'offset',
           'required': False,
-          'type': 'integer'}
+          'type': 'integer'},
+         {'description': "Get pseudohosts, defaults to false",
+          'in' : 'query',
+          'name': 'pseudohosts',
+          'required': False,
+          'type': 'boolean'}
           ]
     RESPONSES = { "200": {"description": "Successful response"}}
     TAGS = ["machines"]

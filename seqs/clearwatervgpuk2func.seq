@@ -5,34 +5,57 @@
   </variables>
 
   <prepare>
-    <host>
-    </host>
+    <host/>
   </prepare>
 
   <testsequence>
     <serial group="K2Config">
       <testcase tc="TC-20818" id="testcases.xenserver.tc.vgpu.TCBasicVerifOfAllK2config">
+        <arg>distro=0,1,2,3,4,5,6,7,8</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+        <arg>vgpuconfig=6,7,8,9,10,11</arg>
       </testcase>
 
       <testcase tc="TC-20820" id="testcases.xenserver.tc.vgpu.TCAssignK2vGPUToVMhasGotvGPU">
+        <arg>distro=0</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+        <arg>vgpuconfig=6</arg>
       </testcase>
 
       <testcase tc="TC-20824" id="testcases.xenserver.tc.vgpu.TCOpsonK2vGPUToVMhasGotvGPU">
+        <arg>distro=0</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+        <arg>vgpuconfig=6,11</arg>
       </testcase>
 
       <testcase tc="TC-20822" id="testcases.xenserver.tc.vgpu.TCRevertvGPUSnapshot">
+        <arg>distro=0</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+        <arg>vgpuconfig=8</arg>
       </testcase>
 
       <testcase tc="TC-20823" id="testcases.xenserver.tc.vgpu.TCRevertnonvGPUSnapshot">
+        <arg>distro=0</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+        <arg>vgpuconfig=8</arg>
       </testcase>
 
       <testcase tc="TC-20829" id="testcases.xenserver.tc.vgpu.TCReuseK2PGPU">
+        <arg>distro=1,6</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+        <arg>vgpuconfig=6,8</arg>
       </testcase>
 
       <testcase tc="TC-20826" id="testcases.xenserver.tc.vgpu.TCCheckPerfModeAllVMs">
+        <arg>distro=1</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+        <arg>vgpuconfig=6</arg>
       </testcase>
 
       <testcase tc="TC-20871" id="testcases.xenserver.tc.vgpu.TCExportImportK2GPU">
+        <arg>distro=6</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+        <arg>vgpuconfig=8,11</arg>
       </testcase>
 
       <testcase tc="TC-20835" id="testcases.xenserver.tc.vgpu.TCAddPassthroughToFullGPUK200">
@@ -42,9 +65,23 @@
       </testcase>
 
       <testcase tc="TC-20873" id="testcases.xenserver.tc.vgpu.TCChangeK2vGPUType">
+        <arg>distro=0,6</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+        <arg>vgpuconfig=6,7,8,9,10,11</arg>
       </testcase>
 
-      <testcase id="testcases.xenserver.tc.vgpu.TCNonWindowsK2" name="TC20890" tc="TC-20890" />
+      <testcase id="testcases.xenserver.tc.vgpu.TCNonWindowsK1" name="TC20890" tc="TC-20890" >
+        <arg>distro=9</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+        <arg>vgpuconfig=8</arg>
+      </testcase>
+
+      <testcase id="testcases.xenserver.tc.vgpu.TCvGPUBalloon" name="TC-21552" tc="TC-21552" >
+        <arg>distro=1</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+        <arg>vgpuconfig=8</arg>
+      </testcase>
+
 
     </serial>
   </testsequence>

@@ -27,6 +27,7 @@ class Server(object):
     def __init__(self):
         self.appconfig = Configurator()
         self.appconfig.include("pyramid_chameleon")
+        self.appconfig.include("pyramid_mako")
         self.compatActions = {}
 
     def addPage(self, location, function, renderer, reqType):
@@ -74,7 +75,7 @@ class PageFactory(object):
         if self.string and ret and isinstance(ret, basestring) and not ret[-1] == "\n":
             ret += "\n"
         if self.json and ret and not isinstance(ret, basestring) and not isinstance(ret, HTTPException):
-            ret = json.dumps(ret, indent=2, sort_keys=True)
+            ret = json.dumps(ret, indent=2, sort_keys=True, encoding="latin-1")
         return ret
 
 class Page(object):

@@ -687,7 +687,7 @@ class Host(xenrt.GenericHost):
         """Create a simple guest object."""
         return self.guestFactory()(name, "", self)
 
-    def existing(self, doguests=True):
+    def existing(self, doguests=True, guestsInRegistry=True):
         """Initialise this host object from an existing installed host"""
         # Check the management host address
         ip = self.execdom0("xe host-param-get uuid=%s param-name=address" %
@@ -707,7 +707,8 @@ class Host(xenrt.GenericHost):
                     guest = self.guestFactory()(guestname, None)
                     guest.existing(self)
                     xenrt.TEC().logverbose("Found existing guest: %s" % (guestname))
-                    xenrt.TEC().registry.guestPut(guestname, guest)
+                    if guestsInRegistry:
+                        xenrt.TEC().registry.guestPut(guestname, guest)
                 except:
                     xenrt.TEC().logverbose("Could not load guest - perhaps it was deleted")
         self.distro = "XSDom0"
@@ -2721,7 +2722,7 @@ fi
             if proxy:
                 self.execdom0("sed -i '/proxy/d' /etc/yum.conf")
                 self.execdom0("echo 'proxy=http://%s' >> /etc/yum.conf" % proxy)
-            if isinstance(self, xenrt.lib.xenserver.DundeeHost) and self.isCentOS7Dom0():
+            if isinstance(self, xenrt.lib.xenserver.DundeeHost):
                 self.execdom0("yum install kernel-headers --disableexcludes=all -y")
             self.execdom0("yum --disablerepo=citrix --enablerepo=base,updates,extras install -y  gcc-c++")
             self.execdom0("yum --disablerepo=citrix --enablerepo=base install -y make")
@@ -5792,30 +5793,19 @@ fi
                 raise xenrt.XRTFailure(\
                     "Timed out waiting for coalesce to complete", sruuid)
 
-    def toolsISOPath(self, which="windows"):
+    def toolsISOPath(self):
         """Return the dom0 path to the tools ISO."""
         vdi = self.parseListForUUID("vdi-list",
                                     "name-label",
                                     "xs-tools.iso")
-        try:
-            isobasename = self.genParamGet("vdi", vdi, "location")
-        except:
-            # Rio doesn't have a location field, assume the filename
-            # matches the name-label
-            isobasename = "xs-tools.iso"
+        
+        isobasename = self.genParamGet("vdi", vdi, "location")
         sruuid = self.genParamGet("vdi", vdi, "sr-uuid")
-        try:
-            pbd = self.parseListForUUID("pbd-list",
-                                        "sr-uuid",
-                                        sruuid,
-                                        "host-uuid=%s" %
-                                        (self.getMyHostUUID()))
-        except:
-            # Rio used host instead of host-uuid in the PBD record
-            pbd = self.parseListForUUID("pbd-list",
-                                        "sr-uuid",
-                                        sruuid,
-                                        "host=%s" % (self.getMyHostUUID()))
+        pbd = self.parseListForUUID("pbd-list",
+                                    "sr-uuid",
+                                    sruuid,
+                                    "host-uuid=%s" %
+                                    (self.getMyHostUUID()))
             
         isopath = self.genParamGet("pbd", pbd, "device-config", "location")
         return "%s/%s" % (isopath, isobasename)
@@ -8023,6 +8013,7 @@ rm -f /etc/xensource/xhad.conf || true
         
         (mac, ip) = netDetails[0]
         xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'MAC_ADDRESS'], mac)
+        xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'PXE_MAC_ADDRESS'], mac)
         xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'HOST_ADDRESS'], ip.getAddr())
         xenrt.GEC().dbconnect.jobUpdate("VXS_%s" % ip.getAddr(), name)
 
@@ -8132,8 +8123,8 @@ class MNRHost(Host):
             # No dbv field, so we're not using v6
             self.special['v6licensing'] = False
 
-    def existing(self, doguests=True):
-        Host.existing(self,doguests)
+    def existing(self, doguests=True, guestsInRegistry=True):
+        Host.existing(self,doguests, guestsInRegistry)
         self.__detect_vswitch()
         self.__detect_v6()
 
@@ -11260,6 +11251,9 @@ class CreedenceHost(ClearwaterHost):
     def guestFactory(self):
         return xenrt.lib.xenserver.guest.CreedenceGuest
 
+    def getReadCachingController(self):
+        return xenrt.lib.xenserver.readcaching.ReadCachingController(self)
+
     def enableReadCaching(self, sruuid=None):
         if sruuid:
             srlist = [sruuid]
@@ -11365,7 +11359,7 @@ class DundeeHost(CreedenceHost):
         self.installer = None
 
     def isCentOS7Dom0(self):
-        return xenrt.TEC().lookup("CENTOS7_DOM0", False, boolean=True)
+        return True
 
     def getTestHotfix(self, hotfixNumber):
         return xenrt.TEC().getFile("xe-phase-1/test-hotfix-%u-*.unsigned" % hotfixNumber)
@@ -11435,34 +11429,19 @@ class DundeeHost(CreedenceHost):
         return ifs
         
     def snmpdIsEnabled(self):
-        if self.isCentOS7Dom0():
-            return "enabled" in self.execdom0("service snmpd status | cat")
-        else:
-            return CreedenceHost.snmpdIsEnabled(self)
+        return "enabled" in self.execdom0("service snmpd status | cat")
             
     def disableSnmpd(self):
-        if self.isCentOS7Dom0():
-            self.execdom0("systemctl disable snmpd")
-        else:
-            CreedenceHost.disableSnmpd(self)
+        self.execdom0("systemctl disable snmpd")
             
     def enableSnmpd(self):
-        if self.isCentOS7Dom0():
-            self.execdom0("systemctl enable snmpd")
-        else:
-            CreedenceHost.enableSnmpd(self)
+        self.execdom0("systemctl enable snmpd")
 
     def scsiIdPath(self):
-        if self.isCentOS7Dom0():
-            return "/usr/lib/udev/scsi_id"
-        else:
-            return CreedenceHost.scsiIdPath(self)
+        return "/usr/lib/udev/scsi_id"
             
     def iptablesSave(self):
-        if self.isCentOS7Dom0():
-            self.execdom0("/usr/libexec/iptables/iptables.init save")
-        else:
-            CreedenceHost.iptablesSave(self)
+        self.execdom0("/usr/libexec/iptables/iptables.init save")
 
     def enableVirtualFunctions(self):
 
@@ -11521,6 +11500,33 @@ class StorageRepository:
         self.dconf = None
         self.content_type = ""
         self.smconf = None
+
+    @classmethod
+    def fromExistingSR(cls, host, sruuid):
+        """
+        This method allows you to use the StorageRepository class functionailty
+        without having created the SR with the class in the first instance
+        @param host: a host on which to attach the SR
+        @type: xenrt's host object
+        @param sruuid: an existing sr's uuid (maybe created by prepare for example)
+        @type: string
+        @return: an instance of the class with the SR metadata populated
+        @rtype: StorageRepository or decendent
+        """
+        xsr = next((sr for sr in host.asXapiObject().SR() if sr.uuid == sruuid), None)
+
+        if not xsr:
+            raise ValueError("Could not find sruuid %s on host %s" %(sruuid, host))
+
+        instance = cls(host, xsr.name())
+        instance.uuid = xsr.uuid
+        instance.srtype = xsr.srType()
+
+        xpbd = next((p for p in xsr.PBD() if p.host() == host.asXapiObject()), None)
+        instance.dconf = xpbd.deviceConfig()
+        instance.smconf = xsr.smConfig()
+        instance.content_type = xsr.contentType()
+        return instance
 
     def create(self, physical_size=0, content_type="", smconf={}):
         raise xenrt.XRTError("Unimplemented")

@@ -1582,6 +1582,7 @@ class Config:
         #self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel65_x86-32"] = "Red Hat Enterprise Linux 6.5 (32-bit)"
         #self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel65_x86-64"] = "Red Hat Enterprise Linux 6.5 (64-bit)"
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel7_x86-64"] = "Other (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel71_x86-64"] = "Other (64-bit)"
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos7_x86-64"] = "Other (64-bit)"
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["oel7_x86-64"] = "Other (64-bit)"
 
@@ -1707,6 +1708,7 @@ class Config:
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["centos510_x86-32"] = "CentOS 5.10 (32-bit)"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["centos510_x86-64"] = "CentOS 5.10 (64-bit)"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["rhel7_x86-64"] = "Red Hat Enterprise Linux 7.0"
+        self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["rhel71_x86-64"] = "Red Hat Enterprise Linux 7.0"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["centos7_x86-64"] = "CentOS 7"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["oel7_x86-64"] = "Oracle Linux 7"
         

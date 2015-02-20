@@ -1193,7 +1193,7 @@ at > c:\\xenrtatlog.txt
         self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\services\\xennet", "Start", "DWORD", 0)
         self.reboot()
 
-    def installDrivers(self, source=None, extrareboot=False):
+    def installDrivers(self, source=None, extrareboot=False, expectUpToDate=True):
         """Install PV drivers into a guest"""
 
         if not self.windows:
@@ -1342,7 +1342,7 @@ at > c:\\xenrtatlog.txt
             except:
                 pass
 
-        self.waitForAgent(300)
+        self.waitForAgent(300, checkPvDriversUpToDate=expectUpToDate)
         self.enlightenedDrivers = True
 
         if extrareboot:
@@ -5045,14 +5045,14 @@ class BostonGuest(MNRGuest):
             self.disableIPv4()
             self.ipv4_disabled = True
 
-    def installDrivers(self, source=None, extrareboot=False, useLegacy=False):
+    def installDrivers(self, source=None, extrareboot=False, useLegacy=False, expectUpToDate=True):
         if not self.windows:
             xenrt.TEC().skip("Non Windows guest, no drivers to install")
             return
         self.installWICIfRequired()
         self.installDotNet4()
         self.disableIPV4IfRequired()
-        MNRGuest.installDrivers(self, source, extrareboot)
+        MNRGuest.installDrivers(self, source, extrareboot, expectUpToDate)
 
     def setWindowsHostname(self, hostname):
         if self.windows:

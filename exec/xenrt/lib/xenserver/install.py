@@ -670,7 +670,7 @@ sleep 30
         dom0_extra_args = self.host.lookup("DOM0_EXTRA_ARGS", None)
         dom0_extra_args_user = self.host.lookup("DOM0_EXTRA_ARGS_USER", None)
         
-        pxe.installGrub("%s/boot/grubx64.efi" % mountpoint, self.host.machine)
+        pxe.installBootloader("%s/boot/grubx64.efi" % mountpoint, self.host.machine)
         pxe.copyIn("%s/boot/xen.gz" % mountpoint)
         pxe.copyIn("%s/boot/vmlinuz" % mountpoint)
         pxe.copyIn("%s/install.img" % mountpoint)

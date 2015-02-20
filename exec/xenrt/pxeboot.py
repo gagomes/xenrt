@@ -658,7 +658,7 @@ class PXEBootUefi(xenrt.resources.DirectoryResource):
         if default:
             self.defaultEntry = label
 
-    def installGrub(self, location, machine, forceip=None):
+    def installBootloader(self, location, machine, forceip=None):
         ip = forceip or machine.pxeipaddr
         path = "%s/EFI/%s" % (self.tftpbasedir, ip)
         if not self._exists(path):

@@ -1289,8 +1289,11 @@ at > c:\\xenrtatlog.txt
         if decompress:
             unpack = xenrt.TEC().tempDir()
             xenrt.util.command("tar -%sxf %s -C %s" % (decompress, tmpfile, unpack))
-            tmpfile = string.strip(xenrt.util.command("find %s -type f | "
+            tmpfile = string.strip(xenrt.util.command("find %s -type f -name \"xensetup.exe\" | "
                                                       "head -n 1" % (unpack)))
+            if tmpfile == "":
+                tmpfile = string.strip(xenrt.util.command("find %s -type f -name \"*.exe\" | "
+                                                          "head -n 1" % (unpack)))
             if tmpfile == "":
                 raise xenrt.XRTError("Could not find installer inside tarball")
 

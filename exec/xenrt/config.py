@@ -60,7 +60,7 @@ class Config:
 
         self.config["LOCALURL"] = "http://${XENRT_SERVER_ADDRESS}"
         self.config["HTTP_BASE_URL"] = "${LOCALURL}/export"
-        self.config["TEST_TARBALL_BASE"] = "${LOCALURL}/share/tests/"
+        self.config["TEST_TARBALL_BASE"] = "${LOCALURL}/share/tests"
         self.config["NFS_BASE_URL"] = "nfs://${XENRT_SERVER_ADDRESS}:${NFS_BASE_PATH}"
 
         self.config["EXPORT_ISO_NFS"] = "${XENRT_SERVER_ADDRESS}:${XENRT_BASE}/images/iso"
@@ -1513,6 +1513,12 @@ class Config:
         self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_WIN7_64"] = "windows7_64"
         self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_WIN8"] = "windows8"
         self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_WIN8_64"] = "windows8_64"
+
+        # Marvin File
+        self.config["MARVIN_FILE"] = {}
+        self.config["MARVIN_FILE"]["3.x"] =     "http://repo-ccp.citrix.com/releases/Marvin/3.0.7/Marvin-3.0.7.tar.gz"
+        self.config["MARVIN_FILE"]["4.x"] =     "http://repo-ccp.citrix.com/releases/Marvin/ccp-4.5.1/Marvin-master-asfrepo-current.tar.gz"
+        self.config["MARVIN_FILE"]["DEFAULT"] = "http://repo-ccp.citrix.com/releases/Marvin/ccp-4.5.1/Marvin-master-asfrepo-current.tar.gz"
 
         # Config for CCP / ACS
         self.config["CLOUD_CONFIG"] = {}

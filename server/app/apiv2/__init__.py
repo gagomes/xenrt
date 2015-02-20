@@ -56,7 +56,9 @@ class XenRTAPIv2Swagger(XenRTPage):
                 {"name": "jobs", "description": "Operations on XenRT jobs"},
                 {"name": "machines", "description": "Operations on XenRT machines"},
                 {"name": "sites", "description": "Operations on XenRT sites"},
-                {"name": "apikeys", "description": "Operations on XenRT API keys"}
+                {"name": "apikeys", "description": "Operations on XenRT API keys"},
+                {"name": "backend", "description": "Operations used by XenRT controllers, not for general use"},
+                {"name": "misc", "description": "Miscellaneous operations"}
             ],
             "definitions": {}
         }
@@ -78,6 +80,8 @@ class XenRTAPIv2Swagger(XenRTPage):
                 spec['paths'][cls.PATH][cls.REQTYPE.lower()]['description'] = cls.DESCRIPTION
             if cls.PARAM_ORDER:
                 spec['paths'][cls.PATH][cls.REQTYPE.lower()]['paramOrder'] = cls.PARAM_ORDER
+            if cls.RETURN_KEY:
+                spec['paths'][cls.PATH][cls.REQTYPE.lower()]['returnKey'] = cls.RETURN_KEY
             if cls.OPERATION_ID:
                 spec['paths'][cls.PATH][cls.REQTYPE.lower()]['operationId'] = cls.OPERATION_ID
             spec['definitions'].update(cls.DEFINITIONS)
@@ -93,6 +97,7 @@ class XenRTAPIv2Page(XenRTPage):
     DEFINITIONS = {}
     OPERATION_ID = None
     PARAM_ORDER = []
+    RETURN_KEY = None
     HIDDEN = False
     
     def getMultiParam(self, paramName, delimiter=","):
@@ -114,3 +119,6 @@ import app.apiv2.machines
 import app.apiv2.files
 import app.apiv2.sites
 import app.apiv2.api
+import app.apiv2.misc
+import app.apiv2.resources
+import app.apiv2.results

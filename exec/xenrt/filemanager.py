@@ -133,7 +133,7 @@ class FileManager(object):
         self.defaultFetchTimeout = 3600
         self.externalFetchTimeout = 6 * 3600
 
-    def getFile(self, filename, multiple=False):
+    def getFile(self, filename, multiple=False, replaceExistingIfDiffers=False):
         try:
             xenrt.TEC().logverbose("getFile %s" % filename)
             self.lock.acquire()
@@ -142,7 +142,7 @@ class FileManager(object):
             fnr = FileNameResolver(filename, multiple)
             url = fnr.url
             localName = fnr.localName
-            cache = self.__availableInCache(fnr)
+            cache = self.__availableInCache(fnr, replaceExistingIfDiffers=replaceExistingIfDiffers)
             if cache:
                 return cache
 
@@ -301,7 +301,7 @@ class FileManager(object):
                 os.unlink(cache)
                 return
 
-    def __availableInCache(self, fnr):
+    def __availableInCache(self, fnr, replaceExistingIfDiffers=False):
 
         filename = fnr.localName
         perJobLocation = self._perJobCacheLocation(filename)
@@ -357,6 +357,9 @@ class FileManager(object):
                     if expectedLength:
                         s = os.stat(cache)
                         if s.st_size != expectedLength:
+                            if replaceExistingIfDiffers:
+                                self.removeFromCache(filename)
+                                return None
                             raise xenrt.XRTError("found in global cache, but content-length (%d) differs from original (%d)" % (s.st_size, expectedLength))
 
                 if cache == externalLocation:

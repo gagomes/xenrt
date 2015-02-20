@@ -11272,6 +11272,9 @@ class CreedenceHost(ClearwaterHost):
     def guestFactory(self):
         return xenrt.lib.xenserver.guest.CreedenceGuest
 
+    def getReadCachingController(self):
+        return xenrt.lib.xenserver.readcaching.ReadCachingController(self)
+
     def enableReadCaching(self, sruuid=None):
         if sruuid:
             srlist = [sruuid]
@@ -11518,6 +11521,33 @@ class StorageRepository:
         self.dconf = None
         self.content_type = ""
         self.smconf = None
+
+    @classmethod
+    def fromExistingSR(cls, host, sruuid):
+        """
+        This method allows you to use the StorageRepository class functionailty
+        without having created the SR with the class in the first instance
+        @param host: a host on which to attach the SR
+        @type: xenrt's host object
+        @param sruuid: an existing sr's uuid (maybe created by prepare for example)
+        @type: string
+        @return: an instance of the class with the SR metadata populated
+        @rtype: StorageRepository or decendent
+        """
+        xsr = next((sr for sr in host.asXapiObject().SR() if sr.uuid == sruuid), None)
+
+        if not xsr:
+            raise ValueError("Could not find sruuid %s on host %s" %(sruuid, host))
+
+        instance = cls(host, xsr.name())
+        instance.uuid = xsr.uuid
+        instance.srtype = xsr.srType()
+
+        xpbd = next((p for p in xsr.PBD() if p.host() == host.asXapiObject()), None)
+        instance.dconf = xpbd.deviceConfig()
+        instance.smconf = xsr.smConfig()
+        instance.content_type = xsr.contentType()
+        return instance
 
     def create(self, physical_size=0, content_type="", smconf={}):
         raise xenrt.XRTError("Unimplemented")

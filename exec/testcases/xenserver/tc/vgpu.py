@@ -3085,6 +3085,8 @@ class LinuxGPUBootstorm(BootstormBase):
         xenrt.TEC().logverbose("Remaining Capacity is: %s" % remainingCapacity)
 
         self.vms.append(vm)
+
+        vm.setState("DOWN")
         
         for i in range(remainingCapacity):
             g = vm.cloneVM()

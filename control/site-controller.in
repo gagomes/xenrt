@@ -530,7 +530,7 @@ if __name__ == '__main__':
 
                 # Set the user of the job to the DB events table for quick access later
                 job = xenrt.get_job(int(j))
-                data = job['status']
+                data = job['params']
                 if data.has_key("USERID"):
                     xenrt.new_event("JobStartUser", data["USERID"], str(j))
 

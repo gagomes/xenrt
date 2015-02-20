@@ -720,7 +720,9 @@ sleep 30
 
         pxe.addGrubEntry("carboninstall", installEntry, default=True)
 
-        pxe.writeOut(self.host.machine)
+        pxefile = pxe.writeOut(self.host.machine)
+        pfname = os.path.basename(pxefile)
+        xenrt.TEC().copyToLogDir(pxefile,target="%s.pxe.txt" % (pfname))
 
     def setupInstallPxe(self, pxe, mountpoint, answerfileUrl):
         serport = self.host.lookup("SERIAL_CONSOLE_PORT", "0")

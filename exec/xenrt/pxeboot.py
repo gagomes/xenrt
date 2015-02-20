@@ -677,6 +677,7 @@ class PXEBootUefi(xenrt.resources.DirectoryResource):
             f.write("menuentry '%s' {\n" % self.defaultEntry)
             f.write(self.entries[self.defaultEntry])
             f.write("}\n")
+        return "%s/%s.cfg" % (path, ip)
 
     def tftpPath(self):
         preflen = len(os.path.normpath(self.tftpbasedir))

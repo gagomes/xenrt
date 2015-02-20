@@ -4195,7 +4195,6 @@ class TCRestictedGPUOperations(TCBasicVerifOfAllK2config):
             raise xenrt.XRTFailure("VM's live vdi migration is successful on a vGPU capable VM")
         except:
             pass
-        self.pause("Mayur Paused it")
 
         g.setState("DOWN")
         log("Uninstalling guest %s" % str(g))

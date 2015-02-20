@@ -233,7 +233,7 @@ class XenRTDHCPAllocator(object):
         except Exception, e:
             _logger.info("Error finding client architecture" % str(e))
         if arch == 7 and self.config['interfaces'][intf].get('uefi'):
-            packet.setOption("file", strToPaddedList("/%s/boot.efi" % ip, 128))
+            packet.setOption("file", strToPaddedList("/EFI/%s/boot.efi" % ip, 128))
             _logger.info("Sending /%s/boot.efi as PXE file" % ip)
         elif userClass and listToStr(userClass) == "iPXE":
             packet.setOption("file", strToPaddedList("http://%s/tftp/default-ipxe.cgi" % server, 128))

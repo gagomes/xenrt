@@ -2072,29 +2072,6 @@ class TCApplyHotfixes(xenrt.TestCase):
             self.host.applyPatch(xenrt.TEC().getFile(patches[p]), patchClean=True)
         self.host.reboot()
 
-class TCApplyHotfixesToPoint(xenrt.TestCase):
-    """Apply hotfixes to a specified point to the host"""
-
-    def run(self, arglist):
-        args = self.parseArgsKeyValue(arglist)
-        startAt = None
-        startAfter = None
-        stop = None
-        if "start" in args.keys():
-            startAt = args["start"]
-        elif "startafter" in args.keys():
-            startAfter = args["startafter"]
-        elif "stop" in args.keys():
-            stop = args["stop"]
-
-        host = self.getDefaultHost()
-        release = host.productVersion
-        branch = xenrt.TEC().lookup("HFX_BRANCH_%s" % release, "RTM")
-        hotfixes = xenrt.TEC().config.getAllHotfixes(release, branch, startAt=startAt, startAfter=startAfter, stopAt=stop)
-        for h in hotfixes:
-            host.applyPatch(xenrt.TEC().getFile(h), patchClean=True)
-        host.reboot()
-
 class TCRollingPoolUpdate(xenrt.TestCase):
     """
     Upgrade and install all HFXs for the 'to' release on a pool.

@@ -3433,28 +3433,6 @@ class Config:
 
         raise xenrt.XRTError("Hotfix %s for %s not found" % (hotfix, release))
 
-    def getAllHotfixes(self, release, branch="RTM", startAt=None, startAfter=None, stopAt=None):
-        if not self.config["HOTFIXES"].has_key(release) or not self.config["HOTFIXES"][release].has_key(branch):
-            raise xenrt.XRTError("Could not find hotfixes for %s (%s)" % (release, branch))
-
-        allHotfixes = self.config["HOTFIXES"][release][branch]
-        hfKeys = allHotfixes.keys()
-        hfKeys.sort()
-        hotfixes = []
-        started = startAt is None and startAfter is None
-        for h in hfKeys:
-            if not started:
-                if h == startAt or h == startAfter:
-                    started = True
-                if h != startAt:
-                    continue
-
-            hotfixes.append(allHotfixes[h])
-            if stopPoint and h == stopPoint:
-                break
-
-        return hotfixes
-
     def addAllHotfixes(self):
         """Adds config entries for all released hotfixes so they get applied after host installation"""
             

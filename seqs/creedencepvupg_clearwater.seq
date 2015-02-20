@@ -24,106 +24,50 @@
 
   <testsequence>
     <parallel workers="4">
-      <serial group="XS62E008_win7sp1-x86">
-        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade">
-          <arg>template=win7sp1-x86</arg>
-          <arg>tag=XS62E008_win7sp1-x86</arg>
-          <arg>hotfix=XS62E008</arg>
-        </testcase>
-        <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade">
-          <arg>tag=XS62E008_win7sp1-x86</arg>
-        </testcase>
-      </serial>
-      <serial group="XS62E008_win7sp1-x64">
-        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade">
-          <arg>template=win7sp1-x64</arg>
-          <arg>tag=XS62E008_win7sp1-x64</arg>
-          <arg>hotfix=XS62E008</arg>
-        </testcase>
-        <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade">
-          <arg>tag=XS62E008_win7sp1-x64</arg>
-        </testcase>
-      </serial>
-      <serial group="XS62E015_win7sp1-x86">
-        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade">
-          <arg>template=win7sp1-x86</arg>
-          <arg>tag=XS62E015_win7sp1-x86</arg>
-          <arg>hotfix=XS62E015</arg>
-        </testcase>
-        <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade">
-          <arg>tag=XS62E015_win7sp1-x86</arg>
-        </testcase>
-      </serial>
-      <serial group="XS62E015_win7sp1-x64">
-        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade">
-          <arg>template=win7sp1-x64</arg>
-          <arg>tag=XS62E015_win7sp1-x64</arg>
-          <arg>hotfix=XS62E015</arg>
-        </testcase>
-        <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade">
-          <arg>tag=XS62E015_win7sp1-x64</arg>
-        </testcase>
-      </serial>
-      <serial group="XS62ESP1_win7sp1-x86">
-        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade">
-          <arg>template=win7sp1-x86</arg>
-          <arg>tag=XS62ESP1_win7sp1-x86</arg>
-          <arg>hotfix=XS62ESP1</arg>
-        </testcase>
-        <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade">
-          <arg>tag=XS62ESP1_win7sp1-x86</arg>
-        </testcase>
-      </serial>
-      <serial group="XS62ESP1_win7sp1-x64">
-        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade">
-          <arg>template=win7sp1-x64</arg>
-          <arg>tag=XS62ESP1_win7sp1-x64</arg>
-          <arg>hotfix=XS62ESP1</arg>
-        </testcase>
-        <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade">
-          <arg>tag=XS62ESP1_win7sp1-x64</arg>
-        </testcase>
-      </serial>
-      <serial group="XS62ESP1003_win7sp1-x86">
-        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade">
-          <arg>template=win7sp1-x86</arg>
-          <arg>tag=XS62ESP1003_win7sp1-x86</arg>
-          <arg>hotfix=XS62ESP1003</arg>
-        </testcase>
-        <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade">
-          <arg>tag=XS62ESP1003_win7sp1-x86</arg>
-        </testcase>
-      </serial>
-      <serial group="XS62ESP1003_win7sp1-x64">
-        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade">
-          <arg>template=win7sp1-x64</arg>
-          <arg>tag=XS62ESP1003_win7sp1-x64</arg>
-          <arg>hotfix=XS62ESP1003</arg>
-        </testcase>
-        <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade">
-          <arg>tag=XS62ESP1003_win7sp1-x64</arg>
-        </testcase>
-      </serial>
-      <serial group="XS62ESP1012_win7sp1-x86">
-        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade">
-          <arg>template=win7sp1-x86</arg>
-          <arg>tag=XS62ESP1012_win7sp1-x86</arg>
-          <arg>hotfix=XS62ESP1012</arg>
-        </testcase>
-        <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade">
-          <arg>tag=XS62ESP1012_win7sp1-x86</arg>
-        </testcase>
-      </serial>
-      <serial group="XS62ESP1012_win7sp1-x64">
-        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade">
-          <arg>template=win7sp1-x64</arg>
-          <arg>tag=XS62ESP1012_win7sp1-x64</arg>
-          <arg>hotfix=XS62ESP1012</arg>
-        </testcase>
-        <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade">
-          <arg>tag=XS62ESP1012_win7sp1-x64</arg>
-        </testcase>
-      </serial>
+      <for iter="H" values="${TOOLS_HOTFIXES:Clearwater:RTM}">
+        <serial group="${H}_win7sp1-x86">
+          <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade">
+            <arg>template=win7sp1-x86</arg>
+            <arg>tag=${H}_win7sp1-x86</arg>
+            <arg>hotfix=${H}</arg>
+          </testcase>
+          <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade">
+            <arg>tag=${H}_win7sp1-x86</arg>
+          </testcase>
+        </serial>
+        <serial group="${H}_win7sp1-x64">
+          <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade">
+            <arg>template=win7sp1-x64</arg>
+            <arg>tag=${H}_win7sp1-x64</arg>
+            <arg>hotfix=${H}</arg>
+          </testcase>
+          <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade">
+            <arg>tag=${H}_win7sp1-x64</arg>
+          </testcase>
+        </serial>
+      </for>
+      <for iter="H" values="${TOOLS_HOTFIXES:Clearwater:SP1}">
+        <serial group="${H}_win7sp1-x86">
+          <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade">
+            <arg>template=win7sp1-x86</arg>
+            <arg>tag=${H}_win7sp1-x86</arg>
+            <arg>hotfix=${H}</arg>
+          </testcase>
+          <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade">
+            <arg>tag=${H}_win7sp1-x86</arg>
+          </testcase>
+        </serial>
+        <serial group="${H}_win7sp1-x64">
+          <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade">
+            <arg>template=win7sp1-x64</arg>
+            <arg>tag=${H}_win7sp1-x64</arg>
+            <arg>hotfix=${H}</arg>
+          </testcase>
+          <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade">
+            <arg>tag=${H}_win7sp1-x64</arg>
+          </testcase>
+        </serial>
+      </for>
     </parallel>
   </testsequence>
 </xenrt>

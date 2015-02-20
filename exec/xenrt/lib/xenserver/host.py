@@ -3675,6 +3675,27 @@ fi
         if returndata:
             return data
     
+    def unpackPatch(self, patchfile):
+        """Unpack a patch on a XenServer host"""
+        workdir = string.strip(self.execdom0("mktemp -d /tmp/XXXXXX"))
+        patchname = os.path.basename(patchfile)
+        sftp = self.sftpClient()
+        try:
+            sftp.copyTo(patchfile, os.path.join(workdir, patchname))
+        finally:
+            sftp.close()
+
+        # First de-sign the hotfix
+        with xenrt.GEC().getLock("GPG"):
+            self.execdom0("cd %s; gpg --batch --yes -q -d --skip-verify --output %s.raw %s" % (workdir, patchname, patchname))
+
+        # Unpack it
+        unpackDir = self.execdom0("cd %s; sh %s.raw unpack" % (workdir, patchname)).strip()
+        # Remove the workdir
+        self.execdom0("rm -fr %s" % workdir)
+
+        return unpackDir
+
     def applyGuidance(self, guidance):
         if "restartHost" in guidance:
             xenrt.TEC().logverbose("Rebooting host %s after patch-apply based on after-apply-guidance" % self.getName())

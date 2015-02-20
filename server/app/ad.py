@@ -19,6 +19,15 @@ class ActiveDirectory(object):
         results = self._ldap.search_s(self._base, ldap.SCOPE_SUBTREE, "(&(objectClass=person)(sAMAccountName=%s))" % username, attrlist=['sAMAccountName'])
         return not (len(results) == 0 or results[0][0] is None)
 
+    def get_email(self, username):
+        results = self._ldap.search_s(self._base, ldap.SCOPE_SUBTREE, "(&(objectClass=person)(sAMAccountName=%s))" % username, attrlist=['mail'])
+        if len(results) == 0 or results[0][0] is None:
+            raise KeyError("%s not a valid user" % username)
+        dn, data = results[0]
+        if data.has_key('mail') and len(data['mail']) >= 1:
+            return data['mail'][0]
+        return None
+
     def get_all_members_of_group(self, group, _isDN=False, _visitedGroups=[]):
         if _isDN:
             groupres = self._ldap.search_s(group, ldap.SCOPE_BASE, "(objectClass=*)", attrlist=self._ATTRS)[0]

@@ -213,6 +213,8 @@ class DundeeInstaller(object):
     @property
     def forceUefiBootViaPxe(self):
         # We need to do this otherwise the local disk will boot first and XenServer will never boot
+        # Temporary hack to see what happens if we don't
+        return ""
         return "efibootmgr -B -b `efibootmgr -v | grep XenServer | awk '{print $1}' | sed 's/Boot//'`"
 
     @property
@@ -706,6 +708,7 @@ sleep 30
             nics.extend(self.host.listSecondaryNICs())
             for n in nics:
                 dom0args.append("map_netdev=eth%u:s:%s" % (n, self.host.getNICMACAddress(n)))
+        dom0args.append("install")
         if not xenrt.TEC().lookup("OPTION_NO_ANSWERFILE", False):
             dom0args.append("rt_answerfile=%s" % (answerfileUrl))
         if xenrt.TEC().lookup("OPTION_BASH_SHELL", False, boolean=True):

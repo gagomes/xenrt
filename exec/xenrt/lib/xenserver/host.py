@@ -1975,9 +1975,9 @@ fi
             # reboots after setting the signal flag.
             if uefi:
                 self.writeUefiLocalBoot(nfsdir, pxe)
-
-            pxe.setDefault("local")
-            pxe.writeOut(self.machine)
+            else:
+                pxe.setDefault("local")
+                pxe.writeOut(self.machine)
             if self.bootLun:
                 pxe.writeISCSIConfig(self.machine, boot=True)
     
@@ -11483,14 +11483,19 @@ class DundeeHost(CreedenceHost):
         self.getInstaller().install(*args, **kwargs)
 
     def writeUefiLocalBoot(self, nfsdir, pxe):
-        with open("%s/bootlabel" % nfsdir.path()) as f:
-            bootlabel = f.read().strip()
-        xenrt.TEC().logverbose("Found %s as boot partition" % bootlabel)
-        localEntry = """
-            search --label --set root %s
-            chainloader /EFI/xenserver/grubx64.efi
-        """ % bootlabel
-        pxe.addGrubEntry("local", localEntry)
+        if not self.lookup("PXE_CHAIN_UEFI_BOOT", False, boolean=True):
+            pxe.uninstallBootloader(self.machine)
+        else:
+            with open("%s/bootlabel" % nfsdir.path()) as f:
+                bootlabel = f.read().strip()
+            xenrt.TEC().logverbose("Found %s as boot partition" % bootlabel)
+            localEntry = """
+                search --label --set root %s
+                chainloader /EFI/xenserver/grubx64.efi
+            """ % bootlabel
+            pxe.addGrubEntry("local", localEntry)
+            pxe.setDefault("local")
+            pxe.writeOut(self.machine)
 
 #############################################################################
 

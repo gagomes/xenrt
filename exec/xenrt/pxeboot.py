@@ -660,10 +660,18 @@ class PXEBootUefi(xenrt.resources.DirectoryResource):
 
     def installBootloader(self, location, machine, forceip=None):
         ip = forceip or machine.pxeipaddr
+        xenrt.TEC().logverbose("Installing UEFI PXE bootloader for %s" % ip)
         path = "%s/EFI/%s" % (self.tftpbasedir, ip)
         if not self._exists(path):
             os.makedirs(path)
         shutil.copyfile(location, "%s/boot.efi" % path)
+
+    def uninstallBootloader(self, machine, forceip=None):
+        ip = forceip or machine.pxeipaddr
+        xenrt.TEC().logverbose("Removing UEFI PXE bootloader for %s" % ip)
+        path = "%s/EFI/%s" % (self.tftpbasedir, ip)
+        if self._exists(path):
+            shutil.rmtree(path)
 
     def writeOut(self, machine, forceip=None):
         ip = forceip or machine.pxeipaddr

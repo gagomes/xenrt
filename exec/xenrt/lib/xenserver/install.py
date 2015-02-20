@@ -176,14 +176,11 @@ class DundeeInstaller(object):
            
             # now fix-up the pxe file for local boot
             xenrt.TEC().logverbose("Setting PXE file to be local boot by default")
-            if uefi:
-                localEntry = """
-                    root=(%s,gpt4)
-                    chainloader /EFI/xenserver/grubx64.efi
-                """
-                pxe.addGrubEntry("local", localEntry)
-            pxe.setDefault("local")
-            pxe.writeOut(self.host.machine)
+            if uefi and not self.host.lookup("PXE_CHAIN_UEFI_BOOT", False, boolean=True):
+                pxe.uninstallBootloader(self.host.machine)
+            else:
+                pxe.setDefault("local")
+                pxe.writeOut(self.host.machine)
             if self.host.bootLun:
                 pxe.writeISCSIConfig(self.host.machine, boot=True)
             
@@ -212,8 +209,11 @@ class DundeeInstaller(object):
 
     @property
     def forceUefiBootViaPxe(self):
-        # We need to do this otherwise the local disk will boot first and XenServer will never boot
-        return "efibootmgr -B -b `efibootmgr -v | grep XenServer | awk '{print $1}' | sed 's/Boot//'`"
+        if self.host.lookup("PXE_CHAIN_UEFI_BOOT", False, boolean=True):
+            # We need to do this otherwise the local disk will boot first and XenServer will never boot
+            return "efibootmgr -B -b `efibootmgr -v | grep XenServer | awk '{print $1}' | sed 's/Boot//'`"
+        else:
+            return ""
 
     @property
     def postInstallBootMods(self):
@@ -706,6 +706,7 @@ sleep 30
             nics.extend(self.host.listSecondaryNICs())
             for n in nics:
                 dom0args.append("map_netdev=eth%u:s:%s" % (n, self.host.getNICMACAddress(n)))
+        dom0args.append("install")
         if not xenrt.TEC().lookup("OPTION_NO_ANSWERFILE", False):
             dom0args.append("rt_answerfile=%s" % (answerfileUrl))
         if xenrt.TEC().lookup("OPTION_BASH_SHELL", False, boolean=True):
@@ -719,6 +720,13 @@ sleep 30
 
 
         pxe.addGrubEntry("carboninstall", installEntry, default=True)
+       
+        # Default local boot entry - will be replaced with a boot label if we can retrieve one
+        localEntry = """
+            root=(%s,gpt4)
+            chainloader /EFI/xenserver/grubx64.efi
+        """
+        pxe.addGrubEntry("local", localEntry)
 
         pxefile = pxe.writeOut(self.host.machine)
         pfname = os.path.basename(pxefile)

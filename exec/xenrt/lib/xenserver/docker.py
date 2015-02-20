@@ -180,32 +180,32 @@ class UsingXapi(DockerController):
     def rmContainer(self, container):
 
         if self.statusContainer(container) == ContainerState.STOPPED:
-            self.createAndRemoveContainer(container, ContainerXapiOperation.REMOVE)
+            return self.createAndRemoveContainer(container, ContainerXapiOperation.REMOVE)
         else:
             raise xenrt.XRTError("removeContainer: Please stop the container %s before removing it" % container.cname)
 
     # Container lifecycle operations.
     def startContainer(self, container):
         if self.statusContainer(container) == ContainerState.STOPPED:
-            self.containerXapiLCOperation(ContainerXapiOperation.START, container)
+            return self.containerXapiLCOperation(ContainerXapiOperation.START, container)
         else:
             raise xenrt.XRTError("startContainer: Container %s can be started if stopped" % container.cname)
 
     def stopContainer(self, container):
         if self.statusContainer(container) == ContainerState.RUNNING:
-            self.containerXapiLCOperation(ContainerXapiOperation.STOP, container)
+            return self.containerXapiLCOperation(ContainerXapiOperation.STOP, container)
         else:
             raise xenrt.XRTError("stopContainer: Container %s can be stopped if running" % container.cname)
 
     def pauseContainer(self, container):
         if self.statusContainer(container) == ContainerState.RUNNING:
-            self.containerXapiLCOperation(ContainerXapiOperation.PAUSE, container)
+            return self.containerXapiLCOperation(ContainerXapiOperation.PAUSE, container)
         else:
             raise xenrt.XRTError("pauseContainer: Container %s can be paused if running" % container.cname)
 
     def unpauseContainer(self, container):
         if self.statusContainer(container) == ContainerState.PAUSED:
-            self.containerXapiLCOperation(ContainerXapiOperation.UNPAUSE, container)
+            return self.containerXapiLCOperation(ContainerXapiOperation.UNPAUSE, container)
         else:
             raise xenrt.XRTError("pauseContainer: Container %s can be unpaused if paused" % container.cname)
 
@@ -344,25 +344,25 @@ class UsingLinux(DockerController):
     # Container lifecycle operations.
     def startContainer(self, container):
         if self.statusContainer(container) == ContainerState.STOPPED:
-            self.containerLinuxLCOperation(ContainerLinuxOperation.START, container)
+            return self.containerLinuxLCOperation(ContainerLinuxOperation.START, container)
         else:
             raise xenrt.XRTError("startContainer: Container %s can be started if stopped" % container.cname)
 
     def stopContainer(self, container):
         if self.statusContainer(container) == ContainerState.RUNNING:
-            self.containerLinuxLCOperation(ContainerLinuxOperation.STOP, container)
+            return self.containerLinuxLCOperation(ContainerLinuxOperation.STOP, container)
         else:
             raise xenrt.XRTError("stopContainer: Container %s can be stopped if running" % container.cname)
 
     def pauseContainer(self, container):
         if self.statusContainer(container) == ContainerState.RUNNING:
-            self.containerLinuxLCOperation(ContainerLinuxOperation.PAUSE, container)
+            return self.containerLinuxLCOperation(ContainerLinuxOperation.PAUSE, container)
         else:
             raise xenrt.XRTError("pauseContainer: Container %s can be paused if running" % container.cname)
 
     def unpauseContainer(self, container):
         if self.statusContainer(container) == ContainerState.PAUSED:
-            self.containerLinuxLCOperation(ContainerLinuxOperation.UNPAUSE, container)
+            return self.containerLinuxLCOperation(ContainerLinuxOperation.UNPAUSE, container)
         else:
             raise xenrt.XRTError("pauseContainer: Container %s can be unpaused if paused" % container.cname)
 
@@ -370,27 +370,27 @@ class UsingLinux(DockerController):
         dockerInspectString = self.containerLinuxLCOperation(ContainerLinuxOperation.INSPECT, container)
 
         dockerInspectString = ' '.join(dockerInspectString.split())
-        dockerInspectDict = json.loads(dockerInspectString)
+        dockerInspectList = json.loads(dockerInspectString)
 
-        if not dockerInspectDict.has_key('docker_inspect'):
-                raise xenrt.XRTError("inspectContainer: XSContainer - get_inspect failed to get the xml")
+        if len(dockerInspectList) < 1:
+            raise xenrt.XRTError("inspectContainer: XSContainer - inspect failed to get the json")
         else:
-            return dockerInspectDict['docker_inspect']# has keys State, NetworkSettings, Config etc.
+            return dockerInspectList[0] # is a dict has keys State, NetworkSettings, Config etc.
 
     def statusContainer(self, container):
 
         inspectXML = self.inspectContainer(container)
 
         if not inspectXML.has_key('State'):
-                raise xenrt.XRTError("statusContainer: XSContainer - state key is missing in docker_inspect xml")
+                raise xenrt.XRTError("statusContainer: XSContainer - state key is missing in docker json")
         else:
             containerState = inspectXML['State']
 
-            if containerState['Paused'] == "False" and containerState['Running'] == "True":
+            if containerState['Paused'] == False and containerState['Running'] == True:
                 return ContainerState.RUNNING
-            elif containerState['Paused'] == "True" and containerState['Running'] == "True":
+            elif containerState['Paused'] == True and containerState['Running'] == True:
                 return ContainerState.PAUSED
-            elif containerState['Paused'] == "False" and containerState['Running'] == "False":
+            elif containerState['Paused'] == False and containerState['Running'] == False:
                 return ContainerState.STOPPED
             else:
                 return ContainerState.UNKNOWN

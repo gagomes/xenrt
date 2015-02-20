@@ -2196,13 +2196,10 @@ class TCDiscSpacePlugins(xenrt.TestCase):
         plugins = ["testAvailHostDiskSpacePlugin","testCheckPatchUploadPlugin", "testGetReclaimableSpacePlugin", "testCleanupDiskSpacePlugin"]
         #Create session on the host
         self.session = self.host.getAPISession(secure=False)
-        self.h = self.session.xenapi.host.get_all()[0]
+        self.sessionHost = self.session.xenapi.host.get_all()[0]
         
         for plugin in plugins:
             self.runSubcase(plugin, (),None , plugin)
-            
-        #close the session
-        self.host.logoutAPISession(self.session)
         
     def testAvailHostDiskSpacePlugin(self):
         #Test functionality of 'get_avail_host_disk_space' plugin
@@ -2224,13 +2221,16 @@ class TCDiscSpacePlugins(xenrt.TestCase):
         availSpace = self.getAvailHostDiskSpace()
         
         step("Call check_patch_upload plugin with size > dom0 available disk space: should returns false")
-        self.checkPatchUpload(availSpace/2 + 100, expectedOutput='False')
+        if self.checkPatchUpload(availSpace/2 + 100):
+            raise xenrt.XRTFailure("check_patch_upload plugin returned True, Expected False")
         
         step("Call check_patch_upload plugin with size ~ dom0 available disk space: should returns true")
-        self.checkPatchUpload(availSpace/2 - 20)
+        if not self.checkPatchUpload(availSpace/2 - 20):
+           raise xenrt.XRTFailure("check_patch_upload plugin returned False, Expected True")
 
         step("Call check_patch_upload plugin with size < dom0 available disk space: should returns true")
-        self.checkPatchUpload(availSpace/2 - 100)
+        if not self.checkPatchUpload(availSpace/2 - 100):
+            raise xenrt.XRTFailure("check_patch_upload plugin returned False, Expected True")
 
     def testGetReclaimableSpacePlugin(self):
         #Test functionality of 'get_reclaimable_space' plugin        
@@ -2258,7 +2258,7 @@ class TCDiscSpacePlugins(xenrt.TestCase):
         reclaimableSpace = self.getReclaimableSpace()/xenrt.MEGA
         
         step("Call cleanup_disk_space plugin on host")
-        self.session.xenapi.host.call_plugin(self.h,'disk-space','cleanup_disk_space',{})
+        self.session.xenapi.host.call_plugin(self.sessionHost,'disk-space','cleanup_disk_space',{})
 
         step("Verify available disk space is increased by value returned by getReclaimableSpace plugin")
         newAvailableSpace = self.getAvailHostDiskSpace()/xenrt.MEGA
@@ -2269,16 +2269,17 @@ class TCDiscSpacePlugins(xenrt.TestCase):
             
     def getAvailHostDiskSpace(self):
         #Return available host disk space in Bytes
-        return int(self.session.xenapi.host.call_plugin(self.h,'disk-space','get_avail_host_disk_space',{}))
+        return int(self.session.xenapi.host.call_plugin(self.sessionHost,'disk-space','get_avail_host_disk_space',{}))
             
     def getReclaimableSpace(self):
         #Return reclaimable disk space in Bytes
-        return int(self.session.xenapi.host.call_plugin(self.h,'disk-space','get_reclaimable_disk_space',{}))
+        return int(self.session.xenapi.host.call_plugin(self.sessionHost,'disk-space','get_reclaimable_disk_space',{}))
 
-    def checkPatchUpload(self, size, expectedOutput='True'):
+    def checkPatchUpload(self, size):
         #returns true if patch of given size can be uploaded, otherwise false
-        returnData = self.session.xenapi.host.call_plugin(self.h,'disk-space','check_patch_upload',{'size': '%s'%size})
-        if returnData == expectedOutput:
-            xenrt.TEC().logverbose("check_patch_upload plugin returned %s, Expected %s" % (returnData, expectedOutput))
-        else:
-            raise xenrt.XRTFailure("check_patch_upload plugin returned %s, Expected %s" % (returnData, expectedOutput))
+        return self.session.xenapi.host.call_plugin(self.sessionHost,'disk-space','check_patch_upload',{'size': '%s'%size})
+            
+
+    def postRun(self):
+        #close the XenAPI session
+        self.host.logoutAPISession(self.session)

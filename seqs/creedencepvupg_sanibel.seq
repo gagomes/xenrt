@@ -27,7 +27,7 @@
 
   <testsequence>
     <parallel workers="4">
-      <for iter="H" values="${TOOLS_HOTFIXES:Sanibel:RTM}">
+      <for iter="H" values="%TOOLS_HOTFIXES:Sanibel:RTM%">
         <serial group="${H}_win7sp1-x86_prep">
           <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade">
             <arg>template=win7sp1-x86</arg>
@@ -48,7 +48,7 @@
       <arg>input=DEFAULT</arg>
     </testcase>
     <parallel workers="4">
-      <for iter="H" values="${TOOLS_HOTFIXES:Sanibel:RTM}">
+      <for iter="H" values="%TOOLS_HOTFIXES:Sanibel:RTM%">
         <serial group="${H}_win7sp1-x86" tc="TC-24007" sku="${H}">
           <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade">
             <arg>tag=${H}_win7sp1-x86</arg>

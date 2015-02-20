@@ -24,7 +24,7 @@
 
   <testsequence>
     <parallel workers="4">
-      <for iter="H" values="${TOOLS_HOTFIXES:Clearwater:RTM}">
+      <for iter="H" values="%TOOLS_HOTFIXES:Clearwater:RTM%">
         <serial group="${H}_win7sp1-x86" tc="TC-24007" sku="${H}">
           <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade">
             <arg>template=win7sp1-x86</arg>
@@ -46,7 +46,7 @@
           </testcase>
         </serial>
       </for>
-      <for iter="H" values="${TOOLS_HOTFIXES:Clearwater:SP1}">
+      <for iter="H" values="%TOOLS_HOTFIXES:Clearwater:SP1%">
         <serial group="${H}_win7sp1-x86" tc="TC-24007" sku="${H}">
           <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade">
             <arg>template=win7sp1-x86</arg>

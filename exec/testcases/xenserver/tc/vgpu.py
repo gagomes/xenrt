@@ -3042,14 +3042,11 @@ class BootstormBase(FunctionalBase):
         pt = [xenrt.PTask(vm.poll, "UP") for vm in self.vms]
         xenrt.pfarm(pt)
 
-        # Check VMs utilizing GPU.
-        # Going to need something here to tell what type they are?
-            # This is where the problems come in..
-            # Going to have to sort them myself.
-
-        # This will only work for groups of vms of the same type, where typeOfvGPU is valid for all. Need new solution for mixed case.
         for vm in self.vms:
-            self.typeOfvGPU.assertvGPURunningInVM(vm, None) # Need to pass vGPU type here but it doesn't do anything. Refactor?
+            if vm.windows:
+                NvidiaWindowsvGPU().assertvGPURunningInVM(vm, None)
+            else:
+                NvidiaLinuxvGPU().assertvGPURunningInVM(vm, None)
 
         # Any other assertions that need to be made about the vms after starting.
 
@@ -3095,7 +3092,6 @@ class LinuxGPUBootstorm(BootstormBase):
 
         vm.setState("UP")
 
-        # Use the object to do smart drivers.
         self.typeOfvGPU.installGuestDrivers(vm)
 
         remainingCapacity = self.host.remainingGpuCapacity(installer.groupUUID(), installer.typeUUID())
@@ -3125,23 +3121,22 @@ class MixedGPUBootstorm(BootstormBase):
             vm = self.createMaster(osType)
             masters[distro] = vm
 
-        # Get remaining capacity..
-            # Fill with X (75%), of GPU passthrough. Half Lin / Win.
+        # Install gpu on linux master.
+        # Clone X Times.
 
-        # Installer for passthrough.
+        # Clone needed gpu pass windows,
+        # Install gpu on them after.
 
-        # Filling the passthrough stuff.
+        # Switch gpu type to vGpu
 
-        # Installer for vGPU
+        # Clone the needed vGPU vms.
+        # Install the vGPU after.
 
-        # Filling the vGPU stuff.
+        # Adding them all to a list of vms.
 
 
         # Once again end up with some vms at the end. The run doesn't care what type.
         self.vms = []
-
-        
-
 
     def parseArgs(self, arglist):
         super(MixedGPUBootstorm, self).parseArgs(arglist)

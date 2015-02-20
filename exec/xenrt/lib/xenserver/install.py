@@ -211,7 +211,8 @@ class DundeeInstaller(object):
         return ""
 
     @property
-    def forceEfiBootViaPxe(self):
+    def forceUefiBootViaPxe(self):
+        # We need to do this otherwise the local disk will boot first and XenServer will never boot
         return "efibootmgr -B -b `efibootmgr -v | grep XenServer | awk '{print $1}' | sed 's/Boot//'`"
 
     @property
@@ -538,6 +539,7 @@ echo '%s' > root/xenrt-installation-cookie
 
     @property
     def postInstallSendBootLabel(self):
+        # Use blkid to find the BOOT partition, and send the label back to the controller so we can put it in the grub config
         return """
 # Write the boot label
 mkdir -p /tmp/xenrttmpmount
@@ -1090,7 +1092,7 @@ sleep 30
         postInstall = []
         if uefi:
             postInstall.append(self.postInstallUefiBootMods)
-            postInstall.append(self.forceEfiBootViaPxe)
+            postInstall.append(self.forceUefiBootViaPxe)
             postInstall.append(self.postInstallSendBootLabel)
         else:
             postInstall.append(self.postInstallBootMods)

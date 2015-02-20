@@ -673,7 +673,7 @@ class PXEBootUefi(xenrt.resources.DirectoryResource):
         with open("%s/grub.cfg" % path, "w") as f:
             f.write("configfile /EFI/xenserver/$net_default_ip.cfg\n")
         with open("%s/%s.cfg" % (path, ip), "w") as f:
-            f.write("timout 5\n\n")
+            f.write("set timeout=5\n\n")
             f.write("menuentry '%s' {\n" % self.defaultEntry)
             f.write(self.entries[self.defaultEntry])
             f.write("}\n")

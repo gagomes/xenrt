@@ -39,6 +39,18 @@
         <arg>typeofvgpu=nvidialinuxvgpu</arg>
         <arg>vgpuconfig=5,5</arg>
       </testcase>
+      
+      <testcase id="testcases.xenserver.tc.vgpu.TCRevertvGPUSnapshot">
+        <arg>distro=10,14</arg>
+        <arg>typeofvgpu=nvidialinuxvgpu</arg>
+        <arg>vgpuconfig=5</arg>
+      </testcase>
+      
+      <testcase id="testcases.xenserver.tc.vgpu.TCNonWindowsK1" name="TC20890" tc="TC-20890" >
+        <arg>distro=10,14</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+        <arg>vgpuconfig=5</arg>
+      </testcase>
 
     </serial>
   </testsequence>

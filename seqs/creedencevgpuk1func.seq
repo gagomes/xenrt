@@ -22,12 +22,6 @@
         <arg>vgpuconfig=0</arg>
       </testcase>
 
-      <testcase tc="TC-20825" id="testcases.xenserver.tc.vgpu.TCOpsonK2vGPUToVMhasGotvGPU">
-        <arg>distro=5</arg>
-        <arg>typeofvgpu=nvidiawinvgpu</arg>
-        <arg>vgpuconfig=0,5</arg>
-      </testcase>
-
       <testcase tc="TC-20830" id="testcases.xenserver.tc.vgpu.TCReuseK2PGPU">
         <arg>distro=4,5</arg>
         <arg>typeofvgpu=nvidiawinvgpu</arg>

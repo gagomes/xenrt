@@ -22,12 +22,6 @@
         <arg>vgpuconfig=6</arg>
       </testcase>
 
-      <testcase tc="TC-20824" id="testcases.xenserver.tc.vgpu.TCOpsonK2vGPUToVMhasGotvGPU">
-        <arg>distro=0</arg>
-        <arg>typeofvgpu=nvidiawinvgpu</arg>
-        <arg>vgpuconfig=6,11</arg>
-      </testcase>
-
       <testcase tc="TC-20822" id="testcases.xenserver.tc.vgpu.TCRevertvGPUSnapshot">
         <arg>distro=0</arg>
         <arg>typeofvgpu=nvidiawinvgpu</arg>

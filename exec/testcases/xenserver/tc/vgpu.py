@@ -2694,6 +2694,21 @@ class TCOpsonK2vGPUToVMhasGotvGPU(TCBasicVerifOfAllK2config):
         except:
             pass
 
+        try:
+            g.migrateVM(host=host,live="true")
+            raise xenrt.XRTFailure("VM Live Migration is successful on a vGPU capable VM")
+        except:
+            pass
+
+        try:
+            vbd = host.minimalList("vbd-list", args="vm-uuid=%s type=Disk" % g.getUUID())        
+            vdi = host.minimalList("vdi-list", args="vbd-uuids=%s " % vbd[0])
+            dest_sr=host.getSRs(type="nfs")[0]
+            host.getCLIInstance().execute("vdi-pool-migrate uuid=%s sr-uuid=%s" % (vdi[0], dest_sr))            
+            raise xenrt.XRTFailure("VM's live vdi migration is successful on a vGPU capable VM")
+        except:
+            pass
+
         g.setState("DOWN")
         log("Uninstalling guest %s" % str(g))
         try: g.uninstall()
@@ -4176,68 +4191,5 @@ class TCcheckNvidiaDriver(xenrt.TestCase):
 
         if host.execdom0("grep -e 'nvidia: disagrees about version of symbol' -e 'nvidia: Unknown symbol' /var/log/kern.log", retval="code") == 0:
             raise xenrt.XRTFailure("NVIDIA driver is not correctly built for the current host kernel")
-            
-class TCRestictedGPUOperations(TCBasicVerifOfAllK2config):
 
-    def insideRun(self,config,distro):
-
-        host = self.getDefaultHost()
-        #string = "GRID "
-
-        osType = self.getOSType(distro)
-
-        vm = self.masterVMs[osType]
-
-        expVGPUType = self.getConfigurationName(config)
-
-        vm.setState("DOWN")
-        log("Creating vGPU of type %s" % (expVGPUType))
-        self.configureVGPU(config, vm)
-        vm.setState("UP")
-
-        log("Install guest drivers for %s" % str(vm))
-        self.typeOfvGPU.installGuestDrivers(vm)
-
-        log("Checking whether vGPU is runnnig on the VM or not")
-        self.typeOfvGPU.assertvGPURunningInVM(vm,expVGPUType)
-
-        vm.setState("DOWN")
-        log("Cloning VM from Master VM")
-        g = self.cloneVM(osType)
-        self.guests[osType] = g
-
-        g.setState("UP")
-        self.typeOfvGPU.assertvGPURunningInVM(g,expVGPUType)
-
-        try:
-            g.checkpoint()
-            raise xenrt.XRTFailure("Checkpoint is successful on a vGPU capable VM")
-        except:
-            pass
-
-        try:
-            g.suspend()
-            raise xenrt.XRTFailure("VM suspend is successful on a vGPU capable VM")
-        except:
-            pass
-            
-        try:
-            g.migrateVM(host=host,live="true")
-            raise xenrt.XRTFailure("VM Live Migration is successful on a vGPU capable VM")
-        except:
-            pass
-        
-        try:
-            vbd = host.minimalList("vbd-list", args="vm-uuid=%s type=Disk" % g.getUUID())        
-            vdi = host.minimalList("vdi-list", args="vbd-uuids=%s " % vbd[0])
-            dest_sr=host.getSRs(type="nfs")[0]
-            host.getCLIInstance().execute("vdi-pool-migrate uuid=%s sr-uuid=%s" % (vdi[0], dest_sr))            
-            raise xenrt.XRTFailure("VM's live vdi migration is successful on a vGPU capable VM")
-        except:
-            pass
-
-        g.setState("DOWN")
-        log("Uninstalling guest %s" % str(g))
-        try: g.uninstall()
-        except: pass
 

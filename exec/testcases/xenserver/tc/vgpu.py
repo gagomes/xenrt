@@ -2239,9 +2239,9 @@ class TCReuseK2PGPU(FunctionalBase):
                         obj = self.nvidLinvGPU
                     log("Checking whether vGPU is runnnig on the VM or not")
                     obj.assertvGPURunningInVM(vm,self.getConfigurationName(config))
+                    lastvm = vm
                 else:
                     leftVMs[config] = vm
-                lastvm = vm
                 totalVMsUP = totalVMsUP + 1
 
             #shutting down one VM so that other VM can be restarted

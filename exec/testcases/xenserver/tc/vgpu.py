@@ -1640,6 +1640,7 @@ class FunctionalBase(VGPUAllocationModeBase):
     REQUIRED_DISTROS = []
     VGPU_CONFIG = []
     TYPE_OF_VGPU = None
+    OTHERS = None
 
     def prepare(self,arglist):
 
@@ -1683,6 +1684,8 @@ class FunctionalBase(VGPUAllocationModeBase):
                 self.VGPU_CONFIG = map(int,arg.split('=')[1].split(','))
             if arg.startswith('typeofvgpu'):
                 self.TYPE_OF_VGPU = map(str,arg.split('=')[1].split(','))[0]
+            if arg.startswith('others'):
+                self.OTHERS = map(str,arg.split('=')[1].split(','))
  
     def run(self,arglist):
 
@@ -2149,9 +2152,14 @@ class TCReuseK2PGPU(FunctionalBase):
 
         step("Creating %d vGPUs configurations." % (len(self.VGPU_CONFIG)))
         self.vGPUCreator = {}
-        self.nvidWinvGPU = self.typeofvGPU(typeOfvGPU = self.getDiffvGPUName(DiffvGPUType.NvidiaWinvGPU))
-        self.nvidLinvGPU = self.typeofvGPU(typeOfvGPU = self.getDiffvGPUName(DiffvGPUType.NvidiaLinuxvGPU))
-
+        for typeOfvGPU in self.OTHERS:
+            if typeOfvGPU == self.getDiffvGPUName(DiffvGPUType.NvidiaWinvGPU):
+                self.nvidWinvGPU = self.typeofvGPU(typeOfvGPU)
+            if typeOfvGPU == self.getDiffvGPUName(DiffvGPUType.NvidiaLinuxvGPU):
+                self.nvidLinvGPU = self.typeofvGPU(typeOfvGPU)
+            if typeOfvGPU == self.getDiffvGPUName(DiffvGPUType.IntelWinvGPU):
+                self.nvidWinvGPU = self.typeofvGPU(typeOfvGPU)
+            
         for i in range(len(self.REQUIRED_DISTROS)):
 
             config = self.VGPU_CONFIG[i]

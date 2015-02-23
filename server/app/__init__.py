@@ -1,5 +1,6 @@
 from server import Page
 import app.db
+import app.ad
 import config
 import time
 from pyramid.httpexceptions import *
@@ -14,10 +15,11 @@ class XenRTPage(Page):
     def __init__(self, request):
         super(XenRTPage, self).__init__(request)
         self._db = None
+        self._ad = None
 
     def getUserFromAPIKey(self, apiKey):
         cur = self.getDB().cursor()
-        cur.execute("SELECT userid FROM tblapikeys WHERE apikey=%s", [apiKey])
+        cur.execute("SELECT userid FROM tblusers WHERE apikey=%s", [apiKey])
         rc = cur.fetchone()
         if rc:
             return rc[0]
@@ -41,12 +43,31 @@ class XenRTPage(Page):
             return None
 
         if "x-fake-user" in lcheaders:
-            if self.ALLOW_FAKE_USER:
+            if self.ALLOW_FAKE_USER and self._isValidUser(lcheaders['x-fake-user']):
                 return lcheaders['x-fake-user']
             else:
                 raise HTTPForbidden()
 
         return user
+
+    def _isValidUser(self, userid):
+        db = self.getDB()
+        cur = db.cursor()
+        cur.execute("SELECT userid FROM tblusers WHERE userid=%s", [userid])
+        rc = cur.fetchone()
+        if rc:
+            return True
+        # They might still be a valid user who just doesn't have an apikey yet
+        if self.getAD().is_valid_user(userid):
+            if not self.WRITE:
+                # Need to upgrade to a write instance
+                self.WRITE = True
+                db = self.getDB()
+                cur = db.cursor()
+            cur.execute("INSERT INTO tblusers (userid) VALUES (%s)", [userid])
+            db.commit()
+            return True
+        return False
 
     def renderWrapper(self):
         if not self.getUser() and (self.REQUIRE_AUTH or (self.REQUIRE_AUTH_IF_ENABLED and config.auth_enabled == "yes")):
@@ -112,6 +133,11 @@ class XenRTPage(Page):
             else:
                 self._db = app.db.dbReadInstance()
         return self._db
+
+    def getAD(self):
+        if not self._ad:
+            self._ad = app.ad.ActiveDirectory()
+        return self._ad
 
     def lookup_jobid(self, detailid):
         reply = -1

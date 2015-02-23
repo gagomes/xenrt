@@ -3120,9 +3120,9 @@ class MixedGPUBootstorm(BootstormBase):
     LINUX_TYPE = None
     WINDOWS_TYPE = None
 
-    # Amount of space to be used for passthrough. Passthrough is split 50/50 as linux/windows.
-    # Rest of space is filled with vGPU.
-    PASSTHROUGH_ALLOCATION = 2 / 3
+    # Passthrough allocation is 75% of total pgpus.
+    # Linux gets 50% of total, windows 25% of total.
+    PASSTHROUGH_ALLOCATION = 0.75
     VGPU_TYPE = VGPUConfig.K160
 
     def prepare(self, arglist=[]):
@@ -3140,8 +3140,9 @@ class MixedGPUBootstorm(BootstormBase):
 
         remainingCapacity = self.host.remainingGpuCapacity(installer.groupUUID(), installer.typeUUID())
         passthroughAllocation = remainingCapacity * self.PASSTHROUGH_ALLOCATION
-        linuxAllocation = passthroughAllocation / 2
-        windowsAllocation = passthroughAllocation / 2
+        windowsAllocation = int(passthroughAllocation / 3)
+        linuxAllocation = int(passthroughAllocation - windowsAllocation)
+        
 
         linuxMaster = masters[self.LINUX_TYPE]
         

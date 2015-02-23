@@ -20,6 +20,13 @@
         <arg>vgpuconfig=11</arg>
       </testcase>
 
+      <testcase id="testcases.xenserver.tc.vgpu.TCReuseK2PGPU">
+        <arg>distro=3,11</arg>
+        <arg>vgpuconfig=9,11</arg>
+        <arg>others=nvidiawinvgpu,nvidialinuxvgpu</arg>
+      </testcase>
+
+
     </serial>
   </testsequence>
 

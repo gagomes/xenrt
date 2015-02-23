@@ -2197,10 +2197,9 @@ class TCDiscSpacePlugins(xenrt.TestCase):
         #Create session on the host
         self.session = self.host.getAPISession(secure=False)
         self.sessionHost = self.session.xenapi.host.get_all()[0]
-        
         for plugin in plugins:
             self.runSubcase(plugin, (),None , plugin)
-        
+
     def testAvailHostDiskSpacePlugin(self):
         #Test functionality of 'get_avail_host_disk_space' plugin
         step("Call get_avail_host_disk_space plugin on host")
@@ -2215,21 +2214,19 @@ class TCDiscSpacePlugins(xenrt.TestCase):
         step("Verify space returned by the plugin is equal to the value given by df")
         if abs(actualAvailSpace-expectedAvailSpace) > 4:
             raise xenrt.XRTFailure("get_avail_host_disk_space plugin returned invalid data. Expected=%s. Actual=%s" % (actualAvailSpace,expectedAvailSpace))
-        
+
     def testCheckPatchUploadPlugin(self):
         #Test functionality of 'check_patch_upload' plugin
-        availSpace = self.getAvailHostDiskSpace()
-        
         step("Call check_patch_upload plugin with size > dom0 available disk space: should returns false")
-        if self.checkPatchUpload(availSpace):
+        if str(self.checkPatchUpload(self.getAvailHostDiskSpace()))=='True':
             raise xenrt.XRTFailure("check_patch_upload plugin returned True, Expected False")
         
         step("Call check_patch_upload plugin with size ~ dom0 available disk space: should returns true")
-        if not self.checkPatchUpload(availSpace/2 - 2*xenrt.MEGA):
+        if str(self.checkPatchUpload(self.getAvailHostDiskSpace()/2 - 2*xenrt.MEGA)) == 'False':
            raise xenrt.XRTFailure("check_patch_upload plugin returned False, Expected True")
 
         step("Call check_patch_upload plugin with size < dom0 available disk space: should returns true")
-        if not self.checkPatchUpload(availSpace/2 - 50*xenrt.MEGA):
+        if str(self.checkPatchUpload(self.getAvailHostDiskSpace()/2 - 20*xenrt.MEGA)) == 'False':
             raise xenrt.XRTFailure("check_patch_upload plugin returned False, Expected True")
 
     def testGetReclaimableSpacePlugin(self):
@@ -2266,7 +2263,7 @@ class TCDiscSpacePlugins(xenrt.TestCase):
             raise xenrt.XRTFailure("cleanup_disc_space plugin didn't free expected space. Expected=%s. Actual=%s" % (reclaimableSpace,newAvailableSpace-availableSpace))
         else:
             xenrt.TEC().logverbose("cleanup_disc_space freed expected amount of disk space: %s" % (newAvailableSpace-availableSpace))
-            
+
     def getAvailHostDiskSpace(self):
         #Return available host disk space in Bytes
         return int(self.session.xenapi.host.call_plugin(self.sessionHost,'disk-space','get_avail_host_disk_space',{}))
@@ -2278,7 +2275,6 @@ class TCDiscSpacePlugins(xenrt.TestCase):
     def checkPatchUpload(self, size):
         #returns true if patch of given size can be uploaded, otherwise false
         return self.session.xenapi.host.call_plugin(self.sessionHost,'disk-space','check_patch_upload',{'size': '%s'%size})
-            
 
     def postRun(self):
         #close the XenAPI session

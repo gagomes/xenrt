@@ -237,6 +237,7 @@ class SuiteSequence(SuiteConfigurable):
             runtcs = []
         else:
             sys.stdout.write("Starting %s... " % (self.name))
+            # API TODO
             jobid = xenrt.GEC().dbconnect.jobSubmit(args)
             if jobid == None:
                 raise XRTSubmitError("Error starting job for %s" % (self.name))
@@ -472,6 +473,7 @@ class Suite(SuiteConfigurable):
             sys.stderr.write("Error submitting one or more jobs, aborting.\n")
             for jobid in jobids:
                 sys.stderr.write("Removing job %u\n" % (jobid))
+                # API TODO
                 xenrt.GEC().dbconnect.jobRemove(jobid)
             raise xenrt.XRTError("Error starting jobs for testrun %s" %
                                  (testrun))

@@ -3327,7 +3327,7 @@ class GlobalResource(CentralResource):
         startlooking = xenrt.timenow()
 
         while True:
-            res = xenrt.GEC().dbconnect.jobctrl("globalreslock", [restype, xenrt.TEC().lookup("JOBID", "0"), xenrt.TEC().lookup("XENRT_SITE")]) 
+            res = xenrt.GEC().dbconnect.api.lock_global_resource(restype, xenrt.TEC().lookup("XENRT_SITE"), xenrt.GEC().dbconnect.jobid() or 0)
             if 'name' in res:
                 self.name = res['name']
                 self.data = res['data']
@@ -3341,7 +3341,7 @@ class GlobalResource(CentralResource):
 
     def release(self, atExit=False):
         if not xenrt.util.keepSetup():
-            xenrt.GEC().dbconnect.jobctrl("globalresrelease", [self.getName()])
+            xenrt.GEC().dbconnect.api.release_global_resource(self.getName())
             CentralResource.release(self, atExit)
         
     def getName(self):

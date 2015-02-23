@@ -9,50 +9,52 @@
 #
 
 import sys, string, xml.dom.minidom, os.path, os, shutil, tempfile, fcntl, stat
-import time
+import time, ConfigParser, xenrtapi, requests, pipes
 import xenrt
 
-__all__ = ["DBConnect"]
+__all__ = ["DBConnect", "APIFactory"]
 
-class DBConnect:
+class DBConnect(object):
 
-    def __init__(self, jobid, ctrl):
+    def __init__(self, jobid):
         if jobid == None:
             self._jobid = None
         else:
             self._jobid = int(jobid)
-        self._ctrl = ctrl
         self._bufferdir = xenrt.GEC().config.lookup("DB_BUFFER_DIR", None)
         if self._bufferdir and not os.path.exists(self._bufferdir):
             os.makedirs(self._bufferdir)
 
+        self._api = None
+
     def jobid(self):
         return self._jobid
 
+    @property
+    def api(self):
+        if not self._api:
+            self._api = APIFactory()
+        return self._api
+        
+
     def detailid(self, phase, test):
         jobid = self.jobid()
-        if jobid:
-            did = self.jobctrl("detailid", [str(jobid),phase,test])
-            if did:
-                return did.strip()
+        job = self.api.get_job(jobid)
+        detailids = [x['detailid'] for x in job['results'].values() if x['phase'] == phase and x['test'] == test]
+        if detailids:
+            return detailids[0]
         return None
 
-    def ctrl(self):
-        return self._ctrl
-
     def jobctrl(self, command, args, buffer=False, bufferfile=None):
-        commandline = "%s %s" % (command, string.join(args))
+        commandline = "%s %s" % (command, string.join([pipes.quote(x) for x in args]))
         xenrt.TEC().logverbose("XenRT CLI %s" % (commandline))
         try:
-            rc = self._ctrl.run(command, args)
-            if command == "upload" and not rc:
-                raise IOError("upload error")
-            return rc
-        except IOError, e:
+            xenrt.util.command("xenrtnew %s" % commandline)
+        except:
             if not buffer:
-                raise e
+                raise
             if not self._bufferdir:
-                raise e
+                raise
             xenrt.TEC().logverbose("BUFFERING: %s" % (commandline))
             # If we've got a file then copy it and replace references to it
             # in the command
@@ -77,7 +79,6 @@ class DBConnect:
                     f.write("FILE\t%s\n" % (fn))
             finally:
                 f.close()
-            return None
 
     def replay(self):
         if not self._bufferdir:
@@ -138,9 +139,6 @@ class DBConnect:
         finally:
             f.close()
 
-    def jobProxy(self, proxy):
-        self._ctrl.setProxies({'http': proxy})
-
     def jobUpdate(self, field, value):
         j = self.jobid()
         if j:
@@ -195,47 +193,36 @@ class DBConnect:
             args.extend(["-f", f])
             self.jobctrl("upload", args, buffer=True, bufferfile=f)
 
-    def jobDownload(self, prefix=None, jobid=None, filename=None):
+    def jobDownload(self, filename, jobid=None):
         if jobid:
             j = jobid
         else:
             j = self.jobid()
         if j:
-            args = ["%u" % (j)]
-            if prefix:
-                args.append("-p")
-                args.append(prefix)
-            if filename:
-                args.append("-f")
-                args.append(filename)
-            args.append("-o")
-            lasterr = None
-            result = None
             attempt = 3
+            lasterr = None
             while attempt > 0:
                 try:
-                    result = self.jobctrl("download", args)
+                    url = self.api.get_job_attachment_pre_run(j, filename)
+                    r = requests.get(url)
+                    r.raise_for_status()
+                    result = r.content
                     break
                 except Exception, e:
                     xenrt.TEC().logverbose("Error during download: %s" %
                                            (str(e)))
-                    if filename:
-                        try:
-                            os.unlink(filename)
-                        except:
-                            pass
                     lasterr = e
                     xenrt.sleep(10)
                 attempt = attempt - 1
-            if result is not None:
+            if not lasterr:
                 return result
-            if lasterr:
-                raise lasterr
-            details = self.jobctrl("status", [str(j)])
-            if details and details.has_key('ORIGINAL_JOBID'):
-                return self.jobDownload(prefix=prefix, jobid=int(details['ORIGINAL_JOBID']), filename=filename)
-            else:
-                raise xenrt.XRTError("Download failed")
+            
+            # Try and download the file form the last job
+            details = self.api.get_job(j)['params']
+            if 'ORIGINAL_JOBID' in details:
+                return self.jobDownload(filename, jobid=int(details['ORIGINAL_JOBID']))
+            
+            raise lasterr
 
 
     def jobEmail(self):
@@ -250,19 +237,13 @@ class DBConnect:
                          buffer=True,
                          bufferfile=filename)
 
-    def jobSubmit(self, args):
-        return self.jobctrl("submit", args)
 
-    def jobRemove(self, jobid):
-        return self.jobctrl("remove", [str(jobid)])
-
-    def makeTickets(self, suite, rev, findOld=False, branch=None):
-        args = [] 
-        if findOld:
-            args.append("--findold")
-        if branch:
-            args.append("--branch=%s" % branch)
-        args.append(suite)
-        args.append(rev)
-        return self.jobctrl("maketickets", args)
-
+def APIFactory():
+    config = ConfigParser.ConfigParser()
+    config.read("%s/.xenrtrc" % os.path.expanduser("~"))
+    apikey = config.get("xenrt", "apikey").strip()
+    try:
+        server = config.get("xenrt", "server").strip()
+    except:
+        server = None
+    return xenrtapi.XenRT(apikey=apikey, server=server)

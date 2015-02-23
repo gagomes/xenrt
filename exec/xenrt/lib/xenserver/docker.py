@@ -548,10 +548,10 @@ class RHELDocker(Docker):
     def install(self):
         # https://access.redhat.com/articles/881893
 
-        # Install docker and docker-registry
+        # Install docker and docker-registry.
         self.guest("yum install docker docker-registry")
 
-        # Turn off firewalld. Current conflicts with the docker service and 
+        # Turn off firewalld. Current conflicts with the docker service and
         # the firewalld service require that the firewalld service be turned off.
         self.guest("systemctl stop firewalld.service")
         self.guest("systemctl disable firewalld.service")
@@ -585,7 +585,7 @@ class UbuntuDocker(Docker):
         # Link and fix paths with the following two commands.
         self.guest("ln -sf /usr/bin/docker.io /usr/local/bin/docker")
         self.guest("sed -i '$acomplete -F _docker docker' /etc/bash_completion.d/docker.io")
-    
+
         # Finally, and optionally, let’s configure Docker to start when the server boots.
         self.guest("update-rc.d docker.io defaults")
 

@@ -21,7 +21,6 @@ class GetUser(XenRTAPIv2Page):
     PARAMS = []
     RESPONSES = { "200": {"description": "Successful response"}}
     TAGS = ["misc"]
-    RETURN_KEY = "user"
 
     def render(self):
         return {"user": self.getUser()}

@@ -594,7 +594,10 @@ class NewJob(_JobBase):
 
         if params.has_key("JOBGROUP") and params.has_key("JOBGROUPTAG") and not jobGroup:
             jobGroup = {"id": params['JOBGROUP'], "tag": params['JOBGROUPTAG']}
-        
+       
+        if "USERID" in params:
+            del params['USERID']
+
         db = self.getDB()
         cur = db.cursor()
         cur.execute("LOCK TABLE tbljobs IN EXCLUSIVE MODE")

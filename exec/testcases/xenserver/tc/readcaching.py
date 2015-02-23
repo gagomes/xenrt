@@ -23,8 +23,10 @@ class ReadCacheTestCase(xenrt.TestCase):
         host.licenseApply(None, licence)
 
     def _defaultLifeCycle(self, vm):
-        host = self.getDefaultHost()
-        vm.migrateVM(host)
+        step("Performing a lifecycle")
+        #host = self.getDefaultHost()
+        #vm.migrateVM(host)
+        vm.reboot()
 
     def prepare(self, arglist):
         self.vmName = self.parseArgsKeyValue(arglist)["vm"]

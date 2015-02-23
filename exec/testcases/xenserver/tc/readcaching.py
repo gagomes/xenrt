@@ -24,8 +24,6 @@ class ReadCacheTestCase(xenrt.TestCase):
 
     def _defaultLifeCycle(self, vm):
         step("Performing a lifecycle")
-        #host = self.getDefaultHost()
-        #vm.migrateVM(host)
         vm.reboot()
 
     def prepare(self, arglist):
@@ -145,11 +143,18 @@ class TCRCForSRPlug(ReadCacheTestCase):
         xsr = next((s for s in self.getDefaultHost().asXapiObject().SR() if s.srType() == "nfs"), None)
         xvdi = xsr.VDI()[0]
         self.vm.createDisk(sizebytes=xvdi.size(), sruuid=xsr.uuid, vdiuuid=xvdi.uuid, bootable=True)
+        self.vm.snapshot()
+
+    def __removeSnapshot(self):
+        xsr = next((s for s in self.getDefaultHost().asXapiObject().SR() if s.srType() == "nfs"), None)
+        xvdiSnapshot = next((v for v in xsr.VDI() if v.isASnapshot()), None)
+        self.vm.deleteSnapshot(xvdiSnapshot.name())
 
     def run(self, arglist):
         lowlevel, both = self.getArgs(arglist)
         self.checkExpectedState(True, lowlevel, both)
         self.vm.shutdown()
+        self.__removeSnapshot()
 
         # Find the SR and forget/introduce
         self.__plugReplugSR()

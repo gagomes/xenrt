@@ -270,6 +270,9 @@ class VDI(NamedXapiObject):
     def snapshot(self):
         return self.op("snapshot", returnObject="vdi")
 
+    def isASnapshot(self):
+        return self.getStringParam("is-a-snapshot") == "true"
+
     def readcachingEnabled(self):
         return self.getStringParam(self.__RC) == "true"
 

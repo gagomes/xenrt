@@ -482,7 +482,7 @@ class Guest(xenrt.GenericGuest):
             if xenrt.TEC().lookup("FORCE_NX_DISABLE", False, boolean=True):
                 self.paramSet("platform:nx", "false")
             self.installWindows(self.isoname)
-        elif "coreos-" in distro:
+        elif distro and "coreos-" in distro:
             self.enlightenedDrivers=True
             notools = True # CoreOS has tools installed already
             self.installCoreOS()

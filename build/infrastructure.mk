@@ -45,6 +45,11 @@ endif
 
 INETD_DAEMON ?= openbsd-inetd
 
+serverbase := $(patsubst %/,%,$(WEB_CONTROL_PATH))
+serverbase := $(patsubst http://%/share/control,http://%,$(serverbase))
+serverbase := $(patsubst http://%/xenrt,http://%,$(serverbase))
+serverbase := $(patsubst http://%/control,http://%,$(serverbase))
+
 .PHONY: aptcacher
 aptcacher:
 	$(info Configuring apt-cacher...)
@@ -78,7 +83,7 @@ endif
 
 .PHONY: api
 api:
-	$(SUDO) pip install -I $(WEB_CONTROL_PATH)/../xenrtapi.tar.gz
+	$(SUDO) pip install -I $(serverbase)/xenrtapi.tar.gz
 
 .PHONY: extrapackages-install
 extrapackages-install:
@@ -591,7 +596,7 @@ cron-uninstall:
 	$(SUDO) crontab -r
 
 .PHONY: infrastructure
-infrastructure: ssh winpe files prompt autofs dhcpd dhcpd6 hosts network nagios conserver logrotate cron sitecontrollercmd nfs tftp iscsi sudoers aptcacher ftp snmp extrapackages loop dsh ntp $(SHAREDIR)/images/vms/etch-4.1.img symlinks samba libvirt
+infrastructure: api ssh winpe files prompt autofs dhcpd dhcpd6 hosts network nagios conserver logrotate cron sitecontrollercmd nfs tftp iscsi sudoers aptcacher ftp snmp extrapackages loop dsh ntp $(SHAREDIR)/images/vms/etch-4.1.img symlinks samba libvirt
 	$(info XenRT infrastructure installed.)
 
 

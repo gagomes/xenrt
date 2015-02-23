@@ -3060,23 +3060,23 @@ class BootstormBase(FunctionalBase):
         
         # Shut down all the vms.
         for vm in self.vms:
-            vm.setState("DOWN")
+            vm[0].setState("DOWN")
 
         # Start all VMs in parallel.
-        pt = [xenrt.PTask(self.bootstormStartVM, vm) for vm in self.vms]
+        pt = [xenrt.PTask(self.bootstormStartVM, vm[0]) for vm in self.vms]
         xenrt.pfarm(pt)
 
         # Wait for the VMs to be up in parallel.
-        pt = [xenrt.PTask(vm.poll, "UP") for vm in self.vms]
+        pt = [xenrt.PTask(vm[0].poll, "UP") for vm in self.vms]
         xenrt.pfarm(pt)
 
         for vm in self.vms:
-            if vm.windows:
+            if vm[0].windows:
                 # I don't know what the config is going to be in advance.
-                self.nvidWinvGPU.assertvGPURunningInVM(vm, self.getConfigurationName(config))
+                self.nvidWinvGPU.assertvGPURunningInVM(vm[0], self.getConfigurationName(vm[1]))
             else:
                 # Second param doesn't do anything.
-                self.nvidLinvGPU.assertvGPURunningInVM(vm, None)
+                self.nvidLinvGPU.assertvGPURunningInVM(vm[0], vm[1])
 
     def postRun(self):
         for vm in self.vms:
@@ -3124,13 +3124,13 @@ class LinuxGPUBootstorm(BootstormBase):
         remainingCapacity = self.host.remainingGpuCapacity(installer.groupUUID(), installer.typeUUID())
         xenrt.TEC().logverbose("Remaining Capacity is: %s" % remainingCapacity)
 
-        self.vms.append(vm)
+        self.vms.append((vm, config))
 
         vm.setState("DOWN")
         
         for i in range(remainingCapacity):
             g = vm.cloneVM(noIP=False)
-            self.vms.append(g)
+            self.vms.append((g, config))
 
             g.setState("UP")
 
@@ -3172,11 +3172,11 @@ class MixedGPUBootstorm(BootstormBase):
         linuxMaster.setState("UP")
         self.nvidLinvGPU.installGuestDrivers(linuxMaster)
         linuxMaster.setState("DOWN")
-        self.vms.append(linuxMaster)
+        self.vms.append((linuxMaster, config))
         
         for i in range(linuxAllocation - 1):
             g = linuxMaster.cloneVM(noIP=False)
-            self.vms.append(g)
+            self.vms.append((g, config))
             g.setState("UP")
 
         linuxMaster.setState("UP")
@@ -3190,11 +3190,11 @@ class MixedGPUBootstorm(BootstormBase):
         winPassthroughMaster.setState("UP")
         self.nvidWinvGPU.installGuestDrivers(winPassthroughMaster)
         winPassthroughMaster.setState("DOWN")
-        self.vms.append(winPassthroughMaster)
+        self.vms.append((winPassthroughMaster, config))
 
         for i in range(windowsAllocation - 1):
             g = winPassthroughMaster.cloneVM(noIP=False)
-            self.vms.append(g)
+            self.vms.append((g, config))
             g.setState("UP")
 
         winPassthroughMaster.setState("UP")
@@ -3212,11 +3212,11 @@ class MixedGPUBootstorm(BootstormBase):
             windowsMaster.setState("UP")
             self.nvidWinvGPU.installGuestDrivers(windowsMaster)
             windowsMaster.setState("DOWN")
-            self.vms.append(windowsMaster)
+            self.vms.append((windowsMaster, config))
 
             for i in range(remainingCapacity - 1):
                 g = windowsMaster.cloneVM(noIP=False)
-                self.vms.append(g)
+                self.vms.append((g, config))
                 g.setState("UP")
 
             windowsMaster.setState("UP")

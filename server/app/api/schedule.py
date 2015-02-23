@@ -14,6 +14,8 @@ class XenRTSchedule(XenRTAPIPage):
         super(XenRTSchedule, self).__init__(request)
         self.mutex = None
         self.mutex_held = False
+        self._groupCache = {}
+        self._userGroupCache = {}
 
     def render(self):
         form = self.request.params
@@ -742,24 +744,12 @@ class XenRTSchedule(XenRTAPIPage):
                     return True
             else:
                 if e.userid in usergroups:
-                    # A group our user is in - identify if any other users in the acl are in the same group and check the overall usage and per user usage
-                    if groupcache is None:
-                        # Need to build the groupcache
-                        groupcache = {}
-                        users = set(machines.values())
-                        for u in users:
-                            if u == userid:
-                                continue
-                            for g in self._groups_for_userid(u):
-                                if groupcache.has_key(g):
-                                    groupcache[g].append(u)
-                                else:
-                                    groupcache[g] = [u]
-
+                    # A group our user is in - identify overall usage and per user usage for users in the acl
                     groupcount = usercount
-                    if groupcache.has_key(e.userid):
-                        for u in groupcache[e.userid]:
-                            groupcount += len(filter(lambda m: m == u, machines.values()))
+                    for u in self._userids_for_group(e.userid):
+                        if u == userid:
+                            continue # Don't count our user as we've already accounted for that
+                        groupcount += len(filter(lambda m: m == u, machines.values()))
                     grouppercent = int(math.ceil((groupcount * 100.0) / len(machines)))
 
                     if e.grouplimit is not None and groupcount > e.grouplimit:
@@ -778,8 +768,34 @@ class XenRTSchedule(XenRTAPIPage):
 
         return True
 
+    def _userids_for_group(self, group):
+        if group in self._groupCache:
+            return self._groupCache[group]
+        db = self.getDB()
+        cur = db.cursor()
+        cur.execute("SELECT gu.userid FROM tblgroupusers gu INNER JOIN tblgroups g ON gu.groupid = g.groupid WHERE g.name=%s", [group])
+        results = []
+        while True:
+            rc = cur.fetchone()
+            if not rc:
+                break
+            results.append(rc[0].strip())
+        self._groupCache[group] = results
+        return results
+
     def _groups_for_userid(self, userid):
-        # TODO
-        return []
+        if userid in self._userGroupCache:
+            return self._userGroupCache[userid]
+        db = self.getDB()
+        cur = db.cursor()
+        cur.execute("SELECT g.name FROM tblgroups g INNER JOIN tblgroupusers gu ON g.groupid = gu.groupid WHERE gu.userid=%s", [userid])
+        results = []
+        while True:
+            rc = cur.fetchone()
+            if not rc:
+                break
+            results.append(rc[0].strip())
+        self._userGroupCache[userid] = results
+        return results
 
 PageFactory(XenRTSchedule, "/api/schedule", compatAction="schedule")

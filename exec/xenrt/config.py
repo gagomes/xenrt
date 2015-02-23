@@ -2561,7 +2561,7 @@ class Config:
         self.config["HOTFIXES"]["George"]["RTM"]["XS55EU2024"] = "/usr/groups/release/XenServer-5.5.0-Update2-rc3/hotfixes/XS55EU2024/89773/hotfix-XS55EU2024/XS55EU2024.xsupdate"
         
         #  Guy: glibc, xen-tools. Rolls nothing
-        self.config["HOTFIXES"]["George"]["RTM"]["XS55EU2025"] = " /usr/groups/build/george-lcm/91296/hotfix-XS55EU2025/XS55EU2025.xsupdate"
+        self.config["HOTFIXES"]["George"]["RTM"]["XS55EU2025"] = "/usr/groups/build/george-lcm/91296/hotfix-XS55EU2025/XS55EU2025.xsupdate"
         
         
         # INT-mnr-1: stunnel

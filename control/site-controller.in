@@ -102,16 +102,24 @@ if os.path.exists("/etc/xenrt/site.xml"):
     r = re.search("<LOG_SERVER>(.+)<\/LOG_SERVER>", data)
     if r:
         logserver = r.group(1)
-
-config = ConfigParser.ConfigParser()
-config.read("%s/.xenrtrc" % os.path.expanduser("~"))
-apikey = config.get("xenrt", "apikey").strip()
+try:
+    config = ConfigParser.ConfigParser()
+    config.read("%s/.xenrtrc" % os.path.expanduser("~"))
+    apikey = config.get("xenrt", "apikey").strip()
+except:
+    raise Exception("No API key found in ~/.xenrtrc") 
 try:
     server = config.get("xenrt", "server").strip()
 except:
     server = None
 
 xenrt = xenrtapi.XenRT(apikey=apikey, server=server)
+
+try:
+    print "Logged into XenRT as %s" % xenrt.get_loggedinuser()
+except:
+    print "Could not login to XenRT"
+    raise
 
 if not logserver:
     logserver = xenrt.get_logserver()
@@ -186,6 +194,8 @@ def start_job(job):
     resdir = "%s/results/jobs/%d" % (_sharedir, job['id'])
     os.makedirs(resdir)
     data = job['params']
+    data['USERID'] = job['user']
+    data['JOBID'] = str(job['id'])
     cmd = ["%s/exec/main.py" % (_sharedir)]
     cmd.append("-V")
     cmd.append("-C")
@@ -227,8 +237,6 @@ def start_job(job):
                 and not k in optparsevars:
             cmd.append("-D")
             cmd.append("%s=%s" % (k, data[k]))
-    cmd.extend(["-D", "JOBID=%d" % job['id']])
-    cmd.extend(["-D", "USERID=%s" % job['user']])
 
     cmdl = string.join(cmd)
 
@@ -282,15 +290,18 @@ def start_job(job):
         # download custom-patch from scheduler
         custompatchtmp = "/tmp/" + str(job['id']) + data["CUSTOM_PATCH"]
         patchurl = xenrt.get_job_attachment_pre_run(job['id'], data["CUSTOM_PATCH"])
-        urllib.urlretrieve(patchurl, custompatchtmp)
-
-        if os.path.isfile(custompatchtmp):
-            # apply patch
-            rc = os.system("cd %s && patch -p1 < %s" % (_rootdir, custompatchtmp))
-            if rc > 0:
-                errmsg = "Could not import custom patch %s" % (data["CUSTOM_PATCH"])
+        try:
+            urllib.urlretrieve(patchurl, custompatchtmp)
+        except Exception, e:
+            errmsg = "Could not download custom patch - %s" % str(e)
         else:
-            errmsg = "Could not find custom patch %s" % (data["CUSTOM_PATCH"])
+            if os.path.isfile(custompatchtmp):
+                # apply patch
+                rc = os.system("cd %s && patch -p1 < %s" % (_rootdir, custompatchtmp))
+                if rc > 0:
+                    errmsg = "Could not import custom patch %s" % (data["CUSTOM_PATCH"])
+            else:
+                errmsg = "Could not find custom patch %s" % (data["CUSTOM_PATCH"])
             
         if len(errmsg) > 0:
             trace("%s\n" % (errmsg))
@@ -323,9 +334,8 @@ def start_job(job):
         cmdl = string.join(cmd)
         trace("exec: %s\n" % (cmdl))
         if not debug:
-            xenrt.update_job(job['id'], params={"LOG_SERVER": logserver})
             pid = os.spawnv(os.P_NOWAIT, cmd[0], cmd)
-            xenrt.update_job(job['id'], params={"HARNESS_PID": "%u" % (pid)})
+            xenrt.update_job(job['id'], params={"HARNESS_PID": "%u" % (pid), "LOG_SERVER": logserver})
 
     time.sleep(30)
     if len(custompatchtmp) > 0 and os.path.isfile(custompatchtmp):

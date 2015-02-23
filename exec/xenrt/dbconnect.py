@@ -45,7 +45,7 @@ class DBConnect(object):
             return detailids[0]
         return None
 
-    def jobctrl(self, command, args, buffer=False, bufferfile=None):
+    def jobctrl(self, command, args, bufferfile=None):
         commandline = "%s %s" % (command, string.join([pipes.quote(x) for x in args]))
         xenrt.TEC().logverbose("XenRT CLI %s" % (commandline))
         try:
@@ -142,37 +142,34 @@ class DBConnect(object):
     def jobUpdate(self, field, value):
         j = self.jobid()
         if j:
-            self.jobctrl("update", ["%u" % (j), field, value], buffer=True)
+            self.jobctrl("update", ["%u" % (j), field, value])
 
     def jobComplete(self):
         j = self.jobid()
         if j:
-            self.jobctrl("complete", ["%u" % (j)], buffer=True)
+            self.jobctrl("complete", ["%u" % (j)])
 
     def jobStart(self):
         j = self.jobid()
         if j:
-            self.jobctrl("start", ["%u" % (j)], buffer=True)
+            self.jobctrl("start", ["%u" % (j)])
 
     def jobSetResult(self, phase, test, result):
         j = self.jobid()
         if j:
-            self.jobctrl("setresult", ["%u" % (j), phase, test, result],
-                         buffer=True)
+            self.jobctrl("setresult", ["%u" % (j), phase, test, result])
 
     def jobSubResults(self, phase, test, filename):
         j = self.jobid()
         if j:
             self.jobctrl("subresults",
                          ["%u" % (j), phase, test, "-f", filename],
-                         buffer=True,
                          bufferfile = filename)
 
     def jobLogData(self, phase, test, key, value):
         j = self.jobid()
         if j:
-            self.jobctrl("logdata", ["%u" % (j), phase, test, key, value],
-                         buffer=True)
+            self.jobctrl("logdata", ["%u" % (j), phase, test, key, value])
 
     def jobUpload(self, source, phase=None, test=None, prefix=None):
         j = self.jobid()
@@ -191,7 +188,7 @@ class DBConnect(object):
             if prefix:
                 args.extend(["-P", prefix])
             args.extend(["-f", f])
-            self.jobctrl("upload", args, buffer=True, bufferfile=f)
+            self.jobctrl("upload", args, bufferfile=f)
 
     def jobDownload(self, filename, jobid=None):
         if jobid:
@@ -228,13 +225,12 @@ class DBConnect(object):
     def jobEmail(self):
         j = self.jobid()
         if j:
-            self.jobctrl("email", ["%u" % (j)], buffer=True)
+            self.jobctrl("email", ["%u" % (j)])
 
     def perfUpload(self, filename):
         j = self.jobid()
         if j or xenrt.TEC().lookup("PERF_UPLOAD", False, boolean=True):
             self.jobctrl("perfdata", ["-f", filename],
-                         buffer=True,
                          bufferfile=filename)
 
 

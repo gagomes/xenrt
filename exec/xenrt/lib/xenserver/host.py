@@ -15547,7 +15547,7 @@ def runOverdueCleanup(hostname):
         if u:
             c.append("-u")
             c.append(u)
-        xenrt.GEC().dbconnect.jobctrl("borrow", c, buffer=True)
+        xenrt.GEC().dbconnect.jobctrl("borrow", c)
         log("Borrowing host %s, in order to avoid further job runs on it." % hostname)
         log("Please review and fix the content of '%s' on the controller." % cleanUpFlagsDir)
         raise xenrt.XRTError("Clean-up failed. Please fix '%s' and then return host." % hostname)                               

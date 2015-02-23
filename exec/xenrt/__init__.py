@@ -3348,7 +3348,7 @@ class GlobalExecutionContext:
                         c.append("-u")
                         c.append(u)
                     xenrt.TEC().logverbose("Borrowing %s" % m)
-                    self.dbconnect.jobctrl("borrow", c, buffer=True)
+                    self.dbconnect.jobctrl("borrow", c)
             if regok:
                 sys.stdout.write("Regression: PASS\n")
                 x = "OK"

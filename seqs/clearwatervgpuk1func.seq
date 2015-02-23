@@ -26,6 +26,7 @@
         <arg>distro=4,5</arg>
         <arg>vgpuconfig=0,2</arg>
         <arg>others=nvidiawinvgpu</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
       </testcase>
 
       <testcase tc="TC-20870" id="testcases.xenserver.tc.vgpu.TCExportImportK2GPU">

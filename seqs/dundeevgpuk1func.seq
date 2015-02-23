@@ -25,6 +25,7 @@
       <testcase tc="TC-20830" id="testcases.xenserver.tc.vgpu.TCReuseK2PGPU">
         <arg>distro=4,5</arg>
         <arg>vgpuconfig=0,2</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
         <arg>others=nvidiawinvgpu</arg>
       </testcase>
 

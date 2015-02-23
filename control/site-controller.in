@@ -16,7 +16,6 @@ import xenrtapi
 _sharedir = "@sharedir@"
 _rootdir = "@rootdir@"
 _vardir = "@vardir@"
-_xenrt_server = '@xenrtserver@'
 _stablebranch = "@stablebranch@"
 if not _stablebranch:
     _stablebranch = "master"
@@ -85,8 +84,6 @@ burstjobs = 3
 ratehistoryfile = "/tmp/xenrt-site-controller-history.dat"
 
 logserver=None
-# Communication with central control daemon
-logserver=None
 
 # Dirty hack to use the JOBSERVER_PROXY and rate limit variables
 if os.path.exists("/etc/xenrt/site.xml"):
@@ -109,8 +106,12 @@ if os.path.exists("/etc/xenrt/site.xml"):
 config = ConfigParser.ConfigParser()
 config.read("%s/.xenrtrc" % os.path.expanduser("~"))
 apikey = config.get("xenrt", "apikey").strip()
+try:
+    server = config.get("xenrt", "server").strip()
+except:
+    server = None
 
-xenrt = xenrtapi.XenRT(apikey=apikey, server=_xenrt_server)
+xenrt = xenrtapi.XenRT(apikey=apikey, server=server)
 
 if not logserver:
     logserver = xenrt.get_logserver()

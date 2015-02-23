@@ -3027,8 +3027,6 @@ class BootstormBase(FunctionalBase):
     def run(self, arglist):
         """Should perform the bootstorm steps with all available vms."""
         
-        xenrt.TEC().logverbose("Starting Bootstorm with existing vms.")
-
         # Shut down all the vms.
         for vm in self.vms:
             vm.setState("DOWN")
@@ -3109,7 +3107,7 @@ class MixedGPUBootstorm(BootstormBase):
 
     # Amount of space to be used for passthrough. Passthrough is split 50/50 as linux/windows.
     # Rest of space is filled with vGPU.
-    PASSTHROUGH_ALLOCATION = 0.75
+    PASSTHROUGH_ALLOCATION = 2 / 3
     VGPU_TYPE = VGPUConfig.K160
 
     def prepare(self, arglist=[]):
@@ -3127,8 +3125,8 @@ class MixedGPUBootstorm(BootstormBase):
 
         remainingCapacity = self.host.remainingGpuCapacity(installer.groupUUID(), installer.typeUUID())
         passthroughAllocation = remainingCapacity * self.PASSTHROUGH_ALLOCATION
-        linuxAllocation = passthroughAllocation / 2;
-        windowsAllocation = passthroughAllocation / 2;
+        linuxAllocation = passthroughAllocation / 2
+        windowsAllocation = passthroughAllocation / 2
 
         linuxMaster = masters[self.LINUX_TYPE]
         

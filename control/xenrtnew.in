@@ -14,14 +14,6 @@ XRTPROF = None
 XRTPROF_FILENAME = os.path.join(("TMP" in os.environ and os.environ["TMP"] or \
 	"/tmp"), "xenrt.prof")
 
-xenrt_server = '@xenrtserver@'
-s = os.getenv("XENRT_SERVER")
-if s:
-    xenrt_server = s
-if not xenrt_server:
-    xenrt_server = None
-_sharedir = "@sharedir@"
-_confdir = "@confdir@"
 _console = "@console@"
 _conserver = "@conserver@"
 _jenkins = "@jenkins@"
@@ -42,17 +34,31 @@ class XenRTCommand:
     def __init__(self, commands):
         self.commands = commands
 
+    def getConfigFile(self):
+        path = "%s/.xenrtrc" % os.path.expanduser("~")
+        try:
+            config = ConfigParser.ConfigParser()
+            config.read(path)
+            return config
+        except:
+            return None
+
     def getAPIKey(self):
         if os.getenv("XENRT_APIKEY"):
             return os.getenv("XENRT_APIKEY")
         else:
-            path = "%s/.xenrtrc" % os.path.expanduser("~")
             try:
-                config = ConfigParser.ConfigParser()
-                config.read(path)
-                return config.get("xenrt", "apikey").strip()
+                return self.getConfigFile().get("xenrt", "apikey").strip()
             except:
                 return None
+
+    def getXenRTServer(self):
+        if os.getenv("XENRT_SERVER"):
+            return os.getenv("XENRT_SERVER")
+        try:
+            return self.getConfigFile().get("xenrt", "server").strip()
+        except:
+            return None
 
     def retrieveAPIKeyFromServer(self):
         global _authrealm
@@ -61,7 +67,7 @@ class XenRTCommand:
         if not user.strip():
             user = defaultuser
         password = getpass.getpass()
-        xrt = xenrtapi.XenRT(user=user, password=password, server=xenrt_server)
+        xrt = xenrtapi.XenRT(user=user, password=password, server=self.getXenRTServer())
         apikey = xrt.get_apikey()
         path = "%s/.xenrtrc" % os.path.expanduser("~")
         print "Writing %s as API key in ~/.xenrtrc" % apikey
@@ -76,7 +82,7 @@ class XenRTCommand:
         if not apikey:
             self.retrieveAPIKeyFromServer()
             apikey = self.getAPIKey()
-        self.xenrt = xenrtapi.XenRT(apikey=self.getAPIKey(), server=xenrt_server)
+        self.xenrt = xenrtapi.XenRT(apikey=self.getAPIKey(), server=self.getXenRTServer())
 
         if len(args) > 0 and args[0] in ("--help", "-h"):
             print "%s\n" % (self. summary)

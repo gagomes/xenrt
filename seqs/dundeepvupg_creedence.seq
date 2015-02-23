@@ -1,0 +1,51 @@
+<xenrt>
+
+  <!-- Driver upgrade test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <host>
+      <vm name="win7sp1-x86">
+        <distro>win7sp1-x86</distro>
+        <network device="0"/>
+        <postinstall action="convertToTemplate"/>
+      </vm>
+      <vm name="win7sp1-x64">
+        <distro>win7sp1-x64</distro>
+        <network device="0"/>
+        <postinstall action="convertToTemplate"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <parallel workers="4">
+      <for iter="H" values="%TOOLS_HOTFIXES:Creedence:RTM%">
+        <serial group="${H}_win7sp1-x86" tc="TC-24007" sku="${H}">
+          <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade">
+            <arg>template=win7sp1-x86</arg>
+            <arg>tag=${H}_win7sp1-x86</arg>
+            <arg>hotfix=${H}</arg>
+          </testcase>
+          <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade">
+            <arg>tag=${H}_win7sp1-x86</arg>
+          </testcase>
+        </serial>
+        <serial group="${H}_win7sp1-x64" tc="TC-24008" sku="${H}">
+          <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade">
+            <arg>template=win7sp1-x64</arg>
+            <arg>tag=${H}_win7sp1-x64</arg>
+            <arg>hotfix=${H}</arg>
+          </testcase>
+          <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade">
+            <arg>tag=${H}_win7sp1-x64</arg>
+          </testcase>
+        </serial>
+      </for>
+    </parallel>
+  </testsequence>
+</xenrt>

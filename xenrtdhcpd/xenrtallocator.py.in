@@ -193,7 +193,7 @@ class XenRTDHCPAllocator(object):
                     _logger.warn("Could not allocate lease for %s on %s" % (str(mac), intf))
                     return None
                 lease = cfg['clientleasetime']
-        self._populatePXEInfo(packet, intf)
+        self._populatePXEInfo(packet, intf, ip)
 
         intfdetails = self.getInterfaceInfo(intf)
         intfaddr = IPy.IP(intfdetails['addr'])
@@ -222,7 +222,7 @@ class XenRTDHCPAllocator(object):
             time.sleep(3)
         return ret
 
-    def _populatePXEInfo(self, packet, intf):
+    def _populatePXEInfo(self, packet, intf, ip):
         server = self.getInterfaceInfo(intf)['addr']
         userClass = packet.getOption("user_class")
         arch = None
@@ -233,8 +233,8 @@ class XenRTDHCPAllocator(object):
         except Exception, e:
             _logger.info("Error finding client architecture" % str(e))
         if arch == 7 and self.config['interfaces'][intf].get('uefi'):
-            packet.setOption("file", strToPaddedList("/grubx64.efi", 128))
-            _logger.info("Sending /grubx64.efi as PXE file")
+            packet.setOption("file", strToPaddedList("/EFI/%s/boot.efi" % ip, 128))
+            _logger.info("Sending /%s/boot.efi as PXE file" % ip)
         elif userClass and listToStr(userClass) == "iPXE":
             packet.setOption("file", strToPaddedList("http://%s/tftp/default-ipxe.cgi" % server, 128))
         else:

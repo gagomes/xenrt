@@ -48,22 +48,27 @@ class _XSAutoCertKit(xenrt.TestCase):
         if not acklocation:
             if xenrt.TEC().lookup("TEST_CA-146164", False, boolean=True):
                 if isinstance(host, xenrt.lib.xenserver.DundeeHost):
-                    if host.isCentOS7Dom0():
-                        raise xenrt.XRTError("CA-146164 is not re-producible with trunk-c7")
-                    branch = "trunk"
-                    build = "88907"
+                    raise xenrt.XRTError("CA-146164 is not re-producible with Centos 7 dom0.")
                 elif "x86_64" in host.execdom0("uname -a"):
                     branch = "creedence-autocertkit"
                     build = "88845"
                 else:
                     branch = "clearwater-sp1-lcm-autocertkit"
                     build = "88844"
+
+            elif xenrt.TEC().lookup("TEST_CA-160978", False, boolean=True):
+                if isinstance(host, xenrt.lib.xenserver.DundeeHost):
+                    branch = "trunk"
+                    build = "91125"
+                elif "x86_64" in host.execdom0("uname -a"):
+                    branch = "creedence-autocertkit"
+                    build = "91123"
+                else:
+                    raise xenrt.XRTError("Try with Creedence, Cream or Dundee to test CA-160978.")
+
             else:
                 if isinstance(host, xenrt.lib.xenserver.DundeeHost):
-                    if host.isCentOS7Dom0():
-                        branch = "trunk-c7"
-                    else:
-                        branch = "trunk"
+                    branch = "trunk"
                 elif "x86_64" in host.execdom0("uname -a"):
                     branch = "creedence-autocertkit"
                 else:

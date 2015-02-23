@@ -48,7 +48,7 @@ class XenRTUIPage(XenRTPage):
       <ul>
          <li><a href='/xenrt/swagger' target="_blank"><span>API Documentation</span></a></li>
          <li><a href='/xenrt/ui/apikey'><span>Manage my API Key</span></a></li>
-         <li><a href='/xenrt-cli.tar.gz'><span>CLI Download</span></a></li>
+         <li><a href='/xenrtapi.tar.gz'><span>CLI/Python bindings Download (install with pip)</span></a></li>
       </ul>
    </li>
    <li class='has-sub'><a href='#'><span>XenRTCenter</span></a>

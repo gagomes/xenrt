@@ -45,6 +45,11 @@ endif
 
 INETD_DAEMON ?= openbsd-inetd
 
+serverbase := $(patsubst %/,%,$(WEB_CONTROL_PATH))
+serverbase := $(patsubst http://%/share/control,http://%,$(serverbase))
+serverbase := $(patsubst http://%/xenrt,http://%,$(serverbase))
+serverbase := $(patsubst http://%/control,http://%,$(serverbase))
+
 .PHONY: aptcacher
 aptcacher:
 	$(info Configuring apt-cacher...)
@@ -63,6 +68,22 @@ endif
 .PHONY: extrapackages
 extrapackages: extrapackages-install
 	
+.PHONY: apibuild
+apibuild:
+ifeq ($(APIBUILD), yes)
+	rm -rf $(SHAREDIR)/api_build/xenrtapi
+	rm -rf $(SHAREDIR)/api_build/scripts
+	mkdir $(SHAREDIR)/api_build/xenrtapi
+	mkdir $(SHAREDIR)/api_build/scripts
+	wget -O $(SHAREDIR)/api_build/xenrtapi/__init__.py http://localhost:1025/share/control/bindings/__init__.py
+	cp $(SHAREDIR)/control/xenrtnew $(SHAREDIR)/api_build/scripts/xenrtnew
+	cd $(SHAREDIR)/api_build/ && python setup.py sdist
+	$(SUDO) ln -sf $(SHAREDIR)/api_build/dist/xenrtapi-0.01.tar.gz $(WEBROOT)/xenrtapi.tar.gz
+endif
+
+.PHONY: api
+api:
+	$(SUDO) pip install -I $(serverbase)/xenrtapi.tar.gz
 
 .PHONY: extrapackages-install
 extrapackages-install:
@@ -575,7 +596,7 @@ cron-uninstall:
 	$(SUDO) crontab -r
 
 .PHONY: infrastructure
-infrastructure: ssh winpe files prompt autofs dhcpd dhcpd6 hosts network nagios conserver logrotate cron sitecontrollercmd nfs tftp iscsi sudoers aptcacher ftp snmp extrapackages loop dsh ntp $(SHAREDIR)/images/vms/etch-4.1.img symlinks samba libvirt
+infrastructure: api ssh winpe files prompt autofs dhcpd dhcpd6 hosts network nagios conserver logrotate cron sitecontrollercmd nfs tftp iscsi sudoers aptcacher ftp snmp extrapackages loop dsh ntp $(SHAREDIR)/images/vms/etch-4.1.img symlinks samba libvirt
 	$(info XenRT infrastructure installed.)
 
 

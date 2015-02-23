@@ -3128,10 +3128,8 @@ class MixedGPUBootstorm(BootstormBase):
     LINUX_TYPE = None
     WINDOWS_TYPE = None
 
-    # Passthrough allocation is 75% of total pgpus.
-    # Linux gets 50% of total, windows 25% of total.
-    PASSTHROUGH_ALLOCATION = 0.75
-    VGPU_TYPE = VGPUConfig.K160
+    PASSTHROUGH_ALLOCATION = None
+    VGPU_TYPE = None
 
     def prepare(self, arglist=[]):
         super(MixedGPUBootstorm, self).prepare(arglist)
@@ -3147,11 +3145,14 @@ class MixedGPUBootstorm(BootstormBase):
         installer = VGPUInstaller(self.host, config)
 
         remainingCapacity = self.host.remainingGpuCapacity(installer.groupUUID(), installer.typeUUID())
+        xenrt.TEC().logverbose("Space for passthrough: %s" % remainingCapacity)
         passthroughAllocation = remainingCapacity * self.PASSTHROUGH_ALLOCATION
-        windowsAllocation = int(passthroughAllocation / 3)
-        linuxAllocation = int(passthroughAllocation - windowsAllocation)
-        
+        # Deal with uneven allocations.
+        passthroughAllocation = int(passthroughAllocation)
 
+        windowsAllocation = int(passthroughAllocation / 2)
+        linuxAllocation = passthroughAllocation - windowsAllocation
+        
         linuxMaster = masters[self.LINUX_TYPE]
         
         # Install gpu on linux master.
@@ -3164,6 +3165,9 @@ class MixedGPUBootstorm(BootstormBase):
         for i in range(linuxAllocation - 1):
             g = linuxMaster.cloneVM(noIP=False)
             self.vms.append(g)
+            g.setState("UP")
+
+        linuxMaster.setState("UP")
 
         # Branch the windows master, so can use for both passthrough and vGPU
         windowsMaster = masters[self.WINDOWS_TYPE]
@@ -3179,23 +3183,31 @@ class MixedGPUBootstorm(BootstormBase):
         for i in range(windowsAllocation - 1):
             g = winPassthroughMaster.cloneVM(noIP=False)
             self.vms.append(g)
+            g.setState("UP")
 
-        # Switch gpu type to vGpu
-        config = self.VGPU_TYPE
-        installer = VGPUInstaller(self.host, config)
+        winPassthroughMaster.setState("UP")
 
-        # Space left for vGPU
-        remainingCapacity = self.host.remainingGpuCapacity(installer.groupUUID(), installer.typeUUID())
+        if remainingCapacity != passthroughAllocation:
+            # Switch gpu type to vGpu
+            config = self.VGPU_TYPE
+            installer = VGPUInstaller(self.host, config)
 
-        installer.createOnGuest(windowsMaster)
-        windowsMaster.setState("UP")
-        NvidiaWindowsvGPU().installGuestDrivers(windowsMaster)
-        windowsMaster.setState("DOWN")
-        self.vms.append(windowsMaster)
+            # Space left for vGPU
+            remainingCapacity = self.host.remainingGpuCapacity(installer.groupUUID(), installer.typeUUID())
+            xenrt.TEC().logverbose("Space for vGPU: %s" % remainingCapacity)
 
-        for i in range(remainingCapacity - 1):
-            g = windowsMaster.cloneVM(noIP=False)
-            self.vms.append(g)
+            installer.createOnGuest(windowsMaster)
+            windowsMaster.setState("UP")
+            NvidiaWindowsvGPU().installGuestDrivers(windowsMaster)
+            windowsMaster.setState("DOWN")
+            self.vms.append(windowsMaster)
+
+            for i in range(remainingCapacity - 1):
+                g = windowsMaster.cloneVM(noIP=False)
+                self.vms.append(g)
+                g.setState("UP")
+
+            windowsMaster.setState("UP")
 
     def parseArgs(self, arglist):
         super(MixedGPUBootstorm, self).parseArgs(arglist)
@@ -3205,6 +3217,11 @@ class MixedGPUBootstorm(BootstormBase):
                 self.LINUX_TYPE = int(arg.split('=')[1])
             if arg.startswith('windowstype'):
                 self.WINDOWS_TYPE = int(arg.split('=')[1])
+            if arg.startswith('passthroughalloc'):
+                self.PASSTHROUGH_ALLOCATION = float(arg.split('=')[1])
+            if arg.startswith('vgpualloctype'):
+                self.VGPU_TYPE = int(arg.split('=')[1])
+
 
 class TCAlloModeK200NFS(VGPUAllocationModeBase):
 

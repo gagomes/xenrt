@@ -57,13 +57,10 @@ class XenRTPage(Page):
         rc = cur.fetchone()
         if rc:
             return True
-        # They might still be a valid user who just doesn't have an apikey yet
+        # They might still be a valid user who isn't in tblusers yet
         if self.getAD().is_valid_user(userid):
-            if not self.WRITE:
-                # Need to upgrade to a write instance
-                self.WRITE = True
-                db = self.getDB()
-                cur = db.cursor()
+            # Add them to the table for future reference
+            db = self.getWriteDB()
             cur.execute("INSERT INTO tblusers (userid) VALUES (%s)", [userid])
             db.commit()
             return True
@@ -133,6 +130,12 @@ class XenRTPage(Page):
             else:
                 self._db = app.db.dbReadInstance()
         return self._db
+
+    def getWriteDB(self):
+        if not self.WRITE:
+            self.WRITE = True
+            self._db = None
+        return self.getDB()
 
     def getAD(self):
         if not self._ad:

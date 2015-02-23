@@ -10,12 +10,16 @@ import xenrt, string, random
 import xmltodict, json
 
 __all__ = ["ContainerState", "ContainerXapiOperation", "ContainerType",
-           "UsingXapi", "UsingLinux",
+           "UsingXapi", "UsingLinux", "OperationMethod",
            "CoreOSDocker", "RHELDocker", "UbuntuDocker"]
 
 """
 Factory class for docker container.
 """
+
+class OperationMethod:
+    XAPI = "XAPI"
+    LINUX = "LINUX"
 
 class ContainerState:
     RUNNING  = "RUNNING"
@@ -76,19 +80,26 @@ class DockerController(object):
         self.host = host
         self.guest = guest
 
-    def containerSelection(self, container):
+    def containerSelection(self, container, method=OperationMethod.XAPI):
 
         if container.ctype == ContainerType.BUSYBOX:
-            xenrt.TEC().logverbose("Create BusyBox Container using Xapi")
-            return "'docker run -d --name " + container.cname + " busybox /bin/sh -c \"while true; do echo Hello World; sleep 1; done\"'"
+            xenrt.TEC().logverbose("Create BusyBox Container using %s way" % method)
+            dockerCmd = "docker run -d --name " + container.cname + " busybox /bin/sh -c \"while true; do echo Hello World; sleep 1; done\""
         elif container.ctype == ContainerType.MYSQL:
-            xenrt.TEC().logverbose("Create MySQL Container using Xapi")
-            return "'docker run -d --name " + container.cname + " -e MYSQL_ROOT_PASSWORD=mysecretpassword mysql'"
+            xenrt.TEC().logverbose("Create MySQL Container using %s way" % method)
+            dockerCmd = "docker run -d --name " + container.cname + " -e MYSQL_ROOT_PASSWORD=mysecretpassword mysql"
         elif container.ctype == ContainerType.TOMCAT:
-            xenrt.TEC().logverbose("Create Tomcat Container using Xapi")
-            return "'docker run -d --name " + container.cname + " -p 8080:8080 -it tomcat'"
+            xenrt.TEC().logverbose("Create Tomcat Container using %s way" % method)
+            dockerCmd = "docker run -d --name " + container.cname + " -p 8080:8080 -it tomcat"
         else:
-            raise xenrt.XRTFailure("Docker container type %s is not recognised" % container.ctype)
+            raise xenrt.XRTError("Docker container type %s is not recognised" % container.ctype)
+
+        if method==OperationMethod.XAPI:
+            return "'" + dockerCmd + "'"
+        elif method==OperationMethod.LINUX:
+            return dockerCmd
+        else:
+            raise xenrt.XRTError("Operation method %s in defined" % dockerCmd)
 
     def createContainer(self, container): pass
     def rmContainer(self, container): pass
@@ -310,21 +321,11 @@ class UsingLinux(DockerController):
                 raise xenrt.XRTFailure("XSContainer:%s operation on %s:%s is failed" %
                                                 (operation, self.guest, container.cname))
         else:
-            return cmdOut # inspect returns an json.
+            return cmdOut # inspect returns a json.
 
     def createContainer(self, container):
 
-        if container.ctype == ContainerType.BUSYBOX:
-            xenrt.TEC().logverbose("Create BusyBox Container using Linux")
-            dockerCmd = "docker run -d --name " + container.cname + " busybox /bin/sh -c \"while true; do echo Hello World; sleep 1; done\""
-        elif container.ctype == ContainerType.MYSQL:
-            xenrt.TEC().logverbose("Create MySQL Container using Linux")
-            dockerCmd = "docker run -d --name " + container.cname + " -e MYSQL_ROOT_PASSWORD=mysecretpassword mysql"
-        elif container.ctype == ContainerType.TOMCAT:
-            xenrt.TEC().logverbose("Create Tomcat Container using Linux")
-            dockerCmd = "docker run -d --name " + container.cname + " -p 8080:8080 -it tomcat"
-        else:
-            raise xenrt.XRTError("Docker container type %s is not recognised" % container.ctype)
+        dockerCmd = self.containerSelection(container, OperationMethod.LINUX)
 
         cmdOut = self.guest.execguest(dockerCmd).strip() # 817d4deb9ad84092ee97d9e090732fe335e428e960e8ccc0829a768ad9c92a3c\n
 

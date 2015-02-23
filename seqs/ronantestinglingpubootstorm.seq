@@ -49,6 +49,7 @@
         <arg>passthroughalloc=0.75</arg>
         <!-- Type of vGPU to use for remaining space. -->
         <arg>vgpualloctype=3</arg>
+        <arg>others=nvidiawinvgpu,nvidialinuxvgpu</arg>
       </testcase>
 
     </serial>

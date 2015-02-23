@@ -63,6 +63,22 @@ endif
 .PHONY: extrapackages
 extrapackages: extrapackages-install
 	
+.PHONY: apibuild
+apibuild:
+ifeq ($(APIBUILD), yes)
+	rm -rf $(SHAREDIR)/api_build/xenrtapi
+	rm -rf $(SHAREDIR)/api_build/scripts
+	mkdir $(SHAREDIR)/api_build/xenrtapi
+	mkdir $(SHAREDIR)/api_build/scripts
+	wget -O $(SHAREDIR)/api_build/xenrtapi/__init__.py http://localhost:1025/share/control/bindings/__init__.py
+	cp $(SHAREDIR)/control/xenrtnew $(SHAREDIR)/api_build/scripts/xenrtnew
+	cd $(SHAREDIR)/api_build/ && python setup.py sdist
+	$(SUDO) ln -sf $(SHAREDIR)/api_build/dist/xenrtapi-0.01.tar.gz $(WEBROOT)/xenrtapi.tar.gz
+endif
+
+.PHONY: api
+api:
+	$(SUDO) pip install -I $(WEB_CONTROL_PATH)/../xenrtapi.tar.gz
 
 .PHONY: extrapackages-install
 extrapackages-install:

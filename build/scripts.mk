@@ -12,7 +12,6 @@ WSGIWORKERS ?= 16
 WSGITHREADS ?= 1
 CURRENT_DIR ?= $(shell pwd)
 AUTH_REALM ?= citrite
-XENRT_SERVER ?= core.xenrt.citrite.net
 
 include build/config.mk
 include build/tools.mk
@@ -23,7 +22,7 @@ else
 EXECDIR = $(BUILDPREFIX)-exec
 endif
 
-SRCDIRS		:= control scripts seqs lib data provision server xenrtdhcpd 
+SRCDIRS		:= control scripts seqs lib data provision server xenrtdhcpd api_build
 NEWDIRS		:= locks state results
 SCRIPTS		:= $(patsubst %.in,%,$(wildcard **/*.in))
 GENCODE		:= $(patsubst %.gen,%,$(wildcard **/*.gen))
@@ -49,6 +48,8 @@ server: install
 	$(SUDO) cp $(SHAREDIR)/server/xenrt-server /etc/init.d/
 	$(SUDO) insserv xenrt-server
 	$(SUDOSH) '/etc/init.d/xenrt-server start || $(SUDO) /etc/init.d/xenrt-server reload'
+	sleep 1
+	make apibuild
 
 .PHONY: install
 install: tarlibs $(NEWDIRS) utils $(SRCDIRS) exec $(LINKS) $(SCRATCHDIR) \
@@ -286,7 +287,6 @@ $(SCRIPTS): $(addsuffix .in,$(SCRIPTS))
 	sed -i 's#@confdir@#$(CONFDIR)#g' $@
 	sed -i 's#@vardir@#$(VARDIR)#g' $@
 	sed -i 's#@webcontrdir@#$(WEB_CONTROL_PATH)#g' $@
-	sed -i 's#@xenrtserver@#$(XENRT_SERVER)#g' $@
 	sed -i 's#@authrealm@#$(AUTH_REALM)#g' $@
 	sed -i 's#@jenkins@#$(JENKINS)#g' $@
 	@-grep "@conskey@" $@ && sed -i 's#@conskey@#$(CONSKEY)#g' $@

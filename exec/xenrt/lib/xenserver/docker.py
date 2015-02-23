@@ -40,6 +40,7 @@ class ContainerXapiOperation:
     REGISTER = "register"
     CREATE = "create"
     REMOVE = "remove"
+    LIST = "list"
 
 class ContainerLinuxOperation:
     START  = "start"
@@ -48,9 +49,10 @@ class ContainerLinuxOperation:
     PAUSE   = "pause"
     UNPAUSE = "unpause"
     INSPECT = "inspect"
-    GETTOP = "get_top"
+    GETTOP = "top"
     CREATE = "create"
     REMOVE = "rm"
+    LIST = "list"
 
 class ContainerType:
     BUSYBOX = "busybox"
@@ -116,6 +118,7 @@ class DockerController(object):
     def inspectContainer(self, container):pass
     def gettopContainer(self, container):pass
     def statusContainer(self, container):pass
+    def listContainers(self): pass
 
     # Misc functions.
     def getDockerInfo(self):pass
@@ -155,7 +158,7 @@ class UsingXapi(DockerController):
             raise xenrt.XRTError("XSContainer:%s operation on %s:%s is failed" %
                                             (operation, self.guest, container.cname))
 
-    def createAndRemoveContainer(self, container, operation=ContainerXapiOperation.CREATE):
+    def containerXapiOtherOperation(self, container, operation=ContainerXapiOperation.CREATE):
 
         if operation == ContainerXapiOperation.CREATE:
             dockerCmd = self.containerSelection(container)
@@ -182,7 +185,7 @@ class UsingXapi(DockerController):
 
     def createContainer(self, container):
 
-        result = self.createAndRemoveContainer(container)
+        result = self.containerXapiOtherOperation(container)
         xenrt.TEC().logverbose("createContainer - result: %s" % result)
 
         # Inspect the container and fill more details, if required.
@@ -191,7 +194,7 @@ class UsingXapi(DockerController):
     def rmContainer(self, container):
 
         if self.statusContainer(container) == ContainerState.STOPPED:
-            return self.createAndRemoveContainer(container, ContainerXapiOperation.REMOVE)
+            return self.containerXapiOtherOperation(container, ContainerXapiOperation.REMOVE)
         else:
             raise xenrt.XRTError("removeContainer: Please stop the container %s before removing it" % container.cname)
 
@@ -267,6 +270,27 @@ class UsingXapi(DockerController):
                 return ContainerState.STOPPED
             else:
                 return ContainerState.UNKNOWN
+
+    def listContainers(self):
+        xenrt.TEC().logverbose("listContainers: Using getDockerPS to list the containers ...")
+
+        containers = []
+        dockerPS = self.getDockerPS() # returns a xml with a key 'entry'
+
+        if not dockerPS.has_key('entry'):
+            raise xenrt.XRTError("listContainers: Failed to find entry key in docker PS xml")
+        dockerContainerList = dockerPS['entry'] # list of ordered dicts.
+
+        if len(dockerContainerList) > 0:
+            for containerDict in dockerContainerList:
+                if containerDict.has_key('names'):
+                    containers.append(containerDict['names'].strip())
+                else:
+                    raise xenrt.XRTError("listContainers: The container name could not accessed")
+        else:
+            raise xenrt.XRTError("listContainers: There are no containers to list")
+
+        return containers
 
     # Misc functions to work with vm:other-config param.
 
@@ -396,6 +420,17 @@ class UsingLinux(DockerController):
             else:
                 return ContainerState.UNKNOWN
 
+    def listContainers(self):
+
+        dockerCmd = "docker ps -a | tail -n +2 | awk '{print $NF}'"
+        containerInfo = self.guest.execguest(dockerCmd).strip()
+
+        if containerInfo:
+            containerList = containerInfo.splitlines()
+            return containerList # [containername]
+        else:
+            raise xenrt.XRTError("listContainers: There are no containers available to list")
+
 """
 Abstraction
 """
@@ -409,6 +444,17 @@ class Docker(object):
         self.DockerController = DockerController(host, guest)
 
     def install(self): pass
+
+    def check(self):
+
+        xenrt.TEC().logverbose("Checking the installation of Docker on guest %s" % self.guest)
+    
+        # Check that you have a working install
+        guestCmdOut = self.guest.execguest("docker info").strip()
+        if "Operating System: CoreOS" in guestCmdOut:
+            xenrt.TEC().logverbose("Docker installation is running on guest %s" % self.guest)
+        else: 
+            raise xenrt.XRTError("Failed to find a running instance of Docker on guest %s" % self.guest)
 
     def createContainer(self, ctype=ContainerType.BUSYBOX, cname="random"):
         if cname.startswith("random"):
@@ -461,7 +507,7 @@ class Docker(object):
         # returns a container object.
 
     def listContainers(self):
-        return self.containers
+        return self.DockerController.listContainers()
 
     def lifeCycleAllContainers(self):
         """Life Cycle method on all containers"""
@@ -488,16 +534,58 @@ class RHELDocker(Docker):
 
     def install(self):
         # https://access.redhat.com/articles/881893
+
+        # Install docker and docker-registry
+        self.guest("yum install docker docker-registry")
+
+        # Turn off firewalld. Current conflicts with the docker service and 
+        # the firewalld service require that the firewalld service be turned off.
+        self.guest("systemctl stop firewalld.service")
+        self.guest("systemctl disable firewalld.service")
+
+        #Start docker:
+        self.guest("systemctl start docker.service")
+
+        #Enable docker:
+        self.guest("systemctl enable docker.service")
+
+        #Check docker status:
+        self.guest("systemctl status docker.service")
+
         xenrt.TEC().logverbose("Docker installation on RHEL to be implemented")
+
+        # Check the docker installation.
+        self.check()
 
 class UbuntuDocker(Docker):
     """Represents a docker installed on ubuntu guest"""
 
     def install(self):
-        xenrt.TEC().logverbose("Docker installation on Ubuntu to be implemented")
+
+        # A best practice to ensure the list of available packages
+        # are up to date before installing anything new.
+        self.guest("apt-get update")
+
+        # Install Docker by installing the docker-io package.
+        self.guest("apt-get -y install docker.io")
+
+        # Link and fix paths with the following two commands.
+        self.guest("ln -sf /usr/bin/docker.io /usr/local/bin/docker")
+        self.guest("sed -i '$acomplete -F _docker docker' /etc/bash_completion.d/docker.io")
+    
+        # Finally, and optionally, let’s configure Docker to start when the server boots.
+        self.guest("update-rc.d docker.io defaults")
+
+        xenrt.TEC().logverbose("Docker installation on Ubuntu is complete.")
+
+        # Check the docker installation.
+        self.check()
 
 class CoreOSDocker(Docker):
     """Represents a docker integrated in coreos guest"""
 
     def install(self):
         xenrt.TEC().logverbose("CoreOS has the docker environment by default")
+
+        # Check the docker installation.
+        self.check()

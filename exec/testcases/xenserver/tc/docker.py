@@ -18,7 +18,6 @@ class TCSanityTest(xenrt.TestCase):
 
         # Obtain the pool object to retrieve its hosts. 
         self.pool = self.getDefaultPool() 
-        xenrt.TEC().logverbose("self.pool: %s" % self.pool) 
         if self.pool is None: 
             self.host = self.getDefaultHost() 
         else: 

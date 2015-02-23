@@ -22,6 +22,10 @@ class ReadCacheTestCase(xenrt.TestCase):
         step("Applying license: %s" % licence.getEdition())
         host.licenseApply(None, licence)
 
+    def _defaultLifeCycle(self, vm):
+        host = self.getDefaultHost()
+        vm.migrateVM(host)
+
     def prepare(self, arglist):
         self.vmName = self.parseArgsKeyValue(arglist)["vm"]
         log("Using vm %s" % self.vmName)
@@ -31,7 +35,7 @@ class ReadCacheTestCase(xenrt.TestCase):
         rcc = host.getReadCachingController()
         rcc.setVM(self.vm)
         rcc.enable()
-        self.vm.migrateVM(host)
+        self._defaultLifeCycle(self.vm)
 
     def checkExpectedState(self, expectedState, lowlevel=False, both=False):
         step("Checking state - expected=%s, low-level=%s, bothChecks=%s" % (expectedState, lowlevel, both))
@@ -68,7 +72,7 @@ class TCLicensingRCDisabled(ReadCacheTestCase):
     def run(self, arglist):
         lowlevel, both = self.getArgs(arglist)
         self._releaseLicense()
-        self.vm.migrateVM(self.getDefaultHost())
+        self._defaultLifeCycle(self.vm)
         step("Checking ReadCaching state disabled: lowLevel %s" % lowlevel)
         self.checkExpectedState(False, lowlevel, both)
 

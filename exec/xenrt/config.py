@@ -1374,6 +1374,8 @@ class Config:
         self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_WIN7_64"] = "windows7_64"
         self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_WIN8"] = "windows8"
         self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_WIN8_64"] = "windows8_64"
+        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_WIN10"] = "windows10"
+        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_WIN10_64"] = "windows10_64"
 
         # ESXi
         self.config["VERSION_CONFIG"]["ESXi"] = {}
@@ -1513,6 +1515,8 @@ class Config:
         self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_WIN7_64"] = "windows7_64"
         self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_WIN8"] = "windows8"
         self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_WIN8_64"] = "windows8_64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_WIN10"] = "windows10"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_WIN10_64"] = "windows10_64"
 
         # Marvin File
         self.config["MARVIN_FILE"] = {}
@@ -2017,6 +2021,16 @@ class Config:
         self.config["GUEST_LIMITATIONS"]["win8-x64"]["MAXMEMORY"] = "131072"
         self.config["GUEST_LIMITATIONS"]["win8-x64"]["MAXSOCKETS"] = "2"
         self.config["GUEST_LIMITATIONS"]["win8-x64"]["MAX_VM_VCPUS"] = "2"
+        self.config["GUEST_LIMITATIONS"]["win10-x86"] = {}
+        self.config["GUEST_LIMITATIONS"]["win10-x86"]["MINMEMORY"] = "1024"
+        self.config["GUEST_LIMITATIONS"]["win10-x86"]["MAXMEMORY"] = "131072"
+        self.config["GUEST_LIMITATIONS"]["win10-x86"]["MAXSOCKETS"] = "2"
+        self.config["GUEST_LIMITATIONS"]["win10-x86"]["MAX_VM_VCPUS"] = "2"
+        self.config["GUEST_LIMITATIONS"]["win10-x64"] = {}
+        self.config["GUEST_LIMITATIONS"]["win10-x64"]["MINMEMORY"] = "2048"
+        self.config["GUEST_LIMITATIONS"]["win10-x64"]["MAXMEMORY"] = "131072"
+        self.config["GUEST_LIMITATIONS"]["win10-x64"]["MAXSOCKETS"] = "2"
+        self.config["GUEST_LIMITATIONS"]["win10-x64"]["MAX_VM_VCPUS"] = "2"
         self.config["GUEST_LIMITATIONS"]["win81-x86"] = {}
         self.config["GUEST_LIMITATIONS"]["win81-x86"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["win81-x86"]["MAXMEMORY"] = "131072"

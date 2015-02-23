@@ -25,7 +25,7 @@
       <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="VMInstall" tc="TC-17915">
         <arg>RESOURCE_HOST_0</arg>
         <arg>guest=win8-x86</arg>
-        <arg>distro=win8-x86</arg>
+        <arg>distro=win10-x86</arg>
         <arg>memory=1024</arg>
       </testcase>
       <serial guest="win8-x86">
@@ -88,7 +88,7 @@
       <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="VMInstall" tc="TC-17927">
         <arg>RESOURCE_HOST_0</arg>
         <arg>guest=win8-x64</arg>
-        <arg>distro=win8-x64</arg>
+        <arg>distro=win10-x64</arg>
         <arg>memory=1024</arg>
       </testcase>
       <serial guest="win8-x64">

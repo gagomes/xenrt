@@ -1067,6 +1067,8 @@ class Config:
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_WIN7_64"] = "Windows 7 (64-bit),Windows 7 x64,Windows Server 2008 x64"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_WIN8"] = "Windows 8 (32-bit)"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_WIN8_64"] = "Windows 8 (64-bit)"
+        self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_WIN10"] = "Windows 10 Preview (32-bit) (experimental)"
+        self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_WIN10_64"] = "Windows 10 Preview (64-bit) (experimental)"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_WS12_64"] = "Windows Server 2012 (64-bit)"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_CPS"] = "Citrix XenApp on Windows Server 2003 (32-bit),Citrix XenApp on Windows Server 2003,Citrix Presentation Server,Citrix XenApp"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_CPS_64"] = "Citrix XenApp on Windows Server 2003 (64-bit),Citrix XenApp x64 on Windows Server 2003 x64,Citrix Presentation Server x64,Citrix XenApp x64"

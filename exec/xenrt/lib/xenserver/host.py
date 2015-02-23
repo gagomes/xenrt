@@ -6396,6 +6396,11 @@ fi
                     template = self.chooseTemplate("TEMPLATE_NAME_WIN8_64")
                 else:
                     template = self.chooseTemplate("TEMPLATE_NAME_WIN8")
+            elif re.search("win10", distro):
+                if re.search("x64", distro):
+                    template = self.chooseTemplate("TEMPLATE_NAME_WIN10_64")
+                else:
+                    template = self.chooseTemplate("TEMPLATE_NAME_WIN10")
             elif re.search("ws12", distro) and re.search("x64", distro):
                 template = self.chooseTemplate("TEMPLATE_NAME_WS12_64")
             elif re.search("debian\d+", distro):

@@ -58,6 +58,7 @@ class ContainerType:
     BUSYBOX = "busybox"
     MYSQL = "mysql"
     TOMCAT = "tomcat"
+    UNKNOWN = "unknown"
 
 """
 Data layer: Container encapsulated data
@@ -503,16 +504,28 @@ class Docker(object):
         return self.DockerController.getDockerVersion()
 
     # Useful functions.
-    def getContainer(self, cname):pass
-        # returns a container object.
+    def setContainer(self, cname, ctype=ContainerType.UNKNOWN):
+        return(Container(ctype, cname)) # returns a container object.
+
+    def loadExistingContainers(self):
+        for cname in self.DockerController.listContainers():
+            self.containers.append(Container(ContainerType.UNKNOWN, cname))
 
     def listContainers(self):
-        return self.DockerController.listContainers()
+        return self.DockerController.listContainers() # list of containers.
 
     def lifeCycleAllContainers(self):
         """Life Cycle method on all containers"""
         for container in self.containers:
             self.lifeCycleContainer(container)
+
+    def stopAllContainers(self):
+        for container in self.containers:
+            self.stopContainer(container)
+
+    def startAllContainers(self):
+        for container in self.containers:
+            self.startContainer(container)
 
     def lifeCycleContainer(self, container):
         """Life Cycle method on a specified container"""

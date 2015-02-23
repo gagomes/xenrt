@@ -219,7 +219,7 @@ class TestRdpWithSnapshot(RdpVerification):
 class TestRdpWithToolsUpgrade(RdpVerification):
     """Verify that XAPI can switch RDP on the guest with upgraded tools"""
 
-def run(self, arglist=None):
+    def run(self, arglist=None):
         xapiRdpObj = XapiRdp(self.guest)
 
         #install old tools 

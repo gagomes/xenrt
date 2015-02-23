@@ -11,6 +11,7 @@ JENKINS ?= http://xenrt.hq.xensource.com:8080
 WSGIWORKERS ?= 16
 WSGITHREADS ?= 1
 CURRENT_DIR ?= $(shell pwd)
+AUTH_REALM ?= citrite
 
 include build/config.mk
 include build/tools.mk
@@ -21,7 +22,7 @@ else
 EXECDIR = $(BUILDPREFIX)-exec
 endif
 
-SRCDIRS		:= control scripts seqs lib data provision server xenrtdhcpd 
+SRCDIRS		:= control scripts seqs lib data provision server xenrtdhcpd api_build
 NEWDIRS		:= locks state results
 SCRIPTS		:= $(patsubst %.in,%,$(wildcard **/*.in))
 GENCODE		:= $(patsubst %.gen,%,$(wildcard **/*.gen))
@@ -47,6 +48,8 @@ server: install
 	$(SUDO) cp $(SHAREDIR)/server/xenrt-server /etc/init.d/
 	$(SUDO) insserv xenrt-server
 	$(SUDOSH) '/etc/init.d/xenrt-server start || $(SUDO) /etc/init.d/xenrt-server reload'
+	sleep 1
+	make apibuild
 
 .PHONY: install
 install: tarlibs $(NEWDIRS) utils $(SRCDIRS) exec $(LINKS) $(SCRATCHDIR) \
@@ -80,7 +83,6 @@ pythonlibs:
 tar:
 	tar -C $(SHAREDIR)/control -cvzf xenrt-cli.tar.gz ./xenrt
 	mv xenrt-cli.tar.gz $(SHAREDIR)
-	$(SUDO) ln -sf $(SHAREDIR)/xenrt-cli.tar.gz $(WEBROOT)/xenrt-cli.tar.gz
 
 .PHONY: precommit precommit-all
 precommit: xmllint pylint
@@ -285,6 +287,7 @@ $(SCRIPTS): $(addsuffix .in,$(SCRIPTS))
 	sed -i 's#@confdir@#$(CONFDIR)#g' $@
 	sed -i 's#@vardir@#$(VARDIR)#g' $@
 	sed -i 's#@webcontrdir@#$(WEB_CONTROL_PATH)#g' $@
+	sed -i 's#@authrealm@#$(AUTH_REALM)#g' $@
 	sed -i 's#@jenkins@#$(JENKINS)#g' $@
 	@-grep "@conskey@" $@ && sed -i 's#@conskey@#$(CONSKEY)#g' $@
 	sed -i 's#@wsgiworkers@#$(WSGIWORKERS)#g' $@

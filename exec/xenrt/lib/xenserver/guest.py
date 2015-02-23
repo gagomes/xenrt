@@ -482,7 +482,7 @@ class Guest(xenrt.GenericGuest):
             if xenrt.TEC().lookup("FORCE_NX_DISABLE", False, boolean=True):
                 self.paramSet("platform:nx", "false")
             self.installWindows(self.isoname)
-        elif "coreos-" in distro:
+        elif distro and "coreos-" in distro:
             self.enlightenedDrivers=True
             notools = True # CoreOS has tools installed already
             self.installCoreOS()
@@ -1187,6 +1187,11 @@ at > c:\\xenrtatlog.txt
         # If VM is running, reboot it
         if self.getState() in ['UP', 'PAUSED']:
             self.reboot()
+
+    def setDriversBootStart(self):
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\services\\xenvif", "Start", "DWORD", 0)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\services\\xennet", "Start", "DWORD", 0)
+        self.reboot()
 
     def installDrivers(self, source=None, extrareboot=False):
         """Install PV drivers into a guest"""
@@ -3057,6 +3062,9 @@ exit /B 1
     def instantiateSnapshot(self, uuid, name=None, timer=None, sruuid=None, noIP=False):
         return self._cloneCopyVM("instance", name, timer, sruuid, uuid=uuid, noIP=noIP)
 
+    def cloneTemplate(self, name=None, timer=None, sruuid=None, noIP=True):
+        return self._cloneCopyVM("instance", name, timer, sruuid, noIP=noIP)
+
     def _cloneCopyVM(self, operation, name, timer, sruuid, uuid=None, noIP=True):
         cli = self.getCLIInstance()
         g_uuid = None
@@ -3088,6 +3096,8 @@ exit /B 1
             g_uuid = cli.execute("vm-clone", string.join(args)).strip()
         # Instantiate a snapshot.
         elif operation == "instance":
+            if uuid is None:
+                uuid = self.getUUID()
             template = self.getHost().genParamGet("template", 
                                                   uuid, 
                                                   "name-label")
@@ -5202,7 +5212,11 @@ class TampaGuest(BostonGuest):
             pvToolsDir = "D:"
             if pvToolsTgz:
                 xenrt.TEC().logverbose("Using tools from: %s" % pvToolsTgz)
-                self.xmlrpcSendFile(xenrt.TEC().getFile(pvToolsTgz), "c:\\tools.tgz")
+                if os.path.exists(pvToolsTgz):
+                    toolsTgz = pvToolsTgz
+                else:
+                    toolsTgz = xenrt.TEC().getFile(pvToolsTgz)
+                self.xmlrpcSendFile(toolsTgz, "c:\\tools.tgz")
                 pvToolsDir = self.xmlrpcTempDir()
                 self.xmlrpcExtractTarball("c:\\tools.tgz", pvToolsDir)
 

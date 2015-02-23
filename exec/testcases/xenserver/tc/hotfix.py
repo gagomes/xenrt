@@ -11,6 +11,7 @@
 import socket, re, string, time, traceback, sys, random, copy, shutil, os, re
 import xenrt, xenrt.lib.xenserver
 from xenrt import XRTError
+from xenrt.lazylog import step
 
 class _Hotfix(xenrt.TestCase):
 
@@ -2185,3 +2186,96 @@ class TCDecryptHotfix(xenrt.TestCase):
                 raise xenrt.XRTFailure("Hotfix did not report 'incorrect version'")
         else:
             raise xenrt.XRTFailure("Hotfix should not have been applied as the version is wrong")
+
+class TCDiscSpacePlugins(xenrt.TestCase):
+    #TC-23995
+    """Test case to verify plugins added for CAR-1711 are working properly"""
+        
+    def run(self, arglist=None):
+        self.host = self.getDefaultHost()
+        plugins = ["testAvailHostDiskSpacePlugin","testCheckPatchUploadPlugin", "testGetReclaimableSpacePlugin", "testCleanupDiskSpacePlugin"]
+        #Create session on the host
+        self.session = self.host.getAPISession(secure=False)
+        self.sessionHost = self.session.xenapi.host.get_all()[0]
+        for plugin in plugins:
+            self.runSubcase(plugin, (),None , plugin)
+
+    def testAvailHostDiskSpacePlugin(self):
+        #Test functionality of 'get_avail_host_disk_space' plugin
+        step("Call get_avail_host_disk_space plugin on host")
+        actualAvailSpace = self.getAvailHostDiskSpace()/xenrt.MEGA
+        xenrt.TEC().logverbose("Available disk space returned by plugin= %sMB" %(actualAvailSpace))
+        
+        step("Fetch available disk space from df")
+        totalSpace = int(self.host.execdom0("df / -m | awk '{print$2}' | sed 1d"))
+        expectedAvailSpace =  int(self.host.execdom0("df / -m | awk '{print$4}' | sed 1d")) + (totalSpace * .05)
+        xenrt.TEC().logverbose("Expected available disk space = %sMB" %(expectedAvailSpace))
+        
+        step("Verify space returned by the plugin is equal to the value given by df")
+        if abs(actualAvailSpace-expectedAvailSpace) > 4:
+            raise xenrt.XRTFailure("get_avail_host_disk_space plugin returned invalid data. Expected=%s. Actual=%s" % (actualAvailSpace,expectedAvailSpace))
+
+    def testCheckPatchUploadPlugin(self):
+        #Test functionality of 'check_patch_upload' plugin
+        step("Call check_patch_upload plugin with size > dom0 available disk space: should returns false")
+        if str(self.checkPatchUpload(self.getAvailHostDiskSpace()))=='True':
+            raise xenrt.XRTFailure("check_patch_upload plugin returned True, Expected False")
+        
+        step("Call check_patch_upload plugin with size ~ dom0 available disk space: should returns true")
+        if str(self.checkPatchUpload(self.getAvailHostDiskSpace()/2 - 2*xenrt.MEGA)) == 'False':
+           raise xenrt.XRTFailure("check_patch_upload plugin returned False, Expected True")
+
+        step("Call check_patch_upload plugin with size < dom0 available disk space: should returns true")
+        if str(self.checkPatchUpload(self.getAvailHostDiskSpace()/2 - 20*xenrt.MEGA)) == 'False':
+            raise xenrt.XRTFailure("check_patch_upload plugin returned False, Expected True")
+
+    def testGetReclaimableSpacePlugin(self):
+        #Test functionality of 'get_reclaimable_space' plugin        
+        actualRecSpace = self.getReclaimableSpace()/xenrt.MEGA
+        
+        step("Call get_reclaimable_space plugin on host")
+        xenrt.TEC().logverbose("get_reclaimable_disk_space returned %s" % (actualRecSpace))
+
+        step("Verify value returned by the plugin is as expected")
+        expectedRecSpace = 0
+        res = self.host.execdom0("du -bs --separate-dirs /var/patch/ | awk '{print $1}'")
+        if 'No such file or directory' not in res:
+            expectedRecSpace += int(res)/xenrt.MEGA
+        res = self.host.execdom0("du -bs /opt/xensource/patch-backup/ | awk '{print $1}'")
+        if 'No such file or directory' not in res:
+            expectedRecSpace += int(res)/xenrt.MEGA
+        xenrt.TEC().logverbose("Expected reclaimable disk space is %s" % (expectedRecSpace))
+
+        if abs(actualRecSpace-expectedRecSpace) > 4:
+            raise xenrt.XRTFailure("get_reclaimable_disk_space plugin returned invalid data. Expected=%s. Actual=%s" % (actualRecSpace,expectedRecSpace))
+
+    def testCleanupDiskSpacePlugin(self):
+        #Test functionality of 'cleanup_disk_space' plugin
+        availableSpace =  self.getAvailHostDiskSpace()/xenrt.MEGA
+        reclaimableSpace = self.getReclaimableSpace()/xenrt.MEGA
+        
+        step("Call cleanup_disk_space plugin on host")
+        self.session.xenapi.host.call_plugin(self.sessionHost,'disk-space','cleanup_disk_space',{})
+
+        step("Verify available disk space is increased by value returned by getReclaimableSpace plugin")
+        newAvailableSpace = self.getAvailHostDiskSpace()/xenrt.MEGA
+        if abs(newAvailableSpace - (availableSpace + reclaimableSpace)) > 4:
+            raise xenrt.XRTFailure("cleanup_disc_space plugin didn't free expected space. Expected=%s. Actual=%s" % (reclaimableSpace,newAvailableSpace-availableSpace))
+        else:
+            xenrt.TEC().logverbose("cleanup_disc_space freed expected amount of disk space: %s" % (newAvailableSpace-availableSpace))
+
+    def getAvailHostDiskSpace(self):
+        #Return available host disk space in Bytes
+        return int(self.session.xenapi.host.call_plugin(self.sessionHost,'disk-space','get_avail_host_disk_space',{}))
+            
+    def getReclaimableSpace(self):
+        #Return reclaimable disk space in Bytes
+        return int(self.session.xenapi.host.call_plugin(self.sessionHost,'disk-space','get_reclaimable_disk_space',{}))
+
+    def checkPatchUpload(self, size):
+        #returns true if patch of given size can be uploaded, otherwise false
+        return self.session.xenapi.host.call_plugin(self.sessionHost,'disk-space','check_patch_upload',{'size': '%s'%size})
+
+    def postRun(self):
+        #close the XenAPI session
+        self.host.logoutAPISession(self.session)

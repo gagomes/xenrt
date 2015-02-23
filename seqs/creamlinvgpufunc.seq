@@ -16,12 +16,6 @@
         <arg>vgpuconfig=5</arg>
       </testcase>
 
-      <testcase id="testcases.xenserver.tc.vgpu.TCRevertvGPUSnapshot">
-        <arg>distro=10</arg>
-        <arg>typeofvgpu=nvidialinuxvgpu</arg>
-        <arg>vgpuconfig=5</arg>
-      </testcase>
-
       <testcase id="testcases.xenserver.tc.vgpu.TCvGPUBalloon" name="TC-23920" tc="TC-23920">
         <arg>distro=10</arg>
         <arg>typeofvgpu=nvidialinuxvgpu</arg>
@@ -35,9 +29,9 @@
       </testcase>
 
       <testcase id="testcases.xenserver.tc.vgpu.TCReuseK2PGPU">
-        <arg>distro=10,11</arg>
-        <arg>typeofvgpu=nvidialinuxvgpu</arg>
-        <arg>vgpuconfig=5,5</arg>
+        <arg>distro=3,11</arg>
+        <arg>vgpuconfig=3,5</arg>
+        <arg>others=nvidiawinvgpu,nvidialinuxvgpu</arg>
       </testcase>
       
       <testcase id="testcases.xenserver.tc.vgpu.TCRevertvGPUSnapshot">

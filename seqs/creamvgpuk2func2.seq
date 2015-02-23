@@ -1,0 +1,26 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+  <pool id="0">
+    <host license="enterprise-per-socket"/>
+    <storage type="nfs" name="nfs_sourceSR" />
+  </pool>  
+  </prepare>
+
+  <testsequence>
+    <serial group="LinuxGPUPassthrough">
+
+      <testcase tc="TC-20824" id="testcases.xenserver.tc.vgpu.TCOpsonK2vGPUToVMhasGotvGPU">
+        <arg>distro=10,14</arg>
+        <arg>typeofvgpu=nvidialinuxvgpu</arg>
+        <arg>vgpuconfig=11</arg>
+      </testcase>
+
+    </serial>
+  </testsequence>
+
+</xenrt>

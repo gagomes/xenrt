@@ -42,7 +42,7 @@ class XenRTAPIv2Swagger(XenRTPage):
 - Basic authentication using Citrite domain credentials<br />
 - API Key, by passing your API key (obtain <a href="/xenrt/ui/apikey">here</a>) in the x-api-key HTTP header<br />
 <br />
-<a href="/xenrt/bindings/xenrtapi.py">Download python bindings</a>"""
+<a href="/xenrtapi.tar.gz">Download python bindings/CLI (install with pip)</a>"""
             },
             "basePath": "%s/api/v2" % u.path.rstrip("/"),
             "host": u.netloc,

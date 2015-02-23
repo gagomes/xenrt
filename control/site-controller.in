@@ -543,9 +543,6 @@ if __name__ == '__main__':
 
                 # Set the user of the job to the DB events table for quick access later
                 job = xenrt.get_job(int(j))
-                if job["user"]:
-                    xenrt.new_event("JobStartUser", job['user'], str(j))
-
                 start_job(job)
                 starttimes.append(now)
                 maystart = maystart - 1

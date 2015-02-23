@@ -649,13 +649,19 @@ users:
     def getDocker(self):
 
         # The method by default uses docker interactions through Xapi.
-        if self.distro.startswith("rhel"):
-            return xenrt.lib.xenserver.docker.RHELDocker(self.getHost(),
-                                    self, xenrt.lib.xenserver.docker.UsingXapi)
-        elif self.distro.startswith("coreos"):
+        if self.distro.startswith("coreos"):
             return xenrt.lib.xenserver.docker.CoreOSDocker(self.getHost(),
                                     self, xenrt.lib.xenserver.docker.UsingXapi)
-        elif self.distro.startswith("ubuntu"):
+        elif self.distro.startswith("rhel"): # RHEL7
+            return xenrt.lib.xenserver.docker.RHELDocker(self.getHost(),
+                                    self, xenrt.lib.xenserver.docker.UsingXapi)
+        elif self.distro.startswith("centos"): # CentOS7
+            return xenrt.lib.xenserver.docker.CentOSDocker(self.getHost(),
+                                    self, xenrt.lib.xenserver.docker.UsingXapi)
+        elif self.distro.startswith("oel"): # OEL7
+            return xenrt.lib.xenserver.docker.OELDocker(self.getHost(),
+                                    self, xenrt.lib.xenserver.docker.UsingXapi)
+        elif self.distro.startswith("ubuntu"): #  Ubuntu 14.04
             return xenrt.lib.xenserver.docker.UbuntuDocker(self.getHost(),
                                     self, xenrt.lib.xenserver.docker.UsingXapi)
         else:

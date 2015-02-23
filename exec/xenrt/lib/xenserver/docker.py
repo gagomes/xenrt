@@ -11,7 +11,7 @@ import xmltodict, json
 
 __all__ = ["ContainerState", "ContainerXapiOperation", "ContainerType",
            "UsingXapi", "UsingLinux", "OperationMethod",
-           "CoreOSDocker", "RHELDocker", "UbuntuDocker"]
+           "CoreOSDocker", "RHELDocker", "CentOSDocker", "OELDocker", "UbuntuDocker"]
 
 """
 Factory class for docker container.
@@ -447,15 +447,19 @@ class Docker(object):
     def install(self): pass
 
     def check(self):
+        """Check for a working docker install"""
 
         xenrt.TEC().logverbose("Checking the installation of Docker on guest %s" % self.guest)
     
-        # Check that you have a working install
         guestCmdOut = self.guest.execguest("docker info").strip()
         if "Operating System: CoreOS" in guestCmdOut:
             xenrt.TEC().logverbose("Docker installation is running on guest %s" % self.guest)
         else: 
             raise xenrt.XRTError("Failed to find a running instance of Docker on guest %s" % self.guest)
+
+    def register(self):
+        """Register VM for XenServer container management"""
+        pass
 
     def createContainer(self, ctype=ContainerType.BUSYBOX, cname="random"):
         if cname.startswith("random"):
@@ -544,33 +548,31 @@ class Docker(object):
 Refined abstractions
 """
 
-class RHELDocker(Docker):
-    """Represents a docker installed on rhel guest"""
+class CoreOSDocker(Docker):
+    """Represents a docker integrated in coreos guest"""
 
     def install(self):
-        # https://access.redhat.com/articles/881893
-
-        # Install docker and docker-registry.
-        self.guest("yum install docker docker-registry")
-
-        # Turn off firewalld. Current conflicts with the docker service and
-        # the firewalld service require that the firewalld service be turned off.
-        self.guest("systemctl stop firewalld.service")
-        self.guest("systemctl disable firewalld.service")
-
-        #Start docker:
-        self.guest("systemctl start docker.service")
-
-        #Enable docker:
-        self.guest("systemctl enable docker.service")
-
-        #Check docker status:
-        self.guest("systemctl status docker.service")
-
-        xenrt.TEC().logverbose("Docker installation on RHEL to be implemented")
+        xenrt.TEC().logverbose("CoreOS has the docker environment by default")
 
         # Check the docker installation.
         self.check()
+
+        # Register VM for XenServer container management.
+        self.register()
+
+class CentOSDocker(Docker):
+    """Represents a docker integrated in centos guest"""
+
+    def install(self):
+
+        # Perform the installation.
+
+
+        # Check the docker installation.
+        self.check()
+
+        # Register VM for XenServer container management.
+        self.register()
 
 class UbuntuDocker(Docker):
     """Represents a docker installed on ubuntu guest"""
@@ -596,11 +598,11 @@ class UbuntuDocker(Docker):
         # Check the docker installation.
         self.check()
 
-class CoreOSDocker(Docker):
-    """Represents a docker integrated in coreos guest"""
+        # Register VM for XenServer container management.
+        self.register()
 
-    def install(self):
-        xenrt.TEC().logverbose("CoreOS has the docker environment by default")
+class RHELDocker(Docker):
+    """Represents a docker installed on rhel guest"""
 
-        # Check the docker installation.
-        self.check()
+class OELDocker(Docker):
+    """Represents a docker integrated in oel guest"""

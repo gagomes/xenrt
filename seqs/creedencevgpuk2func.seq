@@ -36,8 +36,8 @@
 
       <testcase tc="TC-20829" id="testcases.xenserver.tc.vgpu.TCReuseK2PGPU">
         <arg>distro=1,6</arg>
-        <arg>typeofvgpu=nvidiawinvgpu</arg>
         <arg>vgpuconfig=6,8</arg>
+        <arg>others=nvidiawinvgpu</arg>
       </testcase>
 
       <testcase tc="TC-20826" id="testcases.xenserver.tc.vgpu.TCCheckPerfModeAllVMs">

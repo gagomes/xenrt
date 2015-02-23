@@ -522,10 +522,12 @@ class Docker(object):
     def stopAllContainers(self):
         for container in self.containers:
             self.stopContainer(container)
+            xenrt.sleep(5)
 
     def startAllContainers(self):
         for container in self.containers:
             self.startContainer(container)
+            xenrt.sleep(5)
 
     def lifeCycleContainer(self, container):
         """Life Cycle method on a specified container"""
@@ -586,7 +588,7 @@ class UbuntuDocker(Docker):
         self.guest("ln -sf /usr/bin/docker.io /usr/local/bin/docker")
         self.guest("sed -i '$acomplete -F _docker docker' /etc/bash_completion.d/docker.io")
 
-        # Finally, and optionally, let’s configure Docker to start when the server boots.
+        # Configure Docker to start when the server boots.
         self.guest("update-rc.d docker.io defaults")
 
         xenrt.TEC().logverbose("Docker installation on Ubuntu is complete.")

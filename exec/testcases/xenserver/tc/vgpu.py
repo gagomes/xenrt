@@ -3046,6 +3046,14 @@ class BootstormBase(FunctionalBase):
     def prepare(self, arglist=[]):
         super(BootstormBase, self).prepare(arglist)
         self.vms = []
+
+        for typeOfvGPU in self.OTHERS:
+            if typeOfvGPU == self.getDiffvGPUName(DiffvGPUType.NvidiaWinvGPU):
+                self.nvidWinvGPU = self.typeofvGPU(typeOfvGPU)
+            if typeOfvGPU == self.getDiffvGPUName(DiffvGPUType.NvidiaLinuxvGPU):
+                self.nvidLinvGPU = self.typeofvGPU(typeOfvGPU)
+            if typeOfvGPU == self.getDiffvGPUName(DiffvGPUType.IntelWinvGPU):
+                self.nvidWinvGPU = self.typeofvGPU(typeOfvGPU)
     
     def run(self, arglist):
         """Should perform the bootstorm steps with all available vms."""
@@ -3064,9 +3072,11 @@ class BootstormBase(FunctionalBase):
 
         for vm in self.vms:
             if vm.windows:
-                NvidiaWindowsvGPU().assertvGPURunningInVM(vm, None)
+                # I don't know what the config is going to be in advance.
+                self.nvidWinvGPU.assertvGPURunningInVM(vm, self.getConfigurationName(config))
             else:
-                NvidiaLinuxvGPU().assertvGPURunningInVM(vm, None)
+                # Second param doesn't do anything.
+                self.nvidLinvGPU.assertvGPURunningInVM(vm, None)
 
     def postRun(self):
         for vm in self.vms:
@@ -3122,6 +3132,8 @@ class LinuxGPUBootstorm(BootstormBase):
             g = vm.cloneVM(noIP=False)
             self.vms.append(g)
 
+            g.setState("UP")
+
 class MixedGPUBootstorm(BootstormBase):
     
     # From seq file.
@@ -3158,7 +3170,7 @@ class MixedGPUBootstorm(BootstormBase):
         # Install gpu on linux master.
         installer.createOnGuest(linuxMaster)
         linuxMaster.setState("UP")
-        NvidiaLinuxvGPU().installGuestDrivers(linuxMaster)
+        self.nvidLinvGPU.installGuestDrivers(linuxMaster)
         linuxMaster.setState("DOWN")
         self.vms.append(linuxMaster)
         
@@ -3176,7 +3188,7 @@ class MixedGPUBootstorm(BootstormBase):
         winPassthroughMaster = windowsMaster.cloneVM(noIP=False)
         installer.createOnGuest(winPassthroughMaster)
         winPassthroughMaster.setState("UP")
-        NvidiaWindowsvGPU().installGuestDrivers(winPassthroughMaster)
+        self.nvidWinvGPU.installGuestDrivers(winPassthroughMaster)
         winPassthroughMaster.setState("DOWN")
         self.vms.append(winPassthroughMaster)
 
@@ -3198,7 +3210,7 @@ class MixedGPUBootstorm(BootstormBase):
 
             installer.createOnGuest(windowsMaster)
             windowsMaster.setState("UP")
-            NvidiaWindowsvGPU().installGuestDrivers(windowsMaster)
+            self.nvidWinvGPU.installGuestDrivers(windowsMaster)
             windowsMaster.setState("DOWN")
             self.vms.append(windowsMaster)
 

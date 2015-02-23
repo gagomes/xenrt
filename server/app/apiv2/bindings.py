@@ -17,6 +17,7 @@ class Path(object):
         self.fileParams = []
         self.pathParams = []
         self.queryParams = []
+        self.returnKey = None
         self.parseParams()
 
     def pythonParamName(self, param):
@@ -57,18 +58,24 @@ class Path(object):
             for p in self.formParams:
                 q = self.pythonParamName(p)
                 if p in self.fileParams:
-                    ret += """        if %s != None:\n            files['%s'] = (os.path.basename(%s), open(%s, 'rb'))\n""" % (q, p, q, q)
+                    ret += """        if %s != None:\n            files['%s'] = (os.path.basename(%s), open(%s, 'rb'))\n        else:\n            files['%s'] = ('stdin', sys.stdin)\n""" % (q, p, q, q, p)
                 else:
                     ret += """        if %s != None:\n            payload['%s'] = %s\n""" % (q, p, q)
         if self.method == "get":
             ret += """        r = requests.get(path, params=paramdict, headers=self.customHeaders)\n"""
         else:
-            ret += """        myHeaders = {'content-type': 'application/json'}\n"""
+            if self.formParams:
+                ret += """        myHeaders = {}\n"""
+            else:
+                ret += """        myHeaders = {'content-type': 'application/json'}\n"""
             ret += """        myHeaders.update(self.customHeaders)\n"""
             ret += """        r = requests.%s(path, params=paramdict, data=payload, files=files, headers=myHeaders)\n""" % self.method
         ret += """        self.__raiseForStatus(r)\n"""
         if 'application/json' in self.data['produces']:
-            ret += """        return r.json()"""
+            if self.returnKey:
+                ret += """        return r.json()['%s']""" % self.returnKey
+            else:
+                ret += """        return r.json()"""
         else:
             ret += """        return r.content"""
         return ret
@@ -129,6 +136,9 @@ class Path(object):
                     self.args.append("%s=%s" % (pname, p[1]))
                 self.argdesc.append("%s: %s" % (pname, argdesc.get(p[0], "")))
 
+        if self.data.get('returnKey'):
+            self.returnKey = self.data.get('returnKey')
+
     @property
     def methodSignature(self):
         return "    def %s(%s):" % (self.methodName, self.methodParams)
@@ -187,6 +197,7 @@ import json
 import httplib
 import os.path
 import base64
+import sys
 
 class XenRTAPIException(Exception):
     def __init__(self, code, reason, canForce):
@@ -201,8 +212,10 @@ class XenRTAPIException(Exception):
         return ret
 
 class XenRT(object):
-    def __init__(self, apikey=None, user=None, password=None):
-        self.base = "%s://%s%s"
+    def __init__(self, apikey=None, user=None, password=None, server=None):
+        if not server:
+            server ="%s"
+        self.base = "%s://%%s%s" %% server
 
         self.customHeaders = {}
         if apikey:
@@ -210,14 +223,6 @@ class XenRT(object):
         elif user and password:
             base64string = base64.encodestring('%%s:%%s' %% (user, password)).replace('\\n', '')
             self.customHeaders["Authorization"] = "Basic %%s" %% base64string
-
-
-
-    def set_fake_user(self, user):
-        if not user and "X-Fake-User" in self.customHeaders:
-            del self.customHeaders["X-Fake-User"]
-        elif user:
-            self.customHeaders["X-Fake-User"] = user
 
     def __serializeForQuery(self, data):
         if isinstance(data, bool):
@@ -248,7 +253,7 @@ class XenRT(object):
                                         canForce)
         response.raise_for_status()
 
-""" % (self.scheme, self.host, self.base)
+""" % (self.host, self.scheme, self.base)
         for func in self.funcs:
             ret += "%s\n" % func.methodSignature
             ret += "%s\n" % func.description
@@ -257,4 +262,4 @@ class XenRT(object):
     
         return ret
 
-PageFactory(PythonBindings, "bindings/xenrtapi.py", reqType="GET", contentType="text/plain")
+PageFactory(PythonBindings, "bindings/__init__.py", reqType="GET", contentType="text/plain")

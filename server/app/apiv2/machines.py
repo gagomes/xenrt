@@ -105,7 +105,7 @@ class _MachineBase(XenRTAPIv2Page):
                 "rawstatus": rc[4].strip(),
                 "status": self.getMachineStatus(rc[4].strip(), rc[7].strip() if rc[7] else None, rc[3].strip()),
                 "flags": [],
-                "description": rc[14].strip() if rc[14].strip() else None,
+                "description": rc[14].strip() if rc[14] and rc[14].strip() else None,
                 "resources": {},
                 "leaseuser": rc[7].strip() if rc[7] else None,
                 "leaseto": calendar.timegm(rc[8].timetuple()) if rc[8] else None,
@@ -125,7 +125,7 @@ class _MachineBase(XenRTAPIv2Page):
                 machine['resources'][key] = value
                 
 
-            siteflags = rc[12].strip().split(",") if rc[12] and rc[12].split(",") else []
+            siteflags = rc[12].strip().split(",") if rc[12] and rc[12].strip() else []
             machine['flags'].extend(siteflags)
 
             ret[rc[0].strip()] = machine

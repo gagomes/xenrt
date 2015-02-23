@@ -209,14 +209,14 @@ class UpdateSite(_SiteBase):
         if data.get("flags"):
             u.append(("flags", ",".join(data['flags'])))
 
-        
+        if len(u) == 0:
+            return
         sqlset = []
         vals = []
         for field, val in u:
             sqlset.append("%s = %%s" % field)
             vals.append(val)
         vals.append(site)
-        print vals
         sql = "UPDATE tblSites SET %s WHERE site = %%s" % (",".join(sqlset))
 
         cur = self.getDB().cursor()

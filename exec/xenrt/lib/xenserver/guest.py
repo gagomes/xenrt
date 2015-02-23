@@ -482,7 +482,7 @@ class Guest(xenrt.GenericGuest):
             if xenrt.TEC().lookup("FORCE_NX_DISABLE", False, boolean=True):
                 self.paramSet("platform:nx", "false")
             self.installWindows(self.isoname)
-        elif "coreos-" in distro:
+        elif distro and "coreos-" in distro:
             self.enlightenedDrivers=True
             notools = True # CoreOS has tools installed already
             self.installCoreOS()
@@ -1188,7 +1188,12 @@ at > c:\\xenrtatlog.txt
         if self.getState() in ['UP', 'PAUSED']:
             self.reboot()
 
-    def installDrivers(self, source=None, extrareboot=False):
+    def setDriversBootStart(self):
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\services\\xenvif", "Start", "DWORD", 0)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\services\\xennet", "Start", "DWORD", 0)
+        self.reboot()
+
+    def installDrivers(self, source=None, extrareboot=False, expectUpToDate=True):
         """Install PV drivers into a guest"""
 
         if not self.windows:
@@ -1276,11 +1281,19 @@ at > c:\\xenrtatlog.txt
 
         # If the file is tar.bz2 then it's probably a Carbon package
         # file containing an ISO. Unpack it
+        decompress = None
         if tmpfile[-8:] == ".tar.bz2" or re.search(r"bzip2", ftype):
+            decompress = "j"
+        elif tmpfile[-4:] == ".tgz" or tmpfile[-7:] == ".tar.gz" or re.search(r"gzip", ftype):
+            decompress = "z"
+        if decompress:
             unpack = xenrt.TEC().tempDir()
-            xenrt.util.command("tar -jxf %s -C %s" % (tmpfile, unpack))
-            tmpfile = string.strip(xenrt.util.command("find %s -type f | "
+            xenrt.util.command("tar -%sxf %s -C %s" % (decompress, tmpfile, unpack))
+            tmpfile = string.strip(xenrt.util.command("find %s -type f -name \"xensetup.exe\" | "
                                                       "head -n 1" % (unpack)))
+            if tmpfile == "":
+                tmpfile = string.strip(xenrt.util.command("find %s -type f -name \"*.exe\" | "
+                                                          "head -n 1" % (unpack)))
             if tmpfile == "":
                 raise xenrt.XRTError("Could not find installer inside tarball")
 
@@ -1337,7 +1350,7 @@ at > c:\\xenrtatlog.txt
             except:
                 pass
 
-        self.waitForAgent(300)
+        self.waitForAgent(300, checkPvDriversUpToDate=expectUpToDate)
         self.enlightenedDrivers = True
 
         if extrareboot:
@@ -3057,6 +3070,9 @@ exit /B 1
     def instantiateSnapshot(self, uuid, name=None, timer=None, sruuid=None, noIP=False):
         return self._cloneCopyVM("instance", name, timer, sruuid, uuid=uuid, noIP=noIP)
 
+    def cloneTemplate(self, name=None, timer=None, sruuid=None, noIP=True):
+        return self._cloneCopyVM("instance", name, timer, sruuid, noIP=noIP)
+
     def _cloneCopyVM(self, operation, name, timer, sruuid, uuid=None, noIP=True):
         cli = self.getCLIInstance()
         g_uuid = None
@@ -3088,6 +3104,8 @@ exit /B 1
             g_uuid = cli.execute("vm-clone", string.join(args)).strip()
         # Instantiate a snapshot.
         elif operation == "instance":
+            if uuid is None:
+                uuid = self.getUUID()
             template = self.getHost().genParamGet("template", 
                                                   uuid, 
                                                   "name-label")
@@ -4254,6 +4272,7 @@ exit /B 1
         self.shutdown()
         self.changeCD(None)
         self.paramSet("is-a-template", "true")
+        self.host.removeGuest(self.name)
 
 #############################################################################
 
@@ -5035,14 +5054,14 @@ class BostonGuest(MNRGuest):
             self.disableIPv4()
             self.ipv4_disabled = True
 
-    def installDrivers(self, source=None, extrareboot=False, useLegacy=False):
+    def installDrivers(self, source=None, extrareboot=False, useLegacy=False, expectUpToDate=True):
         if not self.windows:
             xenrt.TEC().skip("Non Windows guest, no drivers to install")
             return
         self.installWICIfRequired()
         self.installDotNet4()
         self.disableIPV4IfRequired()
-        MNRGuest.installDrivers(self, source, extrareboot)
+        MNRGuest.installDrivers(self, source, extrareboot, expectUpToDate)
 
     def setWindowsHostname(self, hostname):
         if self.windows:
@@ -5202,7 +5221,11 @@ class TampaGuest(BostonGuest):
             pvToolsDir = "D:"
             if pvToolsTgz:
                 xenrt.TEC().logverbose("Using tools from: %s" % pvToolsTgz)
-                self.xmlrpcSendFile(xenrt.TEC().getFile(pvToolsTgz), "c:\\tools.tgz")
+                if os.path.exists(pvToolsTgz):
+                    toolsTgz = pvToolsTgz
+                else:
+                    toolsTgz = xenrt.TEC().getFile(pvToolsTgz)
+                self.xmlrpcSendFile(toolsTgz, "c:\\tools.tgz")
                 pvToolsDir = self.xmlrpcTempDir()
                 self.xmlrpcExtractTarball("c:\\tools.tgz", pvToolsDir)
 

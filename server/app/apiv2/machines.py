@@ -231,12 +231,14 @@ class _MachineBase(XenRTAPIv2Page):
         leaseFrom = time.strftime("%Y-%m-%d %H:%M:%S",
                                 time.gmtime(time.time()))
         if duration:
+            forever = False 
             leaseToTime = time.gmtime(time.time() + (duration * 3600))
             leaseTo = time.strftime("%Y-%m-%d %H:%M:%S", leaseToTime)
         else: 
             leaseTo = "2030-01-01 00:00:00"
             leaseToTime = time.strptime(leaseTo, "%Y-%m-%d %H:%M:%S")
             duration = (calendar.timegm(leaseToTime) - time.time()) / 3600
+            forever = True 
         
 
         machines = self.getMachines(limit=1, machines=[machine], exceptionIfEmpty=True)
@@ -249,7 +251,7 @@ class _MachineBase(XenRTAPIv2Page):
         if leasedTo and leasedTo != user and not force:
             raise XenRTAPIError(HTTPUnauthorized, "Machine is already leased to %s" % leasedTo, canForce=True)
         currentLeaseTime = machines[machine]['leaseto']
-        if currentLeaseTime and time.gmtime(currentLeaseTime) > leaseToTime and not force:
+        if not forever and currentLeaseTime and time.gmtime(currentLeaseTime) > leaseToTime and not force:
             raise XenRTAPIError(HTTPNotAcceptable, "Machines is already leased for longer", canForce=True)
 
         db = self.getDB()

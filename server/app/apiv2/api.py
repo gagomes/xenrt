@@ -22,7 +22,7 @@ class _APIKeyBase(XenRTAPIv2Page):
         user = self.getUser()
         cur = self.getDB().cursor()
         try:
-            cur.execute("DELETE FROM tblapikeys WHERE user=%s", [user])
+            cur.execute("DELETE FROM tblapikeys WHERE userid=%s", [user])
             key = base64.b64encode(hashlib.sha224( str(random.getrandbits(256)) ).digest())[:38]
             cur.execute("INSERT INTO tblapikeys(userid, apikey) VALUES(%s,%s)", [user, key])
         finally:

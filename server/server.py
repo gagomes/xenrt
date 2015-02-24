@@ -9,6 +9,8 @@ import config
 
 import uuid
 import json
+import traceback
+import sys
 
 #def launch_memory_usage_server(port = 8080):
 #    import cherrypy
@@ -69,7 +71,17 @@ class PageFactory(object):
 
     def __call__(self, context, request):
         page = self.page(request)
-        ret = page.renderWrapper()
+        try:
+            ret = page.renderWrapper()
+        except Exception, e:
+            if isinstance(e, HTTPException):
+                raise
+            else:
+                traceback.print_exc(sys.stderr)
+                if self.json:
+                    raise HTTPInternalServerError(body=json.dumps({"reason": str(e), "traceback": traceback.format_exc()}), content_type="application/json")
+                else:
+                    raise HTTPInternalServerError(body="Internal Server error:\n\n%s" % traceback.format_exc(), content_type="text/plain")
         if self.contentType:
             request.response.content_type = self.contentType
         if self.string and ret and isinstance(ret, basestring) and not ret[-1] == "\n":

@@ -980,8 +980,7 @@ class TC10665(_SupplementalPacksPostInstall):
 class _VgpuSuppackInstall(xenrt.TestCase):
     #verify vGPU suppack install on host 
     def isNvidiaVgpuSuppackInstalled(self, host):
-        if "NVIDIA Corporation" in host.execdom0("xe vgpu-type-list"):
-            return True
+        return "NVIDIA Corporation" in host.execdom0("xe vgpu-type-list")
 
 
 class TCinstallNvidiaVgpuHostSupPacks(_VgpuSuppackInstall):

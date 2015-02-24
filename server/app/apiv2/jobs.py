@@ -402,7 +402,7 @@ class GetTest(_JobBase):
         {'name': 'id',
          'in': 'path',
          'required': True,
-         'description': 'Job ID to fetch',
+         'description': 'Test detail ID to fetch',
          'type': 'integer'},
          {'default': False,
           'description': 'Return the log items for all testcases in the job. Defaults to false',

@@ -261,7 +261,7 @@ class _MachineBase(XenRTAPIv2Page):
         if machines[machine]['aclid']:
             result, reason = self.getACLHelper().check_acl(machines[machine]['aclid'], user, 1, duration)
             if not result:
-                raise XenRTAPIError(HTTPUnauthorized, reason, canForce=False)
+                raise XenRTAPIError(HTTPUnauthorized, "ACL: %s" % reason, canForce=False)
 
         db = self.getDB()
         cur = db.cursor()

@@ -2174,19 +2174,19 @@ class TCReuseK2PGPU(FunctionalBase):
             log("Creating Master VM of type %s" % osType)
             vm = self.createMaster(osType)
             if vm.windows:
-                obj = self.nvidWinvGPU
+                typeOfVgpu = self.nvidWinvGPU
             else:
-                obj = self.nvidLinvGPU
+                typeOfVgpu = self.nvidLinvGPU
 
             log("Creating vGPU of type %s" % (self.getConfigurationName(config)))
             self.configureVGPU(config, vm)
             vm.setState("UP")
 
             log("Install guest drivers for %s" % str(vm))
-            obj.installGuestDrivers(vm)
+            typeOfVgpu.installGuestDrivers(vm)
 
             log("Checking whether vGPU is runnnig on the VM or not")
-            obj.assertvGPURunningInVM(vm,self.getConfigurationName(config))
+            typeOfVgpu.assertvGPURunningInVM(vm,self.getConfigurationName(config))
 
             vm.setState("DOWN")
 
@@ -2244,11 +2244,11 @@ class TCReuseK2PGPU(FunctionalBase):
                 if totalVMsUP < MaxNumOfVGPUPerPGPU[config]:
                     vm.setState("UP")
                     if vm.windows:
-                        obj = self.nvidWinvGPU
+                        typeOfVgpu = self.nvidWinvGPU
                     else:
-                        obj = self.nvidLinvGPU
+                        typeOfVgpu = self.nvidLinvGPU
                     log("Checking whether vGPU is runnnig on the VM or not")
-                    obj.assertvGPURunningInVM(vm,self.getConfigurationName(config))
+                    typeOfVgpu.assertvGPURunningInVM(vm,self.getConfigurationName(config))
                     lastvm = vm
                 else:
                     leftVMs[config] = vm
@@ -2259,11 +2259,11 @@ class TCReuseK2PGPU(FunctionalBase):
 
             leftVMs[config].setState("UP")
             if leftVMs[config].windows:
-                obj = self.nvidWinvGPU
+                typeOfVgpu = self.nvidWinvGPU
             else:
-                obj = self.nvidLinvGPU
+                typeOfVgpu = self.nvidLinvGPU
 
-            obj.assertvGPURunningInVM(leftVMs[config],self.getConfigurationName(config))
+            typeOfVgpu.assertvGPURunningInVM(leftVMs[config],self.getConfigurationName(config))
 
             for vm in self.VMs[config]:
                 log("Shuting down VM of vGPU config %s" % self.getConfigurationName(config))

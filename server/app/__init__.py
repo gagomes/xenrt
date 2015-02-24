@@ -3,7 +3,6 @@ import app.db
 import app.ad
 import config
 import time
-import math
 from pyramid.httpexceptions import *
 
 class XenRTPage(Page):

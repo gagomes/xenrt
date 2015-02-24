@@ -654,9 +654,16 @@ class XenRTSchedule(XenRTAPIPage):
 
         existingPolicies = self.get_acls_for_machines(already_selected)
 
+        # TODO: Currently if scheduling from a cluster which has
+        #       machines from different ACLs we take a pessimistic
+        #       view where we assume all machines will be coming
+        #       from that ACL (capped to the number of machines in the ACL).
+        #       This is overly limiting, particularly in a CROSS_CLUSTER
+        #       situation!
+
         # Go through each policy and check if we're OK
         for p in policies.keys():
-            machineCount = number # We want 'number' extra machines
+            machineCount = min(number, policies[p]) # We want 'number' extra machines
             if existingPolicies.has_key(p):
                 # We do however have to add on any already selected machines in the same ACL as these won't
                 # be taken into account otherwise

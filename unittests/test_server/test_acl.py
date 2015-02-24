@@ -22,8 +22,8 @@ class AclTests(XenRTUnitTestCase):
 
     def test_check_acl(self):
         """Tests check_acl parent/child handling"""
-        parentAcl = app.acl.ACL(1, "parent", None, [])
-        childAcl = app.acl.ACL(2, "child", 1, [])
+        parentAcl = app.acl.ACL(1, "parent", None, [], {})
+        childAcl = app.acl.ACL(2, "child", 1, [], {})
         self.acl.get_acl = Mock(side_effect = lambda aclid: aclid == 1 and parentAcl or childAcl)
 
         # Parent
@@ -59,9 +59,6 @@ class AclTests(XenRTUnitTestCase):
 
     def _setupAclReturns(self):
         """Sets up the mocked ACL environment"""
-        def getMachinesInAcl(aclid):
-            return {"machine1":"user1", "machine2":"user2", "machine3":None, "machine4":None, "machine5":None, "machine6":None}
-        self.acl.get_machines_in_acl = getMachinesInAcl
         def groupsForUserId(userid):
             if userid in ["user1","user2"]:
                 return ["group1"]
@@ -72,7 +69,7 @@ class AclTests(XenRTUnitTestCase):
                 return ["user1","user2"]
             return []
         self.acl._userids_for_group = useridsForGroup
-        return app.acl.ACL(1, "test", None, [])
+        return app.acl.ACL(1, "test", None, [], {"machine1":"user1", "machine2":"user2", "machine3":None, "machine4":None, "machine5":None, "machine6":None})
 
     # User limit tests use user1 who is already using 1 machine
 

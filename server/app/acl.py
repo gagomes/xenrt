@@ -1,13 +1,14 @@
 # ACL objects
-import math
+import math, copy
 
 class ACL(object):
 
-    def __init__(self, aclid, name, parent, entries):
+    def __init__(self, aclid, name, parent, entries, machines):
         self.aclid = aclid
         self.name = name
         self.parent = parent
         self.entries = entries
+        self.machines = machines
 
 class ACLEntry(object):
 
@@ -26,8 +27,14 @@ class ACLHelper(object):
         self.page = page
         self._groupCache = {}
         self._userGroupCache = {}
+        self._aclCache = {}
 
     def get_acl(self, aclid):
+        if not aclid in self._aclCache:
+            self._get_acl(aclid)
+        return self._aclCache[aclid]
+
+    def _get_acl(self, aclid):
         db = self.page.getDB()
         cur = db.cursor()
 
@@ -51,9 +58,9 @@ class ACLHelper(object):
 
             entries.append(ACLEntry(rc[0].strip(), rc[1].strip(), __int(rc[2]), __int(rc[3]), __int(rc[4]), __int(rc[5]), __int(rc[6])))
 
-        return ACL(aclid, name, parent, entries)
+        self._aclCache[aclid] = ACL(aclid, name, parent, entries, self._get_machines_in_acl(aclid))
 
-    def get_machines_in_acl(self, aclid):
+    def _get_machines_in_acl(self, aclid):
         db = self.page.getDB()
         machines = {}
         cur = db.cursor()
@@ -73,19 +80,18 @@ class ACLHelper(object):
 
         return machines
 
-    def check_acl(self, aclid, userid, number, leaseHours=None):
+    def check_acl(self, aclid, userid, number, leaseHours=None, ignoreParent=False):
         """Returns a tuple (allowed, reason_if_false) if the given user can have 'number' additional machines under this acl"""
         acl = self.get_acl(aclid)
         result, reason = self._check_acl(acl, userid, number, leaseHours)
-        if result and acl.parent:
+        if result and acl.parent and not ignoreParent:
             # We have to check the parent ACL as well
             return self._check_acl(self.get_acl(acl.parent), userid, number, leaseHours)
         return result, reason 
 
     def _check_acl(self, acl, userid, number, leaseHours=None):
         """Returns True if the given user can have 'number' additional machines under this acl"""
-        # Identify all machines that use this aclid and who the active user is in each case (including where this aclid is a parent)
-        machines = self.get_machines_in_acl(acl.aclid)
+        machines = copy.copy(acl.machines)
         usergroups = self._groups_for_userid(userid)
         usercount = number # Count of machines this user has
         for m in machines:

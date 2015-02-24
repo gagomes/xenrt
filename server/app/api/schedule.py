@@ -615,6 +615,8 @@ class XenRTSchedule(XenRTAPIPage):
         db = self.getDB()
         policies = {}
         cur = db.cursor()
+
+        # First identify the set of acls and the number of machines from 'machines' that are in that acl
         cur.execute("SELECT aclid, COUNT(machine) FROM tblmachines WHERE machine IN (%s) AND aclid IS NOT NULL GROUP BY aclid" %
                     (','.join(map(lambda m: "'%s'" % m, machines))))
         while True:
@@ -622,13 +624,11 @@ class XenRTSchedule(XenRTAPIPage):
             if not rc:
                 break
             policies[int(rc[0])] = int(rc[1])
-        db.commit()
-        cur.close()
 
         if len(policies.keys()) == 0:
             return policies
 
-        cur = db.cursor()
+        # Now identify any parent acls that we need to check
         cur.execute("SELECT a.parent, COUNT(m.machine) FROM tblmachines AS m INNER JOIN tblacls AS a ON m.aclid=a.aclid WHERE machine IN (%s) AND a.parent IS NOT NULL GROUP BY a.parent" %
                     (','.join(map(lambda m: "'%s'" % m, machines))))
         while True:
@@ -637,10 +637,10 @@ class XenRTSchedule(XenRTAPIPage):
                 break
             p = int(rc[0])
             if policies.has_key(p):
+                # The ACL is in use both directly on some machines and as a parent, so we add the numbers together
                 policies[p] += int(rc[1])
             else:
                 policies[p] = int(rc[1])
-        db.commit()
         cur.close()
 
         return policies      
@@ -652,15 +652,17 @@ class XenRTSchedule(XenRTAPIPage):
             # No policies for these machines, so all are OK
             return True
 
-        # Identify policies any already selected machines are in, and increment the counts
         existingPolicies = self.get_acls_for_machines(already_selected)
-        for p in existingPolicies.keys():
-            if policies.has_key(p):
-                policies[p] += existingPolicies[p]
 
         # Go through each policy and check if we're OK
         for p in policies.keys():
-            if not self.getACLHelper().check_acl(p, userid, policies[p])[0]:
+            machineCount = number # We want 'number' extra machines
+            if existingPolicies.has_key(p):
+                # We do however have to add on any already selected machines in the same ACL as these won't
+                # be taken into account otherwise
+                machineCount += existingPolicies[p]
+
+            if not self.getACLHelper().check_acl(p, userid, machineCount, ignoreParent=True)[0]:
                 return False
 
         return True

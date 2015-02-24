@@ -3072,10 +3072,9 @@ class BootstormBase(FunctionalBase):
 
     def postRun(self):
         for vm, config in self.vms:
-            try:
-                    self.host.removeGuest(vm)
-                    vm.uninstall()
-            except: pass
+            if self.host.getGuest(vm):
+                self.host.removeGuest(vm)
+            vm.uninstall()
 
         super(BootstormBase, self).postRun()
 

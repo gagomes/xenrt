@@ -12,7 +12,7 @@ def XenRTAPIError(errtype, reason, canForce=None):
     ret = {"reason": reason}
     if canForce != None:
         ret['can_force'] = canForce
-    return errtype(body=json.dumps(ret, encoding="latin-1"))
+    return errtype(body=json.dumps(ret, encoding="latin-1"), content_type="application/json")
 
 class ApiRegistration(object):
     def __init__(self):

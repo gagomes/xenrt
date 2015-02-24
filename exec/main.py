@@ -1852,7 +1852,7 @@ if releaselock:
                 # Check ID
                 if lock[0] == releaselock:
                     if lock[2]['jobid']:
-                        jobdict = xenrt.APIFactory().get_job(int(lock[2]['jobid']))['params']
+                        jobdict = xenrt.GEC().dbconnect.api.get_job(int(lock[2]['jobid']))['params']
                         pid = jobdict['HARNESS_PID']
                         # See if this PID is still running
                         pr = xenrt.util.command("ps -p %s | wc -l" % (pid),strip=True)

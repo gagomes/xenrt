@@ -236,7 +236,8 @@ class DBConnect(object):
 
 def APIFactory():
     config = ConfigParser.ConfigParser()
-    config.read("%s/.xenrtrc" % os.path.expanduser("~"))
+    if not config.read("%s/.xenrtrc" % os.path.expanduser("~")):
+        raise xenrt.XRTError("Could not read .xenrtrc config file")
     apikey = config.get("xenrt", "apikey").strip()
     try:
         server = config.get("xenrt", "server").strip()

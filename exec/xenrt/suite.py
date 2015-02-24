@@ -470,7 +470,6 @@ class Suite(SuiteConfigurable):
             for jobid in jobids:
                 sys.stderr.write("Removing job %u\n" % (jobid))
                 self.api.remove_job(jobid)
-                xenrt.GEC().dbconnect.jobRemove(jobid)
             raise xenrt.XRTError("Error starting jobs for testrun %s" %
                                  (testrun))
         if not debug and not xenrt.TEC().lookup(["CLIOPTIONS", "SUITE_TESTRUN_RERUN"], None):

@@ -41,7 +41,10 @@ def findSeqFile(seqfile):
     return filename
 
 def _expandVar(m):
-    return xenrt.TEC().lookup(m.group(1))
+    res = xenrt.TEC().lookup(m.group(1))
+    if type(res) is list:
+        return ",".join(res)
+    return str(res)
 
 def expand(s, p):
     """Expand a string with parameter names"""

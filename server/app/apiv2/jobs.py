@@ -9,6 +9,8 @@ import config
 import urlparse
 import StringIO
 import requests
+import time
+import smtplib
 
 class _JobBase(_MachineBase):
 
@@ -93,6 +95,8 @@ class _JobBase(_MachineBase):
                 "params": {},
                 "user": rc[5].strip(),
                 "status": self.getJobStatus(rc[4].strip(), rc[8]),
+                "rawstatus": rc[4].strip(),
+                "removed": True if rc[8] and rc[8].strip() == "yes" else False,
                 "machines": rc[6].strip().split(",") if rc[6] else [],
                 "results": []
             }
@@ -143,6 +147,8 @@ class _JobBase(_MachineBase):
                 mlist = mlist.replace(",,",",")
                 mlist = mlist.strip()
                 mlist = mlist.strip(",")
+            if not mlist and "MACHINE" in jobs[j]['params']:
+                mlist = jobs[j]['params']["MACHINE"]
             if mlist:
                 jobs[j]['machines'] = mlist.split(",")
             jobs[j]['description'] = jobs[j]['params'].get("JOBDESC", jobs[j]['params'].get("DEPS"))
@@ -169,7 +175,7 @@ class _JobBase(_MachineBase):
                     "logUploadUrl": "%s://%s%s/api/v2/test/%d/log" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), rc[2]),
                     "logUrl": logUrl,
                     "logUploaded": rc[5] and rc[5].strip() == "yes",
-                    "jobId": j
+                    "jobId": rc[0]
                 }
                 detailids[rc[2]] = rc[0]
             if getLog:
@@ -339,6 +345,9 @@ class ListJobs(_JobBase):
         machines = self.getMultiParam("machine")
         excludeusers = self.getMultiParam("excludeuser")
         limit = int(self.request.params.get("limit", 100))
+
+        if limit == 0:
+            limit = 10000
        
         suiteruns = self.getMultiParam("suiterun")
 
@@ -560,8 +569,10 @@ class NewJob(_JobBase):
     OPERATION_ID = "new_job"
     PARAM_ORDER=["machines", "pools", "flags", "resources", "specified_machines", "sequence", "custom_sequence", "params", "deployment", "job_group", "email", "inputdir", "lease_machines"]
 
-    def updateJobField(self, field, value):
+    def updateJobField(self, field, value, params={}):
         _JobBase.updateJobField(self, self.jobid, field, value, commit=False, lookupExisting=False)
+        if field in params:
+            del params[field]
 
     def newJob(self,
                pools=None,
@@ -577,6 +588,15 @@ class NewJob(_JobBase):
                email=None,
                inputdir=None,
                lease=None):
+        
+        if not params:
+            params = {}
+
+        if params.has_key("JOBGROUP") and params.has_key("JOBGROUPTAG") and not jobGroup:
+            jobGroup = {"id": params['JOBGROUP'], "tag": params['JOBGROUPTAG']}
+       
+        if "USERID" in params:
+            del params['USERID']
 
         db = self.getDB()
         cur = db.cursor()
@@ -589,32 +609,29 @@ class NewJob(_JobBase):
         db.commit() # Commit to release the lock
 
         if specifiedMachines:
-            self.updateJobField("MACHINE", ",".join(specifiedMachines))
-            self.updateJobField("MACHINES_SPECIFIED", "yes")
-            self.updateJobField("MACHINES_REQUIRED", str(len(specifiedMachines)))
+            self.updateJobField("MACHINE", ",".join(specifiedMachines), params)
+            self.updateJobField("MACHINES_SPECIFIED", "yes", params)
+            self.updateJobField("MACHINES_REQUIRED", str(len(specifiedMachines)), params)
         else:
             if resources:
-                self.updateJobField("RESOURCES_REQUIRED", ",".join(resources))
+                self.updateJobField("RESOURCES_REQUIRED", ",".join(resources), params)
             if flags:
-                self.updateJobField("FLAGS", ",".join(flags))
+                self.updateJobField("FLAGS", ",".join(flags), params)
             if pools:
-                self.updateJobField("POOL", ",".join(pools))
+                self.updateJobField("POOL", ",".join(pools), params)
             if numberMachines:
-                self.updateJobField("MACHINES_REQUIRED", str(numberMachines))
-            else:
-                self.updateJobField("MACHINES_REQUIRED", "1")
+                self.updateJobField("MACHINES_REQUIRED", str(numberMachines), params)
+            elif not "MACHINES_REQUIRED" in params:
+                self.updateJobField("MACHINES_REQUIRED", "1", params)
 
         if deployment:
             sequence = "deployment.seq"
             customSequence = True
 
         if sequence:
-            self.updateJobField("DEPS", sequence)
+            self.updateJobField("DEPS", sequence, params)
             if customSequence:
-                self.updateJobField("CUSTOM_SEQUENCE", "yes")
-
-        if not params:
-            params = {}
+                self.updateJobField("CUSTOM_SEQUENCE", "yes", params)
         
         if jobGroup:
             try:
@@ -633,18 +650,18 @@ class NewJob(_JobBase):
         params['JOB_FILES_SERVER'] = config.log_server
         params['LOG_SERVER'] = config.log_server
 
-        for p in params.keys():
-            self.updateJobField(p, params[p])
-
         if email:
-            self.updateJobField("EMAIL", email)
+            self.updateJobField("EMAIL", email, params)
 
         if inputdir:
-            self.updateJobField("INPUTDIR", inputdir)
+            self.updateJobField("INPUTDIR", inputdir, params)
 
         if lease and lease.get("duration"):
-            self.updateJobField("MACHINE_HOLD_FOR", lease['duration'] * 60)
-            self.updateJobField("MACHINE_HOLD_REASON", lease.get("reason", ""))
+            self.updateJobField("MACHINE_HOLD_FOR", lease['duration'] * 60, params)
+            self.updateJobField("MACHINE_HOLD_REASON", lease.get("reason", ""), params)
+
+        for p in params.keys():
+            self.updateJobField(p, params[p])
 
         db.commit()
         cur.close()
@@ -693,6 +710,7 @@ class _GetAttachmentUrl(_JobBase):
          'type': 'string'}]
     RESPONSES = { "200": {"description": "Successful response"}}
     TAGS = ["jobs"]
+    RETURN_KEY="url"
 
     def render(self):
         job = int(self.request.matchdict['id'])
@@ -788,7 +806,73 @@ class UpdateJob(_JobBase):
         self.getDB().commit()
         return {}
     
+class EmailJob(_JobBase):
+    PATH = "/job/{id}/email"
+    REQTYPE = "POST"
+    SUMMARY = "Gets a specific job object"
+    TAGS = ["backend"]
+    PARAMS = [
+        {'name': 'id',
+         'in': 'path',
+         'required': True,
+         'description': 'Job ID to fetch',
+         'type': 'integer'}]
+    RESPONSES = { "200": {"description": "Successful response"}}
+    OPERATION_ID = "send_job_email"
 
+    def textLog(self, job):
+        out = ""
+        for r in sorted(job['results'].keys(), key=int):
+            out += "%s/%s: %s\n" % (
+                job['results'][r]['phase'],
+                job['results'][r]['test'],
+                job['results'][r]['result'])
+        return out
+
+    def render(self):
+        id = int(self.request.matchdict['id'])
+        job = self.getJobs(1, ids=[id], getParams=True, getResults=True, getLog=False, exceptionIfEmpty=True)[id]
+        if job['params'].has_key("EMAIL"):
+            machine = ",".join(job['machines'])
+            if not machine:
+                machine = "unknown"
+            result = job['result']
+            if not result:
+                result = "unknown"
+            if job['params'].has_key("JOBDESC"):
+                jobdesc = "%s (JobID %u)" % (job['params']["JOBDESC"], id)
+            else:
+                jobdesc = "JobID %u" % (id)
+            emailto = job['params']["EMAIL"].split(",")
+            subject = "[xenrt] %s %s %s" % (jobdesc, machine, result)
+            summary = self.textLog(job)
+            message = """
+================ Summary =============================================
+%s/ui/logs?jobs=%u
+======================================================================
+%s
+======================================================================
+""" % (config.url_base.rstrip("/"), id, summary.strip())
+            for key in job['params'].keys():
+                message =  message + "%s='%s'\n" % (key, job['params'][key])
+            self.sendMail(config.email_sender, emailto, subject, message, reply=emailto[0])
+        return {}
+
+    def sendMail(self, fromaddr, toaddrs, subject, message, reply=None):
+        if not config.smtp_server:
+            return
+        now = time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime())
+        msg = ("Date: %s\r\nFrom: %s\r\nTo: %s\r\nSubject: %s\r\n"
+               % (now, fromaddr, ", ".join(toaddrs), subject))
+        if reply:
+            msg = msg + "Reply-To: %s\r\n" % (reply)
+        msg = msg + "\r\n" + message
+
+        server = smtplib.SMTP(config.smtp_server)
+        server.sendmail(fromaddr, toaddrs, msg)
+        server.quit()
+
+RegisterAPI(EmailJob)
 RegisterAPI(ListJobs)
 RegisterAPI(GetJob)
 RegisterAPI(GetTest)

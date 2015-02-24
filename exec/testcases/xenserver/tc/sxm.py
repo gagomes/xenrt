@@ -2672,6 +2672,7 @@ class VMRevertedToSnapshot(LiveMigrate):
         attached_VDIs = [vm.getDiskVDIUUID(d) for d in attached_disks]
         dest_SRs = self.vm_config[vm.getName()]['VDI_SR_map'].values()
         self.vm_config[vm.getName()]['VDI_SR_map'] = dict(itertools.izip(attached_VDIs, dest_SRs))
+        self.vm_config[vm.getName()]['src_VDIs'] = dict(itertools.izip(attached_disks, attached_VDIs))
 
         destHost = self.vm_config[vm.getName()]['dest_host']
         host = vm.getHost()

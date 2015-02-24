@@ -1141,11 +1141,100 @@ class TCBootStartDriverUpgrade(xenrt.TestCase):
         self.guest.installDrivers(source=startDrivers, expectUpToDate=False)
 
         # Make xenvif boot start
-        self.guest.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\services\\xenvif", "Start", "DWORD", 0)
-        self.guest.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\services\\xennet", "Start", "DWORD", 0)
-        self.guest.reboot()
+        self.guest.setDriversBootStart()
 
     def run(self, arglist=None):
         # Attempt to upgrade the PV drivers
         self.guest.installDrivers()
+
+class TCPrepareDriverUpgrade(xenrt.TestCase):
+    """Utility test which prepares a clone of a template VM with a specified set of tools"""
+
+    def run(self, arglist):
+        args = xenrt.util.strlistToDict(arglist)
+        template = args["template"]
+        tag = args["tag"]
+        hotfix = args["hotfix"]
+
+        host = self.getDefaultHost()
+
+        # Get the hotfix file
+        hotfixFile = xenrt.TEC().getFile(xenrt.TEC().config.getHotfix(hotfix, None))
+
+        # Extract the tools ISO from the hotfix
+        workdir = xenrt.TempDirectory()
+        patchDir = host.unpackPatch(hotfixFile)
+        toolsIso = host.execdom0("find %s -name \"xs-tools*.iso\"" % patchDir).strip()
+        sftp = host.sftpClient()
+        localToolsIso = "%s/%s.iso" % (workdir.path(), tag)
+        sftp.copyFrom(toolsIso, localToolsIso)
+        sftp.close()
+        host.execdom0("rm -fr %s" % patchDir)
+
+        # Create a tarball from the tools ISO
+        iso = xenrt.rootops.MountISO(localToolsIso)
+        mountpoint = iso.getMount()
+        toolsTgz = "%s/%s.tgz" % (workdir.path(), tag)
+        xenrt.command("cd %s; tar -czf %s *" % (mountpoint, toolsTgz))
+        iso.unmount()
+
+        # Clone the template VM
+        templateVM = self.getGuest(template)
+        guest = templateVM.cloneTemplate(name=tag)
+        host.addGuest(guest)
+
+        # Install drivers
+        guest.start()
+        guest.installDrivers(source=toolsTgz, expectUpToDate=False)
+
+        # Shutdown the clone
+        guest.shutdown()
+        xenrt.TEC().registry.guestPut(tag, guest)
+
+class TCTestDriverUpgrade(xenrt.TestCase):
+    """Test upgrading the drivers in the guest"""
+
+    def run(self, arglist):
+        args = xenrt.util.strlistToDict(arglist)
+        hotfixTag = args["tag"]
+
+        # Find the VM and snapshot it
+        guest = self.getGuest(hotfixTag)
+        self.guest = guest
+        snapshot = guest.snapshot()
+
+        xenrt.TEC().logdelimit("Testing normal driver upgrade")
+        guest.start()
+
+        # Try upgrading drivers
+        guest.installDrivers()
+
+        # Revert to snapshot, make existing drivers boot start
+        xenrt.TEC().logdelimit("Reverting to snapshot")
+        guest.shutdown()
+        guest.revert(snapshot)
+
+        xenrt.TEC().logdelimit("Testing boot start driver upgrade")
+        guest.start()
+        guest.setDriversBootStart()
+
+        # Try upgrading drivers
+        try:
+            guest.installDrivers()
+        except xenrt.XRTFailure, e:
+            if e.reason.startswith("VIF and/or VBD PV device not used") and xenrt.TEC().lookup("WORKAROUND_CA159586", False, boolean=True):
+                # The VM may just need an extra reboot or two
+                try:
+                    guest.reboot()
+                except:
+                    guest.reboot()
+                guest.checkPVDevices()
+            else:
+                raise
+
+    def postRun(self):
+        try:
+            self.guest.shutdown()
+        except:
+            pass
 

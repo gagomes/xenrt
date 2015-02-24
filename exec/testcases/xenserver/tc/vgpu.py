@@ -350,7 +350,7 @@ class VGPUTest(xenrt.TestCase, object):
             raise xenrt.XRTFailure("vGPU not running in VM %s: %s" % (vm.getName(),vm.getUUID()))
 
     def assertvGPUNotRunningInLinuxVM(self, vm, vGPUType, card):
-        if self.isGPUBeingUtilized(card):
+        if vm.isGPUBeingUtilized(card):
             raise xenrt.XRTFailure("vGPU running when not expected in VM %s: %s" % (vm.getName(),vm.getUUID()))
 
     def runWindowsWorkload(self,vm):
@@ -1649,7 +1649,7 @@ class FunctionalBase(VGPUAllocationModeBase):
 
         self.parseArgs(arglist)
 
-        self.typeOfvGPU = self.typeOfvGPU()
+        self.typeOfvGPU = self.typeofvGPU()
 
         step("Install host drivers")
         self.typeOfvGPU.installHostDrivers()
@@ -1657,7 +1657,7 @@ class FunctionalBase(VGPUAllocationModeBase):
         self.sr = self.host.getSRs(type="lvm", local=True)[0]
         self.prepareGPUGroups()
 
-    def typeOfvGPU(self):
+    def typeofvGPU(self):
 
         if not self.TYPE_OF_VGPU:
             raise xenrt.XRTFailure("Type of vGPU not defined")
@@ -1778,7 +1778,7 @@ class NvidiaLinuxvGPU(DifferentGPU):
         xenrt.TEC().logverbose("Not implemented")
         pass
 
-    def installGuestDrivers(self):
+    def installGuestDrivers(self,guest):
         VGPUTest().installNvidiaLinuxDrivers(guest)
 
     def assertvGPURunningInVM(self, guest, vGPUType):
@@ -1797,7 +1797,7 @@ class IntelWindowsvGPU(DifferentGPU):
         xenrt.TEC().logverbose("Not implemented")
         pass
 
-    def installGuestDrivers(self):
+    def installGuestDrivers(self,guest):
         VGPUTest().installIntelWindowsDrivers(guest)
 
     def assertvGPURunningInVM(self, guest, vGPUType):
@@ -1807,7 +1807,7 @@ class IntelWindowsvGPU(DifferentGPU):
         VGPUTest().assertvGPUNotRunningInWinVM(guest, vGPUType)
 
     def runWorkload(self,vm):
-        VGPUTest().runWindowsWorkload(self,vm)
+        VGPUTest().runWindowsWorkload(vm)
 
 """ Negative Test Cases """
 

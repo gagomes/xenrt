@@ -105,8 +105,6 @@ class TCRCForLifeCycleOps(ReadCacheTestCase):
                         "Perform Lifecycle", "PauseResume")
         self.runSubcase("lifecycle", (vm, rcc, lowlevel, both, self.stopStart, vm),
                         "Perform Lifecycle", "StopStart")
-        self.runSubcase("lifecycle", (vm, rcc, lowlevel, both, vm.migrateVM, host),
-                        "Perform Lifecycle", "LocalHostMigrate")
 
     def stopStart(self, vm):
         vm.shutdown()

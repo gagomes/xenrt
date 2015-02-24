@@ -1275,44 +1275,31 @@ def getRandomULAPrefix():
     return global_id
 
 def jobOnMachine(machine, jobid):
-    xrs = xenrt.ctrl.XenRTStatus(None)
-    jobdict = xrs.run([jobid])
-    if not jobdict:
-        return False
-    machines = []
-    for k in ['SCHEDULEDON', 'SCHEDULEDON2', 'SCHEDULEDON3']:
-        if jobdict.has_key(k):
-            machines.extend(jobdict[k].split(","))
-    return machine in machines
+    job = xenrt.APIFactory().get_job(int(jobid))
+    return machine in job['machines']
 
 def canCleanJobResources(jobid):
     try:
-        jobid = str(jobid)
-        xenrt.TEC().logverbose("Checking job %s" % jobid)
-        xrs = xenrt.ctrl.XenRTStatus(None)
-        jobdict = xrs.run([jobid])
+        jobid = int(jobid)
+        api = xenrt.APIFactory()
+        xenrt.TEC().logverbose("Checking job %d" % jobid)
+        job = api.get_job(jobid)
         # See if the job is completed
-        if jobdict['JOBSTATUS'] != "done":
+        if job['rawstatus'] != "done":
             xenrt.TEC().logverbose("Job is still running")
             return False
         # It's completed, now see whether any of the machines are borrowed, and haven't had a new job that cleans the resources
         ret = True
-        machines = []
-        for k in ['SCHEDULEDON', 'SCHEDULEDON2', 'SCHEDULEDON3']:
-            if jobdict.has_key(k):
-                machines.extend(jobdict[k].split(","))
-        for m in machines:
+        for m in job['machines']:
             xenrt.TEC().logverbose("Checking whether machine %s is borrowed" % m)
-            mcmd = xenrt.ctrl.XenRTMachine(None)
-            machinedict = mcmd.run([m])
-            if machinedict.has_key("LEASEUSER"):
+            machine = api.get_machine(m)
+            if machine['leaseuser']:
                 xenrt.TEC().logverbose("Machine %s is borrowed, checking job number" % m)
-                mjob = machinedict['JOBID']
+                mjob = machine['jobid']
                 if mjob != jobid:
                     xenrt.TEC().logverbose("A new job has run on this machine, checking whether it uses --existing")
-                    mjobcmd = xenrt.ctrl.XenRTStatus(None)
-                    mjobdict = xrs.run([mjob])
-                    if not mjobdict.has_key("CLI_ARGS_PASSTHROUGH"):
+                    mjobdict = api.get_job(mjob)
+                    if not mjobdict['params'].has_key("CLI_ARGS_PASSTHROUGH"):
                         # This is a new job that will clean the hardware, so don't prevent resources being cleaned
                         xenrt.TEC().logverbose("Allowing the resources to be cleaned, as the new job will have cleaned the machine")
                         continue
@@ -1326,26 +1313,20 @@ def canCleanJobResources(jobid):
 
 def staleMachines(jobid):
     try:
-        jobid = str(jobid)
-        xrs = xenrt.ctrl.XenRTStatus(None)
-        jobdict = xrs.run([jobid])
-        machines = []
+        jobid = int(jobid)
+        api = xenrt.APIFactory()
+        job = api.get_job(jobid)
         ret = []
-        for k in ['SCHEDULEDON', 'SCHEDULEDON2', 'SCHEDULEDON3']:
-            if jobdict.has_key(k):
-                machines.extend(jobdict[k].split(","))
-        for m in machines:
+        for m in job['machines']:
             xenrt.TEC().logverbose("Checking whether machine %s is running a new job" % m)
-            mcmd = xenrt.ctrl.XenRTMachine(None)
-            machinedict = mcmd.run([m])
-            mjob = machinedict['JOBID']
+            machine = api.get_machine(m)
+            mjob = machine['jobid']
             if mjob == jobid:
                 ret.append(m)
             else:
                 xenrt.TEC().logverbose("A new job has run on this machine, checking whether it uses --existing")
-                mjobcmd = xenrt.ctrl.XenRTStatus(None)
-                mjobdict = xrs.run([mjob])
-                if mjobdict.has_key("CLI_ARGS_PASSTHROUGH"):
+                mjobdict = api.get_job(mjob)
+                if mjobdict['params'].has_key("CLI_ARGS_PASSTHROUGH"):
                     # This is a new job that will clean the hardware, so don't prevent resources being cleaned
                     xenrt.TEC().logverbose("Marking machine as stale, as last job used --existing")
                     ret.append(m)
@@ -1387,11 +1368,10 @@ def keepSetup():
 
     # if machines are borrowed then keep resources
     try:
-        xrs = xenrt.ctrl.XenRTStatus(None)
-        jobdict = xrs.run([str(xenrt.GEC().jobid())])
-        for m in jobdict['SCHEDULEDON'].split(","):
-            mcmd = xenrt.ctrl.XenRTMachine(None)
-            if mcmd.run([m]).has_key("LEASEUSER"):
+        api = xenrt.APIFactory()
+        job = api.get_job(xenrt.GEC().jobid())
+        for m in job['machines']:
+            if api.get_machine(m)['leaseuser']:
                 return True
     except Exception, ex:
         xenrt.TEC().logverbose("Exception checking if machines are borrowed: " + str(ex))

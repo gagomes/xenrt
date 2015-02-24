@@ -27,6 +27,11 @@
         <arg>typeofvgpu=nvidiawinvgpu</arg>
       </testcase>
 
+      <testcase id="testcases.xenserver.tc.vgpu.TCBasicVerifOfAllK2config">
+        <arg>distro=10,11,12,13,14</arg>
+        <arg>typeofvgpu=nvidialinuxvgpu</arg>
+        <arg>vgpuconfig=11</arg>
+      </testcase>
 
     </serial>
   </testsequence>

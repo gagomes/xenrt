@@ -63,6 +63,9 @@ class Path(object):
                     ret += """        if %s != None:\n            payload['%s'] = %s\n""" % (q, p, q)
         if self.method == "get":
             ret += """        r = requests.get(path, params=paramdict, headers=self.customHeaders)\n"""
+            ret += """        if r.status_code in (502, 503):\n"""
+            ret += """            time.sleep(30)\n"""
+            ret += """            r = requests.get(path, params=paramdict, headers=self.customHeaders)\n"""
         else:
             if self.formParams:
                 ret += """        myHeaders = {}\n"""
@@ -70,6 +73,9 @@ class Path(object):
                 ret += """        myHeaders = {'content-type': 'application/json'}\n"""
             ret += """        myHeaders.update(self.customHeaders)\n"""
             ret += """        r = requests.%s(path, params=paramdict, data=payload, files=files, headers=myHeaders)\n""" % self.method
+            ret += """        if r.status_code in (502, 503):\n"""
+            ret += """            time.sleep(30)\n"""
+            ret += """            r = requests.%s(path, params=paramdict, data=payload, files=files, headers=myHeaders)\n""" % self.method
         ret += """        self.__raiseForStatus(r)\n"""
         if 'application/json' in self.data['produces']:
             if self.returnKey:
@@ -198,17 +204,21 @@ import httplib
 import os.path
 import base64
 import sys
+import time
 
 class XenRTAPIException(Exception):
-    def __init__(self, code, reason, canForce):
+    def __init__(self, code, reason, canForce, traceback):
         self.code = code
         self.reason = reason
         self.canForce = canForce
+        self.traceback = traceback
 
     def __str__(self):
         ret = "%%s %%s: %%s" %% (self.code, httplib.responses[self.code], self.reason)
         if self.canForce:
             ret += " (can force override)"
+        if self.traceback:
+            ret += "\\n%%s" %% self.traceback
         return ret
 
 class XenRT(object):
@@ -241,16 +251,19 @@ class XenRT(object):
                 j = response.json()
                 reason = j['reason']
                 canForce = j.get('can_force')
+                traceback = j.get('traceback')
             else:
                 reason = None
                 canForce = False
+                traceback = None
         except:
             pass
         else:
             if reason:
                 raise XenRTAPIException(response.status_code,
                                         reason,
-                                        canForce)
+                                        canForce,
+                                        traceback)
         response.raise_for_status()
 
 """ % (self.host, self.scheme, self.base)

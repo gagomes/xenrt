@@ -74,14 +74,13 @@ class ACLHelper(object):
         return machines
 
     def check_acl(self, aclid, userid, number, leaseHours=None):
-        """Returns True if the given user can have 'number' additional machines under this acl"""
+        """Returns a tuple (allowed, reason_if_false) if the given user can have 'number' additional machines under this acl"""
         acl = self.get_acl(aclid)
-        if self._check_acl(acl, userid, number, leaseHours):
-            if acl.parent:
-                # We have to check the parent ACL as well
-                return self._check_acl(self.get_acl(acl.parent), userid, number, leaseHours)
-            return True
-        return False
+        result, reason = self._check_acl(acl, userid, number, leaseHours)
+        if result and acl.parent:
+            # We have to check the parent ACL as well
+            return self._check_acl(self.get_acl(acl.parent), userid, number, leaseHours)
+        return result, reason 
 
     def _check_acl(self, acl, userid, number, leaseHours=None):
         """Returns True if the given user can have 'number' additional machines under this acl"""
@@ -108,14 +107,14 @@ class ACLHelper(object):
                 else:
                     # Our user - check their usage
                     if e.userlimit is not None and usercount > e.userlimit:
-                        return False
+                        return False, "%s limited to %d machines" % (e.userid, e.userlimit)
                     if e.userpercent is not None and userpercent > e.userpercent:
-                        return False
+                        return False, "%s limited to %d%% of machines" % (e.userid, e.userpercent)
                     if e.maxleasehours is not None and leaseHours and leaseHours > e.maxleasehours:
-                        return False
+                        return False, "Maximum lease time allowed for %s is %d hours" % (e.userid, e.maxleasehours)
 
                     # We've hit an exact user match, so we ignore any further rules
-                    return True
+                    return True, None
             else:
                 if e.userid in usergroups:
                     # A group our user is in - identify overall usage and per user usage for users in the acl
@@ -127,24 +126,24 @@ class ACLHelper(object):
                     grouppercent = int(math.ceil((groupcount * 100.0) / len(machines)))
 
                     if e.grouplimit is not None and groupcount > e.grouplimit:
-                        return False
+                        return False, "%s limited to %d machines" % (e.userid, e.grouplimit)
                     if e.grouppercent is not None and grouppercent > e.grouppercent:
-                        return False
+                        return False, "%s limited to %d%% of machines" % (e.userid, e.grouppercent)
 
                     # Check the user limits as well
                     if e.userlimit is not None and usercount > e.userlimit:
-                        return False
+                        return False, "Members of %s limited to %d machines" % (e.userid, e.userlimit)
                     if e.userpercent is not None and userpercent > e.userpercent:
-                        return False
+                        return False, "Members of %s limited to %d%% of machines" % (e.userid, e.userpercent)
 
                     # Check lease restrictions
                     if e.maxleasehours is not None and leaseHours and leaseHours > e.maxleasehours:
-                        return False
+                        return False, "Maximum lease time allowed for members of %s is %d hours" % (e.userid, e.maxleasehours)
 
                 # We've hit a successful group match, so we ignore any further rules
-                return True
+                return True, None
 
-        return True
+        return True, None
 
     def _userids_for_group(self, group):
         if group in self._groupCache:

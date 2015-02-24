@@ -76,6 +76,8 @@ class _JobBase(_MachineBase):
                 if s in ['new', 'running', 'done']:
                     statuscond.append("j.jobstatus=%s")
                     params.append(s)
+                elif s != 'removed':
+                    raise XenRTAPIError(HTTPBadRequest, "Invalid job status requested")
             if "removed" in status:
                 statuscond.append("j.removed='yes'")
             else:

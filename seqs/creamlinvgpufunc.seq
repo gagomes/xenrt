@@ -47,6 +47,16 @@
         <arg>vgpuconfig=5</arg>
       </testcase>
 
+      <testcase id="testcases.xenserver.tc.vgpu.MixedGPUBootstorm" name="TC-26346" tc="TC-26346">
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+        <arg>vgpuconfig=5</arg>
+        <arg>linuxtype=10</arg>
+        <arg>windowstype=1</arg>
+        <arg>passthroughalloc=1.0</arg>
+        <arg>vgpualloctype=3</arg>
+        <arg>others=nvidiawinvgpu,nvidialinuxvgpu</arg>
+      </testcase>
+
     </serial>
   </testsequence>
 

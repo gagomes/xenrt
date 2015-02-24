@@ -40,15 +40,15 @@
         <!-- Used to set up host with needed drivers. -->
         <arg>typeofvgpu=nvidiawinvgpu</arg>
         <!-- Initial vgpu config (K1Pass, K2Pass) -->
-        <arg>vgpuconfig=5</arg>
+        <arg>vgpuconfig=11</arg>
         <!-- OS for linux vms. -->
-        <arg>linuxtype=11</arg>
+        <arg>linuxtype=10</arg>
         <!-- OS for windows vms. -->
         <arg>windowstype=1</arg>
         <!-- Percentage of all space for gpu passthrough. -->
         <arg>passthroughalloc=0.75</arg>
         <!-- Type of vGPU to use for remaining space. -->
-        <arg>vgpualloctype=3</arg>
+        <arg>vgpualloctype=9</arg>
         <arg>others=nvidiawinvgpu,nvidialinuxvgpu</arg>
       </testcase>
 

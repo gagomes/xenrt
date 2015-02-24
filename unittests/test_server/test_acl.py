@@ -148,3 +148,27 @@ class AclTests(XenRTUnitTestCase):
         # Over limit
         self.assertTupleFalse(self.acl._check_acl(acl, "user1", 1, 13))
 
+    def test_multiple_entries(self):
+        # Check that multiple ACL entries are processed correctly
+        acl = self._setupAclReturns()
+
+        # Matching user limit is applied and evaluation stops
+        acl.entries = [app.acl.ACLEntry("user","user1",None,None,5,None,None), app.acl.ACLEntry("group","group1",None,None,4,None,None)]
+        self.assertTupleTrue(self.acl._check_acl(acl, "user1", 4)) # +4 for user1 brings him to 5, which would fail the group limit
+
+        # Users specifically listed in the ACL don't contribute to group entries
+        self.assertTupleTrue(self.acl._check_acl(acl, "user2", 3)) # +3 for user2 brings him to 4, user1's 1 shouldn't count in the group count
+
+        # Non matching user entries are ignored
+        self.assertTupleFalse(self.acl._check_acl(acl, "user2", 4)) # +4 for user2 brings him to 5, which shouldn't be allowed
+
+        # Failing user limit is applied even if group is OK
+        acl.entries = [app.acl.ACLEntry("user","user1",None,None,2,None,None), app.acl.ACLEntry("group","group1",None,None,5,None,None)]
+        self.assertTupleFalse(self.acl._check_acl(acl, "user1", 2)) # +2 for user1 brings him to 3, which should fail
+
+        # Matching group limit ignores a later user limit
+        acl.entries = [app.acl.ACLEntry("group","group1",None,None,5,None,None), app.acl.ACLEntry("user","user1",None,None,2,None,None)]
+        self.assertTupleTrue(self.acl._check_acl(acl, "user1", 4)) # +4 for user1 brings him to 5, which should be allowed by the group limit
+        acl.entries = [app.acl.ACLEntry("group","group1",None,None,2,None,None), app.acl.ACLEntry("user","user1",None,None,5,None,None)]
+        self.assertTupleFalse(self.acl._check_acl(acl, "user1", 4)) # +4 for user1 brings him to 5, which isn't allowed by the group, but is by the later user
+

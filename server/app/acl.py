@@ -92,7 +92,6 @@ class ACLHelper(object):
             if machines[m] == userid:
                 usercount += 1
         userpercent = int(math.ceil((usercount * 100.0) / len(machines)))
-        groupcache = None
 
         # Go through the acl entries
         for e in acl.entries:

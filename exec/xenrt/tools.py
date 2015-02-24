@@ -579,10 +579,7 @@ def generateOSTestSequences():
 def getChildren(key):
     global childrencache
     if not childrencache.has_key(key):
-        try:
-            childrencache[key] = testrunJSONLoad("issuetree/%s" % key, "depth=1")[0]['children']
-        except:
-            childrencache[key] = []
+        childrencache[key] = testrunJSONLoad("issuetree/%s" % key, "depth=1")[0]['children']
     return childrencache[key]
 
 def flushChildrenCache(key):
@@ -1128,7 +1125,7 @@ def processMatrixTests(release=None):
 
     #  (Dundee)
     distrosToRels['Dundee'] = {}
-    distrosToRels['Dundee']['primary'] = ['rhel48','rhel510','rhel65','rhel511','rhel66','rhel7','oel7','centos7',
+    distrosToRels['Dundee']['primary'] = ['rhel48','rhel510','rhel65','rhel511','rhel66','rhel7','rhel71','oel7','centos7',
                                           'sles104','sles113','sles12',
                                           'w2k3eesp2','w2k3eesp2-x64',
                                           'winxpsp3','vistaeesp2',

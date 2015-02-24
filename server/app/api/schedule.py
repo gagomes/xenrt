@@ -2,7 +2,7 @@ from server import PageFactory
 from app.api import XenRTAPIPage
 from pyramid.httpexceptions import HTTPFound
 
-import traceback, StringIO, string, time, random, sys, calendar, math
+import traceback, StringIO, string, time, random, sys, calendar
 
 import config, app
 

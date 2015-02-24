@@ -866,7 +866,7 @@ def makeMachineFiles(config, specifyMachine=None):
                     
 
     if config.lookup("XENRT_SITE", None):
-        sitemachines = xenrt.GEC().dbconnect.api.get_machines(site=[config.lookup("XENRT_SITE")], pseudoHosts = True)
+        sitemachines = xenrt.GEC().dbconnect.api.get_machines(site=[config.lookup("XENRT_SITE")], pseudohosts = True)
         for m in sitemachines.keys():
             if specifyMachine and m != specifyMachine:
                 continue

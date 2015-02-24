@@ -15,12 +15,9 @@
       <testcase id="xenserver.tc.checkpoint.TC11205"/>
       <testcase id="xenserver.tc.checkpoint.TC11206"/>
       <testcase id="xenserver.tc.checkpoint.TC11207"/>
-      <testcase id="xenserver.tc.checkpoint.TC11208"/>
-      <!--testcase id="xenserver.tc.checkpoint.TC11209"/--><!--Refer EXT-90-->
+      <!--testcase id="xenserver.tc.checkpoint.TC11209"/>--><!--Refer EXT-90-->
       <testcase id="xenserver.tc.checkpoint.TC11210"/>
       <testcase id="xenserver.tc.checkpoint.TC11211"/>
-      <testcase id="xenserver.tc.checkpoint.TC12554"/>
-      <testcase id="xenserver.tc.checkpoint.TC12555"/>
       <testcase id="xenserver.tc.checkpoint.TC21646"/>
       <testcase id="xenserver.tc.checkpoint.TC21647"/>
       <testcase id="xenserver.tc.checkpoint.TC21648"/>

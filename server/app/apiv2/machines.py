@@ -34,7 +34,8 @@ class _MachineBase(XenRTAPIv2Page):
                     flags=[],
                     limit=None,
                     offset=0,
-                    pseudoHosts=False):
+                    pseudoHosts=False,
+                    exceptionIfEmpty=False):
         cur = self.getDB().cursor()
         params = []
         conditions = []
@@ -79,7 +80,7 @@ class _MachineBase(XenRTAPIv2Page):
             conditions.append("m.machine != ('_' || s.site)")
 
 
-        query = "SELECT m.machine, m.site, m.cluster, m.pool, m.status, m.resources, m.flags, m.comment, m.leaseto, m.leasereason, m.leasefrom, m.leasepolicy, s.flags, m.jobid FROM tblmachines m INNER JOIN tblsites s ON m.site=s.site"
+        query = "SELECT m.machine, m.site, m.cluster, m.pool, m.status, m.resources, m.flags, m.comment, m.leaseto, m.leasereason, m.leasefrom, m.leasepolicy, s.flags, m.jobid, m.descr FROM tblmachines m INNER JOIN tblsites s ON m.site=s.site"
         if conditions:
             query += " WHERE %s" % " AND ".join(conditions)
 
@@ -98,8 +99,9 @@ class _MachineBase(XenRTAPIv2Page):
                 "pool": rc[3].strip(),
                 "rawstatus": rc[4].strip(),
                 "status": self.getMachineStatus(rc[4].strip(), rc[7].strip() if rc[7] else None, rc[3].strip()),
-                "resources": dict([x.split("=") for x in rc[5].strip().split("/")]),
                 "flags": [],
+                "description": rc[14].strip() if rc[14] and rc[14].strip() else None,
+                "resources": {},
                 "leaseuser": rc[7].strip() if rc[7] else None,
                 "leaseto": calendar.timegm(rc[8].timetuple()) if rc[8] else None,
                 "leasereason": rc[9].strip() if rc[9] else None,
@@ -110,11 +112,21 @@ class _MachineBase(XenRTAPIv2Page):
                 "params": {}
             }
 
-            siteflags = rc[12].strip().split(",") if rc[12].split(",") else []
+            for r in rc[5].strip().split("/"):
+                if not "=" in r:
+                    continue
+                (key, value) = r.split("=", 1)
+                machine['resources'][key] = value
+                
+
+            siteflags = rc[12].strip().split(",") if rc[12] and rc[12].strip() else []
             machine['flags'].extend(siteflags)
 
             ret[rc[0].strip()] = machine
         if len(ret.keys()) == 0:
+            if exceptionIfEmpty:
+                raise XenRTAPIError(HTTPNotFound, "Machine not found")
+
             return ret
         query = "SELECT machine, key, value FROM tblmachinedata WHERE %s" % self.generateInCondition("machine", ret.keys())
         cur.execute(query, ret.keys())
@@ -150,9 +162,7 @@ class _MachineBase(XenRTAPIv2Page):
     def updateMachineField(self, machine, key, value, commit=True, allowReservedField=False):
         db = self.getDB()
 
-        machines = self.getMachines(limit=1, machines=[machine])
-        if not machine in machines:
-            raise XenRTAPIError(HTTPNotFound, "Machine not found")
+        machines = self.getMachines(limit=1, machines=[machine], exceptionIfEmpty=True)
 
         details = machines[machine]['params']
         if key.lower() in ("machine", "comment", "leaseto", "leasereason", "leasefrom"):
@@ -186,9 +196,7 @@ class _MachineBase(XenRTAPIv2Page):
                 cur.close()
     
     def return_machine(self, machine, user, force, canForce=True, commit=True):
-        machines = self.getMachines(limit=1, machines=[machine])
-        if not machine in machines:
-            raise XenRTAPIError(HTTPNotFound, "Machine not found")
+        machines = self.getMachines(limit=1, machines=[machine], exceptionIfEmpty=True)
 
         leasedTo = machines[machine]['leaseuser']
         if not leasedTo:
@@ -205,6 +213,20 @@ class _MachineBase(XenRTAPIv2Page):
             db.commit()
         cur.close()        
 
+    def addMachine(self, name, site, pool, cluster, resources, description, commit=True):
+        db = self.getDB()
+        cur = db.cursor()
+        try:
+            query = "INSERT INTO tblmachines(machine, site, cluster, pool, status, resources, descr) VALUES (%s, %s, %s, %s, 'idle', %s, %s)"
+            params = [name, site, pool, cluster, "/".join(["%s=%s" % (x,y) for (x,y) in resources.items()]), description]
+
+            cur.execute(query, params)
+
+            if commit:
+                db.commit()
+        finally:
+            cur.close()
+
     def lease(self, machine, user, duration, reason, force):
         leaseFrom = time.strftime("%Y-%m-%d %H:%M:%S",
                                 time.gmtime(time.time()))
@@ -217,9 +239,7 @@ class _MachineBase(XenRTAPIv2Page):
             duration = (calendar.timegm(leaseToTime) - time.time()) / 3600
         
 
-        machines = self.getMachines(limit=1, machines=[machine])
-        if not machine in machines:
-            raise XenRTAPIError(HTTPNotFound, "Machine not found")
+        machines = self.getMachines(limit=1, machines=[machine], exceptionIfEmpty=True)
 
         leasePolicy = machines[machine]['leasepolicy']
         if leasePolicy and duration > leasePolicy:
@@ -239,6 +259,17 @@ class _MachineBase(XenRTAPIv2Page):
                     [leaseTo, leaseFrom, user, reason, machine])
         db.commit()
         cur.close()        
+
+    def removeMachine(self, machine, commit=True):
+        db = self.getDB()
+        cur = db.cursor()
+        try:
+            cur.execute("DELETE FROM tblmachines WHERE machine=%s", [machine])
+            cur.execute("DELETE FROM tblmachinedata WHERE machine=%s", [machine])
+            if commit:
+                db.commit()
+        finally:
+            cur.close()
 
 
 class ListMachines(_MachineBase):
@@ -313,7 +344,12 @@ class ListMachines(_MachineBase):
           'in': 'query',
           'name': 'offset',
           'required': False,
-          'type': 'integer'}
+          'type': 'integer'},
+         {'description': "Get pseudohosts, defaults to false",
+          'in' : 'query',
+          'name': 'pseudohosts',
+          'required': False,
+          'type': 'boolean'}
           ]
     RESPONSES = { "200": {"description": "Successful response"}}
     TAGS = ["machines"]
@@ -346,9 +382,7 @@ class GetMachine(_MachineBase):
 
     def render(self):
         machine = self.request.matchdict['name']
-        machines = self.getMachines(limit=1, machines=[machine])
-        if not machine in machines:
-            raise XenRTAPIError(HTTPNotFound, "Machine not found")
+        machines = self.getMachines(limit=1, machines=[machine], exceptionIfEmpty=True)
         return machines[machine]
 
 class LeaseMachine(_MachineBase):
@@ -506,14 +540,12 @@ class UpdateMachine(_MachineBase):
         }
     }}
     OPERATION_ID = "update_machine"
-    PARAM_ORDER=["id", "params"]
+    PARAM_ORDER=["name", "params", "broken", "status", "resources", "addflags", "delflags"]
     SUMMARY = "Update machine details"
 
     def render(self):
         machine = self.request.matchdict['name']
-        machines = self.getMachines(limit=1, machines=[machine])
-        if not machine in machines:
-            raise XenRTAPIError(HTTPNotFound, "Machine not found")
+        machines = self.getMachines(limit=1, machines=[machine], exceptionIfEmpty=True)
         try:
             j = json.loads(self.request.body)
             jsonschema.validate(j, self.DEFINITIONS['updatemachine'])
@@ -539,13 +571,13 @@ class UpdateMachine(_MachineBase):
                 self.updateMachineField(machine, "BROKEN_TICKET", None, commit=False)
         if "addflags" in j:
             if not "PROPS" in machines[machine]['params']:
-                self.updateMachineField(machine, "PROPS", ",".join(j['addflags']), commit=False)
+                props = []
             else:
                 props = machines[machine]['params']['PROPS'].split(",")
-                for f in j['addflags']:
-                    if not f in props:
-                        props.append(f)
-                self.updateMachineField(machine, "PROPS", ",".join(props), commit=False)
+            for f in j['addflags']:
+                if not f in props:
+                    props.append(f)
+            self.updateMachineField(machine, "PROPS", ",".join(props), commit=False)
         if "delflags" in j:
             if "PROPS" in machines[machine]['params']:
                 props = machines[machine]['params']['PROPS'].split(",")
@@ -567,10 +599,107 @@ class UpdateMachine(_MachineBase):
         self.getDB().commit()
         return {}
     
+class NewMachine(_MachineBase):
+    REQTYPE="POST"
+    WRITE = True
+    PATH = "/machines"
+    TAGS = ["machines"]
+    PARAMS = [
+        {'name': 'body',
+         'in': 'body',
+         'required': True,
+         'description': 'Details of the machine',
+         'schema': { "$ref": "#/definitions/newmachine" }
+        }
+    ]
+    RESPONSES = { "200": {"description": "Successful response"}}
+    DEFINITIONS = {"newmachine": {
+        "title": "New Macine",
+        "type": "object",
+        "properties": {
+            "name": {
+                "type": "string",
+                "description": "Name of the machine"
+            },
+            "site": {
+                "type": "string",
+                "description": "Site this machine belongs to"
+            },
+            "pool": {
+                "type": "string",
+                "description": "Pool this machine belongs to"
+            },
+            "cluster": {
+                "type": "string",
+                "description": "Cluster this machine belongs to"
+            },
+            "params": {
+                "type": "object",
+                "description": "Key-value pairs parameter:value of parameters to update (set value to null to delete a parameter)"
+            },
+            "flags": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Flags for this machine"
+            },
+            "resources": {
+                "type": "object",
+                "description": "Key-value pair resource:value of resources to update. (set value to null to remove a resource)"
+            },
+            "description": {
+                "type": "string",
+                "description": "Description of the machine"
+            }
+        },
+        "required": ["name", "pool", "site", "cluster"]
+    }}
+    OPERATION_ID = "new_machine"
+    PARAM_ORDER=["name", "site", "pool", "cluster", "flags", "resources", "params"]
+    SUMMARY = "Add new machine"
 
+    def render(self):
+        try:
+            j = json.loads(self.request.body)
+            jsonschema.validate(j, self.DEFINITIONS['newmachine'])
+        except Exception, e:
+            raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
+
+        self.addMachine(j.get("name"), j.get("site"), j.get("pool"), j.get("cluster"), j.get("resources", {}), j.get("description"))
+
+        if j.get("flags"):
+            self.updateMachineField(machine, "PROPS", ",".join(j['flags']), commit=False)
+
+        if j.get('params'):
+            for p in j['params'].keys():
+                self.updateMachineField(machine, p, j['params'][p], commit=False)
+   
+        self.getDB().commit()
+        return {}
+
+class RemoveMachine(_MachineBase):
+    PATH = "/machine/{name}"
+    REQTYPE = "DELETE"
+    SUMMARY = "Removes a machine"
+    TAGS = ["machines"]
+    PARAMS = [
+        {'name': 'name',
+         'in': 'path',
+         'required': True,
+         'description': 'Machine to remove',
+         'type': 'string'}]
+    RESPONSES = { "200": {"description": "Successful response"}}
+    OPERATION_ID = "remove_machine"
+
+    def render(self):
+        machine = self.request.matchdict['name']
+        self.getMachines(limit=1, machines=[machine], exceptionIfEmpty=True)
+        self.removeMachine(machine)
+        return {}
 
 RegisterAPI(ListMachines)
 RegisterAPI(GetMachine)
 RegisterAPI(LeaseMachine)
 RegisterAPI(ReturnMachine)
 RegisterAPI(UpdateMachine)
+RegisterAPI(NewMachine)
+RegisterAPI(RemoveMachine)

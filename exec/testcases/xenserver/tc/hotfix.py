@@ -11,6 +11,7 @@
 import socket, re, string, time, traceback, sys, random, copy, shutil, os, re
 import xenrt, xenrt.lib.xenserver
 from xenrt import XRTError
+from xenrt.lazylog import step
 
 class _Hotfix(xenrt.TestCase):
 
@@ -562,7 +563,7 @@ class _GeorgeU2(_Hotfix):
     INITIAL_BRANCH = "RTM"
     
 class _GeorgeU2HFd(_GeorgeRTM):
-    INITIAL_HOTFIXES = ["HF1", "HF2", "XS55EU2004", "XS55EU2005", "XS55EU2006", "XS55EU2007", "XS55EU2008", "XS55EU2009", "XS55EU2010", "XS55EU2011", "XS55EU2012", "XS55EU2013", "XS55EU2014", "XS55EU2015", "XS55EU2016", "XS55EU2017", "XS55EU2018", "XS55EU2019", "XS55EU2020", "XS55EU2021", "XS55EU2022", "XS55EU2023", "XS55EU2024"]
+    INITIAL_HOTFIXES = ["HF1", "HF2", "XS55EU2004", "XS55EU2005", "XS55EU2006", "XS55EU2007", "XS55EU2008", "XS55EU2009", "XS55EU2010", "XS55EU2011", "XS55EU2012", "XS55EU2013", "XS55EU2014", "XS55EU2015", "XS55EU2016", "XS55EU2017", "XS55EU2018", "XS55EU2019", "XS55EU2020", "XS55EU2021", "XS55EU2022", "XS55EU2023", "XS55EU2024", "XS55EU2025"]
 
 class _MNRRTM(_Hotfix):
     INITIAL_VERSION = "MNR"
@@ -602,26 +603,26 @@ class _BostonBritney(_BostonRTM):
     INITIAL_HOTFIXES = ["XS60E001"]
 
 class _BostonHFd(_BostonRTM):
-    INITIAL_HOTFIXES = ["XS60E001", "XS60E002", "XS60E003", "XS60E004", "XS60E005", "XS60E006", "XS60E007", "XS60E008", "XS60E010", "XS60E012", "XS60E013", "XS60E014", "XS60E015", "XS60E016", "XS60E017", "XS60E018", "XS60E019", "XS60E020", "XS60E021", "XS60E022", "XS60E023", "XS60E024", "XS60E025", "XS60E026", "XS60E027", "XS60E028", "XS60E029", "XS60E030", "XS60E031", "XS60E032", "XS60E033", "XS60E034", "XS60E035", "XS60E036","XS60E037","XS60E038", "XS60E039","XS60E040", "XS60E041", "XS60E042"]
+    INITIAL_HOTFIXES = ["XS60E001", "XS60E002", "XS60E003", "XS60E004", "XS60E005", "XS60E006", "XS60E007", "XS60E008", "XS60E010", "XS60E012", "XS60E013", "XS60E014", "XS60E015", "XS60E016", "XS60E017", "XS60E018", "XS60E019", "XS60E020", "XS60E021", "XS60E022", "XS60E023", "XS60E024", "XS60E025", "XS60E026", "XS60E027", "XS60E028", "XS60E029", "XS60E030", "XS60E031", "XS60E032", "XS60E033", "XS60E034", "XS60E035", "XS60E036","XS60E037","XS60E038", "XS60E039","XS60E040", "XS60E041", "XS60E042", "XS60E043"]
 
 class _SanibelRTM(_Hotfix):
     INITIAL_VERSION = "Sanibel"
     
 class _SanibelHFd(_SanibelRTM):
-    INITIAL_HOTFIXES = ["XS602E004", "XS602E005", "XS602E006", "XS602E007", "XS602E008", "XS602E009", "XS602E010", "XS602E011", "XS602E013", "XS602E014", "XS602E016", "XS602E017", "XS602E018", "XS602E019", "XS602E020", "XS602E021", "XS602E022", "XS602E023", "XS602E024", "XS602E025", "XS602E026", "XS602E027", "XS602E028", "XS602E029", "XS602E030", "XS602E031", "XS602E032", "XS602E033", "XS602E034", "XS602E035", "XS602E036", "XS602E037", "XS602E038"]
+    INITIAL_HOTFIXES = ["XS602E004", "XS602E005", "XS602E006", "XS602E007", "XS602E008", "XS602E009", "XS602E010", "XS602E011", "XS602E013", "XS602E014", "XS602E016", "XS602E017", "XS602E018", "XS602E019", "XS602E020", "XS602E021", "XS602E022", "XS602E023", "XS602E024", "XS602E025", "XS602E026", "XS602E027", "XS602E028", "XS602E029", "XS602E030", "XS602E031", "XS602E032", "XS602E033", "XS602E034", "XS602E035", "XS602E036", "XS602E037", "XS602E038", "XS602E039"]
     
 class _SanibelCCRTM(_Hotfix):
     INITIAL_VERSION = "SanibelCC"
     CC = True
     
 class _SanibelCCHFd(_SanibelCCRTM):
-    INITIAL_HOTFIXES = ["XS602ECC001", "XS602ECC002", "XS602ECC003", "XS602ECC004", "XS602ECC005", "XS602ECC006", "XS602ECC007", "XS602ECC008", "XS602ECC009", "XS602ECC010", "XS602ECC011", "XS602ECC012", "XS602ECC013", "XS602ECC014"]
+    INITIAL_HOTFIXES = ["XS602ECC001", "XS602ECC002", "XS602ECC003", "XS602ECC004", "XS602ECC005", "XS602ECC006", "XS602ECC007", "XS602ECC008", "XS602ECC009", "XS602ECC010", "XS602ECC011", "XS602ECC012", "XS602ECC013", "XS602ECC014", "XS602ECC015"]
 
 class _TampaRTM(_Hotfix):
     INITIAL_VERSION = "Tampa"
     
 class _TampaHFd(_TampaRTM):
-    INITIAL_HOTFIXES = ["XS61E001", "XS61E003", "XS61E004", "XS61E008", "XS61E009", "XS61E010", "XS61E013", "XS61E015", "XS61E017",  "XS61E018", "XS61E019", "XS61E020", "XS61E021", "XS61E022", "XS61E023", "XS61E024", "XS61E025", "XS61E026", "XS61E027", "XS61E028", "XS61E029", "XS61E030", "XS61E032", "XS61E033", "XS61E034", "XS61E035", "XS61E036", "XS61E037", "XS61E038", "XS61E039", "XS61E040", "XS61E041", "XS61E042", "XS61E043", "XS61E044", "XS61E045", "XS61E046"]
+    INITIAL_HOTFIXES = ["XS61E001", "XS61E003", "XS61E004", "XS61E008", "XS61E009", "XS61E010", "XS61E013", "XS61E015", "XS61E017",  "XS61E018", "XS61E019", "XS61E020", "XS61E021", "XS61E022", "XS61E023", "XS61E024", "XS61E025", "XS61E026", "XS61E027", "XS61E028", "XS61E029", "XS61E030", "XS61E032", "XS61E033", "XS61E034", "XS61E035", "XS61E036", "XS61E037", "XS61E038", "XS61E039", "XS61E040", "XS61E041", "XS61E042", "XS61E043", "XS61E044", "XS61E045", "XS61E046", "XS61E048"]
     
 class _ClearwaterRTM(_Hotfix):
     INITIAL_VERSION = "Clearwater"
@@ -635,14 +636,14 @@ class _ClearwaterSP1(_ClearwaterRTM):
     INITIAL_HOTFIXES = ["XS62ESP1"]
     
 class _ClearwaterSP1HFd(_ClearwaterSP1):
-    INITIAL_HOTFIXES = ["XS62ESP1", "XS62ESP1002", "XS62ESP1003", "XS62ESP1004", "XS62ESP1005", "XS62ESP1006", "XS62ESP1007", "XS62ESP1008", "XS62ESP1009", "XS62ESP1011", "XS62ESP1012", "XS62ESP1013", "XS62ESP1014", "XS62ESP1015", "XS62ESP1016"]
+    INITIAL_HOTFIXES = ["XS62ESP1", "XS62ESP1002", "XS62ESP1003", "XS62ESP1004", "XS62ESP1005", "XS62ESP1006", "XS62ESP1007", "XS62ESP1008", "XS62ESP1009", "XS62ESP1011", "XS62ESP1012", "XS62ESP1013", "XS62ESP1014", "XS62ESP1015", "XS62ESP1016", "XS62ESP1017"]
     
 class _CreedenceRTM(_Hotfix):
     INITIAL_VERSION = "Creedence"
     INITIAL_BRANCH = "RTM"
     
 class _CreedenceRTMHFd(_CreedenceRTM):
-    INITIAL_HOTFIXES = []
+    INITIAL_HOTFIXES = ["XS65E001", "XS65E002", "XS65E003"]
     
     
 # Upgrades
@@ -2185,3 +2186,96 @@ class TCDecryptHotfix(xenrt.TestCase):
                 raise xenrt.XRTFailure("Hotfix did not report 'incorrect version'")
         else:
             raise xenrt.XRTFailure("Hotfix should not have been applied as the version is wrong")
+
+class TCDiscSpacePlugins(xenrt.TestCase):
+    #TC-23995
+    """Test case to verify plugins added for CAR-1711 are working properly"""
+        
+    def run(self, arglist=None):
+        self.host = self.getDefaultHost()
+        plugins = ["testAvailHostDiskSpacePlugin","testCheckPatchUploadPlugin", "testGetReclaimableSpacePlugin", "testCleanupDiskSpacePlugin"]
+        #Create session on the host
+        self.session = self.host.getAPISession(secure=False)
+        self.sessionHost = self.session.xenapi.host.get_all()[0]
+        for plugin in plugins:
+            self.runSubcase(plugin, (),None , plugin)
+
+    def testAvailHostDiskSpacePlugin(self):
+        #Test functionality of 'get_avail_host_disk_space' plugin
+        step("Call get_avail_host_disk_space plugin on host")
+        actualAvailSpace = self.getAvailHostDiskSpace()/xenrt.MEGA
+        xenrt.TEC().logverbose("Available disk space returned by plugin= %sMB" %(actualAvailSpace))
+        
+        step("Fetch available disk space from df")
+        totalSpace = int(self.host.execdom0("df / -m | awk '{print$2}' | sed 1d"))
+        expectedAvailSpace =  int(self.host.execdom0("df / -m | awk '{print$4}' | sed 1d")) + (totalSpace * .05)
+        xenrt.TEC().logverbose("Expected available disk space = %sMB" %(expectedAvailSpace))
+        
+        step("Verify space returned by the plugin is equal to the value given by df")
+        if abs(actualAvailSpace-expectedAvailSpace) > 4:
+            raise xenrt.XRTFailure("get_avail_host_disk_space plugin returned invalid data. Expected=%s. Actual=%s" % (actualAvailSpace,expectedAvailSpace))
+
+    def testCheckPatchUploadPlugin(self):
+        #Test functionality of 'check_patch_upload' plugin
+        step("Call check_patch_upload plugin with size > dom0 available disk space: should returns false")
+        if str(self.checkPatchUpload(self.getAvailHostDiskSpace()))=='True':
+            raise xenrt.XRTFailure("check_patch_upload plugin returned True, Expected False")
+        
+        step("Call check_patch_upload plugin with size ~ dom0 available disk space: should returns true")
+        if str(self.checkPatchUpload(self.getAvailHostDiskSpace()/2 - 2*xenrt.MEGA)) == 'False':
+           raise xenrt.XRTFailure("check_patch_upload plugin returned False, Expected True")
+
+        step("Call check_patch_upload plugin with size < dom0 available disk space: should returns true")
+        if str(self.checkPatchUpload(self.getAvailHostDiskSpace()/2 - 20*xenrt.MEGA)) == 'False':
+            raise xenrt.XRTFailure("check_patch_upload plugin returned False, Expected True")
+
+    def testGetReclaimableSpacePlugin(self):
+        #Test functionality of 'get_reclaimable_space' plugin        
+        actualRecSpace = self.getReclaimableSpace()/xenrt.MEGA
+        
+        step("Call get_reclaimable_space plugin on host")
+        xenrt.TEC().logverbose("get_reclaimable_disk_space returned %s" % (actualRecSpace))
+
+        step("Verify value returned by the plugin is as expected")
+        expectedRecSpace = 0
+        res = self.host.execdom0("du -bs --separate-dirs /var/patch/ | awk '{print $1}'")
+        if 'No such file or directory' not in res:
+            expectedRecSpace += int(res)/xenrt.MEGA
+        res = self.host.execdom0("du -bs /opt/xensource/patch-backup/ | awk '{print $1}'")
+        if 'No such file or directory' not in res:
+            expectedRecSpace += int(res)/xenrt.MEGA
+        xenrt.TEC().logverbose("Expected reclaimable disk space is %s" % (expectedRecSpace))
+
+        if abs(actualRecSpace-expectedRecSpace) > 4:
+            raise xenrt.XRTFailure("get_reclaimable_disk_space plugin returned invalid data. Expected=%s. Actual=%s" % (actualRecSpace,expectedRecSpace))
+
+    def testCleanupDiskSpacePlugin(self):
+        #Test functionality of 'cleanup_disk_space' plugin
+        availableSpace =  self.getAvailHostDiskSpace()/xenrt.MEGA
+        reclaimableSpace = self.getReclaimableSpace()/xenrt.MEGA
+        
+        step("Call cleanup_disk_space plugin on host")
+        self.session.xenapi.host.call_plugin(self.sessionHost,'disk-space','cleanup_disk_space',{})
+
+        step("Verify available disk space is increased by value returned by getReclaimableSpace plugin")
+        newAvailableSpace = self.getAvailHostDiskSpace()/xenrt.MEGA
+        if abs(newAvailableSpace - (availableSpace + reclaimableSpace)) > 4:
+            raise xenrt.XRTFailure("cleanup_disc_space plugin didn't free expected space. Expected=%s. Actual=%s" % (reclaimableSpace,newAvailableSpace-availableSpace))
+        else:
+            xenrt.TEC().logverbose("cleanup_disc_space freed expected amount of disk space: %s" % (newAvailableSpace-availableSpace))
+
+    def getAvailHostDiskSpace(self):
+        #Return available host disk space in Bytes
+        return int(self.session.xenapi.host.call_plugin(self.sessionHost,'disk-space','get_avail_host_disk_space',{}))
+            
+    def getReclaimableSpace(self):
+        #Return reclaimable disk space in Bytes
+        return int(self.session.xenapi.host.call_plugin(self.sessionHost,'disk-space','get_reclaimable_disk_space',{}))
+
+    def checkPatchUpload(self, size):
+        #returns true if patch of given size can be uploaded, otherwise false
+        return self.session.xenapi.host.call_plugin(self.sessionHost,'disk-space','check_patch_upload',{'size': '%s'%size})
+
+    def postRun(self):
+        #close the XenAPI session
+        self.host.logoutAPISession(self.session)

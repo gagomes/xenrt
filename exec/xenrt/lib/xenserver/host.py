@@ -1,4 +1,4 @@
-#
+   #
 # XenRT: Test harness for Xen and the XenServer product family
 #
 # Encapsulate a XenServer host.
@@ -288,7 +288,7 @@ def createHost(id=0,
                 nameserver = None
             hostname = m.name
 
-    guestdisks = host.getGuestDisks(ccissIfAvailable=host.USE_CCISS, count=diskCount)
+    guestdisks = host.getGuestDisks(ccissIfAvailable=host.USE_CCISS, count=diskCount, legacySATA=(not host.isCentOS7Dom0()))
 
     if diskCount > len(guestdisks):
         raise xenrt.XRTError("Wanted %u disks but we only have: %s" %
@@ -296,7 +296,7 @@ def createHost(id=0,
     if host.bootLun:
         primarydisk = "disk/by-id/scsi-%s" % host.bootLun.getID()
     else:
-        primarydisk = host.getInstallDisk(ccissIfAvailable=host.USE_CCISS)
+        primarydisk = host.getInstallDisk(ccissIfAvailable=host.USE_CCISS, legacySATA=(not host.isCentOS7Dom0()))
 
     handle = host.install(interfaces=interfaces,
                           nameserver=nameserver,
@@ -687,7 +687,7 @@ class Host(xenrt.GenericHost):
         """Create a simple guest object."""
         return self.guestFactory()(name, "", self)
 
-    def existing(self, doguests=True):
+    def existing(self, doguests=True, guestsInRegistry=True):
         """Initialise this host object from an existing installed host"""
         # Check the management host address
         ip = self.execdom0("xe host-param-get uuid=%s param-name=address" %
@@ -707,7 +707,8 @@ class Host(xenrt.GenericHost):
                     guest = self.guestFactory()(guestname, None)
                     guest.existing(self)
                     xenrt.TEC().logverbose("Found existing guest: %s" % (guestname))
-                    xenrt.TEC().registry.guestPut(guestname, guest)
+                    if guestsInRegistry:
+                        xenrt.TEC().registry.guestPut(guestname, guest)
                 except:
                     xenrt.TEC().logverbose("Could not load guest - perhaps it was deleted")
         self.distro = "XSDom0"
@@ -772,6 +773,8 @@ class Host(xenrt.GenericHost):
                     # In this situation a path that includes cciss- will not work. See CA-121184 for details
                     if "cciss" in primarydisk:
                         primarydisk = self.getInstallDisk(ccissIfAvailable=self.USE_CCISS)
+                    if "scsi-SATA" in primarydisk and self.isCentOS7Dom0():
+                        primarydisk = self.getInstallDisk(legacySATA=False)
                 else:
                     primarydisk = "sda"
 
@@ -1753,9 +1756,9 @@ done
             
         xenrt.TEC().progress("Rebooted host to start installation.")
         if async:
-            handle = (nfsdir, None, pxe)
+            handle = (nfsdir, None, pxe, False) # Not UEFI
             return handle
-        handle = (nfsdir, packdir, pxe)
+        handle = (nfsdir, packdir, pxe, False) # Not UEFI
         if xenrt.TEC().lookup("OPTION_BASH_SHELL", False, boolean=True):
             xenrt.TEC().tc.pause("Pausing due to bash-shell option")
             
@@ -1904,7 +1907,7 @@ fi
         return usbdevice
 
     def installComplete(self, handle, waitfor=False, upgrade=False):
-        nfsdir, packdir, pxe = handle
+        nfsdir, packdir, pxe, uefi = handle
 
         if waitfor:
             # Monitor for installation complete
@@ -1970,8 +1973,11 @@ fi
 
             # Boot the local disk  - we need to update this before the machine
             # reboots after setting the signal flag.
-            pxe.setDefault("local")
-            pxe.writeOut(self.machine)
+            if uefi:
+                self.writeUefiLocalBoot(nfsdir, pxe)
+            else:
+                pxe.setDefault("local")
+                pxe.writeOut(self.machine)
             if self.bootLun:
                 pxe.writeISCSIConfig(self.machine, boot=True)
     
@@ -2719,7 +2725,7 @@ fi
             if proxy:
                 self.execdom0("sed -i '/proxy/d' /etc/yum.conf")
                 self.execdom0("echo 'proxy=http://%s' >> /etc/yum.conf" % proxy)
-            if isinstance(self, xenrt.lib.xenserver.DundeeHost) and self.isCentOS7Dom0():
+            if isinstance(self, xenrt.lib.xenserver.DundeeHost):
                 self.execdom0("yum install kernel-headers --disableexcludes=all -y")
             self.execdom0("yum --disablerepo=citrix --enablerepo=base,updates,extras install -y  gcc-c++")
             self.execdom0("yum --disablerepo=citrix --enablerepo=base install -y make")
@@ -3669,6 +3675,27 @@ fi
         if returndata:
             return data
     
+    def unpackPatch(self, patchfile):
+        """Unpack a patch on a XenServer host"""
+        workdir = string.strip(self.execdom0("mktemp -d /tmp/XXXXXX"))
+        patchname = os.path.basename(patchfile)
+        sftp = self.sftpClient()
+        try:
+            sftp.copyTo(patchfile, os.path.join(workdir, patchname))
+        finally:
+            sftp.close()
+
+        # First de-sign the hotfix
+        with xenrt.GEC().getLock("GPG"):
+            self.execdom0("cd %s; gpg --batch --yes -q -d --skip-verify --output %s.raw %s" % (workdir, patchname, patchname))
+
+        # Unpack it
+        unpackDir = self.execdom0("cd %s; sh %s.raw unpack" % (workdir, patchname)).strip()
+        # Remove the workdir
+        self.execdom0("rm -fr %s" % workdir)
+
+        return unpackDir
+
     def applyGuidance(self, guidance):
         if "restartHost" in guidance:
             xenrt.TEC().logverbose("Rebooting host %s after patch-apply based on after-apply-guidance" % self.getName())
@@ -5790,30 +5817,19 @@ fi
                 raise xenrt.XRTFailure(\
                     "Timed out waiting for coalesce to complete", sruuid)
 
-    def toolsISOPath(self, which="windows"):
+    def toolsISOPath(self):
         """Return the dom0 path to the tools ISO."""
         vdi = self.parseListForUUID("vdi-list",
                                     "name-label",
                                     "xs-tools.iso")
-        try:
-            isobasename = self.genParamGet("vdi", vdi, "location")
-        except:
-            # Rio doesn't have a location field, assume the filename
-            # matches the name-label
-            isobasename = "xs-tools.iso"
+        
+        isobasename = self.genParamGet("vdi", vdi, "location")
         sruuid = self.genParamGet("vdi", vdi, "sr-uuid")
-        try:
-            pbd = self.parseListForUUID("pbd-list",
-                                        "sr-uuid",
-                                        sruuid,
-                                        "host-uuid=%s" %
-                                        (self.getMyHostUUID()))
-        except:
-            # Rio used host instead of host-uuid in the PBD record
-            pbd = self.parseListForUUID("pbd-list",
-                                        "sr-uuid",
-                                        sruuid,
-                                        "host=%s" % (self.getMyHostUUID()))
+        pbd = self.parseListForUUID("pbd-list",
+                                    "sr-uuid",
+                                    sruuid,
+                                    "host-uuid=%s" %
+                                    (self.getMyHostUUID()))
             
         isopath = self.genParamGet("pbd", pbd, "device-config", "location")
         return "%s/%s" % (isopath, isobasename)
@@ -6380,6 +6396,11 @@ fi
                     template = self.chooseTemplate("TEMPLATE_NAME_WIN8_64")
                 else:
                     template = self.chooseTemplate("TEMPLATE_NAME_WIN8")
+            elif re.search("win10", distro):
+                if re.search("x64", distro):
+                    template = self.chooseTemplate("TEMPLATE_NAME_WIN10_64")
+                else:
+                    template = self.chooseTemplate("TEMPLATE_NAME_WIN10")
             elif re.search("ws12", distro) and re.search("x64", distro):
                 template = self.chooseTemplate("TEMPLATE_NAME_WS12_64")
             elif re.search("debian\d+", distro):
@@ -8021,6 +8042,7 @@ rm -f /etc/xensource/xhad.conf || true
         
         (mac, ip) = netDetails[0]
         xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'MAC_ADDRESS'], mac)
+        xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'PXE_MAC_ADDRESS'], mac)
         xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'HOST_ADDRESS'], ip.getAddr())
         xenrt.GEC().dbconnect.jobUpdate("VXS_%s" % ip.getAddr(), name)
 
@@ -8044,6 +8066,11 @@ rm -f /etc/xensource/xhad.conf || true
         """IPTablesFirewall object used to create and delete iptables rules."""
         return IpTablesFirewall(self)
 
+    def isCentOS7Dom0(self):
+        return False
+
+    def writeUefiLocalBoot(self, nfsdir, pxe):
+        raise xenrt.XRTError("UEFI is not supported on this version")
 #############################################################################
 
 class MNRHost(Host):
@@ -8128,8 +8155,8 @@ class MNRHost(Host):
             # No dbv field, so we're not using v6
             self.special['v6licensing'] = False
 
-    def existing(self, doguests=True):
-        Host.existing(self,doguests)
+    def existing(self, doguests=True, guestsInRegistry=True):
+        Host.existing(self,doguests, guestsInRegistry)
         self.__detect_vswitch()
         self.__detect_v6()
 
@@ -10900,7 +10927,7 @@ class ClearwaterHost(TampaHost):
 <backup-disk>%s</backup-disk>
 <install-failed-script>%s</install-failed-script>
 </restore>
-""" % (self.getInstallDisk(ccissIfAvailable=self.USE_CCISS), furl)
+""" % (self.getInstallDisk(ccissIfAvailable=self.USE_CCISS, legacySATA=(not self.isCentOS7Dom0())), furl)
         ans.write(anstext)
         ans.close()
         packdir.copyIn(ansfile)
@@ -11256,6 +11283,9 @@ class CreedenceHost(ClearwaterHost):
     def guestFactory(self):
         return xenrt.lib.xenserver.guest.CreedenceGuest
 
+    def getReadCachingController(self):
+        return xenrt.lib.xenserver.readcaching.ReadCachingController(self)
+
     def enableReadCaching(self, sruuid=None):
         if sruuid:
             srlist = [sruuid]
@@ -11361,7 +11391,7 @@ class DundeeHost(CreedenceHost):
         self.installer = None
 
     def isCentOS7Dom0(self):
-        return xenrt.TEC().lookup("CENTOS7_DOM0", False, boolean=True)
+        return True
 
     def getTestHotfix(self, hotfixNumber):
         return xenrt.TEC().getFile("xe-phase-1/test-hotfix-%u-*.unsigned" % hotfixNumber)
@@ -11431,34 +11461,19 @@ class DundeeHost(CreedenceHost):
         return ifs
         
     def snmpdIsEnabled(self):
-        if self.isCentOS7Dom0():
-            return "enabled" in self.execdom0("service snmpd status | cat")
-        else:
-            return CreedenceHost.snmpdIsEnabled(self)
+        return "enabled" in self.execdom0("service snmpd status | cat")
             
     def disableSnmpd(self):
-        if self.isCentOS7Dom0():
-            self.execdom0("systemctl disable snmpd")
-        else:
-            CreedenceHost.disableSnmpd(self)
+        self.execdom0("systemctl disable snmpd")
             
     def enableSnmpd(self):
-        if self.isCentOS7Dom0():
-            self.execdom0("systemctl enable snmpd")
-        else:
-            CreedenceHost.enableSnmpd(self)
+        self.execdom0("systemctl enable snmpd")
 
     def scsiIdPath(self):
-        if self.isCentOS7Dom0():
-            return "/usr/lib/udev/scsi_id"
-        else:
-            return CreedenceHost.scsiIdPath(self)
+        return "/usr/lib/udev/scsi_id"
             
     def iptablesSave(self):
-        if self.isCentOS7Dom0():
-            self.execdom0("/usr/libexec/iptables/iptables.init save")
-        else:
-            CreedenceHost.iptablesSave(self)
+        self.execdom0("/usr/libexec/iptables/iptables.init save")
 
     def enableVirtualFunctions(self):
 
@@ -11493,6 +11508,21 @@ class DundeeHost(CreedenceHost):
 
         self.getInstaller().install(*args, **kwargs)
 
+    def writeUefiLocalBoot(self, nfsdir, pxe):
+        if not self.lookup("PXE_CHAIN_UEFI_BOOT", False, boolean=True):
+            pxe.uninstallBootloader(self.machine)
+        else:
+            with open("%s/bootlabel" % nfsdir.path()) as f:
+                bootlabel = f.read().strip()
+            xenrt.TEC().logverbose("Found %s as boot partition" % bootlabel)
+            localEntry = """
+                search --label --set root %s
+                chainloader /EFI/xenserver/grubx64.efi
+            """ % bootlabel
+            pxe.addGrubEntry("local", localEntry)
+            pxe.setDefault("local")
+            pxe.writeOut(self.machine)
+
 #############################################################################
 
 class StorageRepository:
@@ -11517,6 +11547,33 @@ class StorageRepository:
         self.dconf = None
         self.content_type = ""
         self.smconf = None
+
+    @classmethod
+    def fromExistingSR(cls, host, sruuid):
+        """
+        This method allows you to use the StorageRepository class functionailty
+        without having created the SR with the class in the first instance
+        @param host: a host on which to attach the SR
+        @type: xenrt's host object
+        @param sruuid: an existing sr's uuid (maybe created by prepare for example)
+        @type: string
+        @return: an instance of the class with the SR metadata populated
+        @rtype: StorageRepository or decendent
+        """
+        xsr = next((sr for sr in host.asXapiObject().SR() if sr.uuid == sruuid), None)
+
+        if not xsr:
+            raise ValueError("Could not find sruuid %s on host %s" %(sruuid, host))
+
+        instance = cls(host, xsr.name())
+        instance.uuid = xsr.uuid
+        instance.srtype = xsr.srType()
+
+        xpbd = next((p for p in xsr.PBD() if p.host() == host.asXapiObject()), None)
+        instance.dconf = xpbd.deviceConfig()
+        instance.smconf = xsr.smConfig()
+        instance.content_type = xsr.contentType()
+        return instance
 
     def create(self, physical_size=0, content_type="", smconf={}):
         raise xenrt.XRTError("Unimplemented")
@@ -14029,7 +14086,7 @@ def watchForInstallCompletion(installs):
     waiting = {}
     for x in installs:
         host, handle = x
-        nfsdir, packdir, pxe = handle
+        nfsdir, packdir, pxe, uefi = handle
         filename = "%s/.xenrtsuccess" % (nfsdir.path())
         waiting[filename] = (host, pxe)
 
@@ -14053,6 +14110,9 @@ def watchForInstallCompletion(installs):
                                      "for host boot." % (host.getName()))
                 # Boot the local disk  - we need to update this before the
                 # machine reboots after setting the signal flag.
+                if uefi:
+                    host.writeUefiLocalBoot(nfsdir, pxe)
+
                 pxe.setDefault("local")
                 pxe.writeOut(host.machine)
                 del waiting[filename]
@@ -15487,7 +15547,7 @@ def runOverdueCleanup(hostname):
         if u:
             c.append("-u")
             c.append(u)
-        xenrt.GEC().dbconnect.jobctrl("borrow", c, buffer=True)
+        xenrt.GEC().dbconnect.jobctrl("borrow", c)
         log("Borrowing host %s, in order to avoid further job runs on it." % hostname)
         log("Please review and fix the content of '%s' on the controller." % cleanUpFlagsDir)
         raise xenrt.XRTError("Clean-up failed. Please fix '%s' and then return host." % hostname)                               

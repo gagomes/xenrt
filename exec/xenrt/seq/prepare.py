@@ -1006,7 +1006,7 @@ class PrepareNode:
                     break
                 # Try to delete the old CCP management server
                 try:
-                    m = xenrt.GEC().dbconnect.jobctrl("machine", [hostname])
+                    m = xenrt.GEC().dbconnect.api.get_machine(hostname)['params']
                     if m.has_key("CSGUEST") and m['CSGUEST'] not in cleanedGuests:
                         cleanedGuests.append(m['CSGUEST'])
                         (shostname, guestname) = m['CSGUEST'].split("/", 1)

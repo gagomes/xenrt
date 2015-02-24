@@ -962,10 +962,6 @@ for var, varval in config.getWithPrefix("KNOWN_"):
             else:
                 gec.removeKnownIssue(r.group(1))
 
-p = xenrt.TEC().lookup("JOBSERVER_PROXY", None)
-if p:
-    gec.dbconnect.jobProxy(p)
-
 if not remote:
     # Check if we are 'always' remote
     if xenrt.TEC().lookup("FORCE_REMOTE", False, boolean=True) or \
@@ -1062,7 +1058,7 @@ def getCloud(hostname):
         gec.registry.toolstackGetDefault()
     except:
         try:
-            m = xenrt.GEC().dbconnect.jobctrl("machine", [hostname])
+            m = xenrt.GEC().dbconnect.api.get_machine(hostname)['params']
             if m.has_key("CSGUEST"):
                 (hostname, guestname) = m['CSGUEST'].split("/", 1)
                 try:
@@ -1665,6 +1661,7 @@ if listlocks:
             print "%s,No,," % (l[0])
 
 if cleanupnfsdirs:
+    jobsForMachinePowerOff = [] 
     nfsConfig = xenrt.TEC().lookup("EXTERNAL_NFS_SERVERS")
     for n in nfsConfig.keys():
         try:
@@ -1680,6 +1677,7 @@ if cleanupnfsdirs:
                 try:
                     if xenrt.canCleanJobResources(j):
                         xenrt.rootops.sudo("rm -rf %s/%s-*" % (mp, j))
+                        jobsForMachinePowerOff.append(j) 
                 except Exception, e:
                     xenrt.TEC().logverbose(str(e))
                     continue
@@ -1703,6 +1701,7 @@ if cleanupnfsdirs:
                 try:
                     if xenrt.canCleanJobResources(j):
                         xenrt.rootops.sudo("rm -rf %s/%s-*" % (mp, j))
+                        jobsForMachinePowerOff.append(j) 
                 except:
                     continue
             if m:
@@ -1710,6 +1709,13 @@ if cleanupnfsdirs:
         except:
             pass
 
+    for j in set(jobsForMachinePowerOff):
+        machinesToPowerOff = xenrt.staleMachines(j)
+        for m in machinesToPowerOff:
+            machine = xenrt.PhysicalHost(m, ipaddr="0.0.0.0")
+            xenrt.GenericHost(machine)
+            machine.powerctl.off()
+    
 if cleanupnfsdir:
     nfsConfig = xenrt.TEC().lookup("EXTERNAL_NFS_SERVERS")
     (cleanupAddress, cleanupPath) = cleanupnfsdir.split(":", 1)
@@ -1846,8 +1852,7 @@ if releaselock:
                 # Check ID
                 if lock[0] == releaselock:
                     if lock[2]['jobid']:
-                        xrs = xenrt.ctrl.XenRTStatus(None)
-                        jobdict = xrs.run([lock[2]['jobid']])
+                        jobdict = xenrt.GEC().dbconnect.api.get_job(int(lock[2]['jobid']))['params']
                         pid = jobdict['HARNESS_PID']
                         # See if this PID is still running
                         pr = xenrt.util.command("ps -p %s | wc -l" % (pid),strip=True)
@@ -1990,7 +1995,6 @@ if cleanupvcenter:
             try:
                 m = re.match(".*-(\d+$)", d)
                 if m:
-                    xrs = xenrt.ctrl.XenRTStatus(None)                
                     try:
                         if xenrt.canCleanJobResources(m.group(1)):
                             print "Cleaning up datacenter %s" % d
@@ -2020,7 +2024,6 @@ if cleanupsharedhosts:
                     if m:
                         if m.group(1) == "64": # This actually indicates a 64-bit VM!
                             continue
-                        xrs = xenrt.ctrl.XenRTStatus(None)                
                         try:
                             if xenrt.canCleanJobResources(m.group(1)):
                                 print "Cleaning up guest %s" % v
@@ -2139,7 +2142,7 @@ if runsuite:
 if getresource:
    args = getresource.split()
    machine = args.pop(0)
-   job = xenrt.GEC().dbconnect.jobctrl("machine", [machine])["JOBID"]
+   job = str(xenrt.GEC().dbconnect.api.get_machine(machine)['jobid'])
    config.setVariable("JOBID", job)
    xenrt.GEC().dbconnect._jobid = int(job)
    restype = args.pop(0)

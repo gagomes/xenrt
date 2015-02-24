@@ -3088,7 +3088,7 @@ class SRTrafficwithGRO(NetworkThroughputwithGRO):
         nfsvm.execguest("mkdir %s" % dir)
         nfsvm.execguest("echo '%s *(sync,rw,no_root_squash,no_subtree_check)'"
                         " > /etc/exports" % dir)
-        nfsvm.execguest("/etc/init.d/portmap start")
+        nfsvm.execguest("/etc/init.d/portmap start || /etc/init.d/rpcbind start")
         nfsvm.execguest("/etc/init.d/nfs-common start || true")
         nfsvm.execguest("/etc/init.d/nfs-kernel-server start || true")
         

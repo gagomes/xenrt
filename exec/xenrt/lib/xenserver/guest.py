@@ -7,11 +7,12 @@
 # conditions as licensed by XenSource, Inc. All other rights reserved.
 #
 
-import sys, string, time, random, re, crypt, urllib, os, os.path, socket, copy
+import sys, string, time, random, re, crypt, urllib, os, os.path, socket, copy, IPy
 import shutil, traceback, fnmatch, xml.dom.minidom, pipes
 import xenrt
 from PIL import Image
 from IPy import IP
+from xenrt.lib.scalextreme import SXAgent
 
 # Symbols we want to export from the package.
 __all__ = ["Guest",
@@ -222,7 +223,7 @@ class Guest(xenrt.GenericGuest):
                                    (nic, vbridge, mac))
             self.vifs.append((nic, vbridge, mac, ip))
             if self.use_ipv6:
-                if not self.mainip:
+                if not self.mainip or IPy.IP(self.mainip).version() != 6:
                     self.mainip = self.getIPv6AutoConfAddress(device=nic)
             else:
                 if not self.mainip or (re.match("169\.254\..*", self.mainip)
@@ -481,7 +482,7 @@ class Guest(xenrt.GenericGuest):
             if xenrt.TEC().lookup("FORCE_NX_DISABLE", False, boolean=True):
                 self.paramSet("platform:nx", "false")
             self.installWindows(self.isoname)
-        elif "coreos-" in distro:
+        elif distro and "coreos-" in distro:
             self.enlightenedDrivers=True
             notools = True # CoreOS has tools installed already
             self.installCoreOS()
@@ -805,7 +806,8 @@ users:
                     try:
                         mac, ip, vbridge = self.getVIF(vifname)
                         if self.use_ipv6:
-                            self.mainip = self.getIPv6AutoConfAddress(vifname)
+                            if not self.mainip or IPy.IP(self.mainip).version() != 6:
+                                self.mainip = self.getIPv6AutoConfAddress(vifname)
                             break
                         elif ip:
                             if re.match("169\.254\..*", ip):
@@ -844,7 +846,8 @@ users:
                     vifname, bridge, mac, _ = (v for v in self.vifs if v[0] == vifs[0]).next()
 
                 if self.use_ipv6:
-                    self.mainip = self.getIPv6AutoConfAddress(vifname)
+                    if not self.mainip or IPy.IP(self.mainip).version() != 6:
+                        self.mainip = self.getIPv6AutoConfAddress(vifname)
                     skipsniff = True
                 else:
                     xenrt.TEC().progress("Looking for VM IP address using arpwatch.")
@@ -1185,7 +1188,12 @@ at > c:\\xenrtatlog.txt
         if self.getState() in ['UP', 'PAUSED']:
             self.reboot()
 
-    def installDrivers(self, source=None, extrareboot=False):
+    def setDriversBootStart(self):
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\services\\xenvif", "Start", "DWORD", 0)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\services\\xennet", "Start", "DWORD", 0)
+        self.reboot()
+
+    def installDrivers(self, source=None, extrareboot=False, expectUpToDate=True):
         """Install PV drivers into a guest"""
 
         if not self.windows:
@@ -1222,7 +1230,7 @@ at > c:\\xenrtatlog.txt
                 source = xenrt.TEC().getFile(source)
         if not source:
             try:
-                remotefile = self.host.toolsISOPath("windows")
+                remotefile = self.host.toolsISOPath()
                 if not remotefile:
                     raise xenrt.XRTError("Could not find PV tools ISO in dom0")
                 xenrt.TEC().logverbose("Using driver ISO: %s" % (remotefile))
@@ -1273,11 +1281,19 @@ at > c:\\xenrtatlog.txt
 
         # If the file is tar.bz2 then it's probably a Carbon package
         # file containing an ISO. Unpack it
+        decompress = None
         if tmpfile[-8:] == ".tar.bz2" or re.search(r"bzip2", ftype):
+            decompress = "j"
+        elif tmpfile[-4:] == ".tgz" or tmpfile[-7:] == ".tar.gz" or re.search(r"gzip", ftype):
+            decompress = "z"
+        if decompress:
             unpack = xenrt.TEC().tempDir()
-            xenrt.util.command("tar -jxf %s -C %s" % (tmpfile, unpack))
-            tmpfile = string.strip(xenrt.util.command("find %s -type f | "
+            xenrt.util.command("tar -%sxf %s -C %s" % (decompress, tmpfile, unpack))
+            tmpfile = string.strip(xenrt.util.command("find %s -type f -name \"xensetup.exe\" | "
                                                       "head -n 1" % (unpack)))
+            if tmpfile == "":
+                tmpfile = string.strip(xenrt.util.command("find %s -type f -name \"*.exe\" | "
+                                                          "head -n 1" % (unpack)))
             if tmpfile == "":
                 raise xenrt.XRTError("Could not find installer inside tarball")
 
@@ -1334,7 +1350,7 @@ at > c:\\xenrtatlog.txt
             except:
                 pass
 
-        self.waitForAgent(300)
+        self.waitForAgent(300, checkPvDriversUpToDate=expectUpToDate)
         self.enlightenedDrivers = True
 
         if extrareboot:
@@ -3054,6 +3070,9 @@ exit /B 1
     def instantiateSnapshot(self, uuid, name=None, timer=None, sruuid=None, noIP=False):
         return self._cloneCopyVM("instance", name, timer, sruuid, uuid=uuid, noIP=noIP)
 
+    def cloneTemplate(self, name=None, timer=None, sruuid=None, noIP=True):
+        return self._cloneCopyVM("instance", name, timer, sruuid, noIP=noIP)
+
     def _cloneCopyVM(self, operation, name, timer, sruuid, uuid=None, noIP=True):
         cli = self.getCLIInstance()
         g_uuid = None
@@ -3085,6 +3104,8 @@ exit /B 1
             g_uuid = cli.execute("vm-clone", string.join(args)).strip()
         # Instantiate a snapshot.
         elif operation == "instance":
+            if uuid is None:
+                uuid = self.getUUID()
             template = self.getHost().genParamGet("template", 
                                                   uuid, 
                                                   "name-label")
@@ -3888,154 +3909,49 @@ exit /B 1
 
         xenrt.TEC().logverbose("Guest health check for %s couldn't find anything wrong" % (self.getName()))
 
-    def installTools(self, source=None, reboot=False, updateKernel=True):
+    def installTools(self, reboot=False, updateKernel=True):
         """Install tools package into a guest"""
 
         if self.windows:
             return
 
-        # Locate the tools ISO.
-        if not source:
-            source = xenrt.TEC().lookup("OPTION_DRIVER_ISO", None)
-        if not source:
+        toolscdname = self.insertToolsCD()
+        device="sr0"
+        
+        if not self.isHVMLinux():
+            device = self.getHost().minimalList("vbd-list", 
+                                                "device", 
+                                                "type=CD vdi-name-label=%s vm-uuid=%s" %
+                                                (toolscdname, self.getUUID()))[0]
+        
+        for dev in [device, device, "cdrom"]:
             try:
-                remotefile = self.getHost().toolsISOPath("linux")
-                if not remotefile:
-                    raise xenrt.XRTError("Could not find PV tools ISO in dom0.")
-                source = "%s/tools.iso" % (xenrt.TEC().getWorkdir())
-                sh = self.getHost().sftpClient()                
-                sh.copyFrom(remotefile, source)
-                sh.close()
-                self.getHost().execdom0("md5sum %s" % remotefile)
-                xenrt.TEC().logverbose("Using PV tools ISO from installed host.")
+                self.execguest("mount /dev/%s /mnt" % (dev))
+                break
             except:
-                traceback.print_exc(file=sys.stderr)
-        if not source:
-            raise xenrt.XRTError("No PV tools ISO path given.")
-        xenrt.TEC().logverbose("Using PV tools from %s." % (source))
-
-        # If this is a file path, copy it locally, if it's a URL, fetch it.
-        tmp = xenrt.TEC().tempFile()
-        tmpfile = "%s_%s" % (tmp, os.path.basename(source))
-        if source[0] == "/":
-            shutil.copyfile(source, tmpfile)
-        else:
-            xenrt.util.command("wget %s -O %s" % (source, tmpfile))
-
-        installsh = False
-
-        # If this is an ISO, mount it to pull out the packages.
-        if tmpfile[-4:] == ".iso":
-            try:
-                mount = xenrt.rootops.MountISO(tmpfile)
-            except Exception, ex:
-                xenrt.command("md5sum %s" % tmpfile)
-                xenrt.command("dmesg | tail")
-                xenrt.command("sudo tail /var/log/kern.log")
-                xenrt.command("sudo tail /var/log/syslog")
+                xenrt.TEC().warning("Mounting xs-tools.iso failed on the first attempt.")
+                xenrt.sleep(30)
+        args = "-n"
+        specialkey = "do not update kernel %s" % self.getHost().productVersion
+        if self.special.has_key(specialkey) and self.special[specialkey]:
+            updateKernel = False
+        if not updateKernel:
+            args += " -k"
+        self.execguest("/mnt/Linux/install.sh %s" % (args))
+        self.enlightenedDrivers=True
+        self.execguest("umount /mnt")
+        xenrt.sleep(10)
+        try:
+            self.removeCD(device=device)
+        except xenrt.XRTFailure as e:
+            # In case of Linux on HVM, vbd-destroy on CD may fail.
+            if "vbd-destroy" in e.reason:
+                pass
+            else:
                 raise
-
-            try:
-                mountpoint = mount.getMount()
-                if os.path.exists("%s/Linux/install.sh" % (mountpoint)):
-                    installsh = True
-                else:
-                    if re.search("debian", self.distro) or \
-                       re.search("etch", self.distro) or \
-                       re.search("sarge", self.distro):
-                        version = "deb"
-                    else:
-                        version = "rpm"
-                    if not os.path.exists("%s/Linux/versions.%s" % (mountpoint, version)):
-                        raise xenrt.XRTFailure("Could not find versions file on "
-                                               "PV tools ISO.")
-                    f = file("%s/Linux/versions.%s" % (mountpoint, version))
-                    data = f.read()
-                    f.close()
-                    fields = xenrt.util.strlistToDict(data.splitlines(), keyonly=False)
-                    for key in fields: fields[key] = fields[key].strip("'")
-                    if self.arch and self.arch == "x86-64":
-                        key = "XE_GUEST_UTILITIES_PKG_FILE_x86_64"
-                    else:
-                        key = "XE_GUEST_UTILITIES_PKG_FILE_i386"
-                    if not fields.has_key(key):
-                        raise xenrt.XRTError("Could not find version entry for %s."
-                                             % (key))
-                    filename = "%s/Linux/%s" % (mountpoint, fields[key])
-                    if not os.path.exists(filename):
-                        raise xenrt.XRTError("Could not find Linux/%s." %
-                                             (fields[key]))
-                    pkg = xenrt.TEC().tempFile()
-                    shutil.copyfile(filename, pkg)
-            finally:
-                mount.unmount()
-        else:
-            raise xenrt.XRTError("Given up trying to find the ISO.")
-
-        if installsh:
-            if self.isHVMLinux():
-                device="sr0"
-                removeDevice=None
-                toolscdname = self.insertToolsCD()
-                xenrt.sleep(60)
-            else:
-                toolscdname = self.insertToolsCD()
-                xenrt.sleep(10)
-                device = self.getHost().minimalList("vbd-list", 
-                                                    "device", 
-                                                    "type=CD vdi-name-label=%s vm-uuid=%s" %
-                                                    (toolscdname, self.getUUID()))[0]
-                removeDevice=device
-                xenrt.sleep(10)
-            for dev in [device, device, "cdrom"]:
-                try:
-                    self.execguest("mount /dev/%s /mnt" % (dev))
-                    break
-                except:
-                    xenrt.TEC().warning("Mounting xs-tools.iso failed on the first attempt.")
-                    xenrt.sleep(30)
-            args = "-n"
-            specialkey = "do not update kernel %s" % \
-                (self.getHost().productVersion)
-            if self.special.has_key(specialkey) and self.special[specialkey]:
-                updateKernel = False
-            if not updateKernel:
-                args += " -k"
-            self.execguest("/mnt/Linux/install.sh %s" % (args))
-            self.enlightenedDrivers=True
-            self.execguest("umount /mnt")
-            xenrt.sleep(10)
-            try:
-                self.removeCD(device=removeDevice)
-            except xenrt.XRTFailure as e:
-                # In case of Linux on HVM, vbd-destroy on CD may fail.
-                if "vbd-destroy" in e.reason:
-                    pass
-                else:
-                    raise e
-            if reboot or ((self.distro and (self.distro.startswith("centos4") or self.distro.startswith("rhel4"))) and updateKernel):
-                # RHEL/CentOS 4.x update the kernel, so need to be rebooted
-                self.reboot()
-        else:
-            # Copy the package to the guest.
-            rempkg = string.strip(self.execguest("mktemp /tmp/pkgXXXXXX"))
-            sftp = self.sftpClient()
-            sftp.copyTo(pkg, rempkg)
-
-            if version == "rpm":
-                rpmname = string.strip(self.execguest("rpm -qp %s --qf %%{NAME}" %
-                                                      (rempkg)))
-                if self.execguest("rpm -q %s" % (rpmname), retval="code") == 0:
-                    newv = string.strip(self.execguest(\
-                        "rpm -qp %s --qf %%{VERSION}-%%{RELEASE}" % (rempkg)))
-                    oldv = string.strip(self.execguest(\
-                        "rpm -q %s --qf %%{VERSION}-%%{RELEASE}" % (rpmname)))
-                    if newv != oldv:
-                        self.execguest("rpm --upgrade %s" % (rempkg))
-                else:
-                    self.execguest("rpm --install %s" % (rempkg))
-            else:
-                self.execguest("dpkg -i %s" % (rempkg))
+        if reboot or ((self.distro and (self.distro.startswith("centos4") or self.distro.startswith("rhel4"))) and updateKernel):
+            # RHEL/CentOS 4.x update the kernel, so need to be rebooted
+            self.reboot()
 
         # RHEL/CentOS 4.7/5.2 have a other-config key set in the
         # template to work around the >64GB bug (EXT-30). Once we have
@@ -4339,6 +4255,24 @@ exit /B 1
         time.sleep(60)
         app = xenrt.XenMobileApplianceServer(self)
         app.doFirstbootUnattendedSetup() 
+
+    def createScaleXtremeEnvironment(self):
+        """Install agent on the guest and create ScaleXtreme
+        Environment."""
+        agent = SXAgent()
+        agent.agentVM = self
+        agent.installAgent()
+        agent.setAsGateway()
+        agent.createEnvironment()
+
+    def convertToTemplate(self):
+        self.preCloneTailor()
+        if self.windows:
+            self.sysPrepOOBE()
+        self.shutdown()
+        self.changeCD(None)
+        self.paramSet("is-a-template", "true")
+        self.host.removeGuest(self.name)
 
 #############################################################################
 
@@ -5120,14 +5054,14 @@ class BostonGuest(MNRGuest):
             self.disableIPv4()
             self.ipv4_disabled = True
 
-    def installDrivers(self, source=None, extrareboot=False, useLegacy=False):
+    def installDrivers(self, source=None, extrareboot=False, useLegacy=False, expectUpToDate=True):
         if not self.windows:
             xenrt.TEC().skip("Non Windows guest, no drivers to install")
             return
         self.installWICIfRequired()
         self.installDotNet4()
         self.disableIPV4IfRequired()
-        MNRGuest.installDrivers(self, source, extrareboot)
+        MNRGuest.installDrivers(self, source, extrareboot, expectUpToDate)
 
     def setWindowsHostname(self, hostname):
         if self.windows:
@@ -5287,7 +5221,11 @@ class TampaGuest(BostonGuest):
             pvToolsDir = "D:"
             if pvToolsTgz:
                 xenrt.TEC().logverbose("Using tools from: %s" % pvToolsTgz)
-                self.xmlrpcSendFile(xenrt.TEC().getFile(pvToolsTgz), "c:\\tools.tgz")
+                if os.path.exists(pvToolsTgz):
+                    toolsTgz = pvToolsTgz
+                else:
+                    toolsTgz = xenrt.TEC().getFile(pvToolsTgz)
+                self.xmlrpcSendFile(toolsTgz, "c:\\tools.tgz")
                 pvToolsDir = self.xmlrpcTempDir()
                 self.xmlrpcExtractTarball("c:\\tools.tgz", pvToolsDir)
 

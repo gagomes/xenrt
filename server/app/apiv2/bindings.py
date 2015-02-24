@@ -17,6 +17,7 @@ class Path(object):
         self.fileParams = []
         self.pathParams = []
         self.queryParams = []
+        self.returnKey = None
         self.parseParams()
 
     def pythonParamName(self, param):
@@ -57,16 +58,30 @@ class Path(object):
             for p in self.formParams:
                 q = self.pythonParamName(p)
                 if p in self.fileParams:
-                    ret += """        if %s != None:\n            files['%s'] = (os.path.basename(%s), open(%s, 'rb'))\n""" % (q, p, q, q)
+                    ret += """        if %s != None:\n            files['%s'] = (os.path.basename(%s), open(%s, 'rb'))\n        else:\n            files['%s'] = ('stdin', sys.stdin)\n""" % (q, p, q, q, p)
                 else:
                     ret += """        if %s != None:\n            payload['%s'] = %s\n""" % (q, p, q)
         if self.method == "get":
-            ret += """        r = requests.get(path, params=paramdict, auth=(self.user, self.password))\n"""
+            ret += """        r = requests.get(path, params=paramdict, headers=self.customHeaders)\n"""
+            ret += """        if r.status_code in (502, 503):\n"""
+            ret += """            time.sleep(30)\n"""
+            ret += """            r = requests.get(path, params=paramdict, headers=self.customHeaders)\n"""
         else:
-            ret += """        r = requests.%s(path, params=paramdict, data=payload, files=files, auth=(self.user, self.password))\n""" % self.method
+            if self.formParams:
+                ret += """        myHeaders = {}\n"""
+            else:
+                ret += """        myHeaders = {'content-type': 'application/json'}\n"""
+            ret += """        myHeaders.update(self.customHeaders)\n"""
+            ret += """        r = requests.%s(path, params=paramdict, data=payload, files=files, headers=myHeaders)\n""" % self.method
+            ret += """        if r.status_code in (502, 503):\n"""
+            ret += """            time.sleep(30)\n"""
+            ret += """            r = requests.%s(path, params=paramdict, data=payload, files=files, headers=myHeaders)\n""" % self.method
         ret += """        self.__raiseForStatus(r)\n"""
         if 'application/json' in self.data['produces']:
-            ret += """        return r.json()"""
+            if self.returnKey:
+                ret += """        return r.json()['%s']""" % self.returnKey
+            else:
+                ret += """        return r.json()"""
         else:
             ret += """        return r.content"""
         return ret
@@ -127,6 +142,9 @@ class Path(object):
                     self.args.append("%s=%s" % (pname, p[1]))
                 self.argdesc.append("%s: %s" % (pname, argdesc.get(p[0], "")))
 
+        if self.data.get('returnKey'):
+            self.returnKey = self.data.get('returnKey')
+
     @property
     def methodSignature(self):
         return "    def %s(%s):" % (self.methodName, self.methodParams)
@@ -184,24 +202,37 @@ import requests
 import json
 import httplib
 import os.path
+import base64
+import sys
+import time
 
 class XenRTAPIException(Exception):
-    def __init__(self, code, reason, canForce):
+    def __init__(self, code, reason, canForce, traceback):
         self.code = code
         self.reason = reason
         self.canForce = canForce
+        self.traceback = traceback
 
     def __str__(self):
         ret = "%%s %%s: %%s" %% (self.code, httplib.responses[self.code], self.reason)
         if self.canForce:
             ret += " (can force override)"
+        if self.traceback:
+            ret += "\\n%%s" %% self.traceback
         return ret
 
 class XenRT(object):
-    def __init__(self, user, password):
-        self.base = "%s://%s%s"
-        self.user = user
-        self.password = password
+    def __init__(self, apikey=None, user=None, password=None, server=None):
+        if not server:
+            server ="%s"
+        self.base = "%s://%%s%s" %% server
+
+        self.customHeaders = {}
+        if apikey:
+            self.customHeaders['x-api-key'] = apikey
+        elif user and password:
+            base64string = base64.encodestring('%%s:%%s' %% (user, password)).replace('\\n', '')
+            self.customHeaders["Authorization"] = "Basic %%s" %% base64string
 
     def __serializeForQuery(self, data):
         if isinstance(data, bool):
@@ -220,19 +251,22 @@ class XenRT(object):
                 j = response.json()
                 reason = j['reason']
                 canForce = j.get('can_force')
+                traceback = j.get('traceback')
             else:
                 reason = None
                 canForce = False
+                traceback = None
         except:
             pass
         else:
             if reason:
                 raise XenRTAPIException(response.status_code,
                                         reason,
-                                        canForce)
+                                        canForce,
+                                        traceback)
         response.raise_for_status()
 
-""" % (self.scheme, self.host, self.base)
+""" % (self.host, self.scheme, self.base)
         for func in self.funcs:
             ret += "%s\n" % func.methodSignature
             ret += "%s\n" % func.description
@@ -241,4 +275,4 @@ class XenRT(object):
     
         return ret
 
-PageFactory(PythonBindings, "bindings/xenrtapi.py", reqType="GET", contentType="text/plain")
+PageFactory(PythonBindings, "bindings/__init__.py", reqType="GET", contentType="text/plain")

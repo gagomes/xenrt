@@ -1,7 +1,0 @@
-Listen 8080
-NameVirtualHost *:8080
-
-<VirtualHost *:8080>
-    ProxyPass / @@PROXY_JENKINS_URL@@ retry=0
-    ProxyPass / @@PROXY_JENKINS_URL@@ retry=0
-</VirtualHost>

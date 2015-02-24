@@ -84,7 +84,7 @@ class TC640(xenrt.TestCase):
         while xenrt.timenow() < end:
             current = self.getXAPIpmem()
             xenrt.TEC().logverbose("Current XAPI pmem: %s" % (current))
-            if current/initial > 1.1:
+            if current/initial > 1.5:
                 raise xenrt.XRTFailure("XAPI may be leaking memory.")
             time.sleep(30)
 

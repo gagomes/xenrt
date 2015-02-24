@@ -6,9 +6,16 @@
 # James Bulpin, November-December 2005
 
 import sys, string, getopt, urllib, os, pwd, tempfile, xmlrpclib, shutil, json
-import os.path, re, glob, random, time, datetime, getpass, requests, ConfigParser
+import os.path, re, glob, random, time, datetime, getpass, ConfigParser
 import stat
-import xenrtapi
+
+try:
+    import requests
+    import xenrtapi
+except:
+    sys.path.append("@nfslibpath@")
+    import requests
+    import xenrtapi
 
 PROFILER_ENABLED = ("XENRT_PROFILE" in os.environ)
 XRTPROF = None

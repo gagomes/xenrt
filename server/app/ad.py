@@ -2,10 +2,6 @@ import config
 import ldap
 from ldap.filter import filter_format
 
-# TODO:
-# Paging of results (particularly in get_all_members_of_group)
-# Caching of DNs (ideally on a per request basis)
-
 class ActiveDirectory(object):
     _ATTRS = ['member', 'memberOf', 'sAMAccountName', 'objectClass', 'cn']
 
@@ -15,6 +11,7 @@ class ActiveDirectory(object):
         self._ldap.set_option(ldap.OPT_REFERRALS, 0)
         self._ldap.simple_bind_s(config.ldap_user, config.ldap_pass)
         self._base = config.ldap_base
+        self._groupCache = {}
 
     def is_valid_user(self, username):
         results = self._ldap.search_s(self._base, ldap.SCOPE_SUBTREE, filter_format("(&(objectClass=person)(sAMAccountName=%s))", [username]), attrlist=['sAMAccountName'])
@@ -33,9 +30,15 @@ class ActiveDirectory(object):
             return data['mail'][0]
         return None
 
+    def _getDN(self, dn):
+        if not dn in self._groupCache:
+            _, group = self._ldap.search_s(dn, ldap.SCOPE_BASE, "(objectClass=*)", attrlist=self._ATTRS)[0]
+            self._groupCache[dn] = group
+        return self._groupCache[dn]
+
     def get_all_members_of_group(self, group, _isDN=False, _visitedGroups=[]):
         if _isDN:
-            groupres = self._ldap.search_s(group, ldap.SCOPE_BASE, "(objectClass=*)", attrlist=self._ATTRS)[0]
+            groupres = group, self._getDN(group)
         else:
             groupres = self._ldap.search_s(self._base, ldap.SCOPE_SUBTREE, filter_format("(CN=%s)", [group]), attrlist=self._ATTRS)[0]
         dn, group = groupres
@@ -52,7 +55,7 @@ class ActiveDirectory(object):
 
     def get_groups_for_user(self, username, _isDN=False, _visitedGroups=[]):
         if _isDN:
-            groupres = self._ldap.search_s(username, ldap.SCOPE_BASE, "(objectClass=*)", attrlist=self._ATTRS)[0]
+            groupres = username, self._getDN(username)
         else:
             groupres = self._ldap.search_s(self._base, ldap.SCOPE_SUBTREE, filter_format("(sAMAccountName=%s)", [username]), attrlist=self._ATTRS)[0]
         dn, group = groupres

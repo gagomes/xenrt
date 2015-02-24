@@ -4599,6 +4599,8 @@ class GenericHost(GenericPlace):
 
     def checkLeasesXenRTDhcpd(self, mac, checkWithPing=False):
         valid = json.loads(xenrt.util.command("%s/xenrtdhcpd/leasesformac.py %s" % (xenrt.TEC().lookup("XENRT_BASE"), mac.lower())))
+        if not valid:
+            return None
         for a in valid:
             if checkWithPing and xenrt.command("ping -c 3 -w 10 %s" % a, retval="code", level=xenrt.RC_OK) == 0:
                 return a

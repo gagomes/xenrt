@@ -83,7 +83,9 @@ endif
 
 .PHONY: api
 api:
-	$(SUDO) pip install -I $(serverbase)/xenrtapi.tar.gz
+	$(eval TMP := $(shell mktemp -d))
+	$(SUDOSH) 'cd $(TMP) && pip install -I $(serverbase)/xenrtapi.tar.gz'
+	$(SUDO) rm -rf $(TMP)
 
 .PHONY: extrapackages-install
 extrapackages-install:

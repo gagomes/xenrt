@@ -17,8 +17,7 @@ class XenRTPage(Page):
         super(XenRTPage, self).__init__(request)
         self._db = None
         self._ad = None
-        self._groupCache = {}
-        self._userGroupCache = {}
+        self._acl = None
 
     def getUserFromAPIKey(self, apiKey):
         cur = self.getDB().cursor()
@@ -176,6 +175,11 @@ class XenRTPage(Page):
             self._ad = app.ad.ActiveDirectory()
         return self._ad
 
+    def getACLHelper(self):
+        if not self._acl:
+            self._acl = app.acl.ACLHelper()
+        return self._acl
+
     def lookup_jobid(self, detailid):
         reply = -1
         cur = self.getDB().cursor()
@@ -224,156 +228,6 @@ class XenRTPage(Page):
         cur.close()
 
         return reply
-
-    # ACL Functions
-    def get_acl(self, aclid):
-        db = self.getDB()
-        cur = db.cursor()
-
-        cur.execute("SELECT name, parent FROM tblacls WHERE aclid=%s", [aclid])
-        rc = cur.fetchone()
-        if not rc:
-            raise KeyError("ACL not found")
-        name = rc[0].strip()
-        parent = rc[1]
-
-        entries = []
-        cur.execute("SELECT type, userid, grouplimit, grouppercent, userlimit, userpercent, maxleasehours FROM tblaclentries WHERE aclid=%s ORDER BY prio", [aclid])
-        while True:
-            rc = cur.fetchone()
-            if not rc:
-                break
-            def __int(data):
-                if data is None:
-                    return data
-                return int(data)
-
-            entries.append(app.acl.ACLEntry(rc[0].strip(), rc[1].strip(), __int(rc[2]), __int(rc[3]), __int(rc[4]), __int(rc[5]), __int(rc[6])))
-
-        return app.acl.ACL(aclid, name, parent, entries)
-
-    def get_machines_in_acl(self, aclid):
-        db = self.getDB()
-        machines = {}
-        cur = db.cursor()
-        cur.execute("SELECT m.machine, m.status, m.comment, j.userid FROM tblmachines AS m INNER JOIN tblacls AS a ON m.aclid = a.aclid LEFT JOIN tbljobs AS j ON m.jobid = j.jobid WHERE (m.aclid = %s OR a.parent = %s)",
-                    (aclid, aclid))
-        while True:
-            rc = cur.fetchone()
-            if not rc:
-                break
-            if rc[1].strip() in ["scheduled", "slaved", "running"]:
-                machines[rc[0]] = rc[3].strip()
-            elif rc[2] is not None:
-                machines[rc[0]] = rc[2].strip()
-            else:
-                machines[rc[0]] = None
-        cur.close()
-
-        return machines
-
-    def check_acl(self, aclid, userid, number, leaseHours=None):
-        """Returns True if the given user can have 'number' additional machines under this acl"""
-        acl = self.get_acl(aclid)
-        if self._check_acl(acl, userid, number, leaseHours):
-            if acl.parent:
-                # We have to check the parent ACL as well
-                return self._check_acl(self.get_acl(acl.parent), userid, number, leaseHours)
-            return True
-        return False
-
-    def _check_acl(self, acl, userid, number, leaseHours=None):
-        """Returns True if the given user can have 'number' additional machines under this acl"""
-        # Identify all machines that use this aclid and who the active user is in each case (including where this aclid is a parent)
-        machines = self.get_machines_in_acl(acl.aclid)
-        usergroups = self._groups_for_userid(userid)
-        usercount = number # Count of machines this user has
-        for m in machines:
-            if machines[m] == userid:
-                usercount += 1
-        userpercent = int(math.ceil((usercount * 100.0) / len(machines)))
-        groupcache = None
-
-        # Go through the acl entries
-        for e in acl.entries:
-            if e.entryType == 'user':
-                if e.userid != userid:
-                    # Another user - remove their usage from our data
-                    # otherwise we might double count them if they're a member of a group as well
-                    for m in machines:
-                        if machines[m] == e.userid:
-                            machines[m] = None
-                    continue
-                else:
-                    # Our user - check their usage
-                    if e.userlimit is not None and usercount > e.userlimit:
-                        return False
-                    if e.userpercent is not None and userpercent > e.userpercent:
-                        return False
-                    if e.maxleasehours is not None and leaseHours and leaseHours > e.maxleasehours:
-                        return False
-
-                    # We've hit an exact user match, so we ignore any further rules
-                    return True
-            else:
-                if e.userid in usergroups:
-                    # A group our user is in - identify overall usage and per user usage for users in the acl
-                    groupcount = usercount
-                    for u in self._userids_for_group(e.userid):
-                        if u == userid:
-                            continue # Don't count our user as we've already accounted for that
-                        groupcount += len(filter(lambda m: m == u, machines.values()))
-                    grouppercent = int(math.ceil((groupcount * 100.0) / len(machines)))
-
-                    if e.grouplimit is not None and groupcount > e.grouplimit:
-                        return False
-                    if e.grouppercent is not None and grouppercent > e.grouppercent:
-                        return False
-
-                    # Check the user limits as well
-                    if e.userlimit is not None and usercount > e.userlimit:
-                        return False
-                    if e.userpercent is not None and userpercent > e.userpercent:
-                        return False
-
-                    # Check lease restrictions
-                    if e.maxleasehours is not None and leaseHours and leaseHours > e.maxleasehours:
-                        return False
-
-                # We've hit a successful group match, so we ignore any further rules
-                return True
-
-        return True
-
-    def _userids_for_group(self, group):
-        if group in self._groupCache:
-            return self._groupCache[group]
-        db = self.getDB()
-        cur = db.cursor()
-        cur.execute("SELECT gu.userid FROM tblgroupusers gu INNER JOIN tblgroups g ON gu.groupid = g.groupid WHERE g.name=%s", [group])
-        results = []
-        while True:
-            rc = cur.fetchone()
-            if not rc:
-                break
-            results.append(rc[0].strip())
-        self._groupCache[group] = results
-        return results
-
-    def _groups_for_userid(self, userid):
-        if userid in self._userGroupCache:
-            return self._userGroupCache[userid]
-        db = self.getDB()
-        cur = db.cursor()
-        cur.execute("SELECT g.name FROM tblgroups g INNER JOIN tblgroupusers gu ON g.groupid = gu.groupid WHERE gu.userid=%s", [userid])
-        results = []
-        while True:
-            rc = cur.fetchone()
-            if not rc:
-                break
-            results.append(rc[0].strip())
-        self._userGroupCache[userid] = results
-        return results
 
 import app.api
 import app.apiv2

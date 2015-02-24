@@ -660,7 +660,7 @@ class XenRTSchedule(XenRTAPIPage):
 
         # Go through each policy and check if we're OK
         for p in policies.keys():
-            if not self.check_acl(p, userid, policies[p]):
+            if not self.getACLHelper().check_acl(p, userid, policies[p]):
                 return False
 
         return True

@@ -61,10 +61,41 @@ class XenRTPage(Page):
         if self.getAD().is_valid_user(userid):
             # Add them to the table for future reference
             db = self.getWriteDB()
+            cur = db.cursor()
             cur.execute("INSERT INTO tblusers (userid) VALUES (%s)", [userid])
             db.commit()
             return True
         return False
+
+    def _isValidGroup(self, name):
+        db = self.getDB()
+        cur = db.cursor()
+        cur.execute("SELECT groupid FROM tblgroups WHERE name=%s", [name])
+        rc = cur.fetchone()
+        if rc:
+            return True
+        # Might be a new group
+        if self.getAD().is_valid_group(name):
+            # Cache the group members
+            db = self.getWriteDB()
+            cur = db.cursor()
+            cur.execute("INSERT INTO tblgroups (name) VALUES (%s) RETURNING groupid", [name])
+            rc = cur.fetchone()
+            groupid = rc[0]
+            members = self.getAD().get_all_members_of_group(name)
+            for m in members:
+                cur.execute("INSERT INTO tblgroupusers (groupid, userid) VALUES (%s, %s)", [groupid, m])
+            db.commit()
+            return True
+        return False
+
+    def validateAndCache(self, objectType, userid):
+        if objectType == "user":
+            return self._isValidUser(userid)
+        elif objectType == "group":
+            return self._isValidGroup(userid)
+        else:
+            raise Exception("Invalid object type")
 
     def renderWrapper(self):
         if not self.getUser() and (self.REQUIRE_AUTH or (self.REQUIRE_AUTH_IF_ENABLED and config.auth_enabled == "yes")):

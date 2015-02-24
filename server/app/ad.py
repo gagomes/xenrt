@@ -1,5 +1,6 @@
 import config
-import ldap, ldap.filter
+import ldap
+from ldap.filter import filter_format
 
 # TODO:
 # Paging of results (particularly in get_all_members_of_group)
@@ -16,11 +17,15 @@ class ActiveDirectory(object):
         self._base = config.ldap_base
 
     def is_valid_user(self, username):
-        results = self._ldap.search_s(self._base, ldap.SCOPE_SUBTREE, "(&(objectClass=person)(sAMAccountName=%s))" % username, attrlist=['sAMAccountName'])
+        results = self._ldap.search_s(self._base, ldap.SCOPE_SUBTREE, filter_format("(&(objectClass=person)(sAMAccountName=%s))", [username]), attrlist=['sAMAccountName'])
+        return not (len(results) == 0 or results[0][0] is None)
+
+    def is_valid_group(self, groupname):
+        results = self._ldap.search_s(self._base, ldap.SCOPE_SUBTREE, filter_format("(&(objectClass=group)(CN=%s))", [groupname]), attrlist=['sAMAccountName'])
         return not (len(results) == 0 or results[0][0] is None)
 
     def get_email(self, username):
-        results = self._ldap.search_s(self._base, ldap.SCOPE_SUBTREE, "(&(objectClass=person)(sAMAccountName=%s))" % username, attrlist=['mail'])
+        results = self._ldap.search_s(self._base, ldap.SCOPE_SUBTREE, filter_format("(&(objectClass=person)(sAMAccountName=%s))", [username]), attrlist=['mail'])
         if len(results) == 0 or results[0][0] is None:
             raise KeyError("%s not a valid user" % username)
         dn, data = results[0]
@@ -32,7 +37,7 @@ class ActiveDirectory(object):
         if _isDN:
             groupres = self._ldap.search_s(group, ldap.SCOPE_BASE, "(objectClass=*)", attrlist=self._ATTRS)[0]
         else:
-            groupres = self._ldap.search_s(self._base, ldap.SCOPE_SUBTREE, "(CN=%s)" % group, attrlist=self._ATTRS)[0]
+            groupres = self._ldap.search_s(self._base, ldap.SCOPE_SUBTREE, filter_format("(CN=%s)", [group]), attrlist=self._ATTRS)[0]
         dn, group = groupres
         if dn in _visitedGroups:
             return []
@@ -49,7 +54,7 @@ class ActiveDirectory(object):
         if _isDN:
             groupres = self._ldap.search_s(username, ldap.SCOPE_BASE, "(objectClass=*)", attrlist=self._ATTRS)[0]
         else:
-            groupres = self._ldap.search_s(self._base, ldap.SCOPE_SUBTREE, "(sAMAccountName=%s)" % username, attrlist=self._ATTRS)[0]
+            groupres = self._ldap.search_s(self._base, ldap.SCOPE_SUBTREE, filter_format("(sAMAccountName=%s)", [username]), attrlist=self._ATTRS)[0]
         dn, group = groupres
         if dn in _visitedGroups:
             return []
@@ -62,7 +67,7 @@ class ActiveDirectory(object):
 
     def search(self, search, attributes):
         results = []
-        query = ldap.filter.filter_format("(|(&(objectClass=person)(sAMAccountName=%s))(&(objectCategory=group)(CN=%s)))", [search, search])
+        query = filter_format("(|(&(objectClass=person)(sAMAccountName=%s))(&(objectCategory=group)(CN=%s)))", [search, search])
         for dn, data in self._ldap.search_st(self._base, ldap.SCOPE_SUBTREE, query, attrlist=map(lambda a: str(a), attributes), timeout=10):
             if not dn:
                 continue

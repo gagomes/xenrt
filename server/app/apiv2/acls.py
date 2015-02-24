@@ -7,6 +7,7 @@ import time
 import jsonschema
 
 class _AclBase(XenRTAPIv2Page):
+
     _ACLENTRIES = {
         "title": "ACL entry",
         "type": "object",
@@ -144,8 +145,10 @@ class _AclBase(XenRTAPIv2Page):
         return self.getAcls(limit=1, ids=[aclid], exceptionIfEmpty=True)
 
     def _insertAclEntry(self, cur, aclid, entry):
+        if not self.validateAndCache(entry['type'], entry['userid']):
+            raise XenRTAPIError(HTTPNotAcceptable, "Could not find %s '%s' in AD" % (entry['type'], entry['userid']))
+
         fields = ["aclid", "prio", "type", "userid"]
-        # TODO: Validate userid
         values = [aclid, entry['prio'], entry['type'], entry['userid']]
         for f in ['grouplimit', 'grouppercent', 'userlimit', 'userpercent', 'maxleasehours']:
             if entry.has_key(f) and entry[f]:

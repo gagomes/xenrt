@@ -3158,37 +3158,14 @@ class MixedGPUBootstorm(BootstormBase):
         
         linuxMaster = masters[self.LINUX_TYPE]
         
-        # Install gpu on linux master.
-        installer.createOnGuest(linuxMaster)
-        linuxMaster.setState("UP")
-        self.nvidLinvGPU.installGuestDrivers(linuxMaster)
-        linuxMaster.setState("DOWN")
-        self.vms.append((linuxMaster, config))
-        
-        for i in range(linuxAllocation - 1):
-            g = linuxMaster.cloneVM(noIP=False)
-            self.vms.append((g, config))
-            g.setState("UP")
-
-        linuxMaster.setState("UP")
+        self.__configureMasterAndPopulate(linuxMaster, config, linuxAllocation, installer, self.nvidLinvGPU)
 
         # Branch the windows master, so can use for both passthrough and vGPU
         windowsMaster = masters[self.WINDOWS_TYPE]
         windowsMaster.setState("DOWN")
-
         winPassthroughMaster = windowsMaster.cloneVM(noIP=False)
-        installer.createOnGuest(winPassthroughMaster)
-        winPassthroughMaster.setState("UP")
-        self.nvidWinvGPU.installGuestDrivers(winPassthroughMaster)
-        winPassthroughMaster.setState("DOWN")
-        self.vms.append((winPassthroughMaster, config))
 
-        for i in range(windowsAllocation - 1):
-            g = winPassthroughMaster.cloneVM(noIP=False)
-            self.vms.append((g, config))
-            g.setState("UP")
-
-        winPassthroughMaster.setState("UP")
+        self.__configureMasterAndPopulate(winPassthroughMaster, config, windowsAllocation, installer, self.nvidWinvGPU)
 
         if remainingCapacity != passthroughAllocation:
             # Switch gpu type to vGpu
@@ -3199,24 +3176,27 @@ class MixedGPUBootstorm(BootstormBase):
             remainingCapacity = self.host.remainingGpuCapacity(installer.groupUUID(), installer.typeUUID())
             xenrt.TEC().logverbose("Space for vGPU: %s" % remainingCapacity)
 
-            installer.createOnGuest(windowsMaster)
-            windowsMaster.setState("UP")
-            self.nvidWinvGPU.installGuestDrivers(windowsMaster)
-            windowsMaster.setState("DOWN")
-            self.vms.append((windowsMaster, config))
+            self.__configureMasterAndPopulate(windowsMaster, config, remainingCapacity, installer, self.nvidWinvGPU)
 
-            for i in range(remainingCapacity - 1):
-                g = windowsMaster.cloneVM(noIP=False)
-                self.vms.append((g, config))
-                g.setState("UP")
+    def __configureMasterAndPopulate(self, master, config, allocation, installer, typeVgpu):
+        installer.createOnGuest(master)
+        master.setState("UP")
+        typeVgpu.installGuestDrivers(master)
+        master.setState("DOWN")
+        self.vms.append((master, config))
+        
+        for i in range(allocation - 1):
+            g = master.cloneVM(noIP=False)
+            self.vms.append((g, config))
+            g.setState("UP")
 
-            windowsMaster.setState("UP")
+        master.setState("UP")
 
     def parseArgs(self, arglist):
         super(MixedGPUBootstorm, self).parseArgs(arglist)
 
         args = self.parseArgsKeyValue(arglist)
-        
+
         self.LINUX_TYPE = int(args['linuxtype'])
         self.WINDOWS_TYPE = int(args['windowstype'])
         self.PASSTHROUGH_ALLOCATION = float(args['passthroughalloc'])

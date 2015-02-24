@@ -258,6 +258,9 @@ class _MachineBase(XenRTAPIv2Page):
         if currentLeaseTime and time.gmtime(currentLeaseTime) > leaseToTime and not force:
             raise XenRTAPIError(HTTPNotAcceptable, "Machines is already leased for longer", canForce=True)
 
+        if machines[machine]['aclid'] and not self.check_acl(machines[machine]['aclid'], user, 1, duration):
+            raise XenRTAPIError(HTTPUnauthorized, "The access control list for this machine does not currently allow you to lease it, please contact the machine owner for further help", canForce=False)
+
         db = self.getDB()
         cur = db.cursor()
         cur.execute("UPDATE tblMachines SET leaseTo = %s, leasefrom = %s, comment = %s, leasereason = %s "

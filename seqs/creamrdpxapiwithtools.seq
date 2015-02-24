@@ -62,16 +62,16 @@
 
   <testsequence group="RdpWithTools">
     <for iter="D" values="${WINDISTROS}">
-        <testcase id="xenserver.tc.rdpxapi.TestRdpWithTools" tc="TC-23790" prio="3" >
+        <testcase id="xenserver.tc.rdpxapi.TestRdpWithTools" tc="TC-23790" name="RdpWithTools/${D}" sku="RdpWithTools/${D}" prio="3" >
         <arg>guest=${D}</arg>
         </testcase>
-        <testcase id="xenserver.tc.rdpxapi.TestRdpSettings" tc="TC-23792" prio="3" >
+        <testcase id="xenserver.tc.rdpxapi.TestRdpSettings" tc="TC-23792" name="RdpSettings/${D}" sku="RdpSettings/${D}" prio="3" >
         <arg>guest=${D}</arg>
         </testcase>
-        <testcase id="xenserver.tc.rdpxapi.TestGuestDisbableRdp" tc="TC-23793" prio="3" >
+        <testcase id="xenserver.tc.rdpxapi.TestGuestDisableRdp" tc="TC-23793" name="DisableRdp/${D}" sku="DisableRdp/${D}" prio="3" >
         <arg>guest=${D}</arg>
         </testcase>
-        <testcase id="xenserver.tc.rdpxapi.TestRdpWithSnapshot" tc="TC-23795" prio="3" >
+        <testcase id="xenserver.tc.rdpxapi.TestRdpWithSnapshot" tc="TC-23795" name="RdpSnapshot/${D}" sku="RdpSnapshot/${D}" prio="3" >
         <arg>guest=${D}</arg>
         </testcase>
      </for>

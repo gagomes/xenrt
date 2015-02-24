@@ -2,7 +2,7 @@
   <default name="WINDISTROS" value="win8-x86,win7-x86,ws08r2-x64,win81-x86,ws12-x64,winxpsp3"/>
   <variables>
     <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
-    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
     <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
   </variables>
   <prepare>

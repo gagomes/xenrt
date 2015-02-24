@@ -5809,21 +5809,14 @@ default:
 class DundeeGuest(CreedenceGuest):
     
     def uninstallDrivers(self, waitForDaemon=True):
-        
-        installed = True
-        i = 0
-        while installed and i < 10:
-            try:
-                regValue = self.winRegLookup('HKLM', "SOFTWARE\\Wow6432Node\\Citrix\\XenToolsInstaller", "InstallStatus", healthCheckOnFailure=False)
-            except:
-                try:
-                    regValue = self.winRegLookup('HKLM', "SOFTWARE\\Citrix\\XenToolsInstaller", "InstallStatus", healthCheckOnFailure=False)
-                except:
-                    installed = False
 
-            if installed:
-                xenrt.sleep(30)
-            i = i + 1
+        try:
+            regValue = self.winRegLookup('HKLM', "SOFTWARE\\Wow6432Node\\Citrix\\XenToolsInstaller", "InstallStatus", healthCheckOnFailure=False)
+        except:
+            try:
+                regValue = self.winRegLookup('HKLM', "SOFTWARE\\Citrix\\XenToolsInstaller", "InstallStatus", healthCheckOnFailure=False)
+            except:
+                installed = False
 
         if installed:
             #Drivers are installed using the tools ISO ,
@@ -5844,7 +5837,7 @@ class DundeeGuest(CreedenceGuest):
             self.enablePowerShellUnrestricted()
             
             #Get the OEM files to be deleted after uninstalling drivers
-            oemFileList = self.xmlrpcExec("C:\\devcon64.exe dp_enum | select-string 'Citrix' -Context 1,0 | findstr 'oem'" , returndata = True, powershell=True).strip().splitlines()
+            oemFileList = self.xmlrpcExec("C:\\%s dp_enum | select-string 'Citrix' -Context 1,0 | findstr 'oem'" %(devconexe), returndata = True, powershell=True).strip().splitlines()
             oemFileList = [item.strip() for item in oemFileList][1:]
             
             batch = ""

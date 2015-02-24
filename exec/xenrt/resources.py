@@ -22,6 +22,7 @@ __all__ = ["WebDirectory",
            "ExternalNFSShare",
            "ExternalSMBShare",
            "NativeWindowsSMBShare",
+           "NativeLinuxNFSShare",
            "VMSMBShare",
            "SpecifiedSMBShare",
            "ISCSIIndividualLun",
@@ -1402,15 +1403,52 @@ class ISCSINativeLinuxLun(ISCSILun):
     def release(self, atExit=False):
         CentralResource.release(self, atExit)
 
+class NativeLinuxNFSShare(CentralResource):
+    """NFS share on a native (bare metal) linux host."""
+    def __init__(self, hostName="RESOURCE_HOST_0", device='sda'):
+        self.place = xenrt.GEC().registry.hostGet(hostName)
+
+        if device != 'sda':
+            self.place.execcmd("mkfs.ext3 -F /dev/%s" % (device)) # "-F" to suppress prompt for use of whole device
+
+        self.subdir = self.createShare(device)
+        self.address = self.place.getIP()
+
+    def createShare(self, device='sda'):
+        # TODO this assumes the native linux host is CentOS 6.5
+        sharepath = "/var/nfs"
+        self.place.execcmd("yum -y install nfs-utils nfs-utils-lib")
+        self.place.execcmd("chkconfig --levels 235 nfs on")
+        self.place.execcmd("/etc/init.d/nfs start")
+        self.place.execcmd("mkdir -p %s" % (sharepath))
+        self.place.execcmd("mount /dev/%s %s" % (device, sharepath))
+        self.place.execcmd("chown 65534:65534 %s" % (sharepath))
+        self.place.execcmd("chmod 755 %s" % (sharepath))
+        self.place.execcmd("echo '%s	*(rw,sync,no_subtree_check)' >> /etc/exports" % (sharepath))
+        self.place.execcmd("exportfs -a")
+        return sharepath
+
+    def getMount(self):
+        if not self.subdir:
+            raise xenrt.XRTError("No mount directory available")
+        return "%s:%s" % (self.address, self.subdir)
+
+    def acquire(self):
+        pass
+    
+    def release(self, atExit=False):
+        CentralResource.release(self, atExit)
+
 class _WindowsSMBShare(CentralResource):
     """Base class for Windows-based SMB shares"""
-    def createShare(self):
-        if not self.place.xmlrpcDirExists("c:\\shares"):
-            self.place.xmlrpcCreateDir("c:\\shares")
+    def createShare(self, driveLetter='c'):
+        sharesPath = "%s:\\shares" % (driveLetter)
+        if not self.place.xmlrpcDirExists(sharesPath):
+            self.place.xmlrpcCreateDir(sharesPath)
         shareName = xenrt.randomGuestName()
-        self.place.xmlrpcCreateDir("c:\\shares\\%s" % shareName)
-        self.place.xmlrpcExec("net share %s=c:\\shares\\%s /grant:Everyone,FULL" % (shareName, shareName))
-        self.place.xmlrpcExec("icacls c:\\shares\\%s /grant Users:(OI)(CI)F" % shareName)
+        self.place.xmlrpcCreateDir("%s\\%s" % (sharesPath, shareName))
+        self.place.xmlrpcExec("net share %s=%s\\%s /grant:Everyone,FULL" % (shareName, sharesPath, shareName))
+        self.place.xmlrpcExec("icacls %s\\%s /grant Users:(OI)(CI)F" % (sharesPath, shareName))
         self.shareName = shareName
         self.domain = None
         self.user = "Administrator"
@@ -1435,9 +1473,28 @@ class _WindowsSMBShare(CentralResource):
 
 class NativeWindowsSMBShare(_WindowsSMBShare):
     """SMB share on a native (bare metal) windows host"""
-    def __init__(self, hostName="RESOURCE_HOST_0"):
+    def __init__(self, hostName="RESOURCE_HOST_0", driveLetter='c'):
         self.place = xenrt.GEC().registry.hostGet(hostName)
-        self.createShare()
+
+        if driveLetter != 'c':
+            # Destroy anything existing on any drive that doesn't contain C: and reinitialise
+            for diskid in self.place.xmlrpcDiskpartListDisks():
+                driveletters = self.place.xmlrpcDriveLettersOfDisk(diskid)
+                xenrt.TEC().logverbose("Disk with id %s contains drive letters %s" % (diskid, driveletters))
+
+                nextDriveLetter = driveLetter
+                if not 'C' in driveletters:
+                    # destroy anything that might already exist on the disk
+                    self.place.xmlrpcDeinitializeDisk(diskid)
+
+                    # initialize the disk with a single partition and give it a letter
+                    self.place.xmlrpcInitializeDisk(diskid, driveLetter=nextDriveLetter)
+                    nextDriveLetter = chr(ord(nextDriveLetter)+1)
+
+            # Format the disk we want to use
+            self.place.xmlrpcFormat(driveLetter, quick=True)
+
+        self.createShare(driveLetter)
 
 class VMSMBShare(_WindowsSMBShare):
     """ A tempory SMB share in a VM """

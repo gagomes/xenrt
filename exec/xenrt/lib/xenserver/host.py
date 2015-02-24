@@ -2259,8 +2259,10 @@ fi
         hostPath = "/tmp/%s" % (isoName)
 
         sh = self.sftpClient()
-        sh.copyTo(hostISO, hostPath)
-        sh.close()
+        try:
+            sh.copyTo(hostISO, hostPath)
+        finally:
+            sh.close()
 
         #Installing suppack
         xenrt.TEC().logverbose("Installing Host Supplemental pack: %s" % isoName)

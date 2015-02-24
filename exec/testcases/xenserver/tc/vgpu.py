@@ -1665,6 +1665,15 @@ class FunctionalBase(VGPUAllocationModeBase):
         if typeOfvGPU:
             self.TYPE_OF_VGPU = typeOfvGPU
 
+        # If there are any other environments needed, initialize them to the correct vars.
+        for typeOfvGPU in self.OTHERS:
+            if typeOfvGPU == self.getDiffvGPUName(DiffvGPUType.NvidiaWinvGPU):
+                self.nvidWinvGPU = self.typeofvGPU(typeOfvGPU)
+            if typeOfvGPU == self.getDiffvGPUName(DiffvGPUType.NvidiaLinuxvGPU):
+                self.nvidLinvGPU = self.typeofvGPU(typeOfvGPU)
+            if typeOfvGPU == self.getDiffvGPUName(DiffvGPUType.IntelWinvGPU):
+                self.nvidWinvGPU = self.typeofvGPU(typeOfvGPU)
+
         if not self.TYPE_OF_VGPU:
             raise xenrt.XRTFailure("Type of vGPU not defined")
 
@@ -2152,13 +2161,6 @@ class TCReuseK2PGPU(FunctionalBase):
 
         step("Creating %d vGPUs configurations." % (len(self.VGPU_CONFIG)))
         self.vGPUCreator = {}
-        for typeOfvGPU in self.OTHERS:
-            if typeOfvGPU == self.getDiffvGPUName(DiffvGPUType.NvidiaWinvGPU):
-                self.nvidWinvGPU = self.typeofvGPU(typeOfvGPU)
-            if typeOfvGPU == self.getDiffvGPUName(DiffvGPUType.NvidiaLinuxvGPU):
-                self.nvidLinvGPU = self.typeofvGPU(typeOfvGPU)
-            if typeOfvGPU == self.getDiffvGPUName(DiffvGPUType.IntelWinvGPU):
-                self.nvidWinvGPU = self.typeofvGPU(typeOfvGPU)
             
         for i in range(len(self.REQUIRED_DISTROS)):
 
@@ -3046,14 +3048,6 @@ class BootstormBase(FunctionalBase):
     def prepare(self, arglist=[]):
         super(BootstormBase, self).prepare(arglist)
         self.vms = []
-
-        for typeOfvGPU in self.OTHERS:
-            if typeOfvGPU == self.getDiffvGPUName(DiffvGPUType.NvidiaWinvGPU):
-                self.nvidWinvGPU = self.typeofvGPU(typeOfvGPU)
-            if typeOfvGPU == self.getDiffvGPUName(DiffvGPUType.NvidiaLinuxvGPU):
-                self.nvidLinvGPU = self.typeofvGPU(typeOfvGPU)
-            if typeOfvGPU == self.getDiffvGPUName(DiffvGPUType.IntelWinvGPU):
-                self.nvidWinvGPU = self.typeofvGPU(typeOfvGPU)
     
     def run(self, arglist):
         """Should perform the bootstorm steps with all available vms."""

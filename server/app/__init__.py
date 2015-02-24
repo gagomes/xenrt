@@ -25,19 +25,28 @@ class XenRTPage(Page):
 
     def getUser(self):
         lcheaders = dict([(k.lower(), v)  for (k,v) in self.request.headers.iteritems()])
+        user = None
         if "x-api-key" in lcheaders:
-            return self.getUserFromAPIKey(lcheaders['x-api-key'])
-        if "apikey" in self.request.GET:
-            return self.getUserFromAPIKey(self.request.GET['apikey'])
+            user = self.getUserFromAPIKey(lcheaders['x-api-key'])
+        if not user and "apikey" in self.request.GET:
+            user = self.getUserFromAPIKey(self.request.GET['apikey'])
+        if not user:
+            user = lcheaders.get("x-forwarded-user", "")
+            if user == "(null)" or not user:
+                user = None
+            else:
+                user = user.split("@")[0]
+        
+        if not user:
+            return None
+
         if "x-fake-user" in lcheaders:
             if self.ALLOW_FAKE_USER:
                 return lcheaders['x-fake-user']
             else:
                 raise HTTPForbidden()
-        user = lcheaders.get("x-forwarded-user", "")
-        if user == "(null)" or not user:
-            return None
-        return user.split("@")[0]
+
+        return user
 
     def renderWrapper(self):
         if not self.getUser() and (self.REQUIRE_AUTH or (self.REQUIRE_AUTH_IF_ENABLED and config.auth_enabled == "yes")):

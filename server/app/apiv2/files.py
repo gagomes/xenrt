@@ -111,7 +111,7 @@ class UploadJobLog(_FilesBase):
 
     def render(self):
         fh = self.request.POST['file'].file
-        self.uploadFile(self.request.matchdict['jobid'], "", fh)
+        self.uploadFile(self.request.matchdict['id'], "", fh)
         return {}
 
 class UploadTestLog(_FilesBase):

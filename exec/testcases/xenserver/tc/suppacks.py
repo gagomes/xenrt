@@ -980,36 +980,26 @@ class TC10665(_SupplementalPacksPostInstall):
 class _VgpuSuppackInstall(xenrt.TestCase):
     #verify vGPU suppack install on host 
     def isNvidiaVgpuSuppackInstalled(self, host):
-        try:
-            vgpuTypeList = host.execdom0("xe vgpu-type-list")
-        except:
-            return False
-        if "NVIDIA Corporation" not in vgpuTypeList:
-            return False
-        else:
+        if "NVIDIA Corporation" in host.execdom0("xe vgpu-type-list"):
             return True
+
 
 class TCinstallNvidiaVgpuHostSupPacks(_VgpuSuppackInstall):
     def run(self, arglist):
         suppackISOpath = None
         suppackISOname = None
-        isVgpuInstalled = False
-        for arg in arglist:
-            if arg.startswith('suppackISOpath'):
-                suppackISOpath = arg.split('=')[1]
-            if arg.startswith('suppackISOname'):
-                suppackISOname = arg.split('=')[1]
+        args = self.parseArgsKeyValue(arglist)
+        suppackISOpath = args['suppackISOpath']
+        suppackISOname = args['suppackISOname']
         host = self.getDefaultHost()
         #check if vGPU suppack already installed
-        isVgpuInstalled = self.isNvidiaVgpuSuppackInstalled(host)
-        if isVgpuInstalled:
+        if self.isNvidiaVgpuSuppackInstalled(host):
             xenrt.TEC().logverbose("Nvidia VGPU supplementary pack already installed")
             return
         #install suppack
         host.installHostSupPacks(suppackISOpath, suppackISOname)
         #Check installation successful or not
-        isVgpuInstalled = self.isNvidiaVgpuSuppackInstalled(host)
-        if isVgpuInstalled:
+        if self.isNvidiaVgpuSuppackInstalled(host):
             xenrt.TEC().logverbose("Nvidia VGPU supplementary pack installed successfully")
         else:
             raise xenrt.XRTFailure("Nvidia VGPU supplementary pack not installed successfully")
@@ -1019,8 +1009,7 @@ class TCinstallVgpuPacksWithXenServer(_VgpuSuppackInstall):
         isVgpuInstalled = False
         host = self.getDefaultHost()
         #Check installation successful or not
-        isVgpuInstalled = self.isNvidiaVgpuSuppackInstalled(host)
-        if isVgpuInstalled:
+        if self.isNvidiaVgpuSuppackInstalled(host):
             xenrt.TEC().logverbose("Nvidia VGPU supplementary pack installation along with xenserver was successful")
         else:
             raise xenrt.XRTFailure("Nvidia VGPU supplementary pack installation along with xenserver was not successful")

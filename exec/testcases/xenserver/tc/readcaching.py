@@ -145,10 +145,8 @@ class TCRCForSRPlug(ReadCacheTestCase):
         self.vm.createDisk(sizebytes=xvdi.size(), sruuid=xsr.uuid, vdiuuid=xvdi.uuid, bootable=True)
         self.vm.snapshot()
 
-    def __removeSnapshot(self):
-        xsr = next((s for s in self.getDefaultHost().asXapiObject().SR() if s.srType() == "nfs"), None)
-        xvdiSnapshot = next((v for v in xsr.VDI() if v.isASnapshot()), None)
-        self.vm.deleteSnapshot(xvdiSnapshot.name())
+    def __removeSnapshots(self):
+        [s.delete() for s in self.vm.asXapiObject().Snapshot()]
 
     def run(self, arglist):
         lowlevel, both = self.getArgs(arglist)

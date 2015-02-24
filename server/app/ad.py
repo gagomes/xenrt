@@ -1,5 +1,5 @@
 import config
-import ldap
+import ldap, ldap.filter
 
 # TODO:
 # Paging of results (particularly in get_all_members_of_group)
@@ -59,4 +59,17 @@ class ActiveDirectory(object):
             for m in group['memberOf']:
                 groups += self.get_groups_for_user(m, _isDN=True, _visitedGroups=_visitedGroups)
         return groups
+
+    def search(self, search, attributes):
+        results = []
+        query = ldap.filter.filter_format("(|(&(objectClass=person)(sAMAccountName=%s))(&(objectCategory=group)(CN=%s)))", [search, search])
+        for dn, data in self._ldap.search_st(self._base, ldap.SCOPE_SUBTREE, query, attrlist=map(lambda a: str(a), attributes), timeout=10):
+            if not dn:
+                continue
+            res = {'dn': dn}
+            for a in attributes:
+                if data.has_key(a):
+                    res[a] = data[a]
+            results.append(res)
+        return results
 

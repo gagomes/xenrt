@@ -1173,7 +1173,7 @@ class XenRTReturn(XenRTCommand):
             for argpair in optlist:
                 (flag, value) = argpair
                 if flag == "--force":
-                    details["force"] = "yes"
+                    force = True
         except getopt.GetoptError:
             raise Exception("Unknown argument\n")
         self.xenrt.return_leased_machine(machine, force=force)

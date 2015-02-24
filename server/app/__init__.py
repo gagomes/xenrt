@@ -1,6 +1,7 @@
 from server import Page
 import app.db
 import app.ad
+import app.acl
 import config
 import time
 from pyramid.httpexceptions import *
@@ -176,7 +177,7 @@ class XenRTPage(Page):
 
     def getACLHelper(self):
         if not self._acl:
-            self._acl = app.acl.ACLHelper()
+            self._acl = app.acl.ACLHelper(self)
         return self._acl
 
     def lookup_jobid(self, detailid):
@@ -234,5 +235,3 @@ import app.ui
 import app.uiv2
 import app.compat
 import app.signal
-import app.ad
-import app.acl

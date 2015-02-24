@@ -4,7 +4,7 @@ set -ex
 
 pushd $1/unittests
 
-export PYTHONPATH=../exec
+export PYTHONPATH=../exec:../server
 
 dir=`mktemp -d`
 
@@ -13,7 +13,7 @@ source $dir/bin/activate
 
 pip install /usr/share/xenrt/unittests/marvin.tar.gz
 
-python `which nosetests` -v --with-xunit
+nosetests -v --with-xunit
 
 popd
 rm -r $dir

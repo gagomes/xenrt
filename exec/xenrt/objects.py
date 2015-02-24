@@ -1104,6 +1104,17 @@ class GenericPlace:
         self.xmlrpcWriteFile("c:\\diskpartcmd.txt", cmd)
         return self.xmlrpcExec("diskpart /s c:\\diskpartcmd.txt", returndata=True)
 
+    def xmlrpcDiskpartListDisks(self):
+        disksstr = self.xmlrpcDiskpartCommand("list disk")
+        return re.findall("Disk\s+([0-9]*)\s+", disksstr)
+
+    def xmlrpcDriveLettersOfDisk(self, diskid):
+        diskdetail = self.xmlrpcDiskpartCommand("select disk %s\ndetail disk" % (diskid))
+        return re.findall("Volume [0-9]+\s+([A-Z])", diskdetail)
+
+    def xmlrpcDeinitializeDisk(self, diskid):
+        self.xmlrpcDiskpartCommand("select disk %s\nclean" % (diskid))
+
     def xmlrpcInitializeDisk(self, diskid, driveLetter='e'):
         """ Initialize disk, create a single partition on it, activate it and
         assign a drive letter.

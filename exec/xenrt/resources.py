@@ -1404,8 +1404,8 @@ class ISCSINativeLinuxLun(ISCSILun):
 
 class _WindowsSMBShare(CentralResource):
     """Base class for Windows-based SMB shares"""
-    def createShare(self):
-        sharesPath = "c:\\shares"
+    def createShare(self, driveLetter='c'):
+        sharesPath = "%s:\\shares" % (driveLetter)
         if not self.place.xmlrpcDirExists(sharesPath):
             self.place.xmlrpcCreateDir(sharesPath)
         shareName = xenrt.randomGuestName()
@@ -1436,9 +1436,28 @@ class _WindowsSMBShare(CentralResource):
 
 class NativeWindowsSMBShare(_WindowsSMBShare):
     """SMB share on a native (bare metal) windows host"""
-    def __init__(self, hostName="RESOURCE_HOST_0"):
+    def __init__(self, hostName="RESOURCE_HOST_0", driveLetter='c'):
         self.place = xenrt.GEC().registry.hostGet(hostName)
-        self.createShare()
+
+        if driveLetter != 'c':
+            # Destroy anything existing on any drive that doesn't contain C: and reinitialise
+            for diskid in self.place.xmlrpcDiskpartListDisks():
+                driveletters = self.place.xmlrpcDriveLettersOfDisk(diskid)
+                xenrt.TEC().logverbose("Disk with id %s contains drive letters %s" % (diskid, driveletters))
+
+                nextDriveLetter = driveLetter
+                if not 'C' in driveletters:
+                    # destroy anything that might already exist on the disk
+                    self.place.xmlrpcDeinitializeDisk(diskid)
+
+                    # initialize the disk with a single partition and give it a letter
+                    self.place.xmlrpcInitializeDisk(diskid, driveLetter=nextDriveLetter)
+                    nextDriveLetter = chr(ord(nextDriveLetter)+1)
+
+            # Format the disk we want to use
+            self.place.xmlrpcFormat(driveLetter, quick=True)
+
+        self.createShare(driveLetter)
 
 class VMSMBShare(_WindowsSMBShare):
     """ A tempory SMB share in a VM """

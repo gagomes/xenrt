@@ -3053,27 +3053,25 @@ class BootstormBase(FunctionalBase):
         """Should perform the bootstorm steps with all available vms."""
         
         # Shut down all the vms.
-        for vm in self.vms:
-            vm[0].setState("DOWN")
+        for vm, config in self.vms:
+            vm.setState("DOWN")
 
         # Start all VMs in parallel.
-        pt = [xenrt.PTask(self.bootstormStartVM, vm[0]) for vm in self.vms]
+        pt = [xenrt.PTask(self.bootstormStartVM, vm) for vm, config in self.vms]
         xenrt.pfarm(pt)
 
         # Wait for the VMs to be up in parallel.
-        pt = [xenrt.PTask(vm[0].poll, "UP") for vm in self.vms]
+        pt = [xenrt.PTask(vm.poll, "UP") for vm, config in self.vms]
         xenrt.pfarm(pt)
 
-        for vm in self.vms:
-            if vm[0].windows:
-                # I don't know what the config is going to be in advance.
-                self.nvidWinvGPU.assertvGPURunningInVM(vm[0], self.getConfigurationName(vm[1]))
+        for vm, config in self.vms:
+            if vm.windows:
+                self.nvidWinvGPU.assertvGPURunningInVM(vm, self.getConfigurationName(config))
             else:
-                # Second param doesn't do anything.
-                self.nvidLinvGPU.assertvGPURunningInVM(vm[0], vm[1])
+                self.nvidLinvGPU.assertvGPURunningInVM(vm, config)
 
     def postRun(self):
-        for vm in self.vms:
+        for vm, config in self.vms:
             try:
                     self.host.removeGuest(vm)
                     vm.uninstall()

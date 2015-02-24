@@ -3215,16 +3215,12 @@ class MixedGPUBootstorm(BootstormBase):
     def parseArgs(self, arglist):
         super(MixedGPUBootstorm, self).parseArgs(arglist)
 
-        for arg in arglist:
-            if arg.startswith('linuxtype'):
-                self.LINUX_TYPE = int(arg.split('=')[1])
-            if arg.startswith('windowstype'):
-                self.WINDOWS_TYPE = int(arg.split('=')[1])
-            if arg.startswith('passthroughalloc'):
-                self.PASSTHROUGH_ALLOCATION = float(arg.split('=')[1])
-            if arg.startswith('vgpualloctype'):
-                self.VGPU_TYPE = int(arg.split('=')[1])
-
+        args = self.parseArgsKeyValue(arglist)
+        
+        self.LINUX_TYPE = int(args['linuxtype'])
+        self.WINDOWS_TYPE = int(args['windowstype'])
+        self.PASSTHROUGH_ALLOCATION = float(args['passthroughalloc'])
+        self.VGPU_TYPE = int(args['vgpualloctype'])
 
 class TCAlloModeK200NFS(VGPUAllocationModeBase):
 

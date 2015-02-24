@@ -14,8 +14,6 @@ class XenRTSchedule(XenRTAPIPage):
         super(XenRTSchedule, self).__init__(request)
         self.mutex = None
         self.mutex_held = False
-        self._groupCache = {}
-        self._userGroupCache = {}
 
     def render(self):
         form = self.request.params

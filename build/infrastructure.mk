@@ -83,7 +83,9 @@ endif
 
 .PHONY: api
 api:
-	$(SUDO) pip install -I $(serverbase)/xenrtapi.tar.gz
+	$(eval TMP := $(shell mktemp -d))
+	$(SUDOSH) 'cd $(TMP) && pip install -I $(serverbase)/xenrtapi.tar.gz'
+	$(SUDO) rm -rf $(TMP)
 
 .PHONY: extrapackages-install
 extrapackages-install:
@@ -119,6 +121,7 @@ extrapackages-install:
 	$(SUDO) easy_install --upgrade pywinrm
 	$(SUDO) easy_install --upgrade pyyaml
 	$(SUDO) easy_install --upgrade jsonschema
+	$(SUDO) easy_install --upgrade pip
 
 	$(SUDO) ln -sf `which genisoimage` /usr/bin/mkisofs
 	$(SUDO) apt-get install -y --force-yes python-m2crypto

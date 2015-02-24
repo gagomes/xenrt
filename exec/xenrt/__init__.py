@@ -143,7 +143,7 @@ log_error_strings = {
 
 
 
-import xenrt.resources, xenrt.ssh, xenrt.registry, xenrt.ctrl, xenrt.dbconnect, xenrt.infrastructuresetup
+import xenrt.resources, xenrt.ssh, xenrt.registry, xenrt.dbconnect, xenrt.infrastructuresetup
 
 def version():
     """Returns the current harness version"""
@@ -2653,8 +2653,7 @@ class GlobalExecutionContext:
         self.markCallbacks = []
         self.results = xenrt.results.GlobalResults()
         self.registry = xenrt.registry.Registry()
-        self.dbconnect = xenrt.DBConnect(self.config.lookup("JOBID", None),
-                                         xenrt.ctrl.Commands(raw=1))
+        self.dbconnect = xenrt.DBConnect(self.config.lookup("JOBID", None))
         self.anontec = TCAnon(self).tec
         self.skipTests = {}
         self.skipGroups = {}
@@ -3349,7 +3348,7 @@ class GlobalExecutionContext:
                         c.append("-u")
                         c.append(u)
                     xenrt.TEC().logverbose("Borrowing %s" % m)
-                    self.dbconnect.jobctrl("borrow", c, buffer=True)
+                    self.dbconnect.jobctrl("borrow", c)
             if regok:
                 sys.stdout.write("Regression: PASS\n")
                 x = "OK"

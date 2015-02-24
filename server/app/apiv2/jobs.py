@@ -29,6 +29,8 @@ class _JobBase(_MachineBase):
                 ids=[],
                 detailids=[],
                 machines=[],
+                minJob=None,
+                maxJob=None,
                 getParams=False,
                 getResults=False,
                 getLog=False,
@@ -49,6 +51,14 @@ class _JobBase(_MachineBase):
             conditions.append("j.jobid IN (%s)" % (", ".join(["%s"] * len(ids))))
             params.extend(ids)
 
+        if minJob:
+            conditions.append("j.jobid >= %s")
+            params.append(minJob)
+
+        if maxJob:
+            conditions.append("j.jobid <= %s")
+            params.append(maxJob)
+
         if detailids:
             joinquery += "INNER JOIN tblresults r ON r.jobid = j.jobid "
             conditions.append("r.detailid IN (%s)" % (", ").join(["%s"] * len(detailids)))
@@ -66,6 +76,8 @@ class _JobBase(_MachineBase):
                 if s in ['new', 'running', 'done']:
                     statuscond.append("j.jobstatus=%s")
                     params.append(s)
+                elif s != 'removed':
+                    raise XenRTAPIError(HTTPBadRequest, "Invalid job status requested")
             if "removed" in status:
                 statuscond.append("j.removed='yes'")
             else:
@@ -329,7 +341,17 @@ class ListJobs(_JobBase):
           'in': 'query',
           'name': 'logitems',
           'required': False,
-          'type': 'boolean'}]
+          'type': 'boolean'},
+         {'description': 'Only return jobs where the job id is >= to this',
+          'in': 'query',
+          'name': 'minjobid',
+          'required': False,
+          'type': 'integer'},
+         {'description': 'Only return jobs where the job id is <= to this',
+          'in': 'query',
+          'name': 'maxjobid',
+          'required': False,
+          'type': 'integer'}]
     RESPONSES = { "200": {"description": "Successful response"}}
     TAGS = ["jobs"]
 
@@ -343,7 +365,12 @@ class ListJobs(_JobBase):
         users = self.getMultiParam("user")
         machines = self.getMultiParam("machine")
         excludeusers = self.getMultiParam("excludeuser")
-        limit = int(self.request.params.get("limit", 100))
+        maxJob = self.request.params.get("maxjobid")
+        minJob = self.request.params.get("minjobid")
+        if ids:
+            limit = int(self.request.params.get("limit", 0))
+        else:   
+            limit = int(self.request.params.get("limit", 100))
 
         if limit == 0:
             limit = 10000
@@ -364,6 +391,8 @@ class ListJobs(_JobBase):
                             ids=ids,
                             detailids=detailids,
                             machines=machines,
+                            minJob = minJob,
+                            maxJob = maxJob,
                             getParams=params,
                             getResults=results,
                             getLog=logitems)
@@ -402,7 +431,7 @@ class GetTest(_JobBase):
         {'name': 'id',
          'in': 'path',
          'required': True,
-         'description': 'Job ID to fetch',
+         'description': 'Test detail ID to fetch',
          'type': 'integer'},
          {'default': False,
           'description': 'Return the log items for all testcases in the job. Defaults to false',

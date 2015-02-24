@@ -152,7 +152,7 @@ class TCRCForSRPlug(ReadCacheTestCase):
         lowlevel, both = self.getArgs(arglist)
         self.checkExpectedState(True, lowlevel, both)
         self.vm.shutdown()
-        self.__removeSnapshot()
+        self.__removeSnapshots()
 
         # Find the SR and forget/introduce
         self.__plugReplugSR()

@@ -141,7 +141,6 @@ class TCRCForSRPlug(ReadCacheTestCase):
         xsr = next((s for s in self.getDefaultHost().asXapiObject().SR() if s.srType() == "nfs"), None)
         xvdi = xsr.VDI()[0]
         self.vm.createDisk(sizebytes=xvdi.size(), sruuid=xsr.uuid, vdiuuid=xvdi.uuid, bootable=True)
-        self.vm.snapshot()
 
     def __removeSnapshots(self):
         [s.delete() for s in self.vm.asXapiObject().Snapshot()]
@@ -161,4 +160,5 @@ class TCRCForSRPlug(ReadCacheTestCase):
         # We need to wait for the xapi GC to kick in and clear the dangling ref otherwise we'll get an invalid handle
         xenrt.sleep(60)
         self.vm.setState("UP")
+        self.vm.snapshot()
         self.checkExpectedState(True, lowlevel, both)

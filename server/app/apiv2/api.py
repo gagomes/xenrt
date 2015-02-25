@@ -35,7 +35,7 @@ class RemoveAPIKey(_APIKeyBase):
     OPERATION_ID = "remove_apikey"
 
     def render(self):
-        self.getUser().removeAPIKey()
+        self.getUser().removeApiKey()
         return {}
 
 class ReplaceAPIKey(_APIKeyBase):

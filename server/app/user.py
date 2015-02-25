@@ -17,7 +17,7 @@ class User(object):
             user = cls(page, rc[0].strip())
             user._valid = True
             user._apiKey = apiKey
-            user._email = rc[2].strip()
+            user._email = rc[2].strip() if rc[2] else None
             return user
         return None
 

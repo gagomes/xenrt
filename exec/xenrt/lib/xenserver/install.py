@@ -203,11 +203,6 @@ class DundeeInstaller(object):
         return None
 
     @property
-    def postInstallUefiBootMods(self):
-        # TODO work out how to do this for grub
-        return ""
-
-    @property
     def forceUefiBootViaPxe(self):
         if self.host.lookup("PXE_CHAIN_UEFI_BOOT", False, boolean=True):
             # We need to do this otherwise the local disk will boot first and XenServer will never boot
@@ -217,52 +212,65 @@ class DundeeInstaller(object):
 
     @property
     def postInstallBootMods(self):
+        def set_xen(data):
+            return "/opt/xensource/libexec/xen-cmdline --set-xen '%s'" % data
+        def set_dom0(data):
+            return "/opt/xensource/libexec/xen-cmdline --set-dom0 '%s'" % data
+        def delete_xen(data):
+            return "/opt/xensource/libexec/xen-cmdline --delete-xen '%s'" % data
+
         dom0_extra_args = self.host.lookup("DOM0_EXTRA_ARGS", None)
         dom0_extra_args_user = self.host.lookup("DOM0_EXTRA_ARGS_USER", None)
         xen_extra_args = self.host.lookup("XEN_EXTRA_ARGS", None)
         xen_extra_args_user = self.host.lookup("XEN_EXTRA_ARGS_USER", None)
         if xen_extra_args_user:
             xen_extra_args_user = string.replace(xen_extra_args_user, ",", " ")
-        serport = self.host.lookup("SERIAL_CONSOLE_PORT", "0")
-        serbaud = self.host.lookup("SERIAL_CONSOLE_BAUD", "115200")
-        comport = str(int(serport) + 1)
-        
-        bootmods = []
-        # Common substitutions.
-        bootmods.append('-e"s/ com.=/ com%s=/"' % (comport))
-        bootmods.append('-e"s/console=com./console=com%s/"' % (comport))
-        bootmods.append('-e"s/ttyS./ttyS%s/g"' % (serport))
         dom0mem = xenrt.TEC().lookup("OPTION_DOM0_MEM", None)
+        dom0blkbkorder = xenrt.TEC().lookup("DOM0_BLKBKORDER", None)
+        dom0rdsize = xenrt.TEC().lookup("DOM0_RDSIZE", None)
+
+        cmds = []
         if dom0mem:
-            bootmods.append("-e's/dom0_mem=\S+/dom0_mem=%sM/'" % (dom0mem))
+            cmds.append(set_xen("dom0_mem=%s" % dom0mem))
         if xenrt.TEC().lookup("OPTION_DEBUG", False, boolean=True):
-            bootmods.append('-e"s/ ro / ro print-fatal-signals=2 /"')
-        bootmods.append('-e"s/115200/%s/g"' % (serbaud))
-        bootmods.append('-e"s/9600/%s/g"' % (serbaud))
-
-        bootmods.append("-e's/^default xe.*/default xe-serial/'")
-        if xenrt.TEC().lookup("OPTION_DEBUG", False, boolean=True):
-            bootmods.append('-e"s/(append .*xen\S*.gz)/\\1 loglvl=all guest_loglvl=all/"')
+            cmds.append(set_dom0("print-fatal-signals=2"))
+            cmds.append(set_xen("loglvl=all guest_loglvl=all"))
         if dom0_extra_args:
-            bootmods.append('-e"s#(--- /boot/vmlinuz\S*)#\\1 %s#"' %
-                            (dom0_extra_args))
+            cmds.append(set_dom0(dom0_extra_args))
         if dom0_extra_args_user:
-            bootmods.append('-e"s#(--- /boot/vmlinuz\S*)#\\1 %s#"' %
-                            (dom0_extra_args_user))
+            cmds.append(set_dom0(dom0_extra_args_user))
         if xen_extra_args:
-            bootmods.append('-e"s#(append .*xen\S*.gz)#\\1 %s#"' %
-                            (xen_extra_args))
+            cmds.append(set_xen(xen_extra_args))
         if xen_extra_args_user:
-            bootmods.append('-e"s#(append .*xen\S*.gz)#\\1 %s#"' %
-                            (xen_extra_args_user))
+            cmds.append(set_xen(xen_extra_args_user))
         if self.host.lookup("XEN_DISABLE_WATCHDOG", False, boolean=True):
-            bootmods.append(r'-e "s#(/boot/xen.*)watchdog_timeout=[0-9]+(.*/boot/vmlinuz)#\1watchdog=false\2#" ')
+            cmds.append(delete_xen("watchdog"))
+            cmds.append(delete_xen("watchdog_timeout"))
+            cmds.append(set_dom0("watchdog=false"))
+        if (dom0blkbkorder):
+            cmds.append(set_dom0("blkbk.max_ring_page_order=%s" % dom0blkbkorder))
+        if dom0rdsize:
+            cmds.append(set_dom0("ramdisk_size=%s" % dom0rdsize))
 
-        return """ 
+        return """
 # Fix up the bootloader configuration.
-mv boot/extlinux.conf boot/extlinux.conf.orig
-sed -r %s < boot/extlinux.conf.orig > boot/extlinux.conf
-""" % string.join(bootmods)
+cp boot/extlinux.conf boot/extlinux.conf.orig || true
+cp boot/grub/grub.cfg boot/grub/grub.cfg.orig || true
+cp boot/efi/EFI/xenserver/grub.cfg boot/efi/EFI/xenserver/grub.cfg.orig || true
+
+# Run the bootloader commands in a chroot
+cat > bootloader << EOF
+#!/bin/sh
+
+%s
+EOF
+chmod +x bootloader
+
+chroot . /bootloader
+
+rm -f bootloader
+
+""" % ("\n".join(cmds))
 
     @property
     def postInstallSSHKey(self):
@@ -382,20 +390,6 @@ fi
         return v6hack
 
     @property
-    def postInstallDom0Mem(self):
-        # Hack for different dom0 static memory allocation
-        dom0memhack = ""
-        dom0mem = xenrt.TEC().lookup("DOM0_MEM", None)
-        if dom0mem:
-            dom0memhack = """
-# Set the dom0 memory allocation
-sed -i 's/dom0_mem=[0-9]*M/dom0_mem=%sM/g' boot/extlinux.conf
-# Keeping what we just set to dom0_mem, also change ',max:xxxM' if it's there
-sed -i 's/dom0_mem=\([0-9]*\)M,max:[0-9]*M/dom0_mem=\\1M,max:%sM/g' boot/extlinux.conf
-""" % (dom0mem, dom0mem)
-        return dom0memhack
-
-    @property
     def postInstallDom0RamDisk(self):
         # Hack for a different ramdisk size
         dom0rdsizehack = ""
@@ -407,19 +401,6 @@ awk -F'---' {'if (NF==3) {print $1 "---" $2 "ramdisk_size=%s ---" $3} else print
 mv /tmp/rdsizeboot.tmp boot/extlinux.conf
 """ % (dom0rdsize)
         return dom0rdsizehack
-
-    @property
-    def postInstallDom0BlkBkOrder(self):
-        # Hack for a different blkback max_ring_page_order
-        dom0blkbkorderhack = ""
-        dom0blkbkorder = xenrt.TEC().lookup("DOM0_BLKBKORDER", None)
-        if dom0blkbkorder:
-            dom0blkbkorderhack = """
-# Set the dom0 blkback max_ring_page_order
-awk -F'---' '{if (NF==3) {print $1 " --- " $2 " blkbk.max_ring_page_order=%s --- " $3} else print $0}' boot/extlinux.conf > /tmp/blkbkorderhack.tmp
-mv /tmp/blkbkorderhack.tmp boot/extlinux.conf
-""" % (dom0blkbkorder)
-        return dom0blkbkorderhack 
 
     @property
     def postInstallDom0MemPool(self):
@@ -1101,11 +1082,9 @@ sleep 30
 
         postInstall = []
         if uefi:
-            postInstall.append(self.postInstallUefiBootMods)
             postInstall.append(self.forceUefiBootViaPxe)
             postInstall.append(self.postInstallSendBootLabel)
-        else:
-            postInstall.append(self.postInstallBootMods)
+        postInstall.append(self.postInstallBootMods)
         postInstall.append(self.postInstallSSHKey)
         postInstall.append(self.postInstallXapiTweak)
         postInstall.append(self.postInstallRedoLog)
@@ -1113,8 +1092,6 @@ sleep 30
         postInstall.append(self.postInstallBlacklistDrivers)
         postInstall.append(self.postInstallSSH)
         postInstall.append(self.postInstallV6)
-        postInstall.append(self.postInstallDom0RamDisk)
-        postInstall.append(self.postInstallDom0BlkBkOrder)
         postInstall.append(self.postInstallDom0MemPool)
         postInstall.append(self.postInstallNonDebugXen)
         postInstall.append(self.postInstallFirstBootSR)

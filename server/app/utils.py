@@ -451,5 +451,5 @@ def refresh_ad_caches():
 
         print "..%d added, %d removed" % (len(newMembers), len(removeMembers))
 
-        db.commit()
+    db.commit()
 

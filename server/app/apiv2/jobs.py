@@ -719,7 +719,7 @@ class NewJob(_JobBase):
                            deployment=j.get("deployment"),
                            resources=j.get("resources"),
                            flags=j.get("flags"),
-                           email=j.get("email"),
+                           email=j.get("email") if j.has_key("email") else self.getUser().email,
                            inputdir=j.get("inputdir"),
                            lease=j.get("lease_machines"))
 

@@ -955,11 +955,15 @@ class XenRTSubmit(XenRTCommand):
         details = defaults
         if not details:
             raise Exception("No parameters specified")
+        email = None
+        if details.has_key("EMAIL"):
+            email = details["EMAIL"]
+            del details["EMAIL"]
         for key in details.keys():
             if len(details[key]) == 0:
                 del details[key]
 
-        job = self.xenrt.new_job(params=details)
+        job = self.xenrt.new_job(params=details,email=email)
         attachUrl = job['attachmentUploadUrl']
 
         # Do we have a patch to upload?

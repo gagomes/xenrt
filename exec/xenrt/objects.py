@@ -9921,7 +9921,7 @@ while True:
         #rpm should NOT contain file extn .rpm, so split off any file extension
         fileWithoutExt = os.path.splitext(rpm)[0]
 
-        return bool(self.execguest("rpm -qi %s" % fileWithoutExt, retval="code", level=xenrt.RC_OK))
+        return not bool(self.execguest("rpm -qi %s" % fileWithoutExt, retval="code", level=xenrt.RC_OK))
 
 class EventObserver(xenrt.XRTThread):
 

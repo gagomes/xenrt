@@ -59,6 +59,8 @@ class _MachineBase(XenRTAPIv2Page):
         if machines:
             conditions.append(self.generateInCondition("m.machine", machines))
             params.extend(machines)
+            # Don't exclude psuedohosts if machines are specifued
+            pseudoHosts=True
 
         if status:
             statuscond = []

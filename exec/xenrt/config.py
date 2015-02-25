@@ -74,9 +74,6 @@ class Config:
         self.config["GUEST_CONSOLE_LOGDIR"] = "${LOCAL_BASE}/scratch/xenrt/guest-console-logs"
 
         # Networking configuration
-        self.config["JIRA_USERNAME"] = 'shwetat'
-        self.config["JIRA_PASSWORD"] = 'Newpwd#123'
-        self.config["JIRA_URL"] = "https://issues.citrite.net"
         self.config["NETWORK_CONFIG"] = {}
         self.config["NETWORK_CONFIG"]["DEFAULT"] = {}
         r = re.search(r"inet [^/]+/(\d+)", netdata)

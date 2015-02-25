@@ -202,8 +202,11 @@ class XapiPluginDockerController(DockerController):
         result = self.containerXapiOtherOperation(container)
         xenrt.TEC().logverbose("createContainer - result: %s" % result)
 
-        # Inspect the container and fill more details, if required.
-        return container
+        if not "This call is only enabled when in dev mode" in result and len(result) == 64:
+            # Inspect the container and fill more details, if required.
+            return container
+        else:
+            raise xenrt.XRTError("createContainer:%s failed. This call is only enabled when in dev mode" % container.cname)
 
     def rmContainer(self, container):
 
@@ -624,9 +627,15 @@ class CentOSDocker(Docker):
         if not "Complete" in cmdOut:
             raise xenrt.XRTError("installDocker: Failed to install docker environment on guest %s" % self.guest)
 
+        # Make sure the docker is running.
+        cmdOut = self.guest.execguest("service docker restart")
+
     def updateGuestSourceRpms(self):
 
         xenrt.TEC().logverbose("updateGuestSourceRpms: Updating source rpms before docker installation on %s" % self.guest)
+        #if not self.guest.updateYumConfig(self.guest.distro, self.guest.arch):
+        #    raise xenrt.XRTError("Failed to update XenRT yum repo for %s, %s" %
+        #                                        (self.guest.distro, self.guest.arch))
         self.guest.execguest("mv /etc/yum.repos.d/CentOS-Base.repo.orig /etc/yum.repos.d/CentOS-Base.repo")
 
 class UbuntuDocker(Docker):
@@ -643,10 +652,6 @@ class UbuntuDocker(Docker):
     def updateGuestSourceRpms(self):
 
         xenrt.TEC().logverbose("updateGuestSourceRpms: Updating source rpms before docker installation on %s" % self.guest)
-
-        if not self.guest.updateYumConfig(self.guest.distro, self.guest.arch):
-            raise xenrt.XRTError("Failed to update XenRT yum repo for %s, %s" %
-                                                (self.guest.distro, self.guest.arch))
 
 # We are only doing CentOS and Ubuntu as a representative candidates.
 # If other guests are to be tested, could be implemeted using the following classes.

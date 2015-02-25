@@ -4,7 +4,7 @@ set -ex
 
 pushd $1/unittests
 
-export PYTHONPATH=../exec
+export PYTHONPATH=../exec:../server
 
 dir=`mktemp -d`
 

@@ -12,7 +12,7 @@ class _APIKeyBase(XenRTAPIv2Page):
         user = self.getUser()
         cur = self.getDB().cursor()
         try:
-            cur.execute("DELETE FROM tblusers WHERE userid=%s", [user])
+            cur.execute("UPDATE tblusers SET apikey=NULL WHERE userid=%s", [user])
         finally:
             cur.close()
             
@@ -33,7 +33,7 @@ class _APIKeyBase(XenRTAPIv2Page):
         cur = self.getDB().cursor()
         cur.execute("SELECT apikey FROM tblusers WHERE userid=%s", [user])
         rc = cur.fetchone()
-        if not rc:
+        if not rc or not rc[0]:
             if generate:
                 self._generateNewAPIKey()
                 return self._getAPIKey(generate=False)

@@ -67,8 +67,8 @@ class User(object):
         rc = cur.fetchone()
         if rc:
             self._valid = True
-            self._apiKey = rc[1].strip()
-            self._email = rc[2].strip()
+            self._apiKey = rc[1].strip() if rc[1] else None
+            self._email = rc[2].strip() if rc[2] else None
             return
 
         if not rc:

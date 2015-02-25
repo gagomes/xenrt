@@ -586,8 +586,10 @@ class CoreOSDocker(Docker):
 class CentOSDocker(Docker):
     """Represents a docker integrated in centos guest"""
 
-    def installDocker(self): pass
-        # Perform the installation.
+    def installDocker(self):
+
+        self.guest.execguest("yum install -y nmap-ncat docker")
+        xenrt.TEC().logverbose("Docker installation on Ubuntu is complete.")
 
     def registerGuest(self):
         """Register VM for XenServer container management"""
@@ -622,20 +624,7 @@ class UbuntuDocker(Docker):
 
     def installDocker(self):
 
-        # A best practice to ensure the list of available packages
-        # are up to date before installing anything new.
-        self.guest("apt-get update")
-
-        # Install Docker by installing the docker-io package.
-        self.guest("apt-get -y install docker.io")
-
-        # Link and fix paths with the following two commands.
-        self.guest("ln -sf /usr/bin/docker.io /usr/local/bin/docker")
-        self.guest("sed -i '$acomplete -F _docker docker' /etc/bash_completion.d/docker.io")
-
-        # Configure Docker to start when the server boots.
-        self.guest("update-rc.d docker.io defaults")
-
+        self.guest.execguest("apt-get -y --force-yes install nmap docker.io")
         xenrt.TEC().logverbose("Docker installation on Ubuntu is complete.")
 
 class RHELDocker(Docker):

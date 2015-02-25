@@ -764,8 +764,9 @@ def processMatrixTests(release=None):
                          ('etch','Debian Etch'),
                          ('debian50','Debian Lenny 5.0')]
 
-    # All known linux distros that only have 32-bit versions
+    # All known linux distros that only have 64-bit versions
     linDistros_64only = [('rhel7','RHEL 7.0'),
+                         ('rhel71','RHEL 7.1'),
                          ('centos7','CentOS 7.0'),
                          ('oel7','OEL 7.0'),
                          ('sles12','SLES12')]
@@ -1093,7 +1094,7 @@ def processMatrixTests(release=None):
 
     #  (Creedence)
     distrosToRels['Creedence'] = {}
-    distrosToRels['Creedence']['primary'] = ['rhel48','rhel510','rhel65','rhel511','rhel66','rhel7','oel7','centos7',
+    distrosToRels['Creedence']['primary'] = ['rhel48','rhel510','rhel65','rhel511','rhel66','rhel7','rhel71','oel7','centos7',
                                           'sles104','sles113','sles12',
                                           'w2k3eesp2','w2k3eesp2-x64',
                                           'winxpsp3','vistaeesp2',
@@ -1124,7 +1125,7 @@ def processMatrixTests(release=None):
 
     #  (Dundee)
     distrosToRels['Dundee'] = {}
-    distrosToRels['Dundee']['primary'] = ['rhel48','rhel510','rhel65','rhel511','rhel66','rhel7','oel7','centos7',
+    distrosToRels['Dundee']['primary'] = ['rhel48','rhel510','rhel65','rhel511','rhel66','rhel7','rhel71','oel7','centos7',
                                           'sles104','sles113','sles12',
                                           'w2k3eesp2','w2k3eesp2-x64',
                                           'winxpsp3','vistaeesp2',

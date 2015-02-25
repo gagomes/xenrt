@@ -13,6 +13,7 @@
       <testcase id="xenserver.tc.smoketest.TC13445" prio="3" tc="TC-13445"/>
       <testcase id="xenserver.tc.smoketest.TC13446" prio="3" tc="TC-13446"/>
       <testcase id="xenserver.tc.smoketest.TC17754" prio="3" tc="TC-17754"/>
+      <testcase id="xenserver.tc.smoketest.TC19741" prio="3" tc="TC-19741"/>
       <testcase id="xenserver.tc.smoketest.TC21427" prio="3" tc="TC-21427"/>
       <testcase id="xenserver.tc.smoketest.TC21428" prio="3" tc="TC-21428"/>
       <testcase id="xenserver.tc.smoketest.TC21429" prio="3" tc="TC-21429"/>

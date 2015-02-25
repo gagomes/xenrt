@@ -1,0 +1,42 @@
+<xenrt>
+
+  <!-- Docker test sequence using RedHat Enterprise Linux 7 guest. -->
+
+  <default name="DISTRO" value="rhel7" />
+
+  <variables>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+  </variables>
+
+  <scheduler>
+    <resources>memory&gt;=20G/disk1&gt;=140G</resources>
+  </scheduler>
+
+  <prepare>
+    <pool id="0">
+      <host id="0">
+        <!-- CoreOS installation -->
+        <vm name="${DISTRO}">
+          <distro>${DISTRO}</distro>
+          <arch>x86-64</arch>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="5" />
+          <postinstall action="dockerInstall" />
+        </vm>
+      </host>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="RHEL7">
+      <testcase id="xenserver.tc.docker.TCSanityTest" blocker="yes">
+        <arg>coreosdistro=${DISTRO}</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+
+</xenrt>

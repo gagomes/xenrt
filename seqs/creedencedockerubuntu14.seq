@@ -1,19 +1,17 @@
 <xenrt>
 
-  <!-- Docker test sequence -->
+  <!-- Docker test sequence using Ubuntu Trusty Tahr 14.04 guest. -->
 
-  <default name="DISTRO" value="coreos-alpha" />
+  <default name="DISTRO" value="ubuntu1004" />
 
   <variables>
     <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
     <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
-    <DOCKER_PASSTHROUGH_PLUGIN>yes</DOCKER_PASSTHROUGH_PLUGIN>
   </variables>
 
   <scheduler>
     <resources>memory&gt;=20G/disk1&gt;=140G</resources>
-    <param>SUPPLEMENTAL_PACK_CDS=xe-phase-2/xscontainer-6.5.0-130.iso</param>
   </scheduler>
 
   <prepare>
@@ -34,9 +32,9 @@
   </prepare>
 
   <testsequence>
-    <serial group="CoreOS">
+    <serial group="Ubuntu14">
       <testcase id="xenserver.tc.docker.TCSanityTest" blocker="yes">
-        <arg>coreosdistro=${COREOSDISTRO}</arg>
+        <arg>coreosdistro=${DISTRO}</arg>
       </testcase>
     </serial>
   </testsequence>

@@ -2,7 +2,7 @@
 
   <!-- Docker test sequence -->
 
-  <default name="COREOSDISTRO" value="coreos-alpha" />
+  <default name="DISTRO" value="coreos-alpha" />
 
   <variables>
     <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
@@ -20,7 +20,7 @@
     <pool id="0">
       <host id="0">
         <!-- CoreOS installation -->
-        <vm name="${COREOSDISTRO}">
+        <vm name="${DISTRO}">
           <distro>${COREOSDISTRO}</distro>
           <arch>x86-64</arch>
           <memory>1024</memory>

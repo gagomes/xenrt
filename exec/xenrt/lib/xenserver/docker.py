@@ -453,10 +453,13 @@ class Docker(object):
         self.DockerController = DockerController(host, guest)
 
     def install(self):
+        if not self.guest.updateYumConfig(self.guest.distro, self.guest.arch):
+            raise xenrt.XRTError("Failed to update XenRT yum repo for %s, %s" %
+                                                (self.guest.distro, self.guest.arch))
         self.installDocker()
         self.checkDocker()
         self.enabledPassthroughPlugin() # on host to create containers using Xapi.
-        self.registerGuest()
+        self.registerGuest() # Register VM for XenServer container management.
 
     def installDocker(self): pass
 
@@ -480,8 +483,8 @@ class Docker(object):
     def enabledPassthroughPlugin(self): 
         """Workaround in Dom0 to enable the passthrough plugin to create docker container"""
 
-        self.host("mkdir -p /opt/xensource/packages/files/xscontainer")
-        self.host("touch /opt/xensource/packages/files/xscontainer/devmode_enabled")
+        self.host.execdom0("mkdir -p /opt/xensource/packages/files/xscontainer")
+        self.host.execdom0("touch /opt/xensource/packages/files/xscontainer/devmode_enabled")
 
         xenrt.TEC().logverbose("XSContainer: Passthrough plugin in Dom0 to create docker container is enabled")
 

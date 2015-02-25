@@ -39,7 +39,7 @@ class XenRTPage(Page):
             if user == "(null)" or not user:
                 user = None
             else:
-                user = user.split("@")[0]
+                user = app.user.User(self, user.split("@")[0])
         
         if not user:
             return None
@@ -52,8 +52,8 @@ class XenRTPage(Page):
                     return fakeUser
             raise HTTPForbidden()
 
-        self._user = app.user.User(self, user)
-        return self._user
+        self._user = user
+        return user
 
     def _isValidGroup(self, name):
         db = self.getDB()

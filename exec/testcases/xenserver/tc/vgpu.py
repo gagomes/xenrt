@@ -1654,6 +1654,15 @@ class FunctionalBase(VGPUAllocationModeBase):
 
         self.typeOfvGPU = self.typeofvGPU()
 
+        # If there are any other environments needed, initialize them to the correct vars.
+        for typeOfvGPU in self.OTHERS:
+            if typeOfvGPU == self.getDiffvGPUName(DiffvGPUType.NvidiaWinvGPU):
+                self.nvidWinvGPU = self.typeofvGPU(typeOfvGPU)
+            if typeOfvGPU == self.getDiffvGPUName(DiffvGPUType.NvidiaLinuxvGPU):
+                self.nvidLinvGPU = self.typeofvGPU(typeOfvGPU)
+            if typeOfvGPU == self.getDiffvGPUName(DiffvGPUType.IntelWinvGPU):
+                self.nvidWinvGPU = self.typeofvGPU(typeOfvGPU)
+
         step("Install host drivers")
         self.typeOfvGPU.installHostDrivers()
 
@@ -1664,15 +1673,6 @@ class FunctionalBase(VGPUAllocationModeBase):
 
         if typeOfvGPU:
             self.TYPE_OF_VGPU = typeOfvGPU
-
-        # If there are any other environments needed, initialize them to the correct vars.
-        for typeOfvGPU in self.OTHERS:
-            if typeOfvGPU == self.getDiffvGPUName(DiffvGPUType.NvidiaWinvGPU):
-                self.nvidWinvGPU = self.typeofvGPU(typeOfvGPU)
-            if typeOfvGPU == self.getDiffvGPUName(DiffvGPUType.NvidiaLinuxvGPU):
-                self.nvidLinvGPU = self.typeofvGPU(typeOfvGPU)
-            if typeOfvGPU == self.getDiffvGPUName(DiffvGPUType.IntelWinvGPU):
-                self.nvidWinvGPU = self.typeofvGPU(typeOfvGPU)
 
         if not self.TYPE_OF_VGPU:
             raise xenrt.XRTFailure("Type of vGPU not defined")

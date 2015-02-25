@@ -465,9 +465,12 @@ class Docker(object):
 
         xenrt.TEC().logverbose("updateGuestSourceRpms: Updating source rpms before docker installation on %s" % self.guest)
 
-        if not self.guest.updateYumConfig(self.guest.distro, self.guest.arch):
-            raise xenrt.XRTError("Failed to update XenRT yum repo for %s, %s" %
-                                                (self.guest.distro, self.guest.arch))
+        if self.guest.distro.startswith("centos"):
+            if not self.guest.updateYumConfig(self.guest.distro, self.guest.arch):
+                raise xenrt.XRTError("Failed to update XenRT yum repo for %s, %s" %
+                                                    (self.guest.distro, self.guest.arch))
+        else:
+            xenrt.TEC().logverbose("updateGuestSourceRpms: updateYumConfig() not supported on guest %s" % self.guest)
 
     def registerGuest(self):
         """Register VM for XenServer container management"""

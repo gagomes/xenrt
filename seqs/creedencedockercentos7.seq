@@ -1,8 +1,8 @@
 <xenrt>
 
-  <!-- Docker test sequence using RedHat Enterprise Linux 7 guest. -->
+  <!-- Docker test sequence using CentOS 7 guest. -->
 
-  <default name="DISTRO" value="rhel7" />
+  <default name="DISTRO" value="centos7" />
 
   <variables>
     <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
@@ -32,7 +32,7 @@
   </prepare>
 
   <testsequence>
-    <serial group="RHEL7">
+    <serial group="CentOS">
       <testcase id="xenserver.tc.docker.TCSanityTest" blocker="yes">
         <arg>coreosdistro=${DISTRO}</arg>
       </testcase>

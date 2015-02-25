@@ -27,11 +27,9 @@ class TCSanityTest(xenrt.TestCase):
         self.guest = self.getGuest(self.distro)
 
         # Obtain the docker environment to work with Xapi plugins.
-        self.docker = self.guest.getDocker() # OR CoreOSDocker(self.host, self.coreos, UsingXapi)
-                                             # OR CoreOSDocker(self.host, self.coreos, UsingLinux)
-
-        # Register the guest for container monitoring.
-        self.docker.registerGuest()
+        self.docker = self.guest.getDocker() # OR self.guest.getDocker(LinuxDockerController)
+                                             # OR CoreOSDocker(self.host, self.coreos, XapiPluginDockerController)
+                                             # OR CoreOSDocker(self.host, self.coreos, LinuxDockerController)
 
     def run(self, arglist=None):
 

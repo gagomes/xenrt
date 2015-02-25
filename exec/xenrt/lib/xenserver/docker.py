@@ -8,9 +8,10 @@
 
 import xenrt, string, random
 import xmltodict, json
+from abc import ABCMeta, abstractmethod
 
 __all__ = ["ContainerState", "ContainerXapiOperation", "ContainerType",
-           "UsingXapi", "UsingLinux", "OperationMethod",
+           "XapiPluginDockerController", "LinuxDockerController", "OperationMethod",
            "CoreOSDocker", "RHELDocker", "CentOSDocker", "OELDocker", "UbuntuDocker"]
 
 """
@@ -69,8 +70,6 @@ class Container(object):
     def __init__(self, ctype, cname):
         self.ctype = ctype
         self.cname = cname
-    #def __str__(self):
-    #    return ';'.join([self.ctype, self.cname])
 
 """
 Using Bridge pattern to realise the docker feature testing.
@@ -78,6 +77,7 @@ Using Bridge pattern to realise the docker feature testing.
 
 # Implementor
 class DockerController(object):
+    __metaclass__ = ABCMeta
 
     def __init__(self, host, guest):
         self.host = host
@@ -104,30 +104,43 @@ class DockerController(object):
         else:
             raise xenrt.XRTError("Operation method %s in defined" % dockerCmd)
 
+    @abstractmethod
     def createContainer(self, container): pass
+    @abstractmethod
     def rmContainer(self, container): pass
 
     # Container lifecycle operations.
+    @abstractmethod
     def startContainer(self, container): pass
+    @abstractmethod
     def stopContainer(self, container): pass
+    @abstractmethod
     def pauseContainer(self, container): pass
+    @abstractmethod
     def unpauseContainer(self, container): pass
+    @abstractmethod
     def restartContainer(self, container): pass
 
     # Other functions.
-    def registerGuest(self):pass
+    @abstractmethod
     def inspectContainer(self, container):pass
+    @abstractmethod
     def gettopContainer(self, container):pass
+    @abstractmethod
     def statusContainer(self, container):pass
+    @abstractmethod
     def listContainers(self): pass
 
     # Misc functions.
+    @abstractmethod
     def getDockerInfo(self):pass
+    @abstractmethod
     def getDockerPS(self):pass
+    @abstractmethod
     def getDockerVersion(self):pass
 
 # Concrete Implementor
-class UsingXapi(DockerController):
+class XapiPluginDockerController(DockerController):
 
     def containerXapiLCOperation(self, operation, container):
 
@@ -228,11 +241,6 @@ class UsingXapi(DockerController):
         raise xenrt.XRTError("XENAPI: host-call-plugin call restart is not supported")
 
     # Other functions.
-    def registerGuest(self):
-        """Register a guest for container monitoring""" 
-    
-        self.host.execdom0("xe host-call-plugin host-uuid=%s plugin=xscontainer fn=register args:vmuuid=%s" %
-                                                                        (self.host.getMyHostUUID(), self.guest.getUUID()))
 
     def inspectContainer(self, container):
         dockerInspectXML = self.containerXapiLCOperation(ContainerXapiOperation.INSPECT, container)
@@ -332,7 +340,7 @@ class UsingXapi(DockerController):
         else:
             raise xenrt.XRTError("getDockerVersion: Version key is missing in docker_version xml")
 
-class UsingLinux(DockerController):
+class LinuxDockerController(DockerController):
 
     def containerLinuxLCOperation(self, operation, container):
 
@@ -437,6 +445,7 @@ Abstraction
 """
 
 class Docker(object):
+    __metaclass__ = ABCMeta
 
     def __init__(self, host, guest, DockerController):
         self.host = host
@@ -444,9 +453,22 @@ class Docker(object):
         self.containers = []
         self.DockerController = DockerController(host, guest)
 
-    def install(self): pass
+    def install(self):
+        self.installDocker()
+        self.checkDocker()
+        self.enabledPassthroughPlugin() # on host to create containers using Xapi.
+        self.registerGuest()
 
-    def check(self):
+    @abstractmethod
+    def installDocker(self): pass
+
+    def registerGuest(self):
+        """Register a guest for container monitoring""" 
+
+        self.host.execdom0("xe host-call-plugin host-uuid=%s plugin=xscontainer fn=register args:vmuuid=%s" %
+                                                                (self.host.getMyHostUUID(), self.guest.getUUID()))
+
+    def checkDocker(self):
         """Check for a working docker install"""
 
         xenrt.TEC().logverbose("Checking the installation of Docker on guest %s" % self.guest)
@@ -457,9 +479,14 @@ class Docker(object):
         else: 
             raise xenrt.XRTError("Failed to find a running instance of Docker on guest %s" % self.guest)
 
-    def register(self):
-        """Register VM for XenServer container management"""
-        pass
+    def enabledPassthroughPlugin(self): 
+        """Workaround in Dom0 to enable the passthrough plugin to create docker container"""
+
+        self.host("mkdir -p /opt/xensource/packages/files/xscontainer")
+        self.host("touch /opt/xensource/packages/files/xscontainer/devmode_enabled")
+
+        xenrt.TEC().logverbose("XSContainer: Passthrough plugin in Dom0 to create docker container is enabled")
+
 
     def createContainer(self, ctype=ContainerType.BUSYBOX, cname="random"):
         if cname.startswith("random"):
@@ -489,8 +516,6 @@ class Docker(object):
 
     # Other functions.
 
-    def registerGuest(self):
-        return self.DockerController.registerGuest()
     def inspectContainer(self, container):
         return self.DockerController.inspectContainer(container)
     def gettopContainer(self, container):
@@ -518,6 +543,9 @@ class Docker(object):
     def listContainers(self):
         return self.DockerController.listContainers() # list of containers.
 
+    def numberOfContainers(self):
+        return(len(self.listContainers()))
+
     def lifeCycleAllContainers(self):
         """Life Cycle method on all containers"""
         for container in self.containers:
@@ -536,13 +564,13 @@ class Docker(object):
     def lifeCycleContainer(self, container):
         """Life Cycle method on a specified container"""
         self.stopContainer(container)
-        xenrt.sleep(15)
+        xenrt.sleep(5)
         self.startContainer(container)
-        xenrt.sleep(15)
+        xenrt.sleep(5)
         self.pauseContainer(container)
-        xenrt.sleep(15)
+        xenrt.sleep(5)
         self.unpauseContainer(container)
-        xenrt.sleep(15)
+        xenrt.sleep(5)
 
 """
 Refined abstractions
@@ -554,30 +582,44 @@ class CoreOSDocker(Docker):
     def install(self):
         xenrt.TEC().logverbose("CoreOS has the docker environment by default")
 
-        # Check the docker installation.
-        self.check()
-
-        # Register VM for XenServer container management.
-        self.register()
-
 class CentOSDocker(Docker):
     """Represents a docker integrated in centos guest"""
 
-    def install(self):
-
+    def installDocker(self): pass
         # Perform the installation.
 
+    def registerGuest(self):
+        """Register VM for XenServer container management"""
 
-        # Check the docker installation.
-        self.check()
+        # Workaround having to provide input when setting up VMs for monitoring
+        expectscript = """#!/usr/bin/expect -f
+# Workaround having to provide input when setting up VMs for monitoring
 
-        # Register VM for XenServer container management.
-        self.register()
+set vmuuid [lindex $argv 0]
+set vmusername [lindex $argv 1]
+set vmpassword [lindex $argv 2]
+
+spawn xscontainer-prepare-vm -v $vmuuid -u $vmusername
+expect -exact "Answer y/n:"
+send "y\n"
+sleep 5
+expect -exact "Are you sure you want to continue connecting (yes/no)?"
+send "yes\n"
+sleep 5
+interact -o -nobuffer -re ":" return
+expect "password"
+send "$vmpassword\n"
+sleep 5
+interact return
+"""
+        self.host.execdom0("echo '%s' > expectscript.sh; exit 0" % expectscript)
+        self.host.execdom0("chmod a+x expectscript.sh; exit 0")
+        commandOutput = self.host.execdom0("/root/expectscript.sh %s root xenroot" % (self.guest.getUUID()))
 
 class UbuntuDocker(Docker):
     """Represents a docker installed on ubuntu guest"""
 
-    def install(self):
+    def installDocker(self):
 
         # A best practice to ensure the list of available packages
         # are up to date before installing anything new.
@@ -595,14 +637,12 @@ class UbuntuDocker(Docker):
 
         xenrt.TEC().logverbose("Docker installation on Ubuntu is complete.")
 
-        # Check the docker installation.
-        self.check()
-
-        # Register VM for XenServer container management.
-        self.register()
-
 class RHELDocker(Docker):
     """Represents a docker installed on rhel guest"""
 
+    def installDocker(self):pass
+
 class OELDocker(Docker):
     """Represents a docker integrated in oel guest"""
+
+    def installDocker(self):pass

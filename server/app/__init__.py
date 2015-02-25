@@ -2,6 +2,7 @@ from server import Page
 import app.db
 import app.ad
 import app.acl
+import app.user
 import config
 import time
 from pyramid.httpexceptions import *
@@ -18,16 +19,15 @@ class XenRTPage(Page):
         self._db = None
         self._ad = None
         self._acl = None
+        self._user = None
 
     def getUserFromAPIKey(self, apiKey):
-        cur = self.getDB().cursor()
-        cur.execute("SELECT userid FROM tblusers WHERE apikey=%s", [apiKey])
-        rc = cur.fetchone()
-        if rc:
-            return rc[0]
-        return None
+        return app.user.User.fromApiKey(self, apiKey)
 
     def getUser(self):
+        if self._user:
+            return self._user
+
         lcheaders = dict([(k.lower(), v)  for (k,v) in self.request.headers.iteritems()])
         user = None
         if "x-api-key" in lcheaders:
@@ -39,35 +39,21 @@ class XenRTPage(Page):
             if user == "(null)" or not user:
                 user = None
             else:
-                user = user.split("@")[0]
+                user = app.user.User(self, user.split("@")[0])
         
         if not user:
             return None
 
         if "x-fake-user" in lcheaders:
-            if self.ALLOW_FAKE_USER: # and self._isValidUser(lcheaders['x-fake-user']):
-                return lcheaders['x-fake-user']
-            else:
-                raise HTTPForbidden()
+            if self.ALLOW_FAKE_USER and user.admin: 
+                fakeUser = app.user.User(self, lcheaders['x-fake-user'])
+                if fakeUser.valid or True:
+                    self._user = fakeUser
+                    return fakeUser
+            raise HTTPForbidden()
 
+        self._user = user
         return user
-
-    def _isValidUser(self, userid):
-        db = self.getDB()
-        cur = db.cursor()
-        cur.execute("SELECT userid FROM tblusers WHERE userid=%s", [userid])
-        rc = cur.fetchone()
-        if rc:
-            return True
-        # They might still be a valid user who isn't in tblusers yet
-        if self.getAD().is_valid_user(userid):
-            # Add them to the table for future reference
-            db = self.getWriteDB()
-            cur = db.cursor()
-            cur.execute("INSERT INTO tblusers (userid) VALUES (%s)", [userid])
-            db.commit()
-            return True
-        return False
 
     def _isValidGroup(self, name):
         db = self.getDB()
@@ -93,7 +79,7 @@ class XenRTPage(Page):
 
     def validateAndCache(self, objectType, userid):
         if objectType == "user":
-            return self._isValidUser(userid)
+            return app.user.User(self, userid).valid
         elif objectType == "group":
             return self._isValidGroup(userid)
         else:

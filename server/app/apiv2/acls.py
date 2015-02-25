@@ -323,7 +323,7 @@ class NewAcl(_AclBase):
             raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
         return self.newAcl(name=j.get("name"),
                            parent=j.get("parent"),
-                           owner=self.getUser(),
+                           owner=self.getUser().userid,
                            entries=j.get("entries"))
 
 class UpdateAcl(_AclBase):
@@ -376,7 +376,7 @@ class UpdateAcl(_AclBase):
 
     def render(self):
         aclid = self.getIntFromMatchdict("id")
-        self.checkAcl(aclid, self.getUser())
+        self.checkAcl(aclid, self.getUser().userid)
         try:
             j = json.loads(self.request.body)
             jsonschema.validate(j, self.DEFINITIONS['updateacl'])
@@ -405,7 +405,7 @@ class RemoveAcl(_AclBase):
 
     def render(self):
         aclid = self.getIntFromMatchdict("id")
-        self.checkAcl(aclid, self.getUser())
+        self.checkAcl(aclid, self.getUser().userid)
         self.removeAcl(aclid)
         return {}
 

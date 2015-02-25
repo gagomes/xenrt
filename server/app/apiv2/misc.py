@@ -23,7 +23,10 @@ class GetUser(XenRTAPIv2Page):
     TAGS = ["misc"]
 
     def render(self):
-        return {"user": self.getUser()}
+        u = self.getUser()
+        if not u:
+            return {}
+        return {"user": u.userid, "email": u.email}
 
 class ADLookup(XenRTAPIv2Page):
     PATH = "/ad"

@@ -453,15 +453,18 @@ class Docker(object):
         self.DockerController = DockerController(host, guest)
 
     def install(self):
-        if not self.guest.updateYumConfig(self.guest.distro, self.guest.arch):
-            raise xenrt.XRTError("Failed to update XenRT yum repo for %s, %s" %
-                                                (self.guest.distro, self.guest.arch))
+        self.updateGuestSourceRpms()
         self.installDocker()
         self.checkDocker()
         self.enabledPassthroughPlugin() # on host to create containers using Xapi.
         self.registerGuest() # Register VM for XenServer container management.
 
     def installDocker(self): pass
+
+    def updateGuestSourceRpms(self):
+        if not self.guest.updateYumConfig(self.guest.distro, self.guest.arch):
+            raise xenrt.XRTError("Failed to update XenRT yum repo for %s, %s" %
+                                                (self.guest.distro, self.guest.arch))
 
     def registerGuest(self):
         """Register a guest for container monitoring""" 
@@ -585,6 +588,9 @@ class CoreOSDocker(Docker):
 
 class CentOSDocker(Docker):
     """Represents a docker integrated in centos guest"""
+
+    def updateGuestSourceRpms(self):
+        xenrt.TEC().logverbose("updateGuestSourceRpms on CoreOS is not required.")
 
     def installDocker(self):
 

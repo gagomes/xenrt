@@ -1102,7 +1102,7 @@ def processMatrixTests(release=None):
                                           'win7sp1-x86','win7sp1-x64',
                                           'ubuntu1004', 'debian60','debian70',
                                           'oel510','centos510','oel511','oel65','oel66','centos66','centos511','centos65','ubuntu1404',
-                                          'ubuntu1204','win8-x86','win8-x64', 'ws12-x64','ws12core-x64', 
+                                          'ubuntu1204','win8-x86','win8-x64','win10-x86','win10-x64', 'ws12-x64','ws12core-x64', 
                                           'win81-x86','win81-x64', 'ws12r2-x64','ws12r2core-x64']
     distrosToRels['Creedence']['secondary'] = ['rhel47','rhel59','sles103',
                                             'ws08r2-x64'
@@ -1133,7 +1133,7 @@ def processMatrixTests(release=None):
                                           'win7sp1-x86','win7sp1-x64',
                                           'ubuntu1004', 'debian60','debian70',
                                           'oel510','centos510','oel511','oel65','oel66','centos66','centos511','centos65','ubuntu1404',
-                                          'ubuntu1204','win8-x86','win8-x64', 'ws12-x64','ws12core-x64', 
+                                          'ubuntu1204','win8-x86','win8-x64','win10-x86','win10-x64', 'ws12-x64','ws12core-x64', 
                                           'win81-x86','win81-x64', 'ws12r2-x64','ws12r2core-x64']
     distrosToRels['Dundee']['secondary'] = ['rhel47','rhel59','sles103',
                                             'ws08r2-x64'

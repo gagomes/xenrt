@@ -650,17 +650,23 @@ users:
 
         # The method by default uses docker interactions through Xapi.
         if self.distro.startswith("coreos"):
-            return xenrt.lib.xenserver.docker.CoreOSDocker(self.getHost(), self, xenrt.lib.xenserver.docker.XapiPluginDockerController)
+            return xenrt.lib.xenserver.docker.CoreOSDocker(self.getHost(), self,
+                                xenrt.lib.xenserver.docker.XapiPluginDockerController)
         elif self.distro.startswith("rhel"): # RHEL7
-            return xenrt.lib.xenserver.docker.RHELDocker(self.getHost(), self, xenrt.lib.xenserver.docker.XapiPluginDockerController)
+            return xenrt.lib.xenserver.docker.RHELDocker(self.getHost(), self,
+                                xenrt.lib.xenserver.docker.XapiPluginDockerController)
         elif self.distro.startswith("centos"): # CentOS7
-            return xenrt.lib.xenserver.docker.CentOSDocker(self.getHost(), self, xenrt.lib.xenserver.docker.XapiPluginDockerController)
+            return xenrt.lib.xenserver.docker.CentOSDocker(self.getHost(), self,
+                                xenrt.lib.xenserver.docker.XapiPluginDockerController)
         elif self.distro.startswith("oel"): # OEL7
-            return xenrt.lib.xenserver.docker.OELDocker(self.getHost(), self, xenrt.lib.xenserver.docker.XapiPluginDockerController)
+            return xenrt.lib.xenserver.docker.OELDocker(self.getHost(), self,
+                                xenrt.lib.xenserver.docker.XapiPluginDockerController)
         elif self.distro.startswith("ubuntu"): #  Ubuntu 14.04
-            return xenrt.lib.xenserver.docker.UbuntuDocker(self.getHost(), self, xenrt.lib.xenserver.docker.XapiPluginDockerController)
+            return xenrt.lib.xenserver.docker.UbuntuDocker(self.getHost(), self,
+                                xenrt.lib.xenserver.docker.XapiPluginDockerController)
         else:
-            raise xenrt.XRTFailure("Docker installation unimplemented on distro %s" % self.distro)
+            raise xenrt.XRTFailure("Docker installation unimplemented on distro %s" %
+                                                                            self.distro)
 
     def installWindows(self, isoname):
         """Install Windows into a VM"""

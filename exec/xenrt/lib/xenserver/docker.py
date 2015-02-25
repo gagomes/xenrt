@@ -577,7 +577,7 @@ Refined abstractions
 class CoreOSDocker(Docker):
     """Represents a docker integrated in coreos guest"""
 
-    def install(self):
+    def installDocker(self):
         xenrt.TEC().logverbose("CoreOS has the docker environment by default")
 
 class CentOSDocker(Docker):

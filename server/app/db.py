@@ -1,5 +1,6 @@
 import psycopg2
 import config
+import requests
 import app.utils
 
 class DatabaseOutOfDateException(Exception):

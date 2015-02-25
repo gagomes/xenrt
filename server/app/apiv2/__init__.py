@@ -1,6 +1,7 @@
 from app import XenRTPage
 from server import PageFactory
 from pyramid.response import FileResponse
+from pyramid.httpexceptions import *
 import config
 import urlparse
 import json
@@ -99,7 +100,15 @@ class XenRTAPIv2Page(XenRTPage):
     PARAM_ORDER = []
     RETURN_KEY = None
     HIDDEN = False
-    
+
+    def getIntFromMatchdict(self, paramName):
+        if not paramName in self.request.matchdict:
+            raise KeyError("%s not found" % paramName)
+        try:
+            return int(self.request.matchdict[paramName])
+        except ValueError:
+            raise XenRTAPIError(HTTPBadRequest, "Invalid %s in URL" % paramName)
+
     def getMultiParam(self, paramName, delimiter=","):
         params = self.request.params.getall(paramName)
         ret = []
@@ -119,6 +128,7 @@ import app.apiv2.machines
 import app.apiv2.files
 import app.apiv2.sites
 import app.apiv2.api
+import app.apiv2.acls
 import app.apiv2.misc
 import app.apiv2.resources
 import app.apiv2.results

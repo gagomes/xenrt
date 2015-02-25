@@ -45,14 +45,15 @@ class XenRTSitePage(XenRTAPIPage):
             u.append(("maxjobs", maxjobs))
         if sharedresources:
             u.append(("sharedresources", sharedresources))
-        sqlset = []
-        vals = []
-        for field, val in u:
-            sqlset.append("%s = %%s" % field)
-            vals.append(val)
-        vals.append(site)
-        sql = "UPDATE tblSites SET %s WHERE site = %%s" % (string.join(sqlset, ", "))
-        cur.execute(sql, vals)
+        if len(u) > 0:
+            sqlset = []
+            vals = []
+            for field, val in u:
+                sqlset.append("%s = %%s" % field)
+                vals.append(val)
+            vals.append(site)
+            sql = "UPDATE tblSites SET %s WHERE site = %%s" % (string.join(sqlset, ", "))
+            cur.execute(sql, vals)
 
         db.commit()
         cur.close()

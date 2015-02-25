@@ -505,7 +505,7 @@ class Docker(object):
         xenrt.TEC().logverbose("checkDocker: Checking the installation of Docker on guest %s" % self.guest)
     
         guestCmdOut = self.guest.execguest("docker info").strip()
-        if "Operating System: CoreOS" in guestCmdOut:
+        if "Operating System:" in guestCmdOut:
             xenrt.TEC().logverbose("Docker installation is running on guest %s" % self.guest)
         else: 
             raise xenrt.XRTError("Failed to find a running instance of Docker on guest %s" % self.guest)

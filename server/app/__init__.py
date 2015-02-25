@@ -17,7 +17,7 @@ class XenRTPage(Page):
 
     def getUserFromAPIKey(self, apiKey):
         cur = self.getDB().cursor()
-        cur.execute("SELECT userid FROM tblapikeys WHERE apikey=%s", [apiKey])
+        cur.execute("SELECT userid FROM tblusers WHERE apikey=%s", [apiKey])
         rc = cur.fetchone()
         if rc:
             return rc[0]

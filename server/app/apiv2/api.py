@@ -12,7 +12,7 @@ class _APIKeyBase(XenRTAPIv2Page):
         user = self.getUser()
         cur = self.getDB().cursor()
         try:
-            cur.execute("DELETE FROM tblapikeys WHERE userid=%s", [user])
+            cur.execute("DELETE FROM tblusers WHERE userid=%s", [user])
         finally:
             cur.close()
             
@@ -22,16 +22,16 @@ class _APIKeyBase(XenRTAPIv2Page):
         user = self.getUser()
         cur = self.getDB().cursor()
         try:
-            cur.execute("DELETE FROM tblapikeys WHERE userid=%s", [user])
+            cur.execute("DELETE FROM tblusers WHERE userid=%s", [user])
             key = base64.b64encode(hashlib.sha224( str(random.getrandbits(256)) ).digest())[:38]
-            cur.execute("INSERT INTO tblapikeys(userid, apikey) VALUES(%s,%s)", [user, key])
+            cur.execute("INSERT INTO tblusers(userid, apikey) VALUES(%s,%s)", [user, key])
         finally:
             cur.close()
 
     def _getAPIKey(self, generate=True):
         user = self.getUser()
         cur = self.getDB().cursor()
-        cur.execute("SELECT apikey FROM tblapikeys WHERE userid=%s", [user])
+        cur.execute("SELECT apikey FROM tblusers WHERE userid=%s", [user])
         rc = cur.fetchone()
         if not rc:
             if generate:

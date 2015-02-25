@@ -462,20 +462,51 @@ class Docker(object):
     def installDocker(self): pass
 
     def updateGuestSourceRpms(self):
+
+        xenrt.TEC().logverbose("updateGuestSourceRpms: Updating source rpms before docker installation on %s" % self.guest)
+
         if not self.guest.updateYumConfig(self.guest.distro, self.guest.arch):
             raise xenrt.XRTError("Failed to update XenRT yum repo for %s, %s" %
                                                 (self.guest.distro, self.guest.arch))
 
     def registerGuest(self):
-        """Register a guest for container monitoring""" 
+        """Register VM for XenServer container management"""
 
-        self.host.execdom0("xe host-call-plugin host-uuid=%s plugin=xscontainer fn=register args:vmuuid=%s" %
-                                                                (self.host.getMyHostUUID(), self.guest.getUUID()))
+        xenrt.TEC().logverbose("registerGuest: Register a guest %s for container monitoring" % self.guest)
+
+        if self.guest.distro.startswith("coreos"):
+            self.host.execdom0("xe host-call-plugin host-uuid=%s plugin=xscontainer fn=register args:vmuuid=%s" %
+                                                                    (self.host.getMyHostUUID(), self.guest.getUUID()))
+        else:
+            # Workaround having to provide input when setting up VMs for monitoring
+            expectscript = """#!/usr/bin/expect -f
+    # Workaround having to provide input when setting up VMs for monitoring
+
+    set vmuuid [lindex $argv 0]
+    set vmusername [lindex $argv 1]
+    set vmpassword [lindex $argv 2]
+
+    spawn xscontainer-prepare-vm -v $vmuuid -u $vmusername
+    expect -exact "Answer y/n:"
+    send "y\n"
+    sleep 5
+    expect -exact "Are you sure you want to continue connecting (yes/no)?"
+    send "yes\n"
+    sleep 5
+    interact -o -nobuffer -re ":" return
+    expect "password"
+    send "$vmpassword\n"
+    sleep 5
+    interact return
+    """
+            self.host.execdom0("echo '%s' > expectscript.sh; exit 0" % expectscript)
+            self.host.execdom0("chmod a+x expectscript.sh; exit 0")
+            commandOutput = self.host.execdom0("/root/expectscript.sh %s root xenroot" % (self.guest.getUUID()))
 
     def checkDocker(self):
         """Check for a working docker install"""
 
-        xenrt.TEC().logverbose("Checking the installation of Docker on guest %s" % self.guest)
+        xenrt.TEC().logverbose("checkDocker: Checking the installation of Docker on guest %s" % self.guest)
     
         guestCmdOut = self.guest.execguest("docker info").strip()
         if "Operating System: CoreOS" in guestCmdOut:
@@ -486,11 +517,10 @@ class Docker(object):
     def enabledPassthroughPlugin(self): 
         """Workaround in Dom0 to enable the passthrough plugin to create docker container"""
 
+        xenrt.TEC().logverbose("enabledPassthroughPlugin: XSContainer passthrough plugin in Dom0 is enabled to create docker containers")
+
         self.host.execdom0("mkdir -p /opt/xensource/packages/files/xscontainer")
         self.host.execdom0("touch /opt/xensource/packages/files/xscontainer/devmode_enabled")
-
-        xenrt.TEC().logverbose("XSContainer: Passthrough plugin in Dom0 to create docker container is enabled")
-
 
     def createContainer(self, ctype=ContainerType.BUSYBOX, cname="random"):
         if cname.startswith("random"):
@@ -584,61 +614,33 @@ class CoreOSDocker(Docker):
     """Represents a docker integrated in coreos guest"""
 
     def installDocker(self):
-        xenrt.TEC().logverbose("CoreOS has the docker environment by default")
+
+        xenrt.TEC().logverbose("installDocker: CoreOS guest %s has the docker environment by default" % self.guest)
+
+    def updateGuestSourceRpms(self):
+        xenrt.TEC().logverbose("updateGuestSourceRpms: Update on CoreOS %s is not required" % self.guest)
 
 class CentOSDocker(Docker):
     """Represents a docker integrated in centos guest"""
 
-    def updateGuestSourceRpms(self):
-        xenrt.TEC().logverbose("updateGuestSourceRpms on CoreOS is not required.")
-
     def installDocker(self):
 
+        xenrt.TEC().logverbose("installDocker: Installation of docker environment on guest %s" % self.guest)
         self.guest.execguest("yum install -y nmap-ncat docker")
-        xenrt.TEC().logverbose("Docker installation on CentOS is complete.")
-
-    def registerGuest(self):
-        """Register VM for XenServer container management"""
-
-        # Workaround having to provide input when setting up VMs for monitoring
-        expectscript = """#!/usr/bin/expect -f
-# Workaround having to provide input when setting up VMs for monitoring
-
-set vmuuid [lindex $argv 0]
-set vmusername [lindex $argv 1]
-set vmpassword [lindex $argv 2]
-
-spawn xscontainer-prepare-vm -v $vmuuid -u $vmusername
-expect -exact "Answer y/n:"
-send "y\n"
-sleep 5
-expect -exact "Are you sure you want to continue connecting (yes/no)?"
-send "yes\n"
-sleep 5
-interact -o -nobuffer -re ":" return
-expect "password"
-send "$vmpassword\n"
-sleep 5
-interact return
-"""
-        self.host.execdom0("echo '%s' > expectscript.sh; exit 0" % expectscript)
-        self.host.execdom0("chmod a+x expectscript.sh; exit 0")
-        commandOutput = self.host.execdom0("/root/expectscript.sh %s root xenroot" % (self.guest.getUUID()))
 
 class UbuntuDocker(Docker):
     """Represents a docker installed on ubuntu guest"""
 
     def installDocker(self):
 
+        xenrt.TEC().logverbose("installDocker: Installation of docker environment on guest %s" % self.guest)
         self.guest.execguest("apt-get -y --force-yes install nmap docker.io")
-        xenrt.TEC().logverbose("Docker installation on Ubuntu is complete.")
+
+# We are only doing CentOS and Ubuntu as a representative candidates.
+# If other guests are to be tested, could be implemeted using the following classes.
 
 class RHELDocker(Docker):
     """Represents a docker installed on rhel guest"""
 
-    def installDocker(self):pass
-
 class OELDocker(Docker):
     """Represents a docker integrated in oel guest"""
-
-    def installDocker(self):pass

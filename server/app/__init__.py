@@ -45,7 +45,7 @@ class XenRTPage(Page):
             return None
 
         if "x-fake-user" in lcheaders:
-            if self.ALLOW_FAKE_USER and self._isValidUser(lcheaders['x-fake-user']):
+            if self.ALLOW_FAKE_USER: # and self._isValidUser(lcheaders['x-fake-user']):
                 return lcheaders['x-fake-user']
             else:
                 raise HTTPForbidden()

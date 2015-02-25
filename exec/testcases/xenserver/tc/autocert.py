@@ -68,7 +68,7 @@ class _XSAutoCertKit(xenrt.TestCase):
 
             else:
                 if isinstance(host, xenrt.lib.xenserver.DundeeHost):
-                    branch = "trunk"
+                    branch = "trunk-autocertkit"
                 elif "x86_64" in host.execdom0("uname -a"):
                     branch = "creedence-autocertkit"
                 else:

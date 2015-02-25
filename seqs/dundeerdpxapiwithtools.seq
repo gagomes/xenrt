@@ -2,7 +2,7 @@
   <default name="WINDISTROS" value="win8-x86,win7-x86,ws08r2-x64,win81-x86,ws12-x64,winxpsp3"/>
   <variables>
     <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
-    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
     <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
   </variables>
   <prepare>
@@ -12,6 +12,7 @@
         <arch>x86-64</arch>
         <memory>1024</memory>
         <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
         <network device="0" />
         <disk device="0" size="14" />
       </vm>
@@ -19,6 +20,7 @@
         <distro>win7-x86</distro>
         <memory>2048</memory>
         <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
         <network device="0" />
         <disk device="0" size="14" />
       </vm>
@@ -26,6 +28,7 @@
         <distro>win81-x86</distro>
         <memory>2048</memory>
         <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
         <network device="0" />
         <disk device="0" size="14" />
       </vm>
@@ -34,6 +37,7 @@
         <arch>x86-64</arch>
         <memory>2048</memory>
         <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
         <network device="0" />
         <disk device="0" size="14" />
       </vm>
@@ -41,6 +45,7 @@
         <distro>winxpsp3</distro>
         <memory>512</memory>
         <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
         <network device="0" />
         <disk device="0" size="14" />
       </vm>
@@ -48,15 +53,25 @@
         <distro>win8-x86</distro>
         <memory>2048</memory>
         <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
         <network device="0" />
         <disk device="0" size="14" />
       </vm>
   </host>
   </prepare>
 
-  <testsequence group="RdpSettingsPostInstall">
+  <testsequence group="RdpWithTools">
     <for iter="D" values="${WINDISTROS}">
-        <testcase id="xenserver.tc.rdpxapi.TestRdpOnPostInstall" tc="TC-23794" name="PostInstall/${D}" sku="PostInstall/${D}">
+        <testcase id="xenserver.tc.rdpxapi.TestRdpWithTools" tc="TC-23790" name="RdpWithTools/${D}" sku="RdpWithTools/${D}">
+        <arg>guest=${D}</arg>
+        </testcase>
+        <testcase id="xenserver.tc.rdpxapi.TestRdpSettings" tc="TC-23792" name="RdpSettings/${D}" sku="RdpSettings/${D}">
+        <arg>guest=${D}</arg>
+        </testcase>
+        <testcase id="xenserver.tc.rdpxapi.TestGuestDisableRdp" tc="TC-23793" name="DisableRdp/${D}" sku="DisableRdp/${D}">
+        <arg>guest=${D}</arg>
+        </testcase>
+        <testcase id="xenserver.tc.rdpxapi.TestRdpWithSnapshot" tc="TC-23795" name="RdpSnapshot/${D}" sku="RdpSnapshot/${D}">
         <arg>guest=${D}</arg>
         </testcase>
      </for>

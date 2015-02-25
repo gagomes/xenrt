@@ -3,7 +3,7 @@ import re
 """
 Xapi object model base and factory classes
 """
-__all__ = [ 'XapiObjectFactory', 'XapiObject', 'VM', 'VBD', 'objectFactory', 'XapiHost', 'SR', 'VDI', 'PBD']
+__all__ = [ 'XapiObjectFactory', 'XapiObject', 'VM', 'VBD', 'objectFactory', 'XapiHost', 'SR', 'VDI', 'PBD', 'Snapshot']
 
 
 class XapiObjectFactory(object):
@@ -124,7 +124,7 @@ class XapiObject(object):
 
     def getObjectsReferencing(self, refObjectType, currentObjectType):
         """
-        Get objects that reference the current objecy
+        Get objects that reference the current object
         @var refObjectType: the type to look up
         @type refObjectType:  string
         @var currentObjectType: how the resulting array is refered to
@@ -133,6 +133,10 @@ class XapiObject(object):
         @rtype list of XapiObjects
         """
         uuids = self.cli.execute("%s-list %s-uuid=%s --minimal" % (refObjectType, currentObjectType, self.uuid)).strip().split(',')
+        return [objectFactory().getObject(refObjectType)(self.cli, refObjectType, uuid) for uuid in uuids]
+
+    def getObjectsFromListing(self, refObjectType):
+        uuids = self.cli.execute("%s-list --minimal" % refObjectType).strip().split(',')
         return [objectFactory().getObject(refObjectType)(self.cli, refObjectType, uuid) for uuid in uuids]
 
 
@@ -197,6 +201,10 @@ class VM(NamedXapiObject):
     @property
     def cpuUsage(self):
         return self.getDictParam(self.__CPU_USAGE)
+
+    def Snapshot(self):
+        snaps = self.getObjectsFromListing(Snapshot.OBJECT_TYPE)
+        return [s for s in snaps if s.VM().uuid == self.uuid]
 
 
 class VBD(XapiObject):
@@ -270,12 +278,24 @@ class VDI(NamedXapiObject):
     def snapshot(self):
         return self.op("snapshot", returnObject="vdi")
 
+    def isASnapshot(self):
+        return self.getStringParam("is-a-snapshot") == "true"
+
     def readcachingEnabled(self):
         return self.getStringParam(self.__RC) == "true"
 
     def size(self):
         return self.getIntParam("virtual-size")
 
+
+class Snapshot(NamedXapiObject):
+    OBJECT_TYPE = "snapshot"
+
+    def delete(self):
+        self.op("destroy")
+
+    def VM(self):
+        return self.op("list", "params=snapshot-of --minimal", VM.OBJECT_TYPE)
 
 """
 Setup global factory and accessor method
@@ -301,5 +321,6 @@ objectFactory().registerObject(VM)
 objectFactory().registerObject(SR)
 objectFactory().registerObject(XapiHost)
 objectFactory().registerObject(VDI)
+objectFactory().registerObject(Snapshot)
 
 

@@ -9,6 +9,7 @@
     <parallel group="MaxvCPUs_2" workers="1">
       <testcase id="xenserver.tc.smoketest.TC21650" prio="4" tc="TC-21650"/>
       <testcase id="xenserver.tc.smoketest.TC21651" prio="4" tc="TC-21651"/>
+      <testcase id="xenserver.tc.smoketest.TC23928" prio="4" tc="TC-23928"/>
       <testcase id="xenserver.tc.smoketest.TC21652" prio="4" tc="TC-21652"/>
       <testcase id="xenserver.tc.smoketest.TC21653" prio="4" tc="TC-21653"/>
       <testcase id="xenserver.tc.smoketest.TC21654" prio="4" tc="TC-21654"/>
@@ -16,6 +17,7 @@
       <testcase id="xenserver.tc.smoketest.TC21656" prio="4" tc="TC-21656"/>
       <testcase id="xenserver.tc.smoketest.TC21657" prio="4" tc="TC-21657"/>
       <testcase id="xenserver.tc.smoketest.TC21658" prio="4" tc="TC-21658"/>
+      <testcase id="xenserver.tc.smoketest.TC23930" prio="4" tc="TC-23930"/>
       <testcase id="xenserver.tc.smoketest.TC21659" prio="4" tc="TC-21659"/>
       <testcase id="xenserver.tc.smoketest.TC21660" prio="4" tc="TC-21660"/>
       <testcase id="xenserver.tc.smoketest.TC21661" prio="4" tc="TC-21661"/>

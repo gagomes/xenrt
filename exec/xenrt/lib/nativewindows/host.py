@@ -248,9 +248,11 @@ class WindowsHost(xenrt.GenericHost):
         cmd = "netsh interface ipv4 add dnsservers \"%s\" %s" % (ifname, dns)
         self.xmlrpcExec(cmd)
 
-    def disableOtherNics(self):
+    def disableOtherNics(self, ip=None):
+        if not ip:
+            ip = self.machine.ipaddr
         data = self.getWindowsIPConfigData()
-        eths = [x for x in data.keys() if data[x].has_key('IPv4 Address') and not (data[x]['IPv4 Address'] == self.machine.ipaddr or data[x]['IPv4 Address'] == "%s(Preferred)" % self.machine.ipaddr)]
+        eths = [x for x in data.keys() if data[x].has_key('IPv4 Address') and not (data[x]['IPv4 Address'] == ip or data[x]['IPv4 Address'] == "%s(Preferred)" % ip)]
         for e in eths:
             cmd = "netsh interface set interface \"%s\" disabled" % (e)
             try:
@@ -267,6 +269,55 @@ class WindowsHost(xenrt.GenericHost):
 
     def isEnabled(self):
         return True
+
+    def getNIC(self, assumedid):
+        """ Return the product enumeration name (e.g. "Local Area Connection 3") for the
+        assumed enumeration ID (integer)"""
+        mac = self.getNICMACAddress(assumedid)
+        mac = mac.upper().replace(':', '-')
+
+        ipconfig = self.getWindowsIPConfigData()
+        for intf in ipconfig.keys():
+            if "Physical Address" in ipconfig[intf] and ipconfig[intf]['Physical Address'] == mac:
+                return intf
+        raise xenrt.XRTError("Could not find interface with MAC %s" % (mac))
+
+    def createNetworkTopology(self, topology):
+        """Create the topology specified by XML on this host. Takes either
+        a string containing XML or a XML DOM node."""
+
+        physList = self._parseNetworkTopology(topology)
+        if not physList:
+            xenrt.TEC().logverbose("Empty network configuration.")
+            return
+
+        ipconfig = self.getWindowsIPConfigData()
+
+        # TODO Currently only supports configuring a single NIC
+        for p in physList:
+            network, nicList, mgmt, storage, vms, friendlynetname, jumbo, vlanList, bondMode = p
+            xenrt.TEC().logverbose("Processing p=%s" % (p,))
+            if len(nicList) == 1 and len(vlanList) == 0:
+                assumedid = nicList[0]
+                intf = self.getNIC(assumedid) # e.g. "Local area connection 3"
+
+                # Set this interface as the one to use for xmlrpc
+                newip, netmask, gateway = self.getNICAllocatedIPAddress(assumedid)
+                self.machine.ipaddr = newip
+
+                # Disable all other devices
+                eths = [x for x in ipconfig.keys() if x != intf]
+                for e in eths:
+                    cmd = "netsh interface set interface \"%s\" disabled" % (e)
+                    try:
+                        self.xmlrpcExec(cmd)
+                    except:
+                        pass
+
+    def checkNetworkTopology(self, topology, ignoremanagement=False, ignorestorage=False, plugtest=False):
+        """Verify the topology specified by XML on this host. Takes either
+        a string containing XML or a XML DOM node."""
+        pass
 
 class WinPE(object):
     def __init__(self, host):

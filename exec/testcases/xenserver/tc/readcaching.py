@@ -22,6 +22,10 @@ class ReadCacheTestCase(xenrt.TestCase):
         step("Applying license: %s" % licence.getEdition())
         host.licenseApply(None, licence)
 
+    def _defaultLifeCycle(self, vm):
+        step("Performing a lifecycle")
+        vm.reboot()
+
     def prepare(self, arglist):
         self.vmName = self.parseArgsKeyValue(arglist)["vm"]
         log("Using vm %s" % self.vmName)
@@ -31,7 +35,7 @@ class ReadCacheTestCase(xenrt.TestCase):
         rcc = host.getReadCachingController()
         rcc.setVM(self.vm)
         rcc.enable()
-        self.vm.migrateVM(host)
+        self._defaultLifeCycle(self.vm)
 
     def checkExpectedState(self, expectedState, lowlevel=False, both=False):
         step("Checking state - expected=%s, low-level=%s, bothChecks=%s" % (expectedState, lowlevel, both))
@@ -68,7 +72,7 @@ class TCLicensingRCDisabled(ReadCacheTestCase):
     def run(self, arglist):
         lowlevel, both = self.getArgs(arglist)
         self._releaseLicense()
-        self.vm.migrateVM(self.getDefaultHost())
+        self._defaultLifeCycle(self.vm)
         step("Checking ReadCaching state disabled: lowLevel %s" % lowlevel)
         self.checkExpectedState(False, lowlevel, both)
 
@@ -101,8 +105,6 @@ class TCRCForLifeCycleOps(ReadCacheTestCase):
                         "Perform Lifecycle", "PauseResume")
         self.runSubcase("lifecycle", (vm, rcc, lowlevel, both, self.stopStart, vm),
                         "Perform Lifecycle", "StopStart")
-        self.runSubcase("lifecycle", (vm, rcc, lowlevel, both, vm.migrateVM, host),
-                        "Perform Lifecycle", "LocalHostMigrate")
 
     def stopStart(self, vm):
         vm.shutdown()
@@ -140,10 +142,14 @@ class TCRCForSRPlug(ReadCacheTestCase):
         xvdi = xsr.VDI()[0]
         self.vm.createDisk(sizebytes=xvdi.size(), sruuid=xsr.uuid, vdiuuid=xvdi.uuid, bootable=True)
 
+    def __removeSnapshots(self):
+        [s.delete() for s in self.vm.asXapiObject().Snapshot()]
+
     def run(self, arglist):
         lowlevel, both = self.getArgs(arglist)
         self.checkExpectedState(True, lowlevel, both)
         self.vm.shutdown()
+        self.__removeSnapshots()
 
         # Find the SR and forget/introduce
         self.__plugReplugSR()
@@ -154,4 +160,5 @@ class TCRCForSRPlug(ReadCacheTestCase):
         # We need to wait for the xapi GC to kick in and clear the dangling ref otherwise we'll get an invalid handle
         xenrt.sleep(60)
         self.vm.setState("UP")
+        self.vm.snapshot()
         self.checkExpectedState(True, lowlevel, both)

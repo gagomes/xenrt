@@ -13,6 +13,7 @@ import xenrt
 from PIL import Image
 from IPy import IP
 from xenrt.lib.scalextreme import SXAgent
+import xenrt.lib.xenserver.docker
 
 # Symbols we want to export from the package.
 __all__ = ["Guest",
@@ -644,21 +645,21 @@ users:
     def dockerInstall(self):
         """Installs docker into a guest"""
 
-        self.getDocker().install()
+        self.getDocker(xenrt.lib.xenserver.docker.XapiPluginDockerController).install()
 
-    def getDocker(self):
+    def getDocker(self, impl):
 
         # The method by default uses docker interactions through Xapi.
         if self.distro.startswith("coreos"):
-            return xenrt.lib.xenserver.docker.CoreOSDocker(self.getHost(), self, xenrt.lib.xenserver.docker.XapiPluginDockerController)
+            return xenrt.lib.xenserver.docker.CoreOSDocker(self.getHost(), self, impl)
         elif self.distro.startswith("rhel"): # RHEL7
-            return xenrt.lib.xenserver.docker.RHELDocker(self.getHost(), self, xenrt.lib.xenserver.docker.XapiPluginDockerController)
+            return xenrt.lib.xenserver.docker.RHELDocker(self.getHost(), self, impl)
         elif self.distro.startswith("centos"): # CentOS7
-            return xenrt.lib.xenserver.docker.CentOSDocker(self.getHost(), self, xenrt.lib.xenserver.docker.XapiPluginDockerController)
+            return xenrt.lib.xenserver.docker.CentOSDocker(self.getHost(), self, impl)
         elif self.distro.startswith("oel"): # OEL7
-            return xenrt.lib.xenserver.docker.OELDocker(self.getHost(), self, xenrt.lib.xenserver.docker.XapiPluginDockerController)
+            return xenrt.lib.xenserver.docker.OELDocker(self.getHost(), self, impl)
         elif self.distro.startswith("ubuntu"): #  Ubuntu 14.04
-            return xenrt.lib.xenserver.docker.UbuntuDocker(self.getHost(), self, xenrt.lib.xenserver.docker.XapiPluginDockerController)
+            return xenrt.lib.xenserver.docker.UbuntuDocker(self.getHost(), self, impl)
         else:
             raise xenrt.XRTFailure("Docker installation unimplemented on distro %s" % self.distro)
 

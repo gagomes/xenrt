@@ -445,7 +445,6 @@ Abstraction
 """
 
 class Docker(object):
-    __metaclass__ = ABCMeta
 
     def __init__(self, host, guest, DockerController):
         self.host = host
@@ -459,7 +458,6 @@ class Docker(object):
         self.enabledPassthroughPlugin() # on host to create containers using Xapi.
         self.registerGuest()
 
-    @abstractmethod
     def installDocker(self): pass
 
     def registerGuest(self):

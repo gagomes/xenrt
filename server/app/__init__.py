@@ -100,36 +100,16 @@ class XenRTPage(Page):
                     self._db.rollback()
                     self._db.close()
 
-    def getWriteLocation(self, db):
-        cur = db.cursor()
-        # Get the current write xlog location from the master
-        cur.execute("SELECT pg_current_xlog_location()")
-        locStr = cur.fetchone()[0]
-        loc = app.utils.XLogLocation(locStr)
-        cur.close()
-        return loc
-
-    def getReadLocation(self, db):
-        cur = db.cursor() 
-        cur.execute("SELECT pg_last_xlog_replay_location();")
-        locStr = cur.fetchone()[0]
-        if locStr:
-            loc = app.utils.XLogLocation(locStr)
-        else:
-            loc = None
-        cur.close()
-        return loc
-
     def waitForLocalWrite(self):
         assert self.WRITE
         writeDb = self.getDB()
         writeDb.rollback()
-        writeLoc = self.getWriteLocation(writeDb)
+        writeLoc = app.db.getWriteLocation(writeDb)
         readDb = app.db.dbReadInstance()
         i = 0
         while i < (int(config.db_sync_timeout)/self.DB_SYNC_CHECK_INTERVAL):
             # Get the current xlog replay location from the local DB. This returns none if the local DB is the master
-            readLoc = self.getReadLocation(readDb)
+            readLoc = app.db.getReadLocation(readDb)
             if not readLoc:
                 print "Local database is master, don't need to wait for sync"
                 # This means the local database is the master, so we can stop

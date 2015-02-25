@@ -1,7 +1,7 @@
 from app import XenRTPage
 from server import PageFactory
 
-import app.constants
+import app.constants, app.db
 
 import config
 
@@ -360,34 +360,8 @@ class XenRTAPIPage(XenRTPage):
             finally:
                 cur.close()
     
-    def isDBMaster(self):
-        try:
-            readDB = app.db.dbReadInstance()
-            readLoc = self.getReadLocation(readDB)
-            if not readLoc:
-                if not config.partner_ha_node:
-                    return "This node is connected to the master database - no partner node exists to check for split brain"
-                try:
-                    r = requests.get("http://%s/xenrt/api/dbchecks/takeovertime" % config.partner_ha_node)
-                    r.raise_for_status()
-                    remote_time = int(r.text.strip())
-                except Exception, e:
-                    return "This node is connected the master database - partner does not seem to be the master database - %s" % str(e)
-                cur = readDB.cursor()
-                cur.execute("SELECT value FROM tblconfig WHERE param='takeover_time'")
-                local_time = int(cur.fetchone()[0].strip())
-                if local_time > remote_time:
-                    return "This node is connected the master database - remote is talking to a writable database, but local database is newer"
-                else:
-                    print "This node is connected to a writable database, but remote database is newer"
-                    raise HTTPServiceUnavailable()
-            else:
-                return None
-        finally:
-            readDB.rollback()
-            readDB.close()
-
-        
+    def isDBMaster(self, returnDetail=False):
+        return app.db.isDBMaster(returnDetail)
 
 class XenRTLogServer(XenRTAPIPage):
     def render(self):

@@ -645,9 +645,9 @@ users:
     def dockerInstall(self):
         """Installs docker into a guest"""
 
-        self.getDocker(xenrt.lib.xenserver.docker.XapiPluginDockerController).install()
+        self.getDocker().install()
 
-    def getDocker(self, impl):
+    def getDocker(self, impl=xenrt.lib.xenserver.docker.XapiPluginDockerController):
 
         # The method by default uses docker interactions through Xapi.
         if self.distro.startswith("coreos"):

@@ -48,7 +48,7 @@ class ReplaceAPIKey(_APIKeyBase):
     OPERATION_ID = "replace_apikey"
 
     def render(self):
-        self.getUser().generateNewAPIKey()
+        self.getUser().generateNewApiKey()
         return {"key": self.getUser().apiKey}
 
 RegisterAPI(ReplaceAPIKey)

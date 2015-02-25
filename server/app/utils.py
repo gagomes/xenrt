@@ -359,19 +359,21 @@ def create_seq_from_deployment(deployment):
   </prepare>
 </xenrt>""" % deployment
 
-def refresh_ad_caches():
+def refresh_ad_caches(removeUsers=False):
     db = app.db.dbWriteInstance()
     ad = app.ad.ActiveDirectory()
 
     cur = db.cursor()
     print "Validating users in tblusers..."
     cur.execute("SELECT userid,email FROM tblusers")
+    userCount = 0
     usersToRemove = []
     emailUpdates = []
     while True:
         rc = cur.fetchone()
         if not rc:
             break
+        userCount += 1
         userid = rc[0].strip()
         try:
             adEmail = ad.get_email(userid)
@@ -380,9 +382,17 @@ def refresh_ad_caches():
                 emailUpdates.append((userid, adEmail))
         except KeyError:
             usersToRemove.append(userid)
-    for u in usersToRemove:
-        print "Removing %s" % u
-        cur.execute("DELETE FROM tblusers WHERE userid=%s", [u])
+
+    if len(usersToRemove) > (userCount / 20):
+        raise Exception("AD suggests >5% of users no longer exist, this seems unlikely...")
+
+    if removeUsers:
+        for u in usersToRemove:
+            print "Removing %s" % u
+            cur.execute("DELETE FROM tblusers WHERE userid=%s", [u])
+    elif len(usersToRemove) > 0:
+        print "There are %d users no longer in AD" % (len(usersToRemove))
+
     for u,e in emailUpdates:
         print "Updating email address for %s (%s)" % (u,e)
         cur.execute("UPDATE tblusers SET email=%s WHERE userid=%s", [e,u])

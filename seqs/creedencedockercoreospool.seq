@@ -1,6 +1,6 @@
 <xenrt>
 
-  <!-- Docker test sequence using CoreOS guest. -->
+  <!-- Docker test sequence using CoreOS guest on a pool of hosts. -->
 
   <default name="DISTRO" value="coreos-alpha" />
 
@@ -12,10 +12,12 @@
 
   <scheduler>
     <resources>memory&gt;=20G/disk1&gt;=140G</resources>
+    <param>MACHINES_REQUIRED=2</param>
   </scheduler>
 
   <prepare>
     <pool id="0">
+      <storage type="nfs" name="nfsSR"/>
       <host id="0">
         <vm name="${DISTRO}">
           <distro>${DISTRO}</distro>
@@ -24,9 +26,11 @@
           <vcpus>2</vcpus>
           <network device="0" />
           <disk device="0" size="5" />
+          <storage>nfsSR</storage>
           <postinstall action="dockerInstall" />
         </vm>
       </host>
+      <host id="1" />
     </pool>
   </prepare>
 

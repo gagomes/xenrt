@@ -17,7 +17,6 @@
   <prepare>
     <pool id="0">
       <host id="0">
-        <!-- CoreOS installation -->
         <vm name="${DISTRO}">
           <distro>${DISTRO}</distro>
           <arch>x86-64</arch>

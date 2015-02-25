@@ -7,7 +7,7 @@ class _APIKeyBase(XenRTAPIv2Page):
 
     def _getOrGenerateAPIKey(self):
         user = self.getUser()
-        if not user.apiKey and generate:
+        if not user.apiKey:
             user.generateNewApiKey()
         return user.apiKey
 

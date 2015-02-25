@@ -1107,7 +1107,7 @@ default:
             xenrt.TEC().comment("Installing Citrix certificate")
             # Copy a version of certmgr.exe that takes command line arguments
             self.xmlrpcSendFile("%s/distutils/certmgr.exe" % xenrt.TEC().lookup("LOCAL_SCRIPTDIR"), "c:\\certmgr.exe")
-            self.xmlrpcSendFile("%s/data/certs/CitrixNewTrust.cer" % (xenrt.TEC().lookup("XENRT_BASE")),"c:\\CitrixTrust.cer")
+            self.xmlrpcSendFile("%s/data/certs/CitrixTrust.cer" % (xenrt.TEC().lookup("XENRT_BASE")),"c:\\CitrixTrust.cer")
             self.xmlrpcExec("c:\\certmgr.exe /add c:\\CitrixTrust.cer /s /r localmachine trustedpublisher")
 
     def _generateRunOnceScript(self):

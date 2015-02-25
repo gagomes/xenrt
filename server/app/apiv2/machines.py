@@ -457,7 +457,7 @@ class LeaseMachine(_MachineBase):
             jsonschema.validate(params, self.DEFINITIONS['lease'])
         except Exception, e:
             raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
-        self.lease(self.request.matchdict['name'], self.getUser(), params['duration'], params['reason'], params.get('force', False))
+        self.lease(self.request.matchdict['name'], self.getUser().userid, params['duration'], params['reason'], params.get('force', False))
         return {}
         
 class ReturnMachine(_MachineBase):
@@ -503,7 +503,7 @@ class ReturnMachine(_MachineBase):
             jsonschema.validate(params, self.DEFINITIONS['leasereturn'])
         except Exception, e:
             raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
-        self.return_machine(self.request.matchdict['name'], self.getUser(), params.get('force', False))
+        self.return_machine(self.request.matchdict['name'], self.getUser().userid, params.get('force', False))
         return {}
 
 class UpdateMachine(_MachineBase):

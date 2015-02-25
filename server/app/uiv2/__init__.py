@@ -4,7 +4,7 @@ from app import XenRTPage
 class XenRTUIPage(XenRTPage):
     def loggedInAs(self):
         if self.getUser():
-            return "Logged in as %s" % self.getUser()
+            return "Logged in as %s" % self.getUser().userid
         else:
             return "Not logged in"
 

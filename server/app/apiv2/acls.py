@@ -313,7 +313,7 @@ class NewAcl(_AclBase):
     }, "aclentries": _AclBase._ACLENTRIES }
     RESPONSES = { "200": {"description": "Successful response"}}
     OPERATION_ID = "new_acl"
-    PARAM_ORDER=["name", "parent"]
+    PARAM_ORDER=["name", "entries", "parent"]
 
     def render(self):
         try:
@@ -372,7 +372,7 @@ class UpdateAcl(_AclBase):
                   "404": {"description": "ACL not found"},
                   "403": {"description": "No permission to update the specified ACL"}}
     OPERATION_ID = "update_acl"
-    PARAM_ORDER=["name", "parent"]
+    PARAM_ORDER=["id", "name", "parent", "entries"]
 
     def render(self):
         aclid = self.getIntFromMatchdict("id")

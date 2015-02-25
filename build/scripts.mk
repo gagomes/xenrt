@@ -12,6 +12,7 @@ WSGIWORKERS ?= 16
 WSGITHREADS ?= 1
 CURRENT_DIR ?= $(shell pwd)
 AUTH_REALM ?= citrite
+NFS_LIB_PATH ?= /usr/groups/xenrt/lib
 
 include build/config.mk
 include build/tools.mk
@@ -281,21 +282,22 @@ endif
 $(SCRIPTS): $(addsuffix .in,$(SCRIPTS))
 	$(info Compiling XenRT scripts...)
 	sed 's#@sharedir@#$(SHAREDIR)#g' $@.in > $@ 
-	sed -i 's#@rootdir@#$(ROOT)/$(XENRT)#g' $@
-	sed -i 's#@console@#$(CONSOLE)#g' $@
-	sed -i 's#@conserver@#$(MAINCONSERVERADDR)#g' $@
-	sed -i 's#@confdir@#$(CONFDIR)#g' $@
-	sed -i 's#@vardir@#$(VARDIR)#g' $@
-	sed -i 's#@webcontrdir@#$(WEB_CONTROL_PATH)#g' $@
-	sed -i 's#@authrealm@#$(AUTH_REALM)#g' $@
-	sed -i 's#@jenkins@#$(JENKINS)#g' $@
+	@sed -i 's#@rootdir@#$(ROOT)/$(XENRT)#g' $@
+	@sed -i 's#@console@#$(CONSOLE)#g' $@
+	@sed -i 's#@conserver@#$(MAINCONSERVERADDR)#g' $@
+	@sed -i 's#@confdir@#$(CONFDIR)#g' $@
+	@sed -i 's#@vardir@#$(VARDIR)#g' $@
+	@sed -i 's#@webcontrdir@#$(WEB_CONTROL_PATH)#g' $@
+	@sed -i 's#@authrealm@#$(AUTH_REALM)#g' $@
+	@sed -i 's#@jenkins@#$(JENKINS)#g' $@
 	@-grep "@conskey@" $@ && sed -i 's#@conskey@#$(CONSKEY)#g' $@
-	sed -i 's#@wsgiworkers@#$(WSGIWORKERS)#g' $@
-	sed -i 's#@wsgithreads@#$(WSGITHREADS)#g' $@
-	sed -i 's#@user@#$(USERNAME)#g' $@
-	sed -i 's#@group@#$(GROUPNAME)#g' $@
-	sed -i 's#@stablebranch@#$(STABLE_BRANCH)#g' $@
-	sed -i 's#@authenabled@#$(KERBEROS)#g' $@
+	@sed -i 's#@wsgiworkers@#$(WSGIWORKERS)#g' $@
+	@sed -i 's#@wsgithreads@#$(WSGITHREADS)#g' $@
+	@sed -i 's#@user@#$(USERNAME)#g' $@
+	@sed -i 's#@group@#$(GROUPNAME)#g' $@
+	@sed -i 's#@stablebranch@#$(STABLE_BRANCH)#g' $@
+	@sed -i 's#@authenabled@#$(KERBEROS)#g' $@
+	@sed -i 's#@nfslibpath@#$(NFS_LIB_PATH)#g' $@
 	chmod --reference $@.in $@
 	
 .PHONY: $(GENCODE)

@@ -83,13 +83,15 @@ endif
 
 .PHONY: api
 api:
-	$(SUDO) pip install -I $(serverbase)/xenrtapi.tar.gz
+	$(eval TMP := $(shell mktemp -d))
+	$(SUDOSH) 'cd $(TMP) && pip install -I $(serverbase)/xenrtapi.tar.gz'
+	$(SUDO) rm -rf $(TMP)
 
 .PHONY: extrapackages-install
 extrapackages-install:
 	$(info Installing extra packages not included in preseed file)
 	$(SUDO) apt-get update
-	$(SUDO) apt-get install -y --force-yes unzip zip ipmitool openipmi snmp-mibs-downloader dsh curl libxml2-utils python-profiler expect patchutils pylint libxml2-dev libpcap-dev libssl-dev telnet python-pygresql openssh-server psmisc less postgresql mercurial sudo make nfs-common rsync gcc python-crypto python-ipy python-simplejson python-paramiko python-fpconst python-soappy python-imaging python-logilab-common python-logilab-astng python-pywbem python-epydoc python-numpy python-tlslite python-libxml2 pylint nfs-kernel-server stunnel ntp dnsmasq vlan tftpd-hpa iscsitarget rpm2cpio module-assistant debhelper genisoimage conserver-client vim screen apt-cacher vsftpd python-matplotlib nmap ucspi-tcp uuid-runtime realpath autofs lsof xfsprogs libnet-ldap-perl python-mysqldb sshpass postgresql postgresql-client build-essential snmp python-lxml python-requests gcc-multilib squashfs-tools fping python-setuptools libapache2-mod-wsgi python-dev cabextract elinks python-pip python-psycopg2 libkrb5-dev
+	$(SUDO) apt-get install -y --force-yes unzip zip ipmitool openipmi snmp-mibs-downloader dsh curl libxml2-utils python-profiler expect patchutils pylint libxml2-dev libpcap-dev libssl-dev telnet python-pygresql openssh-server psmisc less postgresql mercurial sudo make nfs-common rsync gcc python-crypto python-ipy python-simplejson python-paramiko python-fpconst python-soappy python-imaging python-logilab-common python-logilab-astng python-pywbem python-epydoc python-numpy python-tlslite python-libxml2 pylint nfs-kernel-server stunnel ntp dnsmasq vlan tftpd-hpa iscsitarget rpm2cpio module-assistant debhelper genisoimage conserver-client vim screen apt-cacher vsftpd python-matplotlib nmap ucspi-tcp uuid-runtime realpath autofs lsof xfsprogs libnet-ldap-perl python-mysqldb sshpass postgresql postgresql-client build-essential snmp python-lxml python-requests gcc-multilib squashfs-tools fping python-setuptools libapache2-mod-wsgi python-dev cabextract elinks python-pip python-psycopg2 libkrb5-dev python-ldap
 	# Squeeze only
 	-$(SUDO) apt-get install -y --force-yes iscsitarget-source
 	# Wheezy only
@@ -119,6 +121,7 @@ extrapackages-install:
 	$(SUDO) easy_install --upgrade pywinrm
 	$(SUDO) easy_install --upgrade pyyaml
 	$(SUDO) easy_install --upgrade jsonschema
+	$(SUDO) easy_install --upgrade pip
 
 	$(SUDO) ln -sf `which genisoimage` /usr/bin/mkisofs
 	$(SUDO) apt-get install -y --force-yes python-m2crypto

@@ -866,8 +866,8 @@ def makeMachineFiles(config, specifyMachine=None):
                     
 
     if config.lookup("XENRT_SITE", None):
-        sitemachines = [x[0] for x in xenrt.GEC().dbconnect.jobctrl("mlist", ["-Cs", config.lookup("XENRT_SITE")])]
-        for m in sitemachines:
+        sitemachines = xenrt.GEC().dbconnect.api.get_machines(site=[config.lookup("XENRT_SITE")], pseudohosts = True)
+        for m in sitemachines.keys():
             if specifyMachine and m != specifyMachine:
                 continue
             if m not in config.lookup("HOST_CONFIGS", {}).keys():
@@ -1370,15 +1370,18 @@ def setupStaticHost():
             xenrt.GEC().dbconnect.jobctrl("mstatus", [g, "offline"])
     
 def setupStaticGuest(guestname):
-    details = xenrt.GEC().dbconnect.jobctrl("machine", [guestname])
+    machine = xenrt.GEC().dbconnect.api.get_machine(guestname)['params']
     maxage = xenrt.TEC().lookup("MAX_GUEST_AGE", None)
-    for x in details.keys():
-        if maxage and x == "INSTALL_TIME" and (int(details[x]) + int(maxage)) >= xenrt.timenow():
-            raise xenrt.XRTError("Not installing as machine has been recently installed")
-        if x == "STATUS" and details[x] != "idle":
-            raise xenrt.XRTError("Could not provision machine %s because it is not idle" % guestname)
-        if x == "LEASEUSER" and details[x] != os.environ['USER']:
-            raise xenrt.XRTError("Could not provision machine %s becuase it is borrowed by %s" % (guestname, details[x]))
+
+    if maxage and "INSTALL_TIME" in machine['params'] and (int(machine['params']["INSTALL_TIME"]) + int(maxage)) >= xenrt.timenow():
+        raise xenrt.XRTError("Not installing as machine has been recently installed")
+
+    if machine['rawstatus'] != "idle":
+        raise xenrt.XRTError("Could not provision machine %s because it is not idle" % guestname)
+
+    if machine['leaseuser'] and machine['leaseuser'] != xenrt.GEC().dbconnect.api.get_loggedinuser()['user']:
+        raise xenrt.XRTError("Could not provision machine %s becuase it is borrowed by %s" % (guestname, machine['leaseuser']))
+
     xenrt.GEC().dbconnect.jobctrl("borrow", [guestname, "-f"])
     try:
         container = xenrt.TEC().lookupHost(guestname, "CONTAINER_HOST")

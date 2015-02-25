@@ -1100,6 +1100,34 @@ class GenericPlace:
             self.checkHealth()
             raise
 
+    def xmlrpcDiskpartCommand(self, cmd):
+        self.xmlrpcWriteFile("c:\\diskpartcmd.txt", cmd)
+        return self.xmlrpcExec("diskpart /s c:\\diskpartcmd.txt", returndata=True)
+
+    def xmlrpcDiskpartListDisks(self):
+        disksstr = self.xmlrpcDiskpartCommand("list disk")
+        return re.findall("Disk\s+([0-9]*)\s+", disksstr)
+
+    def xmlrpcDriveLettersOfDisk(self, diskid):
+        diskdetail = self.xmlrpcDiskpartCommand("select disk %s\ndetail disk" % (diskid))
+        return re.findall("Volume [0-9]+\s+([A-Z])", diskdetail)
+
+    def xmlrpcDeinitializeDisk(self, diskid):
+        self.xmlrpcDiskpartCommand("select disk %s\nclean" % (diskid))
+
+    def xmlrpcInitializeDisk(self, diskid, driveLetter='e'):
+        """ Initialize disk, create a single partition on it, activate it and
+        assign a drive letter.
+        """
+        xenrt.TEC().logverbose("Initialize disk %s (letter %s)" % (diskid, driveLetter))
+        return self.xmlrpcDiskpartCommand("select disk %s\n"
+                             "attributes disk clear readonly\n"
+                             "convert mbr\n"              # initialize
+                             "create partition primary\n" # create partition
+                             "active\n"                   # activate partition
+                             "assign letter=%s"           # assign drive letter
+                             % (diskid, driveLetter))
+
     def xmlrpcMarkDiskOnline(self, diskid=None):
         """ mark disk online by diskid. The function will fail if the diskid is
         invalid or the disk is already online . When diskid == None (default),
@@ -1115,12 +1143,9 @@ class GenericPlace:
             else:
                 raise xenrt.XRTException("disk %d is already online" % diskid)
         for o in offline:
-            self.xmlrpcWriteFile("c:\\online.txt",
-                                 "select disk %s\n"
+            return self.xmlrpcDiskpartCommand("select disk %s\n"
                                  "attributes disk clear readonly\n"
                                  "online disk noerr" % (o))
-            self.xmlrpcExec("diskpart /s c:\\online.txt")
-
 
     def xmlrpcFormat(self, letter, fstype="ntfs", timeout=1200, quick=False):
         cmd = self.xmlrpcWindowsVersion() == "5.0" \

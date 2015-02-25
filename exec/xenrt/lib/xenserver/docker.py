@@ -460,17 +460,7 @@ class Docker(object):
         self.registerGuest() # Register VM for XenServer container management.
 
     def installDocker(self): pass
-
-    def updateGuestSourceRpms(self):
-
-        xenrt.TEC().logverbose("updateGuestSourceRpms: Updating source rpms before docker installation on %s" % self.guest)
-
-        if self.guest.distro.startswith("centos"):
-            if not self.guest.updateYumConfig(self.guest.distro, self.guest.arch):
-                raise xenrt.XRTError("Failed to update XenRT yum repo for %s, %s" %
-                                                    (self.guest.distro, self.guest.arch))
-        else:
-            xenrt.TEC().logverbose("updateGuestSourceRpms: updateYumConfig() not supported on guest %s" % self.guest)
+    def updateGuestSourceRpms(self): pass
 
     def registerGuest(self):
         """Register VM for XenServer container management"""
@@ -522,8 +512,9 @@ class Docker(object):
 
         xenrt.TEC().logverbose("enabledPassthroughPlugin: XSContainer passthrough plugin in Dom0 is enabled to create docker containers")
 
-        self.host.execdom0("mkdir -p /opt/xensource/packages/files/xscontainer")
-        self.host.execdom0("touch /opt/xensource/packages/files/xscontainer/devmode_enabled")
+        for host in self.host.getPool().getHosts(): # all hosts in a pool.
+            host.execdom0("mkdir -p /opt/xensource/packages/files/xscontainer")
+            host.execdom0("touch /opt/xensource/packages/files/xscontainer/devmode_enabled")
 
     def createContainer(self, ctype=ContainerType.BUSYBOX, cname="random"):
         if cname.startswith("random"):
@@ -629,7 +620,14 @@ class CentOSDocker(Docker):
     def installDocker(self):
 
         xenrt.TEC().logverbose("installDocker: Installation of docker environment on guest %s" % self.guest)
-        self.guest.execguest("yum install -y nmap-ncat docker")
+        cmdOut = self.guest.execguest("yum install -y nmap-ncat docker")
+        if not "Complete" in cmdOut:
+            raise xenrt.XRTError("installDocker: Failed to install docker environment on guest %s" % self.guest)
+
+    def updateGuestSourceRpms(self):
+
+        xenrt.TEC().logverbose("updateGuestSourceRpms: Updating source rpms before docker installation on %s" % self.guest)
+        self.guest.execguest("mv /etc/yum.repos.d/CentOS-Base.repo.orig /etc/yum.repos.d/CentOS-Base.repo")
 
 class UbuntuDocker(Docker):
     """Represents a docker installed on ubuntu guest"""
@@ -637,7 +635,18 @@ class UbuntuDocker(Docker):
     def installDocker(self):
 
         xenrt.TEC().logverbose("installDocker: Installation of docker environment on guest %s" % self.guest)
-        self.guest.execguest("apt-get -y --force-yes install nmap docker.io")
+        cmdOut = self.guest.execguest("apt-get -y --force-yes install nmap docker.io")
+
+        if not "Complete" in cmdOut:
+            raise xenrt.XRTError("installDocker: Failed to install docker environment on guest %s" % self.guest)
+
+    def updateGuestSourceRpms(self):
+
+        xenrt.TEC().logverbose("updateGuestSourceRpms: Updating source rpms before docker installation on %s" % self.guest)
+
+        if not self.guest.updateYumConfig(self.guest.distro, self.guest.arch):
+            raise xenrt.XRTError("Failed to update XenRT yum repo for %s, %s" %
+                                                (self.guest.distro, self.guest.arch))
 
 # We are only doing CentOS and Ubuntu as a representative candidates.
 # If other guests are to be tested, could be implemeted using the following classes.

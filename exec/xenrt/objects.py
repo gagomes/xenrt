@@ -4691,14 +4691,14 @@ class GenericHost(GenericPlace):
 
         deadline = xenrt.util.timenow() + timeout
 
-        if xenrt.TEC().lookup("DHCP_LEASES_ONLY", False, boolean=True):
+        if xenrt.TEC().lookup("XENRT_DHCPD", False, boolean=True):
             while True:
                 ip = self.checkLeases(mac)
                 if ip:
                     return ip
                 xenrt.sleep(20)
                 if xenrt.util.timenow() > deadline:
-                    xenrt.XRT("Timed out monitoring for guest ARP/DHCP", level, data=mac)
+                    xenrt.XRT("Timed out monitoring for guest DHCP lease", level, data=mac)
 
             
 

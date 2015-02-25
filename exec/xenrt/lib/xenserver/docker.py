@@ -589,7 +589,7 @@ class CentOSDocker(Docker):
     def installDocker(self):
 
         self.guest.execguest("yum install -y nmap-ncat docker")
-        xenrt.TEC().logverbose("Docker installation on Ubuntu is complete.")
+        xenrt.TEC().logverbose("Docker installation on CentOS is complete.")
 
     def registerGuest(self):
         """Register VM for XenServer container management"""

@@ -21,7 +21,7 @@
       <host id="0">
         <!-- CoreOS installation -->
         <vm name="${DISTRO}">
-          <distro>${COREOSDISTRO}</distro>
+          <distro>${DISTRO}</distro>
           <arch>x86-64</arch>
           <memory>1024</memory>
           <vcpus>2</vcpus>

@@ -748,19 +748,38 @@ class _GetAttachmentUrl(_JobBase):
         job = int(self.request.matchdict['id'])
         server = self.getJobs(1, ids=[job], getParams=True, exceptionIfEmpty=True)[job]['params'][self.LOCATION_PARAM]
 
-        return {'url': 'http://%s/xenrt/api/files/v2/fileget/%d.%s' % (server, job, self.request.matchdict['file'])}
+        url = 'http://%s/xenrt/api/files/v2/fileget/%d.%s' % (server, job, self.request.matchdict['file'])
+
+        if self.REDIRECT:
+            return HTTPFound(location=url)
+
+        return {'url': url}
 
 class GetAttachmentPreRun(_GetAttachmentUrl):
     LOCATION_PARAM='JOB_FILES_SERVER'
     PATH='/job/{id}/attachment/prerun/{file}'
     SUMMARY='Get URL for job attachment, uploaded before job ran'
     OPERATION_ID='get_job_attachment_pre_run'
+    REDIRECT=False
+
+class RedirectAttachmentPreRun(GetAttachmentPreRun):
+    REDIRECT=True
+    PATH='/redirect/job/{id}/attachment/prerun/{file}'
+    SUMMARY='Redirect to job attachment, uploaded before job ran'
+    OPERATION_ID="no_binding"
 
 class GetAttachmentPostRun(_GetAttachmentUrl):
     LOCATION_PARAM='LOG_SERVER'
     PATH='/job/{id}/attachment/postrun/{file}'
     SUMMARY='Get URL for job attachment, uploaded after job ran'
     OPERATION_ID='get_job_attachment_post_run'
+    REDIRECT=False
+
+class RedirectAttachmentPostRun(GetAttachmentPostRun):
+    REDIRECT=True
+    PATH='/redirect/job/{id}/attachment/postrun/{file}'
+    SUMMARY='Redirect to job attachment, uploaded before job ran'
+    OPERATION_ID="no_binding"
 
 class GetJobDeployment(_JobBase):
     PATH='/job/{id}/deployment'
@@ -913,4 +932,6 @@ RegisterAPI(NewJob)
 RegisterAPI(UpdateJob)
 RegisterAPI(GetAttachmentPreRun)
 RegisterAPI(GetAttachmentPostRun)
+RegisterAPI(RedirectAttachmentPreRun)
+RegisterAPI(RedirectAttachmentPostRun)
 RegisterAPI(GetJobDeployment)

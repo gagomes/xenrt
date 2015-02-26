@@ -222,7 +222,7 @@ class GetResource(XenRTAPIv2Page):
         rc = cur.fetchone()
         ret = {}
         if not rc:
-            raise XenRTAPIError(HTTPNotFound)
+            raise XenRTAPIError(HTTPNotFound, reason="Resource %s not found" % self.request.matchdict['name'])
         ret = {
             "name": rc[0].strip(),
             "site": rc[1].strip().split(",") if rc[1] else None,

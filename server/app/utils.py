@@ -1,4 +1,4 @@
-import string, re, os, json
+import string, re, os, json, mimetypes
 
 import config, app.db, app.ad
 
@@ -478,7 +478,7 @@ def isBinary(fname):
     else:
         return False
 
-def getTarIndex(tarfile):
+def getTarIndex(tarfile, urlname):
     if os.path.exists("%s.index" % tarfile):
         indexFH = open("%s.index" % tarfile)
         createIndex = False
@@ -489,7 +489,7 @@ def getTarIndex(tarfile):
     index = indexFH.readlines()
     indexFH.close()
 
-    if createIndex and len(self.index) > 0:
+    if createIndex and len(index) > 0:
         try:
             f = open("%s.index" % tarfile, "w")
             for l in index:
@@ -501,19 +501,37 @@ def getTarIndex(tarfile):
     listing = {}
 
     for l in index:
-        l = l.strip()
-        if l[0:2] == "./":
-            l = l[2:]
+        ll = l.split()
+        fn = " ".join(ll[5:len(ll)])
+        size = int(ll[2])
+        if fn[0:2] == "./":
+            fn = fn[2:]
 
-        if l[-1] == "/":
+        if not fn:
+            continue
+        if fn[-1] == "/":
             continue
         
-        listing[l] = {
-            "name": l,
-            "url": "/l",
-            "binary": isBinary(l)
+        listing[fn] = {
+            "name": fn,
+            "url": "%s/api/files/v2/log/%s/%s" % (config.url_base.rstrip("/"), urlname, fn),
+            "size": size,
+            "content_type": getContentTypeAndEncoding(fn)[0]
         }
 
     return listing
 
-    
+def getContentTypeAndEncoding(fn):
+    (ctype, encoding) = mimetypes.guess_type(fn)
+    if not ctype:
+        if fn.endswith("/messages") \
+                or fn.endswith(".log") \
+                or fn.endswith(".out") \
+                or fn.endswith("/SMlog") \
+                or fn.endswith("/syslog"):
+            ctype = "text/plain"
+        elif fn.endswith(".db"):
+            ctype = "application/xml"
+        else:
+            ctype = "application/octet-stream"
+    return (ctype, encoding)

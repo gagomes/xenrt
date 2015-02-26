@@ -3914,7 +3914,7 @@ class TC14435(NetworkTest):
 
 
 
-class Kvp():
+class Kvp(object):
     HASH_THRESHOLD = 512
 
     def __init__(self, key, value, deviceId=None):

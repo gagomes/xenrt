@@ -12,7 +12,7 @@ from abc import ABCMeta, abstractmethod
 
 __all__ = ["ContainerState", "ContainerXapiOperation", "ContainerType",
            "XapiPluginDockerController", "LinuxDockerController", "OperationMethod",
-           "CoreOSDocker", "RHELDocker", "CentOSDocker", "OELDocker", "UbuntuDocker"]
+           "CoreOSDocker", "CentOSDocker", "UbuntuDocker"]
 
 """
 Factory class for docker container.

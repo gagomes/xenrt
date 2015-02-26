@@ -805,7 +805,7 @@ class XenRTList(XenRTCommand):
             raise Exception("Unknown argument\n")
         jobs = self.xenrt.get_jobs(params=True, limit=10000, results=True, **details)
         
-        fieldwidths = [7, 8, 12, 9, 13, 18, 7]
+        fieldwidths = [7, 8, 12, 9, 13, 18, 21]
         fmt = string.join(map(lambda x:"%%-%us" % x, fieldwidths))
         fmt = fmt + "\n"
         if not quiet:

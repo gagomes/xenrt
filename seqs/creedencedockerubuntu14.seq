@@ -32,7 +32,7 @@
 
   <testsequence>
     <serial group="Ubuntu14">
-      <testcase id="xenserver.tc.docker.TCLifeCycle" tc="TC-23918" name="LifeCycle" sku="${DISTRO}">
+      <testcase id="xenserver.tc.docker.TCLifeCycle" tc="TC-23918" name="LifeCycle" sku="Ubuntu14">
         <arg>coreosdistro=${DISTRO}</arg>
       </testcase>
     </serial>

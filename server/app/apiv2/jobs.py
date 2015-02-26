@@ -630,13 +630,9 @@ class NewJob(_JobBase):
 
         db = self.getDB()
         cur = db.cursor()
-        cur.execute("LOCK TABLE tbljobs IN EXCLUSIVE MODE")
-        cur.execute("INSERT INTO tbljobs (jobstatus, userid, version, revision, options, uploaded,removed) VALUES ('new', %s, '', '', '', '', '')", [self.getUser().userid])
-        # Lookup jobid
-        cur.execute("SELECT last_value FROM jobid_seq")
+        cur.execute("INSERT INTO tbljobs (jobstatus, userid, version, revision, options, uploaded,removed) VALUES ('new', %s, '', '', '', '', '') RETURNING jobid", [self.getUser().userid])
         rc = cur.fetchone()
         self.jobid = int(rc[0])
-        db.commit() # Commit to release the lock
 
         if specifiedMachines:
             self.updateJobField("MACHINE", ",".join(specifiedMachines), params)

@@ -1658,13 +1658,14 @@ class FunctionalBase(VGPUAllocationModeBase):
         self.typeOfvGPU = self.typeofvGPU()
 
         # If there are any other environments needed, initialize them to the correct vars.
-        for typeOfvGPU in self.OTHERS:
-            if typeOfvGPU == self.getDiffvGPUName(DiffvGPUType.NvidiaWinvGPU):
-                self.nvidWinvGPU = self.typeofvGPU(typeOfvGPU)
-            if typeOfvGPU == self.getDiffvGPUName(DiffvGPUType.NvidiaLinuxvGPU):
-                self.nvidLinvGPU = self.typeofvGPU(typeOfvGPU)
-            if typeOfvGPU == self.getDiffvGPUName(DiffvGPUType.IntelWinvGPU):
-                self.nvidWinvGPU = self.typeofvGPU(typeOfvGPU)
+        if self.OTHERS:
+            for typeOfvGPU in self.OTHERS:
+                if typeOfvGPU == self.getDiffvGPUName(DiffvGPUType.NvidiaWinvGPU):
+                    self.nvidWinvGPU = self.typeofvGPU(typeOfvGPU)
+                if typeOfvGPU == self.getDiffvGPUName(DiffvGPUType.NvidiaLinuxvGPU):
+                    self.nvidLinvGPU = self.typeofvGPU(typeOfvGPU)
+                if typeOfvGPU == self.getDiffvGPUName(DiffvGPUType.IntelWinvGPU):
+                    self.nvidWinvGPU = self.typeofvGPU(typeOfvGPU)
 
         step("Install host drivers")
         self.typeOfvGPU.installHostDrivers()

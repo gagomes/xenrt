@@ -9,7 +9,7 @@
 import xenrt, xenrt.lib.xenserver
 from xenrt.lib.xenserver.docker import *
 
-class TCSanityTest(xenrt.TestCase):
+class TCLifeCycle(xenrt.TestCase):
 
     def prepare(self, arglist=None):
 

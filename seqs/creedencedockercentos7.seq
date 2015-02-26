@@ -32,7 +32,7 @@
 
   <testsequence>
     <serial group="CentOS">
-      <testcase id="xenserver.tc.docker.TCSanityTest" blocker="yes">
+      <testcase id="xenserver.tc.docker.TCLifeCycle" tc="TC-23918" name="LifeCycle" sku="${DISTRO}">
         <arg>coreosdistro=${DISTRO}</arg>
       </testcase>
     </serial>

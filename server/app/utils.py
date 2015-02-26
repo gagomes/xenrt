@@ -1,6 +1,6 @@
 import string, re, os, json
 
-import config
+import config, app.db, app.ad
 
 colours = {"pass":       ("green", None, "#90c040"),
            "fail":       ("orange", None, None),
@@ -358,3 +358,108 @@ def create_seq_from_deployment(deployment):
 %s
   </prepare>
 </xenrt>""" % deployment
+
+def refresh_ad_caches(removeUsers=False):
+    db = app.db.dbWriteInstance()
+    ad = app.ad.ActiveDirectory()
+
+    cur = db.cursor()
+    print "Validating users in tblusers..."
+    cur.execute("SELECT userid,email FROM tblusers")
+    userCount = 0
+    usersToRemove = []
+    emailUpdates = []
+    while True:
+        rc = cur.fetchone()
+        if not rc:
+            break
+        userCount += 1
+        userid = rc[0].strip()
+        try:
+            adEmail = ad.get_email(userid)
+            dbEmail = rc[1] and rc[1].strip()
+            if adEmail != dbEmail:
+                emailUpdates.append((userid, adEmail))
+        except KeyError:
+            usersToRemove.append(userid)
+
+    if len(usersToRemove) > (userCount / 20):
+        raise Exception("AD suggests >5% of users no longer exist, this seems unlikely...")
+
+    if removeUsers:
+        for u in usersToRemove:
+            print "Removing %s" % u
+            cur.execute("DELETE FROM tblusers WHERE userid=%s", [u])
+    elif len(usersToRemove) > 0:
+        print "There are %d users no longer in AD" % (len(usersToRemove))
+
+    for u,e in emailUpdates:
+        print "Updating email address for %s (%s)" % (u,e)
+        cur.execute("UPDATE tblusers SET email=%s WHERE userid=%s", [e,u])
+
+    print "\nRefreshing group cache..."
+    def _deleteGroup(groupid):
+        cur.execute("DELETE FROM tblgroupusers WHERE groupid=%s", [groupid])
+        cur.execute("DELETE FROM tblgroups WHERE groupid=%s", [groupid])
+
+    cur.execute("SELECT groupid,name FROM tblgroups")
+    groups = {}
+    while True:
+        rc = cur.fetchone()
+        if not rc:
+            break
+        groups[rc[0]] = rc[1].strip()
+
+    aclGroups = []
+    cur.execute("SELECT userid FROM tblaclentries WHERE type='group'")
+    while True:
+        rc = cur.fetchone()
+        if not rc:
+            break
+        aclGroups.append(rc[0].strip())
+
+    # Add any groups not in the DB to the DB
+    extraGroups = set(aclGroups) - set(groups.values())
+    for g in extraGroups:
+        cur.execute("INSERT INTO tblgroups (name) VALUES (%s) RETURNING groupid", [g])
+        rc = cur.fetchone()
+        groups[rc[0]] = g
+
+    for gid in groups:
+        gname = groups[gid]
+        print gname,
+        # Check if the group is still actually in use by any acls
+        if not gname in aclGroups:
+            print "..No longer required, removing"
+            _deleteGroup(gid)
+            continue
+        # Is it valid in AD?
+        if not ad.is_valid_group(gname):
+            print "..not found in AD, removing"
+            _deleteGroup(gid)
+            # TODO: Email the ACL owner(s) to let them know we've removed entries pointing at the group
+            cur.execute("DELETE FROM tblaclentries WHERE type='group' AND userid=%s", [gname])
+            continue
+        # Update the members
+        adMembers = ad.get_all_members_of_group(gname)
+        dbMembers = []
+        cur.execute("SELECT userid FROM tblgroupusers WHERE groupid=%s", [gid])
+        while True:
+            rc = cur.fetchone()
+            if not rc:
+                break
+            dbMembers.append(rc[0].strip())
+        am = set(adMembers)
+        dm = set(dbMembers)
+
+        newMembers = am - dm
+        removeMembers = dm - am
+        for m in newMembers:
+            cur.execute("INSERT INTO tblgroupusers (groupid,userid) VALUES (%s,%s)", [gid, m])
+        for m in removeMembers:
+            cur.execute("DELETE FROM tblgroupusers WHERE groupid=%s AND userid=%s", [gid, m])
+
+        print "..%d added, %d removed" % (len(newMembers), len(removeMembers))
+
+    db.commit()
+

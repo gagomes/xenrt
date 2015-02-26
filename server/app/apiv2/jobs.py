@@ -494,7 +494,7 @@ class RemoveJob(_JobBase):
             self.updateJobField(job, "REMOVED", "yes")
         if j.get('return_machines'):
             for m in jobinfo['machines']:
-                self.return_machine(m, self.getUser(), False, canForce=False, commit=False)
+                self.return_machine(m, self.getUser().userid, False, canForce=False, commit=False)
             self.getDB().commit()
                  
         return {}
@@ -629,7 +629,7 @@ class NewJob(_JobBase):
         db = self.getDB()
         cur = db.cursor()
         cur.execute("LOCK TABLE tbljobs IN EXCLUSIVE MODE")
-        cur.execute("INSERT INTO tbljobs (jobstatus, userid, version, revision, options, uploaded,removed) VALUES ('new', %s, '', '', '', '', '')", [self.getUser()])
+        cur.execute("INSERT INTO tbljobs (jobstatus, userid, version, revision, options, uploaded,removed) VALUES ('new', %s, '', '', '', '', '')", [self.getUser().userid])
         # Lookup jobid
         cur.execute("SELECT last_value FROM jobid_seq")
         rc = cur.fetchone()
@@ -719,7 +719,7 @@ class NewJob(_JobBase):
                            deployment=j.get("deployment"),
                            resources=j.get("resources"),
                            flags=j.get("flags"),
-                           email=j.get("email"),
+                           email=j.get("email") if j.has_key("email") else self.getUser().email,
                            inputdir=j.get("inputdir"),
                            lease=j.get("lease_machines"))
 

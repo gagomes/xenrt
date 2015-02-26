@@ -32,6 +32,7 @@ class _MachineBase(XenRTAPIv2Page):
                     users=[],
                     machines=[],
                     flags=[],
+                    aclids=[],
                     limit=None,
                     offset=0,
                     pseudoHosts=False,
@@ -62,6 +63,10 @@ class _MachineBase(XenRTAPIv2Page):
             # Don't exclude psuedohosts if machines are specifued
             pseudoHosts=True
 
+        if aclids:
+            conditions.append(self.generateInCondition("m.aclid", aclids))
+            params.extend(aclids)
+
         if status:
             statuscond = []
             for s in status:
@@ -82,7 +87,7 @@ class _MachineBase(XenRTAPIv2Page):
             conditions.append("m.machine != ('_' || s.site)")
 
 
-        query = "SELECT m.machine, m.site, m.cluster, m.pool, m.status, m.resources, m.flags, m.comment, m.leaseto, m.leasereason, m.leasefrom, m.leasepolicy, s.flags, m.jobid, m.descr FROM tblmachines m INNER JOIN tblsites s ON m.site=s.site"
+        query = "SELECT m.machine, m.site, m.cluster, m.pool, m.status, m.resources, m.flags, m.comment, m.leaseto, m.leasereason, m.leasefrom, m.leasepolicy, s.flags, m.jobid, m.descr, m.aclid FROM tblmachines m INNER JOIN tblsites s ON m.site=s.site"
         if conditions:
             query += " WHERE %s" % " AND ".join(conditions)
 
@@ -111,6 +116,7 @@ class _MachineBase(XenRTAPIv2Page):
                 "leasepolicy": rc[11],
                 "jobid": rc[13],
                 "broken": rc[3].strip().endswith("x"),
+                "aclid": rc[15],
                 "params": {}
             }
 
@@ -171,7 +177,7 @@ class _MachineBase(XenRTAPIv2Page):
             raise XenRTAPIError(HTTPForbidden, "Can't update this field")
         if key.lower() in ("status", "jobid") and not allowReservedField:
             raise XenRTAPIError(HTTPForbidden, "Can't update this field")
-        if key.lower() in ("site", "cluster", "pool", "status", "resources", "flags", "descr", "jobid", "leasepolicy"):
+        if key.lower() in ("site", "cluster", "pool", "status", "resources", "flags", "descr", "jobid", "leasepolicy", "aclid"):
             cur = db.cursor()
             try:
                 cur.execute("UPDATE tblmachines SET %s=%%s WHERE machine=%%s;" % (key.lower()), (value, machine))
@@ -256,6 +262,11 @@ class _MachineBase(XenRTAPIv2Page):
         if not forever and currentLeaseTime and time.gmtime(currentLeaseTime) > leaseToTime and not force:
             raise XenRTAPIError(HTTPNotAcceptable, "Machines is already leased for longer", canForce=True)
 
+        if machines[machine]['aclid']:
+            result, reason = self.getACLHelper().check_acl(machines[machine]['aclid'], user, 1, duration)
+            if not result:
+                raise XenRTAPIError(HTTPUnauthorized, "ACL: %s" % reason, canForce=False)
+
         db = self.getDB()
         cur = db.cursor()
         cur.execute("UPDATE tblMachines SET leaseTo = %s, leasefrom = %s, comment = %s, leasereason = %s "
@@ -338,6 +349,13 @@ class ListMachines(_MachineBase):
           'name': 'flag',
           'required': False,
           'type': 'array'},
+         {'collectionFormat': 'multi',
+          'description': 'Filter on an ACL id - can specify multiple',
+          'in': 'query',
+          'items': {'type': 'integer'},
+          'name': 'aclid',
+          'required': False,
+          'type': 'array'},
          {'description': 'Limit the number of results. Defaults to unlimited',
           'in': 'query',
           'name': 'limit',
@@ -367,6 +385,7 @@ class ListMachines(_MachineBase):
                                 users = self.getMultiParam("user"),
                                 machines = self.getMultiParam("machine"),
                                 flags = self.getMultiParam("flags"),
+                                aclids = self.getMultiParam("aclid"),
                                 pseudoHosts = self.request.params.get("pseudohosts") == "true",
                                 limit=int(self.request.params.get("limit", 0)),
                                 offset=int(self.request.params.get("offset", 0)))
@@ -438,7 +457,7 @@ class LeaseMachine(_MachineBase):
             jsonschema.validate(params, self.DEFINITIONS['lease'])
         except Exception, e:
             raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
-        self.lease(self.request.matchdict['name'], self.getUser(), params['duration'], params['reason'], params.get('force', False))
+        self.lease(self.request.matchdict['name'], self.getUser().userid, params['duration'], params['reason'], params.get('force', False))
         return {}
         
 class ReturnMachine(_MachineBase):
@@ -484,7 +503,7 @@ class ReturnMachine(_MachineBase):
             jsonschema.validate(params, self.DEFINITIONS['leasereturn'])
         except Exception, e:
             raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
-        self.return_machine(self.request.matchdict['name'], self.getUser(), params.get('force', False))
+        self.return_machine(self.request.matchdict['name'], self.getUser().userid, params.get('force', False))
         return {}
 
 class UpdateMachine(_MachineBase):

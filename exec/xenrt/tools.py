@@ -579,10 +579,7 @@ def generateOSTestSequences():
 def getChildren(key):
     global childrencache
     if not childrencache.has_key(key):
-        try:
-            childrencache[key] = testrunJSONLoad("issuetree/%s" % key, "depth=1")[0]['children']
-        except:
-            childrencache[key] = []
+        childrencache[key] = testrunJSONLoad("issuetree/%s" % key, "depth=1")[0]['children']
     return childrencache[key]
 
 def flushChildrenCache(key):
@@ -1106,7 +1103,7 @@ def processMatrixTests(release=None):
                                           'win7sp1-x86','win7sp1-x64',
                                           'ubuntu1004', 'debian60','debian70',
                                           'oel510','centos510','oel511','oel65','oel66','centos66','centos511','centos65','ubuntu1404',
-                                          'ubuntu1204','win8-x86','win8-x64', 'ws12-x64','ws12core-x64', 
+                                          'ubuntu1204','win8-x86','win8-x64','win10-x86','win10-x64', 'ws12-x64','ws12core-x64', 
                                           'win81-x86','win81-x64', 'ws12r2-x64','ws12r2core-x64']
     distrosToRels['Creedence']['secondary'] = ['rhel47','rhel59','sles103',
                                             'ws08r2-x64'
@@ -1128,7 +1125,7 @@ def processMatrixTests(release=None):
 
     #  (Dundee)
     distrosToRels['Dundee'] = {}
-    distrosToRels['Dundee']['primary'] = ['rhel48','rhel510','rhel65','rhel511','rhel66','rhel7','oel7','centos7',
+    distrosToRels['Dundee']['primary'] = ['rhel48','rhel510','rhel65','rhel511','rhel66','rhel7','rhel71','oel7','centos7',
                                           'sles104','sles113','sles12',
                                           'w2k3eesp2','w2k3eesp2-x64',
                                           'winxpsp3','vistaeesp2',
@@ -1137,7 +1134,7 @@ def processMatrixTests(release=None):
                                           'win7sp1-x86','win7sp1-x64',
                                           'ubuntu1004', 'debian60','debian70',
                                           'oel510','centos510','oel511','oel65','oel66','centos66','centos511','centos65','ubuntu1404',
-                                          'ubuntu1204','win8-x86','win8-x64', 'ws12-x64','ws12core-x64', 
+                                          'ubuntu1204','win8-x86','win8-x64','win10-x86','win10-x64', 'ws12-x64','ws12core-x64', 
                                           'win81-x86','win81-x64', 'ws12r2-x64','ws12r2core-x64']
     distrosToRels['Dundee']['secondary'] = ['rhel47','rhel59','sles103',
                                             'ws08r2-x64'

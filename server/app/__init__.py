@@ -1,5 +1,8 @@
 from server import Page
 import app.db
+import app.ad
+import app.acl
+import app.user
 import config
 import time
 from pyramid.httpexceptions import *
@@ -14,16 +17,17 @@ class XenRTPage(Page):
     def __init__(self, request):
         super(XenRTPage, self).__init__(request)
         self._db = None
+        self._ad = None
+        self._acl = None
+        self._user = None
 
     def getUserFromAPIKey(self, apiKey):
-        cur = self.getDB().cursor()
-        cur.execute("SELECT userid FROM tblapikeys WHERE apikey=%s", [apiKey])
-        rc = cur.fetchone()
-        if rc:
-            return rc[0]
-        return None
+        return app.user.User.fromApiKey(self, apiKey)
 
     def getUser(self):
+        if self._user:
+            return self._user
+
         lcheaders = dict([(k.lower(), v)  for (k,v) in self.request.headers.iteritems()])
         user = None
         if "x-api-key" in lcheaders:
@@ -35,18 +39,51 @@ class XenRTPage(Page):
             if user == "(null)" or not user:
                 user = None
             else:
-                user = user.split("@")[0]
+                user = app.user.User(self, user.split("@")[0])
         
         if not user:
             return None
 
         if "x-fake-user" in lcheaders:
-            if self.ALLOW_FAKE_USER:
-                return lcheaders['x-fake-user']
-            else:
-                raise HTTPForbidden()
+            if self.ALLOW_FAKE_USER and user.admin: 
+                fakeUser = app.user.User(self, lcheaders['x-fake-user'])
+                if fakeUser.valid or True:
+                    self._user = fakeUser
+                    return fakeUser
+            raise HTTPForbidden()
 
+        self._user = user
         return user
+
+    def _isValidGroup(self, name):
+        db = self.getDB()
+        cur = db.cursor()
+        cur.execute("SELECT groupid FROM tblgroups WHERE name=%s", [name])
+        rc = cur.fetchone()
+        if rc:
+            return True
+        # Might be a new group
+        if self.getAD().is_valid_group(name):
+            # Cache the group members
+            db = self.getWriteDB()
+            cur = db.cursor()
+            cur.execute("INSERT INTO tblgroups (name) VALUES (%s) RETURNING groupid", [name])
+            rc = cur.fetchone()
+            groupid = rc[0]
+            members = self.getAD().get_all_members_of_group(name)
+            for m in members:
+                cur.execute("INSERT INTO tblgroupusers (groupid, userid) VALUES (%s, %s)", [groupid, m])
+            db.commit()
+            return True
+        return False
+
+    def validateAndCache(self, objectType, userid):
+        if objectType == "user":
+            return app.user.User(self, userid).valid
+        elif objectType == "group":
+            return self._isValidGroup(userid)
+        else:
+            raise Exception("Invalid object type")
 
     def renderWrapper(self):
         if not self.getUser() and (self.REQUIRE_AUTH or (self.REQUIRE_AUTH_IF_ENABLED and config.auth_enabled == "yes")):
@@ -63,36 +100,16 @@ class XenRTPage(Page):
                     self._db.rollback()
                     self._db.close()
 
-    def getWriteLocation(self, db):
-        cur = db.cursor()
-        # Get the current write xlog location from the master
-        cur.execute("SELECT pg_current_xlog_location()")
-        locStr = cur.fetchone()[0]
-        loc = app.utils.XLogLocation(locStr)
-        cur.close()
-        return loc
-
-    def getReadLocation(self, db):
-        cur = db.cursor() 
-        cur.execute("SELECT pg_last_xlog_replay_location();")
-        locStr = cur.fetchone()[0]
-        if locStr:
-            loc = app.utils.XLogLocation(locStr)
-        else:
-            loc = None
-        cur.close()
-        return loc
-
     def waitForLocalWrite(self):
         assert self.WRITE
         writeDb = self.getDB()
         writeDb.rollback()
-        writeLoc = self.getWriteLocation(writeDb)
+        writeLoc = app.db.getWriteLocation(writeDb)
         readDb = app.db.dbReadInstance()
         i = 0
         while i < (int(config.db_sync_timeout)/self.DB_SYNC_CHECK_INTERVAL):
             # Get the current xlog replay location from the local DB. This returns none if the local DB is the master
-            readLoc = self.getReadLocation(readDb)
+            readLoc = app.db.getReadLocation(readDb)
             if not readLoc:
                 print "Local database is master, don't need to wait for sync"
                 # This means the local database is the master, so we can stop
@@ -112,6 +129,22 @@ class XenRTPage(Page):
             else:
                 self._db = app.db.dbReadInstance()
         return self._db
+
+    def getWriteDB(self):
+        if not self.WRITE:
+            self.WRITE = True
+            self._db = None
+        return self.getDB()
+
+    def getAD(self):
+        if not self._ad:
+            self._ad = app.ad.ActiveDirectory()
+        return self._ad
+
+    def getACLHelper(self):
+        if not self._acl:
+            self._acl = app.acl.ACLHelper(self)
+        return self._acl
 
     def lookup_jobid(self, detailid):
         reply = -1
@@ -161,7 +194,6 @@ class XenRTPage(Page):
         cur.close()
 
         return reply
-
 
 import app.api
 import app.apiv2

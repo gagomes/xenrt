@@ -105,7 +105,7 @@ class TestRdpSettings(RdpVerification):
 
         self.guest.checkHealth()
 
-class TestGuestDisbableRdp(RdpVerification):
+class TestGuestDisableRdp(RdpVerification):
     """Verify that Manually disabling the RDP on the guest updates RDP disabled field in XAPI"""
 
     def run(self, arglist=None):

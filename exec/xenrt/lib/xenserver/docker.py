@@ -652,12 +652,3 @@ class UbuntuDocker(Docker):
     def updateGuestSourceRpms(self):
 
         xenrt.TEC().logverbose("updateGuestSourceRpms: Updating source rpms before docker installation on %s" % self.guest)
-
-# We are only doing CentOS and Ubuntu as a representative candidates.
-# If other guests are to be tested, could be implemeted using the following classes.
-
-class RHELDocker(Docker):
-    """Represents a docker installed on rhel guest"""
-
-class OELDocker(Docker):
-    """Represents a docker integrated in oel guest"""

@@ -6,6 +6,8 @@ import app.utils
 import mimetypes
 
 class _FilesBase(_JobBase):
+    REQUIRE_AUTH_IF_ENABLED = False
+    FILEAPI=True
     def uploadFile(self, id, fn, fh):
         id = int(id)
         filename = app.utils.results_filename(fn, id, mkdir=1)
@@ -16,7 +18,6 @@ class _FilesBase(_JobBase):
 
 class FileGet(_FilesBase):
     REQTYPE="GET"
-    FILEAPI=True
     PATH="/fileget/{file}"
     PRODUCES="application/octet-stream"
 
@@ -53,7 +54,6 @@ class FileGet(_FilesBase):
                 raise
 
 class UploadAttachment(_FilesBase):
-    FILEAPI=True
     CONSUMES = "multipart/form-data"
     PATH = "/job/{id}/attachments"
     REQTYPE = "POST"
@@ -89,7 +89,6 @@ class UploadAttachment(_FilesBase):
         return {}
 
 class UploadJobLog(_FilesBase):
-    FILEAPI=True
     CONSUMES = "multipart/form-data"
     PATH = "/job/{id}/log"
     REQTYPE = "POST"
@@ -115,7 +114,6 @@ class UploadJobLog(_FilesBase):
         return {}
 
 class UploadTestLog(_FilesBase):
-    FILEAPI=True
     CONSUMES = "multipart/form-data"
     PATH = "/test/{id}/log"
     REQTYPE = "POST"

@@ -336,7 +336,7 @@ def setGec(gec):
 
 #############################################################################
 
-class TestCase:
+class TestCase(object):
     """The definition and implementation of a testcase.
 
     This is the parent class for all testcases."""
@@ -1914,7 +1914,7 @@ class TCAnon(TestCase):
         # break some aspects of Jira integration
         self.basename = "TCAnon"
 
-class JobTest:
+class JobTest(object):
     """Base class for a job level testcase"""
     TCID = None
     FAIL_MSG = "Job level test failed"
@@ -1928,7 +1928,7 @@ class JobTest:
     def postJob(self):
         raise xenrt.XRTError("Unimplemented")
 
-class TestExecutionContext:
+class TestExecutionContext(object):
     """Dynamic context associated with the execution of a testcase."""
     def __init__(self, gec, tc, anon=False):
         """Constructor.
@@ -2519,7 +2519,7 @@ class ConsoleLoggerXapi(ConsoleLogger):
                 if self.finished:
                     break
 
-class PhysicalHost:
+class PhysicalHost(object):
     """A physical machine."""
     def __init__(self, name, ipaddr=None, powerctltype=None):
         """Constructor.
@@ -2637,7 +2637,7 @@ def markThread():
         GEC().runMarkCallbacks()
         xenrt.sleep(60, log=False)
 
-class GlobalExecutionContext:
+class GlobalExecutionContext(object):
     """Current global execution state."""
     def __init__(self, config=None):
         self.loghistory = []

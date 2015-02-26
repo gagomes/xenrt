@@ -18,7 +18,7 @@ import urllib2
 import datetime, random
 from xenrt.lazylog import log, warning
 
-class _CIMInterface: 
+class _CIMInterface(object): 
 
     PACK = "xenserver-integration-suite.iso"
 #    RPMS = ["xs-cim-cmpi-5.6.199-39460c",

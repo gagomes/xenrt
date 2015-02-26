@@ -12,7 +12,7 @@ import string, time, re, os.path, random, operator
 import xenrt, testcases
 from xenrt.lazylog import step
 
-class VHDorVDI:
+class VHDorVDI(object):
 
     TYPE = None
 

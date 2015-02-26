@@ -331,7 +331,7 @@ def enableMetadataReplication(host, instances=8, large_xapi_db=True):
     dr_utils.createMetadataSRs('site_A', no_of_srs=instances, enable_db_replication=True)
 
 
-class Appliance:
+class Appliance(object):
     
     """This class implements appliance feature (implemented in Boston) """
 
@@ -466,7 +466,7 @@ class Appliance:
         self.uuid = None
         return 
 
-class DRUtils:
+class DRUtils(object):
     
     def __init__(self):
 

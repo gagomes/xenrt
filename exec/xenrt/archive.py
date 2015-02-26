@@ -3,7 +3,7 @@ import xenrt
 
 __all__= ["TarGzArchiver"]
 
-class TarGzArchiver:
+class TarGzArchiver(object):
     
     def __extractFileNames(self, targetLocation, matcher):
         matches = []

@@ -7,7 +7,7 @@
 import sys, os, string, time, random, re
 import xenrt
 
-class CertificateAuthority:
+class CertificateAuthority(object):
 
     # Configuration template uwed with OpenSSL
     CONFIGURATION = """

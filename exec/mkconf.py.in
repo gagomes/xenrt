@@ -14,7 +14,7 @@ from common import *
 
 DEFCONF="@confdir@/default.conf"
 
-class Configuration:
+class Configuration(object):
 
     def __init__(self, cmdline):
 

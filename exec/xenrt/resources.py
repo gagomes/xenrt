@@ -72,7 +72,7 @@ def getResourceInteractive(resType, argv):
 def DhcpXmlRpc():
     return xmlrpclib.ServerProxy("http://localhost:1500", allow_none=True)
 
-class DirectoryResource:
+class DirectoryResource(object):
 
     def __init__(self, basedir, place=None, keep=0):
         if place:
@@ -190,7 +190,7 @@ class LogDirectory(DirectoryResource):
             keep = False
         DirectoryResource.__init__(self, self.basedir, keep=keep, place=place)
 
-class DirectoryResourceImplementer:
+class DirectoryResourceImplementer(object):
     """Superclass for allocating temporary directories."""
     def __init__(self, basedir, keep=0):
         try:
@@ -789,7 +789,7 @@ class ExternalSMBShare(_ExternalFileShare):
     def setPermissions(self, td):
         pass
 
-class ISCSIIndividualLun:
+class ISCSIIndividualLun(object):
     """An individual iSCSI LUN from a group of LUNs"""
     def __init__(self,
                  lungroup,
@@ -2801,7 +2801,7 @@ class VLANPeer(NetworkTestPeer):
 
 #############################################################################
     
-class BuildServer:
+class BuildServer(object):
     """A build server"""
     def __init__(self, arch, hostname):
         self.arch = arch
@@ -3282,7 +3282,7 @@ class StaticIP6Addr(_StaticIPAddr):
     POOLSTART = "STATICPOOLSTART6"
     POOLEND = "STATICPOOLEND6"
 
-class SharedHost:
+class SharedHost(object):
     def __init__(self, hostname=None, doguests=False):
         hosts = xenrt.TEC().lookup("SHARED_HOSTS")
 

@@ -24,7 +24,7 @@ __all__ = ["PXEBootEntry",
            "pxeMAC",
            "PXEBootUefi"]
 
-class PXEBootEntry:
+class PXEBootEntry(object):
     """An individual boot entry in a PXE config."""
     def __init__(self, cfg, label):
         self.cfg = cfg

@@ -1815,7 +1815,7 @@ class TC9135(TC8219):
 
     TEMPLATE = True 
 
-class _MultipleVBD:
+class _MultipleVBD(object):
     """VSS snapshot with multiple VBDs."""
 
     VMNAME = "Windows-VM-with-drivers"

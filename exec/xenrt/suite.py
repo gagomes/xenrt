@@ -42,7 +42,7 @@ def mergeCSLists(a, b):
 class XRTSubmitError(xenrt.XRTError):
     pass
 
-class SuiteConfigurable:
+class SuiteConfigurable(object):
 
     def __init__(self):
         self.params = {}

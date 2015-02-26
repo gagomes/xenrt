@@ -13,7 +13,7 @@ import xenrt
 
 __all__ = ["Config"]
 
-class Config:
+class Config(object):
     """Configuration"""
     def __init__(self):
         self.verbose = False

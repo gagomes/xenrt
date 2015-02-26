@@ -932,7 +932,7 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
             self.parent.instances.append(instance)
         return instance
 
-class PrepareNode:
+class PrepareNode(object):
 
     def __init__(self, toplevel, node, params):
         self.toplevel = toplevel
@@ -1619,7 +1619,7 @@ class PrepareNode:
         with open(os.path.join(xenrt.TEC().getLogdir(), 'deployment.json'), 'w') as fh:
             json.dump(deploymentRec, fh)
 
-class InstallWorkQueue:
+class InstallWorkQueue(object):
     """Queue of install work items to perform."""
     def __init__(self):
         self.items = []

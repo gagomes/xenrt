@@ -23,7 +23,7 @@ try:
 except:
     sys.stderr.write("WARNING: Could not import libvirt classes\n")
 
-class Util:
+class Util(object):
     # try some function up to x times
     def tryupto(self, fun, times=5,sleep=0):
         for i in range(times):
@@ -515,7 +515,7 @@ def APIEvent(experiment):
     return DummyEvent(experiment)
 
 
-class GuestEvent:
+class GuestEvent(object):
     # dict: ip -> ...
     events = {}
     UDP_IP = socket.gethostbyname(socket.gethostname())

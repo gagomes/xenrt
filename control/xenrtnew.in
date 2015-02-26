@@ -805,7 +805,7 @@ class XenRTList(XenRTCommand):
             raise Exception("Unknown argument\n")
         jobs = self.xenrt.get_jobs(params=True, limit=10000, results=True, **details)
         
-        fieldwidths = [7, 8, 12, 9, 13, 18, 7]
+        fieldwidths = [7, 8, 12, 9, 13, 18, 21]
         fmt = string.join(map(lambda x:"%%-%us" % x, fieldwidths))
         fmt = fmt + "\n"
         if not quiet:
@@ -955,11 +955,18 @@ class XenRTSubmit(XenRTCommand):
         details = defaults
         if not details:
             raise Exception("No parameters specified")
+        email = None
+        if details.has_key("EMAIL"):
+            email = details["EMAIL"]
+            del details["EMAIL"]
+        if details.has_key("USERID"):
+            self.xenrt.customHeaders['X-Fake-User'] = details["USERID"]
+            del details["USERID"]
         for key in details.keys():
             if len(details[key]) == 0:
                 del details[key]
 
-        job = self.xenrt.new_job(params=details)
+        job = self.xenrt.new_job(params=details,email=email)
         attachUrl = job['attachmentUploadUrl']
 
         # Do we have a patch to upload?

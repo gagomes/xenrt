@@ -16,7 +16,7 @@ class _FilesBase(_JobBase):
 
 class FileGet(_FilesBase):
     REQTYPE="GET"
-    HIDDEN=True
+    FILEAPI=True
     PATH="/fileget/{file}"
     PRODUCES="application/octet-stream"
 
@@ -53,7 +53,7 @@ class FileGet(_FilesBase):
                 raise
 
 class UploadAttachment(_FilesBase):
-    HIDDEN=True
+    FILEAPI=True
     CONSUMES = "multipart/form-data"
     PATH = "/job/{id}/attachments"
     REQTYPE = "POST"
@@ -89,7 +89,7 @@ class UploadAttachment(_FilesBase):
         return {}
 
 class UploadJobLog(_FilesBase):
-    HIDDEN=True
+    FILEAPI=True
     CONSUMES = "multipart/form-data"
     PATH = "/job/{id}/log"
     REQTYPE = "POST"
@@ -115,7 +115,7 @@ class UploadJobLog(_FilesBase):
         return {}
 
 class UploadTestLog(_FilesBase):
-    HIDDEN=True
+    FILEAPI=True
     CONSUMES = "multipart/form-data"
     PATH = "/test/{id}/log"
     REQTYPE = "POST"

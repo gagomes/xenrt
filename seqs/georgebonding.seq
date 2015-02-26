@@ -17,7 +17,6 @@
       <testcase id="xenserver.tc.bonding.TC8210" blocker="yes"/>
     </serial>
     <serial group="Balancing">
-      <testcase id="xenserver.tc.bonding.TC8310" blocker="yes"/>
     </serial>
     <serial group="Regression">
       <testcase id="xenserver.tc.bonding.TC8224" blocker="yes"/>

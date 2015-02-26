@@ -1,6 +1,7 @@
 from app import XenRTPage
 from server import PageFactory
 from pyramid.response import FileResponse
+from pyramid.httpexceptions import *
 import config
 import urlparse
 import json
@@ -19,7 +20,10 @@ class ApiRegistration(object):
 
     def registerAPI(self, cls):
         self.apis.append(cls)
-        PageFactory(cls, "/api/v2%s" % cls.PATH, reqType = cls.REQTYPE, contentType = cls.PRODUCES)
+        if cls.FILEAPI:
+            PageFactory(cls, "/api/files/v2%s" % cls.PATH, reqType = cls.REQTYPE, contentType = cls.PRODUCES)
+        else:
+            PageFactory(cls, "/api/v2%s" % cls.PATH, reqType = cls.REQTYPE, contentType = cls.PRODUCES)
 
 
 global _apiReg
@@ -64,7 +68,7 @@ class XenRTAPIv2Swagger(XenRTPage):
         }
         global _apiReg
         for cls in _apiReg.apis:
-            if cls.HIDDEN:
+            if cls.HIDDEN or cls.FILEAPI:
                 continue
             if not cls.PATH in spec['paths']:
                 spec['paths'][cls.PATH] = {}
@@ -99,7 +103,16 @@ class XenRTAPIv2Page(XenRTPage):
     PARAM_ORDER = []
     RETURN_KEY = None
     HIDDEN = False
-    
+    FILEAPI = False
+
+    def getIntFromMatchdict(self, paramName):
+        if not paramName in self.request.matchdict:
+            raise KeyError("%s not found" % paramName)
+        try:
+            return int(self.request.matchdict[paramName])
+        except ValueError:
+            raise XenRTAPIError(HTTPBadRequest, "Invalid %s in URL" % paramName)
+
     def getMultiParam(self, paramName, delimiter=","):
         params = self.request.params.getall(paramName)
         ret = []
@@ -111,7 +124,7 @@ class XenRTAPIv2Page(XenRTPage):
         return "%s IN (%s)" % (fieldname, ", ".join(["%s"] * len(items)))
 
     def expandVariables(self, params):
-        return [self.getUser() if x=="${user}" else x for x in params]
+        return [self.getUser().userid if x=="${user}" else x for x in params]
 
 import app.apiv2.bindings
 import app.apiv2.jobs
@@ -119,6 +132,7 @@ import app.apiv2.machines
 import app.apiv2.files
 import app.apiv2.sites
 import app.apiv2.api
+import app.apiv2.acls
 import app.apiv2.misc
 import app.apiv2.resources
 import app.apiv2.results

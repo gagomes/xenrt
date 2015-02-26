@@ -56,7 +56,7 @@
 
   <testsequence group="RdpSettingsPostInstall">
     <for iter="D" values="${WINDISTROS}">
-        <testcase id="xenserver.tc.rdpxapi.TestRdpOnPostInstall" tc="TC-23794" prio="3" >
+        <testcase id="xenserver.tc.rdpxapi.TestRdpOnPostInstall" tc="TC-23794" name="PostInstall/${D}" sku="PostInstall/${D}">
         <arg>guest=${D}</arg>
         </testcase>
      </for>

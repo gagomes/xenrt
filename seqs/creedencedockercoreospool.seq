@@ -1,0 +1,45 @@
+<xenrt>
+
+  <!-- Docker test sequence using CoreOS guest on a pool of hosts. -->
+
+  <default name="DISTRO" value="coreos-alpha" />
+
+  <variables>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+  </variables>
+
+  <scheduler>
+    <resources>memory&gt;=20G/disk1&gt;=140G</resources>
+    <param>MACHINES_REQUIRED=2</param>
+  </scheduler>
+
+  <prepare>
+    <pool id="0">
+      <storage type="nfs" name="nfsSR"/>
+      <host id="0">
+        <vm name="${DISTRO}">
+          <distro>${DISTRO}</distro>
+          <arch>x86-64</arch>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="5" />
+          <storage>nfsSR</storage>
+          <postinstall action="dockerInstall" />
+        </vm>
+      </host>
+      <host id="1" />
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="CoreOS">
+      <testcase id="xenserver.tc.docker.TCSanityTest" blocker="yes">
+        <arg>coreosdistro=${DISTRO}</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+
+</xenrt>

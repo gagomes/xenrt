@@ -984,10 +984,10 @@ class TC20904(xenrt.TestCase):
         xenrt.TEC().logverbose("PCI ID of the motherboard: %s" %pciID)
         
         pci_obj = self.host.minimalList("pgpu-list", "uuid", "pci-id=%s" %pciID)        
-        if pci_obj :
-            raise xenrt.XRTFailure("The PCI object list  contain the motherboard PCI ID which is UNexpected: %s" %pci_obj[0])
+        if self.host.genParamGet("pgpu", pci_obj[0], "supported-VGPU-types") :
+            raise xenrt.XRTFailure("Supported type of pgpu: %s is not Null" %pci_obj[0])
         else :
-            xenrt.TEC().logverbose("The PCI object list doesn't contain the motherboard PCI ID as Expected")
+            xenrt.TEC().logverbose("Supported type of pgpu: %s is Null as expected" %pci_obj[0])
 
         
 

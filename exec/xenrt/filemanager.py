@@ -325,8 +325,20 @@ class FileManager(object):
                 else:
                     deadline = xenrt.util.timenow() + self.defaultFetchTimeout
                 while xenrt.util.timenow() < deadline:
-                    if not os.path.exists("%s.fetching" % cache):
-                        break
+                    try:
+                        with open("%s.fetching" % cache) as f:
+                            job = f.read().strip()
+                            if job != "nojob":
+                                # Check if the job is still running
+                                j = xenrt.GEC().dbconnect.api.get_job(int(job))
+                                if j['rawstatus'] == "done" or j['params'].get('DEAD_JOB') == "yes":
+                                    os.unlink("%s.fetching" % cache)
+                                    break
+                    except Exception, e:
+                        xenrt.TEC().logverbose("Warning: exception %s raised when checking fetching file" % str(e))
+                        if not os.path.exists("%s.fetching" % cache):
+                            break
+                        raise 
                     xenrt.sleep(15)
 
                 # we need to raise an alarm if any fetching file is not deleted.

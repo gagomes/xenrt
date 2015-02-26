@@ -1,0 +1,17 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0" license="no" usev6testd="no">
+    </host>
+  </prepare>
+
+  <testsequence group="nvidiaVGPUSuppacksinstall">
+    <testcase id="xenserver.tc.suppacks.TCinstallNvidiaVgpuHostSupPacks">
+      <arg>suppackISOpath=/usr/groups/xenrt/distmaster/vgpu/</arg>
+      <arg>suppackISOname=nvidia-vgx-xenserver-6.5-340.57.iso</arg>
+    </testcase>
+  </testsequence>
+</xenrt>

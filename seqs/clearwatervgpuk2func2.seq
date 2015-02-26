@@ -1,0 +1,22 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+  <pool id="0">
+    <host/>
+    <storage type="nfs" name="nfs_sourceSR" />
+  </pool>
+  </prepare>
+
+  <testsequence>
+   <serial group="K2Config">
+      <testcase tc="TC-20824" id="testcases.xenserver.tc.vgpu.TCOpsonK2vGPUToVMhasGotvGPU">
+        <arg>distro=0</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+        <arg>vgpuconfig=6,11</arg>
+      </testcase>
+   </serial>
+  </testsequence>
+</xenrt>

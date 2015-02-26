@@ -143,10 +143,10 @@ class _JobBase(_MachineBase):
         for j in jobs.keys():
             jobs[j]['suiterun'] = jobs[j]['params'].get("TESTRUN_SR")
             jobs[j]['result'] = jobs[j]['params'].get("CHECK")
-            jobs[j]['attachmentUploadUrl'] = "%s://%s%s/api/v2/job/%d/attachments" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
-            jobs[j]['logUploadUrl'] = "%s://%s%s/api/v2/job/%d/log" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
+            jobs[j]['attachmentUploadUrl'] = "%s://%s%s/api/files/v2/job/%d/attachments" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
+            jobs[j]['logUploadUrl'] = "%s://%s%s/api/files/v2/job/%d/log" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
             if jobs[j]['params'].get('UPLOADED') == "yes":
-                logUrl = "%s://%s%s/api/v2/fileget/%d" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
+                logUrl = "%s://%s%s/api/files/v2/fileget/%d" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
             else:
                 logUrl = None
             jobs[j]['logUrl'] = logUrl
@@ -175,7 +175,7 @@ class _JobBase(_MachineBase):
                 if not rc:
                     break
                 if rc[5] and rc[5].strip() == "yes":
-                    logUrl = "%s://%s%s/api/v2/fileget/%d.test" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), rc[2])
+                    logUrl = "%s://%s%s/api/files/v2/fileget/%d.test" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), rc[2])
                 else:
                     logUrl = None
                 jobs[rc[0]]['results'][rc[2]] ={
@@ -183,7 +183,7 @@ class _JobBase(_MachineBase):
                     "detailid": rc[2],
                     "test": rc[3].strip(),
                     "phase": rc[4].strip(),
-                    "logUploadUrl": "%s://%s%s/api/v2/test/%d/log" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), rc[2]),
+                    "logUploadUrl": "%s://%s%s/api/files/v2/test/%d/log" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), rc[2]),
                     "logUrl": logUrl,
                     "logUploaded": rc[5] and rc[5].strip() == "yes",
                     "jobId": rc[0]
@@ -494,7 +494,7 @@ class RemoveJob(_JobBase):
             self.updateJobField(job, "REMOVED", "yes")
         if j.get('return_machines'):
             for m in jobinfo['machines']:
-                self.return_machine(m, self.getUser(), False, canForce=False, commit=False)
+                self.return_machine(m, self.getUser().userid, False, canForce=False, commit=False)
             self.getDB().commit()
                  
         return {}
@@ -626,15 +626,13 @@ class NewJob(_JobBase):
         if "USERID" in params:
             del params['USERID']
 
+        params["JOB_SUBMITTED"] = time.asctime(time.gmtime()) + " UTC"
+
         db = self.getDB()
         cur = db.cursor()
-        cur.execute("LOCK TABLE tbljobs IN EXCLUSIVE MODE")
-        cur.execute("INSERT INTO tbljobs (jobstatus, userid, version, revision, options, uploaded,removed) VALUES ('new', %s, '', '', '', '', '')", [self.getUser()])
-        # Lookup jobid
-        cur.execute("SELECT last_value FROM jobid_seq")
+        cur.execute("INSERT INTO tbljobs (jobstatus, userid, version, revision, options, uploaded,removed) VALUES ('new', %s, '', '', '', '', '') RETURNING jobid", [self.getUser().userid])
         rc = cur.fetchone()
         self.jobid = int(rc[0])
-        db.commit() # Commit to release the lock
 
         if specifiedMachines:
             self.updateJobField("MACHINE", ",".join(specifiedMachines), params)
@@ -719,7 +717,7 @@ class NewJob(_JobBase):
                            deployment=j.get("deployment"),
                            resources=j.get("resources"),
                            flags=j.get("flags"),
-                           email=j.get("email"),
+                           email=j.get("email") if j.has_key("email") else self.getUser().email,
                            inputdir=j.get("inputdir"),
                            lease=j.get("lease_machines"))
 
@@ -744,7 +742,7 @@ class _GetAttachmentUrl(_JobBase):
         job = int(self.request.matchdict['id'])
         server = self.getJobs(1, ids=[job], getParams=True, exceptionIfEmpty=True)[job]['params'][self.LOCATION_PARAM]
 
-        return {'url': 'http://%s/xenrt/api/v2/fileget/%d.%s' % (server, job, self.request.matchdict['file'])}
+        return {'url': 'http://%s/xenrt/api/files/v2/fileget/%d.%s' % (server, job, self.request.matchdict['file'])}
 
 class GetAttachmentPreRun(_GetAttachmentUrl):
     LOCATION_PARAM='JOB_FILES_SERVER'
@@ -777,7 +775,7 @@ class GetJobDeployment(_JobBase):
 
         try:
             server = self.getJobs(1, ids=[job], getParams=True, exceptionIfEmpty=True)[job]['params']['LOG_SERVER']
-            r = requests.get('http://%s/xenrt/api/v2/fileget/%d.deployment.json' % (server, job))
+            r = requests.get('http://%s/xenrt/api/files/v2/fileget/%d.deployment.json' % (server, job))
             r.raise_for_status()
             return r.json()
         except Exception, e:

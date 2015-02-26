@@ -2304,7 +2304,7 @@ class TC14140(TC14139):
   
     USESSL = True
 
-class IscsiTest(_TransferVM,VhdFunctions):
+class IscsiTest(VhdFunctions):
 
     SIZE = None
  

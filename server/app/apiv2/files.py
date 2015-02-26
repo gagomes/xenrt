@@ -3,7 +3,7 @@ from app.apiv2.jobs import _JobBase
 from pyramid.httpexceptions import *
 import shutil
 import app.utils
-import mimetypes
+import os
 
 class _FilesBase(_JobBase):
     REQUIRE_AUTH_IF_ENABLED = False
@@ -15,13 +15,7 @@ class _FilesBase(_JobBase):
         shutil.copyfileobj(fh, fout)
         fout.close()
         
-
-class FileGet(_FilesBase):
-    REQTYPE="GET"
-    PATH="/fileget/{file}"
-    PRODUCES="application/octet-stream"
-
-    def render(self):
+    def parseGetURL(self):
         fn = self.request.matchdict["file"]
         if "." in fn:
             (job, filename) = fn.split(".", 1)
@@ -29,12 +23,36 @@ class FileGet(_FilesBase):
             job = fn
             filename = ""
         job = int(job)
+        return (job, filename)
+
+
+class IndexGet(_FilesBase):
+    REQTYPE="GET"
+    PATH="/index/{file}"
+    PRODUCES="application/json"
+
+    def render(self):
+        (job, filename) = self.parseGetURL()
+        localfilename = app.utils.results_filename(filename, job)
+
+        index = app.utils.getTarIndex(localfilename, self.request.matchdict['file'])
+
+        return index
+
+
+class FileGet(_FilesBase):
+    REQTYPE="GET"
+    PATH="/fileget/{file}"
+    PRODUCES="application/octet-stream"
+
+    def render(self):
+        (job, filename) = self.parseGetURL()
         if filename in ("", "test"):
             ctype = "application/octet-stream"
             encoding = None
             downloadname = "%d.tar.bz2" % job
         else:
-            (ctype, encoding) = mimetypes.guess_type(filename)
+            (ctype, encoding) = app.utils.getContentTypeAndEncoding(filename)
             if not ctype:
                 ctype = "application/octet-stream"
             downloadname = filename
@@ -52,6 +70,41 @@ class FileGet(_FilesBase):
                 return HTTPNotFound()
             else:
                 raise
+
+class FileFromTar(_FilesBase):
+    REQTYPE="GET"
+    PATH="/log/{file}/*innerfile"
+    PRODUCES="application/octet-stream"
+
+    def getFD(self):
+        (job, filename) = self.parseGetURL()
+        localfilename = app.utils.results_filename(filename, job)
+        innerfilename = "./%s" % "/".join(self.request.matchdict['innerfile'])
+        size = None
+        if os.path.exists("%s.index" % localfilename):
+            f = open("%s.index" % localfilename)
+            for l in f.readlines():
+                ll = l.split()
+                fname = " ".join(ll[5:len(ll)])
+                _size = int(ll[2])
+                if fname == innerfilename:
+                    size = _size
+                    break
+            f.close()
+        return (os.popen('tar -jxf %s -O "%s"' % (localfilename, innerfilename)), innerfilename, size)
+    
+    def render(self):
+        (fd, fn, size) = self.getFD()
+        
+        self.request.response.body_file = fd
+        
+        (ctype, encoding) = app.utils.getContentTypeAndEncoding(fn)
+        self.request.response.content_type = ctype
+        if size:
+            self.request.response.content_length=size
+
+        return self.request.response
+
 
 class UploadAttachment(_FilesBase):
     CONSUMES = "multipart/form-data"
@@ -144,3 +197,5 @@ RegisterAPI(UploadAttachment)
 RegisterAPI(UploadJobLog)
 RegisterAPI(UploadTestLog)
 RegisterAPI(FileGet)
+RegisterAPI(IndexGet)
+RegisterAPI(FileFromTar)

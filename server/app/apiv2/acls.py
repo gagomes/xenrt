@@ -124,7 +124,7 @@ class _AclBase(XenRTAPIv2Page):
 
             for a in ret.keys():
                 if not a in aclsToReturn:
-                    del ret[m]
+                    del ret[a]
 
         return ret
 

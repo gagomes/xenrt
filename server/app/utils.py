@@ -463,3 +463,57 @@ def refresh_ad_caches(removeUsers=False):
 
     db.commit()
 
+def isBinary(fname):
+    if string.split(fname, ".")[-1] in ('gz',
+                                       'tgz',
+                                       'bz2',
+                                       'tbz2',
+                                       'zip',
+                                       'exe',
+                                       'jpg',
+                                       'jpeg',
+                                       'png',
+                                       'gif'):
+        return True
+    else:
+        return False
+
+def getTarIndex(tarfile):
+    if os.path.exists("%s.index" % tarfile):
+        indexFH = open("%s.index" % tarfile)
+        createIndex = False
+    else:
+        indexFH = os.popen("tar -jvtf %s" % (tarfile))
+        createIndex = True
+
+    index = indexFH.readlines()
+    indexFH.close()
+
+    if createIndex and len(self.index) > 0:
+        try:
+            f = open("%s.index" % tarfile, "w")
+            for l in index:
+                f.write(l)
+            f.close()
+        except:
+            pass
+
+    listing = {}
+
+    for l in index:
+        l = l.strip()
+        if l[0:2] == "./":
+            l = l[2:]
+
+        if l[-1] == "/":
+            continue
+        
+        listing[l] = {
+            "name": l,
+            "url": "/l",
+            "binary": isBinary(l)
+        }
+
+    return listing
+
+    

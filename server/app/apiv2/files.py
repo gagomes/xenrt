@@ -15,13 +15,7 @@ class _FilesBase(_JobBase):
         shutil.copyfileobj(fh, fout)
         fout.close()
         
-
-class FileGet(_FilesBase):
-    REQTYPE="GET"
-    PATH="/fileget/{file}"
-    PRODUCES="application/octet-stream"
-
-    def render(self):
+    def parseGetURL(self):
         fn = self.request.matchdict["file"]
         if "." in fn:
             (job, filename) = fn.split(".", 1)
@@ -29,6 +23,30 @@ class FileGet(_FilesBase):
             job = fn
             filename = ""
         job = int(job)
+        return (job, fileename)
+
+
+class IndexGet(_FilesBase):
+    REQTYPE="GET"
+    PATH="index/{file}"
+    PRODUCES="application/json"
+
+    def render(self):
+        (job, filename) = self.parseGetURL()
+        localfilename = app.utils.results_filename(filename, job)
+
+        index = app.utils.getTarIndex(localfilename)
+
+        return index
+
+
+class FileGet(_FilesBase):
+    REQTYPE="GET"
+    PATH="/fileget/{file}"
+    PRODUCES="application/octet-stream"
+
+    def render(self):
+        (job, filename) = self.parseGetURL()
         if filename in ("", "test"):
             ctype = "application/octet-stream"
             encoding = None

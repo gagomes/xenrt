@@ -485,6 +485,7 @@ if __name__ == '__main__':
                     trace(" running jobid %d, process %s\n" % (m['jobid'], hpid))
                 else:
                     trace(" running jobid %d. ERROR - no process for job\n" % (m['jobid']))
+                    xenrt.update_job(m['jobid'], params={"DEAD_JOB": "yes"})
                     deadjobs.append(str(m['jobid']))
                 if data['removed']:
                     trace("Job %d set as removed, killing job\n" % m['jobid'])

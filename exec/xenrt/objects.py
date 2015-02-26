@@ -6006,7 +6006,7 @@ chain tftp://${next-server}/%s
         pxecfg = pxe.addEntry("sysrescue", default=1, boot="linux")
         barch = self.getBasicArch()
         pxecfg.linuxSetKernel(kernel)
-        pxecfg.linuxArgsKernelAdd("dodhcp rootpass=%s setkmap=uk netboot=%ssysrescue/sysrcd.dat" %
+        pxecfg.linuxArgsKernelAdd("dodhcp rootpass=%s setkmap=uk netboot=%s/sysrescue/sysrcd.dat" %
                                   (g.password, xenrt.TEC().lookup("TEST_TARBALL_BASE")))
         pxecfg.linuxArgsKernelAdd("initrd=%s" % pxe.makeBootPath("initram.igz"))
         if ramdisk_size:

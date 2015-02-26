@@ -10,28 +10,45 @@
 
   <testsequence>
     <serial group="LinuxGPUPassthrough">
-      <testcase id="testcases.xenserver.tc.vgpu.TCBasicVerifOfAllK2config">
+      <testcase id="testcases.xenserver.tc.vgpu.TCBasicVerifOfAllK2config" name="TC-26348" tc="TC-26348">
         <arg>distro=10,11,12,13,14</arg>
         <arg>typeofvgpu=nvidialinuxvgpu</arg>
-        <arg>vgpuconfig=11</arg>
+        <arg>vgpuconfig=5</arg>
       </testcase>
 
-      <testcase id="testcases.xenserver.tc.vgpu.TCRevertvGPUSnapshot">
+      <testcase id="testcases.xenserver.tc.vgpu.TCvGPUBalloon" name="TC-23920" tc="TC-23920">
         <arg>distro=10</arg>
         <arg>typeofvgpu=nvidialinuxvgpu</arg>
-        <arg>vgpuconfig=11</arg>
+        <arg>vgpuconfig=5</arg>
       </testcase>
 
-      <testcase id="testcases.xenserver.tc.vgpu.TCvGPUBalloon">
-        <arg>distro=10</arg>
+      <testcase id="testcases.xenserver.tc.vgpu.TCvGPUBalloon" name="TC-23919" tc="TC-23919">
+        <arg>distro=11</arg>
         <arg>typeofvgpu=nvidialinuxvgpu</arg>
-        <arg>vgpuconfig=11</arg>
+        <arg>vgpuconfig=5</arg>
       </testcase>
 
-      <testcase id="testcases.xenserver.tc.vgpu.TCvGPUBalloon">
-        <arg>distro=14</arg>
+      <testcase id="testcases.xenserver.tc.vgpu.TCReuseK2PGPU" name="TC-26350" tc="TC-26350">
+        <arg>distro=3,11</arg>
+        <arg>vgpuconfig=3,5</arg>
+        <arg>others=nvidiawinvgpu,nvidialinuxvgpu</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+      </testcase>
+      
+      <testcase id="testcases.xenserver.tc.vgpu.TCRevertvGPUSnapshot" name="TC-26352" tc="TC-26352">
+        <arg>distro=10,14</arg>
         <arg>typeofvgpu=nvidialinuxvgpu</arg>
-        <arg>vgpuconfig=11</arg>
+        <arg>vgpuconfig=5</arg>
+      </testcase>
+      
+      <testcase id="testcases.xenserver.tc.vgpu.MixedGPUBootstorm" name="TC-26346" tc="TC-26346">
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+        <arg>vgpuconfig=5</arg>
+        <arg>linuxtype=10</arg>
+        <arg>windowstype=1</arg>
+        <arg>passthroughalloc=1.0</arg>
+        <arg>vgpualloctype=3</arg>
+        <arg>others=nvidiawinvgpu,nvidialinuxvgpu</arg>
       </testcase>
 
     </serial>

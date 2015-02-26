@@ -5809,7 +5809,8 @@ default:
 class DundeeGuest(CreedenceGuest):
     
     def uninstallDrivers(self, waitForDaemon=True):
-
+        
+        installed = True
         try:
             regValue = self.winRegLookup('HKLM', "SOFTWARE\\Wow6432Node\\Citrix\\XenToolsInstaller", "InstallStatus", healthCheckOnFailure=False)
         except:
@@ -5866,11 +5867,15 @@ class DundeeGuest(CreedenceGuest):
         # Verify PV devices have been removed after tools uninstallation
         try:
             self.checkPVDevices()
-        except:
-            pass
+        except Exception, e:
+            if "VIF and/or VBD PV device not used. Possibilities:" in str(e):
+                xenrt.TEC().logverbose("PV Packages are uninstalled")
+                pass
+            else:
+                raise xenrt.XRTFailure("Exception occured while checking whether PV Devices are uninstalled %s" % (str(e)))
         else:
             raise xenrt.XRTFailure("PV devices still detected after uninstalling driver Packages")
-                                       
+        
         self.enlightenedDrivers = False
         
 

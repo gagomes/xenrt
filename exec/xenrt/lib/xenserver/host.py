@@ -11398,7 +11398,6 @@ class CreedenceHost(ClearwaterHost):
     def licenseApply(self, v6server, licenseObj):
         self.license(v6server,sku=licenseObj.getEdition())
 
-
 #############################################################################
 class DundeeHost(CreedenceHost):
     USE_CCISS = False

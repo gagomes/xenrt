@@ -977,3 +977,38 @@ class TC10665(_SupplementalPacksPostInstall):
         # Restore the original index.html
         self.host.execdom0("cp /tmp/index.html /opt/xensource/www/")
 
+class _VgpuSuppackInstall(xenrt.TestCase):
+    #verify vGPU suppack install on host 
+    def isNvidiaVgpuSuppackInstalled(self, host):
+        return "NVIDIA Corporation" in host.execdom0("xe vgpu-type-list")
+
+
+class TCinstallNvidiaVgpuHostSupPacks(_VgpuSuppackInstall):
+    def run(self, arglist):
+        suppackISOpath = None
+        suppackISOname = None
+        args = self.parseArgsKeyValue(arglist)
+        suppackISOpath = args['suppackISOpath']
+        suppackISOname = args['suppackISOname']
+        host = self.getDefaultHost()
+        #check if vGPU suppack already installed
+        if self.isNvidiaVgpuSuppackInstalled(host):
+            xenrt.TEC().logverbose("Nvidia VGPU supplementary pack already installed")
+            return
+        #install suppack
+        host.installHostSupPacks(suppackISOpath, suppackISOname)
+        #Check installation successful or not
+        if self.isNvidiaVgpuSuppackInstalled(host):
+            xenrt.TEC().logverbose("Nvidia VGPU supplementary pack installed successfully")
+        else:
+            raise xenrt.XRTFailure("Nvidia VGPU supplementary pack not installed successfully")
+
+class TCinstallVgpuPacksWithXenServer(_VgpuSuppackInstall):
+    def run(self, arglist):
+        isVgpuInstalled = False
+        host = self.getDefaultHost()
+        #Check installation successful or not
+        if self.isNvidiaVgpuSuppackInstalled(host):
+            xenrt.TEC().logverbose("Nvidia VGPU supplementary pack installation along with xenserver was successful")
+        else:
+            raise xenrt.XRTFailure("Nvidia VGPU supplementary pack installation along with xenserver was not successful")

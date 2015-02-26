@@ -626,6 +626,8 @@ class NewJob(_JobBase):
         if "USERID" in params:
             del params['USERID']
 
+        params["JOB_SUBMITTED"] = time.asctime(time.gmtime()) + " UTC"
+
         db = self.getDB()
         cur = db.cursor()
         cur.execute("LOCK TABLE tbljobs IN EXCLUSIVE MODE")

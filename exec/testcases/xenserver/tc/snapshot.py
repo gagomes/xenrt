@@ -2350,6 +2350,15 @@ class TC20554(_VMSnapshotPerOS):
 
     DISTRO = "win81-x86"
 
+class TC26421(_VMSnapshotPerOS):
+    """VM snapshot operation with Windows 10 x86"""
+
+    DISTRO = "win10-x86"
+
+class TC26422(_VMSnapshotPerOS):
+    """VM snapshot operation with Windows 10 x64"""
+
+    DISTRO = "win10-x64"
 
 class TC20555(_VMSnapshotPerOS):
     """VM snapshot operation with Windows 12 R2 x64"""

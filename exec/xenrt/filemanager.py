@@ -334,7 +334,8 @@ class FileManager(object):
                                 if j['rawstatus'] == "done" or j['params'].get('DEAD_JOB') == "yes":
                                     os.unlink("%s.fetching" % cache)
                                     break
-                    except:
+                    except Exception, e:
+                        xenrt.TEC().logverbose("Warning: exception %s raised when checking fetching file" % str(e))
                         if not os.path.exists("%s.fetching" % cache):
                             break
                         raise 

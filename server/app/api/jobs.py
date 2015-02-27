@@ -357,6 +357,9 @@ class XenRTSubmit(XenRTJobPage):
         e = splitparams["extra"]
         e["JOB_SUBMITTED"] = time.asctime(time.gmtime()) + " UTC"
 
+        if "REMOVED_BY" in e:
+            del e['REMOVED_BY']
+
         for cp in app.constants.core_params:
             if not c.has_key(cp):
                 if cp == "JOBSTATUS":
@@ -445,6 +448,9 @@ class XenRTRemove(XenRTJobPage):
             # doesn't show in lists. This is becauses users keep on
             # removing running jobs thereby confusing the daemon
             self.update_field(id, "REMOVED", "yes")
+            user = form.get("USERID")
+            if user:
+                self.update_field(id, "REMOVED_BY", user)
             return "OK"
         except:
             traceback.print_exc()

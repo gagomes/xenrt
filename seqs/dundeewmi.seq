@@ -49,6 +49,13 @@
         <network device="0"/>
         <postinstall action="installDrivers"/>
       </vm>
+      <vm name="win10-x86">
+        <distro>win10-x86</distro>
+        <memory>1024</memory>
+        <vcpus>1</vcpus>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+      </vm>
     </host>
   </prepare>
 
@@ -172,6 +179,26 @@
         </testcase>
         <testcase id="xenserver.tc.guest.WMICheckXenStoreWrite" tc="TC-20008">
           <arg>guest=win81-x64</arg>
+        </testcase>
+      </serial>
+      <serial group="win10-x86">
+        <testcase id="xenserver.tc.guest.WMIPowerShell" tc="TC-26427">
+          <arg>guest=win10-x86</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMIVBS" tc="TC-26428">
+          <arg>guest=win10-x86</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMICheckVMName" tc="TC-26429">
+          <arg>guest=win10-x86</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMICheckVMIP" tc="TC-26430">
+          <arg>guest=win10-x86</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMICheckXenStoreRead" tc="TC-26431">
+          <arg>guest=win10-x86</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMICheckXenStoreWrite" tc="TC-26432">
+          <arg>guest=win10-x86</arg>
         </testcase>
       </serial>
 

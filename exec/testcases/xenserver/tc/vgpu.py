@@ -392,7 +392,7 @@ class TCVGPUNode0Pin(xenrt.TestCase):
         self.guest.paramSet("VCPUs-params:mask", string.join(node0cpus, ","))
         self.guest.setState("UP")
 
-class TCVGPUSetup(VGPUOwnedVMsTest):
+class TCVGPUSetup(VGPUTest):
     def parseArgs(self, arglist):
         self.args = {}
         for a in arglist:
@@ -456,7 +456,7 @@ Send("{ENTER}")
             self.guest.xmlrpcStart("\"%s\" %s" % (autoit, au3path))
         self.assertvGPURunningInWinVM(self.guest, self.args['vgpuconfig'])
 
-class TCVGPUCloneVM(VGPUOwnedVMsTest):
+class TCVGPUCloneVM(VGPUTest):
     def parseArgs(self, arglist):
         self.args = {}
         for a in arglist:
@@ -507,7 +507,7 @@ class TCVGPUDeleteClones(xenrt.TestCase):
         if self.args.has_key("clones") and i < int(self.args['clones']):
             raise xenrt.XRTError("Insufficient clones found to delete")
 
-class TCGPUBootstorm(VGPUOwnedVMsTest):
+class TCGPUBootstorm(VGPUTest):
     def parseArgs(self, arglist):
         self.params = {}
         self.vgpuconfig = None
@@ -554,7 +554,7 @@ class TCGPUBootstorm(VGPUOwnedVMsTest):
         f.write(json.dumps(self.times))
         f.close()
 
-class TCGPUBenchmarkInstall(VGPUOwnedVMsTest):
+class TCGPUBenchmarkInstall(VGPUTest):
     def parseArgs(self, arglist):
         self.args = {}
         self.benchmarks = []

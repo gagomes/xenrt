@@ -189,6 +189,8 @@ class PythonBindings(XenRTAPIv2Swagger):
 
         for p in swagger['paths'].keys():
             for m in swagger['paths'][p].keys():
+                if swagger['paths'][p][m].get('operationId') == "no_binding":
+                    continue
                 self.funcs.append(Path(self, p, m, swagger['paths'][p][m], swagger['definitions']))
         
         self.scheme = swagger['schemes'][0]

@@ -1,4 +1,4 @@
-import string, re, os, json
+import string, re, os, json, mimetypes
 
 import config, app.db, app.ad
 
@@ -463,3 +463,75 @@ def refresh_ad_caches(removeUsers=False):
 
     db.commit()
 
+def isBinary(fname):
+    if string.split(fname, ".")[-1] in ('gz',
+                                       'tgz',
+                                       'bz2',
+                                       'tbz2',
+                                       'zip',
+                                       'exe',
+                                       'jpg',
+                                       'jpeg',
+                                       'png',
+                                       'gif'):
+        return True
+    else:
+        return False
+
+def getTarIndex(tarfile, urlname):
+    if os.path.exists("%s.index" % tarfile):
+        indexFH = open("%s.index" % tarfile)
+        createIndex = False
+    else:
+        indexFH = os.popen("tar -jvtf %s" % (tarfile))
+        createIndex = True
+
+    index = indexFH.readlines()
+    indexFH.close()
+
+    if createIndex and len(index) > 0:
+        try:
+            f = open("%s.index" % tarfile, "w")
+            for l in index:
+                f.write(l)
+            f.close()
+        except:
+            pass
+
+    listing = {}
+
+    for l in index:
+        ll = l.split()
+        fn = " ".join(ll[5:len(ll)])
+        size = int(ll[2])
+        if fn[0:2] == "./":
+            fn = fn[2:]
+
+        if not fn:
+            continue
+        if fn[-1] == "/":
+            continue
+        
+        listing[fn] = {
+            "name": fn,
+            "url": "%s/api/files/v2/log/%s/%s" % (config.url_base.rstrip("/"), urlname, fn),
+            "size": size,
+            "content_type": getContentTypeAndEncoding(fn)[0]
+        }
+
+    return listing
+
+def getContentTypeAndEncoding(fn):
+    (ctype, encoding) = mimetypes.guess_type(fn)
+    if not ctype:
+        if fn.endswith("/messages") \
+                or fn.endswith(".log") \
+                or fn.endswith(".out") \
+                or fn.endswith("/SMlog") \
+                or fn.endswith("/syslog"):
+            ctype = "text/plain"
+        elif fn.endswith(".db"):
+            ctype = "application/xml"
+        else:
+            ctype = "application/octet-stream"
+    return (ctype, encoding)

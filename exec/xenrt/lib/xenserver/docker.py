@@ -364,6 +364,10 @@ class LinuxDockerController(DockerController):
         if len(dockerGeneralList) < 1:
             raise xenrt.XRTError("dockerGeneralInfo: General docker info for %s is not found" % dcommand)
 
+        # In case of 'docker info', remove an element which 
+        # starts with ID: VGOY:XML7:MTG5:MG2T:4QAH:5STJ:T3VJ:HD4W:O36M:DEKA:A6IE:PJF7
+        dockerGeneralList = [item for item in dockerGeneralList if not item.startswith('ID:')]
+
         dockerGeneralDict = dict(item.split(":") for item in dockerGeneralList)
 
         if not dockerGeneralDict:

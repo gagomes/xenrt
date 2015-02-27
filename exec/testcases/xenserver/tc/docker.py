@@ -13,6 +13,7 @@ class TCDockerBase(xenrt.TestCase):
 
     def prepare(self, arglist=None):
 
+        self.guests = [] # more guests can be managed.
         args = self.parseArgsKeyValue(arglist) 
         self.distro = args.get("coreosdistro", "coreos-alpha") 
 
@@ -25,6 +26,7 @@ class TCDockerBase(xenrt.TestCase):
 
         # Obtain the CoreOS guest object. 
         self.guest = self.getGuest(self.distro)
+        self.guests.append(self.guest)
 
         # Obtain the docker environment to work with Xapi plugins.
         self.docker = self.guest.getDocker() # OR CoreOSDocker(self.host, self.coreos, XapiPluginDockerController)
@@ -32,7 +34,7 @@ class TCDockerBase(xenrt.TestCase):
 
     def run(self, arglist=None):pass
 
-class TCLifeCycle(TCDockerBase):
+class TCContainerLifeCycle(TCDockerBase):
     """Docker container lifecycle tests"""
 
     def run(self, arglist=None):
@@ -43,6 +45,22 @@ class TCLifeCycle(TCDockerBase):
 
         # Lifecycle tests on all containers.
         self.docker.lifeCycleAllContainers()
+
+class TCGuestsLifeCycle(TCContainerLifeCycle):
+    """Lifecycle tests of guests with docker containers"""
+
+    def run(self, arglist=None):
+
+        # Verify that guests with docker containers can go through the life cycle operations.
+        xenrt.TEC().logverbose("Guests Life Cycle Operations...")
+        for guest in self.guests:
+            self.getLogsFrom(guest)
+            guest.shutdown()
+            guest.start()
+            guest.reboot()
+            guest.suspend()
+            guest.resume()
+            guest.shutdown()
 
 class TCScaleContainers(TCDockerBase):
     """Number of docker containers that can be managed in XenServer"""

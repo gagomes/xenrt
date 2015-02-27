@@ -32,9 +32,15 @@
 
   <testsequence>
     <serial group="CoreOS">
-      <testcase id="xenserver.tc.docker.TCLifeCycle" tc="TC-23918" name="LifeCycle" sku="CoreOS">
+
+      <testcase id="xenserver.tc.docker.TCContainerLifeCycle" tc="TC-23918" name="ContainerLifeCycle" sku="CoreOS">
         <arg>coreosdistro=${DISTRO}</arg>
       </testcase>
+
+      <testcase id="xenserver.tc.docker.TCGuestsLifeCycle" tc="TC-26443" name="GuestsLifeCycle" sku="CoreOS">
+        <arg>coreosdistro=${DISTRO}</arg>
+      </testcase>
+
     </serial>
   </testsequence>
 

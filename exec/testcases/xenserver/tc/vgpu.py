@@ -335,8 +335,8 @@ class VGPUTest(object):
             return DriverType.Signed
         return DriverType.Unsigned
 
-    def installNvidiaHostDrivers(self):
-        for host in self.getAllHosts():
+    def installNvidiaHostDrivers(self,allHosts):
+        for host in allHosts:
             host.installNVIDIAHostDrivers()
 
     def installNvidiaWindowsDrivers(self, guest):
@@ -898,7 +898,7 @@ class _VGPUOwnedVMsTest(xenrt.TestCase,VGPUTest):
         self.host = self.getDefaultHost()
 
         step("Install host drivers")
-        self.installNvidiaHostDrivers()
+        self.installNvidiaHostDrivers(self.getAllHosts())
 
         self._vGPUCreator = VGPUInstaller(self.host, self._configuration, self._distribution)
 
@@ -1598,7 +1598,7 @@ class VGPUAllocationModeBase(_VGPUOwnedVMsTest):
 
         self.host = self.getDefaultHost()
         step("Install host drivers")
-        self.installNvidiaHostDrivers()
+        self.installNvidiaHostDrivers(self.getAllHosts())
         self.pools = []
         self.preparePool()
         self.prepareGPUGroups()
@@ -1668,7 +1668,7 @@ class FunctionalBase(VGPUAllocationModeBase):
                     self.nvidWinvGPU = self.typeofvGPU(typeOfvGPU)
 
         step("Install host drivers")
-        self.typeOfvGPU.installHostDrivers()
+        self.typeOfvGPU.installHostDrivers(self.getAllHosts())
 
         self.sr = self.host.getSRs(type="lvm", local=True)[0]
         self.prepareGPUGroups()
@@ -1742,7 +1742,7 @@ class DifferentGPU(object):
     __metaclass__ = ABCMeta
 
     @abstractmethod
-    def installHostDrivers(self):
+    def installHostDrivers(self,allHosts):
         """
         install Host drivers in case of vGPU
         """
@@ -1778,8 +1778,8 @@ class DifferentGPU(object):
 
 class NvidiaWindowsvGPU(DifferentGPU):
 
-    def installHostDrivers(self):
-        VGPUTest().installNvidiaHostDrivers()
+    def installHostDrivers(self,allHosts):
+        VGPUTest().installNvidiaHostDrivers(allHosts)
 
     def installGuestDrivers(self, guest):
         VGPUTest().installNvidiaWindowsDrivers(guest)
@@ -1795,7 +1795,7 @@ class NvidiaWindowsvGPU(DifferentGPU):
 
 class NvidiaLinuxvGPU(DifferentGPU):
 
-    def installHostDrivers(self):
+    def installHostDrivers(self,allHosts):
         xenrt.TEC().logverbose("Not implemented")
         pass
 
@@ -1814,7 +1814,7 @@ class NvidiaLinuxvGPU(DifferentGPU):
 
 class IntelWindowsvGPU(DifferentGPU):
 
-    def installHostDrivers(self):
+    def installHostDrivers(self,allHosts):
         xenrt.TEC().logverbose("Not implemented")
         pass
 

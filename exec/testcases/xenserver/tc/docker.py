@@ -9,10 +9,11 @@
 import xenrt, xenrt.lib.xenserver
 from xenrt.lib.xenserver.docker import *
 
-class TCSanityTest(xenrt.TestCase):
+class TCDockerBase(xenrt.TestCase):
 
     def prepare(self, arglist=None):
 
+        self.guests = [] # more guests can be managed.
         args = self.parseArgsKeyValue(arglist) 
         self.distro = args.get("coreosdistro", "coreos-alpha") 
 
@@ -25,18 +26,55 @@ class TCSanityTest(xenrt.TestCase):
 
         # Obtain the CoreOS guest object. 
         self.guest = self.getGuest(self.distro)
+        self.guests.append(self.guest)
 
         # Obtain the docker environment to work with Xapi plugins.
-        self.docker = self.guest.getDocker() # OR self.guest.getDocker(LinuxDockerController)
-                                             # OR CoreOSDocker(self.host, self.coreos, XapiPluginDockerController)
+        self.docker = self.guest.getDocker() # OR CoreOSDocker(self.host, self.coreos, XapiPluginDockerController)
                                              # OR CoreOSDocker(self.host, self.coreos, LinuxDockerController)
+
+    def run(self, arglist=None):pass
+
+class TCContainerLifeCycle(TCDockerBase):
+    """Docker container lifecycle tests"""
 
     def run(self, arglist=None):
 
         # Create a container of choice.
         self.docker.createContainer(ContainerType.BUSYBOX) # with default container type and name.
-        self.docker.createContainer(ContainerType.MYSQL)
         self.docker.createContainer(ContainerType.TOMCAT)
 
         # Lifecycle tests on all containers.
         self.docker.lifeCycleAllContainers()
+
+class TCGuestsLifeCycle(TCContainerLifeCycle):
+    """Lifecycle tests of guests with docker containers"""
+
+    def run(self, arglist=None):
+
+        # Verify that guests with docker containers can go through the life cycle operations.
+        xenrt.TEC().logverbose("Guests Life Cycle Operations...")
+        for guest in self.guests:
+            self.getLogsFrom(guest)
+            guest.shutdown()
+            guest.start()
+            guest.reboot()
+            guest.suspend()
+            guest.resume()
+            guest.shutdown()
+
+class TCScaleContainers(TCDockerBase):
+    """Number of docker containers that can be managed in XenServer"""
+
+    def run(self, arglist=None):
+        count = 0
+        try:
+            while True:
+                self.docker.createContainer(ContainerType.YES_BUSYBOX)
+                count = count + 1
+        except xenrt.XRTFailure, e:
+            if count > 0: # one or more containers created.
+                xenrt.TEC().logverbose("The number of docker containers created = %s" % count)
+                # Lifecycle tests on all containers.
+                self.docker.lifeCycleAllContainers()
+            else:
+                raise xenrt.XRTError(e.reason)

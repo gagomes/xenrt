@@ -719,6 +719,37 @@ class RemoveMachine(_MachineBase):
         self.removeMachine(machine)
         return {}
 
+class NotifyBorrow(_MachineBase):
+    def run(self):
+        borrowedMachines = [x for x in self.getMachines().values() if x['leaseuser']]
+
+        for m in borrowedMachines:
+            earlyTime = time.mktime(time.gmtime()) - 24 * 3600
+            leaseFrom = x.get('leasefrom', 0)
+            leaseTo = x['leaseto']
+
+            if self.warningTime > leaseTo and leaseFrom < earlyTime:
+                self.notifyUser(leaseUser, machine, leaseTo)
+
+    @property
+    def warningTime(self):
+        lt = time.mktime(time.gmtime())
+        if time.gmtime().tm_wday >= 4: # Friday, Saturday Sunday
+            return lt + 3600 * (24 * (7-time.localtime().tm_wday) + 6)
+        else:
+            return lt + 3600 * 30
+
+    def notifyUser(self, user, machine, expiry):
+        try:
+            ftime = time.strftime("%H:%M %Z %A", time.gmtime(expiry))
+            email = app.user.User(self, user).email
+            print "Emailing %s" % email
+            msg = "Your lease on machine %s is due to expire soon (%s)" % (machine, ftime)
+            sendMail(email, "XenRT Lease expiring soon on %s" % machine, msg)
+        except Exception, e:
+            print "Could not notify for machine %s - %s" % (machine, str(e))
+
+
 RegisterAPI(ListMachines)
 RegisterAPI(GetMachine)
 RegisterAPI(LeaseMachine)

@@ -10,7 +10,6 @@ import urlparse
 import StringIO
 import requests
 import time
-import smtplib
 
 class _JobBase(_MachineBase):
 
@@ -912,24 +911,9 @@ class EmailJob(_JobBase):
 """ % (config.url_base.rstrip("/"), id, summary.strip())
             for key in job['params'].keys():
                 message =  message + "%s='%s'\n" % (key, job['params'][key])
-            self.sendMail(config.email_sender, emailto, subject, message, reply=emailto[0])
+            app.utils.sendMail(config.email_sender, emailto, subject, message, reply=emailto[0])
         return {}
 
-    def sendMail(self, fromaddr, toaddrs, subject, message, reply=None):
-        if not config.smtp_server:
-            return
-        now = time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime())
-        msg = ("Date: %s\r\nFrom: %s\r\nTo: %s\r\nSubject: %s\r\n"
-               % (now, fromaddr, ", ".join(toaddrs), subject))
-        if reply:
-            msg = msg + "Reply-To: %s\r\n" % (reply)
-        msg = msg + "\r\n" + message
-
-        server = smtplib.SMTP(config.smtp_server)
-        server.sendmail(fromaddr, toaddrs, msg)
-        server.quit()
-
-RegisterAPI(EmailJob)
 RegisterAPI(ListJobs)
 RegisterAPI(GetJob)
 RegisterAPI(GetTest)
@@ -941,3 +925,4 @@ RegisterAPI(GetAttachmentPostRun)
 RegisterAPI(RedirectAttachmentPreRun)
 RegisterAPI(RedirectAttachmentPostRun)
 RegisterAPI(GetJobDeployment)
+RegisterAPI(EmailJob)

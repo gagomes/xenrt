@@ -344,6 +344,16 @@ class XenRTSubmit(XenRTJobPage):
         
         splitparams = self.split_params(params)
         c = splitparams["core"]
+
+        if "REMOVED" in c:
+            del c['REMOVED']
+
+        if "UPLOADED" in c:
+            del c['UPLOADED']
+
+        if "JOBSTATUS" in c:
+            del c['JOBSTATUS']
+
         e = splitparams["extra"]
         e["JOB_SUBMITTED"] = time.asctime(time.gmtime()) + " UTC"
 

@@ -8095,6 +8095,22 @@ rm -f /etc/xensource/xhad.conf || true
 
     def writeUefiLocalBoot(self, nfsdir, pxe):
         raise xenrt.XRTError("UEFI is not supported on this version")
+
+    def chooseSR(self):
+        """Choose an SR to use. Returns the SR UUID"""
+        if xenrt.TEC().lookup("OPTION_DEFAULT_SR", False, boolean=True):
+            # Use the default SR defined by the pool/host
+            return self.lookupDefaultSR()
+        if self.defaultsr:
+            srname = self.defaultsr
+            sruuid = self.parseListForUUID("sr-list",
+                                                     "name-label",
+                                                     srname)
+        else:
+            sruuid = self.getLocalSR()
+            xenrt.TEC().logverbose("Using local SR %s" % (sruuid))
+        return sruuid
+        
 #############################################################################
 
 class MNRHost(Host):

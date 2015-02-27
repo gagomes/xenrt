@@ -2963,19 +2963,7 @@ exit /B 1
             self.paramSet("HVM-boot-params-order", "dc")
 
     def chooseSR(self):
-        """Choose an SR to use. Returns the SR UUID"""
-        if xenrt.TEC().lookup("OPTION_DEFAULT_SR", False, boolean=True):
-            # Use the default SR defined by the pool/host
-            return self.getHost().lookupDefaultSR()
-        if self.getHost().defaultsr:
-            srname = self.getHost().defaultsr
-            sruuid = self.getHost().parseListForUUID("sr-list",
-                                                     "name-label",
-                                                     srname)
-        else:
-            sruuid = self.getHost().getLocalSR()
-            xenrt.TEC().logverbose("Using local SR %s" % (sruuid))
-        return sruuid
+        return self.getHost().chooseSR()
 
     def importVM(self, host, image, preserve=False, sr=None, metadata=False, imageIsOnHost=False, ispxeboot=False, vifs=[]):
         if sr:
@@ -4395,6 +4383,42 @@ def createVM(host,
         displayname = guestname
 
     preinstalledTemplates = host.minimalList("template-list", args="name-label=xenrt-template-%s-%s" % (distro, arch), params="name-label")
+    if not preinstalledTemplates and "Remote Template Library" in host.minimalList("sr-list", params="name-label"):
+        m = xenrt.rootops.MountNFS(xenrt.TEC().lookup("SHARED_VHD_PATH_NFS"))
+        uuid = None
+        if os.path.exists("%s/%s_%s.cfg" % (m.getMount(), distro, arch)):
+            with open("%s/%s_%s.cfg" % (m.getMount(), distro, arch)) as f:
+                uuid = f.read().strip()
+        elif os.path.exists("%s/%s.cfg" % (m.getMount(), distro)):
+            with open("%s/%s.cfg" % (m.getMount(), distro)) as f:
+                uuid = f.read().strip()
+        
+        if uuid and os.path.exists("%s/%s.vhd" % (m.getMount(), uuid)):
+            template = host.getTemplate(distro, arch=arch)
+            cli = host.getCLIInstance()
+
+            
+            xenrt.TEC().logverbose("SR: %s" % sr)
+            if not sr:
+                sruuid = host.chooseSR()
+            else:
+                if xenrt.isUUID(sr):
+                    sruuid = sr
+                else:
+                    xenrt.TEC().logverbose("given sr is not UUID")
+                    sruuid = host.parseListForUUID("sr-list", "name-label", sr)
+
+            vdiuuid = cli.execute("vdi-copy sr-uuid=%s uuid=%s" % (sruuid, uuid)).strip().strip(",")
+
+            host.genParamSet("vdi", vdiuuid, "name-label", "%s_%s" % (distro, arch))
+            tuuid = cli.execute("vm-clone", "name-label=\"%s\" new-name-label=xenrt-template-%s-%s" % (template, distro, arch)).strip()
+            host.genParamSet("template", tuuid, "PV-bootloader", "pygrub")
+            host.genParamRemove("template", tuuid, "other-config", "disks")
+            cli.execute("vbd-create", "vm-uuid=%s vdi-uuid=%s, device=0, bootable=true" % (tuuid, vdiuuid))
+
+        m.unmount()
+        preinstalledTemplates = host.minimalList("template-list", args="name-label=xenrt-template-%s-%s" % (distro, arch), params="name-label")
+        
     if preinstalledTemplates:
         t = preinstalledTemplates[0]
         g = host.guestFactory()(displayname, host=host)

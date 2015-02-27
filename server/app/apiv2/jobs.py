@@ -632,6 +632,12 @@ class NewJob(_JobBase):
         if "USERID" in params:
             del params['USERID']
 
+        if "REMOVED" in params:
+            del params['REMOVED']
+
+        if "UPLOADED" in params:
+            del params['UPLOADED']
+
         params["JOB_SUBMITTED"] = time.asctime(time.gmtime()) + " UTC"
 
         db = self.getDB()

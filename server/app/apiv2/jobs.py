@@ -498,6 +498,8 @@ class RemoveJob(_JobBase):
         jobinfo = self.getJobs(1, ids=[job], getParams=False,getResults=False,getLog=False, exceptionIfEmpty=True)[job]
         if jobinfo['status'] not in ('done', 'removed'):
             self.updateJobField(job, "REMOVED", "yes")
+            if self.getUser():
+                self.updateJobField(job, "REMOVED_BY", self.getUser().userid)
         if j.get('return_machines'):
             for m in jobinfo['machines']:
                 self.return_machine(m, self.getUser().userid, False, canForce=False, commit=False)

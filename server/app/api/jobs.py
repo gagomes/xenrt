@@ -445,6 +445,9 @@ class XenRTRemove(XenRTJobPage):
             # doesn't show in lists. This is becauses users keep on
             # removing running jobs thereby confusing the daemon
             self.update_field(id, "REMOVED", "yes")
+            user = self.get("USERID")
+            if user:
+                self.update_field(id, "REMOVED_BY", user)
             return "OK"
         except:
             traceback.print_exc()

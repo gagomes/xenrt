@@ -1128,7 +1128,7 @@ class PrepareNode:
                                                     "default":False,
                                                     "blkbackPoolSize":""})
 
-                            self.srs.insert(0, {"type": "nfstemplate"})
+                            self.srs.insert(0, {"type": "nfstemplate", "host": host['name'], "default": False, "blkbackPoolSize": ""})
 
                 # If needed, create lun groups
                 iscsihosts = {}

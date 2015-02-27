@@ -41,7 +41,7 @@
         <arg>vgpuconfig=K100</arg>
 <!--        <arg>benchmark=UnigineSanctuary</arg> -->
         <arg>benchmark=UnigineTropics</arg>  
-        <arg>time=172800</arg>
+        <arg>time=259200</arg>
       </testcase>
 
 <!--

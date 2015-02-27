@@ -275,7 +275,7 @@ class GenericPlace:
             raise
 
     def deprecatedIfConfig(self):
-        return self.distro.startswith("rhel7") or self.distro.startswith("oel7") or self.distro.startswith("centos7")
+        return self.distro.startswith("rhel7") or self.distro.startswith("oel7") or self.distro.startswith("centos7") or self.distro.startswith("sl7")
 
     def getMyVIFs(self):
         try:
@@ -3540,7 +3540,7 @@ DHCPServer = 1
             return False
         try:
             # All versions of CentOS and RHEL7+ don't have Server in the repo path
-            if distro.startswith("centos") or distro.startswith("rhel7") or distro.startswith("oel7"):
+            if distro.startswith("centos") or distro.startswith("rhel7") or distro.startswith("oel7") or distro.startswith("sl"):
                 pass
             else:
                 url = os.path.join(url, 'Server')
@@ -6006,7 +6006,7 @@ chain tftp://${next-server}/%s
         pxecfg = pxe.addEntry("sysrescue", default=1, boot="linux")
         barch = self.getBasicArch()
         pxecfg.linuxSetKernel(kernel)
-        pxecfg.linuxArgsKernelAdd("dodhcp rootpass=%s setkmap=uk netboot=%ssysrescue/sysrcd.dat" %
+        pxecfg.linuxArgsKernelAdd("dodhcp rootpass=%s setkmap=uk netboot=%s/sysrescue/sysrcd.dat" %
                                   (g.password, xenrt.TEC().lookup("TEST_TARBALL_BASE")))
         pxecfg.linuxArgsKernelAdd("initrd=%s" % pxe.makeBootPath("initram.igz"))
         if ramdisk_size:
@@ -9498,10 +9498,20 @@ sleep (3000)
 
         # RHEL based systems need to install lspci/lshw
         if not self.distro.lower().startswith("ubuntu"):
-            self.execguest("yum -y install pciutils")
-            self.execguest("wget -nv '%slshw.tgz' -O - | tar -zx -C /tmp" %
-                                            (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
-            self.execguest("yum -y install /tmp/lshw/lshw-2.17-1.e17.rf.x86_64.rpm")
+            if not self.checkRPMInstalled("pciutils"):
+                self.execguest("yum -y install pciutils")
+
+            if not self.checkRPMInstalled("lshw"):
+                urlprefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
+                url = "%s/gpuDriver/PVHVM/gputools/lshw-2.17-1.el7.rf.x86_64_new.rpm" % (urlprefix)
+                installfile = xenrt.TEC().getFile(url)
+                if not installfile:
+                    raise xenrt.XRTError("Failed to fetch lshw .rpm")
+                sftp = self.sftpClient()
+                sftp.copyTo(installfile, "/tmp/%s" % (os.path.basename(installfile)))
+                sftp.close()
+
+                self.execguest("yum -y install /tmp/lshw-2.17-1.el7.rf.x86_64_new.rpm")
 
         # Check if the GPU of given type is present.
         try:
@@ -9581,9 +9591,11 @@ while True:
         if not self.verifyGuestAsPVHVM():
             raise xenrt.XRTError("This GPU drivers are for PVHVM guests only")
 
-        guestArch=self.execguest("uname -p")
+        #guestArch=self.execguest("uname -p")
+        xenrt.log("Guest distro is %s"%self.distro)
+        xenrt.log("Guest arch is %s"%self.arch)
 
-        if guestArch == "x86_64":
+        if "64" in self.arch:
             drivername=xenrt.TEC().lookup("PVHVM_GPU_NVDIA_X64")
         else :
             drivername=xenrt.TEC().lookup("PVHVM_GPU_NVDIA_X86")
@@ -9919,6 +9931,22 @@ while True:
         self.paramSet("platform:monitor", "null")
         self.paramSet("platform:parallel", "none")
         self.start()
+
+    def checkRPMInstalled(self, rpm):
+        """
+        Check if a specific rpm is installed
+        @param rpm: the rpm name including or excluding the extension '.rpm'
+        @type rpm: string
+        @return If the rpm provided is installed already
+        @rtype boolean
+        """
+        if self.windows:
+            raise XRTError("Function can only be used to check for installed RPMs on linux.")
+
+        #rpm should NOT contain file extn .rpm, so split off any file extension
+        fileWithoutExt = os.path.splitext(rpm)[0]
+
+        return not bool(self.execguest("rpm -qi %s" % fileWithoutExt, retval="code", level=xenrt.RC_OK))
 
 class EventObserver(xenrt.XRTThread):
 

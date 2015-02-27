@@ -23,3 +23,4 @@ from xenrt.lib.xenserver.objects import *
 from xenrt.lib.xenserver.licensedfeatures import *
 from xenrt.lib.xenserver.licensing import *
 from xenrt.lib.xenserver.readcaching import *
+from xenrt.lib.xenserver.docker import *

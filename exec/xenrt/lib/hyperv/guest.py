@@ -322,6 +322,8 @@ class Guest(xenrt.GenericGuest):
                 kickstart = "oel6"
             if distro.startswith("centos6"):
                 kickstart = "centos6"
+            if distro.startswith("sl6"):
+                kickstart = "sl6"
 
         # Have we been asked to choose an ISO automatically?
         if isoname == xenrt.DEFAULT:

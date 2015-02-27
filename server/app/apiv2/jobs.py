@@ -143,13 +143,16 @@ class _JobBase(_MachineBase):
         for j in jobs.keys():
             jobs[j]['suiterun'] = jobs[j]['params'].get("TESTRUN_SR")
             jobs[j]['result'] = jobs[j]['params'].get("CHECK")
-            jobs[j]['attachmentUploadUrl'] = "%s://%s%s/api/v2/job/%d/attachments" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
-            jobs[j]['logUploadUrl'] = "%s://%s%s/api/v2/job/%d/log" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
+            jobs[j]['attachmentUploadUrl'] = "%s://%s%s/api/files/v2/job/%d/attachments" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
+            jobs[j]['logUploadUrl'] = "%s://%s%s/api/files/v2/job/%d/log" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
             if jobs[j]['params'].get('UPLOADED') == "yes":
-                logUrl = "%s://%s%s/api/v2/fileget/%d" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
+                logUrl = "%s://%s%s/api/files/v2/fileget/%d" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
+                logIndexUrl = "%s://%s%s/api/files/v2/index/%d" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
             else:
                 logUrl = None
+                logIndexUrl = None
             jobs[j]['logUrl'] = logUrl
+            jobs[j]['logIndexUrl'] = logIndexUrl
             mlist = ""
             for k in ["SCHEDULEDON", "SCHEDULEDON2", "SCHEDULEDON3"]:
                 if jobs[j]['params'].has_key(k):
@@ -175,16 +178,19 @@ class _JobBase(_MachineBase):
                 if not rc:
                     break
                 if rc[5] and rc[5].strip() == "yes":
-                    logUrl = "%s://%s%s/api/v2/fileget/%d.test" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), rc[2])
+                    logUrl = "%s://%s%s/api/files/v2/fileget/%d.test" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), rc[2])
+                    logIndexUrl = "%s://%s%s/api/files/v2/index/%d.test" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), rc[2])
                 else:
                     logUrl = None
+                    logIndexUrl = None
                 jobs[rc[0]]['results'][rc[2]] ={
                     "result": rc[1].strip(),
                     "detailid": rc[2],
                     "test": rc[3].strip(),
                     "phase": rc[4].strip(),
-                    "logUploadUrl": "%s://%s%s/api/v2/test/%d/log" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), rc[2]),
+                    "logUploadUrl": "%s://%s%s/api/files/v2/test/%d/log" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), rc[2]),
                     "logUrl": logUrl,
+                    "logIndexUrl": logIndexUrl,
                     "logUploaded": rc[5] and rc[5].strip() == "yes",
                     "jobId": rc[0]
                 }
@@ -626,15 +632,13 @@ class NewJob(_JobBase):
         if "USERID" in params:
             del params['USERID']
 
+        params["JOB_SUBMITTED"] = time.asctime(time.gmtime()) + " UTC"
+
         db = self.getDB()
         cur = db.cursor()
-        cur.execute("LOCK TABLE tbljobs IN EXCLUSIVE MODE")
-        cur.execute("INSERT INTO tbljobs (jobstatus, userid, version, revision, options, uploaded,removed) VALUES ('new', %s, '', '', '', '', '')", [self.getUser().userid])
-        # Lookup jobid
-        cur.execute("SELECT last_value FROM jobid_seq")
+        cur.execute("INSERT INTO tbljobs (jobstatus, userid, version, revision, options, uploaded,removed) VALUES ('new', %s, '', '', '', '', '') RETURNING jobid", [self.getUser().userid])
         rc = cur.fetchone()
         self.jobid = int(rc[0])
-        db.commit() # Commit to release the lock
 
         if specifiedMachines:
             self.updateJobField("MACHINE", ",".join(specifiedMachines), params)
@@ -744,19 +748,38 @@ class _GetAttachmentUrl(_JobBase):
         job = int(self.request.matchdict['id'])
         server = self.getJobs(1, ids=[job], getParams=True, exceptionIfEmpty=True)[job]['params'][self.LOCATION_PARAM]
 
-        return {'url': 'http://%s/xenrt/api/v2/fileget/%d.%s' % (server, job, self.request.matchdict['file'])}
+        url = 'http://%s/xenrt/api/files/v2/fileget/%d.%s' % (server, job, self.request.matchdict['file'])
+
+        if self.REDIRECT:
+            return HTTPFound(location=url)
+
+        return {'url': url}
 
 class GetAttachmentPreRun(_GetAttachmentUrl):
     LOCATION_PARAM='JOB_FILES_SERVER'
     PATH='/job/{id}/attachment/prerun/{file}'
     SUMMARY='Get URL for job attachment, uploaded before job ran'
     OPERATION_ID='get_job_attachment_pre_run'
+    REDIRECT=False
+
+class RedirectAttachmentPreRun(GetAttachmentPreRun):
+    REDIRECT=True
+    PATH='/redirect/job/{id}/attachment/prerun/{file}'
+    SUMMARY='Redirect to job attachment, uploaded before job ran'
+    OPERATION_ID="no_binding"
 
 class GetAttachmentPostRun(_GetAttachmentUrl):
     LOCATION_PARAM='LOG_SERVER'
     PATH='/job/{id}/attachment/postrun/{file}'
     SUMMARY='Get URL for job attachment, uploaded after job ran'
     OPERATION_ID='get_job_attachment_post_run'
+    REDIRECT=False
+
+class RedirectAttachmentPostRun(GetAttachmentPostRun):
+    REDIRECT=True
+    PATH='/redirect/job/{id}/attachment/postrun/{file}'
+    SUMMARY='Redirect to job attachment, uploaded before job ran'
+    OPERATION_ID="no_binding"
 
 class GetJobDeployment(_JobBase):
     PATH='/job/{id}/deployment'
@@ -777,7 +800,7 @@ class GetJobDeployment(_JobBase):
 
         try:
             server = self.getJobs(1, ids=[job], getParams=True, exceptionIfEmpty=True)[job]['params']['LOG_SERVER']
-            r = requests.get('http://%s/xenrt/api/v2/fileget/%d.deployment.json' % (server, job))
+            r = requests.get('http://%s/xenrt/api/files/v2/fileget/%d.deployment.json' % (server, job))
             r.raise_for_status()
             return r.json()
         except Exception, e:
@@ -909,4 +932,6 @@ RegisterAPI(NewJob)
 RegisterAPI(UpdateJob)
 RegisterAPI(GetAttachmentPreRun)
 RegisterAPI(GetAttachmentPostRun)
+RegisterAPI(RedirectAttachmentPreRun)
+RegisterAPI(RedirectAttachmentPostRun)
 RegisterAPI(GetJobDeployment)

@@ -690,11 +690,11 @@ class NewMachine(_MachineBase):
         self.addMachine(j.get("name"), j.get("site"), j.get("pool"), j.get("cluster"), j.get("resources", {}), j.get("description"))
 
         if j.get("flags"):
-            self.updateMachineField(machine, "PROPS", ",".join(j['flags']), commit=False)
+            self.updateMachineField(j.get("name"), "PROPS", ",".join(j['flags']), commit=False)
 
         if j.get('params'):
             for p in j['params'].keys():
-                self.updateMachineField(machine, p, j['params'][p], commit=False)
+                self.updateMachineField(j.get("name"), p, j['params'][p], commit=False)
    
         self.getDB().commit()
         return {}

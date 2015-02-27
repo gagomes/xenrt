@@ -1925,3 +1925,17 @@ def newGuestsInstalls():
     print seqcode
 
 
+def createHotfixSymlinks():
+    hotfixpath = xenrt.TEC().lookup("HOTFIX_BASE_PATH")
+
+    hfs = xenrt.TEC().lookup("HOTFIXES")
+
+    hfdict = {}
+
+    for r in hfs.keys():
+        for v in hfs[r].keys():
+            hfdict.update(dict(hfs[r][v].items()))
+
+
+    for h in hfdict.keys():
+        xenrt.command("ln -sf %s %s/%s.xsupdate" % (hfdict[h], hotfixpath, h))

@@ -297,6 +297,9 @@ class Guest(xenrt.GenericGuest):
             if distro.startswith("oel") and int(distro[3:4]) >= 6:
                 if (self.memory and self.memory<1024) or not self.memory:
                     self.memory = 1024
+            if distro.startswith("sl") and not distro.startswith("sles") and int(distro[2:3]) >= 6:
+                if (self.memory and self.memory<1024) or not self.memory:
+                    self.memory = 1024
 
         # Hack to avoid using an ISO install for Debian VMs from TCMultipleVDI
         # etc.
@@ -311,6 +314,8 @@ class Guest(xenrt.GenericGuest):
                 kickstart = "oel6"
             if distro.startswith("centos6"):
                 kickstart = "centos6"
+            if distro.startswith("sl6"):
+                kickstart = "sl6"
 
         # Have we been asked to choose an ISO automatically?
         if isoname == xenrt.DEFAULT:
@@ -732,6 +737,7 @@ users:
                     (re.search("debian\d+", self.distro) or \
                     re.search("rhel6", self.distro) or \
                     re.search("oel6", self.distro) or \
+                    re.search("sl6", self.distro) or \
                     re.search("centos6", self.distro) or \
                     re.search("ubuntu", self.distro)):
                     self.changeCD(cdnames[0], device="3")

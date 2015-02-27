@@ -62,11 +62,11 @@ class RHELKickStartFile :
         return self._generateKS()
 
     def _generateKS(self):
-        if self.distro.startswith("rhel7") or self.distro.startswith("oel7") or self.distro.startswith("centos7"):
+        if self.distro.startswith("rhel7") or self.distro.startswith("oel7") or self.distro.startswith("centos7") or self.distro.startswith("sl7"):
             kf=self._generate7()
-        elif self.distro.startswith("rhel6") or self.distro.startswith("oel6") or self.distro.startswith("centos6"):
+        elif self.distro.startswith("rhel6") or self.distro.startswith("oel6") or self.distro.startswith("centos6") or self.distro.startswith("sl6"):
             kf=self._generate6()
-        elif self.distro.startswith("rhel5") or self.distro.startswith("oel5") or self.distro.startswith("centos5"):
+        elif self.distro.startswith("rhel5") or self.distro.startswith("oel5") or self.distro.startswith("centos5") or self.distro.startswith("sl5"):
             kf=self._generate5()
         else:
             kf=self._generate4()

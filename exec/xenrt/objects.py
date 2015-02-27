@@ -275,7 +275,7 @@ class GenericPlace:
             raise
 
     def deprecatedIfConfig(self):
-        return self.distro.startswith("rhel7") or self.distro.startswith("oel7") or self.distro.startswith("centos7")
+        return self.distro.startswith("rhel7") or self.distro.startswith("oel7") or self.distro.startswith("centos7") or self.distro.startswith("sl7")
 
     def getMyVIFs(self):
         try:
@@ -3540,7 +3540,7 @@ DHCPServer = 1
             return False
         try:
             # All versions of CentOS and RHEL7+ don't have Server in the repo path
-            if distro.startswith("centos") or distro.startswith("rhel7") or distro.startswith("oel7"):
+            if distro.startswith("centos") or distro.startswith("rhel7") or distro.startswith("oel7") or distro.startswith("sl"):
                 pass
             else:
                 url = os.path.join(url, 'Server')

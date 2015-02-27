@@ -456,7 +456,7 @@ Send("{ENTER}")
             self.guest.xmlrpcStart("\"%s\" %s" % (autoit, au3path))
         self.assertvGPURunningInWinVM(self.guest, self.args['vgpuconfig'])
 
-class TCVGPUCloneVM(VGPUTest):
+class TCVGPUCloneVM(VGPUOwnedVMsTest):
     def parseArgs(self, arglist):
         self.args = {}
         for a in arglist:
@@ -507,7 +507,7 @@ class TCVGPUDeleteClones(xenrt.TestCase):
         if self.args.has_key("clones") and i < int(self.args['clones']):
             raise xenrt.XRTError("Insufficient clones found to delete")
 
-class TCGPUBootstorm(VGPUTest):
+class TCGPUBootstorm(VGPUOwnedVMsTest):
     def parseArgs(self, arglist):
         self.params = {}
         self.vgpuconfig = None
@@ -554,7 +554,7 @@ class TCGPUBootstorm(VGPUTest):
         f.write(json.dumps(self.times))
         f.close()
 
-class TCGPUBenchmarkInstall(VGPUTest):
+class TCGPUBenchmarkInstall(VGPUOwnedVMsTest):
     def parseArgs(self, arglist):
         self.args = {}
         self.benchmarks = []

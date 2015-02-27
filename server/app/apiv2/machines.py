@@ -725,11 +725,11 @@ class NotifyBorrow(_MachineBase):
 
         for m in borrowedMachines:
             earlyTime = time.mktime(time.gmtime()) - 24 * 3600
-            leaseFrom = x.get('leasefrom', 0)
-            leaseTo = x['leaseto']
+            leaseFrom = m.get('leasefrom', 0)
+            leaseTo = m['leaseto']
 
             if self.warningTime > leaseTo and leaseFrom < earlyTime:
-                self.notifyUser(leaseUser, machine, leaseTo)
+                self.notifyUser(m['leaseuser'], m['name'], leaseTo)
 
     @property
     def warningTime(self):
@@ -743,9 +743,11 @@ class NotifyBorrow(_MachineBase):
         try:
             ftime = time.strftime("%H:%M %Z %A", time.gmtime(expiry))
             email = app.user.User(self, user).email
-            print "Emailing %s" % email
+            if not email:
+                return
+            print "Emailing %s about %s" % (email, machine)
             msg = "Your lease on machine %s is due to expire soon (%s)" % (machine, ftime)
-            sendMail(email, "XenRT Lease expiring soon on %s" % machine, msg)
+            app.utils.sendMail("XenServerQAXenRTAdmin-noreply@citrix.com", email, "XenRT Lease expiring soon on %s" % machine, msg)
         except Exception, e:
             print "Could not notify for machine %s - %s" % (machine, str(e))
 

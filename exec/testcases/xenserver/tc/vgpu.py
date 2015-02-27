@@ -392,7 +392,7 @@ class TCVGPUNode0Pin(xenrt.TestCase):
         self.guest.paramSet("VCPUs-params:mask", string.join(node0cpus, ","))
         self.guest.setState("UP")
 
-class TCVGPUSetup(_VGPUOwnedVMsTest):
+class TCVGPUSetup(VGPUOwnedVMsTest):
     def parseArgs(self, arglist):
         self.args = {}
         for a in arglist:
@@ -456,7 +456,7 @@ Send("{ENTER}")
             self.guest.xmlrpcStart("\"%s\" %s" % (autoit, au3path))
         self.assertvGPURunningInWinVM(self.guest, self.args['vgpuconfig'])
 
-class TCVGPUCloneVM(_VGPUOwnedVMsTest):
+class TCVGPUCloneVM(VGPUOwnedVMsTest):
     def parseArgs(self, arglist):
         self.args = {}
         for a in arglist:
@@ -507,7 +507,7 @@ class TCVGPUDeleteClones(xenrt.TestCase):
         if self.args.has_key("clones") and i < int(self.args['clones']):
             raise xenrt.XRTError("Insufficient clones found to delete")
 
-class TCGPUBootstorm(_VGPUOwnedVMsTest):
+class TCGPUBootstorm(VGPUOwnedVMsTest):
     def parseArgs(self, arglist):
         self.params = {}
         self.vgpuconfig = None
@@ -554,7 +554,7 @@ class TCGPUBootstorm(_VGPUOwnedVMsTest):
         f.write(json.dumps(self.times))
         f.close()
 
-class TCGPUBenchmarkInstall(_VGPUOwnedVMsTest):
+class TCGPUBenchmarkInstall(VGPUOwnedVMsTest):
     def parseArgs(self, arglist):
         self.args = {}
         self.benchmarks = []
@@ -688,7 +688,7 @@ class TCGPUWorkload(TCGPUBenchmarkInstall):
                 self.benchmarkObjects[b][g.name].stopWorkload()
 
 
-class _VGPUOwnedVMsTest(xenrt.TestCase,VGPUTest):
+class VGPUOwnedVMsTest(xenrt.TestCase,VGPUTest):
     __OPTIONS = {
                      VGPUOS.Win7x64 :  "win7sp1-x64",
                      VGPUOS.Win7x86 :  "win7sp1-x86",
@@ -718,7 +718,7 @@ class _VGPUOwnedVMsTest(xenrt.TestCase,VGPUTest):
     SNAPSHOT_POST_GUEST_DRIVERS = "postGuestDriversInstalled"
 
     def __init__(self, requiredEnvironmentList, configuration, distribution, vncEnabled, fillToCapacity):
-        super(_VGPUOwnedVMsTest, self).__init__()
+        super(VGPUOwnedVMsTest, self).__init__()
         self._requiredEnvironments = requiredEnvironmentList
         self._distribution = distribution
         self.__vncEnabled = vncEnabled
@@ -970,7 +970,7 @@ class _VGPUOwnedVMsTest(xenrt.TestCase,VGPUTest):
         self._guestsAndTypes = None
         self._requiredEnvironments = None
 
-class _VGPUBenchmarkTest(_VGPUOwnedVMsTest):
+class _VGPUBenchmarkTest(VGPUOwnedVMsTest):
     __TIMEOUT_SECS = 1800
     __SLEEP_SECS = 10
     __GRAPHICS_SCORE_KEY = "GraphicsScore"
@@ -1228,7 +1228,7 @@ class StressvGPUK240(_VGPUStressTest):
 VGPU Allocation mode Test cases.
 """
 
-class VGPUAllocationModeBase(_VGPUOwnedVMsTest):
+class VGPUAllocationModeBase(VGPUOwnedVMsTest):
     """
     vGPU Allocation Mode tests.
     """
@@ -1832,7 +1832,7 @@ class IntelWindowsvGPU(DifferentGPU):
 
 """ Negative Test Cases """
 
-class _AddPassthroughToFullGPU(_VGPUOwnedVMsTest):
+class _AddPassthroughToFullGPU(VGPUOwnedVMsTest):
     """
     Fill up a pGPUs, each with one single vGPU
     Add one more VM with a PT vGPU and check it doesn't start
@@ -1904,7 +1904,7 @@ class TCAddPassthroughToFullGPUK200(_AddPassthroughToFullGPU):
      def __init__(self):
          super(TCAddPassthroughToFullGPUK200, self).__init__(VGPUConfig.K200)
 
-class _AddvGPUToFullyPassedThroughGPU(_VGPUOwnedVMsTest):
+class _AddvGPUToFullyPassedThroughGPU(VGPUOwnedVMsTest):
     """
     Pass-through all pGPUs
     Add one more VM with a non-PT vGPU and check it doesn't start
@@ -1978,7 +1978,7 @@ class TCAddvGPUToFullyPTGPUK260(_AddvGPUToFullyPassedThroughGPU):
          super(TCAddvGPUToFullyPTGPUK260, self).__init__(VGPUConfig.K2PassThrough, VGPUConfig.K200)
 
 
-class TCVerifyLackOfMobility(_VGPUOwnedVMsTest):
+class TCVerifyLackOfMobility(VGPUOwnedVMsTest):
     """
     Check a vGPU VM is not agile
 
@@ -2066,7 +2066,7 @@ class TCVerifyLackOfMobility(_VGPUOwnedVMsTest):
         #--------------------------------------
         self.__migrateRunningHost(slave, vm, sxm=True)
 
-class TCImportDifferentvGPU(_VGPUOwnedVMsTest):
+class TCImportDifferentvGPU(VGPUOwnedVMsTest):
     """
     Verify that when a VM with an incorrect vGPU type is imported it cannot be started.
 
@@ -4123,7 +4123,7 @@ class TCinstallNVIDIAHostDrivers(xenrt.TestCase):
         for host in hosts:
             host.installNVIDIAHostDrivers()
 
-class TCinstallNVIDIAGuestDrivers(_VGPUOwnedVMsTest):
+class TCinstallNVIDIAGuestDrivers(VGPUOwnedVMsTest):
 
     def run(self,arglist):
 

@@ -363,6 +363,288 @@ class VGPUTest(object):
         unigine.runAsWorkload()
         xenrt.sleep(300)
 
+class VGPUOwnedVMsTest(xenrt.TestCase,VGPUTest):
+    __OPTIONS = {
+                     VGPUOS.Win7x64 :  "win7sp1-x64",
+                     VGPUOS.Win7x86 :  "win7sp1-x86",
+                     VGPUOS.WS2008R2 : "ws08r2sp1-x64",
+                     VGPUOS.Win8x86 : "win8-x86",
+                     VGPUOS.Win8x64 : "win8-x64",
+                     VGPUOS.Win81x86 : "win81-x86",
+                     VGPUOS.Win81x64 : "win81-x64",
+                     VGPUOS.WS12x64 : "ws12-x64",
+                     VGPUOS.WS12R2x64 : "ws12r2-x64",
+                     VGPUOS.DEBIAN : "debian",
+                     VGPUOS.Centos7 : "centos7_x86-64",
+                     VGPUOS.Rhel7 : "rhel7_x86-64",
+                     VGPUOS.Oel7 : "oel7_x86-64",
+                     VGPUOS.Ubuntu1404x86 : "ubuntu1404_x86-32",
+                     VGPUOS.Ubuntu1404x64 : "ubuntu1404_x86-64"
+                }
+
+    __GUEST_MEMORY_MB = 2048
+    CAPACITY_THROTTLE = 0
+    VM_START = VMStartMethod.OneByOne
+
+    """ Snapshot names for each host"""
+    SNAPSHOT_PREVGPU = "preVGPU"
+    SNAPSHOT_PRE_VNC_DISABLED = "preVNCDisabled"
+    SNAPSHOT_PRE_GUEST_DRIVERS = "preGuestDriversInstalled"
+    SNAPSHOT_POST_GUEST_DRIVERS = "postGuestDriversInstalled"
+
+    def __init__(self, requiredEnvironmentList, configuration, distribution, vncEnabled, fillToCapacity):
+        super(VGPUOwnedVMsTest, self).__init__()
+        self._requiredEnvironments = requiredEnvironmentList
+        self._distribution = distribution
+        self.__vncEnabled = vncEnabled
+        self._guestsAndTypes = []
+        self._configuration = configuration
+        self._vGPUCreator = None
+        self.__fillToCapacity = fillToCapacity
+
+    def guestAndTypesStatus(self):
+        """ For debugging"""
+        strings = []
+        for guest, os in self._guestsAndTypes:
+            strings.append("Host: %s; OS: %s; Power State: %s" %(str(guest), self.getOSType(os), guest.getState()))
+        strings.append("Total guests and types: %d" % len(self._guestsAndTypes))
+        return strings
+
+    def getOSType(self, vgpuos):
+        if not vgpuos in self.__OPTIONS:
+            raise xenrt.XRTFailure("This OS is not supported by the vGPU test")
+        return self.__OPTIONS[vgpuos]
+
+    def getConfigurationName(self, configuration):
+        if not configuration in self._CONFIGURATION:
+            raise xenrt.XRTError("Unexpected configuration number: %s" % configuration)
+        return self._CONFIGURATION[configuration]
+
+    def __masterVmName(self, requiredOS):
+        os = self.getOSType(requiredOS)
+        return "master" + str(os)
+
+    def masterGuest(self, requiredOS, host):
+        return host.guests[self.__masterVmName(requiredOS)]
+
+    def _createGuests(self, host, requiredOS):
+        masterKey = self.__masterVmName(requiredOS)
+        guest = None
+
+        guestVMs = self.host.minimalList("vm-list", params="name-label")
+
+        if masterKey in guestVMs:
+            log("VM found so cloning...")
+            master = host.guests[masterKey]
+            if master.getState() != "DOWN":
+                master.shutdown()
+            guest = master.cloneVM()
+        else:
+            log("No matching VM found, so create a new one....")
+            guest = host.createGenericWindowsGuest(distro=self.getOSType(requiredOS), memory=self.__GUEST_MEMORY_MB, name=masterKey)
+
+        #self.uninstallOnCleanup(guest)
+        self.getLogsFrom(guest)
+        return guest
+
+    def configureVGPU(self, guest):
+        self._vGPUCreator.createOnGuest(guest)
+
+    def randomGuestFromSelection(self, requiredNumber):
+        """
+        Create a list of guests to install, randomly selected from the provided environment list
+        """
+        log("Create a random list of %d hosts from the selection %s" %(requiredNumber, self._requiredEnvironments))
+        newEnvironmentList = [random.choice(list(set(self._requiredEnvironments))) for x in range(requiredNumber)]
+        log("Selected the following from the provided selection: %s" % str(newEnvironmentList))
+        return newEnvironmentList
+
+    def bindConfigurationToPGPU(self, conf, count = 1):
+        typeuuid = None
+        for confname, uuid in self.host.getSupportedVGPUTypes().items():
+            if conf.lower() in confname.lower():
+                typeuuid = uuid
+                break;
+        if not typeuuid:
+            raise xenrt.XRTError("configuration %s is not supported. (supported: %s)" % (conf, self.host.getSupportedVGPUTypes()))
+
+        pgpulist = []
+        ggman = GPUGroupManager(self.host)
+        for pgpu in ggman.getPGPUUuids():
+            if count < 1:
+                break
+            supportedTypes = self.host.genParamGet('pgpu', pgpu, 'supported-VGPU-types').replace(" ", "").split(';')
+            if typeuuid in supportedTypes:
+                self.host.genParamSet('pgpu', pgpu, 'enabled-VGPU-types', typeuuid)
+                pgpulist.append(pgpu)
+                count -= 1
+
+        return pgpulist
+
+    def releaseConfiguration(self, list):
+        for pgpu in list:
+            supportedTypes = self.host.genParamGet('pgpu',pgpu,'supported-VGPU-types').replace(";", ",").replace(" ", "")
+            self.host.genParamSet('pgpu', pgpu, 'enabled-VGPU-types', supportedTypes)
+
+    def getConfiguration(self, vm):
+        vgpu = self.host.parseListForUUID("vgpu-list", "vm-uuid", vm.uuid)
+        if vgpu and vgpu != "":
+            return self.host.parseListForUUID("vgpu-list", "vm-uuid", vm.uuid, "params=type-uuid")
+        else:
+            return None
+
+    def safeRestartGuest(self, guest, retry=3):
+        self.safeStartGuest(guest, retry, True)
+
+    def safeStartGuest(self, guest, retry=3, reboot=False):
+        # A work-around for windows autologin failure.
+        lasterror = None
+        while retry:
+            retry -= 1
+            try:
+                guest.start(specifyOn = False, reboot = reboot)
+                return
+            except xenrt.XRTException as e:
+                if e.reason.startswith("Windows failed to autologon") or \
+                    e.reason.startswith("Domain running but not reachable by XML-RPC"):
+                    log("Windows started but failed to autologin. Retrying... (%d)" % (retry,))
+                    lasterror = e
+                else:
+                    raise e
+            reboot = True
+
+        if lasterror:
+            raise lasterror
+
+    def startVM(self, vm):
+        if vm.getState() != "UP":
+            self.safeStartGuest(vm)
+        #self.assertGPURunningInVM(vm, self.vendor)
+
+    def _removeGuest(self, vm):
+        host = vm.host
+        host.removeGuest(vm)
+        if vm.getState() != "DOWN":
+            vm.shutdown()
+        vm.uninstall()
+
+    def startAllVMs(self, vmlist = None):
+        if not vmlist:
+            vmlist = [guest for guest, ostype in self._guestsAndTypes]
+        if self.VM_START == VMStartMethod.OneByOne:
+            for (vm) in vmlist:
+                self.startVM(vm)
+        else:
+            pStart = [xenrt.PTask(self.startVM, vm) for vm in vmlist]
+            xenrt.pfarm(pStart)
+
+    def bootstormStartVM(self, vm):
+        try:
+            name = vm.getName()
+            name = name.replace(" ", "\ ")
+            cmd = "xe vm-start vm=%s" % name
+            self.runAsync(self.host, cmd, timeout=3600, ignoreSSHErrors=False)
+        except Exception, e:
+            raise xenrt.XRTFailure("Failed to start vm %s - %s" % (vm.getName(), str(e)))
+
+    def rebootAllVMs(self, vmlist = None):
+
+        if not vmlist:
+            vmlist = [guest for guest, ostype in self._guestsAndTypes]
+
+        # Shutdown all the VMs
+        for vm in vmlist:
+            vm.shutdown()
+
+        # Start all the VMs in chunks
+        chunk = 25
+        count = len(vmlist)/chunk
+
+        for i in range(count+1):
+            pt = [xenrt.PTask(self.bootstormStartVM, vm) for vm in vmlist[i*chunk:i*chunk+chunk]]
+            xenrt.pfarm(pt)
+
+        # WaitforDaemon for all VMs
+        pt = [xenrt.PTask(vm.waitForDaemon, 1800) for vm in vmlist]
+        xenrt.pfarm(pt)
+
+    def prepare(self, arglist):
+        self.nfs = xenrt.ExternalNFSShare()
+        self.host = self.getDefaultHost()
+
+        step("Install host drivers")
+        self.installNvidiaHostDrivers(self.getAllHosts())
+
+        self._vGPUCreator = VGPUInstaller(self.host, self._configuration, self._distribution)
+
+        if self.__fillToCapacity:
+            step("Filling vGPUs to capacity")
+            capacity = self.host.remainingGpuCapacity(self._vGPUCreator.groupUUID(), self._vGPUCreator.typeUUID())
+            if self.CAPACITY_THROTTLE > 0 and capacity > self.CAPACITY_THROTTLE:
+                step("Capacity throttle in place. Limiting capacity to %d" % self.CAPACITY_THROTTLE)
+                capacity = self.CAPACITY_THROTTLE
+
+            self._requiredEnvironments = self.randomGuestFromSelection(capacity)
+
+        step("Create Master guests")
+        guest = self._createGuests(self.host, self._requiredEnvironments[0])
+        #guest.snapshot(self.SNAPSHOT_PRE_VNC_DISABLED)
+        step("Set VNC enabled to %s" % str(self.__vncEnabled))
+        guest.setVGPUVNCActive(self.__vncEnabled)
+        #guest.snapshot(self.SNAPSHOT_PREVGPU)
+        step("Configure vGPU")
+        self.configureVGPU(guest)
+        xenrt.sleep(10) # Give some time to settle vGPU down.
+        if (guest.getState() != "UP"):
+            guest.start()
+        #guest.snapshot(self.SNAPSHOT_PRE_GUEST_DRIVERS)
+        step("Install guest drivers for %s" % str(guest))
+        self.installNvidiaWindowsDrivers(guest)
+        #guest.snapshot(self.SNAPSHOT_POST_GUEST_DRIVERS)
+        self._guestsAndTypes.append((guest, self._requiredEnvironments[0]))
+
+        step("Create %d required guests" % len(self._requiredEnvironments))
+        for i, requiredEnv in enumerate(self._requiredEnvironments):
+            if i == 0 :
+                continue
+            guest = self._createGuests(self.host, requiredEnv)
+            self._guestsAndTypes.append((guest, requiredEnv))
+
+
+        log("Created guests: %s" % str(self._guestsAndTypes))
+
+        step("Starting up any powered-down guests")
+        self.startAllVMs([g for (g, os) in self._guestsAndTypes if g.getState() == "DOWN"])
+
+    def postRun(self):
+
+        #return
+
+        for guest, osType in self._guestsAndTypes:
+            step("Shutting down guest %s" % str(guest))
+            try: guest.shutdown()
+            except: pass
+
+            step("Uninstalling guest %s" % str(guest))
+            try:
+                host = copy.copy(guest.host)
+                host.removeGuest(guest)
+                guest.uninstall()
+            except:
+                pass
+
+        #if self.nfs:
+            #try:
+                #self.nfs.release()
+            #except:
+                #pass
+
+        step("Destroy vGPUs")
+        self.host.destroyAllvGPUs()
+        step("Clearing locals")
+        self._guestsAndTypes = None
+        self._requiredEnvironments = None
+
 class TCVGPUNode0Pin(xenrt.TestCase):
     def parseArgs(self, arglist):
         self.args = {}
@@ -686,289 +968,6 @@ class TCGPUWorkload(TCGPUBenchmarkInstall):
         for b in self.benchmarks:
             for g in self.guests:
                 self.benchmarkObjects[b][g.name].stopWorkload()
-
-
-class VGPUOwnedVMsTest(xenrt.TestCase,VGPUTest):
-    __OPTIONS = {
-                     VGPUOS.Win7x64 :  "win7sp1-x64",
-                     VGPUOS.Win7x86 :  "win7sp1-x86",
-                     VGPUOS.WS2008R2 : "ws08r2sp1-x64",
-                     VGPUOS.Win8x86 : "win8-x86",
-                     VGPUOS.Win8x64 : "win8-x64",
-                     VGPUOS.Win81x86 : "win81-x86",
-                     VGPUOS.Win81x64 : "win81-x64",
-                     VGPUOS.WS12x64 : "ws12-x64",
-                     VGPUOS.WS12R2x64 : "ws12r2-x64",
-                     VGPUOS.DEBIAN : "debian",
-                     VGPUOS.Centos7 : "centos7_x86-64",
-                     VGPUOS.Rhel7 : "rhel7_x86-64",
-                     VGPUOS.Oel7 : "oel7_x86-64",
-                     VGPUOS.Ubuntu1404x86 : "ubuntu1404_x86-32",
-                     VGPUOS.Ubuntu1404x64 : "ubuntu1404_x86-64"
-                }
-
-    __GUEST_MEMORY_MB = 2048
-    CAPACITY_THROTTLE = 0
-    VM_START = VMStartMethod.OneByOne
-
-    """ Snapshot names for each host"""
-    SNAPSHOT_PREVGPU = "preVGPU"
-    SNAPSHOT_PRE_VNC_DISABLED = "preVNCDisabled"
-    SNAPSHOT_PRE_GUEST_DRIVERS = "preGuestDriversInstalled"
-    SNAPSHOT_POST_GUEST_DRIVERS = "postGuestDriversInstalled"
-
-    def __init__(self, requiredEnvironmentList, configuration, distribution, vncEnabled, fillToCapacity):
-        super(VGPUOwnedVMsTest, self).__init__()
-        self._requiredEnvironments = requiredEnvironmentList
-        self._distribution = distribution
-        self.__vncEnabled = vncEnabled
-        self._guestsAndTypes = []
-        self._configuration = configuration
-        self._vGPUCreator = None
-        self.__fillToCapacity = fillToCapacity
-
-    def guestAndTypesStatus(self):
-        """ For debugging"""
-        strings = []
-        for guest, os in self._guestsAndTypes:
-            strings.append("Host: %s; OS: %s; Power State: %s" %(str(guest), self.getOSType(os), guest.getState()))
-        strings.append("Total guests and types: %d" % len(self._guestsAndTypes))
-        return strings
-
-    def getOSType(self, vgpuos):
-        if not vgpuos in self.__OPTIONS:
-            raise xenrt.XRTFailure("This OS is not supported by the vGPU test")
-        return self.__OPTIONS[vgpuos]
-
-    def getConfigurationName(self, configuration):
-        if not configuration in self._CONFIGURATION:
-            raise xenrt.XRTError("Unexpected configuration number: %s" % configuration)
-        return self._CONFIGURATION[configuration]
-
-    def __masterVmName(self, requiredOS):
-        os = self.getOSType(requiredOS)
-        return "master" + str(os)
-
-    def masterGuest(self, requiredOS, host):
-        return host.guests[self.__masterVmName(requiredOS)]
-
-    def _createGuests(self, host, requiredOS):
-        masterKey = self.__masterVmName(requiredOS)
-        guest = None
-
-        guestVMs = self.host.minimalList("vm-list", params="name-label")
-
-        if masterKey in guestVMs:
-            log("VM found so cloning...")
-            master = host.guests[masterKey]
-            if master.getState() != "DOWN":
-                master.shutdown()
-            guest = master.cloneVM()
-        else:
-            log("No matching VM found, so create a new one....")
-            guest = host.createGenericWindowsGuest(distro=self.getOSType(requiredOS), memory=self.__GUEST_MEMORY_MB, name=masterKey)
-
-        #self.uninstallOnCleanup(guest)
-        self.getLogsFrom(guest)
-        return guest
-
-    def configureVGPU(self, guest):
-        self._vGPUCreator.createOnGuest(guest)
-
-    def randomGuestFromSelection(self, requiredNumber):
-        """
-        Create a list of guests to install, randomly selected from the provided environment list
-        """
-        log("Create a random list of %d hosts from the selection %s" %(requiredNumber, self._requiredEnvironments))
-        newEnvironmentList = [random.choice(list(set(self._requiredEnvironments))) for x in range(requiredNumber)]
-        log("Selected the following from the provided selection: %s" % str(newEnvironmentList))
-        return newEnvironmentList
-
-    def bindConfigurationToPGPU(self, conf, count = 1):
-        typeuuid = None
-        for confname, uuid in self.host.getSupportedVGPUTypes().items():
-            if conf.lower() in confname.lower():
-                typeuuid = uuid
-                break;
-        if not typeuuid:
-            raise xenrt.XRTError("configuration %s is not supported. (supported: %s)" % (conf, self.host.getSupportedVGPUTypes()))
-
-        pgpulist = []
-        ggman = GPUGroupManager(self.host)
-        for pgpu in ggman.getPGPUUuids():
-            if count < 1:
-                break
-            supportedTypes = self.host.genParamGet('pgpu', pgpu, 'supported-VGPU-types').replace(" ", "").split(';')
-            if typeuuid in supportedTypes:
-                self.host.genParamSet('pgpu', pgpu, 'enabled-VGPU-types', typeuuid)
-                pgpulist.append(pgpu)
-                count -= 1
-
-        return pgpulist
-
-    def releaseConfiguration(self, list):
-        for pgpu in list:
-            supportedTypes = self.host.genParamGet('pgpu',pgpu,'supported-VGPU-types').replace(";", ",").replace(" ", "")
-            self.host.genParamSet('pgpu', pgpu, 'enabled-VGPU-types', supportedTypes)
-
-    def getConfiguration(self, vm):
-        vgpu = self.host.parseListForUUID("vgpu-list", "vm-uuid", vm.uuid)
-        if vgpu and vgpu != "":
-            return self.host.parseListForUUID("vgpu-list", "vm-uuid", vm.uuid, "params=type-uuid")
-        else:
-            return None
-
-    def safeRestartGuest(self, guest, retry=3):
-        self.safeStartGuest(guest, retry, True)
-
-    def safeStartGuest(self, guest, retry=3, reboot=False):
-        # A work-around for windows autologin failure.
-        lasterror = None
-        while retry:
-            retry -= 1
-            try:
-                guest.start(specifyOn = False, reboot = reboot)
-                return
-            except xenrt.XRTException as e:
-                if e.reason.startswith("Windows failed to autologon") or \
-                    e.reason.startswith("Domain running but not reachable by XML-RPC"):
-                    log("Windows started but failed to autologin. Retrying... (%d)" % (retry,))
-                    lasterror = e
-                else:
-                    raise e
-            reboot = True
-
-        if lasterror:
-            raise lasterror
-
-    def startVM(self, vm):
-        if vm.getState() != "UP":
-            self.safeStartGuest(vm)
-        #self.assertGPURunningInVM(vm, self.vendor)
-
-    def _removeGuest(self, vm):
-        host = vm.host
-        host.removeGuest(vm)
-        if vm.getState() != "DOWN":
-            vm.shutdown()
-        vm.uninstall()
-
-    def startAllVMs(self, vmlist = None):
-        if not vmlist:
-            vmlist = [guest for guest, ostype in self._guestsAndTypes]
-        if self.VM_START == VMStartMethod.OneByOne:
-            for (vm) in vmlist:
-                self.startVM(vm)
-        else:
-            pStart = [xenrt.PTask(self.startVM, vm) for vm in vmlist]
-            xenrt.pfarm(pStart)
-
-    def bootstormStartVM(self, vm):
-        try:
-            name = vm.getName()
-            name = name.replace(" ", "\ ")
-            cmd = "xe vm-start vm=%s" % name
-            self.runAsync(self.host, cmd, timeout=3600, ignoreSSHErrors=False)
-        except Exception, e:
-            raise xenrt.XRTFailure("Failed to start vm %s - %s" % (vm.getName(), str(e)))
-
-    def rebootAllVMs(self, vmlist = None):
-
-        if not vmlist:
-            vmlist = [guest for guest, ostype in self._guestsAndTypes]
-
-        # Shutdown all the VMs
-        for vm in vmlist:
-            vm.shutdown()
-
-        # Start all the VMs in chunks
-        chunk = 25
-        count = len(vmlist)/chunk
-
-        for i in range(count+1):
-            pt = [xenrt.PTask(self.bootstormStartVM, vm) for vm in vmlist[i*chunk:i*chunk+chunk]]
-            xenrt.pfarm(pt)
-
-        # WaitforDaemon for all VMs
-        pt = [xenrt.PTask(vm.waitForDaemon, 1800) for vm in vmlist]
-        xenrt.pfarm(pt)
-
-    def prepare(self, arglist):
-        self.nfs = xenrt.ExternalNFSShare()
-        self.host = self.getDefaultHost()
-
-        step("Install host drivers")
-        self.installNvidiaHostDrivers(self.getAllHosts())
-
-        self._vGPUCreator = VGPUInstaller(self.host, self._configuration, self._distribution)
-
-        if self.__fillToCapacity:
-            step("Filling vGPUs to capacity")
-            capacity = self.host.remainingGpuCapacity(self._vGPUCreator.groupUUID(), self._vGPUCreator.typeUUID())
-            if self.CAPACITY_THROTTLE > 0 and capacity > self.CAPACITY_THROTTLE:
-                step("Capacity throttle in place. Limiting capacity to %d" % self.CAPACITY_THROTTLE)
-                capacity = self.CAPACITY_THROTTLE
-
-            self._requiredEnvironments = self.randomGuestFromSelection(capacity)
-
-        step("Create Master guests")
-        guest = self._createGuests(self.host, self._requiredEnvironments[0])
-        #guest.snapshot(self.SNAPSHOT_PRE_VNC_DISABLED)
-        step("Set VNC enabled to %s" % str(self.__vncEnabled))
-        guest.setVGPUVNCActive(self.__vncEnabled)
-        #guest.snapshot(self.SNAPSHOT_PREVGPU)
-        step("Configure vGPU")
-        self.configureVGPU(guest)
-        xenrt.sleep(10) # Give some time to settle vGPU down.
-        if (guest.getState() != "UP"):
-            guest.start()
-        #guest.snapshot(self.SNAPSHOT_PRE_GUEST_DRIVERS)
-        step("Install guest drivers for %s" % str(guest))
-        self.installNvidiaWindowsDrivers(guest)
-        #guest.snapshot(self.SNAPSHOT_POST_GUEST_DRIVERS)
-        self._guestsAndTypes.append((guest, self._requiredEnvironments[0]))
-
-        step("Create %d required guests" % len(self._requiredEnvironments))
-        for i, requiredEnv in enumerate(self._requiredEnvironments):
-            if i == 0 :
-                continue
-            guest = self._createGuests(self.host, requiredEnv)
-            self._guestsAndTypes.append((guest, requiredEnv))
-
-
-        log("Created guests: %s" % str(self._guestsAndTypes))
-
-        step("Starting up any powered-down guests")
-        self.startAllVMs([g for (g, os) in self._guestsAndTypes if g.getState() == "DOWN"])
-
-    def postRun(self):
-
-        #return
-
-        for guest, osType in self._guestsAndTypes:
-            step("Shutting down guest %s" % str(guest))
-            try: guest.shutdown()
-            except: pass
-
-            step("Uninstalling guest %s" % str(guest))
-            try:
-                host = copy.copy(guest.host)
-                host.removeGuest(guest)
-                guest.uninstall()
-            except:
-                pass
-
-        #if self.nfs:
-            #try:
-                #self.nfs.release()
-            #except:
-                #pass
-
-        step("Destroy vGPUs")
-        self.host.destroyAllvGPUs()
-        step("Clearing locals")
-        self._guestsAndTypes = None
-        self._requiredEnvironments = None
 
 class _VGPUBenchmarkTest(VGPUOwnedVMsTest):
     __TIMEOUT_SECS = 1800

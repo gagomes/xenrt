@@ -1128,6 +1128,8 @@ class PrepareNode:
                                                     "default":False,
                                                     "blkbackPoolSize":""})
 
+                            self.srs.insert(0, {"type": "nfstemplate"})
+
                 # If needed, create lun groups
                 iscsihosts = {}
                 for s in self.srs:
@@ -1240,6 +1242,15 @@ class PrepareNode:
                         server, path = s["path"].split(":")
                         sr.create(server, path)
                         sr.scan()
+                    elif s['type'] == "nfstemplate":
+                        if isinstance(host, xenrt.lib.xenserver.CreedenceHost) and xenrt.TEC().lookup("SHARED_VHD_PATH_NFS", None):
+                            sr = xenrt.lib.xenserver.NFSStorageRepository(host, "Remote Template Library")
+                            sr.uuid = str(uuid.uuid4())
+                            sr.srtype = "nfs"
+                            sr.content_type="user"
+                            (server, path) = xenrt.TEC().lookup("SHARED_VHD_PATH_NFS").split(":")
+                            sr.dconf = {"server": server, "serverpath": path}
+                            sr.introduce(nosubdir = True)
                     elif s["type"] == "netapp":
                         minsize = int(host.lookup("SR_NETAPP_MINSIZE", 40))
                         maxsize = int(host.lookup("SR_NETAPP_MAXSIZE", 1000000))

@@ -243,7 +243,7 @@ class ESXHost(xenrt.lib.libvirt.Host):
 
     def arpwatch(self, iface, mac, **kwargs):
         if xenrt.TEC().lookup("XENRT_DHCPD", False, boolean=True):
-            GenericHost.arpwatch(self, iface, mac, timeout)
+            xenrt.lib.libvirt.Host.arpwatch(self, iface, mac, **kwargs)
 
         xenrt.TEC().logverbose("Working out vmkernel device for iface='%s' in order to arpwatch for %s..." % (iface, mac))
 

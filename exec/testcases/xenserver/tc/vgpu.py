@@ -230,7 +230,7 @@ class VGPUInstaller(object):
 Test base classes
 """
 # TODO remove multiple inheritance
-class VGPUTest(xenrt.TestCase, object):
+class VGPUTest(object):
     _CONFIGURATION = {
         VGPUConfig.K100 : "K100",
         VGPUConfig.K120 : "K120",
@@ -688,7 +688,7 @@ class TCGPUWorkload(TCGPUBenchmarkInstall):
                 self.benchmarkObjects[b][g.name].stopWorkload()
 
 
-class _VGPUOwnedVMsTest(VGPUTest):
+class _VGPUOwnedVMsTest(xenrt.TestCase,VGPUTest):
     __OPTIONS = {
                      VGPUOS.Win7x64 :  "win7sp1-x64",
                      VGPUOS.Win7x86 :  "win7sp1-x86",

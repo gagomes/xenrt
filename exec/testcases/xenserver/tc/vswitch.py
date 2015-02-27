@@ -2623,7 +2623,7 @@ class TC20997(_VSwitch):
             pings.pop()
             pings.pop()
             result = pings.pop()
-            transmitted, received, packet_loss, ms  = re.findall("(\d\d)", result)
+            transmitted, received, packet_loss, ms  = re.findall("(\d+)", result)
             if received == 0:
                 raise xenrt.XRTFailure("could not reach address %s on vlan %d" % (vlan_if_address, vlan_id))
 

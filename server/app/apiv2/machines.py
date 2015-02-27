@@ -747,7 +747,7 @@ class NotifyBorrow(_MachineBase):
                 return
             print "Emailing %s about %s" % (email, machine)
             msg = "Your lease on machine %s is due to expire soon (%s)" % (machine, ftime)
-            app.utils.sendMail("XenServerQAXenRTAdmin-noreply@citrix.com", email, "XenRT Lease expiring soon on %s" % machine, msg)
+            app.utils.sendMail("XenServerQAXenRTAdmin-noreply@citrix.com", [email], "XenRT Lease expiring soon on %s" % machine, msg)
         except Exception, e:
             print "Could not notify for machine %s - %s" % (machine, str(e))
 

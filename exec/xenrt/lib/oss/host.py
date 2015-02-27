@@ -155,6 +155,9 @@ class OSSHost(xenrt.lib.native.NativeLinuxHost):
     def arpwatch(self, iface, mac, timeout):
         """Monitor an interface (or bridge) for an ARP reply"""
 
+        if xenrt.TEC().lookup("XENRT_DHCPD", False, boolean=True):
+            xenrt.lib.native.NativeLinuxHost.arpwatch(self, iface, mac, timeout)
+
         xenrt.TEC().logverbose("Sniffing ARPs on %s for %s" % (iface, mac))
 
         deadline = xenrt.util.timenow() + timeout

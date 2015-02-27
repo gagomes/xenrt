@@ -115,6 +115,7 @@ class XenRTCommand:
 
     def uploadWithCurl(self, url, localFn, remoteFn):
         cmd = ["curl"]
+        cmd.append("--fail")
         cmd.append("-H \"Expect:\"")
         if remoteFn:
             cmd.append("-F 'filename=%s'" % (remoteFn))

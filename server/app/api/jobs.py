@@ -357,6 +357,9 @@ class XenRTSubmit(XenRTJobPage):
         e = splitparams["extra"]
         e["JOB_SUBMITTED"] = time.asctime(time.gmtime()) + " UTC"
 
+        if "REMOVED_BY" in e:
+            del e['REMOVED_BY']
+
         for cp in app.constants.core_params:
             if not c.has_key(cp):
                 if cp == "JOBSTATUS":

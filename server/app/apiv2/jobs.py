@@ -610,6 +610,11 @@ class NewJob(_JobBase):
         if field in params:
             del params[field]
 
+    def removeParams(self, params, keys):
+        for k in keys:
+            if params.has_key(k):
+                del params[k]
+
     def newJob(self,
                pools=None,
                numberMachines=None,
@@ -630,18 +635,8 @@ class NewJob(_JobBase):
 
         if params.has_key("JOBGROUP") and params.has_key("JOBGROUPTAG") and not jobGroup:
             jobGroup = {"id": params['JOBGROUP'], "tag": params['JOBGROUPTAG']}
-       
-        if "USERID" in params:
-            del params['USERID']
-
-        if "REMOVED" in params:
-            del params['REMOVED']
-
-        if "UPLOADED" in params:
-            del params['UPLOADED']
-
-        if "JOBSTATUS" in params:
-            del params['JOBSTATUS']
+      
+        self.removeParams(params, ["USERID", "REMOVED", "UPLOADED", "JOBSTATUS", "REMOVED_BY"])
 
         params["JOB_SUBMITTED"] = time.asctime(time.gmtime()) + " UTC"
 

@@ -392,7 +392,7 @@ class TCVGPUNode0Pin(xenrt.TestCase):
         self.guest.paramSet("VCPUs-params:mask", string.join(node0cpus, ","))
         self.guest.setState("UP")
 
-class TCVGPUSetup(VGPUTest):
+class TCVGPUSetup(VGPUOwnedVMsTest):
     def parseArgs(self, arglist):
         self.args = {}
         for a in arglist:

@@ -356,6 +356,21 @@ class XapiPluginDockerController(DockerController):
 
 class LinuxDockerController(DockerController):
 
+    def dockerGeneralInfo(self, dcommand):
+
+        cmd = self.guest.execguest(dcommand).strip()
+        dockerGeneralList = cmd.splitlines()
+
+        if len(dockerGeneralList) < 1:
+            raise xenrt.XRTError("dockerGeneralInfo: General docker info for %s is not found" % dcommand)
+
+        dockerGeneralDict = dict(item.split(":") for item in dockerGeneralList)
+
+        if not dockerGeneralDict:
+            raise xenrt.XRTError("getDockerVersion: Unable to obtain docker version")
+        else:
+            return dockerGeneralDict
+
     def containerLinuxLCOperation(self, operation, container):
 
         dockerCmd = "docker " + operation + " " + container.cname
@@ -443,8 +458,10 @@ class LinuxDockerController(DockerController):
             else:
                 return ContainerState.UNKNOWN
 
-    def listContainers(self):
+    def getDockerInfo(self):
+        return self.dockerGeneralInfo('docker info')
 
+    def getDockerPS(self):
         dockerCmd = "docker ps -a | tail -n +2 | awk '{print $NF}'"
         containerInfo = self.guest.execguest(dockerCmd).strip()
 
@@ -452,7 +469,22 @@ class LinuxDockerController(DockerController):
             containerList = containerInfo.splitlines()
             return containerList # [containername]
         else:
-            raise xenrt.XRTError("listContainers: There are no containers available to list")
+            raise xenrt.XRTError("getDockerPS: There are no containers available to list")
+
+    def getDockerVersion(self):
+        dockerVersionDict = self.dockerGeneralInfo('docker version')
+
+        if dockerVersionDict.has_key('Client version'):
+            return dockerVersionDict['Client version'].strip()
+        else:
+            raise xenrt.XRTError("getDockerVersion: Client version key is missing in docker version dict")
+
+    def listContainers(self):
+        return self.getDockerPS()
+
+    def gettopContainer(self, container): pass
+    def restartContainer(self, container): pass
+
 
 """
 Abstraction

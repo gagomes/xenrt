@@ -56,9 +56,11 @@ class ContainerLinuxOperation:
     LIST = "list"
 
 class ContainerType:
+    YES_BUSYBOX = "yes_busybox"
     BUSYBOX = "busybox"
     MYSQL = "mysql"
     TOMCAT = "tomcat"
+    UBUNTU = "ubuntu"
     UNKNOWN = "unknown"
 
 """
@@ -85,7 +87,10 @@ class DockerController(object):
 
     def containerSelection(self, container, method=OperationMethod.XAPI):
 
-        if container.ctype == ContainerType.BUSYBOX:
+        if container.ctype == ContainerType.YES_BUSYBOX:
+            xenrt.TEC().logverbose("Create Simple BusyBox Container using %s way" % method)
+            dockerCmd = "docker run -d --name " + container.cname + " busybox /bin/sh -c \"yes\""
+        elif container.ctype == ContainerType.BUSYBOX:
             xenrt.TEC().logverbose("Create BusyBox Container using %s way" % method)
             dockerCmd = "docker run -d --name " + container.cname + " busybox /bin/sh -c \"while true; do echo Hello World; sleep 1; done\""
         elif container.ctype == ContainerType.MYSQL:
@@ -94,6 +99,9 @@ class DockerController(object):
         elif container.ctype == ContainerType.TOMCAT:
             xenrt.TEC().logverbose("Create Tomcat Container using %s way" % method)
             dockerCmd = "docker run -d --name " + container.cname + " -p 8080:8080 -it tomcat"
+        elif container.ctype == ContainerType.UBUNTU:
+            xenrt.TEC().logverbose("Create Ubuntu Container using %s way" % method)
+            dockerCmd = "docker run -d --name " + container.cname + " ubuntu:14.04 /bin/echo \"Hello world\""
         else:
             raise xenrt.XRTError("Docker container type %s is not recognised" % container.ctype)
 
@@ -102,7 +110,7 @@ class DockerController(object):
         elif method==OperationMethod.LINUX:
             return dockerCmd
         else:
-            raise xenrt.XRTError("Operation method %s in defined" % dockerCmd)
+            raise xenrt.XRTError("Operation method %s in defined" % method)
 
     @abstractmethod
     def createContainer(self, container): pass
@@ -288,6 +296,9 @@ class XapiPluginDockerController(DockerController):
 
         containers = []
         dockerPS = self.getDockerPS() # returns a xml with a key 'entry'
+
+        if not dockerPS:
+            raise xenrt.XRTError("listContainers: getDockerPS() returned empty dictionary")
 
         if not dockerPS.has_key('entry'):
             raise xenrt.XRTError("listContainers: Failed to find entry key in docker PS xml")
@@ -591,6 +602,10 @@ class Docker(object):
         for container in self.containers:
             self.startContainer(container)
             xenrt.sleep(5)
+
+    def rmAllContainers(self):
+        for container in self.containers:
+            self.rmContainer(container)
 
     def lifeCycleContainer(self, container):
         """Life Cycle method on a specified container"""

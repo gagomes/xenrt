@@ -4382,7 +4382,21 @@ def createVM(host,
     else:
         displayname = guestname
 
-    preinstalledTemplates = host.minimalList("template-list", args="name-label=xenrt-template-%s-%s" % (distro, arch), params="name-label")
+    xenrt.TEC().logverbose("SR: %s" % sr)
+    if not sr:
+        sruuid = host.chooseSR()
+    else:
+        if xenrt.isUUID(sr):
+            sruuid = sr
+        else:
+            xenrt.TEC().logverbose("given sr is not UUID")
+            sruuid = host.parseListForUUID("sr-list", "name-label", sr)
+    
+    preinstalledTemplates = host.minimalList("template-list", args="name-label=xenrt-template-%s-%s-%s" % (distro, arch, sruuid), params="name-label")
+    
+    if not preinstalledTemplates:
+        preinstalledTemplates = host.minimalList("template-list", args="name-label=xenrt-template-%s-%s" % (distro, arch), params="name-label")
+    
     if not preinstalledTemplates and "Remote Template Library" in host.minimalList("sr-list", params="name-label"):
         m = xenrt.rootops.MountNFS(xenrt.TEC().lookup("SHARED_VHD_PATH_NFS"))
         uuid = None
@@ -4396,28 +4410,16 @@ def createVM(host,
         if uuid and os.path.exists("%s/%s.vhd" % (m.getMount(), uuid)):
             template = host.getTemplate(distro, arch=arch)
             cli = host.getCLIInstance()
-
-            
-            xenrt.TEC().logverbose("SR: %s" % sr)
-            if not sr:
-                sruuid = host.chooseSR()
-            else:
-                if xenrt.isUUID(sr):
-                    sruuid = sr
-                else:
-                    xenrt.TEC().logverbose("given sr is not UUID")
-                    sruuid = host.parseListForUUID("sr-list", "name-label", sr)
-
             vdiuuid = cli.execute("vdi-copy sr-uuid=%s uuid=%s" % (sruuid, uuid)).strip().strip(",")
 
             host.genParamSet("vdi", vdiuuid, "name-label", "%s_%s" % (distro, arch))
-            tuuid = cli.execute("vm-clone", "name-label=\"%s\" new-name-label=xenrt-template-%s-%s" % (template, distro, arch)).strip()
+            tuuid = cli.execute("vm-clone", "name-label=\"%s\" new-name-label=xenrt-template-%s-%s-%s" % (template, distro, arch, sruuid)).strip()
             host.genParamSet("template", tuuid, "PV-bootloader", "pygrub")
             host.genParamRemove("template", tuuid, "other-config", "disks")
-            cli.execute("vbd-create", "vm-uuid=%s vdi-uuid=%s, device=0, bootable=true" % (tuuid, vdiuuid))
+            cli.execute("vbd-create", "vm-uuid=%s vdi-uuid=%s device=0 bootable=true" % (tuuid, vdiuuid))
 
+            preinstalledTemplates = host.minimalList("template-list", args="name-label=xenrt-template-%s-%s-%s" % (distro, arch, sruuid), params="name-label")
         m.unmount()
-        preinstalledTemplates = host.minimalList("template-list", args="name-label=xenrt-template-%s-%s" % (distro, arch), params="name-label")
         
     if preinstalledTemplates:
         t = preinstalledTemplates[0]

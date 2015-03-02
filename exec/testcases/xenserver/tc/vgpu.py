@@ -675,6 +675,10 @@ class TCVGPUNode0Pin(xenrt.TestCase):
         self.guest.setState("UP")
 
 class TCVGPUSetup(VGPUOwnedVMsTest):
+
+    def __init__(self):
+        super(TCVGPUSetup, self).__init__(requiredEnvironmentList = None, configuration = None, distribution = VGPUDistribution.BreadthFirst, vncEnabled = False, fillToCapacity = False)
+
     def parseArgs(self, arglist):
         self.args = {}
         for a in arglist:
@@ -739,6 +743,10 @@ Send("{ENTER}")
         self.assertvGPURunningInWinVM(self.guest, self.args['vgpuconfig'])
 
 class TCVGPUCloneVM(VGPUOwnedVMsTest):
+
+    def __init__(self):
+        super(TCVGPUCloneVM, self).__init__(requiredEnvironmentList = None, configuration = None, distribution = VGPUDistribution.BreadthFirst, vncEnabled = False, fillToCapacity = False)
+
     def parseArgs(self, arglist):
         self.args = {}
         for a in arglist:
@@ -790,6 +798,10 @@ class TCVGPUDeleteClones(xenrt.TestCase):
             raise xenrt.XRTError("Insufficient clones found to delete")
 
 class TCGPUBootstorm(VGPUOwnedVMsTest):
+
+    def __init__(self):
+        super(TCGPUBootstorm, self).__init__(requiredEnvironmentList = None, configuration = None, distribution = VGPUDistribution.BreadthFirst, vncEnabled = False, fillToCapacity = False)
+
     def parseArgs(self, arglist):
         self.params = {}
         self.vgpuconfig = None
@@ -837,6 +849,10 @@ class TCGPUBootstorm(VGPUOwnedVMsTest):
         f.close()
 
 class TCGPUBenchmarkInstall(VGPUOwnedVMsTest):
+
+    def __init__(self):
+        super(TCGPUBenchmarkInstall, self).__init__(requiredEnvironmentList = None, configuration = None, distribution = VGPUDistribution.BreadthFirst, vncEnabled = False, fillToCapacity = False)
+
     def parseArgs(self, arglist):
         self.args = {}
         self.benchmarks = []

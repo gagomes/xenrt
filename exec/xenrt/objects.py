@@ -5678,7 +5678,6 @@ exit 0
                              extraPackages=extrapackages,
                              ossVG=False,
                              arch=arch,
-                             installXenToolsInPostInstall=False,
                              postscript=piurl,
                              poweroff=False,
                              disk=disk)
@@ -7835,8 +7834,7 @@ class GenericGuest(GenericPlace):
                       pxe=True,
                       extrapackages=None,
                       options={},
-                      start=True,
-                      installXenToolsInPostInstall=False):
+                      start=True):
         if re.search("sles", distro) or re.search("suse", distro):
             self.installSLES(distro,
                              repository,
@@ -7845,8 +7843,7 @@ class GenericGuest(GenericPlace):
                              pxe=pxe,
                              extrapackages=extrapackages,
                              options=options,
-                             start=start,
-                             installXenToolsInPostInstall=installXenToolsInPostInstall)
+                             start=start)
         elif re.search("debian|ubuntu", distro):
             self.installDebian(distro,
                                repository,
@@ -7855,8 +7852,7 @@ class GenericGuest(GenericPlace):
                                pxe=pxe,
                                extrapackages=extrapackages,
                                options=options,
-                               start=start,
-                               installXenToolsInPostInstall=installXenToolsInPostInstall)
+                               start=start)
         elif re.search("solaris", distro):
             self.installSolaris(distro,
                                 repository,
@@ -7865,8 +7861,7 @@ class GenericGuest(GenericPlace):
                                 pxe=pxe,
                                 extrapackages=extrapackages,
                                 options=options,
-                                start=start,
-                                installXenToolsInPostInstall=installXenToolsInPostInstall)
+                                start=start)
         else:
             self.installRHEL(distro,
                              repository,
@@ -7875,8 +7870,7 @@ class GenericGuest(GenericPlace):
                              pxe=pxe,
                              extrapackages=extrapackages,
                              options=options,
-                             start=start,
-                             installXenToolsInPostInstall=installXenToolsInPostInstall)
+                             start=start)
 
     def installSolaris(self,
                        distro,
@@ -7886,8 +7880,7 @@ class GenericGuest(GenericPlace):
                        pxe,
                        extrapackages=None,
                        options={},
-                       start=True,
-                       installXenToolsInPostInstall=False):
+                       start=True):
         """Network install of HVM Solaris into this guest."""
 
         #PR-1089: solaris must not use the viridian flag
@@ -7953,9 +7946,6 @@ class GenericGuest(GenericPlace):
             signaldir = nfsdir.getMountURL("")
             vars["SIGNALDIR"] = signaldir
             vars["EXTRAPOSTINSTALL"] = ""
-
-            if installXenToolsInPostInstall:
-                vars["EXTRAPOSTINSTALL"] = "mkdir /xs && mount /dev/xvdd /xs && /xs/Linux/install.sh -n && reboot"
 
             for v in vars.keys():
                 ay = string.replace(ay, "%%%s%%" % (v), vars[v])
@@ -8080,8 +8070,7 @@ class GenericGuest(GenericPlace):
                     pxe,
                     extrapackages=None,
                     options={},
-                    start=True,
-                    installXenToolsInPostInstall=False):
+                    start=True):
         """Network install of HVM SLES into this guest."""
         nfsdir = xenrt.NFSDirectory()
         vifname, bridge, mac, c = self.vifs[0]
@@ -8096,8 +8085,7 @@ class GenericGuest(GenericPlace):
                             ethDevice="eth0",
                             extraPackages=extrapackages,
                             kickStartExtra=None,
-                            ossVG=False,
-                            installXenToolsInPostInstall=installXenToolsInPostInstall)
+                            ossVG=False)
         ay=ks.generate()
         filename = "%s/autoyast.xml" % (xenrt.TEC().getLogdir())
         f=file(filename,"w")
@@ -8224,8 +8212,7 @@ class GenericGuest(GenericPlace):
                     pxe=True,
                     extrapackages=None,
                     options={},
-                    start=True,
-                    installXenToolsInPostInstall=False):
+                    start=True):
         """Network install of HVM RHEL into this guest."""
         # Create an NFS directory for the installer to signal completion
         nfsdir = xenrt.NFSDirectory()
@@ -8266,8 +8253,7 @@ class GenericGuest(GenericPlace):
                               ethDevice=ethDevice,
                               pxe=pxe,
                               extraPackages=extrapackages,
-                              ossVG=False,
-                              installXenToolsInPostInstall=installXenToolsInPostInstall)
+                              ossVG=False)
         ks=ksf.generate()
         vifname, bridge, mac, c = self.vifs[0]
         filename = "%s/kickstart.cfg" % (xenrt.TEC().getLogdir())
@@ -8506,8 +8492,7 @@ class GenericGuest(GenericPlace):
                       pxe,
                       extrapackages=None,
                       options={},
-                      start=True,
-                      installXenToolsInPostInstall=False):
+                      start=True):
         """Network install of Debian into this guest."""
         if method != "HTTP" and method != "CDROM":
             raise xenrt.XRTError("%s install not supported" % (method))
@@ -8527,8 +8512,7 @@ class GenericGuest(GenericPlace):
                              ethDevice="eth0",
                              extraPackages=extrapackages,
                              ossVG=False,
-                             arch=arch,
-                             installXenToolsInPostInstall=installXenToolsInPostInstall)
+                             arch=arch)
 
 
         ps.generate()

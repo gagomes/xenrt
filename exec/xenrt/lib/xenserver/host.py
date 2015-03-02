@@ -3083,76 +3083,117 @@ fi
             distro = self.lookup("GENERIC_" + distro.upper() + "_OS"
                                  + (arch.endswith("64") and "_64" or ""),
                                  distro)
-        template = xenrt.lib.xenserver.getTemplate(self, distro, forceHVM, arch)
-        if re.search(r"etch", template, flags=re.IGNORECASE) or re.search(r"Demo Linux VM", template):
-            password = xenrt.TEC().lookup("ROOT_PASSWORD_DEBIAN")
-        else:
-            password = None
+
         if not name:
             name = xenrt.randomGuestName(distro=distro, arch=arch)
-        guest = self.guestFactory()(name, template, password=password)
-        guest.primaryMAC=primaryMAC
-        guest.reservedIP=reservedIP
-        repository = None
+        
+        canUseSharedTemplate = not use_ipv6 and not rawHBAVDIs and not reservedIP and not forceHVM and not primaryMAC
+       
+        guest = None
 
-        if guest.windows:
-            isoname = xenrt.DEFAULT
-        else:
-            isoname = None
-            if not "Etch" in template and not "Sarge" in template and not "Demo Linux VM" in template:
-                try:
-                    repository = string.split(xenrt.TEC().lookup(["RPM_SOURCE",
-                                                                  distro,
-                                                                  arch,
-                                                                  "HTTP"]))[0]
-                except:
-                    raise xenrt.XRTError("No HTTP repository for %s %s" %
-                                         (arch, distro))
-
-        guest.distro = distro
-        guest.arch = arch
-
-        if vcpus != None:
-            guest.setVCPUs(vcpus)
-        elif self.lookup("RND_VCPUS", default=False, boolean=True):
-            guest.setRandomVcpus()
-
-        if self.lookup("RND_CORES_PER_SOCKET", default=False, boolean=True):
-            guest.setRandomCoresPerSocket(self, vcpus)
-
-        if memory != None:
-            guest.setMemory(memory)
-        if (not disksize) or disksize == None or disksize == guest.DEFAULT:
-            if forceHVM:
-                disksize = 8192 # 8GB (in MB) by default
+        if canUseSharedTemplate:
+            if vcpus != None:
+                _vcpus = vcpus
+            elif self.lookup("RND_VCPUS", default=False, boolean=True):
+                # TODO set random vcpus
+                _vcpus = None
             else:
-                disksize = guest.DEFAULT
-        if primaryMAC:
-            if bridge:
-                br = bridge
-            else:
-                br = self.getPrimaryBridge()
-            vifs = [("%s0" % (guest.vifstem), br, primaryMAC, None)]
+                _vcpus = None
+
+            if self.lookup("RND_CORES_PER_SOCKET", default=False, boolean=True):
+                guest.setRandomCoresPerSocket(self, vcpus)
+            guest = xenrt.lib.xenserver.guest.createVMFromImage(self,
+                                                                name,
+                                                                distro,
+                                                                vcpus=vcpus,
+                                                                memory=memory,
+                                                                vifs=xenrt.lib.xenserver.Guest.DEFAULT,
+                                                                bridge=bridge,
+                                                                sr=sr,
+                                                                arch=arch,
+                                                                rootdisk=disksize,
+                                                                notools=notools)
+
+        if guest:
+            doSetRandomVcpus = not vcpus and self.lookup("RND_VCPUS", default=False, boolean=True)
+            doSetRandomCoresPerSocket = self.lookup("RND_CORES_PER_SOCKET", default=False, boolean=True)
+
+            if doSetRandomVcpus or doSetRandomCoresPerSocket:
+                guest.shutdown()
+                if doSetRandomVcpus:
+                    guest.setRandomVcpus()
+                if doSetRandomCoresPerSocket:
+                    guest.setRandomCoresPerSocket(self, vcpus)
+                guest.start()
         else:
-            vifs = guest.DEFAULT
-        guest.install(self,
-                      distro=distro,
-                      isoname=isoname,
-                      pxe=forceHVM,
-                      repository=repository,
-                      sr=sr,
-                      bridge=bridge,
-                      notools=notools,
-                      use_ipv6=use_ipv6,
-                      rootdisk=disksize,
-                      rawHBAVDIs=rawHBAVDIs,
-                      vifs=vifs)
-        if guest.windows and guest.memory > 4096:
-            # We added /PAE to boot.ini so we have to reboot before
-            # checking the resources
-            guest.xmlrpcShutdown()
-            guest.poll("DOWN")
-            guest.start()
+            template = xenrt.lib.xenserver.getTemplate(self, distro, forceHVM, arch)
+            if re.search(r"etch", template, flags=re.IGNORECASE) or re.search(r"Demo Linux VM", template):
+                password = xenrt.TEC().lookup("ROOT_PASSWORD_DEBIAN")
+            else:
+                password = None
+            guest = self.guestFactory()(name, template, password=password)
+            guest.primaryMAC=primaryMAC
+            guest.reservedIP=reservedIP
+            repository = None
+
+            if guest.windows:
+                isoname = xenrt.DEFAULT
+            else:
+                isoname = None
+                if not "Etch" in template and not "Sarge" in template and not "Demo Linux VM" in template:
+                    try:
+                        repository = string.split(xenrt.TEC().lookup(["RPM_SOURCE",
+                                                                      distro,
+                                                                      arch,
+                                                                      "HTTP"]))[0]
+                    except:
+                        raise xenrt.XRTError("No HTTP repository for %s %s" %
+                                             (arch, distro))
+
+            guest.distro = distro
+            guest.arch = arch
+
+            if vcpus != None:
+                guest.setVCPUs(vcpus)
+            elif self.lookup("RND_VCPUS", default=False, boolean=True):
+                guest.setRandomVcpus()
+
+            if self.lookup("RND_CORES_PER_SOCKET", default=False, boolean=True):
+                guest.setRandomCoresPerSocket(self, vcpus)
+
+            if memory != None:
+                guest.setMemory(memory)
+            if (not disksize) or disksize == None or disksize == guest.DEFAULT:
+                if forceHVM:
+                    disksize = 8192 # 8GB (in MB) by default
+                else:
+                    disksize = guest.DEFAULT
+            if primaryMAC:
+                if bridge:
+                    br = bridge
+                else:
+                    br = self.getPrimaryBridge()
+                vifs = [("%s0" % (guest.vifstem), br, primaryMAC, None)]
+            else:
+                vifs = guest.DEFAULT
+            guest.install(self,
+                          distro=distro,
+                          isoname=isoname,
+                          pxe=forceHVM,
+                          repository=repository,
+                          sr=sr,
+                          bridge=bridge,
+                          notools=notools,
+                          use_ipv6=use_ipv6,
+                          rootdisk=disksize,
+                          rawHBAVDIs=rawHBAVDIs,
+                          vifs=vifs)
+            if guest.windows and guest.memory > 4096:
+                # We added /PAE to boot.ini so we have to reboot before
+                # checking the resources
+                guest.xmlrpcShutdown()
+                guest.poll("DOWN")
+                guest.start()
         if guest.windows and not nodrivers:
             guest.installDrivers()
         if not nodrivers:
@@ -8096,19 +8137,29 @@ rm -f /etc/xensource/xhad.conf || true
     def writeUefiLocalBoot(self, nfsdir, pxe):
         raise xenrt.XRTError("UEFI is not supported on this version")
 
-    def chooseSR(self):
+    def chooseSR(self, sr=None):
         """Choose an SR to use. Returns the SR UUID"""
-        if xenrt.TEC().lookup("OPTION_DEFAULT_SR", False, boolean=True):
-            # Use the default SR defined by the pool/host
-            return self.lookupDefaultSR()
-        if self.defaultsr:
-            srname = self.defaultsr
-            sruuid = self.parseListForUUID("sr-list",
-                                                     "name-label",
-                                                     srname)
+        xenrt.TEC().logverbose("SR: %s" % sr)
+        if not sr:
+            if xenrt.TEC().lookup("OPTION_DEFAULT_SR", False, boolean=True):
+                # Use the default SR defined by the pool/host
+                return self.lookupDefaultSR()
+            if self.defaultsr:
+                srname = self.defaultsr
+                sruuid = self.parseListForUUID("sr-list",
+                                               "name-label",
+                                               srname)
+            else:
+                sruuid = self.getLocalSR()
+                xenrt.TEC().logverbose("Using local SR %s" % (sruuid))
         else:
-            sruuid = self.getLocalSR()
-            xenrt.TEC().logverbose("Using local SR %s" % (sruuid))
+            if xenrt.isUUID(sr):
+                sruuid = sr
+            else:
+                xenrt.TEC().logverbose("given sr is not UUID")
+                sruuid = self.parseListForUUID("sr-list", "name-label", sr)
+        
+            
         return sruuid
         
 #############################################################################

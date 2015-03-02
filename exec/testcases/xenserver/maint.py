@@ -14,8 +14,9 @@ class TCCreateVMTemplate(xenrt.TestCase):
                 (distro, arch) = xenrt.getDistroAndArch(a)
                 args = {"distro": a, "arch": arch}
                 fulldistro = "%s_%s" % (distro, arch)
+            args['notools'] = True
             g = h.createBasicGuest(**args)
-            g.convertToTemplate()
+            g.prepareForTemplate()
             vdiuuid = h.minimalList("vbd-list", args="vm-uuid=%s userdevice=0" % g.getUUID(), params="vdi-uuid")[0]
             cfg = "%s/%s.cfg" % (m.getMount(), fulldistro)
             if os.path.exists(cfg):
@@ -23,8 +24,7 @@ class TCCreateVMTemplate(xenrt.TestCase):
                     u = f.read().strip()
             else:
                 u = str(uuid.uuid4())
-            with open("%s.part" % cfg, "w") as f:
-                f.write(u)
+            xenrt.rootops.sudo("sh -c 'echo %s > %s.part'" % (u, cfg))
             vhd = "%s/%s.vhd" % (m.getMount(), u)
             xenrt.rootops.sudo("wget -O %s.part 'http://%s/export_raw_vdi?vdi=%s&format=vhd' --user=root --password=%s" % (vhd, h.getIP(), vdiuuid, h.password))
             xenrt.rootops.sudo("mv %s.part %s" % (vhd, vhd))

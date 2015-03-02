@@ -6,7 +6,7 @@
     </variables>
     <testsequence>
         <parallel workers="4" group="CreateTemplate">
-            <for iter"D" values="${DISTROS}">
+            <for iter="D" values="${DISTROS}">
                 <testcase id="xenserver.maint.TCCreateVMTemplate" name="${D}">
                     <arg>${D}</arg>
                 </testcase>

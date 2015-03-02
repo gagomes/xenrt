@@ -12,7 +12,7 @@ class TCCreateVMTemplate(xenrt.TestCase):
                 fulldistro = a
             else:
                 (distro, arch) = xenrt.getDistroAndArch(a)
-                args = {"distro": a, "arch": arch}
+                args = {"distro": distro, "arch": arch}
                 fulldistro = "%s_%s" % (distro, arch)
             g = h.createBasicGuest(notools=True, nodrivers=True, **args)
             if g.windows:

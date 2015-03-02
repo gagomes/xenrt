@@ -841,7 +841,7 @@ class NSBVT(xenrt.TestCase):
 
     # Acceptable failures
     IGNORE_TESTS = set(['26.2.1.14'])
-#    PASS_TESTS = xenrt.TEC().lookup("EXPECTED_TEST_PASSES")
+    PASS_TESTS = xenrt.TEC().lookup("EXPECTED_TEST_PASSES")
 
     def getMountDir(self, mounts, src_path):
         
@@ -1306,8 +1306,7 @@ class NSBVT(xenrt.TestCase):
         failed_tests,passed_tests = self.getTestStatus()
         
         #Currently there are 128 tests cases running, out of which 127 test cases should pass
-#        if len(passed_tests) < self.PASS_TESTS :
-        if len(passed_tests) <  127 :
+        if len(passed_tests) < self.PASS_TESTS :
             raise xenrt.XRTFailure("NS Sanity test failed since we did not get %s pass results." %(self.PASS_TESTS))
         
         if status == 'FAILED':

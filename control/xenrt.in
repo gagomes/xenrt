@@ -750,7 +750,7 @@ class XenRTMList2(XenRTCommand):
                     else:
                         comment = ""
                 
-                self.printout(fmt % (m, machines[m]['site'], machines[m]['cluster'], status, machines[m]['pool'], comment))
+                self.printout(fmt % (m, machines[m]['site'], machines[m]['cluster'] or "DEFAULT", status, machines[m]['pool'] or "DEFAULT", comment))
                     
 
 class XenRTMList(XenRTMList2):

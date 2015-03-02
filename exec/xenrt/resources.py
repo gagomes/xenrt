@@ -1441,7 +1441,8 @@ class NativeLinuxNFSShare(CentralResource):
 
 class _WindowsSMBShare(CentralResource):
     """Base class for Windows-based SMB shares"""
-    def createShare(self, driveLetter='c'):
+    def createShare(self, driveLetter=None):
+        driveLetter = driveLetter or 'c'
         sharesPath = "%s:\\shares" % (driveLetter)
         if not self.place.xmlrpcDirExists(sharesPath):
             self.place.xmlrpcCreateDir(sharesPath)
@@ -1473,8 +1474,10 @@ class _WindowsSMBShare(CentralResource):
 
 class NativeWindowsSMBShare(_WindowsSMBShare):
     """SMB share on a native (bare metal) windows host"""
-    def __init__(self, hostName="RESOURCE_HOST_0", driveLetter='c'):
+    def __init__(self, hostName="RESOURCE_HOST_0", driveLetter=None):
         self.place = xenrt.GEC().registry.hostGet(hostName)
+
+        driveLetter = driveLetter or 'c'
 
         if driveLetter != 'c':
             # Destroy anything existing on any drive that doesn't contain C: and reinitialise

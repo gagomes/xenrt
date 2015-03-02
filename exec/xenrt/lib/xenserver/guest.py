@@ -2787,10 +2787,7 @@ exit /B 1
                    smconfig=None,
                    mode="RW"):
         # Default to sequence specified default SR.
-        if not sruuid:
-            sruuid = self.chooseSR()
-        elif sruuid == "DEFAULT":
-            sruuid = self.getHost().lookupDefaultSR()
+        sruuid = self.chooseSR(sruuid)
 
         # Default to lowest available device number.
         if not userdevice:

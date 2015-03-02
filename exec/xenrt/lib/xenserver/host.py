@@ -8145,6 +8145,8 @@ rm -f /etc/xensource/xhad.conf || true
         else:
             if xenrt.isUUID(sr):
                 sruuid = sr
+            elif sr == "DEFAULT":
+                sruuid = self.lookupDefaultSR()
             else:
                 xenrt.TEC().logverbose("given sr is not UUID")
                 sruuid = self.parseListForUUID("sr-list", "name-label", sr)

@@ -1,0 +1,56 @@
+<xenrt>
+
+    <!-- Sanity test for CIFS SR -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <scheduler>
+    <pool>VMX,SVM</pool>
+    <param>MACHINES_REQUIRED=2</param>
+  </scheduler>
+
+
+  <prepare>
+    <!-- SMB share on a native (bare metal) windows host -->
+    <host productType="nativewindows" productVersion="ws12r2-x64" id="0" />
+
+    <host id="1">
+      <storage type="smb" name="CIFS-SR" options="host-0"/>
+      <vm name="Windows 8.1">
+        <distro>win81-x86</distro>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <network device="0" />
+        <disk device="0" size="24" />
+        <storage>CIFS-SR</storage>
+      </vm>
+      <vm name="Red Hat Enterprise Linux 7.0">
+        <distro>rhel7</distro>
+        <arch>x86-64</arch>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="10" />
+        <storage>CIFS-SR</storage>
+      </vm>
+      <vm name="Ubuntu Trusty Tahr 14.04">
+        <distro>ubuntu1404</distro>
+        <arch>x86-64</arch>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="8" />
+        <storage>CIFS-SR</storage>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence group="CIFSSR">
+    <testcase id="xenserver.tc.storage.TC26472"/>
+  </testsequence>
+
+
+</xenrt>

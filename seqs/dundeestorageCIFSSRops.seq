@@ -1,18 +1,16 @@
 <xenrt>
 
-  <!-- CIFS SR using SMB share on a native windows host -->
+  <!-- CIFS SR using SMB share on a windows guest -->
 
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
   </variables>
 
   <prepare>
-    <!-- SMB share on a native (bare metal) windows host -->
-    <host productType="nativewindows" productVersion="ws12r2-x64" id="0" />
+    <!-- SMB share on a windows guest -->
+    <host id="0">
 
-    <host id="1">
-
-      <storage type="smb" name="CIFS-SR" options="host-0"/>
+      <storage type="smb" name="CIFS-SR" options="vm"/>
 
       <vm name="Windows 8.1">
         <distro>win81-x86</distro>

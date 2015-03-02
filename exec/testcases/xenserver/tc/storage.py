@@ -4521,11 +4521,11 @@ class TCVdiCorruption(xenrt.TestCase):
             pass
 
 class TC26472(xenrt.TestCase):
-    """Guests life cycle operations on CIFS SR using SMB share on a native windows host"""
+    """Guests life cycle operations on CIFS SR using SMB share on a windows guest"""
 
     def run(self, arglist):
 
-        self.host = self.getHost("RESOURCE_HOST_1")
+        self.host = self.getDefaultHost()
         srs = self.host.minimalList("sr-list", args="name-label=\"CIFS-SR\"")
         if not srs:
             raise xenrt.XRTFailure("Unable to find a CIFS SR configured on host %s" % self.host)

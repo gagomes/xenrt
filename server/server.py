@@ -82,7 +82,9 @@ class PageFactory(object):
                     raise HTTPInternalServerError(body=json.dumps({"reason": str(e), "traceback": traceback.format_exc()}), content_type="application/json")
                 else:
                     raise HTTPInternalServerError(body="Internal Server error:\n\n%s" % traceback.format_exc(), content_type="text/plain")
-        if self.contentType:
+        if request.params.get("plain") == "true":
+            request.response.content_type == "text/plain"
+        elif self.contentType:
             request.response.content_type = self.contentType
         if self.string and ret and isinstance(ret, basestring) and not ret[-1] == "\n":
             ret += "\n"

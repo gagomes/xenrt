@@ -28,7 +28,7 @@ NEWDIRS		:= locks state results
 SCRIPTS		:= $(patsubst %.in,%,$(wildcard **/*.in))
 GENCODE		:= $(patsubst %.gen,%,$(wildcard **/*.gen))
 LINKS		:= control/xenrt.py $(EXECDIR)/xenrt/ctrl.py control/xrt control/xrt1
-BINLINKS    := xenrt xrt xrt1 xrtbranch runsuite
+BINLINKS    := xenrt xrt xrt1 xrtbranch runsuite xenrtnew
 
 SRCDIRS		:= $(addprefix $(SHAREDIR)/,$(SRCDIRS))
 NEWDIRS		:= $(addprefix $(SHAREDIR)/,$(NEWDIRS))
@@ -208,6 +208,10 @@ xrtbranch:
 xenrt:
 	$(info Creating link to $@...)
 	$(SUDO) ln -sf $(SHAREDIR)/control/xenrt $(BINDIR)/$@
+
+xenrtnew:
+	$(info Creating link to $@...)
+	$(SUDO) cp $(SHAREDIR)/control/xenrt $(SHAREDIR)/control/$@
 
 runsuite:
 	$(info Creating link to $@...)

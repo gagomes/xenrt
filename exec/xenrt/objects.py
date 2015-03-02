@@ -14,7 +14,7 @@ import traceback, xmlrpclib, crypt, glob, copy, httplib, urllib, mimetools
 import xml.dom.minidom, threading, fnmatch, urlparse, libxml2
 import xenrt, xenrt.ssh, xenrt.util, xenrt.rootops, xenrt.resources
 import testcases.benchmarks.workloads
-import bz2, simplejson
+import bz2, simplejson, json
 import IPy
 import XenAPI
 import xml.etree.ElementTree as ET
@@ -275,7 +275,7 @@ class GenericPlace(object):
             raise
 
     def deprecatedIfConfig(self):
-        return self.distro.startswith("rhel7") or self.distro.startswith("oel7") or self.distro.startswith("centos7")
+        return self.distro.startswith("rhel7") or self.distro.startswith("oel7") or self.distro.startswith("centos7") or self.distro.startswith("sl7")
 
     def getMyVIFs(self):
         try:
@@ -3540,7 +3540,7 @@ DHCPServer = 1
             return False
         try:
             # All versions of CentOS and RHEL7+ don't have Server in the repo path
-            if distro.startswith("centos") or distro.startswith("rhel7") or distro.startswith("oel7"):
+            if distro.startswith("centos") or distro.startswith("rhel7") or distro.startswith("oel7") or distro.startswith("sl"):
                 pass
             else:
                 url = os.path.join(url, 'Server')
@@ -4597,14 +4597,23 @@ class GenericHost(GenericPlace):
             if pcpu > 40:
                 xenrt.TEC().warning("xenstore using %u%% CPU" % (pcpu))
 
+    def checkLeasesXenRTDhcpd(self, mac, checkWithPing=False):
+        valid = json.loads(xenrt.util.command("%s/xenrtdhcpd/leasesformac.py %s" % (xenrt.TEC().lookup("XENRT_BASE"), mac.lower())))
+        if not valid:
+            return None
+        for a in valid:
+            if checkWithPing and xenrt.command("ping -c 3 -w 10 %s" % a, retval="code", level=xenrt.RC_OK) == 0:
+                return a
+
+        return valid[0]
+
     def checkLeases(self, mac, checkWithPing=False):
         rem = self.lookup("REMOTE_DHCP", None)
         if rem:
             leasefile = xenrt.TEC().tempFile()
             xenrt.util.command("%s > %s" % (rem, leasefile))
         elif self.lookup("XENRT_DHCPD", False, boolean=True):
-            leasefile = xenrt.TEC().tempFile()
-            xenrt.util.command("%s/xenrtdhcpd/leases.py > %s" % (xenrt.TEC().lookup("XENRT_BASE"), leasefile))
+            return self.checkLeasesXenRTDhcpd(mac, checkWithPing)
         elif os.path.exists("/var/lib/dhcp/dhcpd.leases"):
             leasefile = "/var/lib/dhcp/dhcpd.leases"
         elif os.path.exists("/var/lib/dhcpd/dhcpd.leases"):
@@ -4681,6 +4690,17 @@ class GenericHost(GenericPlace):
         xenrt.TEC().logverbose("Sniffing ARPs on %s for %s" % (iface, mac))
 
         deadline = xenrt.util.timenow() + timeout
+
+        if xenrt.TEC().lookup("XENRT_DHCPD", False, boolean=True):
+            while True:
+                ip = self.checkLeases(mac)
+                if ip:
+                    return ip
+                xenrt.sleep(20)
+                if xenrt.util.timenow() > deadline:
+                    xenrt.XRT("Timed out monitoring for guest DHCP lease", level, data=mac)
+
+            
 
         myres = []
         myres.append(re.compile(r"(?P<ip>[0-9.]+) is-at (?P<mac>[0-9a-f:]+)"))
@@ -9596,9 +9616,9 @@ while True:
         xenrt.log("Guest arch is %s"%self.arch)
 
         if "64" in self.arch:
-            drivername=xenrt.TEC().lookup("PVHVM_GPU_NVDIA_X64")
+            drivername=xenrt.TEC().lookup("PVHVM_GPU_NVIDIA_X64")
         else :
-            drivername=xenrt.TEC().lookup("PVHVM_GPU_NVDIA_X86")
+            drivername=xenrt.TEC().lookup("PVHVM_GPU_NVIDIA_X86")
 
         #Get the file and put it into the VM
         urlprefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")

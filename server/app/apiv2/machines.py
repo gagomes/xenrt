@@ -690,11 +690,11 @@ class NewMachine(_MachineBase):
         self.addMachine(j.get("name"), j.get("site"), j.get("pool"), j.get("cluster"), j.get("resources", {}), j.get("description"))
 
         if j.get("flags"):
-            self.updateMachineField(machine, "PROPS", ",".join(j['flags']), commit=False)
+            self.updateMachineField(j.get("name"), "PROPS", ",".join(j['flags']), commit=False)
 
         if j.get('params'):
             for p in j['params'].keys():
-                self.updateMachineField(machine, p, j['params'][p], commit=False)
+                self.updateMachineField(j.get("name"), p, j['params'][p], commit=False)
    
         self.getDB().commit()
         return {}
@@ -718,6 +718,39 @@ class RemoveMachine(_MachineBase):
         self.getMachines(limit=1, machines=[machine], exceptionIfEmpty=True)
         self.removeMachine(machine)
         return {}
+
+class NotifyBorrow(_MachineBase):
+    def run(self):
+        borrowedMachines = [x for x in self.getMachines().values() if x['leaseuser']]
+
+        for m in borrowedMachines:
+            earlyTime = time.mktime(time.gmtime()) - 24 * 3600
+            leaseFrom = m.get('leasefrom', 0)
+            leaseTo = m['leaseto']
+
+            if self.warningTime > leaseTo and leaseFrom < earlyTime:
+                self.notifyUser(m['leaseuser'], m['name'], leaseTo)
+
+    @property
+    def warningTime(self):
+        lt = time.mktime(time.gmtime())
+        if time.gmtime().tm_wday >= 4: # Friday, Saturday Sunday
+            return lt + 3600 * (24 * (7-time.localtime().tm_wday) + 6)
+        else:
+            return lt + 3600 * 30
+
+    def notifyUser(self, user, machine, expiry):
+        try:
+            ftime = time.strftime("%H:%M %Z %A", time.gmtime(expiry))
+            email = app.user.User(self, user).email
+            if not email:
+                return
+            print "Emailing %s about %s" % (email, machine)
+            msg = "Your lease on machine %s is due to expire soon (%s)" % (machine, ftime)
+            app.utils.sendMail("XenServerQAXenRTAdmin-noreply@citrix.com", [email], "XenRT Lease expiring soon on %s" % machine, msg)
+        except Exception, e:
+            print "Could not notify for machine %s - %s" % (machine, str(e))
+
 
 RegisterAPI(ListMachines)
 RegisterAPI(GetMachine)

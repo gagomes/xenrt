@@ -1281,6 +1281,11 @@ Abort this testcase with: xenrt interact %s -n '%s'
                                     place.thingsWeHaveReported.append(line)
                                     self._warnWithPrefix("Out of memory in %s: %s" % (log,line))
 
+                            if "crashed too quickly after start" in line:
+                                if not line in place.thingsWeHaveReported:
+                                    place.thingsWeHaveReported.append(line)
+                                    self._warnWithPrefix("crashed too quickly after start in %s: %s" % (log,line))
+
                 except:
                     pass
             if place.guestconsolelogs:

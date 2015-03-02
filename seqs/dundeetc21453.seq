@@ -10,7 +10,6 @@
   <default name="HOSTPAIRS" value="(0,1),(1,2),(2,3),(3,0)" />
   <default name="OPTION_EMBEDDED" value="no" />
   <default name="GUESTDISTRO" value="rhel510" />
-  <default name="TCID" value="TC-21453" />
   <default name="POOLSTRESSSNAP" value="10" />
   <default name="DURATION" value="NA" />
   <default name="ITERATIONS" value="135" />
@@ -46,111 +45,55 @@
     </pool>
   </prepare>
 
-  <collection name="commonops">
-    <testcase id="xenserver.guest.TCLifeCycleLoop">
-      <arg>guest=${GUESTNAME}</arg>
-      <arg>duration=${DURATION}</arg>
-      <arg>iterations=${ITERATIONS}</arg>
-      <arg>snap=${POOLSTRESSSNAP}</arg>
-    </testcase>
-  </collection>
-
-  <collection name="debguest">
-    <serial>
-      <testcase id="xenserver.guest.TCXenServerDebianInstall" name="TCDebianInstall">
-        <arg>${HOSTNAME}</arg>
-        <arg>guest=${GUESTNAME}</arg>
-        <arg>memory=${GUESTMEMORY}</arg>
-        <arg>vcpus=${GUESTVCPUS}</arg>
-      </testcase>
-      <include collection="commonops" />
-      <finally>
-        <testcase id="guestops.basic.TCShutdown">
-          <arg>guest=${GUESTNAME}</arg>
-          <arg>again</arg>
-        </testcase>
-      </finally>
-    </serial>
-  </collection>
-
-  <collection name="rhelguest">
-    <serial>
-      <testcase id="xenserver.guest.TCXenServerVendorInstall" name="TCVendorInstall">
-        <arg>${HOSTNAME}</arg>
-        <arg>guest=${GUESTNAME}</arg>
-        <arg>version=${GUESTDISTRO}</arg>
-        <arg>memory=${GUESTMEMORY}</arg>
-        <arg>vcpus=${GUESTVCPUS}</arg>
-        <arg>disksize=${GUESTDISKLIN}</arg>
-      </testcase>
-      <include collection="commonops" />
-      <finally>
-        <testcase id="guestops.basic.TCShutdown">
-          <arg>guest=${GUESTNAME}</arg>
-          <arg>again</arg>
-        </testcase>
-      </finally>
-    </serial>
-  </collection>
-
-  <collection name="winguest">
-    <serial>
-      <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="TCWindowsInstall">
-        <arg>${HOSTNAME}</arg>
-        <arg>guest=${GUESTNAME}</arg>
-        <arg>version=${GUESTVERSION}</arg>
-        <arg>memory=${GUESTMEMORY}</arg>
-        <arg>vcpus=${GUESTVCPUS}</arg>
-        <arg>disksize=${GUESTDISK}</arg>
-      </testcase>
-      <testcase id="guestops.drivers.TCDriverInstall">
-        <arg>guest=${GUESTNAME}</arg>
-      </testcase>
-      <include collection="commonops" />
-      <finally>
-        <testcase id="guestops.basic.TCShutdown">
-          <arg>guest=${GUESTNAME}</arg>
-          <arg>again</arg>
-        </testcase>
-      </finally>
-    </serial>
-  </collection>
-
-  <testsequence>
+    <testsequence>
 
     <!-- Install guests on each host -->
     <testcase id="xenserver.tc.dr.EnableDbReplication" />
 
-    <parallel tc="${TCID}">
+    <parallel>
       <for iter="P,S" values="${HOSTPAIRS}">
         <for iter="C" values="${PAIRSPERHOST}">
-          <serial group="LVM.LinuxGuest.${P}${C}">
-            <ifin item="${GUESTDISTRO}" list="etch,sarge,debian,debian50">
-              <include collection="debguest">
-                <param name="HOSTNAME" value="RESOURCE_HOST_${P}" />
-                <param name="OTHERHOST" value="RESOURCE_HOST_${S}" />
-                <param name="GUESTNAME" value="debguest${P}${C}" />
-              </include>
-            </ifin>
-            <ifnotin item="${GUESTDISTRO}" list="etch,sarge,debian,debian50">
-              <include collection="rhelguest">
-                <param name="HOSTNAME" value="RESOURCE_HOST_${P}" />
-                <param name="OTHERHOST" value="RESOURCE_HOST_${S}" />
-                <param name="GUESTNAME" value="rhguest${P}${C}" />
-              </include>
-            </ifnotin>
-          </serial>
-          <serial group="LVM.WindowsGuest.${P}${C}">
-            <include collection="winguest">
-              <param name="HOSTNAME" value="RESOURCE_HOST_${P}" />
-              <param name="OTHERHOST" value="RESOURCE_HOST_${S}" />
-              <param name="GUESTNAME" value="winguest${P}${C}" />
-            </include>
-          </serial>
+          <parallel>
+            <serial group="Lin">
+              <testcase id="xenserver.guest.TCXenServerVendorInstall" tc="TC-21453" name="Install.Lin.${P}${C}" sku="Install.Lin.${P}${C}">
+                <arg>RESOURCE_HOST_${P}</arg>
+                <arg>guest=rhguest${P}${C}</arg>
+                <arg>version=${GUESTDISTRO}</arg>
+                <arg>memory=${GUESTMEMORY}</arg>
+                <arg>vcpus=${GUESTVCPUS}</arg>
+                <arg>disksize=${GUESTDISKLIN}</arg>
+              </testcase>
+              <testcase id="xenserver.guest.TCLifeCycleLoop" tc="TC-21453" name="LifeCycle.Lin.${P}${C}" sku="LifeCycle.Lin.${P}${C}">
+                <arg>guest=rhguest${P}${C}</arg>
+                <arg>duration=${DURATION}</arg>
+                <arg>iterations=${ITERATIONS}</arg>
+                <arg>snap=${POOLSTRESSSNAP}</arg>
+              </testcase>
+            </serial>
+            <serial group="Win">
+              <testcase id="xenserver.guest.TCXenServerWindowsInstall" tc="TC-21453" name="Install.Win.${P}${C}" sku="Install.Win.${P}${C}">
+                <arg>RESOURCE_HOST_${P}</arg>
+                <arg>guest=winguest${P}${C}</arg>
+                <arg>version=${GUESTVERSION}</arg>
+                <arg>memory=${GUESTMEMORY}</arg>
+                <arg>vcpus=${GUESTVCPUS}</arg>
+                <arg>disksize=${GUESTDISK}</arg>
+              </testcase>
+              <testcase id="guestops.drivers.TCDriverInstall" tc="TC-21453" name="DriverInstall.Win.${P}${C}" sku="DriverInstall.Win.${P}${C}">
+                <arg>guest=winguest${P}${C}</arg>
+              </testcase>
+              <testcase id="xenserver.guest.TCLifeCycleLoop" tc="TC-21453" name="LifeCycle.Win.${P}${C}" sku="LifeCycle.Win.${P}${C}">
+                <arg>guest=winguest${P}${C}</arg>
+                <arg>duration=${DURATION}</arg>
+                <arg>iterations=${ITERATIONS}</arg>
+                <arg>snap=${POOLSTRESSSNAP}</arg>
+              </testcase>
+            </serial>
+          </parallel>
         </for>
       </for>
     </parallel>
-
   </testsequence>
+
 
 </xenrt>

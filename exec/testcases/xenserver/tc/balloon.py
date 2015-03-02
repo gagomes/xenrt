@@ -2392,6 +2392,28 @@ class TC10553(TC9527):
     DISTRO = "win7-x64"
     USEMEM = 2048
     ALLOWED_INCREASE = 60
+    
+class TC26440(TC9527):
+    """Verify the extra time for booting a ballooned down Windows 10 x86 VM is minimal"""
+    DISTRO = "win10-x86"
+    USEMEM = 1024
+
+class TC26441(TC9527):
+    """Verify the extra time for booting a ballooned down Windows 10 x64 VM is minimal"""
+    DISTRO = "win10-x64"
+    USEMEM = 2048
+
+class TC26439(TC9527):
+    """Verify the extra time for booting a ballooned down Windows 10 x86 VM is less than 1 minute"""
+    DISTRO = "win10-x86"
+    USEMEM = 1024
+    ALLOWED_INCREASE = 60
+    
+class TC26442(TC9527):
+    """Verify the extra time for booting a ballooned down Windows 10 x64 VM is less than 1 minute"""
+    DISTRO = "win10-x64"
+    USEMEM = 2048
+    ALLOWED_INCREASE = 60
 
 class TC12600(TC9527):
     """Verify the extra time for booting a ballooned down Windows 7 SP1 x86 VM is minimal"""

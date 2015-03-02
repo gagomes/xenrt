@@ -156,7 +156,12 @@ $(function() {
             }
             var failure = getFailureMessage(test);
             if (failure) {
-                out += " | Failure message: " + failure;
+                if (test['result'] == "skipped") {
+                    out += " | Skip reason: " + failure;
+                }
+                else {
+                    out += " | Failure message: " + failure;
+                }
             }
             out += "<div id=\"testdetail" + key + "\" style=\"display:none;\">";
             out += testDetailHTML(test);

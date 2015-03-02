@@ -3322,7 +3322,7 @@ class SharedHost(object):
 
     def createTemplate(self, distro, arch, disksize):
         g = self.getHost().createBasicGuest(name="%s-%s" % (distro, arch), distro=distro, arch=arch, disksize=disksize)
-        if distro.startswith("rhel") or distro.startswith("centos") or distro.startswith("oel"):
+        if distro.startswith("rhel") or distro.startswith("centos") or distro.startswith("oel") or (distro.startswith("sl") and not distro.startswith("sles")):
             g.execguest("sed -i /HWADDR/d /etc/sysconfig/network-scripts/ifcfg-eth0")
         g.shutdown()
         g.paramSet("name-label", "xenrt-template-%s-%s" % (distro, arch))

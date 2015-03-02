@@ -56,7 +56,7 @@
 
   <testsequence group="RdpWithTools">
     <for iter="D" values="${WINDISTROS}">
-        <testcase id="xenserver.tc.rdpxapi.TestRdpWithToolsUpgrade" tc="TC-23917" name="ToolUpgrade/${D}" sku="ToolUpgrade/${D}">
+        <testcase id="xenserver.tc.rdpxapi.TestRdpWithToolsUpgrade" tc="TC-23917" name="ToolUpgrade,${D}" sku="ToolUpgrade/${D}">
         <arg>guest=${D}</arg>
         <arg>OLDTOOLS=/usr/groups/xenrt/pvtools/clearwaterrtm.tgz</arg>
         </testcase>

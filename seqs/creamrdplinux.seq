@@ -50,7 +50,7 @@
 
   <testsequence group="RdpXapiLinux">
     <for iter="D" values="${LINUXDISTROS}">
-        <testcase id="xenserver.tc.rdpxapi.TestRdpForLinux" tc="TC-23791" name="RdpLinux/${D}" sku="RdpLinux/${D}">
+        <testcase id="xenserver.tc.rdpxapi.TestRdpForLinux" tc="TC-23791" name="RdpLinux,${D}" sku="RdpLinux/${D}">
         <arg>guest=${D}</arg>
         </testcase>
     </for>

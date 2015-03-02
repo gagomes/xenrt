@@ -190,3 +190,38 @@ class NetScaler(object):
                     xenrt.getNetworkParam(privateNetwork, "SUBNETMASK"),
                     self.subnetIp(network=publicNetwork)))
         self.__netScalerCliCommand('save ns config')
+
+    def checkModNum(self):
+        #returns the model number
+        modData = filter(lambda x:x.startswith('Model Number ID'), self.__netScalerCliCommand('show ns license'))
+        modNum = modData[0].split(':')[1].strip()
+        return modNum
+
+    def checkFeatures(self):
+        nsVer = self.version()
+        # ns version is written to the log file
+        xenrt.TEC().logverbose('The NetScaler version is ' % (nsVer))
+        managementIP = self.managementIp()
+        # management ip is written to the log file
+        xenrt.TEC().logverbose('The NetScaler management IP is ' % (managementIP))
+        # ssl offloading feature is checked. License is applied and verified if the the feature is off
+        features = ["SSL offloading"]
+        for feature in features:
+            if isLicensed(feature):
+                xenrt.TEC().logverbose('The %s feature is supported.' % (feature))
+            else:
+                applyLicense(self.getLicenseFileFromXenRT())
+        for feature in features:
+            if not isLicensed(feature):
+                xenrt.TEC().logverbose('Failed to apply license')
+                return
+        xenrt.TEC().logverbose('License applied successfully')
+
+        modNum = self.checkModNum()
+        xenrt.TEC().logverbose('The model number ID is' % (modNum))
+
+    def checkCPU(self):
+        #writes the number of PEs to log file
+        pe = max(map(lambda x: x.split()[0],filter(lambda x: re.match('^\d',x),self.__netScalerCliCommand('stat cpus'))))
+        xenrt.TEC().logverbose('The Number of PEs is ' % (pe))
+ 

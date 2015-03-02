@@ -2786,9 +2786,9 @@ exit /B 1
                    returnDevice=False,
                    smconfig=None,
                    mode="RW"):
-        # Default to local SR.
+        # Default to sequence specified default SR.
         if not sruuid:
-            sruuid = self.getHost().getLocalSR()
+            sruuid = self.chooseSR()
         elif sruuid == "DEFAULT":
             sruuid = self.getHost().lookupDefaultSR()
 

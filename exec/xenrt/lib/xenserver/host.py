@@ -3087,32 +3087,22 @@ fi
         if not name:
             name = xenrt.randomGuestName(distro=distro, arch=arch)
         
-        canUseSharedTemplate = not use_ipv6 and not rawHBAVDIs and not reservedIP and not forceHVM and not primaryMAC
+        canUsePrebuiltTemplate = not use_ipv6 and not rawHBAVDIs and not reservedIP and not forceHVM and not primaryMAC
        
         guest = None
 
-        if canUseSharedTemplate:
-            if vcpus != None:
-                _vcpus = vcpus
-            elif self.lookup("RND_VCPUS", default=False, boolean=True):
-                # TODO set random vcpus
-                _vcpus = None
-            else:
-                _vcpus = None
-
-            if self.lookup("RND_CORES_PER_SOCKET", default=False, boolean=True):
-                guest.setRandomCoresPerSocket(self, vcpus)
-            guest = xenrt.lib.xenserver.guest.createVMFromImage(self,
-                                                                name,
-                                                                distro,
-                                                                vcpus=vcpus,
-                                                                memory=memory,
-                                                                vifs=xenrt.lib.xenserver.Guest.DEFAULT,
-                                                                bridge=bridge,
-                                                                sr=sr,
-                                                                arch=arch,
-                                                                rootdisk=disksize,
-                                                                notools=notools)
+        if canUsePrebuiltTemplate:
+            guest = xenrt.lib.xenserver.guest.createVMFromPrebuiltTemplate(self,
+                                            name,
+                                            distro,
+                                            vcpus=vcpus,
+                                            memory=memory,
+                                            vifs=xenrt.lib.xenserver.Guest.DEFAULT,
+                                            bridge=bridge,
+                                            sr=sr,
+                                            arch=arch,
+                                            rootdisk=disksize,
+                                            notools=notools)
 
         if guest:
             doSetRandomVcpus = not vcpus and self.lookup("RND_VCPUS", default=False, boolean=True)

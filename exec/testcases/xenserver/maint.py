@@ -14,8 +14,12 @@ class TCCreateVMTemplate(xenrt.TestCase):
                 (distro, arch) = xenrt.getDistroAndArch(a)
                 args = {"distro": a, "arch": arch}
                 fulldistro = "%s_%s" % (distro, arch)
-            args['notools'] = True
-            g = h.createBasicGuest(**args)
+            g = h.createBasicGuest(notools=True, nodrivers=True, **args)
+            if g.windows:
+                g.installWICIfRequired()
+                g.installDotNet35()
+                g.installDotNet4()
+                g.installPowerShell()
             g.prepareForTemplate()
             vdiuuid = h.minimalList("vbd-list", args="vm-uuid=%s userdevice=0" % g.getUUID(), params="vdi-uuid")[0]
             cfg = "%s/%s.cfg" % (m.getMount(), fulldistro)

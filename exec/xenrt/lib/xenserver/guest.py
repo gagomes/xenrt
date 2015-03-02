@@ -4334,7 +4334,7 @@ def createVMFromFile(host,
         guest.installPackages(packages)
     return guest
 
-def createVMFromImage(host,
+def createVMFromPrebuiltTemplate(host,
              guestname,
              distro,
              vcpus=None,
@@ -4348,91 +4348,110 @@ def createVMFromImage(host,
              notools=False,
              suffix=None,
              ips={}):
-    
+   
+    if not xenrt.TEC().lookup("USE_PREBUILT_TEMPLATES", True, boolean=True):
+        return None
+
     if suffix:
         displayname = "%s-%s" % (guestname, suffix)
     else:
         displayname = guestname
     
     sruuid = host.chooseSR(sr)
-    preinstalledTemplates = host.minimalList("template-list", args="name-label=xenrt-template-%s-%s-%s" % (distro, arch, sruuid), params="name-label")
+
+    # Lock around this section so only one template gets created for this distro
+    with xenrt.GEC().getLock("TEMPLATE_SETUP_%s_%s_%s" % (distro, arch, sruuid)):
+        preinstalledTemplates = host.minimalList("template-list", args="name-label=xenrt-template-%s-%s-%s" % (distro, arch, sruuid), params="name-label")
     
+        if not preinstalledTemplates:
+            preinstalledTemplates = host.minimalList("template-list", args="name-label=xenrt-template-%s-%s" % (distro, arch), params="name-label")
+   
+        templateSR = host.minimalList("sr-list", params="uuid", args="name-label='Remote Template Library'")
+
+        if not preinstalledTemplates and templateSR:
+            host.getCLIInstance().execute("sr-scan", "uuid=%s" % templateSR[0])
+            m = xenrt.rootops.MountNFS(xenrt.TEC().lookup("SHARED_VHD_PATH_NFS"))
+            uuid = None
+            if os.path.exists("%s/%s_%s.cfg" % (m.getMount(), distro, arch)):
+                with open("%s/%s_%s.cfg" % (m.getMount(), distro, arch)) as f:
+                    uuid = f.read().strip()
+            elif os.path.exists("%s/%s.cfg" % (m.getMount(), distro)):
+                with open("%s/%s.cfg" % (m.getMount(), distro)) as f:
+                    uuid = f.read().strip()
+        
+            if uuid and os.path.exists("%s/%s.vhd" % (m.getMount(), uuid)):
+                if rootdisk and rootdisk != Guest.DEFAULT:
+                    # Check that the disk is big enough
+                    if rootdisk > int(host.genParamGet("vdi", uuid, "virtual-size")):
+                        return None
+                template = host.getTemplate(distro, arch=arch)
+                cli = host.getCLIInstance()
+                vdiuuid = cli.execute("vdi-copy sr-uuid=%s uuid=%s" % (sruuid, uuid)).strip().strip(",")
+
+                host.genParamSet("vdi", vdiuuid, "name-label", "%s_%s" % (distro, arch))
+                tuuid = cli.execute("vm-clone", "name-label=\"%s\" new-name-label=xenrt-template-%s-%s-%s" % (template, distro, arch, sruuid)).strip()
+                host.genParamSet("template", tuuid, "PV-bootloader", "pygrub")
+                host.genParamRemove("template", tuuid, "other-config", "disks")
+                cli.execute("vbd-create", "vm-uuid=%s vdi-uuid=%s device=0 bootable=true" % (tuuid, vdiuuid))
+
+                preinstalledTemplates = host.minimalList("template-list", args="name-label=xenrt-template-%s-%s-%s" % (distro, arch, sruuid), params="name-label")
+            m.unmount()
+        
     if not preinstalledTemplates:
-        preinstalledTemplates = host.minimalList("template-list", args="name-label=xenrt-template-%s-%s" % (distro, arch), params="name-label")
+        return None
+
+    t = preinstalledTemplates[0]
+    if rootdisk and rootdisk != Guest.DEFAULT:
+        tuuid = host.minimalList("template-list", args="name-label=%s" % t, params="uuid")[0]
+        vdiuuid=host.minimalList("vbd-list", args="vm-uuid=%s userdevice=0" % tuuid, params="uuid")[0]
+        # Check that the disk is big enough
+        if rootdisk > int(host.genParamGet("vdi", vdiuuid, "virtual-size")):
+            return None
+    g = host.guestFactory()(displayname, host=host)
+    g.arch = arch
+    g.distro=distro
+    if vcpus:
+        g.setVCPUs(vcpus)
+    if corespersocket:
+        g.setCoresPerSocket(corespersocket)
+    if memory:
+        g.setMemory(memory)
+    g.createGuestFromTemplate(t, None)
+    g.ips = ips
+
+    g.removeAllVIFs()
+    if re.search("[vw]", distro):
+        g.windows = True
+        g.vifstem = g.VIFSTEMHVM
+        g.password = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS", "ADMINISTRATOR_PASSWORD"])
+    else:
+        g.windows = False
+        g.vifstem = g.VIFSTEMPV
+
+    if vifs == xenrt.lib.xenserver.Guest.DEFAULT:
+        vifs = [("0",
+                 bridge or host.getPrimaryBridge(),
+                 xenrt.randomMAC(),
+                 None)]
+
+    g.vifs = parseSequenceVIFs(g, host, vifs)
+    for v in g.vifs:
+        eth, bridge, mac, ip = v
+        g.createVIF(eth, bridge, mac)
+
+    g.existing(host)
+
+    if "coreos-" in distro:
+        g.enlightenedDrivers=True
+        notools = True # CoreOS has tools installed already
+    else:
+        g.enlightenedDrivers = False
+    g.start() 
     
-    if not preinstalledTemplates and "Remote Template Library" in host.minimalList("sr-list", params="name-label"):
-        m = xenrt.rootops.MountNFS(xenrt.TEC().lookup("SHARED_VHD_PATH_NFS"))
-        uuid = None
-        if os.path.exists("%s/%s_%s.cfg" % (m.getMount(), distro, arch)):
-            with open("%s/%s_%s.cfg" % (m.getMount(), distro, arch)) as f:
-                uuid = f.read().strip()
-        elif os.path.exists("%s/%s.cfg" % (m.getMount(), distro)):
-            with open("%s/%s.cfg" % (m.getMount(), distro)) as f:
-                uuid = f.read().strip()
-        
-        if uuid and os.path.exists("%s/%s.vhd" % (m.getMount(), uuid)):
-            template = host.getTemplate(distro, arch=arch)
-            cli = host.getCLIInstance()
-            vdiuuid = cli.execute("vdi-copy sr-uuid=%s uuid=%s" % (sruuid, uuid)).strip().strip(",")
-
-            host.genParamSet("vdi", vdiuuid, "name-label", "%s_%s" % (distro, arch))
-            tuuid = cli.execute("vm-clone", "name-label=\"%s\" new-name-label=xenrt-template-%s-%s-%s" % (template, distro, arch, sruuid)).strip()
-            host.genParamSet("template", tuuid, "PV-bootloader", "pygrub")
-            host.genParamRemove("template", tuuid, "other-config", "disks")
-            cli.execute("vbd-create", "vm-uuid=%s vdi-uuid=%s device=0 bootable=true" % (tuuid, vdiuuid))
-
-            preinstalledTemplates = host.minimalList("template-list", args="name-label=xenrt-template-%s-%s-%s" % (distro, arch, sruuid), params="name-label")
-        m.unmount()
-        
-    if preinstalledTemplates:
-        t = preinstalledTemplates[0]
-        g = host.guestFactory()(displayname, host=host)
-        g.arch = arch
-        g.distro=distro
-        if vcpus:
-            g.setVCPUs(vcpus)
-        if corespersocket:
-            g.setCoresPerSocket(corespersocket)
-        if memory:
-            g.setMemory(memory)
-        g.createGuestFromTemplate(t, None)
-        g.ips = ips
-
-        g.removeAllVIFs()
-        if re.search("[vw]", distro):
-            g.windows = True
-            g.vifstem = g.VIFSTEMHVM
-            g.password = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS", "ADMINISTRATOR_PASSWORD"])
-        else:
-            g.windows = False
-            g.vifstem = g.VIFSTEMPV
-
-        if vifs == xenrt.lib.xenserver.Guest.DEFAULT:
-            vifs = [("0",
-                     bridge or host.getPrimaryBridge(),
-                     xenrt.randomMAC(),
-                     None)]
-
-        g.vifs = parseSequenceVIFs(g, host, vifs)
-        for v in g.vifs:
-            eth, bridge, mac, ip = v
-            g.createVIF(eth, bridge, mac)
-
-        g.existing(host)
-
-        if "coreos-" in distro:
-            g.enlightenedDrivers=True
-            notools = True # CoreOS has tools installed already
-        else:
-            g.enlightenedDrivers = False
-        g.start() 
-        
-        if not notools:
-            g.installTools()
-        
-        return g
-
-    return None              
+    if not notools:
+        g.installTools()
+    
+    return g
 
 def createVM(host,
              guestname,
@@ -4456,7 +4475,7 @@ def createVM(host,
              suffix=None,
              ips={}):
 
-    canUseSharedTemplate = not pxe and not guestparams and not template and not bootparams and not use_ipv6
+    canUsePrebuiltTemplate = not pxe and not guestparams and not template and not bootparams and not use_ipv6
 
     if not isinstance(host, xenrt.GenericHost):
         host = xenrt.TEC().registry.hostGet(host)
@@ -4469,21 +4488,21 @@ def createVM(host,
 
     g = None
 
-    if canUseSharedTemplate:
-        g = createVMFromImage(host,
-                              guestname,
-                              distro,
-                              vcpus,
-                              corespersocket,
-                              memory,
-                              vifs,
-                              bridge,
-                              sr,
-                              arch,
-                              rootdisk,
-                              notools,
-                              suffix,
-                              ips)
+    if canUsePrebuiltTemplate:
+        g = createVMFromPrebuiltTemplate(host,
+                      guestname,
+                      distro,
+                      vcpus,
+                      corespersocket,
+                      memory,
+                      vifs,
+                      bridge,
+                      sr,
+                      arch,
+                      rootdisk,
+                      notools,
+                      suffix,
+                      ips)
     if not g:
         if suffix:
             displayname = "%s-%s" % (guestname, suffix)

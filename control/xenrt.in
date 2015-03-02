@@ -6,51 +6,27 @@
 # James Bulpin, November-December 2005
 
 import sys, string, getopt, urllib, os, pwd, tempfile, xmlrpclib, shutil, json
-import os.path, re, glob, random, time
+import os.path, re, glob, random, time, datetime, getpass, ConfigParser
+import stat
+
+try:
+    import requests
+    import xenrtapi
+except:
+    sys.path.append("@nfslibpath@")
+    import requests
+    import xenrtapi
 
 PROFILER_ENABLED = ("XENRT_PROFILE" in os.environ)
 XRTPROF = None
 XRTPROF_FILENAME = os.path.join(("TMP" in os.environ and os.environ["TMP"] or \
 	"/tmp"), "xenrt.prof")
 
-
-server_url_base = '@webcontrdir@'
-logserver_url_base = 'http://%s/share/control/'
-s = os.getenv("WEB_CONTROL_PATH")
-if s:
-    server_url_base = s
-if os.getenv("XENRT_DEBUG") == "yes":
-    server_url = server_url_base + 'queue-devel.cgi'
-    logserver_url = logserver_url_base + 'queue-devel.cgi'
-    queuecgi = "queue-devel.cgi"
-else:
-    server_url = server_url_base + 'queue.cgi'
-    logserver_url = logserver_url_base + 'queue.cgi'
-    queuecgi = "queue.cgi"
-_sharedir = "@sharedir@"
-_confdir = "@confdir@"
 _console = "@console@"
 _conserver = "@conserver@"
 _jenkins = "@jenkins@"
 _conskey = """@conskey@"""
-
-def urlopen_with_retry(*args, **kwargs):
-    i = 0
-    retryTimer = 2
-    exception = None
-    while i < 7:
-        try:
-            u = urllib.urlopen(*args, **kwargs)
-            if "getcode" in dir(u):
-                if u.getcode() >= 400:
-                    raise Exception("Invalid HTTP resonse code")
-            return u
-        except Exception, e:
-            time.sleep(retryTimer)
-            exception = e
-        i+= 1
-        retryTimer *= 2
-    raise e
+_authrealm = """@authrealm@"""
 
 class XenRTCommand:
 
@@ -65,16 +41,59 @@ class XenRTCommand:
 
     def __init__(self, commands):
         self.commands = commands
-        self.proxies = None
 
-    def getServerURL(self):
-        return server_url
-   
-    def getLogServerURL(self, jobid):
-        logserver = self.getLogServer(jobid, proxies=self.proxies)
-        return logserver_url % logserver
+    def getConfigFile(self):
+        path = "%s/.xenrtrc" % os.path.expanduser("~")
+        try:
+            config = ConfigParser.ConfigParser()
+            config.read(path)
+            return config
+        except:
+            return None
 
-    def dispatch(self, args, raw=0):
+    def getAPIKey(self):
+        if os.getenv("XENRT_APIKEY"):
+            return os.getenv("XENRT_APIKEY")
+        else:
+            try:
+                return self.getConfigFile().get("xenrt", "apikey").strip()
+            except:
+                return None
+
+    def getXenRTServer(self):
+        if os.getenv("XENRT_SERVER"):
+            return os.getenv("XENRT_SERVER")
+        try:
+            return self.getConfigFile().get("xenrt", "server").strip()
+        except:
+            return None
+
+    def retrieveAPIKeyFromServer(self):
+        if not sys.stdin.isatty():
+            raise Exception("Running non-interactively and no API key specified in ~/.xenrtrc")
+        global _authrealm
+        defaultuser = getpass.getuser()
+        user = raw_input("Enter your %s username [%s]: " % (_authrealm, defaultuser))
+        if not user.strip():
+            user = defaultuser
+        password = getpass.getpass()
+        xrt = xenrtapi.XenRT(user=user, password=password, server=self.getXenRTServer())
+        apikey = xrt.get_apikey()
+        path = "%s/.xenrtrc" % os.path.expanduser("~")
+        print "Writing %s as API key in ~/.xenrtrc" % apikey
+        config = ConfigParser.ConfigParser()
+        config.add_section("xenrt")
+        config.set("xenrt", "apikey", apikey)
+        with open(path, "wb") as f:
+            config.write(f)
+        os.chmod(path, stat.S_IRUSR|stat.S_IWUSR)
+
+    def dispatch(self, args):
+        apikey = self.getAPIKey()
+        if not apikey:
+            self.retrieveAPIKeyFromServer()
+            apikey = self.getAPIKey()
+        self.xenrt = xenrtapi.XenRT(apikey=self.getAPIKey(), server=self.getXenRTServer())
 
         if len(args) > 0 and args[0] in ("--help", "-h"):
             print "%s\n" % (self. summary)
@@ -86,100 +105,35 @@ class XenRTCommand:
                   (sys.argv[0], self.name, self.mandatory, opts)
             print self.usage
             return 0
-        results = self.run(args)
-        if raw:
-            return results
-        else:
-            if results:
-                return self.render(args, results)
-            else:
-                return 1
+        self.run(args)
 
-    def run(self, args):
-        return 1
-
-    def render(self, args, results):
-        return 0
+    def boolToYN(self, val):
+        return "yes" if val else "no"
 
     def printout(self, str):
-        if self.commands and self.commands.outfd:
-            fd = self.commands.outfd
-        else:
-            fd = sys.stdout
-        fd.write(str)
+        sys.stdout.write(str)
 
-    def getLogServer(self, job, proxies=None, params=None):
-        if not params:
-            params=["LOG_SERVER", "JOB_FILES_SERVER"]
-        details = {'action': 'status'}
-        details['USERID'] = pwd.getpwuid(os.getuid())[0]
-        details["id"] = job
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=proxies)
-
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            reply = self.parse_job(data)
-        u.close()
-        for p in params:
-            if reply.has_key(p):
-                return reply[p]
-        return None
-
-    def uploadWithCurl(self, details, filename, url, proxies=None):
+    def uploadWithCurl(self, url, localFn, remoteFn):
         cmd = ["curl"]
+        cmd.append("--fail")
         cmd.append("-H \"Expect:\"")
-        if proxies and proxies.has_key('http'):
-            cmd.append("--proxy %s" % (proxies['http'][7:]))
-        for d in details.keys():
-            cmd.append("-F '%s=%s'" % (d, details[d]))
-        cmd.append("-F file=@%s" % (filename))
+        if remoteFn:
+            cmd.append("-F 'filename=%s'" % (remoteFn))
+        cmd.append("-F file=@%s" % (localFn))
         cmd.append(url)
         rc = os.system("%s > /dev/null 2>&1" % (string.join(cmd)))
-        if rc == 0:
-            return 1
-        return None
+        if rc != 0:
+            raise Exception("curl returned non-zero exit status")
 
-    def upload(self, details, filename, proxies=None, scheduler=False):
-        if scheduler:
-            url = self.getServerURL()
-        else:
-            url = self.getLogServerURL(details['id'])
+    def upload(self, url, localFn=None, remoteFn=None):
         if os.path.exists("/usr/bin/curl"):
-            return self.uploadWithCurl(details, filename, url, proxies=proxies)
-        if filename:
-            f = file(filename, 'r')
+            return self.uploadWithCurl(url, localFn, remoteFn)
+        if localFn:
+            f = file(localFn, 'r')
         else:
             f = sys.stdin
-        #data = f.read()
-        details["file"] = f.read()
-        if filename:
-            f.close()
-        u = urlopen_with_retry(url, urllib.urlencode(details), proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            reply = 1
-        u.close()
-        return reply
-
-    def parse_job(self, data):
-
-        reply = {}
-        for s in string.split(data, "\n"):
-            #sys.stderr.write(":%s:" % (s))
-            ll = string.split(s, "=", 1)
-            if len(ll) == 2:
-                key = ll[0]
-                value = ll[1]
-                if value[0] == "'":
-                    value = value[1:-1]
-                reply[key] = value
-        return reply
+        r = requests.post(url, files={"file": (remoteFn or localFn or "stdin", f)})
+        r.raise_for_status()
 
     def parse_options(self, args):
         secondary = {}
@@ -286,14 +240,12 @@ class XenRTCommand:
                     updates = []                
                     for u in string.split(value, ","):
                         if not os.path.exists(u):
-                            sys.stderr.write("Update %s doesn't exist on this machine." % u)
-                            return None, None
+                            raise Exception("Update %s doesn't exist on this machine." % u)
                         known_formats = ["rpm", "tar", "tar.gz", "tgz", "tar.bz", "tbz"]                    
                         if len(filter(lambda ext: u.endswith("." + ext), known_formats)) == 0:
-                            sys.stderr.write("Update %s has an unknown format ."
+                            raise Exception("Update %s has an unknown format ."
                                              "Only the following formats are supported: %s"
                                              % (u, known_formats))
-                            return None, None
                         updates.append(os.path.basename(u))
                     details['CUSTOM_UPDATES'] = string.join(updates, ",")
                     secondary['customupdates'] = value
@@ -396,19 +348,14 @@ class XenRTCommand:
                     try:
                         var, varval = string.split(value, "=", 1)
                         if len(var) > 24:
-                            sys.stderr.write(\
-                                "-D parameter too long (24 chars max): %s" % (var))
-                            return None, None
+                            raise Exception("-D parameter too long (24 chars max): %s" % (var))
                         if len(varval) > 255:
-                            sys.stderr.write(\
-                                "-D value too long (255 chars max): %s=%s" %
+                            raise Exception("-D value too long (255 chars max): %s=%s" %
                                 (var, varval))
-                            return None, None
                         details[var] = varval
                     except:
-                        sys.stderr.write("Error parsing -D variable '%s'\n" %
+                        raise Exception("Error parsing -D variable '%s'\n" %
                                          (value))
-                        return None, None
                 elif flag == "--removepassed":
                     details['OPTION_REMOVE_PASSED'] = "yes"
                 elif flag == "--pq":
@@ -446,11 +393,9 @@ class XenRTCommand:
                 elif flag == "--xenrtpqname":
                     details['XENRT_PQ_NAME'] = value
                 else:
-                    sys.stderr.write("Unknown argument '%s'\n" % (flag))
-                    return None, None
+                    raise Exception("Unknown argument '%s'\n" % (flag))
         except getopt.GetoptError, e:
-            sys.stderr.write("Unknown argument: %s\n" % (str(e)))
-            return None, None
+            raise Exception("Unknown argument: %s\n" % (str(e)))
 
         if details.has_key('USER_BUILD_OPTIONS') and \
                details['USER_BUILD_OPTIONS'] == "supervisor_mode_kernel=y":
@@ -557,116 +502,27 @@ class XenRTStatus(XenRTCommand):
     mandatory = "<jobid> [VarName1] [VarName#] [...]"
     group = "Job"
 
+    def printVar(self, var):
+        return not self.printVars or var in self.printVars
+
     def run(self, args):
-        details = {'action': 'status'}
-        details['USERID'] = pwd.getpwuid(os.getuid())[0]
-        if len(args) < 1:
-            sys.stderr.write("Invalid usage\n")
-            return None
-        id = string.atoi(args[0])
-        details["id"] = id
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            reply = self.parse_job(data)
-        u.close()
-
-        if not len(args[1:]):
-            return reply
-
-        for key in reply.keys():
-            if not key in args[1:]:
-                del reply[key]
-        
-        return reply
-
-    def render(self, args, results):
+        results = self.xenrt.get_job(int(args[0]))
         # Print CHECK first (XRT-303)
-        if results.has_key("CHECK"):
-            self.printout("%s='%s'\n" % ("CHECK", results["CHECK"]))
-        for key in results.keys():
-            if key != "CHECK":
-                self.printout("%s='%s'\n" % (key, results[key]))
-        return 0
+        self.printVars = args[1:]
+        if results['result'] and self.printVar("CHECK"):
+            self.printout("CHECK='%s'\n" % (results["result"]))
+        if self.printVar("JOBSTATUS"):
+            self.printout("JOBSTATUS='%s'\n" % (results["rawstatus"]))
+        if self.printVar("USERID"):
+            self.printout("USERID='%s'\n" % (results["user"]))
+        if self.printVar("JOBID"):
+            self.printout("JOBID='%s'\n" % (results["id"]))
+        if self.printVar("PAUSED"):
+            self.printout("PAUSED='%s'\n" % self.boolToYN("paused" in [x['result'] for x in results['results'].values()]))
+        for key in results['params'].keys():
+            if key != "CHECK" and self.printVar(key):
+                self.printout("%s='%s'\n" % (key, results['params'][key]))
 
-class XenRTUtilisation(XenRTCommand):
-
-    name = "utilisation"
-    summary = "Get the utilisation of a pool for a specified period"
-    usage = """
-    -d <days>|<from>,<to>   Summary period as either a number of days or a
-                            comma separated pair of UNIX timestamps
-                            specifying start and end times. Default is 7 days.
-    -p <pool>[,<pool>...]   List of pools to summarise. Default is all.
-    -v                      Verbose - show per-machine details as well.
-    """
-
-    def run(self, args):
-        details = {'action': 'utilisation'}
-        details['USERID'] = pwd.getpwuid(os.getuid())[0]
-        period = "7"
-        self.verbose = False
-        try:
-            optlist, optx = getopt.getopt(args, 'd:p:v')
-            for argpair in optlist:
-                (flag, value) = argpair
-                if flag == "-v":
-                    details["verbose"] = "yes"
-                    self.verbose = True
-                elif flag == "-d":
-                    period = value
-                elif flag == "-p":
-                    details['pools'] = value
-                else:
-                    sys.stderr.write("Unknown argument '%s'\n" % (flag))
-                    return None
-        except getopt.GetoptError:
-            sys.stderr.write("Unknown argument\n")
-            return None
-        details["period"] = period
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = []
-        error = 0
-        while 1:
-            line = u.readline()
-            if not line:
-                break
-            if line[0:5] == "ERROR":
-                sys.stderr.write(line)
-                error = 1
-            ll = string.split(string.strip(line), ",")
-            reply.append(ll)
-        u.close()
-        if error:
-            return None
-        return reply
-
-    def render(self, args, results):        
-        for ll in results:
-            if ll[0] == "ALL":
-                self.printout("Total (%s jobs, %s, %s)\n\n" %
-                              (ll[4], ll[3], ll[2]))
-                if not self.verbose:
-                    self.printout("%-12s %12s %-18s %9s\n" % \
-                                  ("Pool", "Utilisation", "Time Spent", "Job Count"))
-                    self.printout("------------------------------------------" +
-                                  "------------\n")
-            elif ll[0] == "POOL" and self.verbose:
-                self.printout("\n%s (%s jobs, %s, %s)\n" %
-                              (ll[1], ll[4], ll[3], ll[2]))
-                self.printout("%-12s %12s %-18s %9s\n" % \
-                              ("Machine", "Utilisation", "Time Spent", "Job Count"))
-                self.printout("------------------------------------------" +
-                              "------------\n")
-            elif ll[0] == "MACHINE" or (ll[0] == "POOL" and not self.verbose):
-                self.printout("%-12s %12s %-18s %9s\n" % \
-                              (ll[1], ll[2], ll[3], ll[4]))
-                
 class XenRTMachine(XenRTCommand):
 
     name = "machine"
@@ -675,28 +531,21 @@ class XenRTMachine(XenRTCommand):
     group = "Machine"
 
     def run(self, args):
-        details = {'action': 'machine'}
-        details['USERID'] = pwd.getpwuid(os.getuid())[0]
-        if len(args) != 1:
-            sys.stderr.write("Invalid usage\n")
-            return None
-        machine = args[0]
-        details["machine"] = machine
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            reply = self.parse_job(data)
-        u.close()
-        return reply
-
-    def render(self, args, results):
-        for key in results.keys():
-            self.printout("%s='%s'\n" % (key, results[key]))
-        return 0
+        results = self.xenrt.get_machine(args[0])
+        self.printout("STATUS='%s'\n" % results['rawstatus'])
+        for i in ('jobid', 'leasereason', 'pool', 'leaseuser', 'cluster', 'site'):
+            if results[i]:
+                self.printout("%s='%s'\n" % (i.upper(), results[i]))
+        for i in ('leaseto', 'leasefrom'):
+            if results[i]:
+                t = datetime.datetime.utcfromtimestamp(results[i]).isoformat(" ")
+                self.printout("%s='%s'\n" % (i.upper(), t))
+        if results['leaseuser']:
+            self.printout("COMMENT='%s'\n" % results['leaseuser'])
+        if results['resources']:
+            self.printout("RESOURCES='%s'\n" % "/".join(["=".join(x) for x in results['resources'].items()]))
+        for key in results['params'].keys():
+            self.printout("%s='%s'\n" % (key, results['params'][key]))
 
 class XenRTShowLog(XenRTCommand):
 
@@ -711,43 +560,53 @@ class XenRTShowLog(XenRTCommand):
     group = "Job"
 
     def run(self, args):
-        details = {'action': 'showlog'}
-        details['USERID'] = pwd.getpwuid(os.getuid())[0]
         if len(args) < 1:
-            sys.stderr.write("Invalid usage\n")
-            return None
-        id = string.atoi(args[0])
-        details["id"] = id
+            raise Exception("Invalid usage\n")
+        verbose=False
+        wide=False
+        times=False
         try:
             optlist, optx = getopt.getopt(args[1:], 'vwt')
             for argpair in optlist:
                 (flag, value) = argpair
                 if flag == "-v":
-                    details["verbose"] = "yes"
+                    verbose = True
                 elif flag == "-w":
-                    details["wide"] = "yes"
+                    wide = True
                 elif flag == "-t":
-                    details["times"] = "yes"
+                    times = True
                 else:
-                    sys.stderr.write("Unknown argument '%s'\n" % (flag))
-                    return None
+                    raise Exception("Unknown argument '%s'\n" % (flag))
         except getopt.GetoptError:
-            sys.stderr.write("Unknown argument\n")
-            return None
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            reply = data
-        u.close()
-        return reply
+            raise Exception("Unknown argument\n")
 
-    def render(self, args, results):
-        self.printout(results)
-        return 0
+        
+        job = self.xenrt.get_job(string.atoi(args[0]), logitems=(verbose or times))
+
+        pref = ""
+        if wide:
+            pref = job['params'].get("OPTIONS", "")
+        if pref:
+            pref += " "
+
+        for r in sorted(job['results'].keys(), key=int):
+            timestr = ""
+            if times:
+                start = [x['ts'] for x in job['results'][r]['log'] if x['log'] == "started"]
+                finish = [x['ts'] for x in job['results'][r]['log'] if x['log'] in("pass", "fail", "error", "partial")]
+                if start and finish:
+                    timestr = " (Duration %6us)" % (finish[0] - start[0])
+            self.printout("%s%-10s %-12s %-10s%s\n" % (
+                    pref,
+                    job['results'][r]['phase'],
+                    job['results'][r]['test'],
+                    job['results'][r]['result'],
+                    timestr))
+            if verbose:
+                for l in job['results'][r]['log']:
+                    dt = datetime.datetime.utcfromtimestamp(l['ts']).isoformat(" ")
+                    self.printout("...[%-19s] %-10s %s\n" % (dt, l['type'], l['log']))
+            
 
 class XenRTMList2(XenRTCommand):
 
@@ -772,79 +631,127 @@ class XenRTMList2(XenRTCommand):
 
     def run(self, args):
         self.controller = False
-        details = {'action': 'mlist2'}
-        details['USERID'] = pwd.getpwuid(os.getuid())[0]
+        details = {}
+        quiet = False
+        show=None
+        filterLeased = None
+        filterBroken = False
+        controllerFormat = False
         try:
-            optlist, optx = getopt.getopt(args, 's:c:o:qCrdR:pP:vf:mb:na', "broken")
+            optlist, optx = getopt.getopt(args, 's:c:o:qrCdR:pP:vf:mb:na', "broken")
             for argpair in optlist:
                 (flag, value) = argpair
                 if flag == "-s":
-                    details["site"] = value
-                elif flag == "-c":
-                    details["cluster"] = value
-                elif flag == "-o":
-                    details["pool"] = value
-                elif flag == "-q":
-                    details["quiet"] = "yes"
-                elif flag == "-r":
-                    details["res"] = "yes"
-                elif flag == "-d":
-                    details["desc"] = "yes"
+                    details["site"] = [value]
                 elif flag == "-C":
-                    details["controller"] = "yes"
-                    self.controller = True
+                    controllerFormat = True
+                    details["pseudohosts"] = True
+                elif flag == "-c":
+                    details["cluster"] = [value]
+                elif flag == "-o":
+                    details["pool"] = [value]
+                elif flag == "-q":
+                    quiet = True
+                elif flag == "-r":
+                    show = "Resources"
+                elif flag == "-d":
+                    show = "Description"
                 elif flag == "-R":
-                    details["rfilter"] = value
+                    details["resource"] = value.split("/")
                 elif flag == "-p":
-                    details["props"] = "yes"
+                    show = "Properties"
                 elif flag == "-P":
-                    details["pfilter"] = value
+                    if not "flag" in details:
+                        details['flag'] = []
+                    details["flag"].extend(value.split(","))
                 elif flag == "-f":
-                    details["ffilter"] = value
+                    if not "flag" in details:
+                        details['flag'] = []
+                    details["flag"].extend(value.split(","))
                 elif flag == "-b":
-                    details["leasefilter"] = value
+                    details["user"] = [value]
                 elif flag == "-m":
-                    details["leasefilter"] = details["USERID"]
+                    details["user"] = ["${user}"]
                 elif flag == "-n":
-                    details["notleased"] = "yes"
+                    filterLeased = False
                 elif flag == "-a":
-                    details["leased"] = "yes"
+                    filterLeased = True
                 elif flag == "-v":
-                    details["verbose"] = "yes"
+                    details["pseudohosts"] = True
                 elif flag == "--broken":
-                    details['broken'] = "yes"
+                    filterBroken = True
                 else:
-                    sys.stderr.write("Unknown argument '%s'\n" % (flag))
-                    return None
+                    raise Exception("Unknown argument '%s'\n" % (flag))
         except getopt.GetoptError:
-            sys.stderr.write("Unknown argument\n")
-            return None
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            if self.controller:
-                reply = []
-                lines = string.split(data, "\n")
-                for l in lines:
-                    if l != "":
-                        reply.append(string.split(l,","))
-            else:
-                reply = data
-        u.close()
-        return reply
+            raise Exception("Unknown argument\n")
+        machines = self.xenrt.get_machines(**details)
 
-    def render(self, args, results):
-        if results:
-            if self.controller:
-                for line in results:
-                    self.printout("%s\n" % (string.join(line, ",")))
+        jobids = [x['jobid'] for x in machines.values() if x['status'] == "running"]
+
+        jobs = self.xenrt.get_jobs(jobid=jobids, params=True, limit=0)
+
+        if show:
+            chead = show
+        else:
+            chead = "Comment/Leased to"
+
+        fmt = "%-15s %-12s %-8s %-9s %-8s %s\n"
+        if not quiet and not controllerFormat:
+            self.printout(fmt % ("Machine", "Site", "Cluster", "Status", "Pool", chead))
+            self.printout("============================================================================\n")
+            
+        for m in sorted(machines.keys()):
+            if filterBroken and not machines[m]['broken']:
+                continue
+            if filterLeased and not machines[m]['leaseuser']:
+                continue
+            if filterLeased == False and machines[m]['leaseuser']:
+                continue
+            if controllerFormat:
+                self.printout("%s,%s,%s" % (m,machines[m]['rawstatus'],str(machines[m]['jobid']) if machines[m]['jobid'] else ""))
             else:
-                self.printout(results)
-        return 0
+                status = machines[m]['rawstatus']
+                if status == "scheduled":
+                    status = "%d (S)" % machines[m]['jobid']
+                elif status == "running":
+                    status = "%d" % machines[m]['jobid']
+                elif status == "slaved":
+                    status = "(%d)" % machines[m]['jobid']
+
+                if show == "Resources":
+                    comment = "/".join(machines[m]['resources'])
+                elif show == "Properties":
+                    comment = ",".join(machines[m]['flags'])
+                elif show == "Description":
+                    comment = machines[m]['description'] or ""
+                else:
+                    if machines[m]['broken']:
+                        comment = "Broken"
+                        brokenInfo = machines[m]['params'].get("BROKEN_INFO")
+                        brokenTicket = machines[m]['params'].get("BROKEN_TICKET")
+                        if brokenInfo or brokenTicket:
+                            comment += " -"
+                        if brokenInfo and brokenTicket and brokenTicket in brokenInfo:
+                            brokenTicket = None
+                        if brokenTicket:
+                            comment += " " + brokenTicket
+                        if brokenInfo:
+                            comment += " " + brokenInfo
+                    elif machines[m]['leaseuser']:
+                        dt = datetime.datetime.utcfromtimestamp(machines[m]['leaseto']).isoformat(" ")
+                        if machines[m]['leasereason']:
+                            userstr = "%s - %s" % (machines[m]['leaseuser'], machines[m]['leasereason'])
+                        else:
+                            userstr = machines[m]['leaseuser']
+                        comment = "%s (%s)" % (dt, userstr)
+                    elif machines[m]['status'] == "running" and str(machines[m]['jobid']) in jobs:
+                        job = jobs[str(machines[m]['jobid'])]
+                        comment = "%s - %s" % (job["description"], job['user'])
+                    else:
+                        comment = ""
+                
+                self.printout(fmt % (m, machines[m]['site'], machines[m]['cluster'], status, machines[m]['pool'], comment))
+                    
 
 class XenRTMList(XenRTMList2):
     # Alias for xenrt mlist2
@@ -869,65 +776,40 @@ class XenRTList(XenRTCommand):
     group = "Scheduler"
 
     def run(self, args):
-        self.showsr = False
-        details = {'action': 'list',
-                   'fields': 'MACHINE,VERSION,REVISION,DEPS,JOBDESC,USERID,TESTRUN_SR'}
-        self.quiet = False
+        showsr = False
+        details = {}
+        quiet = False
+        jobdesc = None
         try:
             optlist, optx = getopt.getopt(args, 'mU:nrsS:qD:')
             for argpair in optlist:
                 (flag, value) = argpair
                 if flag == "-U":
-                    details["filter_USERID"] = value
+                    details["user"] = [value]
                 elif flag == "-S":
-                    details["filter_TESTRUN_SR"] = value
+                    details["suiterun"] = [value]
                 elif flag == "-m":
-                    details["filter_USERID"] = pwd.getpwuid(os.getuid())[0]
+                    details["user"] = "${user}"
                 elif flag == "-n":
-                    details["filter_JOBSTATUS"] = "new"
+                    details["status"] = ["new"]
                 elif flag == "-r":
-                    details["filter_JOBSTATUS"] = "running"
+                    details["status"] = ["running"]
                 elif flag == "-s":
-                    self.showsr = True
+                    showsr = True
                 elif flag == "-q":
-                    self.quiet = True
+                    quiet = True
                 elif flag == "-D":
-                    details["filter_JOBDESC"] = value
+                    jobdesc = value
                 else:
-                    sys.stderr.write("Unknown argument '%s'\n" % (flag))
-                    return None
+                    raise Exception("Unknown argument '%s'\n" % (flag))
         except getopt.GetoptError:
-            sys.stderr.write("Unknown argument\n")
-            return None
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = []
-        error = 0
-        while 1:
-            line = u.readline()
-            if not line:
-                break
-            if line[0:5] == "ERROR":
-                sys.stderr.write(line)
-                error = 1
-            else:
-                if line[-1] == "\n":
-                    ll = string.split(line[:-1], "\t")
-                else:
-                    ll = string.split(line, "\t")
-                while len(ll) < 7:
-                    ll.append("")
-                reply.append(ll)
-        u.close()
-        if error:
-            return None
-        return reply
-
-    def render(self, args, results):
+            raise Exception("Unknown argument\n")
+        jobs = self.xenrt.get_jobs(params=True, limit=10000, results=True, **details)
+        
         fieldwidths = [7, 8, 12, 9, 13, 18, 21]
         fmt = string.join(map(lambda x:"%%-%us" % x, fieldwidths))
         fmt = fmt + "\n"
-        if not self.quiet:
+        if not quiet:
             self.printout(fmt % ("ID",
                                  "Status",
                                  "Host(s)",
@@ -937,18 +819,36 @@ class XenRTList(XenRTCommand):
                                  "User"))
             self.printout("--------------------------------------------------"
                           "-----------------------------\n")
-        for ll in results:
-            if ll[6] != "":
-                ll[5] = ll[6]
-            ll[6] = ll[7]
-            if ll[8] and self.showsr:
-                ll[5] = ll[5].split("&")[0]
-                ll[5] = "SR%s " % (ll[8]) + ll[5]
-            for i in range(len(fieldwidths)):
-                if len(ll[i]) > fieldwidths[i]:
-                    ll[i] = ll[i][0:fieldwidths[i]]
-            self.printout(fmt %
-                          (ll[0], ll[1], ll[2], ll[3], ll[4], ll[5], ll[6]))
+        for s in ['new', 'running']:
+            for job in sorted([x for x in jobs.keys() if jobs[x]['status'] == s], key=int, reverse=True):
+                j = jobs[job]
+                
+                if jobdesc and j['description'] != jobdesc:
+                    continue
+                status = j['status']
+
+                if "paused" in [x['result'] for x in j['results'].values()]:
+                    status = "paused"
+
+                if showsr and j['suiterun']:
+                    desc = "SR%d %s" % (j['suiterun'], j['description'] or "")
+                else:
+                    desc = j['description'] or ""
+
+                ll = [
+                    str(j['id']),
+                    status,
+                    ",".join(j['machines']),
+                    j['params'].get("VERSION", ""),
+                    j['params'].get("REVISION", ""),
+                    desc,
+                    j['user']]
+
+                for i in range(len(fieldwidths)):
+                    if len(ll[i]) > fieldwidths[i]:
+                        ll[i] = ll[i][0:fieldwidths[i]]
+
+                self.printout(fmt % tuple(ll))
                           
         
 class XenRTComplete(XenRTCommand):
@@ -959,23 +859,10 @@ class XenRTComplete(XenRTCommand):
     group = "Job"
 
     def run(self, args):
-        details = {'action': 'complete'}
-        details['USERID'] = pwd.getpwuid(os.getuid())[0]
         if len(args) != 1:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         id = string.atoi(args[0])
-        details["id"] = id
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            reply = 1
-        u.close()
-        return reply
+        self.xenrt.update_job(id, complete=True)
 
 class XenRTEmail(XenRTCommand):
 
@@ -985,23 +872,10 @@ class XenRTEmail(XenRTCommand):
     hide = True
 
     def run(self, args):
-        details = {'action': 'email'}
-        details['USERID'] = pwd.getpwuid(os.getuid())[0]
         if len(args) != 1:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         id = string.atoi(args[0])
-        details["id"] = id
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            reply = 1
-        u.close()
-        return reply
+        self.xenrt.send_job_email(id)
 
 class XenRTLogServer(XenRTCommand):
     name = "logserver"
@@ -1009,22 +883,8 @@ class XenRTLogServer(XenRTCommand):
     mandatory = ""
     hide = True
 
-    def run(self, args, preconf=None):
-        details = {'action': 'getlogserver'}
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            reply = data.strip()
-        u.close()
-        return reply
-
-    def render(self, args, results):
-        self.printout("%s\n" % results)
-        return 0
+    def run(self, args):
+        self.printout("%s\n" % self.xenrt.get_logserver())
 
 class XenRTSetResult(XenRTCommand):
 
@@ -1034,26 +894,9 @@ class XenRTSetResult(XenRTCommand):
     hide = True
 
     def run(self, args):
-        details = {'action': 'setresult'}
-        details['USERID'] = pwd.getpwuid(os.getuid())[0]
         if len(args) != 4:
-            sys.stderr.write("Invalid usage\n")
-            return None
-        id = string.atoi(args[0])
-        details["id"] = id
-        details["phase"] = args[1]
-        details["test"] = args[2]
-        details["result"] = args[3]
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            reply = 1
-        u.close()
-        return reply
+            raise Exception("Invalid usage\n")
+        self.xenrt.set_result(int(args[0]), args[1], args[2], args[3])
 
 class XenRTEvent(XenRTCommand):
 
@@ -1063,69 +906,10 @@ class XenRTEvent(XenRTCommand):
     hide = True
     
     def run(self, args):
-        details = {'action': 'event'}
-        details['USERID'] = pwd.getpwuid(os.getuid())[0]
         if len(args) != 3:
-            sys.stderr.write("Invalid usage\n")
-            return None
-        details["etype"] = args[0]
-        details["subject"] = args[1]
-        details["edata"] = args[2]
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            reply = 1
-        u.close()
-        return reply
+            raise Exception("Invalid usage\n")
+        self.xenrt.new_event(args[0], args[1], args[2])
     
-class XenRTJobGroup(XenRTCommand):
-
-    name = "jobgroup"
-    summary = "Reset job group or add a job to a group"
-    mandatory = "<group> {-R | -a <jobid>}"
-    usage = """
-    [ -d '<description>' ]   short description of this job
-    """
-    group = "Job group"
-
-    def run(self, args):
-        details = {'action': 'jobgroup'}
-        details['USERID'] = pwd.getpwuid(os.getuid())[0]
-        if len(args) < 1:
-            sys.stderr.write("Invalid usage\n")
-            return None
-        details['gid'] = args[0]
-        command = None
-        if len(args) > 1:
-            optlist, optx = getopt.getopt(args[1:], 'Ra:d:')
-            for argpair in optlist:
-                (flag, value) = argpair
-                if flag == "-R":
-                    command = "reset"
-                elif flag == "-a":
-                    command = "add"
-                    details['jobid'] = value
-                elif flag == "-d":
-                    details['desc'] = value
-        if not command:
-            sys.stderr.write("Invalid usage\n")
-            return None
-        details['command'] = command
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            reply = 1
-        u.close()
-        return reply
-
 class XenRTLogData(XenRTCommand):
 
     name = "logdata"
@@ -1134,27 +918,9 @@ class XenRTLogData(XenRTCommand):
     hide = True
     
     def run(self, args):
-        details = {'action': 'logdata'}
-        details['USERID'] = pwd.getpwuid(os.getuid())[0]
         if len(args) != 5:
-            sys.stderr.write("Invalid usage\n")
-            return None
-        id = string.atoi(args[0])
-        details["id"] = id
-        details["phase"] = args[1]
-        details["test"] = args[2]
-        details["key"] = args[3]
-        details["value"] = args[4]
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            reply = 1
-        u.close()
-        return reply
+            raise Exception("Invalid usage\n")
+        self.xenrt.new_logdata(int(args[0]), args[1], args[2], args[3], args[4])
 
 class XenRTRemove(XenRTCommand):
 
@@ -1164,23 +930,10 @@ class XenRTRemove(XenRTCommand):
     group = "Job"
 
     def run(self, args):
-        details = {'action': 'remove'}
-        details['USERID'] = pwd.getpwuid(os.getuid())[0]
         if len(args) != 1:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         id = string.atoi(args[0])
-        details["id"] = id
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            reply = 1
-        u.close()
-        return reply
+        self.xenrt.remove_job(id)
 
 class XenRTSubmit(XenRTCommand):
 
@@ -1202,207 +955,39 @@ class XenRTSubmit(XenRTCommand):
         defaults.update(details)
         details = defaults
         if not details:
-            return None
+            raise Exception("No parameters specified")
+        email = None
+        if details.has_key("EMAIL"):
+            email = details["EMAIL"]
+            del details["EMAIL"]
+        if details.has_key("USERID"):
+            self.xenrt.customHeaders['X-Fake-User'] = details["USERID"]
+            del details["USERID"]
         for key in details.keys():
             if len(details[key]) == 0:
                 del details[key]
-        if not details.has_key("USERID"):
-            details["USERID"] = pwd.getpwuid(os.getuid())[0]
 
-        if details.has_key("INPUTDIR") and "latest" in details["INPUTDIR"]:
-            
-            # if you use a build like this: /usr/groups/xen/carbon/trunk/latest/
-            # then it will get cached on the controller using this name as the key.
-            # The cached build will then not get updated when the symlink target 
-            # build changes.
-            
-            sys.stderr.write("You must specify a build with a build number in it.\n")
-            return None
+        job = self.xenrt.new_job(params=details,email=email)
+        attachUrl = job['attachmentUploadUrl']
 
-        if details.has_key("DEBUGCMD"):
-            del details['DEBUGCMD']
-            com.commands['status'].render(None, details)
-            return 0
-                    
-        details['action'] = 'submit'
-
-        u = urlopen_with_retry(self.getServerURL(), urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        while 1:
-            line = u.readline()
-            if not line:
-                break
-            ll = string.split(line, ' ', 2)
-            if len(ll) > 0:
-                if ll[0] == 'OK':
-                    if len(ll) < 2:
-                        sys.stderr.write("Server returned success but " +
-                                         "without a job ID\n")
-                    else:
-                        reply = string.atoi(ll[1])
-                        # Do we have a patch to upload?
-                        if secondary.has_key("patch"):
-                            patch = secondary["patch"]
-                            detp = {
-                                'action': 'upload',
-                                'id': ll[1],
-                                'prefix': 'patch' }
-                            if not self.upload(detp, patch, proxies=self.proxies):
-                                sys.stderr.write("Submitted job %u but "
-                                                 "upload of patch %s "
-                                                 "failed.\n" % (reply, patch))
-                                reply = None
-                        if secondary.has_key("seqfiles"):
-                            for sf in string.split(secondary['seqfiles'], ","):
-                                detp = {
-                                    'action': 'upload',
-                                    'id': ll[1],
-                                    'prefix': os.path.basename(sf) }
-                                if not self.upload(detp, sf, proxies=self.proxies):
-                                    sys.stderr.write("Submitted job %u but "
-                                                     "upload of sequence file %s "
-                                                     "failed.\n" % (reply, sf))
-                                    reply = None
-                        if secondary.has_key("testcasefiles"):
-                            for tf in string.split(secondary['testcasefiles'],
-                                                   ","):
-                                detp = {
-                                    'action': 'upload',
-                                    'id': ll[1],
-                                    'prefix': os.path.basename(tf) }
-                                if not self.upload(detp, tf, proxies=self.proxies):
-                                    sys.stderr.write("Submitted job %u but "
-                                                     "upload of test case file "
-                                                     "%s failed.\n" % (reply, 
-                                                                       tf))
-                                    reply = None
-                        if secondary.has_key("customupdates"):
-                            for cu in string.split(secondary['customupdates'],
-                                                   ","):
-                                detp = {
-                                    'action': 'upload',
-                                    'id': ll[1],
-                                    'prefix': os.path.basename(cu) }
-                                if not self.upload(detp, cu, proxies=self.proxies):
-                                    sys.stderr.write("Submitted job %u but "
-                                                     "upload of customized update "
-                                                     "%s failed.\n" % (reply, 
-                                                                       cu))
-                                    reply = None
-                        if secondary.has_key("perfdata"):
-                            sf = secondary['perfdata']
-                            detp = {
-                                'action': 'upload',
-                                'id': ll[1],
-                                'prefix': 'perfdata' }
-                            if not self.upload(detp, sf, proxies=self.proxies):
-                                sys.stderr.write("Submitted job %u but "
-                                                 "upload of perf data file %s "
-                                                 "failed.\n" % (reply, sf))
-                                reply = None
-                        if secondary.has_key("perfregress"):
-                            sf = secondary['perfregress']
-                            detp = {
-                                'action': 'upload',
-                                'id': ll[1],
-                                'prefix': 'perfregress' }
-                            if not self.upload(detp, sf, proxies=self.proxies):
-                                sys.stderr.write("Submitted job %u but "
-                                                 "upload of perf regress file "
-                                                 "%s failed.\n" % (reply, sf))
-                                reply = None
-
-                elif ll[0] == 'ERROR':
-                    if len(ll) < 2:
-                        sys.stderr.write("Server returned error but " +
-                                         "without an explanation\n")
-                    else:
-                        sys.stderr.write("ERROR: %s\n" % (ll[1]))
-                        reply = None
-                        
-        u.close()
-        return reply
-
-    def render(self, args, results):
-        self.printout("%d\n" % (results))
-        return 0
-
-class XenRTRun(XenRTCommand):
-
-    name = "run"
-    summary = "Run a XenRT test sequence directly"
-    usage = XenRTCommand.job_usage
-    group = "Miscellaneous"
-    
-    def run(self, args):
-        global _sharedir
-        details, secondary = self.parse_options(args)
-        if not details:
-            return None
-        for key in details:
-            if len(details[key]) == 0:
-                del details[key]
-        if not details.has_key("USERID"):
-            details["USERID"] = pwd.getpwuid(os.getuid())[0]
-
-        resdir = tempfile.mkdtemp(prefix="xenrtrun.", dir=".")
-        print "Output directory: %s" % (resdir)
-
-        optparse = []
-        optparse.append(("OPTIONS", "--arch", True))
-        optparse.append(("REPO", "--repo", True))
-        optparse.append(("REVISION", "--revision", True))
-        optparse.append(("OPTION_PATCHQUEUE", "--pq", True))
-        optparse.append(("OPTION_PQ_PATCH", "--pqpatch", True))
-        optparse.append(("OPTION_PATCHQUEUE_REV", "--pqrev", True))
-        optparse.append(("HVARCH", "--hvarch", True))
-        optparse.append(("HARNESS_TRACE", "--trace", False))
-        optparse.append(("NOFINALLY", "--no-finally", False))
-        optparsevars = []
-        for opt in optparse:
-            var, flag, hasarg = opt
-            optparsevars.append(var)
-
-        cmd = ["%s/exec/main.py" % (_sharedir)]
-        cmd.append("-V")
-        cmd.append("-C")
-        cmd.append(resdir)
-        cmd.append("--redir")
-        cmd.append("--output-to-logdir")
-        cmd.append("--matrix")
-        cmd.append("matrix.csv")
-        if not string.strip(os.popen("nisdomainname").read()) == "hq.xensource.com":
-            cmd.append("--remote")
-        if details.has_key("CLI_ARGS_PASSTHROUGH"):
-            for i in string.split(details["CLI_ARGS_PASSTHROUGH"]):
-                cmd.append(i)
-        if details.has_key("MACHINE"):
-            hosts = string.split(details["MACHINE"], ",")
-            cmd.append("--host")
-            cmd.append("%s" % (string.join(hosts, ",")))
-        if details.has_key("DEPS"):
-            cmd.append("--sequence")
-            cmd.append("%s" % (details["DEPS"]))
-        if details.has_key("TESTCASEFILES"):
-            cmd.append("--testcasefiles")
-            cmd.append("%s" % (details["TESTCASEFILES"]))
-        for optpair in optparse:
-            var, flag, hasarg = optpair
-            if details.has_key(var):
-                cmd.append(flag)
-                if hasarg:
-                    cmd.append(details[var])
-        for k in details.keys():
-            if not k in ("DEPS", "DEBUGCMD", "SCHEDULEDON", "SCHEDULEDON2", "SCHEDULEDON3", "TESTCASEFILES", "CLI_ARGS_PASSTHROUGH") and not k in optparsevars:
-                cmd.append("-D")
-                cmd.append("%s=%s" % (k, details[k]))
-
-        if details.has_key('DEBUGCMD'):
-            print "To Run: %s" % (string.join(cmd))
-        else:
-            print "Running: %s" % (string.join(cmd))        
-            pid = os.spawnv(os.P_NOWAIT, cmd[0], cmd)
+        # Do we have a patch to upload?
+        if secondary.has_key("patch"):
+            self.upload(attachUrl, secondary["patch"], "patch")
+        if secondary.has_key("seqfiles"):
+            for sf in string.split(secondary['seqfiles'], ","):
+                self.upload(attachUrl, sf, os.path.basename(sf))
+        if secondary.has_key("testcasefiles"):
+            for tf in string.split(secondary['testcasefiles'], ","):
+                self.upload(attachUrl, tf, os.path.basename(tf))
+        if secondary.has_key("customupdates"):
+            for cu in string.split(secondary['customupdates'], ","):
+                self.upload(attachUrl, cu, os.path.basename(cu))
+        if secondary.has_key("perfdata"):
+            self.upload(attachUrl, secondary['perfdata'], "perfdata")
+        if secondary.has_key("perfregress"):
+            self.upload(attachUrl, secondary['perfregress'], "perfregress")
+        
+        self.printout("%d\n" % job['id'])
 
 class XenRTRerun(XenRTSubmit):
 
@@ -1427,46 +1012,33 @@ preserve such possibilities.
 
     def run(self, args):
         if len(args) < 1:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         jobid = args[0]
-        options = com.commands['status'].dispatch([jobid], raw=1)
-        if options is None: return None
+        options = self.xenrt.get_job(int(jobid))['params']
         if len(args) < 2:
             mode = 'custom'
             noptions = []
         elif args[1].startswith('-'):
             mode = 'custom'
             noptions = args[1:]
-        elif args[1] in ['faithful', 'testrun', 'custom']:
+        elif args[1] in ['faithful', 'custom']:
             mode = args[1]
             noptions = args[2:]
         else:
-            sys.stderr.write("Invalid rerun mode\n")
-            return None
+            raise Exception("Invalid rerun mode\n")
         # Exclude patterns
         excludes = []
         # Include options dict
         includes = {}
         if mode == 'faithful':
             excludes += self.faithful_ex
-        if mode == 'testrun':
-            excludes += self.faithful_ex + self.testrun_ex
-            runlogs = com.commands['showlog'].dispatch([jobid], raw=1)
-            runlogs = runlogs.strip().splitlines()
-            runlogs = filter(lambda l: len(l) >= 2, map(lambda l: l.split(), runlogs))
-            runlogs = dict(map(lambda l: (l[1], len(l)>=3 and l[2] or ''), runlogs))
-            for tc in runlogs:
-                if not runlogs[tc] or re.match("error|fail|block", runlogs[tc]):
-                    includes['RUN_%s' % tc] = 'yes'
         if mode == 'custom':
             excludes += self.faithful_ex + self.testrun_ex + self.custom_ex
         excludes = map(lambda s: '^' + s + '$', excludes)
         options=dict(filter(lambda (k,v): not (re.match("|".join(excludes), k)), options.iteritems()))
         options.update(includes)
         options['ORIGINAL_JOBID'] = jobid
-        result = XenRTSubmit.run(self, noptions, preconf=options)
-        return result
+        XenRTSubmit.run(self, noptions, preconf=options)
 
 class XenRTUpdate(XenRTCommand):
 
@@ -1476,23 +1048,10 @@ class XenRTUpdate(XenRTCommand):
     group = "Job"
     
     def run(self, args):
-        details = {'action': 'update'}
         if len(args) != 3:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         id = string.atoi(args[0])
-        details["id"] = id
-        details[args[1]] = args[2]
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            reply = 1
-        u.close()
-        return reply
+        self.xenrt.update_job(id, {args[1]: args[2]})
 
 class XenRTMBroken(XenRTCommand):
     name = "mbroken"
@@ -1502,57 +1061,17 @@ class XenRTMBroken(XenRTCommand):
 
     def run(self, args):
         if len(args) < 2:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         machine = args[0]
         reason = " ".join(args[1:])
 
-        details = {'action': 'machine', 'machine':machine}
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        data = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-            return None
-        else:
-            data = self.parse_job(data)
-        u.close()
-        pool = data['POOL']
-        pool = pool.rstrip("x")
-        pool = "%sx" % pool
-
-        details = {'action': 'mupdate', 'POOL': pool, 'machine':machine}
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-            return None
-        u.close()
-        
         m = re.search("([A-Z]+-\d+)", reason)
         if m:
-            details = {'action': 'mupdate', 'BROKEN_TICKET': m.group(1), 'machine':machine}
-            u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                               proxies=self.proxies)
-            data = u.read()
-            if data[0:5] == "ERROR":
-                sys.stderr.write(data)
-                return None
-            u.close()
-
-        details = {'action': 'mupdate', 'BROKEN_INFO': reason, 'machine': machine}
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
+            ticket = m.group(1)
         else:
-            reply = 1
-        u.close()
-        return reply
+            ticket = None
+
+        self.xenrt.update_machine(machine, broken = {"broken": True, "info": reason, "ticket": ticket})
 
 class XenRTMFixed(XenRTCommand):
     name = "mfixed"
@@ -1562,53 +1081,10 @@ class XenRTMFixed(XenRTCommand):
 
     def run(self, args):
         if len(args) != 1:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         machine = args[0]
+        self.xenrt.update_machine(machine, broken = {"broken": False})
 
-        details = {'action': 'machine', 'machine':machine}
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        data = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-            return None
-        else:
-            data = self.parse_job(data)
-        u.close()
-        pool = data['POOL']
-        pool = pool.rstrip("x")
-
-        details = {'action': 'mupdate', 'POOL': pool, 'machine':machine}
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-            return None
-        u.close()
-        
-        details = {'action': 'mupdate', 'BROKEN_TICKET': "", 'machine':machine}
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-            return None
-        u.close()
-
-        details = {'action': 'mupdate', 'BROKEN_INFO': "", 'machine': machine}
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            reply = 1
-        u.close()
-        return reply
 
 class XenRTMUpdate(XenRTCommand):
 
@@ -1618,23 +1094,10 @@ class XenRTMUpdate(XenRTCommand):
     group = "Machine"
 
     def run(self, args):
-        details = {'action': 'mupdate'}
         if len(args) != 3:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         machine = args[0]
-        details["machine"] = machine
-        details[args[1]] = args[2]
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            reply = 1
-        u.close()
-        return reply
+        self.xenrt.update_machine(machine, params={args[1]: args[2]})
 
 class XenRTMRes(XenRTMUpdate):
     name = "mres"
@@ -1643,38 +1106,13 @@ class XenRTMRes(XenRTMUpdate):
     group = "Machine"
 
     def run(self, args):
-        details = {'action': 'machine'}
         if len(args) != 2:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         if len(args[1].split("=", 1)) != 2:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         machine = args[0]
-        details["machine"] = machine
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-            return None
-        else:
-            reply = self.parse_job(data)
-        u.close()
-        try:
-            res = reply["RESOURCES"]
-        except:
-            res = ""
-        resitems = res.split("/")
-        found = False
-        for i in range(len(resitems)):
-            if resitems[i].split("=")[0] == args[1].split("=")[0]:
-                resitems[i] = args[1]
-                found = True
-        if not found:
-            resitems.append(args[1])
-        XenRTMUpdate.run(self, [args[0], "RESOURCES", "/".join(resitems)])
+        (resource, value) = args[1].split("=", 1)
+        self.xenrt.update_machine(machine, resources={resource: value})
 
 class XenRTMStatus(XenRTCommand):
 
@@ -1684,23 +1122,11 @@ class XenRTMStatus(XenRTCommand):
     group = "Machine"
 
     def run(self, args):
-        details = {'action': 'mstatus'}
         if len(args) != 2:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
+
         machine = args[0]
-        details["machine"] = machine
-        details["status"] = args[1]
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            reply = 1
-        u.close()
-        return reply
+        self.xenrt.update_machine(machine, status=args[1])
 
 class XenRTBorrow(XenRTCommand):
 
@@ -1715,42 +1141,35 @@ class XenRTBorrow(XenRTCommand):
     group = "Machine"
 
     def run(self, args):
-        details = {'action': 'borrow'}
-        details['USERID'] = pwd.getpwuid(os.getuid())[0]
         if len(args) == 0:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         machine = args[0]
-        details["machine"] = machine
+        duration = 24
+        reason = ""
+        force = False
+        user = None
         try:
             optlist, optx = getopt.getopt(args[1:], 'h:u:d:fr:', "force")
             for argpair in optlist:
                 (flag, value) = argpair
                 if flag == '-h':
-                    details["hours"] = value
+                    duration = int(value)
                 elif flag == '-d':
-                    details["hours"] = "%d" % (int(value) * 24)
+                    duration = int(value) * 24
                 elif flag == "-r":
-                    details["reason"] = value
+                    reason = value
                 elif flag == '-u':
-                    details['USERID'] = value
+                    user = value
                 elif flag == "-f":
-                    details["forever"] = "yes"
+                    duration = 0
                 elif flag == "--force":
-                    details["force"] = "yes"
+                    force = True
         except getopt.GetoptError:
-            sys.stderr.write("Unknown argument\n")
-            return None
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            reply = 1
-        u.close()
-        return reply
+            raise Exception("Unknown argument\n")
+        if user:
+            self.xenrt.customHeaders['X-Fake-User'] = user
+
+        self.xenrt.lease_machine(machine, duration, reason, force=force)
 
 class XenRTReturn(XenRTCommand):
 
@@ -1760,32 +1179,19 @@ class XenRTReturn(XenRTCommand):
     group = "Machine"
 
     def run(self, args):
-        details = {'action': 'return'}
-        details['USERID'] = pwd.getpwuid(os.getuid())[0]
         if len(args) == 0:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         machine = args[0]
-        details["machine"] = machine
+        force = False
         try:
             optlist, optx = getopt.getopt(args[1:], '', "force")
             for argpair in optlist:
                 (flag, value) = argpair
                 if flag == "--force":
-                    details["force"] = "yes"
+                    force = True
         except getopt.GetoptError:
-            sys.stderr.write("Unknown argument\n")
-            return None
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            reply = 1
-        u.close()
-        return reply
+            raise Exception("Unknown argument\n")
+        self.xenrt.return_leased_machine(machine, force=force)
 
 class XenRTProp(XenRTCommand):
 
@@ -1795,29 +1201,17 @@ class XenRTProp(XenRTCommand):
     group = "Machine"
 
     def run(self, args):
-        details = {'action': 'mupdate'}
         if len(args) != 3:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         machine = args[0]
-        details["machine"] = machine
+        details = {}
         if args[1] == "add":
-            details["+PROPS"] = args[2]
+            details["addflags"] = [args[2]]
         elif args[1] == "del" or args[1] == "rem":
-            details["-PROPS"] = args[2]
+            details["delflags"] = [args[2]]
         else:
-            sys.stderr.write("Invalid usage: need \"add\" or \"del\".\n")
-            return None
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            reply = 1
-        u.close()
-        return reply
+            raise Exception("Invalid usage: need \"add\" or \"del\".\n")
+        self.xenrt.update_machine(machine, **details)
 
 class XenRTSFlag(XenRTCommand):
 
@@ -1827,29 +1221,17 @@ class XenRTSFlag(XenRTCommand):
     group = "Site"
 
     def run(self, args):
-        details = {'action': 'supdate'}
         if len(args) != 3:
-            sys.stderr.write("Invalid usage\n")
-            return None
-        site = args[0]
-        details["site"] = site
+            raise Exception("Invalid usage\n")
+        machine = args[0]
+        details = {}
         if args[1] == "add":
-            details["+FLAGS"] = args[2]
+            details["addflags"] = [args[2]]
         elif args[1] == "del" or args[1] == "rem":
-            details["-FLAGS"] = args[2]
+            details["delflags"] = [args[2]]
         else:
-            sys.stderr.write("Invalid usage: need \"add\" or \"del\".\n")
-            return None
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            reply = 1
-        u.close()
-        return reply
+            raise Exception("Invalid usage: need \"add\" or \"del\".\n")
+        self.xenrt.update_site(machine, **details)
 
 class XenRTPool(XenRTCommand):
 
@@ -1864,172 +1246,14 @@ moves the machine to the "DEFAULT" pool.
 
     def run(self, args):
         if len(args) < 1:
-            sys.stderr.write("Invalid usage\n")            
-            return None
+            raise Exception("Invalid usage\n")            
 
         # Machine update
-        details = {'action': 'mupdate',
-                   'SUBPOOL': 'DEFAULT'}
-        details['USERID'] = pwd.getpwuid(os.getuid())[0]
         machine = args[0]
-        details["machine"] = machine
+        pool = "DEFAULT"
         if len(args) > 1:
-            details["SUBPOOL"] = args[1]
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            reply = 1
-        u.close()
-        return reply
-
-    def render(self, args, results):
-        if len(args) > 0 and args[0] == "--list":
-            for r in results:
-                self.printout("%s\n" % (r[0]))
-        return 0
-
-class XenRTMakeTickets(XenRTCommand):
-
-    name = "maketickets"
-    summary = "Make empty Jira tickets for a test run"
-    mandatory = "[--findold] [--branch=<branch>] <suite> <version> [<priority>]"
-    group = "Miscellaneous"
-
-    def run(self, args):
-        details = {'action': 'maketickets'}
-        details['USERID'] = pwd.getpwuid(os.getuid())[0]
-        if len(args) < 2 or len(args) > 4:
-            sys.stderr.write("Invalid usage\n")
-            return None
-        i = 0
-        for arg in args:
-            if arg.startswith("--"):
-                if arg == "--findold":
-                    details["findold"] = "yes"
-                    continue
-                m = re.match("--branch=(.*)", arg)
-                if m:
-                    details["branch"] = m.group(1)
-                    continue
-            elif i == 0:
-                suite = arg
-            elif i == 1:
-                version = arg
-            elif i == 2:
-                details["priority"] = arg
-            i += 1    
-        details["suite"] = suite
-        details["version"] = version
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            reply = data
-        u.close()
-        return reply
-
-    def render(self, args, results):
-        self.printout("%s\n" % (string.strip(results)))
-        return 0
-
-class XenRTSuiteStatus(XenRTCommand):
-
-    name = "suitestatus"
-    summary = "Returns the status of a suite run"
-    mandatory = "<suiterun>"
-    usage = """
-    -r             Report details of resource usage by the suite
-    -m             Used with -r, orders list by machine-hours
-    """
-    group = "Miscellaneous"
-
-    def run(self, args):
-        self.advanced = False
-        self.orderbymh = False
-        details = {'action': 'suitestatus'}
-        details['USERID'] = pwd.getpwuid(os.getuid())[0]
-        if len(args) < 1:
-            sys.stderr.write("Invalid usage\n")
-            return None
-        try:
-            optlist, optx = getopt.getopt(args[1:], 'rm')
-            for argpair in optlist:
-                (flag, value) = argpair
-                if flag == '-r':
-                    details["resources"] = "yes"
-                    details["summary"] = "no"
-                    self.advanced = True
-                elif flag == "-m":
-                    self.orderbymh = True
-        except getopt.GetoptError:
-            sys.stderr.write("Unknown argument\n")
-            return None
-
-        suiterun = args[0]
-        details["suiterun"] = suiterun
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            reply = data
-        u.close()
-        return reply
-
-    def render(self, args, results):
-        if self.advanced:
-            data = {}
-            for line in results.splitlines():
-                if "=" in line:
-                    ll = line.split("=", 1)
-                    data[ll[0]] = ll[1]
-            if data.has_key("JOBDESCS"):
-                self.printout("%-24s %5s %8s %7s %7s\n" %
-                              ("Sequence",
-                               "Hours",
-                               "Machines",
-                               "M-Hours",
-                               "Job ID"))
-                costs = {}
-                jobdescs = data["JOBDESCS"].split(",")
-                for jobdesc in jobdescs:
-                    if data.has_key("RES_%s" % (jobdesc)):
-                        ll = data["RES_%s" % (jobdesc)].split(",")
-                        jobid = int(ll[0])
-                        if ll[1]:
-                            duration = int(ll[1])
-                        else:
-                            duration = 0
-                        machines = int(ll[2])
-                        if self.orderbymh:
-                            dkey = "%08u%s" % (duration * machines, jobdesc)
-                        else:
-                            dkey = "%08u%s" % (duration, jobdesc)
-                        costs[dkey] = (duration, jobdesc, jobid, machines)
-                dkeys = costs.keys()
-                dkeys.sort()
-                for dkey in dkeys:
-                    duration, jobdesc, jobid, machines = costs[dkey]
-                    if duration == 0:
-                        durtxt = "     "
-                        mhtxt = "       "
-                    else:
-                        durtxt = "%5.1f" % (duration/3600.0)
-                        mhtxt = "%7.1f" % (duration/3600.0 * machines)
-                    self.printout("%-24s %5s %8u %7s %7u\n" %
-                                  (jobdesc, durtxt, machines, mhtxt, jobid))
-        else:
-            self.printout("%s\n" % (string.strip(results)))
-        return 0
+            pool = args[1]
+        self.xenrt.update_machine(params={"POOL": pool})
 
 class XenRTDetailID(XenRTCommand):
 
@@ -2039,31 +1263,18 @@ class XenRTDetailID(XenRTCommand):
     hide = True
 
     def run(self, args):
-        details = {'action': 'detailid'}
-        details['USERID'] = pwd.getpwuid(os.getuid())[0]
         if len(args) <> 3:
-            sys.stderr.write("Invalid usage\n")
-            return None
-        jobid = args[0]
-        details["id"] = jobid
+            raise Exception("Invalid usage\n")
+        jobid = int(args[0])
         phase = args[1]
-        details["phase"] = phase
         test = args[2]
-        details["test"] = test
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            reply = data
-        u.close()
-        return reply
 
-    def render(self, args, results):
-        self.printout("%s\n" % (string.strip(results)))
-        return 0
+        job = self.xenrt.get_job(jobid)
+        detailids = [x['detailid'] for x in job['results'].values() if x['phase'] == phase and x['test'] == test]
+        if not detailids:
+            raise Exception("Test not found")
+
+        self.printout("%d\n" % detailids[0])
 
 class XenRTHelp(XenRTCommand):
 
@@ -2092,7 +1303,6 @@ class XenRTHelp(XenRTCommand):
                 self.printout("  %-10s %s\n" % (c.name, c.summary))
         self.printout("\nRun \"%s <command> --help\" for usage information.\n"
                       % (sys.argv[0]))        
-        return 1
 
 class XenRTSubResults(XenRTCommand):
 
@@ -2105,14 +1315,8 @@ class XenRTSubResults(XenRTCommand):
     hide = True
 
     def run(self, args):
-        details = {'action': 'subresults'}
         if len(args) < 3:
-            sys.stderr.write("Invalid usage\n")
-            return None
-        id = string.atoi(args[0])
-        details["jobid"] = id
-        details["phase"] = args[1]
-        details["test"] = args[2]
+            raise Exception("Invalid usage\n")
         filename = None
         try:
             optlist, optx = getopt.getopt(args[3:], 'f:')
@@ -2121,10 +1325,8 @@ class XenRTSubResults(XenRTCommand):
                 if flag == '-f':
                     filename = value
         except getopt.GetoptError:
-            sys.stderr.write("Unknown argument\n")
-            return None
-
-        return self.upload(details, filename, proxies=self.proxies, scheduler=True)
+            raise Exception("Unknown argument\n")
+        self.xenrt.upload_subresults(int(args[0]), args[1], args[2], filename)
 
 class XenRTPerfData(XenRTCommand):
 
@@ -2136,7 +1338,6 @@ class XenRTPerfData(XenRTCommand):
     hide = True
 
     def run(self, args):
-        details = {'action': 'perfdata'}
         filename = None
         try:
             optlist, optx = getopt.getopt(args, 'f:')
@@ -2145,10 +1346,8 @@ class XenRTPerfData(XenRTCommand):
                 if flag == '-f':
                     filename = value
         except getopt.GetoptError:
-            sys.stderr.write("Unknown argument\n")
-            return None
-
-        return self.upload(details, filename, proxies=self.proxies, scheduler=True)
+            raise Exception("Unknown argument\n")
+        self.xenrt.upload_perfdata(filename)
 
 class XenRTUpload(XenRTCommand):
 
@@ -2164,28 +1363,42 @@ class XenRTUpload(XenRTCommand):
     def run(self, args):
         details = {'action': 'upload'}
         if len(args) < 1:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         id = string.atoi(args[0])
-        details["id"] = id
         filename = None
+        prefix = None
+        phase = None
+        test = None
         try:
             optlist, optx = getopt.getopt(args[1:], 'p:t:f:P:')
             for argpair in optlist:
                 (flag, value) = argpair
                 if flag == '-p':
-                    details["phase"] = value
+                    phase = value
                 if flag == '-t':
-                    details["test"] = value
+                    test = value
                 if flag == '-f':
                     filename = value
                 if flag == '-P':
-                    details["prefix"] = value
+                    prefix = value
         except getopt.GetoptError:
-            sys.stderr.write("Unknown argument\n")
-            return None
+            raise Exception("Unknown argument\n")
 
-        return self.upload(details, filename, proxies=self.proxies)                
+        job = self.xenrt.get_job(id) 
+        remoteFn = None
+        localFn = None
+
+        if filename:
+            localFn = filename
+
+        if prefix:
+            url = job['attachmentUploadUrl']
+            remoteFn = prefix
+        elif phase and test:
+            url = [x['logUploadUrl'] for x in job['results'].values() if x['phase'] == phase and x['test'] == test][0]
+        else:
+            url = job['logUploadUrl']
+        return self.upload(url, localFn, remoteFn) 
 
 class XenRTDownload(XenRTCommand):
 
@@ -2201,64 +1414,55 @@ class XenRTDownload(XenRTCommand):
     group = "Miscellaneous"
 
     def run(self, args):
-        self.filename = None
-        details = {'action': 'download'}
+        filename = None
         if len(args) < 1:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         id = string.atoi(args[0])
-        details["id"] = id        
-        usemasterserver=False
+        prerun = False
+        prefix = None
+        phase = None
+        test = None
         try:
             optlist, optx = getopt.getopt(args[1:], 'op:f:g:t:')
             for argpair in optlist:
                 (flag, value) = argpair
                 if flag == '-p':
-                    details["prefix"] = value
+                    prefix = value
                 elif flag == "-f":
-                    self.filename = value
+                    filename = value
                 elif flag == "-g":
-                    details["phase"] = value
+                    phase = value
                 elif flag == "-t":
-                    details["test"] = value
+                    test = value
                 elif flag == "-o":
-                    usemasterserver = True
+                    prerun = True
         except getopt.GetoptError:
-            sys.stderr.write("Unknown argument\n")
-            return None
-        url = self.getServerURL()
+            raise Exception("Unknown argument\n")
 
-        if usemasterserver:
-            params = ["JOB_FILES_SERVER"]
-        else:
-            params = None
-        logserver = self.getLogServer(id, proxies=self.proxies, params=params)
-        if logserver:
-            url = logserver_url % logserver
-
-        u = urlopen_with_retry(url, urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            if self.filename:
-                f = file(self.filename, "w")
-                f.write(data)
-                f.close()
-                reply = 1
+        if prefix:
+            if prerun:
+                url = self.xenrt.get_job_attachment_pre_run(id, prefix)
             else:
-                reply = data
-        u.close()
-        return reply
+                url = self.xenrt.get_job_attachment_post_run(id, prefix)
+        elif phase and test:
+            job = self.xenrt.get_job(id)
+            url = [x['logUrl'] for x in job['results'].values() if x['phase'] == phase and x['test'] == test][0]
+        else:
+            job = self.xenrt.get_job(id)
+            url = job['logUrl']
 
-    def render(self, args, results):
-        if results is None:
-            return 1
-        if not self.filename:
-            self.printout(results)
-        return 0
+        if filename:
+            f = open(filename, "wb")
+        else:
+            f = sys.stdout
+        try:
+            r = requests.get(url, stream=True)
+            r.raise_for_status()
+            for chunk in r.iter_content(512):
+                f.write(chunk)
+        finally:
+            if filename:
+                f.close()
 
 class XenRTSchedule(XenRTCommand):
 
@@ -2273,7 +1477,7 @@ class XenRTSchedule(XenRTCommand):
     group = "Scheduler"
     
     def run(self, args):
-        details = {'action': 'schedule'}
+        details = {}
         showstatus = False
         details['USERID'] = pwd.getpwuid(os.getuid())[0]
         try:
@@ -2291,24 +1495,14 @@ class XenRTSchedule(XenRTCommand):
                 elif flag == "-j":
                     showstatus = True
         except getopt.GetoptError:
-            sys.stderr.write("Unknown argument\n")
-            return None        
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details))
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            reply = data
-        u.close()
+            raise Exception("Unknown argument\n")
+        url = self.xenrt.base.replace("/v2", "/schedule")
+        r = requests.get(url, params=details)
+        r.raise_for_status()
+        reply = r.text
         if showstatus:
             reply += "Schedule complete\n"
-        return reply
-
-    def render(self, args, results):
-        if results:
-            self.printout(results)
-        return 0
+        self.printout(reply)
 
 class XenRTMDefine(XenRTCommand):
 
@@ -2325,13 +1519,11 @@ class XenRTMDefine(XenRTCommand):
     group = "Machine"
 
     def run(self, args):
-        details = {'action': 'mdefine'}
-        details['USERID'] = pwd.getpwuid(os.getuid())[0]
         if len(args) < 2:
-            sys.stderr.write("Invalid usage\n")
-            return None
-        details["machine"] = args[0]
-        details["site"] = args[1]
+            raise Exception("Invalid usage\n")
+        machine = args[0]
+        site = args[1]
+        details = {}
         try:
             optlist, optx = getopt.getopt(args[2:], 'c:p:r:f:d:')
             for argpair in optlist:
@@ -2341,73 +1533,14 @@ class XenRTMDefine(XenRTCommand):
                 if flag == '-p':
                     details["pool"] = value
                 if flag == '-r':
-                    details["resources"] = value
+                    details["resources"] = dict([y for y in [x.split("=",1) for x in value.split("/")]])
                 if flag == '-f':
-                    details["flags"] = value
+                    details["flags"] = value.split(",")
                 if flag == '-d':
-                    details["descr"] = value
+                    details["description"] = value
         except getopt.GetoptError:
-            sys.stderr.write("Unknown argument\n")
-            return None        
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            reply = 1
-        u.close()
-        return reply
-
-class XenRTMDefineXML(XenRTCommand):
-
-    name = "mdefinexml"
-    summary = "Define test machines from XML config files"
-    mandatory = ""
-    usage = """
-    -s <site>
-    """
-    group = "Machine"
-
-    def run(self, args):
-        global _confdir
-
-        site = None
-
-        try:
-            optlist, optx = getopt.getopt(args, 's:')
-            for argpair in optlist:
-                (flag, value) = argpair
-                if flag == '-s':
-                    site = value
-        except getopt.GetoptError:
-            sys.stderr.write("Unknown argument\n")
-            return None
-
-        if not site:
-            # See if there is a CONFDIR/siteid file
-            try:
-                f = file("%s/siteid","r")
-                site = f.read().strip()
-                f.close()
-            except:
-                site = "DEFAULT"
-
-        # Try and read in the XML files
-        files = glob.glob("%s/machines/*.xml" % (_confdir))
-        machines = []
-        for filename in files:
-            r = re.search(r"%s/machines/(.*)\.xml" % (_confdir), filename)
-            if r:
-                machine = r.group(1)
-                machines.append(machine)
-
-        for machine in machines:
-            print "Adding machine %s" % (machine)
-            xmd = XenRTMDefine(None)
-            args = [machine,site]
-            xmd.dispatch(args)
+            raise Exception("Unknown argument\n")
+        self.xenrt.new_machine(machine, site, **details)
 
 class XenRTMUndefine(XenRTCommand):
 
@@ -2417,176 +1550,9 @@ class XenRTMUndefine(XenRTCommand):
     group = "Machine"
 
     def run(self, args):
-        details = {'action': 'mundefine'}
-        details['USERID'] = pwd.getpwuid(os.getuid())[0]
         if len(args) != 1:
-            sys.stderr.write("Invalid usage\n")
-            return None
-        details["machine"] = args[0]
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            reply = 1
-        u.close()
-        return reply
-
-class XenRTCaseSet(XenRTCommand):
-
-    name = "caseset"
-    summary = "List a set of test cases"
-    mandatory = "<set>"
-    hide = True
-
-    def run(self, args):
-        details = {'action': 'caseset'}
-        details['USERID'] = pwd.getpwuid(os.getuid())[0]
-        if len(args) != 1:
-            sys.stderr.write("Invalid usage\n")
-            return None
-        details["caseset"] = args[0]
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            reply = data
-        u.close()
-        return reply
-
-    def render(self, args, results):
-        if results:
-            self.printout(results)
-        return 0
-
-class XenRTCaseSets(XenRTCommand):
-
-    name = "casesets"
-    summary = "List all known casesets"
-    hide = True
-
-    def run(self, args):
-        details = {'action': 'casesets'}
-        details['USERID'] = pwd.getpwuid(os.getuid())[0]
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            reply = data
-        u.close()
-        return reply
-
-    def render(self, args, results):
-        if results:
-            self.printout(results)
-        return 0
-
-class XenRTAddCase(XenRTCommand):
-
-    name = "addcase"
-    summary = "Add a test case to a set"
-    mandatory = "<set>"
-    usage = """
-    -g <group>
-    -c <testcase>
-    -x <subgroup>
-    -s <subcase>
-    """
-    hide = True
-
-    def run(self, args):
-        details = {'action': 'addcase'}
-        details['USERID'] = pwd.getpwuid(os.getuid())[0]
-        if len(args) < 1:
-            sys.stderr.write("Invalid usage\n")
-            return None
-        details["caseset"] = args[0]
-        try:
-            optlist, optx = getopt.getopt(args[1:], 'g:c:s:x:')
-            for argpair in optlist:
-                (flag, value) = argpair
-                if flag == '-g':
-                    details["tgroup"] = value
-                if flag == '-c':
-                    details["tcase"] = value
-                if flag == '-x':
-                    details["tcgroup"] = value
-                if flag == '-s':
-                    details["subtcase"] = value
-        except getopt.GetoptError:
-            sys.stderr.write("Unknown argument\n")
-            return None
-        if not details.has_key("tcase"):
-            sys.stderr.write("Need a test case\n")
-            return None
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            reply = 1
-        u.close()
-        return reply
-
-class XenRTDelCase(XenRTCommand):
-
-    name = "delcase"
-    summary = "Delete a test case from a set"
-    mandatory = "<set>"
-    usage = """
-    -g <group>
-    -c <testcase>
-    -x <subgroup>
-    -s <subcase>
-    """
-    hide = True
-
-    def run(self, args):
-        details = {'action': 'delcase'}
-        details['USERID'] = pwd.getpwuid(os.getuid())[0]
-        if len(args) < 1:
-            sys.stderr.write("Invalid usage\n")
-            return None
-        details["caseset"] = args[0]
-        try:
-            optlist, optx = getopt.getopt(args[1:], 'g:c:s:x:')
-            for argpair in optlist:
-                (flag, value) = argpair
-                if flag == '-g':
-                    details["tgroup"] = value
-                if flag == '-c':
-                    details["tcase"] = value
-                if flag == '-x':
-                    details["tcgroup"] = value
-                if flag == '-s':
-                    details["subtcase"] = value
-        except getopt.GetoptError:
-            sys.stderr.write("Unknown argument\n")
-            return None
-        if not details.has_key("tcase"):
-            sys.stderr.write("Need a test case\n")
-            return None
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            reply = 1
-        u.close()
-        return reply
-
+            raise Exception("Invalid usage\n")
+        self.xenrt.remove_machine(args[0])
 
 class XenRTInteract(XenRTCommand):
 
@@ -2617,48 +1583,19 @@ class XenRTInteract(XenRTCommand):
     def run(self, args):
 
         if len(args) == 0:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         if string.find(args[0], ":") > -1:
             hostport = args[0]
         else:
             try:
                 id = string.atoi(args[0])
             except:
-                details = {'action': 'machine'}
-                details['USERID'] = pwd.getpwuid(os.getuid())[0]
-                details["machine"] = args[0]
-                u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                                   proxies=self.proxies)
-                reply = None
-                data = u.read()
-                if data[0:5] == "ERROR":
-                    sys.stderr.write(data)
-                    return None
-                else:
-                    reply = self.parse_job(data)
-                u.close()
-                if not reply.has_key("JOBID"):
-                    sys.stderr.write("Machine has no Job ID")
-                    return None
-                id = string.atoi(reply['JOBID'])
-                 
-            details = {'action': 'status'}
-            details['USERID'] = pwd.getpwuid(os.getuid())[0]
-            details["id"] = id
-            u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                               proxies=self.proxies)
-            reply = None
-            data = u.read()
-            if data[0:5] == "ERROR":
-                sys.stderr.write(data)
-            else:
-                reply = self.parse_job(data)
-            u.close()
-            if not reply.has_key("XMLRPC"):
-                sys.stderr.write("Job has no XMLRPC variable\n")
-                return None
-            hostport = reply["XMLRPC"]
+                id = self.xenrt.get_machine(args[0])['jobid']
+            
+            job = self.xenrt.get_job(id)
+            if not "XMLRPC" in job['params']:
+                raise Exception("Job has no XMLRPC variable\n")
+            hostport = job['params']["XMLRPC"]
         s = xmlrpclib.Server("http://%s" % (hostport))
         shell = False
         logger = False
@@ -2690,8 +1627,7 @@ class XenRTInteract(XenRTCommand):
                     elif l[1] == 'SKIPPED':
                         result = 5
                     else:
-                        sys.stderr.write("Unknown result '%s'" % (l[1]))
-                        return None
+                        raise Exception("Unknown result '%s'" % (l[1]))
                     s.setTestResult(testcase, result)
                 elif flag == '-C':
                     for t in s.getRunningTests():
@@ -2708,9 +1644,8 @@ class XenRTInteract(XenRTCommand):
                             var = string.split(var, "/")
                         s.setConfigVariable(var, varval)
                     except:
-                        sys.stderr.write("Error parsing -D variable '%s'\n" %
+                        raise Exception("Error parsing -D variable '%s'\n" %
                                          (value))
-                        return None
                 elif flag == "-d":
                     print s.dumpConfig()
                 elif flag == "-A":
@@ -2730,9 +1665,8 @@ class XenRTInteract(XenRTCommand):
                 elif flag == "-r":
                     ll = string.split(value, ":", 1)
                     if len(ll) != 2:
-                        sys.stderr.write("Error parsing -r variable '%s'\n" %
+                        raise Exception("Error parsing -r variable '%s'\n" %
                                          (value))
-                        return None
                     data = s.getGuestFile(ll[0], ll[1])
                     sys.stdout.write(data.data)
                 elif flag == "-s":
@@ -2741,8 +1675,7 @@ class XenRTInteract(XenRTCommand):
                     logger = True
                     
         except getopt.GetoptError:
-            sys.stderr.write("Unknown argument\n")
-            return None
+            raise Exception("Unknown argument\n")
 
         if shell:
             print "XenRT interactive Python shell."
@@ -2769,49 +1702,40 @@ class XenRTSList(XenRTCommand):
     group = "Site"
 
     def run(self, args):
-        self.controller = False
-        details = {'action': 'slist'}
-        details['USERID'] = pwd.getpwuid(os.getuid())[0]
+        props = False
+        quiet = False
         try:
             optlist, optx = getopt.getopt(args, 'pq')
             for argpair in optlist:
                 (flag, value) = argpair
                 if flag == "-q":
-                    details["quiet"] = "yes"
+                    quiet = True
                 elif flag == "-p":
-                    details["props"] = "yes"
+                    props = True
                 else:
-                    sys.stderr.write("Unknown argument '%s'\n" % (flag))
-                    return None
+                    raise Exception("Unknown argument '%s'\n" % (flag))
         except getopt.GetoptError:
-            sys.stderr.write("Unknown argument\n")
-            return None
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            if self.controller:
-                reply = []
-                lines = string.split(data, "\n")
-                for l in lines:
-                    if l != "":
-                        reply.append(string.split(l,","))
-            else:
-                reply = data
-        u.close()
-        return reply
+            raise Exception("Unknown argument\n")
 
-    def render(self, args, results):
-        if results:
-            if self.controller:
-                for line in results:
-                    self.printout("%s\n" % (string.join(line, ",")))
+        sites = self.xenrt.get_sites()
+
+        if props:
+            chead = "Properties"
+        else:
+            chead = "Description"
+
+        fmt = "%-8s %-7s %s\n"
+        if not quiet:
+            self.printout(fmt % ("Site", "Status", chead))
+            self.printout("============================================================================\n")
+        
+        for s in sites.keys():
+            item = ""
+            if props:
+                item = ",".join(sites[s]['flags'])
             else:
-                self.printout(results)
-        return 0
+                item = sites[s]['description']
+            self.printout(fmt % (s, sites[s]['status'], item))
 
 class XenRTSDefine(XenRTCommand):
 
@@ -2825,33 +1749,21 @@ class XenRTSDefine(XenRTCommand):
     group = "Site"
 
     def run(self, args):
-        details = {'action': 'sdefine'}
-        details['USERID'] = pwd.getpwuid(os.getuid())[0]
         if len(args) < 1:
-            sys.stderr.write("Invalid usage\n")
-            return None
-        details["site"] = args[0]
+            raise Exception("Invalid usage\n")
+        details = {}
         try:
             optlist, optx = getopt.getopt(args[1:], 'f:d:')
             for argpair in optlist:
                 (flag, value) = argpair
                 if flag == '-f':
-                    details["flags"] = value
+                    details["flags"] = value.split(",")
                 elif flag == '-d':
-                    details["descr"] = value
+                    details["description"] = value
         except getopt.GetoptError:
-            sys.stderr.write("Unknown argument\n")
-            return None        
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            reply = 1
-        u.close()
-        return reply
+            raise Exception("Unknown argument\n")
+        
+        self.xenrt.new_site(args[0], **details)
 
 class XenRTSUndefine(XenRTCommand):
 
@@ -2861,22 +1773,9 @@ class XenRTSUndefine(XenRTCommand):
     group = "Site"
 
     def run(self, args):
-        details = {'action': 'sundefine'}
-        details['USERID'] = pwd.getpwuid(os.getuid())[0]
         if len(args) != 1:
-            sys.stderr.write("Invalid usage\n")
-            return None
-        details["site"] = args[0]
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            reply = 1
-        u.close()
-        return reply
+            raise Exception("Invalid usage\n")
+        self.xenrt.remove_site(args[0])
 
 class XenRTSUpdate(XenRTCommand):
 
@@ -2888,21 +1787,17 @@ class XenRTSUpdate(XenRTCommand):
     def run(self, args):
         details = {'action': 'supdate'}
         if len(args) != 3:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         site = args[0]
-        details["site"] = site
-        details[args[1]] = args[2]
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            reply = 1
-        u.close()
-        return reply
+        
+        key = args[1].lower()
+        value = args[2]
+        if key == "flags":
+            value = value.split(",")
+        elif key == "sharedresources":
+            value = dict([y for y in [x.split("=",1) for x in value.split("/")]])
+        details = {key: value}
+        self.xenrt.update_site(name, **details)
 
 class XenRTSite(XenRTCommand):
 
@@ -2912,28 +1807,22 @@ class XenRTSite(XenRTCommand):
     group = "Site"
 
     def run(self, args):
-        details = {'action': 'site'}
-        details['USERID'] = pwd.getpwuid(os.getuid())[0]
         if len(args) != 1:
-            sys.stderr.write("Invalid usage\n")
-            return None
-        site = args[0]
-        details["site"] = site
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            reply = self.parse_job(data)
-        u.close()
-        return reply
+            raise Exception("Invalid usage\n")
+        site = self.xenrt.get_site(args[0])
+        
+        self.printout("SITE='%s'\n" % site['name'])
+        self.printout("STATUS='%s'\n" % site['status'])
+        self.printout("DESCRIPTION='%s'\n" % site['description'])
+        if site['ctrladdr']:
+            self.printout("CTRLADDR='%s'\n" % site['ctrladdr'])
+        self.printout("FLAGS='%s'\n" % ",".join(site['flags']))
+        if site['maxjobs']:
+            self.printout("MAXJOBS='%d'\n" % site['maxjobs'])
+        if site['sharedresources']:
+            self.printout("SHAREDRESOURCES='%s'\n" % "/".join(["%s=%s" % (x,y) for (x,y) in site['sharedresources'].iteritems()]))
+        # TODO Add availableresources
 
-    def render(self, args, results):
-        for key in results.keys():
-            self.printout("%s='%s'\n" % (key, results[key]))
-        return 0
 
 class XenRTRunSuite(XenRTCommand):
 
@@ -2953,7 +1842,7 @@ class XenRTRunSuite(XenRTCommand):
         global _jenkins
         for i in range(20):
             time.sleep(5)
-            j = json.load(urlopen_with_retry("%s/job/Suite%%20Run%%20Basic/api/json?depth=1" % _jenkins))
+            j = json.load(urllib.urlopen("%s/job/Suite%%20Run%%20Basic/api/json?depth=1" % _jenkins))
             for b in j['builds']:
                 for a in b['actions']:
                     if a.has_key("parameters"):
@@ -2969,13 +1858,13 @@ class XenRTRunSuite(XenRTCommand):
 
     def waitForBuildCompletion(self):
         for i in range(30):
-            j = json.load(urlopen_with_retry("%s/api/json" % self.build))
+            j = json.load(urllib.urlopen("%s/api/json" % self.build))
             if self.verbose:
                 print "Building status: %s" % j['building']
             if not j['building']:
                 if j['result'] != "SUCCESS":
                     # Find the failure reason if available
-                    lines = urlopen_with_retry("%s/consoleText" % self.build)
+                    lines = urllib.urlopen("%s/consoleText" % self.build)
                     reason = "Unknown"
                     for l in lines:
                         if l.startswith("REASON: "):
@@ -2988,14 +1877,14 @@ class XenRTRunSuite(XenRTCommand):
         raise Exception("Starting suite timed out")
 
     def getSuiteRunAndJobs(self):
-        j = json.load(urlopen_with_retry("%s/api/json" % self.build))
+        j = json.load(urllib.urlopen("%s/api/json" % self.build))
         m = re.search("\((\d+)\)$", j['fullDisplayName'])
         if not m:
             raise Exception("Could not determine suite run number")
         sr = m.group(1)
 
 
-        lines = urlopen_with_retry("%s/consoleText" % self.build)
+        lines = urllib.urlopen("%s/consoleText" % self.build)
         jobs = {}
         for l in lines:
             m = re.match("^Starting (\S+?)\.\.\. (\d+)$", l)
@@ -3008,8 +1897,7 @@ class XenRTRunSuite(XenRTCommand):
         global _jenkins
         self.verbose = False
         if len(args) < 2:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         
         self.cookie = str(random.randint(0, 2**31-1))
         jenkins = {"Update Mercurial": "false",
@@ -3036,7 +1924,7 @@ class XenRTRunSuite(XenRTCommand):
                 elif flag == "-R":
                     jenkins['Attempt Rerun'] = "true"
                     
-        u = urlopen_with_retry("%s/job/Suite%%20Run%%20Basic/buildWithParameters" % _jenkins, urllib.urlencode(jenkins))
+        u = urllib.urlopen("%s/job/Suite%%20Run%%20Basic/buildWithParameters" % _jenkins, urllib.urlencode(jenkins))
         u.close()
         if self.verbose:
             print "Suite submitted, finding build number..."
@@ -3047,69 +1935,8 @@ class XenRTRunSuite(XenRTCommand):
         reply = ["SR%s\n" % suite]
         for j in jobs.keys():
             reply.append("%s:%s\n" % (j, jobs[j]))
-        return reply
-
-    def render(self, args, results):
-        for r in results:
+        for r in reply:
             self.printout(r)
-        return 0
-
-class XenRTWarnings(XenRTCommand):
-
-    name = "warnings"
-    summary = "Display warnings or other data generated by a job or job group"
-    usage = """
-    [ -j <jobid> ]           query by job ID
-    [ -g <jobgroup> ]        query by job group
-    [ -k <key> ]             type of data to display, default is 'warning'
-                             alternatives include 'comment' and 'data'
-    """
-    group = "Miscellaneous"
-
-    def run(self, args):
-        self.showsr = False
-        details = {'action': 'warnings'}
-        try:
-            optlist, optx = getopt.getopt(args, 'j:g:k:')
-            for argpair in optlist:
-                (flag, value) = argpair
-                if flag == "-j":
-                    details["jobid"] = value
-                elif flag == "-g":
-                    details["jobgroup"] = value
-                elif flag == "-k":
-                    details["key"] = value
-                else:
-                    sys.stderr.write("Unknown argument '%s'\n" % (flag))
-                    return None
-        except getopt.GetoptError:
-            sys.stderr.write("Unknown argument\n")
-            return None
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = []
-        error = 0
-        while 1:
-            line = u.readline()
-            if not line:
-                break
-            if line[0:5] == "ERROR":
-                sys.stderr.write(line)
-                error = 1
-            else:
-                if line[-1] == "\n":
-                    ll = string.split(line[:-1], "\t")
-                else:
-                    ll = string.split(line, "\t")
-                reply.append(ll)
-        u.close()
-        if error:
-            return None
-        return reply
-
-    def render(self, args, results):
-        for ll in results:
-            self.printout("%s %s %s\n" % (ll[0], ll[1], ll[2]))
 
 class _XenRTControllerOperation(XenRTCommand):
     def getControllerAddrForMachine(self,machine,args):
@@ -3126,46 +1953,15 @@ class _XenRTControllerOperation(XenRTCommand):
                 elif flag == "--bootdev":
                     self.bootdev = value
                 else:
-                    sys.stderr.write("Unknown argument '%s'\n" % (flag))
-                    return None
+                    raise Exception("Unknown argument '%s'\n" % (flag))
         except getopt.GetoptError:
-            sys.stderr.write("Unknown argument\n")
-            return None
+            raise Exception("Unknown argument\n")
         if not site:
-            details = {'action': 'machine'}
-            details['USERID'] = pwd.getpwuid(os.getuid())[0]
-            details["machine"] = machine
-            u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                               proxies=self.proxies)
-            reply = None
-            data = u.read()
-            if data[0:5] == "ERROR":
-                sys.stderr.write(data)
-            else:
-                reply = self.parse_job(data)
-            u.close()
-        
-            if not reply.has_key("SITE"):
-                return None
-            site = reply["SITE"]
+            site = self.xenrt.get_machine(machine)['site']
         return self.getControllerAddr(site)
 
     def getControllerAddr(self,site):
-        details = {'action': 'site'}
-        details['USERID'] = pwd.getpwuid(os.getuid())[0]
-        details["site"] = site
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        if data[0:5] == "ERROR":
-            sys.stderr.write(data)
-        else:
-            reply = self.parse_job(data)
-        u.close()
-        if reply.has_key("CTRLADDR"):
-            return reply["CTRLADDR"] 
-        return None
+        return self.xenrt.get_site(site)['ctrladdr']
         
 class XenRTSNetwork(_XenRTControllerOperation):
     name = "snetwork"
@@ -3175,21 +1971,15 @@ class XenRTSNetwork(_XenRTControllerOperation):
     
     def run(self, args):
         if len(args) < 1:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         site = args[0]
         details = {'action': 'network'}
         details['USERID'] = pwd.getpwuid(os.getuid())[0]
 
         addr = self.getControllerAddr(site)
-        u = urlopen_with_retry("http://%s/share/control/queue.cgi" % addr + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        data = u.read()
-        return data
-
-    def render(self, args, results):
-        self.printout(results)
-        return 0
+        r = requests.get("http://%s/xenrt/api/controller/network" % addr)
+        r.raise_for_status()
+        self.printout(r.text)
 
 class XenRTMConfig(_XenRTControllerOperation):
     name = "mconfig"
@@ -3201,10 +1991,9 @@ class XenRTMConfig(_XenRTControllerOperation):
     group = "Machine"
 
     def run(self, args):
-        details = {'action': 'mconfig'}
+        details = {}
         if len(args) == 0:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         machine = args[0]
         details["machine"] = machine
         try:
@@ -3214,19 +2003,12 @@ class XenRTMConfig(_XenRTControllerOperation):
                 if flag == '--generated':
                     details["generated"] = "yes"
         except getopt.GetoptError:
-            sys.stderr.write("Unknown argument\n")
-            return None
+            raise Exception("Unknown argument\n")
         addr = self.getControllerAddrForMachine(machine, [])
-        u = urlopen_with_retry("http://%s/share/control/queue.cgi" % addr  + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        reply = None
-        data = u.read()
-        u.close()
-        return data
+        r = requests.get("http://%s/xenrt/api/controller/machinecfg" % addr, params=details)
+        r.raise_for_status()
+        self.printout(r.text)
         
-    def render(self, args, results):
-        self.printout(results)
-        return 0
 
 
 class XenRTPower(_XenRTControllerOperation):
@@ -3238,31 +2020,21 @@ class XenRTPower(_XenRTControllerOperation):
 
     def run(self, args):
         if len(args) < 2:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         machine = args[0]
         self.bootdev = None
         addr = self.getControllerAddrForMachine(machine, args[2:])
         if not addr:
-            sys.stderr.write("Controller for machine %s not found\n" % machine)
-            return None
-        details = {'action': 'power'}
-        details['USERID'] = pwd.getpwuid(os.getuid())[0]
+            raise Exception("Controller for machine %s not found\n" % machine)
+        details = {}
         if args[1] not in ["off", "on", "reboot", "nmi"]:
-            sys.stderr.write("Invalid power operation - must be one of off, on or reboot\n")
-            return None
+            raise Exception("Invalid power operation - must be one of off, on or reboot\n")
         details["powerop"] = args[1]
         details["machine"] = machine
         if self.bootdev:
             details['bootdev'] = self.bootdev
-        u = urlopen_with_retry("http://%s/share/control/queue.cgi" % addr + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        data = u.read()
-        return data
-
-    def render(self, args, results):
-        self.printout(results)
-        return 0
+        r = requests.get("http://%s/xenrt/api/controller/power" % addr, params=details)
+        self.printout(r.text)
 
 class XenRTConsole(_XenRTControllerOperation):
     name = "console"
@@ -3272,8 +2044,7 @@ class XenRTConsole(_XenRTControllerOperation):
 
     def run(self, args):
         if len(args) < 1:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         global _console
         global _conserver
         results = None
@@ -3282,13 +2053,7 @@ class XenRTConsole(_XenRTControllerOperation):
             console = _console
         machine = args[0]
         if machine == "-l":
-            details = {'action': 'mlist2'}
-            details['USERID'] = pwd.getpwuid(os.getuid())[0]
-            details["controller"] = "yes"
-            u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-
-            machines = map(lambda x: x.split(",")[0], u.readlines())
+            machines = xenrt.get_machines().keys()
 
             results = []
 
@@ -3296,7 +2061,7 @@ class XenRTConsole(_XenRTControllerOperation):
                 m = re.match(" (.+?)\s+(.+?)\s+(.+?)", l)
                 if m:
                     if not m.group(1) in machines:
-                        results.append(m.group(1))
+                        self.printout("%s\n" % m.group(1))
         else:
             addr = self.getControllerAddrForMachine(machine, args[1:])
             if not addr:
@@ -3313,13 +2078,6 @@ class XenRTConsole(_XenRTControllerOperation):
                 f.file.write(out)
                 f.file.close()
                 os.system("ssh -t -i %s -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o CheckHostIP=no cons@%s %s" % (f.name, addr, machine.split(".")[0].split("_")[0]))
-        return results
-
-    def render(self, args, results):
-        if results:
-            for line in results:
-                self.printout("%s\n" % line)
-        return 0
 
 class XenRTGlobalResLock(XenRTCommand):
    
@@ -3329,24 +2087,9 @@ class XenRTGlobalResLock(XenRTCommand):
     group = "resources"
 
     def run(self, args):
-        details = {'action': 'lockresource',
-                   'type': args[0],
-                   'job': args[1],
-                   'site': args[2]}
+        data = self.xenrt.lock_global_resource(args[0], args[2], int(args[1]))
+        self.printout(json.dumps(data))
 
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details), proxies=self.proxies)
-
-        ret = u.read()
-        data = json.loads(ret)
-        
-        return data
-
-    def render(self, args, results):
-        if not 'name' in results.keys():
-            sys.stderr.write("ERROR: Could not lock resource\n")
-            return 1
-        self.printout(json.dumps(results)+"\n")
-        return 0
 
 class XenRTGlobalResRelease(XenRTCommand):
     name = "globalresrelease"
@@ -3355,26 +2098,12 @@ class XenRTGlobalResRelease(XenRTCommand):
     group = "resources"
 
     def run(self, args):
-        details = {'action': 'releaseresource'}
+        details = {}
         try:
             details['job'] = int(args[0])
         except:
             details['name'] = args[0]
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-
-        data = u.read()
-
-        if data[0:5] == "ERROR":
-            reply = ""
-            sys.stderr.write(data)
-        else:
-            reply = "OK"
-        return reply
-
-    def render(self, args, results):
-        print results
-        return 0
+        self.xenrt.release_global_resource(**details)
 
 class XenRTMGetResource(_XenRTControllerOperation):
     name = "mgetresource"
@@ -3383,25 +2112,18 @@ class XenRTMGetResource(_XenRTControllerOperation):
 
     def run(self, args):
         if len(args) < 2:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         machine = args[0]
         addr = self.getControllerAddrForMachine(machine, args[2:])
         if not addr:
-            sys.stderr.write("Controller for machine %s not found\n" % machine)
-            return None
+            raise Exception("Controller for machine %s not found\n" % machine)
         details = {"machine": args[0], "type": args[1]}
         if len(args) > 2:
             details['args'] = " ".join(args[2:])
-        u = urlopen_with_retry("http://%s/xenrt/api/controller/getresource" % addr + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        data = u.read()
-        return data
+        r = requests.get("http://%s/xenrt/api/controller/getresource" % addr, params=details)
+        r.raise_for_status()
+        self.printout(r.text)
 
-    def render(self, args, results):
-        print results
-        return 0
-        
 class XenRTMListResources(_XenRTControllerOperation):
     name = "mlistresources"
     summary = "List controller resources for a machine"
@@ -3409,23 +2131,16 @@ class XenRTMListResources(_XenRTControllerOperation):
 
     def run(self, args):
         if len(args) < 1:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         machine = args[0]
         addr = self.getControllerAddrForMachine(machine, args[1:])
         if not addr:
-            sys.stderr.write("Controller for machine %s not found\n" % machine)
-            return None
+            raise Exception("Controller for machine %s not found\n" % machine)
         details = {"machine": args[0]}
-        u = urlopen_with_retry("http://%s/xenrt/api/controller/listresources" % addr + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-        data = u.read()
-        return data
+        r = requests.get("http://%s/xenrt/api/controller/listresources" % addr, params=details)
+        r.raise_for_status()
+        self.printout(r.text)
 
-    def render(self, args, results):
-        print results
-        return 0
-        
 class XenRTMReleaseResources(_XenRTControllerOperation):
     name = "mreleaseresources"
     summary = "Relase controller resources"
@@ -3433,36 +2148,26 @@ class XenRTMReleaseResources(_XenRTControllerOperation):
 
     def run(self, args):
         if len(args) < 2:
-            sys.stderr.write("Invalid usage\n")
-            return None
+            raise Exception("Invalid usage\n")
         machine = args[0]
         addr = self.getControllerAddrForMachine(machine, args[1:])
         if not addr:
-            sys.stderr.write("Controller for machine %s not found\n" % machine)
-            return None
-        details = []
+            raise Exception("Controller for machine %s not found\n" % machine)
+        details = {"resource": []}
         for r in args[1:]:
-            details.append("resource=%s" % r)
-        
-        u = urlopen_with_retry("http://%s/xenrt/api/controller/releaseresources" % addr + "?" + "&".join(details),
-                           proxies=self.proxies)
-        data = u.read()
-        return data
+            details['resource'].append(r)
 
-    def render(self, args, results):
-        print results
-        return 0
-        
+        r = requests.get("http://%s/xenrt/api/controller/releaseresources" % addr, params=details)
+        r.raise_for_status()
+        self.printout(r.text)
+
 #############################################################################
 
 class Commands:
 
-    def __init__(self, outfd=sys.stdout, raw=0):
-        self.outfd = outfd
-        self.raw = raw
+    def __init__(self):
         self.commands = {}
         self.add(XenRTSubmit)
-        self.add(XenRTRun)
         self.add(XenRTStatus)
         self.add(XenRTHelp)
         self.add(XenRTComplete)
@@ -3475,7 +2180,6 @@ class Commands:
         self.add(XenRTSetResult)
         self.add(XenRTLogData)
         self.add(XenRTShowLog)
-        self.add(XenRTJobGroup)
         self.add(XenRTMachine)
         self.add(XenRTMList)
         self.add(XenRTMConfig)
@@ -3490,21 +2194,13 @@ class Commands:
         self.add(XenRTMBroken)
         self.add(XenRTMFixed)
         self.add(XenRTSFlag)
-        self.add(XenRTUtilisation)
         self.add(XenRTMStatus)
         self.add(XenRTSchedule)
         self.add(XenRTMDefine)
-        self.add(XenRTMDefineXML)
         self.add(XenRTMUndefine)
-        self.add(XenRTCaseSet)
-        self.add(XenRTCaseSets)
-        self.add(XenRTAddCase)
-        self.add(XenRTDelCase)
         self.add(XenRTSubResults)
         self.add(XenRTInteract)
         self.add(XenRTPerfData)
-        self.add(XenRTMakeTickets)
-        self.add(XenRTSuiteStatus)
         self.add(XenRTDetailID)
         self.add(XenRTSList)
         self.add(XenRTSDefine)
@@ -3512,7 +2208,6 @@ class Commands:
         self.add(XenRTSUpdate)
         self.add(XenRTSite)
         self.add(XenRTRunSuite)
-        self.add(XenRTWarnings)
         self.add(XenRTRerun)
         self.add(XenRTPower)
         self.add(XenRTSNetwork)
@@ -3532,14 +2227,10 @@ class Commands:
         return self.commands.has_key(command)
 
     def run(self, command, args):
-        return self.commands[command].dispatch(args, raw=self.raw)
+        return self.commands[command].dispatch(args)
 
     def getall(self):
         return self.commands.values()
-
-    def setProxies(self, proxies):
-        for c in self.commands.values():
-            c.proxies = proxies
 
 #############################################################################
 
@@ -3564,16 +2255,7 @@ if __name__ == '__main__':
     	XRTPROF = hotshot.Profile(XRTPROF_FILENAME)
         atexit.register(xenrt_profile_stats)
 
-    com = Commands(raw=0)
-
-    # Dirty hack to use the JOBSERVER_PROXY variable
-    if os.path.exists("/etc/xenrt/site.xml"):
-        f = file("/etc/xenrt/site.xml", "r")
-        data = f.read()
-        f.close()
-        r = re.search("<JOBSERVER_PROXY>(http:.*?)<\/JOBSERVER_PROXY>", data)
-        if r:
-            com.setProxies({'http': r.group(1)})
+    com = Commands()
 
     if len(sys.argv) < 2:
         sys.stderr.write("Usage: %s <command> [options]\n" % (sys.argv[0]))
@@ -3586,11 +2268,6 @@ if __name__ == '__main__':
         	rc = XRTPROF.runcall(com.run, sys.argv[1], sys.argv[2:])
 	else:
 		rc = com.run(sys.argv[1], sys.argv[2:])
-        if com.raw:
-            if rc:
-                print rc
-                sys.exit(0)
-            sys.exit(1)
         sys.exit(rc)
 
     if sys.argv[1] == '--help':

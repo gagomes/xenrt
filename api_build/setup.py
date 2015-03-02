@@ -8,5 +8,5 @@ setup(name='xenrtapi',
       author_email="svcacct_xs_xenrt@citrix.com",
       license="Apache",
       packages=['xenrtapi'],
-      scripts=['scripts/xenrtnew'],
+      scripts=['scripts/xenrtnew', 'scripts/xenrt'],
       zip_safe=True)

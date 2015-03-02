@@ -9616,9 +9616,9 @@ while True:
         xenrt.log("Guest arch is %s"%self.arch)
 
         if "64" in self.arch:
-            drivername=xenrt.TEC().lookup("PVHVM_GPU_NVDIA_X64")
+            drivername=xenrt.TEC().lookup("PVHVM_GPU_NVIDIA_X64")
         else :
-            drivername=xenrt.TEC().lookup("PVHVM_GPU_NVDIA_X86")
+            drivername=xenrt.TEC().lookup("PVHVM_GPU_NVIDIA_X86")
 
         #Get the file and put it into the VM
         urlprefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")

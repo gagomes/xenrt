@@ -4,6 +4,11 @@
     <variables>
         <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
     </variables>
+    
+    <prepare>
+        <allhosts />
+    </prepare>
+
     <testsequence>
         <parallel workers="4" group="CreateTemplate">
             <for iter="D" values="${DISTROS}">

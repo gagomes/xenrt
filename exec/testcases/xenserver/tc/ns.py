@@ -841,8 +841,8 @@ class NSBVT(xenrt.TestCase):
 
     # Acceptable failures
     IGNORE_TESTS = set(['26.2.1.14'])
-    
-    
+    PASS_TESTS = xenrt.TEC().lookup("EXPECTED_TEST_PASSES")
+
     def getMountDir(self, mounts, src_path):
         
         for line in mounts:
@@ -1102,6 +1102,7 @@ class NSBVT(xenrt.TestCase):
         
         ats = self.cfg["ats"]
         test_id = ats.execcmd("su atsuser -c 'cat /home/atsuser/www/cgi-bin/1'").strip()
+        if not re.search(self.expected_id, test_id) : raise xenrt.XRTError("Wrong Test ID %s generated" %(test_id))
         return test_id
 
         
@@ -1144,15 +1145,18 @@ class NSBVT(xenrt.TestCase):
         return
 
 
-    def getFailedTests(self):
+    def getTestStatus(self):
         
         results = self.parseTestResults()
         failed_tests = dict()
+        passed_tests = dict()
         for tc_id in results.keys(): 
             if results[tc_id][1] == 'FAILED':
                 failed_tests[tc_id] = results[tc_id]
+            elif results[tc_id][1] == 'PASSED':
+                passed_tests[tc_id] = results[tc_id]
 
-        return failed_tests
+        return (failed_tests,passed_tests)
 
 
     def createSanityLogDir(self):
@@ -1221,6 +1225,7 @@ class NSBVT(xenrt.TestCase):
         ats = self.cfg["ats"]
         xenrt.TEC().logverbose("Starting NS Sanity test run")
         
+        self.expected_id = "Test-" + ats.execcmd("date +%Y_%m_%d",username='atsuser', password="atsuser").strip()
         out = ats.execcmd("cd /home/atsuser/www/cgi-bin/; perl ns-sanity.pl START ", 
                           username='atsuser',
                           retval='code', 
@@ -1298,8 +1303,13 @@ class NSBVT(xenrt.TestCase):
 
         xenrt.TEC().logverbose("Sanity test status is %s" % status)
         
+        failed_tests,passed_tests = self.getTestStatus()
+        
+        #Currently there are 128 tests cases running, out of which 127 test cases should pass
+        if len(passed_tests) < self.PASS_TESTS :
+            raise xenrt.XRTFailure("NS Sanity test failed since we did not get %s pass results." %(self.PASS_TESTS))
+        
         if status == 'FAILED':
-            failed_tests = self.getFailedTests()
             if not self.testsExpectedToFail(failed_tests):
                 raise xenrt.XRTFailure("NS Sanity test failed")
         elif status != 'PASSED':

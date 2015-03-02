@@ -841,7 +841,7 @@ class NSBVT(xenrt.TestCase):
 
     # Acceptable failures
     IGNORE_TESTS = set(['26.2.1.14'])
-    PASS_TESTS = xenrt.TEC().lookup("EXPECTED_TEST_PASSES")
+    PASS_TESTS = xenrt.TEC().lookup("EXPECTED_TEST_PASSES", 127)
 
     def getMountDir(self, mounts, src_path):
         

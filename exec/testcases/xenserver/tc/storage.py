@@ -4525,13 +4525,13 @@ class TC26472(xenrt.TestCase):
 
     def run(self, arglist):
 
-        self.host = self.getDefaultHost()
-
+        self.host = self.getHost("RESOURCE_HOST_1")
         srs = self.host.minimalList("sr-list", args="name-label=\"CIFS-SR\"")
         if not srs:
             raise xenrt.XRTFailure("Unable to find a CIFS SR configured on host %s" % self.host)
 
         xenrt.TEC().logverbose("Guests Life Cycle Operations on CIFS SR ...")
+
         for guest in [xenrt.TEC().registry.guestGet(g) for g in self.host.listGuests()]:
             self.getLogsFrom(guest)
             guest.shutdown()

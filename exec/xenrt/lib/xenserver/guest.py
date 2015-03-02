@@ -4443,6 +4443,8 @@ def createVMFromPrebuiltTemplate(host,
         notools = True # CoreOS has tools installed already
     else:
         g.enlightenedDrivers = False
+
+    g.changeCD("xs-tools.iso")
     g.start() 
     
     if not notools:

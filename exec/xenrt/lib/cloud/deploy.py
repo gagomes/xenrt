@@ -246,9 +246,9 @@ class DeployerPlugin(object):
         return 'XenServer' # Default to XenServer if not specified
 
     def getPrimaryStorages(self, key, ref):
-        primaryStorages = ref.get("primaryStorages", [])
-        if key == "Cluster" and len(primaryStorages)==0:
-            primaryStorages.append({})
+        primaryStorages = ref.get("primaryStorages", None)
+        if key == "Cluster" and not primaryStorages:
+            primaryStorages = [ { } ]
         for ps in primaryStorages:
             if key == "Zone":
                 ps["scope"] = "zone"

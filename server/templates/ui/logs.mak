@@ -22,25 +22,38 @@ $(function() {
         return ""
     }         
 
+    function appendJob(data) {
+        var out = jobHTML(data)
+        $( out ).appendTo( "#logs" );
+        $("#togglejobdetail" + data['id']).click(function(event) {
+            objid = "#" + event.target.id.replace("toggle", '');
+            $( objid ).toggle("blind", {}, 500);
+        });
+        var formdetail = getUrlParameter("detailid");
+        for (var key in data['results']) {
+            $("#toggletestdetail" + key).click(function(event) {
+                objid = "#" + event.target.id.replace("toggle", '');
+                $( objid ).toggle("blind", {}, 500);
+            });
+            if (formdetail == key) {
+                $( "#testdetail" + key ).show();
+            }
+        }
+    }
+
     function getJob(jobid) {
         var jobget = "/xenrt/api/v2/job/" + jobid
         $.getJSON (jobget, {"logitems": "true"})
             .done(function(data) {
-                var out = jobHTML(data)
-                $( out ).appendTo( "#logs" );
-                $("#togglejobdetail" + jobid).click(function(event) {
-                    objid = "#" + event.target.id.replace("toggle", '');
-                    $( objid ).toggle("blind", {}, 500);
-                });
-                var formdetail = getUrlParameter("detailid");
-                for (var key in data['results']) {
-                    $("#toggletestdetail" + key).click(function(event) {
-                        objid = "#" + event.target.id.replace("toggle", '');
-                        $( objid ).toggle("blind", {}, 500);
-                    });
-                    if (formdetail == key) {
-                        $( "#testdetail" + key ).show();
-                    }
+                appendJob(data);
+            });
+    }
+
+    function getMyJobs(jobid) {
+        $.getJSON("/xenrt/api/v2/jobs", {"params": "true", "logitems": "true", "results": "true", "user": "${'${user}'}", "status": "new,running,removed,done", "limit": "20"})
+            .done(function(data) {
+                for (var key in data) {
+                    appendJob(data[key]);
                 }
             });
     }
@@ -209,6 +222,18 @@ $(function() {
             });
     }
 
+    $( "#myjobbutton" ).click(function() {
+        $('#myjobbutton').prop('disabled', true);
+        $( "#overlay" ).show();
+        $( "#loading" ).show();
+        $( "#logs" ).empty();
+        $.ajaxSetup( { "async": false } );
+        getMyJobs();
+        $( "#overlay" ).hide();
+        $( "#loading" ).hide();
+        $('#myjobbutton').prop('disabled', false);
+    });
+
     $( "#displayjobbutton" ).click(function() {
         $('#displayjobbutton').prop('disabled', true);
         $( "#overlay" ).show();
@@ -254,7 +279,8 @@ ${commonbody | n}
 
 <h2>Browse XenRT Logs</h2>
 <p>Jobs: <input id="jobs" type="text" width="12">
-<button id="displayjobbutton" class="ui-state-default ui-corner-all">Display</button></p>
+<button id="displayjobbutton" class="ui-state-default ui-corner-all">Display</button>
+<button id="myjobbutton" class="ui-state-default ui-corner-all">My recent jobs</button></p>
 <div id="logs"></div>
 
 </div>

@@ -15,10 +15,6 @@ class TCDockerBase(xenrt.TestCase):
 
         # Obtain the pool object to retrieve its hosts. 
         self.pool = self.getDefaultPool() 
-        if self.pool is None: 
-            self.host = self.getDefaultHost() 
-        else: 
-            self.host = self.pool.master 
 
         self.guests = [] # more guests can be managed.
         args = self.parseArgsKeyValue(arglist) 
@@ -38,8 +34,8 @@ class TCDockerBase(xenrt.TestCase):
         # Obtain the docker environment to work with Xapi plugins.
         self.docker = [] # for every guest, we need a docker environment.
         for guest in self.guests:
-            self.docker.append(guest.getDocker()) # OR CoreOSDocker(self.host, self.coreos, XapiPluginDockerController)
-                                                       # OR CoreOSDocker(self.host, self.coreos, LinuxDockerController)
+            self.docker.append(guest.getDocker()) # OR CoreOSDocker(guest.getHost(), guest, XapiPluginDockerController)
+                                                  # OR CoreOSDocker(guest.getHost(), guest, LinuxDockerController)
 
     def run(self, arglist=None):pass
 
@@ -51,21 +47,27 @@ class TCDockerBase(xenrt.TestCase):
 class TCContainerLifeCycle(TCDockerBase):
     """Docker container lifecycle tests"""
 
-    def run(self, arglist=None):
-
+    def createDockerContainers(self):
         # Create a container of choice in every guest.
         for docker in self.docker:
             docker.createContainer(ContainerType.BUSYBOX) # with default container type and name.
             docker.createContainer(ContainerType.TOMCAT)
+            docker.createContainer(ContainerType.YES_BUSYBOX)
 
         # Lifecycle tests on all containers in every guest.
         for docker in self.docker:
             docker.lifeCycleAllContainers()
 
+    def run(self, arglist=None):
+        self.createDockerContainers()
+
 class TCGuestsLifeCycle(TCContainerLifeCycle):
     """Lifecycle tests of guests with docker containers"""
 
     def run(self, arglist=None):
+
+        # Create enough containers in every guests.
+        self.createDockerContainers()
 
         xenrt.TEC().logverbose("Guests [having docker containers] Life Cycle Operations...")
 
@@ -99,6 +101,9 @@ class TCGuestsMigration(TCContainerLifeCycle):
             guest.start()
 
     def run(self, arglist=None):
+
+        # Create enough containers in every guests.
+        self.createDockerContainers()
 
         xenrt.TEC().logverbose("Guests [having docker containers] Migration tests ...")
 

@@ -247,17 +247,6 @@ class DeployerPlugin(object):
             return ref['hypervisor']
         return 'XenServer' # Default to XenServer if not specified
 
-    def setPrimaryStoragesConfigZone(self, key, ref):
-        primaryStorages = ref.get("primaryStorages", [])
-        for ps in primaryStorages:
-            ps["scope"] = "zone"
-            if "hypervisor" not in ps:
-                raise xenrt.XRTError('hypervisor not specified for zone wide primary storage.')
-            elif ps["hypervisor"] not in ["KVM", "vmware"]:
-                raise xenrt.XRTError('Only KVM and vmware hypervisor support zone wide primary storage.')
-            ps["XRT_PriStorageType"] = "NFS"
-        return None
-
     def getPrimaryStorages(self, key, ref):
         ps = []
         if ref['hypervisor'] == "hyperv":
@@ -269,6 +258,11 @@ class DeployerPlugin(object):
 
     def getPrimaryStorageName(self, key, ref):
         if ref.get("scope",False) == "zone":
+            if "hypervisor" not in ref:
+                raise xenrt.XRTError('hypervisor not specified for zone wide primary storage.')
+            elif ref["hypervisor"] not in ["KVM", "vmware"]:
+                raise xenrt.XRTError('Only KVM and vmware hypervisor support zone wide primary storage.')
+            ref["XRT_PriStorageType"] = "NFS"
             self.currentPrimaryStoreZoneIx += 1
             name = '%s-Primary-Store-%d' % (self.currentZoneName, self.currentPrimaryStoreZoneIx)
         else:

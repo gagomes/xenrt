@@ -30,7 +30,7 @@ class MarvinDeployer(object):
           'abstractName': 'Zone',
           'required': { 'name': 'getName', 'networktype': None, 'dns1': 'getDNS', 'internaldns1': 'getInternalDNS', 'secondaryStorages': 'getSecondaryStorages', 'physical_networks': None, },
           'defaults': { 'physical_networks': [ { } ]},
-          'optional': { 'domain': 'getDomain', 'primaryStorages': None, 'setPrimaryStoragesConfigZone': None },
+          'optional': { 'domain': 'getDomain', 'primaryStorages': None },
           'notify'  : { 'name': 'notifyNewElement' } },
         'secondaryStorages': {
           'abstractName': 'SecondaryStorage',

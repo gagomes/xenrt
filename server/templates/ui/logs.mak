@@ -52,8 +52,13 @@ $(function() {
     function getMyJobs(jobid) {
         $.getJSON("/xenrt/api/v2/jobs", {"params": "true", "logitems": "true", "results": "true", "user": "${'${user}'}", "status": "new,running,removed,done", "limit": "20"})
             .done(function(data) {
+                var jobs = []
                 for (var key in data) {
-                    appendJob(data[key]);
+                    jobs.push(parseInt(key))
+                }
+                jobs.sort(function(a, b){return b-a});
+                for (var i in jobs) {
+                    appendJob(data[jobs[i].toString()]);
                 }
             });
     }

@@ -13,10 +13,6 @@ class TCDockerBase(xenrt.TestCase):
 
     def prepare(self, arglist=None):
 
-        self.guests = [] # more guests can be managed.
-        args = self.parseArgsKeyValue(arglist) 
-        self.distro = args.get("coreosdistro", "coreos-alpha") 
-
         # Obtain the pool object to retrieve its hosts. 
         self.pool = self.getDefaultPool() 
         if self.pool is None: 
@@ -24,31 +20,47 @@ class TCDockerBase(xenrt.TestCase):
         else: 
             self.host = self.pool.master 
 
-        # Obtain the CoreOS guest object. 
-        self.guest = self.getGuest(self.distro)
-        self.guests.append(self.guest)
+        self.guests = [] # more guests can be managed.
+        args = self.parseArgsKeyValue(arglist) 
+        self.distro = args.get("distro", "coreos-alpha") 
+
+        i = 0
+        while True:
+            guest = self.getGuest("%s-%d" % (self.distro, i))
+            if not guest:
+                break
+            self.guests.append(guest)
+            i = i + 1
+
+        if len(self.guests) < 1:
+            raise xenrt.XRTFailure("There are no guests in the pool to continue the test")
 
         # Obtain the docker environment to work with Xapi plugins.
-        self.docker = self.guest.getDocker() # OR CoreOSDocker(self.host, self.coreos, XapiPluginDockerController)
-                                             # OR CoreOSDocker(self.host, self.coreos, LinuxDockerController)
+        self.docker = [] # for every guest, we need a docker environment.
+        for guest in self.guests:
+            self.docker.append(guest.getDocker()) # OR CoreOSDocker(self.host, self.coreos, XapiPluginDockerController)
+                                                       # OR CoreOSDocker(self.host, self.coreos, LinuxDockerController)
 
     def run(self, arglist=None):pass
 
     def postRun(self, arglist=None): 
         """Remove all the created containers""" 
-        self.docker.rmAllContainers()
+        for docker in self.docker:
+            docker.rmAllContainers()
 
 class TCContainerLifeCycle(TCDockerBase):
     """Docker container lifecycle tests"""
 
     def run(self, arglist=None):
 
-        # Create a container of choice.
-        self.docker.createContainer(ContainerType.BUSYBOX) # with default container type and name.
-        self.docker.createContainer(ContainerType.TOMCAT)
+        # Create a container of choice in every guest.
+        for docker in self.docker:
+            docker.createContainer(ContainerType.BUSYBOX) # with default container type and name.
+            docker.createContainer(ContainerType.TOMCAT)
 
-        # Lifecycle tests on all containers.
-        self.docker.lifeCycleAllContainers()
+        # Lifecycle tests on all containers in every guest.
+        for docker in self.docker:
+            docker.lifeCycleAllContainers()
 
 class TCGuestsLifeCycle(TCContainerLifeCycle):
     """Lifecycle tests of guests with docker containers"""
@@ -66,50 +78,16 @@ class TCGuestsLifeCycle(TCContainerLifeCycle):
             guest.resume()
             guest.shutdown()
 
-        xenrt.TEC().logverbose("Guests [having docker containers] Migration to slave ...")
-
-        for guest in self.guests:
-            self.getLogsFrom(guest)
-            guest.migrateVM(host=self.pool.getSlaves()[0], live="true")
-            guest.check()
-
-        xenrt.TEC().logverbose("Guests [having docker containers] after Migration - Life Cycle Operations...")
-
-        for guest in self.guests:
-            self.getLogsFrom(guest)
-            guest.shutdown()
-            guest.start()
-            guest.reboot()
-            guest.suspend()
-            guest.resume()
-            guest.shutdown()
-
 class TCGuestsMigration(TCContainerLifeCycle):
     """Lifecycle tests of guests with docker containers"""
 
-    def run(self, arglist=None):
-
-        xenrt.TEC().logverbose("Guests [having docker containers] Life Cycle Operations...")
-
+    def migrationDockerGuest(self, host):
         for guest in self.guests:
             self.getLogsFrom(guest)
-            guest.shutdown()
-            guest.start()
-            guest.reboot()
-            guest.suspend()
-            guest.resume()
-            guest.shutdown()
-            guest.start()
-
-        xenrt.TEC().logverbose("Guests [having docker containers] Migration to slave ...")
-
-        for guest in self.guests:
-            self.getLogsFrom(guest)
-            guest.migrateVM(host=self.pool.getSlaves()[0], live="true")
+            guest.migrateVM(host=host, live="true")
             guest.check()
 
-        xenrt.TEC().logverbose("Guests [having docker containers] after Migration - Life Cycle Operations...")
-
+    def lifeCycleDockerGuest(self):
         for guest in self.guests:
             self.getLogsFrom(guest)
             guest.shutdown()
@@ -118,20 +96,42 @@ class TCGuestsMigration(TCContainerLifeCycle):
             guest.suspend()
             guest.resume()
             guest.shutdown()
+            guest.start()
+
+    def run(self, arglist=None):
+
+        xenrt.TEC().logverbose("Guests [having docker containers] Migration tests ...")
+
+        xenrt.TEC().logverbose("Life Cycle Operations...")
+        self.lifeCycleDockerGuest()
+
+        xenrt.TEC().logverbose("Migration to slave ...")
+        self.migrationDockerGuest(self.pool.getSlaves()[0])
+
+        xenrt.TEC().logverbose("After Migration - Life Cycle Operations...")
+        self.lifeCycleDockerGuest()
+
+        xenrt.TEC().logverbose("Migration back to master ...")
+        self.migrationDockerGuest(self.pool.master)
+
+        xenrt.TEC().logverbose("Again Life Cycle Operations...")
+        self.lifeCycleDockerGuest()
 
 class TCScaleContainers(TCDockerBase):
     """Number of docker containers that can be managed in XenServer"""
 
     def run(self, arglist=None):
-        count = 0
-        try:
-            while True:
-                self.docker.createContainer(ContainerType.YES_BUSYBOX)
-                count = count + 1
-        except xenrt.XRTFailure, e:
-            if count > 0: # one or more containers created.
-                xenrt.TEC().logverbose("The number of docker containers created = %s" % count)
-                # Lifecycle tests on all containers.
-                self.docker.lifeCycleAllContainers()
-            else:
-                raise xenrt.XRTError(e.reason)
+
+        for docker in self.docker:
+            count = 0
+            try:
+                while True:
+                    docker.createContainer(ContainerType.YES_BUSYBOX)
+                    count = count + 1
+            except xenrt.XRTFailure, e:
+                if count > 0: # one or more containers created.
+                    xenrt.TEC().logverbose("The number of docker containers created = %s" % count)
+                    # Lifecycle tests on all containers.
+                    docker.lifeCycleAllContainers()
+                else:
+                    raise xenrt.XRTError(e.reason)

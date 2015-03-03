@@ -17,7 +17,7 @@
   <prepare>
     <pool id="0">
       <host id="0">
-        <vm name="${DISTRO}">
+        <vm name="${DISTRO}-0">
           <distro>${DISTRO}</distro>
           <arch>x86-64</arch>
           <memory>1024</memory>
@@ -34,11 +34,11 @@
     <serial group="CoreOS">
 
       <testcase id="xenserver.tc.docker.TCContainerLifeCycle" tc="TC-23918" name="ContainerLifeCycle" sku="CoreOS">
-        <arg>coreosdistro=${DISTRO}</arg>
+        <arg>distro=${DISTRO}</arg>
       </testcase>
 
       <testcase id="xenserver.tc.docker.TCGuestsLifeCycle" tc="TC-26443" name="GuestsLifeCycle" sku="CoreOS">
-        <arg>coreosdistro=${DISTRO}</arg>
+        <arg>distro=${DISTRO}</arg>
       </testcase>
 
     </serial>

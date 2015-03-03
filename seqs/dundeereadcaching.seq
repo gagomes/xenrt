@@ -23,7 +23,7 @@
   <testsequence>
     <serial group="RC">
       <!-- Verify both xapi and tap-ctl are set by licensing state and the values agree -->
-      <testcase id="testcases.xenserver.tc.readcaching.TCLicensingRCEnabled" tc="TC-23923" name="TC-23923/WithHotfix" sku="WithHotfix">
+      <testcase id="testcases.xenserver.tc.readcaching.TCLicensingRCEnabled" tc="TC-23923" name="TC-23923.WithHotfix" sku="WithHotfix">
         <arg>bothChecks=yes</arg>
         <arg>vm=arnie</arg>
       </testcase>
@@ -40,7 +40,7 @@
       </testcase>
 
       <!-- The prepare should switch this back on so verify that again RC is back -->
-      <testcase id="testcases.xenserver.tc.readcaching.TCLicensingRCEnabled" tc="TC-23923" name="TC-23923/LowLevelEnabled" sku="LowLevelEnabled">
+      <testcase id="testcases.xenserver.tc.readcaching.TCLicensingRCEnabled" tc="TC-23923" name="TC-23923.LowLevelEnabled" sku="LowLevelEnabled">
         <arg>bothChecks=yes</arg>
         <arg>vm=arnie</arg>
       </testcase>

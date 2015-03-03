@@ -17,7 +17,6 @@ class XenRTUIPage(XenRTPage):
    <script src="/xenrt/static/js/jquery-1.11.2.js" type="text/javascript"></script>
    <script src="/xenrt/static/js/jquery-ui/jquery-ui.js"></script>
    <link rel="stylesheet" href="/xenrt/static/js/jquery-ui/jquery-ui.css">
-   <title>XenRT: Home</title>
   <style>
     #mainbody {
       font-family: "Trebuchet MS", "Helvetica", "Arial",  "Verdana", "sans-serif";
@@ -43,6 +42,11 @@ class XenRTUIPage(XenRTPage):
 <div id='cssmenu'>
 <ul>
    <li><a href='/xenrt/ui/'><span>Home</span></a></li>
+   <li class='has-sub'><a href='#'><span>Lab</span></a>
+     <ul>
+       <li><a href='/xenrt/ui/machines'><span>Machines</span></a></li>
+     </ul>
+   </li>
    <li><a href='/xenrt/ui/logs'><span>Browse logs</span></a></li>
    <li class='has-sub'><a href='#'><span>API</span></a>
       <ul>
@@ -81,3 +85,5 @@ PageFactory(XenRTUIPage, "/ui", renderer="__main__:templates/ui/index.mak")
 PageFactory(XenRTUIPage, "/ui/", renderer="__main__:templates/ui/index.mak")
 PageFactory(XenRTUIPage, "/ui/logs", renderer="__main__:templates/ui/logs.mak")
 PageFactory(XenRTUIPage, "/ui/apikey", renderer="__main__:templates/ui/apikey.mak")
+PageFactory(XenRTUIPage, "/ui/machines", renderer="__main__:templates/ui/machines.mak")
+PageFactory(XenRTUIPage, "/ui/machine", renderer="__main__:templates/ui/machine.mak")

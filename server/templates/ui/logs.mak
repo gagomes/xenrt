@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang=''>
 <head>
+    <title>XenRT: Browse Logs</title>
 ${commonhead | n}
 
   <script>

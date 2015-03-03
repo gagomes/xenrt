@@ -6,6 +6,7 @@ import json
 import time
 import jsonschema
 import requests
+import re
 
 class _MachineBase(XenRTAPIv2Page):
 
@@ -37,7 +38,8 @@ class _MachineBase(XenRTAPIv2Page):
                     limit=None,
                     offset=0,
                     pseudoHosts=False,
-                    exceptionIfEmpty=False):
+                    exceptionIfEmpty=False,
+                    search=None):
         cur = self.getDB().cursor()
         params = []
         conditions = []
@@ -118,7 +120,7 @@ class _MachineBase(XenRTAPIv2Page):
                 "jobid": rc[13],
                 "broken": rc[3].strip().endswith("x"),
                 "aclid": rc[15],
-                "ctrladdr": rc[16],
+                "ctrladdr": rc[16].strip() if rc[16] else None,
                 "params": {}
             }
 
@@ -157,6 +159,11 @@ class _MachineBase(XenRTAPIv2Page):
                     continue
             if resources:
                 if not app.utils.check_resources("/".join(["%s=%s" % (x,y) for (x,y) in ret[m]['resources'].items()]), "/".join(resources)):
+                    del ret[m]
+                    continue
+
+            if search:
+                if not re.search(search, m):
                     del ret[m]
                     continue
 
@@ -373,7 +380,12 @@ class ListMachines(_MachineBase):
           'in' : 'query',
           'name': 'pseudohosts',
           'required': False,
-          'type': 'boolean'}
+          'type': 'boolean'},
+         {'description': "Regular expression to search for machines",
+          'in': 'query',
+          'name': 'search',
+          'required': False,
+          'type': 'string'}
           ]
     RESPONSES = { "200": {"description": "Successful response"}}
     TAGS = ["machines"]
@@ -390,7 +402,8 @@ class ListMachines(_MachineBase):
                                 aclids = self.getMultiParam("aclid"),
                                 pseudoHosts = self.request.params.get("pseudohosts") == "true",
                                 limit=int(self.request.params.get("limit", 0)),
-                                offset=int(self.request.params.get("offset", 0)))
+                                offset=int(self.request.params.get("offset", 0)),
+                                search=self.request.params.get("search"))
 
 class GetMachine(_MachineBase):
     PATH = "/machine/{name}"
@@ -736,7 +749,7 @@ class PowerMachine(_MachineBase):
          'in': 'body',
          'required': True,
          'description': 'Details of the update',
-         'schema': { "$ref": "#/definitions/updatemachine" }
+         'schema': { "$ref": "#/definitions/powermachine" }
         }
     ]
     RESPONSES = { "200": {"description": "Successful response"}}
@@ -746,22 +759,22 @@ class PowerMachine(_MachineBase):
         "properties": {
             "operation": {
                 "type": "string",
-                "enum": ["on", "off", "reboot", "nmi"]
+                "enum": ["on", "off", "reboot", "nmi"],
                 "description": "Status of the machine"
             },
             "bootdev": {
-                "type": "object",
-                "description": "Key-value pair resource:value of resources to update. (set value to null to remove a resource)"
+                "type": "string",
+                "description": "IPMI boot device for the next boot"
             }
-        }
-        "required": "operation"
+        },
+        "required": ["operation"]
     }}
     OPERATION_ID = "power_machine"
     PARAM_ORDER=["name", "operation", "bootdev", "status", "resources", "addflags", "delflags"]
     SUMMARY = "Control the power on a machine"
 
     def render(self):
-        machine = self.getMachines(limit=1, machines=[self.request.matchdict['name']], exceptionIfEmpty=True)[0]
+        machine = self.getMachines(limit=1, machines=[self.request.matchdict['name']], exceptionIfEmpty=True)[self.request.matchdict['name']]
         try:
             j = json.loads(self.request.body)
             jsonschema.validate(j, self.DEFINITIONS['powermachine'])
@@ -777,7 +790,7 @@ class PowerMachine(_MachineBase):
         r.raise_for_status()
         if r.text.startswith("ERROR"):
             raise XenRTAPIError(HTTPInternalServerError, r.text)
-        return {"output": r.text}
+        return {"output": r.text.strip()}
     
 class NotifyBorrow(_MachineBase):
     def run(self):

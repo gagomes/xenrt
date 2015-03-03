@@ -156,7 +156,10 @@ class Config:
         self.config["WINDOWS_INSTALL_ISOS"] = {}
         self.config["WINDOWS_INSTALL_ISOS"]["ADMINISTRATOR_PASSWORD"] = "xensource"
 
-
+        self.config["PV_DRIVER_INSTALLATION_SOURCE"] = ["Packages", "ToolsISO"]
+        self.config["PV_DRIVERS_LIST"] = "xenbus;xeniface;xennet;xenvbd;xenvif"
+        self.config["PV_DRIVERS_LOCATION"] = "win-tools-builds.tar"
+        
         self.config["BUILTIN_XS_GUEST_AGENT"] = "sarge,etch"
 
         # Configuration specific to particular versions of the product

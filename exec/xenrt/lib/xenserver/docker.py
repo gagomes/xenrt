@@ -219,17 +219,17 @@ class XapiPluginDockerController(DockerController):
     def rmContainer(self, container):
 
         if self.statusContainer(container) == ContainerState.STOPPED:
-            return self.containerXapiOtherOperation(container, ContainerXapiOperation.REMOVE)
+            pass # do nothing. straight away remove the container.
         elif self.statusContainer(container) == ContainerState.RUNNING:
             self.stopContainer(container)
-            return self.containerXapiOtherOperation(container, ContainerXapiOperation.REMOVE)
         elif self.statusContainer(container) == ContainerState.PAUSED:
             self.unpauseContainer(container)
             self.stopContainer(container)
-            return self.containerXapiOtherOperation(container, ContainerXapiOperation.REMOVE)
         else:
             raise xenrt.XRTError("rmContainer: The container %s is in a bad state. Can not be removed" %
                                                                                             container.cname)
+
+        return self.containerXapiOtherOperation(container, ContainerXapiOperation.REMOVE)
 
     # Container lifecycle operations.
     def startContainer(self, container):
@@ -412,17 +412,17 @@ class LinuxDockerController(DockerController):
     def rmContainer(self, container):
 
         if self.statusContainer(container) == ContainerState.STOPPED:
-            return self.containerLinuxLCOperation(ContainerLinuxOperation.REMOVE, container)
+            pass # do nothing. straight away remove the container.
         elif self.statusContainer(container) == ContainerState.RUNNING:
             self.stopContainer(container)
-            return self.containerLinuxLCOperation(ContainerLinuxOperation.REMOVE, container)
         elif self.statusContainer(container) == ContainerState.PAUSED:
             self.unpauseContainer(container)
             self.stopContainer(container)
-            return self.containerLinuxLCOperation(ContainerLinuxOperation.REMOVE, container)
         else:
             raise xenrt.XRTError("rmContainer: The container %s is in a bad state. Can not be removed" %
                                                                                             container.cname)
+
+        return self.containerLinuxLCOperation(ContainerLinuxOperation.REMOVE, container)
 
     # Container lifecycle operations.
     def startContainer(self, container):

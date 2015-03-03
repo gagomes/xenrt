@@ -154,7 +154,7 @@ class _MachineBase(XenRTAPIv2Page):
                     del ret[m]
                     continue
             if resources:
-                if not app.utils.check_resources("/".join(ret[m]['resources']), "/".join(resources)):
+                if not app.utils.check_resources("/".join(["%s=%s" % (x,y) for (x,y) in ret[m]['resources'].items()]), "/".join(resources)):
                     del ret[m]
                     continue
 
@@ -384,7 +384,7 @@ class ListMachines(_MachineBase):
                                 status = self.getMultiParam("status"),
                                 users = self.getMultiParam("user"),
                                 machines = self.getMultiParam("machine"),
-                                flags = self.getMultiParam("flags"),
+                                flags = self.getMultiParam("flag"),
                                 aclids = self.getMultiParam("aclid"),
                                 pseudoHosts = self.request.params.get("pseudohosts") == "true",
                                 limit=int(self.request.params.get("limit", 0)),

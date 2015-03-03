@@ -240,5 +240,5 @@ class AclTests(XenRTUnitTestCase):
     def test_groups_removed_default(self):
         """Check groups specifically listed in the ACL don't contribute to default entries"""
         acl = self._setupAclReturns()
-        acl.entries = [app.acl.ACLEntry("group","group1",None,None,2,None,None), app.acl.ACLEntry("default","",None,None,4,None,None)]
+        acl.entries = [app.acl.ACLEntry("group","group1",None,None,2,None,None), app.acl.ACLEntry("default","",4,None,None,None,None)]
         self.assertTupleTrue(self.acl._check_acl(acl, "user3", 3)) # +3 for user3 brings him to 4, user1 and user2's 1s shouldn't count because of the group match

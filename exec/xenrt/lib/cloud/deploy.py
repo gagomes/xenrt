@@ -246,14 +246,22 @@ class DeployerPlugin(object):
         return 'XenServer' # Default to XenServer if not specified
 
     def getPrimaryStorages(self, key, ref):
-        ps = []
-        if ref['hypervisor'] == "hyperv":
-            hostid = ref['XRT_HyperVHostIds'].split(",")[0]
-            ps.append({"XRT_PriStorageType": "SMB", "XRT_SMBHostId": hostid})
-        else:
-            ps.append({"XRT_PriStorageType": "NFS"})
-        return ps
-    
+        primaryStorages = ref.get("primaryStorages", [])
+        if key == "Cluster" and len(primaryStorages)==0:
+            primaryStorages.append({})
+        for ps in primaryStorages:
+            if key == "Zone":
+                ps["scope"] = "zone"
+                if "hypervisor" not in ps:
+                    raise xenrt.XRTError('hypervisor not specified for zone wide primary storage.')
+            else:
+                if ref['hypervisor'] == "hyperv":
+                    hostid = ref['XRT_HyperVHostIds'].split(",")[0]
+                    ps.update({"XRT_PriStorageType": "SMB", "XRT_SMBHostId": hostid})
+            if "XRT_PriStorageType" not in ps:
+                ps["XRT_PriStorageType"] = "NFS"
+        return primaryStorages
+
     def getPrimaryStorageName(self, key, ref):
         self.currentPrimaryStoreIx += 1
         name = '%s-Primary-Store-%d' % (self.currentClusterName, self.currentPrimaryStoreIx)

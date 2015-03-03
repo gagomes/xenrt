@@ -6495,7 +6495,7 @@ fi
                     else:
                         template = self.chooseTemplate("TEMPLATE_NAME_SLES_%s"
                                                        % (v))
-            elif re.serach(r"sl\d+",distro):
+            elif re.search(r"sl\d+",distro):
                 if hvm:
                     template = self.chooseTemplate("TEMPLATE_OTHER_MEDIA") 
                 else:

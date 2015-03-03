@@ -220,8 +220,16 @@ class XapiPluginDockerController(DockerController):
 
         if self.statusContainer(container) == ContainerState.STOPPED:
             return self.containerXapiOtherOperation(container, ContainerXapiOperation.REMOVE)
+        elif self.statusContainer(container) == ContainerState.RUNNING:
+            self.stopContainer(container)
+            return self.containerXapiOtherOperation(container, ContainerXapiOperation.REMOVE)
+        elif self.statusContainer(container) == ContainerState.PAUSED:
+            self.unpauseContainer(container)
+            self.stopContainer(container)
+            return self.containerXapiOtherOperation(container, ContainerXapiOperation.REMOVE)
         else:
-            raise xenrt.XRTError("removeContainer: Please stop the container %s before removing it" % container.cname)
+            raise xenrt.XRTError("rmContainer: The container %s is in a bad state. Can not be removed" %
+                                                                                            container.cname)
 
     # Container lifecycle operations.
     def startContainer(self, container):
@@ -405,8 +413,16 @@ class LinuxDockerController(DockerController):
 
         if self.statusContainer(container) == ContainerState.STOPPED:
             return self.containerLinuxLCOperation(ContainerLinuxOperation.REMOVE, container)
+        elif self.statusContainer(container) == ContainerState.RUNNING:
+            self.stopContainer(container)
+            return self.containerLinuxLCOperation(ContainerLinuxOperation.REMOVE, container)
+        elif self.statusContainer(container) == ContainerState.PAUSED:
+            self.unpauseContainer(container)
+            self.stopContainer(container)
+            return self.containerLinuxLCOperation(ContainerLinuxOperation.REMOVE, container)
         else:
-            raise xenrt.XRTError("rmContainer: Please stop the container %s before removing it" % container.cname)
+            raise xenrt.XRTError("rmContainer: The container %s is in a bad state. Can not be removed" %
+                                                                                            container.cname)
 
     # Container lifecycle operations.
     def startContainer(self, container):

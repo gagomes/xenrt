@@ -12,6 +12,8 @@ class AclTests(XenRTUnitTestCase):
     def _assertTuple(self, value, expected, msg):
         if not type(value) is tuple:
             return False
+        if not msg:
+            msg = "Expected %s, found %s with '%s'" % (expected, value[0], value[1])
         return self.assertIs(value[0], expected, msg)
 
     def assertTupleTrue(self, value, msg=None):
@@ -69,7 +71,7 @@ class AclTests(XenRTUnitTestCase):
                 return ["user1","user2"]
             return []
         self.acl._userids_for_group = useridsForGroup
-        return app.acl.ACL(1, "test", None, [], {"machine1":"user1", "machine2":"user2", "machine3":None, "machine4":None, "machine5":None, "machine6":None})
+        return app.acl.ACL(1, "test", None, [], {"machine1":"user1", "machine2":"user2", "machine3":"user3", "machine4":None, "machine5":None, "machine6":None})
 
     # User limit tests use user1 who is already using 1 machine
 
@@ -141,41 +143,41 @@ class AclTests(XenRTUnitTestCase):
         acl = self._setupAclReturns()
         acl.entries = [app.acl.ACLEntry("default","",None,None,5,None,None)]
         # Under limit
-        self.assertTupleTrue(self.acl._check_acl(acl, "user1", 3))
+        self.assertTupleTrue(self.acl._check_acl(acl, "user3", 3))
         # On limit
-        self.assertTupleTrue(self.acl._check_acl(acl, "user1", 4))
+        self.assertTupleTrue(self.acl._check_acl(acl, "user3", 4))
         # Over limit
-        self.assertTupleFalse(self.acl._check_acl(acl, "user1", 5))
+        self.assertTupleFalse(self.acl._check_acl(acl, "user3", 5))
 
     def test_default_userpercent(self):
         acl = self._setupAclReturns()
         acl.entries = [app.acl.ACLEntry("default","",None,None,None,50,None)]
         # Under limit
-        self.assertTupleTrue(self.acl._check_acl(acl, "user1", 1))
+        self.assertTupleTrue(self.acl._check_acl(acl, "user3", 1))
         # On limit
-        self.assertTupleTrue(self.acl._check_acl(acl, "user1", 2))
+        self.assertTupleTrue(self.acl._check_acl(acl, "user3", 2))
         # Over limit
-        self.assertTupleFalse(self.acl._check_acl(acl, "user1", 3))
+        self.assertTupleFalse(self.acl._check_acl(acl, "user3", 3))
 
     def test_default_grouplimit(self):
         acl = self._setupAclReturns()
         acl.entries = [app.acl.ACLEntry("default","",5,None,None,None,None)]
         # Under limit
-        self.assertTupleTrue(self.acl._check_acl(acl, "user1", 2))
+        self.assertTupleTrue(self.acl._check_acl(acl, "user3", 1))
         # On limit
-        self.assertTupleTrue(self.acl._check_acl(acl, "user1", 3))
+        self.assertTupleTrue(self.acl._check_acl(acl, "user3", 2))
         # Over limit
-        self.assertTupleFalse(self.acl._check_acl(acl, "user1", 4))
+        self.assertTupleFalse(self.acl._check_acl(acl, "user3", 3))
 
     def test_default_grouppercent(self):
         acl = self._setupAclReturns()
-        acl.entries = [app.acl.ACLEntry("default","",None,70,None,None,None)] # 70% = 4 machines
+        acl.entries = [app.acl.ACLEntry("default","",None,84,None,None,None)] # 84% = 5 machines
         # Under limit
-        self.assertTupleTrue(self.acl._check_acl(acl, "user1", 1))
+        self.assertTupleTrue(self.acl._check_acl(acl, "user3", 1))
         # On limit
-        self.assertTupleTrue(self.acl._check_acl(acl, "user1", 2))
+        self.assertTupleTrue(self.acl._check_acl(acl, "user3", 2))
         # Over limit
-        self.assertTupleFalse(self.acl._check_acl(acl, "user1", 3))
+        self.assertTupleFalse(self.acl._check_acl(acl, "user3", 3))
 
     # Lease time limit
 

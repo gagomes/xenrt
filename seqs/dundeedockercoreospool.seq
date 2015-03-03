@@ -17,7 +17,7 @@
 
   <prepare>
     <pool id="0">
-      <storage type="nfs" name="nfsSR" />
+      <storage type="nfs" name="nfsSR" default="true" />
       <host id="0">
         <vm name="${DISTRO}-0">
           <distro>${DISTRO}</distro>
@@ -46,7 +46,7 @@
   </prepare>
 
   <testsequence>
-    
+
     <serial group="CoreOS">
 
       <testcase id="xenserver.tc.docker.TCContainerLifeCycle" tc="TC-23918" name="ContainerLifeCycle" sku="CoreOSPool">

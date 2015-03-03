@@ -767,6 +767,7 @@ def processMatrixTests(release=None):
     # All known linux distros that only have 64-bit versions
     linDistros_64only = [('rhel7','RHEL 7.0'),
                          ('rhel71','RHEL 7.1'),
+                         ('sl7','SL 7.0'),
                          ('centos7','CentOS 7.0'),
                          ('oel7','OEL 7.0'),
                          ('sles12','SLES12')]
@@ -839,7 +840,9 @@ def processMatrixTests(release=None):
                   ('ubuntu1404','Ubuntu 14.04'),
                   ('debian60','Debian 6.0'),
                   ('debian70','Debian 7.0'),
-                  ('solaris10u9','Solaris 10u9')]
+                  ('solaris10u9','Solaris 10u9'),
+                  ('sl511','SL 5.11'),
+                  ('sl66','SL 6.6')]
 
     # List of releases to manage
     releases = ['Backport','George','GeorgeU1','MNR','Cowley','Boston','Sanibel','Tampa','Clearwater','Creedence','Dundee']
@@ -1096,6 +1099,7 @@ def processMatrixTests(release=None):
     distrosToRels['Creedence'] = {}
     distrosToRels['Creedence']['primary'] = ['rhel48','rhel510','rhel65','rhel511','rhel66','rhel7','rhel71','oel7','centos7',
                                           'sles104','sles113','sles12',
+                                          'sl511','sl66','sl7',
                                           'w2k3eesp2','w2k3eesp2-x64',
                                           'winxpsp3','vistaeesp2',
                                           'ws08dcsp2-x86',
@@ -1127,6 +1131,7 @@ def processMatrixTests(release=None):
     distrosToRels['Dundee'] = {}
     distrosToRels['Dundee']['primary'] = ['rhel48','rhel510','rhel65','rhel511','rhel66','rhel7','rhel71','oel7','centos7',
                                           'sles104','sles113','sles12',
+                                          'sl511','sl66','sl7',
                                           'w2k3eesp2','w2k3eesp2-x64',
                                           'winxpsp3','vistaeesp2',
                                           'ws08dcsp2-x86',

@@ -36,9 +36,15 @@
 
   <testsequence>
     <serial group="CoreOS">
+
       <testcase id="xenserver.tc.docker.TCContainerLifeCycle" tc="TC-23918" name="ContainerLifeCycle" sku="CoreOSPool">
         <arg>coreosdistro=${DISTRO}</arg>
       </testcase>
+
+      <testcase id="xenserver.tc.docker.TCGuestsMigration" tc="TC-26525" name="GuestsMigration" sku="CoreOSPool">
+        <arg>coreosdistro=${DISTRO}</arg>
+      </testcase>
+
     </serial>
   </testsequence>
 

@@ -36,8 +36,7 @@ class TCDockerBase(xenrt.TestCase):
 
     def postRun(self, arglist=None): 
         """Remove all the created containers""" 
-        self.docker.stopAllContainers() 
-        self.docker.rmAllContainers() 
+        self.docker.rmAllContainers()
 
 class TCContainerLifeCycle(TCDockerBase):
     """Docker container lifecycle tests"""
@@ -56,8 +55,61 @@ class TCGuestsLifeCycle(TCContainerLifeCycle):
 
     def run(self, arglist=None):
 
-        # Verify that guests with docker containers can go through the life cycle operations.
-        xenrt.TEC().logverbose("Guests Life Cycle Operations...")
+        xenrt.TEC().logverbose("Guests [having docker containers] Life Cycle Operations...")
+
+        for guest in self.guests:
+            self.getLogsFrom(guest)
+            guest.shutdown()
+            guest.start()
+            guest.reboot()
+            guest.suspend()
+            guest.resume()
+            guest.shutdown()
+
+        xenrt.TEC().logverbose("Guests [having docker containers] Migration to slave ...")
+
+        for guest in self.guests:
+            self.getLogsFrom(guest)
+            guest.migrateVM(host=self.pool.getSlaves()[0], live="true")
+            guest.check()
+
+        xenrt.TEC().logverbose("Guests [having docker containers] after Migration - Life Cycle Operations...")
+
+        for guest in self.guests:
+            self.getLogsFrom(guest)
+            guest.shutdown()
+            guest.start()
+            guest.reboot()
+            guest.suspend()
+            guest.resume()
+            guest.shutdown()
+
+class TCGuestsMigration(TCContainerLifeCycle):
+    """Lifecycle tests of guests with docker containers"""
+
+    def run(self, arglist=None):
+
+        xenrt.TEC().logverbose("Guests [having docker containers] Life Cycle Operations...")
+
+        for guest in self.guests:
+            self.getLogsFrom(guest)
+            guest.shutdown()
+            guest.start()
+            guest.reboot()
+            guest.suspend()
+            guest.resume()
+            guest.shutdown()
+            guest.start()
+
+        xenrt.TEC().logverbose("Guests [having docker containers] Migration to slave ...")
+
+        for guest in self.guests:
+            self.getLogsFrom(guest)
+            guest.migrateVM(host=self.pool.getSlaves()[0], live="true")
+            guest.check()
+
+        xenrt.TEC().logverbose("Guests [having docker containers] after Migration - Life Cycle Operations...")
+
         for guest in self.guests:
             self.getLogsFrom(guest)
             guest.shutdown()

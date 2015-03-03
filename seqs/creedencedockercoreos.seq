@@ -37,6 +37,10 @@
         <arg>coreosdistro=${DISTRO}</arg>
       </testcase>
 
+      <testcase id="xenserver.tc.docker.TCScaleContainers" tc="TC-26523" name="ScaleContainers" sku="CoreOS">
+        <arg>coreosdistro=${DISTRO}</arg>
+      </testcase>
+
       <testcase id="xenserver.tc.docker.TCGuestsLifeCycle" tc="TC-26443" name="GuestsLifeCycle" sku="CoreOS">
         <arg>coreosdistro=${DISTRO}</arg>
       </testcase>

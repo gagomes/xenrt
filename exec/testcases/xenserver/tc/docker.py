@@ -34,6 +34,11 @@ class TCDockerBase(xenrt.TestCase):
 
     def run(self, arglist=None):pass
 
+    def postRun(self, arglist=None): 
+        """Remove all the created containers""" 
+        self.docker.stopAllContainers() 
+        self.docker.rmAllContainers() 
+
 class TCContainerLifeCycle(TCDockerBase):
     """Docker container lifecycle tests"""
 

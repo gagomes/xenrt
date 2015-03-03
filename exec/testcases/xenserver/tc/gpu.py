@@ -21,7 +21,7 @@ from xenrt.lib.xenserver.call import *
 from testcases.xenserver.tc.ns import SRIOVTests
 from testcases.benchmarks import graphics
 
-class GPUHelper():
+class GPUHelper(object):
     """Helper for GPU related operations"""
 
     def getGPUHosts(self, pool):

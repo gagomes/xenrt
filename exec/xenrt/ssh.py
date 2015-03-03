@@ -27,7 +27,7 @@ def getPublicKey():
     f.close()
     return string.strip(data)
 
-class SSHSession:
+class SSHSession(object):
     def __init__(self,
                  ip,
                  username="root",

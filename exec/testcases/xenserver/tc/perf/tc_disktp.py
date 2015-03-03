@@ -13,7 +13,7 @@ import math
 import os.path
 import random
 
-class TestSpace:
+class TestSpace(object):
     d_order = []  # [iterated slower,...,iterated faster]
     
     def filter(self,filters,dimensions):
@@ -205,7 +205,7 @@ class PoolConfig(TestSpace):
     #obj_state: #default values:
     hosts = 1
 
-class GuestEvent:
+class GuestEvent(object):
     # dict: ip -> ...
     events = {}
     UDP_IP = socket.gethostbyname(socket.gethostname())
@@ -309,7 +309,7 @@ while not os.path.isfile("%s%s") and i<20:
         else:#todo:posix guest
             pass
  
-class Measurement:
+class Measurement(object):
     #save the experiment running this measurement in order to access context
     def __init__(self,experiment):
         self.experiment = experiment

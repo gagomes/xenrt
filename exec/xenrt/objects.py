@@ -136,7 +136,7 @@ def productLib(productType=None, host=None, hostname=None):
     else:
         raise xenrt.XRTError("Unknown productType %s" % (productType, ))
 
-class GenericPlace:
+class GenericPlace(object):
 
     LINUX_INTERFACE_PREFIX = "eth"
 
@@ -10122,7 +10122,7 @@ class EventObserver(xenrt.XRTThread):
         else:
             raise xenrt.XRTError("Session is already closed")
 
-class PAMServer:
+class PAMServer(object):
 
     def createSubjectGraph(self, subjects):
         def parseUser(x, group=None):
@@ -10318,7 +10318,7 @@ class PAMServer:
         for subject in self.groups:
             subject.getMembers()
 
-class ActiveDirectoryServer:
+class ActiveDirectoryServer(object):
 
     def createSubjectGraph(self, subjects):
         def parseUser(x, group=None):
@@ -10852,7 +10852,7 @@ RebootOnSuccess=Yes
             for member in group.members:
                 fd.write("  %s\n" % (member.dn))
 
-class CVSMServer:
+class CVSMServer(object):
 
     CLIPATH = '"c:\\program files\\citrix\\storagelink\\client\\csl.exe"'
 
@@ -10961,7 +10961,7 @@ class CVSMServer:
         data = self.cli('host-list')
         return uuid in data
 
-class DemoLinuxVM:
+class DemoLinuxVM(object):
     """An object to represent a Centos 5.7 based Citrix Demonstration Linux Virtual Machine"""
 
     def __init__(self, place):
@@ -10986,7 +10986,7 @@ class DemoLinuxVM:
         self.place.writeToConsole("yum -y install openssh-server\\n")
         xenrt.sleep(360)
 
-class WlbApplianceServer:
+class WlbApplianceServer(object):
     """An object to represent a WLB Appliance Server"""
 
     def __init__(self, place):
@@ -11101,7 +11101,7 @@ class WlbApplianceServer:
             raise xenrt.XRTFailure("WLB appliance not listening on expected port 8012")
 
 
-class V6LicenseServer:
+class V6LicenseServer(object):
     """An object to represent a V6 License Server"""
 
     def __init__(self, place, useEarlyRelease=None, install=True, host=None):
@@ -11416,7 +11416,7 @@ class V6LicenseServer:
 
         return totalLicenses, licenseInuse
 
-class DVSCWebServices:
+class DVSCWebServices(object):
 
     def __init__(self, place, auto = True):
         self.place = place
@@ -12124,7 +12124,7 @@ class DVSCWebServices:
                  'use_vmanager' : use_vmanager}
         self.putAsJson("netflow/%s" % pool_node['uid'], body)
 
-class XenMobileApplianceServer:
+class XenMobileApplianceServer(object):
     """An object to represent a XenMobile Appliance Server"""
 
     def __init__(self, guest):
@@ -12225,7 +12225,7 @@ class XenMobileApplianceServer:
         # Upgrade from previous release - default n
         self.guest.writeToConsole("%s\\n" % "")
 
-class ConversionApplianceServer:
+class ConversionApplianceServer(object):
     """An object to represent a Conversion Appliance Server"""
 
     def __init__(self, place):
@@ -12503,7 +12503,7 @@ class ConversionApplianceServer:
             raise xenrt.XRTError("Failed to find a management interface (PIF).")
         return mgmt
 
-class VifOffloadSettings:
+class VifOffloadSettings(object):
 
     # The {4D36E972-E325-11CE-BFC1-08002BE10318} subkey represents the class of network adapter devices that the system supports. This will never change.
     REG_KEY_STEM = 'SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E972-E325-11CE-BFC1-08002BE10318}\\'

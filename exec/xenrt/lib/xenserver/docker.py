@@ -18,11 +18,11 @@ __all__ = ["ContainerState", "ContainerXapiOperation", "ContainerType",
 Factory class for docker container.
 """
 
-class OperationMethod:
+class OperationMethod(object):
     XAPI = "XAPI"
     LINUX = "LINUX"
 
-class ContainerState:
+class ContainerState(object):
     RUNNING  = "RUNNING"
     STOPPED  = "STOPPED"
     PAUSED   = "PAUSED"
@@ -30,7 +30,7 @@ class ContainerState:
     RESTARTED = "RESTARTED"
     UNKNOWN = "UNKNOWN"
 
-class ContainerXapiOperation:
+class ContainerXapiOperation(object):
     START  = "start"
     STOP  = "stop"
     RESTART = "restarted"
@@ -43,7 +43,7 @@ class ContainerXapiOperation:
     REMOVE = "remove"
     LIST = "list"
 
-class ContainerLinuxOperation:
+class ContainerLinuxOperation(object):
     START  = "start"
     STOP  = "stop"
     RESTART = "restarted"
@@ -55,7 +55,7 @@ class ContainerLinuxOperation:
     REMOVE = "rm"
     LIST = "list"
 
-class ContainerType:
+class ContainerType(object):
     YES_BUSYBOX = "yes_busybox"
     BUSYBOX = "busybox"
     MYSQL = "mysql"

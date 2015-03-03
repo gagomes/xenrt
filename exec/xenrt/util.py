@@ -305,7 +305,7 @@ def stddev(list):
     ssq = sum(map(lambda x:x*x, list))
     return math.sqrt(ssq / n - (s / n) ** 2)
 
-class Timer:
+class Timer(object):
 
     def __init__(self, float=False):
         self.measurements = []
@@ -964,7 +964,7 @@ class SimpleSMTPServer(threading.Thread):
         if self.isAlive():
             raise xenrt.XRTError("SimpleSMTPServer failed to shutdown")
 
-class PhysicalProcessorMonitor:
+class PhysicalProcessorMonitor(object):
     """
     Monitors the physical processors on a host.
     @author Jonathan Knowles

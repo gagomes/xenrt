@@ -5,6 +5,7 @@ import app.utils
 import json
 import time
 import jsonschema
+import requests
 
 class _MachineBase(XenRTAPIv2Page):
 
@@ -87,7 +88,7 @@ class _MachineBase(XenRTAPIv2Page):
             conditions.append("m.machine != ('_' || s.site)")
 
 
-        query = "SELECT m.machine, m.site, m.cluster, m.pool, m.status, m.resources, m.flags, m.comment, m.leaseto, m.leasereason, m.leasefrom, m.leasepolicy, s.flags, m.jobid, m.descr, m.aclid FROM tblmachines m INNER JOIN tblsites s ON m.site=s.site"
+        query = "SELECT m.machine, m.site, m.cluster, m.pool, m.status, m.resources, m.flags, m.comment, m.leaseto, m.leasereason, m.leasefrom, m.leasepolicy, s.flags, m.jobid, m.descr, m.aclid, s.ctrladdr FROM tblmachines m INNER JOIN tblsites s ON m.site=s.site"
         if conditions:
             query += " WHERE %s" % " AND ".join(conditions)
 
@@ -117,6 +118,7 @@ class _MachineBase(XenRTAPIv2Page):
                 "jobid": rc[13],
                 "broken": rc[3].strip().endswith("x"),
                 "aclid": rc[15],
+                "ctrladdr": rc[16],
                 "params": {}
             }
 
@@ -719,6 +721,64 @@ class RemoveMachine(_MachineBase):
         self.removeMachine(machine)
         return {}
 
+class PowerMachine(_MachineBase):
+    REQTYPE="POST"
+    WRITE = True
+    PATH = "/machine/{name}/power"
+    TAGS = ["machines"]
+    PARAMS = [
+        {'name': 'name',
+         'in': 'path',
+         'required': True,
+         'description': 'Machine to update',
+         'type': 'integer'},
+        {'name': 'body',
+         'in': 'body',
+         'required': True,
+         'description': 'Details of the update',
+         'schema': { "$ref": "#/definitions/updatemachine" }
+        }
+    ]
+    RESPONSES = { "200": {"description": "Successful response"}}
+    DEFINITIONS = {"powermachine": {
+        "title": "Power Macine",
+        "type": "object",
+        "properties": {
+            "operation": {
+                "type": "string",
+                "enum": ["on", "off", "reboot", "nmi"]
+                "description": "Status of the machine"
+            },
+            "bootdev": {
+                "type": "object",
+                "description": "Key-value pair resource:value of resources to update. (set value to null to remove a resource)"
+            }
+        }
+        "required": "operation"
+    }}
+    OPERATION_ID = "power_machine"
+    PARAM_ORDER=["name", "operation", "bootdev", "status", "resources", "addflags", "delflags"]
+    SUMMARY = "Control the power on a machine"
+
+    def render(self):
+        machine = self.getMachines(limit=1, machines=[self.request.matchdict['name']], exceptionIfEmpty=True)[0]
+        try:
+            j = json.loads(self.request.body)
+            jsonschema.validate(j, self.DEFINITIONS['powermachine'])
+        except Exception, e:
+            raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
+
+        reqdict = {"machine": machine['name'], "powerop": j['operation']}
+
+        if j.get('bootdev'):
+            reqdict['bootdev'] = j['bootdev']
+
+        r = requests.get("http://%s/xenrt/api/controller/power" % machine['ctrladdr'], params=reqdict)
+        r.raise_for_status()
+        if r.text.startswith("ERROR"):
+            raise XenRTAPIError(HTTPInternalServerError, r.text)
+        return {"output": r.text}
+    
 class NotifyBorrow(_MachineBase):
     def run(self):
         borrowedMachines = [x for x in self.getMachines().values() if x['leaseuser']]
@@ -759,3 +819,4 @@ RegisterAPI(ReturnMachine)
 RegisterAPI(UpdateMachine)
 RegisterAPI(NewMachine)
 RegisterAPI(RemoveMachine)
+RegisterAPI(PowerMachine)

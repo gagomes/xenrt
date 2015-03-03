@@ -247,25 +247,25 @@ class DeployerPlugin(object):
             return ref['hypervisor']
         return 'XenServer' # Default to XenServer if not specified
 
-    def getPrimaryStorages(self, key, ref):
-        primaryStorages = ref.get("primaryStorages", None)
-        xenrt.TEC().logverbose('@getPrimaryStorages, key = %s, ref = %s' % (key, ref))
-        if key == "Cluster" and not primaryStorages:
-            primaryStorages = [ { } ]
-        elif not primaryStorages:
-            return None
+    def setPrimaryStoragesConfigZone(self, key, ref):
+        primaryStorages = ref.get("primaryStorages", [])
         for ps in primaryStorages:
-            if key == "Zone":
-                ps["scope"] = "zone"
-                if "hypervisor" not in ps:
-                    raise xenrt.XRTError('hypervisor not specified for zone wide primary storage.')
-            else:
-                if ref['hypervisor'] == "hyperv":
-                    hostid = ref['XRT_HyperVHostIds'].split(",")[0]
-                    ps.update({"XRT_PriStorageType": "SMB", "XRT_SMBHostId": hostid})
-            if "XRT_PriStorageType" not in ps:
-                ps["XRT_PriStorageType"] = "NFS"
-        return primaryStorages
+            ps["scope"] = "zone"
+            if "hypervisor" not in ps:
+                raise xenrt.XRTError('hypervisor not specified for zone wide primary storage.')
+            elif ps["hypervisor"] not in ["KVM", "vmware"]:
+                raise xenrt.XRTError('Only KVM and vmware hypervisor support zone wide primary storage.')
+            ps["XRT_PriStorageType"] = "NFS"
+        return None
+
+    def getPrimaryStorages(self, key, ref):
+        ps = []
+        if ref['hypervisor'] == "hyperv":
+            hostid = ref['XRT_HyperVHostIds'].split(",")[0]
+            ps.append({"XRT_PriStorageType": "SMB", "XRT_SMBHostId": hostid})
+        else:
+            ps.append({"XRT_PriStorageType": "NFS"})
+        return ps
 
     def getPrimaryStorageName(self, key, ref):
         if ref.get("scope",False) == "zone":

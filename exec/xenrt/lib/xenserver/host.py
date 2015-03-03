@@ -6495,6 +6495,18 @@ fi
                     else:
                         template = self.chooseTemplate("TEMPLATE_NAME_SLES_%s"
                                                        % (v))
+            elif re.serach(r"sl\d+",distro):
+                if hvm:
+                    template = self.chooseTemplate("TEMPLATE_OTHER_MEDIA") 
+                else:
+                    v = re.search(r"sl(\d+)", distro).group(1)
+                    if arch and arch == "x86-64":
+                        template = self.chooseTemplate(\
+                            "TEMPLATE_NAME_SL_%s_64" % (v))
+                    else:
+                        template = self.chooseTemplate("TEMPLATE_NAME_SL_%s"
+                                                       % (v))
+
             elif re.search("solaris10u9-32", distro):
                 template = self.chooseTemplate("TEMPLATE_NAME_SOLARIS_10U9_32")
             elif re.search("solaris10u9", distro):

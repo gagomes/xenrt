@@ -35,29 +35,6 @@
         <network device="0" />
         <disk device="0" size="24" />
       </vm>
-      <vm name="Windows 10">
-        <distro>win10-x86</distro>
-        <memory>2048</memory>
-        <vcpus>2</vcpus>
-        <network device="0" />
-        <disk device="0" size="32" />
-      </vm>
-        <vm name="Windows 10 64 bit">
-        <distro>win10-x64</distro>
-        <arch>x86-64</arch>
-        <memory>2048</memory>
-        <vcpus>2</vcpus>
-        <network device="0" />
-        <disk device="0" size="32" />
-      </vm>
-      <vm name="Windows Server 2012 R2 Core">
-        <distro>ws12r2core-x64</distro>
-        <arch>x86-64</arch>
-        <memory>2048</memory>
-        <vcpus>2</vcpus>
-        <network device="0" />
-        <disk device="0" size="32" />
-      </vm>
     </host>
   </prepare>
 

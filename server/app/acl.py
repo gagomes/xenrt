@@ -120,7 +120,7 @@ class ACLHelper(object):
 
                     # We've hit an exact user match, so we ignore any further rules
                     return True, None
-            else:
+            elif e.entryType == 'group':
                 if e.userid in usergroups:
                     # A group our user is in - identify overall usage and per user usage for users in the acl
                     groupcount = usercount
@@ -145,8 +145,10 @@ class ACLHelper(object):
                     if e.maxleasehours is not None and leaseHours and leaseHours > e.maxleasehours:
                         return False, "Maximum lease time allowed for members of %s is %d hours" % (e.userid, e.maxleasehours)
 
-                # We've hit a successful group match, so we ignore any further rules
-                return True, None
+                    # We've hit a successful group match, so we ignore any further rules
+                    return True, None
+            else:
+                raise Exception("Unknown entryType %s" % e.entryType)
 
         return True, None
 

@@ -823,10 +823,10 @@ logdata call.
                 eval("self.%s()" % (method))
             elif type(args) == type((1,2)):
                 eval("self.%s(*args)" % (method))
-            elif type(args) == types.InstanceType:
-                eval("self.%s(args)" % (method))
-            else:
+            elif not hasattr(args, "__class__") or args.__class__.__module__ == "__builtin__":
                 eval("self.%s(%s)" % (method, `args`))
+            else:
+                eval("self.%s(args)" % (method))
             self.testcaseResult(scgroup, sctest, RESULT_PASS)
             reply = RESULT_PASS
         except XRTFailure, e:

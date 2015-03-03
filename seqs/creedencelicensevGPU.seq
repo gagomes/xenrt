@@ -41,9 +41,3 @@
   </testsequence>
 
 </xenrt>
-
-<!--
-<pool>VGPU,VGPUBIG</pool>
-<resources>k1&gt;=1</resources>
-<param>MACHINES_REQUIRED=1</param>
--->

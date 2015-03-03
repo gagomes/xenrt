@@ -249,6 +249,8 @@ class DeployerPlugin(object):
         primaryStorages = ref.get("primaryStorages", None)
         if key == "Cluster" and not primaryStorages:
             primaryStorages = [ { } ]
+        elif not primaryStorages:
+            return None
         for ps in primaryStorages:
             if key == "Zone":
                 ps["scope"] = "zone"

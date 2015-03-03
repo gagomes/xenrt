@@ -2,8 +2,7 @@
 
   <!-- Read Caching Funcitonal Tests -->
   <variables>
-    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
-    <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
   </variables>
 
   <prepare>
@@ -23,22 +22,6 @@
 
   <testsequence>
     <serial group="RC">
-      <!-- Low level checks that licensing is enabled on RTM Creedence -->
-      <testcase id="testcases.xenserver.tc.readcaching.TCLicensingRCEnabled" tc="TC-23921" name="TC-23921">
-        <arg>lowlevel=yes</arg>
-        <arg>bothChecks=no</arg>
-        <arg>vm=arnie</arg>
-      </testcase>
-
-      <testcase id="testcases.xenserver.tc.readcaching.TCLicensingRCDisabled" tc="TC-23922" name="TC-23922">
-        <arg>lowlevel=yes</arg>
-        <arg>bothChecks=no</arg>
-        <arg>vm=arnie</arg>
-      </testcase>
-
-      <!-- Upgrade to Cream by hotfixing -->
-      <testcase id="xenserver.install.TCApplyReqdPatches" tc="TC-20692" blocker="yes" name="TC-20692"/>
-
       <!-- Verify both xapi and tap-ctl are set by licensing state and the values agree -->
       <testcase id="testcases.xenserver.tc.readcaching.TCLicensingRCEnabled" tc="TC-23923" name="TC-23923.WithHotfix" sku="WithHotfix">
         <arg>bothChecks=yes</arg>

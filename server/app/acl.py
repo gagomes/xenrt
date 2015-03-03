@@ -135,9 +135,9 @@ class ACLHelper(object):
 
                     groupname = e.entryType == 'default' and "default" or e.userid
                     if e.grouplimit is not None and groupcount > e.grouplimit:
-                        return False, "%s limited to %d machines (%d in use)" % (groupname, e.grouplimit, groupcount)
+                        return False, "%s limited to %d machines" % (groupname, e.grouplimit)
                     if e.grouppercent is not None and grouppercent > e.grouppercent:
-                        return False, "%s limited to %d%% of machines (%d%% in use)" % (groupname, e.grouppercent, grouppercent)
+                        return False, "%s limited to %d%% of machines" % (groupname, e.grouppercent)
 
                     # Check the user limits as well
                     if e.userlimit is not None and usercount > e.userlimit:

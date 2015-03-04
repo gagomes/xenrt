@@ -14,6 +14,21 @@ $(function() {
 
     document.title = "XenRT: Machine " + machine;
 
+    function getMachine(machine) {
+        $.getJSON("/xenrt/api/v2/machine/" + machine)
+            .done(function(data) {
+                var out = ""
+                out += "<h3>Serial console</h3>"
+                out += "<div>Unix: <span style=\"font-family:monospace\">ssh cons@" + data['ctrladdr'] + " " + machine + "</span> (password <span style=\"font-family:monospace\">console</span>)</div>";
+                out += "<div>Windows: <span style=\"font-family:monospace\">echo " + machine + " > %TEMP%\\xenrt-puttycmd & putty -t cons@" + data['ctrladdr'] + " -pw console -m %TEMP%\\xenrt-puttycmd</span></div>";
+                $("#access").empty()
+                $(out).appendTo("#access");
+            });
+
+    }
+    
+    getMachine(machine)
+
     $( "#powerbutton" ).click(function() {
         $('#powerbutton').prop('disabled', true);
         $( "#overlay" ).show();
@@ -52,6 +67,8 @@ ${commonbody | n}
 <button id="powerbutton">Go</button>
 
 <div id="output"></div>
+
+<div id="access"></div>
 
 </p>
 

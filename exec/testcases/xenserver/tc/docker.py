@@ -34,7 +34,8 @@ class TCDockerBase(xenrt.TestCase):
         # Obtain the docker environment to work with Xapi plugins.
         self.docker = [] # for every guest, we need a docker environment.
         for guest in self.guests:
-            self.docker.append(guest.getDocker()) # OR CoreOSDocker(guest.getHost(), guest, XapiPluginDockerController)
+            self.docker.append(guest.getDocker()) # by default method=OperationMethod.XAPI else OperationMethod.LINUX
+                                                  # OR CoreOSDocker(guest.getHost(), guest, XapiPluginDockerController)
                                                   # OR CoreOSDocker(guest.getHost(), guest, LinuxDockerController)
 
     def run(self, arglist=None):pass
@@ -60,6 +61,27 @@ class TCContainerLifeCycle(TCDockerBase):
 
     def run(self, arglist=None):
         self.createDockerContainers()
+
+class TCContainerVerification(TCDockerBase):
+    """Creation and deletion of containers from Docker environment and its verification in XS environment"""
+
+    def run(self, arglist=None):
+
+        linDocker = []
+
+        for guest in self.guests:
+            # Creation some containers in Docker environment.
+            d = guest.getDocker(OperationMethod.LINUX)
+
+            d.createContainer(ContainerType.YES_BUSYBOX)
+            d.createContainer(ContainerType.YES_BUSYBOX)
+            d.createContainer(ContainerType.YES_BUSYBOX)
+
+            linDocker.append(d)
+
+        # Check these containers appeared in XS.
+        for docker in self.docker:
+            xenrt.TEC().logverbose(" LOG %s" % docker.getDockerPS())
 
 class TCGuestsLifeCycle(TCContainerLifeCycle):
     """Lifecycle tests of guests with docker containers"""

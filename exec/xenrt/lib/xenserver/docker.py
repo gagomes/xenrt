@@ -18,11 +18,11 @@ __all__ = ["ContainerState", "ContainerXapiOperation", "ContainerType",
 Factory class for docker container.
 """
 
-class OperationMethod:
+class OperationMethod(object):
     XAPI = "XAPI"
     LINUX = "LINUX"
 
-class ContainerState:
+class ContainerState(object):
     RUNNING  = "RUNNING"
     STOPPED  = "STOPPED"
     PAUSED   = "PAUSED"
@@ -30,7 +30,7 @@ class ContainerState:
     RESTARTED = "RESTARTED"
     UNKNOWN = "UNKNOWN"
 
-class ContainerXapiOperation:
+class ContainerXapiOperation(object):
     START  = "start"
     STOP  = "stop"
     RESTART = "restarted"
@@ -43,7 +43,7 @@ class ContainerXapiOperation:
     REMOVE = "remove"
     LIST = "list"
 
-class ContainerLinuxOperation:
+class ContainerLinuxOperation(object):
     START  = "start"
     STOP  = "stop"
     RESTART = "restarted"
@@ -55,10 +55,12 @@ class ContainerLinuxOperation:
     REMOVE = "rm"
     LIST = "list"
 
-class ContainerType:
+class ContainerType(object):
+    YES_BUSYBOX = "yes_busybox"
     BUSYBOX = "busybox"
     MYSQL = "mysql"
     TOMCAT = "tomcat"
+    UBUNTU = "ubuntu"
     UNKNOWN = "unknown"
 
 """
@@ -85,7 +87,10 @@ class DockerController(object):
 
     def containerSelection(self, container, method=OperationMethod.XAPI):
 
-        if container.ctype == ContainerType.BUSYBOX:
+        if container.ctype == ContainerType.YES_BUSYBOX:
+            xenrt.TEC().logverbose("Create Simple BusyBox Container using %s way" % method)
+            dockerCmd = "docker run -d --name " + container.cname + " busybox /bin/sh -c \"yes\""
+        elif container.ctype == ContainerType.BUSYBOX:
             xenrt.TEC().logverbose("Create BusyBox Container using %s way" % method)
             dockerCmd = "docker run -d --name " + container.cname + " busybox /bin/sh -c \"while true; do echo Hello World; sleep 1; done\""
         elif container.ctype == ContainerType.MYSQL:
@@ -94,6 +99,9 @@ class DockerController(object):
         elif container.ctype == ContainerType.TOMCAT:
             xenrt.TEC().logverbose("Create Tomcat Container using %s way" % method)
             dockerCmd = "docker run -d --name " + container.cname + " -p 8080:8080 -it tomcat"
+        elif container.ctype == ContainerType.UBUNTU:
+            xenrt.TEC().logverbose("Create Ubuntu Container using %s way" % method)
+            dockerCmd = "docker run -d --name " + container.cname + " ubuntu:14.04 /bin/echo \"Hello world\""
         else:
             raise xenrt.XRTError("Docker container type %s is not recognised" % container.ctype)
 
@@ -102,7 +110,7 @@ class DockerController(object):
         elif method==OperationMethod.LINUX:
             return dockerCmd
         else:
-            raise xenrt.XRTError("Operation method %s in defined" % dockerCmd)
+            raise xenrt.XRTError("Operation method %s in defined" % method)
 
     @abstractmethod
     def createContainer(self, container): pass
@@ -289,6 +297,9 @@ class XapiPluginDockerController(DockerController):
         containers = []
         dockerPS = self.getDockerPS() # returns a xml with a key 'entry'
 
+        if not dockerPS:
+            raise xenrt.XRTError("listContainers: getDockerPS() returned empty dictionary")
+
         if not dockerPS.has_key('entry'):
             raise xenrt.XRTError("listContainers: Failed to find entry key in docker PS xml")
         dockerContainerList = dockerPS['entry'] # list of ordered dicts.
@@ -344,6 +355,25 @@ class XapiPluginDockerController(DockerController):
             raise xenrt.XRTError("getDockerVersion: Version key is missing in docker_version xml")
 
 class LinuxDockerController(DockerController):
+
+    def dockerGeneralInfo(self, dcommand):
+
+        cmd = self.guest.execguest(dcommand).strip()
+        dockerGeneralList = cmd.splitlines()
+
+        if len(dockerGeneralList) < 1:
+            raise xenrt.XRTError("dockerGeneralInfo: General docker info for %s is not found" % dcommand)
+
+        # In case of 'docker info', remove an element which 
+        # starts with ID: VGOY:XML7:MTG5:MG2T:4QAH:5STJ:T3VJ:HD4W:O36M:DEKA:A6IE:PJF7
+        dockerGeneralList = [item for item in dockerGeneralList if not item.startswith('ID:')]
+
+        dockerGeneralDict = dict(item.split(":") for item in dockerGeneralList)
+
+        if not dockerGeneralDict:
+            raise xenrt.XRTError("getDockerVersion: Unable to obtain docker version")
+        else:
+            return dockerGeneralDict
 
     def containerLinuxLCOperation(self, operation, container):
 
@@ -432,8 +462,10 @@ class LinuxDockerController(DockerController):
             else:
                 return ContainerState.UNKNOWN
 
-    def listContainers(self):
+    def getDockerInfo(self):
+        return self.dockerGeneralInfo('docker info')
 
+    def getDockerPS(self):
         dockerCmd = "docker ps -a | tail -n +2 | awk '{print $NF}'"
         containerInfo = self.guest.execguest(dockerCmd).strip()
 
@@ -441,7 +473,22 @@ class LinuxDockerController(DockerController):
             containerList = containerInfo.splitlines()
             return containerList # [containername]
         else:
-            raise xenrt.XRTError("listContainers: There are no containers available to list")
+            raise xenrt.XRTError("getDockerPS: There are no containers available to list")
+
+    def getDockerVersion(self):
+        dockerVersionDict = self.dockerGeneralInfo('docker version')
+
+        if dockerVersionDict.has_key('Client version'):
+            return dockerVersionDict['Client version'].strip()
+        else:
+            raise xenrt.XRTError("getDockerVersion: Client version key is missing in docker version dict")
+
+    def listContainers(self):
+        return self.getDockerPS()
+
+    def gettopContainer(self, container): pass
+    def restartContainer(self, container): pass
+
 
 """
 Abstraction
@@ -591,6 +638,10 @@ class Docker(object):
         for container in self.containers:
             self.startContainer(container)
             xenrt.sleep(5)
+
+    def rmAllContainers(self):
+        for container in self.containers:
+            self.rmContainer(container)
 
     def lifeCycleContainer(self, container):
         """Life Cycle method on a specified container"""

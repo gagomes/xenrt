@@ -15,7 +15,7 @@ import xenrt.lib.debugger.breakpoint2
 import xenrt.lib.debugger.codegen 
 import ast, pickle, copy, subprocess, os
 
-class debuggerFunctions():
+class debuggerFunctions(object):
     def __init__(self,tc_instance):
         self.testcase_instance = tc_instance
         self.breakpoint_counter = [0]

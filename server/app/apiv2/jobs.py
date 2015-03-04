@@ -10,7 +10,6 @@ import urlparse
 import StringIO
 import requests
 import time
-import smtplib
 
 class _JobBase(_MachineBase):
 
@@ -498,6 +497,8 @@ class RemoveJob(_JobBase):
         jobinfo = self.getJobs(1, ids=[job], getParams=False,getResults=False,getLog=False, exceptionIfEmpty=True)[job]
         if jobinfo['status'] not in ('done', 'removed'):
             self.updateJobField(job, "REMOVED", "yes")
+            if self.getUser():
+                self.updateJobField(job, "REMOVED_BY", self.getUser().userid)
         if j.get('return_machines'):
             for m in jobinfo['machines']:
                 self.return_machine(m, self.getUser().userid, False, canForce=False, commit=False)
@@ -608,6 +609,11 @@ class NewJob(_JobBase):
         if field in params:
             del params[field]
 
+    def removeParams(self, params, keys):
+        for k in keys:
+            if params.has_key(k):
+                del params[k]
+
     def newJob(self,
                pools=None,
                numberMachines=None,
@@ -628,9 +634,8 @@ class NewJob(_JobBase):
 
         if params.has_key("JOBGROUP") and params.has_key("JOBGROUPTAG") and not jobGroup:
             jobGroup = {"id": params['JOBGROUP'], "tag": params['JOBGROUPTAG']}
-       
-        if "USERID" in params:
-            del params['USERID']
+      
+        self.removeParams(params, ["USERID", "REMOVED", "UPLOADED", "JOBSTATUS", "REMOVED_BY"])
 
         params["JOB_SUBMITTED"] = time.asctime(time.gmtime()) + " UTC"
 
@@ -906,24 +911,9 @@ class EmailJob(_JobBase):
 """ % (config.url_base.rstrip("/"), id, summary.strip())
             for key in job['params'].keys():
                 message =  message + "%s='%s'\n" % (key, job['params'][key])
-            self.sendMail(config.email_sender, emailto, subject, message, reply=emailto[0])
+            app.utils.sendMail(config.email_sender, emailto, subject, message, reply=emailto[0])
         return {}
 
-    def sendMail(self, fromaddr, toaddrs, subject, message, reply=None):
-        if not config.smtp_server:
-            return
-        now = time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime())
-        msg = ("Date: %s\r\nFrom: %s\r\nTo: %s\r\nSubject: %s\r\n"
-               % (now, fromaddr, ", ".join(toaddrs), subject))
-        if reply:
-            msg = msg + "Reply-To: %s\r\n" % (reply)
-        msg = msg + "\r\n" + message
-
-        server = smtplib.SMTP(config.smtp_server)
-        server.sendmail(fromaddr, toaddrs, msg)
-        server.quit()
-
-RegisterAPI(EmailJob)
 RegisterAPI(ListJobs)
 RegisterAPI(GetJob)
 RegisterAPI(GetTest)
@@ -935,3 +925,4 @@ RegisterAPI(GetAttachmentPostRun)
 RegisterAPI(RedirectAttachmentPreRun)
 RegisterAPI(RedirectAttachmentPostRun)
 RegisterAPI(GetJobDeployment)
+RegisterAPI(EmailJob)

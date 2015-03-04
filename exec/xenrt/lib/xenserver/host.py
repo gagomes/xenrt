@@ -11548,7 +11548,7 @@ class DundeeHost(CreedenceHost):
 
 #############################################################################
 
-class StorageRepository:
+class StorageRepository(object):
     """Models a storage repository."""
 
     CLEANUP = "forget"
@@ -12675,7 +12675,7 @@ class EQLTarget(xenrt.EQLTarget):
 
 #############################################################################
 
-class Pool:
+class Pool(object):
     """A host pool."""
     def __init__(self, master):
         self.master = master
@@ -14494,7 +14494,7 @@ class DundeePool(ClearwaterPool):
 
 #############################################################################
 
-class RollingPoolUpdate:
+class RollingPoolUpdate(object):
     """This is the base class that defines the pool upgrade procedure"""
 
     def __init__(self,
@@ -14769,7 +14769,7 @@ class RollingPoolUpdate:
 
 #############################################################################
 
-class Tile:
+class Tile(object):
     """A tile is a collection of VMs, optionally running workloads"""
     def __init__(self, host, sr, useWorkloads=True):
         self.host = host
@@ -14972,7 +14972,7 @@ class _TileInstall(xenrt.XRTThread):
 
 #############################################################################
 
-class TransferVM:
+class TransferVM(object):
     """ A class for TransferVM appliance. TransferVM is not a typical VM as
     xenrt VM object but some short-lived tooled VM launched for tranfer purpose
     and disappeared right after its usage. So the class TranferVM only exposes
@@ -15092,7 +15092,7 @@ class TransferVM:
         cli = self.host.getCLIInstance()
         return (cli.execute(self.command, " ".join(args), strip=True))
 
-class IOvirt:
+class IOvirt(object):
     """This class implements functionalities to test SR-IOV and pci pass thorough."""
 
     def __init__(self, host):
@@ -15464,7 +15464,7 @@ class IOvirt:
         return [pciid for pciid in self.vfs.keys() if fn(self.vfs[pciid]) ]
     
     
-class Appliance:
+class Appliance(object):
     
     """This class implements appliance feature (implemented in Boston) """
 

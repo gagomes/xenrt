@@ -1,5 +1,6 @@
 import string, re, os, json, mimetypes
-
+import smtplib
+import time
 import config, app.db, app.ad
 
 colours = {"pass":       ("green", None, "#90c040"),
@@ -535,3 +536,18 @@ def getContentTypeAndEncoding(fn):
         else:
             ctype = "application/octet-stream"
     return (ctype, encoding)
+
+def sendMail(fromaddr, toaddrs, subject, message, reply=None):
+    if not config.smtp_server:
+        return
+    now = time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime())
+    msg = ("Date: %s\r\nFrom: %s\r\nTo: %s\r\nSubject: %s\r\n"
+           % (now, fromaddr, ", ".join(toaddrs), subject))
+    if reply:
+        msg = msg + "Reply-To: %s\r\n" % (reply)
+    msg = msg + "\r\n" + message
+
+    server = smtplib.SMTP(config.smtp_server)
+    server.sendmail(fromaddr, toaddrs, msg)
+    server.quit()
+

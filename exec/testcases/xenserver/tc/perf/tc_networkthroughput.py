@@ -18,7 +18,7 @@ all_vms = dict(win_vms.items() + linux_vms.items())
 # a class representing the NIC
 # - version is the driver version
 # - desc contains the corresponding lspci line
-class NIC:
+class NIC(object):
   def __init__(self, eth, carrier, speed, driver, version, desc):
     self.eth = eth
     self.carrier = int(carrier) == 1
@@ -38,13 +38,13 @@ class NIC:
 # - trans = transport interface
 # - dummy = extra interface that guarantees good allocation of VIFs to netback
 #   threads when there are 4 netbacks
-class NICs:
+class NICs(object):
   def __init__(self, comm, trans, dummy):
     self.comm = comm
     self.trans = trans
     self.dummy = dummy
 
-class NICFinder:
+class NICFinder(object):
   def __init__(self, host1, host2):
     self.host1 = host1
     self.host2 = host2

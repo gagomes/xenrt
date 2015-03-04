@@ -77,8 +77,10 @@ ifeq ($(APIBUILD), yes)
 	mkdir $(SHAREDIR)/api_build/scripts
 	wget -O $(SHAREDIR)/api_build/xenrtapi/__init__.py http://localhost:1025/share/control/bindings/__init__.py
 	cp $(SHAREDIR)/control/xenrtnew $(SHAREDIR)/api_build/scripts/xenrtnew
+	cp $(SHAREDIR)/control/xenrt $(SHAREDIR)/api_build/scripts/xenrt
 	cd $(SHAREDIR)/api_build/ && python setup.py sdist
-	$(SUDO) ln -sf $(SHAREDIR)/api_build/dist/xenrtapi-0.01.tar.gz $(WEBROOT)/xenrtapi.tar.gz
+	$(SUDO) ln -sf $(SHAREDIR)/api_build/dist/xenrtapi-0.02.tar.gz $(WEBROOT)/xenrtapi.tar.gz
+	cd $(SHAREDIR)/api_build/ && python setup.py sdist upload -r pypi
 endif
 
 .PHONY: api

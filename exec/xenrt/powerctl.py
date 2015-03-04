@@ -14,7 +14,7 @@
 import sys, os, string, time, random, re
 import xenrt, xenrt.util
 
-class _PowerCtlBase:
+class _PowerCtlBase(object):
     """A base class for power control implementations"""
 
     def __init__(self, machine):

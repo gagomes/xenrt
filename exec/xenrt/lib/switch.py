@@ -77,7 +77,7 @@ def lacpCleanUp(hostname):
             content )
     os.remove(cleanUpFlagsFile)
 
-class SwitchCleanupFlags:
+class SwitchCleanupFlags(object):
     """ Manage flags for switch clean up.
     Clean-up flags are set in file /local/scratch/cleanup/hostname/LACP
     and are to be used in case a job is killed"""
@@ -169,7 +169,7 @@ class SwitchCleanupFlags:
         if len(dirs) == 0:
             os.rmdir(hostDir)     
                 
-class _Switch: 
+class _Switch(object): 
     DEBUG = False
 
 class _CiscoStyleSwitch(_Switch):

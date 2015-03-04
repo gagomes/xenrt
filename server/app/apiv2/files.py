@@ -185,11 +185,19 @@ class UploadTestLog(_FilesBase):
          'description': 'File to upload',
          'type': 'file'}]
     RESPONSES = { "200": {"description": "Successful response"}}
+    WRITE = True
     
     def render(self):
         detailid = int(self.request.matchdict['id'])
         fh = self.request.POST['file'].file
         self.uploadFile(detailid, "test", fh)
+        db = self.getDB()
+        cur = db.cursor()
+
+        cur.execute("UPDATE tblResults SET uploaded = %s WHERE detailid = %s",
+                    ["yes", detailid])
+
+        db.commit()
 
 
 

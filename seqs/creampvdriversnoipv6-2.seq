@@ -1,0 +1,30 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <PREPARE_WORKERS>8</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host id="0">
+      <vm name="Windows 10">
+        <distro>win10-x86</distro>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="32" />
+      </vm>
+        <vm name="Windows 10 64 bit">
+        <distro>win10-x64</distro>
+        <arch>x86-64</arch>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="32" />
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence group="TCInstallDriversNoIPv6-2">
+    <testcase id="testcases.xenserver.tc.guest.TCInstallDriversNoIPv6" tc="TC-23184"/>
+  </testsequence>
+</xenrt>

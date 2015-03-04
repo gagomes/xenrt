@@ -40,7 +40,7 @@ def getInstance(host):
     i.reset()
     return i
 
-class XSConsoleSession:
+class XSConsoleSession(object):
 
     def __init__(self, host, name="XenRT"):
         self.host = host

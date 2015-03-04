@@ -23,7 +23,7 @@ def encodeAmpersand(rematch):
         return "&amp;"
     return g
 
-class TestCaseItem:
+class TestCaseItem(object):
     """Represents a single test case result"""
     def __init__(self, group):
         self.group = group
@@ -175,7 +175,7 @@ class TestCaseItem:
             tr.appendChild(trt)
         return t
 
-class TestGroup:
+class TestGroup(object):
     """Represents a group of test cases."""
     def __init__(self):
         self.name = None
@@ -274,7 +274,7 @@ class TestGroup:
             g.appendChild(tnode)
         return g
 
-class TestResults:
+class TestResults(object):
     """Parse a test report file."""
     def __init__(self, priority=1):
         self.overall = xenrt.RESULT_UNKNOWN
@@ -540,7 +540,7 @@ class TestResults:
         else:
             return newdoc.toprettyxml("  ", "\n")
 
-class GlobalGroup:
+class GlobalGroup(object):
     """A top level grouping of tests."""
     def __init__(self, name):
         self.mylock = threading.Lock()
@@ -605,7 +605,7 @@ class GlobalGroup:
             g.appendChild(tnode)
         return g
 
-class GlobalResults:
+class GlobalResults(object):
     """A top level collection of test groups"""
     def __init__(self):
         self.mylock = threading.Lock()

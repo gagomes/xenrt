@@ -9,14 +9,14 @@ from abc import ABCMeta, abstractmethod
 """
 Enums
 """
-class VGPUOS: Win7x86, Win7x64, WS2008R2, Win8x86, Win8x64, Win81x86, Win81x64, WS12x64, WS12R2x64,DEBIAN,Centos7,Rhel7,Oel7,Ubuntu1404x86,Ubuntu1404x64 = range(15)
-class VGPUConfig: K100, K120, K140, K160, K180, K1PassThrough, K200, K220, K240, K260, K280, K2PassThrough = range(12)
-class VGPUDistribution: BreadthFirst, DepthFirst = range(2)
-class SRType: Local, NFS, ISCSI = range(3)
-class VMStartMethod: OneByOne, Simultenous = range(2)
-class CardType: K1, K2, PassThrough, NotAvailable = range(4)
-class DriverType: Signed, Unsigned = range(2)
-class DiffvGPUType: NvidiaWinvGPU, NvidiaLinuxvGPU, IntelWinvGPU = range(3)
+class VGPUOS(object): Win7x86, Win7x64, WS2008R2, Win8x86, Win8x64, Win81x86, Win81x64, WS12x64, WS12R2x64,DEBIAN,Centos7,Rhel7,Oel7,Ubuntu1404x86,Ubuntu1404x64 = range(15)
+class VGPUConfig(object): K100, K120, K140, K160, K180, K1PassThrough, K200, K220, K240, K260, K280, K2PassThrough = range(12)
+class VGPUDistribution(object): BreadthFirst, DepthFirst = range(2)
+class SRType(object): Local, NFS, ISCSI = range(3)
+class VMStartMethod(object): OneByOne, Simultenous = range(2)
+class CardType(object): K1, K2, PassThrough, NotAvailable = range(4)
+class DriverType(object): Signed, Unsigned = range(2)
+class DiffvGPUType(object): NvidiaWinvGPU, NvidiaLinuxvGPU, IntelWinvGPU = range(3)
 
 """
 Constants
@@ -230,7 +230,7 @@ class VGPUInstaller(object):
 Test base classes
 """
 # TODO remove multiple inheritance
-class VGPUTest(xenrt.TestCase, object):
+class VGPUTest(object):
     _CONFIGURATION = {
         VGPUConfig.K100 : "K100",
         VGPUConfig.K120 : "K120",
@@ -335,8 +335,8 @@ class VGPUTest(xenrt.TestCase, object):
             return DriverType.Signed
         return DriverType.Unsigned
 
-    def installNvidiaHostDrivers(self):
-        for host in self.getAllHosts():
+    def installNvidiaHostDrivers(self,allHosts):
+        for host in allHosts:
             host.installNVIDIAHostDrivers()
 
     def installNvidiaWindowsDrivers(self, guest):
@@ -363,332 +363,7 @@ class VGPUTest(xenrt.TestCase, object):
         unigine.runAsWorkload()
         xenrt.sleep(300)
 
-class TCVGPUNode0Pin(xenrt.TestCase):
-    def parseArgs(self, arglist):
-        self.args = {}
-        for a in arglist:
-            (arg, value) = a.split("=", 1)
-            self.args[arg] = value
-
-    def prepare(self, arglist):
-        self.parseArgs(arglist)
-        self.host = self.getDefaultHost()
-        self.guest = self.getGuest(self.args['guest'])
-        self.guest.setState("DOWN")
-
-    def run(self, arglist):
-        ggman = GPUGroupManager(self.host)
-        # Disable GPUs at PCI IDs below, which are on Node 1
-        gpus = []
-        #for i in ["0000:44:00.0", "0000:45:00.0", "0000:46:00.0", "0000:47:00.0"]:
-        for i in ["0000:07:00.0", "0000:08:00.0", "0000:09:00.0", "0000:0a:00.0"]:
-            gpus.extend(self.host.minimalList("pgpu-list", "uuid", "pci-id=%s" % i))
-
-        for g in gpus:
-            ggman.isolatePGPU(g)
-
-        node0cpus = self.host.execdom0("xenpm get-cpu-topology | awk '{if ($4==0) { print $1} }' | sed 's/CPU//'").splitlines()
-
-        self.guest.paramSet("VCPUs-params:mask", string.join(node0cpus, ","))
-        self.guest.setState("UP")
-
-class TCVGPUSetup(VGPUTest):
-    def parseArgs(self, arglist):
-        self.args = {}
-        for a in arglist:
-            (arg, value) = a.split("=", 1)
-            self.args[arg] = value
-
-    def prepare(self, arglist):
-        self.parseArgs(arglist)
-        if not self.args.has_key("host"):
-            self.args['host'] = "0"
-        self.host = self.getHost("RESOURCE_HOST_%s" % self.args['host'])
-        self.guest = self.getGuest(self.args['guest'])
-        if not self.guest:
-            self.guest = self.host.createBasicGuest(name=self.args['guest'], distro=self.args['distro'])
-        # If we have a clean snapshot, revert to it, otherwise create one
-        snaps = self.host.minimalList("snapshot-list", "uuid", "snapshot-of=%s name-label=clean" % self.guest.uuid)
-        self.guest.setState("DOWN")
-        if len(snaps) == 0:
-            self.guest.snapshot("clean")
-        else:
-            self.guest.revert(snaps[0])
-
-    def run(self, arglist):
-        self.guest.setState("DOWN")
-        if not xenrt.TEC().lookup("OPTION_ENABLE_VGPU_VNC", False, boolean=True):
-            self.guest.setVGPUVNCActive(False)
-        self.host.installNVIDIAHostDrivers()
-        #setting up dom0 mem
-        self.host.execdom0("/opt/xensource/libexec/xen-cmdline --set-xen dom0_mem=4096M,max:6144M")
-        self.host.reboot()
-        cfg = [x for x in self._CONFIGURATION.keys() if self._CONFIGURATION[x]==self.args['vgpuconfig']][0]
-        installer = VGPUInstaller(self.host, cfg)
-        installer.createOnGuest(self.guest)
-        self.guest.setState("UP")
-        self.guest.installNvidiaVGPUDriver(self.driverType)
-
-        if "PassThrough" in self.args['vgpuconfig']:
-            autoit = self.guest.installAutoIt()
-            au3path = "c:\\change_display.au3"
-            au3scr = """
-Send("!c")
-Send("!s")
-Send("{DOWN}")
-Send("!m")
-Send("{DOWN}")
-Send("!a")
-Send("!s")
-Send("{DOWN}")
-Send("!m")
-Send("{DOWN}")
-Send("!a")
-Send("{LEFT}")
-Send("{ENTER}")
-"""
-            self.guest.xmlrpcWriteFile(au3path, au3scr)
-            try:
-                #This command will throw error
-                self.guest.xmlrpcExec("control.exe desk.cpl,Settings,@Settings")
-            except:
-                pass
-            self.guest.xmlrpcStart("\"%s\" %s" % (autoit, au3path))
-        self.assertvGPURunningInWinVM(self.guest, self.args['vgpuconfig'])
-
-class TCVGPUCloneVM(VGPUTest):
-    def parseArgs(self, arglist):
-        self.args = {}
-        for a in arglist:
-            (arg, value) = a.split("=", 1)
-            self.args[arg] = value
-
-    def prepare(self, arglist):
-        self.parseArgs(arglist)
-        self.guest = self.getGuest(self.args['guest'])
-        self.guest.setState("DOWN")
-
-    def run(self, arglist):
-        guests = []
-        for i in xrange(int(self.args['clones'])):
-            g = self.guest.cloneVM(name="%s-clone%d" % (self.guest.name, i), noIP=True)
-            xenrt.TEC().registry.guestPut(g.name, g)
-            guests.append(g)
-
-        for g in guests:
-            if not xenrt.TEC().lookup("OPTION_ENABLE_VGPU_VNC", False, boolean=True):
-                self.guest.setVGPUVNCActive(False)
-            g.start()
-
-        if self.args.has_key("vgpuconfig"):
-            for g in guests:
-                self.assertvGPURunningInWinVM(g, self.args['vgpuconfig'])
-
-class TCVGPUDeleteClones(xenrt.TestCase):
-    def parseArgs(self, arglist):
-        self.args = {}
-        for a in arglist:
-            (arg, value) = a.split("=", 1)
-            self.args[arg] = value
-
-    def prepare(self, arglist):
-        self.parseArgs(arglist)
-
-    def run(self, arglist):
-        i = 0
-        while True:
-            g = self.getGuest("%s-clone%d" % (self.args['guest'], i))
-            i += 1
-            if not g:
-                break
-            g.setState("DOWN")
-            g.uninstall()
-            xenrt.TEC().registry.guestDelete(g.name)
-        if self.args.has_key("clones") and i < int(self.args['clones']):
-            raise xenrt.XRTError("Insufficient clones found to delete")
-
-class TCGPUBootstorm(VGPUTest):
-    def parseArgs(self, arglist):
-        self.params = {}
-        self.vgpuconfig = None
-        self.guests = []
-        self.args = {}
-        guest = None
-        clones = None
-        for a in arglist:
-            (arg, value) = a.split("=", 1)
-            if arg=="guest":
-                guest = value
-            elif arg=="clones":
-                clones = int(value)
-            elif arg=="vgpuconfig":
-                self.vgpuconfig = value
-            else:
-                self.args[arg] = value
-
-        if clones:
-            for i in xrange(clones):
-                self.guests.append(self.getGuest("%s-clone%d" % (guest, i)))
-        else:
-            self.guests.append(self.getGuest(guest))
-
-    def guestShutdown(self, guest):
-        guest.setState("DOWN")
-
-    def guestStart(self, guest):
-        guest.start()
-        self.times[guest.name] = xenrt.util.timenow() - self.starttime
-        if self.vgpuconfig:
-            self.assertvGPURunningInWinVM(guest, self.vgpuconfig)
-
-
-    def prepare(self, arglist):
-        self.parseArgs(arglist)
-        xenrt.pfarm([xenrt.PTask(self.guestShutdown, x) for x in self.guests])
-
-    def run(self, arglist):
-        self.starttime = xenrt.util.timenow()
-        self.times = {}
-        xenrt.pfarm([xenrt.PTask(self.guestStart, x) for x in self.guests])
-        f = open("%s/boottimes.json" % (xenrt.TEC().getLogdir()), "w")
-        f.write(json.dumps(self.times))
-        f.close()
-
-class TCGPUBenchmarkInstall(VGPUTest):
-    def parseArgs(self, arglist):
-        self.args = {}
-        self.benchmarks = []
-        self.params = {}
-        self.vgpuconfig = None
-        self.guests = []
-        self.benchmarkObjects = {}
-        self.args = {}
-        guest = None
-        clones = None
-        for a in arglist:
-            (arg, value) = a.split("=", 1)
-            if arg=="guest":
-                guest = value
-            elif arg=="clones":
-                clones = int(value)
-            elif arg=="params":
-                self.params=json.loads(value)
-            elif arg=="benchmark":
-                self.benchmarks.append(value)
-            elif arg=="vgpuconfig":
-                self.vgpuconfig = value
-            else:
-                self.args[arg] = value
-
-        if clones:
-            for i in xrange(clones):
-                self.guests.append(self.getGuest("%s-clone%d" % (guest, i)))
-        else:
-            self.guests.append(self.getGuest(guest))
-
-    def prepare(self, arglist):
-        self.parseArgs(arglist)
-        for g in self.guests:
-            g.setState("UP")
-        if self.vgpuconfig:
-            for g in self.guests:
-                self.assertvGPURunningInWinVM(g, self.vgpuconfig)
-
-    def run(self, arglist):
-        for b in self.benchmarks:
-            self.benchmarkObjects[b] = {}
-            if b.endswith("-ScaleUp"):
-                benchmarkObject = b[:-8]
-            else:
-                benchmarkObject = b
-            for g in self.guests:
-                self.benchmarkObjects[b][g.name] = eval("graphics.%s" % benchmarkObject)(g)
-                try:
-                    self.benchmarkObjects[b][g.name].install()
-                    self.testcaseResult("InstallBenchmark", "%s-%s" % (b, g.name), xenrt.RESULT_PASS)
-                except Exception, e:
-                    self.testcaseResult("InstallBenchmark", "%s-%s" % (b, g.name), xenrt.RESULT_FAIL, str(e))
-
-
-class TCGPUBenchmark(TCGPUBenchmarkInstall):
-
-    def runBenchmark(self, guest):
-        self.benchmarkObjects[self.currentBenchmark][guest.name].run(self.params)
-
-    def prepareBenchmark(self, guest):
-        self.benchmarkObjects[self.currentBenchmark][guest.name].prepare(self.params)
-
-    def run(self, arglist):
-        super(TCGPUBenchmark, self).run(arglist)
-        for b in self.benchmarks:
-            results = {}
-            try:
-                self.currentBenchmark = b
-                if b.endswith("-ScaleUp"):
-                    for i in range(len(self.guests)):
-                        results[i+1] = {}
-                        xenrt.pfarm([xenrt.PTask(self.prepareBenchmark, x) for x in self.guests[:i+1]])
-                        xenrt.pfarm([xenrt.PTask(self.runBenchmark, x) for x in self.guests[:i+1]])
-                        for g in self.guests[:i+1]:
-                            self.benchmarkObjects[b][g.name].setLogSuffix("scaleup%d" % i)
-                            results[i+1][g.name] = self.benchmarkObjects[b][g.name].getResults()
-                else:
-                    xenrt.pfarm([xenrt.PTask(self.prepareBenchmark, x) for x in self.guests])
-                    xenrt.pfarm([xenrt.PTask(self.runBenchmark, x) for x in self.guests])
-                    for g in self.guests:
-                        results[g.name] = self.benchmarkObjects[b][g.name].getResults()
-                f = open("%s/%s.json" % (xenrt.TEC().getLogdir(), b), "w")
-                f.write(json.dumps(results))
-                f.close()
-                self.testcaseResult("RunBenchmark", b, xenrt.RESULT_PASS)
-
-            except Exception, e:
-                self.testcaseResult("RunBenchmark", b, xenrt.RESULT_FAIL, str(e))
-
-class TCGPUWorkload(TCGPUBenchmarkInstall):
-    def run(self, arglist):
-        super(TCGPUWorkload, self).run(arglist)
-        self.failed = []
-        for b in self.benchmarks:
-            for g in self.guests:
-                try:
-                    self.benchmarkObjects[b][g.name].runAsWorkload(self.params)
-                    self.benchmarkObjects[b][g.name].checkWorkload()
-                except Exception, e:
-                    self.failed.append("%s-%s" % (g.name, b))
-                    xenrt.TEC().reason("Workload %s failed to start on %s - %s" % (b, g.name, str(e)))
-
-        end = xenrt.util.timenow() + int(self.args['time'])
-
-        while xenrt.util.timenow() < end:
-            xenrt.sleep(30)
-            checked = False
-            for b in self.benchmarks:
-                for g in self.guests:
-                    if "%s-%s" % (g.name, b) in self.failed:
-                        continue
-                    checked = True
-                    try:
-                        self.benchmarkObjects[b][g.name].checkWorkload()
-                    except Exception, e:
-                        self.failed.append("%s-%s" % (g.name, b))
-                        xenrt.TEC().reason("Workload %s failed on %s - %s" % (b, g.name, str(e)))
-            if checked:
-                xenrt.TEC().logverbose("Checked workloads")
-            else:
-                xenrt.TEC().logverbose("All workloads died")
-                break
-
-        if len(self.failed) > 0:
-            raise xenrt.XRTFailure("Workloads %s failed" % (",".join(self.failed)))
-
-    def postRun(self):
-        for b in self.benchmarks:
-            for g in self.guests:
-                self.benchmarkObjects[b][g.name].stopWorkload()
-
-
-class _VGPUOwnedVMsTest(VGPUTest):
+class VGPUOwnedVMsTest(xenrt.TestCase,VGPUTest):
     __OPTIONS = {
                      VGPUOS.Win7x64 :  "win7sp1-x64",
                      VGPUOS.Win7x86 :  "win7sp1-x86",
@@ -718,7 +393,7 @@ class _VGPUOwnedVMsTest(VGPUTest):
     SNAPSHOT_POST_GUEST_DRIVERS = "postGuestDriversInstalled"
 
     def __init__(self, requiredEnvironmentList, configuration, distribution, vncEnabled, fillToCapacity):
-        super(_VGPUOwnedVMsTest, self).__init__()
+        super(VGPUOwnedVMsTest, self).__init__()
         self._requiredEnvironments = requiredEnvironmentList
         self._distribution = distribution
         self.__vncEnabled = vncEnabled
@@ -898,7 +573,7 @@ class _VGPUOwnedVMsTest(VGPUTest):
         self.host = self.getDefaultHost()
 
         step("Install host drivers")
-        self.installNvidiaHostDrivers()
+        self.installNvidiaHostDrivers(self.getAllHosts())
 
         self._vGPUCreator = VGPUInstaller(self.host, self._configuration, self._distribution)
 
@@ -970,7 +645,347 @@ class _VGPUOwnedVMsTest(VGPUTest):
         self._guestsAndTypes = None
         self._requiredEnvironments = None
 
-class _VGPUBenchmarkTest(_VGPUOwnedVMsTest):
+class TCVGPUNode0Pin(xenrt.TestCase):
+    def parseArgs(self, arglist):
+        self.args = {}
+        for a in arglist:
+            (arg, value) = a.split("=", 1)
+            self.args[arg] = value
+
+    def prepare(self, arglist):
+        self.parseArgs(arglist)
+        self.host = self.getDefaultHost()
+        self.guest = self.getGuest(self.args['guest'])
+        self.guest.setState("DOWN")
+
+    def run(self, arglist):
+        ggman = GPUGroupManager(self.host)
+        # Disable GPUs at PCI IDs below, which are on Node 1
+        gpus = []
+        #for i in ["0000:44:00.0", "0000:45:00.0", "0000:46:00.0", "0000:47:00.0"]:
+        for i in ["0000:07:00.0", "0000:08:00.0", "0000:09:00.0", "0000:0a:00.0"]:
+            gpus.extend(self.host.minimalList("pgpu-list", "uuid", "pci-id=%s" % i))
+
+        for g in gpus:
+            ggman.isolatePGPU(g)
+
+        node0cpus = self.host.execdom0("xenpm get-cpu-topology | awk '{if ($4==0) { print $1} }' | sed 's/CPU//'").splitlines()
+
+        self.guest.paramSet("VCPUs-params:mask", string.join(node0cpus, ","))
+        self.guest.setState("UP")
+
+class TCVGPUSetup(VGPUOwnedVMsTest):
+
+    def __init__(self):
+        super(TCVGPUSetup, self).__init__(requiredEnvironmentList = None, configuration = None, distribution = VGPUDistribution.BreadthFirst, vncEnabled = False, fillToCapacity = False)
+
+    def parseArgs(self, arglist):
+        self.args = {}
+        for a in arglist:
+            (arg, value) = a.split("=", 1)
+            self.args[arg] = value
+
+    def prepare(self, arglist):
+        self.parseArgs(arglist)
+        if not self.args.has_key("host"):
+            self.args['host'] = "0"
+        self.host = self.getHost("RESOURCE_HOST_%s" % self.args['host'])
+        self.guest = self.getGuest(self.args['guest'])
+        if not self.guest:
+            self.guest = self.host.createBasicGuest(name=self.args['guest'], distro=self.args['distro'])
+        # If we have a clean snapshot, revert to it, otherwise create one
+        snaps = self.host.minimalList("snapshot-list", "uuid", "snapshot-of=%s name-label=clean" % self.guest.uuid)
+        self.guest.setState("DOWN")
+        if len(snaps) == 0:
+            self.guest.snapshot("clean")
+        else:
+            self.guest.revert(snaps[0])
+
+    def run(self, arglist):
+        self.guest.setState("DOWN")
+        if not xenrt.TEC().lookup("OPTION_ENABLE_VGPU_VNC", False, boolean=True):
+            self.guest.setVGPUVNCActive(False)
+        self.host.installNVIDIAHostDrivers()
+        #setting up dom0 mem
+        self.host.execdom0("/opt/xensource/libexec/xen-cmdline --set-xen dom0_mem=4096M,max:6144M")
+        self.host.reboot()
+        cfg = [x for x in self._CONFIGURATION.keys() if self._CONFIGURATION[x]==self.args['vgpuconfig']][0]
+        installer = VGPUInstaller(self.host, cfg)
+        installer.createOnGuest(self.guest)
+        self.guest.setState("UP")
+        self.guest.installNvidiaVGPUDriver(self.driverType)
+
+        if "PassThrough" in self.args['vgpuconfig']:
+            autoit = self.guest.installAutoIt()
+            au3path = "c:\\change_display.au3"
+            au3scr = """
+Send("!c")
+Send("!s")
+Send("{DOWN}")
+Send("!m")
+Send("{DOWN}")
+Send("!a")
+Send("!s")
+Send("{DOWN}")
+Send("!m")
+Send("{DOWN}")
+Send("!a")
+Send("{LEFT}")
+Send("{ENTER}")
+"""
+            self.guest.xmlrpcWriteFile(au3path, au3scr)
+            try:
+                #This command will throw error
+                self.guest.xmlrpcExec("control.exe desk.cpl,Settings,@Settings")
+            except:
+                pass
+            self.guest.xmlrpcStart("\"%s\" %s" % (autoit, au3path))
+        self.assertvGPURunningInWinVM(self.guest, self.args['vgpuconfig'])
+
+class TCVGPUCloneVM(VGPUOwnedVMsTest):
+
+    def __init__(self):
+        super(TCVGPUCloneVM, self).__init__(requiredEnvironmentList = None, configuration = None, distribution = VGPUDistribution.BreadthFirst, vncEnabled = False, fillToCapacity = False)
+
+    def parseArgs(self, arglist):
+        self.args = {}
+        for a in arglist:
+            (arg, value) = a.split("=", 1)
+            self.args[arg] = value
+
+    def prepare(self, arglist):
+        self.parseArgs(arglist)
+        self.guest = self.getGuest(self.args['guest'])
+        self.guest.setState("DOWN")
+
+    def run(self, arglist):
+        guests = []
+        for i in xrange(int(self.args['clones'])):
+            g = self.guest.cloneVM(name="%s-clone%d" % (self.guest.name, i), noIP=True)
+            xenrt.TEC().registry.guestPut(g.name, g)
+            guests.append(g)
+
+        for g in guests:
+            if not xenrt.TEC().lookup("OPTION_ENABLE_VGPU_VNC", False, boolean=True):
+                self.guest.setVGPUVNCActive(False)
+            g.start()
+
+        if self.args.has_key("vgpuconfig"):
+            for g in guests:
+                self.assertvGPURunningInWinVM(g, self.args['vgpuconfig'])
+
+class TCVGPUDeleteClones(xenrt.TestCase):
+    def parseArgs(self, arglist):
+        self.args = {}
+        for a in arglist:
+            (arg, value) = a.split("=", 1)
+            self.args[arg] = value
+
+    def prepare(self, arglist):
+        self.parseArgs(arglist)
+
+    def run(self, arglist):
+        i = 0
+        while True:
+            g = self.getGuest("%s-clone%d" % (self.args['guest'], i))
+            i += 1
+            if not g:
+                break
+            g.setState("DOWN")
+            g.uninstall()
+            xenrt.TEC().registry.guestDelete(g.name)
+        if self.args.has_key("clones") and i < int(self.args['clones']):
+            raise xenrt.XRTError("Insufficient clones found to delete")
+
+class TCGPUBootstorm(VGPUOwnedVMsTest):
+
+    def __init__(self):
+        super(TCGPUBootstorm, self).__init__(requiredEnvironmentList = None, configuration = None, distribution = VGPUDistribution.BreadthFirst, vncEnabled = False, fillToCapacity = False)
+
+    def parseArgs(self, arglist):
+        self.params = {}
+        self.vgpuconfig = None
+        self.guests = []
+        self.args = {}
+        guest = None
+        clones = None
+        for a in arglist:
+            (arg, value) = a.split("=", 1)
+            if arg=="guest":
+                guest = value
+            elif arg=="clones":
+                clones = int(value)
+            elif arg=="vgpuconfig":
+                self.vgpuconfig = value
+            else:
+                self.args[arg] = value
+
+        if clones:
+            for i in xrange(clones):
+                self.guests.append(self.getGuest("%s-clone%d" % (guest, i)))
+        else:
+            self.guests.append(self.getGuest(guest))
+
+    def guestShutdown(self, guest):
+        guest.setState("DOWN")
+
+    def guestStart(self, guest):
+        guest.start()
+        self.times[guest.name] = xenrt.util.timenow() - self.starttime
+        if self.vgpuconfig:
+            self.assertvGPURunningInWinVM(guest, self.vgpuconfig)
+
+
+    def prepare(self, arglist):
+        self.parseArgs(arglist)
+        xenrt.pfarm([xenrt.PTask(self.guestShutdown, x) for x in self.guests])
+
+    def run(self, arglist):
+        self.starttime = xenrt.util.timenow()
+        self.times = {}
+        xenrt.pfarm([xenrt.PTask(self.guestStart, x) for x in self.guests])
+        f = open("%s/boottimes.json" % (xenrt.TEC().getLogdir()), "w")
+        f.write(json.dumps(self.times))
+        f.close()
+
+class TCGPUBenchmarkInstall(VGPUOwnedVMsTest):
+
+    def __init__(self):
+        super(TCGPUBenchmarkInstall, self).__init__(requiredEnvironmentList = None, configuration = None, distribution = VGPUDistribution.BreadthFirst, vncEnabled = False, fillToCapacity = False)
+
+    def parseArgs(self, arglist):
+        self.args = {}
+        self.benchmarks = []
+        self.params = {}
+        self.vgpuconfig = None
+        self.guests = []
+        self.benchmarkObjects = {}
+        self.args = {}
+        guest = None
+        clones = None
+        for a in arglist:
+            (arg, value) = a.split("=", 1)
+            if arg=="guest":
+                guest = value
+            elif arg=="clones":
+                clones = int(value)
+            elif arg=="params":
+                self.params=json.loads(value)
+            elif arg=="benchmark":
+                self.benchmarks.append(value)
+            elif arg=="vgpuconfig":
+                self.vgpuconfig = value
+            else:
+                self.args[arg] = value
+
+        if clones:
+            for i in xrange(clones):
+                self.guests.append(self.getGuest("%s-clone%d" % (guest, i)))
+        else:
+            self.guests.append(self.getGuest(guest))
+
+    def prepare(self, arglist):
+        self.parseArgs(arglist)
+        for g in self.guests:
+            g.setState("UP")
+        if self.vgpuconfig:
+            for g in self.guests:
+                self.assertvGPURunningInWinVM(g, self.vgpuconfig)
+
+    def run(self, arglist):
+        for b in self.benchmarks:
+            self.benchmarkObjects[b] = {}
+            if b.endswith("-ScaleUp"):
+                benchmarkObject = b[:-8]
+            else:
+                benchmarkObject = b
+            for g in self.guests:
+                self.benchmarkObjects[b][g.name] = eval("graphics.%s" % benchmarkObject)(g)
+                try:
+                    self.benchmarkObjects[b][g.name].install()
+                    self.testcaseResult("InstallBenchmark", "%s-%s" % (b, g.name), xenrt.RESULT_PASS)
+                except Exception, e:
+                    self.testcaseResult("InstallBenchmark", "%s-%s" % (b, g.name), xenrt.RESULT_FAIL, str(e))
+
+
+class TCGPUBenchmark(TCGPUBenchmarkInstall):
+
+    def runBenchmark(self, guest):
+        self.benchmarkObjects[self.currentBenchmark][guest.name].run(self.params)
+
+    def prepareBenchmark(self, guest):
+        self.benchmarkObjects[self.currentBenchmark][guest.name].prepare(self.params)
+
+    def run(self, arglist):
+        super(TCGPUBenchmark, self).run(arglist)
+        for b in self.benchmarks:
+            results = {}
+            try:
+                self.currentBenchmark = b
+                if b.endswith("-ScaleUp"):
+                    for i in range(len(self.guests)):
+                        results[i+1] = {}
+                        xenrt.pfarm([xenrt.PTask(self.prepareBenchmark, x) for x in self.guests[:i+1]])
+                        xenrt.pfarm([xenrt.PTask(self.runBenchmark, x) for x in self.guests[:i+1]])
+                        for g in self.guests[:i+1]:
+                            self.benchmarkObjects[b][g.name].setLogSuffix("scaleup%d" % i)
+                            results[i+1][g.name] = self.benchmarkObjects[b][g.name].getResults()
+                else:
+                    xenrt.pfarm([xenrt.PTask(self.prepareBenchmark, x) for x in self.guests])
+                    xenrt.pfarm([xenrt.PTask(self.runBenchmark, x) for x in self.guests])
+                    for g in self.guests:
+                        results[g.name] = self.benchmarkObjects[b][g.name].getResults()
+                f = open("%s/%s.json" % (xenrt.TEC().getLogdir(), b), "w")
+                f.write(json.dumps(results))
+                f.close()
+                self.testcaseResult("RunBenchmark", b, xenrt.RESULT_PASS)
+
+            except Exception, e:
+                self.testcaseResult("RunBenchmark", b, xenrt.RESULT_FAIL, str(e))
+
+class TCGPUWorkload(TCGPUBenchmarkInstall):
+    def run(self, arglist):
+        super(TCGPUWorkload, self).run(arglist)
+        self.failed = []
+        for b in self.benchmarks:
+            for g in self.guests:
+                try:
+                    self.benchmarkObjects[b][g.name].runAsWorkload(self.params)
+                    self.benchmarkObjects[b][g.name].checkWorkload()
+                except Exception, e:
+                    self.failed.append("%s-%s" % (g.name, b))
+                    xenrt.TEC().reason("Workload %s failed to start on %s - %s" % (b, g.name, str(e)))
+
+        end = xenrt.util.timenow() + int(self.args['time'])
+
+        while xenrt.util.timenow() < end:
+            xenrt.sleep(30)
+            checked = False
+            for b in self.benchmarks:
+                for g in self.guests:
+                    if "%s-%s" % (g.name, b) in self.failed:
+                        continue
+                    checked = True
+                    try:
+                        self.benchmarkObjects[b][g.name].checkWorkload()
+                    except Exception, e:
+                        self.failed.append("%s-%s" % (g.name, b))
+                        xenrt.TEC().reason("Workload %s failed on %s - %s" % (b, g.name, str(e)))
+            if checked:
+                xenrt.TEC().logverbose("Checked workloads")
+            else:
+                xenrt.TEC().logverbose("All workloads died")
+                break
+
+        if len(self.failed) > 0:
+            raise xenrt.XRTFailure("Workloads %s failed" % (",".join(self.failed)))
+
+    def postRun(self):
+        for b in self.benchmarks:
+            for g in self.guests:
+                self.benchmarkObjects[b][g.name].stopWorkload()
+
+class _VGPUBenchmarkTest(VGPUOwnedVMsTest):
     __TIMEOUT_SECS = 1800
     __SLEEP_SECS = 10
     __GRAPHICS_SCORE_KEY = "GraphicsScore"
@@ -1228,7 +1243,7 @@ class StressvGPUK240(_VGPUStressTest):
 VGPU Allocation mode Test cases.
 """
 
-class VGPUAllocationModeBase(_VGPUOwnedVMsTest):
+class VGPUAllocationModeBase(VGPUOwnedVMsTest):
     """
     vGPU Allocation Mode tests.
     """
@@ -1598,7 +1613,7 @@ class VGPUAllocationModeBase(_VGPUOwnedVMsTest):
 
         self.host = self.getDefaultHost()
         step("Install host drivers")
-        self.installNvidiaHostDrivers()
+        self.installNvidiaHostDrivers(self.getAllHosts())
         self.pools = []
         self.preparePool()
         self.prepareGPUGroups()
@@ -1668,7 +1683,7 @@ class FunctionalBase(VGPUAllocationModeBase):
                     self.nvidWinvGPU = self.typeofvGPU(typeOfvGPU)
 
         step("Install host drivers")
-        self.typeOfvGPU.installHostDrivers()
+        self.typeOfvGPU.installHostDrivers(self.getAllHosts())
 
         self.sr = self.host.getSRs(type="lvm", local=True)[0]
         self.prepareGPUGroups()
@@ -1742,7 +1757,7 @@ class DifferentGPU(object):
     __metaclass__ = ABCMeta
 
     @abstractmethod
-    def installHostDrivers(self):
+    def installHostDrivers(self,allHosts):
         """
         install Host drivers in case of vGPU
         """
@@ -1778,8 +1793,8 @@ class DifferentGPU(object):
 
 class NvidiaWindowsvGPU(DifferentGPU):
 
-    def installHostDrivers(self):
-        VGPUTest().installNvidiaHostDrivers()
+    def installHostDrivers(self,allHosts):
+        VGPUTest().installNvidiaHostDrivers(allHosts)
 
     def installGuestDrivers(self, guest):
         VGPUTest().installNvidiaWindowsDrivers(guest)
@@ -1795,7 +1810,7 @@ class NvidiaWindowsvGPU(DifferentGPU):
 
 class NvidiaLinuxvGPU(DifferentGPU):
 
-    def installHostDrivers(self):
+    def installHostDrivers(self,allHosts):
         xenrt.TEC().logverbose("Not implemented")
         pass
 
@@ -1814,7 +1829,7 @@ class NvidiaLinuxvGPU(DifferentGPU):
 
 class IntelWindowsvGPU(DifferentGPU):
 
-    def installHostDrivers(self):
+    def installHostDrivers(self,allHosts):
         xenrt.TEC().logverbose("Not implemented")
         pass
 
@@ -1832,7 +1847,7 @@ class IntelWindowsvGPU(DifferentGPU):
 
 """ Negative Test Cases """
 
-class _AddPassthroughToFullGPU(_VGPUOwnedVMsTest):
+class _AddPassthroughToFullGPU(VGPUOwnedVMsTest):
     """
     Fill up a pGPUs, each with one single vGPU
     Add one more VM with a PT vGPU and check it doesn't start
@@ -1904,7 +1919,7 @@ class TCAddPassthroughToFullGPUK200(_AddPassthroughToFullGPU):
      def __init__(self):
          super(TCAddPassthroughToFullGPUK200, self).__init__(VGPUConfig.K200)
 
-class _AddvGPUToFullyPassedThroughGPU(_VGPUOwnedVMsTest):
+class _AddvGPUToFullyPassedThroughGPU(VGPUOwnedVMsTest):
     """
     Pass-through all pGPUs
     Add one more VM with a non-PT vGPU and check it doesn't start
@@ -1978,7 +1993,7 @@ class TCAddvGPUToFullyPTGPUK260(_AddvGPUToFullyPassedThroughGPU):
          super(TCAddvGPUToFullyPTGPUK260, self).__init__(VGPUConfig.K2PassThrough, VGPUConfig.K200)
 
 
-class TCVerifyLackOfMobility(_VGPUOwnedVMsTest):
+class TCVerifyLackOfMobility(VGPUOwnedVMsTest):
     """
     Check a vGPU VM is not agile
 
@@ -2066,7 +2081,7 @@ class TCVerifyLackOfMobility(_VGPUOwnedVMsTest):
         #--------------------------------------
         self.__migrateRunningHost(slave, vm, sxm=True)
 
-class TCImportDifferentvGPU(_VGPUOwnedVMsTest):
+class TCImportDifferentvGPU(VGPUOwnedVMsTest):
     """
     Verify that when a VM with an incorrect vGPU type is imported it cannot be started.
 
@@ -3579,7 +3594,7 @@ class TCAlloModePerfDist(VGPUAllocationModeBase):
 GPU Group related classes
 """
 
-class GPUGroup:
+class GPUGroup(object):
     """
     Generic GPU Group class
     """
@@ -3624,7 +3639,7 @@ class GPUGroup:
         myType = self.getGridType()
         return myType == "" or myType == gridtype
 
-class GPUGroupManager:
+class GPUGroupManager(object):
     """
     GPU Groups manager
     """
@@ -4123,7 +4138,7 @@ class TCinstallNVIDIAHostDrivers(xenrt.TestCase):
         for host in hosts:
             host.installNVIDIAHostDrivers()
 
-class TCinstallNVIDIAGuestDrivers(VGPUTest):
+class TCinstallNVIDIAGuestDrivers(VGPUOwnedVMsTest):
 
     def run(self,arglist):
 

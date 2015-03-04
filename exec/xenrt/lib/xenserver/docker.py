@@ -413,11 +413,13 @@ class LinuxDockerController(DockerController):
 
     def rmContainer(self, container):
 
-        if self.statusContainer(container) == ContainerState.STOPPED:
+        containerState = self.statusContainer(container)
+
+        if containerState == ContainerState.STOPPED:
             pass # do nothing. straight away remove the container.
-        elif self.statusContainer(container) == ContainerState.RUNNING:
+        elif containerState == ContainerState.RUNNING:
             self.stopContainer(container)
-        elif self.statusContainer(container) == ContainerState.PAUSED:
+        elif containerState == ContainerState.PAUSED:
             self.unpauseContainer(container)
             self.stopContainer(container)
         else:

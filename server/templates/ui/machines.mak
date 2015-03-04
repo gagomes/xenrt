@@ -46,7 +46,30 @@ $(function() {
             out += "<div class=\"ui-widget-content ui-corner-all\">";
 
             out += key;
-            out += ": <a href=\"/xenrt/ui/machine?" + escape(key) + "\">Manage</a>";
+            if (data[key]['description']) {
+                out += " - " + data[key]['description']
+            }
+            if (data[key]['location']) {
+                out += " (" + data[key]['location'] + " - " + data[key]['site'] + ")"
+            }
+            else {
+                out += " (" + data[key]['site'] + ")"
+            }
+
+            if (data[key]['leasecurrentuser']) {
+                out += " - Leased to you"
+            }
+            else if (data[key]['leaseuser']) {
+                out += " - leased to " + data[key]['leaseuser']
+            }
+            else if (data[key]['status'] == "running") {
+                out += " - running job " + data[key]['jobid']
+            }
+            else {
+                out += " - " + data[key]['status']
+            }
+
+            out += " - <a href=\"/xenrt/ui/machine?" + escape(key) + "\">Manage</a>";
 
             out += "</div>";
         }

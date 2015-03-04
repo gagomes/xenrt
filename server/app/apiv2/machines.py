@@ -90,7 +90,7 @@ class _MachineBase(XenRTAPIv2Page):
             conditions.append("m.machine != ('_' || s.site)")
 
 
-        query = "SELECT m.machine, m.site, m.cluster, m.pool, m.status, m.resources, m.flags, m.comment, m.leaseto, m.leasereason, m.leasefrom, m.leasepolicy, s.flags, m.jobid, m.descr, m.aclid, s.ctrladdr FROM tblmachines m INNER JOIN tblsites s ON m.site=s.site"
+        query = "SELECT m.machine, m.site, m.cluster, m.pool, m.status, m.resources, m.flags, m.comment, m.leaseto, m.leasereason, m.leasefrom, m.leasepolicy, s.flags, m.jobid, m.descr, m.aclid, s.ctrladdr, s.location FROM tblmachines m INNER JOIN tblsites s ON m.site=s.site"
         if conditions:
             query += " WHERE %s" % " AND ".join(conditions)
 
@@ -121,6 +121,7 @@ class _MachineBase(XenRTAPIv2Page):
                 "broken": rc[3].strip().endswith("x"),
                 "aclid": rc[15],
                 "ctrladdr": rc[16].strip() if rc[16] else None,
+                "location": rc[17].strip() if rc[17] else None,
                 "params": {}
             }
             machine['leasecurrentuser'] = bool(machine['leaseuser'] and machine['leaseuser'] == self.getUser().userid)
@@ -155,7 +156,7 @@ class _MachineBase(XenRTAPIv2Page):
 
         if search:
             try:
-                searchre = re.compile(search)
+                searchre = re.compile(search, flags=re.IGNORECASE)
             except Exception, e:
                 raise XenRTAPIError(HTTPBadRequest, "Invalid regular expression: %s" % str(e))
         else:

@@ -1821,6 +1821,8 @@ class XenRTSite(XenRTCommand):
             self.printout("MAXJOBS='%d'\n" % site['maxjobs'])
         if site['sharedresources']:
             self.printout("SHAREDRESOURCES='%s'\n" % "/".join(["%s=%s" % (x,y) for (x,y) in site['sharedresources'].iteritems()]))
+        if site['location']:
+            self.printout("LOCATION='%s'\n" % site['location'])
         # TODO Add availableresources
 
 

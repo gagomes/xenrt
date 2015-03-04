@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang=''>
 <head>
+    <title>XenRT: API Key</title>
 
 ${commonhead | n}
     <script>
@@ -69,4 +70,4 @@ ${commonbody | n}
 
 </div>
 </body>
-<html>
+</html>

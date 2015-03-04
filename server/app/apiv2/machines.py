@@ -5,6 +5,8 @@ import app.utils
 import json
 import time
 import jsonschema
+import requests
+import re
 
 class _MachineBase(XenRTAPIv2Page):
 
@@ -36,7 +38,8 @@ class _MachineBase(XenRTAPIv2Page):
                     limit=None,
                     offset=0,
                     pseudoHosts=False,
-                    exceptionIfEmpty=False):
+                    exceptionIfEmpty=False,
+                    search=None):
         cur = self.getDB().cursor()
         params = []
         conditions = []
@@ -87,7 +90,7 @@ class _MachineBase(XenRTAPIv2Page):
             conditions.append("m.machine != ('_' || s.site)")
 
 
-        query = "SELECT m.machine, m.site, m.cluster, m.pool, m.status, m.resources, m.flags, m.comment, m.leaseto, m.leasereason, m.leasefrom, m.leasepolicy, s.flags, m.jobid, m.descr, m.aclid FROM tblmachines m INNER JOIN tblsites s ON m.site=s.site"
+        query = "SELECT m.machine, m.site, m.cluster, m.pool, m.status, m.resources, m.flags, m.comment, m.leaseto, m.leasereason, m.leasefrom, m.leasepolicy, s.flags, m.jobid, m.descr, m.aclid, s.ctrladdr FROM tblmachines m INNER JOIN tblsites s ON m.site=s.site"
         if conditions:
             query += " WHERE %s" % " AND ".join(conditions)
 
@@ -117,6 +120,7 @@ class _MachineBase(XenRTAPIv2Page):
                 "jobid": rc[13],
                 "broken": rc[3].strip().endswith("x"),
                 "aclid": rc[15],
+                "ctrladdr": rc[16].strip() if rc[16] else None,
                 "params": {}
             }
 
@@ -148,6 +152,14 @@ class _MachineBase(XenRTAPIv2Page):
             if rc[1].strip() == "PROPS" and rc[2] and rc[2].strip():
                 ret[rc[0].strip()]['flags'].extend(rc[2].strip().split(","))
 
+        if search:
+            try:
+                searchre = re.compile(search)
+            except Exception, e:
+                raise XenRTAPIError(HTTPBadRequest, "Invalid regular expression: %s" % str(e))
+        else:
+            searchre = None
+
         for m in ret.keys():
             if flags:
                 if not app.utils.check_attributes(",".join(ret[m]['flags']), ",".join(flags)):
@@ -155,6 +167,11 @@ class _MachineBase(XenRTAPIv2Page):
                     continue
             if resources:
                 if not app.utils.check_resources("/".join(["%s=%s" % (x,y) for (x,y) in ret[m]['resources'].items()]), "/".join(resources)):
+                    del ret[m]
+                    continue
+
+            if search:
+                if not searchre.search(m):
                     del ret[m]
                     continue
 
@@ -371,7 +388,12 @@ class ListMachines(_MachineBase):
           'in' : 'query',
           'name': 'pseudohosts',
           'required': False,
-          'type': 'boolean'}
+          'type': 'boolean'},
+         {'description': "Regular expression to search for machines",
+          'in': 'query',
+          'name': 'search',
+          'required': False,
+          'type': 'string'}
           ]
     RESPONSES = { "200": {"description": "Successful response"}}
     TAGS = ["machines"]
@@ -388,7 +410,8 @@ class ListMachines(_MachineBase):
                                 aclids = self.getMultiParam("aclid"),
                                 pseudoHosts = self.request.params.get("pseudohosts") == "true",
                                 limit=int(self.request.params.get("limit", 0)),
-                                offset=int(self.request.params.get("offset", 0)))
+                                offset=int(self.request.params.get("offset", 0)),
+                                search=self.request.params.get("search"))
 
 class GetMachine(_MachineBase):
     PATH = "/machine/{name}"
@@ -719,6 +742,64 @@ class RemoveMachine(_MachineBase):
         self.removeMachine(machine)
         return {}
 
+class PowerMachine(_MachineBase):
+    REQTYPE="POST"
+    WRITE = True
+    PATH = "/machine/{name}/power"
+    TAGS = ["machines"]
+    PARAMS = [
+        {'name': 'name',
+         'in': 'path',
+         'required': True,
+         'description': 'Machine to update',
+         'type': 'integer'},
+        {'name': 'body',
+         'in': 'body',
+         'required': True,
+         'description': 'Details of the update',
+         'schema': { "$ref": "#/definitions/powermachine" }
+        }
+    ]
+    RESPONSES = { "200": {"description": "Successful response"}}
+    DEFINITIONS = {"powermachine": {
+        "title": "Power Macine",
+        "type": "object",
+        "properties": {
+            "operation": {
+                "type": "string",
+                "enum": ["on", "off", "reboot", "nmi"],
+                "description": "Status of the machine"
+            },
+            "bootdev": {
+                "type": "string",
+                "description": "IPMI boot device for the next boot"
+            }
+        },
+        "required": ["operation"]
+    }}
+    OPERATION_ID = "power_machine"
+    PARAM_ORDER=["name", "operation", "bootdev", "status", "resources", "addflags", "delflags"]
+    SUMMARY = "Control the power on a machine"
+
+    def render(self):
+        machine = self.getMachines(limit=1, machines=[self.request.matchdict['name']], exceptionIfEmpty=True)[self.request.matchdict['name']]
+        try:
+            j = json.loads(self.request.body)
+            jsonschema.validate(j, self.DEFINITIONS['powermachine'])
+        except Exception, e:
+            raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
+
+        reqdict = {"machine": machine['name'], "powerop": j['operation']}
+
+        if j.get('bootdev'):
+            reqdict['bootdev'] = j['bootdev']
+
+        r = requests.get("http://%s/xenrt/api/controller/power" % machine['ctrladdr'], params=reqdict)
+        r.raise_for_status()
+        if r.text.startswith("ERROR"):
+            raise XenRTAPIError(HTTPInternalServerError, r.text)
+        return {"output": r.text.strip()}
+    
 class NotifyBorrow(_MachineBase):
     def run(self):
         borrowedMachines = [x for x in self.getMachines().values() if x['leaseuser']]
@@ -759,3 +840,4 @@ RegisterAPI(ReturnMachine)
 RegisterAPI(UpdateMachine)
 RegisterAPI(NewMachine)
 RegisterAPI(RemoveMachine)
+RegisterAPI(PowerMachine)

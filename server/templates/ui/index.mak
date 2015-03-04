@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang=''>
 <head>
+    <title>XenRT: Home</title>
 ${commonhead | n}
 
 

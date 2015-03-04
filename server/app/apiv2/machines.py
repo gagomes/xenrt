@@ -778,7 +778,7 @@ class PowerMachine(_MachineBase):
         "required": ["operation"]
     }}
     OPERATION_ID = "power_machine"
-    PARAM_ORDER=["name", "operation", "bootdev", "status", "resources", "addflags", "delflags"]
+    PARAM_ORDER=["name", "operation", "bootdev"]
     SUMMARY = "Control the power on a machine"
 
     def render(self):

@@ -194,7 +194,15 @@ class KVMHost(xenrt.lib.libvirt.Host):
 
     def createNetwork(self, name="bridge", iface=None):
         if iface is None: iface = self.getDefaultInterface()
-        self.execvirt("virsh iface-bridge %s %s --no-stp 10" % (iface, name))
+        try:
+            self.execvirt("virsh iface-bridge %s %s --no-stp 10" % (iface, name))
+        except:
+            # We do sometimes lose connection during these operations
+            # Wait 1 minute then check all is OK
+            xenrt.sleep(60)
+            bdata = self.execvirt("brctl show")
+            if not name in bdata:
+                raise xenrt.XRTError("Failure attempting to set up network bridge")
 
     def removeNetwork(self, bridge=None, nwuuid=None):
         if bridge:

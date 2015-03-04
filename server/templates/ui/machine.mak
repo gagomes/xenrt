@@ -29,6 +29,19 @@ $(function() {
         $.getJSON("/xenrt/api/v2/machine/" + machine)
             .done(function(data) {
                 var out = ""
+                out += "<h3>Machine info</h3>"
+                out += "<div>Status: " + data['status'] + "</div>"
+                if (data['description']) {
+                    out += "<div>Description: " + data['description'] + "</div>"
+                }
+                if (data['location']) {
+                    out += "<div>Location: " + data['location'] + "</div>"
+                }
+                out += "<div>Site: " + data['site'] + "</div>"
+
+                $("#machine").empty()
+                $(out).appendTo("#machine");
+                out = ""
                 out += "<h3>Machine lease</h3>"
                 if (data['leasecurrentuser']) {
                     out += "<div>"
@@ -51,9 +64,28 @@ $(function() {
                 else {
                     if (data['leaseuser']) {
                         var d = new Date(data['leaseto'] * 1000)
-                        out += "<div>Machine is borrowed by " + data['leaseuser'] + " " + leaseUntilText(data['leaseto']) + "</div>"
+                        $.ajaxSetup( { "async": false } );
+
+                        var user = data['leaseuser']
+                        $.getJSON("/xenrt/api/v2/ad", {"search": data['leaseuser']})
+                            .done(function(addata) {
+                                if (addata[0]['mail']) {
+                                    user = addata[0]['cn'] + " (<a href=\"mailto:" + addata[0]['mail'] + "\">" + addata[0]['mail'] + "</a>)"
+                                }
+                                else {
+                                    user = addata[0]['cn']
+                                }
+                            });
+
+                        out += "<div>Machine is borrowed by " + user + " " + leaseUntilText(data['leaseto']) + "</div>"
                     }
                     else{
+                        if (data['status'] == "running") {
+                            out += "<div><p><b>Warning - machine is running job <a href=\"/xenrt/ui/logs?jobs=" + data['jobid'] + "\" target=\"_blank\">" + data['jobid'] + "</a></b></p></div>"
+                        }
+                        else if (data['status'] == "broken") {
+                            out += "<div><p><b>Warning - machine is marked as broken: " + data['params']['BROKEN_INFO'] + "</b></p></div>"
+                        }
                         out += "<div>Lease for: "
                         out += "<input type=\"text\" id=\"duration\" class=\"ui-state-default ui-corner-all\">"
                         out += " <select id=\"durationunit\" class=\"ui-state-default ui-corner-all\">"
@@ -65,7 +97,6 @@ $(function() {
                         out += "<br><button id=\"leasebutton\" class=\"ui-state-default ui-corner-all\">Lease</button></div>"
                     }
                 }
-                $("#machine").empty()
                 $(out).appendTo("#machine");
                 setupHandlers()
             });

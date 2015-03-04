@@ -495,7 +495,6 @@ ifeq ($(DOCONSERVER),yes)
 	$(SUDO) mkdir -p /var/lib/cons
 	grep "^cons:" /etc/group || $(SUDO) groupadd cons
 	grep "^cons:" /etc/passwd || $(SUDO) useradd cons -g cons -d /var/lib/cons
-	$(SUDOSH) 'echo console | passwd cons --stdin'
 	$(SUDO) mkdir -p /var/lib/cons/.ssh
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/conserver/cons /usr/local/bin
 	$(SUDOSH) 'echo -n "command=\"/usr/local/bin/cons\",no-port-forwarding,no-X11-forwarding,no-agent-forwarding " > /var/lib/cons/.ssh/authorized_keys'

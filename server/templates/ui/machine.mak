@@ -20,7 +20,7 @@ $(function() {
                 var out = ""
                 out += "<h3>Serial console</h3>"
                 out += "<div>Unix: <span style=\"font-family:monospace\">ssh cons@" + data['ctrladdr'] + " " + machine + "</span> (password <span style=\"font-family:monospace\">console</span>)</div>";
-                out += "<div>Windows: <span style=\"font-family:monospace\">echo " + machine + " > %TEMP%\\xenrt-puttycmd & putty.exe -t cons@" + data['ctrladdr'] + " -pw console -m %TEMP%\\xenrt-puttycmd</span></div>";
+                out += "<div>Windows: <span style=\"font-family:monospace\">echo " + machine + " > %TEMP%\\xenrt-puttycmd & putty.exe -t cons@" + data['ctrladdr'] + " -pw console -m %TEMP%\\xenrt-puttycmd</span> (requires PuTTY on %PATH%)</div>";
                 $("#access").empty()
                 $(out).appendTo("#access");
             });

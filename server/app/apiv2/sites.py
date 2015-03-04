@@ -119,6 +119,7 @@ class GetSite(_SiteBase):
 
 class UpdateSite(_SiteBase):
     PATH = "/site/{name}"
+    WRITE = True
     REQTYPE = "POST"
     SUMMARY = "Update a site"
     TAGS = ["sites"]

@@ -9,18 +9,35 @@ $(function() {
 
     var curRequest = null;
 
-    function search(searchtext) {
+    function search(searchtext, user) {
+        $('#searchbutton').prop('disabled', true);
+        $('#mybutton').prop('disabled', true);
+        $( "#overlay" ).show();
+        $( "#loading" ).show();
         if (curRequest) {
             curRequest.abort();
         }
+        var params = null;
+        if (user) {
+            limit = "0"
+            params = {"user": "${'${user}'}", "limit" : "0"}
+        }
+        else {
+            params = {"search": searchtext, "limit": "25"}
+        }
+        $.ajaxSetup( { "async": false } );
         var machinesearch = "/xenrt/api/v2/machines"
-        curRequest = $.getJSON(machinesearch, {"search": searchtext, "limit": "25"})
+        curRequest = $.getJSON(machinesearch, params)
             .done(function(data) {
                 curRequest = null;
                 var out = searchHTML(data)
                 $("#results").empty();
                 $( out ).appendTo("#results");
             });
+        $( "#overlay" ).hide();
+        $( "#loading" ).hide();
+        $('#searchbutton').prop('disabled', false);
+        $('#mybutton').prop('disabled', false);
     }
 
     function searchHTML(data) {
@@ -37,15 +54,12 @@ $(function() {
     }
 
     $( "#searchbutton" ).click(function() {
-        $('#searchbutton').prop('disabled', true);
-        $( "#overlay" ).show();
-        $( "#loading" ).show();
-        $.ajaxSetup( { "async": false } );
         var machinesearch = $( "#searchbox" ).val()
-        search(machinesearch);
-        $( "#overlay" ).hide();
-        $( "#loading" ).hide();
-        $('#searchbutton').prop('disabled', false);
+        search(machinesearch, false);
+    });
+
+    $( "#mybutton").click(function() {
+        search(null, true); 
     });
 
     $("#searchbox").keyup(function(event){
@@ -71,7 +85,8 @@ ${commonbody | n}
 <h2>Find machine</h2>
 <p>
 <input id="searchbox" type="text" class="ui-state-default ui-corner-all">
-<button id="searchbutton" class="ui-state-default ui-corner-all">Search</button></p>
+<button id="searchbutton" class="ui-state-default ui-corner-all">Search</button>
+<button id="mybutton" class="ui-state-default ui-corner-all">Get my machines</button></p>
 <div id="results"></div>
 </p>
 </div>

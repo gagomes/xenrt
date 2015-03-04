@@ -316,7 +316,7 @@ class XapiPluginDockerController(DockerController):
 
         if len(dockerContainerList) > 0:
             for containerDict in dockerContainerList:
-                if containerDict.has_key('names'):
+                if containerDict.has_key('names'): # AttributeError: 'unicode' object has no attribute 'has_key'
                     containers.append(containerDict['names'].strip())
                 else:
                     raise xenrt.XRTError("listContainers: The container name could not accessed")
@@ -635,7 +635,7 @@ class Docker(object):
         return(Container(ctype, cname)) # returns a container object.
 
     def loadExistingContainers(self):
-        for cname in self.DockerController.listContainers():
+        for cname in self.listContainers():
             self.containers.append(Container(ContainerType.UNKNOWN, cname))
 
     def listContainers(self):
@@ -660,7 +660,8 @@ class Docker(object):
             xenrt.sleep(5)
 
     def rmAllContainers(self):
-        for container in self.containers:
+        allContainers = self.containers  # we do a list item remove above.
+        for container in allContainers:
             self.rmContainer(container)
 
     def lifeCycleContainer(self, container):

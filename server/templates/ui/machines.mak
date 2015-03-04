@@ -53,9 +53,10 @@ $(function() {
             $("#searchbutton").click();
         }
         else {
-            $.ajaxSetup( { "async": true } );
-            var machinesearch = $( "#searchbox" ).val()
-            search(machinesearch);
+            // These lines allow real time searching, but also put a greater load on the server. Decide later whether we can enable this
+            //$.ajaxSetup( { "async": true } );
+            //var machinesearch = $( "#searchbox" ).val()
+            //search(machinesearch);
         }
     });
 

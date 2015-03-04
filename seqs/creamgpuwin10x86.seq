@@ -1,0 +1,34 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+  </variables>
+  
+  <prepare>
+    <pool>
+      <storage type="nfs" name="nfssr" default="true" />
+      <allhosts/>
+      <vm name="win10x86">
+        <distro>win10-x86</distro>
+        <postinstall action="installDrivers"/>
+        <postinstall action="installVCRedist"/>
+        <postinstall action="installDirectX"/>
+        <postinstall action="preCloneTailor"/>
+        <postinstall action="shutdown"/>
+        <network device="0" />
+      </vm>
+    </pool>
+  </prepare>
+  <testsequence group="Win10x86">
+    <testcase id="xenserver.tc.gpu.GPUBasic" tc="TC-26413" blocker="yes">
+      <arg>gold=win10x86</arg>
+      <arg>vendor=NVIDIA</arg>
+      <arg>gpucount=8</arg>
+    </testcase>
+    <testcase id="xenserver.tc.gpu.StartAllGPU" tc="TC-26414">
+      <arg>gold=win10x86</arg>
+      <arg>vendor=NVIDIA</arg>
+      <arg>gpucount=8</arg>
+    </testcase>
+  </testsequence>
+</xenrt>
+

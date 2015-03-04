@@ -53,6 +53,10 @@
         <arg>distro=${DISTRO}</arg>
       </testcase>
 
+      <testcase id="xenserver.tc.docker.TCGuestsLifeCycle" tc="TC-26443" name="GuestsLifeCycle" sku="CoreOSPool">
+        <arg>distro=${DISTRO}</arg>
+      </testcase>
+
       <testcase id="xenserver.tc.docker.TCGuestsMigration" tc="TC-26525" name="GuestsMigration" sku="CoreOSPool">
         <arg>distro=${DISTRO}</arg>
       </testcase>

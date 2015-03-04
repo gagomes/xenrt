@@ -1797,7 +1797,7 @@ class XenRTSUpdate(XenRTCommand):
         elif key == "sharedresources":
             value = dict([y for y in [x.split("=",1) for x in value.split("/")]])
         details = {key: value}
-        self.xenrt.update_site(name, **details)
+        self.xenrt.update_site(site, **details)
 
 class XenRTSite(XenRTCommand):
 

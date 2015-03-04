@@ -137,7 +137,7 @@ class UpdateSite(_SiteBase):
     ]
     RESPONSES = { "200": {"description": "Successful response"}}
     OPERATION_ID = "update_site"
-    PARAM_ORDER=["name", "description", "ctrladdr", "maxjobs", "flags", "addflags", "delflags", "sharedresources"]
+    PARAM_ORDER=["name", "description", "ctrladdr", "maxjobs", "flags", "addflags", "delflags", "sharedresources", "status"]
     DEFINITIONS = {"updatesite": {
         "title": "Update Site",
         "type": "object",
@@ -172,6 +172,10 @@ class UpdateSite(_SiteBase):
             "sharedresources": {
                 "type": "object",
                 "description": "Key-value pair resource:value of resources to update. (set value to null to remove a resource)"
+            },
+            "status": {
+                "type": "string",
+                "description": "Status of the site"
             }
         }
     }}

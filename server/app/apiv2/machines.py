@@ -152,6 +152,14 @@ class _MachineBase(XenRTAPIv2Page):
             if rc[1].strip() == "PROPS" and rc[2] and rc[2].strip():
                 ret[rc[0].strip()]['flags'].extend(rc[2].strip().split(","))
 
+        if search:
+            try:
+                searchre = re.compile(search)
+            except Exception, e:
+                raise XenRTAPIError(HTTPBadRequest, "Invalid regular expression: %s" % str(e))
+        else:
+            searchre = None
+
         for m in ret.keys():
             if flags:
                 if not app.utils.check_attributes(",".join(ret[m]['flags']), ",".join(flags)):
@@ -163,7 +171,7 @@ class _MachineBase(XenRTAPIv2Page):
                     continue
 
             if search:
-                if not re.search(search, m):
+                if not searchre.search(m):
                     del ret[m]
                     continue
 

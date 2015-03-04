@@ -24,6 +24,43 @@ $(function() {
         }
     }
 
+    function getBMCKVM(data) {
+        var bmckvm = false;
+        var out = "<div>"
+        if (data['params']["BMC_WEB"] == "yes") {
+            bmckvm = (data['params']["BMC_KVM"] == "yes")
+            if (bmckvm) {
+                out += "<h3>Baseboard management (includes KVM access)</h3>"
+            }
+            else {
+                out += "<h3>Baseboard management</h3>"
+            }
+            out += "<div>URL: <a href=\"https://" + data['params']['BMC_ADDRESS'] + "\" target=\"_blank\">https://" + data['params']['BMC_ADDRESS'] + "</a></div>"
+            out += "<div>Username: " + data['params']['IPMI_USERNAME'] + "</div>"
+            out += "<div>Password: " + data['params']['IPMI_PASSWORD'] + "</div>"
+        }
+        if ("KVM_HOST" in data['params']) {
+            if (bmckvm) {
+                out += "<h3>Physical KVM access (if BMC fails)</h3>"
+            }
+            else {
+                out += "<h3>KVM access</h3>"
+            }
+            out += "<div>URL: <a href=\"https://" + data['params']['KVM_HOST'] + "\" target=\"_blank\">https://" + data['params']['KVM_HOST'] + "</a></div>"
+            out += "<div>Username: " + data['params']['KVM_USER'] + "</div>"
+            if ("KVM_PASSWORD" in data['params']) {
+                out += "<div>Password: " + data['params']['KVM_PASSWORD'] + "</div>"
+            }
+            else {
+                out += "<div>Password: (blank)</div>"
+            }
+        }
+
+        out += "</div>"
+        return out
+
+    }
+
     function getMachine(machine) {
         $.ajaxSetup( { "async": false } );
         $.getJSON("/xenrt/api/v2/machine/" + machine)
@@ -59,6 +96,7 @@ $(function() {
                     out += "<h3>Serial console</h3>"
                     out += "<div>Unix: <span style=\"font-family:monospace\">ssh -t cons@" + data['ctrladdr'] + " " + machine + "</span> (password <span style=\"font-family:monospace\">console</span>)</div>";
                     out += "<div>Windows: <span style=\"font-family:monospace\">echo " + machine + " > %TEMP%\\xenrt-puttycmd & putty.exe -t cons@" + data['ctrladdr'] + " -pw console -m %TEMP%\\xenrt-puttycmd</span> (requires PuTTY on %PATH%)</div>";
+                    out += getBMCKVM(data)
                     out += "</div>"
                 }
                 else {

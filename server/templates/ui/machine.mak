@@ -84,6 +84,17 @@ $(function() {
                     out += "<div>"
                     out += "Leased to you " +  leaseUntilText(data['leaseto']);
                     out += " <button id=\"returnbutton\" class=\"ui-state-default ui-corner-all\">Return machine</button>"
+                    if (leaseUntilText(data['leaseto']) != "forever") {
+                        out += "<div>Extend lease until: "
+                        out += "<input type=\"text\" id=\"duration\" class=\"ui-state-default ui-corner-all\">"
+                        out += " <select id=\"durationunit\" class=\"ui-state-default ui-corner-all\">"
+                        out += "<option value=\"hours\">Hours</option>"
+                        out += "<option value=\"days\">Days</option>"
+                        out += "<option value=\"forever\">Forever</option>"
+                        out += "</select>"
+                        out += "<br>Reason: <input type=\"text\" id=\"reason\" class=\"ui-state-default ui-corner-all\">"
+                        out += "<br><button id=\"leasebutton\" class=\"ui-state-default ui-corner-all\">Extend lease</button></div>"
+                    }
                     out += "<h3>Power control</h3>"
                     out += "<div>Operation: <select class=\"ui-state-default ui-corner-all\" id=\"powerop\">"
                     out += "<option value=\"on\">Power on</option>"

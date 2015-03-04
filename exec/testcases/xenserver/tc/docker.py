@@ -51,8 +51,9 @@ class TCContainerLifeCycle(TCDockerBase):
     def createDockerContainers(self):
         # Create a container of choice in every guest.
         for docker in self.docker:
-            docker.createContainer(ContainerType.BUSYBOX) # with default container type and name.
-            docker.createContainer(ContainerType.TOMCAT)
+            #docker.createContainer(ContainerType.BUSYBOX) # with default container type and name.
+            docker.createContainer(ContainerType.YES_BUSYBOX)
+            docker.createContainer(ContainerType.YES_BUSYBOX)
             docker.createContainer(ContainerType.YES_BUSYBOX)
 
         # Lifecycle tests on all containers in every guest.

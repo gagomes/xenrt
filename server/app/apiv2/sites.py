@@ -18,7 +18,7 @@ class _SiteBase(_MachineBase):
             conditions.append(self.generateInCondition("s.site", sites))
             params.extend(sites)
         
-        query = "SELECT s.site, s.status, s.flags, s.descr, s.ctrladdr, s.maxjobs, s.sharedresources FROM tblsites s"
+        query = "SELECT s.site, s.status, s.flags, s.descr, s.ctrladdr, s.maxjobs, s.sharedresources, s.location FROM tblsites s"
         if conditions:
             query += " WHERE %s" % (" AND ".join(conditions))
         
@@ -40,7 +40,8 @@ class _SiteBase(_MachineBase):
                     "description": rc[3].strip() if rc[3] else None,
                     "ctrladdr": rc[4].strip() if rc[4] else None,
                     "maxjobs": rc[5],
-                    "sharedresources": {}
+                    "sharedresources": {},
+                    "location": rc[7].strip() if rc[7] else None
                 }
 
                 if rc[6]:
@@ -138,7 +139,7 @@ class UpdateSite(_SiteBase):
     ]
     RESPONSES = { "200": {"description": "Successful response"}}
     OPERATION_ID = "update_site"
-    PARAM_ORDER=["name", "description", "ctrladdr", "maxjobs", "flags", "addflags", "delflags", "sharedresources", "status"]
+    PARAM_ORDER=["name", "description", "ctrladdr", "maxjobs", "flags", "addflags", "delflags", "sharedresources", "status", "location"]
     DEFINITIONS = {"updatesite": {
         "title": "Update Site",
         "type": "object",
@@ -177,6 +178,10 @@ class UpdateSite(_SiteBase):
             "status": {
                 "type": "string",
                 "description": "Status of the site"
+            },
+            "location": {
+                "type": "string",
+                "description": "Location of the site (human readable)"
             }
         }
     }}
@@ -213,6 +218,8 @@ class UpdateSite(_SiteBase):
                     data['flags'].remove(f)
         if data.get("flags"):
             u.append(("flags", ",".join(data['flags'])))
+        if data.get("location"):
+            u.append(("location", data['location']))
 
         if len(u) == 0:
             return
@@ -259,7 +266,7 @@ class NewSite(UpdateSite):
     ]
     RESPONSES = { "200": {"description": "Successful response"}}
     OPERATION_ID = "new_site"
-    PARAM_ORDER=["name", "description", "ctrladdr", "maxjobs", "flags", "sharedresources"]
+    PARAM_ORDER=["name", "description", "ctrladdr", "maxjobs", "flags", "sharedresources", "location"]
     DEFINITIONS = {"newsite": {
         "title": "New Site",
         "type": "object",
@@ -288,6 +295,10 @@ class NewSite(UpdateSite):
             "sharedresources": {
                 "type": "object",
                 "description": "Key-value pair resource:value of resources to update. (set value to null to remove a resource)"
+            },
+            "location": {
+                "type": "string",
+                "description": "Location of the site (human readable)"
             }
         },
         "required": ["name"]

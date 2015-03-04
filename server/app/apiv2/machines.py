@@ -123,6 +123,7 @@ class _MachineBase(XenRTAPIv2Page):
                 "ctrladdr": rc[16].strip() if rc[16] else None,
                 "params": {}
             }
+            machine['leasecurrentuser'] = bool(machine['leaseuser'] and machine['leaseuser'] == self.getUser().userid)
 
             for r in rc[5].strip().split("/"):
                 if not "=" in r:

@@ -185,7 +185,8 @@ class XapiPluginDockerController(DockerController):
         if operation == ContainerXapiOperation.CREATE:
             dockerCmd = self.containerSelection(container)
         elif operation == ContainerXapiOperation.REMOVE:
-            dockerCmd ="\"docker ps -a -f name=\'" + container.cname + "\' | tail -n +2 | awk \'{print \$1}\' | xargs docker rm\""
+            #dockerCmd ="\"docker ps -a -f name=\'" + container.cname + "\' | tail -n +2 | awk \'{print \$1}\' | xargs docker rm\""
+            dockerCmd ="\"docker rm " + container.cname + "\""
         else:
             raise xenrt.XRTFailure("XSContainer:%s operation is not recognised" % operation)
 

@@ -1729,7 +1729,7 @@ class XenRTSList(XenRTCommand):
             self.printout(fmt % ("Site", "Status", chead))
             self.printout("============================================================================\n")
         
-        for s in sites.keys():
+        for s in sorted(sites.keys()):
             item = ""
             if props:
                 item = ",".join(sites[s]['flags'])

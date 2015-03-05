@@ -1,0 +1,23 @@
+<xenrt>
+
+  <!-- NFR SR v4 with no sub directory operations tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <FINALLY_UNINSTALL>yes</FINALLY_UNINSTALL>
+    <OPTION_BLOCK_ON_SKIP>yes</OPTION_BLOCK_ON_SKIP>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+    <NFSSR_WITH_NOSUBDIR>yes</NFSSR_WITH_NOSUBDIR>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence group="withNoSubDirNFS">
+      <testcase id="xenserver.tc.storage.TCNFS4NoSubDir" name="TC26526" tc="TC-26526" prio="3"/>
+      <testcase id="xenserver.tc.storage.TCCoexistenceOfNFS4NoSubDirs" name="TC26527" tc="TC-26527" prio="3"/>
+      <testcase id="xenserver.tc.storage.TCCoexitenceNFS4NoSubDirClassic" name="TC26528" tc="TC-26528" prio="3"/>
+  </testsequence>
+
+</xenrt>

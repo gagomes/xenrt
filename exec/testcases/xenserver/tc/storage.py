@@ -367,6 +367,13 @@ class TC20948(NFSSRSanityTest):
 
     def prepare(self,arglist):
         xenrt.TEC().config.setVariable("NFSSR_WITH_NOSUBDIR", "yes")
+        
+class TCNFS4NoSubDir(NFSSRSanityTest):
+    """NFS 4 SR (with no sub directory) Sanity Test"""
+    NFS_VERSION = 4
+    
+    def prepare(self,arglist):
+        xenrt.TEC().config.setVariable("NFSSR_WITH_NOSUBDIR", "yes")
 
 class TC20949(SRSanityTestTemplate):
     """Co-existence of multiple NFS SRs with no sub directory on the same NFS path"""
@@ -385,6 +392,39 @@ class TC20949(SRSanityTestTemplate):
         self.sruuids.append(nfsSR.uuid)
         
         return self.sruuids
+        
+class TCCoexistenceOfNFS4NoSubDirs(SRSanityTestTemplate):
+    """Co-existence of multiple NFS SRs (version 4) with no sub directory on the same NFS path"""
+     
+    def createSR(self,host,guest):
+        xenrt.ExternalNFSShare.DEFAULT_VERSION = "4"
+        server, path = xenrt.ExternalNFSShare().getMount().split(":")
+
+        # Create a NFS SR with no sub directory.
+        nfsSR = xenrt.lib.xenserver.host.NFSv4StorageRepository(host, "nfssr-withnosubdir-1")
+        nfsSR.create(server, path, nosubdir=True)
+        self.sruuids.append(nfsSR.uuid)
+        
+        pbd = host.parseListForUUID("pbd-list","sr-uuid",nfsSR.uuid,"host-uuid=%s" %(host.getMyHostUUID()))
+        nfsversion = host.genParamGet("pbd", pbd, "device-config", "nfsversion")
+        xenrt.TEC().logverbose("nfsversion %s" % nfsversion)
+
+        if nfsversion != "4":
+            raise xenrt.XRTError("Incorrect NFS Version" % nfsversion)
+
+        # Create another NFS SR with no sub directory on the same NFS path.
+        nfsSR = xenrt.lib.xenserver.host.NFSv4StorageRepository(host, "nfssr-withnosubdir-2")
+        nfsSR.create(server, path, nosubdir=True)
+        self.sruuids.append(nfsSR.uuid)
+        
+        pbd = host.parseListForUUID("pbd-list","sr-uuid",nfsSR.uuid,"host-uuid=%s" %(host.getMyHostUUID()))
+        nfsversion = host.genParamGet("pbd", pbd, "device-config", "nfsversion")
+        xenrt.TEC().logverbose("nfsversion %s" % nfsversion)
+
+        if nfsversion != "4":
+            raise xenrt.XRTError("Incorrect NFS Version" % nfsversion)
+        
+        return self.sruuids
 
 class TC20950(SRSanityTestTemplate):
     """Co-existance of NFS SR with no sub directory and classic NFS SR on the same NFS path"""
@@ -401,6 +441,39 @@ class TC20950(SRSanityTestTemplate):
         nfsSR = xenrt.lib.xenserver.host.NFSStorageRepository(host, "nfssr-classic-1")
         nfsSR.create(server, path)
         self.sruuids.append(nfsSR.uuid)        
+
+        return self.sruuids
+        
+class TCCoexitenceNFS4NoSubDirClassic(SRSanityTestTemplate):
+    """Co-existence of NFS SR v4 with no sub directory and classic NFS SR v4 on the same NFS path"""
+
+    def createSR(self,host,guest):
+        xenrt.ExternalNFSShare.DEFAULT_VERSION = "4"
+        server, path = xenrt.ExternalNFSShare().getMount().split(":")
+
+        # Create a NFS SR with no sub directory.
+        nfsSR = xenrt.lib.xenserver.host.NFSv4StorageRepository(host, "nfssr-withnosubdir-3")
+        nfsSR.create(server, path, nosubdir=True)
+        self.sruuids.append(nfsSR.uuid)
+        
+        pbd = host.parseListForUUID("pbd-list","sr-uuid",nfsSR.uuid,"host-uuid=%s" %(host.getMyHostUUID()))
+        nfsversion = host.genParamGet("pbd", pbd, "device-config", "nfsversion")
+        xenrt.TEC().logverbose("nfsversion %s" % nfsversion)
+
+        if nfsversion != "4":
+            raise xenrt.XRTError("Incorrect NFS Version" % nfsversion)
+
+        # Create a classic NFS SR on the same path.
+        nfsSR = xenrt.lib.xenserver.host.NFSv4StorageRepository(host, "nfssr-classic-1")
+        nfsSR.create(server, path)
+        self.sruuids.append(nfsSR.uuid)
+
+        pbd = host.parseListForUUID("pbd-list","sr-uuid",nfsSR.uuid,"host-uuid=%s" %(host.getMyHostUUID()))
+        nfsversion = host.genParamGet("pbd", pbd, "device-config", "nfsversion")
+        xenrt.TEC().logverbose("nfsversion %s" % nfsversion)
+
+        if nfsversion != "4":
+            raise xenrt.XRTError("Incorrect NFS Version" % nfsversion)
 
         return self.sruuids
 
@@ -1146,8 +1219,7 @@ class TC8123(_TC8122):
 
     def createExternalNFSShare(self):
         return xenrt.ExternalNFSShare()
-
-
+        
 class TC23335(TC8123):
 
     def getStorageRepositoryClass(self):
@@ -2520,7 +2592,7 @@ class TC8520(_TCVDICreateRoundup):
 
 class TC8523(_TCVDICreateRoundup):
     """VDI create of a odd size NFS VDI should round up to the next allocation unit"""
-
+    
     SRTYPE = "nfs"
 
 class TC20930(_TCVDICreateRoundup):

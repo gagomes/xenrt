@@ -301,18 +301,32 @@ def readMachineFromRackTables(machine,kvm=False,xrtMachine=None):
         except:
             pass
 
+    xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"ASSET_URL"], "https://racktables.uk.xensource.com/index.php?page=object&object_id=%d" % o.getID())
+
     if xrtMachine:
         updateDict = {}
-        for i in ("KVM_HOST", "KVM_USER", "KVM_PASSWORD", "IPMI_USERNAME", "IPMI_PASSWORD", "BMC_ADDRESS", "BMC_WEB", "BMC_KVM"):
+        for i in ("KVM_HOST", "KVM_USER", "KVM_PASSWORD", "IPMI_USERNAME", "IPMI_PASSWORD", "BMC_ADDRESS", "BMC_WEB", "BMC_KVM", "ASSET_URL"):
 
             if xrtMachine['params'].get(i, "") != xenrt.TEC().lookupHost(machine, i, ""):
                 updateDict[i] = xenrt.TEC().lookupHost(machine, i, "")
-        if not xrtMachine['description']:
-            model = o.getAttribute("HW Type")
-            if model and model != "noname/unknown":
-                updateDict['DESCRIPTION'] = model
+        model = o.getAttribute("HW type")
+        if model:
+            model = model.replace("[", "").replace("]","").split(" | ")[0]
+        descr = []
+        if model and model != "noname/unknown":
+            descr.append(model)
+        cpu = o.getAttribute("CPU Model")
+
+        if cpu:
+            descr.append(cpu)
+
+        descrstring = ", ".join(descr)
+
             
+        if (not xrtMachine['description'] or xrtMachine['description'] in descrstring) and xrtMachine['description'] != descrstring and descrstring:
+            updateDict['DESCRIPTION'] = descrstring
         if updateDict:
+            print updateDict
             xenrt.GEC().dbconnect.api.update_machine(machine, params=updateDict)
 
 

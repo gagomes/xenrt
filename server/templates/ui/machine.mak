@@ -70,13 +70,29 @@ $(function() {
 
     }
 
+    function statusText(data) {
+        if (data['status'] == "idle") {
+            return "idle"
+        }
+        else if (data['status'] == "running") {
+            return "running job <a href=\"/xenrt/ui/logs?jobs=" + data['jobid'] + "\" target=\"_blank\">" + data['jobid'] + "</a>"
+        }
+        else {
+            var out = data['status']
+            if (data['rawstatus'] == "running" || data['rawstatus'] == "scheduled" || data['rawstatus'] == "slaved") {
+                out += " (running job <a href=\"/xenrt/ui/logs?jobs=" + data['jobid'] + "\" target=\"_blank\">" + data['jobid'] + "</a>)"
+            }
+            return out
+        }
+    }
+
     function getMachine(machine) {
         $.ajaxSetup( { "async": false } );
         $.getJSON("/xenrt/api/v2/machine/" + machine)
             .done(function(data) {
                 var out = ""
                 out += "<h3>Machine info</h3>"
-                out += "<div>Status: " + data['status'] + "</div>"
+                out += "<div>Status: " + statusText(data) + "</div>"
                 if (data['description']) {
                     out += "<div>Description: " + data['description'] + "</div>"
                 }

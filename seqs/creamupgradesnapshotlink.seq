@@ -1,0 +1,26 @@
+<xenrt>
+
+  <default name="FROM_PRODUCT_VERSION" value="Creedence"/>
+  <default name="FROM_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.5/RTM-90233"/>
+  <default name="TO_PRODUCT_VERSION" value="Cream"/>
+  <default name="TO_PRODUCT_INPUTDIR" value="/usr/groups/xen/carbon/creedence-sp/92043"/>
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+  </variables>
+
+  <prepare>
+    <pool>
+      <host id="0" productVersion="${FROM_PRODUCT_VERSION}" version="${FROM_PRODUCT_INPUTDIR}"/>
+      <host id="1" productVersion="${FROM_PRODUCT_VERSION}" version="${FROM_PRODUCT_INPUTDIR}"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="SnapshotLinksUpgrade">
+      <testcase id="xenserver.tc.snapshot.SnapshotVDILinkOnUpgrade" tc="TC-26533"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

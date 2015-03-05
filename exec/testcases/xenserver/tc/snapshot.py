@@ -2847,3 +2847,212 @@ class TC21699(_VMSnapshotBase):
             raise xenrt.XRTFailure("Error relating to failed exporting of metadata found in /var/log/xensource.log")
         else:
             xenrt.TEC().logverbose("There were no problems found in the log file.")
+
+class SnapshotVDILink(xenrt.TestCase):
+    """ Snapshot links are properly reflected in "snapshot-of" params of snapshot VDIs before and after SXM """
+ 
+    def __init__(self, tcid=None):
+        xenrt.TestCase.__init__(self, tcid=tcid)
+        
+    def prepare(self, arglist):
+        
+        # Create a Guest
+        self.host0 = self.getHost("RESOURCE_HOST_0")
+        self.host1 = self.getHost("RESOURCE_HOST_1")
+        self.guest = self.host0.createGenericWindowsGuest()
+        
+    
+    def verifySnapshotLinks(self, guest, host):
+        
+        # Get the base VDI of the Guest
+        vm_vdi_uuid = host.minimalList("vbd-list", "vdi-uuid", "type=Disk vm-uuid=%s " % (guest.getUUID()))[0]
+
+        # Take a snapshot of VM
+        snapshot_uuid = guest.snapshot()
+        
+        # Get the attached VDI of snapshot
+        snapshot_vdi_uuid = host.minimalList("vbd-list", "vdi-uuid", "type=Disk vm-uuid=%s " % snapshot_uuid)[0]
+
+        # Get the snapshot-of link of snapshot VDI
+        snapshot_link_vdi = host.minimalList("vdi-param-get uuid=%s param-name=snapshot-of" % snapshot_vdi_uuid)[0]
+
+        log ("Snapshot-of link we got for snapshot vdi %s is %s" % (snapshot_vdi_uuid, snapshot_link_vdi))
+        if vm_vdi_uuid != snapshot_link_vdi:
+            raise xenrt.XRTFailure("snapshot link is broken for snapshot vdi %s" % snapshot_vdi_uuid)
+
+        # Revert to snapshot
+        guest.revert(snapshot_uuid)
+
+        # Get the new base VDI of the Guest
+        vm_reverted_vdi_uuid = host.minimalList("vbd-list", "vdi-uuid", "type=Disk vm-uuid=%s " % (guest.getUUID()))[0]
+
+        # Get the new snapshot-of link of snapshot VDI
+        snapshot_link_vdi_after_revert = host.minimalList("vdi-param-get uuid=%s param-name=snapshot-of" % snapshot_vdi_uuid)[0]
+
+        log ("Snapshot-of link we got for snapshot vdi %s is %s" % (snapshot_vdi_uuid, snapshot_link_vdi_after_revert))
+        if vm_reverted_vdi_uuid != snapshot_link_vdi_after_revert:
+            raise xenrt.XRTFailure("snapshot link is broken for snapshot vdi %s" % snapshot_vdi_uuid)
+        
+        return snapshot_uuid
+        
+    def run(self, arglist):
+        
+        # Verify broken snapshot link before SXM
+        snapshot_uuid = self.verifySnapshotLinks(self.guest, self.host0)
+
+        # Start the guest
+        self.guest.start()
+
+        # Migrate the VM
+        self.guest.migrateVM(remote_host=self.host1)
+
+        # Verify snapshot link after SXM
+        # Get the new base VDI of the Guest
+        vm_reverted_vdi_uuid = self.host1.minimalList("vbd-list", "vdi-uuid", "type=Disk vm-uuid=%s " % (self.guest.getUUID()))[0]
+        
+        # Get the attached VDI of snapshot
+        snapshot_vdi_uuid = self.host1.minimalList("vbd-list", "vdi-uuid", "type=Disk vm-uuid=%s " % snapshot_uuid)[0]
+
+        # Get the snapshot-of link of snapshot VDI
+        snapshot_link_vdi = self.host1.minimalList("vdi-param-get uuid=%s param-name=snapshot-of" % snapshot_vdi_uuid)[0]
+
+        log ("Snapshot-of link we got for snapshot vdi %s is %s" % (snapshot_vdi_uuid, snapshot_link_vdi))
+        if vm_reverted_vdi_uuid != snapshot_link_vdi:
+            raise xenrt.XRTFailure("snapshot link is broken for snapshot vdi %s after SXM" % snapshot_vdi_uuid)
+    
+
+class RetainingVDIOnSnapshotRevert(xenrt.TestCase):
+    """ Additional VDI attached to snapshot VM should not get deleted on snapshot revert """
+
+    VDISIZE = 5 * xenrt.GIGA
+
+    def __init__(self, tcid=None):
+        xenrt.TestCase.__init__(self, tcid=tcid)
+    
+    def prepare(self, arglist):
+    
+        # Create a Guest
+        self.host = self.getHost("RESOURCE_HOST_0")
+        self.guest = self.host.createGenericWindowsGuest()
+    
+
+    def run(self, arglist):
+
+        sruuid = self.host.getLocalSR()
+
+        # Create a new disk and attach it to VM before snapshot
+        extra_vdi_uuid1 = self.host.createVDI(self.VDISIZE, sruuid)
+        vbd_uuid = self.guest.createDisk(sruuid=sruuid, vdiuuid=extra_vdi_uuid1, returnVBD=True)
+        log ("Extra VDI uuid added before snapshot is %s" % extra_vdi_uuid1)
+
+        # Detach this VDI
+        self.host.getCLIInstance().execute("vbd-unplug", "uuid=%s" % vbd_uuid)
+        self.host.getCLIInstance().execute("vbd-destroy", "uuid=%s" % vbd_uuid)
+
+        # Create a snapshot of the VM
+        snapuuid = self.guest.snapshot()
+
+        # Create a new disk and attach it to VM after snasphot
+        extra_vdi_uuid2 = self.host.createVDI(self.VDISIZE, sruuid)
+        self.guest.createDisk(sruuid=sruuid, vdiuuid=extra_vdi_uuid1)
+        log ("Extra VDI uuid added after snapshot is %s" % extra_vdi_uuid2)
+
+        # Revert the snapshot
+        self.guest.revert(snapuuid)
+
+        # Check the extra vdi attached in not deleted
+        vdis = self.host.minimalList("vdi-list", "uuid", "sr-uuid=%s " % sruuid)
+
+        log ("VDIs on Local SR after snapshot revert are %s" % vdis)
+        if not (extra_vdi_uuid2 in vdis):
+            raise xenrt.XRTFailure("VDI %s attached to VM after snapshot got deleted after snapshot revert" % extra_vdi_uuid2)
+
+        if not (extra_vdi_uuid1 in vdis):
+            raise xenrt.XRTFailure("VDI %s attached to VM before snapshot got deleted after snapshot revert" % extra_vdi_uuid1)
+
+
+class SnapshotVDILinkOnUpgrade(xenrt.TestCase):
+    """ On Upgrade Snapshot Links should not be broken """
+
+    def __init__(self, tcid=None):
+        xenrt.TestCase.__init__(self, tcid=tcid)
+    
+    def prepare(self, arglist):
+    
+        # Create a Guest
+        self.pool = self.getDefaultPool()
+        self.master = self.pool.master
+        self.slave = self.pool.slaves.values()[0]
+        self.sruuid = self.slave.getLocalSR()
+        self.guest = self.slave.createGenericWindowsGuest(sr=self.sruuid)
+    
+
+    def run(self, arglist):
+        
+        # Get the base VDI of the Guest
+        vm_vdi_uuid = self.slave.minimalList("vbd-list", "vdi-uuid", "type=Disk vm-uuid=%s " % (self.guest.getUUID()))[0]
+        
+        # Take a snapshot of VM
+        snapshot_uuid = self.guest.snapshot()
+        
+        # Get the attached VDI of snapshot
+        snapshot_vdi_uuid = self.slave.minimalList("vbd-list", "vdi-uuid", "type=Disk vm-uuid=%s " % snapshot_uuid)[0]
+        
+        # Get the snapshot-of link of snapshot VDI
+        snapshot_link_vdi = self.slave.minimalList("vdi-param-get uuid=%s param-name=snapshot-of" % snapshot_vdi_uuid)[0]
+        log ("Snapshot-of link we got for snapshot vdi %s is %s" % (snapshot_vdi_uuid, snapshot_link_vdi))
+        if vm_vdi_uuid != snapshot_link_vdi:
+            raise xenrt.XRTFailure("snapshot link is broken for snapshot vdi %s" % snapshot_vdi_uuid)
+        
+        pool_upgrade = xenrt.lib.xenserver.host.RollingPoolUpdate(poolRef = self.pool,
+                                                                  newVersion="Cream",
+                                                                  upgrade = True,
+                                                                  applyAllHFXsBeforeApplyAction=False,
+                                                                  vmActionIfHostRebootRequired="SHUTDOWN",
+                                                                  skipApplyRequiredPatches=True)
+        newPool = self.pool.upgrade(poolUpgrade=pool_upgrade)
+        newmaster = newPool.master
+        newslave = newPool.slaves.values()[0]
+
+        # Get the base VDI of the Guest after Upgrade
+        upgraded_vm_vdi_uuid = newslave.minimalList("vbd-list", "vdi-uuid", "type=Disk vm-uuid=%s " % (self.guest.getUUID()))[0]
+
+        # Get the attached VDI of snapshot
+        upgraded_snapshot_vdi_uuid = newslave.minimalList("vbd-list", "vdi-uuid", "type=Disk vm-uuid=%s " % snapshot_uuid)[0]
+
+        # Get the snapshot-of link of snapshot VDI
+        upgraded_snapshot_link_vdi = newslave.minimalList("vdi-param-get uuid=%s param-name=snapshot-of" % upgraded_snapshot_vdi_uuid)[0]
+        log ("Snapshot-of link we got for snapshot vdi %s is %s" % (upgraded_snapshot_vdi_uuid, upgraded_snapshot_link_vdi))
+        if upgraded_vm_vdi_uuid != upgraded_snapshot_link_vdi:
+            raise xenrt.XRTFailure("snapshot link is broken for snapshot vdi %s" % upgraded_snapshot_vdi_uuid)
+
+        # Revert to snapshot
+        self.guest.revert(snapshot_uuid)
+        
+        # Start the guest
+        self.guest.start()
+        self.guest.installDrivers()
+        
+        # Get the new base VDI of the Guest
+        vm_reverted_vdi_uuid = newslave.minimalList("vbd-list", "vdi-uuid", "type=Disk vm-uuid=%s " % (self.guest.getUUID()))[0]
+        
+        # Get the new snapshot-of link of snapshot VDI
+        snapshot_link_vdi_after_revert = newslave.minimalList("vdi-param-get uuid=%s param-name=snapshot-of" % upgraded_snapshot_vdi_uuid)[0]
+        log ("Snapshot-of link we got for snapshot vdi %s is %s" % (upgraded_snapshot_vdi_uuid, snapshot_link_vdi_after_revert))
+        if vm_reverted_vdi_uuid != snapshot_link_vdi_after_revert:
+            raise xenrt.XRTFailure("snapshot link is broken for snapshot vdi %s" % upgraded_snapshot_vdi_uuid)
+
+        # Migrate the VM
+        self.guest.migrateVM(remote_host=newmaster)
+        
+        # Get the new base VDI of the Guest
+        vm_reverted_vdi_uuid = newmaster.minimalList("vbd-list", "vdi-uuid", "type=Disk vm-uuid=%s " % (self.guest.getUUID()))[0]
+        
+        # Get the attached VDI of snapshot
+        snapshot_vdi_uuid = newmaster.minimalList("vbd-list", "vdi-uuid", "type=Disk vm-uuid=%s " % snapshot_uuid)[0]
+        
+        # Get the snapshot-of link of snapshot VDI
+        snapshot_link_vdi = newmaster.minimalList("vdi-param-get uuid=%s param-name=snapshot-of" % snapshot_vdi_uuid)[0]
+        log ("Snapshot-of link we got for snapshot vdi %s is %s" % (snapshot_vdi_uuid, snapshot_link_vdi))
+        if vm_reverted_vdi_uuid != snapshot_link_vdi:
+            raise xenrt.XRTFailure("snapshot link is broken for snapshot vdi %s after SXM" % snapshot_vdi_uuid)

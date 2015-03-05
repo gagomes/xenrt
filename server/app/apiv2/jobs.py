@@ -671,12 +671,6 @@ class NewJob(_JobBase):
                 self.updateJobField("CUSTOM_SEQUENCE", "yes", params)
         
         if jobGroup:
-            try:
-                cur.execute("DELETE FROM tblJobGroups WHERE "
-                            "gid = %s AND description = %s",
-                            [jobGroup['id'], jobGroup['tag']])
-            except:
-                pass
             cur.execute("INSERT INTO tblJobGroups (gid, jobid, description) VALUES " \
                         "(%s, %s, %s);", [jobGroup['id'], self.jobid, jobGroup['tag']])
             params['JOBGROUP'] = jobGroup['id']

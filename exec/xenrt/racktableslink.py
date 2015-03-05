@@ -309,7 +309,7 @@ def readMachineFromRackTables(machine,kvm=False,xrtMachine=None):
                 updateDict[i] = xenrt.TEC().lookupHost(machine, i, "")
         if not xrtMachine['description']:
             model = o.getAttribute("HW Type")
-            if model:
+            if model and model != "noname/unknown":
                 updateDict['DESCRIPTION'] = model
             
         if updateDict:

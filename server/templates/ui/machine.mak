@@ -24,6 +24,15 @@ $(function() {
         }
     }
 
+    function leaseReasonText(reason) {
+        if (reason && reason != '') {
+            return " (" + reason + ")";
+        }
+        else {
+            return ""
+        }
+    }
+
     function getBMCKVM(data) {
         var bmckvm = false;
         var out = "<div>"
@@ -75,6 +84,9 @@ $(function() {
                     out += "<div>Location: " + data['location'] + "</div>"
                 }
                 out += "<div>Site: " + data['site'] + "</div>"
+                if ('ASSET_URL' in data['params']) {
+                    out += "<div><a href=\"" + data['params']['ASSET_URL'] + "\" target=\"blank\">View in asset management system</a></div>";
+                }
 
                 $("#machine").empty()
                 $(out).appendTo("#machine");
@@ -82,7 +94,7 @@ $(function() {
                 out += "<h3>Machine lease</h3>"
                 if (data['leasecurrentuser']) {
                     out += "<div>"
-                    out += "Leased to you " +  leaseUntilText(data['leaseto']);
+                    out += "Leased to you " +  leaseUntilText(data['leaseto']) + leaseReasonText(data['leasereason']);
                     out += " <button id=\"returnbutton\" class=\"ui-state-default ui-corner-all\">Return machine</button>"
                     if (leaseUntilText(data['leaseto']) != "forever") {
                         out += "<div>Extend lease until: "
@@ -100,7 +112,9 @@ $(function() {
                     out += "<option value=\"on\">Power on</option>"
                     out += "<option value=\"off\">Power off</option>"
                     out += "<option value=\"reboot\">Power cycle</option>"
-                    out += "<option value=\"nmi\">Send NMI</option>"
+                    if ('BMC_ADDRESS' in data['params']) {
+                        out += "<option value=\"nmi\">Send NMI</option>"
+                    }
                     out += "</select>"
                     out += " <button id=\"powerbutton\" class=\"ui-state-default ui-corner-all\">Go</button></div>"
                     out += "<div id=\"output\"></div>"
@@ -126,7 +140,7 @@ $(function() {
                                 }
                             });
 
-                        out += "<div>Machine is borrowed by " + user + " " + leaseUntilText(data['leaseto']) + "</div>"
+                        out += "<div>Machine is leased to user " + user + " " + leaseUntilText(data['leaseto']) + leaseReasonText(data['leasereason']) + "</div>"
                     }
                     else{
                         if (data['status'] == "running") {

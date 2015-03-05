@@ -66,23 +66,39 @@ class TCContainerLifeCycle(TCDockerBase):
 class TCContainerVerification(TCDockerBase):
     """Creation and deletion of containers from Docker environment and its verification in XS environment"""
 
+    NO_OF_CONTAINERS = 5
+
     def run(self, arglist=None):
 
-        linDocker = []
-
         for guest in self.guests:
-            # Creation some containers in Docker environment.
-            d = guest.getDocker(OperationMethod.LINUX)
+            # Creation some containers in every guest by SSHing into it. (We call it as LINUX way.)
+            dl = guest.getDocker(OperationMethod.LINUX)
 
-            d.createContainer(ContainerType.YES_BUSYBOX)
-            d.createContainer(ContainerType.YES_BUSYBOX)
-            d.createContainer(ContainerType.YES_BUSYBOX)
+            for x in range(self.NO_OF_CONTAINERS): # creat some simple busybox containers.
+                dl.createContainer(ContainerType.YES_BUSYBOX)
 
-            linDocker.append(d)
+        # Check these containers appeared in XenServer using Xapi plugins. (We call it as XAPI way.)
+        for guest in self.guests:
+            dx = guest.getDocker() # by default created as XAPI way.
+            dl = guest.getDocker(OperationMethod.LINUX)
 
-        # Check these containers appeared in XS.
-        for docker in self.docker:
-            xenrt.TEC().logverbose(" LOG %s" % docker.getDockerPS())
+            # Firstly, check whether we have the right count.
+            if not dx.numberOfContainers() == dl.numberOfContainers():
+                raise xenrt.XRTFailure("The number of containers created on %s are not matching when checked through XAPI" % guest)
+
+            # Also, check the containers name matches.
+            if not set(dx.listContainers()) == set(dl.listContainers()):
+                raise xenrt.XRTFailure("Some containers created on %s are missing when checked through XAPI" % guest)
+
+        # Let us delete all containers using LINUX way.
+        for guest in self.guests:
+            dl = guest.getDocker(OperationMethod.LINUX)
+            dl.loadExistingContainers()
+            dl.rmAllContainers()
+
+            dx = guest.getDocker()
+            if not dx.numberOfContainers() == 0:
+                raise xenrt.XRTFailure("Some containers still exist in %s after removing it through LINUX way" % guest)
 
 class TCGuestsLifeCycle(TCContainerLifeCycle):
     """Lifecycle tests of guests with docker containers"""

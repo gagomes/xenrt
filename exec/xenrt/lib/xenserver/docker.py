@@ -309,10 +309,13 @@ class XapiPluginDockerController(DockerController):
         dockerPS = self.getDockerPS() # returns a xml with a key 'entry'
 
         if not dockerPS:
-            raise xenrt.XRTError("listContainers: getDockerPS() returned empty dictionary")
+            xenrt.TEC().logverbose("listContainers: getDockerPS() returned empty dictionary")
+            return containers
 
         if not dockerPS.has_key('entry'):
-            raise xenrt.XRTError("listContainers: Failed to find entry key in docker PS xml")
+            xenrt.TEC().logverbose("listContainers: Failed to find =entry= key in docker PS xml")
+            return containers
+
         dockerContainerList = dockerPS['entry'] # list of ordered dicts.
 
         if len(dockerContainerList) > 0:
@@ -320,9 +323,9 @@ class XapiPluginDockerController(DockerController):
                 if containerDict.has_key('names'): # AttributeError: 'unicode' object has no attribute 'has_key'
                     containers.append(containerDict['names'].strip())
                 else:
-                    raise xenrt.XRTError("listContainers: The container name could not accessed")
+                    xenrt.TEC().logverbose("listContainers: The container =name= could not accessed")
         else:
-            raise xenrt.XRTError("listContainers: There are no containers to list")
+            xenrt.TEC().logverbose("listContainers: There are no containers to list")
 
         return containers
 

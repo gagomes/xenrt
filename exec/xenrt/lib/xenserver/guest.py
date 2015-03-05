@@ -5999,7 +5999,7 @@ class DundeeGuest(CreedenceGuest):
         
         return self.xmlrpcExec("sc %s" % (command), returnerror=False, returnrc=True) == 0
         
-    def checkDriverStatus(self):
+    def checkPVDriversStatus(self):
         """ Verify the Drivers are running by using 'SC' Command line program"""
         
         drivers = ['XENBUS','XENIFACE','XENVIF','XENVBD','XENNET']

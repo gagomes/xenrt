@@ -360,8 +360,8 @@ class SetResult(XenRTAPIv2Page):
         db = self.getDB()
         timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))
         id = string.atoi(self.request.matchdict["id"])
-        phase = self.request.matchdict["phase"]
-        test = self.request.matchdict["test"]
+        phase = self.matchdict("phase")
+        test = self.matchdict("test")
         result = params["result"]
 
         cur = db.cursor()

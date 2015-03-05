@@ -5994,6 +5994,27 @@ class DundeeGuest(CreedenceGuest):
         #Eject the tools CD from the VM.
         self.changeCD(None)
 
+    def sc(self, command ):
+        """SC is a command line program used for communicating with the Service control manager and services"""
+        
+        return self.xmlrpcExec("sc %s" % (command), returnerror=False, returnrc=True) == 0
+        
+    def checkPVDriversStatus(self):
+        """ Verify the Drivers are running by using 'SC' Command line program"""
+        
+        drivers = ['XENBUS','XENIFACE','XENVIF','XENVBD','XENNET']
+        notRunning = []
+        
+        for driver in drivers:
+            status = self.sc('query %s | find "RUNNING"' %(driver))
+            if not status:
+                notRunning.append(driver)
+                
+        if notRunning:
+            raise xenrt.XRTFailure(" %s services not running on %s" %(','.join(notRunning), self.getName()))
+            
+        xenrt.TEC().logverbose("PV Devices are installed and Running on %s " %(self.getName()))
+        
 class StorageMotionObserver(xenrt.EventObserver):
 
     def startObservingSXMMigrate(self,vm,destHost,destSession):

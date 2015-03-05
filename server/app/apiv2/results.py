@@ -41,8 +41,8 @@ class UploadSubResults(XenRTAPIv2Page):
     def render(self):
         """Parse XML to update tblSubResults"""
         jobid = self.request.matchdict['id']
-        phase = self.request.matchdict['phase']
-        test = self.request.matchdict['test']
+        phase = self.matchdict('phase')
+        test = self.matchdict('test')
 
         db = self.getDB()
         cur = db.cursor()
@@ -238,8 +238,8 @@ class NewLogData(XenRTAPIv2Page):
         db = self.getDB()
         timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))
         id = string.atoi(self.request.matchdict["id"])
-        phase = self.request.matchdict['phase']
-        test = self.request.matchdict['test']
+        phase = self.matchdict('phase')
+        test = self.matchdict('test')
         key = params["key"]
         value = params["value"]
 

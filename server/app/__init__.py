@@ -21,6 +21,9 @@ class XenRTPage(Page):
         self._acl = None
         self._user = None
 
+    def matchdict(self, param):
+        return self.request.matchdict[param].replace("%2F", "/")
+
     def getUserFromAPIKey(self, apiKey):
         return app.user.User.fromApiKey(self, apiKey)
 

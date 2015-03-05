@@ -618,29 +618,21 @@ class VGPUOwnedVMsTest(xenrt.TestCase,VGPUTest):
 
     def postRun(self):
 
-        #return
+        hosts = self.getAllHosts()
 
-        for guest, osType in self._guestsAndTypes:
-            step("Shutting down guest %s" % str(guest))
-            try: guest.shutdown()
-            except: pass
+        for host in hosts:
+            guests = copy.copy(host.guests)
+            for g in guests:
+                if "clone" in g.name:
+                    try:
+                        step("Shutting down guest %s" % str(g))
+                        guest.shutdown()
+                        step("Uninstalling guest %s" % str(g))
+                        host = copy.copy(g.host)
+                        host.removeGuest(g)
+                        guests[g].uninstall()
+                    except: pass
 
-            step("Uninstalling guest %s" % str(guest))
-            try:
-                host = copy.copy(guest.host)
-                host.removeGuest(guest)
-                guest.uninstall()
-            except:
-                pass
-
-        #if self.nfs:
-            #try:
-                #self.nfs.release()
-            #except:
-                #pass
-
-        step("Destroy vGPUs")
-        self.host.destroyAllvGPUs()
         step("Clearing locals")
         self._guestsAndTypes = None
         self._requiredEnvironments = None
@@ -1638,13 +1630,8 @@ class VGPUAllocationModeBase(VGPUOwnedVMsTest):
             self.runTestPhase(variant)
 
     def postRun(self):
-        log("Destroying all guests.")
-        for guest, ostype in self._guestsAndTypes:
-            try:
-                guest.setState("DOWN")
-                guest.uninstall()
-            except:
-                pass
+
+        super(VGPUAllocationModeBase, self).postRun()
 
         xenrt.sleep(30)
         if self.pools and self.POOL:
@@ -1738,20 +1725,6 @@ class FunctionalBase(VGPUAllocationModeBase):
 
         log("Not Implemented")
         raise xenrt.XRTError("Function not yet implemented")
-
-    def postRun(self):
-
-        hosts = self.getAllHosts()
-
-        for host in hosts:
-            guests = copy.copy(host.guests)
-            for g in guests:
-                try:
-                    host.removeGuest(g)
-                    guests[g].uninstall()
-                except: pass
-
-        super(FunctionalBase, self).postRun()
 
 class DifferentGPU(object):
     __metaclass__ = ABCMeta
@@ -2291,6 +2264,11 @@ class TCReuseK2PGPU(FunctionalBase):
             for vm in self.VMs[config]:
                 log("Shuting down VM of vGPU config %s" % self.getConfigurationName(config))
                 vm.setState("DOWN")
+
+    def postRun(self,arglist):
+     
+        self.resetGPUs()
+        super(TCReuseK2PGPU, self).postRun() 
 
 class TCRevertvGPUSnapshot(FunctionalBase):
 

@@ -316,11 +316,19 @@ class XapiPluginDockerController(DockerController):
             xenrt.TEC().logverbose("listContainers: Failed to find =entry= key in docker PS xml")
             return containers
 
-        dockerContainerList = dockerPS['entry'] # list of ordered dicts.
+        dockerContainerInfo = dockerPS['entry']
+
+        if isinstance(dockerContainerInfo,dict):
+            dockerContainerList = [dockerContainerInfo] # one container -> retruns a dict.
+        elif isinstance(dockerContainerInfo,list):
+            dockerContainerList = dockerContainerInfo # more than one container returns a list of ordered dicts.
+        else:
+            xenrt.TEC().logverbose("listContainers: dockerContainerInfo instance is not recognised")
+            return containers
 
         if len(dockerContainerList) > 0:
             for containerDict in dockerContainerList:
-                if containerDict.has_key('names'): # AttributeError: 'unicode' object has no attribute 'has_key'
+                if containerDict.has_key('names'):
                     containers.append(containerDict['names'].strip())
                 else:
                     xenrt.TEC().logverbose("listContainers: The container =name= could not accessed")

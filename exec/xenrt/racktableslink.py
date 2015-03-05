@@ -307,7 +307,11 @@ def readMachineFromRackTables(machine,kvm=False,xrtMachine=None):
 
             if xrtMachine['params'].get(i, "") != xenrt.TEC().lookupHost(machine, i, ""):
                 updateDict[i] = xenrt.TEC().lookupHost(machine, i, "")
-    
+        if not xrtMachine['description']:
+            model = o.getAttribute("HW Type")
+            if model:
+                updateDict['DESCRIPTION'] = model
+            
         if updateDict:
             xenrt.GEC().dbconnect.api.update_machine(machine, params=updateDict)
 

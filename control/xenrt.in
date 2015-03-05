@@ -544,6 +544,8 @@ class XenRTMachine(XenRTCommand):
             self.printout("COMMENT='%s'\n" % results['leaseuser'])
         if results['resources']:
             self.printout("RESOURCES='%s'\n" % "/".join(["=".join(x) for x in results['resources'].items()]))
+        if results['description']:
+            self.printout("DESCRIPTION='%s'\n" % results['description'])
         for key in results['params'].keys():
             self.printout("%s='%s'\n" % (key, results['params'][key]))
 

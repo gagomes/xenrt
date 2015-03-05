@@ -661,9 +661,8 @@ class Docker(object):
             xenrt.sleep(5)
 
     def rmAllContainers(self):
-        allContainers = self.containers  # we do a list item remove above.
-        for container in allContainers:
-            self.rmContainer(container)
+        while len(self.containers):
+            self.rmContainer(self.containers[0])
 
     def lifeCycleContainer(self, container):
         """Life Cycle method on a specified container"""

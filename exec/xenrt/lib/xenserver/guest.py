@@ -5876,6 +5876,17 @@ class DundeeGuest(CreedenceGuest):
         else:
             raise xenrt.XRTFailure("PV devices still detected after uninstalling driver Packages")
         
+        try:
+            self.checkPVDriversStatus()
+        except Exception, e:
+            if "services not running on" in str(e):
+                xenrt.TEC().logverbose("PV Packages are uninstalled")
+                pass
+            else:
+                raise xenrt.XRTFailure("Exception occured while checking whether PV Devices are uninstalled %s" % (str(e)))
+        else:
+            raise xenrt.XRTFailure("PV devices still detected after uninstalling driver Packages")
+            
         self.enlightenedDrivers = False
         
 

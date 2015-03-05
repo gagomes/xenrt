@@ -245,7 +245,7 @@ class XenRT(object):
             return str(data)
 
     def __serializeForPath(self, data):
-        return str(data).replace("/", "%252F")
+        return str(data).replace("/", "%%252F")
 
     def __raiseForStatus(self, response):
         try:

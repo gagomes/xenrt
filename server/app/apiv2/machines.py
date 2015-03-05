@@ -213,16 +213,12 @@ class _MachineBase(XenRTAPIv2Page):
         else:
             cur = db.cursor()
             try:
-                if value == None or value == "":
-                    # Use empty string as a way to delete a property
-                    cur.execute("DELETE FROM tblmachinedata WHERE machine=%s "
-                                "AND key=%s;", [machine, key])
-                elif not details.has_key(key):
+                # Use empty string as a way to delete a property
+                cur.execute("DELETE FROM tblmachinedata WHERE machine=%s "
+                            "AND key=%s;", [machine, key])
+                if value:
                     cur.execute("INSERT INTO tblmachinedata (machine,key,value) "
-                                "VALUES (%s,%s,%s);", [machine, key, str(value)])
-                else:
-                    cur.execute("UPDATE tblmachinedata SET value=%s WHERE "
-                                "machine=%s AND key=%s;", [str(value),machine,key])
+                            "VALUES (%s,%s,%s);", [machine, key, str(value)])
                 if commit:
                     db.commit()
             finally:

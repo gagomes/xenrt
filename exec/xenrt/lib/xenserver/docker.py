@@ -391,14 +391,14 @@ class LinuxDockerController(DockerController):
         dockerCmd = "docker " + operation + " " + container.cname
         cmdOut = self.guest.execguest(dockerCmd).strip() # busybox31d3c2d2\n
 
-        if operation not in [ContainerLinuxOperation.INSPECT]:
+        if operation not in [ContainerLinuxOperation.INSPECT, ContainerLinuxOperation.REMOVE]:
             if cmdOut == container.cname:
                 return True
             else:
                 raise xenrt.XRTFailure("XSContainer:%s operation on %s:%s is failed" %
                                                 (operation, self.guest, container.cname))
         else:
-            return cmdOut # inspect returns a json.
+            return cmdOut # inspect returns a json. remove returns container name.
 
     def createContainer(self, container):
 
@@ -595,10 +595,12 @@ class Docker(object):
         return container
 
     def rmContainer(self, container):
-        containerID = self.DockerController.rmContainer(container)
-        # receive the container ID: 5fbb53340080 from docker. Populate this ISD in container.
-        # check and delete.
-        self.containers.remove(container)
+        containerName = self.DockerController.rmContainer(container)
+        if containerName == container.cname:
+            self.containers.remove(container)
+        else:
+            raise xenrt.XRTFailure("rmContainer: xscContainer remove operation failed on %s" %
+                                                                                    container.cname)
 
     # Container lifecycle operations.
 

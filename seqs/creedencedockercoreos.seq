@@ -2,7 +2,7 @@
 
   <!-- Docker test sequence using CoreOS guest. -->
 
-  <default name="DISTRO" value="coreos-beta" />
+  <default name="DISTRO" value="coreos-alpha" />
 
   <variables>
     <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>

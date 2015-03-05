@@ -173,7 +173,10 @@ class _MachineBase(XenRTAPIv2Page):
                     continue
 
             if search:
-                if not searchre.search(m):
+                if not searchre.search(m) and \
+                        not app.utils.check_resources("/".join(["%s=%s" % (x,y) for (x,y) in ret[m]['resources'].items()]), search) and \
+                        not app.utils.check_attributes(",".join(ret[m]['flags']), search) and \
+                        not (ret[m]['description'] and searchre.search(ret[m]['description'])):
                     del ret[m]
                     continue
 
@@ -190,6 +193,9 @@ class _MachineBase(XenRTAPIv2Page):
         db = self.getDB()
 
         machines = self.getMachines(limit=1, machines=[machine], exceptionIfEmpty=True)
+
+        if key.lower() == "description":
+            key = "descr"
 
         details = machines[machine]['params']
         if key.lower() in ("machine", "comment", "leaseto", "leasereason", "leasefrom"):

@@ -9,7 +9,7 @@ $(function() {
 
     var curRequest = null;
 
-    function search(searchtext, user) {
+    function search(searchtext, user, idle) {
         $('#searchbutton').prop('disabled', true);
         $('#mybutton').prop('disabled', true);
         $( "#overlay" ).show();
@@ -23,7 +23,10 @@ $(function() {
             params = {"user": "${'${user}'}", "limit" : "0"}
         }
         else {
-            params = {"search": searchtext, "limit": "25"}
+            params = {"search": searchtext, "limit": "100"}
+            if (idle) {
+                params['status'] = "idle"
+            }
         }
         $.ajaxSetup( { "async": false } );
         var machinesearch = "/xenrt/api/v2/machines"
@@ -78,11 +81,11 @@ $(function() {
 
     $( "#searchbutton" ).click(function() {
         var machinesearch = $( "#searchbox" ).val()
-        search(machinesearch, false);
+        search(machinesearch, false, $("#idlebox").is(":checked"));
     });
 
     $( "#mybutton").click(function() {
-        search(null, true); 
+        search(null, true, false); 
     });
 
     $("#searchbox").keyup(function(event){
@@ -96,7 +99,8 @@ $(function() {
             //search(machinesearch);
         }
     });
-
+        
+    search(null, true, false);
 });
     </script>
 
@@ -106,10 +110,10 @@ $(function() {
 ${commonbody | n}
 <div id="mainbody">
 <h2>Find machine</h2>
-<p>
-<input id="searchbox" type="text" class="ui-state-default ui-corner-all">
-<button id="searchbutton" class="ui-state-default ui-corner-all">Search</button>
-<button id="mybutton" class="ui-state-default ui-corner-all">Get my machines</button></p>
+<p><button id="mybutton" class="ui-state-default ui-corner-all">Get my machines</button></p>
+<p><input id="searchbox" type="text" class="ui-state-default ui-corner-all">
+<input id="idlebox" type="checkbox" class="ui-state-default ui-corner-all"> Only find idle machines
+<button id="searchbutton" class="ui-state-default ui-corner-all">Search</button></p>
 <div id="results"></div>
 </p>
 </div>

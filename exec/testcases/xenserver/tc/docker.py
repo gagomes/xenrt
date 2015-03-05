@@ -160,6 +160,6 @@ class TCScaleContainers(TCDockerBase):
                 if count > 0: # one or more containers created.
                     xenrt.TEC().logverbose("The number of docker containers created = %s" % count)
                     # Lifecycle tests on all containers.
-                    docker.lifeCycleAllContainers()
+                    #docker.lifeCycleAllContainers()
                 else:
                     raise xenrt.XRTError(e.reason)

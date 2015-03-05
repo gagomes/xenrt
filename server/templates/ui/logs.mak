@@ -71,7 +71,7 @@ $(function() {
         {
             out += "<span style=\"background-color: " + resultToColor(data['result']) + "\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> ";
         }
-        out += "Job " + data['id'] + " (" + data['status'] + ")</h3>";
+        out += "Job " + data['id'] + " (" + data['status'] + ") - " + data['description'] + "</h3>";
         out += "<p><a href=\"#\" id=\"togglejobdetail" + data['id'] + "\">Toggle details</a>";
         if (data['params']['UPLOADED'] == "yes") {
             out += " | <a href=\"http://" + data['params']['LOG_SERVER'] + "/xenrt/logs/job/" + data['id'] + "/browse\" target=\"_blank\">Show Logs</a>";

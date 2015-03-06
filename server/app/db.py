@@ -67,6 +67,7 @@ def getWriteLocation(db):
         locStr = cur.fetchone()[0]
         loc = app.utils.XLogLocation(locStr)
     except:
+        db.rollback()
         loc = None
     cur.close()
     return loc

@@ -284,7 +284,6 @@ class XenRTSchedule(XenRTAPIPage):
                             (string.join(exp, ", ")))
                 timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))
                 for e in exp1:
-                    print e
                     cur.execute("INSERT INTO tblEvents(ts, etype, subject, edata) VALUES (%s, %s, %s, %s);",
                                     [timenow, "LeaseEnd", e, None])
             db.commit()

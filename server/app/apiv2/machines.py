@@ -238,6 +238,12 @@ class _MachineBase(XenRTAPIv2Page):
         cur.execute("UPDATE tblMachines SET leaseTo = NULL, comment = NULL, leasefrom = NULL, leasereason = NULL "
                     "WHERE machine = %s",
                     [machine])
+
+        timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))
+        
+        cur.execute("INSERT INTO tblEvents(ts, etype, subject, edata) VALUES (%s, %s, %s, %s);",
+                        [timenow, "LeaseEnd", machine, None])
+
         if commit:
             db.commit()
         cur.close()        
@@ -293,6 +299,12 @@ class _MachineBase(XenRTAPIv2Page):
         cur.execute("UPDATE tblMachines SET leaseTo = %s, leasefrom = %s, comment = %s, leasereason = %s "
                     "WHERE machine = %s",
                     [leaseTo, leaseFrom, user, reason, machine])
+        
+        timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))
+        
+        cur.execute("INSERT INTO tblEvents(ts, etype, subject, edata) VALUES (%s, %s, %s, %s);",
+                        [timenow, "LeaseStart", machine, user])
+
         db.commit()
         cur.close()        
 

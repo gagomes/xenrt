@@ -1448,7 +1448,13 @@ class XenRTDownload(XenRTCommand):
                 url = self.xenrt.get_job_attachment_post_run(id, prefix)
         elif phase and test:
             job = self.xenrt.get_job(id)
-            url = [x['logUrl'] for x in job['results'].values() if x['phase'] == phase and x['test'] == test][0]
+            urls = [x['logUrl'] for x in job['results'].values() if x['phase'] == phase and x['test'] == test]
+            if not urls:
+                raise Exception("Phase/test not found for job")
+            elif not urls[0]:
+                raise Exception("Log has not been uploaded for test")
+            else:
+                url = urls[0]
         else:
             job = self.xenrt.get_job(id)
             url = job['logUrl']

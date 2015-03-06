@@ -112,11 +112,11 @@ class XenRTPage(Page):
         i = 0
         while i < (int(config.db_sync_timeout)/self.DB_SYNC_CHECK_INTERVAL):
             # Get the current xlog replay location from the local DB. This returns none if the local DB is the master
-            if app.db.getWriteLocation(readDb):
+            readLoc = app.db.getReadLocation(readDb)
+            if not readLoc:
                 print "Local database is master, don't need to wait for sync"
                 # This means the local database is the master, so we can stop
                 break
-            readLoc = app.db.getReadLocation(readDb)
             print "Checking whether writes have synced, attempt %d - write=%s, read=%s" % (i, str(writeLoc), str(readLoc))
             if readLoc >= writeLoc:
                 break

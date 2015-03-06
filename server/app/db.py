@@ -18,8 +18,7 @@ def dbWriteInstance():
 def isDBMaster(returnDetail=False):
     try:
         readDB = dbReadInstance()
-        readLoc = getReadLocation(readDB)
-        if not readLoc:
+        if getWriteLocation(readDB):
             if not config.partner_ha_node:
                 if returnDetail:
                     return "This node is connected to the master database - no partner node exists to check for split brain"
@@ -63,9 +62,12 @@ def getReadLocation(db):
 def getWriteLocation(db):
     cur = db.cursor()
     # Get the current write xlog location from the master
-    cur.execute("SELECT pg_current_xlog_location()")
-    locStr = cur.fetchone()[0]
-    loc = app.utils.XLogLocation(locStr)
+    try:
+        cur.execute("SELECT pg_current_xlog_location()")
+        locStr = cur.fetchone()[0]
+        loc = app.utils.XLogLocation(locStr)
+    except:
+        loc = None
     cur.close()
     return loc
 

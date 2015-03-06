@@ -305,35 +305,15 @@ class XapiPluginDockerController(DockerController):
     def listContainers(self):
         xenrt.TEC().logverbose("listContainers: Using getDockerPS to list the containers ...")
 
+        dockerContainerList = self.getDockerPS() # returns an ordered list of dicts.
+
         containers = []
-        dockerPS = self.getDockerPS() # returns a xml with a key 'entry'
 
-        if not dockerPS:
-            xenrt.TEC().logverbose("listContainers: getDockerPS() returned empty dictionary")
-            return containers
-
-        if not dockerPS.has_key('entry'):
-            xenrt.TEC().logverbose("listContainers: Failed to find =entry= key in docker PS xml")
-            return containers
-
-        dockerContainerInfo = dockerPS['entry']
-
-        if isinstance(dockerContainerInfo,dict):
-            dockerContainerList = [dockerContainerInfo] # one container -> retruns a dict.
-        elif isinstance(dockerContainerInfo,list):
-            dockerContainerList = dockerContainerInfo # more than one container returns a list of ordered dicts.
-        else:
-            xenrt.TEC().logverbose("listContainers: dockerContainerInfo instance is not recognised")
-            return containers
-
-        if len(dockerContainerList) > 0:
-            for containerDict in dockerContainerList:
-                if containerDict.has_key('names'):
-                    containers.append(containerDict['names'].strip())
-                else:
-                    xenrt.TEC().logverbose("listContainers: The container =name= could not accessed")
-        else:
-            xenrt.TEC().logverbose("listContainers: There are no containers to list")
+        for containerDict in dockerContainerList:
+            if containerDict.has_key('names'):
+                containers.append(containerDict['names'].strip())
+            else:
+                xenrt.TEC().logverbose("listContainers: The container =name= could not accessed")
 
         return containers
 
@@ -358,23 +338,56 @@ class XapiPluginDockerController(DockerController):
             raise xenrt.XRTError("dockerGeneralInfo: General docker info for %s is not found" % dcommand)
 
         dockerGeneralDict = self.convertToOrderedDict(dockerGeneralList[0])
-        if not dockerGeneralDict.has_key(dcommand):
-                raise xenrt.XRTError("dockerGeneralInfo: Failed to find %s tag on the xml" % dcommand)
-        return dockerGeneralDict[dcommand] # returning ordered dict.
+
+        if not dockerGeneralDict:
+            xenrt.TEC().logverbose("dockerGeneralInfo: Returned empty for %s command" % dcommand)
+            return {} # return empty dict.
+
+        if dockerGeneralDict.has_key(dcommand):
+            dGenDictValue = dockerGeneralDict[dcommand]
+            if not dGenDictValue:
+                xenrt.TEC().logverbose("dockerGeneralInfo: Returned empty value for %s command" % dcommand)
+                return {}
+            else:
+                return dGenDictValue
+        else:
+            xenrt.TEC().logverbose("dockerGeneralInfo: Returned empty key for %s command" % dcommand)
+            return {}
 
     def getDockerInfo(self):
+        """Returns a dictionary of docker environment information"""
+
         return self.dockerGeneralInfo('docker_info')
 
     def getDockerPS(self):
-        return self.dockerGeneralInfo('docker_ps')
+        """Returns an ordered list of dictionary of containers"""
+
+        dockerPS = self.dockerGeneralInfo('docker_ps')
+
+        if not dockerPS.has_key('entry'):
+            xenrt.TEC().logverbose("getDockerPS: Failed to find key entry in docker_ps xml")
+            return []
+
+        dockerContainerInfo = dockerPS['entry']
+
+        if isinstance(dockerContainerInfo,dict):
+            return [dockerContainerInfo] # one container -> retruns a dict.
+        elif isinstance(dockerContainerInfo,list):
+            return dockerContainerInfo # more than one container returns a list of ordered dicts.
+        else:
+            xenrt.TEC().logverbose("getDockerPS: dockerContainerInfo instance is not recognised")
+            return []
 
     def getDockerVersion(self):
+        """Returns the running docker version"""
 
         dockerVersionDict = self.dockerGeneralInfo('docker_version')
+
         if dockerVersionDict.has_key('Version'): # has other keys such as KernelVersion, ApiVersion, GoVersion etc.
             return dockerVersionDict['Version']
         else:
-            raise xenrt.XRTError("getDockerVersion: Version key is missing in docker_version xml")
+            xenrt.TEC().logverbose("getDockerVersion: Version key is missing in docker_version xml")
+            return "Unknown"
 
 class LinuxDockerController(DockerController):
 

@@ -10,6 +10,7 @@ import urlparse
 import StringIO
 import requests
 import time
+import re
 
 class _JobBase(_MachineBase):
 
@@ -39,11 +40,14 @@ class _JobBase(_MachineBase):
         conditions = []
         joinquery = ""
         if srs:
-            joinquery += "INNER JOIN tbljobgroups g ON g.jobid = j.jobid "
+            joinquery += "LEFT OUTER JOIN tbljobgroups g ON g.jobid = j.jobid "
             srcond = []
             for s in srs:
-                srcond.append("g.gid=%s")
-                params.append("SR%s" % str(s))
+                if s.lower() == "null":
+                    srcond.append("g.gid IS NULL")
+                else:
+                    srcond.append("g.gid=%s")
+                    params.append("SR%s" % str(s))
             conditions.append("(%s)" % " OR ".join(srcond))
 
         if ids:
@@ -634,7 +638,7 @@ class NewJob(_JobBase):
 
         if params.has_key("JOBGROUP") and params.has_key("JOBGROUPTAG") and not jobGroup:
             jobGroup = {"id": params['JOBGROUP'], "tag": params['JOBGROUPTAG']}
-      
+     
         self.removeParams(params, ["USERID", "REMOVED", "UPLOADED", "JOBSTATUS", "REMOVED_BY"])
 
         params["JOB_SUBMITTED"] = time.asctime(time.gmtime()) + " UTC"
@@ -671,6 +675,8 @@ class NewJob(_JobBase):
                 self.updateJobField("CUSTOM_SEQUENCE", "yes", params)
         
         if jobGroup:
+            if not re.match("^SR\d+$", jobGroup['id']):
+                raise XenRTAPIError(HTTPBadRequest, "Job group must be of form SRnnnnn")
             cur.execute("INSERT INTO tblJobGroups (gid, jobid, description) VALUES " \
                         "(%s, %s, %s);", [jobGroup['id'], self.jobid, jobGroup['tag']])
             params['JOBGROUP'] = jobGroup['id']

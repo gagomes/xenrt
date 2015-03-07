@@ -132,7 +132,7 @@ class Path(object):
             else:
                 self.args.append("%s=%s" % (pname, pp[0][1]))
 
-            self.argdesc.append("%s: %s" % (pname, argdesc.get(pp[0][0], "")))
+            self.argdesc.append("`%s`: %s" % (pname, argdesc.get(pp[0][0], "")))
         for p in args:
             if not p[0] in self.data.get('paramOrder', []):
                 pname = self.pythonParamName(p[0])
@@ -151,12 +151,12 @@ class Path(object):
 
     @property
     def description(self):
-        ret = "        \"\"\" %s\n" % (self.data['summary'])
+        ret = "        \"\"\"\n        %s\n" % (self.data['summary'])
         if "description" in self.data:
-            ret += "            %s" % self.data['description']
-        ret += "            Parameters:\n"
+            ret += "        %s" % self.data['description']
+        ret += "        Parameters:\n"
         for p in self.argdesc:
-            ret += "                 %s\n" % (p)
+            ret += "         %s\n" % (p)
         ret += "        \"\"\""
         return ret
 

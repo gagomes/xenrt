@@ -72,7 +72,7 @@ $(function() {
 
         if (entry.type != "default") {
             var perUserDiv = $( "<div class=\"aclentry-userid\" />" );
-            perUserDiv.append(useridText + ": <input type=\"text\" value=\"" + entry.userid + "\" /><br />");
+            perUserDiv.append("<p>" + useridText + ": <input type=\"text\" id=\"userid\" value=\"" + entry.userid + "\" /></p>");
             aclContent.append(perUserDiv);
         }
 
@@ -94,15 +94,41 @@ $(function() {
         aclDiv.append(aclContent);
         aclDiv.data("entry", entry);
         $( ".aclcolumn" ).append(aclDiv);
+        return aclDiv;
     }
-    $( "#addentry" ).click(function() {
-        addEntry({"type": "default"});
+    $( "#adduser" ).click(function() {
+        var entry = addEntry({"type": "user", "userid": ""});
         $( ".aclcolumn" ).sortable("refresh");
+        entry.children("#userid").focus()
+    });
+    $( "#addgroup" ).click(function() {
+        var entry = addEntry({"type": "group", "userid": ""});
+        $( ".aclcolumn" ).sortable("refresh");
+        entry.children("#userid").focus()
+    });
+    $( "#adddefault" ).click(function() {
+        var entry = addEntry({"type": "default"});
+        $( ".aclcolumn" ).sortable("refresh");
+        entry.children("#userlimit").focus()
     });
     $( ".aclcolumn" ).on('click', '.aclentry-toggle', function() {
         $( this ).parents(".aclentry").remove();
         $( ".aclcolumn" ).sortable("refresh");
     });
+    $( ".aclcolumn" ).on('change', '#userid', function() {
+        // Validate the new user / group id is valid
+        var aclEntry = $( this ).parents(".aclentry").data("entry");
+        var adurl = "/xenrt/api/v2/ad?search=" + encodeURIComponent($( this ).val()) + "&attributes=objectClass";
+        var parent = $( this ).parent();
+        $.getJSON(adurl).done(function(data) {
+            parent.children(".ui-icon-notice").remove()
+            if (!(data.length == 1 && $.inArray((aclEntry.type == "user" ? "person" : "group"), data[0].objectClass))) {
+                var notice = $( "<span class='ui-icon ui-icon-notice' style='float: right' title='The given " + aclEntry.type + " was not found in AD'></span>" );
+                parent.append(notice);
+            }
+        });
+    });
+    $( document ).tooltip();
 });
     </script>
     <style>
@@ -152,7 +178,11 @@ Parent: <select id="parent"><option value="" selected>&lt; None &gt;</option></s
 <h2>ACL Entries</h2>
 <div class="aclcolumn">
 </div>
-<p><button id="addentry" class="ui-state-default ui-corner-all">Add Entry</button></p>
+<p>
+<button id="adduser" class="ui-state-default ui-corner-all">Add User Entry</button>
+<button id="addgroup" class="ui-state-default ui-corner-all">Add Group Entry</button>
+<button id="adddefault" class="ui-state-default ui-corner-all">Add Default Entry</button>
+</p>
 
 <p>
 <button id="saveacl" class="ui-state-default ui-corner-all">Save</button>

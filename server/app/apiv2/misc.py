@@ -47,8 +47,7 @@ class ADLookup(XenRTAPIv2Page):
           'default': ['objectClass','cn','mail','sAMAccountName'],
           'type': 'array'},
     ]
-    RESPONSES = { "200": {"description": "Successful response"},
-                  "404": {"description": "Requested resource not found"}}
+    RESPONSES = { "200": {"description": "Successful response"}}
     TAGS = ["misc"]
 
     def render(self):
@@ -61,8 +60,6 @@ class ADLookup(XenRTAPIv2Page):
             attributes = ["objectClass","cn","mail","sAMAccountName"]
 
         results = ad.search(search, attributes)
-        if len(results) == 0:
-            raise XenRTAPIError(HTTPNotFound, "Requested resource not found")
 
         return results
 

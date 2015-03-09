@@ -1961,10 +1961,6 @@ class _AddvGPUToFullyPassedThroughGPU(VGPUOwnedVMsTest):
 
         raise xenrt.XRTFailure("Non-pass-through guest was allowed to start on a pre-used pGPU")
 
-    def postRun(self):
-        self._removeGuest(self.vm)
-        super(_AddvGPUToFullyPassedThroughGPU, self).postRun()
-
 class TCAddvGPUToFullyPThGPUK100(_AddvGPUToFullyPassedThroughGPU):
      def __init__(self):
          super(TCAddvGPUToFullyPThGPUK100, self).__init__(VGPUConfig.K1PassThrough, VGPUConfig.K100)

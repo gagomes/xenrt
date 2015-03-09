@@ -19,7 +19,7 @@
           <memory>1024</memory>
           <vcpus>2</vcpus>
           <network device="0" />
-          <disk device="0" size="5" />
+          <disk device="0" size="50" />
           <postinstall action="dockerInstall" />
         </vm>
       </host>

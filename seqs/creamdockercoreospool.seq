@@ -20,7 +20,7 @@
           <memory>1024</memory>
           <vcpus>2</vcpus>
           <network device="0" />
-          <disk device="0" size="5" />
+          <disk device="0" size="50" />
           <storage>nfsSR</storage>
           <postinstall action="dockerInstall" />
         </vm>
@@ -32,7 +32,7 @@
           <memory>1024</memory>
           <vcpus>2</vcpus>
           <network device="0" />
-          <disk device="0" size="5" />
+          <disk device="0" size="50" />
           <storage>nfsSR</storage>
           <postinstall action="dockerInstall" />
         </vm>

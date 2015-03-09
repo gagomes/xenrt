@@ -221,15 +221,8 @@ class _JobBase(_MachineBase):
 
         return jobs
 
-    def updateJobField(self, jobid, key, value, commit=True, lookupExisting=True):
+    def updateJobField(self, jobid, key, value, commit=True):
         db = self.getDB()
-
-        if lookupExisting:
-            jobs = self.getJobs(1, ids=[jobid], getParams=True, exceptionIfEmpty=True)
-
-            details = jobs[jobid]['params']
-        else:
-            details = {}
 
         if key in app.constants.core_params:
             cur = db.cursor()
@@ -247,12 +240,13 @@ class _JobBase(_MachineBase):
                     # Use empty string as a way to delete a property
                     cur.execute("DELETE FROM tbljobdetails WHERE jobid=%s "
                                 "AND param=%s;", [jobid, key])
-                elif not details.has_key(key):
-                    cur.execute("INSERT INTO tbljobdetails (jobid,param,value) "
-                                "VALUES (%s,%s,%s);", [jobid, key, str(value)])
                 else:
+                    # The update will do nothing if the parameter doesn't already exist
                     cur.execute("UPDATE tbljobdetails SET value=%s WHERE "
                                 "jobid=%s AND param=%s;", [str(value),jobid,key])
+                    # The insert will run only if the parameter doesn't already exist
+                    cur.execute("INSERT INTO tbljobdetails (jobid,param,value) "
+                                "VALUES (%s,%s,%s) WHERE NOT EXISTS (SELECT 1 FROM tbljobdetails WHERE jobid=%s AND param=%s);", [jobid, key, str(value), jobid, key])
                 if commit:
                     db.commit()
             finally:
@@ -606,7 +600,7 @@ class NewJob(_JobBase):
     PARAM_ORDER=["machines", "pools", "flags", "resources", "specified_machines", "sequence", "custom_sequence", "params", "deployment", "job_group", "email", "inputdir", "lease_machines"]
 
     def updateJobField(self, field, value, params={}):
-        _JobBase.updateJobField(self, self.jobid, field, value, commit=False, lookupExisting=False)
+        _JobBase.updateJobField(self, self.jobid, field, value, commit=False)
         if field in params:
             del params[field]
 

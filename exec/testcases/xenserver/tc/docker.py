@@ -17,48 +17,40 @@ class TCDockerBase(xenrt.TestCase):
         self.pool = self.getDefaultPool() 
 
         self.guests = [] # more guests can be managed.
-        args = self.parseArgsKeyValue(arglist) 
-        self.distro = args.get("distro", "coreos-alpha") 
 
-        i = 0
-        while True:
-            guest = self.getGuest("%s-%d" % (self.distro, i))
-            if not guest:
-                break
-            self.guests.append(guest)
-            i = i + 1
+        for host in self.pool.getHosts():
+            self.guests += map(lambda x:host.getGuest(x), host.listGuests())
 
         if len(self.guests) < 1:
             raise xenrt.XRTFailure("There are no guests in the pool to continue the test")
 
-        # Obtain the docker environment to work with Xapi plugins.
         self.docker = [] # for every guest, we need a docker environment.
-        for guest in self.guests:
-            self.docker.append(guest.getDocker()) # by default method=OperationMethod.XAPI else OperationMethod.LINUX
-                                                  # OR CoreOSDocker(guest.getHost(), guest, XapiPluginDockerController)
-                                                  # OR CoreOSDocker(guest.getHost(), guest, LinuxDockerController)
+
+        # Docker environment can be obtained in 2 ways using guest.getDocker(method)
+        # By default method=OperationMethod.XAPI else OperationMethod.LINUX
+        # OR CoreOSDocker(guest.getHost(), guest, XapiPluginDockerController)
+        # OR CoreOSDocker(guest.getHost(), guest, LinuxDockerController)
+        [self.docker.append(guest.getDocker()) for guest in self.guests]
 
     def run(self, arglist=None):pass
 
     def postRun(self, arglist=None): 
         """Remove all the created containers""" 
-        for docker in self.docker:
-            docker.rmAllContainers()
+
+        [docker.rmAllContainers() for docker in self.docker]
 
 class TCContainerLifeCycle(TCDockerBase):
     """Docker container lifecycle tests"""
 
+    NO_OF_CONTAINERS = 5
+
     def createDockerContainers(self):
-        # Create a container of choice in every guest.
-        for docker in self.docker:
-            #docker.createContainer(ContainerType.BUSYBOX) # with default container type and name.
-            docker.createContainer(ContainerType.YES_BUSYBOX)
-            docker.createContainer(ContainerType.YES_BUSYBOX)
-            docker.createContainer(ContainerType.YES_BUSYBOX)
+
+        # Create some containers (say 5) of your choice in every guest.
+        [docker.createContainer(ContainerType.YES_BUSYBOX) for cnum in range(self.NO_OF_CONTAINERS) for docker in self.docker]
 
         # Lifecycle tests on all containers in every guest.
-        for docker in self.docker:
-            docker.lifeCycleAllContainers()
+        [docker.lifeCycleAllContainers() for docker in self.docker]
 
     def run(self, arglist=None):
         self.createDockerContainers()
@@ -70,12 +62,11 @@ class TCContainerVerification(TCDockerBase):
 
     def run(self, arglist=None):
 
-        for guest in self.guests:
-            # Creation some containers in every guest by SSHing into it. (We call it as LINUX way.)
-            dl = guest.getDocker(OperationMethod.LINUX)
+        # Creation some containers in every guest by SSHing into it. (We call it as LINUX way.)
+        dockerLinux = [guest.getDocker(OperationMethod.LINUX) for guest in self.guests]
 
-            for x in range(self.NO_OF_CONTAINERS): # creat some simple busybox containers.
-                dl.createContainer(ContainerType.YES_BUSYBOX)
+        # Also, creat some simple busybox containers in every guest.
+        [dl.createContainer(ContainerType.YES_BUSYBOX) for x in range(self.NO_OF_CONTAINERS) for dl in dockerLinux]
 
         # Check these containers appeared in XenServer using Xapi plugins. (We call it as XAPI way.)
         for guest in self.guests:
@@ -167,15 +158,17 @@ class TCScaleContainers(TCDockerBase):
     def run(self, arglist=None):
 
         for docker in self.docker:
+            maximumReached = True
             count = 0
-            try:
-                while True:
+            while maximumReached:
+                try:
                     docker.createContainer(ContainerType.YES_BUSYBOX)
                     count = count + 1
-            except xenrt.XRTFailure, e:
-                if count > 0: # one or more containers created.
-                    xenrt.TEC().logverbose("The number of docker containers created = %s" % count)
-                    # Lifecycle tests on all containers.
-                    #docker.lifeCycleAllContainers()
-                else:
-                    raise xenrt.XRTError(e.reason)
+                except xenrt.XRTFailure, e:
+                    maximumReached = False
+                    if count > 0: # one or more containers created.
+                        xenrt.TEC().logverbose("The number of docker containers created = %s" % count)
+                        #docker.lifeCycleAllContainers() - not possible as the system is already out of resource.
+                    else:
+                        raise xenrt.XRTError(e.reason)
+

@@ -112,6 +112,21 @@ class DockerController(object):
         else:
             raise xenrt.XRTError("Operation method %s in defined" % method)
 
+    def prepareToRemoveContainer(self, container):
+        """Check the state of the container before removing it"""
+
+        containerState = self.statusContainer(container)
+
+        if containerState == ContainerState.RUNNING:
+            self.stopContainer(container)
+            return True
+        elif containerState == ContainerState.PAUSED:
+            self.unpauseContainer(container)
+            self.stopContainer(container)
+            return True
+        else:
+            return False
+
     @abstractmethod
     def createContainer(self, container): pass
     @abstractmethod
@@ -219,20 +234,11 @@ class XapiPluginDockerController(DockerController):
 
     def rmContainer(self, container):
 
-        containerState = self.statusContainer(container)
-
-        if containerState == ContainerState.STOPPED:
-            pass # do nothing. straight away remove the container.
-        elif containerState == ContainerState.RUNNING:
-            self.stopContainer(container)
-        elif containerState == ContainerState.PAUSED:
-            self.unpauseContainer(container)
-            self.stopContainer(container)
+        if self.prepareToRemoveContainer(container):
+            return self.containerXapiOtherOperation(container, ContainerXapiOperation.REMOVE)
         else:
             raise xenrt.XRTError("rmContainer: The container %s is in a bad state. Can not be removed" %
                                                                                             container.cname)
-
-        return self.containerXapiOtherOperation(container, ContainerXapiOperation.REMOVE)
 
     # Container lifecycle operations.
     def startContainer(self, container):
@@ -339,20 +345,11 @@ class XapiPluginDockerController(DockerController):
 
         dockerGeneralDict = self.convertToOrderedDict(dockerGeneralList[0])
 
-        if not dockerGeneralDict:
+        if dockerGeneralDict and dockerGeneralDict.has_key(dcommand) and dockerGeneralDict[dcommand]:
+            return dockerGeneralDict[dcommand]
+        else:
             xenrt.TEC().logverbose("dockerGeneralInfo: Returned empty for %s command" % dcommand)
             return {} # return empty dict.
-
-        if dockerGeneralDict.has_key(dcommand):
-            dGenDictValue = dockerGeneralDict[dcommand]
-            if not dGenDictValue:
-                xenrt.TEC().logverbose("dockerGeneralInfo: Returned empty value for %s command" % dcommand)
-                return {}
-            else:
-                return dGenDictValue
-        else:
-            xenrt.TEC().logverbose("dockerGeneralInfo: Returned empty key for %s command" % dcommand)
-            return {}
 
     def getDockerInfo(self):
         """Returns a dictionary of docker environment information"""
@@ -438,20 +435,11 @@ class LinuxDockerController(DockerController):
 
     def rmContainer(self, container):
 
-        containerState = self.statusContainer(container)
-
-        if containerState == ContainerState.STOPPED:
-            pass # do nothing. straight away remove the container.
-        elif containerState == ContainerState.RUNNING:
-            self.stopContainer(container)
-        elif containerState == ContainerState.PAUSED:
-            self.unpauseContainer(container)
-            self.stopContainer(container)
+        if self.prepareToRemoveContainer(container):
+            return self.containerLinuxLCOperation(ContainerLinuxOperation.REMOVE, container)
         else:
             raise xenrt.XRTError("rmContainer: The container %s is in a bad state. Can not be removed" %
                                                                                             container.cname)
-
-        return self.containerLinuxLCOperation(ContainerLinuxOperation.REMOVE, container)
 
     # Container lifecycle operations.
     def startContainer(self, container):
@@ -672,26 +660,34 @@ class Docker(object):
         return(len(self.listContainers()))
 
     def lifeCycleAllContainers(self):
+        """Life Cycle operations on all containers in docker environment"""
         """Life Cycle method on all containers"""
-        for container in self.containers:
-            self.lifeCycleContainer(container)
+
+        [self.lifeCycleContainer(container) for container in self.containers]
 
     def stopAllContainers(self):
+        """Stop all containers in docker environment"""
+
         for container in self.containers:
             self.stopContainer(container)
             xenrt.sleep(5)
 
     def startAllContainers(self):
+        """Start all containers in docker environment"""
+
         for container in self.containers:
             self.startContainer(container)
             xenrt.sleep(5)
 
     def rmAllContainers(self):
+        """Remove all containers in docker environment"""
+
         while len(self.containers):
             self.rmContainer(self.containers[0])
 
     def lifeCycleContainer(self, container):
-        """Life Cycle method on a specified container"""
+        """Life Cycle method on a specified container in docker environment"""
+
         self.stopContainer(container)
         xenrt.sleep(5)
         self.startContainer(container)

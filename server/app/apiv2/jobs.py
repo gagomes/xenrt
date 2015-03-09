@@ -137,10 +137,7 @@ class _JobBase(_MachineBase):
             rc = cur.fetchone()
             if not rc:
                 break
-            job = rc[0]
-            param = rc[1].strip()
-            value = rc[2].strip()
-            jobs[job]['params'][param] = value
+            jobs[rc[0]]['params'][rc[1].strip()] = rc[2].strip()
 
         u = urlparse.urlparse(config.url_base)
         for j in jobs.keys():

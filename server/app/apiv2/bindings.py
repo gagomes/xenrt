@@ -140,7 +140,7 @@ class Path(object):
                     self.args.append(pname)
                 else:
                     self.args.append("%s=%s" % (pname, p[1]))
-                self.argdesc.append("%s: %s" % (pname, argdesc.get(p[0], "")))
+                self.argdesc.append("`%s`: %s" % (pname, argdesc.get(p[0], "")))
 
         if self.data.get('returnKey'):
             self.returnKey = self.data.get('returnKey')
@@ -153,10 +153,11 @@ class Path(object):
     def description(self):
         ret = "        \"\"\"\n        %s\n" % (self.data['summary'])
         if "description" in self.data:
-            ret += "        %s" % self.data['description']
-        ret += "        Parameters:\n"
-        for p in self.argdesc:
-            ret += "         %s\n" % (p)
+            ret += "        %s\n" % self.data['description']
+        if self.argdesc:
+            ret += "        Parameters:  \n"
+            for p in self.argdesc:
+                ret += "        %s  \n" % (p)
         ret += "        \"\"\""
         return ret
 

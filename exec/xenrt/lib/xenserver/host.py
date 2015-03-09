@@ -14297,10 +14297,13 @@ class MNRPool(Pool):
         result = self.getPoolParam("other-config")
         # Workaround for Cream for checking "other-config" params
         # "other-config" params we got is "cpuid_feature_mask: ffffff7f-ffffffff-ffffffff-ffffffff; memory-ratio-hvm: 0.25; memory-ratio-pv: 0.25"
-        if (("rolling_upgrade_in_progress: true" in result) or not ("cpuid_feature_mask" in result)) != expected:
-            xenrt.TEC().logverbose("RPU Mode is expected: %s, "\
-                                   "other-config: %s" % (expected, result))
-            raise xenrt.XRTFailure("RPU mode error")
+        if "cpuid_feature_mask" in result:
+            log("other-config params we got is %s" % result)
+        else:
+            if ("rolling_upgrade_in_progress: true") in result != expected:
+                xenrt.TEC().logverbose("RPU Mode is expected: %s, "\
+                                       "other-config: %s" % (expected, result))
+                raise xenrt.XRTFailure("RPU mode error")
 
     def isConfiguredForCC(self):
         return all(map(lambda h: h.isConfiguredForCC(), self.getHosts()))

@@ -9,14 +9,14 @@ from abc import ABCMeta, abstractmethod
 """
 Enums
 """
-class VGPUOS: Win7x86, Win7x64, WS2008R2, Win8x86, Win8x64, Win81x86, Win81x64, WS12x64, WS12R2x64,DEBIAN,Centos7,Rhel7,Oel7,Ubuntu1404x86,Ubuntu1404x64 = range(15)
-class VGPUConfig: K100, K120, K140, K160, K180, K1PassThrough, K200, K220, K240, K260, K280, K2PassThrough = range(12)
-class VGPUDistribution: BreadthFirst, DepthFirst = range(2)
-class SRType: Local, NFS, ISCSI = range(3)
-class VMStartMethod: OneByOne, Simultenous = range(2)
-class CardType: K1, K2, PassThrough, NotAvailable = range(4)
-class DriverType: Signed, Unsigned = range(2)
-class DiffvGPUType: NvidiaWinvGPU, NvidiaLinuxvGPU, IntelWinvGPU = range(3)
+class VGPUOS(object): Win7x86, Win7x64, WS2008R2, Win8x86, Win8x64, Win81x86, Win81x64, WS12x64, WS12R2x64,DEBIAN,Centos7,Rhel7,Oel7,Ubuntu1404x86,Ubuntu1404x64 = range(15)
+class VGPUConfig(object): K100, K120, K140, K160, K180, K1PassThrough, K200, K220, K240, K260, K280, K2PassThrough = range(12)
+class VGPUDistribution(object): BreadthFirst, DepthFirst = range(2)
+class SRType(object): Local, NFS, ISCSI = range(3)
+class VMStartMethod(object): OneByOne, Simultenous = range(2)
+class CardType(object): K1, K2, PassThrough, NotAvailable = range(4)
+class DriverType(object): Signed, Unsigned = range(2)
+class DiffvGPUType(object): NvidiaWinvGPU, NvidiaLinuxvGPU, IntelWinvGPU = range(3)
 
 """
 Constants
@@ -618,29 +618,21 @@ class VGPUOwnedVMsTest(xenrt.TestCase,VGPUTest):
 
     def postRun(self):
 
-        #return
+        hosts = self.getAllHosts()
 
-        for guest, osType in self._guestsAndTypes:
-            step("Shutting down guest %s" % str(guest))
-            try: guest.shutdown()
-            except: pass
+        for host in hosts:
+            guests = copy.copy(host.guests)
+            for g in guests.values():
+                if "clone" in g.name.lower():
+                    try:
+                        step("Shutting down guest %s" % str(g))
+                        guest.shutdown()
+                        step("Uninstalling guest %s" % str(g))
+                        host = copy.copy(g.host)
+                        host.removeGuest(g)
+                        guests[g].uninstall()
+                    except: pass
 
-            step("Uninstalling guest %s" % str(guest))
-            try:
-                host = copy.copy(guest.host)
-                host.removeGuest(guest)
-                guest.uninstall()
-            except:
-                pass
-
-        #if self.nfs:
-            #try:
-                #self.nfs.release()
-            #except:
-                #pass
-
-        step("Destroy vGPUs")
-        self.host.destroyAllvGPUs()
         step("Clearing locals")
         self._guestsAndTypes = None
         self._requiredEnvironments = None
@@ -675,6 +667,10 @@ class TCVGPUNode0Pin(xenrt.TestCase):
         self.guest.setState("UP")
 
 class TCVGPUSetup(VGPUOwnedVMsTest):
+
+    def __init__(self):
+        super(TCVGPUSetup, self).__init__(requiredEnvironmentList = None, configuration = None, distribution = VGPUDistribution.BreadthFirst, vncEnabled = False, fillToCapacity = False)
+
     def parseArgs(self, arglist):
         self.args = {}
         for a in arglist:
@@ -739,6 +735,10 @@ Send("{ENTER}")
         self.assertvGPURunningInWinVM(self.guest, self.args['vgpuconfig'])
 
 class TCVGPUCloneVM(VGPUOwnedVMsTest):
+
+    def __init__(self):
+        super(TCVGPUCloneVM, self).__init__(requiredEnvironmentList = None, configuration = None, distribution = VGPUDistribution.BreadthFirst, vncEnabled = False, fillToCapacity = False)
+
     def parseArgs(self, arglist):
         self.args = {}
         for a in arglist:
@@ -790,6 +790,10 @@ class TCVGPUDeleteClones(xenrt.TestCase):
             raise xenrt.XRTError("Insufficient clones found to delete")
 
 class TCGPUBootstorm(VGPUOwnedVMsTest):
+
+    def __init__(self):
+        super(TCGPUBootstorm, self).__init__(requiredEnvironmentList = None, configuration = None, distribution = VGPUDistribution.BreadthFirst, vncEnabled = False, fillToCapacity = False)
+
     def parseArgs(self, arglist):
         self.params = {}
         self.vgpuconfig = None
@@ -837,6 +841,10 @@ class TCGPUBootstorm(VGPUOwnedVMsTest):
         f.close()
 
 class TCGPUBenchmarkInstall(VGPUOwnedVMsTest):
+
+    def __init__(self):
+        super(TCGPUBenchmarkInstall, self).__init__(requiredEnvironmentList = None, configuration = None, distribution = VGPUDistribution.BreadthFirst, vncEnabled = False, fillToCapacity = False)
+
     def parseArgs(self, arglist):
         self.args = {}
         self.benchmarks = []
@@ -1398,6 +1406,10 @@ class VGPUAllocationModeBase(VGPUOwnedVMsTest):
             guest = self.host.guestFactory()(name=vmname, host=self.host)
             guest.uuid = guestuuid
             guest.distro = ostype
+            if "x86-64" in ostype:
+                guest.arch = "x86-64"
+            else:
+                guest.arch = "x86-32"
             if ostype.startswith("win") or ostype.startswith("ws"):
                 guest.windows = True
             # Get the new VIFs:
@@ -1622,13 +1634,8 @@ class VGPUAllocationModeBase(VGPUOwnedVMsTest):
             self.runTestPhase(variant)
 
     def postRun(self):
-        log("Destroying all guests.")
-        for guest, ostype in self._guestsAndTypes:
-            try:
-                guest.setState("DOWN")
-                guest.uninstall()
-            except:
-                pass
+
+        super(VGPUAllocationModeBase, self).postRun()
 
         xenrt.sleep(30)
         if self.pools and self.POOL:
@@ -1723,20 +1730,6 @@ class FunctionalBase(VGPUAllocationModeBase):
         log("Not Implemented")
         raise xenrt.XRTError("Function not yet implemented")
 
-    def postRun(self):
-
-        hosts = self.getAllHosts()
-
-        for host in hosts:
-            guests = copy.copy(host.guests)
-            for g in guests:
-                try:
-                    host.removeGuest(g)
-                    guests[g].uninstall()
-                except: pass
-
-        super(FunctionalBase, self).postRun()
-
 class DifferentGPU(object):
     __metaclass__ = ABCMeta
 
@@ -1795,8 +1788,12 @@ class NvidiaWindowsvGPU(DifferentGPU):
 class NvidiaLinuxvGPU(DifferentGPU):
 
     def installHostDrivers(self,allHosts):
-        xenrt.TEC().logverbose("Not implemented")
-        pass
+        ids = ["3c01","3c02","3c03","3c04","3c05","3c06","3c07","3c08","3c09","3c0a","3c0b","0e01","0e04","0e05","0e06","0e07","0e08","0e09",
+               "0e0a","0e0b","2f01","2f02","2f03","2f04","2f05","2f06","2f07","2f08","2f09","2f0a","2f0b"]
+
+        for host in allHosts:
+            for i in ids:
+                host.execdom0("setpci -d 8086:%s ac.w=0" %i)
 
     def installGuestDrivers(self, guest):
         VGPUTest().installNvidiaLinuxDrivers(guest)
@@ -1963,10 +1960,6 @@ class _AddvGPUToFullyPassedThroughGPU(VGPUOwnedVMsTest):
             return
 
         raise xenrt.XRTFailure("Non-pass-through guest was allowed to start on a pre-used pGPU")
-
-    def postRun(self):
-        self._removeGuest(self.vm)
-        super(_AddvGPUToFullyPassedThroughGPU, self).postRun()
 
 class TCAddvGPUToFullyPThGPUK100(_AddvGPUToFullyPassedThroughGPU):
      def __init__(self):
@@ -2271,6 +2264,11 @@ class TCReuseK2PGPU(FunctionalBase):
             for vm in self.VMs[config]:
                 log("Shuting down VM of vGPU config %s" % self.getConfigurationName(config))
                 vm.setState("DOWN")
+
+    def postRun(self,arglist):
+     
+        self.resetGPUs()
+        super(TCReuseK2PGPU, self).postRun() 
 
 class TCRevertvGPUSnapshot(FunctionalBase):
 
@@ -3578,7 +3576,7 @@ class TCAlloModePerfDist(VGPUAllocationModeBase):
 GPU Group related classes
 """
 
-class GPUGroup:
+class GPUGroup(object):
     """
     Generic GPU Group class
     """
@@ -3623,7 +3621,7 @@ class GPUGroup:
         myType = self.getGridType()
         return myType == "" or myType == gridtype
 
-class GPUGroupManager:
+class GPUGroupManager(object):
     """
     GPU Groups manager
     """

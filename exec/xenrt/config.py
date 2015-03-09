@@ -13,7 +13,7 @@ import xenrt
 
 __all__ = ["Config"]
 
-class Config:
+class Config(object):
     """Configuration"""
     def __init__(self):
         self.verbose = False
@@ -156,7 +156,10 @@ class Config:
         self.config["WINDOWS_INSTALL_ISOS"] = {}
         self.config["WINDOWS_INSTALL_ISOS"]["ADMINISTRATOR_PASSWORD"] = "xensource"
 
-
+        self.config["PV_DRIVER_INSTALLATION_SOURCE"] = ["Packages", "ToolsISO"]
+        self.config["PV_DRIVERS_LIST"] = "xenbus;xeniface;xennet;xenvbd;xenvif"
+        self.config["PV_DRIVERS_LOCATION"] = "win-tools-builds.tar"
+        
         self.config["BUILTIN_XS_GUEST_AGENT"] = "sarge,etch"
 
         # Configuration specific to particular versions of the product
@@ -2584,7 +2587,7 @@ class Config:
         self.config["HOTFIXES"]["George"]["RTM"]["XS55EU2024"] = "/usr/groups/release/XenServer-5.5.0-Update2-rc3/hotfixes/XS55EU2024/89773/hotfix-XS55EU2024/XS55EU2024.xsupdate"
         
         #  Guy: glibc, xen-tools. Rolls nothing
-        self.config["HOTFIXES"]["George"]["RTM"]["XS55EU2025"] = "/usr/groups/build/george-lcm/91296/hotfix-XS55EU2025/XS55EU2025.xsupdate"
+        self.config["HOTFIXES"]["George"]["RTM"]["XS55EU2025"] = "/usr/groups/release/XenServer-5.5.0-Update2-rc3/hotfixes/XS55EU2025/91296/hotfix-XS55EU2025/XS55EU2025.xsupdate"
         
         
         # INT-mnr-1: stunnel
@@ -2987,7 +2990,7 @@ class Config:
         self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E042"] = "/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E042/89775/hotfix-XS60E042/XS60E042.xsupdate"
         
         # Guy: xglibc .Rolls up XS60E007
-        self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E043"] = "/usr/groups/build/boston-lcm/91281/hotfix-XS60E043/XS60E043.xsupdate"
+        self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E043"] = "/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E043/91281/hotfix-XS60E043/XS60E043.xsupdate"
        
        
        
@@ -3101,7 +3104,7 @@ class Config:
         self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E038"] = "/usr/groups/release/XenServer-6.x/XS-6.0.2/hotfixes/XS602E038/89776/hotfix-XS602E038/XS602E038.xsupdate"
         
         #Ghost : glibc. Rolls up nothing
-        self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E039"] = "/usr/groups/build/sanibel-lcm/91286/hotfix-XS602E039/XS602E039.xsupdate"
+        self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E039"] = "/usr/groups/release/XenServer-6.x/XS-6.0.2/hotfixes/XS602E039/91286/hotfix-XS602E039/XS602E039.xsupdate"
       
       
       
@@ -3244,7 +3247,7 @@ class Config:
         self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E046"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E046/89882/hotfix-XS61E046/XS61E046.xsupdate"
         
         # Ghost: glibc. Rolls up nothing
-        self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E048"] = "/usr/groups/build/tampa-lcm/91291/hotfix-XS61E048/XS61E048.xsupdate"
+        self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E048"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E048/91291/hotfix-XS61E048/XS61E048.xsupdate"
       
       
       
@@ -3291,7 +3294,7 @@ class Config:
         self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC014"] = "/usr/groups/release/XenServer-6.x/sweeney/hotfixes/XS602ECC014/89777/hotfix-XS602ECC014/XS602ECC014.xsupdate"
         
         # Ghost - glibc . Rolls up nothing
-        self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC015"] = "/usr/groups/build/sweeney-lcm/91288/hotfix-XS602ECC015/XS602ECC015.xsupdate"
+        self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC015"] = "/usr/groups/release/XenServer-6.x/sweeney/hotfixes/XS602ECC015/91288/hotfix-XS602ECC015/XS602ECC015.xsupdate"
       
       
         # vGPU Tech Preview hotfix, Rolls up XS62E001 and XS62E002
@@ -3395,7 +3398,7 @@ class Config:
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1016"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1016/90390/hotfix-XS62ESP1016/XS62ESP1016.xsupdate"
         
         # Ghost - glibc. Rolls up nothing
-        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1017"] = "/usr/groups/build/clearwater-sp1-lcm/91293/hotfix-XS62ESP1017/XS62ESP1017.xsupdate"
+        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1017"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1017/91293/hotfix-XS62ESP1017/XS62ESP1017.xsupdate"
         
         #Creedence hotfixes
         # Gloss: XenCenter, Rolls up nothing
@@ -3406,7 +3409,10 @@ class Config:
         self.config["TOOLS_HOTFIXES"]["Creedence"]["RTM"].append("XS65E002")
         
         # Ghost: glibc. Rolls up nothing.
-        self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E003"] = "/usr/groups/build/creedence-lcm/91307/hotfix-XS65E003/XS65E003.xsupdate"
+        self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E003"] = "/usr/groups/release/XenServer-6.x/XS-6.5/hotfixes/XS65E003/91307/hotfix-XS65E003/XS65E003.xsupdate"
+        
+        # De-trop: lvm. Rolls up nothing.
+        self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E005"] = "/usr/groups/release/XenServer-6.x/XS-6.5/hotfixes/XS65E005/91806/hotfix-XS65E005/XS65E005.xsupdate"
       
 
 
@@ -3583,6 +3589,7 @@ class Config:
             self.config["CARBON_PATCHES_CREEDENCE"]["HF01"] = self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E001"]
             self.config["CARBON_PATCHES_CREEDENCE"]["HF02"] = self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E002"]
             self.config["CARBON_PATCHES_CREEDENCE"]["HF03"] = self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E003"]
+            self.config["CARBON_PATCHES_CREEDENCE"]["HF05"] = self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E005"]
 
     def readFromFile(self, filename, path=None):
         """Read config from an XML file."""

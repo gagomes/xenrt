@@ -544,6 +544,8 @@ class XenRTMachine(XenRTCommand):
             self.printout("COMMENT='%s'\n" % results['leaseuser'])
         if results['resources']:
             self.printout("RESOURCES='%s'\n" % "/".join(["=".join(x) for x in results['resources'].items()]))
+        if results['description']:
+            self.printout("DESCRIPTION='%s'\n" % results['description'])
         for key in results['params'].keys():
             self.printout("%s='%s'\n" % (key, results['params'][key]))
 
@@ -1446,7 +1448,13 @@ class XenRTDownload(XenRTCommand):
                 url = self.xenrt.get_job_attachment_post_run(id, prefix)
         elif phase and test:
             job = self.xenrt.get_job(id)
-            url = [x['logUrl'] for x in job['results'].values() if x['phase'] == phase and x['test'] == test][0]
+            urls = [x['logUrl'] for x in job['results'].values() if x['phase'] == phase and x['test'] == test]
+            if not urls:
+                raise Exception("Phase/test not found for job")
+            elif not urls[0]:
+                raise Exception("Log has not been uploaded for test")
+            else:
+                url = urls[0]
         else:
             job = self.xenrt.get_job(id)
             url = job['logUrl']
@@ -1729,7 +1737,7 @@ class XenRTSList(XenRTCommand):
             self.printout(fmt % ("Site", "Status", chead))
             self.printout("============================================================================\n")
         
-        for s in sites.keys():
+        for s in sorted(sites.keys()):
             item = ""
             if props:
                 item = ",".join(sites[s]['flags'])
@@ -1797,7 +1805,7 @@ class XenRTSUpdate(XenRTCommand):
         elif key == "sharedresources":
             value = dict([y for y in [x.split("=",1) for x in value.split("/")]])
         details = {key: value}
-        self.xenrt.update_site(name, **details)
+        self.xenrt.update_site(site, **details)
 
 class XenRTSite(XenRTCommand):
 
@@ -1821,6 +1829,8 @@ class XenRTSite(XenRTCommand):
             self.printout("MAXJOBS='%d'\n" % site['maxjobs'])
         if site['sharedresources']:
             self.printout("SHAREDRESOURCES='%s'\n" % "/".join(["%s=%s" % (x,y) for (x,y) in site['sharedresources'].iteritems()]))
+        if site['location']:
+            self.printout("LOCATION='%s'\n" % site['location'])
         # TODO Add availableresources
 
 

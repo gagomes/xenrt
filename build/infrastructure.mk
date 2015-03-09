@@ -79,7 +79,9 @@ ifeq ($(APIBUILD), yes)
 	cp $(SHAREDIR)/control/xenrtnew $(SHAREDIR)/api_build/scripts/xenrtnew
 	cp $(SHAREDIR)/control/xenrt $(SHAREDIR)/api_build/scripts/xenrt
 	cd $(SHAREDIR)/api_build/ && python setup.py sdist
-	$(SUDO) ln -sf $(SHAREDIR)/api_build/dist/xenrtapi-0.02.tar.gz $(WEBROOT)/xenrtapi.tar.gz
+	$(SUDO) ln -sf $(SHAREDIR)/api_build/dist/xenrtapi-0.03.tar.gz $(WEBROOT)/xenrtapi.tar.gz
+	$(SUDO) pip install -I $(WEBROOT)/xenrtapi.tar.gz
+	$(SUDO) pdoc --html --html-dir /var/www --overwrite xenrtapi
 	cd $(SHAREDIR)/api_build/ && python setup.py sdist upload -r pypi
 endif
 
@@ -124,6 +126,7 @@ extrapackages-install:
 	$(SUDO) easy_install --upgrade pyyaml
 	$(SUDO) easy_install --upgrade jsonschema
 	$(SUDO) easy_install --upgrade pip
+	$(SUDO) easy_install --upgrade pdoc
 
 	$(SUDO) ln -sf `which genisoimage` /usr/bin/mkisofs
 	$(SUDO) apt-get install -y --force-yes python-m2crypto

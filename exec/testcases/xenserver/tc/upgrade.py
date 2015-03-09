@@ -1431,7 +1431,7 @@ class TC14898(TC6725):
     """Single host upgrade from Cowley on HP G6 hardware"""
     pass
 
-class _XenCert:
+class _XenCert(object):
     """Uses the XenCert SR regression test in dom0 maintained by the storage team."""
 
     def runXenCertiCSLG(self,host,adapterid,comment="",sr=None):

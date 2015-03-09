@@ -1200,6 +1200,8 @@ class TCTestDriverUpgrade(xenrt.TestCase):
 
         # Find the VM and snapshot it
         guest = self.getGuest(hotfixTag)
+        if not guest:
+            raise xenrt.XRTError("Can't find guest %s" % hotfixTag)
         self.guest = guest
         snapshot = guest.snapshot()
 

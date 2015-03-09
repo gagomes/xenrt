@@ -2673,12 +2673,12 @@ class VMRevertedToSnapshot(LiveMigrate):
         dest_SRs = self.vm_config[vm.getName()]['VDI_SR_map'].values()
         self.vm_config[vm.getName()]['VDI_SR_map'] = dict(itertools.izip(attached_VDIs, dest_SRs))
         self.vm_config[vm.getName()]['src_VDIs'] = dict(itertools.izip(attached_disks, attached_VDIs))
-
-        destHost = self.vm_config[vm.getName()]['dest_host']
-        host = vm.getHost()
-        allVifs = host.minimalList('vm-vif-list uuid=%s' % vm.getUUID())
-        mainNWuuid = destHost.getManagementNetworkUUID()
         vif_nw_map = {}
-        for vif in allVifs:
-            vif_nw_map.update({vif:mainNWuuid})
+        if self.test_config['type_of_migration'] == 'inter-pool':
+            destHost = self.vm_config[vm.getName()]['dest_host']
+            host = vm.getHost()
+            allVifs = host.minimalList('vm-vif-list uuid=%s' % vm.getUUID())
+            mainNWuuid = destHost.getManagementNetworkUUID()
+            for vif in allVifs:
+                vif_nw_map.update({vif:mainNWuuid})
         self.vm_config[vm.getName()]['VIF_NW_map'] = vif_nw_map

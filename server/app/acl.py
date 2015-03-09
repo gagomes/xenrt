@@ -120,33 +120,45 @@ class ACLHelper(object):
 
                     # We've hit an exact user match, so we ignore any further rules
                     return True, None
-            else:
-                if e.userid in usergroups:
+            elif e.entryType == 'group' or e.entryType == 'default':
+                if e.entryType == 'default' or e.userid in usergroups:
                     # A group our user is in - identify overall usage and per user usage for users in the acl
                     groupcount = usercount
-                    for u in self._userids_for_group(e.userid):
-                        if u == userid:
-                            continue # Don't count our user as we've already accounted for that
-                        groupcount += len(filter(lambda m: m == u, machines.values()))
+                    if e.entryType == 'default':
+                        groupcount += len(filter(lambda m: m and m != userid, machines.values()))
+                    else:
+                        for u in self._userids_for_group(e.userid):
+                            if u == userid:
+                                continue # Don't count our user as we've already accounted for that
+                            groupcount += len(filter(lambda m: m == u, machines.values()))
                     grouppercent = int(math.ceil((groupcount * 100.0) / len(machines)))
 
+                    groupname = e.entryType == 'default' and "default" or e.userid
                     if e.grouplimit is not None and groupcount > e.grouplimit:
-                        return False, "%s limited to %d machines" % (e.userid, e.grouplimit)
+                        return False, "%s limited to %d machines" % (groupname, e.grouplimit)
                     if e.grouppercent is not None and grouppercent > e.grouppercent:
-                        return False, "%s limited to %d%% of machines" % (e.userid, e.grouppercent)
+                        return False, "%s limited to %d%% of machines" % (groupname, e.grouppercent)
 
                     # Check the user limits as well
                     if e.userlimit is not None and usercount > e.userlimit:
-                        return False, "Members of %s limited to %d machines" % (e.userid, e.userlimit)
+                        return False, "Members of %s limited to %d machines" % (groupname, e.userlimit)
                     if e.userpercent is not None and userpercent > e.userpercent:
-                        return False, "Members of %s limited to %d%% of machines" % (e.userid, e.userpercent)
+                        return False, "Members of %s limited to %d%% of machines" % (groupname, e.userpercent)
 
                     # Check lease restrictions
                     if e.maxleasehours is not None and leaseHours and leaseHours > e.maxleasehours:
-                        return False, "Maximum lease time allowed for members of %s is %d hours" % (e.userid, e.maxleasehours)
+                        return False, "Maximum lease time allowed for members of %s is %d hours" % (groupname, e.maxleasehours)
 
-                # We've hit a successful group match, so we ignore any further rules
-                return True, None
+                    # We've hit a successful group match, so we ignore any further rules
+                    return True, None
+                else:
+                    # A group our user isn't in, remove it's usage so we don't count it in later rules
+                    userids = self._userids_for_group(e.userid)
+                    for m in machines:
+                        if machines[m] in userids:
+                            machines[m] = None
+            else:
+                raise Exception("Unknown entryType %s" % e.entryType)
 
         return True, None
 

@@ -50,12 +50,12 @@
     <parallel workers="4">
       <for iter="H" values="%TOOLS_HOTFIXES:Boston:RTM%">
         <serial group="${H}_win7sp1-x86" tc="TC-24007" sku="${H}">
-          <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade">
+          <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade" depends="${H}_win7sp1-x86_prep:TCPrepareDriverUpgrade">
             <arg>tag=${H}_win7sp1-x86</arg>
           </testcase>
         </serial>
         <serial group="${H}_win7sp1-x64" tc="TC-24008" sku="${H}">
-          <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade">
+          <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade" depends="${H}_win7sp1-x64_prep:TCPrepareDriverUpgrade">
             <arg>tag=${H}_win7sp1-x64</arg>
           </testcase>
         </serial>

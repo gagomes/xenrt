@@ -26,7 +26,7 @@
     <parallel workers="4">
       <for iter="H" values="%TOOLS_HOTFIXES:Tampa:RTM%">
         <serial group="${H}_win7sp1-x86" tc="TC-24007" sku="${H}">
-          <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade">
+          <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade" blocker="yes">
             <arg>template=win7sp1-x86</arg>
             <arg>tag=${H}_win7sp1-x86</arg>
             <arg>hotfix=${H}</arg>
@@ -36,7 +36,7 @@
           </testcase>
         </serial>
         <serial group="${H}_win7sp1-x64" tc="TC-24008" sku="${H}">
-          <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade">
+          <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade" blocker="yes">
             <arg>template=win7sp1-x64</arg>
             <arg>tag=${H}_win7sp1-x64</arg>
             <arg>hotfix=${H}</arg>

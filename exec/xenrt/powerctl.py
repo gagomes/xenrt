@@ -14,7 +14,7 @@
 import sys, os, string, time, random, re
 import xenrt, xenrt.util
 
-class _PowerCtlBase:
+class _PowerCtlBase(object):
     """A base class for power control implementations"""
 
     def __init__(self, machine):
@@ -482,9 +482,14 @@ class Custom(_PowerCtlBase):
 
     def cycle(self, fallback=False):
         xenrt.TEC().logverbose("Running custom command to power cycle machine %s" % (self.machine.name))
-        self.runCustom("CYCLE")
-        xenrt.sleep(5)
-        self.runCustom("ON")
+        if not self.machine.host.lookup("CUSTOM_POWER_CYCLE", None):
+            self.runCustom("OFF")
+            xenrt.sleep(10)
+            self.runCustom("ON")
+        else:
+            self.runCustom("CYCLE")
+            xenrt.sleep(5)
+            self.runCustom("ON")
 
     def runCustom(self, action):
         # Look up command

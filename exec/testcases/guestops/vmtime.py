@@ -119,7 +119,7 @@ class _TCGuestTime(xenrt.TestCase):
                                    "/proc/sys/xen/independent_wallclock" %
                                    (self.iwc))
 
-class _GuestClockFast:
+class _GuestClockFast(object):
 
     EXPDIFF = 5000
 

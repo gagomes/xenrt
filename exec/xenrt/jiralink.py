@@ -15,7 +15,7 @@ import jirarest.client
 
 __all__ = ["JiraLink", "getJiraLink"]
 
-class JiraLink:
+class JiraLink(object):
     """XenRT Jira Link"""
 
     TRIAGE = "10760"

@@ -241,12 +241,13 @@ class _JobBase(_MachineBase):
                     cur.execute("DELETE FROM tbljobdetails WHERE jobid=%s "
                                 "AND param=%s;", [jobid, key])
                 else:
-                    # The update will do nothing if the parameter doesn't already exist
+                    # Try and do an update first
                     cur.execute("UPDATE tbljobdetails SET value=%s WHERE "
                                 "jobid=%s AND param=%s;", [str(value),jobid,key])
-                    # The insert will run only if the parameter doesn't already exist
-                    cur.execute("INSERT INTO tbljobdetails (jobid,param,value) "
-                                "VALUES (%s,%s,%s) WHERE NOT EXISTS (SELECT 1 FROM tbljobdetails WHERE jobid=%s AND param=%s);", [jobid, key, str(value), jobid, key])
+                    if cur.rowcount == 0:
+                        # Parameter doesn't already exist, do an INSERT
+                        cur.execute("INSERT INTO tbljobdetails (jobid,param,value) "
+                                    "VALUES (%s,%s,%s);", [jobid, key, str(value)])
                 if commit:
                     db.commit()
             finally:

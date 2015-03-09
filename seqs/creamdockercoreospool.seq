@@ -10,11 +10,6 @@
     <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
   </variables>
 
-  <scheduler>
-    <resources>memory&gt;=20G/disk1&gt;=140G</resources>
-    <param>MACHINES_REQUIRED=2</param>
-  </scheduler>
-
   <prepare>
     <pool id="0">
       <storage type="nfs" name="nfsSR" default="true" />
@@ -49,17 +44,9 @@
 
     <serial group="CoreOS">
 
-      <testcase id="xenserver.tc.docker.TCContainerLifeCycle" tc="TC-23918" name="ContainerLifeCycle" sku="CoreOSPool">
-        <arg>distro=${DISTRO}</arg>
-      </testcase>
-
-      <testcase id="xenserver.tc.docker.TCGuestsLifeCycle" tc="TC-26443" name="GuestsLifeCycle" sku="CoreOSPool">
-        <arg>distro=${DISTRO}</arg>
-      </testcase>
-
-      <testcase id="xenserver.tc.docker.TCGuestsMigration" tc="TC-26525" name="GuestsMigration" sku="CoreOSPool">
-        <arg>distro=${DISTRO}</arg>
-      </testcase>
+      <testcase id="xenserver.tc.docker.TCContainerLifeCycle" tc="TC-23918" name="ContainerLifeCycle" sku="CoreOSPool" />
+      <testcase id="xenserver.tc.docker.TCGuestsLifeCycle" tc="TC-26443" name="GuestsLifeCycle" sku="CoreOSPool" />
+      <testcase id="xenserver.tc.docker.TCGuestsMigration" tc="TC-26525" name="GuestsMigration" sku="CoreOSPool" />
 
     </serial>
 

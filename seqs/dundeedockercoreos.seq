@@ -10,14 +10,10 @@
     <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
   </variables>
 
-  <scheduler>
-    <resources>memory&gt;=20G/disk1&gt;=140G</resources>
-  </scheduler>
-
   <prepare>
     <pool id="0">
       <host id="0">
-        <vm name="${DISTRO}-0">
+        <vm name="${DISTRO}">
           <distro>${DISTRO}</distro>
           <arch>x86-64</arch>
           <memory>1024</memory>
@@ -33,13 +29,8 @@
   <testsequence>
     <serial group="CoreOS">
 
-      <testcase id="xenserver.tc.docker.TCContainerLifeCycle" tc="TC-23918" name="ContainerLifeCycle" sku="CoreOS">
-        <arg>distro=${DISTRO}</arg>
-      </testcase>
-
-      <testcase id="xenserver.tc.docker.TCGuestsLifeCycle" tc="TC-26443" name="GuestsLifeCycle" sku="CoreOS">
-        <arg>distro=${DISTRO}</arg>
-      </testcase>
+      <testcase id="xenserver.tc.docker.TCContainerLifeCycle" tc="TC-23918" name="ContainerLifeCycle" sku="CoreOS" />
+      <testcase id="xenserver.tc.docker.TCGuestsLifeCycle" tc="TC-26443" name="GuestsLifeCycle" sku="CoreOS" />
 
     </serial>
   </testsequence>

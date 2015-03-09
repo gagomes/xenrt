@@ -11,6 +11,7 @@ import uuid
 import json
 import traceback
 import sys
+import gc
 
 #def launch_memory_usage_server(port = 8080):
 #    import cherrypy
@@ -90,6 +91,8 @@ class PageFactory(object):
             ret += "\n"
         if self.json and ret and not isinstance(ret, basestring) and not isinstance(ret, HTTPException):
             ret = json.dumps(ret, indent=2, sort_keys=True, encoding="latin-1")
+        page = None
+        gc.collect()
         return ret
 
 class Page(object):

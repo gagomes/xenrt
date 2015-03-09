@@ -21,6 +21,7 @@ $(function() {
             var aclurl = "/xenrt/api/v2/acl/" + id
             $.getJSON(aclurl).done(function(data) {
                 $( "#acldata" ).data("acl", data);
+                $( "#acldata" ).data("aclid", id);
                 $( "#aclname" ).val(data.name);
                 if (data.parent != null)
                     $( "#parent" ).val(data.parent);
@@ -92,8 +93,8 @@ $(function() {
 
         aclDiv.append(aclHeader);
         aclDiv.append(aclContent);
-        aclDiv.data("entry", entry);
         $( ".aclcolumn" ).append(aclDiv);
+        aclDiv.data("entry", entry);
         return aclDiv;
     }
     $( "#adduser" ).click(function() {
@@ -111,6 +112,85 @@ $(function() {
         $( ".aclcolumn" ).sortable("refresh");
         entry.children("#userlimit").focus()
     });
+    $( "#saveacl" ).click(function() {
+        $( '#saveacl' ).prop('disabled', true);
+        $( "#overlay" ).show();
+        $( "#loading" ).show();
+
+        // Build up the ACL object
+        var acl = {};
+        acl.name = $( "#aclname" ).val();
+        if ($( "#parent" ).val() != "")
+            acl.parent = $( "#parent" ).val();
+        var entries = [];
+        $( ".aclcolumn" ).children(".aclentry").each(function(i, aclentry) {
+            var c = $(aclentry);
+            var entry = {};
+            entry.type = c.data("entry").type;
+            entry.prio = i;
+            if (entry.type == "user" || entry.type == "group")
+                entry.userid = c.find("#userid").val();
+            if (c.find("#userlimit").val())
+                entry.userlimit = parseInt(c.find("#userlimit").val());
+            if (c.find("#userpercent").val())
+                entry.userpercent = parseInt(c.find("#userpercent").val());
+            if (entry.type == "group" || entry.type == "default") {
+                if (c.find("#grouplimit").val())
+                    entry.grouplimit = parseInt(c.find("#grouplimit").val());
+                if (c.find("#grouppercent").val())
+                    entry.grouppercent = parseInt(c.find("#grouppercent").val());
+            }
+            if (c.find("#maxlease").val())
+                entry.maxleasehours = parseInt(c.find("#maxlease").val());
+            entries.push(entry);
+        });
+        acl.entries = entries;
+
+        // Save the ACL
+        var id = $( "#acldata" ).data("aclid");
+        if (id)
+        {
+            $.ajax({
+                    type: "post",
+                    url: "/xenrt/api/v2/acl/" + id,
+                    data: JSON.stringify(acl),
+                    dataType: "json",
+                    success: function() {
+                        $( "#overlay" ).hide();
+                        $( "#loading" ).hide();
+                        $('#savebutton').prop('disabled', false);
+                        alert("ACL saved");
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        $( "#overlay" ).hide();
+                        $( "#loading" ).hide();
+                        $('#savebutton').prop('disabled', false);
+                        alert("Failed to save ACL - " + textStatus + "-" + errorThrown);
+                    }
+                   });
+        } else {
+            $.ajax({
+                    type: "post",
+                    url: "/xenrt/api/v2/acls",
+                    data: JSON.stringify(acl),
+                    dataType: "json",
+                    success: function(data) {
+                        // Reload to the edit page
+                        $.each(data, function(aclid, acldata) {
+                            window.location = "/xenrt/ui/acl?" + aclid;
+                            return false;
+                        });
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        $( "#overlay" ).hide();
+                        $( "#loading" ).hide();
+                        $('#savebutton').prop('disabled', false);
+                        alert("Failed to save ACL - " + textStatus + "-" + errorThrown);
+                    }
+                   });
+        }
+
+    });
     $( ".aclcolumn" ).on('click', '.aclentry-toggle', function() {
         $( this ).parents(".aclentry").remove();
         $( ".aclcolumn" ).sortable("refresh");
@@ -122,7 +202,7 @@ $(function() {
         var parent = $( this ).parent();
         $.getJSON(adurl).done(function(data) {
             parent.children(".ui-icon-notice").remove()
-            if (!(data.length == 1 && $.inArray((aclEntry.type == "user" ? "person" : "group"), data[0].objectClass))) {
+            if (!(data.length == 1 && data[0].objectClass.indexOf((aclEntry.type == "user" ? "person" : "group")) >= 0)) {
                 var notice = $( "<span class='ui-icon ui-icon-notice' style='float: right' title='The given " + aclEntry.type + " was not found in AD'></span>" );
                 parent.append(notice);
             }

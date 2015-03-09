@@ -28,8 +28,6 @@ class TCDockerBase(xenrt.TestCase):
 
         # Docker environment can be obtained in 2 ways using guest.getDocker(method)
         # By default method=OperationMethod.XAPI else OperationMethod.LINUX
-        # OR CoreOSDocker(guest.getHost(), guest, XapiPluginDockerController)
-        # OR CoreOSDocker(guest.getHost(), guest, LinuxDockerController)
         [self.docker.append(guest.getDocker()) for guest in self.guests]
 
     def run(self, arglist=None):pass

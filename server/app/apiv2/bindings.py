@@ -26,13 +26,16 @@ class Path(object):
         else:
             return param
 
-    def pythonType(self, typename):
+    def pythonType(self, typename, items):
         if typename == "file":
             return "file path"
         elif typename == "object":
             return "dictionary"
         elif typename == "array":
-            return "list"
+            if items and "type" in items:
+                return "list of %s" % items['type']
+            else:
+                return "list"
         else:
             return typename
 
@@ -95,11 +98,11 @@ class Path(object):
                 for q in [x for x in objType['properties'].keys() if x in objType.get('required', [])]:
                     self.jsonParams.append(q)
                     args.append((q,))
-                    argdesc[q] = "%s - %s" % (self.pythonType(objType['properties'][q]['type']), objType['properties'][q].get('description', ""))
+                    argdesc[q] = "%s - %s" % (self.pythonType(objType['properties'][q]['type'], objType['properties'][q].get("items")), objType['properties'][q].get('description', ""))
                 for q in [x for x in objType['properties'].keys() if x not in objType.get('required', [])]:
                     self.jsonParams.append(q)
                     args.append((q, "None"))
-                    argdesc[q] = "%s - %s" % (self.pythonType(objType['properties'][q]['type']), objType['properties'][q].get('description', ""))
+                    argdesc[q] = "%s - %s" % (self.pythonType(objType['properties'][q]['type'], objType['properties'][q].get("items")), objType['properties'][q].get('description', ""))
             else:
                 if p['in'] == "path":
                     self.pathParams.append(p['name'])
@@ -110,7 +113,7 @@ class Path(object):
 
                 if p.get('type') == "file":
                     self.fileParams.append(p['name'])
-                argdesc[p['name']] = "%s - %s" % (self.pythonType(p.get('type')), p.get('description',""))
+                argdesc[p['name']] = "%s - %s" % (self.pythonType(p.get('type'), p.get("items")), p.get('description',""))
                 if p.get('required'):
                     if not p.get('default'):
                         args.append((p['name'],))
@@ -151,9 +154,9 @@ class Path(object):
 
     @property
     def description(self):
-        ret = "        \"\"\"\n        %s\n" % (self.data['summary'])
+        ret = "        \"\"\"\n        %s  \n\n" % (self.data['summary'])
         if "description" in self.data:
-            ret += "        %s\n" % self.data['description']
+            ret += "        %s  \n" % self.data['description'].rstrip()
         if self.argdesc:
             ret += "        Parameters:  \n"
             for p in self.argdesc:
@@ -226,6 +229,15 @@ class XenRTAPIException(Exception):
 
 class XenRT(object):
     def __init__(self, apikey=None, user=None, password=None, server=None):
+        \"\"\"
+        Constructor
+
+        Parameters:  
+        `apikey`: API key to use, for API key authentication  
+        `user`: Username, for basic authentication  
+        `password`: Password, for basic authentication  
+        `server`: Server to connect to, if need to override default  
+        \"\"\"
         if not server:
             server ="%s"
         self.base = "%s://%%s%s" %% server

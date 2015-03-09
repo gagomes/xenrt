@@ -622,7 +622,7 @@ class VGPUOwnedVMsTest(xenrt.TestCase,VGPUTest):
 
         for host in hosts:
             guests = copy.copy(host.guests)
-            for g in guests:
+            for g in guests.values():
                 if "clone" in g.name.lower():
                     try:
                         step("Shutting down guest %s" % str(g))

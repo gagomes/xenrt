@@ -1406,6 +1406,10 @@ class VGPUAllocationModeBase(VGPUOwnedVMsTest):
             guest = self.host.guestFactory()(name=vmname, host=self.host)
             guest.uuid = guestuuid
             guest.distro = ostype
+            if "x86-64" in ostype:
+                guest.arch = "x86-64"
+            else:
+                guest.arch = "x86-32"
             if ostype.startswith("win") or ostype.startswith("ws"):
                 guest.windows = True
             # Get the new VIFs:

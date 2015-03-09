@@ -16,10 +16,13 @@ class TCDockerBase(xenrt.TestCase):
         # Obtain the pool object to retrieve its hosts. 
         self.pool = self.getDefaultPool() 
 
-        self.guests = [] # more guests can be managed.
+        if self.pool is None:
+            self.host = self.getDefaultHost()
+        else:
+            self.host = self.pool.master
 
-        for host in self.pool.getHosts():
-            self.guests += map(lambda x:host.getGuest(x), host.listGuests())
+        # Obtain all docker guests from the pool.
+        self.guests = map(lambda x:self.host.getGuest(x), self.host.listGuests())
 
         if len(self.guests) < 1:
             raise xenrt.XRTFailure("There are no guests in the pool to continue the test")

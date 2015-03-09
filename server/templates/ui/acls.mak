@@ -7,6 +7,7 @@ ${commonhead | n}
     <script>
 $(function() {
     $( "#newacl" ).click(function() {
+        window.location = "/xenrt/ui/acl?new";
     }); 
     $( "#editacl" ).click(function() {
         window.location = "/xenrt/ui/acl?" + $( "#aclid" ).val();
@@ -65,10 +66,8 @@ ${commonbody | n}
 
 <div id="aclcontrols">
 <h2>Manage ACLs</h2>
-<h3>New ACL</h3>
 <p>
-Name: <input id="newacl" type="text" class="ui-state-default ui-corner-all" /><br />
-<button id="newacl" class="ui-state-default ui-corner-all">Create</button>
+<button id="newacl" class="ui-state-default ui-corner-all">Create a new ACL</button>
 </p>
 <div id="deletestatus"></div>
 <h3>Existing ACLs</h3>

@@ -2266,7 +2266,7 @@ class TCReuseK2PGPU(FunctionalBase):
                 log("Shuting down VM of vGPU config %s" % self.getConfigurationName(config))
                 vm.setState("DOWN")
 
-    def postRun(self,arglist):
+    def postRun(self):
      
         self.resetGPUs()
         super(TCReuseK2PGPU, self).postRun() 

@@ -8224,6 +8224,8 @@ class GenericGuest(GenericPlace):
                         maindisk="xvda"
                     if distro.startswith("oel") and int(distro[3:4]) >= 6:
                         maindisk="xvda"
+                    if distro.startswith("sl") and int(distro[2:3]) >= 6:
+                        maindisk="xvda"
         else:
             ethDevice = vifname
             maindisk = options["maindisk"]

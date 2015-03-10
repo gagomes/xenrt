@@ -28,7 +28,7 @@
   <testsequence>
     <testcase id="xenserver.tc.vgpu.TCcreatevGPU" name="Win7sp1x86K140VGPU">
       <arg>vmName=vgpufeaturevm</arg>
-      <arg>vgputype=false</arg>
+      <arg>vgputype=1</arg>
       <arg>startVM=False</arg>
     </testcase>
 

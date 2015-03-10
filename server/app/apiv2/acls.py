@@ -65,8 +65,6 @@ class _AclBase(XenRTAPIv2Page):
             params.extend(ids)
 
         if owners:
-            if len(owners) == 1 and owners[0] == "me":
-                owners = [self.getUser().userid]
             conditions.append(self.generateInCondition("a.owner", owners))
             params.extend(owners)
 

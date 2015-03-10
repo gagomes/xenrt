@@ -46,7 +46,7 @@ $(function() {
 
     });
     function populateAcls() {
-        $.getJSON ("/xenrt/api/v2/acls", {"owner": "me"})
+        $.getJSON ("/xenrt/api/v2/acls", {"owner": "${'${user}'}"})
             .done(function(data) {
                 $( "#aclid" ).find('option').remove();
                 $.each(data, function(aclid, acldata) {

@@ -579,7 +579,12 @@ def generateOSTestSequences():
 def getChildren(key):
     global childrencache
     if not childrencache.has_key(key):
-        childrencache[key] = testrunJSONLoad("issuetree/%s" % key, "depth=1")[0]['children']
+        returnedDict = testrunJSONLoad("issuetree/%s" % key, "depth=1")[0]
+        if 'children' in returnedDict:
+            childrencache[key] = returnedDict['children']
+        else:
+            childrencache[key] = []
+        #childrencache[key] = testrunJSONLoad("issuetree/%s" % key, "depth=1")[0]['children']
     return childrencache[key]
 
 def flushChildrenCache(key):
@@ -588,7 +593,6 @@ def flushChildrenCache(key):
         del childrencache[key]
 
 def defineMatrixTest(oses, memory, vcpus, platform, tcArtifacts=None, versionconfig=None, extraDesc = ""):
-
     pyfile = []
     tcs = []
     defaultmaxmem = "32768"
@@ -634,7 +638,6 @@ def defineMatrixTest(oses, memory, vcpus, platform, tcArtifacts=None, versioncon
         desctail = desctail + " on " + pmap[platform]
 
     print "defineMatrixTest for %s" % desc
-
     keys = [x['key'] for x in getChildren("TC-6865") if x['title'] == desc]
     if len(keys) > 0:
         container = getIssue(j, keys[0])
@@ -1344,7 +1347,6 @@ def processMatrixTests(release=None):
     # Build up the list of all TCs
     allTCs = tcArtifacts.keys()
     print "Total of %u TCs" % (len(allTCs))
-
     # We now know what suite updates etc to do
     j = J()
     for suite in suiteUpdates:
@@ -1356,7 +1358,6 @@ def processMatrixTests(release=None):
         for sl in suitelinks:
             if sl.type.name == "Contains" and hasattr(sl, "outwardIssue"):
                 suitetcs.append(sl.outwardIssue.key)
-
         print "suite updates for " + suite + ": " + str(suiteUpdates[suite])
 
         # First go through and ensure that the ones that are supposed to be linked are   
@@ -1365,8 +1366,8 @@ def processMatrixTests(release=None):
                 print "Linking " + tc + " to suite: " + suite
                 j.jira.create_issue_link(type="Contains", inwardIssue=suiteissue.key, outwardIssue=tc)
         # Now go through and check for any that are not supposed to be
-        for tc in allTCs:
-            if tc in suitetcs and not tc in suiteUpdates[suite]:
+        for tc in suitetcs:
+            if tc not in suiteUpdates[suite]:
                 print "Deleting link between " + tc + " and suite: " + suite
                 links = [x for x in suiteissue.fields.issuelinks if hasattr(x, "outwardIssue") and x.type.name=="Contains" and x.outwardIssue.key == tc]
                 if len(links) > 0:
@@ -1430,7 +1431,7 @@ def generateSmokeTestSequences(version="Creedence", regressionSuite="TC-21163", 
         # Nightly:
         # OS operation of 1GB 2 vCPUs VMs on VT+EPT
         makeSequence(version, "TC-8434", nightlySuite, "%s/%stc8434.seq" % (folder,version.lower()), nightlySuiteTickets, testPrefix, 15, "2", "3", "EPT1G2C")
-    
+        
         # OS operation of 1GB 3 vCPUs VMs
         makeSequence(version, "TC-7395", nightlySuite, "%s/%stc7395.seq" % (folder,version.lower()), nightlySuiteTickets, testPrefix, 10, "1", "4", "VM1G3C")
    
@@ -1455,6 +1456,9 @@ def generateSmokeTestSequences(version="Creedence", regressionSuite="TC-21163", 
     
         # OS operation using template default configuration
         makeSequence(version, "TC-6789", nightlySuite, "%s/%stc6789.seq" % (folder,version.lower()), nightlySuiteTickets, testPrefix, 10, "2", "3", "VMs")
+        
+        # OS operation using 1GB, guest limit = 32
+        makeSequence(version, "TC-26560", nightlySuite, "%s/%stc26560.seq" % (folder,version.lower()), nightlySuiteTickets, testPrefix, 10, "2", "3", "VMs")
     
     if regressionSuite:
         print "Getting tickets for %s" % regressionSuite
@@ -1521,13 +1525,12 @@ def makeSequence(version, ticket, suite, filename, suitetickets=None, testPrefix
     print "Tree tickets for %s: %s" % (ticket, (str(treetickets)))
 
     tcs = []
-    
+
     for tcid in treetickets:
         if tcid in suitetickets:
             tcs.append(string.atoi(tcid.replace("TC-", "")))
     
     tcs.sort()
-
     k = 0
     for i in range(0, len(tcs), maxPerFile):
         

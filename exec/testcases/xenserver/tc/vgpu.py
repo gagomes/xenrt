@@ -340,7 +340,7 @@ class VGPUTest(object):
             host.installNVIDIAHostDrivers()
 
     def installNvidiaWindowsDrivers(self, guest,vgputype):
-        if not self.checkvGPURunningInVM(vm, vGPUType):
+        if not self.checkvGPURunningInVM(guest, vgputype):
             guest.installNvidiaVGPUDriver(self.driverType)
 
     def installNvidiaLinuxDrivers(self,guest,vgputype):

@@ -22,7 +22,7 @@ class TCDockerBase(xenrt.TestCase):
             self.host = self.pool.master
 
         # Obtain all docker guests from the pool.
-        self.guests = [ xenrt.TEC().registry.guestGet(x) for x in host.listGuests() ]
+        self.guests = [ xenrt.TEC().registry.guestGet(x) for x in self.host.listGuests() ]
 
         if len(self.guests) < 1:
             raise xenrt.XRTFailure("There are no guests in the pool to continue the test")

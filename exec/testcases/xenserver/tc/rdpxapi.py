@@ -200,7 +200,8 @@ class TestRdpWithSnapshot(RdpVerification):
 
         # When we revert to snapshot RDP should be in disabled state
         # We wait 60mins hoping data/ts will be updated by the guest agent
-        finishat = xenrt.timenow() + 3600
+        started = xenrt.timenow()
+        finishat = started + 3600
         while finishat > xenrt.timenow() and xapiRdpObj.isRdpEnabled():
             xenrt.sleep(10)
         if xapiRdpObj.isRdpEnabled():

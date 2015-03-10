@@ -313,6 +313,18 @@ class TCWLBFeature(TestFeatureBase):
 
 class TCVirtualGPUFeature(TestFeatureBase):
 
+    def prepare(self, arglist):
+        """Workaround so don't need to use two vGPU machines."""
+        if self.getDefaultPool():
+            self.systemObj =  self.getDefaultPool()
+        else:
+            # Use the first host instead of second like rest of feature testcases.
+            self.systemObj = self.getHost("RESOURCE_HOST_0").getPool()
+
+        self.__parseArgs(arglist)
+
+        self.v6 = self.licenseServer(self.newLicenseServerName)
+
     def checkFeature(self, currentSKU):
         # Check flag and feature on licensed host.
         feature =  VirtualGPU()

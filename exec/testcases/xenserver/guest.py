@@ -208,7 +208,7 @@ class _TCGuestInstall(xenrt.TestCase):
 
         disks = []
         if rootdisk:
-            disks.append(("0", rootdisk, False))
+            disks.append(("0", rootdisk/xenrt.KILO, False)) # createVM takes gigabytes
 
         g = xenrt.lib.xenserver.guest.createVM(host,
                             guestname,

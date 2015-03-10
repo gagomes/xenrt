@@ -4378,7 +4378,7 @@ def createVMFromPrebuiltTemplate(host,
             if uuid and os.path.exists("%s/%s.vhd" % (m.getMount(), uuid)):
                 if rootdisk and rootdisk != Guest.DEFAULT:
                     # Check that the disk is big enough
-                    if rootdisk > int(host.genParamGet("vdi", uuid, "virtual-size")):
+                    if rootdisk*xenrt.MEGA > int(host.genParamGet("vdi", uuid, "virtual-size")):
                         return None
                 template = host.getTemplate(distro, arch=arch)
                 cli = host.getCLIInstance()
@@ -4399,9 +4399,9 @@ def createVMFromPrebuiltTemplate(host,
     t = preinstalledTemplates[0]
     if rootdisk and rootdisk != Guest.DEFAULT:
         tuuid = host.minimalList("template-list", args="name-label=%s" % t, params="uuid")[0]
-        vdiuuid=host.minimalList("vbd-list", args="vm-uuid=%s userdevice=0" % tuuid, params="uuid")[0]
+        vdiuuid=host.minimalList("vbd-list", args="vm-uuid=%s userdevice=0" % tuuid, params="vdi-uuid")[0]
         # Check that the disk is big enough
-        if rootdisk > int(host.genParamGet("vdi", vdiuuid, "virtual-size")):
+        if rootdisk*xenrt.MEGA > int(host.genParamGet("vdi", vdiuuid, "virtual-size")):
             return None
     g = host.guestFactory()(displayname, host=host)
     g.arch = arch

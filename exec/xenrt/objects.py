@@ -8313,7 +8313,7 @@ class GenericGuest(GenericPlace):
             pxecfg.linuxArgsKernelAdd("ksdevice=%s" % (ethDevice))
             pxecfg.linuxArgsKernelAdd("initrd=%s" %
                                       (pxe.makeBootPath("initrd.img")))
-            #if distro.startswith("oel7") or distro.startswith("centos7") or distro.startswith("rhel7"):
+
             if self.isHVMLinux(distro):
                 pxecfg.linuxArgsKernelAdd("inst.repo=%s" % repository)
                 pxecfg.linuxArgsKernelAdd("console=tty0")

@@ -213,6 +213,7 @@ class TestFeatureBase(LicenseBase):
     def run(self, arglist=None):
         for sku in self.skus:
             xenrt.TEC().logverbose("Testing SKU: %s" % sku)
+            self.confirmLicenseServerUp()
 
             self.licence = self.licenceFactory.licenceForHost(self.systemObj.master, sku)
 
@@ -233,6 +234,12 @@ class TestFeatureBase(LicenseBase):
         currentSKU: The current license sku being tested.
         """
         pass
+
+    def confirmLicenseServerUp(self):
+        ls = self.getGuest(self.newLicenseServerName)
+        if (ls.getState() != "UP"):
+            ls.setState("UP")
+        self.v6.start()
 
 
 class TCReadCachingFeature(TestFeatureBase):
@@ -316,6 +323,7 @@ class TCVirtualGPUFeature(TestFeatureBase):
             "Feature flag on host does not match actual permissions. Feature allowed: %s, Feature restricted: %s" % (featureRestricted, featureResctictedFlag))
 
         enabledList = feature.isEnabled(self.systemObj.master)
+        self.confirmLicenseServerUp()
         assertions.assertEquals(not featureRestricted,
             True in enabledList,
             "vGPU privilidge is not as expected after creating new VM. Should be: %s" % (featureRestricted))
@@ -330,6 +338,7 @@ class TCVirtualGPUFeature(TestFeatureBase):
 
 
         enabledList = feature.isEnabled(self.systemObj.master)
+        self.confirmLicenseServerUp()
         assertions.assertFalse(True in enabledList, "vGPU is enabled after removing license and lifecycle operation.")
 
 class LicenseExpiryBase(LicenseBase):

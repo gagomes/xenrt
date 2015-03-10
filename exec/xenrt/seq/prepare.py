@@ -1252,9 +1252,12 @@ class PrepareNode(object):
                                 (server, path) = xenrt.TEC().lookup("SHARED_VHD_PATH_NFS").split(":")
                                 sr.dconf = {"server": server, "serverpath": path}
                                 sr.introduce(nosubdir = True)
+                            else:
+                                continue
                         except Exception, e:
                             # This is only best effort
                             xenrt.TEC().logverbose("Warning - could not add remote template library: %s" % str(e))
+                            continue
                     elif s["type"] == "netapp":
                         minsize = int(host.lookup("SR_NETAPP_MINSIZE", 40))
                         maxsize = int(host.lookup("SR_NETAPP_MAXSIZE", 1000000))

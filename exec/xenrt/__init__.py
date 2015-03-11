@@ -143,7 +143,7 @@ log_error_strings = {
 
 
 
-import xenrt.resources, xenrt.ssh, xenrt.registry, xenrt.ctrl, xenrt.dbconnect, xenrt.infrastructuresetup
+import xenrt.resources, xenrt.ssh, xenrt.registry, xenrt.dbconnect, xenrt.infrastructuresetup
 
 def version():
     """Returns the current harness version"""
@@ -336,7 +336,7 @@ def setGec(gec):
 
 #############################################################################
 
-class TestCase:
+class TestCase(object):
     """The definition and implementation of a testcase.
 
     This is the parent class for all testcases."""
@@ -823,10 +823,10 @@ logdata call.
                 eval("self.%s()" % (method))
             elif type(args) == type((1,2)):
                 eval("self.%s(*args)" % (method))
-            elif type(args) == types.InstanceType:
-                eval("self.%s(args)" % (method))
-            else:
+            elif not hasattr(args, "__class__") or args.__class__.__module__ == "__builtin__":
                 eval("self.%s(%s)" % (method, `args`))
+            else:
+                eval("self.%s(args)" % (method))
             self.testcaseResult(scgroup, sctest, RESULT_PASS)
             reply = RESULT_PASS
         except XRTFailure, e:
@@ -1280,6 +1280,11 @@ Abort this testcase with: xenrt interact %s -n '%s'
                                 if not line in place.thingsWeHaveReported:
                                     place.thingsWeHaveReported.append(line)
                                     self._warnWithPrefix("Out of memory in %s: %s" % (log,line))
+
+                            if "crashed too quickly after start" in line:
+                                if not line in place.thingsWeHaveReported:
+                                    place.thingsWeHaveReported.append(line)
+                                    self._warnWithPrefix("crashed too quickly after start in %s: %s" % (log,line))
 
                 except:
                     pass
@@ -1914,7 +1919,7 @@ class TCAnon(TestCase):
         # break some aspects of Jira integration
         self.basename = "TCAnon"
 
-class JobTest:
+class JobTest(object):
     """Base class for a job level testcase"""
     TCID = None
     FAIL_MSG = "Job level test failed"
@@ -1928,7 +1933,7 @@ class JobTest:
     def postJob(self):
         raise xenrt.XRTError("Unimplemented")
 
-class TestExecutionContext:
+class TestExecutionContext(object):
     """Dynamic context associated with the execution of a testcase."""
     def __init__(self, gec, tc, anon=False):
         """Constructor.
@@ -2252,13 +2257,14 @@ logdata call."""
         if self.tc:
             self.tc.setResult(RESULT_SKIPPED)
 
-    def getFile(self, *filename):
+    def getFile(self, *filename, **kwargs):
         """Look up a name with the file manager."""
         if not self.gec.filemanager:
             raise XRTError("No filemanager object")
+        replaceExistingIfDiffers = kwargs.get("replaceExistingIfDiffers", False)
         ret = None
         for f in filename:
-            ret = self.gec.filemanager.getFile(f)
+            ret = self.gec.filemanager.getFile(f, replaceExistingIfDiffers=replaceExistingIfDiffers)
             if ret:
                 break
         return ret
@@ -2518,7 +2524,7 @@ class ConsoleLoggerXapi(ConsoleLogger):
                 if self.finished:
                     break
 
-class PhysicalHost:
+class PhysicalHost(object):
     """A physical machine."""
     def __init__(self, name, ipaddr=None, powerctltype=None):
         """Constructor.
@@ -2636,7 +2642,7 @@ def markThread():
         GEC().runMarkCallbacks()
         xenrt.sleep(60, log=False)
 
-class GlobalExecutionContext:
+class GlobalExecutionContext(object):
     """Current global execution state."""
     def __init__(self, config=None):
         self.loghistory = []
@@ -2652,8 +2658,7 @@ class GlobalExecutionContext:
         self.markCallbacks = []
         self.results = xenrt.results.GlobalResults()
         self.registry = xenrt.registry.Registry()
-        self.dbconnect = xenrt.DBConnect(self.config.lookup("JOBID", None),
-                                         xenrt.ctrl.Commands(raw=1))
+        self.dbconnect = xenrt.DBConnect(self.config.lookup("JOBID", None))
         self.anontec = TCAnon(self).tec
         self.skipTests = {}
         self.skipGroups = {}
@@ -3348,7 +3353,7 @@ class GlobalExecutionContext:
                         c.append("-u")
                         c.append(u)
                     xenrt.TEC().logverbose("Borrowing %s" % m)
-                    self.dbconnect.jobctrl("borrow", c, buffer=True)
+                    self.dbconnect.jobctrl("borrow", c)
             if regok:
                 sys.stdout.write("Regression: PASS\n")
                 x = "OK"

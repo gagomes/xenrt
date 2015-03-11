@@ -45,6 +45,8 @@ windowsdistros = [('w2k3eesp2pae','Windows Server Enterprise Edition SP2 with PA
                   ('win7sp1-x64','Windows 7 SP1 x64'),
                   ('win8-x86','Windows 8'),
                   ('win8-x64','Windows 8 x64'),
+                  ('win10-x86','Windows 10'),
+                  ('win10-x64','Windows 10 x64'),
                   ('win81-x86','Windows 8.1'),
                   ('win81-x64','Windows 8.1 x64'),
                   ('ws12-x64','Windows Server 2012 x64'),

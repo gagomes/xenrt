@@ -1,0 +1,13 @@
+<?xml version="1.0" ?>
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+  </variables>
+  <prepare>
+    <host id="0" />
+  </prepare>
+
+  <testsequence>
+    <testcase id="xenserver.tc.host.TCDom0Checksums" />
+  </testsequence>
+</xenrt>

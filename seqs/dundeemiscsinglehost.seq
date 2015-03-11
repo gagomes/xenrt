@@ -29,5 +29,6 @@
     <serial group="SCTX1879">
       <testcase id="xenserver.tc.guest.TC21711" tc="TC-21711" />
     </serial>
+    <testcase id="xenserver.tc.hotfix.TCDiscSpacePlugins" tc="TC-23995"/>
   </testsequence>
 </xenrt>

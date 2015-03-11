@@ -362,6 +362,12 @@ class TC19041(_VmGen):
 class TC19042(_VmGen):
     DISTRO = "win8-x64"
 
+class TC26425(_VmGen):
+    DISTRO = "win10-x86" 
+
+class TC26426(_VmGen):
+    DISTRO = "win10-x64"
+
 class TC19044(_VmGen):
     DISTRO = "ws12-x64"
 

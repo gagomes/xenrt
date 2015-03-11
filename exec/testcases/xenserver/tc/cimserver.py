@@ -13,11 +13,12 @@ import socket, re, string, time, traceback, sys, random, copy, os, os.path, urll
 
 import xenrt, xenrt.lib.xenserver, XenAPI
 import xml.dom.minidom
+from xml.dom.minidom import parseString
 import urllib2
 import datetime, random
 from xenrt.lazylog import log, warning
 
-class _CIMInterface: 
+class _CIMInterface(object): 
 
     PACK = "xenserver-integration-suite.iso"
 #    RPMS = ["xs-cim-cmpi-5.6.199-39460c",
@@ -1651,15 +1652,13 @@ class SRFunctions(_CimBase):
 
             time.sleep(300)
  
-            count = 1 
-            while 1:
-                line = tempStr.splitlines()[count]
-                if "<SCSIid>" in line:
-                    scsiId = tempStr.splitlines()[count +1]
-                    scsiId = scsiId.strip()
-                    break
-                count = count +1
-           
+            tempStr = '\n'.join(tempStr.split('\n')[2:])
+            temp = parseString(tempStr)
+            ids = temp.getElementsByTagName('SCSIid')
+            for id in ids:
+                for node in id.childNodes:
+                    scsiId = (node.nodeValue).strip()
+
             ret = self.protocolObj.createISCSISR(self.isoSRName,targetIp,iqn,scsiId,user,password)
 
             try:            
@@ -3915,7 +3914,7 @@ class TC14435(NetworkTest):
 
 
 
-class Kvp():
+class Kvp(object):
     HASH_THRESHOLD = 512
 
     def __init__(self, key, value, deviceId=None):

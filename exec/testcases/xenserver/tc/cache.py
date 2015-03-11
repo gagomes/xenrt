@@ -3,7 +3,7 @@ import xenrt
 from sets import Set as unique
 
 
-class PacketCatcher:
+class PacketCatcher(object):
 
     def __init__(self, host, delay=0, nolog=False):
         self.host = host

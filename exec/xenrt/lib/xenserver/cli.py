@@ -28,7 +28,7 @@ def clearCacheFor(machine):
     if sessions.has_key(machine):
         del sessions[machine]
 
-class Session:
+class Session(object):
     """A CLI (multi)session to a host."""
     def __init__(self, machine, username="root", password=None, cd=None,
                  cached=False):

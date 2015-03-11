@@ -11,6 +11,8 @@ JENKINS ?= http://xenrt.hq.xensource.com:8080
 WSGIWORKERS ?= 16
 WSGITHREADS ?= 1
 CURRENT_DIR ?= $(shell pwd)
+AUTH_REALM ?= citrite
+NFS_LIB_PATH ?= /usr/groups/xenrt/lib
 
 include build/config.mk
 include build/tools.mk
@@ -21,12 +23,12 @@ else
 EXECDIR = $(BUILDPREFIX)-exec
 endif
 
-SRCDIRS		:= control scripts seqs lib data provision server xenrtdhcpd 
+SRCDIRS		:= control scripts seqs lib data provision server xenrtdhcpd api_build
 NEWDIRS		:= locks state results
 SCRIPTS		:= $(patsubst %.in,%,$(wildcard **/*.in))
 GENCODE		:= $(patsubst %.gen,%,$(wildcard **/*.gen))
 LINKS		:= control/xenrt.py $(EXECDIR)/xenrt/ctrl.py control/xrt control/xrt1
-BINLINKS    := xenrt xrt xrt1 xrtbranch runsuite
+BINLINKS    := xenrt xrt xrt1 xrtbranch runsuite xenrtnew
 
 SRCDIRS		:= $(addprefix $(SHAREDIR)/,$(SRCDIRS))
 NEWDIRS		:= $(addprefix $(SHAREDIR)/,$(NEWDIRS))
@@ -47,6 +49,8 @@ server: install
 	$(SUDO) cp $(SHAREDIR)/server/xenrt-server /etc/init.d/
 	$(SUDO) insserv xenrt-server
 	$(SUDOSH) '/etc/init.d/xenrt-server start || $(SUDO) /etc/init.d/xenrt-server reload'
+	sleep 1
+	make apibuild
 
 .PHONY: install
 install: tarlibs $(NEWDIRS) utils $(SRCDIRS) exec $(LINKS) $(SCRATCHDIR) \
@@ -205,6 +209,10 @@ xenrt:
 	$(info Creating link to $@...)
 	$(SUDO) ln -sf $(SHAREDIR)/control/xenrt $(BINDIR)/$@
 
+xenrtnew:
+	$(info Creating link to $@...)
+	$(SUDO) cp $(SHAREDIR)/control/xenrt $(SHAREDIR)/control/$@
+
 runsuite:
 	$(info Creating link to $@...)
 	$(SUDO) ln -sf $(SHAREDIR)/control/runsuite $(BINDIR)/$@
@@ -278,20 +286,22 @@ endif
 $(SCRIPTS): $(addsuffix .in,$(SCRIPTS))
 	$(info Compiling XenRT scripts...)
 	sed 's#@sharedir@#$(SHAREDIR)#g' $@.in > $@ 
-	sed -i 's#@rootdir@#$(ROOT)/$(XENRT)#g' $@
-	sed -i 's#@console@#$(CONSOLE)#g' $@
-	sed -i 's#@conserver@#$(MAINCONSERVERADDR)#g' $@
-	sed -i 's#@confdir@#$(CONFDIR)#g' $@
-	sed -i 's#@vardir@#$(VARDIR)#g' $@
-	sed -i 's#@webcontrdir@#$(WEB_CONTROL_PATH)#g' $@
-	sed -i 's#@jenkins@#$(JENKINS)#g' $@
+	@sed -i 's#@rootdir@#$(ROOT)/$(XENRT)#g' $@
+	@sed -i 's#@console@#$(CONSOLE)#g' $@
+	@sed -i 's#@conserver@#$(MAINCONSERVERADDR)#g' $@
+	@sed -i 's#@confdir@#$(CONFDIR)#g' $@
+	@sed -i 's#@vardir@#$(VARDIR)#g' $@
+	@sed -i 's#@webcontrdir@#$(WEB_CONTROL_PATH)#g' $@
+	@sed -i 's#@authrealm@#$(AUTH_REALM)#g' $@
+	@sed -i 's#@jenkins@#$(JENKINS)#g' $@
 	@-grep "@conskey@" $@ && sed -i 's#@conskey@#$(CONSKEY)#g' $@
-	sed -i 's#@wsgiworkers@#$(WSGIWORKERS)#g' $@
-	sed -i 's#@wsgithreads@#$(WSGITHREADS)#g' $@
-	sed -i 's#@user@#$(USERNAME)#g' $@
-	sed -i 's#@group@#$(GROUPNAME)#g' $@
-	sed -i 's#@stablebranch@#$(STABLE_BRANCH)#g' $@
-	sed -i 's#@authenabled@#$(KERBEROS)#g' $@
+	@sed -i 's#@wsgiworkers@#$(WSGIWORKERS)#g' $@
+	@sed -i 's#@wsgithreads@#$(WSGITHREADS)#g' $@
+	@sed -i 's#@user@#$(USERNAME)#g' $@
+	@sed -i 's#@group@#$(GROUPNAME)#g' $@
+	@sed -i 's#@stablebranch@#$(STABLE_BRANCH)#g' $@
+	@sed -i 's#@authenabled@#$(KERBEROS)#g' $@
+	@sed -i 's#@nfslibpath@#$(NFS_LIB_PATH)#g' $@
 	chmod --reference $@.in $@
 	
 .PHONY: $(GENCODE)
@@ -314,6 +324,7 @@ $(GENCODE): $(addsuffix .gen,$(GENCODE))
 check: install
 	$(info Performing XenRT sanity checks ...)
 	$(SHAREDIR)/exec/main.py --sanity-check
+	$(SHAREDIR)/server/check.py
 	$(SHAREDIR)/unittests/runner.sh $(SHAREDIR)
 	$(eval XSD = $(shell mktemp))
 	sed 's/\\\$$/\\$$/' seqs/seq.xsd > $(XSD)
@@ -324,6 +335,7 @@ check: install
 minimal-check: install
 	$(info Performing XenRT sanity checks ...)
 	$(SHAREDIR)/exec/main.py --sanity-check
+	$(SHAREDIR)/server/check.py
 	$(SHAREDIR)/unittests/quickrunner.sh $(SHAREDIR)
 	$(eval XSD = $(shell mktemp))
 	sed 's/\\\$$/\\$$/' seqs/seq.xsd > $(XSD)

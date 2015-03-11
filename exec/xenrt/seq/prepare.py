@@ -112,7 +112,7 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
 
                     if cluster['hypervisor'].lower() == "xenserver":
                         if cluster.has_key('XRT_MasterHostId'):
-                            cluster['XRT_MasterHostName'] = "RESORUCE_HOST_%d" % cluster['XRT_MasterHostId']
+                            cluster['XRT_MasterHostName'] = "RESOURCE_HOST_%d" % cluster['XRT_MasterHostId']
                         if not cluster.has_key('XRT_MasterHostName'):
                             if cluster.has_key('XRT_ContainerHostId'):
                                 cluster['XRT_ContainerHostIds'] = [cluster['XRT_ContainerHostId']] * cluster['XRT_Hosts']
@@ -932,7 +932,7 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
             self.parent.instances.append(instance)
         return instance
 
-class PrepareNode:
+class PrepareNode(object):
 
     def __init__(self, toplevel, node, params):
         self.toplevel = toplevel
@@ -1006,7 +1006,7 @@ class PrepareNode:
                     break
                 # Try to delete the old CCP management server
                 try:
-                    m = xenrt.GEC().dbconnect.jobctrl("machine", [hostname])
+                    m = xenrt.GEC().dbconnect.api.get_machine(hostname)['params']
                     if m.has_key("CSGUEST") and m['CSGUEST'] not in cleanedGuests:
                         cleanedGuests.append(m['CSGUEST'])
                         (shostname, guestname) = m['CSGUEST'].split("/", 1)
@@ -1207,7 +1207,13 @@ class PrepareNode:
                         else:
                             nfsVersion = "3"
 
-                        server, path = xenrt.ExternalNFSShare(jumbo=jumbo, network=network, version=nfsVersion).getMount().split(":")
+                        hostIndexes = [(y.group(1), y.group(3)) for y in [re.match("host-(\d)(-([a-z]*))?", x) for x in s['options'].split(",")] if y]
+                        if hostIndexes:
+                            (hostIndex, device) = hostIndexes[0]
+                            server, path = xenrt.NativeLinuxNFSShare("RESOURCE_HOST_%s" % hostIndex, device=device).getMount().split(":")
+                        else:
+                            server, path = xenrt.ExternalNFSShare(jumbo=jumbo, network=network, version=nfsVersion).getMount().split(":")
+
                         if filesr:
                             sr = xenrt.productLib(host=host).FileStorageRepositoryNFS(host, s["name"])
                             sr.create(server, path)
@@ -1219,9 +1225,10 @@ class PrepareNode:
                             sr.create(server, path, nosubdir=nosubdir)
                     elif s["type"] == "smb":
                         vm = s["options"] and "vm" in s["options"].split(",")
-                        hostIndexes = [y.group(1) for y in [re.match("host-(\d)", x) for x in s['options'].split(",")] if y]
+                        hostIndexes = [(y.group(1), y.group(3)) for y in [re.match("host-(\d)(-([a-z]))?", x) for x in s['options'].split(",")] if y]
                         if hostIndexes:
-                            share = xenrt.NativeWindowsSMBShare("RESOURCE_HOST_%s" % hostIndexes[0])
+                            (hostIndex, driveLetter) = hostIndexes[0]
+                            share = xenrt.NativeWindowsSMBShare("RESOURCE_HOST_%s" % hostIndex, driveLetter=driveLetter)
                         elif vm:
                             share = xenrt.VMSMBShare()
                         else:
@@ -1612,7 +1619,7 @@ class PrepareNode:
         with open(os.path.join(xenrt.TEC().getLogdir(), 'deployment.json'), 'w') as fh:
             json.dump(deploymentRec, fh)
 
-class InstallWorkQueue:
+class InstallWorkQueue(object):
     """Queue of install work items to perform."""
     def __init__(self):
         self.items = []

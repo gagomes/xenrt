@@ -9,6 +9,8 @@ import config
 import urlparse
 import StringIO
 import requests
+import time
+import re
 
 class _JobBase(_MachineBase):
 
@@ -27,6 +29,8 @@ class _JobBase(_MachineBase):
                 ids=[],
                 detailids=[],
                 machines=[],
+                minJob=None,
+                maxJob=None,
                 getParams=False,
                 getResults=False,
                 getLog=False,
@@ -36,16 +40,27 @@ class _JobBase(_MachineBase):
         conditions = []
         joinquery = ""
         if srs:
-            joinquery += "INNER JOIN tbljobgroups g ON g.jobid = j.jobid "
+            joinquery += "LEFT OUTER JOIN tbljobgroups g ON g.jobid = j.jobid "
             srcond = []
             for s in srs:
-                srcond.append("g.gid=%s")
-                params.append("SR%s" % str(s))
+                if s.lower() == "null":
+                    srcond.append("g.gid IS NULL")
+                else:
+                    srcond.append("g.gid=%s")
+                    params.append("SR%s" % str(s))
             conditions.append("(%s)" % " OR ".join(srcond))
 
         if ids:
             conditions.append("j.jobid IN (%s)" % (", ".join(["%s"] * len(ids))))
             params.extend(ids)
+
+        if minJob:
+            conditions.append("j.jobid >= %s")
+            params.append(minJob)
+
+        if maxJob:
+            conditions.append("j.jobid <= %s")
+            params.append(maxJob)
 
         if detailids:
             joinquery += "INNER JOIN tblresults r ON r.jobid = j.jobid "
@@ -64,6 +79,8 @@ class _JobBase(_MachineBase):
                 if s in ['new', 'running', 'done']:
                     statuscond.append("j.jobstatus=%s")
                     params.append(s)
+                elif s != 'removed':
+                    raise XenRTAPIError(HTTPBadRequest, "Invalid job status requested")
             if "removed" in status:
                 statuscond.append("j.removed='yes'")
             else:
@@ -93,8 +110,9 @@ class _JobBase(_MachineBase):
                 "params": {},
                 "user": rc[5].strip(),
                 "status": self.getJobStatus(rc[4].strip(), rc[8]),
-                "machines": rc[6].strip().split(",") if rc[6] else [],
-                "results": []
+                "rawstatus": rc[4].strip(),
+                "removed": True if rc[8] and rc[8].strip() == "yes" else False,
+                "machines": rc[6].strip().split(",") if rc[6] else []
             }
             if rc[8] and rc[8].strip():
                 jobs[rc[0]]['params']["REMOVED"] = rc[8].strip()
@@ -119,22 +137,22 @@ class _JobBase(_MachineBase):
             rc = cur.fetchone()
             if not rc:
                 break
-            job = rc[0]
-            param = rc[1].strip()
-            value = rc[2].strip()
-            jobs[job]['params'][param] = value
+            jobs[rc[0]]['params'][rc[1].strip()] = rc[2].strip()
 
         u = urlparse.urlparse(config.url_base)
         for j in jobs.keys():
             jobs[j]['suiterun'] = jobs[j]['params'].get("TESTRUN_SR")
             jobs[j]['result'] = jobs[j]['params'].get("CHECK")
-            jobs[j]['attachmentUploadUrl'] = "%s://%s%s/api/v2/job/%d/attachments" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
-            jobs[j]['logUploadUrl'] = "%s://%s%s/api/v2/job/%d/log" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
+            jobs[j]['attachmentUploadUrl'] = "%s://%s%s/api/files/v2/job/%d/attachments" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
+            jobs[j]['logUploadUrl'] = "%s://%s%s/api/files/v2/job/%d/log" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
             if jobs[j]['params'].get('UPLOADED') == "yes":
-                logUrl = "%s://%s%s/api/v2/fileget/%d" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
+                logUrl = "%s://%s%s/api/files/v2/fileget/%d" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
+                logIndexUrl = "%s://%s%s/api/files/v2/index/%d" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
             else:
                 logUrl = None
+                logIndexUrl = None
             jobs[j]['logUrl'] = logUrl
+            jobs[j]['logIndexUrl'] = logIndexUrl
             mlist = ""
             for k in ["SCHEDULEDON", "SCHEDULEDON2", "SCHEDULEDON3"]:
                 if jobs[j]['params'].has_key(k):
@@ -143,6 +161,8 @@ class _JobBase(_MachineBase):
                 mlist = mlist.replace(",,",",")
                 mlist = mlist.strip()
                 mlist = mlist.strip(",")
+            if not mlist and "MACHINE" in jobs[j]['params']:
+                mlist = jobs[j]['params']["MACHINE"]
             if mlist:
                 jobs[j]['machines'] = mlist.split(",")
             jobs[j]['description'] = jobs[j]['params'].get("JOBDESC", jobs[j]['params'].get("DEPS"))
@@ -158,18 +178,21 @@ class _JobBase(_MachineBase):
                 if not rc:
                     break
                 if rc[5] and rc[5].strip() == "yes":
-                    logUrl = "%s://%s%s/api/v2/fileget/%d.test" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), rc[2])
+                    logUrl = "%s://%s%s/api/files/v2/fileget/%d.test" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), rc[2])
+                    logIndexUrl = "%s://%s%s/api/files/v2/index/%d.test" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), rc[2])
                 else:
                     logUrl = None
+                    logIndexUrl = None
                 jobs[rc[0]]['results'][rc[2]] ={
                     "result": rc[1].strip(),
                     "detailid": rc[2],
                     "test": rc[3].strip(),
                     "phase": rc[4].strip(),
-                    "logUploadUrl": "%s://%s%s/api/v2/test/%d/log" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), rc[2]),
+                    "logUploadUrl": "%s://%s%s/api/files/v2/test/%d/log" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), rc[2]),
                     "logUrl": logUrl,
+                    "logIndexUrl": logIndexUrl,
                     "logUploaded": rc[5] and rc[5].strip() == "yes",
-                    "jobId": j
+                    "jobId": rc[0]
                 }
                 detailids[rc[2]] = rc[0]
             if getLog:
@@ -198,15 +221,8 @@ class _JobBase(_MachineBase):
 
         return jobs
 
-    def updateJobField(self, jobid, key, value, commit=True, lookupExisting=True):
+    def updateJobField(self, jobid, key, value, commit=True):
         db = self.getDB()
-
-        if lookupExisting:
-            jobs = self.getJobs(1, ids=[jobid], getParams=True, exceptionIfEmpty=True)
-
-            details = jobs[jobid]['params']
-        else:
-            details = {}
 
         if key in app.constants.core_params:
             cur = db.cursor()
@@ -224,12 +240,14 @@ class _JobBase(_MachineBase):
                     # Use empty string as a way to delete a property
                     cur.execute("DELETE FROM tbljobdetails WHERE jobid=%s "
                                 "AND param=%s;", [jobid, key])
-                elif not details.has_key(key):
-                    cur.execute("INSERT INTO tbljobdetails (jobid,param,value) "
-                                "VALUES (%s,%s,%s);", [jobid, key, str(value)])
                 else:
+                    # Try and do an update first
                     cur.execute("UPDATE tbljobdetails SET value=%s WHERE "
                                 "jobid=%s AND param=%s;", [str(value),jobid,key])
+                    if cur.rowcount == 0:
+                        # Parameter doesn't already exist, do an INSERT
+                        cur.execute("INSERT INTO tbljobdetails (jobid,param,value) "
+                                    "VALUES (%s,%s,%s);", [jobid, key, str(value)])
                 if commit:
                     db.commit()
             finally:
@@ -324,7 +342,17 @@ class ListJobs(_JobBase):
           'in': 'query',
           'name': 'logitems',
           'required': False,
-          'type': 'boolean'}]
+          'type': 'boolean'},
+         {'description': 'Only return jobs where the job id is >= to this',
+          'in': 'query',
+          'name': 'minjobid',
+          'required': False,
+          'type': 'integer'},
+         {'description': 'Only return jobs where the job id is <= to this',
+          'in': 'query',
+          'name': 'maxjobid',
+          'required': False,
+          'type': 'integer'}]
     RESPONSES = { "200": {"description": "Successful response"}}
     TAGS = ["jobs"]
 
@@ -338,7 +366,15 @@ class ListJobs(_JobBase):
         users = self.getMultiParam("user")
         machines = self.getMultiParam("machine")
         excludeusers = self.getMultiParam("excludeuser")
-        limit = int(self.request.params.get("limit", 100))
+        maxJob = self.request.params.get("maxjobid")
+        minJob = self.request.params.get("minjobid")
+        if ids:
+            limit = int(self.request.params.get("limit", 0))
+        else:   
+            limit = int(self.request.params.get("limit", 100))
+
+        if limit == 0:
+            limit = 10000
        
         suiteruns = self.getMultiParam("suiterun")
 
@@ -356,6 +392,8 @@ class ListJobs(_JobBase):
                             ids=ids,
                             detailids=detailids,
                             machines=machines,
+                            minJob = minJob,
+                            maxJob = maxJob,
                             getParams=params,
                             getResults=results,
                             getLog=logitems)
@@ -394,7 +432,7 @@ class GetTest(_JobBase):
         {'name': 'id',
          'in': 'path',
          'required': True,
-         'description': 'Job ID to fetch',
+         'description': 'Test detail ID to fetch',
          'type': 'integer'},
          {'default': False,
           'description': 'Return the log items for all testcases in the job. Defaults to false',
@@ -455,9 +493,11 @@ class RemoveJob(_JobBase):
         jobinfo = self.getJobs(1, ids=[job], getParams=False,getResults=False,getLog=False, exceptionIfEmpty=True)[job]
         if jobinfo['status'] not in ('done', 'removed'):
             self.updateJobField(job, "REMOVED", "yes")
+            if self.getUser():
+                self.updateJobField(job, "REMOVED_BY", self.getUser().userid)
         if j.get('return_machines'):
             for m in jobinfo['machines']:
-                self.return_machine(m, self.getUser(), False, canForce=False, commit=False)
+                self.return_machine(m, self.getUser().userid, False, canForce=False, commit=False)
             self.getDB().commit()
                  
         return {}
@@ -560,8 +600,15 @@ class NewJob(_JobBase):
     OPERATION_ID = "new_job"
     PARAM_ORDER=["machines", "pools", "flags", "resources", "specified_machines", "sequence", "custom_sequence", "params", "deployment", "job_group", "email", "inputdir", "lease_machines"]
 
-    def updateJobField(self, field, value):
-        _JobBase.updateJobField(self, self.jobid, field, value, commit=False, lookupExisting=False)
+    def updateJobField(self, field, value, params={}):
+        _JobBase.updateJobField(self, self.jobid, field, value, commit=False)
+        if field in params:
+            del params[field]
+
+    def removeParams(self, params, keys):
+        for k in keys:
+            if params.has_key(k):
+                del params[k]
 
     def newJob(self,
                pools=None,
@@ -577,52 +624,51 @@ class NewJob(_JobBase):
                email=None,
                inputdir=None,
                lease=None):
+        
+        if not params:
+            params = {}
+
+        if params.has_key("JOBGROUP") and params.has_key("JOBGROUPTAG") and not jobGroup:
+            jobGroup = {"id": params['JOBGROUP'], "tag": params['JOBGROUPTAG']}
+     
+        self.removeParams(params, ["USERID", "REMOVED", "UPLOADED", "JOBSTATUS", "REMOVED_BY"])
+
+        params["JOB_SUBMITTED"] = time.asctime(time.gmtime()) + " UTC"
 
         db = self.getDB()
         cur = db.cursor()
-        cur.execute("LOCK TABLE tbljobs IN EXCLUSIVE MODE")
-        cur.execute("INSERT INTO tbljobs (jobstatus, userid, version, revision, options, uploaded,removed) VALUES ('new', %s, '', '', '', '', '')", [self.getUser()])
-        # Lookup jobid
-        cur.execute("SELECT last_value FROM jobid_seq")
+        cur.execute("INSERT INTO tbljobs (jobstatus, userid, version, revision, options, uploaded,removed) VALUES ('new', %s, '', '', '', '', '') RETURNING jobid", [self.getUser().userid])
         rc = cur.fetchone()
         self.jobid = int(rc[0])
-        db.commit() # Commit to release the lock
 
         if specifiedMachines:
-            self.updateJobField("MACHINE", ",".join(specifiedMachines))
-            self.updateJobField("MACHINES_SPECIFIED", "yes")
-            self.updateJobField("MACHINES_REQUIRED", str(len(specifiedMachines)))
+            self.updateJobField("MACHINE", ",".join(specifiedMachines), params)
+            self.updateJobField("MACHINES_SPECIFIED", "yes", params)
+            self.updateJobField("MACHINES_REQUIRED", str(len(specifiedMachines)), params)
         else:
             if resources:
-                self.updateJobField("RESOURCES_REQUIRED", ",".join(resources))
+                self.updateJobField("RESOURCES_REQUIRED", ",".join(resources), params)
             if flags:
-                self.updateJobField("FLAGS", ",".join(flags))
+                self.updateJobField("FLAGS", ",".join(flags), params)
             if pools:
-                self.updateJobField("POOL", ",".join(pools))
+                self.updateJobField("POOL", ",".join(pools), params)
             if numberMachines:
-                self.updateJobField("MACHINES_REQUIRED", str(numberMachines))
-            else:
-                self.updateJobField("MACHINES_REQUIRED", "1")
+                self.updateJobField("MACHINES_REQUIRED", str(numberMachines), params)
+            elif not "MACHINES_REQUIRED" in params:
+                self.updateJobField("MACHINES_REQUIRED", "1", params)
 
         if deployment:
             sequence = "deployment.seq"
             customSequence = True
 
         if sequence:
-            self.updateJobField("DEPS", sequence)
+            self.updateJobField("DEPS", sequence, params)
             if customSequence:
-                self.updateJobField("CUSTOM_SEQUENCE", "yes")
-
-        if not params:
-            params = {}
+                self.updateJobField("CUSTOM_SEQUENCE", "yes", params)
         
         if jobGroup:
-            try:
-                cur.execute("DELETE FROM tblJobGroups WHERE "
-                            "gid = %s AND description = %s",
-                            [jobGroup['id'], jobGroup['tag']])
-            except:
-                pass
+            if not re.match("^SR\d+$", jobGroup['id']):
+                raise XenRTAPIError(HTTPBadRequest, "Job group must be of form SRnnnnn")
             cur.execute("INSERT INTO tblJobGroups (gid, jobid, description) VALUES " \
                         "(%s, %s, %s);", [jobGroup['id'], self.jobid, jobGroup['tag']])
             params['JOBGROUP'] = jobGroup['id']
@@ -633,18 +679,18 @@ class NewJob(_JobBase):
         params['JOB_FILES_SERVER'] = config.log_server
         params['LOG_SERVER'] = config.log_server
 
-        for p in params.keys():
-            self.updateJobField(p, params[p])
-
         if email:
-            self.updateJobField("EMAIL", email)
+            self.updateJobField("EMAIL", email, params)
 
         if inputdir:
-            self.updateJobField("INPUTDIR", inputdir)
+            self.updateJobField("INPUTDIR", inputdir, params)
 
         if lease and lease.get("duration"):
-            self.updateJobField("MACHINE_HOLD_FOR", lease['duration'] * 60)
-            self.updateJobField("MACHINE_HOLD_REASON", lease.get("reason", ""))
+            self.updateJobField("MACHINE_HOLD_FOR", lease['duration'] * 60, params)
+            self.updateJobField("MACHINE_HOLD_REASON", lease.get("reason", ""), params)
+
+        for p in params.keys():
+            self.updateJobField(p, params[p])
 
         db.commit()
         cur.close()
@@ -674,7 +720,7 @@ class NewJob(_JobBase):
                            deployment=j.get("deployment"),
                            resources=j.get("resources"),
                            flags=j.get("flags"),
-                           email=j.get("email"),
+                           email=j.get("email") if j.has_key("email") else self.getUser().email,
                            inputdir=j.get("inputdir"),
                            lease=j.get("lease_machines"))
 
@@ -693,24 +739,44 @@ class _GetAttachmentUrl(_JobBase):
          'type': 'string'}]
     RESPONSES = { "200": {"description": "Successful response"}}
     TAGS = ["jobs"]
+    RETURN_KEY="url"
 
     def render(self):
         job = int(self.request.matchdict['id'])
         server = self.getJobs(1, ids=[job], getParams=True, exceptionIfEmpty=True)[job]['params'][self.LOCATION_PARAM]
 
-        return {'url': 'http://%s/xenrt/api/v2/fileget/%d.%s' % (server, job, self.request.matchdict['file'])}
+        url = 'http://%s/xenrt/api/files/v2/fileget/%d.%s' % (server, job, self.request.matchdict['file'])
+
+        if self.REDIRECT:
+            return HTTPFound(location=url)
+
+        return {'url': url}
 
 class GetAttachmentPreRun(_GetAttachmentUrl):
     LOCATION_PARAM='JOB_FILES_SERVER'
     PATH='/job/{id}/attachment/prerun/{file}'
     SUMMARY='Get URL for job attachment, uploaded before job ran'
     OPERATION_ID='get_job_attachment_pre_run'
+    REDIRECT=False
+
+class RedirectAttachmentPreRun(GetAttachmentPreRun):
+    REDIRECT=True
+    PATH='/redirect/job/{id}/attachment/prerun/{file}'
+    SUMMARY='Redirect to job attachment, uploaded before job ran'
+    OPERATION_ID="no_binding"
 
 class GetAttachmentPostRun(_GetAttachmentUrl):
     LOCATION_PARAM='LOG_SERVER'
     PATH='/job/{id}/attachment/postrun/{file}'
     SUMMARY='Get URL for job attachment, uploaded after job ran'
     OPERATION_ID='get_job_attachment_post_run'
+    REDIRECT=False
+
+class RedirectAttachmentPostRun(GetAttachmentPostRun):
+    REDIRECT=True
+    PATH='/redirect/job/{id}/attachment/postrun/{file}'
+    SUMMARY='Redirect to job attachment, uploaded before job ran'
+    OPERATION_ID="no_binding"
 
 class GetJobDeployment(_JobBase):
     PATH='/job/{id}/deployment'
@@ -731,7 +797,7 @@ class GetJobDeployment(_JobBase):
 
         try:
             server = self.getJobs(1, ids=[job], getParams=True, exceptionIfEmpty=True)[job]['params']['LOG_SERVER']
-            r = requests.get('http://%s/xenrt/api/v2/fileget/%d.deployment.json' % (server, job))
+            r = requests.get('http://%s/xenrt/api/files/v2/fileget/%d.deployment.json' % (server, job))
             r.raise_for_status()
             return r.json()
         except Exception, e:
@@ -788,6 +854,57 @@ class UpdateJob(_JobBase):
         self.getDB().commit()
         return {}
     
+class EmailJob(_JobBase):
+    PATH = "/job/{id}/email"
+    REQTYPE = "POST"
+    SUMMARY = "Gets a specific job object"
+    TAGS = ["backend"]
+    PARAMS = [
+        {'name': 'id',
+         'in': 'path',
+         'required': True,
+         'description': 'Job ID to fetch',
+         'type': 'integer'}]
+    RESPONSES = { "200": {"description": "Successful response"}}
+    OPERATION_ID = "send_job_email"
+
+    def textLog(self, job):
+        out = ""
+        for r in sorted(job['results'].keys(), key=int):
+            out += "%s/%s: %s\n" % (
+                job['results'][r]['phase'],
+                job['results'][r]['test'],
+                job['results'][r]['result'])
+        return out
+
+    def render(self):
+        id = int(self.request.matchdict['id'])
+        job = self.getJobs(1, ids=[id], getParams=True, getResults=True, getLog=False, exceptionIfEmpty=True)[id]
+        if job['params'].has_key("EMAIL"):
+            machine = ",".join(job['machines'])
+            if not machine:
+                machine = "unknown"
+            result = job['result']
+            if not result:
+                result = "unknown"
+            if job['params'].has_key("JOBDESC"):
+                jobdesc = "%s (JobID %u)" % (job['params']["JOBDESC"], id)
+            else:
+                jobdesc = "JobID %u" % (id)
+            emailto = job['params']["EMAIL"].split(",")
+            subject = "[xenrt] %s %s %s" % (jobdesc, machine, result)
+            summary = self.textLog(job)
+            message = """
+================ Summary =============================================
+%s/ui/logs?jobs=%u
+======================================================================
+%s
+======================================================================
+""" % (config.url_base.rstrip("/"), id, summary.strip())
+            for key in job['params'].keys():
+                message =  message + "%s='%s'\n" % (key, job['params'][key])
+            app.utils.sendMail(config.email_sender, emailto, subject, message, reply=emailto[0])
+        return {}
 
 RegisterAPI(ListJobs)
 RegisterAPI(GetJob)
@@ -797,4 +914,7 @@ RegisterAPI(NewJob)
 RegisterAPI(UpdateJob)
 RegisterAPI(GetAttachmentPreRun)
 RegisterAPI(GetAttachmentPostRun)
+RegisterAPI(RedirectAttachmentPreRun)
+RegisterAPI(RedirectAttachmentPostRun)
 RegisterAPI(GetJobDeployment)
+RegisterAPI(EmailJob)

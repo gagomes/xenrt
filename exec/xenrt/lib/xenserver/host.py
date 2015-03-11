@@ -1756,9 +1756,9 @@ done
             
         xenrt.TEC().progress("Rebooted host to start installation.")
         if async:
-            handle = (nfsdir, None, pxe)
+            handle = (nfsdir, None, pxe, False) # Not UEFI
             return handle
-        handle = (nfsdir, packdir, pxe)
+        handle = (nfsdir, packdir, pxe, False) # Not UEFI
         if xenrt.TEC().lookup("OPTION_BASH_SHELL", False, boolean=True):
             xenrt.TEC().tc.pause("Pausing due to bash-shell option")
             
@@ -1907,7 +1907,7 @@ fi
         return usbdevice
 
     def installComplete(self, handle, waitfor=False, upgrade=False):
-        nfsdir, packdir, pxe = handle
+        nfsdir, packdir, pxe, uefi = handle
 
         if waitfor:
             # Monitor for installation complete
@@ -1973,8 +1973,11 @@ fi
 
             # Boot the local disk  - we need to update this before the machine
             # reboots after setting the signal flag.
-            pxe.setDefault("local")
-            pxe.writeOut(self.machine)
+            if uefi:
+                self.writeUefiLocalBoot(nfsdir, pxe)
+            else:
+                pxe.setDefault("local")
+                pxe.writeOut(self.machine)
             if self.bootLun:
                 pxe.writeISCSIConfig(self.machine, boot=True)
     
@@ -2245,6 +2248,30 @@ fi
                 xenrt.TEC().logverbose("Exception cleaning disk %s: %s" %
                                        (ld, str(e)))
         self.execdom0("sync")
+
+    def installHostSupPacks(self, isoPath, isoName, reboot=True):
+
+        #Download ISO file form DISTFILES path
+        hostISOURL = "%s/%s" %(isoPath, isoName)
+        hostISO = xenrt.TEC().getFile(hostISOURL)
+        if not hostISO: 
+            raise xenrt.XRTError("Failed to fetch host supppack ISO.")
+
+        xenrt.checkFileExists(hostISO, level=xenrt.RC_FAIL)
+
+        hostPath = "/tmp/%s" % (isoName)
+
+        sh = self.sftpClient()
+        try:
+            sh.copyTo(hostISO, hostPath)
+        finally:
+            sh.close()
+
+        #Installing suppack
+        xenrt.TEC().logverbose("Installing Host Supplemental pack: %s" % isoName)
+        self.execdom0("xe-install-supplemental-pack %s" % hostPath)
+        if reboot:
+            self.reboot()
 
     def applyRequiredPatches(self, applyGuidance=True, applyGuidanceAfterEachPatch=False):
         """Apply suitable patches from the list given by the user.
@@ -3672,6 +3699,27 @@ fi
         if returndata:
             return data
     
+    def unpackPatch(self, patchfile):
+        """Unpack a patch on a XenServer host"""
+        workdir = string.strip(self.execdom0("mktemp -d /tmp/XXXXXX"))
+        patchname = os.path.basename(patchfile)
+        sftp = self.sftpClient()
+        try:
+            sftp.copyTo(patchfile, os.path.join(workdir, patchname))
+        finally:
+            sftp.close()
+
+        # First de-sign the hotfix
+        with xenrt.GEC().getLock("GPG"):
+            self.execdom0("cd %s; gpg --batch --yes -q -d --skip-verify --output %s.raw %s" % (workdir, patchname, patchname))
+
+        # Unpack it
+        unpackDir = self.execdom0("cd %s; sh %s.raw unpack" % (workdir, patchname)).strip()
+        # Remove the workdir
+        self.execdom0("rm -fr %s" % workdir)
+
+        return unpackDir
+
     def applyGuidance(self, guidance):
         if "restartHost" in guidance:
             xenrt.TEC().logverbose("Rebooting host %s after patch-apply based on after-apply-guidance" % self.getName())
@@ -6372,6 +6420,11 @@ fi
                     template = self.chooseTemplate("TEMPLATE_NAME_WIN8_64")
                 else:
                     template = self.chooseTemplate("TEMPLATE_NAME_WIN8")
+            elif re.search("win10", distro):
+                if re.search("x64", distro):
+                    template = self.chooseTemplate("TEMPLATE_NAME_WIN10_64")
+                else:
+                    template = self.chooseTemplate("TEMPLATE_NAME_WIN10")
             elif re.search("ws12", distro) and re.search("x64", distro):
                 template = self.chooseTemplate("TEMPLATE_NAME_WS12_64")
             elif re.search("debian\d+", distro):
@@ -8039,6 +8092,9 @@ rm -f /etc/xensource/xhad.conf || true
 
     def isCentOS7Dom0(self):
         return False
+
+    def writeUefiLocalBoot(self, nfsdir, pxe):
+        raise xenrt.XRTError("UEFI is not supported on this version")
 #############################################################################
 
 class MNRHost(Host):
@@ -11251,6 +11307,9 @@ class CreedenceHost(ClearwaterHost):
     def guestFactory(self):
         return xenrt.lib.xenserver.guest.CreedenceGuest
 
+    def getReadCachingController(self):
+        return xenrt.lib.xenserver.readcaching.ReadCachingController(self)
+
     def enableReadCaching(self, sruuid=None):
         if sruuid:
             srlist = [sruuid]
@@ -11338,7 +11397,6 @@ class CreedenceHost(ClearwaterHost):
 
     def licenseApply(self, v6server, licenseObj):
         self.license(v6server,sku=licenseObj.getEdition())
-
 
 #############################################################################
 class DundeeHost(CreedenceHost):
@@ -11473,9 +11531,24 @@ class DundeeHost(CreedenceHost):
 
         self.getInstaller().install(*args, **kwargs)
 
+    def writeUefiLocalBoot(self, nfsdir, pxe):
+        if not self.lookup("PXE_CHAIN_UEFI_BOOT", False, boolean=True):
+            pxe.uninstallBootloader(self.machine)
+        else:
+            with open("%s/bootlabel" % nfsdir.path()) as f:
+                bootlabel = f.read().strip()
+            xenrt.TEC().logverbose("Found %s as boot partition" % bootlabel)
+            localEntry = """
+                search --label --set root %s
+                chainloader /EFI/xenserver/grubx64.efi
+            """ % bootlabel
+            pxe.addGrubEntry("local", localEntry)
+            pxe.setDefault("local")
+            pxe.writeOut(self.machine)
+
 #############################################################################
 
-class StorageRepository:
+class StorageRepository(object):
     """Models a storage repository."""
 
     CLEANUP = "forget"
@@ -11497,6 +11570,33 @@ class StorageRepository:
         self.dconf = None
         self.content_type = ""
         self.smconf = None
+
+    @classmethod
+    def fromExistingSR(cls, host, sruuid):
+        """
+        This method allows you to use the StorageRepository class functionailty
+        without having created the SR with the class in the first instance
+        @param host: a host on which to attach the SR
+        @type: xenrt's host object
+        @param sruuid: an existing sr's uuid (maybe created by prepare for example)
+        @type: string
+        @return: an instance of the class with the SR metadata populated
+        @rtype: StorageRepository or decendent
+        """
+        xsr = next((sr for sr in host.asXapiObject().SR() if sr.uuid == sruuid), None)
+
+        if not xsr:
+            raise ValueError("Could not find sruuid %s on host %s" %(sruuid, host))
+
+        instance = cls(host, xsr.name())
+        instance.uuid = xsr.uuid
+        instance.srtype = xsr.srType()
+
+        xpbd = next((p for p in xsr.PBD() if p.host() == host.asXapiObject()), None)
+        instance.dconf = xpbd.deviceConfig()
+        instance.smconf = xsr.smConfig()
+        instance.content_type = xsr.contentType()
+        return instance
 
     def create(self, physical_size=0, content_type="", smconf={}):
         raise xenrt.XRTError("Unimplemented")
@@ -12575,7 +12675,7 @@ class EQLTarget(xenrt.EQLTarget):
 
 #############################################################################
 
-class Pool:
+class Pool(object):
     """A host pool."""
     def __init__(self, master):
         self.master = master
@@ -14009,7 +14109,7 @@ def watchForInstallCompletion(installs):
     waiting = {}
     for x in installs:
         host, handle = x
-        nfsdir, packdir, pxe = handle
+        nfsdir, packdir, pxe, uefi = handle
         filename = "%s/.xenrtsuccess" % (nfsdir.path())
         waiting[filename] = (host, pxe)
 
@@ -14033,6 +14133,9 @@ def watchForInstallCompletion(installs):
                                      "for host boot." % (host.getName()))
                 # Boot the local disk  - we need to update this before the
                 # machine reboots after setting the signal flag.
+                if uefi:
+                    host.writeUefiLocalBoot(nfsdir, pxe)
+
                 pxe.setDefault("local")
                 pxe.writeOut(host.machine)
                 del waiting[filename]
@@ -14391,7 +14494,7 @@ class DundeePool(ClearwaterPool):
 
 #############################################################################
 
-class RollingPoolUpdate:
+class RollingPoolUpdate(object):
     """This is the base class that defines the pool upgrade procedure"""
 
     def __init__(self,
@@ -14666,7 +14769,7 @@ class RollingPoolUpdate:
 
 #############################################################################
 
-class Tile:
+class Tile(object):
     """A tile is a collection of VMs, optionally running workloads"""
     def __init__(self, host, sr, useWorkloads=True):
         self.host = host
@@ -14869,7 +14972,7 @@ class _TileInstall(xenrt.XRTThread):
 
 #############################################################################
 
-class TransferVM:
+class TransferVM(object):
     """ A class for TransferVM appliance. TransferVM is not a typical VM as
     xenrt VM object but some short-lived tooled VM launched for tranfer purpose
     and disappeared right after its usage. So the class TranferVM only exposes
@@ -14989,7 +15092,7 @@ class TransferVM:
         cli = self.host.getCLIInstance()
         return (cli.execute(self.command, " ".join(args), strip=True))
 
-class IOvirt:
+class IOvirt(object):
     """This class implements functionalities to test SR-IOV and pci pass thorough."""
 
     def __init__(self, host):
@@ -15361,7 +15464,7 @@ class IOvirt:
         return [pciid for pciid in self.vfs.keys() if fn(self.vfs[pciid]) ]
     
     
-class Appliance:
+class Appliance(object):
     
     """This class implements appliance feature (implemented in Boston) """
 
@@ -15467,7 +15570,7 @@ def runOverdueCleanup(hostname):
         if u:
             c.append("-u")
             c.append(u)
-        xenrt.GEC().dbconnect.jobctrl("borrow", c, buffer=True)
+        xenrt.GEC().dbconnect.jobctrl("borrow", c)
         log("Borrowing host %s, in order to avoid further job runs on it." % hostname)
         log("Please review and fix the content of '%s' on the controller." % cleanUpFlagsDir)
         raise xenrt.XRTError("Clean-up failed. Please fix '%s' and then return host." % hostname)                               

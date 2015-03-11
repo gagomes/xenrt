@@ -17,6 +17,7 @@ class Path(object):
         self.fileParams = []
         self.pathParams = []
         self.queryParams = []
+        self.returnKey = None
         self.parseParams()
 
     def pythonParamName(self, param):
@@ -25,13 +26,16 @@ class Path(object):
         else:
             return param
 
-    def pythonType(self, typename):
+    def pythonType(self, typename, items):
         if typename == "file":
             return "file path"
         elif typename == "object":
             return "dictionary"
         elif typename == "array":
-            return "list"
+            if items and "type" in items:
+                return "list of %s" % items['type']
+            else:
+                return "list"
         else:
             return typename
 
@@ -57,18 +61,30 @@ class Path(object):
             for p in self.formParams:
                 q = self.pythonParamName(p)
                 if p in self.fileParams:
-                    ret += """        if %s != None:\n            files['%s'] = (os.path.basename(%s), open(%s, 'rb'))\n""" % (q, p, q, q)
+                    ret += """        if %s != None:\n            files['%s'] = (os.path.basename(%s), open(%s, 'rb'))\n        else:\n            files['%s'] = ('stdin', sys.stdin)\n""" % (q, p, q, q, p)
                 else:
                     ret += """        if %s != None:\n            payload['%s'] = %s\n""" % (q, p, q)
         if self.method == "get":
-            ret += """        r = requests.get(path, params=paramdict, auth=(self.user, self.password), headers=self.customHeaders)\n"""
+            ret += """        r = requests.get(path, params=paramdict, headers=self.customHeaders)\n"""
+            ret += """        if r.status_code in (502, 503):\n"""
+            ret += """            time.sleep(30)\n"""
+            ret += """            r = requests.get(path, params=paramdict, headers=self.customHeaders)\n"""
         else:
-            ret += """        myHeaders = {'content-type': 'application/json'}\n"""
+            if self.formParams:
+                ret += """        myHeaders = {}\n"""
+            else:
+                ret += """        myHeaders = {'content-type': 'application/json'}\n"""
             ret += """        myHeaders.update(self.customHeaders)\n"""
-            ret += """        r = requests.%s(path, params=paramdict, data=payload, files=files, auth=(self.user, self.password), headers=myHeaders)\n""" % self.method
+            ret += """        r = requests.%s(path, params=paramdict, data=payload, files=files, headers=myHeaders)\n""" % self.method
+            ret += """        if r.status_code in (502, 503):\n"""
+            ret += """            time.sleep(30)\n"""
+            ret += """            r = requests.%s(path, params=paramdict, data=payload, files=files, headers=myHeaders)\n""" % self.method
         ret += """        self.__raiseForStatus(r)\n"""
         if 'application/json' in self.data['produces']:
-            ret += """        return r.json()"""
+            if self.returnKey:
+                ret += """        return r.json()['%s']""" % self.returnKey
+            else:
+                ret += """        return r.json()"""
         else:
             ret += """        return r.content"""
         return ret
@@ -82,11 +98,11 @@ class Path(object):
                 for q in [x for x in objType['properties'].keys() if x in objType.get('required', [])]:
                     self.jsonParams.append(q)
                     args.append((q,))
-                    argdesc[q] = "%s - %s" % (self.pythonType(objType['properties'][q]['type']), objType['properties'][q].get('description', ""))
+                    argdesc[q] = "%s - %s" % (self.pythonType(objType['properties'][q]['type'], objType['properties'][q].get("items")), objType['properties'][q].get('description', ""))
                 for q in [x for x in objType['properties'].keys() if x not in objType.get('required', [])]:
                     self.jsonParams.append(q)
                     args.append((q, "None"))
-                    argdesc[q] = "%s - %s" % (self.pythonType(objType['properties'][q]['type']), objType['properties'][q].get('description', ""))
+                    argdesc[q] = "%s - %s" % (self.pythonType(objType['properties'][q]['type'], objType['properties'][q].get("items")), objType['properties'][q].get('description', ""))
             else:
                 if p['in'] == "path":
                     self.pathParams.append(p['name'])
@@ -97,7 +113,7 @@ class Path(object):
 
                 if p.get('type') == "file":
                     self.fileParams.append(p['name'])
-                argdesc[p['name']] = "%s - %s" % (self.pythonType(p.get('type')), p.get('description',""))
+                argdesc[p['name']] = "%s - %s" % (self.pythonType(p.get('type'), p.get("items")), p.get('description',""))
                 if p.get('required'):
                     if not p.get('default'):
                         args.append((p['name'],))
@@ -119,7 +135,7 @@ class Path(object):
             else:
                 self.args.append("%s=%s" % (pname, pp[0][1]))
 
-            self.argdesc.append("%s: %s" % (pname, argdesc.get(pp[0][0], "")))
+            self.argdesc.append("`%s`: %s" % (pname, argdesc.get(pp[0][0], "")))
         for p in args:
             if not p[0] in self.data.get('paramOrder', []):
                 pname = self.pythonParamName(p[0])
@@ -127,7 +143,10 @@ class Path(object):
                     self.args.append(pname)
                 else:
                     self.args.append("%s=%s" % (pname, p[1]))
-                self.argdesc.append("%s: %s" % (pname, argdesc.get(p[0], "")))
+                self.argdesc.append("`%s`: %s" % (pname, argdesc.get(p[0], "")))
+
+        if self.data.get('returnKey'):
+            self.returnKey = self.data.get('returnKey')
 
     @property
     def methodSignature(self):
@@ -135,12 +154,13 @@ class Path(object):
 
     @property
     def description(self):
-        ret = "        \"\"\" %s\n" % (self.data['summary'])
+        ret = "        \"\"\"\n        %s  \n\n" % (self.data['summary'])
         if "description" in self.data:
-            ret += "            %s" % self.data['description']
-        ret += "            Parameters:\n"
-        for p in self.argdesc:
-            ret += "                 %s\n" % (p)
+            ret += "        %s  \n" % self.data['description'].rstrip()
+        if self.argdesc:
+            ret += "        Parameters:  \n"
+            for p in self.argdesc:
+                ret += "        %s  \n" % (p)
         ret += "        \"\"\""
         return ret
 
@@ -173,6 +193,8 @@ class PythonBindings(XenRTAPIv2Swagger):
 
         for p in swagger['paths'].keys():
             for m in swagger['paths'][p].keys():
+                if swagger['paths'][p][m].get('operationId') == "no_binding":
+                    continue
                 self.funcs.append(Path(self, p, m, swagger['paths'][p][m], swagger['definitions']))
         
         self.scheme = swagger['schemes'][0]
@@ -186,40 +208,46 @@ import requests
 import json
 import httplib
 import os.path
-import netrc
+import base64
+import sys
+import time
 
 class XenRTAPIException(Exception):
-    def __init__(self, code, reason, canForce):
+    def __init__(self, code, reason, canForce, traceback):
         self.code = code
         self.reason = reason
         self.canForce = canForce
+        self.traceback = traceback
 
     def __str__(self):
         ret = "%%s %%s: %%s" %% (self.code, httplib.responses[self.code], self.reason)
         if self.canForce:
             ret += " (can force override)"
+        if self.traceback:
+            ret += "\\n%%s" %% self.traceback
         return ret
 
 class XenRT(object):
-    def __init__(self, user=None, password=None):
-        self.base = "%s://%s%s"
+    def __init__(self, apikey=None, user=None, password=None, server=None):
+        \"\"\"
+        Constructor
 
-        if not user:
-            auth = netrc.netrc().authenticators("%s")
-            if not auth:
-                raise Exception("No authentication details specified by parameters or in .netrc for %s")
-            self.user = auth[0]
-            self.password = auth[2]
-        else:
-            self.user = user
-            self.password = password
+        Parameters:  
+        `apikey`: API key to use, for API key authentication  
+        `user`: Username, for basic authentication  
+        `password`: Password, for basic authentication  
+        `server`: Server to connect to, if need to override default  
+        \"\"\"
+        if not server:
+            server ="%s"
+        self.base = "%s://%%s%s" %% server
+
         self.customHeaders = {}
-
-    def set_fake_user(self, user):
-        if not user and "X-Fake-User" in self.customHeaders:
-            del self.customHeaders["X-Fake-User"]
-        elif user:
-            self.customHeaders["X-Fake-User"] = user
+        if apikey:
+            self.customHeaders['x-api-key'] = apikey
+        elif user and password:
+            base64string = base64.encodestring('%%s:%%s' %% (user, password)).replace('\\n', '')
+            self.customHeaders["Authorization"] = "Basic %%s" %% base64string
 
     def __serializeForQuery(self, data):
         if isinstance(data, bool):
@@ -230,7 +258,7 @@ class XenRT(object):
             return str(data)
 
     def __serializeForPath(self, data):
-        return str(data)
+        return str(data).replace("/", "%%252F")
 
     def __raiseForStatus(self, response):
         try:
@@ -238,19 +266,22 @@ class XenRT(object):
                 j = response.json()
                 reason = j['reason']
                 canForce = j.get('can_force')
+                traceback = j.get('traceback')
             else:
                 reason = None
                 canForce = False
+                traceback = None
         except:
             pass
         else:
             if reason:
                 raise XenRTAPIException(response.status_code,
                                         reason,
-                                        canForce)
+                                        canForce,
+                                        traceback)
         response.raise_for_status()
 
-""" % (self.scheme, self.host, self.base, self.host, self.host)
+""" % (self.host, self.scheme, self.base)
         for func in self.funcs:
             ret += "%s\n" % func.methodSignature
             ret += "%s\n" % func.description
@@ -259,4 +290,4 @@ class XenRT(object):
     
         return ret
 
-PageFactory(PythonBindings, "bindings/xenrtapi.py", reqType="GET", contentType="text/plain")
+PageFactory(PythonBindings, "bindings/__init__.py", reqType="GET", contentType="text/plain")

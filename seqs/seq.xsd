@@ -321,6 +321,7 @@
           <xs:attribute name ="sku" use="optional" type="xs:string"/>
           <xs:attribute name="id" use="required" type="tcClassPathType"/>
           <xs:attribute name="name" use="optional" type="tcNameType"/>
+          <xs:attribute name="depends" use="optional" type="xs:string"/>
         </xs:complexType>
       </xs:element>
     </xs:sequence>

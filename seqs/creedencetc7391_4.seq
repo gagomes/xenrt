@@ -8,7 +8,10 @@
   </prepare>
   <testsequence>
     <parallel group="VM1G2C_4" workers="1">
+      <testcase id="xenserver.tc.smoketest.TC23522" prio="4" tc="TC-23522"/>
+      <testcase id="xenserver.tc.smoketest.TC23523" prio="4" tc="TC-23523"/>
       <testcase id="xenserver.tc.smoketest.TC23524" prio="4" tc="TC-23524"/>
+      <testcase id="xenserver.tc.smoketest.TC23929" prio="4" tc="TC-23929"/>
     </parallel>
   </testsequence>
 </xenrt>

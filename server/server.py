@@ -9,6 +9,9 @@ import config
 
 import uuid
 import json
+import traceback
+import sys
+import gc
 
 #def launch_memory_usage_server(port = 8080):
 #    import cherrypy
@@ -27,6 +30,7 @@ class Server(object):
     def __init__(self):
         self.appconfig = Configurator()
         self.appconfig.include("pyramid_chameleon")
+        self.appconfig.include("pyramid_mako")
         self.compatActions = {}
 
     def addPage(self, location, function, renderer, reqType):
@@ -68,13 +72,27 @@ class PageFactory(object):
 
     def __call__(self, context, request):
         page = self.page(request)
-        ret = page.renderWrapper()
-        if self.contentType:
+        try:
+            ret = page.renderWrapper()
+        except Exception, e:
+            if isinstance(e, HTTPException):
+                raise
+            else:
+                traceback.print_exc(sys.stderr)
+                if self.json:
+                    raise HTTPInternalServerError(body=json.dumps({"reason": str(e), "traceback": traceback.format_exc()}), content_type="application/json")
+                else:
+                    raise HTTPInternalServerError(body="Internal Server error:\n\n%s" % traceback.format_exc(), content_type="text/plain")
+        if request.params.get("plain") == "true":
+            request.response.content_type == "text/plain"
+        elif self.contentType:
             request.response.content_type = self.contentType
         if self.string and ret and isinstance(ret, basestring) and not ret[-1] == "\n":
             ret += "\n"
         if self.json and ret and not isinstance(ret, basestring) and not isinstance(ret, HTTPException):
             ret = json.dumps(ret, indent=2, sort_keys=True, encoding="latin-1")
+        page = None
+        gc.collect()
         return ret
 
 class Page(object):

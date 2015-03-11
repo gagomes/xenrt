@@ -5554,7 +5554,7 @@ class TC11582(TC11531):
 
 #### vSwitch Scalability Tests ####
 
-class _TC11537:
+class _TC11537(object):
     """
     Base class providing Create VIFs/VMs for TC11537 sequences
     """

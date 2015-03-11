@@ -2,86 +2,130 @@
 
   <variables>
     <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <PREPARE_WORKERS>5</PREPARE_WORKERS>
   </variables>
 
   <prepare>
-    <host/>
+    <host license="enterprise-per-socket" >
+      <vm name="masterwin7sp1-x86">
+        <distro>win7sp1-x86</distro>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <network device="0" />
+        <disk device="0" size="24" />
+      </vm>
+      <vm name="masterws08r2sp1-x64">
+        <distro>ws08r2sp1-x64</distro>
+        <arch>x86-64</arch>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <network device="0" />
+        <disk device="0" size="24" />
+      </vm>
+      <vm name="masterwin8-x64">
+        <distro>win8-x64</distro>
+        <arch>x86-64</arch>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <network device="0" />
+        <disk device="0" size="24" />
+      </vm>
+      <vm name="masterwin81-x86">
+        <distro>win81-x86</distro>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <network device="0" />
+        <disk device="0" size="24" />
+      </vm>
+      <vm name="masterws12r2-x64">
+        <distro>ws12r2-x64</distro>
+        <arch>x86-64</arch>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <network device="0" />
+        <disk device="0" size="32" />
+      </vm>
+    </host>
   </prepare>
 
   <testsequence>
-    <serial group="K2Config">
-      <testcase tc="TC-20818" id="testcases.xenserver.tc.vgpu.TCBasicVerifOfAllK2config">
-        <arg>distro=0,1,2,3,4,5,6,7,8</arg>
+    <serial group="K1Config">
+      <testcase tc="TC-20819" id="testcases.xenserver.tc.vgpu.TCBasicVerifOfAllK2config">
+        <arg>distro=0,2,4,5,8</arg>
         <arg>typeofvgpu=nvidiawinvgpu</arg>
-        <arg>vgpuconfig=6,7,8,9,10,11</arg>
+        <arg>vgpuconfig=0,1,2,4,5</arg>
       </testcase>
 
-      <testcase tc="TC-20820" id="testcases.xenserver.tc.vgpu.TCAssignK2vGPUToVMhasGotvGPU">
-        <arg>distro=0</arg>
-        <arg>typeofvgpu=nvidiawinvgpu</arg>
-        <arg>vgpuconfig=6</arg>
-      </testcase>
-
-      <testcase tc="TC-20824" id="testcases.xenserver.tc.vgpu.TCOpsonK2vGPUToVMhasGotvGPU">
-        <arg>distro=0</arg>
-        <arg>typeofvgpu=nvidiawinvgpu</arg>
-        <arg>vgpuconfig=6,11</arg>
-      </testcase>
-
-      <testcase tc="TC-20822" id="testcases.xenserver.tc.vgpu.TCRevertvGPUSnapshot">
-        <arg>distro=0</arg>
-        <arg>typeofvgpu=nvidiawinvgpu</arg>
-        <arg>vgpuconfig=6,11</arg>
-      </testcase>
-
-      <testcase tc="TC-20823" id="testcases.xenserver.tc.vgpu.TCRevertnonvGPUSnapshot">
-        <arg>distro=0</arg>
-        <arg>typeofvgpu=nvidiawinvgpu</arg>
-        <arg>vgpuconfig=8</arg>
-      </testcase>
-
-      <testcase tc="TC-20829" id="testcases.xenserver.tc.vgpu.TCReuseK2PGPU">
-        <arg>distro=1,6</arg>
-        <arg>typeofvgpu=nvidiawinvgpu</arg>
-        <arg>vgpuconfig=6,8</arg>
-      </testcase>
-
-      <testcase tc="TC-20826" id="testcases.xenserver.tc.vgpu.TCCheckPerfModeAllVMs">
+      <testcase tc="TC-20821" id="testcases.xenserver.tc.vgpu.TCAssignK2vGPUToVMhasGotvGPU">
         <arg>distro=1</arg>
         <arg>typeofvgpu=nvidiawinvgpu</arg>
-        <arg>vgpuconfig=6</arg>
+        <arg>vgpuconfig=0</arg>
       </testcase>
 
-      <testcase tc="TC-20871" id="testcases.xenserver.tc.vgpu.TCExportImportK2GPU">
-        <arg>distro=6</arg>
+      <testcase tc="TC-20830" id="testcases.xenserver.tc.vgpu.TCReuseK2PGPU">
+        <arg>distro=4,5</arg>
+        <arg>vgpuconfig=0,2</arg>
         <arg>typeofvgpu=nvidiawinvgpu</arg>
-        <arg>vgpuconfig=8,11</arg>
+        <arg>others=nvidiawinvgpu</arg>
       </testcase>
 
-      <testcase tc="TC-20835" id="testcases.xenserver.tc.vgpu.TCAddPassthroughToFullGPUK200">
-      </testcase>
-
-      <testcase tc="TC-20836" id="testcases.xenserver.tc.vgpu.TCAddvGPUToFullyPTGPUK260">
-      </testcase>
-
-      <testcase tc="TC-20873" id="testcases.xenserver.tc.vgpu.TCChangeK2vGPUType">
-        <arg>distro=0,6</arg>
+      <testcase tc="TC-20870" id="testcases.xenserver.tc.vgpu.TCExportImportK2GPU">
+        <arg>distro=1</arg>
         <arg>typeofvgpu=nvidiawinvgpu</arg>
-        <arg>vgpuconfig=6,7,8,9,10,11</arg>
+        <arg>vgpuconfig=0,5</arg>
       </testcase>
 
-      <testcase id="testcases.xenserver.tc.vgpu.TCNonWindowsK1" name="TC20890" tc="TC-20890" >
+      <testcase tc="TC-20837" id="testcases.xenserver.tc.vgpu.TCNovGPUTypeGiven">
+        <arg>distro=2</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+      </testcase>
+
+      <testcase tc="TC-20832" id="testcases.xenserver.tc.vgpu.TCAddPassthroughToFullGPUK100">
+      </testcase>
+
+      <testcase tc="TC-20833" id="testcases.xenserver.tc.vgpu.TCAddvGPUToFullyPThGPUK100">
+      </testcase>
+
+      <testcase tc="TC-20872" id="testcases.xenserver.tc.vgpu.TCChangeK2vGPUType">
+        <arg>distro=2</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+        <arg>vgpuconfig=0,1,2,3,5</arg>
+      </testcase>
+
+      <testcase id="testcases.xenserver.tc.vgpu.TCAlloModePerfDist" name="TC20862" tc="TC-20862" />
+
+      <testcase id="testcases.xenserver.tc.vgpu.TCGPUGroupEmptyGroup" name="TC20867" tc="TC-20867" />
+
+      <testcase id="testcases.xenserver.tc.vgpu.TCGPUGroupMisc" name="TC20868" tc="TC-20868" />
+
+      <testcase id="testcases.xenserver.tc.vgpu.TCNonWindowsK1" name="TC20889" tc="TC-20889">
         <arg>distro=9</arg>
         <arg>typeofvgpu=nvidiawinvgpu</arg>
-        <arg>vgpuconfig=8</arg>
+        <arg>vgpuconfig=5</arg>
       </testcase>
 
-      <testcase id="testcases.xenserver.tc.vgpu.TCvGPUBalloon" name="TC-21552" tc="TC-21552" >
-        <arg>distro=1</arg>
+      <testcase id="testcases.xenserver.tc.vgpu.TCDepthK100K140K1Pass" name="TC20895" tc="TC-20895">
+        <arg>distro=5</arg>
         <arg>typeofvgpu=nvidiawinvgpu</arg>
-        <arg>vgpuconfig=8</arg>
+        <arg>vgpuconfig=0,2</arg>
       </testcase>
 
+      <testcase id="testcases.xenserver.tc.vgpu.TCDepthK1Pass" name="TC20896" tc="TC-20896">
+        <arg>distro=4</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+        <arg>vgpuconfig=5</arg>
+      </testcase>
+
+      <testcase id="testcases.xenserver.tc.vgpu.TCBreadthK100K1Pass" name="TC20894" tc="TC-20894">
+        <arg>distro=0</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+        <arg>vgpuconfig=0,5</arg>
+      </testcase>
 
     </serial>
   </testsequence>

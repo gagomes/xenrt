@@ -133,7 +133,7 @@ class FileManager(object):
         self.defaultFetchTimeout = 3600
         self.externalFetchTimeout = 6 * 3600
 
-    def getFile(self, filename, multiple=False):
+    def getFile(self, filename, multiple=False, replaceExistingIfDiffers=False):
         try:
             xenrt.TEC().logverbose("getFile %s" % filename)
             self.lock.acquire()
@@ -142,7 +142,7 @@ class FileManager(object):
             fnr = FileNameResolver(filename, multiple)
             url = fnr.url
             localName = fnr.localName
-            cache = self.__availableInCache(fnr)
+            cache = self.__availableInCache(fnr, replaceExistingIfDiffers=replaceExistingIfDiffers)
             if cache:
                 return cache
 
@@ -277,6 +277,8 @@ class FileManager(object):
                 if not os.path.exists(dirname):
                     os.makedirs(dirname)
                 return "%s/%s" % (dirname, self._filename(filename))
+            elif os.path.exists(cachedir):
+                raise xenrt.XRTError("External cache directory exists but is not external storage.")
         except Exception, e:
             if not ignoreError:
                 raise xenrt.XRTError("_externalCacheLocation: %s" % str(e))
@@ -299,7 +301,7 @@ class FileManager(object):
                 os.unlink(cache)
                 return
 
-    def __availableInCache(self, fnr):
+    def __availableInCache(self, fnr, replaceExistingIfDiffers=False):
 
         filename = fnr.localName
         perJobLocation = self._perJobCacheLocation(filename)
@@ -323,8 +325,20 @@ class FileManager(object):
                 else:
                     deadline = xenrt.util.timenow() + self.defaultFetchTimeout
                 while xenrt.util.timenow() < deadline:
-                    if not os.path.exists("%s.fetching" % cache):
-                        break
+                    try:
+                        with open("%s.fetching" % cache) as f:
+                            job = f.read().strip()
+                            if job != "nojob":
+                                # Check if the job is still running
+                                j = xenrt.GEC().dbconnect.api.get_job(int(job))
+                                if j['rawstatus'] == "done" or j['params'].get('DEAD_JOB') == "yes":
+                                    os.unlink("%s.fetching" % cache)
+                                    break
+                    except Exception, e:
+                        xenrt.TEC().logverbose("Warning: exception %s raised when checking fetching file" % str(e))
+                        if not os.path.exists("%s.fetching" % cache):
+                            break
+                        raise 
                     xenrt.sleep(15)
 
                 # we need to raise an alarm if any fetching file is not deleted.
@@ -355,6 +369,9 @@ class FileManager(object):
                     if expectedLength:
                         s = os.stat(cache)
                         if s.st_size != expectedLength:
+                            if replaceExistingIfDiffers:
+                                self.removeFromCache(filename)
+                                return None
                             raise xenrt.XRTError("found in global cache, but content-length (%d) differs from original (%d)" % (s.st_size, expectedLength))
 
                 if cache == externalLocation:

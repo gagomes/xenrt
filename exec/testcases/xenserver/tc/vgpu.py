@@ -1789,12 +1789,8 @@ class NvidiaWindowsvGPU(DifferentGPU):
 class NvidiaLinuxvGPU(DifferentGPU):
 
     def installHostDrivers(self,allHosts):
-        ids = ["3c01","3c02","3c03","3c04","3c05","3c06","3c07","3c08","3c09","3c0a","3c0b","0e01","0e04","0e05","0e06","0e07","0e08","0e09",
-               "0e0a","0e0b","2f01","2f02","2f03","2f04","2f05","2f06","2f07","2f08","2f09","2f0a","2f0b"]
-
-        for host in allHosts:
-            for i in ids:
-                host.execdom0("setpci -d 8086:%s ac.w=0" %i)
+        xenrt.TEC().logverbose("Not implemented")
+        pass
 
     def installGuestDrivers(self, guest, vGPUType):
         VGPUTest().installNvidiaLinuxDrivers(guest, vGPUType)

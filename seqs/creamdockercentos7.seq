@@ -10,10 +10,6 @@
     <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
   </variables>
 
-  <scheduler>
-    <resources>memory&gt;=20G/disk1&gt;=140G</resources>
-  </scheduler>
-
   <prepare>
     <pool id="0">
       <host id="0">
@@ -23,7 +19,7 @@
           <memory>1024</memory>
           <vcpus>2</vcpus>
           <network device="0" />
-          <disk device="0" size="5" />
+          <disk device="0" size="50" />
           <postinstall action="dockerInstall" />
         </vm>
       </host>
@@ -32,9 +28,11 @@
 
   <testsequence>
     <serial group="CentOS">
-      <testcase id="xenserver.tc.docker.TCContainerLifeCycle" tc="TC-23918" name="ContainerLifeCycle" sku="CentOS7">
-        <arg>coreosdistro=${DISTRO}</arg>
-      </testcase>
+
+      <testcase id="xenserver.tc.docker.TCContainerLifeCycle" tc="TC-23918" name="ContainerLifeCycle" sku="CentOS7" />
+      <testcase id="xenserver.tc.docker.TCScaleContainers" tc="TC-26523" name="ScaleContainers" sku="CentOS7" />
+      <testcase id="xenserver.tc.docker.TCGuestsLifeCycle" tc="TC-26443" name="GuestsLifeCycle" sku="CentOS7" />
+
     </serial>
   </testsequence>
 

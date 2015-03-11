@@ -127,6 +127,7 @@ extrapackages-install:
 	$(SUDO) easy_install --upgrade jsonschema
 	$(SUDO) easy_install --upgrade pip
 	$(SUDO) easy_install --upgrade pdoc
+	$(SUDO) easy_install --upgrade uwsgitop
 
 	$(SUDO) ln -sf `which genisoimage` /usr/bin/mkisofs
 	$(SUDO) apt-get install -y --force-yes python-m2crypto

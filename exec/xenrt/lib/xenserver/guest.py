@@ -5883,21 +5883,24 @@ default:
 
         self.getDocker().install()
 
-    def getDocker(self):
+    def getDocker(self, method="XAPI"):
+
+        if method == "XAPI":
+            controller = xenrt.lib.xenserver.docker.XapiPluginDockerController
+        elif method == "LINUX":
+            controller = xenrt.lib.xenserver.docker.LinuxDockerController
+        else:
+            raise xenrt.XRTError("Unknown docker controller %s" % method)
 
         # The method by default uses docker interactions through Xapi.
         if self.distro.startswith("coreos"):
-            return xenrt.lib.xenserver.docker.CoreOSDocker(self.getHost(), self,
-                                xenrt.lib.xenserver.docker.XapiPluginDockerController)
+            return xenrt.lib.xenserver.docker.CoreOSDocker(self.getHost(), self, controller)
         elif self.distro.startswith("centos"): # CentOS7
-            return xenrt.lib.xenserver.docker.CentOSDocker(self.getHost(), self,
-                                xenrt.lib.xenserver.docker.XapiPluginDockerController)
+            return xenrt.lib.xenserver.docker.CentOSDocker(self.getHost(), self, controller)
         elif self.distro.startswith("ubuntu"): #  Ubuntu 14.04
-            return xenrt.lib.xenserver.docker.UbuntuDocker(self.getHost(), self,
-                                xenrt.lib.xenserver.docker.XapiPluginDockerController)
+            return xenrt.lib.xenserver.docker.UbuntuDocker(self.getHost(), self, controller)
         else:
-            raise xenrt.XRTFailure("Docker installation unimplemented on distro %s" %
-                                                                            self.distro)
+            raise xenrt.XRTFailure("Docker installation unimplemented on distro %s" % self.distro)
 
 class DundeeGuest(CreedenceGuest):
 

@@ -40,7 +40,7 @@ class LicenseBase(xenrt.TestCase, object):
         else:
             self.systemObj = self.getHost("RESOURCE_HOST_1").getPool()
 
-        self.__parseArgs(arglist)
+        self.parseArgs(arglist)
 
         self.v6 = self.licenseServer(self.newLicenseServerName)
 
@@ -60,7 +60,7 @@ class LicenseBase(xenrt.TestCase, object):
         v6.removeAllLicenses()
         return v6
 
-    def __parseArgs(self,arglist):
+    def parseArgs(self,arglist):
 
         for arg in arglist:
             if arg.startswith('sku'):
@@ -321,7 +321,7 @@ class TCVirtualGPUFeature(TestFeatureBase):
             # Use the first host instead of second like rest of feature testcases.
             self.systemObj = self.getHost("RESOURCE_HOST_0").getPool()
 
-        self.__parseArgs(arglist)
+        self.parseArgs(arglist)
 
         self.v6 = self.licenseServer(self.newLicenseServerName)
 

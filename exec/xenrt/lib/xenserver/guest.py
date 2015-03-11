@@ -4345,9 +4345,6 @@ def createVMFromPrebuiltTemplate(host,
              suffix=None,
              ips={}):
    
-    if not xenrt.TEC().lookup("USE_PREBUILT_TEMPLATES", True, boolean=True):
-        return None
-
     if suffix:
         displayname = "%s-%s" % (guestname, suffix)
     else:

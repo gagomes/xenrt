@@ -1127,8 +1127,8 @@ class PrepareNode(object):
                                                     "path":isos2,
                                                     "default":False,
                                                     "blkbackPoolSize":""})
-
-                            self.srs.insert(0, {"type": "nfstemplate", "host": host['name'], "default": False, "blkbackPoolSize": ""})
+                            if xenrt.TEC().lookup("USE_PREBUILT_TEMPLATES", True, boolean=True):
+                                self.srs.insert(0, {"type": "nfstemplate", "host": host['name'], "default": False, "blkbackPoolSize": ""})
 
                 # If needed, create lun groups
                 iscsihosts = {}
@@ -1246,7 +1246,7 @@ class PrepareNode(object):
                         try:
                             if isinstance(host, xenrt.lib.xenserver.CreedenceHost) and xenrt.TEC().lookup("SHARED_VHD_PATH_NFS", None):
                                 sr = xenrt.lib.xenserver.NFSStorageRepository(host, "Remote Template Library")
-                                sr.uuid = str(uuid.uuid4())
+                                sr.uuid = xenrt.lib.xenserver.host.TEMPLATE_SR_UUID
                                 sr.srtype = "nfs"
                                 sr.content_type="user"
                                 (server, path) = xenrt.TEC().lookup("SHARED_VHD_PATH_NFS").split(":")

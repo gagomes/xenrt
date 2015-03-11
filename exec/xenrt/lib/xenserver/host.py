@@ -78,6 +78,7 @@ CLI_LEGACY_NATIVE = 1   # Old style CLI on an old-style host
 CLI_LEGACY_COMPAT = 2   # Old style CLI on a new host
 CLI_NATIVE = 3          # New style CLI
 
+TEMPLATE_SR_UUID = "9ab6d700-7b6f-4d2f-831f-e7d5330b4534"
 
 def hostFactory(hosttype):
     if hosttype == "Dundee":
@@ -5519,7 +5520,7 @@ fi
             return []
         reply = []
         for f in string.split(data, ","):
-            if f in mySRs:
+            if f in mySRs and f != TEMPLATE_SR_UUID:
                 reply.append(f)
         return reply
 

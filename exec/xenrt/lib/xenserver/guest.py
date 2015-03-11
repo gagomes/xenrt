@@ -4323,7 +4323,7 @@ def createVMFromFile(host,
     guest.tailored = True
     if memory:
         guest.memset(memory)
-    
+    xenrt.TEC().registry.guestPut(guestname, guest) 
     for p in postinstall:
         eval("guest.%s()" % (p))
     if packages:

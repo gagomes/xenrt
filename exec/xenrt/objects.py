@@ -7417,7 +7417,11 @@ class GenericGuest(GenericPlace):
                 self.execguest("sed -i '/universe/d' /etc/apt/sources.list")
                 self.execguest("sed -i '/deb-src/d' /etc/apt/sources.list")
                 self.execguest("cat /etc/apt/sources.list")
-                self.execguest("apt-get update")
+                try:
+                    self.execguest("apt-get update")
+                except:
+                    self.execguest("sed -i s/10\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*/%s/ /etc/apt/sources.list" % xenrt.TEC().lookup("XENRT_SERVER_ADDRESS"))
+                    self.execguest("apt-get update")
 
 
             # If Debian then apt-get some stuff
@@ -7538,9 +7542,13 @@ class GenericGuest(GenericPlace):
                     self.execguest("apt-get remove -y bzip2")
                     data = self.execguest("apt-get update")
                 except:
-                    # If apt-get commands fail, wait a bit and retry.
-                    xenrt.sleep(60)
-                    data = self.execguest("apt-get update")
+                    self.execguest("sed -i s/10\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*/%s/ /etc/apt/sources.list" % xenrt.TEC().lookup("XENRT_SERVER_ADDRESS"))
+                    try:
+                        data = self.execguest("apt-get update")
+                    except:
+                        # If apt-get commands fail, wait a bit and retry.
+                        xenrt.sleep(60)
+                        data = self.execguest("apt-get update")
 
                 # May need to update the keyring
                 if "NO_PUBKEY" in data:

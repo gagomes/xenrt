@@ -621,18 +621,27 @@ class VGPUOwnedVMsTest(xenrt.TestCase,VGPUTest):
 
         hosts = self.getAllHosts()
 
+        vms= []
         for host in hosts:
-            guests = copy.copy(host.guests)
-            for g in guests.values():
-                if "clone" in g.name.lower():
+            cli = host.getCLIInstance()
+            step("Shutting down all the guests")
+            try:
+                cli.execute('vm-shutdown',"force=true --multiple")
+            except: pass
+
+            step("Uninstalling all the cloned guests")
+            vms = host.minimalList("vm-list") 
+            for vm in vms:
+                if "clone" in host.genParamGet("vm",vm,"name-label"):
+                    step("Uninstalling guest %s" % str(vm))
                     try:
-                        step("Shutting down guest %s" % str(g))
-                        guest.shutdown()
-                        step("Uninstalling guest %s" % str(g))
-                        host = copy.copy(g.host)
-                        host.removeGuest(g)
-                        guests[g].uninstall()
+                        cli.execute("vm-install","uuid=%s force=true" % vm) 
                     except: pass
+
+            step("Destroying all the snapshots")
+            snapshots = host.minimalList("snapshot-list")
+            for snapshot in snapshots: 
+                cli.execute("snapshot-destroy","uuid=%s force=true" % snapshot)
 
         step("Clearing locals")
         self._guestsAndTypes = None

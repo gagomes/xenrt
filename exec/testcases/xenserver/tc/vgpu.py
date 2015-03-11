@@ -1853,7 +1853,7 @@ class _AddPassthroughToFullGPU(VGPUOwnedVMsTest):
 
     def __prepareClones(self, config):
 
-        numberRequired = len(GPUGroupManager(self.getDefaultHost()).getPGPUUuids(all = True))
+        numberRequired = len(GPUGroupManager(self.getDefaultHost()).getPGPUUuids(all = True)) - len(self.getDefaultHost().minimalList("pgpu-list", args="enabled-VGPU-types="))
         log("Number of pGPUs: %d" % numberRequired)
 
         self.__shutdownMaster()

@@ -4367,22 +4367,22 @@ def createVMFromPrebuiltTemplate(host,
         if not preinstalledTemplates and templateSR:
             host.getCLIInstance().execute("sr-scan", "uuid=%s" % templateSR[0])
             m = xenrt.rootops.MountNFS(xenrt.TEC().lookup("SHARED_VHD_PATH_NFS"))
-            uuid = None
+            vuuid = None
             if os.path.exists("%s/%s_%s.cfg" % (m.getMount(), distro, arch)):
                 with open("%s/%s_%s.cfg" % (m.getMount(), distro, arch)) as f:
-                    uuid = f.read().strip()
+                    vuuid = f.read().strip()
             elif os.path.exists("%s/%s.cfg" % (m.getMount(), distro)):
                 with open("%s/%s.cfg" % (m.getMount(), distro)) as f:
-                    uuid = f.read().strip()
+                    vuuid = f.read().strip()
         
-            if uuid and os.path.exists("%s/%s.vhd" % (m.getMount(), uuid)):
+            if vuuid and os.path.exists("%s/%s.vhd" % (m.getMount(), vuuid)):
                 if rootdisk and rootdisk != Guest.DEFAULT:
                     # Check that the disk is big enough
-                    if rootdisk*xenrt.MEGA > int(host.genParamGet("vdi", uuid, "virtual-size")):
+                    if rootdisk*xenrt.MEGA > int(host.genParamGet("vdi", vuuid, "virtual-size")):
                         return None
                 template = host.getTemplate(distro, arch=arch)
                 cli = host.getCLIInstance()
-                vdiuuid = cli.execute("vdi-copy sr-uuid=%s uuid=%s" % (sruuid, uuid)).strip().strip(",")
+                vdiuuid = cli.execute("vdi-copy sr-uuid=%s uuid=%s" % (sruuid, vuuid)).strip().strip(",")
 
                 host.genParamSet("vdi", vdiuuid, "name-label", "%s_%s" % (distro, arch))
                 if xenrt.TEC().lookup("CLONE_PREBUILT_TEMPLATES", True, boolean=True):
@@ -4452,6 +4452,7 @@ def createVMFromPrebuiltTemplate(host,
         g.enlightenedDrivers = False
 
     g.changeCD("xs-tools.iso")
+    g.special['tailor_apt_source'] = True
     g.start() 
     
     if not notools:

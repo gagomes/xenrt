@@ -7404,6 +7404,10 @@ class GenericGuest(GenericPlace):
 
             isDebian = isDebian and not isUbuntu
 
+            if isUbuntu or isDebian and "tailor_apt_source" in self.special:
+                self.execguest("sed -i s/10\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*/%s/ /etc/apt/sources.list" % xenrt.TEC().lookup("XENRT_SERVER_ADDRESS"))
+                del self.special['tailor_apt_source']
+
             if isUbuntu:
                 # change the TMPTIME so /tmp doesn't get cleared away on
                 # every reboot

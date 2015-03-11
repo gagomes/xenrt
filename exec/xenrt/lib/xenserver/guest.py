@@ -4359,7 +4359,7 @@ def createVMFromPrebuiltTemplate(host,
     with xenrt.GEC().getLock("TEMPLATE_SETUP_%s_%s_%s" % (distro, arch, sruuid)):
         preinstalledTemplates = host.minimalList("template-list", args="name-label=xenrt-template-%s-%s-%s" % (distro, arch, sruuid), params="name-label")
     
-        if not preinstalledTemplates:
+        if not preinstalledTemplates or not xenrt.TEC().lookup("CLONE_TEMPLATES", True, boolean=True):
             preinstalledTemplates = host.minimalList("template-list", args="name-label=xenrt-template-%s-%s" % (distro, arch), params="name-label")
    
         templateSR = host.minimalList("sr-list", params="uuid", args="name-label='Remote Template Library'")
@@ -4388,7 +4388,8 @@ def createVMFromPrebuiltTemplate(host,
                 tuuid = cli.execute("vm-clone", "name-label=\"%s\" new-name-label=xenrt-template-%s-%s-%s" % (template, distro, arch, sruuid)).strip()
                 host.genParamSet("template", tuuid, "PV-bootloader", "pygrub")
                 host.genParamRemove("template", tuuid, "other-config", "disks")
-                cli.execute("vbd-create", "vm-uuid=%s vdi-uuid=%s device=0 bootable=true" % (tuuid, vdiuuid))
+                if xenrt.TEC().lookup("CLONE_TEMPLATES", True, boolean=True):
+                    cli.execute("vbd-create", "vm-uuid=%s vdi-uuid=%s device=0 bootable=true" % (tuuid, vdiuuid))
 
                 preinstalledTemplates = host.minimalList("template-list", args="name-label=xenrt-template-%s-%s-%s" % (distro, arch, sruuid), params="name-label")
             m.unmount()
@@ -4399,7 +4400,8 @@ def createVMFromPrebuiltTemplate(host,
     t = preinstalledTemplates[0]
     if rootdisk and rootdisk != Guest.DEFAULT:
         tuuid = host.minimalList("template-list", args="name-label=%s" % t, params="uuid")[0]
-        vdiuuid=host.minimalList("vbd-list", args="vm-uuid=%s userdevice=0" % tuuid, params="vdi-uuid")[0]
+        if xenrt.TEC().lookup("CLONE_TEMPLATES", True, boolean=True):
+            vdiuuid=host.minimalList("vbd-list", args="vm-uuid=%s userdevice=0" % tuuid, params="vdi-uuid")[0]
         # Check that the disk is big enough
         if rootdisk*xenrt.MEGA > int(host.genParamGet("vdi", vdiuuid, "virtual-size")):
             return None
@@ -4413,6 +4415,8 @@ def createVMFromPrebuiltTemplate(host,
     if memory:
         g.setMemory(memory)
     g.createGuestFromTemplate(t, None)
+    if not xenrt.TEC().lookup("CLONE_TEMPLATES", True, boolean=True):
+        cli.execute("vbd-create", "vm-uuid=%s vdi-uuid=%s device=0 bootable=true" % (g.getUUID(), vdiuuid))
     g.ips = ips
 
     g.removeAllVIFs()

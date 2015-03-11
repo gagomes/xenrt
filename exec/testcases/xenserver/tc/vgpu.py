@@ -436,10 +436,9 @@ class VGPUOwnedVMsTest(xenrt.TestCase,VGPUTest):
 
         if masterKey in guestVMs:
             log("VM found so cloning...")
-            master = host.guests[masterKey]
-            if master.getState() != "DOWN":
-                master.shutdown()
-            guest = master.cloneVM()
+            guest = host.guests[masterKey]
+            if guest.getState() != "DOWN":
+                guest.shutdown()
         else:
             log("No matching VM found, so create a new one....")
             guest = host.createGenericWindowsGuest(distro=self.getOSType(requiredOS), memory=self.__GUEST_MEMORY_MB, name=masterKey)
@@ -642,6 +641,13 @@ class VGPUOwnedVMsTest(xenrt.TestCase,VGPUTest):
             snapshots = host.minimalList("snapshot-list")
             for snapshot in snapshots: 
                 cli.execute("snapshot-destroy","uuid=%s force=true" % snapshot)
+
+            step("Destroying all the vGPUs")
+            vgpus = host.minimalList("vgpu-list")
+            for vgpu in vgpus:
+                try:
+                    cli.execute("vgpu-destroy","uuid=%s" % vgpu)
+                except: pass
 
         step("Clearing locals")
         self._guestsAndTypes = None

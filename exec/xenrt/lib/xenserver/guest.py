@@ -4359,7 +4359,7 @@ def createVMFromPrebuiltTemplate(host,
     with xenrt.GEC().getLock("TEMPLATE_SETUP_%s_%s_%s" % (distro, arch, sruuid)):
         preinstalledTemplates = host.minimalList("template-list", args="name-label=xenrt-template-%s-%s-%s" % (distro, arch, sruuid), params="name-label")
     
-        if not preinstalledTemplates or not xenrt.TEC().lookup("CLONE_PREBUILT_TEMPLATES", True, boolean=True):
+        if not preinstalledTemplates:
             preinstalledTemplates = host.minimalList("template-list", args="name-label=xenrt-template-%s-%s" % (distro, arch), params="name-label")
    
         templateSR = host.minimalList("sr-list", params="uuid", args="name-label='Remote Template Library'")

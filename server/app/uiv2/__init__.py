@@ -45,6 +45,7 @@ class XenRTUIPage(XenRTPage):
    <li class='has-sub'><a href='#'><span>Lab</span></a>
      <ul>
        <li><a href='/xenrt/ui/machines'><span>Machines</span></a></li>
+       <li><a href='/xenrt/ui/acls'><span>Access Control Lists</span></a></li>
      </ul>
    </li>
    <li><a href='/xenrt/ui/logs'><span>Browse logs</span></a></li>
@@ -88,3 +89,5 @@ PageFactory(XenRTUIPage, "/ui/logs", renderer="__main__:templates/ui/logs.mak")
 PageFactory(XenRTUIPage, "/ui/apikey", renderer="__main__:templates/ui/apikey.mak")
 PageFactory(XenRTUIPage, "/ui/machines", renderer="__main__:templates/ui/machines.mak")
 PageFactory(XenRTUIPage, "/ui/machine", renderer="__main__:templates/ui/machine.mak")
+PageFactory(XenRTUIPage, "/ui/acls", renderer="__main__:templates/ui/acls.mak")
+PageFactory(XenRTUIPage, "/ui/acl", renderer="__main__:templates/ui/acl.mak")

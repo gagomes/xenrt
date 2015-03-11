@@ -626,7 +626,7 @@ class VGPUOwnedVMsTest(xenrt.TestCase,VGPUTest):
             cli = host.getCLIInstance()
             step("Shutting down all the guests")
             try:
-                cli.execute('vm-shutdown',"force=true --multiple")
+                cli.execute('vm-shutdown',"is-control-domain=false force=true --multiple")
             except: pass
 
             step("Uninstalling all the cloned guests")
@@ -635,7 +635,7 @@ class VGPUOwnedVMsTest(xenrt.TestCase,VGPUTest):
                 if "clone" in host.genParamGet("vm",vm,"name-label"):
                     step("Uninstalling guest %s" % str(vm))
                     try:
-                        cli.execute("vm-install","uuid=%s force=true" % vm) 
+                        cli.execute("vm-uninstall","uuid=%s force=true" % vm) 
                     except: pass
 
             step("Destroying all the snapshots")

@@ -439,7 +439,6 @@ class VGPUOwnedVMsTest(xenrt.TestCase,VGPUTest):
             guest = host.guests[masterKey]
             if guest.getState() != "DOWN":
                 guest.shutdown()
-            #guest = master.cloneVM()
         else:
             log("No matching VM found, so create a new one....")
             guest = host.createGenericWindowsGuest(distro=self.getOSType(requiredOS), memory=self.__GUEST_MEMORY_MB, name=masterKey)

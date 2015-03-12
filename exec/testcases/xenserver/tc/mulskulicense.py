@@ -337,7 +337,7 @@ class TCVirtualGPUFeature(TestFeatureBase):
             featureResctictedFlag,
             "Feature flag on host does not match actual permissions. Feature allowed: %s, Feature restricted: %s" % (featureRestricted, featureResctictedFlag))
 
-        enabledList = feature.isEnabled(self.systemObj.master, interestedVMName)
+        enabledList = feature.isEnabled(self.systemObj.master, self.interestedVMName)
         self.confirmLicenseServerUp()
         assertions.assertEquals(not featureRestricted,
             True in enabledList,
@@ -352,7 +352,7 @@ class TCVirtualGPUFeature(TestFeatureBase):
             "Feature flag is not restricted after removing license. Feature restricted: %s" % (featureResctictedFlag))
 
 
-        enabledList = feature.isEnabled(self.systemObj.master, interestedVMName)
+        enabledList = feature.isEnabled(self.systemObj.master, self.interestedVMName)
         self.confirmLicenseServerUp()
         assertions.assertFalse(True in enabledList, "vGPU is enabled after removing license and lifecycle operation.")
 

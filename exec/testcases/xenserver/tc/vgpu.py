@@ -4180,6 +4180,10 @@ class TCcreatevGPU(VGPUAllocationModeBase):
 
         g.snapshot('aftervGPU')
 
+    def postRun(self):
+        """Stop the vgpu from being cleaned up."""
+        pass
+
 class TCcheckNvidiaDriver(xenrt.TestCase):
     """Sanity check to verify the NVIDIA driver is built correctly for the host kernel version"""
 

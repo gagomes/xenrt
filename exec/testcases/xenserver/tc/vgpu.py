@@ -1847,13 +1847,15 @@ class _AddPassthroughToFullGPU(VGPUOwnedVMsTest):
     """
     __ERROR = "VGPU type is not compatible with one or more of the VGPU types currently running on this PGPU"
 
-    def __init__(self, config1, config2):
-        super(_AddPassthroughToFullGPU, self).__init__([VGPUOS.Win7x86], config1, VGPUDistribution.BreadthFirst, False, False)
-        self.__config2 = config2
+    def __init__(self, configTobeFilled, configTobeChecked):
+        super(_AddPassthroughToFullGPU, self).__init__([VGPUOS.Win7x86], configTobeFilled, VGPUDistribution.BreadthFirst, False, False)
+        self.__config2 = configTobeChecked
 
     def __prepareClones(self, config):
 
-        numberRequired = len(GPUGroupManager(self.getDefaultHost()).getPGPUUuids(all = True)) - len(self.getDefaultHost().minimalList("pgpu-list", args="enabled-VGPU-types="))
+        totalPGPUs = len(GPUGroupManager(self.getDefaultHost()).getPGPUUuids(all = True)) 
+        nonSupportedGPUs = len(self.getDefaultHost().minimalList("pgpu-list", args="enabled-VGPU-types="))
+        numberRequired = totalPGPUs - nonSupportedGPUs
         log("Number of pGPUs: %d" % numberRequired)
 
         self.__shutdownMaster()
@@ -1877,24 +1879,24 @@ class _AddPassthroughToFullGPU(VGPUOwnedVMsTest):
         self.__prepareClones(self.__config2)
 
         #-------------------------------------------
-        step("Start all config1 clones")
+        step("Start all configTobeFilled clones")
         #-------------------------------------------
         [vm.start() for vm in self.__clones]
 
         #-------------------------------------------
-        step("Start config2 clone")
+        step("Start configTobeChecked clone")
         #-------------------------------------------
         try:
-            step("Start config2 clone")
+            step("Start configTobeChecked clone")
             self.__ptGuest.start()
         except Exception, e:
             if not re.search(self.__ERROR, str(e)):
                 raise xenrt.XRTFailure("Exception raised not matching expected error message: " + str(e))
 
-            log("VM with config2 could not be started - as expected")
+            log("VM with configTobeChecked could not be started - as expected")
             return
 
-        raise xenrt.XRTFailure("guest with config2 was allowed to start on a pre-used pGPU")
+        raise xenrt.XRTFailure("guest with configTobeChecked was allowed to start on a pre-used pGPU")
 
     def postRun(self):
         for guest in self.__clones:

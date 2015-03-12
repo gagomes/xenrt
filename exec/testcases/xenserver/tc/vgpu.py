@@ -1604,7 +1604,7 @@ class VGPUAllocationModeBase(VGPUOwnedVMsTest):
         self.host = host
 
         if self.SR_TYPE == SRType.Local:
-            self.sr = host.getSRs(type="lvm", local=True)[0]
+            self.sr = host.getSRs(type="ext", local=True)[0]
 
         else:
             # find existing NFS
@@ -1692,7 +1692,7 @@ class FunctionalBase(VGPUAllocationModeBase):
         step("Install host drivers")
         self.typeOfvGPU.installHostDrivers(self.getAllHosts())
 
-        self.sr = self.host.getSRs(type="lvm", local=True)[0]
+        self.sr = self.host.getSRs(type="ext", local=True)[0]
         self.prepareGPUGroups()
 
     def typeofvGPU(self, typeOfvGPU = None):

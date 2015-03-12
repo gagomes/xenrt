@@ -1244,7 +1244,7 @@ class PrepareNode(object):
                         sr.scan()
                     elif s['type'] == "nfstemplate":
                         try:
-                            host.createTemplateSR()
+                            sr = host.createTemplateSR()
                         except Exception, e:
                             # This is only best effort
                             xenrt.TEC().logverbose("Warning - could not add remote template library: %s" % str(e))

@@ -11467,6 +11467,9 @@ class CreedenceHost(ClearwaterHost):
             (server, path) = xenrt.TEC().lookup("SHARED_VHD_PATH_NFS").split(":")
             sr.dconf = {"server": server, "serverpath": path}
             sr.introduce(nosubdir = True)
+            return sr
+        else:
+            raise xenrt.XRTError("No NFS path defined")
        
 
 #############################################################################

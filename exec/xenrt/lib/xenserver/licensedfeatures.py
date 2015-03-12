@@ -1,6 +1,7 @@
 from abc import ABCMeta, abstractproperty, abstractmethod
 from xenrt.enum import XenServerLicenceSKU
 import re
+import xenrt
 
 __all__ = ["WorkloadBalancing", "ReadCaching",
            "VirtualGPU", "Hotfixing", "ExportPoolResourceList",
@@ -133,7 +134,11 @@ class VirtualGPU(LicensedFeature):
             vms = host.guests.values()
 
         [vm.setState("DOWN") for vm in vms]
-        [vm.setState("UP") for vm in vms]
+        try:
+            [vm.setState("UP") for vm in vms]
+        except xenrt.XRTFailure as e:
+            xenrt.TEC().logverbose("VM failed to start, assumed due to removal of license as intended. Ex: %s" % e)
+
         return [vm.getState() == "UP" for vm in vms]
 
     @property

@@ -108,6 +108,7 @@ class TCGuestsLifeCycle(TCContainerLifeCycle):
             guest.resume()
             guest.shutdown()
             guest.start()
+            xenrt.sleep(60)
 
     def run(self, arglist=None):
 
@@ -131,6 +132,7 @@ class TCGuestsMigration(TCGuestsLifeCycle):
             self.getLogsFrom(guest)
             guest.migrateVM(host=host, live="true")
             guest.check()
+            xenrt.sleep(60)
 
     def run(self, arglist=None):
 

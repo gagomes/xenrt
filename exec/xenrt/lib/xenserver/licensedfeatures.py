@@ -126,12 +126,15 @@ class VirtualGPU(LicensedFeature):
 
     def isEnabled(self, host, specificVM=None):
         """Can check against all vms on the host, or check a specific VM."""
-        [vm.setState("DOWN") for vm in host.guests.values()]
-        [vm.setState("UP") for vm in host.guests.values()]
+        vms = None
         if specificVM:
-            return specificVM.getState() == "UP"
+            vms = [specificVM]
         else:
-            return [vm.getState() == "UP" for vm in host.guests.values()]
+            vms = host.guests.values()
+
+        [vm.setState("DOWN") for vm in vms]
+        [vm.setState("UP") for vm in vms]
+        return [vm.getState() == "UP" for vm in vms]
 
     @property
     def featureFlagName(self):

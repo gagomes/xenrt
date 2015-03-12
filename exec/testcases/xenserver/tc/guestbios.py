@@ -626,7 +626,7 @@ class TC10199(TC10190):
 
     NUM_CUSTOM_VMS = 2
     NUM_GENERIC_VMS = 2
-    GENERIC_MEM = 128
+    GENERIC_MEM = 512
     ITERATIONS = 1
 
     def run(self, arglist=None):

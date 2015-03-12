@@ -11,8 +11,6 @@
       <testcase id="xenserver.tc.smoketest.TC8940" prio="4" tc="TC-8940"/>
       <testcase id="xenserver.tc.smoketest.TC8941" prio="4" tc="TC-8941"/>
       <testcase id="xenserver.tc.smoketest.TC8942" prio="4" tc="TC-8942"/>
-      <testcase id="xenserver.tc.smoketest.TC8999" prio="4" tc="TC-8999"/>
-      <testcase id="xenserver.tc.smoketest.TC9004" prio="4" tc="TC-9004"/>
       <testcase id="xenserver.tc.smoketest.TC9557" prio="4" tc="TC-9557"/>
       <testcase id="xenserver.tc.smoketest.TC10805" prio="4" tc="TC-10805"/>
       <testcase id="xenserver.tc.smoketest.TC10806" prio="4" tc="TC-10806"/>

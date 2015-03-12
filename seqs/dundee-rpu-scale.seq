@@ -37,13 +37,13 @@
   </prepare>
 
   <testsequence>
-    <testcase id="xenserver.tc.scalability.TCXenDesktopCloneVMs">
+    <testcase id="xenserver.tc.scalability.TCXenDesktopCloneVMs" tc="TC-26852" sku="CloneVMs" name="CloneVMs">
       <arg>vmsperhost=${VMSPERHOST}</arg>
       <arg>threads=${THREADS}</arg>
     </testcase>
-    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopStart">
+    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopStart" tc="TC-26852" sku="XDStartVMs" name="XDStartVMs">
       <arg>threads=${THREADS}</arg>
     </testcase>
-    <testcase id="xenserver.tc.scalability.TCScaleXenDesktopRpu" />
+    <testcase id="xenserver.tc.scalability.TCScaleXenDesktopRpu" tc="TC-26852" sku="RPU" name="RPU"/>
   </testsequence>
 </xenrt>

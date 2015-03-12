@@ -1,0 +1,55 @@
+<xenrt>
+
+  <!-- Docker test sequence using CoreOS guest on a pool of hosts. -->
+
+  <default name="DISTRO" value="coreos-beta" />
+
+  <variables>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+  </variables>
+
+  <prepare>
+    <pool id="0">
+      <storage type="nfs" name="nfsSR" default="true" />
+      <host id="0">
+        <vm name="${DISTRO}-0">
+          <distro>${DISTRO}</distro>
+          <arch>x86-64</arch>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="50" />
+          <storage>nfsSR</storage>
+          <postinstall action="dockerInstall" />
+        </vm>
+      </host>
+      <host id="1">
+        <vm name="${DISTRO}-1">
+          <distro>${DISTRO}</distro>
+          <arch>x86-64</arch>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="50" />
+          <storage>nfsSR</storage>
+          <postinstall action="dockerInstall" />
+        </vm>
+      </host>
+    </pool>
+  </prepare>
+
+  <testsequence>
+
+    <serial group="CoreOS">
+
+      <testcase id="xenserver.tc.docker.TCContainerLifeCycle" tc="TC-23918" name="ContainerLifeCycle" sku="CoreOSPool" />
+      <testcase id="xenserver.tc.docker.TCGuestsLifeCycle" tc="TC-26443" name="GuestsLifeCycle" sku="CoreOSPool" />
+      <testcase id="xenserver.tc.docker.TCGuestsMigration" tc="TC-26525" name="GuestsMigration" sku="CoreOSPool" />
+
+    </serial>
+
+  </testsequence>
+
+</xenrt>

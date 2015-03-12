@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang=''>
 <head>
+    <title>XenRT: Browse Logs</title>
 ${commonhead | n}
 
   <script>
@@ -21,25 +22,43 @@ $(function() {
         return ""
     }         
 
+    function appendJob(data) {
+        var out = jobHTML(data)
+        $( out ).appendTo( "#logs" );
+        $("#togglejobdetail" + data['id']).click(function(event) {
+            objid = "#" + event.target.id.replace("toggle", '');
+            $( objid ).toggle("blind", {}, 500);
+        });
+        var formdetail = getUrlParameter("detailid");
+        for (var key in data['results']) {
+            $("#toggletestdetail" + key).click(function(event) {
+                objid = "#" + event.target.id.replace("toggle", '');
+                $( objid ).toggle("blind", {}, 500);
+            });
+            if (formdetail == key) {
+                $( "#testdetail" + key ).show();
+            }
+        }
+    }
+
     function getJob(jobid) {
         var jobget = "/xenrt/api/v2/job/" + jobid
         $.getJSON (jobget, {"logitems": "true"})
             .done(function(data) {
-                var out = jobHTML(data)
-                $( out ).appendTo( "#logs" );
-                $("#togglejobdetail" + jobid).click(function(event) {
-                    objid = "#" + event.target.id.replace("toggle", '');
-                    $( objid ).toggle("blind", {}, 500);
-                });
-                var formdetail = getUrlParameter("detailid");
-                for (var key in data['results']) {
-                    $("#toggletestdetail" + key).click(function(event) {
-                        objid = "#" + event.target.id.replace("toggle", '');
-                        $( objid ).toggle("blind", {}, 500);
-                    });
-                    if (formdetail == key) {
-                        $( "#testdetail" + key ).show();
-                    }
+                appendJob(data);
+            });
+    }
+
+    function getMyJobs(jobid) {
+        $.getJSON("/xenrt/api/v2/jobs", {"params": "true", "logitems": "true", "results": "true", "user": "${'${user}'}", "status": "new,running,removed,done", "limit": "20"})
+            .done(function(data) {
+                var jobs = []
+                for (var key in data) {
+                    jobs.push(parseInt(key))
+                }
+                jobs.sort(function(a, b){return b-a});
+                for (var i in jobs) {
+                    appendJob(data[jobs[i].toString()]);
                 }
             });
     }
@@ -52,7 +71,7 @@ $(function() {
         {
             out += "<span style=\"background-color: " + resultToColor(data['result']) + "\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> ";
         }
-        out += "Job " + data['id'] + " (" + data['status'] + ")</h3>";
+        out += "Job " + data['id'] + " (" + data['status'] + ") - " + data['description'] + "</h3>";
         out += "<p><a href=\"#\" id=\"togglejobdetail" + data['id'] + "\">Toggle details</a>";
         if (data['params']['UPLOADED'] == "yes") {
             out += " | <a href=\"http://" + data['params']['LOG_SERVER'] + "/xenrt/logs/job/" + data['id'] + "/browse\" target=\"_blank\">Show Logs</a>";
@@ -156,7 +175,12 @@ $(function() {
             }
             var failure = getFailureMessage(test);
             if (failure) {
-                out += " | Failure message: " + failure;
+                if (test['result'] == "skipped") {
+                    out += " | Skip reason: " + failure;
+                }
+                else {
+                    out += " | Failure message: " + failure;
+                }
             }
             out += "<div id=\"testdetail" + key + "\" style=\"display:none;\">";
             out += testDetailHTML(test);
@@ -203,6 +227,18 @@ $(function() {
             });
     }
 
+    $( "#myjobbutton" ).click(function() {
+        $('#myjobbutton').prop('disabled', true);
+        $( "#overlay" ).show();
+        $( "#loading" ).show();
+        $( "#logs" ).empty();
+        $.ajaxSetup( { "async": false } );
+        getMyJobs();
+        $( "#overlay" ).hide();
+        $( "#loading" ).hide();
+        $('#myjobbutton').prop('disabled', false);
+    });
+
     $( "#displayjobbutton" ).click(function() {
         $('#displayjobbutton').prop('disabled', true);
         $( "#overlay" ).show();
@@ -248,7 +284,8 @@ ${commonbody | n}
 
 <h2>Browse XenRT Logs</h2>
 <p>Jobs: <input id="jobs" type="text" width="12">
-<button id="displayjobbutton" class="ui-state-default ui-corner-all">Display</button></p>
+<button id="displayjobbutton" class="ui-state-default ui-corner-all">Display</button>
+<button id="myjobbutton" class="ui-state-default ui-corner-all">My recent jobs</button></p>
 <div id="logs"></div>
 
 </div>

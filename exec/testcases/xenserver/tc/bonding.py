@@ -125,7 +125,7 @@ class _BondTestCase(xenrt.TestCase):
         stackName = netportSplit[0]
         return stackName
 
-class Bond:
+class Bond(object):
     """Structure to hold the basic data of one bond"""
     
     def __init__(self,device,bridge,uuid):

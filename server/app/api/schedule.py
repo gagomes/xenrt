@@ -268,6 +268,7 @@ class XenRTSchedule(XenRTAPIPage):
                         "m.leaseTo IS NOT NULL")
 
             exp = []
+            exp1 = []
             while True:
                 rc = cur.fetchone()
                 if not rc:
@@ -276,10 +277,15 @@ class XenRTSchedule(XenRTAPIPage):
                 ut = calendar.timegm(rc[1].timetuple())
                 if ut < time.time():
                     exp.append("'%s'" % (m))
+                    exp1.append(m)
             if len(exp) > 0:
                 cur.execute("UPDATE tblMachines SET leaseTo = NULL, "
                             "comment = NULL, leaseFrom = NULL, leaseReason = NULL WHERE machine in (%s)" %
                             (string.join(exp, ", ")))
+                timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))
+                for e in exp1:
+                    cur.execute("INSERT INTO tblEvents(ts, etype, subject, edata) VALUES (%s, %s, %s, %s);",
+                                    [timenow, "LeaseEnd", e, None])
             db.commit()
             cur.close()
         except Exception, e:

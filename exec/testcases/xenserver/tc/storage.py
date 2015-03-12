@@ -4519,3 +4519,24 @@ class TCVdiCorruption(xenrt.TestCase):
                 self.cli.execute("vdi-destroy", "uuid=%s" % (self.vdi))
         except:
             pass
+
+class TC26472(xenrt.TestCase):
+    """Guests life cycle operations on CIFS SR using SMB share on a windows guest"""
+
+    def run(self, arglist):
+
+        self.host = self.getDefaultHost()
+        srs = self.host.minimalList("sr-list", args="name-label=\"CIFS-SR\"")
+        if not srs:
+            raise xenrt.XRTFailure("Unable to find a CIFS SR configured on host %s" % self.host)
+
+        xenrt.TEC().logverbose("Guests Life Cycle Operations on CIFS SR ...")
+
+        for guest in [xenrt.TEC().registry.guestGet(g) for g in self.host.listGuests()]:
+            self.getLogsFrom(guest)
+            guest.shutdown()
+            guest.start()
+            guest.reboot()
+            guest.suspend()
+            guest.resume()
+            guest.shutdown()

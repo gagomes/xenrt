@@ -174,7 +174,6 @@
           <arg>guest=win81-x64</arg>
         </testcase>
       </serial>
-
     </parallel>
   </testsequence>
 

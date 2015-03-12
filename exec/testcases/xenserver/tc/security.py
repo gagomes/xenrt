@@ -2722,7 +2722,6 @@ class TC17802(xenrt.TestCase):
 csi0() {
 	local final
 	final=$1
-#	echo -n $'\x9b' > /dev/console
 	echo -n $'\x1b''[' > /dev/console
 	for ((n=0; n < 512000; n=n+1)); do
 		echo -n "1;" > /dev/console
@@ -2738,7 +2737,6 @@ csi(){
 }
 
 gen_csi0() {
-#	echo -n $'\x9b'  > /dev/console
 	echo -n $'\x1b''['  > /dev/console
 	echo -n $1 > /dev/console # number
 	echo -n $2 > /dev/console # operation

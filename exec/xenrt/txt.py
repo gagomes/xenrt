@@ -13,7 +13,7 @@ from  xenrt.lazylog import log, step
 __all__ = ["TXTCommand", "AttestationIdParser", "TpmQuoteParser", "TXTSuppPackInstaller", "TXTErrorParser"]
 
 
-class TXTSuppPackInstaller:
+class TXTSuppPackInstaller(object):
 
     __PASSWORD = "xenroot"
     __CONFIG_FILE = "/opt/xensource/tpm/config"
@@ -55,7 +55,7 @@ class TXTSuppPackInstaller:
         host.reboot()
 
 
-class TXTCommand:
+class TXTCommand(object):
     __PLUGIN_NAME = "tpm"
     __ATT_ID_KEY = "tpm_get_attestation_identity"
     __QUOTE_KEY = "tpm_get_quote"
@@ -191,7 +191,7 @@ class TXTCommand:
                 xenrt.TEC().logverbose(m)
 
 
-class TpmParser:
+class TpmParser(object):
     def _getSHA1(self, data):
         sha1 = hashlib.sha1()
         sha1.update(data)
@@ -211,7 +211,7 @@ class TpmParser:
         return base64.b64encode(nonce)
 
 
-class AttestationIdParser:
+class AttestationIdParser(object):
 
     __TPM_CERT_KEY = "xentxt:TPM_Endorsement_Certficate"
     __EKPUB_KEY = "xentxt:TPM_Endorsement_KEY_PEM"

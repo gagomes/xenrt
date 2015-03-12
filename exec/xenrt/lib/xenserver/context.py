@@ -12,7 +12,7 @@ import inspect, re, copy, tempfile, string
 import xenrt
 from xenrt.lib.xenserver.call import *
 
-class Context:
+class Context(object):
 
     def __init__(self, pool):
         self.pool = pool
@@ -113,7 +113,7 @@ class Context:
             xenrt.TEC().logverbose("-> '%s'" % (expression))
             return expression
             
-class _Entity:
+class _Entity(object):
     """Superclass for creating various XenServer entities.
        See subclasses for examples."""
 

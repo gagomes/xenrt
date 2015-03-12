@@ -5,6 +5,8 @@ import app.utils
 import json
 import time
 import jsonschema
+import requests
+import re
 
 class _MachineBase(XenRTAPIv2Page):
 
@@ -36,7 +38,8 @@ class _MachineBase(XenRTAPIv2Page):
                     limit=None,
                     offset=0,
                     pseudoHosts=False,
-                    exceptionIfEmpty=False):
+                    exceptionIfEmpty=False,
+                    search=None):
         cur = self.getDB().cursor()
         params = []
         conditions = []
@@ -87,7 +90,7 @@ class _MachineBase(XenRTAPIv2Page):
             conditions.append("m.machine != ('_' || s.site)")
 
 
-        query = "SELECT m.machine, m.site, m.cluster, m.pool, m.status, m.resources, m.flags, m.comment, m.leaseto, m.leasereason, m.leasefrom, m.leasepolicy, s.flags, m.jobid, m.descr, m.aclid FROM tblmachines m INNER JOIN tblsites s ON m.site=s.site"
+        query = "SELECT m.machine, m.site, m.cluster, m.pool, m.status, m.resources, m.flags, m.comment, m.leaseto, m.leasereason, m.leasefrom, m.leasepolicy, s.flags, m.jobid, m.descr, m.aclid, s.ctrladdr, s.location FROM tblmachines m INNER JOIN tblsites s ON m.site=s.site"
         if conditions:
             query += " WHERE %s" % " AND ".join(conditions)
 
@@ -117,8 +120,11 @@ class _MachineBase(XenRTAPIv2Page):
                 "jobid": rc[13],
                 "broken": rc[3].strip().endswith("x"),
                 "aclid": rc[15],
+                "ctrladdr": rc[16].strip() if rc[16] else None,
+                "location": rc[17].strip() if rc[17] else None,
                 "params": {}
             }
+            machine['leasecurrentuser'] = bool(machine['leaseuser'] and machine['leaseuser'] == self.getUser().userid)
 
             for r in rc[5].strip().split("/"):
                 if not "=" in r:
@@ -148,13 +154,29 @@ class _MachineBase(XenRTAPIv2Page):
             if rc[1].strip() == "PROPS" and rc[2] and rc[2].strip():
                 ret[rc[0].strip()]['flags'].extend(rc[2].strip().split(","))
 
+        if search:
+            try:
+                searchre = re.compile(search, flags=re.IGNORECASE)
+            except Exception, e:
+                raise XenRTAPIError(HTTPBadRequest, "Invalid regular expression: %s" % str(e))
+        else:
+            searchre = None
+
         for m in ret.keys():
             if flags:
                 if not app.utils.check_attributes(",".join(ret[m]['flags']), ",".join(flags)):
                     del ret[m]
                     continue
             if resources:
-                if not app.utils.check_resources("/".join(ret[m]['resources']), "/".join(resources)):
+                if not app.utils.check_resources("/".join(["%s=%s" % (x,y) for (x,y) in ret[m]['resources'].items()]), "/".join(resources)):
+                    del ret[m]
+                    continue
+
+            if search:
+                if not searchre.search(m) and \
+                        not app.utils.check_resources("/".join(["%s=%s" % (x,y) for (x,y) in ret[m]['resources'].items()]), search) and \
+                        not app.utils.check_attributes(",".join(ret[m]['flags']), search) and \
+                        not (ret[m]['description'] and searchre.search(ret[m]['description'])):
                     del ret[m]
                     continue
 
@@ -172,6 +194,9 @@ class _MachineBase(XenRTAPIv2Page):
 
         machines = self.getMachines(limit=1, machines=[machine], exceptionIfEmpty=True)
 
+        if key.lower() == "description":
+            key = "descr"
+
         details = machines[machine]['params']
         if key.lower() in ("machine", "comment", "leaseto", "leasereason", "leasefrom"):
             raise XenRTAPIError(HTTPForbidden, "Can't update this field")
@@ -188,16 +213,12 @@ class _MachineBase(XenRTAPIv2Page):
         else:
             cur = db.cursor()
             try:
-                if value == None or value == "":
-                    # Use empty string as a way to delete a property
-                    cur.execute("DELETE FROM tblmachinedata WHERE machine=%s "
-                                "AND key=%s;", [machine, key])
-                elif not details.has_key(key):
+                # Use empty string as a way to delete a property
+                cur.execute("DELETE FROM tblmachinedata WHERE machine=%s "
+                            "AND key=%s;", [machine, key])
+                if value:
                     cur.execute("INSERT INTO tblmachinedata (machine,key,value) "
-                                "VALUES (%s,%s,%s);", [machine, key, str(value)])
-                else:
-                    cur.execute("UPDATE tblmachinedata SET value=%s WHERE "
-                                "machine=%s AND key=%s;", [str(value),machine,key])
+                            "VALUES (%s,%s,%s);", [machine, key, str(value)])
                 if commit:
                     db.commit()
             finally:
@@ -217,6 +238,12 @@ class _MachineBase(XenRTAPIv2Page):
         cur.execute("UPDATE tblMachines SET leaseTo = NULL, comment = NULL, leasefrom = NULL, leasereason = NULL "
                     "WHERE machine = %s",
                     [machine])
+
+        timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))
+        
+        cur.execute("INSERT INTO tblEvents(ts, etype, subject, edata) VALUES (%s, %s, %s, %s);",
+                        [timenow, "LeaseEnd", machine, None])
+
         if commit:
             db.commit()
         cur.close()        
@@ -272,6 +299,12 @@ class _MachineBase(XenRTAPIv2Page):
         cur.execute("UPDATE tblMachines SET leaseTo = %s, leasefrom = %s, comment = %s, leasereason = %s "
                     "WHERE machine = %s",
                     [leaseTo, leaseFrom, user, reason, machine])
+        
+        timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))
+        
+        cur.execute("INSERT INTO tblEvents(ts, etype, subject, edata) VALUES (%s, %s, %s, %s);",
+                        [timenow, "LeaseStart", machine, user])
+
         db.commit()
         cur.close()        
 
@@ -371,7 +404,12 @@ class ListMachines(_MachineBase):
           'in' : 'query',
           'name': 'pseudohosts',
           'required': False,
-          'type': 'boolean'}
+          'type': 'boolean'},
+         {'description': "Regular expression to search for machines",
+          'in': 'query',
+          'name': 'search',
+          'required': False,
+          'type': 'string'}
           ]
     RESPONSES = { "200": {"description": "Successful response"}}
     TAGS = ["machines"]
@@ -384,11 +422,12 @@ class ListMachines(_MachineBase):
                                 status = self.getMultiParam("status"),
                                 users = self.getMultiParam("user"),
                                 machines = self.getMultiParam("machine"),
-                                flags = self.getMultiParam("flags"),
+                                flags = self.getMultiParam("flag"),
                                 aclids = self.getMultiParam("aclid"),
                                 pseudoHosts = self.request.params.get("pseudohosts") == "true",
                                 limit=int(self.request.params.get("limit", 0)),
-                                offset=int(self.request.params.get("offset", 0)))
+                                offset=int(self.request.params.get("offset", 0)),
+                                search=self.request.params.get("search"))
 
 class GetMachine(_MachineBase):
     PATH = "/machine/{name}"
@@ -690,11 +729,11 @@ class NewMachine(_MachineBase):
         self.addMachine(j.get("name"), j.get("site"), j.get("pool"), j.get("cluster"), j.get("resources", {}), j.get("description"))
 
         if j.get("flags"):
-            self.updateMachineField(machine, "PROPS", ",".join(j['flags']), commit=False)
+            self.updateMachineField(j.get("name"), "PROPS", ",".join(j['flags']), commit=False)
 
         if j.get('params'):
             for p in j['params'].keys():
-                self.updateMachineField(machine, p, j['params'][p], commit=False)
+                self.updateMachineField(j.get("name"), p, j['params'][p], commit=False)
    
         self.getDB().commit()
         return {}
@@ -719,6 +758,97 @@ class RemoveMachine(_MachineBase):
         self.removeMachine(machine)
         return {}
 
+class PowerMachine(_MachineBase):
+    REQTYPE="POST"
+    WRITE = True
+    PATH = "/machine/{name}/power"
+    TAGS = ["machines"]
+    PARAMS = [
+        {'name': 'name',
+         'in': 'path',
+         'required': True,
+         'description': 'Machine to update',
+         'type': 'integer'},
+        {'name': 'body',
+         'in': 'body',
+         'required': True,
+         'description': 'Details of the update',
+         'schema': { "$ref": "#/definitions/powermachine" }
+        }
+    ]
+    RESPONSES = { "200": {"description": "Successful response"}}
+    DEFINITIONS = {"powermachine": {
+        "title": "Power Macine",
+        "type": "object",
+        "properties": {
+            "operation": {
+                "type": "string",
+                "enum": ["on", "off", "reboot", "nmi"],
+                "description": "Status of the machine"
+            },
+            "bootdev": {
+                "type": "string",
+                "description": "IPMI boot device for the next boot"
+            }
+        },
+        "required": ["operation"]
+    }}
+    OPERATION_ID = "power_machine"
+    PARAM_ORDER=["name", "operation", "bootdev"]
+    SUMMARY = "Control the power on a machine"
+
+    def render(self):
+        machine = self.getMachines(limit=1, machines=[self.request.matchdict['name']], exceptionIfEmpty=True)[self.request.matchdict['name']]
+        try:
+            j = json.loads(self.request.body)
+            jsonschema.validate(j, self.DEFINITIONS['powermachine'])
+        except Exception, e:
+            raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
+
+        reqdict = {"machine": machine['name'], "powerop": j['operation']}
+
+        if j.get('bootdev'):
+            reqdict['bootdev'] = j['bootdev']
+
+        r = requests.get("http://%s/xenrt/api/controller/power" % machine['ctrladdr'], params=reqdict)
+        r.raise_for_status()
+        if r.text.startswith("ERROR"):
+            raise XenRTAPIError(HTTPInternalServerError, r.text)
+        return {"output": r.text.strip()}
+    
+class NotifyBorrow(_MachineBase):
+    def run(self):
+        borrowedMachines = [x for x in self.getMachines().values() if x['leaseuser']]
+
+        for m in borrowedMachines:
+            earlyTime = time.mktime(time.gmtime()) - 24 * 3600
+            leaseFrom = m.get('leasefrom', 0)
+            leaseTo = m['leaseto']
+
+            if self.warningTime > leaseTo and leaseFrom < earlyTime:
+                self.notifyUser(m['leaseuser'], m['name'], leaseTo)
+
+    @property
+    def warningTime(self):
+        lt = time.mktime(time.gmtime())
+        if time.gmtime().tm_wday >= 4: # Friday, Saturday Sunday
+            return lt + 3600 * (24 * (7-time.localtime().tm_wday) + 6)
+        else:
+            return lt + 3600 * 30
+
+    def notifyUser(self, user, machine, expiry):
+        try:
+            ftime = time.strftime("%H:%M %Z %A", time.gmtime(expiry))
+            email = app.user.User(self, user).email
+            if not email:
+                return
+            print "Emailing %s about %s" % (email, machine)
+            msg = "Your lease on machine %s is due to expire soon (%s)" % (machine, ftime)
+            app.utils.sendMail("XenServerQAXenRTAdmin-noreply@citrix.com", [email], "XenRT Lease expiring soon on %s" % machine, msg)
+        except Exception, e:
+            print "Could not notify for machine %s - %s" % (machine, str(e))
+
+
 RegisterAPI(ListMachines)
 RegisterAPI(GetMachine)
 RegisterAPI(LeaseMachine)
@@ -726,3 +856,4 @@ RegisterAPI(ReturnMachine)
 RegisterAPI(UpdateMachine)
 RegisterAPI(NewMachine)
 RegisterAPI(RemoveMachine)
+RegisterAPI(PowerMachine)

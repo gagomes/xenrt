@@ -26,7 +26,7 @@ def closeRackTablesInstance():
         _rackTablesInstance = None
     
 
-def readMachineFromRackTables(machine,kvm=False):
+def readMachineFromRackTables(machine,kvm=False,xrtMachine=None):
     global BMC_ADDRESSES
     rt = getRackTablesInstance()
     o = rt.getObject(machine)
@@ -88,6 +88,15 @@ def readMachineFromRackTables(machine,kvm=False):
     bmcips = [x for x in ipDict.keys() if ipDict[x].upper() in BMC_ADDRESSES]
     if len(bmcips) > 0 and not xenrt.GEC().config.lookupHost(machine, "BMC_ADDRESS", None):
         xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "BMC_ADDRESS"], bmcips[0])
+
+    if xenrt.TEC().lookupHost(machine, "BMC_ADDRESS", None):
+        bmcweb = o.getAttribute("BMC Web UI") == "Yes"
+        bmckvm = o.getAttribute("BMC KVM") == "Yes"
+
+        if bmcweb:
+            xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "BMC_WEB"], "yes")
+        if bmckvm:
+            xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "BMC_KVM"], "yes")
 
     # Figure out power control - rules are:
     # 1. Use the config file by default
@@ -273,9 +282,52 @@ def readMachineFromRackTables(machine,kvm=False):
                     if xenrt.GEC().config.lookup("INFRASTRUCTURE_DOMAIN", None):
                         ip = socket.gethostbyname("%s.%s" % (kvm.getName(), xenrt.GEC().config.lookup("INFRASTRUCTURE_DOMAIN")))
                         xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"KVM_HOST"], ip)
+                kvmUser = kvm.getAttribute("Username")
+                if not kvmUser:
+                    kvmUser = "Admin"
+                kvmPassword = kvm.getAttribute("Password")
+                if not kvmPassword:
+                    kvmPassword = ""
+
+                xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"KVM_USER"], kvmUser)
+                xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"KVM_PASSWORD"], kvmPassword)
+
+
     except:
         pass
-                
+    if not xrtMachine:
+        try:
+            xrtMachine = xenrt.GEC().dbconnect.api.get_machine(machine)
+        except:
+            pass
+
+    xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"ASSET_URL"], "https://racktables.uk.xensource.com/index.php?page=object&object_id=%d" % o.getID())
+
+    if xrtMachine:
+        updateDict = {}
+        for i in ("KVM_HOST", "KVM_USER", "KVM_PASSWORD", "IPMI_USERNAME", "IPMI_PASSWORD", "BMC_ADDRESS", "BMC_WEB", "BMC_KVM", "ASSET_URL"):
+
+            if xrtMachine['params'].get(i, "") != xenrt.TEC().lookupHost(machine, i, ""):
+                updateDict[i] = xenrt.TEC().lookupHost(machine, i, "")
+        model = o.getAttribute("HW type")
+        if model:
+            model = model.replace("[", "").replace("]","").split(" | ")[0]
+        descr = []
+        if model and model != "noname/unknown":
+            descr.append(model)
+        cpu = o.getAttribute("CPU Model")
+
+        if cpu:
+            descr.append(cpu)
+
+        descrstring = ", ".join(descr)
+
+            
+        if (not xrtMachine['description'] or xrtMachine['description'] in descrstring) and xrtMachine['description'] != descrstring and descrstring:
+            updateDict['DESCRIPTION'] = descrstring
+        if updateDict:
+            print updateDict
+            xenrt.GEC().dbconnect.api.update_machine(machine, params=updateDict)
 
 
 def setDiskConfig(diskstring, path):

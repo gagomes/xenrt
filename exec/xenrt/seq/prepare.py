@@ -112,7 +112,7 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
 
                     if cluster['hypervisor'].lower() == "xenserver":
                         if cluster.has_key('XRT_MasterHostId'):
-                            cluster['XRT_MasterHostName'] = "RESORUCE_HOST_%d" % cluster['XRT_MasterHostId']
+                            cluster['XRT_MasterHostName'] = "RESOURCE_HOST_%d" % cluster['XRT_MasterHostId']
                         if not cluster.has_key('XRT_MasterHostName'):
                             if cluster.has_key('XRT_ContainerHostId'):
                                 cluster['XRT_ContainerHostIds'] = [cluster['XRT_ContainerHostId']] * cluster['XRT_Hosts']
@@ -932,7 +932,7 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
             self.parent.instances.append(instance)
         return instance
 
-class PrepareNode:
+class PrepareNode(object):
 
     def __init__(self, toplevel, node, params):
         self.toplevel = toplevel
@@ -1619,7 +1619,7 @@ class PrepareNode:
         with open(os.path.join(xenrt.TEC().getLogdir(), 'deployment.json'), 'w') as fh:
             json.dump(deploymentRec, fh)
 
-class InstallWorkQueue:
+class InstallWorkQueue(object):
     """Queue of install work items to perform."""
     def __init__(self):
         self.items = []
@@ -1779,6 +1779,11 @@ class GuestInstallWorker(_InstallWorker):
         if work.has_key("filename"):
             xenrt.productLib(hostname=work["host"]).guest.createVMFromFile(**work)
         else:
+            if xenrt.TEC().lookup("DEFAULT_VIFS", False, boolean=True) and (not "vifs" in work or not work['vifs']):
+                host = work["host"]
+                if not isinstance(host, xenrt.GenericHost):
+                    host = xenrt.TEC().registry.hostGet(host)
+                work['vifs'] = host.guestFactory().DEFAULT
             xenrt.productLib(hostname=work["host"]).guest.createVM(**work)
 
 class SlaveManagementWorker(_InstallWorker):

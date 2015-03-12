@@ -20,7 +20,10 @@ class ApiRegistration(object):
 
     def registerAPI(self, cls):
         self.apis.append(cls)
-        PageFactory(cls, "/api/v2%s" % cls.PATH, reqType = cls.REQTYPE, contentType = cls.PRODUCES)
+        if cls.FILEAPI:
+            PageFactory(cls, "/api/files/v2%s" % cls.PATH, reqType = cls.REQTYPE, contentType = cls.PRODUCES)
+        else:
+            PageFactory(cls, "/api/v2%s" % cls.PATH, reqType = cls.REQTYPE, contentType = cls.PRODUCES)
 
 
 global _apiReg
@@ -65,7 +68,7 @@ class XenRTAPIv2Swagger(XenRTPage):
         }
         global _apiReg
         for cls in _apiReg.apis:
-            if cls.HIDDEN:
+            if cls.HIDDEN or cls.FILEAPI:
                 continue
             if not cls.PATH in spec['paths']:
                 spec['paths'][cls.PATH] = {}
@@ -100,6 +103,7 @@ class XenRTAPIv2Page(XenRTPage):
     PARAM_ORDER = []
     RETURN_KEY = None
     HIDDEN = False
+    FILEAPI = False
 
     def getIntFromMatchdict(self, paramName):
         if not paramName in self.request.matchdict:

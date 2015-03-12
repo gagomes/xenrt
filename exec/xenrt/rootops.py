@@ -18,7 +18,7 @@ __all__ = ["MountISO",
            "nmap",
            "sudo"]
     
-class Mount:
+class Mount(object):
     def __init__(self, device, options=None, mtype=None, retry=True):
         self.mounted = 0
         exceptiondata = None

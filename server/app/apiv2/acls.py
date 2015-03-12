@@ -11,7 +11,7 @@ class _AclBase(XenRTAPIv2Page):
     _ACLENTRIES = {
         "title": "ACL entry",
         "type": "object",
-        "required": ["prio", "type", "userid"],
+        "required": ["prio", "type"],
         "properties": {
             "prio": {
                 "type": "integer",
@@ -19,8 +19,8 @@ class _AclBase(XenRTAPIv2Page):
             },
             "type": {
                 "type": "string",
-                "description": "user or group",
-                "enum": ["user", "group"]
+                "description": "user, group or default",
+                "enum": ["user", "group", "default"]
             },
             "userid": {
                 "type": "string",
@@ -124,7 +124,7 @@ class _AclBase(XenRTAPIv2Page):
 
             for a in ret.keys():
                 if not a in aclsToReturn:
-                    del ret[m]
+                    del ret[a]
 
         return ret
 
@@ -145,7 +145,9 @@ class _AclBase(XenRTAPIv2Page):
         return self.getAcls(limit=1, ids=[aclid], exceptionIfEmpty=True)
 
     def _insertAclEntry(self, cur, aclid, entry):
-        if not self.validateAndCache(entry['type'], entry['userid']):
+        if entry['type'] == "default":
+            entry['userid'] = ""
+        elif not self.validateAndCache(entry['type'], entry['userid']):
             raise XenRTAPIError(HTTPNotAcceptable, "Could not find %s '%s' in AD" % (entry['type'], entry['userid']))
 
         fields = ["aclid", "prio", "type", "userid"]

@@ -17,7 +17,7 @@ __all__ = ["GrubEntry",
            "GrubEntryLinux",
            "GrubConfig"]
 
-class GrubEntry:
+class GrubEntry(object):
     """An individual entry in a GrUB config"""
     def __init__(self, cfg, label):
         self.cfg = cfg
@@ -156,7 +156,7 @@ class GrubEntryLinux(GrubEntry):
             x = string.split(elements["initrd"][0])
             self.initrd = x[0]
 
-class GrubConfig:
+class GrubConfig(object):
     """Create a grub configuration."""
     def __init__(self):
         self.serport = "0"

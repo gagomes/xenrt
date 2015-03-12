@@ -831,13 +831,17 @@ def buildCentOSNetworkConfigFiles(config):
                 f.close()
 
 def makeMachineFiles(config, specifyMachine=None):
+    if config.lookup("XENRT_SITE", None):
+        sitemachines = xenrt.GEC().dbconnect.api.get_machines(site=[config.lookup("XENRT_SITE")], pseudohosts = True)
+    else:
+        sitemachines = {}
     for machine in config.lookup("HOST_CONFIGS", {}).keys():
         if specifyMachine and machine != specifyMachine:
             continue
         if xenrt.TEC().lookupHost(machine, "RACKTABLES", False, boolean=True):
             print "Loading %s from racktables" % machine
             try:
-                xenrt.readMachineFromRackTables(machine,kvm=True)
+                xenrt.readMachineFromRackTables(machine,kvm=True, xrtMachine=sitemachines.get(machine))
             except UserWarning, e:
                 xenrt.TEC().logverbose(str(e))
     # Read in all machine config files
@@ -860,22 +864,20 @@ def makeMachineFiles(config, specifyMachine=None):
             if xenrt.TEC().lookupHost(machine, "RACKTABLES", False, boolean=True):
                 print "Loading %s from racktables" % machine
                 try:
-                    xenrt.readMachineFromRackTables(machine,kvm=True)
+                    xenrt.readMachineFromRackTables(machine,kvm=True, xrtMachine=sitemachines.get(machine))
                 except UserWarning, e:
                     xenrt.TEC().logverbose(str(e))
                     
 
-    if config.lookup("XENRT_SITE", None):
-        sitemachines = xenrt.GEC().dbconnect.api.get_machines(site=[config.lookup("XENRT_SITE")], pseudohosts = True)
-        for m in sitemachines.keys():
-            if specifyMachine and m != specifyMachine:
-                continue
-            if m not in config.lookup("HOST_CONFIGS", {}).keys():
-                print "Loading %s from racktables" % m
-                try:
-                    xenrt.readMachineFromRackTables(m, kvm=True)
-                except UserWarning, e:
-                    xenrt.TEC().logverbose(str(e))
+    for m in sitemachines.keys():
+        if specifyMachine and m != specifyMachine:
+            continue
+        if m not in config.lookup("HOST_CONFIGS", {}).keys():
+            print "Loading %s from racktables" % m
+            try:
+                xenrt.readMachineFromRackTables(m, kvm=True, xrtMachine=sitemachines[m])
+            except UserWarning, e:
+                xenrt.TEC().logverbose(str(e))
 
     xenrt.closeRackTablesInstance()
 

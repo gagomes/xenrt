@@ -14,7 +14,7 @@ import traceback, xmlrpclib, crypt, glob, copy, httplib, urllib, mimetools
 import xml.dom.minidom, threading, fnmatch, urlparse, libxml2
 import xenrt, xenrt.ssh, xenrt.util, xenrt.rootops, xenrt.resources
 import testcases.benchmarks.workloads
-import bz2, simplejson
+import bz2, simplejson, json
 import IPy
 import XenAPI
 import xml.etree.ElementTree as ET
@@ -136,7 +136,7 @@ def productLib(productType=None, host=None, hostname=None):
     else:
         raise xenrt.XRTError("Unknown productType %s" % (productType, ))
 
-class GenericPlace:
+class GenericPlace(object):
 
     LINUX_INTERFACE_PREFIX = "eth"
 
@@ -275,7 +275,7 @@ class GenericPlace:
             raise
 
     def deprecatedIfConfig(self):
-        return self.distro.startswith("rhel7") or self.distro.startswith("oel7") or self.distro.startswith("centos7")
+        return self.distro.startswith("rhel7") or self.distro.startswith("oel7") or self.distro.startswith("centos7") or self.distro.startswith("sl7")
 
     def getMyVIFs(self):
         try:
@@ -3540,7 +3540,7 @@ DHCPServer = 1
             return False
         try:
             # All versions of CentOS and RHEL7+ don't have Server in the repo path
-            if distro.startswith("centos") or distro.startswith("rhel7") or distro.startswith("oel7"):
+            if distro.startswith("centos") or distro.startswith("rhel7") or distro.startswith("oel7") or distro.startswith("sl"):
                 pass
             else:
                 url = os.path.join(url, 'Server')
@@ -4597,14 +4597,23 @@ class GenericHost(GenericPlace):
             if pcpu > 40:
                 xenrt.TEC().warning("xenstore using %u%% CPU" % (pcpu))
 
+    def checkLeasesXenRTDhcpd(self, mac, checkWithPing=False):
+        valid = json.loads(xenrt.util.command("%s/xenrtdhcpd/leasesformac.py %s" % (xenrt.TEC().lookup("XENRT_BASE"), mac.lower())))
+        if not valid:
+            return None
+        for a in valid:
+            if checkWithPing and xenrt.command("ping -c 3 -w 10 %s" % a, retval="code", level=xenrt.RC_OK) == 0:
+                return a
+
+        return valid[0]
+
     def checkLeases(self, mac, checkWithPing=False):
         rem = self.lookup("REMOTE_DHCP", None)
         if rem:
             leasefile = xenrt.TEC().tempFile()
             xenrt.util.command("%s > %s" % (rem, leasefile))
         elif self.lookup("XENRT_DHCPD", False, boolean=True):
-            leasefile = xenrt.TEC().tempFile()
-            xenrt.util.command("%s/xenrtdhcpd/leases.py > %s" % (xenrt.TEC().lookup("XENRT_BASE"), leasefile))
+            return self.checkLeasesXenRTDhcpd(mac, checkWithPing)
         elif os.path.exists("/var/lib/dhcp/dhcpd.leases"):
             leasefile = "/var/lib/dhcp/dhcpd.leases"
         elif os.path.exists("/var/lib/dhcpd/dhcpd.leases"):
@@ -4681,6 +4690,17 @@ class GenericHost(GenericPlace):
         xenrt.TEC().logverbose("Sniffing ARPs on %s for %s" % (iface, mac))
 
         deadline = xenrt.util.timenow() + timeout
+
+        if xenrt.TEC().lookup("XENRT_DHCPD", False, boolean=True):
+            while True:
+                ip = self.checkLeases(mac)
+                if ip:
+                    return ip
+                xenrt.sleep(20)
+                if xenrt.util.timenow() > deadline:
+                    xenrt.XRT("Timed out monitoring for guest DHCP lease", level, data=mac)
+
+            
 
         myres = []
         myres.append(re.compile(r"(?P<ip>[0-9.]+) is-at (?P<mac>[0-9a-f:]+)"))
@@ -6006,7 +6026,7 @@ chain tftp://${next-server}/%s
         pxecfg = pxe.addEntry("sysrescue", default=1, boot="linux")
         barch = self.getBasicArch()
         pxecfg.linuxSetKernel(kernel)
-        pxecfg.linuxArgsKernelAdd("dodhcp rootpass=%s setkmap=uk netboot=%ssysrescue/sysrcd.dat" %
+        pxecfg.linuxArgsKernelAdd("dodhcp rootpass=%s setkmap=uk netboot=%s/sysrescue/sysrcd.dat" %
                                   (g.password, xenrt.TEC().lookup("TEST_TARBALL_BASE")))
         pxecfg.linuxArgsKernelAdd("initrd=%s" % pxe.makeBootPath("initram.igz"))
         if ramdisk_size:
@@ -9501,10 +9521,20 @@ sleep (3000)
 
         # RHEL based systems need to install lspci/lshw
         if not self.distro.lower().startswith("ubuntu"):
-            self.execguest("yum -y install pciutils")
-            self.execguest("wget -nv '%slshw.tgz' -O - | tar -zx -C /tmp" %
-                                            (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
-            self.execguest("yum -y install /tmp/lshw/lshw-2.17-1.e17.rf.x86_64.rpm")
+            if not self.checkRPMInstalled("pciutils"):
+                self.execguest("yum -y install pciutils")
+
+            if not self.checkRPMInstalled("lshw"):
+                urlprefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
+                url = "%s/gpuDriver/PVHVM/gputools/lshw-2.17-1.el7.rf.x86_64_new.rpm" % (urlprefix)
+                installfile = xenrt.TEC().getFile(url)
+                if not installfile:
+                    raise xenrt.XRTError("Failed to fetch lshw .rpm")
+                sftp = self.sftpClient()
+                sftp.copyTo(installfile, "/tmp/%s" % (os.path.basename(installfile)))
+                sftp.close()
+
+                self.execguest("yum -y install /tmp/lshw-2.17-1.el7.rf.x86_64_new.rpm")
 
         # Check if the GPU of given type is present.
         try:
@@ -9584,12 +9614,14 @@ while True:
         if not self.verifyGuestAsPVHVM():
             raise xenrt.XRTError("This GPU drivers are for PVHVM guests only")
 
-        guestArch=self.execguest("uname -p")
+        #guestArch=self.execguest("uname -p")
+        xenrt.log("Guest distro is %s"%self.distro)
+        xenrt.log("Guest arch is %s"%self.arch)
 
-        if guestArch == "x86_64":
-            drivername=xenrt.TEC().lookup("PVHVM_GPU_NVDIA_X64")
+        if "64" in (self.arch or "") or "-64" in self.distro:
+            drivername=xenrt.TEC().lookup("PVHVM_GPU_NVIDIA_X64")
         else :
-            drivername=xenrt.TEC().lookup("PVHVM_GPU_NVDIA_X86")
+            drivername=xenrt.TEC().lookup("PVHVM_GPU_NVIDIA_X86")
 
         #Get the file and put it into the VM
         urlprefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
@@ -9923,6 +9955,22 @@ while True:
         self.paramSet("platform:parallel", "none")
         self.start()
 
+    def checkRPMInstalled(self, rpm):
+        """
+        Check if a specific rpm is installed
+        @param rpm: the rpm name including or excluding the extension '.rpm'
+        @type rpm: string
+        @return If the rpm provided is installed already
+        @rtype boolean
+        """
+        if self.windows:
+            raise XRTError("Function can only be used to check for installed RPMs on linux.")
+
+        #rpm should NOT contain file extn .rpm, so split off any file extension
+        fileWithoutExt = os.path.splitext(rpm)[0]
+
+        return not bool(self.execguest("rpm -qi %s" % fileWithoutExt, retval="code", level=xenrt.RC_OK))
+
 class EventObserver(xenrt.XRTThread):
 
     def __init__(self,host,session,eventClass,taskRef,timeout):
@@ -10077,7 +10125,7 @@ class EventObserver(xenrt.XRTThread):
         else:
             raise xenrt.XRTError("Session is already closed")
 
-class PAMServer:
+class PAMServer(object):
 
     def createSubjectGraph(self, subjects):
         def parseUser(x, group=None):
@@ -10273,7 +10321,7 @@ class PAMServer:
         for subject in self.groups:
             subject.getMembers()
 
-class ActiveDirectoryServer:
+class ActiveDirectoryServer(object):
 
     def createSubjectGraph(self, subjects):
         def parseUser(x, group=None):
@@ -10807,7 +10855,7 @@ RebootOnSuccess=Yes
             for member in group.members:
                 fd.write("  %s\n" % (member.dn))
 
-class CVSMServer:
+class CVSMServer(object):
 
     CLIPATH = '"c:\\program files\\citrix\\storagelink\\client\\csl.exe"'
 
@@ -10916,7 +10964,7 @@ class CVSMServer:
         data = self.cli('host-list')
         return uuid in data
 
-class DemoLinuxVM:
+class DemoLinuxVM(object):
     """An object to represent a Centos 5.7 based Citrix Demonstration Linux Virtual Machine"""
 
     def __init__(self, place):
@@ -10941,7 +10989,7 @@ class DemoLinuxVM:
         self.place.writeToConsole("yum -y install openssh-server\\n")
         xenrt.sleep(360)
 
-class WlbApplianceServer:
+class WlbApplianceServer(object):
     """An object to represent a WLB Appliance Server"""
 
     def __init__(self, place):
@@ -11056,7 +11104,7 @@ class WlbApplianceServer:
             raise xenrt.XRTFailure("WLB appliance not listening on expected port 8012")
 
 
-class V6LicenseServer:
+class V6LicenseServer(object):
     """An object to represent a V6 License Server"""
 
     def __init__(self, place, useEarlyRelease=None, install=True, host=None):
@@ -11371,7 +11419,7 @@ class V6LicenseServer:
 
         return totalLicenses, licenseInuse
 
-class DVSCWebServices:
+class DVSCWebServices(object):
 
     def __init__(self, place, auto = True):
         self.place = place
@@ -12079,7 +12127,7 @@ class DVSCWebServices:
                  'use_vmanager' : use_vmanager}
         self.putAsJson("netflow/%s" % pool_node['uid'], body)
 
-class XenMobileApplianceServer:
+class XenMobileApplianceServer(object):
     """An object to represent a XenMobile Appliance Server"""
 
     def __init__(self, guest):
@@ -12180,7 +12228,7 @@ class XenMobileApplianceServer:
         # Upgrade from previous release - default n
         self.guest.writeToConsole("%s\\n" % "")
 
-class ConversionApplianceServer:
+class ConversionApplianceServer(object):
     """An object to represent a Conversion Appliance Server"""
 
     def __init__(self, place):
@@ -12458,7 +12506,7 @@ class ConversionApplianceServer:
             raise xenrt.XRTError("Failed to find a management interface (PIF).")
         return mgmt
 
-class VifOffloadSettings:
+class VifOffloadSettings(object):
 
     # The {4D36E972-E325-11CE-BFC1-08002BE10318} subkey represents the class of network adapter devices that the system supports. This will never change.
     REG_KEY_STEM = 'SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E972-E325-11CE-BFC1-08002BE10318}\\'

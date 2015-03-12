@@ -69,7 +69,7 @@ def createHost(id=0,
     extrapackages = []
     extrapackages.append("libvirt")
     rhel7 = False
-    if re.search(r"rhel7", distro) or re.search(r"centos7", distro) or re.search(r"oel7", distro):
+    if re.search(r"rhel7", distro) or re.search(r"centos7", distro) or re.search(r"oel7", distro) or re.search(r"sl7", distro):
         rhel7 = True
         extrapackages.append("ntp")
         extrapackages.append("wget")
@@ -194,7 +194,15 @@ class KVMHost(xenrt.lib.libvirt.Host):
 
     def createNetwork(self, name="bridge", iface=None):
         if iface is None: iface = self.getDefaultInterface()
-        self.execvirt("virsh iface-bridge %s %s --no-stp 10" % (iface, name))
+        try:
+            self.execvirt("virsh iface-bridge %s %s --no-stp 10" % (iface, name))
+        except:
+            # We do sometimes lose connection during these operations
+            # Wait 1 minute then check all is OK
+            xenrt.sleep(60)
+            bdata = self.execvirt("brctl show")
+            if not name in bdata:
+                raise xenrt.XRTError("Failure attempting to set up network bridge")
 
     def removeNetwork(self, bridge=None, nwuuid=None):
         if bridge:
@@ -408,7 +416,7 @@ class KVMHost(xenrt.lib.libvirt.Host):
             self.execdom0("sed -i 's/SELINUX=enforcing/SELINUX=permissive/' /etc/selinux/config")
             self.execdom0("/usr/sbin/setenforce permissive")
 
-        if (re.search(r"rhel7", self.distro) or re.search(r"centos7", self.distro) or re.search(r"oel7", self.distro)) \
+        if (re.search(r"rhel7", self.distro) or re.search(r"centos7", self.distro) or re.search(r"oel7", self.distro) or re.search(r"sl7", self.distro)) \
             and xenrt.TEC().lookup("WORKAROUND_CS21359", False, boolean=True):
             self.execdom0("yum install -y libcgroup-tools") # CS-21359
             self.execdom0("echo kvmclock.disable=true >> /etc/cloudstack/agent/agent.properties") # CLOUDSTACK-7472
@@ -462,7 +470,7 @@ EOF
         if not '1.7.0' in self.execdom0('java -version').strip():
                 javaDir = self.execdom0('update-alternatives --display java | grep "^/usr/lib.*1.7.0"').strip()
                 self.execdom0('update-alternatives --set java %s' % (javaDir.split()[0]))
-        if re.search(r"rhel7", self.distro) or re.search(r"centos7", self.distro) or re.search(r"oel7", self.distro):
+        if re.search(r"rhel7", self.distro) or re.search(r"centos7", self.distro) or re.search(r"oel7", self.distro) or re.search(r"sl7", self.distro):
             jsvcFile = "apache-commons-daemon-jsvc-1.0.13-6.el7.x86_64.rpm"
         else:
             jsvcFile = "jakarta-commons-daemon-jsvc-1.0.1-8.9.el6.x86_64.rpm"

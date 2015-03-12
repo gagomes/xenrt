@@ -10,7 +10,7 @@ import urlparse
 import StringIO
 import requests
 import time
-import smtplib
+import re
 
 class _JobBase(_MachineBase):
 
@@ -40,11 +40,14 @@ class _JobBase(_MachineBase):
         conditions = []
         joinquery = ""
         if srs:
-            joinquery += "INNER JOIN tbljobgroups g ON g.jobid = j.jobid "
+            joinquery += "LEFT OUTER JOIN tbljobgroups g ON g.jobid = j.jobid "
             srcond = []
             for s in srs:
-                srcond.append("g.gid=%s")
-                params.append("SR%s" % str(s))
+                if s.lower() == "null":
+                    srcond.append("g.gid IS NULL")
+                else:
+                    srcond.append("g.gid=%s")
+                    params.append("SR%s" % str(s))
             conditions.append("(%s)" % " OR ".join(srcond))
 
         if ids:
@@ -134,22 +137,22 @@ class _JobBase(_MachineBase):
             rc = cur.fetchone()
             if not rc:
                 break
-            job = rc[0]
-            param = rc[1].strip()
-            value = rc[2].strip()
-            jobs[job]['params'][param] = value
+            jobs[rc[0]]['params'][rc[1].strip()] = rc[2].strip()
 
         u = urlparse.urlparse(config.url_base)
         for j in jobs.keys():
             jobs[j]['suiterun'] = jobs[j]['params'].get("TESTRUN_SR")
             jobs[j]['result'] = jobs[j]['params'].get("CHECK")
-            jobs[j]['attachmentUploadUrl'] = "%s://%s%s/api/v2/job/%d/attachments" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
-            jobs[j]['logUploadUrl'] = "%s://%s%s/api/v2/job/%d/log" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
+            jobs[j]['attachmentUploadUrl'] = "%s://%s%s/api/files/v2/job/%d/attachments" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
+            jobs[j]['logUploadUrl'] = "%s://%s%s/api/files/v2/job/%d/log" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
             if jobs[j]['params'].get('UPLOADED') == "yes":
-                logUrl = "%s://%s%s/api/v2/fileget/%d" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
+                logUrl = "%s://%s%s/api/files/v2/fileget/%d" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
+                logIndexUrl = "%s://%s%s/api/files/v2/index/%d" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
             else:
                 logUrl = None
+                logIndexUrl = None
             jobs[j]['logUrl'] = logUrl
+            jobs[j]['logIndexUrl'] = logIndexUrl
             mlist = ""
             for k in ["SCHEDULEDON", "SCHEDULEDON2", "SCHEDULEDON3"]:
                 if jobs[j]['params'].has_key(k):
@@ -175,16 +178,19 @@ class _JobBase(_MachineBase):
                 if not rc:
                     break
                 if rc[5] and rc[5].strip() == "yes":
-                    logUrl = "%s://%s%s/api/v2/fileget/%d.test" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), rc[2])
+                    logUrl = "%s://%s%s/api/files/v2/fileget/%d.test" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), rc[2])
+                    logIndexUrl = "%s://%s%s/api/files/v2/index/%d.test" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), rc[2])
                 else:
                     logUrl = None
+                    logIndexUrl = None
                 jobs[rc[0]]['results'][rc[2]] ={
                     "result": rc[1].strip(),
                     "detailid": rc[2],
                     "test": rc[3].strip(),
                     "phase": rc[4].strip(),
-                    "logUploadUrl": "%s://%s%s/api/v2/test/%d/log" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), rc[2]),
+                    "logUploadUrl": "%s://%s%s/api/files/v2/test/%d/log" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), rc[2]),
                     "logUrl": logUrl,
+                    "logIndexUrl": logIndexUrl,
                     "logUploaded": rc[5] and rc[5].strip() == "yes",
                     "jobId": rc[0]
                 }
@@ -215,15 +221,8 @@ class _JobBase(_MachineBase):
 
         return jobs
 
-    def updateJobField(self, jobid, key, value, commit=True, lookupExisting=True):
+    def updateJobField(self, jobid, key, value, commit=True):
         db = self.getDB()
-
-        if lookupExisting:
-            jobs = self.getJobs(1, ids=[jobid], getParams=True, exceptionIfEmpty=True)
-
-            details = jobs[jobid]['params']
-        else:
-            details = {}
 
         if key in app.constants.core_params:
             cur = db.cursor()
@@ -241,12 +240,14 @@ class _JobBase(_MachineBase):
                     # Use empty string as a way to delete a property
                     cur.execute("DELETE FROM tbljobdetails WHERE jobid=%s "
                                 "AND param=%s;", [jobid, key])
-                elif not details.has_key(key):
-                    cur.execute("INSERT INTO tbljobdetails (jobid,param,value) "
-                                "VALUES (%s,%s,%s);", [jobid, key, str(value)])
                 else:
+                    # Try and do an update first
                     cur.execute("UPDATE tbljobdetails SET value=%s WHERE "
                                 "jobid=%s AND param=%s;", [str(value),jobid,key])
+                    if cur.rowcount == 0:
+                        # Parameter doesn't already exist, do an INSERT
+                        cur.execute("INSERT INTO tbljobdetails (jobid,param,value) "
+                                    "VALUES (%s,%s,%s);", [jobid, key, str(value)])
                 if commit:
                     db.commit()
             finally:
@@ -492,6 +493,8 @@ class RemoveJob(_JobBase):
         jobinfo = self.getJobs(1, ids=[job], getParams=False,getResults=False,getLog=False, exceptionIfEmpty=True)[job]
         if jobinfo['status'] not in ('done', 'removed'):
             self.updateJobField(job, "REMOVED", "yes")
+            if self.getUser():
+                self.updateJobField(job, "REMOVED_BY", self.getUser().userid)
         if j.get('return_machines'):
             for m in jobinfo['machines']:
                 self.return_machine(m, self.getUser().userid, False, canForce=False, commit=False)
@@ -598,9 +601,14 @@ class NewJob(_JobBase):
     PARAM_ORDER=["machines", "pools", "flags", "resources", "specified_machines", "sequence", "custom_sequence", "params", "deployment", "job_group", "email", "inputdir", "lease_machines"]
 
     def updateJobField(self, field, value, params={}):
-        _JobBase.updateJobField(self, self.jobid, field, value, commit=False, lookupExisting=False)
+        _JobBase.updateJobField(self, self.jobid, field, value, commit=False)
         if field in params:
             del params[field]
+
+    def removeParams(self, params, keys):
+        for k in keys:
+            if params.has_key(k):
+                del params[k]
 
     def newJob(self,
                pools=None,
@@ -622,19 +630,16 @@ class NewJob(_JobBase):
 
         if params.has_key("JOBGROUP") and params.has_key("JOBGROUPTAG") and not jobGroup:
             jobGroup = {"id": params['JOBGROUP'], "tag": params['JOBGROUPTAG']}
-       
-        if "USERID" in params:
-            del params['USERID']
+     
+        self.removeParams(params, ["USERID", "REMOVED", "UPLOADED", "JOBSTATUS", "REMOVED_BY"])
+
+        params["JOB_SUBMITTED"] = time.asctime(time.gmtime()) + " UTC"
 
         db = self.getDB()
         cur = db.cursor()
-        cur.execute("LOCK TABLE tbljobs IN EXCLUSIVE MODE")
-        cur.execute("INSERT INTO tbljobs (jobstatus, userid, version, revision, options, uploaded,removed) VALUES ('new', %s, '', '', '', '', '')", [self.getUser().userid])
-        # Lookup jobid
-        cur.execute("SELECT last_value FROM jobid_seq")
+        cur.execute("INSERT INTO tbljobs (jobstatus, userid, version, revision, options, uploaded,removed) VALUES ('new', %s, '', '', '', '', '') RETURNING jobid", [self.getUser().userid])
         rc = cur.fetchone()
         self.jobid = int(rc[0])
-        db.commit() # Commit to release the lock
 
         if specifiedMachines:
             self.updateJobField("MACHINE", ",".join(specifiedMachines), params)
@@ -662,12 +667,8 @@ class NewJob(_JobBase):
                 self.updateJobField("CUSTOM_SEQUENCE", "yes", params)
         
         if jobGroup:
-            try:
-                cur.execute("DELETE FROM tblJobGroups WHERE "
-                            "gid = %s AND description = %s",
-                            [jobGroup['id'], jobGroup['tag']])
-            except:
-                pass
+            if not re.match("^SR\d+$", jobGroup['id']):
+                raise XenRTAPIError(HTTPBadRequest, "Job group must be of form SRnnnnn")
             cur.execute("INSERT INTO tblJobGroups (gid, jobid, description) VALUES " \
                         "(%s, %s, %s);", [jobGroup['id'], self.jobid, jobGroup['tag']])
             params['JOBGROUP'] = jobGroup['id']
@@ -744,19 +745,38 @@ class _GetAttachmentUrl(_JobBase):
         job = int(self.request.matchdict['id'])
         server = self.getJobs(1, ids=[job], getParams=True, exceptionIfEmpty=True)[job]['params'][self.LOCATION_PARAM]
 
-        return {'url': 'http://%s/xenrt/api/v2/fileget/%d.%s' % (server, job, self.request.matchdict['file'])}
+        url = 'http://%s/xenrt/api/files/v2/fileget/%d.%s' % (server, job, self.request.matchdict['file'])
+
+        if self.REDIRECT:
+            return HTTPFound(location=url)
+
+        return {'url': url}
 
 class GetAttachmentPreRun(_GetAttachmentUrl):
     LOCATION_PARAM='JOB_FILES_SERVER'
     PATH='/job/{id}/attachment/prerun/{file}'
     SUMMARY='Get URL for job attachment, uploaded before job ran'
     OPERATION_ID='get_job_attachment_pre_run'
+    REDIRECT=False
+
+class RedirectAttachmentPreRun(GetAttachmentPreRun):
+    REDIRECT=True
+    PATH='/redirect/job/{id}/attachment/prerun/{file}'
+    SUMMARY='Redirect to job attachment, uploaded before job ran'
+    OPERATION_ID="no_binding"
 
 class GetAttachmentPostRun(_GetAttachmentUrl):
     LOCATION_PARAM='LOG_SERVER'
     PATH='/job/{id}/attachment/postrun/{file}'
     SUMMARY='Get URL for job attachment, uploaded after job ran'
     OPERATION_ID='get_job_attachment_post_run'
+    REDIRECT=False
+
+class RedirectAttachmentPostRun(GetAttachmentPostRun):
+    REDIRECT=True
+    PATH='/redirect/job/{id}/attachment/postrun/{file}'
+    SUMMARY='Redirect to job attachment, uploaded before job ran'
+    OPERATION_ID="no_binding"
 
 class GetJobDeployment(_JobBase):
     PATH='/job/{id}/deployment'
@@ -777,7 +797,7 @@ class GetJobDeployment(_JobBase):
 
         try:
             server = self.getJobs(1, ids=[job], getParams=True, exceptionIfEmpty=True)[job]['params']['LOG_SERVER']
-            r = requests.get('http://%s/xenrt/api/v2/fileget/%d.deployment.json' % (server, job))
+            r = requests.get('http://%s/xenrt/api/files/v2/fileget/%d.deployment.json' % (server, job))
             r.raise_for_status()
             return r.json()
         except Exception, e:
@@ -883,24 +903,9 @@ class EmailJob(_JobBase):
 """ % (config.url_base.rstrip("/"), id, summary.strip())
             for key in job['params'].keys():
                 message =  message + "%s='%s'\n" % (key, job['params'][key])
-            self.sendMail(config.email_sender, emailto, subject, message, reply=emailto[0])
+            app.utils.sendMail(config.email_sender, emailto, subject, message, reply=emailto[0])
         return {}
 
-    def sendMail(self, fromaddr, toaddrs, subject, message, reply=None):
-        if not config.smtp_server:
-            return
-        now = time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime())
-        msg = ("Date: %s\r\nFrom: %s\r\nTo: %s\r\nSubject: %s\r\n"
-               % (now, fromaddr, ", ".join(toaddrs), subject))
-        if reply:
-            msg = msg + "Reply-To: %s\r\n" % (reply)
-        msg = msg + "\r\n" + message
-
-        server = smtplib.SMTP(config.smtp_server)
-        server.sendmail(fromaddr, toaddrs, msg)
-        server.quit()
-
-RegisterAPI(EmailJob)
 RegisterAPI(ListJobs)
 RegisterAPI(GetJob)
 RegisterAPI(GetTest)
@@ -909,4 +914,7 @@ RegisterAPI(NewJob)
 RegisterAPI(UpdateJob)
 RegisterAPI(GetAttachmentPreRun)
 RegisterAPI(GetAttachmentPostRun)
+RegisterAPI(RedirectAttachmentPreRun)
+RegisterAPI(RedirectAttachmentPostRun)
 RegisterAPI(GetJobDeployment)
+RegisterAPI(EmailJob)

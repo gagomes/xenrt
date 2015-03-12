@@ -452,9 +452,8 @@ class _VMScalability(_Scalability):
                 if passed:
                     self.nbrOfPassedGuests = self.nbrOfPassedGuests+1
 
-            # disabled crash detection - this stops the test working after a reboot. CA-159775
-            #if g.getDomid() <= 1:
-            #     raise xenrt.XRTFailure("Guest %s domid %s less than one - looks like host has crashed" % (g.getName(),g.getDomid()))
+            if g.getDomid() <= 1:
+                 raise xenrt.XRTFailure("Guest %s domid %s is less than two - looks like host has crashed/rebooted" % (g.getName(),g.getDomid()))
 
     def loopingTest(self):
         nbrOfThreads = min(5*len(self.hosts),25)
@@ -682,7 +681,7 @@ class TC19271(_VMScalability):
     #DOM0MEM = 8192
     DISTRO = "winxpsp3"
     #NET_BRIDGE = True
-    DOM0CPUS = True
+    #DOM0CPUS = True
     FLOW_EVT_THRESHOLD = 8192
     
     def postRun(self):

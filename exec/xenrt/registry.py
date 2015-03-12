@@ -13,7 +13,7 @@ import xenrt
 
 __all__ = ["Registry"]
 
-class Registry:
+class Registry(object):
     """Test-wide data storage"""
     def __init__(self):
         self.data = {}

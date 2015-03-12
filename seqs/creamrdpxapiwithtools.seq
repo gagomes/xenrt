@@ -62,16 +62,16 @@
 
   <testsequence group="RdpWithTools">
     <for iter="D" values="${WINDISTROS}">
-        <testcase id="xenserver.tc.rdpxapi.TestRdpWithTools" tc="TC-23790" name="RdpWithTools/${D}" sku="RdpWithTools/${D}" >
+        <testcase id="xenserver.tc.rdpxapi.TestRdpWithTools" tc="TC-23790" name="RdpWithTools,${D}" sku="RdpWithTools/${D}" >
         <arg>guest=${D}</arg>
         </testcase>
-        <testcase id="xenserver.tc.rdpxapi.TestRdpSettings" tc="TC-23792" name="RdpSettings/${D}" sku="RdpSettings/${D}" >
+        <testcase id="xenserver.tc.rdpxapi.TestRdpSettings" tc="TC-23792" name="RdpSettings,${D}" sku="RdpSettings/${D}" >
         <arg>guest=${D}</arg>
         </testcase>
-        <testcase id="xenserver.tc.rdpxapi.TestGuestDisableRdp" tc="TC-23793" name="DisableRdp/${D}" sku="DisableRdp/${D}" >
+        <testcase id="xenserver.tc.rdpxapi.TestGuestDisableRdp" tc="TC-23793" name="DisableRdp,${D}" sku="DisableRdp/${D}" >
         <arg>guest=${D}</arg>
         </testcase>
-        <testcase id="xenserver.tc.rdpxapi.TestRdpWithSnapshot" tc="TC-23795" name="RdpSnapshot/${D}" sku="RdpSnapshot/${D}">
+        <testcase id="xenserver.tc.rdpxapi.TestRdpWithSnapshot" tc="TC-23795" name="RdpSnapshot,${D}" sku="RdpSnapshot/${D}">
         <arg>guest=${D}</arg>
         </testcase>
      </for>

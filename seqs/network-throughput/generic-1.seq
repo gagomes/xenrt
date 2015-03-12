@@ -1,8 +1,6 @@
   <xenrt>
     <variables>
       <PREPARE_WORKERS>1</PREPARE_WORKERS>
-      <ENABLE_CITRIXCERT>yes</ENABLE_CITRIXCERT>
-      <ALWAYS_TEST_SIGN>yes</ALWAYS_TEST_SIGN>
     </variables>
 
     <prepare>

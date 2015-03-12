@@ -2249,6 +2249,30 @@ fi
                                        (ld, str(e)))
         self.execdom0("sync")
 
+    def installHostSupPacks(self, isoPath, isoName, reboot=True):
+
+        #Download ISO file form DISTFILES path
+        hostISOURL = "%s/%s" %(isoPath, isoName)
+        hostISO = xenrt.TEC().getFile(hostISOURL)
+        if not hostISO: 
+            raise xenrt.XRTError("Failed to fetch host supppack ISO.")
+
+        xenrt.checkFileExists(hostISO, level=xenrt.RC_FAIL)
+
+        hostPath = "/tmp/%s" % (isoName)
+
+        sh = self.sftpClient()
+        try:
+            sh.copyTo(hostISO, hostPath)
+        finally:
+            sh.close()
+
+        #Installing suppack
+        xenrt.TEC().logverbose("Installing Host Supplemental pack: %s" % isoName)
+        self.execdom0("xe-install-supplemental-pack %s" % hostPath)
+        if reboot:
+            self.reboot()
+
     def applyRequiredPatches(self, applyGuidance=True, applyGuidanceAfterEachPatch=False):
         """Apply suitable patches from the list given by the user.
         Returns True if any patches were applied."""
@@ -11388,7 +11412,6 @@ class CreedenceHost(ClearwaterHost):
     def licenseApply(self, v6server, licenseObj):
         self.license(v6server,sku=licenseObj.getEdition())
 
-
 #############################################################################
 class DundeeHost(CreedenceHost):
     USE_CCISS = False
@@ -11539,7 +11562,7 @@ class DundeeHost(CreedenceHost):
 
 #############################################################################
 
-class StorageRepository:
+class StorageRepository(object):
     """Models a storage repository."""
 
     CLEANUP = "forget"
@@ -12666,7 +12689,7 @@ class EQLTarget(xenrt.EQLTarget):
 
 #############################################################################
 
-class Pool:
+class Pool(object):
     """A host pool."""
     def __init__(self, master):
         self.master = master
@@ -14485,7 +14508,7 @@ class DundeePool(ClearwaterPool):
 
 #############################################################################
 
-class RollingPoolUpdate:
+class RollingPoolUpdate(object):
     """This is the base class that defines the pool upgrade procedure"""
 
     def __init__(self,
@@ -14760,7 +14783,7 @@ class RollingPoolUpdate:
 
 #############################################################################
 
-class Tile:
+class Tile(object):
     """A tile is a collection of VMs, optionally running workloads"""
     def __init__(self, host, sr, useWorkloads=True):
         self.host = host
@@ -14963,7 +14986,7 @@ class _TileInstall(xenrt.XRTThread):
 
 #############################################################################
 
-class TransferVM:
+class TransferVM(object):
     """ A class for TransferVM appliance. TransferVM is not a typical VM as
     xenrt VM object but some short-lived tooled VM launched for tranfer purpose
     and disappeared right after its usage. So the class TranferVM only exposes
@@ -15083,7 +15106,7 @@ class TransferVM:
         cli = self.host.getCLIInstance()
         return (cli.execute(self.command, " ".join(args), strip=True))
 
-class IOvirt:
+class IOvirt(object):
     """This class implements functionalities to test SR-IOV and pci pass thorough."""
 
     def __init__(self, host):
@@ -15455,7 +15478,7 @@ class IOvirt:
         return [pciid for pciid in self.vfs.keys() if fn(self.vfs[pciid]) ]
     
     
-class Appliance:
+class Appliance(object):
     
     """This class implements appliance feature (implemented in Boston) """
 

@@ -50,11 +50,14 @@ class TCContainerLifeCycle(TCDockerBase):
         # Create some containers (say 5) of your choice in every guest.
         [docker.createContainer(ContainerType.YES_BUSYBOX) for cnum in range(self.NO_OF_CONTAINERS) for docker in self.docker]
 
+    def lifeCycleDockerContainers(self):
+
         # Lifecycle tests on all containers in every guest.
         [docker.lifeCycleAllContainers() for docker in self.docker]
 
     def run(self, arglist=None):
         self.createDockerContainers()
+        self.lifeCycleDockerContainers()
 
 class TCContainerVerification(TCDockerBase):
     """Creation and deletion of containers from Docker environment and its verification in XS environment"""
@@ -111,8 +114,14 @@ class TCGuestsLifeCycle(TCContainerLifeCycle):
         # Create enough containers in every guests.
         self.createDockerContainers()
 
+        # Perform life cycle operations on all containers.
+        self.lifeCycleDockerContainers()
+
         xenrt.TEC().logverbose("Guests [having docker containers] Life Cycle Operations...")
         self.lifeCycleDockerGuest()
+
+        # Perform again life cycle operations on all containers.
+        self.lifeCycleDockerContainers()
 
 class TCGuestsMigration(TCGuestsLifeCycle):
     """Lifecycle and migration tests of guests with docker containers"""
@@ -125,25 +134,41 @@ class TCGuestsMigration(TCGuestsLifeCycle):
 
     def run(self, arglist=None):
 
-        # Create enough containers in every guests.
+        xenrt.TEC().logverbose("Creating enough containers in every guests during the migration test")
         self.createDockerContainers()
 
-        xenrt.TEC().logverbose("Guests [having docker containers] Migration tests ...")
+        xenrt.TEC().logverbose("Perform life cycle operations on all containers - (1)")
+        self.lifeCycleDockerContainers()
 
-        xenrt.TEC().logverbose("Life Cycle Operations...")
+        xenrt.TEC().logverbose("Life Cycle Operations of guest before migrating to slave")
         self.lifeCycleDockerGuest()
 
-        xenrt.TEC().logverbose("Migration to slave ...")
+        xenrt.TEC().logverbose("Perform life cycle operations on all containers - (2)")
+        self.lifeCycleDockerContainers()
+
+        xenrt.TEC().logverbose("Migration of guest to slave ...")
         self.migrationDockerGuest(self.pool.getSlaves()[0])
 
-        xenrt.TEC().logverbose("After Migration - Life Cycle Operations...")
+        xenrt.TEC().logverbose("Perform life cycle operations on all containers - (3)")
+        self.lifeCycleDockerContainers()
+
+        xenrt.TEC().logverbose("Life Cycle Operations of guest after migrating to slave")
         self.lifeCycleDockerGuest()
 
-        xenrt.TEC().logverbose("Migration back to master ...")
+        xenrt.TEC().logverbose("Perform life cycle operations on all containers - (4)")
+        self.lifeCycleDockerContainers()
+
+        xenrt.TEC().logverbose("Migration of guest back to master ...")
         self.migrationDockerGuest(self.pool.master)
 
-        xenrt.TEC().logverbose("Again Life Cycle Operations...")
+        xenrt.TEC().logverbose("Perform life cycle operations on all containers - (5)")
+        self.lifeCycleDockerContainers()
+
+        xenrt.TEC().logverbose("Life Cycle Operations of guest after migrating back to master")
         self.lifeCycleDockerGuest()
+
+        xenrt.TEC().logverbose("Perform life cycle operations on all containers - (6)")
+        self.lifeCycleDockerContainers()
 
 class TCScaleContainers(TCDockerBase):
     """Number of docker containers that can be managed in XenServer"""

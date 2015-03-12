@@ -535,7 +535,7 @@ class DRUtils(object):
 
         sr_uuid = None
         if site_params.has_key('vms_on_same_sr') and site_params['vms_on_same_sr']:
-            sr_size = 10 * site_params['vms_in_an_appliance'] + 10
+            sr_size = 10 * site_params['vms_in_an_appliance']
             sr_uuid = createSR(site, str(sr_size) + 'GiB')
         
         vm_start_delay = site['vm_start_delay']
@@ -565,7 +565,7 @@ class DRUtils(object):
 
             sr_uuid = None
             if site_params.has_key('vms_on_same_sr') and site_params['vms_on_same_sr']:
-                sr_size = 30 * site_params['win_vms'] + 30
+                sr_size = 30 * site_params['win_vms']
                 sr_uuid = createSR(site, str(sr_size) + 'GiB')
 
             for i in range(site_params['win_vms']):
@@ -580,7 +580,7 @@ class DRUtils(object):
             
             sr_uuid = None
             if site_params.has_key('vms_on_same_sr') and site_params['vms_on_same_sr']:
-                sr_size = 10 * site_params['lin_vms'] + 10
+                sr_size = 10 * site_params['lin_vms']
                 sr_uuid = createSR(site, str(sr_size) + 'GiB')
 
             

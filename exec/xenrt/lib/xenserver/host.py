@@ -11458,6 +11458,17 @@ class CreedenceHost(ClearwaterHost):
     def licenseApply(self, v6server, licenseObj):
         self.license(v6server,sku=licenseObj.getEdition())
 
+    def createTemplateSR(self):
+        if xenrt.TEC().lookup("SHARED_VHD_PATH_NFS", None):
+            sr = NFSStorageRepository(self, "Remote Template Library")
+            sr.uuid = TEMPLATE_SR_UUID
+            sr.srtype = "nfs"
+            sr.content_type="user"
+            (server, path) = xenrt.TEC().lookup("SHARED_VHD_PATH_NFS").split(":")
+            sr.dconf = {"server": server, "serverpath": path}
+            sr.introduce(nosubdir = True)
+       
+
 #############################################################################
 class DundeeHost(CreedenceHost):
     USE_CCISS = False

@@ -6772,6 +6772,10 @@ chain tftp://${next-server}/%s
         except:
             pass
 
+    def createTemplateSR(self):
+        # Do nothing by default
+        pass
+
 class NetPeerHost(GenericHost):
     """ Encapsulates a network test peer for installation"""
 

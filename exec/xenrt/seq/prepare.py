@@ -1244,16 +1244,7 @@ class PrepareNode(object):
                         sr.scan()
                     elif s['type'] == "nfstemplate":
                         try:
-                            if isinstance(host, xenrt.lib.xenserver.CreedenceHost) and xenrt.TEC().lookup("SHARED_VHD_PATH_NFS", None):
-                                sr = xenrt.lib.xenserver.NFSStorageRepository(host, "Remote Template Library")
-                                sr.uuid = xenrt.lib.xenserver.host.TEMPLATE_SR_UUID
-                                sr.srtype = "nfs"
-                                sr.content_type="user"
-                                (server, path) = xenrt.TEC().lookup("SHARED_VHD_PATH_NFS").split(":")
-                                sr.dconf = {"server": server, "serverpath": path}
-                                sr.introduce(nosubdir = True)
-                            else:
-                                continue
+                            host.createTemplateSR()
                         except Exception, e:
                             # This is only best effort
                             xenrt.TEC().logverbose("Warning - could not add remote template library: %s" % str(e))

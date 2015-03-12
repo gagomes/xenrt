@@ -6773,8 +6773,7 @@ chain tftp://${next-server}/%s
             pass
 
     def createTemplateSR(self):
-        # Do nothing by default
-        pass
+        raise xenrt.XRTError("Not implemented")
 
 class NetPeerHost(GenericHost):
     """ Encapsulates a network test peer for installation"""

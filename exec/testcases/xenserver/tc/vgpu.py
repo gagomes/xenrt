@@ -1849,7 +1849,7 @@ class _AddPassthroughToFullGPU(VGPUOwnedVMsTest):
 
     def __init__(self, configTobeFilled, configTobeChecked):
         super(_AddPassthroughToFullGPU, self).__init__([VGPUOS.Win7x86], configTobeFilled, VGPUDistribution.BreadthFirst, False, False)
-        self.__config2 = configTobeChecked
+        self.__configTobeChecked = configTobeChecked
 
     def __prepareClones(self, config):
 
@@ -1876,7 +1876,7 @@ class _AddPassthroughToFullGPU(VGPUOwnedVMsTest):
         self.__ptGuest = self.__master.cloneVM()
         log("Pass-through guest is %s" % str(self.__ptGuest))
 
-        self.__prepareClones(self.__config2)
+        self.__prepareClones(self.__configTobeChecked)
 
         #-------------------------------------------
         step("Start all configTobeFilled clones")

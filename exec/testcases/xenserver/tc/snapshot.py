@@ -2859,7 +2859,7 @@ class SnapshotVDILink(xenrt.TestCase):
         # Create a Guest
         self.host0 = self.getHost("RESOURCE_HOST_0")
         self.host1 = self.getHost("RESOURCE_HOST_1")
-        self.guest = self.host0.createGenericWindowsGuest()
+        self.guest = self.host0.createGenericLinuxGuest()
         
     
     def verifySnapshotLinks(self, guest, host):
@@ -2933,7 +2933,7 @@ class RetainingVDIOnSnapshotRevert(xenrt.TestCase):
     
         # Create a Guest
         self.host = self.getHost("RESOURCE_HOST_0")
-        self.guest = self.host.createGenericWindowsGuest()
+        self.guest = self.host.createGenericLinuxGuest()
     
 
     def run(self, arglist):
@@ -2984,7 +2984,7 @@ class SnapshotVDILinkOnUpgrade(xenrt.TestCase):
         self.master = self.pool.master
         self.slave = self.pool.slaves.values()[0]
         self.sruuid = self.slave.getLocalSR()
-        self.guest = self.slave.createGenericWindowsGuest(sr=self.sruuid)
+        self.guest = self.slave.createGenericLinuxGuest(sr=self.sruuid)
     
 
     def run(self, arglist):
@@ -3004,24 +3004,18 @@ class SnapshotVDILinkOnUpgrade(xenrt.TestCase):
         if vm_vdi_uuid != snapshot_link_vdi:
             raise xenrt.XRTFailure("snapshot link is broken for snapshot vdi %s" % snapshot_vdi_uuid)
         
-        pool_upgrade = xenrt.lib.xenserver.host.RollingPoolUpdate(poolRef = self.pool,
-                                                                  newVersion="Cream",
-                                                                  upgrade = True,
-                                                                  applyAllHFXsBeforeApplyAction=False,
-                                                                  vmActionIfHostRebootRequired="SHUTDOWN",
-                                                                  skipApplyRequiredPatches=True)
-        newPool = self.pool.upgrade(poolUpgrade=pool_upgrade)
-        newmaster = newPool.master
-        newslave = newPool.slaves.values()[0]
+        # Apply the Cream Hotfix
+        self.master.applyRequiredPatches()
+        self.slave.applyRequiredPatches()
 
         # Get the base VDI of the Guest after Upgrade
-        upgraded_vm_vdi_uuid = newslave.minimalList("vbd-list", "vdi-uuid", "type=Disk vm-uuid=%s " % (self.guest.getUUID()))[0]
+        upgraded_vm_vdi_uuid = self.slave.minimalList("vbd-list", "vdi-uuid", "type=Disk vm-uuid=%s " % (self.guest.getUUID()))[0]
 
         # Get the attached VDI of snapshot
-        upgraded_snapshot_vdi_uuid = newslave.minimalList("vbd-list", "vdi-uuid", "type=Disk vm-uuid=%s " % snapshot_uuid)[0]
+        upgraded_snapshot_vdi_uuid = self.slave.minimalList("vbd-list", "vdi-uuid", "type=Disk vm-uuid=%s " % snapshot_uuid)[0]
 
         # Get the snapshot-of link of snapshot VDI
-        upgraded_snapshot_link_vdi = newslave.minimalList("vdi-param-get uuid=%s param-name=snapshot-of" % upgraded_snapshot_vdi_uuid)[0]
+        upgraded_snapshot_link_vdi = self.slave.minimalList("vdi-param-get uuid=%s param-name=snapshot-of" % upgraded_snapshot_vdi_uuid)[0]
         log ("Snapshot-of link we got for snapshot vdi %s is %s" % (upgraded_snapshot_vdi_uuid, upgraded_snapshot_link_vdi))
         if upgraded_vm_vdi_uuid != upgraded_snapshot_link_vdi:
             raise xenrt.XRTFailure("snapshot link is broken for snapshot vdi %s" % upgraded_snapshot_vdi_uuid)
@@ -3034,25 +3028,25 @@ class SnapshotVDILinkOnUpgrade(xenrt.TestCase):
         self.guest.installDrivers()
         
         # Get the new base VDI of the Guest
-        vm_reverted_vdi_uuid = newslave.minimalList("vbd-list", "vdi-uuid", "type=Disk vm-uuid=%s " % (self.guest.getUUID()))[0]
+        vm_reverted_vdi_uuid = self.slave.minimalList("vbd-list", "vdi-uuid", "type=Disk vm-uuid=%s " % (self.guest.getUUID()))[0]
         
         # Get the new snapshot-of link of snapshot VDI
-        snapshot_link_vdi_after_revert = newslave.minimalList("vdi-param-get uuid=%s param-name=snapshot-of" % upgraded_snapshot_vdi_uuid)[0]
+        snapshot_link_vdi_after_revert = self.slave.minimalList("vdi-param-get uuid=%s param-name=snapshot-of" % upgraded_snapshot_vdi_uuid)[0]
         log ("Snapshot-of link we got for snapshot vdi %s is %s" % (upgraded_snapshot_vdi_uuid, snapshot_link_vdi_after_revert))
         if vm_reverted_vdi_uuid != snapshot_link_vdi_after_revert:
             raise xenrt.XRTFailure("snapshot link is broken for snapshot vdi %s" % upgraded_snapshot_vdi_uuid)
 
         # Migrate the VM
-        self.guest.migrateVM(remote_host=newmaster)
+        self.guest.migrateVM(remote_host=self.master)
         
         # Get the new base VDI of the Guest
-        vm_reverted_vdi_uuid = newmaster.minimalList("vbd-list", "vdi-uuid", "type=Disk vm-uuid=%s " % (self.guest.getUUID()))[0]
+        vm_reverted_vdi_uuid = self.master.minimalList("vbd-list", "vdi-uuid", "type=Disk vm-uuid=%s " % (self.guest.getUUID()))[0]
         
         # Get the attached VDI of snapshot
-        snapshot_vdi_uuid = newmaster.minimalList("vbd-list", "vdi-uuid", "type=Disk vm-uuid=%s " % snapshot_uuid)[0]
+        snapshot_vdi_uuid = self.master.minimalList("vbd-list", "vdi-uuid", "type=Disk vm-uuid=%s " % snapshot_uuid)[0]
         
         # Get the snapshot-of link of snapshot VDI
-        snapshot_link_vdi = newmaster.minimalList("vdi-param-get uuid=%s param-name=snapshot-of" % snapshot_vdi_uuid)[0]
+        snapshot_link_vdi = self.master.minimalList("vdi-param-get uuid=%s param-name=snapshot-of" % snapshot_vdi_uuid)[0]
         log ("Snapshot-of link we got for snapshot vdi %s is %s" % (snapshot_vdi_uuid, snapshot_link_vdi))
         if vm_reverted_vdi_uuid != snapshot_link_vdi:
             raise xenrt.XRTFailure("snapshot link is broken for snapshot vdi %s after SXM" % snapshot_vdi_uuid)

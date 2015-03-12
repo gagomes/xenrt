@@ -1127,7 +1127,7 @@ class PrepareNode(object):
                                                     "path":isos2,
                                                     "default":False,
                                                     "blkbackPoolSize":""})
-                            if xenrt.TEC().lookup("USE_PREBUILT_TEMPLATES", True, boolean=True):
+                            if xenrt.TEC().lookup("USE_PREBUILT_TEMPLATES", False, boolean=True):
                                 self.srs.insert(0, {"type": "nfstemplate", "host": host['name'], "default": False, "blkbackPoolSize": ""})
 
                 # If needed, create lun groups

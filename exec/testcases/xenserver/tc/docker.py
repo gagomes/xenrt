@@ -66,7 +66,7 @@ class TCContainerVerification(TCDockerBase):
         # Creation some containers in every guest by SSHing into it. (We call it as LINUX way.)
         dockerLinux = [guest.getDocker(OperationMethod.LINUX) for guest in self.guests]
 
-        # Also, creat some simple busybox containers in every guest.
+        # Also, create some simple busybox containers in every guest.
         [dl.createContainer(ContainerType.YES_BUSYBOX) for x in range(self.NO_OF_CONTAINERS) for dl in dockerLinux]
 
         # Check these containers appeared in XenServer using Xapi plugins. (We call it as XAPI way.)
@@ -95,31 +95,6 @@ class TCContainerVerification(TCDockerBase):
 class TCGuestsLifeCycle(TCContainerLifeCycle):
     """Lifecycle tests of guests with docker containers"""
 
-    def run(self, arglist=None):
-
-        # Create enough containers in every guests.
-        self.createDockerContainers()
-
-        xenrt.TEC().logverbose("Guests [having docker containers] Life Cycle Operations...")
-
-        for guest in self.guests:
-            self.getLogsFrom(guest)
-            guest.shutdown()
-            guest.start()
-            guest.reboot()
-            guest.suspend()
-            guest.resume()
-            guest.shutdown()
-
-class TCGuestsMigration(TCContainerLifeCycle):
-    """Lifecycle tests of guests with docker containers"""
-
-    def migrationDockerGuest(self, host):
-        for guest in self.guests:
-            self.getLogsFrom(guest)
-            guest.migrateVM(host=host, live="true")
-            guest.check()
-
     def lifeCycleDockerGuest(self):
         for guest in self.guests:
             self.getLogsFrom(guest)
@@ -130,6 +105,23 @@ class TCGuestsMigration(TCContainerLifeCycle):
             guest.resume()
             guest.shutdown()
             guest.start()
+
+    def run(self, arglist=None):
+
+        # Create enough containers in every guests.
+        self.createDockerContainers()
+
+        xenrt.TEC().logverbose("Guests [having docker containers] Life Cycle Operations...")
+        self.lifeCycleDockerGuest()
+
+class TCGuestsMigration(TCGuestsLifeCycle):
+    """Lifecycle and migration tests of guests with docker containers"""
+
+    def migrationDockerGuest(self, host):
+        for guest in self.guests:
+            self.getLogsFrom(guest)
+            guest.migrateVM(host=host, live="true")
+            guest.check()
 
     def run(self, arglist=None):
 

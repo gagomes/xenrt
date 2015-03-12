@@ -1847,12 +1847,15 @@ class _AddPassthroughToFullGPU(VGPUOwnedVMsTest):
     """
     __ERROR = "VGPU type is not compatible with one or more of the VGPU types currently running on this PGPU"
 
-    def __init__(self, config):
-        super(_AddPassthroughToFullGPU, self).__init__([VGPUOS.Win7x86], config, VGPUDistribution.BreadthFirst, False, False)
+    def __init__(self, configTobeFilled, configTobeChecked):
+        super(_AddPassthroughToFullGPU, self).__init__([VGPUOS.Win7x86], configTobeFilled, VGPUDistribution.BreadthFirst, False, False)
+        self.__configTobeChecked = configTobeChecked
 
     def __prepareClones(self, config):
 
-        numberRequired = len(GPUGroupManager(self.getDefaultHost()).getPGPUUuids(all = True))
+        totalPGPUs = len(GPUGroupManager(self.getDefaultHost()).getPGPUUuids(all = True)) 
+        nonSupportedGPUs = len(self.getDefaultHost().minimalList("pgpu-list", args="enabled-VGPU-types="))
+        numberRequired = totalPGPUs - nonSupportedGPUs
         log("Number of pGPUs: %d" % numberRequired)
 
         self.__shutdownMaster()
@@ -1873,30 +1876,27 @@ class _AddPassthroughToFullGPU(VGPUOwnedVMsTest):
         self.__ptGuest = self.__master.cloneVM()
         log("Pass-through guest is %s" % str(self.__ptGuest))
 
-        if self.isNvidiaK1(self._configuration):
-            self.__prepareClones(VGPUConfig.K1PassThrough)
-        else:
-            self.__prepareClones(VGPUConfig.K2PassThrough)
+        self.__prepareClones(self.__configTobeChecked)
 
         #-------------------------------------------
-        step("Start all non-pass-through clones")
+        step("Start all configTobeFilled clones")
         #-------------------------------------------
         [vm.start() for vm in self.__clones]
 
         #-------------------------------------------
-        step("Start the pass-through clone")
+        step("Start configTobeChecked clone")
         #-------------------------------------------
         try:
-            step("Start the pass-through clone")
+            step("Start configTobeChecked clone")
             self.__ptGuest.start()
         except Exception, e:
             if not re.search(self.__ERROR, str(e)):
                 raise xenrt.XRTFailure("Exception raised not matching expected error message: " + str(e))
 
-            log("Pass-through VM could not be started - as expected")
+            log("VM with configTobeChecked could not be started - as expected")
             return
 
-        raise xenrt.XRTFailure("Pass-through guest was allowed to start on a pre-used pGPU")
+        raise xenrt.XRTFailure("guest with configTobeChecked was allowed to start on a pre-used pGPU")
 
     def postRun(self):
         for guest in self.__clones:
@@ -1906,78 +1906,17 @@ class _AddPassthroughToFullGPU(VGPUOwnedVMsTest):
 
 class TCAddPassthroughToFullGPUK100(_AddPassthroughToFullGPU):
      def __init__(self):
-         super(TCAddPassthroughToFullGPUK100, self).__init__(VGPUConfig.K100)
+         super(TCAddPassthroughToFullGPUK100, self).__init__(VGPUConfig.K100,VGPUConfig.K1PassThrough)
 
 class TCAddPassthroughToFullGPUK200(_AddPassthroughToFullGPU):
      def __init__(self):
-         super(TCAddPassthroughToFullGPUK200, self).__init__(VGPUConfig.K200)
+         super(TCAddPassthroughToFullGPUK200, self).__init__(VGPUConfig.K200,VGPUConfig.K2PassThrough)
 
-class _AddvGPUToFullyPassedThroughGPU(VGPUOwnedVMsTest):
-    """
-    Pass-through all pGPUs
-    Add one more VM with a non-PT vGPU and check it doesn't start
-    """
-    __ERROR = "VGPU type is not compatible with one or more of the VGPU types currently running on this PGPU"
-    def __init__(self, ptConfig, vGPUConfig):
-        super(_AddvGPUToFullyPassedThroughGPU, self).__init__([VGPUOS.Win7x86], ptConfig, VGPUDistribution.BreadthFirst, False, True)
-        self.__vgpuConfig = vGPUConfig
-
-    def run(self, arglist):
-        vgpuCreator = VGPUInstaller(self.getDefaultHost(), self.__vgpuConfig, self._distribution)
-
-        master = self.masterGuest(self._distribution, self.getDefaultHost())
-
-        #-------------------------------------------
-        step("Ensure master is down and clone")
-        #-------------------------------------------
-        if master.getState() != "DOWN":
-            master.shutdown()
-
-        self.vm = master.cloneVM()
-        log("Non-PT clone is called: %s" % self.vm)
-        log("Shutdown the clone if it's running")
-        if self.vm.getState() != "DOWN":
-            self.vm.shutdown()
-
-        log("Restart the master")
-        try:
-            if master.getState() != "UP":
-                master.start()
-        except Exception, e:
-            log("An error occured when starting the master")
-            log(str(e))
-            pass
-
-        log("Status guests and types: %s" % str(self.guestAndTypesStatus()))
-
-        #-------------------------------------------
-        step("Create non-pass-through vGPU")
-        #-------------------------------------------
-        vgpuCreator.createOnGuest(self.vm, self._vGPUCreator.groupUUID(), True)
-
-        log("PT vm power state is %s" % self.vm.getState())
-        log("Status guests and types: %s" % str(self.guestAndTypesStatus()))
-        log("Total guests = %d" % len(self.getDefaultHost().listGuests()))
-
-        #-------------------------------------------
-        step("Start the non-pass-through clone")
-        #-------------------------------------------
-        try:
-            self.vm.start()
-        except Exception, e:
-            if not re.search(self.__ERROR, str(e)):
-                raise xenrt.XRTFailure("Exception raised not matching expected error message: " + str(e))
-
-            log("Non-pass-through VM could not be started - as expected")
-            return
-
-        raise xenrt.XRTFailure("Non-pass-through guest was allowed to start on a pre-used pGPU")
-
-class TCAddvGPUToFullyPThGPUK100(_AddvGPUToFullyPassedThroughGPU):
+class TCAddvGPUToFullyPThGPUK100(_AddPassthroughToFullGPU):
      def __init__(self):
          super(TCAddvGPUToFullyPThGPUK100, self).__init__(VGPUConfig.K1PassThrough, VGPUConfig.K100)
 
-class TCAddvGPUToFullyPTGPUK260(_AddvGPUToFullyPassedThroughGPU):
+class TCAddvGPUToFullyPTGPUK260(_AddPassthroughToFullGPU):
      def __init__(self):
          super(TCAddvGPUToFullyPTGPUK260, self).__init__(VGPUConfig.K2PassThrough, VGPUConfig.K200)
 

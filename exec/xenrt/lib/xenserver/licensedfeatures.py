@@ -125,7 +125,8 @@ class VirtualGPU(LicensedFeature):
         return "VirtualGPU"
 
     def isEnabled(self, host):
-        [vm.reboot() for vm in host.guests.values()]
+        [vm.setState("DOWN") for vm in host.guests.values()]
+        [vm.setState("UP") for vm in host.guests.values()]
         return [vm.getState() == "UP" for vm in host.guests.values()]
 
     @property

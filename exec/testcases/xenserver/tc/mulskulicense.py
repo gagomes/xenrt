@@ -32,6 +32,7 @@ class LicenseBase(xenrt.TestCase, object):
         self.systemObj = None
         self.v6 = None
         self.addLicenseFile = False 
+        self.interestedVMName = None
 
     def prepare(self,arglist):
 
@@ -77,6 +78,8 @@ class LicenseBase(xenrt.TestCase, object):
                 self.graceExpected = True
             if arg.startswith('addlicfiles'):
                 self.addLicenseFile = True
+            if arg.startswith('insterestedVMName'):
+                self.interestedVMName = self.getGuest(arg.split('=')[1])
 
     def checkGrace(self,host):
 

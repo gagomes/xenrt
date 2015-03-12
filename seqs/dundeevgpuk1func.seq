@@ -3,10 +3,11 @@
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
     <PREPARE_WORKERS>5</PREPARE_WORKERS>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
   </variables>
 
   <prepare>
-    <host license="enterprise-per-socket" >
+    <host installsr="ext" license="enterprise-per-socket" >
       <vm name="masterwin7sp1-x86">
         <distro>win7sp1-x86</distro>
         <memory>2048</memory>

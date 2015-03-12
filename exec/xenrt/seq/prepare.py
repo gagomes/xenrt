@@ -1788,6 +1788,11 @@ class GuestInstallWorker(_InstallWorker):
         if work.has_key("filename"):
             xenrt.productLib(hostname=work["host"]).guest.createVMFromFile(**work)
         else:
+            if xenrt.TEC().lookup("DEFAULT_VIFS", False, boolean=True) and (not "vifs" in work or not work['vifs']):
+                host = work["host"]
+                if not isinstance(host, xenrt.GenericHost):
+                    host = xenrt.TEC().registry.hostGet(host)
+                work['vifs'] = host.guestFactory().DEFAULT
             xenrt.productLib(hostname=work["host"]).guest.createVM(**work)
 
 class SlaveManagementWorker(_InstallWorker):

@@ -4358,11 +4358,13 @@ def createVMFromPrebuiltTemplate(host,
     
         if not preinstalledTemplates:
             preinstalledTemplates = host.minimalList("template-list", args="name-label=xenrt-template-%s-%s" % (distro, arch), params="name-label")
-   
-        templateSR = host.minimalList("sr-list", params="uuid", args="name-label='Remote Template Library'")
+  
+        # Check whether the template SR is present
+        templateSR = host.minimalList("sr-list", params="uuid", args="uuid=%s" % xenrt.lib.xenserver.host.TEMPLATE_SR_UUID)
 
         if not preinstalledTemplates and templateSR:
-            host.getCLIInstance().execute("sr-scan", "uuid=%s" % templateSR[0])
+            host.getCLIInstance().execute("sr-scan", "uuid=%s" % xenrt.lib.xenserver.host.TEMPLATE_SR_UUID)
+            # Mount the template SR locally to find out what the UUID of the VDI is
             m = xenrt.rootops.MountNFS(xenrt.TEC().lookup("SHARED_VHD_PATH_NFS"))
             vuuid = None
             if os.path.exists("%s/%s_%s.cfg" % (m.getMount(), distro, arch)):
@@ -4371,7 +4373,7 @@ def createVMFromPrebuiltTemplate(host,
             elif os.path.exists("%s/%s.cfg" % (m.getMount(), distro)):
                 with open("%s/%s.cfg" % (m.getMount(), distro)) as f:
                     vuuid = f.read().strip()
-        
+            # Check the VDI exists
             if vuuid and os.path.exists("%s/%s.vhd" % (m.getMount(), vuuid)):
                 if rootdisk and rootdisk != Guest.DEFAULT:
                     # Check that the disk is big enough
@@ -4379,17 +4381,22 @@ def createVMFromPrebuiltTemplate(host,
                         return None
                 template = host.getTemplate(distro, arch=arch)
                 cli = host.getCLIInstance()
+                # Copy the VDI to the target SR
                 vdiuuid = cli.execute("vdi-copy sr-uuid=%s uuid=%s" % (sruuid, vuuid)).strip().strip(",")
 
                 host.genParamSet("vdi", vdiuuid, "name-label", "%s_%s" % (distro, arch))
+
+                # By default we'll put this VDI into a template, then install from the template
                 if xenrt.TEC().lookup("CLONE_PREBUILT_TEMPLATES", True, boolean=True):
                     tname = "xenrt-template-%s-%s-%s" % (distro, arch, sruuid)
                 else:
+                    # The alternative is to clone a template, remove the option to create disks and just attach the copied VDI to the VM
                     tname = str(uuid.uuid4())
                 tuuid = cli.execute("vm-clone", "name-label=\"%s\" new-name-label=%s" % (template, tname)).strip()
                 host.genParamSet("template", tuuid, "PV-bootloader", "pygrub")
                 host.genParamRemove("template", tuuid, "other-config", "disks")
                 if xenrt.TEC().lookup("CLONE_PREBUILT_TEMPLATES", True, boolean=True):
+                    # Add the VDI to the template
                     cli.execute("vbd-create", "vm-uuid=%s vdi-uuid=%s device=0 bootable=true" % (tuuid, vdiuuid))
 
                 preinstalledTemplates = [tname]
@@ -4417,6 +4424,7 @@ def createVMFromPrebuiltTemplate(host,
         g.setMemory(memory)
     g.createGuestFromTemplate(t, None)
     if not xenrt.TEC().lookup("CLONE_PREBUILT_TEMPLATES", True, boolean=True):
+        # If we didn't attach the VDI to the template, we need to attach it to the VM here
         cli.execute("vbd-create", "vm-uuid=%s vdi-uuid=%s device=0 bootable=true" % (g.getUUID(), vdiuuid))
     g.ips = ips
 
@@ -4449,6 +4457,7 @@ def createVMFromPrebuiltTemplate(host,
         g.enlightenedDrivers = False
 
     g.changeCD("xs-tools.iso")
+    # The apt source needs updating to the controller
     g.special['tailor_apt_source'] = True
     g.start() 
     

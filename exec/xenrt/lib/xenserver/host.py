@@ -12710,7 +12710,7 @@ class Pool(object):
     def getDeploymentRecord(self):
         ret = {"members": []}
         if self.master:
-            ret = {"master": self.master.getName()}
+            ret["master"] = self.master.getName()}
             ret['members'].append(self.master.getName())
 
         for s in self.slaves.keys():

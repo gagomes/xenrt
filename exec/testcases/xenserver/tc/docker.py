@@ -48,7 +48,7 @@ class TCContainerLifeCycle(TCDockerBase):
     def createDockerContainers(self):
 
         # Create some containers (say 5) of your choice in every guest.
-        [docker.createContainer(ContainerType.YES_BUSYBOX) for cnum in range(self.NO_OF_CONTAINERS) for docker in self.docker]
+        [docker.createContainer(ContainerType.SLEEP_BUSYBOX) for cnum in range(self.NO_OF_CONTAINERS) for docker in self.docker]
 
     def lifeCycleDockerContainers(self):
 
@@ -164,7 +164,7 @@ class TCScaleContainers(TCDockerBase):
             count = 0
             while maximumReached:
                 try:
-                    docker.createContainer(ContainerType.YES_BUSYBOX)
+                    docker.createContainer(ContainerType.SLEEP_BUSYBOX)
                     count = count + 1
                 except xenrt.XRTFailure, e:
                     maximumReached = False

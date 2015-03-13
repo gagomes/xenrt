@@ -23,8 +23,8 @@ class Registry(object):
         xenrt.TEC().logverbose(self.data)
 
     def getDeploymentRecord(self):
-        # TODO consider pools and clouds
-        ret = {"hosts":[], "vms": []}
+        # TODO consider clouds
+        ret = {"hosts":[], "vms": [], "templates": [], "pools": []}
 
         # First check hosts that are specifed by hostname
         tmpHostnameList = []
@@ -43,7 +43,13 @@ class Registry(object):
 
         # Add guests
         for g in self.guestList():
-            ret['vms'].append(self.guestGet(g).getDeploymentRecord())
+            if self.guestGet(g).isTemplate:
+                ret['templates'].append(self.guestGet(g).getDeploymentRecord())
+            else:
+                ret['vms'].append(self.guestGet(g).getDeploymentRecord())
+
+        for p in self.poolGetAll():
+            ret['pools'].append(p.getDeploymentRecord())
         return ret
 
     # Generic operations
@@ -351,6 +357,10 @@ class Registry(object):
         """Look up a pool object by string tag"""
         path = "/xenrt/specific/pool/%s" % (tag)
         return self.read(path)
+
+    def poolGetAll(self):
+        """Get all pool objects"""
+        return self.objGetAll("pool")
 
     def poolDelete(self, tag):
         path = "/xenrt/specific/pool/%s" % (tag)

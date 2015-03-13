@@ -247,6 +247,10 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
             vm = self.handleVMNode(x)
             vm["host"] = pool["master"] 
             
+        for x in node.get("templates", []):
+            vm = self.handleVMNode(x, template=True)
+            vm["host"] = pool["master"] 
+        
         for x in node.get("vm_groups", []):
             vmgroup = self.handleVMGroupNode(x)
             for vm in vmgroup:
@@ -366,6 +370,10 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
             vm = self.handleVMNode(x)
             vm["host"] = host["name"] 
             
+        for x in node.get("templates", []):
+            vm = self.handleVMNode(x, template=True)
+            vm["host"] = host["name"] 
+        
         for x in node.get("vm_groups", []):
             vmgroup = self.handleVMGroupNode(x)
             for vm in vmgroup:
@@ -404,7 +412,7 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
             vmgroup.append(self.handleVMNode(x))
         return vmgroup
 
-    def handleVMNode(self, node, suffixjob=False):
+    def handleVMNode(self, node, suffixjob=False, template=False):
         vm = {} 
 
         vm["guestname"] = node['name']
@@ -455,6 +463,12 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
         if "boot_params" in node:
             vm['bootparams'] = node['boot_params']
         
+        if xenrt.TEC().lookup("DEFAULT_PV_DRIVERS", False, boolean=True) and not "installDrivers" in vm['postinstall']:
+            vm["postinstall"].append("installDrivers")
+
+        if template and not "convertToTemplate" in vm['postinstall']:
+            vm["postinstall"].append("convertToTemplate") 
+
         self.parent.vms.append(vm)
 
         return vm
@@ -613,6 +627,9 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
                                      "host":pool["master"]})
             elif x.localName == "vm":
                 vm = self.handleVMNode(x)
+                vm["host"] = pool["master"] 
+            elif x.localName == "template":
+                vm = self.handleVMNode(x, template=True)
                 vm["host"] = pool["master"] 
             elif x.localName == "vmgroup":
                 vmgroup = self.handleVMGroupNode(x)
@@ -780,6 +797,9 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
                 elif x.localName == "vm":
                     vm = self.handleVMNode(x)
                     vm["host"] = host["name"] 
+                elif x.localName == "template":
+                    vm = self.handleVMNode(x, template=True)
+                    vm["host"] = host["name"] 
                 elif x.localName == "vmgroup":
                     vmgroup = self.handleVMGroupNode(x)
                     for vm in vmgroup:
@@ -816,7 +836,7 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
             vmgroup.append(self.handleVMNode(node))
         return vmgroup
 
-    def handleVMNode(self, node, suffixjob=False):
+    def handleVMNode(self, node, suffixjob=False, template=False):
         vm = {} 
 
         vm["guestname"] = self.expand(node.getAttribute("name"))
@@ -895,6 +915,12 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
                     for a in x.childNodes:
                         if a.nodeType == a.TEXT_NODE:
                             vm["packages"] = self.expand(str(a.data)).split(",")
+
+        if xenrt.TEC().lookup("DEFAULT_PV_DRIVERS", False, boolean=True) and not "installDrivers" in vm['postinstall']:
+            vm["postinstall"].append("installDrivers")
+
+        if template and not "convertToTemplate" in vm['postinstall']:
+            vm["postinstall"].append("convertToTemplate") 
 
         self.parent.vms.append(vm)
 

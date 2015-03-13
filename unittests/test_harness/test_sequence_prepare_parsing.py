@@ -23,6 +23,8 @@ class TestSeqPrepareParsing(XenRTUnitTestCase):
         self.addTC(TC6)
         self.addTC(TC7)
         self.addTC(TC8)
+        self.addTC(TC9)
+        self.addTC(TC10)
         self.run_for_many(self.tcs, self.__test_seq_prepare_parsing)
 
     @patch("uuid.uuid4")
@@ -585,3 +587,60 @@ class TC8(BaseTC):
         }
     ]
 }"""
+
+# Template node is equivalent to VM node with convertToTemplate
+class TC9(BaseTC):
+    XML = """
+      <host id="0">
+        <vm name="testvm">
+          <distro>debian70</distro>
+          <network device="0" />
+          <postinstall action="convertToTemplate" />
+        </vm>
+      </host>
+"""
+    JSON = """
+        { "hosts": [
+            { "id": 0,
+              "templates": [
+                { "name": "testvm",
+                  "distro": "debian70",
+                  "vifs": [
+                    { "device": 0 }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+    """
+
+# Template node is equivalent to VM node with convertToTemplate
+class TC10(BaseTC):
+    XML = """
+      <host id="0">
+        <template name="testvm">
+          <distro>debian70</distro>
+          <network device="0" />
+        </template>
+      </host>
+"""
+    JSON = """
+        { "hosts": [
+            { "id": 0,
+              "templates": [
+                { "name": "testvm",
+                  "distro": "debian70",
+                  "vifs": [
+                    { "device": 0 }
+                  ],
+                  "postinstall": [
+                    { "action": "convertToTemplate" }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+    """
+

@@ -12707,6 +12707,18 @@ class Pool(object):
             self.getHAConfig()
             self.haEnabled = True
 
+    def getDeploymentRecord(self):
+        ret = {"members": []}
+        if self.master:
+            ret = {"master": self.master.getName()}
+            ret['members'].append(self.master.getName())
+
+        for s in self.slaves.keys():
+            ret['members'].append(self.slaves[s].getName())
+
+        return ret
+            
+    
     def populateSubclass(self, x):
         x.master = self.master
         x.slaves = self.slaves

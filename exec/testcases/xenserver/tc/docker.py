@@ -121,6 +121,9 @@ class TCGuestsLifeCycle(TCContainerLifeCycle):
         xenrt.TEC().logverbose("Guests [having docker containers] Life Cycle Operations...")
         self.lifeCycleDockerGuest()
 
+        # After a guest reboot/shutdown all the running containers goes offline.
+        [docker.startAllContainers() for docker in self.docker]
+
         # Perform again life cycle operations on all containers.
         self.lifeCycleDockerContainers()
 
@@ -145,6 +148,9 @@ class TCGuestsMigration(TCGuestsLifeCycle):
         xenrt.TEC().logverbose("Life Cycle Operations of guest before migrating to slave")
         self.lifeCycleDockerGuest()
 
+        # After a guest reboot/shutdown all the running containers goes offline.
+        [docker.startAllContainers() for docker in self.docker]
+
         xenrt.TEC().logverbose("Perform life cycle operations on all containers - (2)")
         self.lifeCycleDockerContainers()
 
@@ -157,6 +163,9 @@ class TCGuestsMigration(TCGuestsLifeCycle):
         xenrt.TEC().logverbose("Life Cycle Operations of guest after migrating to slave")
         self.lifeCycleDockerGuest()
 
+        # After a guest reboot/shutdown all the running containers goes offline.
+        [docker.startAllContainers() for docker in self.docker]
+
         xenrt.TEC().logverbose("Perform life cycle operations on all containers - (4)")
         self.lifeCycleDockerContainers()
 
@@ -168,6 +177,9 @@ class TCGuestsMigration(TCGuestsLifeCycle):
 
         xenrt.TEC().logverbose("Life Cycle Operations of guest after migrating back to master")
         self.lifeCycleDockerGuest()
+
+        # After a guest reboot/shutdown all the running containers goes offline.
+        [docker.startAllContainers() for docker in self.docker]
 
         xenrt.TEC().logverbose("Perform life cycle operations on all containers - (6)")
         self.lifeCycleDockerContainers()

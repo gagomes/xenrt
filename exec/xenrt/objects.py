@@ -6821,7 +6821,7 @@ class GenericGuest(GenericPlace):
 
     def getDeploymentRecord(self):
         if self.isTemplate:
-            ret = {"access": {"templatename": self.getName(), "os": {}}}
+            ret = {"access": {"templatename": self.getName()}, "os": {}}
         else:
             ret = {"access": {"vmname": self.getName(),
                               "ipaddress": self.getIP()}, "os": {}}

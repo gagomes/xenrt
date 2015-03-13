@@ -293,7 +293,7 @@ class VGPUTest(object):
             except Exception, e:
                 count = count + 1
                 if count == attempt:
-                    raise e
+                    raise 
                 else:
                     vm.reboot()
 

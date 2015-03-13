@@ -270,7 +270,6 @@ class FileManager(object):
                 xenrt.TEC().logverbose("SFTP fetchFile exception: %s" % (str(e)))
         raise
 
-
     @property
     def __proxyflag(self):
         proxy = xenrt.TEC().lookup("HTTP_PROXY", None)

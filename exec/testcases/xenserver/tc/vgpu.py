@@ -285,14 +285,14 @@ class VGPUTest(object):
 
     def checkvGPURunningInVM(self, vm, vGPUType):
 
-        for i in range(0,1):
-            result, err = self.__insideCheckvGPURunningInVM(vm, vGPUType)
-            if not result and err and i <1:
+        for i in range(2):
+            result, err = self.__checkvGPURunningInVMWithReason(vm, vGPUType)
+            if not result and err and i < 1:
                 vm.reboot()
             else:
                 return result 
 
-    def __insideCheckvGPURunningInVM(self, vm, vGPUType):
+    def __checkvGPURunningInVMWithReason(self, vm, vGPUType):
         gpu = self.findGPUInVM(vm)
 
         if not gpu:

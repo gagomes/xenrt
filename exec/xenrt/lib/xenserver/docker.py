@@ -315,11 +315,15 @@ class XapiPluginDockerController(DockerController):
 
         containers = []
 
-        for containerDict in dockerContainerList:
-            if containerDict.has_key('names'):
-                containers.append(containerDict['names'].strip())
+        for containerEntry in dockerContainerList:
+            if containerEntry.has_key('entry'):
+                containerDict = containerEntry['entry']
+                if containerDict.has_key('names'):
+                    containers.append(containerDict['names'].strip())
+                else:
+                    xenrt.TEC().logverbose("listContainers: The container =names= could not accessed")
             else:
-                xenrt.TEC().logverbose("listContainers: The container =name= could not accessed")
+                xenrt.TEC().logverbose("listContainers: The container =entry= could not accessed")
 
         return containers
 
@@ -361,11 +365,11 @@ class XapiPluginDockerController(DockerController):
 
         dockerPS = self.dockerGeneralInfo('docker_ps')
 
-        if not dockerPS.has_key('entry'):
-            xenrt.TEC().logverbose("getDockerPS: Failed to find key entry in docker_ps xml")
+        if not dockerPS.has_key('item'):
+            xenrt.TEC().logverbose("getDockerPS: Failed to find key =item= in docker_ps xml")
             return []
 
-        dockerContainerInfo = dockerPS['entry']
+        dockerContainerInfo = dockerPS['item']
 
         if isinstance(dockerContainerInfo,dict):
             return [dockerContainerInfo] # one container -> retruns a dict.

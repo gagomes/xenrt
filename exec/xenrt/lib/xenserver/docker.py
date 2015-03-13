@@ -56,8 +56,9 @@ class ContainerLinuxOperation(object):
     LIST = "list"
 
 class ContainerType(object):
-    YES_BUSYBOX = "yes_busybox"
-    BUSYBOX = "busybox"
+    YES_BUSYBOX = "yes_busybox" # Write continuosly yes.
+    SLEEP_BUSYBOX = "sleep_busybox" # Sleep 999999999.
+    HW_BUSYBOX = "hw_busybox" # Hello World.
     MYSQL = "mysql"
     TOMCAT = "tomcat"
     UBUNTU = "ubuntu"
@@ -87,11 +88,14 @@ class DockerController(object):
 
     def containerSelection(self, container, method=OperationMethod.XAPI):
 
-        if container.ctype == ContainerType.YES_BUSYBOX:
-            xenrt.TEC().logverbose("Create Simple BusyBox Container using %s way" % method)
+        if container.ctype == ContainerType.SLEEP_BUSYBOX:
+            xenrt.TEC().logverbose("Create Infinite Sleep BusyBox Container using %s way" % method)
+            dockerCmd = "docker run -d --name " + container.cname + " busybox /bin/sleep 999999999"
+        elif container.ctype == ContainerType.YES_BUSYBOX:
+            xenrt.TEC().logverbose("Create Simple Yes BusyBox Container using %s way" % method)
             dockerCmd = "docker run -d --name " + container.cname + " busybox /bin/sh -c \"yes\""
-        elif container.ctype == ContainerType.BUSYBOX:
-            xenrt.TEC().logverbose("Create BusyBox Container using %s way" % method)
+        elif container.ctype == ContainerType.HW_BUSYBOX:
+            xenrt.TEC().logverbose("Create Hello World BusyBox Container using %s way" % method)
             dockerCmd = "docker run -d --name " + container.cname + " busybox /bin/sh -c \"while true; do echo Hello World; sleep 1; done\""
         elif container.ctype == ContainerType.MYSQL:
             xenrt.TEC().logverbose("Create MySQL Container using %s way" % method)
@@ -603,7 +607,7 @@ class Docker(object):
             host.execdom0("mkdir -p /opt/xensource/packages/files/xscontainer")
             host.execdom0("touch /opt/xensource/packages/files/xscontainer/devmode_enabled")
 
-    def createContainer(self, ctype=ContainerType.BUSYBOX, cname="random"):
+    def createContainer(self, ctype=ContainerType.HW_BUSYBOX, cname="random"):
         if cname.startswith("random"):
             cname = "%s%08x" % (ctype, (random.randint(0, 0x7fffffff)))
         container = Container(ctype, cname)
@@ -726,7 +730,11 @@ class CentOSDocker(Docker):
             raise xenrt.XRTError("installDocker: Failed to install docker environment on guest %s" % self.guest)
 
         # Make sure the docker is running.
+        self.guest.execguest("systemctl enable docker")
         cmdOut = self.guest.execguest("service docker restart")
+
+        if not "Redirecting" in cmdOut:
+            raise xenrt.XRTError("installDocker: Failed to restart docker service on guest %s" % self.guest)
 
     def updateGuestSourceRpms(self):
 

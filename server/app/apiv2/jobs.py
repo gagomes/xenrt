@@ -501,7 +501,35 @@ class RemoveJob(_JobBase):
             self.getDB().commit()
                  
         return {}
-        
+
+class TeardownJob(_JobBase):
+    REQTYPE = None
+    WRITE = True
+    PATH = "/job/{$id}/teardown/simple"
+    HIDDEN = True
+
+    def render(self):
+        job = int(self.request.matchdict['id'])
+        jobinfo = self.getJobs(1, ids=[job], getParams=False,getResults=False,getLog=False, exceptionIfEmpty=True)[job]
+        for m in jobinfo['machines']:
+            self.return_machine(m, self.getUser().userid, False, canForce=False, commit=False)
+        self.getDB().commit()
+
+class RenewJobLease(_JobBase):
+    REQTYPE = None
+    WRITE = True
+    PATH = "/job/{$id}/renewlease/simple"
+    HIDDEN = True
+
+    def render(self):
+        job = int(self.request.matchdict['id'])
+        duration = int(self.request.params.get("duration"), "3")
+        jobinfo = self.getJobs(1, ids=[job], getParams=False,getResults=False,getLog=False, exceptionIfEmpty=True)[job]
+        for m in jobinfo['machines']:
+            self.lease(m, self.getUser().userid, duration, False, commit=False)
+        self.getDB().commit()
+
+
 class NewJob(_JobBase):
     WRITE = True
     PATH = "/jobs"

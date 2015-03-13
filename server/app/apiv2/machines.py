@@ -262,7 +262,7 @@ class _MachineBase(XenRTAPIv2Page):
         finally:
             cur.close()
 
-    def lease(self, machine, user, duration, reason, force):
+    def lease(self, machine, user, duration, reason, force, commit=True):
         leaseFrom = time.strftime("%Y-%m-%d %H:%M:%S",
                                 time.gmtime(time.time()))
         if duration:
@@ -304,8 +304,8 @@ class _MachineBase(XenRTAPIv2Page):
         
         cur.execute("INSERT INTO tblEvents(ts, etype, subject, edata) VALUES (%s, %s, %s, %s);",
                         [timenow, "LeaseStart", machine, user])
-
-        db.commit()
+        if commit:
+            db.commit()
         cur.close()        
 
     def removeMachine(self, machine, commit=True):

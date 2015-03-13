@@ -56,11 +56,15 @@ class TCContainerLifeCycle(TCDockerBase):
         [docker.lifeCycleAllContainers() for docker in self.docker]
 
     def run(self, arglist=None):
+        xenrt.TEC().logverbose("Create enough containers in every guests")
         self.createDockerContainers()
+        xenrt.TEC().logverbose("Perform life cycle operations on all containers")
         self.lifeCycleDockerContainers()
 
 class TCGuestsLifeCycle(TCContainerLifeCycle):
     """Lifecycle tests of guests with docker containers"""
+
+    NO_OF_CONTAINERS = 10
 
     def lifeCycleDockerGuest(self):
         for guest in self.guests:
@@ -72,27 +76,29 @@ class TCGuestsLifeCycle(TCContainerLifeCycle):
             guest.resume()
             guest.shutdown()
             guest.start()
-            xenrt.sleep(60)
+            xenrt.sleep(90)
 
     def run(self, arglist=None):
 
-        # Create enough containers in every guests.
+        xenrt.TEC().logverbose("Create enough containers in every guests")
         self.createDockerContainers()
 
-        # Perform life cycle operations on all containers.
+        xenrt.TEC().logverbose("Perform life cycle operations on all containers")
         self.lifeCycleDockerContainers()
 
-        xenrt.TEC().logverbose("Guests [having docker containers] Life Cycle Operations...")
+        xenrt.TEC().logverbose("Guests [having docker containers] Life Cycle Operations")
         self.lifeCycleDockerGuest()
 
         # After a guest reboot/shutdown all the running containers goes offline.
         [docker.startAllContainers() for docker in self.docker]
 
-        # Perform again life cycle operations on all containers.
+        xenrt.TEC().logverbose("Perform life cycle operations on all containers after guests reboots")
         self.lifeCycleDockerContainers()
 
 class TCGuestsMigration(TCGuestsLifeCycle):
     """Lifecycle and migration tests of guests with docker containers"""
+
+    NO_OF_CONTAINERS = 5
 
     def migrationDockerGuest(self, host):
         for guest in self.guests:

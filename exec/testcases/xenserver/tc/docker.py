@@ -59,42 +59,6 @@ class TCContainerLifeCycle(TCDockerBase):
         self.createDockerContainers()
         self.lifeCycleDockerContainers()
 
-class TCContainerVerification(TCDockerBase):
-    """Creation and deletion of containers from Docker environment and its verification in XS environment"""
-
-    NO_OF_CONTAINERS = 5
-
-    def run(self, arglist=None):
-
-        # Creation some containers in every guest by SSHing into it. (We call it as LINUX way.)
-        dockerLinux = [guest.getDocker(OperationMethod.LINUX) for guest in self.guests]
-
-        # Also, create some simple busybox containers in every guest.
-        [dl.createContainer(ContainerType.YES_BUSYBOX) for x in range(self.NO_OF_CONTAINERS) for dl in dockerLinux]
-
-        # Check these containers appeared in XenServer using Xapi plugins. (We call it as XAPI way.)
-        for guest in self.guests:
-            dx = guest.getDocker() # by default created as XAPI way.
-            dl = guest.getDocker(OperationMethod.LINUX)
-
-            # Firstly, check whether we have the right count.
-            if not dx.numberOfContainers() == dl.numberOfContainers():
-                raise xenrt.XRTFailure("The number of containers created on %s are not matching when checked through XAPI" % guest)
-
-            # Also, check the containers name matches.
-            if not set(dx.listContainers()) == set(dl.listContainers()):
-                raise xenrt.XRTFailure("Some containers created on %s are missing when checked through XAPI" % guest)
-
-        # Let us delete all containers using LINUX way.
-        for guest in self.guests:
-            dl = guest.getDocker(OperationMethod.LINUX)
-            dl.loadExistingContainers()
-            dl.rmAllContainers()
-
-            dx = guest.getDocker()
-            if not dx.numberOfContainers() == 0:
-                raise xenrt.XRTFailure("Some containers still exist in %s after removing it through LINUX way" % guest)
-
 class TCGuestsLifeCycle(TCContainerLifeCycle):
     """Lifecycle tests of guests with docker containers"""
 

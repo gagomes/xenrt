@@ -34,6 +34,8 @@ class TCLMBench(libperf.PerfTestCase):
         # From http://downloads.sourceforge.net/project/lmbench/development/lmbench-3.0-a9/lmbench-3.0-a9.tgz
         lmbenchFilename = "lmbench.tgz"
         lmbenchSrc = "%s/%s" % (self.instFiledir, lmbenchFilename)
+        xenrt.TEC().logverbose("THIS IS THE URL %s" % lmbenchSrc)
+        xenrt.TEC().logverbose("THIS IS THE UPDATED URL %s\/%s" % (self.instFiledir, lmbenchFilename))
         lmbenchDest = "/root/%s" % lmbenchFilename
 
         # Install lmbench

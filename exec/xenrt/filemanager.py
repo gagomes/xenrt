@@ -254,14 +254,19 @@ class FileManager(object):
         """
         Fetch a file which is accessible using ssh rather than web url
         """
-        sftpHostDetails = xenrt.TEC().lookup("XVA_IMPORT_SERVERS", "").split(",")
-        for hostdetail in sftpHostDetails:
+        sftpServerDetails = xenrt.TEC().lookup("SFTP_FILE_SERVERS", "").split(",")
+        for serverDetail in sftpServerDetails:
             try:
-                username = hostdetail.split("@", 1)[0]
-                ip = hostdetail.split("@", 1)[1]
-                ip = ip.split(" ")[0]
-                password = hostdetail.split(" ")[1]
-                
+                username = "root"
+                password = None
+                ip = serverDetail
+                if '@' in serverDetail:
+                    username = serverDetail.split("@", 1)[0]
+                    ip = serverDetail.split("@", 1)[1]
+                if ' ' in ip:
+                    password = serverDetail.split(" ")[1]
+                    ip = ip.split(" ")[0]
+
                 sftp = xenrt.ssh.SFTPSession(ip=ip, username=username, password=password, level=xenrt.RC_FAIL)
                 sftp.copyFrom(filepath, sharedLocation)
                 sftp.close()

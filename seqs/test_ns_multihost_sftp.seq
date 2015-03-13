@@ -4,7 +4,7 @@
     <OPTION_KEEP_SETUP>yes</OPTION_KEEP_SETUP>
     <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
     <PREPARE_WORKERS>8</PREPARE_WORKERS>
-    <XVA_IMPORT_SERVERS>build@10.102.1.233 nsbuild</XVA_IMPORT_SERVERS>
+    <SFTP_FILE_SERVERS>build@10.102.1.233 nsbuild</SFTP_FILE_SERVERS>
   </variables>
   <scheduler>
     <resources>memory&gt;=8G</resources>

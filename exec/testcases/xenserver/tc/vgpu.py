@@ -285,11 +285,19 @@ class VGPUTest(object):
 
     def checkvGPURunningInVM(self, vm, vGPUType):
 
+        for i in range(2):
+            result, err = self.__checkvGPURunningInVMWithReason(vm, vGPUType)
+            if not result and err and i < 1:
+                vm.reboot()
+            else:
+                return result 
+
+    def __checkvGPURunningInVMWithReason(self, vm, vGPUType):
         gpu = self.findGPUInVM(vm)
 
         if not gpu:
             log("vGPU not found on VM")
-            return False
+            return False,""
 
         device = "\\".join(gpu.split("\\")[0:2])
         lines = vm.devcon("status \"%s\"" % device).splitlines()
@@ -304,14 +312,14 @@ class VGPUTest(object):
                     break
                 else:
                     log("Desired vGPU not found instead %s is present on VM" % (vGPU))
-                    return False
+                    return False,""
 
         for l in lines:
             if "Device has a problem" in l or "No matching devices found" in l:
-                return False
+                return False,""
             if "Driver is running" in l:
-                return True
-        raise xenrt.XRTError("Could not determine whether GPU is running")
+                return True,""
+        return False,"Could not determine whether GPU is running"
 
     def findGPUInVM(self,vm):
 
@@ -1604,7 +1612,7 @@ class VGPUAllocationModeBase(VGPUOwnedVMsTest):
         self.host = host
 
         if self.SR_TYPE == SRType.Local:
-            self.sr = host.getSRs(type="lvm", local=True)[0]
+            self.sr = host.getSRs(type="ext", local=True)[0]
 
         else:
             # find existing NFS
@@ -1692,7 +1700,7 @@ class FunctionalBase(VGPUAllocationModeBase):
         step("Install host drivers")
         self.typeOfvGPU.installHostDrivers(self.getAllHosts())
 
-        self.sr = self.host.getSRs(type="lvm", local=True)[0]
+        self.sr = self.host.getSRs(type="ext", local=True)[0]
         self.prepareGPUGroups()
 
     def typeofvGPU(self, typeOfvGPU = None):

@@ -2,11 +2,12 @@
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
   </variables>
 
   <prepare>
   <pool id="0">
-    <host license="enterprise-per-socket"/>
+    <host installsr="ext" license="enterprise-per-socket"/>
     <storage type="nfs" name="nfs_sourceSR" />
   </pool>  
   </prepare>

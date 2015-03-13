@@ -1,0 +1,142 @@
+<xenrt>
+
+  <!-- OS functional test sequence: sl511 and sl511-x64 -->
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+  </variables>
+
+  <default name="PARALLEL" value="2" />
+  <default name="MIGRATEPAR" value="1" />
+
+  <semaphores>
+    <TCMigrate count="${MIGRATEPAR}" />
+  </semaphores>
+
+  <prepare>
+    <host />
+  </prepare>
+
+  <testsequence>
+    <parallel workers="${PARALLEL}">    
+    
+    <serial group="sl511x86-32">
+      <testcase id="xenserver.guest.TCXenServerVendorInstall" name="VMInstall" tc="TC-26474">
+        <arg>RESOURCE_HOST_0</arg>
+        <arg>guest=sl511x86-32</arg>
+        <arg>distro=sl511</arg>
+        <arg>arch=x86-32</arg>
+        <arg>memory=1024</arg>
+      </testcase>
+      <serial guest="sl511x86-32">
+        <testcase id="guestops.basic.TCStartStop" tc="TC-26475">
+        <arg>guest=sl511x86-32</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCReboot" tc="TC-26476">
+        <arg>guest=sl511x86-32</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCSuspendResume" tc="TC-26477">
+        <arg>guest=sl511x86-32</arg>
+        <arg>workloads</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" tc="TC-26478">
+        <arg>guest=sl511x86-32</arg>
+        <arg>workloads</arg>
+        <arg>loops=10</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-26479">
+        <arg>guest=sl511x86-32</arg>
+        <arg>live</arg>
+        <arg>workloads</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-26480">
+        <arg>N/A</arg>
+        <arg>guest=sl511x86-32</arg>
+        <arg>noshutdown</arg>
+        <arg>initial=4</arg>
+        <arg>max=7</arg>
+        </testcase>
+        <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-26481">
+        <arg>N/A</arg>
+        <arg>guest=sl511x86-32</arg>
+        <arg>noshutdown</arg>
+        </testcase>
+        <testcase id="guestops.cpu.TCCPUWalk" tc="TC-26482">
+        <arg>guest=sl511x86-32</arg>
+        <arg>max=16</arg>
+        <arg>noplugwindows</arg>
+        </testcase>
+        <finally>
+          <testcase id="guestops.basic.TCShutdown">
+            <arg>guest=sl511x86-32</arg>
+            <arg>finally</arg>
+          </testcase>
+        </finally>
+      </serial>
+    </serial>
+
+     <serial group="sl511x86-64">
+      <testcase id="xenserver.guest.TCXenServerVendorInstall" name="VMInstall" tc="TC-26484">
+        <arg>RESOURCE_HOST_0</arg>
+        <arg>guest=sl511x86-64</arg>
+        <arg>distro=sl511</arg>
+        <arg>arch=x86-64</arg>
+        <arg>memory=1024</arg>
+      </testcase>
+      <serial guest="sl511x86-64">
+        <testcase id="guestops.basic.TCStartStop" tc="TC-26485">
+        <arg>guest=sl511x86-64</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCReboot" tc="TC-26486">
+        <arg>guest=sl511x86-64</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCSuspendResume" tc="TC-26487">
+        <arg>guest=sl511x86-64</arg>
+        <arg>workloads</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" tc="TC-26488">
+        <arg>guest=sl511x86-64</arg>
+        <arg>workloads</arg>
+        <arg>loops=10</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-26489">
+        <arg>guest=sl511x86-64</arg>
+        <arg>live</arg>
+        <arg>workloads</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-26490">
+        <arg>N/A</arg>
+        <arg>guest=sl511x86-64</arg>
+        <arg>noshutdown</arg>
+        <arg>initial=4</arg>
+        <arg>max=7</arg>
+        </testcase>
+        <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-26491">
+        <arg>N/A</arg>
+        <arg>guest=sl511x86-64</arg>
+        <arg>noshutdown</arg>
+        </testcase>
+        <testcase id="guestops.cpu.TCCPUWalk" tc="TC-26492">
+        <arg>guest=sl511x86-64</arg>
+        <arg>max=16</arg>
+        <arg>noplugwindows</arg>
+        </testcase>
+        <finally>
+         <testcase id="guestops.basic.TCShutdown">
+            <arg>guest=sl511x86-64</arg>
+            <arg>finally</arg>
+          </testcase>
+        </finally>
+      </serial>
+    </serial>
+    </parallel>
+  </testsequence>
+</xenrt>

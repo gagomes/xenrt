@@ -8249,6 +8249,8 @@ class GenericGuest(GenericPlace):
                         maindisk="xvda"
                     if distro.startswith("oel") and int(distro[3:4]) >= 6:
                         maindisk="xvda"
+                    if distro.startswith("sl") and int(distro[2:3]) >= 6:
+                        maindisk="xvda"
         else:
             ethDevice = vifname
             maindisk = options["maindisk"]
@@ -8338,7 +8340,8 @@ class GenericGuest(GenericPlace):
             pxecfg.linuxArgsKernelAdd("ksdevice=%s" % (ethDevice))
             pxecfg.linuxArgsKernelAdd("initrd=%s" %
                                       (pxe.makeBootPath("initrd.img")))
-            if distro.startswith("oel7") or distro.startswith("centos7") or distro.startswith("rhel7"):
+
+            if distro.startswith("oel7") or distro.startswith("centos7") or distro.startswith("rhel7") or distro.startswith("sl7"):
                 pxecfg.linuxArgsKernelAdd("inst.repo=%s" % repository)
                 pxecfg.linuxArgsKernelAdd("console=tty0")
                 pxecfg.linuxArgsKernelAdd("console=hvc0")

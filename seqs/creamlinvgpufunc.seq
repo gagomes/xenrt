@@ -2,10 +2,11 @@
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
   </variables>
 
   <prepare>
-    <host license="enterprise-per-socket"/>
+    <host installsr="ext" license="enterprise-per-socket"/>
   </prepare>
 
   <testsequence>

@@ -296,7 +296,7 @@ class HackersChoiceUbuntuPackage(object):
        
         step("Getting package....")
  
-        log(guest.execguest( "wget %s/%s -O %s%s" %(xenrt.TEC().lookup("TEST_TARBALL_BASE"), self.PACKAGE, self.TARGET_ROOT, self.PACKAGE)))
+        log(guest.execguest( "wget %s%s -O %s%s" %(xenrt.TEC().lookup("TEST_TARBALL_BASE"), self.PACKAGE, self.TARGET_ROOT, self.PACKAGE)))
         log(guest.execguest( "tar -xvzf %s%s -C %s" %(self.TARGET_ROOT, self.PACKAGE, self.TARGET_ROOT)))
         
         step("Install build dependencies....")

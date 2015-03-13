@@ -117,7 +117,7 @@ class TC10633(_SupplementalPacksDuringInstall):
 class _SupplementalPacksPostInstall(_SupplementalPacksDuringInstall):
 
     def downloadPackISO(self, host, pack):
-        host.execdom0("curl '%s/suppacks/%s' -o /tmp/%s" %
+        host.execdom0("curl '%ssuppacks/%s' -o /tmp/%s" %
                       (xenrt.TEC().lookup("TEST_TARBALL_BASE"),
                       pack['iso'],
                       pack['iso']))

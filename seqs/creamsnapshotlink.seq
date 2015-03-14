@@ -1,0 +1,21 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+  </variables>
+
+  <prepare>
+    <host id="0"/>
+    <host id="1"/>
+  </prepare>
+
+  <testsequence>
+    <serial group="OnRevertVDIsNotDeleted">
+      <testcase id="xenserver.tc.snapshot.RetainingVDIOnSnapshotRevert" tc="TC-26530"/>
+    </serial>
+    <serial group="SnapshotLinksOnRevert">
+      <testcase id="xenserver.tc.snapshot.SnapshotVDILink" tc="TC-26529"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

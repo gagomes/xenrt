@@ -2378,7 +2378,7 @@ class TC21632(_TCHostPowerON):
         """Installs Dell OpenManage Supplemental Pack"""
 
         # Get the OpenManage Supplemental Pack from distmaster and install.
-        master.execdom0("wget -nv '%s/dellomsupppack.tgz' -O - | tar -zx -C /tmp" %
+        master.execdom0("wget -nv '%sdellomsupppack.tgz' -O - | tar -zx -C /tmp" %
                                                 (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
 
         dellomSupppack = "dellomsupppack-%s.iso" % master.productVersion.lower().strip()

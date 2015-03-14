@@ -237,11 +237,14 @@ class XenRTDHCPAllocator(object):
             _logger.info("Sending /%s/boot.efi as PXE file" % ip)
         elif userClass and listToStr(userClass) == "iPXE":
             packet.setOption("file", strToPaddedList("http://%s/tftp/default-ipxe.cgi" % server, 128))
+            _logger.info("Sending http://%s/tftp/default-ipxe.cgi as PXE file" % server)
         else:
             if self.config['interfaces'][intf].get('ipxe'):
                 packet.setOption("file", strToPaddedList("/undionly.kpxe", 128))
+                _logger.info("Sending /undionly.kpxe as PXE file")
             else:
                 packet.setOption("file", strToPaddedList("/pxelinux.0", 128))
+                _logger.info("Sending /pxelinux.0 as PXE file")
         packet.setOption("siaddr", ipToList(server))
    
     def getInterfaceInfo(self, intf):

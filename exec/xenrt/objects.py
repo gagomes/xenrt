@@ -6801,6 +6801,7 @@ class GenericGuest(GenericPlace):
         self.use_ipv6 = False
         self.ipv4_disabled = False
         self.instance = None
+        self.isTemplate = False
         xenrt.TEC().logverbose("Creating %s instance." % (self.__class__.__name__))
 
     def populateSubclass(self, x):
@@ -6816,10 +6817,14 @@ class GenericGuest(GenericPlace):
         x.tailored = self.tailored
         x.reservedIP = self.reservedIP
         x.instance = self.instance
+        x.isTemplate = self.isTemplate
 
     def getDeploymentRecord(self):
-        ret = {"access": {"vmname": self.getName(),
-                          "ipaddress": self.getIP()}, "os": {}}
+        if self.isTemplate:
+            ret = {"access": {"templatename": self.getName()}, "os": {}}
+        else:
+            ret = {"access": {"vmname": self.getName(),
+                              "ipaddress": self.getIP()}, "os": {}}
         if self.windows:
             ret['access']['username'] = "Administrator"
             ret['access']['password'] = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS",
@@ -9970,6 +9975,9 @@ while True:
         fileWithoutExt = os.path.splitext(rpm)[0]
 
         return not bool(self.execguest("rpm -qi %s" % fileWithoutExt, retval="code", level=xenrt.RC_OK))
+
+    def installDrivers(self):
+        pass
 
 class EventObserver(xenrt.XRTThread):
 

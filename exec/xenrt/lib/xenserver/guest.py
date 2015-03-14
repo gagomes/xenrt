@@ -4279,6 +4279,7 @@ exit /B 1
         self.changeCD(None)
         self.paramSet("is-a-template", "true")
         self.host.removeGuest(self.name)
+        self.isTemplate = True
 
 #############################################################################
 

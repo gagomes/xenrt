@@ -2062,6 +2062,7 @@ exit /B 1
         netscaler = xenrt.lib.netscaler.NetScaler.setupNetScalerVpx(self, useVIFs=True)
         xenrt.GEC().registry.objPut("netscaler", self.name, netscaler)
         netscaler.applyLicense(netscaler.getLicenseFileFromXenRT())
+        netscaler.checkFeatures()
 
     def setupDomainServer(self):
         self.installPowerShell()

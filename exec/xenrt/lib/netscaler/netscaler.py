@@ -62,7 +62,6 @@ class NetScaler(object):
             vpxGuest.waitForSSH(timeout=300, username='nsroot', cmd='shell')
             vpx = cls(vpxGuest, mgmtNet)
             vpx.setup(networks)
-            vpx.checkFeatures()
         return vpx
 
     @classmethod

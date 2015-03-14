@@ -2,12 +2,9 @@
 
   <!-- HVM Guests scalability test sequence -->
   
-  <default name="POSTRUN_CLEANUP" value="cleanup"/>    <!-- nocleanup|cleanup|forcecleanup -->
-
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
     <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
-    <LINUX_DISTRO>rhel54</LINUX_DISTRO>
     <EXTRA_TIME>yes</EXTRA_TIME>
     <BUGTOOL_MODE_STRESS>yes</BUGTOOL_MODE_STRESS>
     <NO_LOGS_ON_PASS>yes</NO_LOGS_ON_PASS>
@@ -23,15 +20,8 @@
   </prepare>
 
   <testsequence group="VMScale">
-    <testcase id="xenserver.tc.scalability.TC7336">
-        <arg>max=300</arg> <!--  Maximum possible stable HVM VMs with default settings  -->
-        <arg>postrun=nocleanup</arg>
-    </testcase>
-    <!--  Keep the below test to the last of any test sequence, as it update the host, which is not reverted in PostRun action-->
     <testcase id="xenserver.tc.scalability.TC19271">
-        <arg>max=500</arg> <!--  Maximum possible HVM VMs with some tweak -->
-        <arg>dom0mem=8192</arg>
-        <arg>postrun=${POSTRUN_CLEANUP}</arg>
+        <arg>max=500</arg>
     </testcase>
   </testsequence>
 </xenrt>

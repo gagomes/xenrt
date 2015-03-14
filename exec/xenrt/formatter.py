@@ -13,7 +13,7 @@ import sys,xml.dom.minidom,tempfile,os,stat,getopt
 
 __all__ = ["Formatter"]
 
-class Formatter:
+class Formatter(object):
     """XenRT Results Formatter"""
 
     def getValue(self,node,value,unknown=None):

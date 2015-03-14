@@ -2,17 +2,13 @@
 
   <!-- Docker test sequence using CoreOS guest. -->
 
-  <default name="DISTRO" value="coreos-alpha" />
+  <default name="DISTRO" value="coreos-beta" />
 
   <variables>
     <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
     <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
   </variables>
-
-  <scheduler>
-    <resources>memory&gt;=20G/disk1&gt;=140G</resources>
-  </scheduler>
 
   <prepare>
     <pool id="0">
@@ -23,7 +19,7 @@
           <memory>1024</memory>
           <vcpus>2</vcpus>
           <network device="0" />
-          <disk device="0" size="5" />
+          <disk device="0" size="50" />
           <postinstall action="dockerInstall" />
         </vm>
       </host>
@@ -33,13 +29,8 @@
   <testsequence>
     <serial group="CoreOS">
 
-      <testcase id="xenserver.tc.docker.TCContainerLifeCycle" tc="TC-23918" name="ContainerLifeCycle" sku="CoreOS">
-        <arg>coreosdistro=${DISTRO}</arg>
-      </testcase>
-
-      <testcase id="xenserver.tc.docker.TCGuestsLifeCycle" tc="TC-26443" name="GuestsLifeCycle" sku="CoreOS">
-        <arg>coreosdistro=${DISTRO}</arg>
-      </testcase>
+      <testcase id="xenserver.tc.docker.TCContainerLifeCycle" tc="TC-23918" name="ContainerLifeCycle" sku="CoreOS" />
+      <testcase id="xenserver.tc.docker.TCGuestsLifeCycle" tc="TC-26443" name="GuestsLifeCycle" sku="CoreOS" />
 
     </serial>
   </testsequence>

@@ -9,7 +9,7 @@ import XenAPI
 from xenrt.lazylog import log, warning
 
 
-class RHELKickStartFile :
+class RHELKickStartFile(object):
     def __init__(self,
                  distro,
                  maindisk,               
@@ -499,7 +499,7 @@ umount /tmp/xenrttmpmount
         return out
         
         
-class SLESAutoyastFile :
+class SLESAutoyastFile(object):
 
     def __init__(self,
                  distro,
@@ -3446,7 +3446,7 @@ sleep 120
        )
         return ks
         
-class DebianPreseedFile():
+class DebianPreseedFile(object):
     def __init__(self,
                  distro,
                  repository,

@@ -11,7 +11,7 @@
 import string, re, time
 import xenrt
 
-class _Call:
+class _Call(object):
     """Class representing a call for later evaluation."""
 
     TYPE = ""
@@ -147,7 +147,7 @@ class SSHCall(_Call):
     def execute(self, host, username, password):
         self.session.execdom0(self.operation, username=username, password=password)
 
-class _FatalCall:
+class _FatalCall(object):
 
     TIMEOUT = 360 
 

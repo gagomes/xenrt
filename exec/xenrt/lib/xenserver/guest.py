@@ -12,6 +12,7 @@ import shutil, traceback, fnmatch, xml.dom.minidom, pipes
 import xenrt
 from PIL import Image
 from IPy import IP
+from xenrt.lazylog import *
 from xenrt.lib.scalextreme import SXAgent
 
 # Symbols we want to export from the package.
@@ -1106,12 +1107,13 @@ default:
             xenrt.sleep(5)
 
     def installCitrixCertificate(self):
+        log("Installing citrix Certificate after checking the windows version")
         # Install the Citrix certificate to those VMs which require it (Vista and onwards)
         if self.windows and float(self.xmlrpcWindowsVersion()) > 5.99:
             xenrt.TEC().comment("Installing Citrix certificate")
             # Copy a version of certmgr.exe that takes command line arguments
             self.xmlrpcSendFile("%s/distutils/certmgr.exe" % xenrt.TEC().lookup("LOCAL_SCRIPTDIR"), "c:\\certmgr.exe")
-            self.xmlrpcSendFile("%s/data/certs/CitrixTrust.cer" % xenrt.TEC().lookup("XENRT_BASE"),"c:\\CitrixTrust.cer")
+            self.xmlrpcSendFile("%s/data/certs/CitrixTrust.cer" % (xenrt.TEC().lookup("XENRT_BASE")),"c:\\CitrixTrust.cer")
             self.xmlrpcExec("c:\\certmgr.exe /add c:\\CitrixTrust.cer /s /r localmachine trustedpublisher")
 
     def _generateRunOnceScript(self):
@@ -1205,9 +1207,6 @@ at > c:\\xenrtatlog.txt
         if not self.windows:
             xenrt.TEC().skip("Non Windows guest, no drivers to install")
             return
-
-        if xenrt.TEC().lookup("ENABLE_CITRIXCERT", False, boolean=True):
-            self.installCitrixCertificate()
 
         if float(self.xmlrpcWindowsVersion()) == 6.1 and xenrt.TEC().lookup("STRESS_TEST", False, boolean=True):
             # CA-35591 update the default SCM timeout
@@ -2802,9 +2801,9 @@ exit /B 1
                    returnDevice=False,
                    smconfig=None,
                    mode="RW"):
-        # Default to local SR.
+        # Default to sequence specified default SR.
         if not sruuid:
-            sruuid = self.getHost().getLocalSR()
+            sruuid = self.chooseSR()
         elif sruuid == "DEFAULT":
             sruuid = self.getHost().lookupDefaultSR()
 
@@ -5193,9 +5192,6 @@ class TampaGuest(BostonGuest):
 
         if legacy or xenrt.TEC().lookup("USE_LEGACY_DRIVERS", False, boolean=True):
 
-            if xenrt.TEC().lookup("ENABLE_CITRIXCERT", False, boolean=True):
-                self.installCitrixCertificate()
-
             self.installRunOncePVDriversInstallScript()
 
         if not legacy and (useLegacy or xenrt.TEC().lookup("USE_LEGACY_DRIVERS", False, boolean=True)):
@@ -5279,12 +5275,13 @@ class TampaGuest(BostonGuest):
                     xenrt.sleep(30)
 
         # now wait for PV devices to be connected
-        for i in range(20):
+        count = 20
+        for i in range(count):
             try:
                 self.checkPVDevices()
                 break
             except xenrt.XRTException:
-                if i == 19:
+                if i == count-1:
                     raise
                 xenrt.sleep(120)
 
@@ -5306,14 +5303,9 @@ class TampaGuest(BostonGuest):
         if legacy and offloadSettingsBefore:
             offloadSettingsBefore.verifyEqualTo(offloadSettingsAfter)
 
-        usepoolmem = xenrt.TEC().lookup("PVDRIVER_POOLMEM", False, boolean=True)
-
-        if usepoolmem:
-            self.xmlrpcExec("verifier /flags 0x9 /driver xen.sys xenfilt.sys xenbus.sys xenvbd.sys xenvif.sys xennet.sys xeniface.sys")
-
-        if usepoolmem or extrareboot: 
+        if extrareboot:
             self.reboot()
-
+        
         if xenrt.TEC().lookup("DO_SYSPREP", False, boolean=True):
             self.xmlrpcDoSysprep()
             self.reboot()
@@ -5323,10 +5315,6 @@ class TampaGuest(BostonGuest):
             if self.pvDriversUpToDate() or not expectUpToDate:
                 break
             xenrt.sleep(10)
-
-        if xenrt.TEC().lookup("SET_DISK_TIMEOUT", False):
-            self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\Disk", "TimeOutValue", "DWORD", int(xenrt.TEC().lookup("SET_DISK_TIMEOUT")))
-            self.reboot()
 
     def uninstallDrivers(self, waitForDaemon=True):
 
@@ -5838,25 +5826,198 @@ default:
 
         self.getDocker().install()
 
-    def getDocker(self):
+    def getDocker(self, method="XAPI"):
+
+        if method == "XAPI":
+            controller = xenrt.lib.xenserver.docker.XapiPluginDockerController
+        elif method == "LINUX":
+            controller = xenrt.lib.xenserver.docker.LinuxDockerController
+        else:
+            raise xenrt.XRTError("Unknown docker controller %s" % method)
 
         # The method by default uses docker interactions through Xapi.
         if self.distro.startswith("coreos"):
-            return xenrt.lib.xenserver.docker.CoreOSDocker(self.getHost(), self,
-                                xenrt.lib.xenserver.docker.XapiPluginDockerController)
+            return xenrt.lib.xenserver.docker.CoreOSDocker(self.getHost(), self, controller)
         elif self.distro.startswith("centos"): # CentOS7
-            return xenrt.lib.xenserver.docker.CentOSDocker(self.getHost(), self,
-                                xenrt.lib.xenserver.docker.XapiPluginDockerController)
+            return xenrt.lib.xenserver.docker.CentOSDocker(self.getHost(), self, controller)
         elif self.distro.startswith("ubuntu"): #  Ubuntu 14.04
-            return xenrt.lib.xenserver.docker.UbuntuDocker(self.getHost(), self,
-                                xenrt.lib.xenserver.docker.XapiPluginDockerController)
+            return xenrt.lib.xenserver.docker.UbuntuDocker(self.getHost(), self, controller)
         else:
-            raise xenrt.XRTFailure("Docker installation unimplemented on distro %s" %
-                                                                            self.distro)
+            raise xenrt.XRTFailure("Docker installation unimplemented on distro %s" % self.distro)
 
 class DundeeGuest(CreedenceGuest):
-    pass
 
+    def setRandomPvDriverSource(self):
+        #Randomly select PV Drivers Installation source
+        
+        with xenrt.GEC().getLock("RND_PV_DRIVER_INSTALL_SOURCE"):
+            dbVal = xenrt.TEC().lookup("RND_PV_DRIVER_INSTALL_SOURCE_VALUE", None)
+            if dbVal != None:
+                return dbVal
+            else:
+                randomPvDriverInstallSource = random.choice(xenrt.TEC().lookup("PV_DRIVER_INSTALLATION_SOURCE"))
+                xenrt.GEC().config.setVariable("RND_PV_DRIVER_INSTALL_SOURCE_VALUE",str(randomPvDriverInstallSource))
+                xenrt.GEC().dbconnect.jobUpdate("RND_PV_DRIVER_INSTALL_SOURCE_VALUE",str(randomPvDriverInstallSource))
+                return randomPvDriverInstallSource
+    
+    def setRandomPvDriverList(self):
+        #Randomise the order of PV packages 
+
+        with xenrt.GEC().getLock("RND_PV_DRIVERS_LIST"):
+            dbVal = xenrt.TEC().lookup("RND_PV_DRIVERS_LIST_VALUE", None)
+            if dbVal != None:
+                return dbVal
+            else:
+                pvDriversList =xenrt.TEC().lookup("PV_DRIVERS_LIST")
+                pvDriversList = pvDriversList.split(';')
+                random.shuffle(pvDriversList)
+                randomPvDriversList = ';'.join(pvDriversList)
+                xenrt.GEC().config.setVariable("RND_PV_DRIVERS_LIST_VALUE",randomPvDriversList)
+                xenrt.GEC().dbconnect.jobUpdate("RND_PV_DRIVERS_LIST_VALUE",randomPvDriversList)
+                return randomPvDriversList
+                
+    def installDrivers(self, source=None, extrareboot=False, useLegacy=False, useHostTimeUTC=False, expectUpToDate=True, installFullWindowsGuestAgent=True, useDotNet=True):
+        """
+        Install PV Tools on Windows Guest
+        """
+
+        #Check if it a windows guest , progress only if it is windows
+        if not self.windows:
+            xenrt.TEC().skip("Non Windows guest, no drivers to install")
+            return
+        
+        """Check the PV Driver source from where the tools to be installed 
+        Random : Randomly choose either ToolsISO or Packages
+        ToolsISO : Install PV Drivers through ToolsISO
+        Packages : Install PV Drivers from individual PV packages
+        """
+        
+        pvDriverSource = xenrt.TEC().lookup("PV_DRIVER_SOURCE", None)
+
+        if pvDriverSource == "Random":
+            pvDriverSource = self.setRandomPvDriverSource()
+            
+        # If source is "ToolsISO" then install from xs tools
+        if pvDriverSource == "ToolsISO" or pvDriverSource == None or useLegacy == True or xenrt.TEC().lookup("USE_LEGACY_DRIVERS", False, boolean=True) or self.usesLegacyDrivers():
+            TampaGuest.installDrivers(self, source, extrareboot, useLegacy, useHostTimeUTC, expectUpToDate)
+            
+        #If source is "Packages" then install from PV Packages
+        if pvDriverSource == "Packages":
+
+            if useDotNet:
+                # We support .NET 3.5 and .NET 4. This can be switched at the seq/suite level.
+                self.installDotNetRequiredForDrivers()
+            
+            self.installCitrixCertificate()
+                
+            if installFullWindowsGuestAgent:
+                self.installFullWindowsGuestAgent()
+                
+            # Download the Individual PV packages
+            self.xmlrpcSendFile(xenrt.TEC().getFile("xe-phase-1/%s" %(xenrt.TEC().lookup("PV_DRIVERS_LOCATION", None))), "c:\\tools.tgz")
+            pvToolsDir = self.xmlrpcTempDir()
+            self.xmlrpcExtractTarball("c:\\tools.tgz", pvToolsDir)
+            
+            #Get the list of the Packages to be installed in random order
+            packages = self.setRandomPvDriverList()
+            packages = packages.split(';')
+            
+            #Install the PV Packages one by one
+            for pkg in packages:
+                self.installPVPackage(pkg, pvToolsDir)
+           
+            xenrt.sleep(30)
+            self.reboot()
+                
+            # now wait for PV devices to be connected
+            count = 20
+            for i in range(count):
+                try:
+                    self.checkPVDevices()
+                    break
+                except xenrt.XRTException:
+                    if i == count-1:
+                        raise
+                    xenrt.sleep(120)
+
+            # wait for guest agent
+            self.waitForAgent(300, checkPvDriversUpToDate=expectUpToDate)
+
+            self.enlightenedDrivers = True
+
+            self.waitForDaemon(120, desc="Daemon connect after driver install")
+            
+            if extrareboot:
+                self.reboot()
+            
+            #Check whether tools are up to date
+            for i in range(12):
+                if self.pvDriversUpToDate() or not expectUpToDate:
+                    break
+                xenrt.sleep(10)
+
+    def installPVPackage(self, packageName = None, toolsDirectory = None):
+        """ Installing Individual PV package """
+        
+        #If packageName is none then raise error
+        if packageName is None:
+            raise xenrt.XRTError("PV package to install not specified")
+        
+        #Download the tools if not present already
+        if toolsDirectory is None:
+            self.xmlrpcSendFile(xenrt.TEC().getFile("xe-phase-1/%s" %(PV_DRIVERS_LOCATION)), "c:\\tools.tgz")
+            toolsDirectory = self.xmlrpcTempDir()
+            self.xmlrpcExtractTarball("c:\\tools.tgz", toolsDirectory)
+        
+        #Get the Arch and install the appropriate Drivers 
+        if self.xmlrpcGetArch().endswith('64'):
+            arch = "x64"
+        else:
+            arch = "x86"
+        
+        self.xmlrpcStart("%s\\%s\\%s\\dpinst.exe /sw" % (toolsDirectory, packageName, arch))
+        xenrt.sleep(30)
+
+    def installFullWindowsGuestAgent(self):
+        """ Install Windows Guest Agent from xs tools """
+        
+        #Mount the tools CD 
+        self.changeCD("xs-tools.iso")
+        xenrt.sleep(30)
+        pvToolsDir = "D:"
+        
+        #Get the Arch and install the appropriate guest agent  
+        if self.xmlrpcGetArch().endswith('64'):
+            self.xmlrpcStart("%s\\citrixguestagentx64.msi  /passive /norestart" %(pvToolsDir))
+        else:
+            self.xmlrpcStart("%s\\citrixguestagentx86.msi  /passive /norestart" %(pvToolsDir))
+        
+        xenrt.sleep(30)
+        
+        #Eject the tools CD from the VM.
+        self.changeCD(None)
+
+    def sc(self, command ):
+        """SC is a command line program used for communicating with the Service control manager and services"""
+        
+        return self.xmlrpcExec("sc %s" % (command), returnerror=False, returnrc=True) == 0
+        
+    def checkPVDriversStatus(self):
+        """ Verify the Drivers are running by using 'SC' Command line program"""
+        
+        drivers = ['XENBUS','XENIFACE','XENVIF','XENVBD','XENNET']
+        notRunning = []
+        
+        for driver in drivers:
+            status = self.sc('query %s | find "RUNNING"' %(driver))
+            if not status:
+                notRunning.append(driver)
+                
+        if notRunning:
+            raise xenrt.XRTFailure(" %s services not running on %s" %(','.join(notRunning), self.getName()))
+            
+        xenrt.TEC().logverbose("PV Devices are installed and Running on %s " %(self.getName()))
+        
 class StorageMotionObserver(xenrt.EventObserver):
 
     def startObservingSXMMigrate(self,vm,destHost,destSession):

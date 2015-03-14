@@ -11,7 +11,7 @@
 import xml.dom.minidom, re, string, copy, time, os, random 
 import xenrt
 
-class Comparer:
+class Comparer(object):
 
     def getparameters(self, root, uuid):
         if not xenrt.isUUID(uuid): return {}

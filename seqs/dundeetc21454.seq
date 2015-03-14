@@ -54,7 +54,7 @@
         <for iter="C" values="${PAIRSPERHOST}">
           <parallel>
             <serial group="Lin">
-              <testcase id="xenserver.guest.TCXenServerVendorInstall" tc="TC-21454" name="Install.Lin.${P}${C}" sku="Install.Lin.${P}${C}">
+              <testcase id="xenserver.guest.TCXenServerVendorInstall" tc="TC-21454" name="Install.Lin${P}${C}" sku="Install.Lin${P}${C}">
                 <arg>RESOURCE_HOST_${P}</arg>
                 <arg>guest=rhguest${P}${C}</arg>
                 <arg>version=${GUESTDISTRO}</arg>
@@ -62,7 +62,7 @@
                 <arg>vcpus=${GUESTVCPUS}</arg>
                 <arg>disksize=${GUESTDISKLIN}</arg>
               </testcase>
-              <testcase id="xenserver.guest.TCLifeCycleLoop" tc="TC-21454" name="LifeCycle.Lin.${P}${C}" sku="LifeCycle.Lin.${P}${C}">
+              <testcase id="xenserver.guest.TCLifeCycleLoop" tc="TC-21454" name="LifeCycle.Lin${P}${C}" sku="LifeCycle.Lin${P}${C}">
                 <arg>guest=rhguest${P}${C}</arg>
                 <arg>duration=${DURATION}</arg>
                 <arg>iterations=${ITERATIONS}</arg>
@@ -70,7 +70,7 @@
               </testcase>
             </serial>
             <serial group="Win">
-              <testcase id="xenserver.guest.TCXenServerWindowsInstall" tc="TC-21454" name="Install.Win.${P}${C}" sku="Install.Win.${P}${C}">
+              <testcase id="xenserver.guest.TCXenServerWindowsInstall" tc="TC-21454" name="Install.Win${P}${C}" sku="Install.Win${P}${C}">
                 <arg>RESOURCE_HOST_${P}</arg>
                 <arg>guest=winguest${P}${C}</arg>
                 <arg>version=${GUESTVERSION}</arg>
@@ -78,10 +78,10 @@
                 <arg>vcpus=${GUESTVCPUS}</arg>
                 <arg>disksize=${GUESTDISK}</arg>
               </testcase>
-              <testcase id="guestops.drivers.TCDriverInstall" tc="TC-21454" name="DriverInstall.Win.${P}${C}" sku="DriverInstall.Win.${P}${C}">
+              <testcase id="guestops.drivers.TCDriverInstall" tc="TC-21454" name="DriverInstall.Win${P}${C}" sku="DriverInstall.Win${P}${C}">
                 <arg>guest=winguest${P}${C}</arg>
               </testcase>
-              <testcase id="xenserver.guest.TCLifeCycleLoop" tc="TC-21454" name="LifeCycle.Win.${P}${C}" sku="LifeCycle.Win.${P}${C}">
+              <testcase id="xenserver.guest.TCLifeCycleLoop" tc="TC-21454" name="LifeCycle.Win${P}${C}" sku="LifeCycle.Win${P}${C}">
                 <arg>guest=winguest${P}${C}</arg>
                 <arg>duration=${DURATION}</arg>
                 <arg>iterations=${ITERATIONS}</arg>

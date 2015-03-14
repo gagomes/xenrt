@@ -2155,7 +2155,7 @@ if getresource:
 if listresources:
     cr = xenrt.resources.CentralResource()
     locks = cr.list()
-    jobs = [x[2]['jobid'] for x in locks if x[1] and x[2]['jobid']]
+    jobs = [x[2]['jobid'] for x in locks if x[1] and x[2]['jobid'] and x[2]['jobid'].isdigit()]
     
     jobdirs = {}
 

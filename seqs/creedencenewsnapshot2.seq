@@ -32,8 +32,6 @@
       <testcase id="xenserver.tc.snapshot.TC9177" prio="3"/>
       <testcase id="xenserver.tc.snapshot.TC9205" prio="3"/>
       <testcase id="xenserver.tc.snapshot.TC12559" prio="3"/>
-      <testcase id="xenserver.tc.snapshot.TC26421" prio="3"/>
-      <testcase id="xenserver.tc.snapshot.TC26422" prio="3"/>
     </serial>
   </testsequence>
 

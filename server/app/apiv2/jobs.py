@@ -10,6 +10,7 @@ import urlparse
 import StringIO
 import requests
 import time
+import re
 
 class _JobBase(_MachineBase):
 
@@ -39,11 +40,14 @@ class _JobBase(_MachineBase):
         conditions = []
         joinquery = ""
         if srs:
-            joinquery += "INNER JOIN tbljobgroups g ON g.jobid = j.jobid "
+            joinquery += "LEFT OUTER JOIN tbljobgroups g ON g.jobid = j.jobid "
             srcond = []
             for s in srs:
-                srcond.append("g.gid=%s")
-                params.append("SR%s" % str(s))
+                if s.lower() == "null":
+                    srcond.append("g.gid IS NULL")
+                else:
+                    srcond.append("g.gid=%s")
+                    params.append("SR%s" % str(s))
             conditions.append("(%s)" % " OR ".join(srcond))
 
         if ids:
@@ -133,10 +137,7 @@ class _JobBase(_MachineBase):
             rc = cur.fetchone()
             if not rc:
                 break
-            job = rc[0]
-            param = rc[1].strip()
-            value = rc[2].strip()
-            jobs[job]['params'][param] = value
+            jobs[rc[0]]['params'][rc[1].strip()] = rc[2].strip()
 
         u = urlparse.urlparse(config.url_base)
         for j in jobs.keys():
@@ -220,15 +221,8 @@ class _JobBase(_MachineBase):
 
         return jobs
 
-    def updateJobField(self, jobid, key, value, commit=True, lookupExisting=True):
+    def updateJobField(self, jobid, key, value, commit=True):
         db = self.getDB()
-
-        if lookupExisting:
-            jobs = self.getJobs(1, ids=[jobid], getParams=True, exceptionIfEmpty=True)
-
-            details = jobs[jobid]['params']
-        else:
-            details = {}
 
         if key in app.constants.core_params:
             cur = db.cursor()
@@ -246,12 +240,14 @@ class _JobBase(_MachineBase):
                     # Use empty string as a way to delete a property
                     cur.execute("DELETE FROM tbljobdetails WHERE jobid=%s "
                                 "AND param=%s;", [jobid, key])
-                elif not details.has_key(key):
-                    cur.execute("INSERT INTO tbljobdetails (jobid,param,value) "
-                                "VALUES (%s,%s,%s);", [jobid, key, str(value)])
                 else:
+                    # Try and do an update first
                     cur.execute("UPDATE tbljobdetails SET value=%s WHERE "
                                 "jobid=%s AND param=%s;", [str(value),jobid,key])
+                    if cur.rowcount == 0:
+                        # Parameter doesn't already exist, do an INSERT
+                        cur.execute("INSERT INTO tbljobdetails (jobid,param,value) "
+                                    "VALUES (%s,%s,%s);", [jobid, key, str(value)])
                 if commit:
                     db.commit()
             finally:
@@ -605,7 +601,7 @@ class NewJob(_JobBase):
     PARAM_ORDER=["machines", "pools", "flags", "resources", "specified_machines", "sequence", "custom_sequence", "params", "deployment", "job_group", "email", "inputdir", "lease_machines"]
 
     def updateJobField(self, field, value, params={}):
-        _JobBase.updateJobField(self, self.jobid, field, value, commit=False, lookupExisting=False)
+        _JobBase.updateJobField(self, self.jobid, field, value, commit=False)
         if field in params:
             del params[field]
 
@@ -634,7 +630,7 @@ class NewJob(_JobBase):
 
         if params.has_key("JOBGROUP") and params.has_key("JOBGROUPTAG") and not jobGroup:
             jobGroup = {"id": params['JOBGROUP'], "tag": params['JOBGROUPTAG']}
-      
+     
         self.removeParams(params, ["USERID", "REMOVED", "UPLOADED", "JOBSTATUS", "REMOVED_BY"])
 
         params["JOB_SUBMITTED"] = time.asctime(time.gmtime()) + " UTC"
@@ -671,12 +667,8 @@ class NewJob(_JobBase):
                 self.updateJobField("CUSTOM_SEQUENCE", "yes", params)
         
         if jobGroup:
-            try:
-                cur.execute("DELETE FROM tblJobGroups WHERE "
-                            "gid = %s AND description = %s",
-                            [jobGroup['id'], jobGroup['tag']])
-            except:
-                pass
+            if not re.match("^SR\d+$", jobGroup['id']):
+                raise XenRTAPIError(HTTPBadRequest, "Job group must be of form SRnnnnn")
             cur.execute("INSERT INTO tblJobGroups (gid, jobid, description) VALUES " \
                         "(%s, %s, %s);", [jobGroup['id'], self.jobid, jobGroup['tag']])
             params['JOBGROUP'] = jobGroup['id']

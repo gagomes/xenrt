@@ -27,7 +27,7 @@ __all__ = ["Burnintest",
            "WindowsExperienceIndex",
            "Dummy"]
 
-class Workload:
+class Workload(object):
 
     def __init__(self, guest):
         self.guest = guest

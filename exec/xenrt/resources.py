@@ -72,7 +72,7 @@ def getResourceInteractive(resType, argv):
 def DhcpXmlRpc():
     return xmlrpclib.ServerProxy("http://localhost:1500", allow_none=True)
 
-class DirectoryResource:
+class DirectoryResource(object):
 
     def __init__(self, basedir, place=None, keep=0):
         if place:
@@ -190,7 +190,7 @@ class LogDirectory(DirectoryResource):
             keep = False
         DirectoryResource.__init__(self, self.basedir, keep=keep, place=place)
 
-class DirectoryResourceImplementer:
+class DirectoryResourceImplementer(object):
     """Superclass for allocating temporary directories."""
     def __init__(self, basedir, keep=0):
         try:
@@ -789,7 +789,7 @@ class ExternalSMBShare(_ExternalFileShare):
     def setPermissions(self, td):
         pass
 
-class ISCSIIndividualLun:
+class ISCSIIndividualLun(object):
     """An individual iSCSI LUN from a group of LUNs"""
     def __init__(self,
                  lungroup,
@@ -1441,7 +1441,8 @@ class NativeLinuxNFSShare(CentralResource):
 
 class _WindowsSMBShare(CentralResource):
     """Base class for Windows-based SMB shares"""
-    def createShare(self, driveLetter='c'):
+    def createShare(self, driveLetter=None):
+        driveLetter = driveLetter or 'c'
         sharesPath = "%s:\\shares" % (driveLetter)
         if not self.place.xmlrpcDirExists(sharesPath):
             self.place.xmlrpcCreateDir(sharesPath)
@@ -1473,8 +1474,10 @@ class _WindowsSMBShare(CentralResource):
 
 class NativeWindowsSMBShare(_WindowsSMBShare):
     """SMB share on a native (bare metal) windows host"""
-    def __init__(self, hostName="RESOURCE_HOST_0", driveLetter='c'):
+    def __init__(self, hostName="RESOURCE_HOST_0", driveLetter=None):
         self.place = xenrt.GEC().registry.hostGet(hostName)
+
+        driveLetter = driveLetter or 'c'
 
         if driveLetter != 'c':
             # Destroy anything existing on any drive that doesn't contain C: and reinitialise
@@ -2801,7 +2804,7 @@ class VLANPeer(NetworkTestPeer):
 
 #############################################################################
     
-class BuildServer:
+class BuildServer(object):
     """A build server"""
     def __init__(self, arch, hostname):
         self.arch = arch
@@ -3282,7 +3285,7 @@ class StaticIP6Addr(_StaticIPAddr):
     POOLSTART = "STATICPOOLSTART6"
     POOLEND = "STATICPOOLEND6"
 
-class SharedHost:
+class SharedHost(object):
     def __init__(self, hostname=None, doguests=False):
         hosts = xenrt.TEC().lookup("SHARED_HOSTS")
 

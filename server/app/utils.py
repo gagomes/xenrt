@@ -176,9 +176,6 @@ def check_resources(available, required):
 
     # Check arguments are properly formed.
     if check_input(available) or check_input(required):
-        print "Error. malformed inputs to check_resources"
-        print available
-        print required
         return 0
 	
     # Parse the two lists.

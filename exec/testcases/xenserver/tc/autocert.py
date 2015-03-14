@@ -192,7 +192,17 @@ class _XSAutoCertKit(xenrt.TestCase):
                         xenrt.TEC().logverbose("Logged an expected error")
                         break
                     else:
-                        raise xenrt.XRTError("Error occured in running auto cert kit")
+                        # This can be caused by XAPI issue CA-161590
+                        # The only work-around is restarting XAPI.
+                        if not xenrt.TEC().lookup("TEST_CA-161590", False, boolean=True):
+                            xenrt.TEC().logverbose("Found CA-161590 issue. Trying restart XAPI and continuing.")
+                            for host in self.pool.getHosts():
+                                host.restartToolstack()
+                            xenrt.sleep(60)
+                            self.pool.master.execdom0("cd /opt/xensource/packages/files/auto-cert-kit && python test_runner.py -t test_run.conf &")
+                            continue
+                        else:
+                            raise xenrt.XRTError("Error occured in running auto cert kit")
                 statuscode = int(statustext.split(":", 1)[0])
                 if statuscode == 0:
                     break

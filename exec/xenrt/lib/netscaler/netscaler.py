@@ -201,17 +201,10 @@ class NetScaler(object):
     def checkCPU(self):
         #writes the number of PEs to log file
         pe = max(map(lambda x: x.split()[0],filter(lambda x: re.match('^\d',x),self.__netScalerCliCommand('stat cpus'))))
-        xenrt.TEC().logverbose('The Number of PEs is ' % (pe))
+        return pe
 
     def checkFeatures(self):
-        nsVer = self.version()
-        #ns version is written to the log file
-        xenrt.TEC().logverbose('The NetScaler version is ' % (nsVer))
-        managementIP = self.managementIp()
-        #management ip is written to the log file
-        xenrt.TEC().logverbose('The NetScaler management IP is ' % (managementIP))
-        #ssl offloading feature is checked. License is applied and verified if the the feature is off
-        modNum = self.checkModNum()
-        xenrt.TEC().logverbose('The model number ID is' % (modNum))
-        numPE = self.checkCPU()
-        xenrt.TEC().logverbose('The Number of PEs: ' % (numPE))
+        xenrt.TEC().logverbose('The NetScaler version is %s' % (self.version))
+        xenrt.TEC().logverbose('The NetScaler management IP is %s' % (self.managementIp))
+        xenrt.TEC().logverbose('The model number ID is %s' % (self.checkModNum()))
+        xenrt.TEC().logverbose('The Number of PEs: %s' % (self.checkCPU()))

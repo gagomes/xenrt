@@ -6245,7 +6245,7 @@ fi
         """Return the UUID of the specified guest."""
         return self.parseListForUUID("vm-list", "name-label", guest.name)
     
-    def license(self, sku="XE Enterprise", expirein=None, usev6testd=True, v6server=None, applyedition=True):
+    def license(self, sku="XE Enterprise", expirein=None, usev6testd=True, v6server=None, applyedition=True, edition=None):
         """Apply a license to the host"""
     
         keyfile = None
@@ -11470,7 +11470,7 @@ class CreedenceHost(ClearwaterHost):
         xenrt.TEC().logverbose("Edition is same on host as expected")
 
     def licenseApply(self, v6server, licenseObj):
-        self.license(v6server,sku=licenseObj.getEdition())
+        self.license(v6server=v6server, sku=licenseObj.getEdition())
 
     def createTemplateSR(self):
         if xenrt.TEC().lookup("SHARED_VHD_PATH_NFS", None):
@@ -11500,6 +11500,9 @@ class DundeeHost(CreedenceHost):
         self.registerJobTest(xenrt.lib.xenserver.jobtests.JTDeadLetter)
 
         self.installer = None
+
+    def license(self, v6server=None, sku=None, usev6testd=True, edition="free"):
+        return ClearwaterHost.license(self, edition, v6server, False, sku, usev6testd)
 
     def isCentOS7Dom0(self):
         return True
@@ -14572,7 +14575,7 @@ class CreedencePool(ClearwaterPool):
         self.checkLicenseState(sku)
 
     def licenseApply(self, v6server, licenseObj):
-        self.license(v6server,sku=licenseObj.getEdition())
+        self.license(v6server=v6server, sku=licenseObj.getEdition())
 
     def validLicenses(self, xenserverOnly=False):
         """

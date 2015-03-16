@@ -2,48 +2,48 @@ import xenrt
 from xenrt.enum import XenServerLicenceSKU
 from abc import ABCMeta, abstractmethod
 
-__all__ = ["CreedenceLicence", "TampaLicence", "ClearwaterLicence", "XenServerLicenceFactory", "LicenceManager"]
+__all__ = ["DundeeLicence", "CreedenceLicence", "TampaLicence", "ClearwaterLicence", "XenServerLicenceFactory", "LicenceManager"]
 
 
 class LicenceManager(object):
-    def addLicensesToServer(self, v6, license,getLicenseInUse = True):
-        licenseinUse = 0
-        v6.addLicense(license.getLicenceFileName())
-        if getLicenseInUse:
-            totalLicenses, licenseinUse = v6.getLicenseInUse(license.getLicenceName())
-        return licenseinUse
+    def addLicencesToServer(self, v6, Licence,getLicenceInUse = True):
+        LicenceinUse = 0
+        v6.addLicence(Licence.getLicenceFileName())
+        if getLicenceInUse:
+            totalLicences, LicenceinUse = v6.getLicenceInUse(Licence.getLicenceName())
+        return LicenceinUse
 
-    def applyLicense(self, v6, hostOrPool, license,licenseinUse):
-        hostOrPool.licenseApply(v6,license)
-        self.verifyLicenseServer(license,v6,licenseinUse,hostOrPool) 
+    def applyLicence(self, v6, hostOrPool, Licence,LicenceinUse):
+        hostOrPool.LicenceApply(v6,Licence)
+        self.verifyLicenceServer(Licence,v6,LicenceinUse,hostOrPool) 
 
-    def releaseLicense(self, hostOrPool):
+    def releaseLicence(self, hostOrPool):
         licence = XenServerLicenceFactory().licenceForPool(hostOrPool,XenServerLicenceSKU.Free)
-        hostOrPool.licenseApply(None,licence)
+        hostOrPool.LicenceApply(None,licence)
 
-    def verifyLicenseServer(self, license, v6, licenseinUse, hostOrPool, reset=False):
+    def verifyLicenceServer(self, Licence, v6, LicenceinUse, hostOrPool, reset=False):
 
         if isinstance(hostOrPool,xenrt.lib.xenserver.Pool):
             productVersion = hostOrPool.master.productVersion
         else:
             productVersion = hostOrPool.productVersion
         xsOnlyLicences = XenServerLicenceFactory().xenserverOnlyLicences(productVersion)
-        if not next((i for i in xsOnlyLicences if i.getEdition() == license.getEdition()), None):
-            xenrt.TEC().logverbose("XD license is applied so no need to verify the license server")
+        if not next((i for i in xsOnlyLicences if i.getEdition() == Licence.getEdition()), None):
+            xenrt.TEC().logverbose("XD Licence is applied so no need to verify the Licence server")
             return
 
-        tmp,currentLicinuse = v6.getLicenseInUse(license.getLicenceName())
+        tmp,currentLicinuse = v6.getLicenceInUse(Licence.getLicenceName())
 
         if reset:
-            if licenseinUse != currentLicinuse:
-                raise xenrt.XRTFailure("Not all the licenses are not returned to license server, current licenses in use %d" % (currentLicinuse))
-            xenrt.TEC().logverbose("License server verified and correct no of licenses checked out")
+            if LicenceinUse != currentLicinuse:
+                raise xenrt.XRTFailure("Not all the Licences are not returned to Licence server, current Licences in use %d" % (currentLicinuse))
+            xenrt.TEC().logverbose("Licence server verified and correct no of Licences checked out")
             return
 
-        if not ((hostOrPool.getNoOfSockets() + licenseinUse)  == currentLicinuse):
-            raise xenrt.XRTFailure("No. of Licenses in use: %d, No. of socket in whole pool: %d" % (currentLicinuse, hostOrPool.getNoOfSockets()))
+        if not ((hostOrPool.getNoOfSockets() + LicenceinUse)  == currentLicinuse):
+            raise xenrt.XRTFailure("No. of Licences in use: %d, No. of socket in whole pool: %d" % (currentLicinuse, hostOrPool.getNoOfSockets()))
 
-        xenrt.TEC().logverbose("License server verified and correct no of licenses checked out")
+        xenrt.TEC().logverbose("Licence server verified and correct no of Licences checked out")
 
 
 class Licence(object):
@@ -71,7 +71,7 @@ class Licence(object):
     @abstractmethod
     def getLicenceName(self):
         """
-        License servers understanding of a given SKU
+        Licence servers understanding of a given SKU
         @rtype string
         """
         pass
@@ -114,7 +114,7 @@ class TampaLicence(Licence):
             return "valid-enterprise-xd"
         if self.sku == XenServerLicenceSKU.Free:
             return None
-        raise ValueError("No license file name found for the SKU %s" % self.sku)
+        raise ValueError("No Licence file name found for the SKU %s" % self.sku)
 
     def getLicenceName(self):
         return
@@ -137,7 +137,7 @@ class ClearwaterLicence(Licence):
             return None
         if self.sku == XenServerLicenceSKU.XenDesktop:
             return "valid-enterprise-xd"
-        raise ValueError("No license file name found for the SKU %s" % self.sku)
+        raise ValueError("No Licence file name found for the SKU %s" % self.sku)
 
     def getLicenceName(self):
 
@@ -147,7 +147,7 @@ class ClearwaterLicence(Licence):
             return None
         if self.sku == XenServerLicenceSKU.XenDesktop:
             return "XDS_STD_CCS"
-        raise ValueError("No license server name found for the SKU %s" % self.sku)  
+        raise ValueError("No Licence server name found for the SKU %s" % self.sku)  
 
 class CreedenceLicence(Licence):
 
@@ -188,7 +188,7 @@ class CreedenceLicence(Licence):
             return "valid-xendesktop-plus"
         if self.sku == XenServerLicenceSKU.XenDesktopPlusMPS:
             return "valid-xendesktop-plus-MPS"
-        raise ValueError("No license file name found for the SKU %s" % self.sku)
+        raise ValueError("No Licence file name found for the SKU %s" % self.sku)
 
     def getLicenceName(self):
         if self.sku == XenServerLicenceSKU.PerSocketEnterprise:
@@ -209,8 +209,12 @@ class CreedenceLicence(Licence):
             return "XDS_PLT_CCS"
         if self.sku == XenServerLicenceSKU.XenDesktopPlusMPS:
             return "MPS_PLT_CCU"
-        raise ValueError("No license server name found for the SKU %s" % self.sku)
+        raise ValueError("No Licence server name found for the SKU %s" % self.sku)
 
+
+class DundeeLicence(ClearwaterLicence):
+    # For now, trunk is assumed that it has same "FREE" Licence scheme as Clearwater.
+    pass
 
 class XenServerLicenceFactory(object):
     __TAM = "tampa"
@@ -221,6 +225,7 @@ class XenServerLicenceFactory(object):
     __COW = "cowley"
     __MNR = "mnr"
     __OXF = "oxford"
+    __DUN = "dundee"
 
     def __getHostAge(self, xshost):
         return xshost.productVersion.lower()
@@ -276,6 +281,8 @@ class XenServerLicenceFactory(object):
             return ClearwaterLicence(XenServerLicenceSKU.PerSocket)
         if lver == self.__CRE:
             return CreedenceLicence(XenServerLicenceSKU.PerUserEnterprise)
+        if lver == self.__DUN:
+            return DundeeLicence(XenServerLicenceSKU.PerSocket)
  
     def maxLicenceSkuPool(self,xspool):
         self.maxLicenceSkuHost(xspool.master)
@@ -288,4 +295,6 @@ class XenServerLicenceFactory(object):
             return ClearwaterLicence(sku)
         if lver == self.__CRE:
             return CreedenceLicence(sku)
+        if lver == self.__DUN:
+            return DundeeLicence(sku)
         raise ValueError("No licence object was found for the provided host version: %s" % productVersion)

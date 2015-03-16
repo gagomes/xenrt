@@ -30,6 +30,10 @@ class ReadCacheTestCase(xenrt.TestCase):
         self.vmName = self.parseArgsKeyValue(arglist)["vm"]
         log("Using vm %s" % self.vmName)
         self.vm = self.getGuest(self.vmName)
+
+        if self.vm.getState() != "UP":
+            self.vm.start()
+
         self._applyMaxLicense()
         host = self.getDefaultHost()
         rcc = host.getReadCachingController()
@@ -43,10 +47,10 @@ class ReadCacheTestCase(xenrt.TestCase):
         rcc = host.getReadCachingController()
         rcc.setVM(self.vm)
         if both:
-            step("Checking tapctl status....")
-            assertions.assertEquals(expectedState, rcc.isEnabled(lowLevel=True), "RC is enabled status via. tap-ctl")
             step("Checking xapi status....")
             assertions.assertEquals(expectedState, rcc.isEnabled(lowLevel=False), "RC is enabled status via. xapi")
+            step("Checking tapctl status....")
+            assertions.assertEquals(expectedState, rcc.isEnabled(lowLevel=True), "RC is enabled status via. tap-ctl")
         else:
             step("Checking status of a single state...")
             assertions.assertEquals(expectedState, rcc.isEnabled(lowLevel=lowlevel), "RC is enabled status")

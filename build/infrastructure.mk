@@ -71,18 +71,18 @@ extrapackages: extrapackages-install
 .PHONY: apibuild
 apibuild:
 ifeq ($(APIBUILD), yes)
-	rm -rf $(SHAREDIR)/api_build/xenrtapi
-	rm -rf $(SHAREDIR)/api_build/scripts
-	mkdir $(SHAREDIR)/api_build/xenrtapi
-	mkdir $(SHAREDIR)/api_build/scripts
-	wget -O $(SHAREDIR)/api_build/xenrtapi/__init__.py http://localhost:1025/share/control/bindings/__init__.py
-	cp $(SHAREDIR)/control/xenrtnew $(SHAREDIR)/api_build/scripts/xenrtnew
-	cp $(SHAREDIR)/control/xenrt $(SHAREDIR)/api_build/scripts/xenrt
-	cd $(SHAREDIR)/api_build/ && python setup.py sdist
-	$(SUDO) ln -sf $(SHAREDIR)/api_build/dist/xenrtapi-0.04.tar.gz $(WEBROOT)/xenrtapi.tar.gz
+	rm -rf $(SHAREDIR)/api_build/python/xenrtapi
+	rm -rf $(SHAREDIR)/api_build/python/scripts
+	mkdir $(SHAREDIR)/api_build/python/xenrtapi
+	mkdir $(SHAREDIR)/api_build/python/scripts
+	wget -O $(SHAREDIR)/api_build/python/xenrtapi/__init__.py http://localhost:1025/share/control/bindings/__init__.py
+	cp $(SHAREDIR)/control/xenrtnew $(SHAREDIR)/api_build/python/scripts/xenrtnew
+	cp $(SHAREDIR)/control/xenrt $(SHAREDIR)/api_build/python/scripts/xenrt
+	cd $(SHAREDIR)/api_build/python/ && python setup.py sdist
+	$(SUDO) ln -sf $(SHAREDIR)/api_build/python/dist/xenrtapi-0.04.tar.gz $(WEBROOT)/xenrtapi.tar.gz
 	$(SUDO) pip install -I $(WEBROOT)/xenrtapi.tar.gz
 	$(SUDO) pdoc --html --html-dir /var/www --overwrite xenrtapi
-	cd $(SHAREDIR)/api_build/ && python setup.py sdist upload -r pypi
+	cd $(SHAREDIR)/api_build/python/ && python setup.py sdist upload -r pypi
 endif
 
 .PHONY: api

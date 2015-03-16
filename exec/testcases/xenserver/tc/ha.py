@@ -444,6 +444,12 @@ class _HATest(xenrt.TestCase):
             # Try FC first
             fcsr = master.lookup("SR_FCHBA", "LUN0")
             scsiid = master.lookup(["FC", fcsr, "SCSIID"], None)
+            if scsiid:
+                # Verify the LUN is available on all hosts (CA-155371)
+                for h in slaves:
+                    if h.lookup(["FC", fcsr, "SCSIID"], None) != scsiid:
+                        scsiid = None
+                        break
             sr = None
             if self.SF_STORAGE == "nfs":
                 # use NFS if specified

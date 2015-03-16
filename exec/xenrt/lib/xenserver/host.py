@@ -2716,6 +2716,11 @@ fi
     def installIperf(self, version=""):
         """Installs the iperf application on the host"""
         if self.execdom0("test -f /usr/bin/iperf", retval="code") != 0:
+            # Add a proxy if we know about one
+            proxy = xenrt.TEC().lookup("HTTP_PROXY", None)
+            if proxy:
+                self.execdom0("sed -i '/proxy/d' /etc/yum.conf")
+                self.execdom0("echo 'proxy=http://%s' >> /etc/yum.conf" % proxy)
             self.execdom0("yum --disablerepo=citrix --enablerepo=base,updates,extras install -y  gcc-c++")
             self.execdom0("yum --disablerepo=citrix --enablerepo=base install -y make")
             xenrt.objects.GenericPlace.installIperf(self, version)

@@ -270,7 +270,7 @@ class SR(NamedXapiObject):
 class VDI(NamedXapiObject):
     OBJECT_TYPE = "vdi"
     __SR_UUID = "sr-uuid"
-    __RC = "sm-config param-key=read-caching-enabled"
+    __RC = "sm-config param-key=read-caching-enabled-on-%s"
 
     def SR(self):
         return self.getObjectParam(SR.OBJECT_TYPE, self.__SR_UUID)
@@ -281,8 +281,8 @@ class VDI(NamedXapiObject):
     def isASnapshot(self):
         return self.getStringParam("is-a-snapshot") == "true"
 
-    def readcachingEnabled(self):
-        return self.getStringParam(self.__RC) == "true"
+    def readcachingEnabled(self, xapiHost):
+        return self.getStringParam(self.__RC % xapiHost.uuid) == "true"
 
     def size(self):
         return self.getIntParam("virtual-size")

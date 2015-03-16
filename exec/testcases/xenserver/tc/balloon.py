@@ -2247,6 +2247,17 @@ class TC9336(_LinuxMaxRangeBase):
     """RHEL 5.3 x64 operation with maximum dynamic range"""
     DISTRO = "rhel53"
     ARCH = "x86-64"
+class TC26859(_LinuxMaxRangeBase):
+    """RHEL 6.6 operation with maximum dynamic range"""
+    DISTRO = "rhel66"
+class TC26860(_LinuxMaxRangeBase):
+    """RHEL 6.6 x64 operation with maximum dynamic range"""
+    DISTRO = "rhel66"
+    ARCH = "x86-64"
+class TC26861(_LinuxMaxRangeBase):
+    """RHEL 7.1 x64 operation with maximum dynamic range"""
+    DISTRO = "rhel71"
+    ARCH = "x86-64"
 class TC9337(_LinuxMaxRangeBase):
     """SLES9 SP4 operation with approx maximum dynamic range"""
     DISTRO = "sles94"
@@ -2302,6 +2313,17 @@ class TC12599(_LinuxMaxRangeBase):
     DISTRO = "sles111"
     ARCH = "x86-64"
     LIMIT_TO_30GB = False
+class TC26856(_LinuxMaxRangeBase):
+    """SLES 11.3 SP1 operation with maximum dynamic range"""
+    DISTRO = "sles113"
+class TC26857(_LinuxMaxRangeBase):
+    """SLES 11.3 x64 operation with approx maximum dynamic range"""
+    DISTRO = "sles113"
+    ARCH = "x86-64"
+class TC26858(_LinuxMaxRangeBase):
+    """SLES 12 x64 operation with approx maximum dynamic range"""
+    DISTRO = "sles12"
+    ARCH = "x86-64"
 class TC9342(_LinuxMaxRangeBase):
     """Debian Etch operation with approx maximum dynamic range"""
     DISTRO = "etch"
@@ -2316,7 +2338,35 @@ class TC9404(_LinuxMaxRangeBase):
     """Debian Lenny operation with maximum dynamic range"""
     DISTRO = "debian50"
     LIMIT_TO_30GB = False
-
+class TC26854(_LinuxMaxRangeBase):
+    """Debian 7.0 operation with approx maximum dynamic range"""
+    DISTRO = "debian70"
+class TC26855(_LinuxMaxRangeBase):
+    """Debian 7.0 x64 operation with maximum dynamic range"""
+    DISTRO = "debian70"
+    ARCH = "x86-64"
+class TC26862(_LinuxMaxRangeBase):
+    """OEL 6.6 operation with approx maximum dynamic range"""
+    DISTRO = "oel66"
+class TC26863(_LinuxMaxRangeBase):
+    """OEL 6.6 x64 operation with maximum dynamic range"""
+    DISTRO = "oel66"
+    ARCH = "x86-64"
+class TC26864(_LinuxMaxRangeBase):
+    """OEL 7.0 x64 operation with maximum dynamic range"""
+    DISTRO = "oel7"
+    ARCH = "x86-64"
+class TC26865(_LinuxMaxRangeBase):
+    """CentOS 6.6 operation with approx maximum dynamic range"""
+    DISTRO = "centos66"
+class TC26866(_LinuxMaxRangeBase):
+    """CentOS 6.6 x64 operation with maximum dynamic range"""
+    DISTRO = "centos66"
+    ARCH = "x86-64"
+class TC26867(_LinuxMaxRangeBase):
+    """CentOS 7.0 x64 operation with maximum dynamic range"""
+    DISTRO = "centos7"
+    ARCH = "x86-64"
 
 class TC9527(xenrt.TestCase):
     """Verify the extra time for booting a ballooned down Windows XP SP3 VM is minimal"""

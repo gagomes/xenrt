@@ -32,7 +32,7 @@ class ReadCacheTestCase(xenrt.TestCase):
         self.vm = self.getGuest(self.vmName)
 
         if self.vm.getState() != "UP":
-            vm.start()
+            self.vm.start()
 
         self._applyMaxLicense()
         host = self.getDefaultHost()

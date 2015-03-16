@@ -806,7 +806,7 @@ def getVersion():
         return win32api.GetVersion()
     # Try parsing systeminfo
     data = os.popen("C:\\Windows\\System32\\systeminfo.exe").read()
-    r = re.search(r"OS Version:\s+(\d)\.(\d)", data)
+    r = re.search(r"OS Version:\s+(\d+)\.(\d)", data)
     if r:
         return int(r.group(1)) | (int(r.group(2)) << 8)
     # XXX In the x64 case we need to find another way to get the version

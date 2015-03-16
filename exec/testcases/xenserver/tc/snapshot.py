@@ -3061,7 +3061,6 @@ class SnapshotVDILinkOnUpgrade(xenrt.TestCase):
         
         # Start the guest
         self.guest.start()
-        self.guest.installDrivers()
         
         # Get the new base VDI of the Guest
         vmRevertedVdiUuid = self.slave.minimalList("vbd-list", "vdi-uuid", "type=Disk vm-uuid=%s " % (self.guest.getUUID()))[0]

@@ -6,7 +6,7 @@
 
 import xenrt
 
-__all__ = ["PowerState", "LifecycleOperation", "HypervisorType", "IsoRepository", "InstallMethod", "XenServerLicenceSKU"]
+__all__ = ["PowerState", "LifecycleOperation", "HypervisorType", "IsoRepository", "InstallMethod", "XenServerLicenseSKU"]
 
 # All known Windows distros
 windowsdistros = [('w2k3eesp2pae','Windows Server Enterprise Edition SP2 with PAE Enabled'),
@@ -94,7 +94,7 @@ class IsoRepository(Enum):
     Linux = "linux"
 
 
-class XenServerLicenceSKU(Enum):
+class XenServerLicenseSKU(Enum):
     PerSocketEnterprise = "PerSocketEnterprise"
     PerUserEnterprise = "PerUserEnterprise"
     PerConcurrentUserEnterprise = "PerConcurrentUserEnterprise"

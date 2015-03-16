@@ -212,33 +212,33 @@ class TestNFSv4StorageRepository(XenRTUnitTestCase):
         )
 
 
-class TestHostLicenceBehaviourForCreedence(XenRTUnitTestCase):
+class TestHostLicenseBehaviourForCreedence(XenRTUnitTestCase):
 
     def _getHost(self):
         return xenrt.lib.xenserver.host.CreedenceHost(None, None)
 
-    @patch("xenrt.lib.xenserver.licensing.XenServerLicenceFactory.allLicences")
+    @patch("xenrt.lib.xenserver.licensing.XenServerLicenseFactory.allLicenses")
     @patch('xenrt.TEC')
-    def testAllSKUsReturnListOfLicences(self, tec, fac):
+    def testAllSKUsReturnListOfLicenses(self, tec, fac):
         host = self._getHost()
         host.validLicenses()
         self.assertTrue(fac.called)
 
-    @patch("xenrt.lib.xenserver.licensing.XenServerLicenceFactory.xenserverOnlyLicences")
+    @patch("xenrt.lib.xenserver.licensing.XenServerLicenseFactory.xenserverOnlyLicenses")
     @patch('xenrt.TEC')
-    def testXenServerOnlySKUsReturnListOfLicences(self, tec, fac):
+    def testXenServerOnlySKUsReturnListOfLicenses(self, tec, fac):
         host = self._getHost()
         host.validLicenses(True)
         self.assertTrue(fac.called)
 
 
-class TestHostLicenceBehaviourForTampa(TestHostLicenceBehaviourForCreedence):
+class TestHostLicenseBehaviourForTampa(TestHostLicenseBehaviourForCreedence):
 
     def _getHost(self):
         return xenrt.lib.xenserver.host.TampaHost(None, None)
 
 
-class TestHostLicenceBehaviourForClearwater(TestHostLicenceBehaviourForCreedence):
+class TestHostLicenseBehaviourForClearwater(TestHostLicenseBehaviourForCreedence):
 
     def _getHost(self):
         return xenrt.lib.xenserver.host.ClearwaterHost(None, None)

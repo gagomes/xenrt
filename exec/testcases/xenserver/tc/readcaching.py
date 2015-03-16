@@ -1,8 +1,8 @@
 import xenrt
 from xenrt.lazylog import step, log
 from xenrt.lib import assertions
-from xenrt.lib.xenserver.licensing import XenServerLicenceFactory as LF
-from xenrt.enum import XenServerLicenceSKU
+from xenrt.lib.xenserver.licensing import XenServerLicenseFactory as LF
+from xenrt.enum import XenServerLicenseSKU
 
 
 class ReadCacheTestCase(xenrt.TestCase):
@@ -12,15 +12,15 @@ class ReadCacheTestCase(xenrt.TestCase):
 
     def _releaseLicense(self):
         host = self.getDefaultHost()
-        licence = LF().licenceForHost(host, XenServerLicenceSKU.Free)
-        step("Applying license: %s" % licence.getEdition())
-        host.licenseApply(None, licence)
+        license = LF().licenseForHost(host, XenServerLicenseSKU.Free)
+        step("Applying license: %s" % license.getEdition())
+        host.licenseApply(None, license)
 
     def _applyMaxLicense(self):
         host = self.getDefaultHost()
-        licence = LF().maxLicenceSkuHost(host)
-        step("Applying license: %s" % licence.getEdition())
-        host.licenseApply(None, licence)
+        license = LF().maxLicenseSkuHost(host)
+        step("Applying license: %s" % license.getEdition())
+        host.licenseApply(None, license)
 
     def _defaultLifeCycle(self, vm):
         step("Performing a lifecycle")

@@ -23,7 +23,7 @@ from  xenrt.lib.xenserver import licensedfeatures
 import XenAPI
 from xenrt.lazylog import *
 from xenrt.lib.xenserver.iptablesutil import IpTablesFirewall
-from xenrt.lib.xenserver.licensing import LicenceManager, XenServerLicenceFactory
+from xenrt.lib.xenserver.licensing import LicenseManager, XenServerLicenseFactory
 
 
 # Symbols we want to export from the package.
@@ -8128,8 +8128,8 @@ rm -f /etc/xensource/xhad.conf || true
 
     def applyFullLicense(self,v6server):
  
-        license = XenServerLicenceFactory().maxLicenceSkuHost(self)
-        LicenceManager().addLicensesToServer(v6server,license,getLicenseInUse=False)
+        license = XenServerLicenseFactory().maxLicenseSkuHost(self)
+        LicenseManager().addLicensesToServer(v6server,license,getLicenseInUse=False)
         self.license(edition = license.getEdition(), v6server=v6server,usev6testd=False)
         
     def getIpTablesFirewall(self):
@@ -10721,14 +10721,14 @@ class TampaHost(BostonHost):
 
     def validLicenses(self, xenserverOnly=False):
         """
-        Get a licence object which contains the details of a licence settings
+        Get a license object which contains the details of a license settings
         for a given SKU
-        sku: XenServerLicenceSKU member
+        sku: XenServerLicenseSKU member
         """
-        factory = XenServerLicenceFactory()
+        factory = XenServerLicenseFactory()
         if xenserverOnly:
-            return factory.xenserverOnlyLicences(self)
-        return factory.allLicences(self)
+            return factory.xenserverOnlyLicenses(self)
+        return factory.allLicenses(self)
 
 
 #############################################################################

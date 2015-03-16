@@ -2071,7 +2071,7 @@ exit /B 1
             self.lifecycleOperation('vm-start')
         if not self.mainip:
             _, bridge, mac, _ = self.vifs[0]
-            self.mainip = self.getHost().arpwatch(bridge, mac, timeout=300)
+            self.mainip = self.getHost().arpwatch(bridge, mac, timeout=1800)
 
     def setupDomainServer(self):
         self.installPowerShell()

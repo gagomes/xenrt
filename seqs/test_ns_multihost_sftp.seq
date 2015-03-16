@@ -1,10 +1,9 @@
 <xenrt>
-  <default name="NSVPX_XVA" value="/home/build/builds_tagma/build_tagma_54_9/NSVPX-XEN-10.5-54.9_nc.xva" />
+  <default name="NSVPX_XVA" value="sftp://build:nsbuild@10.102.1.233/home/build/builds_tagma/build_tagma_54_9/NSVPX-XEN-10.5-54.9_nc.xva" />
   <variables>
     <OPTION_KEEP_SETUP>yes</OPTION_KEEP_SETUP>
     <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
     <PREPARE_WORKERS>8</PREPARE_WORKERS>
-    <SFTP_FILE_SERVERS>build@10.102.1.233 nsbuild</SFTP_FILE_SERVERS>
   </variables>
   <scheduler>
     <resources>memory&gt;=8G</resources>

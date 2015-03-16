@@ -173,12 +173,10 @@ class FileManager(object):
                     self.__getDirectory(url, sharedLocation)
                 elif fnr.singleFileWithWildcard:
                     self.__getSingleFileWithWildcard(url, sharedLocation)
+                elif filename.startswith("sftp://"):
+                    self.__getSingleFileViaSftp(filename, sharedLocation)
                 else:
-                    try:
-                        self.__getSingleFile(url, sharedLocation, isUsingExternalCache)
-                    except Exception, e:
-                        xenrt.TEC().logverbose("Attempting sftp fetch, getFile using http failed : %s" % str(e))
-                        self.__getSingleFileViaSftp(filename, sharedLocation)
+                    self.__getSingleFile(url, sharedLocation, isUsingExternalCache)
                 os.chmod(sharedLocation, stat.S_IRWXU | stat.S_IRWXG | stat.S_IROTH | stat.S_IXOTH)
 
                 if isUsingExternalCache:
@@ -250,30 +248,20 @@ class FileManager(object):
             return None
         return True
 
-    def __getSingleFileViaSftp(self, filepath, sharedLocation):
+    def __getSingleFileViaSftp(self, file, sharedLocation):
         """
         Fetch a file which is accessible using ssh rather than web url
         """
-        sftpServerDetails = xenrt.TEC().lookup("SFTP_FILE_SERVERS", "").split(",")
-        for serverDetail in sftpServerDetails:
-            try:
-                username = "root"
-                password = None
-                ip = serverDetail
-                if '@' in serverDetail:
-                    username = serverDetail.split("@", 1)[0]
-                    ip = serverDetail.split("@", 1)[1]
-                if ' ' in ip:
-                    password = serverDetail.split(" ")[1]
-                    ip = ip.split(" ")[0]
-
-                sftp = xenrt.ssh.SFTPSession(ip=ip, username=username, password=password, level=xenrt.RC_FAIL)
-                sftp.copyFrom(filepath, sharedLocation)
-                sftp.close()
-                return True
-            except Exception, e:
-                xenrt.TEC().logverbose("SFTP fetchFile exception: %s" % (str(e)))
-        raise
+        parsed = urlparse.urlparse(file)
+        try:
+            sftp = xenrt.ssh.SFTPSession(ip=parsed.hostname, username=parsed.username, password=parsed.password, level=xenrt.RC_FAIL,port=parsed.port)
+            sftp.copyFrom(parsed.path, '%s.part' % sharedLocation)
+            sftp.close()
+        except:
+            os.unlink('%s.part' % sharedLocation)
+            raise
+        else:
+            os.rename('%s.part' % sharedLocation, sharedLocation)
 
     @property
     def __proxyflag(self):

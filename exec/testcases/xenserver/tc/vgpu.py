@@ -758,6 +758,7 @@ Send("{ENTER}")
             self.guest.xmlrpcStart("\"%s\" %s" % (autoit, au3path))
         self.assertvGPURunningInWinVM(self.guest, self.args['vgpuconfig'])
 
+    #Inherited postrun is deleting all the cloned VMs, snapshots and vGPUs which we dont want
     def postRun(self):
         pass
 
@@ -792,7 +793,8 @@ class TCVGPUCloneVM(VGPUOwnedVMsTest):
         if self.args.has_key("vgpuconfig"):
             for g in guests:
                 self.assertvGPURunningInWinVM(g, self.args['vgpuconfig'])
-
+    
+    #Inherited postrun is deleting all the cloned VMs, snapshots and vGPUs which we dont want
     def postRun(self):
         pass
 
@@ -929,6 +931,7 @@ class TCGPUBenchmarkInstall(VGPUOwnedVMsTest):
                 except Exception, e:
                     self.testcaseResult("InstallBenchmark", "%s-%s" % (b, g.name), xenrt.RESULT_FAIL, str(e))
 
+    #Inherited postrun is deleting all the cloned VMs, snapshots and vGPUs which we dont want
     def postRun(self):
         pass
 

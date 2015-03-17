@@ -223,25 +223,33 @@ $XenRTCreds = New-Object object |
 function Connect-XenRT {
 <#
 .SYNOPSIS
-    Makes a connection to XenRT with an API key
+    Makes a connection to XenRT with an API key or Kerberos
 .DESCRIPTION
-    Makes a connection to XenRT with an API key
+    Makes a connection to XenRT with an API key or Kerberos
+.PARAMETER UseDefaultCredentials
+    Use built-in Windows Authentication (Kerberos) to connect
 .PARAMETER ApiKey
-    The API key
+    The API key, if not using kerberos
 .PARAMETER Server
     The server to connect to (defaults to %s)
 #>
 param(
-    [parameter(mandatory=$true)][string]$ApiKey,
+    [parameter(mandatory=$false)][switch]$UseDefaultCredentials,
+    [parameter(mandatory=$false)][string]$ApiKey,
     [parameter(mandatory=$false)][string]$Server
-    )   
-    $XenRTCreds.ApiKey=$ApiKey
+    )
     if ($Server) {
         $XenRTCreds.Server=$Server
     }
+    if ($UseDefaultCredentials) {
+        $path = $("http://" + $XenRTCreds.Server + "/xenrt/api/v2/apikey")
+        $XenRTCreds.ApiKey=(Invoke-RestMethod -Uri $path -Method GET -UseDefaultCredentials).key
+    }
+    else {
+        $XenRTCreds.ApiKey=$ApiKey
+    }
     Write-Output $("Logged in as " + (Get-XenRTLoggedinUser).user)
 }
-
 """ % (self.host, self.host)
         for func in self.funcs:
             if func.skip:

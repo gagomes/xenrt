@@ -89,6 +89,7 @@ class TCOdirectRCDisabled(ReadCacheTestCase):
         rcc = host.getReadCachingController()
         rcc.setVM(self.vm)
         rcc.disable()
+        self.vm.reboot()
         step("Checking ReadCaching state disabled %s" % lowlevel)
         self.checkExpectedState(False, lowlevel, both)
 

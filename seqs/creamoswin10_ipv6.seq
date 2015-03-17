@@ -58,11 +58,11 @@
         <arg>workloads</arg>
         <arg>loops=20</arg>
         </testcase>
-        <testcase id="guestops.srm.TCHibernate" tc="TC-26397">
+        <!--<testcase id="guestops.srm.TCHibernate" tc="TC-26397">
         <arg>guest=win10-x86-IPv6</arg>
         <arg>workloads</arg>
         <arg>loops=10</arg>
-        </testcase>
+        </testcase>-->
         <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-26398">
         <arg>N/A</arg>
         <arg>guest=win10-x86-IPv6</arg>
@@ -125,11 +125,11 @@
         <arg>workloads</arg>
         <arg>loops=20</arg>
         </testcase>
-        <testcase id="guestops.srm.TCHibernate" tc="TC-26409">
+        <!--<testcase id="guestops.srm.TCHibernate" tc="TC-26409">
         <arg>guest=win10-x64-IPv6</arg>
         <arg>workloads</arg>
         <arg>loops=10</arg>
-        </testcase>
+        </testcase>-->
         <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-26410">
         <arg>N/A</arg>
         <arg>guest=win10-x64-IPv6</arg>

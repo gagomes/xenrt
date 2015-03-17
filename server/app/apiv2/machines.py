@@ -768,12 +768,12 @@ class PowerMachine(_MachineBase):
         {'name': 'name',
          'in': 'path',
          'required': True,
-         'description': 'Machine to update',
-         'type': 'integer'},
+         'description': 'Machine to set power',
+         'type': 'string'},
         {'name': 'body',
          'in': 'body',
          'required': True,
-         'description': 'Details of the update',
+         'description': 'Details of the power operation',
          'schema': { "$ref": "#/definitions/powermachine" }
         }
     ]

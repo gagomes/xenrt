@@ -8754,7 +8754,7 @@ class MNRHost(Host):
     def resetToFreshInstall(self, setupISOs=False):
 
         # Reset CC-Xen option
-        self.execdom0("sed -i 's/ cc-restrictions//g' /boot/extlinux.conf")
+        self.execdom0("sed -i 's/ cc-restrictions//g' /boot/extlinux.conf || true")
 
         # Reset CC-SSL setting
         self.execdom0("rm -f /var/xapi/verify_certificates")

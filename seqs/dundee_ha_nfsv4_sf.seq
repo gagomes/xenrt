@@ -1,0 +1,75 @@
+<xenrt>
+
+  <!-- HA over NFSv4 tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>4</PREPARE_WORKERS>
+  </variables>
+  
+   <scheduler>
+    <flags>nfs4</flags>
+  </scheduler>
+
+  <prepare>
+      <sharedhost>
+        <vm name="controller">
+          <file>%CONTROLLER_XVA%</file>
+          <memory>512</memory>
+          <bootparams>rootssh</bootparams>
+          <postinstall action="start"/>
+        </vm>
+      </sharedhost>
+    <pool id="0">
+      <host id="0"/>
+      <NETWORK controller="controller"/>
+    </pool>
+    <pool id="1">
+      <host id="1"/>
+      <NETWORK controller="controller"/>
+    </pool>
+    <pool id="2">
+      <host id="2"/>
+      <NETWORK controller="controller"/>
+    </pool>
+    <pool id="3">
+      <host id="3"/>
+      <NETWORK controller="controller"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="Functional Tests">
+      <testcase id="xenserver.tc.ha.TC11795v4"/>
+      <testcase id="xenserver.tc.ha.TC14985v4"/>
+    </serial>  
+    <serial group="StatefileFailures">
+      <testcase id="xenserver.tc.ha.TC13514v4"/>
+      <testcase id="xenserver.tc.ha.TC13515v4"/>
+      <testcase id="xenserver.tc.ha.TC13541v4"/>
+    </serial>
+    <serial group="HeartbeatFailures">
+      <testcase id="xenserver.tc.ha.TC13516v4"/>
+    </serial>
+    <serial group="HostFailures">
+      <testcase id="xenserver.tc.ha.TC13517v4"/>
+      <testcase id="xenserver.tc.ha.TC13518v4"/>
+      <testcase id="xenserver.tc.ha.TC13519v4"/>
+    </serial>
+    <serial group="Stuck-state recovery">
+      <testcase id="xenserver.tc.ha.TC13522v4"/>
+      <testcase id="xenserver.tc.ha.TC13523v4"/>
+      <testcase id="xenserver.tc.ha.TC13524v4"/>
+      <testcase id="xenserver.tc.ha.TC13525v4"/>
+    </serial>
+    <serial>
+      <finally>
+        <testcase id="guestops.basic.TCShutdown">
+          <arg>guest=controller</arg>
+          <arg>again</arg>
+        </testcase>
+      </finally>
+    </serial>
+  </testsequence>
+
+</xenrt>

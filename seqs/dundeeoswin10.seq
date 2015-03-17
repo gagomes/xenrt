@@ -56,11 +56,6 @@
         <arg>workloads</arg>
         <arg>loops=20</arg>
         </testcase>
-        <testcase id="guestops.srm.TCHibernate" tc="TC-26373">
-        <arg>guest=win10-x86</arg>
-        <arg>workloads</arg>
-        <arg>loops=10</arg>
-        </testcase>
         <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-26374">
         <arg>N/A</arg>
         <arg>guest=win10-x86</arg>
@@ -122,11 +117,6 @@
         <arg>live</arg>
         <arg>workloads</arg>
         <arg>loops=20</arg>
-        </testcase>
-        <testcase id="guestops.srm.TCHibernate" tc="TC-26385">
-        <arg>guest=win10-x64</arg>
-        <arg>workloads</arg>
-        <arg>loops=10</arg>
         </testcase>
         <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-26386">
         <arg>N/A</arg>

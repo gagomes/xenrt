@@ -23,7 +23,7 @@ from  xenrt.lib.xenserver import licensedfeatures
 import XenAPI
 from xenrt.lazylog import *
 from xenrt.lib.xenserver.iptablesutil import IpTablesFirewall
-from xenrt.lib.xenserver.licensing import LicenceManager, XenServerLicenceFactory
+from xenrt.lib.xenserver.licensing import LicenseManager, XenServerLicenseFactory
 
 
 # Symbols we want to export from the package.
@@ -6245,7 +6245,7 @@ fi
         """Return the UUID of the specified guest."""
         return self.parseListForUUID("vm-list", "name-label", guest.name)
     
-    def license(self, sku="XE Enterprise", expirein=None, usev6testd=True, v6server=None, applyedition=True):
+    def license(self, sku="XE Enterprise", expirein=None, usev6testd=True, v6server=None, applyedition=True, edition=None):
         """Apply a license to the host"""
     
         keyfile = None
@@ -8128,8 +8128,8 @@ rm -f /etc/xensource/xhad.conf || true
 
     def applyFullLicense(self,v6server):
  
-        license = XenServerLicenceFactory().maxLicenceSkuHost(self)
-        LicenceManager().addLicensesToServer(v6server,license,getLicenseInUse=False)
+        license = XenServerLicenseFactory().maxLicenseSkuHost(self)
+        LicenseManager().addLicensesToServer(v6server,license,getLicenseInUse=False)
         self.license(edition = license.getEdition(), v6server=v6server,usev6testd=False)
         
     def getIpTablesFirewall(self):
@@ -10721,14 +10721,14 @@ class TampaHost(BostonHost):
 
     def validLicenses(self, xenserverOnly=False):
         """
-        Get a licence object which contains the details of a licence settings
+        Get a license object which contains the details of a license settings
         for a given SKU
-        sku: XenServerLicenceSKU member
+        sku: XenServerLicenseSKU member
         """
-        factory = XenServerLicenceFactory()
+        factory = XenServerLicenseFactory()
         if xenserverOnly:
-            return factory.xenserverOnlyLicences(self)
-        return factory.allLicences(self)
+            return factory.xenserverOnlyLicenses(self)
+        return factory.allLicenses(self)
 
 
 #############################################################################
@@ -11470,7 +11470,7 @@ class CreedenceHost(ClearwaterHost):
         xenrt.TEC().logverbose("Edition is same on host as expected")
 
     def licenseApply(self, v6server, licenseObj):
-        self.license(v6server,sku=licenseObj.getEdition())
+        self.license(v6server=v6server, sku=licenseObj.getEdition())
 
     def createTemplateSR(self):
         if xenrt.TEC().lookup("SHARED_VHD_PATH_NFS", None):
@@ -11500,6 +11500,9 @@ class DundeeHost(CreedenceHost):
         self.registerJobTest(xenrt.lib.xenserver.jobtests.JTDeadLetter)
 
         self.installer = None
+
+    def license(self, v6server=None, sku=None, usev6testd=True, edition="free"):
+        return ClearwaterHost.license(self, edition, v6server, False, sku, usev6testd)
 
     def isCentOS7Dom0(self):
         return True
@@ -14572,7 +14575,7 @@ class CreedencePool(ClearwaterPool):
         self.checkLicenseState(sku)
 
     def licenseApply(self, v6server, licenseObj):
-        self.license(v6server,sku=licenseObj.getEdition())
+        self.license(v6server=v6server, sku=licenseObj.getEdition())
 
     def validLicenses(self, xenserverOnly=False):
         """

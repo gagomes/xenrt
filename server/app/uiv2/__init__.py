@@ -55,6 +55,7 @@ class XenRTUIPage(XenRTPage):
          <li><a href='/xenrt/ui/apikey'><span>Manage my API Key</span></a></li>
          <li><a href='/xenrtapi.tar.gz'><span>CLI/Python bindings Download (install with pip)</span></a></li>
          <li><a href='/xenrtapi' target='_blank'><span>Python module documentation</span></a></li>
+         <li><a href='/xenrtpowershell.zip'><span>PowerShell bindings Download</span></a></li>
       </ul>
    </li>
    <li class='has-sub'><a href='#'><span>XenRTCenter</span></a>

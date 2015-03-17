@@ -555,7 +555,7 @@ class UpdateMachine(_MachineBase):
          'in': 'path',
          'required': True,
          'description': 'Machine to update',
-         'type': 'integer'},
+         'type': 'string'},
         {'name': 'body',
          'in': 'body',
          'required': True,
@@ -751,6 +751,7 @@ class RemoveMachine(_MachineBase):
          'type': 'string'}]
     RESPONSES = { "200": {"description": "Successful response"}}
     OPERATION_ID = "remove_machine"
+    WRITE=True
 
     def render(self):
         machine = self.request.matchdict['name']

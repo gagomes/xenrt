@@ -254,7 +254,7 @@ class FileManager(object):
         """
         parsed = urlparse.urlparse(file)
         try:
-            sftp = xenrt.ssh.SFTPSession(ip=parsed.hostname, username=parsed.username, password=parsed.password, level=xenrt.RC_FAIL,port=parsed.port)
+            sftp = xenrt.ssh.SFTPSession(ip=parsed.hostname, username=parsed.username, password=parsed.password, level=xenrt.RC_FAIL,port=(parsed.port or 22))
             sftp.copyFrom(parsed.path, '%s.part' % sharedLocation)
             sftp.close()
         except:

@@ -758,6 +758,9 @@ Send("{ENTER}")
             self.guest.xmlrpcStart("\"%s\" %s" % (autoit, au3path))
         self.assertvGPURunningInWinVM(self.guest, self.args['vgpuconfig'])
 
+    def postRun(self):
+        pass
+
 class TCVGPUCloneVM(VGPUOwnedVMsTest):
 
     def __init__(self):
@@ -789,6 +792,9 @@ class TCVGPUCloneVM(VGPUOwnedVMsTest):
         if self.args.has_key("vgpuconfig"):
             for g in guests:
                 self.assertvGPURunningInWinVM(g, self.args['vgpuconfig'])
+
+    def postRun(self):
+        pass
 
 class TCVGPUDeleteClones(xenrt.TestCase):
     def parseArgs(self, arglist):
@@ -923,6 +929,8 @@ class TCGPUBenchmarkInstall(VGPUOwnedVMsTest):
                 except Exception, e:
                     self.testcaseResult("InstallBenchmark", "%s-%s" % (b, g.name), xenrt.RESULT_FAIL, str(e))
 
+    def postRun(self):
+        pass
 
 class TCGPUBenchmark(TCGPUBenchmarkInstall):
 

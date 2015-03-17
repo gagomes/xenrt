@@ -83,6 +83,15 @@ ifeq ($(APIBUILD), yes)
 	$(SUDO) pip install -I $(WEBROOT)/xenrtapi.tar.gz
 	$(SUDO) pdoc --html --html-dir /var/www --overwrite xenrtapi
 	cd $(SHAREDIR)/api_build/python/ && python setup.py sdist upload -r pypi
+	
+
+	rm -rf $(SHAREDIR)/api_build/powershell/XenRT
+	rm -f $(SHAREDIR)/api_build/powershell/xenrtpowershell.zip
+	mkdir -p $(SHAREDIR)/api_build/powershell/XenRT
+	cp $(SHAREDIR)/api_build/powershell/XenRT.psd1 $(SHAREDIR)/api_build/powershell/XenRT/XenRT.psd1
+	wget -O $(SHAREDIR)/api_build/powershell/XenRT/XenRT.psm1  http://localhost:1025/share/control/bindings/xenrt.psm1
+	cd $(SHAREDIR)/api_build/powershell/ && zip -r xenrtpowershell.zip XenRT readme.txt
+	$(SUDO) ln -sf $(SHAREDIR)/api_build/powershell/xenrtpowershell.zip $(WEBROOT)/xenrtpowershell.zip
 endif
 
 .PHONY: api

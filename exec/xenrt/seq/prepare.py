@@ -1153,6 +1153,8 @@ class PrepareNode(object):
                                                     "path":isos2,
                                                     "default":False,
                                                     "blkbackPoolSize":""})
+                            if xenrt.TEC().lookup("USE_PREBUILT_TEMPLATES", False, boolean=True):
+                                self.srs.insert(0, {"type": "nfstemplate", "host": host['name'], "default": False, "blkbackPoolSize": ""})
 
                 # If needed, create lun groups
                 iscsihosts = {}
@@ -1266,6 +1268,13 @@ class PrepareNode(object):
                         server, path = s["path"].split(":")
                         sr.create(server, path)
                         sr.scan()
+                    elif s['type'] == "nfstemplate":
+                        try:
+                            sr = host.createTemplateSR()
+                        except Exception, e:
+                            # This is only best effort
+                            xenrt.TEC().logverbose("Warning - could not add remote template library: %s" % str(e))
+                            continue
                     elif s["type"] == "netapp":
                         minsize = int(host.lookup("SR_NETAPP_MINSIZE", 40))
                         maxsize = int(host.lookup("SR_NETAPP_MAXSIZE", 1000000))

@@ -81,61 +81,22 @@ class _TCSmoketest(xenrt.TestCase):
 
     def installOS(self):        
         # Install the OS
-        if self.TEMPLATE:
-            template = self.host.chooseTemplate(self.TEMPLATE)
-        else:
-            template = xenrt.lib.xenserver.getTemplate(self.host,
-                                                       self.DISTRO,
-                                                       arch=self.ARCH)
-        if "Etch" in template or "Sarge" in template:
-            password = xenrt.TEC().lookup("ROOT_PASSWORD_DEBIAN")
-        else:
-            password = None
-        guest = self.host.guestFactory()(xenrt.randomGuestName(),
-                                         template,
-                                         self.host,
-                                         password=password)
-        self.uninstallOnCleanup(guest)
-        self.getLogsFrom(guest)
-        repository = None
-        notools = False
-        if guest.windows:
-            isoname = xenrt.DEFAULT
-        elif self.DISTRO.startswith("solaris"):
-            isoname = xenrt.DEFAULT
-            notools = True
-        else:
-            isoname = None
-            if not "Etch" in template and not "Sarge" in template:
-                try:
-                    repository = string.split(xenrt.TEC().lookup(["RPM_SOURCE",
-                                                                  self.DISTRO,
-                                                                  self.ARCH,
-                                                                  "HTTP"]))[0]
-                except:
-                    raise xenrt.XRTError("No HTTP repository for %s %s" %
-                                         (self.ARCH, self.DISTRO))
-        if self.VCPUS != None:
-            guest.setVCPUs(self.VCPUS)
-        if self.CPS != None:
-            guest.setCoresPerSocket(self.CPS)
-        if self.MEMORY != None:
-            guest.setMemory(self.MEMORY)
-        guest.arch = self.ARCH
-        guest.install(self.host,
-                      distro=self.DISTRO,
-                      isoname=isoname,
-                      notools=notools,
-                      repository=repository,
-                      rootdisk=self.ROOTDISK)
-        if guest.windows and guest.memory > 4096:
-            # We added /PAE to boot.ini so we have to reboot before
-            # checking the resources
-            guest.xmlrpcShutdown()
-            guest.poll("DOWN")
-            guest.start()
-        guest.check()
-        self.guest = guest
+
+        self.guest = xenrt.lib.xenserver.guest.createVM(self.host,
+                    xenrt.randomGuestName(),
+                    self.DISTRO,
+                    vcpus = self.VCPUS,
+                    corespersocket = self.CPS,
+                    memory = self.MEMORY,
+                    arch = self.ARCH,
+                    vifs = xenrt.lib.xenserver.Guest.DEFAULT,
+                    template = self.TEMPLATE,
+                    notools = self.DISTRO.startswith("solaris"))
+        
+        self.uninstallOnCleanup(self.guest)
+        self.getLogsFrom(self.guest)
+        
+        self.guest.check()
 
     def installDrivers(self):
         # Install drivers/tools if necessary

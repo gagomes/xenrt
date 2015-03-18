@@ -172,6 +172,15 @@ class Fragment(threading.Thread):
             else:
                 r = re.findall(r"\(.*?\)", valuestring)
                 values = map(lambda x:re.findall(r"([^,\(\)]+)", x), r)
+            
+            offsetstring = expand(str(node.getAttribute("offset")), params)
+            if offsetstring:
+                values = values[int(offsetstring):]
+
+            limitstring = expand(str(node.getAttribute("limit")), params)
+            if limitstring:
+                values = values[:int(limitstring)]
+            
             for value in values:
                 newparams = {}
                 if params:

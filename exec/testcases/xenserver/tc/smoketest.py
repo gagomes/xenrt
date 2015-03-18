@@ -176,7 +176,7 @@ class TCSmokeTestTemplateDefaults(_TCNewSmokeTest):
         else:
             return "TC-26870"
 
-class TCSmokeTestTemplateDefaultsShadowPT(TCSmokeTestTemplateDefaults):
+class TCSmokeTestShadowPT(TCSmokeTestTemplateDefaults):
     # Template defaults on Shadow
     def getDefaultJiraTC(self):
         if xenrt.isWindows(self.tcsku):
@@ -188,7 +188,7 @@ class TCSmokeTestTemplateDefaultsShadowPT(TCSmokeTestTemplateDefaults):
         if self.host.isHAPEnabled():
             raise xenrt.XRTError("This test requires a machine without HAP")
 
-class TCSmokeTestTemplateDefaultsIntelEPT(TCSmokeTestTemplateDefaults):
+class TCSmokeTestIntelEPT(TCSmokeTestTemplateDefaults):
     # Template defaults on Intel + EPT
     def getDefaultJiraTC(self):
         if xenrt.isWindows(self.tcsku):
@@ -202,7 +202,7 @@ class TCSmokeTestTemplateDefaultsIntelEPT(TCSmokeTestTemplateDefaults):
         if not self.host.isVmxHardware():
             raise xenrt.XRTError("This test requires Intel hardware")
 
-class TCSmokeTestTemplateDefaultsAMDNPT(TCSmokeTestTemplateDefaults):
+class TCSmokeTestAMDNPT(TCSmokeTestTemplateDefaults):
     # Template defaults on AMD + NPT
     def getDefaultJiraTC(self):
         if xenrt.isWindows(self.tcsku):

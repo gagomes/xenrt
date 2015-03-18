@@ -170,34 +170,67 @@ class _TCNewSmokeTest(xenrt.TestCase):
 
 class TCSmokeTestTemplateDefaults(_TCNewSmokeTest):
     # Template defaults
-    pass
+    def getDefaultJiraTC(self):
+        if xenrt.isWindows(self.tcsku):
+            return "TC-26871"
+        else:
+            return "TC-26870"
 
 class TCSmokeTestTemplateDefaultsShadowPT(TCSmokeTestTemplateDefaults):
     # Template defaults on Shadow
+    def getDefaultJiraTC(self):
+        if xenrt.isWindows(self.tcsku):
+            return "TC-26872"
+        else:
+            return "TC-26873"
+
     def assertHardware(self):
         # TODO: Check HAP disabled
         pass
 
 class TCSmokeTestTemplateDefaultsIntelEPT(TCSmokeTestTemplateDefaults):
     # Template defaults on Intel + EPT
+    def getDefaultJiraTC(self):
+        if xenrt.isWindows(self.tcsku):
+            return "TC-26874"
+        else:
+            return "TC-26875"
+
     def assertHardware(self):
         # TODO: Check Intel + EPT
         pass
 
 class TCSmokeTestTemplateDefaultsAMDNPT(TCSmokeTestTemplateDefaults):
     # Template defaults on AMD + NPT
+    def getDefaultJiraTC(self):
+        if xenrt.isWindows(self.tcsku):
+            return "TC-26876"
+        else:
+            return "TC-26877"
+
     def assertHardware(self):
         # TODO: Check AMD + NPT
         pass
 
 class TCSmokeTest1VCPU(_TCNewSmokeTest):
     # 1 vCPU, default memory
+    def getDefaultJiraTC(self):
+        if xenrt.isWindows(self.tcsku):
+            return "TC-26878"
+        else:
+            return "TC-26879"
 
     def getGuestParams(self):
         self.vcpus = 1
 
 class TCSmokeTest2VCPUs(_TCNewSmokeTest):
     # 2 vCPUs, double default memory
+    def getDefaultJiraTC(self):
+        if xenrt.isWindows(self.tcsku):
+            return "TC-26880"
+        else:
+            return "TC-26881"
+
 
     def getGuestParams(self):
         self.vcpus = 2
@@ -207,6 +240,12 @@ class TCSmokeTestMaxMem(_TCNewSmokeTest):
     # Default vCPUs, max memory
     # Pause/Unpause instead of suspend/resume + migrate
     PAUSEUNPAUSE = True
+    
+    def getDefaultJiraTC(self):
+        if xenrt.isWindows(self.tcsku):
+            return "TC-26882"
+        else:
+            return "TC-26883"
 
     def getGuestParams(self):
         if xenrt.is32BitPV(self.distro, self.arch, release=self.host.productVersion):
@@ -225,9 +264,13 @@ class TCSmokeTestMaxMem(_TCNewSmokeTest):
 
 class TCSmokeTestMaxvCPUs(_TCNewSmokeTest):
     # Max vCPUs, double default memory
-    # Use cores per socket for Windows VMs in Creedence+
-    # Need MAX_SOCKETS and MAX_CPUS per OS
     
+    def getDefaultJiraTC(self):
+        if xenrt.isWindows(self.tcsku):
+            return "TC-26884"
+        else:
+            return "TC-26885"
+
     def getGuestParams(self):
         self.memory = self.getTemplateParams().defaultMemory * 2
 
@@ -254,6 +297,12 @@ class TCSmokeTestMaxvCPUs(_TCNewSmokeTest):
 
 class TCSmokeTestMinConfig(_TCNewSmokeTest):
     # Min vCPUS + memory
+    def getDefaultJiraTC(self):
+        if xenrt.isWindows(self.tcsku):
+            return "TC-26886"
+        else:
+            return "TC-26887"
+
     def getGuestParams(self):
         self.vcpus = 1
         glimits = self.getGuestLimits()

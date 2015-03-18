@@ -514,6 +514,9 @@ logdata call.
     def setTCSKU(self, tcsku):
         self.tcsku = tcsku
 
+    def getDefaultJiraTC(self):
+        return None
+
     #########################################################################
     # Testcase execution
 
@@ -2867,8 +2870,10 @@ class GlobalExecutionContext(object):
             t.results.reason(str(e))
             xenrt.TEC().logverbose(traceback.format_exc())
             xenrt.TEC().logverbose(str(e), pref='REASON')
-        t.setJiraTC(jiratc)
         t.setTCSKU(tcsku)
+        if not jiratc:
+            jiratc = t.getDefaultJiraTC()
+        t.setJiraTC(jiratc)
         t.marvinTestConfig = marvinTestConfig
         if name and group:
             t._rename("%s/%s" % (group, name))
@@ -2886,7 +2891,6 @@ class GlobalExecutionContext(object):
             phase = group
         else:
             phase = "Phase 99"
-        
         logtcid = None
         if not jiratc:
             m = re.match("TC(\d+)", t.tcid)

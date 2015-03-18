@@ -4364,12 +4364,17 @@ def createVMFromPrebuiltTemplate(host,
     
     sruuid = host.chooseSR(sr)
 
+    preinstalledTools = False
+
     # Lock around this section so only one template gets created for this distro
     with xenrt.GEC().getLock("TEMPLATE_SETUP_%s_%s_%s" % (distro, arch, sruuid)):
         preinstalledTemplates = host.minimalList("template-list", args="name-label=xenrt-template-%s-%s-%s" % (distro, arch, sruuid), params="name-label")
     
         if not preinstalledTemplates:
             preinstalledTemplates = host.minimalList("template-list", args="name-label=xenrt-template-%s-%s" % (distro, arch), params="name-label")
+            # Templates in this format have the tools installed
+            if preinstalledTemplates:
+                preinstalledTools = True
   
         # Check whether the template SR is present
         templateSR = host.minimalList("sr-list", params="uuid", args="uuid=%s" % xenrt.lib.xenserver.host.TEMPLATE_SR_UUID)
@@ -4462,7 +4467,7 @@ def createVMFromPrebuiltTemplate(host,
 
     g.existing(host)
 
-    if "coreos-" in distro:
+    if "coreos-" in distro or preinstalledTools:
         g.enlightenedDrivers=True
         notools = True # CoreOS has tools installed already
     else:

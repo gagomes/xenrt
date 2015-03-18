@@ -87,7 +87,9 @@ __all__ = ["timenow",
            "getNetworkParam",
            "getCCPInputs",
            "getCCPCommit",
-           "isUrlFetchable"
+           "isUrlFetchable",
+           "isWindows",
+           "is32BitPV"
            ]
 
 def sleep(secs, log=True):
@@ -1393,7 +1395,7 @@ def getADConfig():
     return ADConfig(domain=domain, domainName=domainName, adminUser=adminUser, adminPassword=adminPassword, dns=dns, dcAddress=dcAddress, dcDistro=dcDistro)
 
 def getDistroAndArch(distrotext):
-    if distrotext[0] in ("v", "w"):
+    if isWindows(distrotext):
         return (distrotext, "x86-32")
     if distrotext.endswith("-x64"):
         distro = distrotext[:-4]
@@ -1414,6 +1416,9 @@ def getDistroAndArch(distrotext):
         distro = distrotext
         arch = "x86-32"
     return (distro, arch)
+
+def isWindows(distro):
+    return distro[0] in ("v", "w")
 
 def getMarvinFile():
     marvinversion = xenrt.TEC().lookup("MARVIN_VERSION", None)
@@ -1496,3 +1501,25 @@ def isUrlFetchable(filename):
     except:
         return False
 
+def is32BitPV(distro, arch=None, release=None, config=None):
+    if not arch:
+        (distro, arch) = getDistroAndArch(distro)
+
+    # Windows isn't PV
+    if isWindows(distro):
+        return False
+
+    # 64 bit isn't 32 bit PV
+    if arch != "x86-32":
+        return False
+
+    # HVM Linux isn't PV
+
+    if not config:
+        config = xenrt.TEC()
+
+    if release and distro in config.lookup(["VERSION_CONFIG", release, "HVM_LINUX"], "").split(","):
+        return False
+
+    # We've got this far, so it must be 32 bitPV
+    return True

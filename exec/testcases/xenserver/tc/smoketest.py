@@ -209,7 +209,7 @@ class TCSmokeTestMaxMem(_TCNewSmokeTest):
     PAUSEUNPAUSE = True
 
     def getGuestParams(self):
-        if self.arch == "x86-32" and self.isPV():
+        if xenrt.is32BitPV(self.distro, self.arch, release=self.host.productVersion):
             hostMaxMem = int(self.host.lookup("MAX_VM_MEMORY_LINUX32BIT"))
         else:
             hostMaxMem = int(self.host.lookup("MAX_VM_MEMORY"))

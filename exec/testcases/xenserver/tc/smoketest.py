@@ -8,8 +8,260 @@
 # conditions as licensed by XenSource, Inc. All other rights reserved.
 #
 
-import socket, re, string, time, traceback, sys, random, copy, os.path
+import socket, re, string, time, traceback, sys, random, copy, os.path, collections
 import xenrt, xenrt.lib.xenserver
+
+class _TCNewSmokeTest(xenrt.TestCase):
+    PAUSEUNPAUSE = False
+
+    def prepare(self, arglist):
+
+        self.memory = None
+        self.vcpus = None
+        self.cps = None
+        self.template = None
+        
+
+        if self.tcsku.endswith("_XenApp"):
+            distroarch = self.tcsku.replace("_XenApp", "")
+            (self.distro, self.arch) = xenrt.getDistroAndArch(distroarch)
+            self.template = self.getXenAppTemplate(self.distro)
+        else:
+            (self.distro, self.arch) = xenrt.getDistroAndArch(self.tcsku)
+        
+        self.host = self.getDefaultHost()
+        self.assertHardware()
+        self.getGuestParams()
+
+    def getXenAppTemplate(self, distro):
+        if distro.startswith("w2k3"):
+            start = "TEMPLATE_NAME_CPS"
+        elif distro.startswith("ws08r2"):
+            start = "TEMPLATE_NAME_CPS_2008R2"
+        elif distro.startswith("ws08"):
+            start = "TEMPLATE_NAME_CPS_2008"
+        else:
+            raise xenrt.XRTError("No XenApp template for %s" % distro)
+
+        if distro.endswith("-x64"):
+            return "%s_64" % start
+        else:
+            return start
+
+    def getTemplateParams(self):
+        if self.template:
+            tname = self.host.chooseTemplate(self.template)
+        else:
+            tname = self.host.getTemplate(distro=self.distro, arch=self.arch)
+
+        tuuid = self.host.minimalList("template-list", args="name-label='%s'" % tname)[0]
+
+        defMemory = int(self.host.genParamGet("template", tuuid, "memory-static-max"))/xenrt.MEGA
+        defVCPUs = int(self.host.genParamGet("template", tuuid, "VCPUs-max"))
+
+        return collections.namedtuple("TemplateParams", ["defaultMemory", "defaultVCPUs"])(defMemory, defVCPUs)
+
+    def getGuestLimits(self):
+        return xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.distro])
+
+    def getGuestParams(self):
+        pass
+
+    def assertHardware(self):
+        pass
+
+    def isPV(self):
+        # Windows
+        if self.distro[0] in ("v", "w"):
+            return False
+        # Solaris
+        if self.distro.startswith("sol"):
+            return False
+        # HVM Linux
+        return not self.distro in self.host.lookup("HVM_LINUX", "").split(",")
+
+    def run(self, arglist):
+        if self.runSubcase("installOS", (), "OS", "Install") != \
+                xenrt.RESULT_PASS:
+            return
+        if self.guest.windows:
+            if self.runSubcase("installDrivers", (), "OS", "Drivers") != \
+                    xenrt.RESULT_PASS:
+                return
+        if self.runSubcase("lifecycle", (), "OS", "Lifecycle") != \
+                xenrt.RESULT_PASS:
+            return
+        if self.PAUSEUNPAUSE:
+            if self.runSubcase("pauseunpause", (), "OS", "PauseUnpause") != \
+                    xenrt.RESULT_PASS:
+                return
+        else:
+            if self.runSubcase("suspendresume", (), "OS", "SuspendResume") != \
+                    xenrt.RESULT_PASS:
+                return
+            if self.runSubcase("migrate", ("false"), "OS", "Migrate") != \
+                    xenrt.RESULT_PASS:
+                return
+            if self.runSubcase("migrate", ("true"), "OS", "LiveMigrate") != \
+                    xenrt.RESULT_PASS:
+                return
+        if self.runSubcase("settle", (), "OS", "Settle") != \
+                xenrt.RESULT_PASS:
+            return
+        if self.runSubcase("shutdown", (), "OS", "Shutdown") != \
+                xenrt.RESULT_PASS:
+            return
+
+
+    def installOS(self):
+        self.guest = xenrt.lib.xenserver.guest.createVM(self.host,
+                    xenrt.randomGuestName(self.distro, self.arch),
+                    self.distro,
+                    vcpus = self.vcpus,
+                    corespersocket = self.cps,
+                    memory = self.memory,
+                    arch = self.arch,
+                    vifs = xenrt.lib.xenserver.Guest.DEFAULT,
+                    template = self.template,
+                    notools = self.distro.startswith("solaris"))
+        
+        self.uninstallOnCleanup(self.guest)
+        self.getLogsFrom(self.guest)
+        self.guest.check()
+
+    def installDrivers(self):
+        self.guest.installDrivers()
+
+    def lifecycle(self):
+        # Perform some lifecycle operations
+        self.guest.reboot()
+        self.guest.reboot()
+        self.guest.shutdown()
+        self.guest.start()
+        self.guest.check()
+
+    def suspendresume(self):
+        for i in xrange(2):
+            self.guest.suspend()
+            self.guest.resume()
+            self.guest.check()
+
+    def pauseunpause(self):
+        for i in xrange(2):
+            self.guest.pause()
+            xenrt.sleep(10)
+            self.guest.unpause()
+            self.guest.check()
+
+    def shutdown(self):
+        # Shutdown the VM (it will be uninstalled by the harness)
+        self.guest.shutdown()
+
+    def migrate(self, live):
+        for i in range(int(xenrt.TEC().lookup("SMOKETEST_MIGRATE_COUNT", "2"))):
+            self.guest.migrateVM(self.guest.host, live=live)
+            time.sleep(10)
+            self.guest.check()
+
+    def settle(self):
+        # Allow the VM to settle for a while
+        time.sleep(180)
+        self.guest.checkHealth()
+
+class TCSmokeTestTemplateDefaults(_TCNewSmokeTest):
+    # Template defaults
+    pass
+
+class TCSmokeTestTemplateDefaultsShadowPT(TCSmokeTestTemplateDefaults):
+    # Template defaults on Shadow
+    def assertHardware(self):
+        # TODO: Check HAP disabled
+        pass
+
+class TCSmokeTestTemplateDefaultsIntelEPT(TCSmokeTestTemplateDefaults):
+    # Template defaults on Intel + EPT
+    def assertHardware(self):
+        # TODO: Check Intel + EPT
+        pass
+
+class TCSmokeTestTemplateDefaultsAMDNPT(TCSmokeTestTemplateDefaults):
+    # Template defaults on AMD + NPT
+    def assertHardware(self):
+        # TODO: Check AMD + NPT
+        pass
+
+class TCSmokeTest1VCPU(_TCNewSmokeTest):
+    # 1 vCPU, default memory
+
+    def getGuestParams(self):
+        self.vcpus = 1
+
+class TCSmokeTest2VCPUs(_TCNewSmokeTest):
+    # 2 vCPUs, double default memory
+
+    def getGuestParams(self):
+        self.vcpus = 2
+        self.memory = self.getTemplateParams().defaultMemory * 2
+
+class TCSmokeTestMaxMem(_TCNewSmokeTest):   
+    # Default vCPUs, max memory
+    # Pause/Unpause instead of suspend/resume + migrate
+    PAUSEUNPAUSE = True
+
+    def getGuestParams(self):
+        if self.arch == "x86-32" and self.isPV():
+            hostMaxMem = int(self.host.lookup("MAX_VM_MEMORY_LINUX32BIT"))
+        else:
+            hostMaxMem = int(self.host.lookup("MAX_VM_MEMORY"))
+
+        glimits = self.getGuestLimits()
+
+        if self.arch == "x86-32":
+            guestMaxMem = glimits['MAXMEMORY']
+        else:
+            guestMaxMem = glimits.get("MAXMEMORY64", glimits['MAXMEMORY'])
+
+        self.memory = min(guestMaxMem, hostMaxMem)
+
+class TCSmokeTestMaxvCPUs(_TCNewSmokeTest):
+    # Max vCPUs, double default memory
+    # Use cores per socket for Windows VMs in Creedence+
+    # Need MAX_SOCKETS and MAX_CPUS per OS
+    
+    def getGuestParams(self):
+        self.memory = self.getTemplateParams().defaultMemory * 2
+
+        hostMaxVCPUs = int(self.host.lookup("MAX_VM_VCPUS"))
+
+        glimits = self.getGuestLimits()
+        
+        if self.arch == "x86-32":
+            guestMaxVCPUs = glimits.get('MAX_VM_VCPUS')
+        else:
+            guestMaxVCPUs = glimits.get("MAX_VM_VCPUS64", glimits.get("MAX_VM_CPUS"))
+
+        if guestMaxVCPUs:
+            self.vcpus = min(guestMaxVCPUs, hostMaxVCPUs)
+        else:
+            self.vcpus = hostMaxVCPUs
+
+        if glimits.get("MAXSOCKETS") and int(glimits["MAXSOCKETS"]) < self.vcpus:
+            if isinstance(self.host, xenrt.lib.xenserver.host.CreedenceHost):
+                self.cps = self.vcpus/int(glimits["MAXSOCKETS"])
+            else:
+                # Can only do max sockets
+                self.vcpus = int(glimits["MAXSOCKETS"])
+
+class TCSmokeTestMinConfig(_TCNewSmokeTest):
+    # Min vCPUS + memory
+    def getGuestParams(self):
+        self.vcpus = 1
+        glimits = self.getGuestLimits()
+
+        guestMinMem = glimits['MINMEMORY']
+        hostMinMem = self.host.lookup("MIN_VM_MEMORY")
+        hostMinMemForGuest = int(self.host.lookup(["VM_MIN_MEMORY_LIMITS", self.distro], "0"))
+        self.memory = max(guestMinMem, hostMinMem, hostMinMemForGuest)
 
 class _TCSmoketest(xenrt.TestCase):
 

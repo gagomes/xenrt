@@ -225,6 +225,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Miami"]["VCPU_IS_SINGLE_CORE"] = "yes"
         self.config["VERSION_CONFIG"]["Miami"]["GUEST_VIFS_rhel41"] = "3"
         self.config["VERSION_CONFIG"]["Miami"]["GUEST_VIFS_rhel44"] = "3"
+        self.config["VERSION_CONFIG"]["Miami"]["MAX_VM_VCPUS"] = "8"
 
 
         self.config["VERSION_CONFIG"]["Orlando"] = {}
@@ -291,6 +292,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Orlando"]["GUEST_VIFS_rhel44"] = "3"
         self.config["VERSION_CONFIG"]["Orlando"]["SNAPSHOT_OF_SUSPENDED_VM_IS_SUSPENDED"] = "yes"
         self.config["VERSION_CONFIG"]["Orlando"]["DOES_NOT_COALESCE"] = "yes"
+        self.config["VERSION_CONFIG"]["Orlando"]["MAX_VM_VCPUS"] = "8"
 
         self.config["VERSION_CONFIG"]["George"] = {}
         self.config["VERSION_CONFIG"]["George"]["TEMPLATE_NAME_DEBIAN"] = "Debian Etch 4.0"
@@ -369,6 +371,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["George"]["GENERIC_WINDOWS_OS_64"] = "ws08-x64"
         self.config["VERSION_CONFIG"]["George"]["GENERIC_LINUX_OS"] = "etch"
         self.config["VERSION_CONFIG"]["George"]["GENERIC_LINUX_OS_64"] = "centos53"
+        self.config["VERSION_CONFIG"]["George"]["MAX_VM_VCPUS"] = "8"
 
         self.config["VERSION_CONFIG"]["MNR"] = {}
         self.config["VERSION_CONFIG"]["MNR"]["TEMPLATE_NAME_DEBIAN"] = "Demo Linux VM,Debian Etch 4.0"
@@ -498,6 +501,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["MNR"]["EXPECTED_CRASHDUMP_FILES"] = "crash.log,debug.log,domain0.log"
         self.config["VERSION_CONFIG"]["MNR"]["V6_DBV"] = "2010.0521"
         self.config["VERSION_CONFIG"]["MNR"]["DEFAULT_RPU_LINUX_VERSION"] = "rhel54"
+        self.config["VERSION_CONFIG"]["MNR"]["MAX_VM_VCPUS"] = "8"
 
         # Cowley
         self.config["VERSION_CONFIG"]["Cowley"] = self.config["VERSION_CONFIG"]["MNR"]

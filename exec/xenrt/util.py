@@ -1393,6 +1393,8 @@ def getADConfig():
     return ADConfig(domain=domain, domainName=domainName, adminUser=adminUser, adminPassword=adminPassword, dns=dns, dcAddress=dcAddress, dcDistro=dcDistro)
 
 def getDistroAndArch(distrotext):
+    if distrotext[0] in ("v", "w"):
+        return (distrotext, "x86-32")
     if distrotext.endswith("-x64"):
         distro = distrotext[:-4]
         arch = "x86-64"

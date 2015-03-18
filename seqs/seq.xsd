@@ -425,6 +425,8 @@
           </xs:choice>
           <xs:attribute name="iter" use="required"/>
           <xs:attribute name="values" use="required"/>
+          <xs:attribute name="limit" use="optional"/>
+          <xs:attribute name="offset" use="optional"/>
         </xs:complexType>
       </xs:element>
     </xs:sequence>

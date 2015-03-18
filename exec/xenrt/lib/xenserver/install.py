@@ -212,11 +212,11 @@ class DundeeInstaller(object):
 
     @property
     def postInstallBootMods(self):
-        def set_xen(data):
+        def setXen(data):
             return "/opt/xensource/libexec/xen-cmdline --set-xen '%s'" % data
-        def set_dom0(data):
+        def setDom0(data):
             return "/opt/xensource/libexec/xen-cmdline --set-dom0 '%s'" % data
-        def delete_xen(data):
+        def deleteXen(data):
             return "/opt/xensource/libexec/xen-cmdline --delete-xen '%s'" % data
 
         dom0_extra_args = self.host.lookup("DOM0_EXTRA_ARGS", None)
@@ -231,26 +231,26 @@ class DundeeInstaller(object):
 
         cmds = []
         if dom0mem:
-            cmds.append(set_xen("dom0_mem=%s" % dom0mem))
+            cmds.append(setXen("dom0_mem=%s" % dom0mem))
         if xenrt.TEC().lookup("OPTION_DEBUG", False, boolean=True):
-            cmds.append(set_dom0("print-fatal-signals=2"))
-            cmds.append(set_xen("loglvl=all guest_loglvl=all"))
+            cmds.append(setDom0("print-fatal-signals=2"))
+            cmds.append(setXen("loglvl=all guest_loglvl=all"))
         if dom0_extra_args:
-            cmds.append(set_dom0(dom0_extra_args))
+            cmds.append(setDom0(dom0_extra_args))
         if dom0_extra_args_user:
-            cmds.append(set_dom0(dom0_extra_args_user))
+            cmds.append(setDom0(dom0_extra_args_user))
         if xen_extra_args:
-            cmds.append(set_xen(xen_extra_args))
+            cmds.append(setXen(xen_extra_args))
         if xen_extra_args_user:
-            cmds.append(set_xen(xen_extra_args_user))
+            cmds.append(setXen(xen_extra_args_user))
         if self.host.lookup("XEN_DISABLE_WATCHDOG", False, boolean=True):
-            cmds.append(delete_xen("watchdog"))
-            cmds.append(delete_xen("watchdog_timeout"))
-            cmds.append(set_dom0("watchdog=false"))
+            cmds.append(deleteXen("watchdog"))
+            cmds.append(deleteXen("watchdog_timeout"))
+            cmds.append(setDom0("watchdog=false"))
         if (dom0blkbkorder):
-            cmds.append(set_dom0("blkbk.max_ring_page_order=%s" % dom0blkbkorder))
+            cmds.append(setDom0("blkbk.max_ring_page_order=%s" % dom0blkbkorder))
         if dom0rdsize:
-            cmds.append(set_dom0("ramdisk_size=%s" % dom0rdsize))
+            cmds.append(setDom0("ramdisk_size=%s" % dom0rdsize))
 
         return """
 # Fix up the bootloader configuration.

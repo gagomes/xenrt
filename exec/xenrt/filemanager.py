@@ -1,7 +1,7 @@
 
 import sys, string, os.path, threading, os, shutil, tempfile, stat, hashlib
 import time, urlparse, glob, re, requests
-import xenrt, xenrt.util
+import xenrt, xenrt.util, xenrt.ssh
 
 __all__ = ["getFileManager"]
 
@@ -166,13 +166,15 @@ class FileManager(object):
                 f = open("%s.fetching" % sharedLocation, "w")
                 f.write(str(xenrt.GEC().jobid()) or "nojob")
                 f.close()
-                
+
                 if multiple:
                     self.__getMultipleFiles(url, sharedLocation)
                 elif fnr.directory:
                     self.__getDirectory(url, sharedLocation)
                 elif fnr.singleFileWithWildcard:
                     self.__getSingleFileWithWildcard(url, sharedLocation)
+                elif filename.startswith("sftp://"):
+                    self.__getSingleFileViaSftp(filename, sharedLocation)
                 else:
                     self.__getSingleFile(url, sharedLocation, isUsingExternalCache)
                 os.chmod(sharedLocation, stat.S_IRWXU | stat.S_IRWXG | stat.S_IROTH | stat.S_IXOTH)
@@ -245,7 +247,22 @@ class FileManager(object):
             xenrt.TEC().logverbose("HTTP multiple fetchFile exception: %s" % (str(e)))
             return None
         return True
-    
+
+    def __getSingleFileViaSftp(self, file, sharedLocation):
+        """
+        Fetch a file which is accessible using ssh rather than web url
+        """
+        parsed = urlparse.urlparse(file)
+        try:
+            sftp = xenrt.ssh.SFTPSession(ip=parsed.hostname, username=parsed.username, password=parsed.password, level=xenrt.RC_FAIL,port=(parsed.port or 22))
+            sftp.copyFrom(parsed.path, '%s.part' % sharedLocation)
+            sftp.close()
+        except:
+            os.unlink('%s.part' % sharedLocation)
+            raise
+        else:
+            os.rename('%s.part' % sharedLocation, sharedLocation)
+
     @property
     def __proxyflag(self):
         proxy = xenrt.TEC().lookup("HTTP_PROXY", None)

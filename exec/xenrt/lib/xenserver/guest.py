@@ -2048,6 +2048,16 @@ exit /B 1
         netscaler.applyLicense(netscaler.getLicenseFileFromXenRT())
         netscaler.checkFeatures()
 
+    def setupUnsupGuest(self):
+        self.tailored = True
+        self.enlightenedDrivers = False
+        self.noguestagent = True
+        if self.getState() == "DOWN":
+            self.lifecycleOperation('vm-start')
+        if not self.mainip:
+            _, bridge, mac, _ = self.vifs[0]
+            self.mainip = self.getHost().arpwatch(bridge, mac, timeout=1800)
+
     def setupDomainServer(self):
         self.installPowerShell()
         self.enablePowerShellUnrestricted()

@@ -1,4 +1,4 @@
-   #
+#
 # XenRT: Test harness for Xen and the XenServer product family
 #
 # Encapsulate a XenServer host.
@@ -11501,9 +11501,6 @@ class DundeeHost(CreedenceHost):
 
         self.installer = None
 
-    def license(self, v6server=None, sku=None, usev6testd=True, edition="free"):
-        return ClearwaterHost.license(self, edition, v6server, False, sku, usev6testd)
-
     def isCentOS7Dom0(self):
         return True
 
@@ -14586,7 +14583,7 @@ class CreedencePool(ClearwaterPool):
 
 #############################################################################
 
-class DundeePool(ClearwaterPool):
+class DundeePool(CreedencePool):
 
     def hostFactory(self):
         return xenrt.lib.xenserver.DundeeHost

@@ -1,6 +1,6 @@
 <xenrt>
 
-  <!-- NFS storage tests with no sub directory -->
+  <!-- NFS ISO SR Tests -->
 
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
@@ -15,7 +15,7 @@
   </prepare>
 
   <testsequence group="NFSISOTests">
-    <testcase id="xenserver.tc.storage.TCNFSISOSrCreationAndDeletion" name="TC999901" tc="TC-999901" />
+    <testcase id="xenserver.tc.storage.TCNFSISOSrCreationAndDeletion" name="TC26868" tc="TC-26868" />
   </testsequence>
 
 </xenrt>

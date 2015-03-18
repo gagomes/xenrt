@@ -338,7 +338,7 @@ class NFSSRSanityTest(SRSanityTestTemplate):
         return sr.uuid
         
 class NFSISOSRSanityTest(SRSanityTestTemplate):
-    """Test the creation and destruction of NFSv4 ISO SR"""
+    """NFS ISO SR Sanity Test"""
 
     SRNAME = "test-nfs-iso"
 
@@ -366,6 +366,7 @@ class NFSISOSRSanityTest(SRSanityTestTemplate):
         self.sruuids.remove(sruuid)
 
 class TCNFSISOSrCreationAndDeletion(NFSISOSRSanityTest):
+    """Test the creation and destruction of NFSv4 ISO SR"""
     NFS_VERSION = 4
     
 class TC6824(NFSSRSanityTest):

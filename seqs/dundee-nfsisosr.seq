@@ -1,0 +1,21 @@
+<xenrt>
+
+  <!-- NFS storage tests with no sub directory -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <FINALLY_UNINSTALL>yes</FINALLY_UNINSTALL>
+    <OPTION_BLOCK_ON_SKIP>yes</OPTION_BLOCK_ON_SKIP>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+    <NFSSR_WITH_NOSUBDIR>no</NFSSR_WITH_NOSUBDIR>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence group="NFSISOTests">
+    <testcase id="xenserver.tc.storage.TCNFSISOSrCreationAndDeletion" name="TC999901" tc="TC-999901" />
+  </testsequence>
+
+</xenrt>

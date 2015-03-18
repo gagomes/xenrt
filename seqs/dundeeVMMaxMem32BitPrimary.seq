@@ -7,7 +7,7 @@
     <host/>
   </prepare>
   <testsequence>
-    <parallel group="OS" workers="2">
+    <parallel group="OS" workers="1">
       <for iter="D" values="%GUEST_TESTS:Dundee:Primary_32BitPV%" limit="%LIMIT%" offset="%OFFSET%"> 
         <testcase id="xenserver.tc.smoketest.TCSmokeTestMaxMem" name="${D}" sku="${D}" />
       </for>

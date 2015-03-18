@@ -185,8 +185,8 @@ class TCSmokeTestTemplateDefaultsShadowPT(TCSmokeTestTemplateDefaults):
             return "TC-26873"
 
     def assertHardware(self):
-        # TODO: Check HAP disabled
-        pass
+        if self.host.isHAPEnabled():
+            raise xenrt.XRTError("This test requires a machine without HAP")
 
 class TCSmokeTestTemplateDefaultsIntelEPT(TCSmokeTestTemplateDefaults):
     # Template defaults on Intel + EPT
@@ -197,8 +197,10 @@ class TCSmokeTestTemplateDefaultsIntelEPT(TCSmokeTestTemplateDefaults):
             return "TC-26875"
 
     def assertHardware(self):
-        # TODO: Check Intel + EPT
-        pass
+        if not self.host.isHAPEnabled():
+            raise xenrt.XRTError("This test requires a machine with HAP")
+        if not self.host.isVmxHardware():
+            raise xenrt.XRTError("This test requires Intel hardware")
 
 class TCSmokeTestTemplateDefaultsAMDNPT(TCSmokeTestTemplateDefaults):
     # Template defaults on AMD + NPT
@@ -209,7 +211,10 @@ class TCSmokeTestTemplateDefaultsAMDNPT(TCSmokeTestTemplateDefaults):
             return "TC-26877"
 
     def assertHardware(self):
-        # TODO: Check AMD + NPT
+        if not self.host.isHAPEnabled():
+            raise xenrt.XRTError("This test requires a machine with HAP")
+        if not self.host.isSvmHardware():
+            raise xenrt.XRTError("This test requires AMD hardware")
         pass
 
 class TCSmokeTest1VCPU(_TCNewSmokeTest):
@@ -230,7 +235,6 @@ class TCSmokeTest2VCPUs(_TCNewSmokeTest):
             return "TC-26880"
         else:
             return "TC-26881"
-
 
     def getGuestParams(self):
         self.vcpus = 2

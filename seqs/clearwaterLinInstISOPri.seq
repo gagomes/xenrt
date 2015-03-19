@@ -1,0 +1,16 @@
+<?xml version="1.0" ?>
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+  </variables>
+  <prepare>
+    <host/>
+  </prepare>
+  <testsequence>
+    <parallel group="ISOInst" workers="2">
+      <for iter="D" values="%GUEST_TESTS:Clearwater:Secondary%" limit="%LIMIT%" offset="%OFFSET%"> 
+        <testcase id="xenserver.tc.vminstall.TCISOInstall" name="${D}" sku="${D}" tc="TC-26889"/>
+      </for>
+    </parallel>
+  </testsequence>
+</xenrt>

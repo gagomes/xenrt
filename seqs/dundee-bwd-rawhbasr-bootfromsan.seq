@@ -8,7 +8,7 @@
   <testsequence>
     <!-- Test whether the boot-disk on SAN is excluded from the list of available LUN/VDIs. -->
     <serial group="RawHBA">
-      <testcase id="xenserver.tc.install.TC18381" name="TC18381" tc="TC-18381"/>
+      <testcase id="xenserver.tc.install.TC18381" name="TC18381" tc="TC-18381" />
     </serial>
   </testsequence>
 </xenrt>

@@ -7,33 +7,47 @@
   </variables>
 
   <prepare>
-    <host/>
+    <host />
   </prepare>
 
   <testsequence>
     <serial group="NegativeLUNperVDI">
-      
+
       <!-- Verify sharing of same LUN/VDI between multiple VMs is possible -->
-      <testcase id="xenserver.tc.lunpervdi.TC18370" name="TC18370" tc="TC-18370"/>
-      
+      <testcase id="xenserver.tc.lunpervdi.TC18370" name="TC18370" tc="TC-18370">
+        <arg>lindistro=rhel511</arg>
+      </testcase>
+
       <!-- Verify that LUN/VDI SR should not be listed as the potential HA statefile SR. -->
-      <testcase id="xenserver.tc.lunpervdi.TC18371" name="TC18371" tc="TC-18371"/>
-      
+      <testcase id="xenserver.tc.lunpervdi.TC18371" name="TC18371" tc="TC-18371">
+        <arg>lindistro=rhel511</arg>
+      </testcase>
+
       <!-- Verify that HA statefile VDI should not be listed as the available LUN/VDI -->
-      <testcase id="xenserver.tc.lunpervdi.TC18372" name="TC18372" tc="TC-18372"/>
-      
+      <testcase id="xenserver.tc.lunpervdi.TC18372" name="TC18372" tc="TC-18372">
+        <arg>lindistro=rhel511</arg>
+      </testcase>
+
       <!-- Verify whether DR feature works with LUN/VDI SR -->
-      <testcase id="xenserver.tc.lunpervdi.TC18373" name="TC18373" tc="TC-18373"/>
-      
+      <testcase id="xenserver.tc.lunpervdi.TC18373" name="TC18373" tc="TC-18373">
+        <arg>lindistro=rhel511</arg>
+      </testcase>
+
       <!-- Verify whether the snapshot operation of LUN/VDI is permitted -->
-      <testcase id="xenserver.tc.lunpervdi.TC18374" name="TC18374" tc="TC-18374"/>
-      
+      <testcase id="xenserver.tc.lunpervdi.TC18374" name="TC18374" tc="TC-18374">
+        <arg>lindistro=rhel511</arg>
+      </testcase>
+
       <!-- Verify whether checkpoint (disk and memory snapshots) operation of LUN/VDI is permitted -->
-      <testcase id="xenserver.tc.lunpervdi.TC18375" name="TC18375" tc="TC-18375"/>
-      
+      <testcase id="xenserver.tc.lunpervdi.TC18375" name="TC18375" tc="TC-18375">
+        <arg>lindistro=rhel511</arg>
+      </testcase>
+
       <!-- Verify whether the fast clone (multiple leaf snapshot tree) operation of LUN/VDI is permitted -->
-      <testcase id="xenserver.tc.lunpervdi.TC18376" name="TC18376" tc="TC-18376"/>
-    
+      <testcase id="xenserver.tc.lunpervdi.TC18376" name="TC18376" tc="TC-18376">
+        <arg>lindistro=rhel511</arg>
+      </testcase>
+
     </serial>
   </testsequence>
 </xenrt>

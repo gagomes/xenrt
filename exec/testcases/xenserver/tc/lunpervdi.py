@@ -17,7 +17,10 @@ class LunPerVDI(xenrt.TestCase):
     DELETE_GUEST = True
     REMOVE_SR = True
     DESTROY_VOLUME = True
-    
+
+    WINDISTRO = "ws08r2-x64"
+    LINDISTRO = "rhel56"
+
     class _VdiUpdateMode(object): Add, Remove = range(2) 
 
     def __init__(self, tcid=None):
@@ -40,6 +43,15 @@ class LunPerVDI(xenrt.TestCase):
         return dict(zip(self.hosts, [h.getFCWWPNInfo() for h in self.hosts]))
 
     def prepare(self, arglist=[]):
+
+        # MSCI customer use the following distros.
+        # 2003 R2 x64, 2008 x86, 2008 x64, 2008 R2 x64, 2012 x64, HPC 2008 x64, HPC 2008 R2 x64
+        # OEL 5.x x86, OEL 5.x x64, OEL 6.x x64, RHEL 5.x x86, RHEL 5.x x64, RHEL 6.x x64
+        for arg in arglist:
+            if arg.startswith('lindistro'):
+                self.LINDISTRO = int(arg.split('=')[1])
+            if arg.startswith('windistro'):
+                self.WINDISTRO = int(arg.split('=')[1])
 
         # Lock storage resource and access storage manager library functions.
         self.netAppFiler = xenrt.StorageArrayFactory().getStorageArray(xenrt.StorageArrayVendor.NetApp,
@@ -614,18 +626,7 @@ class TC18357(LunPerVDI):
 class VMLifeCycle(LunPerVDI):
     """Verify life cycle operations of a VM with RawHBA SR."""
 
-    # MSCI customer use the following distros.
-    # 2003 R2 x64, 2008 x86, 2008 x64, 2008 R2 x64, 2012 x64, HPC 2008 x64, HPC 2008 R2 x64
-    # OEL 5.x x86, OEL 5.x x64, OEL 6.x x64, RHEL 5.x x86, RHEL 5.x x64, RHEL 6.x x64
-
-    DISTRO = "rhel56"
-
     def run(self, arglist=[]):
-
-        # 0. Obtain the distro, if supplied from the sequence file.
-        for arg in arglist:
-            if arg.startswith('distro'):
-                self.DISTRO = arg.split('=')[1]
 
         # 1. Create the first RawHBA SR
         self.createSR()
@@ -640,7 +641,7 @@ class VMLifeCycle(LunPerVDI):
 
         # 4. Create the Windows gusest by attaching the root disk and required extra disks.
         xenrt.TEC().logverbose("Creating a Windows guest by attaching root disk and required extra disks.")
-        self.guest = self.hosts[0].createBasicGuest(distro=self.DISTRO, rawHBAVDIs=diskList)
+        self.guest = self.hosts[0].createBasicGuest(distro=self.LINDISTRO, rawHBAVDIs=diskList)
         self.getLogsFrom(self.guest)
 
         # 5. Perform guest lifecycle operations.
@@ -664,7 +665,7 @@ class VMLifeCycle(LunPerVDI):
 class TCBwdEnvironment(LunPerVDI):
     """Prepares a minimal Borehamwood environment"""
 
-    DISTRO = "ws08r2-x64"
+    LINDISTRO = "oel62"
 
     def run(self, arglist=[]):
 
@@ -697,12 +698,12 @@ class TCBwdEnvironment(LunPerVDI):
         diskList2 = [self.vdiuuids[3],self.vdiuuids[4], self.vdiuuids[5]]
 
         # Create one windows & linux guests.
-        #self.guests = xenrt.pfarm([xenrt.PTask(self.hosts[0].createBasicGuest, distro="ws08r2-x64" ,rawHBAVDIs=diskList1),
-        #                            xenrt.PTask(self.hosts[0].createBasicGuest, distro="oel62" ,rawHBAVDIs=diskList2)])
-        
+        #self.guests = xenrt.pfarm([xenrt.PTask(self.hosts[0].createBasicGuest, distro=self.WINDISTRO ,rawHBAVDIs=diskList1),
+        #                           xenrt.PTask(self.hosts[0].createBasicGuest, distro=self.LINDISTRO ,rawHBAVDIs=diskList2)])
+
         # Installing serially.
-        self.guests.append(self.hosts[0].createBasicGuest(distro="ws08r2-x64" ,rawHBAVDIs=diskList1))
-        self.guests.append(self.hosts[0].createBasicGuest(distro="oel62" ,rawHBAVDIs=diskList2))
+        self.guests.append(self.hosts[0].createBasicGuest(distro=self.WINDISTRO ,rawHBAVDIs=diskList1))
+        self.guests.append(self.hosts[0].createBasicGuest(distro=self.LINDISTRO ,rawHBAVDIs=diskList2))
 
 class TC18352(TCBwdEnvironment):
     """Verify life cycle operations of a VM with RawHBA SR in a pool of servers."""
@@ -788,12 +789,10 @@ class TC18365(LunPerVDI):
 class TC18382(LunPerVDI):
     """Verify the migration of a VDI from a traditional SR type to RawHBA SR."""
 
-    DISTRO = "rhel56"
-
     def run(self, arglist=[]):
 
         # 1. create a VM on the default local SR
-        guest = self.hosts[0].createBasicGuest(distro=self.DISTRO)
+        guest = self.hosts[0].createBasicGuest(distro=self.LINDISTRO)
         self.getLogsFrom(guest)
         self.guests.append(guest)
 
@@ -830,7 +829,7 @@ class TC18382(LunPerVDI):
             raise xenrt.XRTFailure("The rawHBA migration script failed with an error: %s" % str(e))
 
         # 8. Clone the VM (only meta-data is cloned as the disk is dettached.)
-        newName = "new-cloned-VM-%s" % self.DISTRO
+        newName = "new-cloned-VM-%s" % self.LINDISTRO
         args = []
         args.append("vm=\"%s\"" % (self.guests[0].getUUID()))
         args.append("new-name-label=\"%s\"" % (newName))
@@ -903,8 +902,6 @@ class TC20568(LunPerVDI):
 class TC18370(LunPerVDI):
     """Verify sharing of same LUN/VDI between multiple VMs is possible"""
 
-    DISTRO = "rhel56"
-    
     def run(self, arglist=[]):
         
         # 1. Create Raw LUN SR on the host
@@ -915,56 +912,55 @@ class TC18370(LunPerVDI):
         self.checkSR()
 
         # 3. Prepare the VMs
-        step("Preparing the first VM")        
-        diskList1 = [self.vdiuuids[0]] 
-        guestVM1 = self.hosts[0].createBasicGuest(distro=self.DISTRO, rawHBAVDIs=diskList1)
+        step("Preparing the first VM")
+        diskList1 = [self.vdiuuids[0]]
+        guestVM1 = self.hosts[0].createBasicGuest(distro=self.LINDISTRO, rawHBAVDIs=diskList1)
         self.guests.append(guestVM1)
-        
-        step("Preparing the second VM")   
-        diskList2 = [self.vdiuuids[3]] 
-        guestVM2 = self.hosts[0].createBasicGuest(distro=self.DISTRO, rawHBAVDIs=diskList2)
+
+        step("Preparing the second VM")
+        diskList2 = [self.vdiuuids[3]]
+        guestVM2 = self.hosts[0].createBasicGuest(distro=self.LINDISTRO, rawHBAVDIs=diskList2)
         self.guests.append(guestVM2)
-        
+
         # 4. Attempt to set up a RO VDI share between the two VMs
         step("Attempt to attach a VDI to the first VM as a RO drive")
         guestVM1.createDisk(userdevice="5", vdiuuid=self.vdiuuids[6], mode="RO")
-        try:            
+        try:
             step("Attempt to attach the same VDI to the second VM as a RO drive")
             guestVM2.createDisk(userdevice="5", vdiuuid=self.vdiuuids[6], mode="RO")
             log("The VDI was attached successfully")
         except Exception,e:
             raise xenrt.XRTFailure("It was not possible to share a rawhba VDI between two guest VMs on the same physical machine: %s" %e)
-        
+
 class TC18371(LunPerVDI):
     """Verify that LUN/VDI SR should not be listed as the potential HA statefile SR."""
-    
+
     CONFIG_KEY = "VDI_GENERATE_CONFIG"
-    
+
     def run(self, arglist=[]):
-        
+
         # 1. Check the rawhba SR driver features to see whether it's a potential HA statefile.     
         step("Checking the rawhba driver features.") 
         rawHBAcapabilities = self.hosts[0].minimalList(command="sm-list", params="features", args="type=rawhba")
-        
+
         if re.search(self.CONFIG_KEY, str(rawHBAcapabilities)):
             raise xenrt.XRTFailure("The \"%s\" is present in the capabilities section of the drivers for the relevant SR - it will be listed \
 as a potential HA statefile SR. The capabilities that are listed are: %s" % (self.CONFIG_KEY, rawHBAcapabilities))
         else:
             log("The \"%s\" is NOT present in the capabilities section of the drivers for the relevant SR - it will not be listed as a \
 potential HA statefile SR - which is the expected behaviour. The capabilities that are listed are: %s" % (self.CONFIG_KEY, rawHBAcapabilities))
-                   
-        
+
 class TC18372(LunPerVDI):
     """Verify that HA statefile VDI should not be listed as the available LUN/VDI"""
-    
-    def run(self, arglist=[]):        
-        
+
+    def run(self, arglist=[]):
+
         self.enableLVMBasedStorage()
-        
+
         step("Creating a single-host pool")
         self.pool = xenrt.lib.xenserver.poolFactory(self.hosts[0].productVersion)(self.hosts[0])
         self.pool.master = self.hosts[0]
-        
+
         step("Creating a lvmohba SR")
         scsiid = self.hosts[0].lookup(["FC", "LUN0", "SCSIID"], None)
         hba = xenrt.lib.xenserver.host.HBAStorageRepository(self.hosts[0], "hbasr")
@@ -973,7 +969,7 @@ class TC18372(LunPerVDI):
         
         step("Enabling HA on the lvmohba SR")
         self.pool.enableHA()
-        
+
         step("Checking the uuid of the statefile")
         statefiles = self.hosts[0].minimalList(command="host-list", params="ha-statefiles")
          
@@ -987,23 +983,23 @@ class TC18372(LunPerVDI):
         if re.search(str(hba.uuid), str(rawhbaVDIs)):
             raise xenrt.XRTFailure("HA statefile VDI is listed as one of the available LUN/VDI: %s." % str(hba.uuid))        
         log("HA statefile VDI has not been found on the rawHBA SR. The test succeeded.")
-        
+
         step("Cleaning up")  
         self.pool.disableHA()
-        hba.release()        
-        
+        hba.release()
+
 class TC18373(LunPerVDI):
     """Verify whether DR feature works with LUN/VDI SR"""
-    
+
     EXPECTED_ERROR = "Disaster recovery not supported on SRs of type rawhba"
-    
+
     def run(self, arglist=[]):
-        
+
         # 1. Create Raw LUN SR on the host
-        step("Creating a LUN/VDI SR")   
+        step("Creating a LUN/VDI SR")
         self.createSR()
-        
-        # 2. Attempt to enable DR on the default pool        
+
+        # 2. Attempt to enable DR on the default pool
         try:
             step("Attempting to enable DR on the LUN/VDI SR: %s" % self.sruuid)   
             drtask = DRTaskManager().createDRTask(self.hosts[0], type="rawhba") 
@@ -1018,12 +1014,11 @@ class TC18373(LunPerVDI):
         
 class TC18374(LunPerVDI):
     """Verify whether the snapshot operation of LUN/VDI is permitted"""
-    
-    DISTRO = "rhel56"
+
     EXPECTED_ERROR = "The SR backend does not support the operation"
-    
-    def run(self, arglist=[]):       
-         
+
+    def run(self, arglist=[]):
+
         # 1. Create Raw LUN SR on the host
         step("Creating a rawhba SR on the host")
         self.createSR()
@@ -1034,12 +1029,12 @@ class TC18374(LunPerVDI):
         # 3. Create a guest VM.
         step("Creating a guest VM whose VDIs will reside on the rawhba SR")
         diskList = [self.vdiuuids[0],self.vdiuuids[1], self.vdiuuids[2]]
-        guest = self.hosts[0].createBasicGuest(distro=self.DISTRO, rawHBAVDIs=diskList)
+        guest = self.hosts[0].createBasicGuest(distro=self.LINDISTRO, rawHBAVDIs=diskList)
         self.guests.append(guest)
-                    
+
         # 4. Attempt to snapshot the newly created VM
         try:
-            step("Attempting to snapshot the newly created VM")            
+            step("Attempting to snapshot the newly created VM")
             guest.snapshot()
         except Exception, e:
             warning("An exception has been caught: %s" % e)
@@ -1049,15 +1044,14 @@ class TC18374(LunPerVDI):
                 log("It was not possible to snapshot a VM whose VDIs reside on a rawhba SR") 
         else:
             raise xenrt.XRTFailure("It is possible to snapshot a VM residing on a LUN/VDI that is associated with the following host %s." % self.hosts[0])  
-                
+
 class TC18375(LunPerVDI):
     """Verify whether checkpoint (disk and memory snapshots) operation of LUN/VDI is permitted"""
-    
-    DISTRO = "rhel56"
+
     EXPECTED_ERROR = "The SR backend does not support the operation"
-    
+
     def run(self, arglist=[]):
-         
+
         # 1. Create Raw LUN SR on the host
         step("Creating a rawhba SR")
         self.createSR()
@@ -1067,13 +1061,13 @@ class TC18375(LunPerVDI):
 
         # 3. Create a guest VM on the rawhba SR.
         step("Creating a guest VM on the rawhba SR.")
-        diskList = [self.vdiuuids[0],self.vdiuuids[1], self.vdiuuids[2]]       
-        guest = self.hosts[0].createBasicGuest(distro=self.DISTRO, rawHBAVDIs=diskList)
+        diskList = [self.vdiuuids[0],self.vdiuuids[1], self.vdiuuids[2]]
+        guest = self.hosts[0].createBasicGuest(distro=self.LINDISTRO, rawHBAVDIs=diskList)
         self.guests.append(guest)
-                    
+
         # 4. Attempt to checkpoint the newly created VM
         try:
-            step("Attempting to checkpoint the newly created VM")            
+            step("Attempting to checkpoint the newly created VM")
             guest.checkpoint()
         except Exception, e:
             warning("An exception has been caught: %s" % e)
@@ -1086,12 +1080,11 @@ class TC18375(LunPerVDI):
 
 class TC18376(LunPerVDI):
     """Verify whether the fast clone (multiple leaf snapshot tree) operation of LUN/VDI is permitted"""
-    
-    DISTRO = "rhel56"
+
     EXPECTED_ERROR = "The SR backend does not support the operation"
     
     def run(self, arglist=[]):
-         
+
         # 1. Create Raw LUN SR on the host
         step("Creating a rawhba SR.")
         self.createSR()
@@ -1102,9 +1095,9 @@ class TC18376(LunPerVDI):
         # 3. Create a guest VM whose VDIs reside on the rawhba SR.
         step("Creating a guest VM on the rawhba SR.")
         diskList = [self.vdiuuids[0],self.vdiuuids[1], self.vdiuuids[2]]
-        guest = self.hosts[0].createBasicGuest(distro=self.DISTRO, rawHBAVDIs=diskList)
+        guest = self.hosts[0].createBasicGuest(distro=self.LINDISTRO, rawHBAVDIs=diskList)
         self.guests.append(guest)
-                    
+
         # 4. Attempt to clone the newly created VM
         try:
             step("Attempting to clone the newly created VM")    
@@ -1118,16 +1111,15 @@ class TC18376(LunPerVDI):
                 log("It is NOT possible to clone a VM whose VDIs reside on a rawhba SR.") 
         else:
             raise xenrt.XRTFailure("It is possible to clone a VM whose VDIs reside on a rawhba SR.")        
-        
+
 class TC18377(LunPerVDI):
     """Verify whether automated snapshots (VMPR) of LUN/VDI is permitted"""
-    
-    DISTRO = "rhel56"
+
     DEFAULT_VMPP_TIME = "19700101T00:00:00Z"
     DATE_TO_FORCE_VMPP = "date -s \"20151226 18:59:59\""
-    
+
     def run(self, arglist=[]):
-         
+
         self.pool = xenrt.lib.xenserver.poolFactory(self.hosts[0].productVersion)(self.hosts[0])
         self.pool.master = self.hosts[0]
         
@@ -1137,53 +1129,51 @@ class TC18377(LunPerVDI):
 
         # 2. Check the number of created VDIs against the number of LUNs.
         self.checkSR()
-                
+
         # 3. Create a guest by attaching the root disk and two extra disks.
         step("Creating a guest by attaching a root disk and two extra disks.")
         diskList = [self.vdiuuids[0],self.vdiuuids[1], self.vdiuuids[2]]
-        guest = self.hosts[0].createBasicGuest(distro=self.DISTRO, rawHBAVDIs=diskList)
+        guest = self.hosts[0].createBasicGuest(distro=self.LINDISTRO, rawHBAVDIs=diskList)
         self.guests.append(guest)
-        
+
         # 4. Set up VMPP for the newly created VM
         step("Setting up hourly VMPR for the one existing VM")    
         vmppID = self.pool.createVMPP(name = "vmpp", type = "snapshot", frequency = "hourly")    
         vmppID = vmppID.rstrip('\n')
-        
+
         # 5. Add the guest VM to the policy
         step("Adding the VM to the VMPP policy")   
         guest.paramSet("protection-policy", vmppID)
-        
+
         # 6. Set the time to force the vmpp to run in 1 second
         step("Setting fake time to force the vmpp to run in one second")   
         self.hosts[0].execdom0(self.DATE_TO_FORCE_VMPP)
-        
+
         # 7. wait for the vmpp to run, use a counter to prevent a possible infinite loop
         step("Waiting for the vmpp to run")   
         counter =0
         lastVMPPRunTime = string.join(self.hosts[0].minimalList("vmpp-list", "backup-last-run-time"))
-        
+
         while(re.search(self.DEFAULT_VMPP_TIME, lastVMPPRunTime)):
             time.sleep(5)
             lastVMPPRunTime = string.join(self.hosts[0].minimalList("vmpp-list", "backup-last-run-time"))
             counter += 1
             if (counter >= 24):
                 raise xenrt.XRTFailure("The test timed out while waiting for the VMPP policy to run (timed out after 120 seconds).")
-        
+
         # 8. Check the snapshots that were created to see if any are a result of the VMPP being run
         step("Checking whether any snapshots were created as a result of the vmpp being run")
         vmSnapshotData = string.join(self.hosts[0].minimalList("vm-list", "is-snapshot-from-vmpp"))
         snapshotList = string.join(self.hosts[0].minimalList("snapshot-list", "is-snapshot-from-vmpp"))
-        
+
         if(re.search("true", vmSnapshotData) or re.search("vmpp", snapshotList)):
             raise xenrt.XRTFailure("An automated VMPP snapshot was allowed on a VM residing on a LUN/VDI - the test failed. Snapshot list: %s" % snapshotList)
-        
+
         log("An automated VMPP snapshot was NOT allowed on a VM residing on a LUN/VDI - the test succeeded. Snapshot list: %s" % snapshotList) 
-        
+
 class TC18378(LunPerVDI):
     """Verify whether Storage Xen Motion is possible with LUN/VDI SR"""
 
-    DISTRO = "rhel65"
-    
     def run(self, arglist=[]):
 
         # 1. Create the RawHBA SR on the master.
@@ -1192,12 +1182,12 @@ class TC18378(LunPerVDI):
 
         # 2. Create a guest VM on the rawhba SR.
         step("Create a VM whose VDI resides on the rawhba SR.")
-        diskList = [self.vdiuuids[0]]        
-        guest = self.hosts[0].createBasicGuest(distro=self.DISTRO, rawHBAVDIs=diskList)
+        diskList = [self.vdiuuids[0]]
+        guest = self.hosts[0].createBasicGuest(distro=self.LINDISTRO, rawHBAVDIs=diskList)
         self.guests.append(guest)
 
         numVDIsHost2preSMotion = len(self.hosts[1].minimalList("vdi-list", "name-label"))
-        
+
         # 3. Attempt a Storage XenMotion from host 1 rawhba to host 2 local storage        
         try:
             step("Attempt a Storage XenMotion from host 1 rawhba to host 2 local storage")
@@ -1205,18 +1195,15 @@ class TC18378(LunPerVDI):
             raise xenrt.XRTFailure("It was possible to use Storage XenMotion to migrate the VM from a rawHBA to a local SR on a different machine.")
         except Exception, e:
             warning("It was not possible to migrate the VM. The operation failed with the following error message: %s" %e)
-        
+
         # 4. Ensure that no new VDIs were created on host 2
         step("Compare the number of VDIs pre and post the Stoage XenMotion attempt")
         numVDIsHost2postSMotion = len(self.hosts[1].minimalList("vdi-list", "name-label"))
         if(numVDIsHost2preSMotion < numVDIsHost2postSMotion):
             raise xenrt.XRTFailure("%d new VDIs were created on host 2 even though Storage XenMotion failed" % (numVDIsHost2postSMotion - numVDIsHost2preSMotion))
-        
+
         # 5. Ensure that the VM was not transferred onto host 2
         step("Ensure that the VM was not transferred onto the second host")
         migratedVMs = self.hosts[1].minimalList("vm-list", "name-label")
         if(re.search(str(guest), migratedVMs)):
             raise xenrt.XRTFailure("It was possible to use Storage XenMotion to migrate the VM from a rawHBA to a local SR on a different machine.")
-
-    
-       

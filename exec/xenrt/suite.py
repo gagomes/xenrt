@@ -458,6 +458,7 @@ class Suite(SuiteConfigurable):
                 if "TC-%s" % s in alltcs:
                     alltcs.remove("TC-%s" % s)
             if not debug:
+                xenrt.TEC().logverbose("Adding %s to testrun" % alltcs)
                 j.addTestsToSuiteRun(testrun,alltcs)
             if not xenrt.TEC().lookup(["CLIOPTIONS", "SUITE_TESTRUN_RERUN"], None):
                 for (s,delay) in self.includesuites:

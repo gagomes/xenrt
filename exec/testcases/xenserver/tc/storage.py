@@ -1154,8 +1154,7 @@ class TC23335(TC8123):
         return xenrt.lib.xenserver.NFSv4StorageRepository
 
     def createExternalNFSShare(self):
-        xenrt.ExternalNFSShare.DEFAULT_VERSION = "4"
-        return xenrt.ExternalNFSShare()
+        return xenrt.ExternalNFSShare(version = "4")
 
 
 class TC20929(_TC8122):

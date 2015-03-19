@@ -1204,7 +1204,6 @@ class PrepareNode(object):
                             network = "NPRI"
                         if s["options"] and "v4" in s["options"].split(","):
                             nfsVersion = "4"
-                            xenrt.ExternalNFSShare.DEFAULT_VERSION = "4"
                         else:
                             nfsVersion = "3"
 

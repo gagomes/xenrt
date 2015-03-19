@@ -1,7 +1,7 @@
 <xenrt>
 
   <variables>
-    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
     <PREPARE_WORKERS>4</PREPARE_WORKERS>
     <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
   </variables>

@@ -1479,7 +1479,7 @@ exit /B 1
         """Check if the VM up and the guest agent has reported."""
         return self.waitForAgent(0) == xenrt.RC_OK
 
-    def checkPVDevices(self):
+    def checkPVDevicesState(self):
         # Check the guest is using the PV drivers
         pvcheck = []
         backend = "/local/domain/0/backend"
@@ -1522,14 +1522,21 @@ exit /B 1
                                           (backend, domid))
         if vifstate != "4":
             pvcheck.append("VIF backend not in connected state")
+        
+        return pvcheck
+        
+def checkPVDevices():
+    # Check the guest is using the PV drivers
+    pvcheck = self.checkPVDevicesState()
+    
+    if pvcheck:
+        if xenrt.TEC().lookup("PAUSE_ON_PV_CHECK_FAIL", False, boolean=True):
+            xenrt.TEC().tc.pause("Paused on PV Check failure")
 
-        if pvcheck:
-            if xenrt.TEC().lookup("PAUSE_ON_PV_CHECK_FAIL", False, boolean=True):
-                xenrt.TEC().tc.pause("Paused on PV Check failure")
+        raise xenrt.XRTFailure("VIF and/or VBD PV device not used. Possibilities: -" + " -".join(pvcheck))
+    else:
+        xenrt.TEC().logverbose("PV drivers are installed and ready") 
 
-            raise xenrt.XRTFailure("VIF and/or VBD PV device not used. Possibilities: -" + " -".join(pvcheck))
-        else:
-            xenrt.TEC().logverbose("PV drivers are installed and ready") 
 
     def enableDriverVerifier(self, enable=True, drivers=["xennet.sys/xennet6.sys", "xenvbd.sys/xvbdstor.sys", "xevtchn.sys"]):
 
@@ -6005,6 +6012,7 @@ class DundeeGuest(CreedenceGuest):
     def checkPVDriversStatus(self):
         """ Verify the Drivers are running by using 'SC' Command line program"""
         
+        driverRunning = True
         drivers = ['XENBUS','XENIFACE','XENVIF','XENVBD','XENNET']
         notRunning = []
         
@@ -6014,7 +6022,10 @@ class DundeeGuest(CreedenceGuest):
                 notRunning.append(driver)
                 
         if notRunning:
-            raise xenrt.XRTFailure(" %s services not running on %s" %(','.join(notRunning), self.getName()))
+            driverRunning = False
+            return driverRunning
+        else:
+            return driverRunning
             
         xenrt.TEC().logverbose("PV Devices are installed and Running on %s " %(self.getName()))
 
@@ -6032,11 +6043,10 @@ class DundeeGuest(CreedenceGuest):
         else:
             installed = False
 
-
         if installed:
             #Drivers are installed using the tools ISO ,
             
-            super(TampaGuest , self).uninstallDrivers(waitForDaemon)
+            super(DundeeGuest , self).uninstallDrivers(waitForDaemon)
         else:
             
             #Drivers are installed using PV Packages uninstall them separately
@@ -6055,19 +6065,19 @@ class DundeeGuest(CreedenceGuest):
             oemFileList = self.xmlrpcExec("C:\\%s dp_enum | select-string 'Citrix' -Context 1,0 | findstr 'oem'" %(devconexe), returndata = True, powershell=True).strip().splitlines()
             oemFileList = [item.strip() for item in oemFileList][1:]
             
-            batch = ""
+            batch = []
             
             for driver in driversToUninstall:
             
-                batch = batch + "C:\\devcon64.exe remove %s\r\n" %(driver)
-                batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
+                batch.append("C:\\devcon64.exe remove %s\r\n" %(driver))
+                batch.append("ping 127.0.0.1 -n 10 -w 1000\r\n")
 
             for file in oemFileList:
-                batch = batch + "pnputil.exe -f -d %s\r\n" %(file) 
-                batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
-            batch = batch + "shutdown -r\r\n"
+                batch.append("pnputil.exe -f -d %s\r\n" %(file)) 
+                batch.append("ping 127.0.0.1 -n 10 -w 1000\r\n")
+            batch.append("shutdown -r\r\n")
             
-            self.xmlrpcWriteFile("c:\\uninst.bat", batch)
+            self.xmlrpcWriteFile("c:\\uninst.bat", string.join(batch))
             self.xmlrpcStart("c:\\uninst.bat")
             
         # wait for reboot
@@ -6077,27 +6087,10 @@ class DundeeGuest(CreedenceGuest):
             raise xenrt.XRTFailure("XML-RPC not alive after tools uninstallation")
         
         # Verify PV devices have been removed after tools uninstallation
-        try:
-            self.checkPVDevices()
-        except Exception, e:
-            if "VIF and/or VBD PV device not used. Possibilities:" in str(e):
-                xenrt.TEC().logverbose("PV Packages are uninstalled")
-                pass
-            else:
-                raise xenrt.XRTFailure("Exception occured while checking whether PV Devices are uninstalled %s" % (str(e)))
+        if self.checkPVDevicesState() and not self.checkPVDriversStatus():
+            xenrt.TEC().logverbose("PV Packages are uninstalled Successfully")
         else:
-            raise xenrt.XRTFailure("PV devices still detected after uninstalling driver Packages")
-        
-        try:
-            self.checkPVDriversStatus()
-        except Exception, e:
-            if "services not running on" in str(e):
-                xenrt.TEC().logverbose("PV Packages are uninstalled")
-                pass
-            else:
-                raise xenrt.XRTFailure("Exception occured while checking whether PV Devices are uninstalled %s" % (str(e)))
-        else:
-            raise xenrt.XRTFailure("PV devices still detected after uninstalling driver Packages")
+            raise xenrt.XRTFailure("PV Packages are not uninstalled")
             
         self.enlightenedDrivers = False
 

@@ -1427,7 +1427,6 @@ class GenericPlace(object):
             return True
         except Exception, e:
             return False
-            pass 
             
     def winRegLookup(self, hive, key, name, healthCheckOnFailure=True, suppressLogging=False):
         """Look up a Windows registry value."""

@@ -8,7 +8,7 @@
   </prepare>
   <testsequence>
     <parallel group="NFSInst" workers="2">
-      <for iter="D" values="%GUEST_TESTS:Cream:Secondary%" limit="%LIMIT%" offset="%OFFSET%"> 
+      <for iter="D" values="%GUEST_TESTS:Cream:Primary_LinuxNFSInstall%" limit="%LIMIT%" offset="%OFFSET%"> 
         <testcase id="xenserver.tc.vminstall.TCNFSInstall" name="${D}" sku="${D}" tc="TC-26891"/>
       </for>
     </parallel>

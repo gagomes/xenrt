@@ -8,7 +8,7 @@
   </prepare>
   <testsequence>
     <parallel group="HTTPInst" workers="2">
-      <for iter="D" values="%GUEST_TESTS:Cream:Secondary%" limit="%LIMIT%" offset="%OFFSET%"> 
+      <for iter="D" values="%GUEST_TESTS:Cream:Secondary_LinuxHTTPInstall%" limit="%LIMIT%" offset="%OFFSET%"> 
         <testcase id="xenserver.tc.vminstall.TCHTTPInstall" name="${D}" sku="${D}" tc="TC-26890"/>
       </for>
     </parallel>

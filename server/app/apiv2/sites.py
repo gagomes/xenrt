@@ -343,6 +343,7 @@ class RemoveSite(_SiteBase):
          'type': 'string'}]
     RESPONSES = { "200": {"description": "Successful response"}}
     OPERATION_ID = "remove_site"
+    WRITE=True
 
     def removeSite(self, site, commit=True):
         db = self.getDB()

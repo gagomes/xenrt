@@ -58,11 +58,12 @@ class ReadCachingController(object):
         return self._searchForFlag(readCacheDump, self.__TAP_CTRL_FLAG)
 
     def __xapiIsEnabled(self):
-        vdis = list(itertools.chain(*[v.VDI() for v in self._host.asXapiObject().SR()]))
+        xhost = self._host.asXapiObject()
+        vdis = list(itertools.chain(*[v.VDI() for v in xhost.SR()]))
         vdi = next((v for v in vdis if v.uuid == self.vdiuuid), None)
         if not vdi:
             raise RuntimeError("VDI with uuid %s could not be found in the list %s" % (self.vdiuuid, vdis))
-        return vdi.readcachingEnabled()
+        return vdi.readcachingEnabled(xhost)
 
     def isEnabled(self, lowLevel=False):
         if lowLevel:

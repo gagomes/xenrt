@@ -56,8 +56,9 @@ class ContainerLinuxOperation(object):
     LIST = "list"
 
 class ContainerType(object):
-    YES_BUSYBOX = "yes_busybox"
-    BUSYBOX = "busybox"
+    YES_BUSYBOX = "yes_busybox" # Write continuosly yes.
+    SLEEP_BUSYBOX = "sleep_busybox" # Sleep 999999999.
+    HW_BUSYBOX = "hw_busybox" # Hello World.
     MYSQL = "mysql"
     TOMCAT = "tomcat"
     UBUNTU = "ubuntu"
@@ -87,11 +88,14 @@ class DockerController(object):
 
     def containerSelection(self, container, method=OperationMethod.XAPI):
 
-        if container.ctype == ContainerType.YES_BUSYBOX:
-            xenrt.TEC().logverbose("Create Simple BusyBox Container using %s way" % method)
+        if container.ctype == ContainerType.SLEEP_BUSYBOX:
+            xenrt.TEC().logverbose("Create Infinite Sleep BusyBox Container using %s way" % method)
+            dockerCmd = "docker run -d --name " + container.cname + " busybox /bin/sleep 999999999"
+        elif container.ctype == ContainerType.YES_BUSYBOX:
+            xenrt.TEC().logverbose("Create Simple Yes BusyBox Container using %s way" % method)
             dockerCmd = "docker run -d --name " + container.cname + " busybox /bin/sh -c \"yes\""
-        elif container.ctype == ContainerType.BUSYBOX:
-            xenrt.TEC().logverbose("Create BusyBox Container using %s way" % method)
+        elif container.ctype == ContainerType.HW_BUSYBOX:
+            xenrt.TEC().logverbose("Create Hello World BusyBox Container using %s way" % method)
             dockerCmd = "docker run -d --name " + container.cname + " busybox /bin/sh -c \"while true; do echo Hello World; sleep 1; done\""
         elif container.ctype == ContainerType.MYSQL:
             xenrt.TEC().logverbose("Create MySQL Container using %s way" % method)
@@ -111,6 +115,21 @@ class DockerController(object):
             return dockerCmd
         else:
             raise xenrt.XRTError("Operation method %s in defined" % method)
+
+    def prepareToRemoveContainer(self, container):
+        """Check the state of the container before removing it"""
+
+        containerState = self.statusContainer(container)
+
+        if containerState == ContainerState.RUNNING:
+            self.stopContainer(container)
+            return True
+        elif containerState == ContainerState.PAUSED:
+            self.unpauseContainer(container)
+            self.stopContainer(container)
+            return True
+        else:
+            return False
 
     @abstractmethod
     def createContainer(self, container): pass
@@ -185,7 +204,8 @@ class XapiPluginDockerController(DockerController):
         if operation == ContainerXapiOperation.CREATE:
             dockerCmd = self.containerSelection(container)
         elif operation == ContainerXapiOperation.REMOVE:
-            dockerCmd ="\"docker ps -a -f name=\'" + container.cname + "\' | tail -n +2 | awk \'{print \$1}\' | xargs docker rm\""
+            #dockerCmd ="\"docker ps -a -f name=\'" + container.cname + "\' | tail -n +2 | awk \'{print \$1}\' | xargs docker rm\""
+            dockerCmd ="\"docker rm " + container.cname + "\""
         else:
             raise xenrt.XRTFailure("XSContainer:%s operation is not recognised" % operation)
 
@@ -218,10 +238,11 @@ class XapiPluginDockerController(DockerController):
 
     def rmContainer(self, container):
 
-        if self.statusContainer(container) == ContainerState.STOPPED:
+        if self.prepareToRemoveContainer(container):
             return self.containerXapiOtherOperation(container, ContainerXapiOperation.REMOVE)
         else:
-            raise xenrt.XRTError("removeContainer: Please stop the container %s before removing it" % container.cname)
+            raise xenrt.XRTError("rmContainer: The container %s is in a bad state. Can not be removed" %
+                                                                                            container.cname)
 
     # Container lifecycle operations.
     def startContainer(self, container):
@@ -294,24 +315,19 @@ class XapiPluginDockerController(DockerController):
     def listContainers(self):
         xenrt.TEC().logverbose("listContainers: Using getDockerPS to list the containers ...")
 
+        dockerContainerList = self.getDockerPS() # returns an ordered list of dicts.
+
         containers = []
-        dockerPS = self.getDockerPS() # returns a xml with a key 'entry'
 
-        if not dockerPS:
-            raise xenrt.XRTError("listContainers: getDockerPS() returned empty dictionary")
-
-        if not dockerPS.has_key('entry'):
-            raise xenrt.XRTError("listContainers: Failed to find entry key in docker PS xml")
-        dockerContainerList = dockerPS['entry'] # list of ordered dicts.
-
-        if len(dockerContainerList) > 0:
-            for containerDict in dockerContainerList:
+        for containerEntry in dockerContainerList:
+            if containerEntry.has_key('entry'):
+                containerDict = containerEntry['entry']
                 if containerDict.has_key('names'):
                     containers.append(containerDict['names'].strip())
                 else:
-                    raise xenrt.XRTError("listContainers: The container name could not accessed")
-        else:
-            raise xenrt.XRTError("listContainers: There are no containers to list")
+                    xenrt.TEC().logverbose("listContainers: The container =names= could not accessed")
+            else:
+                xenrt.TEC().logverbose("listContainers: The container =entry= could not accessed")
 
         return containers
 
@@ -336,23 +352,47 @@ class XapiPluginDockerController(DockerController):
             raise xenrt.XRTError("dockerGeneralInfo: General docker info for %s is not found" % dcommand)
 
         dockerGeneralDict = self.convertToOrderedDict(dockerGeneralList[0])
-        if not dockerGeneralDict.has_key(dcommand):
-                raise xenrt.XRTError("dockerGeneralInfo: Failed to find %s tag on the xml" % dcommand)
-        return dockerGeneralDict[dcommand] # returning ordered dict.
+
+        if dockerGeneralDict and dockerGeneralDict.has_key(dcommand) and dockerGeneralDict[dcommand]:
+            return dockerGeneralDict[dcommand]
+        else:
+            xenrt.TEC().logverbose("dockerGeneralInfo: Returned empty for %s command" % dcommand)
+            return {} # return empty dict.
 
     def getDockerInfo(self):
+        """Returns a dictionary of docker environment information"""
+
         return self.dockerGeneralInfo('docker_info')
 
     def getDockerPS(self):
-        return self.dockerGeneralInfo('docker_ps')
+        """Returns an ordered list of dictionary of containers"""
+
+        dockerPS = self.dockerGeneralInfo('docker_ps')
+
+        if not dockerPS.has_key('item'):
+            xenrt.TEC().logverbose("getDockerPS: Failed to find key =item= in docker_ps xml")
+            return []
+
+        dockerContainerInfo = dockerPS['item']
+
+        if isinstance(dockerContainerInfo,dict):
+            return [dockerContainerInfo] # one container -> retruns a dict.
+        elif isinstance(dockerContainerInfo,list):
+            return dockerContainerInfo # more than one container returns a list of ordered dicts.
+        else:
+            xenrt.TEC().logverbose("getDockerPS: dockerContainerInfo instance is not recognised")
+            return []
 
     def getDockerVersion(self):
+        """Returns the running docker version"""
 
         dockerVersionDict = self.dockerGeneralInfo('docker_version')
+
         if dockerVersionDict.has_key('Version'): # has other keys such as KernelVersion, ApiVersion, GoVersion etc.
             return dockerVersionDict['Version']
         else:
-            raise xenrt.XRTError("getDockerVersion: Version key is missing in docker_version xml")
+            xenrt.TEC().logverbose("getDockerVersion: Version key is missing in docker_version xml")
+            return "Unknown"
 
 class LinuxDockerController(DockerController):
 
@@ -380,14 +420,14 @@ class LinuxDockerController(DockerController):
         dockerCmd = "docker " + operation + " " + container.cname
         cmdOut = self.guest.execguest(dockerCmd).strip() # busybox31d3c2d2\n
 
-        if operation not in [ContainerLinuxOperation.INSPECT]:
+        if operation not in [ContainerLinuxOperation.INSPECT, ContainerLinuxOperation.REMOVE]:
             if cmdOut == container.cname:
                 return True
             else:
                 raise xenrt.XRTFailure("XSContainer:%s operation on %s:%s is failed" %
                                                 (operation, self.guest, container.cname))
         else:
-            return cmdOut # inspect returns a json.
+            return cmdOut # inspect returns a json. remove returns container name.
 
     def createContainer(self, container):
 
@@ -403,10 +443,11 @@ class LinuxDockerController(DockerController):
 
     def rmContainer(self, container):
 
-        if self.statusContainer(container) == ContainerState.STOPPED:
+        if self.prepareToRemoveContainer(container):
             return self.containerLinuxLCOperation(ContainerLinuxOperation.REMOVE, container)
         else:
-            raise xenrt.XRTError("rmContainer: Please stop the container %s before removing it" % container.cname)
+            raise xenrt.XRTError("rmContainer: The container %s is in a bad state. Can not be removed" %
+                                                                                            container.cname)
 
     # Container lifecycle operations.
     def startContainer(self, container):
@@ -566,7 +607,7 @@ class Docker(object):
             host.execdom0("mkdir -p /opt/xensource/packages/files/xscontainer")
             host.execdom0("touch /opt/xensource/packages/files/xscontainer/devmode_enabled")
 
-    def createContainer(self, ctype=ContainerType.BUSYBOX, cname="random"):
+    def createContainer(self, ctype=ContainerType.HW_BUSYBOX, cname="random"):
         if cname.startswith("random"):
             cname = "%s%08x" % (ctype, (random.randint(0, 0x7fffffff)))
         container = Container(ctype, cname)
@@ -574,10 +615,12 @@ class Docker(object):
         return container
 
     def rmContainer(self, container):
-        containerID = self.DockerController.rmContainer(container)
-        # receive the container ID: 5fbb53340080 from docker. Populate this ISD in container.
-        # check and delete.
-        self.containers.remove(container)
+        containerName = self.DockerController.rmContainer(container)
+        if containerName == container.cname:
+            self.containers.remove(container)
+        else:
+            raise xenrt.XRTFailure("rmContainer: xscContainer remove operation failed on %s" %
+                                                                                    container.cname)
 
     # Container lifecycle operations.
 
@@ -615,7 +658,7 @@ class Docker(object):
         return(Container(ctype, cname)) # returns a container object.
 
     def loadExistingContainers(self):
-        for cname in self.DockerController.listContainers():
+        for cname in self.listContainers():
             self.containers.append(Container(ContainerType.UNKNOWN, cname))
 
     def listContainers(self):
@@ -625,26 +668,34 @@ class Docker(object):
         return(len(self.listContainers()))
 
     def lifeCycleAllContainers(self):
+        """Life Cycle operations on all containers in docker environment"""
         """Life Cycle method on all containers"""
-        for container in self.containers:
-            self.lifeCycleContainer(container)
+
+        [self.lifeCycleContainer(container) for container in self.containers]
 
     def stopAllContainers(self):
+        """Stop all containers in docker environment"""
+
         for container in self.containers:
             self.stopContainer(container)
             xenrt.sleep(5)
 
     def startAllContainers(self):
+        """Start all containers in docker environment"""
+
         for container in self.containers:
             self.startContainer(container)
             xenrt.sleep(5)
 
     def rmAllContainers(self):
-        for container in self.containers:
-            self.rmContainer(container)
+        """Remove all containers in docker environment"""
+
+        while len(self.containers):
+            self.rmContainer(self.containers[0])
 
     def lifeCycleContainer(self, container):
-        """Life Cycle method on a specified container"""
+        """Life Cycle method on a specified container in docker environment"""
+
         self.stopContainer(container)
         xenrt.sleep(5)
         self.startContainer(container)
@@ -679,7 +730,11 @@ class CentOSDocker(Docker):
             raise xenrt.XRTError("installDocker: Failed to install docker environment on guest %s" % self.guest)
 
         # Make sure the docker is running.
+        self.guest.execguest("systemctl enable docker")
         cmdOut = self.guest.execguest("service docker restart")
+
+        if not "Redirecting" in cmdOut:
+            raise xenrt.XRTError("installDocker: Failed to restart docker service on guest %s" % self.guest)
 
     def updateGuestSourceRpms(self):
 

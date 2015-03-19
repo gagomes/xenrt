@@ -1,0 +1,15 @@
+<?xml version="1.0" ?>
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+  </variables>
+  <prepare>
+    <host/>
+  </prepare>
+  <testsequence>
+    <parallel group="MaxvCPUs_10" workers="1">
+      <testcase id="xenserver.tc.smoketest.TC26471" prio="4" tc="TC-26471"/>
+      <testcase id="xenserver.tc.smoketest.TC26470" prio="4" tc="TC-26470"/>
+    </parallel>
+  </testsequence>
+</xenrt>

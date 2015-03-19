@@ -31,8 +31,7 @@ class RHELKickStartFile(object):
                  ethDevice="eth0",
                  pxe=True,
                  extraPackages=None,
-                 ossVG=False,
-                 installXenToolsInPostInstall=False):
+                 ossVG=False):
         self.vcpus=vcpus
         self.memory=memory
         self.options=options
@@ -56,7 +55,6 @@ class RHELKickStartFile(object):
         self.host=host
         self.vifs=vifs
         self.mounturl=mounturl
-        self.installXenToolsInPostInstall=installXenToolsInPostInstall
         
     def generate(self):
         return self._generateKS()
@@ -121,7 +119,7 @@ class RHELKickStartFile(object):
         more=""
         if self.installOn==xenrt.HypervisorType.xen:   
            
-            if self.pxe or self.installXenToolsInPostInstall:
+            if self.pxe:
                 more="reboot\n"
                 self.sleeppost = "sleep 60\n"
             return more
@@ -137,12 +135,6 @@ class RHELKickStartFile(object):
                 more += kse
                 more += "\n"
             return more       
-        
-    def _installTools(self):
-        installTools=""
-        if self.installXenToolsInPostInstall:
-            installTools = "mkdir /xs && mount /dev/xvdd /xs && /xs/Linux/install.sh -n"
-        return installTools
         
     def _netconfig(self,vifs,host):
         netconfig = ""
@@ -265,8 +257,7 @@ mount -onolock -t nfs %s /tmp/xenrttmpmount
 touch /tmp/xenrttmpmount/.xenrtsuccess
 umount /tmp/xenrttmpmount
 %s
-%s
-%%end""" % (postInstall,self.mounturl, self.rpmpost, self._installTools(), self.sleeppost)
+%%end""" % (postInstall,self.mounturl, self.rpmpost, self.sleeppost)
         return out
                 
     def _generate6(self):
@@ -365,8 +356,7 @@ mount -onolock -t nfs %s /tmp/xenrttmpmount
 %s
 touch /tmp/xenrttmpmount/.xenrtsuccess
 umount /tmp/xenrttmpmount
-%s
-%s""" % (postInstall,self.mounturl, self.rpmpost, self._installTools(), self.sleeppost)
+%s""" % (postInstall,self.mounturl, self.rpmpost, self.sleeppost)
         return out
                 
     def _generate4(self):
@@ -429,8 +419,7 @@ mount -onolock -t nfs %s /tmp/xenrttmpmount
 %s
 touch /tmp/xenrttmpmount/.xenrtsuccess
 umount /tmp/xenrttmpmount
-%s
-%s""" % (self._netconfig(self.vifs,self.host),self.mounturl, self.rpmpost, self._installTools(), self.sleeppost)
+%s""" % (self._netconfig(self.vifs,self.host),self.mounturl, self.rpmpost, self.sleeppost)
         return out
 
     def _generate5(self):
@@ -494,8 +483,7 @@ mount -onolock -t nfs %s /tmp/xenrttmpmount
 %s
 touch /tmp/xenrttmpmount/.xenrtsuccess
 umount /tmp/xenrttmpmount
-%s
-%s""" % (self._netconfig(self.vifs,self.host),self.mounturl, self.rpmpost, self._installTools(), self.sleeppost)
+%s""" % (self._netconfig(self.vifs,self.host),self.mounturl, self.rpmpost, self.sleeppost)
         return out
         
         
@@ -514,7 +502,6 @@ class SLESAutoyastFile(object):
                  kickStartExtra=None,
                  bootDiskSize=None,
                  ossVG=False,
-                 installXenToolsInPostInstall=False,
                  rebootAfterInstall = True):
         self.mainDisk = maindisk
         self.pxe=pxe
@@ -529,7 +516,6 @@ class SLESAutoyastFile(object):
         self.ossVG = ossVG
         self.signalDir=signalDir
         self.bootDiskSize=bootDiskSize
-        self.installXenToolsInPostInstall=installXenToolsInPostInstall
         self.rebootAfterInstall = rebootAfterInstall
     
     def _password(self):
@@ -549,8 +535,6 @@ class SLESAutoyastFile(object):
         return xenrt.TEC().lookup("BOOTDISKSIZE", "100")
         
     def _postInstall(self):
-        if self.installXenToolsInPostInstall:
-            self.postinstall = "mkdir /xs && mount /dev/xvdd /xs && /xs/Linux/install.sh -n && reboot"
         return self.postinstall
     
     def generate(self):
@@ -3459,7 +3443,6 @@ class DebianPreseedFile(object):
                  ossVG=False,
                  arch="x86-32",
                  timezone=None,
-                 installXenToolsInPostInstall=False,
                  postscript=None,
                  poweroff=True,
                  disk=None):
@@ -3473,7 +3456,6 @@ class DebianPreseedFile(object):
         self.extraPackages = extraPackages
         self.ossVG = ossVG
         self.arch=arch
-        self.installXenToolsInPostInstall=installXenToolsInPostInstall
         self.postscript = postscript
         self.poweroff = poweroff
         self.disk = disk
@@ -3486,8 +3468,6 @@ class DebianPreseedFile(object):
         else :
             ps=self.generateDebian5()
         
-        if self.installXenToolsInPostInstall:
-            ps = ps+ '\n-d-i preseed/late_command string mkdir /xs && mount /dev/xvdd /xs && /xs/Linux/install.sh -n'
         if self.postscript:
             ps += '\n-d-i preseed/late_command string wget -q -O - %s | chroot /target /bin/bash' % (self.postscript)
 

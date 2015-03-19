@@ -2886,6 +2886,22 @@ class GlobalExecutionContext(object):
             phase = group
         else:
             phase = "Phase 99"
+        
+        logtcid = None
+        if not jiratc:
+            m = re.match("TC(\d+)", t.tcid)
+            if m:
+                logtcid = "TC-%s" % m.group(1)
+        else:
+            logtcid = jiratc
+        if logtcid and tcsku:
+            logtcid += "_%s" % tcsku
+        if logtcid:
+            self.dbconnect.jobLogData(phase,
+                                      t.basename,
+                                      "TCID",
+                                      logtcid)
+
         t.runon = runon
         if prio:
             t._setPriority(prio)

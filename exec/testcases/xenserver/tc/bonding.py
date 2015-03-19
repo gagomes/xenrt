@@ -2225,7 +2225,7 @@ class _BondBalance(_AggregateBondTest):
                 if re.search("Cannot allocate memory", tcpdump):
                     raise xenrt.XRTError("tcpdump in dom0 failed with 'Cannot allocate memory'")
                 # Parse this to get the count
-                m = re.search("(\d+) packets captured", tcpdump)
+                m = re.search("(\d+) packet\w* captured", tcpdump)
                 counts[(nic,mac)] = int(m.group(1))
 
         return counts

@@ -10,16 +10,20 @@
     <parallel group="MaxvCPUs_10" workers="1">
       <testcase id="xenserver.tc.smoketest.TC26278" prio="4" tc="TC-26278"/>
       <testcase id="xenserver.tc.smoketest.TC26279" prio="4" tc="TC-26279"/>
-      <testcase id="xenserver.tc.smoketest.TC26280" prio="4" tc="TC-26280"/>
-      <testcase id="xenserver.tc.smoketest.TC26281" prio="4" tc="TC-26281"/>
-      <testcase id="xenserver.tc.smoketest.TC26282" prio="4" tc="TC-26282"/>
-      <testcase id="xenserver.tc.smoketest.TC26283" prio="4" tc="TC-26283"/>
       <testcase id="xenserver.tc.smoketest.TC26284" prio="4" tc="TC-26284"/>
       <testcase id="xenserver.tc.smoketest.TC26285" prio="4" tc="TC-26285"/>
-      <testcase id="xenserver.tc.smoketest.TC26312" prio="4" tc="TC-26312"/>
-      <testcase id="xenserver.tc.smoketest.TC26313" prio="4" tc="TC-26313"/>
       <testcase id="xenserver.tc.smoketest.TC26342" prio="4" tc="TC-26342"/>
       <testcase id="xenserver.tc.smoketest.TC26343" prio="4" tc="TC-26343"/>
+      <testcase id="xenserver.tc.smoketest.TC26459" prio="4" tc="TC-26459"/>
+      <testcase id="xenserver.tc.smoketest.TC26461" prio="4" tc="TC-26461"/>
+      <testcase id="xenserver.tc.smoketest.TC26457" prio="4" tc="TC-26457"/>
+      <testcase id="xenserver.tc.smoketest.TC26460" prio="4" tc="TC-26460"/>
+      <testcase id="xenserver.tc.smoketest.TC26454" prio="4" tc="TC-26454"/>
+      <testcase id="xenserver.tc.smoketest.TC26456" prio="4" tc="TC-26456"/>
+      <testcase id="xenserver.tc.smoketest.TC26453" prio="4" tc="TC-26453"/>
+      <testcase id="xenserver.tc.smoketest.TC26455" prio="4" tc="TC-26455"/>
+      <testcase id="xenserver.tc.smoketest.TC26451" prio="4" tc="TC-26451"/>
+      <testcase id="xenserver.tc.smoketest.TC26450" prio="4" tc="TC-26450"/>
     </parallel>
   </testsequence>
 </xenrt>

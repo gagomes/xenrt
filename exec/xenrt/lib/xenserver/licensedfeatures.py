@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractproperty, abstractmethod
-from xenrt.enum import XenServerLicenceSKU
+from xenrt.enum import XenServerLicenseSKU
 import re
 
 __all__ = ["WorkloadBalancing", "ReadCaching",
@@ -185,22 +185,22 @@ class CreedenceEnabledFeatures(object):
         self.sku = sku
 
     def getEnabledFeatures(self):
-        if self.sku == XenServerLicenceSKU.PerUserEnterprise or \
-           self.sku == XenServerLicenceSKU.PerConcurrentUserEnterprise:
+        if self.sku == XenServerLicenseSKU.PerUserEnterprise or \
+           self.sku == XenServerLicenseSKU.PerConcurrentUserEnterprise:
             return [WorkloadBalancing().name,ReadCaching().name,VirtualGPU().name,
                     Hotfixing().name, ExportPoolResourceList().name, GPUPassthrough().name]
-        if self.sku == XenServerLicenceSKU.PerSocketEnterprise or \
-           self.sku == XenServerLicenceSKU.PerSocket:
+        if self.sku == XenServerLicenseSKU.PerSocketEnterprise or \
+           self.sku == XenServerLicenseSKU.PerSocket:
             return [WorkloadBalancing().name,ReadCaching().name,VirtualGPU().name,
                     Hotfixing().name, ExportPoolResourceList().name, GPUPassthrough().name]
-        if self.sku == XenServerLicenceSKU.XenDesktop:
+        if self.sku == XenServerLicenseSKU.XenDesktop:
             return [Hotfixing().name, GPUPassthrough().name,WorkloadBalancing().name,VirtualGPU().name]
-        if self.sku == XenServerLicenceSKU.PerSocketStandard:
+        if self.sku == XenServerLicenseSKU.PerSocketStandard:
             return [Hotfixing().name, GPUPassthrough().name]
-        if self.sku == XenServerLicenceSKU.Free:
+        if self.sku == XenServerLicenseSKU.Free:
             return [Hotfixing().name, GPUPassthrough().name] 
-        if self.sku == XenServerLicenceSKU.XenDesktopPlusXDS or \
-           self.sku == XenServerLicenceSKU.XenDesktopPlusMPS:
+        if self.sku == XenServerLicenseSKU.XenDesktopPlusXDS or \
+           self.sku == XenServerLicenseSKU.XenDesktopPlusMPS:
             return [WorkloadBalancing().name,ReadCaching().name,VirtualGPU().name,
                     Hotfixing().name, GPUPassthrough().name]
 

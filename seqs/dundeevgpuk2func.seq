@@ -3,10 +3,11 @@
   <variables>
     <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
     <PREPARE_WORKERS>4</PREPARE_WORKERS>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
   </variables>
 
   <prepare>
-    <host license="enterprise-per-socket">
+    <host installsr="ext" license="enterprise-per-socket">
       <vm name="masterwin7-x64">
         <distro>win7-x64</distro>
         <arch>x86-64</arch>

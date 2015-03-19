@@ -3,7 +3,7 @@ from testing import XenRTUnitTestCase
 from mock import Mock
 
 
-class TestLicencedFeatures(XenRTUnitTestCase):
+class TestLicensedFeatures(XenRTUnitTestCase):
 
     __UI_FEATURES = [Hotfixing(), ExportPoolResourceList(), WorkloadBalancing()]
     __SERVER_SIDE_FEATURES = [ReadCaching(), VirtualGPU(), GPUPassthrough()]
@@ -21,7 +21,7 @@ class TestLicencedFeatures(XenRTUnitTestCase):
             self.assertRaises(NotImplementedError, feature.isEnabled, None)
 
 
-class TestLicencedHostFeatureFlags(XenRTUnitTestCase):
+class TestLicensedHostFeatureFlags(XenRTUnitTestCase):
 
     def __createMockHost(self, fakeOutput):
         host = Mock()
@@ -64,7 +64,7 @@ class TestLicencedHostFeatureFlags(XenRTUnitTestCase):
         self.assertFalse(wlb.hostFeatureFlagValue(host))
 
 
-class TestLicencedPoolFeatureFlags(XenRTUnitTestCase):
+class TestLicensedPoolFeatureFlags(XenRTUnitTestCase):
 
     def __createMockPool(self, fakeOutput):
         pool = Mock()
@@ -148,7 +148,7 @@ class FFHostDouble(object):
         self.productVersion = ver
 
 
-class TestLicencedFeatureFactoryForCreedence(XenRTUnitTestCase):
+class TestLicensedFeatureFactoryForCreedence(XenRTUnitTestCase):
 
     def testReturningAllFeaturesLength(self):
         fac = LicensedFeatureFactory()

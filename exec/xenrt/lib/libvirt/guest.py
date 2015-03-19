@@ -35,8 +35,6 @@ def createVM(host,
              notools=False,
              bootparams=None,
              use_ipv6=False,
-             dontstartinstall=False,
-             installXenToolsInPostInstall=False,
              suffix=None,
              ips={}):
 
@@ -130,39 +128,33 @@ def createVM(host,
               repository=repository,
               pxe=pxe,
               notools=notools,
-              use_ipv6=use_ipv6,
-              dontstartinstall=dontstartinstall,
-              installXenToolsInPostInstall=installXenToolsInPostInstall)
+              use_ipv6=use_ipv6)
 
-    if not dontstartinstall:
+    if g.windows:
+        g.xmlrpcShutdown()
+    else:
+        g.execguest("/sbin/shutdown -h now")
+    g.poll("DOWN")
 
-        #g.reboot()
-        #g.check()
+    diskstoformat = []
+    for disk in disks:
+        device, size, format = disk
+        if str(device) != "0":
+            d = g.createDisk(sizebytes=int(size)*xenrt.GIGA,userdevice=device)
+            if format:
+                diskstoformat.append(d)
+
+    g.start()
+
+    for d in diskstoformat:
         if g.windows:
-            g.xmlrpcShutdown()
+            letter = g.xmlrpcPartition(d)
+            g.xmlrpcFormat(letter, timeout=3600)
         else:
-            g.execguest("/sbin/shutdown -h now")
-        g.poll("DOWN")
-
-        diskstoformat = []
-        for disk in disks:
-            device, size, format = disk
-            if str(device) != "0":
-                d = g.createDisk(sizebytes=int(size)*xenrt.GIGA,userdevice=device)
-                if format:
-                    diskstoformat.append(d)
-
-        g.start()
-
-        for d in diskstoformat:
-            if g.windows:
-                letter = g.xmlrpcPartition(d)
-                g.xmlrpcFormat(letter, timeout=3600)
-            else:
-                # FIXME: this is probably wrong
-                letter = g.DEVICE_DISK_PREFIX + chr(int(d)+ord('a'))
-                g.execguest("mkfs.ext2 /dev/%s" % (letter))
-                g.execguest("mount /dev/%s /mnt" % (letter))
+            # FIXME: this is probably wrong
+            letter = g.DEVICE_DISK_PREFIX + chr(int(d)+ord('a'))
+            g.execguest("mkfs.ext2 /dev/%s" % (letter))
+            g.execguest("mount /dev/%s /mnt" % (letter))
 
     # Store the object in the registry.
     xenrt.TEC().registry.guestPut(guestname, g)
@@ -367,9 +359,7 @@ class Guest(xenrt.GenericGuest):
                 notools=False,
                 extradisks=None,
                 bridge=None,
-                use_ipv6=False,
-                dontstartinstall=False,
-                installXenToolsInPostInstall=False):
+                use_ipv6=False):
 
         self.setHost(host)
         if not self.virConn:
@@ -559,9 +549,7 @@ class Guest(xenrt.GenericGuest):
                                config=kickstart,
                                pxe=pxe,
                                extrapackages=extrapackages,
-                               options=options,
-                               start=not dontstartinstall,
-                               installXenToolsInPostInstall=False)
+                               options=options)
         elif isoname:
             xenrt.TEC().logverbose("Installing Linux from ISO...")
             dev = "%sa" % (self.vendorInstallDevicePrefix())
@@ -601,24 +589,21 @@ class Guest(xenrt.GenericGuest):
                                kickstart,
                                pxe=pxe,
                                extrapackages=extrapackages,
-                               options={"maindisk": dev},
-                               start=not dontstartinstall,
-                               installXenToolsInPostInstall=installXenToolsInPostInstall)
+                               options={"maindisk": dev})
 
         self._postInstall()
 
-        if not dontstartinstall:
-            if start:
-                self.start()
+        if start:
+            self.start()
 
-            xenrt.TEC().comment("Created %s guest named %s with %u vCPUS and "
-                                "%uMB memory."
-                                % (self.template, self.name, self.vcpus,
-                                   self.memory))
+        xenrt.TEC().comment("Created %s guest named %s with %u vCPUS and "
+                            "%uMB memory."
+                            % (self.template, self.name, self.vcpus,
+                               self.memory))
 
-            ip = self.getIP()
-            if ip:
-                xenrt.TEC().logverbose("Guest address is %s" % (ip))
+        ip = self.getIP()
+        if ip:
+            xenrt.TEC().logverbose("Guest address is %s" % (ip))
 
     def installWindows(self, isoname):
         """Install Windows into a VM"""

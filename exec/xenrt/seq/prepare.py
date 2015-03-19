@@ -247,6 +247,10 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
             vm = self.handleVMNode(x)
             vm["host"] = pool["master"] 
             
+        for x in node.get("templates", []):
+            vm = self.handleVMNode(x, template=True)
+            vm["host"] = pool["master"] 
+        
         for x in node.get("vm_groups", []):
             vmgroup = self.handleVMGroupNode(x)
             for vm in vmgroup:
@@ -366,6 +370,10 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
             vm = self.handleVMNode(x)
             vm["host"] = host["name"] 
             
+        for x in node.get("templates", []):
+            vm = self.handleVMNode(x, template=True)
+            vm["host"] = host["name"] 
+        
         for x in node.get("vm_groups", []):
             vmgroup = self.handleVMGroupNode(x)
             for vm in vmgroup:
@@ -404,7 +412,7 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
             vmgroup.append(self.handleVMNode(x))
         return vmgroup
 
-    def handleVMNode(self, node, suffixjob=False):
+    def handleVMNode(self, node, suffixjob=False, template=False):
         vm = {} 
 
         vm["guestname"] = node['name']
@@ -455,6 +463,12 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
         if "boot_params" in node:
             vm['bootparams'] = node['boot_params']
         
+        if xenrt.TEC().lookup("DEFAULT_PV_DRIVERS", False, boolean=True) and not "installDrivers" in vm['postinstall']:
+            vm["postinstall"].append("installDrivers")
+
+        if template and not "convertToTemplate" in vm['postinstall']:
+            vm["postinstall"].append("convertToTemplate") 
+
         self.parent.vms.append(vm)
 
         return vm
@@ -613,6 +627,9 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
                                      "host":pool["master"]})
             elif x.localName == "vm":
                 vm = self.handleVMNode(x)
+                vm["host"] = pool["master"] 
+            elif x.localName == "template":
+                vm = self.handleVMNode(x, template=True)
                 vm["host"] = pool["master"] 
             elif x.localName == "vmgroup":
                 vmgroup = self.handleVMGroupNode(x)
@@ -780,6 +797,9 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
                 elif x.localName == "vm":
                     vm = self.handleVMNode(x)
                     vm["host"] = host["name"] 
+                elif x.localName == "template":
+                    vm = self.handleVMNode(x, template=True)
+                    vm["host"] = host["name"] 
                 elif x.localName == "vmgroup":
                     vmgroup = self.handleVMGroupNode(x)
                     for vm in vmgroup:
@@ -816,7 +836,7 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
             vmgroup.append(self.handleVMNode(node))
         return vmgroup
 
-    def handleVMNode(self, node, suffixjob=False):
+    def handleVMNode(self, node, suffixjob=False, template=False):
         vm = {} 
 
         vm["guestname"] = self.expand(node.getAttribute("name"))
@@ -895,6 +915,12 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
                     for a in x.childNodes:
                         if a.nodeType == a.TEXT_NODE:
                             vm["packages"] = self.expand(str(a.data)).split(",")
+
+        if xenrt.TEC().lookup("DEFAULT_PV_DRIVERS", False, boolean=True) and not "installDrivers" in vm['postinstall']:
+            vm["postinstall"].append("installDrivers")
+
+        if template and not "convertToTemplate" in vm['postinstall']:
+            vm["postinstall"].append("convertToTemplate") 
 
         self.parent.vms.append(vm)
 
@@ -1127,6 +1153,8 @@ class PrepareNode(object):
                                                     "path":isos2,
                                                     "default":False,
                                                     "blkbackPoolSize":""})
+                            if xenrt.TEC().lookup("USE_PREBUILT_TEMPLATES", False, boolean=True):
+                                self.srs.insert(0, {"type": "nfstemplate", "host": host['name'], "default": False, "blkbackPoolSize": ""})
 
                 # If needed, create lun groups
                 iscsihosts = {}
@@ -1240,6 +1268,13 @@ class PrepareNode(object):
                         server, path = s["path"].split(":")
                         sr.create(server, path)
                         sr.scan()
+                    elif s['type'] == "nfstemplate":
+                        try:
+                            sr = host.createTemplateSR()
+                        except Exception, e:
+                            # This is only best effort
+                            xenrt.TEC().logverbose("Warning - could not add remote template library: %s" % str(e))
+                            continue
                     elif s["type"] == "netapp":
                         minsize = int(host.lookup("SR_NETAPP_MINSIZE", 40))
                         maxsize = int(host.lookup("SR_NETAPP_MAXSIZE", 1000000))
@@ -1779,6 +1814,11 @@ class GuestInstallWorker(_InstallWorker):
         if work.has_key("filename"):
             xenrt.productLib(hostname=work["host"]).guest.createVMFromFile(**work)
         else:
+            if xenrt.TEC().lookup("DEFAULT_VIFS", False, boolean=True) and (not "vifs" in work or not work['vifs']):
+                host = work["host"]
+                if not isinstance(host, xenrt.GenericHost):
+                    host = xenrt.TEC().registry.hostGet(host)
+                work['vifs'] = host.guestFactory().DEFAULT
             xenrt.productLib(hostname=work["host"]).guest.createVM(**work)
 
 class SlaveManagementWorker(_InstallWorker):

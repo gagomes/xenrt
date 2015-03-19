@@ -127,6 +127,7 @@ class XenRTAPIv2Page(XenRTPage):
         return [self.getUser().userid if x=="${user}" else x for x in params]
 
 import app.apiv2.bindings
+import app.apiv2.powershellbindings
 import app.apiv2.jobs
 import app.apiv2.machines
 import app.apiv2.files

@@ -285,11 +285,19 @@ class VGPUTest(object):
 
     def checkvGPURunningInVM(self, vm, vGPUType):
 
+        for i in range(2):
+            result, err = self.__checkvGPURunningInVMWithReason(vm, vGPUType)
+            if not result and err and i < 1:
+                vm.reboot()
+            else:
+                return result 
+
+    def __checkvGPURunningInVMWithReason(self, vm, vGPUType):
         gpu = self.findGPUInVM(vm)
 
         if not gpu:
             log("vGPU not found on VM")
-            return False
+            return False,""
 
         device = "\\".join(gpu.split("\\")[0:2])
         lines = vm.devcon("status \"%s\"" % device).splitlines()
@@ -304,14 +312,14 @@ class VGPUTest(object):
                     break
                 else:
                     log("Desired vGPU not found instead %s is present on VM" % (vGPU))
-                    return False
+                    return False,""
 
         for l in lines:
             if "Device has a problem" in l or "No matching devices found" in l:
-                return False
+                return False,""
             if "Driver is running" in l:
-                return True
-        raise xenrt.XRTError("Could not determine whether GPU is running")
+                return True,""
+        return False,"Could not determine whether GPU is running"
 
     def findGPUInVM(self,vm):
 
@@ -436,10 +444,9 @@ class VGPUOwnedVMsTest(xenrt.TestCase,VGPUTest):
 
         if masterKey in guestVMs:
             log("VM found so cloning...")
-            master = host.guests[masterKey]
-            if master.getState() != "DOWN":
-                master.shutdown()
-            guest = master.cloneVM()
+            guest = host.guests[masterKey]
+            if guest.getState() != "DOWN":
+                guest.shutdown()
         else:
             log("No matching VM found, so create a new one....")
             guest = host.createGenericWindowsGuest(distro=self.getOSType(requiredOS), memory=self.__GUEST_MEMORY_MB, name=masterKey)
@@ -621,18 +628,34 @@ class VGPUOwnedVMsTest(xenrt.TestCase,VGPUTest):
 
         hosts = self.getAllHosts()
 
+        vms= []
         for host in hosts:
-            guests = copy.copy(host.guests)
-            for g in guests.values():
-                if "clone" in g.name.lower():
+            cli = host.getCLIInstance()
+            step("Shutting down all the guests")
+            try:
+                cli.execute('vm-shutdown',"is-control-domain=false force=true --multiple")
+            except: pass
+
+            step("Uninstalling all the cloned guests")
+            vms = host.minimalList("vm-list") 
+            for vm in vms:
+                if "clone" in host.genParamGet("vm",vm,"name-label"):
+                    step("Uninstalling guest %s" % str(vm))
                     try:
-                        step("Shutting down guest %s" % str(g))
-                        guest.shutdown()
-                        step("Uninstalling guest %s" % str(g))
-                        host = copy.copy(g.host)
-                        host.removeGuest(g)
-                        guests[g].uninstall()
+                        cli.execute("vm-uninstall","uuid=%s force=true" % vm) 
                     except: pass
+
+            step("Destroying all the snapshots")
+            snapshots = host.minimalList("snapshot-list")
+            for snapshot in snapshots: 
+                cli.execute("snapshot-destroy","uuid=%s force=true" % snapshot)
+
+            step("Destroying all the vGPUs")
+            vgpus = host.minimalList("vgpu-list")
+            for vgpu in vgpus:
+                try:
+                    cli.execute("vgpu-destroy","uuid=%s" % vgpu)
+                except: pass
 
         step("Clearing locals")
         self._guestsAndTypes = None
@@ -735,6 +758,10 @@ Send("{ENTER}")
             self.guest.xmlrpcStart("\"%s\" %s" % (autoit, au3path))
         self.assertvGPURunningInWinVM(self.guest, self.args['vgpuconfig'])
 
+    #Inherited postrun is deleting all the cloned VMs, snapshots and vGPUs which we dont want
+    def postRun(self):
+        pass
+
 class TCVGPUCloneVM(VGPUOwnedVMsTest):
 
     def __init__(self):
@@ -766,6 +793,10 @@ class TCVGPUCloneVM(VGPUOwnedVMsTest):
         if self.args.has_key("vgpuconfig"):
             for g in guests:
                 self.assertvGPURunningInWinVM(g, self.args['vgpuconfig'])
+    
+    #Inherited postrun is deleting all the cloned VMs, snapshots and vGPUs which we dont want
+    def postRun(self):
+        pass
 
 class TCVGPUDeleteClones(xenrt.TestCase):
     def parseArgs(self, arglist):
@@ -900,6 +931,9 @@ class TCGPUBenchmarkInstall(VGPUOwnedVMsTest):
                 except Exception, e:
                     self.testcaseResult("InstallBenchmark", "%s-%s" % (b, g.name), xenrt.RESULT_FAIL, str(e))
 
+    #Inherited postrun is deleting all the cloned VMs, snapshots and vGPUs which we dont want
+    def postRun(self):
+        pass
 
 class TCGPUBenchmark(TCGPUBenchmarkInstall):
 
@@ -1589,7 +1623,7 @@ class VGPUAllocationModeBase(VGPUOwnedVMsTest):
         self.host = host
 
         if self.SR_TYPE == SRType.Local:
-            self.sr = host.getSRs(type="lvm", local=True)[0]
+            self.sr = host.getSRs(type="ext", local=True)[0]
 
         else:
             # find existing NFS
@@ -1677,7 +1711,7 @@ class FunctionalBase(VGPUAllocationModeBase):
         step("Install host drivers")
         self.typeOfvGPU.installHostDrivers(self.getAllHosts())
 
-        self.sr = self.host.getSRs(type="lvm", local=True)[0]
+        self.sr = self.host.getSRs(type="ext", local=True)[0]
         self.prepareGPUGroups()
 
     def typeofvGPU(self, typeOfvGPU = None):
@@ -1789,12 +1823,8 @@ class NvidiaWindowsvGPU(DifferentGPU):
 class NvidiaLinuxvGPU(DifferentGPU):
 
     def installHostDrivers(self,allHosts):
-        ids = ["3c01","3c02","3c03","3c04","3c05","3c06","3c07","3c08","3c09","3c0a","3c0b","0e01","0e04","0e05","0e06","0e07","0e08","0e09",
-               "0e0a","0e0b","2f01","2f02","2f03","2f04","2f05","2f06","2f07","2f08","2f09","2f0a","2f0b"]
-
-        for host in allHosts:
-            for i in ids:
-                host.execdom0("setpci -d 8086:%s ac.w=0" %i)
+        xenrt.TEC().logverbose("Not implemented")
+        pass
 
     def installGuestDrivers(self, guest, vGPUType):
         VGPUTest().installNvidiaLinuxDrivers(guest, vGPUType)
@@ -1836,12 +1866,15 @@ class _AddPassthroughToFullGPU(VGPUOwnedVMsTest):
     """
     __ERROR = "VGPU type is not compatible with one or more of the VGPU types currently running on this PGPU"
 
-    def __init__(self, config):
-        super(_AddPassthroughToFullGPU, self).__init__([VGPUOS.Win7x86], config, VGPUDistribution.BreadthFirst, False, False)
+    def __init__(self, configTobeFilled, configTobeChecked):
+        super(_AddPassthroughToFullGPU, self).__init__([VGPUOS.Win7x86], configTobeFilled, VGPUDistribution.BreadthFirst, False, False)
+        self.__configTobeChecked = configTobeChecked
 
     def __prepareClones(self, config):
 
-        numberRequired = len(GPUGroupManager(self.getDefaultHost()).getPGPUUuids(all = True))
+        totalPGPUs = len(GPUGroupManager(self.getDefaultHost()).getPGPUUuids(all = True)) 
+        nonSupportedGPUs = len(self.getDefaultHost().minimalList("pgpu-list", args="enabled-VGPU-types="))
+        numberRequired = totalPGPUs - nonSupportedGPUs
         log("Number of pGPUs: %d" % numberRequired)
 
         self.__shutdownMaster()
@@ -1862,30 +1895,27 @@ class _AddPassthroughToFullGPU(VGPUOwnedVMsTest):
         self.__ptGuest = self.__master.cloneVM()
         log("Pass-through guest is %s" % str(self.__ptGuest))
 
-        if self.isNvidiaK1(self._configuration):
-            self.__prepareClones(VGPUConfig.K1PassThrough)
-        else:
-            self.__prepareClones(VGPUConfig.K2PassThrough)
+        self.__prepareClones(self.__configTobeChecked)
 
         #-------------------------------------------
-        step("Start all non-pass-through clones")
+        step("Start all configTobeFilled clones")
         #-------------------------------------------
         [vm.start() for vm in self.__clones]
 
         #-------------------------------------------
-        step("Start the pass-through clone")
+        step("Start configTobeChecked clone")
         #-------------------------------------------
         try:
-            step("Start the pass-through clone")
+            step("Start configTobeChecked clone")
             self.__ptGuest.start()
         except Exception, e:
             if not re.search(self.__ERROR, str(e)):
                 raise xenrt.XRTFailure("Exception raised not matching expected error message: " + str(e))
 
-            log("Pass-through VM could not be started - as expected")
+            log("VM with configTobeChecked could not be started - as expected")
             return
 
-        raise xenrt.XRTFailure("Pass-through guest was allowed to start on a pre-used pGPU")
+        raise xenrt.XRTFailure("guest with configTobeChecked was allowed to start on a pre-used pGPU")
 
     def postRun(self):
         for guest in self.__clones:
@@ -1895,78 +1925,17 @@ class _AddPassthroughToFullGPU(VGPUOwnedVMsTest):
 
 class TCAddPassthroughToFullGPUK100(_AddPassthroughToFullGPU):
      def __init__(self):
-         super(TCAddPassthroughToFullGPUK100, self).__init__(VGPUConfig.K100)
+         super(TCAddPassthroughToFullGPUK100, self).__init__(VGPUConfig.K100,VGPUConfig.K1PassThrough)
 
 class TCAddPassthroughToFullGPUK200(_AddPassthroughToFullGPU):
      def __init__(self):
-         super(TCAddPassthroughToFullGPUK200, self).__init__(VGPUConfig.K200)
+         super(TCAddPassthroughToFullGPUK200, self).__init__(VGPUConfig.K200,VGPUConfig.K2PassThrough)
 
-class _AddvGPUToFullyPassedThroughGPU(VGPUOwnedVMsTest):
-    """
-    Pass-through all pGPUs
-    Add one more VM with a non-PT vGPU and check it doesn't start
-    """
-    __ERROR = "VGPU type is not compatible with one or more of the VGPU types currently running on this PGPU"
-    def __init__(self, ptConfig, vGPUConfig):
-        super(_AddvGPUToFullyPassedThroughGPU, self).__init__([VGPUOS.Win7x86], ptConfig, VGPUDistribution.BreadthFirst, False, True)
-        self.__vgpuConfig = vGPUConfig
-
-    def run(self, arglist):
-        vgpuCreator = VGPUInstaller(self.getDefaultHost(), self.__vgpuConfig, self._distribution)
-
-        master = self.masterGuest(self._distribution, self.getDefaultHost())
-
-        #-------------------------------------------
-        step("Ensure master is down and clone")
-        #-------------------------------------------
-        if master.getState() != "DOWN":
-            master.shutdown()
-
-        self.vm = master.cloneVM()
-        log("Non-PT clone is called: %s" % self.vm)
-        log("Shutdown the clone if it's running")
-        if self.vm.getState() != "DOWN":
-            self.vm.shutdown()
-
-        log("Restart the master")
-        try:
-            if master.getState() != "UP":
-                master.start()
-        except Exception, e:
-            log("An error occured when starting the master")
-            log(str(e))
-            pass
-
-        log("Status guests and types: %s" % str(self.guestAndTypesStatus()))
-
-        #-------------------------------------------
-        step("Create non-pass-through vGPU")
-        #-------------------------------------------
-        vgpuCreator.createOnGuest(self.vm, self._vGPUCreator.groupUUID(), True)
-
-        log("PT vm power state is %s" % self.vm.getState())
-        log("Status guests and types: %s" % str(self.guestAndTypesStatus()))
-        log("Total guests = %d" % len(self.getDefaultHost().listGuests()))
-
-        #-------------------------------------------
-        step("Start the non-pass-through clone")
-        #-------------------------------------------
-        try:
-            self.vm.start()
-        except Exception, e:
-            if not re.search(self.__ERROR, str(e)):
-                raise xenrt.XRTFailure("Exception raised not matching expected error message: " + str(e))
-
-            log("Non-pass-through VM could not be started - as expected")
-            return
-
-        raise xenrt.XRTFailure("Non-pass-through guest was allowed to start on a pre-used pGPU")
-
-class TCAddvGPUToFullyPThGPUK100(_AddvGPUToFullyPassedThroughGPU):
+class TCAddvGPUToFullyPThGPUK100(_AddPassthroughToFullGPU):
      def __init__(self):
          super(TCAddvGPUToFullyPThGPUK100, self).__init__(VGPUConfig.K1PassThrough, VGPUConfig.K100)
 
-class TCAddvGPUToFullyPTGPUK260(_AddvGPUToFullyPassedThroughGPU):
+class TCAddvGPUToFullyPTGPUK260(_AddPassthroughToFullGPU):
      def __init__(self):
          super(TCAddvGPUToFullyPTGPUK260, self).__init__(VGPUConfig.K2PassThrough, VGPUConfig.K200)
 

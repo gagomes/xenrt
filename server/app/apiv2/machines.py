@@ -262,7 +262,7 @@ class _MachineBase(XenRTAPIv2Page):
         finally:
             cur.close()
 
-    def lease(self, machine, user, duration, reason, force):
+    def lease(self, machine, user, duration, reason, force, commit=True):
         leaseFrom = time.strftime("%Y-%m-%d %H:%M:%S",
                                 time.gmtime(time.time()))
         if duration:
@@ -304,8 +304,8 @@ class _MachineBase(XenRTAPIv2Page):
         
         cur.execute("INSERT INTO tblEvents(ts, etype, subject, edata) VALUES (%s, %s, %s, %s);",
                         [timenow, "LeaseStart", machine, user])
-
-        db.commit()
+        if commit:
+            db.commit()
         cur.close()        
 
     def removeMachine(self, machine, commit=True):
@@ -555,7 +555,7 @@ class UpdateMachine(_MachineBase):
          'in': 'path',
          'required': True,
          'description': 'Machine to update',
-         'type': 'integer'},
+         'type': 'string'},
         {'name': 'body',
          'in': 'body',
          'required': True,
@@ -751,6 +751,7 @@ class RemoveMachine(_MachineBase):
          'type': 'string'}]
     RESPONSES = { "200": {"description": "Successful response"}}
     OPERATION_ID = "remove_machine"
+    WRITE=True
 
     def render(self):
         machine = self.request.matchdict['name']
@@ -767,12 +768,12 @@ class PowerMachine(_MachineBase):
         {'name': 'name',
          'in': 'path',
          'required': True,
-         'description': 'Machine to update',
-         'type': 'integer'},
+         'description': 'Machine to set power',
+         'type': 'string'},
         {'name': 'body',
          'in': 'body',
          'required': True,
-         'description': 'Details of the update',
+         'description': 'Details of the power operation',
          'schema': { "$ref": "#/definitions/powermachine" }
         }
     ]

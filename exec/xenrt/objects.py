@@ -5678,7 +5678,6 @@ exit 0
                              extraPackages=extrapackages,
                              ossVG=False,
                              arch=arch,
-                             installXenToolsInPostInstall=False,
                              postscript=piurl,
                              poweroff=False,
                              disk=disk)
@@ -6773,6 +6772,9 @@ chain tftp://${next-server}/%s
         except:
             pass
 
+    def createTemplateSR(self):
+        raise xenrt.XRTError("Not implemented")
+
 class NetPeerHost(GenericHost):
     """ Encapsulates a network test peer for installation"""
 
@@ -6801,6 +6803,7 @@ class GenericGuest(GenericPlace):
         self.use_ipv6 = False
         self.ipv4_disabled = False
         self.instance = None
+        self.isTemplate = False
         xenrt.TEC().logverbose("Creating %s instance." % (self.__class__.__name__))
 
     def populateSubclass(self, x):
@@ -6816,10 +6819,14 @@ class GenericGuest(GenericPlace):
         x.tailored = self.tailored
         x.reservedIP = self.reservedIP
         x.instance = self.instance
+        x.isTemplate = self.isTemplate
 
     def getDeploymentRecord(self):
-        ret = {"access": {"vmname": self.getName(),
-                          "ipaddress": self.getIP()}, "os": {}}
+        if self.isTemplate:
+            ret = {"access": {"templatename": self.getName()}, "os": {}}
+        else:
+            ret = {"access": {"vmname": self.getName(),
+                              "ipaddress": self.getIP()}, "os": {}}
         if self.windows:
             ret['access']['username'] = "Administrator"
             ret['access']['password'] = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS",
@@ -7405,6 +7412,10 @@ class GenericGuest(GenericPlace):
 
             isDebian = isDebian and not isUbuntu
 
+            if (isUbuntu or isDebian) and "tailor_apt_source" in self.special:
+                self.execguest("sed -i s/10\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*/%s/ /etc/apt/sources.list" % xenrt.TEC().lookup("XENRT_SERVER_ADDRESS"))
+                del self.special['tailor_apt_source']
+
             if isUbuntu:
                 # change the TMPTIME so /tmp doesn't get cleared away on
                 # every reboot
@@ -7835,8 +7846,7 @@ class GenericGuest(GenericPlace):
                       pxe=True,
                       extrapackages=None,
                       options={},
-                      start=True,
-                      installXenToolsInPostInstall=False):
+                      start=True):
         if re.search("sles", distro) or re.search("suse", distro):
             self.installSLES(distro,
                              repository,
@@ -7845,8 +7855,7 @@ class GenericGuest(GenericPlace):
                              pxe=pxe,
                              extrapackages=extrapackages,
                              options=options,
-                             start=start,
-                             installXenToolsInPostInstall=installXenToolsInPostInstall)
+                             start=start)
         elif re.search("debian|ubuntu", distro):
             self.installDebian(distro,
                                repository,
@@ -7855,8 +7864,7 @@ class GenericGuest(GenericPlace):
                                pxe=pxe,
                                extrapackages=extrapackages,
                                options=options,
-                               start=start,
-                               installXenToolsInPostInstall=installXenToolsInPostInstall)
+                               start=start)
         elif re.search("solaris", distro):
             self.installSolaris(distro,
                                 repository,
@@ -7865,8 +7873,7 @@ class GenericGuest(GenericPlace):
                                 pxe=pxe,
                                 extrapackages=extrapackages,
                                 options=options,
-                                start=start,
-                                installXenToolsInPostInstall=installXenToolsInPostInstall)
+                                start=start)
         else:
             self.installRHEL(distro,
                              repository,
@@ -7875,8 +7882,7 @@ class GenericGuest(GenericPlace):
                              pxe=pxe,
                              extrapackages=extrapackages,
                              options=options,
-                             start=start,
-                             installXenToolsInPostInstall=installXenToolsInPostInstall)
+                             start=start)
 
     def installSolaris(self,
                        distro,
@@ -7886,8 +7892,7 @@ class GenericGuest(GenericPlace):
                        pxe,
                        extrapackages=None,
                        options={},
-                       start=True,
-                       installXenToolsInPostInstall=False):
+                       start=True):
         """Network install of HVM Solaris into this guest."""
 
         #PR-1089: solaris must not use the viridian flag
@@ -7953,9 +7958,6 @@ class GenericGuest(GenericPlace):
             signaldir = nfsdir.getMountURL("")
             vars["SIGNALDIR"] = signaldir
             vars["EXTRAPOSTINSTALL"] = ""
-
-            if installXenToolsInPostInstall:
-                vars["EXTRAPOSTINSTALL"] = "mkdir /xs && mount /dev/xvdd /xs && /xs/Linux/install.sh -n && reboot"
 
             for v in vars.keys():
                 ay = string.replace(ay, "%%%s%%" % (v), vars[v])
@@ -8080,8 +8082,7 @@ class GenericGuest(GenericPlace):
                     pxe,
                     extrapackages=None,
                     options={},
-                    start=True,
-                    installXenToolsInPostInstall=False):
+                    start=True):
         """Network install of HVM SLES into this guest."""
         nfsdir = xenrt.NFSDirectory()
         vifname, bridge, mac, c = self.vifs[0]
@@ -8096,8 +8097,7 @@ class GenericGuest(GenericPlace):
                             ethDevice="eth0",
                             extraPackages=extrapackages,
                             kickStartExtra=None,
-                            ossVG=False,
-                            installXenToolsInPostInstall=installXenToolsInPostInstall)
+                            ossVG=False)
         ay=ks.generate()
         filename = "%s/autoyast.xml" % (xenrt.TEC().getLogdir())
         f=file(filename,"w")
@@ -8224,8 +8224,7 @@ class GenericGuest(GenericPlace):
                     pxe=True,
                     extrapackages=None,
                     options={},
-                    start=True,
-                    installXenToolsInPostInstall=False):
+                    start=True):
         """Network install of HVM RHEL into this guest."""
         # Create an NFS directory for the installer to signal completion
         nfsdir = xenrt.NFSDirectory()
@@ -8243,6 +8242,8 @@ class GenericGuest(GenericPlace):
                     if distro.startswith("centos") and int(distro[6:7]) >= 6:
                         maindisk="xvda"
                     if distro.startswith("oel") and int(distro[3:4]) >= 6:
+                        maindisk="xvda"
+                    if distro.startswith("sl") and int(distro[2:3]) >= 6:
                         maindisk="xvda"
         else:
             ethDevice = vifname
@@ -8266,8 +8267,7 @@ class GenericGuest(GenericPlace):
                               ethDevice=ethDevice,
                               pxe=pxe,
                               extraPackages=extrapackages,
-                              ossVG=False,
-                              installXenToolsInPostInstall=installXenToolsInPostInstall)
+                              ossVG=False)
         ks=ksf.generate()
         vifname, bridge, mac, c = self.vifs[0]
         filename = "%s/kickstart.cfg" % (xenrt.TEC().getLogdir())
@@ -8333,7 +8333,8 @@ class GenericGuest(GenericPlace):
             pxecfg.linuxArgsKernelAdd("ksdevice=%s" % (ethDevice))
             pxecfg.linuxArgsKernelAdd("initrd=%s" %
                                       (pxe.makeBootPath("initrd.img")))
-            if distro.startswith("oel7") or distro.startswith("centos7") or distro.startswith("rhel7"):
+
+            if distro.startswith("oel7") or distro.startswith("centos7") or distro.startswith("rhel7") or distro.startswith("sl7"):
                 pxecfg.linuxArgsKernelAdd("inst.repo=%s" % repository)
                 pxecfg.linuxArgsKernelAdd("console=tty0")
                 pxecfg.linuxArgsKernelAdd("console=hvc0")
@@ -8506,8 +8507,7 @@ class GenericGuest(GenericPlace):
                       pxe,
                       extrapackages=None,
                       options={},
-                      start=True,
-                      installXenToolsInPostInstall=False):
+                      start=True):
         """Network install of Debian into this guest."""
         if method != "HTTP" and method != "CDROM":
             raise xenrt.XRTError("%s install not supported" % (method))
@@ -8527,8 +8527,7 @@ class GenericGuest(GenericPlace):
                              ethDevice="eth0",
                              extraPackages=extrapackages,
                              ossVG=False,
-                             arch=arch,
-                             installXenToolsInPostInstall=installXenToolsInPostInstall)
+                             arch=arch)
 
 
         ps.generate()
@@ -9967,6 +9966,9 @@ while True:
         fileWithoutExt = os.path.splitext(rpm)[0]
 
         return not bool(self.execguest("rpm -qi %s" % fileWithoutExt, retval="code", level=xenrt.RC_OK))
+
+    def installDrivers(self):
+        pass
 
 class EventObserver(xenrt.XRTThread):
 

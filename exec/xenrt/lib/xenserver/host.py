@@ -1,4 +1,4 @@
-   #
+#
 # XenRT: Test harness for Xen and the XenServer product family
 #
 # Encapsulate a XenServer host.
@@ -23,7 +23,7 @@ from  xenrt.lib.xenserver import licensedfeatures
 import XenAPI
 from xenrt.lazylog import *
 from xenrt.lib.xenserver.iptablesutil import IpTablesFirewall
-from xenrt.lib.xenserver.licensing import LicenceManager, XenServerLicenceFactory
+from xenrt.lib.xenserver.licensing import LicenseManager, XenServerLicenseFactory
 
 
 # Symbols we want to export from the package.
@@ -78,6 +78,7 @@ CLI_LEGACY_NATIVE = 1   # Old style CLI on an old-style host
 CLI_LEGACY_COMPAT = 2   # Old style CLI on a new host
 CLI_NATIVE = 3          # New style CLI
 
+TEMPLATE_SR_UUID = "9ab6d700-7b6f-4d2f-831f-e7d5330b4534"
 
 def hostFactory(hosttype):
     if hosttype == "Dundee":
@@ -3083,76 +3084,107 @@ fi
             distro = self.lookup("GENERIC_" + distro.upper() + "_OS"
                                  + (arch.endswith("64") and "_64" or ""),
                                  distro)
-        template = xenrt.lib.xenserver.getTemplate(self, distro, forceHVM, arch)
-        if re.search(r"etch", template, flags=re.IGNORECASE) or re.search(r"Demo Linux VM", template):
-            password = xenrt.TEC().lookup("ROOT_PASSWORD_DEBIAN")
-        else:
-            password = None
+
         if not name:
             name = xenrt.randomGuestName(distro=distro, arch=arch)
-        guest = self.guestFactory()(name, template, password=password)
-        guest.primaryMAC=primaryMAC
-        guest.reservedIP=reservedIP
-        repository = None
+        
+        canUsePrebuiltTemplate = not use_ipv6 and not rawHBAVDIs and not reservedIP and not forceHVM and not primaryMAC
+       
+        guest = None
 
-        if guest.windows:
-            isoname = xenrt.DEFAULT
+        if canUsePrebuiltTemplate:
+            guest = xenrt.lib.xenserver.guest.createVMFromPrebuiltTemplate(self,
+                                            name,
+                                            distro,
+                                            vcpus=vcpus,
+                                            memory=memory,
+                                            vifs=xenrt.lib.xenserver.Guest.DEFAULT,
+                                            bridge=bridge,
+                                            sr=sr,
+                                            arch=arch,
+                                            rootdisk=disksize,
+                                            notools=notools)
+
+        if guest:
+            doSetRandomVcpus = not vcpus and self.lookup("RND_VCPUS", default=False, boolean=True)
+            doSetRandomCoresPerSocket = self.lookup("RND_CORES_PER_SOCKET", default=False, boolean=True)
+
+            if doSetRandomVcpus or doSetRandomCoresPerSocket:
+                guest.shutdown()
+                if doSetRandomVcpus:
+                    guest.setRandomVcpus()
+                if doSetRandomCoresPerSocket:
+                    guest.setRandomCoresPerSocket(self, vcpus)
+                guest.start()
         else:
-            isoname = None
-            if not "Etch" in template and not "Sarge" in template and not "Demo Linux VM" in template:
-                try:
-                    repository = string.split(xenrt.TEC().lookup(["RPM_SOURCE",
-                                                                  distro,
-                                                                  arch,
-                                                                  "HTTP"]))[0]
-                except:
-                    raise xenrt.XRTError("No HTTP repository for %s %s" %
-                                         (arch, distro))
-
-        guest.distro = distro
-        guest.arch = arch
-
-        if vcpus != None:
-            guest.setVCPUs(vcpus)
-        elif self.lookup("RND_VCPUS", default=False, boolean=True):
-            guest.setRandomVcpus()
-
-        if self.lookup("RND_CORES_PER_SOCKET", default=False, boolean=True):
-            guest.setRandomCoresPerSocket(self, vcpus)
-
-        if memory != None:
-            guest.setMemory(memory)
-        if (not disksize) or disksize == None or disksize == guest.DEFAULT:
-            if forceHVM:
-                disksize = 8192 # 8GB (in MB) by default
+            template = xenrt.lib.xenserver.getTemplate(self, distro, forceHVM, arch)
+            if re.search(r"etch", template, flags=re.IGNORECASE) or re.search(r"Demo Linux VM", template):
+                password = xenrt.TEC().lookup("ROOT_PASSWORD_DEBIAN")
             else:
-                disksize = guest.DEFAULT
-        if primaryMAC:
-            if bridge:
-                br = bridge
+                password = None
+            guest = self.guestFactory()(name, template, password=password)
+            guest.primaryMAC=primaryMAC
+            guest.reservedIP=reservedIP
+            repository = None
+
+            if guest.windows:
+                isoname = xenrt.DEFAULT
             else:
-                br = self.getPrimaryBridge()
-            vifs = [("%s0" % (guest.vifstem), br, primaryMAC, None)]
-        else:
-            vifs = guest.DEFAULT
-        guest.install(self,
-                      distro=distro,
-                      isoname=isoname,
-                      pxe=forceHVM,
-                      repository=repository,
-                      sr=sr,
-                      bridge=bridge,
-                      notools=notools,
-                      use_ipv6=use_ipv6,
-                      rootdisk=disksize,
-                      rawHBAVDIs=rawHBAVDIs,
-                      vifs=vifs)
-        if guest.windows and guest.memory > 4096:
-            # We added /PAE to boot.ini so we have to reboot before
-            # checking the resources
-            guest.xmlrpcShutdown()
-            guest.poll("DOWN")
-            guest.start()
+                isoname = None
+                if not "Etch" in template and not "Sarge" in template and not "Demo Linux VM" in template:
+                    try:
+                        repository = string.split(xenrt.TEC().lookup(["RPM_SOURCE",
+                                                                      distro,
+                                                                      arch,
+                                                                      "HTTP"]))[0]
+                    except:
+                        raise xenrt.XRTError("No HTTP repository for %s %s" %
+                                             (arch, distro))
+
+            guest.distro = distro
+            guest.arch = arch
+
+            if vcpus != None:
+                guest.setVCPUs(vcpus)
+            elif self.lookup("RND_VCPUS", default=False, boolean=True):
+                guest.setRandomVcpus()
+
+            if self.lookup("RND_CORES_PER_SOCKET", default=False, boolean=True):
+                guest.setRandomCoresPerSocket(self, vcpus)
+
+            if memory != None:
+                guest.setMemory(memory)
+            if (not disksize) or disksize == None or disksize == guest.DEFAULT:
+                if forceHVM:
+                    disksize = 8192 # 8GB (in MB) by default
+                else:
+                    disksize = guest.DEFAULT
+            if primaryMAC:
+                if bridge:
+                    br = bridge
+                else:
+                    br = self.getPrimaryBridge()
+                vifs = [("%s0" % (guest.vifstem), br, primaryMAC, None)]
+            else:
+                vifs = guest.DEFAULT
+            guest.install(self,
+                          distro=distro,
+                          isoname=isoname,
+                          pxe=forceHVM,
+                          repository=repository,
+                          sr=sr,
+                          bridge=bridge,
+                          notools=notools,
+                          use_ipv6=use_ipv6,
+                          rootdisk=disksize,
+                          rawHBAVDIs=rawHBAVDIs,
+                          vifs=vifs)
+            if guest.windows and guest.memory > 4096:
+                # We added /PAE to boot.ini so we have to reboot before
+                # checking the resources
+                guest.xmlrpcShutdown()
+                guest.poll("DOWN")
+                guest.start()
         if guest.windows and not nodrivers:
             guest.installDrivers()
         if not nodrivers:
@@ -5488,7 +5520,7 @@ fi
             return []
         reply = []
         for f in string.split(data, ","):
-            if f in mySRs:
+            if f in mySRs and f != TEMPLATE_SR_UUID:
                 reply.append(f)
         return reply
 
@@ -6213,7 +6245,7 @@ fi
         """Return the UUID of the specified guest."""
         return self.parseListForUUID("vm-list", "name-label", guest.name)
     
-    def license(self, sku="XE Enterprise", expirein=None, usev6testd=True, v6server=None, applyedition=True):
+    def license(self, sku="XE Enterprise", expirein=None, usev6testd=True, v6server=None, applyedition=True, edition=None):
         """Apply a license to the host"""
     
         keyfile = None
@@ -6519,6 +6551,20 @@ fi
                     else:
                         template = self.chooseTemplate("TEMPLATE_NAME_SLES_%s"
                                                        % (v))
+            elif re.search(r"sl7", distro):
+                template = self.chooseTemplate("TEMPLATE_NAME_SL_7_64")
+            elif re.search(r"sl\d+",distro):
+                if hvm:
+                    template = self.chooseTemplate("TEMPLATE_OTHER_MEDIA") 
+                else:
+                    v = re.search(r"sl(\d+)", distro).group(1)
+                    if arch and arch == "x86-64":
+                        template = self.chooseTemplate(\
+                            "TEMPLATE_NAME_SL_%s_64" % (v))
+                    else:
+                        template = self.chooseTemplate("TEMPLATE_NAME_SL_%s"
+                                                       % (v))
+
             elif re.search("solaris10u9-32", distro):
                 template = self.chooseTemplate("TEMPLATE_NAME_SOLARIS_10U9_32")
             elif re.search("solaris10u9", distro):
@@ -8082,8 +8128,8 @@ rm -f /etc/xensource/xhad.conf || true
 
     def applyFullLicense(self,v6server):
  
-        license = XenServerLicenceFactory().maxLicenceSkuHost(self)
-        LicenceManager().addLicensesToServer(v6server,license,getLicenseInUse=False)
+        license = XenServerLicenseFactory().maxLicenseSkuHost(self)
+        LicenseManager().addLicensesToServer(v6server,license,getLicenseInUse=False)
         self.license(edition = license.getEdition(), v6server=v6server,usev6testd=False)
         
     def getIpTablesFirewall(self):
@@ -8095,6 +8141,39 @@ rm -f /etc/xensource/xhad.conf || true
 
     def writeUefiLocalBoot(self, nfsdir, pxe):
         raise xenrt.XRTError("UEFI is not supported on this version")
+
+    def chooseSR(self, sr=None):
+        """Choose an SR to use. Returns the SR UUID"""
+        xenrt.TEC().logverbose("SR: %s" % sr)
+        if not sr:
+            if xenrt.TEC().lookup("OPTION_DEFAULT_SR", False, boolean=True):
+                # Use the default SR defined by the pool/host
+                return self.lookupDefaultSR()
+            if self.defaultsr:
+                srname = self.defaultsr
+                sruuid = self.parseListForUUID("sr-list",
+                                               "name-label",
+                                               srname)
+            else:
+                sruuid = self.getLocalSR()
+                xenrt.TEC().logverbose("Using local SR %s" % (sruuid))
+        else:
+            if xenrt.isUUID(sr):
+                sruuid = sr
+            elif sr == "DEFAULT":
+                sruuid = self.lookupDefaultSR()
+            else:
+                xenrt.TEC().logverbose("given sr is not UUID")
+                sruuid = self.parseListForUUID("sr-list", "name-label", sr)
+        
+            
+        return sruuid
+
+    def isHAPEnabled(self):
+        dmesg = self.execdom0("grep 'Hardware Assisted Paging' /var/log/xen-dmesg || true")
+
+        return "HVM: Hardware Assisted Paging detected and enabled." in dmesg or "HVM: Hardware Assisted Paging (HAP) detected" in dmesg
+
 #############################################################################
 
 class MNRHost(Host):
@@ -8680,7 +8759,7 @@ class MNRHost(Host):
     def resetToFreshInstall(self, setupISOs=False):
 
         # Reset CC-Xen option
-        self.execdom0("sed -i 's/ cc-restrictions//g' /boot/extlinux.conf")
+        self.execdom0("sed -i 's/ cc-restrictions//g' /boot/extlinux.conf || true")
 
         # Reset CC-SSL setting
         self.execdom0("rm -f /var/xapi/verify_certificates")
@@ -10647,14 +10726,14 @@ class TampaHost(BostonHost):
 
     def validLicenses(self, xenserverOnly=False):
         """
-        Get a licence object which contains the details of a licence settings
+        Get a license object which contains the details of a license settings
         for a given SKU
-        sku: XenServerLicenceSKU member
+        sku: XenServerLicenseSKU member
         """
-        factory = XenServerLicenceFactory()
+        factory = XenServerLicenseFactory()
         if xenserverOnly:
-            return factory.xenserverOnlyLicences(self)
-        return factory.allLicences(self)
+            return factory.xenserverOnlyLicenses(self)
+        return factory.allLicenses(self)
 
 
 #############################################################################
@@ -11396,7 +11475,21 @@ class CreedenceHost(ClearwaterHost):
         xenrt.TEC().logverbose("Edition is same on host as expected")
 
     def licenseApply(self, v6server, licenseObj):
-        self.license(v6server,sku=licenseObj.getEdition())
+        self.license(v6server=v6server, sku=licenseObj.getEdition())
+
+    def createTemplateSR(self):
+        if xenrt.TEC().lookup("SHARED_VHD_PATH_NFS", None):
+            sr = NFSStorageRepository(self, "Remote Template Library")
+            sr.uuid = TEMPLATE_SR_UUID
+            sr.srtype = "nfs"
+            sr.content_type="user"
+            (server, path) = xenrt.TEC().lookup("SHARED_VHD_PATH_NFS").split(":")
+            sr.dconf = {"server": server, "serverpath": path}
+            sr.introduce(nosubdir = True)
+            return sr
+        else:
+            raise xenrt.XRTError("No NFS path defined")
+       
 
 #############################################################################
 class DundeeHost(CreedenceHost):
@@ -11421,9 +11514,6 @@ class DundeeHost(CreedenceHost):
 
     def guestFactory(self):
         return xenrt.lib.xenserver.guest.DundeeGuest
-
-    def license(self, sku="free",edition=None, usev6testd=True, v6server=None):
-        xenrt.TEC().logverbose("No license is required for the time being as Clearwater licensing is still aplicable on trunk")
 
     def postInstall(self):
         CreedenceHost.postInstall(self)
@@ -12707,6 +12797,18 @@ class Pool(object):
             self.getHAConfig()
             self.haEnabled = True
 
+    def getDeploymentRecord(self):
+        ret = {"members": []}
+        if self.master:
+            ret["master"] = self.master.getName()
+            ret['members'].append(self.master.getName())
+
+        for s in self.slaves.keys():
+            ret['members'].append(self.slaves[s].getName())
+
+        return ret
+            
+    
     def populateSubclass(self, x):
         x.master = self.master
         x.slaves = self.slaves
@@ -14295,8 +14397,7 @@ class MNRPool(Pool):
 
     def verifyRollingPoolUpgradeInProgress(self, expected=True):
         result = self.getPoolParam("other-config")
-        
-        if ("rolling_upgrade_in_progress: true" in result) != expected:
+        if ("rolling_upgrade_in_progress: true") in result != expected:
             xenrt.TEC().logverbose("RPU Mode is expected: %s, "\
                                    "other-config: %s" % (expected, result))
             raise xenrt.XRTFailure("RPU mode error")
@@ -14476,7 +14577,7 @@ class CreedencePool(ClearwaterPool):
         self.checkLicenseState(sku)
 
     def licenseApply(self, v6server, licenseObj):
-        self.license(v6server,sku=licenseObj.getEdition())
+        self.license(v6server=v6server, sku=licenseObj.getEdition())
 
     def validLicenses(self, xenserverOnly=False):
         """
@@ -14487,7 +14588,7 @@ class CreedencePool(ClearwaterPool):
 
 #############################################################################
 
-class DundeePool(ClearwaterPool):
+class DundeePool(CreedencePool):
 
     def hostFactory(self):
         return xenrt.lib.xenserver.DundeeHost

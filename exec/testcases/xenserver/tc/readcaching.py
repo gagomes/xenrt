@@ -1,8 +1,8 @@
 import xenrt
 from xenrt.lazylog import step, log
 from xenrt.lib import assertions
-from xenrt.lib.xenserver.licensing import XenServerLicenceFactory as LF
-from xenrt.enum import XenServerLicenceSKU
+from xenrt.lib.xenserver.licensing import XenServerLicenseFactory as LF
+from xenrt.enum import XenServerLicenseSKU
 
 
 class ReadCacheTestCase(xenrt.TestCase):
@@ -12,15 +12,15 @@ class ReadCacheTestCase(xenrt.TestCase):
 
     def _releaseLicense(self):
         host = self.getDefaultHost()
-        licence = LF().licenceForHost(host, XenServerLicenceSKU.Free)
-        step("Applying license: %s" % licence.getEdition())
-        host.licenseApply(None, licence)
+        license = LF().licenseForHost(host, XenServerLicenseSKU.Free)
+        step("Applying license: %s" % license.getEdition())
+        host.licenseApply(None, license)
 
     def _applyMaxLicense(self):
         host = self.getDefaultHost()
-        licence = LF().maxLicenceSkuHost(host)
-        step("Applying license: %s" % licence.getEdition())
-        host.licenseApply(None, licence)
+        license = LF().maxLicenseSkuHost(host)
+        step("Applying license: %s" % license.getEdition())
+        host.licenseApply(None, license)
 
     def _defaultLifeCycle(self, vm):
         step("Performing a lifecycle")
@@ -30,6 +30,10 @@ class ReadCacheTestCase(xenrt.TestCase):
         self.vmName = self.parseArgsKeyValue(arglist)["vm"]
         log("Using vm %s" % self.vmName)
         self.vm = self.getGuest(self.vmName)
+
+        if self.vm.getState() != "UP":
+            self.vm.start()
+
         self._applyMaxLicense()
         host = self.getDefaultHost()
         rcc = host.getReadCachingController()
@@ -43,10 +47,10 @@ class ReadCacheTestCase(xenrt.TestCase):
         rcc = host.getReadCachingController()
         rcc.setVM(self.vm)
         if both:
-            step("Checking tapctl status....")
-            assertions.assertEquals(expectedState, rcc.isEnabled(lowLevel=True), "RC is enabled status via. tap-ctl")
             step("Checking xapi status....")
             assertions.assertEquals(expectedState, rcc.isEnabled(lowLevel=False), "RC is enabled status via. xapi")
+            step("Checking tapctl status....")
+            assertions.assertEquals(expectedState, rcc.isEnabled(lowLevel=True), "RC is enabled status via. tap-ctl")
         else:
             step("Checking status of a single state...")
             assertions.assertEquals(expectedState, rcc.isEnabled(lowLevel=lowlevel), "RC is enabled status")
@@ -85,6 +89,7 @@ class TCOdirectRCDisabled(ReadCacheTestCase):
         rcc = host.getReadCachingController()
         rcc.setVM(self.vm)
         rcc.disable()
+        self.vm.reboot()
         step("Checking ReadCaching state disabled %s" % lowlevel)
         self.checkExpectedState(False, lowlevel, both)
 

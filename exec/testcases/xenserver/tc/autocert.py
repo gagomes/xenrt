@@ -46,34 +46,13 @@ class _XSAutoCertKit(xenrt.TestCase):
         
         acklocation = xenrt.TEC().lookup("ACK_LOCATION", None)
         if not acklocation:
-            if xenrt.TEC().lookup("TEST_CA-146164", False, boolean=True):
-                if isinstance(host, xenrt.lib.xenserver.DundeeHost):
-                    raise xenrt.XRTError("CA-146164 is not re-producible with Centos 7 dom0.")
-                elif "x86_64" in host.execdom0("uname -a"):
-                    branch = "creedence-autocertkit"
-                    build = "88845"
-                else:
-                    branch = "clearwater-sp1-lcm-autocertkit"
-                    build = "88844"
-
-            elif xenrt.TEC().lookup("TEST_CA-160978", False, boolean=True):
-                if isinstance(host, xenrt.lib.xenserver.DundeeHost):
-                    branch = "trunk"
-                    build = "91125"
-                elif "x86_64" in host.execdom0("uname -a"):
-                    branch = "creedence-autocertkit"
-                    build = "91123"
-                else:
-                    raise xenrt.XRTError("Try with Creedence, Cream or Dundee to test CA-160978.")
-
+            if isinstance(host, xenrt.lib.xenserver.DundeeHost):
+                branch = "trunk-autocertkit"
+            elif "x86_64" in host.execdom0("uname -a"):
+                branch = "creedence-autocertkit"
             else:
-                if isinstance(host, xenrt.lib.xenserver.DundeeHost):
-                    branch = "trunk-autocertkit"
-                elif "x86_64" in host.execdom0("uname -a"):
-                    branch = "creedence-autocertkit"
-                else:
-                    branch = "clearwater-sp1-lcm-autocertkit"
-                build = xenrt.util.getHTTP("https://xenbuilder.uk.xensource.com/search?query=latest&format=number&product=carbon&branch=%s&site=cam&job=sdk&action=xe-phase-2-build&status=succeeded" % (branch,)).strip()
+                branch = "clearwater-sp1-lcm-autocertkit"
+            build = xenrt.util.getHTTP("https://xenbuilder.uk.xensource.com/search?query=latest&format=number&product=carbon&branch=%s&site=cam&job=sdk&action=xe-phase-2-build&status=succeeded" % (branch,)).strip()
             acklocation = "/usr/groups/xen/carbon/%s/%s/xe-phase-2/xs-auto-cert-kit.iso" % (branch, build)
 
         autoCertKitISO = xenrt.TEC().getFile(acklocation)
@@ -192,7 +171,18 @@ class _XSAutoCertKit(xenrt.TestCase):
                         xenrt.TEC().logverbose("Logged an expected error")
                         break
                     else:
-                        raise xenrt.XRTError("Error occured in running auto cert kit")
+                        # This can be caused by XAPI issue CA-161590
+                        # The only work-around is restarting XAPI.
+                        # Though CA-161590 is fixed with hotfix, old branch may still encounter this issue.
+                        if not xenrt.TEC().lookup("TEST_CA-161590", False, boolean=True):
+                            xenrt.TEC().logverbose("Found CA-161590 issue. Trying restart XAPI and continuing.")
+                            for host in self.pool.getHosts():
+                                host.restartToolstack()
+                            xenrt.sleep(60)
+                            self.pool.master.execdom0("cd /opt/xensource/packages/files/auto-cert-kit && python test_runner.py -t test_run.conf &")
+                            continue
+                        else:
+                            raise xenrt.XRTError("Error occured in running auto cert kit")
                 statuscode = int(statustext.split(":", 1)[0])
                 if statuscode == 0:
                     break

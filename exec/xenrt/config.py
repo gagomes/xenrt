@@ -2512,7 +2512,7 @@ class Config(object):
          'rhel46_x86-32','rhel47_x86-32','rhel51_x86-32','rhel51_x86-64','rhel52_x86-32','rhel52_x86-64','rhel53_x86-32',
          'rhel53_x86-64','rhel5_x86-32','rhel5_x86-64','sles101_x86-32','sles101_x86-64','sles102_x86-32','sles102_x86-64',
          'vistaee','vistaee-x64','w2k3ee','w2k3eer2','w2k3eesp1','w2k3se','w2k3ser2','w2k3sesp1','w2k3sesp2','winxpsp2']
-        self.config["GUEST_TESTS"]["George"]["XenApp"] = ['w2k3-x86', 'w2k3-x64', 'ws08sp2-x86', 'ws08sp2-x64', 'ws08r2sp1-x64']
+        self.config["GUEST_TESTS"]["George"]["XenApp"] = ['w2k3-x86_XenApp', 'w2k3-x64_XenApp', 'ws08sp2-x86_XenApp', 'ws08sp2-x64_XenApp', 'ws08r2sp1-x64_XenApp']
 
         self.config["GUEST_TESTS"]["MNR"] = {}
         self.config["GUEST_TESTS"]["MNR"]["Primary"] = ['debian50_x86-32','rhel48_x86-32','rhel54_x86-32','rhel54_x86-64',
@@ -2526,7 +2526,7 @@ class Config(object):
          'sles101_x86-32','sles101_x86-64','sles102_x86-32','sles102_x86-64','vistaee','vistaee-x64','vistaeesp1',
          'vistaeesp1-x64','w2k3ee','w2k3eer2','w2k3eesp1','w2k3se','w2k3ser2','w2k3sesp1','w2k3sesp2','winxpsp2',
          'ws08-x64','ws08-x86']
-        self.config["GUEST_TESTS"]["MNR"]["XenApp"] = ['w2k3-x86', 'w2k3-x64', 'ws08sp2-x86', 'ws08sp2-x64', 'ws08r2sp1-x64']
+        self.config["GUEST_TESTS"]["MNR"]["XenApp"] = ['w2k3-x86_XenApp', 'w2k3-x64_XenApp', 'ws08sp2-x86_XenApp', 'ws08sp2-x64_XenApp', 'ws08r2sp1-x64_XenApp']
 
         self.config["GUEST_TESTS"]["Cowley"] = {}
         self.config["GUEST_TESTS"]["Cowley"]["Primary"] = ['debian50_x86-32','rhel48_x86-32','rhel55_x86-32',
@@ -2542,7 +2542,7 @@ class Config(object):
          'sles101_x86-64','sles102_x86-32','sles102_x86-64','sles11_x86-32','sles11_x86-64','vistaee','vistaee-x64',
          'vistaeesp1','vistaeesp1-x64','w2k3ee','w2k3eer2','w2k3eesp1','w2k3se','w2k3ser2','w2k3sesp1','w2k3sesp2',
          'win7-x64','ws08-x64','ws08-x86','ws08r2-x64','win7-x86']
-        self.config["GUEST_TESTS"]["Cowley"]["XenApp"] = ['w2k3-x86', 'w2k3-x64', 'ws08sp2-x86', 'ws08sp2-x64', 'ws08r2sp1-x64']
+        self.config["GUEST_TESTS"]["Cowley"]["XenApp"] = ['w2k3-x86_XenApp', 'w2k3-x64_XenApp', 'ws08sp2-x86_XenApp', 'ws08sp2-x64_XenApp', 'ws08r2sp1-x64_XenApp']
 
         self.config["GUEST_TESTS"]["Boston"] = {}
         self.config["GUEST_TESTS"]["Boston"]["Primary"] = ['centos56_x86-32','centos56_x86-64','debian50_x86-32',
@@ -2560,7 +2560,7 @@ class Config(object):
          'rhel5_x86-64','sles102_x86-32','sles102_x86-64','sles103_x86-32','sles103_x86-64','sles11_x86-32',
          'sles11_x86-64','vistaee','vistaee-x64','vistaeesp1','vistaeesp1-x64','w2k3ee','w2k3eer2','w2k3eesp1','w2k3se',
          'w2k3ser2','w2k3sesp1','w2k3sesp2','win7-x64','ws08-x64','ws08-x86','ws08r2-x64','win7-x86']
-        self.config["GUEST_TESTS"]["Boston"]["XenApp"] = ['w2k3-x86', 'w2k3-x64', 'ws08sp2-x86', 'ws08sp2-x64', 'ws08r2sp1-x64']
+        self.config["GUEST_TESTS"]["Boston"]["XenApp"] = ['w2k3-x86_XenApp', 'w2k3-x64_XenApp', 'ws08sp2-x86_XenApp', 'ws08sp2-x64_XenApp', 'ws08r2sp1-x64_XenApp']
 
         self.config["GUEST_TESTS"]["Sanibel"] = {}
         self.config["GUEST_TESTS"]["Sanibel"]["Primary"] = ['centos56_x86-32','centos56_x86-64','centos57_x86-32',
@@ -2580,7 +2580,7 @@ class Config(object):
          'rhel55_x86-64','rhel5_x86-32','rhel5_x86-64','sles102_x86-32','sles102_x86-64','sles103_x86-32','sles103_x86-64',
          'sles11_x86-32','sles11_x86-64','vistaee','vistaee-x64','vistaeesp1','vistaeesp1-x64','w2k3eer2','w2k3eesp1',
          'w2k3ser2','w2k3sesp1','w2k3sesp2','win7-x64','win7-x86','ws08-x64','ws08-x86','ws08r2-x64']
-        self.config["GUEST_TESTS"]["Sanibel"]["XenApp"] = ['w2k3-x86', 'w2k3-x64', 'ws08sp2-x86', 'ws08sp2-x64', 'ws08r2sp1-x64']
+        self.config["GUEST_TESTS"]["Sanibel"]["XenApp"] = ['w2k3-x86_XenApp', 'w2k3-x64_XenApp', 'ws08sp2-x86_XenApp', 'ws08sp2-x64_XenApp', 'ws08r2sp1-x64_XenApp']
 
 
         self.config["GUEST_TESTS"]["Tampa"] = {}
@@ -2601,7 +2601,7 @@ class Config(object):
          'rhel55_x86-64','rhel56_x86-32','rhel56_x86-64','rhel5_x86-32','rhel5_x86-64','rhel6_x86-32','rhel6_x86-64',
          'sles102_x86-32','sles102_x86-64','sles103_x86-32','sles103_x86-64','sles11_x86-32','sles11_x86-64','w2k3eer2',
          'w2k3ser2','w2k3sesp2','win7-x64','win7-x86','ws08r2-x64']
-        self.config["GUEST_TESTS"]["Tampa"]["XenApp"] = ['w2k3-x86', 'w2k3-x64', 'ws08sp2-x86', 'ws08sp2-x64', 'ws08r2sp1-x64']
+        self.config["GUEST_TESTS"]["Tampa"]["XenApp"] = ['w2k3-x86_XenApp', 'w2k3-x64_XenApp', 'ws08sp2-x86_XenApp', 'ws08sp2-x64_XenApp', 'ws08r2sp1-x64_XenApp']
 
         self.config["GUEST_TESTS"]["Clearwater"] = {}
         self.config["GUEST_TESTS"]["Clearwater"]["Primary"] = ['centos57_x86-32','centos57_x86-64','centos61_x86-32',
@@ -2620,7 +2620,7 @@ class Config(object):
          'rhel53_x86-32','rhel53_x86-64','rhel54_x86-32','rhel54_x86-64','rhel55_x86-32','rhel55_x86-64','rhel56_x86-32',
          'rhel56_x86-64','rhel6_x86-32','rhel6_x86-64','sles102_x86-32','sles102_x86-64','sles103_x86-32','sles103_x86-64',
          'sles11_x86-32','sles11_x86-64','w2k3eer2','w2k3ser2','w2k3sesp2','win7-x64','win7-x86','ws08r2-x64']
-        self.config["GUEST_TESTS"]["Clearwater"]["XenApp"] = ['w2k3-x86', 'w2k3-x64', 'ws08sp2-x86', 'ws08sp2-x64', 'ws08r2sp1-x64']
+        self.config["GUEST_TESTS"]["Clearwater"]["XenApp"] = ['w2k3-x86_XenApp', 'w2k3-x64_XenApp', 'ws08sp2-x86_XenApp', 'ws08sp2-x64_XenApp', 'ws08r2sp1-x64_XenApp']
 
         self.config["GUEST_TESTS"]["Creedence"] = {}
         self.config["GUEST_TESTS"]["Creedence"]["Primary"] = ['centos510_x86-32','centos510_x86-64','centos511_x86-32',
@@ -2647,7 +2647,7 @@ class Config(object):
          'rhel63_x86-64','rhel64_x86-32','rhel64_x86-64','sles102_x86-32','sles102_x86-64','sles103_x86-32',
          'sles103_x86-64','sles111_x86-32','sles111_x86-64','sles112_x86-32','sles112_x86-64','sles11_x86-32',
          'sles11_x86-64','w2k3eer2','w2k3ser2','w2k3sesp2','win7-x64','ws08r2-x64','win7-x86']
-        self.config["GUEST_TESTS"]["Creedence"]["XenApp"] = ['w2k3-x86', 'w2k3-x64', 'ws08sp2-x86', 'ws08sp2-x64', 'ws08r2sp1-x64']
+        self.config["GUEST_TESTS"]["Creedence"]["XenApp"] = ['w2k3-x86_XenApp', 'w2k3-x64_XenApp', 'ws08sp2-x86_XenApp', 'ws08sp2-x64_XenApp', 'ws08r2sp1-x64_XenApp']
 
         self.config["GUEST_TESTS"]["Cream"] = {}
         self.config["GUEST_TESTS"]["Cream"]["Primary"] = ['centos510_x86-32','centos510_x86-64','centos511_x86-32',
@@ -2674,7 +2674,7 @@ class Config(object):
          'rhel63_x86-64','rhel64_x86-32','rhel64_x86-64','sles102_x86-32','sles102_x86-64','sles103_x86-32',
          'sles103_x86-64','sles111_x86-32','sles111_x86-64','sles112_x86-32','sles112_x86-64','sles11_x86-32',
          'sles11_x86-64','w2k3eer2','w2k3ser2','w2k3sesp2','win7-x64','ws08r2-x64','win7-x86']
-        self.config["GUEST_TESTS"]["Cream"]["XenApp"] = ['w2k3-x86', 'w2k3-x64', 'ws08sp2-x86', 'ws08sp2-x64', 'ws08r2sp1-x64']
+        self.config["GUEST_TESTS"]["Cream"]["XenApp"] = ['w2k3-x86_XenApp', 'w2k3-x64_XenApp', 'ws08sp2-x86_XenApp', 'ws08sp2-x64_XenApp', 'ws08r2sp1-x64_XenApp']
 
         self.config["GUEST_TESTS"]["Dundee"] = {}
         self.config["GUEST_TESTS"]["Dundee"]["Primary"] = ['centos510_x86-32','centos510_x86-64','centos511_x86-32',
@@ -2701,7 +2701,7 @@ class Config(object):
          'rhel63_x86-64','rhel64_x86-32','rhel64_x86-64','sles102_x86-32','sles102_x86-64','sles103_x86-32',
          'sles103_x86-64','sles111_x86-32','sles111_x86-64','sles112_x86-32','sles112_x86-64','sles11_x86-32',
          'sles11_x86-64','w2k3eer2','w2k3ser2','w2k3sesp2','win7-x64','ws08r2-x64', 'win7-x86']
-        self.config["GUEST_TESTS"]["Dundee"]["XenApp"] = ['w2k3-x86', 'w2k3-x64', 'ws08sp2-x86', 'ws08sp2-x64', 'ws08r2sp1-x64']
+        self.config["GUEST_TESTS"]["Dundee"]["XenApp"] = ['w2k3-x86_XenApp', 'w2k3-x64_XenApp', 'ws08sp2-x86_XenApp', 'ws08sp2-x64_XenApp', 'ws08r2sp1-x64_XenApp']
        
         # Linux install methods supported
         nfsInstallSupport = ["rhel[4-6]", "centos[4-6]", "sl[5-6]", "oel[4-6]", "sles9", "sles10", "sles11"]

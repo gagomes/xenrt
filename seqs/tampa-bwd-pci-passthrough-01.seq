@@ -1,7 +1,4 @@
-<?xml version="1.0" ?>
 <xenrt>
-  
-  <default name="TCID" value="TC-18446"/>
   <variables>
     <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
     <EXTRA_TIME>yes</EXTRA_TIME>
@@ -23,33 +20,33 @@
 
     <serial group="guest_installation">
       <!--win1 is on master-->
-      <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="win0_install">
+      <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="win1_install" tc="TC-18446" sku="win1_install">
         <arg>M1</arg>
         <arg>guest=win1</arg>
         <arg>distro=ws08sp2-x64</arg>
         <arg>memory=1024</arg>
         <arg>sr=Local storage</arg>
       </testcase>
-      <testcase id="guestops.drivers.TCDriverInstall" blocker="yes" name="win0_driver">
+      <testcase id="guestops.drivers.TCDriverInstall" blocker="yes" name="win1_driver" tc="TC-18446" sku="win1_driver">
         <arg>guest=win1</arg>
         <arg>resident_on=M1</arg>
       </testcase>
 
       <!--win2 is on slave-->
-      <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="win0_install">
+      <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="win2_install" tc="TC-18446" sku="win2_install">
         <arg>S1</arg>
         <arg>guest=win2</arg>
         <arg>distro=ws08sp2-x86</arg>
         <arg>memory=1024</arg>
         <arg>sr=Local storage</arg>
       </testcase>
-      <testcase id="guestops.drivers.TCDriverInstall" blocker="yes" name="win0_driver">
+      <testcase id="guestops.drivers.TCDriverInstall" blocker="yes" name="win2_driver" tc="TC-18446" sku="win2_driver">
         <arg>guest=win2</arg>
         <arg>resident_on=S1</arg>
       </testcase>
       
       <!--lin1 is on master-->
-      <testcase id="xenserver.guest.TCXenServerVendorInstall" name="lin1_install_1">
+      <testcase id="xenserver.guest.TCXenServerVendorInstall" name="lin1_install" tc="TC-18446" sku="lin1_install">
         <arg>M1</arg>
         <arg>guest=lin1</arg>
         <arg>distro=sles111</arg>
@@ -58,7 +55,7 @@
       </testcase>
 
       <!--lin2 is on slave-->
-      <testcase id="xenserver.guest.TCXenServerVendorInstall" name="lin1_install_1">
+      <testcase id="xenserver.guest.TCXenServerVendorInstall" name="lin2_install" tc="TC-18446" sku="lin2_install">
         <arg>S1</arg>
         <arg>guest=lin2</arg>
         <arg>distro=sles111</arg>
@@ -67,12 +64,10 @@
       </testcase>
     </serial>
       
-    <serial tc="${TCID}">
-      <testcase id="xenserver.tc.host.PCIPassThrough" name="pci_passthroug">
+    <serial group="pci_passthroug">
+      <testcase id="xenserver.tc.host.PCIPassThrough" name="pci_passthroug" tc="TC-18446" sku="pci_passthroug">
         <arg>guests=(win1:2),(lin1:1),(win2:2),(lin2:1)</arg>
       </testcase>
     </serial>
-    
   </testsequence>
-  
 </xenrt>

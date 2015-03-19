@@ -22,6 +22,7 @@ class _TCSmokeTest(xenrt.TestCase):
         self.template = None
         
 
+        self.host = self.getDefaultHost()
         if self.tcsku.endswith("_XenApp"):
             distroarch = self.tcsku.replace("_XenApp", "")
             (self.distro, self.arch) = xenrt.getDistroAndArch(distroarch)
@@ -29,7 +30,6 @@ class _TCSmokeTest(xenrt.TestCase):
         else:
             (self.distro, self.arch) = xenrt.getDistroAndArch(self.tcsku)
         
-        self.host = self.getDefaultHost()
         self.assertHardware()
         self.getGuestParams()
 
@@ -44,13 +44,14 @@ class _TCSmokeTest(xenrt.TestCase):
             raise xenrt.XRTError("No XenApp template for %s" % distro)
 
         if distro.endswith("-x64"):
-            return "%s_64" % start
+            template = "%s_64" % start
         else:
-            return start
+            template = start
+        return self.host.chooseTemplate(template)
 
     def getTemplateParams(self):
         if self.template:
-            tname = self.host.chooseTemplate(self.template)
+            tname = self.template
         else:
             tname = self.host.getTemplate(distro=self.distro, arch=self.arch)
 

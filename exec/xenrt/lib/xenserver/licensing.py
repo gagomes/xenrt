@@ -212,8 +212,8 @@ class CreedenceLicense(License):
         raise ValueError("No License server name found for the SKU %s" % self.sku)
 
 
-class DundeeLicense(ClearwaterLicense):
-    # For now, trunk is assumed that it has same "FREE" License scheme as Clearwater.
+class DundeeLicense(CreedenceLicense):
+    # For now, trunk is assumed that it has same scheme as Creedence.
     pass
 
 class XenServerLicenseFactory(object):

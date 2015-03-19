@@ -4390,6 +4390,7 @@ class TC18782(xenrt.TestCase):
 
     NUM_LOOPS = 10
     DELAY = 40
+    VALGRIND_RPMNAME = "valgrind-3.10.0-xs.11305.2702..x86_64.rpm"
 
     def prepare(self, arglist=None):
 
@@ -4413,7 +4414,8 @@ class TC18782(xenrt.TestCase):
                 multipathDebuginfoRpmFilePath = xenrt.TEC().getFile("binary-packages/RPMS/domain0/RPMS/i386/%s.i386.rpm" %
                                                                                                 multipathDebuginfoRpmFileName)
             else:
-                multipathDebuginfoRpmFilePath = xenrt.TEC().getFile("binary-packages/RPMS/domain0/RPMS/x86_64/valgrind-3.9.0-xs.10649.2569..x86_64.rpm")
+                multipathDebuginfoRpmFilePath = xenrt.TEC().getFile("binary-packages/RPMS/domain0/RPMS/x86_64/%s" %
+                                                                                                self.VALGRIND_RPMNAME)
 
             if not multipathDebuginfoRpmFilePath:
                 xenrt.TEC().logverbose("Device-mapper-multipath-debuginfo file path does not exist. "

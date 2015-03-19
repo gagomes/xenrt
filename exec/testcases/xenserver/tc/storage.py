@@ -412,8 +412,7 @@ class TCCoexistenceOfNFS4NoSubDirs(NFSSRSanityTestTemplate):
     """Co-existence of multiple NFS SRs (version 4) with no sub directory on the same NFS path"""
      
     def createSR(self,host,guest):
-        xenrt.ExternalNFSShare.DEFAULT_VERSION = "4"
-        server, path = xenrt.ExternalNFSShare().getMount().split(":")
+        server, path = xenrt.ExternalNFSShare(version="4").getMount().split(":")
 
         # Create a NFS SR with no sub directory.
         nfsSR = xenrt.lib.xenserver.host.NFSv4StorageRepository(host, "nfssr-withnosubdir-1")
@@ -453,8 +452,7 @@ class TCCoexitenceNFS4NoSubDirClassic(NFSSRSanityTestTemplate):
     """Co-existence of NFS SR v4 with no sub directory and classic NFS SR v4 on the same NFS path"""
 
     def createSR(self,host,guest):
-        xenrt.ExternalNFSShare.DEFAULT_VERSION = "4"
-        server, path = xenrt.ExternalNFSShare().getMount().split(":")
+        server, path = xenrt.ExternalNFSShare(version="4").getMount().split(":")
 
         # Create a NFS SR with no sub directory.
         nfsSR = xenrt.lib.xenserver.host.NFSv4StorageRepository(host, "nfssr-withnosubdir-3")
@@ -476,8 +474,7 @@ class TCCoexistenceNFS4AndNFSv3(NFSSRSanityTestTemplate):
     """Co-existence of NFS SR v4 and NFS SR v3 on the same NFS path"""
 
     def createSR(self,host,guest):
-        xenrt.ExternalNFSShare.DEFAULT_VERSION = "4"
-        server, path = xenrt.ExternalNFSShare().getMount().split(":")
+        server, path = xenrt.ExternalNFSShare(version="4").getMount().split(":")
 
         # Create a NFS v4 SR with no sub directory.
         nfsSR = xenrt.lib.xenserver.host.NFSv4StorageRepository(host, "nfssr-v4")

@@ -82,6 +82,11 @@ class _TCSmoketest(xenrt.TestCase):
     def installOS(self):        
         # Install the OS
 
+        if self.TEMPLATE:
+            template = self.host.chooseTemplate(self.TEMPLATE)
+        else:
+            template = None
+    
         self.guest = xenrt.lib.xenserver.guest.createVM(self.host,
                     xenrt.randomGuestName(),
                     self.DISTRO,
@@ -90,7 +95,7 @@ class _TCSmoketest(xenrt.TestCase):
                     memory = self.MEMORY,
                     arch = self.ARCH,
                     vifs = xenrt.lib.xenserver.Guest.DEFAULT,
-                    template = self.TEMPLATE,
+                    template = template,
                     notools = self.DISTRO.startswith("solaris"))
         
         self.uninstallOnCleanup(self.guest)

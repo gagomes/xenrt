@@ -2502,7 +2502,7 @@ class Config(object):
         self.config["GUEST_TESTS"] = {}
 
         self.config["GUEST_TESTS"]["George"] = {}
-        self.config["GUEST_TESTS"]["George"]["Primary"] = ['debian50_x86-32','etch_x86-32','rhel48_x86-32',
+        self.config["GUEST_TESTS"]["George"]["Primary"] = ['debian50_x86-32','rhel48_x86-32',
          'rhel53_x86-32','rhel53_x86-64','sles102_x86-32','sles102_x86-64','sles11_x86-32','sles11_x86-64','sles94_x86-32',
          'vistaeesp1','vistaeesp1-x64','w2k3eesp2','w2k3eesp2-x64','w2kassp4','win7-x64','win7-x86','winxpsp3','ws08-x64',
          'ws08-x86','ws08r2-x64']
@@ -2545,7 +2545,7 @@ class Config(object):
         self.config["GUEST_TESTS"]["Boston"]["Primary"] = ['centos56_x86-32','centos56_x86-64','debian50_x86-32',
          'debian60_x86-32','debian60_x86-64','oel56_x86-32','oel56_x86-64','oel6_x86-32','oel6_x86-64','rhel48_x86-32',
          'rhel56_x86-32','rhel56_x86-64','rhel6_x86-32','rhel6_x86-64','sles104_x86-32','sles104_x86-64','sles111_x86-32',
-         'sles111_x86-64','sles94_x86-32','solaris10u9_x86-32','solaris10u9_x86-64','ubuntu1004_x86-32',
+         'sles111_x86-64','sles94_x86-32','ubuntu1004_x86-32',
          'ubuntu1004_x86-64','vistaeesp2','vistaeesp2-x64','w2k3eesp2','w2k3eesp2-x64','win7sp1-x64','win7sp1-x86',
          'winxpsp3','ws08dcsp2-x64','ws08dcsp2-x86','ws08r2dcsp1-x64']
         self.config["GUEST_TESTS"]["Boston"]["Secondary"] = ['centos45_x86-32','centos46_x86-32','centos47_x86-32',
@@ -2563,7 +2563,7 @@ class Config(object):
          'centos57_x86-64','centos65_x86-32','centos65_x86-64','debian50_x86-32','debian60_x86-32','debian60_x86-64',
          'oel510_x86-32','oel510_x86-64','oel65_x86-32','oel65_x86-64','rhel48_x86-32','rhel56_x86-32','rhel56_x86-64',
          'rhel57_x86-32','rhel57_x86-64','rhel6_x86-32','rhel6_x86-64','sles104_x86-32','sles104_x86-64','sles111_x86-32',
-         'sles111_x86-64','solaris10u9_x86-32','solaris10u9_x86-64','ubuntu1004_x86-32','ubuntu1004_x86-64','vistaeesp2',
+         'sles111_x86-64','ubuntu1004_x86-32','ubuntu1004_x86-64','vistaeesp2',
          'vistaeesp2-x64','w2k3eesp2','w2k3eesp2-x64','w2k3eesp2pae','win7sp1-x64','win7sp1-x86','winxpsp3',
          'ws08dcsp2-x64','ws08dcsp2-x86','ws08r2dcsp1-x64']
         self.config["GUEST_TESTS"]["Sanibel"]["Secondary"] = ['centos45_x86-32','centos46_x86-32','centos47_x86-32',
@@ -2583,7 +2583,7 @@ class Config(object):
          'centos61_x86-64','centos62_x86-32','centos62_x86-64','debian60_x86-32','debian60_x86-64','oel510_x86-32',
          'oel510_x86-64','oel65_x86-32','oel65_x86-64','rhel48_x86-32','rhel57_x86-32','rhel57_x86-64','rhel61_x86-32',
          'rhel61_x86-64','rhel62_x86-32','rhel62_x86-64','sles104_x86-32','sles104_x86-64','sles111_x86-32',
-         'sles111_x86-64','solaris10u9_x86-32','solaris10u9_x86-64','ubuntu1004_x86-32','ubuntu1004_x86-64',
+         'sles111_x86-64','ubuntu1004_x86-32','ubuntu1004_x86-64',
          'ubuntu1204_x86-32','ubuntu1204_x86-64','vistaeesp2','w2k3eesp2','w2k3eesp2-x64','win7sp1-x64','win7sp1-x86',
          'winxpsp3','ws08dcsp2-x64','ws08dcsp2-x86','ws08r2dcsp1-x64']
         self.config["GUEST_TESTS"]["Tampa"]["Secondary"] = ['centos45_x86-32','centos46_x86-32','centos47_x86-32',
@@ -2666,17 +2666,28 @@ class Config(object):
          'rhel63_x86-64','rhel64_x86-32','rhel64_x86-64','sles102_x86-32','sles102_x86-64','sles103_x86-32',
          'sles103_x86-64','sles111_x86-32','sles111_x86-64','sles112_x86-32','sles112_x86-64','sles11_x86-32',
          'sles11_x86-64','w2k3eer2','w2k3ser2','w2k3sesp2','win7-x64','ws08r2-x64', 'win7-x86']
-        
-        # Process these into 32 bit PV and not 32 bit PV (for Max Mem tests)
+       
+        # Linux install methods supported
+        nfsInstallSupport = ["rhel[4-6]", "centos[4-6]", "sl[5-6]", "oel[4-6]", "sles9", "sles10", "sles11"]
+
+        # Process these into various categories
         for r in self.config["GUEST_TESTS"].keys():
             for g in self.config["GUEST_TESTS"][r].keys():
                 self.config["GUEST_TESTS"][r]["%s_32BitPV" % g] = []
                 self.config["GUEST_TESTS"][r]["%s_Not32BitPV" % g] = []
+                self.config["GUEST_TESTS"][r]["%s_LinuxISOInstall" % g] = []
+                self.config["GUEST_TESTS"][r]["%s_LinuxHTTPInstall" % g] = []
+                self.config["GUEST_TESTS"][r]["%s_LinuxNFSInstall" % g] = []
                 for d in self.config['GUEST_TESTS'][r][g]:
                     if xenrt.is32BitPV(d, release=r, config=self):
                         self.config["GUEST_TESTS"][r]["%s_32BitPV" % g].append(d)
                     else:
                         self.config["GUEST_TESTS"][r]["%s_Not32BitPV" % g].append(d)
+                    if not xenrt.isWindows(d):
+                        self.config["GUEST_TESTS"][r]["%s_LinuxISOInstall" % g].append(d)
+                        self.config["GUEST_TESTS"][r]["%s_LinuxHTTPInstall" % g].append(d)
+                        if [x for x in nfsInstallSupport if re.match(x, d)]:
+                            self.config["GUEST_TESTS"][r]["%s_LinuxNFSInstall" % g].append(d)
 
         self.config["DEFAULT_HOTFIX_BRANCH"] = {}
         self.config["DEFAULT_HOTFIX_BRANCH"]["Clearwater"] = "SP1"

@@ -6021,18 +6021,22 @@ class DundeeGuest(CreedenceGuest):
     def uninstallDrivers(self, waitForDaemon=True):
         
         installed = True
-        try:
+        driversToUninstall = ['*XENVIF*', '*XENBUS*', '*VEN_5853*']
+        
+        if self.winRegPresent('HKLM', "SOFTWARE\\Wow6432Node\\Citrix\\XenToolsInstaller", "InstallStatus"):
             regValue = self.winRegLookup('HKLM', "SOFTWARE\\Wow6432Node\\Citrix\\XenToolsInstaller", "InstallStatus", healthCheckOnFailure=False)
-        except:
-            try:
-                regValue = self.winRegLookup('HKLM', "SOFTWARE\\Citrix\\XenToolsInstaller", "InstallStatus", healthCheckOnFailure=False)
-            except:
-                installed = False
+        
+        elif self.winRegPresent('HKLM', "SOFTWARE\\Citrix\\XenToolsInstaller", "InstallStatus"):
+            regValue = self.winRegLookup('HKLM', "SOFTWARE\\Citrix\\XenToolsInstaller", "InstallStatus", healthCheckOnFailure=False)
+        
+        else:
+            installed = False
+
 
         if installed:
             #Drivers are installed using the tools ISO ,
             
-            TampaGuest.uninstallDrivers(self, waitForDaemon)
+            super(TampaGuest , self).uninstallDrivers(waitForDaemon)
         else:
             
             #Drivers are installed using PV Packages uninstall them separately
@@ -6053,12 +6057,10 @@ class DundeeGuest(CreedenceGuest):
             
             batch = ""
             
-            batch = batch + "C:\\devcon64.exe remove *XENVIF*\r\n"
-            batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
-            batch = batch + "C:\\devcon64.exe remove *XENBUS*\r\n"
-            batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
-            batch = batch + "C:\\devcon64.exe remove *VEN_5853*\r\n"
-            batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
+            for driver in driversToUninstall:
+            
+                batch = batch + "C:\\devcon64.exe remove %s\r\n" %(driver)
+                batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
 
             for file in oemFileList:
                 batch = batch + "pnputil.exe -f -d %s\r\n" %(file) 

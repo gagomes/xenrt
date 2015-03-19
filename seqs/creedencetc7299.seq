@@ -27,8 +27,8 @@
         <vcpus>2</vcpus>
         <network device="0"/>
       </vm>
-      <vm name="debian70">
-        <distro>debian70</distro>
+      <vm name="sles112">
+        <distro>sles112</distro>
         <memory>1024</memory>
         <vcpus>2</vcpus>
         <network device="0"/>

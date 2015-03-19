@@ -11421,7 +11421,7 @@ class CreedenceHost(ClearwaterHost):
     def vSwitchCoverageLog(self):
         self.vswitchAppCtl("coverage/show")
 
-    def license(self, v6server=None, sku="enterprise-per-socket", usev6testd=True, edition=None):
+    def license(self, v6server=None, sku=xenrt.TEC().lookup("EDITION", default="enterprise-per-socket"), usev6testd=True, edition=None):
         """
         In order to keep backwards compatability "sku" arg is called sku
         but really it needs the edition to be passed in

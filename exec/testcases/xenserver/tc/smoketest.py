@@ -70,16 +70,6 @@ class _TCNewSmokeTest(xenrt.TestCase):
     def assertHardware(self):
         pass
 
-    def isPV(self):
-        # Windows
-        if self.distro[0] in ("v", "w"):
-            return False
-        # Solaris
-        if self.distro.startswith("sol"):
-            return False
-        # HVM Linux
-        return not self.distro in self.host.lookup("HVM_LINUX", "").split(",")
-
     def run(self, arglist):
         if self.runSubcase("installOS", (), "OS", "Install") != \
                 xenrt.RESULT_PASS:
@@ -260,9 +250,9 @@ class TCSmokeTestMaxMem(_TCNewSmokeTest):
         glimits = self.getGuestLimits()
 
         if self.arch == "x86-32":
-            guestMaxMem = glimits['MAXMEMORY']
+            guestMaxMem = int(glimits['MAXMEMORY'])
         else:
-            guestMaxMem = glimits.get("MAXMEMORY64", glimits['MAXMEMORY'])
+            guestMaxMem = int(glimits.get("MAXMEMORY64", glimits['MAXMEMORY']))
 
         self.memory = min(guestMaxMem, hostMaxMem)
 
@@ -283,9 +273,9 @@ class TCSmokeTestMaxvCPUs(_TCNewSmokeTest):
         glimits = self.getGuestLimits()
         
         if self.arch == "x86-32":
-            guestMaxVCPUs = glimits.get('MAX_VM_VCPUS')
+            guestMaxVCPUs = int(glimits.get('MAX_VM_VCPUS'))
         else:
-            guestMaxVCPUs = glimits.get("MAX_VM_VCPUS64", glimits.get("MAX_VM_CPUS"))
+            guestMaxVCPUs = int(glimits.get("MAX_VM_VCPUS64", glimits.get("MAX_VM_CPUS")))
 
         if guestMaxVCPUs:
             self.vcpus = min(guestMaxVCPUs, hostMaxVCPUs)
@@ -311,8 +301,8 @@ class TCSmokeTestMinConfig(_TCNewSmokeTest):
         self.vcpus = 1
         glimits = self.getGuestLimits()
 
-        guestMinMem = glimits['MINMEMORY']
-        hostMinMem = self.host.lookup("MIN_VM_MEMORY")
+        guestMinMem = int(glimits['MINMEMORY'])
+        hostMinMem = int(self.host.lookup("MIN_VM_MEMORY"))
         hostMinMemForGuest = int(self.host.lookup(["VM_MIN_MEMORY_LIMITS", self.distro], "0"))
         self.memory = max(guestMinMem, hostMinMem, hostMinMemForGuest)
 

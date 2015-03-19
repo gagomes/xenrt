@@ -273,11 +273,12 @@ class TCSmokeTestMaxvCPUs(_TCSmokeTest):
         glimits = self.getGuestLimits()
         
         if self.arch == "x86-32":
-            guestMaxVCPUs = int(glimits.get('MAX_VM_VCPUS'))
+            guestMaxVCPUs = glimits.get('MAX_VM_VCPUS')
         else:
-            guestMaxVCPUs = int(glimits.get("MAX_VM_VCPUS64", glimits.get("MAX_VM_CPUS")))
+            guestMaxVCPUs = glimits.get("MAX_VM_VCPUS64", glimits.get("MAX_VM_CPUS"))
 
         if guestMaxVCPUs:
+            guestMaxVCPUs = int(guestMaxVCPUs)
             self.vcpus = min(guestMaxVCPUs, hostMaxVCPUs)
         else:
             self.vcpus = hostMaxVCPUs

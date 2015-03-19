@@ -2889,7 +2889,7 @@ class GlobalExecutionContext(object):
         
         logtcid = None
         if not jiratc:
-            m = re.match("TC(\d+)", t.tcid)
+            m = re.match("TC(\d+)", t.basename)
             if m:
                 logtcid = "TC-%s" % m.group(1)
         else:

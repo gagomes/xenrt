@@ -547,6 +547,14 @@ class SingleTestCase(Fragment):
                 return ["%s_%s" % (self.jiratc, self.tcsku)]
             else:
                 return [self.jiratc]
+        tc = self.tc(tec=False)
+        tc.setTCSKU(self.tcsku)
+        if tc.getDefaultJiraTC():
+            if self.tcsku:
+                return ["%s_%s" % (tc.getDefaultJiraTC(), self.tcsku)]
+            else:
+                return [tc.getDefaultJiraTC()]
+            
         r = re.search(r"\.TC(\d+)$", self.tcid)
         if r:
             if self.tcsku:

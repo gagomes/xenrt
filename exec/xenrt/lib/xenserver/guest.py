@@ -561,9 +561,11 @@ class Guest(xenrt.GenericGuest):
             kernelUpdatesPrefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "") + "/kernelUpdates"
             if distro and 'oel7' in distro:
                 _new_kernel = kernelUpdatesPrefix + "/OEL7/"
-                _new_kernel_path = ["kernel-uek-firmware-3.8.13-36.3.1.el7uek.xs.x86_64.rpm",
-                                    "kernel-uek-3.8.13-36.3.1.el7uek.xs.x86_64.rpm",
-                                    "kernel-uek-devel-3.8.13-36.3.1.el7uek.xs.x86_64.rpm"]
+                _new_kernel_path = ["kernel-uek-firmware-3.8.13-55.1.5.el7uek.xs.x86_64.rpm",
+                                    "kernel-uek-3.8.13-55.1.5.el7uek.xs.src.rpm",
+                                    "kernel-uek-3.8.13-55.1.5.el7uek.xs.x86_64.rpm",
+                                    "kernel-uek-devel-3.8.13-55.1.5.el7uek.xs.x86_64.rpm",
+                                    "kernel-uek-headers-3.8.13-55.1.5.el7uek.xs.x86_64.rpm"]
                 for kernelFix in _new_kernel_path:
                     xenrt.TEC().logverbose("wget %s/%s"%(_new_kernel,kernelFix))
                     self.execcmd("wget %s/%s"%(_new_kernel,kernelFix))
@@ -572,11 +574,10 @@ class Guest(xenrt.GenericGuest):
                 self.execcmd("sed -i 's^root=/dev/mapper/VolGroup-lv_root^%s^' /boot/grub2/grub.cfg"%(tempRoot))
             elif distro and distro in ['rhel7','centos7']:
                 _new_kernel = kernelUpdatesPrefix + "/RHEL7/"
-                _new_kernel_path = ["kernel-devel-3.10.0-123.6.3.el7.xs1.x86_64.rpm",
-                                    "kernel-tools-libs-3.10.0-123.6.3.el7.xs1.x86_64.rpm",
-                                    "kernel-headers-3.10.0-123.6.3.el7.xs1.x86_64.rpm",
-                                    "kernel-tools-3.10.0-123.6.3.el7.xs1.x86_64.rpm",
-                                    "kernel-3.10.0-123.6.3.el7.xs1.x86_64.rpm"]
+                _new_kernel_path = ["kernel-devel-3.10.0-123.20.1.el7.xs.x86_64.rpm",
+                                    "kernel-3.10.0-123.20.1.el7.xs.src.rpm",
+                                    "kernel-3.10.0-123.20.1.el7.xs.x86_64.rpm",
+                                    "kernel-headers-3.10.0-123.20.1.el7.xs.x86_64.rpm"]
                 for kernelFix in _new_kernel_path:
                     xenrt.TEC().logverbose("wget %s/%s"%(_new_kernel,kernelFix))
                     self.execcmd("wget %s/%s"%(_new_kernel,kernelFix))

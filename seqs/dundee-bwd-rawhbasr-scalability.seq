@@ -7,16 +7,14 @@
   </variables>
 
   <prepare>
-    <host/>
+    <host />
   </prepare>
 
   <testsequence>
     <serial group="LPVSRScale">
-        <!-- RawHBASR Operation test with 256 LUNs. -->
-        <testcase id="xenserver.tc.lunpervdi.TC18365" name="TC18365" tc="TC-18365"/>
+      <!-- RawHBASR Operation test with 256 LUNs. -->
+      <testcase id="xenserver.tc.lunpervdi.TC18365" name="TC18365" tc="TC-18365" />
     </serial>
   </testsequence>
 
 </xenrt>
-
-

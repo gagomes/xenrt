@@ -1,0 +1,29 @@
+<xenrt>
+
+  <!-- LPV RawHBA VL Life Cycle Tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <serial group="VMLifeCycle">
+
+      <!-- VM Lifcycle operations with rawHBA SR. -->
+      <testcase id="xenserver.tc.lunpervdi.VMLifeCycle" name="TC18350" tc="TC-18350">
+        <arg>windistro=ws08r2-x64</arg>
+      </testcase>
+      <testcase id="xenserver.tc.lunpervdi.VMLifeCycle" name="TC18351" tc="TC-18351">
+        <arg>lindistro=oel62</arg>
+      </testcase>
+
+    </serial>
+  </testsequence>
+
+</xenrt>
+
+

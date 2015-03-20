@@ -14,13 +14,13 @@
     <serial group="VMLifeCycle">
 
       <!-- VM Lifcycle operations with rawHBA SR. -->
-      <testcase id="xenserver.tc.lunpervdi.VMLifeCycle" name="TC18350" tc="TC-18350">
+      <testcase id="xenserver.tc.lunpervdi.VMLifeCycle" name="Win" tc="TC-18350" sku="Win">
         <arg>windistro=ws12-x64</arg>
       </testcase>
-      <testcase id="xenserver.tc.lunpervdi.VMLifeCycle" name="TC18351" tc="TC-18351" sku="Rhel">
+      <testcase id="xenserver.tc.lunpervdi.VMLifeCycle" name="Rhel" tc="TC-18351" sku="Rhel">
         <arg>lindistro=rhel511</arg>
       </testcase>
-      <testcase id="xenserver.tc.lunpervdi.VMLifeCycle" name="TC18351" tc="TC-18351" sku="Oel">
+      <testcase id="xenserver.tc.lunpervdi.VMLifeCycle" name="Oel" tc="TC-18351" sku="Oel">
         <arg>lindistro=oel511</arg>
       </testcase>
 

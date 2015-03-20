@@ -2132,7 +2132,24 @@ fi
 
     def waitForFirstBootScriptsToComplete(self):
         ret = ""
-        for i in range(10):
+        maxLoops = 10 # By default wait 5 minutes (each loop has a 30s sleep)
+        try:
+            # Check if we have a large disk, as in that situation we will need to allow more time (CA-165064)
+            disk = self.getInventoryItem("PRIMARY_DISK")
+            fdiskout = self.execdom0("fdisk -l %s" % disk)
+            disksize = None
+            for line in fdiskout.splitlines():
+                matches = re.search("Disk %s: (.*) GB" % disk, line)
+                if matches != None:
+                    disksize = int(round(float(matches.group(1))))
+                    break
+            if disksize and disksize > 500:
+                # Allow an extra loop per 100GB
+                maxLoops += ((disksize-500) / 100)
+        except Exception, e:
+            traceback.print_exc(file=sys.stderr)
+            xenrt.TEC().warning("Exception while attempting to determine disk size: %s" % str(e))
+        for i in range(maxLoops):
             ret = self.execdom0("cat /etc/firstboot.d/state/99-remove-firstboot-flag || true").strip()
             if "success" in ret:
                 xenrt.TEC().logverbose("First boot scripts completed: %s" % ret)

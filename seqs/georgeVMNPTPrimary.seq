@@ -7,7 +7,7 @@
     <host/>
   </prepare>
   <testsequence>
-    <parallel group="OS" workers="2">
+    <parallel group="NPT" workers="2">
       <for iter="D" values="%GUEST_TESTS:George:Primary%" limit="%LIMIT%" offset="%OFFSET%"> 
         <testcase id="xenserver.tc.smoketest.TCSmokeTestAMDNPT" name="${D}" sku="${D}" />
       </for>

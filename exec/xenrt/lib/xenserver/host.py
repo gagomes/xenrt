@@ -11430,6 +11430,11 @@ class CreedenceHost(ClearwaterHost):
         args = []
         args.append("host-uuid=%s" % (self.getMyHostUUID()))
 
+        #WORKAROUND, should be removed once all the branches are in sync
+        ed = xenrt.TEC().lookup("EDITION",default=None)
+        if ed:
+            sku=ed
+
         if  usev6testd and not v6server:
             # Make sure the v6testd is in use
             # Try to get it from xe-phase-1

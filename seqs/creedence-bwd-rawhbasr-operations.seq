@@ -27,17 +27,6 @@
       <!-- Creation of second rawHBA SR. -->
       <testcase id="xenserver.tc.lunpervdi.TC18369" name="TC18369" tc="TC-18369" />
 
-      <!-- VM Lifcycle operations with rawHBA SR. -->
-      <testcase id="xenserver.tc.lunpervdi.VMLifeCycle" name="TC18350" tc="TC-18350">
-        <arg>windistro=ws12-x64</arg>
-      </testcase>
-      <testcase id="xenserver.tc.lunpervdi.VMLifeCycle" name="TC18351" tc="TC-18351" sku="Rhel">
-        <arg>lindistro=rhel511</arg>
-      </testcase>
-      <testcase id="xenserver.tc.lunpervdi.VMLifeCycle" name="TC18351" tc="TC-18351" sku="Oel">
-        <arg>lindistro=oel511</arg>
-      </testcase>
-
     </serial>
   </testsequence>
 

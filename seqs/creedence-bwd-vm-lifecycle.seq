@@ -1,0 +1,30 @@
+<xenrt>
+
+  <!-- LPV RawHBA VM Life Cycle Tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host />
+  </prepare>
+
+  <testsequence>
+    <serial group="VMLifeCycle">
+
+      <!-- VM Lifcycle operations with rawHBA SR. -->
+      <testcase id="xenserver.tc.lunpervdi.VMLifeCycle" name="TC18350" tc="TC-18350">
+        <arg>windistro=ws12-x64</arg>
+      </testcase>
+      <testcase id="xenserver.tc.lunpervdi.VMLifeCycle" name="TC18351" tc="TC-18351" sku="Rhel">
+        <arg>lindistro=rhel511</arg>
+      </testcase>
+      <testcase id="xenserver.tc.lunpervdi.VMLifeCycle" name="TC18351" tc="TC-18351" sku="Oel">
+        <arg>lindistro=oel511</arg>
+      </testcase>
+
+    </serial>
+  </testsequence>
+
+</xenrt>

@@ -669,7 +669,12 @@ class TC19270(_VMScalability):
     #DOM0MEM = 8192
     MEMORY=128
     ARCH = "x86-64"
-    DOM0CPUS = False
+    #DOM0CPUS = False
+    
+    def postRun(self):
+        # don't do any cleanup - it takes ages
+        pass
+
 
 class TC19271(_VMScalability):
     """Test for ability to run the supported number of Windows VMs by disabling some guest features and adjusting Dom0 memory"""

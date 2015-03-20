@@ -2146,8 +2146,9 @@ fi
             if disksize and disksize > 500:
                 # Allow an extra loop per 100GB
                 maxLoops += ((disksize-500) / 100)
-        except:
-            pass
+        except Exception, e:
+            traceback.print_exc(file=sys.stderr)
+            xenrt.TEC().warning("Exception while attempting to determine disk size: %s" % str(e))
         for i in range(maxLoops):
             ret = self.execdom0("cat /etc/firstboot.d/state/99-remove-firstboot-flag || true").strip()
             if "success" in ret:

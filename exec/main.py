@@ -92,9 +92,11 @@ def usage(fd):
     --nohostprepare                       Don't run host prepare tests
     --noinstall                           Don't run guest installation tests
     --skip <testname>                     Skip a test
+    --skipsku <skuname>                   Skip a test SKU
     --skipgroup <groupname>               Skip a test group
     --skiptype <type>                     Skip a test type
     --run <testname>                      Run this test (implies skip others)
+    --runsku <skuname>                    Run this sku (implies skip others)
     --rungroup <groupname>                Run this group (implies skip others)
     --no-finally                          Don't execute "finally" actions
     --no-postrun                          Don't execute "postRun" actions
@@ -199,8 +201,10 @@ tailor = True
 password = True
 skip = []
 skipgroup = []
+skipsku = []
 skiptype = []
 run = []
+runsku = []
 rungroup = []
 traceon = False
 redir = False
@@ -305,9 +309,11 @@ try:
                                       'notailor',
                                       'nopassword',
                                       'skip=',
+                                      'skipsku=',
                                       'skipgroup=',
                                       'skiptype=',
                                       'run=',
+                                      'runsku=',
                                       'rungroup=',
                                       'distro=',
                                       'trace',
@@ -411,6 +417,11 @@ try:
                     if varval == "yes":
                         skip.append(r.group(1))
                         continue
+                r = re.search(r"^SKIPSKU_(\S+)", var)
+                if r:
+                    if varval == "yes":
+                        skipsku.append(r.group(1))
+                        continue
                 r = re.search(r"^SKIPGROUP_(\S+)", var)
                 if r:
                     if varval == "yes":
@@ -435,6 +446,11 @@ try:
                 if r:
                     if varval == "yes":
                         run.append(r.group(1))
+                        continue
+                r = re.search(r"^RUNSKU_(\S+)", var)
+                if r:
+                    if varval == "yes":
+                        runsku.append(r.group(1))
                         continue
                 r = re.search(r"^RUNGROUP_(\S+)", var)
                 if r:
@@ -560,12 +576,16 @@ try:
             password = False
         elif flag == "--skip":
             skip.append(value)
+        elif flag == "--skipsku":
+            skipsku.append(value)
         elif flag == "--skipgroup":
             skipgroup.append(value)
         elif flag == "--skiptype":
             skiptype.append(value)
         elif flag == "--run":
             run.append(value)
+        elif flag == "--runsku":
+            runsku.append(value)
         elif flag == "--rungroup":
             rungroup.append(value)
         elif flag == "--distro":
@@ -900,17 +920,21 @@ gec = xenrt.GlobalExecutionContext(config=config)
 
 for f in skip:
     gec.skipTest(f)
+for f in skipsku:
+    gec.skipSku(f)
 for f in skipgroup:
     gec.skipGroup(f)
 for f in skiptype:
     gec.skipType(f)
 for f in run:
     gec.noSkipTest(f)
+for f in runsku:
+    gec.noSkipSku(f)
 for f in rungroup:
     gec.noSkipGroup(f)
 if prio != None:
     gec.setPriority(prio)
-if len(run) > 0 or len(rungroup) > 0:
+if len(run) > 0 or len(rungroup) > 0 or len(runsku) > 0:
     if config.lookup("SKIPALL", None) == None:
         config.setVariable("SKIPALL", True)
 if knownissuelist:

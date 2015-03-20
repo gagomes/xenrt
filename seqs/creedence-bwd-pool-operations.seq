@@ -16,12 +16,14 @@
       <!-- Pool operations with rawHBA SR. -->
       <testcase id="xenserver.tc.lunpervdi.TC18352" name="TC18352" tc="TC-18352" blocker="yes">
         <arg>windistro=ws12-x64</arg>
-        <arg>lindistro=oel511</arg>
+        <arg>lindistro=rhel511</arg>
+        <arg>distro=oel65</arg>
       </testcase>
       <!-- VM migration with rawHBA SR. -->
       <testcase id="xenserver.tc.lunpervdi.TC18358" name="TC18358" tc="TC-18358">
         <arg>windistro=ws12-x64</arg>
         <arg>lindistro=rhel511</arg>
+        <arg>distro=oel65</arg>
       </testcase>
     </serial>
   </testsequence>

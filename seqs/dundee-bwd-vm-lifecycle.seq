@@ -15,13 +15,13 @@
 
       <!-- VM Lifcycle operations with rawHBA SR. -->
       <testcase id="xenserver.tc.lunpervdi.VMLifeCycle" name="Win" tc="TC-18350" sku="Win">
-        <arg>windistro=ws12-x64</arg>
+        <arg>distro=ws12-x64</arg>
       </testcase>
       <testcase id="xenserver.tc.lunpervdi.VMLifeCycle" name="Rhel" tc="TC-18351" sku="Rhel">
-        <arg>lindistro=rhel511</arg>
+        <arg>distro=rhel511</arg>
       </testcase>
       <testcase id="xenserver.tc.lunpervdi.VMLifeCycle" name="Oel" tc="TC-18351" sku="Oel">
-        <arg>lindistro=oel511</arg>
+        <arg>distro=oel65</arg>
       </testcase>
 
     </serial>

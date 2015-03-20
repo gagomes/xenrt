@@ -20,6 +20,7 @@ class LunPerVDI(xenrt.TestCase):
 
     WINDISTRO = "ws08r2-x64"
     LINDISTRO = "rhel56"
+    DISTRO =  "oel62"
 
     class _VdiUpdateMode(object): Add, Remove = range(2) 
 
@@ -48,6 +49,8 @@ class LunPerVDI(xenrt.TestCase):
         # 2003 R2 x64, 2008 x86, 2008 x64, 2008 R2 x64, 2012 x64, HPC 2008 x64, HPC 2008 R2 x64
         # OEL 5.x x86, OEL 5.x x64, OEL 6.x x64, RHEL 5.x x86, RHEL 5.x x64, RHEL 6.x x64
         for arg in arglist:
+            if arg.startswith('distro'):
+                self.DISTRO = arg.split('=')[1]
             if arg.startswith('lindistro'):
                 self.LINDISTRO = arg.split('=')[1]
             if arg.startswith('windistro'):
@@ -641,7 +644,7 @@ class VMLifeCycle(LunPerVDI):
 
         # 4. Create the Windows gusest by attaching the root disk and required extra disks.
         xenrt.TEC().logverbose("Creating a Windows guest by attaching root disk and required extra disks.")
-        self.guest = self.hosts[0].createBasicGuest(distro=self.LINDISTRO, rawHBAVDIs=diskList)
+        self.guest = self.hosts[0].createBasicGuest(distro=self.DISTRO, rawHBAVDIs=diskList)
         self.getLogsFrom(self.guest)
 
         # 5. Perform guest lifecycle operations.
@@ -694,6 +697,7 @@ class TCBwdEnvironment(LunPerVDI):
         # Form a list with a root disk and one or more required extra disks.
         diskList1 = [self.vdiuuids[0],self.vdiuuids[1], self.vdiuuids[2]]
         diskList2 = [self.vdiuuids[3],self.vdiuuids[4], self.vdiuuids[5]]
+        diskList3 = [self.vdiuuids[6],self.vdiuuids[7], self.vdiuuids[8]]
 
         # Create one windows & linux guests.
         #self.guests = xenrt.pfarm([xenrt.PTask(self.hosts[0].createBasicGuest, distro=self.WINDISTRO ,rawHBAVDIs=diskList1),
@@ -702,6 +706,7 @@ class TCBwdEnvironment(LunPerVDI):
         # Installing serially.
         self.guests.append(self.hosts[0].createBasicGuest(distro=self.WINDISTRO ,rawHBAVDIs=diskList1))
         self.guests.append(self.hosts[0].createBasicGuest(distro=self.LINDISTRO ,rawHBAVDIs=diskList2))
+        self.guests.append(self.hosts[0].createBasicGuest(distro=self.DISTRO ,rawHBAVDIs=diskList3))
 
 class TC18352(TCBwdEnvironment):
     """Verify life cycle operations of a VM with RawHBA SR in a pool of servers."""
@@ -738,17 +743,25 @@ class TC18352(TCBwdEnvironment):
 class TC18358(TCBwdEnvironment):
     """Verify the migration of a VM with RawHBA SR in a pool of servers."""
 
+    def migrationOfRawHBAGuest(self, host):
+        for guest in self.guests:
+            self.getLogsFrom(guest)
+            guest.migrateVM(host=host, live="true")
+            guest.check()
+            xenrt.sleep(60)
+
     def run(self, arglist=[]):
     
         # Prepare the basic borehamwood environment.
         TCBwdEnvironment.run(self, arglist=[])
 
         # Verify that VM can be migrated to slave.
-        xenrt.TEC().logverbose("VM Migration...")
-        for guest in self.guests:
-            self.getLogsFrom(guest)
-            guest.migrateVM(host=self.hosts[1], live="true")
-            guest.check()
+        xenrt.TEC().logverbose("VM Migration to slave ...")
+        self.migrationOfRawHBAGuest(self.hosts[1])
+
+        # Verify that VM can be migrated back to master.
+        xenrt.TEC().logverbose("VM Migration back to master ...")
+        self.migrationOfRawHBAGuest(self.hosts[0])
 
 class TC18365(LunPerVDI):
     """Verify a minimum of 256 LUNs can be mapped as part of the RawHBA SR feature."""

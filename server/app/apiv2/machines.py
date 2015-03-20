@@ -252,7 +252,7 @@ class _MachineBase(XenRTAPIv2Page):
         db = self.getDB()
         cur = db.cursor()
         try:
-            query = "INSERT INTO tblmachines(machine, site, cluster, pool, status, resources, descr) VALUES (%s, %s, %s, %s, 'idle', %s, %s)"
+            query = "INSERT INTO tblmachines(machine, site, pool, cluster, status, resources, descr) VALUES (%s, %s, %s, %s, 'idle', %s, %s)"
             params = [name, site, pool, cluster, "/".join(["%s=%s" % (x,y) for (x,y) in resources.items()]), description]
 
             cur.execute(query, params)

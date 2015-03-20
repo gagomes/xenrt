@@ -27,8 +27,8 @@
         <vcpus>2</vcpus>
         <network device="0"/>
       </vm>
-      <vm name="sles112">
-        <distro>sles112</distro>
+      <vm name="debian70">
+        <distro>debian70</distro>
         <memory>1024</memory>
         <vcpus>2</vcpus>
         <network device="0"/>
@@ -39,7 +39,7 @@
   <testsequence>
     <testcase id="xenserver.network.TCInterVMNetworking" group="Networking" tc="TC-7299">
       <arg>RESOURCE_HOST_0</arg>
-      <arg>guests=win7guest1,win7guest2,rhel61,sles112</arg>
+      <arg>guests=win7guest1,win7guest2,rhel61,debian70</arg>
     </testcase>
   </testsequence>
 

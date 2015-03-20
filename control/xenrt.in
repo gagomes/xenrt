@@ -1608,6 +1608,7 @@ class XenRTInteract(XenRTCommand):
         s = xmlrpclib.Server("http://%s" % (hostport))
         shell = False
         logger = False
+        stack = False
         try:
             optlist, optx = getopt.getopt(args[1:], 'lc:CD:dAfIr:sLR:n:Nu:x:S')
             for argpair in optlist:

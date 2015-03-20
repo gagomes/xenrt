@@ -1,0 +1,18 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+  </variables>
+
+  <testsequence>
+    <serial group="HostInstallation">
+      <testcase id="xenserver.install.TCXenServerInstall" tc="TC-6646" blocker="yes"/>
+      <testcase id="xenserver.install.TCXenServerSetupISOImportNFS" name="SetupISOImportNFS" tc="TC-6650" blocker="yes"/>
+    </serial>
+    <parallel group="VMLifecycle">
+      <testcase id="xenserver.tc.smoketest.TCSmokeTestTemplateDefaults" sku="rhel56_x86-32" name="rhel56-x86"/>
+      <testcase id="xenserver.tc.smoketest.TCSmokeTestTemplateDefaults" sku="ws08sp2-x64" name="ws08sp2-x64"/>
+    </parallel>
+  </testsequence>
+
+</xenrt>

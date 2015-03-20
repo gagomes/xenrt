@@ -175,11 +175,11 @@ class _XSAutoCertKit(xenrt.TestCase):
                         # The only work-around is restarting XAPI.
                         # Though CA-161590 is fixed with hotfix, old branch may still encounter this issue.
                         if not xenrt.TEC().lookup("TEST_CA-161590", False, boolean=True):
-                            xenrt.TEC().logverbose("Found CA-161590 issue. Trying restart XAPI and continuing.")
+                            xenrt.TEC().logverbose("Found CA-161590 issue. Trying restart hosts to continue tests.")
                             for host in self.pool.getHosts():
-                                host.restartToolstack()
-                            xenrt.sleep(60)
-                            self.pool.master.execdom0("cd /opt/xensource/packages/files/auto-cert-kit && python test_runner.py -t test_run.conf &")
+                                host.reboot()
+                            # Give some time to daemon to start off ACK again.
+                            xenrt.sleep(30)
                             continue
                         else:
                             raise xenrt.XRTError("Error occured in running auto cert kit")

@@ -1158,8 +1158,10 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Creedence"]["LOCAL_DISK_TiB"] = "6"
         self.config["VERSION_CONFIG"]["Creedence"]["MAX_VBDS_PER_HOST"] = "2048"
         
+        # Cream
+        self.config["VERSION_CONFIG"]["Cream"] = copy.deepcopy(self.config["VERSION_CONFIG"]["Creedence"])
         # Dundee
-        self.config["VERSION_CONFIG"]["Dundee"] = copy.deepcopy(self.config["VERSION_CONFIG"]["Creedence"])
+        self.config["VERSION_CONFIG"]["Dundee"] = copy.deepcopy(self.config["VERSION_CONFIG"]["Cream"])
         self.config["VERSION_CONFIG"]["Dundee"]["V6_DBV"] = "2014.1127"
 
         # Libvirt

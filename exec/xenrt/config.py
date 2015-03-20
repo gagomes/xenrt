@@ -2476,6 +2476,8 @@ class Config(object):
         self.config["OS_INSTALL_ISO"] = {}
         self.config["OS_INSTALL_ISO"]["solaris10u9"] = "sol-10-u9-ga-x86-dvd-jumpstart-64"
         self.config["OS_INSTALL_ISO"]["solaris10u9-32"] = "sol-10-u9-ga-x86-dvd-jumpstart-32"
+        self.config["OS_INSTALL_ISO"]["debian60"] = "deb6"
+        self.config["OS_INSTALL_ISO"]["debian70"] = "deb7"
         
         self.config["HOTFIXES"] = {}
         self.config["HOTFIXES"]["Orlando"] = {"RTM": {}}

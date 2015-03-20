@@ -302,7 +302,7 @@ class Guest(xenrt.GenericGuest):
 
         # Hack to avoid using an ISO install for Debian VMs from TCMultipleVDI
         # etc.
-        if distro and (distro in ["etch", "sarge"] or "debian" in distro):
+        if distro and (distro in ["etch", "sarge"] or "debian5" in distro):
             isoname = None
 
         # Hack to use correct kickstart for rhel6

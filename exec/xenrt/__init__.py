@@ -3358,7 +3358,9 @@ class GlobalExecutionContext(object):
             if ok:
                 sys.stdout.write("Sequence: PASS\n")
                 x = "OK"
-                borrow = xenrt.TEC().lookup("MACHINE_HOLD_FOR", None)
+                borrow = xenrt.TEC().lookup("MACHINE_HOLD_FOR_OK", None)
+                if not borrow:
+                    borrow = xenrt.TEC().lookup("MACHINE_HOLD_FOR", None)
             else:
                 sys.stdout.write("Sequence: FAIL\n")
                 x = "ERROR"

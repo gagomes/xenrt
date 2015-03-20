@@ -2707,7 +2707,7 @@ class Config(object):
        
         # Linux install methods supported
         nfsInstallSupport = ["rhel[4-6]", "centos[4-6]", "sl[5-6]", "oel[4-6]", "sles9", "sles10", "sles11"]
-
+        noIsoInstallSupport = ["ubuntu1004"]
         # Process these into various categories
         for r in self.config["GUEST_TESTS"].keys():
             for g in self.config["GUEST_TESTS"][r].keys():
@@ -2722,7 +2722,8 @@ class Config(object):
                     else:
                         self.config["GUEST_TESTS"][r]["%s_Not32BitPV" % g].append(d)
                     if not xenrt.isWindows(d):
-                        self.config["GUEST_TESTS"][r]["%s_LinuxISOInstall" % g].append(d)
+                        if not [x for x in noIsoInstallSupport if re.match(x, d)]:
+                            self.config["GUEST_TESTS"][r]["%s_LinuxISOInstall" % g].append(d)
                         self.config["GUEST_TESTS"][r]["%s_LinuxHTTPInstall" % g].append(d)
                         if [x for x in nfsInstallSupport if re.match(x, d)]:
                             self.config["GUEST_TESTS"][r]["%s_LinuxNFSInstall" % g].append(d)

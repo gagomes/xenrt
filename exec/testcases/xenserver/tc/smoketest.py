@@ -13,6 +13,8 @@ import xenrt, xenrt.lib.xenserver
 
 class _TCSmokeTest(xenrt.TestCase):
     PAUSEUNPAUSE = False
+    DISTRO = None
+    ROOTDISK = None
 
     def prepare(self, arglist):
 
@@ -23,7 +25,9 @@ class _TCSmokeTest(xenrt.TestCase):
         
 
         self.host = self.getDefaultHost()
-        if self.tcsku.endswith("_XenApp"):
+        if self.DISTRO:
+            (self.distro, self.arch) = xenrt.getDistroAndArch(self.DISTRO)
+        elif self.tcsku.endswith("_XenApp"):
             distroarch = self.tcsku.replace("_XenApp", "")
             (self.distro, self.arch) = xenrt.getDistroAndArch(distroarch)
             self.template = self.getXenAppTemplate(self.distro)
@@ -105,6 +109,11 @@ class _TCSmokeTest(xenrt.TestCase):
 
 
     def installOS(self):
+
+        disks = []
+        if self.ROOTDISK:
+            disks = [("0", self.ROOTDISK, False)] 
+
         self.guest = xenrt.lib.xenserver.guest.createVM(self.host,
                     xenrt.randomGuestName(self.distro, self.arch),
                     self.distro,
@@ -114,7 +123,8 @@ class _TCSmokeTest(xenrt.TestCase):
                     arch = self.arch,
                     vifs = xenrt.lib.xenserver.Guest.DEFAULT,
                     template = self.template,
-                    notools = self.distro.startswith("solaris"))
+                    notools = self.distro.startswith("solaris"),
+                    disks=disks)
         
         self.uninstallOnCleanup(self.guest)
         self.getLogsFrom(self.guest)
@@ -307,4 +317,15 @@ class TCSmokeTestMinConfig(_TCSmokeTest):
         hostMinMem = int(self.host.lookup("MIN_VM_MEMORY"))
         hostMinMemForGuest = int(self.host.lookup(["VM_MIN_MEMORY_LIMITS", self.distro], "0"))
         self.memory = max(guestMinMem, hostMinMem, hostMinMemForGuest)
+
+class TC8121(_TCSmokeTest):
+    """Smoketest of a Linux VM with a very large root disk."""
+    DISTRO = "generic-linux"
+    ROOTDISK = 2000
+
+class TC8120(_TCSmokeTest):
+    """Smoketest of a Windows VM with a very large root disk."""
+    DISTRO = "generic-windows"
+    ROOTDISK = 2000
+
 

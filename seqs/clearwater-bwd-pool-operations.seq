@@ -7,16 +7,22 @@
   </variables>
 
   <prepare>
-    <allhosts/>
+    <allhosts />
   </prepare>
 
   <testsequence>
     <serial group="LPVPoolTests">
 
       <!-- Pool operations with rawHBA SR. -->
-      <testcase id="xenserver.tc.lunpervdi.TC18352" name="TC18352" tc="TC-18352"/>
+      <testcase id="xenserver.tc.lunpervdi.TC18352" name="TC18352" tc="TC-18352">
+        <arg>windistro=ws08r2-x64</arg>
+        <arg>lindistro=oel62</arg>
+      </testcase>
       <!-- VM migration with rawHBA SR. -->
-      <testcase id="xenserver.tc.lunpervdi.TC18358" name="TC18358" tc="TC-18358"/>
+      <testcase id="xenserver.tc.lunpervdi.TC18358" name="TC18358" tc="TC-18358">
+        <arg>windistro=ws08r2-x64</arg>
+        <arg>lindistro=oel62</arg>
+      </testcase>
 
     </serial>
   </testsequence>

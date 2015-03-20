@@ -1525,18 +1525,17 @@ exit /B 1
         
         return pvcheck
         
-def checkPVDevices():
-    # Check the guest is using the PV drivers
-    pvcheck = self.checkPVDevicesState()
-    
-    if pvcheck:
-        if xenrt.TEC().lookup("PAUSE_ON_PV_CHECK_FAIL", False, boolean=True):
-            xenrt.TEC().tc.pause("Paused on PV Check failure")
+    def checkPVDevices():
+        # Check the guest is using the PV drivers
+        pvcheck = self.checkPVDevicesState()
+        
+        if pvcheck:
+            if xenrt.TEC().lookup("PAUSE_ON_PV_CHECK_FAIL", False, boolean=True):
+                xenrt.TEC().tc.pause("Paused on PV Check failure")
 
-        raise xenrt.XRTFailure("VIF and/or VBD PV device not used. Possibilities: -" + " -".join(pvcheck))
-    else:
-        xenrt.TEC().logverbose("PV drivers are installed and ready") 
-
+            raise xenrt.XRTFailure("VIF and/or VBD PV device not used. Possibilities: -" + " -".join(pvcheck))
+        else:
+            xenrt.TEC().logverbose("PV drivers are installed and ready") 
 
     def enableDriverVerifier(self, enable=True, drivers=["xennet.sys/xennet6.sys", "xenvbd.sys/xvbdstor.sys", "xevtchn.sys"]):
 

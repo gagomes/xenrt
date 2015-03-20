@@ -561,11 +561,9 @@ class Guest(xenrt.GenericGuest):
             kernelUpdatesPrefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "") + "/kernelUpdates"
             if distro and 'oel7' in distro:
                 _new_kernel = kernelUpdatesPrefix + "/OEL7/"
-                _new_kernel_path = ["kernel-uek-firmware-3.8.13-55.1.5.el7uek.xs.x86_64.rpm",
-                                    "kernel-uek-3.8.13-55.1.5.el7uek.xs.src.rpm",
-                                    "kernel-uek-3.8.13-55.1.5.el7uek.xs.x86_64.rpm",
-                                    "kernel-uek-devel-3.8.13-55.1.5.el7uek.xs.x86_64.rpm",
-                                    "kernel-uek-headers-3.8.13-55.1.5.el7uek.xs.x86_64.rpm"]
+                _new_kernel_path = ["kernel-uek-firmware-3.8.13-36.3.1.el7uek.xs.x86_64.rpm",
+                                    "kernel-uek-3.8.13-36.3.1.el7uek.xs.x86_64.rpm",
+                                    "kernel-uek-devel-3.8.13-36.3.1.el7uek.xs.x86_64.rpm"]
                 for kernelFix in _new_kernel_path:
                     xenrt.TEC().logverbose("wget %s/%s"%(_new_kernel,kernelFix))
                     self.execcmd("wget %s/%s"%(_new_kernel,kernelFix))

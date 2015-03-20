@@ -49,9 +49,9 @@ class LunPerVDI(xenrt.TestCase):
         # OEL 5.x x86, OEL 5.x x64, OEL 6.x x64, RHEL 5.x x86, RHEL 5.x x64, RHEL 6.x x64
         for arg in arglist:
             if arg.startswith('lindistro'):
-                self.LINDISTRO = int(arg.split('=')[1])
+                self.LINDISTRO = arg.split('=')[1]
             if arg.startswith('windistro'):
-                self.WINDISTRO = int(arg.split('=')[1])
+                self.WINDISTRO = arg.split('=')[1]
 
         # Lock storage resource and access storage manager library functions.
         self.netAppFiler = xenrt.StorageArrayFactory().getStorageArray(xenrt.StorageArrayVendor.NetApp,
@@ -664,8 +664,6 @@ class VMLifeCycle(LunPerVDI):
 
 class TCBwdEnvironment(LunPerVDI):
     """Prepares a minimal Borehamwood environment"""
-
-    LINDISTRO = "oel62"
 
     def run(self, arglist=[]):
 

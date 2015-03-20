@@ -1,0 +1,16 @@
+<?xml version="1.0" ?>
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Sanibel</PRODUCT_VERSION>
+  </variables>
+  <prepare>
+    <host/>
+  </prepare>
+  <testsequence>
+    <parallel group="OS" workers="2">
+      <for iter="D" values="%GUEST_TESTS:Sanibel:XenApp%"> 
+        <testcase id="xenserver.tc.smoketest.TCSmokeTestTemplateDefaults" name="${D}" sku="${D}" />
+      </for>
+    </parallel>
+  </testsequence>
+</xenrt>

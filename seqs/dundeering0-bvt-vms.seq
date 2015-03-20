@@ -12,8 +12,8 @@
       <testcase id="xenserver.install.TCXenServerSetupISOImportNFS" name="SetupISOImportNFS" tc="TC-6650" blocker="yes"/>
     </serial>
     <parallel group="VMLifecycle">
-      <testcase id="xenserver.tc.smoketest.TC9094"/>
-      <testcase id="xenserver.tc.smoketest.TC13171"/>
+      <testcase id="xenserver.tc.smoketest.TCSmokeTestTemplateDefaults" sku="rhel56_x86-32" name="rhel56-x86"/>
+      <testcase id="xenserver.tc.smoketest.TCSmokeTestTemplateDefaults" sku="ws08sp2-x64" name="ws08sp2-x64"/>
     </parallel>
   </testsequence>
 

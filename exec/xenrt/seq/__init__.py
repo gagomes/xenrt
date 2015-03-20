@@ -547,7 +547,9 @@ class SingleTestCase(Fragment):
                 return ["%s_%s" % (self.jiratc, self.tcsku)]
             else:
                 return [self.jiratc]
-        tc = self.tc(tec=False)
+        xenrt.GEC().config.setVariable("TEC_ALLOCATE", "no")
+        tc = self.tc()
+        xenrt.GEC().config.setVariable("TEC_ALLOCATE", "yes")
         tc.setTCSKU(self.tcsku)
         if tc.getDefaultJiraTC():
             if self.tcsku:

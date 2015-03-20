@@ -343,7 +343,7 @@ class TestCase(object):
     iamtc = True
     SUBCASE_TICKETS = False
     
-    def __init__(self, tcid=None, anon=False, tec=True):
+    def __init__(self, tcid=None, anon=False):
         """Constructor.
 
         @param tcid: testcase identifier - a text name for the testcase
@@ -357,7 +357,7 @@ class TestCase(object):
             # Yeah baby
         self.priority = 1
         self.results = xenrt.results.TestResults(priority=self.priority)
-        if tec:
+        if not xenrt.GEC().config.lookup("NO_TEC_ALLOCATE", False, boolean=True):
             self.tec = TestExecutionContext(xenrt.GEC(), self, anon=anon)
             setTec(self.tec)
         self.basename = self.tcid

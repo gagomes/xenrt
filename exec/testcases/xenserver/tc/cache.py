@@ -354,7 +354,7 @@ class _Cache(xenrt.TestCase):
             return None, None 
         elif len(writePackets) > 1:
             xenrt.TEC().warning("Saw %f NFS write packets for the write at %f. "
-                                "It's unclear whether it was committed." % (write["start"]))
+                                "It's unclear whether it was committed." % (writePackets, write["start"]))
             return None, None
         else:
             writeTime = self.packetCatcher.getTimestamp(writePackets[0])

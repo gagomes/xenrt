@@ -557,7 +557,7 @@ class Guest(xenrt.GenericGuest):
 
         if not notools and self.getState() == "UP":
             self.installTools()
-        if True: #xenrt.TEC().lookup("TESTING_KERNELS", False, boolean=True):
+        if xenrt.TEC().lookup("TESTING_KERNELS", False, boolean=True):
             kernelUpdatesPrefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "") + "/kernelUpdates"
             if distro and 'oel7' in distro:
                 _new_kernel = kernelUpdatesPrefix + "/OEL7/"

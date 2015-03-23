@@ -221,6 +221,17 @@ class _JobBase(_MachineBase):
 
         return jobs
 
+    def removeJob(self, jobid, commit=True):
+        jobinfo = self.getJobs(1, ids=[jobid], getParams=False,getResults=False,getLog=False, exceptionIfEmpty=True)[jobid]
+        self.updateJobField(jobid, "REMOVED", "yes", commit=False)
+        if self.getUser():
+            self.updateJobField(jobid, "REMOVED_BY", self.getUser().userid, commit=False)
+        
+        if commit:
+            self.getDB().commit()
+
+        return jobinfo
+
     def updateJobField(self, jobid, key, value, commit=True):
         db = self.getDB()
 
@@ -265,7 +276,6 @@ class _JobBase(_MachineBase):
 
         finally:
             cur.close()
-
 
 class ListJobs(_JobBase):
     PATH = "/jobs"
@@ -449,6 +459,49 @@ class GetTest(_JobBase):
 
         return jobs.values()[0]['results'][detail]
 
+class RemoveJobs(_JobBase):
+    WRITE = True
+    PATH = "/jobs"
+    REQTYPE = "DELETE"
+    SUMMARY = "Removes multiple jobs"
+    TAGS = ["jobs"]
+    PARAMS = [
+        {'name': 'body',
+         'in': 'body',
+         'required': True,
+         'description': 'Jobs to remove',
+         'schema': { "$ref": "#/definitions/removejobs" }
+        }]
+    RESPONSES = { "200": {"description": "Successful response"}}
+    OPERATION_ID = "remove_jobs"
+    DEFINITIONS = {"removejobs": {
+        "title": "Remove Jobs",
+        "type": "object",
+        "properties": {
+            "jobs": {
+                "type": "array",
+                "description": "Jobs to remove",
+                "items": {"type": "integer"}
+            }
+        },
+        "required": ["jobs"]
+    }}
+
+    def render(self):
+        try:
+            if self.request.body.strip():
+                j = json.loads(self.request.body)
+                jsonschema.validate(j, self.DEFINITIONS['removejobs'])
+            else:
+                j = {}
+        except Exception, e:
+            raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
+        for job in j['jobs']:
+            self.removeJob(job)
+        self.getDB().commit()
+                 
+        return {}
+
 class RemoveJob(_JobBase):
     WRITE = True
     PATH = "/job/{id}"
@@ -490,11 +543,7 @@ class RemoveJob(_JobBase):
         except Exception, e:
             raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
         job = int(self.request.matchdict['id'])
-        jobinfo = self.getJobs(1, ids=[job], getParams=False,getResults=False,getLog=False, exceptionIfEmpty=True)[job]
-        if jobinfo['status'] not in ('done', 'removed'):
-            self.updateJobField(job, "REMOVED", "yes")
-            if self.getUser():
-                self.updateJobField(job, "REMOVED_BY", self.getUser().userid)
+        jobinfo = self.removeJob(job)
         if j.get('return_machines'):
             for m in jobinfo['machines']:
                 self.return_machine(m, self.getUser().userid, False, canForce=False, commit=False)

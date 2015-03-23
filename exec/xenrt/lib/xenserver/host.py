@@ -11531,7 +11531,7 @@ class CreedenceHost(ClearwaterHost):
         finally:
             sh.close()
 
-        host.execdom0("xe-install-supplemental-pack /tmp/xscontainer.iso")
+        self.execdom0("xe-install-supplemental-pack /tmp/xscontainer.iso")
 
         
 

@@ -1,6 +1,5 @@
 <xenrt>
 
-  <default name="TCID" value="TC-17879" />
   <default name="ITERATIONS" value="100" />
 
   <variables>
@@ -32,27 +31,27 @@
 
   <collection name="install_guests">
     <serial>
-      <testcase id="xenserver.guest.TCXenServerVendorInstall" name="lin0_install_${H}">
+      <testcase id="xenserver.guest.TCXenServerVendorInstall" name="lin0_install_${H}" tc="TC-17879" sku="lin0_install_${H}" >
         <arg>${HOSTNAME}</arg>
         <arg>guest=lin0</arg>
         <arg>distro=sles111</arg>
         <arg>memory=1024</arg>
       </testcase>
-      <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="win0_install_${H}">
+      <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="win0_install_${H}" tc="TC-17879" sku="win0_install_${H}" >
         <arg>${HOSTNAME}</arg>
         <arg>guest=win0</arg>
         <arg>distro=win7sp1-x86</arg>
         <arg>memory=1024</arg>
       </testcase>
-      <testcase id="guestops.drivers.TCDriverInstall" name="win0_driver_install_${H}">
+      <testcase id="guestops.drivers.TCDriverInstall" name="win0_driver_install_${H}" tc="TC-17879" sku="win0_driver_install_${H}" >
         <arg>guest=win0</arg>
         <arg>resident_on=${HOSTNAME}</arg>
       </testcase>
-      <testcase id="guestops.basic.TCShutdown" name="win0_shutdown_${H}">
+      <testcase id="guestops.basic.TCShutdown" name="win0_shutdown_${H}" tc="TC-17879" sku="win0_shutdown_${H}" >
         <arg>guest=win0</arg>
         <arg>resident_on=${HOSTNAME}</arg>
       </testcase>
-      <testcase id="guestops.basic.TCShutdown" name="lin0_shutdown_${H}">
+      <testcase id="guestops.basic.TCShutdown" name="lin0_shutdown_${H}" tc="TC-17879" sku="lin0_shutdown_${H}" >
         <arg>guest=lin0</arg>
         <arg>resident_on=${HOSTNAME}</arg>
       </testcase>
@@ -60,7 +59,7 @@
   </collection>
 
   <collection name="win_guests">
-    <testcase id="xenserver.tc.sxm.LiveMigrate" name="sxm_win_${S}_${I}">
+    <testcase id="xenserver.tc.sxm.LiveMigrate" name="sxm_win_${S}_${I}" tc="TC-17879" sku="sxm_win_${S}_${I}" >
       <arg>gname=${GUEST}</arg>
       <arg>src_host=${SRC_HOST}</arg>
       <arg>src_SR_type=nfs</arg>
@@ -71,7 +70,7 @@
   </collection>
 
   <collection name="lin_guests">
-    <testcase id="xenserver.tc.sxm.LiveMigrate" name="sxm_lin_${S}_${I}">
+    <testcase id="xenserver.tc.sxm.LiveMigrate" name="sxm_lin_${S}_${I}" tc="TC-17879" sku="sxm_lin_${S}_${I}" >
       <arg>gname=${GUEST}</arg>
       <arg>src_host=${SRC_HOST}</arg>
       <arg>src_SR_type=ext</arg>

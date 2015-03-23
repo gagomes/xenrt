@@ -2719,7 +2719,7 @@ class Config(object):
        
         # Linux install methods supported
         nfsInstallSupport = ["rhel[4-6]", "centos[4-6]", "sl[5-6]", "oel[4-6]", "sles9", "sles10", "sles11"]
-        noIsoInstallSupport = ["ubuntu1004", "debian60", "debian70"]
+        noIsoInstallSupport = ["ubuntu1004", "debian60", "debian70", "rhel45", "centos45", "centos46"]
         # Process these into various categories
         for r in self.config["GUEST_TESTS"].keys():
             for g in self.config["GUEST_TESTS"][r].keys():

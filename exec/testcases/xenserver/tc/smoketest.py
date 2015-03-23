@@ -107,6 +107,9 @@ class _TCSmokeTest(xenrt.TestCase):
                 xenrt.RESULT_PASS:
             return
 
+    def postRun(self):
+        if self.guest and self.guest.getState() != "DOWN":
+            self.guest.shutdown(force=True)
 
     def installOS(self):
 

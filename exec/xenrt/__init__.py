@@ -2909,6 +2909,11 @@ class GlobalExecutionContext(object):
                                       "TCID",
                                       logtcid)
 
+        self.dbconnect.jobLogData(phase,
+                                  t.basename,
+                                  "TCClass",
+                                  tcclass)
+
         t.runon = runon
         if prio:
             t._setPriority(prio)

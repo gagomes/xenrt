@@ -19,6 +19,7 @@ class _TCSmokeTest(xenrt.TestCase):
     def prepare(self, arglist):
 
         self.memory = None
+        self.postInstallMemory = None
         self.vcpus = None
         self.cps = None
         self.template = None
@@ -36,6 +37,13 @@ class _TCSmokeTest(xenrt.TestCase):
         
         self.assertHardware()
         self.getGuestParams()
+
+        # Workaround NOV-1 - set memory back to something sensible after install
+        if self.distro == "sles112":
+            if not self.memory:
+                self.postInstallMemory = self.getTemplateParams().defaultMemory
+            elif self.memory < 4096:
+                self.postInstallMemory = self.memory
 
     def getXenAppTemplate(self, distro):
         if distro.startswith("w2k3"):
@@ -83,6 +91,10 @@ class _TCSmokeTest(xenrt.TestCase):
             if self.runSubcase("installDrivers", (), "OS", "Drivers") != \
                     xenrt.RESULT_PASS:
                 return
+        if self.postInstallMemory:
+            if self.runSubcase("setMemory", (), "OS", "SetMemory") != \
+                    xenrt.RESULT_PASS:
+                return
         if self.runSubcase("lifecycle", (), "OS", "Lifecycle") != \
                 xenrt.RESULT_PASS:
             return
@@ -110,6 +122,11 @@ class _TCSmokeTest(xenrt.TestCase):
     def postRun(self):
         if self.guest and self.guest.getState() != "DOWN":
             self.guest.shutdown(force=True)
+
+    def setMemory(self):
+        self.guest.shutdown()
+        self.guest.memset(self.postInstallMemory)
+        self.guest.start()
 
     def installOS(self):
 
@@ -319,7 +336,7 @@ class TCSmokeTestMinConfig(_TCSmokeTest):
         guestMinMem = int(glimits['MINMEMORY'])
         hostMinMem = int(self.host.lookup("MIN_VM_MEMORY"))
         hostMinMemForGuest = int(self.host.lookup(["VM_MIN_MEMORY_LIMITS", self.distro], "0"))
-        self.memory = max(guestMinMem, hostMinMem, hostMinMemForGuest)
+        self.postInstallMemory = max(guestMinMem, hostMinMem, hostMinMemForGuest)
 
 class TC8121(_TCSmokeTest):
     """Smoketest of a Linux VM with a very large root disk."""

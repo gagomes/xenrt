@@ -14419,7 +14419,7 @@ class MNRPool(Pool):
 
     def verifyRollingPoolUpgradeInProgress(self, expected=True):
         result = self.getPoolParam("other-config")
-        if ("rolling_upgrade_in_progress: true") in result != expected:
+        if ("rolling_upgrade_in_progress: true" in result) != expected:
             xenrt.TEC().logverbose("RPU Mode is expected: %s, "\
                                    "other-config: %s" % (expected, result))
             raise xenrt.XRTFailure("RPU mode error")

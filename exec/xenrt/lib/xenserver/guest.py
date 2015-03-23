@@ -276,7 +276,7 @@ class Guest(xenrt.GenericGuest):
         self.setHost(host)
 
         #If guest is HVM Linux PXE has to be true
-        if self.isHVMLinux(distro):
+        if distro and (self.isHVMLinux(distro) or distro.startswith("solaris")):
             pxe = True
             xenrt.TEC().logverbose("distro is %s, hence setting pxe to %s"%(distro,pxe))
 

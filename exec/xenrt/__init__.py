@@ -2912,7 +2912,7 @@ class GlobalExecutionContext(object):
         self.dbconnect.jobLogData(phase,
                                   t.basename,
                                   "TCClass",
-                                  tcclass)
+                                  "%s.%s" % (tcclass.__module__, tcclass.__name__))
 
         t.runon = runon
         if prio:

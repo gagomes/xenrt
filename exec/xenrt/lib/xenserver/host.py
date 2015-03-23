@@ -11511,7 +11511,29 @@ class CreedenceHost(ClearwaterHost):
             return sr
         else:
             raise xenrt.XRTError("No NFS path defined")
-       
+
+    def installContainerPack(self):
+        if self.execdom0("test -e /etc/xensource/installed-repos/xs:xscontainer", retval="code") == 0:
+            return
+
+        f = xenrt.TEC().getFile(
+            "xe-phase-2/xscontainer-6*.iso",
+            "xe-phase-2/xscontainer-7*.iso",
+            "${CREAM_BUILD_DIR}xe-phase-2/xscontainer-6.5.0-*.iso")
+        
+        if not f:
+            raise xenrt.XRTError("Container supplemental pack not found")
+
+        # Copy ISO from the controller to host in test
+        sh = self.sftpClient()
+        try:
+            sh.copyTo(f,"/tmp/xscontainer.iso")
+        finally:
+            sh.close()
+
+        host.execdom0("xe-install-supplemental-pack /tmp/xscontainer.iso")
+
+        
 
 #############################################################################
 class DundeeHost(CreedenceHost):

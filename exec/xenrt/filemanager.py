@@ -80,7 +80,7 @@ class FileNameResolver(object):
             self.__url = re.sub("\${INPUTDIR}", xenrt.TEC().getInputDir(), self.__url)
 
         # Now generic variables
-        self.__url = re.sub("\${(.*?)}", lambda x: xenrt.TEC().lookup(x.group(1)), self.__url)
+        self.__url = re.sub("\${(.*?)}", lambda x: xenrt.TEC().lookup(x.group(1), None), self.__url)
 
     def __resolveInputDir(self):
         """If the file doesn't begin with an HTTP path or a / indicating a root directory, it's relative to the input dir"""

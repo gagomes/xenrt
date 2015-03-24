@@ -1684,12 +1684,12 @@ class ISCSITemporaryLun(ISCSILun):
                 if not tid in tids:
                     break
                 tid = tid + 1
+            target = "iqn.2009-01.xenrt.test:iscsi%08x" % \
+                     (random.randint(0, 0x7fffffff))
+            xenrt.rootops.sudo("/usr/sbin/ietadm --op new --tid %u "
+                               "--params Name=%s" % (tid, target))
         finally:
             ietlock.release()
-        target = "iqn.2009-01.xenrt.test:iscsi%08x" % \
-                 (random.randint(0, 0x7fffffff))
-        xenrt.rootops.sudo("/usr/sbin/ietadm --op new --tid %u "
-                           "--params Name=%s" % (tid, target))
 
         # Create a LUN
         xenrt.rootops.sudo("/usr/sbin/ietadm --op new --tid %u --lun %u "

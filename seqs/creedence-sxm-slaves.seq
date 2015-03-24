@@ -17,50 +17,38 @@
       <storage type="nfs" name="nfs_sourceSR"/>
       <storage type="lvmoiscsi" name="lvmoiscsi_sourceSR"/> 
       <host id="0" installsr="ext"  alias="M1"/>
-      <host id="1" installsr="lvm"  alias="S1"/>
-      <host id="2" installsr="ext"  alias="S2"/>
+      <host id="1" installsr="lvm"  alias="S1">
+        <vm name="lin1">
+          <distro>centos65</distro>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+        </vm>
+        <vm name="win1">
+          <distro>win81-x86</distro>
+          <memory>2048</memory>
+          <vcpus>2</vcpus>
+          <postinstall action="installDrivers" />
+          <network device="0" />
+          <disk device="0" size="24" />
+        </vm>
+      </host>
+      <host id="2" installsr="ext"  alias="S2">
+      <vm name="win2">
+          <distro>ws12r2-x64</distro>
+          <arch>x86-64</arch>
+          <memory>2048</memory>
+          <vcpus>2</vcpus>
+          <postinstall action="installDrivers" />
+          <network device="0" />
+          <disk device="0" size="32" />
+        </vm>
+      </host>
     </pool>
   </prepare>
 
   <testsequence>
-    
-    <serial group="guest_installation">
-      
-      <!-- On slave 1-->
-      <testcase id="xenserver.guest.TCXenServerVendorInstall" name="lin1_install" tc="TC-17490" sku="lin1_install">
-        <arg>S1</arg>
-        <arg>guest=lin1</arg>
-        <arg>distro=sles111</arg>
-        <arg>memory=1024</arg>
-        <arg>sr=Local storage</arg>
-      </testcase>
-
-      <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="win1_install" tc="TC-17490" sku="win1_install">
-        <arg>S1</arg>
-        <arg>guest=win1</arg>
-        <arg>distro=win7sp1-x86</arg>
-        <arg>memory=1024</arg>
-        <arg>sr=Local storage</arg>
-      </testcase>
-      <testcase id="guestops.drivers.TCDriverInstall" name="win1_driver_install" tc="TC-17490" sku="win1_driver_install">
-        <arg>guest=win1</arg>
-        <arg>resident_on=S1</arg>
-      </testcase>
-      
-      <!-- On slave 2-->
-      <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="win2_install" tc="TC-17490" sku="win2_install">
-        <arg>S2</arg>
-        <arg>guest=win2</arg>
-        <arg>distro=ws08sp2-x64</arg>
-        <arg>memory=1024</arg>
-        <arg>sr=Local storage</arg>
-      </testcase>
-      <testcase id="guestops.drivers.TCDriverInstall" name="win2_driver_install" tc="TC-17490" sku="win2_driver_install">
-        <arg>guest=win2</arg>
-        <arg>resident_on=S2</arg>
-      </testcase>
-    </serial>
-
     <parallel tc="${TCID}">
       <testcase id="xenserver.tc.sxm.LiveMigrate" name="win1_sxm" tc="TC-17490" sku="win1_sxm">
         <arg>gname=win1</arg>
@@ -91,5 +79,4 @@
       </testcase>
     </parallel>
   </testsequence>
-
 </xenrt>

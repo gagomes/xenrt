@@ -372,6 +372,8 @@ class Config(object):
         self.config["VERSION_CONFIG"]["George"]["GENERIC_LINUX_OS"] = "etch"
         self.config["VERSION_CONFIG"]["George"]["GENERIC_LINUX_OS_64"] = "centos53"
         self.config["VERSION_CONFIG"]["George"]["MAX_VM_VCPUS"] = "8"
+        self.config["VERSION_CONFIG"]["George"]["LATEST_rhel4"] = "rhel47"
+        self.config["VERSION_CONFIG"]["George"]["LATEST_rhel5"] = "rhel53"
 
         self.config["VERSION_CONFIG"]["MNR"] = {}
         self.config["VERSION_CONFIG"]["MNR"]["TEMPLATE_NAME_DEBIAN"] = "Demo Linux VM,Debian Etch 4.0"
@@ -502,6 +504,9 @@ class Config(object):
         self.config["VERSION_CONFIG"]["MNR"]["V6_DBV"] = "2010.0521"
         self.config["VERSION_CONFIG"]["MNR"]["DEFAULT_RPU_LINUX_VERSION"] = "rhel54"
         self.config["VERSION_CONFIG"]["MNR"]["MAX_VM_VCPUS"] = "8"
+        self.config["VERSION_CONFIG"]["MNR"]["LATEST_rhel4"] = "rhel48"
+        self.config["VERSION_CONFIG"]["MNR"]["LATEST_rhel5"] = "rhel56"
+        self.config["VERSION_CONFIG"]["MNR"]["LATEST_rhel6"] = "rhel6"
 
         # Cowley
         self.config["VERSION_CONFIG"]["Cowley"] = self.config["VERSION_CONFIG"]["MNR"]
@@ -672,6 +677,9 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Boston"]["EXPECTED_CRASHDUMP_FILES"] = "crash.log,debug.log,domain0.log"
         self.config["VERSION_CONFIG"]["Boston"]["V6_DBV"] = "2010.0521"
         self.config["VERSION_CONFIG"]["Boston"]["DEFAULT_RPU_LINUX_VERSION"] = "rhel56"
+        self.config["VERSION_CONFIG"]["Boston"]["LATEST_rhel4"] = "rhel48"
+        self.config["VERSION_CONFIG"]["Boston"]["LATEST_rhel5"] = "rhel56"
+        self.config["VERSION_CONFIG"]["Boston"]["LATEST_rhel6"] = "rhel6"
 
         # XCP Derived from Boston Release
         self.config["VERSION_CONFIG"]["BostonXCP"] = self.config["VERSION_CONFIG"]["Boston"]
@@ -681,6 +689,9 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Sanibel"]["GENERIC_WINDOWS_OS"] = "ws08sp2-x86"
         self.config["VERSION_CONFIG"]["Sanibel"]["GENERIC_WINDOWS_OS_64"] = "ws08sp2-x64"
         self.config["VERSION_CONFIG"]["Sanibel"]["DEFAULT_RPU_LINUX_VERSION"] = "rhel57"
+        self.config["VERSION_CONFIG"]["Sanibel"]["LATEST_rhel4"] = "rhel48"
+        self.config["VERSION_CONFIG"]["Sanibel"]["LATEST_rhel5"] = "rhel57"
+        self.config["VERSION_CONFIG"]["Sanibel"]["LATEST_rhel6"] = "rhel61"
 
         self.config["VERSION_CONFIG"]["SanibelCC"] = self.config["VERSION_CONFIG"]["Sanibel"]
         
@@ -870,6 +881,9 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Tampa"]["MAX_VLANS_PER_HOST_VSWITCH"] = "800"
         self.config["VERSION_CONFIG"]["Tampa"]["VIF_PER_VM"] = "2"
         self.config["VERSION_CONFIG"]["Tampa"]["DEFAULT_RPU_LINUX_VERSION"] = "rhel62"
+        self.config["VERSION_CONFIG"]["Tampa"]["LATEST_rhel4"] = "rhel48"
+        self.config["VERSION_CONFIG"]["Tampa"]["LATEST_rhel5"] = "rhel58"
+        self.config["VERSION_CONFIG"]["Tampa"]["LATEST_rhel6"] = "rhel62"
 
 
         # XCP Derived from Tampa Release
@@ -935,6 +949,9 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Clearwater"]["MAX_VBDS_PER_HOST"] = "2048"
         self.config["VERSION_CONFIG"]["Clearwater"]["HVM_LINUX"] = "rhel7,centos7,oel7,ubuntu1404"
         self.config["VERSION_CONFIG"]["Clearwater"]["GENERIC_LINUX_OS"] = "debian70"
+        self.config["VERSION_CONFIG"]["Clearwater"]["LATEST_rhel4"] = "rhel48"
+        self.config["VERSION_CONFIG"]["Clearwater"]["LATEST_rhel5"] = "rhel59"
+        self.config["VERSION_CONFIG"]["Clearwater"]["LATEST_rhel6"] = "rhel64"
 
         
         # Creedence
@@ -1157,9 +1174,16 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Creedence"]["VIF_PER_VM"] = "7"
         self.config["VERSION_CONFIG"]["Creedence"]["LOCAL_DISK_TiB"] = "6"
         self.config["VERSION_CONFIG"]["Creedence"]["MAX_VBDS_PER_HOST"] = "2048"
+        self.config["VERSION_CONFIG"]["Creedence"]["LATEST_rhel4"] = "rhel48"
+        self.config["VERSION_CONFIG"]["Creedence"]["LATEST_rhel5"] = "rhel510"
+        self.config["VERSION_CONFIG"]["Creedence"]["LATEST_rhel6"] = "rhel65"
+        self.config["VERSION_CONFIG"]["Creedence"]["LATEST_rhel7"] = "rhel7"
         
         # Cream
         self.config["VERSION_CONFIG"]["Cream"] = copy.deepcopy(self.config["VERSION_CONFIG"]["Creedence"])
+        self.config["VERSION_CONFIG"]["Cream"]["LATEST_rhel4"] = "rhel48"
+        self.config["VERSION_CONFIG"]["Cream"]["LATEST_rhel5"] = "rhel511"
+        self.config["VERSION_CONFIG"]["Cream"]["LATEST_rhel6"] = "rhel66"
         # Dundee
         self.config["VERSION_CONFIG"]["Dundee"] = copy.deepcopy(self.config["VERSION_CONFIG"]["Cream"])
         self.config["VERSION_CONFIG"]["Dundee"]["V6_DBV"] = "2014.1127"
@@ -2470,12 +2494,16 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["sl7"]["MAXMEMORY64"] = "32768"
         self.config["GUEST_LIMITATIONS"]["sl7"]["MAX_VM_VCPUS64"] = "32"
         self.config["LINUX_UPDATE"] = {}
+        self.config["LINUX_UPDATE"]["rhel4"] = "rhel48"
         self.config["LINUX_UPDATE"]["rhel5"] = "rhel511"
         self.config["LINUX_UPDATE"]["rhel6"] = "rhel66"
+        self.config["LINUX_UPDATE"]["rhel7"] = "rhel7"
         self.config["LINUX_UPDATE"]["oel5"] = "oel511"
         self.config["LINUX_UPDATE"]["oel6"] = "oel66"
+        self.config["LINUX_UPDATE"]["oel7"] = "oel7"
         self.config["LINUX_UPDATE"]["centos5"] = "centos511"
         self.config["LINUX_UPDATE"]["centos6"] = "centos66"
+        self.config["LINUX_UPDATE"]["centos7"] = "centos7"
 
         self.config["PRODUCT_KEYS"] = {}
 

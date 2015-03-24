@@ -3093,6 +3093,9 @@ fi
                          forceHVM=False
                          ):
         """Installs a VM of the specified distro and installs tools/drivers."""
+
+        (distro, special) = self.resolveDistroName(distro)
+
         if distro.startswith("generic-"): 
             distro = distro[8:]
         if distro.lower() == "windows" or distro.lower() == "linux":
@@ -3118,7 +3121,8 @@ fi
                                             sr=sr,
                                             arch=arch,
                                             rootdisk=disksize,
-                                            notools=notools)
+                                            notools=notools,
+                                            special=special)
 
         if guest:
             doSetRandomVcpus = not vcpus and self.lookup("RND_VCPUS", default=False, boolean=True)
@@ -3182,6 +3186,7 @@ fi
                 vifs = [("%s0" % (guest.vifstem), br, primaryMAC, None)]
             else:
                 vifs = guest.DEFAULT
+            guest.special.update(special)
             guest.install(self,
                           distro=distro,
                           isoname=isoname,
@@ -8190,6 +8195,36 @@ rm -f /etc/xensource/xhad.conf || true
         dmesg = self.execdom0("grep 'Hardware Assisted Paging' /var/log/xen-dmesg || true")
 
         return "HVM: Hardware Assisted Paging detected and enabled." in dmesg or "HVM: Hardware Assisted Paging (HAP) detected" in dmesg
+
+    def resolveDistroName(self, distro):
+        special = {}
+
+        m = re.match("^(oel|sl|rhel|centos)(\d)x$", distro)
+        if m:
+            # Fall back to RHEL if we don't have derivatives defined
+            distro = self.lookup("LATEST_%s%s" % (m.group(1), m.group(2)),
+                        self.lookup("LATEST_rhel%s" % m.group(2)).replace("rhel", m.group(1)))
+        m = re.match("^(oel|sl|rhel|centos)(\d)u$", distro)
+        if m:
+            # Fall back to RHEL if we don't have derivatives defined
+            distro = self.lookup("LATEST_%s%s" % (m.group(1), m.group(2)),
+                        self.lookup("LATEST_rhel%s" % m.group(2)).replace("rhel", m.group(1)))
+            if m.group(1) == "centos":
+                special['UpdateTo'] = "latest"
+            else:
+                updateMap = xenrt.TEC().lookup("LINUX_UPDATE")
+                match = ""
+                newdistro = xenrt.getUpdateDistro(distro)
+                if newdistro != distro:
+                    special['UpdateTo'] = newdistro
+        
+        m = re.match("^(oel|sl|rhel|centos)(\d)xs$", distro)
+        if m:
+            distro = "%s%s" % (m.group(1), m.group(2))
+            special['XSKernel'] = True
+
+        return (distro, special)
+
 
 #############################################################################
 

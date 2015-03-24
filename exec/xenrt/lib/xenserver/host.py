@@ -12329,10 +12329,69 @@ class NFSStorageRepository(StorageRepository):
             raise xenrt.XRTFailure("Mounted path '%s' is not '%s'" %
                                    (nfs, shouldbe))
 
+class NFSISOStorageRepository(StorageRepository):
+    """Models an NFS ISO SR"""
+
+    SHARED = True
+
+    def create(self, server=None, path=None, physical_size=0, content_type="iso"):
+        if not (server or path):
+            if xenrt.TEC().lookup("FORCE_NFSSR_ON_CTRL", False, boolean=True):
+                # Create an SR using an NFS export from the XenRT controller.
+                # This should only be used for small and low I/O throughput
+                # activities - VMs should never be installed on this.
+                nfsexport = xenrt.NFSDirectory()
+                server, path = nfsexport.getHostAndPath("")
+            else:
+                # Create an SR on an external NFS file server
+                share = xenrt.ExternalNFSShare()
+                nfs = share.getMount()
+                r = re.search(r"([0-9\.]+):(\S+)", nfs)
+                server = r.group(1)
+                path = r.group(2)
+
+        self.server = server
+        self.path = path
+        dconf = {}
+        smconf = {}
+        dconf["location"] = server + ":" + path
+        self._create("iso",
+                     dconf,
+                     physical_size=physical_size,
+                     content_type=content_type,
+                     smconf=smconf)
+    
+    def check(self):
+        StorageRepository.checkCommon(self, "iso")
+        #cli = self.host.getCLIInstance()
+        if self.host.pool:
+            self.checkOnHost(self.host.pool.master)
+            for slave in self.host.pool.slaves.values():
+                self.checkOnHost(slave)
+        else:
+            self.checkOnHost(self.host)
+
+    def checkOnHost(self, host):
+        try:
+            host.execdom0("test -d /var/run/sr-mount/%s" % (self.uuid))
+        except:
+            raise xenrt.XRTFailure("SR mountpoint /var/run/sr-mount/%s "
+                                   "does not exist" % (self.uuid))
+        nfs = string.split(host.execdom0("mount | grep \""
+                                          "/run/sr-mount/%s \"" %
+                                          (self.uuid)))[0]
+        shouldbe = "%s:%s/%s" % (self.server, self.path, self.uuid)
+        if nfs != shouldbe:
+            raise xenrt.XRTFailure("Mounted path '%s' is not '%s'" %
+                                   (nfs, shouldbe))
+
 
 class NFSv4StorageRepository(NFSStorageRepository):
     EXTRA_DCONF = {'nfsversion': '4'}
 
+class NFSv4ISOStorageRepository(NFSISOStorageRepository):
+    EXTRA_DCONF = {'nfsversion': '4'}
+    
 class SMBStorageRepository(StorageRepository):
     """Models a SMB SR"""
 

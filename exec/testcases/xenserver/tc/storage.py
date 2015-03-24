@@ -96,6 +96,10 @@ class _LinuxHostedNFSv4Server(_AbstractLinuxHostedNFSServer):
                 'NFSv4 expects hostname to resolve to an address')
 
 
+class _LinuxHostedNFSV4ISOServer(_LinuxHostedNFSv4Server):
+    def getStorageRepositoryClass(self):
+        return xenrt.lib.xenserver.host.NFSv4ISOStorageRepository
+        
 def linuxBasedNFSServer(revision, paths):
     if revision == 3:
         return _LinuxHostedNFSv3Server(paths)
@@ -103,7 +107,13 @@ def linuxBasedNFSServer(revision, paths):
         return _LinuxHostedNFSv4Server(paths)
     else:
         raise ValueError('Invalid value for revision')
-
+        
+def linuxBasedNFSISOServer(revision, paths):
+        """ This returns an NFS v4 ISO server"""
+        if revision == 4:
+            return _LinuxHostedNFSV4ISOServer(paths)
+        else:
+            raise ValueError("Unsupported Version")
 
 class TC7804(xenrt.TestCase):
     """Check that installing PV drivers doesn't cause a disk to go offline."""
@@ -301,8 +311,39 @@ class NFSSRSanityTest(SRSanityTestTemplate):
             sr.create(guest.getIP(),"/sr")
 
         return sr.uuid
+        
+class NFSISOSRSanityTest(SRSanityTestTemplate):
+    """NFS ISO SR Sanity Test"""
 
+    SRNAME = "test-nfs-iso"
 
+    def createSR(self,host,guest):
+        nfsIsoServer = linuxBasedNFSISOServer(self.NFS_VERSION, ['/sr'])
+
+        nfsIsoServer.createNFSExportOnGuest(guest)
+
+        nfsIsoServer.prepareDomZero(host)
+
+        # CA-21630 Wait a short delay to let the nfs server properly start
+        time.sleep(10)
+
+        # Create the SR on the host
+        sr = nfsIsoServer.getStorageRepositoryClass()(host, self.SRNAME)
+        sr.create(guest.getIP(),"/sr")
+                
+        return sr.uuid
+        
+    def teardown(self):
+        sruuid = self.sruuids[0]
+        self.host.destroySR(sruuid)
+        if sruuid in self.host.minimalList("sr-list"):
+            raise xenrt.XRTFailure("SR still exists after destroy")
+        self.sruuids.remove(sruuid)
+
+class TCNFSISOSrCreationAndDeletion(NFSISOSRSanityTest):
+    """Test the creation and destruction of NFSv4 ISO SR"""
+    NFS_VERSION = 4
+    
 class TC6824(NFSSRSanityTest):
     SRNAME = "test-nfs"
     SR_TYPE = "nfs"

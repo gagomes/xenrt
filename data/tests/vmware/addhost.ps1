@@ -9,7 +9,7 @@ $hostaddr = $args[5]
 $huser = $args[6]
 $hpassword = $args[7]
 $dvs = $args[8]
-$switchname = "DVS-" + $datacenter
+$switchname = "DVS-1"
 
 Write-Output Connecting to $vcenter
 

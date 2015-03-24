@@ -96,34 +96,9 @@ class _LinuxHostedNFSv4Server(_AbstractLinuxHostedNFSServer):
                 'NFSv4 expects hostname to resolve to an address')
 
 
-class _LinuxHostedNFSV4ISOServer(_AbstractLinuxHostedNFSServer):
-    def _getExportsLine(self):
-        return '/nfsv4-root *(sync,rw,no_root_squash,no_subtree_check,fsid=0)'
-
-    def _getCommandsToPrepareSharedDirectory(self):
-        prepareCommands = []
-        for path in self.paths:
-            prepareCommands += [
-                "mkdir -p /nfsv4-root",
-                "mkdir -p /nfsv4-root%s" % path,
-                "chmod o+w /nfsv4-root%s" % path,
-            ]
-        return prepareCommands
-        
+class _LinuxHostedNFSV4ISOServer(_LinuxHostedNFSv4Server):
     def getStorageRepositoryClass(self):
         return xenrt.lib.xenserver.host.NFSv4ISOStorageRepository
-        
-    def hostNameCouldBeResolved(self, host):
-        return 0 == host.execdom0('ping -c 1 -W1 $(hostname)', retval='code')
-
-    def prepareDomZero(self, host):
-        if not self.hostNameCouldBeResolved(host):
-            host.execdom0(
-                'echo "search xenrt.xs.citrite.net" >> /etc/resolv.conf')
-
-        if not self.hostNameCouldBeResolved(host):
-            raise xenrt.XRTError(
-                'NFSv4 expects hostname to resolve to an address')
         
 def linuxBasedNFSServer(revision, paths):
     if revision == 3:

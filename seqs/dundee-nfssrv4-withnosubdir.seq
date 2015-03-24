@@ -19,26 +19,26 @@
     <testcase id="xenserver.tc.storage.TC23335" name="TC23335" tc="TC-23335" />
 
     <serial group="VDICreate">
-      <testcase id="xenserver.tc.storage.TC8523" name="TC20981" tc="TC-20981" prio="3" />
+      <testcase id="xenserver.tc.storage.TC8523" name="TC26892" tc="TC-26892" prio="3" />
     </serial>
 
     <serial group="VDIResize">
-      <testcase id="xenserver.tc.storage.TC8503" name="TC20982" tc="TC-20982" prio="3" />
-      <testcase id="xenserver.tc.storage.TC8504" name="TC20983" tc="TC-20983" prio="3" />
-      <testcase id="xenserver.tc.storage.TC8505" name="TC20984" tc="TC-20984" prio="3" />
-      <testcase id="xenserver.tc.storage.TC8507" name="TC20985" tc="TC-20985" prio="3" />
+      <testcase id="xenserver.tc.storage.TC8503" name="TC26893" tc="TC-26893" prio="3" />
+      <testcase id="xenserver.tc.storage.TC8504" name="TC26894" tc="TC-26894" prio="3" />
+      <testcase id="xenserver.tc.storage.TC8505" name="TC26895" tc="TC-26895" prio="3" />
+      <testcase id="xenserver.tc.storage.TC8507" name="TC26896" tc="TC-26896" prio="3" />
     </serial>
 
     <serial group="VMSnap">
-      <testcase id="xenserver.tc.snapshot.TC7863" name="TC20986" tc="TC-20986" prio="3" />
-      <testcase id="xenserver.tc.snapshot.TC8114" name="TC20988" tc="TC-20988" prio="3" />
-      <testcase id="xenserver.tc.snapshot.TC8117" name="TC20989" tc="TC-20989" prio="3" />
+      <testcase id="xenserver.tc.snapshot.TC7863" name="TC26897" tc="TC-26897" prio="3" />
+      <testcase id="xenserver.tc.snapshot.TC8114" name="TC26898" tc="TC-26898" prio="3" />
+      <testcase id="xenserver.tc.snapshot.TC8117" name="TC26899" tc="TC-26899" prio="3" />
     </serial>
 
-    <testcase id="xenserver.tc.impexp.TC10629" name="TC20987" tc="TC-20987" prio="3" />
-    <testcase id="xenserver.tc.storage.TC10626" name="TC20990" tc="TC-20990" prio="3" />
+    <testcase id="xenserver.tc.impexp.TC10629" name="TC26909" tc="TC-26909" prio="3" />
+    <testcase id="xenserver.tc.storage.TC10626" name="TC26900" tc="TC-26900" prio="3" />
 
-    <testcase id="xenserver.tc.storage.TC20979" />
+    <testcase id="xenserver.tc.storage.TC20979" name="TC26901" tc="TC-26901" prio="3"/>
 
   </testsequence>
 

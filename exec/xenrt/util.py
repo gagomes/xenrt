@@ -1397,7 +1397,10 @@ def getADConfig():
 
 def getDistroAndArch(distrotext):
     if isWindows(distrotext):
-        return (distrotext, "x86-32")
+        arch = "x86-32"
+        if distrotext.endswith("64"):
+            arch = "x86-64"
+        return (distrotext, arch)
     if distrotext.endswith("-x64"):
         distro = distrotext[:-4]
         arch = "x86-64"

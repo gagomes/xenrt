@@ -8,6 +8,8 @@ $cluster = $args[4]
 $hostaddr = $args[5]
 $huser = $args[6]
 $hpassword = $args[7]
+$dvs = $args[8]
+$switchname = "DVS-1"
 
 Write-Output Connecting to $vcenter
 
@@ -36,3 +38,11 @@ Add-VMHost -Name $hostaddr -Location (Get-Cluster $cluster) -Force -User $huser 
 Get-VMHostNetworkAdapter -VMKernel | where { $_.IP -eq $hostaddr} | Set-VMHostNetworkAdapter -VMotionEnabled:$true -Confirm:$false
 
 Get-VMHost -Location $datacenter | Export-CSV c:\vmware\$datacenter.csv -notype
+
+
+if ($dvs -eq "yes") {
+	New-VDSwitch -Name $switchname -Location $datacenter
+	Get-VDSwitch -Name $switchname | Add-VDSwitchVMHost -VMHost $hostaddr
+}
+
+

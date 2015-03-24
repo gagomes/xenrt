@@ -3,7 +3,7 @@
   <!-- OS functional test sequence: rhel66 and rhel66-x64 -->
 
   <variables>
-    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <PRODUCT_VERSION>Cream</PRODUCT_VERSION>
     <USE_GUEST_IPV6>yes</USE_GUEST_IPV6>
   </variables>
 

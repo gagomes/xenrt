@@ -3,7 +3,7 @@
   <!-- OS functional tests -->
 
   <variables>
-    <PRODUCT_VERSION>Cream</PRODUCT_VERSION>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
   </variables>
 
   <default name="PARALLEL" value="4" />

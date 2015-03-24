@@ -3,7 +3,7 @@
   <!-- OS functional tests -->
 
   <variables>
-    <PRODUCT_VERSION>Cream</PRODUCT_VERSION>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
     <USE_GUEST_IPV6>yes</USE_GUEST_IPV6>
     <DISABLE_GUEST_IPV4>yes</DISABLE_GUEST_IPV4>
   </variables>

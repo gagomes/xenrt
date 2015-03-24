@@ -3,7 +3,7 @@
   <!-- OS functional test sequence: rhel66 and rhel66-x64 -->
 
   <variables>
-    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
   </variables>
 
   <default name="PARALLEL" value="4" />

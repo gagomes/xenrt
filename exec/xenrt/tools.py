@@ -579,7 +579,12 @@ def generateOSTestSequences():
 def getChildren(key):
     global childrencache
     if not childrencache.has_key(key):
-        childrencache[key] = testrunJSONLoad("issuetree/%s" % key, "depth=1")[0]['children']
+        returnedDict = testrunJSONLoad("issuetree/%s" % key, "depth=1")[0]
+        if 'children' in returnedDict:
+            childrencache[key] = returnedDict['children']
+        else:
+            childrencache[key] = []
+        #childrencache[key] = testrunJSONLoad("issuetree/%s" % key, "depth=1")[0]['children']
     return childrencache[key]
 
 def flushChildrenCache(key):
@@ -588,7 +593,6 @@ def flushChildrenCache(key):
         del childrencache[key]
 
 def defineMatrixTest(oses, memory, vcpus, platform, tcArtifacts=None, versionconfig=None, extraDesc = ""):
-
     pyfile = []
     tcs = []
     defaultmaxmem = "32768"
@@ -634,7 +638,6 @@ def defineMatrixTest(oses, memory, vcpus, platform, tcArtifacts=None, versioncon
         desctail = desctail + " on " + pmap[platform]
 
     print "defineMatrixTest for %s" % desc
-
     keys = [x['key'] for x in getChildren("TC-6865") if x['title'] == desc]
     if len(keys) > 0:
         container = getIssue(j, keys[0])
@@ -764,8 +767,10 @@ def processMatrixTests(release=None):
                          ('etch','Debian Etch'),
                          ('debian50','Debian Lenny 5.0')]
 
-    # All known linux distros that only have 32-bit versions
+    # All known linux distros that only have 64-bit versions
     linDistros_64only = [('rhel7','RHEL 7.0'),
+                         ('rhel71','RHEL 7.1'),
+                         ('sl7','SL 7.0'),
                          ('centos7','CentOS 7.0'),
                          ('oel7','OEL 7.0'),
                          ('sles12','SLES12')]
@@ -838,7 +843,9 @@ def processMatrixTests(release=None):
                   ('ubuntu1404','Ubuntu 14.04'),
                   ('debian60','Debian 6.0'),
                   ('debian70','Debian 7.0'),
-                  ('solaris10u9','Solaris 10u9')]
+                  ('solaris10u9','Solaris 10u9'),
+                  ('sl511','SL 5.11'),
+                  ('sl66','SL 6.6')]
 
     # List of releases to manage
     releases = ['Backport','George','GeorgeU1','MNR','Cowley','Boston','Sanibel','Tampa','Clearwater','Creedence','Dundee']
@@ -1093,16 +1100,17 @@ def processMatrixTests(release=None):
 
     #  (Creedence)
     distrosToRels['Creedence'] = {}
-    distrosToRels['Creedence']['primary'] = ['rhel48','rhel510','rhel65','rhel511','rhel66','rhel7','oel7','centos7',
+    distrosToRels['Creedence']['primary'] = ['rhel48','rhel510','rhel65','rhel511','rhel66','rhel7','rhel71','oel7','centos7',
                                           'sles104','sles113','sles12',
+                                          'sl511','sl66','sl7',
                                           'w2k3eesp2','w2k3eesp2-x64',
                                           'winxpsp3','vistaeesp2',
                                           'ws08dcsp2-x86',
                                           'ws08dcsp2-x64','ws08r2dcsp1-x64',
                                           'win7sp1-x86','win7sp1-x64',
                                           'ubuntu1004', 'debian60','debian70',
-                                          'oel510','centos510','oel511','oel66','centos66','centos511','centos65','ubuntu1404',
-                                          'ubuntu1204','win8-x86','win8-x64', 'ws12-x64','ws12core-x64', 
+                                          'oel510','centos510','oel511','oel65','oel66','centos66','centos511','centos65','ubuntu1404',
+                                          'ubuntu1204','win8-x86','win8-x64','win10-x86','win10-x64', 'ws12-x64','ws12core-x64', 
                                           'win81-x86','win81-x64', 'ws12r2-x64','ws12r2core-x64']
     distrosToRels['Creedence']['secondary'] = ['rhel47','rhel59','sles103',
                                             'ws08r2-x64'
@@ -1114,7 +1122,7 @@ def processMatrixTests(release=None):
                                               'sles11','sles111','sles112',
                                               'centos48','centos47','centos46','centos45',
                                               'centos59','centos58','centos57','centos56' 'centos55','centos54','centos53','centos52','centos51',
-                                              'oel59','oel58','oel57','oel56','oel55','oel54','oel53','oel65',
+                                              'oel59','oel58','oel57','oel56','oel55','oel54','oel53',
                                               'oel63','centos63',
                                               'w2k3sesp2',
                                               'w2k3eer2','w2k3ser2']
@@ -1124,16 +1132,17 @@ def processMatrixTests(release=None):
 
     #  (Dundee)
     distrosToRels['Dundee'] = {}
-    distrosToRels['Dundee']['primary'] = ['rhel48','rhel510','rhel65','rhel511','rhel66','rhel7','oel7','centos7',
+    distrosToRels['Dundee']['primary'] = ['rhel48','rhel510','rhel65','rhel511','rhel66','rhel7','rhel71','oel7','centos7',
                                           'sles104','sles113','sles12',
+                                          'sl511','sl66','sl7',
                                           'w2k3eesp2','w2k3eesp2-x64',
                                           'winxpsp3','vistaeesp2',
                                           'ws08dcsp2-x86',
                                           'ws08dcsp2-x64','ws08r2dcsp1-x64',
                                           'win7sp1-x86','win7sp1-x64',
                                           'ubuntu1004', 'debian60','debian70',
-                                          'oel510','centos510','oel511','oel66','centos66','centos511','centos65','ubuntu1404',
-                                          'ubuntu1204','win8-x86','win8-x64', 'ws12-x64','ws12core-x64', 
+                                          'oel510','centos510','oel511','oel65','oel66','centos66','centos511','centos65','ubuntu1404',
+                                          'ubuntu1204','win8-x86','win8-x64','win10-x86','win10-x64', 'ws12-x64','ws12core-x64', 
                                           'win81-x86','win81-x64', 'ws12r2-x64','ws12r2core-x64']
     distrosToRels['Dundee']['secondary'] = ['rhel47','rhel59','sles103',
                                             'ws08r2-x64'
@@ -1145,7 +1154,7 @@ def processMatrixTests(release=None):
                                               'sles11','sles111','sles112',
                                               'centos48','centos47','centos46','centos45',
                                               'centos59','centos58','centos57','centos56' 'centos55','centos54','centos53','centos52','centos51',
-                                              'oel59','oel58','oel57','oel56','oel55','oel54','oel53','oel65',
+                                              'oel59','oel58','oel57','oel56','oel55','oel54','oel53',
                                               'oel63','centos63',
                                               'w2k3sesp2',
                                               'w2k3eer2','w2k3ser2']
@@ -1343,7 +1352,6 @@ def processMatrixTests(release=None):
     # Build up the list of all TCs
     allTCs = tcArtifacts.keys()
     print "Total of %u TCs" % (len(allTCs))
-
     # We now know what suite updates etc to do
     j = J()
     for suite in suiteUpdates:
@@ -1355,7 +1363,6 @@ def processMatrixTests(release=None):
         for sl in suitelinks:
             if sl.type.name == "Contains" and hasattr(sl, "outwardIssue"):
                 suitetcs.append(sl.outwardIssue.key)
-
         print "suite updates for " + suite + ": " + str(suiteUpdates[suite])
 
         # First go through and ensure that the ones that are supposed to be linked are   
@@ -1364,8 +1371,8 @@ def processMatrixTests(release=None):
                 print "Linking " + tc + " to suite: " + suite
                 j.jira.create_issue_link(type="Contains", inwardIssue=suiteissue.key, outwardIssue=tc)
         # Now go through and check for any that are not supposed to be
-        for tc in allTCs:
-            if tc in suitetcs and not tc in suiteUpdates[suite]:
+        for tc in suitetcs:
+            if tc not in suiteUpdates[suite]:
                 print "Deleting link between " + tc + " and suite: " + suite
                 links = [x for x in suiteissue.fields.issuelinks if hasattr(x, "outwardIssue") and x.type.name=="Contains" and x.outwardIssue.key == tc]
                 if len(links) > 0:
@@ -1429,7 +1436,7 @@ def generateSmokeTestSequences(version="Creedence", regressionSuite="TC-21163", 
         # Nightly:
         # OS operation of 1GB 2 vCPUs VMs on VT+EPT
         makeSequence(version, "TC-8434", nightlySuite, "%s/%stc8434.seq" % (folder,version.lower()), nightlySuiteTickets, testPrefix, 15, "2", "3", "EPT1G2C")
-    
+        
         # OS operation of 1GB 3 vCPUs VMs
         makeSequence(version, "TC-7395", nightlySuite, "%s/%stc7395.seq" % (folder,version.lower()), nightlySuiteTickets, testPrefix, 10, "1", "4", "VM1G3C")
    
@@ -1454,6 +1461,9 @@ def generateSmokeTestSequences(version="Creedence", regressionSuite="TC-21163", 
     
         # OS operation using template default configuration
         makeSequence(version, "TC-6789", nightlySuite, "%s/%stc6789.seq" % (folder,version.lower()), nightlySuiteTickets, testPrefix, 10, "2", "3", "VMs")
+        
+        # OS operation using 1GB, guest limit = 32
+        makeSequence(version, "TC-26560", nightlySuite, "%s/%stc26560.seq" % (folder,version.lower()), nightlySuiteTickets, testPrefix, 10, "2", "3", "VMs")
     
     if regressionSuite:
         print "Getting tickets for %s" % regressionSuite
@@ -1520,13 +1530,12 @@ def makeSequence(version, ticket, suite, filename, suitetickets=None, testPrefix
     print "Tree tickets for %s: %s" % (ticket, (str(treetickets)))
 
     tcs = []
-    
+
     for tcid in treetickets:
         if tcid in suitetickets:
             tcs.append(string.atoi(tcid.replace("TC-", "")))
     
     tcs.sort()
-
     k = 0
     for i in range(0, len(tcs), maxPerFile):
         
@@ -1924,3 +1933,17 @@ def newGuestsInstalls():
     print seqcode
 
 
+def createHotfixSymlinks():
+    hotfixpath = xenrt.TEC().lookup("HOTFIX_BASE_PATH")
+
+    hfs = xenrt.TEC().lookup("HOTFIXES")
+
+    hfdict = {}
+
+    for r in hfs.keys():
+        for v in hfs[r].keys():
+            hfdict.update(dict(hfs[r][v].items()))
+
+
+    for h in hfdict.keys():
+        xenrt.command("ln -sf %s %s/%s.xsupdate" % (hfdict[h], hotfixpath, h))

@@ -3878,7 +3878,7 @@ class TC20922(xenrt.TestCase):
         self.licenseServer = self.licenseGuest.getV6LicenseServer()
         self.licenseServer.addLicense("valid-persocket")
         # License the host against a valid license server
-        self.host.templicense(edition="per-socket", v6server=self.licenseServer, mockLicense=False)
+        self.host.license(sku="per-socket", v6server=self.licenseServer, mockLicense=False)
         if len(self.licenseServer.getLicenseUsage("CXS_STD_CCS")) != 1:
             raise xenrt.XRTError("License not in use on license server after applying license")
 

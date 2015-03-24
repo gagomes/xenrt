@@ -12,7 +12,7 @@
 Parses an XML suite specification.
 """
 
-import sys, string, time, os, xml.dom.minidom, threading, traceback, re, os.path, urllib
+import sys, string, time, os, xml.dom.minidom, threading, traceback, re, os.path, urllib, json
 import xenrt
 
 def expand(s):
@@ -42,33 +42,27 @@ def mergeCSLists(a, b):
 class XRTSubmitError(xenrt.XRTError):
     pass
 
-class SuiteConfigurable:
+class SuiteConfigurable(object):
 
     def __init__(self):
-        self.args = []
+        self.params = {}
         self.cslist = {}
         
     def handleParam(self, node):
         for a in node.childNodes:
             if a.nodeType == a.TEXT_NODE:
-                if not expand(str(a.data)) in self.args:
-                    self.args.append("-D")
-                    self.args.append(expand(str(a.data)))
+                (param, value) = str(a.data).split("=", 1)
+                self.params[param] = value
                 
-    def handleArg(self, node, arg):
+    def handleArg(self, node, param):
         for a in node.childNodes:
             if a.nodeType == a.TEXT_NODE:
-                if arg not in self.args:
-                    self.args.append(arg)
-                    self.args.append(expand(str(a.data)))
+                self.params[param] = expand(str(a.data))
 
-    def handleParamArg(self, node, param):
+    def handleYesArg(self, node, prefix):
         for a in node.childNodes:
             if a.nodeType == a.TEXT_NODE:
-                arg = "%s=%s" % (expand(param), expand(str(a.data)))
-                if arg not in self.args:
-                    self.args.append("-D")
-                    self.args.append(arg)
+                self.params["%s_%s" % (prefix, expand(str(a.data)))] = "yes"
 
     def handleAdditiveArg(self, node, param):
         for a in node.childNodes:
@@ -80,19 +74,19 @@ class SuiteConfigurable:
 
     def handleConfigNode(self, node):
         if node.localName == "resources":
-            self.handleArg(node, "--res")
+            self.handleArg(node, "RESOURCES_REQUIRED")
         elif node.localName == "resources1":
-            self.handleArg(node, "--res1")
-        elif node.localName == "user":
-            self.handleArg(node, "-U")
+            self.handleArg(node, "RESOURCES_REQUIRED_1")
         elif node.localName == "version":
-            self.handleArg(node, "-v")
-        elif node.localName in ("email",
-                                "skip",
-                                "skipgroup",
-                                "testcasefiles",
-                                "holdfail"):
-            self.handleArg(node, "--%s" % (node.localName))
+            self.handleArg(node, "VERSION")
+        elif node.localName == "email":
+            self.handleArg(node, "EMAIL")
+        elif node.localName == "skip":
+            self.handleYesArg(node, "SKIP")
+        elif node.localName == "skipgroup":
+            self.handleYesArg(node, "SKIPG")
+        elif node.localName == "holdfail":
+            self.handleArg(node, "MACHINE_HOLD_FOR_FAIL")
         elif node.localName == "param":
             self.handleParam(node)        
         elif node.localName == "flags":
@@ -110,28 +104,26 @@ class SuiteConfigurable:
                     except:
                         raise xenrt.XRTError("This suite requires that "
                                              "variable %s is defined" % (p))
-                    self.args.append("-D")
-                    self.args.append("%s=%s" % (p, v))
+                    self.params[p] = v
             
 class SuiteSequence(SuiteConfigurable):
 
-    def __init__(self, node):
+    def __init__(self, node, parent):
         SuiteConfigurable.__init__(self)
         self.name = node.getAttribute("name")
         self.seq = node.getAttribute("seq")
         self.tcsku = node.getAttribute("tcsku")
         self.tc = node.getAttribute("tc")
-        self.seqfile = xenrt.TestSequence(xenrt.sequence.findSeqFile(self.seq), tc=self.tc, tcsku=self.tcsku)
         self.pool = "default"
         self.delay = 0
-        self.machines=1
+        self.parent = parent
+        self.readConfig(node)
+        for p in self.params.keys():
+            xenrt.GEC().config.setVariable(p, self.params[p])
+        self.seqfile = xenrt.TestSequence(xenrt.seq.findSeqFile(self.seq), tc=self.tc, tcsku=self.tcsku)
         if self.seqfile.schedulerinfo:
             self.readConfig(self.seqfile.schedulerinfo)
-        self.readConfig(node)
-        for a in self.args:
-            m = re.match("MACHINES_REQUIRED=(\d+)", a)
-            if m:
-                self.machines = int(m.group(1))
+        self.machines=int(self.params.get("MACHINES_REQUIRED", "1"))
             
     def readConfig(self, node):
         for i in node.childNodes:
@@ -150,44 +142,40 @@ class SuiteSequence(SuiteConfigurable):
 
 
     def debugPrint(self, fd):
-        fd.write("  Sequence %s: %s\n" % (self.name, self.seq))
-        for arg in self.args:
-            fd.write("    %s\n" % (arg))
-        #seq = xenrt.TestSequence(xenrt.sequence.findSeqFile(self.seq))
-        #fd.write("    TCs: %s\n" % (seq.listTCs()))
+        fd.write("Submitting with:\n%s\n" % json.dumps(self.params, indent=2))
         
     def listTCsInSequence(self, quiet=False):
         if not quiet:
             sys.stderr.write("Processing sequence %s\n" % (self.seq))
         return self.seqfile.listTCs()
 
-    def buildSubmitCommand(self, suiteargs, suitecslist, inputs):
-        args = []
+    def buildSubmitParams(self, suiteparams, suitecslist, inputs):
+        params = {}
         rev = xenrt.TEC().lookup(["CLIOPTIONS", "REVISION"], None)
         if rev:
-            args.extend(["-r", rev])
+            params["REVISION"] = rev
         branch = xenrt.TEC().lookup(["CLIOPTIONS", "BRANCH"], "trunk")
         if rev and inputs:
             build = string.split(rev, "-")[-1]
             inputs = string.replace(inputs, "${BUILD}", build)
             inputs = string.replace(inputs, "${BRANCH}", branch)
-            args.extend(["--inputs", inputs])
-        args.extend(["-n", self.seq])
+            params['INPUTDIR'] = inputs
+        params['DEPS'] = self.seq
         if self.pool != "default":
-            args.extend(["--pool", self.pool])
-        args.extend(suiteargs)
-        args.extend(self.args)
+            params['POOL'] = self.pool
+        params.update(suiteparams)
+        params.update(self.params)
         if rev:
-            args.extend(["-D", "JOBDESC=%s&%s" % (self.name, rev)])
+            params['JOBDESC'] = "%s&%s" % (self.name, rev)
         else:
-            args.extend(["-D", "JOBDESC=%s" % (self.name)])
+            params['JOBDESC'] = self.name
         cslist = mergeCSLists(self.cslist, suitecslist)
         for param in cslist.keys():
-            args.extend(["-D", "%s=%s" % (param, string.join(cslist[param], ","))])
-        return args
+            params[param] = string.join(cslist[param], ",")
+        return params
 
-    def submit(self, suiteargs, suitecslist, inputs, testrun, debug=False, waittime=0, excllist=None, devrun=False):
-        moreargs = []
+    def submit(self, suiteparams, suitecslist, inputs, testrun, debug=False, waittime=0, excllist=None, devrun=False):
+        moreparams = []
         runtcs = []
         seqs = xenrt.TEC().lookup(["CLIOPTIONS", "SUITE_SEQS"], None)
         if seqs:
@@ -213,35 +201,34 @@ class SuiteSequence(SuiteConfigurable):
                 return (0, runtcs)
             for tc in found:
                 runtcs.append(tc)
-                moreargs.append("-D RUN_%s=yes" % (tc))
+                moreparams["RUN_%s" % tc] = "yes"
         else:
             runtcs = inseq
 
-        args = self.buildSubmitCommand(suiteargs, suitecslist, inputs)
-        args.extend(["-D", "TESTRUN_SR=%s" % (testrun)])
-        args.extend(["-D", "JOBGROUP=SR%s" % (testrun)])
-        args.extend(["-D", "JOBGROUPTAG=%s" % (self.name)])
+        params = self.buildSubmitParams(suiteparams, suitecslist, inputs)
+        params["TESTRUN_SR"] = str(testrun)
+        params["JOBGROUP"] = "SR%s" % testrun
+        params["JOBGROUPTAG"] = self.name
         if self.tcsku:
-            args.extend(["-D", "TESTRUN_TCSKU=%s" % (self.tcsku)])
+            params["TESTRUN_TCSKU"] = self.tcsku
         if devrun:
-            args.extend(["-D", "JIRA_TICKET_COMPONENT_ID=%s" % xenrt.TEC().lookup("DEV_JIRA_TICKET_COMPONENT_ID", "11891")])
+            params["JIRA_TICKET_COMPONENT_ID"] = xenrt.TEC().lookup("DEV_JIRA_TICKET_COMPONENT_ID", "11891")
         if waittime or self.delay:
             minstart = xenrt.util.timenow() + waittime + (self.delay * 60)
-            args.extend(["-D", "START_AFTER=%u" % (minstart)])
+            params['START_AFTER'] = str(minstart)
 
-        args.extend(moreargs)
+        params.update(moreparams)
         if debug:
-            sys.stdout.write("DEBUG: xenrt submit %s\n" %
-                             (string.join(map(quoteWhereNecessary, args))))
+            sys.stdout.write("Submitting job with\n%s\n" % json.dumps(params, indent=2))
             ret = 1
             runtcs = []
         else:
             sys.stdout.write("Starting %s... " % (self.name))
-            jobid = xenrt.GEC().dbconnect.jobSubmit(args)
+            jobid = self.parent.api.new_job(params=params, email=None)['id']
             if jobid == None:
                 raise XRTSubmitError("Error starting job for %s" % (self.name))
-            sys.stdout.write("%s\n" % (jobid))
-            ret = int(jobid)
+            sys.stdout.write("%d\n" % (jobid))
+            ret = jobid
         return (ret,runtcs)
 
 class Suite(SuiteConfigurable):
@@ -256,6 +243,7 @@ class Suite(SuiteConfigurable):
         self.id = None
         self.delay = 0
         self.sku = None
+        self.api = xenrt.APIFactory()
         if not os.path.exists(filename):
             f = "%s/%s" % (xenrt.TEC().lookup("SUITE_CONFIGS"), filename)
             if os.path.exists(f):
@@ -321,7 +309,7 @@ class Suite(SuiteConfigurable):
             try:
                 xenrt.GEC().config.setVariable("IGNORE_CONFIG_LOOKUP_FAILURES", "yes")
                 xenrt.GEC().config.setVariable("SEQ_PARSING_ONLY", "yes")
-                self.sequences.append(SuiteSequence(s))
+                self.sequences.append(SuiteSequence(s, self))
                 xenrt.GEC().config.setVariable("IGNORE_CONFIG_LOOKUP_FAILURES", "no")
                 xenrt.GEC().config.setVariable("SEQ_PARSING_ONLY", "no")
             except Exception:
@@ -339,6 +327,14 @@ class Suite(SuiteConfigurable):
                 sys.stderr.write("Error processing suite %s\n" % s.getAttribute("id"))
                 raise
 
+    def handleConfigNode(self, node):
+        if node.localName == "user":
+            for a in node.childNodes:
+                if a.nodeType == a.TEXT_NODE:
+                    self.api.customHeaders['X-Fake-User'] = expand(str(a.data))
+        else:   
+            SuiteConfigurable.handleConfigNode(self, node)
+
     def debugPrint(self, fd):
         fd.write("Test Suite: %s\n" % (self.title))
         for s in self.sequences:
@@ -347,10 +343,13 @@ class Suite(SuiteConfigurable):
     def setSKU(self, sku):
         self.sku = sku
 
-    def getArgs(self):
+    def getParams(self):
         if self.sku:
-            return self.args + self.sku.args
-        return self.args
+            ret = {}
+            ret.update(self.params)
+            ret.update(self.sku.params)
+            return ret
+        return self.params
 
     def getCSList(self):
         if not self.sku or not self.sku.cslist:
@@ -359,10 +358,10 @@ class Suite(SuiteConfigurable):
 
     def findSkippedTcs(self):
         # From the suite file
-        skip = map(lambda x: re.match("SKIP_TC(\d+)=", x).group(1), filter(lambda x: re.match("SKIP_TC(\d+)=", x), self.args))
+        skip = [re.match("SKIP_TC(\d+)=", x).group(1) for x in self.params.keys() if re.match("SKIP_TC(\d+)=", x)]
         # And if we have a sku file, add the skipped TCs from there too
         if self.sku:
-            skip.extend(map(lambda x: re.match("SKIP_TC(\d+)=", x).group(1), filter(lambda x: re.match("SKIP_TC(\d+)=", x), self.sku.args)))
+            skip.extend([re.match("SKIP_TC(\d+)=", x).group(1) for x in self.params.keys() if re.match("SKIP_TC(\d+)=", x)])
         return skip
 
     def submit(self, debug=False, delayfor=0, devrun=False):
@@ -393,7 +392,7 @@ class Suite(SuiteConfigurable):
             if not debug:
                 raise
         devCmp = xenrt.TEC().lookup("DEV_JIRA_TICKET_COMPONENT_ID", "11891")
-        if devrun or "JIRA_TICKET_COMPONENT_ID=%s" % devCmp in self.getArgs():
+        if devrun or self.getParams().get("JIRA_TICKET_COMPONENT_ID") == devCmp:
             devrunCalc = True
         else:
             devrunCalc = False
@@ -430,7 +429,7 @@ class Suite(SuiteConfigurable):
         alltcs = []
         try:
             for s in sorted(self.sequences, key=lambda x:x.machines, reverse=True):
-                (jobid,tcs) = s.submit(self.getArgs(),
+                (jobid,tcs) = s.submit(self.getParams(),
                                  self.getCSList(),
                                  inputs,
                                  testrun,
@@ -459,6 +458,7 @@ class Suite(SuiteConfigurable):
                 if "TC-%s" % s in alltcs:
                     alltcs.remove("TC-%s" % s)
             if not debug:
+                xenrt.TEC().logverbose("Adding %s to testrun" % alltcs)
                 j.addTestsToSuiteRun(testrun,alltcs)
             if not xenrt.TEC().lookup(["CLIOPTIONS", "SUITE_TESTRUN_RERUN"], None):
                 for (s,delay) in self.includesuites:
@@ -472,7 +472,7 @@ class Suite(SuiteConfigurable):
             sys.stderr.write("Error submitting one or more jobs, aborting.\n")
             for jobid in jobids:
                 sys.stderr.write("Removing job %u\n" % (jobid))
-                xenrt.GEC().dbconnect.jobRemove(jobid)
+                self.api.remove_job(jobid)
             raise xenrt.XRTError("Error starting jobs for testrun %s" %
                                  (testrun))
         if not debug and not xenrt.TEC().lookup(["CLIOPTIONS", "SUITE_TESTRUN_RERUN"], None):

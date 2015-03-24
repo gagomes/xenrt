@@ -43,7 +43,7 @@ class _AbstractLinuxHostedNFSServer(object):
         # Create a dir and export it
         self._prepareSharedDirectory(guest)
         guest.execguest("echo '%s' > /etc/exports" % self._getExportsLine())
-        guest.execguest("/etc/init.d/portmap start")
+        guest.execguest("/etc/init.d/portmap start || /etc/init.d/rpcbind start")
         guest.execguest("/etc/init.d/nfs-common start || true")
         guest.execguest("/etc/init.d/nfs-kernel-server start || true")
 
@@ -133,6 +133,7 @@ class TC7804(xenrt.TestCase):
         gdef["vifs"] = [(0, None, xenrt.randomMAC(), None)]
         gdef["memory"] = self.memory
         self.guest = xenrt.lib.xenserver.guest.createVM(**gdef)
+        self.getLogsFrom(self.guest)
         # Check disk is there and accessible.
         offline = self.getOfflineDisks()
         if offline:
@@ -1153,7 +1154,7 @@ class TC23335(TC8123):
         return xenrt.lib.xenserver.NFSv4StorageRepository
 
     def createExternalNFSShare(self):
-        return xenrt.ExternalNFSShare(version="4")
+        return xenrt.ExternalNFSShare(version = "4")
 
 
 class TC20929(_TC8122):
@@ -1362,7 +1363,7 @@ class TC6723(xenrt.TestCase):
 
             # Copy the PV tools ISO from the host to use as an example ISO
             # in our CIFS SR
-            remotefile = self.host.toolsISOPath("windows")
+            remotefile = self.host.toolsISOPath()
             if not remotefile:
                 raise xenrt.XRTError("Could not find PV tools ISO in dom0")
             cd = "%s/TC6723.iso" % (xenrt.TEC().getWorkdir())
@@ -1385,7 +1386,7 @@ class TC6723(xenrt.TestCase):
     def doCreate(self, index):
         # Attach the share as a CIFS ISO on the host.
         sharename, user, password = self.exports[index]
-        sr = xenrt.lib.xenserver.CIFSStorageRepository(self.host,
+        sr = xenrt.lib.xenserver.CIFSISOStorageRepository(self.host,
                                                        "cifstest%u" % (index))
         self.srs.append(sr)
         self.srsToRemove.append(sr)
@@ -1477,7 +1478,7 @@ class TC10860(TC6723):
     def doCreateWithSecret(self, index):
         # Attach the share as a CIFS ISO on the host.
         sharename, user, password = self.exports[index]
-        sr = xenrt.lib.xenserver.CIFSStorageRepository(self.host,
+        sr = xenrt.lib.xenserver.CIFSISOStorageRepository(self.host,
                                                        "cifstest%u" % (index))
         self.srs.append(sr)
         self.srsToRemove.append(sr)
@@ -4382,7 +4383,7 @@ class TCPbdDuplicateSecret(xenrt.TestCase):
     def run(self, arglist=None):
         # Attach the share as a CIFS ISO to the pool.
         sharename, user, password = self.exports[0]
-        sr = xenrt.lib.xenserver.CIFSStorageRepository(self.host,"cifstest")
+        sr = xenrt.lib.xenserver.CIFSISOStorageRepository(self.host,"cifstest")
 
         self.srs.append(sr)
 
@@ -4518,3 +4519,24 @@ class TCVdiCorruption(xenrt.TestCase):
                 self.cli.execute("vdi-destroy", "uuid=%s" % (self.vdi))
         except:
             pass
+
+class TC26472(xenrt.TestCase):
+    """Guests life cycle operations on CIFS SR using SMB share on a windows guest"""
+
+    def run(self, arglist):
+
+        self.host = self.getDefaultHost()
+        srs = self.host.minimalList("sr-list", args="name-label=\"CIFS-SR\"")
+        if not srs:
+            raise xenrt.XRTFailure("Unable to find a CIFS SR configured on host %s" % self.host)
+
+        xenrt.TEC().logverbose("Guests Life Cycle Operations on CIFS SR ...")
+
+        for guest in [xenrt.TEC().registry.guestGet(g) for g in self.host.listGuests()]:
+            self.getLogsFrom(guest)
+            guest.shutdown()
+            guest.start()
+            guest.reboot()
+            guest.suspend()
+            guest.resume()
+            guest.shutdown()

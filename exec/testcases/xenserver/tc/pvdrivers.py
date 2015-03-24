@@ -9,7 +9,10 @@
 #
 
 import socket, re, string, time, traceback, sys, random, copy, os.path
+from datetime import datetime
 import xenrt
+from xenrt.lazylog import step
+from xenrt.lib.xenserver.signedpackages import SignedXenCenter, SignedWindowsTools
 
 class TC8369(xenrt.TestCase):
     """Verify Windows PV drivers install to a Windows 2008 x64 VM without a test certificate"""
@@ -35,6 +38,9 @@ class TC8369(xenrt.TestCase):
         # so that we can compare to this after driver install
         self.certsBefore = self.guest.getWindowsCertList()
 
+        # Signtool is required for digital signature verification
+        self.guest.xmlrpcUnpackTarball("%s/signtool.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), "c:\\")
+
     def checkCerts(self):
         """Since Tampa the Windows PV driver installer will automatically
         install test certificates if the drivers are unsigned. This
@@ -57,6 +63,25 @@ class TC8369(xenrt.TestCase):
         if len(newCerts) > 0:
             raise xenrt.XRTFailure("Certificate(s) installed by PV driver installer")
 
+        # The tools installer can also install test signed drivers - we need to
+        # verify that it hasn't done so
+        drivers = self.guest.xmlrpcGlobpath("C:\\Program Files\\Citrix\\XenTools\\*\\*.sys")
+        if len(drivers) == 0:
+            drivers = self.guest.xmlrpcGlobpath("C:\\Program Files (x86)\\Citrix\\XenTools\\*\\*.sys")
+        signFailures = []
+        for d in drivers:
+            try:
+                if self.guest.xmlrpcGetArch() == "amd64":
+                    stexe = "signtool_x64.exe"
+                else:
+                    stexe = "signtool_x86.exe"
+                self.guest.xmlrpcExec("c:\\signtool\\%s verify /kp /v \"%s\"" % (stexe, d), returndata=True)
+            except:
+                signFailures.append(d)
+
+        if len(signFailures) > 0:
+            raise xenrt.XRTFailure("Incorrectly signed PV drivers detected", data="Signature issues with: %s" % str(signFailures))
+
     def checkDrivers(self):
         """Check that the PV drivers can be installed and that the VM
         operates afterwards. This is done without any additional
@@ -70,6 +95,51 @@ class TC8369(xenrt.TestCase):
     def run(self, arglist):
         if self.runSubcase("checkDrivers", (), "Drivers", "Check") == xenrt.RESULT_PASS:
             self.runSubcase("checkCerts", (), "Certs", "Check")
+
+class TC23788(TC8369):
+    """Verify Windows PV drivers install to a Windows 7 x86 VM without a test certificate"""
+
+    DISTRO = "win7sp1-x86"
+
+class TestSignedComponent(xenrt.TestCase):
+    """ Verify the digital signature of signed XenCenter and Windows drivers/tools"""
+
+    def prepare(self, arglist=None):
+        self.args  = self.parseArgsKeyValue(arglist)
+        self.guest = self.getGuest(self.args['guest'])
+        self.uninstallOnCleanup(self.guest)
+
+        # Signtool is required for digital signature verification of binary
+        self.guest.xmlrpcUnpackTarball("%s/signtool.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), "c:\\")
+
+    def run(self, arglist=None):
+
+        # Get the instance of the components we are testing
+        testObjects=[SignedXenCenter(),SignedWindowsTools()]
+        for testObj in testObjects:
+            testComponent = testObj.description()
+            self.declareTestcase("TestSignedComponent",testComponent)
+            self.runSubcase("doTest", (testObj,testComponent), "TestSignedComponent",testComponent)
+
+    def doTest(self,testObj,fileToVerify):
+
+        # Fetch the file from the package 
+        exe=testObj.fetchFile()
+        self.guest.xmlrpcSendFile(exe,fileToVerify)
+
+        # Verify the digital signature of the binary
+        testObj.verifySignature(self.guest,fileToVerify)
+
+        # Get the Certificate expiry date of signed binary
+        expiryDate=testObj.getCertExpiryDate(self.guest,fileToVerify)
+
+        # Set a new guest date so as to past the cert expiry date. We add a year to it
+        expiryYear=datetime.strptime(expiryDate,"%m-%d-%y").strftime("%Y")
+        newDate=datetime.strptime(expiryDate,"%m-%d-%y").replace(year=int(expiryYear)+1)
+        testObj.changeGuestDate(self.guest,newDate)
+
+        # If the binary is digitally signed with valid certificate we should be able to install
+        testObj.installPackages(self.guest)
 
 class _LinuxKernelUpdate(xenrt.TestCase):
     """Installing PV tools to a VM replaces the kernel with a Citrix kernel"""
@@ -1028,4 +1098,145 @@ class CA90861Frequency(xenrt.TestCase):
         xenrt.TEC().logverbose("%d/%d iterations completed successfully" % (success, iterations))
         if success < iterations:
             raise xenrt.XRTFailure("VM failed to boot successfully at least once")
+
+class TCToolsMissingUninstall(xenrt.TestCase):
+    """Test for SCTX-1634. Verify upgrade of XenTools from XS 6.0 to XS 6.2 is successfull"""
+    #TC-23775
+    def prepare(self, arglist=None):
+        self.host = self.getDefaultHost()
+        self.guest = self.host.getGuest("VMWin2k8")
+        self.guest.start()
+
+    def run(self, arglist=None):
+        step("Remove uninstaller file")
+        self.guest.xmlrpcRemoveFile("C:\\Program files\\citrix\\xentools\\uninstaller.exe")
+
+        step("Install 6.2 PV tools")
+        self.guest.installDrivers()
+        self.guest.waitForAgent(60)
+        
+        if self.guest.pvDriversUpToDate():
+            xenrt.TEC().logverbose("Tools are upto date")
+        else:
+            raise xenrt.XRTFailure("Guest tools are out of date")
+
+class TCBootStartDriverUpgrade(xenrt.TestCase):
+    """Test for CA-158777 upgrade issue with boot start driver"""
+
+    def prepare(self, arglist=None):
+        self.host = self.getDefaultHost()
+
+        distro = "win7sp1-x86"
+        startDrivers = xenrt.TEC().lookup("START_DRIVERS", "/usr/groups/xenrt/pvtools/esperado.tgz")
+        if arglist:
+            args = xenrt.util.strlistToDict(arglist)
+            if args.has_key("distro"):
+                distro = args["distro"]
+            elif args.has_key("startdrivers"):
+                startDrivers = args["startdrivers"]
+
+        self.guest = self.host.createGenericWindowsGuest(distro=distro, drivers=False)
+
+        # Install the Esperado PV drivers
+        self.guest.installDrivers(source=startDrivers, expectUpToDate=False)
+
+        # Make xenvif boot start
+        self.guest.setDriversBootStart()
+
+    def run(self, arglist=None):
+        # Attempt to upgrade the PV drivers
+        self.guest.installDrivers()
+
+class TCPrepareDriverUpgrade(xenrt.TestCase):
+    """Utility test which prepares a clone of a template VM with a specified set of tools"""
+
+    def run(self, arglist):
+        args = xenrt.util.strlistToDict(arglist)
+        template = args["template"]
+        tag = args["tag"]
+        hotfix = args["hotfix"]
+
+        host = self.getDefaultHost()
+
+        # Get the hotfix file
+        hotfixFile = xenrt.TEC().getFile(xenrt.TEC().config.getHotfix(hotfix, None))
+
+        # Extract the tools ISO from the hotfix
+        workdir = xenrt.TempDirectory()
+        patchDir = host.unpackPatch(hotfixFile)
+        toolsIso = host.execdom0("find %s -name \"xs-tools*.iso\"" % patchDir).strip()
+        sftp = host.sftpClient()
+        localToolsIso = "%s/%s.iso" % (workdir.path(), tag)
+        sftp.copyFrom(toolsIso, localToolsIso)
+        sftp.close()
+        host.execdom0("rm -fr %s" % patchDir)
+
+        # Create a tarball from the tools ISO
+        iso = xenrt.rootops.MountISO(localToolsIso)
+        mountpoint = iso.getMount()
+        toolsTgz = "%s/%s.tgz" % (workdir.path(), tag)
+        xenrt.command("cd %s; tar -czf %s *" % (mountpoint, toolsTgz))
+        iso.unmount()
+
+        # Clone the template VM
+        templateVM = self.getGuest(template)
+        guest = templateVM.cloneTemplate(name=tag)
+        host.addGuest(guest)
+
+        # Install drivers
+        guest.start()
+        guest.installDrivers(source=toolsTgz, expectUpToDate=False)
+
+        # Shutdown the clone
+        guest.shutdown()
+        xenrt.TEC().registry.guestPut(tag, guest)
+
+class TCTestDriverUpgrade(xenrt.TestCase):
+    """Test upgrading the drivers in the guest"""
+
+    def run(self, arglist):
+        args = xenrt.util.strlistToDict(arglist)
+        hotfixTag = args["tag"]
+
+        # Find the VM and snapshot it
+        guest = self.getGuest(hotfixTag)
+        if not guest:
+            raise xenrt.XRTError("Can't find guest %s" % hotfixTag)
+        self.guest = guest
+        snapshot = guest.snapshot()
+
+        xenrt.TEC().logdelimit("Testing normal driver upgrade")
+        guest.start()
+
+        # Try upgrading drivers
+        guest.installDrivers()
+
+        # Revert to snapshot, make existing drivers boot start
+        xenrt.TEC().logdelimit("Reverting to snapshot")
+        guest.shutdown()
+        guest.revert(snapshot)
+
+        xenrt.TEC().logdelimit("Testing boot start driver upgrade")
+        guest.start()
+        guest.setDriversBootStart()
+
+        # Try upgrading drivers
+        try:
+            guest.installDrivers()
+        except xenrt.XRTFailure, e:
+            if e.reason.startswith("VIF and/or VBD PV device not used") and xenrt.TEC().lookup("WORKAROUND_CA159586", False, boolean=True):
+                # The VM may just need an extra reboot or two
+                try:
+                    guest.reboot()
+                except:
+                    guest.reboot()
+                guest.checkPVDevices()
+            else:
+                raise
+
+    def postRun(self):
+        try:
+            self.guest.shutdown()
+        except:
+            pass
 

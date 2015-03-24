@@ -5,25 +5,29 @@ import xenrt
 
 class TestCoresPerSocket(XenRTUnitTestCase):
     def setUp(self):
-        self.__guest = Mock(spec=xenrt.GenericGuest)
         self.__setVCPUs = Mock()
         self.__sockets = Mock()
-        self.__guest.setVCPUs = self.__setVCPUs
-        self.__guest.setCoresPerSocket = self.__sockets
         self.__win = PropertyMock(return_value=True)
-        type(self.__guest).windows = self.__win
 
     def __setMocksOnHost(self, host):
         host.getCPUCores = Mock(return_value=8)
         host.getNoOfSockets = Mock(return_value=2)
         return host
 
+    def __setMocksOnGuest(self, guest):
+        guest.getMaxSupportedVCPUCount = Mock(return_value=16)
+        guest.setVCPUs = self.__setVCPUs
+        guest.setCoresPerSocket = self.__sockets
+        guest.windows = self.__win
+        return guest
+
     @patch("xenrt.TEC")
     @patch("random.choice")
     def testTampaDoesNotGetRandomCores(self, rand, _tec):
         """Tampa hosts don't get random called when setting sockets"""
         host = xenrt.lib.xenserver.host.TampaHost(None, None)
-        host.setRandomCoresPerSocket(self.__guest, 23)
+        guest = self.__setMocksOnGuest(xenrt.lib.xenserver.guest.TampaGuest("Guest"))
+        guest.setRandomCoresPerSocket(host, 23)
         self.assertFalse(rand.called)
 
     @patch("random.choice")
@@ -32,8 +36,9 @@ class TestCoresPerSocket(XenRTUnitTestCase):
     def testClearWaterGetsRandomCores(self, tec, gec, rand):
         """Clearwater hosts do get random called when setting sockets"""
         host = self.__setMocksOnHost(xenrt.lib.xenserver.host.ClearwaterHost(None, None))
-        tec.return_value.lookup = Mock(return_value = 0)
-        host.setRandomCoresPerSocket(self.__guest, 23)
+        tec.return_value.lookup = Mock(return_value=0)
+        guest = self.__setMocksOnGuest(xenrt.lib.xenserver.guest.TampaGuest("Guest"))
+        guest.setRandomCoresPerSocket(host, 23)
         self.assertTrue(rand.called)
 
     @patch("xenrt.GEC")
@@ -41,8 +46,9 @@ class TestCoresPerSocket(XenRTUnitTestCase):
     def testClearwaterGetsSocketsSet(self, tec, gec):
         """For a CLR host the number of sockets should be set"""
         host = self.__setMocksOnHost(xenrt.lib.xenserver.host.ClearwaterHost(None, None))
-        tec.return_value.lookup = Mock(return_value = 0)
-        host.setRandomCoresPerSocket(self.__guest, 23)
+        tec.return_value.lookup = Mock(return_value=0)
+        guest = self.__setMocksOnGuest(xenrt.lib.xenserver.guest.TampaGuest("Guest"))
+        guest.setRandomCoresPerSocket(host, 23)
         self.assertTrue(self.__sockets.called)
 
     @patch("xenrt.GEC")
@@ -51,8 +57,9 @@ class TestCoresPerSocket(XenRTUnitTestCase):
         """For a CLR host the number of sockets should be set if the
         cores per socket value has been pulled from the database"""
         host = self.__setMocksOnHost(xenrt.lib.xenserver.host.ClearwaterHost(None, None))
-        tec.return_value.lookup = Mock(return_value = 4)
-        host.setRandomCoresPerSocket(self.__guest, 23)
+        tec.return_value.lookup = Mock(return_value=4)
+        guest = self.__setMocksOnGuest(xenrt.lib.xenserver.guest.TampaGuest("Guest"))
+        guest.setRandomCoresPerSocket(host, 23)
         self.assertTrue(self.__sockets.called)
 
     @patch("xenrt.GEC")
@@ -60,17 +67,18 @@ class TestCoresPerSocket(XenRTUnitTestCase):
     def testTampaDoesntGetSocketsSet(self, tec, gec):
         """For TAM hosts expect the number of sockets not to be set"""
         host = self.__setMocksOnHost(xenrt.lib.xenserver.host.TampaHost(None, None))
-        tec.return_value.lookup = Mock(return_value = 0)
-        host.setRandomCoresPerSocket(self.__guest, 23)
+        tec.return_value.lookup = Mock(return_value=0)
+        guest = self.__setMocksOnGuest(xenrt.lib.xenserver.guest.TampaGuest("Guest"))
+        guest.setRandomCoresPerSocket(host, 23)
         self.assertFalse(self.__sockets.called)
 
     @patch('xenrt.TEC')
     def testClearwaterPVGuestDoesNotGetSocketsSet(self, _tec):
         """For a CLR host given a PV guest expect the number of sockets not to be set"""
         host = self.__setMocksOnHost(xenrt.lib.xenserver.host.ClearwaterHost(None, None))
-        self.__win.return_value = False
-        self.assertFalse(self.__guest.windows)
-        host.setRandomCoresPerSocket(self.__guest, 23)
+        guest = self.__setMocksOnGuest(xenrt.lib.xenserver.guest.TampaGuest("Guest"))
+        guest.windows = False
+        guest.setRandomCoresPerSocket(host, 23)
         self.assertFalse(self.__sockets.called)
 
 
@@ -202,3 +210,35 @@ class TestNFSv4StorageRepository(XenRTUnitTestCase):
             },
             sr.dconf
         )
+
+
+class TestHostLicenseBehaviourForCreedence(XenRTUnitTestCase):
+
+    def _getHost(self):
+        return xenrt.lib.xenserver.host.CreedenceHost(None, None)
+
+    @patch("xenrt.lib.xenserver.licensing.XenServerLicenseFactory.allLicenses")
+    @patch('xenrt.TEC')
+    def testAllSKUsReturnListOfLicenses(self, tec, fac):
+        host = self._getHost()
+        host.validLicenses()
+        self.assertTrue(fac.called)
+
+    @patch("xenrt.lib.xenserver.licensing.XenServerLicenseFactory.xenserverOnlyLicenses")
+    @patch('xenrt.TEC')
+    def testXenServerOnlySKUsReturnListOfLicenses(self, tec, fac):
+        host = self._getHost()
+        host.validLicenses(True)
+        self.assertTrue(fac.called)
+
+
+class TestHostLicenseBehaviourForTampa(TestHostLicenseBehaviourForCreedence):
+
+    def _getHost(self):
+        return xenrt.lib.xenserver.host.TampaHost(None, None)
+
+
+class TestHostLicenseBehaviourForClearwater(TestHostLicenseBehaviourForCreedence):
+
+    def _getHost(self):
+        return xenrt.lib.xenserver.host.ClearwaterHost(None, None)

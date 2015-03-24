@@ -171,6 +171,11 @@ class XenRTSchedule(XenRTAPIPage):
 
                             if not schedulable:
                                 continue
+                            # Do one ACL check at this stage
+                            if not self.check_acl_for_machines(selected, details['USERID'], number=len(selected)):
+                                if verbose:
+                                    outfh.write("  at least one specified machine not allowed by ACL\n")
+                                continue
                     else:
                         if details.has_key("SITE"):
                             site = details["SITE"]
@@ -263,6 +268,7 @@ class XenRTSchedule(XenRTAPIPage):
                         "m.leaseTo IS NOT NULL")
 
             exp = []
+            exp1 = []
             while True:
                 rc = cur.fetchone()
                 if not rc:
@@ -271,10 +277,15 @@ class XenRTSchedule(XenRTAPIPage):
                 ut = calendar.timegm(rc[1].timetuple())
                 if ut < time.time():
                     exp.append("'%s'" % (m))
+                    exp1.append(m)
             if len(exp) > 0:
                 cur.execute("UPDATE tblMachines SET leaseTo = NULL, "
                             "comment = NULL, leaseFrom = NULL, leaseReason = NULL WHERE machine in (%s)" %
                             (string.join(exp, ", ")))
+                timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))
+                for e in exp1:
+                    cur.execute("INSERT INTO tblEvents(ts, etype, subject, edata) VALUES (%s, %s, %s, %s);",
+                                    [timenow, "LeaseEnd", e, None])
             db.commit()
             cur.close()
         except Exception, e:
@@ -443,6 +454,7 @@ class XenRTSchedule(XenRTAPIPage):
             s, c = cluster
             if verbose:
                 outfh.write("  checking site %s, cluster %s...\n" % (s, c))
+
             # Check the available shared resources on the site
             if details.has_key("SHAREDRESOURCES"):
                 sharedresourcesavailable = self.site_available_shared_resources(s)
@@ -463,6 +475,12 @@ class XenRTSchedule(XenRTAPIPage):
             if len(clusters[cluster]) < number:
                 if verbose:
                     outfh.write("    too small (%u < %u)\n" % (len(clusters[cluster]), number))
+                continue
+
+            # Check there are no ACL restrictions
+            if not self.check_acl_for_machines(clusters[cluster], details['USERID'], selected, number):
+                if verbose:
+                    outfh.write("    not allowed by ACL\n")
                 continue
 
             selx = []
@@ -595,5 +613,71 @@ class XenRTSchedule(XenRTAPIPage):
         # If we get here then we were not able to find sufficient machines
         # in any cluster.
         return False
-                
-PageFactory(XenRTSchedule, "schedule", "/api/schedule", compatAction="schedule")
+
+    def get_acls_for_machines(self, machines):
+        if len(machines) == 0:
+            return {}
+
+        db = self.getDB()
+        policies = {}
+        cur = db.cursor()
+
+        # First identify the set of acls and the number of machines from 'machines' that are in that acl
+        cur.execute("SELECT aclid, COUNT(machine) FROM tblmachines WHERE machine IN (%s) AND aclid IS NOT NULL GROUP BY aclid" %
+                    (','.join(map(lambda m: "'%s'" % m, machines))))
+        while True:
+            rc = cur.fetchone()
+            if not rc:
+                break
+            policies[int(rc[0])] = int(rc[1])
+
+        if len(policies.keys()) == 0:
+            return policies
+
+        # Now identify any parent acls that we need to check
+        cur.execute("SELECT a.parent, COUNT(m.machine) FROM tblmachines AS m INNER JOIN tblacls AS a ON m.aclid=a.aclid WHERE machine IN (%s) AND a.parent IS NOT NULL GROUP BY a.parent" %
+                    (','.join(map(lambda m: "'%s'" % m, machines))))
+        while True:
+            rc = cur.fetchone()
+            if not rc:
+                break
+            p = int(rc[0])
+            if policies.has_key(p):
+                # The ACL is in use both directly on some machines and as a parent, so we add the numbers together
+                policies[p] += int(rc[1])
+            else:
+                policies[p] = int(rc[1])
+        cur.close()
+
+        return policies      
+
+    def check_acl_for_machines(self, machines, userid, already_selected=[], number=1):
+        # Identify the policies we need to check
+        policies = self.get_acls_for_machines(machines)
+        if len(policies.keys()) == 0:
+            # No policies for these machines, so all are OK
+            return True
+
+        existingPolicies = self.get_acls_for_machines(already_selected)
+
+        # TODO: Currently if scheduling from a cluster which has
+        #       machines from different ACLs we take a pessimistic
+        #       view where we assume all machines will be coming
+        #       from that ACL (capped to the number of machines in the ACL).
+        #       This is overly limiting, particularly in a CROSS_CLUSTER
+        #       situation!
+
+        # Go through each policy and check if we're OK
+        for p in policies.keys():
+            machineCount = min(number, policies[p]) # We want 'number' extra machines
+            if existingPolicies.has_key(p):
+                # We do however have to add on any already selected machines in the same ACL as these won't
+                # be taken into account otherwise
+                machineCount += existingPolicies[p]
+
+            if not self.getACLHelper().check_acl(p, userid, machineCount, ignoreParent=True)[0]:
+                return False
+
+        return True
+
+PageFactory(XenRTSchedule, "/api/schedule", compatAction="schedule")

@@ -8,7 +8,7 @@
 # conditions as licensed by XenSource, Inc. All other rights reserved.
 #
 
-import string, os.path, os, pwd
+import string, os.path, os, pwd, shutil
 import xenrt, xenrt.resources
 
 # Symbols we want to export from the package.
@@ -21,9 +21,10 @@ __all__ = ["PXEBootEntry",
            "PXEBoot",
            "PXEGrubBoot",
            "pxeHexIP",
-           "pxeMAC"]
+           "pxeMAC",
+           "PXEBootUefi"]
 
-class PXEBootEntry:
+class PXEBootEntry(object):
     """An individual boot entry in a PXE config."""
     def __init__(self, cfg, label):
         self.cfg = cfg
@@ -65,7 +66,14 @@ class PXEBootEntryIPXE(PXEBootEntry):
         PXEBootEntry.__init__(self, cfg, label)
 
     def generate(self):
-        return """
+        if xenrt.TEC().lookup("EXTERNAL_PXE", False, boolean=True):
+            self.cfg.copyIn("/tftpboot/ipxe.embedded.0") 
+            return """
+LABEL %s
+    KERNEL %s
+""" % (self.label, self.cfg.makeBootPath("ipxe.embedded.0"))
+        else:
+            return """
 LABEL %s
     KERNEL %s
 """ % (self.label, xenrt.TEC().lookup("IPXE_KERNEL", "ipxe.0"))
@@ -77,8 +85,11 @@ class PXEBootEntryLinux(PXEBootEntry):
         self.kernel = ""
         self.kernelArgs = []
 
-    def linuxSetKernel(self, str):
-        self.kernel = self.cfg.makeBootPath(str)
+    def linuxSetKernel(self, str, abspath=False):
+        if abspath:
+            self.kernel=str
+        else:
+            self.kernel = self.cfg.makeBootPath(str)
 
     def linuxArgsKernelAdd(self, str):
         self.kernelArgs.append(str)
@@ -202,7 +213,6 @@ LABEL %s
 """ % (self.label, self.mbootimg, self.mbootGetArgsKernelString(),
        self.mbootGetArgsModule1String())
 
-
 class PXEBoot(xenrt.resources.DirectoryResource):
     """A directory on a PXE server."""
     def __init__(self, place=None, abspath=False, removeOnExit=False, iSCSILUN=None, remoteNfs=None):
@@ -318,6 +328,9 @@ DEFAULT %s
     def _getIPXEDir(self):
         return xenrt.TEC().lookup("IPXE_CONF_DIR", self.tftpbasedir+"/ipxe.cfg")
 
+    def _getUefiDir(self):
+        return xenrt.TEC().lookup("EFI_DIR", self.tftpbasedir+"/EFI")
+
     def clearISCSINICs(self):
         self.iSCSINICs = []
 
@@ -346,7 +359,13 @@ DEFAULT %s
             self._rmtree("%s/%s" % (self._getIPXEDir(), machine.pxeipaddr))
         if forceip and self._exists("%s/%s" % (self._getIPXEDir(), forceip)):
             self._rmtree("%s/%s" % (self._getIPXEDir(), forceip))
-            
+    
+    def clearUefi(self, machine, forceip=None):
+        xenrt.TEC().logverbose("Clearing UEFI grub config")
+        if machine and self._exists("%s/%s" % (self._getUefiDir(), machine.pxeipaddr)):
+            self._rmtree("%s/%s" % (self._getUefiDir(), machine.pxeipaddr))
+        if forceip and self._exists("%s/%s" % (self._getUefiDir(), forceip)):
+            self._rmtree("%s/%s" % (self._getUefiDir(), forceip))
 
     def writeIPXEExit(self, machine, forceip=None):
         filename = self.getIPXEFile(machine, forceip)
@@ -427,8 +446,12 @@ dhcp
         xenrt.TEC().logverbose("Wrote iPXE config file %s" % (filename))
         return filename
 
-    def writeOut(self, machine, forcemac=None, forceip=None, suffix=None):
+    def writeOut(self, machine, forcemac=None, forceip=None, suffix=None, clearIPXE=True, clearUefi=True):
         """Write this config for the specified machine."""
+        if clearIPXE:
+            self.clearIPXEConfig(machine, forceip=forceip)
+        if clearUefi:
+            self.clearUefi(machine, forceip=forceip)
         pxedir = xenrt.TEC().lookup("PXE_CONF_DIR",
                                     self.tftpbasedir+"/pxelinux.cfg")
 
@@ -613,3 +636,73 @@ def pxeMAC(mac):
 def pxeGrubMAC(mac):
     ocs = string.split(mac, ":")
     return "01"+string.upper("".join(["%s" % oc for oc in ocs]))
+
+class PXEBootUefi(xenrt.resources.DirectoryResource):
+    def __init__(self):
+        self.tftpbasedir = xenrt.TEC().lookup("TFTP_BASE")
+        self.pxebasedir = os.path.normpath(
+            self.tftpbasedir + "/" + \
+            xenrt.TEC().lookup("TFTP_SUBDIR", default="xenrt"))
+        xenrt.resources.DirectoryResource.__init__(\
+            self, self.pxebasedir)
+        xenrt.TEC().gec.registerCallback(self)
+        self.bootdir = None
+        self.entries = {}
+        self.defaultEntry = None
+
+    def setDefault(self, label):
+        self.defaultEntry = label
+
+    def addGrubEntry(self, label, text, default=False):
+        self.entries[label] = text
+        if default:
+            self.defaultEntry = label
+
+    def installBootloader(self, location, machine, forceip=None):
+        ip = forceip or machine.pxeipaddr
+        xenrt.TEC().logverbose("Installing UEFI PXE bootloader for %s" % ip)
+        path = "%s/EFI/%s" % (self.tftpbasedir, ip)
+        if not self._exists(path):
+            os.makedirs(path)
+        shutil.copyfile(location, "%s/boot.efi" % path)
+
+    def uninstallBootloader(self, machine, forceip=None):
+        ip = forceip or machine.pxeipaddr
+        xenrt.TEC().logverbose("Removing UEFI PXE bootloader for %s" % ip)
+        path = "%s/EFI/%s" % (self.tftpbasedir, ip)
+        if self._exists(path):
+            shutil.rmtree(path)
+
+    def writeOut(self, machine, forceip=None):
+        ip = forceip or machine.pxeipaddr
+        path = "%s/EFI/xenserver" % self.tftpbasedir
+        if not self._exists(path):
+            os.makedirs(path)
+        with open("%s/grub.cfg" % path, "w") as f:
+            f.write("configfile /EFI/xenserver/$net_default_ip.cfg\n")
+        with open("%s/%s.cfg" % (path, ip), "w") as f:
+            f.write("set timeout=5\n\n")
+            f.write("menuentry '%s' {\n" % self.defaultEntry)
+            f.write(self.entries[self.defaultEntry])
+            f.write("}\n")
+        return "%s/%s.cfg" % (path, ip)
+
+    def tftpPath(self):
+        preflen = len(os.path.normpath(self.tftpbasedir))
+        return self.path()[preflen:]
+
+    def callback(self):
+        self.remove()
+
+    def remove(self):
+        if self.removeOnExit and self.bootdir:
+            if self._exists(self.bootdir):
+                self._rmtree(self.bootdir)
+            if self._exists("%s.xenrt.bak" % self.bootdir):
+                try:
+                    xenrt.util.command("mv %s.xenrt.bak %s" % (self.bootdir, self.bootdir))
+                except:
+                    xenrt.rootops.sudo("mv %s.xenrt.bak %s" % (self.bootdir, self.bootdir))
+        self._delegate.remove() 
+        xenrt.TEC().gec.unregisterCallback(self)
+

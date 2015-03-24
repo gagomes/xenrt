@@ -2273,11 +2273,8 @@ class TC12550(_VSwitch):
             pings.pop()
             pings.pop()
             result = pings.pop()
-            try:
-                transmitted, received, packet_loss, ms  = re.findall("(\d+)", result)
-            except(ValueError):
-                transmitted, received, duplicates, packet_loss, ms  = re.findall("(\d+)", result)
-            if received == 0:
+            data = dict([(v.strip(),int(k)) for k, v in re.findall("(\d+)([\w\s%]+)", result)])
+            if 'received' in data and data['received']==0:
                 raise xenrt.XRTFailure("could not reach address %s on vlan %d" % (vlan_if_address, vlan_id))
 
         # destroy the VLAN interfaces 
@@ -2390,11 +2387,8 @@ class TC20958(_VSwitch):
             pings.pop()
             pings.pop()
             result = pings.pop()
-            try:
-                transmitted, received, packet_loss, ms  = re.findall("(\d+)", result)
-            except(ValueError):
-                transmitted, received, duplicates, packet_loss, ms  = re.findall("(\d+)", result)
-            if received == 0:
+            data = dict([(v.strip(),int(k)) for k, v in re.findall("(\d+)([\w\s%]+)", result)])
+            if 'received' in data and data['received']==0:
                 raise xenrt.XRTFailure("could not reach address %s on vlan %d" % (vlan_if_address, vlan_id))
 
         # destroy the VLAN interfaces 
@@ -2508,8 +2502,8 @@ class TC20996(_VSwitch):
             pings.pop()
             pings.pop()
             result = pings.pop()
-            transmitted, received, packet_loss, ms  = re.findall("(\d\d)", result)
-            if received == 0:
+            data = dict([(v.strip(),int(k)) for k, v in re.findall("(\d+)([\w\s%]+)", result)])
+            if 'received' in data and data['received']==0:
                 raise xenrt.XRTFailure("could not reach address %s on vlan %d" % (vlan_if_address, vlan_id))
 
         # destroy the VLAN interfaces 
@@ -2623,8 +2617,8 @@ class TC20997(_VSwitch):
             pings.pop()
             pings.pop()
             result = pings.pop()
-            transmitted, received, packet_loss, ms  = re.findall("(\d\d)", result)
-            if received == 0:
+            data = dict([(v.strip(),int(k)) for k, v in re.findall("(\d+)([\w\s%]+)", result)])
+            if 'received' in data and data['received']==0:
                 raise xenrt.XRTFailure("could not reach address %s on vlan %d" % (vlan_if_address, vlan_id))
 
         # destroy the VLAN interfaces 
@@ -3088,7 +3082,7 @@ class SRTrafficwithGRO(NetworkThroughputwithGRO):
         nfsvm.execguest("mkdir %s" % dir)
         nfsvm.execguest("echo '%s *(sync,rw,no_root_squash,no_subtree_check)'"
                         " > /etc/exports" % dir)
-        nfsvm.execguest("/etc/init.d/portmap start")
+        nfsvm.execguest("/etc/init.d/portmap start || /etc/init.d/rpcbind start")
         nfsvm.execguest("/etc/init.d/nfs-common start || true")
         nfsvm.execguest("/etc/init.d/nfs-kernel-server start || true")
         
@@ -5554,7 +5548,7 @@ class TC11582(TC11531):
 
 #### vSwitch Scalability Tests ####
 
-class _TC11537:
+class _TC11537(object):
     """
     Base class providing Create VIFs/VMs for TC11537 sequences
     """

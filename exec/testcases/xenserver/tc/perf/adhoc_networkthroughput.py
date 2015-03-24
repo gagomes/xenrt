@@ -1,6 +1,6 @@
 import libperf, os, re, string, thread, threading, time, xenrt
 
-class PoolMaster:
+class PoolMaster(object):
     def __init__(self, host, sender_host="tg02", vm_type="win", name_scheme=".*"):
         # declare variables
         self.hostRx = host

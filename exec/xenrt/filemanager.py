@@ -1,7 +1,7 @@
 
 import sys, string, os.path, threading, os, shutil, tempfile, stat, hashlib
 import time, urlparse, glob, re, requests
-import xenrt, xenrt.util
+import xenrt, xenrt.util, xenrt.ssh
 
 __all__ = ["getFileManager"]
 
@@ -9,6 +9,7 @@ fm = None
 
 class FileNameResolver(object):
     def __init__(self, fn, multipleFiles=False):
+        self.__fn = fn
         self.__url = fn
         self.__multiple = multipleFiles
         self.__singleWildcard = False
@@ -18,6 +19,7 @@ class FileNameResolver(object):
         self.__resolveInputDir()
         self.__resolveHttpFetch()
         self.__resolveLatest()
+        self.__useArchiveIfNeeded()
         # Finally, we tidy up the path
         self.__removeMultipleSlashes()
 
@@ -25,6 +27,10 @@ class FileNameResolver(object):
         self.__resolveDirectory()
         self.__resolveWildCards()
         self.__resolveArchive()
+
+    @property
+    def fn(self):
+        return self.__fn
 
     @property
     def url(self):
@@ -45,6 +51,10 @@ class FileNameResolver(object):
     @property
     def singleFileWithWildcard(self):
         return self.__singleWildcard
+
+    @property
+    def isSimpleFile(self):
+        return not (self.multipleFiles or self.singleFileWithWildcard or self.directory)
         
     def __resolveDirectory(self):
         if self.__localName.endswith("/"):
@@ -102,41 +112,77 @@ class FileNameResolver(object):
         while re.search("[^:]//", self.__url):
             self.__url = re.sub("([^:])//", "\\1/", self.__url)
 
+    def __useArchiveIfNeeded(self):
+        
+        rootBuildPath = "/usr/groups/xen/carbon/"
+        rootArchivePath = "/nfs/archive/builds/carbon/"
+
+        m = re.match("(.*%s.+?/\d+)/.*" % rootBuildPath, self.__url)
+        if not m:
+            return
+        buildDir = m.group(1)
+        archiveDir = buildDir.replace(rootBuildPath, rootArchivePath)
+
+        if not xenrt.isUrlFetchable(buildDir) and xenrt.isUrlFetchable(archiveDir):
+            self.__url = self.__url.replace(rootBuildPath, rootArchivePath)
+
 class FileManager(object):
     def __init__(self):
         self.cachedir = xenrt.TempDirectory().path()
         self.lock = threading.Lock()
+        self.defaultFetchTimeout = 3600
+        self.externalFetchTimeout = 6 * 3600
 
-    def getFile(self, filename, multiple=False):
+    def getFile(self, filename, multiple=False, replaceExistingIfDiffers=False):
         try:
             xenrt.TEC().logverbose("getFile %s" % filename)
             self.lock.acquire()
             sharedLocation = None
+            isUsingExternalCache = False
             fnr = FileNameResolver(filename, multiple)
             url = fnr.url
             localName = fnr.localName
-            cache = self._availableInCache(localName)
+            cache = self.__availableInCache(fnr, replaceExistingIfDiffers=replaceExistingIfDiffers)
             if cache:
                 return cache
 
             else:
                 sharedLocation = self._sharedCacheLocation(localName)
+                # Check file size and decide which global cache to use. If file size is greater than
+                # FILE_SIZE_CACHE_LIMIT, we cache file on external storage.
+                try:
+                    fileSizeThreshold = float(xenrt.TEC().lookup("FILE_SIZE_CACHE_LIMIT", str(1 * xenrt.GIGA)))
+                    if fnr.isSimpleFile:
+                        r = requests.head(fnr.url, allow_redirects=True)
+                        if r.status_code == 200 and 'content-length' in r.headers and \
+                            float(r.headers['content-length']) > fileSizeThreshold:
+                            xenrt.TEC().logverbose("Using external cache")
+                            sharedLocation = self._externalCacheLocation(localName)
+                            isUsingExternalCache = True
+                except Exception, e:
+                    xenrt.TEC().warning('Reverting:Using internal shared cache. File Manager failed: %s' % e)
+
                 perJobLocation = self._perJobCacheLocation(localName)
                 f = open("%s.fetching" % sharedLocation, "w")
                 f.write(str(xenrt.GEC().jobid()) or "nojob")
                 f.close()
-                
+
                 if multiple:
                     self.__getMultipleFiles(url, sharedLocation)
                 elif fnr.directory:
                     self.__getDirectory(url, sharedLocation)
                 elif fnr.singleFileWithWildcard:
                     self.__getSingleFileWithWildcard(url, sharedLocation)
+                elif filename.startswith("sftp://"):
+                    self.__getSingleFileViaSftp(filename, sharedLocation)
                 else:
-                    self.__getSingleFile(url, sharedLocation)
+                    self.__getSingleFile(url, sharedLocation, isUsingExternalCache)
                 os.chmod(sharedLocation, stat.S_IRWXU | stat.S_IRWXG | stat.S_IROTH | stat.S_IXOTH)
-                os.link(sharedLocation, perJobLocation) 
 
+                if isUsingExternalCache:
+                    os.symlink(sharedLocation, perJobLocation)
+                else:
+                    os.link(sharedLocation, perJobLocation)
                 return perJobLocation
         except Exception, e:
             xenrt.TEC().logverbose("Warning - could not fetch %s - %s" % (filename, e))
@@ -146,9 +192,11 @@ class FileManager(object):
                 os.unlink("%s.fetching" % sharedLocation)
             self.lock.release()
 
-    def __getSingleFile(self, url, sharedLocation):
+    def __getSingleFile(self, url, sharedLocation, isUsingExternalCache=False):
         try:
-            xenrt.util.command("wget%s -nv '%s' -O '%s.part'" % (self.__proxyflag, url, sharedLocation))
+            # Increase timeout if using external nfs.
+            timeout = self.externalFetchTimeout if isUsingExternalCache else self.defaultFetchTimeout
+            xenrt.util.command("wget%s -nv '%s' -O '%s.part'" % (self.__proxyflag, url, sharedLocation), timeout=timeout)
         except:
             os.unlink('%s.part' % sharedLocation)
             raise
@@ -199,7 +247,22 @@ class FileManager(object):
             xenrt.TEC().logverbose("HTTP multiple fetchFile exception: %s" % (str(e)))
             return None
         return True
-    
+
+    def __getSingleFileViaSftp(self, file, sharedLocation):
+        """
+        Fetch a file which is accessible using ssh rather than web url
+        """
+        parsed = urlparse.urlparse(file)
+        try:
+            sftp = xenrt.ssh.SFTPSession(ip=parsed.hostname, username=parsed.username, password=parsed.password, level=xenrt.RC_FAIL,port=(parsed.port or 22))
+            sftp.copyFrom(parsed.path, '%s.part' % sharedLocation)
+            sftp.close()
+        except:
+            os.unlink('%s.part' % sharedLocation)
+            raise
+        else:
+            os.rename('%s.part' % sharedLocation, sharedLocation)
+
     @property
     def __proxyflag(self):
         proxy = xenrt.TEC().lookup("HTTP_PROXY", None)
@@ -223,84 +286,145 @@ class FileManager(object):
             os.makedirs(dirname)
         return "%s/%s" % (dirname, self._filename(filename))
 
+    def _externalCacheLocation(self, filename, ignoreError=False):
+        try:
+            cachedir=xenrt.TEC().lookup("FILE_MANAGER_CACHE_NFS")
+            if os.path.exists(cachedir) and xenrt.command("stat -f -c %%T %s" % cachedir, nolog=True).strip() == "nfs":
+                dirname = "%s/%s" % (cachedir, hashlib.sha256(filename).hexdigest())
+                if not os.path.exists(dirname):
+                    os.makedirs(dirname)
+                return "%s/%s" % (dirname, self._filename(filename))
+            elif os.path.exists(cachedir):
+                raise xenrt.XRTError("External cache directory exists but is not external storage.")
+        except Exception, e:
+            if not ignoreError:
+                raise xenrt.XRTError("_externalCacheLocation: %s" % str(e))
+        return None
+
     def removeFromCache(self, filename):
-        sharedLocation = self._sharedCacheLocation(filename)
-        if os.path.exists(sharedLocation):
-            xenrt.TEC().logverbose("Found %s in cache" % sharedLocation)
-            os.unlink(sharedLocation)
-            return
-        # Now try a resolved file name
         fnr = FileNameResolver(filename, False)
         url = fnr.url
-        sharedLocation = self._sharedCacheLocation(url)
-        if os.path.exists(sharedLocation):
-            xenrt.TEC().logverbose("Found %s in cache" % sharedLocation)
-            os.unlink(sharedLocation) 
+        globalCaches = []
+        # try for both, filename and resolved filename
+        for f in [filename, url]:
+            globalCaches.append(self._sharedCacheLocation(f))
+            externalLocation = self._externalCacheLocation(f, ignoreError=True)
+            if externalLocation: 
+                globalCaches.append(externalLocation)
 
-    def _availableInCache(self, filename):
-        # First try the per-job cache
+        for cache in globalCaches:
+            if os.path.exists(cache):
+                xenrt.TEC().logverbose("Found %s in cache" % cache)
+                os.unlink(cache)
+                return
+
+    def __availableInCache(self, fnr, replaceExistingIfDiffers=False):
+
+        filename = fnr.localName
         perJobLocation = self._perJobCacheLocation(filename)
-        sharedLocation = self._sharedCacheLocation(filename)
+        globalCaches = [self._sharedCacheLocation(filename)]
+        externalLocation = self._externalCacheLocation(filename, ignoreError=True)
+        if externalLocation: 
+            globalCaches.append(externalLocation)
+
+        # First try the per-job cache
         if os.path.exists(perJobLocation):
             xenrt.TEC().logverbose("Found file in per-job cache")
             return perJobLocation
 
-        # If it's not in the per-job cache, try the global cache
-        # First, if someone else is fetching, wait until fetching is complete
-        if os.path.exists("%s.fetching" % sharedLocation):
-            xenrt.TEC().logverbose("File is fetching - waiting")
-            while True:
-                if not os.path.exists("%s.fetching" % sharedLocation):
-                    break
-                xenrt.sleep(15)
+        # If it's not in the per-job cache, try the global cache(s)
+        ## First, if someone else is fetching, wait until fetching is complete
+        for cache in globalCaches:
+            if os.path.exists("%s.fetching" % cache):
+                xenrt.TEC().logverbose("File is fetching - waiting")
+                if cache == externalLocation:
+                    deadline = xenrt.util.timenow() + self.externalFetchTimeout
+                else:
+                    deadline = xenrt.util.timenow() + self.defaultFetchTimeout
+                while xenrt.util.timenow() < deadline:
+                    try:
+                        with open("%s.fetching" % cache) as f:
+                            job = f.read().strip()
+                            if job != "nojob":
+                                # Check if the job is still running
+                                j = xenrt.GEC().dbconnect.api.get_job(int(job))
+                                if j['rawstatus'] == "done" or j['params'].get('DEAD_JOB') == "yes":
+                                    os.unlink("%s.fetching" % cache)
+                                    break
+                    except Exception, e:
+                        xenrt.TEC().logverbose("Warning: exception %s raised when checking fetching file" % str(e))
+                        if not os.path.exists("%s.fetching" % cache):
+                            break
+                        raise 
+                    xenrt.sleep(15)
 
-        # Now check whether the file is available
+                # we need to raise an alarm if any fetching file is not deleted.
+                if xenrt.util.timenow() > deadline:
+                    raise xenrt.XRTError("found %s.fetching, file exceeds its max possible download duration." % cache)
 
-        if os.path.exists(sharedLocation):
-            # If it is, hardlink it to the per-job cache
-            xenrt.TEC().logverbose("Found file in shared cache")
-            os.link(sharedLocation, perJobLocation) 
+            # Now check whether the file is available
+            if os.path.exists(cache):
+                # If it is, hardlink it to the per-job cache
+                xenrt.TEC().logverbose("Found file in cache : %s" % cache)
 
-            # Return the cache location in the per-job cache
-            return perJobLocation
-        else:
-            return None
+                if fnr.isSimpleFile:
+                    # Check the content length matches (i.e. the file hasn't been updated underneath us)
+                    expectedLength = None
+                    try:
+                        r = requests.head(fnr.url, allow_redirects=True)
+                        # We only trust the content-length if we got a 200 code, and the length is
+                        # >10M, this is to avoid situations where we have a script providing the
+                        # file where a HEAD request will give the size of the script not the file
+                        # it provides
+                        if r.status_code == 200 and 'content-length' in r.headers and \
+                           r.headers['content-length'] > (10 * xenrt.MEGA):
+                            expectedLength = int(r.headers['content-length'])
+                    except:
+                        # File is currently not available for some reason, still valid to use it from the cache
+                        pass
+
+                    if expectedLength:
+                        s = os.stat(cache)
+                        if s.st_size != expectedLength:
+                            if replaceExistingIfDiffers:
+                                self.removeFromCache(filename)
+                                return None
+                            raise xenrt.XRTError("found in global cache, but content-length (%d) differs from original (%d)" % (s.st_size, expectedLength))
+
+                if cache == externalLocation:
+                    os.symlink(cache, perJobLocation)
+                else:
+                    os.link(cache, perJobLocation)
+                # Return the cache location in the per-job cache
+                return perJobLocation
+
+        # we reached till here, means file is not in cache.
+        return None
 
     def cleanup(self, days=None):
         if not days:
             days=7
 
-        sharedDir = xenrt.TEC().lookup("FILE_MANAGER_CACHE")
-
-        entries = os.listdir(sharedDir)
-
-        toRemove = []
-        for entry in entries:
-            cachepath = "%s/%s" % (sharedDir, entry)
-            mtime = os.path.getmtime(cachepath)
-            if (time.time() - mtime) > (days*24*3600):
-                xenrt.TEC().logverbose("Removing %s" % cachepath)
-                shutil.rmtree(cachepath)
+        for sharedDir in [xenrt.TEC().lookup("FILE_MANAGER_CACHE"), xenrt.TEC().lookup("FILE_MANAGER_CACHE_NFS")]:
+            if os.path.exists(sharedDir):
+                entries = os.listdir(sharedDir)
+                for entry in entries:
+                    cachepath = "%s/%s" % (sharedDir, entry)
+                    mtime = os.path.getmtime(cachepath)
+                    if (time.time() - mtime) > (days*24*3600):
+                        xenrt.TEC().logverbose("Removing %s" % cachepath)
+                        shutil.rmtree(cachepath)
 
     def fileExists(self, filename):
         try:
             xenrt.TEC().logverbose("fileExists %s" % filename)
             self.lock.acquire()
-            filename = FileNameResolver(filename).url
-            if self._availableInCache(filename):
+            fnr = FileNameResolver(filename)
+            if self.__availableInCache(fnr):
                 return True
-            return self._isFetchable(filename)
+            return xenrt.isUrlFetchable(fnr.url)
         finally:
             self.lock.release()
-    
-    def _isFetchable(self, filename):
-        # Split remote in to host and path
-        xenrt.TEC().logverbose("Attempting to check response for %s" % filename)
-        try:
-            r = requests.head(filename, allow_redirects=True)
-            return (r.status_code == 200)
-        except:
-            return False
 
 def getFileManager():
     global fm

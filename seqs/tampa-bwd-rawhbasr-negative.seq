@@ -7,36 +7,36 @@
   </variables>
 
   <prepare>
-    <host/>
+    <host />
   </prepare>
 
   <testsequence>
-    <serial group="NegativeLUNperVDIpreClearwater">    
-      
+    <serial group="NegativeLUNperVDIpreClearwater">
+
       <!-- Verify sharing of same LUN/VDI between multiple VMs is possible -->
-      <testcase id="xenserver.tc.lunpervdi.TC18370" name="TC18370" tc="TC-18370"/>
-      
+      <testcase id="xenserver.tc.lunpervdi.TC18370" name="TC18370" tc="TC-18370" />
+
       <!-- Verify that LUN/VDI SR should not be listed as the potential HA statefile SR. -->
-      <testcase id="xenserver.tc.lunpervdi.TC18371" name="TC18371" tc="TC-18371"/>
-      
+      <testcase id="xenserver.tc.lunpervdi.TC18371" name="TC18371" tc="TC-18371" />
+
       <!-- Verify that HA statefile VDI should not be listed as the available LUN/VDI -->
-      <testcase id="xenserver.tc.lunpervdi.TC18372" name="TC18372" tc="TC-18372"/>
-      
+      <testcase id="xenserver.tc.lunpervdi.TC18372" name="TC18372" tc="TC-18372" />
+
       <!-- Verify whether DR feature works with LUN/VDI SR -->
-      <testcase id="xenserver.tc.lunpervdi.TC18373" name="TC18373" tc="TC-18373"/>
-      
+      <testcase id="xenserver.tc.lunpervdi.TC18373" name="TC18373" tc="TC-18373" />
+
       <!-- Verify whether the snapshot operation of LUN/VDI is permitted -->
-      <testcase id="xenserver.tc.lunpervdi.TC18374" name="TC18374" tc="TC-18374"/>
-      
+      <testcase id="xenserver.tc.lunpervdi.TC18374" name="TC18374" tc="TC-18374" />
+
       <!-- Verify whether checkpoint (disk and memory snapshots) operation of LUN/VDI is permitted -->
-      <testcase id="xenserver.tc.lunpervdi.TC18375" name="TC18375" tc="TC-18375"/>
-      
+      <testcase id="xenserver.tc.lunpervdi.TC18375" name="TC18375" tc="TC-18375" />
+
       <!-- Verify whether the fast clone (multiple leaf snapshot tree) operation of LUN/VDI is permitted -->
-      <testcase id="xenserver.tc.lunpervdi.TC18376" name="TC18376" tc="TC-18376"/>
-      
+      <testcase id="xenserver.tc.lunpervdi.TC18376" name="TC18376" tc="TC-18376" />
+
       <!-- Verify whether automated snapshots (VMPR) of LUN/VDI is permitted -->
-      <testcase id="xenserver.tc.lunpervdi.TC18377" name="TC18377" tc="TC-18377"/>
-    
+      <testcase id="xenserver.tc.lunpervdi.TC18377" name="TC18377" tc="TC-18377" />
+
     </serial>
   </testsequence>
 </xenrt>

@@ -32,6 +32,29 @@ class _SupplementalPacksDuringInstall(xenrt.TestCase):
                 raise xenrt.XRTFailure("RPM package %s is not installed" %
                                        (rpm))
 
+    def checkmem(self, targetb):
+        memtarget = float(self.host.genParamGet("vm", 
+                                                self.dom0, 
+                                                "memory-target"))
+        memactual = float(self.host.genParamGet("vm", 
+                                                self.dom0, 
+                                                "memory-actual"))
+        data = self.host.execdom0("cat /proc/meminfo")
+        r = re.search(r"MemTotal:\s+(\d+)\s+kB", data)
+        if not r:
+            raise xenrt.XRTError("Could not parse /proc/meminfo for MemTotal")
+        memtotal = float(r.group(1)) * xenrt.KILO
+        for x in [("memory-target", memtarget),
+                  ("memory-actual", memactual),
+                  ("/proc/meminfo:MemTotal", memtotal)]:
+            desc, m = x
+            delta = abs(targetb - m)
+            error = 100.0 * delta / targetb
+            if error > 5.0:
+                raise xenrt.XRTFailure("%s is not as expected" % (desc),
+                                       "Target %.0f bytes, is %.0f bytes" %
+                                       (targetb, m))
+
     def run(self, arglist=None):
         # Perform host installation with supplemental packs
         productVersion = xenrt.TEC().lookup("PRODUCT_VERSION")
@@ -94,7 +117,7 @@ class TC10633(_SupplementalPacksDuringInstall):
 class _SupplementalPacksPostInstall(_SupplementalPacksDuringInstall):
 
     def downloadPackISO(self, host, pack):
-        host.execdom0("curl '%s/suppacks/%s' -o /tmp/%s" %
+        host.execdom0("curl '%ssuppacks/%s' -o /tmp/%s" %
                       (xenrt.TEC().lookup("TEST_TARBALL_BASE"),
                       pack['iso'],
                       pack['iso']))
@@ -702,29 +725,6 @@ class _SupplementalPacksPostInstallDom0Mem(_SupplementalPacksPostInstall):
         if self.target > smax:
             self.target = smax
 
-    def checkmem(self, targetb):
-        memtarget = float(self.host.genParamGet("vm", 
-                                                self.dom0, 
-                                                "memory-target"))
-        memactual = float(self.host.genParamGet("vm", 
-                                                self.dom0, 
-                                                "memory-actual"))
-        data = self.host.execdom0("cat /proc/meminfo")
-        r = re.search(r"MemTotal:\s+(\d+)\s+kB", data)
-        if not r:
-            raise xenrt.XRTError("Could not parse /proc/meminfo for MemTotal")
-        memtotal = float(r.group(1)) * xenrt.KILO
-        for x in [("memory-target", memtarget),
-                  ("memory-actual", memactual),
-                  ("/proc/meminfo:MemTotal", memtotal)]:
-            desc, m = x
-            delta = abs(targetb - m)
-            error = 100.0 * delta / targetb
-            if error > 5.0:
-                raise xenrt.XRTFailure("%s is not as expected" % (desc),
-                                       "Target %.0f bytes, is %.0f bytes" %
-                                       (targetb, m))
-
     def run(self, arglist=None):
         self.installPack(self.host, self.PACKS[0])
         self.checkInstalledRepos(self.host, self.PACKS[0])
@@ -796,8 +796,7 @@ class TC10659(_SupplementalPacksPostInstallDom0Mem):
         # Verify dom0 memory is set to the new target
         self.checkmem(self.target)
 
-class _SupplementalPacksDuringInstallDom0Mem(_SupplementalPacksDuringInstall,
-                                         _SupplementalPacksPostInstallDom0Mem):
+class _SupplementalPacksDuringInstallDom0Mem(_SupplementalPacksDuringInstall):
 
     # Override _SupplementalPacksPostInstallDom0Mem's prepare method
     def prepare(self, arglist=None):
@@ -977,3 +976,38 @@ class TC10665(_SupplementalPacksPostInstall):
         # Restore the original index.html
         self.host.execdom0("cp /tmp/index.html /opt/xensource/www/")
 
+class _VgpuSuppackInstall(xenrt.TestCase):
+    #verify vGPU suppack install on host 
+    def isNvidiaVgpuSuppackInstalled(self, host):
+        return "NVIDIA Corporation" in host.execdom0("xe vgpu-type-list")
+
+
+class TCinstallNvidiaVgpuHostSupPacks(_VgpuSuppackInstall):
+    def run(self, arglist):
+        suppackISOpath = None
+        suppackISOname = None
+        args = self.parseArgsKeyValue(arglist)
+        suppackISOpath = args['suppackISOpath']
+        suppackISOname = args['suppackISOname']
+        host = self.getDefaultHost()
+        #check if vGPU suppack already installed
+        if self.isNvidiaVgpuSuppackInstalled(host):
+            xenrt.TEC().logverbose("Nvidia VGPU supplementary pack already installed")
+            return
+        #install suppack
+        host.installHostSupPacks(suppackISOpath, suppackISOname)
+        #Check installation successful or not
+        if self.isNvidiaVgpuSuppackInstalled(host):
+            xenrt.TEC().logverbose("Nvidia VGPU supplementary pack installed successfully")
+        else:
+            raise xenrt.XRTFailure("Nvidia VGPU supplementary pack not installed successfully")
+
+class TCinstallVgpuPacksWithXenServer(_VgpuSuppackInstall):
+    def run(self, arglist):
+        isVgpuInstalled = False
+        host = self.getDefaultHost()
+        #Check installation successful or not
+        if self.isNvidiaVgpuSuppackInstalled(host):
+            xenrt.TEC().logverbose("Nvidia VGPU supplementary pack installation along with xenserver was successful")
+        else:
+            raise xenrt.XRTFailure("Nvidia VGPU supplementary pack installation along with xenserver was not successful")

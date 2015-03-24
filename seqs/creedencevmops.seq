@@ -6,10 +6,6 @@
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
     <FINALLY_UNINSTALL>yes</FINALLY_UNINSTALL>
     <POOL_NO_DEFAULT_SR>yes</POOL_NO_DEFAULT_SR>
-    <!-- Override SUITE params to avoid CLI TC failure on offline_param___debian-pv subcase-->
-    <RND_CORES_PER_SOCKET>no</RND_CORES_PER_SOCKET>
-    <RND_VCPUS>no</RND_VCPUS>
-
   </variables>
 
   <prepare>
@@ -39,7 +35,10 @@
         </serial>
         <serial group="Misc">
           <testcase id="xenserver.tc.vmlifecycle.TC8004" prio="3"/>
-          <testcase id="xenserver.tc.pvdrivers.TC8369" prio="3"/>
+          <parallel>
+              <testcase id="xenserver.tc.pvdrivers.TC8369" prio="3"/>
+              <testcase id="xenserver.tc.pvdrivers.TC23788" prio="3"/>
+          </parallel>
         </serial>
         <serial group="Crash">
           <testcase id="xenserver.tc.vmlifecycle.TC8312" prio="3"/>

@@ -163,7 +163,9 @@ class ManagementServer(object):
                            "http://download.cloud.com/releases/2.2.0/CentOS5.3-x86_64.ova":
                             "%s/cloudTemplates/CentOS5.3-x86_64.ova" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),
                            "http://download.cloud.com/releases/2.2.0/eec2209b-9875-3c8d-92be-c001bd8a0faf.qcow2.bz2":
-                            "%s/cloudTemplates/eec2209b-9875-3c8d-92be-c001bd8a0faf.qcow2.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP")}
+                            "%s/cloudTemplates/eec2209b-9875-3c8d-92be-c001bd8a0faf.qcow2.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),
+                           "http://download.cloud.com/templates/builtin/centos-7-x86_64.tar.gz":
+                            "%s/cloudTemplates/centos-7-x86_64.tar.gz" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP")}
 
         if xenrt.TEC().lookup("MARVIN_BUILTIN_TEMPLATES", False, boolean=True):
             templateSubsts["http://download.cloud.com/templates/builtin/centos56-x86_64.vhd.bz2"] = \

@@ -3,7 +3,7 @@ import libperf
 import string, time, re, random, math
 import traceback
 import datetime
-from xenrt.sequence import PrepareNode
+from xenrt.seq import PrepareNode
 import xml.dom.minidom
 import subprocess
 import socket
@@ -13,7 +13,7 @@ import math
 import os.path
 import random
 
-class TestSpace:
+class TestSpace(object):
     d_order = []  # [iterated slower,...,iterated faster]
     
     def filter(self,filters,dimensions):
@@ -205,7 +205,7 @@ class PoolConfig(TestSpace):
     #obj_state: #default values:
     hosts = 1
 
-class GuestEvent:
+class GuestEvent(object):
     # dict: ip -> ...
     events = {}
     UDP_IP = socket.gethostbyname(socket.gethostname())
@@ -309,7 +309,7 @@ while not os.path.isfile("%s%s") and i<20:
         else:#todo:posix guest
             pass
  
-class Measurement:
+class Measurement(object):
     #save the experiment running this measurement in order to access context
     def __init__(self,experiment):
         self.experiment = experiment
@@ -1027,11 +1027,6 @@ class TCDiskThroughput(libperf.PerfTestCase):
             elif l[0] == "measurement":
                 self.measurement = l[1]
 
-        #xenrt requires these flags to install windows vms automatically
-        xenrt.TEC().value("ENABLE_CITRIXCERT",True)
-        xenrt.TEC().value("ALWAYS_TEST_SIGN",True)
-        xenrt.Config().setVariable("ENABLE_CITRIXCERT",True)
-        xenrt.Config().setVariable("ALWAYS_TEST_SIGN",True)
 
     def parse(self, arglist=None):
         if not isinstance(arglist, list): return
@@ -1139,10 +1134,6 @@ class TCDiskThroughput(libperf.PerfTestCase):
         xenrt.TEC().logverbose("run: DEFAULTSR=%s" % self.DEFAULTSR)
         xenrt.TEC().logverbose("run: VMLOAD=%s" % self.VMLOAD)
         xenrt.TEC().logverbose("run: PERFSTATS=%s" % self.PERFSTATS)
-
-        #other default initializations for xenrt
-        xenrt.TEC().config.setVariable("ENABLE_CITRIXCERT",True)
-        xenrt.TEC().config.setVariable("ALWAYS_TEST_SIGN",True)
 
         experiment_classname = "Experiment_%s" % self.EXPERIMENT
         experiment = globals()[experiment_classname](self)

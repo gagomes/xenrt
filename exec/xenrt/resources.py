@@ -21,6 +21,10 @@ __all__ = ["WebDirectory",
            "FTPDirectory",
            "ExternalNFSShare",
            "ExternalSMBShare",
+           "NativeWindowsSMBShare",
+           "NativeLinuxNFSShare",
+           "VMSMBShare",
+           "SpecifiedSMBShare",
            "ISCSIIndividualLun",
            "ISCSILun",
            "ISCSIVMLun",
@@ -68,7 +72,7 @@ def getResourceInteractive(resType, argv):
 def DhcpXmlRpc():
     return xmlrpclib.ServerProxy("http://localhost:1500", allow_none=True)
 
-class DirectoryResource:
+class DirectoryResource(object):
 
     def __init__(self, basedir, place=None, keep=0):
         if place:
@@ -125,6 +129,9 @@ class NFSDirectory(DirectoryResource):
     def getMountURL(self, relpath):
         url = self.getURL(relpath)
         return string.replace(url, "nfs://", "")
+
+    def getCIFSPath(self):
+        return "\\\\%s\\scratch\\nfs\\%s" % (xenrt.TEC().lookup("XENRT_SERVER_ADDRESS"), os.path.basename(self.path()))
 
     def getHostAndPath(self, relpath):
         url = self.getURL(relpath)
@@ -183,7 +190,7 @@ class LogDirectory(DirectoryResource):
             keep = False
         DirectoryResource.__init__(self, self.basedir, keep=keep, place=place)
 
-class DirectoryResourceImplementer:
+class DirectoryResourceImplementer(object):
     """Superclass for allocating temporary directories."""
     def __init__(self, basedir, keep=0):
         try:
@@ -653,7 +660,7 @@ class _ExternalFileShare(CentralResource):
                 ok = False
             if not jumbo and xjumbo:
                 ok = False
-            xversions = xenrt.TEC().lookup([self.SHARE_TYPE, s, "SUPPORTED_VERSIONS"], self.DEFAULT_VERSION).split(",")
+            xversions = xenrt.TEC().lookup([self.SHARE_TYPE, s, "SUPPORTED_VERSIONS"], self.version).split(",")
             if version not in xversions:
                 ok = False
             if network == "NPRI":
@@ -729,6 +736,12 @@ class _ExternalFileShare(CentralResource):
                 xenrt.TEC().logverbose("Not deleting file export %s" %
                                        (self.getMount()))
             else:
+                if atExit:
+                    for host in xenrt.TEC().registry.hostList():
+                        if host == "SHARED":
+                            continue
+                        h = xenrt.TEC().registry.hostGet(host)
+                        h.machine.exitPowerOff()
                 # Mount it here to remove the tree
                 m = self.mount("%s:%s" % (self.address, self.base))
                 mp = m.getMount()
@@ -759,12 +772,24 @@ class ExternalSMBShare(_ExternalFileShare):
 
     def mount(self, path):
         ad = xenrt.getADConfig()
+        self.user = ad.adminUser
+        self.password = ad.adminPassword
+        self.domain = ad.domainName
         return xenrt.rootops.MountSMB(path, ad.domainName, ad.adminUser, ad.adminPassword)
+
+    def getUNCPath(self):
+        return "\\\\%s%s" % (self.address, self.subdir.replace("/", "\\"))
+
+    def getEscapedUNCPath(self):
+        return self.getUNCPath().replace("\\", "\\\\")
+
+    def getLinuxUNCPath(self):
+        return self.getUNCPath().replace("\\", "/")
 
     def setPermissions(self, td):
         pass
 
-class ISCSIIndividualLun:
+class ISCSIIndividualLun(object):
     """An individual iSCSI LUN from a group of LUNs"""
     def __init__(self,
                  lungroup,
@@ -1063,7 +1088,7 @@ class ISCSILunGroup(_ISCSILunBase):
         if xenrt.util.keepSetup():
             return
         for l in self.luns:
-            l.release()
+            l.release(atExit=atExit)
         CentralResource.release(self, atExit)
 
 
@@ -1260,6 +1285,12 @@ class ISCSILun(_ISCSILunBase):
             except Exception, e:
                 traceback.print_exc(file=sys.stderr)
 
+        if atExit:
+            for host in xenrt.TEC().registry.hostList():
+                if host == "SHARED":
+                    continue
+                h = xenrt.TEC().registry.hostGet(host)
+                h.machine.exitPowerOff()
         CentralResource.release(self, atExit)
 
     def getInitiatorName(self, allocate=False):
@@ -1371,6 +1402,144 @@ class ISCSINativeLinuxLun(ISCSILun):
     
     def release(self, atExit=False):
         CentralResource.release(self, atExit)
+
+class NativeLinuxNFSShare(CentralResource):
+    """NFS share on a native (bare metal) linux host."""
+    def __init__(self, hostName="RESOURCE_HOST_0", device='sda'):
+        self.place = xenrt.GEC().registry.hostGet(hostName)
+
+        if device != 'sda':
+            self.place.execcmd("mkfs.ext3 -F /dev/%s" % (device)) # "-F" to suppress prompt for use of whole device
+
+        self.subdir = self.createShare(device)
+        self.address = self.place.getIP()
+
+    def createShare(self, device='sda'):
+        # TODO this assumes the native linux host is CentOS 6.5
+        sharepath = "/var/nfs"
+        self.place.execcmd("yum -y install nfs-utils nfs-utils-lib")
+        self.place.execcmd("chkconfig --levels 235 nfs on")
+        self.place.execcmd("/etc/init.d/nfs start")
+        self.place.execcmd("mkdir -p %s" % (sharepath))
+        self.place.execcmd("mount /dev/%s %s" % (device, sharepath))
+        self.place.execcmd("chown 65534:65534 %s" % (sharepath))
+        self.place.execcmd("chmod 755 %s" % (sharepath))
+        self.place.execcmd("echo '%s	*(rw,sync,no_subtree_check)' >> /etc/exports" % (sharepath))
+        self.place.execcmd("exportfs -a")
+        return sharepath
+
+    def getMount(self):
+        if not self.subdir:
+            raise xenrt.XRTError("No mount directory available")
+        return "%s:%s" % (self.address, self.subdir)
+
+    def acquire(self):
+        pass
+    
+    def release(self, atExit=False):
+        CentralResource.release(self, atExit)
+
+class _WindowsSMBShare(CentralResource):
+    """Base class for Windows-based SMB shares"""
+    def createShare(self, driveLetter=None):
+        driveLetter = driveLetter or 'c'
+        sharesPath = "%s:\\shares" % (driveLetter)
+        if not self.place.xmlrpcDirExists(sharesPath):
+            self.place.xmlrpcCreateDir(sharesPath)
+        shareName = xenrt.randomGuestName()
+        self.place.xmlrpcCreateDir("%s\\%s" % (sharesPath, shareName))
+        self.place.xmlrpcExec("net share %s=%s\\%s /grant:Everyone,FULL" % (shareName, sharesPath, shareName))
+        self.place.xmlrpcExec("icacls %s\\%s /grant Users:(OI)(CI)F" % (sharesPath, shareName))
+        self.shareName = shareName
+        self.domain = None
+        self.user = "Administrator"
+        self.password = "xensource"
+
+
+    def acquire(self):
+        pass
+    
+    def release(self, atExit=False):
+        CentralResource.release(self, atExit)
+
+    def getUNCPath(self):
+        return "\\\\%s\\%s" % (self.place.getIP(), self.shareName)
+
+    def getEscapedUNCPath(self):
+        return self.getUNCPath().replace("\\", "\\\\")
+
+    def getLinuxUNCPath(self):
+        return self.getUNCPath().replace("\\", "/")
+
+
+class NativeWindowsSMBShare(_WindowsSMBShare):
+    """SMB share on a native (bare metal) windows host"""
+    def __init__(self, hostName="RESOURCE_HOST_0", driveLetter=None):
+        self.place = xenrt.GEC().registry.hostGet(hostName)
+
+        driveLetter = driveLetter or 'c'
+
+        if driveLetter != 'c':
+            # Destroy anything existing on any drive that doesn't contain C: and reinitialise
+            for diskid in self.place.xmlrpcDiskpartListDisks():
+                driveletters = self.place.xmlrpcDriveLettersOfDisk(diskid)
+                xenrt.TEC().logverbose("Disk with id %s contains drive letters %s" % (diskid, driveletters))
+
+                nextDriveLetter = driveLetter
+                if not 'C' in driveletters:
+                    # destroy anything that might already exist on the disk
+                    self.place.xmlrpcDeinitializeDisk(diskid)
+
+                    # initialize the disk with a single partition and give it a letter
+                    self.place.xmlrpcInitializeDisk(diskid, driveLetter=nextDriveLetter)
+                    nextDriveLetter = chr(ord(nextDriveLetter)+1)
+
+            # Format the disk we want to use
+            self.place.xmlrpcFormat(driveLetter, quick=True)
+
+        self.createShare(driveLetter)
+
+class VMSMBShare(_WindowsSMBShare):
+    """ A tempory SMB share in a VM """
+    
+    def __init__(self,hostIndex=None,sizeMB=None, guestName="xenrt-smb", distro="ws12r2-x64"):
+        if not hostIndex:
+            self.host = xenrt.TEC().registry.hostGet("RESOURCE_HOST_0")
+        else:
+            self.host = xenrt.TEC().registry.hostGet("RESOURCE_HOST_%s" % hostIndex)
+        if not sizeMB:
+            sizeMB = 50*xenrt.KILO
+        self.guestName = guestName
+
+        # Check if we already have the VM on this host, if we don't, then create it, otherwise attach to the existing one.
+        if not self.host.guests.has_key(self.guestName):
+            self.place = self.host.createBasicGuest(distro=distro, name=guestName, disksize = 20*xenrt.KILO + sizeMB)
+        else:
+            self.place = self.host.guests[self.guestName]
+        self.createShare()
+        
+class SpecifiedSMBShare(object):
+    """SMB share created elsewhere, suitable for passing to SMBStorageRepository"""
+    def __init__(self,
+                 addr,
+                 shareName,
+                 user,
+                 password,
+                 domain=None):
+        self.addr = addr
+        self.shareName = shareName
+        self.domain = domain
+        self.user = user
+        self.password = password
+
+    def getUNCPath(self):
+        return "\\\\%s\\%s" % (self.addr, self.shareName)
+
+    def getEscapedUNCPath(self):
+        return self.getUNCPath().replace("\\", "\\\\")
+
+    def getLinuxUNCPath(self):
+        return self.getUNCPath().replace("\\", "/")
 
 class ISCSIVMLun(ISCSILun):
     """ A tempory LUN in a VM """
@@ -2635,7 +2804,7 @@ class VLANPeer(NetworkTestPeer):
 
 #############################################################################
     
-class BuildServer:
+class BuildServer(object):
     """A build server"""
     def __init__(self, arch, hostname):
         self.arch = arch
@@ -3015,13 +3184,41 @@ class StaticIP4AddrFileBased(_StaticIPAddr):
     POOLSTART = "STATICPOOLSTART"
     POOLEND = "STATICPOOLEND"
 
+class StaticIP4AddrDHCPRangeMarker(object):
+    def __init__(self, addrs):
+        self.addrs = addrs
+        xenrt.TEC().gec.registerCallback(self, mark=True, order=1)
+
+    def mark(self):
+        try:
+            DhcpXmlRpc().updateReservations(self.addrs)
+        except Exception, ex:
+            xenrt.TEC().logverbose("Error updating DHCP reservation: " + str(ex))
+            xenrt.TEC().warning("Error updating DHCP reservation: " + str(ex))
+
+    def callback(self):
+        self.release(atExit=True)
+
+    def release(self, atExit=False):
+        if not xenrt.util.keepSetup():
+            if atExit:
+                for host in xenrt.TEC().registry.hostList():
+                    if host == "SHARED":
+                        continue
+                    h = xenrt.TEC().registry.hostGet(host)
+                    h.machine.exitPowerOff()
+            DhcpXmlRpc().releaseAddresses(self.addrs)
+            xenrt.TEC().gec.unregisterCallback(self)
+
 class StaticIP4AddrDHCP(object):
-    def __init__(self, network, mac=None, ip=None, name=None):
+    def __init__(self, network, mac=None, ip=None, name=None, rangeObj=None):
         if ip:
             self.addr = ip
         else:
             self.addr = DhcpXmlRpc().reserveSingleAddress(self.networkToInterface(network), self.lockData(), mac, name)
-        xenrt.TEC().gec.registerCallback(self, mark=True, order=1)
+        self.rangeObj = rangeObj
+        if not self.rangeObj:
+            xenrt.TEC().gec.registerCallback(self, mark=True, order=1)
 
     def getAddr(self):
         return self.addr
@@ -3035,7 +3232,13 @@ class StaticIP4AddrDHCP(object):
                     h = xenrt.TEC().registry.hostGet(host)
                     h.machine.exitPowerOff()
             DhcpXmlRpc().releaseAddress(self.addr)
-            xenrt.TEC().gec.unregisterCallback(self)
+            if self.rangeObj:
+                try:
+                    self.rangeObj.addrs.remove(self.addr)
+                except:
+                    xenrt.TEC().logverbose("Could not remove address from range")
+            else:
+                xenrt.TEC().gec.unregisterCallback(self)
 
     @classmethod
     def getIPRange(cls, size, network, wait):
@@ -3050,7 +3253,8 @@ class StaticIP4AddrDHCP(object):
             else:
                 break
 
-        return [StaticIP4AddrDHCP(network, ip=x) for x in addrs]
+        r = StaticIP4AddrDHCPRangeMarker(addrs)
+        return [StaticIP4AddrDHCP(network, ip=x, rangeObj=r) for x in addrs]
      
 
     @classmethod
@@ -3067,7 +3271,11 @@ class StaticIP4AddrDHCP(object):
             return "eth0.%s" % (xenrt.TEC().lookup(["NETWORK_CONFIG","VLANS",network,"ID"]))
 
     def mark(self):
-        DhcpXmlRpc().updateReservation(self.addr)
+        try:
+            DhcpXmlRpc().updateReservation(self.addr)
+        except Exception, ex:
+            xenrt.TEC().logverbose("Error updating DHCP reservation: " + str(ex))
+            xenrt.TEC().warning("Error updating DHCP reservation: " + str(ex))
 
     def callback(self):
         self.release(atExit=True)
@@ -3077,7 +3285,7 @@ class StaticIP6Addr(_StaticIPAddr):
     POOLSTART = "STATICPOOLSTART6"
     POOLEND = "STATICPOOLEND6"
 
-class SharedHost:
+class SharedHost(object):
     def __init__(self, hostname=None, doguests=False):
         hosts = xenrt.TEC().lookup("SHARED_HOSTS")
 
@@ -3108,7 +3316,7 @@ class SharedHost:
         useHost.checkVersion()
         host = xenrt.lib.xenserver.hostFactory(useHost.productVersion)(useHost.machine, productVersion=useHost.productVersion)
         useHost.populateSubclass(host)
-        host.existing(doguests=doguests)
+        host.existing(doguests=doguests, guestsInRegistry=False)
         self.host = host
         xenrt.TEC().gec.registerCallback(self)
     
@@ -3117,7 +3325,7 @@ class SharedHost:
 
     def createTemplate(self, distro, arch, disksize):
         g = self.getHost().createBasicGuest(name="%s-%s" % (distro, arch), distro=distro, arch=arch, disksize=disksize)
-        if distro.startswith("rhel") or distro.startswith("centos") or distro.startswith("oel"):
+        if distro.startswith("rhel") or distro.startswith("centos") or distro.startswith("oel") or (distro.startswith("sl") and not distro.startswith("sles")):
             g.execguest("sed -i /HWADDR/d /etc/sysconfig/network-scripts/ifcfg-eth0")
         g.shutdown()
         g.paramSet("name-label", "xenrt-template-%s-%s" % (distro, arch))
@@ -3179,7 +3387,7 @@ class GlobalResource(CentralResource):
         startlooking = xenrt.timenow()
 
         while True:
-            res = xenrt.GEC().dbconnect.jobctrl("globalreslock", [restype, xenrt.TEC().lookup("JOBID", "0"), xenrt.TEC().lookup("XENRT_SITE")]) 
+            res = xenrt.GEC().dbconnect.api.lock_global_resource(restype, xenrt.TEC().lookup("XENRT_SITE"), xenrt.GEC().dbconnect.jobid() or 0)
             if 'name' in res:
                 self.name = res['name']
                 self.data = res['data']
@@ -3193,7 +3401,7 @@ class GlobalResource(CentralResource):
 
     def release(self, atExit=False):
         if not xenrt.util.keepSetup():
-            xenrt.GEC().dbconnect.jobctrl("globalresrelease", [self.getName()])
+            xenrt.GEC().dbconnect.api.release_global_resource(self.getName())
             CentralResource.release(self, atExit)
         
     def getName(self):

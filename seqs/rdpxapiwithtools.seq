@@ -1,0 +1,83 @@
+<xenrt>
+  <default name="WINDISTROS" value="win8-x86,win7-x86,ws08r2-x64,win81-x86,ws12-x64,winxpsp3"/>
+  <variables>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+  </variables>
+  
+  <scheduler>
+    <resources>memory&gt;=200G/disk1&gt;=500G</resources>
+  </scheduler>
+  <prepare>
+  <host id="0">
+     <vm name="ws08r2-x64">
+        <distro>ws08r2-x64</distro>
+        <arch>x86-64</arch>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <network device="0" />
+        <disk device="0" size="14" />
+      </vm>
+      <vm name="win7-x86">
+        <distro>win7-x86</distro>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <network device="0" />
+        <disk device="0" size="14" />
+      </vm>
+      <vm name="win81-x86">
+        <distro>win81-x86</distro>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <network device="0" />
+        <disk device="0" size="14" />
+      </vm>
+      <vm name="ws12-x64">
+        <distro>ws12-x64</distro>
+        <arch>x86-64</arch>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <network device="0" />
+        <disk device="0" size="14" />
+      </vm>
+      <vm name="winxpsp3">
+        <distro>winxpsp3</distro>
+        <memory>512</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <network device="0" />
+        <disk device="0" size="14" />
+      </vm>
+      <vm name="win8-x86">
+        <distro>win8-x86</distro>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <network device="0" />
+        <disk device="0" size="14" />
+      </vm>
+  </host>
+  </prepare>
+
+  <testsequence group="RdpWithTools">
+    <for iter="D" values="${WINDISTROS}">
+        <testcase id="xenserver.tc.rdpxapi.TestRdpWithTools" tc="TC-23790" prio="3" >
+        <arg>guest=${D}</arg>
+        </testcase>
+        <testcase id="xenserver.tc.rdpxapi.TestRdpSettings" tc="TC-23792" prio="3" >
+        <arg>guest=${D}</arg>
+        </testcase>
+        <testcase id="xenserver.tc.rdpxapi.TestGuestDisbableRdp" tc="TC-23793" prio="3" >
+        <arg>guest=${D}</arg>
+        </testcase>
+        <testcase id="xenserver.tc.rdpxapi.TestRdpWithSnapshot" tc="TC-23795" prio="3" >
+        <arg>guest=${D}</arg>
+        </testcase>
+     </for>
+  </testsequence>
+</xenrt>

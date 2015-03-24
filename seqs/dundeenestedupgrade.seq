@@ -1,0 +1,34 @@
+<xenrt>
+  <!-- RBAC API tests -->
+
+  <default name="OLD_PRODUCT_VERSION" value="Clearwater"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446"/>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+    <CLEAR_EVENT_LOGS_ON_FETCH>true</CLEAR_EVENT_LOGS_ON_FETCH>
+    <NESTED_HVM>yes</NESTED_HVM>
+  </variables>
+
+  <preprepare>
+    <host id="0" />
+  </preprepare>
+  
+  <prepare>
+    <pool>
+      <host container="0" vname="xs0" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="RBAC">
+      <testcase id="xenserver.install.TCXenServerUpgrade">
+        <arg>vhost-xs0</arg>
+        <arg>input=DEFAULT</arg>
+        <arg>suspendDuringUpgrade</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+
+</xenrt>

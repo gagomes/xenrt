@@ -3,14 +3,15 @@
   
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
   </variables>
 
   <prepare>
     <pool>
       <storage type="nfs" name="nfssr" default="true"/>
-      <host id="0" installsr="lvm" />
+      <host id="0" installsr="ext" />
     </pool>
-    <host id="1" installsr="lvm" />
+    <host id="1" installsr="ext" />
   </prepare>
 
   <testsequence>

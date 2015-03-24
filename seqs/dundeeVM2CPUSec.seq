@@ -1,0 +1,16 @@
+<?xml version="1.0" ?>
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+  <prepare>
+    <host/>
+  </prepare>
+  <testsequence>
+    <parallel group="2vCPU" workers="2">
+      <for iter="D" values="%GUEST_TESTS:Dundee:Secondary%" limit="%LIMIT%" offset="%OFFSET%"> 
+        <testcase id="xenserver.tc.smoketest.TCSmokeTest2VCPUs" name="${D}" sku="${D}" />
+      </for>
+    </parallel>
+  </testsequence>
+</xenrt>

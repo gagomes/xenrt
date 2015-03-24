@@ -344,8 +344,21 @@ class XenRTSubmit(XenRTJobPage):
         
         splitparams = self.split_params(params)
         c = splitparams["core"]
+
+        if "REMOVED" in c:
+            del c['REMOVED']
+
+        if "UPLOADED" in c:
+            del c['UPLOADED']
+
+        if "JOBSTATUS" in c:
+            del c['JOBSTATUS']
+
         e = splitparams["extra"]
         e["JOB_SUBMITTED"] = time.asctime(time.gmtime()) + " UTC"
+
+        if "REMOVED_BY" in e:
+            del e['REMOVED_BY']
 
         for cp in app.constants.core_params:
             if not c.has_key(cp):
@@ -435,6 +448,9 @@ class XenRTRemove(XenRTJobPage):
             # doesn't show in lists. This is becauses users keep on
             # removing running jobs thereby confusing the daemon
             self.update_field(id, "REMOVED", "yes")
+            user = form.get("USERID")
+            if user:
+                self.update_field(id, "REMOVED_BY", user)
             return "OK"
         except:
             traceback.print_exc()
@@ -585,18 +601,18 @@ class XenRTWarnings(XenRTJobPage):
         
         return out
 
-PageFactory(XenRTStatus, "status", "/api/job/status", compatAction="status")
-PageFactory(XenRTJobEmail, "email", "/api/job/email", compatAction="email")
-PageFactory(XenRTRawEmail, "email_raw", "/api/email_raw")
-PageFactory(XenRTList, "list", "/api/job/list", compatAction="list")
-PageFactory(XenRTSubmit, "submit", "/api/job/submit", compatAction="submit")
-PageFactory(XenRTComplete, "complete", "/api/job/complete", compatAction="complete")
-PageFactory(XenRTUpdate, "update", "/api/job/update", compatAction="update")
-PageFactory(XenRTRemove, "remove", "/api/job/remove", compatAction="remove")
-PageFactory(XenRTDetailID, "detailid", "/api/job/detailid", compatAction="detailid")
-PageFactory(XenRTJobIDFromDetailID, "jobidfromdetailid", "/api/job/jobidfromdetailid", compatAction="jobidfromdetailid")
-PageFactory(XenRTJobIDsFromDetailIDs, "jobidsfromdetailids", "/api/job/jobidsfromdetailids", compatAction="jobidsfromdetailids")
-PageFactory(XenRTShowLog, "showlog", "/api/job/log", compatAction="showlog")
-PageFactory(XenRTJobGroup, "jobgroup", "/api/job/group", compatAction="jobgroup")
-PageFactory(XenRTWarnings, "warnings", "/api/job/warnings", compatAction="warnings")
+PageFactory(XenRTStatus, "/api/job/status", compatAction="status")
+PageFactory(XenRTJobEmail, "/api/job/email", compatAction="email")
+PageFactory(XenRTRawEmail, "/api/email_raw")
+PageFactory(XenRTList, "/api/job/list", compatAction="list")
+PageFactory(XenRTSubmit, "/api/job/submit", compatAction="submit")
+PageFactory(XenRTComplete, "/api/job/complete", compatAction="complete")
+PageFactory(XenRTUpdate, "/api/job/update", compatAction="update")
+PageFactory(XenRTRemove, "/api/job/remove", compatAction="remove")
+PageFactory(XenRTDetailID, "/api/job/detailid", compatAction="detailid")
+PageFactory(XenRTJobIDFromDetailID, "/api/job/jobidfromdetailid", compatAction="jobidfromdetailid")
+PageFactory(XenRTJobIDsFromDetailIDs, "/api/job/jobidsfromdetailids", compatAction="jobidsfromdetailids")
+PageFactory(XenRTShowLog, "/api/job/log", compatAction="showlog")
+PageFactory(XenRTJobGroup, "/api/job/group", compatAction="jobgroup")
+PageFactory(XenRTWarnings, "/api/job/warnings", compatAction="warnings")
 

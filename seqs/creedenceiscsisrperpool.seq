@@ -1,0 +1,105 @@
+
+
+<xenrt>
+
+  <!-- Create 256 iSCSI SRs on a single host and use it in a number of guests -->
+
+  <default name="LINUXVMS" value="8" />
+  <default name="WINDOWSVMS" value="0" />
+  <default name="DATADISK" value="7" />
+  <default name="LOOP" value="100" />
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <OPTION_DOM0_MEM>4096</OPTION_DOM0_MEM>
+  </variables>
+
+  <scheduler>
+    <pool>VMX,SVM</pool>
+    <resources>NPRI&gt;=1/NSEC&gt;=1</resources>
+    <param>MACHINES_REQUIRED=4</param>
+    <param>SITE=SVCL07</param>
+    <flags>iscsi,netapp</flags>
+  </scheduler>
+
+  <prepare>
+    <pool>
+      <storage type="nfs" name="HEARTBEATSR"/>
+      <host id="0">
+        <vm name="lingold">
+          <distro>debian60</distro>
+          <arch>x86-64</arch>
+          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+          <postinstall action="preCloneTailor"/>
+        </vm>
+      </host>
+      <host id="1" />
+      <host id="2" />
+      <host id="3" />
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="Config">
+      <testcase id="xenserver.tc.srpervm.SetupSRsiSCSI" blocker="yes">
+        <arg>linuxvms=${LINUXVMS}</arg>
+        <arg>windowsvms=${WINDOWSVMS}</arg>
+        <arg>datadisk=${DATADISK}</arg>
+        <arg>loop=${LOOP}</arg>
+      </testcase>
+    </serial>
+
+    <serial group="HA">
+      <testcase id="xenserver.tc.srpervm.EnableHA" blocker="yes" />
+    </serial>
+
+    <serial group="Copy">
+      <testcase id="xenserver.tc.srpervm.CopyVMs" />
+    </serial>
+
+    <serial group="LifeCycle">
+      <testcase id="xenserver.tc.srpervm.LifeCycleAllVMs" name="WithAllPaths" />
+    </serial>
+
+    <serial group="Multipath">
+      <testcase id="xenserver.tc.srpervm.ISCSIPathFail">
+        <arg>linuxvms=${LINUXVMS}</arg>
+        <arg>windowsvms=${WINDOWSVMS}</arg>
+        <arg>datadisk=${DATADISK}</arg>
+        <arg>loop=${LOOP}</arg>
+      </testcase>
+    </serial>
+
+    <serial group="LifeCycle">
+      <testcase id="xenserver.tc.srpervm.LifeCycleAllVMs" name="AfterFail" />
+    </serial>
+
+    <serial group="Multipath">
+      <testcase id="xenserver.tc.srpervm.ISCSIPathRecover">
+        <arg>linuxvms=${LINUXVMS}</arg>
+        <arg>windowsvms=${WINDOWSVMS}</arg>
+        <arg>datadisk=${DATADISK}</arg>
+        <arg>loop=${LOOP}</arg>
+      </testcase>
+    </serial>
+
+    <serial group="LifeCycle">
+      <testcase id="xenserver.tc.srpervm.LifeCycleAllVMs" name="AfterRecover" />
+    </serial>
+
+    <serial group="Multipath">
+      <testcase id="xenserver.tc.srpervm.ISCSIMPathScenario">
+        <arg>linuxvms=${LINUXVMS}</arg>
+        <arg>windowsvms=${WINDOWSVMS}</arg>
+        <arg>datadisk=${DATADISK}</arg>
+        <arg>loop=${LOOP}</arg>
+      </testcase>
+    </serial>
+
+  </testsequence>
+
+</xenrt>
+

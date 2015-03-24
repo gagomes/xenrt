@@ -35,7 +35,6 @@
           <vcpus>1</vcpus>
           <memory>512</memory>
           <postinstall action="installTools"/>
-          <postinstall action="changeToVMXNet3"/>
         </vm>
 
     </host>
@@ -57,7 +56,6 @@
           <vcpus>1</vcpus>
           <memory>512</memory>
           <postinstall action="installTools"/>
-          <postinstall action="changeToVMXNet3"/>
         </vm>
 
     </host>

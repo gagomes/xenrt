@@ -1202,6 +1202,11 @@ class TCAutoInstaller(xenrt.TestCase):
         self.host.reboot(timeout=1800)
 
         self.host.checkVersion()
+        
+        if self.host.productVersion == "Sanibel" and xenrt.TEC().lookup("PRODUCT_VERSION") == "Boston":
+            # this is OK...if you put Boston in the sequence...you'll get Sanibel as the host product version
+            return
+        
         if self.host.productVersion != xenrt.TEC().lookup("PRODUCT_VERSION"):
             raise xenrt.XRTFailure("Host Product Version (%s) doesn't match test Product Version (%s)" % (self.host.productVersion, xenrt.TEC().lookup("PRODUCT_VERSION")))
 
@@ -1426,7 +1431,7 @@ class TC14898(TC6725):
     """Single host upgrade from Cowley on HP G6 hardware"""
     pass
 
-class _XenCert:
+class _XenCert(object):
     """Uses the XenCert SR regression test in dom0 maintained by the storage team."""
 
     def runXenCertiCSLG(self,host,adapterid,comment="",sr=None):

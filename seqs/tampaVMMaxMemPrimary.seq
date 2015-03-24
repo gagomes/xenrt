@@ -1,0 +1,16 @@
+<?xml version="1.0" ?>
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+  </variables>
+  <prepare>
+    <host/>
+  </prepare>
+  <testsequence>
+    <parallel group="MaxMem" workers="1">
+      <for iter="D" values="%GUEST_TESTS:Tampa:Primary_Not32BitPV%" limit="%LIMIT%" offset="%OFFSET%"> 
+        <testcase id="xenserver.tc.smoketest.TCSmokeTestMaxMem" name="${D}" sku="${D}" />
+      </for>
+    </parallel>
+  </testsequence>
+</xenrt>

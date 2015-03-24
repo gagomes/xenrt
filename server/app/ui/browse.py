@@ -1,7 +1,7 @@
 from server import PageFactory
 from app import XenRTPage
 
-import string, os, re, tempfile
+import string, os, re, tempfile, mimetypes
 
 import app.utils
 from pyramid.httpexceptions import HTTPFound
@@ -311,36 +311,34 @@ class XenRTBrowseBinary(XenRTBrowseFile):
     def doRender(self):
         fd = self.getFD()
         self.request.response.body_file = fd
-        suffix = string.lower(string.split(self.filename, ".")[-1])
-        if suffix in ("jpg", "jpeg"):
-            t = "image/jpeg"
-        elif suffix == "gif":
-            t = "image/gif"
-        elif suffix == "png":
-            t = "image/png"
-        elif suffix in ("gz", "tgz"):
-            t = "application/x-gzip"
-        elif suffix == "b2z":
-            t = "application/x-bzip2"
-        elif suffix == "zip":
-            t = "application/zip"
-        else:
-            t = "application/data"
-
-        self.request.response.content_type = t
+        (ctype, encoding) = mimetypes.guess_type(self.filename)
+        if not ctype:
+            if self.filename.endswith("/messages") \
+                    or self.filename.endswith(".log") \
+                    or self.filename.endswith(".out") \
+                    or self.filename.endswith("/SMlog") \
+                    or self.filename.endswith("/syslog"):
+                ctype = "text/plain"
+            elif self.filename.endswith(".db"):
+                ctype = "application/xml"
+            else:
+                ctype = "application/octet-stream"
+        self.request.response.content_type = ctype
+        if encoding:
+            self.request.response.content_encoding=encoding
         if self.size:
             self.request.response.content_length=self.size
             
 
         return self.request.response
     
-PageFactory(XenRTBrowse, "browse", "/logs/{type}/{id}/browse", renderer="__main__:templates/default.pt")
-PageFactory(XenRTBrowse, "browsejpt", "/logs/job/{job}/{phase}/{test}/browse", renderer="__main__:templates/default.pt")
-PageFactory(XenRTBrowseJSON, "browsejson", "/logs/{type}/{id}/jsonlist", contentType="application/json")
-PageFactory(XenRTBrowseJSON, "browsejsonjpt", "/logs/job/{job}/{phase}/{test}/jsonlist", contentType="application/json")
-PageFactory(XenRTBrowseHTML, "browsehtml", "/logs/{type}/{id}/html/*file", renderer=None)
-PageFactory(XenRTBrowseHTML, "browsehtmljtp", "/logs/job/{job}/{phase}/{test}/html/*file", renderer=None)
-PageFactory(XenRTBrowseBinary, "browsebinary", "/logs/{type}/{id}/binary/*file", renderer=None)
-PageFactory(XenRTBrowseBinary, "browsebinaryjpt", "/logs/job/{job}/{phase}/{test}/binary/*file", renderer=None)
-PageFactory(XenRTBrowseFolded, "browsefolded", "/logs/{type}/{id}/folded/*file", renderer=None)
-PageFactory(XenRTBrowseFolded, "browsefoldedjpt", "/logs/job/{job}/{phase}/{test}/folded/*file", renderer=None)
+PageFactory(XenRTBrowse, "/logs/{type}/{id}/browse", renderer="__main__:templates/default.pt")
+PageFactory(XenRTBrowse, "/logs/job/{job}/{phase}/{test}/browse", renderer="__main__:templates/default.pt")
+PageFactory(XenRTBrowseJSON, "/logs/{type}/{id}/jsonlist", contentType="application/json")
+PageFactory(XenRTBrowseJSON, "/logs/job/{job}/{phase}/{test}/jsonlist", contentType="application/json")
+PageFactory(XenRTBrowseHTML, "/logs/{type}/{id}/html/*file", renderer=None)
+PageFactory(XenRTBrowseHTML, "/logs/job/{job}/{phase}/{test}/html/*file", renderer=None)
+PageFactory(XenRTBrowseBinary, "/logs/{type}/{id}/binary/*file", renderer=None)
+PageFactory(XenRTBrowseBinary, "/logs/job/{job}/{phase}/{test}/binary/*file", renderer=None)
+PageFactory(XenRTBrowseFolded, "/logs/{type}/{id}/folded/*file", renderer=None)
+PageFactory(XenRTBrowseFolded, "/logs/job/{job}/{phase}/{test}/folded/*file", renderer=None)

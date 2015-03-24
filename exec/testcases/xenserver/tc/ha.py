@@ -91,9 +91,13 @@ class _HASmoketest(xenrt.TestCase):
         # Loss of xapi on master (to check failover etc)
         xenrt.TEC().logdelimit("Loss of xapi on master")
         self.pool.master.execdom0("touch /etc/xensource/xapi_block_startup")
-        self.pool.master.execdom0("mv /etc/init.d/xapi "
-                                  "/etc/init.d/xapi.disabled")
-        self.pool.master.execdom0("/etc/init.d/xapi.disabled stop")
+        if self.pool.master.isCentOS7Dom0():
+            self.pool.master.execdom0("systemctl stop xapi.service")
+            self.pool.master.execdom0("systemctl disable xapi.service")
+        else:
+            self.pool.master.execdom0("mv /etc/init.d/xapi "
+                                      "/etc/init.d/xapi.disabled")
+            self.pool.master.execdom0("/etc/init.d/xapi.disabled stop")
         oldMaster = self.pool.master
         self.pool.haLiveset.remove(self.pool.master.getMyHostUUID())
         self.pool.sleepHA("W",multiply=4)
@@ -104,8 +108,11 @@ class _HASmoketest(xenrt.TestCase):
         time.sleep(180)
         oldMaster.waitForSSH(300, desc="Old master boot after host fence")
         oldMaster.execdom0("rm -f /etc/xensource/xapi_block_startup")
-        oldMaster.execdom0("mv /etc/init.d/xapi.disabled "
-                           "/etc/init.d/xapi")
+        if oldMaster.isCentOS7Dom0():
+            oldMaster.execdom0("systemctl enable xapi.service")
+        else:
+            oldMaster.execdom0("mv /etc/init.d/xapi.disabled "
+                               "/etc/init.d/xapi")
         oldMaster.startXapi()
         time.sleep(120)
         self.pool.haLiveset.append(oldMaster.getMyHostUUID())
@@ -437,6 +444,12 @@ class _HATest(xenrt.TestCase):
             # Try FC first
             fcsr = master.lookup("SR_FCHBA", "LUN0")
             scsiid = master.lookup(["FC", fcsr, "SCSIID"], None)
+            if scsiid:
+                # Verify the LUN is available on all hosts (CA-155371)
+                for h in slaves:
+                    if h.lookup(["FC", fcsr, "SCSIID"], None) != scsiid:
+                        scsiid = None
+                        break
             sr = None
             if self.SF_STORAGE == "nfs":
                 # use NFS if specified
@@ -1838,9 +1851,13 @@ class _HAXapiFailure(_HATest):
                 self.pool.master.execdom0("touch "
                                           "/etc/xensource/xapi_block_startup")
                 disabledHost = self.pool.master
-                self.pool.master.execdom0("mv /etc/init.d/xapi "
-                                          "/etc/init.d/xapi.disabled")
-                self.pool.master.execdom0("/etc/init.d/xapi.disabled stop")
+                if self.pool.master.isCentOS7Dom0():
+                    self.pool.master.execdom0("systemctl stop xapi.service")
+                    self.pool.master.execdom0("systemctl disable xapi.service")
+                else:
+                    self.pool.master.execdom0("mv /etc/init.d/xapi "
+                                              "/etc/init.d/xapi.disabled")
+                    self.pool.master.execdom0("/etc/init.d/xapi.disabled stop")
                 self.pool.haLiveset.remove(self.pool.master.getMyHostUUID())
                 self.pool.master.skipNextCrashdump = True
                 self.newMaster = True
@@ -1848,9 +1865,13 @@ class _HAXapiFailure(_HATest):
                 h = self.pool.slaves.values()[0]
                 h.execdom0("touch /etc/xensource/xapi_block_startup")
                 disabledHost = h
-                h.execdom0("mv /etc/init.d/xapi "
-                           "/etc/init.d/xapi.disabled")
-                h.execdom0("/etc/init.d/xapi.disabled stop")
+                if h.isCentOS7Dom0():
+                    h.execdom0("systemctl stop xapi.service")
+                    h.execdom0("systemctl disable xapi.service")
+                else:
+                    h.execdom0("mv /etc/init.d/xapi "
+                               "/etc/init.d/xapi.disabled")
+                    h.execdom0("/etc/init.d/xapi.disabled stop")
                 self.pool.haLiveset.remove(h.getMyHostUUID())
                 h.skipNextCrashdump = True
     
@@ -1860,8 +1881,11 @@ class _HAXapiFailure(_HATest):
             if disabledHost:
                 try:
                     disabledHost.waitForSSH(900, desc="Host boot to fix xapi")
-                    disabledHost.execdom0("mv /etc/init.d/xapi.disabled "
-                                          "/etc/init.d/xapi")
+                    if disabledHost.isCentOS7Dom0():
+                        disabledHost.execdom0("systemctl enable xapi.service")
+                    else:
+                        disabledHost.execdom0("mv /etc/init.d/xapi.disabled "
+                                              "/etc/init.d/xapi")
                 except:
                     xenrt.TEC().warning("Unable to restore xapi binary!")
 
@@ -4445,8 +4469,12 @@ class TC11845(xenrt.TestCase):
 
         for h in hosts:
             h.execdom0("touch /etc/xensource/xapi_block_startup")
-            h.execdom0("mv /etc/init.d/xapi /etc/init.d/xapi.disabled")
-            h.execdom0("/etc/init.d/xapi.disabled stop")
+            if h.isCentOS7Dom0():
+                h.execdom0("systemctl stop xapi.service")
+                h.execdom0("systemctl disable xapi.service")
+            else:
+                h.execdom0("mv /etc/init.d/xapi /etc/init.d/xapi.disabled")
+                h.execdom0("/etc/init.d/xapi.disabled stop")
         
         cli = self.pool.getCLIInstance()
         for h in hosts:
@@ -4461,7 +4489,10 @@ class TC11845(xenrt.TestCase):
         for h in hosts:
             h.waitForSSH(900, desc="host reboot after host fence")
             h.execdom0("rm -f /etc/xensource/xapi_block_startup")
-            h.execdom0("mv /etc/init.d/xapi.disabled /etc/init.d/xapi")
+            if h.isCentOS7Dom0():
+                h.execdom0("systemctl enable xapi.service")
+            else:
+                h.execdom0("mv /etc/init.d/xapi.disabled /etc/init.d/xapi")
             h.startXapi()
 
 

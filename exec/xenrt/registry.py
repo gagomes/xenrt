@@ -13,7 +13,7 @@ import xenrt
 
 __all__ = ["Registry"]
 
-class Registry:
+class Registry(object):
     """Test-wide data storage"""
     def __init__(self):
         self.data = {}
@@ -22,8 +22,39 @@ class Registry:
     def dump(self):
         xenrt.TEC().logverbose(self.data)
 
+    def getDeploymentRecord(self):
+        # TODO consider clouds
+        ret = {"hosts":[], "vms": [], "templates": [], "pools": []}
+
+        # First check hosts that are specifed by hostname
+        tmpHostnameList = []
+        for h in self.hostList():
+            if not h.startswith("RESOURCE_HOST_"):
+                if not h in tmpHostnameList:
+                    ret['hosts'].append(self.hostGet(h).getDeploymentRecord())
+                    tmpHostnameList.append(h)
+                else:
+                    xenrt.TEC().warning('There are two registry entries for hostname key: %s' % (h))
+        # Nowe check hosts that are held in the registry against RESOURCE_HOST_ keys
+        for h in self.hostList():
+            if h.startswith("RESOURCE_HOST_") and not self.hostGet(h).getName() in tmpHostnameList:
+                ret['hosts'].append(self.hostGet(h).getDeploymentRecord())
+                tmpHostnameList.append(self.hostGet(h).getName())
+
+        # Add guests
+        for g in self.guestList():
+            if self.guestGet(g).isTemplate:
+                ret['templates'].append(self.guestGet(g).getDeploymentRecord())
+            else:
+                ret['vms'].append(self.guestGet(g).getDeploymentRecord())
+
+        for p in self.poolGetAll():
+            ret['pools'].append(p.getDeploymentRecord())
+        return ret
+
     # Generic operations
     def write(self, path, value):
+        xenrt.TEC().logverbose("Storing object of type %s at path %s" % (value.__class__.__name__, path))
         self.mylock.acquire()
         try:
             self.data[path] = value
@@ -326,6 +357,10 @@ class Registry:
         """Look up a pool object by string tag"""
         path = "/xenrt/specific/pool/%s" % (tag)
         return self.read(path)
+
+    def poolGetAll(self):
+        """Get all pool objects"""
+        return self.objGetAll("pool")
 
     def poolDelete(self, tag):
         path = "/xenrt/specific/pool/%s" % (tag)

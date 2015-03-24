@@ -45,14 +45,15 @@ class XenRTSitePage(XenRTAPIPage):
             u.append(("maxjobs", maxjobs))
         if sharedresources:
             u.append(("sharedresources", sharedresources))
-        sqlset = []
-        vals = []
-        for field, val in u:
-            sqlset.append("%s = %%s" % field)
-            vals.append(val)
-        vals.append(site)
-        sql = "UPDATE tblSites SET %s WHERE site = %%s" % (string.join(sqlset, ", "))
-        cur.execute(sql, vals)
+        if len(u) > 0:
+            sqlset = []
+            vals = []
+            for field, val in u:
+                sqlset.append("%s = %%s" % field)
+                vals.append(val)
+            vals.append(site)
+            sql = "UPDATE tblSites SET %s WHERE site = %%s" % (string.join(sqlset, ", "))
+            cur.execute(sql, vals)
 
         db.commit()
         cur.close()
@@ -324,8 +325,8 @@ class XenRTSUpdate(XenRTSitePage):
         cur.close()
 
 
-PageFactory(XenRTSList, "slist", "/api/site/list", compatAction="slist")
-PageFactory(XenRTSite, "site", "/api/site/details", compatAction="site")
-PageFactory(XenRTSDefine, "sdefine", "/api/site/define", compatAction="sdefine")
-PageFactory(XenRTSUpdate, "supdate", "/api/site/update", compatAction="supdate")
-PageFactory(XenRTSUnDefine, "sundefine", "/api/site/undefine", compatAction="sundefine")
+PageFactory(XenRTSList, "/api/site/list", compatAction="slist")
+PageFactory(XenRTSite, "/api/site/details", compatAction="site")
+PageFactory(XenRTSDefine, "/api/site/define", compatAction="sdefine")
+PageFactory(XenRTSUpdate, "/api/site/update", compatAction="supdate")
+PageFactory(XenRTSUnDefine, "/api/site/undefine", compatAction="sundefine")

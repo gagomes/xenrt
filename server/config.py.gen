@@ -16,6 +16,11 @@ cfg['tmp_base'] = "/tmp"
 cfg['max_db_connections'] = "8"
 cfg['db_sync_timeout'] = "60"
 cfg['partner_ha_node'] = ""
+cfg['auth_enabled'] = "@authenabled@"
+cfg['ldap_uri'] = ""
+cfg['ldap_user'] = ""
+cfg['ldap_pass'] = ""
+cfg['ldap_base'] = ""
 # Parse a site config file
 cf = "%s/site.xml" % (confdir)
 if os.path.exists(cf):
@@ -54,7 +59,14 @@ if os.path.exists(cf):
                                     cfg['db_sync_timeout'] = data
                                 elif name == "PARTNER_HA_NODE":
                                     cfg['partner_ha_node'] = data
-
+                                elif name == "LDAP_URI":
+                                    cfg['ldap_uri'] = data
+                                elif name == "LDAP_USER":
+                                    cfg['ldap_user'] = data
+                                elif name == "LDAP_PASS":
+                                    cfg['ldap_pass'] = data
+                                elif name == "LDAP_BASE":
+                                    cfg['ldap_base'] = data
 
 cfg['results'] = "%s/results" % basedir
 cfg['sharedir'] = "@sharedir@"

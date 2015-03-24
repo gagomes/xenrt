@@ -139,6 +139,6 @@ class XenRTUpload(XenRTAPIPage):
 
         cur.close()
 
-PageFactory(XenRTDownload, "download", "/api/files/download", compatAction="download")
-PageFactory(XenRTJobFileDownload, "jobfiledownload", "/api/getjobfile/{job}/{filename}")
-PageFactory(XenRTUpload, "upload", "/api/files/upload", compatAction="upload")
+PageFactory(XenRTDownload, "/api/files/download", compatAction="download")
+PageFactory(XenRTJobFileDownload, "/api/getjobfile/{job}/{filename}")
+PageFactory(XenRTUpload, "/api/files/upload", compatAction="upload")

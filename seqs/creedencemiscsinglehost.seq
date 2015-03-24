@@ -26,5 +26,9 @@
     <serial group="hfx1003">
       <testcase id="xenserver.tc.network.TC2VlansPerBridge" tc="TC-20912"/>
     </serial>
+    <serial group="SCTX-1421">
+      <testcase id="xenserver.tc.guest.TCMemoryDumpBootDriverFlag" tc="TC-23777"/>
+    </serial>
+    <testcase id="xenserver.tc.hotfix.TCDiscSpacePlugins" tc="TC-23995"/>
   </testsequence>
 </xenrt>

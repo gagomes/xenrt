@@ -1,0 +1,39 @@
+<xenrt>
+
+  <!-- Docker test sequence using Ubuntu Trusty Tahr 14.04 guest. -->
+
+  <default name="DISTRO" value="ubuntu1004" />
+
+  <variables>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+  </variables>
+
+  <prepare>
+    <pool id="0">
+      <host id="0">
+        <vm name="${DISTRO}">
+          <distro>${DISTRO}</distro>
+          <arch>x86-64</arch>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="50" />
+          <postinstall action="dockerInstall" />
+        </vm>
+      </host>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="Ubuntu14">
+
+      <testcase id="xenserver.tc.docker.TCContainerLifeCycle" tc="TC-23918" name="ContainerLifeCycle" sku="Ubuntu14" />
+      <testcase id="xenserver.tc.docker.TCGuestsLifeCycle" tc="TC-26443" name="GuestsLifeCycle" sku="Ubuntu14" />
+      <testcase id="xenserver.tc.docker.TCScaleContainers" tc="TC-26523" name="ScaleContainers" sku="Ubuntu14" />
+
+    </serial>
+  </testsequence>
+
+</xenrt>

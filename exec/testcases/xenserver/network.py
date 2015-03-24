@@ -564,10 +564,7 @@ class TCNICTest(xenrt.TestCase):
 
         xenrt.TEC().progress("Installing target VM...")
         
-        if isinstance(self.host, xenrt.lib.xenserver.ClearwaterHost):
-            t = self.host.createGenericLinuxGuest(start=False, generic_distro="debian70")
-        else:
-            t = self.host.createGenericLinuxGuest(start=False)
+        t = self.host.createGenericLinuxGuest(start=False)
         
         t.setMemory(128)
         self.guestsToClean.append(t)

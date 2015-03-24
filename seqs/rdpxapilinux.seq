@@ -1,0 +1,62 @@
+<xenrt>
+  <default name="LINUXDISTROS" value="rhel7,ubuntu1204,sles12,centos6,oel7"/>
+  <variables>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+  </variables>
+
+  <scheduler>
+    <resources>memory&gt;=100G/disk1&gt;=300G</resources>
+  </scheduler>
+  <prepare>
+  <host id="0">
+        <vm name="rhel7">
+        <distro>rhel7</distro>
+        <arch>x86-64</arch>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="10" />
+      </vm>
+      <vm name="ubuntu1204">
+        <distro>ubuntu1204</distro>
+        <memory>256</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="8" />
+      </vm>
+      <vm name="sles12">
+        <distro>sles12</distro>
+        <arch>x86-64</arch>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="8" />
+      </vm>
+      <vm name="oel7">
+        <distro>oel7</distro>
+        <arch>x86-64</arch>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="10" />
+      </vm>
+      <vm name="centos6">
+        <distro>centos6</distro>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="8" />
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence group="RdpXapiLinux">
+    <for iter="D" values="${LINUXDISTROS}">
+        <testcase id="xenserver.tc.rdpxapi.TestRdpForLinux" tc="TC-23791" prio="3" >
+        <arg>guest=${D}</arg>
+        </testcase>
+    </for>
+  </testsequence>
+</xenrt>

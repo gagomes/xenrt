@@ -1,6 +1,6 @@
 from xenrt.txt import TXTErrorParser, TxtLogObfuscator
 from testing import XenRTUnitTestCase
-from mock import Mock
+from mock import Mock, patch
 
 
 class TestTxtLogObfuscator(XenRTUnitTestCase):
@@ -80,9 +80,10 @@ class TestTxtErrorParser(XenRTUnitTestCase):
         parser = TXTErrorParser([])
         self.assertEqual([], parser.locateAllTpmData())
 
-    def testHostFileCtorOverloadMechanismCreatesInstance(self):
+    @patch("xenrt.TEC")
+    def testHostFileCtorOverloadMechanismCreatesInstance(self, mockTec):
         mockHost = Mock()
-        mockHost.execcmd = Mock(side_effect=[self.__1ERR, self.__2ERR1])
+        mockHost.execcmd = Mock(side_effect=[0, self.__1ERR, 0, self.__2ERR1])
         parser = TXTErrorParser.fromHostFile(mockHost, "/some/file/name")
         self.assertEqual(sorted([self.__1ERR, self.__2ERR1]),
                          sorted(parser.locateAllTpmData()))

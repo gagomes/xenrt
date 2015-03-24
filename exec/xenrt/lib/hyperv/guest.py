@@ -8,7 +8,7 @@
 # conditions as licensed by XenSource, Inc. All other rights reserved.
 #
 
-import re, time, socket, string, xml.dom.minidom, uuid
+import re, time, socket, string, xml.dom.minidom, uuid, IPy
 
 import xenrt
 
@@ -33,8 +33,6 @@ def createVM(host,
              notools=False,
              bootparams=None,
              use_ipv6=False,
-             dontstartinstall=False,
-             installXenToolsInPostInstall=False,
              suffix=None,
              ips={}):
 
@@ -125,39 +123,33 @@ def createVM(host,
               repository=repository,
               pxe=pxe,
               notools=notools,
-              use_ipv6=use_ipv6,
-              dontstartinstall=dontstartinstall,
-              installXenToolsInPostInstall=installXenToolsInPostInstall)
+              use_ipv6=use_ipv6)
 
-    if not dontstartinstall:
+    if g.windows:
+        g.xmlrpcShutdown()
+    else:
+        g.execguest("/sbin/shutdown -h now")
+    g.poll("DOWN")
 
-        #g.reboot()
-        #g.check()
+    diskstoformat = []
+    for disk in disks:
+        device, size, format = disk
+        if str(device) != "0":
+            d = g.createDisk(sizebytes=int(size)*xenrt.GIGA,userdevice=device)
+            if format:
+                diskstoformat.append(d)
+
+    g.start()
+
+    for d in diskstoformat:
         if g.windows:
-            g.xmlrpcShutdown()
+            letter = g.xmlrpcPartition(d)
+            g.xmlrpcFormat(letter, timeout=3600)
         else:
-            g.execguest("/sbin/shutdown -h now")
-        g.poll("DOWN")
-
-        diskstoformat = []
-        for disk in disks:
-            device, size, format = disk
-            if str(device) != "0":
-                d = g.createDisk(sizebytes=int(size)*xenrt.GIGA,userdevice=device)
-                if format:
-                    diskstoformat.append(d)
-
-        g.start()
-
-        for d in diskstoformat:
-            if g.windows:
-                letter = g.xmlrpcPartition(d)
-                g.xmlrpcFormat(letter, timeout=3600)
-            else:
-                # FIXME: this is probably wrong
-                letter = g.DEVICE_DISK_PREFIX + chr(int(d)+ord('a'))
-                g.execguest("mkfs.ext2 /dev/%s" % (letter))
-                g.execguest("mount /dev/%s /mnt" % (letter))
+            # FIXME: this is probably wrong
+            letter = g.DEVICE_DISK_PREFIX + chr(int(d)+ord('a'))
+            g.execguest("mkfs.ext2 /dev/%s" % (letter))
+            g.execguest("mount /dev/%s /mnt" % (letter))
 
     # Store the object in the registry.
     xenrt.TEC().registry.guestPut(guestname, g)
@@ -308,9 +300,7 @@ class Guest(xenrt.GenericGuest):
                 notools=False,
                 extradisks=None,
                 bridge=None,
-                use_ipv6=False,
-                dontstartinstall=False,
-                installXenToolsInPostInstall=False):
+                use_ipv6=False):
 
         self.setHost(host)
 
@@ -322,6 +312,8 @@ class Guest(xenrt.GenericGuest):
                 kickstart = "oel6"
             if distro.startswith("centos6"):
                 kickstart = "centos6"
+            if distro.startswith("sl6"):
+                kickstart = "sl6"
 
         # Have we been asked to choose an ISO automatically?
         if isoname == xenrt.DEFAULT:
@@ -456,26 +448,23 @@ class Guest(xenrt.GenericGuest):
                                config=kickstart,
                                pxe=pxe,
                                extrapackages=extrapackages,
-                               options=options,
-                               start=not dontstartinstall,
-                               installXenToolsInPostInstall=False)
+                               options=options)
 
         self._postInstall()
 
         self.removeLegacyVifs()
 
-        if not dontstartinstall:
-            if start:
-                self.start()
+        if start:
+            self.start()
 
-            xenrt.TEC().comment("Created %s guest named %s with %u vCPUS and "
-                                "%uMB memory."
-                                % (self.template, self.name, self.vcpus,
-                                   self.memory))
+        xenrt.TEC().comment("Created %s guest named %s with %u vCPUS and "
+                            "%uMB memory."
+                            % (self.template, self.name, self.vcpus,
+                               self.memory))
 
-            ip = self.getIP()
-            if ip:
-                xenrt.TEC().logverbose("Guest address is %s" % (ip))
+        ip = self.getIP()
+        if ip:
+            xenrt.TEC().logverbose("Guest address is %s" % (ip))
 
     def enablePXE(self, pxe=True):
         if pxe:
@@ -830,7 +819,7 @@ class Guest(xenrt.GenericGuest):
                                    (nic, vbridge, mac))
             self.vifs.append((nic, vbridge, mac, ip))
             if self.use_ipv6:
-                if not self.mainip:
+                if not self.mainip or IPy.IP(self.mainip).version() != 6:
                     self.mainip = self.getIPv6AutoConfAddress(device=nic)
             else:
                 if not self.mainip or (re.match("169\.254\..*", self.mainip)

@@ -4207,7 +4207,7 @@ class TC18156(xenrt.TestCase):
         eqlmpconf += "\\t\\tproduct \"100E-00\"\\n"
         eqlmpconf += "\\t\\tpath_grouping_policy multibus\\n"
         
-        if isinstance(self.host, xenrt.lib.xenserver.DundeeHost) and self.host.isCentOS7Dom0():
+        if isinstance(self.host, xenrt.lib.xenserver.DundeeHost):
             eqlmpconf += "\\t\\tgetuid_callout \"" + self.host.scsiIdPath() + " -g -u --devices /dev/%n\"\\n"
         else:
             eqlmpconf += "\\t\\tgetuid_callout \"" + self.host.scsiIdPath() + " -g -u -s /block/%n\"\\n"
@@ -4413,7 +4413,7 @@ class TC18782(xenrt.TestCase):
                 multipathDebuginfoRpmFilePath = xenrt.TEC().getFile("binary-packages/RPMS/domain0/RPMS/i386/%s.i386.rpm" %
                                                                                                 multipathDebuginfoRpmFileName)
             else:
-                multipathDebuginfoRpmFilePath = xenrt.TEC().getFile("binary-packages/RPMS/domain0/RPMS/x86_64/valgrind-3.9.0-xs.10649.2569..x86_64.rpm")
+                multipathDebuginfoRpmFilePath = xenrt.TEC().getFile("binary-packages/RPMS/domain0/RPMS/x86_64/valgrind-3.*.rpm")
 
             if not multipathDebuginfoRpmFilePath:
                 xenrt.TEC().logverbose("Device-mapper-multipath-debuginfo file path does not exist. "

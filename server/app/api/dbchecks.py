@@ -13,7 +13,7 @@ class TakeoverTime(XenRTAPIPage):
     def render(self):
         try:
             readDB = app.db.dbReadInstance()
-            readLoc = self.getReadLocation(readDB)
+            readLoc = app.db.getReadLocation(readDB)
             if not readLoc:
                 cur = readDB.cursor()
                 cur.execute("SELECT value FROM tblconfig WHERE param='takeover_time'")
@@ -27,7 +27,7 @@ class TakeoverTime(XenRTAPIPage):
 
 class IsMaster(XenRTAPIPage):
     def render(self):
-        master = self.isDBMaster()
+        master = self.isDBMaster(returnDetail=True)
         if master:
             return master
         else:
@@ -45,10 +45,10 @@ class IsUsable(XenRTAPIPage):
             writeDB = app.db.dbWriteInstance()
             readDB = app.db.dbReadInstance()
 
-            writeLoc = self.getWriteLocation(writeDB)
+            writeLoc = app.db.getWriteLocation(writeDB)
             i = 0
             while i <= timeout/check_interval:
-                readLoc = self.getReadLocation(readDB)
+                readLoc = app.db.getReadLocation(readDB)
                 assert readLoc
                 if readLoc >= writeLoc:
                     return "This node is in sync, delay = %fs" % (i* check_interval)
@@ -61,6 +61,6 @@ class IsUsable(XenRTAPIPage):
             readDB.rollback()
             readDB.close()
             
-PageFactory(IsMaster, "ismaster", "/api/dbchecks/ismaster")
-PageFactory(TakeoverTime, "takeovertime", "/api/dbchecks/takeovertime")
-PageFactory(IsUsable, "dbisusable", "/api/dbchecks/isusable")
+PageFactory(IsMaster, "/api/dbchecks/ismaster")
+PageFactory(TakeoverTime, "/api/dbchecks/takeovertime")
+PageFactory(IsUsable, "/api/dbchecks/isusable")

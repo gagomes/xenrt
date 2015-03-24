@@ -1,0 +1,87 @@
+<xenrt>
+
+  <!-- OS functional tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Cream</PRODUCT_VERSION>
+    <USE_GUEST_IPV6>yes</USE_GUEST_IPV6>
+    <DISABLE_GUEST_IPV4>yes</DISABLE_GUEST_IPV4>
+  </variables>
+
+  <default name="PARALLEL" value="4" />
+  <default name="MIGRATEPAR" value="1" />
+
+  <semaphores>
+    <TCMigrate count="${MIGRATEPAR}" />
+  </semaphores>
+
+  <prepare>
+    <host />
+  </prepare>
+
+  <testsequence>
+    <parallel workers="${PARALLEL}">
+      <for iter="D" values="%DISTROS%"> 
+        <serial group="${D}">
+          <testcase id="xenserver.guest.TCXenServerVendorInstall" name="VMInstall" sku="${D}_ipv6" tc="TC-26917">
+            <arg>RESOURCE_HOST_0</arg>
+            <arg>guest=${D}</arg>
+            <arg>distro=${D}</arg>
+          </testcase>
+          <serial guest="${D}">
+            <testcase id="guestops.drivers.TCDriverInstall" sku="${D}_ipv6" tc="TC-26918">
+              <arg>guest=${D}</arg>
+            </testcase>
+            <testcase id="guestops.basic.TCStartStop" sku="${D}_ipv6" tc="TC-26919">
+              <arg>guest=${D}</arg>
+              <arg>loops=20</arg>
+            </testcase>
+            <testcase id="guestops.basic.TCReboot" sku="${D}_ipv6" tc="TC-26920">
+              <arg>guest=${D}</arg>
+              <arg>loops=20</arg>
+            </testcase>
+            <testcase id="guestops.srm.TCSuspendResume" sku="${D}_ipv6" tc="TC-26921">
+              <arg>guest=${D}</arg>
+              <arg>workloads</arg>
+              <arg>loops=20</arg>
+            </testcase>
+            <testcase id="guestops.srm.TCMigrate" sku="${D}_ipv6" tc="TC-26922">
+              <arg>guest=${D}</arg>
+              <arg>workloads</arg>
+              <arg>loops=10</arg>
+            </testcase>
+            <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" sku="${D}_ipv6" tc="TC-26923">
+              <arg>guest=${D}</arg>
+              <arg>live</arg>
+              <arg>workloads</arg>
+              <arg>loops=20</arg>
+            </testcase>
+            <testcase id="xenserver.storage.TCMultipleVDI" sku="${D}_ipv6" tc="TC-26924">
+              <arg>N/A</arg>
+              <arg>guest=${D}</arg>
+              <arg>noshutdown</arg>
+              <arg>initial=4</arg>
+              <arg>max=7</arg>
+            </testcase>
+            <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" sku="${D}_ipv6" tc="TC-26925">
+              <arg>N/A</arg>
+              <arg>guest=${D}</arg>
+              <arg>noshutdown</arg>
+            </testcase>
+            <testcase id="guestops.cpu.TCCPUWalk" sku="${D}_ipv6" tc="TC-26926">
+              <arg>guest=${D}</arg>
+              <arg>max=8</arg>
+              <arg>noplugwindows</arg>
+            </testcase>
+            <finally>
+              <testcase id="guestops.basic.TCShutdown">
+                <arg>guest=${D}</arg>
+                <arg>finally</arg>
+              </testcase>
+            </finally>
+          </serial>
+        </serial>
+      </for>
+    </parallel>
+  </testsequence>
+</xenrt>

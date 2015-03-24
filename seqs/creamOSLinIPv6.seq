@@ -4,6 +4,7 @@
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <USE_GUEST_IPV6>yes</USE_GUEST_IPV6>
   </variables>
 
   <default name="PARALLEL" value="2" />

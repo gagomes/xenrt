@@ -34,7 +34,7 @@ class _TCSmokeTest(xenrt.TestCase):
             self.template = self.getXenAppTemplate(self.distro)
         else:
             (self.distro, self.arch) = xenrt.getDistroAndArch(self.tcsku)
-        
+
         self.assertHardware()
         self.getGuestParams()
 
@@ -84,6 +84,12 @@ class _TCSmokeTest(xenrt.TestCase):
         pass
 
     def run(self, arglist):
+        # Skip update tests that don't actually do an update
+        (distro, special) = self.host.resolveDistroName(self.distro)
+        if 'UpdateTo' in special and not special['UpdateTo']:
+            xenrt.TEC().skip("Don't need to run a null update test")
+            return
+
         if self.runSubcase("installOS", (), "OS", "Install") != \
                 xenrt.RESULT_PASS:
             return

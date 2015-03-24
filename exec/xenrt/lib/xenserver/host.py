@@ -8217,6 +8217,8 @@ rm -f /etc/xensource/xhad.conf || true
                 newdistro = xenrt.getUpdateDistro(distro)
                 if newdistro != distro:
                     special['UpdateTo'] = newdistro
+                else:
+                    special['UpdateTo'] = None
         
         m = re.match("^(oel|sl|rhel|centos)(\d)xs$", distro)
         if m:

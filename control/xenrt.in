@@ -1927,7 +1927,7 @@ class XenRTRunSuite(XenRTCommand):
             raise Exception("Invalid usage\n")
         
         self.cookie = str(random.randint(0, 2**31-1))
-        jenkins = {"Update Mercurial": "false",
+        jenkins = {"Update Mercurial": "true",
                    "Additional_Args": "",
                    "Cookie": self.cookie,
                    "Attempt Rerun": "false"}

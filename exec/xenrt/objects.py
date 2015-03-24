@@ -5384,7 +5384,7 @@ class GenericHost(GenericPlace):
         else:
             ethDevice = self.getNICMACAddress(0)
 
-        bootDiskSize = self.lookup("BOOTDISKSIZE",100)
+        bootDiskSize = self.lookup("BOOTDISKSIZE",250)
         bootDiskFS = self.lookup("BOOTDISKFS","ext4")
         ethdev = self.getDefaultInterface()
         ethmac = xenrt.normaliseMAC(self.getNICMACAddress(0)).upper()

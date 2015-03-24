@@ -36,7 +36,7 @@ class VCenter(object):
 
     def addHost(self, host, dc, cluster):
         with self.lock:
-            xenrt.TEC().logverbose(self.vc.os.execCmd("powershell.exe -ExecutionPolicy ByPass -File c:\\vmware-j\\addhost.ps1 %s %s %s %s %s %s %s %s %s" % (
+            xenrt.TEC().logverbose(self.vc.os.execCmd("powershell.exe -ExecutionPolicy ByPass -File c:\\vmware\\addhost.ps1 %s %s %s %s %s %s %s %s %s" % (
                                                         self.address,
                                                         self.username,
                                                         self.password,

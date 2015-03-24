@@ -6,7 +6,7 @@
     <PRODUCT_VERSION>Cream</PRODUCT_VERSION>
   </variables>
 
-  <default name="PARALLEL" value="2" />
+  <default name="PARALLEL" value="4" />
   <default name="MIGRATEPAR" value="1" />
 
   <semaphores>

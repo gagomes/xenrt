@@ -9,6 +9,7 @@
 # conditions as licensed by XenSource, Inc. All other rights reserved.
 #
 
+
 import csv, os, re, string, StringIO, random, threading
 import xenrt
 
@@ -27,10 +28,15 @@ class VCenter(object):
         self.username = vccfg['USERNAME']
         self.address = vccfg['ADDRESS']
         self.password = vccfg['PASSWORD']
+        self.dvs = "no"
+
+        if xenrt.TEC().lookup("VMWARE_DVS", False, boolean=True):
+            xenrt.TEC().warning("Check for VMware DVS")
+            self.dvs = "yes"
 
     def addHost(self, host, dc, cluster):
         with self.lock:
-            xenrt.TEC().logverbose(self.vc.os.execCmd("powershell.exe -ExecutionPolicy ByPass -File c:\\vmware\\addhost.ps1 %s %s %s %s %s %s %s %s" % (
+            xenrt.TEC().logverbose(self.vc.os.execCmd("powershell.exe -ExecutionPolicy ByPass -File c:\\vmware-j\\addhost.ps1 %s %s %s %s %s %s %s %s %s" % (
                                                         self.address,
                                                         self.username,
                                                         self.password,
@@ -38,7 +44,9 @@ class VCenter(object):
                                                         cluster,
                                                         host.getIP(),
                                                         "root",
-                                                        host.password), returndata=True))
+                                                        host.password,
+                                                        self.dvs), returndata=True))
+               
 
             hostlist =csv.DictReader(StringIO.StringIO(self.vc.os.readFile("c:\\vmware\\%s.csv" % dc)))
             self.vc.os.removeFile("c:\\vmware\\%s.csv" % dc)

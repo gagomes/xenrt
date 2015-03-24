@@ -8177,6 +8177,8 @@ rm -f /etc/xensource/xhad.conf || true
                 sruuid = sr
             elif sr == "DEFAULT":
                 sruuid = self.lookupDefaultSR()
+            elif sr == "Local storage":
+                sruuid = self.getLocalSR()
             else:
                 xenrt.TEC().logverbose("given sr is not UUID")
                 sruuid = self.parseListForUUID("sr-list", "name-label", sr)

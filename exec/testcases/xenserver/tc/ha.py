@@ -737,7 +737,7 @@ class TC11795(TC7495):
         pool = self.configureHAPool([host0,host1])
         self.check(pool)
         
-class TC11795v4(TC7495):
+class TC26902(TC7495):
     """Verify StateFile can be located on NFS storage"""
     SF_STORAGE = "nfs4"
     
@@ -1364,7 +1364,7 @@ class TC13514(_HAStatefileFailure):
     LOSE_SLAVES = 1
     SF_STORAGE = "nfs"
     
-class TC13514v4(_HAStatefileFailure):
+class TC26904(_HAStatefileFailure):
     """Slave loss of statefile for NFS SF"""
     LOSE_SLAVES = 1
     SF_STORAGE = "nfs4"
@@ -1425,7 +1425,7 @@ class TC13515(TC7688):
     WORKLOADS = True
     SF_STORAGE = "nfs"
     
-class TC13515v4(TC7688):
+class TC26905(TC7688):
     """Master+slave loss of statefile (under load) for NFS SF"""
     WORKLOADS = True
     SF_STORAGE = "nfs4"
@@ -1438,7 +1438,7 @@ class TC13541(TC7689):
     """All hosts loss of statefile"""
     SF_STORAGE = "nfs"
     
-class TC13541v4(TC7689):
+class TC26906(TC7689):
     """All hosts loss of statefile"""
     SF_STORAGE = "nfs4"
 
@@ -1574,7 +1574,7 @@ class TC13516(_HAHeartbeatFailure):
     LOSE_SLAVES = 1   
     SF_STORAGE = "nfs"
     
-class TC13516v4(_HAHeartbeatFailure):
+class TC26907(_HAHeartbeatFailure):
     """Master+slave loss of heartbeats for NFS SF"""
     LOSE_MASTER = True
     LOSE_SLAVES = 1   
@@ -1701,7 +1701,7 @@ class TC13518(_HAHostFailure):
     LOSE_MASTER = True    
     SF_STORAGE = "nfs"
 
-class TC13518v4(_HAHostFailure):
+class TC26910(_HAHostFailure):
     """Loss of master for NFS SF"""
     LOSE_MASTER = True    
     SF_STORAGE = "nfs4"
@@ -1722,7 +1722,7 @@ class TC13517(TC7711):
     WORKLOADS = True    
     SF_STORAGE = "nfs"
 
-class TC13517v4(TC7711):
+class TC26908(TC7711):
     """Loss of slave (under load) for NFS SF"""
     WORKLOADS = True    
     SF_STORAGE = "nfs4"
@@ -1752,7 +1752,7 @@ class TC13519(TC7714):
     """Loss of master+slave (under load) for NFS SF"""
     WORKLOADS = True
     SF_STORAGE = "nfs"
-class TC13519v4(TC7714):
+class TC26911(TC7714):
     """Loss of master+slave (under load) for NFS SF"""
     WORKLOADS = True
     SF_STORAGE = "nfs4"
@@ -3332,7 +3332,7 @@ class TC13522(TC8127):
     """Disable HA and Statefile delete with offline host for NFS SF"""
     SF_STORAGE = "nfs"
     
-class TC13522v4(TC8127):
+class TC26912(TC8127):
     """Disable HA and Statefile delete with offline host for NFS SF"""
     SF_STORAGE = "nfs4"
   
@@ -3413,7 +3413,7 @@ class TC13523(TC8129):
        statefile for NFS SF"""        
     SF_STORAGE = "nfs"
     
-class TC13523v4(TC8129):
+class TC26913(TC8129):
     """Verify a booting host remains in emergency mode until it can see the HA
        statefile for NFS SF"""        
     SF_STORAGE = "nfs4"
@@ -3472,7 +3472,7 @@ class TC13524(TC8130):
        without statefile access for NFS SF"""
     SF_STORAGE = "nfs"       
 
-class TC13524v4(TC8130):
+class TC26914(TC8130):
     """Verify that an HA-enabled pool can be recovered if all nodes reboot
        without statefile access for NFS SF"""
     SF_STORAGE = "nfs4"
@@ -3558,7 +3558,7 @@ class TC13525(TC8131):
        without statefile access for NFS SF"""
     SF_STORAGE = "nfs"
     
-class TC13525v4(TC8131):
+class TC26915(TC8131):
     """Verify that an HA-enabled Pool can be recovered if only one slave reboots
        without statefile access for NFS SF"""
     SF_STORAGE = "nfs4"
@@ -4717,7 +4717,7 @@ class TC14984(_HASnapshotTest):
 class TC14985(_HASnapshotTest):
     SF_STORAGE = "nfs"
     
-class TC14985v4(_HASnapshotTest):
+class TC26903(_HASnapshotTest):
     SF_STORAGE = "nfs4"
 
 class TC14986(_HASnapshotTest):

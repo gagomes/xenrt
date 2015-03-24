@@ -40,27 +40,27 @@
 
   <testsequence>
     <serial group="Functional Tests">
-      <testcase id="xenserver.tc.ha.TC11795v4"/>
-      <testcase id="xenserver.tc.ha.TC14985v4"/>
+      <testcase id="xenserver.tc.ha.TC26902"/>
+      <testcase id="xenserver.tc.ha.TC26903"/>
     </serial>  
     <serial group="StatefileFailures">
-      <testcase id="xenserver.tc.ha.TC13514v4"/>
-      <testcase id="xenserver.tc.ha.TC13515v4"/>
-      <testcase id="xenserver.tc.ha.TC13541v4"/>
+      <testcase id="xenserver.tc.ha.TC26904"/>
+      <testcase id="xenserver.tc.ha.TC26905"/>
+      <testcase id="xenserver.tc.ha.TC26906"/>
     </serial>
     <serial group="HeartbeatFailures">
-      <testcase id="xenserver.tc.ha.TC13516v4"/>
+      <testcase id="xenserver.tc.ha.TC26907"/>
     </serial>
     <serial group="HostFailures">
-      <testcase id="xenserver.tc.ha.TC13517v4"/>
-      <testcase id="xenserver.tc.ha.TC13518v4"/>
-      <testcase id="xenserver.tc.ha.TC13519v4"/>
+      <testcase id="xenserver.tc.ha.TC26908"/>
+      <testcase id="xenserver.tc.ha.TC26910"/>
+      <testcase id="xenserver.tc.ha.TC26911"/>
     </serial>
     <serial group="Stuck-state recovery">
-      <testcase id="xenserver.tc.ha.TC13522v4"/>
-      <testcase id="xenserver.tc.ha.TC13523v4"/>
-      <testcase id="xenserver.tc.ha.TC13524v4"/>
-      <testcase id="xenserver.tc.ha.TC13525v4"/>
+      <testcase id="xenserver.tc.ha.TC26912"/>
+      <testcase id="xenserver.tc.ha.TC26913"/>
+      <testcase id="xenserver.tc.ha.TC26914"/>
+      <testcase id="xenserver.tc.ha.TC26915"/>
     </serial>
     <serial>
       <finally>

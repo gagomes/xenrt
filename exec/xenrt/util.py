@@ -89,7 +89,8 @@ __all__ = ["timenow",
            "getCCPCommit",
            "isUrlFetchable",
            "isWindows",
-           "is32BitPV"
+           "is32BitPV",
+           "getUpdateDistro"
            ]
 
 def sleep(secs, log=True):
@@ -1523,3 +1524,18 @@ def is32BitPV(distro, arch=None, release=None, config=None):
 
     # We've got this far, so it must be 32 bitPV
     return True
+
+def getUpdateDistro(distro):
+    updateMap = xenrt.TEC().lookup("LINUX_UPDATE")
+    match = ""
+    newdistro = None
+    # Look for the longest match
+    for i in updateMap.keys():
+        if distro.startswith(i) and len(i) > len(match):
+            match = i
+    # if we find one, we need to upgrade
+    if match:
+        newdistro = updateMap[match]
+    if not newdistro:
+        raise xenrt.XRTError("No update distro found for %s" % distro)
+    return newdistro

@@ -3508,32 +3508,17 @@ DHCPServer = 1
         xenrt.sleep(60)
         self.waitForDaemon(300,desc="Guest reboot after updating Windows")
 
-    def updateYumConfig(self, distro=None, arch=None):
+    def updateYumConfig(self, distro=None, arch=None, allowKernel=False):
         """If we have a local HTTP mirror of a yum repo then create
         a yum repo config for it on this guest/host. This is only for
         for the base repo, all others get removed. This is a hack
         primarily intended for XenServer dom0."""
         if arch == "x86-32p":
             arch = "x86-32"
-        doUpdate = False
         if not distro:
             distro = self.distro
         if not arch:
             arch = self.arch
-        # If we should update this to the lastest versino
-        if xenrt.TEC().lookup("AUTO_UPDATE_LINUX", False, boolean=True):
-            updateMap = xenrt.TEC().lookup("LINUX_UPDATE")
-            match = ""
-            # Look for the longest match
-            for i in updateMap.keys():
-                if distro.startswith(i) and len(i) > len(match):
-                    match = i
-            # if we find one, we need to upgrade
-            if match:
-                newdistro = updateMap[match]
-                if newdistro != distro:
-                    doUpdate = True
-                    distro = newdistro
 
         url = xenrt.TEC().lookup(["RPM_SOURCE", distro, arch, "HTTP"], None)
         if not url:
@@ -3556,7 +3541,7 @@ baseurl=%s
 gpgcheck=0
 """ % (url)
             # If we're upgrading then we can't exclude the kernel
-            if not doUpdate:
+            if not allowKernel:
                 c += "exclude=kernel*, *xen*\n"
             sftp = self.sftpClient()
             fn = xenrt.TEC().tempFile()
@@ -3567,20 +3552,33 @@ gpgcheck=0
             sftp.close()
         except:
             return False
-        if doUpdate:
-            # Do the upgrade
-            self.execcmd("yum update -y", timeout=3600)
-            # Cleanup the repositories again
-            self.execcmd("for r in /etc/yum.repos.d/*.repo; "
-                         "   do mv $r $r.orig; done")
-            sftp = self.sftpClient()
-            sftp.copyTo(fn, "/etc/yum.repos.d/xenrt.repo")
-            sftp.close()
-            # And reboot to start the new system
-            xenrt.TEC().comment("Upgraded from %s to %s" % (self.distro, distro))
-            self.distro=distro
-            self.reboot()
         return True
+
+    def updateLinux(self, updateTo):
+        # Currently only for RHEL derivatives
+        if updateTo == "latest":
+            timeout = 7200
+            self.execguest("rm /etc/yum.repos.d/xenrt.repo")
+            self.execguest("rename '.orig' '' /etc/yum.repos.d/*.orig")
+            # Add a proxy if we know about one
+            proxy = xenrt.TEC().lookup("HTTP_PROXY", None)
+            if proxy:
+                self.execguest("sed -i '/proxy/d' /etc/yum.conf")
+                self.execguest("echo 'proxy=http://%s' >> /etc/yum.conf" % proxy)
+            updateTo = xenrt.getUpdateDistro(self.distro)
+        else:
+            timeout = 3600
+            self.updateYumConfig(updateTo, self.arch, allowKernel=True)
+        
+        # Do the upgrade
+        self.execcmd("yum update -y", timeout=timeout)
+        # Cleanup the repositories again
+        self.distro=updateTo
+        self.updateYumConfig(self.distro, self.arch, allowKernel=False)
+        # And reboot to start the new system
+        xenrt.TEC().comment("Updated from %s to %s" % (self.distro, updateTo))
+        self.reboot()
+        
 
     def getExtraLogs(self, directory):
         pass
@@ -7592,6 +7590,10 @@ class GenericGuest(GenericPlace):
                 if self.execcmd('test -e /etc/redhat-release', retval="code") == 0:
                     if not self.updateYumConfig(self.distro, self.arch):
                         xenrt.TEC().warning('Failed to specify XenRT yum repo for %s, %s' % (self.distro, self.arch))
+                    updateTo = self.special.get("UpdateTo")
+                    if updateTo:
+                        del self.special['UpdateTo']
+                        self.updateLinux(updateTo)
 
                 # These are RPMs statically configured for this distro
                 rpmdir = "%s/guestrpms/%s/%s" % \

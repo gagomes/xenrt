@@ -557,7 +557,7 @@ class Guest(xenrt.GenericGuest):
 
         if not notools and self.getState() == "UP":
             self.installTools()
-        if xenrt.TEC().lookup("TESTING_KERNELS", False, boolean=True):
+        if self.special.get("XSKernel"):
             kernelUpdatesPrefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "") + "/kernelUpdates"
             if distro and 'oel7' in distro:
                 _new_kernel = kernelUpdatesPrefix + "/OEL7/"
@@ -4355,7 +4355,8 @@ def createVMFromPrebuiltTemplate(host,
              rootdisk=None,
              notools=False,
              suffix=None,
-             ips={}):
+             ips={},
+             special={}):
    
     if suffix:
         displayname = "%s-%s" % (guestname, suffix)
@@ -4476,6 +4477,7 @@ def createVMFromPrebuiltTemplate(host,
     g.changeCD("xs-tools.iso")
     # The apt source needs updating to the controller
     g.special['tailor_apt_source'] = True
+    g.special.update(special)
     g.start() 
     
     if not notools:
@@ -4505,11 +4507,13 @@ def createVM(host,
              suffix=None,
              ips={}):
 
+
     canUsePrebuiltTemplate = not pxe and not guestparams and not template and not bootparams and not use_ipv6
 
     if not isinstance(host, xenrt.GenericHost):
         host = xenrt.TEC().registry.hostGet(host)
 
+    (distro, special) = host.resolveDistroName(distro)
     rootdisk = xenrt.lib.xenserver.Guest.DEFAULT
     for disk in disks:
         device, size, format = disk
@@ -4532,7 +4536,8 @@ def createVM(host,
                       rootdisk,
                       notools,
                       suffix,
-                      ips)
+                      ips,
+                      special)
     if not g:
         if suffix:
             displayname = "%s-%s" % (guestname, suffix)
@@ -4611,6 +4616,7 @@ def createVM(host,
         else:
             isoname = None
 
+        g.special.update(special)
         # Install the guest.
         g.install(host, 
                   distro=distro,

@@ -2642,10 +2642,10 @@ class Config(object):
          'debian60_x86-32','debian60_x86-64','debian70_x86-32','debian70_x86-64','oel510_x86-32','oel510_x86-64',
          'oel511_x86-32','oel511_x86-64','oel65_x86-32','oel65_x86-64','oel66_x86-32','oel66_x86-64','oel7_x86-64',
          'rhel48_x86-32','rhel510_x86-32','rhel510_x86-64','rhel511_x86-32','rhel511_x86-64','rhel65_x86-32',
-         'rhel65_x86-64','rhel66_x86-32','rhel66_x86-64','rhel71_x86-64','rhel7_x86-64','sl511_x86-32','sl511_x86-64',
-         'sl66_x86-32','sl66_x86-64','sl7_x86-64','sles104_x86-32','sles104_x86-64','sles113_x86-32','sles113_x86-64',
+         'rhel65_x86-64','rhel66_x86-32','rhel66_x86-64','rhel7_x86-64','sles104_x86-32',
+         'sles104_x86-64','sles113_x86-32','sles113_x86-64',
          'sles12_x86-64','ubuntu1004_x86-32','ubuntu1004_x86-64','ubuntu1204_x86-32','ubuntu1204_x86-64',
-         'ubuntu1404_x86-32','ubuntu1404_x86-64','vistaeesp2','w2k3eesp2','w2k3eesp2-x64','win10-x64','win10-x86',
+         'ubuntu1404_x86-32','ubuntu1404_x86-64','vistaeesp2','w2k3eesp2','w2k3eesp2-x64',
          'win7sp1-x64','win7sp1-x86','win8-x64','win8-x86','win81-x64','win81-x86','winxpsp3','ws08dcsp2-x64',
          'ws08dcsp2-x86','ws08r2dcsp1-x64','ws12-x64','ws12core-x64','ws12r2-x64','ws12r2core-x64']
         self.config["GUEST_TESTS"]["Creedence"]["Secondary"] = ['centos45_x86-32','centos46_x86-32','centos47_x86-32',

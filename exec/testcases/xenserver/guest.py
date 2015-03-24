@@ -201,10 +201,7 @@ class _TCGuestInstall(xenrt.TestCase):
                 guestname = xenrt.util.randomGuestName()
         
         if not arch:
-            if re.search(r"64$", distro):
-                arch = "x86-64"
-            else:
-                arch = "x86-32"
+            (distro, arch) = xenrt.getDistroAndArch(distro)
 
         disks = []
         if rootdisk:

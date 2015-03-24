@@ -2767,8 +2767,6 @@ fi
             if proxy:
                 self.execdom0("sed -i '/proxy/d' /etc/yum.conf")
                 self.execdom0("echo 'proxy=http://%s' >> /etc/yum.conf" % proxy)
-            if isinstance(self, xenrt.lib.xenserver.DundeeHost):
-                self.execdom0("yum install kernel-headers --disableexcludes=all -y")
             self.execdom0("yum --disablerepo=citrix --enablerepo=base,updates,extras install -y  gcc-c++")
             self.execdom0("yum --disablerepo=citrix --enablerepo=base install -y make")
             xenrt.objects.GenericPlace.installIperf(self, version)

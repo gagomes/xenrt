@@ -2673,7 +2673,7 @@ class Config(object):
          'sles12_x86-64','ubuntu1004_x86-32','ubuntu1004_x86-64','ubuntu1204_x86-32','ubuntu1204_x86-64',
          'ubuntu1404_x86-32','ubuntu1404_x86-64','vistaeesp2','w2k3eesp2','w2k3eesp2-x64','win10-x64','win10-x86',
          'win7sp1-x64','win7sp1-x86','win8-x64','win8-x86','win81-x64','win81-x86','winxpsp3','ws08dcsp2-x64',
-         'ws08dcsp2-x86','ws08r2dcsp1-x64','ws12-x64','ws12core-x64','ws12r2-x64','ws12r2core-x64']
+         'ws08dcsp2-x86','ws08r2dcsp1-x64','ws12-x64','ws12core-x64','ws12r2-x64','ws12r2core-x64','coreos-stable_x86-64']
         self.config["GUEST_TESTS"]["Cream"]["Secondary"] = ['centos45_x86-32','centos46_x86-32','centos47_x86-32',
          'centos48_x86-32','centos51_x86-32','centos51_x86-64','centos52_x86-32','centos52_x86-64','centos53_x86-32',
          'centos53_x86-64','centos54_x86-32','centos54_x86-64','centos55_x86-32','centos55_x86-64','centos56_x86-32','centos56_x86-64','centos57_x86-32','centos57_x86-64',

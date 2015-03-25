@@ -493,9 +493,6 @@ class TCMachineFlags(xenrt.TestCase):
     def isPropAlreadySet(self, flag):
         return flag in xenrt.util.command('xenrt machine %s | grep -e "^PROPS"' % (self.host.name))
 
-    def prepare(self, arglist):
-        self.host = self.getDefaultHost()
-
     def run(self, arglist=[]):
         for flag,flagData in self.FLAGS.iteritems():
             passed = False
@@ -512,6 +509,7 @@ class TCMachineFlags(xenrt.TestCase):
             except Exception, e:
                 warning(str(e))
 
+            self.host = self.getDefaultHost()
             if passed == flagData["isSetIfPass"] and not self.isPropAlreadySet(flag):
                 command = "xenrt prop %s add %s" % (self.host.name, flag)
             elif passed != flagData["isSetIfPass"] and self.isPropAlreadySet(flag):

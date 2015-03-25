@@ -3282,7 +3282,7 @@ class _StuckState(_HATest):
         # Set up a 2-node pool with HA enabled
         host0 = self.getHost("RESOURCE_HOST_0")        
         host1 = self.getHost("RESOURCE_HOST_1")
-        if self.SOFTWARE_TARGET and not self.SF_STORAGE == "nfs":
+        if self.SOFTWARE_TARGET and not self.SF_STORAGE.startswith("nfs"):
             host2 = self.getHost("RESOURCE_HOST_2")
             host2.resetToFreshInstall()
             self.target = host2.createGenericLinuxGuest()
@@ -3366,7 +3366,7 @@ class TC8129(_StuckState):
     def run(self, arglist=None):
         # 1. power off slave
         self.hostsToPowerOn.append(self.slave)
-        if self.SF_STORAGE == "nfs":
+        if self.SF_STORAGE.startswith("nfs"):
             self.slave.execdom0("cp %s/remote/blocknfsonboot.sh /etc/blocknfsonboot.sh" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"))
             self.slave.execdom0("cp %s/remote/unblocknfs.sh /etc/unblocknfs.sh" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"))
             self.slave.execdom0("chmod a+x /etc/blocknfsonboot.sh")
@@ -3376,7 +3376,7 @@ class TC8129(_StuckState):
         self.slave.machine.powerctl.off()
         time.sleep(10)
         # 2. arrange to block statefile access on the slave when it returns
-        if not self.SF_STORAGE == "nfs":            
+        if not self.SF_STORAGE.startswith("nfs"):            
             self.target.execguest("iptables -I INPUT -s %s -j DROP" % 
                                   (self.slave.getIP()))
 
@@ -3391,7 +3391,7 @@ class TC8129(_StuckState):
             raise xenrt.XRTError("Slave not in HA emergency mode with statefile"
                                  " access blocked")
         # 4. remove the block
-        if self.SF_STORAGE == "nfs":
+        if self.SF_STORAGE.startswith("nfs"):
             self.slave.execdom0("/etc/unblocknfs.sh")
         else:
             self.target.execguest("iptables -D INPUT -s %s -j DROP" %
@@ -3426,7 +3426,7 @@ class TC8130(_StuckState):
     def run(self, arglist=None):
 
         # 1. power off all nodes
-        if self.SF_STORAGE == "nfs":
+        if self.SF_STORAGE.startswith("nfs"):
             for host in [self.slave, self.master]:
                 host.execdom0("cp %s/remote/blocknfsonboot.sh /etc/blocknfsonboot.sh" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"))
                 host.execdom0("cp %s/remote/unblocknfs.sh /etc/unblocknfs.sh" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"))
@@ -3439,7 +3439,7 @@ class TC8130(_StuckState):
         self.poweroff(self.master)
         time.sleep(10)
         # 2. block access to the statefile globally (already done in the case of NFS)
-        if self.SF_STORAGE != "nfs":
+        if self.SF_STORAGE != "nfs" or self.SF_STORAGE != "nfs4":
             self.target.shutdown()
         # 3. power on all nodes
         self.master.machine.powerctl.on()
@@ -3484,7 +3484,7 @@ class TC8131(_StuckState):
 
     def run(self, arglist=None):
         # 1. power off both hosts
-        if self.SF_STORAGE == "nfs":
+        if self.SF_STORAGE.startswith("nfs"):
             for host in [self.slave, self.master]:
                 host.execdom0("cp %s/remote/blocknfsonboot.sh /etc/blocknfsonboot.sh" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"))
                 host.execdom0("cp %s/remote/unblocknfs.sh /etc/unblocknfs.sh" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"))
@@ -3497,7 +3497,7 @@ class TC8131(_StuckState):
         self.poweroff(self.master)
         time.sleep(10)
         # 2. block access to the statefile globally (already done in the case of NFS)
-        if self.SF_STORAGE != "nfs":
+        if self.SF_STORAGE != "nfs" or self.SF_STORAGE != "nfs4":
             self.target.shutdown()
         # 3. power on slave
         self.slave.machine.powerctl.on()

@@ -2501,9 +2501,13 @@ class Config(object):
         self.config["LINUX_UPDATE"]["oel5"] = "oel511"
         self.config["LINUX_UPDATE"]["oel6"] = "oel66"
         self.config["LINUX_UPDATE"]["oel7"] = "oel7"
+        self.config["LINUX_UPDATE"]["centos4"] = "centos48"
         self.config["LINUX_UPDATE"]["centos5"] = "centos511"
         self.config["LINUX_UPDATE"]["centos6"] = "centos66"
         self.config["LINUX_UPDATE"]["centos7"] = "centos7"
+        self.config["LINUX_UPDATE"]["sl5"] = "sl511"
+        self.config["LINUX_UPDATE"]["sl6"] = "sl66"
+        self.config["LINUX_UPDATE"]["sl7"] = "sl7"
 
         self.config["PRODUCT_KEYS"] = {}
 
@@ -2756,6 +2760,7 @@ class Config(object):
         # Linux install methods supported
         nfsInstallSupport = ["rhel[4-6]\d+$", "centos[4-6]\d+$", "sl[5-6]\d+$", "oel[4-6]\d+", "sles9", "sles10", "sles11"]
         noIsoInstallSupport = ["ubuntu1004", "debian60", "debian70", "rhel45", "centos45", "centos46", "rhel\d+u", "rhel\d+xs", "centos\d+u", "centos\d+xs", "oel\d+u", "oel\d+xs", "sl\d+u", "sl\d+xs"]
+        noHttpInstallSupport = ["rhel\d+u", "rhel\d+xs", "centos\d+u", "centos\d+xs", "oel\d+u", "oel\d+xs", "sl\d+u", "sl\d+xs"]
         # Process these into various categories
         for r in self.config["GUEST_TESTS"].keys():
             for g in self.config["GUEST_TESTS"][r].keys():
@@ -2772,7 +2777,8 @@ class Config(object):
                     if not xenrt.isWindows(d):
                         if not [x for x in noIsoInstallSupport if re.match(x, d)]:
                             self.config["GUEST_TESTS"][r]["%s_LinuxISOInstall" % g].append(d)
-                        self.config["GUEST_TESTS"][r]["%s_LinuxHTTPInstall" % g].append(d)
+                        if not [x for x in noHttpInstallSupport if re.match(x, d)]:
+                            self.config["GUEST_TESTS"][r]["%s_LinuxHTTPInstall" % g].append(d)
                         if [x for x in nfsInstallSupport if re.match(x, d)]:
                             self.config["GUEST_TESTS"][r]["%s_LinuxNFSInstall" % g].append(d)
 

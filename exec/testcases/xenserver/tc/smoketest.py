@@ -35,11 +35,13 @@ class _TCSmokeTest(xenrt.TestCase):
         else:
             (self.distro, self.arch) = xenrt.getDistroAndArch(self.tcsku)
 
+        (self.installDistro, self.special) = self.host.resolveDistroName(self.distro)
+        
         self.assertHardware()
         self.getGuestParams()
 
         # Workaround NOV-1 - set memory back to something sensible after install
-        if self.distro == "sles112":
+        if self.installDistro == "sles112":
             if not self.memory:
                 self.postInstallMemory = self.getTemplateParams().defaultMemory
             elif self.memory < 4096:
@@ -65,7 +67,7 @@ class _TCSmokeTest(xenrt.TestCase):
         if self.template:
             tname = self.template
         else:
-            tname = self.host.getTemplate(distro=self.distro, arch=self.arch)
+            tname = self.host.getTemplate(distro=self.installDistro, arch=self.arch)
 
         tuuid = self.host.minimalList("template-list", args="name-label='%s'" % tname)[0]
 
@@ -75,7 +77,7 @@ class _TCSmokeTest(xenrt.TestCase):
         return collections.namedtuple("TemplateParams", ["defaultMemory", "defaultVCPUs"])(defMemory, defVCPUs)
 
     def getGuestLimits(self):
-        return xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.distro])
+        return xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.installDistro])
 
     def getGuestParams(self):
         pass
@@ -85,8 +87,7 @@ class _TCSmokeTest(xenrt.TestCase):
 
     def run(self, arglist):
         # Skip update tests that don't actually do an update
-        (distro, special) = self.host.resolveDistroName(self.distro)
-        if 'UpdateTo' in special and not special['UpdateTo']:
+        if 'UpdateTo' in self.special and not self.special['UpdateTo']:
             xenrt.TEC().skip("Don't need to run a null update test")
             return
 
@@ -341,7 +342,7 @@ class TCSmokeTestMinConfig(_TCSmokeTest):
 
         guestMinMem = int(glimits['MINMEMORY'])
         hostMinMem = int(self.host.lookup("MIN_VM_MEMORY"))
-        hostMinMemForGuest = int(self.host.lookup(["VM_MIN_MEMORY_LIMITS", self.distro], "0"))
+        hostMinMemForGuest = int(self.host.lookup(["VM_MIN_MEMORY_LIMITS", self.installDistro], "0"))
         self.postInstallMemory = max(guestMinMem, hostMinMem, hostMinMemForGuest)
 
 class TC8121(_TCSmokeTest):

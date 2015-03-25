@@ -480,6 +480,7 @@ class TCMachineFlags(xenrt.TestCase):
         for flag,flagData in self.FLAGS.iteritems():
             try:
                 if "seqFile" in flagData:
+                    log("Using Seq File : %s" % flagData["seqFile"])
                     self.doSequence(seqFileName=flagData["seqFile"])
                 elif "method" in flagData:
                     (flagData["seqFile"])(self)
@@ -487,11 +488,11 @@ class TCMachineFlags(xenrt.TestCase):
                     warning("Unimplemented")
 
                 if flagData["isSetIfPass"]:
-                    log("add flag :%s" % str(flag))
+                    log("Add flag :%s" % str(flag))
                 elif flagData["flagToSetOtherwise"]:
-                    log("add flag :%s" % flagData["flagToSetOtherwise"])
+                    log("Add flag :%s" % flagData["flagToSetOtherwise"])
                 else:
-                    log("remove flag :%s" % str(flag))
+                    log("Remove flag :%s" % str(flag))
             except:
                 if not flagData["isSetIfPass"]:
                     log("add flag :%s" % str(flag))

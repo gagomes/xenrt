@@ -464,14 +464,28 @@ class TCSysInfo(xenrt.TestCase):
 
 class TCMachineFlags(xenrt.TestCase):
     FLAGS = {
-        "unsup_vmware55"    : { "seqFile" : "MachineFlagCheck-Vmware5_5.seq",    "isSetIfPass": False,  "flagToSetOtherwise": None },
-        "unsup_6.2"         : { "seqFile" : "MachineFlagCheck-XenServer6_2.seq", "isSetIfPass": False,  "flagToSetOtherwise": None }
+        #"unsup_vmware55"    : { "seqFile" : "MachineFlagCheck-Vmware5_5.seq",    "isSetIfPass": False,  "flagToSetOtherwise": None },
+        #"unsup_6.2"         : { "seqFile" : "MachineFlagCheck-XenServer6_2.seq", "isSetIfPass": False,  "flagToSetOtherwise": None }
+        "unsup_vmware55"    : { "productType" : "esx", "productVersion":"5.5.0-update02", "isSetIfPass": False,  "flagToSetOtherwise": None }
         }
+
+    def createTempSeq(self, productType=None, productVersion=None, version=None, **kargs):
+        seq = "tempSeq.seq"
+        seqContent  = """<xenrt><prepare><host id="0" """
+        seqContent += 'productType="%s" ' % productType if productType else ""
+        seqContent += 'productVersion="%s" '% productVersion if productVersion else ""
+        seqContent += 'version="%s" ' % version if version else ""
+        seqContent += """/></prepare></xenrt>"""
+        seqFile ="%s/seqs/tempSeq.seq" % xenrt.TEC().lookup("XENRT_BASE", "/usr/share/xenrt")
+        with open("%s/seqs/%s" % (xenrt.TEC().lookup("XENRT_BASE"), seq), 'w') as seqFile:
+            seqFile.write(seqContent)
+        return seq
 
     def doSequence(self, seqFileName):
         seqFile = xenrt.findSeqFile(seqFileName)
         seq = xenrt.TestSequence(seqFile, tcsku=xenrt.TEC().lookup("TESTRUN_TCSKU", None))
-        seq.run()
+        seq.doPreprepare()
+        seq.doPrepare()
 
     def prepare(self, arglist):
         self.host = self.getDefaultHost()
@@ -482,8 +496,10 @@ class TCMachineFlags(xenrt.TestCase):
                 if "seqFile" in flagData:
                     log("Using Seq File : %s" % flagData["seqFile"])
                     self.doSequence(seqFileName=flagData["seqFile"])
-                elif "method" in flagData:
-                    (flagData["seqFile"])(self)
+                elif "productType" in flagData or "productVersion" in flagData or "version" in flagData:
+                    seqFile = self.createTempSeq(flagData)
+                    log("Using Temp Seq File : %s" % flagData["seqFile"])
+                    self.doSequence(seqFileName=seqFile)
                 else:
                     warning("Unimplemented")
 

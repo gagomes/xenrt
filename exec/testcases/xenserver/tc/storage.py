@@ -397,16 +397,22 @@ class NFSSRSanityTestTemplate(SRSanityTestTemplate):
     """Template for NFS Sr"""
     
     def verifyVersion(self, host, sruuid, version):
-        pbd = host.parseListForUUID("pbd-list","sr-uuid",sruuid,"host-uuid=%s" %(host.getMyHostUUID()))
-        params = host.genParamsGet("pbd", pbd, "device-config")
+        mounts = []
         if version == "3":
-            if "nfsversion" in params.keys() and params["nfsversion"] == "4":
-                raise xenrt.XRTError("Incorrect NFS Version")
+            mounts = host.execdom0("mount -t nfs")
         elif version == "4":
-            if "nfsversion" not in params.keys():
-                raise xenrt.XRTError("Missing Key: nfsversion")
-            elif "nfsversion" in params.keys() and params["nfsversion"] != "4":
-                raise xenrt.XRTError("Incorrect NFS Version")
+            mounts = host.execdom0("mount -t nfs4")
+        
+        if not mounts:
+            raise xenrt.XRTError("Not an NFS SR")
+        
+        lines = mounts.split("\n")
+        found = False
+        for line in lines:
+            if sruuid in line:
+                found = True
+        if not found:
+            raise xenrt.XRTError("Incorrect NFS Version")
 
 class TCCoexistenceOfNFS4NoSubDirs(NFSSRSanityTestTemplate):
     """Co-existence of multiple NFS SRs (version 4) with no sub directory on the same NFS path"""

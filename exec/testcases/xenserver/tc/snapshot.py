@@ -2852,6 +2852,7 @@ class SnapshotVDILink(xenrt.TestCase):
     """ Snapshot links are properly reflected in "snapshot-of" params of snapshot VDIs before and after SXM """
 
     VDISIZE = 5 * xenrt.GIGA
+    DELETEVDI = None
     
     def __init__(self, tcid=None):
         xenrt.TestCase.__init__(self, tcid=tcid)
@@ -2901,6 +2902,14 @@ class SnapshotVDILink(xenrt.TestCase):
             if snapshotLink != vmVdiList[key]:
                 raise xenrt.XRTFailure("snapshot-of link broken, For snapshot VDI %s link is %s" % (value, snapshotLink))
 
+        # If DELETEVDI - then delete VDI
+        if self.DELETEVDI:
+            vbduuid = host.genParamGet("vdi", vmVdiList[self.DELETEVDI], "vbd-uuids")
+            cli = host.getCLIInstance()
+            cli.execute("vbd-unplug", "uuid=%s" % (vbduuid))
+            cli.execute("vbd-destroy", "uuid=%s" % (vbduuid))
+            cli.execute("vdi-destroy", "uuid=%s" % (vmVdiList[self.DELETEVDI]))
+        
         # Revert to snapshot
         guest.revert(snapshotUuid)
 
@@ -2954,8 +2963,13 @@ class SnapshotVDILink(xenrt.TestCase):
             log ("After SXM: snapshot-of link we got for snapshot VDI %s link is %s" % (value,snapshotLink))
             if snapshotLink != sxmVmVdiList[key]:
                 raise xenrt.XRTFailure("snapshot-of link broken, For snapshot VDI %s link is %s" % (value, snapshotLink))
-        
     
+
+class SnapshotLinkOnVdiDelete(SnapshotVDILink):
+    """ Snapshot links are properly reflected in "snapshot-of" params of snapshot VDIs before and after SXM 
+        On deleting a VM VDI before revert """
+    
+    DELETEVDI = "2"
 
 class RetainingVDIOnSnapshotRevert(xenrt.TestCase):
     """ Additional VDI attached to snapshot VM should not get deleted on snapshot revert """

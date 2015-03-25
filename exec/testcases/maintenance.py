@@ -464,9 +464,9 @@ class TCSysInfo(xenrt.TestCase):
 
 class TCMachineFlags(xenrt.TestCase):
     FLAGS = {
-        #"unsup_vmware55"    : { "seqFile" : "MachineFlagCheck-Vmware5_5.seq",    "isSetIfPass": False,  "flagToSetOtherwise": None },
-        #"unsup_6.2"         : { "seqFile" : "MachineFlagCheck-XenServer6_2.seq", "isSetIfPass": False,  "flagToSetOtherwise": None }
-        "unsup_vmware55"    : { "productType" : "esx", "productVersion":"5.5.0-update02", "isSetIfPass": False,  "flagToSetOtherwise": None }
+        #"unsup_vmware55"    : { "seqFile" : "MachineFlagCheck-Vmware5_5.seq",    "isSetIfPass": False },
+        #"unsup_6.2"         : { "seqFile" : "MachineFlagCheck-XenServer6_2.seq", "isSetIfPass": False }
+        "unsup_vmware55"    : { "productType" : "esx", "productVersion":"5.5.0-update02", "isSetIfPass": False }
         }
 
     def createTempSeq(self, productType=None, productVersion=None, version=None, **kargs):
@@ -484,15 +484,19 @@ class TCMachineFlags(xenrt.TestCase):
 
     def doSequence(self, seqFileName):
         seqFile = xenrt.findSeqFile(seqFileName)
-        seq = xenrt.TestSequence(seqFile, tcsku=xenrt.TEC().lookup("TESTRUN_TCSKU", None))
+        seq = xenrt.TestSequence(seqFile)
         seq.doPreprepare()
         seq.doPrepare()
+
+    def isPropAlreadySet(self, flag):
+        return flag in xenrt.util.command('xenrt machine %s | grep -e "^PROPS"' % (self.host.name))
 
     def prepare(self, arglist):
         self.host = self.getDefaultHost()
 
     def run(self, arglist=[]):
         for flag,flagData in self.FLAGS.iteritems():
+            passed = False
             try:
                 if "seqFile" in flagData:
                     seqFile=flagData["seqFile"]
@@ -502,18 +506,12 @@ class TCMachineFlags(xenrt.TestCase):
                     warning("Unimplemented")
                 log("Using Temp Seq File : %s" % seqFile)
                 self.doSequence(seqFileName=seqFile)
-
-                if flagData["isSetIfPass"]:
-                    log("Add flag :%s" % str(flag))
-                elif flagData["flagToSetOtherwise"]:
-                    log("Add flag :%s" % flagData["flagToSetOtherwise"])
-                else:
-                    log("Remove flag :%s" % str(flag))
+                passed = True
             except Exception, e:
                 warning(str(e))
-                if not flagData["isSetIfPass"]:
-                    log("add flag :%s" % str(flag))
-                elif flagData["flagToSetOtherwise"]:
-                    log("add flag :%s" % flagData["flagToSetOtherwise"])
-                else:
-                    log("remove flag :%s" % str(flag))
+
+            if passed == flagData["isSetIfPass"] and not self.isPropAlreadySet(flag):
+                command = "xenrt prop %s add %s" % (self.host.name, flag)
+            elif passed != flagData["isSetIfPass"] and self.isPropAlreadySet(flag):
+                command = "xenrt prop %s del %s" % (self.host.name, flag)
+            xenrt.util.command("echo '%s' >> ~/xenrt_auto_machine_flag" % command)

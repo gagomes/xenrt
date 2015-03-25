@@ -494,14 +494,14 @@ class TCMachineFlags(xenrt.TestCase):
         for flag,flagData in self.FLAGS.iteritems():
             try:
                 if "seqFile" in flagData:
-                    log("Using Seq File : %s" % flagData["seqFile"])
-                    self.doSequence(seqFileName=flagData["seqFile"])
+                    seqFile=flagData["seqFile"]
                 elif "productType" in flagData or "productVersion" in flagData or "version" in flagData:
-                    seqFile = self.createTempSeq(flagData)
-                    log("Using Temp Seq File : %s" % flagData["seqFile"])
-                    self.doSequence(seqFileName=seqFile)
+                    seqFile = self.createTempSeq(**flagData)
                 else:
                     warning("Unimplemented")
+                log("Using Temp Seq File : %s" % seqFile)
+                self.doSequence(seqFileName=seqFile)
+                
 
                 if flagData["isSetIfPass"]:
                     log("Add flag :%s" % str(flag))

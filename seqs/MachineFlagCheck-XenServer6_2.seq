@@ -1,0 +1,13 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <INPUTDIR>/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446</INPUTDIR>
+  </variables>
+
+  <prepare>
+    <pool>
+      <host id="0"></host>
+    </pool>
+  </prepare>
+
+</xenrt>

@@ -10,6 +10,7 @@
 
 import sys, re, string, os.path, urllib, traceback, time, shutil, stat, os
 import xenrt
+from xenrt.lazylog import step, comment, log, warning
 
 class TCSiteStatus(xenrt.TestCase):
     """Record items of XenRT site status in result fields."""
@@ -460,3 +461,41 @@ class TCSysInfo(xenrt.TestCase):
         f = file(filename, "w")
         f.write(pcistring)
         f.close()
+
+class TCMachineFlags(xenrt.TestCase):
+    FLAGS = {
+        "unsup_vmware55"    : { "seqFile" : "MachineFlagCheck-Vmware5_5.seq",    "isSetIfPass": False,  "flagToSetOtherwise": None },
+        "unsup_6.2"         : { "seqFile" : "MachineFlagCheck-XenServer6_2.seq", "isSetIfPass": False,  "flagToSetOtherwise": None }
+        }
+
+    def doSequence(self, seqFileName):
+        seqFile = xenrt.findSeqFile(seqFileName)
+        seq = xenrt.TestSequence(seqFile, tcsku=xenrt.TEC().lookup("TESTRUN_TCSKU", None))
+        seq.run()
+
+    def prepare(self, arglist):
+        self.host = self.getDefaultHost()
+
+    def run(self, arglist=[]):
+        for flag,flagData in self.FLAGS:
+            try:
+                if "seqFile" in flagData:
+                    self.doSequence(seqFileName=flagData["seqFile"])
+                elif "method" in flagData:
+                    (flagData["seqFile"])(self)
+                else:
+                    warning("Unimplemented")
+
+                if flagData["isSetIfPass"]:
+                    log("add flag :%s" % str(flag))
+                elif flagData["flagToSetOtherwise"]:
+                    log("add flag :%s" % flagData["flagToSetOtherwise"])
+                else:
+                    log("remove flag :%s" % str(flag))
+            except:
+                if not flagData["isSetIfPass"]:
+                    log("add flag :%s" % str(flag))
+                elif flagData["flagToSetOtherwise"]:
+                    log("add flag :%s" % flagData["flagToSetOtherwise"])
+                else:
+                    log("remove flag :%s" % str(flag))

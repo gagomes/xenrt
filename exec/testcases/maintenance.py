@@ -479,6 +479,7 @@ class TCMachineFlags(xenrt.TestCase):
         seqFile ="%s/seqs/tempSeq.seq" % xenrt.TEC().lookup("XENRT_BASE", "/usr/share/xenrt")
         with open("%s/seqs/%s" % (xenrt.TEC().lookup("XENRT_BASE"), seq), 'w') as seqFile:
             seqFile.write(seqContent)
+        log("Temp Seq file content : %s" % seqContent)
         return seq
 
     def doSequence(self, seqFileName):
@@ -501,7 +502,6 @@ class TCMachineFlags(xenrt.TestCase):
                     warning("Unimplemented")
                 log("Using Temp Seq File : %s" % seqFile)
                 self.doSequence(seqFileName=seqFile)
-                
 
                 if flagData["isSetIfPass"]:
                     log("Add flag :%s" % str(flag))
@@ -509,7 +509,8 @@ class TCMachineFlags(xenrt.TestCase):
                     log("Add flag :%s" % flagData["flagToSetOtherwise"])
                 else:
                     log("Remove flag :%s" % str(flag))
-            except:
+            except Exception, e:
+                warning(str(e))
                 if not flagData["isSetIfPass"]:
                     log("add flag :%s" % str(flag))
                 elif flagData["flagToSetOtherwise"]:

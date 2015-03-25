@@ -466,7 +466,9 @@ class TCMachineFlags(xenrt.TestCase):
     FLAGS = {
         #"unsup_vmware55"    : { "seqFile" : "MachineFlagCheck-Vmware5_5.seq",    "isSetIfPass": False },
         #"unsup_6.2"         : { "seqFile" : "MachineFlagCheck-XenServer6_2.seq", "isSetIfPass": False }
-        "unsup_vmware55"    : { "productType" : "esx", "productVersion":"5.5.0-update02", "isSetIfPass": False }
+        "unsup_vmware55"    : { "productType" : "esx", "productVersion":"5.5.0-update02", "isSetIfPass": False },
+        "unsup_vmware51"    : { "productType" : "esx", "productVersion":"5.1.0", "isSetIfPass": False },
+        "unsup_vmware5"    : { "productType" : "esx", "productVersion":"5.0.0.update01", "isSetIfPass": False }
         }
 
     def createTempSeq(self, productType=None, productVersion=None, version=None, **kargs):

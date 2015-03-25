@@ -477,7 +477,7 @@ class TCMachineFlags(xenrt.TestCase):
         self.host = self.getDefaultHost()
 
     def run(self, arglist=[]):
-        for flag,flagData in self.FLAGS:
+        for flag,flagData in self.FLAGS.iteritems():
             try:
                 if "seqFile" in flagData:
                     self.doSequence(seqFileName=flagData["seqFile"])

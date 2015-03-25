@@ -1,13 +1,11 @@
 <xenrt>
   <variables>
     <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
-    <INPUTDIR>/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446</INPUTDIR>
+    <PIDIR_CLEARWATER>/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446</PIDIR_CLEARWATER>
   </variables>
 
   <prepare>
-    <pool>
-      <host id="0"></host>
-    </pool>
+    <host id="0" />
   </prepare>
 
 </xenrt>

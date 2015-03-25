@@ -6,10 +6,6 @@
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
     <PREPARE_WORKERS>4</PREPARE_WORKERS>
   </variables>
-  
-   <scheduler>
-    <flags>nfs4</flags>
-  </scheduler>
 
   <prepare>
       <sharedhost>

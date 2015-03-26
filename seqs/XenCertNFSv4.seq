@@ -20,7 +20,7 @@
 
   <testsequence>
     <serial group="XenCert">
-      <testcase id="xenserver.tc.xencert.XSStorageCertKitNFS" tc="TC-19921" />
+      <testcase id="xenserver.tc.xencert.XSStorageCertKitNFS" tc="TC-26937" />
     </serial>
   </testsequence>
 

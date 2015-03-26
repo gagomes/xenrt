@@ -2490,7 +2490,7 @@ class TC26941(xenrt.TestCase):
 
         hostTemplates = host.minimalList("template-list", params="name-label", args="other-config:default_template=true")
         # The expected templates are the first entry in the list of templates for the host's XenServer version
-        expectedTemplates = [xenrt.TEC().lookup(["VERSION_CONFIG", version, x]).split(",")[0] for x in xenrt.TEC().lookup(["VERSION_CONFIG", version]).keys() if x.startswith("TEMPLATE_")]
+        expectedTemplates = [xenrt.TEC().lookup(["VERSION_CONFIG", version, x]).split(",")[0] for x in xenrt.TEC().lookup(["VERSION_CONFIG", version]).keys() if x.startswith("TEMPLATE_") and xenrt.TEC().lookup(["VERSION_CONFIG", version, x])]
 
         missing = []
         unexpected = []
@@ -2505,9 +2505,9 @@ class TC26941(xenrt.TestCase):
 
         failure = []
         if missing:
-            failure.append("Templates %s missing from host" % ",".join(missing))
+            failure.append("Template(s) %s missing from host" % ", ".join(missing))
         if unexpected:
-            failure.append("Templates %s on host are unexpected" % ",".join(unexpected))
+            failure.append("Template(s) %s on host are unexpected" % ", ".join(unexpected))
 
         if failure:
             raise xenrt.XRTFailure(" and ".join(failure))

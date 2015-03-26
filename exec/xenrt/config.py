@@ -1185,6 +1185,7 @@ class Config(object):
         # Dundee
         self.config["VERSION_CONFIG"]["Dundee"] = copy.deepcopy(self.config["VERSION_CONFIG"]["Cream"])
         self.config["VERSION_CONFIG"]["Dundee"]["V6_DBV"] = "2014.1127"
+        self.config["VERSION_CONFIG"]["Dundee"]["TEMPLATE_NAME_SDK"] = ""  # SDK not present in trunk
 
         # Libvirt
         self.config["VERSION_CONFIG"]["Libvirt"] = {}

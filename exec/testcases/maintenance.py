@@ -491,7 +491,10 @@ class TCMachineFlags(xenrt.TestCase):
         seq.doPrepare()
 
     def isPropAlreadySet(self, flag):
-        return flag in xenrt.util.command('xenrt machine %s | grep -e "^PROPS"' % (self.host.name))
+        return flag in xenrt.util.command('xenrt machine %s | grep -e "^PROPS"' % (self.machineName))
+
+    def prepare(self, arglist):
+        self.machineName = xenrt.PhysicalHost(xenrt.TEC().lookup("RESOURCE_HOST_0")).name
 
     def run(self, arglist=[]):
         for flag,flagData in self.FLAGS.iteritems():
@@ -509,9 +512,8 @@ class TCMachineFlags(xenrt.TestCase):
             except Exception, e:
                 warning(str(e))
 
-            self.host = self.getDefaultHost()
             if passed == flagData["isSetIfPass"] and not self.isPropAlreadySet(flag):
-                command = "xenrt prop %s add %s" % (self.host.name, flag)
+                command = "xenrt prop %s add %s" % (self.machineName, flag)
             elif passed != flagData["isSetIfPass"] and self.isPropAlreadySet(flag):
-                command = "xenrt prop %s del %s" % (self.host.name, flag)
+                command = "xenrt prop %s del %s" % (self.machineName, flag)
             xenrt.util.command("echo '%s' >> ~/xenrt_auto_machine_flag" % command)

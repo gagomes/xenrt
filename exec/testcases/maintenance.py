@@ -462,64 +462,8 @@ class TCSysInfo(xenrt.TestCase):
         f.write(pcistring)
         f.close()
 
-class MachineFlags(xenrt.TestCase):
-    FLAGS = {
-        # Examples:
-        # "unsup_vmware55"    : { "seqFile" : "MachineFlagCheck-Vmware5_5.seq",                 "isSetIfPass": False },
-        # "unsup_vmware55"    : { "productType" : "esx",    "productVersion":"5.5.0-update02",  "isSetIfPass": False }
-        }
-
-    def createTempSeq(self, productType=None, productVersion=None, version=None, **kargs):
-        seq = "tempSeq.seq"
-        seqContent  = """<xenrt><prepare><host id="0" """
-        seqContent += 'productType="%s" ' % productType if productType else ""
-        seqContent += 'productVersion="%s" '% productVersion if productVersion else ""
-        seqContent += 'version="%s" ' % version if version else ""
-        seqContent += """/></prepare></xenrt>"""
-        seqFile ="%s/seqs/tempSeq.seq" % xenrt.TEC().lookup("XENRT_BASE", "/usr/share/xenrt")
-        with open("%s/seqs/%s" % (xenrt.TEC().lookup("XENRT_BASE"), seq), 'w') as seqFile:
-            seqFile.write(seqContent)
-        log("Temp Seq file content : %s" % seqContent)
-        return seq
-
-    def doSequence(self, seqFileName):
-        seqFile = xenrt.findSeqFile(seqFileName)
-        seq = xenrt.TestSequence(seqFile)
-        seq.doPreprepare()
-        seq.doPrepare()
-
-    def isPropAlreadySet(self, flag):
-        return flag in xenrt.util.command('xenrt machine %s | grep -e "^PROPS"' % (self.machineName))
-
-    def prepare(self, arglist):
-        self.machineName = xenrt.PhysicalHost(xenrt.TEC().lookup("RESOURCE_HOST_0")).name
-
-    def run(self, arglist=[]):
-        for flag,flagData in self.FLAGS.iteritems():
-            passed = False
-            try:
-                if "seqFile" in flagData:
-                    seqFile=flagData["seqFile"]
-                elif "productType" in flagData or "productVersion" in flagData or "version" in flagData:
-                    seqFile = self.createTempSeq(**flagData)
-                else:
-                    warning("Unimplemented")
-                log("Using Temp Seq File : %s" % seqFile)
-                self.doSequence(seqFileName=seqFile)
-                passed = True
-            except Exception, e:
-                warning(str(e))
-
-            if passed == flagData["isSetIfPass"] and not self.isPropAlreadySet(flag):
-                command = "xenrt prop %s add %s" % (self.machineName, flag)
-            elif passed != flagData["isSetIfPass"] and self.isPropAlreadySet(flag):
-                command = "xenrt prop %s del %s" % (self.machineName, flag)
-            else:
-                command = "# %s %s flag %s" % (self.machineName,"has" if self.isPropAlreadySet(flag) else "doesn't have", flag)
-            xenrt.util.command("echo '%s' >> ~/xenrt_auto_machine_flag" % command)
-
-class TCUnsupFlags(MachineFlags):
-    FLAGS = {
+class TCUnsupFlags(xenrt.TestCase):
+    ALL_FLAGS = {
 # XenServer
 "unsup_6.0"     : { "productVersion":"Boston",      "isSetIfPass":False, "version":"/usr/groups/release/XenServer-6.x/XS-6.0.0/RTM-50762" },
 "unsup_6.0.2"   : { "productVersion":"Sanibel",     "isSetIfPass":False, "version":"/usr/groups/release/XenServer-6.x/XS-6.0.2/RTM-53456" },
@@ -551,3 +495,60 @@ class TCUnsupFlags(MachineFlags):
 "unsup_rhel6"       : { "productType":"nativelinux", "productVersion":"rhel6_x86-64",       "isSetIfPass": False },
 "unsup_rhel7"       : { "productType":"nativelinux", "productVersion":"rhel7_x86-64",       "isSetIfPass": False }
     }
+
+    def createTempSeq(self, productType=None, productVersion=None, version=None, **kargs):
+        seq = "tempSeq.seq"
+        seqContent  = """<xenrt><prepare><host id="0" """
+        seqContent += 'productType="%s" ' % productType if productType else ""
+        seqContent += 'productVersion="%s" '% productVersion if productVersion else ""
+        seqContent += 'version="%s" ' % version if version else ""
+        seqContent += """/></prepare></xenrt>"""
+        seqFile ="%s/seqs/tempSeq.seq" % xenrt.TEC().lookup("XENRT_BASE", "/usr/share/xenrt")
+        with open("%s/seqs/%s" % (xenrt.TEC().lookup("XENRT_BASE"), seq), 'w') as seqFile:
+            seqFile.write(seqContent)
+        log("Temp Seq file content : %s" % seqContent)
+        return seq
+
+    def doSequence(self, seqFileName):
+        seqFile = xenrt.findSeqFile(seqFileName)
+        seq = xenrt.TestSequence(seqFile)
+        seq.doPreprepare()
+        seq.doPrepare()
+
+    def isPropAlreadySet(self, flag):
+        return flag in xenrt.util.command('xenrt machine %s | grep -e "^PROPS"' % (self.machineName))
+
+    def __init__(self):
+        self.flags = {}
+
+    def prepare(self, arglist):
+        self.machineName = xenrt.PhysicalHost(xenrt.TEC().lookup("RESOURCE_HOST_0")).name
+        args = self.parseArgsKeyValue(arglist)
+        if "FLAGSTOCHECK" in args:
+            [ self.flags.update({ flag:self.ALL_FLAGS[flag] }) for flag in args["FLAGSTOCHECK"].split(",") if flag in self.ALL_FLAGS]
+        elif "AllFLAGS" in args:
+            self.flags.update(self.ALL_FLAGS)
+
+    def run(self, arglist=[]):
+        for flag,flagData in self.flags.iteritems():
+            passed = False
+            try:
+                if "seqFile" in flagData:
+                    seqFile=flagData["seqFile"]
+                elif "productType" in flagData or "productVersion" in flagData or "version" in flagData:
+                    seqFile = self.createTempSeq(**flagData)
+                else:
+                    warning("Unimplemented")
+                log("Using Temp Seq File : %s" % seqFile)
+                self.doSequence(seqFileName=seqFile)
+                passed = True
+            except Exception, e:
+                warning(str(e))
+
+            if passed == flagData["isSetIfPass"] and not self.isPropAlreadySet(flag):
+                command = "xenrt prop %s add %s" % (self.machineName, flag)
+            elif passed != flagData["isSetIfPass"] and self.isPropAlreadySet(flag):
+                command = "xenrt prop %s del %s" % (self.machineName, flag)
+            else:
+                command = "# %s %s flag %s" % (self.machineName,"has" if self.isPropAlreadySet(flag) else "doesnt have", flag)
+            xenrt.util.command("echo \"%s\" >> ~/xenrt_auto_machine_flag" % command)

@@ -516,4 +516,6 @@ class TCMachineFlags(xenrt.TestCase):
                 command = "xenrt prop %s add %s" % (self.machineName, flag)
             elif passed != flagData["isSetIfPass"] and self.isPropAlreadySet(flag):
                 command = "xenrt prop %s del %s" % (self.machineName, flag)
+            else:
+                command = "# %s %s flag %s" (self.machineName,"has" if self.isPropAlreadySet(flag) else "doesn't have", flag)
             xenrt.util.command("echo '%s' >> ~/xenrt_auto_machine_flag" % command)

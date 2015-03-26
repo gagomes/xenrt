@@ -553,7 +553,7 @@ class TCUnsupFlags(xenrt.TestCase):
             elif passed != flagData["isSetIfPass"] and self.isPropAlreadySet(flag):
                 command = "xenrt prop %s del %s" % (self.machineName, flag)
             else:
-                command = "# %s %s flag %s" % (self.machineName,"and is already having required" if self.isPropAlreadySet(flag) else "neither need nor has", flag)
+                command = "# %s %s flag %s" % (self.machineName,"is already having required" if self.isPropAlreadySet(flag) else "neither need nor has", flag)
             if self.updateMachine:
                 xenrt.util.command(command)
                 xenrt.util.command("echo \"%s\" >> ~/xenrtautoflagger.log" % command)

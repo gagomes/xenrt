@@ -521,23 +521,28 @@ class TCUnsupFlags(xenrt.TestCase):
     def prepare(self, arglist):
         self.machineName = xenrt.PhysicalHost(xenrt.TEC().lookup("RESOURCE_HOST_0")).name
         self.flags = {}
+        self.updateMachine = False
+
         args = self.parseArgsKeyValue(arglist)
         if "FLAGSTOCHECK" in args:
             [ self.flags.update({ flag:self.ALL_FLAGS[flag] }) for flag in args["FLAGSTOCHECK"].split(",") if flag in self.ALL_FLAGS]
         elif "AllFLAGS" in args:
             self.flags.update(self.ALL_FLAGS)
+        if "UPDATEMACHINE" in args:
+            self.updateMachine = True
 
     def run(self, arglist=[]):
         for flag,flagData in self.flags.iteritems():
+            if "seqFile" in flagData:
+                seqFile=flagData["seqFile"]
+            elif "productType" in flagData or "productVersion" in flagData or "version" in flagData:
+                seqFile = self.createTempSeq(**flagData)
+            else:
+                warning("Unimplemented")
+            log("Using Temp Seq File : %s" % seqFile)
+
             passed = False
             try:
-                if "seqFile" in flagData:
-                    seqFile=flagData["seqFile"]
-                elif "productType" in flagData or "productVersion" in flagData or "version" in flagData:
-                    seqFile = self.createTempSeq(**flagData)
-                else:
-                    warning("Unimplemented")
-                log("Using Temp Seq File : %s" % seqFile)
                 self.doSequence(seqFileName=seqFile)
                 passed = True
             except Exception, e:
@@ -549,4 +554,8 @@ class TCUnsupFlags(xenrt.TestCase):
                 command = "xenrt prop %s del %s" % (self.machineName, flag)
             else:
                 command = "# %s %s flag %s" % (self.machineName,"has" if self.isPropAlreadySet(flag) else "doesnt have", flag)
-            xenrt.util.command("echo \"%s\" >> ~/xenrt_auto_machine_flag" % command)
+            if self.updateMachine:
+                xenrt.util.command(command)
+                xenrt.util.command("echo \"%s\" >> ~/xenrtautoflagger.log" % command)
+            else:
+                xenrt.util.command("echo \"%s\" >> ~/xenrt_autoflag_pending" % command)

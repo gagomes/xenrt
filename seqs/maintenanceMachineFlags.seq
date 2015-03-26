@@ -1,5 +1,5 @@
 <xenrt>
   <testsequence>
-    <testcase id="testcases.maintenance.TCMachineFlags" />
+    <testcase id="testcases.maintenance.TCUnsupFlags" />
   </testsequence>
 </xenrt>

@@ -462,13 +462,10 @@ class TCSysInfo(xenrt.TestCase):
         f.write(pcistring)
         f.close()
 
-class TCMachineFlags(xenrt.TestCase):
+class MachineFlags(xenrt.TestCase):
     FLAGS = {
         #"unsup_vmware55"    : { "seqFile" : "MachineFlagCheck-Vmware5_5.seq",    "isSetIfPass": False },
         #"unsup_6.2"         : { "seqFile" : "MachineFlagCheck-XenServer6_2.seq", "isSetIfPass": False }
-        "unsup_vmware55"    : { "productType" : "esx", "productVersion":"5.5.0-update02", "isSetIfPass": False },
-        "unsup_vmware51"    : { "productType" : "esx", "productVersion":"5.1.0", "isSetIfPass": False },
-        "unsup_vmware5"    : { "productType" : "esx", "productVersion":"5.0.0.update01", "isSetIfPass": False }
         }
 
     def createTempSeq(self, productType=None, productVersion=None, version=None, **kargs):
@@ -517,5 +514,39 @@ class TCMachineFlags(xenrt.TestCase):
             elif passed != flagData["isSetIfPass"] and self.isPropAlreadySet(flag):
                 command = "xenrt prop %s del %s" % (self.machineName, flag)
             else:
-                command = "# %s %s flag %s" (self.machineName,"has" if self.isPropAlreadySet(flag) else "doesn't have", flag)
+                command = "# %s %s flag %s" % (self.machineName,"has" if self.isPropAlreadySet(flag) else "doesn't have", flag)
             xenrt.util.command("echo '%s' >> ~/xenrt_auto_machine_flag" % command)
+
+class TCUnsupFlags(MachineFlags):
+    FLAGS = {
+# XenServer
+"unsup_6.0"     : { "productVersion":"Boston",      "isSetIfPass":False, "version":"/usr/groups/release/XenServer-6.x/XS-6.0.0/RTM-50762" },
+"unsup_6.0.2"   : { "productVersion":"Sanibel",     "isSetIfPass":False, "version":"/usr/groups/release/XenServer-6.x/XS-6.0.2/RTM-53456" },
+"unsup_6.1"     : { "productVersion":"Tampa",       "isSetIfPass":False, "version":"/usr/groups/release/XenServer-6.x/XS-6.1.0/RTM" },
+"unsup_6.2"     : { "productVersion":"Clearwater",  "isSetIfPass":False, "version":"/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446" },
+"unsup_6.5"     : { "productVersion":"Creedence",   "isSetIfPass":False, "version":"/usr/groups/release/XenServer-6.x/XS-6.5/RTM-90233" },
+"unsup_7"       : { "productVersion":"Dundee",      "isSetIfPass":False, "version":"/usr/groups/build/trunk/latest" },
+# ESXi VMware
+"unsup_vmware55"    : { "productType" : "esx",      "productVersion":"5.5.0-update02",      "isSetIfPass": False },
+"unsup_vmware51"    : { "productType" : "esx",      "productVersion":"5.1.0",               "isSetIfPass": False },
+"unsup_vmware5"     : { "productType" : "esx",      "productVersion":"5.0.0.update01",      "isSetIfPass": False },
+# HyperV
+"unsup_ws12r2"      : { "productType":"hyperv",     "productVersion":"ws12r2-x64",          "isSetIfPass": False },
+"unsup_hvs12r2"     : { "productType":"hyperv",     "productVersion":"hvs12r2-x64",         "isSetIfPass": False },
+# KVM
+"unsup_rhel63"      : { "productType":"kvm",        "productVersion":"rhel63_x86-64",       "isSetIfPass": False },
+"unsup_rhel64"      : { "productType":"kvm",        "productVersion":"rhel64_x86-64",       "isSetIfPass": False },
+"unsup_rhel65"      : { "productType":"kvm",        "productVersion":"rhel65_x86-64",       "isSetIfPass": False },
+# Native Linux
+"unsup_centos6x32"  : { "productType":"nativelinux", "productVersion":"centos6_x86-32",     "isSetIfPass": False },
+"unsup_centos6x64"  : { "productType":"nativelinux", "productVersion":"centos6_x86-64",     "isSetIfPass": False },
+"unsup_centos7"     : { "productType":"nativelinux", "productVersion":"centos7_x86-64",     "isSetIfPass": False },
+"unsup_debian7"     : { "productType":"nativelinux", "productVersion":"debian70_x86-32",    "isSetIfPass": False },
+"unsup_debian7"     : { "productType":"nativelinux", "productVersion":"debian70_x86-64",    "isSetIfPass": False },
+"unsup_oel6"        : { "productType":"nativelinux", "productVersion":"oel6_x86-32",        "isSetIfPass": False },
+"unsup_oel6"        : { "productType":"nativelinux", "productVersion":"oel6_x86-64",        "isSetIfPass": False },
+"unsup_oel7"        : { "productType":"nativelinux", "productVersion":"oel7_x86-64",        "isSetIfPass": False },
+"unsup_rhel6x32"    : { "productType":"nativelinux", "productVersion":"rhel6_x86-32",       "isSetIfPass": False },
+"unsup_rhel6x64"    : { "productType":"nativelinux", "productVersion":"rhel6_x86-64",       "isSetIfPass": False },
+"unsup_rhel7"       : { "productType":"nativelinux", "productVersion":"rhel7_x86-64",       "isSetIfPass": False }
+    }

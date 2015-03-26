@@ -518,11 +518,9 @@ class TCUnsupFlags(xenrt.TestCase):
     def isPropAlreadySet(self, flag):
         return flag in xenrt.util.command('xenrt machine %s | grep -e "^PROPS"' % (self.machineName))
 
-    def __init__(self):
-        self.flags = {}
-
     def prepare(self, arglist):
         self.machineName = xenrt.PhysicalHost(xenrt.TEC().lookup("RESOURCE_HOST_0")).name
+        self.flags = {}
         args = self.parseArgsKeyValue(arglist)
         if "FLAGSTOCHECK" in args:
             [ self.flags.update({ flag:self.ALL_FLAGS[flag] }) for flag in args["FLAGSTOCHECK"].split(",") if flag in self.ALL_FLAGS]

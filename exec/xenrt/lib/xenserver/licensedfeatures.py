@@ -125,21 +125,17 @@ class VirtualGPU(LicensedFeature):
     def name(self):
         return "VirtualGPU"
 
-    def isEnabled(self, host, specificVM=None):
+    def isEnabled(self, host):
         """Can check against all vms on the host, or check a specific VM."""
-        vms = None
-        if specificVM:
-            vms = [specificVM]
-        else:
-            vms = host.guests.values()
+        vms = [vm for vm in host.guests.values() if vm.hasvGPU()]
 
         [vm.setState("DOWN") for vm in vms]
         try:
             [vm.setState("UP") for vm in vms]
+            return True
         except xenrt.XRTFailure as e:
             xenrt.TEC().logverbose("VM failed to start, assumed due to removal of license as intended. Ex: %s" % e)
-
-        return [vm.getState() == "UP" for vm in vms]
+        return False
 
     @property
     def featureFlagName(self):

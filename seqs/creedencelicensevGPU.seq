@@ -34,7 +34,6 @@
 
     <testcase id="xenserver.tc.mulskulicense.TCVirtualGPUFeature" name="VirtualGPUFeature" tc="TC-23748">
       <arg>sku=PerSocketEnterprise,PerUserEnterprise,PerConcurrentUserEnterprise,PerSocketStandard,XenDesktopXDS,XenDesktopMPS</arg>
-      <arg>insterestedVMName=vgpufeaturevm</arg>
     </testcase>
   </testsequence>
 

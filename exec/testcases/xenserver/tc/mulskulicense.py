@@ -32,7 +32,6 @@ class LicenseBase(xenrt.TestCase, object):
         self.systemObj = None
         self.v6 = None
         self.addLicenseFile = False 
-        self.interestedVMName = None
 
     def prepare(self,arglist):
 
@@ -78,8 +77,6 @@ class LicenseBase(xenrt.TestCase, object):
                 self.graceExpected = True
             if arg.startswith('addlicfiles'):
                 self.addLicenseFile = True
-            if arg.startswith('insterestedVMName'):
-                self.interestedVMName = self.getGuest(arg.split('=')[1])
 
     def checkGrace(self,host):
 
@@ -337,10 +334,10 @@ class TCVirtualGPUFeature(TestFeatureBase):
             featureResctictedFlag,
             "Feature flag on host does not match actual permissions. Feature allowed: %s, Feature restricted: %s" % (featureRestricted, featureResctictedFlag))
 
-        enabledList = feature.isEnabled(self.systemObj.master, self.interestedVMName)
+        enabled = feature.isEnabled(self.systemObj.master)
         self.confirmLicenseServerUp()
         assertions.assertEquals(not featureRestricted,
-            True in enabledList,
+            enabled,
             "vGPU privilidge is not as expected after creating new VM. Should be: %s" % (featureRestricted))
 
         # Unlicense host.
@@ -352,9 +349,9 @@ class TCVirtualGPUFeature(TestFeatureBase):
             "Feature flag is not restricted after removing license. Feature restricted: %s" % (featureResctictedFlag))
 
 
-        enabledList = feature.isEnabled(self.systemObj.master, self.interestedVMName)
+        enabled = feature.isEnabled(self.systemObj.master)
         self.confirmLicenseServerUp()
-        assertions.assertFalse(True in enabledList, "vGPU is enabled after removing license and lifecycle operation.")
+        assertions.assertFalse(enabled, "vGPU is enabled after removing license and lifecycle operation.")
 
 class LicenseExpiryBase(LicenseBase):
      #TC for Creedence (and later) license expiration test.

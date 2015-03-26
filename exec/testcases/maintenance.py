@@ -539,14 +539,14 @@ class TCUnsupFlags(MachineFlags):
 "unsup_rhel65"      : { "productType":"kvm",        "productVersion":"rhel65_x86-64",       "isSetIfPass": False },
 # Native Linux
 "unsup_centos6x32"  : { "productType":"nativelinux", "productVersion":"centos6_x86-32",     "isSetIfPass": False },
-"unsup_centos6x64"  : { "productType":"nativelinux", "productVersion":"centos6_x86-64",     "isSetIfPass": False },
+"unsup_centos6"  : { "productType":"nativelinux", "productVersion":"centos6_x86-64",     "isSetIfPass": False },
 "unsup_centos7"     : { "productType":"nativelinux", "productVersion":"centos7_x86-64",     "isSetIfPass": False },
-"unsup_debian7"     : { "productType":"nativelinux", "productVersion":"debian70_x86-32",    "isSetIfPass": False },
+"unsup_debian7x32"     : { "productType":"nativelinux", "productVersion":"debian70_x86-32",    "isSetIfPass": False },
 "unsup_debian7"     : { "productType":"nativelinux", "productVersion":"debian70_x86-64",    "isSetIfPass": False },
-"unsup_oel6"        : { "productType":"nativelinux", "productVersion":"oel6_x86-32",        "isSetIfPass": False },
+"unsup_oel6x32"        : { "productType":"nativelinux", "productVersion":"oel6_x86-32",        "isSetIfPass": False },
 "unsup_oel6"        : { "productType":"nativelinux", "productVersion":"oel6_x86-64",        "isSetIfPass": False },
 "unsup_oel7"        : { "productType":"nativelinux", "productVersion":"oel7_x86-64",        "isSetIfPass": False },
 "unsup_rhel6x32"    : { "productType":"nativelinux", "productVersion":"rhel6_x86-32",       "isSetIfPass": False },
-"unsup_rhel6x64"    : { "productType":"nativelinux", "productVersion":"rhel6_x86-64",       "isSetIfPass": False },
+"unsup_rhel6"    : { "productType":"nativelinux", "productVersion":"rhel6_x86-64",       "isSetIfPass": False },
 "unsup_rhel7"       : { "productType":"nativelinux", "productVersion":"rhel7_x86-64",       "isSetIfPass": False }
     }

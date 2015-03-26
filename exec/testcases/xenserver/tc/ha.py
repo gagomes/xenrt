@@ -445,18 +445,13 @@ class _HATest(xenrt.TestCase):
             fcsr = master.lookup("SR_FCHBA", "LUN0")
             scsiid = master.lookup(["FC", fcsr, "SCSIID"], None)
             sr = None
-            if self.SF_STORAGE == "nfs":
+            if self.SF_STORAGE.startswith("nfs"):
                 # use NFS if specified
                 #srs = pool.master.getSRs(type=self.SF_STORAGE)
                 #if len(srs) > 0: 
                 #    sr = srs[0]
                 #else:
                 # TODO Hack this to create an object every time for consistency.
-                sr = self.createSharedNFSSR(pool.master, "NFS_SF_SR")
-                self.sr = sr
-                pool.addSRToPool(sr)
-            elif self.SF_STORAGE == "nfs4":
-                # Create shared NFSv4 SR
                 sr = self.createSharedNFSSR(pool.master, "NFS_SF_SR")
                 self.sr = sr
                 pool.addSRToPool(sr)
@@ -738,7 +733,7 @@ class TC11795(TC7495):
         self.check(pool)
         
 class TC26902(TC7495):
-    """Verify StateFile can be located on NFS storage"""
+    """Verify StateFile can be located on NFSv4 storage"""
     SF_STORAGE = "nfs4"
     
     def run(self, arglist=None):
@@ -1365,7 +1360,7 @@ class TC13514(_HAStatefileFailure):
     SF_STORAGE = "nfs"
     
 class TC26904(_HAStatefileFailure):
-    """Slave loss of statefile for NFS SF"""
+    """Slave loss of statefile for NFSv4 SF"""
     LOSE_SLAVES = 1
     SF_STORAGE = "nfs4"
     
@@ -1426,7 +1421,7 @@ class TC13515(TC7688):
     SF_STORAGE = "nfs"
     
 class TC26905(TC7688):
-    """Master+slave loss of statefile (under load) for NFS SF"""
+    """Master+slave loss of statefile (under load) for NFSv4 SF"""
     WORKLOADS = True
     SF_STORAGE = "nfs4"
 
@@ -1575,7 +1570,7 @@ class TC13516(_HAHeartbeatFailure):
     SF_STORAGE = "nfs"
     
 class TC26907(_HAHeartbeatFailure):
-    """Master+slave loss of heartbeats for NFS SF"""
+    """Master+slave loss of heartbeats for NFSv4 SF"""
     LOSE_MASTER = True
     LOSE_SLAVES = 1   
     SF_STORAGE = "nfs4"
@@ -1702,7 +1697,7 @@ class TC13518(_HAHostFailure):
     SF_STORAGE = "nfs"
 
 class TC26910(_HAHostFailure):
-    """Loss of master for NFS SF"""
+    """Loss of master for NFSv4 SF"""
     LOSE_MASTER = True    
     SF_STORAGE = "nfs4"
 
@@ -1723,7 +1718,7 @@ class TC13517(TC7711):
     SF_STORAGE = "nfs"
 
 class TC26908(TC7711):
-    """Loss of slave (under load) for NFS SF"""
+    """Loss of slave (under load) for NFSv4 SF"""
     WORKLOADS = True    
     SF_STORAGE = "nfs4"
 
@@ -1753,7 +1748,7 @@ class TC13519(TC7714):
     WORKLOADS = True
     SF_STORAGE = "nfs"
 class TC26911(TC7714):
-    """Loss of master+slave (under load) for NFS SF"""
+    """Loss of master+slave (under load) for NFSv4 SF"""
     WORKLOADS = True
     SF_STORAGE = "nfs4"
 
@@ -3333,7 +3328,7 @@ class TC13522(TC8127):
     SF_STORAGE = "nfs"
     
 class TC26912(TC8127):
-    """Disable HA and Statefile delete with offline host for NFS SF"""
+    """Disable HA and Statefile delete with offline host for NFSv4 SF"""
     SF_STORAGE = "nfs4"
   
 class TC8128(_StuckState):
@@ -3415,7 +3410,7 @@ class TC13523(TC8129):
     
 class TC26913(TC8129):
     """Verify a booting host remains in emergency mode until it can see the HA
-       statefile for NFS SF"""        
+       statefile for NFSv4 SF"""        
     SF_STORAGE = "nfs4"
 
 class TC8130(_StuckState):
@@ -3474,7 +3469,7 @@ class TC13524(TC8130):
 
 class TC26914(TC8130):
     """Verify that an HA-enabled pool can be recovered if all nodes reboot
-       without statefile access for NFS SF"""
+       without statefile access for NFSv4 SF"""
     SF_STORAGE = "nfs4"
 
 class TC8131(_StuckState):
@@ -3560,7 +3555,7 @@ class TC13525(TC8131):
     
 class TC26915(TC8131):
     """Verify that an HA-enabled Pool can be recovered if only one slave reboots
-       without statefile access for NFS SF"""
+       without statefile access for NFSv4 SF"""
     SF_STORAGE = "nfs4"
     
 class TC8162(_HATest):

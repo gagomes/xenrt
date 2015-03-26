@@ -1,5 +1,0 @@
-<xenrt>
-  <prepare>
-    <host productType="esx" productVersion="5.5.0-update02" id="0" />
-  </prepare>
-</xenrt>

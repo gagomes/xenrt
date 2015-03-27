@@ -1196,8 +1196,6 @@ class TC7509(_HATest):
     """Verify that an HA-enabled pool continues to function when a non-master
        member without any protected VMs is shutdown cleanly"""
 
-    LOAD = "master"
-
     def run(self, arglist=None):
         host0 = self.getHost("RESOURCE_HOST_0")
         host1 = self.getHost("RESOURCE_HOST_1")
@@ -1216,8 +1214,6 @@ class TC7511(_HATest):
     """Verify that an HA-enabled pool continues to function when a master member
        without any protected VMs is shutdown cleanly"""
 
-    LOAD = "slaves"
-
     def run(self, arglist=None):
         host0 = self.getHost("RESOURCE_HOST_0")
         host1 = self.getHost("RESOURCE_HOST_1")
@@ -1235,8 +1231,6 @@ class TC7511(_HATest):
 
 class TC7514(_HATest):
     """Verify that a power-cycled node rejoins the pool automatically"""
-
-    LOAD = "master"
 
     def run(self, arglist=None):
         host0 = self.getHost("RESOURCE_HOST_0")
@@ -1267,7 +1261,6 @@ class TC7514(_HATest):
 # Base class for failure secnario testing
 class _HAFailureTest(_HATest):
     # We want a tile of protected VMs per node
-    LOAD = "master slaves protect"
     WORKLOADS = False
     pool = None
     TEMPORARY = True
@@ -1395,8 +1388,7 @@ class TC7690(TC7685):
     WORKLOADS = True
 
 class TC13542(TC7685):
-    """Slave loss of statefile (under load) NFS"""
-    WORKLOADS = True
+    """Slave loss of statefile NFS"""
     SF_STORAGE = "nfs"
 
 class TC7691(TC7686):
@@ -1404,8 +1396,7 @@ class TC7691(TC7686):
     WORKLOADS = True
 
 class TC13543(TC7686):
-    """Slave loss of statefile (under load)"""
-    WORKLOADS = True
+    """Master loss of statefile NFS"""
     SF_STORAGE = "nfs"
 
 class TC7692(TC7687):
@@ -1413,8 +1404,7 @@ class TC7692(TC7687):
     WORKLOADS = True
 
 class TC13544(TC7687):
-    """Multiple slave loss of statefile (under load)"""
-    WORKLOADS = True
+    """Multiple slave loss of statefile NFS"""
     SF_STORAGE = "nfs"
     
 class TC7693(TC7688):
@@ -1422,13 +1412,11 @@ class TC7693(TC7688):
     WORKLOADS = True
 
 class TC13515(TC7688):
-    """Master+slave loss of statefile (under load) for NFS SF"""
-    WORKLOADS = True
+    """Master+slave loss of statefile for NFS SF"""
     SF_STORAGE = "nfs"
     
 class TC26905(TC7688):
-    """Master+slave loss of statefile (under load) for NFSv4 SF"""
-    WORKLOADS = True
+    """Master+slave loss of statefile for NFSv4 SF"""
     SF_STORAGE = "nfs4"
 
 class TC7694(TC7689):
@@ -1601,8 +1589,7 @@ class TC7703(TC7695):
     WORKLOADS = True
 
 class TC13545(TC7695):
-    """Slave loss of heartbeats (under load) NFS"""
-    WORKLOADS = True
+    """Slave loss of heartbeats NFS"""
     SF_STORAGE = "nfs"
 
 class TC7704(TC7696):
@@ -1610,8 +1597,7 @@ class TC7704(TC7696):
     WORKLOADS = True
 
 class TC13546(TC7696):
-    """Master loss of heartbeats (under load)"""
-    WORKLOADS = True
+    """Master loss of heartbeats NFS"""
     SF_STORAGE = "nfs"
 
 class TC7705(TC7697):
@@ -1619,8 +1605,7 @@ class TC7705(TC7697):
     WORKLOADS = True
 
 class TC13547(TC7697):
-    """Multiple slave loss of heartbeats (under load) NFS"""
-    WORKLOADS = True
+    """Multiple slave loss of heartbeats NFS"""
     SF_STORAGE = "nfs"
 
 class TC7706(TC7698):
@@ -1628,8 +1613,7 @@ class TC7706(TC7698):
     WORKLOADS = True
 
 class TC13548(TC7698):
-    """Master+slave loss of heartbeats (under load) NFS"""
-    WORKLOADS = True
+    """Master+slave loss of heartbeats NFS"""
     SF_STORAGE = "nfs"
 
 class TC7707(TC7699):
@@ -1637,8 +1621,7 @@ class TC7707(TC7699):
     WORKLOADS = True
 
 class TC13549(TC7699):
-    """All hosts loss of heartbeats (under load) NFS"""
-    WORKLOADS = True
+    """All hosts loss of heartbeats NFS"""
     SF_STORAGE = "nfs"
 
 class TC7708(TC7700):
@@ -1646,8 +1629,7 @@ class TC7708(TC7700):
     WORKLOADS = True
 
 class TC13550(TC7700):
-    """Master in largest heartbeat partition (under load) NFS"""
-    WORKLOADS = True
+    """Master in largest heartbeat partition NFS"""
     SF_STORAGE = "nfs"
 
 class TC7709(TC7701):
@@ -1655,8 +1637,7 @@ class TC7709(TC7701):
     WORKLOADS = True
 
 class TC13551(TC7701):
-    """Master in smallest heartbeat partition (under load) NFS"""
-    WORKLOADS = True
+    """Master in smallest heartbeat partition NFS"""
     SF_STORAGE = "nfs"
 
 class TC7710(TC7702):
@@ -1664,8 +1645,7 @@ class TC7710(TC7702):
     WORKLOADS = True
 
 class TC13552(TC7702):
-    """Equal heartbeat partitions (under load) NFS"""
-    WORKLOADS = True
+    """Equal heartbeat partitions NFS"""
     SF_STORAGE = "nfs"
 
 
@@ -1719,13 +1699,11 @@ class TC7715(TC7711):
     """Loss of slave (under load)"""
     WORKLOADS = True
 class TC13517(TC7711):
-    """Loss of slave (under load) for NFS SF"""
-    WORKLOADS = True    
+    """Loss of slave for NFS SF"""
     SF_STORAGE = "nfs"
 
 class TC26908(TC7711):
-    """Loss of slave (under load) for NFSv4 SF"""
-    WORKLOADS = True    
+    """Loss of slave for NFSv4 SF"""
     SF_STORAGE = "nfs4"
 
 class TC7716(TC7712):
@@ -1733,8 +1711,7 @@ class TC7716(TC7712):
     WORKLOADS = True
 
 class TC13555(TC7712):
-    """Loss of master (under load) NFS"""
-    WORKLOADS = True
+    """Loss of master NFS"""
     SF_STORAGE = "nfs"
 
 class TC7717(TC7713):
@@ -1742,20 +1719,17 @@ class TC7717(TC7713):
     WORKLOADS = True
 
 class TC13556(TC7713):
-    """Loss of multiple slaves (under load) NFS"""
-    WORKLOADS = True
+    """Loss of multiple slaves NFS"""
     SF_STORAGE = "nfs"
 
 class TC7718(TC7714):
     """Loss of master+slave (under load)"""
     WORKLOADS = True
 class TC13519(TC7714):
-    """Loss of master+slave (under load) for NFS SF"""
-    WORKLOADS = True
+    """Loss of master+slave for NFS SF"""
     SF_STORAGE = "nfs"
 class TC26911(TC7714):
-    """Loss of master+slave (under load) for NFSv4 SF"""
-    WORKLOADS = True
+    """Loss of master+slave for NFSv4 SF"""
     SF_STORAGE = "nfs4"
 
 # Two node pool failure scenarios
@@ -1769,7 +1743,6 @@ class TC7720(_HAStatefileFailure):
     HOSTS = 2
 class TC7721(_HATest):
     """Loss of heartbeats in two node pool"""
-    LOAD = "master slaves protect"
     WORKLOADS = False
 
     def run(self, arglist=None):
@@ -1823,8 +1796,7 @@ class TC7724(TC7719):
     WORKLOADS = True
     
 class TC13557(TC7719):
-    """Slave loss of statefile in two node pool (under load) NFS"""
-    WORKLOADS = True
+    """Slave loss of statefile in two node pool NFS"""
     SF_STORAGE = "nfs"
     
 class TC7725(TC7720):
@@ -1832,8 +1804,7 @@ class TC7725(TC7720):
     WORKLOADS = True
 
 class TC13558(TC7720):
-    """Master loss of statefile in two node pool (under load)"""
-    WORKLOADS = True
+    """Master loss of statefile in two node pool NFS"""
     SF_STORAGE = "nfs"
 
 class TC7726(TC7721):
@@ -1841,17 +1812,15 @@ class TC7726(TC7721):
     WORKLOADS = True
 
 class TC13521(TC7721):
-    """Loss of heartbeats in two node pool (under load) for NFS SF"""
+    """Loss of heartbeats in two node pool for NFS SF"""
     SF_STORAGE = "nfs"
-    WORKLOADS = True
 
 class TC7727(TC7722):
     """Loss of slave in two node pool (under load)"""
     WORKLOADS = True
 
 class TC13559(TC7722):
-    """Loss of slave in two node pool (under load) NFS """
-    WORKLOADS = True
+    """Loss of slave in two node pool NFS """
     SF_STORAGE = "nfs"
 
 
@@ -1860,14 +1829,12 @@ class TC7728(TC7723):
     WORKLOADS = True
 
 class TC13560(TC7723):
-    """Loss of master in two node pool (under load) NFS """
-    WORKLOADS = True
+    """Loss of master in two node pool NFS"""
     SF_STORAGE = "nfs"
 
 # Host Software Failure Scenarios
 class _HAXapiFailure(_HATest):
     WORKLOADS = False
-    LOAD = "master slaves protect"
     pool = None
     MASTER = False
 
@@ -1962,7 +1929,6 @@ class TC7731(_HATest):
        further failure (heartbeat loss to one node) occurs"""
 
     WORKLOADS = False
-    LOAD = "master slaves protect"
 
     def run(self, arglist=None):
         host0 = self.getHost("RESOURCE_HOST_0")

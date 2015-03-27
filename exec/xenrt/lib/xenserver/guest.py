@@ -564,7 +564,7 @@ class Guest(xenrt.GenericGuest):
             self.installTools()
         if self.special.get("XSKernel"):
             kernelUpdatesPrefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "") + "/kernelUpdates"
-            if distro and 'oel7' in distro:
+            if distro and distro == 'oel7':
                 _new_kernel = kernelUpdatesPrefix + "/OEL7/"
                 _new_kernel_path = ["kernel-uek-firmware-3.8.13-36.3.1.el7uek.xs.x86_64.rpm",
                                     "kernel-uek-3.8.13-36.3.1.el7uek.xs.x86_64.rpm",

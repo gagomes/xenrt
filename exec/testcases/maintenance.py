@@ -516,12 +516,13 @@ class TCUnsupFlags(xenrt.TestCase):
         seq.doPrepare()
 
     def isPropAlreadySet(self, flag):
-        return flag in xenrt.util.command('xenrt machine %s | grep -e "^PROPS"' % (self.machineName))
+        return flag in xenrt.util.command('xenrt machine %s | grep -e "^PROPS"' % (self.machineName) , ignoreerrors=True)
 
     def prepare(self, arglist):
         self.machineName = xenrt.PhysicalHost(xenrt.TEC().lookup("RESOURCE_HOST_0")).name
         self.flags = {}
         self.updateMachine = False
+        self.AutoFlaggerRunDate = None
 
         args = self.parseArgsKeyValue(arglist)
         if "FLAGSTOCHECK" in args:
@@ -530,8 +531,16 @@ class TCUnsupFlags(xenrt.TestCase):
             self.flags.update(self.ALL_FLAGS)
         if "UPDATEMACHINE" in args:
             self.updateMachine = True
+        if "AUTOFLAGGERTAG" in args:
+            self.updateMachineWithAutoFlaggerTag = args["AUTOFLAGGERTAG"]
 
     def run(self, arglist=[]):
+        if self.updateMachineWithAutoFlaggerTag:
+            currentFlagCheckDate = xenrt.util.command('xenrt machine %s | grep -e "^AUTOFLAGGERTAG"  | sed "s/.*=//"' % (self.machineName) , ignoreerrors=True).strip("\n'")
+            if currentFlagCheckDate == self.updateMachineWithAutoFlaggerTag:
+                comment("Machine %s has already been checked. Exiting." % self.machineName)
+                return
+
         for flag,flagData in self.flags.iteritems():
             if "seqFile" in flagData:
                 seqFile=flagData["seqFile"]
@@ -559,3 +568,6 @@ class TCUnsupFlags(xenrt.TestCase):
                 xenrt.util.command("echo \"%s\" >> ~/xenrtautoflagger.log" % command)
             else:
                 xenrt.util.command("echo \"%s\" >> ~/xenrt_autoflag_pending" % command)
+
+        if self.updateMachineWithAutoFlaggerTag:
+            xenrt.util.command("xenrt mupdate %s AUTOFLAGGERTAG %s" % (self.machineName,self.updateMachineWithAutoFlaggerTag))

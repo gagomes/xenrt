@@ -252,7 +252,12 @@ class Guest(xenrt.GenericGuest):
     def isHVMLinux(self, distro=None):
         if not distro:
             distro=self.distro
-        return distro in string.split(self.getHost().lookup("HVM_LINUX", ""), ",")
+        hvms = self.getHost().lookup("HVM_LINUX", None)
+        if hvms:
+            for d in hvms.split(","):
+                if re.match(d, distro):
+                    return True
+        return False
 
     def install(self,
                 host,

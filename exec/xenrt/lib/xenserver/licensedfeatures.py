@@ -245,7 +245,7 @@ class LicensedFeatureFactory(object):
         raise ValueError("Feature list for a %s host was not found" % self.__getHostAge(xshost))
 
     def allFeatureObj(self,xshost):
-        if self.__getHostAge(xshost) == self.__CRE or self.__getHostAge(xshost) == self.__DUN or self.__getHostAge(xshost) == self.__CRM
+        if self.__getHostAge(xshost) == self.__CRE or self.__getHostAge(xshost) == self.__DUN or self.__getHostAge(xshost) == self.__CRM:
             return [WorkloadBalancing(), ReadCaching(), VirtualGPU(),
                                                 Hotfixing(), ExportPoolResourceList(), GPUPassthrough()]
  

@@ -14,7 +14,7 @@ class VGPUConfig(object): K100, K120, K140, K160, K180, K1PassThrough, K200, K22
 class VGPUDistribution(object): BreadthFirst, DepthFirst = range(2)
 class SRType(object): Local, NFS, ISCSI = range(3)
 class VMStartMethod(object): OneByOne, Simultenous = range(2)
-class CardType(object): K1, K2, PassThrough, NotAvailable = range(4)
+class CardType(object): K1, K2, Quadro, Intel, NotAvailable = range(4)
 class DriverType(object): Signed, Unsigned = range(2)
 class DiffvGPUType(object): NvidiaWinvGPU, NvidiaLinuxvGPU, IntelWinvGPU = range(3)
 
@@ -24,7 +24,8 @@ Constants
 NumOfPGPUPerCard = {
     CardType.K1 : 4,
     CardType.K2 : 2,
-    CardType.PassThrough : 1,
+    CardType.Quadro : 1,
+    CardType.Intel : 1,
     CardType.NotAvailable : 0
     }
 MaxNumOfVGPUPerPGPU = {
@@ -41,6 +42,21 @@ MaxNumOfVGPUPerPGPU = {
     VGPUConfig.K280 : 1,
     VGPUConfig.K2PassThrough : 1
     }
+
+CardDeviceName = {
+        CardType.K1 : "GRID K1",
+        CardType.K2 : "GRID K2",
+        CardType.Quadro : "Quadro",
+        CardType.Intel : "Integrated"
+    }
+
+CardName = {
+        CardType.K1 : "K1",
+        CardType.K2 : "K2",
+        CardType.Quadro : "Quadro",
+        CardType.Intel : "Intel"
+
+}
 
 """
 Helper classes
@@ -3570,15 +3586,16 @@ class GPUGroup(object):
         log("GPU group %s has %s pgpus." % (self.uuid, self.gpuList))
         if self.__gridtype__ == "" and len(self.gpuList) > 0:
             device = self.host.genParamGet("pgpu", self.gpuList[0], "device-name")
-            if "GRID K1" in device:
-                self.__gridtype__ = "K1"
-                return "K1"
-            elif "GRID K2" in device:
-                self.__gridtype__ = "K2"
-                return "K2"
+            if CardDeviceName[CardType.K1] in device:
+                self.__gridtype__ = CardName[CardType.K1]
+            elif CardDeviceName[CardType.K2] in device:
+                self.__gridtype__ = CardName[CardType.K2]
+            elif CardDeviceName[CardType.Intel] in device:
+                self.__gridtype__ = CardName[CardType.Intel]
+            elif CardDeviceName[CardType.Quadro] in device:
+                self.__gridtype__ = CardName[CardType.Quadro]
             else:
                 self.__gridtype__ = "unknown"
-                return "unknown"
 
     #def updateAllocationMode(self):
         #self.__allocmode__ = self.host.genParamGet("gpu-group", self.uuid, "allocation-algorithm")
@@ -3620,7 +3637,7 @@ class GPUGroupManager(object):
                 continue
             group = GPUGroup(self.host, guuid)
             log("Checking device type of gpu group %s: %s" % (group.uuid, group.getGridType()))
-            if group.getGridType() == "K1" or group.getGridType() == "K2" or group.getGridType() == "":
+            if group.getGridType() == CardName[CardType.K1] or group.getGridType() == CardName[CardType.K2] or group.getGridType() == "":
                 gpuGroup.append(group)
         self.groups = gpuGroup
         return gpuGroup

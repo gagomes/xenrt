@@ -1,6 +1,7 @@
 from abc import ABCMeta, abstractproperty, abstractmethod
 from xenrt.enum import XenServerLicenseSKU
 import re
+import xenrt
 
 __all__ = ["WorkloadBalancing", "ReadCaching",
            "VirtualGPU", "Hotfixing", "ExportPoolResourceList",
@@ -125,8 +126,23 @@ class VirtualGPU(LicensedFeature):
         return "VirtualGPU"
 
     def isEnabled(self, host):
-        [vm.reboot() for vm in host.guests.values()]
-        return [vm.getState() == "UP" for vm in host.guests.values()]
+        """Try to start every vm on the host with a GPU attached."""
+
+        def tryStartVM(vm):
+            try:
+                vm.setState("UP")
+                return True
+            except:
+                return False
+
+        vms = [vm for vm in host.guests.values() if vm.hasvGPU()]
+
+        if not vms:
+            raise xenrt.XRTError("There are no VMs present with a GPU attached.")
+
+        [vm.setState("DOWN") for vm in vms]
+
+        return next((True for vm in vms if vm.tryStartVM()), False)
 
     @property
     def featureFlagName(self):

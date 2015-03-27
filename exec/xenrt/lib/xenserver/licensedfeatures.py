@@ -229,6 +229,8 @@ class CreedenceEnabledFeatures(object):
 
 class LicensedFeatureFactory(object):
     __CRE = "creedence"
+    __CRM = "cream"
+    __DUN = "dundee"
 
     def __getHostAge(self, xshost):
         return xshost.productVersion.lower()
@@ -237,17 +239,17 @@ class LicensedFeatureFactory(object):
         return dict([(f.name, f) for f in featureList])
 
     def allFeatures(self, xshost):
-        if self.__getHostAge(xshost) == self.__CRE:
+        if self.__getHostAge(xshost) == self.__CRE or self.__getHostAge(xshost) == self.__CRM or self.__getHostAge(xshost) == self.__DUN:
             return  self.__createDictOfFeatures(WorkloadBalancing(), ReadCaching(), VirtualGPU(),
                                                 Hotfixing(), ExportPoolResourceList(), GPUPassthrough())
         raise ValueError("Feature list for a %s host was not found" % self.__getHostAge(xshost))
 
     def allFeatureObj(self,xshost):
-        if self.__getHostAge(xshost) == self.__CRE:
+        if self.__getHostAge(xshost) == self.__CRE or self.__getHostAge(xshost) == self.__DUN or self.__getHostAge(xshost) == self.__CRM
             return [WorkloadBalancing(), ReadCaching(), VirtualGPU(),
                                                 Hotfixing(), ExportPoolResourceList(), GPUPassthrough()]
  
     def getFeatureState(self, productVersion, sku, feature):
         lver = productVersion.lower()
-        if lver == self.__CRE:
+        if lver == self.__CRE or lver == self.__CRM or lver == self.__DUN:
             return CreedenceEnabledFeatures(sku).expectedEnabledState(feature)

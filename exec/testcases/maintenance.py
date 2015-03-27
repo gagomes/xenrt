@@ -529,7 +529,7 @@ class TCUnsupFlags(xenrt.TestCase):
         self.machineName = xenrt.PhysicalHost(xenrt.TEC().lookup("RESOURCE_HOST_0")).name
         self.flags = {}
         self.updateMachine = False
-        self.AutoFlaggerRunDate = None
+        self.updateMachineWithAutoFlaggerTag = ""
 
         args = self.parseArgsKeyValue(arglist)
         if "FLAGSTOCHECK" in args:

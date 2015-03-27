@@ -250,7 +250,7 @@ class ManagementServer(object):
 
     def checkJavaVersion(self):
         if self.place.distro.startswith("rhel6") or self.place.distro.startswith("centos6"):
-            if self.version in ['4.4', '4.5']:
+            if self.version in ['4.4', '4.5', '4.6.0']:
                 # Check if Java 1.7.0 is installed
                 self.place.execcmd('yum -y install java-1.7.0-openjdk')
                 if not '1.7.0' in self.place.execcmd('java -version').strip():

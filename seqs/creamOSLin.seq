@@ -1,6 +1,6 @@
 <xenrt>
 
-  <!-- OS functional test sequence: rhel66 and rhel66-x64 -->
+  <!-- OS functional test sequence -->
 
   <variables>
     <PRODUCT_VERSION>Cream</PRODUCT_VERSION>

@@ -518,6 +518,13 @@ class TCUnsupFlags(xenrt.TestCase):
     def isPropAlreadySet(self, flag):
         return flag in xenrt.util.command('xenrt machine %s | grep -e "^PROPS"' % (self.machineName) , ignoreerrors=True)
 
+    def doCommand(self, command):
+        if self.updateMachine:
+            xenrt.util.command(command)
+            xenrt.util.command("echo \"%s\" >> ~/xenrtautoflagger.log" % command)
+        else:
+            xenrt.util.command("echo \"%s\" >> ~/xenrt_autoflag_pending" % command)
+
     def prepare(self, arglist):
         self.machineName = xenrt.PhysicalHost(xenrt.TEC().lookup("RESOURCE_HOST_0")).name
         self.flags = {}
@@ -563,11 +570,8 @@ class TCUnsupFlags(xenrt.TestCase):
                 command = "xenrt prop %s del %s" % (self.machineName, flag)
             else:
                 command = "# %s %s flag %s" % (self.machineName,"is already having required" if self.isPropAlreadySet(flag) else "neither need nor has", flag)
-            if self.updateMachine:
-                xenrt.util.command(command)
-                xenrt.util.command("echo \"%s\" >> ~/xenrtautoflagger.log" % command)
-            else:
-                xenrt.util.command("echo \"%s\" >> ~/xenrt_autoflag_pending" % command)
+            self.doCommand(command)
 
         if self.updateMachineWithAutoFlaggerTag:
-            xenrt.util.command("xenrt mupdate %s AUTOFLAGGERTAG %s" % (self.machineName,self.updateMachineWithAutoFlaggerTag))
+            command = "xenrt mupdate %s AUTOFLAGGERTAG %s" % (self.machineName,self.updateMachineWithAutoFlaggerTag)
+            self.doCommand(command)

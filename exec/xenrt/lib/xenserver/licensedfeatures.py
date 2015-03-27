@@ -137,6 +137,9 @@ class VirtualGPU(LicensedFeature):
 
         vms = [vm for vm in host.guests.values() if vm.hasvGPU()]
 
+        if not vms:
+            raise xenrt.XRTError("There are no VMs present with a GPU attached.")
+
         [vm.setState("DOWN") for vm in vms]
 
         return next((vm.tryStartVM() for vm in vms if vm.tryStartVM()), False)

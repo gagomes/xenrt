@@ -1176,6 +1176,9 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Creedence"]["LATEST_rhel5"] = "rhel510"
         self.config["VERSION_CONFIG"]["Creedence"]["LATEST_rhel6"] = "rhel65"
         self.config["VERSION_CONFIG"]["Creedence"]["LATEST_rhel7"] = "rhel7"
+        self.config["VERSION_CONFIG"]["Creedence"]["LATEST_sl5"] = "sl511"
+        self.config["VERSION_CONFIG"]["Creedence"]["LATEST_sl6"] = "sl66"
+        self.config["VERSION_CONFIG"]["Creedence"]["LATEST_sl7"] = "sl7"
         
         # Cream
         self.config["VERSION_CONFIG"]["Cream"] = copy.deepcopy(self.config["VERSION_CONFIG"]["Creedence"])

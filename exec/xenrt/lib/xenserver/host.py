@@ -2505,6 +2505,9 @@ fi
             self.reboot()
             self.assertNotRunningDebugXen()
 
+        # Update our product version in case the hotfix has changed it
+        self.checkVersion()
+
         return reply
 
     

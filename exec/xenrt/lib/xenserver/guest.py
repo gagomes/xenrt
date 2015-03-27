@@ -6008,10 +6008,9 @@ class DundeeGuest(CreedenceGuest):
         
         return self.xmlrpcExec("sc %s" % (command), returnerror=False, returnrc=True) == 0
         
-    def checkPVDriversStatus(self):
+    def checkPVDriversStatus(self, ignoreException = False):
         """ Verify the Drivers are running by using 'SC' Command line program"""
         
-        driverRunning = True
         drivers = ['XENBUS','XENIFACE','XENVIF','XENVBD','XENNET']
         notRunning = []
         
@@ -6021,26 +6020,23 @@ class DundeeGuest(CreedenceGuest):
                 notRunning.append(driver)
                 
         if notRunning:
-            driverRunning = False
-            return driverRunning
+            if ignoreException:
+                return False
+            else:
+                raise xenrt.XRTFailure(" %s services not running on %s" %(','.join(notRunning), self.getName()))
         else:
-            return driverRunning
+            return True
             
         xenrt.TEC().logverbose("PV Devices are installed and Running on %s " %(self.getName()))
 
     def uninstallDrivers(self, waitForDaemon=True):
         
-        installed = True
+        installed = False
         driversToUninstall = ['*XENVIF*', '*XENBUS*', '*VEN_5853*']
         
-        if self.winRegPresent('HKLM', "SOFTWARE\\Wow6432Node\\Citrix\\XenToolsInstaller", "InstallStatus"):
-            regValue = self.winRegLookup('HKLM', "SOFTWARE\\Wow6432Node\\Citrix\\XenToolsInstaller", "InstallStatus", healthCheckOnFailure=False)
-        
-        elif self.winRegPresent('HKLM', "SOFTWARE\\Citrix\\XenToolsInstaller", "InstallStatus"):
-            regValue = self.winRegLookup('HKLM', "SOFTWARE\\Citrix\\XenToolsInstaller", "InstallStatus", healthCheckOnFailure=False)
-        
-        else:
-            installed = False
+        if self.winRegPresent('HKLM', "SOFTWARE\\Wow6432Node\\Citrix\\XenToolsInstaller", "InstallStatus") or self.winRegPresent('HKLM', "SOFTWARE\\Citrix\\XenToolsInstaller", "InstallStatus"):
+            
+            installed = True
 
         if installed:
             #Drivers are installed using the tools ISO ,
@@ -6074,11 +6070,12 @@ class DundeeGuest(CreedenceGuest):
             for file in oemFileList:
                 batch.append("pnputil.exe -f -d %s\r\n" %(file)) 
                 batch.append("ping 127.0.0.1 -n 10 -w 1000\r\n")
-            batch.append("shutdown -r\r\n")
             
             self.xmlrpcWriteFile("c:\\uninst.bat", string.join(batch))
             self.xmlrpcStart("c:\\uninst.bat")
-            
+        
+        self.reboot()
+        
         # wait for reboot
         xenrt.sleep(6 * 60)
 
@@ -6086,7 +6083,7 @@ class DundeeGuest(CreedenceGuest):
             raise xenrt.XRTFailure("XML-RPC not alive after tools uninstallation")
         
         # Verify PV devices have been removed after tools uninstallation
-        if self.checkPVDevicesState() and not self.checkPVDriversStatus():
+        if self.checkPVDevicesState() and not self.checkPVDriversStatus(ignoreException = True):
             xenrt.TEC().logverbose("PV Packages are uninstalled Successfully")
         else:
             raise xenrt.XRTFailure("PV Packages are not uninstalled")

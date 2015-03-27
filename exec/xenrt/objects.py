@@ -1423,7 +1423,7 @@ class GenericPlace(object):
         
         try:
             s = self._xmlrpc()
-            val = s.regLookup(hive, key, name)
+            s.regLookup(hive, key, name)
             return True
         except Exception, e:
             return False

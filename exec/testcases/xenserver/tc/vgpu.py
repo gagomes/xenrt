@@ -1803,6 +1803,13 @@ class DifferentGPU(object):
         """
         pass
 
+    @abstractmethod
+    def attachvGPUToVM(self, config, vm):
+        """
+        Attach a type of vgpu.
+        """
+        pass
+
 class NvidiaWindowsvGPU(DifferentGPU):
 
     def installHostDrivers(self,allHosts):
@@ -1819,6 +1826,10 @@ class NvidiaWindowsvGPU(DifferentGPU):
 
     def runWorkload(self,vm):
         VGPUTest().runWindowsWorkload(vm)
+
+    def attachvGPUToVM(self, config, vm):
+        xenrt.TEC().logverbose("Not implemented")
+        pass
 
 class NvidiaLinuxvGPU(DifferentGPU):
 
@@ -1839,6 +1850,10 @@ class NvidiaLinuxvGPU(DifferentGPU):
         xenrt.TEC().logverbose("Not implemented")
         pass
 
+    def attachvGPUToVM(self, config, vm):
+        xenrt.TEC().logverbose("Not implemented")
+        pass
+
 class IntelWindowsvGPU(DifferentGPU):
 
     def installHostDrivers(self,allHosts):
@@ -1856,6 +1871,10 @@ class IntelWindowsvGPU(DifferentGPU):
 
     def runWorkload(self,vm):
         VGPUTest().runWindowsWorkload(vm)
+
+    def attachvGPUToVM(self, config, vm):
+        xenrt.TEC().logverbose("Not implemented")
+        pass
 
 """ Negative Test Cases """
 

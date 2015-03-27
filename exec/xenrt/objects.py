@@ -252,9 +252,9 @@ class GenericPlace(object):
             elif re.search("solaris", self.distro):
                 rc = int(self.execcmd("prtconf | grep Mem|awk '{if ($1 == \"Memory\") {print $3}}'"))
             else:
-                rc = self.execcmd("dmesg | grep \"Memory:\"")
-                #Parses the line E.g. "[    0.000000] Memory: 1010028k/1048576k available (2573k...311304k highmem)"  to get total memory
-                rc = int(rc.split("/")[1].split("k")[0])/xenrt.KILO
+                data = self.execcmd("cat /proc/meminfo")
+                rc = re.search(r"MemTotal:\s+(\d+)\s+kB", data)
+                rc = int(rc.group(1))/xenrt.KILO
             xenrt.TEC().logverbose(" ... getMemory done")
             return rc
         except Exception, e:

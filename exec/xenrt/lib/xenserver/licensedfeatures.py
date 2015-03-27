@@ -142,7 +142,7 @@ class VirtualGPU(LicensedFeature):
 
         [vm.setState("DOWN") for vm in vms]
 
-        return next((vm.tryStartVM() for vm in vms if vm.tryStartVM()), False)
+        return next((True for vm in vms if vm.tryStartVM()), False)
 
     @property
     def featureFlagName(self):

@@ -3203,7 +3203,26 @@ class TCIntelSetupNegative(FunctionalBase):
     Blocking assess but not rebooting host.
     Attemping to attach vGPU Passthrough to VM.
     """
-    pass
+    def insideRun(self, config, distro):
+
+        # Want to use a windows 7 VM.
+        # Probably using the master version.
+            # Will be very similar to BasicVerif prepare code.
+            # Might make a child class of that.
+
+        osType = self.getOSType(distro)
+
+        vm = self.masterVMs[osType]
+        vm.go()
+
+        # Probably using exerpts from the lib code.
+        # Do half the setup but don't reset.
+
+        # Using Semi-Old way of attaching the VM.
+        # Try add intel passthrough to the VM.
+
+        # Will fail, confirm.
+        pass
 
 class TCIntelGPUSnapshotNegative(FunctionalBase):
     """

@@ -1468,7 +1468,7 @@ exit /B 1
         """Check if the VM up and the guest agent has reported."""
         return self.waitForAgent(0) == xenrt.RC_OK
 
-    def checkPVDevices(self):
+    def checkPVDevicesState(self):
         # Check the guest is using the PV drivers
         pvcheck = []
         backend = "/local/domain/0/backend"
@@ -1511,7 +1511,13 @@ exit /B 1
                                           (backend, domid))
         if vifstate != "4":
             pvcheck.append("VIF backend not in connected state")
-
+        
+        return pvcheck
+        
+    def checkPVDevices():
+        # Check the guest is using the PV drivers
+        pvcheck = self.checkPVDevicesState()
+        
         if pvcheck:
             if xenrt.TEC().lookup("PAUSE_ON_PV_CHECK_FAIL", False, boolean=True):
                 xenrt.TEC().tc.pause("Paused on PV Check failure")
@@ -5959,7 +5965,7 @@ class DundeeGuest(CreedenceGuest):
                 xenrt.GEC().config.setVariable("RND_PV_DRIVER_INSTALL_SOURCE_VALUE",str(randomPvDriverInstallSource))
                 xenrt.GEC().dbconnect.jobUpdate("RND_PV_DRIVER_INSTALL_SOURCE_VALUE",str(randomPvDriverInstallSource))
                 return randomPvDriverInstallSource
-    
+
     def setRandomPvDriverList(self):
         #Randomise the order of PV packages 
 
@@ -5975,7 +5981,7 @@ class DundeeGuest(CreedenceGuest):
                 xenrt.GEC().config.setVariable("RND_PV_DRIVERS_LIST_VALUE",randomPvDriversList)
                 xenrt.GEC().dbconnect.jobUpdate("RND_PV_DRIVERS_LIST_VALUE",randomPvDriversList)
                 return randomPvDriversList
-                
+
     def installDrivers(self, source=None, extrareboot=False, useLegacy=False, useHostTimeUTC=False, expectUpToDate=True, installFullWindowsGuestAgent=True, useDotNet=True):
         """
         Install PV Tools on Windows Guest
@@ -5985,22 +5991,22 @@ class DundeeGuest(CreedenceGuest):
         if not self.windows:
             xenrt.TEC().skip("Non Windows guest, no drivers to install")
             return
-        
+
         """Check the PV Driver source from where the tools to be installed 
         Random : Randomly choose either ToolsISO or Packages
         ToolsISO : Install PV Drivers through ToolsISO
         Packages : Install PV Drivers from individual PV packages
         """
-        
+
         pvDriverSource = xenrt.TEC().lookup("PV_DRIVER_SOURCE", None)
 
         if pvDriverSource == "Random":
             pvDriverSource = self.setRandomPvDriverSource()
-            
+
         # If source is "ToolsISO" then install from xs tools
         if pvDriverSource == "ToolsISO" or pvDriverSource == None or useLegacy == True or xenrt.TEC().lookup("USE_LEGACY_DRIVERS", False, boolean=True) or self.usesLegacyDrivers():
             TampaGuest.installDrivers(self, source, extrareboot, useLegacy, useHostTimeUTC, expectUpToDate)
-            
+
         #If source is "Packages" then install from PV Packages
         if pvDriverSource == "Packages":
 
@@ -6102,7 +6108,7 @@ class DundeeGuest(CreedenceGuest):
         
         return self.xmlrpcExec("sc %s" % (command), returnerror=False, returnrc=True) == 0
         
-    def checkPVDriversStatus(self):
+    def checkPVDriversStatus(self, ignoreException = False):
         """ Verify the Drivers are running by using 'SC' Command line program"""
         
         drivers = ['XENBUS','XENIFACE','XENVIF','XENVBD','XENNET']
@@ -6114,10 +6120,69 @@ class DundeeGuest(CreedenceGuest):
                 notRunning.append(driver)
                 
         if notRunning:
-            raise xenrt.XRTFailure(" %s services not running on %s" %(','.join(notRunning), self.getName()))
+            if ignoreException:
+                return False
+            else:
+                raise xenrt.XRTFailure(" %s services not running on %s" %(','.join(notRunning), self.getName()))
+        else:
+            return True
             
         xenrt.TEC().logverbose("PV Devices are installed and Running on %s " %(self.getName()))
+
+    def uninstallDrivers(self, waitForDaemon=True):
         
+        installed = False
+        driversToUninstall = ['*XENVIF*', '*XENBUS*', '*VEN_5853*']
+        
+        var1 = self.winRegPresent('HKLM', "SOFTWARE\\Wow6432Node\\Citrix\\XenToolsInstaller", "InstallStatus")
+        var2 = self.winRegPresent('HKLM', "SOFTWARE\\Citrix\\XenToolsInstaller", "InstallStatus")
+        if var1 or var2:
+            super(DundeeGuest , self).uninstallDrivers(waitForDaemon)
+            
+        else:
+            #Drivers are installed using PV Packages uninstall them separately
+            
+            if self.xmlrpcGetArch().endswith('64'):
+                devconexe = "devcon64.exe"
+            else:
+                devconexe = "devcon.exe"
+                
+            if not self.xmlrpcFileExists("c:\\%s" % devconexe):
+                self.xmlrpcSendFile("%s/distutils/%s" % (xenrt.TEC().lookup("LOCAL_SCRIPTDIR"), devconexe), "c:\\%s" % devconexe)
+                
+            self.enablePowerShellUnrestricted()
+            
+            #Get the OEM files to be deleted after uninstalling drivers
+            oemFileList = self.xmlrpcExec("C:\\%s dp_enum | select-string 'Citrix' -Context 1,0 | findstr 'oem'" %(devconexe), returndata = True, powershell=True).strip().splitlines()
+            oemFileList = [item.strip() for item in oemFileList][1:]
+            
+            batch = []
+            
+            for driver in driversToUninstall:
+            
+                batch.append("C:\\devcon64.exe remove %s\r\n" %(driver))
+                batch.append("ping 127.0.0.1 -n 10 -w 1000\r\n")
+
+            for file in oemFileList:
+                batch.append("pnputil.exe -f -d %s\r\n" %(file)) 
+                batch.append("ping 127.0.0.1 -n 10 -w 1000\r\n")
+            
+            self.xmlrpcWriteFile("c:\\uninst.bat", string.join(batch))
+            self.xmlrpcStart("c:\\uninst.bat")
+        
+        self.reboot()
+        
+        if not self.xmlrpcIsAlive():
+            raise xenrt.XRTFailure("XML-RPC not alive after tools uninstallation")
+        
+        # Verify PV devices have been removed after tools uninstallation
+        if self.checkPVDevicesState() and not self.checkPVDriversStatus(ignoreException = True):
+            xenrt.TEC().logverbose("PV Packages are uninstalled Successfully")
+        else:
+            raise xenrt.XRTFailure("PV Packages are not uninstalled")
+            
+        self.enlightenedDrivers = False
+
 class StorageMotionObserver(xenrt.EventObserver):
 
     def startObservingSXMMigrate(self,vm,destHost,destSession):

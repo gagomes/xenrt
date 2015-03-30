@@ -40,7 +40,7 @@ MaxNumOfVGPUPerPGPU = {
     VGPUConfig.K240 :  4,
     VGPUConfig.K260 :  2,
     VGPUConfig.K280 : 1,
-    VGPUConfig.K2PassThrough : 1
+    VGPUConfig.K2PassThrough : 1,
     VGPUConfig.PassThrough : 1
     }
 

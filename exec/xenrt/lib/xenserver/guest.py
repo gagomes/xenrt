@@ -1516,7 +1516,7 @@ exit /B 1
         
         return pvcheck
         
-    def checkPVDevices():
+    def checkPVDevices(self):
         # Check the guest is using the PV drivers
         pvcheck = self.checkPVDevicesState()
         

@@ -292,6 +292,6 @@ class XenServerLicenseFactory(object):
             return TampaLicense(sku)
         if lver == self.__CLR:
             return ClearwaterLicense(sku)
-        if lver == self.__CRE or lver == self._CRM or lver == self.__DUN:
+        if lver == self.__CRE or lver == self.__CRM or lver == self.__DUN:
             return CreedenceLicense(sku)
         raise ValueError("No license object was found for the provided host version: %s" % productVersion)

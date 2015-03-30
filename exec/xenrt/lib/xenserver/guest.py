@@ -782,6 +782,7 @@ users:
                         pass
                     if (xenrt.util.timenow() - startTime) > 600:
                         raise xenrt.XRTError("domid failed to change 10 minutes after an unenlightenedReboot")
+                    xenrt.sleep(10)
             xenrt.sleep(20)
         else:
             xenrt.TEC().progress("Starting guest VM %s" % (self.name))

@@ -18,7 +18,7 @@
       <testcase id="testcases.xenserver.tc.vgpu.TCOpsonK2vGPUToVMhasGotvGPU" name="TC-20824" tc="TC-20824">
         <arg>distro=10,14</arg>
         <arg>typeofvgpu=nvidialinuxvgpu</arg>
-        <arg>vgpuconfig=11</arg>
+        <arg>vgpuconfig=12</arg>
       </testcase>
 
       <testcase id="testcases.xenserver.tc.vgpu.TCReuseK2PGPU" name="TC-26351" tc="TC-26351">

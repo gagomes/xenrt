@@ -2555,11 +2555,12 @@ class TCBasicVerifOfAllK2config(FunctionalBase):
             vm = self.masterVMs[osType]
 
             expVGPUType = self.getConfigurationName(config)
-
-            vm.setState("DOWN")
             log("Creating vGPU of type %s" % (expVGPUType))
-            self.configureVGPU(config, vm)
-            vm.setState("UP")
+
+            #vm.setState("DOWN")
+            #self.configureVGPU(config, vm)
+            #vm.setState("UP")
+            self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
 
             log("Install guest drivers for %s" % str(vm))
             self.typeOfvGPU.installGuestDrivers(vm,expVGPUType)

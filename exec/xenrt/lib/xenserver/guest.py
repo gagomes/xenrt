@@ -253,7 +253,7 @@ class Guest(xenrt.GenericGuest):
         if not distro:
             distro=self.distro
         hvms = self.getHost().lookup("HVM_LINUX", None)
-        if hvms:
+        if distro and hvms:
             for d in hvms.split(","):
                 if re.match(d, distro):
                     return True
@@ -585,6 +585,8 @@ class Guest(xenrt.GenericGuest):
                     xenrt.TEC().logverbose("wget %s/%s"%(_new_kernel,kernelFix))
                     self.execcmd("wget %s/%s"%(_new_kernel,kernelFix))
                     self.execcmd("rpm -ivh --force %s"%(kernelFix))
+            else:
+                raise xenrt.XRTError("XSKernel requested, but not available for this distro (%s)" % distro)
 
     def installCoreOS(self):
         self.host.installContainerPack()

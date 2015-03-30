@@ -516,7 +516,7 @@ class TCUnsupFlags(xenrt.TestCase):
         seq.doPrepare()
 
     def isPropAlreadySet(self, flag):
-        return flag in xenrt.util.command('xenrt machine %s | grep -e "^PROPS"' % (self.machineName) , ignoreerrors=True)
+        return flag in xenrt.util.command('xenrt machine %s | grep -e "^PROPS"' % (self.machineName) , ignoreerrors=True).lstrip("PROPS=").strip(" \n'").split(",")
 
     def doCommand(self, command):
         if self.updateMachine:

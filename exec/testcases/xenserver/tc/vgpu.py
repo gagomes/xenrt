@@ -262,7 +262,7 @@ class VGPUTest(object):
         VGPUConfig.K240 : "K240",
         VGPUConfig.K260 : "K260",
         VGPUConfig.K280 : "K280",
-        VGPUConfig.K2PassThrough : "K2PassThrough"
+        VGPUConfig.K2PassThrough : "K2PassThrough",
         VGPUConfig.PassThrough : "PassThrough"
     }
 

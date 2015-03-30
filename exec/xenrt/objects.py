@@ -8576,8 +8576,9 @@ class GenericGuest(GenericPlace):
 
             arch = "amd64" if "64" in self.arch else "i386"
             xenrt.TEC().logverbose("distro: %s | repository: %s | filename: %s" % (distro, repository, filename))
-            if re.search("ubuntu", distro):
-                release = re.search("Ubuntu/(\d+)/", repository).group(1)
+            m = re.search("ubuntu(\d+)", distro)
+            if m:
+                release = m.group(1)
                 if release == "1004":
                     _url = repository + "/dists/lucid/"
                 elif release == "1204":
@@ -8586,8 +8587,13 @@ class GenericGuest(GenericPlace):
                     _url = repository + "/dists/trusty/"
                 boot_dir = "main/installer-%s/current/images/netboot/ubuntu-installer/%s/" % (arch, arch)
             else:
-                release = re.search("Debian/(\w+)/", repository).group(1)
-                _url = repository + "/dists/%s/" % (release.lower(), )
+                if distro == "debian50":
+                    release = "lenny"
+                elif distro == "debian60":
+                    release = "squeeze"
+                elif distro == "debian70":
+                    release = "wheezy"
+                _url = repository + "/dists/%s/" % (release)
                 boot_dir = "main/installer-%s/current/images/netboot/debian-installer/%s/" % (arch, arch)
 
             # Pull boot files from HTTP repository

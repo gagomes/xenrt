@@ -6034,16 +6034,12 @@ class DundeeGuest(CreedenceGuest):
         installed = False
         driversToUninstall = ['*XENVIF*', '*XENBUS*', '*VEN_5853*']
         
-        if self.winRegPresent('HKLM', "SOFTWARE\\Wow6432Node\\Citrix\\XenToolsInstaller", "InstallStatus") or self.winRegPresent('HKLM', "SOFTWARE\\Citrix\\XenToolsInstaller", "InstallStatus"):
-            
-            installed = True
-
-        if installed:
-            #Drivers are installed using the tools ISO ,
-            
+        var1 = self.winRegPresent('HKLM', "SOFTWARE\\Wow6432Node\\Citrix\\XenToolsInstaller", "InstallStatus")
+        var2 = self.winRegPresent('HKLM', "SOFTWARE\\Citrix\\XenToolsInstaller", "InstallStatus")
+        if var1 or var2:
             super(DundeeGuest , self).uninstallDrivers(waitForDaemon)
-        else:
             
+        else:
             #Drivers are installed using PV Packages uninstall them separately
             
             if self.xmlrpcGetArch().endswith('64'):
@@ -6076,9 +6072,6 @@ class DundeeGuest(CreedenceGuest):
         
         self.reboot()
         
-        # wait for reboot
-        xenrt.sleep(6 * 60)
-
         if not self.xmlrpcIsAlive():
             raise xenrt.XRTFailure("XML-RPC not alive after tools uninstallation")
         

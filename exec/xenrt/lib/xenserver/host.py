@@ -2505,6 +2505,9 @@ fi
             self.reboot()
             self.assertNotRunningDebugXen()
 
+        # Update our product version in case the hotfix has changed it
+        self.checkVersion()
+
         return reply
 
     
@@ -8197,6 +8200,7 @@ rm -f /etc/xensource/xhad.conf || true
         return "HVM: Hardware Assisted Paging detected and enabled." in dmesg or "HVM: Hardware Assisted Paging (HAP) detected" in dmesg
 
     def resolveDistroName(self, distro):
+        origDistro = distro
         special = {}
 
         m = re.match("^(oel|sl|rhel|centos)(\d)x$", distro)
@@ -8224,7 +8228,7 @@ rm -f /etc/xensource/xhad.conf || true
         if m:
             distro = "%s%s" % (m.group(1), m.group(2))
             special['XSKernel'] = True
-
+        xenrt.TEC().logverbose("Resolved %s to %s with %s (host is %s)" % (origDistro, distro, special, self.productVersion))
         return (distro, special)
 
 

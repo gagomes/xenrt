@@ -252,7 +252,12 @@ class Guest(xenrt.GenericGuest):
     def isHVMLinux(self, distro=None):
         if not distro:
             distro=self.distro
-        return distro in string.split(self.getHost().lookup("HVM_LINUX", ""), ",")
+        hvms = self.getHost().lookup("HVM_LINUX", None)
+        if hvms:
+            for d in hvms.split(","):
+                if re.match(d, distro):
+                    return True
+        return False
 
     def install(self,
                 host,
@@ -559,7 +564,7 @@ class Guest(xenrt.GenericGuest):
             self.installTools()
         if self.special.get("XSKernel"):
             kernelUpdatesPrefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "") + "/kernelUpdates"
-            if distro and 'oel7' in distro:
+            if distro and distro == 'oel7':
                 _new_kernel = kernelUpdatesPrefix + "/OEL7/"
                 _new_kernel_path = ["kernel-uek-firmware-3.8.13-36.3.1.el7uek.xs.x86_64.rpm",
                                     "kernel-uek-3.8.13-36.3.1.el7uek.xs.x86_64.rpm",

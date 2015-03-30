@@ -389,6 +389,8 @@ class _BalloonSmoketest(_BalloonPerfBase):
                         xenrt.TEC().logverbose("Unable to recover guest, other tests blocked.")
                         return
                 pass
+            else:
+                raise
                
 
     def lifecycleOps(self, min):

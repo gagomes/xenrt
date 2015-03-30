@@ -10,7 +10,7 @@ from abc import ABCMeta, abstractmethod
 Enums
 """
 class VGPUOS(object): Win7x86, Win7x64, WS2008R2, Win8x86, Win8x64, Win81x86, Win81x64, WS12x64, WS12R2x64,DEBIAN,Centos7,Rhel7,Oel7,Ubuntu1404x86,Ubuntu1404x64 = range(15)
-class VGPUConfig(object): K100, K120, K140, K160, K180, K1PassThrough, K200, K220, K240, K260, K280, K2PassThrough = range(12)
+class VGPUConfig(object): K100, K120, K140, K160, K180, K1PassThrough, K200, K220, K240, K260, K280, K2PassThrough, PassThrough = range(13)
 class VGPUDistribution(object): BreadthFirst, DepthFirst = range(2)
 class SRType(object): Local, NFS, ISCSI = range(3)
 class VMStartMethod(object): OneByOne, Simultenous = range(2)
@@ -41,6 +41,7 @@ MaxNumOfVGPUPerPGPU = {
     VGPUConfig.K260 :  2,
     VGPUConfig.K280 : 1,
     VGPUConfig.K2PassThrough : 1
+    VGPUConfig.PassThrough : 1
     }
 
 CardDeviceName = {
@@ -162,8 +163,6 @@ class VGPUBenchmark(object):
         return self.graphicsScore() - self.__GRAPHICS_LEEWAY
 
 class VGPUInstaller(object):
-    __GROUP_K1 = "K1"
-    __GROUP_K2 = "K2"
     __TYPE_PT = "passthrough"
 
 
@@ -178,11 +177,15 @@ class VGPUInstaller(object):
         ggman.obtainExistingGroups()
         for group in ggman.groups:
             gtype = group.getGridType()
+
             if self.__config == VGPUConfig.K100 or self.__config == VGPUConfig.K120 or self.__config == VGPUConfig.K140 or self.__config == VGPUConfig.K1PassThrough or self.__config == VGPUConfig.K160 or self.__config == VGPUConfig.K180:
-                if self.__GROUP_K1 in gtype:
+                if CardName[CardType.K1] in gtype:
                     return group.uuid
-            else:
-                if self.__GROUP_K2 in gtype:
+            elif self.__config == VGPUConfig.K200 or self.__config == VGPUConfig.K220 or self.__config == VGPUConfig.K240 or self.__config == VGPUConfig.K2PassThrough or self.__config == VGPUConfig.K260 or self.__config == VGPUConfig.K280:
+                if CardName[CardType.K2] in gtype:
+                    return group.uuid
+            elif self.__config == VGPUConfig.PassThrough: 
+                if CardName[CardType.Quadro] in gtype or CardName[CardType.Intel] in gtype:
                     return group.uuid
 
         raise xenrt.XRTFailure("A group of config %s was required but none were found" % str(self.__config))
@@ -260,6 +263,7 @@ class VGPUTest(object):
         VGPUConfig.K260 : "K260",
         VGPUConfig.K280 : "K280",
         VGPUConfig.K2PassThrough : "K2PassThrough"
+        VGPUConfig.PassThrough : "PassThrough"
     }
 
     _DIFFVGPUTYPE = {
@@ -1554,14 +1558,18 @@ class VGPUAllocationModeBase(VGPUOwnedVMsTest):
             if not host:
                 continue
             pgpus = host.minimalList("pgpu-list", "", "host-uuid=%s" % (host.uuid,))
-            k1 = k2 = 0
+            k1 = k2 = quadro = intel = 0
             for pgpu in pgpus:
                 device = host.genParamGet("pgpu", pgpu, "device-name")
-                if "GRID K1" in device:
+                if CardDeviceName[CardType.K1] in device:
                     k1 += 1
-                elif "GRID K2" in device:
+                elif CardDeviceName[CardType.K2] in device:
                     k2 += 1
-            if k1 % NumOfPGPUPerCard[CardType.K1] or k2 % NumOfPGPUPerCard[CardType.K2]:
+                elif CardDeviceName[CardType.Quadro] in device:
+                    quadro += 1
+                elif CardDeviceName[CardType.Intel] in device:
+                    intel += 1
+            if k1 % NumOfPGPUPerCard[CardType.K1] or k2 % NumOfPGPUPerCard[CardType.K2] or quadro % NumOfPGPUPerCard[CardType.Quadro] or NumOfPGPUPerCard[CardType.Intel]:
                 raise xenrt.XRTError("Number of PGPU does not match with cards description. found %d K1 PGPU(s) and %d K2 PGPU(s)" % (k1, k2))
             cards[host] = {"K1" : k1 / NumOfPGPUPerCard[CardType.K1], "K2" : k2 / NumOfPGPUPerCard[CardType.K2]}
             log("Found a host with " + str(cards[host]))

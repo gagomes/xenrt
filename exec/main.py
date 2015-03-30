@@ -1272,6 +1272,7 @@ if sanitycheck:
             try:
                 __import__(importPath)
             except:
+                traceback.print_exc(file=sys.stderr)
                 importFails.append(importPath)
 
     if len(importFails) > 0:

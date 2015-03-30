@@ -8200,12 +8200,12 @@ rm -f /etc/xensource/xhad.conf || true
         origDistro = distro
         special = {}
 
-        m = re.match("^(oel|sl|rhel|centos)(\d)x$", distro)
+        m = re.match("^(oel|sl|rhel|centos)[dw]?(\d)x$", distro)
         if m:
             # Fall back to RHEL if we don't have derivatives defined
             distro = self.lookup("LATEST_%s%s" % (m.group(1), m.group(2)),
                         self.lookup("LATEST_rhel%s" % m.group(2)).replace("rhel", m.group(1)))
-        m = re.match("^(oel|sl|rhel|centos)(\d)u$", distro)
+        m = re.match("^(oel|sl|rhel|centos)[dw]?(\d)u$", distro)
         if m:
             # Fall back to RHEL if we don't have derivatives defined
             distro = self.lookup("LATEST_%s%s" % (m.group(1), m.group(2)),
@@ -8221,7 +8221,7 @@ rm -f /etc/xensource/xhad.conf || true
                 else:
                     special['UpdateTo'] = None
         
-        m = re.match("^(oel|sl|rhel|centos)(\d)xs$", distro)
+        m = re.match("^(oel|sl|rhel|centos)[dw]?(\d)xs$", distro)
         if m:
             distro = "%s%s" % (m.group(1), m.group(2))
             special['XSKernel'] = True

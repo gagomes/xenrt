@@ -774,8 +774,12 @@ users:
                 # Wait for the domid to change
                 startTime = xenrt.util.timenow()
                 while True:
-                    if self.getDomid() != domid:
-                        break
+                    try:
+                        if self.getDomid() != domid:
+                            break
+                    except:
+                        # There is a tiny window where the domid may not exist while the reboot occurs
+                        pass
                     if (xenrt.util.timenow() - startTime) > 600:
                         raise xenrt.XRTError("domid failed to change 10 minutes after an unenlightenedReboot")
             xenrt.sleep(20)

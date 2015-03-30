@@ -3645,7 +3645,7 @@ class GPUGroupManager(object):
                 continue
             group = GPUGroup(self.host, guuid)
             log("Checking device type of gpu group %s: %s" % (group.uuid, group.getGridType()))
-            if group.getGridType() == CardName[CardType.K1] or group.getGridType() == CardName[CardType.K2] or group.getGridType() == "":
+            if group.getGridType() == CardName[CardType.K1] or group.getGridType() == CardName[CardType.K2] or group.getGridType() == "" or group.getGridType() == CardName[CardType.Quadro] or group.getGridType() == CardName[CardType.Intel]:
                 gpuGroup.append(group)
         self.groups = gpuGroup
         return gpuGroup

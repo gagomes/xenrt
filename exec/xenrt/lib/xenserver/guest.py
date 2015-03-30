@@ -287,19 +287,11 @@ class Guest(xenrt.GenericGuest):
 
         # Workaround # RHEL/CentOS/OEL 6 or later requires at least 1G ram.
         if distro:
-            if distro.startswith("rhel") and int(distro[-2:]) >= 6:
+            m = re.match("(rhel|centos|oel|sl)[dw]?(\d)\d*", distro)
+            if m and int(m.group(2)) >= 6:
                 if (self.memory and self.memory<1024) or not self.memory:
                     self.memory = 1024
-            if distro.startswith("centos") and int(distro[6:7]) >= 6:
-                if (self.memory and self.memory<1024) or not self.memory:
-                    self.memory = 1024
-            if distro.startswith("oel") and int(distro[3:4]) >= 6:
-                if (self.memory and self.memory<1024) or not self.memory:
-                    self.memory = 1024
-            if distro.startswith("sl") and not distro.startswith("sles") and int(distro[2:3]) >= 6:
-                if (self.memory and self.memory<1024) or not self.memory:
-                    self.memory = 1024
-
+                                        
         # Hack to avoid using an ISO install for Debian VMs from TCMultipleVDI
         # etc.
         if distro and (distro in ["etch", "sarge"] or "debian5" in distro):

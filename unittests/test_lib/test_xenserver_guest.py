@@ -90,7 +90,7 @@ class TestMaxSupportedVCPU(XenRTUnitTestCase):
     def testCreedenceRHEL(self):
         distros = ["rhel61", "rhel61", "rhel7"]
         archs = ["x86", "x86-64", "x86-64"]
-        results = [32, 32, 16]
+        results = [32, 32, 32]
 
         self.run_for_many(zip(distros, archs, results), self.__testCreedence)
 
@@ -115,9 +115,9 @@ class TestMaxSupportedVCPU(XenRTUnitTestCase):
         self.run_for_many(zip(distros, ["x86"] * len(distros), results), self.__testCreedence)
 
     def testTampaRHEL(self):
-        distros = ["rhel61", "rhel61", "rhel7"]
-        archs = ["x86", "x86-64", "x86-64"]
-        results = [16, 16, 16]
+        distros = ["rhel61", "rhel61"]
+        archs = ["x86", "x86-64"]
+        results = [16, 16]
 
         self.run_for_many(zip(distros, archs, results), self.__testTampa)
 
@@ -142,9 +142,9 @@ class TestMaxSupportedVCPU(XenRTUnitTestCase):
         self.run_for_many(zip(distros, ["x86"] * len(distros), results), self.__testTampa)
 
     def testClearwaterRHEL(self):
-        distros = ["rhel61", "rhel61", "rhel7"]
-        archs = ["x86", "x86-64", "x86-64"]
-        results = [16, 16, 16]
+        distros = ["rhel61", "rhel61"]
+        archs = ["x86", "x86-64"]
+        results = [16, 16]
 
         self.run_for_many(zip(distros, archs, results), self.__testClearwater)
 
@@ -171,7 +171,7 @@ class TestMaxSupportedVCPU(XenRTUnitTestCase):
     def testDundeeRHEL(self):
         distros = ["rhel61", "rhel61", "rhel7"]
         archs = ["x86", "x86-64", "x86-64"]
-        results = [32, 32, 16]
+        results = [32, 32, 32]
 
         self.run_for_many(zip(distros, archs, results), self.__testDundee)
 

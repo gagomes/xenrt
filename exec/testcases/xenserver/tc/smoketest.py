@@ -27,6 +27,9 @@ class _TCSmokeTest(xenrt.TestCase):
 
         self.host = self.getDefaultHost()
         if self.DISTRO:
+            # Workaroun CA-165205
+            if self.DISTRO == "generic-linux" and self.host.lookup("GENERIC_LINUX_OS") in ("etch", "debian60"):
+                self.DISTRO = "rhel5x"
             (self.distro, self.arch) = xenrt.getDistroAndArch(self.DISTRO)
         elif self.tcsku.endswith("_XenApp"):
             distroarch = self.tcsku.replace("_XenApp", "")

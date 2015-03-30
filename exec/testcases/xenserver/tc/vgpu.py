@@ -3197,6 +3197,24 @@ class MixedGPUBootstorm(BootstormBase):
         self.PASSTHROUGH_ALLOCATION = float(args['passthroughalloc'])
         self.VGPU_TYPE = int(args['vgpualloctype'])
 
+class TCIntelSetupNegative(FunctionalBase):
+    """
+    Setting up the intel environment wrong.
+    Blocking assess but not rebooting host.
+    Attemping to attach vGPU Passthrough to VM.
+    """
+    pass
+
+class TCIntelGPUSnapshotNegative(FunctionalBase):
+    """
+    Setting up VM with Intel GPU Passthrough.
+    Snapshotting VM.
+    Destroy GPU and unblock Dom0 access to GPU.
+    Starting VM and revert, should fail.
+    (Turns off VM, and fails to start.)
+    """
+    pass
+
 class TCAlloModeK200NFS(VGPUAllocationModeBase):
 
     """

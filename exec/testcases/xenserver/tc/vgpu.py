@@ -14,7 +14,7 @@ class VGPUConfig(object): K100, K120, K140, K160, K180, K1PassThrough, K200, K22
 class VGPUDistribution(object): BreadthFirst, DepthFirst = range(2)
 class SRType(object): Local, NFS, ISCSI = range(3)
 class VMStartMethod(object): OneByOne, Simultenous = range(2)
-class CardType(object): K1, K2, Quadro, Intel, NotAvailable = range(4)
+class CardType(object): K1, K2, Quadro, Intel, NotAvailable = range(5)
 class DriverType(object): Signed, Unsigned = range(2)
 class DiffvGPUType(object): NvidiaWinvGPU, NvidiaLinuxvGPU, IntelWinvGPU = range(3)
 

@@ -1804,7 +1804,7 @@ class DifferentGPU(object):
         pass
 
     @abstractmethod
-    def attachvGPUToVM(self, vgpucreator, vm, groupuuid=None):
+    def attachvGPUToVM(self, vgpuinstaller, vm, groupuuid=None):
         """
         Attach a type of vgpu.
         """
@@ -1827,9 +1827,9 @@ class NvidiaWindowsvGPU(DifferentGPU):
     def runWorkload(self,vm):
         VGPUTest().runWindowsWorkload(vm)
 
-    def attachvGPUToVM(self, vgpucreator, vm, groupuuid=None):
+    def attachvGPUToVM(self, vgpuinstaller, vm, groupuuid=None):
         vm.setState("DOWN")
-        vgpucreator.createOnGuest(vm, groupuuid)
+        vgpuinstaller.createOnGuest(vm, groupuuid)
         vm.setState("UP")
 
 class NvidiaLinuxvGPU(DifferentGPU):
@@ -1851,9 +1851,9 @@ class NvidiaLinuxvGPU(DifferentGPU):
         xenrt.TEC().logverbose("Not implemented")
         pass
 
-    def attachvGPUToVM(self, vgpucreator, vm):
+    def attachvGPUToVM(self, vgpuinstaller, vm, groupuuid=None):
         vm.setState("DOWN")
-        vgpucreator.createOnGuest(vm)
+        vgpuinstaller.createOnGuest(vm)
         vm.setState("UP")
 
 class IntelWindowsvGPU(DifferentGPU):
@@ -1874,10 +1874,10 @@ class IntelWindowsvGPU(DifferentGPU):
     def runWorkload(self,vm):
         VGPUTest().runWindowsWorkload(vm)
 
-    def attachvGPUToVM(self, vgpucreator, vm):
+    def attachvGPUToVM(self, vgpuinstaller, vm, groupuuid=None):
         # Call some lib code, restart the host.
         vm.setState("DOWN")
-        vgpucreator.createOnGuest(vm)
+        vgpuinstaller.createOnGuest(vm)
         vm.setState("UP")
 
 """ Negative Test Cases """
@@ -2117,11 +2117,10 @@ class TCNovGPUTypeGiven(FunctionalBase):
         vm = self.createMaster(osType)
 
         log("Creating vGPU ")
-        vm.setState("DOWN")
-
-        vm.createvGPU(groupUUID=groupUUID)
-
-        vm.setState("UP")
+        #vm.setState("DOWN")
+        #vm.createvGPU(groupUUID=groupUUID)
+        #vm.setState("UP")
+        self.typeOfvGPU.attatchGPU(self.vGPUCreator[config], vm, groupUUID)
 
         vgpuType, vgpuuuid = self.typeOfvGPUonVM(vm)
 
@@ -2168,8 +2167,9 @@ class TCReuseK2PGPU(FunctionalBase):
                 typeOfVgpu = self.nvidLinvGPU
 
             log("Creating vGPU of type %s" % (self.getConfigurationName(config)))
-            self.configureVGPU(config, vm)
-            vm.setState("UP")
+            #self.configureVGPU(config, vm)
+            #vm.setState("UP")
+            typeOfVgpu.attachvGPUToVM(self.vGPUCreator[config], vm)
 
             log("Install guest drivers for %s" % str(vm))
             typeOfVgpu.installGuestDrivers(vm,self.getConfigurationName(config))
@@ -2282,8 +2282,9 @@ class TCRevertvGPUSnapshot(FunctionalBase):
             vm = self.createMaster(osType)
 
             log("Creating vGPU of type %s" % (self.getConfigurationName(self.VGPU_CONFIG[0])))
-            self.configureVGPU(self.VGPU_CONFIG[0], vm)
-            vm.setState("UP")
+            #self.configureVGPU(self.VGPU_CONFIG[0], vm)
+            #vm.setState("UP")
+            self.typeOfvGPU.attachvGPUToVM(self.VGPU_CONFIG[0], vm)
 
             log("Install guest drivers for %s" % str(vm))
             self.typeOfvGPU.installGuestDrivers(vm,self.getConfigurationName(self.VGPU_CONFIG[0]))
@@ -2348,8 +2349,9 @@ class TCvGPUBalloon(FunctionalBase):
             vm = self.createMaster(osType)
 
             log("Creating vGPU of type %s" % (self.getConfigurationName(self.VGPU_CONFIG[0])))
-            self.configureVGPU(self.VGPU_CONFIG[0], vm)
-            vm.setState("UP")
+            #self.configureVGPU(self.VGPU_CONFIG[0], vm)
+            #vm.setState("UP")
+            self.typeOfvGPU.attachvGPUToVM(self.VGPU_CONFIG[0], vm)
 
             log("Install guest drivers for %s" % str(vm))
             self.typeOfvGPU.installGuestDrivers(vm,self.getConfigurationName(self.VGPU_CONFIG[0]))
@@ -2470,11 +2472,11 @@ class TCRevertnonvGPUSnapshot(FunctionalBase):
             vm = self.guests[osType]
             snapshot = vm.snapshot()
 
-            vm.setState("DOWN")
             log("Creating vGPU of type %s" % (self.getConfigurationName(self.VGPU_CONFIG[0])))
-            self.configureVGPU(self.VGPU_CONFIG[0], vm)
-
-            vm.setState("UP")
+            #vm.setState("DOWN")
+            #self.configureVGPU(self.VGPU_CONFIG[0], vm)
+            #vm.setState("UP")
+            self.typeOfvGPU.attachvGPUToVM(self.VGPU_CONFIG[0], vm)
 
             log("Install guest drivers for %s" % str(vm))
             self.typeOfvGPU.installGuestDrivers(vm,expVGPUType)
@@ -2513,8 +2515,9 @@ class TCChangeK2vGPUType(TCRevertvGPUSnapshot):
                 vm.destroyvGPU()
 
                 log("Creating vGPU of type %s" % (self.getConfigurationName(config)))
-                self.configureVGPU(config, vm)
-                vm.setState("UP")
+                #self.configureVGPU(config, vm)
+                #vm.setState("UP")
+                self.typeOfvGPU.attachvGPUToVM(config, vm)
 
                 xenrt.sleep(300)
 
@@ -2603,10 +2606,11 @@ class TCAssignK2vGPUToVMhasGotvGPU(TCBasicVerifOfAllK2config):
 
         expVGPUType = self.getConfigurationName(config)
 
-        vm.setState("DOWN")
         log("Creating vGPU of type %s" % (expVGPUType))
-        self.configureVGPU(config, vm)
-        vm.setState("UP")
+        #vm.setState("DOWN")        
+        #self.configureVGPU(config, vm)
+        #vm.setState("UP")
+        self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
 
         log("Install guest drivers for %s" % str(vm))
         self.typeOfvGPU.installGuestDrivers(vm,expVGPUType)
@@ -2668,10 +2672,11 @@ class TCOpsonK2vGPUToVMhasGotvGPU(TCBasicVerifOfAllK2config):
 
         expVGPUType = self.getConfigurationName(config)
 
-        vm.setState("DOWN")
         log("Creating vGPU of type %s" % (expVGPUType))
-        self.configureVGPU(config, vm)
-        vm.setState("UP")
+        #vm.setState("DOWN")
+        #self.configureVGPU(config, vm)
+        #vm.setState("UP")
+        self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
 
         log("Install guest drivers for %s" % str(vm))
         self.typeOfvGPU.installGuestDrivers(vm,expVGPUType)
@@ -2737,10 +2742,11 @@ class TCCheckPerfModeAllVMs(TCBasicVerifOfAllK2config):
 
         expVGPUType = self.getConfigurationName(config)
 
-        vm.setState("DOWN")
         log("Creating vGPU of type %s" % (expVGPUType))
-        self.configureVGPU(config, vm)
-        vm.setState("UP")
+        #vm.setState("DOWN")
+        #self.configureVGPU(config, vm)
+        #vm.setState("UP")
+        self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
 
         log("Install guest drivers for %s" % str(vm))
         self.typeOfvGPU.installGuestDrivers(vm,expVGPUType)
@@ -2831,10 +2837,11 @@ class TCBreadthK100K1Pass(TCBasicVerifOfAllK2config):
 
             expVGPUType = self.getConfigurationName(config)
 
-            vm.setState("DOWN")
             log("Creating vGPU of type %s" % (expVGPUType))
-            self.configureVGPU(config, vm)
-            vm.setState("UP")
+            #vm.setState("DOWN")
+            #self.configureVGPU(config, vm)
+            #vm.setState("UP")
+            self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
 
             log("Install guest drivers for %s" % str(vm))
             self.typeOfvGPU.installGuestDrivers(vm,expVGPUType)
@@ -2935,9 +2942,11 @@ class TCExportImportK2GPU(FunctionalBase):
 
         step("Testing OS %s with %s type vGPU" % (osType, expVGPUType))
         masterVM = self.masterVMs[osType]
-        masterVM.setState("DOWN")
-        self.configureVGPU(config, masterVM)
-        masterVM.setState("UP")
+        
+        #masterVM.setState("DOWN")
+        #self.configureVGPU(config, masterVM)
+        #masterVM.setState("UP")
+        self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], masterVM)
 
         log("Install guest drivers for %s" % str(masterVM))
         self.typeOfvGPU.installGuestDrivers(masterVM,expVGPUType)
@@ -3024,9 +3033,10 @@ class TCNonWindowsK1(FunctionalBase):
 
         expVGPUType = self.getConfigurationName(config)
 
-        vm.setState("DOWN")
         log("Creating vGPU of type %s" % (expVGPUType))
-        self.configureVGPU(config, vm)
+        #vm.setState("DOWN")
+        #self.configureVGPU(config, vm)
+        self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
 
         try:
             vm.setState("UP")
@@ -3101,9 +3111,9 @@ class LinuxGPUBootstorm(BootstormBase):
         osType = self.getOSType(distro)
         vm = self.createMaster(osType)
 
-        installer.createOnGuest(vm)
-
-        vm.setState("UP")
+        #installer.createOnGuest(vm)
+        #vm.setState("UP")
+        self.typeOfvGPU.attachvGPUToVM(installer, vm)
 
         self.typeOfvGPU.installGuestDrivers(vm,self.getConfigurationName(config))
 
@@ -3174,8 +3184,9 @@ class MixedGPUBootstorm(BootstormBase):
             self.__configureMasterAndPopulate(windowsMaster, config, remainingCapacity, installer, self.nvidWinvGPU)
 
     def __configureMasterAndPopulate(self, master, config, allocation, installer, typeVgpu):
-        installer.createOnGuest(master)
-        master.setState("UP")
+        #installer.createOnGuest(master)
+        #master.setState("UP")
+        typeVgpu.attachvGPUToVM(installer, master)
         typeVgpu.installGuestDrivers(master,self.getConfigurationName(config))
         master.setState("DOWN")
         self.vms.append((master, config))

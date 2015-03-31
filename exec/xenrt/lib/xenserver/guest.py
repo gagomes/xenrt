@@ -751,6 +751,9 @@ users:
                           (self.name, state), level)
             xenrt.sleep(15, log=False)
 
+    def simpleStart(self):
+        self.lifecycleOperation("vm-start", specifyOn=False)
+
     def start(self, reboot=False, skipsniff=False, specifyOn=True,\
               extratime=False, managenetwork=None, managebridge=None, 
               forcedReboot = False):

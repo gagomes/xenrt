@@ -292,8 +292,10 @@ class TCSmokeTestMaxMem(_TCSmokeTest):
 
         if self.arch == "x86-32":
             guestMaxMem = int(glimits['MAXMEMORY'])
-        else:
+        elif glimits.has_key("MAXMEMORY"):
             guestMaxMem = int(glimits.get("MAXMEMORY64", glimits['MAXMEMORY']))
+        else:
+            guestMaxMem = int(glimits['MAXMEMORY64'])
 
         self.memory = min(guestMaxMem, hostMaxMem)
 

@@ -2207,6 +2207,7 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["rhel65"]["MAXMEMORY64"] = "32768"
         self.config["GUEST_LIMITATIONS"]["rhel66"] = {}
         self.config["GUEST_LIMITATIONS"]["rhel66"]["MINMEMORY"] = "1024"
+        self.config["GUEST_LIMITATIONS"]["rhel66"]["STATICMINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["rhel66"]["MAXMEMORY"] = "8192"
         self.config["GUEST_LIMITATIONS"]["rhel66"]["MAXMEMORY64"] = "32768"
         self.config["GUEST_LIMITATIONS"]["rheld66"] = {}
@@ -2317,6 +2318,7 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["centos65"]["MAX_VM_VCPUS64"] = "32"
         self.config["GUEST_LIMITATIONS"]["centos66"] = {}
         self.config["GUEST_LIMITATIONS"]["centos66"]["MINMEMORY"] = "1024"
+        self.config["GUEST_LIMITATIONS"]["centos66"]["STATICMINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["centos66"]["MAXMEMORY"] = "8192"
         self.config["GUEST_LIMITATIONS"]["centos66"]["MAXMEMORY64"] = "32768"
         self.config["GUEST_LIMITATIONS"]["centos66"]["MAX_VM_VCPUS"] = "32"
@@ -2447,12 +2449,14 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["sles112"]["MAXMEMORY64"] = "524288"
         self.config["GUEST_LIMITATIONS"]["sles113"] = {}
         self.config["GUEST_LIMITATIONS"]["sles113"]["MINMEMORY"] = "4096"
+        self.config["GUEST_LIMITATIONS"]["sles113"]["STATICMINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["sles113"]["MAXMEMORY"] = "16384"
         self.config["GUEST_LIMITATIONS"]["sles113"]["MAXMEMORY64"] = "524288"
         self.config["GUEST_LIMITATIONS"]["sles113"]["MAX_VM_VCPUS"] = "32"
         self.config["GUEST_LIMITATIONS"]["sles113"]["MAX_VM_VCPUS64"] = "32"
         self.config["GUEST_LIMITATIONS"]["sles12"] = {}
         self.config["GUEST_LIMITATIONS"]["sles12"]["MINMEMORY"] = "4096"
+        self.config["GUEST_LIMITATIONS"]["sles12"]["STATICMINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["sles12"]["MAXMEMORY"] = "16384"
         self.config["GUEST_LIMITATIONS"]["sles12"]["MAXMEMORY64"] = "524288"
         self.config["GUEST_LIMITATIONS"]["solaris10u9"] = {}
@@ -2488,6 +2492,7 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["debian60"]["MAX_VM_VCPUS64"] = "32"
         self.config["GUEST_LIMITATIONS"]["debian70"] = {}
         self.config["GUEST_LIMITATIONS"]["debian70"]["MINMEMORY"] = "256"
+        self.config["GUEST_LIMITATIONS"]["debian70"]["STATICMINMEMORY"] = "128"
         self.config["GUEST_LIMITATIONS"]["debian70"]["MAXMEMORY"] = "65536"
         self.config["GUEST_LIMITATIONS"]["debian70"]["MAXMEMORY64"] = "131072"
         self.config["GUEST_LIMITATIONS"]["debian70"]["MAX_VM_VCPUS"] = "32"

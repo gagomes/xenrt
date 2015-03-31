@@ -7432,12 +7432,6 @@ class GenericGuest(GenericPlace):
 
                 self.execguest("sed -i 's/TMPTIME=0/TMPTIME=-1/g' /etc/default/rcS")
 
-                # Remove the repositories we don't mirror from the apt list
-                self.execguest("sed -i '/backports/d' /etc/apt/sources.list")
-                self.execguest("sed -i '/security/d' /etc/apt/sources.list")
-                self.execguest("sed -i '/multiverse/d' /etc/apt/sources.list")
-                self.execguest("sed -i '/universe/d' /etc/apt/sources.list")
-                self.execguest("sed -i '/deb-src/d' /etc/apt/sources.list")
                 self.execguest("cat /etc/apt/sources.list")
                 self.execguest("apt-get update")
 

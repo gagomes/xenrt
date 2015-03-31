@@ -11584,7 +11584,43 @@ class CreedenceHost(ClearwaterHost):
 
             self.execdom0("xe-install-supplemental-pack /tmp/xscontainer.iso")
 
-        
+    def blockDom0AccessToOnboardPGPU(self, gpuuuid):
+
+        if not gpuuuid:
+            raise xenrt.XRTFailure("No PGPU uuid given")
+
+        cli = self.getCLIInstance()
+        args = []
+
+        args.append("uuid=%s" % gpuuuid)
+        cli.execute("pgpu-disable-dom0-acess", string.join(args))
+
+    def unblockDom0AccessToOboardPGPU(self, gpuuuid):
+
+        if not gpuuuid:
+            raise xenrt.XRTFailure("No PGPU uuid given")
+
+        cli = self.getCLIInstance()
+        args = []
+
+        args.append("uuid=%s" % gpuuuid)
+        cli.execute("pgpu-enable-dom0-acess", string.join(args))
+
+    def disableHostDisplay(self):
+
+        cli = self.getCLIInstance()
+        args = []
+
+        args.append("uuid=%s" % self.uuid)
+        cli.execute("host-disable-display", string.join(args))        
+
+    def enablHostDisplay(self):
+
+        cli = self.getCLIInstance()
+        args = []
+
+        args.append("uuid=%s" % self.uuid)
+        cli.execute("host-enable-display", string.join(args))
 
 #############################################################################
 class DundeeHost(CreedenceHost):

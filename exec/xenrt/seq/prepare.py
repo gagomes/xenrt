@@ -364,7 +364,7 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
         
         hasAdvancedNet = False
         self.handleSRs(node, host['name'])
-        self.handleBridges(node, host)
+        self.handleBridges(node, host['name'])
 
         for x in node.get("vms", []):
             vm = self.handleVMNode(x)
@@ -793,7 +793,7 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
                     name = self.expand(x.getAttribute("name"))
                     self.parent.bridges.append({"type":type, 
                                          "name":name, 
-                                         "host":host})
+                                         "host":host['name']})
                 elif x.localName == "vm":
                     vm = self.handleVMNode(x)
                     vm["host"] = host["name"] 
@@ -1130,7 +1130,7 @@ class PrepareNode(object):
 
                 # Create network bridges.
                 for b in self.bridges:
-                    host = xenrt.TEC().registry.hostGet(b["host"]["name"]) 
+                    host = xenrt.TEC().registry.hostGet(b["host"]) 
                     host.createNetwork(b["name"])
 
                 # Add ISO SRs to pool masters and independent hosts.

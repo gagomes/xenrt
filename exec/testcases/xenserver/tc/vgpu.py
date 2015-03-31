@@ -1843,7 +1843,7 @@ class DifferentGPU(object):
         pass
 
     @abstractmethod
-    def attachvGPUToVM(self, vgpucreator, vm, groupuuid=None):
+    def attachvGPUToVM(self, vgpucreator, vm, groupuuid):
         """
         Attach a type of vgpu.
         """

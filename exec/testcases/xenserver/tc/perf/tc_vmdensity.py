@@ -582,7 +582,10 @@ class GuestEvent:
 
         while True:
             try:
-                msg, (guest_ip, guest_port) = sock.recvfrom( 16)#, socket.MSG_DONTWAIT ) # buffer size is smallest possible to fit one msg only
+                if xenrt.TEC().lookup("USE_GUEST_IPV6", False):
+                    msg, (guest_ip, guest_port, foo, bar) = sock.recvfrom( 16)#, socket.MSG_DONTWAIT ) # buffer size is smallest possible to fit one msg only
+                else:
+                    msg, (guest_ip, guest_port) = sock.recvfrom( 16)#, socket.MSG_DONTWAIT ) # buffer size is smallest possible to fit one msg only
                 if not self.events.has_key(guest_ip):
                     guest_name="n/a"
                     if self.experiment.ip_to_guest.has_key(guest_ip):

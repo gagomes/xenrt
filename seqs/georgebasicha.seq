@@ -25,14 +25,14 @@
       <testcase id="xenserver.tc.ha.TC7514"/>
     </serial>
     <serial group="StatefileFailures">
-      <testcase id="xenserver.tc.ha.TC7690"/>
-      <testcase id="xenserver.tc.ha.TC7694"/>
+      <testcase id="xenserver.tc.ha.TC7685"/>
+      <testcase id="xenserver.tc.ha.TC7689"/>
     </serial>
     <serial group="HeartbeatFailures">
-      <testcase id="xenserver.tc.ha.TC7704"/>
+      <testcase id="xenserver.tc.ha.TC7696"/>
     </serial>
     <serial group="HostFailures">
-      <testcase id="xenserver.tc.ha.TC7716"/>
+      <testcase id="xenserver.tc.ha.TC7712"/>
     </serial>
   </testsequence>
 

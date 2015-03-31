@@ -1440,7 +1440,7 @@ class VGPUAllocationModeBase(VGPUOwnedVMsTest):
         if "Result" in variant:
             ggman = GPUGroupManager(self.host)
             expectedLayout = variant["Result"]
-            pgpulist = GPUGroupManager(self.host).getPGPUUuids()
+            pgpulist = ggman.getPGPUUuids()
             if len(expectedLayout) != len(pgpulist):
                 raise xenrt.XRTFailure("Number of GPU Groups is different from expected result. (Expected: %d / Found: %d)" % (len(expectedLayout), len(pgpulist)))
             if sorted(expectedLayout) != sorted([len(self.getVGPUList(pgpu)) for pgpu in pgpulist]):
@@ -2203,7 +2203,7 @@ class TCReuseK2PGPU(FunctionalBase):
 
         log("Setting the enable type of all the pGPUs except 1 to None")
 
-        self.pGPUs = self.host.minimalList("pgpu-list", "")
+        self.pGPUs = GPUGroupManager(self.getDefaultHost()).getPGPUUuids()
         if len(self.pGPUs) > len(self.REQUIRED_DISTROS):
             #typeUUID = self.host.getSupportedVGPUTypes()[config]
             typeUUID = ""
@@ -2814,7 +2814,7 @@ class TCBreadthK100K1Pass(TCBasicVerifOfAllK2config):
 
     def lockPGPUs(self):
 
-        self.pGPUs = self.host.minimalList("pgpu-list", "")
+        self.pGPUs = GPUGroupManager(self.getDefaultHost()).getPGPUUuids()
         if not self.NUM_PGPU:
             return
 
@@ -3748,14 +3748,21 @@ class GPUGroupManager(object):
             self.groups.remove(group)
         cli = self.host.getCLIInstance().execute("gpu-group-destroy", "uuid=" + group.uuid)
 
+    def getSupportedTypes(self, pgpu):
+        supported = self.host.genParamGet('pgpu', pgpu, 'supported-VGPU-types').replace(" ", "")
+        if len(supported) > 0:
+            return supported.split(";")
+        return []
+
     def getPGPUUuids(self, all = False):
-        return [pgpu for pgpu in self.host.minimalList("pgpu-list") if all or not self.isIsolated(pgpu)]
+        """ Return list of vgpu support (including pass-through) pgpus."""
+        return [pgpu for pgpu in self.host.minimalList("pgpu-list") if (all or not self.isIsolated(pgpu)) and (self.getSupportedTypes(pgpu))]
 
     def enableAllSupportedvGPUTypes(self, pgpuuuid):
         """
         Take all the supported types of vGPUs and set them all to be enabled
         """
-        supportedTypes = self.host.genParamGet('pgpu',pgpuuuid,'supported-VGPU-types').replace(";", ",").replace(" ", "")
+        supportedTypes = ",".join(self.getSupportedTypes(pgpuuuid))
         self.host.genParamSet('pgpu', pgpuuuid, 'enabled-VGPU-types', supportedTypes)
 
     def backup(self):
@@ -3794,8 +3801,7 @@ class GPUGroupManager(object):
             if not device in pgpudict:
                 pgpudict[device] = self.createEmptyGroup(device + " group").uuid
             self.host.genParamSet("pgpu", pgpuuuid, "gpu-group-uuid", pgpudict[device])
-            vgputypes = ",".join(self.host.genParamGet("pgpu", pgpuuuid, "supported-VGPU-types").split("; "))
-            self.host.genParamSet("pgpu", pgpuuuid, "enabled-VGPU-types", vgputypes)
+            self.host.genParamSet("pgpu", pgpuuuid, "enabled-VGPU-types", ",".join(self.getSupportedTypes(pgpuuuid)))
             self.enableAllSupportedvGPUTypes(pgpuuuid)
 
         cli = self.host.getCLIInstance()
@@ -4194,6 +4200,10 @@ class TCcreatevGPU(VGPUAllocationModeBase):
             g.setState("UP")
 
         g.snapshot('aftervGPU')
+
+    def postRun(self):
+        """Stop the vgpu from being cleaned up."""
+        pass
 
 class TCcheckNvidiaDriver(xenrt.TestCase):
     """Sanity check to verify the NVIDIA driver is built correctly for the host kernel version"""

@@ -16,9 +16,6 @@
     <serial group="TC-8007">
       <testcase id="xenserver.tc.ha.TC8008"/>
     </serial>
-    <serial group="TC-8132">
-      <testcase id="xenserver.tc.ha.TC8131"/>
-    </serial>
   </testsequence>
 
 </xenrt>

@@ -2505,6 +2505,9 @@ fi
             self.reboot()
             self.assertNotRunningDebugXen()
 
+        # Update our product version in case the hotfix has changed it
+        self.checkVersion()
+
         return reply
 
     
@@ -8197,14 +8200,15 @@ rm -f /etc/xensource/xhad.conf || true
         return "HVM: Hardware Assisted Paging detected and enabled." in dmesg or "HVM: Hardware Assisted Paging (HAP) detected" in dmesg
 
     def resolveDistroName(self, distro):
+        origDistro = distro
         special = {}
 
-        m = re.match("^(oel|sl|rhel|centos)(\d)x$", distro)
+        m = re.match("^(oel[dw]?|sl[dw]?|rhel[dw]?|centos[dw]?)(\d)x$", distro)
         if m:
             # Fall back to RHEL if we don't have derivatives defined
             distro = self.lookup("LATEST_%s%s" % (m.group(1), m.group(2)),
                         self.lookup("LATEST_rhel%s" % m.group(2)).replace("rhel", m.group(1)))
-        m = re.match("^(oel|sl|rhel|centos)(\d)u$", distro)
+        m = re.match("^(oel[dw]?|sl[dw]?|rhel[dw]?|centos[dw]?)(\d)u$", distro)
         if m:
             # Fall back to RHEL if we don't have derivatives defined
             distro = self.lookup("LATEST_%s%s" % (m.group(1), m.group(2)),
@@ -8220,13 +8224,22 @@ rm -f /etc/xensource/xhad.conf || true
                 else:
                     special['UpdateTo'] = None
         
-        m = re.match("^(oel|sl|rhel|centos)(\d)xs$", distro)
+        m = re.match("^(oel[dw]?|sl[dw]?|rhel[dw]?|centos[dw]?)(\d)xs$", distro)
         if m:
             distro = "%s%s" % (m.group(1), m.group(2))
             special['XSKernel'] = True
-
+        xenrt.TEC().logverbose("Resolved %s to %s with %s (host is %s)" % (origDistro, distro, special, self.productVersion))
         return (distro, special)
 
+    def getDeploymentRecord(self):
+        ret = super(Host, self).getDeploymentRecord()
+        ret['srs'] = []
+        for s in [x for x in self.parameterList("sr-list", params=["type", "uuid", "name-label"]) if x['type'] not in ("iso", "udev")]:
+            ret['srs'].append({
+                "type": s['type'],
+                "uuid": s['uuid'],
+                "name": s['name-label']})
+        return ret
 
 #############################################################################
 

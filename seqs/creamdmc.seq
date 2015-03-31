@@ -24,6 +24,10 @@
       <testcase id="xenserver.tc.balloon.TC12600"/>
       <testcase id="xenserver.tc.balloon.TC12602"/>
       <testcase id="xenserver.tc.balloon.TC12603"/>
+      <testcase id="xenserver.tc.balloon.TC26439"/>
+      <testcase id="xenserver.tc.balloon.TC26440"/>
+      <testcase id="xenserver.tc.balloon.TC26441"/>
+      <testcase id="xenserver.tc.balloon.TC26442"/>
     </serial>
   </testsequence>
 

@@ -2504,7 +2504,9 @@ class WithvGPUVMStorageMigration(LiveMigrate):
         LiveMigrate.prepare(self, arglist)
 
         host = self.test_config['host_A']
-        gpu_group_uuids = host.minimalList("gpu-group-list") #>0 gpu hw required for this license test
+        gpu_group_uuids = [x for x in host.minimalList("gpu-group-list") if "NVIDIA" in host.genParamGet("gpu-group",x,"name-label")]
+        #>0 gpu hw required for this license test
+
         if len(gpu_group_uuids)<1:
             raise xenrt.XRTFailure("This host does not contain a GPU group list as expected")        
         cli = host.getCLIInstance()

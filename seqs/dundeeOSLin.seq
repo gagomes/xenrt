@@ -1,6 +1,6 @@
 <xenrt>
 
-  <!-- OS functional test sequence: rhel66 and rhel66-x64 -->
+  <!-- OS functional test sequence -->
 
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
@@ -37,18 +37,15 @@
             </testcase>
             <testcase id="guestops.srm.TCSuspendResume" sku="${D}" tc="TC-26930">
               <arg>guest=${D}</arg>
-              <arg>workloads</arg>
               <arg>loops=20</arg>
             </testcase>
             <testcase id="guestops.srm.TCMigrate" sku="${D}" tc="TC-26931">
               <arg>guest=${D}</arg>
-              <arg>workloads</arg>
               <arg>loops=10</arg>
             </testcase>
             <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" sku="${D}" tc="TC-26932">
               <arg>guest=${D}</arg>
               <arg>live</arg>
-              <arg>workloads</arg>
               <arg>loops=20</arg>
             </testcase>
             <testcase id="xenserver.storage.TCMultipleVDI" sku="${D}" tc="TC-26933">

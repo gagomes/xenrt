@@ -1185,6 +1185,9 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Cream"]["LATEST_rhel4"] = "rhel48"
         self.config["VERSION_CONFIG"]["Cream"]["LATEST_rhel5"] = "rhel511"
         self.config["VERSION_CONFIG"]["Cream"]["LATEST_rhel6"] = "rhel66"
+        self.config["VERSION_CONFIG"]["Cream"]["TEMPLATE_NAME_RHEL_d66_64"] = "Red Hat Enterprise Linux 6 (64-bit),Red Hat Enterprise Linux 6 x64,Red Hat Enterprise Linux 6.0 (64-bit)"
+        self.config["VERSION_CONFIG"]["Cream"]["TEMPLATE_NAME_RHEL_w66_64"] = "Red Hat Enterprise Linux 6 (64-bit),Red Hat Enterprise Linux 6 x64,Red Hat Enterprise Linux 6.0 (64-bit)"
+
         # Dundee
         self.config["VERSION_CONFIG"]["Dundee"] = copy.deepcopy(self.config["VERSION_CONFIG"]["Cream"])
         self.config["VERSION_CONFIG"]["Dundee"]["V6_DBV"] = "2014.1127"
@@ -2206,6 +2209,14 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["rhel66"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["rhel66"]["MAXMEMORY"] = "8192"
         self.config["GUEST_LIMITATIONS"]["rhel66"]["MAXMEMORY64"] = "32768"
+        self.config["GUEST_LIMITATIONS"]["rheld66"] = {}
+        self.config["GUEST_LIMITATIONS"]["rheld66"]["MINMEMORY"] = "1024"
+        self.config["GUEST_LIMITATIONS"]["rheld66"]["MAXMEMORY"] = "8192"
+        self.config["GUEST_LIMITATIONS"]["rheld66"]["MAXMEMORY64"] = "32768"
+        self.config["GUEST_LIMITATIONS"]["rhelw66"] = {}
+        self.config["GUEST_LIMITATIONS"]["rhelw66"]["MINMEMORY"] = "1024"
+        self.config["GUEST_LIMITATIONS"]["rhelw66"]["MAXMEMORY"] = "8192"
+        self.config["GUEST_LIMITATIONS"]["rhelw66"]["MAXMEMORY64"] = "32768"
         self.config["GUEST_LIMITATIONS"]["rhel7"] = {}
         self.config["GUEST_LIMITATIONS"]["rhel7"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["rhel7"]["MAXMEMORY64"] = "6291456"
@@ -2711,7 +2722,7 @@ class Config(object):
          'debian60_x86-32','debian60_x86-64','debian70_x86-32','debian70_x86-64','oel510_x86-32','oel510_x86-64',
          'oel511_x86-32','oel511_x86-64','oel65_x86-32','oel65_x86-64','oel66_x86-32','oel66_x86-64','oel7_x86-64',
          'rhel48_x86-32','rhel510_x86-32','rhel510_x86-64','rhel511_x86-32','rhel511_x86-64','rhel65_x86-32',
-         'rhel65_x86-64','rhel66_x86-32','rhel66_x86-64','rhel71_x86-64','rhel7_x86-64','sl511_x86-32','sl511_x86-64',
+         'rhel65_x86-64','rhel66_x86-32','rhel66_x86-64','rheld66_x86-64','rhelw66_x86-64','rhel71_x86-64','rhel7_x86-64','sl511_x86-32','sl511_x86-64',
          'sl66_x86-32','sl66_x86-64','sl7_x86-64','sles104_x86-32','sles104_x86-64','sles113_x86-32','sles113_x86-64',
          'sles12_x86-64','ubuntu1204_x86-32','ubuntu1204_x86-64',
          'ubuntu1404_x86-32','ubuntu1404_x86-64','vistaeesp2','w2k3eesp2','w2k3eesp2-x64','win10-x64','win10-x86',
@@ -2741,7 +2752,7 @@ class Config(object):
          'debian60_x86-32','debian60_x86-64','debian70_x86-32','debian70_x86-64','oel510_x86-32','oel510_x86-64',
          'oel511_x86-32','oel511_x86-64','oel65_x86-32','oel65_x86-64','oel66_x86-32','oel66_x86-64','oel7_x86-64',
          'rhel48_x86-32','rhel510_x86-32','rhel510_x86-64','rhel511_x86-32','rhel511_x86-64','rhel65_x86-32',
-         'rhel65_x86-64','rhel66_x86-32','rhel66_x86-64','rhel71_x86-64','rhel7_x86-64','sl511_x86-32','sl511_x86-64',
+         'rhel65_x86-64','rhel66_x86-32','rhel66_x86-64','rheld66_x86-64','rhelw66_x86-64','rhel71_x86-64','rhel7_x86-64','sl511_x86-32','sl511_x86-64',
          'sl66_x86-32','sl66_x86-64','sl7_x86-64','sles104_x86-32','sles104_x86-64','sles113_x86-32','sles113_x86-64',
          'sles12_x86-64','ubuntu1204_x86-32','ubuntu1204_x86-64',
          'ubuntu1404_x86-32','ubuntu1404_x86-64','vistaeesp2','w2k3eesp2','w2k3eesp2-x64','win10-x64','win10-x86',

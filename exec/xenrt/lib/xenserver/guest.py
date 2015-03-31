@@ -4266,10 +4266,11 @@ exit /B 1
         agent.createEnvironment()
 
     def prepareForTemplate(self):
-        self.preCloneTailor()
-        if self.windows:
-            self.sysPrepOOBE()
-        self.shutdown()
+        if self.getState() == "UP":
+            self.preCloneTailor()
+            if self.windows:
+                self.sysPrepOOBE()
+            self.shutdown()
         self.changeCD(None)
 
     def convertToTemplate(self):
@@ -4343,6 +4344,7 @@ def createVMFromFile(host,
                      suffix=None,
                      vifs=[],
                      ips={},
+                     sr=None,
                      *args,
                      **kwargs):
     if not isinstance(host, xenrt.GenericHost):
@@ -4363,10 +4365,20 @@ def createVMFromFile(host,
             xenrt.command('wget -e http_proxy=%s "%s" -O %s/file.xva' % (proxy, filename, m.mountpoint))
         else:
             xenrt.command('wget "%s" -O %s/file.xva' % (filename, m.mountpoint))
-        guest.importVM(host, "%s/file.xva" % m.mountpoint, vifs=vifs)
+        guest.importVM(host, "%s/file.xva" % m.mountpoint, vifs=vifs, sr=sr)
         share.release()
     else:
-        guest.importVM(host, xenrt.TEC().getFile(filename), vifs=vifs)
+        if filename.startswith("nfs://"):
+            filename = re.sub("\${(.*?)}", lambda x: xenrt.TEC().lookup(x.group(1), None), filename)
+            filename = filename[6:]
+            dirname = os.path.dirname(filename)
+            d = host.execdom0("mktemp -d").strip()
+            host.execdom0("mount -t nfs %s %s" % (dirname, d))
+            guest.importVM(host, "%s/%s" % (d, os.path.basename(filename)), imageIsOnHost=True, sr=sr)
+            host.execdom0("umount %s" % d)
+        else:
+            guest.importVM(host, xenrt.TEC().getFile(filename), vifs=vifs, sr=sr)
+    guest.paramSet("is-a-template", "false")
     guest.reparseVIFs()
     guest.vifs.sort()
     if bootparams:

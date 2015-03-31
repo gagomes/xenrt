@@ -518,6 +518,7 @@ def APIEvent(experiment):
 class GuestEvent:
     # dict: ip -> ...
     events = {}
+    INET = socket.AF_INET
     UDP_IP = socket.gethostbyname(socket.gethostname())
     UDP_PORT = 5000
     EVENT = None
@@ -526,6 +527,19 @@ class GuestEvent:
         if not self.EVENT:
             self.log("Abstract class!")
         self.experiment = experiment
+
+        self.INET = socket.AF_INET
+        if xenrt.TEC().lookup("USE_GUEST_IPV6", False):
+            self.INET = socket.AF_INET6
+
+        if self.INET == socket.AF_INET6:
+            import netifaces
+            ifs = netifaces.ifaddresses('eth0')
+            xenrt.TEC().logverbose("interfaces(eth0)=%s" % (ifs,))
+            self.UDP_IP = filter(lambda x: not x['addr'].startswith('fe80'), ifs[netifaces.AF_INET6])[0]['addr']
+
+        xenrt.TEC().logverbose("UDP_IP=%s" % (self.UDP_IP,))
+
         thread.start_new_thread(self.listen,())
 
     def script_filename(self):
@@ -554,7 +568,7 @@ class GuestEvent:
             pass
 
     def listen(self):
-        sock = socket.socket( socket.AF_INET, # Internet
+        sock = socket.socket( self.INET,          # IPv4/6
                               socket.SOCK_DGRAM ) # UDP
         bound=False
         while not bound:
@@ -635,20 +649,25 @@ while not os.path.isfile("%s%s") and i<600000:
     msg = "%s+MSG%%s" %% i
     print "sending to (%%s:%%s):%%s" %% (controller_ip,controller_udp_port,msg)
     try:
-        s = socket.socket( socket.AF_INET, socket.SOCK_DGRAM)
+        s = socket.socket( %s, socket.SOCK_DGRAM)
         s.sendto(msg, (controller_ip, controller_udp_port))
     except Exception, e:
         print "exception %%s" %% e
     time.sleep(3.0)
     i=i+1
 """
+        if xenrt.TEC().lookup("USE_GUEST_IPV6", False):
+            afinet = "socket.AF_INET6"
+        else:
+            afinet = "socket.AF_INET"
+
         if guest.windows: 
-            script = script % (self.UDP_IP, self.UDP_PORT,"c:\\",self.stop_filename(), self.EVENT)
+            script = script % (self.UDP_IP, self.UDP_PORT,"c:\\",self.stop_filename(), self.EVENT, afinet)
             script_path = "c:\\%s" % self.script_filename()
             guest.xmlrpcWriteFile(script_path, script)
             self.addEventTrigger(guest,script_path)
         else:#posix guest
-            script = script % (self.UDP_IP, self.UDP_PORT,"/",self.stop_filename(), self.EVENT)
+            script = script % (self.UDP_IP, self.UDP_PORT,"/",self.stop_filename(), self.EVENT, afinet)
             script_path = "/%s" % self.script_filename()
             sf = xenrt.TEC().tempFile()
             file(sf, "w").write(script)

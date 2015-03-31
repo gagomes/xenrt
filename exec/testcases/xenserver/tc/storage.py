@@ -409,6 +409,13 @@ class TC20948(NFSSRSanityTest):
     def prepare(self,arglist):
         xenrt.TEC().config.setVariable("NFSSR_WITH_NOSUBDIR", "yes")
 
+class TCNFS4NoSubDir(NFSSRSanityTest):
+    """NFS 4 SR (with no sub directory) Sanity Test"""
+    NFS_VERSION = 4
+    
+    def prepare(self,arglist):
+        xenrt.TEC().config.setVariable("NFSSR_WITH_NOSUBDIR", "yes")
+
 class TC20949(SRSanityTestTemplate):
     """Co-existence of multiple NFS SRs with no sub directory on the same NFS path"""
 
@@ -427,6 +434,49 @@ class TC20949(SRSanityTestTemplate):
         
         return self.sruuids
 
+class NFSSRSanityTestTemplate(SRSanityTestTemplate):
+    """Template for NFS Sr"""
+    
+    def verifyVersion(self, host, sruuid, version):
+        mounts = []
+        if version == "3":
+            mounts = host.execdom0("mount -t nfs")
+        elif version == "4":
+            mounts = host.execdom0("mount -t nfs4")
+        
+        if not mounts:
+            raise xenrt.XRTError("Not an NFS SR")
+        
+        lines = mounts.split("\n")
+        found = False
+        for line in lines:
+            if sruuid in line:
+                found = True
+        if not found:
+            raise xenrt.XRTError("Incorrect NFS Version")
+
+class TCCoexistenceOfNFS4NoSubDirs(NFSSRSanityTestTemplate):
+    """Co-existence of multiple NFS SRs (version 4) with no sub directory on the same NFS path"""
+     
+    def createSR(self,host,guest):
+        server, path = xenrt.ExternalNFSShare(version="4").getMount().split(":")
+
+        # Create a NFS SR with no sub directory.
+        nfsSR = xenrt.lib.xenserver.host.NFSv4StorageRepository(host, "nfssr-withnosubdir-1")
+        nfsSR.create(server, path, nosubdir=True)
+        self.sruuids.append(nfsSR.uuid)
+       
+        self.verifyVersion(host, nfsSR.uuid, "4")
+        
+        # Create another NFS SR with no sub directory on the same NFS path.
+        nfsSR = xenrt.lib.xenserver.host.NFSv4StorageRepository(host, "nfssr-withnosubdir-2")
+        nfsSR.create(server, path, nosubdir=True)
+        self.sruuids.append(nfsSR.uuid)
+        
+        self.verifyVersion(host, nfsSR.uuid, "4")
+        
+        return self.sruuids
+
 class TC20950(SRSanityTestTemplate):
     """Co-existance of NFS SR with no sub directory and classic NFS SR on the same NFS path"""
 
@@ -442,6 +492,50 @@ class TC20950(SRSanityTestTemplate):
         nfsSR = xenrt.lib.xenserver.host.NFSStorageRepository(host, "nfssr-classic-1")
         nfsSR.create(server, path)
         self.sruuids.append(nfsSR.uuid)        
+
+        return self.sruuids
+        
+class TCCoexitenceNFS4NoSubDirClassic(NFSSRSanityTestTemplate):
+    """Co-existence of NFS SR v4 with no sub directory and classic NFS SR v4 on the same NFS path"""
+
+    def createSR(self,host,guest):
+        server, path = xenrt.ExternalNFSShare(version="4").getMount().split(":")
+
+        # Create a NFS SR with no sub directory.
+        nfsSR = xenrt.lib.xenserver.host.NFSv4StorageRepository(host, "nfssr-withnosubdir-3")
+        nfsSR.create(server, path, nosubdir=True)
+        self.sruuids.append(nfsSR.uuid)
+        
+        self.verifyVersion(host, nfsSR.uuid, "4")
+
+        # Create a classic NFS SR on the same path.
+        nfsSR = xenrt.lib.xenserver.host.NFSv4StorageRepository(host, "nfssr-classic-1")
+        nfsSR.create(server, path)
+        self.sruuids.append(nfsSR.uuid)
+
+        self.verifyVersion(host, nfsSR.uuid, "4")
+
+        return self.sruuids
+        
+class TCCoexistenceNFS4AndNFSv3(NFSSRSanityTestTemplate):
+    """Co-existence of NFS SR v4 and NFS SR v3 on the same NFS path"""
+
+    def createSR(self,host,guest):
+        server, path = xenrt.ExternalNFSShare(version="4").getMount().split(":")
+
+        # Create a NFS v4 SR with no sub directory.
+        nfsSR = xenrt.lib.xenserver.host.NFSv4StorageRepository(host, "nfssr-v4")
+        nfsSR.create(server, path, nosubdir=True)
+        self.sruuids.append(nfsSR.uuid)
+        
+        self.verifyVersion(host, nfsSR.uuid, "4")
+
+        # Create a v3 SR with no sub directory.
+        nfsSR = xenrt.lib.xenserver.host.NFSStorageRepository(host, "nfssr-v3")
+        nfsSR.create(server, path, nosubdir=True)
+        self.sruuids.append(nfsSR.uuid)
+
+        self.verifyVersion(host, nfsSR.uuid, "3")
 
         return self.sruuids
 
@@ -1187,8 +1281,7 @@ class TC8123(_TC8122):
 
     def createExternalNFSShare(self):
         return xenrt.ExternalNFSShare()
-
-
+        
 class TC23335(TC8123):
 
     def getStorageRepositoryClass(self):
@@ -2561,7 +2654,7 @@ class TC8520(_TCVDICreateRoundup):
 
 class TC8523(_TCVDICreateRoundup):
     """VDI create of a odd size NFS VDI should round up to the next allocation unit"""
-
+    
     SRTYPE = "nfs"
 
 class TC20930(_TCVDICreateRoundup):

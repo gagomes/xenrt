@@ -4278,6 +4278,31 @@ exit /B 1
         self.host.removeGuest(self.name)
         self.isTemplate = True
 
+    def getDeploymentRecord(self):
+        ret = super(Guest, self).getDeploymentRecord()
+        ret['networks'] = {}
+        for v in self.vifs:
+            (device, bridge, mac, ip) = v
+            nwuuid = self.getHost().getNetworkUUID(bridge)
+            nwname = self.getHost().genParamGet("network", nwuuid, "name-label")
+            ret['networks'][device] = {"network": {"name": nwname, "uuid": nwuuid}}
+            if not self.isTemplate:
+                ret['networks'][device]['mac'] = mac
+                if ip:
+                    ret['networks'][device]['ip'] = ip
+        
+        ret['disks'] = {}
+        for d in self.listDiskDevices():
+            vdiuuid = self.getHost().minimalList("vbd-list", "vdi-uuid", "vm-uuid=%s userdevice=0" % self.uuid)[0]
+            params = self.getHost().parameterList("vdi-list", ["virtual-size","sr-uuid", "sr-name-label"], "uuid=%s" % vdiuuid)[0]
+
+            ret['disks'][d] = {
+                "size": int(params['virtual-size'])/xenrt.GIGA,
+                "sr": {"name": params['sr-name-label'], "uuid": params['sr-uuid']}
+            }
+
+        return ret
+
 #############################################################################
 
 def parseSequenceVIFs(guest, host, vifs):

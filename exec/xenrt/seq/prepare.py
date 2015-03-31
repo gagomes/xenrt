@@ -463,7 +463,7 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
         if "boot_params" in node:
             vm['bootparams'] = node['boot_params']
         
-        if xenrt.TEC().lookup("DEFAULT_PV_DRIVERS", False, boolean=True) and not "installDrivers" in vm['postinstall']:
+        if xenrt.TEC().lookup("DEFAULT_PV_DRIVERS", False, boolean=True) and not "installDrivers" in vm['postinstall'] and not 'filename' in vm:
             vm["postinstall"].append("installDrivers")
 
         if template and not "convertToTemplate" in vm['postinstall']:
@@ -916,7 +916,7 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
                         if a.nodeType == a.TEXT_NODE:
                             vm["packages"] = self.expand(str(a.data)).split(",")
 
-        if xenrt.TEC().lookup("DEFAULT_PV_DRIVERS", False, boolean=True) and not "installDrivers" in vm['postinstall']:
+        if xenrt.TEC().lookup("DEFAULT_PV_DRIVERS", False, boolean=True) and not "installDrivers" in vm['postinstall'] and not 'filename' in vm:
             vm["postinstall"].append("installDrivers")
 
         if template and not "convertToTemplate" in vm['postinstall']:

@@ -4297,7 +4297,7 @@ exit /B 1
         
         ret['disks'] = {}
         for d in self.listDiskDevices():
-            vdiuuid = self.getHost().minimalList("vbd-list", "vdi-uuid", "vm-uuid=%s userdevice=0" % self.uuid)[0]
+            vdiuuid = self.getHost().minimalList("vbd-list", "vdi-uuid", "vm-uuid=%s userdevice=%s" % (self.uuid, d))[0]
             params = self.getHost().parameterList("vdi-list", ["virtual-size","sr-uuid", "sr-name-label"], "uuid=%s" % vdiuuid)[0]
 
             ret['disks'][d] = {

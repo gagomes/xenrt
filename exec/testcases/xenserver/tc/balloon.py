@@ -175,7 +175,7 @@ class _BalloonSmoketest(_BalloonPerfBase):
         minmem = self.host.lookup("MIN_VM_MEMORY")
         minmem = int(xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.DISTRO, "MINMEMORY"], minmem))
         self.minSupported = int(self.host.lookup(["VM_MIN_MEMORY_LIMITS", self.DISTRO], minmem))
-        self.minStaticSupported = self.minSupported
+        self.minStaticSupported = int(xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.DISTRO, "STATICMINMEMORY"], self.minSupported))
         max = self.host.lookup("MAX_VM_MEMORY")
         self.maxSupported = int(xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.DISTRO, "MAXMEMORY"], max))
         if not self.SET_PAE and self.maxSupported > 4096:

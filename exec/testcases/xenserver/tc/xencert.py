@@ -333,6 +333,43 @@ class XSStorageCertKitNFS(_XSStorageCertKit):
 
     ITERATIONS = "100"
     SR_TYPE = "nfs"
+    
+class XSStorageCertKitNFSv4(_XSStorageCertKit):
+    """Run the storage certification kit on NFSv4 SR"""
+
+    ITERATIONS = "100"
+    SR_TYPE = "nfs"
+    
+    def runStorageXenCert(self, params):
+        """Runs the storage XenCert Kit"""
+
+        dictTestType = {'-f':'functional-','-c':'control-','-m':'multipath-','-o':'pool-','-d':'data-','-M':'metadata-'}
+        fileName = ['Xencert-']
+        for key ,value in dictTestType.items():
+            if key == params[0]:
+                fileName.append(value)
+        fileName.append(self.SR_TYPE)
+        fileName.append(".log")
+
+        res = self.pool.master.execdom0("/usr/bin/python /opt/xensource/debug/XenCert/XenCert %s" %
+                                                    ' '.join(params),retval="code" ,timeout=3600)
+        # Obtain the resulting XenCert logs
+        xclogs = self.pool.master.execdom0("ls -t1 /tmp/XenCert-*").splitlines()
+        # Check for NFSv4 in the logs
+        xenrt.TEC().logverbose("Checking for NFSv4 in XenCert logs.")
+        for line in xclogs:
+            cg = re.search(r'(.*)Version: (\d+)', line)
+            if cg and cg.group(2) != '4':
+                xenrt.TEC().logverbose("Unable to test XenCert using NFSv4")
+                raise xenrt.XRTFailure("XenCert SR Test Suite FAILED -- See /var/log/SMlog and %s" %(''.join(fileName)))
+        if len(xclogs) > 0:
+            data = self.pool.master.execdom0("cat %s" % xclogs[0])
+            if " FAIL " in data:
+                self.pool.master.addExtraLogFile(xclogs[0])
+                self.pool.master.execdom0("cp %s /tmp/%s" %(xclogs[0] ,''.join(fileName)))
+                self.pool.master.addExtraLogFile("/tmp/%s" %''.join(fileName)) #grab the most recent log in dom0 
+                raise xenrt.XRTFailure("XenCert SR Test Suite FAILED -- See /var/log/SMlog and %s" %(''.join(fileName)))
+
 
 class XSStorageCertKitISCSI(_XSStorageCertKit):
     """Run the storage certification kit on LVMoISCSI SR"""

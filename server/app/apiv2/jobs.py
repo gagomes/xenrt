@@ -675,7 +675,7 @@ class NewJob(_JobBase):
             self.updateJobField("MACHINES_REQUIRED", str(len(specifiedMachines)), params)
         else:
             if resources:
-                self.updateJobField("RESOURCES_REQUIRED", ",".join(resources), params)
+                self.updateJobField("RESOURCES_REQUIRED", "/".join(resources), params)
             if flags:
                 self.updateJobField("FLAGS", ",".join(flags), params)
             if pools:

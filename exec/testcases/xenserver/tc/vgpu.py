@@ -1878,7 +1878,7 @@ class NvidiaWindowsvGPU(DifferentGPU):
     def runWorkload(self,vm):
         VGPUTest().runWindowsWorkload(vm)
 
-    def attachvGPUToVM(self, vgpucreator, vm, groupuuid=None):
+    def attachvGPUToVM(self, vgpucreator, vm, groupuuid):
         VGPUTest().attachvGPU(vgpucreator,vm,groupuuid)
 
     def blockDom0Access(self):
@@ -1908,7 +1908,7 @@ class NvidiaLinuxvGPU(DifferentGPU):
         xenrt.TEC().logverbose("Not implemented")
         pass
 
-    def attachvGPUToVM(self, vgpucreator, vm, groupuuid=None):
+    def attachvGPUToVM(self, vgpucreator, vm, groupuuid):
         VGPUTest().attachvGPU(vgpucreator,vm,groupuuid)
 
     def blockDom0Access(self):

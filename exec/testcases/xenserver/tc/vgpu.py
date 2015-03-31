@@ -3203,26 +3203,53 @@ class TCIntelSetupNegative(FunctionalBase):
     Blocking assess but not rebooting host.
     Attemping to attach vGPU Passthrough to VM.
     """
-    def insideRun(self, config, distro):
+
+    def prepare(self, arglist):
+        """Might be able to clean up redundant steps."""
+
+        super(TCIntelSetupNegative, self).prepare(arglist)
+
+        self.host = self.getDefaultHost()
+
+        step("Creating %d vGPUs configurations." % (len(self.VGPU_CONFIG)))
+        self.vGPUCreator = {}
+        for config in self.VGPU_CONFIG:
+            self.vGPUCreator[config] = VGPUInstaller(self.host, config)
+
+        for distro in self.REQUIRED_DISTROS:
+
+            osType = self.getOSType(distro)
+
+            log("Creating Master VM of type %s" % osType)
+            vm = self.createMaster(osType)
+            vm.enlightenedDrivers = True
+            vm.setState("UP")
+            if vm.windows:
+                vm.enableFullCrashDump()
+            self.masterVMsSnapshot[osType] = vm.snapshot()
+
+    def run(self, arglist):
 
         # Want to use a windows 7 VM.
+            # Specify from seq file probably.
         # Probably using the master version.
             # Will be very similar to BasicVerif prepare code.
             # Might make a child class of that.
 
-        osType = self.getOSType(distro)
+        for config in self.VGPU_CONFIG:
+            for distro in self.REQUIRED_DISTROS:
+                osType = self.getOSType(distro)
 
-        vm = self.masterVMs[osType]
-        vm.go()
+                vm = self.masterVMs[osType]
+                vm.go()
 
-        # Probably using exerpts from the lib code.
-        # Do half the setup but don't reset.
+                # Probably using exerpts from the lib code.
+                # Do half the setup but don't reset.
 
-        # Using Semi-Old way of attaching the VM.
-        # Try add intel passthrough to the VM.
+                # Using Semi-Old way of attaching the VM.
+                # Try add intel passthrough to the VM.
 
-        # Will fail, confirm.
-        pass
+                # Will fail, confirm.
 
 class TCIntelGPUSnapshotNegative(FunctionalBase):
     """
@@ -3231,6 +3258,9 @@ class TCIntelGPUSnapshotNegative(FunctionalBase):
     Destroy GPU and unblock Dom0 access to GPU.
     Starting VM and revert, should fail.
     (Turns off VM, and fails to start.)
+
+    Need to handle multiple OSs, with single host.
+    Should be able to start one by one.
     """
     pass
 

@@ -675,7 +675,7 @@ class NewJob(_JobBase):
             self.updateJobField("MACHINES_REQUIRED", str(len(specifiedMachines)), params)
         else:
             if resources:
-                self.updateJobField("RESOURCES_REQUIRED", ",".join(resources), params)
+                self.updateJobField("RESOURCES_REQUIRED", "/".join(resources), params)
             if flags:
                 self.updateJobField("FLAGS", ",".join(flags), params)
             if pools:
@@ -714,7 +714,7 @@ class NewJob(_JobBase):
             self.updateJobField("INPUTDIR", inputdir, params)
 
         if lease and lease.get("duration"):
-            self.updateJobField("MACHINE_HOLD_FOR", lease['duration'] * 60, params)
+            self.updateJobField("MACHINE_HOLD_FOR_OK", lease['duration'] * 60, params)
             self.updateJobField("MACHINE_HOLD_REASON", lease.get("reason", ""), params)
 
         for p in params.keys():

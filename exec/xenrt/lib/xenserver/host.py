@@ -8231,6 +8231,15 @@ rm -f /etc/xensource/xhad.conf || true
         xenrt.TEC().logverbose("Resolved %s to %s with %s (host is %s)" % (origDistro, distro, special, self.productVersion))
         return (distro, special)
 
+    def getDeploymentRecord(self):
+        ret = super(Host, self).getDeploymentRecord()
+        ret['srs'] = []
+        for s in [x for x in self.parameterList("sr-list", params=["type", "uuid", "name-label"]) if x['type'] not in ("iso", "udev")]:
+            ret['srs'].append({
+                "type": s['type'],
+                "uuid": s['uuid'],
+                "name": s['name-label']})
+        return ret
 
 #############################################################################
 

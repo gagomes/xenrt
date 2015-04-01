@@ -6,7 +6,6 @@
 
     <prepare>
       <pool>
-        <allhosts license="platinum"/>
         <NETWORK>
           <PHYSICAL network="NPRI">
             <NIC/>

@@ -2078,6 +2078,9 @@ exit /B 1
         netscaler.applyLicense(netscaler.getLicenseFileFromXenRT())
         netscaler.checkFeatures()
 
+    def installNSTools(self):
+        xenrt.lib.netscaler.NetScaler.installNSTools(self)
+
     def setupUnsupGuest(self, getIP=None):
         self.tailored = True
         self.enlightenedDrivers = False

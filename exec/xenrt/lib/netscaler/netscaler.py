@@ -65,6 +65,15 @@ class NetScaler(object):
         return vpx
 
     @classmethod
+    def installNSTools(cls, vpx):
+        nstools = xenrt.TEC().lookup('NS_TOOLS_PATH')
+        toolsfile = nstools.split("/")[-1]
+        vpx.__netScalerCliCommand("mkdir -p /var/BW")
+        vpx.__netScalerCliCommand("cd /car/BW && wget '%s'" % nstools)
+        vpx.__netScalerCliCommand("cd /var/BW && tar xvfz %s" % toolsfile)
+        vpx.__netScalerCliCommand("/var/BW/nscsconfig --help || true")
+
+    @classmethod
     def createVPXOnHost(cls, host, vpxName=None, vpxHttpLocation=None):
         """Import a Netscaler VPX onto the specified host"""
         if not vpxName:

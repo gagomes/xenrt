@@ -10782,6 +10782,7 @@ class TampaHost(BostonHost):
     def getQemuDMWrapper(self):
         return "/opt/xensource/libexec/qemu-dm-wrapper"
 
+    """
     def enableVirtualFunctions(self):
 
         out = self.execdom0("grep -v '^#' /etc/modprobe.d/ixgbe 2> /dev/null; echo -n ''").strip()
@@ -10801,6 +10802,8 @@ class TampaHost(BostonHost):
             self.reboot()
             self.waitForSSH(300, desc="host reboot after enabling virtual functions")
 
+    """
+    
     def validLicenses(self, xenserverOnly=False):
         """
         Get a license object which contains the details of a license settings

@@ -3314,9 +3314,10 @@ class TCIntelSetupNegative(FunctionalBase):
                 osType = self.getOSType(distro)
 
                 # Set up wrong.
-                # Unblock access.
+                self.typeOfvGPU.unblockDom0Access()
 
                 # Call block access directly with the param, reboot=False
+                self.typeOfvGPU.blockDom0Access(reboot=False)
 
                 vm = self.masterVMs[osType]
 

@@ -4748,9 +4748,9 @@ def createVM(host,
                 g.xmlrpcRemoveFile("c:\\postrun.vbs")
         else:
             if "(" in p:
-                eval("guest.%s" % (p))
+                eval("g.%s" % (p))
             else:
-                eval("guest.%s()" % (p))
+                eval("g.%s()" % (p))
 
     if packages:
         g.installPackages(packages)

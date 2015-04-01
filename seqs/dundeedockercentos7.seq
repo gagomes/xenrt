@@ -2,7 +2,7 @@
 
   <!-- Docker test sequence using CentOS 7 guest. -->
 
-  <default name="DISTRO" value="centos7x" />
+  <default name="DISTRO" value="centos7u" />
 
   <variables>
     <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>

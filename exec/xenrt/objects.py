@@ -7446,7 +7446,7 @@ class GenericGuest(GenericPlace):
                 debVer = float(re.match(r"\d+(\.\d+)?", debVer).group(0))
                 if debVer < 5.0:
                     # Pre-Lenny, may have to use a cacher
-                    apt_cacher = "http://10.81.21.51/debarchive"
+                    apt_cacher = "%s/debarchive" % xenrt.TEC().lookup("APT_SERVER")
                 if apt_cacher:
                     filebase = "/etc/apt/sources.list"
                     if self.execguest("test -e %s.orig" % (filebase),
@@ -7553,8 +7553,6 @@ class GenericGuest(GenericPlace):
                         sftp.copyTo(fn, filebase)
 
                 try:
-                    # The apt-cacher bzip2 files seem to be broken, so force use the gzip packages
-                    self.execguest("apt-get remove -y bzip2")
                     data = self.execguest("apt-get update")
                 except:
                     # If apt-get commands fail, wait a bit and retry.

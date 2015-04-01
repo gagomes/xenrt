@@ -2,7 +2,7 @@
 
   <!-- Docker test sequence using Ubuntu Trusty Tahr 14.04 guest. -->
 
-  <default name="DISTRO" value="ubuntu1004" />
+  <default name="DISTRO" value="ubuntu1404" />
 
   <variables>
     <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>

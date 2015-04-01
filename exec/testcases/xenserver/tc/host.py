@@ -2380,8 +2380,10 @@ class TC21632(_TCHostPowerON):
         # Get the OpenManage Supplemental Pack from distmaster and install.
         master.execdom0("wget -nv '%sdellomsupppack.tgz' -O - | tar -zx -C /tmp" %
                                                 (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
-
-        dellomSupppack = "dellomsupppack-%s.iso" % master.productVersion.lower().strip()
+        productVersion = master.productVersion.lower().strip()
+        if productVersion == 'cream':
+            productVersion = 'creedence'
+        dellomSupppack = "dellomsupppack-%s.iso" % productVersion
         master.execdom0("mv /tmp/dellomsupppack/%s /root" % dellomSupppack)
 
         if self.UNSATISFIED_DEPENDENCY:

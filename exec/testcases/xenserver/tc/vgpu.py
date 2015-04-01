@@ -2620,45 +2620,47 @@ class TCBasicVerifOfAllK2config(FunctionalBase):
 
     def insideRun(self,config,distro):
 
-            osType = self.getOSType(distro)
+        osType = self.getOSType(distro)
 
-            vm = self.masterVMs[osType]
+        vm = self.masterVMs[osType]
 
-            expVGPUType = self.getConfigurationName(config)
-            log("Creating vGPU of type %s" % (expVGPUType))
+        expVGPUType = self.getConfigurationName(config)
+        log("Creating vGPU of type %s" % (expVGPUType))
 
-            #vm.setState("DOWN")
-            #self.configureVGPU(config, vm)
-            #vm.setState("UP")
-            self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
+        #vm.setState("DOWN")
+        #self.configureVGPU(config, vm)
+        #vm.setState("UP")
+        self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
 
-            log("Install guest drivers for %s" % str(vm))
-            self.typeOfvGPU.installGuestDrivers(vm,expVGPUType)
+        log("Install guest drivers for %s" % str(vm))
+        self.typeOfvGPU.installGuestDrivers(vm,expVGPUType)
 
-            log("Checking whether vGPU is runnnig on the VM or not")
-            self.typeOfvGPU.assertvGPURunningInVM(vm,expVGPUType)
+        log("Checking whether vGPU is runnnig on the VM or not")
+        self.typeOfvGPU.assertvGPURunningInVM(vm,expVGPUType)
 
-            vm.setState("DOWN")
-            log("Cloning VM from Master VM")
-            g = self.cloneVM(osType)
-            self.guests[osType] = g
+        vm.setState("DOWN")
+        log("Cloning VM from Master VM")
+        g = self.cloneVM(osType)
+        self.guests[osType] = g
 
-            g.setState("UP")
-            self.typeOfvGPU.assertvGPURunningInVM(g,expVGPUType)
+        g.setState("UP")
+        self.typeOfvGPU.assertvGPURunningInVM(g,expVGPUType)
 
-            self.typeOfvGPU.runWorkload(g)
+        self.typeOfvGPU.runWorkload(g)
 
-            self.typeOfvGPU.assertvGPURunningInVM(g,expVGPUType)
+        self.typeOfvGPU.assertvGPURunningInVM(g,expVGPUType)
 
-            g.reboot()
+        g.reboot()
 
-            self.typeOfvGPU.assertvGPURunningInVM(g,expVGPUType)
+        self.typeOfvGPU.assertvGPURunningInVM(g,expVGPUType)
 
-            g.setState("DOWN")
+        g.setState("DOWN")
 
-            log("Uninstalling guest %s" % str(g))
-            try: g.uninstall()
-            except: pass
+        log("Uninstalling guest %s" % str(g))
+        try: g.uninstall()
+        except: pass
+
+        self.typeOfvGPU.unblockDom0Access()
 
 class TCAssignK2vGPUToVMhasGotvGPU(TCBasicVerifOfAllK2config):
 

@@ -414,7 +414,6 @@ class VGPUTest(object):
             return False
         else:
             raise xenrt.XRTError("display param on host was neither enabled or disabled.")
-        
 
     def blockDom0Access(self, cardName, reboot=True):
         def verifyBlocked():

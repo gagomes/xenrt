@@ -2079,7 +2079,7 @@ exit /B 1
         netscaler.checkFeatures()
 
     def installNSTools(self):
-        xenrt.lib.netscaler.NetScaler.installNSTools(self)
+        self.nsvpx.installNSTools()
 
     def setupUnsupGuest(self, getIP=None):
         self.tailored = True

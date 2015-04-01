@@ -61,17 +61,9 @@ class NetScaler(object):
             # Wait / Check for SSH connectivity
             vpxGuest.waitForSSH(timeout=300, username='nsroot', cmd='shell')
             vpx = cls(vpxGuest, mgmtNet)
+            vpxGuest.nsvpx = vpx
             vpx.setup(networks)
         return vpx
-
-    @classmethod
-    def installNSTools(cls, vpx):
-        nstools = xenrt.TEC().lookup('NS_TOOLS_PATH')
-        toolsfile = nstools.split("/")[-1]
-        vpx.__netScalerCliCommand("mkdir -p /var/BW")
-        vpx.__netScalerCliCommand("cd /car/BW && wget '%s'" % nstools)
-        vpx.__netScalerCliCommand("cd /var/BW && tar xvfz %s" % toolsfile)
-        vpx.__netScalerCliCommand("/var/BW/nscsconfig --help || true")
 
     @classmethod
     def createVPXOnHost(cls, host, vpxName=None, vpxHttpLocation=None):
@@ -124,6 +116,14 @@ class NetScaler(object):
         data = map(lambda x:x.strip(), filter(lambda x:not x.startswith(' Done'), data.splitlines()))
         xenrt.TEC().logverbose('NetScaler Command [%s] - Returned: %s' % (command, '\n'.join(data)))
         return data
+
+    def installNSTools(self):
+        nstools = xenrt.TEC().lookup('NS_TOOLS_PATH')
+        toolsfile = nstools.split("/")[-1]
+        self.__netScalerCliCommand("mkdir -p /var/BW")
+        self.__netScalerCliCommand("cd /car/BW && wget '%s'" % nstools)
+        self.__netScalerCliCommand("cd /var/BW && tar xvfz %s" % toolsfile)
+        self.__netScalerCliCommand("/var/BW/nscsconfig --help || true")
 
     @property
     def version(self):

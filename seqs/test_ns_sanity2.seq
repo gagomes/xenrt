@@ -1,0 +1,106 @@
+<xenrt>
+  <default name="NS_NSVPX_XVA" value="/usr/groups/xenrt/NSVPX-XEN-10.5-52.11_nc.xva" />
+  <default name="NS_TOOLS_PATH" value="/usr/groups/xenrt/ns-tools-10.5-52.11.nc.tgz" />
+  <default name="NS_ATS_XVA" value="/usr/groups/xenrt/ns/ATS_10_5.xva" />
+  <default name="NS_LINUX_XVA" value="http://10.217.223.221/vms/Sanity_Linux.xva" />
+  <default name="NS_WINDOWS_XVA" value="http://10.217.223.221/vms/Sanity_Windows.xva" />
+
+  <variables>
+    <OPTION_KEEP_SETUP>yes</OPTION_KEEP_SETUP>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <PREPARE_WORKERS>8</PREPARE_WORKERS>
+  </variables>
+  <scheduler>
+    <resources>memory&gt;=8G</resources>
+    <param>MACHINES_REQUIRED=3</param>
+    <flags>privvlan</flags>
+  </scheduler>
+  <prepare>
+    <vlan name="CLIENT_VLAN" />
+    <vlan name="SERVER_VLAN" />
+    <host id="0">
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <VMS />
+          <MANAGEMENT />
+          <NIC />
+          <VLAN network="CLIENT_VLAN" />
+        </PHYSICAL>
+      </NETWORK>
+      <vm name="ATS">
+        <file>${NS_ATS_XVA}</file>
+        <network device="0" />
+        <network device="1" bridge="CLIENT_VLAN" />
+      </vm>
+      <vm name="LINUX-CLIENT">
+        <file>${NS_LINUX_XVA}</file>
+        <network device="0" />
+        <network device="1" bridge="CLIENT_VLAN" />
+      </vm>
+      <vm name="WINDOWS-CLIENT">
+        <file>${NS_WINDOWS_XVA}</file>
+        <network device="0" />
+        <network device="1" bridge="CLIENT_VLAN" />
+      </vm>
+      <vm name="BW-CLIENT">
+        <file>${NS_NSVPX_XVA}</file>
+        <network device="0" />
+        <network device="1" bridge="CLIENT_VLAN" />
+        <postinstall action="setupNetscalerVPX" />
+        <postinstall action="installNSTools" />
+      </vm>
+    </host>
+    <host id="1">
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <VMS />
+          <MANAGEMENT />
+          <NIC />
+          <VLAN network="SERVER_VLAN" />
+        </PHYSICAL>
+      </NETWORK>
+      <vm name="LINUX-SERVER">
+        <file>${NS_LINUX_XVA}</file>
+        <network device="0" />
+        <network device="1" bridge="SERVER_VLAN" />
+      </vm>
+      <vm name="WINDOWS-SERVER">
+        <file>${NS_WINDOWS_XVA}</file>
+        <network device="0" />
+        <network device="1" bridge="SERVER_VLAN" />
+      </vm>
+      <vm name="BW-SERVER">
+        <file>${NS_NSVPX_XVA}</file>
+        <network device="0" />
+        <network device="1" bridge="SERVER_VLAN" />
+        <postinstall action="setupNetscalerVPX" />
+        <postinstall action="installNSTools" />
+      </vm>
+    </host>
+    <host id="2">
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <VMS />
+          <MANAGEMENT />
+          <NIC />
+          <VLAN network="SERVER_VLAN" />
+          <VLAN network="CLIENT_VLAN" />
+        </PHYSICAL>
+      </NETWORK>
+      <vm name="NS-DUT1">
+        <file>${NS_NSVPX_XVA}</file>
+        <network device="0" />
+        <network device="1" bridge="CLIENT_VLAN" />
+        <network device="2" bridge="SERVER_VLAN" />
+        <postinstall action="setupNetscalerVPX" />
+      </vm>
+      <vm name="NS-DUT2">
+        <file>${NS_NSVPX_XVA}</file>
+        <network device="0" />
+        <network device="1" bridge="CLIENT_VLAN" />
+        <network device="2" bridge="SERVER_VLAN" />
+        <postinstall action="setupNetscalerVPX" />
+      </vm>
+    </host>
+  </prepare>
+</xenrt>

@@ -294,25 +294,37 @@ class VGPUTest(object):
 
         return typeOfVGPU, vgpuuuid
 
-    def assertvGPURunningInWinVM(self, vm, vGPUType):
-        if not self.checkvGPURunningInVM(vm, vGPUType):
+    def assertNvidiavGPURunningInWinVM(self, vm, vGPUType):
+        vendor = "PCI.VEN_10DE.*(NVIDIA|VGA|Display).*"
+        if not self.checkvGPURunningInVM(vm, vGPUType, vendor):
             raise xenrt.XRTFailure("vGPU not running in VM %s: %s" % (vm.getName(),vm.getUUID()))
 
-    def assertvGPUNotRunningInWinVM(self, vm, vGPUType):
-        if self.checkvGPURunningInVM(vm, vGPUType):
+    def assertNvidiavGPUNotRunningInWinVM(self, vm, vGPUType):
+        vendor = "PCI.VEN_10DE.*(NVIDIA|VGA|Display).*"
+        if self.checkvGPURunningInVM(vm, vGPUType,vendor):
             raise xenrt.XRTFailure("vGPU running when not expected in VM %s: %s" % (vm.getName(),vm.getUUID()))
 
-    def checkvGPURunningInVM(self, vm, vGPUType):
+    def assertIntelvGPURunningInWinVM(self, vm, vGPUType):
+        vendor = "PCI.VEN.*Intel.*Graphics.*"
+        if not self.checkvGPURunningInVM(vm, vGPUType, vendor):
+            raise xenrt.XRTFailure("vGPU not running in VM %s: %s" % (vm.getName(),vm.getUUID()))
+
+    def assertIntelvGPUNotRunningInWinVM(self, vm, vGPUType):
+        vendor = "PCI.VEN.*Intel.*Graphics.*"
+        if not self.checkvGPURunningInVM(vm, vGPUType, vendor):
+            raise xenrt.XRTFailure("vGPU not running in VM %s: %s" % (vm.getName(),vm.getUUID()))
+
+    def checkvGPURunningInVM(self, vm, vGPUType,vendor):
 
         for i in range(2):
-            result, err = self.__checkvGPURunningInVMWithReason(vm, vGPUType)
+            result, err = self.__checkvGPURunningInVMWithReason(vm, vGPUType, vendor)
             if not result and err and i < 1:
                 vm.reboot()
             else:
                 return result 
 
-    def __checkvGPURunningInVMWithReason(self, vm, vGPUType):
-        gpu = self.findGPUInVM(vm)
+    def __checkvGPURunningInVMWithReason(self, vm, vGPUType, vendor):
+        gpu = self.findGPUInVM(vm, vendor)
 
         if not gpu:
             log("vGPU not found on VM")
@@ -340,16 +352,15 @@ class VGPUTest(object):
                 return True,""
         return False,"Could not determine whether GPU is running"
 
-    def findGPUInVM(self,vm):
+    def findGPUInVM(self,vm,vendor):
 
         vm.waitForDaemon(1800, desc="Windows starting up")
         lines = vm.devcon("find *").splitlines()
-        nvidiaDevice = "PCI.VEN_10DE.*(NVIDIA|VGA|Display).*"  #nvidia pci vendor id
 
         for line in lines:
             if line.startswith("PCI"):
                 xenrt.TEC().logverbose("devcon: %s" % line)
-                if re.search(nvidiaDevice,line) and not re.search(".*(Audio).*",line):
+                if re.search(vendor,line) and not re.search(".*(Audio).*",line):
                     xenrt.TEC().logverbose("Found GPU device: %s" % line)
                     return line.strip()
         return None
@@ -919,7 +930,7 @@ class TCGPUBootstorm(VGPUOwnedVMsTest):
         guest.start()
         self.times[guest.name] = xenrt.util.timenow() - self.starttime
         if self.vgpuconfig:
-            self.assertvGPURunningInWinVM(guest, self.vgpuconfig)
+            self.assertNvidiavGPURunningInWinVM(guest, self.vgpuconfig)
 
 
     def prepare(self, arglist):
@@ -1894,10 +1905,10 @@ class NvidiaWindowsvGPU(DifferentGPU):
         VGPUTest().installNvidiaWindowsDrivers(guest, vGPUType)
 
     def assertvGPURunningInVM(self, guest, vGPUType):
-        VGPUTest().assertvGPURunningInWinVM(guest, vGPUType) 
+        VGPUTest().assertNvidiavGPURunningInWinVM(guest, vGPUType) 
 
     def assertvGPUNotRunningInVM(self, guest, vGPUType):
-        VGPUTest().assertvGPUNotRunningInWinVM(guest, vGPUType)
+        VGPUTest().assertNvidiavGPUNotRunningInWinVM(guest, vGPUType)
 
     def runWorkload(self,vm):
         VGPUTest().runWindowsWorkload(vm)
@@ -1953,10 +1964,10 @@ class IntelWindowsvGPU(DifferentGPU):
         VGPUTest().installIntelWindowsDrivers(guest, vGPUType)
 
     def assertvGPURunningInVM(self, guest, vGPUType):
-        VGPUTest().assertvGPURunningInWinVM(guest, vGPUType)
+        VGPUTest().assertIntelvGPURunningInWinVM(guest, vGPUType)
 
     def assertvGPUNotRunningInVM(self, guest, vGPUType):
-        VGPUTest().assertvGPUNotRunningInWinVM(guest, vGPUType)
+        VGPUTest().assertIntelvGPUNotRunningInWinVM(guest, vGPUType)
 
     def runWorkload(self,vm):
         VGPUTest().runWindowsWorkload(vm)
@@ -4226,7 +4237,7 @@ class TCinstallNVIDIAGuestDrivers(VGPUOwnedVMsTest):
 
         g = self.getGuest(vmName)
         g.installNvidiaVGPUDriver(self.driverType)
-        self.assertvGPURunningInWinVM(g,self._CONFIGURATION[int(vgpuType)])
+        self.assertNvidiavGPURunningInWinVM(g,self._CONFIGURATION[int(vgpuType)])
 
 class TCcreatevGPU(VGPUAllocationModeBase):
 

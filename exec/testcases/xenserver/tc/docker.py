@@ -78,9 +78,17 @@ class TCGuestsLifeCycle(TCContainerLifeCycle):
             guest.start()
             xenrt.sleep(90)
 
-    def run(self, arglist=None):
+    def startAllContainers(self, arglist):
 
         args = self.parseArgsKeyValue(arglist)
+
+        # After a guest reboot/shutdown all the running containers goes offline.
+        if args.has_key('containersstarted') and args["containersstarted"].lower() == "yes": 
+            pass # exception in case of Ubuntu guests.
+        else:
+            [docker.startAllContainers() for docker in self.docker]
+
+    def run(self, arglist=None):
 
         xenrt.TEC().logverbose("Create enough containers in every guests")
         self.createDockerContainers()
@@ -91,11 +99,8 @@ class TCGuestsLifeCycle(TCContainerLifeCycle):
         xenrt.TEC().logverbose("Guests [having docker containers] Life Cycle Operations")
         self.lifeCycleDockerGuest()
 
-        # After a guest reboot/shutdown all the running containers goes offline.
-        if args.has_key('containersstarted') and args["containersstarted"].lower() == "yes": 
-            pass # exception in case of Ubuntu guests.
-        else:
-            [docker.startAllContainers() for docker in self.docker]
+        # The running containers goes offline after a reboot, except in case of Ubuntu.
+        self.startAllContainers(arglist)
 
         xenrt.TEC().logverbose("Perform life cycle operations on all containers after guests reboots")
         self.lifeCycleDockerContainers()
@@ -123,8 +128,8 @@ class TCGuestsMigration(TCGuestsLifeCycle):
         xenrt.TEC().logverbose("Life Cycle Operations of guest before migrating to slave")
         self.lifeCycleDockerGuest()
 
-        # After a guest reboot/shutdown all the running containers goes offline.
-        [docker.startAllContainers() for docker in self.docker]
+        # The running containers goes offline after a reboot, except in case of Ubuntu.
+        self.startAllContainers(arglist)
 
         xenrt.TEC().logverbose("Perform life cycle operations on all containers - (2)")
         self.lifeCycleDockerContainers()
@@ -138,8 +143,8 @@ class TCGuestsMigration(TCGuestsLifeCycle):
         xenrt.TEC().logverbose("Life Cycle Operations of guest after migrating to slave")
         self.lifeCycleDockerGuest()
 
-        # After a guest reboot/shutdown all the running containers goes offline.
-        [docker.startAllContainers() for docker in self.docker]
+        # The running containers goes offline after a reboot, except in case of Ubuntu.
+        self.startAllContainers(arglist)
 
         xenrt.TEC().logverbose("Perform life cycle operations on all containers - (4)")
         self.lifeCycleDockerContainers()
@@ -153,8 +158,8 @@ class TCGuestsMigration(TCGuestsLifeCycle):
         xenrt.TEC().logverbose("Life Cycle Operations of guest after migrating back to master")
         self.lifeCycleDockerGuest()
 
-        # After a guest reboot/shutdown all the running containers goes offline.
-        [docker.startAllContainers() for docker in self.docker]
+        # The running containers goes offline after a reboot, except in case of Ubuntu.
+        self.startAllContainers(arglist)
 
         xenrt.TEC().logverbose("Perform life cycle operations on all containers - (6)")
         self.lifeCycleDockerContainers()

@@ -1843,7 +1843,7 @@ class DifferentGPU(object):
         pass
 
     @abstractmethod
-    def attachvGPUToVM(self, vgpucreator, vm, groupuuid):
+    def attachvGPUToVM(self, vgpucreator, vm, groupuuid=None):
         """
         Attach a type of vgpu.
         """
@@ -1878,8 +1878,8 @@ class NvidiaWindowsvGPU(DifferentGPU):
     def runWorkload(self,vm):
         VGPUTest().runWindowsWorkload(vm)
 
-    def attachvGPUToVM(self, vgpucreator, vm, groupuuid):
-        VGPUTest().attachvGPU(vgpucreator,vm,groupuuid)
+    def attachvGPUToVM(self, vgpucreator, vm, groupuuid=None):
+        VGPUTest().attachvGPU(vgpucreator, vm, groupuuid)
 
     def blockDom0Access(self):
         xenrt.TEC().logverbose("Not implemented")
@@ -1908,8 +1908,8 @@ class NvidiaLinuxvGPU(DifferentGPU):
         xenrt.TEC().logverbose("Not implemented")
         pass
 
-    def attachvGPUToVM(self, vgpucreator, vm, groupuuid):
-        VGPUTest().attachvGPU(vgpucreator,vm,groupuuid)
+    def attachvGPUToVM(self, vgpucreator, vm, groupuuid=None):
+        VGPUTest().attachvGPU(vgpucreator, vm, groupuuid)
 
     def blockDom0Access(self):
         xenrt.TEC().logverbose("Not implemented")
@@ -1937,8 +1937,8 @@ class IntelWindowsvGPU(DifferentGPU):
     def runWorkload(self,vm):
         VGPUTest().runWindowsWorkload(vm)
 
-    def attachvGPUToVM(self, vgpucreator, vm):
-        VGPUTest().attachvGPU(vgpucreator,vm,groupuuid)
+    def attachvGPUToVM(self, vgpucreator, vm, groupuuid=None):
+        VGPUTest().attachvGPU(vgpucreator, vm, groupuuid)
 
     def blockDom0Access(self):
         VGPUTest().blockDom0Access(self,CardName[CardType.Intel])

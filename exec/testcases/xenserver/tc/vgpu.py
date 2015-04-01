@@ -3313,14 +3313,10 @@ class MixedGPUBootstorm(BootstormBase):
 
 class TCIntelSetupNegative(FunctionalBase):
     """
-    Setting up the intel environment wrong.
-    Blocking assess but not rebooting host.
-    Attemping to attach vGPU Passthrough to VM.
+    Passthrough GPU to win VM without rebooting host after block.
     """
 
     def prepare(self, arglist):
-        """Might be able to clean up redundant steps."""
-
         super(TCIntelSetupNegative, self).prepare(arglist)
 
         self.host = self.getDefaultHost()
@@ -3365,19 +3361,9 @@ class TCIntelSetupNegative(FunctionalBase):
 
 class TCIntelGPUSnapshotNegative(FunctionalBase):
     """
-    Setting up VM with Intel GPU Passthrough.
-    Snapshotting VM.
-    Destroy GPU and unblock Dom0 access to GPU. (Available?)
-    Starting VM and revert, should fail.
-    (Turns off VM, and fails to start.)
-    (Try to start the VM and should gracefully fail. Could run without catch once to be sure.)
-
-    Need to handle multiple OSs, with single host.
-    Should be able to start one by one.
+    Revert GPU Passthrough snapshot (negative).
     """
     def prepare(self, arglist):
-        """Might be able to clean up redundant steps."""
-
         super(TCIntelSetupNegative, self).prepare(arglist)
 
         self.host = self.getDefaultHost()

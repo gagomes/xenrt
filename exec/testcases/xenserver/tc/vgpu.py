@@ -3321,7 +3321,6 @@ class TCIntelSetupNegative(FunctionalBase):
     def prepare(self, arglist):
         """Might be able to clean up redundant steps."""
 
-        # Will include intel setup.
         super(TCIntelSetupNegative, self).prepare(arglist)
 
         self.host = self.getDefaultHost()
@@ -3376,7 +3375,54 @@ class TCIntelGPUSnapshotNegative(FunctionalBase):
     Need to handle multiple OSs, with single host.
     Should be able to start one by one.
     """
-    pass
+    def prepare(self, arglist):
+        """Might be able to clean up redundant steps."""
+
+        super(TCIntelSetupNegative, self).prepare(arglist)
+
+        self.host = self.getDefaultHost()
+
+        step("Creating %d vGPUs configurations." % (len(self.VGPU_CONFIG)))
+        self.vGPUCreator = {}
+        for config in self.VGPU_CONFIG:
+            self.vGPUCreator[config] = VGPUInstaller(self.host, config)
+
+        for distro in self.REQUIRED_DISTROS:
+
+            osType = self.getOSType(distro)
+
+            log("Creating Master VM of type %s" % osType)
+            vm = self.createMaster(osType)
+            vm.enlightenedDrivers = True
+            vm.setState("UP")
+            if vm.windows:
+                vm.enableFullCrashDump()
+            self.masterVMsSnapshot[osType] = vm.snapshot()
+
+    def run(self, arglist):
+        for config in self.VGPU_CONFIG:
+            for distro in self.REQUIRED_DISTROS:
+                osType = self.getOSType(distro)
+                vm = self.masterVMs[osType]
+
+                self.typeOfvGPU.attachvGPU(self.vGPUCreator[config], vm)
+
+                withGPUSnapshot = vm.snapshot()
+
+                vm.setState("DOWN")
+                vm.destroyvGPU()
+                self.typeOfvGPU.unblockDom0Access()
+
+                vm.setState("UP")
+                # VM will shutdown after revert.
+                vm.revert(withGPUSnapshot)
+
+                # Should fail to start.
+                try:
+                    vm.setState("UP")
+                    raise xenrt.XRTFailure("Something")
+                except:
+                    pass
 
 class TCAlloModeK200NFS(VGPUAllocationModeBase):
 

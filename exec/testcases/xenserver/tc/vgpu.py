@@ -406,6 +406,16 @@ class VGPUTest(object):
         host.blockDom0AccessToOnboardPGPU(intelPGPUUUID)
         host.disableHostDisplay()
         host.reboot()
+
+    def unblockDom0Access(self,cardName):
+        host = self.getDefaultHost()
+        pgpu = host.minimalList("pgpu-list")
+        intelPGPUUUID = filter(lambda p: CardName[cardName] in host.genParamGet("pgpu",p,"vendor-name"),pgpu)[0]
+        if not intelPGPUUUID:
+            raise xenrt.XRTFailure("No Intel GPU found")
+        host.unblockDom0AccessToOboardPGPU(intelPGPUUUID)
+        host.enablHostDisplay()
+        host.reboot()
  
 class VGPUOwnedVMsTest(xenrt.TestCase,VGPUTest):
     __OPTIONS = {
@@ -1959,10 +1969,10 @@ class IntelWindowsvGPU(DifferentGPU):
         VGPUTest().attachvGPU(vgpucreator,vm,groupuuid)
 
     def blockDom0Access(self):
-        VGPUTest().blockDom0Access(self,CardName[CardType.Intel])
+        VGPUTest().blockDom0Access(CardName[CardType.Intel])
 
     def unblockDom0Access(self):
-        VGPUTest().unblockDom0Access(self,CardName[CardType.Intel])
+        VGPUTest().unblockDom0Access(CardName[CardType.Intel])
 
 """ Negative Test Cases """
 

@@ -397,7 +397,7 @@ class VGPUTest(object):
         vgpucreator.createOnGuest(vm, groupuuid)
         vm.setState("UP")
 
-    def blockDom0Access(self,cardName):
+    def blockDom0Access(self, cardName, reboot=True):
         host = self.getDefaultHost()
         pgpu = host.minimalList("pgpu-list")
         intelPGPUUUID = filter(lambda p: CardName[cardName] in host.genParamGet("pgpu",p,"vendor-name"),pgpu)[0]
@@ -405,7 +405,8 @@ class VGPUTest(object):
             raise xenrt.XRTFailure("No Intel GPU found")
         host.blockDom0AccessToOnboardPGPU(intelPGPUUUID)
         host.disableHostDisplay()
-        host.reboot()
+        if reboot:
+            host.reboot()
  
 class VGPUOwnedVMsTest(xenrt.TestCase,VGPUTest):
     __OPTIONS = {

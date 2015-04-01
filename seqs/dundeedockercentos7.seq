@@ -30,8 +30,8 @@
     <serial group="CentOS">
 
       <testcase id="xenserver.tc.docker.TCContainerLifeCycle" tc="TC-23918" name="ContainerLifeCycle" sku="CentOS7" />
-      <testcase id="xenserver.tc.docker.TCScaleContainers" tc="TC-26523" name="ScaleContainers" sku="CentOS7" />
       <testcase id="xenserver.tc.docker.TCGuestsLifeCycle" tc="TC-26443" name="GuestsLifeCycle" sku="CentOS7" />
+      <testcase id="xenserver.tc.docker.TCScaleContainers" tc="TC-26523" name="ScaleContainers" sku="CentOS7" />
 
     </serial>
   </testsequence>

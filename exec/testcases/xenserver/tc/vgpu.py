@@ -397,11 +397,31 @@ class VGPUTest(object):
         vgpucreator.createOnGuest(vm, groupuuid)
         vm.setState("UP")
 
+    def __checkDom0Access(self, host, gpuuuid):
+        access = host.genParamGet("pgpu", gpuuuid, "dom0-access")
+        if access == "enabled":
+            return True
+        elif access == "disabled":
+            return False
+        else:
+            raise xenrt.XRTError("dom0-access param on gpu, uuid %s, was neither enabled or disabled." % (gpuuuid))
+
+    def __checkDisplay(self, host):
+        hostdisplay = host.getHostParam("display")
+        if hostdisplay == "enabled":
+            return True
+        elif hostdisplay == "disabled":
+            return False
+        else:
+            raise xenrt.XRTError("display param on host was neither enabled or disabled.")
+        
+
     def blockDom0Access(self, cardName, reboot=True):
         def verifyBlocked():
-            # xe pgpu-list uuid param=dom0access. == disabled.
-            # xe host-list display == disbaled.
-            pass
+            if self.__checkDom0Access(host, intelPGPUUUID):
+                raise xenrt.XRTError("GPU Dom0 Access was not successfully blocked.")
+            if self.__checkDisplay(host):
+                raise xenrt.XRTError("Host display was not successfully disabled.")
 
         host = self.getDefaultHost()
         pgpu = host.minimalList("pgpu-list")
@@ -415,6 +435,12 @@ class VGPUTest(object):
             verifyBlocked()
 
     def unblockDom0Access(self,cardName):
+        def verifyUnblocked():
+            if not self.__checkDom0Access(host, intelPGPUUUID):
+                raise xenrt.XRTError("GPU Dom0 Access was not successfully unblocked.")
+            if not self.__checkDisplay(host):
+                raise xenrt.XRTError("Host display was not successfully enabled.")
+
         host = self.getDefaultHost()
         pgpu = host.minimalList("pgpu-list")
         intelPGPUUUID = filter(lambda p: CardName[cardName] in host.genParamGet("pgpu",p,"vendor-name"),pgpu)[0]
@@ -423,6 +449,7 @@ class VGPUTest(object):
         host.unblockDom0AccessToOboardPGPU(intelPGPUUUID)
         host.enablHostDisplay()
         host.reboot()
+        verifyUnblocked()
  
 class VGPUOwnedVMsTest(xenrt.TestCase,VGPUTest):
     __OPTIONS = {

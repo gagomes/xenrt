@@ -4653,7 +4653,7 @@ def createVM(host,
                                 password=password)
         g.distro = distro
         g.arch = arch
-        if re.search("[vw]", distro):
+        if re.search("[vw]", distro[0]):
             g.windows = True
             g.vifstem = g.VIFSTEMHVM
             g.password = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS", "ADMINISTRATOR_PASSWORD"])

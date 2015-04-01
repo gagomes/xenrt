@@ -3344,18 +3344,14 @@ class TCIntelSetupNegative(FunctionalBase):
             for distro in self.REQUIRED_DISTROS:
                 osType = self.getOSType(distro)
 
-                # Set up wrong.
                 self.typeOfvGPU.unblockDom0Access()
-
-                # Call block access directly with the param, reboot=False
                 self.typeOfvGPU.blockDom0Access(reboot=False)
 
                 vm = self.masterVMs[osType]
 
-                # Need installer for intel. Prepare?
                 try:
                     self.typeOfvGPU.attachvGPU(self.vGPUCreator[config], vm)
-                    raise xenrt.XRTFailure("Wrong")
+                    raise xenrt.XRTFailure("Can attach Intel GPU to vm, while Host not rebooted after blocking Dom0 Access.")
                 except:
                     pass
 
@@ -3406,7 +3402,7 @@ class TCIntelGPUSnapshotNegative(FunctionalBase):
                 # Should fail to start.
                 try:
                     vm.setState("UP")
-                    raise xenrt.XRTFailure("Something")
+                    raise xenrt.XRTFailure("Able to revert to Intel GPU Passthrough enabled snapshot, after unblocking Dom0 Access to Host.")
                 except:
                     pass
 

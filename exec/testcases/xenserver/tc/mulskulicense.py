@@ -40,7 +40,7 @@ class LicenseBase(xenrt.TestCase, object):
         else:
             self.systemObj = self.getHost("RESOURCE_HOST_1").getPool()
 
-        self.__parseArgs(arglist)
+        self.parseArgs(arglist)
 
         self.v6 = self.licenseServer(self.newLicenseServerName)
 
@@ -60,7 +60,7 @@ class LicenseBase(xenrt.TestCase, object):
         v6.removeAllLicenses()
         return v6
 
-    def __parseArgs(self,arglist):
+    def parseArgs(self,arglist):
 
         for arg in arglist:
             if arg.startswith('sku'):
@@ -213,6 +213,7 @@ class TestFeatureBase(LicenseBase):
     def run(self, arglist=None):
         for sku in self.skus:
             xenrt.TEC().logverbose("Testing SKU: %s" % sku)
+            self.confirmLicenseServerUp()
 
             self.license = self.licenseFactory.licenseForHost(self.systemObj.master, sku)
 
@@ -234,6 +235,12 @@ class TestFeatureBase(LicenseBase):
         """
         pass
 
+    def confirmLicenseServerUp(self):
+        ls = self.getGuest(self.newLicenseServerName)
+        if (ls.getState() != "UP"):
+            ls.setState("UP")
+        self.v6.start()
+
 
 class TCReadCachingFeature(TestFeatureBase):
 
@@ -253,6 +260,8 @@ class TCReadCachingFeature(TestFeatureBase):
 
         # Create VM..
         guest = self.systemObj.master.createGenericLinuxGuest(sr="nfsstorage")
+        guest.snapshot()
+        guest.reboot()
 
         # Check we have the right read caching priviledge.
         enabledList = feature.isEnabled(self.systemObj.master)
@@ -306,6 +315,18 @@ class TCWLBFeature(TestFeatureBase):
 
 class TCVirtualGPUFeature(TestFeatureBase):
 
+    def prepare(self, arglist):
+        """Workaround so don't need to use two vGPU machines."""
+        if self.getDefaultPool():
+            self.systemObj =  self.getDefaultPool()
+        else:
+            # Use the first host instead of second like rest of feature testcases.
+            self.systemObj = self.getHost("RESOURCE_HOST_0").getPool()
+
+        self.parseArgs(arglist)
+
+        self.v6 = self.licenseServer(self.newLicenseServerName)
+
     def checkFeature(self, currentSKU):
         # Check flag and feature on licensed host.
         feature =  VirtualGPU()
@@ -315,9 +336,10 @@ class TCVirtualGPUFeature(TestFeatureBase):
             featureResctictedFlag,
             "Feature flag on host does not match actual permissions. Feature allowed: %s, Feature restricted: %s" % (featureRestricted, featureResctictedFlag))
 
-        enabledList = feature.isEnabled(self.systemObj.master)
+        enabled = feature.isEnabled(self.systemObj.master)
+        self.confirmLicenseServerUp()
         assertions.assertEquals(not featureRestricted,
-            True in enabledList,
+            enabled,
             "vGPU privilidge is not as expected after creating new VM. Should be: %s" % (featureRestricted))
 
         # Unlicense host.
@@ -329,8 +351,9 @@ class TCVirtualGPUFeature(TestFeatureBase):
             "Feature flag is not restricted after removing license. Feature restricted: %s" % (featureResctictedFlag))
 
 
-        enabledList = feature.isEnabled(self.systemObj.master)
-        assertions.assertFalse(True in enabledList, "vGPU is enabled after removing license and lifecycle operation.")
+        enabled = feature.isEnabled(self.systemObj.master)
+        self.confirmLicenseServerUp()
+        assertions.assertFalse(enabled, "vGPU is enabled after removing license and lifecycle operation.")
 
 class LicenseExpiryBase(LicenseBase):
      #TC for Creedence (and later) license expiration test.

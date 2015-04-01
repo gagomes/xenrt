@@ -75,7 +75,10 @@ class TC8369(xenrt.TestCase):
                     stexe = "signtool_x64.exe"
                 else:
                     stexe = "signtool_x86.exe"
-                self.guest.xmlrpcExec("c:\\signtool\\%s verify /kp /v \"%s\"" % (stexe, d), returndata=True)
+                data = self.guest.xmlrpcExec("c:\\signtool\\%s verify /kp /v \"%s\"" % (stexe, d), returndata=True)
+                if not "Citrix Systems, Inc." in data:
+                    xenrt.TEC().logverbose("Didn't find 'Citrix Systems, Inc.' in signtool output - marking as incorrectly signed")
+                    signFailures.append(d)
             except:
                 signFailures.append(d)
 

@@ -7,7 +7,7 @@
 
     <prepare>
       <!-- license needed in order to enable CIFS SR -->
-      <host id="0" license="per-socket">
+      <host id="0">
         <storage type="smb" name="smbsr" options="host-1-p" />
         <NETWORK>
           <PHYSICAL network="ANY" speed="10G" name="NET_A">

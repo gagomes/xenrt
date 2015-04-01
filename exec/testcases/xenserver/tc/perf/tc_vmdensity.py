@@ -2644,7 +2644,10 @@ MachinePassword=%s
                 timeout = 600
             else:
                 timeout = 600 + self.measurement_1.base_measurement * self.tc.THRESHOLD
-            guest.mainip = guest.getHost().arpwatch(bridge, mac, timeout=timeout)
+            if guest.use_ipv6:
+                guest.mainip = guest.getIPv6AutoConfAddress(vifname)
+            else:
+                guest.mainip = guest.getHost().arpwatch(bridge, mac, timeout=timeout)
             self.ip_to_guest[guest.mainip] = guest
             #guest.waitforxmlrpc(300, desc="Daemon", sleeptime=1, reallyImpatient=False)
 

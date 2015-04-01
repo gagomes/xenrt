@@ -260,6 +260,8 @@ class TCReadCachingFeature(TestFeatureBase):
 
         # Create VM..
         guest = self.systemObj.master.createGenericLinuxGuest(sr="nfsstorage")
+        guest.snapshot()
+        guest.reboot()
 
         # Check we have the right read caching priviledge.
         enabledList = feature.isEnabled(self.systemObj.master)

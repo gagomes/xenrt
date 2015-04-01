@@ -171,18 +171,7 @@ class _XSAutoCertKit(xenrt.TestCase):
                         xenrt.TEC().logverbose("Logged an expected error")
                         break
                     else:
-                        # This can be caused by XAPI issue CA-161590
-                        # The only work-around is restarting XAPI.
-                        # Though CA-161590 is fixed with hotfix, old branch may still encounter this issue.
-                        if not xenrt.TEC().lookup("TEST_CA-161590", False, boolean=True):
-                            xenrt.TEC().logverbose("Found CA-161590 issue. Trying restart hosts to continue tests.")
-                            for host in self.pool.getHosts():
-                                host.reboot()
-                            # Give some time to daemon to start off ACK again.
-                            xenrt.sleep(30)
-                            continue
-                        else:
-                            raise xenrt.XRTError("Error occured in running auto cert kit")
+                        raise xenrt.XRTError("Error occured in running auto cert kit")
                 statuscode = int(statustext.split(":", 1)[0])
                 if statuscode == 0:
                     break

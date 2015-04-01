@@ -253,7 +253,7 @@ class Guest(xenrt.GenericGuest):
         if not distro:
             distro=self.distro
         hvms = self.getHost().lookup("HVM_LINUX", None)
-        if hvms:
+        if distro and hvms:
             for d in hvms.split(","):
                 if re.match(d, distro):
                     return True
@@ -292,19 +292,11 @@ class Guest(xenrt.GenericGuest):
 
         # Workaround # RHEL/CentOS/OEL 6 or later requires at least 1G ram.
         if distro:
-            if distro.startswith("rhel") and int(distro[4:5]) >= 6:
+            m = re.match("(rhel|centos|oel|sl)[dw]?(\d)\d*", distro)
+            if m and int(m.group(2)) >= 6:
                 if (self.memory and self.memory<1024) or not self.memory:
                     self.memory = 1024
-            if distro.startswith("centos") and int(distro[6:7]) >= 6:
-                if (self.memory and self.memory<1024) or not self.memory:
-                    self.memory = 1024
-            if distro.startswith("oel") and int(distro[3:4]) >= 6:
-                if (self.memory and self.memory<1024) or not self.memory:
-                    self.memory = 1024
-            if distro.startswith("sl") and not distro.startswith("sles") and int(distro[2:3]) >= 6:
-                if (self.memory and self.memory<1024) or not self.memory:
-                    self.memory = 1024
-
+                                        
         # Hack to avoid using an ISO install for Debian VMs from TCMultipleVDI
         # etc.
         if distro and (distro in ["etch", "sarge"] or "debian5" in distro):
@@ -585,6 +577,8 @@ class Guest(xenrt.GenericGuest):
                     xenrt.TEC().logverbose("wget %s/%s"%(_new_kernel,kernelFix))
                     self.execcmd("wget %s/%s"%(_new_kernel,kernelFix))
                     self.execcmd("rpm -ivh --force %s"%(kernelFix))
+            else:
+                raise xenrt.XRTError("XSKernel requested, but not available for this distro (%s)" % distro)
 
     def installCoreOS(self):
         self.host.installContainerPack()
@@ -775,7 +769,20 @@ users:
             if self.enlightenedDrivers or forcedReboot:
                 self.lifecycleOperation("vm-reboot",specifyOn=specifyOn, force=forcedReboot)
             else:
+                domid = self.getDomid()
                 self.unenlightenedReboot()
+                # Wait for the domid to change
+                startTime = xenrt.util.timenow()
+                while True:
+                    try:
+                        if self.getDomid() != domid:
+                            break
+                    except:
+                        # There is a tiny window where the domid may not exist while the reboot occurs
+                        pass
+                    if (xenrt.util.timenow() - startTime) > 600:
+                        raise xenrt.XRTError("domid failed to change 10 minutes after an unenlightenedReboot")
+                    xenrt.sleep(10)
             xenrt.sleep(20)
         else:
             xenrt.TEC().progress("Starting guest VM %s" % (self.name))
@@ -1468,7 +1475,7 @@ exit /B 1
         """Check if the VM up and the guest agent has reported."""
         return self.waitForAgent(0) == xenrt.RC_OK
 
-    def checkPVDevices(self):
+    def checkPVDevicesState(self):
         # Check the guest is using the PV drivers
         pvcheck = []
         backend = "/local/domain/0/backend"
@@ -1511,7 +1518,13 @@ exit /B 1
                                           (backend, domid))
         if vifstate != "4":
             pvcheck.append("VIF backend not in connected state")
-
+        
+        return pvcheck
+        
+    def checkPVDevices(self):
+        # Check the guest is using the PV drivers
+        pvcheck = self.checkPVDevicesState()
+        
         if pvcheck:
             if xenrt.TEC().lookup("PAUSE_ON_PV_CHECK_FAIL", False, boolean=True):
                 xenrt.TEC().tc.pause("Paused on PV Check failure")
@@ -5959,7 +5972,7 @@ class DundeeGuest(CreedenceGuest):
                 xenrt.GEC().config.setVariable("RND_PV_DRIVER_INSTALL_SOURCE_VALUE",str(randomPvDriverInstallSource))
                 xenrt.GEC().dbconnect.jobUpdate("RND_PV_DRIVER_INSTALL_SOURCE_VALUE",str(randomPvDriverInstallSource))
                 return randomPvDriverInstallSource
-    
+
     def setRandomPvDriverList(self):
         #Randomise the order of PV packages 
 
@@ -5975,7 +5988,7 @@ class DundeeGuest(CreedenceGuest):
                 xenrt.GEC().config.setVariable("RND_PV_DRIVERS_LIST_VALUE",randomPvDriversList)
                 xenrt.GEC().dbconnect.jobUpdate("RND_PV_DRIVERS_LIST_VALUE",randomPvDriversList)
                 return randomPvDriversList
-                
+
     def installDrivers(self, source=None, extrareboot=False, useLegacy=False, useHostTimeUTC=False, expectUpToDate=True, installFullWindowsGuestAgent=True, useDotNet=True):
         """
         Install PV Tools on Windows Guest
@@ -5985,22 +5998,22 @@ class DundeeGuest(CreedenceGuest):
         if not self.windows:
             xenrt.TEC().skip("Non Windows guest, no drivers to install")
             return
-        
+
         """Check the PV Driver source from where the tools to be installed 
         Random : Randomly choose either ToolsISO or Packages
         ToolsISO : Install PV Drivers through ToolsISO
         Packages : Install PV Drivers from individual PV packages
         """
-        
+
         pvDriverSource = xenrt.TEC().lookup("PV_DRIVER_SOURCE", None)
 
         if pvDriverSource == "Random":
             pvDriverSource = self.setRandomPvDriverSource()
-            
+
         # If source is "ToolsISO" then install from xs tools
         if pvDriverSource == "ToolsISO" or pvDriverSource == None or useLegacy == True or xenrt.TEC().lookup("USE_LEGACY_DRIVERS", False, boolean=True) or self.usesLegacyDrivers():
             TampaGuest.installDrivers(self, source, extrareboot, useLegacy, useHostTimeUTC, expectUpToDate)
-            
+
         #If source is "Packages" then install from PV Packages
         if pvDriverSource == "Packages":
 
@@ -6102,7 +6115,7 @@ class DundeeGuest(CreedenceGuest):
         
         return self.xmlrpcExec("sc %s" % (command), returnerror=False, returnrc=True) == 0
         
-    def checkPVDriversStatus(self):
+    def checkPVDriversStatus(self, ignoreException = False):
         """ Verify the Drivers are running by using 'SC' Command line program"""
         
         drivers = ['XENBUS','XENIFACE','XENVIF','XENVBD','XENNET']
@@ -6114,10 +6127,69 @@ class DundeeGuest(CreedenceGuest):
                 notRunning.append(driver)
                 
         if notRunning:
-            raise xenrt.XRTFailure(" %s services not running on %s" %(','.join(notRunning), self.getName()))
+            if ignoreException:
+                return False
+            else:
+                raise xenrt.XRTFailure(" %s services not running on %s" %(','.join(notRunning), self.getName()))
+        else:
+            return True
             
         xenrt.TEC().logverbose("PV Devices are installed and Running on %s " %(self.getName()))
+
+    def uninstallDrivers(self, waitForDaemon=True):
         
+        installed = False
+        driversToUninstall = ['*XENVIF*', '*XENBUS*', '*VEN_5853*']
+        
+        var1 = self.winRegPresent('HKLM', "SOFTWARE\\Wow6432Node\\Citrix\\XenToolsInstaller", "InstallStatus")
+        var2 = self.winRegPresent('HKLM', "SOFTWARE\\Citrix\\XenToolsInstaller", "InstallStatus")
+        if var1 or var2:
+            super(DundeeGuest , self).uninstallDrivers(waitForDaemon)
+            
+        else:
+            #Drivers are installed using PV Packages uninstall them separately
+            
+            if self.xmlrpcGetArch().endswith('64'):
+                devconexe = "devcon64.exe"
+            else:
+                devconexe = "devcon.exe"
+                
+            if not self.xmlrpcFileExists("c:\\%s" % devconexe):
+                self.xmlrpcSendFile("%s/distutils/%s" % (xenrt.TEC().lookup("LOCAL_SCRIPTDIR"), devconexe), "c:\\%s" % devconexe)
+                
+            self.enablePowerShellUnrestricted()
+            
+            #Get the OEM files to be deleted after uninstalling drivers
+            oemFileList = self.xmlrpcExec("C:\\%s dp_enum | select-string 'Citrix' -Context 1,0 | findstr 'oem'" %(devconexe), returndata = True, powershell=True).strip().splitlines()
+            oemFileList = [item.strip() for item in oemFileList][1:]
+            
+            batch = []
+            
+            for driver in driversToUninstall:
+            
+                batch.append("C:\\devcon64.exe remove %s\r\n" %(driver))
+                batch.append("ping 127.0.0.1 -n 10 -w 1000\r\n")
+
+            for file in oemFileList:
+                batch.append("pnputil.exe -f -d %s\r\n" %(file)) 
+                batch.append("ping 127.0.0.1 -n 10 -w 1000\r\n")
+            
+            self.xmlrpcWriteFile("c:\\uninst.bat", string.join(batch))
+            self.xmlrpcStart("c:\\uninst.bat")
+        
+        self.reboot()
+        
+        if not self.xmlrpcIsAlive():
+            raise xenrt.XRTFailure("XML-RPC not alive after tools uninstallation")
+        
+        # Verify PV devices have been removed after tools uninstallation
+        if self.checkPVDevicesState() and not self.checkPVDriversStatus(ignoreException = True):
+            xenrt.TEC().logverbose("PV Packages are uninstalled Successfully")
+        else:
+            raise xenrt.XRTFailure("PV Packages are not uninstalled")
+            
+        self.enlightenedDrivers = False
+
 class StorageMotionObserver(xenrt.EventObserver):
 
     def startObservingSXMMigrate(self,vm,destHost,destSession):

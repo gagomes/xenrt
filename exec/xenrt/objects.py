@@ -1418,6 +1418,16 @@ class GenericPlace(object):
             f.write(data)
             f.close()
 
+    def winRegPresent(self, hive, key, name):
+        """ Check for the windows registry value"""
+        
+        try:
+            s = self._xmlrpc()
+            s.regLookup(hive, key, name)
+            return True
+        except Exception, e:
+            return False
+            
     def winRegLookup(self, hive, key, name, healthCheckOnFailure=True, suppressLogging=False):
         """Look up a Windows registry value."""
 
@@ -7422,12 +7432,6 @@ class GenericGuest(GenericPlace):
 
                 self.execguest("sed -i 's/TMPTIME=0/TMPTIME=-1/g' /etc/default/rcS")
 
-                # Remove the repositories we don't mirror from the apt list
-                self.execguest("sed -i '/backports/d' /etc/apt/sources.list")
-                self.execguest("sed -i '/security/d' /etc/apt/sources.list")
-                self.execguest("sed -i '/multiverse/d' /etc/apt/sources.list")
-                self.execguest("sed -i '/universe/d' /etc/apt/sources.list")
-                self.execguest("sed -i '/deb-src/d' /etc/apt/sources.list")
                 self.execguest("cat /etc/apt/sources.list")
                 self.execguest("apt-get update")
 
@@ -8566,8 +8570,9 @@ class GenericGuest(GenericPlace):
 
             arch = "amd64" if "64" in self.arch else "i386"
             xenrt.TEC().logverbose("distro: %s | repository: %s | filename: %s" % (distro, repository, filename))
-            if re.search("ubuntu", distro):
-                release = re.search("Ubuntu/(\d+)/", repository).group(1)
+            m = re.search("ubuntu(\d+)", distro)
+            if m:
+                release = m.group(1)
                 if release == "1004":
                     _url = repository + "/dists/lucid/"
                 elif release == "1204":
@@ -8576,8 +8581,13 @@ class GenericGuest(GenericPlace):
                     _url = repository + "/dists/trusty/"
                 boot_dir = "main/installer-%s/current/images/netboot/ubuntu-installer/%s/" % (arch, arch)
             else:
-                release = re.search("Debian/(\w+)/", repository).group(1)
-                _url = repository + "/dists/%s/" % (release.lower(), )
+                if distro == "debian50":
+                    release = "lenny"
+                elif distro == "debian60":
+                    release = "squeeze"
+                elif distro == "debian70":
+                    release = "wheezy"
+                _url = repository + "/dists/%s/" % (release)
                 boot_dir = "main/installer-%s/current/images/netboot/debian-installer/%s/" % (arch, arch)
 
             # Pull boot files from HTTP repository
@@ -9857,8 +9867,6 @@ while True:
         return self.instance
 
     def installPackages(self, packageList):
-        self.enablePublicRepository(doUpdateOnSuccess=False)
-        self.setAptCacheProxy(doUpdateOnSuccess=False)
         packages = " ".join(packageList)
         try:
             if "deb" in self.distro or "ubuntu" in self.distro:
@@ -9872,45 +9880,6 @@ while True:
                 raise xenrt.XRTError("Not Implemented")
         except Exception, e:
             raise xenrt.XRTError("Failed to install packages '%s' on guest %s : %s" % (packages, self, e))
-        self.disablePublicRepository()
-
-    def enablePublicRepository(self, doUpdateOnSuccess=True):
-        try:
-            if "deb" in self.distro or "ubuntu" in self.distro:
-                self.execguest("cp /etc/apt/sources.list /etc/apt/sources.list.orig -n")
-                repoFile = xenrt.TEC().lookup("XENRT_BASE") + xenrt.TEC().lookup("XENRT_LINUX_REPO_LISTS", "/data/linuxrepolist/") + self.distro
-                repoFileContent = xenrt.command("cat %s" % repoFile)
-                self.execguest("echo '%s' >> /etc/apt/sources.list" % repoFileContent, newlineok=True)
-                if doUpdateOnSuccess:
-                    self.execguest("apt-get update")
-            else:
-                raise xenrt.XRTError("Not Implemented")
-        except Exception, e:
-            xenrt.TEC().warning("Failed to add public Repositories: %s" % e)
-
-    def setAptCacheProxy(self, doUpdateOnSuccess=True):
-        try:
-            aptProxy = None
-            if "deb" in self.distro:
-                aptProxy = xenrt.TEC().lookup("APT_PROXY_DEBIAN", None)
-            elif "ubuntu" in self.distro:
-                aptProxy = xenrt.TEC().lookup("APT_PROXY_UBUNTU", None)
-            if aptProxy:
-                self.execguest("echo 'Acquire::http { Proxy \"http://%s\"; };' > /etc/apt/apt.conf.d/02proxy" % aptProxy)
-                if doUpdateOnSuccess:
-                    self.execguest("apt-get update")
-        except Exception, e:
-            xenrt.TEC().warning("Failed to add apt-cache proxy server: %s" % e)
-
-    def disablePublicRepository(self):
-        try:
-            if "deb" in self.distro or "ubuntu" in self.distro:
-                self.execguest("cat /etc/apt/sources.list.orig > /etc/apt/sources.list")
-                self.execguest("apt-get update")
-            else:
-                raise xenrt.XRTError("Not Implemented")
-        except Exception, e:
-            xenrt.TEC().warning("Failed to reset Repositories: %s" % e)
 
     def xenDesktopTailor(self):
         # Optimizations from CTX125874, excluding Windows crash dump (because we want them) and IE (because we don't use it)

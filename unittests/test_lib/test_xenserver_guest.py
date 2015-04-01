@@ -43,155 +43,136 @@ class TestMaxSupportedVCPU(XenRTUnitTestCase):
 
     conf = None
 
-    @classmethod
-    def setUpClass(cls):
-        cls.conf = xenrt.Config().config
+    def setUp(self):
+        self.conf = xenrt.Config().config
 
     def __lookup(self, kw, *args):
         if type(kw) == type(""):
-            return self.conf[kw]
+            if self.conf.has_key(kw):
+                return self.conf[kw]
+            return None
         tmp = self.conf
         for key in kw:
-           tmp = tmp[key]
+            if not tmp.has_key(key):
+                return None
+            tmp = tmp[key]
 
         return tmp
 
+    def testDistroLimitLowest(self):
+        """Test with the distro limit as the constraint"""
+        self.__test("x86", 8, 16, 12, None)
+
+    def testXSLimitLowest(self):
+        """Test with the XenServer version limit as the constraint"""
+        self.__test("x86", 16, 8, 12, None)
+
+    def testPcpuLimitLowest(self):
+        """Test with the host pcpu limit as the constraint"""
+        self.__test("x86", 16, 16, 8, None)
+
+    def testDefault(self):
+        """Test the default of 4"""
+        self.__test("x86", None, None, None, 4)
+
     @patch("xenrt.TEC")
-    @patch("xenrt.GEC")
-    def __run(self, args, gec, tec):
+    def __test(self, arch, distroLimit, xsLimit, pcpuLimit, expected, tec):
+        if distroLimit:
+            self.__setupGuestLimit(arch == "x86-64" and "MAX_VM_VCPUS64" or "MAX_VM_VCPUS", distroLimit)
+        if xsLimit:
+            self.__setupXSLimit(xsLimit)
+        if pcpuLimit:
+            self.__setupPCPULimit(pcpuLimit, tec)
+
+        if expected is None:
+            expected = min(filter(lambda c: c is not None, [distroLimit, xsLimit, pcpuLimit]))
         guest = xenrt.lib.xenserver.guest.TampaGuest("Guest")
+        guest.distro = "TestDistro"
+        guest.arch = arch
+
         tec.return_value.lookup = self.__lookup
         tec.return_value.lookupHost = Mock(return_value = None)
-        distro, arch, result = args
-        guest.distro = distro
-        guest.arch = arch
-        if distro.startswith("w") or distro.startswith("vista"):
-            guest.windows = True
-        else:
-            guest.windows = False
-        self.assertTrue(guest.getMaxSupportedVCPUCount() == result)
+
+        self.assertEqual(guest.getMaxSupportedVCPUCount(), expected)
+
+    @patch("xenrt.TEC")
+    def testWarnings(self, tec):
+        """Verify warnings are generated when expected"""
+        w = Mock()
+        tec.return_value.warning = w
+        guest = xenrt.lib.xenserver.guest.TampaGuest("Guest")
+        guest.distro = "TestDistro"
+        guest.arch = "x86"
+
+        tec.return_value.lookup = self.__lookup
+
+        # First try without a distro
+        self.__setupXSLimit(16)
+        self.__setupPCPULimit(16, tec)
+
+        guest.getMaxSupportedVCPUCount()
+        w.assert_called()
+
+        # Now with distro, but without a product version
+        w.reset_mock()
+        self.__setupGuestLimit("MAX_VM_VCPUS", 16)
+        del self.conf["PRODUCT_VERSION"]
+
+        guest.getMaxSupportedVCPUCount()
+        w.assert_called()
+
+        # Now with just PCPUs
+        w.reset_mock()
+        del self.conf["GUEST_LIMITATIONS"]["TestDistro"]
+
+        guest.getMaxSupportedVCPUCount()
+        w.assert_not_called()
+
+        # Now without PCPUs
+        w.reset_mock()
+        tec.return_value.registry.return_value = []
+
+        guest.getMaxSupportedVCPUCount()
+        w.assert_called()
         
-    def __testCreedence(self, args):
-        self.conf["PRODUCT_VERSION"] = "Creedence"
-        self.__run(args)
 
-    def __testTampa(self, args):
-        self.conf["PRODUCT_VERSION"] = "Tampa"
-        self.__run(args)
+    @patch("xenrt.TEC")
+    def test64BitArch(self, tec):
+        """Verify architecture is taken into account properly"""
+        guest = xenrt.lib.xenserver.guest.TampaGuest("Guest")
+        guest.distro = "TestDistro"
+        guest.arch = "x86"
 
-    def __testClearwater(self, args):
-        self.conf["PRODUCT_VERSION"] = "Clearwater"
-        self.__run(args)
+        tec.return_value.lookup = self.__lookup
 
-    def __testDundee(self, args):
-        self.conf["PRODUCT_VERSION"] = "Dundee"
-        self.__run(args)
+        # First verify the 32-bit version is used
+        self.conf["GUEST_LIMITATIONS"]["TestDistro"] = {}
+        self.conf["GUEST_LIMITATIONS"]["TestDistro"]["MAX_VM_VCPUS"] = 8
+        self.conf["GUEST_LIMITATIONS"]["TestDistro"]["MAX_VM_VCPUS64"] = 16
 
-    def testCreedenceRHEL(self):
-        distros = ["rhel61", "rhel61", "rhel7"]
-        archs = ["x86", "x86-64", "x86-64"]
-        results = [32, 32, 32]
+        self.assertEqual(guest.getMaxSupportedVCPUCount(), 8)
 
-        self.run_for_many(zip(distros, archs, results), self.__testCreedence)
+        # Now go 64-bit
+        guest.arch = "x86-64"
+        self.assertEqual(guest.getMaxSupportedVCPUCount(), 16)
 
-    def testCreedenceDeb(self):
-        distros = ["deb6", "deb6", "deb7", "deb7"]
-        archs = ["x86", "x86-64", "x86", "x86-64"]
-        results = [32, 32, 32, 32]
+        # Verify Windows uses the 32-bit one regardless
+        guest.windows = True
+        self.assertEqual(guest.getMaxSupportedVCPUCount(), 8)
 
-        self.run_for_many(zip(distros, archs, results), self.__testCreedence)
+    def __setupGuestLimit(self, param, limit):
+        self.conf["GUEST_LIMITATIONS"]["TestDistro"] = {}
+        self.conf["GUEST_LIMITATIONS"]["TestDistro"][param] = limit
 
-    def testCreedenceUbuntu(self):
-        distros = ["ubuntu1204", "ubuntu1204", "ubuntu1404", "ubuntu1404"]
-        archs = ["x86", "x86-64", "x86", "x86-64"]
-        results = [8, 32, 8, 16]
+    def __setupXSLimit(self, limit):
+        self.conf["PRODUCT_VERSION"] = "TestPV"
+        self.conf["VERSION_CONFIG"]["TestPV"] = {}
+        self.conf["VERSION_CONFIG"]["TestPV"]["MAX_VM_VCPUS"] = limit
 
-        self.run_for_many(zip(distros, archs, results), self.__testCreedence)
-
-    def testCreedenceWin(self):
-        distros = ["w2k3eesp2pae", "winxpsp3", "ws08-x64", "win7-x86", "win81-x64", "ws08r2dcsp1-x64", "ws12-x64"]
-        results = [4, 2, 8, 2, 2, 16, 16]
-
-        self.run_for_many(zip(distros, ["x86"] * len(distros), results), self.__testCreedence)
-
-    def testTampaRHEL(self):
-        distros = ["rhel61", "rhel61"]
-        archs = ["x86", "x86-64"]
-        results = [16, 16]
-
-        self.run_for_many(zip(distros, archs, results), self.__testTampa)
-
-    def testTampaDeb(self):
-        distros = ["deb6", "deb6", "deb7", "deb7"]
-        archs = ["x86", "x86-64", "x86", "x86-64"]
-        results = [16, 16, 16, 16]
-
-        self.run_for_many(zip(distros, archs, results), self.__testTampa)
-
-    def testTampaUbuntu(self):
-        distros = ["ubuntu1204", "ubuntu1204", "ubuntu1404", "ubuntu1404"]
-        archs = ["x86", "x86-64", "x86", "x86-64"]
-        results = [8, 16, 8, 16]
-
-        self.run_for_many(zip(distros, archs, results), self.__testTampa)
-
-    def testTampaWin(self):
-        distros = ["w2k3eesp2pae", "winxpsp3", "ws08-x64", "win7-x86", "win81-x64", "ws08r2dcsp1-x64", "ws12-x64"]
-        results = [4, 2, 8, 2, 2, 16, 16]
-
-        self.run_for_many(zip(distros, ["x86"] * len(distros), results), self.__testTampa)
-
-    def testClearwaterRHEL(self):
-        distros = ["rhel61", "rhel61"]
-        archs = ["x86", "x86-64"]
-        results = [16, 16]
-
-        self.run_for_many(zip(distros, archs, results), self.__testClearwater)
-
-    def testClearwaterDeb(self):
-        distros = ["deb6", "deb6", "deb7", "deb7"]
-        archs = ["x86", "x86-64", "x86", "x86-64"]
-        results = [16, 16, 16, 16]
-
-        self.run_for_many(zip(distros, archs, results), self.__testClearwater)
-
-    def testClearwaterUbuntu(self):
-        distros = ["ubuntu1204", "ubuntu1204", "ubuntu1404", "ubuntu1404"]
-        archs = ["x86", "x86-64", "x86", "x86-64"]
-        results = [8, 16, 8, 16]
-
-        self.run_for_many(zip(distros, archs, results), self.__testClearwater)
-
-    def testClearwaterWin(self):
-        distros = ["w2k3eesp2pae", "winxpsp3", "ws08-x64", "win7-x86", "win81-x64", "ws08r2dcsp1-x64", "ws12-x64"]
-        results = [4, 2, 8, 2, 2, 16, 16]
-
-        self.run_for_many(zip(distros, ["x86"] * len(distros), results), self.__testClearwater)
-
-    def testDundeeRHEL(self):
-        distros = ["rhel61", "rhel61", "rhel7"]
-        archs = ["x86", "x86-64", "x86-64"]
-        results = [32, 32, 32]
-
-        self.run_for_many(zip(distros, archs, results), self.__testDundee)
-
-    def testDundeeDeb(self):
-        distros = ["deb6", "deb6", "deb7", "deb7"]
-        archs = ["x86", "x86-64", "x86", "x86-64"]
-        results = [32, 32, 32, 32]
-
-        self.run_for_many(zip(distros, archs, results), self.__testDundee)
-
-    def testDundeeUbuntu(self):
-        distros = ["ubuntu1204", "ubuntu1204", "ubuntu1404", "ubuntu1404"]
-        archs = ["x86", "x86-64", "x86", "x86-64"]
-        results = [8, 32, 8, 16]
-
-        self.run_for_many(zip(distros, archs, results), self.__testDundee)
-
-    def testDundeeWin(self):
-        distros = ["w2k3eesp2pae", "winxpsp3", "ws08-x64", "win7-x86", "win81-x64", "ws08r2dcsp1-x64", "ws12-x64"]
-        results = [4, 2, 8, 2, 2, 16, 16]
-
-        self.run_for_many(zip(distros, ["x86"] * len(distros), results), self.__testDundee)
+    def __setupPCPULimit(self, limit, tec):
+        tec.return_value.registry = Mock()
+        tec.return_value.registry.hostList.return_value = ["TestHost"]
+        h = Mock()
+        tec.return_value.registry.hostGet.return_value = h
+        h.getCPUCores.return_value = limit
 

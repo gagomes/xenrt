@@ -1850,7 +1850,7 @@ class DifferentGPU(object):
         """
         pass
 
-    def blockDom0Access(self):
+    def blockDom0Access(self, reboot=True):
         """
         Block Dom0 Access to onboard graphics card
         """
@@ -1882,7 +1882,7 @@ class NvidiaWindowsvGPU(DifferentGPU):
     def attachvGPUToVM(self, vgpucreator, vm, groupuuid=None):
         VGPUTest().attachvGPU(vgpucreator, vm, groupuuid)
 
-    def blockDom0Access(self):
+    def blockDom0Access(self, reboot=True):
         xenrt.TEC().logverbose("Not implemented")
         pass
 
@@ -1912,7 +1912,7 @@ class NvidiaLinuxvGPU(DifferentGPU):
     def attachvGPUToVM(self, vgpucreator, vm, groupuuid=None):
         VGPUTest().attachvGPU(vgpucreator, vm, groupuuid)
 
-    def blockDom0Access(self):
+    def blockDom0Access(self, reboot=True):
         xenrt.TEC().logverbose("Not implemented")
         pass
 
@@ -1941,8 +1941,8 @@ class IntelWindowsvGPU(DifferentGPU):
     def attachvGPUToVM(self, vgpucreator, vm, groupuuid=None):
         VGPUTest().attachvGPU(vgpucreator, vm, groupuuid)
 
-    def blockDom0Access(self):
-        VGPUTest().blockDom0Access(self,CardName[CardType.Intel])
+    def blockDom0Access(self, reboot=True):
+        VGPUTest().blockDom0Access(self, CardName[CardType.Intel], reboot)
 
     def unblockDom0Access(self):
         VGPUTest().unblockDom0Access(self,CardName[CardType.Intel])
@@ -3285,6 +3285,7 @@ class TCIntelSetupNegative(FunctionalBase):
     def prepare(self, arglist):
         """Might be able to clean up redundant steps."""
 
+        # Will include intel setup.
         super(TCIntelSetupNegative, self).prepare(arglist)
 
         self.host = self.getDefaultHost()
@@ -3308,34 +3309,32 @@ class TCIntelSetupNegative(FunctionalBase):
 
     def run(self, arglist):
 
-        # Want to use a windows 7 VM.
-            # Specify from seq file probably.
-        # Probably using the master version.
-            # Will be very similar to BasicVerif prepare code.
-            # Might make a child class of that.
-
         for config in self.VGPU_CONFIG:
             for distro in self.REQUIRED_DISTROS:
                 osType = self.getOSType(distro)
 
+                # Set up wrong.
+                # Unblock access.
+
+                # Call block access directly with the param, reboot=False
+
                 vm = self.masterVMs[osType]
-                vm.go()
 
-                # Probably using exerpts from the lib code.
-                # Do half the setup but don't reset.
-
-                # Using Semi-Old way of attaching the VM.
-                # Try add intel passthrough to the VM.
-
-                # Will fail, confirm.
+                # Need installer for intel. Prepare?
+                try:
+                    self.typeOfvGPU.attachvGPU(self.vGPUCreator[config], vm)
+                    raise xenrt.XRTFailure("Wrong")
+                except:
+                    pass
 
 class TCIntelGPUSnapshotNegative(FunctionalBase):
     """
     Setting up VM with Intel GPU Passthrough.
     Snapshotting VM.
-    Destroy GPU and unblock Dom0 access to GPU.
+    Destroy GPU and unblock Dom0 access to GPU. (Available?)
     Starting VM and revert, should fail.
     (Turns off VM, and fails to start.)
+    (Try to start the VM and should gracefully fail. Could run without catch once to be sure.)
 
     Need to handle multiple OSs, with single host.
     Should be able to start one by one.

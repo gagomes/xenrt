@@ -398,6 +398,11 @@ class VGPUTest(object):
         vm.setState("UP")
 
     def blockDom0Access(self, cardName, reboot=True):
+        def verifyBlocked():
+            # xe pgpu-list uuid param=dom0access. == disabled.
+            # xe host-list display == disbaled.
+            pass
+
         host = self.getDefaultHost()
         pgpu = host.minimalList("pgpu-list")
         intelPGPUUUID = filter(lambda p: CardName[cardName] in host.genParamGet("pgpu",p,"vendor-name"),pgpu)[0]
@@ -407,6 +412,8 @@ class VGPUTest(object):
         host.disableHostDisplay()
         if reboot:
             host.reboot()
+            verifyBlocked()
+        
  
 class VGPUOwnedVMsTest(xenrt.TestCase,VGPUTest):
     __OPTIONS = {

@@ -768,8 +768,6 @@ class TCVGPUSetup(VGPUOwnedVMsTest):
             tofvgpu = self.args["typeofvgpu"]
         if tofvgpu == self.getDiffvGPUName(DiffvGPUType.NvidiaWinvGPU):
             self.typeofvgpu = NvidiaWindowsvGPU()
-        if tofvgpu == self.getDiffvGPUName(DiffvGPUType.NvidiaLinuxvGPU):
-            self.typeofvgpu = NvidiaLinuxvGPU()
         if tofvgpu == self.getDiffvGPUName(DiffvGPUType.IntelWinvGPU):
             self.typeofvgpu = IntelWindowsvGPU()
 
@@ -839,8 +837,6 @@ class TCVGPUCloneVM(VGPUOwnedVMsTest):
             tofvgpu = self.args["typeofvgpu"]
         if tofvgpu == self.getDiffvGPUName(DiffvGPUType.NvidiaWinvGPU):
             self.typeofvgpu = NvidiaWindowsvGPU()
-        if tofvgpu == self.getDiffvGPUName(DiffvGPUType.NvidiaLinuxvGPU):
-            self.typeofvgpu = NvidiaLinuxvGPU()
         if tofvgpu == self.getDiffvGPUName(DiffvGPUType.IntelWinvGPU):
             self.typeofvgpu = IntelWindowsvGPU()
 

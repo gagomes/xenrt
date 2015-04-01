@@ -1185,6 +1185,8 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Cream"]["LATEST_rhel4"] = "rhel48"
         self.config["VERSION_CONFIG"]["Cream"]["LATEST_rhel5"] = "rhel511"
         self.config["VERSION_CONFIG"]["Cream"]["LATEST_rhel6"] = "rhel66"
+        self.config["VERSION_CONFIG"]["Cream"]["TEMPLATE_NAME_RHEL_d66_64"] = "Red Hat Enterprise Linux 6 (64-bit),Red Hat Enterprise Linux 6 x64,Red Hat Enterprise Linux 6.0 (64-bit)"
+        self.config["VERSION_CONFIG"]["Cream"]["TEMPLATE_NAME_RHEL_w66_64"] = "Red Hat Enterprise Linux 6 (64-bit),Red Hat Enterprise Linux 6 x64,Red Hat Enterprise Linux 6.0 (64-bit)"
         
         # Dundee
         self.config["VERSION_CONFIG"]["Dundee"] = copy.deepcopy(self.config["VERSION_CONFIG"]["Cream"])
@@ -2208,6 +2210,16 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["rhel66"]["STATICMINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["rhel66"]["MAXMEMORY"] = "8192"
         self.config["GUEST_LIMITATIONS"]["rhel66"]["MAXMEMORY64"] = "32768"
+        self.config["GUEST_LIMITATIONS"]["rheld66"] = {}
+        self.config["GUEST_LIMITATIONS"]["rheld66"]["MINMEMORY"] = "1024"
+        self.config["GUEST_LIMITATIONS"]["rheld66"]["STATICMINMEMORY"] = "512"
+        self.config["GUEST_LIMITATIONS"]["rheld66"]["MAXMEMORY"] = "8192"
+        self.config["GUEST_LIMITATIONS"]["rheld66"]["MAXMEMORY64"] = "32768"
+        self.config["GUEST_LIMITATIONS"]["rhelw66"] = {}
+        self.config["GUEST_LIMITATIONS"]["rhelw66"]["MINMEMORY"] = "1024"
+        self.config["GUEST_LIMITATIONS"]["rhelw66"]["STATICMINMEMORY"] = "512"
+        self.config["GUEST_LIMITATIONS"]["rhelw66"]["MAXMEMORY"] = "8192"
+        self.config["GUEST_LIMITATIONS"]["rhelw66"]["MAXMEMORY64"] = "32768"
         self.config["GUEST_LIMITATIONS"]["rhel7"] = {}
         self.config["GUEST_LIMITATIONS"]["rhel7"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["rhel7"]["MAXMEMORY64"] = "6291456"

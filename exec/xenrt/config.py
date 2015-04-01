@@ -2729,7 +2729,7 @@ class Config(object):
          'debian60_x86-32','debian60_x86-64','debian70_x86-32','debian70_x86-64','oel510_x86-32','oel510_x86-64',
          'oel511_x86-32','oel511_x86-64','oel65_x86-32','oel65_x86-64','oel66_x86-32','oel66_x86-64','oel7_x86-64',
          'rhel48_x86-32','rhel510_x86-32','rhel510_x86-64','rhel511_x86-32','rhel511_x86-64','rhel65_x86-32',
-         'rhel65_x86-64','rhel66_x86-32','rhel66_x86-64','rhel71_x86-64','rhel7_x86-64','sl511_x86-32','sl511_x86-64',
+         'rhel65_x86-64','rhel66_x86-32','rhel66_x86-64','rhelw66_x86-64','rhel71_x86-64','rhel7_x86-64','sl511_x86-32','sl511_x86-64',
          'sl66_x86-32','sl66_x86-64','sl7_x86-64','sles104_x86-32','sles104_x86-64','sles113_x86-32','sles113_x86-64',
          'sles12_x86-64','ubuntu1204_x86-32','ubuntu1204_x86-64',
          'ubuntu1404_x86-32','ubuntu1404_x86-64','vistaeesp2','w2k3eesp2','w2k3eesp2-x64','win10-x64','win10-x86',
@@ -2784,7 +2784,7 @@ class Config(object):
         self.config["GUEST_TESTS"]["Dundee"]["XenApp"] = ['w2k3eesp2_XenApp', 'w2k3eesp2-x64_XenApp', 'ws08sp2-x86_XenApp', 'ws08sp2-x64_XenApp', 'ws08r2sp1-x64_XenApp']
        
         # Linux install methods supported
-        nfsInstallSupport = ["rhel[4-6]\d+$", "centos[4-6]\d+$", "sl[5-6]\d+$", "oel[4-6]\d+", "sles9", "sles10", "sles11"]
+        nfsInstallSupport = ["rhel[dw]?[4-6]\d+$", "centos[4-6]\d+$", "sl[5-6]\d+$", "oel[4-6]\d+", "sles9", "sles10", "sles11"]
         noIsoInstallSupport = ["ubuntu1004", "debian60", "debian70", "rhel45", "centos45", "centos46", "rhel\d+u", "rhel\d+xs", "centos\d+u", "centos\d+xs", "oel\d+u", "oel\d+xs", "sl\d+u", "sl\d+xs"]
         noHttpInstallSupport = ["rhel\d+u", "rhel\d+xs", "centos\d+u", "centos\d+xs", "oel\d+u", "oel\d+xs", "sl\d+u", "sl\d+xs"]
         # Process these into various categories

@@ -92,7 +92,9 @@ class TCGuestsLifeCycle(TCContainerLifeCycle):
         self.lifeCycleDockerGuest()
 
         # After a guest reboot/shutdown all the running containers goes offline.
-        if not args["containersstarted"].lower() == "yes": # except in case of ubuntu guests.
+        if args.has_key('containersstarted') and args["containersstarted"].lower() == "yes": 
+            pass # exception in case of Ubuntu guests.
+        else:
             [docker.startAllContainers() for docker in self.docker]
 
         xenrt.TEC().logverbose("Perform life cycle operations on all containers after guests reboots")

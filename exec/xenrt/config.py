@@ -2536,7 +2536,7 @@ class Config(object):
         self.config["LINUX_UPDATE"]["centos4"] = "centos48"
         self.config["LINUX_UPDATE"]["centos5"] = "centos511"
         self.config["LINUX_UPDATE"]["centos6"] = "centos66"
-        self.config["LINUX_UPDATE"]["centos7"] = "centos71"
+        self.config["LINUX_UPDATE"]["centos7"] = "centos7"
         self.config["LINUX_UPDATE"]["sl5"] = "sl511"
         self.config["LINUX_UPDATE"]["sl6"] = "sl66"
         self.config["LINUX_UPDATE"]["sl7"] = "sl7"

@@ -577,6 +577,16 @@ class Guest(xenrt.GenericGuest):
                     xenrt.TEC().logverbose("wget %s/%s"%(_new_kernel,kernelFix))
                     self.execcmd("wget %s/%s"%(_new_kernel,kernelFix))
                     self.execcmd("rpm -ivh --force %s"%(kernelFix))
+            elif distro and distro in ['rhel71','centos71']:
+                _new_kernel = kernelUpdatesPrefix + "/RHEL71/"
+                _new_kernel_path = ["kernel-devel-3.10.0-229.1.2.el7.xs.x86_64.rpm",
+                                    "kernel-3.10.0-229.1.2.el7.xs.src.rpm",
+                                    "kernel-3.10.0-229.1.2.el7.xs.x86_64.rpm",
+                                    "kernel-headers-3.10.0-229.1.2.el7.xs.x86_64.rpm"]
+                for kernelFix in _new_kernel_path:
+                    xenrt.TEC().logverbose("wget %s/%s"%(_new_kernel,kernelFix))
+                    self.execcmd("wget %s/%s"%(_new_kernel,kernelFix))
+                    self.execcmd("rpm -ivh --force %s"%(kernelFix))
             else:
                 raise xenrt.XRTError("XSKernel requested, but not available for this distro (%s)" % distro)
 

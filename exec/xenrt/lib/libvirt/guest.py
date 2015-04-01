@@ -367,7 +367,7 @@ class Guest(xenrt.GenericGuest):
 
         # Hack to use correct kickstart for rhel6
         if distro and kickstart == "standard":
-            if distro.startswith("rhel6"):
+            if distro.startswith("rhel6") or distro.startswith("rhelw6"):
                 kickstart = "rhel6"
             if distro.startswith("oel6"):
                 kickstart = "oel6"

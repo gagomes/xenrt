@@ -304,7 +304,7 @@ class Guest(xenrt.GenericGuest):
 
         # Hack to use correct kickstart for rhel6
         if distro and kickstart == "standard":
-            if distro.startswith("rhel6"):
+            if distro.startswith("rhel6") or distro.startswith("rhelw6"):
                 kickstart = "rhel6"
             if distro.startswith("oel6"):
                 kickstart = "oel6"
@@ -740,7 +740,7 @@ users:
             if cdnames and len(cdnames) > 0:
                 if self.distro and \
                     (re.search("debian\d+", self.distro) or \
-                    re.search("rhel6", self.distro) or \
+                    re.search("rhel[dw]?6", self.distro) or \
                     re.search("oel6", self.distro) or \
                     re.search("sl6", self.distro) or \
                     re.search("centos6", self.distro) or \
@@ -4534,7 +4534,7 @@ def createVMFromPrebuiltTemplate(host,
     g.ips = ips
 
     g.removeAllVIFs()
-    if re.search("[vw]", distro):
+    if re.search("[vw]", distro[0]):
         g.windows = True
         g.vifstem = g.VIFSTEMHVM
         g.password = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS", "ADMINISTRATOR_PASSWORD"])

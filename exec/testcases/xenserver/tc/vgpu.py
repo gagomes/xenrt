@@ -1,5 +1,5 @@
 import xenrt
-import os, copy, time, random, re, json, string, threading
+import copy, time, random, re, json, string, threading
 import testcases.xenserver.guest
 from xenrt.lazylog import step, comment, log, warning
 from testcases.benchmarks import workloads
@@ -398,6 +398,7 @@ class VGPUTest(object):
         vm.setState("UP")
 
     def __checkDom0Access(self, host, gpuuuid):
+        """Returns True or False, as to if the dom0-access pgpu param is enabled or disabled."""
         access = host.genParamGet("pgpu", gpuuuid, "dom0-access")
         if access == "enabled":
             return True
@@ -407,6 +408,7 @@ class VGPUTest(object):
             raise xenrt.XRTError("dom0-access param on gpu, uuid %s, was neither enabled or disabled." % (gpuuuid))
 
     def __checkDisplay(self, host):
+        """Returns True or False, as to if the display host param is enabled or disabled."""
         hostdisplay = host.getHostParam("display")
         if hostdisplay == "enabled":
             return True
@@ -3385,8 +3387,9 @@ class TCIntelGPUSnapshotNegative(FunctionalBase):
     """
     Revert GPU Passthrough snapshot (negative).
     """
+
     def prepare(self, arglist):
-        super(TCIntelSetupNegative, self).prepare(arglist)
+        super(TCIntelGPUSnapshotNegative, self).prepare(arglist)
 
         self.host = self.getDefaultHost()
 
@@ -3431,6 +3434,45 @@ class TCIntelGPUSnapshotNegative(FunctionalBase):
                     raise xenrt.XRTFailure("Able to revert to Intel GPU Passthrough enabled snapshot, after unblocking Dom0 Access to Host.")
                 except:
                     pass
+
+class TCIntelGPUReuse(FunctionalBase):
+    """Intel GPU can be reused once it is down."""
+
+    def prepare(self, arglist):
+        super(TCIntelGPUReuse, self).prepare(arglist)
+
+        self.host = self.getDefaultHost()
+
+        step("Creating %d vGPUs configurations." % (len(self.VGPU_CONFIG)))
+        self.vGPUCreator = {}
+        for config in self.VGPU_CONFIG:
+            self.vGPUCreator[config] = VGPUInstaller(self.host, config)
+
+        for distro in self.REQUIRED_DISTROS:
+
+            osType = self.getOSType(distro)
+
+            log("Creating Master VM of type %s" % osType)
+            vm = self.createMaster(osType)
+            vm.enlightenedDrivers = True
+            vm.setState("UP")
+            if vm.windows:
+                vm.enableFullCrashDump()
+            self.masterVMsSnapshot[osType] = vm.snapshot()
+
+    def run(self, arglist):
+        for config in self.VGPU_CONFIG:
+            for distro in self.REQUIRED_DISTROS:
+                osType = self.getOSType(distro)
+
+                vm1 = self.masterVMs[osType]
+                vm2 = vm1.cloneVM(noIP=False)
+
+                for vm in [vm1, vm2]:
+                    self.typeOfvGPU.attachvGPU(self.vGPUCreator[config], vm)
+                    self.typeOfvGPU.installGuestDrivers(vm, self.getConfigurationName(config))
+                    self.typeOfvGPU.assertvGPURunningInVM(vm, self.getConfigurationName(config))
+                    vm.setState("DOWN")
 
 class TCAlloModeK200NFS(VGPUAllocationModeBase):
 

@@ -6814,6 +6814,7 @@ class GenericGuest(GenericPlace):
         self.ipv4_disabled = False
         self.instance = None
         self.isTemplate = False
+        self.imported = False
         xenrt.TEC().logverbose("Creating %s instance." % (self.__class__.__name__))
 
     def populateSubclass(self, x):
@@ -6830,6 +6831,7 @@ class GenericGuest(GenericPlace):
         x.reservedIP = self.reservedIP
         x.instance = self.instance
         x.isTemplate = self.isTemplate
+        x.imported = self.imported
 
     def getDeploymentRecord(self):
         if self.isTemplate:
@@ -6837,19 +6839,20 @@ class GenericGuest(GenericPlace):
         else:
             ret = {"access": {"vmname": self.getName(),
                               "ipaddress": self.getIP()}, "os": {}}
-        if self.windows:
-            ret['access']['username'] = "Administrator"
-            ret['access']['password'] = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS",
+        if not self.imported:
+            if self.windows:
+                ret['access']['username'] = "Administrator"
+                ret['access']['password'] = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS",
                                                             "ADMINISTRATOR_PASSWORD"],
                                                             "xensource")
-            ret['os']['family'] = "windows"
-            ret['os']['version'] = self.distro
-        else:
-            ret['access']['username'] = "root"
-            ret['access']['password'] = "xenroot"
-            ret['os']['family'] = "linux"
-            arch = self.arch or "x86-32"
-            ret['os']['version'] = "%s_%s" % (self.distro, arch)
+                ret['os']['family'] = "windows"
+                ret['os']['version'] = self.distro
+            else:
+                ret['access']['username'] = "root"
+                ret['access']['password'] = "xenroot"
+                ret['os']['family'] = "linux"
+                arch = self.arch or "x86-32"
+                ret['os']['version'] = "%s_%s" % (self.distro, arch)
         if self.host:
             ret['host'] = self.host.getName()
         else:

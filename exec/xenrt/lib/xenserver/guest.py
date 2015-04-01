@@ -751,9 +751,6 @@ users:
                           (self.name, state), level)
             xenrt.sleep(15, log=False)
 
-    def simpleStart(self):
-        self.lifecycleOperation("vm-start", specifyOn=False)
-
     def start(self, reboot=False, skipsniff=False, specifyOn=True,\
               extratime=False, managenetwork=None, managebridge=None, 
               forcedReboot = False):
@@ -2069,15 +2066,16 @@ exit /B 1
         netscaler.applyLicense(netscaler.getLicenseFileFromXenRT())
         netscaler.checkFeatures()
 
-    def setupUnsupGuest(self):
+    def setupUnsupGuest(self, getIP=None):
         self.tailored = True
         self.enlightenedDrivers = False
         self.noguestagent = True
         if self.getState() == "DOWN":
-            self.lifecycleOperation('vm-start')
-        if not self.mainip:
-            _, bridge, mac, _ = self.vifs[0]
+            self.lifecycleOperation('vm-start', specifyOn=False)
+        if (getIP is None and not self.mainip) or getIP:
+            vifname, bridge, mac, _ = self.vifs[0]
             self.mainip = self.getHost().arpwatch(bridge, mac, timeout=1800)
+            self.vifs[0] = (vifname, bridge, mac, self.mainip)
 
     def setupDomainServer(self):
         self.installPowerShell()
@@ -4285,6 +4283,12 @@ exit /B 1
     def getDeploymentRecord(self):
         ret = super(Guest, self).getDeploymentRecord()
         ret['networks'] = {}
+        try:
+            os = self.paramGet("os-version")
+            if os and os != "<not in database>":
+                ret['os']['reported'] = dict([x.split(": ") for x in self.paramGet("os-version").split("; ")])
+        except:
+            pass
         for v in self.vifs:
             (device, bridge, mac, ip) = v
             nwuuid = self.getHost().getNetworkUUID(bridge)
@@ -4357,6 +4361,7 @@ def createVMFromFile(host,
     else:
         displayname = guestname
     guest = host.guestFactory()(displayname, host=host)
+    guest.imported = True
     guest.ips = ips
     vifs = parseSequenceVIFs(guest, host, vifs)
     
@@ -4377,7 +4382,7 @@ def createVMFromFile(host,
             dirname = os.path.dirname(filename)
             d = host.execdom0("mktemp -d").strip()
             host.execdom0("mount -t nfs %s %s" % (dirname, d))
-            guest.importVM(host, "%s/%s" % (d, os.path.basename(filename)), imageIsOnHost=True, sr=sr)
+            guest.importVM(host, "%s/%s" % (d, os.path.basename(filename)), imageIsOnHost=True, sr=sr, vifs=vifs)
             host.execdom0("umount %s" % d)
         else:
             guest.importVM(host, xenrt.TEC().getFile(filename), vifs=vifs, sr=sr)
@@ -4395,7 +4400,10 @@ def createVMFromFile(host,
         guest.memset(memory)
     xenrt.TEC().registry.guestPut(guestname, guest)
     for p in postinstall:
-        eval("guest.%s()" % (p))
+        if "(" in p:
+            eval("guest.%s" % (p))
+        else:
+            eval("guest.%s()" % (p))
     if packages:
         guest.installPackages(packages)
     return guest
@@ -4739,7 +4747,10 @@ def createVM(host,
                 g.xmlrpcExec("cscript //b //NoLogo c:\\postrun.vbs")
                 g.xmlrpcRemoveFile("c:\\postrun.vbs")
         else:
-            eval("g.%s()" % (p))
+            if "(" in p:
+                eval("guest.%s" % (p))
+            else:
+                eval("guest.%s()" % (p))
 
     if packages:
         g.installPackages(packages)

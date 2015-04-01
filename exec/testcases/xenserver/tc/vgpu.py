@@ -752,11 +752,22 @@ class TCVGPUSetup(VGPUOwnedVMsTest):
         else:
             self.guest.revert(snaps[0])
 
+        if not self.args.has_key("typeofvgpu"):
+            raise xenrt.XRTError("Type of vGPU not defined")
+        else:
+            tofvgpu = self.args["typeofvgpu"]
+        if tofvgpu == self.getDiffvGPUName(DiffvGPUType.NvidiaWinvGPU):
+            self.typeofvgpu = NvidiaWindowsvGPU()
+        if tofvgpu == self.getDiffvGPUName(DiffvGPUType.NvidiaLinuxvGPU):
+            self.typeofvgpu = NvidiaLinuxvGPU()
+        if tofvgpu == self.getDiffvGPUName(DiffvGPUType.IntelWinvGPU):
+            self.typeofvgpu = IntelWindowsvGPU()
+
     def run(self, arglist):
         self.guest.setState("DOWN")
         if not xenrt.TEC().lookup("OPTION_ENABLE_VGPU_VNC", False, boolean=True):
             self.guest.setVGPUVNCActive(False)
-        self.host.installNVIDIAHostDrivers()
+        self.typeOfvGPU.installHostDrivers(self.getAllHosts())
         #setting up dom0 mem
         self.host.execdom0("/opt/xensource/libexec/xen-cmdline --set-xen dom0_mem=4096M,max:6144M")
         self.host.reboot()
@@ -764,8 +775,7 @@ class TCVGPUSetup(VGPUOwnedVMsTest):
         installer = VGPUInstaller(self.host, cfg)
         installer.createOnGuest(self.guest)
         self.guest.setState("UP")
-        self.guest.installNvidiaVGPUDriver(self.driverType)
-
+        self.typeofvgpu.installGuestDrivers(self.guest,self.args['vgpuconfig'])
         if "PassThrough" in self.args['vgpuconfig']:
             autoit = self.guest.installAutoIt()
             au3path = "c:\\change_display.au3"
@@ -791,7 +801,7 @@ Send("{ENTER}")
             except:
                 pass
             self.guest.xmlrpcStart("\"%s\" %s" % (autoit, au3path))
-        self.assertvGPURunningInWinVM(self.guest, self.args['vgpuconfig'])
+        self.typeofvgpu.assertvGPURunningInVM(self.guest, self.args['vgpuconfig'])
 
     #Inherited postrun is deleting all the cloned VMs, snapshots and vGPUs which we dont want
     def postRun(self):
@@ -813,6 +823,17 @@ class TCVGPUCloneVM(VGPUOwnedVMsTest):
         self.guest = self.getGuest(self.args['guest'])
         self.guest.setState("DOWN")
 
+        if not self.args.has_key("typeofvgpu"):
+            raise xenrt.XRTError("Type of vGPU not defined")
+        else:
+            tofvgpu = self.args["typeofvgpu"]
+        if tofvgpu == self.getDiffvGPUName(DiffvGPUType.NvidiaWinvGPU):
+            self.typeofvgpu = NvidiaWindowsvGPU()
+        if tofvgpu == self.getDiffvGPUName(DiffvGPUType.NvidiaLinuxvGPU):
+            self.typeofvgpu = NvidiaLinuxvGPU()
+        if tofvgpu == self.getDiffvGPUName(DiffvGPUType.IntelWinvGPU):
+            self.typeofvgpu = IntelWindowsvGPU()
+
     def run(self, arglist):
         guests = []
         for i in xrange(int(self.args['clones'])):
@@ -827,7 +848,7 @@ class TCVGPUCloneVM(VGPUOwnedVMsTest):
 
         if self.args.has_key("vgpuconfig"):
             for g in guests:
-                self.assertvGPURunningInWinVM(g, self.args['vgpuconfig'])
+                self.typeofvgpu.assertvGPURunningInVM(g, self.args['vgpuconfig'])
     
     #Inherited postrun is deleting all the cloned VMs, snapshots and vGPUs which we dont want
     def postRun(self):
@@ -947,9 +968,6 @@ class TCGPUBenchmarkInstall(VGPUOwnedVMsTest):
         self.parseArgs(arglist)
         for g in self.guests:
             g.setState("UP")
-        if self.vgpuconfig:
-            for g in self.guests:
-                self.assertvGPURunningInWinVM(g, self.vgpuconfig)
 
     def run(self, arglist):
         for b in self.benchmarks:

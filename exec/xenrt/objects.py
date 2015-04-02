@@ -9288,23 +9288,22 @@ WshShell.Run "cmd", 9
 
 WScript.sleep 1000
 WshShell.SendKeys "c:\win32_%s.exe /s /n /noreboot"
-Wshshell.SendKeys "{ENTER}"
-WScript.Sleep 30000
-Wshshell.SendKeys "{ENTER}"
+WshShell.SendKeys "{ENTER}"
+WScript.sleep 30000
+WshShell.SendKeys "{ENTER}"
 WScript.sleep 1000
-Wshshell.SendKeys "{LEFT}"
+WshShell.SendKeys "{LEFT}"
 Wshshell.SendKeys "{ENTER}"
 Wshshell.SendKeys "{ENTER}"
-WScript.Sleep 300000
-Wshshell.SendKeys "{ENTER}"
-WScript.Sleep 5000
+WScript.sleep 180000
+WshShell.SendKeys "{ENTER}"
+WScript.sleep 5000
 Wshshell.SendKeys "{ENTER}"
 """ % (currentVersion)
         self.xmlrpcWriteFile("c:\\vb.vbs",vbScript)
         returncode = self.xmlrpcExec("c:\\vb.vbs",
                                       level=xenrt.RC_OK, returnerror=False, returnrc=True,
                                       timeout = 600)
-        self.pause()
         # Wait for some time to settle down with driver installer.
         xenrt.sleep(30)
 

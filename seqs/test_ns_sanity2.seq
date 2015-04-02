@@ -2,8 +2,8 @@
   <default name="NS_NSVPX_XVA" value="/usr/groups/xenrt/NSVPX-XEN-10.5-52.11_nc.xva" />
   <default name="NS_TOOLS_PATH" value="/usr/groups/xenrt/ns-tools-10.5-52.11.nc.tgz" />
   <default name="NS_ATS_XVA" value="/usr/groups/xenrt/ns/ATS_10_5.xva" />
-  <default name="NS_LINUX_XVA" value="http://10.217.223.221/vms/Sanity_Linux.xva" />
-  <default name="NS_WINDOWS_XVA" value="http://10.217.223.221/vms/Sanity_Windows.xva" />
+  <default name="NS_LINUX_XVA" value="http://10.217.223.221/vms/Sanity__Linux.xva" />
+  <default name="NS_WINDOWS_XVA" value="http://10.217.223.221/vms/Sanity__Windows.xva" />
 
   <variables>
     <OPTION_KEEP_SETUP>yes</OPTION_KEEP_SETUP>

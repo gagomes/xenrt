@@ -2768,7 +2768,7 @@ class Config(object):
          'debian60_x86-32','debian60_x86-64','debian70_x86-32','debian70_x86-64',
          'oel511_x86-32','oel511_x86-64','oel66_x86-32','oel66_x86-64','oel71_x86-64',
          'rhel48_x86-32','rhel511_x86-32','rhel511_x86-64','rhel66_x86-32','rhel66_x86-64',
-         'rheld66_x86-64','rhelw66_x86-64','rhel71_x86-64',
+         'rhelw66_x86-64','rhel71_x86-64',
          'sl511_x86-32','sl511_x86-64','sl66_x86-32','sl66_x86-64','sl7_x86-64',
          'sles104_x86-32','sles104_x86-64','sles113_x86-32','sles113_x86-64','sles12_x86-64',
          'ubuntu1204_x86-32','ubuntu1204_x86-64','ubuntu1404_x86-32','ubuntu1404_x86-64',

@@ -11593,7 +11593,7 @@ class CreedenceHost(ClearwaterHost):
         args = []
 
         args.append("uuid=%s" % gpuuuid)
-        cli.execute("pgpu-disable-dom0-acess", string.join(args))
+        cli.execute("pgpu-disable-dom0-access", string.join(args))
 
     def unblockDom0AccessToOboardPGPU(self, gpuuuid):
 
@@ -11604,7 +11604,7 @@ class CreedenceHost(ClearwaterHost):
         args = []
 
         args.append("uuid=%s" % gpuuuid)
-        cli.execute("pgpu-enable-dom0-acess", string.join(args))
+        cli.execute("pgpu-enable-dom0-access", string.join(args))
 
     def disableHostDisplay(self):
 

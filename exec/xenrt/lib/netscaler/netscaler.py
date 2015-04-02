@@ -116,6 +116,14 @@ class NetScaler(object):
         xenrt.TEC().logverbose('NetScaler Command [%s] - Returned: %s' % (command, '\n'.join(data)))
         return data
 
+    def installNSTools(self):
+        nstools = xenrt.TEC().lookup('NS_TOOLS_PATH')
+        toolsfile = nstools.split("/")[-1]
+        self.__netScalerCliCommand("shell mkdir -p /var/BW")
+        self.__vpxGuest.sftpClient(username='nsroot').copyTo( xenrt.TEC().getFile(nstools),"/var/BW/%s" % (toolsfile))
+        self.__netScalerCliCommand("shell cd /var/BW && tar xvfz %s" % toolsfile)
+        self.__netScalerCliCommand("shell /var/BW/nscsconfig --help || true")
+
     @property
     def version(self):
         if not self.__version:

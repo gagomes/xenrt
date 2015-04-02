@@ -9282,8 +9282,26 @@ class GenericGuest(GenericPlace):
         self.xmlrpcSendFile("%s/%s" % (tempDir,tarBall),"c:\\%s" % tarBall)
 
         self.xmlrpcExtractTarball("c:\\%s" % tarBall,"c:\\")
+        vbScript = """
+Set WshShell = WScript.CreateObject("WScript.Shell")
+WshShell.Run "cmd", 9
 
-        returncode = self.xmlrpcExec("c:\\%s /s /noreboot" % (fileName),
+WScript.sleep 1000
+WshShell.SendKeys "c:\win32_%s.exe /s /n /noreboot"
+Wshshell.SendKeys "{ENTER}"
+WScript.Sleep 30000
+Wshshell.SendKeys "{ENTER}"
+WScript.sleep 1000
+Wshshell.SendKeys "{LEFT}"
+Wshshell.SendKeys "{ENTER}"
+Wshshell.SendKeys "{ENTER}"
+WScript.Sleep 300000
+Wshshell.SendKeys "{ENTER}"
+WScript.Sleep 5000
+Wshshell.SendKeys "{ENTER}"
+""" % (currentVersion)
+        self.xmlrpcWriteFile("c:\\vb.vbs",vbScript)
+        returncode = self.xmlrpcExec("c:\\vb.vbs",
                                       level=xenrt.RC_OK, returnerror=False, returnrc=True,
                                       timeout = 600)
 

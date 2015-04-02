@@ -3296,9 +3296,9 @@ class MixedGPUBootstorm(BootstormBase):
 
         windowsAllocation = int(passthroughAllocation / 2)
         linuxAllocation = passthroughAllocation - windowsAllocation
-        
+
         linuxMaster = masters[self.LINUX_TYPE]
-        
+
         self.__configureMasterAndPopulate(linuxMaster, config, linuxAllocation, installer, self.nvidLinvGPU)
 
         # Branch the windows master, so can use for both passthrough and vGPU
@@ -3433,7 +3433,7 @@ class TCIntelGPUSnapshotNegative(FunctionalBase):
                 # VM will shutdown after revert.
                 vm.revert(withGPUSnapshot)
 
-                # Should fail to start.
+                # VM should fail to start.
                 try:
                     vm.setState("UP")
                     raise xenrt.XRTFailure("Able to revert to Intel GPU Passthrough enabled snapshot, after unblocking Dom0 Access to Host.")

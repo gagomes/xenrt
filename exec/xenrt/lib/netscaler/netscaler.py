@@ -61,7 +61,6 @@ class NetScaler(object):
             # Wait / Check for SSH connectivity
             vpxGuest.waitForSSH(timeout=300, username='nsroot', cmd='shell')
             vpx = cls(vpxGuest, mgmtNet)
-            vpxGuest.nsvpx = vpx
             vpx.setup(networks)
         return vpx
 

@@ -57,9 +57,9 @@
   <testsequence>
     <serial group="K1Config">
       <testcase tc="TC-20819" id="testcases.xenserver.tc.vgpu.TCBasicVerifOfAllK2config">
-        <arg>distro=0,2,4,5,8</arg>
-        <arg>typeofvgpu=nvidiawinvgpu</arg>
-        <arg>vgpuconfig=0,1,2,4,5</arg>
+        <arg>distro=0</arg>
+        <arg>typeofvgpu=intelwinvgpu</arg>
+        <arg>vgpuconfig=12</arg>
       </testcase>
 
       <testcase tc="TC-20821" id="testcases.xenserver.tc.vgpu.TCAssignK2vGPUToVMhasGotvGPU">

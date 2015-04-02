@@ -410,7 +410,7 @@ class VGPUTest(object):
 
     def blockDom0Access(self,cardName,host):
         pgpu = host.minimalList("pgpu-list")
-        intelPGPUUUID = filter(lambda p: CardName[cardName] in host.genParamGet("pgpu",p,"vendor-name"),pgpu)[0]
+        intelPGPUUUID = filter(lambda p: cardName in host.genParamGet("pgpu",p,"vendor-name"),pgpu)[0]
         if not intelPGPUUUID:
             raise xenrt.XRTFailure("No Intel GPU found")
         host.blockDom0AccessToOnboardPGPU(intelPGPUUUID)
@@ -419,7 +419,7 @@ class VGPUTest(object):
 
     def unblockDom0Access(self,cardName,host):
         pgpu = host.minimalList("pgpu-list")
-        intelPGPUUUID = filter(lambda p: CardName[cardName] in host.genParamGet("pgpu",p,"vendor-name"),pgpu)[0]
+        intelPGPUUUID = filter(lambda p: cardName in host.genParamGet("pgpu",p,"vendor-name"),pgpu)[0]
         if not intelPGPUUUID:
             raise xenrt.XRTFailure("No Intel GPU found")
         host.unblockDom0AccessToOboardPGPU(intelPGPUUUID)

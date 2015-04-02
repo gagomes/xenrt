@@ -6515,6 +6515,8 @@ fi
                     template = self.chooseTemplate("TEMPLATE_NAME_RHEL_6_64")
                 else:
                     template = self.chooseTemplate("TEMPLATE_NAME_RHEL_6")
+            elif re.search(r"rhelw66", distro):
+                template = self.chooseTemplate("TEMPLATE_NAME_RHEL_w66_64")
             elif re.search(r"rhel7", distro):
                 template = self.chooseTemplate("TEMPLATE_NAME_RHEL_7_64")
             elif re.search(r"rhel4", distro):
@@ -9604,6 +9606,25 @@ class BostonHost(MNRHost):
             bridge = None
             device = None
         return (bridge, device)
+        
+    def enableVirtualFunctions(self):
+
+        out = self.execdom0("grep -v '^#' /etc/modprobe.d/ixgbe 2> /dev/null; echo -n ''").strip()
+        if len(out) > 0:
+            return
+
+        numPFs = int(self.execdom0('lspci | grep 82599 | wc -l').strip())
+        #we check ixgbe version so as to understand netsclaer VPX specific - NS drivers: in which case, configuration differs slightly. 
+        ixgbe_version = self.execdom0("modinfo ixgbe | grep 'version:        '") 
+        if numPFs > 0:
+            if (re.search("NS", ixgbe_version.split()[1])):
+                maxVFs = "63" + (",63" * (numPFs - 1))
+            else:
+                maxVFs = "40"
+            self.execdom0('echo "options ixgbe max_vfs=%s" > "/etc/modprobe.d/ixgbe"' % (maxVFs))
+
+            self.reboot()
+            self.waitForSSH(300, desc="host reboot after enabling virtual functions")
 
     def createNetworkTopology(self, topology):
         """Create the topology specified by XML on this host. Takes either
@@ -10772,25 +10793,7 @@ class TampaHost(BostonHost):
     def getQemuDMWrapper(self):
         return "/opt/xensource/libexec/qemu-dm-wrapper"
 
-    def enableVirtualFunctions(self):
-
-        out = self.execdom0("grep -v '^#' /etc/modprobe.d/ixgbe 2> /dev/null; echo -n ''").strip()
-        if len(out) > 0:
-            return
-
-        numPFs = int(self.execdom0('lspci | grep 82599 | wc -l').strip())
-        #we check ixgbe version so as to understand netsclaer VPX specific - NS drivers: in which case, configuration differs slightly. 
-        ixgbe_version = self.execdom0("modinfo ixgbe | grep 'version:        '") 
-        if numPFs > 0:
-            if (re.search("NS", ixgbe_version.split()[1])):
-                maxVFs = "63" + (",63" * (numPFs - 1))
-            else:
-                maxVFs = "40"
-            self.execdom0('echo "options ixgbe max_vfs=%s" > "/etc/modprobe.d/ixgbe"' % (maxVFs))
-
-            self.reboot()
-            self.waitForSSH(300, desc="host reboot after enabling virtual functions")
-
+    
     def validLicenses(self, xenserverOnly=False):
         """
         Get a license object which contains the details of a license settings

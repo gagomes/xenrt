@@ -9304,7 +9304,7 @@ Wshshell.SendKeys "{ENTER}"
         returncode = self.xmlrpcExec("c:\\vb.vbs",
                                       level=xenrt.RC_OK, returnerror=False, returnrc=True,
                                       timeout = 600)
-
+        self.pause("syed")
         # Wait for some time to settle down with driver installer.
         xenrt.sleep(30)
 

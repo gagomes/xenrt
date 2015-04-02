@@ -6,6 +6,9 @@ import app.utils
 from pyramid.httpexceptions import *
 import json
 import jsonschema
+import calendar
+import time
+import datetime
 
 class UploadSubResults(XenRTAPIv2Page):
     WRITE = True
@@ -182,6 +185,97 @@ class NewEvent(XenRTAPIv2Page):
         db.commit()
         cur.close()
         return {}
+
+class GetEvents(XenRTAPIv2Page):
+    PATH = "/events"
+    REQTYPE = "GET"
+    SUMMARY = "Get events from the database"
+    PARAMS = [
+        {'name': 'subject',
+         'description': 'Event subject - can specify multiple',
+         'collectionFormat': 'multi',
+         'in': 'query',
+         'items': 'string',
+         'required': True,
+         'type': 'array'},
+        {'name': 'type',
+         'collectionFormat': 'multi',
+         'description': 'Event type - can specify multiple',
+         'in': 'query',
+         'items': 'string',
+         'required': True,
+         'type': 'array'},
+        {'name': 'start',
+         'description': 'Start of range',
+         'in': 'query',
+         'required': False,
+         'type': 'integer'},
+        {'name': 'end',
+         'description': 'End of range. Defaults to now',
+         'in': 'query',
+         'required': False,
+         'type': 'integer'},
+        {'name': 'limit',
+         'description': 'Limit on number of events returned. Hard limit 10000',
+         'in': 'query',
+         'required': False,
+         'type': 'integer'}]
+    RESPONSES = { "200": {"description": "Successful response"}}
+    TAGS = ["misc"]
+
+    def render(self):
+        subject = self.getMultiParam("subject")
+        if not subject:
+           raise XenRTAPIError(HTTPBadRequest, "No subject specified") 
+        etype = self.getMultiParam("type")
+        if not etype:
+           raise XenRTAPIError(HTTPBadRequest, "No event type specified") 
+        start = self.request.params.get('start')
+        start = int(start) if start else None
+        end = self.request.params.get('end')
+        end = int(end) if end else None
+        limit = self.request.params.get('limit', 0)
+        if limit == 0:
+            limit = 10000
+        limit = min(10000, int(limit))
+
+        params = []
+        conditions = []
+
+        conditions.append("etype IN (%s)" % (", ".join(["%s"] * len(etype))))
+        params.extend(etype)
+        
+        conditions.append("subject IN (%s)" % (", ".join(["%s"] * len(subject))))
+        params.extend(subject)
+
+        if start:
+            conditions.append("ts >= %s")
+            params.append(datetime.datetime.utcfromtimestamp(start))
+        if end:
+            conditions.append("ts <= %s")
+            params.append(datetime.datetime.utcfromtimestamp(end))
+
+        params.append(limit)
+
+        cur = self.getDB().cursor()
+        cur.execute("SELECT ts,etype,subject,edata FROM tblevents WHERE %s ORDER BY ts DESC LIMIT %%s" % (" AND ".join(conditions)), self.expandVariables(params))
+
+
+        ret = []
+        while True:
+            rc = cur.fetchone()
+            if not rc:
+                break
+
+            ret.append({
+                "ts": calendar.timegm(rc[0].timetuple()),
+                "type": rc[1].strip() if rc[1] else None,
+                "subject": rc[2].strip() if rc[2] else None,
+                "data": rc[3].strip() if rc[3] else None})
+
+        return ret
+        
+
 
 class NewLogData(XenRTAPIv2Page):
     WRITE = True
@@ -520,4 +614,5 @@ RegisterAPI(UploadSubResults)
 RegisterAPI(UploadPerfData)
 RegisterAPI(SetResult)
 RegisterAPI(NewEvent)
+RegisterAPI(GetEvents)
 RegisterAPI(NewLogData)

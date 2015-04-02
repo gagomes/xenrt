@@ -39,10 +39,6 @@
       <testcase id="xenserver.tc.ha.TC13564"/>
     </serial>
     
-    <serial group="TC-8132">
-      <testcase id="xenserver.tc.ha.TC8131"/>
-    </serial>
-    
     <serial>
       <finally>
         <testcase id="guestops.basic.TCShutdown">

@@ -9,4 +9,6 @@
 6165e0274f9e4e4b82d9b44e793d8fc6  ./paramiko-1.14.1.tar.gz
 55a61a054aa66812daf5161a0d5d7eda  ./pycrypto-2.6.1.tar.gz
 99b830d1afe2e5920adbea0fe3120948  ./requests-2.4.0.tar.gz
-01026f87978932060cc86c1dc527903e  ./pip-1.5.6.tar.gz
+2332e6f97e75ded3bddde0ced01dbda3  ./pip-6.0.8.tar.gz
+e9c544d2aa1c6cae501d78880bfa77f7  ./pyvmomi-5.5.0.2014.1.1.tar.gz
+476881ef4012262dfc8adc645ee786c4  ./six-1.9.0.tar.gz

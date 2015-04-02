@@ -2380,8 +2380,10 @@ class TC21632(_TCHostPowerON):
         # Get the OpenManage Supplemental Pack from distmaster and install.
         master.execdom0("wget -nv '%sdellomsupppack.tgz' -O - | tar -zx -C /tmp" %
                                                 (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
-
-        dellomSupppack = "dellomsupppack-%s.iso" % master.productVersion.lower().strip()
+        productVersion = master.productVersion.lower().strip()
+        if productVersion == 'cream':
+            productVersion = 'creedence'
+        dellomSupppack = "dellomsupppack-%s.iso" % productVersion
         master.execdom0("mv /tmp/dellomsupppack/%s /root" % dellomSupppack)
 
         if self.UNSATISFIED_DEPENDENCY:
@@ -2480,7 +2482,40 @@ class TC10814(TC10181):
             if not r:
                 raise xenrt.XRTFailure("power-on-mode not shown correctly in "
                                        "host params")
-            
+
+class TC26941(xenrt.TestCase):
+    """Test that the list of templates matches the expected list"""
+
+    def run(self, arglist=None):
+        host = self.getDefaultHost()
+        version = host.productVersion
+
+        hostTemplates = host.minimalList("template-list", params="name-label", args="other-config:default_template=true")
+        # The expected templates are the first entry in the list of templates for the host's XenServer version
+        expectedTemplates = [xenrt.TEC().lookup(["VERSION_CONFIG", version, x]).split(",")[0] for x in xenrt.TEC().lookup(["VERSION_CONFIG", version]).keys() if x.startswith("TEMPLATE_") and xenrt.TEC().lookup(["VERSION_CONFIG", version, x])]
+
+        missing = []
+        unexpected = []
+
+        for t in expectedTemplates:
+            if t not in hostTemplates:
+                missing.append(t)
+        
+        for t in hostTemplates:
+            if t not in expectedTemplates:
+                unexpected.append(t)
+
+        failure = []
+        if missing:
+            failure.append("Template(s) %s missing from host" % ", ".join(missing))
+        if unexpected:
+            failure.append("Template(s) %s on host are unexpected" % ", ".join(unexpected))
+
+        if failure:
+            raise xenrt.XRTFailure(" and ".join(failure))
+
+
+
 class _TemplateExists(xenrt.TestCase):
     """Check a specific template exists or doesn't exist."""
 

@@ -2505,6 +2505,9 @@ fi
             self.reboot()
             self.assertNotRunningDebugXen()
 
+        # Update our product version in case the hotfix has changed it
+        self.checkVersion()
+
         return reply
 
     
@@ -2767,8 +2770,6 @@ fi
             if proxy:
                 self.execdom0("sed -i '/proxy/d' /etc/yum.conf")
                 self.execdom0("echo 'proxy=http://%s' >> /etc/yum.conf" % proxy)
-            if isinstance(self, xenrt.lib.xenserver.DundeeHost):
-                self.execdom0("yum install kernel-headers --disableexcludes=all -y")
             self.execdom0("yum --disablerepo=citrix --enablerepo=base,updates,extras install -y  gcc-c++")
             self.execdom0("yum --disablerepo=citrix --enablerepo=base install -y make")
             xenrt.objects.GenericPlace.installIperf(self, version)
@@ -3095,6 +3096,9 @@ fi
                          forceHVM=False
                          ):
         """Installs a VM of the specified distro and installs tools/drivers."""
+
+        (distro, special) = self.resolveDistroName(distro)
+
         if distro.startswith("generic-"): 
             distro = distro[8:]
         if distro.lower() == "windows" or distro.lower() == "linux":
@@ -3120,7 +3124,8 @@ fi
                                             sr=sr,
                                             arch=arch,
                                             rootdisk=disksize,
-                                            notools=notools)
+                                            notools=notools,
+                                            special=special)
 
         if guest:
             doSetRandomVcpus = not vcpus and self.lookup("RND_VCPUS", default=False, boolean=True)
@@ -3184,6 +3189,7 @@ fi
                 vifs = [("%s0" % (guest.vifstem), br, primaryMAC, None)]
             else:
                 vifs = guest.DEFAULT
+            guest.special.update(special)
             guest.install(self,
                           distro=distro,
                           isoname=isoname,
@@ -6509,6 +6515,8 @@ fi
                     template = self.chooseTemplate("TEMPLATE_NAME_RHEL_6_64")
                 else:
                     template = self.chooseTemplate("TEMPLATE_NAME_RHEL_6")
+            elif re.search(r"rhelw66", distro):
+                template = self.chooseTemplate("TEMPLATE_NAME_RHEL_w66_64")
             elif re.search(r"rhel7", distro):
                 template = self.chooseTemplate("TEMPLATE_NAME_RHEL_7_64")
             elif re.search(r"rhel4", distro):
@@ -8179,6 +8187,8 @@ rm -f /etc/xensource/xhad.conf || true
                 sruuid = sr
             elif sr == "DEFAULT":
                 sruuid = self.lookupDefaultSR()
+            elif sr == "Local storage":
+                sruuid = self.getLocalSR()
             else:
                 xenrt.TEC().logverbose("given sr is not UUID")
                 sruuid = self.parseListForUUID("sr-list", "name-label", sr)
@@ -8190,6 +8200,48 @@ rm -f /etc/xensource/xhad.conf || true
         dmesg = self.execdom0("grep 'Hardware Assisted Paging' /var/log/xen-dmesg || true")
 
         return "HVM: Hardware Assisted Paging detected and enabled." in dmesg or "HVM: Hardware Assisted Paging (HAP) detected" in dmesg
+
+    def resolveDistroName(self, distro):
+        origDistro = distro
+        special = {}
+
+        m = re.match("^(oel[dw]?|sl[dw]?|rhel[dw]?|centos[dw]?)(\d)x$", distro)
+        if m:
+            # Fall back to RHEL if we don't have derivatives defined
+            distro = self.lookup("LATEST_%s%s" % (m.group(1), m.group(2)),
+                        self.lookup("LATEST_rhel%s" % m.group(2)).replace("rhel", m.group(1)))
+        m = re.match("^(oel[dw]?|sl[dw]?|rhel[dw]?|centos[dw]?)(\d)u$", distro)
+        if m:
+            # Fall back to RHEL if we don't have derivatives defined
+            distro = self.lookup("LATEST_%s%s" % (m.group(1), m.group(2)),
+                        self.lookup("LATEST_rhel%s" % m.group(2)).replace("rhel", m.group(1)))
+            if m.group(1) == "centos":
+                special['UpdateTo'] = "latest"
+            else:
+                updateMap = xenrt.TEC().lookup("LINUX_UPDATE")
+                match = ""
+                newdistro = xenrt.getUpdateDistro(distro)
+                if newdistro != distro:
+                    special['UpdateTo'] = newdistro
+                else:
+                    special['UpdateTo'] = None
+        
+        m = re.match("^(oel[dw]?|sl[dw]?|rhel[dw]?|centos[dw]?)(\d+)xs$", distro)
+        if m:
+            distro = "%s%s" % (m.group(1), m.group(2))
+            special['XSKernel'] = True
+        xenrt.TEC().logverbose("Resolved %s to %s with %s (host is %s)" % (origDistro, distro, special, self.productVersion))
+        return (distro, special)
+
+    def getDeploymentRecord(self):
+        ret = super(Host, self).getDeploymentRecord()
+        ret['srs'] = []
+        for s in [x for x in self.parameterList("sr-list", params=["type", "uuid", "name-label"]) if x['type'] not in ("iso", "udev")]:
+            ret['srs'].append({
+                "type": s['type'],
+                "uuid": s['uuid'],
+                "name": s['name-label']})
+        return ret
 
 #############################################################################
 
@@ -11511,7 +11563,30 @@ class CreedenceHost(ClearwaterHost):
             return sr
         else:
             raise xenrt.XRTError("No NFS path defined")
-       
+
+    def installContainerPack(self):
+        with xenrt.GEC().getLock("CONTAINER_PACK_INSTALL_%s" % self.getName()):
+            if self.execdom0("test -e /etc/xensource/installed-repos/xs:xscontainer", retval="code") == 0:
+                return
+
+            f = xenrt.TEC().getFile(
+                "xe-phase-2/xscontainer-6*.iso",
+                "xe-phase-2/xscontainer-7*.iso",
+                "${CREAM_BUILD_DIR}xe-phase-2/xscontainer-6.5.0-*.iso")
+        
+            if not f:
+                raise xenrt.XRTError("Container supplemental pack not found")
+
+            # Copy ISO from the controller to host in test
+            sh = self.sftpClient()
+            try:
+                sh.copyTo(f,"/tmp/xscontainer.iso")
+            finally:
+                sh.close()
+
+            self.execdom0("xe-install-supplemental-pack /tmp/xscontainer.iso")
+
+        
 
 #############################################################################
 class DundeeHost(CreedenceHost):
@@ -12308,10 +12383,69 @@ class NFSStorageRepository(StorageRepository):
             raise xenrt.XRTFailure("Mounted path '%s' is not '%s'" %
                                    (nfs, shouldbe))
 
+class NFSISOStorageRepository(StorageRepository):
+    """Models an NFS ISO SR"""
+
+    SHARED = True
+
+    def create(self, server=None, path=None, physical_size=0, content_type="iso"):
+        if not (server or path):
+            if xenrt.TEC().lookup("FORCE_NFSSR_ON_CTRL", False, boolean=True):
+                # Create an SR using an NFS export from the XenRT controller.
+                # This should only be used for small and low I/O throughput
+                # activities - VMs should never be installed on this.
+                nfsexport = xenrt.NFSDirectory()
+                server, path = nfsexport.getHostAndPath("")
+            else:
+                # Create an SR on an external NFS file server
+                share = xenrt.ExternalNFSShare()
+                nfs = share.getMount()
+                r = re.search(r"([0-9\.]+):(\S+)", nfs)
+                server = r.group(1)
+                path = r.group(2)
+
+        self.server = server
+        self.path = path
+        dconf = {}
+        smconf = {}
+        dconf["location"] = server + ":" + path
+        self._create("iso",
+                     dconf,
+                     physical_size=physical_size,
+                     content_type=content_type,
+                     smconf=smconf)
+    
+    def check(self):
+        StorageRepository.checkCommon(self, "iso")
+        #cli = self.host.getCLIInstance()
+        if self.host.pool:
+            self.checkOnHost(self.host.pool.master)
+            for slave in self.host.pool.slaves.values():
+                self.checkOnHost(slave)
+        else:
+            self.checkOnHost(self.host)
+
+    def checkOnHost(self, host):
+        try:
+            host.execdom0("test -d /var/run/sr-mount/%s" % (self.uuid))
+        except:
+            raise xenrt.XRTFailure("SR mountpoint /var/run/sr-mount/%s "
+                                   "does not exist" % (self.uuid))
+        nfs = string.split(host.execdom0("mount | grep \""
+                                          "/run/sr-mount/%s \"" %
+                                          (self.uuid)))[0]
+        shouldbe = "%s:%s/%s" % (self.server, self.path, self.uuid)
+        if nfs != shouldbe:
+            raise xenrt.XRTFailure("Mounted path '%s' is not '%s'" %
+                                   (nfs, shouldbe))
+
 
 class NFSv4StorageRepository(NFSStorageRepository):
     EXTRA_DCONF = {'nfsversion': '4'}
 
+class NFSv4ISOStorageRepository(NFSISOStorageRepository):
+    EXTRA_DCONF = {'nfsversion': '4'}
+    
 class SMBStorageRepository(StorageRepository):
     """Models a SMB SR"""
 

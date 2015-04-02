@@ -25,6 +25,10 @@ class TCSyncRPMs(xenrt.TestCase):
     """Synchronise local RPM/deb repositories with the central repository"""
 
     def doRepo(self, distro, arch):
+        nosync = xenrt.TEC().lookup(["RPM_SOURCE", distro, arch, "NOSYNC"],
+                                      False, boolean=True)
+        if nosync:
+            return
         nfspaths = xenrt.TEC().lookup(["RPM_SOURCE", distro, arch, "NFS"],
                                       None)
         if not nfspaths:

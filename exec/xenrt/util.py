@@ -89,7 +89,8 @@ __all__ = ["timenow",
            "getCCPCommit",
            "isUrlFetchable",
            "isWindows",
-           "is32BitPV"
+           "is32BitPV",
+           "getUpdateDistro"
            ]
 
 def sleep(secs, log=True):
@@ -1396,7 +1397,10 @@ def getADConfig():
 
 def getDistroAndArch(distrotext):
     if isWindows(distrotext):
-        return (distrotext, "x86-32")
+        arch = "x86-32"
+        if distrotext.endswith("64"):
+            arch = "x86-64"
+        return (distrotext, arch)
     if distrotext.endswith("-x64"):
         distro = distrotext[:-4]
         arch = "x86-64"
@@ -1523,3 +1527,18 @@ def is32BitPV(distro, arch=None, release=None, config=None):
 
     # We've got this far, so it must be 32 bitPV
     return True
+
+def getUpdateDistro(distro):
+    updateMap = xenrt.TEC().lookup("LINUX_UPDATE")
+    match = ""
+    newdistro = None
+    # Look for the longest match
+    for i in updateMap.keys():
+        if distro.startswith(i) and len(i) > len(match):
+            match = i
+    # if we find one, we need to upgrade
+    if match:
+        newdistro = updateMap[match]
+    if not newdistro:
+        raise xenrt.XRTError("No update distro found for %s" % distro)
+    return newdistro

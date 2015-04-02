@@ -593,7 +593,7 @@ class Docker(object):
         xenrt.TEC().logverbose("checkDocker: Checking the installation of Docker on guest %s" % self.guest)
     
         guestCmdOut = self.guest.execguest("docker info").strip()
-        if "Operating System:" in guestCmdOut:
+        if "Storage Driver:" in guestCmdOut:
             xenrt.TEC().logverbose("Docker installation is running on guest %s" % self.guest)
         else: 
             raise xenrt.XRTError("Failed to find a running instance of Docker on guest %s" % self.guest)
@@ -752,9 +752,9 @@ class UbuntuDocker(Docker):
         xenrt.TEC().logverbose("installDocker: Installation of docker environment on guest %s" % self.guest)
         cmdOut = self.guest.execguest("apt-get -y --force-yes install nmap docker.io")
 
-        if not "Complete" in cmdOut:
+        if not "docker.io start" in cmdOut:
             raise xenrt.XRTError("installDocker: Failed to install docker environment on guest %s" % self.guest)
 
     def updateGuestSourceRpms(self):
 
-        xenrt.TEC().logverbose("updateGuestSourceRpms: Updating source rpms before docker installation on %s" % self.guest)
+        xenrt.TEC().logverbose("updateGuestSourceRpms: Update on Ubuntu %s is not required" % self.guest)

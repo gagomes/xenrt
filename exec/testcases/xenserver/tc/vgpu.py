@@ -408,8 +408,7 @@ class VGPUTest(object):
         vgpucreator.createOnGuest(vm, groupuuid)
         vm.setState("UP")
 
-    def blockDom0Access(self,cardName):
-        host = self.getDefaultHost()
+    def blockDom0Access(self,cardName,host):
         pgpu = host.minimalList("pgpu-list")
         intelPGPUUUID = filter(lambda p: CardName[cardName] in host.genParamGet("pgpu",p,"vendor-name"),pgpu)[0]
         if not intelPGPUUUID:
@@ -418,8 +417,7 @@ class VGPUTest(object):
         host.disableHostDisplay()
         host.reboot()
 
-    def unblockDom0Access(self,cardName):
-        host = self.getDefaultHost()
+    def unblockDom0Access(self,cardName,host):
         pgpu = host.minimalList("pgpu-list")
         intelPGPUUUID = filter(lambda p: CardName[cardName] in host.genParamGet("pgpu",p,"vendor-name"),pgpu)[0]
         if not intelPGPUUUID:
@@ -1884,13 +1882,13 @@ class DifferentGPU(object):
         """
         pass
 
-    def blockDom0Access(self):
+    def blockDom0Access(self,host):
         """
         Block Dom0 Access to onboard graphics card
         """
         pass
 
-    def unblockDom0Access(self):
+    def unblockDom0Access(self,host):
         """
         Block Dom0 Access to onboard graphics card
         """
@@ -1916,11 +1914,11 @@ class NvidiaWindowsvGPU(DifferentGPU):
     def attachvGPUToVM(self, vgpucreator, vm, groupuuid):
         VGPUTest().attachvGPU(vgpucreator,vm,groupuuid)
 
-    def blockDom0Access(self):
+    def blockDom0Access(self,host):
         xenrt.TEC().logverbose("Not implemented")
         pass
 
-    def unblockDom0Access(self):
+    def unblockDom0Access(self,host):
         xenrt.TEC().logverbose("Not implemented")
         pass
 
@@ -1946,11 +1944,11 @@ class NvidiaLinuxvGPU(DifferentGPU):
     def attachvGPUToVM(self, vgpucreator, vm, groupuuid):
         VGPUTest().attachvGPU(vgpucreator,vm,groupuuid)
 
-    def blockDom0Access(self):
+    def blockDom0Access(self,host):
         xenrt.TEC().logverbose("Not implemented")
         pass
 
-    def unblockDom0Access(self):
+    def unblockDom0Access(self,host):
         xenrt.TEC().logverbose("Not implemented")
         pass
 
@@ -1958,7 +1956,7 @@ class IntelWindowsvGPU(DifferentGPU):
 
     def installHostDrivers(self,allHosts):
         xenrt.TEC().logverbose("Instead of installing Host drivers, blocking Dom0 access to Intel GPU")
-        self.blockDom0Access()
+        self.blockDom0Access(allHosts[0])
 
     def installGuestDrivers(self, guest, vGPUType):
         VGPUTest().installIntelWindowsDrivers(guest, vGPUType)
@@ -1975,11 +1973,11 @@ class IntelWindowsvGPU(DifferentGPU):
     def attachvGPUToVM(self, vgpucreator, vm):
         VGPUTest().attachvGPU(vgpucreator,vm,groupuuid)
 
-    def blockDom0Access(self):
-        VGPUTest().blockDom0Access(CardName[CardType.Intel])
+    def blockDom0Access(self,host):
+        VGPUTest().blockDom0Access(CardName[CardType.Intel],host)
 
-    def unblockDom0Access(self):
-        VGPUTest().unblockDom0Access(CardName[CardType.Intel])
+    def unblockDom0Access(self,host):
+        VGPUTest().unblockDom0Access(CardName[CardType.Intel],host)
 
 """ Negative Test Cases """
 

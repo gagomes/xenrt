@@ -6099,7 +6099,7 @@ class DundeeGuest(CreedenceGuest):
                 self.installFullWindowsGuestAgent()
                 
             # Download the Individual PV packages
-            self.xmlrpcSendFile(xenrt.TEC().getFile("xe-phase-1/%s" %(xenrt.TEC().lookup("PV_DRIVERS_LOCATION", None))), "c:\\tools.tgz")
+            self.xmlrpcSendFile(xenrt.TEC().getFile("xe-phase-1/%s" %(xenrt.TEC().lookup("PV_DRIVERS_LOCATION"))), "c:\\tools.tgz")
             pvToolsDir = self.xmlrpcTempDir()
             self.xmlrpcExtractTarball("c:\\tools.tgz", pvToolsDir)
             
@@ -6150,7 +6150,7 @@ class DundeeGuest(CreedenceGuest):
         
         #Download the tools if not present already
         if toolsDirectory is None:
-            self.xmlrpcSendFile(xenrt.TEC().getFile("xe-phase-1/%s" %(PV_DRIVERS_LOCATION)), "c:\\tools.tgz")
+            self.xmlrpcSendFile(xenrt.TEC().getFile("xe-phase-1/%s" %(xenrt.TEC().lookup("PV_DRIVERS_LOCATION"))), "c:\\tools.tgz")
             toolsDirectory = self.xmlrpcTempDir()
             self.xmlrpcExtractTarball("c:\\tools.tgz", toolsDirectory)
         

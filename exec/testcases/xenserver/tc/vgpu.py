@@ -2662,7 +2662,6 @@ class TCBasicVerifOfAllK2config(FunctionalBase):
 
             log("Install guest drivers for %s" % str(vm))
             self.typeOfvGPU.installGuestDrivers(vm,expVGPUType)
-            self.pause()
             log("Checking whether vGPU is runnnig on the VM or not")
             self.typeOfvGPU.assertvGPURunningInVM(vm,expVGPUType)
 

@@ -294,25 +294,37 @@ class VGPUTest(object):
 
         return typeOfVGPU, vgpuuuid
 
-    def assertvGPURunningInWinVM(self, vm, vGPUType):
-        if not self.checkvGPURunningInVM(vm, vGPUType):
+    def assertNvidiavGPURunningInWinVM(self, vm, vGPUType):
+        vendor = "PCI.VEN_10DE.*(NVIDIA|VGA|Display).*"
+        if not self.checkvGPURunningInVM(vm, vGPUType, vendor):
             raise xenrt.XRTFailure("vGPU not running in VM %s: %s" % (vm.getName(),vm.getUUID()))
 
-    def assertvGPUNotRunningInWinVM(self, vm, vGPUType):
-        if self.checkvGPURunningInVM(vm, vGPUType):
+    def assertNvidiavGPUNotRunningInWinVM(self, vm, vGPUType):
+        vendor = "PCI.VEN_10DE.*(NVIDIA|VGA|Display).*"
+        if self.checkvGPURunningInVM(vm, vGPUType,vendor):
             raise xenrt.XRTFailure("vGPU running when not expected in VM %s: %s" % (vm.getName(),vm.getUUID()))
 
-    def checkvGPURunningInVM(self, vm, vGPUType):
+    def assertIntelvGPURunningInWinVM(self, vm, vGPUType):
+        vendor = "PCI.VEN.*Intel.*Graphics.*"
+        if not self.checkvGPURunningInVM(vm, vGPUType, vendor):
+            raise xenrt.XRTFailure("vGPU not running in VM %s: %s" % (vm.getName(),vm.getUUID()))
+
+    def assertIntelvGPUNotRunningInWinVM(self, vm, vGPUType):
+        vendor = "PCI.VEN.*Intel.*Graphics.*"
+        if not self.checkvGPURunningInVM(vm, vGPUType, vendor):
+            raise xenrt.XRTFailure("vGPU not running in VM %s: %s" % (vm.getName(),vm.getUUID()))
+
+    def checkvGPURunningInVM(self, vm, vGPUType,vendor):
 
         for i in range(2):
-            result, err = self.__checkvGPURunningInVMWithReason(vm, vGPUType)
+            result, err = self.__checkvGPURunningInVMWithReason(vm, vGPUType, vendor)
             if not result and err and i < 1:
                 vm.reboot()
             else:
                 return result 
 
-    def __checkvGPURunningInVMWithReason(self, vm, vGPUType):
-        gpu = self.findGPUInVM(vm)
+    def __checkvGPURunningInVMWithReason(self, vm, vGPUType, vendor):
+        gpu = self.findGPUInVM(vm, vendor)
 
         if not gpu:
             log("vGPU not found on VM")
@@ -340,16 +352,15 @@ class VGPUTest(object):
                 return True,""
         return False,"Could not determine whether GPU is running"
 
-    def findGPUInVM(self,vm):
+    def findGPUInVM(self,vm,vendor):
 
         vm.waitForDaemon(1800, desc="Windows starting up")
         lines = vm.devcon("find *").splitlines()
-        nvidiaDevice = "PCI.VEN_10DE.*(NVIDIA|VGA|Display).*"  #nvidia pci vendor id
 
         for line in lines:
             if line.startswith("PCI"):
                 xenrt.TEC().logverbose("devcon: %s" % line)
-                if re.search(nvidiaDevice,line) and not re.search(".*(Audio).*",line):
+                if re.search(vendor,line) and not re.search(".*(Audio).*",line):
                     xenrt.TEC().logverbose("Found GPU device: %s" % line)
                     return line.strip()
         return None
@@ -417,16 +428,15 @@ class VGPUTest(object):
         else:
             raise xenrt.XRTError("display param on host was neither enabled or disabled.")
 
-    def blockDom0Access(self, cardName, reboot=True):
+    def blockDom0Access(self, cardName, host, reboot=True):
         def verifyBlocked():
             if self.__checkDom0Access(host, intelPGPUUUID):
                 raise xenrt.XRTError("GPU Dom0 Access was not successfully blocked.")
             if self.__checkDisplay(host):
                 raise xenrt.XRTError("Host display was not successfully disabled.")
 
-        host = self.getDefaultHost()
         pgpu = host.minimalList("pgpu-list")
-        intelPGPUUUID = filter(lambda p: CardName[cardName] in host.genParamGet("pgpu",p,"vendor-name"),pgpu)[0]
+        intelPGPUUUID = filter(lambda p: cardName in host.genParamGet("pgpu",p,"vendor-name"),pgpu)[0]
         if not intelPGPUUUID:
             raise xenrt.XRTFailure("No Intel GPU found")
         host.blockDom0AccessToOnboardPGPU(intelPGPUUUID)
@@ -435,16 +445,15 @@ class VGPUTest(object):
             host.reboot()
             verifyBlocked()
 
-    def unblockDom0Access(self,cardName):
+    def unblockDom0Access(self, cardName, host):
         def verifyUnblocked():
             if not self.__checkDom0Access(host, intelPGPUUUID):
                 raise xenrt.XRTError("GPU Dom0 Access was not successfully unblocked.")
             if not self.__checkDisplay(host):
                 raise xenrt.XRTError("Host display was not successfully enabled.")
 
-        host = self.getDefaultHost()
         pgpu = host.minimalList("pgpu-list")
-        intelPGPUUUID = filter(lambda p: CardName[cardName] in host.genParamGet("pgpu",p,"vendor-name"),pgpu)[0]
+        intelPGPUUUID = filter(lambda p: cardName in host.genParamGet("pgpu",p,"vendor-name"),pgpu)[0]
         if not intelPGPUUUID:
             raise xenrt.XRTFailure("No Intel GPU found")
         host.unblockDom0AccessToOboardPGPU(intelPGPUUUID)
@@ -803,8 +812,6 @@ class TCVGPUSetup(VGPUOwnedVMsTest):
             tofvgpu = self.args["typeofvgpu"]
         if tofvgpu == self.getDiffvGPUName(DiffvGPUType.NvidiaWinvGPU):
             self.typeofvgpu = NvidiaWindowsvGPU()
-        if tofvgpu == self.getDiffvGPUName(DiffvGPUType.NvidiaLinuxvGPU):
-            self.typeofvgpu = NvidiaLinuxvGPU()
         if tofvgpu == self.getDiffvGPUName(DiffvGPUType.IntelWinvGPU):
             self.typeofvgpu = IntelWindowsvGPU()
 
@@ -874,8 +881,6 @@ class TCVGPUCloneVM(VGPUOwnedVMsTest):
             tofvgpu = self.args["typeofvgpu"]
         if tofvgpu == self.getDiffvGPUName(DiffvGPUType.NvidiaWinvGPU):
             self.typeofvgpu = NvidiaWindowsvGPU()
-        if tofvgpu == self.getDiffvGPUName(DiffvGPUType.NvidiaLinuxvGPU):
-            self.typeofvgpu = NvidiaLinuxvGPU()
         if tofvgpu == self.getDiffvGPUName(DiffvGPUType.IntelWinvGPU):
             self.typeofvgpu = IntelWindowsvGPU()
 
@@ -958,7 +963,7 @@ class TCGPUBootstorm(VGPUOwnedVMsTest):
         guest.start()
         self.times[guest.name] = xenrt.util.timenow() - self.starttime
         if self.vgpuconfig:
-            self.assertvGPURunningInWinVM(guest, self.vgpuconfig)
+            self.assertNvidiavGPURunningInWinVM(guest, self.vgpuconfig)
 
 
     def prepare(self, arglist):
@@ -1912,13 +1917,13 @@ class DifferentGPU(object):
         """
         pass
 
-    def blockDom0Access(self, reboot=True):
+    def blockDom0Access(self, host, reboot=True):
         """
         Block Dom0 Access to onboard graphics card
         """
         pass
 
-    def unblockDom0Access(self):
+    def unblockDom0Access(self,host):
         """
         Block Dom0 Access to onboard graphics card
         """
@@ -1933,10 +1938,10 @@ class NvidiaWindowsvGPU(DifferentGPU):
         VGPUTest().installNvidiaWindowsDrivers(guest, vGPUType)
 
     def assertvGPURunningInVM(self, guest, vGPUType):
-        VGPUTest().assertvGPURunningInWinVM(guest, vGPUType) 
+        VGPUTest().assertNvidiavGPURunningInWinVM(guest, vGPUType) 
 
     def assertvGPUNotRunningInVM(self, guest, vGPUType):
-        VGPUTest().assertvGPUNotRunningInWinVM(guest, vGPUType)
+        VGPUTest().assertNvidiavGPUNotRunningInWinVM(guest, vGPUType)
 
     def runWorkload(self,vm):
         VGPUTest().runWindowsWorkload(vm)
@@ -1944,11 +1949,11 @@ class NvidiaWindowsvGPU(DifferentGPU):
     def attachvGPUToVM(self, vgpucreator, vm, groupuuid=None):
         VGPUTest().attachvGPU(vgpucreator, vm, groupuuid)
 
-    def blockDom0Access(self, reboot=True):
+    def blockDom0Access(self, host, reboot=True):
         xenrt.TEC().logverbose("Not implemented")
         pass
 
-    def unblockDom0Access(self):
+    def unblockDom0Access(self,host):
         xenrt.TEC().logverbose("Not implemented")
         pass
 
@@ -1974,11 +1979,11 @@ class NvidiaLinuxvGPU(DifferentGPU):
     def attachvGPUToVM(self, vgpucreator, vm, groupuuid=None):
         VGPUTest().attachvGPU(vgpucreator, vm, groupuuid)
 
-    def blockDom0Access(self, reboot=True):
+    def blockDom0Access(self, host, reboot=True):
         xenrt.TEC().logverbose("Not implemented")
         pass
 
-    def unblockDom0Access(self):
+    def unblockDom0Access(self,host):
         xenrt.TEC().logverbose("Not implemented")
         pass
 
@@ -1986,16 +1991,16 @@ class IntelWindowsvGPU(DifferentGPU):
 
     def installHostDrivers(self,allHosts):
         xenrt.TEC().logverbose("Instead of installing Host drivers, blocking Dom0 access to Intel GPU")
-        self.blockDom0Access()
+        self.blockDom0Access(allHosts[0])
 
     def installGuestDrivers(self, guest, vGPUType):
         VGPUTest().installIntelWindowsDrivers(guest, vGPUType)
 
     def assertvGPURunningInVM(self, guest, vGPUType):
-        VGPUTest().assertvGPURunningInWinVM(guest, vGPUType)
+        VGPUTest().assertIntelvGPURunningInWinVM(guest, vGPUType)
 
     def assertvGPUNotRunningInVM(self, guest, vGPUType):
-        VGPUTest().assertvGPUNotRunningInWinVM(guest, vGPUType)
+        VGPUTest().assertIntelvGPUNotRunningInWinVM(guest, vGPUType)
 
     def runWorkload(self,vm):
         VGPUTest().runWindowsWorkload(vm)
@@ -2003,11 +2008,11 @@ class IntelWindowsvGPU(DifferentGPU):
     def attachvGPUToVM(self, vgpucreator, vm, groupuuid=None):
         VGPUTest().attachvGPU(vgpucreator, vm, groupuuid)
 
-    def blockDom0Access(self, reboot=True):
-        VGPUTest().blockDom0Access(self, CardName[CardType.Intel], reboot)
+    def blockDom0Access(self, host, reboot=True):
+        VGPUTest().blockDom0Access(self, CardName[CardType.Intel], host, reboot)
 
-    def unblockDom0Access(self):
-        VGPUTest().unblockDom0Access(CardName[CardType.Intel])
+    def unblockDom0Access(self,host):
+        VGPUTest().unblockDom0Access(CardName[CardType.Intel],host)
 
 """ Negative Test Cases """
 
@@ -4414,7 +4419,7 @@ class TCinstallNVIDIAGuestDrivers(VGPUOwnedVMsTest):
 
         g = self.getGuest(vmName)
         g.installNvidiaVGPUDriver(self.driverType)
-        self.assertvGPURunningInWinVM(g,self._CONFIGURATION[int(vgpuType)])
+        self.assertNvidiavGPURunningInWinVM(g,self._CONFIGURATION[int(vgpuType)])
 
 class TCcreatevGPU(VGPUAllocationModeBase):
 

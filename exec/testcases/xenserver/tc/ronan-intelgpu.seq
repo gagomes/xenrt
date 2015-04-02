@@ -1,0 +1,45 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+  </variables>
+
+  <prepare>
+  <pool id="0">
+    <host installsr="ext" license="enterprise-per-socket"/>
+    <storage type="nfs" name="nfs_sourceSR" />
+  </pool>  
+  </prepare>
+
+  <testsequence>
+    <serial group="IntelGPUPassthrough">
+
+      <testcase id="testcases.xenserver.tc.vgpu.TCBasicVerifOfAllK2config"  name="TC-123" tc="TC-123">
+        <arg>distro=0,1,5,6</arg>
+        <arg>typeofvgpu=intelwinvgpu</arg>
+        <arg>vgpuconfig=12</arg>
+      </testcase>
+
+      <testcase id="testcases.xenserver.tc.vgpu.TCIntelGPUSnapshotNegative" name="TC-123" tc="TC-123">
+        <arg>distro=0,1,5,6</arg>
+        <arg>typeofvgpu=intelwinvgpu</arg>
+        <arg>vgpuconfig=12</arg>
+      </testcase>
+
+      <testcase id="testcases.xenserver.tc.vgpu.TCIntelGPUReuse" name="TC-123" tc="TC-123">
+        <arg>distro=0,1,5,6</arg>
+        <arg>typeofvgpu=intelwinvgpu</arg>
+        <arg>vgpuconfig=12</arg>
+      </testcase>
+
+      <testcase id="testcases.xenserver.tc.vgpu.TCIntelSetupNegative" name="TC-123" tc="TC-123">
+        <arg>distro=0</arg>
+        <arg>typeofvgpu=intelwinvgpu</arg>
+        <arg>vgpuconfig=12</arg>
+      </testcase>
+
+    </serial>
+  </testsequence>
+
+</xenrt>

@@ -361,7 +361,7 @@ class XSStorageCertKitNFSv4(_XSStorageCertKit):
             cg = re.search(r'(.*)Version: (\d+)', line)
             if cg and cg.group(2) != '4':
                 xenrt.TEC().logverbose("Unable to test XenCert using NFSv4")
-                raise xenrt.XRTFailure("XenCert SR Test Suite FAILED -- See /var/log/SMlog and %s" %(''.join(fileName)))
+                raise xenrt.XRTFailure("Unable to test XenCert using NFSv4 -- See /var/log/SMlog and %s for more information." %(''.join(fileName)))
         if len(xclogs) > 0:
             data = self.pool.master.execdom0("cat %s" % xclogs[0])
             if " FAIL " in data:

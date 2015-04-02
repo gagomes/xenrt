@@ -58,7 +58,7 @@
     <serial group="K1Config">
       <testcase tc="TC-20819" id="testcases.xenserver.tc.vgpu.TCBasicVerifOfAllK2config">
         <arg>distro=0</arg>
-        <arg>typeofvgpu=intelwinvgpu</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
         <arg>vgpuconfig=12</arg>
       </testcase>
 

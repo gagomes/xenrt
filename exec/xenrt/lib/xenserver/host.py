@@ -6515,6 +6515,8 @@ fi
                     template = self.chooseTemplate("TEMPLATE_NAME_RHEL_6_64")
                 else:
                     template = self.chooseTemplate("TEMPLATE_NAME_RHEL_6")
+            elif re.search(r"rhelw66", distro):
+                template = self.chooseTemplate("TEMPLATE_NAME_RHEL_w66_64")
             elif re.search(r"rhel7", distro):
                 template = self.chooseTemplate("TEMPLATE_NAME_RHEL_7_64")
             elif re.search(r"rhel4", distro):

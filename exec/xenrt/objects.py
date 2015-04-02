@@ -5466,7 +5466,7 @@ class GenericHost(GenericPlace):
             pxecfg.linuxArgsKernelAdd("console=hvc0")
         else:
             pxecfg.linuxArgsKernelAdd("root=/dev/ram0")
-            if re.search(r"(rhel|oel|centos)6", distro):
+            if re.search(r"(rhel|oel|centos)[dw]?6", distro):
                 pxecfg.linuxArgsKernelAdd("biosdevname=0")
         pxefile = pxe.writeOut(self.machine)
         pfname = os.path.basename(pxefile)
@@ -8246,13 +8246,8 @@ class GenericGuest(GenericPlace):
             else:
                 maindisk="hda"
                 if distro:
-                    if distro.startswith("rhel") and int(distro[4:5]) >= 6:
-                        maindisk="xvda"
-                    if distro.startswith("centos") and int(distro[6:7]) >= 6:
-                        maindisk="xvda"
-                    if distro.startswith("oel") and int(distro[3:4]) >= 6:
-                        maindisk="xvda"
-                    if distro.startswith("sl") and int(distro[2:3]) >= 6:
+                    m = re.match("(rhel|centos|oel|sl)[dw]?(\d)\d*", distro)
+                    if m and int(m.group(2)) >= 6:
                         maindisk="xvda"
         else:
             ethDevice = vifname

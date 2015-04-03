@@ -2081,10 +2081,12 @@ exit /B 1
         if doSet:
             self.getInstance().os.setIPs(ipSpec)
 
-    def setupNetscalerVPX(self):
+    def setupNetscalerVPX(self, installNSTools=False):
         netscaler = xenrt.lib.netscaler.NetScaler.setupNetScalerVpx(self, useVIFs=True)
         xenrt.GEC().registry.objPut("netscaler", self.name, netscaler)
         netscaler.applyLicense(netscaler.getLicenseFileFromXenRT())
+        if installNSTools:
+            netscaler.installNSTools()
         netscaler.checkFeatures()
 
     def setupUnsupGuest(self, getIP=None):

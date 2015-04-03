@@ -932,10 +932,10 @@ class XenRTRemove(XenRTCommand):
     group = "Job"
 
     def run(self, args):
-        if len(args) != 1:
+        if len(args) == 0:
             raise Exception("Invalid usage\n")
-        id = string.atoi(args[0])
-        self.xenrt.remove_job(id)
+        ids = [int(x) for x in args]
+        self.xenrt.remove_jobs(ids)
 
 class XenRTSubmit(XenRTCommand):
 

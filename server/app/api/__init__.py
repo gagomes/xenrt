@@ -210,7 +210,8 @@ class XenRTAPIPage(XenRTPage):
             qrystr = "WHERE %s" % string.join(qry, " AND ")
         sql = """SELECT m.machine, m.site, m.cluster, m.pool, m.status,
                         m.resources, m.flags, m.descr, m.comment, m.leaseTo,
-                        m.jobid, m.leasefrom, m.leasereason
+                        m.jobid, m.leasefrom, m.leasereason,
+                        COALESCE(m.prio, (SELECT 5 FROM tblmachinedata d WHERE d.key='RESTRICTION' AND d.machine=m.machine), 3) prio
                  FROM tblMachines m %s ORDER BY machine;""" % (qrystr)
         cur = db.cursor()
         cur.execute(sql, params)

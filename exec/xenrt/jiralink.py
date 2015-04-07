@@ -1489,7 +1489,7 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
         elif result == "notrun":
             trresult = "blocked"
         elif result == "skipped":
-            trresult = "notrun"
+            trresult = "skipped"
         else:
             raise xenrt.XRTFailure("Unknown result type %s" % (result))
         return trresult

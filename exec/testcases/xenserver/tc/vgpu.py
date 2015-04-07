@@ -1989,7 +1989,7 @@ class NvidiaLinuxvGPU(DifferentGPU):
 
 class IntelWindowsvGPU(DifferentGPU):
 
-    def installHostDrivers(self,allHosts):
+    def installHostDrivers(self, allHosts):
         xenrt.TEC().logverbose("Instead of installing Host drivers, blocking Dom0 access to Intel GPU")
         self.blockDom0Access(allHosts[0])
 
@@ -2009,7 +2009,7 @@ class IntelWindowsvGPU(DifferentGPU):
         VGPUTest().attachvGPU(vgpucreator, vm, groupuuid)
 
     def blockDom0Access(self, host, reboot=True):
-        VGPUTest().blockDom0Access(self, CardName[CardType.Intel], host, reboot)
+        VGPUTest().blockDom0Access(CardName[CardType.Intel], host, reboot)
 
     def unblockDom0Access(self,host):
         VGPUTest().unblockDom0Access(CardName[CardType.Intel],host)

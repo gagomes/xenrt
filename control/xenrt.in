@@ -1255,7 +1255,7 @@ moves the machine to the "DEFAULT" pool.
         pool = "DEFAULT"
         if len(args) > 1:
             pool = args[1]
-        self.xenrt.update_machine(params={"POOL": pool})
+        self.xenrt.update_machine(machine, params={"POOL": pool})
 
 class XenRTDetailID(XenRTCommand):
 

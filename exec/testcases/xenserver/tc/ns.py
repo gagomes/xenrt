@@ -1547,7 +1547,7 @@ class NSSRIOV(SRIOVTests):
     
     # We have to release all the allocated IPv4 address 
     ALLOCATED_IPADDRS = []
-    NS_XVA = "NSVPX-XEN-10.0-72.5_nc.xva"
+    NS_XVA = "NSVPX-XEN-10.5-52.11_nc.xva"
     GOLDEN_VM = None
     NETWORK = 'NPRI' # 'NSEC'; Orjen has SR-IOV nics on NSEC
     

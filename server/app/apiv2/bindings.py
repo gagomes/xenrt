@@ -207,6 +207,7 @@ class PythonBindings(XenRTAPIv2Swagger):
 import requests
 import json
 import httplib
+import os
 import os.path
 import base64
 import sys
@@ -239,7 +240,7 @@ class XenRT(object):
         `server`: Server to connect to, if need to override default  
         \"\"\"
         if not server:
-            server ="%s"
+            server = self._getXenRTServer() or "%s"
         self.base = "%s://%%s%s" %% server
 
         self.customHeaders = {}
@@ -248,6 +249,36 @@ class XenRT(object):
         elif user and password:
             base64string = base64.encodestring('%%s:%%s' %% (user, password)).replace('\\n', '')
             self.customHeaders["Authorization"] = "Basic %%s" %% base64string
+        else:
+            _apikey = self._getAPIKey()
+            if _apikey:
+                self.customHeaders['x-api-key'] = _apikey
+            
+    def _getConfigFile(self):
+        path = "%%s/.xenrtrc" % os.path.expanduser("~")
+        try:
+            config = ConfigParser.ConfigParser()
+            config.read(path)
+            return config
+        except:
+            return None
+
+    def _getAPIKey(self):
+        if os.getenv("XENRT_APIKEY"):
+            return os.getenv("XENRT_APIKEY")
+        else:
+            try:
+                return self.getConfigFile().get("xenrt", "apikey").strip()
+            except:
+                return None
+
+    def _getXenRTServer(self):
+        if os.getenv("XENRT_SERVER"):
+            return os.getenv("XENRT_SERVER")
+        try:
+            return self.getConfigFile().get("xenrt", "server").strip()
+        except:
+            return None
 
     def __serializeForQuery(self, data):
         if isinstance(data, bool):

@@ -601,7 +601,7 @@ class UpdateMachine(_MachineBase):
                 "description": "Key-value pair resource:value of resources to update. (set value to null to remove a resource)"
             },
             "prio": {
-                "type": "integer",
+                "type": ["integer", "null"],
                 "description": "Machine priority. Default is 3. E.g. a priority of 4 means that this machine will be only be selected by the scheduler if no machines with priority 3 are available"
             }
         }

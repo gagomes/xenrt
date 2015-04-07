@@ -1923,7 +1923,7 @@ class DifferentGPU(object):
         """
         pass
 
-    def unblockDom0Access(self,host):
+    def unblockDom0Access(self, host):
         """
         Block Dom0 Access to onboard graphics card
         """
@@ -1953,7 +1953,7 @@ class NvidiaWindowsvGPU(DifferentGPU):
         xenrt.TEC().logverbose("Not implemented")
         pass
 
-    def unblockDom0Access(self,host):
+    def unblockDom0Access(self, host):
         xenrt.TEC().logverbose("Not implemented")
         pass
 
@@ -1983,7 +1983,7 @@ class NvidiaLinuxvGPU(DifferentGPU):
         xenrt.TEC().logverbose("Not implemented")
         pass
 
-    def unblockDom0Access(self,host):
+    def unblockDom0Access(self, host):
         xenrt.TEC().logverbose("Not implemented")
         pass
 
@@ -2011,8 +2011,8 @@ class IntelWindowsvGPU(DifferentGPU):
     def blockDom0Access(self, host, reboot=True):
         VGPUTest().blockDom0Access(CardName[CardType.Intel], host, reboot)
 
-    def unblockDom0Access(self,host):
-        VGPUTest().unblockDom0Access(CardName[CardType.Intel],host)
+    def unblockDom0Access(self, host):
+        VGPUTest().unblockDom0Access(CardName[CardType.Intel], host)
 
 """ Negative Test Cases """
 
@@ -2727,7 +2727,7 @@ class TCBasicVerifOfAllK2config(FunctionalBase):
         try: g.uninstall()
         except: pass
 
-        self.typeOfvGPU.unblockDom0Access()
+        self.typeOfvGPU.unblockDom0Access(self.host)
 
 class TCAssignK2vGPUToVMhasGotvGPU(TCBasicVerifOfAllK2config):
 
@@ -3377,8 +3377,8 @@ class TCIntelSetupNegative(FunctionalBase):
             for distro in self.REQUIRED_DISTROS:
                 osType = self.getOSType(distro)
 
-                self.typeOfvGPU.unblockDom0Access()
-                self.typeOfvGPU.blockDom0Access(reboot=False)
+                self.typeOfvGPU.unblockDom0Access(self.host)
+                self.typeOfvGPU.blockDom0Access(self.host, reboot=False)
 
                 vm = self.masterVMs[osType]
 
@@ -3427,7 +3427,7 @@ class TCIntelGPUSnapshotNegative(FunctionalBase):
 
                 vm.setState("DOWN")
                 vm.destroyvGPU()
-                self.typeOfvGPU.unblockDom0Access()
+                self.typeOfvGPU.unblockDom0Access(self.host)
 
                 vm.setState("UP")
                 # VM will shutdown after revert.

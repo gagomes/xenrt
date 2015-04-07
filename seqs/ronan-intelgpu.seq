@@ -15,25 +15,25 @@
   <testsequence>
     <serial group="IntelGPUPassthrough">
 
-      <testcase id="testcases.xenserver.tc.vgpu.TCBasicVerifOfAllK2config"  name="TC-123" tc="TC-123">
+      <testcase id="testcases.xenserver.tc.vgpu.TCBasicVerifOfAllK2config"  name="TC-26944" tc="TC-26944">
         <arg>distro=0,1,5,6</arg>
         <arg>typeofvgpu=intelwinvgpu</arg>
         <arg>vgpuconfig=12</arg>
       </testcase>
 
-      <testcase id="testcases.xenserver.tc.vgpu.TCIntelGPUSnapshotNegative" name="TC-123" tc="TC-123">
+      <testcase id="testcases.xenserver.tc.vgpu.TCIntelGPUSnapshotNegative" name="TC-26945" tc="TC-26945">
         <arg>distro=0,1,5,6</arg>
         <arg>typeofvgpu=intelwinvgpu</arg>
         <arg>vgpuconfig=12</arg>
       </testcase>
 
-      <testcase id="testcases.xenserver.tc.vgpu.TCIntelGPUReuse" name="TC-123" tc="TC-123">
+      <testcase id="testcases.xenserver.tc.vgpu.TCIntelGPUReuse" name="TC-26946" tc="TC-26946">
         <arg>distro=0,1,5,6</arg>
         <arg>typeofvgpu=intelwinvgpu</arg>
         <arg>vgpuconfig=12</arg>
       </testcase>
 
-      <testcase id="testcases.xenserver.tc.vgpu.TCIntelSetupNegative" name="TC-123" tc="TC-123">
+      <testcase id="testcases.xenserver.tc.vgpu.TCIntelSetupNegative" name="TC-26947" tc="TC-26947">
         <arg>distro=0</arg>
         <arg>typeofvgpu=intelwinvgpu</arg>
         <arg>vgpuconfig=12</arg>

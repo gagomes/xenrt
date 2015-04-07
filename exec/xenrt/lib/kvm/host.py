@@ -199,7 +199,7 @@ class KVMHost(xenrt.lib.libvirt.Host):
         # so we do a trick to ensure it runs in the background
         dhcp = ""
         if useDHCP:
-            dhcp = "echo '&& BOOTPROTO=dhcp' >> /etc/sysconfig/network-scripts/ifcfg-%s && service network restart" % name
+            dhcp = "&& echo 'BOOTPROTO=dhcp' >> /etc/sysconfig/network-scripts/ifcfg-%s && service network restart" % name
         self.execvirt("(sleep 5 && virsh iface-bridge %s %s --no-stp 10 %s) > /dev/null 2>&1 < /dev/null &" % (iface, name, dhcp))
 
         # Wait 1 minute then check the operation has completed OK

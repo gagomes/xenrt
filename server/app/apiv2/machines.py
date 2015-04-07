@@ -202,7 +202,7 @@ class _MachineBase(XenRTAPIv2Page):
             raise XenRTAPIError(HTTPForbidden, "Can't update this field")
         if key.lower() in ("status", "jobid") and not allowReservedField:
             raise XenRTAPIError(HTTPForbidden, "Can't update this field")
-        if key.lower() in ("site", "cluster", "pool", "status", "resources", "flags", "descr", "jobid", "leasepolicy", "aclid"):
+        if key.lower() in ("site", "cluster", "pool", "status", "resources", "flags", "descr", "jobid", "leasepolicy", "aclid", "prio"):
             cur = db.cursor()
             try:
                 cur.execute("UPDATE tblmachines SET %s=%%s WHERE machine=%%s;" % (key.lower()), (value, machine))
@@ -598,11 +598,15 @@ class UpdateMachine(_MachineBase):
             "resources": {
                 "type": "object",
                 "description": "Key-value pair resource:value of resources to update. (set value to null to remove a resource)"
+            },
+            "priority": {
+                "type": "integer",
+                "description": "Machine prioirty. Default is 3. E.g. a priority of 4 means that this machine will be only be selected by the scheduler if no machines with priority 3 are available"
             }
         }
     }}
     OPERATION_ID = "update_machine"
-    PARAM_ORDER=["name", "params", "broken", "status", "resources", "addflags", "delflags"]
+    PARAM_ORDER=["name", "params", "broken", "status", "resources", "addflags", "delflags", "priority"]
     SUMMARY = "Update machine details"
 
     def render(self):
@@ -618,6 +622,8 @@ class UpdateMachine(_MachineBase):
                 self.updateMachineField(machine, p, j['params'][p], commit=False)
         if j.get('status'):
             self.updateMachineField(machine, "status", j['status'], allowReservedField=True, commit=False)
+        if "priority" in j:
+            self.updateMachineField(machine, "prio", j['priority'], commit=False)
         if "broken" in j:
 
             pool = machines[machine]['pool']

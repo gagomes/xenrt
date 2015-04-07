@@ -9282,11 +9282,28 @@ class GenericGuest(GenericPlace):
         self.xmlrpcSendFile("%s/%s" % (tempDir,tarBall),"c:\\%s" % tarBall)
 
         self.xmlrpcExtractTarball("c:\\%s" % tarBall,"c:\\")
+        vbScript = """
+Set WshShell = WScript.CreateObject("WScript.Shell")
+WshShell.Run "cmd", 9
 
-        returncode = self.xmlrpcExec("c:\\%s /s /noreboot" % (fileName),
+WScript.sleep 1000
+WshShell.SendKeys "c:\win32_%s.exe /s /n /noreboot"
+WshShell.SendKeys "{ENTER}"
+WScript.sleep 30000
+WshShell.SendKeys "{ENTER}"
+WScript.sleep 1000
+WshShell.SendKeys "{LEFT}"
+Wshshell.SendKeys "{ENTER}"
+Wshshell.SendKeys "{ENTER}"
+WScript.sleep 180000
+WshShell.SendKeys "{ENTER}"
+WScript.sleep 5000
+Wshshell.SendKeys "{ENTER}"
+""" % (currentVersion)
+        self.xmlrpcWriteFile("c:\\vb.vbs",vbScript)
+        returncode = self.xmlrpcExec("c:\\vb.vbs",
                                       level=xenrt.RC_OK, returnerror=False, returnrc=True,
                                       timeout = 600)
-
         # Wait for some time to settle down with driver installer.
         xenrt.sleep(30)
 

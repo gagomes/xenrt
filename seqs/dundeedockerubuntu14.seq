@@ -2,7 +2,7 @@
 
   <!-- Docker test sequence using Ubuntu Trusty Tahr 14.04 guest. -->
 
-  <default name="DISTRO" value="ubuntu1004" />
+  <default name="DISTRO" value="ubuntu1404" />
 
   <variables>
     <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
@@ -30,8 +30,10 @@
     <serial group="Ubuntu14">
 
       <testcase id="xenserver.tc.docker.TCContainerLifeCycle" tc="TC-23918" name="ContainerLifeCycle" sku="Ubuntu14" />
+      <testcase id="xenserver.tc.docker.TCGuestsLifeCycle" tc="TC-26443" name="GuestsLifeCycle" sku="Ubuntu14">
+        <arg>containersstarted=yes</arg>
+      </testcase>
       <testcase id="xenserver.tc.docker.TCScaleContainers" tc="TC-26523" name="ScaleContainers" sku="Ubuntu14" />
-      <testcase id="xenserver.tc.docker.TCGuestsLifeCycle" tc="TC-26443" name="GuestsLifeCycle" sku="Ubuntu14" />
 
     </serial>
   </testsequence>

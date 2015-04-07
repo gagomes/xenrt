@@ -5466,7 +5466,7 @@ class GenericHost(GenericPlace):
             pxecfg.linuxArgsKernelAdd("console=hvc0")
         else:
             pxecfg.linuxArgsKernelAdd("root=/dev/ram0")
-            if re.search(r"(rhel|oel|centos)6", distro):
+            if re.search(r"(rhel|oel|centos)[dw]?6", distro):
                 pxecfg.linuxArgsKernelAdd("biosdevname=0")
         pxefile = pxe.writeOut(self.machine)
         pfname = os.path.basename(pxefile)
@@ -6814,6 +6814,7 @@ class GenericGuest(GenericPlace):
         self.ipv4_disabled = False
         self.instance = None
         self.isTemplate = False
+        self.imported = False
         xenrt.TEC().logverbose("Creating %s instance." % (self.__class__.__name__))
 
     def populateSubclass(self, x):
@@ -6830,6 +6831,7 @@ class GenericGuest(GenericPlace):
         x.reservedIP = self.reservedIP
         x.instance = self.instance
         x.isTemplate = self.isTemplate
+        x.imported = self.imported
 
     def getDeploymentRecord(self):
         if self.isTemplate:
@@ -6837,19 +6839,20 @@ class GenericGuest(GenericPlace):
         else:
             ret = {"access": {"vmname": self.getName(),
                               "ipaddress": self.getIP()}, "os": {}}
-        if self.windows:
-            ret['access']['username'] = "Administrator"
-            ret['access']['password'] = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS",
+        if not self.imported:
+            if self.windows:
+                ret['access']['username'] = "Administrator"
+                ret['access']['password'] = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS",
                                                             "ADMINISTRATOR_PASSWORD"],
                                                             "xensource")
-            ret['os']['family'] = "windows"
-            ret['os']['version'] = self.distro
-        else:
-            ret['access']['username'] = "root"
-            ret['access']['password'] = "xenroot"
-            ret['os']['family'] = "linux"
-            arch = self.arch or "x86-32"
-            ret['os']['version'] = "%s_%s" % (self.distro, arch)
+                ret['os']['family'] = "windows"
+                ret['os']['version'] = self.distro
+            else:
+                ret['access']['username'] = "root"
+                ret['access']['password'] = "xenroot"
+                ret['os']['family'] = "linux"
+                arch = self.arch or "x86-32"
+                ret['os']['version'] = "%s_%s" % (self.distro, arch)
         if self.host:
             ret['host'] = self.host.getName()
         else:
@@ -7443,7 +7446,7 @@ class GenericGuest(GenericPlace):
                 debVer = float(re.match(r"\d+(\.\d+)?", debVer).group(0))
                 if debVer < 5.0:
                     # Pre-Lenny, may have to use a cacher
-                    apt_cacher = xenrt.TEC().lookup("APT_CACHER", None)
+                    apt_cacher = "%s/debarchive" % xenrt.TEC().lookup("APT_SERVER")
                 if apt_cacher:
                     filebase = "/etc/apt/sources.list"
                     if self.execguest("test -e %s.orig" % (filebase),
@@ -7550,8 +7553,6 @@ class GenericGuest(GenericPlace):
                         sftp.copyTo(fn, filebase)
 
                 try:
-                    # The apt-cacher bzip2 files seem to be broken, so force use the gzip packages
-                    self.execguest("apt-get remove -y bzip2")
                     data = self.execguest("apt-get update")
                 except:
                     # If apt-get commands fail, wait a bit and retry.
@@ -8245,13 +8246,8 @@ class GenericGuest(GenericPlace):
             else:
                 maindisk="hda"
                 if distro:
-                    if distro.startswith("rhel") and int(distro[4:5]) >= 6:
-                        maindisk="xvda"
-                    if distro.startswith("centos") and int(distro[6:7]) >= 6:
-                        maindisk="xvda"
-                    if distro.startswith("oel") and int(distro[3:4]) >= 6:
-                        maindisk="xvda"
-                    if distro.startswith("sl") and int(distro[2:3]) >= 6:
+                    m = re.match("(rhel|centos|oel|sl)[dw]?(\d)\d*", distro)
+                    if m and int(m.group(2)) >= 6:
                         maindisk="xvda"
         else:
             ethDevice = vifname

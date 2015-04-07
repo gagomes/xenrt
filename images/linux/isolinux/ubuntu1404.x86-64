@@ -6,4 +6,4 @@ label install
 	menu label ^Install
 	menu default
 	kernel /install/vmlinuz
-	append initrd=/install/initrd.gz vga=788 auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://xenrt-controller.xenrt/xenrt/guestfile/preseed -- quiet 
+	append initrd=/install/initrd.gz vga=788 auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://xenrt-controller.xenrt/xenrt/guestfile/preseed console=tty0 console=hvc0 -- quiet 

@@ -55,6 +55,7 @@ class RHELKickStartFile(object):
         self.host=host
         self.vifs=vifs
         self.mounturl=mounturl
+        self.desktop = False
         
     def generate(self):
         return self._generateKS()
@@ -62,7 +63,10 @@ class RHELKickStartFile(object):
     def _generateKS(self):
         if self.distro.startswith("rhel7") or self.distro.startswith("oel7") or self.distro.startswith("centos7") or self.distro.startswith("sl7"):
             kf=self._generate7()
-        elif self.distro.startswith("rhel6") or self.distro.startswith("oel6") or self.distro.startswith("centos6") or self.distro.startswith("sl6"):
+        elif re.match("^(rhel|centos|oel|sl)[w]?6\d*",self.distro):
+            kf=self._generate6()
+        elif self.distro.startswith("rheld6"):
+            self.desktop = True
             kf=self._generate6()
         elif self.distro.startswith("rhel5") or self.distro.startswith("oel5") or self.distro.startswith("centos5") or self.distro.startswith("sl5"):
             kf=self._generate5()
@@ -76,6 +80,12 @@ class RHELKickStartFile(object):
             return ("key %s" %(pKey))
         else:
             return ""
+            
+    def _package(self):
+        if self.desktop:
+            return "basic-desktop"
+        else:
+            return "development"
 
     def _password(self):
         if not self.password:
@@ -300,7 +310,7 @@ logvol swap --name=lv_swap --vgname=VolGroup --grow --size=1008 --maxsize=2016
 
 %%packages
 @ core
-@ development
+@ %s
 @ console-internet
 @ network-tools
 bridge-utils
@@ -321,6 +331,7 @@ stunnel
        self.mainDisk,
        self._key(),
        self._more(),
+       self._package(),
        self._extra()
        )
 
@@ -358,7 +369,8 @@ touch /tmp/xenrttmpmount/.xenrtsuccess
 umount /tmp/xenrttmpmount
 %s""" % (postInstall,self.mounturl, self.rpmpost, self.sleeppost)
         return out
-                
+        
+                    
     def _generate4(self):
         
         out = """install

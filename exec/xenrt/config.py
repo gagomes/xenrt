@@ -1185,6 +1185,8 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Cream"]["LATEST_rhel4"] = "rhel48"
         self.config["VERSION_CONFIG"]["Cream"]["LATEST_rhel5"] = "rhel511"
         self.config["VERSION_CONFIG"]["Cream"]["LATEST_rhel6"] = "rhel66"
+        self.config["VERSION_CONFIG"]["Cream"]["LATEST_rhel7"] = "rhel71"
+        self.config["VERSION_CONFIG"]["Cream"]["LATEST_centos7"] = "centos7"
         self.config["VERSION_CONFIG"]["Cream"]["TEMPLATE_NAME_RHEL_d66_64"] = "Red Hat Enterprise Linux 6 (64-bit),Red Hat Enterprise Linux 6 x64,Red Hat Enterprise Linux 6.0 (64-bit)"
         self.config["VERSION_CONFIG"]["Cream"]["TEMPLATE_NAME_RHEL_w66_64"] = "Red Hat Enterprise Linux 6 (64-bit),Red Hat Enterprise Linux 6 x64,Red Hat Enterprise Linux 6.0 (64-bit)"
 
@@ -2212,10 +2214,12 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["rhel66"]["MAXMEMORY64"] = "32768"
         self.config["GUEST_LIMITATIONS"]["rheld66"] = {}
         self.config["GUEST_LIMITATIONS"]["rheld66"]["MINMEMORY"] = "1024"
+        self.config["GUEST_LIMITATIONS"]["rheld66"]["STATICMINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["rheld66"]["MAXMEMORY"] = "8192"
         self.config["GUEST_LIMITATIONS"]["rheld66"]["MAXMEMORY64"] = "32768"
         self.config["GUEST_LIMITATIONS"]["rhelw66"] = {}
         self.config["GUEST_LIMITATIONS"]["rhelw66"]["MINMEMORY"] = "1024"
+        self.config["GUEST_LIMITATIONS"]["rhelw66"]["STATICMINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["rhelw66"]["MAXMEMORY"] = "8192"
         self.config["GUEST_LIMITATIONS"]["rhelw66"]["MAXMEMORY64"] = "32768"
         self.config["GUEST_LIMITATIONS"]["rhel7"] = {}
@@ -2513,6 +2517,10 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["sl7"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["sl7"]["MAXMEMORY64"] = "6291456"
         self.config["GUEST_LIMITATIONS"]["sl7"]["MAX_VM_VCPUS64"] = "240"
+        self.config["GUEST_LIMITATIONS"]["sl71"] = {}
+        self.config["GUEST_LIMITATIONS"]["sl71"]["MINMEMORY"] = "1024"
+        self.config["GUEST_LIMITATIONS"]["sl71"]["MAXMEMORY64"] = "6291456"
+        self.config["GUEST_LIMITATIONS"]["sl71"]["MAX_VM_VCPUS64"] = "240"
         self.config["GUEST_LIMITATIONS"]["coreos-stable"] = {}
         self.config["GUEST_LIMITATIONS"]["coreos-stable"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["coreos-stable"]["MAXMEMORY64"] = "6291456"
@@ -2521,14 +2529,14 @@ class Config(object):
         self.config["LINUX_UPDATE"]["rhel4"] = "rhel48"
         self.config["LINUX_UPDATE"]["rhel5"] = "rhel511"
         self.config["LINUX_UPDATE"]["rhel6"] = "rhel66"
-        self.config["LINUX_UPDATE"]["rhel7"] = "rhel7"
+        self.config["LINUX_UPDATE"]["rhel7"] = "rhel71"
         self.config["LINUX_UPDATE"]["oel5"] = "oel511"
         self.config["LINUX_UPDATE"]["oel6"] = "oel66"
-        self.config["LINUX_UPDATE"]["oel7"] = "oel7"
+        self.config["LINUX_UPDATE"]["oel7"] = "oel71"
         self.config["LINUX_UPDATE"]["centos4"] = "centos48"
         self.config["LINUX_UPDATE"]["centos5"] = "centos511"
         self.config["LINUX_UPDATE"]["centos6"] = "centos66"
-        self.config["LINUX_UPDATE"]["centos7"] = "centos7"
+        self.config["LINUX_UPDATE"]["centos7"] = "centos71"
         self.config["LINUX_UPDATE"]["sl5"] = "sl511"
         self.config["LINUX_UPDATE"]["sl6"] = "sl66"
         self.config["LINUX_UPDATE"]["sl7"] = "sl7"
@@ -2733,10 +2741,10 @@ class Config(object):
          'ubuntu1404_x86-32','ubuntu1404_x86-64','vistaeesp2','w2k3eesp2','w2k3eesp2-x64','win10-x64','win10-x86',
          'win7sp1-x64','win7sp1-x86','win8-x64','win8-x86','win81-x64','win81-x86','winxpsp3','ws08dcsp2-x64',
          'ws08dcsp2-x86','ws08r2dcsp1-x64','ws12-x64','ws12core-x64','ws12r2-x64','ws12r2core-x64','coreos-stable_x86-64',
-         'rhel5u_x86-32', 'rhel5u_x86-64', 'rhel6u_x86-32', 'rhel6u_x86-64', 'rhel7u_x86-64', 'rhel7xs_x86-64',
+         'rhel5u_x86-32', 'rhel5u_x86-64', 'rhel6u_x86-32', 'rhel6u_x86-64', 'rhel7u_x86-64', 'rhel71xs_x86-64',
          'sl5u_x86-32', 'sl5u_x86-64', 'sl6u_x86-32', 'sl6u_x86-64', 'sl7u_x86-64',
          'centos5u_x86-32', 'centos5u_x86-64', 'centos6u_x86-32', 'centos6u_x86-64', 'centos7u_x86-64', 'centos7xs_x86-64',
-         'oel5u_x86-32', 'oel5u_x86-64', 'oel6u_x86-32', 'oel6u_x86-64', 'oel7u_x86-64', 'oel7xs_x86-64']
+         'oel5u_x86-32', 'oel5u_x86-64', 'oel6u_x86-32', 'oel6u_x86-64', 'oel7u_x86-64', 'oel71xs_x86-64']
         self.config["GUEST_TESTS"]["Cream"]["Secondary"] = ['centos45_x86-32','centos46_x86-32','centos47_x86-32',
          'centos48_x86-32','centos51_x86-32','centos51_x86-64','centos52_x86-32','centos52_x86-64','centos53_x86-32',
          'centos53_x86-64','centos54_x86-32','centos54_x86-64','centos55_x86-32','centos55_x86-64','centos56_x86-32','centos56_x86-64','centos57_x86-32','centos57_x86-64',
@@ -2748,25 +2756,29 @@ class Config(object):
          'rhel53_x86-64','rhel54_x86-32','rhel54_x86-64','rhel55_x86-32','rhel55_x86-64','rhel56_x86-32','rhel56_x86-64',
          'rhel57_x86-32','rhel57_x86-64','rhel58_x86-32','rhel58_x86-64','rhel59_x86-32','rhel59_x86-64','rhel63_x86-32',
          'rhel63_x86-64','rhel64_x86-32','rhel64_x86-64','sles102_x86-32','sles102_x86-64','sles103_x86-32',
-         'sles103_x86-64','w2k3eer2','w2k3ser2','w2k3sesp2','win7-x64','ws08r2-x64','win7-x86']
+         'sles103_x86-64','w2k3eer2','w2k3ser2','w2k3sesp2','win7-x64','ws08r2-x64','win7-x86',
+         'rhel510_x86-32','rhel510_x86-64','centos510_x86-32','centos510_x86-64','oel510_x86-32','oel510_x86-64',
+         'rhel65_x86-32','rhel65_x86-64','centos65_x86-32','centos65_x86-64','oel65_x86-32','oel65_x86-64',
+         'rhel7_x86-64', 'oel7_x86-64']
         self.config["GUEST_TESTS"]["Cream"]["XenApp"] = ['w2k3eesp2_XenApp', 'w2k3eesp2-x64_XenApp', 'ws08sp2-x86_XenApp', 'ws08sp2-x64_XenApp', 'ws08r2sp1-x64_XenApp']
 
         self.config["GUEST_TESTS"]["Dundee"] = {}
-        self.config["GUEST_TESTS"]["Dundee"]["Primary"] = ['centos510_x86-32','centos510_x86-64','centos511_x86-32',
-         'centos511_x86-64','centos65_x86-32','centos65_x86-64','centos66_x86-32','centos66_x86-64','centos7_x86-64',
-         'debian60_x86-32','debian60_x86-64','debian70_x86-32','debian70_x86-64','oel510_x86-32','oel510_x86-64',
-         'oel511_x86-32','oel511_x86-64','oel65_x86-32','oel65_x86-64','oel66_x86-32','oel66_x86-64','oel7_x86-64',
-         'rhel48_x86-32','rhel510_x86-32','rhel510_x86-64','rhel511_x86-32','rhel511_x86-64','rhel65_x86-32',
-         'rhel65_x86-64','rhel66_x86-32','rhel66_x86-64','rheld66_x86-64','rhelw66_x86-64','rhel71_x86-64','rhel7_x86-64','sl511_x86-32','sl511_x86-64',
-         'sl66_x86-32','sl66_x86-64','sl7_x86-64','sles104_x86-32','sles104_x86-64','sles113_x86-32','sles113_x86-64',
-         'sles12_x86-64','ubuntu1204_x86-32','ubuntu1204_x86-64',
-         'ubuntu1404_x86-32','ubuntu1404_x86-64','vistaeesp2','w2k3eesp2','w2k3eesp2-x64','win10-x64','win10-x86',
+        self.config["GUEST_TESTS"]["Dundee"]["Primary"] = ['centos511_x86-32',
+         'centos511_x86-64','centos66_x86-32','centos66_x86-64','centos7_x86-64',
+         'debian60_x86-32','debian60_x86-64','debian70_x86-32','debian70_x86-64',
+         'oel511_x86-32','oel511_x86-64','oel66_x86-32','oel66_x86-64','oel71_x86-64',
+         'rhel48_x86-32','rhel511_x86-32','rhel511_x86-64','rhel66_x86-32','rhel66_x86-64',
+         'rheld66_x86-64','rhelw66_x86-64','rhel71_x86-64',
+         'sl511_x86-32','sl511_x86-64','sl66_x86-32','sl66_x86-64','sl7_x86-64',
+         'sles104_x86-32','sles104_x86-64','sles113_x86-32','sles113_x86-64','sles12_x86-64',
+         'ubuntu1204_x86-32','ubuntu1204_x86-64','ubuntu1404_x86-32','ubuntu1404_x86-64',
+         'vistaeesp2','w2k3eesp2','w2k3eesp2-x64','win10-x64','win10-x86',
          'win7sp1-x64','win7sp1-x86','win8-x64','win8-x86','win81-x64','win81-x86','winxpsp3','ws08dcsp2-x64',
          'ws08dcsp2-x86','ws08r2dcsp1-x64','ws12-x64','ws12core-x64','ws12r2-x64','ws12r2core-x64',
-         'rhel5u_x86-32', 'rhel5u_x86-64', 'rhel6u_x86-32', 'rhel6u_x86-64', 'rhel7u_x86-64', 'rhel7xs_x86-64',
-         'centos5u_x86-32', 'centos5u_x86-64', 'centos6u_x86-32', 'centos6u_x86-64', 'centos7u_x86-64', 'centos7xs_x86-64',
+         'rhel5u_x86-32', 'rhel5u_x86-64', 'rhel6u_x86-32', 'rhel6u_x86-64', 'rhel7u_x86-64', 'rhel71xs_x86-64',
          'sl5u_x86-32', 'sl5u_x86-64', 'sl6u_x86-32', 'sl6u_x86-64', 'sl7u_x86-64',
-         'oel5u_x86-32', 'oel5u_x86-64', 'oel6u_x86-32', 'oel6u_x86-64', 'oel7u_x86-64', 'oel7xs_x86-64']
+         'centos5u_x86-32', 'centos5u_x86-64', 'centos6u_x86-32', 'centos6u_x86-64', 'centos7u_x86-64', 'centos7xs_x86-64',
+         'oel5u_x86-32', 'oel5u_x86-64', 'oel6u_x86-32', 'oel6u_x86-64', 'oel7u_x86-64', 'oel71xs_x86-64']
         self.config["GUEST_TESTS"]["Dundee"]["Secondary"] = ['centos45_x86-32','centos46_x86-32','centos47_x86-32',
          'centos48_x86-32','centos51_x86-32','centos51_x86-64','centos52_x86-32','centos52_x86-64','centos53_x86-32',
          'centos53_x86-64','centos54_x86-32','centos54_x86-64','centos55_x86-32','centos55_x86-64','centos56_x86-32','centos56_x86-64','centos57_x86-32','centos57_x86-64',
@@ -2778,11 +2790,14 @@ class Config(object):
          'rhel53_x86-64','rhel54_x86-32','rhel54_x86-64','rhel55_x86-32','rhel55_x86-64','rhel56_x86-32','rhel56_x86-64',
          'rhel57_x86-32','rhel57_x86-64','rhel58_x86-32','rhel58_x86-64','rhel59_x86-32','rhel59_x86-64','rhel63_x86-32',
          'rhel63_x86-64','rhel64_x86-32','rhel64_x86-64','sles102_x86-32','sles102_x86-64','sles103_x86-32',
-         'sles103_x86-64','w2k3eer2','w2k3ser2','w2k3sesp2','win7-x64','ws08r2-x64', 'win7-x86']
+         'sles103_x86-64','w2k3eer2','w2k3ser2','w2k3sesp2','win7-x64','ws08r2-x64', 'win7-x86',
+         'rhel510_x86-32','rhel510_x86-64','centos510_x86-32','centos510_x86-64','oel510_x86-32','oel510_x86-64',
+         'rhel65_x86-32','rhel65_x86-64','centos65_x86-32','centos65_x86-64','oel65_x86-32','oel65_x86-64',
+         'rhel7_x86-64', 'oel7_x86-64']
         self.config["GUEST_TESTS"]["Dundee"]["XenApp"] = ['w2k3eesp2_XenApp', 'w2k3eesp2-x64_XenApp', 'ws08sp2-x86_XenApp', 'ws08sp2-x64_XenApp', 'ws08r2sp1-x64_XenApp']
        
         # Linux install methods supported
-        nfsInstallSupport = ["rhel[4-6]\d+$", "centos[4-6]\d+$", "sl[5-6]\d+$", "oel[4-6]\d+", "sles9", "sles10", "sles11"]
+        nfsInstallSupport = ["rhel[dw]?[4-6]\d+$", "centos[4-6]\d+$", "sl[5-6]\d+$", "oel[4-6]\d+", "sles9", "sles10", "sles11"]
         noIsoInstallSupport = ["ubuntu1004", "debian60", "debian70", "rhel45", "centos45", "centos46", "rhel\d+u", "rhel\d+xs", "centos\d+u", "centos\d+xs", "oel\d+u", "oel\d+xs", "sl\d+u", "sl\d+xs"]
         noHttpInstallSupport = ["rhel\d+u", "rhel\d+xs", "centos\d+u", "centos\d+xs", "oel\d+u", "oel\d+xs", "sl\d+u", "sl\d+xs"]
         # Process these into various categories

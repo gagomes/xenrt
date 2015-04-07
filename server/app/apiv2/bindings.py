@@ -212,6 +212,7 @@ import os.path
 import base64
 import sys
 import time
+import ConfigParser
 
 class XenRTAPIException(Exception):
     def __init__(self, code, reason, canForce, traceback):
@@ -255,7 +256,7 @@ class XenRT(object):
                 self.customHeaders['x-api-key'] = _apikey
             
     def _getConfigFile(self):
-        path = "%%s/.xenrtrc" % os.path.expanduser("~")
+        path = "%%s/.xenrtrc" %% os.path.expanduser("~")
         try:
             config = ConfigParser.ConfigParser()
             config.read(path)
@@ -268,7 +269,7 @@ class XenRT(object):
             return os.getenv("XENRT_APIKEY")
         else:
             try:
-                return self.getConfigFile().get("xenrt", "apikey").strip()
+                return self._getConfigFile().get("xenrt", "apikey").strip()
             except:
                 return None
 
@@ -276,7 +277,7 @@ class XenRT(object):
         if os.getenv("XENRT_SERVER"):
             return os.getenv("XENRT_SERVER")
         try:
-            return self.getConfigFile().get("xenrt", "server").strip()
+            return self._getConfigFile().get("xenrt", "server").strip()
         except:
             return None
 

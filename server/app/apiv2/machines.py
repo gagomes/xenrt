@@ -90,7 +90,7 @@ class _MachineBase(XenRTAPIv2Page):
             conditions.append("m.machine != ('_' || s.site)")
 
 
-        query = "SELECT m.machine, m.site, m.cluster, m.pool, m.status, m.resources, m.flags, m.comment, m.leaseto, m.leasereason, m.leasefrom, m.leasepolicy, s.flags, m.jobid, m.descr, m.aclid, s.ctrladdr, s.location FROM tblmachines m INNER JOIN tblsites s ON m.site=s.site"
+        query = "SELECT m.machine, m.site, m.cluster, m.pool, m.status, m.resources, m.flags, m.comment, m.leaseto, m.leasereason, m.leasefrom, m.leasepolicy, s.flags, m.jobid, m.descr, m.aclid, s.ctrladdr, s.location, m.prio FROM tblmachines m INNER JOIN tblsites s ON m.site=s.site"
         if conditions:
             query += " WHERE %s" % " AND ".join(conditions)
 
@@ -122,6 +122,7 @@ class _MachineBase(XenRTAPIv2Page):
                 "aclid": rc[15],
                 "ctrladdr": rc[16].strip() if rc[16] else None,
                 "location": rc[17].strip() if rc[17] else None,
+                "prio": rc[18],
                 "params": {}
             }
             machine['leasecurrentuser'] = bool(machine['leaseuser'] and machine['leaseuser'] == self.getUser().userid)
@@ -599,14 +600,14 @@ class UpdateMachine(_MachineBase):
                 "type": "object",
                 "description": "Key-value pair resource:value of resources to update. (set value to null to remove a resource)"
             },
-            "priority": {
+            "prio": {
                 "type": "integer",
-                "description": "Machine prioirty. Default is 3. E.g. a priority of 4 means that this machine will be only be selected by the scheduler if no machines with priority 3 are available"
+                "description": "Machine priority. Default is 3. E.g. a priority of 4 means that this machine will be only be selected by the scheduler if no machines with priority 3 are available"
             }
         }
     }}
     OPERATION_ID = "update_machine"
-    PARAM_ORDER=["name", "params", "broken", "status", "resources", "addflags", "delflags", "priority"]
+    PARAM_ORDER=["name", "params", "broken", "status", "resources", "addflags", "delflags", "prio"]
     SUMMARY = "Update machine details"
 
     def render(self):
@@ -622,8 +623,8 @@ class UpdateMachine(_MachineBase):
                 self.updateMachineField(machine, p, j['params'][p], commit=False)
         if j.get('status'):
             self.updateMachineField(machine, "status", j['status'], allowReservedField=True, commit=False)
-        if "priority" in j:
-            self.updateMachineField(machine, "prio", j['priority'], commit=False)
+        if "prio" in j:
+            self.updateMachineField(machine, "prio", j['prio'], commit=False)
         if "broken" in j:
 
             pool = machines[machine]['pool']

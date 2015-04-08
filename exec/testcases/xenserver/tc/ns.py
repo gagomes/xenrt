@@ -1614,7 +1614,7 @@ class NSSRIOV(SRIOVTests):
         xenrt.TEC().logverbose("license file is %s" %(self.license_file))
 
         step("unmount the NFS Share")
-        host.execdom0('umount /mnt/distfiles')
+        self.host.execdom0('umount /mnt/distfiles')
         return self.license_file
 
     def installLicense(self, vpx):

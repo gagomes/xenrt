@@ -3383,7 +3383,7 @@ class TCIntelSetupNegative(FunctionalBase):
                 vm = self.masterVMs[osType]
 
                 try:
-                    self.typeOfvGPU.attachvGPU(self.vGPUCreator[config], vm)
+                    self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
                     raise xenrt.XRTFailure("Can attach Intel GPU to vm, while Host not rebooted after blocking Dom0 Access.")
                 except:
                     pass
@@ -3421,7 +3421,7 @@ class TCIntelGPUSnapshotNegative(FunctionalBase):
                 osType = self.getOSType(distro)
                 vm = self.masterVMs[osType]
 
-                self.typeOfvGPU.attachvGPU(self.vGPUCreator[config], vm)
+                self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
 
                 withGPUSnapshot = vm.snapshot()
 
@@ -3471,10 +3471,11 @@ class TCIntelGPUReuse(FunctionalBase):
                 osType = self.getOSType(distro)
 
                 vm1 = self.masterVMs[osType]
+                vm1.setState("DOWN")
                 vm2 = vm1.cloneVM(noIP=False)
 
                 for vm in [vm1, vm2]:
-                    self.typeOfvGPU.attachvGPU(self.vGPUCreator[config], vm)
+                    self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
                     self.typeOfvGPU.installGuestDrivers(vm, self.getConfigurationName(config))
                     self.typeOfvGPU.assertvGPURunningInVM(vm, self.getConfigurationName(config))
                     vm.setState("DOWN")

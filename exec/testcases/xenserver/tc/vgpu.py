@@ -3344,11 +3344,8 @@ class MixedGPUBootstorm(BootstormBase):
         self.PASSTHROUGH_ALLOCATION = float(args['passthroughalloc'])
         self.VGPU_TYPE = int(args['vgpualloctype'])
 
-class TCIntelSetupNegative(FunctionalBase):
-    """
-    Passthrough GPU to win VM without rebooting host after block.
-    """
-
+class IntelBase(FunctionalBase):
+    
     def prepare(self, arglist):
         super(TCIntelSetupNegative, self).prepare(arglist)
 
@@ -3371,6 +3368,11 @@ class TCIntelSetupNegative(FunctionalBase):
                 vm.enableFullCrashDump()
             self.masterVMsSnapshot[osType] = vm.snapshot()
 
+class TCIntelSetupNegative(IntelBase):
+    """
+    Passthrough GPU to win VM without rebooting host after block.
+    """
+
     def run(self, arglist):
 
         for config in self.VGPU_CONFIG:
@@ -3388,32 +3390,10 @@ class TCIntelSetupNegative(FunctionalBase):
                 except:
                     pass
 
-class TCIntelGPUSnapshotNegative(FunctionalBase):
+class TCIntelGPUSnapshotNegative(IntelBase):
     """
     Revert GPU Passthrough snapshot (negative).
     """
-
-    def prepare(self, arglist):
-        super(TCIntelGPUSnapshotNegative, self).prepare(arglist)
-
-        self.host = self.getDefaultHost()
-
-        step("Creating %d vGPUs configurations." % (len(self.VGPU_CONFIG)))
-        self.vGPUCreator = {}
-        for config in self.VGPU_CONFIG:
-            self.vGPUCreator[config] = VGPUInstaller(self.host, config)
-
-        for distro in self.REQUIRED_DISTROS:
-
-            osType = self.getOSType(distro)
-
-            log("Creating Master VM of type %s" % osType)
-            vm = self.createMaster(osType)
-            vm.enlightenedDrivers = True
-            vm.setState("UP")
-            if vm.windows:
-                vm.enableFullCrashDump()
-            self.masterVMsSnapshot[osType] = vm.snapshot()
 
     def run(self, arglist):
         for config in self.VGPU_CONFIG:
@@ -3440,32 +3420,11 @@ class TCIntelGPUSnapshotNegative(FunctionalBase):
                 except:
                     pass
 
+                # Return to blocked state for rest of distros.
                 self.typeOfvGPU.blockDom0Access(self.host)
 
-class TCIntelGPUReuse(FunctionalBase):
+class TCIntelGPUReuse(IntelBase):
     """Intel GPU can be reused once it is down."""
-
-    def prepare(self, arglist):
-        super(TCIntelGPUReuse, self).prepare(arglist)
-
-        self.host = self.getDefaultHost()
-
-        step("Creating %d vGPUs configurations." % (len(self.VGPU_CONFIG)))
-        self.vGPUCreator = {}
-        for config in self.VGPU_CONFIG:
-            self.vGPUCreator[config] = VGPUInstaller(self.host, config)
-
-        for distro in self.REQUIRED_DISTROS:
-
-            osType = self.getOSType(distro)
-
-            log("Creating Master VM of type %s" % osType)
-            vm = self.createMaster(osType)
-            vm.enlightenedDrivers = True
-            vm.setState("UP")
-            if vm.windows:
-                vm.enableFullCrashDump()
-            self.masterVMsSnapshot[osType] = vm.snapshot()
 
     def run(self, arglist):
         for config in self.VGPU_CONFIG:

@@ -283,7 +283,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
             started = xenrt.util.timenow()
             if winrm:
                 s = self.winRM()
-                t = xenrt.util.ThreadWithException(target=s.run_ps if powershell else s.run_cmd, getData=True, args=(command))
+                t = xenrt.util.ThreadWithException(target=s.run_ps if powershell else s.run_cmd, getData=True, args=[command])
                 t.setDaemon(True)
                 t.start()
                 t.join(timeout)

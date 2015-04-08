@@ -1,0 +1,16 @@
+<?xml version="1.0" ?>
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>MNR</PRODUCT_VERSION>
+  </variables>
+  <prepare>
+    <host/>
+  </prepare>
+  <testsequence>
+    <parallel group="EPT" workers="2">
+      <for iter="D" values="%GUEST_TESTS:MNR:Primary%" limit="%LIMIT%" offset="%OFFSET%"> 
+        <testcase id="xenserver.tc.smoketest.TCSmokeTestIntelEPT" name="${D}" sku="${D}" />
+      </for>
+    </parallel>
+  </testsequence>
+</xenrt>

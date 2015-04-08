@@ -29,6 +29,5 @@
     <serial group="SCTX-1421">
       <testcase id="xenserver.tc.guest.TCMemoryDumpBootDriverFlag" tc="TC-23777"/>
     </serial>
-    <testcase id="xenserver.tc.hotfix.TCDiscSpacePlugins" tc="TC-23995"/>
   </testsequence>
 </xenrt>

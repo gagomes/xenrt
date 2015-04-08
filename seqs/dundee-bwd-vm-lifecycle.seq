@@ -1,0 +1,30 @@
+<xenrt>
+
+  <!-- LPV RawHBA VM Life Cycle Tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host />
+  </prepare>
+
+  <testsequence>
+    <serial group="VMLifeCycle">
+
+      <!-- VM Lifcycle operations with rawHBA SR. -->
+      <testcase id="xenserver.tc.lunpervdi.VMLifeCycle" name="Win" tc="TC-18350" sku="Win">
+        <arg>distro=ws12-x64</arg>
+      </testcase>
+      <testcase id="xenserver.tc.lunpervdi.VMLifeCycle" name="Rhel" tc="TC-18351" sku="Rhel">
+        <arg>distro=rhel511</arg>
+      </testcase>
+      <testcase id="xenserver.tc.lunpervdi.VMLifeCycle" name="Oel" tc="TC-18351" sku="Oel">
+        <arg>distro=oel65</arg>
+      </testcase>
+
+    </serial>
+  </testsequence>
+
+</xenrt>

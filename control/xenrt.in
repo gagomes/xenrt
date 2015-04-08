@@ -533,7 +533,7 @@ class XenRTMachine(XenRTCommand):
     def run(self, args):
         results = self.xenrt.get_machine(args[0])
         self.printout("STATUS='%s'\n" % results['rawstatus'])
-        for i in ('jobid', 'leasereason', 'pool', 'leaseuser', 'cluster', 'site'):
+        for i in ('jobid', 'leasereason', 'pool', 'leaseuser', 'cluster', 'site', 'prio'):
             if results[i]:
                 self.printout("%s='%s'\n" % (i.upper(), results[i]))
         for i in ('leaseto', 'leasefrom'):
@@ -932,10 +932,10 @@ class XenRTRemove(XenRTCommand):
     group = "Job"
 
     def run(self, args):
-        if len(args) != 1:
+        if len(args) == 0:
             raise Exception("Invalid usage\n")
-        id = string.atoi(args[0])
-        self.xenrt.remove_job(id)
+        ids = [int(x) for x in args]
+        self.xenrt.remove_jobs(ids)
 
 class XenRTSubmit(XenRTCommand):
 
@@ -1255,7 +1255,7 @@ moves the machine to the "DEFAULT" pool.
         pool = "DEFAULT"
         if len(args) > 1:
             pool = args[1]
-        self.xenrt.update_machine(params={"POOL": pool})
+        self.xenrt.update_machine(machine, params={"POOL": pool})
 
 class XenRTDetailID(XenRTCommand):
 
@@ -1584,6 +1584,7 @@ class XenRTInteract(XenRTCommand):
     [-r] <guest>:<filename>
                        Read a file from a named guest
     [-s]               Interactive shell
+    [-S]               Print the stack trace
     [-L]               Show last 1000 log output lines
     """
     group = "Job"
@@ -1607,8 +1608,9 @@ class XenRTInteract(XenRTCommand):
         s = xmlrpclib.Server("http://%s" % (hostport))
         shell = False
         logger = False
+        stack = False
         try:
-            optlist, optx = getopt.getopt(args[1:], 'lc:CD:dAfIr:sLR:n:Nu:x:')
+            optlist, optx = getopt.getopt(args[1:], 'lc:CD:dAfIr:sLR:n:Nu:x:S')
             for argpair in optlist:
                 (flag, value) = argpair
                 if flag == '-l':
@@ -1681,9 +1683,24 @@ class XenRTInteract(XenRTCommand):
                     shell = True
                 elif flag == "-L":
                     logger = True
+                elif flag == "-S":
+                    stack = True
                     
         except getopt.GetoptError:
             raise Exception("Unknown argument\n")
+
+        if stack:
+            loaded = json.loads(s.xmlrpcShell("json.dumps([[[y.name for y in threading.enumerate() if y.ident==x[0]],x[0],traceback.extract_stack(x[1])] for x in sys._current_frames().items()])"))
+
+            for ll in loaded:
+                (tname, tident, traceback) = ll
+                if tname:
+                    tname = tname[0]
+                else:
+                    tname = "Thread-%d" % tident
+                print tname
+                for t in traceback:
+                    print "    %s:%d - %s %s" % (t[0], t[1], t[2], t[3])
 
         if shell:
             print "XenRT interactive Python shell."
@@ -1910,7 +1927,7 @@ class XenRTRunSuite(XenRTCommand):
             raise Exception("Invalid usage\n")
         
         self.cookie = str(random.randint(0, 2**31-1))
-        jenkins = {"Update Mercurial": "false",
+        jenkins = {"Update Mercurial": "true",
                    "Additional_Args": "",
                    "Cookie": self.cookie,
                    "Attempt Rerun": "false"}

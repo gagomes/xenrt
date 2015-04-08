@@ -18,7 +18,6 @@
       <testcase id="xenserver.tc.ha.TC7498" blocker="yes"/>
       <testcase id="xenserver.tc.ha.TC7501"/>
       <testcase id="xenserver.tc.ha.TC7502"/>
-      <testcase id="xenserver.tc.ha.TC7504"/>
       <testcase id="xenserver.tc.ha.TC7505"/>
       <testcase id="xenserver.tc.ha.TC7935"/>
     </serial>

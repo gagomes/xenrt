@@ -47,6 +47,7 @@ class MarvinDeployer(object):
         'traffictypes': {
           'abstractName': 'TrafficType',
           'required': { 'typ': None } },
+          'optional': { 'vmware': None },
         'providers': {
           'abstractName': 'NetworkProviders',
           'required': { 'name': None, 'broadcastdomainrange': None },

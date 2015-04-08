@@ -1291,6 +1291,8 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
             # Handle the case where we don't want to add a seen again comment
             if seenagain is None:
                 xenrt.GEC().logverbose("Not commenting on existing issue %s" % (issueToComment.key))
+            elif hasattr(issueToComment.fields, "labels") and "NoSeenAgain" in issueToComment.fields.labels:
+                xenrt.GEC().logverbose("NoSeenAgain label present, not commenting on existing issue %s" % (issueToComment.key))
             else:
                 xenrt.GEC().logverbose("Decided to comment on existing issue")
                 j.add_comment(issueToComment.key, seenagain)
@@ -1487,7 +1489,7 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
         elif result == "notrun":
             trresult = "blocked"
         elif result == "skipped":
-            trresult = "notrun"
+            trresult = "skipped"
         else:
             raise xenrt.XRTFailure("Unknown result type %s" % (result))
         return trresult

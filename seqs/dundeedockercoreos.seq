@@ -2,7 +2,7 @@
 
   <!-- Docker test sequence using CoreOS guest. -->
 
-  <default name="DISTRO" value="coreos-beta" />
+  <default name="DISTRO" value="coreos-stable" />
 
   <variables>
     <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
@@ -31,6 +31,7 @@
 
       <testcase id="xenserver.tc.docker.TCContainerLifeCycle" tc="TC-23918" name="ContainerLifeCycle" sku="CoreOS" />
       <testcase id="xenserver.tc.docker.TCGuestsLifeCycle" tc="TC-26443" name="GuestsLifeCycle" sku="CoreOS" />
+      <testcase id="xenserver.tc.docker.TCScaleContainers" tc="TC-26523" name="ScaleContainers" sku="CoreOS" />
 
     </serial>
   </testsequence>

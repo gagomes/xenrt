@@ -9,12 +9,7 @@
 
   <prepare>
     <pool id="3">
-      <host id="3">              
-        <vm name="LicenseServer">
-          <file>%LICENSE_SERVER_XVA%</file>
-          <postinstall action="installV6LicenseServer"/>
-        </vm>
-      </host>
+      <host id="3" />
     </pool>
     <pool id="0">
       <host id="0"/>
@@ -25,12 +20,6 @@
   </prepare>
 
   <testsequence>
-    <serial group="SingleSkuPool" blocker="yes">
-      <testcase id="xenserver.tc.singleskulicense.TC21468" name="TC21468" tc="TC-21468">
-        <arg>system=pool</arg>
-        <arg>edition=per-socket</arg>
-      </testcase>
-    </serial>
     <serial group="AVPXWLBInstall" blocker="yes">
       <testcase id="xenserver.tc.appliance.TC12766" host="RESOURCE_HOST_3">
       </testcase>

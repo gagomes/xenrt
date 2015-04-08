@@ -252,9 +252,9 @@ class GenericPlace(object):
             elif re.search("solaris", self.distro):
                 rc = int(self.execcmd("prtconf | grep Mem|awk '{if ($1 == \"Memory\") {print $3}}'"))
             else:
-                rc = self.execcmd("dmesg | grep \"Memory:\"")
-                #Parses the line E.g. "[    0.000000] Memory: 1010028k/1048576k available (2573k...311304k highmem)"  to get total memory
-                rc = int(rc.split("/")[1].split("k")[0])/xenrt.KILO
+                data = self.execcmd("cat /proc/meminfo")
+                rc = re.search(r"MemTotal:\s+(\d+)\s+kB", data)
+                rc = int(rc.group(1))/xenrt.KILO
             xenrt.TEC().logverbose(" ... getMemory done")
             return rc
         except Exception, e:
@@ -1418,6 +1418,16 @@ class GenericPlace(object):
             f.write(data)
             f.close()
 
+    def winRegPresent(self, hive, key, name):
+        """ Check for the windows registry value"""
+        
+        try:
+            s = self._xmlrpc()
+            s.regLookup(hive, key, name)
+            return True
+        except Exception, e:
+            return False
+            
     def winRegLookup(self, hive, key, name, healthCheckOnFailure=True, suppressLogging=False):
         """Look up a Windows registry value."""
 
@@ -3508,32 +3518,17 @@ DHCPServer = 1
         xenrt.sleep(60)
         self.waitForDaemon(300,desc="Guest reboot after updating Windows")
 
-    def updateYumConfig(self, distro=None, arch=None):
+    def updateYumConfig(self, distro=None, arch=None, allowKernel=False):
         """If we have a local HTTP mirror of a yum repo then create
         a yum repo config for it on this guest/host. This is only for
         for the base repo, all others get removed. This is a hack
         primarily intended for XenServer dom0."""
         if arch == "x86-32p":
             arch = "x86-32"
-        doUpdate = False
         if not distro:
             distro = self.distro
         if not arch:
             arch = self.arch
-        # If we should update this to the lastest versino
-        if xenrt.TEC().lookup("AUTO_UPDATE_LINUX", False, boolean=True):
-            updateMap = xenrt.TEC().lookup("LINUX_UPDATE")
-            match = ""
-            # Look for the longest match
-            for i in updateMap.keys():
-                if distro.startswith(i) and len(i) > len(match):
-                    match = i
-            # if we find one, we need to upgrade
-            if match:
-                newdistro = updateMap[match]
-                if newdistro != distro:
-                    doUpdate = True
-                    distro = newdistro
 
         url = xenrt.TEC().lookup(["RPM_SOURCE", distro, arch, "HTTP"], None)
         if not url:
@@ -3556,7 +3551,7 @@ baseurl=%s
 gpgcheck=0
 """ % (url)
             # If we're upgrading then we can't exclude the kernel
-            if not doUpdate:
+            if not allowKernel:
                 c += "exclude=kernel*, *xen*\n"
             sftp = self.sftpClient()
             fn = xenrt.TEC().tempFile()
@@ -3567,20 +3562,33 @@ gpgcheck=0
             sftp.close()
         except:
             return False
-        if doUpdate:
-            # Do the upgrade
-            self.execcmd("yum update -y", timeout=3600)
-            # Cleanup the repositories again
-            self.execcmd("for r in /etc/yum.repos.d/*.repo; "
-                         "   do mv $r $r.orig; done")
-            sftp = self.sftpClient()
-            sftp.copyTo(fn, "/etc/yum.repos.d/xenrt.repo")
-            sftp.close()
-            # And reboot to start the new system
-            xenrt.TEC().comment("Upgraded from %s to %s" % (self.distro, distro))
-            self.distro=distro
-            self.reboot()
         return True
+
+    def updateLinux(self, updateTo):
+        # Currently only for RHEL derivatives
+        if updateTo == "latest":
+            timeout = 7200
+            self.execguest("rm /etc/yum.repos.d/xenrt.repo")
+            self.execguest("rename '.orig' '' /etc/yum.repos.d/*.orig")
+            # Add a proxy if we know about one
+            proxy = xenrt.TEC().lookup("HTTP_PROXY", None)
+            if proxy:
+                self.execguest("sed -i '/proxy/d' /etc/yum.conf")
+                self.execguest("echo 'proxy=http://%s' >> /etc/yum.conf" % proxy)
+            updateTo = xenrt.getUpdateDistro(self.distro)
+        else:
+            timeout = 3600
+            self.updateYumConfig(updateTo, self.arch, allowKernel=True)
+        
+        # Do the upgrade
+        self.execcmd("yum update -y", timeout=timeout)
+        # Cleanup the repositories again
+        self.distro=updateTo
+        self.updateYumConfig(self.distro, self.arch, allowKernel=False)
+        # And reboot to start the new system
+        xenrt.TEC().comment("Updated from %s to %s" % (self.distro, updateTo))
+        self.reboot()
+        
 
     def getExtraLogs(self, directory):
         pass
@@ -4841,6 +4849,8 @@ class GenericHost(GenericPlace):
                 name = "Oxford"
             elif "58523" in buildNumber:
                 name = "SanibelCC"
+            if name == "Creedence" and self.execdom0("grep XS65ESP1 /var/patch/applied/*", retval="code") == 0:
+                name = "Cream"
 
             xenrt.TEC().logverbose("Found: Version Name: %s, Version Number: %s" % (name, version))
             xenrt.TEC().logverbose("Found Build: %s" % (buildNumber))
@@ -5384,7 +5394,7 @@ class GenericHost(GenericPlace):
         else:
             ethDevice = self.getNICMACAddress(0)
 
-        bootDiskSize = self.lookup("BOOTDISKSIZE",100)
+        bootDiskSize = self.lookup("BOOTDISKSIZE",250)
         bootDiskFS = self.lookup("BOOTDISKFS","ext4")
         ethdev = self.getDefaultInterface()
         ethmac = xenrt.normaliseMAC(self.getNICMACAddress(0)).upper()
@@ -5456,7 +5466,7 @@ class GenericHost(GenericPlace):
             pxecfg.linuxArgsKernelAdd("console=hvc0")
         else:
             pxecfg.linuxArgsKernelAdd("root=/dev/ram0")
-            if re.search(r"(rhel|oel|centos)6", distro):
+            if re.search(r"(rhel|oel|centos)[dw]?6", distro):
                 pxecfg.linuxArgsKernelAdd("biosdevname=0")
         pxefile = pxe.writeOut(self.machine)
         pfname = os.path.basename(pxefile)
@@ -6804,6 +6814,7 @@ class GenericGuest(GenericPlace):
         self.ipv4_disabled = False
         self.instance = None
         self.isTemplate = False
+        self.imported = False
         xenrt.TEC().logverbose("Creating %s instance." % (self.__class__.__name__))
 
     def populateSubclass(self, x):
@@ -6820,6 +6831,7 @@ class GenericGuest(GenericPlace):
         x.reservedIP = self.reservedIP
         x.instance = self.instance
         x.isTemplate = self.isTemplate
+        x.imported = self.imported
 
     def getDeploymentRecord(self):
         if self.isTemplate:
@@ -6827,19 +6839,20 @@ class GenericGuest(GenericPlace):
         else:
             ret = {"access": {"vmname": self.getName(),
                               "ipaddress": self.getIP()}, "os": {}}
-        if self.windows:
-            ret['access']['username'] = "Administrator"
-            ret['access']['password'] = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS",
+        if not self.imported:
+            if self.windows:
+                ret['access']['username'] = "Administrator"
+                ret['access']['password'] = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS",
                                                             "ADMINISTRATOR_PASSWORD"],
                                                             "xensource")
-            ret['os']['family'] = "windows"
-            ret['os']['version'] = self.distro
-        else:
-            ret['access']['username'] = "root"
-            ret['access']['password'] = "xenroot"
-            ret['os']['family'] = "linux"
-            arch = self.arch or "x86-32"
-            ret['os']['version'] = "%s_%s" % (self.distro, arch)
+                ret['os']['family'] = "windows"
+                ret['os']['version'] = self.distro
+            else:
+                ret['access']['username'] = "root"
+                ret['access']['password'] = "xenroot"
+                ret['os']['family'] = "linux"
+                arch = self.arch or "x86-32"
+                ret['os']['version'] = "%s_%s" % (self.distro, arch)
         if self.host:
             ret['host'] = self.host.getName()
         else:
@@ -7422,12 +7435,6 @@ class GenericGuest(GenericPlace):
 
                 self.execguest("sed -i 's/TMPTIME=0/TMPTIME=-1/g' /etc/default/rcS")
 
-                # Remove the repositories we don't mirror from the apt list
-                self.execguest("sed -i '/backports/d' /etc/apt/sources.list")
-                self.execguest("sed -i '/security/d' /etc/apt/sources.list")
-                self.execguest("sed -i '/multiverse/d' /etc/apt/sources.list")
-                self.execguest("sed -i '/universe/d' /etc/apt/sources.list")
-                self.execguest("sed -i '/deb-src/d' /etc/apt/sources.list")
                 self.execguest("cat /etc/apt/sources.list")
                 self.execguest("apt-get update")
 
@@ -7439,7 +7446,7 @@ class GenericGuest(GenericPlace):
                 debVer = float(re.match(r"\d+(\.\d+)?", debVer).group(0))
                 if debVer < 5.0:
                     # Pre-Lenny, may have to use a cacher
-                    apt_cacher = xenrt.TEC().lookup("APT_CACHER", None)
+                    apt_cacher = "%s/debarchive" % xenrt.TEC().lookup("APT_SERVER")
                 if apt_cacher:
                     filebase = "/etc/apt/sources.list"
                     if self.execguest("test -e %s.orig" % (filebase),
@@ -7546,8 +7553,6 @@ class GenericGuest(GenericPlace):
                         sftp.copyTo(fn, filebase)
 
                 try:
-                    # The apt-cacher bzip2 files seem to be broken, so force use the gzip packages
-                    self.execguest("apt-get remove -y bzip2")
                     data = self.execguest("apt-get update")
                 except:
                     # If apt-get commands fail, wait a bit and retry.
@@ -7592,6 +7597,10 @@ class GenericGuest(GenericPlace):
                 if self.execcmd('test -e /etc/redhat-release', retval="code") == 0:
                     if not self.updateYumConfig(self.distro, self.arch):
                         xenrt.TEC().warning('Failed to specify XenRT yum repo for %s, %s' % (self.distro, self.arch))
+                    updateTo = self.special.get("UpdateTo")
+                    if updateTo:
+                        del self.special['UpdateTo']
+                        self.updateLinux(updateTo)
 
                 # These are RPMs statically configured for this distro
                 rpmdir = "%s/guestrpms/%s/%s" % \
@@ -8237,13 +8246,8 @@ class GenericGuest(GenericPlace):
             else:
                 maindisk="hda"
                 if distro:
-                    if distro.startswith("rhel") and int(distro[4:5]) >= 6:
-                        maindisk="xvda"
-                    if distro.startswith("centos") and int(distro[6:7]) >= 6:
-                        maindisk="xvda"
-                    if distro.startswith("oel") and int(distro[3:4]) >= 6:
-                        maindisk="xvda"
-                    if distro.startswith("sl") and int(distro[2:3]) >= 6:
+                    m = re.match("(rhel|centos|oel|sl)[dw]?(\d)\d*", distro)
+                    if m and int(m.group(2)) >= 6:
                         maindisk="xvda"
         else:
             ethDevice = vifname
@@ -8562,8 +8566,9 @@ class GenericGuest(GenericPlace):
 
             arch = "amd64" if "64" in self.arch else "i386"
             xenrt.TEC().logverbose("distro: %s | repository: %s | filename: %s" % (distro, repository, filename))
-            if re.search("ubuntu", distro):
-                release = re.search("Ubuntu/(\d+)/", repository).group(1)
+            m = re.search("ubuntu(\d+)", distro)
+            if m:
+                release = m.group(1)
                 if release == "1004":
                     _url = repository + "/dists/lucid/"
                 elif release == "1204":
@@ -8572,8 +8577,13 @@ class GenericGuest(GenericPlace):
                     _url = repository + "/dists/trusty/"
                 boot_dir = "main/installer-%s/current/images/netboot/ubuntu-installer/%s/" % (arch, arch)
             else:
-                release = re.search("Debian/(\w+)/", repository).group(1)
-                _url = repository + "/dists/%s/" % (release.lower(), )
+                if distro == "debian50":
+                    release = "lenny"
+                elif distro == "debian60":
+                    release = "squeeze"
+                elif distro == "debian70":
+                    release = "wheezy"
+                _url = repository + "/dists/%s/" % (release)
                 boot_dir = "main/installer-%s/current/images/netboot/debian-installer/%s/" % (arch, arch)
 
             # Pull boot files from HTTP repository
@@ -9853,8 +9863,6 @@ while True:
         return self.instance
 
     def installPackages(self, packageList):
-        self.enablePublicRepository(doUpdateOnSuccess=False)
-        self.setAptCacheProxy(doUpdateOnSuccess=False)
         packages = " ".join(packageList)
         try:
             if "deb" in self.distro or "ubuntu" in self.distro:
@@ -9868,45 +9876,6 @@ while True:
                 raise xenrt.XRTError("Not Implemented")
         except Exception, e:
             raise xenrt.XRTError("Failed to install packages '%s' on guest %s : %s" % (packages, self, e))
-        self.disablePublicRepository()
-
-    def enablePublicRepository(self, doUpdateOnSuccess=True):
-        try:
-            if "deb" in self.distro or "ubuntu" in self.distro:
-                self.execguest("cp /etc/apt/sources.list /etc/apt/sources.list.orig -n")
-                repoFile = xenrt.TEC().lookup("XENRT_BASE") + xenrt.TEC().lookup("XENRT_LINUX_REPO_LISTS", "/data/linuxrepolist/") + self.distro
-                repoFileContent = xenrt.command("cat %s" % repoFile)
-                self.execguest("echo '%s' >> /etc/apt/sources.list" % repoFileContent, newlineok=True)
-                if doUpdateOnSuccess:
-                    self.execguest("apt-get update")
-            else:
-                raise xenrt.XRTError("Not Implemented")
-        except Exception, e:
-            xenrt.TEC().warning("Failed to add public Repositories: %s" % e)
-
-    def setAptCacheProxy(self, doUpdateOnSuccess=True):
-        try:
-            aptProxy = None
-            if "deb" in self.distro:
-                aptProxy = xenrt.TEC().lookup("APT_PROXY_DEBIAN", None)
-            elif "ubuntu" in self.distro:
-                aptProxy = xenrt.TEC().lookup("APT_PROXY_UBUNTU", None)
-            if aptProxy:
-                self.execguest("echo 'Acquire::http { Proxy \"http://%s\"; };' > /etc/apt/apt.conf.d/02proxy" % aptProxy)
-                if doUpdateOnSuccess:
-                    self.execguest("apt-get update")
-        except Exception, e:
-            xenrt.TEC().warning("Failed to add apt-cache proxy server: %s" % e)
-
-    def disablePublicRepository(self):
-        try:
-            if "deb" in self.distro or "ubuntu" in self.distro:
-                self.execguest("cat /etc/apt/sources.list.orig > /etc/apt/sources.list")
-                self.execguest("apt-get update")
-            else:
-                raise xenrt.XRTError("Not Implemented")
-        except Exception, e:
-            xenrt.TEC().warning("Failed to reset Repositories: %s" % e)
 
     def xenDesktopTailor(self):
         # Optimizations from CTX125874, excluding Windows crash dump (because we want them) and IE (because we don't use it)

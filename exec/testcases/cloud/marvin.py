@@ -11,7 +11,7 @@ class RemoteNoseInstaller(object):
 
     def install(self):
         # Install git, python, pip, paramiko, nose
-        self.runner.execguest("apt-get install -y --force-yes git python python-dev python-setuptools python-dev python-pip python-netaddr")
+        self.runner.execguest("apt-get install -y --force-yes git python python-dev python-setuptools python-dev python-pip")
         # Install marvin
         if xenrt.TEC().lookup("MARVIN_URL", None):
             self.runner.execguest("wget -O /root/marvin.tar.gz \"%s\"" % xenrt.TEC().lookup("MARVIN_URL"))

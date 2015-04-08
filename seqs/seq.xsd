@@ -15,7 +15,7 @@
   
   <xs:simpleType name="licenseType">
     <xs:restriction base="xs:string">
-      <xs:pattern value="no|false|free|advanced|enterprise|platinum|FG Free|FG Paid|XE Enterprise|XE Express|enterprise-per-socket"/>
+      <xs:pattern value="no|false|free|advanced|enterprise|platinum|FG Free|FG Paid|XE Enterprise|XE Express|enterprise-per-socket|per-socket|xendesktop"/>
     </xs:restriction>
   </xs:simpleType>
 
@@ -425,6 +425,8 @@
           </xs:choice>
           <xs:attribute name="iter" use="required"/>
           <xs:attribute name="values" use="required"/>
+          <xs:attribute name="limit" use="optional"/>
+          <xs:attribute name="offset" use="optional"/>
         </xs:complexType>
       </xs:element>
     </xs:sequence>

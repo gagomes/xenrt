@@ -660,7 +660,7 @@ class _ExternalFileShare(CentralResource):
                 ok = False
             if not jumbo and xjumbo:
                 ok = False
-            xversions = xenrt.TEC().lookup([self.SHARE_TYPE, s, "SUPPORTED_VERSIONS"], self.DEFAULT_VERSION).split(",")
+            xversions = xenrt.TEC().lookup([self.SHARE_TYPE, s, "SUPPORTED_VERSIONS"], self.version).split(",")
             if version not in xversions:
                 ok = False
             if network == "NPRI":
@@ -1684,12 +1684,12 @@ class ISCSITemporaryLun(ISCSILun):
                 if not tid in tids:
                     break
                 tid = tid + 1
+            target = "iqn.2009-01.xenrt.test:iscsi%08x" % \
+                     (random.randint(0, 0x7fffffff))
+            xenrt.rootops.sudo("/usr/sbin/ietadm --op new --tid %u "
+                               "--params Name=%s" % (tid, target))
         finally:
             ietlock.release()
-        target = "iqn.2009-01.xenrt.test:iscsi%08x" % \
-                 (random.randint(0, 0x7fffffff))
-        xenrt.rootops.sudo("/usr/sbin/ietadm --op new --tid %u "
-                           "--params Name=%s" % (tid, target))
 
         # Create a LUN
         xenrt.rootops.sudo("/usr/sbin/ietadm --op new --tid %u --lun %u "

@@ -114,13 +114,15 @@ class SuiteSequence(SuiteConfigurable):
         self.seq = node.getAttribute("seq")
         self.tcsku = node.getAttribute("tcsku")
         self.tc = node.getAttribute("tc")
-        self.seqfile = xenrt.TestSequence(xenrt.seq.findSeqFile(self.seq), tc=self.tc, tcsku=self.tcsku)
         self.pool = "default"
         self.delay = 0
         self.parent = parent
+        self.readConfig(node)
+        for p in self.params.keys():
+            xenrt.GEC().config.setVariable(p, self.params[p])
+        self.seqfile = xenrt.TestSequence(xenrt.seq.findSeqFile(self.seq), tc=self.tc, tcsku=self.tcsku)
         if self.seqfile.schedulerinfo:
             self.readConfig(self.seqfile.schedulerinfo)
-        self.readConfig(node)
         self.machines=int(self.params.get("MACHINES_REQUIRED", "1"))
             
     def readConfig(self, node):
@@ -456,6 +458,7 @@ class Suite(SuiteConfigurable):
                 if "TC-%s" % s in alltcs:
                     alltcs.remove("TC-%s" % s)
             if not debug:
+                xenrt.TEC().logverbose("Adding %s to testrun" % alltcs)
                 j.addTestsToSuiteRun(testrun,alltcs)
             if not xenrt.TEC().lookup(["CLIOPTIONS", "SUITE_TESTRUN_RERUN"], None):
                 for (s,delay) in self.includesuites:

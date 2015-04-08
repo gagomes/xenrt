@@ -154,10 +154,20 @@ class ManagementServer(object):
 
         self.place.execcmd('mysql -u cloud --password=cloud --execute="UPDATE cloud.configuration SET value=8096 WHERE name=\'integration.api.port\'"')
 
+        if xenrt.TEC().lookup("USE_CCP_SIMULATOR", False, boolean=True):
+            # For some reason the cloud user doesn't seem to have access to the simulator DB
+            self.place.execcmd("""sed -i s/db.simulator.username=cloud/db.simulator.username=root/ /usr/share/cloudstack-management/conf/db.properties""")
+            self.place.execcmd("""sed -i s/db.simulator.password=cloud/db.simulator.password=xensource/ /usr/share/cloudstack-management/conf/db.properties""")
+        self.restart(checkHealth=False)
+        self.checkManagementServerHealth(timeout=300)
+
+        # We have to update templates *after* starting the management server as some templates are not introduced until DB schema updates are applied
         templateSubsts = {"http://download.cloud.com/templates/builtin/centos56-x86_64.vhd.bz2":
                             "%s/cloudTemplates/centos56-x86_64.vhd.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),
                            "http://download.cloud.com/releases/4.3/centos6_4_64bit.vhd.bz2":
                             "%s/cloudTemplates/centos6_4_64bit.vhd.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),
+                           "http://nfs1.lab.vmops.com/templates/centos53-x86_64/latest/f59f18fb-ae94-4f97-afd2-f84755767aca.vhd.bz2":
+                            "%s/cloudTemplates/f59f18fb-ae94-4f97-afd2-f84755767aca.vhd.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),
                            "http://download.cloud.com/templates/builtin/f59f18fb-ae94-4f97-afd2-f84755767aca.vhd.bz2":
                             "%s/cloudTemplates/f59f18fb-ae94-4f97-afd2-f84755767aca.vhd.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),
                            "http://download.cloud.com/releases/2.2.0/CentOS5.3-x86_64.ova":
@@ -174,17 +184,12 @@ class ManagementServer(object):
                     "%s/cloudTemplates/centos53-httpd-64bit.ova" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP")
             templateSubsts["http://download.cloud.com/releases/2.2.0/eec2209b-9875-3c8d-92be-c001bd8a0faf.qcow2.bz2"] = \
                     "%s/cloudTemplates/centos55-httpd-64bit.qcow2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP")
-              
 
         for t in templateSubsts.keys():
             self.place.execcmd("""mysql -u cloud --password=cloud --execute="UPDATE cloud.vm_template SET url='%s' WHERE url='%s'" """ % (templateSubsts[t], t))
 
-        if xenrt.TEC().lookup("USE_CCP_SIMULATOR", False, boolean=True):
-            # For some reason the cloud user doesn't seem to have access to the simulator DB
-            self.place.execcmd("""sed -i s/db.simulator.username=cloud/db.simulator.username=root/ /usr/share/cloudstack-management/conf/db.properties""")
-            self.place.execcmd("""sed -i s/db.simulator.password=cloud/db.simulator.password=xensource/ /usr/share/cloudstack-management/conf/db.properties""")
-        self.restart(checkHealth=False)
-        self.checkManagementServerHealth(timeout=300)
+        self.restart()
+
         marvinApi = xenrt.lib.cloud.MarvinApi(self)
 
         internalMask = IPy.IP("%s/%s" % (xenrt.getNetworkParam("NPRI", "SUBNET"), xenrt.getNetworkParam("NPRI", "SUBNETMASK")))
@@ -250,7 +255,7 @@ class ManagementServer(object):
 
     def checkJavaVersion(self):
         if self.place.distro.startswith("rhel6") or self.place.distro.startswith("centos6"):
-            if self.version in ['4.4', '4.5']:
+            if self.version in ['4.4', '4.5', '4.6.0']:
                 # Check if Java 1.7.0 is installed
                 self.place.execcmd('yum -y install java-1.7.0-openjdk')
                 if not '1.7.0' in self.place.execcmd('java -version').strip():

@@ -172,6 +172,19 @@ class Fragment(threading.Thread):
             else:
                 r = re.findall(r"\(.*?\)", valuestring)
                 values = map(lambda x:re.findall(r"([^,\(\)]+)", x), r)
+            
+            offsetstring = expand(str(node.getAttribute("offset")), params)
+            if offsetstring == "-":
+                offsetstring = ""
+            if offsetstring:
+                values = values[int(offsetstring):]
+
+            limitstring = expand(str(node.getAttribute("limit")), params)
+            if limitstring == "-":
+                limitstring = ""
+            if limitstring:
+                values = values[:int(limitstring)]
+            
             for value in values:
                 newparams = {}
                 if params:
@@ -534,6 +547,16 @@ class SingleTestCase(Fragment):
                 return ["%s_%s" % (self.jiratc, self.tcsku)]
             else:
                 return [self.jiratc]
+        xenrt.GEC().config.setVariable("TEC_ALLOCATE", "no")
+        tc = self.tc()
+        xenrt.GEC().config.setVariable("TEC_ALLOCATE", "yes")
+        tc.setTCSKU(self.tcsku)
+        if tc.getDefaultJiraTC():
+            if self.tcsku:
+                return ["%s_%s" % (tc.getDefaultJiraTC(), self.tcsku)]
+            else:
+                return [tc.getDefaultJiraTC()]
+            
         r = re.search(r"\.TC(\d+)$", self.tcid)
         if r:
             if self.tcsku:

@@ -357,8 +357,11 @@ class TestCase(object):
             # Yeah baby
         self.priority = 1
         self.results = xenrt.results.TestResults(priority=self.priority)
-        self.tec = TestExecutionContext(xenrt.GEC(), self, anon=anon)
-        setTec(self.tec)
+        if xenrt.GEC().config.lookup("TEC_ALLOCATE", True, boolean=True):
+            self.tec = TestExecutionContext(xenrt.GEC(), self, anon=anon)
+            setTec(self.tec)
+        else:
+            self.tec = xenrt.TEC()
         self.basename = self.tcid
         self.state = TCI_NEW
         self.reply = None
@@ -513,6 +516,9 @@ logdata call.
 
     def setTCSKU(self, tcsku):
         self.tcsku = tcsku
+
+    def getDefaultJiraTC(self):
+        return None
 
     #########################################################################
     # Testcase execution
@@ -2661,9 +2667,11 @@ class GlobalExecutionContext(object):
         self.dbconnect = xenrt.DBConnect(self.config.lookup("JOBID", None))
         self.anontec = TCAnon(self).tec
         self.skipTests = {}
+        self.skipSkus = {}
         self.skipGroups = {}
         self.skipTypes = {}
         self.noSkipTests = {}
+        self.noSkipSkus = {}
         self.noSkipGroups = {}
         self.priority = None
         self.harnesserror = False
@@ -2867,8 +2875,10 @@ class GlobalExecutionContext(object):
             t.results.reason(str(e))
             xenrt.TEC().logverbose(traceback.format_exc())
             xenrt.TEC().logverbose(str(e), pref='REASON')
-        t.setJiraTC(jiratc)
         t.setTCSKU(tcsku)
+        if not jiratc:
+            jiratc = t.getDefaultJiraTC()
+        t.setJiraTC(jiratc)
         t.marvinTestConfig = marvinTestConfig
         if name and group:
             t._rename("%s/%s" % (group, name))
@@ -2886,10 +2896,9 @@ class GlobalExecutionContext(object):
             phase = group
         else:
             phase = "Phase 99"
-        
         logtcid = None
         if not jiratc:
-            m = re.match("TC(\d+)", t.tcid)
+            m = re.match("TC(\d+)", t.basename)
             if m:
                 logtcid = "TC-%s" % m.group(1)
         else:
@@ -2901,6 +2910,11 @@ class GlobalExecutionContext(object):
                                       t.basename,
                                       "TCID",
                                       logtcid)
+
+        self.dbconnect.jobLogData(phase,
+                                  t.basename,
+                                  "TCClass",
+                                  "%s.%s" % (tcclass.__module__, tcclass.__name__))
 
         t.runon = runon
         if prio:
@@ -2931,6 +2945,8 @@ class GlobalExecutionContext(object):
                 noskip = True
             if jiratc and self.noSkipTests.has_key(string.replace(jiratc,"-","")):
                 noskip = True
+            if tcsku and self.noSkipSkus.has_key(tcsku):
+                noskip = True
             if not noskip:
                 t.tec.skip("Skipped by SKIPALL")
         else:
@@ -2952,6 +2968,8 @@ class GlobalExecutionContext(object):
                 t.tec.skip("Skipped by %s" % (ttype))
             if jiratc and self.skipTests.has_key(string.replace(jiratc,"-","")):
                 t.tec.skip("Skipped by %s" % (jiratc))
+            if tcsku and self.skipSkus.has_key(tcsku):
+                t.tec.skip("Skipped by %s" % (tcsku))
 
         if self.priority != None and prio != None:
             if prio > self.priority:
@@ -2970,6 +2988,8 @@ class GlobalExecutionContext(object):
                     if self.noSkipTests.has_key(l[-1]):
                         noskip = True
                 if t.group and self.noSkipGroups.has_key(t.group):
+                    noskip = True
+                if tcsku and self.noSkipSkus.has_key(tcsku):
                     noskip = True
                 if not noskip:
                     t.tec.skip("TC prio %u < target prio %u" %
@@ -3120,6 +3140,11 @@ class GlobalExecutionContext(object):
         self.skipTests[tcid] = True
         self.logverbose("Test will be skipped: %s" % (tcid))
 
+    def skipSku(self, sku):
+        """Register a test case to be skipped."""
+        self.skipSkus[sku] = True
+        self.logverbose("Test will be skipped: %s" % (sku))
+
     def skipGroup(self, group):
         """Register a test group to be skipped."""
         self.skipGroups[group] = True
@@ -3134,6 +3159,11 @@ class GlobalExecutionContext(object):
         """Register a test case to not be skipped."""
         self.noSkipTests[tcid] = True
         self.logverbose("Test will not be skipped: %s" % (tcid))
+
+    def noSkipSku(self, sku):
+        """Register a test case to not be skipped."""
+        self.noSkipSkus[sku] = True
+        self.logverbose("Test will not be skipped: %s" % (sku))
 
     def noSkipGroup(self, group):
         """Register a test group to not be skipped."""
@@ -3335,7 +3365,9 @@ class GlobalExecutionContext(object):
             if ok:
                 sys.stdout.write("Sequence: PASS\n")
                 x = "OK"
-                borrow = xenrt.TEC().lookup("MACHINE_HOLD_FOR", None)
+                borrow = xenrt.TEC().lookup("MACHINE_HOLD_FOR_OK", xenrt.TEC().lookup("MACHINE_HOLD_FOR_PASS", None))
+                if not borrow:
+                    borrow = xenrt.TEC().lookup("MACHINE_HOLD_FOR", None)
             else:
                 sys.stdout.write("Sequence: FAIL\n")
                 x = "ERROR"

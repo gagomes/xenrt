@@ -20,6 +20,7 @@ cfg['ldap_uri'] = ""
 cfg['ldap_user'] = ""
 cfg['ldap_pass'] = ""
 cfg['ldap_base'] = ""
+cfg['group_mapping'] = ""
 # Parse a site config file
 cf = "%s/site.xml" % (confdir)
 if os.path.exists(cf):
@@ -64,6 +65,8 @@ if os.path.exists(cf):
                                     cfg['ldap_pass'] = data
                                 elif name == "LDAP_BASE":
                                     cfg['ldap_base'] = data
+                                elif name == "AD_GROUP_MAPPING":
+                                    cfg['group_mapping'] = data
 
 cfg['results'] = "%s/results" % basedir
 cfg['sharedir'] = "@sharedir@"

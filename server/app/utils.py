@@ -548,3 +548,34 @@ def sendMail(fromaddr, toaddrs, subject, message, reply=None):
     server.sendmail(fromaddr, toaddrs, msg)
     server.quit()
 
+def update_ad_teams():
+    db = app.db.dbWriteInstance()
+    ad = app.ad.ActiveDirectory()
+
+    cur = db.cursor()
+    cur.execute("SELECT userid FROM tblusers WHERE team IS NULL")
+    users = {}
+    while True:
+        rc = cur.fetchone()
+        if not rc:
+            break
+        users[rc[0].strip().lower()] = rc[0].strip()
+
+    mapping = json.loads(config.group_mapping)
+    userMapping = {}
+
+    for group in mapping:
+        adGroup = group[0]
+        name = group[1]
+        print "Processing %s (%s)" % (adGroup, name)
+        allGroupUsers = ad.get_all_members_of_group(adGroup)
+        for u in allGroupUsers:
+            if u.lower() in users:
+                userMapping[users[u.lower()]] = name
+                del users[u.lower()]
+
+    for u in userMapping:
+        print "Mapping %s to %s" % (u, userMapping[u])
+        cur.execute("UPDATE tblusers SET team=%s WHERE userid=%s", [userMapping[u], u])
+
+    db.commit()        

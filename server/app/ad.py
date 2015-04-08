@@ -46,7 +46,9 @@ class ActiveDirectory(object):
             return []
         _visitedGroups.append(dn)
         if 'person' in group['objectClass']:
-            return [group['sAMAccountName'][0]]
+            if group.has_key('sAMAccountName'):
+                return [group['sAMAccountName'][0]]
+            return []
         members = []
         if group.has_key('member'):
             for m in group['member']:

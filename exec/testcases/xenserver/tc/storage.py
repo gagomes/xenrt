@@ -4664,10 +4664,12 @@ class TC26472(xenrt.TestCase):
         if not srs:
             raise xenrt.XRTFailure("Unable to find a CIFS SR configured on host %s" % self.host)
 
+        # Exclude xenrt-smb guest which serves the smb share.
+        guests = [self.host.getGuest(g) for g in self.host.listGuests() if not g.startswith("xenrt-smb")]
+
         xenrt.TEC().logverbose("Guests Life Cycle Operations on CIFS SR ...")
 
-        for gName in self.host.listGuests():
-            guest = host.getGuest(gName)
+        for guest in guests:
 
             # Make sure the guest is up.
             if guest.getState() == "DOWN":

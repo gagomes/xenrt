@@ -1547,7 +1547,7 @@ class NSSRIOV(SRIOVTests):
     
     # We have to release all the allocated IPv4 address 
     ALLOCATED_IPADDRS = []
-    NS_XVA = "NSVPX-XEN-10.0-72.5_nc.xva"
+    NS_XVA = "NSVPX-XEN-10.5-52.11_nc.xva"
     GOLDEN_VM = None
     NETWORK = 'NPRI' # 'NSEC'; Orjen has SR-IOV nics on NSEC
     
@@ -1599,12 +1599,22 @@ class NSSRIOV(SRIOVTests):
         return vpx
 
     def getLicenseFile(self):
-        lic = "CNS_V1000_SERVER_PLT_Retail.lic"
-        working = xenrt.TEC().getWorkdir()
-        out = os.path.join(working, lic)
-        lic_url = "http://www.uk.xensource.com/~jobyp/CNS_V1000_SERVER_PLT_Retail.lic"
-        xenrt.command('wget %s -O %s' % (lic_url, out))
-        self.license_file = out
+        lic = "CNS_V3000_SERVER_PLT_Retail.lic"
+        out = os.path.join("/",lic)
+        step ("Mounting NFS Share to copy lic file to host")
+
+        distfiles = xenrt.TEC().lookup('EXPORT_DISTFILES_NFS', None)
+        self.host.execdom0('mkdir -p /mnt/distfiles')
+        self.host.execdom0('mount %s /mnt/distfiles' % distfiles)
+        self.host.execdom0('cp /mnt/distfiles/tallahassee/%s %s' %(lic,out)).strip()
+
+        step("Copying contents of out to selflicense_file")
+
+        self.license_file = out.strip()
+        xenrt.TEC().logverbose("license file is %s" %(self.license_file))
+
+        step("unmount the NFS Share")
+        host.execdom0('umount /mnt/distfiles')
         return self.license_file
 
     def installLicense(self, vpx):
@@ -1613,12 +1623,32 @@ class NSSRIOV(SRIOVTests):
         else:
             self.license_file = self.getLicenseFile()
 
+
+        step("Create a tmp directory on the controller that will be automatically cleaned up...........")
+
+        ctrlTmpDir = xenrt.TEC().tempDir()
+
+        step("Copy the license file from / on host to a temp directory on controller")
+        filePathController = os.path.basename(self.license_file)
+        sftp = self.host.sftpClient()
+
+        try:
+            sftp.copyFrom(self.license_file, os.path.join(ctrlTmpDir,filePathController))
+        finally:
+            sftp.close()
+
+        step("copy license file from tempdir on controller to guest...........")
+
         if vpx.getState() != "UP":
             self.startVPX(vpx)
             
         sftp = vpx.sftpClient(username='nsroot')
-        sftp.copyTo(self.license_file, os.path.join("/nsconfig/license", os.path.basename(self.license_file)))
-        sftp.close()
+        
+        try:
+            sftp.copyTo(os.path.join(ctrlTmpDir,filePathController), os.path.join('/nsconfig/license',os.path.basename(filePathController)))
+        finally:
+            sftp.close()
+        
         vpx.waitForSSH(timeout=100,cmd='sh ns ip',username='nsroot')
         self.rebootVPX(vpx)
         return

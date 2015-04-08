@@ -4667,7 +4667,7 @@ class TC26472(xenrt.TestCase):
         xenrt.TEC().logverbose("Guests Life Cycle Operations on CIFS SR ...")
 
         for gName in self.host.listGuests():
-            guest = self.getGuest(gName)
+            guest = host.getGuest(gName)
 
             # Make sure the guest is up.
             if guest.getState() == "DOWN":

@@ -4668,6 +4668,12 @@ class TC26472(xenrt.TestCase):
 
         for gName in self.host.listGuests():
             guest = self.getGuest(gName)
+
+            # Make sure the guest is up.
+            if guest.getState() == "DOWN":
+                xenrt.TEC().logverbose("Starting guest before commencing lifecycle ops.")
+                guest.start()
+
             guest.shutdown()
             guest.start()
             guest.reboot()

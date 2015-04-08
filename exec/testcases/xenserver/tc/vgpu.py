@@ -3440,6 +3440,8 @@ class TCIntelGPUSnapshotNegative(FunctionalBase):
                 except:
                     pass
 
+                self.typeOfvGPU.blockDom0Access(self.host)
+
 class TCIntelGPUReuse(FunctionalBase):
     """Intel GPU can be reused once it is down."""
 

@@ -3347,7 +3347,7 @@ class MixedGPUBootstorm(BootstormBase):
 class IntelBase(FunctionalBase):
     
     def prepare(self, arglist):
-        super(TCIntelSetupNegative, self).prepare(arglist)
+        super(IntelBase, self).prepare(arglist)
 
         self.host = self.getDefaultHost()
 

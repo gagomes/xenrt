@@ -22,23 +22,21 @@ class ActiveDirectory(object):
         return not (len(results) == 0 or results[0][0] is None)
 
     def is_disabled(self, username):
-        results = self._ldap.search_s(self._base, ldap.SCOPE_SUBTREE, filter_format("(&(objectClass=person)(sAMAccountName=%s))", [username]), attrlist=['userAccountControl'])
-        if len(results) == 0 or results[0][0] is None:
-            raise KeyError("%s not a valid user" % username)
-        dn, data = results[0]
-        if data.has_key('userAccountControl') and len(data['userAccountControl']) >= 1:
-            uac = int(data['userAccountControl'][0])
-            if uac & 2 == 2: # ADS_UF_ACCOUNTDISABLE = 2 - https://msdn.microsoft.com/en-us/library/ms680832%28v=vs.85%29.aspx
-                return True
+        uac = self._getUserAttribute(username, "userAccountControl")
+        if uac and (int(uac) & 2 == 2): # ADS_UF_ACCOUNTDISABLE = 2 - https://msdn.microsoft.com/en-us/library/ms680832%28v=vs.85%29.aspx
+            return True
         return False
 
     def get_email(self, username):
-        results = self._ldap.search_s(self._base, ldap.SCOPE_SUBTREE, filter_format("(&(objectClass=person)(sAMAccountName=%s))", [username]), attrlist=['mail'])
+        return self._getUserAttribute(username, "mail")
+
+    def _getUserAttribute(self, username, attribute):
+        results = self._ldap.search_s(self._base, ldap.SCOPE_SUBTREE, filter_format("(&(objectClass=person)(sAMAccountName=%s))", [username]), attrlist=[attribute])
         if len(results) == 0 or results[0][0] is None:
             raise KeyError("%s not a valid user" % username)
         dn, data = results[0]
-        if data.has_key('mail') and len(data['mail']) >= 1:
-            return data['mail'][0]
+        if data.has_key(attribute) and len(data[attribute]) >= 1:
+            return data[attribute][0]
         return None
 
     def _getDN(self, dn):

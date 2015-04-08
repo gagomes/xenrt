@@ -1632,10 +1632,8 @@ class NSSRIOV(SRIOVTests):
         filePathController = os.path.basename(self.license_file)
         sftp = self.host.sftpClient()
 
-        try:
-            sftp.copyFrom(self.license_file, os.path.join(ctrlTmpDir,filePathController))
-        finally:
-            sftp.close()
+        sftp.copyFrom(self.license_file, os.path.join(ctrlTmpDir,filePathController))
+        sftp.close()
 
         step("copy license file from tempdir on controller to guest...........")
 
@@ -1644,10 +1642,8 @@ class NSSRIOV(SRIOVTests):
             
         sftp = vpx.sftpClient(username='nsroot')
         
-        try:
-            sftp.copyTo(os.path.join(ctrlTmpDir,filePathController), os.path.join('/nsconfig/license',os.path.basename(filePathController)))
-        finally:
-            sftp.close()
+        sftp.copyTo(os.path.join(ctrlTmpDir,filePathController), os.path.join('/nsconfig/license',os.path.basename(filePathController)))
+        sftp.close()
         
         vpx.waitForSSH(timeout=100,cmd='sh ns ip',username='nsroot')
         self.rebootVPX(vpx)

@@ -291,8 +291,11 @@ class VDI(NamedXapiObject):
 class Snapshot(NamedXapiObject):
     OBJECT_TYPE = "snapshot"
 
-    def delete(self):
-        self.op("destroy")
+    def delete(self, metadataOnly=False):
+        if metadataOnly:
+            self.op("destroy")
+        else:
+            self.op("uninstall", "force=true")
 
     def VM(self):
         return self.op("list", "params=snapshot-of --minimal", VM.OBJECT_TYPE)

@@ -277,8 +277,8 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
 
         try:
             log("Running on %s via %s: %s" % (self.parent.getIP(),
-                    ("WinRM" if winrm else "Powershell" if powershell else "Daemon"),
-                    command.encode("utf-8")))
+                "WinRM[PS]" if (winrm and powershell) else "WinRM" if winrm else "Powershell" if powershell else "Daemon",
+                command.encode("utf-8")))
 
             started = xenrt.util.timenow()
             if winrm:
@@ -288,9 +288,9 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
                 t.start()
                 t.join(timeout)
                 if t.isAlive():
-                    raise xenrt.XRTFailure("CMD via WinRM seems to hung or is expecting input.")
+                    xenrt.XRT("WinRM command seems to hung or is expecting input.", level)
                 if t.exception:
-                    raise t.exception
+                    xenrt.XRT(str(t.exception), level)
                 ref = t.data
                 rc= ref.status_code
                 data= None if ignoredata else ref.std_out if rc==0 else ref.std_err

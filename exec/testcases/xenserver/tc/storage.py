@@ -4666,7 +4666,8 @@ class TC26472(xenrt.TestCase):
 
         xenrt.TEC().logverbose("Guests Life Cycle Operations on CIFS SR ...")
 
-        for guest in [xenrt.TEC().registry.guestGet(g) for g in self.host.listGuests()]:
+        for gName in self.host.listGuests():
+            guest = self.getGuest(gName)
             guest.shutdown()
             guest.start()
             guest.reboot()

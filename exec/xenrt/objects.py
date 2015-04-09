@@ -5342,7 +5342,7 @@ class GenericHost(GenericPlace):
                            method="HTTP",
                            extrapackages=None,
                            options={}):
-        if re.search("sles", distro) or re.search("suse", distro):
+        if re.search("sles|suse|sled", distro):
             self.installLinuxVendorSLES(distro,
                                         kickstart=kickstart,
                                         arch=arch,
@@ -7856,7 +7856,7 @@ class GenericGuest(GenericPlace):
                       extrapackages=None,
                       options={},
                       start=True):
-        if re.search("sles", distro) or re.search("suse", distro):
+        if re.search("sles|suse|sled", distro):
             self.installSLES(distro,
                              repository,
                              method,
@@ -9870,7 +9870,7 @@ while True:
                 self.execguest("apt-get -y --force-yes install %s" % packages)
             elif "rhel" in self.distro or "centos" in self.distro or "oel" in self.distro:
                 self.execguest("yum install -y %s" % packages)
-            elif "sles" in self.distro:
+            elif re.search("sles|sled", self.distro):
                 self.execguest("zypper -n --non-interactive install %s" % packages)
             else:
                 raise xenrt.XRTError("Not Implemented")

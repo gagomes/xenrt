@@ -1236,7 +1236,6 @@ class TC8237(xenrt.TestCase):
             self.host.execdom0("export LVM_SYSTEM_DIR='/etc/lvm/master'; vgchange -an %s" % (vg))
         elif isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
             self.host.execdom0("vgchange -an --master %s" % (vg))
-        self.host.execdom0("vgchange -an --master %s" % (vg))
         time.sleep(self.timeout)
         xenrt.TEC().logverbose("Checking if xapi has died...")
         try:

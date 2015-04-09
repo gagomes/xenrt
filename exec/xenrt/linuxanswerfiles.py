@@ -570,7 +570,9 @@ class SLESAutoyastFile(object):
             kf=self._generateSLES12()
         elif self.distro.startswith("sles94"):
             kf=self._generateSLES94()
-        else :
+        elif self.distro.startswith("sled113"):
+            kf=self._generateSLED()
+		else:
             kf=self._generateStandard()
             
         if not self.pxe:
@@ -1020,7 +1022,224 @@ umount /tmp/xenrttmpmount
        self.bootDiskSize
        )
         return ks
-        
+ 
+    def _generateSLED(self):
+        ks="""<?xml version="1.0"?>
+<!DOCTYPE profile SYSTEM "/usr/share/autoinstall/dtd/profile.dtd">
+<profile xmlns="http://www.suse.com/1.0/yast2ns" xmlns:config="http://www.suse.com/1.0/configns">
+  <configure>
+    <networking>
+      <dns>
+        <dhcp_hostname config:type="boolean">false</dhcp_hostname>
+        <dhcp_resolv config:type="boolean">false</dhcp_resolv>
+      </dns>
+      <routing>
+        <ip_forward config:type="boolean">false</ip_forward>
+      </routing>
+      <interfaces config:type="list">
+        <interface>
+          <bootproto>dhcp</bootproto>
+          <device>%s</device>        
+          <startmode>onboot</startmode>
+        </interface>
+      </interfaces>
+    </networking>
+	<security>
+      <console_shutdown>reboot</console_shutdown>
+      <cracklib_dict_path>/usr/lib/cracklib_dict</cracklib_dict_path>
+      <cwd_in_root_path>no</cwd_in_root_path>
+      <cwd_in_user_path>no</cwd_in_user_path>
+      <displaymanager_remote_access>no</displaymanager_remote_access>
+      <enable_sysrq>no</enable_sysrq>
+      <fail_delay>3</fail_delay>
+      <faillog_enab>yes</faillog_enab>
+      <gid_max>60000</gid_max>
+      <gid_min>1000</gid_min>
+      <kdm_shutdown>auto</kdm_shutdown>
+      <lastlog_enab>yes</lastlog_enab>
+      <obscure_checks_enab>yes</obscure_checks_enab>
+      <pass_max_days>99999</pass_max_days>
+      <pass_max_len>8</pass_max_len>
+      <pass_min_days>0</pass_min_days>
+      <pass_min_len>5</pass_min_len>
+      <pass_warn_age>7</pass_warn_age>
+      <passwd_encryption>des</passwd_encryption>
+      <passwd_use_cracklib>yes</passwd_use_cracklib>
+      <permission_security>easy</permission_security>
+      <run_updatedb_as>nobody</run_updatedb_as>
+      <system_gid_max>499</system_gid_max>
+      <system_gid_min>100</system_gid_min>
+      <system_uid_max>499</system_uid_max>
+      <system_uid_min>100</system_uid_min>
+      <uid_max>60000</uid_max>
+      <uid_min>1000</uid_min>
+      <useradd_cmd>/usr/sbin/useradd.local</useradd_cmd>
+      <userdel_postcmd>/usr/sbin/userdel-post.local</userdel_postcmd>
+      <userdel_precmd>/usr/sbin/userdel-pre.local</userdel_precmd>
+    </security>
+    <sound>
+      <configure_detected config:type="boolean">false</configure_detected>
+      <modules_conf config:type="list"/>
+      <rc_vars/>
+      <volume_settings config:type="list"/>
+    </sound>
+    <printer>
+      <cups_installation config:type="symbol">server</cups_installation>
+      <default></default>
+      <printcap config:type="list"/>
+      <server_hostname></server_hostname>
+      <spooler>cups</spooler>
+    </printer>
+    <runlevel>
+      <default>3</default>
+    </runlevel>
+    <users config:type="list">
+      <user>
+        <encrypted config:type="boolean">false</encrypted>
+        <user_password>%s</user_password>
+        <username>root</username>
+      </user>
+    </users>
+    <scripts>
+      <chroot-scripts config:type="list"/>      
+      <post-scripts config:type="list"/>
+      <pre-scripts config:type="list"/>      
+      <init-scripts config:type="list">
+        <script>
+          <filename>post.sh</filename>
+          <interpreter>shell</interpreter> 
+          <source><![CDATA[
+#!/bin/sh
+
+mkdir /tmp/xenrttmpmount
+mount -onolock -t nfs %s /tmp/xenrttmpmount
+touch /tmp/xenrttmpmount/.xenrtsuccess
+umount /tmp/xenrttmpmount
+%s
+sleep 120
+%s
+]]>
+          </source>
+        </script>
+      </init-scripts>
+    </scripts>
+  </configure>
+  <install>
+    <bootloader>
+      <activate config:type="boolean">true</activate>
+      <device_map config:type="list">
+        <device_map_entry>
+          <firmware>(hd0)</firmware>
+          <linux>/dev/%s</linux>
+        </device_map_entry>
+      </device_map>
+      <global config:type="list">
+        <global_entry>
+          <key>color</key>
+          <value>white/blue black/light-gray</value>
+        </global_entry>
+        <global_entry>
+          <key>default</key>
+          <value>0</value>
+        </global_entry>
+        <global_entry>
+          <key>timeout</key>
+          <value>5</value>
+        </global_entry>
+      </global>
+      <loader_device>/dev/%s</loader_device>
+      <loader_type>grub</loader_type>
+      <location>mbr</location>
+      <repl_mbr config:type="boolean">true</repl_mbr>
+      <sections config:type="list">
+        <section config:type="list">
+          <section_entry>
+            <key>title</key>
+            <value>Linux</value>
+          </section_entry>
+          <section_entry>
+            <key>root</key>
+            <value>(hd0,0)</value>
+          </section_entry>
+          <section_entry>
+            <key>kernel</key>
+            <value>/boot/vmlinuz root=/dev/%s2 selinux=0 serial console=ttyS0,115200 load_ramdisk=1 splash=silent showopts elevator=cfq</value>
+          </section_entry>
+          <section_entry>
+            <key>initrd</key>
+            <value>/boot/initrd</value>
+          </section_entry>
+        </section>
+      </sections>
+    </bootloader>
+    <partitioning config:type="list">
+      <drive>
+        <device>/dev/%s</device>
+        <initialize config:type="boolean">false</initialize>
+        <partitions config:type="list">
+          <partition>
+            <filesystem config:type="symbol">ext2</filesystem>
+            <format config:type="boolean">true</format>
+            <loop_fs config:type="boolean">false</loop_fs>
+            <mount>/boot</mount>
+            <partition_id config:type="integer">131</partition_id>
+            <partition_type>primary</partition_type>
+            <size>%sM</size>
+          </partition>
+          <partition>
+            <filesystem config:type="symbol">ext2</filesystem>
+            <format config:type="boolean">true</format>
+            <loop_fs config:type="boolean">false</loop_fs>
+            <mount>/</mount>
+            <partition_id config:type="integer">131</partition_id>
+            <partition_type>primary</partition_type>
+            <size>7G</size>
+          </partition>
+        </partitions>
+        <use>all</use>
+      </drive>
+    </partitioning>
+    <general>
+      <clock>
+        <hwclock>localtime</hwclock>
+        <timezone>%s</timezone>
+      </clock>
+      <keyboard>
+        <keymap>english-uk</keymap>
+      </keyboard>
+      <language>en_GB</language>
+      <mode>
+        <confirm config:type="boolean">false</confirm>
+        <forceboot config:type="boolean">false</forceboot>
+      </mode>
+      <mouse>
+        <id>none</id>
+      </mouse>
+      <signature-handling>
+        <accept_verification_failed config:type="boolean">true</accept_verification_failed>
+        <accept_file_without_checksum config:type="boolean">true</accept_file_without_checksum> 
+      </signature-handling>  
+    </general>
+    <software>
+      <patterns config:type="list">
+\        <pattern>Basis-Devel</pattern>
+      </patterns>
+    </software>
+  </install>
+</profile>
+""" % (self.ethDevice,
+       self._password(),
+       self.signalDir,
+       self._postInstall(),
+       self._rebootAfterInstall(),
+       self.mainDisk,
+       self.mainDisk,
+       self.mainDisk,
+       self._timezone(),
+       self.mainDisk,
+       self._bootDiskSize()
+       )
+        return ks 
 
     def _generateSLES12(self):
         ks = """<?xml version="1.0"?>

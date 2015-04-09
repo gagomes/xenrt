@@ -3454,7 +3454,7 @@ class TestIntelDrivers(IntelBase):
         vm.setState("UP")
         # Can fake it probably, vgputype.
         # Can also do this step manually.
-        vgputype = "passthrough"
+        vgputype = "Intel"
         self.typeOfvGPU.installGuestDrivers(vm, vgputype)
         self.typeOfvGPU.assertvGPURunningInVM(vm, vgputype)
 

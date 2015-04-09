@@ -1,4 +1,4 @@
-import os, xml.dom.minidom, re, string
+import os, xml.dom.minidom, re, string, glob
 
 cfg = {}
 
@@ -22,8 +22,14 @@ cfg['ldap_pass'] = ""
 cfg['ldap_base'] = ""
 cfg['group_mapping'] = ""
 # Parse a site config file
+cfs = []
 cf = "%s/site.xml" % (confdir)
+
 if os.path.exists(cf):
+    cfs.append(cf)
+cfs.extend(glob.glob("%s/conf.d/*/*.xml" % confdir))
+
+for cf in cfs:
     dom = xml.dom.minidom.parse(cf)
     for i in dom.childNodes:
         if i.nodeType == i.ELEMENT_NODE:

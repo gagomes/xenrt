@@ -572,7 +572,7 @@ class SLESAutoyastFile(object):
             kf=self._generateSLES94()
         elif self.distro.startswith("sled113"):
             kf=self._generateSLED()
-		else:
+        else:
             kf=self._generateStandard()
             
         if not self.pxe:

@@ -22,12 +22,11 @@ cfg['ldap_pass'] = ""
 cfg['ldap_base'] = ""
 cfg['group_mapping'] = ""
 # Parse a site config file
-cfs = []
+cfs = glob.glob("%s/conf.d/*/*.xml" % confdir)
 cf = "%s/site.xml" % (confdir)
 
 if os.path.exists(cf):
     cfs.append(cf)
-cfs.extend(glob.glob("%s/conf.d/*/*.xml" % confdir))
 
 for cf in cfs:
     dom = xml.dom.minidom.parse(cf)

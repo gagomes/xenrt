@@ -1044,7 +1044,17 @@ umount /tmp/xenrttmpmount
         </interface>
       </interfaces>
     </networking>
-	<security>
+    <printer>
+      <cups_installation config:type="symbol">server</cups_installation>
+      <default></default>
+      <printcap config:type="list"/>
+      <server_hostname></server_hostname>
+      <spooler>cups</spooler>
+    </printer>
+    <runlevel>
+      <default>3</default>
+    </runlevel>
+    <security>
       <console_shutdown>reboot</console_shutdown>
       <cracklib_dict_path>/usr/lib/cracklib_dict</cracklib_dict_path>
       <cwd_in_root_path>no</cwd_in_root_path>
@@ -1083,16 +1093,6 @@ umount /tmp/xenrttmpmount
       <rc_vars/>
       <volume_settings config:type="list"/>
     </sound>
-    <printer>
-      <cups_installation config:type="symbol">server</cups_installation>
-      <default></default>
-      <printcap config:type="list"/>
-      <server_hostname></server_hostname>
-      <spooler>cups</spooler>
-    </printer>
-    <runlevel>
-      <default>3</default>
-    </runlevel>
     <users config:type="list">
       <user>
         <encrypted config:type="boolean">false</encrypted>
@@ -1172,6 +1172,27 @@ sleep 120
         </section>
       </sections>
     </bootloader>
+    <general>
+      <clock>
+        <hwclock>localtime</hwclock>
+        <timezone>%s</timezone>
+      </clock>
+      <keyboard>
+        <keymap>english-uk</keymap>
+      </keyboard>
+      <language>en_GB</language>
+      <mode>
+        <confirm config:type="boolean">false</confirm>
+        <forceboot config:type="boolean">false</forceboot>
+      </mode>
+      <mouse>
+        <id>none</id>
+      </mouse>
+      <signature-handling>
+        <accept_verification_failed config:type="boolean">true</accept_verification_failed>
+        <accept_file_without_checksum config:type="boolean">true</accept_file_without_checksum> 
+      </signature-handling>  
+    </general>
     <partitioning config:type="list">
       <drive>
         <device>/dev/%s</device>
@@ -1199,30 +1220,9 @@ sleep 120
         <use>all</use>
       </drive>
     </partitioning>
-    <general>
-      <clock>
-        <hwclock>localtime</hwclock>
-        <timezone>%s</timezone>
-      </clock>
-      <keyboard>
-        <keymap>english-uk</keymap>
-      </keyboard>
-      <language>en_GB</language>
-      <mode>
-        <confirm config:type="boolean">false</confirm>
-        <forceboot config:type="boolean">false</forceboot>
-      </mode>
-      <mouse>
-        <id>none</id>
-      </mouse>
-      <signature-handling>
-        <accept_verification_failed config:type="boolean">true</accept_verification_failed>
-        <accept_file_without_checksum config:type="boolean">true</accept_file_without_checksum> 
-      </signature-handling>  
-    </general>
     <software>
       <patterns config:type="list">
-\        <pattern>Basis-Devel</pattern>
+        <pattern>Basis-Devel</pattern>
       </patterns>
     </software>
   </install>
@@ -1239,7 +1239,7 @@ sleep 120
        self.mainDisk,
        self._bootDiskSize()
        )
-        return ks 
+        return ks
 
     def _generateSLES12(self):
         ks = """<?xml version="1.0"?>

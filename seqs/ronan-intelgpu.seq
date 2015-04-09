@@ -39,6 +39,10 @@
         <arg>vgpuconfig=12</arg>
       </testcase>
 
+      <testcase id="testcases.xenserver.tc.vgpu.TestIntelDrivers" name="DriverTest">
+        <arg>typeofvgpu=intelwinvgpu</arg>
+      </testcase>
+
     </serial>
   </testsequence>
 

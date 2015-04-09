@@ -255,13 +255,13 @@ class VGPUTest(object):
         VGPUConfig.K140 : "K140",
         VGPUConfig.K160 : "K160",
         VGPUConfig.K180 : "K180",
-        VGPUConfig.K1PassThrough : "K1PassThrough",
+        VGPUConfig.K1PassThrough : "K1passthrough",
         VGPUConfig.K200 : "K200",
         VGPUConfig.K220 : "K220",
         VGPUConfig.K240 : "K240",
         VGPUConfig.K260 : "K260",
         VGPUConfig.K280 : "K280",
-        VGPUConfig.K2PassThrough : "K2PassThrough",
+        VGPUConfig.K2PassThrough : "K2passthrough",
         VGPUConfig.PassThrough : "passthrough"
     }
 
@@ -333,7 +333,7 @@ class VGPUTest(object):
         device = "\\".join(gpu.split("\\")[0:2])
         lines = vm.devcon("status \"%s\"" % device).splitlines()
 
-        vGPUType = vGPUType.replace("PassThrough", "$")
+        vGPUType = vGPUType.replace("passthrough", "$")
 
         for l in lines:
             if "Name" in l:
@@ -2251,15 +2251,13 @@ class TCNovGPUTypeGiven(FunctionalBase):
         vm = self.createMaster(osType)
 
         log("Creating vGPU ")
-        #vm.setState("DOWN")
-        #vm.createvGPU(groupUUID=groupUUID)
-        #vm.setState("UP")
+
         self.typeOfvGPU.attatchGPU(self.vGPUCreator[config], vm, groupUUID)
 
         vgpuType, vgpuuuid = self.typeOfvGPUonVM(vm)
 
         log("Checking the type of vGPU attached to VM")
-        if not "passthrough" in vgpuType:
+        if not self.getConfigurationName(VGPUConfig.PassThrough) in vgpuType:
             raise xenrt.XRTFailure("VM has not got the passthrough but instead it has got vGPU of type %s" % vgpuType)
 
         log("Installing the vGPU Guest drivers")
@@ -2301,8 +2299,6 @@ class TCReuseK2PGPU(FunctionalBase):
                 typeOfVgpu = self.nvidLinvGPU
 
             log("Creating vGPU of type %s" % (self.getConfigurationName(config)))
-            #self.configureVGPU(config, vm)
-            #vm.setState("UP")
             typeOfVgpu.attachvGPUToVM(self.vGPUCreator[config], vm)
 
             log("Install guest drivers for %s" % str(vm))
@@ -2416,8 +2412,6 @@ class TCRevertvGPUSnapshot(FunctionalBase):
             vm = self.createMaster(osType)
 
             log("Creating vGPU of type %s" % (self.getConfigurationName(self.VGPU_CONFIG[0])))
-            #self.configureVGPU(self.VGPU_CONFIG[0], vm)
-            #vm.setState("UP")
             self.typeOfvGPU.attachvGPUToVM(self.VGPU_CONFIG[0], vm)
 
             log("Install guest drivers for %s" % str(vm))
@@ -2483,8 +2477,6 @@ class TCvGPUBalloon(FunctionalBase):
             vm = self.createMaster(osType)
 
             log("Creating vGPU of type %s" % (self.getConfigurationName(self.VGPU_CONFIG[0])))
-            #self.configureVGPU(self.VGPU_CONFIG[0], vm)
-            #vm.setState("UP")
             self.typeOfvGPU.attachvGPUToVM(self.VGPU_CONFIG[0], vm)
 
             log("Install guest drivers for %s" % str(vm))
@@ -2607,9 +2599,6 @@ class TCRevertnonvGPUSnapshot(FunctionalBase):
             snapshot = vm.snapshot()
 
             log("Creating vGPU of type %s" % (self.getConfigurationName(self.VGPU_CONFIG[0])))
-            #vm.setState("DOWN")
-            #self.configureVGPU(self.VGPU_CONFIG[0], vm)
-            #vm.setState("UP")
             self.typeOfvGPU.attachvGPUToVM(self.VGPU_CONFIG[0], vm)
 
             log("Install guest drivers for %s" % str(vm))
@@ -2649,8 +2638,6 @@ class TCChangeK2vGPUType(TCRevertvGPUSnapshot):
                 vm.destroyvGPU()
 
                 log("Creating vGPU of type %s" % (self.getConfigurationName(config)))
-                #self.configureVGPU(config, vm)
-                #vm.setState("UP")
                 self.typeOfvGPU.attachvGPUToVM(config, vm)
 
                 xenrt.sleep(300)
@@ -2694,9 +2681,6 @@ class TCBasicVerifOfAllK2config(FunctionalBase):
         expVGPUType = self.getConfigurationName(config)
         log("Creating vGPU of type %s" % (expVGPUType))
 
-        #vm.setState("DOWN")
-        #self.configureVGPU(config, vm)
-        #vm.setState("UP")
         self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
 
         log("Install guest drivers for %s" % str(vm))
@@ -2743,9 +2727,6 @@ class TCAssignK2vGPUToVMhasGotvGPU(TCBasicVerifOfAllK2config):
         expVGPUType = self.getConfigurationName(config)
 
         log("Creating vGPU of type %s" % (expVGPUType))
-        #vm.setState("DOWN")        
-        #self.configureVGPU(config, vm)
-        #vm.setState("UP")
         self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
 
         log("Install guest drivers for %s" % str(vm))
@@ -2809,9 +2790,6 @@ class TCOpsonK2vGPUToVMhasGotvGPU(TCBasicVerifOfAllK2config):
         expVGPUType = self.getConfigurationName(config)
 
         log("Creating vGPU of type %s" % (expVGPUType))
-        #vm.setState("DOWN")
-        #self.configureVGPU(config, vm)
-        #vm.setState("UP")
         self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
 
         log("Install guest drivers for %s" % str(vm))
@@ -2879,9 +2857,6 @@ class TCCheckPerfModeAllVMs(TCBasicVerifOfAllK2config):
         expVGPUType = self.getConfigurationName(config)
 
         log("Creating vGPU of type %s" % (expVGPUType))
-        #vm.setState("DOWN")
-        #self.configureVGPU(config, vm)
-        #vm.setState("UP")
         self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
 
         log("Install guest drivers for %s" % str(vm))
@@ -2974,9 +2949,6 @@ class TCBreadthK100K1Pass(TCBasicVerifOfAllK2config):
             expVGPUType = self.getConfigurationName(config)
 
             log("Creating vGPU of type %s" % (expVGPUType))
-            #vm.setState("DOWN")
-            #self.configureVGPU(config, vm)
-            #vm.setState("UP")
             self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
 
             log("Install guest drivers for %s" % str(vm))
@@ -3247,8 +3219,6 @@ class LinuxGPUBootstorm(BootstormBase):
         osType = self.getOSType(distro)
         vm = self.createMaster(osType)
 
-        #installer.createOnGuest(vm)
-        #vm.setState("UP")
         self.typeOfvGPU.attachvGPUToVM(installer, vm)
 
         self.typeOfvGPU.installGuestDrivers(vm,self.getConfigurationName(config))

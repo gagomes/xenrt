@@ -766,8 +766,8 @@ powershell %s""" % (self.ASF_WORKING_DIR, netUseCommand, command)
 
         version = host.checkVersion(versionNumber=True)
         # Run trunk against Clearwater templates
-        if host.productVersion == 'Creedence' or host.productVersion == 'Dundee':
-            xenrt.TEC().warning('Using Clearwater Templates for trunk and Creedence')
+        if host.productVersion == 'Creedence' or host.productVersion == 'Dundee' or host.productVersion == 'Cream':
+            xenrt.TEC().warning('Using Clearwater Templates for trunk, Creedence and Cream')
             version = '6.2.0'
 
         if not xenrt.TEC().lookup("EXISTING_TEMPLATES", False, boolean=True):

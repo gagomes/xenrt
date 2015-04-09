@@ -3406,7 +3406,7 @@ class TC8130(_StuckState):
         self.poweroff(self.master)
         time.sleep(10)
         # 2. block access to the statefile globally (already done in the case of NFS)
-        if self.SF_STORAGE != "nfs" or self.SF_STORAGE != "nfs4":
+        if self.SF_STORAGE != "nfs" and self.SF_STORAGE != "nfs4":
             self.target.shutdown()
         # 3. power on all nodes
         self.master.machine.powerctl.on()
@@ -3464,7 +3464,7 @@ class TC8131(_StuckState):
         self.poweroff(self.master)
         time.sleep(10)
         # 2. block access to the statefile globally (already done in the case of NFS)
-        if self.SF_STORAGE != "nfs" or self.SF_STORAGE != "nfs4":
+        if self.SF_STORAGE != "nfs" and self.SF_STORAGE != "nfs4":
             self.target.shutdown()
         # 3. power on slave
         self.slave.machine.powerctl.on()

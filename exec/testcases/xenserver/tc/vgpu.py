@@ -300,7 +300,7 @@ class VGPUTest(object):
             raise xenrt.XRTFailure("vGPU not running in VM %s: %s" % (vm.getName(),vm.getUUID()))
 
     def assertNvidiavGPUNotRunningInWinVM(self, vm, vGPUType):
-        vendor = "PCI.VEN_10DE.*(NVIDIA|VGA|Display).*"
+        vendor = "PCI.VEN_*(NVIDIA|VGA|Display).*"
         if self.checkvGPURunningInVM(vm, vGPUType,vendor):
             raise xenrt.XRTFailure("vGPU running when not expected in VM %s: %s" % (vm.getName(),vm.getUUID()))
 
@@ -3452,9 +3452,8 @@ class TestIntelDrivers(IntelBase):
         vmname = "targetvm"
         vm = self.host.getGuest(vmname)
         vm.setState("UP")
-        # Can fake it probably, vgputype.
-        # Can also do this step manually.
-        vgputype = "Intel"
+
+        vgputype = self.getConfigurationName(12)
         self.typeOfvGPU.installGuestDrivers(vm, vgputype)
         self.typeOfvGPU.assertvGPURunningInVM(vm, vgputype)
 

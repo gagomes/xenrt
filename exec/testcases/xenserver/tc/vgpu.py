@@ -3446,6 +3446,7 @@ class TestIntelDrivers(IntelBase):
     def run(self, arglist):
         vmname = "targetvm"
         vm = self.host.getGuest(vmname)
+        vm.setState("UP")
         # Can fake it probably, vgputype.
         # Can also do this step manually.
         vgputype = "passthrough"

@@ -125,7 +125,7 @@
     <parallel tc="${TCID}">
       <for iter="P,S" values="${HOSTPAIRS}">
         <for iter="C" values="${PAIRSPERHOST}">
-          <serial group="NFS.LinuxGuest.${P}${C}">
+          <serial group="CIFS.LinuxGuest.${P}${C}">
             <ifin item="${GUESTDISTRO}" list="etch,sarge,debian,debian50">
               <include collection="debguest">
                 <param name="HOSTNAME" value="RESOURCE_HOST_${P}" />
@@ -141,7 +141,7 @@
               </include>
             </ifnotin>
           </serial>
-          <serial group="NFS.WindowsGuest.${P}${C}">
+          <serial group="CIFS.WindowsGuest.${P}${C}">
             <include collection="winguest">
               <param name="HOSTNAME" value="RESOURCE_HOST_${P}" />
               <param name="OTHERHOST" value="RESOURCE_HOST_${S}" />

@@ -25,6 +25,7 @@ class VCenter(object):
         self.vc.os.enablePowerShellUnrestricted()
         self.vc.os.ensurePackageInstalled("PowerShell 3.0")
         self.vc.os.sendRecursive("%s/data/tests/vmware" % xenrt.TEC().lookup("XENRT_BASE"), "c:\\vmware")
+        self.vc.os.password = "xenroot01T"
         self.username = vccfg['USERNAME']
         self.address = vccfg['ADDRESS']
         self.password = vccfg['PASSWORD']

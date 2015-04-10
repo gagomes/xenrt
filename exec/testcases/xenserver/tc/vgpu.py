@@ -3155,15 +3155,16 @@ class TCNonWindowsK1(FunctionalBase):
         vm.destroyvGPU()
         raise xenrt.XRTFailure("No error was raised, but it should have been")
 
+
 class BootstormBase(FunctionalBase):
 
     def prepare(self, arglist=[]):
         super(BootstormBase, self).prepare(arglist)
         self.vms = []
-    
+
     def run(self, arglist):
         """Should perform the bootstorm steps with all available vms."""
-        
+
         # Shut down all the vms.
         for vm, config in self.vms:
             vm.setState("DOWN")
@@ -3199,8 +3200,9 @@ class BootstormBase(FunctionalBase):
         except Exception, e:
             raise xenrt.XRTFailure("Failed to start vm %s - %s" % (vm.getName(), str(e)))
 
+
 class LinuxGPUBootstorm(BootstormBase):
-    
+
     def prepare(self, arglist=[]):
 
         super(LinuxGPUBootstorm, self).prepare(arglist)
@@ -3220,7 +3222,7 @@ class LinuxGPUBootstorm(BootstormBase):
 
         self.typeOfvGPU.attachvGPUToVM(installer, vm)
 
-        self.typeOfvGPU.installGuestDrivers(vm,self.getConfigurationName(config))
+        self.typeOfvGPU.installGuestDrivers(vm, self.getConfigurationName(config))
 
         remainingCapacity = self.host.remainingGpuCapacity(installer.groupUUID(), installer.typeUUID())
         xenrt.TEC().logverbose("Remaining Capacity is: %s" % remainingCapacity)
@@ -3228,15 +3230,16 @@ class LinuxGPUBootstorm(BootstormBase):
         self.vms.append((vm, config))
 
         vm.setState("DOWN")
-        
+
         for i in range(remainingCapacity):
             g = vm.cloneVM(noIP=False)
             self.vms.append((g, config))
 
             g.setState("UP")
 
+
 class MixedGPUBootstorm(BootstormBase):
-    
+
     # From seq file.
     LINUX_TYPE = None
     WINDOWS_TYPE = None
@@ -3292,10 +3295,10 @@ class MixedGPUBootstorm(BootstormBase):
         #installer.createOnGuest(master)
         #master.setState("UP")
         typeVgpu.attachvGPUToVM(installer, master)
-        typeVgpu.installGuestDrivers(master,self.getConfigurationName(config))
+        typeVgpu.installGuestDrivers(master, self.getConfigurationName(config))
         master.setState("DOWN")
         self.vms.append((master, config))
-        
+
         for i in range(allocation - 1):
             g = master.cloneVM(noIP=False)
             self.vms.append((g, config))
@@ -3313,8 +3316,9 @@ class MixedGPUBootstorm(BootstormBase):
         self.PASSTHROUGH_ALLOCATION = float(args['passthroughalloc'])
         self.VGPU_TYPE = int(args['vgpualloctype'])
 
+
 class IntelBase(FunctionalBase):
-    
+
     def prepare(self, arglist):
         super(IntelBase, self).prepare(arglist)
 
@@ -3337,6 +3341,7 @@ class IntelBase(FunctionalBase):
                 vm.enableFullCrashDump()
             self.masterVMsSnapshot[osType] = vm.snapshot()
 
+
 class TCIntelSetupNegative(IntelBase):
     """
     Passthrough GPU to win VM without rebooting host after block.
@@ -3358,6 +3363,7 @@ class TCIntelSetupNegative(IntelBase):
                     raise xenrt.XRTFailure("Can attach Intel GPU to vm, while Host not rebooted after blocking Dom0 Access.")
                 except:
                     pass
+
 
 class TCIntelGPUSnapshotNegative(IntelBase):
     """
@@ -3392,6 +3398,7 @@ class TCIntelGPUSnapshotNegative(IntelBase):
                 # Return to blocked state for rest of distros.
                 self.typeOfvGPU.blockDom0Access(self.host)
 
+
 class TCIntelGPUReuse(IntelBase):
     """Intel GPU can be reused once it is down."""
 
@@ -3409,6 +3416,7 @@ class TCIntelGPUReuse(IntelBase):
                     self.typeOfvGPU.installGuestDrivers(vm, self.getConfigurationName(config))
                     self.typeOfvGPU.assertvGPURunningInVM(vm, self.getConfigurationName(config))
                     vm.setState("DOWN")
+
 
 class TestIntelDrivers(IntelBase):
     """Will use the prepare, but don't pass any config or distro, I think?"""

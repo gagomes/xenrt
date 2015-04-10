@@ -2570,6 +2570,17 @@ exit /B 1
         if pcpus:
             limits.append(pcpus)
 
+        # Limit based on memory size
+        guestmem = self.memory
+        if not guestmem:
+            try:
+                guestmem = self.memget()
+            except:
+                xenrt.TEC().warning("Cannot determine guest memory")
+        if guestmem:
+            memlimit = guestmem / int(xenrt.TEC().lookup("RND_VCPUS_MB_PER_VCPU", "64"))
+            limits.append(memlimit)
+
         if limits:
             return min(limits)
 
@@ -4672,6 +4683,8 @@ def createVM(host,
         vifs = parseSequenceVIFs(g, host, vifs)
 
         # The install method doesn't do this for us.
+        if memory:
+            g.setMemory(memory)
         if vcpus:
             g.setVCPUs(vcpus)
         elif xenrt.TEC().lookup("RND_VCPUS", default=False, boolean=True):
@@ -4680,8 +4693,6 @@ def createVM(host,
             g.setCoresPerSocket(corespersocket)
         elif xenrt.TEC().lookup("RND_CORES_PER_SOCKET", default=False, boolean=True):
             g.setRandomCoresPerSocket(host, vcpus)
-        if memory:
-            g.setMemory(memory)
 
         if bootparams:
             bp = g.getBootParams()

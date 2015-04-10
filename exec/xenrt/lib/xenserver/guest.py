@@ -2589,8 +2589,8 @@ exit /B 1
         return 4
 
     def setRandomVcpus(self):
-        xenrt.TEC().logverbose("Setting random vcpus for VM ")
         maxVcpusSupported = self.getMaxSupportedVCPUCount()
+        xenrt.TEC().logverbose("Setting random vcpus for VM between 1 and max supported %d" % maxVcpusSupported)
         randomVcpus = random.randint(1, maxVcpusSupported)
         with xenrt.GEC().getLock("RND_VCPUS"):
             dbVal = int(xenrt.TEC().lookup("RND_VCPUS_VAL", "0"))

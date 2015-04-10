@@ -1,5 +1,6 @@
 from app.apiv2 import *
 from pyramid.httpexceptions import *
+import app.user
 import config
 
 class LogServer(XenRTAPIv2Page):
@@ -42,7 +43,9 @@ class GetUserDetails(XenRTAPIv2Page):
     TAGS = ["misc"]
 
     def render(self):
-        u = app.user.User(self, self.matchdict(['user']))
+        u = app.user.User(self, self.matchdict('user'))
+        if not u.valid:
+            raise XenRTAPIError(HTTPNotFound, "User not found")
         return {"user": u.userid, "email": u.email, "team": u.team}
 
 class ADLookup(XenRTAPIv2Page):

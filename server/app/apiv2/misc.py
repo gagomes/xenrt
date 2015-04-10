@@ -26,7 +26,24 @@ class GetUser(XenRTAPIv2Page):
         u = self.getUser()
         if not u:
             return {}
-        return {"user": u.userid, "email": u.email}
+        return {"user": u.userid, "email": u.email, "team": u.team}
+
+class GetUserDetails(XenRTAPIv2Page):
+    PATH = "/userdetails/{user}"
+    REQTYPE = "GET"
+    SUMMARY = "Get details for a XenRT user"
+    PARAMS = [
+        {'name': 'user',
+         'in': 'path',
+         'required': True,
+         'description': 'User to fetch',
+         'type': 'integer'}]
+    RESPONSES = {"200": {"description": "Successful response"}}
+    TAGS = ["misc"]
+
+    def render(self):
+        u = app.user.User(self, self.matchdict(['user']))
+        return {"user": u.userid, "email": u.email, "team": u.team}
 
 class ADLookup(XenRTAPIv2Page):
     PATH = "/ad"
@@ -66,3 +83,4 @@ class ADLookup(XenRTAPIv2Page):
 RegisterAPI(LogServer)
 RegisterAPI(GetUser)
 RegisterAPI(ADLookup)
+RegisterAPI(GetUserDetails)

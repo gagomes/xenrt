@@ -2711,7 +2711,6 @@ class TCBasicVerifOfAllK2config(FunctionalBase):
         try: g.uninstall()
         except: pass
 
-        self.typeOfvGPU.unblockDom0Access(self.host)
 
 class TCAssignK2vGPUToVMhasGotvGPU(TCBasicVerifOfAllK2config):
 

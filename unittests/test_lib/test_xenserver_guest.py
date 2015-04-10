@@ -98,6 +98,13 @@ class TestMaxSupportedVCPU(XenRTUnitTestCase):
         guest.arch = arch
         if guestMem:
             guest.memory = guestMem
+        else:
+            if pcpuLimit:
+                h = tec.return_value.registry.hostGet.return_value
+            else:
+                tec.return_value.registry = Mock()
+                tec.return_value.registry.hostList.return_value = []
+                tec.return_value.registry.hostGet.return_value.getTemplateParams.return_value.defaultMemory = None
 
         tec.return_value.lookup = self.__lookup
         tec.return_value.lookupHost = Mock(return_value = None)
@@ -139,7 +146,8 @@ class TestMaxSupportedVCPU(XenRTUnitTestCase):
         # Now without memory
         w.reset_mock()
         self.conf["PRODUCT_VERSION"] = "TestPV"
-        guest.memory = None             
+        guest.memory = None
+        tec.return_value.registry.hostGet.return_value.getTemplateParams.return_value.defaultMemory = None
         guest.getMaxSupportedVCPUCount()
         self.assertTrue(w.called)
 

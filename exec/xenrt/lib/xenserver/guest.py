@@ -2572,14 +2572,14 @@ exit /B 1
 
         # Limit based on memory size
         guestmem = self.memory
-        if not guestmem:
-            try:
-                guestmem = self.memget()
-            except:
-                xenrt.TEC().warning("Cannot determine guest memory")
+        if not guestmem and self.distro:
+            host = xenrt.TEC().registry.hostGet("RESOURCE_HOST_DEFAULT")
+            guestmem = host.getTemplateParams(self.distro, self.arch).defaultMemory
         if guestmem:
             memlimit = guestmem / int(xenrt.TEC().lookup("RND_VCPUS_MB_PER_VCPU", "64"))
             limits.append(memlimit)
+        else:
+            xenrt.TEC().warning("Cannot determine guest memory")
 
         if limits:
             return min(limits)

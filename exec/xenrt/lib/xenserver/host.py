@@ -12460,14 +12460,16 @@ class SMBStorageRepository(StorageRepository):
 
         dconf = {}
         smconf = {}
-        dconf["server"] = share.getLinuxUNCPath() 
-        if share.domain:
-            dconf['username'] = "%s\\\\%s" % (share.domain, share.user)
-        else:
-            dconf['username'] = share.user
+        dconf["server"] = share.getLinuxUNCPath()
+
+        #if share.domain:
+        #    dconf['username'] = "%s\\\\%s" % (share.domain, share.user)
+        #else:
+        #    dconf['username'] = share.user
+
+        dconf['username'] = share.user
         dconf['password'] = share.password
-        self._create("cifs",
-                     dconf)
+        self._create("cifs", dconf)
 
     def check(self):
         StorageRepository.checkCommon(self, "cifs")

@@ -178,9 +178,9 @@ class TestRdpWithSnapshot(RdpVerification):
             raise xenrt.XRTFailure("Guest agent does not updated data/ts about the RDP status change for the guest %s " % (self.guest))
         xenrt.TEC().logverbose("Guest agent updated the RDP status in data/ts successfully for the guest %s" % (self.guest))
 
-        # Take snapshot of the guest
-        step("Test trying to take the snapshot of the guest")
-        snapuuid = self.guest.snapshot()
+        # Take disc+memory snapshot of the guest
+        step("Test trying to take the snapshot( memory+disc ) of the guest")
+        uuid = self.guest.checkpoint()
 
         # Enable the RDP on the guest
         if not xapiRdpObj.enableRdp():

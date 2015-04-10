@@ -668,11 +668,14 @@ while not os.path.isfile("%s%s") and i<600000:
             afinet = "socket.AF_INET6"
             get_ipv6_fn = """
 import subprocess
-for line in subprocess.check_output("ipconfig").split("\\r\\n"):
-    print line
-    if "  IPv6 Address" in line:
-      ipv6 = line.split(": ")[1]
-      print "found local ipv6 %s" % (ipv6,)
+ipv6 = False
+while not ipv6:
+    print "not found local ipv6 yet"
+    for line in subprocess.check_output("ipconfig").split("\\r\\n"):
+        print line
+        if "  IPv6 Address" in line:
+            ipv6 = line.split(": ")[1]
+            print "found local ipv6 %s" % (ipv6,)
 """
             bind_ipv6_fn = "s.bind((ipv6,0))"
         else:

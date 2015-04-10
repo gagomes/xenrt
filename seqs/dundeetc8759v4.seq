@@ -33,7 +33,7 @@
   <prepare>
     <pool>
       <allhosts />
-      <storage type="nfs" name="nfssr" default="true" options="4" />
+      <storage type="nfs" name="nfssrv4" default="true" options="4" />
       <NETWORK>
         <PHYSICAL network="NPRI">
           <NIC />

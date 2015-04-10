@@ -45,7 +45,7 @@ class VCenter(object):
                                                         host.getIP(),
                                                         "root",
                                                         host.password,
-                                                        self.dvs), returndata=True))
+                                                        self.dvs), returndata=True, winrm=True))
                
 
             hostlist =csv.DictReader(StringIO.StringIO(self.vc.os.readFile("c:\\vmware\\%s.csv" % dc)))
@@ -62,7 +62,7 @@ class VCenter(object):
                 self.vc.os.execCmd("powershell.exe -ExecutionPolicy ByPass -File c:\\vmware\\listlicenses.ps1 %s %s %s" % (
                                         self.address,
                                         self.username,
-                                        self.password))
+                                        self.password), winrm=True)
 
 
                 liclist =csv.DictReader(StringIO.StringIO(self.vc.os.readFile("c:\\vmware\\licenses.csv")))
@@ -81,7 +81,7 @@ class VCenter(object):
                                                                     self.username,
                                                                     self.password,
                                                                     host.getIP(),
-                                                                    lic), returndata=True))
+                                                                    lic), returndata=True, winrm=True))
 
                      
                     hostlist =csv.DictReader(StringIO.StringIO(self.vc.os.readFile("c:\\vmware\\lic-%s.csv" % host.getIP())))
@@ -102,7 +102,7 @@ class VCenter(object):
             self.vc.os.execCmd("powershell.exe -ExecutionPolicy ByPass -File c:\\vmware\\listdatacenters.ps1 %s %s %s" % (
                                     self.address,
                                     self.username,
-                                    self.password))
+                                    self.password), winrm=True)
 
 
             dclist =csv.DictReader(StringIO.StringIO(self.vc.os.readFile("c:\\vmware\\dc.csv")))
@@ -114,7 +114,7 @@ class VCenter(object):
                                                         self.address,
                                                         self.username,
                                                         self.password,
-                                                        dc), returndata=True))
+                                                        dc), returndata=True, winrm=True))
 
 def getVCenter():
     global _vcenter

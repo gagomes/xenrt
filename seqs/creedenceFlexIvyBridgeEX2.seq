@@ -13,7 +13,7 @@
     <host id="0">
       <storage type="nfs" name="nfssr" default="true" />
       <vm name="linux">
-        <distro>debian60</distro>
+        <distro>debian70</distro>
         <network device="0" />
         <postinstall action="preCloneTailor"/>
       </vm>
@@ -25,7 +25,7 @@
     </host>
     <host id="1">
       <vm name="linux">
-        <distro>debian60</distro>
+        <distro>debian70</distro>
         <network device="0" />
       </vm>
     </host>

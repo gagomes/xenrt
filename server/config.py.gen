@@ -1,4 +1,4 @@
-import os, xml.dom.minidom, re, string
+import os, xml.dom.minidom, re, string, glob
 
 cfg = {}
 
@@ -20,9 +20,15 @@ cfg['ldap_uri'] = ""
 cfg['ldap_user'] = ""
 cfg['ldap_pass'] = ""
 cfg['ldap_base'] = ""
+cfg['group_mapping'] = ""
 # Parse a site config file
+cfs = glob.glob("%s/conf.d/*/*.xml" % confdir)
 cf = "%s/site.xml" % (confdir)
+
 if os.path.exists(cf):
+    cfs.append(cf)
+
+for cf in cfs:
     dom = xml.dom.minidom.parse(cf)
     for i in dom.childNodes:
         if i.nodeType == i.ELEMENT_NODE:
@@ -64,6 +70,8 @@ if os.path.exists(cf):
                                     cfg['ldap_pass'] = data
                                 elif name == "LDAP_BASE":
                                     cfg['ldap_base'] = data
+                                elif name == "AD_GROUP_MAPPING":
+                                    cfg['group_mapping'] = data
 
 cfg['results'] = "%s/results" % basedir
 cfg['sharedir'] = "@sharedir@"

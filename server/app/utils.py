@@ -363,9 +363,11 @@ def refresh_ad_caches(removeUsers=False):
 
     cur = db.cursor()
     print "Validating users in tblusers..."
-    cur.execute("SELECT userid,email FROM tblusers")
+    cur.execute("SELECT userid,email,disabled FROM tblusers")
     userCount = 0
     usersToRemove = []
+    usersToDisable = []
+    usersToEnable = []
     emailUpdates = []
     while True:
         rc = cur.fetchone()
@@ -378,6 +380,12 @@ def refresh_ad_caches(removeUsers=False):
             dbEmail = rc[1] and rc[1].strip()
             if adEmail != dbEmail:
                 emailUpdates.append((userid, adEmail))
+            adDisabled = ad.is_disabled(userid)
+            dbDisabled = rc[2]
+            if adDisabled and not dbDisabled:
+                usersToDisable.append(userid)
+            elif not adDisabled and dbDisabled:
+                usersToEnable.append(userid)
         except KeyError:
             usersToRemove.append(userid)
 
@@ -394,6 +402,13 @@ def refresh_ad_caches(removeUsers=False):
     for u,e in emailUpdates:
         print "Updating email address for %s (%s)" % (u,e)
         cur.execute("UPDATE tblusers SET email=%s WHERE userid=%s", [e,u])
+
+    for u in usersToEnable:
+        print "Enabling %s" % u
+        cur.execute("UPDATE tblusers SET disabled='0' WHERE userid=%s", [u])
+    for u in usersToDisable:
+        print "Disabling %s" % u
+        cur.execute("UPDATE tblusers SET disabled='1' WHERE userid=%s", [u])
 
     print "\nRefreshing group cache..."
     def _deleteGroup(groupid):

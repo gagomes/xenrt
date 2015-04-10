@@ -90,7 +90,10 @@ class XenRTPage(Page):
             raise Exception("Invalid object type")
 
     def renderWrapper(self):
-        if not self.getUser() and (self.REQUIRE_AUTH or (self.REQUIRE_AUTH_IF_ENABLED and config.auth_enabled == "yes")):
+        user = self.getUser()
+        if (not user or user.disabled) and (self.REQUIRE_AUTH or (self.REQUIRE_AUTH_IF_ENABLED and config.auth_enabled == "yes")):
+            if user and user.disabled:
+                return HTTPUnauthorized("Your account is disabled")
             return HTTPUnauthorized()
         try:
             ret = self.render()

@@ -2596,6 +2596,8 @@ exit /B 1
             dbVal = int(xenrt.TEC().lookup("RND_VCPUS_VAL", "0"))
             if dbVal != 0:
                 xenrt.TEC().logverbose("Using vcpus from DB: %d" % dbVal)
+                if dbVal > maxVcpusSupported:
+                    xenrt.TEC().warning("DB vcpus value is greater than maxVcpusSupported!")
                 self.setVCPUs(dbVal)
             else:
                 xenrt.TEC().logverbose("Randomly choosen vcpus is %d" % randomVcpus)

@@ -645,6 +645,8 @@ import socket
 import time
 import os.path
 
+%s
+
 controller_ip = "%s"
 controller_udp_port = %s
 i=0
@@ -653,6 +655,7 @@ while not os.path.isfile("%s%s") and i<600000:
     print "sending to (%%s:%%s):%%s" %% (controller_ip,controller_udp_port,msg)
     try:
         s = socket.socket( %s, socket.SOCK_DGRAM)
+        %s
         s.sendto(msg, (controller_ip, controller_udp_port))
     except Exception, e:
         print "exception %%s" %% e
@@ -661,16 +664,27 @@ while not os.path.isfile("%s%s") and i<600000:
 """
         if xenrt.TEC().lookup("USE_GUEST_IPV6", False):
             afinet = "socket.AF_INET6"
+            get_ipv6_fn = """
+import subprocess
+for line in subprocess.check_output("ipconfig").split("\\r\\n"):
+    print line
+    if "  IPv6 Address" in line:
+      ipv6 = line.split(": ")[1]
+      print "found local ipv6 %s" % (ipv6,)
+"""
+            bind_ipv6_fn = "s.bind((ipv6,0))"
         else:
             afinet = "socket.AF_INET"
+            get_ipv6_fn = ""
+            bind_ipv6_fn = ""
 
         if guest.windows: 
-            script = script % (self.UDP_IP, self.UDP_PORT,"c:\\",self.stop_filename(), self.EVENT, afinet)
+            script = script % (get_ipv6_fn, self.UDP_IP, self.UDP_PORT,"c:\\",self.stop_filename(), self.EVENT, afinet, bind_ipv6_fn)
             script_path = "c:\\%s" % self.script_filename()
             guest.xmlrpcWriteFile(script_path, script)
             self.addEventTrigger(guest,script_path)
         else:#posix guest
-            script = script % (self.UDP_IP, self.UDP_PORT,"/",self.stop_filename(), self.EVENT, afinet)
+            script = script % (get_ipv6_fn, self.UDP_IP, self.UDP_PORT,"/",self.stop_filename(), self.EVENT, afinet, bind_ipv6_fn)
             script_path = "/%s" % self.script_filename()
             sf = xenrt.TEC().tempFile()
             file(sf, "w").write(script)

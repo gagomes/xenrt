@@ -3948,11 +3948,11 @@ exit /B 1
                                                 "type=CD vdi-name-label=%s vm-uuid=%s" %
                                                 (toolscdname, self.getUUID()))
 
-        if deviceList:
-            device = deviceList[0]
-        else:
-            raise xenrt.XRTFailure("No CD device found on host")
-        
+            if deviceList:
+                device = deviceList[0]
+            else:
+                raise xenrt.XRTFailure("VBD for tools ISO not found")
+
         for dev in [device, device, "cdrom"]:
             try:
                 self.execguest("mount /dev/%s /mnt" % (dev))

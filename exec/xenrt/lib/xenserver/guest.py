@@ -3941,12 +3941,17 @@ exit /B 1
 
         toolscdname = self.insertToolsCD()
         device="sr0"
-        
+
         if not self.isHVMLinux():
-            device = self.getHost().minimalList("vbd-list", 
+            deviceList = self.getHost().minimalList("vbd-list", 
                                                 "device", 
                                                 "type=CD vdi-name-label=%s vm-uuid=%s" %
-                                                (toolscdname, self.getUUID()))[0]
+                                                (toolscdname, self.getUUID()))
+
+        if deviceList:
+            device = deviceList[0]
+        else:
+            raise xenrt.XRTFailure("No CD device found on host")
         
         for dev in [device, device, "cdrom"]:
             try:

@@ -9287,7 +9287,7 @@ Set WshShell = WScript.CreateObject("WScript.Shell")
 WshShell.Run "cmd", 9
 
 WScript.sleep 1000
-WshShell.SendKeys "c:\win32_%s.exe /s /n /noreboot"
+WshShell.SendKeys "c:\%s /s /n /noreboot"
 WshShell.SendKeys "{ENTER}"
 WScript.sleep 30000
 WshShell.SendKeys "{ENTER}"
@@ -9299,7 +9299,7 @@ WScript.sleep 180000
 WshShell.SendKeys "{ENTER}"
 WScript.sleep 5000
 Wshshell.SendKeys "{ENTER}"
-""" % (currentVersion)
+""" % (fileName)
         self.xmlrpcWriteFile("c:\\vb.vbs",vbScript)
         returncode = self.xmlrpcExec("c:\\vb.vbs",
                                       level=xenrt.RC_OK, returnerror=False, returnrc=True,

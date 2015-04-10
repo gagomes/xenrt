@@ -38,7 +38,7 @@ class GetUserDetails(XenRTAPIv2Page):
          'in': 'path',
          'required': True,
          'description': 'User to fetch',
-         'type': 'integer'}]
+         'type': 'string'}]
     RESPONSES = {"200": {"description": "Successful response"}}
     TAGS = ["misc"]
 

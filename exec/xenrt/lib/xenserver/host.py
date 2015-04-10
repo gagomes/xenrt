@@ -12462,11 +12462,10 @@ class SMBStorageRepository(StorageRepository):
         smconf = {}
         dconf["server"] = share.getLinuxUNCPath()
 
+        # CLI is not accepting the domain name at present. (1036047)
         #if share.domain:
         #    dconf['username'] = "%s\\\\%s" % (share.domain, share.user)
         #else:
-        #    dconf['username'] = share.user
-
         dconf['username'] = share.user
         dconf['password'] = share.password
         self._create("cifs", dconf)

@@ -1302,7 +1302,8 @@ ln -s %s opt/xensource/sm/%s
 """ % (srfile, srtarget, srfile, srtarget, srfile)
 
         v6hack = ""
-        mockd = xenrt.TEC().getFile(self.V6MOCKD_LOCATION)
+        v6mockdloc = xenrt.TEC().lookup("V6MOCKD_LOCATION", self.V6MOCKD_LOCATION)
+        mockd = xenrt.TEC().getFile(v6mockdloc)
         if upgrade and not mockd:
             # Set up a temporary WWW directory to hold the v6testd
             v6webdir = xenrt.WebDirectory()
@@ -10868,7 +10869,8 @@ class ClearwaterHost(TampaHost):
     def installMockLicenseD(self):
 
         filename = "mockd.rpm"
-        mockd = xenrt.TEC().getFile(self.V6MOCKD_LOCATION)
+        v6mockdloc = xenrt.TEC().lookup("V6MOCKD_LOCATION", self.V6MOCKD_LOCATION)
+        mockd = xenrt.TEC().getFile(v6mockdloc)
 
         try:
             xenrt.checkFileExists(mockd)

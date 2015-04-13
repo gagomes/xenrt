@@ -203,7 +203,17 @@ class CIFS(LicensedFeature):
         return "CIFS"
 
     def isEnabled(self, host):
-        pass
+
+        try:
+            # Setup share.
+            # Find minimal amount to call create.
+            share = None
+            sr = xenrt.SMBStorageRepository()
+            sr.create(share)
+        except:
+            return False
+        return True
+
 
     @property
     def featureFlagName(self):

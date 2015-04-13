@@ -1,0 +1,13 @@
+<xenrt>
+
+  <variables>
+    <PREPARE_WORKERS>1</PREPARE_WORKERS>
+  </variables>
+
+  <testsequence>
+    <testcase id="xenserver.install.TCXenServerInstall" name="TCXenServerInstall" tc="TC-6647">
+      <arg>RESOURCE_HOST_0</arg>
+    </testcase>
+  </testsequence>
+
+</xenrt>

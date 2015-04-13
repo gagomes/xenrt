@@ -304,7 +304,7 @@ class Guest(xenrt.GenericGuest):
 
         # Hack to use correct kickstart for rhel6
         if distro and kickstart == "standard":
-            if distro.startswith("rhel6"):
+            if distro.startswith("rhel6") or distro.startswith("rhelw6"):
                 kickstart = "rhel6"
             if distro.startswith("oel6"):
                 kickstart = "oel6"
@@ -567,6 +567,15 @@ class Guest(xenrt.GenericGuest):
                     self.execcmd("rpm -ivh --force %s"%(kernelFix))
                 tempRoot = self.execcmd("grep -Eo 'root=UUID=[0-9a-f-]+' /boot/grub2/grub.cfg | head -n 1").split('\n')[0]
                 self.execcmd("sed -i 's^root=/dev/mapper/VolGroup-lv_root^%s^' /boot/grub2/grub.cfg"%(tempRoot))
+            elif distro and distro == 'oel71':
+                _new_kernel = kernelUpdatesPrefix + "/OEL74/"
+                _new_kernel_path = ["kernel-uek-firmware-3.8.13-55.1.5.el7uek.xs.x86_64.rpm",
+                                    "kernel-uek-3.8.13-55.1.5.el7uek.xs.x86_64.rpm",
+                                    "kernel-uek-devel-3.8.13-55.1.5.el7uek.xs.x86_64.rpm"]
+                for kernelFix in _new_kernel_path:
+                    xenrt.TEC().logverbose("wget %s/%s"%(_new_kernel,kernelFix))
+                    self.execcmd("wget %s/%s"%(_new_kernel,kernelFix))
+                    self.execcmd("rpm -ivh --force %s"%(kernelFix))
             elif distro and distro in ['rhel7','centos7']:
                 _new_kernel = kernelUpdatesPrefix + "/RHEL7/"
                 _new_kernel_path = ["kernel-devel-3.10.0-123.20.1.el7.xs.x86_64.rpm",
@@ -577,8 +586,20 @@ class Guest(xenrt.GenericGuest):
                     xenrt.TEC().logverbose("wget %s/%s"%(_new_kernel,kernelFix))
                     self.execcmd("wget %s/%s"%(_new_kernel,kernelFix))
                     self.execcmd("rpm -ivh --force %s"%(kernelFix))
+            elif distro and distro in ['rhel71','centos71']:
+                _new_kernel = kernelUpdatesPrefix + "/RHEL71/"
+                _new_kernel_path = ["kernel-devel-3.10.0-229.1.2.el7.xs.x86_64.rpm",
+                                    "kernel-3.10.0-229.1.2.el7.xs.src.rpm",
+                                    "kernel-3.10.0-229.1.2.el7.xs.x86_64.rpm",
+                                    "kernel-headers-3.10.0-229.1.2.el7.xs.x86_64.rpm"]
+                for kernelFix in _new_kernel_path:
+                    xenrt.TEC().logverbose("wget %s/%s"%(_new_kernel,kernelFix))
+                    self.execcmd("wget %s/%s"%(_new_kernel,kernelFix))
+                    self.execcmd("rpm -ivh --force %s"%(kernelFix))
             else:
                 raise xenrt.XRTError("XSKernel requested, but not available for this distro (%s)" % distro)
+            del self.special['XSKernel']
+            self.reboot()
 
     def installCoreOS(self):
         self.host.installContainerPack()
@@ -719,7 +740,7 @@ users:
             if cdnames and len(cdnames) > 0:
                 if self.distro and \
                     (re.search("debian\d+", self.distro) or \
-                    re.search("rhel6", self.distro) or \
+                    re.search("rhel[dw]?6", self.distro) or \
                     re.search("oel6", self.distro) or \
                     re.search("sl6", self.distro) or \
                     re.search("centos6", self.distro) or \
@@ -769,7 +790,20 @@ users:
             if self.enlightenedDrivers or forcedReboot:
                 self.lifecycleOperation("vm-reboot",specifyOn=specifyOn, force=forcedReboot)
             else:
+                domid = self.getDomid()
                 self.unenlightenedReboot()
+                # Wait for the domid to change
+                startTime = xenrt.util.timenow()
+                while True:
+                    try:
+                        if self.getDomid() != domid:
+                            break
+                    except:
+                        # There is a tiny window where the domid may not exist while the reboot occurs
+                        pass
+                    if (xenrt.util.timenow() - startTime) > 600:
+                        raise xenrt.XRTError("domid failed to change 10 minutes after an unenlightenedReboot")
+                    xenrt.sleep(10)
             xenrt.sleep(20)
         else:
             xenrt.TEC().progress("Starting guest VM %s" % (self.name))
@@ -2047,21 +2081,24 @@ exit /B 1
         if doSet:
             self.getInstance().os.setIPs(ipSpec)
 
-    def setupNetscalerVPX(self):
+    def setupNetscalerVPX(self, installNSTools=False):
         netscaler = xenrt.lib.netscaler.NetScaler.setupNetScalerVpx(self, useVIFs=True)
         xenrt.GEC().registry.objPut("netscaler", self.name, netscaler)
         netscaler.applyLicense(netscaler.getLicenseFileFromXenRT())
+        if installNSTools:
+            netscaler.installNSTools()
         netscaler.checkFeatures()
 
-    def setupUnsupGuest(self):
+    def setupUnsupGuest(self, getIP=None):
         self.tailored = True
         self.enlightenedDrivers = False
         self.noguestagent = True
         if self.getState() == "DOWN":
-            self.lifecycleOperation('vm-start')
-        if not self.mainip:
-            _, bridge, mac, _ = self.vifs[0]
+            self.lifecycleOperation('vm-start', specifyOn=False)
+        if (getIP is None and not self.mainip) or getIP:
+            vifname, bridge, mac, _ = self.vifs[0]
             self.mainip = self.getHost().arpwatch(bridge, mac, timeout=1800)
+            self.vifs[0] = (vifname, bridge, mac, self.mainip)
 
     def setupDomainServer(self):
         self.installPowerShell()
@@ -4253,10 +4290,11 @@ exit /B 1
         agent.createEnvironment()
 
     def prepareForTemplate(self):
-        self.preCloneTailor()
-        if self.windows:
-            self.sysPrepOOBE()
-        self.shutdown()
+        if self.getState() == "UP":
+            self.preCloneTailor()
+            if self.windows:
+                self.sysPrepOOBE()
+            self.shutdown()
         self.changeCD(None)
 
     def convertToTemplate(self):
@@ -4264,6 +4302,37 @@ exit /B 1
         self.paramSet("is-a-template", "true")
         self.host.removeGuest(self.name)
         self.isTemplate = True
+
+    def getDeploymentRecord(self):
+        ret = super(Guest, self).getDeploymentRecord()
+        ret['networks'] = {}
+        try:
+            os = self.paramGet("os-version")
+            if os and os != "<not in database>":
+                ret['os']['reported'] = dict([x.split(": ") for x in self.paramGet("os-version").split("; ")])
+        except:
+            pass
+        for v in self.vifs:
+            (device, bridge, mac, ip) = v
+            nwuuid = self.getHost().getNetworkUUID(bridge)
+            nwname = self.getHost().genParamGet("network", nwuuid, "name-label")
+            ret['networks'][device] = {"network": {"name": nwname, "uuid": nwuuid}}
+            if not self.isTemplate:
+                ret['networks'][device]['mac'] = mac
+                if ip:
+                    ret['networks'][device]['ip'] = ip
+        
+        ret['disks'] = {}
+        for d in self.listDiskDevices():
+            vdiuuid = self.getHost().minimalList("vbd-list", "vdi-uuid", "vm-uuid=%s userdevice=%s" % (self.uuid, d))[0]
+            params = self.getHost().parameterList("vdi-list", ["virtual-size","sr-uuid", "sr-name-label"], "uuid=%s" % vdiuuid)[0]
+
+            ret['disks'][d] = {
+                "size": int(params['virtual-size'])/xenrt.GIGA,
+                "sr": {"name": params['sr-name-label'], "uuid": params['sr-uuid']}
+            }
+
+        return ret
 
 #############################################################################
 
@@ -4305,6 +4374,7 @@ def createVMFromFile(host,
                      suffix=None,
                      vifs=[],
                      ips={},
+                     sr=None,
                      *args,
                      **kwargs):
     if not isinstance(host, xenrt.GenericHost):
@@ -4314,6 +4384,7 @@ def createVMFromFile(host,
     else:
         displayname = guestname
     guest = host.guestFactory()(displayname, host=host)
+    guest.imported = True
     guest.ips = ips
     vifs = parseSequenceVIFs(guest, host, vifs)
     
@@ -4325,10 +4396,20 @@ def createVMFromFile(host,
             xenrt.command('wget -e http_proxy=%s "%s" -O %s/file.xva' % (proxy, filename, m.mountpoint))
         else:
             xenrt.command('wget "%s" -O %s/file.xva' % (filename, m.mountpoint))
-        guest.importVM(host, "%s/file.xva" % m.mountpoint, vifs=vifs)
+        guest.importVM(host, "%s/file.xva" % m.mountpoint, vifs=vifs, sr=sr)
         share.release()
     else:
-        guest.importVM(host, xenrt.TEC().getFile(filename), vifs=vifs)
+        if filename.startswith("nfs://"):
+            filename = re.sub("\${(.*?)}", lambda x: xenrt.TEC().lookup(x.group(1), None), filename)
+            filename = filename[6:]
+            dirname = os.path.dirname(filename)
+            d = host.execdom0("mktemp -d").strip()
+            host.execdom0("mount -t nfs %s %s" % (dirname, d))
+            guest.importVM(host, "%s/%s" % (d, os.path.basename(filename)), imageIsOnHost=True, sr=sr, vifs=vifs)
+            host.execdom0("umount %s" % d)
+        else:
+            guest.importVM(host, xenrt.TEC().getFile(filename), vifs=vifs, sr=sr)
+    guest.paramSet("is-a-template", "false")
     guest.reparseVIFs()
     guest.vifs.sort()
     if bootparams:
@@ -4342,7 +4423,10 @@ def createVMFromFile(host,
         guest.memset(memory)
     xenrt.TEC().registry.guestPut(guestname, guest)
     for p in postinstall:
-        eval("guest.%s()" % (p))
+        if "(" in p:
+            eval("guest.%s" % (p))
+        else:
+            eval("guest.%s()" % (p))
     if packages:
         guest.installPackages(packages)
     return guest
@@ -4452,7 +4536,7 @@ def createVMFromPrebuiltTemplate(host,
     g.ips = ips
 
     g.removeAllVIFs()
-    if re.search("[vw]", distro):
+    if xenrt.isWindows(distro):
         g.windows = True
         g.vifstem = g.VIFSTEMHVM
         g.password = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS", "ADMINISTRATOR_PASSWORD"])
@@ -4571,7 +4655,7 @@ def createVM(host,
                                 password=password)
         g.distro = distro
         g.arch = arch
-        if re.search("[vw]", distro):
+        if xenrt.isWindows(distro):
             g.windows = True
             g.vifstem = g.VIFSTEMHVM
             g.password = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS", "ADMINISTRATOR_PASSWORD"])
@@ -4686,7 +4770,10 @@ def createVM(host,
                 g.xmlrpcExec("cscript //b //NoLogo c:\\postrun.vbs")
                 g.xmlrpcRemoveFile("c:\\postrun.vbs")
         else:
-            eval("g.%s()" % (p))
+            if "(" in p:
+                eval("g.%s" % (p))
+            else:
+                eval("g.%s()" % (p))
 
     if packages:
         g.installPackages(packages)
@@ -6014,7 +6101,7 @@ class DundeeGuest(CreedenceGuest):
                 self.installFullWindowsGuestAgent()
                 
             # Download the Individual PV packages
-            self.xmlrpcSendFile(xenrt.TEC().getFile("xe-phase-1/%s" %(xenrt.TEC().lookup("PV_DRIVERS_LOCATION", None))), "c:\\tools.tgz")
+            self.xmlrpcSendFile(xenrt.TEC().getFile("xe-phase-1/%s" %(xenrt.TEC().lookup("PV_DRIVERS_LOCATION"))), "c:\\tools.tgz")
             pvToolsDir = self.xmlrpcTempDir()
             self.xmlrpcExtractTarball("c:\\tools.tgz", pvToolsDir)
             
@@ -6065,7 +6152,7 @@ class DundeeGuest(CreedenceGuest):
         
         #Download the tools if not present already
         if toolsDirectory is None:
-            self.xmlrpcSendFile(xenrt.TEC().getFile("xe-phase-1/%s" %(PV_DRIVERS_LOCATION)), "c:\\tools.tgz")
+            self.xmlrpcSendFile(xenrt.TEC().getFile("xe-phase-1/%s" %(xenrt.TEC().lookup("PV_DRIVERS_LOCATION"))), "c:\\tools.tgz")
             toolsDirectory = self.xmlrpcTempDir()
             self.xmlrpcExtractTarball("c:\\tools.tgz", toolsDirectory)
         

@@ -1278,8 +1278,12 @@ def getRandomULAPrefix():
     return global_id
 
 def jobOnMachine(machine, jobid):
-    job = xenrt.APIFactory().get_job(int(jobid))
-    return machine in job['machines']
+    try:
+        job = xenrt.APIFactory().get_job(int(jobid))
+    except:
+        return False
+    else:
+        return machine in job['machines']
 
 def canCleanJobResources(jobid):
     try:

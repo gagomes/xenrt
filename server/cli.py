@@ -10,3 +10,6 @@ if sys.argv[1] == "refreshcaches":
 elif sys.argv[1] == "borrownotify":
     if app.db.isDBMaster():
         app.apiv2.machines.NotifyBorrow(None).run()
+elif sys.argv[1] == "updateteams":
+    if app.db.isDBMaster():
+        app.utils.update_ad_teams()

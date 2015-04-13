@@ -1,5 +1,6 @@
 from app.apiv2 import *
 from pyramid.httpexceptions import *
+import app.user
 import config
 
 class LogServer(XenRTAPIv2Page):
@@ -26,7 +27,26 @@ class GetUser(XenRTAPIv2Page):
         u = self.getUser()
         if not u:
             return {}
-        return {"user": u.userid, "email": u.email}
+        return {"user": u.userid, "email": u.email, "team": u.team}
+
+class GetUserDetails(XenRTAPIv2Page):
+    PATH = "/userdetails/{user}"
+    REQTYPE = "GET"
+    SUMMARY = "Get details for a XenRT user"
+    PARAMS = [
+        {'name': 'user',
+         'in': 'path',
+         'required': True,
+         'description': 'User to fetch',
+         'type': 'string'}]
+    RESPONSES = {"200": {"description": "Successful response"}}
+    TAGS = ["misc"]
+
+    def render(self):
+        u = app.user.User(self, self.matchdict('user'))
+        if not u.valid:
+            raise XenRTAPIError(HTTPNotFound, "User not found")
+        return {"user": u.userid, "email": u.email, "team": u.team}
 
 class ADLookup(XenRTAPIv2Page):
     PATH = "/ad"
@@ -66,3 +86,4 @@ class ADLookup(XenRTAPIv2Page):
 RegisterAPI(LogServer)
 RegisterAPI(GetUser)
 RegisterAPI(ADLookup)
+RegisterAPI(GetUserDetails)

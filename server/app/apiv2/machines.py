@@ -90,7 +90,7 @@ class _MachineBase(XenRTAPIv2Page):
             conditions.append("m.machine != ('_' || s.site)")
 
 
-        query = "SELECT m.machine, m.site, m.cluster, m.pool, m.status, m.resources, m.flags, m.comment, m.leaseto, m.leasereason, m.leasefrom, m.leasepolicy, s.flags, m.jobid, m.descr, m.aclid, s.ctrladdr, s.location FROM tblmachines m INNER JOIN tblsites s ON m.site=s.site"
+        query = "SELECT m.machine, m.site, m.cluster, m.pool, m.status, m.resources, m.flags, m.comment, m.leaseto, m.leasereason, m.leasefrom, m.leasepolicy, s.flags, m.jobid, m.descr, m.aclid, s.ctrladdr, s.location, m.prio FROM tblmachines m INNER JOIN tblsites s ON m.site=s.site"
         if conditions:
             query += " WHERE %s" % " AND ".join(conditions)
 
@@ -122,6 +122,7 @@ class _MachineBase(XenRTAPIv2Page):
                 "aclid": rc[15],
                 "ctrladdr": rc[16].strip() if rc[16] else None,
                 "location": rc[17].strip() if rc[17] else None,
+                "prio": rc[18],
                 "params": {}
             }
             machine['leasecurrentuser'] = bool(machine['leaseuser'] and machine['leaseuser'] == self.getUser().userid)
@@ -202,10 +203,31 @@ class _MachineBase(XenRTAPIv2Page):
             raise XenRTAPIError(HTTPForbidden, "Can't update this field")
         if key.lower() in ("status", "jobid") and not allowReservedField:
             raise XenRTAPIError(HTTPForbidden, "Can't update this field")
-        if key.lower() in ("site", "cluster", "pool", "status", "resources", "flags", "descr", "jobid", "leasepolicy", "aclid"):
+        if key.lower() in ("site", "cluster", "pool", "status", "resources", "flags", "descr", "jobid", "leasepolicy", "aclid", "prio"):
             cur = db.cursor()
             try:
                 cur.execute("UPDATE tblmachines SET %s=%%s WHERE machine=%%s;" % (key.lower()), (value, machine))
+                # Check whether the pool has changed, or the status has switched to/from offline 
+                oldpool = machines[machine]['pool']
+                if machines[machine]['rawstatus'] == "offline":
+                    oldpool += "__offline"
+                newpool = oldpool
+                if key.lower() == "pool":
+                    newpool = value
+                    if machines[machine]['rawstatus'] == "offline":
+                        newpool += "__offline"
+                if key.lower() == "status":
+                    newpool = machines[machine]['pool']
+                    if value == "offline":
+                        newpool += "__offline"
+                if newpool != oldpool:
+                    timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))
+                    etype = "PoolChange"
+                    subject = machine
+                    edata = "%s:%s" % (oldpool, newpool)
+                    cur.execute("INSERT INTO tblEvents (ts, etype, subject, edata) "
+                                "VALUES (%s, %s, %s, %s);",
+                                [timenow, etype, subject, edata])
                 if commit:
                     db.commit()
             finally:
@@ -256,6 +278,13 @@ class _MachineBase(XenRTAPIv2Page):
             params = [name, site, pool, cluster, "/".join(["%s=%s" % (x,y) for (x,y) in resources.items()]), description]
 
             cur.execute(query, params)
+            timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))
+            etype = "PoolChange"
+            subject = name
+            edata = "NULL:%s" % (pool)
+            cur.execute("INSERT INTO tblEvents (ts, etype, subject, edata) "
+                        "VALUES (%s, %s, %s, %s);",
+                        [timenow, etype, subject, edata])
 
             if commit:
                 db.commit()
@@ -598,11 +627,15 @@ class UpdateMachine(_MachineBase):
             "resources": {
                 "type": "object",
                 "description": "Key-value pair resource:value of resources to update. (set value to null to remove a resource)"
+            },
+            "prio": {
+                "type": ["integer", "null"],
+                "description": "Machine priority. Default is 3. E.g. a priority of 4 means that this machine will be only be selected by the scheduler if no machines with priority 3 are available"
             }
         }
     }}
     OPERATION_ID = "update_machine"
-    PARAM_ORDER=["name", "params", "broken", "status", "resources", "addflags", "delflags"]
+    PARAM_ORDER=["name", "params", "broken", "status", "resources", "addflags", "delflags", "prio"]
     SUMMARY = "Update machine details"
 
     def render(self):
@@ -618,6 +651,8 @@ class UpdateMachine(_MachineBase):
                 self.updateMachineField(machine, p, j['params'][p], commit=False)
         if j.get('status'):
             self.updateMachineField(machine, "status", j['status'], allowReservedField=True, commit=False)
+        if "prio" in j:
+            self.updateMachineField(machine, "prio", j['prio'], commit=False)
         if "broken" in j:
 
             pool = machines[machine]['pool']

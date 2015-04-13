@@ -5466,7 +5466,7 @@ class GenericHost(GenericPlace):
             pxecfg.linuxArgsKernelAdd("console=hvc0")
         else:
             pxecfg.linuxArgsKernelAdd("root=/dev/ram0")
-            if re.search(r"(rhel|oel|centos)6", distro):
+            if re.search(r"(rhel|oel|centos)[dw]?6", distro):
                 pxecfg.linuxArgsKernelAdd("biosdevname=0")
         pxefile = pxe.writeOut(self.machine)
         pfname = os.path.basename(pxefile)
@@ -6814,6 +6814,7 @@ class GenericGuest(GenericPlace):
         self.ipv4_disabled = False
         self.instance = None
         self.isTemplate = False
+        self.imported = False
         xenrt.TEC().logverbose("Creating %s instance." % (self.__class__.__name__))
 
     def populateSubclass(self, x):
@@ -6830,6 +6831,7 @@ class GenericGuest(GenericPlace):
         x.reservedIP = self.reservedIP
         x.instance = self.instance
         x.isTemplate = self.isTemplate
+        x.imported = self.imported
 
     def getDeploymentRecord(self):
         if self.isTemplate:
@@ -6837,19 +6839,20 @@ class GenericGuest(GenericPlace):
         else:
             ret = {"access": {"vmname": self.getName(),
                               "ipaddress": self.getIP()}, "os": {}}
-        if self.windows:
-            ret['access']['username'] = "Administrator"
-            ret['access']['password'] = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS",
+        if not self.imported:
+            if self.windows:
+                ret['access']['username'] = "Administrator"
+                ret['access']['password'] = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS",
                                                             "ADMINISTRATOR_PASSWORD"],
                                                             "xensource")
-            ret['os']['family'] = "windows"
-            ret['os']['version'] = self.distro
-        else:
-            ret['access']['username'] = "root"
-            ret['access']['password'] = "xenroot"
-            ret['os']['family'] = "linux"
-            arch = self.arch or "x86-32"
-            ret['os']['version'] = "%s_%s" % (self.distro, arch)
+                ret['os']['family'] = "windows"
+                ret['os']['version'] = self.distro
+            else:
+                ret['access']['username'] = "root"
+                ret['access']['password'] = "xenroot"
+                ret['os']['family'] = "linux"
+                arch = self.arch or "x86-32"
+                ret['os']['version'] = "%s_%s" % (self.distro, arch)
         if self.host:
             ret['host'] = self.host.getName()
         else:
@@ -7432,12 +7435,6 @@ class GenericGuest(GenericPlace):
 
                 self.execguest("sed -i 's/TMPTIME=0/TMPTIME=-1/g' /etc/default/rcS")
 
-                # Remove the repositories we don't mirror from the apt list
-                self.execguest("sed -i '/backports/d' /etc/apt/sources.list")
-                self.execguest("sed -i '/security/d' /etc/apt/sources.list")
-                self.execguest("sed -i '/multiverse/d' /etc/apt/sources.list")
-                self.execguest("sed -i '/universe/d' /etc/apt/sources.list")
-                self.execguest("sed -i '/deb-src/d' /etc/apt/sources.list")
                 self.execguest("cat /etc/apt/sources.list")
                 self.execguest("apt-get update")
 
@@ -7449,7 +7446,7 @@ class GenericGuest(GenericPlace):
                 debVer = float(re.match(r"\d+(\.\d+)?", debVer).group(0))
                 if debVer < 5.0:
                     # Pre-Lenny, may have to use a cacher
-                    apt_cacher = xenrt.TEC().lookup("APT_CACHER", None)
+                    apt_cacher = "%s/debarchive" % xenrt.TEC().lookup("APT_SERVER")
                 if apt_cacher:
                     filebase = "/etc/apt/sources.list"
                     if self.execguest("test -e %s.orig" % (filebase),
@@ -7556,8 +7553,6 @@ class GenericGuest(GenericPlace):
                         sftp.copyTo(fn, filebase)
 
                 try:
-                    # The apt-cacher bzip2 files seem to be broken, so force use the gzip packages
-                    self.execguest("apt-get remove -y bzip2")
                     data = self.execguest("apt-get update")
                 except:
                     # If apt-get commands fail, wait a bit and retry.
@@ -8251,13 +8246,8 @@ class GenericGuest(GenericPlace):
             else:
                 maindisk="hda"
                 if distro:
-                    if distro.startswith("rhel") and int(distro[4:5]) >= 6:
-                        maindisk="xvda"
-                    if distro.startswith("centos") and int(distro[6:7]) >= 6:
-                        maindisk="xvda"
-                    if distro.startswith("oel") and int(distro[3:4]) >= 6:
-                        maindisk="xvda"
-                    if distro.startswith("sl") and int(distro[2:3]) >= 6:
+                    m = re.match("(rhel|centos|oel|sl)[dw]?(\d)\d*", distro)
+                    if m and int(m.group(2)) >= 6:
                         maindisk="xvda"
         else:
             ethDevice = vifname
@@ -9873,8 +9863,6 @@ while True:
         return self.instance
 
     def installPackages(self, packageList):
-        self.enablePublicRepository(doUpdateOnSuccess=False)
-        self.setAptCacheProxy(doUpdateOnSuccess=False)
         packages = " ".join(packageList)
         try:
             if "deb" in self.distro or "ubuntu" in self.distro:
@@ -9888,45 +9876,6 @@ while True:
                 raise xenrt.XRTError("Not Implemented")
         except Exception, e:
             raise xenrt.XRTError("Failed to install packages '%s' on guest %s : %s" % (packages, self, e))
-        self.disablePublicRepository()
-
-    def enablePublicRepository(self, doUpdateOnSuccess=True):
-        try:
-            if "deb" in self.distro or "ubuntu" in self.distro:
-                self.execguest("cp /etc/apt/sources.list /etc/apt/sources.list.orig -n")
-                repoFile = xenrt.TEC().lookup("XENRT_BASE") + xenrt.TEC().lookup("XENRT_LINUX_REPO_LISTS", "/data/linuxrepolist/") + self.distro
-                repoFileContent = xenrt.command("cat %s" % repoFile)
-                self.execguest("echo '%s' >> /etc/apt/sources.list" % repoFileContent, newlineok=True)
-                if doUpdateOnSuccess:
-                    self.execguest("apt-get update")
-            else:
-                raise xenrt.XRTError("Not Implemented")
-        except Exception, e:
-            xenrt.TEC().warning("Failed to add public Repositories: %s" % e)
-
-    def setAptCacheProxy(self, doUpdateOnSuccess=True):
-        try:
-            aptProxy = None
-            if "deb" in self.distro:
-                aptProxy = xenrt.TEC().lookup("APT_PROXY_DEBIAN", None)
-            elif "ubuntu" in self.distro:
-                aptProxy = xenrt.TEC().lookup("APT_PROXY_UBUNTU", None)
-            if aptProxy:
-                self.execguest("echo 'Acquire::http { Proxy \"http://%s\"; };' > /etc/apt/apt.conf.d/02proxy" % aptProxy)
-                if doUpdateOnSuccess:
-                    self.execguest("apt-get update")
-        except Exception, e:
-            xenrt.TEC().warning("Failed to add apt-cache proxy server: %s" % e)
-
-    def disablePublicRepository(self):
-        try:
-            if "deb" in self.distro or "ubuntu" in self.distro:
-                self.execguest("cat /etc/apt/sources.list.orig > /etc/apt/sources.list")
-                self.execguest("apt-get update")
-            else:
-                raise xenrt.XRTError("Not Implemented")
-        except Exception, e:
-            xenrt.TEC().warning("Failed to reset Repositories: %s" % e)
 
     def xenDesktopTailor(self):
         # Optimizations from CTX125874, excluding Windows crash dump (because we want them) and IE (because we don't use it)

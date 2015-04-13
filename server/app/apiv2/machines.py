@@ -278,6 +278,13 @@ class _MachineBase(XenRTAPIv2Page):
             params = [name, site, pool, cluster, "/".join(["%s=%s" % (x,y) for (x,y) in resources.items()]), description]
 
             cur.execute(query, params)
+            timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))
+            etype = "PoolChange"
+            subject = machine
+            edata = "NULL:%s" % (pool)
+            cur.execute("INSERT INTO tblEvents (ts, etype, subject, edata) "
+                        "VALUES (%s, %s, %s, %s);",
+                        [timenow, etype, subject, edata])
 
             if commit:
                 db.commit()

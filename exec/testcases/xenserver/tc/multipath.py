@@ -3701,7 +3701,22 @@ class DellPowerVaultIscsiMultipath(_DellPowerVaultMultipathing):
 class TC15464(xenrt.TestCase):
     """Test the consistency of devices in the multipath group"""
 
+    ARRAY_VENDOR = None
+
     def prepare(self, arglist=None):
+
+        args = self.parseArgsKeyValue(arglist)
+
+        if not args.has_key('arrayvendor'):
+            self.ARRAY_VENDOR = ""
+        else:
+            if args["arrayvendor"].lower() == "emcclariion": 
+                self.ARRAY_VENDOR = "using EMC Clariion"
+            elif args["arrayvendor"].lower() == "powervolt":
+                self.ARRAY_VENDOR = "using PowerVolt"
+            else:
+                raise xenrt.XRTError("Unknown array configuration is found" % args["arrayvendor"].lower())
+
         pool = self.getDefaultPool()
         if pool is None:
             self.host = self.getDefaultHost()
@@ -3710,8 +3725,8 @@ class TC15464(xenrt.TestCase):
 
         self.no_fc_ports = self.host.getNumOfFCPorts()
         if self.no_fc_ports == 0:
-            raise xenrt.XRTError("The host %s is not configured with any fibre channel connections." %
-                                                                                                self.host)
+            raise xenrt.XRTError("The host %s is not configured with any fibre channel connections %s." %
+                                                                                self.host, self.ARRAY_VENDOR)
 
         self.host.enableAllFCPorts() # Enable all the FC ports, if not.
         self.host.enableMultipathing() # Enable multipathing on host.
@@ -3720,7 +3735,7 @@ class TC15464(xenrt.TestCase):
         if self.host.getNumOfFCLUNs() > 0:
             self.lun0_scsiid = self.host.lookup(["FC", "LUN0", "SCSIID"], None)
         else:
-            raise xenrt.XRTError("Host doesn't have any FC LUNs configured.")
+            raise xenrt.XRTError("Host doesn't have any FC LUNs configured %s." % self.ARRAY_VENDOR)
 
         self.fc_sr = xenrt.lib.xenserver.FCStorageRepository(self.host, "FC01")
         self.fc_sr.create(self.lun0_scsiid, multipathing=True)
@@ -3755,7 +3770,7 @@ class TC15464(xenrt.TestCase):
 
             now = xenrt.util.timenow()
             if now > deadline:
-                raise xenrt.XRTError("Devices are still accessible")
+                raise xenrt.XRTError("Devices are still accessible %s" % self.ARRAY_VENDOR)
             time.sleep(15)
 
     def getDevList(self):
@@ -3768,14 +3783,14 @@ class TC15464(xenrt.TestCase):
         orig_dev_list = set(self.dev_list)
         
         if not curr_dev_list.issubset(orig_dev_list):
-            xenrt.TEC().logverbose("Current devices in multipath map are %s" % curr_dev_list)
+            xenrt.TEC().logverbose("Current devices in multipath map %s are %s" % (curr_dev_list, self.ARRAY_VENDOR))
             xenrt.TEC().logverbose("Original set of devices were %s" % orig_dev_list)
-            raise xenrt.XRTFailure("Unexpected devices found in the multipath map")
+            raise xenrt.XRTFailure("Unexpected devices found in the multipath map %s" % self.ARRAY_VENDOR)
 
         if len(curr_dev_list) == len(orig_dev_list):
-            xenrt.TEC().logverbose("Current devices in multipath map are %s" % curr_dev_list)
+            xenrt.TEC().logverbose("Current devices in multipath map %s are %s" % (curr_dev_list, self.ARRAY_VENDOR))
             xenrt.TEC().logverbose("Original set of devices were %s" % orig_dev_list)
-            raise xenrt.XRTFailure("Multipath topology didn't change")
+            raise xenrt.XRTFailure("Multipath topology didn't change %s" % self.ARRAY_VENDOR)
 
     def checkSanityOfDevs(self):
         curr_dev_list = set(self.getDevList())
@@ -3797,7 +3812,7 @@ class TC15464(xenrt.TestCase):
         if stale_devs:
             xenrt.TEC().logverbose("stale devices in the multipath group: %s" % stale_devs)
         if incorrect_devs or stale_devs:
-            raise xenrt.XRTFailure("Unexpected devices in the multipath group")
+            raise xenrt.XRTFailure("Unexpected devices in the multipath group %s" % self.ARRAY_VENDOR)
 
     def testMultipathSanity(self):
         self.disableRandomFCPorts()
@@ -3814,8 +3829,8 @@ class TC15464(xenrt.TestCase):
         self.dm_map = self.host.getMultipathInfo()
 
         if not self.dm_map.has_key(self.lun0_scsiid):
-            raise xenrt.XRTFailure("Could not find the multipath group for scsiid %s" % 
-                                   self.lun0_scsiid)
+            raise xenrt.XRTFailure("Could not find the multipath group for scsiid %s %s" % 
+                                                            self.lun0_scsiid, self.ARRAY_VENDOR)
         self.dev_list = self.dm_map[self.lun0_scsiid]
         for i in range(10):
             self.testMultipathSanity()

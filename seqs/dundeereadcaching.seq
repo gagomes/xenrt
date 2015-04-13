@@ -22,7 +22,7 @@
         <postinstall action="snapshot" />
       </vm>
       <storage type="nfs" name="nfssr" />
-      <storage type="cifs" name="cifssr" />
+      <storage type="smb" name="cifssr" />
     </host>
   </prepare>
 

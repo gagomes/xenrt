@@ -3701,21 +3701,14 @@ class DellPowerVaultIscsiMultipath(_DellPowerVaultMultipathing):
 class TC15464(xenrt.TestCase):
     """Test the consistency of devices in the multipath group"""
 
-    ARRAY_VENDOR = None
+    ARRAY_VENDOR = "using PowerVolt"
 
     def prepare(self, arglist=None):
 
         args = self.parseArgsKeyValue(arglist)
 
-        if not args.has_key('arrayvendor'):
-            self.ARRAY_VENDOR = ""
-        else:
-            if args["arrayvendor"].lower() == "emcclariion": 
-                self.ARRAY_VENDOR = "using EMC Clariion"
-            elif args["arrayvendor"].lower() == "powervolt":
-                self.ARRAY_VENDOR = "using PowerVolt"
-            else:
-                raise xenrt.XRTError("Unknown array configuration is found" % args["arrayvendor"].lower())
+        if args.has_key('arrayvendor') and args["arrayvendor"].lower() == "emcclariion":
+            self.ARRAY_VENDOR = "using EMC Clariion"
 
         pool = self.getDefaultPool()
         if pool is None:
@@ -3725,8 +3718,8 @@ class TC15464(xenrt.TestCase):
 
         self.no_fc_ports = self.host.getNumOfFCPorts()
         if self.no_fc_ports == 0:
-            raise xenrt.XRTError("The host %s is not configured with any fibre channel connections %s." %
-                                                                                self.host, self.ARRAY_VENDOR)
+            raise xenrt.XRTError("The host %s is not configured with any fibre channel connections %s" %
+                                                                                (self.host, self.ARRAY_VENDOR))
 
         self.host.enableAllFCPorts() # Enable all the FC ports, if not.
         self.host.enableMultipathing() # Enable multipathing on host.
@@ -3735,7 +3728,7 @@ class TC15464(xenrt.TestCase):
         if self.host.getNumOfFCLUNs() > 0:
             self.lun0_scsiid = self.host.lookup(["FC", "LUN0", "SCSIID"], None)
         else:
-            raise xenrt.XRTError("Host doesn't have any FC LUNs configured %s." % self.ARRAY_VENDOR)
+            raise xenrt.XRTError("Host doesn't have any FC LUNs configured %s" % self.ARRAY_VENDOR)
 
         self.fc_sr = xenrt.lib.xenserver.FCStorageRepository(self.host, "FC01")
         self.fc_sr.create(self.lun0_scsiid, multipathing=True)

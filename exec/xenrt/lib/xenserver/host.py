@@ -3741,8 +3741,12 @@ fi
                         sftp.copyTo(f, "/opt/xensource/libexec/v6d")
                         sftp.close()
                     else:
-                        # get the "universal" v6testd from XenRT scripts directory
-                        self.execdom0("cp -f %s/utils/v6testd /opt/xensource/libexec/v6d" % (xenrt.TEC().lookup("REMOTE_SCRIPTDIR")))
+                        # We're at least Boston, so the best thing to do is to use the .patchorig
+                        if isinstance(self, xenrt.lib.xenserver.BostonHost):
+                            self.execdom0("cp -f /opt/xensource/libexec/v6d.patchorig /opt/xensource/libexec/v6d")
+                        else:
+                            # get the "universal" v6testd from XenRT scripts directory
+                            self.execdom0("cp -f %s/utils/v6testd /opt/xensource/libexec/v6d" % (xenrt.TEC().lookup("REMOTE_SCRIPTDIR")))
                     self.execdom0("service v6d restart")
             
         if applyGuidance:

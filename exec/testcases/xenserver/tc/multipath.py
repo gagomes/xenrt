@@ -3813,10 +3813,10 @@ class TC15464(xenrt.TestCase):
     def testMultipathSanity(self):
         self.disableRandomFCPorts()
         self.waitUntilDevicesAreInaccessible()
-        time.sleep(3) # handling CA-124429
+        xenrt.sleep(120) # handling CA-124429
         self.checkWhetherMultipathTopologyHasChanged()
         self.enableFCPorts()
-        time.sleep(120) # wait till devices are accessible
+        xenrt.sleep(120) # wait till devices are accessible
         self.checkSanityOfDevs()
         self.dev_list = self.getDevList() # the devices in the multipath group might change
 

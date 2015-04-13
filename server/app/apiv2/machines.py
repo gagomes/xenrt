@@ -280,7 +280,7 @@ class _MachineBase(XenRTAPIv2Page):
             cur.execute(query, params)
             timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))
             etype = "PoolChange"
-            subject = machine
+            subject = name
             edata = "NULL:%s" % (pool)
             cur.execute("INSERT INTO tblEvents (ts, etype, subject, edata) "
                         "VALUES (%s, %s, %s, %s);",

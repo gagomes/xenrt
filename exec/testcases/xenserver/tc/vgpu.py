@@ -3418,23 +3418,6 @@ class TCIntelGPUReuse(IntelBase):
                     vm.setState("DOWN")
 
 
-class TestIntelDrivers(IntelBase):
-    """Will use the prepare, but don't pass any config or distro, I think?"""
-
-    def prepare(self, arglist):
-        self.host = self.getDefaultHost()
-        self.typeOfvGPU = IntelWindowsvGPU()
-
-    def run(self, arglist):
-        vmname = "targetvm"
-        vm = self.host.getGuest(vmname)
-        vm.setState("UP")
-
-        vgputype = self.getConfigurationName(12)
-        self.typeOfvGPU.installGuestDrivers(vm, vgputype)
-        self.typeOfvGPU.assertvGPURunningInVM(vm, vgputype)
-
-
 class TCAlloModeK200NFS(VGPUAllocationModeBase):
 
     """

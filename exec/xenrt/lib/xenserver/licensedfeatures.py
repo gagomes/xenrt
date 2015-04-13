@@ -195,6 +195,21 @@ class ExportPoolResourceList(LicensedFeature):
     def stateCanBeChecked(self):
         return False
 
+
+class CIFS(LicensedFeature):
+
+    @property
+    def name(self):
+        return "CIFS"
+
+    def isEnabled(self, host):
+        pass
+
+    @property
+    def featureFlagName(self):
+        return "restrict_cifs"  # Find real flag name for this.
+
+
 class CreedenceEnabledFeatures(object):
 
     def __init__(self,sku):

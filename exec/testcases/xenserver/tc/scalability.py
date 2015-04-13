@@ -1234,7 +1234,7 @@ class TC8237(xenrt.TestCase):
             raise xenrt.XRTError("Failure parsing volume group id. (%s)" % (vg))
         if isinstance(self.host, xenrt.lib.xenserver.DundeeHost):
             self.host.execdom0("export LVM_SYSTEM_DIR='/etc/lvm/master'; vgchange -an %s" % (vg))
-        elif isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
+        else:
             self.host.execdom0("vgchange -an --master %s" % (vg))
         time.sleep(self.timeout)
         xenrt.TEC().logverbose("Checking if xapi has died...")

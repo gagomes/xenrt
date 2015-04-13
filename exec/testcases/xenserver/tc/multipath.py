@@ -3701,10 +3701,10 @@ class DellPowerVaultIscsiMultipath(_DellPowerVaultMultipathing):
 class TC15464(xenrt.TestCase):
     """Test the consistency of devices in the multipath group"""
 
-    # CL03 machines configured to have LUNs from both EMC Clariion & PoverVolt arrays.
-    # However, when used in the test, by default it uses LUNs from PowerVolt.
+    # CL03 machines configured to have LUNs from both EMC Clariion & PowerVault arrays.
+    # However, when used in the test, by default it uses LUNs from PowerVault.
     # CL05 machines are configured to have LUNs from EMC Clariion only.
-    ARRAY_VENDOR = "using PowerVolt" # for all tests before Dundee, unless mentioned.
+    ARRAY_VENDOR = "using PowerVault" # for all tests before Dundee, unless mentioned.
 
     def prepare(self, arglist=None):
 

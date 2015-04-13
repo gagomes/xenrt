@@ -1,5 +1,7 @@
 <xenrt>
 
+  <!-- Using LUNs configured using PowerVault Modular Array -->
+
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
     <PREPARE_WORKERS>1</PREPARE_WORKERS>
@@ -12,8 +14,8 @@
 
   <testsequence>
     <serial group="HostInstall">
-      <testcase id="xenserver.tc.multipath.TC15464" name="FCMultiPowerVolt" sku="PVolt">
-        <arg>arrayvendor=powervolt</arg>
+      <testcase id="xenserver.tc.multipath.TC15464" name="FCMultiPowerVault" sku="PVault">
+        <arg>arrayvendor=powervault</arg>
       </testcase>
     </serial>
   </testsequence>

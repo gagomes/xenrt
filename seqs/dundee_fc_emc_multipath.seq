@@ -1,5 +1,7 @@
 <xenrt>
 
+  <!-- Using LUNs configured using EMC Clariion Array -->
+
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
     <PREPARE_WORKERS>1</PREPARE_WORKERS>

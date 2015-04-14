@@ -30,7 +30,7 @@ class XapiRdp(object):
         xenrt.TEC().logverbose("XAPI trying to check the status of RDP for the guest %s on the host %s" % (self.guest,self.host))
         path = "/local/domain/%u/data/ts" % (self.host.getDomid(self.guest))
         tsPath = "/local/domain/%u/control/feature-ts2" % (self.host.getDomid(self.guest))
-        rdpStatus = (self.host.xenstoreExists(tsPath)=="1") and (self.host.xenstoreRead(path)=="1")
+        rdpStatus = (self.host.xenstoreRead(tsPath)=="1") and (self.host.xenstoreRead(path)=="1")
         return rdpStatus
 
 

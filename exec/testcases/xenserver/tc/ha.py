@@ -3270,7 +3270,7 @@ class _StuckState(_HATest):
     def blockNFSOnBoot(self, host):
         host.execdom0("cp %s/remote/unblocknfs.sh /etc/unblocknfs.sh" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"))
         if host.isCentOS7Dom0():
-            host.execdom0("cp %s/remote/blocknfs_c7.sh /etc/init.d/blocknfs" % xenr.TEC().lookup("REMOTE_SCRIPTDIR"))
+            host.execdom0("cp %s/remote/blocknfs_c7.sh /etc/init.d/blocknfs" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"))
             host.execdom0("chmod a+x /etc/init.d/blocknfs")
             host.execdom0("chkconfig --add blocknfs")
         else:

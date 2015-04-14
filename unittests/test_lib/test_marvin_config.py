@@ -22,7 +22,7 @@ class TestMarvinConfig(XenRTUnitTestCase):
                     "XENRT_SERVER_ADDRESS": "10.0.0.2",
                     "CLOUDINPUTDIR": "http://repo/location",
                     "ROOT_PASSWORD": "xenroot",
-                    "AD_CONFIG": {"ADMIN_USER": "Administrator", "ADMIN_PASSWORD": "xenroot01T", "DOMAIN_NAME": "XSQA", "DOMAIN": "ad.qa.xs.citrite.net", "DNS": "10.220.254.115", "DC_ADDRESS": "10.220.254.115", "DC_DISTRO": "ws12-x64"},
+                    "AD_CONFIG": {"ADMIN_USER": "Administrator", "ADMIN_PASSWORD": "xenroot01T", "DOMAIN_NAME": "XSQA", "DOMAIN": "ad.qa.xs.citrite.net", "DNS": "10.220.254.115", "DC_ADDRESS": "10.220.254.115", "DC_DISTRO": "ws12-x64", "USERS": ""},
                     "VCENTER": {"ADDRESS": "10.2.0.1", "USERNAME": "Administrator@vsphere.local", "PASSWORD": "xenroot01T!"},
                     "VCENTER/ADDRESS": "10.2.0.1"
                     }

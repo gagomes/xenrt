@@ -1,0 +1,29 @@
+<xenrt>
+
+  <!-- Live checkpoint Linux smoke tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host>
+      <storage type="smb" name="cifssr" options="vm" default="true"/>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="Snappoint">
+      <testcase id="xenserver.tc.checkpoint.TC11205" name="TC11205.WithCIFs" sku="WithCIFs" />
+      <testcase id="xenserver.tc.checkpoint.TC11206" name="TC11206.WithCIFs" sku="WithCIFs" />
+      <testcase id="xenserver.tc.checkpoint.TC11207" name="TC11207.WithCIFs" sku="WithCIFs" />
+      <!--testcase id="xenserver.tc.checkpoint.TC11209" name="TC11209.WithCIFs" sku="WithCIFs" />--><!--Refer EXT-90-->
+      <testcase id="xenserver.tc.checkpoint.TC11210" name="TC11210.WithCIFs" sku="WithCIFs" />
+      <testcase id="xenserver.tc.checkpoint.TC11211" name="TC11211.WithCIFs" sku="WithCIFs" />
+      <testcase id="xenserver.tc.checkpoint.TC21646" name="TC21646.WithCIFs" sku="WithCIFs" />
+      <testcase id="xenserver.tc.checkpoint.TC21647" name="TC21647.WithCIFs" sku="WithCIFs" />
+      <testcase id="xenserver.tc.checkpoint.TC21648" name="TC21648.WithCIFs" sku="WithCIFs" />
+    </serial>
+  </testsequence>
+
+</xenrt>

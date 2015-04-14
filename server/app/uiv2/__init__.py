@@ -46,7 +46,7 @@ class XenRTUIPage(XenRTPage):
      <ul>
        <li><a href='/xenrt/ui/machines'><span>Machines</span></a></li>
        <li><a href='/xenrt/ui/acls'><span>Access Control Lists</span></a></li>
-       <li><a href='/xenrt/ui/utilisation'><span>Lab Utilitsation</span></a></li>
+       <li><a href='/xenrt/ui/utilisation'><span>Lab Utilisation</span></a></li>
      </ul>
    </li>
    <li><a href='/xenrt/ui/logs'><span>Browse logs</span></a></li>

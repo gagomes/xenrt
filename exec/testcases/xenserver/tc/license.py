@@ -3864,7 +3864,8 @@ class TC11218(xenrt.TestCase):
 class TC15193(TC11218):
     """Test that Kaviza licenses work"""
     XD_LICENSE_NAME = "valid-enterprise-xd-kaviza"
-
+    
+#Below Testcase is invlaid as per comments in CA-108916
 class TC20922(xenrt.TestCase):
     """Test relicensing host with an invalid license server address (HFX-927)"""
 

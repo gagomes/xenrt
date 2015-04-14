@@ -15,6 +15,7 @@
     </serial>
     <serial group="SnapshotLinksOnRevert">
       <testcase id="xenserver.tc.snapshot.SnapshotVDILink" tc="TC-26529"/>
+      <testcase id="xenserver.tc.snapshot.SnapshotLinkOnVdiDelete" tc="TC-26936"/>
     </serial>
   </testsequence>
 

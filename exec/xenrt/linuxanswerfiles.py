@@ -184,7 +184,7 @@ zerombr
 # not guaranteed to work
 clearpart --all --initlabel
 part /boot --fstype=%s --size=%d --ondisk=%s
-part pv.8 --grow --size=1 --ondisk=%s --maxsize=12000 
+part pv.8 --grow --size=1 --ondisk=%s --maxsize=20000
 volgroup VolGroup --pesize=32768 pv.8
 logvol / --fstype=ext4 --name=lv_root --vgname=VolGroup --grow --size=1024 --maxsize=51200
 logvol swap --name=lv_swap --vgname=VolGroup --grow --size=1008 --maxsize=2016

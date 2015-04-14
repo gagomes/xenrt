@@ -402,6 +402,8 @@ class _BalloonSmoketest(_BalloonPerfBase):
         self.guest.resume()
         # We can only do a migrate if the dynamic-min is < half the hosts memory
         if min < (self.hostMemory / 2):
+            # Sleep 60s before migrating the VM (CA-165995)
+            xenrt.sleep(60)
             self.guest.migrateVM(self.host, live="true")
         xenrt.TEC().logverbose("...done")
 

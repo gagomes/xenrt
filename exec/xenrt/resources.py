@@ -635,7 +635,7 @@ class ManagedStorageResource(CentralResource):
 
 class _ExternalFileShare(CentralResource):
     """An file share volume, or subdirectory thereof, on an external share server"""
-    def __init__(self, jumbo=False, network="NPRI", version=None):
+    def __init__(self, jumbo=False, network="NPRI", version=None, usertype="admin"):
         self.subdir = None
         if not version:
             version = self.DEFAULT_VERSION
@@ -722,8 +722,9 @@ class _ExternalFileShare(CentralResource):
                                         name,
                                         "BASE"],
                                        None)
-        
-        m = self.mount("%s:%s" % (self.address, self.base))
+
+        sharepath = "%s:%s" % (self.address, self.base)
+        m = self.mount(sharepath, usertype)
         mp = m.getMount()
         td = string.strip(xenrt.rootops.sudo("mktemp -d %s/%s-XXXXXX" % (mp, xenrt.TEC().lookup("JOBID", "nojob"))))
         self.setPermissions(td)
@@ -770,8 +771,8 @@ class ExternalSMBShare(_ExternalFileShare):
     SHARE_TYPE="EXTERNAL_SMB_SERVERS"
     DEFAULT_VERSION = "2"
 
-    def mount(self, path):
-        ad = xenrt.getADConfig()
+    def mount(self, path, usertype):
+        ad = xenrt.getADConfig(usertype)
         self.user = ad.adminUser
         self.password = ad.adminPassword
         self.domain = ad.domainName

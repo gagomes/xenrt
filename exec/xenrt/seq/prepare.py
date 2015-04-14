@@ -1253,6 +1253,7 @@ class PrepareNode(object):
                             sr.create(server, path, nosubdir=nosubdir)
                     elif s["type"] == "smb":
                         vm = s["options"] and "vm" in s["options"].split(",")
+                        cifsuser = s["options"] and "cifsuser" in s["options"].split(",")
                         hostIndexes = [(y.group(1), y.group(3)) for y in [re.match("host-(\d)(-([a-z]))?", x) for x in s['options'].split(",")] if y]
                         if hostIndexes:
                             (hostIndex, driveLetter) = hostIndexes[0]
@@ -1262,7 +1263,10 @@ class PrepareNode(object):
                         else:
                             share = xenrt.ExternalSMBShare(version=3)
                         sr = xenrt.productLib(host=host).SMBStorageRepository(host, s["name"])
-                        sr.create(share)
+                        if cifsuser:
+                            sr.create(share, "cifsuser")
+                        else:
+                            sr.create(share)
                     elif s["type"] == "iso":
                         sr = xenrt.productLib(host=host).ISOStorageRepository(host, s["name"])
                         server, path = s["path"].split(":")

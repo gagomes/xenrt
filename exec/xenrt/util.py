@@ -1385,13 +1385,25 @@ def keepSetup():
 
     return False
 
-def getADConfig():
+def getADConfig(usertype="admin"):
+
     ad = xenrt.TEC().lookup("AD_CONFIG")
     domain=ad['DOMAIN']
     dns=ad['DNS']
     domainName = ad['DOMAIN_NAME']
-    adminUser = ad['ADMIN_USER']
-    adminPassword = ad['ADMIN_PASSWORD']
+
+    # Get all the users from active directory server.
+    users = xenrt.TEC().lookup(["AD_CONFIG", "USERS"])
+
+    if usertype == "admin":
+        adminUser = ad['ADMIN_USER']
+        adminPassword = ad['ADMIN_PASSWORD']
+    elif usertype == "cifsuser":
+        adminUser = ad['USERS']['CIFS_USER'].split(":", 1)[0]
+        adminPassword = ad['USERS']['CIFS_USER'].split(":", 1)[1]
+    else:
+        raise xenrt.XRTError("Undefined user %s in Active Directory Server" % usertype)
+
     dcAddress = ad['DC_ADDRESS']
     dcDistro = ad['DC_DISTRO']
 

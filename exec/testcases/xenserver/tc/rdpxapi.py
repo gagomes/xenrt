@@ -196,6 +196,7 @@ class TestRdpWithSnapshot(RdpVerification):
         # Revert to snapshot
         step("Test reverting the guest snapshot")
         self.guest.revert(uuid)
+        self.guest.resume()
 
         # When we revert to snapshot RDP should be in disabled state
         # We wait 60mins hoping data/ts will be updated by the guest agent

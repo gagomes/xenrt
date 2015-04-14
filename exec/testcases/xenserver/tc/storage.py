@@ -1991,6 +1991,22 @@ class TC20957(_VDICopy):
     FROM_TYPE = "nfssr_classic" # classic nfssr
     TO_TYPE   = "nfssr_nosubdir" # options="nosubdir" 
 
+# Might not need by name, if understood.
+class TCRonan1(_VDICopy):
+    FIND_SR_BY_NAME = True
+    FROM_TYPE = "cifssr"
+    TO_TYPE   = "nfssr"
+
+class TCRonan2(_VDICopy):
+    FIND_SR_BY_NAME = True
+    FROM_TYPE = "cifssr"
+    TO_TYPE   = "filesr"
+
+class TCRonan3(_VDICopy):
+    FIND_SR_BY_NAME = True
+    FROM_TYPE = "cifssr"
+    TO_TYPE   = "iscsisr"
+
 #############################################################################
 # VDI resize testcases
 

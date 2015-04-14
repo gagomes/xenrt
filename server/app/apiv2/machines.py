@@ -207,6 +207,27 @@ class _MachineBase(XenRTAPIv2Page):
             cur = db.cursor()
             try:
                 cur.execute("UPDATE tblmachines SET %s=%%s WHERE machine=%%s;" % (key.lower()), (value, machine))
+                # Check whether the pool has changed, or the status has switched to/from offline 
+                oldpool = machines[machine]['pool']
+                if machines[machine]['rawstatus'] == "offline":
+                    oldpool += "__offline"
+                newpool = oldpool
+                if key.lower() == "pool":
+                    newpool = value
+                    if machines[machine]['rawstatus'] == "offline":
+                        newpool += "__offline"
+                if key.lower() == "status":
+                    newpool = machines[machine]['pool']
+                    if value == "offline":
+                        newpool += "__offline"
+                if newpool != oldpool:
+                    timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))
+                    etype = "PoolChange"
+                    subject = machine
+                    edata = "%s:%s" % (oldpool, newpool)
+                    cur.execute("INSERT INTO tblEvents (ts, etype, subject, edata) "
+                                "VALUES (%s, %s, %s, %s);",
+                                [timenow, etype, subject, edata])
                 if commit:
                     db.commit()
             finally:
@@ -257,6 +278,13 @@ class _MachineBase(XenRTAPIv2Page):
             params = [name, site, pool, cluster, "/".join(["%s=%s" % (x,y) for (x,y) in resources.items()]), description]
 
             cur.execute(query, params)
+            timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))
+            etype = "PoolChange"
+            subject = name
+            edata = "NULL:%s" % (pool)
+            cur.execute("INSERT INTO tblEvents (ts, etype, subject, edata) "
+                        "VALUES (%s, %s, %s, %s);",
+                        [timenow, etype, subject, edata])
 
             if commit:
                 db.commit()

@@ -1914,12 +1914,6 @@ class _AddPassthroughToFullGPU(VGPUOwnedVMsTest):
 
         raise xenrt.XRTFailure("guest with configTobeChecked was allowed to start on a pre-used pGPU")
 
-    def postRun(self):
-        for guest in self.__clones:
-            self._removeGuest(guest)
-        self._removeGuest(self.__ptGuest)
-        super(_AddPassthroughToFullGPU, self).postRun()
-
 class TCAddPassthroughToFullGPUK100(_AddPassthroughToFullGPU):
      def __init__(self):
          super(TCAddPassthroughToFullGPUK100, self).__init__(VGPUConfig.K100,VGPUConfig.K1PassThrough)

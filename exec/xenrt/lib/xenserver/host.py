@@ -1302,7 +1302,8 @@ ln -s %s opt/xensource/sm/%s
 """ % (srfile, srtarget, srfile, srtarget, srfile)
 
         v6hack = ""
-        mockd = xenrt.TEC().getFile(self.V6MOCKD_LOCATION)
+        v6mockdloc = xenrt.TEC().lookup("V6MOCKD_LOCATION", self.V6MOCKD_LOCATION)
+        mockd = xenrt.TEC().getFile(v6mockdloc)
         if upgrade and not mockd:
             # Set up a temporary WWW directory to hold the v6testd
             v6webdir = xenrt.WebDirectory()
@@ -3740,8 +3741,12 @@ fi
                         sftp.copyTo(f, "/opt/xensource/libexec/v6d")
                         sftp.close()
                     else:
-                        # get the "universal" v6testd from XenRT scripts directory
-                        self.execdom0("cp -f %s/utils/v6testd /opt/xensource/libexec/v6d" % (xenrt.TEC().lookup("REMOTE_SCRIPTDIR")))
+                        # We're at least Boston, so the best thing to do is to use the .patchorig
+                        if isinstance(self, xenrt.lib.xenserver.BostonHost):
+                            self.execdom0("cp -f /opt/xensource/libexec/v6d.patchorig /opt/xensource/libexec/v6d")
+                        else:
+                            # get the "universal" v6testd from XenRT scripts directory
+                            self.execdom0("cp -f %s/utils/v6testd /opt/xensource/libexec/v6d" % (xenrt.TEC().lookup("REMOTE_SCRIPTDIR")))
                     self.execdom0("service v6d restart")
             
         if applyGuidance:
@@ -10874,7 +10879,8 @@ class ClearwaterHost(TampaHost):
     def installMockLicenseD(self):
 
         filename = "mockd.rpm"
-        mockd = xenrt.TEC().getFile(self.V6MOCKD_LOCATION)
+        v6mockdloc = xenrt.TEC().lookup("V6MOCKD_LOCATION", self.V6MOCKD_LOCATION)
+        mockd = xenrt.TEC().getFile(v6mockdloc)
 
         try:
             xenrt.checkFileExists(mockd)
@@ -12466,14 +12472,15 @@ class SMBStorageRepository(StorageRepository):
 
         dconf = {}
         smconf = {}
-        dconf["server"] = share.getLinuxUNCPath() 
-        if share.domain:
-            dconf['username'] = "%s\\\\%s" % (share.domain, share.user)
-        else:
-            dconf['username'] = share.user
+        dconf["server"] = share.getLinuxUNCPath()
+
+        # CLI is not accepting the domain name at present. (1036047)
+        #if share.domain:
+        #    dconf['username'] = "%s\\\\%s" % (share.domain, share.user)
+        #else:
+        dconf['username'] = share.user
         dconf['password'] = share.password
-        self._create("cifs",
-                     dconf)
+        self._create("cifs", dconf)
 
     def check(self):
         StorageRepository.checkCommon(self, "cifs")

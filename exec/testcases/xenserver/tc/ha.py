@@ -94,6 +94,7 @@ class _HASmoketest(xenrt.TestCase):
         if self.pool.master.isCentOS7Dom0():
             self.pool.master.execdom0("systemctl stop xapi.service")
             self.pool.master.execdom0("systemctl disable xapi.service")
+            self.pool.master.execdom0("mv /etc/init.d/xapi /etc/init.d/xapi.disabled")
         else:
             self.pool.master.execdom0("mv /etc/init.d/xapi "
                                       "/etc/init.d/xapi.disabled")
@@ -109,6 +110,7 @@ class _HASmoketest(xenrt.TestCase):
         oldMaster.waitForSSH(300, desc="Old master boot after host fence")
         oldMaster.execdom0("rm -f /etc/xensource/xapi_block_startup")
         if oldMaster.isCentOS7Dom0():
+            oldMaster.execdom0("mv /etc/init.d/xapi.disabled /etc/init.d/xapi")
             oldMaster.execdom0("systemctl enable xapi.service")
         else:
             oldMaster.execdom0("mv /etc/init.d/xapi.disabled "

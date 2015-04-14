@@ -1648,6 +1648,7 @@ class Experiment_vmrun(Experiment):
     loginvsiexclude = []
     vmcooloff = "0"
     xentrace = []
+    vlans = 0
     
 
     #this event handles change of values of dimension XSVERSIONS
@@ -1720,6 +1721,16 @@ class Experiment_vmrun(Experiment):
             xenrt.TEC().logverbose("Using PRODUCT_VERSION=%s" % xenrt.TEC().lookup("PRODUCT_VERSION", None))
 
             networkcfg = ""
+            for dom0param in self.dom0params:
+                if "vlan" in dom0param:
+                    # "vlan:X" = create X vlans in the host
+                    vlan_params = dom0param.split(":")
+                    self.vlans = 0
+                    if len(vlan_params) > 1:
+                        self.vlans = int(vlan_params[1])
+            for i in range(0, self.vlans):
+              networkcfg += '<VLAN network="VR%02u" />' % (i+1)
+
             name_defaultsr = "%ssr" % (self.defaultsr,)
             if self.defaultsr in ["lvm","ext"] or self.defaultsr.startswith("ext:"):
                 localsr = self.defaultsr.split(":")[0] #ignore : and anything after it
@@ -1736,9 +1747,12 @@ class Experiment_vmrun(Experiment):
                     networkcfg = """<NETWORK><PHYSICAL network="NPRI"><NIC /><MANAGEMENT /><VMS /></PHYSICAL><PHYSICAL network="NSEC"><NIC /><STORAGE /></PHYSICAL></NETWORK>"""
                 else:
                     xenrt.TEC().logverbose("%s: xrtuk-08-* host NOT detected, using default network configuration" % hn)
+                    if self.vlans > 0:
+                        networkcfg = '<NETWORK><PHYSICAL><NIC/>%s</PHYSICAL></NETWORK>' % (networkcfg,)
 
             seq = "<pool><host installsr=\"%s\">%s%s</host></pool>" % (localsr,sharedsr, networkcfg)
             #seq = "<pool><host/></pool>"
+            xenrt.TEC().logverbose("sequence=%s" % (seq,))
             pool_xmlnode = xml.dom.minidom.parseString(seq)
             prepare = PrepareNode(pool_xmlnode, pool_xmlnode, {}) 
             prepare.runThis()
@@ -2311,11 +2325,18 @@ MachinePassword=%s
             return
 
         def install_guests_in_a_host(g0):
+            network_uuids = g0.host.minimalList("network-list")
             # We'll do the installation on default SR
             for i in self.getDimensions()['VMS']:
                 g = g0.cloneVM() #name=("%s-%i" % (vm_name,i)))
                 #xenrt.TEC().registry.guestPut(g.getName(),g)
                 self.guests[i] = g
+                if self.vlans > 0:
+                    # assign networks to clones in round-robin fashion
+                    network_uuid = network_uuids[ i % len(network_uuids) ]
+                    g.removeAllVIFs()
+                    g.createVIF(bridge=network_uuid)
+
             return
 
         def install_guests():

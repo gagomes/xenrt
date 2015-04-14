@@ -3704,14 +3704,14 @@ class TC15464(xenrt.TestCase):
     # CL03 machines configured to have LUNs from both EMC Clariion & PowerVault arrays.
     # However, when used in the test, by default it uses LUNs from PowerVault.
     # CL05 machines are configured to have LUNs from EMC Clariion only.
-    ARRAY_VENDOR = "using PowerVault" # for all tests before Dundee, unless mentioned.
+    ARRAY_VENDOR = "using PowerVault array" # for all tests before Dundee, unless mentioned.
 
     def prepare(self, arglist=None):
 
         args = self.parseArgsKeyValue(arglist)
 
         if args.has_key('arrayvendor') and args["arrayvendor"].lower() == "emcclariion":
-            self.ARRAY_VENDOR = "using EMC Clariion"
+            self.ARRAY_VENDOR = "using EMC Clariion array"
 
         pool = self.getDefaultPool()
         if pool is None:

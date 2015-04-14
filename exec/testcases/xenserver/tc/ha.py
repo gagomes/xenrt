@@ -3267,6 +3267,17 @@ class _StuckState(_HATest):
                                  # network config, this is believed due to the
                                  # db not having synced
 
+    def blockNFSOnBoot(self, host):
+        host.execdom0("cp %s/remote/unblocknfs.sh /etc/unblocknfs.sh" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"))
+        if host.isCentOS7Dom0():
+            host.execdom0("cp %s/remote/blocknfs_c7.sh /etc/init.d/blocknfs" % xenr.TEC().lookup("REMOTE_SCRIPTDIR"))
+            host.execdom0("chmod a+x /etc/init.d/blocknfs")
+            host.execdom0("chkconfig --add blocknfs")
+        else:
+            host.execdom0("cp %s/remote/blocknfsonboot.sh /etc/blocknfsonboot.sh" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"))
+            host.execdom0("chmod a+x /etc/blocknfsonboot.sh")
+            host.execdom0("ln -s /etc/blocknfsonboot.sh /etc/rc3.d/S09blocknfs")
+
 class TC8127(_StuckState):
     """Disable HA and Statefile delete with offline host"""
 
@@ -3334,11 +3345,7 @@ class TC8129(_StuckState):
         # 1. power off slave
         self.hostsToPowerOn.append(self.slave)
         if self.SF_STORAGE.startswith("nfs"):
-            self.slave.execdom0("cp %s/remote/blocknfsonboot.sh /etc/blocknfsonboot.sh" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"))
-            self.slave.execdom0("cp %s/remote/unblocknfs.sh /etc/unblocknfs.sh" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"))
-            self.slave.execdom0("chmod a+x /etc/blocknfsonboot.sh")
-            self.slave.execdom0("chmod a+x /etc/unblocknfs.sh")
-            self.slave.execdom0("ln -s /etc/blocknfsonboot.sh /etc/rc3.d/S09blocknfs")
+            self.blockNFSOnBoot(self.slave)
         self.slave.shutdown()
         self.slave.machine.powerctl.off()
         time.sleep(10)
@@ -3395,11 +3402,7 @@ class TC8130(_StuckState):
         # 1. power off all nodes
         if self.SF_STORAGE.startswith("nfs"):
             for host in [self.slave, self.master]:
-                host.execdom0("cp %s/remote/blocknfsonboot.sh /etc/blocknfsonboot.sh" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"))
-                host.execdom0("cp %s/remote/unblocknfs.sh /etc/unblocknfs.sh" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"))
-                host.execdom0("chmod a+x /etc/blocknfsonboot.sh")
-                host.execdom0("chmod a+x /etc/unblocknfs.sh")
-                host.execdom0("ln -s /etc/blocknfsonboot.sh /etc/rc3.d/S09blocknfs")
+                self.blockNFSOnBoot(host)
         self.hostsToPowerOn.append(self.slave)
         self.hostsToPowerOn.append(self.master)
         self.poweroff(self.slave)
@@ -3453,11 +3456,7 @@ class TC8131(_StuckState):
         # 1. power off both hosts
         if self.SF_STORAGE.startswith("nfs"):
             for host in [self.slave, self.master]:
-                host.execdom0("cp %s/remote/blocknfsonboot.sh /etc/blocknfsonboot.sh" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"))
-                host.execdom0("cp %s/remote/unblocknfs.sh /etc/unblocknfs.sh" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"))
-                host.execdom0("chmod a+x /etc/blocknfsonboot.sh")
-                host.execdom0("chmod a+x /etc/unblocknfs.sh")
-                host.execdom0("ln -s /etc/blocknfsonboot.sh /etc/rc3.d/S09blocknfs")
+                self.blockNFSOnBoot(host)
         self.hostsToPowerOn.append(self.slave)
         self.hostsToPowerOn.append(self.master)
         self.poweroff(self.slave)

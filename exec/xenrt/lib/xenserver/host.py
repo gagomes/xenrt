@@ -7638,7 +7638,10 @@ rm -f /etc/xensource/xhad.conf || true
                       getreply=False)
 
         # Remove any NFS blocks
-        self.execdom0("rm -f /etc/rc3.d/S09blocknfs || true")
+        if self.isCentOS7Dom0():
+            self.execdom0("chkconfig --del blocknfs || true")
+        else:
+            self.execdom0("rm -f /etc/rc3.d/S09blocknfs || true")
 
         # Do the normal reset procedure
         try:

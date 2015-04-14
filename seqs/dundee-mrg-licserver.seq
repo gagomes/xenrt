@@ -1,0 +1,21 @@
+<xenrt>
+
+  <!-- Dundee - configuration of a license server -->
+
+  <variables>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+  </variables>
+
+  <prepare>
+    <host id="0" license="no" usev6testd="no">
+      <vm name="License Server XVA">
+        <file user="no">%LICENSE_SERVER_XVA%</file>
+        <postinstall action="installV6LicenseServer" />
+        <storage>NFS-SR</storage>
+      </vm>
+      <storage type="nfs" name="NFS-SR" />
+    </host>
+  </prepare>
+</xenrt>

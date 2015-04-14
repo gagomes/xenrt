@@ -1,0 +1,20 @@
+<xenrt>
+
+  <!-- Multi authenticated multi CIFS SRs using SMB share provided by NetApp filer. -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+
+    <host id="0">
+
+      <!-- CIFS SR using SMB share provided NetApp SC04-FAS2554 -->
+      <storage type="smb" name="admin-cifs-sr"/>
+      <storage type="smb" name="user-cifs-sr"/>
+
+    </host>
+  </prepare>
+
+</xenrt>

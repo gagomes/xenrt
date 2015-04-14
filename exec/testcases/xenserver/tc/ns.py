@@ -1618,33 +1618,21 @@ class NSSRIOV(SRIOVTests):
         return self.license_file
 
     def installLicense(self, vpx):
-        if hasattr(self, 'license_file') and self.license_file is not None:
-            pass
-        else:
-            self.license_file = self.getLicenseFile()
-
-
-        step("Create a tmp directory on the controller that will be automatically cleaned up...........")
-
-        ctrlTmpDir = xenrt.TEC().tempDir()
-
-        step("Copy the license file from / on host to a temp directory on controller")
-        filePathController = os.path.basename(self.license_file)
-        sftp = self.host.sftpClient()
-
-        sftp.copyFrom(self.license_file, os.path.join(ctrlTmpDir,filePathController))
-        sftp.close()
-
-        step("copy license file from tempdir on controller to guest...........")
-
+    
+        lic = "CNS_V3000_SERVER_PLT_Retail.lic"
+    
+        step("Checking if VPX is UP")
         if vpx.getState() != "UP":
             self.startVPX(vpx)
             
-        sftp = vpx.sftpClient(username='nsroot')
+        step("Checking if VPX already has license")
+            
+        if hasattr(self, 'license_file') and self.license_file is not None:
+            pass
         
-        sftp.copyTo(os.path.join(ctrlTmpDir,filePathController), os.path.join('/nsconfig/license',os.path.basename(filePathController)))
-        sftp.close()
-        
+        else:
+            self.license_file = vpx.execguest("wget %s/tallahassee/%s -O /nsconfig/license/%s" % (xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"), lic, lic), username='nsroot')
+
         vpx.waitForSSH(timeout=100,cmd='sh ns ip',username='nsroot')
         self.rebootVPX(vpx)
         return

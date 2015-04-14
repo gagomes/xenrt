@@ -5,7 +5,7 @@ import xenrt
 
 __all__ = ["WorkloadBalancing", "ReadCaching",
            "VirtualGPU", "Hotfixing", "ExportPoolResourceList",
-           "GPUPassthrough", "LicensedFeatureFactory"]
+           "GPUPassthrough", "CIFSStorage", "LicensedFeatureFactory"]
 
 
 class LicensedFeature(object):
@@ -196,11 +196,11 @@ class ExportPoolResourceList(LicensedFeature):
         return False
 
 
-class CIFS(LicensedFeature):
+class CIFSStorage(LicensedFeature):
 
     @property
     def name(self):
-        return "CIFS"
+        return "CIFSStorage"
 
     def isEnabled(self, host):
 
@@ -214,7 +214,6 @@ class CIFS(LicensedFeature):
             return False
         return True
 
-
     @property
     def featureFlagName(self):
         return "restrict_cifs"  # Find real flag name for this.
@@ -222,27 +221,27 @@ class CIFS(LicensedFeature):
 
 class CreedenceEnabledFeatures(object):
 
-    def __init__(self,sku):
+    def __init__(self, sku):
         self.sku = sku
 
     def getEnabledFeatures(self):
         if self.sku == XenServerLicenseSKU.PerUserEnterprise or \
            self.sku == XenServerLicenseSKU.PerConcurrentUserEnterprise:
-            return [WorkloadBalancing().name,ReadCaching().name,VirtualGPU().name,
+            return [WorkloadBalancing().name, ReadCaching().name, VirtualGPU().name,
                     Hotfixing().name, ExportPoolResourceList().name, GPUPassthrough().name]
         if self.sku == XenServerLicenseSKU.PerSocketEnterprise or \
            self.sku == XenServerLicenseSKU.PerSocket:
-            return [WorkloadBalancing().name,ReadCaching().name,VirtualGPU().name,
+            return [WorkloadBalancing().name, ReadCaching().name, VirtualGPU().name,
                     Hotfixing().name, ExportPoolResourceList().name, GPUPassthrough().name]
         if self.sku == XenServerLicenseSKU.XenDesktop:
-            return [Hotfixing().name, GPUPassthrough().name,WorkloadBalancing().name,VirtualGPU().name]
+            return [Hotfixing().name, GPUPassthrough().name, WorkloadBalancing().name, VirtualGPU().name]
         if self.sku == XenServerLicenseSKU.PerSocketStandard:
             return [Hotfixing().name, GPUPassthrough().name]
         if self.sku == XenServerLicenseSKU.Free:
-            return [Hotfixing().name, GPUPassthrough().name] 
+            return [Hotfixing().name, GPUPassthrough().name]
         if self.sku == XenServerLicenseSKU.XenDesktopPlusXDS or \
            self.sku == XenServerLicenseSKU.XenDesktopPlusMPS:
-            return [WorkloadBalancing().name,ReadCaching().name,VirtualGPU().name,
+            return [WorkloadBalancing().name, ReadCaching().name, VirtualGPU().name,
                     Hotfixing().name, GPUPassthrough().name]
 
     def expectedEnabledState(self, feature):
@@ -251,6 +250,7 @@ class CreedenceEnabledFeatures(object):
             return False
         else:
             return True
+
 
 class LicensedFeatureFactory(object):
     __CRE = "creedence"
@@ -265,16 +265,23 @@ class LicensedFeatureFactory(object):
 
     def allFeatures(self, xshost):
         if self.__getHostAge(xshost) == self.__CRE or self.__getHostAge(xshost) == self.__CRM or self.__getHostAge(xshost) == self.__DUN:
-            return  self.__createDictOfFeatures(WorkloadBalancing(), ReadCaching(), VirtualGPU(),
-                                                Hotfixing(), ExportPoolResourceList(), GPUPassthrough())
+            return self.__createDictOfFeatures(WorkloadBalancing(), ReadCaching(), VirtualGPU(),
+                                               Hotfixing(), ExportPoolResourceList(), GPUPassthrough())
         raise ValueError("Feature list for a %s host was not found" % self.__getHostAge(xshost))
 
-    def allFeatureObj(self,xshost):
-        if self.__getHostAge(xshost) == self.__CRE or self.__getHostAge(xshost) == self.__DUN or self.__getHostAge(xshost) == self.__CRM:
+    def allFeatureObj(self, xshost):
+        if self.__getHostAge(xshost) == self.__CRE:
             return [WorkloadBalancing(), ReadCaching(), VirtualGPU(),
-                                                Hotfixing(), ExportPoolResourceList(), GPUPassthrough()]
- 
+                    Hotfixing(), ExportPoolResourceList(), GPUPassthrough()]
+        elif self.__getHostAge(xshost) == self.__CRM or self.__getHostAge(xshost) == self.__DUN:
+            return [WorkloadBalancing(), ReadCaching(), VirtualGPU(),
+                    Hotfixing(), ExportPoolResourceList(), GPUPassthrough(),
+                    CIFSStorage()]
+
     def getFeatureState(self, productVersion, sku, feature):
         lver = productVersion.lower()
         if lver == self.__CRE or lver == self.__CRM or lver == self.__DUN:
             return CreedenceEnabledFeatures(sku).expectedEnabledState(feature)
+        elif lver == self.__CRM or lver == self.__DUN:
+            # Some other object perhaps?
+            pass

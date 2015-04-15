@@ -1,0 +1,32 @@
+<xenrt>
+
+  <!-- Verify features with different licenses on Creedence host -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+      <host id="0" license="no" usev6testd="no">
+        <vm name="LicenseServer">
+          <file>%LICENSE_SERVER_XVA%</file>
+          <postinstall action="installV6LicenseServer"/>
+        </vm>
+      </host>
+      <host id="1" license="no" usev6testd="no">
+      </host>
+  </prepare>
+
+  <testsequence>
+
+    <serial group="LicenseFeatures">
+
+      <testcase id="xenserver.tc.mulskulicense.TCCIFSStorageFeature" name="CIFSStorageFeature">
+        <arg>sku=PerSocketEnterprise,PerUserEnterprise,PerConcurrentUserEnterprise,PerSocketStandard,XenDesktopXDS,XenDesktopMPS</arg>
+      </testcase>
+
+    </serial>
+
+  </testsequence>
+
+</xenrt>

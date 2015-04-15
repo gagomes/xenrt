@@ -206,10 +206,10 @@ class CIFSStorage(LicensedFeature):
 
         try:
             # Knows about existing shares. Won't need to worry about dups.
-            share = xenrt.VMSMBShare()
+            share = xenrt.VMSMBShare(hostIndex=1)
             sr = xenrt.productLib(host=host).SMBStorageRepository(host, "CIFS-SR")
             sr.create(share)
-            # Might want to cleanup afterwards.
+            # Might want to cleanup afterwards. Will leave it for now.
             return True
         except:
             return False

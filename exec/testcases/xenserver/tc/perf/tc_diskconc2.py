@@ -394,7 +394,7 @@ Version 1.1.0
                 urlperf = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
                 pvsexe = "TargetOSOptimizer.exe"
                 pvsurl = "%s/performance/support-files/%s" % (urlperf, pvsexe)
-                xenrt.TEC.logverbose("Getting pvsfile from %s" % (pvsurl))
+                xenrt.TEC().logverbose("Getting pvsfile from %s" % (pvsurl))
                 pvsfile = xenrt.TEC().getFile(pvsurl,pvsurl)
                 cpath = "c:\\%s" % pvsexe
                 self.template.xmlrpcSendFile(pvsfile, cpath)

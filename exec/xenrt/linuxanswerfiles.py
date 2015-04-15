@@ -3564,7 +3564,11 @@ d-i    apt-setup/security_path  string %s""" % (self.httphost,self.httppath, sel
             subs=jessie
             st="d-i preseed/late_command string sed -i 's/PermitRootLogin without-password/PermitRootLogin yes/g' /target/etc/ssh/sshd_config; /target/etc/init.d/ssh restart;"
             if not self.disk:
-                self.disk = "/dev/sda"
+                # Debian jessie enumerates the disks in the installer as xvda (on Xen) in 64-bit, but sda in 32-bit
+                if "64" in self.arch and self.installOn==xenrt.HypervisorType.xen:
+                    self.disk = "/dev/xvda"
+                else:
+                    self.disk = "/dev/sda"
         else:
             subs=wheezy
             if self.distro.startswith("debian70") and "64" in self.arch:

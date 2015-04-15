@@ -3387,14 +3387,18 @@ class GlobalResource(CentralResource):
         startlooking = xenrt.timenow()
 
         while True:
-            res = xenrt.GEC().dbconnect.api.lock_global_resource(restype, xenrt.TEC().lookup("XENRT_SITE"), xenrt.GEC().dbconnect.jobid() or 0)
-            if 'name' in res:
-                self.name = res['name']
-                self.data = res['data']
-                break
-            if xenrt.util.timenow() > (startlooking + 3600):
-                xenrt.TEC().logverbose("Could not lock global resource of type %s" % restype)
-                raise xenrt.XRTError("Timed out waiting for %s to be available" % restype)
+            try:
+                res = xenrt.GEC().dbconnect.api.lock_global_resource(restype, xenrt.TEC().lookup("XENRT_SITE"), xenrt.GEC().dbconnect.jobid() or 0)
+            except Exception, e:
+                xenrt.TEC().logverbose("Warning: exception %s while trying to acquire lock" % str(e))
+            else:
+                if 'name' in res:
+                    self.name = res['name']
+                    self.data = res['data']
+                    break
+                if xenrt.util.timenow() > (startlooking + 3600):
+                    xenrt.TEC().logverbose("Could not lock global resource of type %s" % restype)
+                    raise xenrt.XRTError("Timed out waiting for %s to be available" % restype)
             xenrt.sleep(60)
         self.acquire("GLOBAL-%s" % (self.name))
         self.resourceHeld = True

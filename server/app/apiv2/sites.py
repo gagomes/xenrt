@@ -349,8 +349,8 @@ class RemoveSite(_SiteBase):
         db = self.getDB()
         cur = db.cursor()
         try:
-            cur.execute("DELETE FROM tblsites WHERE site=%s", [site])
             self.removeMachine("_%s" % site, commit=False)
+            cur.execute("DELETE FROM tblsites WHERE site=%s", [site])
             if commit:
                 db.commit()
         finally:

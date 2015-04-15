@@ -1385,28 +1385,21 @@ def keepSetup():
 
     return False
 
-def getADConfig(usertype="admin"):
+def getADConfig():
 
     ad = xenrt.TEC().lookup("AD_CONFIG")
     domain=ad['DOMAIN']
     dns=ad['DNS']
     domainName = ad['DOMAIN_NAME']
-
-    if usertype == "admin":
-        adminUser = ad['ADMIN_USER']
-        adminPassword = ad['ADMIN_PASSWORD']
-    elif usertype == "cifsuser":
-        adminUser = ad['USERS']['CIFS_USER'].split(":", 1)[0]
-        adminPassword = ad['USERS']['CIFS_USER'].split(":", 1)[1]
-    else:
-        raise xenrt.XRTError("Undefined user %s in Active Directory Server" % usertype)
-
+    adminUser = ad['ADMIN_USER']
+    adminPassword = ad['ADMIN_PASSWORD']
+    allUsers = ad['USERS']
     dcAddress = ad['DC_ADDRESS']
     dcDistro = ad['DC_DISTRO']
 
-    ADConfig = namedtuple('ADConfig', ['domain', 'domainName', 'adminUser', 'adminPassword', 'dns', 'dcAddress', 'dcDistro'])
+    ADConfig = namedtuple('ADConfig', ['domain', 'domainName', 'adminUser', 'users','adminPassword', 'dns', 'dcAddress', 'dcDistro'])
 
-    return ADConfig(domain=domain, domainName=domainName, adminUser=adminUser, adminPassword=adminPassword, dns=dns, dcAddress=dcAddress, dcDistro=dcDistro)
+    return ADConfig(domain=domain, domainName=domainName, adminUser=adminUser, allUsers=allUsers, adminPassword=adminPassword, dns=dns, dcAddress=dcAddress, dcDistro=dcDistro)
 
 def getDistroAndArch(distrotext):
     if isWindows(distrotext):

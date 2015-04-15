@@ -635,7 +635,7 @@ class ManagedStorageResource(CentralResource):
 
 class _ExternalFileShare(CentralResource):
     """An file share volume, or subdirectory thereof, on an external share server"""
-    def __init__(self, jumbo=False, network="NPRI", version=None, usertype="admin"):
+    def __init__(self, jumbo=False, network="NPRI", version=None, cifsuser=None):
         self.subdir = None
         if not version:
             version = self.DEFAULT_VERSION
@@ -724,7 +724,7 @@ class _ExternalFileShare(CentralResource):
                                        None)
 
         sharepath = "%s:%s" % (self.address, self.base)
-        m = self.mount(sharepath, usertype)
+        m = self.mount(sharepath, cifsuser)
         mp = m.getMount()
         td = string.strip(xenrt.rootops.sudo("mktemp -d %s/%s-XXXXXX" % (mp, xenrt.TEC().lookup("JOBID", "nojob"))))
         self.setPermissions(td)
@@ -761,7 +761,7 @@ class ExternalNFSShare(_ExternalFileShare):
     SHARE_TYPE="EXTERNAL_NFS_SERVERS"
     DEFAULT_VERSION = "3"
 
-    def mount(self, path, usertype):
+    def mount(self, path, cifsuser):
         return xenrt.rootops.MountNFS(path, version=self.version)
 
     def setPermissions(self, td):
@@ -771,12 +771,17 @@ class ExternalSMBShare(_ExternalFileShare):
     SHARE_TYPE="EXTERNAL_SMB_SERVERS"
     DEFAULT_VERSION = "2"
 
-    def mount(self, path, usertype):
-        ad = xenrt.getADConfig(usertype)
+    def mount(self, path, cifsuser):
+        ad = xenrt.getADConfig()
         self.user = ad.adminUser
         self.password = ad.adminPassword
         self.domain = ad.domainName
-        return xenrt.rootops.MountSMB(path, ad.domainName, ad.adminUser, ad.adminPassword)
+
+        if cifsuser:
+            self.user = ad.allUsers['CIFS_USER'].split(":", 1)[0]
+            self.password = ad.allUsers['CIFS_USER'].split(":", 1)[1]
+
+        return xenrt.rootops.MountSMB(path, self.domain, self.user, self.password)
 
     def getUNCPath(self):
         return "\\\\%s%s" % (self.address, self.subdir.replace("/", "\\"))

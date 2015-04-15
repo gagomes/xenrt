@@ -10,7 +10,7 @@
 
 import xml.dom.minidom, re, string, copy, time, os, random 
 import xenrt
-from lazylog import log
+from xenrt.lazylog import log
 
 class Comparer(object):
 

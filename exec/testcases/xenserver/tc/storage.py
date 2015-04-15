@@ -4700,6 +4700,9 @@ class TC26950(xenrt.TestCase):
         host = self.getDefaultHost() # The host has already 2 CIFS SRs created using
                                      # different authentication on NetApp filerSC04-FAS2554.
 
+        # Obtain all the guests created during the prepare.
+        guests = [host.getGuest(g) for g in host.listGuests()]
+
         # Create 2 more CIFS SRs on host using the DEV NetApp filer.
         shareAdmin = xenrt.SpecifiedSMBShare(devSMBServer, devSMBCifsShare, devSMBAdminUser, devSMBAdminPasswd)
         srAdmin = xenrt.productLib(host=host).SMBStorageRepository(host, 'dev-admin-cifs-sr')
@@ -4708,3 +4711,20 @@ class TC26950(xenrt.TestCase):
         shareUser = xenrt.SpecifiedSMBShare(devSMBServer, devSMBCifsShare, devSMBCifsUser, devSMBACifsPasswd)
         srUser = xenrt.productLib(host=host).SMBStorageRepository(host, 'dev-user-cifs-sr')
         srUser.create(shareUser)
+
+        guests.append(host.createBasicGuest(distro="win81-x86", sr=srAdmin.uuid))
+        guests.append(host.createBasicGuest(distro="rhel7", sr=srUser.uuid))
+
+        for guest in guests:
+
+            # Make sure the guest is up.
+            if guest.getState() == "DOWN":
+                xenrt.TEC().logverbose("Starting guest before commencing lifecycle ops.")
+                guest.start()
+
+            guest.shutdown()
+            guest.start()
+            guest.reboot()
+            guest.suspend()
+            guest.resume()
+            guest.shutdown()

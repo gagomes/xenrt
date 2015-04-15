@@ -6,7 +6,10 @@
 
   <prepare>
     <pool>
-      <storage type="nfs" name="nfssr"/>
+      <storage type="nfs" name="nfssr_v3"/>
+      <storage type="nfs" name="nfssr_v4" options="v4"/>
+      <storage type="nfs" name="nfssr_filesr" options="filesr"/>
+      <storage type="nfs" name="nfssr_nosubdir" options="nosubdir"/>
       <storage type="smb" name="cifssr" options="vm"/>
       <host id="0"/>
     </pool>
@@ -15,6 +18,9 @@
   <testsequence>
     <serial group="CIFS">
       <testcase id="xenserver.tc.storage.TCCIFStoNFSv4"/>
+      <testcase id="xenserver.tc.storage.TCCIFStoNFSv3"/>
+      <testcase id="xenserver.tc.storage.TCCIFStoFILE"/>
+      <testcase id="xenserver.tc.storage.TCCIFStoNFSNoSub"/>
     </serial>
   </testsequence>
 

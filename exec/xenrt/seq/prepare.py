@@ -1260,6 +1260,8 @@ class PrepareNode(object):
                             share = xenrt.NativeWindowsSMBShare("RESOURCE_HOST_%s" % hostIndex, driveLetter=driveLetter)
                         elif vm:
                             share = xenrt.VMSMBShare()
+                        elif cifsuser:
+                            share = xenrt.ExternalSMBShare(version=3, usertype="cifsuser")
                         else:
                             share = xenrt.ExternalSMBShare(version=3)
                         sr = xenrt.productLib(host=host).SMBStorageRepository(host, s["name"])

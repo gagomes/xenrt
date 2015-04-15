@@ -1104,7 +1104,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_CPS_2008_64"] = "Citrix XenApp on Windows Server 2008 (64-bit),Citrix XenApp x64 on Windows Server 2008 x64"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_CPS_2008R2_64"] = "Citrix XenApp on Windows Server 2008 R2 (64-bit),Citrix XenApp x64 on Windows Server 2008 R2 x64"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_SDK"] = "Xen API SDK"
-        self.config["VERSION_CONFIG"]["Creedence"]["HVM_LINUX"] = "rhel7\d*,centos7\d*,oel7\d*,ubuntu1404,sl7\d*"
+        self.config["VERSION_CONFIG"]["Creedence"]["HVM_LINUX"] = "rhel7\d*,centos7\d*,oel7\d*,ubuntu1404,debian80,sl7\d*"
         self.config["VERSION_CONFIG"]["Creedence"]["NMAP_ALLOWED_PORTS"] = "tcp/22 tcp/443 tcp/80 (tcp/1311)"
         self.config["VERSION_CONFIG"]["Creedence"]["CLI_SERVER_FLAG"] = "-s"
         self.config["VERSION_CONFIG"]["Creedence"]["DOM0_DISTRO"] = "centos51"

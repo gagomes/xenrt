@@ -895,24 +895,30 @@ umount /mnt
                 xenrt.TEC().logverbose("Sleeping for %d seconds before next "
                                        "iteration" % (t))
                 time.sleep(t)
-            
+
+
 class TC9047(TC8079):
     """Simulate a year of daily VM snapshot backups of a Linux VM on local LVM.
     """
 
     SRTYPE = "lvm"
-    
+
+
 class _VMSnapshotBase(xenrt.TestCase):
 
     SRTYPE = None
     VMNAME = None
 
+    def __parseArgs(self, arglist):
+        argDict = self.parseArgsKeyValue(arglist)
+        if "guest" in argDict.keys:
+            self.VMNAME = argDict["guest"]
+        if "srtype" in argDict.keys:
+            self.SRTYPE = argDict["srtype"]
+
     def prepare(self, arglist):
-    
-        for arg in arglist:
-            l = string.split(arg, "=", 1)
-            if l[0] == "guest":
-                self.VMNAME = l[1]
+
+        self.__parseArgs(arglist)
 
         # If we have a VM already the use that, otherwise create one
         self.guest = self.getGuest(self.VMNAME)
@@ -931,7 +937,7 @@ class _VMSnapshotBase(xenrt.TestCase):
                 self.guest = host.createGenericWindowsGuest(sr=sruuid)
             else:
                 self.guest = host.createGenericLinuxGuest(sr=sruuid)
-            self.uninstallOnCleanup(self.guest)    
+            self.uninstallOnCleanup(self.guest)
         else:
             # Check the guest is healthy and reboot if it is already up
             try:
@@ -944,6 +950,7 @@ class _VMSnapshotBase(xenrt.TestCase):
             except xenrt.XRTFailure, e:
                 raise xenrt.XRTError("Guest broken before we started: %s" %
                                      (str(e)))
+
 
 class TC7849(_VMSnapshotBase):
     """VM snapshot creation of a simple halted VM"""

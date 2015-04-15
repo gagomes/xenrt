@@ -4,6 +4,7 @@
 
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <SR_INSTALL_NAME>cifssr</SR_INSTALL_NAME>
   </variables>
 
   <prepare>
@@ -13,7 +14,7 @@
   </prepare>
 
   <testsequence>
-    <serial group="Snappoint">
+    <serial group="SnappointLinux">
       <testcase id="xenserver.tc.checkpoint.TC11205" name="TC11205.WithCIFs" sku="WithCIFs" />
       <testcase id="xenserver.tc.checkpoint.TC11206" name="TC11206.WithCIFs" sku="WithCIFs" />
       <testcase id="xenserver.tc.checkpoint.TC11207" name="TC11207.WithCIFs" sku="WithCIFs" />

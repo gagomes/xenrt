@@ -3,7 +3,6 @@
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
     <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
     <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
-    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
   </variables>
 
   <prepare>
@@ -14,7 +13,9 @@
 
   <testsequence>
     <serial group="SnapshotMetaTests">
-      <testcase id="xenserver.tc.snapshot.TC21699" name="TC21699.WithCIFs" sku="WithCIFs"/>
+      <testcase id="xenserver.tc.snapshot.TC21699" name="TC21699.WithCIFs" sku="WithCIFs">
+        <arg>srtype=smb</arg>
+      </testcase>
     </serial>
   </testsequence>
 

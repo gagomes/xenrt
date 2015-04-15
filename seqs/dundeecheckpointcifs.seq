@@ -4,6 +4,7 @@
 
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <SR_INSTALL_NAME>cifssr</SR_INSTALL_NAME>
   </variables>
 
   <prepare>

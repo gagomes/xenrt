@@ -1516,7 +1516,6 @@ if shownetwork:
             print "        %s %s-KVM" % (kvm, machine)
 
 if installpackages:
-    xenrt.util.command("pip install --upgrade paramiko")
     print "Evaluating whether we need marvin to be installed"
     seq = findSeqFile(config)
     if seq:

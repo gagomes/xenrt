@@ -12,7 +12,7 @@
 
       <!-- CIFS SR using SMB share provided NetApp SC04-FAS2554 -->
       <storage type="smb" name="admin-cifs-sr"/>
-      <storage type="smb" name="user-cifs-sr"/>
+      <storage type="smb" name="user-cifs-sr" options="cifsuser"/>
 
     </host>
   </prepare>

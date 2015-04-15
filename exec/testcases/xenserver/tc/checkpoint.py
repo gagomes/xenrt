@@ -10,6 +10,7 @@
 
 import xml.dom.minidom, re, string, copy, time, os, random 
 import xenrt
+from lazylog import log
 
 class Comparer(object):
 
@@ -369,12 +370,16 @@ class _SnappointRollback(xenrt.TestCase):
         :returns: sr-uuid -- of the named sr else local as deafult
         """
         srName = xenrt.TEC().lookup("SR_INSTALL_NAME", None)
+        if srName:
+            log("Attempting to use SR called {srname}".format(srname=srName))
+
         return host.getSRByName(srName) if srName else host.getLocalSR()
 
     def prepare(self, arglist):
         self.snappoint = None
         self.host = self.getDefaultHost()
         self.sr = self.__chooseSR(arglist, self.host)
+        log("SR UUID is {sruuid}".format(sruuid=self.sr))
         self.host.addExtraLogFile("/var/log/SMlog")
         if not self.EXISTING_GUEST:
             self.guest = None

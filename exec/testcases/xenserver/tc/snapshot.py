@@ -911,9 +911,9 @@ class _VMSnapshotBase(xenrt.TestCase):
 
     def __parseArgs(self, arglist):
         argDict = self.parseArgsKeyValue(arglist)
-        if "guest" in argDict.keys:
+        if "guest" in argDict:
             self.VMNAME = argDict["guest"]
-        if "srtype" in argDict.keys:
+        if "srtype" in argDict:
             self.SRTYPE = argDict["srtype"]
 
     def prepare(self, arglist):

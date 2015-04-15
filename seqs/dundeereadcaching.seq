@@ -16,7 +16,7 @@
         <storage>nfssr</storage>
         <postinstall action="snapshot" />
       </vm>
-      <storage type="nfs" name="nfssr" />
+      <storage type="nfs" name="nfssr" default="true"/>
     </host>
   </prepare>
 

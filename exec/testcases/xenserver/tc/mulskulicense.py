@@ -365,7 +365,7 @@ class TCCIFSStorageFeature(TestFeatureBase):
         # Check flag.
         assertions.assertEquals(featureRestricted,
             featureResctictedFlag,
-            "CIFS feature flag was not as expected for sku, %s. Restricted flag: %s. Should be: %s" % (currentSKU, featureResctictedFlag, featureRescticted))
+            "CIFS feature flag was not as expected for sku, %s. Restricted flag: %s. Should be: %s" % (currentSKU, featureResctictedFlag, featureRestricted))
 
         # Check if the CIFS Storage feature is correct.
         enabled = feature.isEnabled(self.systemObj.master)

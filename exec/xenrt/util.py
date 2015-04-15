@@ -1392,9 +1392,6 @@ def getADConfig(usertype="admin"):
     dns=ad['DNS']
     domainName = ad['DOMAIN_NAME']
 
-    # Get all the users from active directory server.
-    users = xenrt.TEC().lookup(["AD_CONFIG", "USERS"])
-
     if usertype == "admin":
         adminUser = ad['ADMIN_USER']
         adminPassword = ad['ADMIN_PASSWORD']

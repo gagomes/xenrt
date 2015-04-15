@@ -761,7 +761,7 @@ class ExternalNFSShare(_ExternalFileShare):
     SHARE_TYPE="EXTERNAL_NFS_SERVERS"
     DEFAULT_VERSION = "3"
 
-    def mount(self, path):
+    def mount(self, path, usertype):
         return xenrt.rootops.MountNFS(path, version=self.version)
 
     def setPermissions(self, td):

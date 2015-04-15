@@ -1748,7 +1748,7 @@ class Experiment_vmrun(Experiment):
                 else:
                     xenrt.TEC().logverbose("%s: xrtuk-08-* host NOT detected, using default network configuration" % hn)
                     if self.vlans > 0:
-                        networkcfg = '<NETWORK><PHYSICAL><NIC/>%s</PHYSICAL></NETWORK>' % (networkcfg,)
+                        networkcfg = '<NETWORK><PHYSICAL network="NPRI"><NIC/>%s</PHYSICAL></NETWORK>' % (networkcfg,)
 
             seq = "<pool><host installsr=\"%s\">%s%s</host></pool>" % (localsr,sharedsr, networkcfg)
             #seq = "<pool><host/></pool>"

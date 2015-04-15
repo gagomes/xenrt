@@ -3562,7 +3562,9 @@ d-i    apt-setup/security_path  string %s""" % (self.httphost,self.httppath, sel
             st=""
         elif self.distro.startswith("debian80"):
             subs=jessie
-            st=""
+            st="d-i preseed/late_command string sed -i 's/PermitRootLogin without-password/PermitRootLogin yes/g' /target/etc/ssh/sshd_config; /target/etc/init.d/ssh restart;"
+            if not self.disk:
+                self.disk = "/dev/sda"
         else:
             subs=wheezy
             if self.distro.startswith("debian70") and "64" in self.arch:

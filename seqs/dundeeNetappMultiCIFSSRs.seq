@@ -1,6 +1,6 @@
 <xenrt>
 
-  <!-- Multi authenticated multiple CIFS SRs using SMB share provided by NetApp filer. -->
+  <!-- Multi authenticated multiple CIFS SRs using SMB share provided by NetApp filers. -->
 
   <default name="DEV_SMB_SERVER_IP" value="10.80.228.113" />
   <default name="DEV_CIFS_SHARE" value="cifs_vol1" />
@@ -15,7 +15,7 @@
 
   <prepare>
     <host id="0">
-      <!-- CIFS SR using SMB share provided NetApp SC04-FAS2554 -->
+      <!-- CIFS SRs using SMB share provided NetApp SC04-FAS2554 -->
       <storage type="smb" name="admin-cifs-sr" />
       <storage type="smb" name="user-cifs-sr" options="cifsuser" />
 

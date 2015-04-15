@@ -13,10 +13,8 @@
   </prepare>
 
   <testsequence>
-    <serial group="HostInstall">
-      <testcase id="xenserver.tc.multipath.TC15464" name="FCMultiPowerVault" sku="PVault">
-        <arg>arrayvendor=powervault</arg>
-      </testcase>
+    <serial group="PowerVault">
+      <testcase id="xenserver.tc.multipath.TC15464" name="FCMultiPowerVault" sku="PowerVault" />
     </serial>
   </testsequence>
 

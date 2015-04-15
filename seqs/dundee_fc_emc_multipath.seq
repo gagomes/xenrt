@@ -13,10 +13,8 @@
   </prepare>
 
   <testsequence>
-    <serial group="HostInstall">
-      <testcase id="xenserver.tc.multipath.TC15464" name="FCMultiEmcClariion" sku="EClariion">
-        <arg>arrayvendor=emcclariion</arg>
-      </testcase>
+    <serial group="EClariion">
+      <testcase id="xenserver.tc.multipath.TC15464" name="FCMultiEmcClariion" sku="EClariion" />
     </serial>
   </testsequence>
 

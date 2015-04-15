@@ -69,15 +69,14 @@ class _TCSmokeTest(xenrt.TestCase):
     def getTemplateParams(self):
         if self.template:
             tname = self.template
+            tuuid = self.host.minimalList("template-list", args="name-label='%s'" % tname)[0]
+
+            defMemory = int(self.host.genParamGet("template", tuuid, "memory-static-max"))/xenrt.MEGA
+            defVCPUs = int(self.host.genParamGet("template", tuuid, "VCPUs-max"))
+
+            return collections.namedtuple("TemplateParams", ["defaultMemory", "defaultVCPUs"])(defMemory, defVCPUs)
         else:
-            tname = self.host.getTemplate(distro=self.installDistro, arch=self.arch)
-
-        tuuid = self.host.minimalList("template-list", args="name-label='%s'" % tname)[0]
-
-        defMemory = int(self.host.genParamGet("template", tuuid, "memory-static-max"))/xenrt.MEGA
-        defVCPUs = int(self.host.genParamGet("template", tuuid, "VCPUs-max"))
-
-        return collections.namedtuple("TemplateParams", ["defaultMemory", "defaultVCPUs"])(defMemory, defVCPUs)
+            return self.host.getTemplateParams(self.installDistro, self.arch)
 
     def getGuestLimits(self):
         return xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.installDistro])

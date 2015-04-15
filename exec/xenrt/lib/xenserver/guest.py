@@ -2570,6 +2570,17 @@ exit /B 1
         if pcpus:
             limits.append(pcpus)
 
+        # Limit based on memory size
+        guestmem = self.memory
+        if not guestmem and self.distro:
+            host = xenrt.TEC().registry.hostGet("RESOURCE_HOST_DEFAULT")
+            guestmem = host.getTemplateParams(self.distro, self.arch).defaultMemory
+        if guestmem:
+            memlimit = guestmem / int(xenrt.TEC().lookup("RND_VCPUS_MB_PER_VCPU", "64"))
+            limits.append(memlimit)
+        else:
+            xenrt.TEC().warning("Cannot determine guest memory")
+
         if limits:
             return min(limits)
 
@@ -2578,13 +2589,16 @@ exit /B 1
         return 4
 
     def setRandomVcpus(self):
-        xenrt.TEC().logverbose("Setting random vcpus for VM ")
         maxVcpusSupported = self.getMaxSupportedVCPUCount()
-        randomVcpus = random.randint(1, maxVcpusSupported)
+        maxRandom = min(maxVcpusSupported, 4)
+        xenrt.TEC().logverbose("Setting random vcpus for VM between 1 and %d (max supported %d)" % (maxRandom, maxVcpusSupported))
+        randomVcpus = random.randint(1, maxRandom)
         with xenrt.GEC().getLock("RND_VCPUS"):
             dbVal = int(xenrt.TEC().lookup("RND_VCPUS_VAL", "0"))
             if dbVal != 0:
                 xenrt.TEC().logverbose("Using vcpus from DB: %d" % dbVal)
+                if dbVal > maxVcpusSupported:
+                    xenrt.TEC().warning("DB vcpus value is greater than maxVcpusSupported!")
                 self.setVCPUs(dbVal)
             else:
                 xenrt.TEC().logverbose("Randomly choosen vcpus is %d" % randomVcpus)
@@ -4677,6 +4691,8 @@ def createVM(host,
         vifs = parseSequenceVIFs(g, host, vifs)
 
         # The install method doesn't do this for us.
+        if memory:
+            g.setMemory(memory)
         if vcpus:
             g.setVCPUs(vcpus)
         elif xenrt.TEC().lookup("RND_VCPUS", default=False, boolean=True):
@@ -4685,8 +4701,6 @@ def createVM(host,
             g.setCoresPerSocket(corespersocket)
         elif xenrt.TEC().lookup("RND_CORES_PER_SOCKET", default=False, boolean=True):
             g.setRandomCoresPerSocket(host, vcpus)
-        if memory:
-            g.setMemory(memory)
 
         if bootparams:
             bp = g.getBootParams()

@@ -1991,15 +1991,15 @@ class TC20957(_VDICopy):
     FROM_TYPE = "nfssr_classic" # classic nfssr
     TO_TYPE   = "nfssr_nosubdir" # options="nosubdir" 
 
-class TCCIFStoNFSv4(_VDICopy):
-    FIND_SR_BY_NAME = True
-    FROM_TYPE = "cifssr"
-    TO_TYPE = "nfssr_v4"
-
 class TCCIFStoNFSv3(_VDICopy):
     FIND_SR_BY_NAME = True
     FROM_TYPE = "cifssr"
     TO_TYPE = "nfssr_v3"
+
+class TCCIFStoNFSv4(_VDICopy):
+    FIND_SR_BY_NAME = True
+    FROM_TYPE = "cifssr"
+    TO_TYPE = "nfssr_v4"
 
 class TCCIFStoFILE(_VDICopy):
     FIND_SR_BY_NAME = True

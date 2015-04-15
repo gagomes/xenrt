@@ -960,6 +960,8 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_DEBIAN_60_64"] = "Debian Squeeze 6.0 (64-bit),Debian Squeeze 6.0 (64-bit) (experimental),Debian Squeeze 6.0"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_DEBIAN_70"] = "Debian Wheezy 7.0 (32-bit),Debian Wheezy 7.0,Debian Wheezy 7.0 (32-bit),Debian Wheezy 7.0"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_DEBIAN_70_64"] = "Debian Wheezy 7.0 (64-bit),Debian Wheezy 7.0,Debian Wheezy 7.0 (64-bit),Debian Wheezy 7.0"
+        self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_DEBIAN_80"] = "Ubuntu Trusty Tahr 14.04,Ubuntu Trusty Tahr 14.04 (32-bit)"
+        self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_DEBIAN_80_64"] = "Ubuntu Trusty Tahr 14.04,Ubuntu Trusty Tahr 14.04 (64-bit)"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_RHEL_45"] = "Red Hat Enterprise Linux 4.5 (32-bit),Red Hat Enterprise Linux 4.5"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_RHEL_46"] = "Red Hat Enterprise Linux 4.6 (32-bit),Red Hat Enterprise Linux 4.6"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_RHEL_47"] = "Red Hat Enterprise Linux 4.7 (32-bit),Red Hat Enterprise Linux 4.7"
@@ -2500,6 +2502,13 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["debian70"]["MAXMEMORY64"] = "131072"
         self.config["GUEST_LIMITATIONS"]["debian70"]["MAX_VM_VCPUS"] = "32"
         self.config["GUEST_LIMITATIONS"]["debian70"]["MAX_VM_VCPUS64"] = "32"
+        self.config["GUEST_LIMITATIONS"]["debian80"] = {}
+        self.config["GUEST_LIMITATIONS"]["debian80"]["MINMEMORY"] = "256"
+        self.config["GUEST_LIMITATIONS"]["debian80"]["STATICMINMEMORY"] = "128"
+        self.config["GUEST_LIMITATIONS"]["debian80"]["MAXMEMORY"] = "65536"
+        self.config["GUEST_LIMITATIONS"]["debian80"]["MAXMEMORY64"] = "131072"
+        self.config["GUEST_LIMITATIONS"]["debian80"]["MAX_VM_VCPUS"] = "32"
+        self.config["GUEST_LIMITATIONS"]["debian80"]["MAX_VM_VCPUS64"] = "32"
         self.config["GUEST_LIMITATIONS"]["sl511"] = {}
         self.config["GUEST_LIMITATIONS"]["sl511"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["sl511"]["MAXMEMORY"] = "8192"
@@ -2553,6 +2562,7 @@ class Config(object):
         self.config["OS_INSTALL_ISO"]["solaris10u9-32"] = "sol-10-u9-ga-x86-dvd-jumpstart-32"
         self.config["OS_INSTALL_ISO"]["debian60"] = "deb6"
         self.config["OS_INSTALL_ISO"]["debian70"] = "deb7"
+        self.config["OS_INSTALL_ISO"]["debian80"] = "deb8"
         
         self.config["HOTFIXES"] = {}
         self.config["HOTFIXES"]["Orlando"] = {"RTM": {}}

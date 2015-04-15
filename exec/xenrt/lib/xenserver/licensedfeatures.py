@@ -205,19 +205,18 @@ class CIFSStorage(LicensedFeature):
     def isEnabled(self, host):
 
         try:
-            # Setup share.
-            # Find minimal amount to call create.
-            share = None
-            sr = xenrt.SMBStorageRepository()
+            # Knows about existing shares. Won't need to worry about dups.
+            share = xenrt.VMSMBShare()
+            sr = xenrt.productLib(host=host).SMBStorageRepository(host, "CIFS-SR")
             sr.create(share)
             # Might want to cleanup afterwards.
+            return True
         except:
             return False
-        return True
 
     @property
     def featureFlagName(self):
-        return "restrict_cifs"  # Find real flag name for this.
+        return "restrict_cifs"
 
 
 class BaseEnabledFeatures(object):
@@ -260,6 +259,7 @@ class CreedenceEnabledFeatures(BaseEnabledFeatures):
 
 class DundeeEnabledFeatures(BaseEnabledFeatures):
     """Added CIFS feature, from Creedence."""
+
     def getEnabledFeatures(self):
         if self.sku == XenServerLicenseSKU.PerUserEnterprise or \
            self.sku == XenServerLicenseSKU.PerConcurrentUserEnterprise:
@@ -272,15 +272,15 @@ class DundeeEnabledFeatures(BaseEnabledFeatures):
                     Hotfixing().name, ExportPoolResourceList().name, GPUPassthrough().name,
                     CIFSStorage().name]
         if self.sku == XenServerLicenseSKU.XenDesktop:
-            return [Hotfixing().name, GPUPassthrough().name, WorkloadBalancing().name, VirtualGPU().name, CIFSStorage().name]
+            return [Hotfixing().name, GPUPassthrough().name, WorkloadBalancing().name, VirtualGPU().name]
         if self.sku == XenServerLicenseSKU.PerSocketStandard:
-            return [Hotfixing().name, GPUPassthrough().name, CIFSStorage().name]
+            return [Hotfixing().name, GPUPassthrough().name]
         if self.sku == XenServerLicenseSKU.Free:
             return [Hotfixing().name, GPUPassthrough().name]
         if self.sku == XenServerLicenseSKU.XenDesktopPlusXDS or \
            self.sku == XenServerLicenseSKU.XenDesktopPlusMPS:
             return [WorkloadBalancing().name, ReadCaching().name, VirtualGPU().name,
-                    Hotfixing().name, GPUPassthrough().name, CIFSStorage().name]
+                    Hotfixing().name, GPUPassthrough().name]
 
 
 class LicensedFeatureFactory(object):

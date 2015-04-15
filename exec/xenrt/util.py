@@ -1397,6 +1397,8 @@ def getADConfig():
     dcAddress = ad['DC_ADDRESS']
     dcDistro = ad['DC_DISTRO']
 
+    allUsers = xenrt.TEC().lookup(["AD_CONFIG", "USERS"])
+
     ADConfig = namedtuple('ADConfig', ['domain', 'domainName', 'adminUser', 'allUsers','adminPassword', 'dns', 'dcAddress', 'dcDistro'])
 
     return ADConfig(domain=domain, domainName=domainName, adminUser=adminUser, allUsers=allUsers, adminPassword=adminPassword, dns=dns, dcAddress=dcAddress, dcDistro=dcDistro)

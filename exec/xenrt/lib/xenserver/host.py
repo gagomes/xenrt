@@ -12460,9 +12460,9 @@ class SMBStorageRepository(StorageRepository):
 
     SHARED = True
 
-    def create(self, share=None, usertype="admin"):
+    def create(self, share=None, cifsuser=None):
         if not share:
-            share = xenrt.ExternalSMBShare(version=3, usertype=usertype)
+            share = xenrt.ExternalSMBShare(version=3, cifsuser=cifsuser)
 
         dconf = {}
         smconf = {}

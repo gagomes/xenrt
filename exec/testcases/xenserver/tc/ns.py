@@ -1631,7 +1631,7 @@ class NSSRIOV(SRIOVTests):
             pass
         
         else:
-            self.license_file = vpx.execguest("wget %s/tallahassee/%s -O /nsconfig/license/%s" % (xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"), lic, lic), username='nsroot')
+            self.license_file = vpx.execguest("wget %s/tallahassee/%s -O /nsconfig/license/%s" % (xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"), lic, lic), username='nsroot', timeout=500)
 
         vpx.waitForSSH(timeout=100,cmd='sh ns ip',username='nsroot')
         self.rebootVPX(vpx)

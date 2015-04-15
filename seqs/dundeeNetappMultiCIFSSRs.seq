@@ -1,20 +1,35 @@
 <xenrt>
 
-  <!-- Multi authenticated multi CIFS SRs using SMB share provided by NetApp filer. -->
+  <!-- Multi authenticated multiple CIFS SRs using SMB share provided by NetApp filer. -->
+
+  <default name="DEV_SMB_SERVER_IP" value="10.80.228.113" />
+  <default name="DEV_CIFS_SHARE" value="cifs_vol1" />
+  <default name="DEV_SMB_ADMIN_USER" value="Administrator" />
+  <default name="DEV_ADMIN_PASSWD" value="xenroot01T" />
+  <default name="DEV_SMB_CIFS_USER" value="cifs_user" />
+  <default name="DEV_CIFS_PASSWD" value="xenroot01T" />
 
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
   </variables>
 
   <prepare>
-
     <host id="0">
-
       <!-- CIFS SR using SMB share provided NetApp SC04-FAS2554 -->
-      <storage type="smb" name="admin-cifs-sr"/>
-      <storage type="smb" name="user-cifs-sr" options="cifsuser"/>
-
+      <storage type="smb" name="admin-cifs-sr" />
+      <storage type="smb" name="user-cifs-sr" options="cifsuser" />
     </host>
   </prepare>
+
+  <testsequence group="CIFSMultiSRs">
+    <testcase id="xenserver.tc.storage.TC26950">
+      <arg>smbserver=${DEV_SMB_SERVER_IP}</arg>
+      <arg>cifsshare=${DEV_CIFS_SHARE}</arg>
+      <arg>smbadminuser=${DEV_SMB_ADMIN_USER}</arg>
+      <arg>smbadminpasswd=${DEV_ADMIN_PASSWD}</arg>
+      <arg>smbcifsuser=${DEV_SMB_CIFS_USER}</arg>
+      <arg>smbcifspasswd=${DEV_CIFS_PASSWD}</arg>
+    </testcase>
+  </testsequence>
 
 </xenrt>

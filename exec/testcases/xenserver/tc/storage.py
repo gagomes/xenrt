@@ -4682,3 +4682,29 @@ class TC26472(xenrt.TestCase):
             guest.suspend()
             guest.resume()
             guest.shutdown()
+
+class TC26950(xenrt.TestCase):
+    """Multiple CIFS SRs using multiple authentication provided by NetApp SMB Share"""
+
+    def run(self, arglist):
+
+        args = self.parseArgsKeyValue(arglist)
+
+        devSMBServer = args.get("smbserver", "10.80.228.113")
+        devSMBCifsShare = args.get("cifsshare", "cifs_vol1")
+        devSMBAdminUser = args.get("smbadminuser", "Administrator")
+        devSMBAdminPasswd = args.get("smbadminpasswd", "xenroot01T")
+        devSMBCifsUser = args.get("smbcifsuser", "cifs_user")
+        devSMBACifsPasswd = args.get("smbcifspasswd", "xenroot01T")
+
+        host = self.getDefaultHost() # The host has already 2 CIFS SRs created using
+                                     # different authentication on NetApp filerSC04-FAS2554.
+
+        # Create 2 more CIFS SRs on host using the DEV NetApp filer.
+        shareAdmin = xenrt.SpecifiedSMBShare(devSMBServer, devSMBCifsShare, devSMBAdminUser, devSMBAdminPasswd)
+        srAdmin = xenrt.productLib(host=host).SMBStorageRepository(host, 'dev-admin-cifs-sr')
+        srAdmin.create(shareAdmin)
+
+        shareUser = xenrt.SpecifiedSMBShare(devSMBServer, devSMBCifsShare, devSMBCifsUser, devSMBACifsPasswd)
+        srUser = xenrt.productLib(host=host).SMBStorageRepository(host, 'dev-user-cifs-sr')
+        srUser.create(shareUser)

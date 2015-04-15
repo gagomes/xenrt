@@ -305,17 +305,17 @@ class LicensedFeatureFactory(object):
         raise ValueError("Feature list for a %s host was not found" % self.__getHostAge(xshost))
 
     def allFeatureObj(self, xshost):
-        if self.__getHostAge(xshost) == self.__CRE:
+        if self.__getHostAge(xshost) == self.__CRE or self.__getHostAge(xshost) == self.__CRM:
             return [WorkloadBalancing(), ReadCaching(), VirtualGPU(),
                     Hotfixing(), ExportPoolResourceList(), GPUPassthrough()]
-        elif self.__getHostAge(xshost) == self.__CRM or self.__getHostAge(xshost) == self.__DUN:
+        elif self.__getHostAge(xshost) == self.__DUN:
             return [WorkloadBalancing(), ReadCaching(), VirtualGPU(),
                     Hotfixing(), ExportPoolResourceList(), GPUPassthrough(),
                     CIFSStorage()]
 
     def getFeatureState(self, productVersion, sku, feature):
         lver = productVersion.lower()
-        if lver == self.__CRE:
+        if lver == self.__CRE or lver == self.__CRM:
             return CreedenceEnabledFeatures(sku).expectedEnabledState(feature)
-        elif lver == self.__CRM or lver == self.__DUN:
+        elif lver == self.__DUN:
             return DundeeEnabledFeatures(sku).expectedEnabledState(feature)

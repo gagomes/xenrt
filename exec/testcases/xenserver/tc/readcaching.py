@@ -135,6 +135,13 @@ class TCRCForSRPlug(ReadCacheTestCase):
     A3. Verify SR re-attach persist status
     """
 
+    def __init__(self):
+        super(TCRCForSRPlug, self).__init__()
+        self.__vdis = None
+
+    def __storeVDIs(self):
+        self.__vdis = self.vm.asXapiObject().VDI()
+
     def __plugReplugSR(self):
         xsr = next((s for s in self.getDefaultHost().asXapiObject().SR() if s.srType() == "nfs"), None)
         sr = xenrt.lib.xenserver.NFSStorageRepository.fromExistingSR(self.getDefaultHost(), xsr.uuid)
@@ -142,20 +149,21 @@ class TCRCForSRPlug(ReadCacheTestCase):
         sr.introduce()
 
     def __replugVm(self):
+        if not self.__vdis:
+            raise xenrt.Failure("Cannot find any VDI information. Are they stored before unplug SR?")
+
         # Plug the VDI to the VM
         xsr = next((s for s in self.getDefaultHost().asXapiObject().SR() if s.srType() == "nfs"), None)
-        xvdi = xsr.VDI()[0]
-        self.vm.createDisk(sizebytes=xvdi.size(), sruuid=xsr.uuid, vdiuuid=xvdi.uuid, bootable=True)
-
-    def __removeSnapshots(self):
-        [s.delete() for s in self.vm.asXapiObject().Snapshot()]
+        for xvdi in self.__vdis:
+            self.vm.createDisk(sizebytes=xvdi.size(), sruuid=xsr.uuid, vdiuuid=xvdi.uuid, bootable=True)
 
     def run(self, arglist):
         lowlevel, both = self.getArgs(arglist)
         self.checkExpectedState(True, lowlevel, both)
         self.vm.shutdown()
-        self.__removeSnapshots()
 
+        # Store VDI
+        self.__storeVDIs()
         # Find the SR and forget/introduce
         self.__plugReplugSR()
         self.__replugVm()

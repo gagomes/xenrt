@@ -180,7 +180,7 @@ class TestRdpWithSnapshot(RdpVerification):
 
         # Take snapshot of the guest
         step("Test trying to take the snapshot( memory+disk ) of the guest")
-        uuid = self.guest.checkpoint()
+        checkpoint = self.guest.checkpoint()
 
         # Enable the RDP on the guest
         if not xapiRdpObj.enableRdp():
@@ -195,7 +195,7 @@ class TestRdpWithSnapshot(RdpVerification):
 
         # Revert to snapshot
         step("Test reverting the guest snapshot")
-        self.guest.revert(uuid)
+        self.guest.revert(checkpoint)
         self.guest.resume()
 
         # When we revert to snapshot RDP should be in disabled state

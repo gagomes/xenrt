@@ -1776,8 +1776,14 @@ class Experiment_vmrun(Experiment):
                     #this sed works in xs5.6sp2- only
                     host.execdom0('sed -i \'s/sys.argv\[2:\]$/sys.argv\[2:\]\\nqemu_args.append("-priv")\\n/\' /opt/xensource/libexec/qemu-dm-wrapper')
 
- 
+
             host = self.tc.getDefaultHost()
+
+            if self.vlans > 0:
+                #create any extra VLANs in the host
+                host.createNetworkTopology(networkcfg)
+
+
             host.defaultsr = name_defaultsr # hack: because esx doesn't have a pool class to set up the defaultsr when creating the host via sequence above with 'default' option in <storage>
             pool = self.tc.getDefaultPool()
             sr_uuid = host.parseListForUUID("sr-list", "name-label", name_defaultsr)

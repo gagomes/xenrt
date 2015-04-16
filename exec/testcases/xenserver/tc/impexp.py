@@ -739,6 +739,10 @@ class TC12565(_ImpExpBase):
     """Import/Export test using CLI on SLES 11 SP1"""
     CLIDISTRO="sles111"
 
+class TC26943(_ImpExpBase):
+    """Import/Export test using CLI on CENTOS 7"""
+    CLIDISTRO="centos7"
+
 class TC6840(_ImpExpBase):
     """Import/Export test using CLI on Windows 2003 EE SP2"""
     CLIDISTRO="w2k3eesp2"

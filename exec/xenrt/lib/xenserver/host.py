@@ -6487,11 +6487,11 @@ fi
                     template = self.chooseTemplate("TEMPLATE_NAME_WIN10")
             elif re.search("ws12", distro) and re.search("x64", distro):
                 template = self.chooseTemplate("TEMPLATE_NAME_WS12_64")
-            elif re.search("debian\d+", distro):
+            elif re.search("debian.+", distro):
                 if hvm:
                     template = self.chooseTemplate("TEMPLATE_OTHER_MEDIA")
                 else:
-                    r = re.search("debian(\d+)", distro)
+                    r = re.search("debian(.+)", distro)
                     if arch and arch == "x86-64":
                         template = self.chooseTemplate("TEMPLATE_NAME_DEBIAN_%s_64" %
                                                    (r.group(1)))
@@ -6616,6 +6616,8 @@ fi
                         template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_1204")
             elif re.search("ubuntu1404", distro):
                 template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_1404")
+            elif re.search("ubuntudevel", distro):
+                template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_DEVEL")
             elif re.search("coreos-", distro):
                 template = self.chooseTemplate("TEMPLATE_NAME_COREOS")
             elif re.search(r"other", distro):

@@ -3473,9 +3473,9 @@ class DebianPreseedFile(object):
         self.disk = disk
         
     def generate(self):
-        if self.distro.startswith("debian60") or self.distro.startswith("debian70") or self.distro.startswith("debian80"):
+        if self.distro.startswith("debian") and not self.distro.startswith("debian50"):
             ps=self.generateDebian()
-        elif self.distro.startswith("ubuntu1004") or self.distro.startswith("ubuntu1204") or self.distro.startswith("ubuntu1404"):
+        elif self.distro.startswith("ubuntu"):
             ps=self.generateUbuntu()
         else :
             ps=self.generateDebian5()
@@ -3494,6 +3494,8 @@ class DebianPreseedFile(object):
             return "wheezy" 
         elif self.distro.startswith("debian80"):
             return "jessie" 
+        elif self.distro.startswith("debiantesting"):
+            return "testing" 
     
     def _password(self):
         if not self.password:
@@ -3560,7 +3562,7 @@ d-i    apt-setup/security_path  string %s""" % (self.httphost,self.httppath, sel
         if self.distro.startswith("debian60"):
             subs=squeeze
             st=""
-        elif self.distro.startswith("debian80"):
+        elif self.distro.startswith("debian80") or self.distro.startswith("debiantesting"):
             subs=jessie
             st="d-i preseed/late_command string sed -i 's/PermitRootLogin without-password/PermitRootLogin yes/g' /target/etc/ssh/sshd_config; /target/etc/init.d/ssh restart;"
             if not self.disk:
@@ -3674,6 +3676,8 @@ d-i apt-setup/services-select multiselect none
         elif self.distro.startswith("ubuntu1204") and "64" in self.arch:
             st=ubuntu1264
         elif self.distro.startswith("ubuntu1404"):
+            st = ubuntu1404
+        elif self.distro.startswith("ubuntudevel"):
             st = ubuntu1404
         else:
             st=ubuntu1204                

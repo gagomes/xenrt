@@ -8566,7 +8566,7 @@ class GenericGuest(GenericPlace):
 
             arch = "amd64" if "64" in self.arch else "i386"
             xenrt.TEC().logverbose("distro: %s | repository: %s | filename: %s" % (distro, repository, filename))
-            m = re.search("ubuntu(\d+)", distro)
+            m = re.search("ubuntu(.+)", distro)
             if m:
                 release = m.group(1)
                 if release == "1004":
@@ -8575,6 +8575,8 @@ class GenericGuest(GenericPlace):
                     _url = repository + "/dists/precise/"
                 elif release == "1404":
                     _url = repository + "/dists/trusty/"
+                elif release == "devel":
+                    _url = repository + "/dists/devel/"
                 boot_dir = "main/installer-%s/current/images/netboot/ubuntu-installer/%s/" % (arch, arch)
             else:
                 if distro == "debian50":
@@ -8585,6 +8587,8 @@ class GenericGuest(GenericPlace):
                     release = "wheezy"
                 elif distro == "debian80":
                     release = "jessie"
+                elif distro == "debiantesting":
+                    release = "testing"
                 _url = repository + "/dists/%s/" % (release)
                 boot_dir = "main/installer-%s/current/images/netboot/debian-installer/%s/" % (arch, arch)
 

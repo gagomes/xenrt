@@ -963,6 +963,8 @@ class Config(object):
         # TODO Update these to Debian Jessie templates when they exist
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_DEBIAN_80"] = "Ubuntu Trusty Tahr 14.04,Ubuntu Trusty Tahr 14.04 (32-bit)"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_DEBIAN_80_64"] = "Ubuntu Trusty Tahr 14.04,Ubuntu Trusty Tahr 14.04 (64-bit)"
+        self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_DEBIAN_TESTING"] = "Ubuntu Trusty Tahr 14.04,Ubuntu Trusty Tahr 14.04 (32-bit)"
+        self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_DEBIAN_TESTING_64"] = "Ubuntu Trusty Tahr 14.04,Ubuntu Trusty Tahr 14.04 (64-bit)"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_RHEL_45"] = "Red Hat Enterprise Linux 4.5 (32-bit),Red Hat Enterprise Linux 4.5"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_RHEL_46"] = "Red Hat Enterprise Linux 4.6 (32-bit),Red Hat Enterprise Linux 4.6"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_RHEL_47"] = "Red Hat Enterprise Linux 4.7 (32-bit),Red Hat Enterprise Linux 4.7"
@@ -1059,6 +1061,8 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_UBUNTU_1204_64"] = "Ubuntu Precise Pangolin 12.04 (64-bit),Ubuntu Precise Pangolin 12.04 x64"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_UBUNTU_1404"] = "Ubuntu Trusty Tahr 14.04,Ubuntu Trusty Tahr 14.04 (32-bit)"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_UBUNTU_1404_64"] = "Ubuntu Trusty Tahr 14.04,Ubuntu Trusty Tahr 14.04 (64-bit)"
+        self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_UBUNTU_DEVEL"] = "Ubuntu Trusty Tahr 14.04,Ubuntu Trusty Tahr 14.04 (32-bit)"
+        self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_UBUNTU_DEVEL_64"] = "Ubuntu Trusty Tahr 14.04,Ubuntu Trusty Tahr 14.04 (64-bit)"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_OTHER_MEDIA"] = "Other install media"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_SLES_101"] = "SUSE Linux Enterprise Server 10 SP1 (32-bit),SUSE Linux Enterprise Server 10 SP1"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_SLES_101_64"] = "SUSE Linux Enterprise Server 10 SP1 (64-bit),SUSE Linux Enterprise Server 10 SP1 x64"
@@ -1105,7 +1109,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_CPS_2008_64"] = "Citrix XenApp on Windows Server 2008 (64-bit),Citrix XenApp x64 on Windows Server 2008 x64"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_CPS_2008R2_64"] = "Citrix XenApp on Windows Server 2008 R2 (64-bit),Citrix XenApp x64 on Windows Server 2008 R2 x64"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_SDK"] = "Xen API SDK"
-        self.config["VERSION_CONFIG"]["Creedence"]["HVM_LINUX"] = "rhel7\d*,centos7\d*,oel7\d*,ubuntu1404,debian80,sl7\d*"
+        self.config["VERSION_CONFIG"]["Creedence"]["HVM_LINUX"] = "rhel7\d*,centos7\d*,oel7\d*,ubuntu1404,debian80,debiantesting,ubuntudevel,sl7\d*"
         self.config["VERSION_CONFIG"]["Creedence"]["NMAP_ALLOWED_PORTS"] = "tcp/22 tcp/443 tcp/80 (tcp/1311)"
         self.config["VERSION_CONFIG"]["Creedence"]["CLI_SERVER_FLAG"] = "-s"
         self.config["VERSION_CONFIG"]["Creedence"]["DOM0_DISTRO"] = "centos51"
@@ -2486,6 +2490,12 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["ubuntu1404"]["MAXMEMORY64"] = "131072"
         self.config["GUEST_LIMITATIONS"]["ubuntu1404"]["MAX_VM_VCPUS"] = "8"
         self.config["GUEST_LIMITATIONS"]["ubuntu1404"]["MAX_VM_VCPUS64"] = "16"
+        self.config["GUEST_LIMITATIONS"]["ubuntudevel"] = {}
+        self.config["GUEST_LIMITATIONS"]["ubuntudevel"]["MINMEMORY"] = "256"
+        self.config["GUEST_LIMITATIONS"]["ubuntudevel"]["MAXMEMORY"] = "32768"
+        self.config["GUEST_LIMITATIONS"]["ubuntudevel"]["MAXMEMORY64"] = "131072"
+        self.config["GUEST_LIMITATIONS"]["ubuntudevel"]["MAX_VM_VCPUS"] = "8"
+        self.config["GUEST_LIMITATIONS"]["ubuntudevel"]["MAX_VM_VCPUS64"] = "16"
         self.config["GUEST_LIMITATIONS"]["debian50"] = {}
         self.config["GUEST_LIMITATIONS"]["debian50"]["MINMEMORY"] = "256"
         self.config["GUEST_LIMITATIONS"]["debian50"]["MAXMEMORY"] = "32768"
@@ -2510,6 +2520,13 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["debian80"]["MAXMEMORY64"] = "131072"
         self.config["GUEST_LIMITATIONS"]["debian80"]["MAX_VM_VCPUS"] = "32"
         self.config["GUEST_LIMITATIONS"]["debian80"]["MAX_VM_VCPUS64"] = "32"
+        self.config["GUEST_LIMITATIONS"]["debiantesting"] = {}
+        self.config["GUEST_LIMITATIONS"]["debiantesting"]["MINMEMORY"] = "256"
+        self.config["GUEST_LIMITATIONS"]["debiantesting"]["STATICMINMEMORY"] = "128"
+        self.config["GUEST_LIMITATIONS"]["debiantesting"]["MAXMEMORY"] = "65536"
+        self.config["GUEST_LIMITATIONS"]["debiantesting"]["MAXMEMORY64"] = "131072"
+        self.config["GUEST_LIMITATIONS"]["debiantesting"]["MAX_VM_VCPUS"] = "32"
+        self.config["GUEST_LIMITATIONS"]["debiantesting"]["MAX_VM_VCPUS64"] = "32"
         self.config["GUEST_LIMITATIONS"]["sl511"] = {}
         self.config["GUEST_LIMITATIONS"]["sl511"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["sl511"]["MAXMEMORY"] = "8192"

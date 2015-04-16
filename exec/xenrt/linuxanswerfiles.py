@@ -3473,7 +3473,7 @@ class DebianPreseedFile(object):
         self.disk = disk
         
     def generate(self):
-        if self.distro.startswith("debian60") or self.distro.startswith("debian70"):
+        if self.distro.startswith("debian60") or self.distro.startswith("debian70") or self.distro.startswith("debian80"):
             ps=self.generateDebian()
         elif self.distro.startswith("ubuntu1004") or self.distro.startswith("ubuntu1204") or self.distro.startswith("ubuntu1404"):
             ps=self.generateUbuntu()
@@ -3492,6 +3492,8 @@ class DebianPreseedFile(object):
             return "squeeze"
         elif self.distro.startswith("debian70"):
             return "wheezy" 
+        elif self.distro.startswith("debian80"):
+            return "jessie" 
     
     def _password(self):
         if not self.password:
@@ -3553,9 +3555,20 @@ d-i    apt-setup/security_path  string %s""" % (self.httphost,self.httppath, sel
         squeeze=["","tasksel tasksel/first                           multiselect standard"]
         wheezy=["d-i base-installer/install-recommends boolean false",
                 "tasksel tasksel/first   multiselect standard"]
+        jessie=["d-i base-installer/install-recommends boolean false",
+                "tasksel tasksel/first   multiselect standard"]
         if self.distro.startswith("debian60"):
             subs=squeeze
             st=""
+        elif self.distro.startswith("debian80"):
+            subs=jessie
+            st="d-i preseed/late_command string sed -i 's/PermitRootLogin without-password/PermitRootLogin yes/g' /target/etc/ssh/sshd_config; /target/etc/init.d/ssh restart;"
+            if not self.disk:
+                # Debian jessie enumerates the disks in the installer as xvda (on Xen) in 64-bit, but sda in 32-bit
+                if "64" in self.arch and self.installOn==xenrt.HypervisorType.xen:
+                    self.disk = "/dev/xvda"
+                else:
+                    self.disk = "/dev/sda"
         else:
             subs=wheezy
             if self.distro.startswith("debian70") and "64" in self.arch:

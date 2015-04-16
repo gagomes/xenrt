@@ -179,8 +179,8 @@ class TestRdpWithSnapshot(RdpVerification):
         xenrt.TEC().logverbose("Guest agent updated the RDP status in data/ts successfully for the guest %s" % (self.guest))
 
         # Take snapshot of the guest
-        step("Test trying to take the snapshot of the guest")
-        snapuuid = self.guest.snapshot()
+        step("Test trying to take the snapshot( memory+disk ) of the guest")
+        checkpoint = self.guest.checkpoint()
 
         # Enable the RDP on the guest
         if not xapiRdpObj.enableRdp():
@@ -195,8 +195,8 @@ class TestRdpWithSnapshot(RdpVerification):
 
         # Revert to snapshot
         step("Test reverting the guest snapshot")
-        self.guest.revert(snapuuid)
-        self.guest.start()
+        self.guest.revert(checkpoint)
+        self.guest.resume()
 
         # When we revert to snapshot RDP should be in disabled state
         # We wait 60mins hoping data/ts will be updated by the guest agent

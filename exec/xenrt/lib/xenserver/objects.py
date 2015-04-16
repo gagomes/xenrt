@@ -1,4 +1,5 @@
 import re
+import xenrt
 
 """
 Xapi object model base and factory classes
@@ -183,18 +184,22 @@ class VM(NamedXapiObject):
     __CPU_USAGE = "VCPUs-utilisation"
     __RESIDENT = "resident-on"
 
+    @xenrt.irregularName
     def VBD(self):
         return self.getObjectsReferencing(VBD.OBJECT_TYPE, self.OBJECT_TYPE)
 
+    @xenrt.irregularName
     def VDI(self):
         return [x.VDI() for x in self.VBD()]
 
     def networkAddresses(self):
         return self.getListParam(self.__NETWORK_ADDRESSES)
 
+    @xenrt.irregularName
     def XapiHost(self):
         return self.getObjectParam(XapiHost.OBJECT_TYPE, self.__RESIDENT)
 
+    @xenrt.irregularName
     def SR(self):
         return list(set([v.SR() for v in self.VDI()]))
 
@@ -202,7 +207,7 @@ class VM(NamedXapiObject):
     def cpuUsage(self):
         return self.getDictParam(self.__CPU_USAGE)
 
-    def Snapshot(self):
+    def snapshot(self):
         snaps = self.getObjectsFromListing(Snapshot.OBJECT_TYPE)
         return [s for s in snaps if s.VM().uuid == self.uuid]
 
@@ -213,12 +218,14 @@ class VBD(XapiObject):
     __VDI_UUID = "vdi-uuid"
     __OPS = "allowed-operations"
 
+    @xenrt.irregularName
     def VM(self):
         return self.getObjectParam(VM.OBJECT_TYPE, self.__VM_UUID)
 
     def allowedOperations(self):
         return self.getListParam(self.__OPS)
 
+    @xenrt.irregularName
     def VDI(self):
         return self.getObjectParam(VDI.OBJECT_TYPE, self.__VDI_UUID)
 
@@ -226,6 +233,7 @@ class VBD(XapiObject):
 class XapiHost(NamedXapiObject):
     OBJECT_TYPE = "host"
 
+    @xenrt.irregularName
     def SR(self):
         return self.getObjectsReferencingName(SR.OBJECT_TYPE, self.OBJECT_TYPE)
 
@@ -251,9 +259,11 @@ class SR(NamedXapiObject):
     def srType(self):
         return self.getStringParam(self.__TYPE)
 
+    @xenrt.irregularName
     def VDI(self):
         return self.getObjectsReferencing(VDI.OBJECT_TYPE, self.OBJECT_TYPE)
 
+    @xenrt.irregularName
     def PBD(self):
         return self.getObjectsReferencing(PBD.OBJECT_TYPE, self.OBJECT_TYPE)
 
@@ -272,6 +282,7 @@ class VDI(NamedXapiObject):
     __SR_UUID = "sr-uuid"
     __RC = "sm-config param-key=read-caching-enabled-on-%s"
 
+    @xenrt.irregularName
     def SR(self):
         return self.getObjectParam(SR.OBJECT_TYPE, self.__SR_UUID)
 
@@ -297,6 +308,7 @@ class Snapshot(NamedXapiObject):
         else:
             self.op("uninstall", "force=true")
 
+    @xenrt.irregularName
     def VM(self):
         return self.op("list", "params=snapshot-of --minimal", VM.OBJECT_TYPE)
 
@@ -325,5 +337,3 @@ objectFactory().registerObject(SR)
 objectFactory().registerObject(XapiHost)
 objectFactory().registerObject(VDI)
 objectFactory().registerObject(Snapshot)
-
-

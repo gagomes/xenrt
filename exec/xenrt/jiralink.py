@@ -1545,7 +1545,7 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
     def findIssuesMatchingAutoFile(self,group,tc,reason,tag):
         autoref = "%s/%s: %s" % (group, tc, reason)
 
-        xenrt.TEC().logverbose("Calling _searchJiraIssues(\"%r\")" % (autoref))
+        xenrt.TEC().logverbose("Calling _searchJiraIssues(\"%s\")" % (autoref))
         issues = self._searchJiraIssues(autoref)
         if tag:
             tagautoref = "%s_%s/%s: %s" % (tag, group, tc, reason)

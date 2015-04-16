@@ -4718,6 +4718,15 @@ class TC26950(xenrt.TestCase):
             guest.createDisk(sizebytes=xenrt.GIGA, sruuid=srAdmin.uuid)
             guest.createDisk(sizebytes=xenrt.GIGA, sruuid=srUser.uuid)
 
+        # Check the co-existence of CIFS ISO SRs
+        srAdminCifsISO = xenrt.productLib(host=host).CIFSISOStorageRepository(host, 'dev-admin-cifs-isosr')
+        SecretUUID = host.createSecret(devSMBAdminPasswd)
+        srAdminCifsISO.create(devSMBServer, devSMBCifsShare, "iso", "iso", devSMBAdminUser, SecretUUID, use_secret=True)
+
+        srUserCifsISO = xenrt.productLib(host=host).CIFSISOStorageRepository(host, 'dev-user-cifs-isosr')
+        SecretUUID = host.createSecret(devSMBCifsPasswd)
+        srUserCifsISO.create(devSMBServer, devSMBCifsShare, "iso", "iso", devSMBCifsUser, SecretUUID, use_secret=True)
+
         for guest in guests:
             # Make sure the guest is up.
             if guest.getState() == "DOWN":

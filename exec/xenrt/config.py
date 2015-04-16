@@ -2798,7 +2798,7 @@ class Config(object):
         self.config["GUEST_TESTS"]["Dundee"] = {}
         self.config["GUEST_TESTS"]["Dundee"]["Primary"] = ['centos511_x86-32',
          'centos511_x86-64','centos66_x86-32','centos66_x86-64','centos71_x86-64',
-         'debian60_x86-32','debian60_x86-64','debian70_x86-32','debian70_x86-64',
+         'debian60_x86-32','debian60_x86-64','debian70_x86-32','debian70_x86-64','debian80_x86-32','debian80_x86-64',
          'oel511_x86-32','oel511_x86-64','oel66_x86-32','oel66_x86-64','oel71_x86-64',
          'rhel48_x86-32','rhel511_x86-32','rhel511_x86-64','rhel66_x86-32','rhel66_x86-64',
          'rheld66_x86-64','rhelw66_x86-64','rhel71_x86-64',
@@ -2811,7 +2811,8 @@ class Config(object):
          'rhel5u_x86-32', 'rhel5u_x86-64', 'rhel6u_x86-32', 'rhel6u_x86-64', 'rhel7u_x86-64', 'rhel71xs_x86-64',
          'sl5u_x86-32', 'sl5u_x86-64', 'sl6u_x86-32', 'sl6u_x86-64', 'sl7u_x86-64',
          'centos5u_x86-32', 'centos5u_x86-64', 'centos6u_x86-32', 'centos6u_x86-64', 'centos7u_x86-64', 'centos71xs_x86-64',
-         'oel5u_x86-32', 'oel5u_x86-64', 'oel6u_x86-32', 'oel6u_x86-64', 'oel7u_x86-64', 'oel71xs_x86-64']
+         'oel5u_x86-32', 'oel5u_x86-64', 'oel6u_x86-32', 'oel6u_x86-64', 'oel7u_x86-64', 'oel71xs_x86-64',
+         'debiantesting_x86-32','debiantesting_x86-64','ubuntudevel_x86-32','ubuntudevel_x86-64','fedoralatest_x86-64']
         self.config["GUEST_TESTS"]["Dundee"]["Secondary"] = ['centos45_x86-32','centos46_x86-32','centos47_x86-32',
          'centos48_x86-32','centos51_x86-32','centos51_x86-64','centos52_x86-32','centos52_x86-64','centos53_x86-32',
          'centos53_x86-64','centos54_x86-32','centos54_x86-64','centos55_x86-32','centos55_x86-64','centos56_x86-32','centos56_x86-64','centos57_x86-32','centos57_x86-64',

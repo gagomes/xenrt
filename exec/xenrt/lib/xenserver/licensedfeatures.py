@@ -295,10 +295,10 @@ class LicensedFeatureFactory(object):
         return dict([(f.name, f) for f in featureList])
 
     def allFeatures(self, xshost):
-        if self.__getHostAge(xshost) == self.__CRE:
+        if self.__getHostAge(xshost) == self.__CRE or self.__getHostAge(xshost) == self.__CRM:
             return self.__createDictOfFeatures(WorkloadBalancing(), ReadCaching(), VirtualGPU(),
                                                Hotfixing(), ExportPoolResourceList(), GPUPassthrough())
-        elif self.__getHostAge(xshost) == self.__CRM or self.__getHostAge(xshost) == self.__DUN:
+        elif self.__getHostAge(xshost) == self.__DUN:
             return self.__createDictOfFeatures(WorkloadBalancing(), ReadCaching(), VirtualGPU(),
                                                Hotfixing(), ExportPoolResourceList(), GPUPassthrough(),
                                                CIFSStorage())

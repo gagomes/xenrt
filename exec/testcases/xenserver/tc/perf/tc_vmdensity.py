@@ -1724,7 +1724,7 @@ class Experiment_vmrun(Experiment):
             for dom0param in self.dom0params:
                 if "vlan" in dom0param:
                     # "vlan:X" = create X vlans in the host
-                    vlan_params = dom0param.split(":")
+                    vlan_params = dom0param.split("=")
                     self.vlans = 0
                     if len(vlan_params) > 1:
                         self.vlans = int(vlan_params[1])

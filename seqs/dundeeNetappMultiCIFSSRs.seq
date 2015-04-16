@@ -19,6 +19,20 @@
       <storage type="smb" name="admin-cifs-sr" />
       <storage type="smb" name="user-cifs-sr" options="cifsuser" />
 
+      <!-- SMB share on a windows guest -->
+      <storage type="smb" name="vm-cifs-sr" options="vm"/>
+
+      <vm name="Windows 8.1">
+        <distro>win81-x86</distro>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <network device="0" />
+        <disk device="0" size="24" />
+        <storage>admin-cifs-sr</storage>
+      </vm>
+
+
       <vm name="Red Hat Enterprise Linux 7.0">
         <distro>rhel7</distro>
         <arch>x86-64</arch>
@@ -26,7 +40,7 @@
         <vcpus>2</vcpus>
         <network device="0" />
         <disk device="0" size="10" />
-        <storage>admin-cifs-sr</storage>
+        <storage>user-cifs-sr</storage>
       </vm>
 
       <vm name="Ubuntu Trusty Tahr 14.04">
@@ -36,7 +50,7 @@
         <vcpus>2</vcpus>
         <network device="0" />
         <disk device="0" size="8" />
-        <storage>user-cifs-sr</storage>
+        <storage>vm-cifs-sr</storage>
       </vm>
 
     </host>

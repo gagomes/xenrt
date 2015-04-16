@@ -2444,8 +2444,9 @@ class _VMToolsUpgrade(xenrt.TestCase):
             guest = self.guest
         if guest.windows:
 
-            if guest.pvDriversUpToDate():
-                raise xenrt.XRTFailure("PV drivers should not be reported as up-to-date before driver upgrade")
+            if not isinstance(self.host, xenrt.lib.xenserver.DundeeHost):
+                if guest.pvDriversUpToDate():
+                    raise xenrt.XRTFailure("PV drivers should not be reported as up-to-date before driver upgrade")
 
             guest.installDrivers()
 

@@ -4688,44 +4688,12 @@ class TC26950(xenrt.TestCase):
 
     def run(self, arglist):
 
-        args = self.parseArgsKeyValue(arglist)
-
-        devSMBServer = args.get("smbserver", "10.80.228.113")
-        devSMBCifsShare = args.get("cifsshare", "cifs_vol1")
-        devSMBAdminUser = args.get("smbadminuser", "Administrator")
-        devSMBAdminPasswd = args.get("smbadminpasswd", "xenroot01T")
-        devSMBCifsUser = args.get("smbcifsuser", "cifs_user")
-        devSMBCifsPasswd = args.get("smbcifspasswd", "xenroot01T")
-
         host = self.getDefaultHost() # The host has already 2 CIFS SRs created using
                                      # different authentication on QA NetApp filer SC04-FAS2554.
                                      # One SR on a SMB share provided by a windows guest
 
         # Exclude xenrt-smb guest which serves the smb share.
         guests = [host.getGuest(g) for g in host.listGuests() if not g.startswith("xenrt-smb")]
-
-        # Create 2 more CIFS SRs on host using the DEV NetApp filer devfiler3and4.
-        shareAdmin = xenrt.SpecifiedSMBShare(devSMBServer, devSMBCifsShare, devSMBAdminUser, devSMBAdminPasswd)
-        srAdmin = xenrt.productLib(host=host).SMBStorageRepository(host, 'dev-admin-cifs-sr')
-        srAdmin.create(shareAdmin)
-
-        shareUser = xenrt.SpecifiedSMBShare(devSMBServer, devSMBCifsShare, devSMBCifsUser, devSMBCifsPasswd)
-        srUser = xenrt.productLib(host=host).SMBStorageRepository(host, 'dev-user-cifs-sr')
-        srUser.create(shareUser)
-
-        # Create VDIs in dev SRs and attach it to the VMs.
-        for guest in guests:
-            guest.createDisk(sizebytes=xenrt.GIGA, sruuid=srAdmin.uuid)
-            guest.createDisk(sizebytes=xenrt.GIGA, sruuid=srUser.uuid)
-
-        # Check the co-existence of CIFS ISO SRs
-        srAdminCifsISO = xenrt.productLib(host=host).CIFSISOStorageRepository(host, 'dev-admin-cifs-isosr')
-        SecretUUID = host.createSecret(devSMBAdminPasswd)
-        srAdminCifsISO.create(devSMBServer, devSMBCifsShare, "iso", "iso", devSMBAdminUser, SecretUUID, use_secret=True)
-
-        srUserCifsISO = xenrt.productLib(host=host).CIFSISOStorageRepository(host, 'dev-user-cifs-isosr')
-        SecretUUID = host.createSecret(devSMBCifsPasswd)
-        srUserCifsISO.create(devSMBServer, devSMBCifsShare, "iso", "iso", devSMBCifsUser, SecretUUID, use_secret=True)
 
         for guest in guests:
             # Make sure the guest is up.

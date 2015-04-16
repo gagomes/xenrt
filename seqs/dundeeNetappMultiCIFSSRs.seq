@@ -2,13 +2,6 @@
 
   <!-- Multi authenticated multiple CIFS SRs using SMB share provided by NetApp filers. -->
 
-  <default name="DEV_SMB_SERVER_IP" value="10.80.228.113" />
-  <default name="DEV_CIFS_SHARE" value="cifs_vol1" />
-  <default name="DEV_SMB_ADMIN_USER" value="Administrator" />
-  <default name="DEV_ADMIN_PASSWD" value="xenroot01T" />
-  <default name="DEV_SMB_CIFS_USER" value="cifs_user" />
-  <default name="DEV_CIFS_PASSWD" value="xenroot01T" />
-
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
   </variables>
@@ -20,7 +13,7 @@
       <storage type="smb" name="user-cifs-sr" options="cifsuser" />
 
       <!-- SMB share on a windows guest -->
-      <storage type="smb" name="vm-cifs-sr" options="vm"/>
+      <storage type="smb" name="vm-cifs-sr" options="vm" />
 
       <vm name="Windows 8.1">
         <distro>win81-x86</distro>
@@ -31,7 +24,6 @@
         <disk device="0" size="24" />
         <storage>admin-cifs-sr</storage>
       </vm>
-
 
       <vm name="Red Hat Enterprise Linux 7.0">
         <distro>rhel7</distro>
@@ -57,14 +49,7 @@
   </prepare>
 
   <testsequence group="CIFSMultiSRs">
-    <testcase id="xenserver.tc.storage.TC26950">
-      <arg>smbserver=${DEV_SMB_SERVER_IP}</arg>
-      <arg>cifsshare=${DEV_CIFS_SHARE}</arg>
-      <arg>smbadminuser=${DEV_SMB_ADMIN_USER}</arg>
-      <arg>smbadminpasswd=${DEV_ADMIN_PASSWD}</arg>
-      <arg>smbcifsuser=${DEV_SMB_CIFS_USER}</arg>
-      <arg>smbcifspasswd=${DEV_CIFS_PASSWD}</arg>
-    </testcase>
+    <testcase id="xenserver.tc.storage.TC26950" />
   </testsequence>
 
 </xenrt>

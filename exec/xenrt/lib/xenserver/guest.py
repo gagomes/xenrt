@@ -293,7 +293,7 @@ class Guest(xenrt.GenericGuest):
         # Workaround # RHEL/CentOS/OEL 6 or later requires at least 1G ram.
         if distro:
             m = re.match("(rhel|centos|oel|sl)[dw]?(\d)\d*", distro)
-            if (m and int(m.group(2)) >= 6) or distro.starswith("fedora"):
+            if (m and int(m.group(2)) >= 6) or distro.startswith("fedora"):
                 if (self.memory and self.memory<1024) or not self.memory:
                     self.memory = 1024
                                         

@@ -1614,7 +1614,7 @@ class NSSRIOV(SRIOVTests):
             pass
         
         else:
-            self.license_file = getLicenseFile()
+            self.license_file = self.getLicenseFile()
 
         
         step("copy license file from tempdir on controller to guest...........")

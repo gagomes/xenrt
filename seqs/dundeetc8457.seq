@@ -11,9 +11,6 @@
     <pool>
       <storage type="lvmoiscsi" name="iscsisr"/>
       <storage type="nfs" name="nfssr"/>
-      <!--
-      <storage type="smb" name="cifssr"/>
-      -->
       <host id="0"/>
     </pool>
   </prepare>
@@ -23,9 +20,6 @@
       <testcase id="xenserver.tc.storage.TC8458"/>
       <testcase id="xenserver.tc.storage.TC8459"/>
       <testcase id="xenserver.tc.storage.TC8461"/>
-      <!--
-      <testcase id="xenserver.tc.storage.TCCIFStoNFSv4"/>
-      -->
     </serial>
   </testsequence>
 

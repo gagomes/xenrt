@@ -2331,7 +2331,16 @@ MachinePassword=%s
             return
 
         def install_guests_in_a_host(g0):
-            network_uuids = g0.host.minimalList("network-list")
+            cli = g0.host.getCLIInstance()
+            s = cli.execute("pif-list", "params=network-uuid,VLAN")
+            xenrt.TEC().logverbose("pif-list=%s" % (s,))
+            all_network_uuids = map(lambda kv:(kv[0].split(":")[1].strip(),kv[1].split(":")[1].strip()), filter(lambda el:len(el)>1, map(lambda vs:vs.split("\n"),s.split("\n\n\n"))))
+            xenrt.TEC().logverbose("all_network_uuids=%s" % (all_network_uuids,))
+
+            # only those network uuids with a vlan
+            network_uuids = map(lambda (v,n):n, filter(lambda (vlan,network_uuid): vlan<>"-1", x))
+            xenrt.TEC().logverbose("network_uuids with vlan=%s" % (network_uuids,))
+
             # We'll do the installation on default SR
             for i in self.getDimensions()['VMS']:
                 g = g0.cloneVM() #name=("%s-%i" % (vm_name,i)))

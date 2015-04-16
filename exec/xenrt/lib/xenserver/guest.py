@@ -6260,7 +6260,7 @@ class DundeeGuest(CreedenceGuest):
             
             for driver in driversToUninstall:
             
-                batch.append("C:\\devcon64.exe remove %s\r\n" %(driver))
+                batch.append("C:\\%s remove %s\r\n" %(devconexe, driver))
                 batch.append("ping 127.0.0.1 -n 10 -w 1000\r\n")
 
             for file in oemFileList:

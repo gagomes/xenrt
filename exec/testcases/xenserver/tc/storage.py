@@ -1991,22 +1991,26 @@ class TC20957(_VDICopy):
     FROM_TYPE = "nfssr_classic" # classic nfssr
     TO_TYPE   = "nfssr_nosubdir" # options="nosubdir" 
 
-class TCCIFStoNFSv3(_VDICopy):
+class TC26951(_VDICopy):
+    """Verify vdi-copy between CIFS SR and NFS SR v3."""
     FIND_SR_BY_NAME = True
     FROM_TYPE = "cifssr"
     TO_TYPE = "nfssr_v3"
 
-class TCCIFStoNFSv4(_VDICopy):
+class TC26952(_VDICopy):
+    """Verify vdi-copy between CIFS SR and NFS SR v4."""
     FIND_SR_BY_NAME = True
     FROM_TYPE = "cifssr"
     TO_TYPE = "nfssr_v4"
 
-class TCCIFStoFILE(_VDICopy):
+class TC26953(_VDICopy):
+    """Verify vdi-copy between CIFS SR and NFS FILE SR."""
     FIND_SR_BY_NAME = True
     FROM_TYPE = "cifssr"
     TO_TYPE = "nfssr_filesr"
 
-class TCCIFStoNFSNoSub(_VDICopy):
+class TC26954(_VDICopy):
+    """Verify vdi-copy between CIFS SR and NFS SR with no sub directory."""
     FIND_SR_BY_NAME = True
     FROM_TYPE = "cifssr"
     TO_TYPE = "nfssr_nosubdir"

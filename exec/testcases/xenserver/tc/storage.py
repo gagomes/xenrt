@@ -4695,10 +4695,11 @@ class TC26950(xenrt.TestCase):
         devSMBAdminUser = args.get("smbadminuser", "Administrator")
         devSMBAdminPasswd = args.get("smbadminpasswd", "xenroot01T")
         devSMBCifsUser = args.get("smbcifsuser", "cifs_user")
-        devSMBACifsPasswd = args.get("smbcifspasswd", "xenroot01T")
+        devSMBCifsPasswd = args.get("smbcifspasswd", "xenroot01T")
 
         host = self.getDefaultHost() # The host has already 2 CIFS SRs created using
                                      # different authentication on QA NetApp filer SC04-FAS2554.
+                                     # One SR on a SMB share provided by a windows guest
 
         # Exclude xenrt-smb guest which serves the smb share.
         guests = [host.getGuest(g) for g in host.listGuests() if not g.startswith("xenrt-smb")]
@@ -4708,7 +4709,7 @@ class TC26950(xenrt.TestCase):
         srAdmin = xenrt.productLib(host=host).SMBStorageRepository(host, 'dev-admin-cifs-sr')
         srAdmin.create(shareAdmin)
 
-        shareUser = xenrt.SpecifiedSMBShare(devSMBServer, devSMBCifsShare, devSMBCifsUser, devSMBACifsPasswd)
+        shareUser = xenrt.SpecifiedSMBShare(devSMBServer, devSMBCifsShare, devSMBCifsUser, devSMBCifsPasswd)
         srUser = xenrt.productLib(host=host).SMBStorageRepository(host, 'dev-user-cifs-sr')
         srUser.create(shareUser)
 

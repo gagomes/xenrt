@@ -1625,7 +1625,7 @@ class NSSRIOV(SRIOVTests):
             
         sftp = vpx.sftpClient(username='nsroot')
         
-        sftp.copyTo(os.path.join(ctrlTmpDir,filePathController), os.path.join('/nsconfig/license',os.path.basename(filePathController)))
+        sftp.copyTo(self.license_file, os.path.join('/nsconfig/license',os.path.basename(filePathController)))
         sftp.close()
         
         vpx.waitForSSH(timeout=100,cmd='sh ns ip',username='nsroot')

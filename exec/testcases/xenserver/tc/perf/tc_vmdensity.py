@@ -1744,11 +1744,11 @@ class Experiment_vmrun(Experiment):
                 if "xrtuk-08-" in hn:
                     xenrt.TEC().logverbose("%s: xrtuk-08-* host detected, using NSEC+jumbo network configuration" % hn)
                     sharedsr = '<storage type="%s" name="%s" jumbo="true" network="NSEC"/>' % (self.defaultsr, name_defaultsr)
-                    networkcfg = """<NETWORK><PHYSICAL network="NPRI"><NIC /><MANAGEMENT /><VMS /></PHYSICAL><PHYSICAL network="NSEC"><NIC /><STORAGE /></PHYSICAL></NETWORK>"""
+                    networkcfg = """<NETWORK><PHYSICAL network="NPRI"><NIC /><MANAGEMENT /><VMS />%s</PHYSICAL><PHYSICAL network="NSEC"><NIC /><STORAGE /></PHYSICAL></NETWORK>"""
                 else:
                     xenrt.TEC().logverbose("%s: xrtuk-08-* host NOT detected, using default network configuration" % hn)
                     if self.vlans > 0:
-                        networkcfg = '<NETWORK><PHYSICAL network="NPRI"><NIC/>%s</PHYSICAL></NETWORK>' % (networkcfg,)
+                        networkcfg = '<NETWORK><PHYSICAL network="NPRI"><NIC/><MANAGEMENT /><VMS />%s</PHYSICAL></NETWORK>' % (networkcfg,)
 
             seq = "<pool><host installsr=\"%s\">%s%s</host></pool>" % (localsr,sharedsr, networkcfg)
             #seq = "<pool><host/></pool>"

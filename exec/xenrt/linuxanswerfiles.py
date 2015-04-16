@@ -61,7 +61,7 @@ class RHELKickStartFile(object):
         return self._generateKS()
 
     def _generateKS(self):
-        if self.distro.startswith("rhel7") or self.distro.startswith("oel7") or self.distro.startswith("centos7") or self.distro.startswith("sl7"):
+        if self.distro.startswith("rhel7") or self.distro.startswith("oel7") or self.distro.startswith("centos7") or self.distro.startswith("sl7") or self.distro.startswith("fedora"):
             kf=self._generate7()
         elif re.match("^(rhel|centos|oel|sl)[w]?6\d*",self.distro):
             kf=self._generate6()

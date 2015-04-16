@@ -275,7 +275,7 @@ class GenericPlace(object):
             raise
 
     def deprecatedIfConfig(self):
-        return self.distro.startswith("rhel7") or self.distro.startswith("oel7") or self.distro.startswith("centos7") or self.distro.startswith("sl7")
+        return self.distro.startswith("rhel7") or self.distro.startswith("oel7") or self.distro.startswith("centos7") or self.distro.startswith("sl7") or self.distro.startswith("fedora")
 
     def getMyVIFs(self):
         try:
@@ -8247,7 +8247,7 @@ class GenericGuest(GenericPlace):
                 maindisk="hda"
                 if distro:
                     m = re.match("(rhel|centos|oel|sl)[dw]?(\d)\d*", distro)
-                    if m and int(m.group(2)) >= 6:
+                    if (m and int(m.group(2)) >= 6) or distro.startswith("fedora"):
                         maindisk="xvda"
         else:
             ethDevice = vifname
@@ -8338,7 +8338,7 @@ class GenericGuest(GenericPlace):
             pxecfg.linuxArgsKernelAdd("initrd=%s" %
                                       (pxe.makeBootPath("initrd.img")))
 
-            if distro.startswith("oel7") or distro.startswith("centos7") or distro.startswith("rhel7") or distro.startswith("sl7"):
+            if distro.startswith("oel7") or distro.startswith("centos7") or distro.startswith("rhel7") or distro.startswith("sl7") or distro.startswith("fedora"):
                 pxecfg.linuxArgsKernelAdd("inst.repo=%s" % repository)
                 pxecfg.linuxArgsKernelAdd("console=tty0")
                 pxecfg.linuxArgsKernelAdd("console=hvc0")
@@ -9874,7 +9874,7 @@ while True:
             if "deb" in self.distro or "ubuntu" in self.distro:
                 self.execguest("apt-get update", level=xenrt.RC_OK)
                 self.execguest("apt-get -y --force-yes install %s" % packages)
-            elif "rhel" in self.distro or "centos" in self.distro or "oel" in self.distro:
+            elif "rhel" in self.distro or "centos" in self.distro or "oel" in self.distro or "fedora" in self.distro:
                 self.execguest("yum install -y %s" % packages)
             elif "sles" in self.distro:
                 self.execguest("zypper -n --non-interactive install %s" % packages)

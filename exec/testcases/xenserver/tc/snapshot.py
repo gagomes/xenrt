@@ -914,7 +914,7 @@ class _VMSnapshotBase(xenrt.TestCase):
         if "guest" in argDict:
             self.VMNAME = argDict["guest"]
         if "srtype" in argDict:
-            self.SRTYPE = argDict["srtype"]
+            self.SRTYPE = argDict["xapisrtype"]
 
     def prepare(self, arglist):
 

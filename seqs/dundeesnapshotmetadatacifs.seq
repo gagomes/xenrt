@@ -14,7 +14,7 @@
   <testsequence>
     <serial group="SnapshotMetaTests">
       <testcase id="xenserver.tc.snapshot.TC21699" name="TC21699.WithCIFs" sku="WithCIFs">
-        <arg>srtype=smb</arg>
+        <arg>xapisrtype=cifs</arg>
       </testcase>
     </serial>
   </testsequence>

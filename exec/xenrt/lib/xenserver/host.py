@@ -6494,10 +6494,10 @@ fi
                     r = re.search("debian(.+)", distro)
                     if arch and arch == "x86-64":
                         template = self.chooseTemplate("TEMPLATE_NAME_DEBIAN_%s_64" %
-                                                   (r.group(1)))
+                                                   (r.group(1).upper()))
                     else:
                         template = self.chooseTemplate("TEMPLATE_NAME_DEBIAN_%s" %
-                                               (r.group(1)))
+                                               (r.group(1).upper()))
             elif re.search("debian", distro):
                 template = self.chooseTemplate("TEMPLATE_NAME_DEBIAN")
             elif re.search("sarge", distro):

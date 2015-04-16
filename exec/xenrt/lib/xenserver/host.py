@@ -10,7 +10,7 @@
 
 
 import sys, string, os.path, glob, time, re, math, random, shutil, os, stat, datetime
-import traceback, threading, types
+import traceback, threading, types, collections
 import xml.dom.minidom, libxml2
 import tarfile
 import IPy
@@ -6642,6 +6642,22 @@ fi
                 raise e
 
         return template
+
+    def getTemplateParams(self, distro, arch):
+        try:
+            tname = self.getTemplate(distro=distro, arch=arch)
+        except:
+            xenrt.TEC().warning("Couldn't find template for %s %s" % (distro, arch))
+
+        if tname:
+            tuuid = self.minimalList("template-list", args="name-label='%s'" % tname)[0]
+            defMemory = int(self.genParamGet("template", tuuid, "memory-static-max"))/xenrt.MEGA
+            defVCPUs = int(self.genParamGet("template", tuuid, "VCPUs-max"))
+        else:
+            defMemory = None
+            defVCPUs = None
+
+        return collections.namedtuple("TemplateParams", ["defaultMemory", "defaultVCPUs"])(defMemory, defVCPUs)
         
     def isEnabled(self):
         """Return True if this host is enabled as far as xapi is concerned."""
@@ -7644,7 +7660,10 @@ rm -f /etc/xensource/xhad.conf || true
                       getreply=False)
 
         # Remove any NFS blocks
-        self.execdom0("rm -f /etc/rc3.d/S09blocknfs || true")
+        if self.isCentOS7Dom0():
+            self.execdom0("chkconfig --del blocknfs || true")
+        else:
+            self.execdom0("rm -f /etc/rc3.d/S09blocknfs || true")
 
         # Do the normal reset procedure
         try:
@@ -12466,9 +12485,9 @@ class SMBStorageRepository(StorageRepository):
 
     SHARED = True
 
-    def create(self, share=None):
+    def create(self, share=None, cifsuser=None):
         if not share:
-            share = xenrt.ExternalSMBShare(version=3)
+            share = xenrt.ExternalSMBShare(version=3, cifsuser=cifsuser)
 
         dconf = {}
         smconf = {}

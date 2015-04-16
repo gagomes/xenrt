@@ -1386,18 +1386,22 @@ def keepSetup():
     return False
 
 def getADConfig():
+
     ad = xenrt.TEC().lookup("AD_CONFIG")
     domain=ad['DOMAIN']
     dns=ad['DNS']
     domainName = ad['DOMAIN_NAME']
     adminUser = ad['ADMIN_USER']
     adminPassword = ad['ADMIN_PASSWORD']
+    allUsers = ad['USERS']
     dcAddress = ad['DC_ADDRESS']
     dcDistro = ad['DC_DISTRO']
 
-    ADConfig = namedtuple('ADConfig', ['domain', 'domainName', 'adminUser', 'adminPassword', 'dns', 'dcAddress', 'dcDistro'])
+    allUsers = xenrt.TEC().lookup(["AD_CONFIG", "USERS"])
 
-    return ADConfig(domain=domain, domainName=domainName, adminUser=adminUser, adminPassword=adminPassword, dns=dns, dcAddress=dcAddress, dcDistro=dcDistro)
+    ADConfig = namedtuple('ADConfig', ['domain', 'domainName', 'adminUser', 'allUsers','adminPassword', 'dns', 'dcAddress', 'dcDistro'])
+
+    return ADConfig(domain=domain, domainName=domainName, adminUser=adminUser, allUsers=allUsers, adminPassword=adminPassword, dns=dns, dcAddress=dcAddress, dcDistro=dcDistro)
 
 def getDistroAndArch(distrotext):
     if isWindows(distrotext):

@@ -960,6 +960,9 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_DEBIAN_60_64"] = "Debian Squeeze 6.0 (64-bit),Debian Squeeze 6.0 (64-bit) (experimental),Debian Squeeze 6.0"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_DEBIAN_70"] = "Debian Wheezy 7.0 (32-bit),Debian Wheezy 7.0,Debian Wheezy 7.0 (32-bit),Debian Wheezy 7.0"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_DEBIAN_70_64"] = "Debian Wheezy 7.0 (64-bit),Debian Wheezy 7.0,Debian Wheezy 7.0 (64-bit),Debian Wheezy 7.0"
+        # TODO Update these to Debian Jessie templates when they exist
+        self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_DEBIAN_80"] = "Ubuntu Trusty Tahr 14.04,Ubuntu Trusty Tahr 14.04 (32-bit)"
+        self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_DEBIAN_80_64"] = "Ubuntu Trusty Tahr 14.04,Ubuntu Trusty Tahr 14.04 (64-bit)"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_RHEL_45"] = "Red Hat Enterprise Linux 4.5 (32-bit),Red Hat Enterprise Linux 4.5"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_RHEL_46"] = "Red Hat Enterprise Linux 4.6 (32-bit),Red Hat Enterprise Linux 4.6"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_RHEL_47"] = "Red Hat Enterprise Linux 4.7 (32-bit),Red Hat Enterprise Linux 4.7"
@@ -1102,7 +1105,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_CPS_2008_64"] = "Citrix XenApp on Windows Server 2008 (64-bit),Citrix XenApp x64 on Windows Server 2008 x64"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_CPS_2008R2_64"] = "Citrix XenApp on Windows Server 2008 R2 (64-bit),Citrix XenApp x64 on Windows Server 2008 R2 x64"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_SDK"] = "Xen API SDK"
-        self.config["VERSION_CONFIG"]["Creedence"]["HVM_LINUX"] = "rhel7\d*,centos7\d*,oel7\d*,ubuntu1404,sl7\d*"
+        self.config["VERSION_CONFIG"]["Creedence"]["HVM_LINUX"] = "rhel7\d*,centos7\d*,oel7\d*,ubuntu1404,debian80,sl7\d*"
         self.config["VERSION_CONFIG"]["Creedence"]["NMAP_ALLOWED_PORTS"] = "tcp/22 tcp/443 tcp/80 (tcp/1311)"
         self.config["VERSION_CONFIG"]["Creedence"]["CLI_SERVER_FLAG"] = "-s"
         self.config["VERSION_CONFIG"]["Creedence"]["DOM0_DISTRO"] = "centos51"
@@ -1178,7 +1181,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Creedence"]["LATEST_rhel7"] = "rhel7"
         self.config["VERSION_CONFIG"]["Creedence"]["LATEST_sl5"] = "sl511"
         self.config["VERSION_CONFIG"]["Creedence"]["LATEST_sl6"] = "sl66"
-        self.config["VERSION_CONFIG"]["Creedence"]["LATEST_sl7"] = "sl7"
+        self.config["VERSION_CONFIG"]["Creedence"]["LATEST_sl7"] = "sl71"
         
         # Cream
         self.config["VERSION_CONFIG"]["Cream"] = copy.deepcopy(self.config["VERSION_CONFIG"]["Creedence"])
@@ -2508,6 +2511,13 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["debian70"]["MAXMEMORY64"] = "131072"
         self.config["GUEST_LIMITATIONS"]["debian70"]["MAX_VM_VCPUS"] = "32"
         self.config["GUEST_LIMITATIONS"]["debian70"]["MAX_VM_VCPUS64"] = "32"
+        self.config["GUEST_LIMITATIONS"]["debian80"] = {}
+        self.config["GUEST_LIMITATIONS"]["debian80"]["MINMEMORY"] = "256"
+        self.config["GUEST_LIMITATIONS"]["debian80"]["STATICMINMEMORY"] = "128"
+        self.config["GUEST_LIMITATIONS"]["debian80"]["MAXMEMORY"] = "65536"
+        self.config["GUEST_LIMITATIONS"]["debian80"]["MAXMEMORY64"] = "131072"
+        self.config["GUEST_LIMITATIONS"]["debian80"]["MAX_VM_VCPUS"] = "32"
+        self.config["GUEST_LIMITATIONS"]["debian80"]["MAX_VM_VCPUS64"] = "32"
         self.config["GUEST_LIMITATIONS"]["sl511"] = {}
         self.config["GUEST_LIMITATIONS"]["sl511"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["sl511"]["MAXMEMORY"] = "8192"
@@ -2546,7 +2556,7 @@ class Config(object):
         self.config["LINUX_UPDATE"]["centos7"] = "centos71"
         self.config["LINUX_UPDATE"]["sl5"] = "sl511"
         self.config["LINUX_UPDATE"]["sl6"] = "sl66"
-        self.config["LINUX_UPDATE"]["sl7"] = "sl7"
+        self.config["LINUX_UPDATE"]["sl7"] = "sl71"
 
         self.config["PRODUCT_KEYS"] = {}
 
@@ -2561,6 +2571,7 @@ class Config(object):
         self.config["OS_INSTALL_ISO"]["solaris10u9-32"] = "sol-10-u9-ga-x86-dvd-jumpstart-32"
         self.config["OS_INSTALL_ISO"]["debian60"] = "deb6"
         self.config["OS_INSTALL_ISO"]["debian70"] = "deb7"
+        self.config["OS_INSTALL_ISO"]["debian80"] = "deb8"
         
         self.config["HOTFIXES"] = {}
         self.config["HOTFIXES"]["Orlando"] = {"RTM": {}}
@@ -2743,7 +2754,7 @@ class Config(object):
          'oel511_x86-32','oel511_x86-64','oel66_x86-32','oel66_x86-64','oel71_x86-64',
          'rhel48_x86-32','rhel511_x86-32','rhel511_x86-64','rhel66_x86-32','rhel66_x86-64',
          'rheld66_x86-64','rhelw66_x86-64','rhel71_x86-64',
-         'sl511_x86-32','sl511_x86-64','sl66_x86-32','sl66_x86-64','sl7_x86-64',
+         'sl511_x86-32','sl511_x86-64','sl66_x86-32','sl66_x86-64','sl71_x86-64',
          'sles104_x86-32','sles104_x86-64','sles113_x86-32','sles113_x86-64','sles12_x86-64',
          'ubuntu1204_x86-32','ubuntu1204_x86-64','ubuntu1404_x86-32','ubuntu1404_x86-64',
          'vistaeesp2','w2k3eesp2','w2k3eesp2-x64','win10-x64','win10-x86',
@@ -2767,7 +2778,7 @@ class Config(object):
          'sles103_x86-64','w2k3eer2','w2k3ser2','w2k3sesp2','win7-x64','ws08r2-x64','win7-x86',
          'rhel510_x86-32','rhel510_x86-64','centos510_x86-32','centos510_x86-64','oel510_x86-32','oel510_x86-64',
          'rhel65_x86-32','rhel65_x86-64','centos65_x86-32','centos65_x86-64','oel65_x86-32','oel65_x86-64',
-         'rhel7_x86-64', 'oel7_x86-64', 'centos7_x86-64']
+         'rhel7_x86-64', 'oel7_x86-64', 'centos7_x86-64', 'sl7_x86-64']
         self.config["GUEST_TESTS"]["Cream"]["XenApp"] = ['w2k3eesp2_XenApp', 'w2k3eesp2-x64_XenApp', 'ws08sp2-x86_XenApp', 'ws08sp2-x64_XenApp', 'ws08r2sp1-x64_XenApp']
 
         self.config["GUEST_TESTS"]["Dundee"] = {}
@@ -2777,7 +2788,7 @@ class Config(object):
          'oel511_x86-32','oel511_x86-64','oel66_x86-32','oel66_x86-64','oel71_x86-64',
          'rhel48_x86-32','rhel511_x86-32','rhel511_x86-64','rhel66_x86-32','rhel66_x86-64',
          'rheld66_x86-64','rhelw66_x86-64','rhel71_x86-64',
-         'sl511_x86-32','sl511_x86-64','sl66_x86-32','sl66_x86-64','sl7_x86-64',
+         'sl511_x86-32','sl511_x86-64','sl66_x86-32','sl66_x86-64','sl71_x86-64',
          'sles104_x86-32','sles104_x86-64','sles113_x86-32','sles113_x86-64','sles12_x86-64',
          'ubuntu1204_x86-32','ubuntu1204_x86-64','ubuntu1404_x86-32','ubuntu1404_x86-64',
          'vistaeesp2','w2k3eesp2','w2k3eesp2-x64','win10-x64','win10-x86',
@@ -2801,7 +2812,7 @@ class Config(object):
          'sles103_x86-64','w2k3eer2','w2k3ser2','w2k3sesp2','win7-x64','ws08r2-x64', 'win7-x86',
          'rhel510_x86-32','rhel510_x86-64','centos510_x86-32','centos510_x86-64','oel510_x86-32','oel510_x86-64',
          'rhel65_x86-32','rhel65_x86-64','centos65_x86-32','centos65_x86-64','oel65_x86-32','oel65_x86-64',
-         'rhel7_x86-64', 'oel7_x86-64', 'centos7_x86-64']
+         'rhel7_x86-64', 'oel7_x86-64', 'centos7_x86-64', 'sl7_x86-64']
         self.config["GUEST_TESTS"]["Dundee"]["XenApp"] = ['w2k3eesp2_XenApp', 'w2k3eesp2-x64_XenApp', 'ws08sp2-x86_XenApp', 'ws08sp2-x64_XenApp', 'ws08r2sp1-x64_XenApp']
        
         # Linux install methods supported

@@ -8583,6 +8583,8 @@ class GenericGuest(GenericPlace):
                     release = "squeeze"
                 elif distro == "debian70":
                     release = "wheezy"
+                elif distro == "debian80":
+                    release = "jessie"
                 _url = repository + "/dists/%s/" % (release)
                 boot_dir = "main/installer-%s/current/images/netboot/debian-installer/%s/" % (arch, arch)
 

@@ -1052,6 +1052,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_CENTOS_66"] = "CentOS 6 (32-bit),CentOS 6.0 (32-bit),CentOS 6.0,CentOS 6.0 (32-bit),CentOS 6.0"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_CENTOS_66_64"] = "CentOS 6 (64-bit),CentOS 6.0 (64-bit),CentOS 6.0 x64,CentOS 6.0 (64-bit),CentOS 6.0 x64"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_CENTOS_7_64"] = "CentOS 7"
+        self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_FEDORA"] = "CentOS 7"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_COREOS"] = "CoreOS,CoreOS (experimental)"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_UBUNTU_1004"] = "Ubuntu Lucid Lynx 10.04 (32-bit), Ubuntu Lucid Lynx 10.04"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_UBUNTU_1004_64"] = "Ubuntu Lucid Lynx 10.04 (64-bit), Ubuntu Lucid Lynx 10.04 x64"
@@ -1109,7 +1110,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_CPS_2008_64"] = "Citrix XenApp on Windows Server 2008 (64-bit),Citrix XenApp x64 on Windows Server 2008 x64"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_CPS_2008R2_64"] = "Citrix XenApp on Windows Server 2008 R2 (64-bit),Citrix XenApp x64 on Windows Server 2008 R2 x64"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_SDK"] = "Xen API SDK"
-        self.config["VERSION_CONFIG"]["Creedence"]["HVM_LINUX"] = "rhel7\d*,centos7\d*,oel7\d*,ubuntu1404,debian80,debiantesting,ubuntudevel,sl7\d*"
+        self.config["VERSION_CONFIG"]["Creedence"]["HVM_LINUX"] = "rhel7\d*,centos7\d*,oel7\d*,ubuntu1404,debian80,debiantesting,ubuntudevel,sl7\d*,fedora.*"
         self.config["VERSION_CONFIG"]["Creedence"]["NMAP_ALLOWED_PORTS"] = "tcp/22 tcp/443 tcp/80 (tcp/1311)"
         self.config["VERSION_CONFIG"]["Creedence"]["CLI_SERVER_FLAG"] = "-s"
         self.config["VERSION_CONFIG"]["Creedence"]["DOM0_DISTRO"] = "centos51"
@@ -2341,6 +2342,10 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["centos71"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["centos71"]["MAXMEMORY64"] = "6291456"
         self.config["GUEST_LIMITATIONS"]["centos71"]["MAX_VM_VCPUS64"] = "240"
+        self.config["GUEST_LIMITATIONS"]["fedoralatest"] = {}
+        self.config["GUEST_LIMITATIONS"]["fedoralatest"]["MINMEMORY"] = "1024"
+        self.config["GUEST_LIMITATIONS"]["fedoralatest"]["MAXMEMORY64"] = "6291456"
+        self.config["GUEST_LIMITATIONS"]["fedoralatest"]["MAX_VM_VCPUS64"] = "240"
         self.config["GUEST_LIMITATIONS"]["oel53"] = {}
         self.config["GUEST_LIMITATIONS"]["oel53"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["oel53"]["MAXMEMORY"] = "65536"

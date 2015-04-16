@@ -61,7 +61,9 @@ class RHELKickStartFile(object):
         return self._generateKS()
 
     def _generateKS(self):
-        if self.distro.startswith("rhel7") or self.distro.startswith("oel7") or self.distro.startswith("centos7") or self.distro.startswith("sl7"):
+        if self.distro.startswith("fedora"):
+            kf=self._generateFedora()
+        elif self.distro.startswith("rhel7") or self.distro.startswith("oel7") or self.distro.startswith("centos7") or self.distro.startswith("sl7"):
             kf=self._generate7()
         elif re.match("^(rhel|centos|oel|sl)[w]?6\d*",self.distro):
             kf=self._generate6()
@@ -259,6 +261,114 @@ echo "sleep 10" >> /etc/rc.local
 echo "ping -c 1 `ip route show | grep default | awk '{print $3}'` || true" >> /etc/rc.local
 echo "sleep 10" >> /etc/rc.local
 echo "ping -c 1 `ip route show | grep default | awk '{print $3}'` || true" >> /etc/rc.local
+chmod +x /etc/rc.d/rc.local
+%s
+mkdir /tmp/xenrttmpmount
+mount -onolock -t nfs %s /tmp/xenrttmpmount
+%s
+touch /tmp/xenrttmpmount/.xenrtsuccess
+umount /tmp/xenrttmpmount
+%s
+%%end""" % (postInstall,self.mounturl, self.rpmpost, self.sleeppost)
+        return out
+                
+    def _generateFedora(self):
+      
+
+        out = """install
+text
+%s
+lang en_US.UTF-8
+keyboard us
+network --device %s --onboot yes --bootproto dhcp
+rootpw --iscrypted %s
+firewall --service==ssh
+authconfig --enableshadow --enablemd5
+selinux --disabled
+timezone %s
+bootloader --location=mbr --append="crashkernel=auto rhgb quiet"
+zerombr
+# The following is the partition information you requested
+# Note that any partitions you deleted are not expressed
+# here so unless you clear all partitions first, this is
+# not guaranteed to work
+clearpart --all --initlabel
+part /boot --fstype=%s --size=%d --ondisk=%s
+part pv.8 --grow --size=1 --ondisk=%s --maxsize=20000
+volgroup VolGroup --pesize=32768 pv.8
+logvol / --fstype=ext4 --name=lv_root --vgname=VolGroup --grow --size=1024 --maxsize=51200
+logvol swap --name=lv_swap --vgname=VolGroup --grow --size=1008 --maxsize=2016
+%s
+%s
+
+%%packages
+@ core
+@ development-tools
+@ standard
+bridge-utils
+lvm2
+e2fsprogs
+nfs-utils
+stunnel
+net-tools
+wget
+time
+%s
+%%end
+""" % (self._url(),
+       self.ethDevice,
+       self._password(),
+       self._timezone(),
+       self.bootDiskFS,
+       self.bootDiskSize,
+       self.mainDisk,
+       self.mainDisk,
+       self._key(),
+       self._more(),
+       self._extra()
+       )
+
+        if self.installOn == xenrt.HypervisorType.xen:
+            postInstall = self._netconfig(self.vifs,self.host)
+        else:
+            postInstall = """
+    CONFDIR=/etc/sysconfig/network-scripts
+    MAC=`grep ^HWADDR ${CONFDIR}/ifcfg-%s | cut -d = -f 2 | tr '[:lower:]' '[:upper:]'`
+    if [ "$MAC" != "%s" ]; then
+        sed -i -e's/ONBOOT=yes/ONBOOT=no/' ${CONFDIR}/ifcfg-%s
+        for c in ${CONFDIR}/ifcfg-eth*; do
+            MAC=`grep ^HWADDR $c | cut -d = -f 2 | tr '[:lower:]' '[:upper:]'`
+            if [ "$MAC" = "%s" ]; then
+                sed -i -e's/ONBOOT=no/ONBOOT=yes/' $c
+                echo 'BOOTPROTO=dhcp' >> $c
+            fi
+        done
+    fi
+
+    sed -i '/^serial/d' /boot/grub/grub.conf
+    sed -i '/^terminal/d' /boot/grub/grub.conf
+
+    echo "# CP-8436: Load mlx4_en whenever we try to load mlx4_core" > /etc/modprobe.d/mlx4.conf
+    echo "install mlx4_core /sbin/modprobe --ignore-install mlx4_core && /sbin/modprobe mlx4_en" >> /etc/modprobe.d/mlx4.conf
+""" % (self.ethdev, self.ethmac, self.ethdev, self.ethmac)
+
+        out = out+ """
+%%post
+echo "#!/bin/bash" >> /etc/rc.d/rc.local
+echo "# Flush firewall rules to avoid blocking iperf, synexec, etc." >> /etc/rc.d/rc.local
+echo "iptables -F" >> /etc/rc.d/rc.local
+echo "sleep 10" >> /etc/rc.d/rc.local
+echo "ping -c 1 `ip route show | grep default | awk '{print $3}' | head -1` || true" >> /etc/rc.d/rc.local
+echo "sleep 10" >> /etc/rc.d/rc.local
+echo "ping -c 1 `ip route show | grep default | awk '{print $3}' | head -1` || true" >> /etc/rc.d/rc.local
+echo "sleep 10" >> /etc/rc.d/rc.local
+echo "ping -c 1 `ip route show | grep default | awk '{print $3}' | head -1` || true" >> /etc/rc.d/rc.local
+echo "sleep 10" >> /etc/rc.d/rc.local
+echo "ping -c 1 `ip route show | grep default | awk '{print $3}' | head -1` || true" >> /etc/rc.d/rc.local
+echo "sleep 10" >> /etc/rc.d/rc.local
+echo "ping -c 1 `ip route show | grep default | awk '{print $3}' | head -1` || true" >> /etc/rc.d/rc.local
+echo "sleep 10" >> /etc/rc.d/rc.local
+echo "ping -c 1 `ip route show | grep default | awk '{print $3}' | head -1` || true" >> /etc/rc.d/rc.local
 chmod +x /etc/rc.d/rc.local
 %s
 mkdir /tmp/xenrttmpmount

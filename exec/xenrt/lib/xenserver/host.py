@@ -6529,6 +6529,8 @@ fi
             elif re.search(r"rhel4", distro):
                 v = re.search(r"rhel(\d+)", distro).group(1)
                 template = self.chooseTemplate("TEMPLATE_NAME_RHEL_%s" % (v))
+            elif re.search(r"fedora", distro):
+                template = self.chooseTemplate("TEMPLATE_NAME_FEDORA")
             elif re.search(r"oel5", distro):
                 if hvm:
                     template = self.chooseTemplate("TEMPLATE_OTHER_MEDIA")

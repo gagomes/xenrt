@@ -5701,7 +5701,16 @@ exit 0
                                  (method))
 
         arch = "amd64" if "64" in self.arch else "i386"
-        release = re.search("Debian/(\w+)/", repository).group(1)
+        if distro == "debian50":
+            release = "lenny"
+        elif distro == "debian60":
+            release = "squeeze"
+        elif distro == "debian70":
+            release = "wheezy"
+        elif distro == "debian80":
+            release = "jessie"
+        elif distro == "debiantesting":
+            release = "testing"
         _url = repository + "/dists/%s/" % (release.lower(), )
         boot_dir = "main/installer-%s/current/images/netboot/debian-installer/%s/" % (arch, arch)
 

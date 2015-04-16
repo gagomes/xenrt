@@ -365,15 +365,15 @@ class _SnappointRollback(xenrt.TestCase):
         self.guest.removeSnapshot(uuid)
 
     def __chooseSR(self, arglist, host):
-        """Select the sr from the SR_INSTALL_NAME variable
+        """Select the zeroth sr from the SR_INSTALL_NAME variable
 
-        :returns: sr-uuid -- of the named sr else local as deafult
+        :returns: sr-uuid -- of the named sr else local as default
         """
         srName = xenrt.TEC().lookup("SR_INSTALL_NAME", None)
         if srName:
             log("Attempting to use SR called {srname}".format(srname=srName))
 
-        return host.getSRByName(srName) if srName else host.getLocalSR()
+        return host.getSRByName(srName)[0] if srName else host.getLocalSR()
 
     def prepare(self, arglist):
         self.snappoint = None

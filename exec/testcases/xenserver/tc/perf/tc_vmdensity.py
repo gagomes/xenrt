@@ -2338,7 +2338,7 @@ MachinePassword=%s
             xenrt.TEC().logverbose("all_network_uuids=%s" % (all_network_uuids,))
 
             # only those network uuids with a vlan
-            network_uuids = map(lambda (v,n):n, filter(lambda (vlan,network_uuid): vlan<>"-1", x))
+            network_uuids = map(lambda (v,n):n, filter(lambda (vlan,network_uuid): vlan<>"-1", all_network_uuids))
             xenrt.TEC().logverbose("network_uuids with vlan=%s" % (network_uuids,))
 
             # We'll do the installation on default SR

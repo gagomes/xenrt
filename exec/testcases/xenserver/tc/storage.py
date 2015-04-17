@@ -4703,17 +4703,17 @@ class TC26950(xenrt.TestCase):
         cifsPasswd = ad.allUsers['CIFS_USER'].split(":", 1)[1]
 
         smbServerIP = xenrt.TEC().lookup(["EXTERNAL_SMB_SERVERS", "fas2554", "ADDRESS"])
-        smbServerShare = xenrt.TEC().lookup(["EXTERNAL_SMB_SERVERS", "fas2554", "BASE"])
-
-        # Using admin credentails is failing with mount error(127): Key has expired.
-        # srAdminCifsISO = xenrt.productLib(host=host).CIFSISOStorageRepository(host, 'admin-cifs-isosr') 
-        # adminSecretUUID = host.createSecret(adminPasswd) 
-        # srAdminCifsISO.create(smbServerIP, smbServerShare, "iso", "iso", adminUser, adminSecretUUID, use_secret=True) 
+        smbServerShare = xenrt.TEC().lookup(["EXTERNAL_SMB_SERVERS", "fas2554", "BASE"]).lstrip('/')
 
         # Using user credentails.
         srUserCifsISO = xenrt.productLib(host=host).CIFSISOStorageRepository(host, 'user-cifs-isosr') 
         cifsSecretUUID = host.createSecret(cifsPasswd) 
         srUserCifsISO.create(smbServerIP, smbServerShare, "iso", "iso", cifsUser, cifsSecretUUID, use_secret=True) 
+
+        # Using admin credentails is failing with mount error(127): Key has expired.
+        srAdminCifsISO = xenrt.productLib(host=host).CIFSISOStorageRepository(host, 'admin-cifs-isosr') 
+        adminSecretUUID = host.createSecret(adminPasswd) 
+        srAdminCifsISO.create(smbServerIP, smbServerShare, "iso", "iso", adminUser, adminSecretUUID, use_secret=True) 
 
         for guest in guests:
             # Make sure the guest is up.

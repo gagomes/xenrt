@@ -3635,7 +3635,14 @@ class DebianPreseedFile(object):
 
             if self.distro == "ubuntu1004":
                 self.httppath = "/ubuntu"
-            
+           
+            if self.distro.startswith("debian") and self.distro != "debiantesting":
+                self.securityhost = xenrt.TEC().lookup("APT_SERVER").replace("http://", "")
+                self.securitypath = "/debsecurity/"
+            else:
+                self.securityhost = self.httphost
+                self.securitypath = self.httppath
+
             if not self.httppath.endswith("/"):
                 self.httppath += "/"
                     
@@ -3645,7 +3652,7 @@ d-i    mirror/country           string manual
 d-i    mirror/http/hostname     string %s
 d-i    mirror/http/directory    string %s
 d-i    apt-setup/security_host  string %s
-d-i    apt-setup/security_path  string %s""" % (self.httphost,self.httppath, self.httphost,self.httppath)
+d-i    apt-setup/security_path  string %s""" % (self.httphost,self.httppath, self.securityhost,self.securitypath)
             
         else:
             Mirror = "d-i mirror/file/directory string /cdrom"

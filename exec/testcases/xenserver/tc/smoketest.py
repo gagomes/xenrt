@@ -291,7 +291,7 @@ class TCSmokeTestMaxMem(_TCSmokeTest):
         if xenrt.isWindows(self.tcsku):
             return "TC-26882"
         elif xenrt.isDevLinux(self.tcsku):
-            return "TC-269561"
+            return "TC-26961"
         else:
             return "TC-26883"
 

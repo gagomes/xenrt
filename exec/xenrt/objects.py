@@ -7393,6 +7393,11 @@ class GenericGuest(GenericPlace):
 
     def tailor(self):
         """Tailor a new guest to allow other tests to be run"""
+        
+        if "tailor" in map(lambda x:x[2], traceback.extract_stack())[:-1]:
+            xenrt.TEC().logverbose("Terminating recursive tailor call")
+            return
+        
         if not self.mainip:
             raise xenrt.XRTError("Unknown IP address to SSH to %s" %
                                  (self.name))

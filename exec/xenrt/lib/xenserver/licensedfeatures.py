@@ -280,7 +280,7 @@ class DundeeEnabledFeatures(BaseEnabledFeatures):
         if self.sku == XenServerLicenseSKU.XenDesktopPlusXDS or \
            self.sku == XenServerLicenseSKU.XenDesktopPlusMPS:
             return [WorkloadBalancing().name, ReadCaching().name, VirtualGPU().name,
-                    Hotfixing().name, GPUPassthrough().name]
+                    Hotfixing().name, GPUPassthrough().name, CIFSStorage().name]
 
 
 class LicensedFeatureFactory(object):

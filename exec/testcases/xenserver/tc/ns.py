@@ -1600,11 +1600,21 @@ class NSSRIOV(SRIOVTests):
 
     def getLicenseFile(self):
         lic = "CNS_V3000_SERVER_PLT_Retail.lic"
-        step("Create a tmp directory on the controller that will be automatically cleaned up...........")
+        out = os.path.join("/",lic)
+        step ("Mounting NFS Share to copy lic file to host")
 
-        ctrlTmpDir = xenrt.TEC().tempDir()
-        self.license_file = xenrt.command("wget %s/tallahassee/%s -O %s/%s" % (xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"), lic, ctrlTmpDir, lic)).strip()
-        return self.license_file
+        distfiles = xenrt.TEC().lookup('EXPORT_DISTFILES_NFS', None)
+        self.host.execdom0('mkdir -p /mnt/distfiles')
+        self.host.execdom0('mount %s /mnt/distfiles' % distfiles)
+        self.host.execdom0('cp /mnt/distfiles/tallahassee/%s %s' %(lic,out)).strip()
+
+        step("Copying contents of out to selflicense_file")
+
+        self.license_file = out.strip()
+        xenrt.TEC().logverbose("license file is %s" %(self.license_file))
+
+        step("unmount the NFS Share")
+        self.host.execdom0('umount /mnt/distfiles')
 
     def installLicense(self, vpx):
     
@@ -1617,16 +1627,27 @@ class NSSRIOV(SRIOVTests):
             self.license_file = self.getLicenseFile()
 
         
+        step("Create a tmp directory on the controller that will be automatically cleaned up...........")
+
+        ctrlTmpDir = xenrt.TEC().tempDir()
+
+        step("Copy the license file from / on host to a temp directory on controller")
+        filePathController = os.path.basename(self.license_file)
+        sftp = self.host.sftpClient()
+
+        sftp.copyFrom(self.license_file, os.path.join(ctrlTmpDir,filePathController))
+        sftp.close()
+
         step("copy license file from tempdir on controller to guest...........")
 
-        filePathController = os.path.basename(self.license_file)
         if vpx.getState() != "UP":
             self.startVPX(vpx)
             
         sftp = vpx.sftpClient(username='nsroot')
         
-        sftp.copyTo(self.license_file, os.path.join('/nsconfig/license',os.path.basename(filePathController)))
+        sftp.copyTo(os.path.join(ctrlTmpDir,filePathController), os.path.join('/nsconfig/license',os.path.basename(filePathController)))
         sftp.close()
+        
         
         vpx.waitForSSH(timeout=100,cmd='sh ns ip',username='nsroot')
         self.rebootVPX(vpx)

@@ -4717,5 +4717,5 @@ class TCCreateCIFSSRAfterUpgrade(xenrt.TestCase):
 
         self.host = self.host.upgrade()
         share = xenrt.VMSMBShare()
-        sr = xenrt.productLib(host=host).SMBStorageRepository(host, "CIFS-SR")
+        sr = xenrt.productLib(host=self.host).SMBStorageRepository(self.host, "CIFS-SR")
         sr.create(share)

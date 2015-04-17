@@ -7535,7 +7535,7 @@ class GenericGuest(GenericPlace):
                     codename = self.execguest("cat /etc/apt/sources.list | grep '^deb' | awk '{print $3}' | head -1").strip()
                     self.execguest("echo deb %s/debsecurity %s/updates main > /etc/apt/sources.list.d/updates.list" % (xenrt.TEC().lookup("APT_SERVER"), codename))
                     self.execguest("echo deb %s/debian %s-updates main > /etc/apt/sources.list.d/updates.list" % (xenrt.TEC().lookup("APT_SERVER"), codename))
-                    if int(debVer) in (6):
+                    if int(debVer) in (6,):
                         self.execguest("echo deb %s/debian %s-lts main > /etc/apt/sources.list.d/updates.list" % (xenrt.TEC().lookup("APT_SERVER"), codename))
 
                 try:

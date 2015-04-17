@@ -3,7 +3,7 @@
 #
 # Generic solution for performance test cases functionality.
 
-import xenrt, json, os
+import xenrt, json
 from datetime import datetime
 
 class PerformanceUtility(object):

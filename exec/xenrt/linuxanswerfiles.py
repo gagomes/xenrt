@@ -3638,7 +3638,7 @@ class DebianPreseedFile(object):
            
             if self.distro in ("debian60", "debian70"):
                 self.securityhost = xenrt.TEC().lookup("APT_SERVER").replace("http://", "")
-                self.securitypath = "/debsecurity/"
+                self.securitypath = "/debsecurity"
                 services = "d-i apt-setup/services-select multiselect security, updates"
             else:
                 self.securityhost = self.httphost
@@ -3654,8 +3654,7 @@ d-i    mirror/country           string manual
 d-i    mirror/http/hostname     string %s
 d-i    mirror/http/directory    string %s
 %s
-d-i    apt-setup/security_host  string %s
-d-i    apt-setup/security_path  string %s""" % (self.httphost,self.httppath, services, self.securityhost,self.securitypath)
+d-i    apt-setup/security_host  string %s%s""" % (self.httphost,self.httppath, services, self.securityhost,self.securitypath)
             
         else:
             Mirror = "d-i mirror/file/directory string /cdrom"

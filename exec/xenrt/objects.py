@@ -7433,10 +7433,6 @@ class GenericGuest(GenericPlace):
 
             isDebian = isDebian and not isUbuntu
 
-            if (isUbuntu or isDebian) and "tailor_apt_source" in self.special:
-                self.execguest("sed -i s/10\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*/%s/ /etc/apt/sources.list" % xenrt.TEC().lookup("XENRT_SERVER_ADDRESS"))
-                del self.special['tailor_apt_source']
-
             if isUbuntu:
                 # change the TMPTIME so /tmp doesn't get cleared away on
                 # every reboot
@@ -7532,33 +7528,6 @@ class GenericGuest(GenericPlace):
                     for filename in ["/etc/apt/sources.list.d/xensource.list", "/etc/apt/sources.list.d/citrix.list"]:
                         if self.execguest("test -e %s" % (filename), retval="code") == 0:
                             self.execguest("rm -f %s" % (filename))
-
-                # Later Debian versions can use the original install
-                # mirror. The preseeder kindly does this for us however
-                # we need some more tweaks.
-                if debVer >= 5.0:
-                    filebase = "/etc/apt/sources.list"
-                    if self.execguest("test -e %s.orig" % (filebase),
-                                      retval="code") != 0:
-                        fn = xenrt.TEC().tempFile()
-                        sftp.copyFrom(filebase, fn)
-                        f = file(fn, "r")
-                        data = f.read()
-                        f.close()
-                        data = string.replace(\
-                            data,
-                            "deb http://security.debian.org",
-                            "#deb http://security.debian.org")
-                        data = string.replace(\
-                            data,
-                            "deb http://volatile.debian.org",
-                            "#deb http://volatile.debian.org")
-
-                        self.execguest("mv %s %s.orig" % (filebase, filebase))
-                        f = file(fn, "w")
-                        f.write(data)
-                        f.close()
-                        sftp.copyTo(fn, filebase)
 
                 try:
                     data = self.execguest("apt-get update")

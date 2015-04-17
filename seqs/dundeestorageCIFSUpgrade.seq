@@ -12,7 +12,7 @@
   </prepare>
 
   <testsequence>
-    <serial group="Creating a CIFS SR after upgrade.">
+    <serial group="CreatingCIFSSRAfterUpgrade.">
       <testcase id="xenserver.tc.storage.TCCreateCIFSSRAfterUpgrade" name="CreatingCIFSSRAfterUpgrade"/>
     </serial>
   </testsequence>

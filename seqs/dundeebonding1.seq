@@ -1,0 +1,22 @@
+<xenrt>
+
+  <!-- Multiple nic tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <serial group="Bonding">
+      <testcase id="xenserver.tc.bonding.TCBondFailoverRarp" tc="TC-21566"/>
+      <testcase id="xenserver.tc.bonding.TCBondModeChange" name="TC-19926" tc="TC-19926"/>
+      <testcase id="xenserver.tc.bonding.TC12448" blocker="yes" prio="3"/>
+      <testcase id="xenserver.tc.bonding.TC12449" blocker="yes" prio="3"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

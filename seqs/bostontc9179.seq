@@ -19,7 +19,6 @@
       <testcase id="xenserver.tc.pvdrivers.TC9181"/>
       <testcase id="xenserver.tc.pvdrivers.TC9182"/>
       <testcase id="xenserver.tc.pvdrivers.TC9577"/>
-      <testcase id="xenserver.tc.pvdrivers.TC9183"/>
       <testcase id="xenserver.tc.pvdrivers.TC9184"/>
       <testcase id="xenserver.tc.pvdrivers.TC9185"/>
       <testcase id="xenserver.tc.pvdrivers.TC9578"/>

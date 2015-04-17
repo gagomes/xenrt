@@ -13,7 +13,7 @@
     <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
     <NTHREADS>50</NTHREADS>
   </variables>
-  
+
   <prepare>
     <pool>
       <storage type="nfs" name="nfs1" default="true"/>
@@ -41,6 +41,6 @@
     <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopStart">
       <arg>threads=${THREADS}</arg>
     </testcase>
-    <!-- testcase id="xenserver.tc.scalability.TCScaleXenDesktopRpu" / -->
+    <testcase id="xenserver.tc.scalability.TCScaleXenDesktopRpu" />
   </testsequence>
 </xenrt>

@@ -1,0 +1,5 @@
+#!/usr/bin/expect
+
+spawn console -U "$env(SSH_ORIGINAL_COMMAND)"
+send \005cp
+interact

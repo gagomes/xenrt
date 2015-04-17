@@ -1201,6 +1201,15 @@ class TCAutoInstaller(xenrt.TestCase):
         # Verify the actual install
         self.host.reboot(timeout=1800)
 
+        self.host.checkVersion()
+        
+        if self.host.productVersion == "Sanibel" and xenrt.TEC().lookup("PRODUCT_VERSION") == "Boston":
+            # this is OK...if you put Boston in the sequence...you'll get Sanibel as the host product version
+            return
+        
+        if self.host.productVersion != xenrt.TEC().lookup("PRODUCT_VERSION"):
+            raise xenrt.XRTFailure("Host Product Version (%s) doesn't match test Product Version (%s)" % (self.host.productVersion, xenrt.TEC().lookup("PRODUCT_VERSION")))
+
     def callCheckAndInstall(self, imageLocation, expectedToSucceed=True):
         xenrt.TEC().logverbose("Image Location: %s" % (imageLocation))
 
@@ -1422,7 +1431,7 @@ class TC14898(TC6725):
     """Single host upgrade from Cowley on HP G6 hardware"""
     pass
 
-class _XenCert:
+class _XenCert(object):
     """Uses the XenCert SR regression test in dom0 maintained by the storage team."""
 
     def runXenCertiCSLG(self,host,adapterid,comment="",sr=None):
@@ -2435,8 +2444,9 @@ class _VMToolsUpgrade(xenrt.TestCase):
             guest = self.guest
         if guest.windows:
 
-            if guest.pvDriversUpToDate():
-                raise xenrt.XRTFailure("PV drivers should not be reported as up-to-date before driver upgrade")
+            if not isinstance(self.host, xenrt.lib.xenserver.DundeeHost):
+                if guest.pvDriversUpToDate():
+                    raise xenrt.XRTFailure("PV drivers should not be reported as up-to-date before driver upgrade")
 
             guest.installDrivers()
 
@@ -2444,7 +2454,7 @@ class _VMToolsUpgrade(xenrt.TestCase):
                 raise xenrt.XRTFailure("PV drivers should be reported as up-to-date after driver upgrade")
         else:
             guest.installTools()
-        guest.waitForAgent(60, desc="Windows guest agent start after driver upgrade")
+        guest.waitForAgent(60)
         guest.reboot()
         v = guest.getPVDriverVersion(micro=True)
         if not v:

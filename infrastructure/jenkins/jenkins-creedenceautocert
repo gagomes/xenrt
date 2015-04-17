@@ -1,0 +1,26 @@
+#!/usr/bin/python -u
+
+import os,urllib,re,sys
+
+print os.environ
+
+seq = "creedenceautocertkithcl.seq"
+rev = "6.4.96-89059"
+inputs = "/usr/groups/xen/carbon/creedence/89143"
+
+if os.environ['No Bonding Tests'] == "true":
+    noBond = "-D SINGLE_NIC=yes"
+else:
+    noBond = ""
+
+cmd = "xenrt submit -n %s -m %s,%s -D JOBPRIO=4 -D MACHINES_REQUIRED=2 -v xenserver -r %s --inputs %s --email %s -D JOBDESC=AutoCertCreedence -D ALLOW_ACK_SINGLE_NIC=yes -D POOL_JOIN_FORCE=yes %s" % (seq, os.environ['Machine'],os.environ['Slave'],rev,inputs,os.environ['Email'], noBond)
+
+print cmd
+job = os.popen(cmd).read().strip()
+print job
+result = "http://xenrt.hq.xensource.com/share/control/queue.cgi?action=frame&title=ACK%%20on%%20%s&jobs=%s" % (os.environ['Machine'],job.strip())
+
+description = "Auto cert kit on %s, results at %s" % (os.environ['Machine'], result)
+
+os.system("java -jar /usr/share/jenkins/WEB-INF/jenkins-cli.jar -s %s set-build-description '%s' '%s' '%s'" % (os.environ["JENKINS_URL"], os.environ['JOB_NAME'], os.environ["BUILD_NUMBER"], description))
+os.system("java -jar /usr/share/jenkins/WEB-INF/jenkins-cli.jar -s %s set-build-display-name '%s' '%s' '%s,%s,%s'" % (os.environ["JENKINS_URL"], os.environ['JOB_NAME'], os.environ["BUILD_NUMBER"], job, os.environ['Machine'], rev))

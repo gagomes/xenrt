@@ -22,14 +22,6 @@
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
       </vm>
-       <vm name="w2k3ee">
-        <distro>w2k3ee</distro>
-        <memory>${GUESTMEMORY}</memory>
-        <vcpus>${GUESTVCPUS}</vcpus>
-        <network device="0"/>
-        <postinstall action="installDrivers"/>
-        <postinstall action="shutdown"/>
-      </vm>
       <vm name="ws08r2-x64">
         <distro>ws08r2-x64</distro>
         <memory>${GUESTMEMORY}</memory>

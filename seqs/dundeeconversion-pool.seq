@@ -1,0 +1,20 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+  <prepare>
+    <pool>
+      <host id="0"/>
+      <host id="1"/>
+      <storage name="NFS" type="nfs" default="true" />
+    </pool>
+  </prepare>
+  <testsequence>
+    <serial blocker="yes">
+        <testcase id="testcases.xenserver.tc.appliance.TC15638" />
+    </serial>
+    <parallel>
+        <testcase id="testcases.xenserver.tc.appliance.TC18497" />
+    </parallel>
+  </testsequence>
+</xenrt>

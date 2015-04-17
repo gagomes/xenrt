@@ -1,0 +1,45 @@
+<xenrt>
+
+  <!-- MNR Active Directory Pool Operations Sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>3</PREPARE_WORKERS>
+    <CLEAR_EVENT_LOGS_ON_FETCH>true</CLEAR_EVENT_LOGS_ON_FETCH>
+  </variables>
+
+  <prepare>
+    <pool>
+      <host id="0"/>
+      <host id="1"/>
+    </pool>
+    <host id="2">
+      <vm name="AUTHSERVER">
+        <distro>ws08sp2-x86</distro>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="installPowerShell"/>
+        <postinstall action="enablePowerShellUnrestricted"/>
+      </vm>
+      <vm name="ALTAUTHSERVER">
+        <distro>ws08sp2-x86</distro>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="installPowerShell"/>
+        <postinstall action="enablePowerShellUnrestricted"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="PoolOps">
+      <testcase id="xenserver.tc.security.TC8406"/>
+      <testcase id="xenserver.tc.security.TC8407"/>
+      <testcase id="xenserver.tc.security.TC8409"/>
+    </serial>
+    <serial group="HostOps">
+      <testcase id="xenserver.tc.security.TC10666"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

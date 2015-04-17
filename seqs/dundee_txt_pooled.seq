@@ -1,0 +1,23 @@
+<xenrt>
+  <!-- Measured Boot (TXT) tests to run in a pool of TXT machines -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <pool id="0">
+      <host id="0" />
+      <host id="1" />
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial>
+      <testcase id="xenserver.tc.txt.TCPoolWideSuppPackInstaller" tc="TC-19897" blocker="yes"/> 
+      <testcase id="xenserver.tc.txt.TCTxtPoolIdsAreUnique" tc="TC-19916"/>
+      <testcase id="xenserver.tc.txt.TCTxtPoolChangedInitrd" tc="TC-19920"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

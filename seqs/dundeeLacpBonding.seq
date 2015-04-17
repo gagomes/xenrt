@@ -1,0 +1,24 @@
+<xenrt>
+
+  <!-- LACP bonding smoke tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <CARBON_EXTRA_CDS>linux.iso</CARBON_EXTRA_CDS>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <serial group="LacpBonding">
+      <testcase id="xenserver.tc.bonding.LacpBondSetUpNoMng" tc="TC-15398"  blocker="yes"/>
+      <testcase id="xenserver.tc.bonding.BondSplitNoMng" tc="TC-15924"  blocker="yes"/>
+      <testcase id="xenserver.tc.bonding.LacpBondSetUpMng" tc="TC-15471"  blocker="yes"/>
+      <testcase id="xenserver.tc.bonding.BondSplit" tc="TC-15925"  blocker="yes"/>
+      <testcase id="xenserver.tc.bonding.LacpBondMngAs2" tc="TC-15935"  blocker="yes"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

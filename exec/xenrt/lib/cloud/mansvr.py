@@ -18,6 +18,7 @@ class ManagementServer(object):
         self.place.addExtraLogFile("/var/log/cloudstack")
         self.__isCCP = None
         self.__version = None
+        self.__db = None
         if self.version in ['3.0.7']:
             self.cmdPrefix = 'cloud'
         else:
@@ -30,11 +31,12 @@ class ManagementServer(object):
         sftp.close()
 
     def getDatabaseDump(self, destDir):
-        self.place.execcmd("mysqldump -u cloud --password=cloud cloud > /tmp/cloud.sql")
+        path = self.place.execcmd("mktemp").strip()
+        self.place.execcmd("mysqldump -u cloud --password=cloud --skip-opt cloud > %s" % path)
         sftp = self.place.sftpClient()
-        sftp.copyFrom("/tmp/cloud.sql", os.path.join(destDir, "cloud.sql"))
+        sftp.copyFrom(path, os.path.join(destDir, "cloud.sql"))
         sftp.close()
-        self.place.execcmd("rm -f /tmp/cloud.sql")
+        self.place.execcmd("rm -f %s" % path)
 
     def lookup(self, key, default=None):
         """Perform a version based lookup on cloud config data"""
@@ -106,17 +108,18 @@ class ManagementServer(object):
         self.place.execcmd('service %s-management start' % (self.cmdPrefix))
 
 
+    def getCCPInputs(self):
+        return xenrt.getCCPInputs(self.place.distro)
+
     def setupManagementServerDatabase(self):
         if self.place.distro.startswith("rhel6") or self.place.distro.startswith("centos6"):
             # Configure SELinux
             self.place.execcmd("sed -i 's/SELINUX=enforcing/SELINUX=permissive/' /etc/selinux/config")
             self.place.execcmd('setenforce Permissive')
             self.place.execcmd('yum -y install mysql-server mysql')
-            self.db = "mysqld"
         elif self.place.distro.startswith("rhel7") or self.place.distro.startswith("centos7"):
             if xenrt.TEC().lookup("CLOUDSTACK_MARIADB", False, boolean=True):
                 self.place.execcmd('yum -y install mariadb-server mariadb')
-                self.db = "mariadb"
             else:
                 # Add a proxy if we know about one
                 proxy = xenrt.TEC().lookup("HTTP_PROXY", None)
@@ -125,8 +128,11 @@ class ManagementServer(object):
                     self.place.execcmd("echo 'proxy=http://%s' >> /etc/yum.conf" % proxy)
                 self.place.execcmd("wget -O mysql-repo.rpm %s/rpms/mysql-community-release-el7-5.noarch.rpm" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"))
                 self.place.execcmd("yum install -y mysql-repo.rpm")
-                self.place.execcmd('yum -y install mysql-server mysql')
-                self.db = "mysqld"
+                if xenrt.TEC().lookup("WORKAROUND_CS30447", True, boolean=True):
+                    xenrt.TEC().warning("Using workaround for CS-30447")
+                    self.place.execcmd("yum -y install mysql-community-server-5.6.21")
+                else:
+                    self.place.execcmd('yum -y install mysql-server mysql')
         self.place.execcmd('service %s restart' % self.db)
         self.place.execcmd('chkconfig %s on' % self.db)
 
@@ -134,7 +140,6 @@ class ManagementServer(object):
         self.place.execcmd('iptables -I INPUT -p tcp --dport 3306 -j ACCEPT')
         self.place.execcmd('mysqladmin -u root password xensource')
         self.place.execcmd('service %s restart' % self.db)
-
 
         setupDbLoc = self.place.execcmd('find /usr/bin -name %s-setup-databases' % (self.cmdPrefix)).strip()
         self.place.execcmd('%s cloud:cloud@localhost --deploy-as=root:xensource' % (setupDbLoc))
@@ -149,16 +154,28 @@ class ManagementServer(object):
 
         self.place.execcmd('mysql -u cloud --password=cloud --execute="UPDATE cloud.configuration SET value=8096 WHERE name=\'integration.api.port\'"')
 
+        if xenrt.TEC().lookup("USE_CCP_SIMULATOR", False, boolean=True):
+            # For some reason the cloud user doesn't seem to have access to the simulator DB
+            self.place.execcmd("""sed -i s/db.simulator.username=cloud/db.simulator.username=root/ /usr/share/cloudstack-management/conf/db.properties""")
+            self.place.execcmd("""sed -i s/db.simulator.password=cloud/db.simulator.password=xensource/ /usr/share/cloudstack-management/conf/db.properties""")
+        self.restart(checkHealth=False)
+        self.checkManagementServerHealth(timeout=300)
+
+        # We have to update templates *after* starting the management server as some templates are not introduced until DB schema updates are applied
         templateSubsts = {"http://download.cloud.com/templates/builtin/centos56-x86_64.vhd.bz2":
                             "%s/cloudTemplates/centos56-x86_64.vhd.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),
                            "http://download.cloud.com/releases/4.3/centos6_4_64bit.vhd.bz2":
                             "%s/cloudTemplates/centos6_4_64bit.vhd.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),
+                           "http://nfs1.lab.vmops.com/templates/centos53-x86_64/latest/f59f18fb-ae94-4f97-afd2-f84755767aca.vhd.bz2":
+                            "%s/cloudTemplates/f59f18fb-ae94-4f97-afd2-f84755767aca.vhd.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),
                            "http://download.cloud.com/templates/builtin/f59f18fb-ae94-4f97-afd2-f84755767aca.vhd.bz2":
                             "%s/cloudTemplates/f59f18fb-ae94-4f97-afd2-f84755767aca.vhd.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),
                            "http://download.cloud.com/releases/2.2.0/CentOS5.3-x86_64.ova":
                             "%s/cloudTemplates/CentOS5.3-x86_64.ova" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),
                            "http://download.cloud.com/releases/2.2.0/eec2209b-9875-3c8d-92be-c001bd8a0faf.qcow2.bz2":
-                            "%s/cloudTemplates/eec2209b-9875-3c8d-92be-c001bd8a0faf.qcow2.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP")}
+                            "%s/cloudTemplates/eec2209b-9875-3c8d-92be-c001bd8a0faf.qcow2.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),
+                           "http://download.cloud.com/templates/builtin/centos-7-x86_64.tar.gz":
+                            "%s/cloudTemplates/centos-7-x86_64.tar.gz" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP")}
 
         if xenrt.TEC().lookup("MARVIN_BUILTIN_TEMPLATES", False, boolean=True):
             templateSubsts["http://download.cloud.com/templates/builtin/centos56-x86_64.vhd.bz2"] = \
@@ -167,17 +184,12 @@ class ManagementServer(object):
                     "%s/cloudTemplates/centos53-httpd-64bit.ova" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP")
             templateSubsts["http://download.cloud.com/releases/2.2.0/eec2209b-9875-3c8d-92be-c001bd8a0faf.qcow2.bz2"] = \
                     "%s/cloudTemplates/centos55-httpd-64bit.qcow2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP")
-              
 
         for t in templateSubsts.keys():
             self.place.execcmd("""mysql -u cloud --password=cloud --execute="UPDATE cloud.vm_template SET url='%s' WHERE url='%s'" """ % (templateSubsts[t], t))
 
-        if xenrt.TEC().lookup("USE_CCP_SIMULATOR", False, boolean=True):
-            # For some reason the cloud user doesn't seem to have access to the simulator DB
-            self.place.execcmd("""sed -i s/db.simulator.username=cloud/db.simulator.username=root/ /usr/share/cloudstack-management/conf/db.properties""")
-            self.place.execcmd("""sed -i s/db.simulator.password=cloud/db.simulator.password=xensource/ /usr/share/cloudstack-management/conf/db.properties""")
-        self.restart(checkHealth=False)
-        self.checkManagementServerHealth(timeout=300)
+        self.restart()
+
         marvinApi = xenrt.lib.cloud.MarvinApi(self)
 
         internalMask = IPy.IP("%s/%s" % (xenrt.getNetworkParam("NPRI", "SUBNET"), xenrt.getNetworkParam("NPRI", "SUBNETMASK")))
@@ -214,9 +226,22 @@ class ManagementServer(object):
 
         if xenrt.TEC().lookup("CCP_CODE_COVERAGE", False, boolean=True):
             xenrt.TEC().logverbose("Enabling code coverage collection...")
-            self.place.execcmd("%s/cloud/install_coverage_requirements.sh" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"))
+            if self.place.execcmd("ls %s/setup_codecoverage.sh" % self.installDir, retval="code") != 0:
+                raise xenrt.XRTError("CCP_CODE_COVERAGE set but setup_codecoverage.sh not found in build")
+            self.place.execcmd("cd %s && ./setup_codecoverage.sh" % self.installDir)
             self.restart()
             xenrt.TEC().logverbose("...done")
+
+        commit = None
+        try:
+            commit = self.place.execcmd("cloudstack-sccs").strip()
+            xenrt.TEC().logverbose("Management server was built from commit %s" % commit)
+        except:
+            xenrt.TEC().warning("Error when trying to identify management server version")
+        if commit:
+            expectedCommit = xenrt.getCCPCommit(self.place.distro)
+            if expectedCommit and commit != expectedCommit:
+                raise xenrt.XRTError("Management server commit %s does not match expected commit %s" % (commit, expectedCommit))
 
     def installApacheProxy(self):
         self.place.execcmd("yum -y install httpd")
@@ -225,12 +250,14 @@ class ManagementServer(object):
         self.place.execcmd("echo RedirectMatch ^/$ /client >> /etc/httpd/conf.d/cloudstack.conf")
         self.place.execcmd("chkconfig httpd on")
         self.place.execcmd("service httpd restart")
+        if self.place.distro == "rhel7" or self.place.distro == "centos7":
+            self.place.execcmd('iptables -I INPUT -p tcp --dport 80 -j ACCEPT')
 
     def checkJavaVersion(self):
         if self.place.distro.startswith("rhel6") or self.place.distro.startswith("centos6"):
-            if self.version in ['4.4', '4.5']:
+            if self.version in ['4.4', '4.5', '4.6.0']:
                 # Check if Java 1.7.0 is installed
-                self.place.execcmd('yum -y install java*1.7*')
+                self.place.execcmd('yum -y install java-1.7.0-openjdk')
                 if not '1.7.0' in self.place.execcmd('java -version').strip():
                     javaDir = self.place.execcmd('update-alternatives --display java | grep "^/usr/lib.*1.7.0"').strip()
                     self.place.execcmd('update-alternatives --set java %s' % (javaDir.split()[0]))
@@ -243,7 +270,7 @@ class ManagementServer(object):
         if self.place.arch != 'x86-64':
             raise xenrt.XRTError('Cloud Management Server requires a 64-bit guest')
 
-        manSvrInputDir = xenrt.TEC().lookup("CLOUDINPUTDIR", None)
+        manSvrInputDir = self.getCCPInputs()
         if not manSvrInputDir:
             raise xenrt.XRTError('Location of management server build not specified')
 
@@ -269,14 +296,15 @@ class ManagementServer(object):
 
         self.place.execcmd('mkdir cloudplatform')
         self.place.execcmd('tar -zxvf cp.tar.gz -C /root/cloudplatform')
-        installDir = os.path.dirname(self.place.execcmd('find cloudplatform/ -type f -name install.sh'))
-        self.place.execcmd('cd %s && ./install.sh -m' % (installDir), timeout=600)
+        self.installDir = os.path.dirname(self.place.execcmd('find cloudplatform/ -type f -name install.sh'))
+        self.place.execcmd('cd %s && ./install.sh -m' % (self.installDir), timeout=600)
 
         self.installCifs()
         self.checkJavaVersion()
         self.setupManagementServerDatabase()
         self.setupManagementServer()
         self.installApacheProxy()
+        self.saveFirewall()
 
     def installCloudStackManagementServer(self):
         self.__isCCP = False
@@ -292,6 +320,10 @@ class ManagementServer(object):
         self.setupManagementServerDatabase()
         self.setupManagementServer()
         self.installApacheProxy()
+        self.saveFirewall()
+
+    def saveFirewall(self):
+        self.place.execcmd("service iptables save")
 
     def installCifs(self):
         self.place.execcmd("yum install -y samba-client samba-common cifs-utils")
@@ -316,7 +348,7 @@ class ManagementServer(object):
             except Exception, e:
                 xenrt.TEC().logverbose('Failed to get MS version from database: %s' % (str(e)))
 
-            installVersionStr = xenrt.TEC().lookup("CLOUDINPUTDIR", xenrt.TEC().lookup("ACS_BUILD", xenrt.TEC().lookup("ACS_BRANCH", None)))
+            installVersionStr = self.getCCPInputs() or xenrt.TEC().lookup("ACS_BUILD", xenrt.TEC().lookup("ACS_BRANCH", None))
             if installVersionStr:
                 installVersionMatches = filter(lambda x:x in installVersionStr, versionKeys)
 
@@ -350,6 +382,19 @@ class ManagementServer(object):
 
         return self.__isCCP
 
+    @property
+    def db(self):
+        if self.__db is None:
+            # Default DB is MySQL
+            self.__db = 'mysqld'
+
+            if xenrt.TEC().lookup("CLOUDSTACK_MARIADB", False, boolean=True):
+                if self.place.distro.startswith("rhel7") or self.place.distro.startswith("centos7"):
+                    self.__db = "mariadb"
+                else:
+                    xenrt.XRTError('Maria DB only support in RHEL / CentOS 7')
+        return self.__db
+
     def tailorForSimulator(self):
         self.place.execcmd('mysql -u root --password=xensource < /usr/share/cloudstack-management/setup/create-database-simulator.sql')
         self.place.execcmd('mysql -u root --password=xensource < /usr/share/cloudstack-management/setup/create-schema-simulator.sql')
@@ -366,7 +411,7 @@ class ManagementServer(object):
     def installCloudManagementServer(self):
         self.preManagementServerInstall()
 
-        if xenrt.TEC().lookup("CLOUDINPUTDIR", None) != None:
+        if self.getCCPInputs():
             self.installCloudPlatformManagementServer()
         elif xenrt.TEC().lookup('ACS_BRANCH', None) != None or xenrt.TEC().lookup("CLOUDRPMTAR", None) != None or xenrt.TEC().lookup("ACS_BUILD", None) != None:
             self.installCloudStackManagementServer()

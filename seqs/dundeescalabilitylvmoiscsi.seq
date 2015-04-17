@@ -1,0 +1,20 @@
+<xenrt>
+
+  <!-- scalability on LVMoISCSI test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <host>
+      <storage type="lvmoiscsi" name="lvmoiscsi"/>
+    </host>
+  </prepare>
+
+  <testsequence group="LvmoISCSCI">
+    <testcase id="xenserver.tc.scalability.TC8085"/>
+  </testsequence>
+
+</xenrt>

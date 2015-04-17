@@ -43,6 +43,7 @@
       <testcase id="xenserver.tc.vminstall.TC15871" group="VMInstall"/>
       <testcase id="xenserver.tc.vminstall.TC15870" group="VMInstall"/>
       
+      <testcase id="xenserver.tc.vminstall.TC15867" group="VMInstall"/>
       <testcase id="xenserver.tc.vminstall.TC15868" group="VMInstall"/>
       <testcase id="xenserver.tc.vminstall.TC15875" group="VMInstall"/>
       <testcase id="xenserver.tc.vminstall.TC15873" group="VMInstall"/>

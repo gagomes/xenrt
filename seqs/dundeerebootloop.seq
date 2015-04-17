@@ -1,0 +1,48 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0">
+      <vm name="0">
+        <distro>ws12r2-x64</distro>
+        <arch>x86-64</arch>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="24" />
+      </vm>
+      <vm name="1">
+        <distro>ws12r2-x64</distro>
+        <arch>x86-64</arch>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="24" />
+      </vm>
+      <vm name="2">
+        <distro>ws12r2-x64</distro>
+        <arch>x86-64</arch>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="24" />
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <parallel workers="3" group="TCRebootLoopNoDrivers">
+      <testcase id="xenserver.guest.TCRebootLoopNoDrivers" name="0" sku="0" tc="TC-21640">
+        <arg>guest=0</arg>
+      </testcase>
+      <testcase id="xenserver.guest.TCRebootLoopNoDrivers" name="1" sku="1" tc="TC-21640">
+        <arg>guest=1</arg>
+      </testcase>
+      <testcase id="xenserver.guest.TCRebootLoopNoDrivers" name="2" sku="2" tc="TC-21640">
+        <arg>guest=2</arg>
+      </testcase>
+    </parallel>
+  </testsequence>
+</xenrt>

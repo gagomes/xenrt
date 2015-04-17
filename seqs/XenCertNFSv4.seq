@@ -1,0 +1,27 @@
+<xenrt>
+
+  <!-- HCL - Storage Certification Kit (XenCert) on NFS v4 & v3 -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <scheduler>
+    <flags>nfs4</flags>
+  </scheduler>
+
+  <prepare>
+    <pool>
+      <host id="0" />
+      <host id="1" />
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="XenCert">
+      <testcase id="xenserver.tc.xencert.XSStorageCertKitNFSv4" tc="TC-26937" />
+    </serial>
+  </testsequence>
+
+</xenrt>

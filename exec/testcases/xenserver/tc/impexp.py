@@ -47,21 +47,15 @@ class _ImpExpBase(xenrt.TestCase):
         pass
 
     def run(self,arglist):
-        host = None
-        try:
-            # Get a host to use.
-            host = self.getDefaultHost()
-            self.host = host
-            self.preRun(host)
-            guest = self.createGuest(host,
-                                     distro=self.DISTRO,
-                                     srtype=self.SRTYPE,
-                                     disksize=self.DISKSIZE)
-            self.guest = guest
-            self.guestsToClean.append(guest)
-        except xenrt.XRTFailure, e:
-            # Not a failure of the testcase.
-            raise xenrt.XRTError(e.reason)
+        host = self.getDefaultHost()
+        self.host = host
+        self.preRun(host)
+        guest = self.createGuest(host,
+                                 distro=self.DISTRO,
+                                 srtype=self.SRTYPE,
+                                 disksize=self.DISKSIZE)
+        self.guest = guest
+        self.guestsToClean.append(guest)
 
         origvifs = guest.getVIFs()
 
@@ -853,13 +847,13 @@ class TC18491(xenrt.TestCase):
         self.guest = self.getGuest("vm")
         
         webDir = xenrt.WebDirectory()
-        webDir.copyIn(xenrt.TEC().getFile("/usr/groups/xenrt/v6vpx11-12_unzipped.xva"))
-        self.guest.execguest("cd / && wget %s" % webDir.getURL("v6vpx11-12_unzipped.xva"))
+        webDir.copyIn(xenrt.TEC().getFile("/usr/groups/xenrt/v6/v6vpx11-12-1_unzipped.xva"))
+        self.guest.execguest("cd / && wget %s" % webDir.getURL("v6vpx11-12-1_unzipped.xva"))
         
         # install NFS server on guest
         self.guest.execguest("apt-get install -y --force-yes nfs-kernel-server nfs-common portmap")
         self.guest.execguest("echo '/ *(ro,sync,no_root_squash,insecure,subtree_check)' > /etc/exports")
-        self.guest.execguest("/etc/init.d/portmap start")
+        self.guest.execguest("/etc/init.d/portmap start || /etc/init.d/rpcbind start")
         self.guest.execguest("/etc/init.d/nfs-common start || true")
         self.guest.execguest("/etc/init.d/nfs-kernel-server start || true")
 
@@ -875,7 +869,7 @@ class TC18491(xenrt.TestCase):
     def run(self, arglist):
         
         # start long running import going.
-        self.host.execdom0("xe vm-import filename=/mnt/nfs/v6vpx11-12_unzipped.xva > /dev/null 2>&1 </dev/null &")
+        self.host.execdom0("xe vm-import filename=/mnt/nfs/v6vpx11-12-1_unzipped.xva > /dev/null 2>&1 </dev/null &")
         
         # sleep for 23 hours, 59 mins
         time.sleep((24 * 3600) - 1)

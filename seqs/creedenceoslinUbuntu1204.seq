@@ -119,7 +119,7 @@
           </testcase>
           <testcase id="guestops.cpu.TCCPUWalk" tc="TC-17710">
             <arg>guest=ubuntu1204x86-64</arg>
-            <arg>max=8</arg>
+            <arg>max=32</arg>
             <arg>noplugwindows</arg>
           </testcase>
           <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-17709">

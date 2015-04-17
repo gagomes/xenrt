@@ -1,0 +1,16 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>1</PREPARE_WORKERS>
+  </variables>
+  <prepare>
+      <host id="0">
+      </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="vhostmd-group">
+      <testcase id="testcases.xenserver.tc.vhostmd.TC15961" />
+    </serial>
+  </testsequence>
+</xenrt>

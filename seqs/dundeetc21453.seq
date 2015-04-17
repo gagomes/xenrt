@@ -1,0 +1,99 @@
+<xenrt>
+
+  <default name="GUESTMEMORY" value="512" />
+  <default name="GUESTVCPUS" value="2" />
+  <default name="GUESTVERSION" value="ws08sp2-x86" />
+  <default name="GUESTDISK" value="16384" />
+  <default name="GUESTDISKLIN" value="5120" />
+  <default name="PAIRSPERHOST" value="A,B,C" />
+  <default name="LINUXINSTALLPAR" value="4" />
+  <default name="HOSTPAIRS" value="(0,1),(1,2),(2,3),(3,0)" />
+  <default name="OPTION_EMBEDDED" value="no" />
+  <default name="GUESTDISTRO" value="rhel510" />
+  <default name="POOLSTRESSSNAP" value="10" />
+  <default name="DURATION" value="NA" />
+  <default name="ITERATIONS" value="135" />
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <EXTRA_TIME>yes</EXTRA_TIME>
+    <EXTRA_ARP_TIME>yes</EXTRA_ARP_TIME>
+    <POOL_NO_DEFAULT_SR>yes</POOL_NO_DEFAULT_SR>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+    <OPTION_CLONE_TEMPLATE>yes</OPTION_CLONE_TEMPLATE>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+  </variables>
+
+  <semaphores>
+    <TCDebianInstall count="${LINUXINSTALLPAR}" />
+    <TCVendorInstall count="${LINUXINSTALLPAR}" />
+  </semaphores>
+
+  <prepare>
+    <pool>
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <NIC />
+          <MANAGEMENT />
+          <VLAN network="VR02">
+            <VMS />
+          </VLAN>
+        </PHYSICAL>
+      </NETWORK>
+      <allhosts />
+    </pool>
+  </prepare>
+
+    <testsequence>
+
+    <!-- Install guests on each host -->
+    <testcase id="xenserver.tc.dr.EnableDbReplication" />
+
+    <parallel>
+      <for iter="P,S" values="${HOSTPAIRS}">
+        <for iter="C" values="${PAIRSPERHOST}">
+          <parallel>
+            <serial group="Lin">
+              <testcase id="xenserver.guest.TCXenServerVendorInstall" tc="TC-21453" name="Install.Lin${P}${C}" sku="Install.Lin${P}${C}">
+                <arg>RESOURCE_HOST_${P}</arg>
+                <arg>guest=rhguest${P}${C}</arg>
+                <arg>version=${GUESTDISTRO}</arg>
+                <arg>memory=${GUESTMEMORY}</arg>
+                <arg>vcpus=${GUESTVCPUS}</arg>
+                <arg>disksize=${GUESTDISKLIN}</arg>
+              </testcase>
+              <testcase id="xenserver.guest.TCLifeCycleLoop" tc="TC-21453" name="LifeCycle.Lin${P}${C}" sku="LifeCycle.Lin${P}${C}">
+                <arg>guest=rhguest${P}${C}</arg>
+                <arg>duration=${DURATION}</arg>
+                <arg>iterations=${ITERATIONS}</arg>
+                <arg>snap=${POOLSTRESSSNAP}</arg>
+              </testcase>
+            </serial>
+            <serial group="Win">
+              <testcase id="xenserver.guest.TCXenServerWindowsInstall" tc="TC-21453" name="Install.Win${P}${C}" sku="Install.Win${P}${C}">
+                <arg>RESOURCE_HOST_${P}</arg>
+                <arg>guest=winguest${P}${C}</arg>
+                <arg>version=${GUESTVERSION}</arg>
+                <arg>memory=${GUESTMEMORY}</arg>
+                <arg>vcpus=${GUESTVCPUS}</arg>
+                <arg>disksize=${GUESTDISK}</arg>
+              </testcase>
+              <testcase id="guestops.drivers.TCDriverInstall" tc="TC-21453" name="DriverInstall.Win${P}${C}" sku="DriverInstall.Win${P}${C}">
+                <arg>guest=winguest${P}${C}</arg>
+              </testcase>
+              <testcase id="xenserver.guest.TCLifeCycleLoop" tc="TC-21453" name="LifeCycle.Win${P}${C}" sku="LifeCycle.Win${P}${C}">
+                <arg>guest=winguest${P}${C}</arg>
+                <arg>duration=${DURATION}</arg>
+                <arg>iterations=${ITERATIONS}</arg>
+                <arg>snap=${POOLSTRESSSNAP}</arg>
+              </testcase>
+            </serial>
+          </parallel>
+        </for>
+      </for>
+    </parallel>
+  </testsequence>
+
+
+</xenrt>

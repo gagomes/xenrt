@@ -1,0 +1,92 @@
+<?xml version="1.0" ?>
+<xenrt>
+
+  <!-- Sequence to test the various negative Intra Pool Storage Migration scenarios as given below:
+
+        TC17088 - Intra Pool Storage Migration when the PV drivers are not installed on the VM
+        TC17090 - Intra Pool Storage Migration when the destination host is not having enough memory
+        TC17092- Verifying Intra Pool Storage Migration when the VM has more than 6 VDIs
+        TC17094 - Verifying VM life cycle operations during an Intra Pool Storage Migration
+        TC17097 - Verifying Intra Pool Storage Migration to destination SR with invalid SR UUID
+        TC17100 - Verifying Intra Pool Storage Migration when the VM has raw VDI attached
+        TC17102 - Intra Pool Storage Migration when the VM is an halted state
+        TC17103 - Intra Pool Storage Migration when the VM is in a suspended state
+        TC17104 - Intra Pool Storage Migration when the VM is in a paused state
+
+  -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <!-- <pool id="0" name="sourceSXMPool"> -->
+    <pool id="0">
+      <host id="0" installsr="ext" />
+      <host id="1" installsr="lvm" />
+    </pool>
+  </prepare>
+  
+  <testsequence>
+
+    <serial group="NegIntraPoolSXM">
+      <!-- intra-pool sxm migration from sr-type ext to lvm. -->
+
+      <!-- TC17088 - Intra Pool Storage Migration when the PV drivers are not installed on the VM. -->
+      <testcase id="xenserver.tc.sxm.AgentlessVMStorageMigration" name="TC17088" tc="TC-17088">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>        
+      </testcase>      
+
+      <!-- TC17090 - Intra Pool Storage Migration when the destination host is not having enough memory. -->
+      <testcase id="xenserver.tc.sxm.DestHostFullVMStorageMigration" name="TC17090" tc="TC-17090">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+        <arg>negative_test</arg>
+      </testcase>
+
+      <!-- TC17094 - Verifying VM life cycle operations during an Intra Pool Storage Migration. -->
+      <testcase id="xenserver.tc.sxm.SuspendDuringIntraPoolMigration" name="TC17094" tc="TC-17094">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+      </testcase>
+
+      <!-- TC17094 - Verifying VM life cycle operations during an Intra Pool Storage Migration. -->
+      <testcase id="xenserver.tc.sxm.PauseDuringIntraPoolMigration" name="TC17095" tc="TC-17095">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+      </testcase>
+
+      <!-- TC17100 - Verifying Intra Pool Storage Migration when the VM has raw VDI attached. -->
+      <testcase id="xenserver.tc.sxm.RawVDIStorageMigration" name="TC17100" tc="TC-17100">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+        <arg>immediate_failure</arg>
+      </testcase>
+
+      <!-- TC17102 - Intra Pool Storage Migration when the VM is an halted state. -->
+      <testcase id="xenserver.tc.sxm.HaltedVMStorageMigration" name="TC17102" tc="TC-17102">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+        <arg>negative_test</arg>
+      </testcase>
+
+      <!-- TC17103 - Intra Pool Storage Migration when the VM is in a suspended state. -->
+      <testcase id="xenserver.tc.sxm.SuspendedVMStorageMigration" name="TC17103" tc="TC-17103">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+        <arg>negative_test</arg>
+      </testcase>
+
+      <!-- TC17104 - Intra Pool Storage Migration when the VM is in a paused state. -->
+      <testcase id="xenserver.tc.sxm.PausedVMStorageMigration" name="TC17104" tc="TC-17104">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+        <arg>negative_test</arg>
+      </testcase>
+
+    </serial>
+
+  </testsequence>
+
+</xenrt>

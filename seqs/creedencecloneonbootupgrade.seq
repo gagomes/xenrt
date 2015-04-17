@@ -1,13 +1,14 @@
 <xenrt>
 
-  <!-- Tampa to Clearwater rolling pool upgrade test to check clone on boot status-->
+  <!-- Clearwater to Creedence rolling pool upgrade test to check clone on boot status-->
 
-  <default name="OLD_PRODUCT_VERSION" value="Tampa"/>
-  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.1.0/RTM"/>
+  <default name="OLD_PRODUCT_VERSION" value="Clearwater"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446"/>
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
     <PREPARE_WORKERS>2</PREPARE_WORKERS>
+    <APPLY_ALL_RELEASED_HFXS>yes</APPLY_ALL_RELEASED_HFXS>
   </variables>
 
   <prepare>

@@ -23,6 +23,7 @@
   <testsequence>
     <serial group="TC-8227">
       <testcase id="xenserver.tc.backup.TC8226"/>
+      <testcase id="xenserver.tc.backup.MetadataOnNFSSR" tc="TC-21684"/>
     </serial>
   </testsequence>
 

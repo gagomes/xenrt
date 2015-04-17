@@ -1,0 +1,151 @@
+<xenrt>
+
+  <!-- OS functional test sequence: win10-x86 and win10-x64 -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+  </variables>
+
+  <default name="PARALLEL" value="2"/>
+  <default name="MIGRATEPAR" value="1"/>
+
+  <semaphores>
+    <TCMigrate count="${MIGRATEPAR}"/>
+  </semaphores>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <parallel workers="${PARALLEL}">
+
+<serial group="win10-x86">
+      <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="VMInstall" tc="TC-26366">
+        <arg>RESOURCE_HOST_0</arg>
+        <arg>guest=win10-x86</arg>
+        <arg>distro=win10-x86</arg>
+        <arg>memory=1024</arg>
+      </testcase>
+      <serial guest="win10-x86">
+        <testcase id="guestops.drivers.TCDriverInstall" tc="TC-26367">
+        <arg>guest=win10-x86</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCStartStop" tc="TC-26368">
+        <arg>guest=win10-x86</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCReboot" tc="TC-26369">
+        <arg>guest=win10-x86</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCSuspendResume" tc="TC-26370">
+        <arg>guest=win10-x86</arg>
+        <arg>workloads</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" tc="TC-26371">
+        <arg>guest=win10-x86</arg>
+        <arg>workloads</arg>
+        <arg>loops=10</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-26372">
+        <arg>guest=win10-x86</arg>
+        <arg>live</arg>
+        <arg>workloads</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-26374">
+        <arg>N/A</arg>
+        <arg>guest=win10-x86</arg>
+        <arg>noshutdown</arg>
+        <arg>initial=4</arg>
+        <arg>max=7</arg>
+        </testcase>
+        <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-26375">
+        <arg>N/A</arg>
+        <arg>guest=win10-x86</arg>
+        <arg>noshutdown</arg>
+        </testcase>
+        <testcase id="guestops.cpu.TCCPUWalk" tc="TC-26376">
+        <arg>guest=win10-x86</arg>
+        <arg>max=2</arg>
+        <arg>noplugwindows</arg>
+        </testcase>
+        <finally>
+          <testcase id="guestops.basic.TCShutdown">
+            <arg>guest=win10-x86</arg>
+            <arg>finally</arg>
+          </testcase>
+        </finally>
+      </serial>
+    </serial>
+
+
+     <serial group="win10-x64">
+      <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="VMInstall" tc="TC-26378">
+        <arg>RESOURCE_HOST_0</arg>
+        <arg>guest=win10-x64</arg>
+        <arg>distro=win10-x64</arg>
+        <arg>memory=1024</arg>
+      </testcase>
+      <serial guest="win10-x64">
+        <testcase id="guestops.drivers.TCDriverInstall" tc="TC-26379">
+        <arg>guest=win10-x64</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCStartStop" tc="TC-26380">
+        <arg>guest=win10-x64</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCReboot" tc="TC-26381">
+        <arg>guest=win10-x64</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCSuspendResume" tc="TC-26382">
+        <arg>guest=win10-x64</arg>
+        <arg>workloads</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" tc="TC-26383">
+        <arg>guest=win10-x64</arg>
+        <arg>workloads</arg>
+        <arg>loops=10</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-26384">
+        <arg>guest=win10-x64</arg>
+        <arg>live</arg>
+        <arg>workloads</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-26386">
+        <arg>N/A</arg>
+        <arg>guest=win10-x64</arg>
+        <arg>noshutdown</arg>
+        <arg>initial=4</arg>
+        <arg>max=7</arg>
+        </testcase>
+        <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-26387">
+        <arg>N/A</arg>
+        <arg>guest=win10-x64</arg>
+        <arg>noshutdown</arg>
+        </testcase>
+        <testcase id="guestops.cpu.TCCPUWalk" tc="TC-26388">
+        <arg>guest=win10-x64</arg>
+        <arg>max=2</arg>
+        <arg>noplugwindows</arg>
+        </testcase>
+        <finally>
+          <testcase id="guestops.basic.TCShutdown">
+            <arg>guest=win10-x64</arg>
+            <arg>finally</arg>
+          </testcase>
+        </finally>
+      </serial>
+    </serial>
+
+
+    </parallel>
+  </testsequence>
+
+</xenrt>

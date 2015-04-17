@@ -1,0 +1,18 @@
+<xenrt>
+
+  <!-- Midnight Ride TC-7477 stress test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <testcase id="xenserver.tc.guest.TC7477"/>
+  </testsequence>
+
+</xenrt>

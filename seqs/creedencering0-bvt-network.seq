@@ -1,0 +1,26 @@
+<xenrt>
+
+  <!-- Creedence R0 basic networking check -->
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <CARBON_EXTRA_CDS>linux.iso</CARBON_EXTRA_CDS>
+    <HOST_INSTALL_METHOD>nfs</HOST_INSTALL_METHOD>
+  </variables>
+
+  <testsequence>
+    <serial group="HostInstallation">
+      <testcase id="xenserver.install.TCXenServerInstall" tc="TC-6644" blocker="yes"/>
+    </serial>
+    <serial group="QuickTest">
+      <testcase id="xenserver.cli.TCQuicktest" tc="TC-6653"/>
+    </serial>
+    <serial group="Net">
+      <testcase id="xenserver.tc.bonding.TC12449"/>
+    </serial>
+    <serial group="Bugtool">
+      <testcase id="xenserver.tc.host.TC5792"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

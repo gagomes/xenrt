@@ -19,8 +19,8 @@
   </prepare>
 
   <testsequence>
-    <testcase group="Upgrade" id="xenserver.tc.upgrade.TC8765"/>
-    <testcase group="Upgrade" id="guestops.basic.TCVerifyUEK" tc="TC-21671">
+    <testcase group="Upgrade" id="xenserver.tc.upgrade.TC8765" blocker="yes"/>
+    <testcase group="Upgrade" id="guestops.basic.TCVerifyUEKonUpgrade" tc="TC-21716">
         <arg>guest=Linux</arg>
     </testcase>
   </testsequence>

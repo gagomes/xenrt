@@ -1,0 +1,31 @@
+<xenrt>
+  <!-- vGPU Allocation mode tests with 2 K1 hosts. -->
+  
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <POOL_JOIN_FORCE>yes</POOL_JOIN_FORCE>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="nfs" name="nfssr" default="true"/>
+      <host id="0" installsr="lvm" />
+      <host id="1" installsr="lvm" />
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="AllocationK1K1">
+      <!-- 2 * <K1 *1> hosts. -->
+      <testcase id="testcases.xenserver.tc.vgpu.TCAlloModeK100NFS" name="TC20857" tc="TC-20857" />
+      <!-- 2 * <K1 *1> hosts. -->
+      <testcase id="testcases.xenserver.tc.vgpu.TCAlloModeK140NFS" name="TC20858" tc="TC-20858" />
+      <!-- 2 * <K1 *1> hosts. -->
+      <testcase id="testcases.xenserver.tc.vgpu.TCAlloModeSingleConf" name="TC20861" tc="TC-20861" />
+      <!-- 2 * <K1 *1> hosts. -->
+      <testcase id="testcases.xenserver.tc.vgpu.TCAlloModeK100LVM" name="TC20859" tc="TC-20859" />
+      <!-- 2 * <K1 *1> hosts. -->
+      <testcase id="testcases.xenserver.tc.vgpu.TCAlloModeK140LVM" name="TC20860" tc="TC-20860" />
+    </serial>
+  </testsequence>
+</xenrt>

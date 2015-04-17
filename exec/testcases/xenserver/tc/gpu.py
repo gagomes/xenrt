@@ -21,7 +21,7 @@ from xenrt.lib.xenserver.call import *
 from testcases.xenserver.tc.ns import SRIOVTests
 from testcases.benchmarks import graphics
 
-class GPUHelper():
+class GPUHelper(object):
     """Helper for GPU related operations"""
 
     def getGPUHosts(self, pool):
@@ -790,7 +790,7 @@ class TC13570(_GPU, SRIOVTests):
         host = hosts[0]
         self.io = xenrt.lib.xenserver.IOvirt(host)
         self.io.enableIOMMU(restart_host=False)
-        self.io.enableVirtualFunctions()
+        host.enableVirtualFunctions()
 
     def run(self, arglist=None):
         pool = self.getDefaultPool()
@@ -972,3 +972,22 @@ class TCGPUSetup(_GPU):
             self.args['vendor'] = "NVIDIA"
 
         self.assertGPURunningInVM(self.guest, self.args['vendor'])
+        
+class TC20904(xenrt.TestCase):
+#This testcase is derived from HFX-929 in Hotfix Samsonite
+
+    def run(self,arglist):
+        self.host = self.getDefaultHost()
+        output =self.host.execdom0("head -1 /dev/vga_arbiter")
+        p = [ s for s in output.split(',') if 'PCI' in s][0]
+        pciID = re.search('PCI:(.*)$',p).group(1)
+        xenrt.TEC().logverbose("PCI ID of the motherboard: %s" %pciID)
+        
+        pci_obj = self.host.minimalList("pgpu-list", "uuid", "pci-id=%s" %pciID)        
+        if self.host.genParamGet("pgpu", pci_obj[0], "supported-VGPU-types") :
+            raise xenrt.XRTFailure("Supported type of pgpu: %s is not Null" %pci_obj[0])
+        else :
+            xenrt.TEC().logverbose("Supported type of pgpu: %s is Null as expected" %pci_obj[0])
+
+        
+

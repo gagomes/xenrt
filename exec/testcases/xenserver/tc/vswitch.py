@@ -218,16 +218,7 @@ class _VSwitch(xenrt.TestCase):
         raise xenrt.XRTError("Failed to find guest with name %s" % (name))
 
     def setupGuestTcpDump(self, guest):
-        if self.wdir == None:
-            self.wdir = xenrt.resources.WebDirectory()
-            self.wdir.copyIn("/local/apt-cache/packages/libssl0.9.7_0.9.7e-3sarge5_i386.deb")
-            self.wdir.copyIn("/local/apt-cache/packages/libpcap0.8_0.8.3-5_i386.deb")
-            self.wdir.copyIn("/local/apt-cache/packages/tcpdump_3.8.3-5sarge2_i386.deb")
-
-        guest.execguest("wget %s" % self.wdir.getURL("libssl0.9.7_0.9.7e-3sarge5_i386.deb"))
-        guest.execguest("wget %s" % self.wdir.getURL("libpcap0.8_0.8.3-5_i386.deb"))
-        guest.execguest("wget %s" % self.wdir.getURL("tcpdump_3.8.3-5sarge2_i386.deb"))
-        guest.execguest("dpkg -i libssl0.9.7_0.9.7e-3sarge5_i386.deb libpcap0.8_0.8.3-5_i386.deb tcpdump_3.8.3-5sarge2_i386.deb")
+        guest.installPackages(["tcpdump"])
 
     def prepare(self, arglist):
         self.pool = self.getDefaultPool()
@@ -2282,11 +2273,8 @@ class TC12550(_VSwitch):
             pings.pop()
             pings.pop()
             result = pings.pop()
-            try:
-                transmitted, received, packet_loss, ms  = re.findall("(\d+)", result)
-            except(ValueError):
-                transmitted, received, duplicates, packet_loss, ms  = re.findall("(\d+)", result)
-            if received == 0:
+            data = dict([(v.strip(),int(k)) for k, v in re.findall("(\d+)([\w\s%]+)", result)])
+            if 'received' in data and data['received']==0:
                 raise xenrt.XRTFailure("could not reach address %s on vlan %d" % (vlan_if_address, vlan_id))
 
         # destroy the VLAN interfaces 
@@ -2399,8 +2387,8 @@ class TC20958(_VSwitch):
             pings.pop()
             pings.pop()
             result = pings.pop()
-            transmitted, received, packet_loss, ms  = re.findall("(\d\d)", result)
-            if received == 0:
+            data = dict([(v.strip(),int(k)) for k, v in re.findall("(\d+)([\w\s%]+)", result)])
+            if 'received' in data and data['received']==0:
                 raise xenrt.XRTFailure("could not reach address %s on vlan %d" % (vlan_if_address, vlan_id))
 
         # destroy the VLAN interfaces 
@@ -2514,8 +2502,8 @@ class TC20996(_VSwitch):
             pings.pop()
             pings.pop()
             result = pings.pop()
-            transmitted, received, packet_loss, ms  = re.findall("(\d\d)", result)
-            if received == 0:
+            data = dict([(v.strip(),int(k)) for k, v in re.findall("(\d+)([\w\s%]+)", result)])
+            if 'received' in data and data['received']==0:
                 raise xenrt.XRTFailure("could not reach address %s on vlan %d" % (vlan_if_address, vlan_id))
 
         # destroy the VLAN interfaces 
@@ -2629,8 +2617,8 @@ class TC20997(_VSwitch):
             pings.pop()
             pings.pop()
             result = pings.pop()
-            transmitted, received, packet_loss, ms  = re.findall("(\d\d)", result)
-            if received == 0:
+            data = dict([(v.strip(),int(k)) for k, v in re.findall("(\d+)([\w\s%]+)", result)])
+            if 'received' in data and data['received']==0:
                 raise xenrt.XRTFailure("could not reach address %s on vlan %d" % (vlan_if_address, vlan_id))
 
         # destroy the VLAN interfaces 
@@ -3088,14 +3076,13 @@ class SRTrafficwithGRO(NetworkThroughputwithGRO):
     def nfsDirSetup(self, nfsvm):
         """Setup an nfs share on the VM"""
         dir="/nfssr"
-        nfsvm.execguest("apt-get install -y --force-yes nfs-kernel-server nfs-common "
-                        "portmap")
+        nfsvm.installPackages(["nfs-kernel-server","nfs-common","portmap"])
 
         # Create a dir and export it
         nfsvm.execguest("mkdir %s" % dir)
         nfsvm.execguest("echo '%s *(sync,rw,no_root_squash,no_subtree_check)'"
                         " > /etc/exports" % dir)
-        nfsvm.execguest("/etc/init.d/portmap start")
+        nfsvm.execguest("/etc/init.d/portmap start || /etc/init.d/rpcbind start")
         nfsvm.execguest("/etc/init.d/nfs-common start || true")
         nfsvm.execguest("/etc/init.d/nfs-kernel-server start || true")
         
@@ -4359,8 +4346,8 @@ class TC11583(_Controller):
         step("Setting rconn:FILE:DBG in vswitch")
         self.host.execdom0("ovs-appctl vlog/set rconn:FILE:DBG")
         self.debugNic()
-        # Attempt backoff of 10, 5, 2 and 1 second(s).  
-        for backoffms in [10000, 5000, 2000, 1000]:
+        # Attempt backoff of 10 and 5 second(s).
+        for backoffms in [10000, 5000]:
             step("Changing backoff to %s" % backoffms)
             dvscuuid = self.getControllerUUID()
             self.debugNic()
@@ -4965,8 +4952,7 @@ class _CHIN(_Controller):
         self.pool.associateDVS(self.controller)
         xenrt.TEC().logverbose("CHINMAP: %s" % (self.CHINMAP))
         self.chins = self.CHIN.generate(self.pool, self.CHINMAP)
-        self.guests = map(self.getGuest, 
-                          filter(lambda x:not x == self.CONTROLLER, xenrt.TEC().registry.guestList()))
+        self.guests = [self.getGuest(gn) for gn in self.pool.master.listGuests()]
         for guest in self.guests:
             self.setupGuestTcpDump(guest)
         for chin in self.chins.values():
@@ -5562,7 +5548,7 @@ class TC11582(TC11531):
 
 #### vSwitch Scalability Tests ####
 
-class _TC11537:
+class _TC11537(object):
     """
     Base class providing Create VIFs/VMs for TC11537 sequences
     """
@@ -5657,7 +5643,8 @@ class _TC11537:
             vm_to_clone.start()
             if num_vifs > 0:
                 self.createNVifsOnGuest(num_vifs, vm_to_clone)
-        except:
+        except Exception, e:
+            warning("VM clone operation failed : %s" % e)
             self.test_dead=True
              
 
@@ -5710,8 +5697,8 @@ class _TC11537:
             return (0, nbrOfGuests)
 
         # guestsPerHost is the solution to equation: N_guests = (N_hosts-1) * x + 0.5x
-        guestsPerHost = round( ( nbrOfGuests /(nbrOfHosts - 0.5) ) )
-        nbrOfGuestsOnLastHost = nbrOfGuests - guestsPerHost*(nbrOfHosts - 1)
+        guestsPerHost = int(round( ( nbrOfGuests /(nbrOfHosts - 0.5) ) ))
+        nbrOfGuestsOnLastHost = int(nbrOfGuests - guestsPerHost*(nbrOfHosts - 1))
 
         return (guestsPerHost, nbrOfGuestsOnLastHost)
 

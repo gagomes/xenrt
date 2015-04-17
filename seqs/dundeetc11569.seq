@@ -1,0 +1,63 @@
+<?xml version="1.0" ?>
+<xenrt>
+
+  <!-- Operation with a fialed controller -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <NETWORK_BACKEND>vswitch</NETWORK_BACKEND>
+  </variables>
+
+  <prepare>
+    <pool id="2">
+      <host id="2">
+        <vm name="controller">
+          <file>%CONTROLLER_XVA%</file>
+          <postinstall action="start"/>
+          <bootparams>rootssh</bootparams>
+        </vm>
+      </host>
+    </pool>
+    <pool id="0">
+      <storage type="nfs" name="shared" default="true"/>
+      <host id="0">
+        <vm name="linux_0">
+          <distro>generic-linux</distro>
+        </vm>
+        <vm name="linux_1">
+          <distro>generic-linux</distro>
+        </vm>
+      </host>
+      <host id="1">
+        <vm name="linux_2">
+          <distro>generic-linux</distro>
+        </vm>
+      </host>
+    </pool>
+    <pool id="1">
+      <host id="3" noisos="true">
+        <vm name="linux_3">
+          <distro>generic-linux</distro>
+        </vm>
+      </host>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="vSwitch">
+      <testcase id="xenserver.tc.vswitch.TC11579"/>
+      <testcase id="xenserver.tc.vswitch.TC11583"/>
+      <testcase id="xenserver.tc.vswitch.TC12657"/>
+    </serial>
+    <serial>
+      <finally>
+        <testcase id="guestops.basic.TCShutdown">
+          <arg>guest=controller</arg>
+          <arg>again</arg>
+        </testcase>
+      </finally>
+    </serial>
+  </testsequence>
+
+</xenrt>
+

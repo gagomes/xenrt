@@ -1,0 +1,77 @@
+<xenrt>
+
+  <!-- Linux installation test sequence 2 -->
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+  </variables>
+
+  <default name="PARALLEL" value="4"/>
+
+  <prepare>
+      <host/>
+  </prepare>
+
+  <testsequence>
+
+    <parallel workers="${PARALLEL}">
+      <!-- Ubuntu 14.04 -->
+      <testcase id="xenserver.tc.vminstall.TC21720" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21723" group="VMInstall"/>
+      <!-- RHEL/CentOS/OEL 7 -->
+      <testcase id="xenserver.tc.vminstall.TC21773" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21774" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21775" group="VMInstall"/>
+      <!-- RHEL 5.10 -->
+      <testcase id="xenserver.tc.vminstall.TC21728" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21729" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21731" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21732" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21733" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21734" group="VMInstall"/>
+      <!-- RHEL 6.5 -->
+      <testcase id="xenserver.tc.vminstall.TC21735" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21736" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21737" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21738" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21739" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21740" group="VMInstall"/>
+      <!-- CentOS 5.10 -->
+      <testcase id="xenserver.tc.vminstall.TC21741" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21742" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21743" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21744" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21745" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21746" group="VMInstall"/>
+      <!-- CentOS 6.5 -->
+      <testcase id="xenserver.tc.vminstall.TC21747" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21748" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21749" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21750" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21751" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21752" group="VMInstall"/>
+      <!-- OEL 5.10 -->
+      <testcase id="xenserver.tc.vminstall.TC21753" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21754" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21755" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21756" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21757" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21758" group="VMInstall"/>
+      <!-- OEL 6.5 -->
+      <testcase id="xenserver.tc.vminstall.TC21759" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21761" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21762" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21763" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21764" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21765" group="VMInstall"/>
+      <!-- SLES 11 SP3 -->
+      <testcase id="xenserver.tc.vminstall.TC21767" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21768" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21769" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21770" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21771" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21772" group="VMInstall"/>
+    </parallel>
+  </testsequence>
+
+</xenrt>

@@ -90,7 +90,7 @@
 
 
   <testsequence group="Resiliency">
-      <testcase id="cloud.tc.resiliency.TCXapiStopped" name="XapiStopped" >
+      <testcase id="cloud.tc.resiliency.TCXapiStopped" name="XapiStopped" tc="TC-21908" >
       </testcase>
 
   </testsequence>

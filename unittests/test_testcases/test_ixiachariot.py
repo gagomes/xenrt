@@ -95,21 +95,21 @@ class TestPairTest(XenRTUnitTestCase):
         Given TestPair When asked for the commands
         Then appropriate commands returned
         """
-        pairTest = ixiachariot.PairTest('ip1', 'ip2', 'testname', 'jobid')
+        pairTest = ixiachariot.PairTest('ip1', 'ip2', 'testname', '087')
 
         self.assertEquals([
-            'mkdir /cygdrive/c/tests/jobid',
-            'echo "1 ip1 ip2" > /cygdrive/c/tests/jobid/clone',
+            'mkdir /cygdrive/c/tests/job087',
+            'echo "1 ip1 ip2" > /cygdrive/c/tests/job087/clone',
             '"/cygdrive/c/Program Files/Ixia/IxChariot/clonetst" '
             + r'"C:\\tests\\testname" '
-            + r'"C:\\tests\\jobid\\clone" '
-            + r'"C:\\tests\\jobid\\test.tst"',
+            + r'"C:\\tests\\job087\\clone" '
+            + r'"C:\\tests\\job087\\test.tst"',
             '"/cygdrive/c/Program Files/Ixia/IxChariot/runtst" '
-            + r'"C:\\tests\\jobid\\test.tst" '
-            + r'"C:\\tests\\jobid\\result.tst"',
+            + r'"C:\\tests\\job087\\test.tst" '
+            + r'"C:\\tests\\job087\\result.tst"',
             '"/cygdrive/c/Program Files/Ixia/IxChariot/fmttst" '
-            + r'"C:\\tests\\jobid\\result.tst" '
-            + r'-v "C:\\tests\\jobid\\result.csv"',
+            + r'"C:\\tests\\job087\\result.tst" '
+            + r'-v "C:\\tests\\job087\\result.csv"',
         ],
             pairTest.getCommands())
 

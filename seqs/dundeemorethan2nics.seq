@@ -1,0 +1,39 @@
+<xenrt>
+
+  <!-- MNR multiple nic test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <CARBON_EXTRA_CDS>linux.iso</CARBON_EXTRA_CDS>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <serial group="BondMoreThanTwoNicsTest">
+      <testcase id="xenserver.tc.bonding.TC15595" blocker="yes" prio="3"/>
+      <testcase id="xenserver.tc.bonding.BondSplit" tc="TC-15605" name="BondSplit01" blocker="yes" prio="3"/>
+      <testcase id="xenserver.tc.bonding.TC15596" blocker="yes" prio="3"/>
+      <testcase id="xenserver.tc.bonding.BondSplit" tc="TC-15606" name="BondSplit02" blocker="yes" prio="3"/>
+      <testcase id="xenserver.tc.bonding.TC15597" blocker="yes" prio="3"/>
+      <testcase id="xenserver.tc.bonding.BondSplit" tc="TC-15607" name="BondSplit03" blocker="yes" prio="3"/>
+      <testcase id="xenserver.tc.bonding.TC15598" blocker="yes" prio="3"/>
+      <testcase id="xenserver.tc.bonding.BondSplit" tc="TC-15608" name="BondSplit04" blocker="yes" prio="3"/>
+      <testcase id="xenserver.tc.bonding.TC15599" blocker="yes" prio="3"/>
+      <testcase id="xenserver.tc.bonding.BondSplit" tc="TC-15609" name="BondSplit05" blocker="yes" prio="3"/>
+      <testcase id="xenserver.tc.bonding.TC15600" blocker="yes" prio="3"/>
+      <testcase id="xenserver.tc.bonding.BondSplit" tc="TC-15610" name="BondSplit06" blocker="yes" prio="3"/>
+      <testcase id="xenserver.tc.bonding.TC15601" blocker="yes" prio="3"/>
+      <testcase id="xenserver.tc.bonding.BondSplit" tc="TC-15611" name="BondSplit07" blocker="yes" prio="3"/>
+      <testcase id="xenserver.tc.bonding.TC15602" blocker="yes" prio="3"/>
+      <testcase id="xenserver.tc.bonding.BondSplit" tc="TC-15612" name="BondSplit08" blocker="yes" prio="3"/>
+      <testcase id="xenserver.tc.bonding.TC15603" blocker="yes" prio="3"/>
+      <testcase id="xenserver.tc.bonding.BondSplit" tc="TC-15613" name="BondSplit09" blocker="yes" prio="3"/>
+      <testcase id="xenserver.tc.bonding.TC15604" blocker="yes" prio="3"/>
+      <testcase id="xenserver.tc.bonding.BondSplit" tc="TC-15614" name="BondSplit10" blocker="yes" prio="3"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

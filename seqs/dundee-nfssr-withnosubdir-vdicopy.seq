@@ -1,0 +1,27 @@
+<xenrt>
+
+  <!-- VDI Copy Testing with NFS SR having no sub directory-->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="lvmoiscsi" name="iscsisr"/>
+      <!-- <storage type="netapp" name="netappsr" options="thin"/> -->
+      <storage type="nfs" name="nfssr_nosubdir" options="nosubdir"/>
+      <host id="0"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="NFSSRwithNoSubDir">
+      <testcase id="xenserver.tc.storage.TC20953"/>
+      <testcase id="xenserver.tc.storage.TC20954"/>
+      <!-- <testcase id="xenserver.tc.storage.TC20955"/> -->
+    </serial>
+  </testsequence>
+
+</xenrt>

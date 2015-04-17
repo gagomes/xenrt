@@ -1,0 +1,37 @@
+<?xml version="1.0" ?>
+<xenrt>
+
+  <!-- Verify license tests on a Creedence host -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+      <host id="0" license="no" usev6testd="no">
+        <vm name="LicenseServer">
+          <file>%LICENSE_SERVER_XVA%</file>
+          <postinstall action="installV6LicenseServer"/>
+        </vm>
+      </host>
+      <host id="1" license="no" usev6testd="no">
+      </host>
+  </prepare>
+
+  <testsequence>
+
+    <serial group="LicenseHost">
+
+      <testcase id="xenserver.tc.mulskulicense.LicenseBase" name="LicenseApply" tc="TC-23362">
+        <arg>sku=PerSocketEnterprise,PerUserEnterprise,PerConcurrentUserEnterprise,PerSocketStandard,XenDesktop,XenDesktopXDS,XenDesktopMPS</arg>
+      </testcase>
+
+      <testcase id="xenserver.tc.mulskulicense.TCRestartHost" name="RestartHost" tc="TC-23364">
+        <arg>sku=PerSocketEnterprise,PerUserEnterprise,PerConcurrentUserEnterprise,PerSocketStandard,XenDesktop,XenDesktopXDS,XenDesktopMPS</arg>
+      </testcase>
+
+    </serial>
+
+  </testsequence>
+
+</xenrt>

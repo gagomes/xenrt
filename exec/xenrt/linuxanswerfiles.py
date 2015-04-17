@@ -9,7 +9,7 @@ import XenAPI
 from xenrt.lazylog import log, warning
 
 
-class RHELKickStartFile :
+class RHELKickStartFile(object):
     def __init__(self,
                  distro,
                  maindisk,               
@@ -31,8 +31,7 @@ class RHELKickStartFile :
                  ethDevice="eth0",
                  pxe=True,
                  extraPackages=None,
-                 ossVG=False,
-                 installXenToolsInPostInstall=False):
+                 ossVG=False):
         self.vcpus=vcpus
         self.memory=memory
         self.options=options
@@ -56,17 +55,22 @@ class RHELKickStartFile :
         self.host=host
         self.vifs=vifs
         self.mounturl=mounturl
-        self.installXenToolsInPostInstall=installXenToolsInPostInstall
+        self.desktop = False
         
     def generate(self):
         return self._generateKS()
 
     def _generateKS(self):
-        if self.distro.startswith("rhel7") or self.distro.startswith("oel7") or self.distro.startswith("centos7"):
+        if self.distro.startswith("fedora"):
+            kf=self._generateFedora()
+        elif self.distro.startswith("rhel7") or self.distro.startswith("oel7") or self.distro.startswith("centos7") or self.distro.startswith("sl7"):
             kf=self._generate7()
-        elif self.distro.startswith("rhel6") or self.distro.startswith("oel6") or self.distro.startswith("centos6"):
+        elif re.match("^(rhel|centos|oel|sl)[w]?6\d*",self.distro):
             kf=self._generate6()
-        elif self.distro.startswith("rhel5") or self.distro.startswith("oel5") or self.distro.startswith("centos5"):
+        elif self.distro.startswith("rheld6"):
+            self.desktop = True
+            kf=self._generate6()
+        elif self.distro.startswith("rhel5") or self.distro.startswith("oel5") or self.distro.startswith("centos5") or self.distro.startswith("sl5"):
             kf=self._generate5()
         else:
             kf=self._generate4()
@@ -78,6 +82,12 @@ class RHELKickStartFile :
             return ("key %s" %(pKey))
         else:
             return ""
+            
+    def _package(self):
+        if self.desktop:
+            return "basic-desktop"
+        else:
+            return "development"
 
     def _password(self):
         if not self.password:
@@ -121,7 +131,7 @@ class RHELKickStartFile :
         more=""
         if self.installOn==xenrt.HypervisorType.xen:   
            
-            if self.pxe or self.installXenToolsInPostInstall:
+            if self.pxe:
                 more="reboot\n"
                 self.sleeppost = "sleep 60\n"
             return more
@@ -137,12 +147,6 @@ class RHELKickStartFile :
                 more += kse
                 more += "\n"
             return more       
-        
-    def _installTools(self):
-        installTools=""
-        if self.installXenToolsInPostInstall:
-            installTools = "mkdir /xs && mount /dev/xvdd /xs && /xs/Linux/install.sh -n"
-        return installTools
         
     def _netconfig(self,vifs,host):
         netconfig = ""
@@ -182,7 +186,7 @@ zerombr
 # not guaranteed to work
 clearpart --all --initlabel
 part /boot --fstype=%s --size=%d --ondisk=%s
-part pv.8 --grow --size=1 --ondisk=%s --maxsize=12000 
+part pv.8 --grow --size=1 --ondisk=%s --maxsize=20000
 volgroup VolGroup --pesize=32768 pv.8
 logvol / --fstype=ext4 --name=lv_root --vgname=VolGroup --grow --size=1024 --maxsize=51200
 logvol swap --name=lv_swap --vgname=VolGroup --grow --size=1008 --maxsize=2016
@@ -201,6 +205,7 @@ nfs-utils
 stunnel
 net-tools
 wget
+time
 %s
 %%end
 """ % (self._url(),
@@ -238,7 +243,7 @@ wget
 
     echo "# CP-8436: Load mlx4_en whenever we try to load mlx4_core" > /etc/modprobe.d/mlx4.conf
     echo "install mlx4_core /sbin/modprobe --ignore-install mlx4_core && /sbin/modprobe mlx4_en" >> /etc/modprobe.d/mlx4.conf
-"""
+""" % (self.ethdev, self.ethmac, self.ethdev, self.ethmac)
 
         out = out+ """
 %%post
@@ -264,8 +269,115 @@ mount -onolock -t nfs %s /tmp/xenrttmpmount
 touch /tmp/xenrttmpmount/.xenrtsuccess
 umount /tmp/xenrttmpmount
 %s
+%%end""" % (postInstall,self.mounturl, self.rpmpost, self.sleeppost)
+        return out
+                
+    def _generateFedora(self):
+      
+
+        out = """install
+text
 %s
-%%end""" % (postInstall,self.mounturl, self.rpmpost, self._installTools(), self.sleeppost)
+lang en_US.UTF-8
+keyboard us
+network --device %s --onboot yes --bootproto dhcp
+rootpw --iscrypted %s
+firewall --service==ssh
+authconfig --enableshadow --enablemd5
+selinux --disabled
+timezone %s
+bootloader --location=mbr --append="crashkernel=auto rhgb quiet"
+zerombr
+# The following is the partition information you requested
+# Note that any partitions you deleted are not expressed
+# here so unless you clear all partitions first, this is
+# not guaranteed to work
+clearpart --all --initlabel
+part /boot --fstype=%s --size=%d --ondisk=%s
+part pv.8 --grow --size=1 --ondisk=%s --maxsize=20000
+volgroup VolGroup --pesize=32768 pv.8
+logvol / --fstype=ext4 --name=lv_root --vgname=VolGroup --grow --size=1024 --maxsize=51200
+logvol swap --name=lv_swap --vgname=VolGroup --grow --size=1008 --maxsize=2016
+%s
+%s
+
+%%packages
+@ core
+@ development-tools
+@ standard
+bridge-utils
+lvm2
+e2fsprogs
+nfs-utils
+stunnel
+net-tools
+wget
+time
+%s
+%%end
+""" % (self._url(),
+       self.ethDevice,
+       self._password(),
+       self._timezone(),
+       self.bootDiskFS,
+       self.bootDiskSize,
+       self.mainDisk,
+       self.mainDisk,
+       self._key(),
+       self._more(),
+       self._extra()
+       )
+
+        if self.installOn == xenrt.HypervisorType.xen:
+            postInstall = self._netconfig(self.vifs,self.host)
+        else:
+            postInstall = """
+    CONFDIR=/etc/sysconfig/network-scripts
+    MAC=`grep ^HWADDR ${CONFDIR}/ifcfg-%s | cut -d = -f 2 | tr '[:lower:]' '[:upper:]'`
+    if [ "$MAC" != "%s" ]; then
+        sed -i -e's/ONBOOT=yes/ONBOOT=no/' ${CONFDIR}/ifcfg-%s
+        for c in ${CONFDIR}/ifcfg-eth*; do
+            MAC=`grep ^HWADDR $c | cut -d = -f 2 | tr '[:lower:]' '[:upper:]'`
+            if [ "$MAC" = "%s" ]; then
+                sed -i -e's/ONBOOT=no/ONBOOT=yes/' $c
+                echo 'BOOTPROTO=dhcp' >> $c
+            fi
+        done
+    fi
+
+    sed -i '/^serial/d' /boot/grub/grub.conf
+    sed -i '/^terminal/d' /boot/grub/grub.conf
+
+    echo "# CP-8436: Load mlx4_en whenever we try to load mlx4_core" > /etc/modprobe.d/mlx4.conf
+    echo "install mlx4_core /sbin/modprobe --ignore-install mlx4_core && /sbin/modprobe mlx4_en" >> /etc/modprobe.d/mlx4.conf
+""" % (self.ethdev, self.ethmac, self.ethdev, self.ethmac)
+
+        out = out+ """
+%%post
+echo "#!/bin/bash" >> /etc/rc.d/rc.local
+echo "# Flush firewall rules to avoid blocking iperf, synexec, etc." >> /etc/rc.d/rc.local
+echo "iptables -F" >> /etc/rc.d/rc.local
+echo "sleep 10" >> /etc/rc.d/rc.local
+echo "ping -c 1 `ip route show | grep default | awk '{print $3}' | head -1` || true" >> /etc/rc.d/rc.local
+echo "sleep 10" >> /etc/rc.d/rc.local
+echo "ping -c 1 `ip route show | grep default | awk '{print $3}' | head -1` || true" >> /etc/rc.d/rc.local
+echo "sleep 10" >> /etc/rc.d/rc.local
+echo "ping -c 1 `ip route show | grep default | awk '{print $3}' | head -1` || true" >> /etc/rc.d/rc.local
+echo "sleep 10" >> /etc/rc.d/rc.local
+echo "ping -c 1 `ip route show | grep default | awk '{print $3}' | head -1` || true" >> /etc/rc.d/rc.local
+echo "sleep 10" >> /etc/rc.d/rc.local
+echo "ping -c 1 `ip route show | grep default | awk '{print $3}' | head -1` || true" >> /etc/rc.d/rc.local
+echo "sleep 10" >> /etc/rc.d/rc.local
+echo "ping -c 1 `ip route show | grep default | awk '{print $3}' | head -1` || true" >> /etc/rc.d/rc.local
+chmod +x /etc/rc.d/rc.local
+%s
+mkdir /tmp/xenrttmpmount
+mount -onolock -t nfs %s /tmp/xenrttmpmount
+%s
+touch /tmp/xenrttmpmount/.xenrtsuccess
+umount /tmp/xenrttmpmount
+%s
+%%end""" % (postInstall,self.mounturl, self.rpmpost, self.sleeppost)
         return out
                 
     def _generate6(self):
@@ -308,7 +420,7 @@ logvol swap --name=lv_swap --vgname=VolGroup --grow --size=1008 --maxsize=2016
 
 %%packages
 @ core
-@ development
+@ %s
 @ console-internet
 @ network-tools
 bridge-utils
@@ -329,6 +441,7 @@ stunnel
        self.mainDisk,
        self._key(),
        self._more(),
+       self._package(),
        self._extra()
        )
 
@@ -354,7 +467,7 @@ stunnel
 
     echo "# CP-8436: Load mlx4_en whenever we try to load mlx4_core" > /etc/modprobe.d/mlx4.conf
     echo "install mlx4_core /sbin/modprobe --ignore-install mlx4_core && /sbin/modprobe mlx4_en" >> /etc/modprobe.d/mlx4.conf
-"""
+""" % (self.ethdev, self.ethmac, self.ethdev, self.ethmac)
 
         out = out+ """
 %%post
@@ -364,10 +477,10 @@ mount -onolock -t nfs %s /tmp/xenrttmpmount
 %s
 touch /tmp/xenrttmpmount/.xenrtsuccess
 umount /tmp/xenrttmpmount
-%s
-%s""" % (postInstall,self.mounturl, self.rpmpost, self._installTools(), self.sleeppost)
+%s""" % (postInstall,self.mounturl, self.rpmpost, self.sleeppost)
         return out
-                
+        
+                    
     def _generate4(self):
         
         out = """install
@@ -428,8 +541,7 @@ mount -onolock -t nfs %s /tmp/xenrttmpmount
 %s
 touch /tmp/xenrttmpmount/.xenrtsuccess
 umount /tmp/xenrttmpmount
-%s
-%s""" % (self._netconfig(self.vifs,self.host),self.mounturl, self.rpmpost, self._installTools(), self.sleeppost)
+%s""" % (self._netconfig(self.vifs,self.host),self.mounturl, self.rpmpost, self.sleeppost)
         return out
 
     def _generate5(self):
@@ -493,12 +605,11 @@ mount -onolock -t nfs %s /tmp/xenrttmpmount
 %s
 touch /tmp/xenrttmpmount/.xenrtsuccess
 umount /tmp/xenrttmpmount
-%s
-%s""" % (self._netconfig(self.vifs,self.host),self.mounturl, self.rpmpost, self._installTools(), self.sleeppost)
+%s""" % (self._netconfig(self.vifs,self.host),self.mounturl, self.rpmpost, self.sleeppost)
         return out
         
         
-class SLESAutoyastFile :
+class SLESAutoyastFile(object):
 
     def __init__(self,
                  distro,
@@ -513,7 +624,6 @@ class SLESAutoyastFile :
                  kickStartExtra=None,
                  bootDiskSize=None,
                  ossVG=False,
-                 installXenToolsInPostInstall=False,
                  rebootAfterInstall = True):
         self.mainDisk = maindisk
         self.pxe=pxe
@@ -528,7 +638,6 @@ class SLESAutoyastFile :
         self.ossVG = ossVG
         self.signalDir=signalDir
         self.bootDiskSize=bootDiskSize
-        self.installXenToolsInPostInstall=installXenToolsInPostInstall
         self.rebootAfterInstall = rebootAfterInstall
     
     def _password(self):
@@ -548,8 +657,6 @@ class SLESAutoyastFile :
         return xenrt.TEC().lookup("BOOTDISKSIZE", "100")
         
     def _postInstall(self):
-        if self.installXenToolsInPostInstall:
-            self.postinstall = "mkdir /xs && mount /dev/xvdd /xs && /xs/Linux/install.sh -n && reboot"
         return self.postinstall
     
     def generate(self):
@@ -3445,7 +3552,7 @@ sleep 120
        )
         return ks
         
-class DebianPreseedFile():
+class DebianPreseedFile(object):
     def __init__(self,
                  distro,
                  repository,
@@ -3458,7 +3565,6 @@ class DebianPreseedFile():
                  ossVG=False,
                  arch="x86-32",
                  timezone=None,
-                 installXenToolsInPostInstall=False,
                  postscript=None,
                  poweroff=True,
                  disk=None):
@@ -3472,21 +3578,18 @@ class DebianPreseedFile():
         self.extraPackages = extraPackages
         self.ossVG = ossVG
         self.arch=arch
-        self.installXenToolsInPostInstall=installXenToolsInPostInstall
         self.postscript = postscript
         self.poweroff = poweroff
         self.disk = disk
         
     def generate(self):
-        if self.distro.startswith("debian60") or self.distro.startswith("debian70"):
+        if self.distro.startswith("debian") and not self.distro.startswith("debian50"):
             ps=self.generateDebian()
-        elif self.distro.startswith("ubuntu1004") or self.distro.startswith("ubuntu1204") or self.distro.startswith("ubuntu1404"):
+        elif self.distro.startswith("ubuntu"):
             ps=self.generateUbuntu()
         else :
             ps=self.generateDebian5()
         
-        if self.installXenToolsInPostInstall:
-            ps = ps+ '\n-d-i preseed/late_command string mkdir /xs && mount /dev/xvdd /xs && /xs/Linux/install.sh -n'
         if self.postscript:
             ps += '\n-d-i preseed/late_command string wget -q -O - %s | chroot /target /bin/bash' % (self.postscript)
 
@@ -3499,6 +3602,10 @@ class DebianPreseedFile():
             return "squeeze"
         elif self.distro.startswith("debian70"):
             return "wheezy" 
+        elif self.distro.startswith("debian80"):
+            return "jessie" 
+        elif self.distro.startswith("debiantesting"):
+            return "testing" 
     
     def _password(self):
         if not self.password:
@@ -3560,9 +3667,20 @@ d-i    apt-setup/security_path  string %s""" % (self.httphost,self.httppath, sel
         squeeze=["","tasksel tasksel/first                           multiselect standard"]
         wheezy=["d-i base-installer/install-recommends boolean false",
                 "tasksel tasksel/first   multiselect standard"]
+        jessie=["d-i base-installer/install-recommends boolean false",
+                "tasksel tasksel/first   multiselect standard"]
         if self.distro.startswith("debian60"):
             subs=squeeze
             st=""
+        elif self.distro.startswith("debian80") or self.distro.startswith("debiantesting"):
+            subs=jessie
+            st="d-i preseed/late_command string sed -i 's/PermitRootLogin without-password/PermitRootLogin yes/g' /target/etc/ssh/sshd_config; /target/etc/init.d/ssh restart;"
+            if not self.disk:
+                # Debian jessie enumerates the disks in the installer as xvda (on Xen) in 64-bit, but sda in 32-bit
+                if "64" in self.arch and self.installOn==xenrt.HypervisorType.xen:
+                    self.disk = "/dev/xvda"
+                else:
+                    self.disk = "/dev/sda"
         else:
             subs=wheezy
             if self.distro.startswith("debian70") and "64" in self.arch:
@@ -3668,6 +3786,8 @@ d-i apt-setup/services-select multiselect none
         elif self.distro.startswith("ubuntu1204") and "64" in self.arch:
             st=ubuntu1264
         elif self.distro.startswith("ubuntu1404"):
+            st = ubuntu1404
+        elif self.distro.startswith("ubuntudevel"):
             st = ubuntu1404
         else:
             st=ubuntu1204                

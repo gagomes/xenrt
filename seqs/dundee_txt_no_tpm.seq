@@ -1,0 +1,21 @@
+<xenrt>
+  <!-- Measured Boot (TXT) tests to run on a non-TXT machine -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <pool id="0">
+      <host id="0" installsr="ext" />
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial>
+      <testcase id="xenserver.tc.txt.TCTxtSuppPackInstall" tc="TC-19910" blocker="yes"/>
+      <testcase id="xenserver.tc.txt.TCTxtHostCanReboot" tc="TC-19909" blocker="yes"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

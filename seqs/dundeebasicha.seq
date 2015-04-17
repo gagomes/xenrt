@@ -1,0 +1,68 @@
+<xenrt>
+
+  <!-- 'Quick' HA sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+      <sharedhost>
+        <vm name="controller">
+          <file>%CONTROLLER_XVA%</file>
+          <memory>512</memory>
+          <bootparams>rootssh</bootparams>
+          <postinstall action="start"/>
+        </vm>
+      </sharedhost>
+    <pool id="0">
+      <host id="0"/>
+      <NETWORK controller="controller"/>
+    </pool>
+    <pool id="1">
+      <host id="1"/>
+      <NETWORK controller="controller"/>
+    </pool>
+    <pool id="2">
+      <host id="2"/>
+      <NETWORK controller="controller"/>
+    </pool>
+    <pool id="3">
+      <host id="3"/>
+      <NETWORK controller="controller"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="BasicFunctional" blocker="yes">
+      <testcase id="xenserver.tc.ha.TC7507" blocker="yes"/>
+      <testcase id="xenserver.tc.ha.TC7508"/>
+      <testcase id="xenserver.tc.ha.TC8125"/>
+      <testcase id="xenserver.tc.ha.TC14984"/>
+    </serial>
+    <serial group="StartupShutdown">
+      <testcase id="xenserver.tc.ha.TC7509"/>
+      <testcase id="xenserver.tc.ha.TC7514"/>
+    </serial>
+    <serial group="StatefileFailures">
+      <testcase id="xenserver.tc.ha.TC7685"/>
+      <testcase id="xenserver.tc.ha.TC7689"/>
+    </serial>
+    <serial group="HeartbeatFailures">
+      <testcase id="xenserver.tc.ha.TC7696"/>
+    </serial>
+    <serial group="HostFailures">
+      <testcase id="xenserver.tc.ha.TC7712"/>
+    </serial>
+    <serial>
+      <finally>
+        <testcase id="guestops.basic.TCShutdown">
+          <arg>guest=controller</arg>
+          <arg>again</arg>
+        </testcase>
+      </finally>
+    </serial>
+  </testsequence>
+
+</xenrt>

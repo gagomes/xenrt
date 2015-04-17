@@ -172,8 +172,8 @@ class TrimFunctionalTestHBA(NetappFCTrimSupport):
                 log("%s" % str(spaceUsedByGuests))
                 log("Print in Format : {guestInstance : [spaceUsedBeforeGuestDeletion, spaceUsedAfterGuestDeletion, Difference]}")
                 log("%s" % str(spaceFreedByGuests))
-                raise xenrt.XRTFailure("TRIM failed : %s bytes is not freed on lun after deleting guest" %
-                                                str(spaceUsedByGuests[guest][2] - spaceFreedByGuests[guest][2]))
+                log("TRIM failed : %s bytes is not freed on lun after deleting guest" % str(spaceUsedByGuests[guest][2] - spaceFreedByGuests[guest][2]))
+                raise xenrt.XRTFailure("TRIM failed : bytes not freed on lun after deleting guest")
 
     def postRun(self, arglist=[]):
         # Destroy the lvmoHBA SR on the pool.

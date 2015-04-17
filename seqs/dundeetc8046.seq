@@ -1,0 +1,19 @@
+<xenrt>
+
+  <!-- Midnight Ride TC-8046 Sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0"/>
+  </prepare>
+
+  <testsequence>
+    <serial group="TC-8046">
+      <testcase id="xenserver.tc.stress.TC8046"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

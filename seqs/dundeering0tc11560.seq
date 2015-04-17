@@ -1,0 +1,53 @@
+<?xml version="1.0" ?>
+<xenrt>
+
+  <!--IEEE 802.1Q VLAN Tagging Test Sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <NETWORK_BACKEND>vswitch</NETWORK_BACKEND>
+  </variables>
+
+  <prepare>
+    <pool id="0">
+      <host id="0">
+        <vm name="linux_0">
+          <distro>generic-linux</distro>
+        </vm>
+        <vm name="linux_1">
+          <distro>generic-linux</distro>
+        </vm>
+      </host>
+      <host id="1">
+        <vm name="linux_2">
+          <distro>generic-linux</distro>
+        </vm>
+        <vm name="linux_3">
+          <distro>generic-linux</distro>
+        </vm>
+      </host>
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <NIC/>
+          <MANAGEMENT/>
+        </PHYSICAL>
+        <PHYSICAL network="NSEC">
+          <NIC/>
+          <VLAN network="VR02">
+          </VLAN>
+        </PHYSICAL>
+      </NETWORK>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="vSwitch">
+      <testcase id="xenserver.tc.vswitch.TC11561"/>
+      <testcase id="xenserver.tc.vswitch.TC12550"/>
+      <testcase id="xenserver.tc.vswitch.TC20958"/>
+      <testcase id="xenserver.tc.vswitch.TC20996"/>
+      <testcase id="xenserver.tc.vswitch.TC20997"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

@@ -31,24 +31,24 @@
    </prepare>
    <testsequence>
       <serial group="vSwitchScaledDown">
-         <testcase id="testcases.xenserver.tc.vswitch.TCManyGuestsInPool" name="TCvswitchNoGuests" tc="TC-11544_NoGuests" >
+         <testcase id="testcases.xenserver.tc.vswitch.TCManyGuestsInPool" name="TCvswitchNoGuests" >
          </testcase>
-         <testcase id="testcases.xenserver.tc.vswitch.TCManyGuestsInPool" name="TCvswitch10Guests" tc="TC-11544_10Guests" >
+         <testcase id="testcases.xenserver.tc.vswitch.TCManyGuestsInPool" name="TCvswitch10Guests" >
             <arg>guests=10</arg>
          </testcase>
-         <testcase id="testcases.xenserver.tc.vswitch.TCManyGuestsInPool" name="TCvswitch20Guests" tc="TC-11544_20Guests" >
+         <testcase id="testcases.xenserver.tc.vswitch.TCManyGuestsInPool" name="TCvswitch20Guests" >
             <arg>guests=20</arg>
          </testcase>
-         <testcase id="testcases.xenserver.tc.vswitch.TCManyGuestsInPool" name="TCvswitch40Guests" tc="TC-11544_40Guests" >
+         <testcase id="testcases.xenserver.tc.vswitch.TCManyGuestsInPool" name="TCvswitch40Guests" >
             <arg>guests=40</arg>
          </testcase>
-         <testcase id="testcases.xenserver.tc.vswitch.TCManyGuestsInPool" name="TCvswitch80Guests" tc="TC-11544_80Guests" >
+         <testcase id="testcases.xenserver.tc.vswitch.TCManyGuestsInPool" name="TCvswitch80Guests" >
             <arg>guests=80</arg>
          </testcase>
-         <testcase id="testcases.xenserver.tc.vswitch.TCManyGuestsInPool" name="TCvswitch112Guests" tc="TC-11544_112Guests" >
+         <testcase id="testcases.xenserver.tc.vswitch.TCManyGuestsInPool" name="TCvswitch112Guests" >
             <arg>guests=112</arg>
          </testcase>
-         <testcase id="testcases.xenserver.tc.vswitch.TCManyGuestsInPool" name="TCvswitch120Guests" tc="TC-11544_120Guests" >
+         <testcase id="testcases.xenserver.tc.vswitch.TCManyGuestsInPool" name="TCvswitch120Guests" >
             <arg>guests=120</arg>
          </testcase>
       </serial>

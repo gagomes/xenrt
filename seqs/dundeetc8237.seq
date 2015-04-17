@@ -1,0 +1,19 @@
+<xenrt>
+
+  <!-- MNR TC-8237 Sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0"/>
+  </prepare>
+
+  <testsequence>
+    <serial tc="TC-8237">
+      <testcase id="xenserver.tc.scalability.TC8237"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

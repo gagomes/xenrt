@@ -1,0 +1,31 @@
+<xenrt>
+
+  <!-- pooled iSCSI storage tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <FINALLY_UNINSTALL>yes</FINALLY_UNINSTALL>
+    <SR_ISCSI_MINSIZE>60</SR_ISCSI_MINSIZE>
+  </variables>
+
+  <prepare>
+    <pool>
+      <host id="0"/>
+      <host id="1"/>
+      <storage type="lvmoiscsi" name="iscsisr" default="true"/>
+    </pool>
+  </prepare>
+
+  <testsequence group="iSCSI">
+    <serial group="VDIResize">
+      <testcase id="xenserver.tc.storage.TC8509" prio="3"/>
+    </serial>
+    <serial group="VMSnap">
+      <testcase id="xenserver.tc.snapshot.TC7861" prio="3"/>
+      <!-- Remove VSS snapshots on Tampa for now -->
+      <!--<testcase id="xenserver.tc.snapshot.TC8616" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC8619" prio="3"/>-->
+    </serial>
+  </testsequence>
+
+</xenrt>

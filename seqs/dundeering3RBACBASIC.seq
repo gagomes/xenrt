@@ -1,0 +1,44 @@
+<xenrt>
+
+  <!-- RBAC API tests -->
+  <default name="OLD_PRODUCT_VERSION" value="Clearwater"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446"/>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+    <CLEAR_EVENT_LOGS_ON_FETCH>true</CLEAR_EVENT_LOGS_ON_FETCH>
+  </variables>
+
+  <prepare>
+    <pool>
+      <host id="0" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}"/>
+    </pool>
+    <host id="1" >
+      <vm name="AUTHSERVER">
+        <distro>ws08sp2-x86</distro>
+        <network device="0" />
+        <postinstall action="installDrivers" />
+        <postinstall action="installPowerShell" />
+        <postinstall action="enablePowerShellUnrestricted" />
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="RBAC">
+      <testcase id="xenserver.install.TCXenServerUpgrade">
+        <arg>input=DEFAULT</arg>
+        <arg>suspendDuringUpgrade</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.rbacapi.TC10214" />
+      <testcase id="testcases.xenserver.tc.rbacapi.TC10215" />
+      <testcase id="testcases.xenserver.tc.rbacapi.TC10216" />
+      <testcase id="testcases.xenserver.tc.rbacapi.TC10217" />
+      <testcase id="testcases.xenserver.tc.rbacapi.TC10218" />
+      <testcase id="testcases.xenserver.tc.rbacapi.TC10219" />
+      <testcase id="testcases.xenserver.tc.rbacapi.TC10220" />
+    </serial>
+  </testsequence>
+
+</xenrt>

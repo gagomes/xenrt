@@ -1,0 +1,30 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>16</PREPARE_WORKERS>
+    <HA_GENEROUS_TIMEOUTS>yes</HA_GENEROUS_TIMEOUTS>
+    <SR_ISCSI_MINSIZE>400</SR_ISCSI_MINSIZE>
+  </variables>
+
+  <prepare>
+    <pool>
+      <allhosts/>
+      <storage type="lvmoiscsi" name="iSCSI" default="true"/>
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <NIC/>
+          <NIC/>
+          <MANAGEMENT/>
+        </PHYSICAL>
+      </NETWORK>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="TC-8191">
+      <testcase id="xenserver.tc.ha.TC8191"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

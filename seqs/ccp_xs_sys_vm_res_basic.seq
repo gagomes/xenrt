@@ -1,0 +1,111 @@
+<xenrt>
+  <!-- CCP - XS System VM resiliency tests [Basic Mode] -->
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <CLOUD_WAIT_FOR_TPLTS>yes</CLOUD_WAIT_FOR_TPLTS>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+    <OPTION_KEEP_STATIC_IPS>yes</OPTION_KEEP_STATIC_IPS>
+    <OPTION_KEEP_UTILITY_VMS>yes</OPTION_KEEP_UTILITY_VMS>
+    <OPTION_KEEP_NFS>yes</OPTION_KEEP_NFS>
+  </variables>
+
+  <prepare>
+    <cloud>
+      { "zones": [
+        { "networktype": "Basic",
+          "physical_networks": [
+            { "name": "BasicPhyNetwork" }
+          ],
+          "pods": [
+            { "XRT_PodIPRangeSize": 10,
+              "guestIpRanges": [
+                { "XRT_GuestIPRangeSize": 10 }
+              ],
+              "clusters": [
+                { "hypervisor": "XenServer", "XRT_Hosts": 2 }
+              ]
+            }
+          ]
+        }
+        ],
+        "globalConfig": [
+          { "name": "alert.wait", "value": "300" }
+        ]
+      }
+    </cloud>
+    
+    <sharedhost>
+      <vm name="CS-MS">
+        <distro>rhel63</distro>
+        <arch>x86-64</arch>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installCloudManagementServer" />
+        <network device="0" />
+        <disk device="0" size="20" />
+      </vm>
+    </sharedhost>
+    <template distro="debian70_x86-32" installTools="yes" hypervisorType="XenServer" zone="XenRT-Zone-0">
+      <rootdisk>8589934592</rootdisk>
+    </template>
+  </prepare>
+
+  <testsequence group="Resiliency">
+      <testcase id="cloud.tc.resiliency.TCSystemVMOpsResiliency" name="SSVM-IG-Stop" tc="TC-21726" sku="Basic/SSVM/IG-Stop">
+          <arg>systemvmtype=secondarystoragevm</arg>
+          <arg>systemvmoperation=inGuestShutdown</arg>
+      </testcase>
+      <testcase id="cloud.tc.resiliency.TCSystemVMOpsResiliency" name="CPVM-IG-Stop" tc="TC-21726" sku="Basic/CPVM/IG-Stop">
+          <arg>systemvmtype=consoleproxy</arg>
+          <arg>systemvmoperation=inGuestShutdown</arg>
+      </testcase>
+      <testcase id="cloud.tc.resiliency.TCSystemVMOpsResiliency" name="SSVM-IG-Reboot" tc="TC-21726" sku="Basic/SSVM/IG-RB">
+          <arg>systemvmtype=secondarystoragevm</arg>
+          <arg>systemvmoperation=inGuestReboot</arg>
+      </testcase>
+      <testcase id="cloud.tc.resiliency.TCSystemVMOpsResiliency" name="CPVM-IG-Reboot" tc="TC-21726" sku="Basic/CPVM/IG-RB">
+          <arg>systemvmtype=consoleproxy</arg>
+          <arg>systemvmoperation=inGuestReboot</arg>
+      </testcase>
+      <testcase id="cloud.tc.resiliency.TCSystemVMOpsResiliency" name="SSVM-Stop-Agt" tc="TC-21726" sku="Basic/SSVM/Agt-Sp">
+          <arg>systemvmtype=secondarystoragevm</arg>
+          <arg>systemvmoperation=stopAgent</arg>
+      </testcase>
+      <testcase id="cloud.tc.resiliency.TCSystemVMOpsResiliency" name="CPVM-Stop-Agt" tc="TC-21726" sku="Basic/CPVM/Agt-Sp">
+          <arg>systemvmtype=consoleproxy</arg>
+          <arg>systemvmoperation=stopAgent</arg>
+      </testcase>
+      <testcase id="cloud.tc.resiliency.TCSystemVMOpsResiliency" name="SSVM-Kill-Agt" tc="TC-21726" sku="Basic/SSVM/Agt-Kl">
+          <arg>systemvmtype=secondarystoragevm</arg>
+          <arg>systemvmoperation=killAgent</arg>
+      </testcase>
+      <testcase id="cloud.tc.resiliency.TCSystemVMOpsResiliency" name="CPVM-Kill-Agt" tc="TC-21726" sku="Basic/CPVM/Agt-Kl">
+          <arg>systemvmtype=consoleproxy</arg>
+          <arg>systemvmoperation=killAgent</arg>
+      </testcase>
+      <testcase id="cloud.tc.resiliency.TCSystemVMOpsResiliency" name="SSVM-Stop" tc="TC-21726" sku="Basic/SSVM/Stop">
+          <arg>systemvmtype=secondarystoragevm</arg>
+          <arg>systemvmoperation=stop</arg>
+      </testcase>
+      <testcase id="cloud.tc.resiliency.TCSystemVMOpsResiliency" name="CPVM-Stop" tc="TC-21726" sku="Basic/CPVM/Stop">
+          <arg>systemvmtype=consoleproxy</arg>
+          <arg>systemvmoperation=stop</arg>
+      </testcase>
+      <testcase id="cloud.tc.resiliency.TCSystemVMOpsResiliency" name="SSVM-Reboot" tc="TC-21726" sku="Basic/SSVM/Reboot">
+          <arg>systemvmtype=secondarystoragevm</arg>
+          <arg>systemvmoperation=reboot</arg>
+      </testcase>
+      <testcase id="cloud.tc.resiliency.TCSystemVMOpsResiliency" name="CPVM-Reboot" tc="TC-21726" sku="Basic/CPVM/Reboot">
+          <arg>systemvmtype=consoleproxy</arg>
+          <arg>systemvmoperation=reboot</arg>
+      </testcase>
+      <testcase id="cloud.tc.resiliency.TCSystemVMOpsResiliency" name="SSVM-FStop" tc="TC-21726" sku="Basic/SSVM/FStop">
+          <arg>systemvmtype=secondarystoragevm</arg>
+          <arg>systemvmoperation=forcedStop</arg>
+      </testcase>
+      <testcase id="cloud.tc.resiliency.TCSystemVMOpsResiliency" name="CPVM-FStop" tc="TC-21726" sku="Basic/CPVM/FStop">
+          <arg>systemvmtype=consoleproxy</arg>
+          <arg>systemvmoperation=forcedStop</arg>
+      </testcase>
+  </testsequence>
+</xenrt>

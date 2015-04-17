@@ -1,0 +1,74 @@
+<xenrt>
+  <!-- CCP instance lifecycle tests [Basic Mode] -->
+  <default name="DISTROS" value="ubuntu1204_x86-32,debian70_x86-64,rhel64_x86-64,centos59_x86-32,oel59_x86-32,win7sp1-x86,winxpsp3,w2k3eesp2-x64" />
+  <default name="TESTED_HYPERVISOR" value="XenServer"/>
+  <default name="HYPERVISOR_VERSION" value=""/>
+  <default name="LC_WORKERS" value="3"/>
+
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <cloud>
+      { "zones": [
+        { "networktype": "Advanced",
+          "guestcidraddress": "192.168.200.0/24",
+          "physical_networks": [
+            { "name": "AdvPhyNetwork",
+              "isolationmethods": [ "VLAN" ],
+              "XRT_VLANRangeSize": 3,
+              "traffictypes": [
+                { "typ": "Guest" },
+                { "typ": "Management" },
+                { "typ": "Public" }
+              ],
+              "providers": [
+                { "broadcastdomainrange": "ZONE",
+                  "name": "VirtualRouter"
+                },
+                { "broadcastdomainrange": "ZONE",
+                  "name": "VpcVirtualRouter"
+                },
+                { "broadcastdomainrange": "ZONE",
+                  "name": "InternalLbVm"
+                }
+              ]
+            }
+          ],
+          "ipranges": [
+            { "XRT_GuestIPRangeSize": 15 }
+          ],
+          "pods": [
+            { "XRT_PodIPRangeSize": 5,
+              "clusters": [
+                { "hypervisor": "${TESTED_HYPERVISOR}", "XRT_Hosts": 2 }
+              ]
+            }
+          ]
+        }
+        ]
+      }
+    </cloud>
+    <sharedhost>
+      <vm name="CS-MS">
+        <distro>rhel63</distro>
+        <arch>x86-64</arch>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installCloudManagementServer" />
+        <network device="0" />
+        <disk device="0" size="20" />
+      </vm>
+    </sharedhost>
+  </prepare>
+  <testsequence>
+    <parallel workers="${LC_WORKERS}">
+      <for iter="DISTRO" values="${DISTROS}">
+        <testcase id="cloud.tc.instancelifecycles.TCCloudGuestLifeCycle" name="LC-${DISTRO}" tc="TC-21203" sku="${TESTED_HYPERVISOR}${HYPERVISOR_VERSION}/Adv/${DISTRO}">
+          <arg>distro=${DISTRO}</arg>
+        </testcase>
+      </for>
+    </parallel>
+  </testsequence>
+</xenrt>

@@ -88,11 +88,7 @@ class TC7477(xenrt.TestCase):
         guests = []
 
         # Create initial guest
-        guest = host.guestFactory()(
-                    xenrt.randomGuestName(),
-                    None,
-                    host)
-        self.uninstallOnCleanup(guest)
+        guest = host.guestFactory()(xenrt.randomGuestName(), None, host)
         guest.createHVMGuest([], pxe=True)
         guest.memset(256)
         guest.createVIF(bridge=host.getPrimaryBridge())
@@ -101,7 +97,6 @@ class TC7477(xenrt.TestCase):
         # Clone it the required number of times
         for i in range(vmcount-1):
             g = guest.cloneVM()
-            self.uninstallOnCleanup(g)
             guests.append(g.getUUID())
 
         # Run a script in dom0 to vm-uninstall force=true the VMs
@@ -131,8 +126,7 @@ class TC7477(xenrt.TestCase):
         if present > 0:
             xenrt.TEC().comment("%u VMs left" % (present))
             # Deliberately don't give the number left, to avoid filing new bugs
-            raise xenrt.XRTFailure("Mass uninstall of %u diskless VMs left "
-                                   "some behind" % (vmcount))
+            raise xenrt.XRTFailure("Mass uninstall of %u diskless VMs left some behind" % (vmcount))
 
 class TC8605(xenrt.TestCase):
     """Suspend of a VM without PV drivers should be prevented"""
@@ -819,7 +813,7 @@ class TC18693(_TCToolstackRestart):
         # Wait for guests to fully reboot
         for guest in guests:
             if guest.windows:
-                guest.waitForAgent(timeout=300)
+                guest.waitForAgent(300)
             else:
                 guest.waitForSSH(timeout=60)
 
@@ -1149,6 +1143,8 @@ class TCWinSMBFileTransfer(xenrt.TestCase):
    
     def getCopyDurationFromRobocopyLog(self, guest, robocopyLogFile, expectedFilesCopied=None):
         logData = guest.xmlrpcReadFile(robocopyLogFile)
+        if logData:
+            xenrt.TEC().logverbose(logData)
         data = map(lambda x:x.split(), logData.splitlines())
         data = filter(lambda x:len(x) > 0, data)
         filesData = filter(lambda x:x[0] == 'Files', data)
@@ -1797,3 +1793,116 @@ class TCSettingGuestNameViaXenstore(xenrt.TestCase):
         step("Check name has been set")
         if newName == finalName:
             raise xenrt.XRTFailure("Initial name: %s and final name: %s do not match" % (initialName, finalName))
+
+class TCCopyDataOnMultipleVIFsWindows(xenrt.TestCase):
+    """
+    This addresses SCTX-1778 which states Windows VM with 5 VIFs
+    becomes unresponsive when copying data
+    """
+    
+    FILESIZE = 8 # In GB
+    THRESHOLD = 200 # Measuring 40MB/s copying speed
+    
+    def __init__(self, tcid=None):
+        xenrt.TestCase.__init__(self, tcid=tcid)
+        self.guest = None
+    
+    def checkTimeForCopyingData(self, fromLocation, toLocation):
+        # Copy data from one drive to another drive
+        log("Create a %dGB file on location %s" % (self.FILESIZE,fromLocation))
+        filename = 'xenrt-%s.dat' % (''.join(random.sample(string.ascii_lowercase + string.ascii_uppercase, 6)))
+        self.guest.xmlrpcExec('fsutil file createnew %s\\%s %d' % (fromLocation, filename, (self.FILESIZE * xenrt.GIGA)))
+        
+        log("Measure the time taken for copying file from %s to %s" % (fromLocation, toLocation))
+        startTime = datetime.now()
+        self.guest.xmlrpcExec('copy %s\\%s %s\\%s' % (fromLocation,filename,toLocation,filename), timeout=1800)
+        timeDelta = datetime.now() - startTime
+        
+        log('Total time taken %d seconds' % timeDelta.seconds)
+        if(timeDelta.seconds > self.THRESHOLD):
+            raise xenrt.XRTFailure("File copied at slow rate, total time taken to copy %dGB is %s" % (self.FILESIZE,timeDelta.seconds))
+        
+        log("Remove file created and copied in %s %s" % (fromLocation, toLocation))
+        self.guest.xmlrpcExec('del %s\\%s' % (fromLocation,filename))
+        self.guest.xmlrpcExec('del %s\\%s' % (toLocation,filename))
+
+    def run(self, arglist=None):
+        
+        step("Get the guest installed in seq")
+        self.guest = self.getGuest("Windows VM")
+        
+        pathA = 'C:\\temp'
+        pathB = 'E:\\temp'
+        log("Create directories %s %s" % (pathA, pathB))
+        self.guest.xmlrpcCreateDir(pathA)
+        self.guest.xmlrpcCreateDir(pathB)
+        
+        step("Test the file copying speed from one drive to another")
+        self.checkTimeForCopyingData(pathA,pathB)
+        
+        step("Test the file copying speed vice-versa")
+        self.checkTimeForCopyingData(pathB,pathA)
+
+class TC21711(xenrt.TestCase):
+    def prepare(self, arglist):
+        host = self.getDefaultHost()
+        self.guest = host.createBasicGuest("rhel59")
+
+        if self.guest is None:
+            raise xenrt.XRTError("Need RHEL VM for testcase. None found.")
+
+    def run(self, arglist):
+        self.guest.reboot()
+        filepath = "/sys/hypervisor/uuid"
+        response = self.guest.execguest("cat %s" % (filepath))
+
+        # UUID pattern
+        pattern = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+
+        if not re.search(pattern, response):
+            raise xenrt.XRTFailure("Failure. Was not able to read uuid from %s" % (filepath))
+
+class TCInstallDriversNoIPv6(xenrt.TestCase):
+    def doGuest(self, g):
+        g.disableIPv6()
+        g.installDrivers()
+    
+    def run(self, arglist=None):
+        for g in self.getDefaultHost().guests.values():
+            self.getLogsFrom(g)
+            self.runSubcase("doGuest", (g), "TCInstallDriversNoIPv6", g.getName())
+
+class TCMemoryDumpBootDriverFlag(xenrt.TestCase):
+    """Test case for SCTX-1421 - Verify memory dump is created"""
+    #TC-23777
+    def prepare(self, arglist):
+        self.host = self.getDefaultHost()
+        self.guest = self.host.createGenericWindowsGuest(distro="win7sp1-x64")
+        self.uninstallOnCleanup(self.guest)
+        
+        step("Enable complete Memory dump option")
+        self.guest.enableFullCrashDump()
+        
+        step("Set boot driver flag=1")
+        self.guest.winRegAdd("HKLM",
+                 "SYSTEM\\CurrentControlSet\\Control",
+                 "BootDriverFlags",
+                 "DWORD",
+                 1)
+        self.guest.reboot()
+        
+    def run(self, arglist):
+        step("Remove any existing memory.dmp file")
+        if self.guest.xmlrpcBigdump():
+            self.guest.xmlrpcRemoveFile("c:\\windows\\MEMORY.DMP")
+        
+        step("Crash the guest")
+        self.guest.crash()
+        xenrt.sleep(100)
+        self.guest.reboot(force=True)
+        
+        step("Check if crashdump file exists")
+        if not self.guest.xmlrpcBigdump():
+            raise xenrt.XRTFailure("Unexpected output: Crashdump is not created")
+        else:
+            xenrt.TEC().logverbose("Crashdump file found")

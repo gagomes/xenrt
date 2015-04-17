@@ -771,3 +771,65 @@ class SRIOMetrics(xenrt.TestCase):
             xenrt.TEC().logverbose('Success: Found expected io_throughput rrd')
         else:
             raise xenrt.XRTFailure('Error: Found io_throughput>0 on wrong SR')
+
+class TC21700(xenrt.TestCase):
+    """Check if the metrics output for IOPS corectly. Windows OS and NFS SR with PV Tools installed."""
+
+    def prepare(self, arglist=None):
+        host = self.getDefaultHost()
+        self.sr = host.getSRs(type="nfs")
+        self.guest = host.getGuest("Windows7")
+
+        if not self.sr:
+            raise xenrt.XRTError("Need NFS SR for testcase. None found.")
+        if self.guest is None:
+            raise xenrt.XRTError("Need Windows VM for testcase. None found.")
+
+        self.WORKLOADS = ["IOMeter"]
+
+        self.guest.installWorkloads(self.WORKLOADS)
+        self.guest.shutdown()
+        self.guest.start()
+
+    def run(self, arglist=None):
+        host = self.getDefaultHost()
+
+        host.execdom0("xe-enable-all-plugin-metrics true")
+
+        self.guest.workloads = self.guest.startWorkloads(self.WORKLOADS)
+
+        xenrt.sleep(10)
+        xenrt.TEC().logverbose("Check rrd2csv iops_total output.")
+        host.execdom0("nohup rrd2csv iops_total_%s > iopslog.txt &" % (self.sr[0].split('-')[0]))
+        xenrt.sleep(60)
+        host.execdom0("pkill rrd2csv")
+
+        self.guest.stopWorkloads(self.guest.workloads)
+
+        results = []
+        try:
+            for i in range(int(host.execdom0("cat iopslog.txt | wc -l"))-1):
+                parsedReply = host.execdom0("head -%s iopslog.txt | tail -1" % (str(i+2))).split('Z, ')[1]
+                # Unexpected result in log sometimes.
+                if parsedReply != 'N/A':
+                    iops = float(parsedReply)
+                    results.append(iops)
+        except Exception, e:
+            if "list index out of range" in str(e):
+                raise xenrt.XRTFailure("iops_total metric not found: %s" % (str(e)))
+            else:
+                raise xenrt.XRTFailure("Exception occured while fetching iops_total metric.. %s" % (str(e)))
+
+        xenrt.TEC().logverbose('\n'.join([str(i) for i in results]))
+
+        # Analyse
+        highestIOPS = 0;
+        expectedMinimumIOPS = 10;
+
+        for iops in results:
+            if iops > highestIOPS:
+                highestIOPS = iops
+
+        if highestIOPS < expectedMinimumIOPS:
+            raise xenrt.XRTFailure("iops_total metric output invalid: Maximum IOPS %s, expected at least %s" %
+                                    (highestIOPS, expectedMinimumIOPS))

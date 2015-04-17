@@ -3,7 +3,7 @@ import xenrt
 from sets import Set as unique
 
 
-class PacketCatcher:
+class PacketCatcher(object):
 
     def __init__(self, host, delay=0, nolog=False):
         self.host = host
@@ -69,10 +69,15 @@ class NFSPacketCatcher(PacketCatcher):
         src, dst = re.search("(?P<src>[\w\.]+)\s+>\s+(?P<dst>[\w\.]+)", header).groups()
         srcseq = re.search("\.(?P<sequence>\d+$)", src) 
         dstseq = re.search("\.(?P<sequence>\d+$)", dst)
+        xid = re.search("xid\s+(?P<xid>\d+)\s", header)
+        if xid:
+            return xid.group("xid")
         if srcseq:
             return srcseq.group("sequence")
-        else:
+        elif dstseq:
             return dstseq.group("sequence")
+        else:
+            raise xenrt.XRTError("Cannot find NFS sequence or xid from packet.")
 
     def getNFSHeader(self, packet):
         header, body = packet
@@ -257,7 +262,7 @@ class _Cache(xenrt.TestCase):
     def beginMeasurement(self): 
         self.configureNetwork()
         xenrt.TEC().logverbose("Capturing all NFS traffic on %s." % (self.host.getName()))
-        param = "tcp port nfs and host %s -i %s -tt -x -s 0 -vvv" % (self.host.getIP(),self.host.getPrimaryBridge())
+        param = "tcp port nfs and host %s -i %s -tt -x -s 65535 -vvv" % (self.host.getIP(),self.host.getPrimaryBridge())
         #if isinstance(self.host, xenrt.lib.xenserver.ClearwaterHost):
             #param = param + " -B 64000"
         self.packetCatcher.startCapture(param)
@@ -349,7 +354,7 @@ class _Cache(xenrt.TestCase):
             return None, None 
         elif len(writePackets) > 1:
             xenrt.TEC().warning("Saw %f NFS write packets for the write at %f. "
-                                "It's unclear whether it was committed." % (write["start"]))
+                                "It's unclear whether it was committed." % (writePackets, write["start"]))
             return None, None
         else:
             writeTime = self.packetCatcher.getTimestamp(writePackets[0])
@@ -1753,8 +1758,8 @@ class _ResetOnBootBase(_Cache):
         xenrt.TEC().logverbose("Found Gold VM %s (%s)"  % (self.goldVM.getName(), self.goldVM.getUUID()))
         
         # Setting up license. This is not required for Clearwater but for trunk.
-        for h in self.pool.getHosts():
-            h.license(edition='platinum')
+        #for h in self.pool.getHosts():
+            #h.license(edition='platinum')
 
     def prepare(self, arglist=None):
         self.settingUpTestEnvironment()
@@ -2109,7 +2114,8 @@ class TCUpgrade(_ResetOnBootBase):
         self.checkSMCapability()
         
         # Upgrade geusts.
-        xenrt.TEC().logverbose("Upgrading guests starts.")
+        # Work-around for crash with Windows driver update.
+        #xenrt.TEC().logverbose("Upgrading guests starts.")
         ####################################################
         # This is to save time on upgrading PV driver.
         # Not required for small number of target VMs.
@@ -2118,9 +2124,9 @@ class TCUpgrade(_ResetOnBootBase):
             #tasks.append(xenrt.PTask(installPV, guest))
         #xenrt.pfarm(tasks)
         ####################################################
-        for guest in self.guests:
-            installPV(guest)
-        xenrt.TEC().logverbose("Upgrading guests is done.")
+        #for guest in self.guests:
+        #    installPV(guest)
+        #xenrt.TEC().logverbose("Upgrading guests is done.")
 
         # Check all VDIs have proper on-boot flags as they are set.
         xenrt.TEC().logverbose("Checking on-boot flag after upgrade.")

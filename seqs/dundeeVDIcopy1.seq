@@ -1,0 +1,24 @@
+<xenrt>
+
+  <!-- Host operations (needing 3 hosts) LVM tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <pool>
+      <host id="0"/>
+      <host id="1"/>
+      <host id="2"/>
+    </pool>
+  </prepare>
+
+  <testsequence group="HostOps">
+    <testcase id="xenserver.tc.storage.TC12161" prio="3"/>
+    <testcase id="xenserver.tc.storage.TC12162" prio="3"/>
+    <testcase id="xenserver.tc.storage.TC12163" prio="3"/>
+  </testsequence>
+
+</xenrt>

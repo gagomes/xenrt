@@ -135,58 +135,8 @@ class TCXenServerInstall(xenrt.TestCase):
             xenrt.TEC().comment("Installing multiple hosts: %s" %
                                 (string.join(map(lambda x:x.getName(), hosts),
                                              ", ")))
-
-            imageName = xenrt.TEC().lookup("CARBON_CD_IMAGE_NAME", 'main.iso')
-            xenrt.TEC().logverbose("Using XS install image name: %s" % (imageName))
-            cd = xenrt.TEC().getFile("xe-phase-1/%s" % (imageName), imageName) 
-            if not cd:
-                raise xenrt.XRTError("No CD image supplied.")
-            
-            xenrt.checkFileExists(cd)
-            xenrt.TEC().comment("Using ISO %s" % (cd))
-            mount = xenrt.MountISO(cd)
-            self.mountList.append(mount)
-            mountpoint = mount.getMount()
-        
-            # Copy installer packages to a web/nfs directory
-            if source == "url":
-                packdir = xenrt.WebDirectory()
-            elif source == "nfs":
-                packdir = xenrt.NFSDirectory()
-            else:
-                raise xenrt.XRTError("Unknown install source method '%s'." %
-                                     (source))
-            if os.path.exists("%s/packages" % (mountpoint)):
-                # Pre 0.4.3-1717 layout
-                packdir.copyIn("%s/packages/*" % (mountpoint))
-            else:
-                # Split ISO layout
-                packdir.copyIn("%s/packages.*" % (mountpoint))
-
-            # If we have any extra CDs, copy the extra packages as well
-            if extracds:
-                ecds = extracds
-            else:
-                ecds = hosts[0].getDefaultAdditionalCDList()
-            if ecds:
-                for ecdi in string.split(ecds, ","):
-                    if os.path.exists(ecdi):
-                        # XRT-813 transition, remove this eventually
-                        ecd = ecdi
-                    else:
-                        ecd = xenrt.TEC().getFile("xe-phase-1/%s" % (os.path.basename(ecdi)),
-                                                  os.path.basename(ecdi))
-                    xenrt.TEC().comment("Using extra CD %s" % (ecd))
-                    try:
-                        emount = xenrt.MountISO(ecd)
-                        emountpoint = emount.getMount()
-                        packdir.copyIn("%s/packages.*" % (emountpoint))
-                    finally:
-                        emount.unmount()
-            installsource = packdir, mountpoint
         else:
             hosts = [host]
-            installsource = None
 
         # Start the install
         tocomplete = []
@@ -204,10 +154,10 @@ class TCXenServerInstall(xenrt.TestCase):
             interfaces.append((None, "yes", "dhcp", None, None, None, ipv6_mode, ipv6_addr, gateway6))
             if nosr:
                 disks = []
-                primarydisk = host.getInstallDisk(ccissIfAvailable=host.USE_CCISS)
+                primarydisk = host.getInstallDisk(ccissIfAvailable=host.USE_CCISS, legacySATA=(not host.isCentOS7Dom0()))
             else:
-                disks = host.getGuestDisks(count=diskcount, ccissIfAvailable=host.USE_CCISS)
-                primarydisk= host.getInstallDisk(ccissIfAvailable=host.USE_CCISS)
+                disks = host.getGuestDisks(count=diskcount, ccissIfAvailable=host.USE_CCISS, legacySATA=(not host.isCentOS7Dom0()))
+                primarydisk= host.getInstallDisk(ccissIfAvailable=host.USE_CCISS, legacySATA=(not host.isCentOS7Dom0()))
 
             self.getLogsFrom(host)
             if xenrt.TEC().lookup(["CLIOPTIONS", "NOPREPARE"], False,
@@ -217,17 +167,20 @@ class TCXenServerInstall(xenrt.TestCase):
                 xenrt.TEC().registry.hostPut(machine, host)
                 xenrt.TEC().skip("Skipping because of --noprepare option")
             else:
+                if bootloader:
+                    kwargs = {"bootloader": bootloader}
+                else:
+                    kwargs = {}
                 handle = host.install(interfaces=interfaces,
                                       primarydisk=primarydisk,
                                       guestdisks=disks,
                                       source=source,
                                       extracds=extracds,
-                                      installsource=installsource,
                                       async=multi,
                                       installSRType=installSRType,
                                       timezone=timezone,
                                       ntpserver=ntpserver,
-                                      bootloader=bootloader)
+                                      **kwargs)
                 if multi:
                     tocomplete.append((host,
                                        handle,
@@ -1620,8 +1573,6 @@ class TCVPXConversionSourceCheck(SourceISOCheck): # TC-18001
         #self.convServer.doSanityChecks()
         # Increasing default uptime from 300 seconds to 3600 seconds
         self.convServer.increaseConversionVMUptime(3600)
-        # Install SSH on the Conversion VM
-        self.convServer.installSSH()
         g.hasSSH = True
         time.sleep(30)
 
@@ -1735,7 +1686,7 @@ class TCDDKSourceCheck(SourceISOCheck): # TC-18003
     """Verify DDK iso (xe-phase-3/source-ddk.iso) content for missing RPMs."""
 
     APPLIANCE_NAME = "DDK VM"
-    SOURCE_ISO_FILES = {'source-ddk.iso': 'xe-phase-3', 'source.iso': 'xe-phase-3'}
+    SOURCE_ISO_FILES = {'source-ddk.iso': 'xe-phase-3', 'source-1.iso': 'xe-phase-3'}
 
     # In addition to the list of base packages, we have ...
     IGNORE_EXTRA_RPM_PACKAGES = ['PyPAM', 'SDL', 'biosdevname', 'blktap', 'dbus', 'device-mapper-multipath', 

@@ -640,14 +640,14 @@ class VLANsPerHost(xenrt.TestCase):
         self.hosteth0pif = self.host.execdom0("xe pif-list device=eth0 host-uuid=%s params=uuid --minimal" % self.host.getMyHostUUID())
         
         # Create network
-        for i in range(0, self.MAX):
+        for i in range(1, self.MAX+1):
             # Create a network
             self.networks[i] = self.host.execdom0("xe network-create name-label=vlan-net-%d" % i)
             xenrt.TEC().logverbose("self.networks[%d] = %s" % (i, self.networks[i]))
             
         
         # Create VLANs
-        for i in range(0, self.MAX):                
+        for i in range(1, self.MAX+1):
             self.hostvlans[i] = self.host.execdom0("xe vlan-create vlan=%d network-uuid=%s pif-uuid=%s" % (i, self.networks[i].strip('\n'), self.hosteth0pif.strip('\n')))
             xenrt.TEC().logverbose("self.hostvlans[%d] = %s" % (i, self.hostvlans[i]))
 
@@ -692,7 +692,7 @@ class VLANsPerHost(xenrt.TestCase):
                 try:
                     for j in range(vifsToAdd):
                         # Create a VIF on the test VM and plug it. (This checks that xapi isn't cheating in VLAN.create!)
-                        self.vif[vifCount] = self.host.execdom0("xe vif-create network-uuid=%s vm-uuid=%s device=%d mac=%s" % (self.networks[vifCount].strip('\n'), g.getUUID(), j+1, xenrt.randomMAC()))
+                        self.vif[vifCount] = self.host.execdom0("xe vif-create network-uuid=%s vm-uuid=%s device=%d mac=%s" % (self.networks[vifCount+1].strip('\n'), g.getUUID(), j+1, xenrt.randomMAC()))
                         self.host.execdom0("xe vif-plug uuid=%s" % self.vif[vifCount].strip('\n'))
                         vifCount += 1
                         if vifCount == self.MAX:
@@ -716,14 +716,14 @@ class VLANsPerHost(xenrt.TestCase):
                                        (self.MAX,vifCount,vmCount))
                 
         # Check if all VLANs are installed correctly
-        for i in range(0, self.MAX):
+        for i in range(1, self.MAX+1):
             self.host.checkVLAN(i)
         
         
     def postRun(self):
         del self.guests[:]
         #Destroy vifs
-        for i in range(0, self.MAX):
+        for i in range(1, self.MAX+1):
             # Destroy VLANs
             self.host.execdom0("xe pif-unplug uuid=%s" % self.hostvlans[i].strip('\n'))
             self.host.execdom0("xe vlan-destroy uuid=%s" % self.hostvlans[i].strip('\n'))

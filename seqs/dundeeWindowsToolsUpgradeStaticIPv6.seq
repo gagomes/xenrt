@@ -1,0 +1,67 @@
+<xenrt>
+
+  <!-- Tampa to Clearwater VM Tools/drivers/kernel upgrade test -->
+
+  <default name="OLD_PRODUCT_VERSION" value="Tampa"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.1/RTM-59235"/>
+  <default name="GUESTMEMORY" value="1024"/>
+  <default name="GUESTVCPUS" value="2"/>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>3</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}">
+      <bridge name="internal"/>
+      <vm name="ws08r2sp1-x64">
+        <distro>ws08r2sp1-x64</distro>
+        <memory>${GUESTMEMORY}</memory>
+        <vcpus>${GUESTVCPUS}</vcpus>
+        <network device="0"/>
+        <network device="1" bridge="internal"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="ws08sp2-x64">
+        <distro>ws08sp2-x64</distro>
+        <memory>${GUESTMEMORY}</memory>
+        <vcpus>${GUESTVCPUS}</vcpus>
+        <network device="0"/>
+        <network device="1" bridge="internal"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="win7sp1-x64">
+        <distro>win7sp1-x64</distro>
+        <memory>${GUESTMEMORY}</memory>
+        <vcpus>${GUESTVCPUS}</vcpus>
+        <network device="0"/>
+        <network device="1" bridge="internal"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="testpeer">
+        <distro>debian60</distro>
+        <network device="0" />
+        <network device="1" bridge="internal"/>
+        <postinstall action="preCloneTailor"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="HostInstallation" blocker="yes">
+      <testcase id="xenserver.install.TCXenServerUpgrade">
+        <arg>input=DEFAULT</arg>
+      </testcase>
+    </serial>
+    <serial group="UpgVM">
+      <testcase id="xenserver.tc.upgrade.TC18826"/>
+      <testcase id="xenserver.tc.upgrade.TC18827"/>
+      <testcase id="xenserver.tc.upgrade.TC18829"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

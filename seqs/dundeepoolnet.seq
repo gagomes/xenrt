@@ -1,0 +1,27 @@
+<xenrt>
+
+  <!-- MNR pool networking test sequence (4 NPRI, 2 NSEC) -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host id="0"/>
+    <host id="1" noisos="true"/>
+  </prepare>
+
+  <testsequence>
+    <serial group="PoolJoin">
+      <testcase id="xenserver.tc.poolnet.TC8143"/>
+      <action action="prepare"/>
+      <testcase id="xenserver.tc.poolnet.TC8148"/>
+      <action action="prepare"/>
+      <testcase id="xenserver.tc.poolnet.TC8170"/>
+      <action action="prepare"/>
+      <testcase id="xenserver.tc.poolnet.TC8174"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

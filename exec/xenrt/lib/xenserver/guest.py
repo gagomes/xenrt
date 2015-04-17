@@ -7,12 +7,14 @@
 # conditions as licensed by XenSource, Inc. All other rights reserved.
 #
 
-import sys, string, time, random, re, crypt, urllib, os, os.path, socket, copy
-import shutil, traceback, fnmatch, xml.dom.minidom
+import sys, string, time, random, re, crypt, urllib, os, os.path, socket, copy, IPy
+import shutil, traceback, fnmatch, xml.dom.minidom, pipes, uuid
 import xenrt
 from PIL import Image
 from IPy import IP
- 
+from xenrt.lazylog import *
+from xenrt.lib.scalextreme import SXAgent
+
 # Symbols we want to export from the package.
 __all__ = ["Guest",
            "MNRGuest",
@@ -110,7 +112,7 @@ class Guest(xenrt.GenericGuest):
     def builtInGuestAgent(self):
         distro = getattr(self, 'distro', None)
         return distro and distro in string.split(self.getHost().lookup("BUILTIN_XS_GUEST_AGENT", ""), ",")
-        
+
     def getCLIInstance(self):
         return self.getHost().getCLIInstance()
 
@@ -119,25 +121,16 @@ class Guest(xenrt.GenericGuest):
         return xenrt.lib.xenserver.objectFactory().getObject(objType)(self.getCLIInstance(), objType, self.uuid)
 
     def getAllowedOperations(self):
-        
+
         """
         Get a list of the allowed operations for a guest
         @rtype: list
         @return: strings denoting the allowed operations of a guest
         """
         return self.paramGet("allowed-operations").strip().split("; ")
-        
-    def existing(self, host):
-        self.setHost(host)
-        host.addGuest(self)
-        self.enlightenedDrivers = True 
 
-        # Get basic guest details
-        self.vcpus = self.cpuget()
-        self.memory = self.memget()
-        if self.windows or self.checkWindows():
-            self.windows = True
-            self.vifstem = self.VIFSTEMHVM
+    def determineDistro(self):
+        """ Try find installed distro. """
 
         # use distro from other-config field if VM was created by XenRT
         if not self.distro:
@@ -145,7 +138,7 @@ class Guest(xenrt.GenericGuest):
                 self.distro = self.paramGet("other-config", "xenrt-distro")
             except:
                 pass
-        
+
         # Have a go at working out the distro.
         if not self.distro:
             try:
@@ -196,6 +189,23 @@ class Guest(xenrt.GenericGuest):
             except:
                 pass
 
+        return self.distro
+
+    def existing(self, host):
+        self.setHost(host)
+        host.addGuest(self)
+        self.enlightenedDrivers = True 
+
+        # Get basic guest details
+        self.vcpus = self.cpuget()
+        self.memory = self.memget()
+        if self.windows or self.checkWindows():
+            self.windows = True
+            self.vifstem = self.VIFSTEMHVM
+
+        if not self.distro:
+            self.determineDistro()
+
         # If we've still not got it, try some heuristics
         if not self.distro and string.lower(self.getName()[0]) == "w":
             self.windows = True
@@ -214,13 +224,13 @@ class Guest(xenrt.GenericGuest):
                                    (nic, vbridge, mac))
             self.vifs.append((nic, vbridge, mac, ip))
             if self.use_ipv6:
-                if not self.mainip:
+                if not self.mainip or IPy.IP(self.mainip).version() != 6:
                     self.mainip = self.getIPv6AutoConfAddress(device=nic)
             else:
                 if not self.mainip or (re.match("169\.254\..*", self.mainip)
                                        and ip and not re.match("169\.254\..*", ip)):
                     self.mainip = ip
-            
+
         if self.mainip and re.match("169\.254\..*", self.mainip):
             xenrt.TEC().warning("VM gave itself a link-local address.")
 
@@ -242,8 +252,13 @@ class Guest(xenrt.GenericGuest):
     def isHVMLinux(self, distro=None):
         if not distro:
             distro=self.distro
-        return distro in string.split(self.getHost().lookup("HVM_LINUX", ""), ",")
-    
+        hvms = self.getHost().lookup("HVM_LINUX", None)
+        if distro and hvms:
+            for d in hvms.split(","):
+                if re.match(d, distro):
+                    return True
+        return False
+
     def install(self,
                 host,
                 start=True,
@@ -262,13 +277,11 @@ class Guest(xenrt.GenericGuest):
                 extradisks=None,
                 bridge=None,
                 use_ipv6=False,
-                dontstartinstall=False,
-                installXenToolsInPostInstall=False,
                 rawHBAVDIs=None):
         self.setHost(host)
-        
+
         #If guest is HVM Linux PXE has to be true
-        if self.isHVMLinux(distro):
+        if distro and (self.isHVMLinux(distro) or distro.startswith("solaris")):
             pxe = True
             xenrt.TEC().logverbose("distro is %s, hence setting pxe to %s"%(distro,pxe))
 
@@ -279,29 +292,26 @@ class Guest(xenrt.GenericGuest):
 
         # Workaround # RHEL/CentOS/OEL 6 or later requires at least 1G ram.
         if distro:
-            if distro.startswith("rhel") and int(distro[4:5]) >= 6:
+            m = re.match("(rhel|centos|oel|sl)[dw]?(\d)\d*", distro)
+            if (m and int(m.group(2)) >= 6) or distro.startswith("fedora"):
                 if (self.memory and self.memory<1024) or not self.memory:
                     self.memory = 1024
-            if distro.startswith("centos") and int(distro[6:7]) >= 6:
-                if (self.memory and self.memory<1024) or not self.memory:
-                    self.memory = 1024
-            if distro.startswith("oel") and int(distro[3:4]) >= 6:
-                if (self.memory and self.memory<1024) or not self.memory:
-                    self.memory = 1024
-
+                                        
         # Hack to avoid using an ISO install for Debian VMs from TCMultipleVDI
         # etc.
-        if distro and (distro in ["etch", "sarge"] or "debian" in distro):
+        if distro and (distro in ["etch", "sarge"] or "debian5" in distro):
             isoname = None
 
         # Hack to use correct kickstart for rhel6
         if distro and kickstart == "standard":
-            if distro.startswith("rhel6"):
+            if distro.startswith("rhel6") or distro.startswith("rhelw6"):
                 kickstart = "rhel6"
             if distro.startswith("oel6"):
                 kickstart = "oel6"
             if distro.startswith("centos6"):
                 kickstart = "centos6"
+            if distro.startswith("sl6"):
+                kickstart = "sl6"
 
         # Have we been asked to choose an ISO automatically?
         if isoname == xenrt.DEFAULT:
@@ -315,10 +325,10 @@ class Guest(xenrt.GenericGuest):
             isostem = host.lookup(["OS_INSTALL_ISO", distro], distro)
             cds = host.minimalList("cd-list", "name-label")
             trylist = ["%s.iso" % (isostem)]
-            
+
             if distro == "w2k3eesp2pae":
                 trylist.append("w2k3eesp2.iso")
-            
+
             if arch:
                 trylist.append("%s_%s.iso" % (isostem, arch))
             isoname = None
@@ -331,29 +341,23 @@ class Guest(xenrt.GenericGuest):
                                      "(arch %s)" % (distro, arch))
 
         self.isoname = isoname
-        if self.isoname and ([i for i in ["win81","ws12r2"] if i in self.isoname]):
+        if self.memory and self.isoname and ([i for i in ["win81","ws12r2"] if i in self.isoname]):
             xenrt.TEC().config.setVariable("OPTION_CLONE_TEMPLATE", True)
-            
-            if isinstance(self, xenrt.lib.xenserver.guest.CreedenceGuest) and self.memory:
-                xenrt.TEC().logverbose("rootdisk = 20000 + %s"%(self.memory))
-                rootdisk = 20000 + self.memory
-            else:
-                # this hack isn't required on Creedence as we've got the templates sorted
-                rootdisk=32000
+            rootdisk = max(32768, 20480 + self.memory)
 
         if distro:
             self.distro = distro
         host.addGuest(self)
         cli = self.getCLIInstance()
-        
+
         if use_ipv6: # if this was set to True, override the global flag.
             self.use_ipv6 = True
-            
+
         # IPv6 support for w2k3 and winxp is flakey
         if distro and re.search("w2k|xp", distro) and use_ipv6:
             xenrt.TEC().logverbose("For windows guests, IPv6 is supported from Vista onwards.")
             raise  xenrt.XRTFailure("IPv6 is not supported for the distro %s" % distro)
-        
+
         if vifs:
             self.vifs = vifs
 
@@ -374,7 +378,6 @@ class Guest(xenrt.GenericGuest):
                 bridge = host.genParamGet("network", nwuuid, "bridge")
                 for i in range(vifs - 1):
                     self.vifs.append(("%s%d" % (self.vifstem, i + 1), bridge, xenrt.randomMAC(), None))
-                    
 
         if self.windows:
             if len(self.vifs) == 0:
@@ -385,16 +388,7 @@ class Guest(xenrt.GenericGuest):
                                      "vendor installer")
 
         # Choose a storage respository
-        xenrt.TEC().logverbose("SR: %s" % sr)
-        if not sr:
-            sruuid = self.chooseSR()
-        else:
-            if xenrt.isUUID(sr):
-                sruuid = sr
-            else:
-                xenrt.TEC().logverbose("given sr is not UUID")
-                sruuid = self.getHost().parseListForUUID("sr-list", "name-label", sr)
-
+        sruuid = self.chooseSR(sr)
         # Contruct the VM
         vifsdone = False
         # Install from a template
@@ -440,7 +434,7 @@ class Guest(xenrt.GenericGuest):
                             "--force vm-name=\"%s\"" % (self.name))
         except:
             pass
-        
+
         # Add VIFs
         if not vifsdone:
             for v in self.vifs:
@@ -480,6 +474,10 @@ class Guest(xenrt.GenericGuest):
             if xenrt.TEC().lookup("FORCE_NX_DISABLE", False, boolean=True):
                 self.paramSet("platform:nx", "false")
             self.installWindows(self.isoname)
+        elif distro and "coreos-" in distro:
+            self.enlightenedDrivers=True
+            notools = True # CoreOS has tools installed already
+            self.installCoreOS()
         elif repository and not isoname:
             dev = "%sa" % (self.vendorInstallDevicePrefix())
             if pxe:
@@ -494,9 +492,7 @@ class Guest(xenrt.GenericGuest):
                                kickstart,
                                pxe=pxe,
                                extrapackages=extrapackages,
-                               options={"maindisk": dev},
-                               start=not dontstartinstall,
-                               installXenToolsInPostInstall=installXenToolsInPostInstall)
+                               options={"maindisk": dev})
         elif isoname:
             xenrt.TEC().logverbose("Installing Linux from ISO...")
             dev = "%sa" % (self.vendorInstallDevicePrefix())
@@ -536,9 +532,7 @@ class Guest(xenrt.GenericGuest):
                                kickstart,
                                pxe=pxe,
                                extrapackages=extrapackages,
-                               options={"maindisk": dev},
-                               start=not dontstartinstall,
-                               installXenToolsInPostInstall=installXenToolsInPostInstall)  
+                               options={"maindisk": dev})
 
         # store the distro so it can be used when using --existing or --pool
         if self.distro:
@@ -546,34 +540,23 @@ class Guest(xenrt.GenericGuest):
 
         # eject the CD, it's no longer needed
         self.changeCD(None)
-        
-        if not dontstartinstall:
-            if start:
-                self.start()
 
-            xenrt.TEC().comment("Created %s guest named %s with %u vCPUS and "
-                                "%uMB memory."
-                                % (self.template, self.name, self.vcpus,
-                                   self.memory))
-            ip = self.getIP()
-            if ip:
-                xenrt.TEC().logverbose("Guest address is %s" % (ip))
+        if start:
+            self.start()
 
-            if not notools and self.getState() == "UP":
-                self.installTools()
-        if True: #xenrt.TEC().lookup("TESTING_KERNELS", False, boolean=True):
+        xenrt.TEC().comment("Created %s guest named %s with %u vCPUS and "
+                            "%uMB memory."
+                            % (self.template, self.name, self.vcpus,
+                               self.memory))
+        ip = self.getIP()
+        if ip:
+            xenrt.TEC().logverbose("Guest address is %s" % (ip))
+
+        if not notools and self.getState() == "UP":
+            self.installTools()
+        if self.special.get("XSKernel"):
             kernelUpdatesPrefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "") + "/kernelUpdates"
-            if 'ubuntu1404' in distro:
-                _new_kernel = kernelUpdatesPrefix + "/Ubuntu1404/"
-                _new_kernel_path = ["linux-image-3.13.0-33-generic_3.13.0-33.58_amd64.deb",
-                                    "linux-image-3.13.0-33-generic_3.13.0-33.58_i386.deb"]
-                if '64' in self.arch:
-                    self.execcmd("wget %s/%s"%(_new_kernel,_new_kernel_path[0]))
-                    self.execcmd("dpkg -i %s"%(_new_kernel_path[0]))
-                else:
-                    self.execcmd("wget %s/%s"%(_new_kernel,_new_kernel_path[1]))
-                    self.execcmd("dpkg -i %s"%(_new_kernel_path[1]))
-            elif 'oel7' in distro:
+            if distro and distro == 'oel7':
                 _new_kernel = kernelUpdatesPrefix + "/OEL7/"
                 _new_kernel_path = ["kernel-uek-firmware-3.8.13-36.3.1.el7uek.xs.x86_64.rpm",
                                     "kernel-uek-3.8.13-36.3.1.el7uek.xs.x86_64.rpm",
@@ -582,31 +565,73 @@ class Guest(xenrt.GenericGuest):
                     xenrt.TEC().logverbose("wget %s/%s"%(_new_kernel,kernelFix))
                     self.execcmd("wget %s/%s"%(_new_kernel,kernelFix))
                     self.execcmd("rpm -ivh --force %s"%(kernelFix))
-            elif distro in ['rhel7','centos7']:
-                _new_kernel = kernelUpdatesPrefix + "/RHEL7/"
-                _new_kernel_path = ["kernel-devel-3.10.0-123.6.3.el7.xs1.x86_64.rpm",
-                                    "kernel-tools-libs-3.10.0-123.6.3.el7.xs1.x86_64.rpm",
-                                    "kernel-headers-3.10.0-123.6.3.el7.xs1.x86_64.rpm",
-                                    "kernel-tools-3.10.0-123.6.3.el7.xs1.x86_64.rpm",
-                                    "kernel-3.10.0-123.6.3.el7.xs1.x86_64.rpm"]
+                tempRoot = self.execcmd("grep -Eo 'root=UUID=[0-9a-f-]+' /boot/grub2/grub.cfg | head -n 1").split('\n')[0]
+                self.execcmd("sed -i 's^root=/dev/mapper/VolGroup-lv_root^%s^' /boot/grub2/grub.cfg"%(tempRoot))
+            elif distro and distro == 'oel71':
+                _new_kernel = kernelUpdatesPrefix + "/OEL74/"
+                _new_kernel_path = ["kernel-uek-firmware-3.8.13-55.1.5.el7uek.xs.x86_64.rpm",
+                                    "kernel-uek-3.8.13-55.1.5.el7uek.xs.x86_64.rpm",
+                                    "kernel-uek-devel-3.8.13-55.1.5.el7uek.xs.x86_64.rpm"]
                 for kernelFix in _new_kernel_path:
                     xenrt.TEC().logverbose("wget %s/%s"%(_new_kernel,kernelFix))
                     self.execcmd("wget %s/%s"%(_new_kernel,kernelFix))
                     self.execcmd("rpm -ivh --force %s"%(kernelFix))
+            elif distro and distro in ['rhel7','centos7']:
+                _new_kernel = kernelUpdatesPrefix + "/RHEL7/"
+                _new_kernel_path = ["kernel-devel-3.10.0-123.20.1.el7.xs.x86_64.rpm",
+                                    "kernel-3.10.0-123.20.1.el7.xs.src.rpm",
+                                    "kernel-3.10.0-123.20.1.el7.xs.x86_64.rpm",
+                                    "kernel-headers-3.10.0-123.20.1.el7.xs.x86_64.rpm"]
+                for kernelFix in _new_kernel_path:
+                    xenrt.TEC().logverbose("wget %s/%s"%(_new_kernel,kernelFix))
+                    self.execcmd("wget %s/%s"%(_new_kernel,kernelFix))
+                    self.execcmd("rpm -ivh --force %s"%(kernelFix))
+            elif distro and distro in ['rhel71','centos71']:
+                _new_kernel = kernelUpdatesPrefix + "/RHEL71/"
+                _new_kernel_path = ["kernel-devel-3.10.0-229.1.2.el7.xs.x86_64.rpm",
+                                    "kernel-3.10.0-229.1.2.el7.xs.src.rpm",
+                                    "kernel-3.10.0-229.1.2.el7.xs.x86_64.rpm",
+                                    "kernel-headers-3.10.0-229.1.2.el7.xs.x86_64.rpm"]
+                for kernelFix in _new_kernel_path:
+                    xenrt.TEC().logverbose("wget %s/%s"%(_new_kernel,kernelFix))
+                    self.execcmd("wget %s/%s"%(_new_kernel,kernelFix))
+                    self.execcmd("rpm -ivh --force %s"%(kernelFix))
+            else:
+                raise xenrt.XRTError("XSKernel requested, but not available for this distro (%s)" % distro)
+            del self.special['XSKernel']
+            self.reboot()
 
-    def installWindows(self, isoname):
-        """Install Windows into a VM"""
-        self.changeCD(isoname)
-
-        # Start the VM to install from CD
-        xenrt.TEC().progress("Starting VM %s for unattended install" % self.name)
-        
+    def installCoreOS(self):
+        self.host.installContainerPack()
+        self.changeCD("%s.iso" % self.distro)
+        host = self.getHost()
+        templateName = host.getTemplate(self.distro)
+        templateUUID = host.minimalList("template-list", args="name-label='%s'" % templateName)[0]
+        cli = self.getCLIInstance()
+        config = cli.execute("host-call-plugin host-uuid=%s plugin=xscontainer fn=get_config_drive_default args:templateuuid=%s" % (host.uuid, templateUUID)).rstrip().lstrip("True")
+        self.password = xenrt.TEC().lookup("ROOT_PASSWORD")
+        passwd = crypt.crypt(self.password, '$6$SALT$')
+        proxy = xenrt.TEC().lookup("HTTP_PROXY", None)
+        if proxy:
+            config += """
+  - path: /etc/systemd/system/docker.service.d/http-proxy.conf
+    owner: core:core
+    permissions: 0644
+    content: |
+      [Service]
+      Environment="HTTP_PROXY=http://%s" """ % proxy
+        config += """
+users:
+  - name: root
+    passwd: %s
+""" % (passwd)
+        config = config.replace("\n", "%BR%")
+        cli.execute("host-call-plugin host-uuid=%s plugin=xscontainer fn=create_config_drive args:vmuuid=%s args:sruuid=%s args:configuration=%s" % (host.uuid, self.uuid, self.chooseSR(), pipes.quote(config)))
         self.lifecycleOperation("vm-start")
-
         # Monitor ARP to see what IP address it gets assigned and try
         # to SSH to the guest on that address
         vifname, bridge, mac, c = self.vifs[0]
-       
+
         if self.reservedIP:
             self.mainip = self.reservedIP
         elif self.use_ipv6:
@@ -614,10 +639,42 @@ class Guest(xenrt.GenericGuest):
         else:
             arptime = 10800
             self.mainip = self.getHost().arpwatch(bridge, mac, timeout=arptime)
-        
+
         if not self.mainip:
             raise xenrt.XRTFailure("Did not find an IP address")
+
+        self.waitForSSH(600, "CoreOS ISO boot")
+
+        channel = self.distro.split("-")[-1]
         
+        self.execguest("coreos-install -d /dev/xvda -V current -C %s -o xen -b %s/amd64-usr" % (channel, xenrt.TEC().lookup(["RPM_SOURCE", self.distro, "x86-64", "HTTP"])))
+
+        self.shutdown()
+
+    def installWindows(self, isoname):
+        """Install Windows into a VM"""
+        self.changeCD(isoname)
+
+        # Start the VM to install from CD
+        xenrt.TEC().progress("Starting VM %s for unattended install" % self.name)
+
+        self.lifecycleOperation("vm-start")
+
+        # Monitor ARP to see what IP address it gets assigned and try
+        # to SSH to the guest on that address
+        vifname, bridge, mac, c = self.vifs[0]
+
+        if self.reservedIP:
+            self.mainip = self.reservedIP
+        elif self.use_ipv6:
+            self.mainip = self.getIPv6AutoConfAddress(vifname)
+        else:
+            arptime = 10800
+            self.mainip = self.getHost().arpwatch(bridge, mac, timeout=arptime)
+
+        if not self.mainip:
+            raise xenrt.XRTFailure("Did not find an IP address")
+
         xenrt.TEC().progress("Found IP address %s" % (self.mainip))
         boottime = 14400
         autologonRetryCount = 5
@@ -637,9 +694,8 @@ class Guest(xenrt.GenericGuest):
             os.remove("%s/bootfail.jpg"%(xenrt.TEC().getLogdir()))
         except:
             pass
-        
+
         xenrt.sleep(120)
-        
 
         # Wait for c:\\alldone.txt to appear to indicate all post-install
         # actions have completed.
@@ -684,8 +740,9 @@ class Guest(xenrt.GenericGuest):
             if cdnames and len(cdnames) > 0:
                 if self.distro and \
                     (re.search("debian\d+", self.distro) or \
-                    re.search("rhel6", self.distro) or \
+                    re.search("rhel[dw]?6", self.distro) or \
                     re.search("oel6", self.distro) or \
+                    re.search("sl6", self.distro) or \
                     re.search("centos6", self.distro) or \
                     re.search("ubuntu", self.distro)):
                     self.changeCD(cdnames[0], device="3")
@@ -715,26 +772,38 @@ class Guest(xenrt.GenericGuest):
                           (self.name, state), level)
             xenrt.sleep(15, log=False)
 
-    
     def start(self, reboot=False, skipsniff=False, specifyOn=True,\
               extratime=False, managenetwork=None, managebridge=None, 
               forcedReboot = False):
 
         # we should be able to wipe previous setting by giving
         # managenetwork/bridge = False arguments
-        
+
         if managenetwork is not None:
             self.managenetwork = managenetwork
         if managebridge is not None:
             self.managebridge = managebridge
-                
+
         # Start the VM
         if reboot:
             xenrt.TEC().progress("Rebooting guest VM %s" % (self.name))
             if self.enlightenedDrivers or forcedReboot:
                 self.lifecycleOperation("vm-reboot",specifyOn=specifyOn, force=forcedReboot)
             else:
+                domid = self.getDomid()
                 self.unenlightenedReboot()
+                # Wait for the domid to change
+                startTime = xenrt.util.timenow()
+                while True:
+                    try:
+                        if self.getDomid() != domid:
+                            break
+                    except:
+                        # There is a tiny window where the domid may not exist while the reboot occurs
+                        pass
+                    if (xenrt.util.timenow() - startTime) > 600:
+                        raise xenrt.XRTError("domid failed to change 10 minutes after an unenlightenedReboot")
+                    xenrt.sleep(10)
             xenrt.sleep(20)
         else:
             xenrt.TEC().progress("Starting guest VM %s" % (self.name))
@@ -756,12 +825,13 @@ class Guest(xenrt.GenericGuest):
                 tries = 0
                 while 1:
                     tries = tries + 1
-                    
+
                     vifname = vifs[0]
                     try:
                         mac, ip, vbridge = self.getVIF(vifname)
                         if self.use_ipv6:
-                            self.mainip = self.getIPv6AutoConfAddress(vifname)
+                            if not self.mainip or IPy.IP(self.mainip).version() != 6:
+                                self.mainip = self.getIPv6AutoConfAddress(vifname)
                             break
                         elif ip:
                             if re.match("169\.254\..*", ip):
@@ -784,6 +854,11 @@ class Guest(xenrt.GenericGuest):
                         max_tries = 30
                     if tries == max_tries:
                         self.checkHealth(desc="VM Start, waiting for IP address")
+
+                        try:
+                            xenrt.command("sudo zgrep '%s' /var/log/syslog*" % mac)
+                        except:
+                            pass
                         raise xenrt.XRTFailure("No IP address found for %s" % (vifname))
                     xenrt.sleep(30, log=False)
             else:
@@ -795,7 +870,8 @@ class Guest(xenrt.GenericGuest):
                     vifname, bridge, mac, _ = (v for v in self.vifs if v[0] == vifs[0]).next()
 
                 if self.use_ipv6:
-                    self.mainip = self.getIPv6AutoConfAddress(vifname)
+                    if not self.mainip or IPy.IP(self.mainip).version() != 6:
+                        self.mainip = self.getIPv6AutoConfAddress(vifname)
                     skipsniff = True
                 else:
                     xenrt.TEC().progress("Looking for VM IP address using arpwatch.")
@@ -817,7 +893,7 @@ class Guest(xenrt.GenericGuest):
                                 ip = self.getHost().checkLeases(mac, checkWithPing=True)
                             else:
                                 ip = self.getHost().arpwatch(bridge, mac, timeout=600)
-                            
+
                             self.mainip = ip
                     except Exception, e:
                         # If we previously knew an IP address for this VM then
@@ -825,6 +901,7 @@ class Guest(xenrt.GenericGuest):
                         if self.mainip:
                             xenrt.TEC().warning("Using cached IP address %s  for VM %s" % (self.mainip, self.getName()))
                         else:
+                            self.checkHealth()
                             raise
                     if not self.mainip:
                         raise xenrt.XRTFailure("Did not find an IP address")
@@ -838,11 +915,11 @@ class Guest(xenrt.GenericGuest):
             if not self.windows:
                 try:
                     self.waitForSSH(boottime, desc="Guest boot")
-                    
+
                     # sometimes SSH can be a little temperamental immediately after boot
                     # a small sleep should help this.
                     xenrt.sleep(10)
-                    
+
                 except Exception, e:
                     # Check the VM is still running
                     if self.getState() != "UP":
@@ -917,7 +994,7 @@ class Guest(xenrt.GenericGuest):
         self.poll(newstate)
         if timer:
             timer.stopMeasurement()
-        
+
     def resume(self, timer=None, on=None, check=True, checkclock=True):
         """Perform a resume of the VM and return the guest clock skew (from
         controller time) in seconds immediately after the resume. Positive
@@ -948,7 +1025,7 @@ class Guest(xenrt.GenericGuest):
         xenrt.sleep(2)
         if check: self.check()
         return skew
-    
+
     def getDomainVIFs(self):
         vifs = self.getVIFs()
         macs = []
@@ -976,43 +1053,6 @@ class Guest(xenrt.GenericGuest):
             return self.uuid
         self.uuid = self.getHost().getGuestUUID(self)
         return self.uuid
-        
-    def listVIFs(self):
-        """Return a dictionary of the guest's VIFs and their parameters"""
-        vifs = {}
-        cli = self.getCLIInstance()
-        o = cli.execute("vm-vif-list", "vm-name=%s" % (self.name))
-        name = None
-        mac = None
-        ip = None
-        vbridge = None
-        rate = None
-        for line in string.split(o, "\n"):
-            r = re.search(r"^name: (\S+)", line)
-            if r:
-                if name:
-                    vifs[name] = (mac, ip, vbridge, rate)
-                name = r.group(1)
-                mac = None
-                ip = None
-                vbridge = None
-                rate = None                
-            if name:
-                r = re.search(r"mac: ([0-9A-Fa-f:]+)", line)
-                if r:
-                    mac = r.group(1)
-                r = re.search(r"ip: ([0-9\.]+)", line)
-                if r:
-                    ip = r.group(1)
-                r = re.search(r"vbridge: (\S+)", line)
-                if r:
-                    vbridge = r.group(1)
-                r = re.search(r"rate: ([0-9]+)", line)
-                if r:
-                    rate = int(r.group(1))
-        if name:
-            vifs[name] = (mac, ip, vbridge, rate)
-        return vifs
 
     def hasRootDisk(self):
         return (len(self.listVBDs()) > 0)            
@@ -1027,33 +1067,31 @@ class Guest(xenrt.GenericGuest):
 
     def getDomid(self):
         return self.getHost().getDomid(self)
-    
 
-        
     def getVdiMD5Sums(self):
         """Returns a dictionary of MD5 sums of all attached VDIs keyed by device ID"""
-        
+
         output = {}
         host = self.getHost()
-        
+
         for vbd in host.minimalList("vbd-list", args="vm-uuid=%s type=Disk" % self.getUUID()):
             if host.genParamGet("vbd", vbd, "currently-attached") == "true":
                 dev = host.genParamGet("vbd", vbd, "device")
                 vdi = host.genParamGet("vbd", vbd, "vdi-uuid")
                 output[dev] = host.getVdiMD5Sum(vdi)
-        
+
         return output
-        
+
     def getVifOffloadSettings(self, device):
         """Returns a VifOffloadSettings object for the specified device
-        
+
         @param device: integer such that 0 >= device < 99"""
-        
+
         return xenrt.objects.VifOffloadSettings(self, device)
-        
+
     def waitForShutdownReady(self):
         pass
-    
+
     def crash(self):
         xenrt.TEC().logverbose("Sleeping for 180 seconds to let the VM run for atleast 2 minutes before crashing")
         time.sleep(180)
@@ -1086,12 +1124,13 @@ default:
             xenrt.sleep(5)
 
     def installCitrixCertificate(self):
+        log("Installing citrix Certificate after checking the windows version")
         # Install the Citrix certificate to those VMs which require it (Vista and onwards)
         if self.windows and float(self.xmlrpcWindowsVersion()) > 5.99:
             xenrt.TEC().comment("Installing Citrix certificate")
             # Copy a version of certmgr.exe that takes command line arguments
             self.xmlrpcSendFile("%s/distutils/certmgr.exe" % xenrt.TEC().lookup("LOCAL_SCRIPTDIR"), "c:\\certmgr.exe")
-            self.xmlrpcSendFile("%s/data/certs/CitrixTrust.cer" % xenrt.TEC().lookup("XENRT_BASE"),"c:\\CitrixTrust.cer")
+            self.xmlrpcSendFile("%s/data/certs/CitrixTrust.cer" % (xenrt.TEC().lookup("XENRT_BASE")),"c:\\CitrixTrust.cer")
             self.xmlrpcExec("c:\\certmgr.exe /add c:\\CitrixTrust.cer /s /r localmachine trustedpublisher")
 
     def _generateRunOnceScript(self):
@@ -1114,12 +1153,12 @@ default:
 
 
     def installRunOncePVDriversInstallScript(self):
-        
+
         self.xmlrpcSendFile("%s/distutils/soon.exe" % (xenrt.TEC().lookup("LOCAL_SCRIPTDIR")),"c:\\soon.exe")
         self.xmlrpcSendFile("%s/distutils/devcon.exe" % (xenrt.TEC().lookup("LOCAL_SCRIPTDIR")), "c:\\devcon.exe")
         self.xmlrpcSendFile("%s/distutils/devcon64.exe" % (xenrt.TEC().lookup("LOCAL_SCRIPTDIR")), "c:\\devcon64.exe")
         runonce2 = xenrt.TEC().tempFile()
-        
+
         updatecmd = self._generateRunOnceScript()
         f = file(runonce2, "w")
         f.write("""echo R1.1 > c:\\r1.txt
@@ -1145,7 +1184,7 @@ at > c:\\xenrtatlog.txt
                        "XenRTPVDrivers",
                        "SZ",
                        "c:\\runoncepvdrivers.bat")
-    
+
     def convertHVMtoPV(self):
         """Convert an HVM guest into a PV guest. Reboots guest if it is running."""
 
@@ -1174,15 +1213,17 @@ at > c:\\xenrtatlog.txt
         if self.getState() in ['UP', 'PAUSED']:
             self.reboot()
 
-    def installDrivers(self, source=None, extrareboot=False):
+    def setDriversBootStart(self):
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\services\\xenvif", "Start", "DWORD", 0)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\services\\xennet", "Start", "DWORD", 0)
+        self.reboot()
+
+    def installDrivers(self, source=None, extrareboot=False, expectUpToDate=True):
         """Install PV drivers into a guest"""
-        
+
         if not self.windows:
             xenrt.TEC().skip("Non Windows guest, no drivers to install")
             return
-
-        if xenrt.TEC().lookup("ENABLE_CITRIXCERT", False, boolean=True):
-            self.installCitrixCertificate()
 
         if float(self.xmlrpcWindowsVersion()) == 6.1 and xenrt.TEC().lookup("STRESS_TEST", False, boolean=True):
             # CA-35591 update the default SCM timeout
@@ -1211,7 +1252,7 @@ at > c:\\xenrtatlog.txt
                 source = xenrt.TEC().getFile(source)
         if not source:
             try:
-                remotefile = self.host.toolsISOPath("windows")
+                remotefile = self.host.toolsISOPath()
                 if not remotefile:
                     raise xenrt.XRTError("Could not find PV tools ISO in dom0")
                 xenrt.TEC().logverbose("Using driver ISO: %s" % (remotefile))
@@ -1262,11 +1303,19 @@ at > c:\\xenrtatlog.txt
 
         # If the file is tar.bz2 then it's probably a Carbon package
         # file containing an ISO. Unpack it
+        decompress = None
         if tmpfile[-8:] == ".tar.bz2" or re.search(r"bzip2", ftype):
+            decompress = "j"
+        elif tmpfile[-4:] == ".tgz" or tmpfile[-7:] == ".tar.gz" or re.search(r"gzip", ftype):
+            decompress = "z"
+        if decompress:
             unpack = xenrt.TEC().tempDir()
-            xenrt.util.command("tar -jxf %s -C %s" % (tmpfile, unpack))
-            tmpfile = string.strip(xenrt.util.command("find %s -type f | "
+            xenrt.util.command("tar -%sxf %s -C %s" % (decompress, tmpfile, unpack))
+            tmpfile = string.strip(xenrt.util.command("find %s -type f -name \"xensetup.exe\" | "
                                                       "head -n 1" % (unpack)))
+            if tmpfile == "":
+                tmpfile = string.strip(xenrt.util.command("find %s -type f -name \"*.exe\" | "
+                                                          "head -n 1" % (unpack)))
             if tmpfile == "":
                 raise xenrt.XRTError("Could not find installer inside tarball")
 
@@ -1291,7 +1340,7 @@ at > c:\\xenrtatlog.txt
         self.installRunOncePVDriversInstallScript()
 
         domid = self.host.getDomid(self)
-        
+
         # Start the installer
         self.xmlrpcStart("c:\\xensetup.exe /S")
 
@@ -1323,14 +1372,14 @@ at > c:\\xenrtatlog.txt
             except:
                 pass
 
-        self.waitForAgent(300)
+        self.waitForAgent(300, checkPvDriversUpToDate=expectUpToDate)
         self.enlightenedDrivers = True
-        
+
         if extrareboot:
             self.reboot()
 
         self.checkPVDevices()
-        
+
         # CA-17052 - Mark extra disks as online.
         if float(self.xmlrpcWindowsVersion()) > 5.99:
             self.xmlrpcMarkDiskOnline()
@@ -1401,75 +1450,53 @@ exit /B 1
 
         self.enlightenedDrivers = False
 
-    def waitForAgent(self, timeout, level=xenrt.RC_FAIL, desc="Wait for agent", sleeptime=15, extrawait=5):
+    def waitForAgent(self, timeout, checkPvDriversUpToDate=True):
         """Wait for guest agent to come up"""
-        
+
         deadline = xenrt.util.timenow() + timeout
-        resttime = timeout
-        upkey = None
-        upvalue = None
-        defaultkey = "updated"
-        otherkey = "update_cnt"
-        domid = self.getDomid()
-        
-        while resttime >= 0:
-            # eval domid each round just in case VM might restart
+
+        while xenrt.util.timenow() < deadline:
             domid = self.getDomid()
-            uppath = "/local/domain/%d/data/%s" % (domid, upkey or defaultkey)
-            otherpath = "/local/domain/%d/data/%s" % (domid, otherkey)
-            pvpath = "/local/domain/%d/attr/PVAddons/Installed" % domid
-            
-            find, upvalue = self.host.xenstoreWatch(uppath,
-                                                    condition=lambda v: v!= upvalue,
-                                                    interval=sleeptime,
-                                                    timeout=resttime)
-            if not find:
-                return xenrt.XRT("%s timed out (dom = %d)" % (desc, domid), level)
-            else:
-                xenrt.TEC().logverbose("Found new value %s at xenstore path %s." % (upvalue, uppath))
-                
-                othervalue = None
-                try:
-                    if self.host.xenstoreExists(otherpath):
-                        othervalue = self.host.xenstoreRead(otherpath)
-                except:
-                    pass
-                
-                pvvalue = None
-                try:
-                    if self.host.xenstoreExists(pvpath):
-                        pvvalue = self.host.xenstoreRead(pvpath)
-                except:
-                    pass
-                
-                if pvvalue == "1":
-                    xenrt.TEC().logverbose("Found PV driver evidence at xenstore path %s." % pvpath)
-                    if extrawait:
-                        xenrt.TEC().logverbose("Wait %d seconds just in case XAPI is still settling." % extrawait)
-                        xenrt.sleep(extrawait)
+            otherValue = None
+            pvValue = None
+            defaultValue = None
 
-                        for i in range(48):
-                            if self.pvDriversUpToDate():
-                                break
-                            xenrt.sleep(10)
-                    return xenrt.RC_OK
-                else:
-                    xenrt.TEC().logverbose("Not found PV driver evidence at xenstore path %s" % pvpath)
-                    if not upkey:
-                        if self.host.xenstoreExists(otherpath):
-                            upvalue = othervalue or self.host.xenstoreRead(otherpath)
-                            upkey = otherkey
-                        else:
-                            upkey = defaultkey
-                    resttime = deadline - xenrt.util.timenow()
+            try:
+                defaultValue = self.host.xenstoreRead("/local/domain/%d/data/updated" % domid)
+            except:
+                pass
 
-        xenrt.TEC().logverbose("waitForAgent() expired (domid = %d)" % (domid))
+            try:
+                otherValue = self.host.xenstoreRead("/local/domain/%d/data/update_cnt" % domid)
+            except:
+                pass
+
+            try:
+                pvValue = self.host.xenstoreRead("/local/domain/%d/attr/PVAddons/Installed" % domid)
+            except:
+                pass
+
+            if pvValue == "1" and (defaultValue or otherValue):
+                xenrt.TEC().logverbose("Found PV driver evidence")
+                xenrt.TEC().logverbose("Wait 5 seconds just in case XAPI is still settling.")
+                xenrt.sleep(5)
+
+                if not xenrt.TEC().lookup("NO_TOOLS_UP_TO_DATE_CHK", False, boolean=True) and checkPvDriversUpToDate:
+                    for i in range(48):
+                        if self.pvDriversUpToDate():
+                            break
+                        xenrt.sleep(10)
+                return xenrt.RC_OK
+
+            xenrt.sleep(5)
+
+        raise xenrt.XRTFailure("Not found any PV driver evidence")
 
     def checkForWinGuestAgent(self):
         """Check if the VM up and the guest agent has reported."""
-        return self.waitForAgent(0, level=xenrt.RC_OK, extrawait=False) == xenrt.RC_OK
-        
-    def checkPVDevices(self):
+        return self.waitForAgent(0) == xenrt.RC_OK
+
+    def checkPVDevicesState(self):
         # Check the guest is using the PV drivers
         pvcheck = []
         backend = "/local/domain/0/backend"
@@ -1513,10 +1540,16 @@ exit /B 1
         if vifstate != "4":
             pvcheck.append("VIF backend not in connected state")
         
+        return pvcheck
+        
+    def checkPVDevices(self):
+        # Check the guest is using the PV drivers
+        pvcheck = self.checkPVDevicesState()
+        
         if pvcheck:
             if xenrt.TEC().lookup("PAUSE_ON_PV_CHECK_FAIL", False, boolean=True):
                 xenrt.TEC().tc.pause("Paused on PV Check failure")
-            
+
             raise xenrt.XRTFailure("VIF and/or VBD PV device not used. Possibilities: -" + " -".join(pvcheck))
         else:
             xenrt.TEC().logverbose("PV drivers are installed and ready") 
@@ -1528,7 +1561,7 @@ exit /B 1
                 drivers = ["xennet6.sys",
                            "xenvbd.sys/xvbdstor.sys",
                            "xevtchn.sys"]
-            
+
             elif isinstance(self.host, xenrt.lib.xenserver.TampaHost):
                 drivers = ["xenbus.sys", "xen.sys", "xenfilt.sys", "xenvbd.sys", "xencrsh.sys", "xeniface.sys", "xenvif.sys", "xennet.sys"]
 
@@ -1543,10 +1576,10 @@ exit /B 1
         rc = self.xmlrpcExec(command, level=xenrt.RC_OK)
         if rc != 0 and not expfail:
             raise xenrt.XRTFailure("Exception running verifier command")
-        
+
         # Need to reboot to make the change
         self.reboot()
-        
+
         data = self.xmlrpcExec("verifier.exe /query", returndata=True)
         v = 0
         notfound = []
@@ -1583,7 +1616,7 @@ exit /B 1
                 else:
                     raise xenrt.XRTError("Problem disabling driver verifier "
                                          "for" % (string.join(didfind)))
-                
+
     def updateKernelFromWeb(self, webbase):
         """Update the VM's kernel from a XenSource updates website."""
         rewrites = ["http://updates.xensource.com",
@@ -1660,7 +1693,7 @@ exit /B 1
             self.execguest(\
             "grep -qi 'Red Hat.*release 5' /etc/redhat-release",
             retval="code") == 0:
-            
+
             for repo in ["XenSource.repo", "Citrix.repo"]:
                 if self.execguest("test -e /etc/yum.repos.d/%s" % (repo),
                                   retval="code") == 0:
@@ -1679,7 +1712,7 @@ exit /B 1
                                "  do mv $i $i.orig; done")
             self.execguest("yum -y update", timeout=1200)
             self.reboot()
-            
+
         # RHEL 4
         elif self.execguest("grep -qi 'Red Hat.*release 4' /etc/redhat-release",
                             retval="code") == 0:
@@ -1721,7 +1754,7 @@ exit /B 1
                 self.reboot()
             else:
                 raise xenrt.XRTError("No RPMs to upgrade")
-        
+
         else:
             raise xenrt.XRTError("No support for update of %s" %
                                  (self.getName()))
@@ -1741,7 +1774,7 @@ exit /B 1
             return True
         else:
             return False
-                                                 
+
     def createGuestFromTemplate(self, 
                                 template, 
                                 sruuid, 
@@ -1782,17 +1815,20 @@ exit /B 1
             raise xenrt.XRTFailure("Guest running after vm-install (CA-6160)")
         if ni:
             self.paramSet("PV-args", "noninteractive")
-        
+
         if self.distro and ("win81" in self.distro  or "ws12r2" in self.distro):
             xenrt.TEC().logverbose("Disabling USB as this is Windows Blue...will re-enable after the bluewater update has been installed in xmlrpcTailor")
             self.paramSet("platform:usb", "false")
-        
+
         if xenrt.TEC().lookup("DISABLE_USB", False, boolean=True):
             self.paramSet("platform:usb", "false")
-        
+
         if xenrt.TEC().lookup("EXP_VIRIDIAN", False, boolean=True):
             self.paramSet("platform:exp-viridian-timers", "true")
-        
+
+        if xenrt.TEC().lookup("DISABLE_VIRIDIAN_COUNT", False, boolean=True):
+            self.paramSet("platform:viridian_time_ref_count", "false")
+
         if db:
             try:
                 self.paramSet("actions-after-crash", "preserve")
@@ -1905,7 +1941,7 @@ exit /B 1
         self.paramSet("platform-acpi", "true")
         self.paramSet("platform-apic", "true")
         self.paramSet("platform-nx", "true")
-    
+
     def changeCD(self, isoname, device="3"):
         cli = self.getCLIInstance()
         add = False
@@ -1955,7 +1991,7 @@ exit /B 1
                 args.append("uuid=%s" % (self.getUUID()))
                 args.append("cd-name=\"%s\"" % (isoname))
                 cli.execute("vm-cd-insert", string.join(args))
-                
+
     def removeCD(self, device=None):
         """Remove the CD device from the VM."""
         cli = self.getCLIInstance()
@@ -1985,7 +2021,7 @@ exit /B 1
             nwuuid = self.getHost().getNetworkUUID(bridge)
         else:
             nwuuid = self.getHost().createNetwork()
-            
+
         bridge = self.getHost().genParamGet("network", nwuuid, "bridge") 
 
         if not mac:
@@ -2020,14 +2056,63 @@ exit /B 1
         if plug:
             cli.execute("vif-plug","uuid=%s" % (uuid))
 
+        if self.ips.get(int(device)):
+            self.paramSet("other-config:xenrt-ip-%s%d" % (self.VIFSTEM, int(device)), self.ips.get(int(device)))
+
         return "%s%s" % (self.vifstem, device)
+
+    def getIPSpec(self):
+        ipSpec = []
+        doSet = False
+        for v in self.vifs:
+            (eth, bridge, mac, currentIp) = v
+            try:
+                (newIP, mask) = self.paramGet("other-config", paramKey="xenrt-ip-%s" % eth).split("/")
+                doSet = True
+            except:
+                newIP = None
+                mask = None
+            ipSpec.append((eth, newIP, mask))
+        return ipSpec
+
+    def setStaticIPs(self):
+        ipSpec = self.getIPSpec()
+        doSet = [x for x in ipSpec if x[1]]
+        if doSet:
+            self.getInstance().os.setIPs(ipSpec)
+
+    def setupNetscalerVPX(self, installNSTools=False):
+        netscaler = xenrt.lib.netscaler.NetScaler.setupNetScalerVpx(self, useVIFs=True)
+        xenrt.GEC().registry.objPut("netscaler", self.name, netscaler)
+        netscaler.applyLicense(netscaler.getLicenseFileFromXenRT())
+        if installNSTools:
+            netscaler.installNSTools()
+        netscaler.checkFeatures()
+
+    def setupUnsupGuest(self, getIP=None):
+        self.tailored = True
+        self.enlightenedDrivers = False
+        self.noguestagent = True
+        if self.getState() == "DOWN":
+            self.lifecycleOperation('vm-start', specifyOn=False)
+        if (getIP is None and not self.mainip) or getIP:
+            vifname, bridge, mac, _ = self.vifs[0]
+            self.mainip = self.getHost().arpwatch(bridge, mac, timeout=1800)
+            self.vifs[0] = (vifname, bridge, mac, self.mainip)
+
+    def setupDomainServer(self):
+        self.installPowerShell()
+        self.enablePowerShellUnrestricted()
+        self.disableFirewall()
+        domain = xenrt.TEC().lookup("DEFAULT_DOMAIN", None)
+        xenrt.ActiveDirectoryServer(self, domainname=domain)
 
     def getVIFUUID(self, name):
         return self.getHost().parseListForUUID("vif-list",
                                                "device",
                                                 name.strip(self.vifstem),
                                                "vm-uuid=%s" % (self.getUUID()))
-   
+
     def plugVIF(self, eth):
         r = re.search(r"(\d+)", eth)
         vifuuid = self.getHost().parseListForUUID("vif-list",
@@ -2096,14 +2181,13 @@ exit /B 1
             for v in self.vifs:
                 eth, bridge, mac, ip = v
                 self.createVIF(eth, bridge) 
-            self.vifs = [ (nic, vbridge, mac, ip) for \
-                       (nic, (mac, ip, vbridge)) in self.getVIFs().items() ]
+            self.reparseVIFs()
             self.vifs.sort()
         else:
             for v in self.vifs:
                 eth, bridge, mac, ip = v
                 self.createVIF(eth, bridge, mac) 
-    
+
     def removeVIF(self, name):
         device = re.sub(self.vifstem, "", name)
         vuuid = self.getHost().parseListForUUID("vif-list",
@@ -2171,7 +2255,7 @@ exit /B 1
                 for addr in addrs:
                     if addr.startswith('%s/ipv6' % device):
                         ipv6_addrs.append(addr.split(':', 1)[1].strip())
-            
+
                 reply["%s%s" % (self.vifstem, device)] = (mac, ip, mybridge, ipv6_addrs)
             else:
                 reply["%s%s" % (self.vifstem, device)] = (mac, ip, mybridge)
@@ -2226,7 +2310,7 @@ exit /B 1
                                 xenrt.TEC().warning("Retrying devcon.exe")
                             else:
                                 raise e
-                            
+
                 finally:
                     # Try to fetch setupapi.log from the VM
                     try:
@@ -2271,10 +2355,10 @@ exit /B 1
 
     def pause(self):
         self.lifecycleOperation("vm-pause")
-    
+
     def unpause(self):
         self.lifecycleOperation("vm-unpause")
-    
+
     def lifecycleOperation(self,
                            command,
                            force=False,
@@ -2409,17 +2493,17 @@ exit /B 1
                 vdiuuid = self.host.genParamGet("vbd", uuid, "vdi-uuid")
                 cli.execute("vbd-destroy", "uuid=%s" % (uuid))
                 cli.execute("vdi-destroy", "uuid=%s" % (vdiuuid))
-    
+
     def uninstall(self, destroyDisks = False):
         """ Uninstall a guest.
-        
+
         @destroyDisks (boolean): if True, destroy all disks other than disk 0 before it runs vm-destroy.
         """
         before = self.getHost().minimalList("vbd-list", 
                                        "vdi-uuid",
                                        "vm-uuid=%s type=Disk" % 
                                        (self.getUUID()))
-        
+
         if destroyDisks:
             self.destroyAdditionalDisks()
         self.lifecycleOperation("vm-uninstall", force=True)
@@ -2437,14 +2521,136 @@ exit /B 1
             if vdi in after:
                 raise xenrt.XRTFailure("VDI still present after uninstall",
                                        "%s" % (vdi))
-    
+
+    def getMaxSupportedVCPUCount(self):
+        """ Find maximum supported number of VCPU for this guest."""
+
+        limits = []
+
+        if not self.distro:
+            self.determineDistro()
+
+        # Guest has its own limitation
+        if self.distro:
+            if self.distro in xenrt.TEC().lookup(["GUEST_LIMITATIONS"]):
+                itemname = "MAX_VM_VCPUS"
+                if not self.windows and self.arch and "64" in self.arch:
+                    xenrt.TEC().logverbose("x64 is detected.")
+                    if "MAX_VM_VCPUS64" in xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.distro]):
+                        itemname = "MAX_VM_VCPUS64"
+                    else:
+                        xenrt.TEC().logverbose("No infor for 64 bit distro. Using 32 bit limit...")
+                if itemname in xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.distro]):
+                    limits.append(int(xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.distro, itemname])))
+                    xenrt.TEC().logverbose("%s supports up to %d VCPUs." % (self.distro, limits[-1]))
+                else:
+                    xenrt.TEC().warning("Supported number of VCPU for %s is not declared." % self.distro)
+            else:
+                xenrt.TEC().warning("%s has no GUEST_LIMITATIONS config." % self.distro)
+        else:
+            xenrt.TEC().warning("Cannot detect distro.")
+
+        # XS has limitation
+        pver = xenrt.TEC().lookup("PRODUCT_VERSION", None)
+        if pver:
+            if "MAX_VM_VCPUS" in xenrt.TEC().lookup(["VERSION_CONFIG", pver]):
+                limits.append(int(xenrt.TEC().lookup(["VERSION_CONFIG", pver, "MAX_VM_VCPUS"])))
+                xenrt.TEC().logverbose("%d VCPUs per VM on %s host." % (limits[-1], pver))
+            else:
+                xenrt.TEC().warning("MAX_VM_VCPUS is not declared for %s host." % pver)
+        else:
+            xenrt.TEC().warning("Cannot determine PRODUCT VERSION")
+
+        # HVM cannot have more vcpus than pcpus.
+        pcpus = None
+        for hostname in xenrt.TEC().registry.hostList():
+            host = xenrt.TEC().registry.hostGet(hostname)
+            if not pcpus or pcpus > host.getCPUCores():
+                pcpus = host.getCPUCores()
+        if pcpus:
+            limits.append(pcpus)
+
+        # Limit based on memory size
+        guestmem = self.memory
+        if not guestmem and self.distro:
+            host = xenrt.TEC().registry.hostGet("RESOURCE_HOST_DEFAULT")
+            guestmem = host.getTemplateParams(self.distro, self.arch).defaultMemory
+        if guestmem:
+            memlimit = guestmem / int(xenrt.TEC().lookup("RND_VCPUS_MB_PER_VCPU", "64"))
+            limits.append(memlimit)
+        else:
+            xenrt.TEC().warning("Cannot determine guest memory")
+
+        if limits:
+            return min(limits)
+
+        # Pick 4 if no limitation is declared.
+        xenrt.TEC().warning("None of guest limit, host limit and XS limit is found.")
+        return 4
+
+    def setRandomVcpus(self):
+        maxVcpusSupported = self.getMaxSupportedVCPUCount()
+        maxRandom = min(maxVcpusSupported, 4)
+        xenrt.TEC().logverbose("Setting random vcpus for VM between 1 and %d (max supported %d)" % (maxRandom, maxVcpusSupported))
+        randomVcpus = random.randint(1, maxRandom)
+        with xenrt.GEC().getLock("RND_VCPUS"):
+            dbVal = int(xenrt.TEC().lookup("RND_VCPUS_VAL", "0"))
+            if dbVal != 0:
+                xenrt.TEC().logverbose("Using vcpus from DB: %d" % dbVal)
+                if dbVal > maxVcpusSupported:
+                    xenrt.TEC().warning("DB vcpus value is greater than maxVcpusSupported!")
+                self.setVCPUs(dbVal)
+            else:
+                xenrt.TEC().logverbose("Randomly choosen vcpus is %d" % randomVcpus)
+                self.setVCPUs(randomVcpus)
+                xenrt.GEC().config.setVariable("RND_VCPUS_VAL",str(randomVcpus))
+                xenrt.GEC().dbconnect.jobUpdate("RND_VCPUS_VAL",str(randomVcpus))
+
+    def setRandomCoresPerSocket(self, host, vcpus):
+        xenrt.TEC().logverbose("Setting random cores per socket....")
+
+        if not isinstance(host, xenrt.lib.xenserver.ClearwaterHost) or not self.windows:
+            xenrt.TEC().logverbose("Refusing to set cores-per-socket on anything prior \
+                to Clearwater or non-windows guests")
+            return
+
+        # Max cores per socket makes sure we don't exceed the number of cores per socket on the host
+        cpuCoresOnHost = host.getCPUCores()
+        socketsOnHost  = host.getNoOfSockets()
+        maxCoresPerSocket = cpuCoresOnHost / socketsOnHost
+        xenrt.TEC().logverbose("cpuCoresonHost: %s, socketsonHost: %s, maxCoresPerSocket: %s" % (cpuCoresOnHost, socketsOnHost, maxCoresPerSocket))
+
+        if vcpus != None:
+            # This gives us all the factors of the vcpus specified
+            possibleCoresPerSocket = [x for x in range(1, vcpus+1) if vcpus % x == 0]
+            xenrt.TEC().logverbose("possibleCoresPerSocket is %s" % possibleCoresPerSocket)
+
+            # This eliminates the factors that would exceed the host's cores per socket
+            validCoresPerSocket = [x for x in possibleCoresPerSocket if x <= maxCoresPerSocket]
+            xenrt.TEC().logverbose("validCoresPerSocket is %s" % validCoresPerSocket)
+
+            # Then choose a value from here
+            coresPerSocket = random.choice(validCoresPerSocket)
+
+            with xenrt.GEC().getLock("RND_CORES_PER_SOCKET"):
+                dbVal = int(xenrt.TEC().lookup("RND_CORES_PER_SOCKET_VAL", "0"))
+
+                if dbVal in validCoresPerSocket:
+                    xenrt.TEC().logverbose("Using Randomly choosen cores-per-socket from DB: %d" % dbVal)
+                    self.setCoresPerSocket(dbVal)
+                else:
+                    xenrt.TEC().logverbose("Randomly choosen cores-per-socket is %s" % coresPerSocket)
+                    self.setCoresPerSocket(coresPerSocket)
+                    xenrt.GEC().config.setVariable("RND_CORES_PER_SOCKET_VAL", str(coresPerSocket))
+                    xenrt.GEC().dbconnect.jobUpdate("RND_CORES_PER_SOCKET_VAL", str(coresPerSocket))
+
     def cpuget(self):
         """Return the initial number of vcpus this guest has"""
         return int(self.paramGet("VCPUs-at-startup"))
 
     def cpuset(self, cpus, live=False):
         self.vcpus = cpus
-        
+
         if live:
             cli = self.getCLIInstance()
             cli.execute("vm-vcpu-hotplug", "new-vcpus=%s vm=%s" %
@@ -2561,7 +2767,7 @@ exit /B 1
         cli = self.getCLIInstance()
         cli.execute("vm-param-clear",
                     "uuid=%s param-name=%s" % (self.getUUID(), name))
-    
+
     def listVBDs(self):
         """Return a dictionary of the guest's VBDs and their parameters.
         Parameter tuple is (size in MB, min_size in MB, function, qos)"""
@@ -2614,7 +2820,7 @@ exit /B 1
                 vdis.append(self.getHost().genParamGet("vbd", vbd, "vdi-uuid"))
 
         return vdis
-    
+
     def listDiskDevices(self):
         """Return a list of VBD device names"""
         return self.getHost().minimalList("vbd-list",
@@ -2646,11 +2852,8 @@ exit /B 1
                    returnDevice=False,
                    smconfig=None,
                    mode="RW"):
-        # Default to local SR.
-        if not sruuid:
-            sruuid = self.getHost().getLocalSR()
-        elif sruuid == "DEFAULT":
-            sruuid = self.getHost().lookupDefaultSR()
+        # Default to sequence specified default SR.
+        sruuid = self.chooseSR(sruuid)
 
         # Default to lowest available device number.
         if not userdevice:
@@ -2712,7 +2915,7 @@ exit /B 1
                                                "userdevice",
                                                device,
                                                "vm-uuid=%s" % (self.getUUID()))
-    
+
     def getDiskVDIUUID(self, device):
         uuid = self.getHost().parseListForOtherParam("vbd-list",
                                                      "userdevice",
@@ -2806,40 +3009,25 @@ exit /B 1
         else:
             self.paramSet("HVM-boot-params-order", "dc")
 
-    def chooseSR(self):
-        """Choose an SR to use. Returns the SR UUID"""
-        if xenrt.TEC().lookup("OPTION_DEFAULT_SR", False, boolean=True):
-            # Use the default SR defined by the pool/host
-            return self.getHost().lookupDefaultSR()
-        if self.getHost().defaultsr:
-            srname = self.getHost().defaultsr
-            sruuid = self.getHost().parseListForUUID("sr-list",
-                                                     "name-label",
-                                                     srname)
-        else:
-            sruuid = self.getHost().getLocalSR()
-            xenrt.TEC().logverbose("Using local SR %s" % (sruuid))
-        return sruuid
+    def chooseSR(self, sr=None):
+        return self.getHost().chooseSR(sr=sr)
 
-    def importVM(self, host, image, preserve=False, sr=None, metadata=False, imageIsOnHost=False, ispxeboot=False):
-        if sr:
-            sruuid = sr
-        else:
-            sruuid = self.chooseSR()
+    def importVM(self, host, image, preserve=False, sr=None, metadata=False, imageIsOnHost=False, ispxeboot=False, vifs=[]):
+        sruuid = self.chooseSR(sr)
         cli = host.getCLIInstance()
         args = []
-        args.append("filename=%s" % (image))
+        args.append("filename='%s'" % (image))
         args.append("sr-uuid=%s" % (sruuid))
         if preserve:
             args.append("preserve=true")
         if metadata:
             args.append("metadata=true")
-        
+
         if imageIsOnHost:
             data = host.execdom0("xe vm-import " + string.join(args), timeout=3600)
         else:
             data = cli.execute("vm-import",string.join(args), timeout=3600)
-        
+
         if re.search(r"Not implemented", data):
             raise xenrt.XRTError("Feature not implemented")
         r = re.search(r"New VM uuid: (\S+)", data)
@@ -2853,20 +3041,22 @@ exit /B 1
         cli.execute("vm-param-set",
                     "uuid=%s name-label=\"%s\"" % (uuid, self.name))
         if not ispxeboot:
-            self.vifs = [ (nic, vbridge, mac, ip) for \
-                        (nic, (mac, ip, vbridge)) in self.getVIFs().items() ]
-            self.vifs.sort()
+            if not vifs:
+                self.reparseVIFs()
+                self.vifs.sort()
+            else:
+                self.vifs = vifs
             self.recreateVIFs(newMACs=True)
         self.existing(host)
 
     def migrateVM(self, host, live="false", fast=False, timer=None):
-        
+
         # yuk. kill me now.
         if live == True:
             live = "true"
         elif live == False:
             live = "false"
-        
+
         cli = self.getCLIInstance()
         if live == "true" and not self.windows:
             self.startLiveMigrateLogger()
@@ -2918,10 +3108,13 @@ exit /B 1
     def instantiateSnapshot(self, uuid, name=None, timer=None, sruuid=None, noIP=False):
         return self._cloneCopyVM("instance", name, timer, sruuid, uuid=uuid, noIP=noIP)
 
+    def cloneTemplate(self, name=None, timer=None, sruuid=None, noIP=True):
+        return self._cloneCopyVM("instance", name, timer, sruuid, noIP=noIP)
+
     def _cloneCopyVM(self, operation, name, timer, sruuid, uuid=None, noIP=True):
         cli = self.getCLIInstance()
         g_uuid = None
-        
+
         if not name:
             stem = "%s-%s-" % (self.getName(), operation)            
             allnames = self.getHost().listGuests()
@@ -2934,7 +3127,7 @@ exit /B 1
             name = "%s%s" % (stem, existing and max(existing)+1 or 0)
         if timer:
             timer.startMeasurement()
-        
+
         args = []
         args.append("new-name-label=\"%s\"" % (name.replace('"', '\\"')))
         # Full VM copy.
@@ -2949,6 +3142,8 @@ exit /B 1
             g_uuid = cli.execute("vm-clone", string.join(args)).strip()
         # Instantiate a snapshot.
         elif operation == "instance":
+            if uuid is None:
+                uuid = self.getUUID()
             template = self.getHost().genParamGet("template", 
                                                   uuid, 
                                                   "name-label")
@@ -2969,8 +3164,7 @@ exit /B 1
 
 
         # Get the new VIFs:
-        g.vifs = [ (nic, vbridge, mac, ip) for \
-                   (nic, (mac, ip, vbridge)) in g.getVIFs().items() ]
+        g.reparseVIFs()
         g.vifs.sort()
         xenrt.TEC().logverbose("Found VIFs: %s" % (g.vifs))
         g.recreateVIFs(newMACs=True)
@@ -2980,7 +3174,7 @@ exit /B 1
                 and g.getVIFs(network=g.managenetwork, \
                               bridge=g.managebridge).keys()
                 or g.vifs)
-        
+
         ips = filter(None, map(lambda (nic, vbridge, mac, ip):ip, vifs))
         if ips and not noIP:
             g.mainip = ips[0]
@@ -3024,6 +3218,8 @@ exit /B 1
                     raise lastexception
                 raise xenrt.XRTFailure("Snapshot with quiesce failed.")
         else:
+            if self.windows and state == "UP":
+                xenrt.TEC().warning("Snapshot of running Windows VM taken")
             xenrt.TEC().logverbose("Attempting snapshot of VM.")
             try:
                 uuid = cli.execute("vm-snapshot", command, strip=True)
@@ -3051,14 +3247,14 @@ exit /B 1
                              'affinity',
                              'ha-restart-priority',
                              'ha-always-run']
-        
+
     def checkSnapshot(self, uuid):
         """Check that the snapshot with UUID, uuid, matches
            this guest."""
         host = self.getHost()
-        
+
         for param in self.SNAPSHOT_CHECK_PARAMS:
-            
+
             templatevalue = host.genParamGet("template", uuid, param)
             vmvalue = self.paramGet(param)
             if templatevalue != vmvalue:
@@ -3102,7 +3298,7 @@ exit /B 1
         except xenrt.XRTFailure, e:
             xenrt.TEC().warning("Failed to get snapshot-of. (%s)" % (str(e)))
             suuid = host.genParamGet("template", uuid, "snapshot_of")
-        
+
         if suuid != self.getUUID():
             raise xenrt.XRTFailure("Snapshot snapshot-of does not match "
                                    "original VM",
@@ -3275,7 +3471,7 @@ exit /B 1
             parenttext = " (called from %s)" % (stack[-2][2])
         else:
             parenttext = ""
-        
+
         if desc != "":
             desc = " (%s)" % desc
         else:
@@ -3285,10 +3481,10 @@ exit /B 1
                                (self.getName(), parenttext))
         if not self.getState() in ["UP", "PAUSED"]:
             return
-        
+
         # Make sure we have a domain running
         domid = self.getDomid()
-        
+
         # If this is a HVM VM, check qemu is running
         try:
             qpid = self.getHost().xenstoreRead("/local/domain/%u/qemu-pid" %
@@ -3335,7 +3531,7 @@ exit /B 1
             filename = xenrt.TEC().tempFile()
             if self.getHost().getVncSnapshot(domid,filename):
                 i = Image.open(filename)
-                
+
                 # Some tests (such as Mixops) need the screen capture
                 # kept because it won't be available in the final log
                 # collection phase.
@@ -3433,7 +3629,7 @@ exit /B 1
                     #Screen is Deep Blue except for just two profile diplay buttons in middle which is White and Grey.
                     #Will check for top fifth being the exact blue and then verify for the blobs of white strip - that being the 
                     #profile picture - would capture thin long strips from the approx mid of these which is guaranteed more white.
-                    
+
                     pixr, pixg, pixb = xenrt.imageRectMeanColour(i,
                                                                  0,
                                                                  0,
@@ -3449,8 +3645,7 @@ exit /B 1
                                                                     227,
                                                                     661,
                                                                     264)
-                    
-                    
+
                     if pixr < 30 and pixg < 5  and pixb < 88:
                         # Deep blue top fifth Ok
                         if pixr1 > 248 and pixg1 > 248 and pixg1 > 248 and \
@@ -3461,10 +3656,10 @@ exit /B 1
                                    (xenrt.TEC().getLogdir()))
                             raise xenrt.XRTFailure(\
                                 "Windows failed to autologon%s" % desc)
-                    
+
                     #checking autologon failure for WindowsServer2k3EESP2
                     #Checking Blue in top 1/3rd screen and middle grey color
-                    
+
                     pixr, pixg, pixb = xenrt.imageRectMeanColour(i,
                                                                  0,
                                                                  0,
@@ -3480,7 +3675,7 @@ exit /B 1
                                                                     351,
                                                                     708,
                                                                     368)
-                                                                                           
+
                     if pixr >50 and pixr < 60 and pixg > 105 and pixg < 113 and pixb > 160 and pixb < 170:
                         if pixr1 >80 and pixr1 < 93 and pixg1 > 90 and pixg1 < 100 and pixb1 > 95 and pixb1 < 110:
                             if pixr2 >208 and pixr2 < 215 and pixg2 > 203 and pixg2 < 213 and pixb2 > 197 and pixb2 < 203:
@@ -3519,7 +3714,7 @@ exit /B 1
                                    (xenrt.TEC().getLogdir()))
                             raise xenrt.XRTFailure(\
                                 "Windows failed to autologon%s" % desc)
-                    
+
                     # Check for Windows Server 2008 autologon failure
                     # Look for dull bluish colour on the first and second half of the image
                     pixr, pixg, pixb = xenrt.imageRectMeanColour(i,
@@ -3527,7 +3722,7 @@ exit /B 1
                                                                  0,
                                                                  i.size[0],
                                                                  300)
-                                                                 
+
                     pixr1, pixg1, pixb1 = xenrt.imageRectMeanColour(i,
                                                                     0,
                                                                     300,
@@ -3543,7 +3738,6 @@ exit /B 1
                             raise xenrt.XRTFailure(\
                                 "Windows failed to autologon%s" % desc)
 
-                                
             if not self.windows:
                 # Check the guest console log for various failure signatures
                 try:
@@ -3608,6 +3802,60 @@ exit /B 1
                     if eip:
                         raise xenrt.XRTFailure(eip + desc)
                 finally:
+
+                    # see if we can SSH to the guest from dom0.
+                    try:
+                        if self.getIP():
+                            xenrt.TEC().logverbose("Attempting to SSH to guest from dom0")
+                            self.host.execdom0("ssh -i /etc/ssh/ssh_host_dsa_key.pub -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@%s ls /" % self.getIP())
+                    except Exception, ex:
+                        xenrt.TEC().logverbose(str(ex))
+
+                    # see if we can arping to the guest from dom0.
+                    try:
+                        if self.getIP():
+                            xenrt.TEC().logverbose("Attempting to arping the guest from dom0")
+                            bridge = self.getVIFs()['eth0'][2]
+                            self.host.execdom0("arping -I %s -c 2 %s" % (bridge, self.getIP()))
+                    except Exception, ex:
+                        xenrt.TEC().logverbose(str(ex))
+
+                    # capture the VIF ring and internal queue state
+                    try:
+                        xenrt.TEC().logverbose("Attempting to capture the VIF ring and internal queue state")
+                        self.host.execdom0("mount -t debugfs none /sys/kernel/debug && (cat /sys/kernel/debug/xen-netback/vif%d.0/io_ring;umount /sys/kernel/debug)" % self.getDomid())
+                    except Exception, ex:
+                        xenrt.TEC().logverbose(str(ex))
+
+                    if xenrt.TEC().lookup("PAUSE_CANT_CONTACT_VM", False, boolean=True):
+                        xenrt.GEC().dbconnect.jobUpdate("CANT_CONTACT_VM_PAUSED", "yes")
+                        xenrt.TEC().tc.pause("Paused - can't contact VM")
+                        xenrt.GEC().dbconnect.jobUpdate("CANT_CONTACT_VM_PAUSED", "no")
+
+                    try:
+                        # use key presses to log /var/log/syslog to the console
+                        xenrt.TEC().logverbose("Using keypresses to write syslog to console")
+
+                        # press enter twice to clear any junk
+                        self.sendVncKeys([0xff0d])
+                        xenrt.sleep(10)
+                        self.sendVncKeys([0xff0d])
+                        xenrt.sleep(10)
+
+                        self.sendVncKeys([0x72, 0x6f, 0x6f, 0x74, 0xff0d]) #root
+                        xenrt.sleep(10)
+
+                        self.sendVncKeys([0x78, 0x65, 0x6e, 0x72, 0x6f, 0x6f, 0x74, 0xff0d]) #xenroot
+                        xenrt.sleep(10)
+
+                        self.sendVncKeys([0x63, 0x61, 0x74, 0x20, 0x2f, 0x76, 0x61, 0x72, 0x2f, 0x6c, 0x6f, 0x67, 0x2f, 0x73, 0x79, 0x73, 0x6c, 0x6f, 0x67, 0xff0d]) #cat /var/log/syslog
+                        xenrt.sleep(30)
+
+                        self.sendVncKeys([0x63, 0x61, 0x74, 0x20, 0x2f, 0x76, 0x61, 0x72, 0x2f, 0x6c, 0x6f, 0x67, 0x2f, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x73, 0xff0d]) #cat /var/log/messages
+                        xenrt.sleep(30)
+                    except Exception, ex:
+                        xenrt.TEC().logverbose("Exception sending keys for guest syslog: " + str(ex))
+
                     # Send sysrq-t, -m, -p and -w to the VM if it's Linux
                     for key in ('9', 't', 'm', 'p', 'w'):
                         xenrt.TEC().logverbose("Sending sysrq-%s to %s" % 
@@ -3628,7 +3876,7 @@ exit /B 1
                 if self.enlightenedDrivers:
                     self.checkPVDevices()
 
-                if xenrt.TEC().lookup("DEBUG_VNCKEYS", True, boolean=True):
+                if xenrt.TEC().lookup("DEBUG_VNCKEYS", False, boolean=True):
                     # Send some suitable keystrokes to product evidence on the
                     # VNC screen capture of the VM being alive
                     try:
@@ -3645,6 +3893,23 @@ exit /B 1
                         self.sendVncKeys([0x69, 0x70, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0xff0d])
                     except Exception, ex:
                         xenrt.TEC().logverbose("Exception pressing keys: " + str(ex))
+
+                ##Try to log the ipconfig data using a VB script writing it into the WMI
+                try:
+                    # Send Windows-R to bring up a run dialog
+                    self.sendVncKeys(["0x72/0xffeb"])
+                    xenrt.sleep(8)
+                    # sometimes you need to do this twice
+                    self.sendVncKeys(["0x72/0xffeb"])
+                    xenrt.sleep(8)
+                    # Start a CMD prompt
+                    self.sendVncKeys([0x63, 0x6d, 0x64, 0xff0d])
+                    xenrt.sleep(5)
+                    # Send the keys to start the logger.vbs: wscript.exe logger.vbs
+                    self.sendVncKeys([0x57, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x2e, 0x65, 0x78, 0x65, 0x20, 0x2e, 0x2e, 0x5c, 0x2e, 0x2e, 0x5c, 0x6c, 0x6f, 0x67, 0x67, 0x65, 0x72, 0x2e, 0x76, 0x62, 0x73, 0xff0d])
+                    xenrt.sleep(10)
+                except Exception as e:
+                    xenrt.TEC().logverbose("Windows ipconfig logger error: %s"%(e.message))
 
             if self.windows and self.getIP():
                 # Check if RDP is accepting connections.
@@ -3679,159 +3944,58 @@ exit /B 1
                         raise xenrt.XRTFailure("Domain running but not reachable by XML-RPC%s" % desc)
                 else:
                     raise xenrt.XRTFailure("Domain running but not reachable by SSH%s" % desc)
-        
+
         xenrt.TEC().logverbose("Guest health check for %s couldn't find anything wrong" % (self.getName()))
 
-
-    def installTools(self, source=None, reboot=False, updateKernel=True):
+    def installTools(self, reboot=False, updateKernel=True):
         """Install tools package into a guest"""
 
         if self.windows:
             return
 
-        # Locate the tools ISO.
-        if not source:
-            source = xenrt.TEC().lookup("OPTION_DRIVER_ISO", None)
-        if not source:
+        toolscdname = self.insertToolsCD()
+        device="sr0"
+
+        if not self.isHVMLinux():
+            deviceList = self.getHost().minimalList("vbd-list", 
+                                                "device", 
+                                                "type=CD vdi-name-label=%s vm-uuid=%s" %
+                                                (toolscdname, self.getUUID()))
+
+            if deviceList:
+                device = deviceList[0]
+            else:
+                raise xenrt.XRTFailure("VBD for tools ISO not found")
+
+        for dev in [device, device, "cdrom"]:
             try:
-                remotefile = self.getHost().toolsISOPath("linux")
-                if not remotefile:
-                    raise xenrt.XRTError("Could not find PV tools ISO in dom0.")
-                source = "%s/tools.iso" % (xenrt.TEC().getWorkdir())
-                sh = self.getHost().sftpClient()                
-                sh.copyFrom(remotefile, source)
-                sh.close()
-                self.getHost().execdom0("md5sum %s" % remotefile)
-                xenrt.TEC().logverbose("Using PV tools ISO from installed host.")
+                self.execguest("mount /dev/%s /mnt" % (dev))
+                break
             except:
-                traceback.print_exc(file=sys.stderr)
-        if not source:
-            raise xenrt.XRTError("No PV tools ISO path given.")
-        xenrt.TEC().logverbose("Using PV tools from %s." % (source))
-
-        # If this is a file path, copy it locally, if it's a URL, fetch it.
-        tmp = xenrt.TEC().tempFile()
-        tmpfile = "%s_%s" % (tmp, os.path.basename(source))
-        if source[0] == "/":
-            shutil.copyfile(source, tmpfile)
-        else:
-            xenrt.util.command("wget %s -O %s" % (source, tmpfile))
-    
-        installsh = False
-
-        # If this is an ISO, mount it to pull out the packages.
-        if tmpfile[-4:] == ".iso":
-            try:
-                mount = xenrt.rootops.MountISO(tmpfile)
-            except Exception, ex:
-                xenrt.command("md5sum %s" % tmpfile)
-                xenrt.command("dmesg | tail")
-                xenrt.command("sudo tail /var/log/kern.log")
-                xenrt.command("sudo tail /var/log/syslog")
+                xenrt.TEC().warning("Mounting xs-tools.iso failed on the first attempt.")
+                xenrt.sleep(30)
+        args = "-n"
+        specialkey = "do not update kernel %s" % self.getHost().productVersion
+        if self.special.has_key(specialkey) and self.special[specialkey]:
+            updateKernel = False
+        if not updateKernel:
+            args += " -k"
+        self.execguest("/mnt/Linux/install.sh %s" % (args))
+        self.enlightenedDrivers=True
+        self.execguest("umount /mnt")
+        xenrt.sleep(10)
+        try:
+            self.removeCD(device=device)
+        except xenrt.XRTFailure as e:
+            # In case of Linux on HVM, vbd-destroy on CD may fail.
+            if "vbd-destroy" in e.reason:
+                pass
+            else:
                 raise
+        if reboot or ((self.distro and (self.distro.startswith("centos4") or self.distro.startswith("rhel4"))) and updateKernel):
+            # RHEL/CentOS 4.x update the kernel, so need to be rebooted
+            self.reboot()
 
-            try:
-                mountpoint = mount.getMount()
-                if os.path.exists("%s/Linux/install.sh" % (mountpoint)):
-                    installsh = True
-                else:
-                    if re.search("debian", self.distro) or \
-                       re.search("etch", self.distro) or \
-                       re.search("sarge", self.distro):
-                        version = "deb"
-                    else:
-                        version = "rpm"
-                    if not os.path.exists("%s/Linux/versions.%s" % (mountpoint, version)):
-                        raise xenrt.XRTFailure("Could not find versions file on "
-                                               "PV tools ISO.")
-                    f = file("%s/Linux/versions.%s" % (mountpoint, version))
-                    data = f.read()
-                    f.close()
-                    fields = xenrt.util.strlistToDict(data.splitlines(), keyonly=False)
-                    for key in fields: fields[key] = fields[key].strip("'")
-                    if self.arch and self.arch == "x86-64":
-                        key = "XE_GUEST_UTILITIES_PKG_FILE_x86_64"
-                    else:
-                        key = "XE_GUEST_UTILITIES_PKG_FILE_i386"
-                    if not fields.has_key(key):
-                        raise xenrt.XRTError("Could not find version entry for %s."
-                                             % (key))
-                    filename = "%s/Linux/%s" % (mountpoint, fields[key])
-                    if not os.path.exists(filename):
-                        raise xenrt.XRTError("Could not find Linux/%s." %
-                                             (fields[key]))
-                    pkg = xenrt.TEC().tempFile()
-                    shutil.copyfile(filename, pkg)
-            finally:
-                mount.unmount()
-        else:
-            raise xenrt.XRTError("Given up trying to find the ISO.")
-
-        if installsh:
-            if self.isHVMLinux():
-                device="sr0"
-                removeDevice=None
-                toolscdname = self.insertToolsCD()
-                xenrt.sleep(60)
-            else:
-                toolscdname = self.insertToolsCD()
-                xenrt.sleep(10)
-                device = self.getHost().minimalList("vbd-list", 
-                                                    "device", 
-                                                    "type=CD vdi-name-label=%s vm-uuid=%s" %
-                                                    (toolscdname, self.getUUID()))[0]
-                removeDevice=device
-                xenrt.sleep(10)
-            for dev in [device, device, "cdrom"]:
-                try:
-                    self.execguest("mount /dev/%s /mnt" % (dev))
-                    break
-                except:
-                    xenrt.TEC().warning("Mounting xs-tools.iso failed on the first attempt.")
-                    xenrt.sleep(30)
-            args = "-n"
-            specialkey = "do not update kernel %s" % \
-                (self.getHost().productVersion)
-            if self.special.has_key(specialkey) and self.special[specialkey]:
-                updateKernel = False
-            if not updateKernel:
-                args += " -k"
-            self.execguest("/mnt/Linux/install.sh %s" % (args))
-            self.enlightenedDrivers=True
-            self.execguest("umount /mnt")
-            xenrt.sleep(10)
-            try:
-                self.removeCD(device=removeDevice)
-            except xenrt.XRTFailure as e:
-                # In case of Linux on HVM, vbd-destroy on CD may fail.
-                if "vbd-destroy" in e.reason:
-                    pass
-                else:
-                    raise e
-            if reboot or ((self.distro and (self.distro.startswith("centos4") or self.distro.startswith("rhel4"))) and updateKernel):
-                # RHEL/CentOS 4.x update the kernel, so need to be rebooted
-                self.reboot()
-        else:
-            # Copy the package to the guest.
-            rempkg = string.strip(self.execguest("mktemp /tmp/pkgXXXXXX"))
-            sftp = self.sftpClient()
-            sftp.copyTo(pkg, rempkg)
-        
-            if version == "rpm":
-                rpmname = string.strip(self.execguest("rpm -qp %s --qf %%{NAME}" %
-                                                      (rempkg)))
-                if self.execguest("rpm -q %s" % (rpmname), retval="code") == 0:
-                    newv = string.strip(self.execguest(\
-                        "rpm -qp %s --qf %%{VERSION}-%%{RELEASE}" % (rempkg)))
-                    oldv = string.strip(self.execguest(\
-                        "rpm -q %s --qf %%{VERSION}-%%{RELEASE}" % (rpmname)))
-                    if newv != oldv:
-                        self.execguest("rpm --upgrade %s" % (rempkg))
-                else:
-                    self.execguest("rpm --install %s" % (rempkg))
-            else:
-                self.execguest("dpkg -i %s" % (rempkg))
-    
         # RHEL/CentOS 4.7/5.2 have a other-config key set in the
         # template to work around the >64GB bug (EXT-30). Once we have
         # upgraded to a Citrix kernel we can remove this restriction
@@ -3864,9 +4028,12 @@ exit /B 1
         except:
             pass
         return reply
-    
+
     def sendSysRq(self, key):
-        self.getHost().execdom0("/opt/xensource/debug/xenops sysrq_domain "
+        if isinstance(self.getHost(), xenrt.lib.xenserver.DundeeHost):
+            self.getHost().execdom0("xl sysrq %u %s" %(self.getDomid(),key))
+        else:    
+            self.getHost().execdom0("/opt/xensource/debug/xenops sysrq_domain "
                                 "-domid %u -key %s" % (self.getDomid(), key))
 
     def pretendToHaveXenTools(self):
@@ -3885,25 +4052,38 @@ exit /B 1
         self.getHost().xenstoreWrite(\
             "/local/domain/%u/data/updated" % (domid), '1')
 
-    def verifyGuestFunctional(self, migrate=False):
+    def verifyGuestFunctional(self, migrate=False, attachedDisks=False):
         if self.getState() == "UP":
             if self.windows:
                 # Write a file
                 self.xmlrpcExec("echo 'Testing Storage Access' > \\teststorage") 
                 # Read it
                 self.xmlrpcExec("type \\teststorage") 
+
+                if attachedDisks:
+                    raise xenrt.XRTError("Unimplemented")
+
             else:
                 # Write a file
                 self.execguest("dd if=/dev/zero bs=1024 count=1000 of=teststorage")
                 # Read it
                 self.execguest("dd if=teststorage of=/dev/null")
 
+                if attachedDisks:
+                    devices = self.getHost().minimalList("vbd-list", "device",
+                                    "vm-uuid=%s bootable=false type=Disk" % (self.getUUID()))
+                    for d in devices:
+                        # Write a file
+                        self.execguest("dd if=/dev/zero bs=1024 count=1000 of=/dev/%s" % d)
+                        # Read it
+                        self.execguest("dd if=/dev/%s of=/dev/null" % d)
+
             if migrate:
                self.migrateVM(host=self.host, live="true")
-               
+
     def pvDriversUpToDate(self):
         """Returns a Boolean indicating whether the guest's PV drivers are up-to-date"""
-        
+
         self.paramGet("PV-drivers-version")
         return self.paramGet("PV-drivers-up-to-date") == 'true'
 
@@ -3915,7 +4095,7 @@ exit /B 1
         else:
             self.paramSet("ha-always-run", "false")
             self.paramSet("ha-restart-priority", "")
-    
+
         try:
             cli = self.getHost().getCLIInstance()
             cli.execute("pool-sync-database")
@@ -3923,10 +4103,10 @@ exit /B 1
             pass
 
     def setStartAndShutdownDelay(self, start_delay=0, shutdown_delay=0):
-        
+
         self.getHost().genParamSet('vm', self.getUUID(), 'start-delay', start_delay)
         self.getHost().genParamSet('vm', self.getUUID(), 'shutdown-delay', shutdown_delay)
-        
+
     def getHAPriority(self):
         return self.paramGet("ha-restart-priority")
 
@@ -4025,14 +4205,14 @@ exit /B 1
         setTarget = self.getMemoryTarget() / xenrt.MEGA
         if str(setTarget) != str(target / xenrt.MEGA):
             raise xenrt.XRTFailure("Memory target does not match set value")
-            
+
     def computeOverhead(self):
         cli = self.getHost().getCLIInstance()
         overhead = int(cli.execute("vm-compute-memory-overhead",
                                    "uuid=%s" % (self.getUUID()), strip=True))
         overhead = overhead / xenrt.MEGA
         return overhead
-        
+
     def getMemoryTarget(self):
         return self.paramGet("memory-target")
 
@@ -4065,10 +4245,10 @@ exit /B 1
         self.setState("UP")
 
         arch = self.xmlrpcGetArch()
-      
+
         if arch == "amd64":
             arch = 'x64'
-  
+
         self.snapshot("BeforeXD")
 
         nfs = xenrt.resources.NFSDirectory()
@@ -4080,7 +4260,7 @@ exit /B 1
         filename = "XendesktopBruin.iso"
         urlprefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
         url = "%s/XendesktopBruin/%s" % (urlprefix, filename)
- 
+
         os.system("cd %s; wget %s" % (path,url)) 
 
         xenrt.sleep(60)
@@ -4108,58 +4288,112 @@ exit /B 1
 
         self.reboot()
 
-    def xenDesktopTailor(self):
-        # Optimizations from CTX125874, excluding Windows crash dump (because we want them) and IE (because we don't use it)
-        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WindowsUpdate\\Auto Update", "AUOptions", "DWORD", 1)
-        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WindowsUpdate\\Auto Update", "ScheduledInstallDay", "DWORD", 0)
-        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WindowsUpdate\\Auto Update", "ScheduledInstallTime", "DWORD", 3)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\wuauserv", "Start", "DWORD", 4)
-        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Dfrg\\BootOptimizeFunction", "Enable", "SZ", "N")
-        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\Windows\\CurrentVersion\\OptimalLayout", "EnableAutoLayout", "DWORD", 0)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\sr", "Start", "DWORD", 4)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\srservice", "Start", "DWORD", 4)
-        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\SystemRestore", "DisableSR", "DWORD", 1)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Control\\FileSystem", "NtfsDisableLastAccessUpdate", "DWORD", 1)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\cisvc", "Start", "DWORD", 4)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\Eventlog\\Application", "MaxSize", "DWORD", 65536)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\Eventlog\\Security", "MaxSize", "DWORD", 65536)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\Eventlog\\System", "MaxSize", "DWORD", 65536)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management", "ClearPageFileAtShutdown", "DWORD", 0)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\WSearch", "Start", "DWORD", 4)
+    def getNetworkNameForVIF(self, vifname):
+        mac, ip, bridge = self.getVIF(vifname=vifname)
+        network = self.host.getNetworkUUID(bridge)
+        return self.host.genParamGet("network", network, "other-config", "xenrtnetname")
 
+    def installXenMobileAppliance(self):
+        self.lifecycleOperation("vm-start", specifyOn=True)
+        time.sleep(60)
+        app = xenrt.XenMobileApplianceServer(self)
+        app.doFirstbootUnattendedSetup() 
+
+    def createScaleXtremeEnvironment(self):
+        """Install agent on the guest and create ScaleXtreme
+        Environment."""
+        agent = SXAgent()
+        agent.agentVM = self
+        agent.installAgent()
+        agent.setAsGateway()
+        agent.createEnvironment()
+
+    def prepareForTemplate(self):
+        if self.getState() == "UP":
+            self.preCloneTailor()
+            if self.windows:
+                self.sysPrepOOBE()
+            self.shutdown()
+        self.changeCD(None)
+
+    def convertToTemplate(self):
+        self.prepareForTemplate()
+        self.paramSet("is-a-template", "true")
+        self.host.removeGuest(self.name)
+        self.isTemplate = True
+
+    def getDeploymentRecord(self):
+        ret = super(Guest, self).getDeploymentRecord()
+        ret['networks'] = {}
         try:
-            self.winRegDel("HKLM", "SOFTWARE\\Microsoft\Windows\\CurrentVersion\\Run", "Windows Defender")
+            os = self.paramGet("os-version")
+            if os and os != "<not in database>":
+                ret['os']['reported'] = dict([x.split(": ") for x in self.paramGet("os-version").split("; ")])
         except:
             pass
+        for v in self.vifs:
+            (device, bridge, mac, ip) = v
+            nwuuid = self.getHost().getNetworkUUID(bridge)
+            nwname = self.getHost().genParamGet("network", nwuuid, "name-label")
+            ret['networks'][device] = {"network": {"name": nwname, "uuid": nwuuid}}
+            if not self.isTemplate:
+                ret['networks'][device]['mac'] = mac
+                if ip:
+                    ret['networks'][device]['ip'] = ip
+        
+        ret['disks'] = {}
+        for d in self.listDiskDevices():
+            vdiuuid = self.getHost().minimalList("vbd-list", "vdi-uuid", "vm-uuid=%s userdevice=%s" % (self.uuid, d))[0]
+            params = self.getHost().parameterList("vdi-list", ["virtual-size","sr-uuid", "sr-name-label"], "uuid=%s" % vdiuuid)[0]
 
+            ret['disks'][d] = {
+                "size": int(params['virtual-size'])/xenrt.GIGA,
+                "sr": {"name": params['sr-name-label'], "uuid": params['sr-uuid']}
+            }
 
-        if self.xmlrpcFileExists("C:\\Windows\\Microsoft.NET\\Framework\\v2.0.50727\\ngen.exe"):
-            try:
-                self.xmlrpcExec("C:\\Windows\\Microsoft.NET\\Framework\\v2.0.50727\\ngen.exe executeQueuedItems")
-            except:
-                pass
-        if self.xmlrpcFileExists("C:\\Windows\\Microsoft.NET\\Framework\\v4.0.30319\\ngen.exe"):
-            try:
-                self.xmlrpcExec("C:\\Windows\\Microsoft.NET\\Framework\\v2.0.50727\\ngen.exe executeQueuedItems")
-            except:
-                pass
-        self.shutdown()
-        self.paramSet("platform:usb", "false")
-        self.paramSet("platform:hvm_serial", "none")
-        self.paramSet("platform:nousb", "true")
-        self.paramSet("platform:monitor", "null")
-        self.paramSet("platform:parallel", "none")
-        self.start()
+        return ret
 
 #############################################################################
+
+def parseSequenceVIFs(guest, host, vifs):
+    update = []
+    for v in vifs:
+        device, bridge, mac, ip = v
+        device = "%s%s" % (guest.vifstem, device)
+        if not bridge:
+            bridge = host.getPrimaryBridge()
+        elif re.search(r"^[0-9]+$", bridge):
+            bridge = host.getBridgeWithMapping(int(bridge))
+        elif not host.getBridgeInterfaces(bridge):
+            br = host.parseListForOtherParam("network-list",
+                                                 "name-label",
+                                                  bridge,
+                                                 "bridge")
+            if br:
+                bridge = br
+            elif not host.getNetworkUUID(bridge):
+                bridge = None
+
+        if not bridge:
+            raise xenrt.XRTError("Failed to choose a bridge for createVM on "
+                                 "host !%s" % (host.getName()))
+        update.append([device, bridge, mac, ip])
+    return update
+
+
 
 def createVMFromFile(host,
                      guestname,
                      filename,
+                     userfile=False,
                      postinstall=[],
+                     packages=[],
                      memory=None,
                      bootparams=None,
                      suffix=None,
+                     vifs=[],
+                     ips={},
+                     sr=None,
                      *args,
                      **kwargs):
     if not isinstance(host, xenrt.GenericHost):
@@ -4169,7 +4403,34 @@ def createVMFromFile(host,
     else:
         displayname = guestname
     guest = host.guestFactory()(displayname, host=host)
-    guest.importVM(host, xenrt.TEC().getFile(filename))
+    guest.imported = True
+    guest.ips = ips
+    vifs = parseSequenceVIFs(guest, host, vifs)
+    
+    if userfile:
+        share = xenrt.ExternalNFSShare()
+        m = xenrt.rootops.MountNFS(share.getMount())
+        proxy = xenrt.TEC().lookup("HTTP_PROXY", None)
+        if proxy:
+            xenrt.command('wget -e http_proxy=%s "%s" -O %s/file.xva' % (proxy, filename, m.mountpoint))
+        else:
+            xenrt.command('wget "%s" -O %s/file.xva' % (filename, m.mountpoint))
+        guest.importVM(host, "%s/file.xva" % m.mountpoint, vifs=vifs, sr=sr)
+        share.release()
+    else:
+        if filename.startswith("nfs://"):
+            filename = re.sub("\${(.*?)}", lambda x: xenrt.TEC().lookup(x.group(1), None), filename)
+            filename = filename[6:]
+            dirname = os.path.dirname(filename)
+            d = host.execdom0("mktemp -d").strip()
+            host.execdom0("mount -t nfs %s %s" % (dirname, d))
+            guest.importVM(host, "%s/%s" % (d, os.path.basename(filename)), imageIsOnHost=True, sr=sr, vifs=vifs)
+            host.execdom0("umount %s" % d)
+        else:
+            guest.importVM(host, xenrt.TEC().getFile(filename), vifs=vifs, sr=sr)
+    guest.paramSet("is-a-template", "false")
+    guest.reparseVIFs()
+    guest.vifs.sort()
     if bootparams:
         bp = guest.getBootParams()
         if len(bp) > 0: bp += " "
@@ -4181,8 +4442,156 @@ def createVMFromFile(host,
         guest.memset(memory)
     xenrt.TEC().registry.guestPut(guestname, guest)
     for p in postinstall:
-        eval("guest.%s()" % (p))
+        if "(" in p:
+            eval("guest.%s" % (p))
+        else:
+            eval("guest.%s()" % (p))
+    if packages:
+        guest.installPackages(packages)
     return guest
+
+def createVMFromPrebuiltTemplate(host,
+             guestname,
+             distro,
+             vcpus=None,
+             corespersocket=None,
+             memory=None,
+             vifs=[],
+             bridge=None,
+             sr=None,
+             arch="x86-32",
+             rootdisk=None,
+             notools=False,
+             suffix=None,
+             ips={},
+             special={}):
+   
+    if suffix:
+        displayname = "%s-%s" % (guestname, suffix)
+    else:
+        displayname = guestname
+    
+    sruuid = host.chooseSR(sr)
+
+    preinstalledTools = False
+
+    # Lock around this section so only one template gets created for this distro
+    with xenrt.GEC().getLock("TEMPLATE_SETUP_%s_%s_%s" % (distro, arch, sruuid)):
+        preinstalledTemplates = host.minimalList("template-list", args="name-label=xenrt-template-%s-%s-%s" % (distro, arch, sruuid), params="name-label")
+    
+        if not preinstalledTemplates:
+            preinstalledTemplates = host.minimalList("template-list", args="name-label=xenrt-template-%s-%s" % (distro, arch), params="name-label")
+            # Templates in this format have the tools installed
+            if preinstalledTemplates:
+                preinstalledTools = True
+  
+        # Check whether the template SR is present
+        templateSR = host.minimalList("sr-list", params="uuid", args="uuid=%s" % xenrt.lib.xenserver.host.TEMPLATE_SR_UUID)
+
+        if not preinstalledTemplates and templateSR:
+            host.getCLIInstance().execute("sr-scan", "uuid=%s" % xenrt.lib.xenserver.host.TEMPLATE_SR_UUID)
+            # Mount the template SR locally to find out what the UUID of the VDI is
+            m = xenrt.rootops.MountNFS(xenrt.TEC().lookup("SHARED_VHD_PATH_NFS"))
+            vuuid = None
+            if os.path.exists("%s/%s_%s.cfg" % (m.getMount(), distro, arch)):
+                with open("%s/%s_%s.cfg" % (m.getMount(), distro, arch)) as f:
+                    vuuid = f.read().strip()
+            elif os.path.exists("%s/%s.cfg" % (m.getMount(), distro)):
+                with open("%s/%s.cfg" % (m.getMount(), distro)) as f:
+                    vuuid = f.read().strip()
+            # Check the VDI exists
+            if vuuid and os.path.exists("%s/%s.vhd" % (m.getMount(), vuuid)):
+                if rootdisk and rootdisk != Guest.DEFAULT:
+                    # Check that the disk is big enough
+                    if rootdisk*xenrt.MEGA > int(host.genParamGet("vdi", vuuid, "virtual-size")):
+                        return None
+                template = host.getTemplate(distro, arch=arch)
+                cli = host.getCLIInstance()
+                # Copy the VDI to the target SR
+                vdiuuid = cli.execute("vdi-copy sr-uuid=%s uuid=%s" % (sruuid, vuuid)).strip().strip(",")
+
+                host.genParamSet("vdi", vdiuuid, "name-label", "%s_%s" % (distro, arch))
+
+                # By default we'll put this VDI into a template, then install from the template
+                if xenrt.TEC().lookup("CLONE_PREBUILT_TEMPLATES", True, boolean=True):
+                    tname = "xenrt-template-%s-%s-%s" % (distro, arch, sruuid)
+                else:
+                    # The alternative is to clone a template, remove the option to create disks and just attach the copied VDI to the VM
+                    tname = str(uuid.uuid4())
+                tuuid = cli.execute("vm-clone", "name-label=\"%s\" new-name-label=%s" % (template, tname)).strip()
+                host.genParamSet("template", tuuid, "PV-bootloader", "pygrub")
+                host.genParamRemove("template", tuuid, "other-config", "disks")
+                if xenrt.TEC().lookup("CLONE_PREBUILT_TEMPLATES", True, boolean=True):
+                    # Add the VDI to the template
+                    cli.execute("vbd-create", "vm-uuid=%s vdi-uuid=%s device=0 bootable=true" % (tuuid, vdiuuid))
+
+                preinstalledTemplates = [tname]
+            m.unmount()
+        
+    if not preinstalledTemplates:
+        return None
+
+    t = preinstalledTemplates[0]
+    if rootdisk and rootdisk != Guest.DEFAULT:
+        tuuid = host.minimalList("template-list", args="name-label=%s" % t, params="uuid")[0]
+        if xenrt.TEC().lookup("CLONE_PREBUILT_TEMPLATES", True, boolean=True):
+            vdiuuid=host.minimalList("vbd-list", args="vm-uuid=%s userdevice=0" % tuuid, params="vdi-uuid")[0]
+        # Check that the disk is big enough
+        if rootdisk*xenrt.MEGA > int(host.genParamGet("vdi", vdiuuid, "virtual-size")):
+            return None
+    g = host.guestFactory()(displayname, host=host)
+    g.arch = arch
+    g.distro=distro
+    if vcpus:
+        g.setVCPUs(vcpus)
+    if corespersocket:
+        g.setCoresPerSocket(corespersocket)
+    if memory:
+        g.setMemory(memory)
+    g.createGuestFromTemplate(t, None)
+    if not xenrt.TEC().lookup("CLONE_PREBUILT_TEMPLATES", True, boolean=True):
+        # If we didn't attach the VDI to the template, we need to attach it to the VM here
+        cli.execute("vbd-create", "vm-uuid=%s vdi-uuid=%s device=0 bootable=true" % (g.getUUID(), vdiuuid))
+    g.ips = ips
+
+    g.removeAllVIFs()
+    if xenrt.isWindows(distro):
+        g.windows = True
+        g.vifstem = g.VIFSTEMHVM
+        g.password = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS", "ADMINISTRATOR_PASSWORD"])
+    else:
+        g.windows = False
+        g.vifstem = g.VIFSTEMPV
+
+    if vifs == xenrt.lib.xenserver.Guest.DEFAULT:
+        vifs = [("0",
+                 bridge or host.getPrimaryBridge(),
+                 xenrt.randomMAC(),
+                 None)]
+
+    g.vifs = parseSequenceVIFs(g, host, vifs)
+    for v in g.vifs:
+        eth, bridge, mac, ip = v
+        g.createVIF(eth, bridge, mac)
+
+    g.existing(host)
+
+    if "coreos-" in distro or preinstalledTools:
+        g.enlightenedDrivers=True
+        notools = True # CoreOS has tools installed already
+    else:
+        g.enlightenedDrivers = False
+
+    g.changeCD("xs-tools.iso")
+    # The apt source needs updating to the controller
+    g.special['tailor_apt_source'] = True
+    g.special.update(special)
+    g.start() 
+    
+    if not notools:
+        g.installTools()
+    
+    return g
 
 def createVM(host,
              guestname,
@@ -4197,91 +4606,51 @@ def createVM(host,
              arch="x86-32",
              disks=[],
              postinstall=[],
+             packages=[],
              pxe=False,
              template=None,
              notools=False,
              bootparams=None,
              use_ipv6=False,
-             dontstartinstall=False,
-             installXenToolsInPostInstall=False,
-             suffix=None):
+             suffix=None,
+             ips={}):
+
+
+    canUsePrebuiltTemplate = not pxe and not guestparams and not template and not bootparams and not use_ipv6
 
     if not isinstance(host, xenrt.GenericHost):
         host = xenrt.TEC().registry.hostGet(host)
-    
-    if suffix:
-        displayname = "%s-%s" % (guestname, suffix)
-    else:
-        displayname = guestname
-   
-    preinstalledTemplates = host.minimalList("template-list", args="name-label=xenrt-template-%s-%s" % (distro, arch), params="name-label")
-    if preinstalledTemplates:
-        t = preinstalledTemplates[0]
-        g = host.guestFactory()(displayname, host=host)
-        g.arch = arch
-        g.distro=distro
-        if vcpus:
-            g.setVCPUs(vcpus)
-        if corespersocket:
-            g.setCoresPerSocket(corespersocket)
-        if memory:
-            g.setMemory(memory)
-        g.createGuestFromTemplate(t, None)
-        
-        g.removeAllVIFs()
-        if re.search("[vw]", distro):
-            g.windows = True
-            g.vifstem = g.VIFSTEMHVM
-            g.password = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS", "ADMINISTRATOR_PASSWORD"])
+
+    (distro, special) = host.resolveDistroName(distro)
+    rootdisk = xenrt.lib.xenserver.Guest.DEFAULT
+    for disk in disks:
+        device, size, format = disk
+        if device == "0":
+            rootdisk = int(size)*xenrt.KILO
+
+    g = None
+
+    if canUsePrebuiltTemplate:
+        g = createVMFromPrebuiltTemplate(host,
+                      guestname,
+                      distro,
+                      vcpus,
+                      corespersocket,
+                      memory,
+                      vifs,
+                      bridge,
+                      sr,
+                      arch,
+                      rootdisk,
+                      notools,
+                      suffix,
+                      ips,
+                      special)
+    if not g:
+        if suffix:
+            displayname = "%s-%s" % (guestname, suffix)
         else:
-            g.windows = False
-            g.vifstem = g.VIFSTEMPV
-
-        if vifs == xenrt.lib.xenserver.Guest.DEFAULT:
-            vifs = [("0",
-                     host.getPrimaryBridge(),
-                     xenrt.randomMAC(),
-                     None)]
-
-        update = []
-        for v in vifs:
-            device, bridge, mac, ip = v
-            device = "%s%s" % (g.vifstem, device)
-            if not bridge:
-                bridge = host.getPrimaryBridge()
-            elif re.search(r"^[0-9]+$", bridge):
-                bridge = host.getBridgeWithMapping(int(bridge))
-            elif not host.getBridgeInterfaces(bridge):
-                br = host.parseListForOtherParam("network-list",
-                                                     "name-label",
-                                                      bridge,
-                                                     "bridge")
-                if br:
-                    bridge = br
-                elif not host.getNetworkUUID(bridge):
-                    bridge = None
-                    
-            if not bridge:
-                raise xenrt.XRTError("Failed to choose a bridge for createVM on "
-                                     "host !%s" % (host.getName()))
-            update.append([device, bridge, mac, ip])
-        g.vifs = update
-        for v in g.vifs:
-            eth, bridge, mac, ip = v
-            g.createVIF(eth, bridge, mac)
-
-        g.existing(host)
-
-        g.start() 
-        # Store the object in the registry.
-        xenrt.TEC().registry.guestPut(guestname, g)
-        xenrt.TEC().registry.configPut(guestname, vcpus=vcpus,
-                                       memory=memory,
-                                       distro=distro)
-        for p in postinstall:
-            eval("g.%s()" % (p))
-        return g
-    else:
+            displayname = guestname
         if distro.startswith("generic-"): 
             distro = distro[8:]
             if not vifs:
@@ -4294,63 +4663,44 @@ def createVM(host,
         # Create the guest object.
         if not template:
             template = host.getTemplate(distro, arch=arch)
-        
+
         if re.search(r"etch", template or "", flags=re.IGNORECASE) or re.search(r"Demo Linux VM", template):
             password = xenrt.TEC().lookup("ROOT_PASSWORD_DEBIAN")
         else:
             password = xenrt.TEC().lookup("DEFAULT_PASSWORD")
-        
+
         g = host.guestFactory()(displayname, 
                                 template, 
                                 password=password)
+        g.distro = distro
         g.arch = arch
-        if re.search("[vw]", distro):
+        if xenrt.isWindows(distro):
             g.windows = True
             g.vifstem = g.VIFSTEMHVM
             g.password = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS", "ADMINISTRATOR_PASSWORD"])
         else:
             g.windows = False
             g.vifstem = g.VIFSTEMPV
-
+        g.ips = ips
         if vifs == xenrt.lib.xenserver.Guest.DEFAULT:
             vifs = [("0",
                      host.getPrimaryBridge(),
                      xenrt.randomMAC(),
                      None)]
 
-        update = []
-        for v in vifs:
-            device, bridge, mac, ip = v
-            device = "%s%s" % (g.vifstem, device)
-            if not bridge:
-                bridge = host.getPrimaryBridge()
-            elif re.search(r"^[0-9]+$", bridge):
-                bridge = host.getBridgeWithMapping(int(bridge))
-            elif not host.getBridgeInterfaces(bridge):
-                br = host.parseListForOtherParam("network-list",
-                                                     "name-label",
-                                                      bridge,
-                                                     "bridge")
-                if br:
-                    bridge = br
-                elif not host.getNetworkUUID(bridge):
-                    bridge = None
-                    
-            if not bridge:
-                raise xenrt.XRTError("Failed to choose a bridge for createVM on "
-                                     "host !%s" % (host.getName()))
-            update.append([device, bridge, mac, ip])
-        vifs = update
+        vifs = parseSequenceVIFs(g, host, vifs)
 
         # The install method doesn't do this for us.
+        if memory:
+            g.setMemory(memory)
         if vcpus:
             g.setVCPUs(vcpus)
+        elif xenrt.TEC().lookup("RND_VCPUS", default=False, boolean=True):
+            g.setRandomVcpus()
         if corespersocket:
             g.setCoresPerSocket(corespersocket)
         elif xenrt.TEC().lookup("RND_CORES_PER_SOCKET", default=False, boolean=True):
-            host.setRandomCoresPerSocket(g, vcpus)
-        if memory:
-            g.setMemory(memory)
+            g.setRandomCoresPerSocket(host, vcpus)
 
         if bootparams:
             bp = g.getBootParams()
@@ -4367,19 +4717,14 @@ def createVM(host,
                                                  "HTTP"]))[0]            
         except:
             repository = None
-        
+
         # Work out the ISO name.
         if not repository:
             isoname = xenrt.DEFAULT
         else:
             isoname = None
 
-        rootdisk = xenrt.lib.xenserver.Guest.DEFAULT
-        for disk in disks:
-            device, size, format = disk
-            if device == "0":
-                rootdisk = int(size)*xenrt.KILO
-
+        g.special.update(special)
         # Install the guest.
         g.install(host, 
                   distro=distro,
@@ -4392,60 +4737,67 @@ def createVM(host,
                   repository=repository,
                   pxe=pxe,
                   notools=notools,
-                  use_ipv6=use_ipv6,
-                  dontstartinstall=dontstartinstall,
-                  installXenToolsInPostInstall=installXenToolsInPostInstall)
-        
-        if not dontstartinstall:
-        
-            g.reboot()
-            g.check()
-            g.shutdown()
+                  use_ipv6=use_ipv6)
 
-            diskstoformat = []
-            for disk in disks:
-                device, size, format = disk
-                if not str(device) == "0":
-                    d = g.createDisk(sizebytes=int(size)*xenrt.GIGA,userdevice=device)
-                    if format:
-                        diskstoformat.append(d)
+        g.reboot()
+        g.check()
 
-            g.start()
+    if [x for x in disks if x[0] != "0"]:
 
-            for d in diskstoformat:
-                if g.windows:
-                    letter = g.xmlrpcPartition(d)
-                    g.xmlrpcFormat(letter, timeout=3600)
-                else:
-                    letter = g.getHost().parseListForOtherParam("vbd-list",
-                                                                "vm-uuid",
-                                                                g.getUUID(),
-                                                                "device",
-                                                                "userdevice=%s" % (d))
-                    g.execguest("mkfs.ext2 /dev/%s" % (letter))
-                    g.execguest("mount /dev/%s /mnt" % (letter))
+        g.shutdown()
 
-        # Store the object in the registry.
-        xenrt.TEC().registry.guestPut(guestname, g)
-        xenrt.TEC().registry.configPut(guestname, vcpus=vcpus,
-                                       memory=memory,
-                                       distro=distro)
+        diskstoformat = []
+        for disk in disks:
+            device, size, format = disk
+            if not str(device) == "0":
+                d = g.createDisk(sizebytes=int(size)*xenrt.GIGA,userdevice=device)
+                if format:
+                    diskstoformat.append(d)
 
-        for p in postinstall:
-            if type(p) == tuple:
-                data, format = p
-                if format == "cmd":
-                    g.xmlrpcWriteFile("c:\\postrun.cmd", data)
-                    g.xmlrpcExec("c:\\postrun.cmd")
-                    g.xmlrpcRemoveFile("c:\\postrun.cmd")
-                elif format == "vbs":
-                    g.xmlrpcWriteFile("c:\\postrun.vbs", data)
-                    g.xmlrpcExec("cscript //b //NoLogo c:\\postrun.vbs")
-                    g.xmlrpcRemoveFile("c:\\postrun.vbs")
+        g.start()
+
+        for d in diskstoformat:
+            if g.windows:
+                letter = g.xmlrpcPartition(d)
+                g.xmlrpcFormat(letter, timeout=3600)
+            else:
+                letter = g.getHost().parseListForOtherParam("vbd-list",
+                                                            "vm-uuid",
+                                                            g.getUUID(),
+                                                            "device",
+                                                            "userdevice=%s" % (d))
+                g.execguest("mkfs.ext2 /dev/%s" % (letter))
+                g.execguest("mount /dev/%s /mnt" % (letter))
+
+    # Store the object in the registry.
+    xenrt.TEC().registry.guestPut(guestname, g)
+    xenrt.TEC().registry.configPut(guestname, vcpus=vcpus,
+                                   memory=memory,
+                                   distro=distro)
+
+    g.setStaticIPs()
+
+    for p in postinstall:
+        if type(p) == tuple:
+            data, format = p
+            if format == "cmd":
+                g.xmlrpcWriteFile("c:\\postrun.cmd", data)
+                g.xmlrpcExec("c:\\postrun.cmd")
+                g.xmlrpcRemoveFile("c:\\postrun.cmd")
+            elif format == "vbs":
+                g.xmlrpcWriteFile("c:\\postrun.vbs", data)
+                g.xmlrpcExec("cscript //b //NoLogo c:\\postrun.vbs")
+                g.xmlrpcRemoveFile("c:\\postrun.vbs")
+        else:
+            if "(" in p:
+                eval("g.%s" % (p))
             else:
                 eval("g.%s()" % (p))
 
-        return g
+    if packages:
+        g.installPackages(packages)
+
+    return g
 
 #############################################################################
 
@@ -4463,7 +4815,7 @@ class MNRGuest(Guest):
     def populateSubclass(self, x):
         Guest.populateSubclass(self, x)
         x.dmcProperties = self.dmcProperties.copy()
-        
+
     def __copy__(self):
         """Support for copy.copy()"""
         c = Guest.__copy__(self)
@@ -4792,7 +5144,7 @@ class MNRGuest(Guest):
             self.goState(state, on, choice)
         else:
             xenrt.TEC().logverbose("Arrive the destined status")
-            
+
     def lifecycleSequence(self, pool=False, timeout=0, opcount=0,
                           norandom = False, check=False, back=True):
         initstate = self.getState()
@@ -4855,7 +5207,7 @@ class MNRGuest(Guest):
 
 class BostonGuest(MNRGuest):
     """Represents a Boston guest."""
-    
+
     SNAPSHOT_CHECK_PARAMS = ['memory-dynamic-max',
                              'memory-dynamic-min',
                              'memory-static-max',
@@ -4899,12 +5251,12 @@ class BostonGuest(MNRGuest):
             return True
         else:
             return False
-            
+
     def installWICIfRequired(self):
         """WIC is required to be installed on W2K3"""
         if float(self.xmlrpcWindowsVersion()) == 5.2:
             self.installWIC()
-    
+
     def disableIPV4IfRequired(self):
         # CHECKME: Only after xmlrpcUnpackTarball is fixed, we can move disabling
         #          IPv4 into guest.install()
@@ -4913,14 +5265,14 @@ class BostonGuest(MNRGuest):
             self.disableIPv4()
             self.ipv4_disabled = True
 
-    def installDrivers(self, source=None, extrareboot=False, useLegacy=False):
+    def installDrivers(self, source=None, extrareboot=False, useLegacy=False, expectUpToDate=True):
         if not self.windows:
             xenrt.TEC().skip("Non Windows guest, no drivers to install")
             return
         self.installWICIfRequired()
         self.installDotNet4()
         self.disableIPV4IfRequired()
-        MNRGuest.installDrivers(self, source, extrareboot)
+        MNRGuest.installDrivers(self, source, extrareboot, expectUpToDate)
 
     def setWindowsHostname(self, hostname):
         if self.windows:
@@ -4954,10 +5306,10 @@ class TampaGuest(BostonGuest):
     VIFLOCK_LOCKED = "locked"
     VIFLOCK_UNLOCKED = "unlocked"
     VIFLOCK_DISABLED = "disabled"
-    
+
     def getVifLockMode(self, vifUuid):
         return self.getCLIInstance().execute("vif-param-get param-name=locking-mode uuid=%s" % (vifUuid)).strip()
-    
+
     def setVifLockMode(self, vifUuid, vifLockMode):
         """Sets the vif locking mode. Can take values: VIFLOCK_NETWORK_DEFAULT, VIFLOCK_LOCKED, VIFLOCK_UNLOCKED, VIFLOCK_DISABLED"""
         args = []
@@ -4969,12 +5321,12 @@ class TampaGuest(BostonGuest):
         cli = self.getCLIInstance()
         cli.execute("vif-param-clear uuid=%s param-name=ipv4-allowed" % (vifUuid))
         cli.execute("vif-param-clear uuid=%s param-name=ipv6-allowed" % (vifUuid))
-    
+
     def setVifAllowedIPv4Addresses(self, vifUuid, addresses):
         cli = self.getCLIInstance()
         for a in addresses:
             cli.execute("vif-param-add uuid=%s param-name=ipv4-allowed param-key=%s" % (vifUuid, a))
-            
+
     def setVifAllowedIPv6Addresses(self, vifUuid, addresses):
         cli = self.getCLIInstance()
         for a in addresses:
@@ -4982,7 +5334,7 @@ class TampaGuest(BostonGuest):
 
     def installDotNetRequiredForDrivers(self):
         """Tampa supports both .NET 3.5 and .NET 4, we set which version is required at the suite/sequence level"""
-        
+
         dotnetversion = xenrt.TEC().lookup("DOTNETVERSION", None)
         if dotnetversion == "4":
             self.installDotNet4()
@@ -4993,23 +5345,23 @@ class TampaGuest(BostonGuest):
                 self.installDotNet4()
         else:
             raise xenrt.XRTError("Unsupported .NET version specified for PV driver install")
-    
+
     def usesLegacyDrivers(self):
         """Returns True if the guest uses legacy drivers: This will use xenlegacy.exe from the tools iso.
         Otherwise, installwizard.msi from the tools iso will be used to install the new Tampa drivers"""
-        
+
         if not self.distro:
             return False
-        
+
         if not self.windows:
             raise xenrt.XRTError("usesLegacyDrivers() only applies to Windows guests")
-        
+
         return "xp" in self.distro or "w2k3" in self.distro
-    
+
     def installLegacyDrivers(self):
         self.installDrivers(useLegacy=True)
-    
-    def installDrivers(self, source=None, extrareboot=False, useLegacy=False, useHostTimeUTC=False):
+
+    def installDrivers(self, source=None, extrareboot=False, useLegacy=False, useHostTimeUTC=False, expectUpToDate=True):
         if not self.windows:
             xenrt.TEC().skip("Non Windows guest, no drivers to install")
             return
@@ -5024,42 +5376,39 @@ class TampaGuest(BostonGuest):
 
         # W2K3 and XP use the legacy drivers
         legacy = self.usesLegacyDrivers()
-        
+
         # WIC is required to be installed for W2K3
         self.installWICIfRequired()
-        
+
         # We support .NET 3.5 and .NET 4. This can be switched at the seq/suite level.
         self.installDotNetRequiredForDrivers()
-            
+
         # Some filth
         self.disableIPV4IfRequired()
-        
+
         # CA-56951 - [trunk stress failure] Windows guest agent did not report IP address
         self.increaseServiceStartTimeOut()
 
         # store domid before installation so can check for installer initiated reboot
         domid = self.host.getDomid(self)
-        
+
         # Insert the tools ISO
         self.changeCD("xs-tools.iso")
         xenrt.sleep(30)
-        
+
         if legacy or xenrt.TEC().lookup("USE_LEGACY_DRIVERS", False, boolean=True):
-            
-            if xenrt.TEC().lookup("ENABLE_CITRIXCERT", False, boolean=True):
-                self.installCitrixCertificate()
 
             self.installRunOncePVDriversInstallScript()
 
         if not legacy and (useLegacy or xenrt.TEC().lookup("USE_LEGACY_DRIVERS", False, boolean=True)):
             # We deliberately want to install the legacy drivers using xenlegacy.exe
             # This means if necessary resetting the platform flag
-            
+
             try:
                 newDriversDeviceId = self.paramGet("platform", "device_id") == "0002"
             except:
                 newDriversDeviceId = False
-            
+
             if newDriversDeviceId:
                 self.shutdown()
                 self.paramRemove("platform", "device_id")
@@ -5072,16 +5421,24 @@ class TampaGuest(BostonGuest):
                     raise xenrt.XRTError('Windows guest agent HostTime=UTC functional only availalbe in Clearwater or later')
                 hostTimeString = 'HOSTTIME=utc'
 
-            pvToolsTgz = xenrt.TEC().lookup("PV_TOOLS_TGZ_" + self.host.productVersion.upper(), None)
+            # If source is specified, we should use it
+            pvToolsTgz = source
+            if not source:
+                # See if we have an override at the job level
+                pvToolsTgz = xenrt.TEC().lookup("PV_TOOLS_TGZ_" + self.host.productVersion.upper(), None)
             pvToolsDir = "D:"
             if pvToolsTgz:
                 xenrt.TEC().logverbose("Using tools from: %s" % pvToolsTgz)
-                self.xmlrpcSendFile(xenrt.TEC().getFile(pvToolsTgz), "c:\\tools.tgz")
+                if os.path.exists(pvToolsTgz):
+                    toolsTgz = pvToolsTgz
+                else:
+                    toolsTgz = xenrt.TEC().getFile(pvToolsTgz)
+                self.xmlrpcSendFile(toolsTgz, "c:\\tools.tgz")
                 pvToolsDir = self.xmlrpcTempDir()
                 self.xmlrpcExtractTarball("c:\\tools.tgz", pvToolsDir)
 
             self.xmlrpcStart("%s\\installwizard.msi /passive /liwearcmuopvx c:\\tools_msi_install.log %s" % (pvToolsDir, hostTimeString))
-        
+
         # Monitor the guest for a domid change, this is the (first) reboot
         deadline = xenrt.util.timenow() + 3600
         while True:
@@ -5094,7 +5451,7 @@ class TampaGuest(BostonGuest):
                 self.checkHealth(desc="Waiting for installer reboot")
                 raise xenrt.XRTFailure("Timed out waiting for installer initiated reboot")
             xenrt.sleep(30)
-    
+
         if offloadSettingsBefore:
             # CA-87183: in the upgrade case, the Installed key gets set before installation is complete as the new drivers are forced
             # to install the old drivers first in order to set the hardware id. So the only safe way is just to wait for a set ammount of time.
@@ -5109,81 +5466,73 @@ class TampaGuest(BostonGuest):
                         regValue = self.winRegLookup('HKLM', "SOFTWARE\\Citrix\\XenToolsInstaller", "InstallStatus", healthCheckOnFailure=False)
                     except:
                         pass
-                    
+
                 if xenrt.util.timenow() > deadline:
                     self.checkHealth(desc="Waiting for installer registry key to be written")
-                    
+
                     if regValue and len(regValue) > 0:
                         raise xenrt.XRTFailure("Timed out waiting for installer registry key to be written. Value=%s" % regValue)
                     else:
                         raise xenrt.XRTFailure("Timed out waiting for installer registry key to be written.")
-                
+
                 elif "Installed" == regValue:
                     break
                 else:
                     xenrt.sleep(30)
 
         # now wait for PV devices to be connected
-        for i in range(10):
+        count = 20
+        for i in range(count):
             try:
                 self.checkPVDevices()
                 break
             except xenrt.XRTException:
-                if i == 9:
+                if i == count-1:
                     raise
                 xenrt.sleep(120)
-        
+
         # wait for guest agent
-        self.waitForAgent(300)
-        
+        self.waitForAgent(300, checkPvDriversUpToDate=expectUpToDate)
+
         self.enlightenedDrivers = True
-        
+
         self.waitForDaemon(120, desc="Daemon connect after driver install")
-        
+
         # wait for registry key to appear
         time.sleep(30)
-        
+
         offloadSettingsAfter = self.getVifOffloadSettings(0)
         xenrt.TEC().logverbose("xenvif settings after installing tools: %s" % str(offloadSettingsAfter))
-        
+
         # if the VM is moving from old PV drivers to new PV drivers
         # then we don't need to verify that offload settings are preserved
         if legacy and offloadSettingsBefore:
             offloadSettingsBefore.verifyEqualTo(offloadSettingsAfter)
-        
-        usepoolmem = xenrt.TEC().lookup("PVDRIVER_POOLMEM", False, boolean=True)
 
-        if usepoolmem:
-            self.xmlrpcExec("verifier /flags 0x9 /driver xen.sys xenfilt.sys xenbus.sys xenvbd.sys xenvif.sys xennet.sys xeniface.sys")
-
-        if usepoolmem or extrareboot: 
+        if extrareboot:
             self.reboot()
-
+        
         if xenrt.TEC().lookup("DO_SYSPREP", False, boolean=True):
             self.xmlrpcDoSysprep()
             self.reboot()
             self.checkPVDevices()
 
         for i in range(12):
-            if self.pvDriversUpToDate():
+            if self.pvDriversUpToDate() or not expectUpToDate:
                 break
             xenrt.sleep(10)
-            
-        if xenrt.TEC().lookup("SET_DISK_TIMEOUT", False):
-            self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\Disk", "TimeOutValue", "DWORD", int(xenrt.TEC().lookup("SET_DISK_TIMEOUT")))
-            self.reboot()
-            
+
     def uninstallDrivers(self, waitForDaemon=True):
-        
+
         # Insert the tools ISO
         self.changeCD("xs-tools.iso")
         xenrt.sleep(30)
-        
+
         if self.usesLegacyDrivers() or xenrt.TEC().lookup("USE_LEGACY_DRIVERS", False, boolean=True):
             BostonGuest.uninstallDrivers(self, waitForDaemon)
         else:
             batch = ""
-            
+
             if self.xmlrpcGetArch() == "amd64":
                 batch = batch + "MsiExec.exe /X D:\\citrixxendriversx64.msi /passive /norestart\r\n"
                 batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
@@ -5196,18 +5545,18 @@ class TampaGuest(BostonGuest):
                 batch = batch + "MsiExec.exe /X D:\\citrixguestagentx86.msi /passive /norestart\r\n"
                 batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
                 batch = batch + "MsiExec.exe /X D:\\citrixvssx86.msi /passive /norestart\r\n"
-        
+
             batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
             batch = batch + "MsiExec.exe /X D:\\installwizard.msi /passive /norestart\r\n"
             batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
             batch = batch + "shutdown -r\r\n"
-            
+
             self.xmlrpcWriteFile("c:\\uninst.bat", batch)
             self.xmlrpcStart("c:\\uninst.bat")
 
         # wait for reboot
         xenrt.sleep(6 * 60)
-        
+
         if not self.xmlrpcIsAlive():
             raise xenrt.XRTFailure("XML-RPC not alive after tools uninstallation")
 
@@ -5221,22 +5570,22 @@ class TampaGuest(BostonGuest):
                     regValue = self.winRegLookup('HKLM', "SOFTWARE\\Citrix\\XenToolsInstaller", "InstallStatus", healthCheckOnFailure=False)
                 except:
                     installed = False
-            
+
             if installed:
                 xenrt.sleep(30)
             i = i + 1
-            
+
         if installed:
             raise xenrt.XRTFailure("'Installed' reg key found after Tools uninstallation.")
-            
+
         self.enlightenedDrivers = False
-        
+
         if xenrt.TEC().lookup("USE_LEGACY_DRIVERS", False, boolean=True):
             self.xmlrpcShutdown()
             time.sleep(90)
             self.paramSet("platform:device_id", "0002")
             self.start()
-    
+
     def sxmVMMigrate(self,migrateParameters,pauseAfterMigrate=True,timeout = 3600):
 
         # This is the lib call for Storage Xen Motion Migrate
@@ -5255,15 +5604,15 @@ class TampaGuest(BostonGuest):
         # Returns the object of observer
 
         eventClass = []
-      
+
         xenrt.TEC().logverbose("Migrate Parameters: %s" % migrateParameters)
-       
+
         if not migrateParameters.has_key("VDI_SR_map") or not migrateParameters.has_key("dest_host"):
             raise xenrt.XRTError("Essential parameters are not given")
 
         host = self.getHost()
         session = host.getAPISession(secure=False)
-        
+
         destHost = migrateParameters["dest_host"]
 
         if not migrateParameters.has_key("Migrate_Network") or not migrateParameters["Migrate_Network"]:
@@ -5271,7 +5620,7 @@ class TampaGuest(BostonGuest):
 
         xenrt.TEC().logverbose("Source Host uuid: %s,"
                                 "Destination Host uuid: %s," % (host.getMyHostUUID(),destHost.getMyHostUUID()))
-   
+
         destSession = destHost.getAPISession(secure=False)
         eventClass.append("task")
 
@@ -5283,11 +5632,11 @@ class TampaGuest(BostonGuest):
             taskRef = self.vdiLiveMigrate(migrateParameters,session)           
         sxmObs = StorageMotionObserver(host, session,eventClass,taskRef,timeout)
         sxmObs.startObservingSXMMigrate(self,destHost,destSession)
- 
+
         return sxmObs
 
     def vmLiveMigrate(self,migrateParameters,pauseAfterMigrate,session,destSession):
-   
+
         vdiSRRefMap = {}
         vifNetworkRefMap = {}
 
@@ -5329,7 +5678,7 @@ class TampaGuest(BostonGuest):
         vmRef = session.xenapi.VM.get_by_uuid(self.getUUID())
         destHostRef = destSession.xenapi.host.get_by_uuid(destHostuuid)
         networkRef = destSession.xenapi.network.get_by_uuid(networkUUID)
- 
+
         try:
             strToStrMap = {} 
             returnMap = destSession.xenapi.host.migrate_receive(destHostRef,networkRef,strToStrMap)
@@ -5342,7 +5691,7 @@ class TampaGuest(BostonGuest):
             xenrt.TEC().logverbose("Async.VM.migrate API being called on source host : %s " %self.getHost().getMyHostUUID())
         except Exception, e:
             raise xenrt.XRTFailure("Exception occurred while calling migrate send on source host: %s" %e)
-            
+
         xenrt.TEC().logverbose("Migration started")
         return taskId
 
@@ -5358,13 +5707,13 @@ class TampaGuest(BostonGuest):
         else:
             vdiRef = session.xenapi.VDI.get_by_uuid(vdiSRMap.keys()[0])
             srRef = session.xenapi.SR.get_by_uuid(vdiSRMap[vdiSRMap.keys()[0]])
- 
+
         try:
             strToStrMap = {}
             taskId = session.xenapi.Async.VDI.pool_migrate(vdiRef,srRef,strToStrMap)
         except Exception, e:
             raise xenrt.XRTFailure("Exception occurred while calling vdi pool migrate: %s" %e )
-     
+
         return taskId
 
     def migrateVM(self, 
@@ -5385,9 +5734,9 @@ class TampaGuest(BostonGuest):
             self.startLiveMigrateLogger()
         if timer:
             timer.startMeasurement()
-        
+
         tcpDumps = self.startLiveMigrateTcpDump(host, remote_host, live)
-        
+
         try:
             cmd = "vm-migrate uuid=%s" % self.getUUID()
             if remote_user is None:
@@ -5422,9 +5771,9 @@ class TampaGuest(BostonGuest):
                 cmd = cmd + " live=true"
             else:
                 cmd = cmd + " live=false"
-                
+
             cli.execute(cmd)
-            
+
         except xenrt.XRTFailure, e:
             if re.search(r"VM failed to shutdown before the timeout expired",
                          e.reason) or \
@@ -5442,7 +5791,7 @@ class TampaGuest(BostonGuest):
             raise e
         finally:
             self.stopLiveMigrateTcpDump(host, remote_host, tcpDumps)
-        
+
         if timer:
             timer.stopMeasurement()
         if live == "true" and not self.windows:
@@ -5463,50 +5812,50 @@ class TampaGuest(BostonGuest):
 
     def startLiveMigrateTcpDump(self, host, remoteHost, live):
         tcpDumps = {}
-        
+
         if not host:
             host = remoteHost
-        
+
         if host and host.getMyHostUUID() != self.host.getMyHostUUID() and live == "true":
             try:
                 bridges = []
                 devices = []
-                
+
                 for vif in self.getVIFs().values():
                     bridges.append(vif[2])
-                
+
                 for bridge in bridges:
                     devices.append(bridge)
-                    
+
                     pifs = host.parseListForOtherParam("network-list", "bridge", bridge, "PIF-uuids").split("; ")
-                    
+
                     for pif in pifs:
                         if host.genParamGet("pif", pif, "host-uuid") == host.getMyHostUUID():
                             devices.append(host.genParamGet("pif", pif, "device"))
-                    
+
                 for device in devices:
                     xenrt.TEC().logverbose("Starting TCP dump on destination host to monitor traffic on " + device)
                     f = "/tmp/%s_%s" % (device, xenrt.randomGuestName())
                     pid = host.execdom0("tcpdump -i %s -net arp or icmp6 &> %s & echo $!" % (device, f)).strip()
                     tcpDumps[pid] = f
-            
+
             except Exception, ex:
                 xenrt.TEC().logverbose("Exception running startLiveMigrateTcpDump: " + str(ex))
-                
+
         return tcpDumps
-    
+
     def stopLiveMigrateTcpDump(self, host, remoteHost, tcpDumps):
-        
+
         if not host:
             host = remoteHost
-        
+
         if host:
             for pid in tcpDumps:
                 try:
                     host.execdom0("kill %s; cat %s; rm -f %s" % (pid, tcpDumps[pid], tcpDumps[pid]))
                 except:
                     pass
-                
+
     def setHostnameViaXenstore(self):
         """
         ***** Method deprecated *****
@@ -5534,50 +5883,49 @@ class TampaGuest(BostonGuest):
         except:
             pass
 
-
 ##############################################################################
-    
+
 class ClearwaterGuest(TampaGuest):
 
     def retreiveVmGenId(self):
     #Method to retreive VM Generation token id for Windows VM
-    
+
         if float(self.xmlrpcWindowsVersion()) < 6.2:
             raise xenrt.XRTException("VM gen id is not supported in this windows version")
-            
+
         if self.xmlrpcGetArch() == "x86": 
             vmgenexe = "vmgenid32.exe"
         elif self.xmlrpcGetArch() == "amd64":
             vmgenexe = "vmgenid64.exe"
         else :
             raise xenrt.XRTFailure("Cant find the appropriate vmgen.exe file for %s" % self.getName())
-    
+
         #check if vmgen is already there else retreive from the build
         if not self.xmlrpcFileExists("c:\\%s" % (vmgenexe)):
             self.xmlrpcSendFile("%s/data/vmgenid/%s" % (xenrt.TEC().lookup("XENRT_BASE") ,vmgenexe ), "c:\\%s" % (vmgenexe))            
-        
+
         #Run the vmgenid and return the value back to the function
         self.xmlrpcExec("c:\\%s > c://VmGen.log  " %(vmgenexe) , returndata = True )
         vmgenid = self.xmlrpcReadFile("c:\\VmGen.log").strip()
         xenrt.TEC().logverbose("VmgenID is %s" %(vmgenid))
-        
+
         #Verify that ID genearated only consists of digits
         for i in vmgenid.split(':') :
             if not i.isdigit() :
                 xenrt.TEC().warning("VM Generation Id contains characters other than digits")
-        
+
         return vmgenid
 
     def createvGPU(self,groupUUID,vgpuConfigTypeUUID=None):
 
         args = []
         cli = self.getCLIInstance()
-        
+
         args.append("vm-uuid=%s" % self.uuid)
         args.append("gpu-group-uuid=%s" % groupUUID)
         if vgpuConfigTypeUUID:
             args.append("vgpu-type-uuid=%s" % vgpuConfigTypeUUID)
-        
+
         try:
             vgpuUUID = cli.execute("vgpu-create", " ".join(args), strip=True)
         except Exception, e:
@@ -5604,7 +5952,7 @@ class ClearwaterGuest(TampaGuest):
             cli.execute("vgpu-destroy", " ".join(args), strip = True)
         except Exception, e:
             raise xenrt.XRTFailure("vGPU deletion failed with error %s" % str(e))
-        
+
     def hasvGPU(self):
         """
         @rtype: bool
@@ -5679,10 +6027,261 @@ default:
         if reboot:
             self.reboot()
 
+    def dockerInstall(self):
+        """Installs docker into a guest"""
 
-class SarasotaGuest(CreedenceGuest):
-    pass
+        self.getDocker().install()
 
+    def getDocker(self, method="XAPI"):
+
+        if method == "XAPI":
+            controller = xenrt.lib.xenserver.docker.XapiPluginDockerController
+        elif method == "LINUX":
+            controller = xenrt.lib.xenserver.docker.LinuxDockerController
+        else:
+            raise xenrt.XRTError("Unknown docker controller %s" % method)
+
+        # The method by default uses docker interactions through Xapi.
+        if self.distro.startswith("coreos"):
+            return xenrt.lib.xenserver.docker.CoreOSDocker(self.getHost(), self, controller)
+        elif self.distro.startswith("centos"): # CentOS7
+            return xenrt.lib.xenserver.docker.CentOSDocker(self.getHost(), self, controller)
+        elif self.distro.startswith("ubuntu"): #  Ubuntu 14.04
+            return xenrt.lib.xenserver.docker.UbuntuDocker(self.getHost(), self, controller)
+        else:
+            raise xenrt.XRTFailure("Docker installation unimplemented on distro %s" % self.distro)
+
+class DundeeGuest(CreedenceGuest):
+
+    def setRandomPvDriverSource(self):
+        #Randomly select PV Drivers Installation source
+        
+        with xenrt.GEC().getLock("RND_PV_DRIVER_INSTALL_SOURCE"):
+            dbVal = xenrt.TEC().lookup("RND_PV_DRIVER_INSTALL_SOURCE_VALUE", None)
+            if dbVal != None:
+                return dbVal
+            else:
+                randomPvDriverInstallSource = random.choice(xenrt.TEC().lookup("PV_DRIVER_INSTALLATION_SOURCE"))
+                xenrt.GEC().config.setVariable("RND_PV_DRIVER_INSTALL_SOURCE_VALUE",str(randomPvDriverInstallSource))
+                xenrt.GEC().dbconnect.jobUpdate("RND_PV_DRIVER_INSTALL_SOURCE_VALUE",str(randomPvDriverInstallSource))
+                return randomPvDriverInstallSource
+
+    def setRandomPvDriverList(self):
+        #Randomise the order of PV packages 
+
+        with xenrt.GEC().getLock("RND_PV_DRIVERS_LIST"):
+            dbVal = xenrt.TEC().lookup("RND_PV_DRIVERS_LIST_VALUE", None)
+            if dbVal != None:
+                return dbVal
+            else:
+                pvDriversList =xenrt.TEC().lookup("PV_DRIVERS_LIST")
+                pvDriversList = pvDriversList.split(';')
+                random.shuffle(pvDriversList)
+                randomPvDriversList = ';'.join(pvDriversList)
+                xenrt.GEC().config.setVariable("RND_PV_DRIVERS_LIST_VALUE",randomPvDriversList)
+                xenrt.GEC().dbconnect.jobUpdate("RND_PV_DRIVERS_LIST_VALUE",randomPvDriversList)
+                return randomPvDriversList
+
+    def installDrivers(self, source=None, extrareboot=False, useLegacy=False, useHostTimeUTC=False, expectUpToDate=True, installFullWindowsGuestAgent=True, useDotNet=True):
+        """
+        Install PV Tools on Windows Guest
+        """
+
+        #Check if it a windows guest , progress only if it is windows
+        if not self.windows:
+            xenrt.TEC().skip("Non Windows guest, no drivers to install")
+            return
+
+        """Check the PV Driver source from where the tools to be installed 
+        Random : Randomly choose either ToolsISO or Packages
+        ToolsISO : Install PV Drivers through ToolsISO
+        Packages : Install PV Drivers from individual PV packages
+        """
+
+        pvDriverSource = xenrt.TEC().lookup("PV_DRIVER_SOURCE", None)
+
+        if pvDriverSource == "Random":
+            pvDriverSource = self.setRandomPvDriverSource()
+
+        # If source is "ToolsISO" then install from xs tools
+        if pvDriverSource == "ToolsISO" or pvDriverSource == None or useLegacy == True or xenrt.TEC().lookup("USE_LEGACY_DRIVERS", False, boolean=True) or self.usesLegacyDrivers():
+            TampaGuest.installDrivers(self, source, extrareboot, useLegacy, useHostTimeUTC, expectUpToDate)
+
+        #If source is "Packages" then install from PV Packages
+        if pvDriverSource == "Packages":
+
+            if useDotNet:
+                # We support .NET 3.5 and .NET 4. This can be switched at the seq/suite level.
+                self.installDotNetRequiredForDrivers()
+            
+            self.installCitrixCertificate()
+                
+            if installFullWindowsGuestAgent:
+                self.installFullWindowsGuestAgent()
+                
+            # Download the Individual PV packages
+            self.xmlrpcSendFile(xenrt.TEC().getFile("xe-phase-1/%s" %(xenrt.TEC().lookup("PV_DRIVERS_LOCATION"))), "c:\\tools.tgz")
+            pvToolsDir = self.xmlrpcTempDir()
+            self.xmlrpcExtractTarball("c:\\tools.tgz", pvToolsDir)
+            
+            #Get the list of the Packages to be installed in random order
+            packages = self.setRandomPvDriverList()
+            packages = packages.split(';')
+            
+            #Install the PV Packages one by one
+            for pkg in packages:
+                self.installPVPackage(pkg, pvToolsDir)
+           
+            xenrt.sleep(30)
+            self.reboot()
+                
+            # now wait for PV devices to be connected
+            count = 20
+            for i in range(count):
+                try:
+                    self.checkPVDevices()
+                    break
+                except xenrt.XRTException:
+                    if i == count-1:
+                        raise
+                    xenrt.sleep(120)
+
+            # wait for guest agent
+            self.waitForAgent(300, checkPvDriversUpToDate=expectUpToDate)
+
+            self.enlightenedDrivers = True
+
+            self.waitForDaemon(120, desc="Daemon connect after driver install")
+            
+            if extrareboot:
+                self.reboot()
+            
+            #Check whether tools are up to date
+            for i in range(12):
+                if self.pvDriversUpToDate() or not expectUpToDate:
+                    break
+                xenrt.sleep(10)
+
+    def installPVPackage(self, packageName = None, toolsDirectory = None):
+        """ Installing Individual PV package """
+        
+        #If packageName is none then raise error
+        if packageName is None:
+            raise xenrt.XRTError("PV package to install not specified")
+        
+        #Download the tools if not present already
+        if toolsDirectory is None:
+            self.xmlrpcSendFile(xenrt.TEC().getFile("xe-phase-1/%s" %(xenrt.TEC().lookup("PV_DRIVERS_LOCATION"))), "c:\\tools.tgz")
+            toolsDirectory = self.xmlrpcTempDir()
+            self.xmlrpcExtractTarball("c:\\tools.tgz", toolsDirectory)
+        
+        #Get the Arch and install the appropriate Drivers 
+        if self.xmlrpcGetArch().endswith('64'):
+            arch = "x64"
+        else:
+            arch = "x86"
+        
+        self.xmlrpcStart("%s\\%s\\%s\\dpinst.exe /sw" % (toolsDirectory, packageName, arch))
+        xenrt.sleep(30)
+
+    def installFullWindowsGuestAgent(self):
+        """ Install Windows Guest Agent from xs tools """
+        
+        #Mount the tools CD 
+        self.changeCD("xs-tools.iso")
+        xenrt.sleep(30)
+        pvToolsDir = "D:"
+        
+        #Get the Arch and install the appropriate guest agent  
+        if self.xmlrpcGetArch().endswith('64'):
+            self.xmlrpcStart("%s\\citrixguestagentx64.msi  /passive /norestart" %(pvToolsDir))
+        else:
+            self.xmlrpcStart("%s\\citrixguestagentx86.msi  /passive /norestart" %(pvToolsDir))
+        
+        xenrt.sleep(30)
+        
+        #Eject the tools CD from the VM.
+        self.changeCD(None)
+
+    def sc(self, command ):
+        """SC is a command line program used for communicating with the Service control manager and services"""
+        
+        return self.xmlrpcExec("sc %s" % (command), returnerror=False, returnrc=True) == 0
+        
+    def checkPVDriversStatus(self, ignoreException = False):
+        """ Verify the Drivers are running by using 'SC' Command line program"""
+        
+        drivers = ['XENBUS','XENIFACE','XENVIF','XENVBD','XENNET']
+        notRunning = []
+        
+        for driver in drivers:
+            status = self.sc('query %s | find "RUNNING"' %(driver))
+            if not status:
+                notRunning.append(driver)
+                
+        if notRunning:
+            if ignoreException:
+                return False
+            else:
+                raise xenrt.XRTFailure(" %s services not running on %s" %(','.join(notRunning), self.getName()))
+        else:
+            return True
+            
+        xenrt.TEC().logverbose("PV Devices are installed and Running on %s " %(self.getName()))
+
+    def uninstallDrivers(self, waitForDaemon=True):
+        
+        installed = False
+        driversToUninstall = ['*XENVIF*', '*XENBUS*', '*VEN_5853*']
+        
+        var1 = self.winRegPresent('HKLM', "SOFTWARE\\Wow6432Node\\Citrix\\XenToolsInstaller", "InstallStatus")
+        var2 = self.winRegPresent('HKLM', "SOFTWARE\\Citrix\\XenToolsInstaller", "InstallStatus")
+        if var1 or var2:
+            super(DundeeGuest , self).uninstallDrivers(waitForDaemon)
+            
+        else:
+            #Drivers are installed using PV Packages uninstall them separately
+            
+            if self.xmlrpcGetArch().endswith('64'):
+                devconexe = "devcon64.exe"
+            else:
+                devconexe = "devcon.exe"
+                
+            if not self.xmlrpcFileExists("c:\\%s" % devconexe):
+                self.xmlrpcSendFile("%s/distutils/%s" % (xenrt.TEC().lookup("LOCAL_SCRIPTDIR"), devconexe), "c:\\%s" % devconexe)
+                
+            self.enablePowerShellUnrestricted()
+            
+            #Get the OEM files to be deleted after uninstalling drivers
+            oemFileList = self.xmlrpcExec("C:\\%s dp_enum | select-string 'Citrix' -Context 1,0 | findstr 'oem'" %(devconexe), returndata = True, powershell=True).strip().splitlines()
+            oemFileList = [item.strip() for item in oemFileList][1:]
+            
+            batch = []
+            
+            for driver in driversToUninstall:
+            
+                batch.append("C:\\%s remove %s\r\n" %(devconexe, driver))
+                batch.append("ping 127.0.0.1 -n 10 -w 1000\r\n")
+
+            for file in oemFileList:
+                batch.append("pnputil.exe -f -d %s\r\n" %(file)) 
+                batch.append("ping 127.0.0.1 -n 10 -w 1000\r\n")
+            
+            self.xmlrpcWriteFile("c:\\uninst.bat", string.join(batch))
+            self.xmlrpcStart("c:\\uninst.bat")
+        
+        self.reboot()
+        
+        if not self.xmlrpcIsAlive():
+            raise xenrt.XRTFailure("XML-RPC not alive after tools uninstallation")
+        
+        # Verify PV devices have been removed after tools uninstallation
+        if self.checkPVDevicesState() and not self.checkPVDriversStatus(ignoreException = True):
+            xenrt.TEC().logverbose("PV Packages are uninstalled Successfully")
+        else:
+            raise xenrt.XRTFailure("PV Packages are not uninstalled")
+            
+        self.enlightenedDrivers = False
 
 class StorageMotionObserver(xenrt.EventObserver):
 
@@ -5693,8 +6292,8 @@ class StorageMotionObserver(xenrt.EventObserver):
         self.srcHost = vm.getHost()
         self.vm = vm
         self.vmDownTime = 0
- 
-        if self.getTaskStatus() <> "pending":	
+
+        if self.getTaskStatus() <> "pending":
             xenrt.TEC().logverbose("Migration has been completed/failed already")
             return
 
@@ -5729,17 +6328,17 @@ class StorageMotionObserver(xenrt.EventObserver):
             raise xenrt.XRTError("There is no task running/executed")
 
     def closeDestHostSession(self):
- 
+
         self.destHost.logoutAPISession(self.destSession) 
 
     def getSXMResult(self):
-  
+
         result = {}
         result = self.getResult()
         result["vmDownTime"] = self.vmDownTime
-        
+
         return result
-        
+
 #############################################################################
 
 def startMulti(guestlist,
@@ -5863,7 +6462,7 @@ def startMulti(guestlist,
                 for g in gueststoremove:
                     guestlist.remove(g)
         xenrt.sleep(15)
-        
+
     if reboot:
         xenrt.TEC().logverbose("Rebooted %u guests" % (len(guestlist)))
     else:
@@ -5879,7 +6478,6 @@ def startMulti(guestlist,
             xenrt.TEC().comment("Health check of %s: %s" % (g.name, str(e)))
             if e.data:
                 xenrt.TEC().logverbose(str(e.data))
-        
 
 def shutdownMulti(guestlist, timeout=None, clitimeout=7200, timer=None):
     """Shutdown multiple guests."""
@@ -5948,5 +6546,5 @@ def shutdownMulti(guestlist, timeout=None, clitimeout=7200, timer=None):
             for g in gueststoremove:
                 guestlist.remove(g)
         xenrt.sleep(15)
-        
+
     xenrt.TEC().logverbose("Shutdown %u guests" % (len(guestlist)))

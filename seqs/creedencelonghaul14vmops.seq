@@ -6,7 +6,7 @@
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
   </variables>
   <scheduler>
-    <resources>memory&gt;=12G/memory&lt;=16G/disk1&gt;=100G</resources>
+    <resources>memory&gt;=12G/memory&lt;=16G/disk1&gt;=200G</resources>
   </scheduler>
   <prepare>
     <host>

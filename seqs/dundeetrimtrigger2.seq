@@ -1,0 +1,23 @@
+<xenrt>
+
+<!-- Negative testing to verify whether TRIM is supported on NFS and ext SRs -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="nfs" name="nfsSR"/>
+      <host id="0" installsr="ext" />
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="NegativeTRIM">
+      <testcase id="xenserver.tc.lunspace.TC21553"/>
+      <testcase id="xenserver.tc.lunspace.TC21555"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

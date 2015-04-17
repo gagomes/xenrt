@@ -1,0 +1,10 @@
+/var/log/dibbler/dibbler-server.log {
+	daily
+	missingok
+	rotate 7
+	postrotate
+		/etc/init.d/dibbler-server restart > /dev/null
+	endscript
+	compress
+	notifempty
+}

@@ -19,6 +19,9 @@ class OS(object):
         self.viridian = False
         self.__installMethod = None
 
+    def tailor(self):
+        pass
+
     @abstractproperty
     def canonicalDistroName(self):
         pass
@@ -55,6 +58,9 @@ class OS(object):
     def getLogs(self, path):
         pass
 
+    def setIPs(self, ipSpec):
+        raise xenrt.XRTError("Not implemented")
+
 def registerOS(os):
     oslist.append(os)
 
@@ -73,3 +79,4 @@ from xenrt.lib.opsys.windows import *
 from xenrt.lib.opsys.windowspackages import *
 from xenrt.lib.opsys.rhel import *
 from xenrt.lib.opsys.sles import *
+from xenrt.lib.opsys.xs import *

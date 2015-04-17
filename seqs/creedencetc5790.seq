@@ -40,10 +40,6 @@
       <testcase id="xenserver.tc.vminstall.TC11790" group="VMInstall"/>
       <testcase id="xenserver.tc.vminstall.TC11792" group="VMInstall"/>
       <testcase id="xenserver.tc.vminstall.TC11793" group="VMInstall"/>
-      <testcase id="xenserver.tc.vminstall.TC9030" group="VMInstall"/>
-      <testcase id="xenserver.tc.vminstall.TC9031" group="VMInstall"/>
-      <testcase id="xenserver.tc.vminstall.TC9033" group="VMInstall"/>
-      <testcase id="xenserver.tc.vminstall.TC9034" group="VMInstall"/>
       <testcase id="xenserver.tc.vminstall.TC11838" group="VMInstall"/>
       <testcase id="xenserver.tc.vminstall.TC11837" group="VMInstall"/>
       <testcase id="xenserver.tc.vminstall.TC11839" group="VMInstall"/>
@@ -75,7 +71,6 @@
       <testcase id="xenserver.tc.vminstall.TC14503" group="VMInstall"/>
       <testcase id="xenserver.tc.vminstall.TC14506" group="VMInstall"/>
 
-      <testcase id="xenserver.tc.vminstall.TC15867" group="VMInstall"/>
       <testcase id="xenserver.tc.vminstall.TC15873" group="VMInstall"/>
       <testcase id="xenserver.tc.vminstall.TC15876" group="VMInstall"/>
 
@@ -100,6 +95,8 @@
       
       <testcase id="xenserver.tc.vminstall.TC17743" group="VMInstall"/>
       <testcase id="xenserver.tc.vminstall.TC17744" group="VMInstall"/>
+
+
 
     </parallel>
     <serial>

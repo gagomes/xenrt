@@ -1,0 +1,20 @@
+<xenrt>
+
+  <!-- MNR VM snapshot test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence group="VMSnapshot">
+    <testcase id="xenserver.tc.snapshot.TC7851" prio="3"/>
+    <testcase id="xenserver.tc.snapshot.TC9705" prio="3"/>
+    <testcase id="xenserver.tc.snapshot.TC7852" prio="3"/>
+    <testcase id="xenserver.tc.snapshot.TC9708" prio="3"/>
+  </testsequence>
+
+</xenrt>

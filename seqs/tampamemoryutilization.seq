@@ -1,6 +1,7 @@
 <xenrt>
   <variables>
     <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    <PREPARE_WORKERS>8</PREPARE_WORKERS>
   </variables>
   <prepare>
     <pool id="0">
@@ -67,7 +68,7 @@
   </prepare>
   
   <testsequence>
-    <testcase id="xenserver.tc.balloon.TCMemoryActual" name="TC-21565"/>
+    <testcase id="xenserver.tc.balloon.TCMemoryActual" tc="TC-21565"/>
   </testsequence>
   
 </xenrt>

@@ -1,0 +1,57 @@
+<xenrt>
+
+  <!-- PVS interop tests -->
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+    <FINALLY_UNINSTALL>yes</FINALLY_UNINSTALL>
+  </variables>
+
+  <default name="PXE_NETWORK" value="PVSNET"/>
+  <default name="SRV_DISTRO" value="ws08sp2-x86"/>
+  <default name="DEV_DISTRO" value="win7-x86"/>
+  <default name="PVS_BUILD_LOCATION" value="\\xenrtcifs.xenrt.xs.citrite.net\share\PVS\7.1"/>
+  
+  <prepare>
+    <host>
+      <vm name="${SRV_DISTRO}">
+        <distro>${SRV_DISTRO}</distro>
+        <memory>4096</memory>
+        <vcpus>4</vcpus>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="installPowerShell20"/>
+      </vm>
+      <vm name="${DEV_DISTRO}">
+        <distro>${DEV_DISTRO}</distro>
+        <memory>2042</memory>
+        <vcpus>2</vcpus>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="installPowerShell20"/>
+      </vm>
+      <bridge name="${PXE_NETWORK}"/>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="PVSBVTWin">
+      <testcase id="testcases.xenserver.tc.interop.TC10842">
+        <arg>PXE_NETWORK=${PXE_NETWORK}</arg>
+        <arg>SRV_DISTRO=${SRV_DISTRO}</arg>
+        <arg>DEV_DISTRO=${DEV_DISTRO}</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.interop.TC10843">
+        <arg>PXE_NETWORK=${PXE_NETWORK}</arg>
+        <arg>SRV_DISTRO=${SRV_DISTRO}</arg>
+        <arg>DEV_DISTRO=${DEV_DISTRO}</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.interop.TC10844">
+        <arg>PXE_NETWORK=${PXE_NETWORK}</arg>
+        <arg>SRV_DISTRO=${SRV_DISTRO}</arg>
+        <arg>DEV_DISTRO=${DEV_DISTRO}</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+  
+</xenrt>

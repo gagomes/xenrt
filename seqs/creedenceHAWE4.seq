@@ -15,9 +15,9 @@
 
   <testsequence>
     <serial group="HostFailures">
-      <testcase id="xenserver.tc.ha.TC7715"/>
-      <testcase id="xenserver.tc.ha.TC7717"/>
-      <testcase id="xenserver.tc.ha.TC7718"/>
+      <testcase id="xenserver.tc.ha.TC7711"/>
+      <testcase id="xenserver.tc.ha.TC7713"/>
+      <testcase id="xenserver.tc.ha.TC7714"/>
     </serial>
     <serial group="XapiFailures">
       <testcase id="xenserver.tc.ha.TC7729"/>

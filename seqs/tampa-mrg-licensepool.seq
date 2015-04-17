@@ -1,0 +1,41 @@
+<xenrt>
+
+ <!-- Tampa - a pool of hosts for license verification -->
+
+  <variables>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+  </variables>
+  <scheduler>
+    <resources>memory&gt;=5G</resources>
+    <param>MACHINES_REQUIRED=2</param>
+    <flags>nfs</flags>
+  </scheduler>
+  <prepare>
+    <pool id="0">
+      <host id="0" license="no" usev6testd="no">
+        <vm name="Windows XP SP3">
+          <distro>winxpsp3</distro>
+          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <postinstall action="installDrivers" />
+          <network device="0" />
+          <disk device="0" size="16" />
+          <storage>NFS-SR</storage>
+        </vm>
+      </host>
+      <host id="1" license="no" usev6testd="no">
+        <vm name="CentOS 5.0">
+          <distro>centos5</distro>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+          <storage>NFS-SR</storage>
+        </vm>
+      </host>
+      <storage type="nfs" name="NFS-SR" />
+    </pool>
+  </prepare>
+</xenrt>
+

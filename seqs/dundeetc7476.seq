@@ -1,0 +1,23 @@
+<xenrt>
+
+  <!-- MNR TC-7476 test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <POOL_NO_DEFAULT_SR>yes</POOL_NO_DEFAULT_SR> 
+  </variables>
+
+  <prepare>
+    <pool>
+      <host id="0"/>
+      <host id="1"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="DisklessVM">
+      <testcase id="xenserver.tc.guest.TC7476"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

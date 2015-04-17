@@ -1,0 +1,94 @@
+<xenrt>
+  <!-- Sequence used to certify applying XS HFX to CCP managed cluster [basic mode] -->
+  <default name="PRODUCT_VERSION" value="Clearwater"/>
+  <default name="PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446"/>
+
+  <variables>
+    <NETWORK_BACKEND>bridge</NETWORK_BACKEND>
+  </variables>
+
+  <prepare>
+    <cloud>
+{
+  "zones": [
+    {
+      "networktype": "Advanced", 
+      "pods": [
+        {
+          "XRT_PodIPRangeSize": 10, 
+          "clusters": [
+            {
+              "hypervisor": "XenServer", "XRT_Hosts": 3
+            }
+          ]
+        }
+      ], 
+      "physical_networks": [
+        {
+          "isolationmethods": [
+            "VLAN"
+          ], 
+          "XRT_VLANRangeSize": 2, 
+          "name": "AdvPhyNetwork", 
+          "traffictypes": [
+            {
+              "typ": "Guest"
+            }, 
+            {
+              "typ": "Management"
+            }, 
+            {
+              "typ": "Public"
+            }
+          ], 
+          "providers": [
+            {
+              "broadcastdomainrange": "ZONE", 
+              "name": "VirtualRouter"
+            }, 
+            {
+              "broadcastdomainrange": "ZONE", 
+              "name": "VpcVirtualRouter"
+            }, 
+            {
+              "broadcastdomainrange": "ZONE", 
+              "name": "InternalLbVm"
+            }
+          ]
+        }
+      ], 
+      "guestcidraddress": "192.168.200.0/24", 
+      "ipranges": [
+        {
+          "XRT_GuestIPRangeSize": 20
+        }
+      ]
+    }
+  ]
+}
+    </cloud>
+    
+    <sharedhost>
+      <vm name="CS-MS">
+        <distro>rhel63</distro>
+        <arch>x86-64</arch>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installCloudManagementServer" />
+        <network device="0" />
+        <disk device="0" size="20" />
+      </vm>
+    </sharedhost>
+    <template distro="debian60_x86-32" installTools="yes" hypervisorType="XenServer" zone="XenRT-Zone-0">
+      <rootdisk>8589934592</rootdisk>
+    </template>
+  </prepare>
+
+  <testsequence group="HFX-Apply">
+      <testcase id="cloud.tc.update.TCCloudUpdate" name="ProcCheck" tc="TC-23337" sku="chk/Adv/${PRODUCT_VERSION}">
+          <arg>noupdate=true</arg>
+      </testcase>
+      <testcase id="cloud.tc.update.TCCloudUpdate" name="ApplyHFX" tc="TC-23337" sku="hfx/Adv/${PRODUCT_VERSION}">
+      </testcase>
+  </testsequence>
+</xenrt>

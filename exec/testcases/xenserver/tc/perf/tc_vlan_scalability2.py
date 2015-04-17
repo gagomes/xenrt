@@ -179,7 +179,7 @@ class TCVlanScalability(libperf.PerfTestCase):
         for h in self.normalHosts:
             host = self.tec.gec.registry.hostGet(h)
 
-            [bootstarttime, bootfinishtime] = map (lambda g: int(host.execdom0("date -d \"$(grep -h \"%s\" /var/log/{user.log,kern.log,messages} | tail -n 1 | awk '{print $1\" \"$2\" \"$3}')\" '+%%s'" % g).strip()), [self.bootstartgrepkey, self.bootfinishgrepkey])
+            [bootstarttime, bootfinishtime] = map (lambda g: int(host.execdom0("date -d \"$(grep -h \"%s\" /var/log/{user.log,kern.log,messages} 2> /dev/null | tail -n 1 | awk '{print $1\" \"$2\" \"$3}')\" '+%%s'" % g).strip()), [self.bootstartgrepkey, self.bootfinishgrepkey])
             if bootstarttime == 0:
                 xenrt.XRTError("on %s, could not find '%s' in /var/log/messages" % (host.getName(), self.bootstartgrepkey))
             if bootfinishtime == 0:

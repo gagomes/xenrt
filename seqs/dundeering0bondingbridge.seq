@@ -1,0 +1,19 @@
+<xenrt>
+
+  <!-- Bonding tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+      <host/>
+  </prepare>
+
+  <testsequence>
+    <serial group="Failover">
+      <testcase id="xenserver.tc.bonding.TC8202" tc="TC-17758" />
+    </serial>
+  </testsequence>
+
+</xenrt>

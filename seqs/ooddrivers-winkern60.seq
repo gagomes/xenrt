@@ -15,7 +15,7 @@
   <variables>
     <PRODUCT_VERSION>${TESTED_PRODUCT_VERSION}</PRODUCT_VERSION>
     <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
-    <HFX_BRANCH_CLEARWATER>RTM</HFX_BRANCH_CLEARWATER>
+    <HFX_BRANCH_CLEARWATER>SP1</HFX_BRANCH_CLEARWATER>
   </variables>
 
   <semaphores>
@@ -56,29 +56,29 @@
           </testcase>          
           <testcase id="guestops.basic.TCStartStop" tc="TC-9604">
             <arg>guest=vistaeesp2</arg>
-            <arg>loops=20</arg>
+            <arg>loops=5</arg>
           </testcase>
           <testcase id="guestops.basic.TCReboot" tc="TC-9605">
             <arg>guest=vistaeesp2</arg>
-            <arg>loops=20</arg>
+            <arg>loops=5</arg>
           </testcase>
           <testcase id="guestops.srm.TCSuspendResume" tc="TC-9606">
             <arg>guest=vistaeesp2</arg>
             <arg>workloads</arg>
-            <arg>loops=20</arg>
+            <arg>loops=5</arg>
             <arg>clone</arg>
           </testcase>
           <testcase id="guestops.srm.TCMigrate" tc="TC-9607">
             <arg>guest=vistaeesp2</arg>
             <arg>workloads</arg>
-            <arg>loops=10</arg>
+            <arg>loops=5</arg>
             <arg>clone</arg>
           </testcase>
           <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-9608">
             <arg>guest=vistaeesp2</arg>
             <arg>live</arg>
             <arg>workloads</arg>
-            <arg>loops=20</arg>
+            <arg>loops=5</arg>
             <arg>clone</arg>
           </testcase>
           <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-9610">
@@ -121,27 +121,27 @@
           </testcase>
           <testcase id="guestops.basic.TCStartStop" tc="TC-9643">
             <arg>guest=ws08sp2-x64</arg>
-            <arg>loops=20</arg>
+            <arg>loops=5</arg>
           </testcase>
           <testcase id="guestops.basic.TCReboot" tc="TC-9644">
             <arg>guest=ws08sp2-x64</arg>
-            <arg>loops=20</arg>
+            <arg>loops=5</arg>
           </testcase>
           <testcase id="guestops.srm.TCSuspendResume" tc="TC-9645">
             <arg>guest=ws08sp2-x64</arg>
             <arg>workloads</arg>
-            <arg>loops=20</arg>
+            <arg>loops=5</arg>
           </testcase>
           <testcase id="guestops.srm.TCMigrate" tc="TC-9646">
             <arg>guest=ws08sp2-x64</arg>
             <arg>workloads</arg>
-            <arg>loops=10</arg>
+            <arg>loops=5</arg>
           </testcase>
           <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-9647">
             <arg>guest=ws08sp2-x64</arg>
             <arg>live</arg>
             <arg>workloads</arg>
-            <arg>loops=20</arg>
+            <arg>loops=5</arg>
           </testcase>
           <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-9649">
             <arg>N/A</arg>

@@ -84,7 +84,7 @@ class TC640(xenrt.TestCase):
         while xenrt.timenow() < end:
             current = self.getXAPIpmem()
             xenrt.TEC().logverbose("Current XAPI pmem: %s" % (current))
-            if current/initial > 1.1:
+            if current/initial > 1.5:
                 raise xenrt.XRTFailure("XAPI may be leaking memory.")
             time.sleep(30)
 
@@ -171,9 +171,12 @@ class TC968(xenrt.TestCase):
         try:
             cli.execute("vm-list", "-k")
         except xenrt.XRTFailure, e:
-            if not re.search("Unknown switch", e.reason):
+            if "Unknown switch" in e.reason or "Syntax error" in e.reason:
+                xenrt.TEC().logverbose("CLI failed with expected reason: %s" % (e.reason))
+            else:
+                xenrt.TEC().logverbose("CLI failed with unexpected reason.")
                 raise e
-        else:       
+        else:
             raise xenrt.XRTFailure("No error raised when passing invalid argument.")
         
 class TC1224(xenrt.TestCase):

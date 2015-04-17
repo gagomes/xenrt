@@ -1,0 +1,94 @@
+<xenrt>
+
+  <!-- OS functional tests: vistaeesp2 (IPV6) -->
+
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+    <USE_GUEST_IPV6>yes</USE_GUEST_IPV6>
+    <DISABLE_GUEST_IPV4>yes</DISABLE_GUEST_IPV4>
+  </variables>
+
+  <default name="PARALLEL" value="2"/>
+  <default name="MIGRATEPAR" value="1"/>
+
+  <semaphores>
+    <TCMigrate count="${MIGRATEPAR}"/>
+  </semaphores>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <parallel workers="${PARALLEL}">
+
+
+    <serial group="vistaeesp2">
+      <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="VMInstall" tc="TC-16186">
+        <arg>RESOURCE_HOST_0</arg>
+        <arg>guest=vistaeesp2</arg>
+        <arg>distro=vistaeesp2</arg>
+        <arg>memory=1024</arg>
+      </testcase>
+      <serial guest="vistaeesp2">
+        <testcase id="guestops.drivers.TCDriverInstall" tc="TC-16187">
+        <arg>guest=vistaeesp2</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCStartStop" tc="TC-16188">
+        <arg>guest=vistaeesp2</arg>
+        <arg>loops=10</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCReboot" tc="TC-16189">
+        <arg>guest=vistaeesp2</arg>
+        <arg>loops=10</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCSuspendResume" tc="TC-16190">
+        <arg>guest=vistaeesp2</arg>
+        <arg>loops=10</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" tc="TC-16191">
+        <arg>guest=vistaeesp2</arg>
+        <arg>loops=5</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-16192">
+        <arg>guest=vistaeesp2</arg>
+        <arg>live</arg>
+        <arg>loops=10</arg>
+        </testcase>
+        <!-- <testcase id="guestops.srm.TCHibernate" tc="TC-16193">
+        <arg>guest=vistaeesp2</arg>
+        <arg>loops=5</arg>
+        </testcase> -->
+        <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-16194">
+        <arg>N/A</arg>
+        <arg>guest=vistaeesp2</arg>
+        <arg>noshutdown</arg>
+        <arg>initial=4</arg>
+        <arg>max=7</arg>
+        </testcase>
+        <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-16195">
+        <arg>N/A</arg>
+        <arg>guest=vistaeesp2</arg>
+        <arg>noshutdown</arg>
+        </testcase>
+        <testcase id="guestops.cpu.TCCPUWalk" tc="TC-16196">
+        <arg>guest=vistaeesp2</arg>
+        <arg>max=8</arg>
+        <arg>noplugwindows</arg>
+        </testcase>
+        <finally>
+          <testcase id="guestops.basic.TCShutdown">
+            <arg>guest=vistaeesp2</arg>
+            <arg>finally</arg>
+          </testcase>
+        </finally>
+      </serial>
+    </serial>
+    
+
+    </parallel>
+  </testsequence>
+
+</xenrt>

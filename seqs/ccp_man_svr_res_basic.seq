@@ -63,19 +63,19 @@
   </prepare>
 
   <testsequence group="Resiliency">
-      <testcase id="cloud.tc.resiliency.TCManServerVMReboot" tc="TC-21634" sku="${TESTED_HYPERVISOR}/Basic">
+      <testcase id="cloud.tc.resiliency.TCManServerVMReboot" tc="TC-21634" name="${TESTED_HYPERVISOR}.MS-RB.Basic" sku="${TESTED_HYPERVISOR}/Basic">
           <arg>distros=centos59_x86-32</arg>
       </testcase>
-      <testcase id="cloud.tc.resiliency.TCManServerRestart" tc="TC-21635" sku="${TESTED_HYPERVISOR}/Basic">
+      <testcase id="cloud.tc.resiliency.TCManServerRestart" tc="TC-21635" name="${TESTED_HYPERVISOR}.MS-RS.Basic" sku="${TESTED_HYPERVISOR}/Basic">
           <arg>distros=centos59_x86-32</arg>
       </testcase>
-      <testcase id="cloud.tc.resiliency.TCDBRestart" tc="TC-21636" sku="${TESTED_HYPERVISOR}/Basic">
+      <testcase id="cloud.tc.resiliency.TCDBRestart" tc="TC-21636" name="${TESTED_HYPERVISOR}.DB-RS.Basic" sku="${TESTED_HYPERVISOR}/Basic">
           <arg>distros=centos59_x86-32</arg>
       </testcase>
-      <testcase id="cloud.tc.resiliency.TCDBOutage" tc="TC-21637" sku="${TESTED_HYPERVISOR}/Basic">
+      <testcase id="cloud.tc.resiliency.TCDBOutage" tc="TC-21637" name="${TESTED_HYPERVISOR}.DB-Out.Basic" sku="${TESTED_HYPERVISOR}/Basic">
           <arg>distros=centos59_x86-32</arg>
       </testcase>
-      <testcase id="cloud.tc.resiliency.TCManServerStartAfterDB" tc="TC-21638" sku="${TESTED_HYPERVISOR}/Basic">
+      <testcase id="cloud.tc.resiliency.TCManServerStartAfterDB" tc="TC-21638" name="${TESTED_HYPERVISOR}.MS-DB.Basic" sku="${TESTED_HYPERVISOR}/Basic">
           <arg>distros=centos59_x86-32</arg>
       </testcase>
   </testsequence>

@@ -1,0 +1,26 @@
+<xenrt>
+
+  <!-- HA + Ballooning tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+    <SR_ISCSI_MINSIZE>100</SR_ISCSI_MINSIZE>
+  </variables>
+
+  <prepare>
+    <pool>
+      <allhosts/>
+      <storage type="lvmoiscsi" name="iscsisr" default="true"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="TC-9310">
+      <testcase id="xenserver.tc.balloon.TC9311"/>
+      <testcase id="xenserver.tc.balloon.TC9312"/>
+      <testcase id="xenserver.tc.balloon.TC9313"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

@@ -14,7 +14,7 @@ from random import choice
 
 __all__ = ["FileCache"]
 
-class FileCache:
+class FileCache(object):
     """XenRT File Cache"""
 
     def __init__(self,type):

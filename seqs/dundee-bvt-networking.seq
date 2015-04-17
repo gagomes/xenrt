@@ -1,0 +1,22 @@
+<xenrt>
+
+  <!-- Network Functional Tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <CARBON_EXTRA_CDS>linux.iso</CARBON_EXTRA_CDS>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <serial group="NetworkFunctional">
+      <testcase id="xenserver.tc.network.TC7339" blocker="yes" prio="3"/>
+      <testcase id="xenserver.tc.network.TC6632" blocker="yes" prio="3"/>
+      <testcase id="xenserver.tc.bonding.TC6763" blocker="yes" prio="3"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

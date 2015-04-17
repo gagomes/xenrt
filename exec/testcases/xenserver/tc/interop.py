@@ -507,10 +507,10 @@ class TCXdAsfSetup(xenrt.TestCase):
 
         return guestDict
 
-    def executeASFShellCommand(self, asfCont, command, csvFormat=False):
+    def executeASFShellCommand(self, asfCont, command, csvFormat=False, timeout=300):
         csvFormatStr = csvFormat and '| convertto-csv' or ''
         commandStr = 'cd %s; Import-Module asf; echo "xrtretdatastart"; %s %s; echo "xrtretdataend"' % (self.ASF_WORKING_DIR, command, csvFormatStr)
-        rValue = asfCont.xmlrpcExec(commandStr, powershell=True, returndata=True).splitlines()
+        rValue = asfCont.xmlrpcExec(commandStr, powershell=True, returndata=True, timeout=timeout).splitlines()
         rData = []
         storeLines = False
         finished = False 
@@ -605,10 +605,11 @@ powershell %s""" % (self.ASF_WORKING_DIR, netUseCommand, command)
         map(lambda x:xenrt.TEC().logverbose(x), self.executeASFShellCommand(asfCont, 'Show-AsfConfig'))
 
     def configureInfrastructureVMs(self, host, infraGuests):
-        infraGuests['ASFDC1'].waitForAgent(timeout=300)
+        infraGuests['ASFDC1'].waitForAgent(300)
+        infraGuests['ASFDC1'].enlightenedDrivers = True
         infraGuests['ASFDC1'].shutdown()
 
-        infraGuests['ASFController'].waitForAgent(timeout=300)
+        infraGuests['ASFController'].waitForAgent(300)
         infraGuests['ASFController'].tailored = True
         infraGuests['ASFController'].existing(host)
         xenrt.TEC().logverbose('ASFController: IP=%s, windows=%s, enlightenedDrivers=%s' % (infraGuests['ASFController'].mainip, infraGuests['ASFController'].windows, infraGuests['ASFController'].enlightenedDrivers))
@@ -629,7 +630,7 @@ powershell %s""" % (self.ASF_WORKING_DIR, netUseCommand, command)
 
     def executeAsfTests(self, asfCont):
         try:
-            result = self.executePowershellASFCommand(asfCont, '.\\launch.ps1', returndata=False, timeout=60*60*3)
+            result = self.executeASFShellCommand(asfCont, 'Invoke-AsfWorkFlow -NewWindow', timeout=60*60*3)
             xenrt.TEC().comment('ASF Test Returned Result: %s' % (result))
         except Exception, e:
             xenrt.TEC().comment('ASF Test Returned Exception: %s' % (e))
@@ -720,11 +721,6 @@ powershell %s""" % (self.ASF_WORKING_DIR, netUseCommand, command)
         logDirList = asfCont.xmlrpcGlobpath("%s\\*\\*" % (asfLogSrcDir))
         # Remove self test dir
         logDirList = filter(lambda x:'SelfTest' not in x, logDirList)
-        envCreateDir = filter(lambda x:'EnvCreate' in x, logDirList)[0]
-        envCreateLogFilePath = '%s\\GlobalLog.txt' % (envCreateDir)
-        asfCont.xmlrpcGetFile2(envCreateLogFilePath, os.path.join(logsubdir, 'envcreate-GlobalLog.txt'))
-
-        logDirList = filter(lambda x:'EnvCreate' not in x, logDirList)
         if not len(logDirList) == 1:
             xenrt.TEC().warning('Could not find unique ASF results directory')
         asfResultsDir = logDirList[0]
@@ -770,8 +766,8 @@ powershell %s""" % (self.ASF_WORKING_DIR, netUseCommand, command)
 
         version = host.checkVersion(versionNumber=True)
         # Run trunk against Clearwater templates
-        if host.productVersion == 'Creedence' or host.productVersion == 'Sarasota':
-            xenrt.TEC().warning('Using Clearwater Templates for trunk and Creedence')
+        if host.productVersion == 'Creedence' or host.productVersion == 'Dundee' or host.productVersion == 'Cream':
+            xenrt.TEC().warning('Using Clearwater Templates for trunk, Creedence and Cream')
             version = '6.2.0'
 
         if not xenrt.TEC().lookup("EXISTING_TEMPLATES", False, boolean=True):

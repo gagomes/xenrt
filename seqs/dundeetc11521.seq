@@ -1,0 +1,59 @@
+<?xml version="1.0" ?>
+<xenrt>
+
+  <!--DVS Traffic Mirroring Policies (R)SPAN -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <NETWORK_BACKEND>vswitch</NETWORK_BACKEND>
+    <PREPARE_WORKERS>3</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool id="1">
+      <host id="2">
+        <vm name="controller">
+          <file>%CONTROLLER_XVA%</file>
+          <bootparams>rootssh</bootparams>
+          <postinstall action="start"/>
+        </vm>
+        <vm name="p1h0-0">
+          <distro>generic-linux</distro>
+        </vm>
+      </host>
+    </pool>
+
+    <pool id="0">
+      <host id="0">
+        <vmgroup basename="p0h0" number="2">
+          <distro>generic-linux</distro>
+        </vmgroup>
+      </host>
+      <host id="1">
+        <vmgroup basename="p0h1" number="2">
+          <distro>generic-linux</distro>
+        </vmgroup>
+      </host>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="RSPAN">
+      <testcase id="xenserver.tc.vswitch.TC11522"/>
+      <testcase id="xenserver.tc.vswitch.TC11526"/>
+      <testcase id="xenserver.tc.vswitch.TC11527"/>
+      <testcase id="xenserver.tc.vswitch.TC11531"/>
+      <testcase id="xenserver.tc.vswitch.TC11582"/>
+      <testcase id="xenserver.tc.vswitch.TC11532"/>
+    </serial>
+    <serial>
+      <finally>
+        <testcase id="guestops.basic.TCShutdown">
+          <arg>guest=controller</arg>
+          <arg>again</arg>
+        </testcase>
+      </finally>
+    </serial>
+  </testsequence>
+
+</xenrt>

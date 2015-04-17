@@ -2,7 +2,7 @@
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
-    <PREPARE_WORKERS>4</PREPARE_WORKERS>
+    <PREPARE_WORKERS>6</PREPARE_WORKERS>
   </variables>
 
   <prepare>
@@ -17,13 +17,6 @@
       <vm name="w2k3-x86">
         <distro>w2k3eesp2</distro>
         <memory>512</memory>
-        <vcpus>1</vcpus>
-        <network device="0"/>
-        <postinstall action="installDrivers"/>
-      </vm>
-      <vm name="vista">
-        <distro>vistaeesp2</distro>
-        <memory>1024</memory>
         <vcpus>1</vcpus>
         <network device="0"/>
         <postinstall action="installDrivers"/>
@@ -60,7 +53,7 @@
   </prepare>
 
   <testsequence>
-    <parallel workers="4">
+    <parallel workers="6">
       <serial group="winxp">
         <testcase id="xenserver.tc.guest.WMIPowerShell" tc="TC-19101">
           <arg>guest=winxp</arg>
@@ -99,26 +92,6 @@
         </testcase>
         <testcase id="xenserver.tc.guest.WMICheckXenStoreWrite" tc="TC-19112">
           <arg>guest=w2k3-x86</arg>
-        </testcase>
-      </serial>
-      <serial group="vista">
-        <testcase id="xenserver.tc.guest.WMIPowerShell" tc="TC-19119">
-          <arg>guest=vista</arg>
-        </testcase>
-        <testcase id="xenserver.tc.guest.WMIVBS" tc="TC-19120">
-          <arg>guest=vista</arg>
-        </testcase>
-        <testcase id="xenserver.tc.guest.WMICheckVMName" tc="TC-19121">
-          <arg>guest=vista</arg>
-        </testcase>
-        <testcase id="xenserver.tc.guest.WMICheckVMIP" tc="TC-19122">
-          <arg>guest=vista</arg>
-        </testcase>
-        <testcase id="xenserver.tc.guest.WMICheckXenStoreRead" tc="TC-19123">
-          <arg>guest=vista</arg>
-        </testcase>
-        <testcase id="xenserver.tc.guest.WMICheckXenStoreWrite" tc="TC-19124">
-          <arg>guest=vista</arg>
         </testcase>
       </serial>
       <serial group="ws08-x86">
@@ -201,7 +174,6 @@
           <arg>guest=win81-x64</arg>
         </testcase>
       </serial>
-
     </parallel>
   </testsequence>
 

@@ -147,6 +147,8 @@ class LinuxOS(OS):
         return 256
 
     def assertHealthy(self):
+        # Wait for basic SSH access
+        self.waitForSSH(timeout=180)
         stampFile = "/tmp/healthy"
         self.execSSH("dd if=/dev/urandom oflag=direct of=%s count=1024"
                       % stampFile)

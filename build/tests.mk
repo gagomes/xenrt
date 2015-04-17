@@ -24,7 +24,8 @@ tests-clean:
 
 $(SHAREDIR)/tests:
 	$(info Creating test tarball output directory... \($@\))
-	$(SUDO) mkdir -p $(SHAREDIR)/tests
+	$(SUDO) mkdir -p /local/outputs/tests
+	$(SUDO) ln -sfT /local/outputs/tests $(SHAREDIR)/tests
 	$(SUDO) chown $(USERID):$(GROUPID) $(SHAREDIR)/tests
 
 .PHONY: $(TESTS)

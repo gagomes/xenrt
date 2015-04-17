@@ -1,0 +1,19 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host id="0" />
+    <host id="1" noisos="yes" />
+  </prepare>
+
+  <testsequence>
+    <serial group="Free">
+      <testcase id="xenserver.tc.license.TC8793"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

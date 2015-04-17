@@ -3,7 +3,7 @@ import libperf
 import string, time, re, random, math
 import traceback
 import datetime
-from xenrt.sequence import PrepareNode
+from xenrt.seq import PrepareNode
 import xml.dom.minidom
 import subprocess
 import socket
@@ -18,8 +18,12 @@ import random
 import urllib2, shutil, os, os.path
 import xmlrpclib
 import XenAPI
+try:
+    import libvirt
+except:
+    sys.stderr.write("WARNING: Could not import libvirt classes\n")
 
-class Util:
+class Util(object):
     # try some function up to x times
     def tryupto(self, fun, times=5,sleep=0):
         for i in range(times):
@@ -366,7 +370,152 @@ class XapiEvent(Util):
         xenrt.TEC().logverbose("END:XapiEvent.processEvents")
 
 
-class GuestEvent:
+
+class VirtEvent(Util):
+    guest_state = {}
+
+    def __init__(self, experiment):
+        self.experiment = experiment
+        self.host = self.experiment.tc.getDefaultHost()
+        thread.start_new_thread(self.listen,())
+        xenrt.TEC().logverbose("VirtEvent: finished __init__")
+
+    @classmethod
+    def isSupported(cls, experiment):
+        return experiment.tc.getDefaultHost().__class__ not in [xenrt.lib.esx.ESXHost]
+
+    def listen(self):
+        while True:
+            try: #work around ca-80933
+ 
+                virConn = self.tryupto(self.host._openVirConn, times=5, sleep=5) 
+                try:
+                    self.processEvents(virConn)
+                #except Exception, e:
+                #    xenrt.TEC().logverbose("XapiEvent: listen except: %s" % e)
+                #    raise
+                finally:
+                    virConn.close()
+
+            except:
+                import traceback
+                xenrt.TEC().logverbose("VirtEvent.listen: Exception: %s" % traceback.format_exc())
+
+
+    def reset(self):
+        self.guest_state = {}
+
+    def callback(self, virConn, virDomain, event, detail, data):
+        if self.complete:
+            return
+        try:
+            state = None
+            if event == libvirt.VIR_DOMAIN_EVENT_STARTED:
+                state = "UP"
+            elif event == libvirt.VIR_DOMAIN_EVENT_SUSPENDED:
+                state = "SUSPENDED"
+            elif event == libvirt.VIR_DOMAIN_EVENT_RESUMED:
+                state = "UP"
+            elif event == libvirt.VIR_DOMAIN_EVENT_STOPPED:
+                state = "DOWN"
+            elif event == libvirt.VIR_DOMAIN_EVENT_SHUTDOWN:
+                state = "DOWN"
+
+            xenrt.TEC().logverbose("VirtEvent: received event" + ((", new state is %s" % state) if state else ""))
+            if state:
+                self.guest_state[virDomain.UUIDString()] = state
+        except:
+            xenrt.TEC().logverbose("** fatal exception: %s" % traceback.format_exc())
+            self.complete = True
+            self.error = True
+
+    def processEvents(self, virConn):
+        xenrt.TEC().logverbose("START:VirtEvent.processEvents")
+
+        def register():
+            xenrt.TEC().logverbose("VirtEvent: registering for events")
+            self.eventsID = virConn.domainEventRegister(self.callback, None)
+            # look at current state
+            for guestName in self.host.listGuests():
+                guest = self.host.guestFactory()(guestName, host=self.host)
+                guest.virDomain = guest.virConn.lookupByName(guest.name)
+                self.guest_state[guest.getUUID()] = guest.getState()
+ 
+        register()
+        self.complete = False
+        self.in_loop = True
+        while not self.complete:
+            time.sleep(1)
+
+        self.in_loop = False
+
+        xenrt.TEC().logverbose("END:VirtEvent.processEvents")
+
+    def hasEvent(self, vm, key, value):
+        if key == "power_state":
+            if vm in self.guest_state:
+                return (value == "Running" and self.guest_state[vm] == "UP") or \
+                       (value == "Halted" and self.guest_state[vm] == "DOWN")
+        else:
+            raise xenrt.XRTError("VirtEvent doesn't know about %s events" % key)
+
+    def waitFor(self, vm, key, value):
+        xenrt.TEC().logverbose("VirtEvent: waiting for event on vm=%s,key=%s,value=%s" % (vm,key,value))
+        if not self.in_loop:
+            raise xenrt.XRTFailure("VirtEvent: waitFor: VirtEvent not listening: not in loop")
+        found = False
+        while not found:
+            found = self.hasEvent(vm,key,value)
+            if not found:
+                time.sleep(0.1)
+        xenrt.TEC().logverbose("found event vm=%s,key=%s,value=%s" % (vm,key,value))
+
+class DummyEvent(Util):
+    def __init__(self, experiment):
+        self.experiment = experiment
+        self.host = self.experiment.tc.getDefaultHost()
+
+    def reset(self):
+        self.guest_state = {}
+
+    def hasEvent(self, vmuuid, key, value):
+        guestname = self.host.virConn.lookupByUUIDString(vmuuid).name()
+        guest = self.host.guests[guestname]
+        if key == "power_state":
+            gueststate = guest.getState()
+            return (value == "Running" and gueststate == "UP") or \
+                   (value == "Halted" and gueststate == "DOWN")
+        else:
+            raise xenrt.XRTError("DummyEvent doesn't know about %s events" % key)
+
+    def waitFor(self, vmuuid, key, value):
+        xenrt.TEC().logverbose("DummyEvent: waiting for event on vm=%s,key=%s,value=%s" % (vmuuid,key,value))
+        found = False
+        while not found:
+            found = self.hasEvent(vmuuid,key,value)
+            if not found:
+                # we run the risk of flooding the server with "get guest info" requests
+                # this makes for relatively poor granularity but there's not much we can do
+                time.sleep(0.5)
+        xenrt.TEC().logverbose("found event vm=%s,key=%s,value=%s" % (vmuuid,key,value))
+
+@xenrt.irregularName
+def APIEvent(experiment):
+    lib = xenrt.productLib(host=experiment.tc.getDefaultHost())
+    xenrt.TEC().logverbose("lib=%s" % (lib,))
+    if lib == xenrt.lib.xenserver:
+        xenrt.TEC().logverbose("Using xapi event listener")
+        return XapiEvent(experiment)
+    elif lib == xenrt.lib.esx or lib == xenrt.lib.kvm:
+        if VirtEvent.isSupported(experiment):
+            xenrt.TEC().logverbose("Using libvirt event listener")
+            return VirtEvent(experiment)
+
+    xenrt.TEC().logverbose("Using dummy event listener")
+    return DummyEvent(experiment)
+
+
+class GuestEvent(object):
     # dict: ip -> ...
     events = {}
     UDP_IP = socket.gethostbyname(socket.gethostname())
@@ -588,7 +737,8 @@ class GuestEvent_VMLogin(GuestEvent):
             #call script when guest starts
             # Escape / in script_path
             script_path = script_path.replace('/', '\\/')
-            guest.execguest("sed -i 's/exit 0/python %s\\nexit 0\\n/' /etc/rc.local" % script_path)
+            guest.execguest("sed -i 's/exit 0//g' /etc/rc.local")
+            guest.execguest("echo 'nohup python %s &' >> /etc/rc.local" % (script_path,))
  
 class Measurement(Util):
 
@@ -1361,16 +1511,13 @@ class HostConfigIntelliCache(HostConfig):
             
         for h in hosts:
             #Enable IntelliCache on the host, using that SR:
-            sr_uuid = h.getLocalSR()  # This must be a ext SR
+            cacheDisk = xenrt.TEC().lookup("INTELLICACHE_DISK", None) # must be an ext SR
+            xenrt.TEC().logverbose("intellicache disk = %s" % (cacheDisk,))
             h.execdom0("xe host-disable uuid=%s" % h.getMyHostUUID())
-            #h.execdom0("xe host-enable-local-storage-caching uuid=%s sr-uuid=%s" % (h.getMyHostUUID(), sr_uuid))
-            if use_ssd:
-                h.enableCaching()
-            else:
-                h.enableCaching(sr=sr_uuid)
+            h.enableCaching()
             h.execdom0("xe host-enable uuid=%s" % h.getMyHostUUID())
 
-        out=host.execdom0('IFS=","; for vm in $(xe vm-list is-control-domain=false --minimal); do for vdi in $(xe vbd-list vm-uuid=$vm device=hda|grep vdi-uuid|awk \'{print $4}\'); do echo "vm=$vm -> vdi=$vdi"; xe vdi-param-set uuid=$vdi allow-caching=true on-boot=reset; done;  done') 
+        out=host.execdom0('IFS=","; for vm in $(xe vm-list is-control-domain=false --minimal); do for vdi in $(xe vbd-list vm-uuid=$vm device=hda|grep vdi-uuid|awk \'{print $4}\') $(xe vbd-list vm-uuid=$vm device=xvda|grep vdi-uuid|awk \'{print $4}\'); do echo "vm=$vm -> vdi=$vdi"; xe vdi-param-set uuid=$vdi allow-caching=true on-boot=reset; done;  done') 
         xenrt.TEC().logverbose("intellicache vdi-set: %s" % out)
     
 #in this experiment, vm_start is part of the preparation
@@ -1438,6 +1585,7 @@ class Experiment_vmrun(Experiment):
 
     #updated in do_VMTYPES()
     distro = "None"
+    arch = "x86-32"
     vmparams = []
     vmram = None
     dom0disksched = None
@@ -1531,23 +1679,24 @@ class Experiment_vmrun(Experiment):
             xenrt.TEC().logverbose("Using PRODUCT_VERSION=%s" % xenrt.TEC().lookup("PRODUCT_VERSION", None))
 
             networkcfg = ""
+            name_defaultsr = "%ssr" % (self.defaultsr,)
             if self.defaultsr in ["lvm","ext"] or self.defaultsr.startswith("ext:"):
                 localsr = self.defaultsr.split(":")[0] #ignore : and anything after it
                 sharedsr = ""
             else:
                 localsr = "ext"
-                sharedsr = '<storage type="%s" name="%ssr" default="true"/>' % (self.defaultsr,self.defaultsr)
+                sharedsr = '<storage type="%s" name="%s"/>' % (self.defaultsr, name_defaultsr)
 
                 #in the SCALE cluster, we prefer to use the reserved 10Gb network in NSEC
                 hn = xenrt.TEC().lookup("MACHINE", "WARNING: NO MACHINE NAME")
                 if "xrtuk-08-" in hn:
                     xenrt.TEC().logverbose("%s: xrtuk-08-* host detected, using NSEC+jumbo network configuration" % hn)
-                    sharedsr = '<storage type="%s" name="%ssr" jumbo="true" network="NSEC" default="true"/>' % (self.defaultsr,self.defaultsr)
+                    sharedsr = '<storage type="%s" name="%s" jumbo="true" network="NSEC"/>' % (self.defaultsr, name_defaultsr)
                     networkcfg = """<NETWORK><PHYSICAL network="NPRI"><NIC /><MANAGEMENT /><VMS /></PHYSICAL><PHYSICAL network="NSEC"><NIC /><STORAGE /></PHYSICAL></NETWORK>"""
                 else:
                     xenrt.TEC().logverbose("%s: xrtuk-08-* host NOT detected, using default network configuration" % hn)
 
-            seq = "<pool><host installsr=\"%s\"/>%s%s</pool>" % (localsr,sharedsr, networkcfg)
+            seq = "<pool><host installsr=\"%s\">%s%s</host></pool>" % (localsr,sharedsr, networkcfg)
             #seq = "<pool><host/></pool>"
             pool_xmlnode = xml.dom.minidom.parseString(seq)
             prepare = PrepareNode(pool_xmlnode, pool_xmlnode, {}) 
@@ -1574,6 +1723,12 @@ class Experiment_vmrun(Experiment):
 
  
             host = self.tc.getDefaultHost()
+            host.defaultsr = name_defaultsr # hack: because esx doesn't have a pool class to set up the defaultsr when creating the host via sequence above with 'default' option in <storage>
+            pool = self.tc.getDefaultPool()
+            if pool:
+                sr_uuid = host.parseListForUUID("sr-list", "name-label", name_defaultsr)
+                pool.setPoolParam("default-SR", sr_uuid)
+
             set_dom0disksched(host,self.dom0disksched) 
             patch_qemu_wrapper(host,self.qemuparams)
 
@@ -1721,22 +1876,23 @@ class Experiment_vmrun(Experiment):
                     if str(dom0cpunr)!=str(_dom0cpunr):
                         raise xenrt.XRTFailure("dom0cpunr: %s!=%s" % (dom0cpunr,_dom0cpunr))
 
-            #double-check dom0 ram settings
-            dom0_uuid = host.execdom0("xe vm-list is-control-domain=true --minimal").strip()
-            mem_static_max = host.execdom0("xe vm-param-get uuid=%s param-name=memory-static-max" % dom0_uuid).strip()
-            mem_actual = host.execdom0("xe vm-param-get uuid=%s param-name=memory-actual" % dom0_uuid).strip()
-            if mem_static_max != mem_actual:
-                raise xenrt.XRTFailure("dom0 mem_static_max=%s != mem_actual=%s" % (mem_static_max,mem_actual))
-            mem_dyn_min = host.execdom0("xe vm-param-get uuid=%s param-name=memory-dynamic-min" % dom0_uuid).strip()
-            if mem_static_max != mem_dyn_min:
-                raise xenrt.XRTFailure("dom0 mem_static_max=%s != mem_dyn_min=%s" % (mem_static_max,mem_dyn_min))
-            if self.dom0ram == None: #if none provided, use actual
-                self.dom0ram = int(mem_actual) / 1024 / 1024
-            xenrt.TEC().logverbose("dom0ram=%s, mem_static_max=%s, mem_actual=%s, mem_dyn_min=%s" % (self.dom0ram,mem_static_max,mem_actual,mem_dyn_min))
-            dom0ram_bytes_max = (self.dom0ram+256)*1024*1024
-            dom0ram_bytes_min = (self.dom0ram-256)*1024*1024
-            if int(mem_actual) < int(dom0ram_bytes_min) or int(mem_actual) > int(dom0ram_bytes_max):
-                raise xenrt.XRTFailure("mem_actual %s not in expected dom0ram range %s -- %s" % (mem_actual,dom0ram_bytes_min,dom0ram_bytes_max))
+            if isinstance(host, xenrt.lib.xenserver.Host):
+                #double-check dom0 ram settings
+                dom0_uuid = host.execdom0("xe vm-list is-control-domain=true --minimal").strip()
+                mem_static_max = host.execdom0("xe vm-param-get uuid=%s param-name=memory-static-max" % dom0_uuid).strip()
+                mem_actual = host.execdom0("xe vm-param-get uuid=%s param-name=memory-actual" % dom0_uuid).strip()
+                if mem_static_max != mem_actual:
+                    raise xenrt.XRTFailure("dom0 mem_static_max=%s != mem_actual=%s" % (mem_static_max,mem_actual))
+                mem_dyn_min = host.execdom0("xe vm-param-get uuid=%s param-name=memory-dynamic-min" % dom0_uuid).strip()
+                if mem_static_max != mem_dyn_min:
+                    raise xenrt.XRTFailure("dom0 mem_static_max=%s != mem_dyn_min=%s" % (mem_static_max,mem_dyn_min))
+                if self.dom0ram == None: #if none provided, use actual
+                    self.dom0ram = int(mem_actual) / 1024 / 1024
+                xenrt.TEC().logverbose("dom0ram=%s, mem_static_max=%s, mem_actual=%s, mem_dyn_min=%s" % (self.dom0ram,mem_static_max,mem_actual,mem_dyn_min))
+                dom0ram_bytes_max = (self.dom0ram+256)*1024*1024
+                dom0ram_bytes_min = (self.dom0ram-256)*1024*1024
+                if int(mem_actual) < int(dom0ram_bytes_min) or int(mem_actual) > int(dom0ram_bytes_max):
+                    raise xenrt.XRTFailure("mem_actual %s not in expected dom0ram range %s -- %s" % (mem_actual,dom0ram_bytes_min,dom0ram_bytes_max))
 
             #double-check we have the expected scheduler passed to xen during boot
             if self.xenparams != "":
@@ -1748,19 +1904,24 @@ class Experiment_vmrun(Experiment):
 
             pool = self.tc.getDefaultPool()
             host = self.tc.getDefaultHost()
-            cli = host.getCLIInstance()
-            defaultSR = pool.master.lookupDefaultSR()
-            vm_template = xenrt.lib.xenserver.getTemplate(host, self.distro, arch=None)
+            if pool is not None:
+                defaultSR = pool.master.lookupDefaultSR()
+            else:
+                defaultSR = host.lookupDefaultSR()
+            vm_template = host.getTemplate(self.distro, arch=None)
 
             xenrt.TEC().logverbose("Installing VM for experiment...")
             vm_name="VM-DENSITY-%s" % self.distro #xenrt.randomGuestName()
             host_guests = host.listGuests()
 
+            lib = xenrt.productLib(host=host)
+            xenrt.TEC().logverbose("lib=%s" % (lib,))
+
             #seq = "<vm name=\"%s\"><distro>%s</distro></vm>" % (vm_name,self.distro)
             #guest_xmlnode = xml.dom.minidom.parseString(seq)
             #prepare = PrepareNode(guest_xmlnode, guess_xmlnode, {})
             #prepare.handleVMNode(node, {})
-   
+
             if vm_name in host_guests:
                 #model vm already installed in host: reuse it
                 g0 = host.guestFactory()(vm_name, None)
@@ -1790,16 +1951,19 @@ class Experiment_vmrun(Experiment):
                     postinstall=[]
                     if "nopvdrivers" not in self.vmpostinstall:
                         postinstall+=['installDrivers']
-                    g0=xenrt.lib.xenserver.guest.createVM(host,vm_name,self.distro,vifs=self.vmvifs,disks=self.vmdisks,vcpus=self.vmvcpus,corespersocket=self.vm_cores_per_socket,memory=self.vmram,guestparams=self.vmparams,postinstall=postinstall,sr=defaultSR)
+                    g0=lib.guest.createVM(host,vm_name,self.distro,vifs=self.vmvifs,disks=self.vmdisks,vcpus=self.vmvcpus,corespersocket=self.vm_cores_per_socket,memory=self.vmram,guestparams=self.vmparams,postinstall=postinstall,sr=defaultSR,arch=self.arch)
                     #g0.install(host,isoname=xenrt.DEFAULT,distro=self.distro,sr=defaultSR)
                     #g0.check()
                     #g0.installDrivers()
                     ##g0.installTools()
-                    
+
                 else: #non-windows iso image for installation
-                    g0=xenrt.lib.xenserver.guest.createVM(host,vm_name,self.distro,vifs=self.vmvifs,disks=self.vmdisks,vcpus=self.vmvcpus,corespersocket=self.vm_cores_per_socket,memory=self.vmram,guestparams=self.vmparams,sr=defaultSR)
+                    postinstall=[]
+                    if "convertHVMtoPV" in self.vmpostinstall:
+                        postinstall+=['convertHVMtoPV']
+                    g0=lib.guest.createVM(host,vm_name,self.distro,vifs=self.vmvifs,disks=self.vmdisks,vcpus=self.vmvcpus,corespersocket=self.vm_cores_per_socket,memory=self.vmram,guestparams=self.vmparams,postinstall=postinstall,sr=defaultSR,arch=self.arch)
                     #g0.install(host,isoname=xenrt.DEFAULT,distro=self.distro,sr=defaultSR, repository="cdrom",method="CDROM")
-                    
+
                 g0.check()
 
                 if self.distro[0]=="w":
@@ -1838,6 +2002,7 @@ class Experiment_vmrun(Experiment):
                             g0.xmlrpcExec('c:\\Windows\\Microsoft.NET\\Framework\\v4.0.30319\\ngen.exe executequeueditems')
                         if "noagent" in pi:
                             g0.xmlrpcExec('sc config xensvc start= disabled')
+                            g0.enlightenedDrivers = False
                         if "others" in pi:
                             g0.xmlrpcExec('sc config sppsvc start= disabled')
                             g0.xmlrpcExec('sc config wdisystemhost start= disabled')
@@ -1892,25 +2057,26 @@ class Experiment_vmrun(Experiment):
                 xenrt.TEC().logverbose("Creating model guest is done. Shutting down the VM.")
                 g0.shutdown()
 
-                # post-install post-shutdown    
-                if self.distro[0]=="w":
-                    for pi in self.vmpostinstall:
-                        xenrt.TEC().logverbose("executing vmpostshutdown action=%s" % pi)
-                        if "nousb" in pi:
-                            # These commands are mutually exclusive and was changed in build 69008
-                            # Old command
-                            g0.host.execdom0("xe vm-param-set uuid=%s platform:nousb=true" % g0.uuid)
-                            # New command
-                            g0.host.execdom0("xe vm-param-set uuid=%s platform:usb=false" % g0.uuid)
-                            g0.host.execdom0("xe vm-param-set uuid=%s platform:usb_tablet=false" % g0.uuid)
-                        if "noparallel" in pi:
-                            g0.host.execdom0("xe vm-param-set uuid=%s platform:parallel=none" % g0.uuid)
-                        if "noserial" in pi:
-                            g0.host.execdom0("xe vm-param-set uuid=%s other-config:hvm_serial=none" % g0.uuid)
-                        if "nocdrom" in pi:
-                            vbds = g0.listVBDUUIDs("CD")
-                            for vbd in vbds:
-                                g0.host.execdom0("xe vbd-destroy uuid=%s" % vbd)
+                # post-install post-shutdown
+                if isinstance(host, xenrt.lib.xenserver.Host):
+                    if self.distro[0]=="w":
+                        for pi in self.vmpostinstall:
+                            xenrt.TEC().logverbose("executing vmpostshutdown action=%s" % pi)
+                            if "nousb" in pi:
+                                # These commands are mutually exclusive and was changed in build 69008
+                                # Old command
+                                g0.host.execdom0("xe vm-param-set uuid=%s platform:nousb=true" % g0.uuid)
+                                # New command
+                                g0.host.execdom0("xe vm-param-set uuid=%s platform:usb=false" % g0.uuid)
+                                g0.host.execdom0("xe vm-param-set uuid=%s platform:usb_tablet=false" % g0.uuid)
+                            if "noparallel" in pi:
+                                g0.host.execdom0("xe vm-param-set uuid=%s platform:parallel=none" % g0.uuid)
+                            if "noserial" in pi:
+                                g0.host.execdom0("xe vm-param-set uuid=%s other-config:hvm_serial=none" % g0.uuid)
+                            if "nocdrom" in pi:
+                                vbds = g0.listVBDUUIDs("CD")
+                                for vbd in vbds:
+                                    g0.host.execdom0("xe vbd-destroy uuid=%s" % vbd)
 
             return g0
 
@@ -2189,7 +2355,7 @@ MachinePassword=%s
         else: 
             self.tryupto(install_pool)
 
-        self.xapi_event = XapiEvent(self)
+        self.xapi_event = APIEvent(self)
         install_guests()
 
         host = self.tc.getDefaultHost()
@@ -2262,7 +2428,13 @@ MachinePassword=%s
 
     def do_VMTYPES(self, value, coord):
         xenrt.TEC().logverbose("DEBUG: VMTYPES value=[%s]" % value)
-        self.distro = value
+        values = value.split(":")  # eg. win7sp1:x86-64
+        self.distro = values[0]
+        if "x64" in self.distro:
+            self.arch="x86-64"
+        if len(values) > 1:
+            self.arch=values[1]
+        xenrt.TEC().logverbose("DEBUG: distro,arch=[%s],[%s]" % (self.distro, self.arch))
 
     def do_VMPARAMS(self, value, coord):
         xenrt.TEC().logverbose("DEBUG: VMPARAMS value=[%s]" % str(value))
@@ -2417,11 +2589,18 @@ MachinePassword=%s
                 #cli = guest.host.getCLIInstance()
                 #do not use guest.start(), it contains several time.sleep that we don't want
                 #Should the vm-start on a specific host ?
-                if get_vm_host_name(value):
-                    guest.host.execdom0("xe vm-start uuid=%s on=%s" % (guest.uuid, get_vm_host_name(value)),
-                                        timeout=900+30*self.tc.THRESHOLD)
+
+                if isinstance(guest.host, xenrt.lib.xenserver.Host):
+                    #xenserver
+                    if get_vm_host_name(value):
+                        guest.host.execdom0("xe vm-start uuid=%s on=%s" % (guest.uuid, get_vm_host_name(value)),
+                                            timeout=900+30*self.tc.THRESHOLD)
+                    else:
+                        guest.host.execdom0("xe vm-start uuid=%s" % guest.uuid, timeout=900+30*self.tc.THRESHOLD)
+
                 else:
-                    guest.host.execdom0("xe vm-start uuid=%s" % guest.uuid, timeout=900+30*self.tc.THRESHOLD)
+                    #not xenserver
+                    guest.lifecycleOperation("vm-start")
 
                 self.xapi_event.waitFor(guest.uuid,"power_state","Running")
 
@@ -2438,7 +2617,10 @@ MachinePassword=%s
                 timeout = 600
             else:
                 timeout = 600 + self.measurement_1.base_measurement * self.tc.THRESHOLD
-            guest.mainip = guest.getHost().arpwatch(bridge, mac, timeout=timeout)
+            if guest.use_ipv6:
+                guest.mainip = guest.getIPv6AutoConfAddress(vifname)
+            else:
+                guest.mainip = guest.getHost().arpwatch(bridge, mac, timeout=timeout)
             self.ip_to_guest[guest.mainip] = guest
             #guest.waitforxmlrpc(300, desc="Daemon", sleeptime=1, reallyImpatient=False)
 
@@ -2559,6 +2741,7 @@ class Experiment_vmrun_cron(Experiment_vmrun):
                         last_n_running = n_running 
                     time.sleep(0.1)
 
+            vmt.daemon = True # kills this thread automatically if main thread exits
             vmt.start()
             self.vmstart_threads.append(vmt)
 
@@ -2797,116 +2980,6 @@ class Experiment_vmrun_rds(Experiment_vmrun_cron):
     def do_VMS(self, value, coord):
         xenrt.TEC().logverbose("DEBUG: VMS value=[%s]" % str(value))
         #do nothing.
-
-class Experiment_vbdscal(Experiment_vmrun):
-# Experiment with VBD scalability
-    #d_order = ['RUNS','VMTYPES','MACHINES','DOM0RAM','XENSCHED','VMPARAMS','XSVERSIONS','VMS']
-    d_order = ['RUNS','VMDISKS','VMTYPES','DOM0RAM','VMRAM','VMVIFS','XSVERSIONS','VMS']
-    def getDimensions(self, filters=None):
-        #return dict(
-            #Experiment.getDimensions(self,{'XSVERSIONS':(lambda x:x in self.tc.XSVERSIONS)}).items()
-        #)
-        ds = Experiment.getDimensions(self)
-        ds['XSVERSIONS'] = self.tc.XSVERSIONS
-#        ds['MACHINES'] = self.tc.MACHINES
-        ds['VMS'] = self.tc.VMS
-        ds['RUNS'] = self.tc.RUNS
-        ds['VMTYPES'] = self.tc.VMTYPES
-        ds['DOM0RAM'] = self.tc.DOM0RAM
-#        ds['XENSCHED'] = self.tc.XENSCHED
-#        ds['VMPARAMS'] = self.tc.VMPARAMS
-        ds['VMDISKS'] = self.tc.VMDISKS
-        ds['VMRAM'] = self.tc.VMRAM
-        ds['VMVIFS'] = self.tc.VMVIFS
-        return ds
-
-    def __init__(self,tc):
-        Experiment.__init__(self,tc)
-        self.measurement_1 = Measurement_elapsedtime(self)
-        self.measurement_dd = Measurement_dd(self)
-        self.vm_load_1 = VMLoad_cpu_loop(self,[])
-        self.guest_events = {
-            GuestEvent_VMReady.EVENT:GuestEvent_VMReady(self),
-            GuestEvent_VMLogin.EVENT:GuestEvent_VMLogin(self)}
-        self.ip_to_guest = {}
-
-    #updated in do_VMTYPES()
-    distro = "None"
-    vmparams = []
-    vmdisks = []
-    vmram = None 
-
-    def post_install_model_guest(self,guest):
-        #install dd for later use
-        ddexe = xenrt.util.getHTTP("http://www.uk.xensource.com/~marcusg/xenrt/dd.exe")
-        guest.xmlrpcWriteFile("C:\\dd.exe",ddexe) 
-
-    #this event handles change of values of dimension VMS
-    def do_VMS(self, value, coord):
-        #TODO: add a is_initial_value parameter sent by the framework,
-        #so that it is not necessary to guess what the first possible value is
-        #in the checks below
-
-        if value == 1:
-            self.do_VMS_ERR_load_failed = False
-        if self.do_VMS_ERR_load_failed:
-            return #ignore this dimension
-
-        guest = self.guests[value]
-            
-        #vm is already running, do some load on it and measure
-
-        #only measure at the initial value or if the base measurement
-        #still exists to compare against
-        if value == 1 or self.measurement_1.base_measurement:
-            xenrt.TEC().logverbose("DEBUG: VMS value=[%s]" % value)
-
-            #self.measurement_1.start(coord)
-            self.measurement_dd.start(coord)
-
-            #guest.start() #vm-start + automatic login
-            #guest.check()
-
-            #cli = guest.host.getCLIInstance()
-            guest.host.execdom0("xe vm-start uuid=%s" % guest.uuid,timeout=900)
-            vifname, bridge, mac, c = guest.vifs[0]
-            if not self.measurement_1.base_measurement:
-                timeout = 300
-            else:
-                timeout = 300 + self.measurement_1.base_measurement * self.tc.THRESHOLD
-            guest.mainip = guest.getHost().arpwatch(bridge, mac, timeout=timeout)
-            self.ip_to_guest[guest.mainip] = guest
-            received_event = self.guest_events[GuestEvent_VMLogin.EVENT].receive(guest)
-            if not received_event:
-                raise xenrt.XRTFailure("did not receive login event for vm %s (ip %s)" % (guest,guest.mainip))
-
-            #and then measure the load, eg. time for login to finish
-            #result = self.measurement_1.stop(coord,guest)
-
-            guest.waitforxmlrpc(500, desc="Daemon", sleeptime=5, reallyImpatient=False)
-
-            result = self.measurement_dd.stop(coord,guest)
-
-            #run vm load on vm $value without stopping, eg. cpu loop
-            try:
-                #self.tryupto(lambda: self.vm_load_1.start(guest),times=3)
-                #self.vm_load_1.stop(guest)
-                pass
-            except: #flag this important problem
-                self.do_VMS_ERR_load_failed = True
-                xenrt.TEC().logverbose("======> VM load failed to start for VM %s! Aborting this sequence of VMs!" % value)
-                raise #re-raise the exception
-        
-            #store the initial base measurement value to compare against later
-            #when detecting if latest measurement is too different
-            if value == 1:
-                self.measurement_1.base_measurement = result
-                xenrt.TEC().logverbose("Base measurement: %s" % (self.measurement_1.base_measurement))
-            else:
-                #is the current measurement 10x higher than the initial one?
-                if result > self.tc.THRESHOLD * self.measurement_1.base_measurement:
-                    #stop measuring remaining VMs until base measurement is made again
-                    self.measurement_1.base_measurement = None
 
 
 class TCVMDensity(libperf.PerfTestCase):

@@ -1,0 +1,23 @@
+<xenrt>
+  <!-- vGPU group tests with 1 K1 host and no vgpu capable host. -->
+  
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="nfs" name="nfssr" default="true"/>
+      <host id="0" installsr="lvm" />
+    </pool>
+    <host id="1" installsr="lvm" />
+  </prepare>
+
+  <testsequence>
+    <serial group="GroupK1NoVGPU">
+      <!-- 1 * <K1 * 1> + 1 * no card hosts. -->
+      <testcase id="testcases.xenserver.tc.vgpu.TCGPUGroupK1NoVGPU" name="TC20869" tc="TC-20869" />
+    </serial>
+  </testsequence>
+</xenrt>
+

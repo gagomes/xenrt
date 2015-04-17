@@ -1,0 +1,28 @@
+<xenrt>
+
+  <!-- HVM Guests scalability test sequence -->
+  
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+    <EXTRA_TIME>yes</EXTRA_TIME>
+    <BUGTOOL_MODE_STRESS>yes</BUGTOOL_MODE_STRESS>
+    <NO_LOGS_ON_PASS>yes</NO_LOGS_ON_PASS>
+    <QUICKLOGS>yes</QUICKLOGS>
+    <NO_GUEST_LOGS>yes</NO_GUEST_LOGS>
+    <NO_TC_HOST_SERIAL_LOGS>yes</NO_TC_HOST_SERIAL_LOGS>
+  </variables>
+
+  <prepare>
+    <host>
+     <storage type="nfs" name="shared" default="true"/>
+    </host>
+  </prepare>
+
+  <testsequence group="VMScale">
+    <testcase id="xenserver.tc.scalability.TC19271">
+        <arg>max=500</arg>
+    </testcase>
+  </testsequence>
+</xenrt>
+

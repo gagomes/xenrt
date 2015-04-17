@@ -155,7 +155,7 @@ class TC15961(xenrt.TestCase):
     def prepare(self, arglist=[]):
         # Get a host to install on
         self.host = self.getDefaultHost()
-        self.guest = self.host.createGenericLinuxGuest()
+        self.guest = self.host.createGenericLinuxGuest(vcpus=1)
 
     def run(self, arglist):
         # vhostmd and the SHM SR type should be disabled in a newly installed
@@ -330,7 +330,7 @@ class TC15961(xenrt.TestCase):
 
     def checkNewInstallation(self):
         status = self.host.execdom0("service vhostmd status || true")
-        if not re.search("stopped$", status.strip()):
+        if not re.search("stopped$", status.strip()) and not "inactive" in status:
             raise xenrt.XRTFailure(
                 "vhostmd should be stopped in new installation, but was: %s" % status)
         if 0 == self.host.execdom0("[ -e /dev/shm/vhostmd0 ]", retval="code"):

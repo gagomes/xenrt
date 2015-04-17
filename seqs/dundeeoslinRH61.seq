@@ -1,0 +1,144 @@
+<xenrt>
+
+  <!-- OS functional test sequence: rhel61 and rhel61-x64 -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <default name="PARALLEL" value="2"/>
+  <default name="MIGRATEPAR" value="1"/>
+
+  <semaphores>
+    <TCMigrate count="${MIGRATEPAR}"/>
+  </semaphores>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <parallel workers="${PARALLEL}">
+
+      <serial group="rhel61">
+        <testcase id="xenserver.guest.TCXenServerVendorInstall" name="VMInstall" tc="TC-14458">
+          <arg>RESOURCE_HOST_0</arg>
+          <arg>guest=rhel61</arg>
+          <arg>distro=rhel61</arg>
+          <arg>memory=1024</arg>
+        </testcase>
+        <serial guest="rhel61">
+          <testcase id="guestops.basic.TCStartStop" tc="TC-14459">
+            <arg>guest=rhel61</arg>
+            <arg>loops=20</arg>
+          </testcase>
+          <testcase id="guestops.basic.TCReboot" tc="TC-14460">
+            <arg>guest=rhel61</arg>
+            <arg>loops=20</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCSuspendResume" tc="TC-14461">
+            <arg>guest=rhel61</arg>
+            <arg>workloads</arg>
+            <arg>loops=20</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCMigrate" tc="TC-14462">
+            <arg>guest=rhel61</arg>
+            <arg>workloads</arg>
+            <arg>loops=10</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-14463">
+            <arg>guest=rhel61</arg>
+            <arg>live</arg>
+            <arg>workloads</arg>
+            <arg>loops=20</arg>
+          </testcase>
+          <!-- this fails due to CA-73512 which has been fixed by Red Hat but won't be out until 6.3 or later
+          <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-14464">
+            <arg>N/A</arg>
+            <arg>guest=rhel61</arg>
+            <arg>noshutdown</arg>
+            <arg>initial=4</arg>
+            <arg>max=7</arg>
+          </testcase>-->
+          <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-14465">
+            <arg>N/A</arg>
+            <arg>guest=rhel61</arg>
+            <arg>noshutdown</arg>
+          </testcase>
+          <testcase id="guestops.cpu.TCCPUWalk" tc="TC-14466">
+            <arg>guest=rhel61</arg>
+            <arg>max=8</arg>
+            <arg>noplugwindows</arg>
+          </testcase>
+          <finally>
+            <testcase id="guestops.basic.TCShutdown">
+              <arg>guest=rhel61</arg>
+              <arg>finally</arg>
+            </testcase>
+          </finally>
+        </serial>
+      </serial>
+      <serial group="rhel61x86-64">
+        <testcase id="xenserver.guest.TCXenServerVendorInstall" name="VMInstall" tc="TC-14468">
+          <arg>RESOURCE_HOST_0</arg>
+          <arg>guest=rhel61x86-64</arg>
+          <arg>distro=rhel61</arg>
+          <arg>arch=x86-64</arg>
+          <arg>memory=1024</arg>
+        </testcase>
+        <serial guest="rhel61x86-64">
+          <testcase id="guestops.basic.TCStartStop" tc="TC-14469">
+            <arg>guest=rhel61x86-64</arg>
+            <arg>loops=20</arg>
+          </testcase>
+          <testcase id="guestops.basic.TCReboot" tc="TC-14470">
+            <arg>guest=rhel61x86-64</arg>
+            <arg>loops=20</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCSuspendResume" tc="TC-14471">
+            <arg>guest=rhel61x86-64</arg>
+            <arg>workloads</arg>
+            <arg>loops=20</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCMigrate" tc="TC-14472">
+            <arg>guest=rhel61x86-64</arg>
+            <arg>workloads</arg>
+            <arg>loops=10</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-14473">
+            <arg>guest=rhel61x86-64</arg>
+            <arg>live</arg>
+            <arg>workloads</arg>
+            <arg>loops=20</arg>
+          </testcase>
+          <!-- this fails due to CA-73512 which has been fixed by Red Hat but won't be out until 6.3 or later
+          <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-14474">
+            <arg>N/A</arg>
+            <arg>guest=rhel61x86-64</arg>
+            <arg>noshutdown</arg>
+            <arg>initial=4</arg>
+            <arg>max=7</arg>
+          </testcase>-->
+          <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-14475">
+            <arg>N/A</arg>
+            <arg>guest=rhel61x86-64</arg>
+            <arg>noshutdown</arg>
+          </testcase>
+          <testcase id="guestops.cpu.TCCPUWalk" tc="TC-14476">
+            <arg>guest=rhel61x86-64</arg>
+            <arg>max=8</arg>
+            <arg>noplugwindows</arg>
+          </testcase>
+          <finally>
+            <testcase id="guestops.basic.TCShutdown">
+              <arg>guest=rhel61x86-64</arg>
+              <arg>finally</arg>
+            </testcase>
+          </finally>
+        </serial>
+      </serial>
+
+    </parallel>
+  </testsequence>
+
+</xenrt>

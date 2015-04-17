@@ -3,7 +3,7 @@ from app.api import XenRTAPIPage
 
 import config, app
 
-import traceback, StringIO, string, time, json
+import traceback, StringIO, string, time, json, sys, calendar
 
 class XenRTMachinePage(XenRTAPIPage):
     pass
@@ -212,16 +212,17 @@ class XenRTMList(XenRTMachinePage):
             return "ERROR Error listing machines"
 
 class XenRTMStatus(XenRTMachinePage):
+    WRITE = True
+
     def render(self):
         try:
             form = self.request.params
             db = self.getDB()
             machine = form["machine"]
             status = form["status"]
-            sql = "UPDATE tblMachines SET status = '%s' WHERE machine = '%s';" % \
-                  (status, machine)
-            cur = self.getDB().cursor()
-            cur.execute(sql)
+            cur = db.cursor()
+            cur.execute("UPDATE tblMachines SET status = %s WHERE machine = %s;",
+                        [status, machine])
             db.commit()
             cur.close()        
             return "OK"
@@ -230,6 +231,8 @@ class XenRTMStatus(XenRTMachinePage):
             return "ERROR"
 
 class XenRTMDefine(XenRTMachinePage):
+    WRITE = True
+
     def render(self):
         """handle the mdefine CLI call"""
         try:
@@ -268,16 +271,16 @@ class XenRTMDefine(XenRTMachinePage):
             return "ERROR updating database"
 
 class XenRTMUnDefine(XenRTMachinePage):
+    WRITE = True
+
     def render(self):
         """Handle the mundefine CLI call"""
         machine = self.request.params["machine"]
         try:
             db = self.getDB()
             cur = db.cursor()
-            sql = "DELETE FROM tblMachines WHERE machine = '%s';" % (machine)
-            cur.execute(sql)
-            sql = "DELETE FROM tblMachineData WHERE machine = '%s';" % (machine)
-            cur.execute(sql)
+            cur.execute("DELETE FROM tblMachines WHERE machine = %s;", [machine])
+            cur.execute("DELETE FROM tblMachineData WHERE machine = %s;", [machine])
             db.commit()
             cur.close()        
             return "OK"
@@ -286,20 +289,22 @@ class XenRTMUnDefine(XenRTMachinePage):
             return "ERROR Error undefining %s" % (machine)
 
 class XenRTBorrow(XenRTMachinePage):
+    WRITE = True
+
     def render(self):
         """Handle the borrow CLI call"""
         try:
             db = self.getDB()
             form = self.request.params
             userid = None
-            reason = "NULL"
+            reason = None
             force = False
             hours = 24
             machine = form["machine"]
             if form.has_key("USERID"):
                 userid = form["USERID"]
             if form.has_key("reason"):
-                reason = "'%s'" % app.utils.sqlescape(form["reason"])
+                reason = form["reason"]
             if form.has_key("hours"):
                 hours = int(form["hours"])
             leaseToTime = time.gmtime(time.time() + (hours * 3600))
@@ -309,12 +314,11 @@ class XenRTBorrow(XenRTMachinePage):
             if form.has_key("forever"):
                 leaseTo = "2030-01-01 00:00:00"
                 leaseToTime = time.strptime(leaseTo, "%Y-%m-%d %H:%M:%S")
-                hours = (time.mktime(leaseToTime) - time.time()) / 3600
+                hours = (calendar.timegm(leaseToTime) - time.time()) / 3600
             if form.has_key("force"):
                 force = True
-            sql = "SELECT comment, leaseTo, leasepolicy FROM tblmachines WHERE machine = '%s'" % (machine)
             cur = db.cursor()
-            cur.execute(sql)
+            cur.execute("SELECT comment, leaseTo, leasepolicy FROM tblmachines WHERE machine = %s", [machine])
             rc = cur.fetchone()
             cur.close()
             if rc[2] and hours > rc[2]:
@@ -324,12 +328,12 @@ class XenRTBorrow(XenRTMachinePage):
                     return "ERROR: The policy for this manchine only allows leasing for %d hours, please contact QA if you need a longer lease" % rc[2]
             if rc[0] and rc[0].strip() != userid and not force:
                 return "ERROR: machine already leased to %s (use --force to override)" % rc[0].strip()
-            if rc[1] and time.strptime(rc[1], "%Y-%m-%d %H:%M:%S") > leaseToTime and not force:
+            if rc[1] and rc[1].timetuple() > leaseToTime and not force:
                 return "ERROR: machine already leased for longer (use --force to override)"
-            sql = "UPDATE tblMachines SET leaseTo = '%s', leasefrom = '%s', comment = '%s', leasereason = %s " \
-                  "WHERE machine = '%s'" % (leaseTo, leaseFrom, userid, reason, machine)
             cur = db.cursor()
-            cur.execute(sql)
+            cur.execute("UPDATE tblMachines SET leaseTo = %s, leasefrom = %s, comment = %s, leasereason = %s "
+                        "WHERE machine = %s",
+                        [leaseTo, leaseFrom, userid, reason, machine])
             db.commit()
             cur.close()        
             return "OK"        
@@ -338,6 +342,8 @@ class XenRTBorrow(XenRTMachinePage):
             return "ERROR updating database"
 
 class XenRTReturn(XenRTMachinePage):
+    WRITE = True
+
     def render(self):
         """handle the return CLI call"""
         try:
@@ -350,17 +356,15 @@ class XenRTReturn(XenRTMachinePage):
             userid = None
             if form.has_key("USERID"):
                 userid = form["USERID"]
-            sql = "SELECT comment FROM tblmachines WHERE machine = '%s'" % (machine)
             cur = db.cursor()
-            cur.execute(sql)
+            cur.execute("SELECT comment FROM tblmachines WHERE machine = %s", [machine])
             rc = cur.fetchone()
             cur.close()
             if rc[0] and userid and rc[0].strip() != userid and not force:
                 return "ERROR: machine is not leased to you (use --force to override)"
-            sql = "UPDATE tblMachines SET leaseTo = NULL, comment = NULL, leasefrom = NULL, leasereason = NULL " \
-              "WHERE machine = '%s'" % (machine)
             cur = db.cursor()
-            cur.execute(sql)
+            cur.execute("UPDATE tblMachines SET leaseTo = NULL, comment = NULL, leasefrom = NULL, leasereason = NULL "
+                        "WHERE machine = %s", [machine])
             db.commit()
             cur.close()        
             return "OK"        
@@ -386,6 +390,8 @@ class XenRTMachine(XenRTMachinePage):
             return "ERROR Could not find machine " + machine
 
 class XenRTMUpdate(XenRTMachinePage):
+    WRITE = True
+
     def render(self):
         form = self.request.params
         if not form.has_key("machine"):
@@ -468,8 +474,8 @@ class XenRTMUpdate(XenRTMachinePage):
                         self.update_machine_param(machine, key, form[key])
             return "OK"
         except:
-            return "ERROR Internal error"
             traceback.print_exc(file=sys.stderr)
+            return "ERROR Internal error"
 
     def update_machine_param(self, machine, key, value):
 
@@ -486,14 +492,14 @@ class XenRTMUpdate(XenRTMachinePage):
             key = key[1:]
         
         cur = db.cursor()
-        cur.execute(("SELECT value FROM tblMachineData WHERE machine= '%s' " +
-                     "AND key = '%s';") % (machine, key))
+        cur.execute("SELECT value FROM tblMachineData WHERE machine= %s "
+                    "AND key = %s;", [machine, key])
         rc = cur.fetchone()
         if not rc:
             if op == 0 or op == 1:
                 cur.execute("INSERT INTO tblMachineData (machine, key, value)"
-                            " VALUES ('%s', '%s', '%s');" %
-                            (machine, key, value))
+                            " VALUES (%s, %s, %s);",
+                            [machine, key, value])
         else:
             prev = ""
             if rc[0]:
@@ -515,9 +521,9 @@ class XenRTMUpdate(XenRTMachinePage):
                 if op == 1 and match == 0:
                     llnew.append(value)
                 value = string.join(llnew, ",")
-            cur.execute(("UPDATE tblMachineData SET value = '%s' WHERE " +
-                         "machine = '%s' AND key = '%s';") %
-                        (value, machine, key))
+            cur.execute("UPDATE tblMachineData SET value = %s WHERE "
+                        "machine = %s AND key = %s;",
+                        [value, machine, key])
         db.commit()
         cur.close()
 
@@ -580,12 +586,12 @@ class XenRTUtilisation(XenRTMachinePage):
                 data['pool'] = pool
 
                 # Get the statistics for this machine
-                cur.execute(("SELECT extract(epoch FROM ts),etype,edata FROM tblevents " +
-                             "WHERE subject='%s' AND (etype='JobStart' OR etype='" +
-                             "JobEnd') AND ts > ('epoch'::timestamptz + interval " +
-                             "'%u seconds') AND ts < ('epoch'::timestamptz + " +
-                             "interval '%u seconds') ORDER BY ts;") % \
-                             (machine,start,end))
+                cur.execute("SELECT extract(epoch FROM ts),etype,edata FROM tblevents "
+                            "WHERE subject=%s AND (etype='JobStart' OR etype='"
+                            "JobEnd') AND ts > ('epoch'::timestamptz + interval "
+                            "'%s seconds') AND ts < ('epoch'::timestamptz + "
+                            "interval '%s seconds') ORDER BY ts;",
+                            [machine,start,end])
 
                 started = False
                 st_time = 0
@@ -705,13 +711,13 @@ class XenRTMachineDashboardJSON(XenRTMachinePage):
             
     
 
-PageFactory(XenRTMList, "mlist", "/api/machine/list", compatAction="mlist2")
-PageFactory(XenRTMStatus, "mstatus", "/api/machine/setstatus", compatAction="mstatus")
-PageFactory(XenRTMDefine, "mdefine", "/api/machine/define", compatAction="mdefine")
-PageFactory(XenRTMUnDefine, "mundefine", "/api/machine/undefine", compatAction="mundefine")
-PageFactory(XenRTBorrow, "borrow", "/api/machine/borrow", compatAction="borrow")
-PageFactory(XenRTReturn, "return", "/api/machine/return", compatAction="return")
-PageFactory(XenRTMachine, "machine", "/api/machine/details", compatAction="machine")
-PageFactory(XenRTMUpdate, "mupdate", "/api/machine/update", compatAction="mupdate")
-PageFactory(XenRTUtilisation, "utilisation", "/api/machine/utilisation", compatAction="utilisation")
-PageFactory(XenRTMachineDashboardJSON, "machinedashboardjson", "/api/machine/dashboardjson", contentType="application/json")
+PageFactory(XenRTMList, "/api/machine/list", compatAction="mlist2")
+PageFactory(XenRTMStatus, "/api/machine/setstatus", compatAction="mstatus")
+PageFactory(XenRTMDefine, "/api/machine/define", compatAction="mdefine")
+PageFactory(XenRTMUnDefine,"/api/machine/undefine", compatAction="mundefine")
+PageFactory(XenRTBorrow, "/api/machine/borrow", compatAction="borrow")
+PageFactory(XenRTReturn, "/api/machine/return", compatAction="return")
+PageFactory(XenRTMachine, "/api/machine/details", compatAction="machine")
+PageFactory(XenRTMUpdate, "/api/machine/update", compatAction="mupdate")
+PageFactory(XenRTUtilisation, "/api/machine/utilisation", compatAction="utilisation")
+PageFactory(XenRTMachineDashboardJSON, "/api/machine/dashboardjson", contentType="application/json")

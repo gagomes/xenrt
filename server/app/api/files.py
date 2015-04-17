@@ -3,7 +3,8 @@ from app.api import XenRTAPIPage
 
 import app.utils
 
-import string, shutil, traceback
+import string, shutil, traceback, mimetypes
+from pyramid.httpexceptions import HTTPFound, HTTPNotFound, HTTPInternalServerError
 
 class XenRTDownload(XenRTAPIPage):
     def render(self):
@@ -33,14 +34,46 @@ class XenRTDownload(XenRTAPIPage):
             self.request.response.content_disposition = "attachment; filename=\"%d.tar.bz2\"" % (id)
             return self.request.response
         except Exception, e:
-            traceback.print_exc()
             if isinstance(e, IOError):
                 # We can still report error to client at this point
                 return "ERROR File missing"
             else:
                 return "ERROR Internal error"
 
+class XenRTJobFileDownload(XenRTAPIPage):
+    def render(self):
+        prejob = self.request.params.get("prejob") in ("yes", "true")
+
+        details = self.get_job(self.request.matchdict['job'])
+        if prejob:
+            server = details['JOB_FILES_SERVER']
+        else:
+            server = details['LOG_SERVER']
+
+        if server != self.request.host:
+            return HTTPFound(location="http://%s%s" % (server, self.request.path_qs))
+
+        filename = self.request.matchdict['filename']
+        (ctype, encoding) = mimetypes.guess_type(filename)
+        if not ctype:
+            ctype = "application/octet-stream"
+        
+        try:
+            localfilename = app.utils.results_filename(filename, int(self.request.matchdict['job']))
+            self.request.response.body_file = file(localfilename, "r")
+            self.request.response.content_type=ctype
+            if encoding:
+                self.request.response.content_encoding=encoding
+            return self.request.response
+        except Exception, e:
+            if isinstance(e, IOError):
+                return HTTPNotFound()
+            else:
+                return HTTPInternalServerError()
+
 class XenRTUpload(XenRTAPIPage):
+    WRITE = True
+
     def render(self):
         form = self.request.params
         prefix = ""
@@ -99,12 +132,13 @@ class XenRTUpload(XenRTAPIPage):
         db = self.getDB()
         cur = db.cursor()
 
-        cur.execute("UPDATE tblResults SET uploaded = '%s' WHERE detailid = %u" %
-                    (uploaded, detailid))
+        cur.execute("UPDATE tblResults SET uploaded = %s WHERE detailid = %s",
+                    [uploaded, detailid])
 
         db.commit()
 
         cur.close()
 
-PageFactory(XenRTDownload, "download", "/api/files/download", compatAction="download")
-PageFactory(XenRTUpload, "upload", "/api/files/upload", compatAction="upload")
+PageFactory(XenRTDownload, "/api/files/download", compatAction="download")
+PageFactory(XenRTJobFileDownload, "/api/getjobfile/{job}/{filename}")
+PageFactory(XenRTUpload, "/api/files/upload", compatAction="upload")

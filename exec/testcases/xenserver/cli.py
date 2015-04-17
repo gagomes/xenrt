@@ -46,7 +46,7 @@ class TCCLI(xenrt.TestCase):
                 if l[0] == "localsr":
                     uselocalsr = True
         guests = string.split(guests, ",")
-            
+
         host = xenrt.TEC().registry.hostGet(machine)
         self.hostToClean = host
         if not host:
@@ -55,7 +55,7 @@ class TCCLI(xenrt.TestCase):
         self.getLogsFrom(host)
         sftp = host.sftpClient()
         cli = host.getCLIInstance()
-        
+
         # Get the test binaries
         testtar = xenrt.TEC().lookup("CLI_REGRESSION_TESTS", None)
         if not testtar:
@@ -225,6 +225,7 @@ class TCCLI(xenrt.TestCase):
 
             if "debian-pv" in guests:
                 debianpv = host.createGenericLinuxGuest(name="debian-pv",
+                                                        vcpus=1,
                                                         sr=sruuid)
                 debianpv.setMemory(256)
                 debianpv.check()
@@ -1570,7 +1571,7 @@ class TCPatchApply(xenrt.TestCase):
         except xenrt.XRTFailure, e:
             raise xenrt.XRTFailure("Failure while applying patch: " + e.reason)
 
-        if self.host.execdom0("rpm -q Deployment_Guide-en-US", retval="code") != 0:
+        if not isinstance(self.host, xenrt.lib.xenserver.DundeeHost) and self.host.execdom0("rpm -q Deployment_Guide-en-US", retval="code") != 0:
             raise xenrt.XRTFailure("Deployment_Guide-en-US RPM not found after applying hotfix2")
     
     def patch3(self):

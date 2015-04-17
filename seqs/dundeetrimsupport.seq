@@ -1,0 +1,23 @@
+<xenrt>
+
+  <!-- Dundee TRIM Support on NetApp FC lun -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <serial group="FuncTRIMHBA">
+
+      <testcase id="xenserver.tc.lunspace.TrimFunctionalTestHBA" tc="TC-21546"/>
+
+    </serial>
+  </testsequence>
+
+</xenrt>
+
+

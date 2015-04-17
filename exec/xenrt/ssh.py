@@ -27,7 +27,7 @@ def getPublicKey():
     f.close()
     return string.strip(data)
 
-class SSHSession:
+class SSHSession(object):
     def __init__(self,
                  ip,
                  username="root",
@@ -173,7 +173,7 @@ class SFTPSession(SSHSession):
     def __init__(self,
                  ip,
                  username="root",
-                 timeout=300,
+                 timeout=1250,
                  level=xenrt.RC_ERROR,
                  password=None,
                  nowarn=False,
@@ -399,7 +399,7 @@ class SSHCommand(SSHSession):
                  ip,
                  command,
                  username="root",
-                 timeout=300,
+                 timeout=1200,
                  level=xenrt.RC_ERROR,
                  password=None,
                  nowarn=False,
@@ -520,7 +520,7 @@ class SSHCommand(SSHSession):
 def SSH(ip,
         command,
         username="root",
-        timeout=300,
+        timeout=1200,
         level=xenrt.RC_ERROR,
         retval="code",
         password=None,

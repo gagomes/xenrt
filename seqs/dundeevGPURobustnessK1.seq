@@ -1,0 +1,17 @@
+<xenrt>
+  <!-- vGPU scalability tests - 1 day -->
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0" />
+  </prepare>
+
+  <testsequence>
+    <parallel group="Scalability" workers="2">
+      <!-- <testcase id="testcases.xenserver.tc.vgpu.ScalabilityVGPUWin7x86K100"  tc="TC-20839"/> -->
+      <testcase id="testcases.xenserver.tc.vgpu.ScalabilityVGPUWin7x86K100BS"  tc="TC-20841"/> 
+    </parallel>
+  </testsequence>
+</xenrt>

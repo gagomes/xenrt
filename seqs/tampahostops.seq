@@ -28,7 +28,6 @@
     <testcase id="xenserver.tc.host.TC6859" prio="2"/>
     <testcase id="xenserver.tc.host.TC5792" prio="2"/>
     <testcase id="xenserver.cli.TCQuicktest" group="FunctionalTests" tc="TC-5797" prio="2"/>
-    <testcase id="xenserver.tc.host.TC6641" prio="3"/>
     <testcase id="xenserver.cli.TCWindowsCLI" tc="TC-6965" prio="3"/>
     <testcase id="xenserver.cli.TCCLIAuth" tc="TC-6969" prio="3"/>
     <serial group="hfx-725">

@@ -23,7 +23,6 @@
           <memory>512</memory>
           <disk device="0" size="8"/>
           <postinstall action="installTools"/>
-          <postinstall action="changeToVMXNet3"/>
         </vm>
         <vm name="debian60-1-1v">
           <distro>debian60</distro>
@@ -32,7 +31,6 @@
           <memory>512</memory>
           <disk device="0" size="8"/>
           <postinstall action="installTools"/>
-          <postinstall action="changeToVMXNet3"/>
         </vm>
 
       </host>

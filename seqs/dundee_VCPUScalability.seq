@@ -1,0 +1,16 @@
+<xenrt>
+    <!-- PR1566-->
+    <variables>
+        <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    </variables>
+
+    <prepare>
+        <host id="0">
+        </host>
+    </prepare>
+
+    <testsequence group="maxVCPUs">
+        <testcase id="xenserver.tc.maxima.TC18836"/>
+    </testsequence>
+    
+</xenrt>

@@ -1,0 +1,38 @@
+<xenrt>
+
+  <!-- LVHD leaf coalesce tests for LVM -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence group="LVM">
+    <testcase id="xenserver.tc.vhd.TC10560"/>
+    <testcase id="xenserver.tc.vhd.TC10561"/>
+    <testcase id="xenserver.tc.vhd.TC10562"/>
+    <testcase id="xenserver.tc.vhd.TC10563"/>
+    <testcase id="xenserver.tc.vhd.TC10564"/>
+    <testcase id="xenserver.tc.vhd.TC10565"/>
+    <testcase id="xenserver.tc.vhd.TC10566"/>
+    <testcase id="xenserver.tc.vhd.TC10567"/>
+    <testcase id="xenserver.tc.vhd.TC10568"/>
+    <testcase id="xenserver.tc.vhd.TC10570"/>
+    <testcase id="xenserver.tc.vhd.TC10571"/>
+    <testcase id="xenserver.tc.vhd.TC10572"/>
+    <testcase id="xenserver.tc.vhd.TC10573"/>
+    <testcase id="xenserver.tc.vhd.TC10574"/>
+    <testcase id="xenserver.tc.vhd.TC10575"/>
+    <testcase id="xenserver.tc.vhd.TC10576"/>
+    <testcase id="xenserver.tc.vhd.TC10577"/>
+    <testcase id="xenserver.tc.vhd.TC10578"/>
+    <testcase id="xenserver.tc.vhd.TC10579"/>
+    <testcase id="xenserver.tc.vhd.TC10580"/>
+    <testcase id="xenserver.tc.vhd.TC10600"/>
+  </testsequence>
+
+</xenrt>

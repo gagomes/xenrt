@@ -91,9 +91,14 @@ class _HASmoketest(xenrt.TestCase):
         # Loss of xapi on master (to check failover etc)
         xenrt.TEC().logdelimit("Loss of xapi on master")
         self.pool.master.execdom0("touch /etc/xensource/xapi_block_startup")
-        self.pool.master.execdom0("mv /etc/init.d/xapi "
-                                  "/etc/init.d/xapi.disabled")
-        self.pool.master.execdom0("/etc/init.d/xapi.disabled stop")
+        if self.pool.master.isCentOS7Dom0():
+            self.pool.master.execdom0("systemctl stop xapi.service")
+            self.pool.master.execdom0("systemctl disable xapi.service")
+            self.pool.master.execdom0("mv /etc/init.d/xapi /etc/init.d/xapi.disabled")
+        else:
+            self.pool.master.execdom0("mv /etc/init.d/xapi "
+                                      "/etc/init.d/xapi.disabled")
+            self.pool.master.execdom0("/etc/init.d/xapi.disabled stop")
         oldMaster = self.pool.master
         self.pool.haLiveset.remove(self.pool.master.getMyHostUUID())
         self.pool.sleepHA("W",multiply=4)
@@ -104,8 +109,12 @@ class _HASmoketest(xenrt.TestCase):
         time.sleep(180)
         oldMaster.waitForSSH(300, desc="Old master boot after host fence")
         oldMaster.execdom0("rm -f /etc/xensource/xapi_block_startup")
-        oldMaster.execdom0("mv /etc/init.d/xapi.disabled "
-                           "/etc/init.d/xapi")
+        if oldMaster.isCentOS7Dom0():
+            oldMaster.execdom0("mv /etc/init.d/xapi.disabled /etc/init.d/xapi")
+            oldMaster.execdom0("systemctl enable xapi.service")
+        else:
+            oldMaster.execdom0("mv /etc/init.d/xapi.disabled "
+                               "/etc/init.d/xapi")
         oldMaster.startXapi()
         time.sleep(120)
         self.pool.haLiveset.append(oldMaster.getMyHostUUID())
@@ -437,8 +446,14 @@ class _HATest(xenrt.TestCase):
             # Try FC first
             fcsr = master.lookup("SR_FCHBA", "LUN0")
             scsiid = master.lookup(["FC", fcsr, "SCSIID"], None)
+            if scsiid:
+                # Verify the LUN is available on all hosts (CA-155371)
+                for h in slaves:
+                    if h.lookup(["FC", fcsr, "SCSIID"], None) != scsiid:
+                        scsiid = None
+                        break
             sr = None
-            if self.SF_STORAGE == "nfs":
+            if self.SF_STORAGE.startswith("nfs"):
                 # use NFS if specified
                 #srs = pool.master.getSRs(type=self.SF_STORAGE)
                 #if len(srs) > 0: 
@@ -531,8 +546,12 @@ class _HATest(xenrt.TestCase):
         r = re.search(r"([0-9\.]+):(\S+)", nfs)
         if not r:
             raise xenrt.XRTError("Unable to parse NFS paths %s" % (nfs))
-        sr = xenrt.lib.xenserver.NFSStorageRepository(host, name)
-        sr.create(r.group(1), r.group(2))
+        if self.SF_STORAGE == "nfs4":
+            sr = xenrt.lib.xenserver.NFSv4StorageRepository(host, name)
+            sr.create(r.group(1), r.group(2))
+        else:
+            sr = xenrt.lib.xenserver.NFSStorageRepository(host, name)
+            sr.create(r.group(1), r.group(2))
         self.nfssr = sr
         sr.check()
         host.addSR(sr)
@@ -721,6 +740,16 @@ class TC11795(TC7495):
         pool = self.configureHAPool([host0,host1])
         self.check(pool)
         
+class TC26902(TC7495):
+    """Verify StateFile can be located on NFSv4 storage"""
+    SF_STORAGE = "nfs4"
+    
+    def run(self, arglist=None):
+        host0 = self.getHost("RESOURCE_HOST_0")
+        host1 = self.getHost("RESOURCE_HOST_1")
+        pool = self.configureHAPool([host0,host1])
+        self.check(pool)
+
 class TC7935(_HATest):
     """Verify that pool-ha-enable honours the heartbeat-sr-uuids parameter"""
 
@@ -1169,8 +1198,6 @@ class TC7509(_HATest):
     """Verify that an HA-enabled pool continues to function when a non-master
        member without any protected VMs is shutdown cleanly"""
 
-    LOAD = "master"
-
     def run(self, arglist=None):
         host0 = self.getHost("RESOURCE_HOST_0")
         host1 = self.getHost("RESOURCE_HOST_1")
@@ -1189,8 +1216,6 @@ class TC7511(_HATest):
     """Verify that an HA-enabled pool continues to function when a master member
        without any protected VMs is shutdown cleanly"""
 
-    LOAD = "slaves"
-
     def run(self, arglist=None):
         host0 = self.getHost("RESOURCE_HOST_0")
         host1 = self.getHost("RESOURCE_HOST_1")
@@ -1208,8 +1233,6 @@ class TC7511(_HATest):
 
 class TC7514(_HATest):
     """Verify that a power-cycled node rejoins the pool automatically"""
-
-    LOAD = "master"
 
     def run(self, arglist=None):
         host0 = self.getHost("RESOURCE_HOST_0")
@@ -1240,7 +1263,6 @@ class TC7514(_HATest):
 # Base class for failure secnario testing
 class _HAFailureTest(_HATest):
     # We want a tile of protected VMs per node
-    LOAD = "master slaves protect"
     WORKLOADS = False
     pool = None
     TEMPORARY = True
@@ -1338,6 +1360,11 @@ class TC13514(_HAStatefileFailure):
     LOSE_SLAVES = 1
     SF_STORAGE = "nfs"
     
+class TC26904(_HAStatefileFailure):
+    """Slave loss of statefile for NFSv4 SF"""
+    LOSE_SLAVES = 1
+    SF_STORAGE = "nfs4"
+    
 class TC7686(_HAStatefileFailure):
     """Master loss of statefile"""
     LOSE_MASTER = True
@@ -1363,8 +1390,7 @@ class TC7690(TC7685):
     WORKLOADS = True
 
 class TC13542(TC7685):
-    """Slave loss of statefile (under load) NFS"""
-    WORKLOADS = True
+    """Slave loss of statefile NFS"""
     SF_STORAGE = "nfs"
 
 class TC7691(TC7686):
@@ -1372,8 +1398,7 @@ class TC7691(TC7686):
     WORKLOADS = True
 
 class TC13543(TC7686):
-    """Slave loss of statefile (under load)"""
-    WORKLOADS = True
+    """Master loss of statefile NFS"""
     SF_STORAGE = "nfs"
 
 class TC7692(TC7687):
@@ -1381,8 +1406,7 @@ class TC7692(TC7687):
     WORKLOADS = True
 
 class TC13544(TC7687):
-    """Multiple slave loss of statefile (under load)"""
-    WORKLOADS = True
+    """Multiple slave loss of statefile NFS"""
     SF_STORAGE = "nfs"
     
 class TC7693(TC7688):
@@ -1390,9 +1414,12 @@ class TC7693(TC7688):
     WORKLOADS = True
 
 class TC13515(TC7688):
-    """Master+slave loss of statefile (under load) for NFS SF"""
-    WORKLOADS = True
+    """Master+slave loss of statefile for NFS SF"""
     SF_STORAGE = "nfs"
+    
+class TC26905(TC7688):
+    """Master+slave loss of statefile for NFSv4 SF"""
+    SF_STORAGE = "nfs4"
 
 class TC7694(TC7689):
     """All hosts loss of statefile (under load)"""
@@ -1401,6 +1428,10 @@ class TC7694(TC7689):
 class TC13541(TC7689):
     """All hosts loss of statefile"""
     SF_STORAGE = "nfs"
+    
+class TC26906(TC7689):
+    """All hosts loss of statefile"""
+    SF_STORAGE = "nfs4"
 
 class _HAHeartbeatFailure(_HAFailureTest):
     TIMEOUT = "W"
@@ -1533,6 +1564,13 @@ class TC13516(_HAHeartbeatFailure):
     LOSE_MASTER = True
     LOSE_SLAVES = 1   
     SF_STORAGE = "nfs"
+    
+class TC26907(_HAHeartbeatFailure):
+    """Master+slave loss of heartbeats for NFSv4 SF"""
+    LOSE_MASTER = True
+    LOSE_SLAVES = 1   
+    SF_STORAGE = "nfs4"
+
 class TC7699(_HAHeartbeatFailure):
     """All hosts loss of heartbeats"""
     LOSE_ALL = True
@@ -1553,8 +1591,7 @@ class TC7703(TC7695):
     WORKLOADS = True
 
 class TC13545(TC7695):
-    """Slave loss of heartbeats (under load) NFS"""
-    WORKLOADS = True
+    """Slave loss of heartbeats NFS"""
     SF_STORAGE = "nfs"
 
 class TC7704(TC7696):
@@ -1562,8 +1599,7 @@ class TC7704(TC7696):
     WORKLOADS = True
 
 class TC13546(TC7696):
-    """Master loss of heartbeats (under load)"""
-    WORKLOADS = True
+    """Master loss of heartbeats NFS"""
     SF_STORAGE = "nfs"
 
 class TC7705(TC7697):
@@ -1571,8 +1607,7 @@ class TC7705(TC7697):
     WORKLOADS = True
 
 class TC13547(TC7697):
-    """Multiple slave loss of heartbeats (under load) NFS"""
-    WORKLOADS = True
+    """Multiple slave loss of heartbeats NFS"""
     SF_STORAGE = "nfs"
 
 class TC7706(TC7698):
@@ -1580,8 +1615,7 @@ class TC7706(TC7698):
     WORKLOADS = True
 
 class TC13548(TC7698):
-    """Master+slave loss of heartbeats (under load) NFS"""
-    WORKLOADS = True
+    """Master+slave loss of heartbeats NFS"""
     SF_STORAGE = "nfs"
 
 class TC7707(TC7699):
@@ -1589,8 +1623,7 @@ class TC7707(TC7699):
     WORKLOADS = True
 
 class TC13549(TC7699):
-    """All hosts loss of heartbeats (under load) NFS"""
-    WORKLOADS = True
+    """All hosts loss of heartbeats NFS"""
     SF_STORAGE = "nfs"
 
 class TC7708(TC7700):
@@ -1598,8 +1631,7 @@ class TC7708(TC7700):
     WORKLOADS = True
 
 class TC13550(TC7700):
-    """Master in largest heartbeat partition (under load) NFS"""
-    WORKLOADS = True
+    """Master in largest heartbeat partition NFS"""
     SF_STORAGE = "nfs"
 
 class TC7709(TC7701):
@@ -1607,8 +1639,7 @@ class TC7709(TC7701):
     WORKLOADS = True
 
 class TC13551(TC7701):
-    """Master in smallest heartbeat partition (under load) NFS"""
-    WORKLOADS = True
+    """Master in smallest heartbeat partition NFS"""
     SF_STORAGE = "nfs"
 
 class TC7710(TC7702):
@@ -1616,8 +1647,7 @@ class TC7710(TC7702):
     WORKLOADS = True
 
 class TC13552(TC7702):
-    """Equal heartbeat partitions (under load) NFS"""
-    WORKLOADS = True
+    """Equal heartbeat partitions NFS"""
     SF_STORAGE = "nfs"
 
 
@@ -1653,6 +1683,12 @@ class TC13518(_HAHostFailure):
     """Loss of master for NFS SF"""
     LOSE_MASTER = True    
     SF_STORAGE = "nfs"
+
+class TC26910(_HAHostFailure):
+    """Loss of master for NFSv4 SF"""
+    LOSE_MASTER = True    
+    SF_STORAGE = "nfs4"
+
 class TC7713(_HAHostFailure):
     """Loss of multiple slaves"""
     LOSE_SLAVES = 2
@@ -1665,17 +1701,19 @@ class TC7715(TC7711):
     """Loss of slave (under load)"""
     WORKLOADS = True
 class TC13517(TC7711):
-    """Loss of slave (under load) for NFS SF"""
-    WORKLOADS = True    
+    """Loss of slave for NFS SF"""
     SF_STORAGE = "nfs"
+
+class TC26908(TC7711):
+    """Loss of slave for NFSv4 SF"""
+    SF_STORAGE = "nfs4"
 
 class TC7716(TC7712):
     """Loss of master (under load)"""
     WORKLOADS = True
 
 class TC13555(TC7712):
-    """Loss of master (under load) NFS"""
-    WORKLOADS = True
+    """Loss of master NFS"""
     SF_STORAGE = "nfs"
 
 class TC7717(TC7713):
@@ -1683,17 +1721,18 @@ class TC7717(TC7713):
     WORKLOADS = True
 
 class TC13556(TC7713):
-    """Loss of multiple slaves (under load) NFS"""
-    WORKLOADS = True
+    """Loss of multiple slaves NFS"""
     SF_STORAGE = "nfs"
 
 class TC7718(TC7714):
     """Loss of master+slave (under load)"""
     WORKLOADS = True
 class TC13519(TC7714):
-    """Loss of master+slave (under load) for NFS SF"""
-    WORKLOADS = True
+    """Loss of master+slave for NFS SF"""
     SF_STORAGE = "nfs"
+class TC26911(TC7714):
+    """Loss of master+slave for NFSv4 SF"""
+    SF_STORAGE = "nfs4"
 
 # Two node pool failure scenarios
 class TC7719(_HAStatefileFailure):
@@ -1706,7 +1745,6 @@ class TC7720(_HAStatefileFailure):
     HOSTS = 2
 class TC7721(_HATest):
     """Loss of heartbeats in two node pool"""
-    LOAD = "master slaves protect"
     WORKLOADS = False
 
     def run(self, arglist=None):
@@ -1760,8 +1798,7 @@ class TC7724(TC7719):
     WORKLOADS = True
     
 class TC13557(TC7719):
-    """Slave loss of statefile in two node pool (under load) NFS"""
-    WORKLOADS = True
+    """Slave loss of statefile in two node pool NFS"""
     SF_STORAGE = "nfs"
     
 class TC7725(TC7720):
@@ -1769,8 +1806,7 @@ class TC7725(TC7720):
     WORKLOADS = True
 
 class TC13558(TC7720):
-    """Master loss of statefile in two node pool (under load)"""
-    WORKLOADS = True
+    """Master loss of statefile in two node pool NFS"""
     SF_STORAGE = "nfs"
 
 class TC7726(TC7721):
@@ -1778,17 +1814,15 @@ class TC7726(TC7721):
     WORKLOADS = True
 
 class TC13521(TC7721):
-    """Loss of heartbeats in two node pool (under load) for NFS SF"""
+    """Loss of heartbeats in two node pool for NFS SF"""
     SF_STORAGE = "nfs"
-    WORKLOADS = True
 
 class TC7727(TC7722):
     """Loss of slave in two node pool (under load)"""
     WORKLOADS = True
 
 class TC13559(TC7722):
-    """Loss of slave in two node pool (under load) NFS """
-    WORKLOADS = True
+    """Loss of slave in two node pool NFS """
     SF_STORAGE = "nfs"
 
 
@@ -1797,14 +1831,12 @@ class TC7728(TC7723):
     WORKLOADS = True
 
 class TC13560(TC7723):
-    """Loss of master in two node pool (under load) NFS """
-    WORKLOADS = True
+    """Loss of master in two node pool NFS"""
     SF_STORAGE = "nfs"
 
 # Host Software Failure Scenarios
 class _HAXapiFailure(_HATest):
     WORKLOADS = False
-    LOAD = "master slaves protect"
     pool = None
     MASTER = False
 
@@ -1838,9 +1870,13 @@ class _HAXapiFailure(_HATest):
                 self.pool.master.execdom0("touch "
                                           "/etc/xensource/xapi_block_startup")
                 disabledHost = self.pool.master
-                self.pool.master.execdom0("mv /etc/init.d/xapi "
-                                          "/etc/init.d/xapi.disabled")
-                self.pool.master.execdom0("/etc/init.d/xapi.disabled stop")
+                if self.pool.master.isCentOS7Dom0():
+                    self.pool.master.execdom0("systemctl stop xapi.service")
+                    self.pool.master.execdom0("systemctl disable xapi.service")
+                else:
+                    self.pool.master.execdom0("mv /etc/init.d/xapi "
+                                              "/etc/init.d/xapi.disabled")
+                    self.pool.master.execdom0("/etc/init.d/xapi.disabled stop")
                 self.pool.haLiveset.remove(self.pool.master.getMyHostUUID())
                 self.pool.master.skipNextCrashdump = True
                 self.newMaster = True
@@ -1848,9 +1884,13 @@ class _HAXapiFailure(_HATest):
                 h = self.pool.slaves.values()[0]
                 h.execdom0("touch /etc/xensource/xapi_block_startup")
                 disabledHost = h
-                h.execdom0("mv /etc/init.d/xapi "
-                           "/etc/init.d/xapi.disabled")
-                h.execdom0("/etc/init.d/xapi.disabled stop")
+                if h.isCentOS7Dom0():
+                    h.execdom0("systemctl stop xapi.service")
+                    h.execdom0("systemctl disable xapi.service")
+                else:
+                    h.execdom0("mv /etc/init.d/xapi "
+                               "/etc/init.d/xapi.disabled")
+                    h.execdom0("/etc/init.d/xapi.disabled stop")
                 self.pool.haLiveset.remove(h.getMyHostUUID())
                 h.skipNextCrashdump = True
     
@@ -1860,8 +1900,11 @@ class _HAXapiFailure(_HATest):
             if disabledHost:
                 try:
                     disabledHost.waitForSSH(900, desc="Host boot to fix xapi")
-                    disabledHost.execdom0("mv /etc/init.d/xapi.disabled "
-                                          "/etc/init.d/xapi")
+                    if disabledHost.isCentOS7Dom0():
+                        disabledHost.execdom0("systemctl enable xapi.service")
+                    else:
+                        disabledHost.execdom0("mv /etc/init.d/xapi.disabled "
+                                              "/etc/init.d/xapi")
                 except:
                     xenrt.TEC().warning("Unable to restore xapi binary!")
 
@@ -1888,7 +1931,6 @@ class TC7731(_HATest):
        further failure (heartbeat loss to one node) occurs"""
 
     WORKLOADS = False
-    LOAD = "master slaves protect"
 
     def run(self, arglist=None):
         host0 = self.getHost("RESOURCE_HOST_0")
@@ -3209,7 +3251,7 @@ class _StuckState(_HATest):
         # Set up a 2-node pool with HA enabled
         host0 = self.getHost("RESOURCE_HOST_0")        
         host1 = self.getHost("RESOURCE_HOST_1")
-        if self.SOFTWARE_TARGET and not self.SF_STORAGE == "nfs":
+        if self.SOFTWARE_TARGET and not self.SF_STORAGE.startswith("nfs"):
             host2 = self.getHost("RESOURCE_HOST_2")
             host2.resetToFreshInstall()
             self.target = host2.createGenericLinuxGuest()
@@ -3226,6 +3268,17 @@ class _StuckState(_HATest):
         self.pool.syncDatabase() # Occasionally a host can reboot with no
                                  # network config, this is believed due to the
                                  # db not having synced
+
+    def blockNFSOnBoot(self, host):
+        host.execdom0("cp %s/remote/unblocknfs.sh /etc/unblocknfs.sh" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"))
+        if host.isCentOS7Dom0():
+            host.execdom0("cp %s/remote/blocknfs_c7.sh /etc/init.d/blocknfs" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"))
+            host.execdom0("chmod a+x /etc/init.d/blocknfs")
+            host.execdom0("chkconfig --add blocknfs")
+        else:
+            host.execdom0("cp %s/remote/blocknfsonboot.sh /etc/blocknfsonboot.sh" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"))
+            host.execdom0("chmod a+x /etc/blocknfsonboot.sh")
+            host.execdom0("ln -s /etc/blocknfsonboot.sh /etc/rc3.d/S09blocknfs")
 
 class TC8127(_StuckState):
     """Disable HA and Statefile delete with offline host"""
@@ -3258,6 +3311,10 @@ class TC8127(_StuckState):
 class TC13522(TC8127):
     """Disable HA and Statefile delete with offline host for NFS SF"""
     SF_STORAGE = "nfs"
+    
+class TC26912(TC8127):
+    """Disable HA and Statefile delete with offline host for NFSv4 SF"""
+    SF_STORAGE = "nfs4"
   
 class TC8128(_StuckState):
     """Disable HA with offline host"""
@@ -3289,17 +3346,13 @@ class TC8129(_StuckState):
     def run(self, arglist=None):
         # 1. power off slave
         self.hostsToPowerOn.append(self.slave)
-        if self.SF_STORAGE == "nfs":
-            self.slave.execdom0("cp %s/remote/blocknfsonboot.sh /etc/blocknfsonboot.sh" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"))
-            self.slave.execdom0("cp %s/remote/unblocknfs.sh /etc/unblocknfs.sh" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"))
-            self.slave.execdom0("chmod a+x /etc/blocknfsonboot.sh")
-            self.slave.execdom0("chmod a+x /etc/unblocknfs.sh")
-            self.slave.execdom0("ln -s /etc/blocknfsonboot.sh /etc/rc3.d/S09blocknfs")
+        if self.SF_STORAGE.startswith("nfs"):
+            self.blockNFSOnBoot(self.slave)
         self.slave.shutdown()
         self.slave.machine.powerctl.off()
         time.sleep(10)
         # 2. arrange to block statefile access on the slave when it returns
-        if not self.SF_STORAGE == "nfs":            
+        if not self.SF_STORAGE.startswith("nfs"):            
             self.target.execguest("iptables -I INPUT -s %s -j DROP" % 
                                   (self.slave.getIP()))
 
@@ -3314,7 +3367,7 @@ class TC8129(_StuckState):
             raise xenrt.XRTError("Slave not in HA emergency mode with statefile"
                                  " access blocked")
         # 4. remove the block
-        if self.SF_STORAGE == "nfs":
+        if self.SF_STORAGE.startswith("nfs"):
             self.slave.execdom0("/etc/unblocknfs.sh")
         else:
             self.target.execguest("iptables -D INPUT -s %s -j DROP" %
@@ -3335,6 +3388,11 @@ class TC13523(TC8129):
     """Verify a booting host remains in emergency mode until it can see the HA
        statefile for NFS SF"""        
     SF_STORAGE = "nfs"
+    
+class TC26913(TC8129):
+    """Verify a booting host remains in emergency mode until it can see the HA
+       statefile for NFSv4 SF"""        
+    SF_STORAGE = "nfs4"
 
 class TC8130(_StuckState):
     """Verify that an HA-enabled pool can be recovered if all nodes reboot
@@ -3344,20 +3402,16 @@ class TC8130(_StuckState):
     def run(self, arglist=None):
 
         # 1. power off all nodes
-        if self.SF_STORAGE == "nfs":
+        if self.SF_STORAGE.startswith("nfs"):
             for host in [self.slave, self.master]:
-                host.execdom0("cp %s/remote/blocknfsonboot.sh /etc/blocknfsonboot.sh" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"))
-                host.execdom0("cp %s/remote/unblocknfs.sh /etc/unblocknfs.sh" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"))
-                host.execdom0("chmod a+x /etc/blocknfsonboot.sh")
-                host.execdom0("chmod a+x /etc/unblocknfs.sh")
-                host.execdom0("ln -s /etc/blocknfsonboot.sh /etc/rc3.d/S09blocknfs")
+                self.blockNFSOnBoot(host)
         self.hostsToPowerOn.append(self.slave)
         self.hostsToPowerOn.append(self.master)
         self.poweroff(self.slave)
         self.poweroff(self.master)
         time.sleep(10)
         # 2. block access to the statefile globally (already done in the case of NFS)
-        if self.SF_STORAGE != "nfs":
+        if self.SF_STORAGE != "nfs" and self.SF_STORAGE != "nfs4":
             self.target.shutdown()
         # 3. power on all nodes
         self.master.machine.powerctl.on()
@@ -3390,6 +3444,11 @@ class TC13524(TC8130):
        without statefile access for NFS SF"""
     SF_STORAGE = "nfs"       
 
+class TC26914(TC8130):
+    """Verify that an HA-enabled pool can be recovered if all nodes reboot
+       without statefile access for NFSv4 SF"""
+    SF_STORAGE = "nfs4"
+
 class TC8131(_StuckState):
     """Verify that an HA-enabled Pool can be recovered if only one slave reboots
        without statefile access"""
@@ -3397,20 +3456,16 @@ class TC8131(_StuckState):
 
     def run(self, arglist=None):
         # 1. power off both hosts
-        if self.SF_STORAGE == "nfs":
+        if self.SF_STORAGE.startswith("nfs"):
             for host in [self.slave, self.master]:
-                host.execdom0("cp %s/remote/blocknfsonboot.sh /etc/blocknfsonboot.sh" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"))
-                host.execdom0("cp %s/remote/unblocknfs.sh /etc/unblocknfs.sh" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"))
-                host.execdom0("chmod a+x /etc/blocknfsonboot.sh")
-                host.execdom0("chmod a+x /etc/unblocknfs.sh")
-                host.execdom0("ln -s /etc/blocknfsonboot.sh /etc/rc3.d/S09blocknfs")
+                self.blockNFSOnBoot(host)
         self.hostsToPowerOn.append(self.slave)
         self.hostsToPowerOn.append(self.master)
         self.poweroff(self.slave)
         self.poweroff(self.master)
         time.sleep(10)
         # 2. block access to the statefile globally (already done in the case of NFS)
-        if self.SF_STORAGE != "nfs":
+        if self.SF_STORAGE != "nfs" and self.SF_STORAGE != "nfs4":
             self.target.shutdown()
         # 3. power on slave
         self.slave.machine.powerctl.on()
@@ -3470,6 +3525,11 @@ class TC13525(TC8131):
     """Verify that an HA-enabled Pool can be recovered if only one slave reboots
        without statefile access for NFS SF"""
     SF_STORAGE = "nfs"
+    
+class TC26915(TC8131):
+    """Verify that an HA-enabled Pool can be recovered if only one slave reboots
+       without statefile access for NFSv4 SF"""
+    SF_STORAGE = "nfs4"
     
 class TC8162(_HATest):
     """Verify host reboot and shutdown are blocked when relying on HA survival
@@ -4445,8 +4505,12 @@ class TC11845(xenrt.TestCase):
 
         for h in hosts:
             h.execdom0("touch /etc/xensource/xapi_block_startup")
-            h.execdom0("mv /etc/init.d/xapi /etc/init.d/xapi.disabled")
-            h.execdom0("/etc/init.d/xapi.disabled stop")
+            if h.isCentOS7Dom0():
+                h.execdom0("systemctl stop xapi.service")
+                h.execdom0("systemctl disable xapi.service")
+            else:
+                h.execdom0("mv /etc/init.d/xapi /etc/init.d/xapi.disabled")
+                h.execdom0("/etc/init.d/xapi.disabled stop")
         
         cli = self.pool.getCLIInstance()
         for h in hosts:
@@ -4461,7 +4525,10 @@ class TC11845(xenrt.TestCase):
         for h in hosts:
             h.waitForSSH(900, desc="host reboot after host fence")
             h.execdom0("rm -f /etc/xensource/xapi_block_startup")
-            h.execdom0("mv /etc/init.d/xapi.disabled /etc/init.d/xapi")
+            if h.isCentOS7Dom0():
+                h.execdom0("systemctl enable xapi.service")
+            else:
+                h.execdom0("mv /etc/init.d/xapi.disabled /etc/init.d/xapi")
             h.startXapi()
 
 
@@ -4617,6 +4684,9 @@ class TC14984(_HASnapshotTest):
     
 class TC14985(_HASnapshotTest):
     SF_STORAGE = "nfs"
+    
+class TC26903(_HASnapshotTest):
+    SF_STORAGE = "nfs4"
 
 class TC14986(_HASnapshotTest):
     SF_STORAGE = "fc"
@@ -4713,10 +4783,61 @@ class TCStorageNICMTU(xenrt.TestCase):
         except: pass
 
         step("Verify %s and %s MTU are same" % (device, bridge))
-        ethMTU = slave.execcmd("ifconfig %s | grep -Eo 'MTU:[0-9]+'|  grep -oE '[0-9]+'" % (device))
-        xenbrMTU = slave.execcmd("ifconfig %s | grep -Eo 'MTU:[0-9]+'|  grep -oE '[0-9]+'" % (bridge))
+        ethMTU = slave.execcmd("ifconfig %s | grep -Eoi 'MTU:? ?[0-9]+'|  grep -oE '[0-9]+'" % (device))
+        xenbrMTU = slave.execcmd("ifconfig %s | grep -Eoi 'MTU:? ?[0-9]+'|  grep -oE '[0-9]+'" % (bridge))
         if ethMTU != xenbrMTU and ethMTU != "9000":
             raise xenrt.XRTFailure("MTU not as expected. %s MTU=%s %s MTU=%s" % (device, ethMTU, bridge, xenbrMTU))
         else:
             log("MTU as expected. %s MTU=%s %s MTU=%s" % (device, ethMTU, bridge, xenbrMTU))
+            
+class TCHaRestartProtectedVms(_HATest):
+    """Verify that the protected VM's get restarted on other hosts in case of Host failure in a HA enabled pool"""
+    SR = "nfs"
+
+    def prepare(self, arglist=None):
+        # Get pool object
+        self.pool = self.getDefaultPool()
+        self.statefileSR = self.pool.master.getSRs(type=self.SR)
+
+        self.host1=self.getHost("RESOURCE_HOST_1")
+        self.hostsToPowerOn = []
+        #Create a setup given in CA-151670:A pool of 3 host having equal memory 
+        #Each host has a running vm with memory V such that 0.33H <V<0.5H(H being the free memory in each host)
+        #Keep the VM in one of the slaves protected (other VMs unprotected) and power off the host having protected VM
+
+        self.guest1=self.getGuest("Deb1")
+        self.guest2=self.getGuest("Deb2")
+        self.guest3=self.getGuest("Deb3")
+
+        freemem = self.host1.getFreeMemory()
+        guestmem = int(0.4*(freemem+self.guest1.memory))
+
+        allguests = [self.guest1,self.guest2,self.guest3]
+
+        for guest in allguests:
+            guest.shutdown()
+            guest.setMemoryProperties(guestmem,guestmem,guestmem,guestmem)
+            guest.start()
+
+        self.guest1.setHAPriority(protect=False, restart=False)
+        self.guest2.setHAPriority(protect=True, restart=True)
+        self.guest3.setHAPriority(protect=False, restart=False)
+
+    def run(self, arglist=None):
+
+        step("Enable HA on the pool")
+        self.pool.enableHA(srs=self.statefileSR)
+        # Set nTol to 1
+        self.pool.setPoolParam("ha-host-failures-to-tolerate", 1)
+
+        self.hostsToPowerOn.append(self.host1)
+        self.host1.machine.powerctl.off()        
+        self.pool.haLiveset.remove(self.host1.getMyHostUUID())
+        self.pool.sleepHA("W",multiply=3)
+
+        #Verfiy that the protected guest is up
+        if not self.guest2.findHost():
+            raise xenrt.XRTFailure("Protected Guest %s failed to reappear"%self.guest2.getName())
+        else :
+            self.guest2.check()
 

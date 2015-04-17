@@ -1,11 +1,15 @@
 <xenrt>
+
   <!-- CCP instance lifecycle tests [Basic Mode] -->
-  <default name="DISTROS" value="ubuntu1204_x86-32,debian70_x86-64,rhel64_x86-64,centos59_x86-32,oel59_x86-32,win7sp1-x86,winxpsp3,w2k3eesp2-x64" />
+  <!-- NOTE:  Not all the OSs are supported by all hypervisors, update the DISTRO parameter if this seq file is be executed independentely. -->
+  <default name="DISTROS" value="ubuntu1204_x86-32,debian70_x86-64,rhel64_x86-64,centos59_x86-32,oel59_x86-32,win7sp1-x86,winxpsp3,w2k3eesp2-x64,ubuntu1404_x86-32,ubuntu1404_x86-64,sles113_x86-32,sles113_x86-64,centos65_x86-32,centos65_x86-64,rhel65_x86-32,rhel65_x86-64,rhel510_x86-32,rhel510_x86-64,oel510_x86-32,oel510_x86-64,oel65_x86-32,oel65_x86-64,win81-x86,win81-x64,centos510_x86-32,centos510_x86-64,rhel7_x86-64,centos7_x86-64,oel7_x86-64" />
+  <default name="TESTED_HYPERVISOR" value="XenServer"/>
+  <default name="HYPERVISOR_VERSION" value=""/>
+  <default name="LC_WORKERS" value="3"/>
+
   <variables>
     <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
   </variables>
-
-  <default name="TESTED_HYPERVISOR" value="XenServer"/>
 
   <prepare>
     <cloud>
@@ -28,6 +32,7 @@
         ]
       }
     </cloud>
+
     <sharedhost>
       <vm name="CS-MS">
         <distro>rhel63</distro>
@@ -41,9 +46,9 @@
     </sharedhost>
   </prepare>
   <testsequence>
-    <parallel workers="3">
+    <parallel workers="${LC_WORKERS}">
       <for iter="DISTRO" values="${DISTROS}">
-        <testcase id="cloud.tc.instancelifecycles.TCCloudGuestLifeCycle" name="LC-${DISTRO}" tc="TC-21203" sku="${TESTED_HYPERVISOR}/Basic/${DISTRO}">
+        <testcase id="cloud.tc.instancelifecycles.TCCloudGuestLifeCycle" name="LC-${DISTRO}" tc="TC-21203" sku="${TESTED_HYPERVISOR}${HYPERVISOR_VERSION}/Basic/${DISTRO}">
           <arg>distro=${DISTRO}</arg>
         </testcase>
       </for>

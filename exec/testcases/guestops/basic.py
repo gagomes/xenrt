@@ -325,6 +325,8 @@ class TCGuestUpdate(xenrt.TestCase):
 class TCVerifyUEK(xenrt.TestCase):
     """ Verify Oracle Enterprise Linux 6.5 is UEK by default(on Creedence)"""
     
+    UEK = True
+    
     def __init__(self):
         xenrt.TestCase.__init__(self, "TCVerifyUEK")
         
@@ -353,20 +355,23 @@ class TCVerifyUEK(xenrt.TestCase):
             guest.start()
 
         self.getLogsFrom(host)
-        try:
-            kversion = guest.execguest("uname -r | grep 'uek' ").strip()
-        except Exception, e:
-            if not kversion:
-                raise xenrt.XRTError("Oracle enterprise linux is not UEK by default on %s " %host.productVersion )
-        
+
+        kversion = guest.execguest("uname -r").strip()
         xenstoreEntry = host.xenstoreRead("/local/domain/%u/data/os_uname" %(guest.getDomid()))
         vmparamUname = guest.paramGet('os-version','uname')
+
+        #OEL is UEK by default on creedence
+        if isinstance(host, xenrt.lib.xenserver.CreedenceHost) and self.UEK:
+            if not re.search("uek" , kversion) or not (re.search("uek" , xenstoreEntry) and re.search("uek" , vmparamUname)) or not((xenstoreEntry == kversion ) and (vmparamUname == kversion)):
+                raise xenrt.XRTError("Oracle enterprise linux is not UEK by default on %s " %host.productVersion )
+            xenrt.TEC().logverbose("Oracle enterprise linux is UEK by default on %s " %host.productVersion)
         
-        #Additional check to make sure OEL is UEK by default (on creedence)
-        
-        if  not (re.search("uek" , xenstoreEntry) and re.search("uek" , vmparamUname)):
-            raise xenrt.XRTError("Oracle enterprise linux is not UEK by default on %s " %host.productVersion )
-        elif not((xenstoreEntry == kversion ) and (vmparamUname == kversion)):
-            raise xenrt.XRTError("Oracle enterprise linux is not UEK by default on %s " %host.productVersion )
-         
-        xenrt.TEC().logverbose("Oracle enterprise linux is UEK by default on %s " %host.productVersion)
+        #OEL is not UEK on upgrade from Clearwater to Creedence
+        if not self.UEK:
+            if re.search("uek" , kversion) or (re.search("uek" , xenstoreEntry) and re.search("uek" , vmparamUname)) or not ((xenstoreEntry == kversion ) and (vmparamUname == kversion)):
+                raise xenrt.XRTError("Oracle enterprise linux is UEK on upgrade to %s " %host.productVersion )
+
+class TCVerifyUEKonUpgrade(TCVerifyUEK):
+    """Verify Oracle Enterprise Linux 6.5 is not UEK on upgrade from Clearwater to Creedence """
+    
+    UEK = False

@@ -22,9 +22,10 @@ class TestMarvinConfig(XenRTUnitTestCase):
                     "XENRT_SERVER_ADDRESS": "10.0.0.2",
                     "CLOUDINPUTDIR": "http://repo/location",
                     "ROOT_PASSWORD": "xenroot",
-                    "AD_CONFIG": {"ADMIN_USER": "Administrator", "ADMIN_PASSWORD": "xenroot01T", "DOMAIN_NAME": "XSQA", "DOMAIN": "ad.qa.xs.citrite.net"},
+                    "AD_CONFIG": {"ADMIN_USER": "Administrator", "ADMIN_PASSWORD": "xenroot01T", "DOMAIN_NAME": "XSQA", "DOMAIN": "ad.qa.xs.citrite.net", "DNS": "10.220.254.115", "DC_ADDRESS": "10.220.254.115", "DC_DISTRO": "ws12-x64", "USERS": {}},
                     "VCENTER": {"ADDRESS": "10.2.0.1", "USERNAME": "Administrator@vsphere.local", "PASSWORD": "xenroot01T!"},
-                    "VCENTER/ADDRESS": "10.2.0.1"
+                    "VCENTER/ADDRESS": "10.2.0.1",
+                    "AD_CONFIG/USERS": {"CIFS_USER": "cifsuser:xenroot02T"}
                     }
 
     def addTC(self, cls):
@@ -64,7 +65,7 @@ class TestMarvinConfig(XenRTUnitTestCase):
         smb.return_value = dummySmb
         dummyNs = Mock()
         dummyNs.managementIp = "10.3.1.1"
-        dummyNs.gatewayIp.return_value = "10.3.1.2"
+        dummyNs.subnetIp.return_value = "10.3.1.2"
         ns.return_value = dummyNs
         tec.return_value = self.dummytec
         gec.return_value = self.dummytec
@@ -171,6 +172,7 @@ class DummyRegistry(object):
         index = int(re.match("RESOURCE_HOST_(\d+)", h).group(1))
         m = Mock()
         m.getIP.return_value = str(IPy.IP(IPy.IP("10.0.0.3").int() + index))
+        m.getFQDN.return_value = "h%d.domain" % index
         return m
 
     def guestGet(self, g):
@@ -244,14 +246,14 @@ class TC1(BaseTC):
                                    'clustername': 'XenRT-Zone-0-Pod-0-Cluster-0',
                                    'clustertype': 'CloudManaged',
                                    'hosts': [{'password': 'xenroot',
-                                              'url': 'http://10.0.0.3',
+                                              'url': 'http://h0.domain',
                                               'username': 'root'}],
                                    'hypervisor': 'hyperv',
                                    'primaryStorages': [{'details': {'user': 'Administrator',
                                                                     'password': 'xenroot01T',
                                                                     'domain': 'XSQA'},
                                                         'name': 'XenRT-Zone-0-Pod-0-Cluster-0-Primary-Store-0',
-                                                        'url': 'cifs://10.0.0.3/storage/primary'}]}],
+                                                        'url': 'cifs://h0.domain/storage/primary'}]}],
                     'endip': '10.1.0.10',
                     'gateway': '10.0.0.1',
                     'name': 'XenRT-Zone-0-Pod-0',
@@ -480,14 +482,14 @@ class TC5(BaseTC):
                                    'clustername': 'XenRT-Zone-0-Pod-0-Cluster-0',
                                    'clustertype': 'CloudManaged',
                                    'hosts': [{'password': 'xenroot',
-                                              'url': 'http://10.0.0.3',
+                                              'url': 'http://h0.domain',
                                               'username': 'root'}],
                                    'hypervisor': 'hyperv',
                                    'primaryStorages': [{'details': {'user': 'Administrator',
                                                                     'password': 'xenroot01T',
                                                                     'domain': 'XSQA'},
                                                         'name': 'XenRT-Zone-0-Pod-0-Cluster-0-Primary-Store-0',
-                                                        'url': 'cifs://10.0.0.3/storage/primary'}]}],
+                                                        'url': 'cifs://h0.domain/storage/primary'}]}],
                     'endip': '10.1.0.10',
                     'gateway': '10.0.0.1',
                     'name': 'XenRT-Zone-0-Pod-0',

@@ -42,7 +42,7 @@ class TC6710(xenrt.TestCase):
         step("Configure the VM as a syslog server")
         # This might be Debian squeeze
         release = guest.execguest("which lsb_release > /dev/null && lsb_release -c || true").strip()
-        if release.endswith("squeeze"):
+        if release.endswith("squeeze") or release.endswith("wheezy"):
             self.setupRsyslog(guest)
             useRsyslog = True
         else:
@@ -68,6 +68,13 @@ class TC6710(xenrt.TestCase):
         step("Check the message reached the syslogd")
         if guest.execguest("grep %s /var/log/syslog*" % (msg),retval="code") != 0:
             raise xenrt.XRTFailure("syslog message not found on syslog server")
+        
+        step("Check the message is populated in Host")
+        if not isinstance(host, xenrt.lib.xenserver.DundeeHost):
+            if host.execdom0("grep %s /var/log/messages" % (msg),retval="code") != 0:
+                raise xenrt.XRTFailure("syslog message not found locally when remote is enabled")
+        elif host.execdom0("grep %s /var/log/user.log" % (msg),retval="code") != 0:
+            raise xenrt.XRTFailure("syslog message not found locally when remote is enabled")
 
         step("Spam the syslog to ensure the next check doesn't see old entries")
         host.execdom0('for (( i=0;i<6000;i++ )); do logger -t xenrt "logspam $i"; done')
@@ -79,6 +86,13 @@ class TC6710(xenrt.TestCase):
         step("Check the \"xapi (re)start message\" reached the syslogd")
         if guest.execguest("tail -n 6000 /var/log/syslog | grep '(Re)starting xapi'", retval="code") != 0:
             raise xenrt.XRTFailure("syslog message not found on syslog server (xapi)")
+        
+        step("Check the \"xapi (re)start message\" is populated in Host")
+        if not isinstance(host, xenrt.lib.xenserver.DundeeHost):
+            if host.execdom0("tail -n 6000 /var/log/messages | grep '(Re)starting xapi'", retval="code") != 0:
+                raise xenrt.XRTFailure("syslog message not found locally when remote is enabled")
+        elif host.execdom0("tail -n 6000 /var/log/xensource.log | grep '(Re)starting xapi'", retval="code") != 0:
+            raise xenrt.XRTFailure("syslog message not found locally when remote is enabled")
 
         step("Stop the remote syslog server and verify the host still works")
         if useRsyslog:
@@ -103,9 +117,17 @@ class TC6710(xenrt.TestCase):
         host.execdom0("logger -t xenrt '%s'" % (msg))
         time.sleep(20)
         
+        step("Check the message reached the syslogd")
         if guest.execguest("grep %s /var/log/syslog*" % (msg), retval="code") != 0:
             raise xenrt.XRTFailure("syslog message not found on syslog server after restart")
 
+        step("Check the message is populated in Host")
+        if not isinstance(host, xenrt.lib.xenserver.DundeeHost):
+            if host.execdom0("grep %s /var/log/messages" % (msg),retval="code") != 0:
+                raise xenrt.XRTFailure("syslog message not found locally when remote is enabled")
+        elif host.execdom0("grep %s /var/log/user.log" % (msg),retval="code") != 0:
+                raise xenrt.XRTFailure("syslog message not found locally when remote is enabled")
+        
         step("Spam the syslog to ensure the next check doesn't see old entries")
         host.execdom0('for (( i=0;i<6000;i++ )); do logger -t xenrt "logspam $i"; done')
 
@@ -129,7 +151,7 @@ class TC6710(xenrt.TestCase):
         host.restartToolstack()
         time.sleep(60)
         
-        if not isinstance(host, xenrt.lib.xenserver.SarasotaHost):
+        if not isinstance(host, xenrt.lib.xenserver.DundeeHost):
             if host.execdom0("tail -n 6000 /var/log/messages | grep '(Re)starting xapi'", retval="code") != 0:
                 raise xenrt.XRTFailure("syslog message not found locally when remote was disabled (xapi)")
         elif host.execdom0("tail -n 6000 /var/log/xensource.log | grep '(Re)starting xapi'", retval="code") != 0:
@@ -299,7 +321,7 @@ class TC19175(xenrt.TestCase):
         t = _GenerateLogs(self.host)
         t.start()
         ExpDirectories = ['/var/log/blktap/', '/var/log/installer/', '/var/log/sa/', '/var/log/samba/', '/var/log/xen/', '/var/log/openvswitch/']
-        OptDirectories = ['/var/log/ntpstats/', '/var/log/audit/', '/var/log/pm/']
+        OptDirectories = ['/var/log/ntpstats/', '/var/log/audit/', '/var/log/pm/', '/var/log/cups/', '/var/log/ppp/', '/var/log/tuned/']
         DirectoriesToCheck = '/var/log /var/log/blktap /var/log/xen /var/log/openvswitch'
 
         ActDirectories = self.host.execdom0("ls -d /var/log/*/").split("\n")[:-1]
@@ -379,7 +401,7 @@ class TC19175(xenrt.TestCase):
             xenrt.TEC().logverbose("write some data to logs and check it is going to appropriate files")
             t = _GenerateLogs(self.host)
             t.start()
-            sleep(1)
+            sleep(5)
             pid = self.host.execdom0("ps aux | grep 'python /home/logspammer.py'| grep -v grep").split()[1]
             self.host.execdom0("kill -9 %s" %(pid))
             

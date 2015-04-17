@@ -184,6 +184,14 @@ class JTDeadLetter(xenrt.JobTest):
                     sftp.close()
             except:
                 pass
+
+            xenrt.TEC().logverbose(self.host.execdom0("head /root/dead.letter"))
+
+            # Get the first non-blank line from /root/dead.letter and append it to FAIL_MSG
+            self.host.execdom0("sed '/^$/d' /root/dead.letter > /root/tmp")
+            fline = self.host.execdom0("head -1 /root/tmp").strip()
+            self.FAIL_MSG = self.FAIL_MSG + ' ' + fline
+
             return "dead.letter: %s" % self.host.execdom0("du -h /root/dead.letter")
 
 class JTCoresPerSocket(xenrt.JobTest):

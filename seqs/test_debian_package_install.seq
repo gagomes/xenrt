@@ -1,0 +1,18 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+  </variables>
+  <prepare>
+    <host id="0">
+      <vm name="Debian Wheezy 7.0">
+        <distro>debian70</distro>
+        <memory>256</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="8" />
+        <packages>curl,apache2</packages>
+      </vm>
+    </host>
+  </prepare>
+</xenrt>

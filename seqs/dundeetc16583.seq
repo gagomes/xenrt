@@ -1,0 +1,50 @@
+<xenrt>
+
+  <!-- Test xen-crashdump-analyser tool -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host />
+  </prepare>
+
+  <testsequence>
+
+    <serial group="CrashDump Analyser">
+
+      <testcase id="xenserver.tc.host.XenCrashDump" tc="TC-18675" name="TC-18675">
+        <arg>crash_dom0</arg>
+        <arg>uptime=360</arg>
+      </testcase>
+
+      <testcase id="xenserver.guest.TCXenServerVendorInstall" name="VMInstall">
+        <arg>RESOURCE_HOST_0</arg>
+        <arg>guest=rhel62</arg>
+        <arg>distro=rhel62</arg>
+        <arg>memory=1024</arg>
+        <arg>preCloneTailor</arg>
+        <arg>shutdown</arg>
+      </testcase>
+
+      <testcase id="xenserver.tc.host.XenCrashDump" tc="TC-16583" name="TC-16583">
+        <arg>crash_dom0</arg>
+      </testcase>
+
+      <testcase id="xenserver.tc.host.XenCrashDump" tc="TC-19277" name="TC-19277">
+        <arg>crash_dom0</arg>
+        <arg>test_each_pcpu</arg>
+      </testcase>
+
+      <testcase id="xenserver.tc.host.XenCrashDump" tc="TC-17339" name="TC-17339">
+        <arg>guest=rhel62</arg>
+        <arg>fill_rootfs</arg>
+        <arg>crash_xen</arg>
+        <arg>clones=10</arg>
+      </testcase>
+
+    </serial>
+  </testsequence>
+
+</xenrt>

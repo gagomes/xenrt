@@ -1,0 +1,42 @@
+<xenrt>
+
+  <!-- defaultroute tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+      <sharedhost>
+        <vm name="controller">
+          <file>%CONTROLLER_XVA%</file>
+          <memory>512</memory>
+          <bootparams>rootssh</bootparams>
+          <postinstall action="start"/>
+        </vm>
+      </sharedhost>
+    <pool>
+      <host/>
+      <NETWORK controller="controller"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="DefaultRoute">
+      <testcase id="xenserver.tc.network.TC8358"/>
+      <testcase id="xenserver.tc.network.TC8359"/>
+      <testcase id="xenserver.tc.network.TC8360"/>
+      <testcase id="xenserver.tc.network.TC12453"/>
+      <testcase id="xenserver.tc.network.TC8364"/>
+    </serial>
+    <serial>
+      <finally>
+        <testcase id="guestops.basic.TCShutdown">
+          <arg>guest=controller</arg>
+          <arg>again</arg>
+        </testcase>
+      </finally>
+    </serial>
+  </testsequence>
+
+</xenrt>

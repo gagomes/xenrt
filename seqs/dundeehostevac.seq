@@ -1,0 +1,22 @@
+<xenrt>
+
+  <!-- Regression test for CA-66403 (hotfix Britney for Boston) -->
+  
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="nfs" name="nfssr" default="true"/>
+      <host id="0"/>
+      <host id="1"/>
+    </pool>
+  </prepare>
+  
+  <testsequence>
+    <serial group="TC15290">
+      <testcase id="xenserver.tc.upgrade.TC15290"/>
+    </serial>
+  </testsequence>
+</xenrt>

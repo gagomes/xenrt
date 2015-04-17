@@ -125,7 +125,7 @@ class _BondTestCase(xenrt.TestCase):
         stackName = netportSplit[0]
         return stackName
 
-class Bond:
+class Bond(object):
     """Structure to hold the basic data of one bond"""
     
     def __init__(self,device,bridge,uuid):
@@ -1695,17 +1695,17 @@ class _FailoverBondTest(_AggregateBondTest):
                     self.check(expected_paths)
                 if mac in macs_disabled:
                     self.enablePath(host, mac)
-                    time.sleep(60)
+                    time.sleep(100)
                     expected_paths += 1
                     self.check(expected_paths)
                     macs_disabled.remove(mac)
                 else:
                     self.disablePath(host, mac)
+                    time.sleep(100)
                     expected_paths -= 1
                     if expected_paths != 0:
                         time.sleep(60)
                         self.check(expected_paths)
-                    time.sleep(60)
                     macs_disabled.add(mac)
                     
         return
@@ -1841,7 +1841,6 @@ class TCFailoverExistingBonds(_FailoverBondTest):
         for bond in self.host.getBonds():
             
             master = self.host.genParamGet("bond", bond, "master")
-            
             device = self.host.genParamGet("pif", master, "device")
             
             step("Retrieving bridge of %s" % (device))
@@ -1856,13 +1855,11 @@ class TCFailoverExistingBonds(_FailoverBondTest):
             guest = self.host.createGenericLinuxGuest(bridge=bridge)
             
             self.bondsinfo.append((device,nics,guest))
-            
             log(self.bondsinfo)
 
     def run(self, arglist=None):
         
         for device, nics, guest in self.bondsinfo:
-            
             self.bondDevice = device
             self.guests.append(guest)
             self.nics = nics
@@ -1919,8 +1916,8 @@ class TC15932(TC8210):
 
 class TC17718(xenrt.TestCase):
     """Check packet loss during bond failover"""
-    THRESHOLD = 6 # The number of pings declared acceptable to lose
-
+    THRESHOLD = 10 # The number of pings declared acceptable to lose
+    THRESHOLD_PERCENT = 6 # The percentage of pings acceptable to lose
     def prepare(self, arglist):
         # Set up a host with a bond of 2 NICs
         self.host = self.getDefaultHost()
@@ -1949,12 +1946,14 @@ class TC17718(xenrt.TestCase):
         xenrt.command("kill -s INT `cat %s/ping.pid`; rm -f %s/ping.pid" % (self.tempdir, self.tempdir))
         data = xenrt.command("cat %s/ping.log" % (self.tempdir))
         for line in data.splitlines():
-            m = re.match("(\d+) packets transmitted, (\d+) received",line)
-            if m:
-                txd = int(m.group(1))
-                rxd = int(m.group(2))
-                lost = txd-rxd
-                return lost
+            m = re.findall("(\d+)",line)
+            txd = int(m[0])
+            rxd = int(m[1])
+            if len(m) == 4:      #if there were no duplicate packets
+                packetlossPercent = m[2]
+            else:
+                packetlossPercent = m[3]
+            return (txd, rxd, packetlossPercent)
         raise xenrt.XRTError("Unable to parse ping output")
 
     def run(self, arglist):
@@ -1985,9 +1984,15 @@ class TC17718(xenrt.TestCase):
 
         # Allow time for things to settle and review packet loss
         time.sleep(60)
-        lost = self.stopPing()
-        if lost > self.THRESHOLD:
-            raise xenrt.XRTFailure("Lost >%d pings during bond failover cycle" % (self.THRESHOLD), data=lost)
+        
+        #If the pings are more than 100, tolerate a percent packet loss of THRESHOLD_PERCENT
+        #otherwise tolerate packet loss of self.THRESHOLD at max
+        transmitted, received, packetlossPercent = self.stopPing()
+        packetloss = transmitted - received
+        if transmitted > 100 and packetlossPercent > self.THRESHOLD_PERCENT:
+            raise xenrt.XRTFailure("Lost > %d% pings during bond failover cycle" % (self.THRESHOLD_PERCENT))
+        elif packetloss > self.THRESHOLD:
+            raise xenrt.XRTFailure("Lost > %d pings during bond failover cycle" % (self.THRESHOLD))
 
     def postRun(self):
         try:
@@ -2220,7 +2225,7 @@ class _BondBalance(_AggregateBondTest):
                 if re.search("Cannot allocate memory", tcpdump):
                     raise xenrt.XRTError("tcpdump in dom0 failed with 'Cannot allocate memory'")
                 # Parse this to get the count
-                m = re.search("(\d+) packets captured", tcpdump)
+                m = re.search("(\d+) packet\w* captured", tcpdump)
                 counts[(nic,mac)] = int(m.group(1))
 
         return counts
@@ -2301,13 +2306,33 @@ class _BondBalance(_AggregateBondTest):
         if sum(nicSourceCounts.values()) != numSources:
             raise xenrt.XRTError("Found %u sources, expecting %u" %
                                  (sum(nicSourceCounts.values()), numSources))
-        biggest = max(nicSourceCounts.values())
-        smallest = min(nicSourceCounts.values())
-        if biggest > maxSources:
-            raise xenrt.XRTFailure("Balancing outside allowed range",
-                                   data="Allowed %u:%u, found %u:%u" %
-                                   (maxSources, (numSources-maxSources),
-                                    biggest, smallest))
+        
+        if len(ifs) > 2:        
+            raise xenrt.XRTError("Load balancing verification is NOT yet implemented for more than 2 slaves")
+        
+        if self.host.special['Network subsystem type'] == "linux":
+            biggest = max(nicSourceCounts.values())
+            smallest = min(nicSourceCounts.values())
+            if biggest > maxSources:
+                raise xenrt.XRTFailure("Balancing outside allowed range",
+                                    data="Allowed %u:%u, found %u:%u" %
+                                    (maxSources, (numSources-maxSources),
+                                        biggest, smallest))
+        else:
+            iftraffic0 = info['load'][ifs[0]]
+            iftraffic1=  info['load'][ifs[1]]
+            if iftraffic0 < 100 and iftraffic1 < 100 :
+                raise xenrt.XRTError("Not enough traffic across interface to verify Balalncing .%s load = %s,%s load = %s" %(ifs[0],iftraffic0,ifs[1],iftraffic1))
+            
+            if iftraffic0 >= iftraffic1 :
+                balanceratio = float(iftraffic1)/float(iftraffic0)
+            else :
+                balanceratio = float(iftraffic0)/float(iftraffic1)            
+            if balanceratio >=0.75 and balanceratio <=1 :
+                xenrt.log("Load is BALANCED with ratio of %s " %balanceratio)
+            else :
+                raise xenrt.XRTFailure("Load is not balanced across nics . Balance ratio = %s .%s load = %s,%s load = %s"%(balanceratio,ifs[0],iftraffic0,ifs[1],iftraffic1))
+            
 
 class TC8310(_BondBalance):
     """Verify bond balancing works as expected"""
@@ -3161,7 +3186,7 @@ class TC14909(xenrt.TestCase):
         if int(pifmtu) != 9000:
             errors.append("Bond PIF MTU is %s, expecting 9000" % (pifmtu))
         ifconfig = self.host.execdom0("ifconfig %s" % (self.bond[0]))
-        if not "MTU:9000" in ifconfig:
+        if not "MTU:9000" in ifconfig and not "mtu 9000" in ifconfig:
             errors.append("Bond device MTU is not 9000")
 
         if len(errors) > 0:
@@ -3380,8 +3405,12 @@ class _BondMonitoring(xenrt.TestCase):
                 reportedTotal = m[1]
                 was = m[2]
                 # LACP bond are exception to logical ordering of nics coming up as it requires negotiation with physical switch. CA-113633
-                if current > expected or (self.BOND_MODE !="lacp" and lastSeen is not None and current <= lastSeen) or \
-                   reportedTotal != total or was != lastSeen:
+                #Following if condition was modified to not to check the previous messages as they were inconsistent ,resulting into intermittent failures.CA-134684
+                #if current > expected or (self.BOND_MODE !="lacp" and lastSeen is not None and current <= lastSeen) or \
+                #   reportedTotal != total or was != lastSeen:
+                if current > expected or (self.BOND_MODE !="lacp" and lastSeen is not None and current <= lastSeen):
+                    messages = self.host.minimalList("message-list")
+                    step(messages)
                     raise xenrt.XRTFailure("PR-1430 messages were not as expected",
                                            data="Expecting a message in up sequence showing x/%d, was %s, found %s" %
                                                 (total, lastSeen, convertedMessages))
@@ -3754,3 +3783,87 @@ class TCBondModeChange(_BondTestCase):
         
     def postRun(self):
         self.host.removeBond(self.bond_uuid,management = True)
+
+class TCBondFailoverRarp(_BondSetUp):
+    """Test to verify LLC-SNAP/RARP packet is sent on bond failover. Regression test for SCTX-1774"""
+    # Jira TC-21566
+
+    BOND_MODE = "active-backup"
+    FILENAME = "tcpdump.txt"
+
+    def prepare(self, arglist=None):        
+        self.host = self.getDefaultHost()
+        step("Create Bond of 2 NICs")
+        self.bond = self.createBonds(1, nicsPerBond=self.NUMBER_NICS, networkName=self.NETWORK_NAME)[0]
+        
+        step("Create a VM on the bond")
+        self.g = self.host.createGenericLinuxGuest(bridge=self.bond.bridge)
+        self.uninstallOnCleanup(self.g)
+    
+    def run(self, arglist=None):
+        self.bondMac = self.host.parseListForOtherParam("pif-list", "device", self.bond.device, "MAC")
+        vif = self.g.getVIFs().keys()[0]
+        self.guestMac = vif[0]
+        
+        step("Generate traffic on guest")
+        retCode = xenrt.command(("ping -c 3 %s" % self.g.getIP()), retval="code")
+        if retCode != 0:
+            raise xenrt.XRTFailure("Failed to ping the guest on %s" % self.g.getIP())
+        self.g.execguest("ping -c 3 %s" % (self.host.getIP()))
+        
+        step("Fetch active and passive slaves of bond")
+        info, x = self.host.getBondInfo(self.bond.device)
+        slaves = info["slaves"]
+        self.activeSlave = info["active_slave"]
+        passiveSlave = [s for s in slaves if s != self.activeSlave][0]
+        
+        step("Get ovs version")
+        ovsVersion= self.host.getOvsVersion()
+        ovsVersion = float(ovsVersion.rsplit('.', 1)[0])
+        log("OVS version is %s" % (ovsVersion))
+        
+        step("Perform bond failover and fetch TCP packets on passive slave")
+        if ovsVersion >= 1.8:
+            command = "tcpdump -i %s rarp &> %s & echo $!" % (passiveSlave, self.FILENAME)
+            self.tcpDumpOnBondFailover(command)
+            step("Since ovs version is %s, looking for RARP packets" % ovsVersion)
+            self.verifyRARP()
+        else:
+            command = "tcpdump -i %s -e &> %s & echo $!" % (passiveSlave, self.FILENAME)
+            self.tcpDumpOnBondFailover(command)
+            step("Since ovs version is %s, looking for LLC broadcast packet" % ovsVersion)
+            self.verifyLLC()
+            
+    def tcpDumpOnBondFailover(self, command):
+        pid = self.host.execdom0(command).strip()
+        
+        #disable active bond slave and capture tcpdump over next 30 seconds
+        self.host.execdom0("ifconfig %s down" % (self.activeSlave))
+        xenrt.sleep(30)
+        self.host.execdom0("kill %s" % (pid))
+        
+    def verifyLLC(self):
+        """LLC packet is broadcasted.
+        Format of packet:
+        08:37:50.421514 b2:24:46:86:03:79 (oui Unknown) > Broadcast, 802.3, length 55: LLC, dsap SNAP (0xaa) Individual, ssap SNAP (0xaa)..."""
+        
+        res = self.host.execdom0("cat %s | grep '%s.*Broadcast.*LLC.*SNAP'" % (self.FILENAME, self.guestMac))
+        if res:
+            log("LLC packet found")
+        else:
+            raise xenrt.XRTFailure("Could not find LLC packet")
+            
+    def verifyRARP(self):
+        """CA-140817.RARP packet is sent for both dom0's MAC  and guest MAC.
+        Format of packet:
+        10:30:50.341194 ARP, Reverse Request who-is c8:1f:66:d9:38:71 tell c8:1f:66:d9:38:71, length 28
+        10:30:50.341242 ARP, Reverse Request who-is 62:6f:cf:5f:e9:0d tell 62:6f:cf:5f:e9:0d, length 28"""
+        
+        res = self.host.execdom0("cat %s | grep 'ARP, Reverse Request'" % (self.FILENAME))
+        if len(res.splitlines()) >= 2 and (self.guestMac in res) and (self.bondMac in res):
+            log("RARP packets for both guest and dom0 MAC found")
+        else:
+            raise xenrt.XRTFailure("Could not find expected RARP packets. tcpdump output:%s" % (res))
+            
+    def postRun(self):
+        self.host.removeBond(self.bond.uuid)

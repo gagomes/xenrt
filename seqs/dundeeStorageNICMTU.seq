@@ -1,0 +1,32 @@
+<xenrt>
+  <!-- Clearwater test sequence for changing storage NIC MTU with HA enabled-->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="lvmoiscsi" name="iSCSI" default="true"/>
+      <host id="0"/>
+      <host id="1"/>
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <NIC/>
+          <STORAGE mode="static"/>
+        </PHYSICAL>
+        <PHYSICAL network="NSEC">
+          <NIC/>
+          <MANAGEMENT mode="static"/>
+        </PHYSICAL>
+      </NETWORK>
+    </pool>
+  </prepare>
+
+  <testsequence>
+      <testcase tc="TC-20626" id="xenserver.tc.ha.TCStorageNICMTU"/>
+  </testsequence>
+
+</xenrt>
+

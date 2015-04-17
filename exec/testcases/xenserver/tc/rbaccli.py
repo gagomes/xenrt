@@ -15,7 +15,7 @@ class _CLITest(testcases.xenserver.tc.security._RBAC):
 
     LICENSE             = "%s/keys/xenserver/%s/FG_Free" % \
                           (xenrt.TEC().lookup("XENRT_CONF"),
-                           xenrt.TEC().lookup("PRODUCT_VERSION"))
+                           xenrt.TEC().lookup("PRODUCT_VERSION", None))
 
     PATCH               = "%s/patchapply/hotfix-mnr-test2.xsupdate" % \
                           (xenrt.TEC().getWorkdir())
@@ -256,10 +256,10 @@ class _CLITest(testcases.xenserver.tc.security._RBAC):
                  'pool-ha-compute-vm-failover-plan' : (['Pool'],
                                                        ['host-uuids=Host.getUUID()'], 
                                                        ['Pool']),
-                 'pool-ha-disable'                 : (["HAPool"],
-                                                      []),
-                 'pool-ha-enable'                  : (["DisabledHAPool"],
-                                                      []),
+#                 'pool-ha-disable'                 : (["HAPool"],
+#                                                      []),
+#                 'pool-ha-enable'                  : (["DisabledHAPool"],
+#                                                      []),
                  'pool-initialize-wlb'             : (["Kirkwood"],
                                                       ["wlb_url=Kirkwood.ref.ip:Kirkwood.ref.port",
                                                        "wlb_username=root",
@@ -568,8 +568,8 @@ class _CLITest(testcases.xenserver.tc.security._RBAC):
            for key in listdel:
                 del self.CONFIG[key]
         
-        #handle pif-forget differently for pre-Augusta versions and Augusta
-        if isinstance(self.pool.master, xenrt.lib.xenserver.CreedenceHost) or isinstance(self.pool.master, xenrt.lib.xenserver.SarasotaHost):
+        #handle pif-forget differently for pre-Dundee versions and Dundee
+        if isinstance(self.pool.master, xenrt.lib.xenserver.CreedenceHost) or isinstance(self.pool.master, xenrt.lib.xenserver.DundeeHost):
            self.ALLOWED["pif-forget"]="The operation you requested cannot be performed because the specified PIF is the management interface"
         else:
            self.FATAL["pif-forget"]="pif-forget timed out"
@@ -728,29 +728,65 @@ class _DebugCLI(_CLITest):
         _CLITest.prepare(self, arglist)
         self.OPERATIONS["cli"] = filter(self.FN, self.OPERATIONS["cli"])
         
+
+class _HATest(_CLITest):
+    
+    CONFIG = {'pool-ha-disable' : (["HAPool"], []),
+              'pool-ha-enable' : (["DisabledHAPool"], []),}
+
 class TC9802(_CLITest):
 
     ROLES = {"user" : ["pool-admin"]}
+
+class PoolAdminHATest(_HATest):
+
+    ROLES = {"user" : ["pool-admin"]}
+
 
 class TC9803(_CLITest):
 
     ROLES = {"user" : ["pool-operator"]}
 
+class PoolOperatorHATest(_HATest):
+
+    ROLES = {"user" : ["pool-operator"]}
+
+
 class TC9804(_CLITest):
 
     ROLES = {"user" : ["vm-power-admin"]}
+
+class VmPowerAdminHATest(_HATest):
+
+    ROLES = {"user" : ["vm-power-admin"]}
+
 
 class TC9805(_CLITest):
 
     ROLES = {"user" : ["vm-admin"]}
 
+class VmAdminHATest(_HATest):
+
+    ROLES = {"user" : ["vm-admin"]}
+
+
 class TC9806(_CLITest):
 
     ROLES = {"user" : ["vm-operator"]}
 
+class VmOperatorHATest(_HATest):
+
+    ROLES = {"user" : ["vm-operator"]}
+
+
 class TC9807(_CLITest):
 
     ROLES = {"user" : ["read-only"]}
+
+class ReadOnlyHATest(_HATest):
+
+    ROLES = {"user" : ["read-only"]}
+
 
 class TC10183(_FieldTest):
 
@@ -836,15 +872,19 @@ class TC14902(xenrt.TestCase):
         else:
             self.host = pool.master
 
-        xenrt.getTestTarball("rbac", extract=True)
-
+        #xenrt.getTestTarball("rbac", extract=True)
+        xenrt.util.command("cp %s/tests/rbac/%s/rbac_static.csv %s/" % (xenrt.TEC().lookup("BINARY_INPUTS_BASE"),
+                           xenrt.TEC().lookup("PRODUCT_VERSION"), xenrt.TEC().getWorkdir()))
+        
         if self.host.execdom0("ls /opt/xensource/debug/rbac_static.csv", retval="code") != 0:
             raise xenrt.XRTFailure('rbac_static is missing')
         
         self.rbac_from_host = self.host.execdom0("cat /opt/xensource/debug/rbac_static.csv").strip()
                
-        p = "%s/rbac/%s/rbac_static.csv" % (xenrt.TEC().getWorkdir(), 
-                                            xenrt.TEC().lookup("PRODUCT_VERSION"))
+        #p = "%s/rbac/%s/rbac_static.csv" % (xenrt.TEC().getWorkdir(), 
+        #                                    xenrt.TEC().lookup("PRODUCT_VERSION"))
+        p = "%s/rbac_static.csv" % xenrt.TEC().getWorkdir()
+        
         self.rbac_reference_copy = file(p).read().strip()
         
     def parsePermissions(self, rbac):

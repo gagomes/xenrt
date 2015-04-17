@@ -1,0 +1,70 @@
+<xenrt>
+  <default name="OLD_PRODUCT_VERSION" value="Tampa"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.1/RTM-59235"/>
+  
+
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+    <OPTION_KEEP_STATIC_IPS>yes</OPTION_KEEP_STATIC_IPS>
+    <OPTION_KEEP_UTILITY_VMS>yes</OPTION_KEEP_UTILITY_VMS>
+  </variables>
+  <scheduler>
+    <resources>memory&gt;=4G</resources>
+    <param>MACHINES_REQUIRED=2</param>
+    <flags>staticip,nfs,!unsup_rhel63</flags>
+    <param>OPTION_KEEP_NFS=yes</param>
+  </scheduler>
+  <prepare>
+    <cloud>
+{
+    "zones": [
+        {
+            "networktype": "Basic",
+            "pods": [
+                {
+                    "XRT_PodIPRangeSize": 5,
+                    "clusters": [
+                        {
+                            "hypervisor": "XenServer",
+                            "XRT_MasterHostId": 0
+                        }
+                    ],
+                    "guestIpRanges": [
+                        {
+                            "XRT_GuestIPRangeSize": 10
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
+</cloud>
+    <sharedhost>
+      <vm name="CS-MS">
+        <distro>rhel63</distro>
+        <arch>x86-64</arch>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installCloudManagementServer" />
+        <network device="0" />
+        <disk device="0" size="12" />
+      </vm>
+    </sharedhost>
+    
+    <pool master="RESOURCE_HOST_0">
+        <allhosts productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}"/>
+    </pool>
+  </prepare>
+  
+    <testsequence>
+    <parallel workers="2">
+        <testcase id="cloud.tc.update.TCCloudUpdate" name="cloudupgrade" tc="TC-21910" >
+        <arg>distros=debian70_x86-64</arg>
+        </testcase>
+    </parallel>
+  </testsequence>
+
+  
+</xenrt>

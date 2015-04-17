@@ -1118,7 +1118,7 @@ class VMUnpauser(xenrt.XRTThread):
         xenrt.TEC().logverbose(
             "SUCCESS %s %s %s" % ("vm-unpause sequence", start, end))
 
-class Timer:
+class Timer(object):
     def __init__(self):
         self.starttime = None
         self.endtime = None
@@ -1299,7 +1299,7 @@ class BootWatcher(xenrt.XRTThread):
                 xenrt.TEC().logverbose("** TIMEOUT waiting for next boot: only seen %d of %d boots" % (self.num_seen_boots, self.num_expected_boots))
                 self.complete = True
                 self.error = True
-class RemoteRunner:
+class RemoteRunner(object):
     """transfers and remoteRuns programs on a remote host.
     Use the mesh script and e.g. a Makefile to include your programs."""
     def __init__ (self):

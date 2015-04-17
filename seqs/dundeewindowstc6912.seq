@@ -1,0 +1,55 @@
+<xenrt>
+
+  <!-- Windows HCT etc. TCs test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool>
+      <host>
+        <vm name="ws08sp2-x86">
+          <distro>ws08sp2-x86</distro>
+          <memory>1024</memory>
+          <network device="0"/>
+          <postinstall action="installDrivers"/>
+          <postinstall action="shutdown"/>
+        </vm>
+        <vm name="ws08sp2-x64">
+          <distro>ws08sp2-x64</distro>
+          <memory>1024</memory>
+          <network device="0"/>
+          <postinstall action="installDrivers"/>
+          <postinstall action="shutdown"/>
+        </vm>
+        <vm name="ws08r2-x64">
+          <distro>ws08r2-x64</distro>
+          <memory>1024</memory>
+          <network device="0"/>
+          <postinstall action="installDrivers"/>
+          <postinstall action="shutdown"/>
+        </vm>
+      </host>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <parallel>
+      <serial group="WS08X86" guest="ws08sp2-x86">
+        <testcase id="benchmarks.func.TCdevpath" name="TC7886" tc="TC-7886" prio="3"/>
+        <testcase id="benchmarks.func.TCsmbioshct" name="TC8185" tc="TC-8185" prio="3"/>
+      </serial>
+      <serial group="WS08X64" guest="ws08sp2-x64">
+        <testcase id="benchmarks.func.TCdevpath" name="TC7887" tc="TC-7887" prio="3"/>
+        <testcase id="benchmarks.func.TCsmbioshct" name="TC8186" tc="TC-8186" prio="3"/>
+      </serial>
+      <serial group="WS08R2X64" guest="ws08r2-x64">
+        <testcase id="benchmarks.func.TCdevpath" name="TC9717" tc="TC-9717" prio="3"/>
+        <testcase id="benchmarks.func.TCsmbioshct" name="TC9719" tc="TC-9719" prio="3"/>
+      </serial>
+    </parallel>
+  </testsequence>
+
+</xenrt>

@@ -18,6 +18,11 @@ class RemoteNoseInstaller(object):
         else:
             sftp = self.runner.sftpClient()
             sftp.copyTo(xenrt.getMarvinFile(), "/root/marvin.tar.gz")
+
+        self.runner.execguest("wget '%s/marvindeps.tgz' -O /root/marvindeps.tgz" % xenrt.TEC().lookup("TEST_TARBALL_BASE"))
+        self.runner.execguest("tar -zxf /root/marvindeps.tgz -C /root/")
+        self.runner.execguest("pip install --no-index --find-links=/root/marvindeps /root/marvindeps/pip*")
+        self.runner.execguest("pip install --no-index --find-links=/root/marvindeps /root/marvindeps/*")
         self.runner.execguest("pip install /root/marvin.tar.gz")
 
         testurl = xenrt.TEC().lookup("MARVIN_TEST_URL", None)
@@ -81,6 +86,7 @@ class _TCRemoteNoseBase(xenrt.TestCase):
         reason = re.sub("\d+-\d+-VM", "xx-xx-VM", reason)
         reason = re.sub("\d+-VM", "xx-VM", reason)
         reason = re.sub("\[\S+\|\S+\|\S+\]", "[xx|xx|xx]", reason)
+        reason = re.sub("rule \d+", "rule xx", reason)
         
         return reason
 
@@ -93,6 +99,11 @@ class TCRemoteNoseSetup(_TCRemoteNoseBase):
         except:
             xenrt.TEC().logverbose("test_data not supported")
         else:
+            # Older versions of marvin don't have configurableData.
+            # Initialise it to an empty dict here so we don't get exceptions
+            # later on
+            if not testData.has_key('configurableData'):
+                testData['configurableData'] = {}
             if self.args.has_key("resources"):
                 resources = self.args['resources'].split(",")
             else:   
@@ -103,23 +114,46 @@ class TCRemoteNoseSetup(_TCRemoteNoseBase):
             if "iscsi" in resources:
                 lun = xenrt.ISCSITemporaryLun(100)
                 testData['iscsi'] = {"url": "iscsi://%s/%s/%d" % (lun.getServer(), lun.getTargetName(), lun.getLunID()), "name": "Test iSCSI Storage"}
+                testData['configurableData']['iscsi'] = {"url": "iscsi://%s/%s/%d" % (lun.getServer(), lun.getTargetName(), lun.getLunID()), "name": "Test iSCSI Storage"}
+            if "portableip" in resources:
+                range = xenrt.StaticIP4Addr().getIPRange(4)
+                testData['configurableData']['portableIpRange']['startip'] = range[0].getAddr()
+                testData['configurableData']['portableIpRange']['endip'] = range[-1].getAddr()
+                testData['configurableData']['portableIpRange']['gateway'] = xenrt.getNetworkParam("NPRI", "GATEWAY")
+                testData['configurableData']['portableIpRange']['netmask'] = xenrt.getNetworkParam("NPRI", "SUBNETMASK")
+                testData['configurableData']['portableIpRange']['vlan'] = 1000
             if "netscaler" in resources:
                 netscaler = NetScaler.setupNetScalerVpx('NetScaler-VPX')
                 netscaler.applyLicense(netscaler.getLicenseFileFromXenRT())
-                testData['netscaler_VPX']['ipaddress'] = netscaler.managementIp
-                testData['netscaler_VPX']['privateinterface'] = '1/1'
-            
+                testData['configurableData']['netscaler']['ipaddress'] = netscaler.managementIp
+                testData['configurableData']['netscaler']['username'] = 'nsroot'
+                testData['configurableData']['netscaler']['password'] = 'nsroot'
+                testData['configurableData']['netscaler']['networkdevicetype'] = 'NetscalerVPXLoadBalancer'
+                testData['configurableData']['netscaler']['publicinterface'] = '1/1'
+                testData['configurableData']['netscaler']['privateinterface'] = '1/1'
+                testData['configurableData']['netscaler']['numretries'] = '2'
             if self.args['hypervisor'].lower() == "hyperv":
                 testData['service_offering']['memory'] = 512
                 testData['service_offerings']['memory'] = 512
                 testData['service_offerings']['tiny']['memory'] = 512
+                testData['service_offerings']['small']['memory'] = 512
+                testData['service_offerings']['medium']['memory'] = 512
+                testData['service_offerings']['big']['memory'] = 512
+
+                testData['service_offering']['cpuspeed'] = 500
+                testData['service_offerings']['cpuspeed'] = 500
+                testData['service_offerings']['tiny']['cpuspeed'] = 500
+                testData['service_offerings']['small']['cpuspeed'] = 500
+                testData['service_offerings']['medium']['cpuspeed'] = 500
+                testData['service_offerings']['big']['cpuspeed'] = 500
 
             testData['hypervisor'] = self.args['hypervisor']
             testData['small']['hypervisor'] = self.args['hypervisor']
             testData['medium']['hypervisor'] = self.args['hypervisor']
             testData['server']['hypervisor'] = self.args['hypervisor']
             testData['server_without_disk']['hypervisor'] = self.args['hypervisor']
-            testData['host_password'] = "xenroot"
+            testData['host_password'] = xenrt.TEC().lookup("ROOT_PASSWORD")
+            testData['configurableData']['host']['password'] = xenrt.TEC().lookup("ROOT_PASSWORD")
             with open("%s/testdata.cfg" % xenrt.TEC().getLogdir(), "w") as f:
                 f.write(json.dumps(testData, indent=2))
     
@@ -133,10 +167,12 @@ class TCRemoteNoseSetup(_TCRemoteNoseBase):
 
 class TCRemoteNoseSimSetup(_TCRemoteNoseBase):
     def run(self, arglist):
-        mgmtSvrIp = self.getGuest("CS-MS").getIP()
+        mgmtSvr = self.getGuest("CS-MS")
+        mgmtSvrIp = mgmtSvr.getIP()
         cfg = json.loads(self.runner.execguest("cat /root/cloudstack/%s | grep -v \"^#\"" % self.args['deploy']))
         cfg['dbSvr']['dbSvr'] = mgmtSvrIp
         cfg['mgtSvr'][0]['mgtSvrIp'] = mgmtSvrIp
+        cfg['mgtSvr'][0]['passwd'] = mgmtSvr.password
 
         with open("%s/marvin.cfg" % xenrt.TEC().getLogdir(), "w") as f:
             f.write(json.dumps(cfg, indent=2))
@@ -145,6 +181,12 @@ class TCRemoteNoseSimSetup(_TCRemoteNoseBase):
         sftp.copyTo("%s/marvin.cfg" % xenrt.TEC().getLogdir(), "/root/marvin.cfg")
         
         self.runner.execguest("python /root/cloudstack/tools/marvin/marvin/deployDataCenter.py -i /root/marvin.cfg")
+        cloud = xenrt.lib.cloud.CloudStack(self.getGuest("CS-MS"))
+        cloud.mgtsvr.restart()
+        marvin = xenrt.lib.cloud.MarvinApi(cloud.mgtsvr)
+        marvin.waitForBuiltInTemplatesReady()
+        xenrt.GEC().registry.toolstackPut("cloud", cloud)
+        self.getDefaultToolstack()
 
 class TCRemoteNose(_TCRemoteNoseBase):
     SUBCASE_TICKETS = True
@@ -224,6 +266,12 @@ class TCRemoteNose(_TCRemoteNoseBase):
                 elif t.getElementsByTagName("skipped"):
                     result = xenrt.RESULT_SKIPPED
                 self.testcaseResult(t.getAttribute("classname"), t.getAttribute("name"), result, self.getReason(msg))
+                if msg and len(msg) > 12500:
+                    # Need to trim the message for Jira
+                    newmsg = msg[:2500]
+                    newmsg += "\n\n-- trimmed - full logs available on link above --\n\n"
+                    newmsg += msg[-10000:]
+                    msg = newmsg
                 self.failures["%s/%s" % (t.getAttribute("classname"), t.getAttribute("name"))] = msg
 
             newsuite = newdoc.createElement("testsuite")
@@ -244,6 +292,10 @@ class TCRemoteNose(_TCRemoteNoseBase):
             return "{noformat}\n%s\n{noformat}\n\n" % msg
         else:
             return None
+
+    def getSubCaseJiraIdent(self, group, test):
+        grouptext = ".".join(reversed(group.split(".")))
+        return "Marvin: %s.%s" % (test, grouptext)
 
     def ticketAttachments(self):
         logdir = xenrt.TEC().getLogdir()

@@ -1,0 +1,43 @@
+<xenrt>
+
+  <!-- Boston HA test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host id="0"/>
+    <host id="1"/>
+    <host id="2"/>
+    <host id="3"/>
+    <host id="4"/>
+  </prepare>
+
+  <testsequence>
+    <serial group="HeartbeatFailures">
+      <testcase id="xenserver.tc.ha.TC13545"/>
+      <testcase id="xenserver.tc.ha.TC13546"/>
+      <testcase id="xenserver.tc.ha.TC13547"/>
+      <testcase id="xenserver.tc.ha.TC13548"/>
+      <testcase id="xenserver.tc.ha.TC13549"/>
+      <testcase id="xenserver.tc.ha.TC13550"/>
+      <testcase id="xenserver.tc.ha.TC13551"/>
+      <testcase id="xenserver.tc.ha.TC13552"/>
+    </serial>
+
+    <serial group="HA Host Failure">
+      <testcase id="xenserver.tc.ha.TC13555"/>
+      <testcase id="xenserver.tc.ha.TC13556"/>
+    </serial>
+
+    <serial group="Xapi Failure">
+      <testcase id="xenserver.tc.ha.TC13561"/>
+      <testcase id="xenserver.tc.ha.TC13562"/>
+      <testcase id="xenserver.tc.ha.TC13563"/>
+    </serial>
+
+  </testsequence>
+
+</xenrt>

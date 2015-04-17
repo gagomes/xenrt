@@ -234,7 +234,7 @@ class NFSStorageRepository(StorageRepository):
 
     TYPE = "nfs"
 
-    def create(self, server=None, path=None, physical_size=0, content_type=""):
+    def create(self, server=None, path=None, physical_size=0, content_type="", nosubdir=False):
         if not (server or path):
             if xenrt.TEC().lookup("FORCE_NFSSR_ON_CTRL", False, boolean=True):
                 # Create an SR using an NFS export from the XenRT controller.

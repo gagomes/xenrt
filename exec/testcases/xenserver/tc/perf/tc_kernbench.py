@@ -43,7 +43,7 @@ class TCKernBench(libperf.PerfTestCase):
                     distro=self.distro,
                     arch=self.arch,
                     postinstall=postinstall,
-                    vifs=xenrt.productLib(host=self.host).Guest.DEFAULT)
+                    vifs=self.host.guestFactory().DEFAULT)
         else:
             for vm in guests:
                 if vm.getName() == "vm-worker":

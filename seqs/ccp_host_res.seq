@@ -92,11 +92,11 @@
 
 
   <testsequence group="Resiliency">
-      <testcase id="cloud.tc.resiliency.TCRebootHost" name="RebootHost" sku="${TESTED_HYPERVISOR}">
+      <testcase id="cloud.tc.resiliency.TCRebootHost" name="RebootHost" tc="TC-21905" sku="${TESTED_HYPERVISOR}/Adv">
       </testcase>
-      <testcase id="cloud.tc.resiliency.TCBlockTrafficHost" name="TrafficBlocked" sku="${TESTED_HYPERVISOR}">
+      <testcase id="cloud.tc.resiliency.TCBlockTrafficHost" name="TrafficBlocked" tc="TC-21906" sku="${TESTED_HYPERVISOR}/Adv">
       </testcase>
-      <testcase id="cloud.tc.resiliency.TCShutdownHost" name="ShutdownHost" sku="${TESTED_HYPERVISOR}">
+      <testcase id="cloud.tc.resiliency.TCShutdownHost" name="ShutdownHost" tc="TC-21907" sku="${TESTED_HYPERVISOR}/Adv">
       </testcase>
 
   </testsequence>

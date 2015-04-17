@@ -294,6 +294,14 @@ class _UnigineBenchmark(GPUBenchmark):
         if not self.guest.xmlrpcDirExists("c:\\%s" % self.PACKAGE):
             self.guest.xmlrpcUnpackTarball("%s/%s.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE"), self.PACKAGE), "c:\\")
 
+    def prepare(self, params=None):
+        # Workaround: Unigine benchmarks produce very unreliable results if the
+        # VM isn't rebooted before running them.
+        # This change admittedly won't help assessing exhaustion effects for a
+        # sequence of benchmarks, but it helps assessing a stable base line.
+        self.guest.reboot()
+        super(_UnigineBenchmark, self).prepare(params)
+
     def run(self, params=None):
         (x,y) = self._getAppResolution()
         for backend in self.BACKENDS.keys():

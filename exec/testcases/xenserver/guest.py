@@ -13,149 +13,6 @@ import os, os.path
 import xenrt, xenrt.lib.xenserver
 import testcases.benchmarks.workloads
 
-class TCXenServerDebianInstall(xenrt.TestCase):
-
-    def __init__(self):
-        xenrt.TestCase.__init__(self, "TCXenServerDebianInstall")
-        self.blocker = True
-        self.guest = None
-
-    def run(self, arglist=None):
-       
- 
-        if arglist and len(arglist) > 0:
-            machine = arglist[0]
-        else:
-            raise xenrt.XRTError("No machine specified for installation")
-        
-        host = xenrt.TEC().registry.hostGet(machine)
-        if not host:
-            raise xenrt.XRTError("Unable to find host %s in registry" %
-                                 (machine))
-
-        self.getLogsFrom(host)
-
-        # Optional arguments
-        vcpus = None
-        memory = None
-        sr = None
-        distro = "etch"
-        if isinstance(host, xenrt.lib.xenserver.TampaHost): 
-            distro="debian60"
-        vifs = xenrt.lib.xenserver.Guest.DEFAULT
-        extradisks = None
-        guestname = None
-        config = None
-        bridge = None
-        pbd = None
-
-        for arg in arglist[1:]:
-            l = string.split(arg, "=", 1)
-            if l[0] == "vcpus":
-                vcpus = int(l[1])
-            elif l[0] == "memory":
-                memory = int(l[1])
-            elif l[0] == "sr":
-                sr = l[1]
-            elif l[0] == "distro":
-                distro = l[1]
-            elif l[0] == "vifs":
-                vifs = int(l[1])
-            elif l[0] == "guest":
-                guestname = l[1]
-            elif l[0] == "extradisks":
-                extradisks = string.split(l[1], ",")
-            elif l[0] == "bridge":
-                bridge = l[1]
-            elif l[0] == "pbd":
-                pbd = l[1]
-            elif l[0] == "config":
-                config = xenrt.util.parseXMLConfigString(l[1])
-                if config.has_key("vcpus"):
-                    vcpus = config["vcpus"]
-                if config.has_key("memory"):
-                    memory = config["memory"]
-                if config.has_key("distro"):
-                    distro = config["distro"]
-
-        if not guestname:
-            if not config:
-                raise xenrt.XRTError("Must specify at least one of guest name and config string.")
-            else:
-                guestname = xenrt.util.randomGuestName()
-
-        # Hack to choose an SR based on PBD
-        if pbd:
-            usesr = None
-            localSRs = host.getSRs("lvm", local=True)
-            for lsr in localSRs:
-                xpbd = host.minimalList("pbd-list",
-                                        args="sr-uuid=%s" % (lsr))[0]
-                devices = host.genParamGet("pbd", xpbd, "device-config",
-                                           "device")
-                actual = []
-                for dev in string.split(devices,","):
-                    r = re.search(r"^/dev/(\w+)\d", dev)
-                    if r:
-                        actual.append(r.group(1))
-                    r = re.search(r"^/dev/(\S+)p\d", dev)
-                    if r:
-                        actual.append(r.group(1))
-                if pbd in actual:
-                    usesr = lsr
-                    break
-            if not usesr:
-                # Create the SR
-                args = []
-                args.append("name-label=XenRT_%s" % (pbd))
-                args.append("physical-size=1")
-                args.append("type=lvm")
-                args.append("content-type=\"XenRT Content\"")
-                args.append("device-config-device=/dev/%s" % (pbd))
-
-                cli = host.getCLIInstance()
-                usesr = cli.execute("sr-create", string.join(args), strip=True)
-            
-            sr = usesr
-
-        g = host.guestFactory()(\
-            guestname,
-            host.getTemplate(distro),
-            host,
-            password=xenrt.TEC().lookup("ROOT_PASSWORD_DEBIAN"))
-        self.guest = g
-        self.getLogsFrom(g)
-
-        if vcpus != None:
-            g.setVCPUs(vcpus)
-        if memory != None:
-            g.setMemory(memory)
-        
-        if xenrt.TEC().lookup(["CLIOPTIONS", "NOINSTALL"],
-                              False,
-                              boolean=True):
-            xenrt.TEC().skip("Skipping because of --noinstall option")
-        else:
-            g.install(host, distro=distro, sr=sr, vifs=vifs, extradisks=extradisks, bridge=bridge)
-            g.check()
-
-        xenrt.TEC().registry.guestPut(guestname, g)
-        xenrt.TEC().registry.configPut(guestname, vcpus=vcpus,
-                                                  memory=memory,
-                                                  distro=distro)
-
-    def postRun(self):
-        r = self.getResult(code=True)
-        if r == xenrt.RESULT_FAIL or r == xenrt.RESULT_ERROR:
-            # Make sure the guest isn't running anymore
-            if self.guest:
-                self.tec.logverbose("Making sure %s is shut down" %
-                                    (self.guest.name))
-                try:
-                    self.guest.shutdown(force=True)
-                except:
-                    pass
-
 class TCXGTInstall(xenrt.TestCase):
 
     def __init__(self):
@@ -265,10 +122,10 @@ class TCRebootLoopNoDrivers(xenrt.TestCase):
         for i in range(100):
             g.reboot()
 
-class TCXenServerWindowsInstall(xenrt.TestCase):
-
+class _TCGuestInstall(xenrt.TestCase):
+    
     def __init__(self):
-        xenrt.TestCase.__init__(self, "TCXenServerWindowsInstall")
+        xenrt.TestCase.__init__(self, self.__class__.__name__)
         self.blocker = True
         self.guest = None
 
@@ -278,218 +135,25 @@ class TCXenServerWindowsInstall(xenrt.TestCase):
             machine = arglist[0]
         else:
             raise xenrt.XRTError("No machine specified for installation")
-
-        # Optional arguments
-        distro = "w2k3eer2"
-        vcpus = None
-        memory = None
-        rootdisk = xenrt.lib.xenserver.Guest.DEFAULT
-        vifs = xenrt.lib.xenserver.Guest.DEFAULT 
-        sr = None
-        vms = None
-        extradisks = None
-        config = None
-        guestname = None
-        dotnet = False
-        insertTools = False
- 
-        for arg in arglist[1:]:
-            l = string.split(arg, "=", 1)
-            if l[0] == "distro":
-                distro = l[1]
-            elif l[0] == "version":
-                distro = l[1]
-            elif l[0] == "vcpus":
-                vcpus = int(l[1])
-            elif l[0] == "memory":
-                memory = int(l[1])
-            elif l[0] == "vifs":
-                vifs = int(l[1])
-            elif l[0] == "disksize":
-                if l[1] != "DEFAULT":
-                    rootdisk = int(l[1])
-            elif l[0] == "sr":
-                sr = l[1]
-            elif l[0] == "guest":
-                guestname = l[1]
-            elif l[0] == "extradisks":
-                extradisks = string.split(l[1], ",")
-                if len(extradisks) > 2:
-                    raise xenrt.XRTError("We only support 2 extra disks on Windows.")
-            elif l[0] == "totalvms":
-                vms = int(l[1])
-            elif l[0] == "config":
-                config = xenrt.util.parseXMLConfigString(l[1])
-                if config.has_key("vcpus"):
-                    vcpus = config["vcpus"]
-                if config.has_key("memory"):
-                    memory = config["memory"]
-                if config.has_key("distro"):
-                    distro = config["distro"]
-                if config.has_key("disksize"):
-                    rootdisk = config["disksize"]
-            elif l[0] == "dotnet":
-                dotnet = True
-            elif l[0] == "inserttools":
-                insertTools = True
-
-        if not guestname:
-            if not config:
-                raise xenrt.XRTError("Must specify at least one of guest name and config string.")
-            else:
-                guestname = xenrt.util.randomGuestName()
 
         host = xenrt.TEC().registry.hostGet(machine)
         if not host:
             raise xenrt.XRTError("Unable to find host %s in registry" %
                                  (machine))
-        sruuid = None
-        if sr:
-            if xenrt.isUUID(sr):
-                sruuid = sr
-            else:
-                sr_uuids = host.getSRs()
-                sr_names = [host.getSRParam(uuid=sr_uuid, param='name-label') for sr_uuid in sr_uuids]
-                sr_map = dict(zip(sr_names, sr_uuids))
-                if sr_map.has_key(sr):
-                    sruuid = sr_map[sr]
-                else:
-                    sruuid = sr #Default behaviour
-
         self.getLogsFrom(host)
-        
-        template = xenrt.lib.xenserver.getTemplate(host, distro)
-        if not template:
-            raise xenrt.XRTError("Could not identify a suitable template for "
-                                 "%s" % (distro))
-        g = host.guestFactory()(guestname, template)
-        self.guest = g
-        self.getLogsFrom(g)
-
-        if vms:
-            path = "/xenrt/resources/%s" % (host.machine)
-            tmem = xenrt.TEC().registry.read("%s/memory" % (path))
-            tnic = xenrt.TEC().registry.read("%s/nics" % (path))
-            tcpu = xenrt.TEC().registry.read("%s/cpus" % (path))
-            xenrt.TEC().logverbose("Found %sMB of free memory." % (tmem))
-            xenrt.TEC().logverbose("Found %s CPUs." % (tcpu))
-            xenrt.TEC().logverbose("Found %s NICs. (%s)" % (len(tnic), tnic))
-
-            memory = (tmem - 100) / vms
-            vcpus = tcpu / vms
-            if vcpus == 0:
-                vcpus = 1
-
-            vifs = []
-            for i in range(0, len(tnic)):
-                iface = re.match("(?P<interface>eth[0-9]+)", tnic[i]).group("interface")
-                vlan = re.match("eth[0-9]+\.(?P<vlan>[0-9]+)", tnic[i])
-                if vlan:
-                    vlan = vlan.group("vlan")
-                else:
-                    vlan = "-1"
-                nwuuid = host.minimalList("pif-list", "network-uuid", 
-                                          "device=%s VLAN=%s" % (iface, vlan))[0]
-                bridge = host.genParamGet("network", nwuuid, "bridge")
-                vifs.append(("%s%d" % (g.vifstem, i), bridge, xenrt.randomMAC(), None))
-
-        if vcpus != None:
-            g.setVCPUs(vcpus)
-        if memory != None:
-            g.setMemory(memory)
-
-        if xenrt.TEC().lookup(["CLIOPTIONS", "NOINSTALL"],
-                              False,
-                              boolean=True):
-            xenrt.TEC().skip("Skipping because of --noinstall option")
-            g.existing(host)
-            #g.mainip = socket.gethostbyname(\
-            #    xenrt.TEC().lookup("RESOURCE_GUEST_0"))
-        else:
-            g.install(host,
-                      isoname=xenrt.DEFAULT,
-                      distro=distro,
-                      rootdisk=rootdisk,
-                      sr=sruuid,
-                      vifs=vifs,
-                      extradisks=extradisks)
-            if g.memory > 4096:
-                # We added /PAE to boot.ini so we have to reboot before
-                # checking the resources
-                g.xmlrpcShutdown()
-                g.poll("DOWN")
-                g.start()
-            g.check()
-        if not g.windows:
-            guestts = int(g.execguest("date +%s"))
-            localts = int(xenrt.command("date +%s"))
-            xenrt.TEC().comment("Guest time delta from controller is %d seconds"
-                                % (guestts - localts))
-        xenrt.TEC().registry.guestPut(guestname, g)
-        xenrt.TEC().registry.configPut(guestname, vcpus=vcpus,
-                                                  memory=memory,
-                                                  distro=distro,
-                                                  disksize=rootdisk)
-
-        # Insert tools ISO so we can test with a CD present
-        if insertTools:
-            g.changeCD("xs-tools.iso")
-
-        if dotnet:
-            g.installDotNet2()
-
-        drivers = xenrt.TEC().lookup("VERIFY_DRIVERS", None)
-        if drivers:
-            xenrt.TEC().comment("Enabling driver verifier for %s" % (drivers))
-            g.enableDriverVerifier(True, string.split(drivers, ","))
-            
-    def postRun(self):
-        r = self.getResult(code=True)
-        if r == xenrt.RESULT_FAIL or r == xenrt.RESULT_ERROR:
-            # Make sure the guest isn't running anymore
-            if self.guest:
-                self.tec.logverbose("Making sure %s is shut down" %
-                                    (self.guest.name))
-                try:
-                    self.guest.shutdown(force=True)
-                except:
-                    pass
-
-class TCXenServerVendorInstall(xenrt.TestCase):
-
-    def __init__(self):
-        xenrt.TestCase.__init__(self, "TCXenServerVendorInstall")
-        self.blocker = True
-        self.guest = None
-        self.host = None
-
-    def run(self, arglist=None):
-
-        if arglist and len(arglist) > 0:
-            machine = arglist[0]
-        else:
-            raise xenrt.XRTError("No machine specified for installation")
-
         # Optional arguments
-        distro = "rhel41"
+        distro = self.defaultDistro(host)
         vcpus = None
         memory = None
-        method = "HTTP"
-        arch = None
-        pxe = False
         sr = None
-        template = None
         notools = False
-        extrapackages = None
-        isoname = None
-        rootdisk = xenrt.lib.xenserver.Guest.DEFAULT
-        vifs = xenrt.lib.xenserver.Guest.DEFAULT
-        extradisks = None
+        rootdisk = None
         guestname = None
         config = None
         insertTools = False
         preCloneTailor = False
         self.post_shutdown = False
+        arch = None
         
         for arg in arglist[1:]:
             l = string.split(arg, "=", 1)
@@ -501,31 +165,17 @@ class TCXenServerVendorInstall(xenrt.TestCase):
                 vcpus = int(l[1])
             elif l[0] == "memory":
                 memory = int(l[1])
-            elif l[0] == "method":
-                method = l[1]
             elif l[0] == "arch":
                 arch = l[1]
-            elif l[0] == "isoname":
-                isoname = l[1]
-            elif l[0] == "pxe":
-                pxe = True
             elif l[0] == "guest":
                 guestname = l[1]
             elif l[0] == "sr":
                 sr = l[1]
-            elif l[0] == "template":
-                template = l[1]
-            elif l[0] == "extradisks":
-                extradisks = string.split(l[1], ",")
-            elif l[0] == "vifs":
-                vifs = int(l[1])
             elif l[0] == "disksize":
                 if l[1] != "DEFAULT":
                     rootdisk = int(l[1])
             elif l[0] == "notools":
                 notools = True
-            elif l[0] == "extrapackages":
-                extrapackages = string.split(l[1],",")
             elif l[0] == "config":
                 config = xenrt.util.parseXMLConfigString(l[1])
                 if config.has_key("vcpus"):
@@ -536,8 +186,6 @@ class TCXenServerVendorInstall(xenrt.TestCase):
                     distro = config["distro"]
                 if config.has_key("arch"):
                     arch = config["arch"]
-                if config.has_key("method"):
-                    method = config["method"]
                 if config.has_key("disksize"):
                     rootdisk = config["disksize"]
             elif l[0] == "inserttools":
@@ -553,102 +201,35 @@ class TCXenServerVendorInstall(xenrt.TestCase):
                 guestname = xenrt.util.randomGuestName()
         
         if not arch:
-            if re.search(r"64$", distro):
-                arch = "x86-64"
-            else:
-                arch = "x86-32"
+            (distro, arch) = xenrt.getDistroAndArch(distro)
 
-        method = string.upper(method)
-        if method == "CDROM":
-            repository = "cdrom"
-            if not isoname:
-                isoname = "%s_%s.iso" % (distro, arch)
-        else:
-            try:
-                repository = string.split(\
-                    xenrt.TEC().lookup(["RPM_SOURCE", distro, arch, method]))[0]
-            except:
-                strict = xenrt.TEC().lookup("OPTION_RPM_STRICT", 
-                                            default=True, boolean=True)
-                if strict:
-                    raise xenrt.XRTError("No %s repository for %s %s" %
-                                         (method, arch, distro))
-                else:
-                    xenrt.TEC().skip("No %s repository for %s %s" %
-                                     (method, arch, distro))
-                    return
+        disks = []
+        if rootdisk:
+            disks.append(("0", rootdisk/xenrt.KILO, False)) # createVM takes gigabytes
 
-        host = xenrt.TEC().registry.hostGet(machine)
-        if not host:
-            raise xenrt.XRTError("Unable to find host %s in registry" %
-                                 (machine))
-        self.host = host
+        g = xenrt.lib.xenserver.guest.createVM(host,
+                            guestname,
+                            distro,
+                            arch=arch,
+                            memory=memory,
+                            sr=sr,
+                            vcpus=vcpus,
+                            disks=disks,
+                            vifs=xenrt.lib.xenserver.Guest.DEFAULT)
 
-        sruuid = None
-        if sr:
-            if xenrt.isUUID(sr):
-                sruuid = sr
-            else:
-                sr_uuids = host.getSRs()
-                sr_names = [host.getSRParam(uuid=sr_uuid, param='name-label') for sr_uuid in sr_uuids]
-                sr_map = dict(zip(sr_names, sr_uuids))
-                if sr_map.has_key(sr):
-                    sruuid = sr_map[sr]
-                else:
-                    sruuid = sr #Default behaviour
 
-        self.getLogsFrom(host)
 
-        if template:
-            template = host.chooseTemplate(template)
-        else:
-            template = xenrt.lib.xenserver.getTemplate(host,
-                                                       distro,
-                                                       hvm=pxe,
-                                                       arch=arch)
-
-        if not template:
-            raise xenrt.XRTError("Could not identify a suitable template for "
-                                 "%s" % (distro))
-        g = host.guestFactory()(guestname, template)
         self.guest = g
-        g.windows = False
+
         self.getLogsFrom(g)
 
-        if vcpus != None:
-            g.setVCPUs(vcpus)
-        if memory != None:
-            g.setMemory(memory)
-        g.arch = arch
-        if xenrt.TEC().lookup(["CLIOPTIONS", "NOINSTALL"],
-                              False,
-                              boolean=True):
-            xenrt.TEC().skip("Skipping because of --noinstall option")
-            g.existing(host)
-            #g.mainip = socket.gethostbyname(\
-            #    xenrt.TEC().lookup("RESOURCE_GUEST_0"))
-        else:
-            g.install(host, repository=repository, distro=distro,
-                      method=method, pxe=pxe, sr=sruuid, notools=notools,
-                      extrapackages=extrapackages, isoname=isoname, 
-                      vifs=vifs, extradisks=extradisks, rootdisk=rootdisk)
-            g.check()
+        if insertTools:
+            # Insert the tools ISO again so we can test with a CD present
+            g.changeCD("xs-tools.iso")
 
-            if insertTools:
-                # Insert the tools ISO again so we can test with a CD present
-                g.changeCD("xs-tools.iso")
-
-        xenrt.TEC().registry.guestPut(guestname, g)
-        xenrt.TEC().registry.configPut(guestname, vcpus=vcpus,
-                                                  memory=memory,
-                                                  distro=distro,
-                                                  method=method,
-                                                  arch=arch,
-                                                  disksize=rootdisk)
         if preCloneTailor:
             g.preCloneTailor()
 
-        return
     
     def postRun(self):
         r = self.getResult(code=True)
@@ -664,7 +245,22 @@ class TCXenServerVendorInstall(xenrt.TestCase):
                     pass
         if self.post_shutdown:
             self.guest.shutdown()
-        return
+
+    def defaultDistro(self, host):
+        raise xenrt.XRTError("Unimplemented")
+
+class TCXenServerVendorInstall(_TCGuestInstall):
+    def defaultDistro(self, host):
+        return "rhel41"
+
+class TCXenServerWindowsInstall(_TCGuestInstall):
+    def defaultDistro(self, host):
+        return "w2k3eer2"
+
+class TCXenServerDebianInstall(_TCGuestInstall):
+    def defaultDistro(self, host):
+        return "debian60" if isinstance(host, xenrt.lib.xenserver.TampaHost) else "etch"
+
 
 class TCInPlaceP2V(xenrt.TestCase):
 

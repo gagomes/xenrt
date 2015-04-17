@@ -551,7 +551,7 @@ class _PowerShellSnapTest(xenrt.TestCase):
     DISTRO = None
     SNAPIN_DIR_NAME = "XenServerPSSnapIn"
     __MODULE_PATH = "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules\\XenServerPSModule"
-    __SARASOTA_CORE_TEST = "AutomatedTestCore.ps1"
+    __DUNDEE_CORE_TEST = "AutomatedTestCore.ps1"
     __POWERSHELL_EXE = "C:\\Windows\\system32\\WindowsPowerShell\\v1.0\\powershell.exe"
     __MSI_PATH_64 = "c:\\progra~2\\citrix\\xenserverpssnapin"
     __MSI_PATH_32 = "c:\\progra~1\\citrix\\xenserverpssnapin"
@@ -600,7 +600,7 @@ class _PowerShellSnapTest(xenrt.TestCase):
         pathpref = self.__selectPath()
 
         if isinstance(self.guest, xenrt.lib.xenserver.guest.ClearwaterGuest):
-            testScript = self.__SARASOTA_CORE_TEST
+            testScript = self.__DUNDEE_CORE_TEST
             testScriptIncPath = self.__MODULE_PATH + "\\" + testScript
             resultFileName = "C:\\" + testScript.split('.')[0] + "_results.xml"
             self.guest.xmlrpcExec("cd %s" % pathpref)

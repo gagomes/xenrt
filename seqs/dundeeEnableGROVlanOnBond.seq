@@ -1,0 +1,32 @@
+<xenrt>
+   <!-- Check gro can be enabled via ethtool on VLAN on Bond-->
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <NETWORK_BACKEND>bridge</NETWORK_BACKEND>
+  </variables>
+
+  <prepare>
+    <pool id="0">
+      <host id="0" />
+      <NETWORK>
+        <PHYSICAL network="NSEC" bond-mode="balance-slb">
+          <NIC />
+          <NIC />
+          <VLAN network="VR01" />
+        </PHYSICAL>
+        <PHYSICAL network="NPRI">
+          <NIC/>
+          <MANAGEMENT mode="static"/>
+        </PHYSICAL>
+      </NETWORK>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="hfx997">
+      <testcase id="xenserver.tc.bonding.TCGROEnable" name="TC-20998"/>
+    </serial>
+    <testcase id="xenserver.tc.bonding.TCGSOBondedInterface" name="TC-21157" group="hfx1001"/>
+  </testsequence>
+
+</xenrt>

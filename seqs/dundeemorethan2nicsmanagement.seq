@@ -1,0 +1,21 @@
+<xenrt>
+
+  <!-- MNR multiple nic test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <CARBON_EXTRA_CDS>linux.iso</CARBON_EXTRA_CDS>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <serial group="BondMoreThanTwoNicsTest">
+      <testcase id="xenserver.tc.bonding.TC15627" blocker="yes" prio="3"/>
+      <testcase id="xenserver.tc.bonding.TC15628" blocker="yes" prio="3"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

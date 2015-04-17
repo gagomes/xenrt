@@ -9,19 +9,19 @@
 
   <xs:simpleType name="groupType">
     <xs:restriction base="xs:string">
-      <xs:pattern value=".{1,32}"/>
+      <xs:pattern value=".{1,32}|.*$.*"/>
     </xs:restriction>
   </xs:simpleType>
   
   <xs:simpleType name="licenseType">
     <xs:restriction base="xs:string">
-      <xs:pattern value="no|false|free|advanced|enterprise|platinum|FG Free|FG Paid|XE Enterprise|XE Express"/>
+      <xs:pattern value="no|false|free|advanced|enterprise|platinum|FG Free|FG Paid|XE Enterprise|XE Express|enterprise-per-socket|per-socket|xendesktop"/>
     </xs:restriction>
   </xs:simpleType>
 
   <xs:simpleType name="storageType">
     <xs:restriction base="xs:string">
-      <xs:pattern value="nfs|lvmoiscsi|fc|eql|netapp|icvsmeql|icvsmnetapp|icvsmfc|icvsmsmisiscsi|icvsmsmisfc|cvsmnetapp|cvsmeql|cvsmsmisiscsi|cvsmfc|cvsmsmisfc"/>
+      <xs:pattern value="nfs|lvmoiscsi|fc|eql|netapp|icvsmeql|icvsmnetapp|icvsmfc|icvsmsmisiscsi|icvsmsmisfc|cvsmnetapp|cvsmeql|cvsmsmisiscsi|cvsmfc|cvsmsmisfc|smb"/>
     </xs:restriction>
   </xs:simpleType>
 
@@ -63,13 +63,7 @@
   
   <xs:simpleType name="tcNameType">
     <xs:restriction base="xs:string">
-      <xs:pattern value=".{1,32}"/>
-    </xs:restriction>
-  </xs:simpleType>
-
-  <xs:simpleType name="marvinPath">
-    <xs:restriction base="xs:string">
-      <xs:pattern value="(smoke|component)/.*\.py$"/>
+      <xs:pattern value=".{1,32}|.*$.*"/>
     </xs:restriction>
   </xs:simpleType>
 
@@ -82,34 +76,7 @@
             <xs:group minOccurs="0" maxOccurs="unbounded" ref="storage"/>
             <xs:group minOccurs="0" maxOccurs="1" ref="network"/>
             <xs:element name ="allhosts" minOccurs="0" maxOccurs="1"/>
-            <xs:element name ="host" minOccurs="0" maxOccurs="unbounded">
-              <xs:complexType>
-                <xs:choice minOccurs="1" maxOccurs="unbounded">
-                  <xs:group minOccurs="0" maxOccurs ="1" ref="vmgroup"/>
-                  <xs:group minOccurs="0" maxOccurs="unbounded" ref="vm"/>
-                  <xs:group minOccurs="0" maxOccurs="1" ref="network"/>
-                  <xs:element name="bridge" minOccurs="0" maxOccurs="1">
-                    <xs:complexType>
-                      <xs:attribute name="name" use="optional">
-                      </xs:attribute>
-                    </xs:complexType>
-                  </xs:element>
-                </xs:choice>
-                <xs:attribute name="id" use="optional" type="xs:string" />
-                <xs:attribute name="noisos" use="optional" type="xbool"/>
-                <xs:attribute name="license" use="optional" type="licenseType"/>
-                <xs:attribute name="productType" use="optional" type="xs:string" />
-                <xs:attribute name="productVersion" use="optional" type="xs:string" />
-                <xs:attribute name="version" use="optional" type="xs:string" />
-                <xs:attribute name="diskCount" use="optional" type="xs:positiveInteger" />
-                <xs:attribute name="usev6testd" use="optional" type="xbool" />
-                <xs:attribute name="installsr" use="optional" type="installsrType" />
-                <xs:attribute name="suppackcds" use="optional" type="xs:string" />
-                <xs:attribute name="alias" use="optional" type="xs:string" />
-                <xs:attribute name="ipv6" use="optional" type="ipv6Type" />
-                <xs:attribute name="cpufreqgovernor" use="optional" type="xs:string" />
-              </xs:complexType>
-            </xs:element>
+            <xs:group minOccurs="0" maxOccurs="unbounded" ref="host"/>
           </xs:choice>
           <xs:attribute name="id" use="optional" type="xs:string"/>
           <xs:attribute name="master" use="optional" type="xs:string" />
@@ -126,6 +93,7 @@
         <xs:complexType>
           <xs:choice minOccurs="0" maxOccurs="unbounded">
             <xs:group minOccurs="0" maxOccurs="unbounded" ref="storage"/>
+            <xs:group minOccurs="0" maxOccurs ="1" ref="vmgroup"/>
             <xs:group minOccurs="0" maxOccurs="unbounded" ref="vm"/>
             <xs:group minOccurs="0" maxOccurs="1" ref="network"/>
             <xs:element name="bridge" minOccurs="0" maxOccurs="1">
@@ -137,6 +105,7 @@
           </xs:choice>
           <xs:attribute name="id" use="optional" type="xs:string" />
           <xs:attribute name="noisos" use="optional" type="xbool"/>
+          <xs:attribute name="default" use="optional" type="xbool"/>
           <xs:attribute name="license" use="optional" type="licenseType"/>
           <xs:attribute name="productType" use="optional" type="xs:string" />
           <xs:attribute name="productVersion" use="optional" type="xs:string" />
@@ -148,6 +117,13 @@
           <xs:attribute name="alias" use="optional" type="xs:string" />
           <xs:attribute name="ipv6" use="optional" type="ipv6Type" />
           <xs:attribute name="cpufreqgovernor" use="optional" type="xs:string" />
+          <xs:attribute name="container" use="optional" type="xs:string" />
+          <xs:attribute name="vname" use="optional" type="xs:string" />
+          <xs:attribute name="vcpus" use="optional" type="xs:string" />
+          <xs:attribute name="vmemory" use="optional" type="xs:string" />
+          <xs:attribute name="vdisksize" use="optional" type="xs:string" />
+          <xs:attribute name="vsr" use="optional" type="xs:string" />
+          <xs:attribute name="vnetworks" use="optional" type="xs:string" />
         </xs:complexType>
       </xs:element>
     </xs:sequence>
@@ -170,7 +146,12 @@
           <xs:choice minOccurs="0" maxOccurs="unbounded">
             <xs:element name ="bootparams" minOccurs="0" maxOccurs="1" type="xs:string"/>
             <xs:element name ="guestparams" minOccurs="0" maxOccurs="1" type="xs:string"/>
-            <xs:element name ="file" minOccurs="0" maxOccurs="1" type="xs:string"/>
+            <xs:element name ="packages" minOccurs="0" maxOccurs="1" type="xs:string"/>
+            <xs:element name ="file" minOccurs="0" maxOccurs="1">
+              <xs:complexType mixed="true">
+                <xs:attribute name ="user" use="optional" type="xbool"/>
+              </xs:complexType>
+            </xs:element>
             <xs:element name ="distro" minOccurs="0" maxOccurs="1" type="xs:string"/>
             <xs:element name ="memory" minOccurs="0" maxOccurs="1" type="xs:string"/>
             <xs:element name ="vcpus" minOccurs="0" maxOccurs="1" type="xs:string"/>
@@ -181,6 +162,7 @@
               <xs:complexType>
                 <xs:attribute name ="device" use="optional" type="xs:string"/>
                 <xs:attribute name ="bridge" use="optional" type="xs:string"/>
+                <xs:attribute name ="ip" use="optional" type="xs:string"/>
               </xs:complexType>
             </xs:element>
             <xs:element name ="disk" minOccurs="0" maxOccurs="unbounded">
@@ -197,6 +179,16 @@
             </xs:element>
           </xs:choice>
           <xs:attribute name="name" use="optional" />
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+
+  <xs:group name="vlan">
+    <xs:sequence>
+      <xs:element name="vlan" minOccurs="0" maxOccurs="unbounded">
+        <xs:complexType>
+          <xs:attribute name="name" use="required"/>
         </xs:complexType>
       </xs:element>
     </xs:sequence>
@@ -329,6 +321,7 @@
           <xs:attribute name ="sku" use="optional" type="xs:string"/>
           <xs:attribute name="id" use="required" type="tcClassPathType"/>
           <xs:attribute name="name" use="optional" type="tcNameType"/>
+          <xs:attribute name="depends" use="optional" type="xs:string"/>
         </xs:complexType>
       </xs:element>
     </xs:sequence>
@@ -341,7 +334,7 @@
           <xs:choice minOccurs="0" maxOccurs="unbounded">
             <xs:element name="arg" type="xs:string"/>
           </xs:choice>
-          <xs:attribute name="path" use="required" type="marvinPath"/>
+          <xs:attribute name="path" use="required" type="xs:string"/>
           <xs:attribute name="class" use="required" type="xs:string"/>
           <xs:attribute name="tags" use="optional" type="xs:string"/>
           <xs:attribute name="host" use="optional" type="xs:string"/>
@@ -432,6 +425,8 @@
           </xs:choice>
           <xs:attribute name="iter" use="required"/>
           <xs:attribute name="values" use="required"/>
+          <xs:attribute name="limit" use="optional"/>
+          <xs:attribute name="offset" use="optional"/>
         </xs:complexType>
       </xs:element>
     </xs:sequence>
@@ -534,12 +529,16 @@
           </xs:complexType>
         </xs:element>
         <xs:element name="preprepare" minOccurs="0" maxOccurs="1" >
-          <xs:complexType>
+          <xs:complexType mixed="true">
             <xs:choice minOccurs="1" maxOccurs="unbounded">
               <xs:group ref="sharedhost" minOccurs="0" maxOccurs="unbounded"/>
               <xs:element name ="allhosts" minOccurs="0" maxOccurs="1"/>
+              <xs:group ref ="vlan" minOccurs="0" maxOccurs="unbounded"/>
               <xs:group ref ="host" minOccurs="0" maxOccurs="unbounded"/>
               <xs:group ref="pool" minOccurs="0" maxOccurs="unbounded"/>
+              <xs:group ref="cloud" minOccurs="0" maxOccurs="unbounded"/>
+              <xs:group ref="template" minOccurs="0" maxOccurs="unbounded"/>
+              <xs:group ref="instance" minOccurs="0" maxOccurs="unbounded"/>
             </xs:choice>
           </xs:complexType>
         </xs:element>
@@ -555,10 +554,11 @@
           </xs:complexType>
         </xs:element>
         <xs:element name="prepare" minOccurs="0" maxOccurs="1" >
-          <xs:complexType>
+          <xs:complexType mixed="true">
             <xs:choice minOccurs="1" maxOccurs="unbounded">
               <xs:group ref="sharedhost" minOccurs="0" maxOccurs="unbounded"/>
               <xs:element name ="allhosts" minOccurs="0" maxOccurs="1"/>
+              <xs:group ref ="vlan" minOccurs="0" maxOccurs="unbounded"/>
               <xs:group ref ="host" minOccurs="0" maxOccurs="unbounded"/>
               <xs:group ref="pool" minOccurs="0" maxOccurs="unbounded"/>
               <xs:group ref="cloud" minOccurs="0" maxOccurs="unbounded"/>

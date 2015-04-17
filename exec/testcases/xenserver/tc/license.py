@@ -3752,7 +3752,7 @@ class TC10755(xenrt.TestCase):
                     errs['name'] = "'%s' not 'LICENSE_SERVER_UNREACHABLE'" % (name)
                 priority = self.host.genParamGet("message", a, "priority")
                 version = xenrt.TEC().lookup("PRODUCT_VERSION")
-                if version == "Sarasota":
+                if version == "Dundee":
                     if priority != "2":
                         errs['priority'] = "'%s' not '2'" % (priority)
                 else:
@@ -3864,7 +3864,8 @@ class TC11218(xenrt.TestCase):
 class TC15193(TC11218):
     """Test that Kaviza licenses work"""
     XD_LICENSE_NAME = "valid-enterprise-xd-kaviza"
-
+    
+#Below Testcase is invlaid as per comments in CA-108916
 class TC20922(xenrt.TestCase):
     """Test relicensing host with an invalid license server address (HFX-927)"""
 
@@ -3878,7 +3879,7 @@ class TC20922(xenrt.TestCase):
         self.licenseServer = self.licenseGuest.getV6LicenseServer()
         self.licenseServer.addLicense("valid-persocket")
         # License the host against a valid license server
-        self.host.templicense(edition="per-socket", v6server=self.licenseServer, mockLicense=False)
+        self.host.license(sku="per-socket", v6server=self.licenseServer, mockLicense=False)
         if len(self.licenseServer.getLicenseUsage("CXS_STD_CCS")) != 1:
             raise xenrt.XRTError("License not in use on license server after applying license")
 

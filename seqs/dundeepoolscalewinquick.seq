@@ -1,0 +1,72 @@
+<xenrt>
+
+  <default name="VMSPERHOST" value="5"/>
+  <default name="THREADS" value="2"/>
+  <default name="USE_INTELLICACHE" value="yes"/>
+  <default name="DISTRO" value="win7sp1-x86"/>
+  <default name="NUMBEROFSLAVESTOREBOOT" value="1"/>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+    <EXTRA_TIME>yes</EXTRA_TIME>   
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+    <NTHREADS>10</NTHREADS>
+    <OPTION_ENABLE_REDO_LOG>yes</OPTION_ENABLE_REDO_LOG>
+  </variables>
+  
+  <prepare>
+    <pool>
+      <storage type="nfs" name="nfssr" default="true" network="NSEC"/>
+      <allhosts/>
+  
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <NIC />
+          <MANAGEMENT />
+          <VMS />
+        </PHYSICAL>
+        <PHYSICAL network="NSEC">
+          <NIC />
+          <STORAGE />
+        </PHYSICAL>
+      </NETWORK>
+      
+      <vm name="gold0">
+        <distro>${DISTRO}</distro>
+        <postinstall action="installDrivers"/>
+        <postinstall action="preCloneTailor"/>
+        <postinstall action="xenDesktopTailor"/>
+        <postinstall action="shutdown"/>
+        <postinstall action="removeCD"/>
+        <network device="0" />
+        <vcpus>2</vcpus>
+        <memory>768</memory>
+        <storage>nfs1</storage>
+      </vm>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <testcase id="xenserver.tc.scalability.TCXenDesktopCloneVMs" tc="TC-18790">
+      <arg>vmsperhost=${VMSPERHOST}</arg>
+      <arg>threads=${THREADS}</arg>
+    </testcase>
+    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopStart" tc="TC-18791">
+      <arg>threads=${THREADS}</arg>
+    </testcase>
+    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopReboot" tc="TC-18795">
+      <arg>threads=${THREADS}</arg>
+      <arg>iterations=2</arg>
+    </testcase>
+    <testcase id="xenserver.tc.scalability.TCStbltyMasterReboot" tc="TC-18808" />
+    <testcase id="xenserver.tc.scalability.TCStbltySlaveReboot" tc="TC-18817" />
+    <testcase id="xenserver.tc.scalability.TCStbltySRReboot" tc="TC-18789" />
+    <testcase id="xenserver.tc.scalability.TCStbltyAllReboot" tc="TC-18818" />
+    <testcase id="xenserver.tc.scalability.TCStbltyMSlaveReboot" tc="TC-21462">
+        <arg>numberOfSlavesToReboot=${NUMBEROFSLAVESTOREBOOT}</arg>
+    </testcase>
+    
+    
+  </testsequence>
+</xenrt>

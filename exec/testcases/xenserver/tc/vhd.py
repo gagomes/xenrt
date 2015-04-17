@@ -10,8 +10,9 @@
 
 import string, time, re, os.path, random, operator
 import xenrt, testcases
+from xenrt.lazylog import step
 
-class VHDorVDI:
+class VHDorVDI(object):
 
     TYPE = None
 
@@ -3389,3 +3390,107 @@ class TC20995(xenrt.TestCase):
             re.search("Storage_access.No_VDI", e.data, re.I):
                 raise e
 
+class TC21727(xenrt.TestCase):
+
+    """Test for automating SCTX 1536"""
+    SRTYPE = "nfs"
+    def prepare(self, arglist=None):
+        self.host = self.getDefaultHost()
+
+        step("Create a Linux guest........")
+        self.guest=self.host.createGenericLinuxGuest(name="linuxGuest")
+        
+        step("Create a NFS SR and get its UUID to create VDIs........")
+        nfsSR = xenrt.lib.xenserver.NFSStorageRepository(self.host, self.SRTYPE)
+        nfsSR.create()
+        self.host.addSR(nfsSR, default=True)
+        self.sr = nfsSR.uuid
+
+        step("Create a VDI of size 16MB on NFS SR........")
+
+        self.vdi=self.host.createVDI(16*xenrt.MEGA,sruuid=self.sr,smconfig=None)
+        
+        step("Create a VBD to attach the VM to 16MB VDI......")
+
+        self.deviceVbd = self.guest.createDisk(vdiuuid=self.vdi,returnDevice=True)
+        
+        step("Create a 1GB VDI on NFS SR - This will be used to take snapshots........")
+
+        self.vdiForSnapshot=self.host.createVDI(1*xenrt.GIGA,sruuid=self.sr,smconfig=None)
+        
+        step("Create 5 snapshots of the 1GB VDI........")
+        self.snapshotVdi=[]
+        for i in range(0,5):
+            x = self.host.snapshotVDI(self.vdiForSnapshot)
+            self.snapshotVdi.append(x)
+            
+    def run(self, arglist=None):
+        step("Copy the footer file from the .vhd file for 5th snapshot created for 1GB VDI........")
+        step("Here, we first get the size of the .vhd file of the snapshot and calculate the blocks to seek as (number of blocks= size of vhd file in Bytes/ 512).........")
+
+        
+        self.dataVhdFile = self.host.execdom0("ls -al /var/run/sr-mount/%s/%s.vhd" %(self.sr,self.snapshotVdi[4])).strip()
+        self.sizeBytesSnapshotVhd = self.dataVhdFile.split()[4]
+        
+        step("We navigate to the actual footer file's beginning which is the last block in .vhd file. Hence, we do a blocksize - 1 operation........")
+
+        self.footerHostSkip = (((int(self.sizeBytesSnapshotVhd))/512)-1)
+        
+        self.host.execdom0("dd if=/var/run/sr-mount/%s/%s.vhd of=/footer skip=%d bs=512" %(self.sr,self.snapshotVdi[4], self.footerHostSkip))
+
+        step("Secure copy the footer file from host to Debian guest.........")
+        step("Create a tmp directory on the controller that will be automatically cleaned up...........")
+
+        ctrlTmpDir = xenrt.TEC().tempDir()
+
+        step("copy footer file of .vhd to tempdir on controller.........")
+        filePathController = os.path.basename("/footer")
+        sftp = self.host.sftpClient()
+
+        try:
+            sftp.copyFrom("/footer", os.path.join(ctrlTmpDir,filePathController))
+        finally:
+            sftp.close()
+
+        step("copy footer file of .vhd from tempdir on controller to guest...........")
+
+        sftp = self.guest.sftpClient()
+        try:
+            sftp.copyTo(os.path.join(ctrlTmpDir,filePathController), os.path.join('/tmp',filePathController))
+        finally:
+            sftp.close()
+
+        step("Calculate the location to footer file of the debian guest's VBD. this is done by calculating the total number of blocks in the guest's VBD and then subtracting it by 1......")
+        
+        blockDev = self.guest.execguest("blockdev --getsz /dev/%s" %(self.deviceVbd))
+        blockDeviceGuestFooter = int(blockDev)-1
+
+        step("Overwrite the footer file on guest's VBD with that from snapshot VDI's.........")
+
+        self.guest.execguest("dd if=/tmp/footer of=/dev/%s seek=%d count=1" %(self.deviceVbd,blockDeviceGuestFooter))
+
+        self.guest.reboot()
+        xenrt.TEC().logverbose("self.guest.reboot() completed")
+
+
+
+    def postrun(self):
+        step("Destroy all snapshot VDIs...........")
+        for uuid in self.snapshotVdi:
+            self.host.destroyVDI(uuid)
+            
+        step("Destroy 1GB VDI..............")
+        self.host.destroyVDI(self.vdiForSnapshot)
+
+        step("Destroy the guest created..............")
+        try:
+            self.guest.shutdown()
+        except:
+            pass
+        try:
+            self.guest.uninstall()
+        except:
+            pass
+
+        step("Destroy the NFS SR created............")
+        self.host.forgetSR(self.sr)

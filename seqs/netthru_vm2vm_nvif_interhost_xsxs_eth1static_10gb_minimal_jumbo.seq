@@ -1,0 +1,81 @@
+<?xml version="1.0"?>
+<!-- netthru_vm2vm_nvif_interhost_xsxs_eth1static_10gb_minimal_jumbo.seq
+
+  This sequence contains network throughput experiments between
+  several pairs of VMs in two distinct XenServer hosts with jumbo frames enabled.
+
+  The VMs each have two VIFs, with eth1 on a 10 Gb/s network (NET_A).
+  We use eth1 on all VMs for the iperf session.
+
+-->
+<xenrt>
+  <variables>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+    <QUICK_LOGS_ON_PASS>True</QUICK_LOGS_ON_PASS>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>  <!-- the ext sr can pack more vms in local disk than the default lvm sr -->
+  </variables>
+
+  <prepare>
+    <!--no pool here, the hosts can have different cpus-->
+    <host id="0">
+      <NETWORK>
+        <PHYSICAL name="NET_MGMT" jumbo="yes">
+          <MANAGEMENT/>
+          <NIC/>
+        </PHYSICAL>
+        <PHYSICAL network="ANY" jumbo="yes" speed="10G" name="NET_A">
+          <NIC/>
+        </PHYSICAL>
+      </NETWORK>
+
+        <vm name="debian60-0-1v">
+          <distro>debian60</distro>
+          <network device="0" bridge="NET_MGMT"/>
+          <network device="1" bridge="NET_A"/>
+          <vcpus>1</vcpus>
+          <memory>512</memory>
+        </vm>
+
+    </host>
+    <host id="1">
+      <NETWORK>
+        <PHYSICAL name="NET_MGMT" jumbo="yes">
+          <MANAGEMENT/>
+          <NIC/>
+        </PHYSICAL>
+        <PHYSICAL network="ANY" jumbo="yes" speed="10G" name="NET_A">
+          <NIC/>
+        </PHYSICAL>
+      </NETWORK>
+
+        <vm name="debian60-1-1v">
+          <distro>debian60</distro>
+          <network device="0" bridge="NET_MGMT"/>
+          <network device="1" bridge="NET_A"/>
+          <vcpus>1</vcpus>
+          <memory>512</memory>
+        </vm>
+
+    </host>
+  </prepare>
+
+  <testsequence>
+
+    <!-- vmpairs=20 -->
+    <serial group="debian60/vmp20/t01">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint0dev=1</arg>
+        <arg>endpoint0ip=192.168.0.%</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>endpoint1dev=1</arg>
+        <arg>endpoint1ip=192.168.0.%</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+      </testcase>
+    </serial>
+
+  </testsequence>
+
+</xenrt>

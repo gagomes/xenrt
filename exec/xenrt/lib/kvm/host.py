@@ -39,33 +39,42 @@ def createHost(id=0,
                ipv6=None,
                noipv4=False,
                basicNetwork=True,
-               extraConfig=None):
+               extraConfig=None,
+               containerHost=None,
+               vHostName=None,
+               vHostCpus=2,
+               vHostMemory=4096,
+               vHostDiskSize=50,
+               vHostSR=None,
+               vNetworks=None):
+
+    if containerHost != None:
+        raise xenrt.XRTError("Nested hosts not supported for this host type")
 
     machine = str("RESOURCE_HOST_%s" % (id))
 
     m = xenrt.PhysicalHost(xenrt.TEC().lookup(machine, machine))
     xenrt.GEC().startLogger(m)
 
+    xenrt.TEC().logverbose("KVM.createHost: productType='%s' productVersion='%s' version='%s'" % (productType, productVersion, version))
     if productVersion:
-        distro = productVersion
-        dd = distro.rsplit('-', 1)
-        if len(dd) == 2 and dd[1] == "x64":
-            distro = dd[0]
-            arch = "x86-64"
-        else:
-            arch = "x86-32"
+        (distro, arch) = xenrt.getDistroAndArch(productVersion)
     else:
         distro = "centos64"
-        arch = "x86-32"
+        arch = "x86-64"
+
+    xenrt.TEC().logverbose("KVM.createHost: using distro '%s' (%s)" % (distro, arch))
 
     host = KVMHost(m, productVersion=productVersion, productType=productType)
     extrapackages = []
     extrapackages.append("libvirt")
     rhel7 = False
-    if re.search(r"rhel7", distro) or re.search(r"centos7", distro) or re.search(r"oel7", distro):
+    if re.search(r"rhel7", distro) or re.search(r"centos7", distro) or re.search(r"oel7", distro) or re.search(r"sl7", distro):
         rhel7 = True
         extrapackages.append("ntp")
         extrapackages.append("wget")
+        extrapackages.append("virt-install")
+        extrapackages.append("qemu-kvm")
     else:
         extrapackages.append("python-virtinst")
         extrapackages.append("kvm")
@@ -93,7 +102,7 @@ def createHost(id=0,
 
     host.execvirt("virsh net-destroy default")
     host.execvirt("virsh net-undefine default")
-    host.createNetwork("cloudbr0")
+    host.createNetwork("cloudbr0", useDHCP=True)
 
     networkConfig  = "<network>"
     networkConfig += "<name>cloudbr0</name>"
@@ -129,6 +138,7 @@ def createHost(id=0,
         xenrt.TEC().logverbose("Before changing cpufreq governor: %s" % (output,))
 
         # For each CPU, set the scaling_governor. This command will fail if the host does not support cpufreq scaling (e.g. BIOS power regulator is not in OS control mode)
+        # TODO also make this persist across reboots
         host.execcmd("for cpu in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo %s > $cpu; done" % (cpufreqgovernor,))
 
         output = host.execcmd("head /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor || true")
@@ -179,8 +189,24 @@ class KVMHost(xenrt.lib.libvirt.Host):
     def getPrimaryBridge(self):
         return self.getBridge(self.getDefaultInterface())
 
-    def createNetwork(self, name="bridge"):
-        self.execvirt("virsh iface-bridge %s %s --no-stp 10" % (self.getDefaultInterface(), name))
+    def getBridgeByName(self, name):
+        return (self.execvirt("virsh net-info %s | grep 'Bridge' | tr -s ' ' | cut -d ' ' -f 2" % name)).strip()
+
+    def createNetwork(self, name="bridge", iface=None, useDHCP=False):
+        if iface is None: iface = self.getDefaultInterface()
+
+        # We can lose the SSH connection during this operation - if this happens it can interrupt completion
+        # so we do a trick to ensure it runs in the background
+        dhcp = ""
+        if useDHCP:
+            dhcp = "&& echo 'BOOTPROTO=dhcp' >> /etc/sysconfig/network-scripts/ifcfg-%s && service network restart" % name
+        self.execvirt("(sleep 5 && virsh iface-bridge %s %s --no-stp 10 %s) > /dev/null 2>&1 < /dev/null &" % (iface, name, dhcp))
+
+        # Wait 1 minute then check the operation has completed OK
+        xenrt.sleep(60)
+        bdata = self.execvirt("brctl show")
+        if not name in bdata:
+            raise xenrt.XRTError("Failure attempting to set up network bridge")
 
     def removeNetwork(self, bridge=None, nwuuid=None):
         if bridge:
@@ -239,15 +265,17 @@ class KVMHost(xenrt.lib.libvirt.Host):
                 pri_bridge = self.getBridge(pri_eth)
                 has_virsh_pri_bridge = self.execcmd("virsh iface-list|grep %s|wc -l" % (pri_bridge,)).strip() != "0"
                 if not has_virsh_pri_bridge:
-                    self.createNetwork(name=pri_bridge)
-                    host.execvirt("virsh net-destroy %s" % (previous_bridge,))
-                    host.execvirt("virsh net-undefine %s" % (previous_bridge,))
-                    networkConfig  = "<network>"
-                    networkConfig += "<name>%s</name>" % (pri_bridge,)
-                    networkConfig += "<forward mode='bridge'/>"
-                    networkConfig += "<bridge name='%s'/>" % (pri_bridge,)
-                    networkConfig += "</network>"
-                    host.execvirt("virsh net-define /dev/stdin <<< \"%s\"" % (networkConfig, ))
+                    self.createNetwork(name=pri_bridge, iface=pri_eth)
+                else:
+                    self.execvirt("virsh net-undefine %s" % (previous_bridge,))
+                networkConfig  = "<network>"
+                networkConfig += "<name>%s</name>" % (friendlynetname,)
+                networkConfig += "<forward mode='bridge'/>"
+                networkConfig += "<bridge name='%s'/>" % (pri_bridge,)
+                networkConfig += "</network>"
+                self.execvirt("virsh net-define /dev/stdin <<< \"%s\"" % (networkConfig, ))
+
+                # xenrt.GEC().registry.objPut("libvirt", friendlynetname, pri_bridge)
 
                 if mgmt:
                     #use the ip of the mgtm nic on the list as the default ip of the host
@@ -273,15 +301,13 @@ class KVMHost(xenrt.lib.libvirt.Host):
                     else:
                         raise xenrt.XRTError("Wrong new IP %s for host %s on %s" % (newip, self, pri_bridge))
 
-                if jumbo == True:
+                if jumbo != False:
+                    mtu = (jumbo == True) and "9000" or jumbo #jumbo can be an int string value
                     #enable jumbo frames immediately
-                    self.execcmd("ifconfig %s mtu 9000" % (pri_eth,))
+                    self.execcmd("ifconfig %s mtu %s" % (pri_eth, mtu))
                     #make it permanent
-                    self.execcmd("sed -i 's/MTU=.*$/MTU=\"9000\"/; t; s/^/MTU=\"9000\"/' /etc/sysconfig/network-scripts/ifcfg-%s" % (pri_eth,))
-                    requiresReboot = False
-                elif jumbo != False: #ie jumbo is a string
-                    self.execcmd("ifconfig %s mtu %s" % (pri_eth, jumbo))
-                    self.execcmd("sed -i 's/MTU=.*$/MTU=\"%s\"/; t; s/^/MTU=\"%s\"/' /etc/sysconfig/network-scripts/ifcfg-%s" % (jumbo,jumbo,pri_eth))
+                    pri_eth_path = "/etc/sysconfig/network-scripts/ifcfg-%s" % pri_eth
+                    self.execcmd("if $(grep -q MTU= %s); then sed -i 's/^MTU=.*$/MTU=%s/g' %s; else echo MTU=%s >> %s; fi" % (pri_eth_path, mtu, pri_eth_path, mtu, pri_eth_path))
                     requiresReboot = False
 
             if len(nicList) > 1:
@@ -310,6 +336,16 @@ class KVMHost(xenrt.lib.libvirt.Host):
         """Verify the topology specified by XML on this host. Takes either
         a string containing XML or a XML DOM node."""
         pass
+
+    def getAssumedId(self, friendlyname):
+        # cloudbrX -> MAC         virsh iface-mac
+        #          -> assumedid   h.listSecondaryNICs
+
+        brname = friendlyname
+        nicmac = self.execvirt("virsh iface-mac %s" % brname).strip()
+        assumedids = self.listSecondaryNICs(macaddr=nicmac)
+        xenrt.TEC().logverbose("getAssumedId (KVMHost: %s): MAC %s corresponds to assumedids %s" % (self, nicmac, assumedids))
+        return assumedids[0]
 
     def tailorForCloudStack(self, isCCP, isLXC=False):
         """Tailor this host for use with ACS/CCP"""
@@ -340,7 +376,7 @@ class KVMHost(xenrt.lib.libvirt.Host):
 
             self.execdom0("yum erase -y qemu-kvm")
             # Install CloudPlatform packages
-            cloudInputDir = xenrt.TEC().lookup("CLOUDINPUTDIR", None)
+            cloudInputDir = xenrt.getCCPInputs(self.distro)
             if not cloudInputDir:
                 raise xenrt.XRTError("No CLOUDINPUTDIR specified")
             xenrt.TEC().logverbose("Downloading %s" % cloudInputDir)
@@ -384,30 +420,69 @@ class KVMHost(xenrt.lib.libvirt.Host):
             self.execdom0("sed -i 's/SELINUX=enforcing/SELINUX=permissive/' /etc/selinux/config")
             self.execdom0("/usr/sbin/setenforce permissive")
 
-        # Set up /etc/cloudstack/agent/agent.properties
-        self.execdom0("echo 'public.network.device=cloudbr0' >> /etc/cloudstack/agent/agent.properties")
-        self.execdom0("echo 'private.network.device=cloudbr0' >> /etc/cloudstack/agent/agent.properties")
+        if (re.search(r"rhel7", self.distro) or re.search(r"centos7", self.distro) or re.search(r"oel7", self.distro) or re.search(r"sl7", self.distro)) \
+            and xenrt.TEC().lookup("WORKAROUND_CS21359", False, boolean=True):
+            self.execdom0("yum install -y libcgroup-tools") # CS-21359
+            self.execdom0("echo kvmclock.disable=true >> /etc/cloudstack/agent/agent.properties") # CLOUDSTACK-7472
+
+            self.execdom0("umount /sys/fs/cgroup/cpu,cpuacct /sys/fs/cgroup/cpuset /sys/fs/cgroup/memory /sys/fs/cgroup/devices /sys/fs/cgroup/freezer /sys/fs/cgroup/net_cls /sys/fs/cgroup/blkio")
+            self.execdom0("rm -f /sys/fs/cgroup/cpu /sys/fs/cgroup/cpuacct")
+            self.execdom0("""cat >> /etc/cgconfig.conf <<EOF
+mount {
+           cpuset = /sys/fs/cgroup/cpuset;
+           cpu = /sys/fs/cgroup/cpu;
+           cpuacct = /sys/fs/cgroup/cpuacct;
+           memory = /sys/fs/cgroup/memory;
+           devices = /sys/fs/cgroup/devices;
+           freezer = /sys/fs/cgroup/freezer;
+           net_cls = /sys/fs/cgroup/net_cls;
+           blkio = /sys/fs/cgroup/blkio;
+}
+EOF
+""")
+            self.execdom0("service cgconfig stop")
+            self.execdom0("service cgconfig start")
+
+        try:
+            # Set up /etc/cloudstack/agent/agent.properties
+            self.execdom0("echo 'public.network.device=cloudbr0' >> /etc/cloudstack/agent/agent.properties")
+            self.execdom0("echo 'private.network.device=cloudbr0' >> /etc/cloudstack/agent/agent.properties")
+        except:
+            self.execdom0("echo 'public.network.device=cloudbr0' >> /etc/cloud/agent/agent.properties")
+            self.execdom0("echo 'private.network.device=cloudbr0' >> /etc/cloud/agent/agent.properties")
+
+        # Log the commit
+        commit = None
+        try:
+            commit = self.execdom0("cloudstack-sccs").strip()
+            xenrt.TEC().logverbose("ACS/CCP agent was built from commit %s" % commit)
+        except:
+            xenrt.TEC().warning("Error when trying to identify agent version")
+        if commit:
+            expectedCommit = xenrt.getCCPCommit(self.distro)
+            if expectedCommit and commit != expectedCommit:
+                raise xenrt.XRTError("ACS/CCP agent commit %s does not match expected commit %s" % (commit, expectedCommit))
 
         # Write the stamp file to record this has already been done
         self.execdom0("mkdir -p /var/lib/xenrt")
         self.execdom0("touch /var/lib/xenrt/cloudTailored")
 
     def installJSVC(self):
-        self.execdom0("yum install -y java-1.6.0 java*1.7* jakarta-commons-daemon")
+        self.execdom0("yum install -y java-1.6.0 java-1.7.0-openjdk jakarta-commons-daemon")
         # (we need java-1.6.0 as the package has a dependency on it, but it actually fails unless you run
         #  java-1.7.0, so we need to update-alternatives to use it - GRR!)
         if not '1.7.0' in self.execdom0('java -version').strip():
                 javaDir = self.execdom0('update-alternatives --display java | grep "^/usr/lib.*1.7.0"').strip()
                 self.execdom0('update-alternatives --set java %s' % (javaDir.split()[0]))
-        if re.search(r"rhel7", self.distro) or re.search(r"centos7", self.distro) or re.search(r"oel7", self.distro):
-            # RHEL7 based systems don't have jakarta-commons-daemon
-            return
-        # TODO: Don't hardcode the jsvc URL
-        jsvc = xenrt.TEC().getFile("/usr/groups/xenrt/cloud/jakarta-commons-daemon-jsvc-1.0.1-8.9.el6.x86_64.rpm")
+        if re.search(r"rhel7", self.distro) or re.search(r"centos7", self.distro) or re.search(r"oel7", self.distro) or re.search(r"sl7", self.distro):
+            jsvcFile = "apache-commons-daemon-jsvc-1.0.13-6.el7.x86_64.rpm"
+        else:
+            jsvcFile = "jakarta-commons-daemon-jsvc-1.0.1-8.9.el6.x86_64.rpm"
+        jsvc = xenrt.TEC().getFile("/usr/groups/xenrt/cloud/%s" % jsvcFile)
         webdir = xenrt.WebDirectory()
         webdir.copyIn(jsvc)
-        jsvcUrl = webdir.getURL("jakarta-commons-daemon-jsvc-1.0.1-8.9.el6.x86_64.rpm")
-        self.execdom0("wget %s -O /tmp/jakarta-commons-daemon-jsvc-1.0.1-8.9.el6.x86_64.rpm" % jsvcUrl)
+        jsvcUrl = webdir.getURL(jsvcFile)
+        self.execdom0("wget %s -O /tmp/%s" % (jsvcUrl, jsvcFile))
         webdir.remove()
-        self.execdom0("rpm -ivh /tmp/jakarta-commons-daemon-jsvc-1.0.1-8.9.el6.x86_64.rpm")
+        self.execdom0("rpm -ivh /tmp/%s" % jsvcFile)
 

@@ -1,0 +1,101 @@
+<xenrt>
+
+  <!-- Linux installation test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <default name="PARALLEL" value="4"/>
+
+  <prepare>
+      <host/>
+  </prepare>
+
+  <testsequence>
+
+    <parallel workers="${PARALLEL}">
+      <testcase id="xenserver.tc.vminstall.TC19742" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19743" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19744" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19745" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19746" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19747" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19748" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19749" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19750" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19751" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19752" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19753" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19754" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19755" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19756" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19757" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19758" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19759" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19760" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19761" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19762" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19763" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19764" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19765" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19766" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19767" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19768" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19769" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19770" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19771" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19772" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19773" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19774" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19775" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19776" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19777" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19778" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19779" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19780" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19781" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19782" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19783" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19784" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19785" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19786" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19787" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19788" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19789" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19790" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19791" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19792" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19793" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19794" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19795" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19796" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19797" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19798" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19799" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19800" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19801" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19802" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19803" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19804" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19805" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19806" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19807" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19808" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19809" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19810" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19811" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19812" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19813" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19814" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19815" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19816" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19817" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19818" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC19819" group="VMInstall"/>
+
+
+    </parallel>
+  </testsequence>
+
+</xenrt>

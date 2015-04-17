@@ -39,7 +39,17 @@ def createHost(id=0,
                ipv6=None,
                noipv4=False,
                basicNetwork=True,
-               extraConfig=None):
+               extraConfig=None,
+               containerHost=None,
+               vHostName=None,
+               vHostCpus=2,
+               vHostMemory=4096,
+               vHostDiskSize=50,
+               vHostSR=None,
+               vNetworks=None):
+
+    if containerHost != None:
+        raise xenrt.XRTError("Nested hosts not supported for this host type")
 
     machine = str("RESOURCE_HOST_%s" % (id))
 
@@ -49,7 +59,7 @@ def createHost(id=0,
     if not productVersion:
         productVersion = xenrt.TEC().lookup("ORACLEVM_VERSION", "3.2.8")
 
-    host = HostFactory(m, productVersion=productVersion, productType=productType)
+    host = hostFactory(m, productVersion=productVersion, productType=productType)
 
     host.install()
 
@@ -58,6 +68,7 @@ def createHost(id=0,
         xenrt.TEC().logverbose("Before changing cpufreq governor: %s" % (output,))
 
         # For each CPU, set the scaling_governor. This command will fail if the host does not support cpufreq scaling (e.g. BIOS power regulator is not in OS control mode)
+        # TODO also make this persist across reboots
         host.execcmd("for cpu in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo %s > $cpu; done" % (cpufreqgovernor,))
 
         output = host.execcmd("head /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor || true")
@@ -68,7 +79,7 @@ def createHost(id=0,
 
     return host
 
-def HostFactory(machine, productVersion, productType):
+def hostFactory(machine, productVersion, productType):
     if productVersion.startswith("2"):
         return OracleVMHost(machine, productVersion=productVersion, productType=productType)
     else:

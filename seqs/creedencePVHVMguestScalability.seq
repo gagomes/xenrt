@@ -24,7 +24,7 @@
 
   <testsequence group="VMScale">
     <testcase id="xenserver.tc.scalability.TC21642">
-        <arg>max=300</arg> <!--  Maximum possible stable HVM VMs with default settings  -->
+        <arg>max=500</arg> <!--  Maximum possible stable HVM VMs with default settings  -->
         <arg>postrun=nocleanup</arg>
     </testcase>
   </testsequence>

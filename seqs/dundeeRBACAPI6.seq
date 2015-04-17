@@ -1,0 +1,53 @@
+<xenrt>
+
+  <!-- MNR RBAC API Test Sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+    <CLEAR_EVENT_LOGS_ON_FETCH>true</CLEAR_EVENT_LOGS_ON_FETCH>
+    <NESTED_HVM>yes</NESTED_HVM>
+  </variables>
+
+  <preprepare>
+    <host id="0">
+      <vm name="AUTHSERVER">
+        <distro>ws08sp2-x86</distro>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="installPowerShell"/>
+        <postinstall action="enablePowerShellUnrestricted"/>
+      </vm>
+    </host> 
+  </preprepare>
+  
+  <prepare>
+    <pool>
+      <host container="0" vname="xs0" />
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="RBAC">
+      <testcase id="testcases.xenserver.tc.rbacapi.TC9847"/>        
+      <testcase id="testcases.xenserver.tc.rbacapi.TC9848"/>        
+      <testcase id="testcases.xenserver.tc.rbacapi.TC9849"/>        
+      <testcase id="testcases.xenserver.tc.rbacapi.TC9850"/>        
+      <testcase id="testcases.xenserver.tc.rbacapi.TC9851"/>        
+      <testcase id="testcases.xenserver.tc.rbacapi.TC9852"/>        
+      <testcase id="testcases.xenserver.tc.rbacapi.TC9889"/>        
+      <testcase id="testcases.xenserver.tc.rbacapi.TC9890"/>        
+      <testcase id="testcases.xenserver.tc.rbacapi.TC9891"/>        
+      <testcase id="testcases.xenserver.tc.rbacapi.TC9892"/>        
+      <testcase id="testcases.xenserver.tc.rbacapi.TC9893"/>        
+      <testcase id="testcases.xenserver.tc.rbacapi.TC9894"/>        
+      <testcase id="testcases.xenserver.tc.rbacapi.TC9895"/>        
+      <testcase id="testcases.xenserver.tc.rbacapi.TC9896"/>        
+      <testcase id="testcases.xenserver.tc.rbacapi.TC9897"/>        
+      <testcase id="testcases.xenserver.tc.rbacapi.TC9898"/>        
+      <testcase id="testcases.xenserver.tc.rbacapi.TC9899"/>        
+      <testcase id="testcases.xenserver.tc.rbacapi.TC9900"/>        
+    </serial>
+  </testsequence>
+
+</xenrt>

@@ -1,9 +1,18 @@
 import xenrt
 from datetime import datetime
+from pprint import pformat
 import random
 
 
 class CloudRollingUpdate(xenrt.lib.xenserver.host.RollingPoolUpdate):
+    """Class for performing updates (upgrades or HFX install) on a
+       pool of CloudPlatform managed XenServers"""
+
+    def _logXenServerHfxStatus(self, host):
+        patchList = host.parameterList('patch-list', params=['name-label', 'name-description'])
+        patchList.sort(key=lambda x:x['name-label'])
+        xenrt.TEC().logverbose('HFX Status for Host: %s\n' % (host.getName()) + pformat(patchList))
+
     def preMasterUpdate(self):
         self.upgradeHook.call(self.newPool.master, True, True)
         xenrt.lib.xenserver.host.RollingPoolUpdate.preMasterUpdate(self)
@@ -22,77 +31,83 @@ class CloudRollingUpdate(xenrt.lib.xenserver.host.RollingPoolUpdate):
 
     def doUpdateHost(self, host):
         if self.upgradeHook.noUpdate:
+            xenrt.TEC().logverbose('CloudRollingUpdate member state:\n' + pformat(self.__dict__))
             xenrt.TEC().logverbose('SKIPPING Update Host: %s' % (host.getName()))
+            host.reboot()
+            xenrt.TEC().logverbose('Host %s rebooted' % (host.getName()))
+            return
+
+        # Ignore hotfix options when running the lib upgrade code
+        xenrt.TEC().config.setVariable('OPTION_NO_AUTO_PATCH', True)
+        self._logXenServerHfxStatus(host)
+        if self.patch:
+            xenrt.TEC().logverbose('Testing applying patch: %s on version: %s' % (self.patch, host.productVersion))
+            self.upgrade = False
+            self.skipApplyRequiredPatches = True
+        elif not self.upgrade:
+            # No patch has been specified and upgrade is not set.  Apply all released patches
+            xenrt.TEC().logverbose('Testing released HFX apply for version: %s' % (host.productVersion))
+            xenrt.TEC().config.setVariable('APPLY_ALL_RELEASED_HFXS', True)
         else:
-            xenrt.lib.xenserver.host.RollingPoolUpdate.doUpdateHost(self, host)
+            xenrt.TEC().logverbose('Testing upgrading from version: %s to version: %s' % (host.productVersion, self.newVersion))
+
+        xenrt.TEC().logverbose('CloudRollingUpdate member state:\n' + pformat(self.__dict__))
+        xenrt.lib.xenserver.host.RollingPoolUpdate.doUpdateHost(self, host)
+        self._logXenServerHfxStatus(host)
 
 class TCCloudUpdate(xenrt.TestCase):
 
-    def tailorBuiltInTemplate(self, template):
-        """Make a built-in template look like a tempalte created by XenRT"""
-        if 'password' not in xenrt.TEC().lookup('ROOT_PASSWORDS'):
-            xenrt.TEC().config.setVariable('ROOT_PASSWORDS', 'password ' + xenrt.TEC().lookup('ROOT_PASSWORDS'))
-            xenrt.TEC().logverbose('ROOT_PASSWORDS: %s' % (xenrt.TEC().lookup('ROOT_PASSWORDS')))
-        if len(filter(lambda x:x.key == 'distro', template.tags)) == 0:
-            if 'CentOS' in template.ostypename and '5.6' in template.ostypename and '64' in template.ostypename:
-                self.cloud.marvin.cloudApi.createTags(resourceids=[template.id],
-                                                resourcetype="Template",
-                                                tags=[{"key":"distro", "value":'centos56_x86-64'}])
-                xenrt.sleep(300)
-            else:
-                raise xenrt.XRTError('Unknown built in template type')
+    def _getTemplateNameStr(self, template):
+        """Helper method to get a template string that can be
+           used as part of an instnace name"""
+        return template.displaytext.replace("_","-")
+
+    def _logCapacity(self):
+        zones = self.cloud.marvin.cloudApi.listZones(id=self.zoneid)
+        xenrt.xrtAssert(len(zones) == 1, 'There must be 1 and only 1 zone for the stored zone ID')
+        capacityTypeId = 8
+        if zones[0].networktype == 'Advanced':
+            capacityTypeId = 4
+
+        capacityList = self.cloud.marvin.cloudApi.listCapacity(zoneid=self.zoneid, type=capacityTypeId)
+        if capacityList == None or len(capacityList) != 1:
+            xenrt.TEC().logverbose('Unable to read CCP capacity')
+
+        xenrt.TEC().logverbose('CCP Address Capacity - Total: %d, Used: %d' % (capacityList[0].capacitytotal, capacityList[0].capacityused))
 
     def prepare(self, arglist):
-        # Ignore hotfix options when running the lib upgrade code
-        xenrt.TEC().config.setVariable("OPTION_NO_AUTO_PATCH", True)
-
-        self.distros = []
-        self.templates = {}
+        self.templates = []
         self.instances = []
 
         self.cloud = self.getDefaultToolstack()
 
         args = self.parseArgsKeyValue(arglist)
-        self.zone = self.cloud.marvin.cloudApi.listZones()[0]
         self.noUpdate = args.has_key('noupdate') and args['noupdate']=='true'
-        if not args.has_key('distros'):
-            existingTemplates = self.cloud.marvin.cloudApi.listTemplates(templatefilter='all', zoneid=self.zone.id)
-            templatesToUse = filter(lambda x:x.templatetype != 'SYSTEM' and x.templatetype != 'BUILTIN', existingTemplates)
-            if len(templatesToUse) == 0:
-                templatesToUse = filter(lambda x:x.templatetype == 'BUILTIN', existingTemplates) 
-                map(lambda x:self.tailorBuiltInTemplate(x), templatesToUse)
-                existingTemplates = self.cloud.marvin.cloudApi.listTemplates(templatefilter='all', zoneid=self.zone.id)
-                templatesToUse = filter(lambda x:x.templatetype == 'BUILTIN', existingTemplates)
 
-            xenrt.TEC().logverbose('Using existing templates: %s' % (','.join(map(lambda x:x.name, templatesToUse))))
-            xenrt.TEC().logverbose(str(templatesToUse))
-            for template in templatesToUse:
-                distro = filter(lambda x:x.key == 'distro', template.tags)[0].value
-                distroName = distro.replace('_','-')
-                self.templates[distroName] = template.name
-                self.distros.append(distro)
-        else:
-            # Create templates from list of specifed distros
-            self.distros = args['distros'].split(',')
-            for distro in self.distros:
-                distroName = distro.replace('_','-')
-                instance = self.cloud.createInstance(distro=distro, name='%s-template' % (distroName))
-                templateName = '%s-tplt' % (distroName)
-                self.cloud.createTemplateFromInstance(instance, templateName)
-                instance.destroy()
-                self.templates[distroName] = templateName
+        zones = self.cloud.marvin.cloudApi.listZones()
+        xenrt.xrtAssert(len(zones) == 1, 'There must be 1 and only 1 zone configured for this test-case')
+        self.zoneid = zones[0].id
 
-        for distro, template in self.templates.items():
-            xenrt.TEC().logverbose('Distro: %s, Template: %s' % (distro, template))
+        clusters = self.cloud.marvin.cloudApi.listClusters(zoneid=self.zoneid)
+        xenrt.xrtAssert(len(clusters) == 1, 'There must be 1 and only 1 cluster configured for this test-case')
+        self.cluster = clusters[0]
+
+        existingTemplates = self.cloud.marvin.cloudApi.listTemplates(templatefilter='all', zoneid=self.zoneid)
+        self.templates = filter(lambda x:x.templatetype != 'SYSTEM' and x.templatetype != 'BUILTIN', existingTemplates)
+
+        hostList = self.cloud.marvin.cloudApi.listHosts(clusterid=self.cluster.id, type='Routing')
+        xenrt.TEC().logverbose('Updating hosts %s' % (pformat(map(lambda x:x.name, hostList))))
+
+        instancesPerTemplate = ( (len(hostList) - 1) * 3 ) + 2
+        xenrt.TEC().logverbose('Creating %d instances per template in list %s' % (instancesPerTemplate, pformat(map(lambda x:x.name, self.templates))))
+        self._logCapacity()
 
         # Create instances
-        # Determine how how many instances can be created based on capacity
-        capacity = self.cloud.marvin.cloudApi.listCapacity(zoneid=self.zone.id, type=8)[0]
-        instancesPerDistro = (capacity.capacitytotal - (capacity.capacityused + 6)) / len(self.distros)
-
-        for distroName in self.templates.keys():
-            self.instances += map(lambda x:self.cloud.createInstanceFromTemplate(templateName=self.templates[distroName], name='preUp-%s-%d' % (distroName, x)), range(instancesPerDistro))
-#            self.instances += map(lambda x:self.cloud.existingInstance(name='preUp-%s-%d' % (distroName, x)), range(10))
+        for template in self.templates:
+            self.instances += map(lambda x:self.cloud.createInstanceFromTemplate(templateName=template.name,
+                                                                            name='preUp-%s-%d' % (self._getTemplateNameStr(template), x)), range(instancesPerTemplate))
+        xenrt.TEC().logverbose('Created the following instances: %s' % (pformat(map(lambda x:x.name, self.instances))))
+        self._logCapacity()
 
     def setHostResourceState(self, host, maintenance):
         xenrt.TEC().logverbose('Set host: %s to maintenance = %s' % (host.getName(), maintenance))
@@ -174,12 +189,13 @@ class TCCloudUpdate(xenrt.TestCase):
         # Check all instances are running
         self.waitForInstancesToReachState(instances=self.instances, state=xenrt.PowerState.up, timeout=120)
         map(lambda x:self.checkInstanceHealth(x), self.instances)
+        self._logCapacity()
 
         # Create new instance
-        newInstances = map(lambda x:self.cloud.createInstanceFromTemplate(templateName=self.templates[x], name='%s-%s' % (newInstanceName, x)), self.templates.keys())
+        newInstances = map(lambda x:self.cloud.createInstanceFromTemplate(templateName=x.name, name='%s-%s' % (newInstanceName, self._getTemplateNameStr(x))), self.templates)
 
         # Create a temp instance
-        tempInstances = map(lambda x:self.cloud.createInstanceFromTemplate(templateName=self.templates[x], name='temp-%s' % (x)), self.templates.keys())
+        tempInstances = map(lambda x:self.cloud.createInstanceFromTemplate(templateName=x.name, name='temp-%s' % (self._getTemplateNameStr(x))), self.templates)
 
         # Wait for new instances to reach the up state
         self.waitForInstancesToReachState(instances=newInstances+tempInstances, state=xenrt.PowerState.up, timeout=120)
@@ -187,9 +203,14 @@ class TCCloudUpdate(xenrt.TestCase):
 
         # Select 1 original instance of each distro at random
         preUpdateInstances = []
-        for distro in self.distros:
-            randomInstance = random.choice(filter(lambda x:x.distro == distro and x.name.startswith('preUp-'), self.instances))
+        for template in self.templates:
+            randomInstance = random.choice(filter(lambda x:x.name.startswith('preUp-%s' % (self._getTemplateNameStr(template))), self.instances))
             preUpdateInstances.append(randomInstance)
+
+        xenrt.TEC().logverbose('New Instances:        %s' % (pformat(map(lambda x:x.name, newInstances))))
+        xenrt.TEC().logverbose('Temp Instances:       %s' % (pformat(map(lambda x:x.name, tempInstances))))
+        xenrt.TEC().logverbose('Pre-Update Instances: %s' % (pformat(map(lambda x:x.name, preUpdateInstances))))
+        self._logCapacity()
 
         # Lifecycle orginal + temp + new instance
         lifecycleInstances = preUpdateInstances + newInstances + tempInstances
@@ -208,11 +229,14 @@ class TCCloudUpdate(xenrt.TestCase):
         map(lambda x:self.instances.remove(x), preUpdateInstances) 
         self.instances += newInstances
 
+        xenrt.TEC().logverbose('Current instances: %s' % (pformat(map(lambda x:x.name, self.instances))))
+        self._logCapacity()
+
     def run(self, arglist):
         pool = self.getDefaultPool()
         pool_upgrade = CloudRollingUpdate(poolRef = pool,
-                                          newVersion='Clearwater',
-                                          upgrade = True,
+                                          newVersion=None,
+                                          upgrade = False,
                                           applyAllHFXsBeforeApplyAction=True,
                                           vmActionIfHostRebootRequired=None,
                                           preEvacuate=None,
@@ -221,3 +245,5 @@ class TCCloudUpdate(xenrt.TestCase):
         setattr(pool_upgrade, "upgradeHook", self)
         self.newPool = pool.upgrade(poolUpgrade=pool_upgrade)
 
+    def postRun(self):
+        map(lambda x:x.destroy(), self.instances)

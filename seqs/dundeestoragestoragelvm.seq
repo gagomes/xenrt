@@ -1,0 +1,56 @@
+<xenrt>
+
+  <!-- VHD storage tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <FINALLY_UNINSTALL>yes</FINALLY_UNINSTALL>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence group="LVM">
+    <testcase id="xenserver.storage.TCVDICopy" tc="TC-7305" prio="3">
+      <arg>srtype=lvm</arg>
+    </testcase>
+    <serial group="VDIResize">
+      <testcase id="xenserver.tc.storage.TC8475" prio="3"/>
+      <testcase id="xenserver.tc.storage.TC8476" prio="3"/>
+      <testcase id="xenserver.tc.storage.TC8477" prio="3"/>
+      <testcase id="xenserver.tc.storage.TC8479" prio="3"/>
+      <testcase id="xenserver.tc.storage.TC8481" prio="3"/>
+      <testcase id="xenserver.tc.storage.TC8482" prio="3"/>
+    </serial>
+    <serial group="VDICreate">
+      <testcase id="xenserver.tc.storage.TC8515" prio="3"/>
+      <testcase id="xenserver.tc.storage.TC10671" prio="3"/>
+    </serial>
+    <serial group="VDISnap">
+      <testcase id="xenserver.tc.snapshot.TC7958" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC7959" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC7960" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC7961" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC7962" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC7963" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC7964" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC7965" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC7966" prio="3"/>
+    </serial>
+    <serial group="VDIClone">
+      <testcase id="xenserver.tc.vhd.TC8763" prio="3"/>
+    </serial>
+    <serial group="VMSnap">
+      <testcase id="xenserver.tc.snapshot.TC7860" prio="3"/>
+      
+      <!--VSS removed from tampa for now -->
+      <!--<testcase id="xenserver.tc.snapshot.TC8615" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC8618" prio="3"/>-->
+    </serial>
+    <testcase id="xenserver.tc.storage.TC8764" prio="3"/>
+    <testcase id="xenserver.tc.storage.TC10602" prio="3"/>
+  </testsequence>
+
+</xenrt>

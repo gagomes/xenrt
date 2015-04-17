@@ -15,14 +15,11 @@ import testcases.xenserver.tc.guest
 
 def _setVCPUMax(guest):
 
-    if guest.getState() == "UP":
-        guest.shutdown()
-
-    guest.paramSet("VCPUs-max", "8")
+    guest.setState("DOWN")
+    guest.paramSet("VCPUs-max", guest.getMaxSupportedVCPUCount())
 
     # Even if the VM was shutdown before this function was called, it is powered on
-    if guest.getState() == "DOWN":
-        guest.start()
+    guest.setState("UP")
 
 class _NoNICBase(xenrt.TestCase):
 
@@ -397,15 +394,15 @@ class TC17439(_TC6869):
     """ Xenmotion of a sles 11.1 with "VCPUs-max > VCPU """
     xenrt.TEC().config.setVariable("VMLIFECYCLE_ITERS", "1")
     def installVM(self, host):
-    	sr = None
-    	sruuids = host.getSRs()
-    	for sruuid in sruuids:
+        sr = None
+        sruuids = host.getSRs()
+        for sruuid in sruuids:
             if host.getSRParam(uuid=sruuid, param='type') == 'nfs':
                 sr = sruuid
                 break
-    	if sr: 
+        if sr: 
             self.guest = host.createBasicGuest(distro="sles111",sr=sr) 
-    	else:
+        else:
             raise xenrt.XRTFailure("NFS SR not found on host")
 
         _setVCPUMax(self.guest)
@@ -449,7 +446,7 @@ class _BlockedOperations(xenrt.TestCase):
             self.guest = self.host.createGenericLinuxGuest(name=self.GUEST)
             xenrt.TEC().registry.guestPut(self.guest.getName(), self.guest)
             self.guest.shutdown()
-            self.guest.paramSet("VCPUs-max", "4")
+            self.guest.paramSet("VCPUs-max", str(self.guest.getMaxSupportedVCPUCount()))
         self.guest.paramClear("blocked-operations")
         try: self.guest.lifecycleOperation(self.PREPARE)
         except: pass
@@ -460,7 +457,7 @@ class _BlockedOperations(xenrt.TestCase):
                 xenrt.TEC().registry.guestPut(self.control.getName(),
                                               self.control)
                 self.control.shutdown()
-                self.control.paramSet("VCPUs-max", "4")
+                self.control.paramSet("VCPUs-max", str(self.guest.getMaxSupportedVCPUCount()))
             self.control.paramClear("blocked-operations")
             try: self.control.lifecycleOperation(self.PREPARE)
             except: pass
@@ -766,7 +763,7 @@ class _TCXenMotionNonLocal(xenrt.TestCase):
     VARCH = None
     TESTMODE = False
 
-    LOOPITERS = 100
+    LOOPITERS = 300
 
     def checkHostIsSuitable(self, host):
         pass
@@ -939,7 +936,7 @@ class _TCClockDrift(xenrt.TestCase):
         self.host = self.getDefaultHost()
 
         cpu_info = self.host.execdom0("cat /proc/cpuinfo")
-        cpu_num = len(self.host.execdom0("/opt/xensource/debug/xenops pcpuinfo").strip().split('\n'))
+        cpu_num = int(self.host.execdom0("xe host-cpu-info --minimal").strip())
 
         if cpu_info.find(self.HARCH.lower()) < 0:
             raise xenrt.XRTError("Not running on %s hardware" % self.HARCH)
@@ -1017,7 +1014,7 @@ class _TCClockDrift(xenrt.TestCase):
         self._logHostClock()
 
         # Stop the NTP service on the host, so that we can know whether it's VM's clock drifting or host's hardware drifting
-        self.host.execdom0("/etc/init.d/ntpd stop")
+        self.host.execdom0("service ntpd stop")
 
 
     def run(self, arglist=[]):
@@ -1097,7 +1094,7 @@ class _TCClockDrift(xenrt.TestCase):
             f.close()
 
     def postRun(self):
-        self.host.execdom0("/etc/init.d/ntpd start")
+        self.host.execdom0("service ntpd start")
 
 
 class TC9737(_TCClockDrift):
@@ -1279,9 +1276,9 @@ class TC10054(xenrt.TestCase):
 
         # Stop ntpd in dom0 and set the clock in the future
         self.guest.shutdown()
-        self.host.execdom0("/etc/init.d/ntpd stop")
+        self.host.execdom0("service ntpd stop")
         ftime = time.gmtime(xenrt.timenow() + 10000)
-        if isinstance(self.host, xenrt.lib.xenserver.CreedenceHost) or isinstance(self.host, xenrt.lib.xenserver.SarasotaHost):
+        if isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
             self.host.execdom0('hwclock --set --date "%s"' % (time.strftime("%b %d %H:%M:%S UTC %Y", ftime)))
             self.host.execdom0('hwclock --hctosys')
         else:
@@ -1294,15 +1291,15 @@ class TC10054(xenrt.TestCase):
         ntpcode = self.host.execdom0("ntpstat", retval="code")
         if ntpcode <> 2:
             xenrt.TEC().logverbose("ntpd started, stop it before syncing")
-            self.host.execdom0("/etc/init.d/ntpd stop")
+            self.host.execdom0("service ntpd stop")
         # XRT-8311: ensure local clock is in sync with ntp server right then
         self.host.execdom0("ntpd -q -gx")
-        self.host.execdom0("/etc/init.d/ntpd start")
+        self.host.execdom0("service ntpd start")
 
         ntpcode = self.host.execdom0("ntpstat", retval="code")
         if ntpcode == 2:
             xenrt.TEC().logverbose("ntpd is unreachable (failed to start?), will try to restart")
-            self.host.execdom0("/etc/init.d/ntpd restart")
+            self.host.execdom0("service ntpd restart")
             ntpcode = self.host.execdom0("ntpstat", retval="code")
             if ntpcode == 2: raise xenrt.XRTError("ntpd is unreachable")
         if ntpcode == 1:
@@ -1387,7 +1384,7 @@ class TC20607(TC10054):
 
         # Stop ntpd in dom0 and set the clock in the future
         self.guest.shutdown()
-        self.host.execdom0("/etc/init.d/ntpd stop")
+        self.host.execdom0("service ntpd stop")
         ftime = time.gmtime(xenrt.timenow() + 10000)
         self.host.execdom0("date -u %s" % (time.strftime("%m%d%H%M%Y", ftime)))
                            
@@ -1420,7 +1417,7 @@ class TC10555(xenrt.TestCase):
         self.uninstallOnCleanup(self.guest)
 
         # Check the memory is reporting a sensible free value
-        time.sleep(180)
+        time.sleep(420)
         m = self.guest.getDataSourceValue("memory_internal_free")
         if m < 1.0:
             raise xenrt.XRTError("Memory free value not sensible before test")
@@ -1541,7 +1538,7 @@ class TC13249(xenrt.TestCase):
         self.host = self.getDefaultHost()
         self.pool = self.getDefaultPool()
         # disable NTP so the host time won't get set back to current
-        self.host.execdom0("/etc/init.d/ntpd stop")
+        self.host.execdom0("service ntpd stop")
         # print hw/sys time
         self.getAllTimes()
         # save original time
@@ -1719,7 +1716,7 @@ class _TCWinTimeZoneLifeCycle(testcases.xenserver.tc.guest._WinTimeZone):
         
     def localhostMigrate(self, timeZoneOffset, iterations=2):
         for i in range(iterations):
-            self.guest.migrateVM(guest.host, live='true')
+            self.guest.migrateVM(self.guest.host, live='true')
             self.verifyGuestTime(self.guest, self.host, timeZoneOffset)
 
     def poolMigrate(self, timeZoneOffset, iterations=2):

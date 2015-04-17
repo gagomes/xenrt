@@ -1,0 +1,30 @@
+<xenrt>
+  <!-- Regression test for CA-39056 -->
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <OPTION_DEFAULT_SR>true</OPTION_DEFAULT_SR>
+    <NETWORK_BACKEND>bridge</NETWORK_BACKEND>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="nfs" default="true"/>
+      <host id="0"/>
+      <host id="1"/>
+      <NETWORK>
+        <PHYSICAL>
+          <MANAGEMENT/>
+          <NIC/>
+          <NIC/>
+        </PHYSICAL>
+      </NETWORK>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="Bond">
+      <testcase id="xenserver.tc.network.TC12419"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

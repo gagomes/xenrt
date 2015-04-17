@@ -1,6 +1,6 @@
 <xenrt>
 
-  <!-- Tampa basic pool check -->
+  <!-- Creedence R0 basic pool check -->
 
   <default name="GUESTMEMORY" value="512"/>
   <default name="GUESTVCPUS" value="1"/>

@@ -30,7 +30,7 @@ class CloudStack(object):
                         "KVM": "QCOW2",
                         "VMware": "OVA",
                         "Hyperv": "VHD",
-                        "LXC": "tar.gz"}
+                        "LXC": "TAR"}
 
     def __init__(self, place=None, ip=None):
         assert place or ip
@@ -38,6 +38,7 @@ class CloudStack(object):
             place = xenrt.GenericGuest("CS-MS")
             place.mainip = ip
             place.findPassword()
+            place.findDistro()
         self.mgtsvr = xenrt.lib.cloud.ManagementServer(place)
         self.marvin = xenrt.lib.cloud.MarvinApi(self.mgtsvr)
         self.marvinCfg = {}
@@ -155,6 +156,11 @@ class CloudStack(object):
 
         if not name:
             name = xenrt.util.randomGuestName()
+
+        # Verify instance name.  Names must start with a letter and contain only letters, numbers and hyphens
+        result = re.findall('^[a-zA-Z][a-zA-Z0-9-]*$', name)
+        xenrt.xrtAssert(len(result) == 1 and result[0] == name, 'Cloud instance name starts with a letter and contains only letters, numbers and hyphens')
+
         instance = xenrt.lib.Instance(self, name, distro, vcpus, memory, extraConfig=extraConfig, vifs=vifs, rootdisk=rootdisk)
 
         xenrt.TEC().registry.instancePut(name, instance)
@@ -163,7 +169,13 @@ class CloudStack(object):
     
             hypervisor = None
             if hypervisorType:
-                hypervisor = self.hypervisorTypeToHypervisor(hypervisorType)
+                if hypervisorType in self.__hypervisorTypeMapping.keys():
+                    # This is a slight abuse of the interface, however it avoids
+                    # unnecessary complications in sequence files with multiple names
+                    # for the same hypervisor!
+                    hypervisor = hypervisorType
+                else:
+                    hypervisor = self.hypervisorTypeToHypervisor(hypervisorType)
             startOnId = None
             startOnZoneId = None
             if startOn:
@@ -607,17 +619,17 @@ class CloudStack(object):
     def getLogs(self, path):
         sftp = self.mgtsvr.place.sftpClient()
         sftp.copyLogsFrom(["/var/log/cloudstack"], path)
-        if xenrt.TEC() == xenrt.GEC().anontec:
+        if xenrt.TEC() == xenrt.GEC().anontec or xenrt.TEC().lookup("ALWAYS_DUMP_CS_DB", False, boolean=True):
             # CP-9393 We're the anonymous TEC, which means we are collecting job
             # logs, so get a database dump in addition to other logs
             self.mgtsvr.getDatabaseDump(path)
-            if xenrt.TEC().lookup("CCP_CODE_COVERAGE", False, boolean=True):
-                self.mgtsvr.stop()
-                try:
-                    sftp.copyTreeFrom("/coverage_results", path)
-                except:
-                    xenrt.TEC().warning("Unable to collect code coverage data")
-                self.mgtsvr.start()
+        if xenrt.TEC() == xenrt.GEC().anontec and xenrt.TEC().lookup("CCP_CODE_COVERAGE", False, boolean=True):
+            self.mgtsvr.stop()
+            try:
+                sftp.copyTreeFrom("/coverage_results", path)
+            except:
+                xenrt.TEC().warning("Unable to collect code coverage data")
+            self.mgtsvr.start()
         sftp.close()
 
     def addTemplateIfNotPresent(self, hypervisor, templateFormat, distro, url, zone):
@@ -676,8 +688,10 @@ class CloudStack(object):
         else:
             zoneid = self.getDefaultZone().id
         with xenrt.GEC().getLock("CCP_ISO_DOWNLOAD-%s-%s" % (distro, zone)):
-            isos = [x for x in self.cloudApi.listIsos(isofilter="all") if x.displaytext == isoName and x.zoneid == zoneid]
-            if not isos:
+            isoList = self.cloudApi.listIsos(isofilter="all")
+            if isinstance(isoList, list) and len(filter(lambda x:x.displaytext == isoName and x.zoneid == zoneid, isoList)) == 1:
+                xenrt.TEC().logverbose('Found existing ISO: %s' % (isoList[0].displaytext))
+            else:
                 xenrt.TEC().logverbose("ISO is not present, registering")
                 if isoRepo == xenrt.IsoRepository.Windows:
                     url = "%s/%s" % (xenrt.TEC().lookup("EXPORT_ISO_HTTP"), isoName)
@@ -692,6 +706,7 @@ class CloudStack(object):
                 else:
                     osname = "None"
 
+                xenrt.TEC().logverbose('Looking for CCP OS Name: %s' % (osname))
                 ostypeid = [x for x in self.cloudApi.listOsTypes(description=osname) if x.description==osname][0].id
                 self.cloudApi.registerIso(zoneid= zoneid,
                                           ostypeid=ostypeid,
@@ -915,6 +930,39 @@ class CloudStack(object):
             raise xenrt.XRTFailure(m)
 
         xenrt.TEC().logverbose("No problem found during the healthcheck of Cloud")
+
+    def postDeploy(self):
+        # Perform any post deployment steps
+        if xenrt.TEC().lookup("WORKAROUND_CSTACK7320", False, boolean=True) and \
+           "LXC" in [h.hypervisor for h in self.cloudApi.listHosts(type="routing")]:
+            ostypeid = [x for x in self.cloudApi.listOsTypes(description="CentOS 6.5 (64-bit)") if x.description=="CentOS 6.5 (64-bit)"][0].id
+            response = self.cloudApi.registerTemplate(zoneid=-1,
+                                                      ostypeid=ostypeid,
+                                                      name="CentOS 6.5(64-bit) no GUI (LXC)",
+                                                      displaytext="CentOS 6.5(64-bit) no GUI (LXC)",
+                                                      ispublic=True,
+                                                      isextractable=True,
+                                                      isfeatured=True,
+                                                      url="%s/cloudTemplates/centos65_x86_64_2.tar.gz" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),
+                                                      hypervisor="LXC",
+                                                      format="TAR",
+                                                      requireshvm=False)
+            templateId = response[0].id
+            # Now wait until the Template is ready
+            deadline = xenrt.timenow() + 3600
+            xenrt.TEC().logverbose("Waiting for Template to be ready")
+            while True:
+                try:
+                    template = self.cloudApi.listTemplates(templatefilter="all", id=templateId)[0]
+                    if template.isready:
+                        break
+                    else:
+                        xenrt.TEC().logverbose("Status: %s" % template.status)
+                except:
+                    pass
+                if xenrt.timenow() > deadline:
+                    raise xenrt.XRTError("Timed out waiting for LXC template to be ready")
+                xenrt.sleep(15)
 
 class NetworkProvider(object):
 

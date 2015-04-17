@@ -1,0 +1,14 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <OLD_PRODUCT_VERSION>Boston</OLD_PRODUCT_VERSION>
+    <OLD_PRODUCT_INPUTDIR>/usr/groups/release/XenServer-6.x/XS-6.0.0/RTM-50762</OLD_PRODUCT_INPUTDIR>
+  </variables>
+
+  <testsequence>
+    <serial group="ImpExp60">
+      <testcase id="xenserver.tc.upgrade.TC17440"/>
+    </serial>
+  </testsequence>
+</xenrt>

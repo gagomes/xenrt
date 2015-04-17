@@ -58,15 +58,15 @@
 
   </prepare>
   
-  <testsequence>
+  <!--<testsequence>
     <serial group="Marvin">
-      <!-- EXAMPLES: 
+       EXAMPLES: 
       <marvintests /> - Execute all tests in the provided Marvin file or tarball of Marvin files
       <marvintests path="test_mynewtest.py" class="TestMyNewTestClass" /> - Execute all tests in class TestMyNewTestClass in file test_mynewtest.py
       <marvintests path="test_mynewtest.py" class="TestMyNewTestClass" tags="basic" /> - Only execute tests that match the tag(s) provided 
-      -->
+      
       <marvintests />
     </serial>
-  </testsequence>
+  </testsequence>-->
 
 </xenrt>

@@ -75,6 +75,10 @@ class PairTest(object):
         self.jobId = jobId
 
     @property
+    def jobDirName(self):
+        return "job{jobId}".format(jobId=self.jobId)
+
+    @property
     def originalTestWinPath(self):
         return r'"{ROOTWINPATH}\\{testName}"'.format(
             testName=self.testName,
@@ -82,32 +86,32 @@ class PairTest(object):
 
     @property
     def cloneWinPath(self):
-        return r'"{ROOTWINPATH}\\{jobId}\\clone"'.format(
+        return r'"{ROOTWINPATH}\\{jobDirName}\\clone"'.format(
             testName=self.testName,
-            jobId=self.jobId,
+            jobDirName=self.jobDirName,
             ROOTWINPATH=self.ROOTWINPATH)
 
     @property
     def testWinPath(self):
-        return r'"{ROOTWINPATH}\\{jobId}\\test.tst"'.format(
-            jobId=self.jobId,
+        return r'"{ROOTWINPATH}\\{jobDirName}\\test.tst"'.format(
+            jobDirName=self.jobDirName,
             ROOTWINPATH=self.ROOTWINPATH)
 
     @property
     def resultWinPath(self):
-        return r'"{ROOTWINPATH}\\{jobId}\\result.tst"'.format(
-            jobId=self.jobId,
+        return r'"{ROOTWINPATH}\\{jobDirName}\\result.tst"'.format(
+            jobDirName=self.jobDirName,
             ROOTWINPATH=self.ROOTWINPATH)
 
     @property
     def resultCSVWinPath(self):
-        return r'"{ROOTWINPATH}\\{jobId}\\result.csv"'.format(
-            jobId=self.jobId,
+        return r'"{ROOTWINPATH}\\{jobDirName}\\result.csv"'.format(
+            jobDirName=self.jobDirName,
             ROOTWINPATH=self.ROOTWINPATH)
 
     @property
     def workingDir(self):
-        return '/cygdrive/c/tests/{jobId}'.format(jobId=self.jobId)
+        return '/cygdrive/c/tests/{jobDirName}'.format(jobDirName=self.jobDirName)
 
     def getCommands(self):
         commands = [

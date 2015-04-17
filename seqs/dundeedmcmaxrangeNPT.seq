@@ -1,0 +1,20 @@
+<xenrt>
+
+  <!-- memory balloon driver NPT max range stability tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <serial group="WindowsNPT">
+      <testcase id="xenserver.tc.balloon.TC9784"/>
+      <testcase id="xenserver.tc.balloon.TC12606"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

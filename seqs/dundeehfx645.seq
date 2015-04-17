@@ -1,0 +1,23 @@
+<?xml version="1.0" ?>
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>1</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool id="0">
+      <host id="0"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <!-- Hotfix: Lockbox - 645 -->
+    <serial group="HFX-645">
+      <testcase id="xenserver.tc.storage.TC19050" name="TC19050" tc="TC-19050" />
+    </serial>
+  </testsequence>
+
+</xenrt>
+

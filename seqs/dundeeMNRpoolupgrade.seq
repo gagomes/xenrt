@@ -1,0 +1,26 @@
+<xenrt>
+
+  <!-- Dundee alpha 1 NFS pool rolling upgrade test -->
+
+  <default name="OLD_PRODUCT_VERSION" value="Dundee"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/xen/carbon/Dundee/86801"/>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <RPU_WINDOWS_VERSION>ws08sp2-x86</RPU_WINDOWS_VERSION>
+    <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="nfs" name="nfssr" default="true"/>
+      <allhosts productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}" dhcp="no"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <testcase group="Upgrade" id="xenserver.tc.upgrade.TC6867" blocker="yes"/>
+    <testcase id="xenserver.install.TCApplyReqdPatches"/>
+  </testsequence>
+
+</xenrt>

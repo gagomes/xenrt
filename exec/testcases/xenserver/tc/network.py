@@ -1,4 +1,4 @@
- #
+#
 # XenRT: Test harness for Xen and the XenServer product family
 #
 # Host networking standalone testcases
@@ -315,7 +315,7 @@ class MngReconfigure(xenrt.TestCase):
         xenrt.TEC().logverbose("Finding IP address of new management "
                                "interface...")
         data = host.execdom0("ifconfig xenbr%s" % (nmi[-1]))
-        nip = re.search(".*inet addr:(?P<ip>[0-9\.]+)", data).group("ip")
+        nip = re.search(".*inet (addr:)?(?P<ip>[0-9\.]+)", data).group("ip")
         xenrt.TEC().logverbose("Interface %s appears to have IP %s." %
                                (nmi, nip))
 
@@ -327,7 +327,7 @@ class MngReconfigure(xenrt.TestCase):
         
         cli.execute("pif-reconfigure-ip uuid=%s mode=None" % (defaultuuid))
         data = host.execdom0("ifconfig xenbr%s" % (default[-1]))
-        r = re.search(".*inet addr:(?P<ip>[0-9\.]+)", data)
+        r = re.search(".*inet (addr:)?(?P<ip>[0-9\.]+)", data)
         if r:
             raise xenrt.XRTFailure("Old management interface still has IP "
                                    "address")
@@ -368,7 +368,7 @@ class MngReconfigure(xenrt.TestCase):
         
         cli.execute("pif-reconfigure-ip uuid=%s mode=None" % (nmiuuid))
         data = host.execdom0("ifconfig xenbr%s" % (nmi[-1]))
-        r = re.search(".*inet addr:(?P<ip>[0-9\.]+)", data)
+        r = re.search(".*inet (addr:)?(?P<ip>[0-9\.]+)", data)
         if r:
             raise xenrt.XRTFailure("Previous management interface still has "
                                    "IP address")
@@ -834,7 +834,8 @@ class _TC8095(xenrt.TestCase):
             finally:
                 if tracepid:
                     try:
-                        # Stop the tcpdump
+                        # Wait for tcpdump to flush its output and stop
+                        time.sleep(5)
                         self.host.execdom0("kill -TERM %s" % (tracepid))
                         time.sleep(2)
                     except:
@@ -920,7 +921,7 @@ class _TC8095(xenrt.TestCase):
         if not re.search(r"UP", data):
             raise xenrt.XRTFailure("Primary interface not UP")
         try:
-            ip = re.search(".*inet addr:(?P<ip>[0-9\.]+)", data).group("ip")
+            ip = re.search(".*inet (addr:)?(?P<ip>[0-9\.]+)", data).group("ip")
         except:
             raise xenrt.XRTFailure("No IP address found for primary interface")
         if ip != pifip:
@@ -1635,6 +1636,8 @@ class TC12419(xenrt.TestCase):
 
     def isVMIsolated(self, delay):
         self.guest.waitForDaemon(30)
+        
+        step("Capturing broadcast ARP packets on bridge")
         handle = self.startAsync(self.master,
                                 "tcpdump -i %s -c 1 arp and broadcast and ether host %s; " \
                                 "sleep %s; " \
@@ -1647,16 +1650,18 @@ class TC12419(xenrt.TestCase):
             self.slave.execdom0("ovs-appctl vlog/set bridge:syslog:DBG")
         except Exception, e:
             pass
+        
+        step("Live migrating the VM")
         self.guest.migrateVM(self.slave, live="true", fast=True)
         time.sleep(delay+5)
+        
         try:
             try:
                 if 'Network subsystem type' in self.slave.special and not self.slave.special['Network subsystem type'] == "linux":
                     data = self.slave.showPortMappings(self.bridge)
                     match = re.search("\s+(?P<port>\d+)\s+\d+\s+%s" % (self.mac), data)
                     if match:
-                        xenrt.TEC().logverbose("MAC %s is on port %s on bridge %s." % 
-                                               (self.mac, match.group("port"), self.bridge))
+                        log("MAC %s is on port %s on bridge %s." % (self.mac, match.group("port"), self.bridge))
                         data = self.slave.execdom0("ovs-dpctl show %s" % (self.bridge))
                         vifmatch = re.search("port\s+(?P<port>\d+):\s+vif%s.0" % (self.guest.getDomid()), data)
                         if vifmatch:
@@ -1664,15 +1669,14 @@ class TC12419(xenrt.TestCase):
                                 raise xenrt.XRTFailure("%s was observed on port %s but it should be on port %s." % 
                                                        (self.mac, match.group("port"), vifmatch.group("port")))
                         else:
-                            xenrt.TEC().logverbose("Couldn't find vif%s.0 on bridge %s." % (self.guest.getDomid(), self.bridge))
+                            log("Couldn't find vif%s.0 on bridge %s." % (self.guest.getDomid(), self.bridge))
                     else:
-                        xenrt.TEC().logverbose("Couldn't find MAC %s on bridge %s." % (self.mac, self.bridge))
+                        log("Couldn't find MAC %s on bridge %s." % (self.mac, self.bridge))
                 else:
                     data = self.slave.execdom0("brctl showmacs %s" % (self.bridge))
                     match = re.search("\s+(?P<port>\d+)\s+%s" % (self.mac), data)
                     if match:
-                        xenrt.TEC().logverbose("MAC %s is on port %s on bridge %s." % 
-                                               (self.mac, match.group("port"), self.bridge))
+                        log("MAC %s is on port %s on bridge %s." % (self.mac, match.group("port"), self.bridge))
                         data = self.slave.execdom0("brctl showstp %s" % (self.bridge)) 
                         vifmatch = re.search("vif%s.0\s+\((?P<port>\d+)\)" % (self.guest.getDomid()), data)
                         if vifmatch:
@@ -1680,12 +1684,12 @@ class TC12419(xenrt.TestCase):
                                 raise xenrt.XRTFailure("%s was observed on port %s but it should be on port %s." % 
                                                        (self.mac, match.group("port"), vifmatch.group("port")))
                         else:
-                            xenrt.TEC().logverbose("Couldn't find vif%s.0 on bridge %s." % (self.guest.getDomid(), self.bridge))
+                            log("Couldn't find vif%s.0 on bridge %s." % (self.guest.getDomid(), self.bridge))
                     else:
-                        xenrt.TEC().logverbose("Couldn't find MAC %s on bridge %s." % (self.mac, self.bridge))
+                        log("Couldn't find MAC %s on bridge %s." % (self.mac, self.bridge))
                 self.guest.waitForDaemon(120, level=xenrt.RC_ERROR)
             except xenrt.XRTFailure, e:
-                xenrt.TEC().logverbose("Exception: %s" % (str(e)))
+                log("Exception: %s" % (str(e)))
                 return True 
             else:
                 return False
@@ -1695,21 +1699,22 @@ class TC12419(xenrt.TestCase):
             except:
                 pass
             try:
-                xenrt.TEC().logverbose(self.completeAsync(handle))
+                log(self.completeAsync(handle))
             except:
                 pass
+            step("Live migrating the VM back to master")
             self.guest.migrateVM(self.master, live="true", fast=True)
 
     def run(self, arglist=[]):
         for i in map(lambda x:float(x)/2.0, range(4*self.LIMIT)):
-            xenrt.TEC().logverbose("Testing with an ARP %ss after the first." % (i))
+            step("Testing with an ARP %ss after the first." % (i))
             if self.isVMIsolated(i):
                 if i >= self.LIMIT:
-                    xenrt.TEC().logverbose("VM became isolated by an ARP sent %ss after the first." % (i))
+                    log("VM became isolated by an ARP sent %ss after the first." % (i))
                 else:
                     raise xenrt.XRTFailure("VM became isolated by an ARP sent %ss after the first." % (i))
             else:
-                xenrt.TEC().logverbose("VM is not isolated by and ARP sent %ss after the first." % (i))
+                log("VM is not isolated by and ARP sent %ss after the first." % (i))
             # Allow a minute for everything to settle down.
             time.sleep(60)
 
@@ -2282,7 +2287,7 @@ sock.close()
             self.guest.start()
 
         #stop iptables on host
-        self.host.execdom0("/etc/init.d/iptables stop")
+        self.host.execdom0("service iptables stop")
 
         #start recv.py on host, try-except block needed because this will throw ssh timed out exception
         try:
@@ -2386,7 +2391,7 @@ class TC20921(xenrt.TestCase):
         self.guest.execguest("vconfig add eth0 %s" % (vlanid))
         self.guest.execguest("dhclient eth0.%s" % (vlanid))
         data = self.guest.execguest("ifconfig eth0.%s" % (vlanid))
-        ip = re.search(".*inet addr:(?P<ip>[0-9\.]+)", data)
+        ip = re.search(".*inet (addr:)?(?P<ip>[0-9\.]+)", data)
         return ip
         
     def run(self, arglist=None):
@@ -2478,3 +2483,138 @@ class TC2VlansPerBridge(xenrt.TestCase):
         self.cli.execute("vlan-destroy", "uuid=%s" % self.hostVlan2)
         self.cli.execute("network-destroy", "uuid=%s" % self.network)
         self.host.reboot()
+
+
+class TCQoSNetwork(xenrt.TestCase):
+
+    def __init__(self, tcid="TCQoSNetwork"):
+        xenrt.TestCase.__init__(self, tcid)
+        self.timeout = 300
+        self.guestsToClean = []
+
+    def run(self, arglist=None):
+        """Argument is either a machine name or "guest=<guestname>" to
+        use an existing guest."""
+
+        guestname = xenrt.TEC().lookup("guest", None, boolean=False)
+        for arg in arglist:
+            l = string.split(arg, "=")
+            if l[0] == "guest":
+                if not guestname:
+                    guestname = l[1]
+                    xenrt.TEC().logverbose("found guest name: %s" % guestname)
+            elif l[0] == "config":
+                matching = xenrt.TEC().registry.guestLookup(\
+                            **xenrt.util.parseXMLConfigString(l[1]))
+                for n in matching:
+                    xenrt.TEC().comment("Found matching guest(s): %s" % (matching))
+                if matching:
+                    guestname = matching[0]
+            elif l[0] == "timeout":
+                self.timeout = int(l[1])
+            else:
+                raise xenrt.XRTError("Unknown argument %s" % (arglist[0]))
+
+        self.declareTestcase("LinuxGuest", "rate100")
+        self.declareTestcase("LinuxGuest", "rate1000")
+        self.declareTestcase("LinuxGuest", "rate5000")
+
+        if guestname:
+            # Use existing guest
+            g = self.getGuest(guestname)
+            if not g:
+                raise xenrt.XRTError("Unable to find guest %s in registry" %
+                                     (guestname))
+            self.getLogsFrom(g.host)
+            if g.getState() == "DOWN":
+                g.start()
+        else:
+            self.host = self.getDefaultHost()
+            self.getLogsFrom(self.host)
+
+            # Create a basic guest
+            g = self.host.createGenericLinuxGuest()
+            self.guestsToClean.append(g)
+
+        g.installIperf()
+
+        # Get a peer.
+        self.peer = xenrt.NetworkTestPeer()
+
+        # Check we can get network transfers with an acceptable rate
+        measured = self.testRate(g)
+        self.tec.comment("Unlimited guest rate %u KBytes/sec" % (measured))
+        g.shutdown()
+        self.qosguest = g
+
+        self.runSubcase("rate", (100, measured), "LinuxGuest", "rate100")
+        self.runSubcase("rate", (1000, measured), "LinuxGuest", "rate1000")
+        self.runSubcase("rate", (5000, measured), "LinuxGuest", "rate5000")
+
+    def testRate(self, guest):
+        """Perform a transfer from the VM and measure the rate (KBytes/sec)"""
+        data = guest.execcmd("iperf -c %s -t %d -f K -i 60" % 
+                             (self.peer.getAddress(), self.timeout), timeout=self.timeout + 30)
+        readings = map(float, re.findall("([0-9\.]+) KBytes/sec", data))
+        return sum(readings)/len(readings)
+
+    def rate(self, target=100, unlimited_measured = None):
+
+        g = self.qosguest
+        g.setState("DOWN")
+        vifs = g.getVIFs() 
+        try:
+            for v in vifs.keys():
+                g.setVIFRate(v, target)
+
+            g.start()
+            measuredlim = self.testRate(g)
+            self.tec.comment("%u limited guest rate %u KBytes/sec" % (target, measuredlim))
+
+            # Put the rate back to zero and check again
+            if unlimited_measured:
+                measured = unlimited_measured
+                self.tec.comment("Given unlimited guest rate %u KBytes/sec" % (measured))
+            else:
+                g.shutdown()
+                for v in vifs.keys():
+                    g.setVIFRate(v)
+
+                g.start()
+                measured = self.testRate(g)
+                self.tec.comment("Unlimited guest rate %u KBytes/sec" % (measured))
+        except Exception, e:
+            raise e
+        finally:
+            g.setState("DOWN")
+            for v in vifs.keys():
+                g.setVIFRate(v)
+
+        # Check the unlimited rate is somewhat more than the target restriction
+        # so there is actually something to test.
+        wl = target * 2
+        if measured < wl:
+            self.tec.warning("Unlimited rate %u KBytes/sec is not a lot higher than the target limit of %u KBytes/sec" % (measured, target))
+
+        # Check measured limited rate is within 50% and 120% of the target
+        wh = target * 120 / 100
+        wl = target / 2
+        if measuredlim > wh:
+            raise xenrt.XRTFailure("Measured rate %u KBytes/sec is more than 20%% higher than the target %u KBytes/sec" % (measuredlim, target))
+        if measuredlim < wl:
+            raise xenrt.XRTFailure("Measured rate %u KBytes/sec is more than 50%% lower than the target %u KBytes/sec" % (measuredlim, target))
+
+    def postRun(self):
+        if self.peer:
+            try:
+                self.peer.release()
+            except:
+                pass
+        for g in self.guestsToClean:
+            try:
+                g.shutdown(force=True)
+            except:
+                pass
+            g.poll("DOWN", 120, level=xenrt.RC_ERROR)
+            g.uninstall()
+

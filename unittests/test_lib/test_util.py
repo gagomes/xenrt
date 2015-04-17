@@ -36,4 +36,19 @@ class TestParseSectionedConfig(XenRTUnitTestCase):
 		self.__intializeparsesectionedconfig("netsh")
                 parsedoutput = xenrt.util.parseSectionedConfig(self.data,self.secpatt,self.fieldpatt)
                 self.assertEqual(self.expected ,str(parsedoutput)) 
-	
+
+class TestDistroParsing(XenRTUnitTestCase):
+    def test_distroparsing(self):
+        """
+        Test that we get the correct distro/arch for distro text
+        """
+        tests = {"rhel64-x64": ("rhel64", "x86-64"),
+                 "rhel64-x86": ("rhel64", "x86-32"),
+                 "rhel64-x32": ("rhel64", "x86-32"),
+                 "rhel64_x86-32": ("rhel64", "x86-32"),
+                 "rhel64_x86-64": ("rhel64", "x86-64"),
+                 "rhel64": ("rhel64", "x86-32")}
+
+        for t in tests.keys():
+            self.assertEqual(tests[t], xenrt.getDistroAndArch(t))
+                 

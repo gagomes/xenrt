@@ -27,6 +27,13 @@ class TestInterfaces(XenRTTestCaseUnitTestCase):
         # Do the verification
         verifyObject(xenrt.interfaces.Toolstack, x)
 
+    def test_guestWrapperInterface(self):
+        """Verify the GuestWrapper class implements the Toolstack interface"""
+        # Create the toolstack object, no mocking needed for now
+        x = xenrt.lib.generic.GuestWrapper(Mock())
+        # Do the verification
+        verifyObject(xenrt.interfaces.Toolstack, x)
+
     def test_instanceInterface(self):
         """Verify the Instance class implements the OSParent interface"""
         # Mock out the methods used by the Instance __init__ so they don't get called

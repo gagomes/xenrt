@@ -1,0 +1,22 @@
+<xenrt>
+
+  <!-- MNR VM clock drifting testcases on AMD SVM host with 8 CPU -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+     <serial group="SVM8">
+       <testcase id="xenserver.tc.vmlifecycle.TC9760"/>
+       <testcase id="xenserver.tc.vmlifecycle.TC9761"/>
+       <testcase id="xenserver.tc.vmlifecycle.TC9762"/>
+       <testcase id="xenserver.tc.vmlifecycle.TC9763"/>
+     </serial>
+  </testsequence>
+
+</xenrt>

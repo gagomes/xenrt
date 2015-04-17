@@ -26,7 +26,7 @@
 
   <testsequence>
     <serial group="Win81-x86-BenchInst">
-      <testcase tc="TC-XXXX" id="testcases.xenserver.tc.vgpu.TCGPUBenchmarkInstall">
+      <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmarkInstall">
         <arg>guest=win81</arg>
         <arg>benchmark=SPECViewPerf11</arg>
         <arg>benchmark=UnigineSanctuary</arg>
@@ -37,7 +37,7 @@
       </testcase>
     </serial>
     <serial group="Win81-x64-BenchInst">
-      <testcase tc="TC-XXXX" id="testcases.xenserver.tc.vgpu.TCGPUBenchmarkInstall">
+      <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmarkInstall">
         <arg>guest=win81x64</arg>
         <arg>benchmark=SPECViewPerf11</arg>
         <arg>benchmark=UnigineSanctuary</arg>
@@ -48,7 +48,7 @@
       </testcase>
     </serial>
     <serial group="WS08R2-BenchInst">
-      <testcase tc="TC-XXXX" id="testcases.xenserver.tc.vgpu.TCGPUBenchmarkInstall">
+      <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmarkInstall">
         <arg>guest=ws12r2</arg>
         <arg>benchmark=SPECViewPerf11</arg>
         <arg>benchmark=UnigineSanctuary</arg>
@@ -64,11 +64,11 @@
       </testcase>
     </serial> -->
     <serial group="Win81-x86-K140">
-      <testcase tc="TC-XXXX" id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
+      <testcase id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
         <arg>guest=win81</arg>
         <arg>vgpuconfig=K140</arg>
       </testcase>
-      <testcase tc="TC-XXXX" id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
+      <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
         <arg>guest=win81</arg>
         <arg>vgpuconfig=K140</arg>
         <arg>benchmark=SPECViewPerf11</arg>
@@ -78,21 +78,21 @@
         <arg>benchmark=Redway3DTurbine</arg>
         <arg>benchmark=WebGL</arg>
       </testcase>
-      <testcase tc="TC-XXXX" id="guestops.basic.TCShutdown">
+      <testcase id="guestops.basic.TCShutdown">
         <arg>guest=win81</arg>
       </testcase>
     </serial>
     <serial group="Win81-x86-K140Scale">
-      <testcase tc="TC-XXXX" id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
+      <testcase id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
         <arg>guest=win81</arg>
         <arg>vgpuconfig=K140</arg>
       </testcase>
-      <testcase tc="TC-XXXX" id="testcases.xenserver.tc.vgpu.TCVGPUCloneVM">
+      <testcase id="testcases.xenserver.tc.vgpu.TCVGPUCloneVM">
         <arg>guest=win81</arg>
         <arg>vgpuconfig=K140</arg>
         <arg>clones=4</arg>
       </testcase>
-      <testcase tc="TC-XXXX" id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
+      <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
         <arg>guest=win81</arg>
         <arg>clones=4</arg>
         <arg>vgpuconfig=K140</arg>
@@ -103,17 +103,17 @@
         <arg>benchmark=Redway3DTurbine</arg>
         <arg>benchmark=WebGL</arg>
       </testcase>
-      <testcase tc="TC-XXXX" id="testcases.xenserver.tc.vgpu.TCVGPUDeleteClones">
+      <testcase id="testcases.xenserver.tc.vgpu.TCVGPUDeleteClones">
         <arg>guest=win81</arg>
         <arg>clones=4</arg>
       </testcase>
     </serial>
     <serial group="Win81-x64-K140">
-      <testcase tc="TC-XXXX" id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
+      <testcase id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
         <arg>guest=win81x64</arg>
         <arg>vgpuconfig=K140</arg>
       </testcase>
-      <testcase tc="TC-XXXX" id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
+      <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
         <arg>guest=win81x64</arg>
         <arg>vgpuconfig=K140</arg>
         <arg>benchmark=SPECViewPerf11</arg>
@@ -123,16 +123,16 @@
         <arg>benchmark=Redway3DTurbine</arg>
         <arg>benchmark=WebGL</arg>
       </testcase>
-      <testcase tc="TC-XXXX" id="guestops.basic.TCShutdown">
+      <testcase id="guestops.basic.TCShutdown">
         <arg>guest=win81x64</arg>
       </testcase>
     </serial>
     <serial group="WS12r2-K140">
-      <testcase tc="TC-XXXX" id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
+      <testcase id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
         <arg>guest=ws12r2</arg>
         <arg>vgpuconfig=K140</arg>
       </testcase>
-      <testcase tc="TC-XXXX" id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
+      <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
         <arg>guest=ws12r2</arg>
         <arg>vgpuconfig=K140</arg>
         <arg>benchmark=SPECViewPerf11</arg>
@@ -142,16 +142,16 @@
         <arg>benchmark=Redway3DTurbine</arg>
         <arg>benchmark=WebGL</arg>
       </testcase>
-      <testcase tc="TC-XXXX" id="guestops.basic.TCShutdown">
+      <testcase id="guestops.basic.TCShutdown">
         <arg>guest=ws12r2</arg>
       </testcase>
     </serial>
     <serial group="Win81-x86-K100">
-      <testcase tc="TC-XXXX" id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
+      <testcase id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
         <arg>guest=win81</arg>
         <arg>vgpuconfig=K100</arg>
       </testcase>
-      <testcase tc="TC-XXXX" id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
+      <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
         <arg>guest=win81</arg>
         <arg>vgpuconfig=K100</arg>
         <arg>benchmark=UnigineSanctuary</arg>
@@ -160,21 +160,21 @@
         <arg>benchmark=Redway3DTurbine</arg>
         <arg>benchmark=WebGL</arg>
       </testcase>
-      <testcase tc="TC-XXXX" id="guestops.basic.TCShutdown">
+      <testcase id="guestops.basic.TCShutdown">
         <arg>guest=win81</arg>
       </testcase>
     </serial>
     <serial group="Win81-x86-K100Scale">
-      <testcase tc="TC-XXXX" id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
+      <testcase id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
         <arg>guest=win81</arg>
         <arg>vgpuconfig=K100</arg>
       </testcase>
-      <testcase tc="TC-XXXX" id="testcases.xenserver.tc.vgpu.TCVGPUCloneVM">
+      <testcase id="testcases.xenserver.tc.vgpu.TCVGPUCloneVM">
         <arg>guest=win81</arg>
         <arg>vgpuconfig=K100</arg>
         <arg>clones=8</arg>
       </testcase>
-      <testcase tc="TC-XXXX" id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
+      <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
         <arg>guest=win81</arg>
         <arg>clones=8</arg>
         <arg>vgpuconfig=K100</arg>
@@ -184,17 +184,17 @@
         <arg>benchmark=Redway3DTurbine</arg>
         <arg>benchmark=WebGL</arg>
       </testcase>
-      <testcase tc="TC-XXXX" id="testcases.xenserver.tc.vgpu.TCVGPUDeleteClones">
+      <testcase id="testcases.xenserver.tc.vgpu.TCVGPUDeleteClones">
         <arg>guest=win81</arg>
         <arg>clones=8</arg>
       </testcase>
     </serial>
     <serial group="Win81-x86-K1PT">
-      <testcase tc="TC-XXXX" id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
+      <testcase id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
         <arg>guest=win81</arg>
         <arg>vgpuconfig=K1PassThrough</arg>
       </testcase>
-      <testcase tc="TC-XXXX" id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
+      <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
         <arg>guest=win81</arg>
         <arg>vgpuconfig=K1PassThrough</arg>
         <arg>benchmark=SPECViewPerf11</arg>
@@ -204,7 +204,7 @@
         <arg>benchmark=Redway3DTurbine</arg>
         <arg>benchmark=WebGL</arg>
       </testcase>
-      <testcase tc="TC-XXXX" id="guestops.basic.TCShutdown">
+      <testcase id="guestops.basic.TCShutdown">
         <arg>guest=win81</arg>
       </testcase>
     </serial>

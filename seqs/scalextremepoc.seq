@@ -1,0 +1,29 @@
+<xenrt>
+  <variables>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+  </variables>
+  <scheduler>
+    <resources>memory&gt;=8G</resources>
+  </scheduler>
+  <prepare>
+    <host id="0">
+      <vm name="SX_Agent">
+        <distro>debian70</distro>
+        <arch>x86-64</arch>
+        <memory>256</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="8" />
+      </vm>
+    </host>
+  </prepare>
+  <testsequence>
+    <testcase id="scalextreme.environment.ScaleXtremePoC">
+      <arg>apikey=J2HeS9V3QaM4V9Py$EteNuS2@yVyH2$y</arg>
+      <arg>credential=$4hyv8jyX5sYZuMep5TaPEH7VeD8r4G6</arg>
+    </testcase>
+  </testsequence>
+</xenrt>
+

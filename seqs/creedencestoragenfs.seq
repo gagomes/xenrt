@@ -32,6 +32,9 @@
     </serial>
     <testcase id="xenserver.tc.impexp.TC10629" prio="3"/>
     <testcase id="xenserver.tc.storage.TC10626" prio="3"/>
+    
+    <!--Add tests before this -->
+    <testcase id="xenserver.tc.storage.TC21718" prio="3"/>
   </testsequence>
 
 </xenrt>

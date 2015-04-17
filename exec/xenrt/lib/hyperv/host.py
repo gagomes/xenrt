@@ -40,7 +40,17 @@ def createHost(id=0,
                ipv6=None,
                noipv4=False,
                basicNetwork=True,
-               extraConfig=None):
+               extraConfig=None,
+               containerHost=None,
+               vHostName=None,
+               vHostCpus=2,
+               vHostMemory=4096,
+               vHostDiskSize=50,
+               vHostSR=None,
+               vNetworks=None):
+
+    if containerHost != None:
+        raise xenrt.XRTError("Nested hosts not supported for this host type")
 
     machine = str("RESOURCE_HOST_%s" % (id))
 
@@ -80,20 +90,22 @@ class HyperVHost(xenrt.lib.nativewindows.WindowsHost):
         return
 
     def createBasicNetwork(self):
+        self.reconfigureToStatic(ad=self.cloudstack)
+        self.disableOtherNics()
+        self.createVirtualSwitch(0)
         if self.cloudstack:
             self.joinDefaultDomain()
             self.setupDomainUserPermissions()
             self.createCloudStackShares()
-        self.reconfigureToStatic()
-        self.createVirtualSwitch(0)
+            self.enableMigration()
 
     def installHyperV(self):
         if self.productVersion.startswith("hvs"):
             needReboot = False
-            features = ["RSAT-Hyper-V-Tools"]
+            features = ["RSAT-Hyper-V-Tools", "RSAT-AD-Powershell"]
         else:
             needReboot = True
-            features = ["Hyper-V", "RSAT-Hyper-V-Tools"]
+            features = ["Hyper-V", "RSAT-Hyper-V-Tools", "RSAT-AD-Powershell"]
         
         for i in features:
             xenrt.TEC().logverbose(self.xmlrpcExec("Get-WindowsFeature -Name %s" % i, powershell=True, returndata=True))
@@ -102,6 +114,21 @@ class HyperVHost(xenrt.lib.nativewindows.WindowsHost):
 
         if needReboot:
             self.softReboot()
+
+    def enableMigration(self):
+        self.hypervCmd("Enable-VMMigration")
+        self.hypervCmd("Set-VMHost -VirtualMachineMigrationAuthenticationType Kerberos")
+        self.hypervCmd("Set-VMHost -UseAnyNetworkForMigration $true")
+        self.enableDialIn()
+        self.softReboot()
+
+    def enableDialIn(self):
+        myhost = self.xmlrpcGetEnvVar("COMPUTERNAME")
+        script = """$ErrorActionPreference = "Stop"
+Get-ADComputer %s | Set-AdObject -Replace @{msnpallowdialin=$true}
+Get-ADComputer %s -Properties msnpallowdialin | Select-Object -ExpandProperty msnpallowdialin
+""" % (myhost, myhost)
+        xenrt.TEC().logverbose(self.getDomainController().os.execCmd(script, powershell=True, returndata=True))
 
     def createVirtualSwitch(self, eth):
         ps = """Import-Module Hyper-V
@@ -262,22 +289,28 @@ New-VMSwitch -Name externalSwitch -NetAdapterName $ethernet.Name -AllowManagemen
         for e in allEths:
             if e not in usedEths:
                 eth = self.getNIC(e)
-                cmd = "netsh interface ip set address \"%s\" dhcp" % (eth)
                 try:
-                    self.xmlrpcExec(cmd)
-                except:
-                    pass
-                cmd = "netsh interface ipv4 set interface \"%s\" ignoredefaultroutes=enabled" % (eth)
-                try:
-                    self.xmlrpcExec(cmd)
+                    self.hypervCmd("Get-NetAdapter -Name \"%s\" | Disable-NetAdapter -Confirm:$false" % eth)
                 except:
                     pass
 
+        self.getWindowsIPConfigData()
         if self.cloudstack:
             self.joinDefaultDomain()
             self.setupDomainUserPermissions()
             self.createCloudStackShares()
+            self.enableMigration()
 
+    def disableOtherNics(self):
+        data = self.getWindowsIPConfigData()
+        eths = [x for x in data.keys() if data[x].has_key('IPv4 Address') and not (data[x]['IPv4 Address'] == self.machine.ipaddr or data[x]['IPv4 Address'] == "%s(Preferred)" % self.machine.ipaddr)]
+        for e in eths:
+            try:
+                self.hypervCmd("Get-NetAdapter -Name \"%s\" | Disable-NetAdapter -Confirm:$false" % e)
+            except:
+                pass
+        self.getWindowsIPConfigData()
+            
     def checkNetworkTopology(self,
                              topology,
                              ignoremanagement=False,
@@ -290,8 +323,6 @@ New-VMSwitch -Name externalSwitch -NetAdapterName $ethernet.Name -AllowManagemen
     def arpwatch(self, iface, mac, timeout=600, level=xenrt.RC_FAIL):
         """Monitor an interface (or bridge) for an ARP reply"""
 
-        # TODO currently we just poll leases.
-
         deadline = xenrt.util.timenow() + timeout
 
         while True:
@@ -300,7 +331,7 @@ New-VMSwitch -Name externalSwitch -NetAdapterName $ethernet.Name -AllowManagemen
                 break
             xenrt.sleep(20)
             if xenrt.util.timenow() > deadline:
-                xenrt.XRT("Timed out monitoring for guest ARP/DHCP", level, data=mac)
+                xenrt.XRT("Timed out monitoring for guest DHCP lease", level, data=mac)
 
         return ip
 
@@ -332,3 +363,16 @@ New-VMSwitch -Name externalSwitch -NetAdapterName $ethernet.Name -AllowManagemen
 
     def guestFactory(self):
         return xenrt.lib.hyperv.guest.Guest
+
+    def getFQDN(self):
+        return "%s.%s" % (self.xmlrpcGetEnvVar("COMPUTERNAME"), xenrt.getADConfig().domain)
+
+    def enableDelegation(self, remoteHost, service):
+        remote = remoteHost.xmlrpcGetEnvVar("COMPUTERNAME")
+        myhost = self.xmlrpcGetEnvVar("COMPUTERNAME")
+        ad = xenrt.getADConfig()
+        script = """$ErrorActionPreference = "Stop"
+Get-ADComputer %s | Set-AdObject -Add @{"msDS-AllowedToDelegateTo"="%s/%s","%s/%s.%s"}
+Get-ADComputer %s -Properties msDS-AllowedToDelegateTo | Select-Object -ExpandProperty msDs-AllowedToDelegateTo
+""" % (myhost, service, remote, service, remote, ad.domain, myhost)
+        xenrt.TEC().logverbose(self.getDomainController().os.execCmd(script, powershell=True, returndata=True))

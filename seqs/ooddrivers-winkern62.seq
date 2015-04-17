@@ -15,7 +15,7 @@
   <variables>
     <PRODUCT_VERSION>${TESTED_PRODUCT_VERSION}</PRODUCT_VERSION>
     <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
-    <HFX_BRANCH_CLEARWATER>RTM</HFX_BRANCH_CLEARWATER>
+    <HFX_BRANCH_CLEARWATER>SP1</HFX_BRANCH_CLEARWATER>
   </variables>
 
   <semaphores>
@@ -59,27 +59,27 @@
           </testcase>
           <testcase id="guestops.basic.TCStartStop" tc="TC-17917">
             <arg>guest=win8-x86</arg>
-            <arg>loops=20</arg>
+            <arg>loops=5</arg>
           </testcase>
           <testcase id="guestops.basic.TCReboot" tc="TC-17918">
             <arg>guest=win8-x86</arg>
-            <arg>loops=20</arg>
+            <arg>loops=5</arg>
           </testcase>
           <testcase id="guestops.srm.TCSuspendResume" tc="TC-17919">
             <arg>guest=win8-x86</arg>
             <arg>workloads</arg>
-            <arg>loops=20</arg>
+            <arg>loops=5</arg>
           </testcase>
           <testcase id="guestops.srm.TCMigrate" tc="TC-17920">
             <arg>guest=win8-x86</arg>
             <arg>workloads</arg>
-            <arg>loops=10</arg>
+            <arg>loops=5</arg>
           </testcase>
           <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-17921">
             <arg>guest=win8-x86</arg>
             <arg>live</arg>
             <arg>workloads</arg>
-            <arg>loops=20</arg>
+            <arg>loops=5</arg>
           </testcase>
           <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-17923">
             <arg>N/A</arg>
@@ -120,24 +120,24 @@
           </testcase>
           <testcase id="guestops.basic.TCStartStop" tc="TC-17941">
             <arg>guest=ws12-x64</arg>
-            <arg>loops=20</arg>
+            <arg>loops=5</arg>
           </testcase>
           <testcase id="guestops.basic.TCReboot" tc="TC-17942">
             <arg>guest=ws12-x64</arg>
-            <arg>loops=20</arg>
+            <arg>loops=5</arg>
           </testcase>
           <testcase id="guestops.srm.TCSuspendResume" tc="TC-17943">
             <arg>guest=ws12-x64</arg>
-            <arg>loops=20</arg>
+            <arg>loops=5</arg>
           </testcase>
           <testcase id="guestops.srm.TCMigrate" tc="TC-17944">
             <arg>guest=ws12-x64</arg>
-            <arg>loops=10</arg>
+            <arg>loops=5</arg>
           </testcase>
           <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-17945">
             <arg>guest=ws12-x64</arg>
             <arg>live</arg>
-            <arg>loops=20</arg>
+            <arg>loops=5</arg>
           </testcase>
           <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-17947">
             <arg>N/A</arg>

@@ -1,6 +1,6 @@
 import xenrt
 import logging
-import os, urllib
+import os, urllib, glob
 from datetime import datetime
 import shutil
 import tarfile
@@ -177,15 +177,19 @@ class MarvinApi(object):
 
         while True:
             systemvms = self.cloudApi.listSystemVms() or []
+            startingvms = [x for x in systemvms if x.state == "Starting"]
             systemvmhosts = [x for x in self.cloudApi.listHosts() or [] if x.name in [y.name for y in systemvms]]
-            if systemvms and systemvmhosts:
+            if systemvmhosts: # At least one host object has been created
                 downhosts = [x for x in systemvmhosts if x.state != "Up"]
-                if not downhosts:
+                if not downhosts and not startingvms:
                     # All up, complete
                     xenrt.TEC().logverbose("All System VMs ready")
                     return
                 else:
-                    xenrt.TEC().logverbose("%s not up" % ", ".join([x.name for x in downhosts]))
+                    if downhosts:
+                        xenrt.TEC().logverbose("%s not up" % ", ".join([x.name for x in downhosts]))
+                    if startingvms:
+                        xenrt.TEC().logverbose("%s starting" % ", ".join([x.name for x in startingvms]))
             else:
                 xenrt.TEC().logverbose("No system VMs present yet")
             
@@ -212,7 +216,7 @@ class MarvinApi(object):
                     break
                 if templateList[0].hypervisor.lower() == "hyperv":
                     # CS-20595 - Hyper-V downloads are very slow
-                    timeout = 7200
+                    timeout = 10800
             else:
                 raise xenrt.XRTFailure('>1 template found with name %s' % (name))
 
@@ -257,10 +261,19 @@ class MarvinApi(object):
         elif provider == 'SMB':
             ad = xenrt.getADConfig()
             self.mgtSvr.place.execcmd('mount -t cifs %s /media -o user=%s,password=%s,domain=%s' % (storagePath, ad.adminUser, ad.adminPassword, ad.domainName))
-        installSysTmpltLoc = self.mgtSvr.place.execcmd('find / -name *install-sys-tmplt').strip()
+        installSysTmpltLoc = self.mgtSvr.place.execcmd('find / -name *install-sys-tmplt -ignore_readdir_race 2> /dev/null || true').strip()
         for hv in templates:
             templateFile = xenrt.TEC().getFile(templates[hv])
-            webdir.copyIn(templateFile)
+            xenrt.TEC().logverbose("Using %s system VM template %s (md5sum: %s)" % (hv, templates[hv], xenrt.command("md5sum %s" % templateFile)))
+            if templateFile.endswith(".zip") and xenrt.TEC().lookup("WORKAROUND_CS22839", False, boolean=True):
+                xenrt.TEC().warning("Using CS-22839 workaround")
+                tempDir = xenrt.TEC().tempDir()
+                xenrt.command("cd %s && unzip %s" % (tempDir, templateFile))
+                dirContents = glob.glob("%s/*" % tempDir)
+                if len(dirContents) != 1:
+                    raise xenrt.XRTError("Unexpected contents of system template ZIP file")
+                templateFile = dirContents[0]
+            webdir.copyIn(templateFile) 
             templateUrl = webdir.getURL(os.path.basename(templateFile))
 
             if provider in ('NFS', 'SMB'):

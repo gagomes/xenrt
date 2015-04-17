@@ -1,0 +1,46 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host>
+      <vm name="win7guest1">
+        <distro>win7-x86</distro>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+      <vm name="win7guest2">
+        <distro>win7-x86</distro>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+      <vm name="rhel61">
+        <distro>rhel61</distro>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <network device="0"/>
+      </vm>
+      <vm name="debian70">
+        <distro>debian70</distro>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <network device="0"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <testcase id="xenserver.network.TCInterVMNetworking" group="Networking" tc="TC-7299">
+      <arg>RESOURCE_HOST_0</arg>
+      <arg>guests=win7guest1,win7guest2,rhel61,debian70</arg>
+    </testcase>
+  </testsequence>
+
+</xenrt>

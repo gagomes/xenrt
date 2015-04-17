@@ -1,0 +1,20 @@
+<xenrt>
+
+  <!-- Basic single host DMC tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <serial group="TC-9283">
+      <testcase id="xenserver.tc.balloon.TC9284"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

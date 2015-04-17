@@ -2,7 +2,7 @@
   <!-- dsdsdsdsd -->
 
   <variables>
-    <PRODUCT_VERSION>Sarasota</PRODUCT_VERSION>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
   </variables>
 
   <prepare>
@@ -13,7 +13,7 @@
 
   <testsequence>
     <serial>
-      <testcase id="xenserver.tc.multilun.TCMultipleLunCreation" tc="TC-XXX"/>
+      <testcase id="xenserver.tc.multilun.TCMultipleLunCreation"/>
     </serial>
   </testsequence>
 

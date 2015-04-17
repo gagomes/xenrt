@@ -1,0 +1,70 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    <OPTION_DOM0_MEM>4096</OPTION_DOM0_MEM>
+  </variables>
+  <prepare>
+      <host id="0">
+        <vm name="lingold">
+          <distro>rhel65</distro>
+          <arch>x86-64</arch>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+          <postinstall action="preCloneTailor"/>
+        </vm>
+        <vm name="wingold">
+          <distro>ws08r2sp1-x64</distro>
+          <arch>x86-64</arch>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <postinstall action="installDrivers" />
+          <network device="0" />
+          <disk device="0" size="24" />
+          <postinstall action="preCloneTailor"/>
+        </vm>
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <VMS />
+          <MANAGEMENT />
+          <NIC />
+          <NIC />
+        </PHYSICAL>
+        <PHYSICAL network="NSEC">
+          <NIC />
+          <NIC />
+          <STORAGE />
+        </PHYSICAL>
+      </NETWORK>
+      </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="Setup">
+      <testcase id="xenserver.tc.srpervm.SetupSRsiSCSI">
+        <arg>linuxvms=8</arg>
+        <arg>linuxfiler=fas3050b</arg>
+        <arg>windowsvms=8</arg>
+        <arg>windowsfiler=fas3050a</arg>
+      </testcase>
+      <testcase id="xenserver.tc.srpervm.CopyVMs" />
+      <testcase id="xenserver.tc.srpervm.TCMonitorLowMem" >
+        <arg>minutes=2</arg>
+        <arg>checkinterval=1</arg>
+      </testcase>
+    </serial>
+    <serial group="Reconfigure">
+      <testcase id="xenserver.tc.srpervm.ReconfigureRingSize">
+        <arg>ringsize=1</arg>
+        <arg>applyfix=yes</arg>
+      </testcase>
+      <testcase id="xenserver.tc.srpervm.RebootAllVMs" />
+      <testcase id="xenserver.tc.srpervm.TCMonitorLowMem" >
+        <arg>minutes=2</arg>
+        <arg>checkinterval=1</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+
+</xenrt>

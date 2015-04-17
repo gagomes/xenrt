@@ -1615,6 +1615,7 @@ class NSSRIOV(SRIOVTests):
 
         step("unmount the NFS Share")
         self.host.execdom0('umount /mnt/distfiles')
+        return self.license_file
 
     def installLicense(self, vpx):
     

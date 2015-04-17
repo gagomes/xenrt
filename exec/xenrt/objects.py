@@ -275,7 +275,7 @@ class GenericPlace(object):
             raise
 
     def deprecatedIfConfig(self):
-        return self.distro.startswith("rhel7") or self.distro.startswith("oel7") or self.distro.startswith("centos7") or self.distro.startswith("sl7")
+        return self.distro.startswith("rhel7") or self.distro.startswith("oel7") or self.distro.startswith("centos7") or self.distro.startswith("sl7") or self.distro.startswith("fedora")
 
     def getMyVIFs(self):
         try:
@@ -5701,7 +5701,16 @@ exit 0
                                  (method))
 
         arch = "amd64" if "64" in self.arch else "i386"
-        release = re.search("Debian/(\w+)/", repository).group(1)
+        if distro == "debian50":
+            release = "lenny"
+        elif distro == "debian60":
+            release = "squeeze"
+        elif distro == "debian70":
+            release = "wheezy"
+        elif distro == "debian80":
+            release = "jessie"
+        elif distro == "debiantesting":
+            release = "testing"
         _url = repository + "/dists/%s/" % (release.lower(), )
         boot_dir = "main/installer-%s/current/images/netboot/debian-installer/%s/" % (arch, arch)
 
@@ -8247,7 +8256,7 @@ class GenericGuest(GenericPlace):
                 maindisk="hda"
                 if distro:
                     m = re.match("(rhel|centos|oel|sl)[dw]?(\d)\d*", distro)
-                    if m and int(m.group(2)) >= 6:
+                    if (m and int(m.group(2)) >= 6) or distro.startswith("fedora"):
                         maindisk="xvda"
         else:
             ethDevice = vifname
@@ -8338,7 +8347,7 @@ class GenericGuest(GenericPlace):
             pxecfg.linuxArgsKernelAdd("initrd=%s" %
                                       (pxe.makeBootPath("initrd.img")))
 
-            if distro.startswith("oel7") or distro.startswith("centos7") or distro.startswith("rhel7") or distro.startswith("sl7"):
+            if distro.startswith("oel7") or distro.startswith("centos7") or distro.startswith("rhel7") or distro.startswith("sl7") or distro.startswith("fedora"):
                 pxecfg.linuxArgsKernelAdd("inst.repo=%s" % repository)
                 pxecfg.linuxArgsKernelAdd("console=tty0")
                 pxecfg.linuxArgsKernelAdd("console=hvc0")
@@ -8566,7 +8575,7 @@ class GenericGuest(GenericPlace):
 
             arch = "amd64" if "64" in self.arch else "i386"
             xenrt.TEC().logverbose("distro: %s | repository: %s | filename: %s" % (distro, repository, filename))
-            m = re.search("ubuntu(\d+)", distro)
+            m = re.search("ubuntu(.+)", distro)
             if m:
                 release = m.group(1)
                 if release == "1004":
@@ -8575,6 +8584,8 @@ class GenericGuest(GenericPlace):
                     _url = repository + "/dists/precise/"
                 elif release == "1404":
                     _url = repository + "/dists/trusty/"
+                elif release == "devel":
+                    _url = repository + "/dists/devel/"
                 boot_dir = "main/installer-%s/current/images/netboot/ubuntu-installer/%s/" % (arch, arch)
             else:
                 if distro == "debian50":
@@ -8585,6 +8596,8 @@ class GenericGuest(GenericPlace):
                     release = "wheezy"
                 elif distro == "debian80":
                     release = "jessie"
+                elif distro == "debiantesting":
+                    release = "testing"
                 _url = repository + "/dists/%s/" % (release)
                 boot_dir = "main/installer-%s/current/images/netboot/debian-installer/%s/" % (arch, arch)
 
@@ -9870,7 +9883,7 @@ while True:
             if "deb" in self.distro or "ubuntu" in self.distro:
                 self.execguest("apt-get update", level=xenrt.RC_OK)
                 self.execguest("apt-get -y --force-yes install %s" % packages)
-            elif "rhel" in self.distro or "centos" in self.distro or "oel" in self.distro:
+            elif "rhel" in self.distro or "centos" in self.distro or "oel" in self.distro or "fedora" in self.distro:
                 self.execguest("yum install -y %s" % packages)
             elif "sles" in self.distro:
                 self.execguest("zypper -n --non-interactive install %s" % packages)

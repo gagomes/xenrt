@@ -203,6 +203,8 @@ class TCSmokeTestTemplateDefaults(_TCSmokeTest):
     def getDefaultJiraTC(self):
         if xenrt.isWindows(self.tcsku):
             return "TC-26871"
+        elif xenrt.isDevLinux(self.tcsku):
+            return "TC-26955"
         else:
             return "TC-26870"
 
@@ -211,6 +213,8 @@ class TCSmokeTestShadowPT(TCSmokeTestTemplateDefaults):
     def getDefaultJiraTC(self):
         if xenrt.isWindows(self.tcsku):
             return "TC-26872"
+        elif xenrt.isDevLinux(self.tcsku):
+            return "TC-26956"
         else:
             return "TC-26873"
 
@@ -223,6 +227,8 @@ class TCSmokeTestIntelEPT(TCSmokeTestTemplateDefaults):
     def getDefaultJiraTC(self):
         if xenrt.isWindows(self.tcsku):
             return "TC-26874"
+        elif xenrt.isDevLinux(self.tcsku):
+            return "TC-26957"
         else:
             return "TC-26875"
 
@@ -237,6 +243,8 @@ class TCSmokeTestAMDNPT(TCSmokeTestTemplateDefaults):
     def getDefaultJiraTC(self):
         if xenrt.isWindows(self.tcsku):
             return "TC-26876"
+        elif xenrt.isDevLinux(self.tcsku):
+            return "TC-26958"
         else:
             return "TC-26877"
 
@@ -252,6 +260,8 @@ class TCSmokeTest1VCPU(_TCSmokeTest):
     def getDefaultJiraTC(self):
         if xenrt.isWindows(self.tcsku):
             return "TC-26878"
+        elif xenrt.isDevLinux(self.tcsku):
+            return "TC-26959"
         else:
             return "TC-26879"
 
@@ -263,6 +273,8 @@ class TCSmokeTest2VCPUs(_TCSmokeTest):
     def getDefaultJiraTC(self):
         if xenrt.isWindows(self.tcsku):
             return "TC-26880"
+        elif xenrt.isDevLinux(self.tcsku):
+            return "TC-26960"
         else:
             return "TC-26881"
 
@@ -278,6 +290,8 @@ class TCSmokeTestMaxMem(_TCSmokeTest):
     def getDefaultJiraTC(self):
         if xenrt.isWindows(self.tcsku):
             return "TC-26882"
+        elif xenrt.isDevLinux(self.tcsku):
+            return "TC-269561"
         else:
             return "TC-26883"
 
@@ -304,6 +318,8 @@ class TCSmokeTestMaxvCPUs(_TCSmokeTest):
     def getDefaultJiraTC(self):
         if xenrt.isWindows(self.tcsku):
             return "TC-26884"
+        elif xenrt.isDevLinux(self.tcsku):
+            return "TC-26962"
         else:
             return "TC-26885"
 
@@ -337,6 +353,8 @@ class TCSmokeTestMinConfig(_TCSmokeTest):
     def getDefaultJiraTC(self):
         if xenrt.isWindows(self.tcsku):
             return "TC-26886"
+        elif xenrt.isDevLinux(self.tcsku):
+            return "TC-26963"
         else:
             return "TC-26887"
 

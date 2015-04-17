@@ -7529,6 +7529,12 @@ class GenericGuest(GenericPlace):
                         if self.execguest("test -e %s" % (filename), retval="code") == 0:
                             self.execguest("rm -f %s" % (filename))
 
+                doSecUpdates = False
+                if self.execguest("[ -e /etc/apt/sources.list.d/security.list ]", retval=code) and int(debVer) in (6, 7):
+                    doSecUpdates = True
+                    distro = self.execguest("cat /etc/apt/sources.list | grep '^deb' | awk '{print $3}' | head -1").strip()
+                    self.execguest("echo %s/debsecurity %s/updates > /etc/apt/sources.list.d/security.list")
+
                 try:
                     data = self.execguest("apt-get update")
                 except:
@@ -7544,6 +7550,10 @@ class GenericGuest(GenericPlace):
                     except Exception, e:
                         xenrt.TEC().logverbose("Exception: %s" % (str(e)))
                     self.execguest("apt-get update")
+
+                if doSecUpdates:
+                    self.execguest("DEBIAN_FRONTEND=noninteractive apt-get -y --force-yes upgrade")
+                    self.reboot()
 
                 modules = ["DEBIAN_MODULES", "DEBIAN_MODULES2"]
                 if debVer == 4.0:

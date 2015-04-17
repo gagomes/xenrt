@@ -4682,3 +4682,28 @@ class TC26472(xenrt.TestCase):
             guest.suspend()
             guest.resume()
             guest.shutdown()
+
+class TC26950(xenrt.TestCase):
+    """Multiple CIFS SRs using multiple authentication provided by NetApp SMB Shares"""
+
+    def run(self, arglist):
+
+        host = self.getDefaultHost() # The host has already 2 CIFS SRs created using
+                                     # different authentication on QA NetApp filer.
+                                     # One SR on a SMB share provided by a windows guest
+
+        # Exclude xenrt-smb guest which serves the smb share.
+        guests = [host.getGuest(g) for g in host.listGuests() if not g.startswith("xenrt-smb")]
+
+        for guest in guests:
+            # Make sure the guest is up.
+            if guest.getState() == "DOWN":
+                xenrt.TEC().logverbose("Starting guest before commencing lifecycle ops.")
+                guest.start()
+
+            guest.shutdown()
+            guest.start()
+            guest.reboot()
+            guest.suspend()
+            guest.resume()
+            guest.shutdown()

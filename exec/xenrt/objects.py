@@ -7530,7 +7530,7 @@ class GenericGuest(GenericPlace):
                             self.execguest("rm -f %s" % (filename))
 
                 doSecUpdates = False
-                if self.execguest("[ -e /etc/apt/sources.list.d/security.list ]", retval=code) and int(debVer) in (6, 7):
+                if self.execguest("[ -e /etc/apt/sources.list.d/security.list ]", retval="code") and int(debVer) in (6, 7):
                     doSecUpdates = True
                     distro = self.execguest("cat /etc/apt/sources.list | grep '^deb' | awk '{print $3}' | head -1").strip()
                     self.execguest("echo %s/debsecurity %s/updates > /etc/apt/sources.list.d/security.list")

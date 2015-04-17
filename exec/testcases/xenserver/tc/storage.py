@@ -4710,7 +4710,7 @@ class TC26950(xenrt.TestCase):
         cifsSecretUUID = host.createSecret(cifsPasswd) 
         srUserCifsISO.create(smbServerIP, smbServerShare, "iso", "iso", cifsUser, cifsSecretUUID, use_secret=True) 
 
-        # Using admin credentails is failing with mount error(127): Key has expired.
+        # Using Administrator credentails is failing as it conflict with local NetApp Administrator account.
         # srAdminCifsISO = xenrt.productLib(host=host).CIFSISOStorageRepository(host, 'admin-cifs-isosr') 
         # adminSecretUUID = host.createSecret(adminPasswd) 
         # srAdminCifsISO.create(smbServerIP, smbServerShare, "iso", "iso", adminUser, adminSecretUUID, use_secret=True) 

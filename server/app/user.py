@@ -93,6 +93,7 @@ class User(object):
         if not rc:
             # Might be a valid user who's not in tblusers
             try:
+                print "Attempting to get %s from AD" % self.userid
                 self._email = self.page.getAD().get_email(self.userid)
                 self._valid = True
                 self._disabled = self.page.getAD().is_disabled(self.userid)

@@ -4689,7 +4689,7 @@ class TC26950(xenrt.TestCase):
     def run(self, arglist):
 
         host = self.getDefaultHost() # The host has already 2 CIFS SRs created using
-                                     # different authentication on QA NetApp filer SC04-FAS2554.
+                                     # different authentication on QA NetApp filer.
                                      # One SR on a SMB share provided by a windows guest
 
         # Exclude xenrt-smb guest which serves the smb share.

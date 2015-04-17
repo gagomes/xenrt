@@ -247,7 +247,7 @@ class ExperimentBaseEnabledFeatures(object):
             return self.free
 
 
-class ExperimentSampleEnabledFeatures(BaseEnabledFeatures):
+class ExperimentSampleEnabledFeatures(ExperimentBaseEnabledFeatures):
 
     def __init__(self, sku):
         super(SampleEnabledFeatures, self).__init__(sku)

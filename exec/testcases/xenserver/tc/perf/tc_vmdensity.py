@@ -2702,6 +2702,8 @@ MachinePassword=%s
                 timeout = 600 + self.measurement_1.base_measurement * self.tc.THRESHOLD
             if guest.use_ipv6:
                 guest.mainip = guest.getIPv6AutoConfAddress(vifname)
+                #normalise ipv6 with 0s
+                guest.mainip = ":".join(map(lambda i: i.zfill(4), guest.mainip.split(":")))
             else:
                 guest.mainip = guest.getHost().arpwatch(bridge, mac, timeout=timeout)
             self.ip_to_guest[guest.mainip] = guest

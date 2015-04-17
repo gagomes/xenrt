@@ -4695,6 +4695,26 @@ class TC26950(xenrt.TestCase):
         # Exclude xenrt-smb guest which serves the smb share.
         guests = [host.getGuest(g) for g in host.listGuests() if not g.startswith("xenrt-smb")]
 
+        # Let us create some CIFS ISO SRs to verify the co-existence with CIFS SRs.
+        ad = xenrt.getADConfig()
+        adminUser = ad.adminUser
+        adminPasswd = ad.adminPassword
+        cifsUser = ad.allUsers['CIFS_USER'].split(":", 1)[0]
+        cifsPasswd = ad.allUsers['CIFS_USER'].split(":", 1)[1]
+
+        smbServerIP = xenrt.TEC().lookup(["EXTERNAL_SMB_SERVERS", "fas2554", "ADDRESS"])
+        smbServerShare = xenrt.TEC().lookup(["EXTERNAL_SMB_SERVERS", "fas2554", "BASE"])
+
+        # Using admin credentails.
+        srAdminCifsISO = xenrt.productLib(host=host).CIFSISOStorageRepository(host, 'admin-cifs-isosr') 
+        adminSecretUUID = host.createSecret(adminPasswd) 
+        srAdminCifsISO.create(smbServerIP, smbServerShare, "iso", "iso", adminUser, adminSecretUUID, use_secret=True) 
+
+        # Using user credentails.
+        srUserCifsISO = xenrt.productLib(host=host).CIFSISOStorageRepository(host, 'user-cifs-isosr') 
+        cifsSecretUUID = host.createSecret(cifsPasswd) 
+        srUserCifsISO.create(smbServerIP, smbServerShare, "iso", "iso", cifsUser, cifsSecretUUID, use_secret=True) 
+
         for guest in guests:
             # Make sure the guest is up.
             if guest.getState() == "DOWN":

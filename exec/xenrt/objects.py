@@ -7749,6 +7749,10 @@ class GenericGuest(GenericPlace):
                     pass
 
         if not self.windows:
+            xenrt.TEC().logverbose("Guest %s is running kernel %s" % (self.name, self.execguest("uname -r")))
+
+
+        if not self.windows:
             sftp.close()
 
         self.tailored = True

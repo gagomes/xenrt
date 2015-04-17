@@ -8,12 +8,12 @@
   </variables>
 
   <prepare>
-    <host id="0" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}" license="no"/>
+    <host id="0" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}"/>
   </prepare>
 
   <testsequence>
     <serial group="Creating a CIFS SR after upgrade.">
-      <testcase id="xenserver.tc.storage.TCCreateCIFSSRAfterUpgrade" name="Creating CIFS SR after upgrade."/>
+      <testcase id="xenserver.tc.storage.TCCreateCIFSSRAfterUpgrade" name="CreatingCIFSSRAfterUpgrade"/>
     </serial>
   </testsequence>
 </xenrt>

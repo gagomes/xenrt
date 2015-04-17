@@ -909,12 +909,17 @@ class _VMSnapshotBase(xenrt.TestCase):
     SRTYPE = None
     VMNAME = None
 
+    # Consts: Lookup keys for args in arglist
+    __GUEST_KEY = "guest"
+    __XAPI_SR_KEY = "xapisrtype"
+
     def __parseArgs(self, arglist):
         argDict = self.parseArgsKeyValue(arglist)
-        if "guest" in argDict:
-            self.VMNAME = argDict["guest"]
-        if "srtype" in argDict:
-            self.SRTYPE = argDict["xapisrtype"]
+
+        if self.__GUEST_KEY in argDict:
+            self.VMNAME = argDict[self.__GUEST_KEY]
+        if self.__XAPI_SR_KEY in argDict:
+            self.SRTYPE = argDict[self.__XAPI_SR_KEY]
 
     def prepare(self, arglist):
 

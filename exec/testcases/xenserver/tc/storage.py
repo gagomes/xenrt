@@ -4706,3 +4706,16 @@ class TC26472(xenrt.TestCase):
             guest.suspend()
             guest.resume()
             guest.shutdown()
+
+class TCCreateCIFSSRAfterUpgrade(xenrt.TestCase):
+
+    def prepare(self, arglist):
+
+        self.host = self.getDefaultHost()
+
+    def run(self, arglist):
+
+        self.host = self.host.upgrade()
+        share = xenrt.VMSMBShare()
+        sr = xenrt.productLib(host=host).SMBStorageRepository(host, "CIFS-SR")
+        sr.create(share)

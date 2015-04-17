@@ -1,0 +1,19 @@
+<xenrt>
+
+  <default name="OLD_PRODUCT_VERSION" value="Creedence"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.5/RTM-90233/"/>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>    
+  </variables>
+
+  <prepare>
+    <host id="0" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}" license="no"/>
+  </prepare>
+
+  <testsequence>
+    <serial group="Creating a CIFS SR after upgrade.">
+      <testcase id="xenserver.tc.storage.TCCreateCIFSSRAfterUpgrade" name="Creating CIFS SR after upgrade."/>
+    </serial>
+  </testsequence>
+</xenrt>

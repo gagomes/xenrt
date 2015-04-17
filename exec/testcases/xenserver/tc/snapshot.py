@@ -914,6 +914,11 @@ class _VMSnapshotBase(xenrt.TestCase):
     __XAPI_SR_KEY = "xapisrtype"
 
     def __parseArgs(self, arglist):
+        """Parse args from arglist
+
+        Expect these args to superseed any values sotred in the class variables
+
+        """
         argDict = self.parseArgsKeyValue(arglist)
 
         if self.__GUEST_KEY in argDict:

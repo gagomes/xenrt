@@ -7533,7 +7533,7 @@ class GenericGuest(GenericPlace):
                 if self.execguest("[ -e /etc/apt/sources.list.d/security.list ]", retval="code") and int(debVer) in (6, 7):
                     doSecUpdates = True
                     codename = self.execguest("cat /etc/apt/sources.list | grep '^deb' | awk '{print $3}' | head -1").strip()
-                    self.execguest("echo %s/debsecurity %s/updates > /etc/apt/sources.list.d/security.list" % (xenrt.TEC().lookup("APT_SERVER"), codename))
+                    self.execguest("echo deb %s/debsecurity %s/updates main > /etc/apt/sources.list.d/security.list" % (xenrt.TEC().lookup("APT_SERVER"), codename))
 
                 try:
                     data = self.execguest("apt-get update")
@@ -7552,8 +7552,11 @@ class GenericGuest(GenericPlace):
                     self.execguest("apt-get update")
 
                 if doSecUpdates:
+                    preUpgBootDir = self.execguest("find /boot -type f | xargs md5sum")
                     self.execguest("DEBIAN_FRONTEND=noninteractive apt-get -y --force-yes upgrade")
-                    self.reboot()
+                    postUpgBootDir = self.execguest("find /boot -type f | xargs md5sum")
+                    if preUpgBootDir != postUpgBootDir:
+                        self.reboot()
 
                 modules = ["DEBIAN_MODULES", "DEBIAN_MODULES2"]
                 if debVer == 4.0:

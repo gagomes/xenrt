@@ -21,7 +21,7 @@
 
     <serial group="LicenseFeatures">
 
-      <testcase id="xenserver.tc.mulskulicense.TCCIFSStorageFeature" name="CIFSStorageFeature">
+      <testcase id="xenserver.tc.mulskulicense.TCCIFSStorageFeature" name="CIFSStorageFeature" tc="TC-26973">
         <arg>sku=PerSocketEnterprise,PerUserEnterprise,PerConcurrentUserEnterprise,PerSocketStandard,XenDesktopXDS,XenDesktopMPS</arg>
       </testcase>
 

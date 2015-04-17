@@ -27,7 +27,7 @@
 
   <testsequence>
     <serial group="CIFS as State File">
-      <testcase id="xenserver.tc.ha.TCStateFileCIFS"/>
+      <testcase id="xenserver.tc.ha.TCStateFileCIFS" tc="TC-26975"/>
     </serial>
   </testsequence>
 

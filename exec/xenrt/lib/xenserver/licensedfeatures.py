@@ -219,6 +219,51 @@ class CIFSStorage(LicensedFeature):
         return "restrict_cifs"
 
 
+# An alternate implementation for the Creedence/DundeeEnabledFeatures
+class ExperimentBaseEnabledFeatures(object):
+
+    def __init__(self, sku):
+        self.sku = sku
+
+    def expectedEnabledState(self, feature):
+        if feature.name in self.getEnabledFeatures():
+            return False
+        else:
+            return True
+
+    def getEnabledFeatures(self):
+        if self.sku == XenServerLicenseSKU.PerUserEnterprise or \
+           self.sku == XenServerLicenseSKU.PerConcurrentUserEnterprise or \
+           self.sku == XenServerLicenseSKU.PerSocketEnterprise or \
+           self.sku == XenServerLicenseSKU.PerSocket:
+            return self.enterprise
+        if self.sku == XenServerLicenseSKU.XenDesktopPlusXDS or \
+           self.sku == XenServerLicenseSKU.XenDesktopPlusMPS:
+            return self.xendesktopplus
+        if self.sku == XenServerLicenseSKU.XenDesktop:
+            return self.xendesktop
+        if self.sku == XenServerLicenseSKU.PerSocketStandard or \
+           self.sku == XenServerLicenseSKU.Free:
+            return self.free
+
+
+class ExperimentSampleEnabledFeatures(BaseEnabledFeatures):
+
+    def __init__(self, sku):
+        super(SampleEnabledFeatures, self).__init__(sku)
+
+        self.free = [Hotfixing().name, GPUPassthrough().name]
+
+        self.xendesktop = free
+        xendesktop.extend([WorkloadBalancing().name, VirtualGPU().name])
+
+        self.xendesktopplus = xendesktop
+        xendesktopplus.extend([ReadCaching().name])
+
+        self.enterprise = xendesktopplus
+        enterprise.extend([ExportPoolResourceList().name, CIFSStorage().name])
+
+
 class BaseEnabledFeatures(object):
 
     def __init__(self, sku):

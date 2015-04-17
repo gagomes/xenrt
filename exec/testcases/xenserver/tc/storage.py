@@ -4707,8 +4707,8 @@ class TC26472(xenrt.TestCase):
             guest.resume()
             guest.shutdown()
 
-class TCCreateCIFSSRAfterUpgrade(xenrt.TestCase):
-    """Creates CIFS SR after upgrading the host."""
+class TC26974(xenrt.TestCase):
+    """Verify can create CIFS SR after upgrading the host."""
 
     def prepare(self, arglist):
 

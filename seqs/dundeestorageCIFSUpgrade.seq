@@ -13,7 +13,7 @@
 
   <testsequence>
     <serial group="CreatingCIFSSRAfterUpgrade.">
-      <testcase id="xenserver.tc.storage.TCCreateCIFSSRAfterUpgrade" name="CreatingCIFSSRAfterUpgrade"/>
+      <testcase id="xenserver.tc.storage.TC26974" name="CreatingCIFSSRAfterUpgrade" tc="TC-26974"/>
     </serial>
   </testsequence>
 </xenrt>

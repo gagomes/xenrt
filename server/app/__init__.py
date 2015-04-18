@@ -9,7 +9,8 @@ from pyramid.httpexceptions import *
 
 class XenRTPage(Page):
     WRITE = False
-    DB_SYNC_CHECK_INTERVAL = 0.1
+    DB_SYNC_CHECK_START_INTERVAL = 0.1
+    DB_SYNC_CHECK_MAX_ATTEMPTS = 10
     REQUIRE_AUTH = False
     REQUIRE_AUTH_IF_ENABLED = False
     ALLOW_FAKE_USER = True
@@ -89,7 +90,10 @@ class XenRTPage(Page):
             raise Exception("Invalid object type")
 
     def renderWrapper(self):
-        if not self.getUser() and (self.REQUIRE_AUTH or (self.REQUIRE_AUTH_IF_ENABLED and config.auth_enabled == "yes")):
+        user = self.getUser()
+        if (not user or user.disabled) and (self.REQUIRE_AUTH or (self.REQUIRE_AUTH_IF_ENABLED and config.auth_enabled == "yes")):
+            if user and user.disabled:
+                return HTTPUnauthorized("Your account is disabled")
             return HTTPUnauthorized()
         try:
             ret = self.render()
@@ -110,7 +114,8 @@ class XenRTPage(Page):
         writeLoc = app.db.getWriteLocation(writeDb)
         readDb = app.db.dbReadInstance()
         i = 0
-        while i < (int(config.db_sync_timeout)/self.DB_SYNC_CHECK_INTERVAL):
+        interval = self.DB_SYNC_CHECK_START_INTERVAL
+        while i < (self.DB_SYNC_CHECK_MAX_ATTEMPTS):
             # Get the current xlog replay location from the local DB. This returns none if the local DB is the master
             if app.db.getWriteLocation(readDb):
                 print "Local database is master, don't need to wait for sync"
@@ -121,7 +126,8 @@ class XenRTPage(Page):
             if readLoc >= writeLoc:
                 break
             i += 1
-            time.sleep(self.DB_SYNC_CHECK_INTERVAL)
+            time.sleep(interval)
+            interval *= 2
         readDb.rollback()
         readDb.close()
 

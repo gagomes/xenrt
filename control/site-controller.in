@@ -539,11 +539,11 @@ if __name__ == '__main__':
                     machines.append(m)
                     del ready[m]
                     xenrt.update_machine(m, status="running")
-                for machine in machines:
-                    xenrt.new_event("JobStart", machine, str(j))
 
                 # Set the user of the job to the DB events table for quick access later
                 job = xenrt.get_job(int(j))
+                for machine in job['machines']:
+                    xenrt.new_event("JobStart", machine, str(j))
                 start_job(job)
                 starttimes.append(now)
                 maystart = maystart - 1

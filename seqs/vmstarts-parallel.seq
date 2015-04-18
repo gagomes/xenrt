@@ -5,7 +5,7 @@
     </variables>
 
     <prepare>
-      <pool>
+      <host>
         <NETWORK>
           <PHYSICAL network="NPRI">
             <NIC/>
@@ -15,7 +15,7 @@
             <MANAGEMENT mode="static"/>
           </PHYSICAL>
         </NETWORK>
-      </pool>
+      </host>
     </prepare>
 
     <testsequence>

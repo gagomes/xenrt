@@ -1,16 +1,19 @@
 <xenrt>
 
-  <!-- CIFS SR using SMB share on a windows guest -->
+  <!-- Multi authenticated multiple CIFS SRs using SMB share provided by NetApp filers. -->
 
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
   </variables>
 
   <prepare>
-    <!-- SMB share on a windows guest -->
     <host id="0">
+      <!-- CIFS SRs using SMB share provided NetApp SC04-FAS2554 -->
+      <storage type="smb" name="admin-cifs-sr" />
+      <storage type="smb" name="user-cifs-sr" options="cifsuser" />
 
-      <storage type="smb" name="CIFS-SR" options="vm" />
+      <!-- SMB share on a windows guest -->
+      <storage type="smb" name="vm-cifs-sr" options="vm" />
 
       <vm name="Windows 8.1">
         <distro>win81-x86</distro>
@@ -19,7 +22,7 @@
         <postinstall action="installDrivers" />
         <network device="0" />
         <disk device="0" size="24" />
-        <storage>CIFS-SR</storage>
+        <storage>admin-cifs-sr</storage>
       </vm>
 
       <vm name="Red Hat Enterprise Linux 7.0">
@@ -29,7 +32,7 @@
         <vcpus>2</vcpus>
         <network device="0" />
         <disk device="0" size="10" />
-        <storage>CIFS-SR</storage>
+        <storage>user-cifs-sr</storage>
       </vm>
 
       <vm name="Ubuntu Trusty Tahr 14.04">
@@ -39,14 +42,14 @@
         <vcpus>2</vcpus>
         <network device="0" />
         <disk device="0" size="8" />
-        <storage>CIFS-SR</storage>
+        <storage>vm-cifs-sr</storage>
       </vm>
 
     </host>
   </prepare>
 
-  <testsequence group="VMCIFSSRLC">
-    <testcase id="xenserver.tc.storage.TC26472" name="CIFSRonVM" sku="CIFSVM" />
+  <testsequence group="CIFSMultiSRs">
+    <testcase id="xenserver.tc.storage.TC26950" />
   </testsequence>
 
 </xenrt>

@@ -12,7 +12,6 @@
 
   <testsequence>
     <serial group="WindowsNPT">
-      <testcase id="xenserver.tc.balloon.TC9778"/>
       <testcase id="xenserver.tc.balloon.TC9784"/>
       <testcase id="xenserver.tc.balloon.TC12606"/>
     </serial>

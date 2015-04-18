@@ -6,4 +6,4 @@ label linux
     menu label ^Install
     menu default
     kernel vmlinuz
-    append initrd=initrd.img inst.repo=cdrom inst.ks=http://xenrt-controller.xenrt/xenrt/guestfile/kickstart
+    append initrd=initrd.img inst.repo=cdrom inst.ks=http://xenrt-controller.xenrt/xenrt/guestfile/kickstart console=tty0 console=hvc0 inst.ks.sendmac

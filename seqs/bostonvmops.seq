@@ -34,7 +34,10 @@
         </serial>
         <serial group="Misc">
           <testcase id="xenserver.tc.vmlifecycle.TC8004" prio="3"/>
-          <testcase id="xenserver.tc.pvdrivers.TC8369" prio="3"/>
+          <parallel>
+              <testcase id="xenserver.tc.pvdrivers.TC8369" prio="3"/>
+              <testcase id="xenserver.tc.pvdrivers.TC23788" prio="3"/>
+          </parallel>
         </serial>
         <serial group="TC13496">
           <testcase id="xenserver.tc.guest.TC13496" prio="3"/>

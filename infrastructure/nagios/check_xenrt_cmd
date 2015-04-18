@@ -4,7 +4,7 @@ import sys,os,glob,xml.dom.minidom,string
 
 errors = []
 
-
+os.environ['HOME'] = "/var/lib/nagios"
 f = os.popen("xenrt slist 2>&1")
 err = f.close()
 

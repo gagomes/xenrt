@@ -35,8 +35,7 @@
       <!-- TC17088 - Intra Pool Storage Migration when the PV drivers are not installed on the VM. -->
       <testcase id="xenserver.tc.sxm.AgentlessVMStorageMigration" name="TC17088" tc="TC-17088">
         <arg>src_SR=ext</arg>
-        <arg>dest_SR=lvm</arg>
-        <arg>negative_test</arg>
+        <arg>dest_SR=lvm</arg>        
       </testcase>      
 
       <!-- TC17090 - Intra Pool Storage Migration when the destination host is not having enough memory. -->

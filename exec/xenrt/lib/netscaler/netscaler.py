@@ -116,6 +116,14 @@ class NetScaler(object):
         xenrt.TEC().logverbose('NetScaler Command [%s] - Returned: %s' % (command, '\n'.join(data)))
         return data
 
+    def installNSTools(self):
+        nstools = xenrt.TEC().lookup('NS_TOOLS_PATH')
+        toolsfile = nstools.split("/")[-1]
+        self.__netScalerCliCommand("shell mkdir -p /var/BW")
+        self.__vpxGuest.sftpClient(username='nsroot').copyTo( xenrt.TEC().getFile(nstools),"/var/BW/%s" % (toolsfile))
+        self.__netScalerCliCommand("shell cd /var/BW && tar xvfz %s" % toolsfile)
+        self.__netScalerCliCommand("shell /var/BW/nscsconfig --help || true")
+
     @property
     def version(self):
         if not self.__version:
@@ -190,3 +198,20 @@ class NetScaler(object):
                     xenrt.getNetworkParam(privateNetwork, "SUBNETMASK"),
                     self.subnetIp(network=publicNetwork)))
         self.__netScalerCliCommand('save ns config')
+
+    def checkModNum(self):
+        #returns the model number
+        modData = filter(lambda x:x.startswith('Model Number ID'), self.__netScalerCliCommand('show ns license'))
+        modNum = modData[0].split(':')[1].strip()
+        return modNum
+
+    def checkCPU(self):
+        #writes the number of PEs to log file
+        pe = max(map(lambda x: x.split()[0],filter(lambda x: re.match('^\d',x),self.__netScalerCliCommand('stat cpus'))))
+        return pe
+
+    def checkFeatures(self):
+        xenrt.TEC().logverbose('The NetScaler version is %s' % (self.version))
+        xenrt.TEC().logverbose('The NetScaler management IP is %s' % (self.managementIp))
+        xenrt.TEC().logverbose('The model number ID is %s' % (self.checkModNum()))
+        xenrt.TEC().logverbose('The Number of PEs: %s' % (self.checkCPU()))

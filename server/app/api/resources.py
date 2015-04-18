@@ -147,8 +147,8 @@ class XenRTResource(XenRTAPIPage):
 
         
 
-PageFactory(XenRTLockResource, "lockresource", "/api/resources/lock", contentType="application/json", compatAction="lockresource")
-PageFactory(XenRTReleaseResource, "releaseresource", "/api/resources/release", contentType="text/plain", compatAction="releaseresource")
-PageFactory(XenRTListResources, "listresource", "/api/resources/list", contentType="text/plain", compatAction="resourcelist")
-PageFactory(XenRTResource, "resource", "/api/resources/details", contentType="application/json", compatAction="resource")
+PageFactory(XenRTLockResource, "/api/resources/lock", contentType="application/json", compatAction="lockresource")
+PageFactory(XenRTReleaseResource, "/api/resources/release", contentType="text/plain", compatAction="releaseresource")
+PageFactory(XenRTListResources, "/api/resources/list", contentType="text/plain", compatAction="resourcelist")
+PageFactory(XenRTResource, "/api/resources/details", contentType="application/json", compatAction="resource")
 

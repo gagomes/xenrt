@@ -154,10 +154,10 @@ class TCXenServerInstall(xenrt.TestCase):
             interfaces.append((None, "yes", "dhcp", None, None, None, ipv6_mode, ipv6_addr, gateway6))
             if nosr:
                 disks = []
-                primarydisk = host.getInstallDisk(ccissIfAvailable=host.USE_CCISS)
+                primarydisk = host.getInstallDisk(ccissIfAvailable=host.USE_CCISS, legacySATA=(not host.isCentOS7Dom0()))
             else:
-                disks = host.getGuestDisks(count=diskcount, ccissIfAvailable=host.USE_CCISS)
-                primarydisk= host.getInstallDisk(ccissIfAvailable=host.USE_CCISS)
+                disks = host.getGuestDisks(count=diskcount, ccissIfAvailable=host.USE_CCISS, legacySATA=(not host.isCentOS7Dom0()))
+                primarydisk= host.getInstallDisk(ccissIfAvailable=host.USE_CCISS, legacySATA=(not host.isCentOS7Dom0()))
 
             self.getLogsFrom(host)
             if xenrt.TEC().lookup(["CLIOPTIONS", "NOPREPARE"], False,

@@ -38,8 +38,7 @@
       <!-- TC17089 - Cross Pool Storage Migration when the PV drivers are not installed on the VM. -->
       <testcase id="xenserver.tc.sxm.AgentlessVMStorageMigration" name="TC17089" tc="TC-17089">
         <arg>src_SR=ext</arg>
-        <arg>dest_SR=lvm</arg>
-        <arg>negative_test</arg>
+        <arg>dest_SR=lvm</arg>        
       </testcase>
 
       <!-- TC17091 - Cross Pool Storage Migration when the destination host is not having enough memory. -->

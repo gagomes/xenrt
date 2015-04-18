@@ -21,7 +21,6 @@
           <memory>512</memory>
           <disk device="0" size="8"/>
           <postinstall action="installTools"/>
-          <postinstall action="changeToVMXNet3"/>
           <postinstall action="pause"/><!-- do not interfere with other vms  -->
         </vm>
         <vm name="debian60-1-1v">
@@ -31,7 +30,6 @@
           <memory>512</memory>
           <disk device="0" size="8"/>
           <postinstall action="installTools"/>
-          <postinstall action="changeToVMXNet3"/>
           <postinstall action="pause"/><!-- do not interfere with other vms  -->
         </vm>
         <vm name="debian60-0-2v">
@@ -41,7 +39,6 @@
           <memory>512</memory>
           <disk device="0" size="8"/>
           <postinstall action="installTools"/>
-          <postinstall action="changeToVMXNet3"/>
           <postinstall action="pause"/><!-- do not interfere with other vms  -->
         </vm>
         <vm name="debian60-1-2v">
@@ -51,7 +48,6 @@
           <memory>512</memory>
           <disk device="0" size="8"/>
           <postinstall action="installTools"/>
-          <postinstall action="changeToVMXNet3"/>
           <postinstall action="pause"/><!-- do not interfere with other vms  -->
         </vm>
         <vm name="debian60-0-4v">
@@ -61,7 +57,6 @@
           <memory>512</memory>
           <disk device="0" size="8"/>
           <postinstall action="installTools"/>
-          <postinstall action="changeToVMXNet3"/>
           <postinstall action="pause"/><!-- do not interfere with other vms  -->
         </vm>
         <vm name="debian60-1-4v">
@@ -71,7 +66,6 @@
           <memory>512</memory>
           <disk device="0" size="8"/>
           <postinstall action="installTools"/>
-          <postinstall action="changeToVMXNet3"/>
           <postinstall action="pause"/><!-- do not interfere with other vms  -->
         </vm>
 

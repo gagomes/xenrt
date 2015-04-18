@@ -112,7 +112,7 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
 
                     if cluster['hypervisor'].lower() == "xenserver":
                         if cluster.has_key('XRT_MasterHostId'):
-                            cluster['XRT_MasterHostName'] = "RESORUCE_HOST_%d" % cluster['XRT_MasterHostId']
+                            cluster['XRT_MasterHostName'] = "RESOURCE_HOST_%d" % cluster['XRT_MasterHostId']
                         if not cluster.has_key('XRT_MasterHostName'):
                             if cluster.has_key('XRT_ContainerHostId'):
                                 cluster['XRT_ContainerHostIds'] = [cluster['XRT_ContainerHostId']] * cluster['XRT_Hosts']
@@ -136,7 +136,6 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
                             self.handlePoolNode(simplePoolNode)
                             poolSpec = filter(lambda x:x['id'] == str(poolId), self.parent.pools)[0]
                             cluster['XRT_MasterHostName'] = poolSpec['master']
-                            self.handlePoolNode(simplePoolNode)
                     elif cluster['hypervisor'].lower() == "kvm":
                         if not cluster.has_key('XRT_KVMHostIds'):
                             hostIds = []
@@ -248,6 +247,10 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
             vm = self.handleVMNode(x)
             vm["host"] = pool["master"] 
             
+        for x in node.get("templates", []):
+            vm = self.handleVMNode(x, template=True)
+            vm["host"] = pool["master"] 
+        
         for x in node.get("vm_groups", []):
             vmgroup = self.handleVMGroupNode(x)
             for vm in vmgroup:
@@ -361,12 +364,16 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
         
         hasAdvancedNet = False
         self.handleSRs(node, host['name'])
-        self.handleBridges(node, host)
+        self.handleBridges(node, host['name'])
 
         for x in node.get("vms", []):
             vm = self.handleVMNode(x)
             vm["host"] = host["name"] 
             
+        for x in node.get("templates", []):
+            vm = self.handleVMNode(x, template=True)
+            vm["host"] = host["name"] 
+        
         for x in node.get("vm_groups", []):
             vmgroup = self.handleVMGroupNode(x)
             for vm in vmgroup:
@@ -395,8 +402,8 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
 
     def handleVMGroupNode(self, node):
         vmgroup = []
-        basename = x['basename']
-        number = x['number']
+        basename = node['basename']
+        number = node['number']
         for i in range(number):
             x = copy.deepcopy(node)
             del x['basename']
@@ -405,7 +412,7 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
             vmgroup.append(self.handleVMNode(x))
         return vmgroup
 
-    def handleVMNode(self, node, suffixjob=False):
+    def handleVMNode(self, node, suffixjob=False, template=False):
         vm = {} 
 
         vm["guestname"] = node['name']
@@ -456,6 +463,12 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
         if "boot_params" in node:
             vm['bootparams'] = node['boot_params']
         
+        if xenrt.TEC().lookup("DEFAULT_PV_DRIVERS", False, boolean=True) and not "installDrivers" in vm['postinstall'] and not 'filename' in vm:
+            vm["postinstall"].append("installDrivers")
+
+        if template and not "convertToTemplate" in vm['postinstall']:
+            vm["postinstall"].append("convertToTemplate") 
+
         self.parent.vms.append(vm)
 
         return vm
@@ -614,6 +627,9 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
                                      "host":pool["master"]})
             elif x.localName == "vm":
                 vm = self.handleVMNode(x)
+                vm["host"] = pool["master"] 
+            elif x.localName == "template":
+                vm = self.handleVMNode(x, template=True)
                 vm["host"] = pool["master"] 
             elif x.localName == "vmgroup":
                 vmgroup = self.handleVMGroupNode(x)
@@ -777,9 +793,12 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
                     name = self.expand(x.getAttribute("name"))
                     self.parent.bridges.append({"type":type, 
                                          "name":name, 
-                                         "host":host})
+                                         "host":host['name']})
                 elif x.localName == "vm":
                     vm = self.handleVMNode(x)
+                    vm["host"] = host["name"] 
+                elif x.localName == "template":
+                    vm = self.handleVMNode(x, template=True)
                     vm["host"] = host["name"] 
                 elif x.localName == "vmgroup":
                     vmgroup = self.handleVMGroupNode(x)
@@ -817,7 +836,7 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
             vmgroup.append(self.handleVMNode(node))
         return vmgroup
 
-    def handleVMNode(self, node, suffixjob=False):
+    def handleVMNode(self, node, suffixjob=False, template=False):
         vm = {} 
 
         vm["guestname"] = self.expand(node.getAttribute("name"))
@@ -897,6 +916,12 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
                         if a.nodeType == a.TEXT_NODE:
                             vm["packages"] = self.expand(str(a.data)).split(",")
 
+        if xenrt.TEC().lookup("DEFAULT_PV_DRIVERS", False, boolean=True) and not "installDrivers" in vm['postinstall'] and not 'filename' in vm:
+            vm["postinstall"].append("installDrivers")
+
+        if template and not "convertToTemplate" in vm['postinstall']:
+            vm["postinstall"].append("convertToTemplate") 
+
         self.parent.vms.append(vm)
 
         return vm
@@ -933,7 +958,7 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
             self.parent.instances.append(instance)
         return instance
 
-class PrepareNode:
+class PrepareNode(object):
 
     def __init__(self, toplevel, node, params):
         self.toplevel = toplevel
@@ -1007,7 +1032,7 @@ class PrepareNode:
                     break
                 # Try to delete the old CCP management server
                 try:
-                    m = xenrt.GEC().dbconnect.jobctrl("machine", [hostname])
+                    m = xenrt.GEC().dbconnect.api.get_machine(hostname)['params']
                     if m.has_key("CSGUEST") and m['CSGUEST'] not in cleanedGuests:
                         cleanedGuests.append(m['CSGUEST'])
                         (shostname, guestname) = m['CSGUEST'].split("/", 1)
@@ -1105,7 +1130,7 @@ class PrepareNode:
 
                 # Create network bridges.
                 for b in self.bridges:
-                    host = xenrt.TEC().registry.hostGet(b["host"]["name"]) 
+                    host = xenrt.TEC().registry.hostGet(b["host"]) 
                     host.createNetwork(b["name"])
 
                 # Add ISO SRs to pool masters and independent hosts.
@@ -1114,20 +1139,22 @@ class PrepareNode:
                 if self.preparecount == 1:
                     for host in masters:
                         if not host.has_key("noisos") or not host["noisos"]:
-                            self.srs.append({"host":host["name"], 
-                                             "name":"XenRT ISOs",
-                                             "type":"iso",
-                                             "path":xenrt.TEC().lookup("EXPORT_ISO_NFS"),
-                                             "default":False,
-                                             "blkbackPoolSize":""})
+                            self.srs.insert(0, {"host":host["name"], 
+                                                "name":"XenRT ISOs",
+                                                "type":"iso",
+                                                "path":xenrt.TEC().lookup("EXPORT_ISO_NFS"),
+                                                "default":False,
+                                                "blkbackPoolSize":""})
                             isos2 = xenrt.TEC().lookup("EXPORT_ISO_NFS_STATIC", None)
                             if isos2:
-                                self.srs.append({"host":host["name"],
-                                                 "name":"XenRT static ISOs",
-                                                 "type":"iso",
-                                                 "path":isos2,
-                                                 "default":False,
-                                                 "blkbackPoolSize":""})
+                                self.srs.insert(0, {"host":host["name"],
+                                                    "name":"XenRT static ISOs",
+                                                    "type":"iso",
+                                                    "path":isos2,
+                                                    "default":False,
+                                                    "blkbackPoolSize":""})
+                            if xenrt.TEC().lookup("USE_PREBUILT_TEMPLATES", False, boolean=True):
+                                self.srs.insert(0, {"type": "nfstemplate", "host": host['name'], "default": False, "blkbackPoolSize": ""})
 
                 # If needed, create lun groups
                 iscsihosts = {}
@@ -1208,7 +1235,13 @@ class PrepareNode:
                         else:
                             nfsVersion = "3"
 
-                        server, path = xenrt.ExternalNFSShare(jumbo=jumbo, network=network, version=nfsVersion).getMount().split(":")
+                        hostIndexes = [(y.group(1), y.group(3)) for y in [re.match("host-(\d)(-([a-z]*))?", x) for x in s['options'].split(",")] if y]
+                        if hostIndexes:
+                            (hostIndex, device) = hostIndexes[0]
+                            server, path = xenrt.NativeLinuxNFSShare("RESOURCE_HOST_%s" % hostIndex, device=device).getMount().split(":")
+                        else:
+                            server, path = xenrt.ExternalNFSShare(jumbo=jumbo, network=network, version=nfsVersion).getMount().split(":")
+
                         if filesr:
                             sr = xenrt.productLib(host=host).FileStorageRepositoryNFS(host, s["name"])
                             sr.create(server, path)
@@ -1218,11 +1251,36 @@ class PrepareNode:
                             else:
                                 sr = xenrt.productLib(host=host).NFSStorageRepository(host, s["name"])
                             sr.create(server, path, nosubdir=nosubdir)
+                    elif s["type"] == "smb":
+                        vm = s["options"] and "vm" in s["options"].split(",")
+                        cifsuser = s["options"] and "cifsuser" in s["options"].split(",")
+                        hostIndexes = [(y.group(1), y.group(3)) for y in [re.match("host-(\d)(-([a-z]))?", x) for x in s['options'].split(",")] if y]
+                        if hostIndexes:
+                            (hostIndex, driveLetter) = hostIndexes[0]
+                            share = xenrt.NativeWindowsSMBShare("RESOURCE_HOST_%s" % hostIndex, driveLetter=driveLetter)
+                        elif vm:
+                            share = xenrt.VMSMBShare()
+                        elif cifsuser:
+                            share = xenrt.ExternalSMBShare(version=3, cifsuser="cifsuser")
+                        else:
+                            share = xenrt.ExternalSMBShare(version=3)
+                        sr = xenrt.productLib(host=host).SMBStorageRepository(host, s["name"])
+                        if cifsuser:
+                            sr.create(share, "cifsuser")
+                        else:
+                            sr.create(share)
                     elif s["type"] == "iso":
                         sr = xenrt.productLib(host=host).ISOStorageRepository(host, s["name"])
                         server, path = s["path"].split(":")
                         sr.create(server, path)
                         sr.scan()
+                    elif s['type'] == "nfstemplate":
+                        try:
+                            sr = host.createTemplateSR()
+                        except Exception, e:
+                            # This is only best effort
+                            xenrt.TEC().logverbose("Warning - could not add remote template library: %s" % str(e))
+                            continue
                     elif s["type"] == "netapp":
                         minsize = int(host.lookup("SR_NETAPP_MINSIZE", 40))
                         maxsize = int(host.lookup("SR_NETAPP_MAXSIZE", 1000000))
@@ -1602,7 +1660,7 @@ class PrepareNode:
         with open(os.path.join(xenrt.TEC().getLogdir(), 'deployment.json'), 'w') as fh:
             json.dump(deploymentRec, fh)
 
-class InstallWorkQueue:
+class InstallWorkQueue(object):
     """Queue of install work items to perform."""
     def __init__(self):
         self.items = []
@@ -1762,6 +1820,11 @@ class GuestInstallWorker(_InstallWorker):
         if work.has_key("filename"):
             xenrt.productLib(hostname=work["host"]).guest.createVMFromFile(**work)
         else:
+            if xenrt.TEC().lookup("DEFAULT_VIFS", False, boolean=True) and (not "vifs" in work or not work['vifs']):
+                host = work["host"]
+                if not isinstance(host, xenrt.GenericHost):
+                    host = xenrt.TEC().registry.hostGet(host)
+                work['vifs'] = host.guestFactory().DEFAULT
             xenrt.productLib(hostname=work["host"]).guest.createVM(**work)
 
 class SlaveManagementWorker(_InstallWorker):

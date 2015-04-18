@@ -6,6 +6,7 @@
   <variables>
     <PRODUCT_VERSION>Boston</PRODUCT_VERSION>
     <PREPARE_WORKERS>3</PREPARE_WORKERS>
+    <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
   </variables>
 
   <prepare>

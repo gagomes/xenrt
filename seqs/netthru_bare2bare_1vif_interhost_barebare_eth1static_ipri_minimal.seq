@@ -1,0 +1,73 @@
+<?xml version="1.0"?>
+<!-- netthru_bare2bare_1vif_interhost_barebare_eth1static_ipri_minimal.seq
+
+  This sequence contains network throughput experiments between
+  two bare metal hosts.
+
+  The hosts have eth1 on NET_A.
+  We use eth1 for the iperf session.
+
+-->
+<xenrt>
+  <variables>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+    <QUICK_LOGS_ON_PASS>True</QUICK_LOGS_ON_PASS>
+  </variables>
+
+  <prepare>
+
+    <host id="0" cpufreqgovernor="performance">
+      <NETWORK>
+        <PHYSICAL name="NET_MGMT">
+          <MANAGEMENT/>
+          <NIC/>
+        </PHYSICAL>
+        <PHYSICAL network="IPRI" name="NET_A">
+          <NIC/>
+        </PHYSICAL>
+      </NETWORK>
+    </host>
+
+    <!-- a baremetal machine -->
+    <host id="1" productVersion="centos65-x64" productType="nativelinux" cpufreqgovernor="performance">
+      <NETWORK>
+        <PHYSICAL name="NET_MGMT">
+          <MANAGEMENT/>
+          <NIC/>
+        </PHYSICAL>
+        <PHYSICAL network="IPRI" name="NET_A">
+          <NIC/>
+        </PHYSICAL>
+      </NETWORK>
+    </host>
+
+  </prepare>
+
+  <testsequence>
+
+    <serial group="debian60/t01/v01">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=1</arg>
+        <arg>endpoint0=RESOURCE_HOST_0</arg>
+        <arg>endpoint0dev=NET_A</arg>
+        <arg>endpoint0ip=192.168.0.88</arg>
+        <arg>endpoint1=RESOURCE_HOST_1</arg>
+        <arg>endpoint1dev=NET_A</arg>
+        <arg>endpoint1ip=192.168.0.99</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/t08/v01">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=8</arg>
+        <arg>endpoint0=RESOURCE_HOST_0</arg>
+        <arg>endpoint0dev=NET_A</arg>
+        <arg>endpoint0ip=192.168.0.88</arg>
+        <arg>endpoint1=RESOURCE_HOST_1</arg>
+        <arg>endpoint1dev=NET_A</arg>
+        <arg>endpoint1ip=192.168.0.99</arg>
+      </testcase>
+    </serial>
+
+  </testsequence>
+
+</xenrt>

@@ -31,9 +31,11 @@ class DundeeInstaller(object):
                 async=False,
                 installSRType=None,
                 overlay=None,
-                suppackcds=None):    
+                suppackcds=None):
         
         xenrt.TEC().logverbose("DundeeInstaller.install")
+
+        uefi = self.host.lookup("UEFI_BOOT", False, boolean=True)
 
         self.extrapi = ""
         self.upgrade = upgrade
@@ -68,7 +70,7 @@ class DundeeInstaller(object):
                     # Handle the case where its a cciss disk going into a Dundee+ host with CentOS 6.4+ udev rules
                     # In this situation a path that includes cciss- will not work. See CA-121184 for details
                     if "cciss" in primarydisk:
-                        primarydisk = self.host.getInstallDisk(ccissIfAvailable=self.host.USE_CCISS)
+                        primarydisk = self.host.getInstallDisk(ccissIfAvailable=self.host.USE_CCISS, legacySATA=False)
                 else:
                     primarydisk = "sda"
 
@@ -131,13 +133,16 @@ class DundeeInstaller(object):
                                                installSRType,
                                                timezone)
         
-        self.createPostInstallFiles()
+        self.createPostInstallFiles(uefi=uefi)
         answerfileUrl = self.packdir.getURL(ansfile)
-
-        # Get a PXE directory to put boot files in
-        pxe = xenrt.PXEBoot(iSCSILUN = self.host.bootLun)
-
-        self.setupInstallPxe(pxe, mountpoint, answerfileUrl)
+        
+        if uefi:
+            pxe = xenrt.PXEBootUefi()
+            self.setupInstallUefiPxe(pxe, mountpoint, answerfileUrl)
+        else:
+            # Get a PXE directory to put boot files in
+            pxe = xenrt.PXEBoot(iSCSILUN = self.host.bootLun)
+            self.setupInstallPxe(pxe, mountpoint, answerfileUrl)
         # We're done with the ISO now
         mount.unmount()
         
@@ -151,9 +156,9 @@ class DundeeInstaller(object):
             
         xenrt.TEC().progress("Rebooted host to start installation.")
         if async:
-            handle = (self.signaldir, None, pxe)
+            handle = (self.signaldir, None, pxe, uefi)
             return handle
-        handle = (self.signaldir, self.packdir, pxe)
+        handle = (self.signaldir, self.packdir, pxe, uefi)
         if xenrt.TEC().lookup("OPTION_BASH_SHELL", False, boolean=True):
             xenrt.TEC().tc.pause("Pausing due to bash-shell option")
             
@@ -171,8 +176,11 @@ class DundeeInstaller(object):
            
             # now fix-up the pxe file for local boot
             xenrt.TEC().logverbose("Setting PXE file to be local boot by default")
-            pxe.setDefault("local")
-            pxe.writeOut(self.host.machine)
+            if uefi and not self.host.lookup("PXE_CHAIN_UEFI_BOOT", False, boolean=True):
+                pxe.uninstallBootloader(self.host.machine)
+            else:
+                pxe.setDefault("local")
+                pxe.writeOut(self.host.machine)
             if self.host.bootLun:
                 pxe.writeISCSIConfig(self.host.machine, boot=True)
             
@@ -195,53 +203,74 @@ class DundeeInstaller(object):
         return None
 
     @property
+    def forceUefiBootViaPxe(self):
+        if self.host.lookup("PXE_CHAIN_UEFI_BOOT", False, boolean=True):
+            # We need to do this otherwise the local disk will boot first and XenServer will never boot
+            return "efibootmgr -B -b `efibootmgr -v | grep XenServer | awk '{print $1}' | sed 's/Boot//'`"
+        else:
+            return ""
+
+    @property
     def postInstallBootMods(self):
+        def setXen(data):
+            return "/opt/xensource/libexec/xen-cmdline --set-xen '%s'" % data
+        def setDom0(data):
+            return "/opt/xensource/libexec/xen-cmdline --set-dom0 '%s'" % data
+        def deleteXen(data):
+            return "/opt/xensource/libexec/xen-cmdline --delete-xen '%s'" % data
+
         dom0_extra_args = self.host.lookup("DOM0_EXTRA_ARGS", None)
         dom0_extra_args_user = self.host.lookup("DOM0_EXTRA_ARGS_USER", None)
         xen_extra_args = self.host.lookup("XEN_EXTRA_ARGS", None)
         xen_extra_args_user = self.host.lookup("XEN_EXTRA_ARGS_USER", None)
         if xen_extra_args_user:
             xen_extra_args_user = string.replace(xen_extra_args_user, ",", " ")
-        serport = self.host.lookup("SERIAL_CONSOLE_PORT", "0")
-        serbaud = self.host.lookup("SERIAL_CONSOLE_BAUD", "115200")
-        comport = str(int(serport) + 1)
-        
-        bootmods = []
-        # Common substitutions.
-        bootmods.append('-e"s/ com.=/ com%s=/"' % (comport))
-        bootmods.append('-e"s/console=com./console=com%s/"' % (comport))
-        bootmods.append('-e"s/ttyS./ttyS%s/g"' % (serport))
         dom0mem = xenrt.TEC().lookup("OPTION_DOM0_MEM", None)
+        dom0blkbkorder = xenrt.TEC().lookup("DOM0_BLKBKORDER", None)
+        dom0rdsize = xenrt.TEC().lookup("DOM0_RDSIZE", None)
+
+        cmds = []
         if dom0mem:
-            bootmods.append("-e's/dom0_mem=\S+/dom0_mem=%sM/'" % (dom0mem))
+            cmds.append(setXen("dom0_mem=%s" % dom0mem))
         if xenrt.TEC().lookup("OPTION_DEBUG", False, boolean=True):
-            bootmods.append('-e"s/ ro / ro print-fatal-signals=2 /"')
-        bootmods.append('-e"s/115200/%s/g"' % (serbaud))
-        bootmods.append('-e"s/9600/%s/g"' % (serbaud))
-
-        bootmods.append("-e's/^default xe.*/default xe-serial/'")
-        if xenrt.TEC().lookup("OPTION_DEBUG", False, boolean=True):
-            bootmods.append('-e"s/(append .*xen\S*.gz)/\\1 loglvl=all guest_loglvl=all/"')
+            cmds.append(setDom0("print-fatal-signals=2"))
+            cmds.append(setXen("loglvl=all guest_loglvl=all"))
         if dom0_extra_args:
-            bootmods.append('-e"s#(--- /boot/vmlinuz\S*)#\\1 %s#"' %
-                            (dom0_extra_args))
+            cmds.append(setDom0(dom0_extra_args))
         if dom0_extra_args_user:
-            bootmods.append('-e"s#(--- /boot/vmlinuz\S*)#\\1 %s#"' %
-                            (dom0_extra_args_user))
+            cmds.append(setDom0(dom0_extra_args_user))
         if xen_extra_args:
-            bootmods.append('-e"s#(append .*xen\S*.gz)#\\1 %s#"' %
-                            (xen_extra_args))
+            cmds.append(setXen(xen_extra_args))
         if xen_extra_args_user:
-            bootmods.append('-e"s#(append .*xen\S*.gz)#\\1 %s#"' %
-                            (xen_extra_args_user))
+            cmds.append(setXen(xen_extra_args_user))
         if self.host.lookup("XEN_DISABLE_WATCHDOG", False, boolean=True):
-            bootmods.append(r'-e "s#(/boot/xen.*)watchdog_timeout=[0-9]+(.*/boot/vmlinuz)#\1watchdog=false\2#" ')
+            cmds.append(deleteXen("watchdog"))
+            cmds.append(deleteXen("watchdog_timeout"))
+            cmds.append(setDom0("watchdog=false"))
+        if (dom0blkbkorder):
+            cmds.append(setDom0("blkbk.max_ring_page_order=%s" % dom0blkbkorder))
+        if dom0rdsize:
+            cmds.append(setDom0("ramdisk_size=%s" % dom0rdsize))
 
-        return """ 
+        return """
 # Fix up the bootloader configuration.
-mv boot/extlinux.conf boot/extlinux.conf.orig
-sed -r %s < boot/extlinux.conf.orig > boot/extlinux.conf
-""" % string.join(bootmods)
+cp boot/extlinux.conf boot/extlinux.conf.orig || true
+cp boot/grub/grub.cfg boot/grub/grub.cfg.orig || true
+cp boot/efi/EFI/xenserver/grub.cfg boot/efi/EFI/xenserver/grub.cfg.orig || true
+
+# Run the bootloader commands in a chroot
+cat > bootloader << EOF
+#!/bin/sh
+
+%s
+EOF
+chmod +x bootloader
+
+chroot . /bootloader
+
+rm -f bootloader
+
+""" % ("\n".join(cmds))
 
     @property
     def postInstallSSHKey(self):
@@ -361,20 +390,6 @@ fi
         return v6hack
 
     @property
-    def postInstallDom0Mem(self):
-        # Hack for different dom0 static memory allocation
-        dom0memhack = ""
-        dom0mem = xenrt.TEC().lookup("DOM0_MEM", None)
-        if dom0mem:
-            dom0memhack = """
-# Set the dom0 memory allocation
-sed -i 's/dom0_mem=[0-9]*M/dom0_mem=%sM/g' boot/extlinux.conf
-# Keeping what we just set to dom0_mem, also change ',max:xxxM' if it's there
-sed -i 's/dom0_mem=\([0-9]*\)M,max:[0-9]*M/dom0_mem=\\1M,max:%sM/g' boot/extlinux.conf
-""" % (dom0mem, dom0mem)
-        return dom0memhack
-
-    @property
     def postInstallDom0RamDisk(self):
         # Hack for a different ramdisk size
         dom0rdsizehack = ""
@@ -386,19 +401,6 @@ awk -F'---' {'if (NF==3) {print $1 "---" $2 "ramdisk_size=%s ---" $3} else print
 mv /tmp/rdsizeboot.tmp boot/extlinux.conf
 """ % (dom0rdsize)
         return dom0rdsizehack
-
-    @property
-    def postInstallDom0BlkBkOrder(self):
-        # Hack for a different blkback max_ring_page_order
-        dom0blkbkorderhack = ""
-        dom0blkbkorder = xenrt.TEC().lookup("DOM0_BLKBKORDER", None)
-        if dom0blkbkorder:
-            dom0blkbkorderhack = """
-# Set the dom0 blkback max_ring_page_order
-awk -F'---' '{if (NF==3) {print $1 " --- " $2 " blkbk.max_ring_page_order=%s --- " $3} else print $0}' boot/extlinux.conf > /tmp/blkbkorderhack.tmp
-mv /tmp/blkbkorderhack.tmp boot/extlinux.conf
-""" % (dom0blkbkorder)
-        return dom0blkbkorderhack 
 
     @property
     def postInstallDom0MemPool(self):
@@ -517,10 +519,21 @@ echo '%s' > root/xenrt-installation-cookie
         return "service sshd stop || true\n"
 
     @property
+    def postInstallSendBootLabel(self):
+        # Use blkid to find the BOOT partition, and send the label back to the controller so we can put it in the grub config
+        return """
+# Write the boot label
+mkdir -p /tmp/xenrttmpmount
+mount -t nfs %s /tmp/xenrttmpmount
+echo `blkid | grep BOOT | sed -n 's/.*LABEL=\\"\\([^\\"]*\\)\\".*/\\1/p'` > /tmp/xenrttmpmount/bootlabel
+umount /tmp/xenrttmpmount
+""" % self.signaldir.getMountURL("")
+    
+    @property
     def postInstallSignal(self):
         return """
 # Signal XenRT that we've finished
-mkdir /tmp/xenrttmpmount
+mkdir -p /tmp/xenrttmpmount
 mount -t nfs %s /tmp/xenrttmpmount
 touch /tmp/xenrttmpmount/.xenrtsuccess
 umount /tmp/xenrttmpmount
@@ -626,6 +639,80 @@ sleep 30
             xenrt.TEC().copyToLogDir(repofile,
                                      target="XS-REPOSITORY-LIST-%s" % self.host.getName())
 
+    def setupInstallUefiPxe(self, pxe, mountpoint, answerfileUrl):
+        serport = self.host.lookup("SERIAL_CONSOLE_PORT", "0")
+        serbaud = self.host.lookup("SERIAL_CONSOLE_BAUD", "115200")
+        comport = str(int(serport) + 1)
+        
+        xen_extra_args = self.host.lookup("XEN_EXTRA_ARGS", None)
+        xen_extra_args_user = self.host.lookup("XEN_EXTRA_ARGS_USER", None)
+        if xen_extra_args_user:
+            xen_extra_args_user = string.replace(xen_extra_args_user, ",", " ")
+        dom0_extra_args = self.host.lookup("DOM0_EXTRA_ARGS", None)
+        dom0_extra_args_user = self.host.lookup("DOM0_EXTRA_ARGS_USER", None)
+        
+        pxe.installBootloader("%s/boot/grubx64.efi" % mountpoint, self.host.machine)
+        pxe.copyIn("%s/boot/xen.gz" % mountpoint)
+        pxe.copyIn("%s/boot/vmlinuz" % mountpoint)
+        pxe.copyIn("%s/install.img" % mountpoint)
+
+        xenargs = []
+        xenargs.append("watchdog")
+        xenargs.append("com%s=%s,8n1" % (comport, serbaud))
+        xenargs.append("console=com%s,vga" % (comport))
+        xenargs.append("dom0_mem=752M,max:752M")
+        xenargs.append("dom0_max_vcpus=2")
+        xenargs.append("crashkernel=128M@32M")
+        xenargs.append("cpuid_mask_xsave_eax=0")
+        if xen_extra_args:
+            xenargs.append(xen_extra_args)
+        if xen_extra_args_user:
+            xenargs.append(xen_extra_args_user)
+
+        dom0args = []
+        dom0args.append("hpet=disable")
+        dom0args.append("net.ifnames=0")
+        dom0args.append("biosdevname=0")
+        dom0args.append("xencons=hvc")
+        dom0args.append("console=hvc0")
+        if dom0_extra_args:
+            dom0args.append(dom0_extra_args)
+        if dom0_extra_args_user:
+            dom0args.append(dom0_extra_args_user)
+        mac = self.host.lookup("MAC_ADDRESS", None)
+        if mac:
+            dom0args.append("answerfile_device=%s" % (mac))
+        if self.host.lookup("FORCE_NIC_ORDER", False, boolean=True):
+            nics = [0]
+            nics.extend(self.host.listSecondaryNICs())
+            for n in nics:
+                dom0args.append("map_netdev=eth%u:s:%s" % (n, self.host.getNICMACAddress(n)))
+        dom0args.append("install")
+        if not xenrt.TEC().lookup("OPTION_NO_ANSWERFILE", False):
+            dom0args.append("rt_answerfile=%s" % (answerfileUrl))
+        if xenrt.TEC().lookup("OPTION_BASH_SHELL", False, boolean=True):
+            dom0args.append("bash-shell")
+
+        installEntry = """
+            multiboot2 %s/xen.gz %s
+            module2 %s/vmlinuz %s
+            module2 %s/install.img
+        """ % (pxe.tftpPath(), " ".join(xenargs), pxe.tftpPath(), " ".join(dom0args), pxe.tftpPath())
+
+
+        pxe.addGrubEntry("carboninstall", installEntry, default=True)
+       
+        # Default local boot entry - will be replaced with a boot label if we can retrieve one
+        localEntry = """
+            root=(%s,gpt4)
+            chainloader /EFI/xenserver/grubx64.efi
+        """
+        pxe.addGrubEntry("local", localEntry)
+
+        pxefile = pxe.writeOut(self.host.machine)
+        pfname = os.path.basename(pxefile)
+        xenrt.TEC().copyToLogDir(pxefile,target="%s.pxe.txt" % (pfname))
+
     def setupInstallPxe(self, pxe, mountpoint, answerfileUrl):
         serport = self.host.lookup("SERIAL_CONSOLE_PORT", "0")
         serbaud = self.host.lookup("SERIAL_CONSOLE_BAUD", "115200")
@@ -717,9 +804,8 @@ sleep 30
         
         pxecfg.mbootArgsModule1Add("output=ttyS0")
 
-        if self.host.isCentOS7Dom0():
-            pxecfg.mbootArgsModule1Add("net.ifnames=0")
-            pxecfg.mbootArgsModule1Add("biosdevname=0")
+        pxecfg.mbootArgsModule1Add("net.ifnames=0")
+        pxecfg.mbootArgsModule1Add("biosdevname=0")
 
         mac = self.host.lookup("MAC_ADDRESS", None)
         if mac:
@@ -991,10 +1077,13 @@ sleep 30
         
         return os.path.basename(ansfile)
 
-    def createPostInstallFiles(self):
+    def createPostInstallFiles(self, uefi):
         workdir = xenrt.TEC().getWorkdir()
 
         postInstall = []
+        if uefi:
+            postInstall.append(self.forceUefiBootViaPxe)
+            postInstall.append(self.postInstallSendBootLabel)
         postInstall.append(self.postInstallBootMods)
         postInstall.append(self.postInstallSSHKey)
         postInstall.append(self.postInstallXapiTweak)
@@ -1003,8 +1092,6 @@ sleep 30
         postInstall.append(self.postInstallBlacklistDrivers)
         postInstall.append(self.postInstallSSH)
         postInstall.append(self.postInstallV6)
-        postInstall.append(self.postInstallDom0RamDisk)
-        postInstall.append(self.postInstallDom0BlkBkOrder)
         postInstall.append(self.postInstallDom0MemPool)
         postInstall.append(self.postInstallNonDebugXen)
         postInstall.append(self.postInstallFirstBootSR)

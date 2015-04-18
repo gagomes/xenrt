@@ -250,8 +250,8 @@ class LifeCycleAllVMs(xenrt.TestCase):
             raise xenrt.XRTFailure("Failed to perform health checks on %d/%d guests - %s" %
                                     (len(failedGuests), numOfGuests, ", ".join(failedGuests)))
 
-class FCMPathScenario(xenrt.TestCase):
-    """Base class to test multipath scenarios over fibre channel for a pool of hosts"""
+class BaseMultipathScenario(xenrt.TestCase):
+    """Base class for all multipath scenarios."""
 
     # The following params are totally depend on the...
     # current storage configuration on the hosts used in a pool.
@@ -260,6 +260,9 @@ class FCMPathScenario(xenrt.TestCase):
     PATH = None # This is the path connected to FAS2040 NetApp.
     EXPECTED_MPATHS = None # Will be calculated.
     ATTEMPTS = None
+
+    FILER_NEEDED = False
+    filerIP = None
 
     def setTestParams(self, arglist):
         """Set test case params"""
@@ -278,6 +281,21 @@ class FCMPathScenario(xenrt.TestCase):
         # Obtain the pool object to retrieve its hosts.
         self.pool = self.getDefaultPool()
 
+        if self.FILER_NEEDED:
+            # Set up for specific site. Going to assume that there is only one filer.
+            filerdict = xenrt.TEC().lookup("NETAPP_FILERS", None)
+            filers = filerdict.keys()
+            if len(filers) == 0:
+                raise xenrt.XRTError("No NETAPP_FILERS defined")
+            elif len(filers) > 1:
+                raise xenrt.XRTError("Unexpected number of filers. Expected: 1 Present: %s" % len(filers))
+            filerName = filers[0]
+
+            self.filerIP = xenrt.TEC().lookup(["NETAPP_FILERS",
+                                              filerName,
+                                              "TARGET"],
+                                             None)
+
     def checkPathCount(self, host, disabled=False):
         """Verify the host multipath path count for every device"""
 
@@ -290,18 +308,18 @@ class FCMPathScenario(xenrt.TestCase):
 
         xenrt.TEC().logverbose("checkPathCount on %s after %s the path" % (host, pathState))
 
-        attempts = 1
         deadline=xenrt.timenow()+ 120 # 120 seconds
 
-        while True:
-            xenrt.TEC().logverbose("Finding the device paths. Attempt %s " % (attempts))
+        correctPathCount = False
+        for attempt in range(1, self.ATTEMPTS+1):
+            xenrt.TEC().logverbose("Finding the device paths. Attempt %s " % (attempt))
 
-            mpaths = host.getMultipathInfo()
+            mpaths = host.getMultipathInfo(onlyActive=True)
 
             if len(mpaths) != self.EXPECTED_MPATHS:
                 raise xenrt.XRTFailure("Incorrect number of devices (attempt %s) "
                                                         " Found (%s) Expected: %s" %
-                                        ((attempts), len(mpaths), self.EXPECTED_MPATHS))
+                                        ((attempt), len(mpaths), self.EXPECTED_MPATHS))
 
             deviceMultipathCountList = [len(mpaths[scsiid]) for scsiid in mpaths.keys()]
             xenrt.TEC().logverbose("deviceMultipathCountList : %s" % str(deviceMultipathCountList))
@@ -309,19 +327,23 @@ class FCMPathScenario(xenrt.TestCase):
                 if expectedDevicePaths in deviceMultipathCountList: # expcted paths.
                     if(xenrt.timenow() > deadline):
                         xenrt.TEC().warning("Time to report that all the paths have changed is more than 2 minutes")
+                    correctPathCount = True
                     break
 
-            if attempts > self.ATTEMPTS:
-                raise xenrt.XRTFailure("Incorrect number of device paths found even after attempting %s times" % attempts)
+            xenrt.sleep(0.5)
 
-            attempts = attempts + 1
-            xenrt.sleep(0.5) # we want to know as soon as possible when all paths are down/up.
+        if not correctPathCount:
+            raise xenrt.XRTFailure("Incorrect number of device paths found even after attempting %s times" % attempt)
+
+    def disablePath(self, host):
+        raise NotImplementedError("Please overwrite the specific functionality needed to disable the path.")
+
+    def enablePath(self, host):
+        raise NotImplementedError("Please overwrite the specific functionality needed to recover the path.")
 
     def run(self, arglist=[]):
 
         self.setTestParams(arglist)
-
-        self.PATH = random.randint(0,1) # to fail & recover.
 
         # 1. Verify multipath configuration is correct.
         [self.checkPathCount(x) for x in self.pool.getHosts()]
@@ -330,7 +352,7 @@ class FCMPathScenario(xenrt.TestCase):
         overallDisableTime = xenrt.util.timenow()
         for host in self.pool.getHosts():
             disableTime = xenrt.util.timenow()
-            host.disableFCPort(self.PATH) # 2. Note the time and cause the path to fail.
+            self.disablePath(host) # 2. Note the time and cause the path to fail.
             self.checkPathCount(host, True) # 3. Wait until XenServer reports that the path has failed (and no longer)
 
             # 4. Report the elapsed time beween steps 2 and 3 for every host.
@@ -346,7 +368,7 @@ class FCMPathScenario(xenrt.TestCase):
         overallEnableTime = xenrt.util.timenow()
         for host in self.pool.getHosts():
             enableTime = xenrt.util.timenow()
-            host.enableFCPort(self.PATH) # 6. Cause the path to be live again.
+            self.enablePath(host) # 6. Cause the path to be live again.
             self.checkPathCount(host) # 7. Wait until XenServer reports that the path has recovered (and no longer)
 
             # 8. Report the elapsed time beween steps 6 and 7 for every host.
@@ -364,13 +386,10 @@ class FCMPathScenario(xenrt.TestCase):
         xenrt.TEC().logverbose("The complete time between path failure and recovery is %s seconds" % 
                                                                         (xenrt.util.timenow() - startTime))
 
-class PathFail(FCMPathScenario):
-    """Test multipath failover scenarios over fibre channel"""
-
-    PATH = 1
+class BaseFailPath(BaseMultipathScenario):
+    """Base class for the failure only case."""
 
     def run(self, arglist=[]):
-
         self.setTestParams(arglist)
 
         # 1. Verify multipath configuration is correct.
@@ -379,7 +398,7 @@ class PathFail(FCMPathScenario):
         overallDisableTime = xenrt.util.timenow()
         for host in self.pool.getHosts():
             disableTime = xenrt.util.timenow()
-            host.disableFCPort(self.PATH) # 2. Note the time and cause the path to fail.
+            self.disablePath(host) # 2. Note the time and cause the path to fail.
             self.checkPathCount(host, True) # 3. Wait until XenServer reports that the path has failed (and no longer)
 
             # 4. Report the elapsed time beween steps 2 and 3 for every host.
@@ -392,10 +411,8 @@ class PathFail(FCMPathScenario):
         xenrt.TEC().logverbose("The overall time taken to fail the path (all hosts) is %s seconds." % 
                                                 (xenrt.util.timenow() - overallDisableTime))
 
-class PathRecover(FCMPathScenario):
-    """Test multipath recover scenarios over fibre channel"""
-
-    PATH = 1
+class BaseRecoverPath(BaseMultipathScenario):
+    """Base class for the recover only case."""
 
     def run(self, arglist=[]):
 
@@ -407,7 +424,7 @@ class PathRecover(FCMPathScenario):
         overallEnableTime = xenrt.util.timenow()
         for host in self.pool.getHosts():
             enableTime = xenrt.util.timenow()
-            host.enableFCPort(self.PATH) # 2. Cause the path to be live again.
+            self.enablePath(host) # 2. Cause the path to be live again.
             self.checkPathCount(host) # 3. Wait until XenServer reports that the path has recovered (and no longer)
 
             # 4. Report the elapsed time beween steps 2 and 3 for every host.
@@ -419,6 +436,62 @@ class PathRecover(FCMPathScenario):
         xenrt.TEC().value("PathRecover_AllHosts", (xenrt.util.timenow() - overallEnableTime), "s")
         xenrt.TEC().logverbose("The overall time taken to recover the path (all hosts) is %s seconds." % 
                                                             (xenrt.util.timenow() - overallEnableTime))
+
+
+class FCMPathScenario(BaseMultipathScenario):
+    """Base class to test multipath scenarios over fibre channel for a pool of hosts"""
+    def disablePath(self, host):
+        host.disableFCPort(self.PATH)
+
+    def enablepath(self, host):
+        host.enableFCPort(self.PATH)
+
+    def run(self, arglist=[]):
+        self.PATH = random.randint(0,1) # to fail & recover.
+        BaseMultipathScenario.run(self)
+
+class FCPathFail(BaseFailPath):
+    """Test multipath failover scenarios over fibre channel"""
+    PATH = 1
+
+    def disablePath(self, host):
+        host.disableFCPort(self.PATH)
+
+class FCPathRecover(BaseRecoverPath):
+    """Test multipath recover scenarios over fibre channel"""
+    PATH = 1
+
+    def enablepath(self, host):
+        host.enableFCPort(self.PATH)
+        
+class ISCSIMPathScenario(BaseMultipathScenario):
+    """Test multipath failover scenarios over iscsi"""
+
+    FILER_NEEDED = True
+
+    def disablePath(self, host):
+        iptablesFirewall = host.getIpTablesFirewall()
+        iptablesFirewall.blockIP(self.filerIP)
+
+    def enablePath(self, host):
+        iptablesFirewall = host.getIpTablesFirewall()
+        iptablesFirewall.unblockIP(self.filerIP)
+
+class ISCSIPathFail(BaseFailPath):
+
+    FILER_NEEDED = True
+
+    def disablePath(self, host):
+        iptablesFirewall = host.getIpTablesFirewall()
+        iptablesFirewall.blockIP(self.filerIP)
+
+class ISCSIPathRecover(BaseRecoverPath):
+
+    FILER_NEEDED = True
+
+    def enablePath(self, host):
+        iptablesFirewall = host.getIpTablesFirewall()
+        iptablesFirewall.unblockIP(self.filerIP)
 
 class EnableHA(xenrt.TestCase):
     """Enable HA on pool of hosts"""
@@ -437,10 +510,3 @@ class EnableHA(xenrt.TestCase):
 
         # Enable HA on the pool.
         self.pool.enableHA(srs=srs)
-
-
-class ISCSIMPathScenario(xenrt.TestCase):
-    """Test multipath failover scenarios over iscsi"""
-
-    def run(self, arglist=[]):
-        pass

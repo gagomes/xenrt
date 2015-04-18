@@ -25,12 +25,21 @@ class XenRTDHCPAllocator(object):
             self._parseCfg(i)
             self._setupDB(i)
 
+        self.rejectedCSAddrs = {}
         self.xmlrpc = SimpleXMLRPCServer(("localhost", 1500), allow_none=True)
         self.xmlrpc.register_introspection_functions()
         self.xmlrpc.register_instance(XMLRPCAllocator(self))
         thread = threading.Thread(target=self.startXMLRPC, name="XMLRPC")
         thread.daemon=True
         thread.start()
+
+    def respondToCSAddr(self, mac):
+        # First clean up the list of old addresses
+        for a in self.rejectedCSAddrs.keys():
+            if self.rejectedCSAddrs[a] > time.time() + 60:
+                del self.rejectedCSAddrs[a]
+        # If we've rejected it once, we can respond this time (after a 3s delay)
+        return self.rejectedCSAddrs.has_key(mac)
 
     def startXMLRPC(self):
         _logger.info("Starting XML/RPC server")
@@ -110,11 +119,14 @@ class XenRTDHCPAllocator(object):
             return None
 
     def _findHostName(self, addr):
-        self._sql("SELECT reservedname FROM leases WHERE addr='%s' AND reserved IS NOT NULL" % addr)
-        r = self.cur.fetchone()
-        if r:
-            return r[0]
-        else:
+        try:
+            self._sql("SELECT reservedname FROM leases WHERE addr='%s' AND reserved IS NOT NULL" % addr)
+            r = self.cur.fetchone()
+            if r:
+                return r[0]
+            else:
+                return None
+        except:
             return None
 
     def _renewLease(self, intf, mac, ip):
@@ -130,9 +142,13 @@ class XenRTDHCPAllocator(object):
     def _blacklistIp(self, ip):
         self._sql("UPDATE leases SET mac='INVALID',expiry=%d WHERE addr='%s'" % (int(time.time() + 24*3600), ip))
 
-    def _getNewLease(self, intf, mac):
+    def isCloudStackMAC(self, mac):
+        return mac.startswith("02:") or mac.startswith("06:")
+
+    def _getNewLease(self, intf, mac, cs=False):
         # Exclude Cloudstack MACs
-        if mac.startswith("02:") or mac.startswith("06:"):
+        if self.isCloudStackMAC(mac) and not cs:
+            self.rejectedCSAddrs[mac] = time.time()
             return None
         intfcfg = self.config['interfaces'][intf]
         self._sql("SELECT addr FROM leases WHERE interface='%s' AND reserved IS NULL AND (mac IS NULL OR expiry<%d) ORDER BY addr LIMIT 1" % (intf, int(time.time())))
@@ -140,7 +156,7 @@ class XenRTDHCPAllocator(object):
         if not r:
             return None
         else:
-            self._sql("UPDATE leases SET expiry=%d,mac='%s' WHERE addr='%s'" % (int(time.time() + intfcfg['trueleasetime']), mac.lower(), r[0]))
+            self._sql("UPDATE leases SET expiry=%d,mac='%s',leasestart=%d WHERE addr='%s'" % (int(time.time() + intfcfg['trueleasetime']), mac.lower(), int(time.time()), r[0]))
             return r[0]
         
     def getResponse(self, intf, mac, packet):
@@ -172,12 +188,12 @@ class XenRTDHCPAllocator(object):
                     except:
                         _logger.warn("Warning: could not renew lease for %s" % currentIp)
                 if not ip:
-                    ip = self._getNewLease(intf, str(mac))
+                    ip = self._getNewLease(intf, str(mac), cs=self.respondToCSAddr(str(mac)))
                 if not ip:
                     _logger.warn("Could not allocate lease for %s on %s" % (str(mac), intf))
                     return None
                 lease = cfg['clientleasetime']
-        self._populatePXEInfo(packet, intf)
+        self._populatePXEInfo(packet, intf, ip)
 
         intfdetails = self.getInterfaceInfo(intf)
         intfaddr = IPy.IP(intfdetails['addr'])
@@ -201,10 +217,12 @@ class XenRTDHCPAllocator(object):
                          domain_name_servers = cfg['dns'],
                          ntp_servers = cfg['ntp'],
                          hostname=hostname)
-
+        # Allow CCP to return first
+        if self.isCloudStackMAC(str(mac)):
+            time.sleep(3)
         return ret
 
-    def _populatePXEInfo(self, packet, intf):
+    def _populatePXEInfo(self, packet, intf, ip):
         server = self.getInterfaceInfo(intf)['addr']
         userClass = packet.getOption("user_class")
         arch = None
@@ -215,15 +233,18 @@ class XenRTDHCPAllocator(object):
         except Exception, e:
             _logger.info("Error finding client architecture" % str(e))
         if arch == 7 and self.config['interfaces'][intf].get('uefi'):
-            packet.setOption("file", strToPaddedList("/grubx64.efi", 128))
-            _logger.info("Sending /grubx64.efi as PXE file")
+            packet.setOption("file", strToPaddedList("/EFI/%s/boot.efi" % ip, 128))
+            _logger.info("Sending /%s/boot.efi as PXE file" % ip)
         elif userClass and listToStr(userClass) == "iPXE":
             packet.setOption("file", strToPaddedList("http://%s/tftp/default-ipxe.cgi" % server, 128))
+            _logger.info("Sending http://%s/tftp/default-ipxe.cgi as PXE file" % server)
         else:
             if self.config['interfaces'][intf].get('ipxe'):
                 packet.setOption("file", strToPaddedList("/undionly.kpxe", 128))
+                _logger.info("Sending /undionly.kpxe as PXE file")
             else:
                 packet.setOption("file", strToPaddedList("/pxelinux.0", 128))
+                _logger.info("Sending /pxelinux.0 as PXE file")
         packet.setOption("siaddr", ipToList(server))
    
     def getInterfaceInfo(self, intf):
@@ -246,7 +267,7 @@ class XenRTDHCPAllocator(object):
             else:
                 namestr = "NULL"
             
-            self._sql("UPDATE leases SET reserved='%s',reservedname=%s,mac=%s,reservedtime=%d WHERE addr='%s'" % (data, namestr, macstr, int(time.time()), r[0]))
+            self._sql("UPDATE leases SET reserved='%s',reservedname=%s,mac=%s,reservedtime=%d,leasestart=%d WHERE addr='%s'" % (data, namestr, macstr, int(time.time()), int(time.time()), r[0]))
 
             return r[0]
         
@@ -275,7 +296,7 @@ class XenRTDHCPAllocator(object):
 
             for i in xrange(size):
                 ip = IPy.IP(start + i).strNormal()
-                self._sql("UPDATE leases SET reserved='%s',mac=NULL,reservedtime=%d WHERE addr='%s'" % (data, int(time.time()), ip))
+                self._sql("UPDATE leases SET reserved='%s',mac=NULL,reservedtime=%d,leasestart=%d WHERE addr='%s'" % (data, int(time.time()), int(time.time()), ip))
                 res.append(ip)
 
             return res
@@ -340,8 +361,18 @@ class XMLRPCAllocator(object):
         self.parent.releaseAddress(addr)
         return True
 
+    def releaseAddresses(self, addrs):
+        for addr in addrs:
+            self.parent.releaseAddress(addr)
+        return True
+
     def updateReservation(self, addr):
         self.parent.updateReservation(addr)
+        return True
+
+    def updateReservations(self, addrs):
+        for addr in addrs:
+            self.parent.updateReservation(addr)
         return True
 
     def listReservedAddresses(self):

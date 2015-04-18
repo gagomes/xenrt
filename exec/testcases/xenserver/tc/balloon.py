@@ -175,7 +175,7 @@ class _BalloonSmoketest(_BalloonPerfBase):
         minmem = self.host.lookup("MIN_VM_MEMORY")
         minmem = int(xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.DISTRO, "MINMEMORY"], minmem))
         self.minSupported = int(self.host.lookup(["VM_MIN_MEMORY_LIMITS", self.DISTRO], minmem))
-        self.minStaticSupported = self.minSupported
+        self.minStaticSupported = int(xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.DISTRO, "STATICMINMEMORY"], self.minSupported))
         max = self.host.lookup("MAX_VM_MEMORY")
         self.maxSupported = int(xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.DISTRO, "MAXMEMORY"], max))
         if not self.SET_PAE and self.maxSupported > 4096:
@@ -389,6 +389,8 @@ class _BalloonSmoketest(_BalloonPerfBase):
                         xenrt.TEC().logverbose("Unable to recover guest, other tests blocked.")
                         return
                 pass
+            else:
+                raise
                
 
     def lifecycleOps(self, min):
@@ -400,6 +402,8 @@ class _BalloonSmoketest(_BalloonPerfBase):
         self.guest.resume()
         # We can only do a migrate if the dynamic-min is < half the hosts memory
         if min < (self.hostMemory / 2):
+            # Sleep 60s before migrating the VM (CA-165995)
+            xenrt.sleep(60)
             self.guest.migrateVM(self.host, live="true")
         xenrt.TEC().logverbose("...done")
 
@@ -2245,6 +2249,17 @@ class TC9336(_LinuxMaxRangeBase):
     """RHEL 5.3 x64 operation with maximum dynamic range"""
     DISTRO = "rhel53"
     ARCH = "x86-64"
+class TC26859(_LinuxMaxRangeBase):
+    """RHEL 6.6 operation with maximum dynamic range"""
+    DISTRO = "rhel66"
+class TC26860(_LinuxMaxRangeBase):
+    """RHEL 6.6 x64 operation with maximum dynamic range"""
+    DISTRO = "rhel66"
+    ARCH = "x86-64"
+class TC26861(_LinuxMaxRangeBase):
+    """RHEL 7.1 x64 operation with maximum dynamic range"""
+    DISTRO = "rhel71"
+    ARCH = "x86-64"
 class TC9337(_LinuxMaxRangeBase):
     """SLES9 SP4 operation with approx maximum dynamic range"""
     DISTRO = "sles94"
@@ -2300,6 +2315,17 @@ class TC12599(_LinuxMaxRangeBase):
     DISTRO = "sles111"
     ARCH = "x86-64"
     LIMIT_TO_30GB = False
+class TC26856(_LinuxMaxRangeBase):
+    """SLES 11.3 SP1 operation with maximum dynamic range"""
+    DISTRO = "sles113"
+class TC26857(_LinuxMaxRangeBase):
+    """SLES 11.3 x64 operation with approx maximum dynamic range"""
+    DISTRO = "sles113"
+    ARCH = "x86-64"
+class TC26858(_LinuxMaxRangeBase):
+    """SLES 12 x64 operation with approx maximum dynamic range"""
+    DISTRO = "sles12"
+    ARCH = "x86-64"
 class TC9342(_LinuxMaxRangeBase):
     """Debian Etch operation with approx maximum dynamic range"""
     DISTRO = "etch"
@@ -2314,7 +2340,35 @@ class TC9404(_LinuxMaxRangeBase):
     """Debian Lenny operation with maximum dynamic range"""
     DISTRO = "debian50"
     LIMIT_TO_30GB = False
-
+class TC26854(_LinuxMaxRangeBase):
+    """Debian 7.0 operation with approx maximum dynamic range"""
+    DISTRO = "debian70"
+class TC26855(_LinuxMaxRangeBase):
+    """Debian 7.0 x64 operation with maximum dynamic range"""
+    DISTRO = "debian70"
+    ARCH = "x86-64"
+class TC26862(_LinuxMaxRangeBase):
+    """OEL 6.6 operation with approx maximum dynamic range"""
+    DISTRO = "oel66"
+class TC26863(_LinuxMaxRangeBase):
+    """OEL 6.6 x64 operation with maximum dynamic range"""
+    DISTRO = "oel66"
+    ARCH = "x86-64"
+class TC26864(_LinuxMaxRangeBase):
+    """OEL 7.0 x64 operation with maximum dynamic range"""
+    DISTRO = "oel7"
+    ARCH = "x86-64"
+class TC26865(_LinuxMaxRangeBase):
+    """CentOS 6.6 operation with approx maximum dynamic range"""
+    DISTRO = "centos66"
+class TC26866(_LinuxMaxRangeBase):
+    """CentOS 6.6 x64 operation with maximum dynamic range"""
+    DISTRO = "centos66"
+    ARCH = "x86-64"
+class TC26867(_LinuxMaxRangeBase):
+    """CentOS 7.0 x64 operation with maximum dynamic range"""
+    DISTRO = "centos7"
+    ARCH = "x86-64"
 
 class TC9527(xenrt.TestCase):
     """Verify the extra time for booting a ballooned down Windows XP SP3 VM is minimal"""
@@ -2390,6 +2444,28 @@ class TC10552(TC9527):
 class TC10553(TC9527):
     """Verify the extra time for booting a ballooned down Windows 7 x64 VM is less than 1 minute"""
     DISTRO = "win7-x64"
+    USEMEM = 2048
+    ALLOWED_INCREASE = 60
+    
+class TC26440(TC9527):
+    """Verify the extra time for booting a ballooned down Windows 10 x86 VM is minimal"""
+    DISTRO = "win10-x86"
+    USEMEM = 1024
+
+class TC26441(TC9527):
+    """Verify the extra time for booting a ballooned down Windows 10 x64 VM is minimal"""
+    DISTRO = "win10-x64"
+    USEMEM = 2048
+
+class TC26439(TC9527):
+    """Verify the extra time for booting a ballooned down Windows 10 x86 VM is less than 1 minute"""
+    DISTRO = "win10-x86"
+    USEMEM = 1024
+    ALLOWED_INCREASE = 60
+    
+class TC26442(TC9527):
+    """Verify the extra time for booting a ballooned down Windows 10 x64 VM is less than 1 minute"""
+    DISTRO = "win10-x64"
     USEMEM = 2048
     ALLOWED_INCREASE = 60
 

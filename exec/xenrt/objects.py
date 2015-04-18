@@ -14,9 +14,10 @@ import traceback, xmlrpclib, crypt, glob, copy, httplib, urllib, mimetools
 import xml.dom.minidom, threading, fnmatch, urlparse, libxml2
 import xenrt, xenrt.ssh, xenrt.util, xenrt.rootops, xenrt.resources
 import testcases.benchmarks.workloads
-import bz2, simplejson
+import bz2, simplejson, json
 import IPy
 import XenAPI
+import xml.etree.ElementTree as ET
 from xenrt.lazylog import log, warning
 from xenrt.linuxanswerfiles import *
 
@@ -135,7 +136,7 @@ def productLib(productType=None, host=None, hostname=None):
     else:
         raise xenrt.XRTError("Unknown productType %s" % (productType, ))
 
-class GenericPlace:
+class GenericPlace(object):
 
     LINUX_INTERFACE_PREFIX = "eth"
 
@@ -197,6 +198,9 @@ class GenericPlace:
     def tailor(self):
         raise xenrt.XRTError("Unimplemented")
 
+    def createScaleXtremeEnvironment(self):
+        raise xenrt.XRTError("Unimplemented")
+
     def execdom0(self,
                  command,
                  username=None,
@@ -248,9 +252,9 @@ class GenericPlace:
             elif re.search("solaris", self.distro):
                 rc = int(self.execcmd("prtconf | grep Mem|awk '{if ($1 == \"Memory\") {print $3}}'"))
             else:
-                rc = self.execcmd("dmesg | grep \"Memory:\"")
-                #Parses the line E.g. "[    0.000000] Memory: 1010028k/1048576k available (2573k...311304k highmem)"  to get total memory
-                rc = int(rc.split("/")[1].split("k")[0])/xenrt.KILO
+                data = self.execcmd("cat /proc/meminfo")
+                rc = re.search(r"MemTotal:\s+(\d+)\s+kB", data)
+                rc = int(rc.group(1))/xenrt.KILO
             xenrt.TEC().logverbose(" ... getMemory done")
             return rc
         except Exception, e:
@@ -271,7 +275,7 @@ class GenericPlace:
             raise
 
     def deprecatedIfConfig(self):
-        return self.distro.startswith("rhel7") or self.distro.startswith("oel7") or self.distro.startswith("centos7")
+        return self.distro.startswith("rhel7") or self.distro.startswith("oel7") or self.distro.startswith("centos7") or self.distro.startswith("sl7") or self.distro.startswith("fedora")
 
     def getMyVIFs(self):
         try:
@@ -450,8 +454,13 @@ class GenericPlace:
                     self.windows=True
                     return
 
-    def waitForSSH(self, timeout, level=xenrt.RC_FAIL, desc="Operation",
-                   username="root", cmd="true"):
+    def waitForSSH(self, timeout, level=xenrt.RC_FAIL, desc="Operation", username="root", cmd="true"):
+
+        if not self.getIP():
+            if level == xenrt.RC_FAIL:
+                self.checkHealth(unreachable=True)
+            return xenrt.XRT("%s: No IP address found" % (desc), level)
+
         now = xenrt.util.timenow()
         deadline = now + timeout
         while 1:
@@ -1091,6 +1100,34 @@ class GenericPlace:
             self.checkHealth()
             raise
 
+    def xmlrpcDiskpartCommand(self, cmd):
+        self.xmlrpcWriteFile("c:\\diskpartcmd.txt", cmd)
+        return self.xmlrpcExec("diskpart /s c:\\diskpartcmd.txt", returndata=True)
+
+    def xmlrpcDiskpartListDisks(self):
+        disksstr = self.xmlrpcDiskpartCommand("list disk")
+        return re.findall("Disk\s+([0-9]*)\s+", disksstr)
+
+    def xmlrpcDriveLettersOfDisk(self, diskid):
+        diskdetail = self.xmlrpcDiskpartCommand("select disk %s\ndetail disk" % (diskid))
+        return re.findall("Volume [0-9]+\s+([A-Z])", diskdetail)
+
+    def xmlrpcDeinitializeDisk(self, diskid):
+        self.xmlrpcDiskpartCommand("select disk %s\nclean" % (diskid))
+
+    def xmlrpcInitializeDisk(self, diskid, driveLetter='e'):
+        """ Initialize disk, create a single partition on it, activate it and
+        assign a drive letter.
+        """
+        xenrt.TEC().logverbose("Initialize disk %s (letter %s)" % (diskid, driveLetter))
+        return self.xmlrpcDiskpartCommand("select disk %s\n"
+                             "attributes disk clear readonly\n"
+                             "convert mbr\n"              # initialize
+                             "create partition primary\n" # create partition
+                             "active\n"                   # activate partition
+                             "assign letter=%s"           # assign drive letter
+                             % (diskid, driveLetter))
+
     def xmlrpcMarkDiskOnline(self, diskid=None):
         """ mark disk online by diskid. The function will fail if the diskid is
         invalid or the disk is already online . When diskid == None (default),
@@ -1106,12 +1143,9 @@ class GenericPlace:
             else:
                 raise xenrt.XRTException("disk %d is already online" % diskid)
         for o in offline:
-            self.xmlrpcWriteFile("c:\\online.txt",
-                                 "select disk %s\n"
+            return self.xmlrpcDiskpartCommand("select disk %s\n"
                                  "attributes disk clear readonly\n"
                                  "online disk noerr" % (o))
-            self.xmlrpcExec("diskpart /s c:\\online.txt")
-
 
     def xmlrpcFormat(self, letter, fstype="ntfs", timeout=1200, quick=False):
         cmd = self.xmlrpcWindowsVersion() == "5.0" \
@@ -1384,6 +1418,16 @@ class GenericPlace:
             f.write(data)
             f.close()
 
+    def winRegPresent(self, hive, key, name):
+        """ Check for the windows registry value"""
+        
+        try:
+            s = self._xmlrpc()
+            s.regLookup(hive, key, name)
+            return True
+        except Exception, e:
+            return False
+            
     def winRegLookup(self, hive, key, name, healthCheckOnFailure=True, suppressLogging=False):
         """Look up a Windows registry value."""
 
@@ -3244,22 +3288,27 @@ DHCPServer = 1
             # Prerequisites
             if debversion:
                 self.execcmd("apt-get install libssl-dev --force-yes -y")
-                kernel = self.execcmd("uname -r").strip()
-                self.execcmd("apt-get install linux-headers-%s --force-yes -y" % kernel)
+                self.execcmd("apt-get install linux-headers-`uname -r` --force-yes -y")
             elif redhat:
                 self.execcmd("yum install -y openssl-devel kernel-headers")
 
             # Get and install the iscsi target
-            self.execcmd("cd /root && wget '%s/iscsitarget-1.4.20.2.tgz'" %
-                         (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
-            self.execcmd("cd /root && tar -xzf iscsitarget-1.4.20.2.tgz")
-            self.execcmd("cd /root/iscsitarget-1.4.20.2 && make")
-            self.execcmd("cd /root/iscsitarget-1.4.20.2 && make install")
-
+            
+            if debversion >= 7.0:
+                self.execcmd("apt-get install -y --force-yes iscsitarget iscsitarget-dkms")
+                self.execcmd('sed -i "s/false/true/" /etc/default/iscsitarget')
+                self.execcmd('/etc/init.d/iscsitarget restart')
+                self.execcmd('ln -s /etc/init.d/iscsitarget /etc/init.d/iscsi-target')
+            else:
+                self.execcmd("cd /root && wget '%s/iscsitarget-1.4.20.2.tgz'" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
+                self.execcmd("cd /root && tar -xzf iscsitarget-1.4.20.2.tgz")
+                self.execcmd("cd /root/iscsitarget-1.4.20.2 && make")
+                self.execcmd("cd /root/iscsitarget-1.4.20.2 && make install")
+            
             self.execcmd("rm /etc/iet/ietd.conf")
             self.execcmd("ln -s /etc/ietd.conf /etc/iet/ietd.conf")
-        else: # Legacy installation for etch
-
+        else: 
+            # Legacy installation for etch
             # Prerequisites
             self.execcmd("apt-get install libssl-dev --force-yes -y")
 
@@ -3274,12 +3323,10 @@ DHCPServer = 1
             # Workaround for incorrect symlink
             for path in self.execcmd("ls /lib/modules").split():
                 self.execcmd("rm -f /lib/modules/%s/build" % (path.strip()))
-                self.execcmd("ln -s /usr/src/linux-headers-%s "
-                             "/lib/modules/%s/build" % (path.strip(),path.strip()))
+                self.execcmd("ln -s /usr/src/linux-headers-%s /lib/modules/%s/build" % (path.strip(),path.strip()))
 
             # Setup iscsitarget
-            self.execcmd("cd /root && wget '%s/iscsitarget.tgz'" %
-                         (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
+            self.execcmd("cd /root && wget '%s/iscsitarget.tgz'" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
             self.execcmd("cd /root && tar -xzf iscsitarget.tgz")
             self.execcmd("cd /root/iscsitarget && patch -p1 < multihomed.patch")
             self.execcmd("cd /root/iscsitarget && make")
@@ -3471,39 +3518,24 @@ DHCPServer = 1
         xenrt.sleep(60)
         self.waitForDaemon(300,desc="Guest reboot after updating Windows")
 
-    def updateYumConfig(self, distro=None, arch=None):
+    def updateYumConfig(self, distro=None, arch=None, allowKernel=False):
         """If we have a local HTTP mirror of a yum repo then create
         a yum repo config for it on this guest/host. This is only for
         for the base repo, all others get removed. This is a hack
         primarily intended for XenServer dom0."""
         if arch == "x86-32p":
             arch = "x86-32"
-        doUpdate = False
         if not distro:
             distro = self.distro
         if not arch:
             arch = self.arch
-        # If we should update this to the lastest versino
-        if xenrt.TEC().lookup("AUTO_UPDATE_LINUX", False, boolean=True):
-            updateMap = xenrt.TEC().lookup("LINUX_UPDATE")
-            match = ""
-            # Look for the longest match
-            for i in updateMap.keys():
-                if distro.startswith(i) and len(i) > len(match):
-                    match = i
-            # if we find one, we need to upgrade
-            if match:
-                newdistro = updateMap[match]
-                if newdistro != distro:
-                    doUpdate = True
-                    distro = newdistro
 
         url = xenrt.TEC().lookup(["RPM_SOURCE", distro, arch, "HTTP"], None)
         if not url:
             return False
         try:
             # All versions of CentOS and RHEL7+ don't have Server in the repo path
-            if distro.startswith("centos") or distro.startswith("rhel7") or distro.startswith("oel7"):
+            if distro.startswith("centos") or distro.startswith("rhel7") or distro.startswith("oel7") or distro.startswith("sl"):
                 pass
             else:
                 url = os.path.join(url, 'Server')
@@ -3519,7 +3551,7 @@ baseurl=%s
 gpgcheck=0
 """ % (url)
             # If we're upgrading then we can't exclude the kernel
-            if not doUpdate:
+            if not allowKernel:
                 c += "exclude=kernel*, *xen*\n"
             sftp = self.sftpClient()
             fn = xenrt.TEC().tempFile()
@@ -3530,20 +3562,33 @@ gpgcheck=0
             sftp.close()
         except:
             return False
-        if doUpdate:
-            # Do the upgrade
-            self.execcmd("yum update -y", timeout=3600)
-            # Cleanup the repositories again
-            self.execcmd("for r in /etc/yum.repos.d/*.repo; "
-                         "   do mv $r $r.orig; done")
-            sftp = self.sftpClient()
-            sftp.copyTo(fn, "/etc/yum.repos.d/xenrt.repo")
-            sftp.close()
-            # And reboot to start the new system
-            xenrt.TEC().comment("Upgraded from %s to %s" % (self.distro, distro))
-            self.distro=distro
-            self.reboot()
         return True
+
+    def updateLinux(self, updateTo):
+        # Currently only for RHEL derivatives
+        if updateTo == "latest":
+            timeout = 7200
+            self.execguest("rm /etc/yum.repos.d/xenrt.repo")
+            self.execguest("rename '.orig' '' /etc/yum.repos.d/*.orig")
+            # Add a proxy if we know about one
+            proxy = xenrt.TEC().lookup("HTTP_PROXY", None)
+            if proxy:
+                self.execguest("sed -i '/proxy/d' /etc/yum.conf")
+                self.execguest("echo 'proxy=http://%s' >> /etc/yum.conf" % proxy)
+            updateTo = xenrt.getUpdateDistro(self.distro)
+        else:
+            timeout = 3600
+            self.updateYumConfig(updateTo, self.arch, allowKernel=True)
+        
+        # Do the upgrade
+        self.execcmd("yum update -y", timeout=timeout)
+        # Cleanup the repositories again
+        self.distro=updateTo
+        self.updateYumConfig(self.distro, self.arch, allowKernel=False)
+        # And reboot to start the new system
+        xenrt.TEC().comment("Updated from %s to %s" % (self.distro, updateTo))
+        self.reboot()
+        
 
     def getExtraLogs(self, directory):
         pass
@@ -3828,44 +3873,45 @@ bootlocal.close()
 
         if "win81" in self.distro or "ws12r2" in self.distro:
             domid = self.getDomid()
-            self.xmlrpcUnpackTarball("%s/bluewaterupdate.tgz" % xenrt.TEC().lookup("TEST_TARBALL_BASE"), "c:\\")
-            if self.xmlrpcGetArch() == "amd64":
-                self.xmlrpcStart('wusa "c:\\bluewaterupdate\\Windows8.1-KB2887595-v2-x64.msu" /quiet /log:C:\\bluewaterUpdateInstall.txt')
-            else:
-                self.xmlrpcStart('wusa "c:\\bluewaterupdate\\Windows8.1-KB2887595-v2-x86.msu" /quiet /log:C:\\bluewaterUpdateInstall.txt')
+            if not self.xmlrpcFileExists("C:\\bluewaterUpdateInstall.txt"):
+                self.xmlrpcUnpackTarball("%s/bluewaterupdate.tgz" % xenrt.TEC().lookup("TEST_TARBALL_BASE"), "c:\\")
+                if self.xmlrpcGetArch() == "amd64":
+                    self.xmlrpcStart('wusa "c:\\bluewaterupdate\\Windows8.1-KB2887595-v2-x64.msu" /quiet /log:C:\\bluewaterUpdateInstall.txt')
+                else:
+                    self.xmlrpcStart('wusa "c:\\bluewaterupdate\\Windows8.1-KB2887595-v2-x86.msu" /quiet /log:C:\\bluewaterUpdateInstall.txt')
 
-            deadline = xenrt.util.timenow() + 3600
-            while True:
-                try:
-                    if self.getDomid() != domid:
-                        break
-                except:
-                    pass
-                if xenrt.util.timenow() > deadline:
-                    logFile = xenrt.TEC().tempFile()
-                    f1=file(logFile,"w")
-                    data=self.xmlrpcReadFile("C:\\bluewaterUpdateInstall.txt")
-                    r=data.splitlines()
+                deadline = xenrt.util.timenow() + 3600
+                while True:
+                    try:
+                        if self.getDomid() != domid:
+                            break
+                    except:
+                        pass
+                    if xenrt.util.timenow() > deadline:
+                        logFile = xenrt.TEC().tempFile()
+                        f1=file(logFile,"w")
+                        data=self.xmlrpcReadFile("C:\\bluewaterUpdateInstall.txt")
+                        r=data.splitlines()
 
-                    s="[a-zA-Z0-9:,;.\\/ \(\)]"
-                    for y in range(len(r)):
-                        l=[x for x in r[y] if 0<=ord(x)<128 and re.search(s,str(x))]
-                        f1.write("".join(l)+"\n")
-                    f1.close()
-                    self.xmlrpcSendFile(logFile,"c:\\Windows\\Logs\\bluewaterUpdateInstallLogs.txt")
-                    raise xenrt.XRTFailure("Timed out waiting for bluewaterupdate initiated reboot")
-                xenrt.sleep(60)
+                        s="[a-zA-Z0-9:,;.\\/ \(\)]"
+                        for y in range(len(r)):
+                            l=[x for x in r[y] if 0<=ord(x)<128 and re.search(s,str(x))]
+                            f1.write("".join(l)+"\n")
+                        f1.close()
+                        self.xmlrpcSendFile(logFile,"c:\\Windows\\Logs\\bluewaterUpdateInstallLogs.txt")
+                        raise xenrt.XRTFailure("Timed out waiting for bluewaterupdate initiated reboot")
+                    xenrt.sleep(60)
 
-            self.waitforxmlrpc(20 * 60)
-
-            if not xenrt.TEC().lookup("DISABLE_EMULATED_DEVICES", False, boolean=True) and not xenrt.TEC().lookup("DISABLE_USB", False, boolean=True):
-                xenrt.TEC().logverbose("Re-enabling USB on Windows Blue")
-                self.xmlrpcShutdown()
-                self.poll("DOWN")
-                self.paramSet("platform:usb", "true")
-                self.lifecycleOperation("vm-start")
                 self.waitforxmlrpc(20 * 60)
-        
+
+                if not xenrt.TEC().lookup("DISABLE_EMULATED_DEVICES", False, boolean=True) and not xenrt.TEC().lookup("DISABLE_USB", False, boolean=True):
+                    xenrt.TEC().logverbose("Re-enabling USB on Windows Blue")
+                    self.xmlrpcShutdown()
+                    self.poll("DOWN")
+                    self.paramSet("platform:usb", "true")
+                    self.lifecycleOperation("vm-start")
+                    self.waitforxmlrpc(20 * 60)
+            
         applicationEventLogger = "wevtutil qe Application /c:50 /f:text"
         systemEventLogger = "wevtutil qe System /c:50 /f:text"
         setupEventLogger = "wevtutil qe Setup /c:50 /f:text"
@@ -4170,6 +4216,22 @@ Loop While not oex3.Stdout.atEndOfStream"""%(applicationEventLogger,systemEventL
                            "SZ",
                             name)
             self.reboot()
+
+    def sysPrepOOBE(self):
+        if not self.windows:
+            raise xenrt.XRTError("This can only be performed on Windows installations")
+
+        with open("%s/data/sysprep/unattend.xml" % xenrt.TEC().lookup("XENRT_BASE")) as f:
+            unattend = f.read()
+
+        unattend = unattend.replace("%ARCH%", self.xmlrpcGetArch())
+        unattend = unattend.replace("%PASSWORD%", xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS", "ADMINISTRATOR_PASSWORD"], "xensource"))
+        pkey = xenrt.util.command("grep '%s ' %s/keys/windows | awk '{print $2}'" % (self.distro, xenrt.TEC().lookup("XENRT_CONF"))).strip()
+        unattend = unattend.replace("%PRODUCTKEY%", pkey)
+
+        self.xmlrpcWriteFile("c:\\unattend.xml", unattend)
+
+        self.xmlrpcExec("c:\\windows\\system32\\sysprep\\sysprep.exe /unattend:c:\\unattend.xml /oobe /generalize /quiet /quit", returnerror=False)
 
 class RunOnLocation(GenericPlace):
     def __init__(self, address):
@@ -4543,14 +4605,23 @@ class GenericHost(GenericPlace):
             if pcpu > 40:
                 xenrt.TEC().warning("xenstore using %u%% CPU" % (pcpu))
 
+    def checkLeasesXenRTDhcpd(self, mac, checkWithPing=False):
+        valid = json.loads(xenrt.util.command("%s/xenrtdhcpd/leasesformac.py %s" % (xenrt.TEC().lookup("XENRT_BASE"), mac.lower())))
+        if not valid:
+            return None
+        for a in valid:
+            if checkWithPing and xenrt.command("ping -c 3 -w 10 %s" % a, retval="code", level=xenrt.RC_OK) == 0:
+                return a
+
+        return valid[0]
+
     def checkLeases(self, mac, checkWithPing=False):
         rem = self.lookup("REMOTE_DHCP", None)
         if rem:
             leasefile = xenrt.TEC().tempFile()
             xenrt.util.command("%s > %s" % (rem, leasefile))
         elif self.lookup("XENRT_DHCPD", False, boolean=True):
-            leasefile = xenrt.TEC().tempFile()
-            xenrt.util.command("%s/xenrtdhcpd/leases.py > %s" % (xenrt.TEC().lookup("XENRT_BASE"), leasefile))
+            return self.checkLeasesXenRTDhcpd(mac, checkWithPing)
         elif os.path.exists("/var/lib/dhcp/dhcpd.leases"):
             leasefile = "/var/lib/dhcp/dhcpd.leases"
         elif os.path.exists("/var/lib/dhcpd/dhcpd.leases"):
@@ -4627,6 +4698,17 @@ class GenericHost(GenericPlace):
         xenrt.TEC().logverbose("Sniffing ARPs on %s for %s" % (iface, mac))
 
         deadline = xenrt.util.timenow() + timeout
+
+        if xenrt.TEC().lookup("XENRT_DHCPD", False, boolean=True):
+            while True:
+                ip = self.checkLeases(mac)
+                if ip:
+                    return ip
+                xenrt.sleep(20)
+                if xenrt.util.timenow() > deadline:
+                    xenrt.XRT("Timed out monitoring for guest DHCP lease", level, data=mac)
+
+            
 
         myres = []
         myres.append(re.compile(r"(?P<ip>[0-9.]+) is-at (?P<mac>[0-9a-f:]+)"))
@@ -4767,6 +4849,8 @@ class GenericHost(GenericPlace):
                 name = "Oxford"
             elif "58523" in buildNumber:
                 name = "SanibelCC"
+            if name == "Creedence" and self.execdom0("grep XS65ESP1 /var/patch/applied/*", retval="code") == 0:
+                name = "Cream"
 
             xenrt.TEC().logverbose("Found: Version Name: %s, Version Number: %s" % (name, version))
             xenrt.TEC().logverbose("Found Build: %s" % (buildNumber))
@@ -5296,14 +5380,13 @@ class GenericHost(GenericPlace):
             raise xenrt.XRTError("No %s repository for %s %s" %
                                  (method, arch, distro))
 
-        mainDisk=self.getInstallDisk(ccissIfAvailable=False)
-        if "scsi-SATA" in mainDisk and (re.search(r"rhel7", distro) or \
-                                        re.search(r"centos7", distro) or \
-                                        re.search(r"oel7", distro)):
-            # This is a hack to workaround the fact RHEL7 has different by-id entries
-            # It will break if certain USB disks etc are in use, but for now is a
-            # 'quick fix' (sorry!)
-            mainDisk = "sda"
+        if (re.search(r"rhel7", distro) or \
+                re.search(r"centos7", distro) or \
+                re.search(r"oel7", distro)):
+            legacySATA = False
+        else:
+            legacySATA = True
+        mainDisk=self.getInstallDisk(ccissIfAvailable=False, legacySATA=legacySATA)
 
         if re.search(r"oel5", distro) or re.search (r"rhel5", distro) or re.search(r"centos5", distro) or \
                 re.search(r"oel4", distro) or re.search (r"rhel4", distro) or re.search(r"centos4", distro):
@@ -5311,7 +5394,7 @@ class GenericHost(GenericPlace):
         else:
             ethDevice = self.getNICMACAddress(0)
 
-        bootDiskSize = self.lookup("BOOTDISKSIZE",100)
+        bootDiskSize = self.lookup("BOOTDISKSIZE",250)
         bootDiskFS = self.lookup("BOOTDISKFS","ext4")
         ethdev = self.getDefaultInterface()
         ethmac = xenrt.normaliseMAC(self.getNICMACAddress(0)).upper()
@@ -5383,7 +5466,7 @@ class GenericHost(GenericPlace):
             pxecfg.linuxArgsKernelAdd("console=hvc0")
         else:
             pxecfg.linuxArgsKernelAdd("root=/dev/ram0")
-            if re.search(r"(rhel|oel|centos)6", distro):
+            if re.search(r"(rhel|oel|centos)[dw]?6", distro):
                 pxecfg.linuxArgsKernelAdd("biosdevname=0")
         pxefile = pxe.writeOut(self.machine)
         pfname = os.path.basename(pxefile)
@@ -5455,7 +5538,7 @@ class GenericHost(GenericPlace):
             raise xenrt.XRTError("No %s repository for %s %s" %
                                  (method, arch, distro))
         nfsdir = xenrt.NFSDirectory()
-        mainDisk = self.getInstallDisk(ccissIfAvailable=False)
+        mainDisk = self.getInstallDisk(ccissIfAvailable=False, legacySATA=True)
         ethDevice = self.getDefaultInterface()
         bootDiskSize = self.lookup("BOOTDISKSIZE", "100")
         ay=SLESAutoyastFile( distro,
@@ -5557,7 +5640,7 @@ class GenericHost(GenericPlace):
             raise xenrt.XRTError("No %s repository for %s %s" %
                                  (method, arch, distro))
 
-        mainDisk=self.getInstallDisk(ccissIfAvailable=False)
+        mainDisk=self.getInstallDisk(ccissIfAvailable=False, legacySATA=True)
 
         ethdev = self.getDefaultInterface()
         ethmac = xenrt.normaliseMAC(self.getNICMACAddress(0))
@@ -5590,9 +5673,8 @@ exit 0
         webdir.copyIn(pifilename)
         piurl = webdir.getURL(pifile)
 
-        disk = self.lookup("OPTION_CARBON_DISKS", None)
-        if disk:
-            disk = "/dev/%s" % disk
+        disk = self.lookup("OPTION_CARBON_DISKS", "sda")
+        disk = "/dev/%s" % disk
 
         # Generate a config file
         ps=DebianPreseedFile(distro,
@@ -5605,7 +5687,6 @@ exit 0
                              extraPackages=extrapackages,
                              ossVG=False,
                              arch=arch,
-                             installXenToolsInPostInstall=False,
                              postscript=piurl,
                              poweroff=False,
                              disk=disk)
@@ -5619,7 +5700,16 @@ exit 0
                                  (method))
 
         arch = "amd64" if "64" in self.arch else "i386"
-        release = re.search("Debian/(\w+)/", repository).group(1)
+        if distro == "debian50":
+            release = "lenny"
+        elif distro == "debian60":
+            release = "squeeze"
+        elif distro == "debian70":
+            release = "wheezy"
+        elif distro == "debian80":
+            release = "jessie"
+        elif distro == "debiantesting":
+            release = "testing"
         _url = repository + "/dists/%s/" % (release.lower(), )
         boot_dir = "main/installer-%s/current/images/netboot/debian-installer/%s/" % (arch, arch)
 
@@ -5763,32 +5853,33 @@ exit 0
 
     def bootRamdiskLinux(self):
         """Boot a Linux ramdisk image from the network"""
+
+        
+        # Construct a PXE target
+        pxe1 = xenrt.PXEBoot()
         serport = self.lookup("SERIAL_CONSOLE_PORT", "0")
         serbaud = self.lookup("SERIAL_CONSOLE_BAUD", "115200")
+        pxe1.setSerial(serport, serbaud)
+        pxe2 = xenrt.PXEBoot()
+        serport = self.lookup("SERIAL_CONSOLE_PORT", "0")
+        serbaud = self.lookup("SERIAL_CONSOLE_BAUD", "115200")
+        pxe2.setSerial(serport, serbaud)
+    
+        pxe1.addEntry("ipxe", boot="ipxe")
+        pxe1.setDefault("ipxe")
+        pxe1.writeOut(self.machine)
 
-        cr_extra_args = self.lookup("CLEANROOT_EXTRA_ARGS", None)
-
-        self.password = "xenroot"
-
-        # Set the boot files and options for PXE
-        pxe = xenrt.PXEBoot(abspath=True)
-        pxe.setSerial(serport, serbaud)
-        pxe.addEntry("local", boot="local")
-        pxecfg = pxe.addEntry("tcl", default=1, boot="linux")
-        barch = self.getBasicArch()
-        pxecfg.linuxSetKernel("tinycorelinux/vmlinuz")
-        pxecfg.linuxArgsKernelAdd("console=tty0")
-        pxecfg.linuxArgsKernelAdd("console=ttyS%s,%sn8" % (serport, serbaud))
-        ctrladdr = xenrt.TEC().lookup("XENRT_SERVER_ADDRESS", socket.getfqdn())
-        pxecfg.linuxArgsKernelAdd("initrd=tinycorelinux/core-xenrt.gz")
-        if cr_extra_args:
-            pxecfg.linuxArgsKernelAdd(cr_extra_args)
-
-        # Set up PXE for ramdisk boot
-        pxefile = pxe.writeOut(self.machine)
-        pfname = os.path.basename(pxefile)
-        xenrt.TEC().copyToLogDir(pxefile,target="%s.disklesslinux-pxe.txt" % (pfname))
-
+        coreos = pxe2.addEntry("coreos", boot="linux")
+        basepath = xenrt.TEC().lookup(["RPM_SOURCE", "coreos-stable", "x86-64", "HTTP"])
+        coreos.linuxSetKernel("%s/amd64-usr/current/coreos_production_pxe.vmlinuz" % basepath, abspath=True)
+        coreos.linuxArgsKernelAdd("initrd=%s/amd64-usr/current/coreos_production_pxe_image.cpio.gz cloud-config-url=%s/cloudconfig.yaml" % (basepath, basepath))
+    
+        pxe2.setDefault("coreos")
+        filename = pxe2.writeOut(self.machine, suffix="_ipxe")
+        ipxescript = """set 209:string pxelinux.cfg/%s
+chain tftp://${next-server}/%s
+""" % (os.path.basename(filename), xenrt.TEC().lookup("PXELINUX_PATH", "pxelinux.0"))
+        pxe2.writeIPXEConfig(self.machine, ipxescript)
         tries = 0
         while True:
             try:
@@ -5823,7 +5914,6 @@ exit 0
                 tries = tries + 1
                 if tries == 3:
                     raise
-        return pxe
 
     def createGenericLinuxGuest(self):
         raise xenrt.XRTError("Unimplemented")
@@ -5953,7 +6043,7 @@ exit 0
         pxecfg = pxe.addEntry("sysrescue", default=1, boot="linux")
         barch = self.getBasicArch()
         pxecfg.linuxSetKernel(kernel)
-        pxecfg.linuxArgsKernelAdd("dodhcp rootpass=%s setkmap=uk netboot=%ssysrescue/sysrcd.dat" %
+        pxecfg.linuxArgsKernelAdd("dodhcp rootpass=%s setkmap=uk netboot=%s/sysrescue/sysrcd.dat" %
                                   (g.password, xenrt.TEC().lookup("TEST_TARBALL_BASE")))
         pxecfg.linuxArgsKernelAdd("initrd=%s" % pxe.makeBootPath("initram.igz"))
         if ramdisk_size:
@@ -6490,51 +6580,46 @@ exit 0
 
         return subnetMask,gateway
 
-    def _getMainDisks(self, count=1, ccissIfAvailable=False):
+    def _getDisks(self, var, sdfallback, count, ccissIfAvailable, legacySATA):
         disks = None
         try:
             if ccissIfAvailable:
-                disks = self.lookup(["OPTION_CARBON_DISKS", "CCISS"], None)
+                disks = self.lookup([var, "CCISS"])
             else:
-                disks = self.lookup(["OPTION_CARBON_DISKS", "SCSI"], None)
+                disks = self.lookup([var, "SCSI"])
+        except:
+            pass
+        try:
+            if legacySATA:
+                disks = self.lookup([var, "LEGACY_SATA"])
+            else:
+                disks = self.lookup([var, "SATA"])
         except:
             pass
         if not disks:
-            disks = self.lookup("OPTION_CARBON_DISKS", None)
-
-        # REQ-35: Temp fix while we work out how to do this properly.
-        if isinstance(self, xenrt.lib.xenserver.DundeeHost) and self.isCentOS7Dom0():
-            if disks and "scsi-SATA" in "".join(disks):
+            disks = self.lookup(var, None)
+            # REQ-35: (Better) temp fix until we fix all of the config files
+            if not legacySATA and disks and "scsi-SATA" in "".join(disks):
                 disks = None
-
-        if not disks:
+        if not disks and sdfallback:
             disks = string.join(map(lambda x:"sd"+chr(97+x), range(count)))
-        return string.split(disks)[:count]
-
-    def getInstallDisk(self, ccissIfAvailable=False):
-        return self._getMainDisks(ccissIfAvailable=ccissIfAvailable, count=1)[0]
-
-    def getGuestDisks(self, count=1, ccissIfAvailable=False):
-        disks = None
-        try:
-            if ccissIfAvailable:
-                disks = self.lookup(["OPTION_GUEST_DISKS", "CCISS"])
-            else:
-                disks = self.lookup(["OPTION_GUEST_DISKS", "SCSI"])
-        except:
-            pass
         if not disks:
-            disks = self.lookup("OPTION_GUEST_DISKS", None)
-
-        # REQ-35: Temp fix while we work out how to do this properly.
-        if isinstance(self, xenrt.lib.xenserver.DundeeHost) and self.isCentOS7Dom0():
-            if disks and "scsi-SATA" in "".join(disks):
-                disks = None
-
-        if disks:
-            return string.split(disks)[:count]
+            return []
         else:
-            return self._getMainDisks(count=count, ccissIfAvailable=ccissIfAvailable)
+            return string.split(disks)[:count]
+
+    def _getMainDisks(self, count, ccissIfAvailable, legacySATA):
+        return self._getDisks("OPTION_CARBON_DISKS", True, count=count, ccissIfAvailable=ccissIfAvailable, legacySATA=legacySATA)
+
+    def getInstallDisk(self, ccissIfAvailable=False, legacySATA=False):
+        return self._getMainDisks(ccissIfAvailable=ccissIfAvailable, count=1, legacySATA=legacySATA)[0]
+
+    def getGuestDisks(self, count=1, ccissIfAvailable=False, legacySATA=False):
+        disks = self._getDisks("OPTION_GUEST_DISKS", False, count=count, ccissIfAvailable=ccissIfAvailable, legacySATA=legacySATA)
+        if disks:
+            return disks
+        else:
+            return self._getMainDisks(count=count, ccissIfAvailable=ccissIfAvailable, legacySATA=legacySATA)
 
     def getContainerHost(self):
         container = self.lookup("CONTAINER_HOST", None)
@@ -6705,6 +6790,9 @@ exit 0
         except:
             pass
 
+    def createTemplateSR(self):
+        raise xenrt.XRTError("Not implemented")
+
 class NetPeerHost(GenericHost):
     """ Encapsulates a network test peer for installation"""
 
@@ -6733,6 +6821,8 @@ class GenericGuest(GenericPlace):
         self.use_ipv6 = False
         self.ipv4_disabled = False
         self.instance = None
+        self.isTemplate = False
+        self.imported = False
         xenrt.TEC().logverbose("Creating %s instance." % (self.__class__.__name__))
 
     def populateSubclass(self, x):
@@ -6748,23 +6838,29 @@ class GenericGuest(GenericPlace):
         x.tailored = self.tailored
         x.reservedIP = self.reservedIP
         x.instance = self.instance
+        x.isTemplate = self.isTemplate
+        x.imported = self.imported
 
     def getDeploymentRecord(self):
-        ret = {"access": {"vmname": self.getName(),
-                          "ipaddress": self.getIP()}, "os": {}}
-        if self.windows:
-            ret['access']['username'] = "Administrator"
-            ret['access']['password'] = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS",
+        if self.isTemplate:
+            ret = {"access": {"templatename": self.getName()}, "os": {}}
+        else:
+            ret = {"access": {"vmname": self.getName(),
+                              "ipaddress": self.getIP()}, "os": {}}
+        if not self.imported:
+            if self.windows:
+                ret['access']['username'] = "Administrator"
+                ret['access']['password'] = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS",
                                                             "ADMINISTRATOR_PASSWORD"],
                                                             "xensource")
-            ret['os']['family'] = "windows"
-            ret['os']['version'] = self.distro
-        else:
-            ret['access']['username'] = "root"
-            ret['access']['password'] = "xenroot"
-            ret['os']['family'] = "linux"
-            arch = self.arch or "x86-32"
-            ret['os']['version'] = "%s_%s" % (self.distro, arch)
+                ret['os']['family'] = "windows"
+                ret['os']['version'] = self.distro
+            else:
+                ret['access']['username'] = "root"
+                ret['access']['password'] = "xenroot"
+                ret['os']['family'] = "linux"
+                arch = self.arch or "x86-32"
+                ret['os']['version'] = "%s_%s" % (self.distro, arch)
         if self.host:
             ret['host'] = self.host.getName()
         else:
@@ -7337,18 +7433,16 @@ class GenericGuest(GenericPlace):
 
             isDebian = isDebian and not isUbuntu
 
+            if (isUbuntu or isDebian) and "tailor_apt_source" in self.special:
+                self.execguest("sed -i s/10\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*/%s/ /etc/apt/sources.list" % xenrt.TEC().lookup("XENRT_SERVER_ADDRESS"))
+                del self.special['tailor_apt_source']
+
             if isUbuntu:
                 # change the TMPTIME so /tmp doesn't get cleared away on
                 # every reboot
 
                 self.execguest("sed -i 's/TMPTIME=0/TMPTIME=-1/g' /etc/default/rcS")
 
-                # Remove the repositories we don't mirror from the apt list
-                self.execguest("sed -i '/backports/d' /etc/apt/sources.list")
-                self.execguest("sed -i '/security/d' /etc/apt/sources.list")
-                self.execguest("sed -i '/multiverse/d' /etc/apt/sources.list")
-                self.execguest("sed -i '/universe/d' /etc/apt/sources.list")
-                self.execguest("sed -i '/deb-src/d' /etc/apt/sources.list")
                 self.execguest("cat /etc/apt/sources.list")
                 self.execguest("apt-get update")
 
@@ -7360,7 +7454,7 @@ class GenericGuest(GenericPlace):
                 debVer = float(re.match(r"\d+(\.\d+)?", debVer).group(0))
                 if debVer < 5.0:
                     # Pre-Lenny, may have to use a cacher
-                    apt_cacher = xenrt.TEC().lookup("APT_CACHER", None)
+                    apt_cacher = "%s/debarchive" % xenrt.TEC().lookup("APT_SERVER")
                 if apt_cacher:
                     filebase = "/etc/apt/sources.list"
                     if self.execguest("test -e %s.orig" % (filebase),
@@ -7467,8 +7561,6 @@ class GenericGuest(GenericPlace):
                         sftp.copyTo(fn, filebase)
 
                 try:
-                    # The apt-cacher bzip2 files seem to be broken, so force use the gzip packages
-                    self.execguest("apt-get remove -y bzip2")
                     data = self.execguest("apt-get update")
                 except:
                     # If apt-get commands fail, wait a bit and retry.
@@ -7513,6 +7605,10 @@ class GenericGuest(GenericPlace):
                 if self.execcmd('test -e /etc/redhat-release', retval="code") == 0:
                     if not self.updateYumConfig(self.distro, self.arch):
                         xenrt.TEC().warning('Failed to specify XenRT yum repo for %s, %s' % (self.distro, self.arch))
+                    updateTo = self.special.get("UpdateTo")
+                    if updateTo:
+                        del self.special['UpdateTo']
+                        self.updateLinux(updateTo)
 
                 # These are RPMs statically configured for this distro
                 rpmdir = "%s/guestrpms/%s/%s" % \
@@ -7639,9 +7735,8 @@ class GenericGuest(GenericPlace):
                                  "< /etc/sysctl.conf.orig > /etc/sysctl.conf; "
                                  "echo 1 > /proc/sys/kernel/sysrq; ")
                     else:
-                        self.execguest("echo 'kernel.sysrq = 1' >> /etc/sysctl.conf;"
-                                   "echo 1 > /proc/sys/kernel/sysrq; "
-                                   "fi")
+                        self.execguest("echo 'kernel.sysrq = 1' >> /etc/sysctl.conf")
+                        self.execguest("echo 1 > /proc/sys/kernel/sysrq")
             except:
                 xenrt.TEC().warning("Error enabling syslog in %s" %
                                     (self.getName()))
@@ -7768,8 +7863,7 @@ class GenericGuest(GenericPlace):
                       pxe=True,
                       extrapackages=None,
                       options={},
-                      start=True,
-                      installXenToolsInPostInstall=False):
+                      start=True):
         if re.search("sles", distro) or re.search("suse", distro):
             self.installSLES(distro,
                              repository,
@@ -7778,8 +7872,7 @@ class GenericGuest(GenericPlace):
                              pxe=pxe,
                              extrapackages=extrapackages,
                              options=options,
-                             start=start,
-                             installXenToolsInPostInstall=installXenToolsInPostInstall)
+                             start=start)
         elif re.search("debian|ubuntu", distro):
             self.installDebian(distro,
                                repository,
@@ -7788,8 +7881,7 @@ class GenericGuest(GenericPlace):
                                pxe=pxe,
                                extrapackages=extrapackages,
                                options=options,
-                               start=start,
-                               installXenToolsInPostInstall=installXenToolsInPostInstall)
+                               start=start)
         elif re.search("solaris", distro):
             self.installSolaris(distro,
                                 repository,
@@ -7798,8 +7890,7 @@ class GenericGuest(GenericPlace):
                                 pxe=pxe,
                                 extrapackages=extrapackages,
                                 options=options,
-                                start=start,
-                                installXenToolsInPostInstall=installXenToolsInPostInstall)
+                                start=start)
         else:
             self.installRHEL(distro,
                              repository,
@@ -7808,8 +7899,7 @@ class GenericGuest(GenericPlace):
                              pxe=pxe,
                              extrapackages=extrapackages,
                              options=options,
-                             start=start,
-                             installXenToolsInPostInstall=installXenToolsInPostInstall)
+                             start=start)
 
     def installSolaris(self,
                        distro,
@@ -7819,8 +7909,7 @@ class GenericGuest(GenericPlace):
                        pxe,
                        extrapackages=None,
                        options={},
-                       start=True,
-                       installXenToolsInPostInstall=False):
+                       start=True):
         """Network install of HVM Solaris into this guest."""
 
         #PR-1089: solaris must not use the viridian flag
@@ -7886,9 +7975,6 @@ class GenericGuest(GenericPlace):
             signaldir = nfsdir.getMountURL("")
             vars["SIGNALDIR"] = signaldir
             vars["EXTRAPOSTINSTALL"] = ""
-
-            if installXenToolsInPostInstall:
-                vars["EXTRAPOSTINSTALL"] = "mkdir /xs && mount /dev/xvdd /xs && /xs/Linux/install.sh -n && reboot"
 
             for v in vars.keys():
                 ay = string.replace(ay, "%%%s%%" % (v), vars[v])
@@ -8013,8 +8099,7 @@ class GenericGuest(GenericPlace):
                     pxe,
                     extrapackages=None,
                     options={},
-                    start=True,
-                    installXenToolsInPostInstall=False):
+                    start=True):
         """Network install of HVM SLES into this guest."""
         nfsdir = xenrt.NFSDirectory()
         vifname, bridge, mac, c = self.vifs[0]
@@ -8029,8 +8114,7 @@ class GenericGuest(GenericPlace):
                             ethDevice="eth0",
                             extraPackages=extrapackages,
                             kickStartExtra=None,
-                            ossVG=False,
-                            installXenToolsInPostInstall=installXenToolsInPostInstall)
+                            ossVG=False)
         ay=ks.generate()
         filename = "%s/autoyast.xml" % (xenrt.TEC().getLogdir())
         f=file(filename,"w")
@@ -8157,8 +8241,7 @@ class GenericGuest(GenericPlace):
                     pxe=True,
                     extrapackages=None,
                     options={},
-                    start=True,
-                    installXenToolsInPostInstall=False):
+                    start=True):
         """Network install of HVM RHEL into this guest."""
         # Create an NFS directory for the installer to signal completion
         nfsdir = xenrt.NFSDirectory()
@@ -8171,11 +8254,8 @@ class GenericGuest(GenericPlace):
             else:
                 maindisk="hda"
                 if distro:
-                    if distro.startswith("rhel") and int(distro[4:5]) >= 6:
-                        maindisk="xvda"
-                    if distro.startswith("centos") and int(distro[6:7]) >= 6:
-                        maindisk="xvda"
-                    if distro.startswith("oel") and int(distro[3:4]) >= 6:
+                    m = re.match("(rhel|centos|oel|sl)[dw]?(\d)\d*", distro)
+                    if (m and int(m.group(2)) >= 6) or distro.startswith("fedora"):
                         maindisk="xvda"
         else:
             ethDevice = vifname
@@ -8199,8 +8279,7 @@ class GenericGuest(GenericPlace):
                               ethDevice=ethDevice,
                               pxe=pxe,
                               extraPackages=extrapackages,
-                              ossVG=False,
-                              installXenToolsInPostInstall=installXenToolsInPostInstall)
+                              ossVG=False)
         ks=ksf.generate()
         vifname, bridge, mac, c = self.vifs[0]
         filename = "%s/kickstart.cfg" % (xenrt.TEC().getLogdir())
@@ -8266,7 +8345,8 @@ class GenericGuest(GenericPlace):
             pxecfg.linuxArgsKernelAdd("ksdevice=%s" % (ethDevice))
             pxecfg.linuxArgsKernelAdd("initrd=%s" %
                                       (pxe.makeBootPath("initrd.img")))
-            if distro.startswith("oel7") or distro.startswith("centos7") or distro.startswith("rhel7"):
+
+            if distro.startswith("oel7") or distro.startswith("centos7") or distro.startswith("rhel7") or distro.startswith("sl7") or distro.startswith("fedora"):
                 pxecfg.linuxArgsKernelAdd("inst.repo=%s" % repository)
                 pxecfg.linuxArgsKernelAdd("console=tty0")
                 pxecfg.linuxArgsKernelAdd("console=hvc0")
@@ -8439,8 +8519,7 @@ class GenericGuest(GenericPlace):
                       pxe,
                       extrapackages=None,
                       options={},
-                      start=True,
-                      installXenToolsInPostInstall=False):
+                      start=True):
         """Network install of Debian into this guest."""
         if method != "HTTP" and method != "CDROM":
             raise xenrt.XRTError("%s install not supported" % (method))
@@ -8460,8 +8539,7 @@ class GenericGuest(GenericPlace):
                              ethDevice="eth0",
                              extraPackages=extrapackages,
                              ossVG=False,
-                             arch=arch,
-                             installXenToolsInPostInstall=installXenToolsInPostInstall)
+                             arch=arch)
 
 
         ps.generate()
@@ -8496,18 +8574,30 @@ class GenericGuest(GenericPlace):
 
             arch = "amd64" if "64" in self.arch else "i386"
             xenrt.TEC().logverbose("distro: %s | repository: %s | filename: %s" % (distro, repository, filename))
-            if re.search("ubuntu", distro):
-                release = re.search("Ubuntu/(\d+)/", repository).group(1)
+            m = re.search("ubuntu(.+)", distro)
+            if m:
+                release = m.group(1)
                 if release == "1004":
                     _url = repository + "/dists/lucid/"
                 elif release == "1204":
                     _url = repository + "/dists/precise/"
                 elif release == "1404":
                     _url = repository + "/dists/trusty/"
+                elif release == "devel":
+                    _url = repository + "/dists/devel/"
                 boot_dir = "main/installer-%s/current/images/netboot/ubuntu-installer/%s/" % (arch, arch)
             else:
-                release = re.search("Debian/(\w+)/", repository).group(1)
-                _url = repository + "/dists/%s/" % (release.lower(), )
+                if distro == "debian50":
+                    release = "lenny"
+                elif distro == "debian60":
+                    release = "squeeze"
+                elif distro == "debian70":
+                    release = "wheezy"
+                elif distro == "debian80":
+                    release = "jessie"
+                elif distro == "debiantesting":
+                    release = "testing"
+                _url = repository + "/dists/%s/" % (release)
                 boot_dir = "main/installer-%s/current/images/netboot/debian-installer/%s/" % (arch, arch)
 
             # Pull boot files from HTTP repository
@@ -9067,6 +9157,9 @@ class GenericGuest(GenericPlace):
             self.execguest("echo '    'address %s >> /etc/network/interfaces" % ipv6Addr)
             self.execguest("echo '    'netmask %s >> /etc/network/interfaces" % netmask)
             self.execguest("echo '    'gateway %s >> /etc/network/interfaces" % gateway)
+            # Note that we change the IP before the reboot. This is fine for toolstacks that have an out of band soft reboot
+            # mechanism, but may fail if we need to SSH to the guest to perform the reboot
+            self.mainip = ipv6Addr
             self.reboot()
             xenrt.sleep(10)
             try:
@@ -9166,6 +9259,54 @@ class GenericGuest(GenericPlace):
             raise xenrt.XRTFailure("More than 1 GPU detected for vm %s" % (self.getName()))
 
         return gpuMake
+
+    def installIntelGPUDriver(self):
+        """This function installs the Intel Iris and HD Graphics Driver on Windows guest 7/8/8.1"""
+
+        xenrt.TEC().logverbose("Installing Intel Iris and HD Graphics Driver on guest %s" %
+                                                                                self.getName())
+
+        if not self.windows:
+            raise xenrt.XRTError("Intel Iris and HD Graphics Driver is only available for Windows guests.")
+
+        currentVersion = xenrt.TEC().lookup("INTEL_GPU_DRIVER_VERSION", None)
+        if not currentVersion:
+            raise xenrt.XRTError("The current Intel Iris and HD Graphics Driver version is not described")
+
+        tarBall = "intelgpudriver.tgz"
+        if self.xmlrpcGetArch() == "amd64":
+            fileName = "win64_%s.exe" % currentVersion
+        else:
+            fileName = "win32_%s.exe" % currentVersion
+
+        urlPrefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
+        url = "%s/intelgpudriver/%s" % (urlPrefix, fileName)
+        installFile = xenrt.TEC().getFile(url)
+        if not installFile:
+            raise xenrt.XRTError("Failed to fetch Intel Iris and HD Graphics Driver from distmaster.")
+
+        tempDir = xenrt.TEC().tempDir()
+        xenrt.command("cp %s %s" % (installFile, tempDir))
+        xenrt.command("cd %s && tar -cvf %s %s" %
+                      (tempDir, tarBall, fileName))
+        self.xmlrpcSendFile("%s/%s" % (tempDir,tarBall),"c:\\%s" % tarBall)
+
+        self.xmlrpcExtractTarball("c:\\%s" % tarBall,"c:\\")
+
+        returncode = self.xmlrpcExec("c:\\%s /s /noreboot" % (fileName),
+                                      level=xenrt.RC_OK, returnerror=False, returnrc=True,
+                                      timeout = 600)
+
+        # Wait for some time to settle down with driver installer.
+        xenrt.sleep(30)
+
+        if returncode == 0:
+            xenrt.TEC().logverbose("Intel Iris and HD Graphics Driver installation successful")
+            # Because of /noreboot option, the setup may require guest reboot.
+            self.reboot()
+        else:
+            raise xenrt.XRTError("Intel Iris and HD Graphics Driver installation failed! (return code = %d)" %
+                                                                                                    (returncode,))
 
     def installGPUDriver(self):
 
@@ -9344,6 +9485,104 @@ sleep (3000)
             if self.xmlrpcDirExists(targetPath):
                 self.xmlrpcDelTree(targetPath)
 
+    def isGPUBeingUtilized(self, gpuType):
+        """Find if a GPU is being utilized on a linux vm.
+        Designed for use with Ubuntu1404, RHEL7, OEL7, CentOS7.
+        Raises XRTError if used with a different distro, although older versions of above fail gracefully.
+        @param gpuType: The brand of the GPU which should be checked against. eg. "NVIDIA"
+        @rtype: boolean
+        """
+
+        def findPciID(componentList):
+            """Find the pciid from the lspci output components list."""
+            pciid = None
+            for line in componentList.splitlines():
+                if "VGA" in line:
+                    pciid = componentList.split(" ")[0]
+                    break
+            return pciid
+
+        def isKernelDriverInUse(lspciOut):
+            """Parse the input to figure out if Kernel Driver in use from lspci output."""
+            # Check if "Kernel driver in use: " is in second last line.
+            loLastLine = [line for line in lspciOut.splitlines()][-2]
+            xenrt.TEC().logverbose("Output last line: %s" % loLastLine)
+
+            if "Kernel driver in use: " not in loLastLine:
+                return False # No kernel driver in use, ie. GPU not utilized.
+            return True
+
+        def isGPUClaimed(xml):
+            root = ET.fromstring(xml)
+            desiredNode = None
+            for child in root:
+                if child.attrib["handle"].endswith(pciid):
+                    desiredNode = child
+                    break
+
+            if "claimed" in desiredNode.attrib:
+                if desiredNode.attrib["claimed"] != "true":
+                    return False # GPU is unclaimed.
+            else:
+                return False
+            return True
+
+        if not gpuType:
+            return False
+
+        # List of compatible distros.
+        workingDistros = ["rhel", "centos", "oel", "ubuntu"]
+
+        self.findDistro()
+        xenrt.TEC().logverbose("Current distro is: %s" % self.distro)
+
+        if not any([self.distro.lower().startswith(d) for d in workingDistros]):
+            raise xenrt.XRTError("Function can only be used with certain linux distros. Current distro: %s. Woring distros: %s" % (self.distro, workingDistros))
+
+        # RHEL based systems need to install lspci/lshw
+        if not self.distro.lower().startswith("ubuntu"):
+            if not self.checkRPMInstalled("pciutils"):
+                self.execguest("yum -y install pciutils")
+
+            if not self.checkRPMInstalled("lshw"):
+                urlprefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
+                url = "%s/gpuDriver/PVHVM/gputools/lshw-2.17-1.el7.rf.x86_64_new.rpm" % (urlprefix)
+                installfile = xenrt.TEC().getFile(url)
+                if not installfile:
+                    raise xenrt.XRTError("Failed to fetch lshw .rpm")
+                sftp = self.sftpClient()
+                sftp.copyTo(installfile, "/tmp/%s" % (os.path.basename(installfile)))
+                sftp.close()
+
+                self.execguest("yum -y install /tmp/lshw-2.17-1.el7.rf.x86_64_new.rpm")
+
+        # Check if the GPU of given type is present.
+        try:
+            componentList = self.execguest("lspci | grep -i %s" % gpuType)
+        except:
+            xenrt.TEC().logverbose("Could not find any devices of the given name: %s" % gpuType)
+            return False
+
+        # Identify pciid of GPU.
+        # Sample output to parse: "0:00.0 VGA|Audio ... NVIDIA|AMD|Intel"
+        pciid = findPciID(componentList)
+        if not pciid:
+            xenrt.TEC().logverbose("Could not find any graphics devices of the given name: %s" % gpuType)
+            return False
+
+        lspciOut = self.execguest("lspci -v -s %s" % pciid)
+        inUse = isKernelDriverInUse(lspciOut)
+        if not inUse:
+            return False
+                
+        xml = self.execguest("lshw -xml -c video")
+        claimed = isGPUClaimed(xml)
+        if not claimed:
+            return False
+
+        # Both tests for the GPU being utilized passed.
+        return True
+
     def diskWriteWorkLoad(self,timeInsecs,FileNameForTimeDiff=None):
 
         def getScriptToBeExecuted(timeInsecs,FileNameToBeWritten,FileNameForTimeDiff,vmName):
@@ -9390,6 +9629,59 @@ while True:
                FileNameForTimeDiff = 'writetime.txt'
            FileNameToBeWritten = 'test'
            script = getScriptToBeExecuted(timeInsecs,FileNameToBeWritten,FileNameForTimeDiff,self.getName())
+
+    def installPVHVMNvidiaGpuDrivers(self):
+        if not self.verifyGuestAsPVHVM():
+            raise xenrt.XRTError("This GPU drivers are for PVHVM guests only")
+
+        #guestArch=self.execguest("uname -p")
+        xenrt.log("Guest distro is %s"%self.distro)
+        xenrt.log("Guest arch is %s"%self.arch)
+
+        if "64" in (self.arch or "") or "-64" in self.distro:
+            drivername=xenrt.TEC().lookup("PVHVM_GPU_NVIDIA_X64")
+        else :
+            drivername=xenrt.TEC().lookup("PVHVM_GPU_NVIDIA_X86")
+
+        #Get the file and put it into the VM
+        urlprefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
+        url = "%s/gpuDriver/PVHVM/%s" % (urlprefix, drivername)
+        installfile = xenrt.TEC().getFile(url)
+        if not installfile:
+            raise xenrt.XRTError("Failed to fetch PVHVM GPU NVidia driver.")
+        sftp = self.sftpClient()
+        sftp.copyTo(installfile, "/%s" % (os.path.basename(installfile)))
+        sftp.close()
+
+        #Call guest methods to install drivers
+        if self.distro.startswith("ubuntu"):
+            self.installUbuntuGpuDrivers(drivername)
+        else :
+            self.installRhelGpuDrivers(drivername)
+
+    def installUbuntuGpuDrivers(self ,drivername):
+        self.execcmd("echo 'blacklist nouveau' >> /etc/modprobe.d/blacklist.conf ")
+        self.execcmd("echo 'blacklist nvidiafb' >> /etc/modprobe.d/blacklist.conf ")
+        self.execcmd("sudo apt-get remove --purge nvidia*")
+        self.execcmd("sudo update-initramfs -u")
+        self.reboot()
+        self.execcmd("sh /./%s --silent" %(drivername))
+        self.reboot()
+        
+    def installRhelGpuDrivers(self,drivername):
+        self.execcmd("sed -i 's/GRUB_CMDLINE_LINUX.*\s[a-z,A_Z,0-9]*/& rdblacklist=nouveau/' /etc/default/grub")
+        self.execcmd("grub2-mkconfig -o /boot/grub2/grub.cfg")
+        self.execcmd("echo 'blacklist nouveau' >> /etc/modprobe.d/blacklist.conf ")
+        self.execcmd("echo 'blacklist nvidiafb' >> /etc/modprobe.d/blacklist.conf ")
+        self.execcmd("echo 'blacklist nouveau' >> /etc/modprobe.d/disable-nouveau.conf ")
+        self.execcmd("echo 'options nouveau modeset=0' >> /etc/modprobe.d/disable-nouveau.conf ")
+        self.reboot()
+        self.execcmd("sh /./%s --silent" %(drivername))
+        self.reboot()
+
+    def verifyGuestAsPVHVM(self):
+
+        return self.paramGet("HVM-boot-policy") == "BIOS order" and self.paramGet("PV-bootloader") == ""
 
     def diskReadWorkload(self,timeInsecs,fileNameForTimeDiff=None):
 
@@ -9585,14 +9877,12 @@ while True:
         return self.instance
 
     def installPackages(self, packageList):
-        self.enablePublicRepository(doUpdateOnSuccess=False)
-        self.setAptCacheProxy(doUpdateOnSuccess=False)
         packages = " ".join(packageList)
         try:
             if "deb" in self.distro or "ubuntu" in self.distro:
                 self.execguest("apt-get update", level=xenrt.RC_OK)
                 self.execguest("apt-get -y --force-yes install %s" % packages)
-            elif "rhel" in self.distro or "centos" in self.distro or "oel" in self.distro:
+            elif "rhel" in self.distro or "centos" in self.distro or "oel" in self.distro or "fedora" in self.distro:
                 self.execguest("yum install -y %s" % packages)
             elif "sles" in self.distro:
                 self.execguest("zypper -n --non-interactive install %s" % packages)
@@ -9600,45 +9890,6 @@ while True:
                 raise xenrt.XRTError("Not Implemented")
         except Exception, e:
             raise xenrt.XRTError("Failed to install packages '%s' on guest %s : %s" % (packages, self, e))
-        self.disablePublicRepository()
-
-    def enablePublicRepository(self, doUpdateOnSuccess=True):
-        try:
-            if "deb" in self.distro or "ubuntu" in self.distro:
-                self.execguest("cp /etc/apt/sources.list /etc/apt/sources.list.orig -n")
-                repoFile = xenrt.TEC().lookup("XENRT_BASE") + xenrt.TEC().lookup("XENRT_LINUX_REPO_LISTS", "/data/linuxrepolist/") + self.distro
-                repoFileContent = xenrt.command("cat %s" % repoFile)
-                self.execguest("echo '%s' >> /etc/apt/sources.list" % repoFileContent, newlineok=True)
-                if doUpdateOnSuccess:
-                    self.execguest("apt-get update")
-            else:
-                raise xenrt.XRTError("Not Implemented")
-        except Exception, e:
-            xenrt.TEC().warning("Failed to add public Repositories: %s" % e)
-
-    def setAptCacheProxy(self, doUpdateOnSuccess=True):
-        try:
-            aptProxy = None
-            if "deb" in self.distro:
-                aptProxy = xenrt.TEC().lookup("APT_PROXY_DEBIAN", None)
-            elif "ubuntu" in self.distro:
-                aptProxy = xenrt.TEC().lookup("APT_PROXY_UBUNTU", None)
-            if aptProxy:
-                self.execguest("echo 'Acquire::http { Proxy \"http://%s\"; };' > /etc/apt/apt.conf.d/02proxy" % aptProxy)
-                if doUpdateOnSuccess:
-                    self.execguest("apt-get update")
-        except Exception, e:
-            xenrt.TEC().warning("Failed to add apt-cache proxy server: %s" % e)
-
-    def disablePublicRepository(self):
-        try:
-            if "deb" in self.distro or "ubuntu" in self.distro:
-                self.execguest("cat /etc/apt/sources.list.orig > /etc/apt/sources.list")
-                self.execguest("apt-get update")
-            else:
-                raise xenrt.XRTError("Not Implemented")
-        except Exception, e:
-            xenrt.TEC().warning("Failed to reset Repositories: %s" % e)
 
     def xenDesktopTailor(self):
         # Optimizations from CTX125874, excluding Windows crash dump (because we want them) and IE (because we don't use it)
@@ -9682,6 +9933,25 @@ while True:
         self.paramSet("platform:monitor", "null")
         self.paramSet("platform:parallel", "none")
         self.start()
+
+    def checkRPMInstalled(self, rpm):
+        """
+        Check if a specific rpm is installed
+        @param rpm: the rpm name including or excluding the extension '.rpm'
+        @type rpm: string
+        @return If the rpm provided is installed already
+        @rtype boolean
+        """
+        if self.windows:
+            raise XRTError("Function can only be used to check for installed RPMs on linux.")
+
+        #rpm should NOT contain file extn .rpm, so split off any file extension
+        fileWithoutExt = os.path.splitext(rpm)[0]
+
+        return not bool(self.execguest("rpm -qi %s" % fileWithoutExt, retval="code", level=xenrt.RC_OK))
+
+    def installDrivers(self):
+        pass
 
 class EventObserver(xenrt.XRTThread):
 
@@ -9837,7 +10107,7 @@ class EventObserver(xenrt.XRTThread):
         else:
             raise xenrt.XRTError("Session is already closed")
 
-class PAMServer:
+class PAMServer(object):
 
     def createSubjectGraph(self, subjects):
         def parseUser(x, group=None):
@@ -10033,7 +10303,7 @@ class PAMServer:
         for subject in self.groups:
             subject.getMembers()
 
-class ActiveDirectoryServer:
+class ActiveDirectoryServer(object):
 
     def createSubjectGraph(self, subjects):
         def parseUser(x, group=None):
@@ -10375,6 +10645,8 @@ write $computers.psbase.get_Children()
         self.place.password = password
         self.domainname = domainname
         self.netbiosname = None
+        self.forestMode = None
+        self.domainMode = None
 
         if not dontinstall:
             self.prepare()
@@ -10437,6 +10709,23 @@ write $computers.psbase.get_Children()
         # Disable the password complexity requirement so we can continue using our default.
         self.place.disableWindowsPasswordComplexityCheck()
 
+        # Set forest mode and domain mode
+        self.forestMode = xenrt.TEC().lookup("ADSERVER_FORESTMODE", "Win2008")
+        self.domainMode = xenrt.TEC().lookup("ADSERVER_DOMAINMODE", "Win2008")
+        ## DCPromo setup requires numeric value rather than windows version string.
+        if float(self.place.xmlrpcWindowsVersion()) < 6.3:
+            modeLevels = {'0':"Win2000", '2':"Win2003", '3':"Win2008", '4':"Win2008R2"}
+
+            forestLevelList = [key for key,value in modeLevels.iteritems() if value.lower() == self.forestMode.lower()]
+            if len(forestLevelList) != 1:
+                raise xenrt.XRTError("Unknown forest level : '%s' " % self.forestMode)
+            self.forestMode = forestLevelList[0]
+
+            domainLevelList = [key for key,value in modeLevels.iteritems() if value.lower() == self.domainMode.lower()]
+            if len(domainLevelList) != 1:
+                raise xenrt.XRTError("Unknown forest level : '%s' " % self.domainMode)
+            self.domainMode = domainLevelList[0]
+
         # Set up a new AD domain.
         if float(self.place.xmlrpcWindowsVersion()) < 6.3:
             self.installOnWS2008()
@@ -10456,9 +10745,9 @@ write $computers.psbase.get_Children()
 ReplicaOrNewDomain=Domain
 NewDomain=Forest
 NewDomainDNSName=%s
-ForestLevel=0
+ForestLevel=%s
 DomainNetbiosName=%s
-DomainLevel=0
+DomainLevel=%s
 InstallDNS=Yes
 ConfirmGc=Yes
 CreateDNSDelegation=No
@@ -10467,7 +10756,7 @@ LogPath="C:\Windows\NTDS"
 SYSVOLPath="C:\Windows\SYSVOL"
 SafeModeAdminPassword=%s
 RebootOnSuccess=No
-""" % (self.domainname, self.netbiosname, self.place.password)
+""" % (self.domainname, self.forestMode, self.netbiosname, self.domainMode, self.place.password)
         self.place.xmlrpcCreateFile("c:\\ad.txt", dcpromo)
         self.place.xmlrpcExec("dcpromo.exe /unattend:c:\\ad.txt\n"
                               "netsh advfirewall set domainprofile "
@@ -10489,10 +10778,10 @@ RebootOnSuccess=No
 Install-ADDSForest `
 -CreateDnsDelegation:$false `
 -DatabasePath "C:\Windows\NTDS" `
--DomainMode "Win2008" `
+-DomainMode "%s" `
 -DomainName "%s" `
 -DomainNetbiosName "%s" `
--ForestMode "Win2008" `
+-ForestMode "%s" `
 -InstallDns:$true `
 -LogPath "C:\Windows\NTDS" `
 -NoRebootOnCompletion:$true `
@@ -10500,7 +10789,7 @@ Install-ADDSForest `
 -Force:$true `
 -Confirm:$false `
 -SafeModeAdministratorPassword `
-(ConvertTo-SecureString '%s' -AsPlainText -Force) """ % (self.domainname, self.netbiosname, self.place.password)
+(ConvertTo-SecureString '%s' -AsPlainText -Force) """ % (self.domainMode, self.domainname, self.netbiosname, self.forestMode, self.place.password)
         self.place.xmlrpcExec(psscript,powershell=True,returndata=True)
         self.place.winRegAdd("HKLM",
                            "software\\microsoft\\windows nt\\currentversion\\winlogon",
@@ -10548,7 +10837,7 @@ RebootOnSuccess=Yes
             for member in group.members:
                 fd.write("  %s\n" % (member.dn))
 
-class CVSMServer:
+class CVSMServer(object):
 
     CLIPATH = '"c:\\program files\\citrix\\storagelink\\client\\csl.exe"'
 
@@ -10657,7 +10946,7 @@ class CVSMServer:
         data = self.cli('host-list')
         return uuid in data
 
-class DemoLinuxVM:
+class DemoLinuxVM(object):
     """An object to represent a Centos 5.7 based Citrix Demonstration Linux Virtual Machine"""
 
     def __init__(self, place):
@@ -10682,7 +10971,7 @@ class DemoLinuxVM:
         self.place.writeToConsole("yum -y install openssh-server\\n")
         xenrt.sleep(360)
 
-class WlbApplianceServer:
+class WlbApplianceServer(object):
     """An object to represent a WLB Appliance Server"""
 
     def __init__(self, place):
@@ -10797,7 +11086,7 @@ class WlbApplianceServer:
             raise xenrt.XRTFailure("WLB appliance not listening on expected port 8012")
 
 
-class V6LicenseServer:
+class V6LicenseServer(object):
     """An object to represent a V6 License Server"""
 
     def __init__(self, place, useEarlyRelease=None, install=True, host=None):
@@ -11112,7 +11401,7 @@ class V6LicenseServer:
 
         return totalLicenses, licenseInuse
 
-class DVSCWebServices:
+class DVSCWebServices(object):
 
     def __init__(self, place, auto = True):
         self.place = place
@@ -11820,7 +12109,7 @@ class DVSCWebServices:
                  'use_vmanager' : use_vmanager}
         self.putAsJson("netflow/%s" % pool_node['uid'], body)
 
-class XenMobileApplianceServer:
+class XenMobileApplianceServer(object):
     """An object to represent a XenMobile Appliance Server"""
 
     def __init__(self, guest):
@@ -11838,10 +12127,10 @@ class XenMobileApplianceServer:
         dns = xenrt.TEC().lookup(["NETWORK_CONFIG", "DEFAULT", "NAMESERVERS"], "").split(",")[0].strip()
 
         # choose root passwd
-        self.guest.writeToConsole("%s\\n" % xenrt.TEC().lookup("ROOT_PASSWORD"))
+        self.guest.writeToConsole("%s\\n" % self.password)
         xenrt.sleep(2)
         # retype root passwd
-        self.guest.writeToConsole("%s\\n" % xenrt.TEC().lookup("ROOT_PASSWORD"))
+        self.guest.writeToConsole("%s\\n" % self.password)
         xenrt.sleep(2)
         # type static-ip
         self.guest.writeToConsole("%s\\n" % ip)
@@ -11921,7 +12210,7 @@ class XenMobileApplianceServer:
         # Upgrade from previous release - default n
         self.guest.writeToConsole("%s\\n" % "")
 
-class ConversionApplianceServer:
+class ConversionApplianceServer(object):
     """An object to represent a Conversion Appliance Server"""
 
     def __init__(self, place):
@@ -12199,7 +12488,7 @@ class ConversionApplianceServer:
             raise xenrt.XRTError("Failed to find a management interface (PIF).")
         return mgmt
 
-class VifOffloadSettings:
+class VifOffloadSettings(object):
 
     # The {4D36E972-E325-11CE-BFC1-08002BE10318} subkey represents the class of network adapter devices that the system supports. This will never change.
     REG_KEY_STEM = 'SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E972-E325-11CE-BFC1-08002BE10318}\\'

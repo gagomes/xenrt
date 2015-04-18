@@ -1,12 +1,12 @@
 from app import XenRTPage
 from server import PageFactory
 
-import app.constants
+import app.constants, app.db
 
 import config
 
 import string
-from pyramid.httpexceptions import HTTPServiceUnavailable
+from pyramid.httpexceptions import *
 import requests
 
 class XenRTAPIPage(XenRTPage):
@@ -210,7 +210,8 @@ class XenRTAPIPage(XenRTPage):
             qrystr = "WHERE %s" % string.join(qry, " AND ")
         sql = """SELECT m.machine, m.site, m.cluster, m.pool, m.status,
                         m.resources, m.flags, m.descr, m.comment, m.leaseTo,
-                        m.jobid, m.leasefrom, m.leasereason
+                        m.jobid, m.leasefrom, m.leasereason,
+                        COALESCE(m.prio, (SELECT 5 FROM tblmachinedata d WHERE d.key='RESTRICTION' AND d.machine=m.machine), 3) prio
                  FROM tblMachines m %s ORDER BY machine;""" % (qrystr)
         cur = db.cursor()
         cur.execute(sql, params)
@@ -360,34 +361,8 @@ class XenRTAPIPage(XenRTPage):
             finally:
                 cur.close()
     
-    def isDBMaster(self):
-        try:
-            readDB = app.db.dbReadInstance()
-            readLoc = self.getReadLocation(readDB)
-            if not readLoc:
-                if not config.partner_ha_node:
-                    return "This node is connected to the master database - no partner node exists to check for split brain"
-                try:
-                    r = requests.get("http://%s/xenrt/api/dbchecks/takeovertime" % config.partner_ha_node)
-                    r.raise_for_status()
-                    remote_time = int(r.text.strip())
-                except Exception, e:
-                    return "This node is connected the master database - partner does not seem to be the master database - %s" % str(e)
-                cur = readDB.cursor()
-                cur.execute("SELECT value FROM tblconfig WHERE param='takeover_time'")
-                local_time = int(cur.fetchone()[0].strip())
-                if local_time > remote_time:
-                    return "This node is connected the master database - remote is talking to a writable database, but local database is newer"
-                else:
-                    print "This node is connected to a writable database, but remote database is newer"
-                    raise HTTPServiceUnavailable()
-            else:
-                return None
-        finally:
-            readDB.rollback()
-            readDB.close()
-
-        
+    def isDBMaster(self, returnDetail=False):
+        return app.db.isDBMaster(returnDetail)
 
 class XenRTLogServer(XenRTAPIPage):
     def render(self):
@@ -401,8 +376,8 @@ class DumpHeaders(XenRTAPIPage):
         return out
 
 
-PageFactory(XenRTLogServer, "logserver", "/api/logserver", compatAction="getlogserver")
-PageFactory(DumpHeaders, "dumpheaders", "/api/dumpheaders")
+PageFactory(XenRTLogServer, "/api/logserver", compatAction="getlogserver")
+PageFactory(DumpHeaders, "/api/dumpheaders")
 
 import app.api.jobs
 import app.api.sites

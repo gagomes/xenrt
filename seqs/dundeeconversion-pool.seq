@@ -1,7 +1,6 @@
 <xenrt>
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
-    <ENABLE_CITRIXCERT>yes</ENABLE_CITRIXCERT>
   </variables>
   <prepare>
     <pool>

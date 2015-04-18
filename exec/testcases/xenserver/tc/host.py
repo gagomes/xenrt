@@ -914,17 +914,12 @@ class TC8341(xenrt.TestCase):
     def getMountCount(self, max=False):
         if max: pattern = "Maximum mount count"
         else: pattern = "Mount count"
-        count = int(self.host.execdom0("tune2fs -l %s | "
-                                      "grep '%s' | "
-                                      "cut -d ':' -f 2" % 
-                                      (self.rootdisk, pattern)).strip())
+        cmd = "tune2fs -l %s | grep '%s' | cut -d ':' -f 2"
+        count = int(self.host.execdom0(cmd % (self.rootdisk, pattern)).strip())
         if max and count <= 0:
             xenrt.TEC().logverbose("Maximum mount count was %d. Changing it to 30 for tests." % count)
             self.host.execdom0("tune2fs -c 30 %s" % self.rootdisk)
-            count = int(self.host.execdom0("tune2fs -l %s | "
-                                      "grep '%s' | "
-                                      "cut -d ':' -f 2" % 
-                                      (self.rootdisk, pattern)).strip())
+            count = int(self.host.execdom0(cmd % (self.rootdisk, pattern)).strip())
             if count != 30:
                 raise xenrt.XRTError("Failed to change 'Maximum mount count' to 30.")
 
@@ -1772,7 +1767,7 @@ class TC9995(TC9993):
     """Stress test system with large number of VIFs while SNMP daemon is processing queries"""
 
     NUMBER_VMS = 10
-    MEMORY = 128
+    MEMORY = 256
     ITERATIONS = 2 
     CLITIMEOUT = 1800
     ALLOWED_DIFF = 0.1 # 10%
@@ -2385,8 +2380,10 @@ class TC21632(_TCHostPowerON):
         # Get the OpenManage Supplemental Pack from distmaster and install.
         master.execdom0("wget -nv '%sdellomsupppack.tgz' -O - | tar -zx -C /tmp" %
                                                 (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
-
-        dellomSupppack = "dellomsupppack-%s.iso" % master.productVersion.lower().strip()
+        productVersion = master.productVersion.lower().strip()
+        if productVersion == 'cream':
+            productVersion = 'creedence'
+        dellomSupppack = "dellomsupppack-%s.iso" % productVersion
         master.execdom0("mv /tmp/dellomsupppack/%s /root" % dellomSupppack)
 
         if self.UNSATISFIED_DEPENDENCY:
@@ -2485,7 +2482,40 @@ class TC10814(TC10181):
             if not r:
                 raise xenrt.XRTFailure("power-on-mode not shown correctly in "
                                        "host params")
-            
+
+class TC26941(xenrt.TestCase):
+    """Test that the list of templates matches the expected list"""
+
+    def run(self, arglist=None):
+        host = self.getDefaultHost()
+        version = host.productVersion
+
+        hostTemplates = host.minimalList("template-list", params="name-label", args="other-config:default_template=true")
+        # The expected templates are the first entry in the list of templates for the host's XenServer version
+        expectedTemplates = [xenrt.TEC().lookup(["VERSION_CONFIG", version, x]).split(",")[0] for x in xenrt.TEC().lookup(["VERSION_CONFIG", version]).keys() if x.startswith("TEMPLATE_") and xenrt.TEC().lookup(["VERSION_CONFIG", version, x])]
+
+        missing = []
+        unexpected = []
+
+        for t in expectedTemplates:
+            if t not in hostTemplates:
+                missing.append(t)
+        
+        for t in hostTemplates:
+            if t not in expectedTemplates:
+                unexpected.append(t)
+
+        failure = []
+        if missing:
+            failure.append("Template(s) %s missing from host" % ", ".join(missing))
+        if unexpected:
+            failure.append("Template(s) %s on host are unexpected" % ", ".join(unexpected))
+
+        if failure:
+            raise xenrt.XRTFailure(" and ".join(failure))
+
+
+
 class _TemplateExists(xenrt.TestCase):
     """Check a specific template exists or doesn't exist."""
 
@@ -4841,6 +4871,121 @@ class TCDom0Checksums(xenrt.TestCase):
         f = open("%s/md5sums.txt" % (xenrt.TEC().getLogdir()), "w")
         f.write(out)
         f.close()
+
+class TCDiffChecksums(xenrt.TestCase):
+    def run(self, arglist):
+        logdir = xenrt.TEC().getLogdir()
+        logServer = xenrt.TEC().lookup("LOG_SERVER")
+        jobid = xenrt.GEC().jobid()
+
+        # Retrieve the checksum files
+        xenrt.command("wget -O %s/original.txt http://%s/xenrt/logs/job/%d/IsoRepack/TCOriginalChecksums/binary/md5sums.txt" % (logdir, logServer, jobid))
+        xenrt.command("wget -O %s/repacked.txt http://%s/xenrt/logs/job/%d/IsoRepack/TCRepackedChecksums/binary/md5sums.txt" % (logdir, logServer, jobid))
+        xenrt.command("wget -O %s/hotfixed.txt http://%s/xenrt/logs/job/%d/IsoRepack/TCHotfixedChecksums/binary/md5sums.txt" % (logdir, logServer, jobid))
+
+        # Filter each file to remove known volatile entries
+        self.filterChecksums("%s/original.txt" % logdir)
+        self.filterChecksums("%s/repacked.txt" % logdir)
+        self.filterChecksums("%s/hotfixed.txt" % logdir)
+
+        # Output the diffs
+        self.diff("original", "repacked", "originalVsRepacked.txt")
+        self.diff("original", "hotfixed", "originalVsHotfixed.txt")
+        self.diff("repacked", "hotfixed", "repackedVsHotfixed.txt")
+
+    def filterChecksums(self, checksumFile):
+        f = open(checksumFile, "r")
+        entries = f.read().splitlines()
+        f.close()
+        filteredEntries = []
+        for e in entries:
+            es = e.split()
+            path = es[1]
+            if path in ["/boot/ldlinux.sys", "/etc/adjtime", "/etc/fstab",
+                        "/etc/issue", "/etc/mtab", "/etc/ntp.conf.predhclient",
+                        "/etc/openvswitch/conf.db", "/etc/xensource/boot_time_cpus",
+                        "/etc/xensource-inventory", "/etc/xensource/ptoken",
+                        "/etc/xensource/xapi-ssl.pem", "/var/lib/likewise/db/registry.db",
+                        "/var/lib/nfs/statd/state", "/var/lib/ntp/drift",
+                        "/var/lib/random-seed"]:
+                continue
+
+            if any([path.startswith(sw) for sw in ["/boot/initrd", "/etc/blkid/blkid",
+                                                   "/etc/firstboot.d/data/", "/etc/firstboot.d/state/",
+                                                   "/etc/lvm/backup/", "/etc/lvm/cache/", "/etc/ssh/ssh_host_",
+                                                   "/etc/sysconfig/network-scripts/interface-rename-data/",
+                                                   "/var/run/", "/var/xapi/"]]):
+                continue
+            filteredEntries.append(e)
+        f = open(checksumFile, "w")
+        f.write("\n".join(filteredEntries))
+        f.close()
+
+    def diff(self, a, b, output):
+        logdir = xenrt.TEC().getLogdir()
+        diff = xenrt.command("diff -u %s/%s.txt %s/%s.txt" % (logdir, a, logdir, b), ignoreerrors=True)
+        f = open("%s/%s" % (logdir, output), "w")
+        f.write(diff)
+        f.close()
+        xenrt.TEC().logverbose("%s vs %s host diff at %s" % (a, b, output))
+
+class TCIsoChecksums(xenrt.TestCase):
+    """Testcase to compare checksums on a XenServer ISO with a reference ISO"""
+
+    def run(self, arglist):
+        # We expect the input dir will be the directory with the repacked ISO
+        # We can find the old directory by looking up PIDIR_<PRODUCT_VERSION>
+
+        productVersion = xenrt.TEC().lookup("PRODUCT_VERSION").upper()
+        imagePath = xenrt.TEC().lookup("CD_PATH_%s" % productVersion,
+                                       xenrt.TEC().lookup('CD_PATH', 'xe-phase-1'))
+        originalIso = xenrt.TEC().getFile(os.path.join(xenrt.TEC().lookup("PIDIR_%s" % productVersion), imagePath, "main.iso"))
+        repackedIso = xenrt.TEC().getFile(os.path.join(imagePath, "main.iso"))
+
+        logdir = xenrt.TEC().getLogdir()
+
+        # Checksum all files on the ISOs
+        xenrt.TEC().logdelimit("Comparing ISO contents")
+        originalMount = xenrt.MountISO(originalIso)
+        originalSums = xenrt.command("cd %s; find . -type f | sort | xargs md5sum" % originalMount.getMount(), timeout=1800)
+        originalMount.unmount()
+        f = open("%s/original_md5s.txt" % logdir, "w")
+        f.write(originalSums)
+        f.close()
+        repackMount = xenrt.MountISO(repackedIso)
+        repackSums = xenrt.command("cd %s; find . -type f | sort | xargs md5sum" % repackMount.getMount(), timeout=1800)
+        repackMount.unmount()
+        f = open("%s/repack_md5s.txt" % logdir, "w")
+        f.write(repackSums)
+        f.close()
+
+        diff = xenrt.command("diff -u %s/original_md5s.txt %s/repack_md5s.txt" % (logdir, logdir), ignoreerrors=True)
+        f = open("%s/md5_diff.txt" % logdir, "w")
+        f.write(diff)
+        f.close()
+
+        xenrt.TEC().logverbose("ISO contents diff written to md5_diff.txt")
+
+        # Compare the boot sectors
+        xenrt.TEC().logdelimit("Comparing ISO boot images")
+        origBoot = xenrt.command("%s/geteltorito %s | md5sum | awk '{print $1}'" % (xenrt.TEC().lookup("LOCAL_SCRIPTDIR"), originalIso), strip=True)
+        repackBoot = xenrt.command("%s/geteltorito %s | md5sum | awk '{print $1}'" % (xenrt.TEC().lookup("LOCAL_SCRIPTDIR"), repackedIso), strip=True)
+        if origBoot != repackBoot:
+            raise xenrt.XRTFailure("Boot image checksums differ", data="Original %s, Repack %s" % (origBoot, repackBoot))
+
+        # Compare the volume label
+        xenrt.TEC().logdelimit("Comparing ISO volume labels")
+        origLabel = xenrt.command("file -b %s" % originalIso, strip=True)
+        repackLabel = xenrt.command("file -b %s" % repackedIso, strip=True)
+        if origLabel == repackLabel:
+            raise xenrt.XRTFailure("ISO volume labels are identical")
+
+        # Output isoinfo for reference
+        xenrt.TEC().logdelimit("Getting isoinfo")
+        xenrt.TEC().logverbose("Original ISO:")
+        xenrt.command("isoinfo -d -i %s" % originalIso)
+        xenrt.TEC().logverbose("Repacked ISO:")
+        xenrt.command("isoinfo -d -i %s" % repackedIso)
         
 class TC21452(xenrt.TestCase):
     """Testcase to verify whether logrotate -v -f works(CA-108965)"""

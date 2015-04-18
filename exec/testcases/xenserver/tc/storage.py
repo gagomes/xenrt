@@ -43,7 +43,7 @@ class _AbstractLinuxHostedNFSServer(object):
         # Create a dir and export it
         self._prepareSharedDirectory(guest)
         guest.execguest("echo '%s' > /etc/exports" % self._getExportsLine())
-        guest.execguest("/etc/init.d/portmap start")
+        guest.execguest("/etc/init.d/portmap start || /etc/init.d/rpcbind start")
         guest.execguest("/etc/init.d/nfs-common start || true")
         guest.execguest("/etc/init.d/nfs-kernel-server start || true")
 
@@ -96,6 +96,10 @@ class _LinuxHostedNFSv4Server(_AbstractLinuxHostedNFSServer):
                 'NFSv4 expects hostname to resolve to an address')
 
 
+class _LinuxHostedNFSV4ISOServer(_LinuxHostedNFSv4Server):
+    def getStorageRepositoryClass(self):
+        return xenrt.lib.xenserver.host.NFSv4ISOStorageRepository
+        
 def linuxBasedNFSServer(revision, paths):
     if revision == 3:
         return _LinuxHostedNFSv3Server(paths)
@@ -103,7 +107,13 @@ def linuxBasedNFSServer(revision, paths):
         return _LinuxHostedNFSv4Server(paths)
     else:
         raise ValueError('Invalid value for revision')
-
+        
+def linuxBasedNFSISOServer(revision, paths):
+        """ This returns an NFS v4 ISO server"""
+        if revision == 4:
+            return _LinuxHostedNFSV4ISOServer(paths)
+        else:
+            raise ValueError("Unsupported Version")
 
 class TC7804(xenrt.TestCase):
     """Check that installing PV drivers doesn't cause a disk to go offline."""
@@ -133,6 +143,7 @@ class TC7804(xenrt.TestCase):
         gdef["vifs"] = [(0, None, xenrt.randomMAC(), None)]
         gdef["memory"] = self.memory
         self.guest = xenrt.lib.xenserver.guest.createVM(**gdef)
+        self.getLogsFrom(self.guest)
         # Check disk is there and accessible.
         offline = self.getOfflineDisks()
         if offline:
@@ -300,8 +311,39 @@ class NFSSRSanityTest(SRSanityTestTemplate):
             sr.create(guest.getIP(),"/sr")
 
         return sr.uuid
+        
+class NFSISOSRSanityTest(SRSanityTestTemplate):
+    """NFS ISO SR Sanity Test"""
 
+    SRNAME = "test-nfs-iso"
 
+    def createSR(self,host,guest):
+        nfsIsoServer = linuxBasedNFSISOServer(self.NFS_VERSION, ['/sr'])
+
+        nfsIsoServer.createNFSExportOnGuest(guest)
+
+        nfsIsoServer.prepareDomZero(host)
+
+        # CA-21630 Wait a short delay to let the nfs server properly start
+        time.sleep(10)
+
+        # Create the SR on the host
+        sr = nfsIsoServer.getStorageRepositoryClass()(host, self.SRNAME)
+        sr.create(guest.getIP(),"/sr")
+                
+        return sr.uuid
+        
+    def teardown(self):
+        sruuid = self.sruuids[0]
+        self.host.destroySR(sruuid)
+        if sruuid in self.host.minimalList("sr-list"):
+            raise xenrt.XRTFailure("SR still exists after destroy")
+        self.sruuids.remove(sruuid)
+
+class TCNFSISOSrCreationAndDeletion(NFSISOSRSanityTest):
+    """Test the creation and destruction of NFSv4 ISO SR"""
+    NFS_VERSION = 4
+    
 class TC6824(NFSSRSanityTest):
     SRNAME = "test-nfs"
     SR_TYPE = "nfs"
@@ -367,6 +409,13 @@ class TC20948(NFSSRSanityTest):
     def prepare(self,arglist):
         xenrt.TEC().config.setVariable("NFSSR_WITH_NOSUBDIR", "yes")
 
+class TCNFS4NoSubDir(NFSSRSanityTest):
+    """NFS 4 SR (with no sub directory) Sanity Test"""
+    NFS_VERSION = 4
+    
+    def prepare(self,arglist):
+        xenrt.TEC().config.setVariable("NFSSR_WITH_NOSUBDIR", "yes")
+
 class TC20949(SRSanityTestTemplate):
     """Co-existence of multiple NFS SRs with no sub directory on the same NFS path"""
 
@@ -385,6 +434,49 @@ class TC20949(SRSanityTestTemplate):
         
         return self.sruuids
 
+class NFSSRSanityTestTemplate(SRSanityTestTemplate):
+    """Template for NFS Sr"""
+    
+    def verifyVersion(self, host, sruuid, version):
+        mounts = []
+        if version == "3":
+            mounts = host.execdom0("mount -t nfs")
+        elif version == "4":
+            mounts = host.execdom0("mount -t nfs4")
+        
+        if not mounts:
+            raise xenrt.XRTError("Not an NFS SR")
+        
+        lines = mounts.split("\n")
+        found = False
+        for line in lines:
+            if sruuid in line:
+                found = True
+        if not found:
+            raise xenrt.XRTError("Incorrect NFS Version")
+
+class TCCoexistenceOfNFS4NoSubDirs(NFSSRSanityTestTemplate):
+    """Co-existence of multiple NFS SRs (version 4) with no sub directory on the same NFS path"""
+     
+    def createSR(self,host,guest):
+        server, path = xenrt.ExternalNFSShare(version="4").getMount().split(":")
+
+        # Create a NFS SR with no sub directory.
+        nfsSR = xenrt.lib.xenserver.host.NFSv4StorageRepository(host, "nfssr-withnosubdir-1")
+        nfsSR.create(server, path, nosubdir=True)
+        self.sruuids.append(nfsSR.uuid)
+       
+        self.verifyVersion(host, nfsSR.uuid, "4")
+        
+        # Create another NFS SR with no sub directory on the same NFS path.
+        nfsSR = xenrt.lib.xenserver.host.NFSv4StorageRepository(host, "nfssr-withnosubdir-2")
+        nfsSR.create(server, path, nosubdir=True)
+        self.sruuids.append(nfsSR.uuid)
+        
+        self.verifyVersion(host, nfsSR.uuid, "4")
+        
+        return self.sruuids
+
 class TC20950(SRSanityTestTemplate):
     """Co-existance of NFS SR with no sub directory and classic NFS SR on the same NFS path"""
 
@@ -400,6 +492,50 @@ class TC20950(SRSanityTestTemplate):
         nfsSR = xenrt.lib.xenserver.host.NFSStorageRepository(host, "nfssr-classic-1")
         nfsSR.create(server, path)
         self.sruuids.append(nfsSR.uuid)        
+
+        return self.sruuids
+        
+class TCCoexitenceNFS4NoSubDirClassic(NFSSRSanityTestTemplate):
+    """Co-existence of NFS SR v4 with no sub directory and classic NFS SR v4 on the same NFS path"""
+
+    def createSR(self,host,guest):
+        server, path = xenrt.ExternalNFSShare(version="4").getMount().split(":")
+
+        # Create a NFS SR with no sub directory.
+        nfsSR = xenrt.lib.xenserver.host.NFSv4StorageRepository(host, "nfssr-withnosubdir-3")
+        nfsSR.create(server, path, nosubdir=True)
+        self.sruuids.append(nfsSR.uuid)
+        
+        self.verifyVersion(host, nfsSR.uuid, "4")
+
+        # Create a classic NFS SR on the same path.
+        nfsSR = xenrt.lib.xenserver.host.NFSv4StorageRepository(host, "nfssr-classic-1")
+        nfsSR.create(server, path)
+        self.sruuids.append(nfsSR.uuid)
+
+        self.verifyVersion(host, nfsSR.uuid, "4")
+
+        return self.sruuids
+        
+class TCCoexistenceNFS4AndNFSv3(NFSSRSanityTestTemplate):
+    """Co-existence of NFS SR v4 and NFS SR v3 on the same NFS path"""
+
+    def createSR(self,host,guest):
+        server, path = xenrt.ExternalNFSShare(version="4").getMount().split(":")
+
+        # Create a NFS v4 SR with no sub directory.
+        nfsSR = xenrt.lib.xenserver.host.NFSv4StorageRepository(host, "nfssr-v4")
+        nfsSR.create(server, path, nosubdir=True)
+        self.sruuids.append(nfsSR.uuid)
+        
+        self.verifyVersion(host, nfsSR.uuid, "4")
+
+        # Create a v3 SR with no sub directory.
+        nfsSR = xenrt.lib.xenserver.host.NFSStorageRepository(host, "nfssr-v3")
+        nfsSR.create(server, path, nosubdir=True)
+        self.sruuids.append(nfsSR.uuid)
+
+        self.verifyVersion(host, nfsSR.uuid, "3")
 
         return self.sruuids
 
@@ -1145,15 +1281,14 @@ class TC8123(_TC8122):
 
     def createExternalNFSShare(self):
         return xenrt.ExternalNFSShare()
-
-
+        
 class TC23335(TC8123):
 
     def getStorageRepositoryClass(self):
         return xenrt.lib.xenserver.NFSv4StorageRepository
 
     def createExternalNFSShare(self):
-        return xenrt.ExternalNFSShare(version="4")
+        return xenrt.ExternalNFSShare(version = "4")
 
 
 class TC20929(_TC8122):
@@ -1362,7 +1497,7 @@ class TC6723(xenrt.TestCase):
 
             # Copy the PV tools ISO from the host to use as an example ISO
             # in our CIFS SR
-            remotefile = self.host.toolsISOPath("windows")
+            remotefile = self.host.toolsISOPath()
             if not remotefile:
                 raise xenrt.XRTError("Could not find PV tools ISO in dom0")
             cd = "%s/TC6723.iso" % (xenrt.TEC().getWorkdir())
@@ -1385,7 +1520,7 @@ class TC6723(xenrt.TestCase):
     def doCreate(self, index):
         # Attach the share as a CIFS ISO on the host.
         sharename, user, password = self.exports[index]
-        sr = xenrt.lib.xenserver.CIFSStorageRepository(self.host,
+        sr = xenrt.lib.xenserver.CIFSISOStorageRepository(self.host,
                                                        "cifstest%u" % (index))
         self.srs.append(sr)
         self.srsToRemove.append(sr)
@@ -1477,7 +1612,7 @@ class TC10860(TC6723):
     def doCreateWithSecret(self, index):
         # Attach the share as a CIFS ISO on the host.
         sharename, user, password = self.exports[index]
-        sr = xenrt.lib.xenserver.CIFSStorageRepository(self.host,
+        sr = xenrt.lib.xenserver.CIFSISOStorageRepository(self.host,
                                                        "cifstest%u" % (index))
         self.srs.append(sr)
         self.srsToRemove.append(sr)
@@ -2519,7 +2654,7 @@ class TC8520(_TCVDICreateRoundup):
 
 class TC8523(_TCVDICreateRoundup):
     """VDI create of a odd size NFS VDI should round up to the next allocation unit"""
-
+    
     SRTYPE = "nfs"
 
 class TC20930(_TCVDICreateRoundup):
@@ -4382,7 +4517,7 @@ class TCPbdDuplicateSecret(xenrt.TestCase):
     def run(self, arglist=None):
         # Attach the share as a CIFS ISO to the pool.
         sharename, user, password = self.exports[0]
-        sr = xenrt.lib.xenserver.CIFSStorageRepository(self.host,"cifstest")
+        sr = xenrt.lib.xenserver.CIFSISOStorageRepository(self.host,"cifstest")
 
         self.srs.append(sr)
 
@@ -4518,3 +4653,57 @@ class TCVdiCorruption(xenrt.TestCase):
                 self.cli.execute("vdi-destroy", "uuid=%s" % (self.vdi))
         except:
             pass
+
+class TC26472(xenrt.TestCase):
+    """Guests life cycle operations on CIFS SR using SMB share on a windows guest"""
+
+    def run(self, arglist):
+
+        self.host = self.getDefaultHost()
+        srs = self.host.minimalList("sr-list", args="name-label=\"CIFS-SR\"")
+        if not srs:
+            raise xenrt.XRTFailure("Unable to find a CIFS SR configured on host %s" % self.host)
+
+        # Exclude xenrt-smb guest which serves the smb share.
+        guests = [self.host.getGuest(g) for g in self.host.listGuests() if not g.startswith("xenrt-smb")]
+
+        xenrt.TEC().logverbose("Guests Life Cycle Operations on CIFS SR ...")
+
+        for guest in guests:
+
+            # Make sure the guest is up.
+            if guest.getState() == "DOWN":
+                xenrt.TEC().logverbose("Starting guest before commencing lifecycle ops.")
+                guest.start()
+
+            guest.shutdown()
+            guest.start()
+            guest.reboot()
+            guest.suspend()
+            guest.resume()
+            guest.shutdown()
+
+class TC26950(xenrt.TestCase):
+    """Multiple CIFS SRs using multiple authentication provided by NetApp SMB Shares"""
+
+    def run(self, arglist):
+
+        host = self.getDefaultHost() # The host has already 2 CIFS SRs created using
+                                     # different authentication on QA NetApp filer.
+                                     # One SR on a SMB share provided by a windows guest
+
+        # Exclude xenrt-smb guest which serves the smb share.
+        guests = [host.getGuest(g) for g in host.listGuests() if not g.startswith("xenrt-smb")]
+
+        for guest in guests:
+            # Make sure the guest is up.
+            if guest.getState() == "DOWN":
+                xenrt.TEC().logverbose("Starting guest before commencing lifecycle ops.")
+                guest.start()
+
+            guest.shutdown()
+            guest.start()
+            guest.reboot()
+            guest.suspend()
+            guest.resume()
+            guest.shutdown()

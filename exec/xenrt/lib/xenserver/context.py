@@ -12,7 +12,7 @@ import inspect, re, copy, tempfile, string
 import xenrt
 from xenrt.lib.xenserver.call import *
 
-class Context:
+class Context(object):
 
     def __init__(self, pool):
         self.pool = pool
@@ -113,7 +113,7 @@ class Context:
             xenrt.TEC().logverbose("-> '%s'" % (expression))
             return expression
             
-class _Entity:
+class _Entity(object):
     """Superclass for creating various XenServer entities.
        See subclasses for examples."""
 
@@ -257,7 +257,7 @@ class Host(_Entity):
             try: self.ref.execdom0("/etc/init.d/xapi start")
             except Exception, e:
                 xenrt.TEC().logverbose("Host reset exception: %s" % (str(e)))
-            try: self.ref.execdom0("/etc/init.d/firstboot start")
+            try: self.ref.execdom0("/etc/init.d/firstboot restart")
             except Exception, e:
                 xenrt.TEC().logverbose("Host reset exception: %s" % (str(e)))
                 try: self.ref.execdom0("rm -f /etc/firstboot.d/state/*")

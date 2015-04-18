@@ -22,7 +22,8 @@ class DeployerPlugin(object):
         self.currentZoneIx = -1
         self.currentPodIx = -1
         self.currentClusterIx = -1
-        self.currentPrimaryStoreIx = -1
+        self.currentPrimaryStoreZoneIx = -1
+        self.currentPrimaryStoreClusterIx = -1
 
         self.currentZoneName = None
         self.currentPodName = None
@@ -39,6 +40,7 @@ class DeployerPlugin(object):
             self.currentZoneIx += 1
             self.currentPodIx = -1
             self.currentClusterIx = -1
+            self.currentPrimaryStoreZoneIx = -1
             nameValue = 'XenRT-Zone-%d' % (self.currentZoneIx)
         elif key == 'Pod':
             self.currentPodIx += 1
@@ -46,7 +48,7 @@ class DeployerPlugin(object):
             nameValue = '%s-Pod-%d' % (self.currentZoneName, self.currentPodIx)
         elif key == 'Cluster':
             self.currentClusterIx += 1
-            self.currentPrimaryStoreIx = -1
+            self.currentPrimaryStoreClusterIx = -1
             nameValue = '%s-Cluster-%d' % (self.currentPodName, self.currentClusterIx)
         xenrt.TEC().logverbose('getName returned: %s for key: %s' % (nameValue, key))
         return nameValue
@@ -253,10 +255,19 @@ class DeployerPlugin(object):
         else:
             ps.append({"XRT_PriStorageType": "NFS"})
         return ps
-    
+
     def getPrimaryStorageName(self, key, ref):
-        self.currentPrimaryStoreIx += 1
-        name = '%s-Primary-Store-%d' % (self.currentClusterName, self.currentPrimaryStoreIx)
+        if ref.get("scope",False) == "zone":
+            if "hypervisor" not in ref:
+                raise xenrt.XRTError('hypervisor not specified for zone wide primary storage.')
+            elif ref["hypervisor"] not in ["KVM", "vmware"]:
+                raise xenrt.XRTError('Only KVM and vmware hypervisor support zone wide primary storage.')
+            ref["XRT_PriStorageType"] = "NFS"
+            self.currentPrimaryStoreZoneIx += 1
+            name = '%s-Primary-Store-%d' % (self.currentZoneName, self.currentPrimaryStoreZoneIx)
+        else:
+            self.currentPrimaryStoreClusterIx += 1
+            name = '%s-Primary-Store-%d' % (self.currentClusterName, self.currentPrimaryStoreClusterIx)
         return name
 
     def getPrimaryStorageUrl(self, key, ref):

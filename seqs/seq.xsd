@@ -15,13 +15,13 @@
   
   <xs:simpleType name="licenseType">
     <xs:restriction base="xs:string">
-      <xs:pattern value="no|false|free|advanced|enterprise|platinum|FG Free|FG Paid|XE Enterprise|XE Express|enterprise-per-socket"/>
+      <xs:pattern value="no|false|free|advanced|enterprise|platinum|FG Free|FG Paid|XE Enterprise|XE Express|enterprise-per-socket|per-socket|xendesktop"/>
     </xs:restriction>
   </xs:simpleType>
 
   <xs:simpleType name="storageType">
     <xs:restriction base="xs:string">
-      <xs:pattern value="nfs|lvmoiscsi|fc|eql|netapp|icvsmeql|icvsmnetapp|icvsmfc|icvsmsmisiscsi|icvsmsmisfc|cvsmnetapp|cvsmeql|cvsmsmisiscsi|cvsmfc|cvsmsmisfc"/>
+      <xs:pattern value="nfs|lvmoiscsi|fc|eql|netapp|icvsmeql|icvsmnetapp|icvsmfc|icvsmsmisiscsi|icvsmsmisfc|cvsmnetapp|cvsmeql|cvsmsmisiscsi|cvsmfc|cvsmsmisfc|smb"/>
     </xs:restriction>
   </xs:simpleType>
 
@@ -321,6 +321,7 @@
           <xs:attribute name ="sku" use="optional" type="xs:string"/>
           <xs:attribute name="id" use="required" type="tcClassPathType"/>
           <xs:attribute name="name" use="optional" type="tcNameType"/>
+          <xs:attribute name="depends" use="optional" type="xs:string"/>
         </xs:complexType>
       </xs:element>
     </xs:sequence>
@@ -424,6 +425,8 @@
           </xs:choice>
           <xs:attribute name="iter" use="required"/>
           <xs:attribute name="values" use="required"/>
+          <xs:attribute name="limit" use="optional"/>
+          <xs:attribute name="offset" use="optional"/>
         </xs:complexType>
       </xs:element>
     </xs:sequence>

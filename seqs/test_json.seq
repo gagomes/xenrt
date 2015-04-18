@@ -15,10 +15,6 @@
       "vms": [
         { "name": "Debian Wheezy 7.0",
           "distro": "debian70",
-          "memory": 256,
-          "vcpus": 2,
-          "vifs": [ { "device": 0 } ],
-          "disks": [ { "device": 0, "size": 8 } ]
         }
       ]
     }

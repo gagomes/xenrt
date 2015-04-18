@@ -16,7 +16,6 @@ class TCSuspendResume(xenrt.LoopingTestCase):
 
     def __init__(self):
         xenrt.LoopingTestCase.__init__(self, "TCSuspendResume")
-        self.blocker = True
         self.initialState = "UP"
         self.workloads = None
 
@@ -37,6 +36,16 @@ class TCSuspendResume(xenrt.LoopingTestCase):
                 re.search(r"rhel3", guest.distro):
             xenrt.TEC().skip("Skipping suspend/resume on SMP RHEL3")
             return
+
+    def postRun(self):
+        if not self.getOverallResult() in [xenrt.RESULT_PASS, xenrt.RESULT_PARTIAL]:
+            xenrt.TEC().logverbose("Attempting to recover VM")
+            try:
+                self.guest.reboot(force=True)
+            except:
+                xenrt.TEC().warning("Unable to recover VM, marking TC blocker")
+                self.blocker = True
+        xenrt.LoopingTestCase.postRun(self)
 
     def loopBody(self, guest, i):
         host = guest.host
@@ -295,7 +304,6 @@ class TCMigrate(xenrt.TestCase):
     
     def __init__(self):
         xenrt.TestCase.__init__(self, "TCMigrate")
-        self.blocker = True
         self.workloads = None 
         self.guest = None
         self.semclass = "TCMigrate"
@@ -514,6 +522,14 @@ class TCMigrate(xenrt.TestCase):
             raise xenrt.XRTError(e.reason)
 
     def postRun(self):
+        if not self.getOverallResult() in [xenrt.RESULT_PASS, xenrt.RESULT_PARTIAL]:
+            xenrt.TEC().logverbose("Attempting to recover VM")
+            try:
+                self.guest.reboot(force=True)
+            except:
+                xenrt.TEC().warning("Unable to recover VM, marking TC blocker")
+                self.blocker = True
+
         try:
             self.guest.stopWorkloads(self.workloads)
         except:

@@ -46,29 +46,13 @@ class _XSAutoCertKit(xenrt.TestCase):
         
         acklocation = xenrt.TEC().lookup("ACK_LOCATION", None)
         if not acklocation:
-            if xenrt.TEC().lookup("TEST_CA-146164", False, boolean=True):
-                if isinstance(host, xenrt.lib.xenserver.DundeeHost):
-                    if host.isCentOS7Dom0():
-                        raise xenrt.XRTError("CA-146164 is not re-producible with trunk-c7")
-                    branch = "trunk"
-                    build = "88907"
-                elif "x86_64" in host.execdom0("uname -a"):
-                    branch = "creedence-autocertkit"
-                    build = "88845"
-                else:
-                    branch = "clearwater-sp1-lcm-autocertkit"
-                    build = "88844"
+            if isinstance(host, xenrt.lib.xenserver.DundeeHost):
+                branch = "trunk-autocertkit"
+            elif "x86_64" in host.execdom0("uname -a"):
+                branch = "creedence-autocertkit"
             else:
-                if isinstance(host, xenrt.lib.xenserver.DundeeHost):
-                    if host.isCentOS7Dom0():
-                        branch = "trunk-c7"
-                    else:
-                        branch = "trunk"
-                elif "x86_64" in host.execdom0("uname -a"):
-                    branch = "creedence-autocertkit"
-                else:
-                    branch = "clearwater-sp1-lcm-autocertkit"
-                build = xenrt.util.getHTTP("https://xenbuilder.uk.xensource.com/search?query=latest&format=number&product=carbon&branch=%s&site=cam&job=sdk&action=xe-phase-2-build&status=succeeded" % (branch,)).strip()
+                branch = "clearwater-sp1-lcm-autocertkit"
+            build = xenrt.util.getHTTP("https://xenbuilder.uk.xensource.com/search?query=latest&format=number&product=carbon&branch=%s&site=cam&job=sdk&action=xe-phase-2-build&status=succeeded" % (branch,)).strip()
             acklocation = "/usr/groups/xen/carbon/%s/%s/xe-phase-2/xs-auto-cert-kit.iso" % (branch, build)
 
         autoCertKitISO = xenrt.TEC().getFile(acklocation)

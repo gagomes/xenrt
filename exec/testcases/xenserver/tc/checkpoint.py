@@ -11,7 +11,7 @@
 import xml.dom.minidom, re, string, copy, time, os, random 
 import xenrt
 
-class Comparer:
+class Comparer(object):
 
     def getparameters(self, root, uuid):
         if not xenrt.isUUID(uuid): return {}
@@ -1027,7 +1027,15 @@ class TC21644(_CheckpointConsistency):
 class TC21645(_CheckpointConsistency):
     """Checkpoint and rollback consistency on Windows 81 x64"""
     DISTRO = "win81-x64"
-    
+
+class TC26423(_CheckpointConsistency):
+    """Checkpoint and rollback consistency on Windows 10 x86"""
+    DISTRO = "win10-x86"
+
+class TC26424(_CheckpointConsistency):
+    """Checkpoint and rollback consistency on Windows 10 x64"""
+    DISTRO = "win10-x64"
+
 class TC9234(_SnappointTrees):
     """Check snapshot trees are preserved across pool join."""
 

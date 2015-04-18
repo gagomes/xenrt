@@ -18,7 +18,7 @@ __all__ = ["MountISO",
            "nmap",
            "sudo"]
     
-class Mount:
+class Mount(object):
     def __init__(self, device, options=None, mtype=None, retry=True):
         self.mounted = 0
         exceptiondata = None
@@ -128,8 +128,19 @@ def mountWinISO(distro):
             if attempts > 6:
                 raise xenrt.XRTError("Couldn't get Windows ISO lock.")
     try:
+        # Check the ISO isn't directly mounted and there's no loopback mount for that ISO
         mounts = xenrt.command("mount")
-        if not "%s on %s" % (iso, mountpoint) in mounts:
+        loops = xenrt.command("sudo losetup -a")
+
+        def loDeviceOfISO(iso, line):
+            if iso in line:
+                return line.split(':')[0]
+            else:
+                return None
+
+        loopDevs = filter(lambda x : not x is None, map(lambda line: loDeviceOfISO(iso, line), loops.split('\n')))
+
+        if not "%s on %s" % (iso, mountpoint) in mounts and (len(loopDevs) == 0 or (not "%s on %s" % (loopDevs[0], mountpoint))):
             sudo("mkdir -p %s" % mountpoint)
             sudo("mount -o loop %s %s" % (iso, mountpoint))
         return mountpoint

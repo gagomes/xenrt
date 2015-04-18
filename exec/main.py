@@ -92,9 +92,11 @@ def usage(fd):
     --nohostprepare                       Don't run host prepare tests
     --noinstall                           Don't run guest installation tests
     --skip <testname>                     Skip a test
+    --skipsku <skuname>                   Skip a test SKU
     --skipgroup <groupname>               Skip a test group
     --skiptype <type>                     Skip a test type
     --run <testname>                      Run this test (implies skip others)
+    --runsku <skuname>                    Run this sku (implies skip others)
     --rungroup <groupname>                Run this group (implies skip others)
     --no-finally                          Don't execute "finally" actions
     --no-postrun                          Don't execute "postRun" actions
@@ -199,8 +201,10 @@ tailor = True
 password = True
 skip = []
 skipgroup = []
+skipsku = []
 skiptype = []
 run = []
+runsku = []
 rungroup = []
 traceon = False
 redir = False
@@ -305,9 +309,11 @@ try:
                                       'notailor',
                                       'nopassword',
                                       'skip=',
+                                      'skipsku=',
                                       'skipgroup=',
                                       'skiptype=',
                                       'run=',
+                                      'runsku=',
                                       'rungroup=',
                                       'distro=',
                                       'trace',
@@ -411,6 +417,11 @@ try:
                     if varval == "yes":
                         skip.append(r.group(1))
                         continue
+                r = re.search(r"^SKIPSKU_(\S+)", var)
+                if r:
+                    if varval == "yes":
+                        skipsku.append(r.group(1))
+                        continue
                 r = re.search(r"^SKIPGROUP_(\S+)", var)
                 if r:
                     if varval == "yes":
@@ -435,6 +446,11 @@ try:
                 if r:
                     if varval == "yes":
                         run.append(r.group(1))
+                        continue
+                r = re.search(r"^RUNSKU_(\S+)", var)
+                if r:
+                    if varval == "yes":
+                        runsku.append(r.group(1))
                         continue
                 r = re.search(r"^RUNGROUP_(\S+)", var)
                 if r:
@@ -560,12 +576,16 @@ try:
             password = False
         elif flag == "--skip":
             skip.append(value)
+        elif flag == "--skipsku":
+            skipsku.append(value)
         elif flag == "--skipgroup":
             skipgroup.append(value)
         elif flag == "--skiptype":
             skiptype.append(value)
         elif flag == "--run":
             run.append(value)
+        elif flag == "--runsku":
+            runsku.append(value)
         elif flag == "--rungroup":
             rungroup.append(value)
         elif flag == "--distro":
@@ -900,17 +920,21 @@ gec = xenrt.GlobalExecutionContext(config=config)
 
 for f in skip:
     gec.skipTest(f)
+for f in skipsku:
+    gec.skipSku(f)
 for f in skipgroup:
     gec.skipGroup(f)
 for f in skiptype:
     gec.skipType(f)
 for f in run:
     gec.noSkipTest(f)
+for f in runsku:
+    gec.noSkipSku(f)
 for f in rungroup:
     gec.noSkipGroup(f)
 if prio != None:
     gec.setPriority(prio)
-if len(run) > 0 or len(rungroup) > 0:
+if len(run) > 0 or len(rungroup) > 0 or len(runsku) > 0:
     if config.lookup("SKIPALL", None) == None:
         config.setVariable("SKIPALL", True)
 if knownissuelist:
@@ -962,15 +986,14 @@ for var, varval in config.getWithPrefix("KNOWN_"):
             else:
                 gec.removeKnownIssue(r.group(1))
 
-p = xenrt.TEC().lookup("JOBSERVER_PROXY", None)
-if p:
-    gec.dbconnect.jobProxy(p)
-
 if not remote:
     # Check if we are 'always' remote
     if xenrt.TEC().lookup("FORCE_REMOTE", False, boolean=True) or \
        xenrt.TEC().lookup("FORCE_REMOTE_HTTP", False, boolean=True):
         remote = True
+
+if xenrt.TEC().lookup("JOB_PASSWORD", False, boolean=True) and xenrt.TEC().lookup("JOBID", None):
+    xenrt.GEC().config.setVariable("ROOT_PASSWORD", "%s%s" % (xenrt.TEC().lookup("ROOT_PASSWORD"), xenrt.TEC().lookup("JOBID")))
 
 # Select a suitable file manager
 gec.filemanager = xenrt.filemanager.getFileManager()
@@ -1062,7 +1085,7 @@ def getCloud(hostname):
         gec.registry.toolstackGetDefault()
     except:
         try:
-            m = xenrt.GEC().dbconnect.jobctrl("machine", [hostname])
+            m = xenrt.GEC().dbconnect.api.get_machine(hostname)['params']
             if m.has_key("CSGUEST"):
                 (hostname, guestname) = m['CSGUEST'].split("/", 1)
                 try:
@@ -1252,6 +1275,7 @@ if sanitycheck:
             try:
                 __import__(importPath)
             except:
+                traceback.print_exc(file=sys.stderr)
                 importFails.append(importPath)
 
     if len(importFails) > 0:
@@ -1665,6 +1689,7 @@ if listlocks:
             print "%s,No,," % (l[0])
 
 if cleanupnfsdirs:
+    jobsForMachinePowerOff = [] 
     nfsConfig = xenrt.TEC().lookup("EXTERNAL_NFS_SERVERS")
     for n in nfsConfig.keys():
         try:
@@ -1680,6 +1705,7 @@ if cleanupnfsdirs:
                 try:
                     if xenrt.canCleanJobResources(j):
                         xenrt.rootops.sudo("rm -rf %s/%s-*" % (mp, j))
+                        jobsForMachinePowerOff.append(j) 
                 except Exception, e:
                     xenrt.TEC().logverbose(str(e))
                     continue
@@ -1703,6 +1729,7 @@ if cleanupnfsdirs:
                 try:
                     if xenrt.canCleanJobResources(j):
                         xenrt.rootops.sudo("rm -rf %s/%s-*" % (mp, j))
+                        jobsForMachinePowerOff.append(j) 
                 except:
                     continue
             if m:
@@ -1710,6 +1737,13 @@ if cleanupnfsdirs:
         except:
             pass
 
+    for j in set(jobsForMachinePowerOff):
+        machinesToPowerOff = xenrt.staleMachines(j)
+        for m in machinesToPowerOff:
+            machine = xenrt.PhysicalHost(m, ipaddr="0.0.0.0")
+            xenrt.GenericHost(machine)
+            machine.powerctl.off()
+    
 if cleanupnfsdir:
     nfsConfig = xenrt.TEC().lookup("EXTERNAL_NFS_SERVERS")
     (cleanupAddress, cleanupPath) = cleanupnfsdir.split(":", 1)
@@ -1846,8 +1880,7 @@ if releaselock:
                 # Check ID
                 if lock[0] == releaselock:
                     if lock[2]['jobid']:
-                        xrs = xenrt.ctrl.XenRTStatus(None)
-                        jobdict = xrs.run([lock[2]['jobid']])
+                        jobdict = xenrt.GEC().dbconnect.api.get_job(int(lock[2]['jobid']))['params']
                         pid = jobdict['HARNESS_PID']
                         # See if this PID is still running
                         pr = xenrt.util.command("ps -p %s | wc -l" % (pid),strip=True)
@@ -1990,7 +2023,6 @@ if cleanupvcenter:
             try:
                 m = re.match(".*-(\d+$)", d)
                 if m:
-                    xrs = xenrt.ctrl.XenRTStatus(None)                
                     try:
                         if xenrt.canCleanJobResources(m.group(1)):
                             print "Cleaning up datacenter %s" % d
@@ -2020,7 +2052,6 @@ if cleanupsharedhosts:
                     if m:
                         if m.group(1) == "64": # This actually indicates a 64-bit VM!
                             continue
-                        xrs = xenrt.ctrl.XenRTStatus(None)                
                         try:
                             if xenrt.canCleanJobResources(m.group(1)):
                                 print "Cleaning up guest %s" % v
@@ -2139,7 +2170,7 @@ if runsuite:
 if getresource:
    args = getresource.split()
    machine = args.pop(0)
-   job = xenrt.GEC().dbconnect.jobctrl("machine", [machine])["JOBID"]
+   job = str(xenrt.GEC().dbconnect.api.get_machine(machine)['jobid'])
    config.setVariable("JOBID", job)
    xenrt.GEC().dbconnect._jobid = int(job)
    restype = args.pop(0)
@@ -2152,7 +2183,7 @@ if getresource:
 if listresources:
     cr = xenrt.resources.CentralResource()
     locks = cr.list()
-    jobs = [x[2]['jobid'] for x in locks if x[1] and x[2]['jobid']]
+    jobs = [x[2]['jobid'] for x in locks if x[1] and x[2]['jobid'] and x[2]['jobid'].isdigit()]
     
     jobdirs = {}
 

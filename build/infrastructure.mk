@@ -45,6 +45,11 @@ endif
 
 INETD_DAEMON ?= openbsd-inetd
 
+serverbase := $(patsubst %/,%,$(WEB_CONTROL_PATH))
+serverbase := $(patsubst http://%/share/control,http://%,$(serverbase))
+serverbase := $(patsubst http://%/xenrt,http://%,$(serverbase))
+serverbase := $(patsubst http://%/control,http://%,$(serverbase))
+
 .PHONY: aptcacher
 aptcacher:
 	$(info Configuring apt-cacher...)
@@ -63,17 +68,48 @@ endif
 .PHONY: extrapackages
 extrapackages: extrapackages-install
 	
+.PHONY: apibuild
+apibuild:
+ifeq ($(APIBUILD), yes)
+	rm -rf $(SHAREDIR)/api_build/python/xenrtapi
+	rm -rf $(SHAREDIR)/api_build/python/scripts
+	mkdir $(SHAREDIR)/api_build/python/xenrtapi
+	mkdir $(SHAREDIR)/api_build/python/scripts
+	wget -O $(SHAREDIR)/api_build/python/xenrtapi/__init__.py http://localhost:1025/share/control/bindings/__init__.py
+	cp $(SHAREDIR)/control/xenrtnew $(SHAREDIR)/api_build/python/scripts/xenrtnew
+	cp $(SHAREDIR)/control/xenrt $(SHAREDIR)/api_build/python/scripts/xenrt
+	cd $(SHAREDIR)/api_build/python/ && python setup.py sdist
+	$(SUDO) ln -sf $(SHAREDIR)/api_build/python/dist/xenrtapi-0.06.tar.gz $(WEBROOT)/xenrtapi.tar.gz
+	$(SUDO) pip install -I $(WEBROOT)/xenrtapi.tar.gz
+	$(SUDO) pdoc --html --html-dir /var/www --overwrite xenrtapi
+	cd $(SHAREDIR)/api_build/python/ && python setup.py sdist upload -r pypi
+	
+
+	rm -rf $(SHAREDIR)/api_build/powershell/XenRT
+	rm -f $(SHAREDIR)/api_build/powershell/xenrtpowershell.zip
+	mkdir -p $(SHAREDIR)/api_build/powershell/XenRT
+	cp $(SHAREDIR)/api_build/powershell/XenRT.psd1 $(SHAREDIR)/api_build/powershell/XenRT/XenRT.psd1
+	wget -O $(SHAREDIR)/api_build/powershell/XenRT/XenRT.psm1  http://localhost:1025/share/control/bindings/xenrt.psm1
+	cd $(SHAREDIR)/api_build/powershell/ && zip -r xenrtpowershell.zip XenRT readme.txt
+	$(SUDO) ln -sf $(SHAREDIR)/api_build/powershell/xenrtpowershell.zip $(WEBROOT)/xenrtpowershell.zip
+endif
+
+.PHONY: api
+api:
+	$(eval TMP := $(shell mktemp -d))
+	$(SUDOSH) 'cd $(TMP) && pip install -I $(serverbase)/xenrtapi.tar.gz'
+	$(SUDO) rm -rf $(TMP)
 
 .PHONY: extrapackages-install
 extrapackages-install:
 	$(info Installing extra packages not included in preseed file)
 	$(SUDO) apt-get update
-	$(SUDO) apt-get install -y --force-yes unzip zip ipmitool openipmi snmp-mibs-downloader dsh curl libxml2-utils python-profiler expect patchutils pylint libxml2-dev libpcap-dev libssl-dev telnet python-pygresql openssh-server psmisc less postgresql mercurial sudo make nfs-common rsync gcc python-crypto python-ipy python-simplejson python-paramiko python-fpconst python-soappy python-imaging python-logilab-common python-logilab-astng python-pywbem python-epydoc python-numpy python-tlslite python-libxml2 pylint nfs-kernel-server stunnel ntp dnsmasq vlan tftpd-hpa iscsitarget rpm2cpio module-assistant debhelper genisoimage conserver-client vim screen apt-cacher vsftpd python-matplotlib nmap ucspi-tcp uuid-runtime realpath autofs lsof xfsprogs libnet-ldap-perl python-mysqldb sshpass postgresql postgresql-client build-essential snmp python-lxml python-requests gcc-multilib squashfs-tools fping python-setuptools libapache2-mod-wsgi python-dev cabextract elinks python-pip samba cifs-utils python-psycopg2 libkrb5-dev
+	$(SUDO) apt-get install -y --force-yes unzip zip ipmitool openipmi snmp-mibs-downloader dsh curl libxml2-utils python-profiler expect patchutils pylint libxml2-dev libpcap-dev libssl-dev telnet python-pygresql openssh-server psmisc less postgresql mercurial sudo make nfs-common rsync gcc python-crypto python-ipy python-simplejson python-paramiko python-fpconst python-soappy python-imaging python-logilab-common python-logilab-astng python-pywbem python-epydoc python-numpy python-tlslite python-libxml2 pylint nfs-kernel-server stunnel ntp dnsmasq vlan tftpd-hpa iscsitarget rpm2cpio module-assistant debhelper genisoimage conserver-client vim screen apt-cacher vsftpd python-matplotlib nmap ucspi-tcp uuid-runtime realpath autofs lsof xfsprogs libnet-ldap-perl python-mysqldb sshpass postgresql postgresql-client build-essential snmp python-lxml python-requests gcc-multilib squashfs-tools fping python-setuptools libapache2-mod-wsgi python-dev cabextract elinks python-pip python-psycopg2 libkrb5-dev python-ldap
 	# Squeeze only
 	-$(SUDO) apt-get install -y --force-yes iscsitarget-source
 	# Wheezy only
 	-$(SUDO) apt-get install -y --force-yes libc6-i386 xcp-xe
-
+	-$(SUDO) apt-get install -y --force-yes samba cifs-utils
 	-$(SUDO) apt-get install -y --force-yes git
 	-$(SUDO) apt-get install -y --force-yes git-core
 	-$(SUDO) apt-get install -y --force-yes default-jre-headless
@@ -81,8 +117,9 @@ extrapackages-install:
 	$(SUDO) easy_install --upgrade requests_oauthlib
 	$(SUDO) easy_install --upgrade pyramid
 	$(SUDO) easy_install --upgrade pyramid_chameleon
+	$(SUDO) easy_install --upgrade pyramid_mako
 	$(SUDO) easy_install --upgrade flup
-	$(SUDO) easy_install paramiko==1.12.3
+	$(SUDO) easy_install paramiko==1.15.2
 	$(SUDO) easy_install --upgrade uwsgi
 	$(SUDO) easy_install --upgrade zope.interface
 	$(SUDO) easy_install --upgrade nose
@@ -96,6 +133,10 @@ extrapackages-install:
 	$(SUDO) easy_install --upgrade kerberos
 	$(SUDO) easy_install --upgrade pywinrm
 	$(SUDO) easy_install --upgrade pyyaml
+	$(SUDO) easy_install --upgrade jsonschema
+	$(SUDO) easy_install --upgrade pip
+	$(SUDO) easy_install --upgrade pdoc
+	$(SUDO) easy_install --upgrade uwsgitop
 
 	$(SUDO) ln -sf `which genisoimage` /usr/bin/mkisofs
 	$(SUDO) apt-get install -y --force-yes python-m2crypto
@@ -427,53 +468,7 @@ tftp-uninstall:
 
 .PHONY: httpd
 httpd:
-	$(info Installing web server...)
-	$(SUDO) apt-get -y remove lighttpd
-	$(SUDO) apt-get -y autoremove
-	$(SUDO) apt-get -y install apache2
-	$(SUDO) sed -i "s/APACHE_RUN_GROUP=.*/APACHE_RUN_GROUP=$(GROUPNAME)/" /etc/apache2/envvars
-	$(SUDO) sed -i "s/APACHE_RUN_USER=.*/APACHE_RUN_USER=$(USERNAME)/" /etc/apache2/envvars
-	$(SUDO) mkdir -p $(SCRATCHDIR)/www
-	$(SUDO) ln -sfT $(SCRATCHDIR)/www $(WEBROOT)/export
-	$(SUDO) ln -sfT $(TFTPROOT) $(WEBROOT)/tftp
-	$(SUDO) ln -sfT $(SHAREDIR) $(WEBROOT)/share
-	$(SUDO) ln -sfT $(SHAREDIR)/control $(WEBROOT)/control
-	$(SUDO) ln -sfT $(SHAREDIR)/provision $(WEBROOT)/provision
-	$(SUDO) chown -R $(USERID):$(GROUPID) $(SCRATCHDIR)/www
-	$(SUDO) mkdir -p /var/log/apache2 
-	$(SUDO) chown -R $(USERID):$(GROUPID) /var/log/apache2
-	$(SUDO) mkdir -p /var/lock/apache2 
-	$(SUDO) chown -R $(USERID):$(GROUPID) /var/lock/apache2
-	$(SUDO) mkdir -p /var/cache/apache2 
-	$(SUDO) chown -R $(USERID):$(GROUPID) /var/cache/apache2 
-ifeq ($(KERBEROS),yes)
-	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/apache2/default-kerberos /etc/apache2/sites-available/default
-	$(SUDO) sed -i "s/@@KERBEROSREALM@@/$(KERBEROSREALM)/" /etc/apache2/sites-available/default
-	$(SUDO) apt-get install -y --force-yes libapache2-mod-auth-kerb krb5-user
-	$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(SITE)/keytab` $(CONFDIR)/keytab
-	$(SUDO) a2enmod auth_kerb
-	$(SUDO) a2enmod headers
-	$(SUDO) cp $(ROOT)/$(INTERNAL)/config/$(SITE)/krb5.conf /etc/krb5.conf
-else
-	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/apache2/default /etc/apache2/sites-available
-endif
-	$(SUDO) sed -i "s/@@USER@@/$(USERNAME)/" /etc/apache2/sites-available/default
-	$(SUDO) sed -i "s/@@GROUP@@/$(GROUPNAME)/" /etc/apache2/sites-available/default
-	$(SUDO) sed -i 's#@@SHAREDIR@@#$(SHAREDIR)#g' /etc/apache2/sites-available/default
-ifeq ($(PROXY_JENKINS_8080),yes)
-	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/apache2/jenkins-proxy /etc/apache2/sites-available
-	$(SUDO) sed -i 's#@@PROXY_JENKINS_URL@@#$(PROXY_JENKINS_URL)#' /etc/apache2/sites-available/jenkins-proxy
-	$(SUDO) ln -sf /etc/apache2/sites-available/jenkins-proxy /etc/apache2/sites-enabled/001-jenkins
-endif
-	$(SUDO) a2enmod cgi
-	$(SUDO) a2enmod alias
-	$(SUDO) a2enmod rewrite
-	$(SUDO) a2enmod wsgi
-	$(SUDO) a2enmod proxy
-	$(SUDO) a2enmod proxy_http
-	$(SUDO) a2enmod deflate
-	-$(SUDO) /etc/init.d/apache2 start
-	$(SUDO) /etc/init.d/apache2 restart
+	$(info apache is now configured with puppet)
 
 .PHONY: samba
 samba:
@@ -510,6 +505,15 @@ ifeq ($(DOCONSERVER),yes)
 	$(SUDO) mkdir -p /local/consoles
 	$(SUDO) chmod -R a+rw /local/consoles
 	$(SUDO) /etc/init.d/conserver-server start || $(SUDO) /etc/init.d/conserver-server reload
+	$(SUDO) mkdir -p /var/lib/cons
+	grep "^cons:" /etc/group || $(SUDO) groupadd cons
+	grep "^cons:" /etc/passwd || $(SUDO) useradd cons -g cons -d /var/lib/cons
+	$(SUDO) mkdir -p /var/lib/cons/.ssh
+	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/conserver/cons /usr/local/bin
+	$(SUDOSH) 'echo -n "command=\"/usr/local/bin/cons\",no-port-forwarding,no-X11-forwarding,no-agent-forwarding " > /var/lib/cons/.ssh/authorized_keys'
+	$(SUDOSH) 'cat $(ROOT)/$(INTERNAL)/keys/ssh/id_rsa_cons.pub >> /var/lib/cons/.ssh/authorized_keys'
+	$(SUDO) chown -R cons:cons /var/lib/cons/.ssh
+	$(SUDOSH) 'chmod 600 /var/lib/cons/.ssh/*'
 endif
 
 .PHONY: conserver-uninstall
@@ -610,7 +614,7 @@ cron-uninstall:
 	$(SUDO) crontab -r
 
 .PHONY: infrastructure
-infrastructure: ssh httpd winpe files prompt autofs dhcpd dhcpd6 hosts network nagios conserver logrotate cron sitecontrollercmd nfs tftp httpd iscsi sudoers aptcacher ftp snmp extrapackages loop dsh ntp $(SHAREDIR)/images/vms/etch-4.1.img symlinks samba libvirt
+infrastructure: api ssh winpe files prompt autofs dhcpd dhcpd6 hosts network nagios conserver logrotate cron sitecontrollercmd nfs tftp iscsi sudoers aptcacher ftp snmp extrapackages loop dsh ntp $(SHAREDIR)/images/vms/etch-4.1.img symlinks samba libvirt
 	$(info XenRT infrastructure installed.)
 
 
@@ -620,7 +624,6 @@ infrastructure-uninstall: network-uninstall \
 			  dhcpd-uninstall \
 			  hosts-uninstall \
 			  tftp-uninstall \
-			  httpd-uninstall \
 			  iscsi-uninstall \
 			  conserver-uninstall \
 			  sudoers-uninstall \
@@ -636,6 +639,10 @@ marvin:
 	wget -O $(SHAREDIR)/marvin.tar.gz http://repo-ccp.citrix.com/releases/Marvin/4.3-forward/Marvin-master-asfrepo-current.tar.gz
 	wget -O $(SHAREDIR)/marvin-4.4.tar.gz http://repo-ccp.citrix.com/releases/Marvin/4.4-forward/Marvin-master-asfrepo-current.tar.gz
 	wget -O $(SHAREDIR)/marvin-master.tar.gz http://repo-ccp.citrix.com/releases/Marvin/master/Marvin-master-asfrepo-current.tar.gz
+
+.PHONY: puppetrun
+puppetrun:
+	$(SUDO) puppet agent -t
 
 .PHONY: puppet-%
 puppet-%:

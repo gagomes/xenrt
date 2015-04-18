@@ -161,7 +161,7 @@ class SingleSkuBase(xenrt.TestCase):
         else:
             obj = self.param['poolObj']
 
-        obj.templicense(edition = edition, v6server = v6server)
+        obj.license(edition= edition, v6server = v6server)
 
     def resetSystem(self):
        
@@ -351,15 +351,11 @@ class VerifyHostSocketCount(xenrt.TestCase):
         self.hosts = [self.getDefaultHost()]
 
     def getSocketsFromXenrt(self,host):
-   
-        resources = xenrt.GEC().dbconnect.jobctrl("machine", [host.getName()])["RESOURCES"].split("/")
-        for resource in resources:
-            match = re.search("sockets=\d+",resource)
-            if match:
-                count = match.group(0).strip().split('=')[1]
-                break
-
-        return int(count)
+        resources = xenrt.GEC().dbconnect.api.get_machine(host.getName())['resources']
+        if "sockets" in resources:
+            return int(resources['sockets'])
+        else:
+            raise xenrt.XRTError("Number of sockets not defined in XenRT")
 
     def run(self,arglist=None):
 

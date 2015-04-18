@@ -11,7 +11,7 @@ class TestSeqPrepareParsing(XenRTUnitTestCase):
 
     def addTC(self, cls):
         json.loads(cls.JSON)
-        self.tcs.append((cls.__name__, cls.XML, cls.JSON, cls.EXTRAVARS, cls.MAXHOSTS))
+        self.tcs.append((cls.__name__, cls.XML, cls.JSON, cls.EXTRAVARS, cls.MAXHOSTS, cls.EXPECTEDHOSTS))
 
     def test_seq_prepare_parsing(self):
         self.tcs = []
@@ -23,6 +23,8 @@ class TestSeqPrepareParsing(XenRTUnitTestCase):
         self.addTC(TC6)
         self.addTC(TC7)
         self.addTC(TC8)
+        self.addTC(TC9)
+        self.addTC(TC10)
         self.run_for_many(self.tcs, self.__test_seq_prepare_parsing)
 
     @patch("uuid.uuid4")
@@ -30,7 +32,7 @@ class TestSeqPrepareParsing(XenRTUnitTestCase):
     @patch("xenrt.GEC")
     @patch("xenrt.TEC")
     def __test_seq_prepare_parsing(self, data, tec, gec, randommac, uuid):
-        (tcname, xmlstr, jsonstr, extravars, maxhosts) = data
+        (tcname, xmlstr, jsonstr, extravars, maxhosts, expectedhosts) = data
         self.tcname = tcname
         print "Running %s" % self.tcname
         self.dummytec = DummyTEC(self)
@@ -54,6 +56,9 @@ class TestSeqPrepareParsing(XenRTUnitTestCase):
         with open("unittests-json.out", "w") as f:
             pprint.pprint(jsondict, stream=f)
         self.assertEqual(xmldict, jsondict)
+        if expectedhosts != None:
+            self.assertEqual(len(jsondict['hosts']), expectedhosts)
+            self.assertEqual(len(xmldict['hosts']), expectedhosts)
     
     def parsePrepare(self, data):
 
@@ -158,6 +163,7 @@ class DummyRegistry(object):
 class BaseTC(object):
     EXTRAVARS = {}
     MAXHOSTS = None
+    EXPECTEDHOSTS = None
 
 # Basic pool with specified hosts
 class TC1(BaseTC):
@@ -431,6 +437,7 @@ class TC6(BaseTC):
 """
 
 class TC7(BaseTC):
+    EXPECTEDHOSTS = 5
     XML = """    <cloud>
 {
     "zones": [
@@ -580,3 +587,60 @@ class TC8(BaseTC):
         }
     ]
 }"""
+
+# Template node is equivalent to VM node with convertToTemplate
+class TC9(BaseTC):
+    XML = """
+      <host id="0">
+        <vm name="testvm">
+          <distro>debian70</distro>
+          <network device="0" />
+          <postinstall action="convertToTemplate" />
+        </vm>
+      </host>
+"""
+    JSON = """
+        { "hosts": [
+            { "id": 0,
+              "templates": [
+                { "name": "testvm",
+                  "distro": "debian70",
+                  "vifs": [
+                    { "device": 0 }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+    """
+
+# Template node is equivalent to VM node with convertToTemplate
+class TC10(BaseTC):
+    XML = """
+      <host id="0">
+        <template name="testvm">
+          <distro>debian70</distro>
+          <network device="0" />
+        </template>
+      </host>
+"""
+    JSON = """
+        { "hosts": [
+            { "id": 0,
+              "templates": [
+                { "name": "testvm",
+                  "distro": "debian70",
+                  "vifs": [
+                    { "device": 0 }
+                  ],
+                  "postinstall": [
+                    { "action": "convertToTemplate" }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+    """
+

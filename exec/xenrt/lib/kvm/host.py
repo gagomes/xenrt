@@ -69,7 +69,7 @@ def createHost(id=0,
     extrapackages = []
     extrapackages.append("libvirt")
     rhel7 = False
-    if re.search(r"rhel7", distro) or re.search(r"centos7", distro) or re.search(r"oel7", distro):
+    if re.search(r"rhel7", distro) or re.search(r"centos7", distro) or re.search(r"oel7", distro) or re.search(r"sl7", distro):
         rhel7 = True
         extrapackages.append("ntp")
         extrapackages.append("wget")
@@ -102,7 +102,7 @@ def createHost(id=0,
 
     host.execvirt("virsh net-destroy default")
     host.execvirt("virsh net-undefine default")
-    host.createNetwork("cloudbr0")
+    host.createNetwork("cloudbr0", useDHCP=True)
 
     networkConfig  = "<network>"
     networkConfig += "<name>cloudbr0</name>"
@@ -192,9 +192,21 @@ class KVMHost(xenrt.lib.libvirt.Host):
     def getBridgeByName(self, name):
         return (self.execvirt("virsh net-info %s | grep 'Bridge' | tr -s ' ' | cut -d ' ' -f 2" % name)).strip()
 
-    def createNetwork(self, name="bridge", iface=None):
+    def createNetwork(self, name="bridge", iface=None, useDHCP=False):
         if iface is None: iface = self.getDefaultInterface()
-        self.execvirt("virsh iface-bridge %s %s --no-stp 10" % (iface, name))
+
+        # We can lose the SSH connection during this operation - if this happens it can interrupt completion
+        # so we do a trick to ensure it runs in the background
+        dhcp = ""
+        if useDHCP:
+            dhcp = "&& echo 'BOOTPROTO=dhcp' >> /etc/sysconfig/network-scripts/ifcfg-%s && service network restart" % name
+        self.execvirt("(sleep 5 && virsh iface-bridge %s %s --no-stp 10 %s) > /dev/null 2>&1 < /dev/null &" % (iface, name, dhcp))
+
+        # Wait 1 minute then check the operation has completed OK
+        xenrt.sleep(60)
+        bdata = self.execvirt("brctl show")
+        if not name in bdata:
+            raise xenrt.XRTError("Failure attempting to set up network bridge")
 
     def removeNetwork(self, bridge=None, nwuuid=None):
         if bridge:
@@ -408,7 +420,7 @@ class KVMHost(xenrt.lib.libvirt.Host):
             self.execdom0("sed -i 's/SELINUX=enforcing/SELINUX=permissive/' /etc/selinux/config")
             self.execdom0("/usr/sbin/setenforce permissive")
 
-        if (re.search(r"rhel7", self.distro) or re.search(r"centos7", self.distro) or re.search(r"oel7", self.distro)) \
+        if (re.search(r"rhel7", self.distro) or re.search(r"centos7", self.distro) or re.search(r"oel7", self.distro) or re.search(r"sl7", self.distro)) \
             and xenrt.TEC().lookup("WORKAROUND_CS21359", False, boolean=True):
             self.execdom0("yum install -y libcgroup-tools") # CS-21359
             self.execdom0("echo kvmclock.disable=true >> /etc/cloudstack/agent/agent.properties") # CLOUDSTACK-7472
@@ -431,9 +443,13 @@ EOF
             self.execdom0("service cgconfig stop")
             self.execdom0("service cgconfig start")
 
-        # Set up /etc/cloudstack/agent/agent.properties
-        self.execdom0("echo 'public.network.device=cloudbr0' >> /etc/cloudstack/agent/agent.properties")
-        self.execdom0("echo 'private.network.device=cloudbr0' >> /etc/cloudstack/agent/agent.properties")
+        try:
+            # Set up /etc/cloudstack/agent/agent.properties
+            self.execdom0("echo 'public.network.device=cloudbr0' >> /etc/cloudstack/agent/agent.properties")
+            self.execdom0("echo 'private.network.device=cloudbr0' >> /etc/cloudstack/agent/agent.properties")
+        except:
+            self.execdom0("echo 'public.network.device=cloudbr0' >> /etc/cloud/agent/agent.properties")
+            self.execdom0("echo 'private.network.device=cloudbr0' >> /etc/cloud/agent/agent.properties")
 
         # Log the commit
         commit = None
@@ -458,7 +474,7 @@ EOF
         if not '1.7.0' in self.execdom0('java -version').strip():
                 javaDir = self.execdom0('update-alternatives --display java | grep "^/usr/lib.*1.7.0"').strip()
                 self.execdom0('update-alternatives --set java %s' % (javaDir.split()[0]))
-        if re.search(r"rhel7", self.distro) or re.search(r"centos7", self.distro) or re.search(r"oel7", self.distro):
+        if re.search(r"rhel7", self.distro) or re.search(r"centos7", self.distro) or re.search(r"oel7", self.distro) or re.search(r"sl7", self.distro):
             jsvcFile = "apache-commons-daemon-jsvc-1.0.13-6.el7.x86_64.rpm"
         else:
             jsvcFile = "jakarta-commons-daemon-jsvc-1.0.1-8.9.el6.x86_64.rpm"

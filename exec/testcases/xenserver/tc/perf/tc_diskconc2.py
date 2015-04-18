@@ -25,9 +25,12 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
         # /dev/disk/by-id/X,/dev/disk/by-id/Y,...
         # Use "default" to use the default SR (which will *not* be destroyed)
         self.devices = libperf.getArgument(arglist, "devices", str, "default").strip().split(",")
+
+        # blocksizes is a list of either bytes or names of pre-defined access patterns, e.g. "tesco"
         self.blocksizes = libperf.getArgument(arglist, "blocksizes",  str,
                                               "512,1024,2048,4096,8192,16384,32768,65536,131072,262144,524288,1048576,2097152,4194304")
-        self.blocksizes = map(int, self.blocksizes.strip().split(","))
+        self.blocksizes = self.blocksizes.strip().split(",")
+        self.queuedepth = libperf.getArgument(arglist, "queue_depth", int, 1)
         self.vms_per_sr = libperf.getArgument(arglist, "vms_per_sr", int, 1)
         self.vbds_per_vm = libperf.getArgument(arglist, "vbds_per_vm", int, 1)
         self.vcpus_per_vm = libperf.getArgument(arglist, "vcpus_per_vm", int, None)
@@ -116,6 +119,8 @@ clean all
 
     def runPhase(self, count, op):
         for blocksize in self.blocksizes:
+            # TODO we don't support pre-defined access patterns with 'latency', only integer block sizes
+            blocksize = int(blocksize)
             # Run synexec master
             proc, port = libsynexec.start_master_on_controller(
                     """/bin/bash :CONF:
@@ -172,6 +177,50 @@ done
         nbname = self.get_nbname(self.vm[0])
 
         for blocksize in self.blocksizes:
+            if blocksize == 'tesco':
+                accessSpecs = [
+                    ("Email Server - R60 W40- RND- 4K",    "NONE", ["4096,100,60,100,0,1,0,0"]),
+                    ("Database Server - R70 W30- RND- 8K", "NONE", ["8192,100,70,100,0,1,0,0"]),
+                    ("Web Server - R95 W5- RND- Var",      "NONE", [
+                        "2048,20,95,100,0,1,0,0",
+                        "4096,19,95,100,0,1,0,0",
+                        "8192,18,95,100,0,1,0,0",
+                        "16384,17,95,100,0,1,0,0",
+                        "32768,16,95,100,0,1,0,0",
+                        "65536,10,95,100,0,1,0,0"]),
+                    ("Online Tranaction Processing (OLTP)  Server - R80 W20- RND- Var", "NONE", [
+                        "2048,33,80,100,0,1,0,0",
+                        "4096,33,95,100,0,1,0,0",
+                        "8192,34,80,100,0,1,0,0"]),
+                    ("Archical File Server - R90 W10- SEQ- Var", "NONE", [
+                        "65536,13,90,0,0,1,0,0",
+                        "262144,34,95,100,0,1,0,0",
+                        "524288,23,80,100,0,1,0,0",
+                        "1048576,20,80,100,0,1,0,0",
+                        "5242880,10,80,100,0,1,0,0"]),
+                    ("User Store File Server - R80 W20- SEQ- Var", "NONE", [
+                        "65536,13,80,0,0,1,0,0",
+                        "262144,34,95,100,0,1,0,0",
+                        "524288,23,80,100,0,1,0,0",
+                        "1048576,20,80,100,0,1,0,0",
+                        "5242880,10,80,100,0,1,0,0"]),
+                    ("Streaming Media Server - R98 W2- SEQ- Var", "NONE", [
+                        "65536,2,98,0,0,1,0,0",
+                        "262144,5,95,100,0,1,0,0",
+                        "524288,10,80,100,0,1,0,0",
+                        "1048576,17,80,100,0,1,0,0",
+                        "5242880,66,80,100,0,1,0,0"]),
+                    ("Burst Read- 2M",  "NONE", ["2097152,100,100,0,0,16,0,0"]),
+                    ("Burst Write- 2M", "NONE", ["2097152,100,0,0,0,16,0,0"]),
+                    ("Std Read- 2M",    "NONE", ["2097152,100,100,0,0,1,0,0"]),
+                    ("Std Write- 2M",   "NONE", ["2097152,100,0,0,0,1,0,0"])
+                ]
+            else:
+                # treat the block size as a number of bytes
+                accessSpecs = [
+                    ("custom", "ALL", ["%d,100,%d,0,0,1,%d,0" % (int(blocksize), 100 if op == "r" else 0, int(blocksize))])
+                ]
+
             config = """Version 1.1.0 
 'TEST SETUP ====================================================================
 'Test Description
@@ -216,14 +265,21 @@ done
 	Total Error Count
 'END results display
 'ACCESS SPECIFICATIONS =========================================================
-'Access specification name,default assignment
-	custom,ALL
-'size,%% of size,%% reads,%% random,delay,burst,align,reply
-	%d,100,%d,0,0,1,%d,0
-'END access specifications
-'MANAGER LIST ==================================================================
-""" % (self.duration, blocksize, 100 if op == "r" else 0, blocksize)
+""" % (self.duration)
 
+            for (name, defaultAssign, specs) in accessSpecs:
+                config += """'Access specification name,default assignment
+	%s,%s
+'size,%% of size,%% reads,%% random,delay,burst,align,reply
+""" % (name, defaultAssign)
+
+                for spec in specs:
+                    config += """	%s
+""" % (spec)
+
+            config += """'END access specifications
+'MANAGER LIST ==================================================================
+"""
             for i, vm in enumerate(self.vm):
                 config += """'Manager ID, manager name
 	%d,%s
@@ -238,13 +294,18 @@ done
 	DISK
 'Default target settings for worker
 'Number of outstanding IOs,test connection rate,transactions per connection,use fixed seed,fixed seed value
-	1,DISABLED,1,DISABLED,0
+	%d,DISABLED,1,DISABLED,0
 'Disk maximum size,starting sector,Data pattern
 	0,0,0
 'End default target settings for worker
 'Assigned access specs
-	custom
-'End assigned access specs
+""" % (i+1, self.queuedepth)
+
+                    for (name, _, _) in accessSpecs:
+                        config += """	%s
+""" % (name)
+
+                    config += """'End assigned access specs
 'Target assignments
 'Target
 	%d: "XENSRC PVDISK 2.0"
@@ -253,7 +314,7 @@ done
 'End target
 'End target assignments
 'End worker
-""" % (i + 1, i + 1)
+""" % (i+1)
 
                 config += "'End manager\n"
 
@@ -270,8 +331,8 @@ Version 1.1.0
                 threads.append(thread)
 
             # Start the master
-            filename = "results-%s-%d-%d.csv" % (op, count, blocksize)
-            self.vm[0].xmlrpcExec("C:\\iometer.exe /c C:\\workload.icf /r C:\\%s /t 100" % filename)
+            filename = "results-%s-%d-%s.csv" % (op, count, blocksize)
+            self.vm[0].xmlrpcExec("C:\\iometer.exe /c C:\\workload.icf /r C:\\%s /t 100" % filename, timeout=1200)
 
             # Wait for the dynamo processes to finish
             for thread in threads:
@@ -285,17 +346,27 @@ Version 1.1.0
             # Process the results into the same format as synexec+latency uses
             i = 0
             for line in data.split("\n"):
+                if line.startswith("'Results"):
+                    i = 0
                 if line.startswith("MANAGER"):
                     vm = self.vm[i]
                     j = 0
                     i += 1
                 if line.startswith("WORKER"):
                     line = line.split(",")
-                    result = line[13 if op == "r" else 14]
-                    result = float(result) * 1000000 * self.duration
+                    if blocksize == 'tesco':
+                        result = float(line[13]) + float(line[14]) # sum read + write
+                        # delete whitespace from the name of the workload
+                        op = "tesco-%s" % (line[2])
+                        op = op.replace(' ', '')
+                        dispblocksize = 0
+                    else:
+                        result = float(line[13 if op == "r" else 14])
+                        dispblocksize = blocksize
+                    result = result * 1000000 * self.duration
                     result = long(result)
-                    self.log("slave", "%s %d %d %s %s %d %s" %
-                             (op, count + 1, blocksize, vm.getName().split("-")[0], vm.getName().split("-")[1], j, result))
+                    self.log("slave", "%s %d %s %s %s %d %s" %
+                             (op, count + 1, dispblocksize, vm.getName().split("-")[0], vm.getName().split("-")[1], j, result))
                     j += 1
 
     def installTemplate(self, guests):
@@ -323,6 +394,7 @@ Version 1.1.0
                 urlperf = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
                 pvsexe = "TargetOSOptimizer.exe"
                 pvsurl = "%s/performance/support-files/%s" % (urlperf, pvsexe)
+                xenrt.TEC().logverbose("Getting pvsfile from %s" % (pvsurl))
                 pvsfile = xenrt.TEC().getFile(pvsurl,pvsurl)
                 cpath = "c:\\%s" % pvsexe
                 self.template.xmlrpcSendFile(pvsfile, cpath)

@@ -13,11 +13,11 @@
 
   <testsequence>
     <serial group="TwoHostPool">
-      <testcase id="xenserver.tc.ha.TC7724"/>
-      <testcase id="xenserver.tc.ha.TC7725"/>
-      <testcase id="xenserver.tc.ha.TC7726"/>
-      <testcase id="xenserver.tc.ha.TC7727"/>
-      <testcase id="xenserver.tc.ha.TC7728"/>
+      <testcase id="xenserver.tc.ha.TC7719"/>
+      <testcase id="xenserver.tc.ha.TC7720"/>
+      <testcase id="xenserver.tc.ha.TC7721"/>
+      <testcase id="xenserver.tc.ha.TC7722"/>
+      <testcase id="xenserver.tc.ha.TC7723"/>
     </serial>
   </testsequence>
 

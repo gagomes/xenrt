@@ -18,8 +18,116 @@ __all__ = ["getVCenter"]
 _vcenter = None
 
 class VCenter(object):
-    def __init__(self):
+    def __init__(self, guest=None, globalVCenter=True, vCenterVersion="5.5.0-update02"):
+
         self.lock = threading.RLock()
+        self.username = xenrt.TEC().lookup(["VCENTER","USERNAME"])
+        self.password = xenrt.TEC().lookup(["VCENTER","PASSWORD"])
+
+        if not guest and globalVCenter:
+            self.loadGlobalVCenter()
+        else:
+            self.setupVCenter(guest=guest, vCenterVersion=vCenterVersion)
+
+        self.dvs = "no"
+        if xenrt.TEC().lookup("VMWARE_DVS", False, boolean=True):
+            xenrt.TEC().warning("Check for VMware DVS")
+            self.dvs = "yes"
+
+    def setupVCenter(self, guest=None, vCenterVersion="5.5.0-update02"):
+        # Currently works only for guest on XenServer
+        if not guest:
+            raise xenrt.XRTError("Unimplemented")
+            #host= xenrt.resources.SharedHost().getHost()
+            #guest= host.createBasicGuest(name="vcenter%08x" % random.randint(0, 0x7fffffff), distro="ws12r2-x64", memory=4096, disksize=80*1024)
+
+        self.guest= guest
+        self.address = guest.mainip
+        self.vCenterVersion = vCenterVersion
+        self.vc = xenrt.lib.generic.StaticOS(guest.distro, guest.mainip)
+        self.vc.os.enablePowerShellUnrestricted()
+        self.vc.os.ensurePackageInstalled("PowerShell 3.0")
+        self.vc.os.sendRecursive("%s/data/tests/vmware" % xenrt.TEC().lookup("XENRT_BASE"), "c:\\vmware")
+
+        if not self.isVCenterInstalled():
+            self.installVCenter()
+
+    def installVCenter(self):
+        isoUrl=xenrt.TEC().lookup(["VCENTER","ISO",self.vCenterVersion.upper()])
+        isoName = isoUrl.rsplit("/",1)[1]
+        if isoName not in self.guest.host.findISOs():
+            srPath = None
+            isoPath=xenrt.TEC().getFile(isoUrl)
+            isoPath = xenrt.command("readlink -f %s" % isoPath).strip()
+            if xenrt.command("stat --file-system --format=%%T %s" % isoPath).strip()=="nfs":
+                nfsMountInfo=xenrt.command("df %s" % isoPath).strip().split("\n")[-1].split(" ")
+                # nfsMountInfo will look like ['10.220.254.45:/vol/xenrtdata/cache', '2147483648', '1678503168', '468980480', '', '79%', '/misc/cache_nfs']
+                srPath=isoPath.rsplit("/",1)[0].replace(nfsMountInfo[-1], nfsMountInfo[0])
+            else:
+                ip=xenrt.command("/sbin/ifconfig eth0 | grep 'inet addr' | awk -F: '{print $2}' | awk '{print $1}'" ).strip()
+                srPath=ip+":"+isoPath.rsplit("/",1)[0]
+            self.guest.host.createISOSR(srPath)
+        self.guest.changeCD(isoName)
+        xenrt.sleep(30)
+
+        if "ws12" in self.guest.distro and "5.5" in self.vCenterVersion:
+            self.installVCenter55onWs12()
+        else:
+            raise xenrt.XRTError("Unimplemented")
+
+    def installVCenter55onWs12(self):
+        # Single Sign On
+        command='''start /wait msiexec.exe /i "D:\\Single Sign-On\\VMware-SSO-Server.msi" /qr \
+        ADMINPASSWORD=%s \
+        SSO_SITE=mysite \
+        /l*v %%TEMP%%\\vim-sso-msi.log ''' % (self.password)
+        self.guest.addExtraLogFile("%TEMP%\\vim-sso-msi.log")
+        self.guest.xmlrpcExec(command, timeout=1800)
+
+        # Inventory Service
+        command='''start /wait D:\\"Inventory Service"\\VMware-inventory-service.exe /S /v" \
+        SSO_ADMIN_PASSWORD=\"%s\" \
+        LS_URL=\"https://%s:7444/lookupservice/sdk\" \
+        TOMCAT_MAX_MEMORY_OPTION=S \
+        /L*V \"%%temp%%\\vim-qs-msi.log\" /qr" ''' % (self.password, self.guest.mainip)
+        self.guest.addExtraLogFile("%TEMP%\\vim-qs-msi.log")
+        self.guest.xmlrpcExec(command, timeout=1800)
+
+        # Vcenter Server
+        command='''start /wait D:\\vCenter-Server\\VMware-vcserver.exe /S /v" \
+        DB_SERVER_TYPE=Bundled \
+        FORMAT_DB=1 \
+        SSO_ADMIN_USER=\"%s\" \
+        SSO_ADMIN_PASSWORD=\"%s\" \
+        LS_URL=\"https://%s:7444/lookupservice/sdk\" \
+        IS_URL=\"https://%s:10443/\" \
+        VC_ADMIN_USER=administrator@vsphere.local \
+        /L*v \"%%TEMP%%\\vmvcsvr.log\" /qr" ''' % (self.username, self.password, self.guest.mainip, self.guest.mainip)
+        self.guest.addExtraLogFile("%TEMP%\\vmvcsvr.log")
+        self.guest.xmlrpcExec(command, timeout=7200)
+
+        # vSphere Client
+        command='''start /wait D:\\vSphere-Client\\VMware-viclient.exe /S /v" \
+        /L*v \"%TEMP%\\vim-vic-msi.log\" /qr" '''
+        self.guest.addExtraLogFile("%TEMP%\\vim-vic-msi.log")
+        self.guest.xmlrpcExec(command, timeout=3600)
+
+        # vSphere WebClient
+        command='''start /wait D:\\vSphere-WebClient\\VMware-WebClient.exe /S /v" \
+        SSO_ADMIN_USER=\"%s\" \
+        SSO_ADMIN_PASSWORD=\"%s\" \
+        LS_URL=\"https://%s:7444/lookupservice/sdk\" \
+        /L*v \"%%TEMP%%\\vim-ngc-msi.log\" /qr" ''' % (self.username, self.password, self.guest.mainip)
+        self.guest.addExtraLogFile("%TEMP%\\vim-ngc-msi.log")
+        self.guest.xmlrpcExec(command, timeout=3600)
+
+    def isVCenterInstalled(self):
+        services = self.vc.os.execCmd("get-service -displayname VMware* | where-object {$_.Status -eq 'Running'}", returndata=True, powershell=True).strip()
+        if "VMware VirtualCenter Server" in services:
+            return True
+        return False
+
+    def loadGlobalVCenter(self):
         vccfg = xenrt.TEC().lookup("VCENTER")
         self.vc = xenrt.lib.generic.StaticOS(vccfg['DISTRO'], vccfg['ADDRESS'])
         self.vc.os.enablePowerShellUnrestricted()
@@ -29,11 +137,6 @@ class VCenter(object):
         self.username = vccfg['USERNAME']
         self.address = vccfg['ADDRESS']
         self.password = vccfg['PASSWORD']
-        self.dvs = "no"
-
-        if xenrt.TEC().lookup("VMWARE_DVS", False, boolean=True):
-            xenrt.TEC().warning("Check for VMware DVS")
-            self.dvs = "yes"
 
     def addHost(self, host, dc, cluster):
         with self.lock:
@@ -46,7 +149,7 @@ class VCenter(object):
                                                         host.getIP(),
                                                         "root",
                                                         host.password,
-                                                        self.dvs), returndata=True, winrm=True))
+                                                        self.dvs), returndata=True))
                
 
             hostlist =csv.DictReader(StringIO.StringIO(self.vc.os.readFile("c:\\vmware\\%s.csv" % dc)))
@@ -63,7 +166,7 @@ class VCenter(object):
                 self.vc.os.execCmd("powershell.exe -ExecutionPolicy ByPass -File c:\\vmware\\listlicenses.ps1 %s %s %s" % (
                                         self.address,
                                         self.username,
-                                        self.password), winrm=True)
+                                        self.password))
 
 
                 liclist =csv.DictReader(StringIO.StringIO(self.vc.os.readFile("c:\\vmware\\licenses.csv")))
@@ -82,7 +185,7 @@ class VCenter(object):
                                                                     self.username,
                                                                     self.password,
                                                                     host.getIP(),
-                                                                    lic), returndata=True, winrm=True))
+                                                                    lic), returndata=True))
 
                      
                     hostlist =csv.DictReader(StringIO.StringIO(self.vc.os.readFile("c:\\vmware\\lic-%s.csv" % host.getIP())))
@@ -103,7 +206,7 @@ class VCenter(object):
             self.vc.os.execCmd("powershell.exe -ExecutionPolicy ByPass -File c:\\vmware\\listdatacenters.ps1 %s %s %s" % (
                                     self.address,
                                     self.username,
-                                    self.password), winrm=True)
+                                    self.password))
 
 
             dclist =csv.DictReader(StringIO.StringIO(self.vc.os.readFile("c:\\vmware\\dc.csv")))
@@ -115,11 +218,14 @@ class VCenter(object):
                                                         self.address,
                                                         self.username,
                                                         self.password,
-                                                        dc), returndata=True, winrm=True))
+                                                        dc), returndata=True))
 
-def getVCenter():
-    global _vcenter
-    with xenrt.GEC().getLock("VCENTER"):
-        if not _vcenter:
-            _vcenter = VCenter()
-    return _vcenter
+def getVCenter(guest=None, globalVCenter=True, vCenterVersion="5.5.0-update02"):
+    if not guest and globalVCenter:
+        global _vcenter
+        with xenrt.GEC().getLock("VCENTER"):
+            if not _vcenter:
+                _vcenter = VCenter()
+        return _vcenter
+    else:
+        return VCenter(guest=guest, globalVCenter=globalVCenter, vCenterVersion=vCenterVersion)

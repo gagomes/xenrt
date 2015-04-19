@@ -1572,6 +1572,11 @@ class Config(object):
         self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_WIN10"] = "windows10"
         self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_WIN10_64"] = "windows10_64"
 
+        # VCenter Config
+        self.config["VCENTER"]["USERNAME"] = "administrator@vsphere.local"
+        self.config["VCENTER"]["PASSWORD"] = "xenroot01T!"
+        self.config["VCENTER"]["ISO"]["5.5.0-UPDATE02"] = "/usr/groups/xenrt/esx/vcenter/VMware-VIMSetup-all-5.5.0-2442328-20150101-update02.iso"
+
         # Marvin File
         self.config["MARVIN_FILE"] = {}
         self.config["MARVIN_FILE"]["3.x"] =     "http://repo-ccp.citrix.com/releases/Marvin/3.0.7/Marvin-3.0.7.tar.gz"

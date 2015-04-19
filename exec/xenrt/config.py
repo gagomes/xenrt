@@ -1573,6 +1573,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_WIN10_64"] = "windows10_64"
 
         # VCenter Config
+        self.config["VCENTER"] = {}
         self.config["VCENTER"]["USERNAME"] = "administrator@vsphere.local"
         self.config["VCENTER"]["PASSWORD"] = "xenroot01T!"
         self.config["VCENTER"]["ISO"]["5.5.0-UPDATE02"] = "/usr/groups/xenrt/esx/vcenter/VMware-VIMSetup-all-5.5.0-2442328-20150101-update02.iso"

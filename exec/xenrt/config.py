@@ -1574,6 +1574,7 @@ class Config(object):
 
         # VCenter Config
         self.config["VCENTER"] = {}
+        self.config["VCENTER"]["ISO"] = {}
         self.config["VCENTER"]["USERNAME"] = "administrator@vsphere.local"
         self.config["VCENTER"]["PASSWORD"] = "xenroot01T!"
         self.config["VCENTER"]["ISO"]["5.5.0-UPDATE02"] = "/usr/groups/xenrt/esx/vcenter/VMware-VIMSetup-all-5.5.0-2442328-20150101-update02.iso"

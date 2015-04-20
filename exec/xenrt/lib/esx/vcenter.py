@@ -118,7 +118,7 @@ VC_ADMIN_USER=administrator@vsphere.local \
 
         # vSphere Client
         command='''start /wait %s:\\vSphere-Client\\VMware-viclient.exe /S /v" \
-/L*v \"%TEMP%\\vim-vic-msi.log\" /qr" '''
+/L*v \"%%TEMP%%\\vim-vic-msi.log\" /qr" ''' % (driveLetter)
         self.guest.addExtraLogFile("%TEMP%\\vim-vic-msi.log")
         self.guest.xmlrpcExec(command, timeout=3600)
 

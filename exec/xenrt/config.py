@@ -1575,9 +1575,12 @@ class Config(object):
         # VCenter Config
         self.config["VCENTER"] = {}
         self.config["VCENTER"]["ISO"] = {}
+        self.config["VCENTER"]["POWERCLI"] = {}
         self.config["VCENTER"]["USERNAME"] = "administrator@vsphere.local"
         self.config["VCENTER"]["PASSWORD"] = "xenroot01T!"
         self.config["VCENTER"]["ISO"]["5.5.0-UPDATE02"] = "/usr/groups/xenrt/esx/vcenter/VMware-VIMSetup-all-5.5.0-2442328-20150101-update02.iso"
+        self.config["VCENTER"]["POWERCLI"]["DEFAULT"]   = "http://files.uk.xensource.com/usr/groups/xenrt/esx/vcenter/VMware-PowerCLI-5.5.0-1671586.exe"
+        self.config["VCENTER"]["POWERCLI"]["5.5.0"]     = "http://files.uk.xensource.com/usr/groups/xenrt/esx/vcenter/VMware-PowerCLI-5.5.0-1671586.exe"
 
         # Marvin File
         self.config["MARVIN_FILE"] = {}

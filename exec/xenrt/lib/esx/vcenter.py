@@ -23,6 +23,7 @@ class VCenter(object):
         self.lock = threading.RLock()
         self.username = xenrt.TEC().lookup(["VCENTER","USERNAME"])
         self.password = xenrt.TEC().lookup(["VCENTER","PASSWORD"])
+        self.guest=guest
 
         if not guest and globalVCenter:
             self.loadGlobalVCenter()
@@ -34,14 +35,7 @@ class VCenter(object):
             xenrt.TEC().warning("Check for VMware DVS")
             self.dvs = "yes"
 
-    def setupVCenter(self, guest=None, vCenterVersion="5.5.0-update02"):
-        # Currently works only for guest on XenServer
-        if not guest:
-            raise xenrt.XRTError("Unimplemented")
-            #host= xenrt.resources.SharedHost().getHost()
-            #guest= host.createBasicGuest(name="vcenter%08x" % random.randint(0, 0x7fffffff), distro="ws12r2-x64", memory=4096, disksize=80*1024)
-
-        self.guest= guest
+    def setupVCenter(self, guest, vCenterVersion="5.5.0-update02"):
         self.address = guest.mainip
         self.vCenterVersion = vCenterVersion
         self.vc = xenrt.lib.generic.StaticOS(guest.distro, guest.mainip)
@@ -67,6 +61,7 @@ class VCenter(object):
                 ip=xenrt.command("/sbin/ifconfig eth0 | grep 'inet addr' | awk -F: '{print $2}' | awk '{print $1}'" ).strip()
                 srPath=ip+":"+isoPath.rsplit("/",1)[0]
             self.guest.host.createISOSR(srPath)
+
         self.guest.changeCD(isoName)
         xenrt.sleep(30)
 
@@ -74,52 +69,70 @@ class VCenter(object):
             self.installVCenter55onWs12()
         else:
             raise xenrt.XRTError("Unimplemented")
+        self.guest.changeCD(None)
+
+        self.installpowerCLI()
 
     def installVCenter55onWs12(self):
+
+        # Get DVD Drive letter
+        command="Get-WmiObject win32_logicaldisk -filter 'DriveType=5 and Access>0' | ForEach-Object {$_.DeviceID}"
+        driveLetter = self.guest.xmlrpcExec(command, returndata=True, powershell=True, ignoreHealthCheck=True).strip(" \n:")
+
         # Single Sign On
-        command='''start /wait msiexec.exe /i "D:\\Single Sign-On\\VMware-SSO-Server.msi" /qr \
-        ADMINPASSWORD=%s \
-        SSO_SITE=mysite \
-        /l*v %%TEMP%%\\vim-sso-msi.log ''' % (self.password)
+        command='''start /wait msiexec.exe /i "%s:\\Single Sign-On\\VMware-SSO-Server.msi" /qr \
+ADMINPASSWORD=%s \
+SSO_SITE=mysite \
+/l*v %%TEMP%%\\vim-sso-msi.log ''' % (driveLetter, self.password)
         self.guest.addExtraLogFile("%TEMP%\\vim-sso-msi.log")
         self.guest.xmlrpcExec(command, timeout=1800)
 
         # Inventory Service
-        command='''start /wait D:\\"Inventory Service"\\VMware-inventory-service.exe /S /v" \
-        SSO_ADMIN_PASSWORD=\"%s\" \
-        LS_URL=\"https://%s:7444/lookupservice/sdk\" \
-        TOMCAT_MAX_MEMORY_OPTION=S \
-        /L*V \"%%temp%%\\vim-qs-msi.log\" /qr" ''' % (self.password, self.guest.mainip)
+        command='''start /wait %s:\\"Inventory Service"\\VMware-inventory-service.exe /S /v" \
+SSO_ADMIN_PASSWORD=\"%s\" \
+LS_URL=\"https://%s:7444/lookupservice/sdk\" \
+TOMCAT_MAX_MEMORY_OPTION=S \
+/L*V \"%%temp%%\\vim-qs-msi.log\" /qr" ''' % (driveLetter, self.password, self.guest.mainip)
         self.guest.addExtraLogFile("%TEMP%\\vim-qs-msi.log")
         self.guest.xmlrpcExec(command, timeout=1800)
 
         # Vcenter Server
-        command='''start /wait D:\\vCenter-Server\\VMware-vcserver.exe /S /v" \
-        DB_SERVER_TYPE=Bundled \
-        FORMAT_DB=1 \
-        SSO_ADMIN_USER=\"%s\" \
-        SSO_ADMIN_PASSWORD=\"%s\" \
-        LS_URL=\"https://%s:7444/lookupservice/sdk\" \
-        IS_URL=\"https://%s:10443/\" \
-        VC_ADMIN_USER=administrator@vsphere.local \
-        /L*v \"%%TEMP%%\\vmvcsvr.log\" /qr" ''' % (self.username, self.password, self.guest.mainip, self.guest.mainip)
+        command='''start /wait %s:\\vCenter-Server\\VMware-vcserver.exe /S /v" \
+DB_SERVER_TYPE=Bundled \
+FORMAT_DB=1 \
+SSO_ADMIN_USER=\"%s\" \
+SSO_ADMIN_PASSWORD=\"%s\" \
+LS_URL=\"https://%s:7444/lookupservice/sdk\" \
+IS_URL=\"https://%s:10443/\" \
+VC_ADMIN_USER=administrator@vsphere.local \
+/L*v \"%%TEMP%%\\vmvcsvr.log\" /qr" ''' % (driveLetter, self.username, self.password, self.guest.mainip, self.guest.mainip)
         self.guest.addExtraLogFile("%TEMP%\\vmvcsvr.log")
-        self.guest.xmlrpcExec(command, timeout=7200)
+        self.guest.xmlrpcExec(command, timeout=3600)
 
         # vSphere Client
-        command='''start /wait D:\\vSphere-Client\\VMware-viclient.exe /S /v" \
-        /L*v \"%TEMP%\\vim-vic-msi.log\" /qr" '''
+        command='''start /wait %s:\\vSphere-Client\\VMware-viclient.exe /S /v" \
+/L*v \"%TEMP%\\vim-vic-msi.log\" /qr" '''
         self.guest.addExtraLogFile("%TEMP%\\vim-vic-msi.log")
-        self.guest.xmlrpcExec(command, timeout=3600)
+        self.guest.xmlrpcExec(command, timeout=1800)
 
         # vSphere WebClient
-        command='''start /wait D:\\vSphere-WebClient\\VMware-WebClient.exe /S /v" \
-        SSO_ADMIN_USER=\"%s\" \
-        SSO_ADMIN_PASSWORD=\"%s\" \
-        LS_URL=\"https://%s:7444/lookupservice/sdk\" \
-        /L*v \"%%TEMP%%\\vim-ngc-msi.log\" /qr" ''' % (self.username, self.password, self.guest.mainip)
+        command='''start /wait %s:\\vSphere-WebClient\\VMware-WebClient.exe /S /v" \
+SSO_ADMIN_USER=\"%s\" \
+SSO_ADMIN_PASSWORD=\"%s\" \
+LS_URL=\"https://%s:7444/lookupservice/sdk\" \
+/L*v \"%%TEMP%%\\vim-ngc-msi.log\" /qr" ''' % (driveLetter, self.username, self.password, self.guest.mainip)
         self.guest.addExtraLogFile("%TEMP%\\vim-ngc-msi.log")
-        self.guest.xmlrpcExec(command, timeout=3600)
+        self.guest.xmlrpcExec(command, timeout=1800)
+
+    def installpowerCLI(self):
+        # vSphere PowerCLI
+        installerFileURL = xenrt.TEC().lookup(["VCENTER","POWERCLI",xenrt.TEC().lookup("VSPHERE_POWERCLI_VERSION", "DEFAULT")])
+        installerFileName = installerFileURL.rsplit("/",1)[1]
+        self.guest.xmlrpcFetchFile(installerFileURL, "C:\\%s" % installerFileName )
+
+        command='''C:\\%s /q /s /w /V" /L*v \"%%TEMP%%\\vm-powercli.log\" /qr" ''' % (installerFileName)
+        self.guest.addExtraLogFile("%TEMP%\\vm-powercli.log")
+        self.guest.xmlrpcExec(command, timeout=1800)
 
     def isVCenterInstalled(self):
         services = self.vc.os.execCmd("get-service -displayname VMware* | where-object {$_.Status -eq 'Running'}", returndata=True, powershell=True).strip()
@@ -228,4 +241,10 @@ def getVCenter(guest=None, globalVCenter=True, vCenterVersion="5.5.0-update02"):
                 _vcenter = VCenter()
         return _vcenter
     else:
-        return VCenter(guest=guest, globalVCenter=globalVCenter, vCenterVersion=vCenterVersion)
+        if not guest:
+            ## Create/use existing vcenter guest on sharedhost, need to code as resource which can be leased by Jobs.
+            #host= xenrt.resources.SharedHost().getHost()
+            #guest= host.createBasicGuest(name="vcenter%08x" % random.randint(0, 0x7fffffff), distro="ws12r2-x64", memory=4096, disksize=80*1024)
+            raise xenrt.XRTError("Unimplemented")
+
+        return VCenter(guest=guest, globalVCenter=False, vCenterVersion=vCenterVersion)

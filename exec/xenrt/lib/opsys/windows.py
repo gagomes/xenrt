@@ -275,10 +275,6 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
         currentPollPeriod = 1
         maxPollPeriod = 16
 
-        if xenrt.TEC().lookup("CMD_VIA_WINRM", False, boolean=True):
-            xenrt.TEC().warning("Enforcing execCmd via WinRM")
-            winrm = True
-
         try:
             log("Running on %s via %s: %s" % (self.parent.getIP(),
                 "WinRM[PS]" if (winrm and powershell) else "WinRM" if winrm else "Powershell" if powershell else "Daemon",

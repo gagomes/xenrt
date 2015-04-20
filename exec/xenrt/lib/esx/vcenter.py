@@ -26,16 +26,23 @@ class VCenter(object):
         self.guest=guest
 
         if not guest and globalVCenter:
-            self.loadGlobalVCenter()
+            self._loadGlobalVCenter()
         else:
-            self.setupVCenter(guest=guest, vCenterVersion=vCenterVersion)
+            self._setupVCenter(guest=guest, vCenterVersion=vCenterVersion)
 
         self.dvs = "no"
         if xenrt.TEC().lookup("VMWARE_DVS", False, boolean=True):
             xenrt.TEC().warning("Check for VMware DVS")
             self.dvs = "yes"
 
-    def setupVCenter(self, guest, vCenterVersion="5.5.0-update02"):
+        if xenrt.TEC().lookup("CMD_VIA_WINRM", True, boolean=True):
+            self.vc.os.enableWinRM()
+            xenrt.TEC().warning("Enforcing execCmd via WinRM")
+            self.useWinrm = True
+        else:
+            self.useWinrm = False
+
+    def _setupVCenter(self, guest, vCenterVersion="5.5.0-update02"):
         self.address = guest.mainip
         self.vCenterVersion = vCenterVersion
         self.vc = xenrt.lib.generic.StaticOS(guest.distro, guest.mainip)
@@ -44,9 +51,9 @@ class VCenter(object):
         self.vc.os.sendRecursive("%s/data/tests/vmware" % xenrt.TEC().lookup("XENRT_BASE"), "c:\\vmware")
 
         if not self.isVCenterInstalled():
-            self.installVCenter()
+            self._installVCenter()
 
-    def installVCenter(self):
+    def _installVCenter(self):
         isoUrl=xenrt.TEC().lookup(["VCENTER","ISO",self.vCenterVersion.upper()])
         isoName = isoUrl.rsplit("/",1)[1]
         if isoName not in self.guest.host.findISOs():
@@ -66,14 +73,14 @@ class VCenter(object):
         xenrt.sleep(30)
 
         if "ws12" in self.guest.distro and "5.5" in self.vCenterVersion:
-            self.installVCenter55onWs12()
+            self._installVCenter55onWs12()
         else:
             raise xenrt.XRTError("Unimplemented")
         self.guest.changeCD(None)
 
-        self.installpowerCLI()
+        self._installpowerCLI()
 
-    def installVCenter55onWs12(self):
+    def _installVCenter55onWs12(self):
 
         # Get DVD Drive letter
         command="Get-WmiObject win32_logicaldisk -filter 'DriveType=5 and Access>0' | ForEach-Object {$_.DeviceID}"
@@ -113,7 +120,7 @@ VC_ADMIN_USER=administrator@vsphere.local \
         command='''start /wait %s:\\vSphere-Client\\VMware-viclient.exe /S /v" \
 /L*v \"%TEMP%\\vim-vic-msi.log\" /qr" '''
         self.guest.addExtraLogFile("%TEMP%\\vim-vic-msi.log")
-        self.guest.xmlrpcExec(command, timeout=1800)
+        self.guest.xmlrpcExec(command, timeout=3600)
 
         # vSphere WebClient
         command='''start /wait %s:\\vSphere-WebClient\\VMware-WebClient.exe /S /v" \
@@ -124,7 +131,7 @@ LS_URL=\"https://%s:7444/lookupservice/sdk\" \
         self.guest.addExtraLogFile("%TEMP%\\vim-ngc-msi.log")
         self.guest.xmlrpcExec(command, timeout=1800)
 
-    def installpowerCLI(self):
+    def _installpowerCLI(self):
         # vSphere PowerCLI
         installerFileURL = xenrt.TEC().lookup(["VCENTER","POWERCLI",xenrt.TEC().lookup("VSPHERE_POWERCLI_VERSION", "DEFAULT")])
         installerFileName = installerFileURL.rsplit("/",1)[1]
@@ -140,7 +147,7 @@ LS_URL=\"https://%s:7444/lookupservice/sdk\" \
             return True
         return False
 
-    def loadGlobalVCenter(self):
+    def _loadGlobalVCenter(self):
         vccfg = xenrt.TEC().lookup("VCENTER")
         self.vc = xenrt.lib.generic.StaticOS(vccfg['DISTRO'], vccfg['ADDRESS'])
         self.vc.os.enablePowerShellUnrestricted()
@@ -162,7 +169,7 @@ LS_URL=\"https://%s:7444/lookupservice/sdk\" \
                                                         host.getIP(),
                                                         "root",
                                                         host.password,
-                                                        self.dvs), returndata=True))
+                                                        self.dvs), returndata=True, winrm=self.useWinrm))
                
 
             hostlist =csv.DictReader(StringIO.StringIO(self.vc.os.readFile("c:\\vmware\\%s.csv" % dc)))
@@ -179,7 +186,7 @@ LS_URL=\"https://%s:7444/lookupservice/sdk\" \
                 self.vc.os.execCmd("powershell.exe -ExecutionPolicy ByPass -File c:\\vmware\\listlicenses.ps1 %s %s %s" % (
                                         self.address,
                                         self.username,
-                                        self.password))
+                                        self.password), winrm=self.useWinrm)
 
 
                 liclist =csv.DictReader(StringIO.StringIO(self.vc.os.readFile("c:\\vmware\\licenses.csv")))
@@ -198,7 +205,7 @@ LS_URL=\"https://%s:7444/lookupservice/sdk\" \
                                                                     self.username,
                                                                     self.password,
                                                                     host.getIP(),
-                                                                    lic), returndata=True))
+                                                                    lic), returndata=True, winrm=self.useWinrm))
 
                      
                     hostlist =csv.DictReader(StringIO.StringIO(self.vc.os.readFile("c:\\vmware\\lic-%s.csv" % host.getIP())))
@@ -231,7 +238,7 @@ LS_URL=\"https://%s:7444/lookupservice/sdk\" \
                                                         self.address,
                                                         self.username,
                                                         self.password,
-                                                        dc), returndata=True))
+                                                        dc), returndata=True, winrm=self.useWinrm))
 
 def getVCenter(guest=None, globalVCenter=True, vCenterVersion="5.5.0-update02"):
     if not guest and globalVCenter:

@@ -1143,14 +1143,12 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Creedence"]["MAX_VDIS_PER_SR_ext"] = "600"
         self.config["VERSION_CONFIG"]["Creedence"]["MAX_VDIS_PER_SR_lvm"] = "600"
         self.config["VERSION_CONFIG"]["Creedence"]["MAX_VDIS_PER_SR_nfs"] = "600"
-        self.config["VERSION_CONFIG"]["Creedence"]["MAX_VDIS_PER_SR_cifs"] = "600"
         self.config["VERSION_CONFIG"]["Creedence"]["MAX_VDIS_PER_SR_lvmoiscsi"] = "600"
         self.config["VERSION_CONFIG"]["Creedence"]["MAX_VDIS_PER_SR_netapp"] = "600"
         self.config["VERSION_CONFIG"]["Creedence"]["MAX_VDIS_PER_SR_equal"] = "600"
         self.config["VERSION_CONFIG"]["Creedence"]["MAX_ATTACHED_VDIS_PER_SR_ext"] = "600"
         self.config["VERSION_CONFIG"]["Creedence"]["MAX_ATTACHED_VDIS_PER_SR_lvm"] = "600"
         self.config["VERSION_CONFIG"]["Creedence"]["MAX_ATTACHED_VDIS_PER_SR_nfs"] = "600"
-        self.config["VERSION_CONFIG"]["Creedence"]["MAX_ATTACHED_VDIS_PER_SR_cifs"] = "600"
         self.config["VERSION_CONFIG"]["Creedence"]["MAX_ATTACHED_VDIS_PER_SR_lvmoiscsi"] = "600"
         self.config["VERSION_CONFIG"]["Creedence"]["MAX_ATTACHED_VDIS_PER_SR_netapp"] = "600"
         self.config["VERSION_CONFIG"]["Creedence"]["MAX_ATTACHED_VDIS_PER_SR_equal"] = "600"
@@ -1203,6 +1201,8 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Dundee"] = copy.deepcopy(self.config["VERSION_CONFIG"]["Cream"])
         self.config["VERSION_CONFIG"]["Dundee"]["V6_DBV"] = "2014.1127"
         self.config["VERSION_CONFIG"]["Dundee"]["TEMPLATE_NAME_SDK"] = ""  # SDK not present in trunk
+        self.config["VERSION_CONFIG"]["Dundee"]["MAX_VDIS_PER_SR_cifs"] = "600"
+        self.config["VERSION_CONFIG"]["Dundee"]["MAX_ATTACHED_VDIS_PER_SR_cifs"] = "600"
 
         # Libvirt
         self.config["VERSION_CONFIG"]["Libvirt"] = {}

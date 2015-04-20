@@ -3411,9 +3411,10 @@ class TCIntelGPUReuse(IntelBase):
             for distro in self.REQUIRED_DISTROS:
                 osType = self.getOSType(distro)
 
-                vm1 = self.masterVMs[osType]
-                vm1.setState("DOWN")
-                vm2 = vm1.cloneVM(noIP=False)
+                masterVM = self.masterVMs[osType]
+                masterVM.setState("DOWN")
+                vm1 = masterVM.cloneVM(noIP=False)
+                vm2 = masterVM.cloneVM(noIP=False)
 
                 for vm in [vm1, vm2]:
                     self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
@@ -3421,6 +3422,26 @@ class TCIntelGPUReuse(IntelBase):
                     self.typeOfvGPU.assertvGPURunningInVM(vm, self.getConfigurationName(config))
                     vm.setState("DOWN")
 
+class TCPoolIntelGPU(IntelBase):
+    """Intel GPU Passthrough in a pool"""
+
+    def run(self, arglist):
+
+        for host in self.getAllHosts():
+            self.typeOfvGPU.blockDom0Access(host)
+
+        for distro in self.REQUIRE_DISTROS:
+            osType = self.getOSType(distro)
+
+            masterVM = self.masterVMs[osType]
+            masterVM.setState("DOWN")
+            vm1 = masterVM.cloneVM(noIP=False)
+            vm2 = masterVM.cloneVM(noIP=False)
+
+            for vm in [vm1, vm2]:
+                self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
+                self.typeOfvGPU.installGuestDrivers(vm, self.getConfigurationName(config))
+                self.typeOfvGPU.assertvGPURunningInVM(vm, self.getConfigurationName(config))
 
 class TCAlloModeK200NFS(VGPUAllocationModeBase):
 

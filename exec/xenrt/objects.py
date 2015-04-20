@@ -7393,6 +7393,11 @@ class GenericGuest(GenericPlace):
 
     def tailor(self):
         """Tailor a new guest to allow other tests to be run"""
+        
+        if "tailor" in map(lambda x:x[2], traceback.extract_stack())[:-1]:
+            xenrt.TEC().logverbose("Terminating recursive tailor call")
+            return
+        
         if not self.mainip:
             raise xenrt.XRTError("Unknown IP address to SSH to %s" %
                                  (self.name))
@@ -7432,10 +7437,6 @@ class GenericGuest(GenericPlace):
                     isUbuntu = True
 
             isDebian = isDebian and not isUbuntu
-
-            if (isUbuntu or isDebian) and "tailor_apt_source" in self.special:
-                self.execguest("sed -i s/10\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*/%s/ /etc/apt/sources.list" % xenrt.TEC().lookup("XENRT_SERVER_ADDRESS"))
-                del self.special['tailor_apt_source']
 
             if isUbuntu:
                 # change the TMPTIME so /tmp doesn't get cleared away on
@@ -7533,32 +7534,12 @@ class GenericGuest(GenericPlace):
                         if self.execguest("test -e %s" % (filename), retval="code") == 0:
                             self.execguest("rm -f %s" % (filename))
 
-                # Later Debian versions can use the original install
-                # mirror. The preseeder kindly does this for us however
-                # we need some more tweaks.
-                if debVer >= 5.0:
-                    filebase = "/etc/apt/sources.list"
-                    if self.execguest("test -e %s.orig" % (filebase),
-                                      retval="code") != 0:
-                        fn = xenrt.TEC().tempFile()
-                        sftp.copyFrom(filebase, fn)
-                        f = file(fn, "r")
-                        data = f.read()
-                        f.close()
-                        data = string.replace(\
-                            data,
-                            "deb http://security.debian.org",
-                            "#deb http://security.debian.org")
-                        data = string.replace(\
-                            data,
-                            "deb http://volatile.debian.org",
-                            "#deb http://volatile.debian.org")
-
-                        self.execguest("mv %s %s.orig" % (filebase, filebase))
-                        f = file(fn, "w")
-                        f.write(data)
-                        f.close()
-                        sftp.copyTo(fn, filebase)
+                if self.execguest("[ -e /etc/apt/sources.list.d/updates.list ]", retval="code") and int(debVer) in (6, 7) and xenrt.TEC().lookup("APT_SERVER", None):
+                    codename = self.execguest("cat /etc/apt/sources.list | grep '^deb' | awk '{print $3}' | head -1").strip()
+                    self.execguest("echo deb %s/debsecurity %s/updates main >> /etc/apt/sources.list.d/updates.list" % (xenrt.TEC().lookup("APT_SERVER"), codename))
+                    self.execguest("echo deb %s/debian %s-updates main >> /etc/apt/sources.list.d/updates.list" % (xenrt.TEC().lookup("APT_SERVER"), codename))
+                    if int(debVer) in (6,):
+                        self.execguest("echo deb %s/debian %s-lts main >> /etc/apt/sources.list.d/updates.list" % (xenrt.TEC().lookup("APT_SERVER"), codename))
 
                 try:
                     data = self.execguest("apt-get update")
@@ -7575,6 +7556,12 @@ class GenericGuest(GenericPlace):
                     except Exception, e:
                         xenrt.TEC().logverbose("Exception: %s" % (str(e)))
                     self.execguest("apt-get update")
+
+                preUpgBootDir = self.execguest("find /boot -type f | xargs md5sum")
+                self.execguest("DEBIAN_FRONTEND=noninteractive apt-get -y --force-yes upgrade")
+                postUpgBootDir = self.execguest("find /boot -type f | xargs md5sum")
+                if preUpgBootDir != postUpgBootDir:
+                    self.reboot(skipsniff=True)
 
                 modules = ["DEBIAN_MODULES", "DEBIAN_MODULES2"]
                 if debVer == 4.0:
@@ -7762,6 +7749,10 @@ class GenericGuest(GenericPlace):
                                    "  done ) | xargs rm -f" % (s))
                 except:
                     pass
+
+        if not self.windows:
+            xenrt.TEC().logverbose("Guest %s is running kernel %s" % (self.name, self.execguest("uname -r")))
+
 
         if not self.windows:
             sftp.close()

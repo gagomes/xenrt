@@ -4583,8 +4583,6 @@ def createVMFromPrebuiltTemplate(host,
         g.enlightenedDrivers = False
 
     g.changeCD("xs-tools.iso")
-    # The apt source needs updating to the controller
-    g.special['tailor_apt_source'] = True
     g.special.update(special)
     g.start() 
     

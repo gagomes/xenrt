@@ -14,7 +14,7 @@
 
   <testsequence>
     <serial group="EClariion">
-      <testcase id="xenserver.tc.multipath.TC15464" name="FCMultiEmcClariion" sku="EClariion" />
+      <testcase id="xenserver.tc.multipath.TC15464" name="FCMultiEmcClariion" sku="EClariion" tc="TC-15464"/>
     </serial>
   </testsequence>
 

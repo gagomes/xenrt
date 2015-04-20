@@ -89,6 +89,7 @@ __all__ = ["timenow",
            "getCCPCommit",
            "isUrlFetchable",
            "isWindows",
+           "isDevLinux",
            "is32BitPV",
            "getUpdateDistro"
            ]
@@ -1431,6 +1432,17 @@ def getDistroAndArch(distrotext):
 
 def isWindows(distro):
     return distro[0] in ("v", "w")
+
+def isDevLinux(distro):
+    if isWindows(distro):
+        return False
+    if "fedora" in distro:
+        return True
+    if "testing" in distro:
+        return True
+    if "devel" in distro:
+        return True
+    return False
 
 def getMarvinFile():
     marvinversion = xenrt.TEC().lookup("MARVIN_VERSION", None)

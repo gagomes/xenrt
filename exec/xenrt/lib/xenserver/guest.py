@@ -293,7 +293,7 @@ class Guest(xenrt.GenericGuest):
         # Workaround # RHEL/CentOS/OEL 6 or later requires at least 1G ram.
         if distro:
             m = re.match("(rhel|centos|oel|sl)[dw]?(\d)\d*", distro)
-            if m and int(m.group(2)) >= 6:
+            if (m and int(m.group(2)) >= 6) or distro.startswith("fedora"):
                 if (self.memory and self.memory<1024) or not self.memory:
                     self.memory = 1024
                                         
@@ -4583,8 +4583,6 @@ def createVMFromPrebuiltTemplate(host,
         g.enlightenedDrivers = False
 
     g.changeCD("xs-tools.iso")
-    # The apt source needs updating to the controller
-    g.special['tailor_apt_source'] = True
     g.special.update(special)
     g.start() 
     
@@ -6260,7 +6258,7 @@ class DundeeGuest(CreedenceGuest):
             
             for driver in driversToUninstall:
             
-                batch.append("C:\\devcon64.exe remove %s\r\n" %(driver))
+                batch.append("C:\\%s remove %s\r\n" %(devconexe, driver))
                 batch.append("ping 127.0.0.1 -n 10 -w 1000\r\n")
 
             for file in oemFileList:

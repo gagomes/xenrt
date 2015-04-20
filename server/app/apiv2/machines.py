@@ -311,6 +311,8 @@ class _MachineBase(XenRTAPIv2Page):
         if leasePolicy and duration > leasePolicy:
             if besteffort:
                 duration = leasePolicy
+                leaseToTime = time.gmtime(time.time() + (duration * 3600))
+                leaseTo = time.strftime("%Y-%m-%d %H:%M:%S", leaseToTime)
             else:
                 raise XenRTAPIError(HTTPUnauthorized, "The policy for this machine only allows leasing for %d hours, please contact QA if you need a longer lease" % leasePolicy, canForce=False)
         
@@ -535,7 +537,7 @@ class LeaseMachine(_MachineBase):
         try:
             self.lease(self.request.matchdict['name'], self.getUser().userid, params['duration'], params['reason'], params.get('force', False), params.get('besteffort', False))
         except:
-            if besteffort:
+            if params.get('besteffort', False):
                 return {}
             else:
                 raise

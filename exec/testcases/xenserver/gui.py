@@ -8,9 +8,11 @@
 # conditions as licensed by XenSource, Inc. All other rights reserved.
 #
 
-import sys, string, shutil, os.path, stat, re, glob, os, time, xml.dom.minidom
-import xenrt, xenrt.lib.xenserver.cli, xenrt.lib.xenserver
-from xenrt.lazylog import log, step, comment
+import string, os.path, re, glob, os, time, xml.dom.minidom
+import xenrt
+import xenrt.lib.xenserver.cli
+import xenrt.lib.xenserver
+from xenrt.lazylog import log, step
 from abc import ABCMeta, abstractmethod, abstractproperty
 
 
@@ -51,11 +53,11 @@ class TCGUIJUnit(xenrt.TestCase):
                       "  -Dtests.builddir=\"%s/javatree/test\""
                       "  -Dtests.formatter=plain"
                       "  -Dtests.results.dir=\"%s/results\""
-                      "  -DLOGDIR=\"%s\"" 
+                      "  -DLOGDIR=\"%s\""
                       "  -DCLIENT_NAME=%s-client"
                       "  prebuilttests" %
                       (self.tec.getWorkdir(), ant_home, java_home, ant_home,
-                       client, 
+                       client,
                        self.tec.getWorkdir(), self.tec.getLogdir(),
                        self.tec.getLogdir(), cver))
 
@@ -190,7 +192,7 @@ class TCGUISelfTest(xenrt.TestCase):
         if not x:
             raise xenrt.XRTError("Could not find the installed GUI")
         xenadmindir, xenadminexe = x
-        
+
         # Create a directory for the UI to write extra logs and screenshots to
         ld = self.remoteLoggingDirectory(guest)
 
@@ -218,20 +220,20 @@ class TCGUISelfTest(xenrt.TestCase):
                              timeout=7200)
         except Exception, e:
             outcome = e
-        
+
         # Copy the logs back
         xmlfile = "%s/UITestResults.xml" % (xenrt.TEC().getLogdir())
         try:
             data = guest.xmlrpcReadFile("%s\\UITestResults.xml" %
                                         (xenadmindir))
-                
+
             f = file(xmlfile, "w")
             f.write(data)
             f.close()
         except Exception, e:
             if not outcome:
                 outcome = e
-                
+
         try:
             data = guest.xmlrpcReadFile("%s\\crashdump.txt" % (xenadmindir))
             f = file("%s/crashdump.txt" % (xenrt.TEC().getLogdir()), "w")
@@ -254,11 +256,11 @@ class TCGUISelfTest(xenrt.TestCase):
             f = file("%s/XenCenter.log" % (xenrt.TEC().getLogdir()), "r")
             data = f.read()
             f.close()
-            
+
             lines = data.split("\n")
             lnum = 1
             for line in lines:
-                for b in self.badentries:                    
+                for b in self.badentries:
                     if line.count(b) > 0:
                         if b in self.fatalentries:
                             fatal = True
@@ -268,14 +270,13 @@ class TCGUISelfTest(xenrt.TestCase):
                                                 "on line %u" % (b,lnum))
                 lnum += 1
 
-
         except:
             pass
 
         # Parse the XML results file
         if not os.path.exists(xmlfile):
             if not outcome:
-                outcome =  xenrt.XRTFailure(
+                outcome = xenrt.XRTFailure(
                     "No results file was returned (%s)" % (xmlfile))
         else:
             xenrt.TEC().logverbose("About to parse results file")
@@ -325,10 +326,10 @@ class _UnitTestMechanism(object):
         Look for the SDK location in a named flag otherwise provide the default
         """
         log("Look for override in %s" % self.SDK_OVERRIDE)
-        try: 
+        try:
             location = xenrt.TEC().lookup(self.SDK_OVERRIDE)
             log("Found override.....")
-            return location 
+            return location
         except:
             return "xe-phase-2/%s" % self._packageName
 
@@ -338,7 +339,7 @@ class _UnitTestMechanism(object):
         target = self.__get_sdk_location()
         sdkfile = xenrt.TEC().getFile(target)
         sftp = self._runner.sftpClient()
-        targetLocation = os.path.join(self.TARGET_ROOT, self._packageName) 
+        targetLocation = os.path.join(self.TARGET_ROOT, self._packageName)
         sftp.copyTo(sdkfile, targetLocation)
         log("Target location: %s" % targetLocation)
         sftp.close()
@@ -355,28 +356,36 @@ class _UnitTestMechanism(object):
         log("Output file written: %s" % self.RESULT_FILE_NAME)
 
     @abstractproperty
-    def _packageName(self): pass
+    def _packageName(self):
+        pass
 
     @abstractproperty
-    def _srcPath(self): pass
+    def _srcPath(self):
+        pass
 
     @abstractproperty
-    def results(self): pass
+    def results(self):
+        pass
 
     @abstractmethod
-    def installDependencies(self): pass
+    def installDependencies(self):
+        pass
 
     @abstractmethod
-    def installSdk(self): pass
+    def installSdk(self):
+        pass
 
     @abstractmethod
-    def buildTests(self): pass
+    def buildTests(self):
+        pass
 
     @abstractmethod
-    def runTests(self): pass
+    def runTests(self):
+        pass
 
     @abstractmethod
-    def triageTestOutput(self): pass
+    def triageTestOutput(self):
+        pass
 
 
 class JavaUnitTestMechanism(_UnitTestMechanism):
@@ -384,7 +393,7 @@ class JavaUnitTestMechanism(_UnitTestMechanism):
     __ZIP_DEP_PATH = "XenServer-SDK/XenServerJava/bin"
     __TEST_CODE_PATH = "XenServer-SDK/XenServerJava/samples"
     __TEST_RUNNER = "RunTests"
-    __ERRORS = ["Exception in", "<state>Fail" ]
+    __ERRORS = ["Exception in", "<state>Fail"]
     __BUILD_LOG = "make.log"
 
     def __init__(self, host, runner):
@@ -392,13 +401,16 @@ class JavaUnitTestMechanism(_UnitTestMechanism):
         super(JavaUnitTestMechanism, self).__init__(host, runner)
 
     @property
-    def _packageName(self): return "XenServer-SDK.zip"
+    def _packageName(self):
+        return "XenServer-SDK.zip"
 
     @property
-    def _srcPath(self): return "XenServer-SDK/XenServerJava/src"
+    def _srcPath(self):
+        return "XenServer-SDK/XenServerJava/src"
 
     @property
-    def results(self): return self.__results
+    def results(self):
+        return self.__results
 
     def installDependencies(self):
         deps = ["unzip", "default-jdk"]
@@ -406,8 +418,8 @@ class JavaUnitTestMechanism(_UnitTestMechanism):
 
     def installSdk(self):
         sdkLocation = self._getSdk()
-        log(self._runner.execguest("unzip %s" % sdkLocation))
-        log(self._runner.execguest("cp %s/*.jar %s" %(self.__ZIP_DEP_PATH, self._srcPath)))
+        self._runner.execguest("unzip %s" % sdkLocation)
+        self._runner.execguest("cp %s/*.jar %s" %(self.__ZIP_DEP_PATH, self._srcPath))
         return os.path.join(self.TARGET_ROOT, sdkLocation)
 
     def __writeMakeLog(self, message):
@@ -415,8 +427,8 @@ class JavaUnitTestMechanism(_UnitTestMechanism):
         file("%s/%s" % (xenrt.TEC().getLogdir(), self.__BUILD_LOG), "w").write(message)
 
     def buildTests(self):
-        log(self._runner.execguest("cp %s/*.java %s" %(self.__TEST_CODE_PATH, self._srcPath)))
-        log(self._runner.execguest("cd %s && make clean" % self._srcPath))
+        self._runner.execguest("cp %s/*.java %s" %(self.__TEST_CODE_PATH, self._srcPath))
+        self._runner.execguest("cd %s && make clean" % self._srcPath)
 
         try:
             self.__writeMakeLog(self._runner.execguest("cd %s && make" % self._srcPath))
@@ -425,9 +437,9 @@ class JavaUnitTestMechanism(_UnitTestMechanism):
             raise
 
     def runTests(self):
-       try:
+        try:
             self.__results = self._runner.execguest("cd %s && java -cp .:*: %s %s root xenroot" % (self._srcPath, self.__TEST_RUNNER, str(self._host.getIP())))
-       except xenrt.XRTFailure, e:
+        except xenrt.XRTFailure, e:
             log("Running the tests has failed - caputuring the errors for later triage")
             self.__results = str(e.data)
 
@@ -443,23 +455,24 @@ class _SDKUnitTestCase(xenrt.TestCase, object):
     __RUNNER_VM = "runner_vm"
 
     def __vmName(self, arglist):
-        for (a,v) in [x.split('=') for x in arglist]:
+        for (a, v) in [x.split('=') for x in arglist]:
             if a == self.__RUNNER_VM:
                 return v
         raise xenrt.XRTFailure("Failure parsing args")
 
     @abstractmethod
-    def _createMechanism(self, host, runner): pass
+    def _createMechanism(self, host, runner):
+        pass
 
     def run(self, arglist):
         host = self.getDefaultHost()
         runner = self.getGuest(self.__vmName(arglist))
-        log("Host %s and Runner %s" %(host, runner))
+        log("Host %s and Runner %s" % (host, runner))
 
         installer = self._createMechanism(host, runner)
         step("Install dependencies....")
         installer.installDependencies()
-        step("Install SDK....") 
+        step("Install SDK....")
         installer.installSdk()
         step("Build tests....")
         installer.buildTests()
@@ -475,7 +488,7 @@ class _SDKUnitTestCase(xenrt.TestCase, object):
 
 class TCJavaSDKUnitTests(_SDKUnitTestCase):
     def _createMechanism(self, host, runner):
-        return JavaUnitTestMechanism(host, runner) 
+        return JavaUnitTestMechanism(host, runner)
 
 
 class CUnitTestMechanism(_UnitTestMechanism):
@@ -492,13 +505,16 @@ class CUnitTestMechanism(_UnitTestMechanism):
         super(CUnitTestMechanism, self).__init__(host, runner)
 
     @property
-    def _packageName(self): return "XenServer-SDK.zip"
+    def _packageName(self):
+        return "XenServer-SDK.zip"
 
     @property
-    def _srcPath(self): return "XenServer-SDK/libxenserver/src"
+    def _srcPath(self):
+        return "XenServer-SDK/libxenserver/src"
 
     @property
-    def results(self): return str(self.__results)
+    def results(self):
+        return str(self.__results)
 
     def installSdk(self):
         sdkLocation = self._getSdk()
@@ -507,11 +523,11 @@ class CUnitTestMechanism(_UnitTestMechanism):
 
     def installDependencies(self):
         deps = ["libxml2-dev", "libcurl3-dev", "unzip"]
-        [log(self._runner.execguest("sudo apt-get -y install %s" % p)) for p in deps]
+        [self._runner.execguest("sudo apt-get -y install %s" % p) for p in deps]
 
-    def buildTests(self): 
-        log(self._runner.execguest("cd %s && make clean" % self._srcPath))
-        log(self._runner.execguest("cd %s && make" % self._srcPath))
+    def buildTests(self):
+        self._runner.execguest("cd %s && make clean" % self._srcPath)
+        self._runner.execguest("cd %s && make" % self._srcPath)
 
     def __runVmOps(self, localSrName):
         self.__currentTest = self.__TEST_RUNNER
@@ -527,10 +543,10 @@ class CUnitTestMechanism(_UnitTestMechanism):
             self.__results[self.__currentTest] = self.__runVmOps(localSrName)
             self.__results[self.__currentTest] = self.__runGetRecords()
         except xenrt.XRTFailure, e:
-           log("Test failed: %s" % e)
-           self.__results[self.__currentTest]=(e.data)
+            log("Test failed: %s" % e)
+            self.__results[self.__currentTest]=(e.data)
 
-    def triageTestOutput(self): 
+    def triageTestOutput(self):
         for bad in self.__BADNESS:
             if bad in self.results:
                 log("Found the horror: %s in the output" %bad)
@@ -542,7 +558,7 @@ class CUnitTestMechanism(_UnitTestMechanism):
 
 class TCCSDKUnitTests(_SDKUnitTestCase):
     def _createMechanism(self, host, runner):
-        return CUnitTestMechanism(host, runner) 
+        return CUnitTestMechanism(host, runner)
 
 
 class _PowerShellSnapTest(xenrt.TestCase):
@@ -604,12 +620,12 @@ class _PowerShellSnapTest(xenrt.TestCase):
             testScriptIncPath = self.__MODULE_PATH + "\\" + testScript
             resultFileName = "C:\\" + testScript.split('.')[0] + "_results.xml"
             self.guest.xmlrpcExec("cd %s" % pathpref)
-            test = "%s %s %s %s %s %s %s" %  (testScriptIncPath,
+            test = "%s %s %s %s %s %s %s" % (testScriptIncPath,
                                               resultFileName,
                                               self.host.getIP(), "root",
                                               self.host.password, nfshost,
                                               nfspath)
-            self.guest.xmlrpcExec("%s -command \"Import-Module XenServerPSModule; %s\"" %(self.__POWERSHELL_EXE, test), 
+            self.guest.xmlrpcExec("%s -command \"Import-Module XenServerPSModule; %s\"" %(self.__POWERSHELL_EXE, test),
                                   timeout=900)
             return resultFileName
         else:
@@ -626,7 +642,7 @@ class _PowerShellSnapTest(xenrt.TestCase):
             self.guest.xmlrpcExec("cd %s\n"
                           ".\\xenserverpssnapin.bat "
                           "\"%s\\automatedtestcore.ps1\" "
-                          "c:\\result.xml %s %s %s %s %s" % 
+                          "c:\\result.xml %s %s %s %s %s" %
                           (pathpref, pathpref, self.host.getIP(), "root",
                            self.host.password, nfshost, nfspath), timeout=1800)
             return "c:\\result.xml"
@@ -645,8 +661,10 @@ class _PowerShellSnapTest(xenrt.TestCase):
             result = self.guest.xmlrpcReadFile(resultName)
             resultFile = resultName.split('\\')[-1]
             file("%s/%s" % (xenrt.TEC().getLogdir(), resultFile), "w").write(result)
-            try: self.parseResults(result)
-            except: raise xenrt.XRTError("Error parsing XML results file.")
+            try:
+                self.parseResults(result)
+            except:
+                raise xenrt.XRTError("Error parsing XML results file.")
             for x in self.myresults:
                 if x["state"] == "Fail":
                     raise xenrt.XRTFailure("One or more subcases failed.")
@@ -678,7 +696,7 @@ class _PowerShellSnapTest(xenrt.TestCase):
                     if y.nodeName == "#text":
                         outcome["log"] = y.data
         if outcome["state"] == "Fail":
-            xenrt.TEC().reason("Subcase failed: %s %s" % 
+            xenrt.TEC().reason("Subcase failed: %s %s" %
                                (outcome["name"], outcome["log"]))
         self.myresults.append(outcome)
 

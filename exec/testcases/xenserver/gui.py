@@ -402,7 +402,7 @@ class JavaUnitTestMechanism(_UnitTestMechanism):
 
     def installDependencies(self):
         deps = ["unzip", "default-jdk"]
-        [log(self._runner.execguest("sudo apt-get -y install %s" % p)) for p in deps]
+        [self._runner.execguest("sudo apt-get -y install %s" % p) for p in deps]
 
     def installSdk(self):
         sdkLocation = self._getSdk()

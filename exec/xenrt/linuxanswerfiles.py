@@ -3823,7 +3823,7 @@ d-i passwd/root-password-crypted    password %s
 
 popularity-contest    popularity-contest/participate    boolean    false
 tasksel    tasksel/first            multiselect standard
-d-i pkgsel/include string openssh-server psmisc patch build-essential flex bc
+d-i pkgsel/include string openssh-server psmisc patch build-essential flex bc python
 d-i    grub-installer/only_debian    boolean true
 d-i    finish-install/reboot_in_progress    note
 d-i    debian-installer/exit/poweroff    boolean true

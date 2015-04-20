@@ -1876,6 +1876,10 @@ class Config(object):
         self.config["PRODUCT_CODENAMES"]["6.1.50"] = "Dundee"
         self.config["PRODUCT_CODENAMES"]["6.2.50"] = "Dundee"
         self.config["PRODUCT_CODENAMES"]["6.6.0"] = "Dundee"
+        self.config["PRODUCT_CODENAMES"]["6.6.80"] = "Dundee"
+        self.config["PRODUCT_CODENAMES"]["6.6.81"] = "Dundee"
+        self.config["PRODUCT_CODENAMES"]["6.6.82"] = "Dundee"
+        self.config["PRODUCT_CODENAMES"]["6.6.83"] = "Dundee"
         
         self.config["PRODUCT_CODENAMES"]["6.4.90"] = "Creedence"
         self.config["PRODUCT_CODENAMES"]["6.4.91"] = "Creedence"
@@ -2832,7 +2836,7 @@ class Config(object):
        
         # Linux install methods supported
         nfsInstallSupport = ["rhel[dw]?[4-6]\d+$", "centos[4-6]\d+$", "sl[5-6]\d+$", "oel[4-6]\d+", "sles9", "sles10", "sles11"]
-        noIsoInstallSupport = ["ubuntu1004", "debian60", "debian70", "rhel45", "centos45", "centos46", "rhel\d+u", "rhel\d+xs", "centos\d+u", "centos\d+xs", "oel\d+u", "oel\d+xs", "sl\d+u", "sl\d+xs"]
+        noIsoInstallSupport = ["ubuntu1004", "debian60", "debian70", "debian80", "rhel45", "centos45", "centos46", "rhel\d+u", "rhel\d+xs", "centos\d+u", "centos\d+xs", "oel\d+u", "oel\d+xs", "sl\d+u", "sl\d+xs", "fedoralatest", "debiantesting", "ubuntudevel"]
         noHttpInstallSupport = ["rhel\d+u", "rhel\d+xs", "centos\d+u", "centos\d+xs", "oel\d+u", "oel\d+xs", "sl\d+u", "sl\d+xs"]
         # Process these into various categories
         for r in self.config["GUEST_TESTS"].keys():

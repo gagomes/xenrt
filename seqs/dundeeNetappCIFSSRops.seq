@@ -11,7 +11,7 @@
     <host id="0">
 
       <!-- CIFS SR using SMB share provided NetApp SC04-FAS2554 -->
-      <storage type="smb" name="CIFS-SR"/>
+      <storage type="smb" name="CIFS-SR" />
 
       <vm name="Windows 8.1">
         <distro>win81-x86</distro>
@@ -46,8 +46,8 @@
     </host>
   </prepare>
 
-  <testsequence group="CIFSSRLC">
-    <testcase id="xenserver.tc.storage.TC26472"/>
+  <testsequence group="NETAPPCIFSSRLC">
+    <testcase id="xenserver.tc.storage.TC26472" name="CIFSRonNetApp" sku="CIFSNetApp" />
   </testsequence>
 
 </xenrt>

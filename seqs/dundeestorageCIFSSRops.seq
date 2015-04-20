@@ -10,7 +10,7 @@
     <!-- SMB share on a windows guest -->
     <host id="0">
 
-      <storage type="smb" name="CIFS-SR" options="vm"/>
+      <storage type="smb" name="CIFS-SR" options="vm" />
 
       <vm name="Windows 8.1">
         <distro>win81-x86</distro>
@@ -45,8 +45,8 @@
     </host>
   </prepare>
 
-  <testsequence group="CIFSSRLC">
-    <testcase id="xenserver.tc.storage.TC26472"/>
+  <testsequence group="VMCIFSSRLC">
+    <testcase id="xenserver.tc.storage.TC26472" name="CIFSRonVM" sku="CIFSVM" />
   </testsequence>
 
 </xenrt>

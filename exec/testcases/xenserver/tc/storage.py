@@ -4657,19 +4657,11 @@ class TCVdiCorruption(xenrt.TestCase):
 class TC26472(xenrt.TestCase):
     """Guests life cycle operations on CIFS SR using SMB share on a windows guest"""
 
-    def run(self, arglist):
-
-        self.host = self.getDefaultHost()
-        srs = self.host.minimalList("sr-list", args="name-label=\"CIFS-SR\"")
-        if not srs:
-            raise xenrt.XRTFailure("Unable to find a CIFS SR configured on host %s" % self.host)
-
-        # Exclude xenrt-smb guest which serves the smb share.
-        guests = [self.host.getGuest(g) for g in self.host.listGuests() if not g.startswith("xenrt-smb")]
+    def guestsLifeCycle(self):
 
         xenrt.TEC().logverbose("Guests Life Cycle Operations on CIFS SR ...")
 
-        for guest in guests:
+        for guest in self.guests:
 
             # Make sure the guest is up.
             if guest.getState() == "DOWN":
@@ -4683,7 +4675,19 @@ class TC26472(xenrt.TestCase):
             guest.resume()
             guest.shutdown()
 
-class TC26950(xenrt.TestCase):
+    def run(self, arglist):
+
+        self.host = self.getDefaultHost()
+        srs = self.host.minimalList("sr-list", args="name-label=\"CIFS-SR\"")
+        if not srs:
+            raise xenrt.XRTFailure("Unable to find a CIFS SR configured on host %s" % self.host)
+
+        # Exclude xenrt-smb guest which serves the smb share.
+        self.guests = [self.host.getGuest(g) for g in self.host.listGuests() if not g.startswith("xenrt-smb")]
+
+        self.guestsLifeCycle() # Carry out guests life cycle operations.
+
+class TC26950(TC26472):
     """Multiple CIFS SRs using multiple authentication provided by NetApp SMB Shares"""
 
     def run(self, arglist):
@@ -4693,17 +4697,50 @@ class TC26950(xenrt.TestCase):
                                      # One SR on a SMB share provided by a windows guest
 
         # Exclude xenrt-smb guest which serves the smb share.
-        guests = [host.getGuest(g) for g in host.listGuests() if not g.startswith("xenrt-smb")]
+        self.guests = [host.getGuest(g) for g in host.listGuests() if not g.startswith("xenrt-smb")]
 
-        for guest in guests:
-            # Make sure the guest is up.
-            if guest.getState() == "DOWN":
-                xenrt.TEC().logverbose("Starting guest before commencing lifecycle ops.")
-                guest.start()
+        self.guestsLifeCycle() # Carry out guests life cycle operations.
 
-            guest.shutdown()
-            guest.start()
-            guest.reboot()
-            guest.suspend()
-            guest.resume()
-            guest.shutdown()
+class TC26976(xenrt.TestCase):
+    """Verify a minimum of 256 CIFS SRs can be created in XenServer environment"""
+
+    LIMIT = 256
+
+    def run(self, arglist=[]):
+        self.host = self.getDefaultHost()
+
+        # Create CIFS SRs on host.
+        counter = 0
+        timeNow = xenrt.util.timenow()
+        smbShare = xenrt.ExternalSMBShare(version=3) # This will obtain the SMB Share from NetApp filer.
+
+        maximumReached = True
+        count = 0
+        self.cifsSRs = []
+        while maximumReached:
+            try:
+                cifsSRName = "cifsSR-%d" % count 
+                cifsSR = xenrt.productLib(host=self.host).SMBStorageRepository(self.host, cifsSRName)
+                cifsSR.create(smbShare)
+                self.cifsSRs.append(cifsSR)
+                count = count + 1
+                if count == self.LIMIT: break
+            except xenrt.XRTFailure, e:
+                maximumReached = False
+                if count > 0: # one or more SRs are created.
+                    xenrt.TEC().logverbose("The number of CIFS SRs created on host %s are %s" %
+                                                                                (self.host, count))
+                else:
+                    raise xenrt.XRTError(e.reason)
+
+        xenrt.TEC().logverbose("Time taken to create %d CIFS SRs on host %s is %s seconds." % 
+                                        (self.LIMIT, self.host, (xenrt.util.timenow() - timeNow)))
+
+    def postRun(self, arglist=[]):
+
+        # Destroy the CIFS SRs.
+        timeNow = xenrt.util.timenow()
+        for cifsSR in self.cifsSRs:
+            self.host.destroySR(cifsSR.uuid)
+        xenrt.TEC().logverbose("Time taken to destroy %d CIFS SRs on host is %s seconds." %
+                                            (len(self.cifsSRs), (xenrt.util.timenow() - timeNow)))

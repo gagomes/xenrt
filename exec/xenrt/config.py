@@ -1143,6 +1143,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Creedence"]["MAX_VDIS_PER_SR_ext"] = "600"
         self.config["VERSION_CONFIG"]["Creedence"]["MAX_VDIS_PER_SR_lvm"] = "600"
         self.config["VERSION_CONFIG"]["Creedence"]["MAX_VDIS_PER_SR_nfs"] = "600"
+        self.config["VERSION_CONFIG"]["Creedence"]["MAX_VDIS_PER_SR_cifs"] = "600"
         self.config["VERSION_CONFIG"]["Creedence"]["MAX_VDIS_PER_SR_lvmoiscsi"] = "600"
         self.config["VERSION_CONFIG"]["Creedence"]["MAX_VDIS_PER_SR_netapp"] = "600"
         self.config["VERSION_CONFIG"]["Creedence"]["MAX_VDIS_PER_SR_equal"] = "600"

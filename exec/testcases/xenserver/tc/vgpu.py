@@ -1800,6 +1800,7 @@ class FunctionalBase(VGPUAllocationModeBase):
     VGPU_CONFIG = []
     TYPE_OF_VGPU = None
     OTHERS = None
+    NOVGPU = False
 
     def prepare(self,arglist):
 
@@ -1855,6 +1856,8 @@ class FunctionalBase(VGPUAllocationModeBase):
                 self.TYPE_OF_VGPU = map(str,arg.split('=')[1].split(','))[0]
             if arg.startswith('others'):
                 self.OTHERS = map(str,arg.split('=')[1].split(','))
+            if arg.startswith('novgpu'):
+                self.NOVGPU = True
  
     def run(self,arglist):
 
@@ -2499,6 +2502,10 @@ class TCvGPUBalloon(FunctionalBase):
                 log("Cloning VM from Master VM")
                 guests.append(self.cloneVM(osType))
                 self.vms[osType] = guests
+          
+            if self.NOVGPU:
+                log("removing vGPU from second VM")
+                self.vms[osType][1].destroyvGPU()
 
     def run(self,arglist):
 

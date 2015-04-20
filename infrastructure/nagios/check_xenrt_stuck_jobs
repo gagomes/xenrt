@@ -1,8 +1,12 @@
 #!/usr/bin/python
 
-import requests, time, sys, calendar, xenrtapi
+import requests, time, sys, calendar, xenrtapi, ConfigParser
 
-xenrt = xenrtapi.XenRT()
+c = ConfigParser.ConfigParser()
+c.read("/var/lib/nagios/.xenrtrc")
+apikey = c.get("xenrt", "apikey").strip()
+
+xenrt = xenrtapi.XenRT(apikey=apikey)
 
 r = requests.get("http://localhost/xenrt/api/dbchecks/ismaster")
 

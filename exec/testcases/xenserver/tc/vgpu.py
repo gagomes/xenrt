@@ -440,7 +440,7 @@ class VGPUTest(object):
         if not intelPGPUUUID:
             raise xenrt.XRTFailure("No Intel GPU found")
 
-        if __checkDom0Access(host, intelPGPUUUID):
+        if self.__checkDom0Access(host, intelPGPUUUID):
             host.blockDom0AccessToOnboardPGPU(intelPGPUUUID)
             host.disableHostDisplay()
             if reboot:
@@ -459,7 +459,7 @@ class VGPUTest(object):
         if not intelPGPUUUID:
             raise xenrt.XRTFailure("No Intel GPU found")
 
-        if not __checkDom0Access(host, intelPGPUUUID):
+        if not self.__checkDom0Access(host, intelPGPUUUID):
             host.unblockDom0AccessToOboardPGPU(intelPGPUUUID)
             host.enablHostDisplay()
             host.reboot()

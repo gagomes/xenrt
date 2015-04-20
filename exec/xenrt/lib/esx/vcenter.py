@@ -77,7 +77,7 @@ class VCenter(object):
 
         # Get DVD Drive letter
         command="Get-WmiObject win32_logicaldisk -filter 'DriveType=5 and Access>0' | ForEach-Object {$_.DeviceID}"
-        driveLetter = self.guest.xmlrpcExec(command, returndata=True, powershell=True, ignoreHealthCheck=True).strip(" \n:")
+        driveLetter = self.guest.xmlrpcExec(command, returndata=True, powershell=True, ignoreHealthCheck=True).strip().split("\n")[-1].strip(" :")
 
         # Single Sign On
         command='''start /wait msiexec.exe /i "%s:\\Single Sign-On\\VMware-SSO-Server.msi" /qr \

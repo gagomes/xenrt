@@ -439,11 +439,13 @@ class VGPUTest(object):
         intelPGPUUUID = filter(lambda p: cardName in host.genParamGet("pgpu",p,"vendor-name"),pgpu)[0]
         if not intelPGPUUUID:
             raise xenrt.XRTFailure("No Intel GPU found")
-        host.blockDom0AccessToOnboardPGPU(intelPGPUUUID)
-        host.disableHostDisplay()
-        if reboot:
-            host.reboot()
-            verifyBlocked()
+
+        if __checkDom0Access(host, intelPGPUUUID):
+            host.blockDom0AccessToOnboardPGPU(intelPGPUUUID)
+            host.disableHostDisplay()
+            if reboot:
+                host.reboot()
+                verifyBlocked()
 
     def unblockDom0Access(self, cardName, host):
         def verifyUnblocked():
@@ -456,10 +458,12 @@ class VGPUTest(object):
         intelPGPUUUID = filter(lambda p: cardName in host.genParamGet("pgpu",p,"vendor-name"),pgpu)[0]
         if not intelPGPUUUID:
             raise xenrt.XRTFailure("No Intel GPU found")
-        host.unblockDom0AccessToOboardPGPU(intelPGPUUUID)
-        host.enablHostDisplay()
-        host.reboot()
-        verifyUnblocked()
+
+        if not __checkDom0Access(host, intelPGPUUUID):
+            host.unblockDom0AccessToOboardPGPU(intelPGPUUUID)
+            host.enablHostDisplay()
+            host.reboot()
+            verifyUnblocked()
  
 class VGPUOwnedVMsTest(xenrt.TestCase,VGPUTest):
     __OPTIONS = {

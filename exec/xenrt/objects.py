@@ -9265,9 +9265,9 @@ class GenericGuest(GenericPlace):
 
         tarBall = "intelgpudriver.tgz"
         if self.xmlrpcGetArch() == "amd64":
-            fileName = "win64.zip"
+            fileName = "win64_%s.exe" % currentVersion
         else:
-            fileName = "win32.zip"
+            fileName = "win32_%s.exe" % currentVersion
 
         urlPrefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
         url = "%s/intelgpudriver/%s" % (urlPrefix, fileName)
@@ -9283,49 +9283,26 @@ class GenericGuest(GenericPlace):
 
         self.xmlrpcExtractTarball("c:\\%s" % tarBall,"c:\\")
         vbScript = """
-ZipFile="C:\%s"
-ExtractTo="C:\inteldriver\"
-
-Set fso = CreateObject("Scripting.FileSystemObject")
-If NOT fso.FolderExists(ExtractTo) Then
-   fso.CreateFolder(ExtractTo)
-End If
-
-set objShell = CreateObject("Shell.Application")
-set FilesInZip=objShell.NameSpace(ZipFile).items
-objShell.NameSpace(ExtractTo).CopyHere(FilesInZip)
-Set fso = Nothing
-Set objShell = Nothing
-
-WScript.sleep 1000
-
 Set WshShell = WScript.CreateObject("WScript.Shell")
 WshShell.Run "cmd", 9
 WScript.sleep 1000
-WshShell.SendKeys "c:\inteldriver\Setup.exe"
+WshShell.SendKeys "c:\%s -s"
 WshShell.SendKeys "{ENTER}"
-WScript.sleep 10000
+WScript.sleep 30000
 
 WshShell.SendKeys "{ENTER}"
 WScript.sleep 1000
 WshShell.SendKeys "{LEFT}"
-Wshshell.SendKeys "{ENTER}"
-WScript.sleep 1000
-Wshshell.SendKeys "{ENTER}"
-
-WScript.sleep 60000
-
-Wshshell.AppActivate "Windows Security"
-WScript.sleep 1000
-WshShell.SendKeys "{LEFT}"
+WshShell.SendKeys "{ENTER}"
 WScript.sleep 1000
 WshShell.SendKeys "{ENTER}"
 
-WScript.sleep 60000
+WScript.sleep 120000
 
 WshShell.SendKeys "{ENTER}"
-WScript.sleep 5000
-Wshshell.SendKeys "{ENTER}"
+WScript.sleep 1000
+WshShell.SendKeys "{ENTER}"
+WScript.sleep 1000
 """ % (fileName)
         self.xmlrpcWriteFile("c:\\vb.vbs",vbScript)
         returncode = self.xmlrpcExec("c:\\vb.vbs",

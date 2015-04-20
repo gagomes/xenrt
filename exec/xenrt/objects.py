@@ -9302,7 +9302,6 @@ WScript.sleep 120000
 WshShell.SendKeys "{ENTER}"
 WScript.sleep 1000
 WshShell.SendKeys "{ENTER}"
-WScript.sleep 1000
 """ % (fileName)
         self.xmlrpcWriteFile("c:\\vb.vbs",vbScript)
         returncode = self.xmlrpcExec("c:\\vb.vbs",

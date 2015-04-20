@@ -7534,9 +7534,7 @@ class GenericGuest(GenericPlace):
                         if self.execguest("test -e %s" % (filename), retval="code") == 0:
                             self.execguest("rm -f %s" % (filename))
 
-                doUpdates = False
                 if self.execguest("[ -e /etc/apt/sources.list.d/updates.list ]", retval="code") and int(debVer) in (6, 7) and xenrt.TEC().lookup("APT_SERVER", None):
-                    doUpdates = True
                     codename = self.execguest("cat /etc/apt/sources.list | grep '^deb' | awk '{print $3}' | head -1").strip()
                     self.execguest("echo deb %s/debsecurity %s/updates main >> /etc/apt/sources.list.d/updates.list" % (xenrt.TEC().lookup("APT_SERVER"), codename))
                     self.execguest("echo deb %s/debian %s-updates main >> /etc/apt/sources.list.d/updates.list" % (xenrt.TEC().lookup("APT_SERVER"), codename))
@@ -7559,12 +7557,11 @@ class GenericGuest(GenericPlace):
                         xenrt.TEC().logverbose("Exception: %s" % (str(e)))
                     self.execguest("apt-get update")
 
-                if doUpdates:
-                    preUpgBootDir = self.execguest("find /boot -type f | xargs md5sum")
-                    self.execguest("DEBIAN_FRONTEND=noninteractive apt-get -y --force-yes upgrade")
-                    postUpgBootDir = self.execguest("find /boot -type f | xargs md5sum")
-                    if preUpgBootDir != postUpgBootDir:
-                        self.reboot(skipsniff=True)
+                preUpgBootDir = self.execguest("find /boot -type f | xargs md5sum")
+                self.execguest("DEBIAN_FRONTEND=noninteractive apt-get -y --force-yes upgrade")
+                postUpgBootDir = self.execguest("find /boot -type f | xargs md5sum")
+                if preUpgBootDir != postUpgBootDir:
+                    self.reboot(skipsniff=True)
 
                 modules = ["DEBIAN_MODULES", "DEBIAN_MODULES2"]
                 if debVer == 4.0:

@@ -1139,6 +1139,7 @@ class XenRTBorrow(XenRTCommand):
     -h <hours>     Number of hours to borrow for (default is 24)
     -d <days>      Number of days to borrow for (default is 1)
     -r <reason>    Reason for borrowing machine
+    -b             Best effort borrow (borrow for as long as long as policy allows, don't fail if can't be borrowed)
     """
     group = "Machine"
 
@@ -1150,8 +1151,9 @@ class XenRTBorrow(XenRTCommand):
         reason = ""
         force = False
         user = None
+        besteffort = False
         try:
-            optlist, optx = getopt.getopt(args[1:], 'h:u:d:fr:', "force")
+            optlist, optx = getopt.getopt(args[1:], 'h:u:d:fr:b', "force")
             for argpair in optlist:
                 (flag, value) = argpair
                 if flag == '-h':
@@ -1166,12 +1168,14 @@ class XenRTBorrow(XenRTCommand):
                     duration = 0
                 elif flag == "--force":
                     force = True
+                elif flag == "-b":
+                    besteffort = True
         except getopt.GetoptError:
             raise Exception("Unknown argument\n")
         if user:
             self.xenrt.customHeaders['X-Fake-User'] = user
 
-        self.xenrt.lease_machine(machine, duration, reason, force=force)
+        self.xenrt.lease_machine(machine, duration, reason, force=force, besteffort=besteffort)
 
 class XenRTReturn(XenRTCommand):
 

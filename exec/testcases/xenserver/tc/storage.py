@@ -4654,14 +4654,14 @@ class TCVdiCorruption(xenrt.TestCase):
         except:
             pass
 
-class TC26472(xenrt.TestCase):
-    """Guests life cycle operations on CIFS SR using SMB share on a windows guest"""
+class CifsSRGuestLifeCycle(xenrt.TestCase):
+    """Guests life cycle operations on CIFS SR"""
 
-    def guestsLifeCycle(self):
+    def guestsLifeCycle(self, guests):
 
         xenrt.TEC().logverbose("Guests Life Cycle Operations on CIFS SR ...")
 
-        for guest in self.guests:
+        for guest in guests:
 
             # Make sure the guest is up.
             if guest.getState() == "DOWN":
@@ -4676,19 +4676,25 @@ class TC26472(xenrt.TestCase):
             guest.shutdown()
 
     def run(self, arglist):
+        pass
 
-        self.host = self.getDefaultHost()
-        srs = self.host.minimalList("sr-list", args="name-label=\"CIFS-SR\"")
+class TC26472(CifsSRGuestLifeCycle):
+    """Guests life cycle operations on CIFS SR using SMB share provided by a Windows guest"""
+
+    def run(self, arglist):
+
+        host = self.getDefaultHost()
+        srs = host.minimalList("sr-list", args="name-label=\"CIFS-SR\"")
         if not srs:
-            raise xenrt.XRTFailure("Unable to find a CIFS SR configured on host %s" % self.host)
+            raise xenrt.XRTFailure("Unable to find a CIFS SR configured on host %s" % host)
 
         # Exclude xenrt-smb guest which serves the smb share.
-        self.guests = [self.host.getGuest(g) for g in self.host.listGuests() if not g.startswith("xenrt-smb")]
+        guests = [host.getGuest(g) for g in host.listGuests() if not g.startswith("xenrt-smb")]
 
-        self.guestsLifeCycle() # Carry out guests life cycle operations.
+        self.guestsLifeCycle(guests) # Carry out guests life cycle operations.
 
-class TC26950(TC26472):
-    """Multiple CIFS SRs using multiple authentication provided by NetApp SMB Shares"""
+class TC26950(CifsSRGuestLifeCycle):
+    """Multiple CIFS SRs using multiple authentication provided by NetApp SMB Share"""
 
     def run(self, arglist):
 
@@ -4697,9 +4703,9 @@ class TC26950(TC26472):
                                      # One SR on a SMB share provided by a windows guest
 
         # Exclude xenrt-smb guest which serves the smb share.
-        self.guests = [host.getGuest(g) for g in host.listGuests() if not g.startswith("xenrt-smb")]
+        guests = [host.getGuest(g) for g in host.listGuests() if not g.startswith("xenrt-smb")]
 
-        self.guestsLifeCycle() # Carry out guests life cycle operations.
+        self.guestsLifeCycle(guests) # Carry out guests life cycle operations.
 
 class TC26976(xenrt.TestCase):
     """Verify a minimum of 256 CIFS SRs can be created in XenServer environment"""

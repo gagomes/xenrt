@@ -4720,6 +4720,7 @@ class TC26976(xenrt.TestCase):
         while maximumReached:
             try:
                 cifsSRName = "cifsSR-%d" % count 
+                xenrt.TEC().logverbose("Creating %d CIFS SR")
                 cifsSR = xenrt.productLib(host=self.host).SMBStorageRepository(self.host, cifsSRName)
                 cifsSR.create(smbShare)
                 self.cifsSRs.append(cifsSR)

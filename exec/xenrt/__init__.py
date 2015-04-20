@@ -3400,6 +3400,8 @@ class GlobalExecutionContext(object):
                     if u:
                         c.append("-u")
                         c.append(u)
+                    # Best effort borrow
+                    c.append("-b")
                     xenrt.TEC().logverbose("Borrowing %s" % m)
                     self.dbconnect.jobctrl("borrow", c)
             if regok:

@@ -28,12 +28,12 @@
     <serial group="Win7-x86-IntelGPU">
       <testcase tc="TC-20788" id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
         <arg>guest=win7</arg>
-        <arg>vgpuconfig=PassThrough</arg>
+        <arg>vgpuconfig=passthrough</arg>
         <arg>typeofvgpu=intelwinvgpu</arg>
       </testcase>
       <testcase tc="TC-20782" id="testcases.xenserver.tc.vgpu.TCVGPUCloneVM">
         <arg>guest=win7</arg>
-        <arg>vgpuconfig=PassThrough</arg>
+        <arg>vgpuconfig=passthrough</arg>
         <arg>clones=1</arg>
         <arg>typeofvgpu=intelwinvgpu</arg>
       </testcase>
@@ -41,7 +41,7 @@
         <arg>guest=win7</arg>
         <arg>clones=1</arg>
         <arg>typeofvgpu=intelwinvgpu</arg>
-        <arg>vgpuconfig=PassThrough</arg>
+        <arg>vgpuconfig=passthrough</arg>
 <!--        <arg>benchmark=UnigineSanctuary</arg> -->
         <arg>benchmark=UnigineTropics</arg>  
         <arg>time=259200</arg>

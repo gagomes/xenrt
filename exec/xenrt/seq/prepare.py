@@ -1003,9 +1003,9 @@ class PrepareNode(object):
 
     def chooseISOSRType(self, host, sr):
         # Check what the SR supports
-        if not "cifspath" in sr:
+        if not sr.get("cifspath"):
             return "nfs"
-        if not "nfspath" in sr:
+        if not sr.get("nfspath"):
             return "cifs"
         
         # Check what the host supports
@@ -1304,7 +1304,7 @@ class PrepareNode(object):
                         elif srtype == "cifs":
                             sr = xenrt.productLib(host=host).CIFSISOStorageRepository(host, s["name"])
                             (username, password, path) = s["cifspath"].split(":")
-                            m = re.match("\\\\(.+?)\\(.+)", s['cifspath'])
+                            m = re.match("\\\\(.+?)\\(.+)", path)
                             server = m.group(1)
                             share = m.group(2)
                             sr.create(server, share, "iso", username=username, password=password)

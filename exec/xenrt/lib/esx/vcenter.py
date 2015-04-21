@@ -18,14 +18,14 @@ __all__ = ["getVCenter"]
 _vcenter = None
 
 class VCenter(object):
-    def __init__(self, guest=None, globalVCenter=True, vCenterVersion="5.5.0-update02"):
+    def __init__(self, guest=None, vCenterVersion="5.5.0-update02"):
 
         self.lock = threading.RLock()
         self.username = xenrt.TEC().lookup(["VCENTER","USERNAME"])
         self.password = xenrt.TEC().lookup(["VCENTER","PASSWORD"])
         self.guest=guest
 
-        if not guest and globalVCenter:
+        if not guest:
             self._loadGlobalVCenter()
         else:
             self._setupVCenter(guest=guest, vCenterVersion=vCenterVersion)
@@ -240,18 +240,12 @@ LS_URL=\"https://%s:7444/lookupservice/sdk\" \
                                                         self.password,
                                                         dc), returndata=True, winrm=self.useWinrm))
 
-def getVCenter(guest=None, globalVCenter=True, vCenterVersion="5.5.0-update02"):
-    if not guest and globalVCenter:
+def getVCenter(guest=None, vCenterVersion="5.5.0-update02"):
+    if not guest:
         global _vcenter
         with xenrt.GEC().getLock("VCENTER"):
             if not _vcenter:
                 _vcenter = VCenter()
         return _vcenter
     else:
-        if not guest:
-            ## Create/use existing vcenter guest on sharedhost, need to code as resource which can be leased by Jobs.
-            #host= xenrt.resources.SharedHost().getHost()
-            #guest= host.createBasicGuest(name="vcenter%08x" % random.randint(0, 0x7fffffff), distro="ws12r2-x64", memory=4096, disksize=80*1024)
-            raise xenrt.XRTError("Unimplemented")
-
-        return VCenter(guest=guest, globalVCenter=False, vCenterVersion=vCenterVersion)
+        return VCenter(guest=guest, vCenterVersion=vCenterVersion)

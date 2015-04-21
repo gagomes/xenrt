@@ -234,7 +234,7 @@ class XenRTCommand:
                     secondary['testcasefiles'] = value
                     for f in string.split(value, ","):
                         if not os.path.exists(f):
-                            raise Exception"(Cannot find testcase file %s" % f)
+                            raise Exception("Cannot find testcase file %s" % f)
                 elif flag == "--customsequence":
                     details['CUSTOM_SEQUENCE'] = "yes"
                     details['DEPS'] = os.path.basename(string.split(value, ",")[0])

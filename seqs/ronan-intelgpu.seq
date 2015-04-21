@@ -39,6 +39,13 @@
         <arg>vgpuconfig=12</arg>
       </testcase>
 
+      <testcase id="testcases.xenserver.tc.vgpu.TCvGPUBalloon" name="TC-26978" tc="TC-26978">
+        <arg>distro=1</arg>
+        <arg>typeofvgpu=intelwinvgpu</arg>
+        <arg>vgpuconfig=12</arg>
+      </testcase>
+
+
     </serial>
   </testsequence>
 

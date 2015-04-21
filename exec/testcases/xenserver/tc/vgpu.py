@@ -3436,9 +3436,9 @@ class TCIntelGPUReuse(IntelBase):
         vm2 = masterVM2.cloneVM(noIP=False)
 
         for vm in [vm1, vm2]:
-            self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[self.VGPU_CONFIG], vm)
-            self.typeOfvGPU.installGuestDrivers(vm, self.getConfigurationName(self.VGPU_CONFIG))
-            self.typeOfvGPU.assertvGPURunningInVM(vm, self.getConfigurationName(self.VGPU_CONFIG))
+            self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[self.VGPU_CONFIG[0]], vm)
+            self.typeOfvGPU.installGuestDrivers(vm, self.getConfigurationName(self.VGPU_CONFIG[0]))
+            self.typeOfvGPU.assertvGPURunningInVM(vm, self.getConfigurationName(self.VGPU_CONFIG[0]))
             vm.setState("DOWN")
 
 class TCPoolIntelGPU(IntelBase):

@@ -3,6 +3,7 @@
 #
 
 include build/config.mk
+-include $(CONFDIR)/conf.d/*/*.mk
 include build/tools.mk
 
 include build/scripts.mk

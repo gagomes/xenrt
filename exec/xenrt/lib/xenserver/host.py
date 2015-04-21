@@ -13546,6 +13546,7 @@ class Pool(object):
                     # Using CA-33324 workaround
                     # Relicense to ensure we have the correct edition
                     edition = xenrt.TEC().lookup("OPTION_LIC_SKU", None)
+                    xenrt.sleep(60)
                     if edition:
                         slave.license(edition=edition)
                     else:

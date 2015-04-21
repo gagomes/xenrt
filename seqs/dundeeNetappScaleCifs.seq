@@ -1,0 +1,17 @@
+<xenrt>
+
+  <!-- CIFS SRs Scale test using SMB share provided by NetApp filer. -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0" />
+  </prepare>
+
+  <testsequence group="NETAPPCIFSSRScale">
+    <testcase id="xenserver.tc.storage.TC26976" />
+  </testsequence>
+
+</xenrt>

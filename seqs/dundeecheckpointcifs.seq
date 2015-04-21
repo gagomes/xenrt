@@ -1,0 +1,34 @@
+<xenrt>
+
+  <!-- Live checkpoint and snapshot tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <SR_INSTALL_NAME>cifssr</SR_INSTALL_NAME>
+  </variables>
+
+  <prepare>
+    <host>
+      <storage type="smb" name="cifssr" options="vm" default="true"/>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="Snappoint">
+      <testcase id="xenserver.tc.checkpoint.TC9207" name="TC9207.WithCIFs" sku="WithCIFs" />
+      <testcase id="xenserver.tc.checkpoint.TC9208" name="TC9208.WithCIFs" sku="WithCIFs" />
+      <testcase id="xenserver.tc.checkpoint.TC9209" name="TC9209.WithCIFs" sku="WithCIFs" />
+      <testcase id="xenserver.tc.checkpoint.TC9210" name="TC9210.WithCIFs" sku="WithCIFs" />
+      <testcase id="xenserver.tc.checkpoint.TC9211" name="TC9211.WithCIFs" sku="WithCIFs" />
+      <!--<testcase id="xenserver.tc.checkpoint.TC9214" name="TC9214.WithCIFs" sku="WithCIFs" />-->
+      <testcase id="xenserver.tc.checkpoint.TC9215" name="TC9215.WithCIFs" sku="WithCIFs" />
+      <testcase id="xenserver.tc.checkpoint.TC9216" name="TC9216.WithCIFs" sku="WithCIFs" />
+      <testcase id="xenserver.tc.checkpoint.TC9217" name="TC9217.WithCIFs" sku="WithCIFs" />
+      <testcase id="xenserver.tc.checkpoint.TC9220" name="TC9220.WithCIFs" sku="WithCIFs" />
+      <testcase id="xenserver.tc.checkpoint.TC9221" name="TC9221.WithCIFs" sku="WithCIFs" />
+      <testcase id="xenserver.tc.checkpoint.TC9212" name="TC9212.WithCIFs" sku="WithCIFs" />
+      <!--<testcase id="xenserver.tc.checkpoint.TC9224" name="TC9224.WithCIFs" sku="WithCIFs" />-->
+    </serial>
+  </testsequence>
+
+</xenrt>

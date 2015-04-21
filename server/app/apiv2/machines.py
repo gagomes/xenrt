@@ -291,7 +291,7 @@ class _MachineBase(XenRTAPIv2Page):
         finally:
             cur.close()
 
-    def lease(self, machine, user, duration, reason, force, commit=True):
+    def lease(self, machine, user, duration, reason, force, besteffort, commit=True):
         leaseFrom = time.strftime("%Y-%m-%d %H:%M:%S",
                                 time.gmtime(time.time()))
         if duration:
@@ -309,7 +309,12 @@ class _MachineBase(XenRTAPIv2Page):
 
         leasePolicy = machines[machine]['leasepolicy']
         if leasePolicy and duration > leasePolicy:
-            raise XenRTAPIError(HTTPUnauthorized, "The policy for this machine only allows leasing for %d hours, please contact QA if you need a longer lease" % leasePolicy, canForce=False)
+            if besteffort:
+                duration = leasePolicy
+                leaseToTime = time.gmtime(time.time() + (duration * 3600))
+                leaseTo = time.strftime("%Y-%m-%d %H:%M:%S", leaseToTime)
+            else:
+                raise XenRTAPIError(HTTPUnauthorized, "The policy for this machine only allows leasing for %d hours, please contact QA if you need a longer lease" % leasePolicy, canForce=False)
         
         leasedTo = machines[machine]['leaseuser']
         if leasedTo and leasedTo != user and not force:
@@ -511,13 +516,17 @@ class LeaseMachine(_MachineBase):
                 "force": {
                     "type": "boolean",
                     "description": "Whether to force lease if another use has the machine leased",
+                    "default": False},
+                "besteffort": {
+                    "type": "boolean",
+                    "description": "Borrow for as long as long as policy allows, don't fail if can't be borrowed",
                     "default": False}
                 }
             }
         }
     RESPONSES = { "200": {"description": "Successful response"}}
     OPERATION_ID = "lease_machine"
-    PARAM_ORDER = ['name', 'duration', 'reason', 'force']
+    PARAM_ORDER = ['name', 'duration', 'reason', 'force', 'besteffort']
 
     def render(self):
         try: 
@@ -525,7 +534,13 @@ class LeaseMachine(_MachineBase):
             jsonschema.validate(params, self.DEFINITIONS['lease'])
         except Exception, e:
             raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
-        self.lease(self.request.matchdict['name'], self.getUser().userid, params['duration'], params['reason'], params.get('force', False))
+        try:
+            self.lease(self.request.matchdict['name'], self.getUser().userid, params['duration'], params['reason'], params.get('force', False), params.get('besteffort', False))
+        except:
+            if params.get('besteffort', False):
+                return {}
+            else:
+                raise
         return {}
         
 class ReturnMachine(_MachineBase):

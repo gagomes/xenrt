@@ -3418,20 +3418,23 @@ class TCIntelGPUReuse(IntelBase):
     """Intel GPU can be reused once it is down."""
 
     def run(self, arglist):
-        for config in self.VGPU_CONFIG:
-            for distro in self.REQUIRED_DISTROS:
-                osType = self.getOSType(distro)
 
-                masterVM = self.masterVMs[osType]
-                masterVM.setState("DOWN")
-                vm1 = masterVM.cloneVM(noIP=False)
-                vm2 = masterVM.cloneVM(noIP=False)
+        if len(self.REQUIRED_DISTROS) < 2:
+            raise xenrt.XRTFailure("Number of distros required are 2")
 
-                for vm in [vm1, vm2]:
-                    self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
-                    self.typeOfvGPU.installGuestDrivers(vm, self.getConfigurationName(config))
-                    self.typeOfvGPU.assertvGPURunningInVM(vm, self.getConfigurationName(config))
-                    vm.setState("DOWN")
+        masterVM1 = self.masterVMs[self.getOSType(self.REQUIRED_DISTROS[0])]
+        masterVM1.setState("DOWN")
+        masterVM2 = self.masterVMs[self.getOSType(self.REQUIRED_DISTROS[1])]
+        masterVM2.setState("DOWN")
+
+        vm1 = masterVM1.cloneVM(noIP=False)
+        vm2 = masterVM2.cloneVM(noIP=False)
+
+        for vm in [vm1, vm2]:
+            self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[self.VGPU_CONFIG], vm)
+            self.typeOfvGPU.installGuestDrivers(vm, self.getConfigurationName(self.VGPU_CONFIG))
+            self.typeOfvGPU.assertvGPURunningInVM(vm, self.getConfigurationName(self.VGPU_CONFIG))
+            vm.setState("DOWN")
 
 class TCPoolIntelGPU(IntelBase):
     """Intel GPU Passthrough in a pool"""

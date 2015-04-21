@@ -1,7 +1,6 @@
 #
 # XenRT ISO Makefile
 #
-include build/config.mk
 include build/tools.mk
 
 LINUX_ISOS_INPLACE_LIST	= $(shell cd $(LINUX_ISOS) && ls *.iso)

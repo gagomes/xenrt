@@ -1,7 +1,6 @@
 #
 # XenRT Infrastructure Makefile
 #
-include build/config.mk
 include build/tools.mk
 
 BACKUP	= if [ -e $(1) ]; then $(SUDO) cp $(1) $(1).xrt; fi

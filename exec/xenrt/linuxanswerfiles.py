@@ -681,7 +681,7 @@ class SLESAutoyastFile(object):
         elif self.distro.startswith("sles94"):
             kf=self._generateSLES94()
         elif self.distro.startswith("sled11"):
-            kf=self._generateSLED()
+            kf=self._generateSLED11()
         else:
             kf=self._generateStandard()
             
@@ -1133,7 +1133,7 @@ umount /tmp/xenrttmpmount
        )
         return ks
  
-    def _generateSLED(self):
+    def _generateSLED11(self):
         ks="""<?xml version="1.0"?>
 <!DOCTYPE profile SYSTEM "/usr/share/autoinstall/dtd/profile.dtd">
 <profile xmlns="http://www.suse.com/1.0/yast2ns" xmlns:config="http://www.suse.com/1.0/configns">

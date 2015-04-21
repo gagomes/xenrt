@@ -533,7 +533,7 @@ class XenRTMachine(XenRTCommand):
     def run(self, args):
         results = self.xenrt.get_machine(args[0])
         self.printout("STATUS='%s'\n" % results['rawstatus'])
-        for i in ('jobid', 'leasereason', 'pool', 'leaseuser', 'cluster', 'site', 'prio'):
+        for i in ('jobid', 'leasereason', 'pool', 'leaseuser', 'cluster', 'site', 'prio', 'leasepolicy'):
             if results[i]:
                 self.printout("%s='%s'\n" % (i.upper(), results[i]))
         for i in ('leaseto', 'leasefrom'):

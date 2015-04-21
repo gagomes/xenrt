@@ -614,7 +614,7 @@ class Guest(xenrt.GenericGuest):
         proxy = xenrt.TEC().lookup("HTTP_PROXY")
         
         config += """
- - path: /etc/systemd/system/docker.service.d/http-proxy.conf
+  - path: /etc/systemd/system/docker.service.d/http-proxy.conf
     owner: core:core
     permissions: 0644
     content: |

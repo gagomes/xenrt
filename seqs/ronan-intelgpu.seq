@@ -43,6 +43,7 @@
         <arg>distro=1</arg>
         <arg>typeofvgpu=intelwinvgpu</arg>
         <arg>vgpuconfig=12</arg>
+        <arg>novgpu</arg>
       </testcase>
 
 

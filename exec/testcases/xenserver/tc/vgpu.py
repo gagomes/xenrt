@@ -3462,6 +3462,12 @@ class TCPoolIntelGPU(IntelBase):
                 self.typeOfvGPU.installGuestDrivers(vm, self.getConfigurationName(config))
                 self.typeOfvGPU.assertvGPURunningInVM(vm, self.getConfigurationName(config))
 
+            for i in range(10):
+                vm1.setState("DOWN")
+                vm2.setState("DOWN")
+                vm1.setState("UP")
+                vm2.setState("UP")
+
 class TCAlloModeK200NFS(VGPUAllocationModeBase):
 
     """

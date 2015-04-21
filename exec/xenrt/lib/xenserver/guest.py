@@ -647,7 +647,7 @@ users:
 
         channel = self.distro.split("-")[-1]
         
-        self.execguest("coreos-install -d /dev/xvda -V current -C %s -o xen -b %s/amd64-usr" % (channel, xenrt.TEC().lookup(["RPM_SOURCE", self.distro, "x86-64", "HTTP"])))
+        self.execguest("http_proxy=http://%s coreos-install -d /dev/xvda -V current -C %s -o xen" % (proxy, channel))
 
         self.shutdown()
 

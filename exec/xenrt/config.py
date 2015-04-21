@@ -1196,6 +1196,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Cream"]["LATEST_rhel7"] = "rhel71"
         self.config["VERSION_CONFIG"]["Cream"]["TEMPLATE_NAME_RHEL_d66_64"] = "Red Hat Enterprise Linux 6 (64-bit),Red Hat Enterprise Linux 6 x64,Red Hat Enterprise Linux 6.0 (64-bit)"
         self.config["VERSION_CONFIG"]["Cream"]["TEMPLATE_NAME_RHEL_w66_64"] = "Red Hat Enterprise Linux 6 (64-bit),Red Hat Enterprise Linux 6 x64,Red Hat Enterprise Linux 6.0 (64-bit)"
+        self.config["VERSION_CONFIG"]["Cream"]["TEMPLATE_NAME_SLED_113_64"] = "SUSE Linux Enterprise Desktop 11 SP3 (64-bit),SUSE Linux Enterprise Server 11 SP3 x64"
 
         # Dundee
         self.config["VERSION_CONFIG"]["Dundee"] = copy.deepcopy(self.config["VERSION_CONFIG"]["Cream"])
@@ -2475,6 +2476,13 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["sles113"]["MAXMEMORY64"] = "524288"
         self.config["GUEST_LIMITATIONS"]["sles113"]["MAX_VM_VCPUS"] = "32"
         self.config["GUEST_LIMITATIONS"]["sles113"]["MAX_VM_VCPUS64"] = "32"
+        self.config["GUEST_LIMITATIONS"]["sled113"] = {}
+        self.config["GUEST_LIMITATIONS"]["sled113"]["MINMEMORY"] = "4096"
+        self.config["GUEST_LIMITATIONS"]["sled113"]["STATICMINMEMORY"] = "512"
+        self.config["GUEST_LIMITATIONS"]["sled113"]["MAXMEMORY"] = "16384"
+        self.config["GUEST_LIMITATIONS"]["sled113"]["MAXMEMORY64"] = "524288"
+        self.config["GUEST_LIMITATIONS"]["sled113"]["MAX_VM_VCPUS"] = "32"
+        self.config["GUEST_LIMITATIONS"]["sled113"]["MAX_VM_VCPUS64"] = "32"
         self.config["GUEST_LIMITATIONS"]["sles12"] = {}
         self.config["GUEST_LIMITATIONS"]["sles12"]["MINMEMORY"] = "4096"
         self.config["GUEST_LIMITATIONS"]["sles12"]["STATICMINMEMORY"] = "512"
@@ -2783,7 +2791,7 @@ class Config(object):
          'rhel5u_x86-32', 'rhel5u_x86-64', 'rhel6u_x86-32', 'rhel6u_x86-64', 'rhel7u_x86-64', 'rhel71xs_x86-64',
          'sl5u_x86-32', 'sl5u_x86-64', 'sl6u_x86-32', 'sl6u_x86-64', 'sl7u_x86-64',
          'centos5u_x86-32', 'centos5u_x86-64', 'centos6u_x86-32', 'centos6u_x86-64', 'centos7u_x86-64', 'centos71xs_x86-64',
-         'oel5u_x86-32', 'oel5u_x86-64', 'oel6u_x86-32', 'oel6u_x86-64', 'oel7u_x86-64', 'oel71xs_x86-64']
+         'oel5u_x86-32', 'oel5u_x86-64', 'oel6u_x86-32', 'oel6u_x86-64', 'oel7u_x86-64', 'oel71xs_x86-64', 'sled113_x86-64']
         self.config["GUEST_TESTS"]["Cream"]["Secondary"] = ['centos45_x86-32','centos46_x86-32','centos47_x86-32',
          'centos48_x86-32','centos51_x86-32','centos51_x86-64','centos52_x86-32','centos52_x86-64','centos53_x86-32',
          'centos53_x86-64','centos54_x86-32','centos54_x86-64','centos55_x86-32','centos55_x86-64','centos56_x86-32','centos56_x86-64','centos57_x86-32','centos57_x86-64',
@@ -2817,7 +2825,7 @@ class Config(object):
          'rhel5u_x86-32', 'rhel5u_x86-64', 'rhel6u_x86-32', 'rhel6u_x86-64', 'rhel7u_x86-64', 'rhel71xs_x86-64',
          'sl5u_x86-32', 'sl5u_x86-64', 'sl6u_x86-32', 'sl6u_x86-64', 'sl7u_x86-64',
          'centos5u_x86-32', 'centos5u_x86-64', 'centos6u_x86-32', 'centos6u_x86-64', 'centos7u_x86-64', 'centos71xs_x86-64',
-         'oel5u_x86-32', 'oel5u_x86-64', 'oel6u_x86-32', 'oel6u_x86-64', 'oel7u_x86-64', 'oel71xs_x86-64',
+         'oel5u_x86-32', 'oel5u_x86-64', 'oel6u_x86-32', 'oel6u_x86-64', 'oel7u_x86-64', 'oel71xs_x86-64','sled113_x86-64',
          'debiantesting_x86-32','debiantesting_x86-64','ubuntudevel_x86-32','ubuntudevel_x86-64','fedoralatest_x86-64']
         self.config["GUEST_TESTS"]["Dundee"]["Secondary"] = ['centos45_x86-32','centos46_x86-32','centos47_x86-32',
          'centos48_x86-32','centos51_x86-32','centos51_x86-64','centos52_x86-32','centos52_x86-64','centos53_x86-32',
@@ -2837,8 +2845,9 @@ class Config(object):
         self.config["GUEST_TESTS"]["Dundee"]["XenApp"] = ['w2k3eesp2_XenApp', 'w2k3eesp2-x64_XenApp', 'ws08sp2-x86_XenApp', 'ws08sp2-x64_XenApp', 'ws08r2sp1-x64_XenApp']
        
         # Linux install methods supported
-        nfsInstallSupport = ["rhel[dw]?[4-6]\d+$", "centos[4-6]\d+$", "sl[5-6]\d+$", "oel[4-6]\d+", "sles9", "sles10", "sles11"]
-        noIsoInstallSupport = ["ubuntu1004", "debian60", "debian70", "debian80", "rhel45", "centos45", "centos46", "rhel\d+u", "rhel\d+xs", "centos\d+u", "centos\d+xs", "oel\d+u", "oel\d+xs", "sl\d+u", "sl\d+xs", "fedoralatest", "debiantesting", "ubuntudevel"]
+        nfsInstallSupport = ["rhel[dw]?[4-6]\d+$", "centos[4-6]\d+$", "sl[5-6]\d+$", "oel[4-6]\d+", "sles9", "sles10", "sles11", "sled\d+"]
+        noIsoInstallSupport = ["ubuntu1004", "debian60", "debian70", "debian80", "rhel45", "centos45", "centos46", "rhel\d+u", "rhel\d+xs", 
+                               "centos\d+u", "centos\d+xs", "oel\d+u", "oel\d+xs", "sl\d+u", "sl\d+xs", "fedoralatest", "debiantesting", "ubuntudevel"]
         noHttpInstallSupport = ["rhel\d+u", "rhel\d+xs", "centos\d+u", "centos\d+xs", "oel\d+u", "oel\d+xs", "sl\d+u", "sl\d+xs"]
         # Process these into various categories
         for r in self.config["GUEST_TESTS"].keys():

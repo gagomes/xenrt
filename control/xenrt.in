@@ -232,10 +232,16 @@ class XenRTCommand:
                            string.split(value, ",") ]
                     details['TESTCASEFILES'] = string.join(tl, ",")
                     secondary['testcasefiles'] = value
+                    for f in string.split(value, ","):
+                        if not os.path.exists(f):
+                            raise Exception("Cannot find testcase file %s" % f)
                 elif flag == "--customsequence":
                     details['CUSTOM_SEQUENCE'] = "yes"
                     details['DEPS'] = os.path.basename(string.split(value, ",")[0])
                     secondary['seqfiles'] = value
+                    for f in string.split(value, ","):
+                        if not os.path.exists(f):
+                            raise Exception("Cannot find sequence file %s" % f)
                 elif flag == "--customupdates":
                     updates = []                
                     for u in string.split(value, ","):

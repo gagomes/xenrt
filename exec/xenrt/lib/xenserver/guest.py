@@ -611,15 +611,16 @@ class Guest(xenrt.GenericGuest):
         config = cli.execute("host-call-plugin host-uuid=%s plugin=xscontainer fn=get_config_drive_default args:templateuuid=%s" % (host.uuid, templateUUID)).rstrip().lstrip("True")
         self.password = xenrt.TEC().lookup("ROOT_PASSWORD")
         passwd = crypt.crypt(self.password, '$6$SALT$')
-        proxy = xenrt.TEC().lookup("HTTP_PROXY", None)
-        if proxy:
-            config += """
-  - path: /etc/systemd/system/docker.service.d/http-proxy.conf
+        proxy = xenrt.TEC().lookup("HTTP_PROXY")
+        
+        config += """
+- path: /etc/systemd/system/docker.service.d/http-proxy.conf
     owner: core:core
     permissions: 0644
     content: |
       [Service]
       Environment="HTTP_PROXY=http://%s" """ % proxy
+        
         config += """
 users:
   - name: root

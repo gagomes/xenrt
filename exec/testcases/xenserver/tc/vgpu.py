@@ -3379,6 +3379,8 @@ class TCIntelSetupNegative(IntelBase):
                 except:
                     pass
 
+                self.typeOfvGPU.unblockDom0Access(self.host)
+
 
 class TCIntelGPUSnapshotNegative(IntelBase):
     """

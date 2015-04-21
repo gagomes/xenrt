@@ -611,15 +611,16 @@ class Guest(xenrt.GenericGuest):
         config = cli.execute("host-call-plugin host-uuid=%s plugin=xscontainer fn=get_config_drive_default args:templateuuid=%s" % (host.uuid, templateUUID)).rstrip().lstrip("True")
         self.password = xenrt.TEC().lookup("ROOT_PASSWORD")
         passwd = crypt.crypt(self.password, '$6$SALT$')
-        proxy = xenrt.TEC().lookup("HTTP_PROXY", None)
-        if proxy:
-            config += """
+        proxy = xenrt.TEC().lookup("HTTP_PROXY")
+        
+        config += """
   - path: /etc/systemd/system/docker.service.d/http-proxy.conf
     owner: core:core
     permissions: 0644
     content: |
       [Service]
       Environment="HTTP_PROXY=http://%s" """ % proxy
+        
         config += """
 users:
   - name: root
@@ -647,7 +648,7 @@ users:
 
         channel = self.distro.split("-")[-1]
         
-        self.execguest("coreos-install -d /dev/xvda -V current -C %s -o xen -b %s/amd64-usr" % (channel, xenrt.TEC().lookup(["RPM_SOURCE", self.distro, "x86-64", "HTTP"])))
+        self.execguest("http_proxy=http://%s coreos-install -d /dev/xvda -V current -C %s -o xen" % (proxy, channel))
 
         self.shutdown()
 

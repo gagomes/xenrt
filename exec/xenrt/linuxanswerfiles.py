@@ -674,7 +674,7 @@ class SLESAutoyastFile(object):
             kf=self._generateNative()
         
     def _generateAY(self):
-        if self.distro.startswith(("sles11",):
+        if self.distro.startswith("sles11"):
             kf=self._generateSLES11x()
         elif self.distro.startswith("sles12"):
             kf=self._generateSLES12()

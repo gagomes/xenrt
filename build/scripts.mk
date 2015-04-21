@@ -325,6 +325,7 @@ check: install
 	$(info Performing XenRT sanity checks ...)
 	$(SHAREDIR)/exec/main.py --sanity-check
 	$(SHAREDIR)/server/check.py
+	$(SHAREDIR)/control/xenrt sanity
 	$(SHAREDIR)/unittests/runner.sh $(SHAREDIR)
 	$(eval XSD = $(shell mktemp))
 	sed 's/\\\$$/\\$$/' seqs/seq.xsd > $(XSD)
@@ -336,6 +337,7 @@ minimal-check: install
 	$(info Performing XenRT sanity checks ...)
 	$(SHAREDIR)/exec/main.py --sanity-check
 	$(SHAREDIR)/server/check.py
+	$(SHAREDIR)/control/xenrt sanity
 	$(SHAREDIR)/unittests/quickrunner.sh $(SHAREDIR)
 	$(eval XSD = $(shell mktemp))
 	sed 's/\\\$$/\\$$/' seqs/seq.xsd > $(XSD)

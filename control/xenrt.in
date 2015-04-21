@@ -2142,6 +2142,14 @@ class XenRTGlobalResRelease(XenRTCommand):
             details['name'] = args[0]
         self.xenrt.release_global_resource(**details)
 
+class XenRTSanityCheck(XenRTCommand):
+    name = "sanity"
+    summary = "Sanity check for the CLI"
+    hide = True
+
+    def run(self, args):
+        self.printout("Sanity check passed")
+
 class XenRTMGetResource(_XenRTControllerOperation):
     name = "mgetresource"
     summary = "Get a controller resource for a machine"
@@ -2255,6 +2263,7 @@ class Commands:
         self.add(XenRTMListResources)
         self.add(XenRTMReleaseResources)
         self.add(XenRTLogServer)
+        self.add(XenRTSanityCheck)
 
     def add(self, cl):
         c = cl(self)

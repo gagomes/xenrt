@@ -1559,7 +1559,10 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
     def _searchJiraIssues(self,autoref):
         ar = autoref[:255]
         ar = ar.replace("\\", "\\\\")
+
+        #Fix for CA-162858 to explicitly escape '"'
         ar = ar.replace('\"', '\\\"')
+
         arShort = ar.split("/")[1]
         longref = "\\\"%s\\\"" % ar
         shortref = "\\\"%s\\\"" % arShort

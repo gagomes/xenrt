@@ -12255,12 +12255,11 @@ class DummyStorageRepository(StorageRepository):
         self._create("dummy", {}, physical_size=size)
 
 class CIFSISOStorageRepository(StorageRepository):
-
     def create(self,
                server,
                share,
-               type,
-               content_type="",
+               type="iso",
+               content_type="iso",
                username="Administrator",
                password=None,
                use_secret=False):
@@ -12280,6 +12279,7 @@ class CIFSISOStorageRepository(StorageRepository):
         args.append("type=%s" % (type))
         args.append("content-type=%s" % (content_type))
         args.append("host-uuid=%s" % (self.host.getMyHostUUID()))
+        args.append("shared=true")
         self.uuid = cli.execute("sr-create", string.join(args), strip=True)
         
     def check(self):

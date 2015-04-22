@@ -80,24 +80,35 @@ class ACLHelper(object):
 
         return machines
 
-    def check_acl(self, aclid, userid, number, leaseHours=None, ignoreParent=False):
-        """Returns a tuple (allowed, reason_if_false) if the given user can have 'number' additional machines under this acl"""
+    def check_acl(self, aclid, userid, machines, leaseHours=None, ignoreParent=False):
+        """Returns a tuple (allowed, reason_if_false) if the given user can have machines under this acl"""
         acl = self.get_acl(aclid)
-        result, reason = self._check_acl(acl, userid, number, leaseHours)
+        result, reason = self._check_acl(acl, userid, machines, leaseHours)
         if result and acl.parent and not ignoreParent:
             # We have to check the parent ACL as well
-            return self._check_acl(self.get_acl(acl.parent), userid, number, leaseHours)
+            return self._check_acl(self.get_acl(acl.parent), userid, machines, leaseHours)
         return result, reason 
 
-    def _check_acl(self, acl, userid, number, leaseHours=None):
-        """Returns True if the given user can have 'number' additional machines under this acl"""
-        machines = copy.copy(acl.machines)
+    def _check_acl(self, acl, userid, machines, leaseHours=None):
+        """Returns True if the given user can have machines under this acl"""
+        aclMachines = copy.copy(acl.machines)
+        extraMachines = copy.copy(machines)
         usergroups = self._groups_for_userid(userid)
-        usercount = number # Count of machines this user has
-        for m in machines:
-            if machines[m] == userid:
+        usercount = 0
+        for m in aclMachines:
+            if aclMachines[m] == userid:
                 usercount += 1
-        userpercent = int(math.ceil((usercount * 100.0) / len(machines)))
+                if m in extraMachines:
+                    # The machine is already in use by the user, so we don't need to double count it
+                    extraMachines.remove(m)
+
+        if len(extraMachines) == 0:
+            # All machines the user is asking for are already theirs, so no need
+            # to check the rest of the ACL
+            return True, None
+
+        usercount += len(extraMachines)
+        userpercent = int(math.ceil((usercount * 100.0) / len(aclMachines)))
 
         # Go through the acl entries
         for e in acl.entries:
@@ -105,9 +116,9 @@ class ACLHelper(object):
                 if e.userid != userid:
                     # Another user - remove their usage from our data
                     # otherwise we might double count them if they're a member of a group as well
-                    for m in machines:
-                        if machines[m] == e.userid:
-                            machines[m] = None
+                    for m in aclMachines:
+                        if aclMachines[m] == e.userid:
+                            aclMachines[m] = None
                     continue
                 else:
                     # Our user - check their usage
@@ -125,13 +136,13 @@ class ACLHelper(object):
                     # A group our user is in - identify overall usage and per user usage for users in the acl
                     groupcount = usercount
                     if e.entryType == 'default':
-                        groupcount += len(filter(lambda m: m and m != userid, machines.values()))
+                        groupcount += len(filter(lambda m: m and m != userid, aclMachines.values()))
                     else:
                         for u in self._userids_for_group(e.userid):
                             if u == userid:
                                 continue # Don't count our user as we've already accounted for that
-                            groupcount += len(filter(lambda m: m == u, machines.values()))
-                    grouppercent = int(math.ceil((groupcount * 100.0) / len(machines)))
+                            groupcount += len(filter(lambda m: m == u, aclMachines.values()))
+                    grouppercent = int(math.ceil((groupcount * 100.0) / len(aclMachines)))
 
                     groupname = e.entryType == 'default' and "default" or e.userid
                     if e.grouplimit is not None and groupcount > e.grouplimit:
@@ -154,9 +165,9 @@ class ACLHelper(object):
                 else:
                     # A group our user isn't in, remove it's usage so we don't count it in later rules
                     userids = self._userids_for_group(e.userid)
-                    for m in machines:
-                        if machines[m] in userids:
-                            machines[m] = None
+                    for m in aclMachines:
+                        if aclMachines[m] in userids:
+                            aclMachines[m] = None
             else:
                 raise Exception("Unknown entryType %s" % e.entryType)
 

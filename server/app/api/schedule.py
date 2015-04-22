@@ -681,7 +681,7 @@ class XenRTSchedule(XenRTAPIPage):
                 # be taken into account otherwise
                 machineCount += existingPolicies[p]
 
-            if not self.getACLHelper().check_acl(p, userid, machineCount, ignoreParent=True)[0]:
+            if not self.getACLHelper().check_acl(p, userid, machines[:machineCount], ignoreParent=True)[0]:
                 return False
 
         return True

@@ -258,7 +258,7 @@ class EnabledFeatures(object):
             return self.getFeatures(self.free)
 
 
-class CreedenceEnabledFeatures(ExperimentBaseEnabledFeatures):
+class CreedenceEnabledFeatures(EnabledFeatures):
     
     def getFeatures(self, sku):
         features = super(CreedenceEnabledFeatures, self).getFeatures(sku)

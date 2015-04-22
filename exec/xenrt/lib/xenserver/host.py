@@ -11495,7 +11495,7 @@ done
         url = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
         hostRPMURL = "%s/vgpudriver/hostdriver" % (url)
 
-        if not self.checkRPMInstalled(suppack)
+        if not self.checkRPMInstalled(suppack):
             url = getURL()
             self.installHostSupPacks(url, suppack)
 

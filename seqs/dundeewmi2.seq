@@ -7,61 +7,70 @@
 
   <prepare>
     <host>
+      <storage type="nfs" name="nfs" />
       <vm name="w2k3-x64">
         <distro>w2k3eesp2-x64</distro>
         <memory>1024</memory>
         <vcpus>1</vcpus>
-        <network device="0"/>
-        <postinstall action="installDrivers"/>
+        <network device="0" />
+        <storage>nfs</storage>
+        <postinstall action="installDrivers" />
       </vm>
       <vm name="ws08-x64">
         <distro>ws08sp2-x64</distro>
         <memory>2048</memory>
         <vcpus>2</vcpus>
-        <network device="0"/>
-        <postinstall action="installDrivers"/>
+        <network device="0" />
+        <storage>nfs</storage>
+        <postinstall action="installDrivers" />
       </vm>
       <vm name="win7-x64">
         <distro>win7sp1-x64</distro>
         <memory>2048</memory>
         <vcpus>1</vcpus>
-        <network device="0"/>
-        <postinstall action="installDrivers"/>
+        <network device="0" />
+        <storage>nfs</storage>
+        <postinstall action="installDrivers" />
       </vm>
       <vm name="ws08r2">
         <distro>ws08r2sp1-x64</distro>
         <memory>2048</memory>
         <vcpus>2</vcpus>
-        <network device="0"/>
-        <postinstall action="installDrivers"/>
+        <network device="0" />
+        <storage>nfs</storage>
+        <postinstall action="installDrivers" />
       </vm>
       <vm name="win8-x64">
         <distro>win8-x64</distro>
         <memory>2048</memory>
         <vcpus>1</vcpus>
-        <network device="0"/>
-        <postinstall action="installDrivers"/>
+        <network device="0" />
+        <storage>nfs</storage>
+        <postinstall action="installDrivers" />
       </vm>
       <vm name="ws12">
         <distro>ws12-x64</distro>
         <memory>2048</memory>
         <vcpus>2</vcpus>
-        <network device="0"/>
-        <postinstall action="installDrivers"/>
+        <network device="0" />
+        <storage>nfs</storage>
+        <postinstall action="installDrivers" />
       </vm>
       <vm name="win81-x64">
         <distro>win81-x64</distro>
         <memory>1024</memory>
         <vcpus>1</vcpus>
-        <network device="0"/>
-        <postinstall action="installDrivers"/>
+        <network device="0" />
+        <storage>nfs</storage>
+        <postinstall action="installDrivers" />
       </vm>
-       <vm name="win10-x64">
+      <vm name="win10-x64">
         <distro>win10-x64</distro>
         <memory>1024</memory>
         <vcpus>1</vcpus>
-        <network device="0"/>
-        <postinstall action="installDrivers"/>
+        <network device="0" />
+        <storage>nfs</storage>
+        <postinstall action="installDrivers" />
       </vm>
     </host>
   </prepare>

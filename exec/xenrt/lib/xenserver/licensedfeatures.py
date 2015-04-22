@@ -225,7 +225,7 @@ class CIFSStorage(LicensedFeature):
 class EnabledFeatures(object):
 
     # Enum for licensing levels.
-    enterprise, xdplus, xd, free = range(4)
+    free, xd, xdplus, enterprise = range(4)
 
     def __init__(self, sku):
         self.sku = sku

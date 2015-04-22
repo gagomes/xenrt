@@ -3443,9 +3443,6 @@ class TCPoolIntelGPU(IntelBase):
 
     def run(self, arglist):
 
-        for host in self.getAllHosts():
-            self.typeOfvGPU.blockDom0Access(host)
-
         for distro in self.REQUIRE_DISTROS:
             osType = self.getOSType(distro)
 

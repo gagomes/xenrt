@@ -1021,7 +1021,7 @@ class PrepareNode(object):
             if not ret:
                 ret = random.choice(("cifs", "nfs"))
                 xenrt.GEC().config.setVariable("ISO_SR_TYPE", ret)
-            xenrt.GEC().dbconnect.jobUpdate("ISO_SR_TYPE",ret)
+                xenrt.GEC().dbconnect.jobUpdate("ISO_SR_TYPE",ret)
             return ret
 
 

@@ -30,7 +30,7 @@ class ReadCacheTestCase(xenrt.TestCase):
         self.vmName = self.parseArgsKeyValue(arglist)["vm"]
         log("Using vm %s" % self.vmName)
         self.vm = self.getGuest(self.vmName)
-        self.srtype = self.vm.asXapiObject().VDI()[0].SR().srtype()
+        self.srtype = self.vm.asXapiObject().VDI()[0].SR().srType()
 
         if self.vm.getState() != "UP":
             self.vm.start()

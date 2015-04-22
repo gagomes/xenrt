@@ -2001,7 +2001,8 @@ class IntelWindowsvGPU(DifferentGPU):
 
     def installHostDrivers(self, allHosts):
         xenrt.TEC().logverbose("Instead of installing Host drivers, blocking Dom0 access to Intel GPU")
-        self.blockDom0Access(allHosts[0])
+        for host in allHosts:
+            self.blockDom0Access(host)
 
     def installGuestDrivers(self, guest, vGPUType):
         VGPUTest().installIntelWindowsDrivers(guest, vGPUType)

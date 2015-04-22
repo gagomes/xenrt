@@ -74,6 +74,10 @@ class LicensedFeature(object):
         """
         return True
 
+    def __eq__(self, other):
+        # Not tested.
+        return self.name == other.name
+
 
 class WorkloadBalancing(LicensedFeature):
 
@@ -209,7 +213,6 @@ class CIFSStorage(LicensedFeature):
             share = xenrt.VMSMBShare(hostIndex=1)
             sr = xenrt.productLib(host=host).SMBStorageRepository(host, "CIFS-SR")
             sr.create(share)
-            # Might want to cleanup afterwards. Will leave it for now.
             return True
         except:
             return False
@@ -219,113 +222,68 @@ class CIFSStorage(LicensedFeature):
         return "restrict_cifs"
 
 
-# An alternate implementation for the Creedence/DundeeEnabledFeatures
-class ExperimentBaseEnabledFeatures(object):
+class EnabledFeatures(object):
+
+    # Enum for licensing levels.
+    enterprise, xdplus, xd, free = range(4)
 
     def __init__(self, sku):
         self.sku = sku
 
     def expectedEnabledState(self, feature):
-        if feature.name in self.getEnabledFeatures():
+        if feature in self.getEnabledFeatures():
             return False
         else:
             return True
 
+    @abstractmethod
+    def getFeatures(self, sku):
+        """Based on the current sku, give a list of features."""
+        return []
+
     def getEnabledFeatures(self):
+        # Change to return just the objects.
         if self.sku == XenServerLicenseSKU.PerUserEnterprise or \
            self.sku == XenServerLicenseSKU.PerConcurrentUserEnterprise or \
            self.sku == XenServerLicenseSKU.PerSocketEnterprise or \
            self.sku == XenServerLicenseSKU.PerSocket:
-            return self.enterprise
+            return self.getFeatures(self.enterprise)
         if self.sku == XenServerLicenseSKU.XenDesktopPlusXDS or \
            self.sku == XenServerLicenseSKU.XenDesktopPlusMPS:
-            return self.xendesktopplus
+            return self.getFeatures(self.xdplus)
         if self.sku == XenServerLicenseSKU.XenDesktop:
-            return self.xendesktop
+            return self.getFeatures(self.xd)
         if self.sku == XenServerLicenseSKU.PerSocketStandard or \
            self.sku == XenServerLicenseSKU.Free:
-            return self.free
+            return self.getFeatures(self.free)
 
 
-class ExperimentSampleEnabledFeatures(ExperimentBaseEnabledFeatures):
+class CreedenceEnabledFeatures(ExperimentBaseEnabledFeatures):
+    
+    def getFeatures(self, sku):
+        features = super(CreedenceEnabledFeatures, self).getFeatures(sku)
 
-    def __init__(self, sku):
-        super(SampleEnabledFeatures, self).__init__(sku)
+        if sku >= self.free:
+            features.extend(Hotfixing(), GPUPassthrough())
+        if sku >= self.xd:
+            features.extend(WorkloadBalancing(), VirtualGPU())
+        if sku >= self.xdplus:
+            features.extend(ReadCaching())
+        if sku >= self.enterprise:
+            features.extend(ExportPoolResourceList())
 
-        self.free = [Hotfixing().name, GPUPassthrough().name]
-
-        self.xendesktop = free
-        xendesktop.extend([WorkloadBalancing().name, VirtualGPU().name])
-
-        self.xendesktopplus = xendesktop
-        xendesktopplus.extend([ReadCaching().name])
-
-        self.enterprise = xendesktopplus
-        enterprise.extend([ExportPoolResourceList().name, CIFSStorage().name])
-
-
-class BaseEnabledFeatures(object):
-
-    def __init__(self, sku):
-        self.sku = sku
-
-    def getEnabledFeatures(self):
-        return None
-
-    def expectedEnabledState(self, feature):
-        if feature.name in self.getEnabledFeatures():
-            return False
-        else:
-            return True
+        return features 
 
 
-class CreedenceEnabledFeatures(BaseEnabledFeatures):
+class DundeeEnabledFeatures(CreedenceEnabledFeatures):
 
-    def getEnabledFeatures(self):
-        if self.sku == XenServerLicenseSKU.PerUserEnterprise or \
-           self.sku == XenServerLicenseSKU.PerConcurrentUserEnterprise:
-            return [WorkloadBalancing().name, ReadCaching().name, VirtualGPU().name,
-                    Hotfixing().name, ExportPoolResourceList().name, GPUPassthrough().name]
-        if self.sku == XenServerLicenseSKU.PerSocketEnterprise or \
-           self.sku == XenServerLicenseSKU.PerSocket:
-            return [WorkloadBalancing().name, ReadCaching().name, VirtualGPU().name,
-                    Hotfixing().name, ExportPoolResourceList().name, GPUPassthrough().name]
-        if self.sku == XenServerLicenseSKU.XenDesktop:
-            return [Hotfixing().name, GPUPassthrough().name, WorkloadBalancing().name, VirtualGPU().name]
-        if self.sku == XenServerLicenseSKU.PerSocketStandard:
-            return [Hotfixing().name, GPUPassthrough().name]
-        if self.sku == XenServerLicenseSKU.Free:
-            return [Hotfixing().name, GPUPassthrough().name]
-        if self.sku == XenServerLicenseSKU.XenDesktopPlusXDS or \
-           self.sku == XenServerLicenseSKU.XenDesktopPlusMPS:
-            return [WorkloadBalancing().name, ReadCaching().name, VirtualGPU().name,
-                    Hotfixing().name, GPUPassthrough().name]
+    def getFeatures(self, sku):
+        features = super(DundeeEnabledFeatures, self).getFeatures(sku)
 
+        if sku >= self.enterprise:
+            features.extend(CIFSStorage())
 
-class DundeeEnabledFeatures(BaseEnabledFeatures):
-    """Added CIFS feature, from Creedence."""
-
-    def getEnabledFeatures(self):
-        if self.sku == XenServerLicenseSKU.PerUserEnterprise or \
-           self.sku == XenServerLicenseSKU.PerConcurrentUserEnterprise:
-            return [WorkloadBalancing().name, ReadCaching().name, VirtualGPU().name,
-                    Hotfixing().name, ExportPoolResourceList().name, GPUPassthrough().name,
-                    CIFSStorage().name]
-        if self.sku == XenServerLicenseSKU.PerSocketEnterprise or \
-           self.sku == XenServerLicenseSKU.PerSocket:
-            return [WorkloadBalancing().name, ReadCaching().name, VirtualGPU().name,
-                    Hotfixing().name, ExportPoolResourceList().name, GPUPassthrough().name,
-                    CIFSStorage().name]
-        if self.sku == XenServerLicenseSKU.XenDesktop:
-            return [Hotfixing().name, GPUPassthrough().name, WorkloadBalancing().name, VirtualGPU().name]
-        if self.sku == XenServerLicenseSKU.PerSocketStandard:
-            return [Hotfixing().name, GPUPassthrough().name]
-        if self.sku == XenServerLicenseSKU.Free:
-            return [Hotfixing().name, GPUPassthrough().name]
-        if self.sku == XenServerLicenseSKU.XenDesktopPlusXDS or \
-           self.sku == XenServerLicenseSKU.XenDesktopPlusMPS:
-            return [WorkloadBalancing().name, ReadCaching().name, VirtualGPU().name,
-                    Hotfixing().name, GPUPassthrough().name, CIFSStorage().name]
+        return features
 
 
 class LicensedFeatureFactory(object):
@@ -336,27 +294,21 @@ class LicensedFeatureFactory(object):
     def __getHostAge(self, xshost):
         return xshost.productVersion.lower()
 
-    def __createDictOfFeatures(self, *featureList):
+    def __createDictOfFeatures(self, featureList):
         return dict([(f.name, f) for f in featureList])
 
     def allFeatures(self, xshost):
         if self.__getHostAge(xshost) == self.__CRE or self.__getHostAge(xshost) == self.__CRM:
-            return self.__createDictOfFeatures(WorkloadBalancing(), ReadCaching(), VirtualGPU(),
-                                               Hotfixing(), ExportPoolResourceList(), GPUPassthrough())
+            return self.__createDictOfFeatures(CreedenceEnabledFeatures(XenServerLicenseSKU.PerSocketEnterprise).getEnabledFeatures())
         elif self.__getHostAge(xshost) == self.__DUN:
-            return self.__createDictOfFeatures(WorkloadBalancing(), ReadCaching(), VirtualGPU(),
-                                               Hotfixing(), ExportPoolResourceList(), GPUPassthrough(),
-                                               CIFSStorage())
+            return self.__createDictOfFeatures(DundeeEnabledFeatures(XenServerLicenseSKU.PerSocketEnterprise).getEnabledFeatures())
         raise ValueError("Feature list for a %s host was not found" % self.__getHostAge(xshost))
 
     def allFeatureObj(self, xshost):
         if self.__getHostAge(xshost) == self.__CRE or self.__getHostAge(xshost) == self.__CRM:
-            return [WorkloadBalancing(), ReadCaching(), VirtualGPU(),
-                    Hotfixing(), ExportPoolResourceList(), GPUPassthrough()]
+            return CreedenceEnabledFeatures(XenServerLicenseSKU.PerSocketEnterprise).getEnabledFeatures()
         elif self.__getHostAge(xshost) == self.__DUN:
-            return [WorkloadBalancing(), ReadCaching(), VirtualGPU(),
-                    Hotfixing(), ExportPoolResourceList(), GPUPassthrough(),
-                    CIFSStorage()]
+            return DundeeEnabledFeatures(XenServerLicenseSKU.PerSocketEnterprise).getEnabledFeatures()
 
     def getFeatureState(self, productVersion, sku, feature):
         lver = productVersion.lower()

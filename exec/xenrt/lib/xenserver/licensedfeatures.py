@@ -264,13 +264,13 @@ class CreedenceEnabledFeatures(EnabledFeatures):
         features = super(CreedenceEnabledFeatures, self).getFeatures(sku)
 
         if sku >= self.free:
-            features.extend(Hotfixing(), GPUPassthrough())
+            features.extend([Hotfixing(), GPUPassthrough()])
         if sku >= self.xd:
-            features.extend(WorkloadBalancing(), VirtualGPU())
+            features.extend([WorkloadBalancing(), VirtualGPU()])
         if sku >= self.xdplus:
-            features.extend(ReadCaching())
+            features.extend([ReadCaching()])
         if sku >= self.enterprise:
-            features.extend(ExportPoolResourceList())
+            features.extend([ExportPoolResourceList()])
 
         return features 
 
@@ -281,7 +281,7 @@ class DundeeEnabledFeatures(CreedenceEnabledFeatures):
         features = super(DundeeEnabledFeatures, self).getFeatures(sku)
 
         if sku >= self.enterprise:
-            features.extend(CIFSStorage())
+            features.extend([CIFSStorage()])
 
         return features
 

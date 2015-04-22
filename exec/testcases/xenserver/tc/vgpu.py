@@ -440,7 +440,14 @@ class VGPUTest(object):
                 raise xenrt.XRTError("Host display was not successfully disabled.")
 
         pgpu = host.minimalList("pgpu-list")
-        intelPGPUUUID = filter(lambda p: cardName in host.genParamGet("pgpu",p,"vendor-name"),pgpu)[0]
+
+        intelPGPUUUID = None
+        for uuid in pgpu:
+            if cardName in host.genParamGet("pgpu", uuid ,"vendor-name"):
+                if host.getName() == host.genParamGet("pgpu", uuid, "host-name-label"):
+                    intelPGPUUUID = uuid
+                    break
+
         if not intelPGPUUUID:
             raise xenrt.XRTFailure("No Intel GPU found")
 
@@ -459,7 +466,14 @@ class VGPUTest(object):
                 raise xenrt.XRTError("Host display was not successfully enabled.")
 
         pgpu = host.minimalList("pgpu-list")
-        intelPGPUUUID = filter(lambda p: cardName in host.genParamGet("pgpu",p,"vendor-name"),pgpu)[0]
+        
+        intelPGPUUUID = None
+        for uuid in pgpu:
+            if cardName in host.genParamGet("pgpu", uuid ,"vendor-name"):
+                if host.getName() == host.genParamGet("pgpu", uuid, "host-name-label"):
+                    intelPGPUUUID = uuid
+                    break
+
         if not intelPGPUUUID:
             raise xenrt.XRTFailure("No Intel GPU found")
 

@@ -10,7 +10,7 @@
 
 
 import sys, string, os.path, glob, time, re, math, random, shutil, os, stat, datetime
-import traceback, threading, types
+import traceback, threading, types, collections
 import xml.dom.minidom, libxml2
 import tarfile
 import IPy
@@ -6487,17 +6487,17 @@ fi
                     template = self.chooseTemplate("TEMPLATE_NAME_WIN10")
             elif re.search("ws12", distro) and re.search("x64", distro):
                 template = self.chooseTemplate("TEMPLATE_NAME_WS12_64")
-            elif re.search("debian\d+", distro):
+            elif re.search("debian.+", distro):
                 if hvm:
                     template = self.chooseTemplate("TEMPLATE_OTHER_MEDIA")
                 else:
-                    r = re.search("debian(\d+)", distro)
+                    r = re.search("debian(.+)", distro)
                     if arch and arch == "x86-64":
                         template = self.chooseTemplate("TEMPLATE_NAME_DEBIAN_%s_64" %
-                                                   (r.group(1)))
+                                                   (r.group(1).upper()))
                     else:
                         template = self.chooseTemplate("TEMPLATE_NAME_DEBIAN_%s" %
-                                               (r.group(1)))
+                                               (r.group(1).upper()))
             elif re.search("debian", distro):
                 template = self.chooseTemplate("TEMPLATE_NAME_DEBIAN")
             elif re.search("sarge", distro):
@@ -6529,6 +6529,8 @@ fi
             elif re.search(r"rhel4", distro):
                 v = re.search(r"rhel(\d+)", distro).group(1)
                 template = self.chooseTemplate("TEMPLATE_NAME_RHEL_%s" % (v))
+            elif re.search(r"fedora", distro):
+                template = self.chooseTemplate("TEMPLATE_NAME_FEDORA")
             elif re.search(r"oel5", distro):
                 if hvm:
                     template = self.chooseTemplate("TEMPLATE_OTHER_MEDIA")
@@ -6581,8 +6583,15 @@ fi
                         template = self.chooseTemplate(\
                             "TEMPLATE_NAME_SLES_%s_64" % (v))
                     else:
-                        template = self.chooseTemplate("TEMPLATE_NAME_SLES_%s"
-                                                       % (v))
+                        template = self.chooseTemplate(\
+						    "TEMPLATE_NAME_SLES_%s" % (v))
+            elif re.search(r"sled\d+", distro):
+                v = re.search(r"sled(\d+)", distro).group(1)
+                if arch and arch == "x86-64":
+                    template = self.chooseTemplate(\
+                            "TEMPLATE_NAME_SLED_%s_64" % (v))
+                else:
+                    template = self.chooseTemplate("TEMPLATE_NAME_SLED_%s" % (v))
             elif re.search(r"sl7", distro):
                 template = self.chooseTemplate("TEMPLATE_NAME_SL_7_64")
             elif re.search(r"sl\d+",distro):
@@ -6596,7 +6605,6 @@ fi
                     else:
                         template = self.chooseTemplate("TEMPLATE_NAME_SL_%s"
                                                        % (v))
-
             elif re.search("solaris10u9-32", distro):
                 template = self.chooseTemplate("TEMPLATE_NAME_SOLARIS_10U9_32")
             elif re.search("solaris10u9", distro):
@@ -6616,6 +6624,8 @@ fi
                         template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_1204")
             elif re.search("ubuntu1404", distro):
                 template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_1404")
+            elif re.search("ubuntudevel", distro):
+                template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_DEVEL")
             elif re.search("coreos-", distro):
                 template = self.chooseTemplate("TEMPLATE_NAME_COREOS")
             elif re.search(r"other", distro):
@@ -6636,6 +6646,22 @@ fi
                 raise e
 
         return template
+
+    def getTemplateParams(self, distro, arch):
+        try:
+            tname = self.getTemplate(distro=distro, arch=arch)
+        except:
+            xenrt.TEC().warning("Couldn't find template for %s %s" % (distro, arch))
+
+        if tname:
+            tuuid = self.minimalList("template-list", args="name-label='%s'" % tname)[0]
+            defMemory = int(self.genParamGet("template", tuuid, "memory-static-max"))/xenrt.MEGA
+            defVCPUs = int(self.genParamGet("template", tuuid, "VCPUs-max"))
+        else:
+            defMemory = None
+            defVCPUs = None
+
+        return collections.namedtuple("TemplateParams", ["defaultMemory", "defaultVCPUs"])(defMemory, defVCPUs)
         
     def isEnabled(self):
         """Return True if this host is enabled as far as xapi is concerned."""
@@ -7638,7 +7664,10 @@ rm -f /etc/xensource/xhad.conf || true
                       getreply=False)
 
         # Remove any NFS blocks
-        self.execdom0("rm -f /etc/rc3.d/S09blocknfs || true")
+        if self.isCentOS7Dom0():
+            self.execdom0("chkconfig --del blocknfs || true")
+        else:
+            self.execdom0("rm -f /etc/rc3.d/S09blocknfs || true")
 
         # Do the normal reset procedure
         try:
@@ -12226,12 +12255,11 @@ class DummyStorageRepository(StorageRepository):
         self._create("dummy", {}, physical_size=size)
 
 class CIFSISOStorageRepository(StorageRepository):
-
     def create(self,
                server,
                share,
-               type,
-               content_type="",
+               type="iso",
+               content_type="iso",
                username="Administrator",
                password=None,
                use_secret=False):
@@ -12251,6 +12279,7 @@ class CIFSISOStorageRepository(StorageRepository):
         args.append("type=%s" % (type))
         args.append("content-type=%s" % (content_type))
         args.append("host-uuid=%s" % (self.host.getMyHostUUID()))
+        args.append("shared=true")
         self.uuid = cli.execute("sr-create", string.join(args), strip=True)
         
     def check(self):
@@ -12460,9 +12489,9 @@ class SMBStorageRepository(StorageRepository):
 
     SHARED = True
 
-    def create(self, share=None):
+    def create(self, share=None, cifsuser=None):
         if not share:
-            share = xenrt.ExternalSMBShare(version=3)
+            share = xenrt.ExternalSMBShare(version=3, cifsuser=cifsuser)
 
         dconf = {}
         smconf = {}
@@ -13523,6 +13552,7 @@ class Pool(object):
                     # Using CA-33324 workaround
                     # Relicense to ensure we have the correct edition
                     edition = xenrt.TEC().lookup("OPTION_LIC_SKU", None)
+                    xenrt.sleep(60)
                     if edition:
                         slave.license(edition=edition)
                     else:

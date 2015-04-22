@@ -293,7 +293,7 @@ class Guest(xenrt.GenericGuest):
         # Workaround # RHEL/CentOS/OEL 6 or later requires at least 1G ram.
         if distro:
             m = re.match("(rhel|centos|oel|sl)[dw]?(\d)\d*", distro)
-            if m and int(m.group(2)) >= 6:
+            if (m and int(m.group(2)) >= 6) or distro.startswith("fedora"):
                 if (self.memory and self.memory<1024) or not self.memory:
                     self.memory = 1024
                                         
@@ -611,15 +611,16 @@ class Guest(xenrt.GenericGuest):
         config = cli.execute("host-call-plugin host-uuid=%s plugin=xscontainer fn=get_config_drive_default args:templateuuid=%s" % (host.uuid, templateUUID)).rstrip().lstrip("True")
         self.password = xenrt.TEC().lookup("ROOT_PASSWORD")
         passwd = crypt.crypt(self.password, '$6$SALT$')
-        proxy = xenrt.TEC().lookup("HTTP_PROXY", None)
-        if proxy:
-            config += """
+        proxy = xenrt.TEC().lookup("HTTP_PROXY")
+        
+        config += """
   - path: /etc/systemd/system/docker.service.d/http-proxy.conf
     owner: core:core
     permissions: 0644
     content: |
       [Service]
       Environment="HTTP_PROXY=http://%s" """ % proxy
+        
         config += """
 users:
   - name: root
@@ -647,7 +648,7 @@ users:
 
         channel = self.distro.split("-")[-1]
         
-        self.execguest("coreos-install -d /dev/xvda -V current -C %s -o xen -b %s/amd64-usr" % (channel, xenrt.TEC().lookup(["RPM_SOURCE", self.distro, "x86-64", "HTTP"])))
+        self.execguest("http_proxy=http://%s coreos-install -d /dev/xvda -V current -C %s -o xen" % (proxy, channel))
 
         self.shutdown()
 
@@ -2570,6 +2571,17 @@ exit /B 1
         if pcpus:
             limits.append(pcpus)
 
+        # Limit based on memory size
+        guestmem = self.memory
+        if not guestmem and self.distro:
+            host = xenrt.TEC().registry.hostGet("RESOURCE_HOST_DEFAULT")
+            guestmem = host.getTemplateParams(self.distro, self.arch).defaultMemory
+        if guestmem:
+            memlimit = guestmem / int(xenrt.TEC().lookup("RND_VCPUS_MB_PER_VCPU", "64"))
+            limits.append(memlimit)
+        else:
+            xenrt.TEC().warning("Cannot determine guest memory")
+
         if limits:
             return min(limits)
 
@@ -2578,13 +2590,16 @@ exit /B 1
         return 4
 
     def setRandomVcpus(self):
-        xenrt.TEC().logverbose("Setting random vcpus for VM ")
         maxVcpusSupported = self.getMaxSupportedVCPUCount()
-        randomVcpus = random.randint(1, maxVcpusSupported)
+        maxRandom = min(maxVcpusSupported, 4)
+        xenrt.TEC().logverbose("Setting random vcpus for VM between 1 and %d (max supported %d)" % (maxRandom, maxVcpusSupported))
+        randomVcpus = random.randint(1, maxRandom)
         with xenrt.GEC().getLock("RND_VCPUS"):
             dbVal = int(xenrt.TEC().lookup("RND_VCPUS_VAL", "0"))
             if dbVal != 0:
                 xenrt.TEC().logverbose("Using vcpus from DB: %d" % dbVal)
+                if dbVal > maxVcpusSupported:
+                    xenrt.TEC().warning("DB vcpus value is greater than maxVcpusSupported!")
                 self.setVCPUs(dbVal)
             else:
                 xenrt.TEC().logverbose("Randomly choosen vcpus is %d" % randomVcpus)
@@ -3941,13 +3956,18 @@ exit /B 1
 
         toolscdname = self.insertToolsCD()
         device="sr0"
-        
+
         if not self.isHVMLinux():
-            device = self.getHost().minimalList("vbd-list", 
+            deviceList = self.getHost().minimalList("vbd-list", 
                                                 "device", 
                                                 "type=CD vdi-name-label=%s vm-uuid=%s" %
-                                                (toolscdname, self.getUUID()))[0]
-        
+                                                (toolscdname, self.getUUID()))
+
+            if deviceList:
+                device = deviceList[0]
+            else:
+                raise xenrt.XRTFailure("VBD for tools ISO not found")
+
         for dev in [device, device, "cdrom"]:
             try:
                 self.execguest("mount /dev/%s /mnt" % (dev))
@@ -4564,8 +4584,6 @@ def createVMFromPrebuiltTemplate(host,
         g.enlightenedDrivers = False
 
     g.changeCD("xs-tools.iso")
-    # The apt source needs updating to the controller
-    g.special['tailor_apt_source'] = True
     g.special.update(special)
     g.start() 
     
@@ -4672,6 +4690,8 @@ def createVM(host,
         vifs = parseSequenceVIFs(g, host, vifs)
 
         # The install method doesn't do this for us.
+        if memory:
+            g.setMemory(memory)
         if vcpus:
             g.setVCPUs(vcpus)
         elif xenrt.TEC().lookup("RND_VCPUS", default=False, boolean=True):
@@ -4680,8 +4700,6 @@ def createVM(host,
             g.setCoresPerSocket(corespersocket)
         elif xenrt.TEC().lookup("RND_CORES_PER_SOCKET", default=False, boolean=True):
             g.setRandomCoresPerSocket(host, vcpus)
-        if memory:
-            g.setMemory(memory)
 
         if bootparams:
             bp = g.getBootParams()
@@ -6241,7 +6259,7 @@ class DundeeGuest(CreedenceGuest):
             
             for driver in driversToUninstall:
             
-                batch.append("C:\\devcon64.exe remove %s\r\n" %(driver))
+                batch.append("C:\\%s remove %s\r\n" %(devconexe, driver))
                 batch.append("ping 127.0.0.1 -n 10 -w 1000\r\n")
 
             for file in oemFileList:

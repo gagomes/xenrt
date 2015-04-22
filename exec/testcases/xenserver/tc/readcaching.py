@@ -30,6 +30,7 @@ class ReadCacheTestCase(xenrt.TestCase):
         self.vmName = self.parseArgsKeyValue(arglist)["vm"]
         log("Using vm %s" % self.vmName)
         self.vm = self.getGuest(self.vmName)
+        self.srtype = self.vm.asXapiObject().VDI()[0].SR().srtype()
 
         if self.vm.getState() != "UP":
             self.vm.start()
@@ -135,27 +136,35 @@ class TCRCForSRPlug(ReadCacheTestCase):
     A3. Verify SR re-attach persist status
     """
 
+    def __init__(self):
+        super(TCRCForSRPlug, self).__init__()
+        self.__vdis = None
+
+    def __storeVDIs(self):
+        self.__vdis = self.vm.asXapiObject().VDI()
+
     def __plugReplugSR(self):
-        xsr = next((s for s in self.getDefaultHost().asXapiObject().SR() if s.srType() == "nfs"), None)
+        xsr = next((s for s in self.getDefaultHost().asXapiObject().SR() if s.srType() == self.srtype), None)
         sr = xenrt.lib.xenserver.NFSStorageRepository.fromExistingSR(self.getDefaultHost(), xsr.uuid)
         sr.forget()
         sr.introduce()
 
     def __replugVm(self):
-        # Plug the VDI to the VM
-        xsr = next((s for s in self.getDefaultHost().asXapiObject().SR() if s.srType() == "nfs"), None)
-        xvdi = xsr.VDI()[0]
-        self.vm.createDisk(sizebytes=xvdi.size(), sruuid=xsr.uuid, vdiuuid=xvdi.uuid, bootable=True)
+        if not self.__vdis:
+            raise xenrt.Failure("Cannot find any VDI information. Are they stored before unplug SR?")
 
-    def __removeSnapshots(self):
-        [s.delete() for s in self.vm.asXapiObject().Snapshot()]
+        # Plug the VDI to the VM
+        xsr = next((s for s in self.getDefaultHost().asXapiObject().SR() if s.srType() == self.srtype), None)
+        for xvdi in self.__vdis:
+            self.vm.createDisk(sizebytes=xvdi.size(), sruuid=xsr.uuid, vdiuuid=xvdi.uuid, bootable=True)
 
     def run(self, arglist):
         lowlevel, both = self.getArgs(arglist)
         self.checkExpectedState(True, lowlevel, both)
         self.vm.shutdown()
-        self.__removeSnapshots()
 
+        # Store VDI
+        self.__storeVDIs()
         # Find the SR and forget/introduce
         self.__plugReplugSR()
         self.__replugVm()

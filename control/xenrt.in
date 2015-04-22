@@ -38,6 +38,7 @@ class XenRTCommand:
 
     commands = None
     hide = False
+    usesAPI = True
 
     def __init__(self, commands):
         self.commands = commands
@@ -89,11 +90,12 @@ class XenRTCommand:
         os.chmod(path, stat.S_IRUSR|stat.S_IWUSR)
 
     def dispatch(self, args):
-        apikey = self.getAPIKey()
-        if not apikey:
-            self.retrieveAPIKeyFromServer()
+        if self.usesAPI:
             apikey = self.getAPIKey()
-        self.xenrt = xenrtapi.XenRT(apikey=self.getAPIKey(), server=self.getXenRTServer())
+            if not apikey:
+                self.retrieveAPIKeyFromServer()
+                apikey = self.getAPIKey()
+            self.xenrt = xenrtapi.XenRT(apikey=self.getAPIKey(), server=self.getXenRTServer())
 
         if len(args) > 0 and args[0] in ("--help", "-h"):
             print "%s\n" % (self. summary)
@@ -232,10 +234,16 @@ class XenRTCommand:
                            string.split(value, ",") ]
                     details['TESTCASEFILES'] = string.join(tl, ",")
                     secondary['testcasefiles'] = value
+                    for f in string.split(value, ","):
+                        if not os.path.exists(f):
+                            raise Exception("Cannot find testcase file %s" % f)
                 elif flag == "--customsequence":
                     details['CUSTOM_SEQUENCE'] = "yes"
                     details['DEPS'] = os.path.basename(string.split(value, ",")[0])
                     secondary['seqfiles'] = value
+                    for f in string.split(value, ","):
+                        if not os.path.exists(f):
+                            raise Exception("Cannot find sequence file %s" % f)
                 elif flag == "--customupdates":
                     updates = []                
                     for u in string.split(value, ","):
@@ -533,7 +541,7 @@ class XenRTMachine(XenRTCommand):
     def run(self, args):
         results = self.xenrt.get_machine(args[0])
         self.printout("STATUS='%s'\n" % results['rawstatus'])
-        for i in ('jobid', 'leasereason', 'pool', 'leaseuser', 'cluster', 'site', 'prio'):
+        for i in ('jobid', 'leasereason', 'pool', 'leaseuser', 'cluster', 'site', 'prio', 'leasepolicy'):
             if results[i]:
                 self.printout("%s='%s'\n" % (i.upper(), results[i]))
         for i in ('leaseto', 'leasefrom'):
@@ -1139,6 +1147,7 @@ class XenRTBorrow(XenRTCommand):
     -h <hours>     Number of hours to borrow for (default is 24)
     -d <days>      Number of days to borrow for (default is 1)
     -r <reason>    Reason for borrowing machine
+    -b             Best effort borrow (borrow for as long as long as policy allows, don't fail if can't be borrowed)
     """
     group = "Machine"
 
@@ -1150,8 +1159,9 @@ class XenRTBorrow(XenRTCommand):
         reason = ""
         force = False
         user = None
+        besteffort = False
         try:
-            optlist, optx = getopt.getopt(args[1:], 'h:u:d:fr:', "force")
+            optlist, optx = getopt.getopt(args[1:], 'h:u:d:fr:b', "force")
             for argpair in optlist:
                 (flag, value) = argpair
                 if flag == '-h':
@@ -1166,12 +1176,14 @@ class XenRTBorrow(XenRTCommand):
                     duration = 0
                 elif flag == "--force":
                     force = True
+                elif flag == "-b":
+                    besteffort = True
         except getopt.GetoptError:
             raise Exception("Unknown argument\n")
         if user:
             self.xenrt.customHeaders['X-Fake-User'] = user
 
-        self.xenrt.lease_machine(machine, duration, reason, force=force)
+        self.xenrt.lease_machine(machine, duration, reason, force=force, besteffort=besteffort)
 
 class XenRTReturn(XenRTCommand):
 
@@ -2132,6 +2144,15 @@ class XenRTGlobalResRelease(XenRTCommand):
             details['name'] = args[0]
         self.xenrt.release_global_resource(**details)
 
+class XenRTSanityCheck(XenRTCommand):
+    name = "sanity"
+    summary = "Sanity check for the CLI"
+    hide = True
+    usesAPI = False
+
+    def run(self, args):
+        self.printout("Sanity check passed")
+
 class XenRTMGetResource(_XenRTControllerOperation):
     name = "mgetresource"
     summary = "Get a controller resource for a machine"
@@ -2245,6 +2266,7 @@ class Commands:
         self.add(XenRTMListResources)
         self.add(XenRTMReleaseResources)
         self.add(XenRTLogServer)
+        self.add(XenRTSanityCheck)
 
     def add(self, cl):
         c = cl(self)

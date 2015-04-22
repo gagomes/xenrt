@@ -1,0 +1,25 @@
+<xenrt>
+
+  <!-- Live checkpoint VM operations tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host>
+      <storage type="smb" name="cifssr" options="vm" default="true"/>
+    </host>
+  </prepare>
+
+  <!-- Using default install so sr default = true should be enough to put the VMs on SMB -->
+  <testsequence>
+    <serial group="Checkpoint">
+      <testcase id="xenserver.tc.checkpoint.TC9316" name="TC9316.WithCIFs" sku="WithCIFs" />
+      <testcase id="xenserver.tc.checkpoint.TC9317" name="TC9317.WithCIFs" sku="WithCIFs" />
+      <testcase id="xenserver.tc.checkpoint.TC9320" name="TC9320.WithCIFs" sku="WithCIFs" />
+      <testcase id="xenserver.tc.checkpoint.TC9321" name="TC9321.WithCIFs" sku="WithCIFs" />
+    </serial>
+  </testsequence>
+
+</xenrt>

@@ -48,6 +48,28 @@ class GetUserDetails(XenRTAPIv2Page):
             raise XenRTAPIError(HTTPNotFound, "User not found")
         return {"user": u.userid, "email": u.email, "team": u.team}
 
+class GetUsersDetails(XenRTAPIv2Page):
+    PATH = "/usersdetails"
+    REQTYPE = "GET"
+    SUMMARY = "Get details for multiple XenRT users"
+    PARAMS = [
+        {'name': 'user',
+         'in': 'query',
+         'required': True,
+         'description': 'User to fetch',
+         'type': 'array',
+         'items': {'type': 'string'}}]
+    RESPONSES = {"200": {"description": "Successful response"}}
+    TAGS = ["misc"]
+
+    def render(self):
+        ret = {}
+        for user in self.getMultiParam("user"):
+            u = app.user.User(self, user)
+            if u.valid:
+                ret[u.userid] = {"user": u.userid, "email": u.email, "team": u.team}
+        return ret
+
 class ADLookup(XenRTAPIv2Page):
     PATH = "/ad"
     REQTYPE = "GET"
@@ -87,3 +109,4 @@ RegisterAPI(LogServer)
 RegisterAPI(GetUser)
 RegisterAPI(ADLookup)
 RegisterAPI(GetUserDetails)
+RegisterAPI(GetUsersDetails)

@@ -2776,7 +2776,12 @@ Add-WindowsFeature as-net-framework"""
         rpm = None
         hostarch = self.execcmd("uname -m").strip()
         # Try an explicit path first - this is used for OEM update tests
-        rpmpath = xenrt.TEC().lookup("XE_RPM", None)
+        # Use static linked version of xe on Dundee if the distro is not Centos 7
+        if isinstance(self.host, xenrt.lib.xenserver.DundeeHost) and not self.distro == 'centos7':
+            rpmpath = "xe-phase-1/client_install/xe-cli-6.2.0-70442c.i686.rpm"
+        else:
+            rpmpath = xenrt.TEC().lookup("XE_RPM", None)
+
         if rpmpath:
             rpm = xenrt.TEC().getFile(rpmpath)
         if not rpm:

@@ -1,7 +1,6 @@
 #
 # XenRTInfrastructure Makefile
 #
-include build/config.mk
 include build/tools.mk
 TEMPFOLDER := $(shell mktemp -d /tmp/DythonXXX)
 PYTHONSOURCEFOLDER ?= $(TEMPFOLDER)/python2.7-2.7.3

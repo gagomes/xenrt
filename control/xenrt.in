@@ -38,6 +38,7 @@ class XenRTCommand:
 
     commands = None
     hide = False
+    usesAPI = True
 
     def __init__(self, commands):
         self.commands = commands
@@ -89,11 +90,12 @@ class XenRTCommand:
         os.chmod(path, stat.S_IRUSR|stat.S_IWUSR)
 
     def dispatch(self, args):
-        apikey = self.getAPIKey()
-        if not apikey:
-            self.retrieveAPIKeyFromServer()
+        if self.usesAPI:
             apikey = self.getAPIKey()
-        self.xenrt = xenrtapi.XenRT(apikey=self.getAPIKey(), server=self.getXenRTServer())
+            if not apikey:
+                self.retrieveAPIKeyFromServer()
+                apikey = self.getAPIKey()
+            self.xenrt = xenrtapi.XenRT(apikey=self.getAPIKey(), server=self.getXenRTServer())
 
         if len(args) > 0 and args[0] in ("--help", "-h"):
             print "%s\n" % (self. summary)
@@ -2142,6 +2144,15 @@ class XenRTGlobalResRelease(XenRTCommand):
             details['name'] = args[0]
         self.xenrt.release_global_resource(**details)
 
+class XenRTSanityCheck(XenRTCommand):
+    name = "sanity"
+    summary = "Sanity check for the CLI"
+    hide = True
+    usesAPI = False
+
+    def run(self, args):
+        self.printout("Sanity check passed")
+
 class XenRTMGetResource(_XenRTControllerOperation):
     name = "mgetresource"
     summary = "Get a controller resource for a machine"
@@ -2255,6 +2266,7 @@ class Commands:
         self.add(XenRTMListResources)
         self.add(XenRTMReleaseResources)
         self.add(XenRTLogServer)
+        self.add(XenRTSanityCheck)
 
     def add(self, cl):
         c = cl(self)

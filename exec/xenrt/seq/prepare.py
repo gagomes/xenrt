@@ -1307,7 +1307,7 @@ class PrepareNode(object):
                             m = re.match("\\\\\\\\(.+?)\\\\(.+)", path)
                             server = m.group(1)
                             share = m.group(2)
-                            sr.create(server, share, "iso", username=username, password=password)
+                            sr.create(server, share, username=username, password=password)
                         sr.scan()
                     elif s['type'] == "nfstemplate":
                         try:

@@ -12258,8 +12258,8 @@ class CIFSISOStorageRepository(StorageRepository):
     def create(self,
                server,
                share,
-               type,
-               content_type="",
+               type="iso",
+               content_type="iso",
                username="Administrator",
                password=None,
                use_secret=False):

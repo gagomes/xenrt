@@ -8,7 +8,7 @@
   <prepare>
 
     <pool id="0">
-      <storage type="nfs" name="shared" default="true"/>
+      <storage type="ext" default="true"/>
       <host id="0">
       </host>
       <host id="1">

@@ -2,16 +2,14 @@
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
-    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
   </variables>
 
   <prepare>
 
     <pool id="0">
-      <storage type="ext" default="true"/>
-      <host id="0">
+      <host id="0" installsr="ext">
       </host>
-      <host id="1">
+      <host id="1" installsr="ext">
       </host>
     </pool>
 

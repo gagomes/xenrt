@@ -75,7 +75,6 @@ class LicensedFeature(object):
         return True
 
     def __eq__(self, other):
-        # Not tested.
         return self.name == other.name
 
 
@@ -224,6 +223,8 @@ class CIFSStorage(LicensedFeature):
 
 class EnabledFeatures(object):
 
+    __metaclass__ = ABCMeta
+
     # Enum for licensing levels.
     free, xd, xdplus, enterprise = range(4)
 
@@ -231,15 +232,12 @@ class EnabledFeatures(object):
         self.sku = sku
 
     def expectedEnabledState(self, feature):
-        if feature in self.getEnabledFeatures():
-            return False
-        else:
-            return True
+        return not feature in self.getEnabledFeatures():
 
     @abstractmethod
     def getFeatures(self, sku):
         """Based on the current sku, give a list of features."""
-        return []
+        pass
 
     def getEnabledFeatures(self):
         # Change to return just the objects.
@@ -261,7 +259,7 @@ class EnabledFeatures(object):
 class CreedenceEnabledFeatures(EnabledFeatures):
     
     def getFeatures(self, sku):
-        features = super(CreedenceEnabledFeatures, self).getFeatures(sku)
+        features = []
 
         if sku >= self.free:
             features.extend([Hotfixing(), GPUPassthrough()])

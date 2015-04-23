@@ -3457,7 +3457,7 @@ class TCPoolIntelGPU(IntelBase):
 
     def run(self, arglist):
 
-        for distro in self.REQUIRE_DISTROS:
+        for distro in self.REQUIRED_DISTROS:
             osType = self.getOSType(distro)
 
             masterVM = self.masterVMs[osType]

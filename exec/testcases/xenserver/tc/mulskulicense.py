@@ -8,7 +8,7 @@
 # conditions as licensed by Citrix Systems, Inc. All other rights reserved.
 #
 
-import random
+import random, re
 import xenrt
 from xenrt.lib.xenserver.licensing import LicenseManager, XenServerLicenseFactory
 from xenrt.lib import assertions
@@ -167,7 +167,7 @@ class TCUpgrade(LicenseBase):
             self.licenseManager.addLicensesToServer(v6,license,getLicenseInUse=False)
 
         for host in hosts:
-            host.license(edition=license.getEdition(), usev6testd=False, v6server=v6)
+            host.license(edition=license.getEdition(), v6server=v6)
 
         productVer = xenrt.TEC().lookup("PRODUCT_VERSION")
         license = self.licenseFactory.license(productVer,self.expectedSku)

@@ -4,7 +4,7 @@
   </variables>
 
   <prepare>
-    <host id="0" license="no" usev6testd="no">
+    <host id="0" license="no" defaultlicense="no">
     </host>
   </prepare>
 

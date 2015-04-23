@@ -15,7 +15,7 @@
 
   <prepare>
     <!-- The TOE -->
-    <host id="0" license="platinum" usev6testd="false">
+    <host id="0" license="platinum" defaultlicense="false">
       <storage type="nfs" name="shared" default="true" network="IPRI"/>
       <NETWORK>
         <PHYSICAL network="NPRI">

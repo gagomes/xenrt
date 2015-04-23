@@ -119,8 +119,6 @@ class SingleSkuBase(xenrt.TestCase):
 
         if self.USELICENSESERVER:
             self.licenseServer()
-        else:
-            self.mockLicenseDaemon()
 
     def licenseServer(self):
 
@@ -131,11 +129,6 @@ class SingleSkuBase(xenrt.TestCase):
         if self.LICENSEFILE:
             self.v6.addLicense(self.LICENSEFILE)
             self.updateLicenseCount()
-
-    def mockLicenseDaemon(self):
- 
-        # TODO  write code to support Mock License Daemon
-        pass
 
     def preLicenseApplyAction(self):
 
@@ -415,7 +408,7 @@ class SufficientLicenseUpgrade(SingleSkuBase):
         
         #Apply the platinum edition to the host/pool
         for h in self.param['hosts']:
-            h.license(edition=preedition, usev6testd=False, v6server=self.v6)
+            h.license(edition=preedition, v6server=self.v6)
 
         
         #Upgrade the Host/Pool
@@ -454,7 +447,7 @@ class InsufficientLicenseUpgrade(SingleSkuBase):
         
         #Apply the platinum edition to the host/pool
         for h in self.param['hosts']:
-            h.license(edition=preedition, usev6testd=False, v6server=self.v6)
+            h.license(edition=preedition, v6server=self.v6)
 
         if preedition != "platinum":
             self.v6.removeAllLicenses()
@@ -499,7 +492,7 @@ class FreeEdnSufficientLicenseUpgrade(SingleSkuBase):
         
         #Apply the free edition to the host/pool prior to upgrade
         for h in self.param['hosts']:
-            h.license(edition="free", usev6testd=False, v6server=self.v6)
+            h.license(edition="free", v6server=self.v6)
         
         #Upgrade the Host/Pool
         if self.param['system'] == 'host':
@@ -530,7 +523,7 @@ class FreeEdnInsuffLicenseUpgrade(SingleSkuBase):
         
         #Apply the free edition to the host/pool prior to upgrade
         for h in self.param['hosts']:
-            h.license(edition="free", usev6testd=False, v6server=self.v6)
+            h.license(edition="free", v6server=self.v6)
         
         #Upgrade the Host/Pool
         if self.param['system'] == 'host':
@@ -875,7 +868,7 @@ class ExpiredUpgrade(SingleSkuBase):
         
         #Apply the platinum edition to the host/pool
         for h in self.param['hosts']:
-            h.license(edition=preedition, usev6testd=False, v6server=self.v6)        
+            h.license(edition=preedition, v6server=self.v6)        
         
         #Expire the host or master of the Pool
         host = self.param['hosts'][0]
@@ -937,7 +930,7 @@ class   InsufficientExpiredUpgrade(SingleSkuBase):
         
         #Apply the platinum edition to the host/pool
         for h in self.param['hosts']:
-            h.license(edition=preedition, usev6testd=False, v6server=self.v6)        
+            h.license(edition=preedition, v6server=self.v6)        
         
         #Expire the host or master of the Pool
         host = self.param['hosts'][0]

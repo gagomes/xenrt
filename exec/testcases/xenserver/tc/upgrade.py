@@ -2067,7 +2067,7 @@ class _TCCrossVersionImport(xenrt.TestCase):
         # Install the current version on host 1
         if xenrt.TEC().lookup("OPTION_CC", False, boolean=True):
             # Install this as a CC host
-            self.host1 = xenrt.lib.xenserver.createHost(id=1, usev6testd=False, license="platinum")
+            self.host1 = xenrt.lib.xenserver.createHost(id=1, license="platinum")
             # Set up the network requirements
             self.host1.createNetworkTopology("""<NETWORK>
         <PHYSICAL network="NPRI">

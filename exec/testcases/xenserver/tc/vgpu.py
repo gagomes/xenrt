@@ -3457,24 +3457,25 @@ class TCPoolIntelGPU(IntelBase):
 
     def run(self, arglist):
 
-        for distro in self.REQUIRED_DISTROS:
-            osType = self.getOSType(distro)
+        for config in self.VGPU_CONFIG:
+            for distro in self.REQUIRED_DISTROS:
+                osType = self.getOSType(distro)
 
-            masterVM = self.masterVMs[osType]
-            masterVM.setState("DOWN")
-            vm1 = masterVM.cloneVM(noIP=False)
-            vm2 = masterVM.cloneVM(noIP=False)
+                masterVM = self.masterVMs[osType]
+                masterVM.setState("DOWN")
+                vm1 = masterVM.cloneVM(noIP=False)
+                vm2 = masterVM.cloneVM(noIP=False)
 
-            for vm in [vm1, vm2]:
-                self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
-                self.typeOfvGPU.installGuestDrivers(vm, self.getConfigurationName(config))
-                self.typeOfvGPU.assertvGPURunningInVM(vm, self.getConfigurationName(config))
+                for vm in [vm1, vm2]:
+                    self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
+                    self.typeOfvGPU.installGuestDrivers(vm, self.getConfigurationName(config))
+                    self.typeOfvGPU.assertvGPURunningInVM(vm, self.getConfigurationName(config))
 
-            for i in range(10):
-                vm1.setState("DOWN")
-                vm2.setState("DOWN")
-                vm1.setState("UP")
-                vm2.setState("UP")
+                for i in range(10):
+                    vm1.setState("DOWN")
+                    vm2.setState("DOWN")
+                    vm1.setState("UP")
+                    vm2.setState("UP")
 
 class TCAlloModeK200NFS(VGPUAllocationModeBase):
 

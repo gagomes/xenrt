@@ -232,7 +232,7 @@ class EnabledFeatures(object):
         self.sku = sku
 
     def expectedEnabledState(self, feature):
-        return not feature in self.getEnabledFeatures():
+        return not feature in self.getEnabledFeatures()
 
     @abstractmethod
     def getFeatures(self, sku):

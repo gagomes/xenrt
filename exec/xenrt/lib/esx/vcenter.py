@@ -23,6 +23,7 @@ class VCenter(object):
         self.lock = threading.RLock()
         self.username = xenrt.TEC().lookup(["VCENTER","USERNAME"])
         self.password = xenrt.TEC().lookup(["VCENTER","PASSWORD"])
+        self.useWinrm = xenrt.TEC().lookup(["VCENTER","WINRM_ENABLED"], False, boolean=True)
         self.guest=guest
 
         if not guest:
@@ -36,11 +37,9 @@ class VCenter(object):
             self.dvs = "yes"
 
         if xenrt.TEC().lookup("CMD_VIA_WINRM", True, boolean=True):
-            self.vc.os.enableWinRM()
             xenrt.TEC().warning("Enforcing execCmd via WinRM")
+            self.vc.os.enableWinRM()
             self.useWinrm = True
-        else:
-            self.useWinrm = False
 
     def _setupVCenter(self, guest, vCenterVersion="5.5.0-update02"):
         self.address = guest.mainip
@@ -48,13 +47,14 @@ class VCenter(object):
         self.vc = xenrt.lib.generic.StaticOS(guest.distro, guest.mainip)
         self.vc.os.enablePowerShellUnrestricted()
         self.vc.os.ensurePackageInstalled("PowerShell 3.0")
+        self.vc.os.enableWinRM()
         self.vc.os.sendRecursive("%s/data/tests/vmware" % xenrt.TEC().lookup("XENRT_BASE"), "c:\\vmware")
 
         if not self.isVCenterInstalled():
             self._installVCenter()
 
     def _installVCenter(self):
-        isoUrl=xenrt.TEC().lookup(["VCENTER","ISO",self.vCenterVersion.upper()])
+        isoUrl=xenrt.TEC().lookup(["VCENTER","ISO","_%s" % self.vCenterVersion.upper()])
         isoName = isoUrl.rsplit("/",1)[1]
         if isoName not in self.guest.host.findISOs():
             srPath = None
@@ -142,7 +142,7 @@ LS_URL=\"https://%s:7444/lookupservice/sdk\" \
         self.guest.xmlrpcExec(command, timeout=1800)
 
     def isVCenterInstalled(self):
-        services = self.vc.os.execCmd("get-service -displayname VMware* | where-object {$_.Status -eq 'Running'}", returndata=True, powershell=True).strip()
+        services = self.vc.os.execCmd("get-service -displayname VMware* | where-object {$_.Status -eq 'Running'}", returndata=True, powershell=True, winrm=self.useWinrm).strip()
         if "VMware VirtualCenter Server" in services:
             return True
         return False

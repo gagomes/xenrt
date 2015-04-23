@@ -10897,7 +10897,7 @@ class ClearwaterHost(TampaHost):
 
         cli.execute("host-apply-edition", string.join(args))
 
-        self.checkHostLicenseState(edition , licensed)
+        self.checkHostLicenseState(edition , licensed, checkFeatures=False)
   
     def installMockLicenseD(self):
 
@@ -10957,7 +10957,7 @@ class ClearwaterHost(TampaHost):
 
         self.installv6dRPM()
  
-    def checkHostLicenseState(self, edition, licensed = False):
+    def checkHostLicenseState(self, edition, licensed = False, checkFeatures=True):
 
         details = self.getLicenseDetails()
 
@@ -10966,15 +10966,17 @@ class ClearwaterHost(TampaHost):
         if not (edition == details["edition"]):
             raise xenrt.XRTFailure("Host %s is not licensed with %s. Is has got edition %s" % (self.getName() , edition , details["edition"]))
 
-        if not details.has_key("restrict_hotfix_apply"):
-            raise xenrt.XRTFailure("Host %s does not have restrict_hotfix_apply" % (self.getName()))
+        if checkFeatures:
 
-        if edition == "free" or licensed == False:
-            if details["restrict_hotfix_apply"] == "false":
-                raise xenrt.XRTFailure("Hotfix can be applied through Xencenter when host %s is not licensed" % (self.getName()))
-        elif licensed == True:
-            if details["restrict_hotfix_apply"] == "True":
-                raise xenrt.XRTFailure("Hotfix cannot be applied through Xencenter when host %s is licensed" % (self.getName()))
+            if not details.has_key("restrict_hotfix_apply"):
+                raise xenrt.XRTFailure("Host %s does not have restrict_hotfix_apply" % (self.getName()))
+    
+            if edition == "free" or licensed == False:
+                if details["restrict_hotfix_apply"] == "false":
+                    raise xenrt.XRTFailure("Hotfix can be applied through Xencenter when host %s is not licensed" % (self.getName()))
+            elif licensed == True:
+                if details["restrict_hotfix_apply"] == "True":
+                    raise xenrt.XRTFailure("Hotfix cannot be applied through Xencenter when host %s is licensed" % (self.getName()))
                 
     def checkSkuMarketingName(self):
 

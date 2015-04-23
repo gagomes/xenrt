@@ -516,14 +516,7 @@ class TCUnsupFlags(xenrt.TestCase):
         seq.doPrepare()
 
     def isPropAlreadySet(self, flag):
-        return flag in xenrt.util.command('xenrt machine %s | grep -e "^PROPS"' % (self.machineName) , ignoreerrors=True).lstrip("PROPS=").strip(" \n'").split(",")
-
-    def doCommand(self, command):
-        if self.updateMachine:
-            xenrt.util.command(command)
-            xenrt.util.command("echo \"%s\" >> ~/xenrtautoflagger.log" % command)
-        else:
-            xenrt.util.command("echo \"%s\" >> ~/xenrt_autoflag_pending" % command)
+        return flag in xenrt.APIFactory().get_machine(self.machineName)['flags']
 
     def prepare(self, arglist):
         self.machineName = xenrt.PhysicalHost(xenrt.TEC().lookup("RESOURCE_HOST_0")).name
@@ -543,8 +536,8 @@ class TCUnsupFlags(xenrt.TestCase):
 
     def run(self, arglist=[]):
         if self.updateMachineWithAutoFlaggerTag:
-            currentFlagCheckDate = xenrt.util.command('xenrt machine %s | grep -e "^AUTOFLAGGERTAG"  | sed "s/.*=//"' % (self.machineName) , ignoreerrors=True).strip("\n'")
-            if currentFlagCheckDate == self.updateMachineWithAutoFlaggerTag:
+            params = xenrt.APIFactory().get_machine(self.machineName)['params']
+            if "AUTOFLAGGERTAG" in params and params["AUTOFLAGGERTAG"] == self.updateMachineWithAutoFlaggerTag:
                 comment("Machine %s has already been checked. Exiting." % self.machineName)
                 return
 
@@ -565,13 +558,14 @@ class TCUnsupFlags(xenrt.TestCase):
                 warning(str(e))
 
             if passed == flagData["isSetIfPass"] and not self.isPropAlreadySet(flag):
-                command = "xenrt prop %s add %s" % (self.machineName, flag)
+                comment("Adding flag '%s' to machine '%s'" % (flag, self.machineName))
+                xenrt.APIFactory().update_machine(self.machineName, addflags=[flag])
             elif passed != flagData["isSetIfPass"] and self.isPropAlreadySet(flag):
-                command = "xenrt prop %s del %s" % (self.machineName, flag)
+                comment("Removing flag '%s' from machine '%s'" % (flag, self.machineName))
+                xenrt.APIFactory().update_machine(self.machineName, delflags=[flag])
             else:
-                command = "# %s %s flag %s" % (self.machineName,"is already having required" if self.isPropAlreadySet(flag) else "neither need nor has", flag)
-            self.doCommand(command)
+                comment("Machine '%s' %s flag '%s'" % (self.machineName,"is already having required" if self.isPropAlreadySet(flag) else "neither need nor has", flag))
 
         if self.updateMachineWithAutoFlaggerTag:
-            command = "xenrt mupdate %s AUTOFLAGGERTAG %s" % (self.machineName,self.updateMachineWithAutoFlaggerTag)
-            self.doCommand(command)
+            comment("Updating Autoflagger tag for Machine '%s': '%s'" % (self.machineName, self.updateMachineWithAutoFlaggerTag))
+            xenrt.APIFactory().update_machine(self.machineName, params={'AUTOFLAGGERTAG':self.updateMachineWithAutoFlaggerTag})

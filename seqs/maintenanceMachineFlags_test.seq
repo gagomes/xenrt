@@ -1,8 +1,0 @@
-<xenrt>
-  <default name="FLAGSTOCHECK" value="unsup_vmware55,unsup_6.5" />
-  <testsequence>
-    <testcase id="testcases.maintenance.TCUnsupFlags">
-      <arg>FLAGSTOCHECK=${FLAGSTOCHECK}</arg>
-    </testcase>
-  </testsequence>
-</xenrt>

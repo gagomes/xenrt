@@ -268,6 +268,8 @@ class LiveMigrate(xenrt.TestCase):
         self.test_config['win_crash'] = False
         self.test_config['immediate_failure'] = False
         self.test_config['monitoring_failure'] = False
+        self.test_config['skip_vmdowntime']=False
+        self.test_config['use_vmsecnetwork']=False
 
         return
  
@@ -517,6 +519,10 @@ class LiveMigrate(xenrt.TestCase):
                 self.args['immediate_failure'] = True
             if arg.startswith('monitoring_failure'): 
                 self.args['monitoring_failure'] = True
+            if arg.startswith('skip_vmdowntime'):
+                self.args['skip_vmdowntime'] = True
+            if arg.startswith('use_vmsecnetwork'):
+                self.args['use_vmsecnetwork'] = True
             if arg.startswith('src_host'):
                 self.args['src_host'] = arg.split('=')[1]
             if arg.startswith('dest_host'):
@@ -674,6 +680,12 @@ class LiveMigrate(xenrt.TestCase):
 
         if self.args.has_key('monitoring_failure'):
             self.test_config['monitoring_failure'] = self.args['monitoring_failure']
+            
+        if self.args.has_key('skip_vmdowntime'):
+            self.test_config['skip_vmdowntime'] = self.args['skip_vmdowntime']
+            
+        if self.args.has_key('use_vmsecnetwork'):
+            self.test_config['use_vmsecnetwork'] = self.args['use_vmsecnetwork']
 
         return
 
@@ -1223,7 +1235,23 @@ class LiveMigrate(xenrt.TestCase):
 
             vm['VIF_NW_map'] = {}
             for vif in allVifs:
-                vm['VIF_NW_map'].update({vif:mainNWuuid})
+                if self.test_config['use_vmsecnetwork']:
+                    nwuuid=host.genParamGet("vif",vif,"network-uuid").strip()
+                    nwname= host.genParamGet("network",nwuuid,"other-config","xenrtnetname")
+                    xenrt.TEC().logverbose("Network name for vif %s is %s"%(vif,nwname))
+                    if nwname =="NSEC":                                
+                        if len(destHost.listSecondaryNICs("NSEC")):
+                            pifs = {}
+                            pifs["NSEC"] = destHost.getNICPIF(destHost.listSecondaryNICs("NSEC")[0])
+                            secNWuuid = destHost.genParamGet("pif",pifs['NSEC'],"network-uuid").strip()
+                            xenrt.TEC().logverbose("Destination VIF %s set to NSEC network %s"%(vif,secNWuuid))
+                            vm['VIF_NW_map'].update({vif:secNWuuid})
+                        else:
+                            vm['VIF_NW_map'].update({vif:mainNWuuid})
+                            raise Exception("Destination VIF %s set to NPRI network %s.The guest will loose ip post cross-pool sxm as the network will change"%(vif,mainNWuuid))
+                else:
+                    xenrt.TEC().logverbose("Destination VIF %s set to NPRI network %s"%(vif,mainNWuuid))
+                    vm['VIF_NW_map'].update({vif:mainNWuuid})
         else:
             vm['VIF_NW_map'] = {}
     
@@ -1350,7 +1378,7 @@ class LiveMigrate(xenrt.TestCase):
                 if self.test_config.has_key('vm_lifecycle_operation') and self.test_config['vm_lifecycle_operation']:
                     pass
                 else:
-                    if self.test_config['paused'] and not self.test_config['negative_test'] and not self.test_config['cancel_migration'] :
+                    if self.test_config['paused'] and not self.test_config['negative_test'] and not self.test_config['cancel_migration'] and not self.test_config['skip_vmdowntime'] :
                         if results[vmName]['vmDownTime'] > 30:
                             test_status.append("FAILURE_SXM: VM downtime of %s migrated from %s was more than 30 secs,it was %f " % 
                                                (vmName,srcHost,results[vmName]['vmDownTime']))
@@ -1469,7 +1497,7 @@ class LiveMigrate(xenrt.TestCase):
             self.test_config['iterations'] = 1
             
         for i in range(self.test_config['iterations']):
-            xenrt.TEC().logverbose("Iteration %s"%i)
+            xenrt.TEC().logverbose("Iteration %s"%(i+1))
             self.preHook()
 
             if self.test_config.has_key('use_xe') and self.test_config['use_xe']:

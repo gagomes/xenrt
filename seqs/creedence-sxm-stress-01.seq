@@ -61,7 +61,7 @@
       <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="win0_install_${H}">
         <arg>${HOSTNAME}</arg>
         <arg>guest=win0</arg>
-        <arg>distro=win7sp1-x86</arg>
+        <arg>distro=win81-x86</arg>
         <arg>memory=1024</arg>
       </testcase>
       <testcase id="guestops.drivers.TCDriverInstall" name="win0_driver_install_${H}">
@@ -87,6 +87,8 @@
       <arg>src_SR_type=ext</arg>
       <arg>dest_SR_type=ext</arg>
       <arg>iterations=${ITERATIONS}</arg>
+      <arg>use_vmsecnetwork</arg>
+      <arg>skip_vmdowntime</arg>
     </testcase>
   </collection>
 
@@ -104,7 +106,7 @@
   <testsequence>
 
     <serial group="guest_installation">
-      <for iter="H" values="0">
+      <for iter="H" values="0,2">
         <include collection="install_guests">
           <param name="HOSTNAME" value="RESOURCE_HOST_${H}" />
         </include>
@@ -112,7 +114,7 @@
     </serial>
 
     <parallel tc="${TCID}">
-      <for iter="S,D" values="(0,2)">
+      <for iter="S,D" values="(0,2),(3,1)">
         <for iter="I" values="1">
           <include collection="win_guests">
             <param name="SRC_HOST" value="RESOURCE_HOST_${S}" />

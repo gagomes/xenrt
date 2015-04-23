@@ -10786,7 +10786,7 @@ class ClearwaterHost(TampaHost):
     DOM0_VCPU_NOT_PINNED = 'nopin'
     
     #This is a temp license function once clearwater and trunk will be in sync this will become "license" funtion
-    def license(self, edition = "free", v6server = None, sku=None):
+    def license(self, edition = "per-socket", v6server = None, sku=None):
 
         if edition == "per-socket" or edition == "xendesktop":
 

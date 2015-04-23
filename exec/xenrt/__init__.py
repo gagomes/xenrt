@@ -360,6 +360,8 @@ class TestCase(object):
         if xenrt.GEC().config.lookup("TEC_ALLOCATE", True, boolean=True):
             self.tec = TestExecutionContext(xenrt.GEC(), self, anon=anon)
             setTec(self.tec)
+        else:
+            self.tec = xenrt.TEC()
         self.basename = self.tcid
         self.state = TCI_NEW
         self.reply = None
@@ -3363,7 +3365,7 @@ class GlobalExecutionContext(object):
             if ok:
                 sys.stdout.write("Sequence: PASS\n")
                 x = "OK"
-                borrow = xenrt.TEC().lookup("MACHINE_HOLD_FOR_OK", None)
+                borrow = xenrt.TEC().lookup("MACHINE_HOLD_FOR_OK", xenrt.TEC().lookup("MACHINE_HOLD_FOR_PASS", None))
                 if not borrow:
                     borrow = xenrt.TEC().lookup("MACHINE_HOLD_FOR", None)
             else:
@@ -3398,6 +3400,8 @@ class GlobalExecutionContext(object):
                     if u:
                         c.append("-u")
                         c.append(u)
+                    # Best effort borrow
+                    c.append("-b")
                     xenrt.TEC().logverbose("Borrowing %s" % m)
                     self.dbconnect.jobctrl("borrow", c)
             if regok:

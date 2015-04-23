@@ -874,10 +874,9 @@ class TC18382(LunPerVDI):
                 newGuestVBD = guest.getHost().getCLIInstance().execute("vbd-create", string.join(args), ignoreerrors=True)
 
 class TC20568(LunPerVDI):
-    """Verify a minimum of 75 Hardware HBA SR can be created in XenServer environment"""
+    """Verify a minimum of 256 Hardware HBA SR can be created in XenServer environment"""
 
     def run(self, arglist=[]):
-        # As per CA-114581, changing the number of LUNs to 75.
         addedLuns = self.netAppFiler.provisionLuns(65, 1, self._createInitiators()) # + 10 default created in prepare()
         map(lambda host : host.scanFibreChannelBus(), self.hosts)
 

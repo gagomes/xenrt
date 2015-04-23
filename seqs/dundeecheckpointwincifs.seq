@@ -1,0 +1,40 @@
+<xenrt>
+
+  <!-- Live checkpoint per OS consistency tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <SR_INSTALL_NAME>cifssr</SR_INSTALL_NAME>
+  </variables>
+
+  <prepare>
+    <host>
+      <storage type="smb" name="cifssr" options="vm" default="true"/>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="SnappointWindows">
+      <testcase id="xenserver.tc.checkpoint.TC9226" name="TC9226.WithCIFs" sku="WithCIFs" />
+      <testcase id="xenserver.tc.checkpoint.TC9227" name="TC9227.WithCIFs" sku="WithCIFs" />
+      <testcase id="xenserver.tc.checkpoint.TC9228" name="TC9228.WithCIFs" sku="WithCIFs" />
+      <testcase id="xenserver.tc.checkpoint.TC9229" name="TC9229.WithCIFs" sku="WithCIFs" />
+      <testcase id="xenserver.tc.checkpoint.TC9230" name="TC9230.WithCIFs" sku="WithCIFs" />
+      <testcase id="xenserver.tc.checkpoint.TC9232" name="TC9232.WithCIFs" sku="WithCIFs" />
+      <testcase id="xenserver.tc.checkpoint.TC9713" name="TC9713.WithCIFs" sku="WithCIFs" />
+      <testcase id="xenserver.tc.checkpoint.TC9714" name="TC9714.WithCIFs" sku="WithCIFs" />
+      <testcase id="xenserver.tc.checkpoint.TC9715" name="TC9715.WithCIFs" sku="WithCIFs" />
+      <testcase id="xenserver.tc.checkpoint.TC12556" name="TC12556.WithCIFs" sku="WithCIFs" />
+      <testcase id="xenserver.tc.checkpoint.TC12557" name="TC12557.WithCIFs" sku="WithCIFs" />
+      <testcase id="xenserver.tc.checkpoint.TC12558" name="TC12558.WithCIFs" sku="WithCIFs" />
+      <testcase id="xenserver.tc.checkpoint.TC20002" name="TC20002.WithCIFs" sku="WithCIFs" />
+      <testcase id="xenserver.tc.checkpoint.TC20687" name="TC20687.WithCIFs" sku="WithCIFs" />
+      <testcase id="xenserver.tc.checkpoint.TC21644" name="TC21644.WithCIFs" sku="WithCIFs" />
+      <testcase id="xenserver.tc.checkpoint.TC20686" name="TC20686.WithCIFs" sku="WithCIFs" />
+      <testcase id="xenserver.tc.checkpoint.TC21645" name="TC21645.WithCIFs" sku="WithCIFs" />
+      <testcase id="xenserver.tc.checkpoint.TC26423" name="TC26423.WithCIFs" sku="WithCIFs" />
+      <testcase id="xenserver.tc.checkpoint.TC26424" name="TC26424.WithCIFs" sku="WithCIFs" />
+    </serial>
+  </testsequence>
+
+</xenrt>

@@ -1,6 +1,7 @@
 from abc import ABCMeta, abstractproperty, abstractmethod
 from xenrt.enum import XenServerLicenseSKU
 import re
+import xenrt
 
 __all__ = ["WorkloadBalancing", "ReadCaching",
            "VirtualGPU", "Hotfixing", "ExportPoolResourceList",
@@ -125,8 +126,23 @@ class VirtualGPU(LicensedFeature):
         return "VirtualGPU"
 
     def isEnabled(self, host):
-        [vm.reboot() for vm in host.guests.values()]
-        return [vm.getState() == "UP" for vm in host.guests.values()]
+        """Try to start every vm on the host with a GPU attached."""
+
+        def tryStartVM(vm):
+            try:
+                vm.setState("UP")
+                return True
+            except:
+                return False
+
+        vms = [vm for vm in host.guests.values() if vm.hasvGPU()]
+
+        if not vms:
+            raise xenrt.XRTError("There are no VMs present with a GPU attached.")
+
+        [vm.setState("DOWN") for vm in vms]
+
+        return next((True for vm in vms if tryStartVM(vm)), False)
 
     @property
     def featureFlagName(self):
@@ -213,6 +229,8 @@ class CreedenceEnabledFeatures(object):
 
 class LicensedFeatureFactory(object):
     __CRE = "creedence"
+    __CRM = "cream"
+    __DUN = "dundee"
 
     def __getHostAge(self, xshost):
         return xshost.productVersion.lower()
@@ -221,17 +239,17 @@ class LicensedFeatureFactory(object):
         return dict([(f.name, f) for f in featureList])
 
     def allFeatures(self, xshost):
-        if self.__getHostAge(xshost) == self.__CRE:
+        if self.__getHostAge(xshost) == self.__CRE or self.__getHostAge(xshost) == self.__CRM or self.__getHostAge(xshost) == self.__DUN:
             return  self.__createDictOfFeatures(WorkloadBalancing(), ReadCaching(), VirtualGPU(),
                                                 Hotfixing(), ExportPoolResourceList(), GPUPassthrough())
         raise ValueError("Feature list for a %s host was not found" % self.__getHostAge(xshost))
 
     def allFeatureObj(self,xshost):
-        if self.__getHostAge(xshost) == self.__CRE:
+        if self.__getHostAge(xshost) == self.__CRE or self.__getHostAge(xshost) == self.__DUN or self.__getHostAge(xshost) == self.__CRM:
             return [WorkloadBalancing(), ReadCaching(), VirtualGPU(),
                                                 Hotfixing(), ExportPoolResourceList(), GPUPassthrough()]
  
     def getFeatureState(self, productVersion, sku, feature):
         lver = productVersion.lower()
-        if lver == self.__CRE:
+        if lver == self.__CRE or lver == self.__CRM or lver == self.__DUN:
             return CreedenceEnabledFeatures(sku).expectedEnabledState(feature)

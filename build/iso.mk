@@ -1,7 +1,6 @@
 #
 # XenRT ISO Makefile
 #
-include build/config.mk
 include build/tools.mk
 
 ISOS	= $(shell cat $(ROOT)/$(INTERNAL)/keys/windows | awk '{ print "$(IMAGEDIR)/"$$1".iso" }')

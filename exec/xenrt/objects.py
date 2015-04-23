@@ -252,9 +252,9 @@ class GenericPlace(object):
             elif re.search("solaris", self.distro):
                 rc = int(self.execcmd("prtconf | grep Mem|awk '{if ($1 == \"Memory\") {print $3}}'"))
             else:
-                rc = self.execcmd("dmesg | grep \"Memory:\"")
-                #Parses the line E.g. "[    0.000000] Memory: 1010028k/1048576k available (2573k...311304k highmem)"  to get total memory
-                rc = int(rc.split("/")[1].split("k")[0])/xenrt.KILO
+                data = self.execcmd("cat /proc/meminfo")
+                rc = re.search(r"MemTotal:\s+(\d+)\s+kB", data)
+                rc = int(rc.group(1))/xenrt.KILO
             xenrt.TEC().logverbose(" ... getMemory done")
             return rc
         except Exception, e:
@@ -275,7 +275,7 @@ class GenericPlace(object):
             raise
 
     def deprecatedIfConfig(self):
-        return self.distro.startswith("rhel7") or self.distro.startswith("oel7") or self.distro.startswith("centos7") or self.distro.startswith("sl7")
+        return self.distro.startswith("rhel7") or self.distro.startswith("oel7") or self.distro.startswith("centos7") or self.distro.startswith("sl7") or self.distro.startswith("fedora")
 
     def getMyVIFs(self):
         try:
@@ -1418,6 +1418,16 @@ class GenericPlace(object):
             f.write(data)
             f.close()
 
+    def winRegPresent(self, hive, key, name):
+        """ Check for the windows registry value"""
+        
+        try:
+            s = self._xmlrpc()
+            s.regLookup(hive, key, name)
+            return True
+        except Exception, e:
+            return False
+            
     def winRegLookup(self, hive, key, name, healthCheckOnFailure=True, suppressLogging=False):
         """Look up a Windows registry value."""
 
@@ -2766,7 +2776,12 @@ Add-WindowsFeature as-net-framework"""
         rpm = None
         hostarch = self.execcmd("uname -m").strip()
         # Try an explicit path first - this is used for OEM update tests
-        rpmpath = xenrt.TEC().lookup("XE_RPM", None)
+        # Use static linked version of xe on Dundee if the distro is not Centos 7
+        if isinstance(self.host, xenrt.lib.xenserver.DundeeHost) and not self.distro == 'centos7':
+            rpmpath = "xe-phase-1/client_install/xe-cli-6.2.0-70442c.i686.rpm"
+        else:
+            rpmpath = xenrt.TEC().lookup("XE_RPM", None)
+
         if rpmpath:
             rpm = xenrt.TEC().getFile(rpmpath)
         if not rpm:
@@ -4839,6 +4854,8 @@ class GenericHost(GenericPlace):
                 name = "Oxford"
             elif "58523" in buildNumber:
                 name = "SanibelCC"
+            if name == "Creedence" and self.execdom0("grep XS65ESP1 /var/patch/applied/*", retval="code") == 0:
+                name = "Cream"
 
             xenrt.TEC().logverbose("Found: Version Name: %s, Version Number: %s" % (name, version))
             xenrt.TEC().logverbose("Found Build: %s" % (buildNumber))
@@ -5330,7 +5347,7 @@ class GenericHost(GenericPlace):
                            method="HTTP",
                            extrapackages=None,
                            options={}):
-        if re.search("sles", distro) or re.search("suse", distro):
+        if re.search("sles|suse|sled", distro):
             self.installLinuxVendorSLES(distro,
                                         kickstart=kickstart,
                                         arch=arch,
@@ -5454,7 +5471,7 @@ class GenericHost(GenericPlace):
             pxecfg.linuxArgsKernelAdd("console=hvc0")
         else:
             pxecfg.linuxArgsKernelAdd("root=/dev/ram0")
-            if re.search(r"(rhel|oel|centos)6", distro):
+            if re.search(r"(rhel|oel|centos)[dw]?6", distro):
                 pxecfg.linuxArgsKernelAdd("biosdevname=0")
         pxefile = pxe.writeOut(self.machine)
         pfname = os.path.basename(pxefile)
@@ -5661,9 +5678,8 @@ exit 0
         webdir.copyIn(pifilename)
         piurl = webdir.getURL(pifile)
 
-        disk = self.lookup("OPTION_CARBON_DISKS", None)
-        if disk:
-            disk = "/dev/%s" % disk
+        disk = self.lookup("OPTION_CARBON_DISKS", "sda")
+        disk = "/dev/%s" % disk
 
         # Generate a config file
         ps=DebianPreseedFile(distro,
@@ -5689,7 +5705,16 @@ exit 0
                                  (method))
 
         arch = "amd64" if "64" in self.arch else "i386"
-        release = re.search("Debian/(\w+)/", repository).group(1)
+        if distro == "debian50":
+            release = "lenny"
+        elif distro == "debian60":
+            release = "squeeze"
+        elif distro == "debian70":
+            release = "wheezy"
+        elif distro == "debian80":
+            release = "jessie"
+        elif distro == "debiantesting":
+            release = "testing"
         _url = repository + "/dists/%s/" % (release.lower(), )
         boot_dir = "main/installer-%s/current/images/netboot/debian-installer/%s/" % (arch, arch)
 
@@ -6802,6 +6827,7 @@ class GenericGuest(GenericPlace):
         self.ipv4_disabled = False
         self.instance = None
         self.isTemplate = False
+        self.imported = False
         xenrt.TEC().logverbose("Creating %s instance." % (self.__class__.__name__))
 
     def populateSubclass(self, x):
@@ -6818,6 +6844,7 @@ class GenericGuest(GenericPlace):
         x.reservedIP = self.reservedIP
         x.instance = self.instance
         x.isTemplate = self.isTemplate
+        x.imported = self.imported
 
     def getDeploymentRecord(self):
         if self.isTemplate:
@@ -6825,19 +6852,20 @@ class GenericGuest(GenericPlace):
         else:
             ret = {"access": {"vmname": self.getName(),
                               "ipaddress": self.getIP()}, "os": {}}
-        if self.windows:
-            ret['access']['username'] = "Administrator"
-            ret['access']['password'] = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS",
+        if not self.imported:
+            if self.windows:
+                ret['access']['username'] = "Administrator"
+                ret['access']['password'] = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS",
                                                             "ADMINISTRATOR_PASSWORD"],
                                                             "xensource")
-            ret['os']['family'] = "windows"
-            ret['os']['version'] = self.distro
-        else:
-            ret['access']['username'] = "root"
-            ret['access']['password'] = "xenroot"
-            ret['os']['family'] = "linux"
-            arch = self.arch or "x86-32"
-            ret['os']['version'] = "%s_%s" % (self.distro, arch)
+                ret['os']['family'] = "windows"
+                ret['os']['version'] = self.distro
+            else:
+                ret['access']['username'] = "root"
+                ret['access']['password'] = "xenroot"
+                ret['os']['family'] = "linux"
+                arch = self.arch or "x86-32"
+                ret['os']['version'] = "%s_%s" % (self.distro, arch)
         if self.host:
             ret['host'] = self.host.getName()
         else:
@@ -7370,6 +7398,11 @@ class GenericGuest(GenericPlace):
 
     def tailor(self):
         """Tailor a new guest to allow other tests to be run"""
+        
+        if "tailor" in map(lambda x:x[2], traceback.extract_stack())[:-1]:
+            xenrt.TEC().logverbose("Terminating recursive tailor call")
+            return
+        
         if not self.mainip:
             raise xenrt.XRTError("Unknown IP address to SSH to %s" %
                                  (self.name))
@@ -7410,22 +7443,12 @@ class GenericGuest(GenericPlace):
 
             isDebian = isDebian and not isUbuntu
 
-            if (isUbuntu or isDebian) and "tailor_apt_source" in self.special:
-                self.execguest("sed -i s/10\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*/%s/ /etc/apt/sources.list" % xenrt.TEC().lookup("XENRT_SERVER_ADDRESS"))
-                del self.special['tailor_apt_source']
-
             if isUbuntu:
                 # change the TMPTIME so /tmp doesn't get cleared away on
                 # every reboot
 
                 self.execguest("sed -i 's/TMPTIME=0/TMPTIME=-1/g' /etc/default/rcS")
 
-                # Remove the repositories we don't mirror from the apt list
-                self.execguest("sed -i '/backports/d' /etc/apt/sources.list")
-                self.execguest("sed -i '/security/d' /etc/apt/sources.list")
-                self.execguest("sed -i '/multiverse/d' /etc/apt/sources.list")
-                self.execguest("sed -i '/universe/d' /etc/apt/sources.list")
-                self.execguest("sed -i '/deb-src/d' /etc/apt/sources.list")
                 self.execguest("cat /etc/apt/sources.list")
                 self.execguest("apt-get update")
 
@@ -7437,7 +7460,7 @@ class GenericGuest(GenericPlace):
                 debVer = float(re.match(r"\d+(\.\d+)?", debVer).group(0))
                 if debVer < 5.0:
                     # Pre-Lenny, may have to use a cacher
-                    apt_cacher = xenrt.TEC().lookup("APT_CACHER", None)
+                    apt_cacher = "%s/debarchive" % xenrt.TEC().lookup("APT_SERVER")
                 if apt_cacher:
                     filebase = "/etc/apt/sources.list"
                     if self.execguest("test -e %s.orig" % (filebase),
@@ -7516,36 +7539,14 @@ class GenericGuest(GenericPlace):
                         if self.execguest("test -e %s" % (filename), retval="code") == 0:
                             self.execguest("rm -f %s" % (filename))
 
-                # Later Debian versions can use the original install
-                # mirror. The preseeder kindly does this for us however
-                # we need some more tweaks.
-                if debVer >= 5.0:
-                    filebase = "/etc/apt/sources.list"
-                    if self.execguest("test -e %s.orig" % (filebase),
-                                      retval="code") != 0:
-                        fn = xenrt.TEC().tempFile()
-                        sftp.copyFrom(filebase, fn)
-                        f = file(fn, "r")
-                        data = f.read()
-                        f.close()
-                        data = string.replace(\
-                            data,
-                            "deb http://security.debian.org",
-                            "#deb http://security.debian.org")
-                        data = string.replace(\
-                            data,
-                            "deb http://volatile.debian.org",
-                            "#deb http://volatile.debian.org")
-
-                        self.execguest("mv %s %s.orig" % (filebase, filebase))
-                        f = file(fn, "w")
-                        f.write(data)
-                        f.close()
-                        sftp.copyTo(fn, filebase)
+                if self.execguest("[ -e /etc/apt/sources.list.d/updates.list ]", retval="code") and int(debVer) in (6, 7) and xenrt.TEC().lookup("APT_SERVER", None):
+                    codename = self.execguest("cat /etc/apt/sources.list | grep '^deb' | awk '{print $3}' | head -1").strip()
+                    self.execguest("echo deb %s/debsecurity %s/updates main >> /etc/apt/sources.list.d/updates.list" % (xenrt.TEC().lookup("APT_SERVER"), codename))
+                    self.execguest("echo deb %s/debian %s-updates main >> /etc/apt/sources.list.d/updates.list" % (xenrt.TEC().lookup("APT_SERVER"), codename))
+                    if int(debVer) in (6,):
+                        self.execguest("echo deb %s/debian %s-lts main >> /etc/apt/sources.list.d/updates.list" % (xenrt.TEC().lookup("APT_SERVER"), codename))
 
                 try:
-                    # The apt-cacher bzip2 files seem to be broken, so force use the gzip packages
-                    self.execguest("apt-get remove -y bzip2")
                     data = self.execguest("apt-get update")
                 except:
                     # If apt-get commands fail, wait a bit and retry.
@@ -7560,6 +7561,12 @@ class GenericGuest(GenericPlace):
                     except Exception, e:
                         xenrt.TEC().logverbose("Exception: %s" % (str(e)))
                     self.execguest("apt-get update")
+
+                preUpgBootDir = self.execguest("find /boot -type f | xargs md5sum")
+                self.execguest("DEBIAN_FRONTEND=noninteractive apt-get -y --force-yes upgrade")
+                postUpgBootDir = self.execguest("find /boot -type f | xargs md5sum")
+                if preUpgBootDir != postUpgBootDir:
+                    self.reboot(skipsniff=True)
 
                 modules = ["DEBIAN_MODULES", "DEBIAN_MODULES2"]
                 if debVer == 4.0:
@@ -7749,6 +7756,10 @@ class GenericGuest(GenericPlace):
                     pass
 
         if not self.windows:
+            xenrt.TEC().logverbose("Guest %s is running kernel %s" % (self.name, self.execguest("uname -r")))
+
+
+        if not self.windows:
             sftp.close()
 
         self.tailored = True
@@ -7849,7 +7860,7 @@ class GenericGuest(GenericPlace):
                       extrapackages=None,
                       options={},
                       start=True):
-        if re.search("sles", distro) or re.search("suse", distro):
+        if re.search("sles|suse|sled", distro):
             self.installSLES(distro,
                              repository,
                              method,
@@ -8239,13 +8250,8 @@ class GenericGuest(GenericPlace):
             else:
                 maindisk="hda"
                 if distro:
-                    if distro.startswith("rhel") and int(distro[4:5]) >= 6:
-                        maindisk="xvda"
-                    if distro.startswith("centos") and int(distro[6:7]) >= 6:
-                        maindisk="xvda"
-                    if distro.startswith("oel") and int(distro[3:4]) >= 6:
-                        maindisk="xvda"
-                    if distro.startswith("sl") and int(distro[2:3]) >= 6:
+                    m = re.match("(rhel|centos|oel|sl)[dw]?(\d)\d*", distro)
+                    if (m and int(m.group(2)) >= 6) or distro.startswith("fedora"):
                         maindisk="xvda"
         else:
             ethDevice = vifname
@@ -8336,7 +8342,7 @@ class GenericGuest(GenericPlace):
             pxecfg.linuxArgsKernelAdd("initrd=%s" %
                                       (pxe.makeBootPath("initrd.img")))
 
-            if distro.startswith("oel7") or distro.startswith("centos7") or distro.startswith("rhel7") or distro.startswith("sl7"):
+            if distro.startswith("oel7") or distro.startswith("centos7") or distro.startswith("rhel7") or distro.startswith("sl7") or distro.startswith("fedora"):
                 pxecfg.linuxArgsKernelAdd("inst.repo=%s" % repository)
                 pxecfg.linuxArgsKernelAdd("console=tty0")
                 pxecfg.linuxArgsKernelAdd("console=hvc0")
@@ -8564,18 +8570,30 @@ class GenericGuest(GenericPlace):
 
             arch = "amd64" if "64" in self.arch else "i386"
             xenrt.TEC().logverbose("distro: %s | repository: %s | filename: %s" % (distro, repository, filename))
-            if re.search("ubuntu", distro):
-                release = re.search("Ubuntu/(\d+)/", repository).group(1)
+            m = re.search("ubuntu(.+)", distro)
+            if m:
+                release = m.group(1)
                 if release == "1004":
                     _url = repository + "/dists/lucid/"
                 elif release == "1204":
                     _url = repository + "/dists/precise/"
                 elif release == "1404":
                     _url = repository + "/dists/trusty/"
+                elif release == "devel":
+                    _url = repository + "/dists/devel/"
                 boot_dir = "main/installer-%s/current/images/netboot/ubuntu-installer/%s/" % (arch, arch)
             else:
-                release = re.search("Debian/(\w+)/", repository).group(1)
-                _url = repository + "/dists/%s/" % (release.lower(), )
+                if distro == "debian50":
+                    release = "lenny"
+                elif distro == "debian60":
+                    release = "squeeze"
+                elif distro == "debian70":
+                    release = "wheezy"
+                elif distro == "debian80":
+                    release = "jessie"
+                elif distro == "debiantesting":
+                    release = "testing"
+                _url = repository + "/dists/%s/" % (release)
                 boot_dir = "main/installer-%s/current/images/netboot/debian-installer/%s/" % (arch, arch)
 
             # Pull boot files from HTTP repository
@@ -9855,60 +9873,19 @@ while True:
         return self.instance
 
     def installPackages(self, packageList):
-        self.enablePublicRepository(doUpdateOnSuccess=False)
-        self.setAptCacheProxy(doUpdateOnSuccess=False)
         packages = " ".join(packageList)
         try:
             if "deb" in self.distro or "ubuntu" in self.distro:
                 self.execguest("apt-get update", level=xenrt.RC_OK)
                 self.execguest("apt-get -y --force-yes install %s" % packages)
-            elif "rhel" in self.distro or "centos" in self.distro or "oel" in self.distro:
+            elif "rhel" in self.distro or "centos" in self.distro or "oel" in self.distro or "fedora" in self.distro:
                 self.execguest("yum install -y %s" % packages)
-            elif "sles" in self.distro:
+            elif re.search("sles|sled", self.distro):
                 self.execguest("zypper -n --non-interactive install %s" % packages)
             else:
                 raise xenrt.XRTError("Not Implemented")
         except Exception, e:
             raise xenrt.XRTError("Failed to install packages '%s' on guest %s : %s" % (packages, self, e))
-        self.disablePublicRepository()
-
-    def enablePublicRepository(self, doUpdateOnSuccess=True):
-        try:
-            if "deb" in self.distro or "ubuntu" in self.distro:
-                self.execguest("cp /etc/apt/sources.list /etc/apt/sources.list.orig -n")
-                repoFile = xenrt.TEC().lookup("XENRT_BASE") + xenrt.TEC().lookup("XENRT_LINUX_REPO_LISTS", "/data/linuxrepolist/") + self.distro
-                repoFileContent = xenrt.command("cat %s" % repoFile)
-                self.execguest("echo '%s' >> /etc/apt/sources.list" % repoFileContent, newlineok=True)
-                if doUpdateOnSuccess:
-                    self.execguest("apt-get update")
-            else:
-                raise xenrt.XRTError("Not Implemented")
-        except Exception, e:
-            xenrt.TEC().warning("Failed to add public Repositories: %s" % e)
-
-    def setAptCacheProxy(self, doUpdateOnSuccess=True):
-        try:
-            aptProxy = None
-            if "deb" in self.distro:
-                aptProxy = xenrt.TEC().lookup("APT_PROXY_DEBIAN", None)
-            elif "ubuntu" in self.distro:
-                aptProxy = xenrt.TEC().lookup("APT_PROXY_UBUNTU", None)
-            if aptProxy:
-                self.execguest("echo 'Acquire::http { Proxy \"http://%s\"; };' > /etc/apt/apt.conf.d/02proxy" % aptProxy)
-                if doUpdateOnSuccess:
-                    self.execguest("apt-get update")
-        except Exception, e:
-            xenrt.TEC().warning("Failed to add apt-cache proxy server: %s" % e)
-
-    def disablePublicRepository(self):
-        try:
-            if "deb" in self.distro or "ubuntu" in self.distro:
-                self.execguest("cat /etc/apt/sources.list.orig > /etc/apt/sources.list")
-                self.execguest("apt-get update")
-            else:
-                raise xenrt.XRTError("Not Implemented")
-        except Exception, e:
-            xenrt.TEC().warning("Failed to reset Repositories: %s" % e)
 
     def xenDesktopTailor(self):
         # Optimizations from CTX125874, excluding Windows crash dump (because we want them) and IE (because we don't use it)

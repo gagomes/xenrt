@@ -1,7 +1,6 @@
 #
 # XenRT Test Makefile
 #
-include build/config.mk
 include build/tools.mk
 
 TESTS	= $(patsubst %,$(SHAREDIR)/%.tgz,$(wildcard tests/*))

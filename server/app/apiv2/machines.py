@@ -90,7 +90,7 @@ class _MachineBase(XenRTAPIv2Page):
             conditions.append("m.machine != ('_' || s.site)")
 
 
-        query = "SELECT m.machine, m.site, m.cluster, m.pool, m.status, m.resources, m.flags, m.comment, m.leaseto, m.leasereason, m.leasefrom, m.leasepolicy, s.flags, m.jobid, m.descr, m.aclid, s.ctrladdr, s.location FROM tblmachines m INNER JOIN tblsites s ON m.site=s.site"
+        query = "SELECT m.machine, m.site, m.cluster, m.pool, m.status, m.resources, m.flags, m.comment, m.leaseto, m.leasereason, m.leasefrom, m.leasepolicy, s.flags, m.jobid, m.descr, m.aclid, s.ctrladdr, s.location, m.prio FROM tblmachines m INNER JOIN tblsites s ON m.site=s.site"
         if conditions:
             query += " WHERE %s" % " AND ".join(conditions)
 
@@ -122,6 +122,7 @@ class _MachineBase(XenRTAPIv2Page):
                 "aclid": rc[15],
                 "ctrladdr": rc[16].strip() if rc[16] else None,
                 "location": rc[17].strip() if rc[17] else None,
+                "prio": rc[18],
                 "params": {}
             }
             machine['leasecurrentuser'] = bool(machine['leaseuser'] and machine['leaseuser'] == self.getUser().userid)
@@ -202,10 +203,31 @@ class _MachineBase(XenRTAPIv2Page):
             raise XenRTAPIError(HTTPForbidden, "Can't update this field")
         if key.lower() in ("status", "jobid") and not allowReservedField:
             raise XenRTAPIError(HTTPForbidden, "Can't update this field")
-        if key.lower() in ("site", "cluster", "pool", "status", "resources", "flags", "descr", "jobid", "leasepolicy", "aclid"):
+        if key.lower() in ("site", "cluster", "pool", "status", "resources", "flags", "descr", "jobid", "leasepolicy", "aclid", "prio"):
             cur = db.cursor()
             try:
                 cur.execute("UPDATE tblmachines SET %s=%%s WHERE machine=%%s;" % (key.lower()), (value, machine))
+                # Check whether the pool has changed, or the status has switched to/from offline 
+                oldpool = machines[machine]['pool']
+                if machines[machine]['rawstatus'] == "offline":
+                    oldpool += "__offline"
+                newpool = oldpool
+                if key.lower() == "pool":
+                    newpool = value
+                    if machines[machine]['rawstatus'] == "offline":
+                        newpool += "__offline"
+                if key.lower() == "status":
+                    newpool = machines[machine]['pool']
+                    if value == "offline":
+                        newpool += "__offline"
+                if newpool != oldpool:
+                    timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))
+                    etype = "PoolChange"
+                    subject = machine
+                    edata = "%s:%s" % (oldpool, newpool)
+                    cur.execute("INSERT INTO tblEvents (ts, etype, subject, edata) "
+                                "VALUES (%s, %s, %s, %s);",
+                                [timenow, etype, subject, edata])
                 if commit:
                     db.commit()
             finally:
@@ -256,13 +278,20 @@ class _MachineBase(XenRTAPIv2Page):
             params = [name, site, pool, cluster, "/".join(["%s=%s" % (x,y) for (x,y) in resources.items()]), description]
 
             cur.execute(query, params)
+            timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))
+            etype = "PoolChange"
+            subject = name
+            edata = "NULL:%s" % (pool)
+            cur.execute("INSERT INTO tblEvents (ts, etype, subject, edata) "
+                        "VALUES (%s, %s, %s, %s);",
+                        [timenow, etype, subject, edata])
 
             if commit:
                 db.commit()
         finally:
             cur.close()
 
-    def lease(self, machine, user, duration, reason, force, commit=True):
+    def lease(self, machine, user, duration, reason, force, besteffort, commit=True):
         leaseFrom = time.strftime("%Y-%m-%d %H:%M:%S",
                                 time.gmtime(time.time()))
         if duration:
@@ -280,7 +309,12 @@ class _MachineBase(XenRTAPIv2Page):
 
         leasePolicy = machines[machine]['leasepolicy']
         if leasePolicy and duration > leasePolicy:
-            raise XenRTAPIError(HTTPUnauthorized, "The policy for this machine only allows leasing for %d hours, please contact QA if you need a longer lease" % leasePolicy, canForce=False)
+            if besteffort:
+                duration = leasePolicy
+                leaseToTime = time.gmtime(time.time() + (duration * 3600))
+                leaseTo = time.strftime("%Y-%m-%d %H:%M:%S", leaseToTime)
+            else:
+                raise XenRTAPIError(HTTPUnauthorized, "The policy for this machine only allows leasing for %d hours, please contact QA if you need a longer lease" % leasePolicy, canForce=False)
         
         leasedTo = machines[machine]['leaseuser']
         if leasedTo and leasedTo != user and not force:
@@ -290,7 +324,7 @@ class _MachineBase(XenRTAPIv2Page):
             raise XenRTAPIError(HTTPNotAcceptable, "Machines is already leased for longer", canForce=True)
 
         if machines[machine]['aclid']:
-            result, reason = self.getACLHelper().check_acl(machines[machine]['aclid'], user, 1, duration)
+            result, reason = self.getACLHelper().check_acl(machines[machine]['aclid'], user, [machine], duration, besteffort=besteffort)
             if not result:
                 raise XenRTAPIError(HTTPUnauthorized, "ACL: %s" % reason, canForce=False)
 
@@ -482,13 +516,17 @@ class LeaseMachine(_MachineBase):
                 "force": {
                     "type": "boolean",
                     "description": "Whether to force lease if another use has the machine leased",
+                    "default": False},
+                "besteffort": {
+                    "type": "boolean",
+                    "description": "Borrow for as long as long as policy allows, don't fail if can't be borrowed",
                     "default": False}
                 }
             }
         }
     RESPONSES = { "200": {"description": "Successful response"}}
     OPERATION_ID = "lease_machine"
-    PARAM_ORDER = ['name', 'duration', 'reason', 'force']
+    PARAM_ORDER = ['name', 'duration', 'reason', 'force', 'besteffort']
 
     def render(self):
         try: 
@@ -496,7 +534,13 @@ class LeaseMachine(_MachineBase):
             jsonschema.validate(params, self.DEFINITIONS['lease'])
         except Exception, e:
             raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
-        self.lease(self.request.matchdict['name'], self.getUser().userid, params['duration'], params['reason'], params.get('force', False))
+        try:
+            self.lease(self.request.matchdict['name'], self.getUser().userid, params['duration'], params['reason'], params.get('force', False), params.get('besteffort', False))
+        except:
+            if params.get('besteffort', False):
+                return {}
+            else:
+                raise
         return {}
         
 class ReturnMachine(_MachineBase):
@@ -598,11 +642,15 @@ class UpdateMachine(_MachineBase):
             "resources": {
                 "type": "object",
                 "description": "Key-value pair resource:value of resources to update. (set value to null to remove a resource)"
+            },
+            "prio": {
+                "type": ["integer", "null"],
+                "description": "Machine priority. Default is 3. E.g. a priority of 4 means that this machine will be only be selected by the scheduler if no machines with priority 3 are available"
             }
         }
     }}
     OPERATION_ID = "update_machine"
-    PARAM_ORDER=["name", "params", "broken", "status", "resources", "addflags", "delflags"]
+    PARAM_ORDER=["name", "params", "broken", "status", "resources", "addflags", "delflags", "prio"]
     SUMMARY = "Update machine details"
 
     def render(self):
@@ -618,6 +666,8 @@ class UpdateMachine(_MachineBase):
                 self.updateMachineField(machine, p, j['params'][p], commit=False)
         if j.get('status'):
             self.updateMachineField(machine, "status", j['status'], allowReservedField=True, commit=False)
+        if "prio" in j:
+            self.updateMachineField(machine, "prio", j['prio'], commit=False)
         if "broken" in j:
 
             pool = machines[machine]['pool']

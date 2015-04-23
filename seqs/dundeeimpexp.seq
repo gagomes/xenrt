@@ -25,6 +25,7 @@
     <testcase id="xenserver.tc.impexp.TC19933" prio="3"/>
     <testcase id="xenserver.tc.impexp.TC19934" prio="3"/>
     <testcase id="xenserver.tc.impexp.TC19935" prio="3"/>
+    <testcase id="xenserver.tc.impexp.TC26943" prio="3"/>
   </testsequence>
 
 </xenrt>

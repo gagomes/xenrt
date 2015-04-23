@@ -364,7 +364,7 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
         
         hasAdvancedNet = False
         self.handleSRs(node, host['name'])
-        self.handleBridges(node, host)
+        self.handleBridges(node, host['name'])
 
         for x in node.get("vms", []):
             vm = self.handleVMNode(x)
@@ -463,7 +463,7 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
         if "boot_params" in node:
             vm['bootparams'] = node['boot_params']
         
-        if xenrt.TEC().lookup("DEFAULT_PV_DRIVERS", False, boolean=True) and not "installDrivers" in vm['postinstall']:
+        if xenrt.TEC().lookup("DEFAULT_PV_DRIVERS", False, boolean=True) and not "installDrivers" in vm['postinstall'] and not 'filename' in vm:
             vm["postinstall"].append("installDrivers")
 
         if template and not "convertToTemplate" in vm['postinstall']:
@@ -793,7 +793,7 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
                     name = self.expand(x.getAttribute("name"))
                     self.parent.bridges.append({"type":type, 
                                          "name":name, 
-                                         "host":host})
+                                         "host":host['name']})
                 elif x.localName == "vm":
                     vm = self.handleVMNode(x)
                     vm["host"] = host["name"] 
@@ -916,7 +916,7 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
                         if a.nodeType == a.TEXT_NODE:
                             vm["packages"] = self.expand(str(a.data)).split(",")
 
-        if xenrt.TEC().lookup("DEFAULT_PV_DRIVERS", False, boolean=True) and not "installDrivers" in vm['postinstall']:
+        if xenrt.TEC().lookup("DEFAULT_PV_DRIVERS", False, boolean=True) and not "installDrivers" in vm['postinstall'] and not 'filename' in vm:
             vm["postinstall"].append("installDrivers")
 
         if template and not "convertToTemplate" in vm['postinstall']:
@@ -1000,6 +1000,30 @@ class PrepareNode(object):
                 hostNode.setAttribute("id", c)
                 preprepareNode.appendChild(hostNode)
             self.toplevel.preprepare = PrepareNode(self.toplevel, preprepareNode, params)
+
+    def chooseISOSRType(self, host, sr):
+        # Check what the SR supports
+        if not sr.get("cifspath"):
+            return "nfs"
+        if not sr.get("nfspath"):
+            return "cifs"
+        
+        # Check what the host supports
+        lib = xenrt.productLib(host=host)
+        if not hasattr(lib, "CIFSISOStorageRepository"):
+            return "nfs"
+        if not hasattr(lib, "ISOStorageRepository"):
+            return "cifs"
+
+        # Both the SR and the host can do CIFS and NFS. So now check whether we've selected one in this job
+        with xenrt.GEC().getLock("ISO_SR_TYPE"):
+            ret = xenrt.TEC().lookup("ISO_SR_TYPE", None)
+            if not ret:
+                ret = random.choice(("cifs", "nfs"))
+                xenrt.GEC().config.setVariable("ISO_SR_TYPE", ret)
+                xenrt.GEC().dbconnect.jobUpdate("ISO_SR_TYPE",ret)
+            return ret
+
 
     def debugDisplay(self):
         xenrt.TEC().logverbose("Hosts:\n" + pprint.pformat(self.hosts))
@@ -1130,7 +1154,7 @@ class PrepareNode(object):
 
                 # Create network bridges.
                 for b in self.bridges:
-                    host = xenrt.TEC().registry.hostGet(b["host"]["name"]) 
+                    host = xenrt.TEC().registry.hostGet(b["host"]) 
                     host.createNetwork(b["name"])
 
                 # Add ISO SRs to pool masters and independent hosts.
@@ -1142,7 +1166,8 @@ class PrepareNode(object):
                             self.srs.insert(0, {"host":host["name"], 
                                                 "name":"XenRT ISOs",
                                                 "type":"iso",
-                                                "path":xenrt.TEC().lookup("EXPORT_ISO_NFS"),
+                                                "nfspath":xenrt.TEC().lookup("EXPORT_ISO_NFS"),
+                                                "cifspath": xenrt.TEC().lookup("EXPORT_ISO_CIFS", None),
                                                 "default":False,
                                                 "blkbackPoolSize":""})
                             isos2 = xenrt.TEC().lookup("EXPORT_ISO_NFS_STATIC", None)
@@ -1150,7 +1175,8 @@ class PrepareNode(object):
                                 self.srs.insert(0, {"host":host["name"],
                                                     "name":"XenRT static ISOs",
                                                     "type":"iso",
-                                                    "path":isos2,
+                                                    "nfspath":isos2,
+                                                    "cifspath": xenrt.TEC().lookup("EXPORT_ISO_CIFS_STATIC", None),
                                                     "default":False,
                                                     "blkbackPoolSize":""})
                             if xenrt.TEC().lookup("USE_PREBUILT_TEMPLATES", False, boolean=True):
@@ -1253,20 +1279,35 @@ class PrepareNode(object):
                             sr.create(server, path, nosubdir=nosubdir)
                     elif s["type"] == "smb":
                         vm = s["options"] and "vm" in s["options"].split(",")
+                        cifsuser = s["options"] and "cifsuser" in s["options"].split(",")
                         hostIndexes = [(y.group(1), y.group(3)) for y in [re.match("host-(\d)(-([a-z]))?", x) for x in s['options'].split(",")] if y]
                         if hostIndexes:
                             (hostIndex, driveLetter) = hostIndexes[0]
                             share = xenrt.NativeWindowsSMBShare("RESOURCE_HOST_%s" % hostIndex, driveLetter=driveLetter)
                         elif vm:
                             share = xenrt.VMSMBShare()
+                        elif cifsuser:
+                            share = xenrt.ExternalSMBShare(version=3, cifsuser="cifsuser")
                         else:
                             share = xenrt.ExternalSMBShare(version=3)
                         sr = xenrt.productLib(host=host).SMBStorageRepository(host, s["name"])
-                        sr.create(share)
+                        if cifsuser:
+                            sr.create(share, "cifsuser")
+                        else:
+                            sr.create(share)
                     elif s["type"] == "iso":
-                        sr = xenrt.productLib(host=host).ISOStorageRepository(host, s["name"])
-                        server, path = s["path"].split(":")
-                        sr.create(server, path)
+                        srtype = self.chooseISOSRType(host, s)
+                        if srtype == "nfs":
+                            sr = xenrt.productLib(host=host).ISOStorageRepository(host, s["name"])
+                            server, path = s["nfspath"].split(":")
+                            sr.create(server, path)
+                        elif srtype == "cifs":
+                            sr = xenrt.productLib(host=host).CIFSISOStorageRepository(host, s["name"])
+                            (username, password, path) = s["cifspath"].split(":")
+                            m = re.match("\\\\\\\\(.+?)\\\\(.+)", path)
+                            server = m.group(1)
+                            share = m.group(2)
+                            sr.create(server, share, username=username, password=password)
                         sr.scan()
                     elif s['type'] == "nfstemplate":
                         try:

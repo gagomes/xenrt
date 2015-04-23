@@ -6,7 +6,7 @@
     <PRODUCT_VERSION>Cream</PRODUCT_VERSION>
   </variables>
 
-  <default name="PARALLEL" value="4" />
+  <default name="PARALLEL" value="2" />
   <default name="MIGRATEPAR" value="1" />
 
   <semaphores>
@@ -40,18 +40,15 @@
             </testcase>
             <testcase id="guestops.srm.TCSuspendResume" sku="${D}" tc="TC-26921">
               <arg>guest=${D}</arg>
-              <arg>workloads</arg>
               <arg>loops=20</arg>
             </testcase>
             <testcase id="guestops.srm.TCMigrate" sku="${D}" tc="TC-26922">
               <arg>guest=${D}</arg>
-              <arg>workloads</arg>
               <arg>loops=10</arg>
             </testcase>
             <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" sku="${D}" tc="TC-26923">
               <arg>guest=${D}</arg>
               <arg>live</arg>
-              <arg>workloads</arg>
               <arg>loops=20</arg>
             </testcase>
             <testcase id="xenserver.storage.TCMultipleVDI" sku="${D}" tc="TC-26924">

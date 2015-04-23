@@ -27,6 +27,9 @@ class _TCSmokeTest(xenrt.TestCase):
 
         self.host = self.getDefaultHost()
         if self.DISTRO:
+            # Workaroun CA-165205
+            if self.DISTRO == "generic-linux" and self.host.lookup("GENERIC_LINUX_OS") in ("etch", "debian60"):
+                self.DISTRO = "rhel5x"
             (self.distro, self.arch) = xenrt.getDistroAndArch(self.DISTRO)
         elif self.tcsku.endswith("_XenApp"):
             distroarch = self.tcsku.replace("_XenApp", "")
@@ -66,15 +69,14 @@ class _TCSmokeTest(xenrt.TestCase):
     def getTemplateParams(self):
         if self.template:
             tname = self.template
+            tuuid = self.host.minimalList("template-list", args="name-label='%s'" % tname)[0]
+
+            defMemory = int(self.host.genParamGet("template", tuuid, "memory-static-max"))/xenrt.MEGA
+            defVCPUs = int(self.host.genParamGet("template", tuuid, "VCPUs-max"))
+
+            return collections.namedtuple("TemplateParams", ["defaultMemory", "defaultVCPUs"])(defMemory, defVCPUs)
         else:
-            tname = self.host.getTemplate(distro=self.installDistro, arch=self.arch)
-
-        tuuid = self.host.minimalList("template-list", args="name-label='%s'" % tname)[0]
-
-        defMemory = int(self.host.genParamGet("template", tuuid, "memory-static-max"))/xenrt.MEGA
-        defVCPUs = int(self.host.genParamGet("template", tuuid, "VCPUs-max"))
-
-        return collections.namedtuple("TemplateParams", ["defaultMemory", "defaultVCPUs"])(defMemory, defVCPUs)
+            return self.host.getTemplateParams(self.installDistro, self.arch)
 
     def getGuestLimits(self):
         return xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.installDistro])
@@ -201,6 +203,8 @@ class TCSmokeTestTemplateDefaults(_TCSmokeTest):
     def getDefaultJiraTC(self):
         if xenrt.isWindows(self.tcsku):
             return "TC-26871"
+        elif xenrt.isDevLinux(self.tcsku):
+            return "TC-26955"
         else:
             return "TC-26870"
 
@@ -209,6 +213,8 @@ class TCSmokeTestShadowPT(TCSmokeTestTemplateDefaults):
     def getDefaultJiraTC(self):
         if xenrt.isWindows(self.tcsku):
             return "TC-26872"
+        elif xenrt.isDevLinux(self.tcsku):
+            return "TC-26956"
         else:
             return "TC-26873"
 
@@ -221,6 +227,8 @@ class TCSmokeTestIntelEPT(TCSmokeTestTemplateDefaults):
     def getDefaultJiraTC(self):
         if xenrt.isWindows(self.tcsku):
             return "TC-26874"
+        elif xenrt.isDevLinux(self.tcsku):
+            return "TC-26957"
         else:
             return "TC-26875"
 
@@ -235,6 +243,8 @@ class TCSmokeTestAMDNPT(TCSmokeTestTemplateDefaults):
     def getDefaultJiraTC(self):
         if xenrt.isWindows(self.tcsku):
             return "TC-26876"
+        elif xenrt.isDevLinux(self.tcsku):
+            return "TC-26958"
         else:
             return "TC-26877"
 
@@ -250,6 +260,8 @@ class TCSmokeTest1VCPU(_TCSmokeTest):
     def getDefaultJiraTC(self):
         if xenrt.isWindows(self.tcsku):
             return "TC-26878"
+        elif xenrt.isDevLinux(self.tcsku):
+            return "TC-26959"
         else:
             return "TC-26879"
 
@@ -261,6 +273,8 @@ class TCSmokeTest2VCPUs(_TCSmokeTest):
     def getDefaultJiraTC(self):
         if xenrt.isWindows(self.tcsku):
             return "TC-26880"
+        elif xenrt.isDevLinux(self.tcsku):
+            return "TC-26960"
         else:
             return "TC-26881"
 
@@ -276,6 +290,8 @@ class TCSmokeTestMaxMem(_TCSmokeTest):
     def getDefaultJiraTC(self):
         if xenrt.isWindows(self.tcsku):
             return "TC-26882"
+        elif xenrt.isDevLinux(self.tcsku):
+            return "TC-26961"
         else:
             return "TC-26883"
 
@@ -289,8 +305,10 @@ class TCSmokeTestMaxMem(_TCSmokeTest):
 
         if self.arch == "x86-32":
             guestMaxMem = int(glimits['MAXMEMORY'])
-        else:
+        elif glimits.has_key("MAXMEMORY"):
             guestMaxMem = int(glimits.get("MAXMEMORY64", glimits['MAXMEMORY']))
+        else:
+            guestMaxMem = int(glimits['MAXMEMORY64'])
 
         self.memory = min(guestMaxMem, hostMaxMem)
 
@@ -300,6 +318,8 @@ class TCSmokeTestMaxvCPUs(_TCSmokeTest):
     def getDefaultJiraTC(self):
         if xenrt.isWindows(self.tcsku):
             return "TC-26884"
+        elif xenrt.isDevLinux(self.tcsku):
+            return "TC-26962"
         else:
             return "TC-26885"
 
@@ -333,6 +353,8 @@ class TCSmokeTestMinConfig(_TCSmokeTest):
     def getDefaultJiraTC(self):
         if xenrt.isWindows(self.tcsku):
             return "TC-26886"
+        elif xenrt.isDevLinux(self.tcsku):
+            return "TC-26963"
         else:
             return "TC-26887"
 

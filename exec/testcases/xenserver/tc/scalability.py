@@ -666,7 +666,7 @@ class TC19270(_VMScalability):
     CHECKHEALTH=True
     TRYMAX = True
     NET_BRIDGE = False
-    #DOM0MEM = 8192
+    DOM0MEM = 8192
     MEMORY=128
     ARCH = "x86-64"
     #DOM0CPUS = False
@@ -1232,7 +1232,10 @@ class TC8237(xenrt.TestCase):
         vg = self.host.execdom0("vgs --noheadings -o vg_name").strip()
         if not re.search(self.sruuid, vg):
             raise xenrt.XRTError("Failure parsing volume group id. (%s)" % (vg))
-        self.host.execdom0("vgchange -an --master %s" % (vg))
+        if isinstance(self.host, xenrt.lib.xenserver.DundeeHost):
+            self.host.execdom0("export LVM_SYSTEM_DIR='/etc/lvm/master'; vgchange -an %s" % (vg))
+        else:
+            self.host.execdom0("vgchange -an --master %s" % (vg))
         time.sleep(self.timeout)
         xenrt.TEC().logverbose("Checking if xapi has died...")
         try:
@@ -3156,4 +3159,11 @@ class TC21482(_VBDScalability):
 
     SR = "nfs"
     MAX = True
+    VALIDATE = True
+
+class TC26977(_VDIScalability):
+    """Verify the supported maximum number of VDIs per SR can be created and attached (CIFS)"""
+    SR = "cifs"
+    MAX = True
+    CONCURRENT = True
     VALIDATE = True

@@ -1,0 +1,15 @@
+<xenrt>
+
+  <!-- Dundee - license test using a sigle host -->
+
+  <variables>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+    <OPTION_AD_ENABLE>yes</OPTION_AD_ENABLE>
+  </variables>
+
+  <prepare>
+    <host id="0" license="no" usev6testd="no" />
+  </prepare>
+</xenrt>

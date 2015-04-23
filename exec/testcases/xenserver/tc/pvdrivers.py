@@ -75,7 +75,10 @@ class TC8369(xenrt.TestCase):
                     stexe = "signtool_x64.exe"
                 else:
                     stexe = "signtool_x86.exe"
-                self.guest.xmlrpcExec("c:\\signtool\\%s verify /kp /v \"%s\"" % (stexe, d), returndata=True)
+                data = self.guest.xmlrpcExec("c:\\signtool\\%s verify /kp /v \"%s\"" % (stexe, d), returndata=True)
+                if not "Citrix Systems, Inc." in data:
+                    xenrt.TEC().logverbose("Didn't find 'Citrix Systems, Inc.' in signtool output - marking as incorrectly signed")
+                    signFailures.append(d)
             except:
                 signFailures.append(d)
 
@@ -1225,11 +1228,16 @@ class TCTestDriverUpgrade(xenrt.TestCase):
             guest.installDrivers()
         except xenrt.XRTFailure, e:
             if e.reason.startswith("VIF and/or VBD PV device not used") and xenrt.TEC().lookup("WORKAROUND_CA159586", False, boolean=True):
-                # The VM may just need an extra reboot or two
-                try:
-                    guest.reboot()
-                except:
-                    guest.reboot()
+                # The VM may need some extra reboots
+                failCount = 1
+                while True:
+                    try:
+                        guest.reboot()
+                        break
+                    except:
+                        failCount += 1
+                        if failCount >= 5:
+                            raise
                 guest.checkPVDevices()
             else:
                 raise

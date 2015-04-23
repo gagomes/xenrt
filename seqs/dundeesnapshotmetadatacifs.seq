@@ -1,0 +1,22 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+  </variables>
+
+  <prepare>
+    <host>
+      <storage type="smb" name="cifssr" options="vm" default="true"/>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="SnapshotMetaTests">
+      <testcase id="xenserver.tc.snapshot.TC21699" name="TC21699.WithCIFs" sku="WithCIFs">
+        <arg>xapisrtype=cifs</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+
+</xenrt>

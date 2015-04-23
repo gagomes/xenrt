@@ -10,7 +10,7 @@
 
 
 import sys, string, os.path, glob, time, re, math, random, shutil, os, stat, datetime
-import traceback, threading, types
+import traceback, threading, types, collections
 import xml.dom.minidom, libxml2
 import tarfile
 import IPy
@@ -1302,7 +1302,8 @@ ln -s %s opt/xensource/sm/%s
 """ % (srfile, srtarget, srfile, srtarget, srfile)
 
         v6hack = ""
-        mockd = xenrt.TEC().getFile(self.V6MOCKD_LOCATION)
+        v6mockdloc = xenrt.TEC().lookup("V6MOCKD_LOCATION", self.V6MOCKD_LOCATION)
+        mockd = xenrt.TEC().getFile(v6mockdloc)
         if upgrade and not mockd:
             # Set up a temporary WWW directory to hold the v6testd
             v6webdir = xenrt.WebDirectory()
@@ -2504,6 +2505,9 @@ fi
             self.execdom0(self.swizzleSymlinksToUseNonDebugXen(pathprefix="/"))
             self.reboot()
             self.assertNotRunningDebugXen()
+
+        # Update our product version in case the hotfix has changed it
+        self.checkVersion()
 
         return reply
 
@@ -3737,8 +3741,12 @@ fi
                         sftp.copyTo(f, "/opt/xensource/libexec/v6d")
                         sftp.close()
                     else:
-                        # get the "universal" v6testd from XenRT scripts directory
-                        self.execdom0("cp -f %s/utils/v6testd /opt/xensource/libexec/v6d" % (xenrt.TEC().lookup("REMOTE_SCRIPTDIR")))
+                        # We're at least Boston, so the best thing to do is to use the .patchorig
+                        if isinstance(self, xenrt.lib.xenserver.BostonHost):
+                            self.execdom0("cp -f /opt/xensource/libexec/v6d.patchorig /opt/xensource/libexec/v6d")
+                        else:
+                            # get the "universal" v6testd from XenRT scripts directory
+                            self.execdom0("cp -f %s/utils/v6testd /opt/xensource/libexec/v6d" % (xenrt.TEC().lookup("REMOTE_SCRIPTDIR")))
                     self.execdom0("service v6d restart")
             
         if applyGuidance:
@@ -6479,17 +6487,17 @@ fi
                     template = self.chooseTemplate("TEMPLATE_NAME_WIN10")
             elif re.search("ws12", distro) and re.search("x64", distro):
                 template = self.chooseTemplate("TEMPLATE_NAME_WS12_64")
-            elif re.search("debian\d+", distro):
+            elif re.search("debian.+", distro):
                 if hvm:
                     template = self.chooseTemplate("TEMPLATE_OTHER_MEDIA")
                 else:
-                    r = re.search("debian(\d+)", distro)
+                    r = re.search("debian(.+)", distro)
                     if arch and arch == "x86-64":
                         template = self.chooseTemplate("TEMPLATE_NAME_DEBIAN_%s_64" %
-                                                   (r.group(1)))
+                                                   (r.group(1).upper()))
                     else:
                         template = self.chooseTemplate("TEMPLATE_NAME_DEBIAN_%s" %
-                                               (r.group(1)))
+                                               (r.group(1).upper()))
             elif re.search("debian", distro):
                 template = self.chooseTemplate("TEMPLATE_NAME_DEBIAN")
             elif re.search("sarge", distro):
@@ -6512,11 +6520,17 @@ fi
                     template = self.chooseTemplate("TEMPLATE_NAME_RHEL_6_64")
                 else:
                     template = self.chooseTemplate("TEMPLATE_NAME_RHEL_6")
+            elif re.search(r"rhelw66", distro):
+                template = self.chooseTemplate("TEMPLATE_NAME_RHEL_w66_64")
+            elif re.search(r"rheld66",distro):
+                template = self.chooseTemplate("TEMPLATE_NAME_RHEL_d66_64")
             elif re.search(r"rhel7", distro):
                 template = self.chooseTemplate("TEMPLATE_NAME_RHEL_7_64")
             elif re.search(r"rhel4", distro):
                 v = re.search(r"rhel(\d+)", distro).group(1)
                 template = self.chooseTemplate("TEMPLATE_NAME_RHEL_%s" % (v))
+            elif re.search(r"fedora", distro):
+                template = self.chooseTemplate("TEMPLATE_NAME_FEDORA")
             elif re.search(r"oel5", distro):
                 if hvm:
                     template = self.chooseTemplate("TEMPLATE_OTHER_MEDIA")
@@ -6569,8 +6583,15 @@ fi
                         template = self.chooseTemplate(\
                             "TEMPLATE_NAME_SLES_%s_64" % (v))
                     else:
-                        template = self.chooseTemplate("TEMPLATE_NAME_SLES_%s"
-                                                       % (v))
+                        template = self.chooseTemplate(\
+						    "TEMPLATE_NAME_SLES_%s" % (v))
+            elif re.search(r"sled\d+", distro):
+                v = re.search(r"sled(\d+)", distro).group(1)
+                if arch and arch == "x86-64":
+                    template = self.chooseTemplate(\
+                            "TEMPLATE_NAME_SLED_%s_64" % (v))
+                else:
+                    template = self.chooseTemplate("TEMPLATE_NAME_SLED_%s" % (v))
             elif re.search(r"sl7", distro):
                 template = self.chooseTemplate("TEMPLATE_NAME_SL_7_64")
             elif re.search(r"sl\d+",distro):
@@ -6584,7 +6605,6 @@ fi
                     else:
                         template = self.chooseTemplate("TEMPLATE_NAME_SL_%s"
                                                        % (v))
-
             elif re.search("solaris10u9-32", distro):
                 template = self.chooseTemplate("TEMPLATE_NAME_SOLARIS_10U9_32")
             elif re.search("solaris10u9", distro):
@@ -6604,6 +6624,8 @@ fi
                         template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_1204")
             elif re.search("ubuntu1404", distro):
                 template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_1404")
+            elif re.search("ubuntudevel", distro):
+                template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_DEVEL")
             elif re.search("coreos-", distro):
                 template = self.chooseTemplate("TEMPLATE_NAME_COREOS")
             elif re.search(r"other", distro):
@@ -6624,6 +6646,22 @@ fi
                 raise e
 
         return template
+
+    def getTemplateParams(self, distro, arch):
+        try:
+            tname = self.getTemplate(distro=distro, arch=arch)
+        except:
+            xenrt.TEC().warning("Couldn't find template for %s %s" % (distro, arch))
+
+        if tname:
+            tuuid = self.minimalList("template-list", args="name-label='%s'" % tname)[0]
+            defMemory = int(self.genParamGet("template", tuuid, "memory-static-max"))/xenrt.MEGA
+            defVCPUs = int(self.genParamGet("template", tuuid, "VCPUs-max"))
+        else:
+            defMemory = None
+            defVCPUs = None
+
+        return collections.namedtuple("TemplateParams", ["defaultMemory", "defaultVCPUs"])(defMemory, defVCPUs)
         
     def isEnabled(self):
         """Return True if this host is enabled as far as xapi is concerned."""
@@ -7626,7 +7664,10 @@ rm -f /etc/xensource/xhad.conf || true
                       getreply=False)
 
         # Remove any NFS blocks
-        self.execdom0("rm -f /etc/rc3.d/S09blocknfs || true")
+        if self.isCentOS7Dom0():
+            self.execdom0("chkconfig --del blocknfs || true")
+        else:
+            self.execdom0("rm -f /etc/rc3.d/S09blocknfs || true")
 
         # Do the normal reset procedure
         try:
@@ -8197,14 +8238,15 @@ rm -f /etc/xensource/xhad.conf || true
         return "HVM: Hardware Assisted Paging detected and enabled." in dmesg or "HVM: Hardware Assisted Paging (HAP) detected" in dmesg
 
     def resolveDistroName(self, distro):
+        origDistro = distro
         special = {}
 
-        m = re.match("^(oel|sl|rhel|centos)(\d)x$", distro)
+        m = re.match("^(oel[dw]?|sl[dw]?|rhel[dw]?|centos[dw]?)(\d)x$", distro)
         if m:
             # Fall back to RHEL if we don't have derivatives defined
             distro = self.lookup("LATEST_%s%s" % (m.group(1), m.group(2)),
                         self.lookup("LATEST_rhel%s" % m.group(2)).replace("rhel", m.group(1)))
-        m = re.match("^(oel|sl|rhel|centos)(\d)u$", distro)
+        m = re.match("^(oel[dw]?|sl[dw]?|rhel[dw]?|centos[dw]?)(\d)u$", distro)
         if m:
             # Fall back to RHEL if we don't have derivatives defined
             distro = self.lookup("LATEST_%s%s" % (m.group(1), m.group(2)),
@@ -8220,13 +8262,22 @@ rm -f /etc/xensource/xhad.conf || true
                 else:
                     special['UpdateTo'] = None
         
-        m = re.match("^(oel|sl|rhel|centos)(\d)xs$", distro)
+        m = re.match("^(oel[dw]?|sl[dw]?|rhel[dw]?|centos[dw]?)(\d+)xs$", distro)
         if m:
             distro = "%s%s" % (m.group(1), m.group(2))
             special['XSKernel'] = True
-
+        xenrt.TEC().logverbose("Resolved %s to %s with %s (host is %s)" % (origDistro, distro, special, self.productVersion))
         return (distro, special)
 
+    def getDeploymentRecord(self):
+        ret = super(Host, self).getDeploymentRecord()
+        ret['srs'] = []
+        for s in [x for x in self.parameterList("sr-list", params=["type", "uuid", "name-label"]) if x['type'] not in ("iso", "udev")]:
+            ret['srs'].append({
+                "type": s['type'],
+                "uuid": s['uuid'],
+                "name": s['name-label']})
+        return ret
 
 #############################################################################
 
@@ -9591,6 +9642,25 @@ class BostonHost(MNRHost):
             bridge = None
             device = None
         return (bridge, device)
+        
+    def enableVirtualFunctions(self):
+
+        out = self.execdom0("grep -v '^#' /etc/modprobe.d/ixgbe 2> /dev/null; echo -n ''").strip()
+        if len(out) > 0:
+            return
+
+        numPFs = int(self.execdom0('lspci | grep 82599 | wc -l').strip())
+        #we check ixgbe version so as to understand netsclaer VPX specific - NS drivers: in which case, configuration differs slightly. 
+        ixgbe_version = self.execdom0("modinfo ixgbe | grep 'version:        '") 
+        if numPFs > 0:
+            if (re.search("NS", ixgbe_version.split()[1])):
+                maxVFs = "63" + (",63" * (numPFs - 1))
+            else:
+                maxVFs = "40"
+            self.execdom0('echo "options ixgbe max_vfs=%s" > "/etc/modprobe.d/ixgbe"' % (maxVFs))
+
+            self.reboot()
+            self.waitForSSH(300, desc="host reboot after enabling virtual functions")
 
     def createNetworkTopology(self, topology):
         """Create the topology specified by XML on this host. Takes either
@@ -10759,25 +10829,7 @@ class TampaHost(BostonHost):
     def getQemuDMWrapper(self):
         return "/opt/xensource/libexec/qemu-dm-wrapper"
 
-    def enableVirtualFunctions(self):
-
-        out = self.execdom0("grep -v '^#' /etc/modprobe.d/ixgbe 2> /dev/null; echo -n ''").strip()
-        if len(out) > 0:
-            return
-
-        numPFs = int(self.execdom0('lspci | grep 82599 | wc -l').strip())
-        #we check ixgbe version so as to understand netsclaer VPX specific - NS drivers: in which case, configuration differs slightly. 
-        ixgbe_version = self.execdom0("modinfo ixgbe | grep 'version:        '") 
-        if numPFs > 0:
-            if (re.search("NS", ixgbe_version.split()[1])):
-                maxVFs = "63" + (",63" * (numPFs - 1))
-            else:
-                maxVFs = "40"
-            self.execdom0('echo "options ixgbe max_vfs=%s" > "/etc/modprobe.d/ixgbe"' % (maxVFs))
-
-            self.reboot()
-            self.waitForSSH(300, desc="host reboot after enabling virtual functions")
-
+    
     def validLicenses(self, xenserverOnly=False):
         """
         Get a license object which contains the details of a license settings
@@ -10845,12 +10897,13 @@ class ClearwaterHost(TampaHost):
 
         cli.execute("host-apply-edition", string.join(args))
 
-        self.checkHostLicenseState(edition , licensed)
+        self.checkHostLicenseState(edition , licensed, checkFeatures=False)
   
     def installMockLicenseD(self):
 
         filename = "mockd.rpm"
-        mockd = xenrt.TEC().getFile(self.V6MOCKD_LOCATION)
+        v6mockdloc = xenrt.TEC().lookup("V6MOCKD_LOCATION", self.V6MOCKD_LOCATION)
+        mockd = xenrt.TEC().getFile(v6mockdloc)
 
         try:
             xenrt.checkFileExists(mockd)
@@ -10904,7 +10957,7 @@ class ClearwaterHost(TampaHost):
 
         self.installv6dRPM()
  
-    def checkHostLicenseState(self, edition, licensed = False):
+    def checkHostLicenseState(self, edition, licensed = False, checkFeatures=True):
 
         details = self.getLicenseDetails()
 
@@ -10913,15 +10966,17 @@ class ClearwaterHost(TampaHost):
         if not (edition == details["edition"]):
             raise xenrt.XRTFailure("Host %s is not licensed with %s. Is has got edition %s" % (self.getName() , edition , details["edition"]))
 
-        if not details.has_key("restrict_hotfix_apply"):
-            raise xenrt.XRTFailure("Host %s does not have restrict_hotfix_apply" % (self.getName()))
+        if checkFeatures:
 
-        if edition == "free" or licensed == False:
-            if details["restrict_hotfix_apply"] == "false":
-                raise xenrt.XRTFailure("Hotfix can be applied through Xencenter when host %s is not licensed" % (self.getName()))
-        elif licensed == True:
-            if details["restrict_hotfix_apply"] == "True":
-                raise xenrt.XRTFailure("Hotfix cannot be applied through Xencenter when host %s is licensed" % (self.getName()))
+            if not details.has_key("restrict_hotfix_apply"):
+                raise xenrt.XRTFailure("Host %s does not have restrict_hotfix_apply" % (self.getName()))
+    
+            if edition == "free" or licensed == False:
+                if details["restrict_hotfix_apply"] == "false":
+                    raise xenrt.XRTFailure("Hotfix can be applied through Xencenter when host %s is not licensed" % (self.getName()))
+            elif licensed == True:
+                if details["restrict_hotfix_apply"] == "True":
+                    raise xenrt.XRTFailure("Hotfix cannot be applied through Xencenter when host %s is licensed" % (self.getName()))
                 
     def checkSkuMarketingName(self):
 
@@ -12202,12 +12257,11 @@ class DummyStorageRepository(StorageRepository):
         self._create("dummy", {}, physical_size=size)
 
 class CIFSISOStorageRepository(StorageRepository):
-
     def create(self,
                server,
                share,
-               type,
-               content_type="",
+               type="iso",
+               content_type="iso",
                username="Administrator",
                password=None,
                use_secret=False):
@@ -12227,6 +12281,7 @@ class CIFSISOStorageRepository(StorageRepository):
         args.append("type=%s" % (type))
         args.append("content-type=%s" % (content_type))
         args.append("host-uuid=%s" % (self.host.getMyHostUUID()))
+        args.append("shared=true")
         self.uuid = cli.execute("sr-create", string.join(args), strip=True)
         
     def check(self):
@@ -12436,20 +12491,21 @@ class SMBStorageRepository(StorageRepository):
 
     SHARED = True
 
-    def create(self, share=None):
+    def create(self, share=None, cifsuser=None):
         if not share:
-            share = xenrt.ExternalSMBShare(version=3)
+            share = xenrt.ExternalSMBShare(version=3, cifsuser=cifsuser)
 
         dconf = {}
         smconf = {}
-        dconf["server"] = share.getLinuxUNCPath() 
-        if share.domain:
-            dconf['username'] = "%s\\\\%s" % (share.domain, share.user)
-        else:
-            dconf['username'] = share.user
+        dconf["server"] = share.getLinuxUNCPath()
+
+        # CLI is not accepting the domain name at present. (1036047)
+        #if share.domain:
+        #    dconf['username'] = "%s\\\\%s" % (share.domain, share.user)
+        #else:
+        dconf['username'] = share.user
         dconf['password'] = share.password
-        self._create("cifs",
-                     dconf)
+        self._create("cifs", dconf)
 
     def check(self):
         StorageRepository.checkCommon(self, "cifs")
@@ -13498,6 +13554,7 @@ class Pool(object):
                     # Using CA-33324 workaround
                     # Relicense to ensure we have the correct edition
                     edition = xenrt.TEC().lookup("OPTION_LIC_SKU", None)
+                    xenrt.sleep(60)
                     if edition:
                         slave.license(edition=edition)
                     else:

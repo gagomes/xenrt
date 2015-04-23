@@ -8,7 +8,7 @@
     <DISABLE_GUEST_IPV4>yes</DISABLE_GUEST_IPV4>
   </variables>
 
-  <default name="PARALLEL" value="4" />
+  <default name="PARALLEL" value="2" />
   <default name="MIGRATEPAR" value="1" />
 
   <semaphores>

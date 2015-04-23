@@ -5,8 +5,7 @@
     </variables>
 
     <prepare>
-      <pool>
-        <allhosts license="platinum"/>
+      <host>
         <NETWORK>
           <PHYSICAL network="NPRI">
             <NIC/>
@@ -16,7 +15,7 @@
             <MANAGEMENT mode="static"/>
           </PHYSICAL>
         </NETWORK>
-      </pool>
+      </host>
     </prepare>
 
     <testsequence>

@@ -226,6 +226,7 @@ class XenServerLicenseFactory(object):
     __MNR = "mnr"
     __OXF = "oxford"
     __DUN = "dundee"
+    __CRM = "cream"
 
     def __getHostAge(self, xshost):
         return xshost.productVersion.lower()
@@ -239,7 +240,7 @@ class XenServerLicenseFactory(object):
 
     def xenserverOnlyLicenses(self, productVersion):
         lver = productVersion.lower()
-        if lver == self.__CRE:
+        if lver == self.__CRE or lver == self.__CRM or lver == self.__DUN:
             skus = [XenServerLicenseSKU.PerSocketEnterprise,
                     XenServerLicenseSKU.PerSocketStandard,
                     XenServerLicenseSKU.PerSocket]
@@ -257,7 +258,7 @@ class XenServerLicenseFactory(object):
 
     def allLicenses(self, productVersion):
         lver = productVersion.lower()
-        if lver == self.__CRE:
+        if lver == self.__CRE or lver == self.__CRM or lver == self.__DUN:
             skus = [XenServerLicenseSKU.PerSocketEnterprise, XenServerLicenseSKU.PerUserEnterprise,
                     XenServerLicenseSKU.PerConcurrentUserEnterprise, XenServerLicenseSKU.XenDesktopPlatinum,
                     XenServerLicenseSKU.PerSocketStandard, XenServerLicenseSKU.Free, XenServerLicenseSKU.PerSocket]
@@ -279,10 +280,8 @@ class XenServerLicenseFactory(object):
             return TampaLicense(XenServerLicenseSKU.XSPlatinum)    
         if lver == self.__CLR:
             return ClearwaterLicense(XenServerLicenseSKU.PerSocket)
-        if lver == self.__CRE:
+        if lver == self.__CRE or lver == self.__CRM or lver == self.__DUN:
             return CreedenceLicense(XenServerLicenseSKU.PerUserEnterprise)
-        if lver == self.__DUN:
-            return DundeeLicense(XenServerLicenseSKU.PerSocket)
  
     def maxLicenseSkuPool(self,xspool):
         self.maxLicenseSkuHost(xspool.master)
@@ -293,8 +292,6 @@ class XenServerLicenseFactory(object):
             return TampaLicense(sku)
         if lver == self.__CLR:
             return ClearwaterLicense(sku)
-        if lver == self.__CRE:
+        if lver == self.__CRE or lver == self.__CRM or lver == self.__DUN:
             return CreedenceLicense(sku)
-        if lver == self.__DUN:
-            return DundeeLicense(sku)
         raise ValueError("No license object was found for the provided host version: %s" % productVersion)

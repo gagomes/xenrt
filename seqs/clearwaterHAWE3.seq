@@ -16,12 +16,12 @@
 
   <testsequence>
     <serial group="HeartbeatFailures">
-      <testcase id="xenserver.tc.ha.TC7703"/>
-      <testcase id="xenserver.tc.ha.TC7705"/>
-      <testcase id="xenserver.tc.ha.TC7706"/>
+      <testcase id="xenserver.tc.ha.TC7695"/>
+      <testcase id="xenserver.tc.ha.TC7697"/>
+      <testcase id="xenserver.tc.ha.TC7698"/>
       <testcase id="xenserver.tc.ha.TC7707"/>
-      <testcase id="xenserver.tc.ha.TC7708"/>
-      <testcase id="xenserver.tc.ha.TC7709"/>
+      <testcase id="xenserver.tc.ha.TC7700"/>
+      <testcase id="xenserver.tc.ha.TC7701"/>
     </serial>
   </testsequence>
 

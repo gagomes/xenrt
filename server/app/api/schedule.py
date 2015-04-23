@@ -446,10 +446,15 @@ class XenRTSchedule(XenRTAPIPage):
                 clusters[(s, c)] = {}
             clusters[(s, c)][m[0]] = m
 
+        clusterprios = {}
+        for cluster in clusters.keys():
+            clusterprios[cluster] = max([int(m[13]) for m in clusters[cluster].values()])
+
         # Try each cluster
         # Randomise the list so we spread the load a bit (XRT-737)
         cs = clusters.keys()
         random.shuffle(cs)
+        cs.sort(key=lambda x: clusterprios[x])
         for cluster in cs:
             s, c = cluster
             if verbose:
@@ -508,6 +513,7 @@ class XenRTSchedule(XenRTAPIPage):
                 # Consider each machine in this cluster
                 # Randomise the list so we spread the load a bit (XRT-737)
                 random.shuffle(ms)
+                ms.sort(key=lambda x: int(x[13]))
                 for m in ms:
                     if m[0] in selx:
                         # Machine already provisionally selected
@@ -675,7 +681,7 @@ class XenRTSchedule(XenRTAPIPage):
                 # be taken into account otherwise
                 machineCount += existingPolicies[p]
 
-            if not self.getACLHelper().check_acl(p, userid, machineCount, ignoreParent=True)[0]:
+            if not self.getACLHelper().check_acl(p, userid, machines[:machineCount], ignoreParent=True)[0]:
                 return False
 
         return True

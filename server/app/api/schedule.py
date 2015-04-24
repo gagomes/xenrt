@@ -2,7 +2,7 @@ from server import PageFactory
 from app.api import XenRTAPIPage
 from pyramid.httpexceptions import HTTPFound
 
-import traceback, StringIO, string, time, random, sys, calendar
+import traceback, StringIO, string, time, random, sys, calendar, getopt
 
 import config, app
 
@@ -14,6 +14,34 @@ class XenRTSchedule(XenRTAPIPage):
         super(XenRTSchedule, self).__init__(request)
         self.mutex = None
         self.mutex_held = False
+
+    def cli(self):
+        if not self.isDBMaster():
+            print "Skipping schedule as this node is not the master"
+        dryrun = False
+        ignore = False
+        verbose = False
+
+        try:
+            optlist, optx = getopt.getopt(sys.argv[2:], "vdi")
+            for argpair in optlist:
+                (flag, value) = argpair
+                if flag == "-d":
+                    dryrun = True
+                elif flag == "-i":
+                    ignore = True
+                elif flag == "-v":
+                    verbose = True
+        except getopt.GetoptError:
+            raise Exception("Unknown argument")
+
+        self.schedule_jobs(sys.stdout, dryrun=dryrun, ignore=ignore, verbose=verbose)
+
+        if self.mutex:
+            if self.mutex_held:
+                self.release_lock()
+            self.mutex.close()
+
 
     def render(self):
         form = self.request.params

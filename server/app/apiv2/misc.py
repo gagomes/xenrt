@@ -27,7 +27,7 @@ class GetUser(XenRTAPIv2Page):
         u = self.getUser()
         if not u:
             return {}
-        return {"user": u.userid, "email": u.email, "team": u.team}
+        return {"user": u.userid, "email": u.email, "team": u.team, "admin": u.admin}
 
 class GetUserDetails(XenRTAPIv2Page):
     PATH = "/userdetails/{user}"

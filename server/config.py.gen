@@ -21,6 +21,7 @@ cfg['ldap_user'] = ""
 cfg['ldap_pass'] = ""
 cfg['ldap_base'] = ""
 cfg['group_mapping'] = ""
+cfg['admin_group'] = ""
 # Parse a site config file
 cfs = glob.glob("%s/conf.d/*/*.xml" % confdir)
 cf = "%s/site.xml" % (confdir)
@@ -72,6 +73,8 @@ for cf in cfs:
                                     cfg['ldap_base'] = data
                                 elif name == "AD_GROUP_MAPPING":
                                     cfg['group_mapping'] = data
+                                elif name == "ADMIN_GROUP":
+                                    cfg['admin_group'] = data
 
 cfg['results'] = "%s/results" % basedir
 cfg['sharedir'] = "@sharedir@"

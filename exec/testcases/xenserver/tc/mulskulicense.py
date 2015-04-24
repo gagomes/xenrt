@@ -355,6 +355,38 @@ class TCVirtualGPUFeature(TestFeatureBase):
         self.confirmLicenseServerUp()
         assertions.assertFalse(enabled, "vGPU is enabled after removing license and lifecycle operation.")
 
+class TCCIFSStorageFeature(TestFeatureBase):
+
+    def checkFeature(self, currentSKU):
+        feature = CIFSStorage()
+        featureResctictedFlag = feature.hostFeatureFlagValue(self.systemObj.master)
+        featureRestricted = self.licenseFeatureFactory.getFeatureState(self.systemObj.master.productVersion, currentSKU, feature)
+
+        # Check flag.
+        assertions.assertEquals(featureRestricted,
+            featureResctictedFlag,
+            "CIFS feature flag was not as expected for sku, %s. Restricted flag: %s. Should be: %s" % (currentSKU, featureResctictedFlag, featureRestricted))
+
+        # Check if the CIFS Storage feature is correct.
+        enabled = feature.isEnabled(self.systemObj.master)
+        assertions.assertEquals(not featureRestricted,
+            enabled,
+            "CIFS feature was not as expected for sku, %s. CIFS enabled: %s. Should be: %s" % (currentSKU, enabled, not featureRestricted))
+
+        # Remove License.
+        self.licenseManager.releaseLicense(self.systemObj)
+
+        # Check flag again
+        # Should be restricted after removing license.
+        featureResctictedFlag = feature.hostFeatureFlagValue(self.systemObj.master)
+        assertions.assertTrue(featureResctictedFlag,
+            "CIFS feature flag is not restricted after removing license for sku, %s." % (currentSKU))
+
+        # Check if CIFS Storage feature is now not functional.
+        enabled = feature.isEnabled(self.systemObj.master)
+        assertions.assertFalse(enabled, "CIFS feature is enabled after removing license for sku, %s." % (currentSKU))
+
+
 class LicenseExpiryBase(LicenseBase):
      #TC for Creedence (and later) license expiration test.
 

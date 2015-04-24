@@ -463,6 +463,12 @@ class _HATest(xenrt.TestCase):
                 sr = self.createSharedNFSSR(pool.master, "NFS_SF_SR")
                 self.sr = sr
                 pool.addSRToPool(sr)
+            elif self.SF_STORAGE.startswith("cifs"):
+                share = xenrt.VMSMBShare()
+                sr = xenrt.productLib(host=master).SMBStorageRepository(master, "CIFS-SR")
+                self.sr = sr
+                sr.create(share)
+                pool.addSRToPool(sr)
             elif (scsiid and self.SF_STORAGE != "iscsi" and not iscsiLun):
                 # Use FC
                 sr = xenrt.lib.xenserver.FCStorageRepository(master, "fc")
@@ -749,6 +755,10 @@ class TC26902(TC7495):
         host1 = self.getHost("RESOURCE_HOST_1")
         pool = self.configureHAPool([host0,host1])
         self.check(pool)
+
+class TCStateFileCIFS(TC7495):
+    """Verify StateFile can be located on shared CIFS storage"""
+    SF_STORAGE = "cifs"
 
 class TC7935(_HATest):
     """Verify that pool-ha-enable honours the heartbeat-sr-uuids parameter"""

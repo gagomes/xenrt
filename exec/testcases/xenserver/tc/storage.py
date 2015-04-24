@@ -1991,6 +1991,30 @@ class TC20957(_VDICopy):
     FROM_TYPE = "nfssr_classic" # classic nfssr
     TO_TYPE   = "nfssr_nosubdir" # options="nosubdir" 
 
+class TC26951(_VDICopy):
+    """Verify vdi-copy between CIFS SR and NFS SR v3."""
+    FIND_SR_BY_NAME = True
+    FROM_TYPE = "cifssr"
+    TO_TYPE = "nfssr_v3"
+
+class TC26952(_VDICopy):
+    """Verify vdi-copy between CIFS SR and NFS SR v4."""
+    FIND_SR_BY_NAME = True
+    FROM_TYPE = "cifssr"
+    TO_TYPE = "nfssr_v4"
+
+class TC26953(_VDICopy):
+    """Verify vdi-copy between CIFS SR and NFS FILE SR."""
+    FIND_SR_BY_NAME = True
+    FROM_TYPE = "cifssr"
+    TO_TYPE = "nfssr_filesr"
+
+class TC26954(_VDICopy):
+    """Verify vdi-copy between CIFS SR and NFS SR with no sub directory."""
+    FIND_SR_BY_NAME = True
+    FROM_TYPE = "cifssr"
+    TO_TYPE = "nfssr_nosubdir"
+
 #############################################################################
 # VDI resize testcases
 
@@ -4751,3 +4775,17 @@ class TC26976(xenrt.TestCase):
             self.host.destroySR(cifsSR.uuid)
         xenrt.TEC().logverbose("Time taken to destroy %d CIFS SRs on host is %s seconds." %
                                             (len(self.cifsSRs), (xenrt.util.timenow() - timeNow)))
+
+class TC26974(xenrt.TestCase):
+    """Verify can create CIFS SR after upgrading the host."""
+
+    def prepare(self, arglist):
+
+        self.host = self.getDefaultHost()
+
+    def run(self, arglist):
+
+        self.host = self.host.upgrade()
+        share = xenrt.VMSMBShare()
+        sr = xenrt.productLib(host=self.host).SMBStorageRepository(self.host, "CIFS-SR")
+        sr.create(share)

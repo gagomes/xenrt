@@ -271,7 +271,7 @@ class XenRTSchedule(XenRTAPIPage):
             verbose.write("Scheduler took %ds to acquire lock and %ds to run" % (int(postlocktime-prelocktime), int(finishtime-postlocktime))
         if writeVerboseFile:
             with open("%s/schedule.log" % config.schedule_log_dir, "w") as f:
-                shutil.copyfilobj(verbose, f)
+                f.write(verbose.getvalue())
 
 
     def get_lock(self):

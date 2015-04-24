@@ -22,8 +22,18 @@ class XenRTSchedule(XenRTAPIPage):
         ignore = False
         verbose = False
 
-        #TODO parse cli args
-        verbose = True
+        try:
+            optlist, optx = getopt.getopt(sys.argv[2:], "vdi")
+            for argpair in arglist:
+                (flag, value) = argpair
+                if flag == "-d":
+                    dryrun = True
+                elif flag == "-i":
+                    ignore = True
+                elif flag == "-v":
+                    verbose = True
+        except getopt.GetoptError:
+            raise Exception("Unknown argument")
 
         self.schedule_jobs(sys.stdout, dryrun=dryrun, ignore=ignore, verbose=verbose)
 

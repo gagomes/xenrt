@@ -1,0 +1,24 @@
+<xenrt>
+
+  <!-- Pool based EPT tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="smb" name="cifssr" default="true"/>
+      <allhosts/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <parallel group="EPT">
+      <testcase id="xenserver.tc.vmlifecycle.TC9318" sku="CIFS SR"/>
+      <testcase id="xenserver.tc.vmlifecycle.TC9319" sku="CIFS SR"/>
+    </parallel>
+  </testsequence>
+
+</xenrt>

@@ -46,11 +46,19 @@ $(function() {
 
     });
     function populateAcls() {
+      % if userIsAdmin:
+        $.getJSON ("/xenrt/api/v2/acls")
+      % else:
         $.getJSON ("/xenrt/api/v2/acls", {"owner": "${'${user}'}"})
+      % endif
             .done(function(data) {
                 $( "#aclid" ).find('option').remove();
                 $.each(data, function(aclid, acldata) {
+                  % if userIsAdmin:
+                    $(" #aclid" ).append("<option value=" + aclid + ">" + acldata.owner + ": " + acldata.name + "</option>");
+                  % else:
                     $(" #aclid" ).append("<option value=" + aclid + ">" + acldata.name + "</option>");
+                  % endif
                 });
             });
     }

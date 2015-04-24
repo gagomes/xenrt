@@ -69,11 +69,7 @@ class User(object):
         db = self.page.getDB()
         cur = db.cursor()
         cur.execute("SELECT gu.userid FROM tblgroupusers gu INNER JOIN tblgroups g ON gu.groupid = g.groupid WHERE g.name=%s AND gu.userid=%s", [config.admin_group, self.userid])
-        if cur.rowcount == 1:
-            self._admin = True
-        else:
-            # Check in AD in case this is an immediate change
-            self._admin = config.admin_group in self.page.getAD().get_groups_for_user(self.userid)
+        self._admin = cur.rowcount == 1
 
     def removeApiKey(self):
         if self.apiKey:

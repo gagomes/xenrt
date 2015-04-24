@@ -4789,3 +4789,22 @@ class TC26974(xenrt.TestCase):
         share = xenrt.VMSMBShare()
         sr = xenrt.productLib(host=self.host).SMBStorageRepository(self.host, "CIFS-SR")
         sr.create(share)
+
+class TCCIFSLifecycle(xenrt.TestCase):
+    """SR Lifecycle operations."""
+
+    def prepare(self, arglist):
+        share = xenrt.VMSMBShare(hostIndex=1)
+        self.sr = xenrt.productLib(host=host).SMBStorageRepository(host, "CIFS-SR")
+        self.sr.create(share)
+
+    def run(self, arglist):
+        pass
+
+class TCCIFSVDILifecycle(xenrt.TestCase):
+
+    def prepare(self, arglist):
+        pass
+
+    def run(self, arglist):
+        pass

@@ -7,12 +7,10 @@
   <prepare>
 
     <pool id="0">
-      <host id="0" installsr="ext">
-      </host>
-      <host id="1" installsr="ext">
-      </host>
+      <storage type="nfs" name="nfssr" default="true"/>
+      <host id="0"/>
+      <host id="1"/>
     </pool>
-
 
   </prepare>
 

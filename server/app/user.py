@@ -1,3 +1,4 @@
+import config
 import base64, hashlib, random
 
 class User(object):
@@ -9,6 +10,7 @@ class User(object):
         self._apiKey = None
         self._disabled = False
         self._team = None
+        self._admin = None
 
     @classmethod
     def fromApiKey(cls, page, apiKey):
@@ -59,7 +61,15 @@ class User(object):
     @property
     def admin(self):
         """Property that defines if the user is a XenRT admin"""
-        return True
+        if self._admin is None:
+            self._checkAdmin()
+        return self._admin
+
+    def _checkAdmin(self):
+        db = self.page.getDB()
+        cur = db.cursor()
+        cur.execute("SELECT gu.userid FROM tblgroupusers gu INNER JOIN tblgroups g ON gu.groupid = g.groupid WHERE g.name=%s AND gu.userid=%s", [config.admin_group, self.userid])
+        self._admin = cur.rowcount == 1
 
     def removeApiKey(self):
         if self.apiKey:

@@ -197,7 +197,6 @@ class _AclBase(XenRTAPIv2Page):
     def checkAcl(self, aclid, user):
         """Check the ACL exists and is accessible by the given user"""
 
-        # TODO: Allow XenRT admins to perform operations here
         db = self.getDB()
         cur = db.cursor()
         cur.execute("SELECT owner FROM tblacls WHERE aclid=%s", [aclid])

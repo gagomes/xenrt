@@ -4802,6 +4802,7 @@ class TCCIFSLifecycle(xenrt.TestCase):
     def run(self, arglist):
         self.sr.forget()
         self.sr.introduce()
+        self.sr.destroy()
 
 class TCCIFSVDILifecycle(xenrt.TestCase):
 

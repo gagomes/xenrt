@@ -266,9 +266,9 @@ class XenRTSchedule(XenRTAPIPage):
         verbose.write("Scheduler %d completed %s\n" % (schedid,time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime())))
         finishtime = time.mktime(time.gmtime())
 
-        outfh.write("Scheduler took %ds to acquire lock and %ds to run" % (int(postlocktime-prelocktime), int(finishtime-postlocktime))
+        outfh.write("Scheduler took %ds to acquire lock and %ds to run" % (int(postlocktime-prelocktime), int(finishtime-postlocktime)))
         if alsoPrintToVerbose:
-            verbose.write("Scheduler took %ds to acquire lock and %ds to run" % (int(postlocktime-prelocktime), int(finishtime-postlocktime))
+            verbose.write("Scheduler took %ds to acquire lock and %ds to run" % (int(postlocktime-prelocktime), int(finishtime-postlocktime)))
         if writeVerboseFile:
             with open("%s/schedule.log" % config.schedule_log_dir, "w") as f:
                 f.write(verbose.getvalue())

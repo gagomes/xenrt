@@ -2,7 +2,7 @@ from server import PageFactory
 from app.api import XenRTAPIPage
 from pyramid.httpexceptions import HTTPFound
 
-import traceback, StringIO, string, time, random, sys, calendar
+import traceback, StringIO, string, time, random, sys, calendar, getopt
 
 import config, app
 
@@ -24,7 +24,7 @@ class XenRTSchedule(XenRTAPIPage):
 
         try:
             optlist, optx = getopt.getopt(sys.argv[2:], "vdi")
-            for argpair in arglist:
+            for argpair in optlist:
                 (flag, value) = argpair
                 if flag == "-d":
                     dryrun = True

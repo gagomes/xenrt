@@ -1,0 +1,17 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0"/>
+  </prepare>
+
+  <testsequence>
+    <serial group="CIFSLifecycle">
+      <testcase id="xenserver.tc.storage.TCCIFSLifecycle"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

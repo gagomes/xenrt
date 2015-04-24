@@ -264,7 +264,7 @@ class XenRTSchedule(XenRTAPIPage):
         verbose.write("Scheduler %d completed %s\n" % (schedid,time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime())))
         if writeVerboseFile:
             with open("%s/schedule.log" % config.schedule_log_dir, "w") as f:
-                shutil.copyfilobj(verbose, f)
+                f.write(verbose.getvalue())
 
 
     def get_lock(self):

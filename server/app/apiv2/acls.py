@@ -205,7 +205,7 @@ class _AclBase(XenRTAPIv2Page):
         if not rc:
             raise XenRTAPIError(HTTPNotFound, "ACL not found")
         owner = rc[0].strip()
-        if owner != user:
+        if owner != user.userid and not user.admin:
             raise XenRTAPIError(HTTPForbidden, "You are not the owner of this ACL")
 
 class ListAcls(_AclBase):
@@ -378,7 +378,7 @@ class UpdateAcl(_AclBase):
 
     def render(self):
         aclid = self.getIntFromMatchdict("id")
-        self.checkAcl(aclid, self.getUser().userid)
+        self.checkAcl(aclid, self.getUser())
         try:
             j = json.loads(self.request.body)
             jsonschema.validate(j, self.DEFINITIONS['updateacl'])
@@ -407,7 +407,7 @@ class RemoveAcl(_AclBase):
 
     def render(self):
         aclid = self.getIntFromMatchdict("id")
-        self.checkAcl(aclid, self.getUser().userid)
+        self.checkAcl(aclid, self.getUser())
         self.removeAcl(aclid)
         return {}
 

@@ -15,6 +15,24 @@ class XenRTSchedule(XenRTAPIPage):
         self.mutex = None
         self.mutex_held = False
 
+    def cli(self):
+        if not self.isDBMaster():
+            print "Skipping schedule as this node is not the master"
+        dryrun = False
+        ignore = False
+        verbose = False
+
+        #TODO parse cli args
+        verbose = True
+
+        self.schedule_jobs(sys.stdout, dryrun=dryrun, ignore=ignore, verbose=verbose)
+
+        if self.mutex:
+            if self.mutex_held:
+                self.release_lock()
+            self.mutex.close()
+
+
     def render(self):
         form = self.request.params
         if not self.isDBMaster():

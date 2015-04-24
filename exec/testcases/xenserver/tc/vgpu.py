@@ -3474,8 +3474,9 @@ class TCPoolIntelGPU(IntelBase):
                 for i in range(10):
                     vm1.setState("DOWN")
                     vm2.setState("DOWN")
-                    vm1.setState("UP")
-                    vm2.setState("UP")
+                    # setState() defaults to trying to start vms on the same host when in a pool.
+                    vm1.start(specifyOn=False)
+                    vm2.start(specifyOn=False)
 
 class TCAlloModeK200NFS(VGPUAllocationModeBase):
 

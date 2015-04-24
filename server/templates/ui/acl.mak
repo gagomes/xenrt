@@ -158,13 +158,13 @@ $(function() {
                     success: function() {
                         $( "#overlay" ).hide();
                         $( "#loading" ).hide();
-                        $('#savebutton').prop('disabled', false);
+                        $( '#saveacl' ).prop('disabled', false);
                         alert("ACL saved");
                     },
                     error: function(jqXHR, textStatus, errorThrown) {
                         $( "#overlay" ).hide();
                         $( "#loading" ).hide();
-                        $('#savebutton').prop('disabled', false);
+                        $( '#saveacl' ).prop('disabled', false);
                         alert("Failed to save ACL - " + textStatus + "-" + errorThrown);
                     }
                    });
@@ -184,7 +184,7 @@ $(function() {
                     error: function(jqXHR, textStatus, errorThrown) {
                         $( "#overlay" ).hide();
                         $( "#loading" ).hide();
-                        $('#savebutton').prop('disabled', false);
+                        $( '#saveacl' ).prop('disabled', false);
                         alert("Failed to save ACL - " + textStatus + "-" + errorThrown);
                     }
                    });

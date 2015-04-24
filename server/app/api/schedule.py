@@ -511,7 +511,7 @@ class XenRTSchedule(XenRTAPIPage):
                 continue
 
             # Check there are no ACL restrictions
-            if not self.check_acl_for_machines(clusters[cluster], details['USERID'], selected, number):
+            if not self.check_acl_for_machines(clusters[cluster].keys(), details['USERID'], selected, number):
                 if verbose:
                     outfh.write("    not allowed by ACL\n")
                 continue

@@ -85,10 +85,12 @@ class XenRTSchedule(XenRTAPIPage):
             writeVerboseFile = True
             alsoPrintToVerbose = True
 
+        prelocktime = time.mktime(time.gmtime())
 
         verbose.write("Job scheduler ID %d started %s" % (schedid, time.strftime("%a, %d %b %Y %H:%M:%S +0000\n", time.gmtime())))
         self.get_lock()
         verbose.write("%d acquired lock %s" % (schedid, time.strftime("%a, %d %b %Y %H:%M:%S +0000\n", time.gmtime())))
+        postlocktime = time.mktime(time.gmtime())
 
         offline_sites = [x[0] for x in self.scm_site_list(status="offline")]
         sites = self.scm_site_list(checkFull=True)
@@ -262,6 +264,11 @@ class XenRTSchedule(XenRTAPIPage):
             self.release_lock()
 
         verbose.write("Scheduler %d completed %s\n" % (schedid,time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime())))
+        finishtime = time.mktime(time.gmtime())
+
+        outfh.write("Scheduler took %ds to acquire lock and %ds to run" % (int(postlocktime-prelocktime), int(finishtime-postlocktime))
+        if alsoPrintToVerbose:
+            verbose.write("Scheduler took %ds to acquire lock and %ds to run" % (int(postlocktime-prelocktime), int(finishtime-postlocktime))
         if writeVerboseFile:
             with open("%s/schedule.log" % config.schedule_log_dir, "w") as f:
                 shutil.copyfilobj(verbose, f)

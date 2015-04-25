@@ -281,7 +281,7 @@ class XenRTSchedule(XenRTAPIPage):
             if not self.mutex:
                 self.mutex = app.db.dbWriteInstance()
             cur = self.mutex.cursor()
-            cur.execute("LOCK TABLE scheduleLock")
+            cur.execute("LOCK TABLE scheduleLock NOWAIT")
             self.mutex_held = 1
 
     def release_lock(self):

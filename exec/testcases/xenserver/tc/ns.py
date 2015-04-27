@@ -1622,7 +1622,7 @@ class NSSRIOV(SRIOVTests):
             
         sftp = vpx.sftpClient(username='nsroot')
         
-        sftp.copyTo(self.license_file, os.path.join('/nsconfig/license',os.path.basename(filePathController)))
+        sftp.copyTo(self.license_file, os.path.join('/nsconfig/license',os.path.basename(self.license_file)))
         sftp.close()
         
         

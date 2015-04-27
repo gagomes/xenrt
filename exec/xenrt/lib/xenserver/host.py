@@ -11486,6 +11486,19 @@ done
             pass
         xenrt.TEC().logverbose(self.execdom0("cat /tmp/vifdebug.%d.log" % int(domid)))
 
+    def installNVIDIASupPack(self):
+
+        def getURL():
+            baseurl = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
+            return "%s/vgpudriver/hostdriver/" % (baseurl)
+
+        defaultSupPack = "NVIDIA-vgx-xenserver-6.5-346.61.x86_64.iso"
+        suppack = xenrt.TEC().lookup("VGPU_SUPPACK", default=defaultSupPack)
+
+        if not self.checkRPMInstalled(suppack):
+            url = getURL()
+            self.installHostSupPacks(url, suppack)
+
 #############################################################################
 
 class CreedenceHost(ClearwaterHost):

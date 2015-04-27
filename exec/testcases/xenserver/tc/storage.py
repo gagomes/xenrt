@@ -4795,12 +4795,12 @@ class TCCIFSLifecycle(xenrt.TestCase):
 
     def prepare(self, arglist):
         self.host = self.getDefaultHost()
-        share = xenrt.VMSMBShare()
+        self.share = xenrt.VMSMBShare()
         self.sr = xenrt.productLib(host=self.host).SMBStorageRepository(self.host, "CIFS-SR")
 
     def run(self, arglist):
         # Create SR.
-        self.sr.create(share)
+        self.sr.create(self.share)
 
         # Could create some VDI here and then check the health after lifecycles.
         # Method of checking health?

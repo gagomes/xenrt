@@ -6081,7 +6081,7 @@ class DundeeGuest(CreedenceGuest):
                 xenrt.GEC().dbconnect.jobUpdate("RND_PV_DRIVERS_LIST_VALUE",randomPvDriversList)
                 return randomPvDriversList
 
-    def installDrivers(self, source=None, extrareboot=False, useLegacy=False, useHostTimeUTC=False, expectUpToDate=True, installFullWindowsGuestAgent=True, useDotNet=True, packagesToInstall=None):
+    def installDrivers(self, source=None, extrareboot=False, useLegacy=False, useHostTimeUTC=False, expectUpToDate=True, installFullWindowsGuestAgent=True, useDotNet=True, packagesToInstall=None, pvPkgSrc = None):
         """
         Install PV Tools on Windows Guest
         """
@@ -6096,8 +6096,10 @@ class DundeeGuest(CreedenceGuest):
         ToolsISO : Install PV Drivers through ToolsISO
         Packages : Install PV Drivers from individual PV packages
         """
-
-        pvDriverSource = xenrt.TEC().lookup("PV_DRIVER_SOURCE", None)
+        if pvPkgSrc:
+            pvDriverSource =pvPkgSrc
+        else:
+            pvDriverSource = xenrt.TEC().lookup("PV_DRIVER_SOURCE", None)
 
         if pvDriverSource == "Random":
             pvDriverSource = self.setRandomPvDriverSource()
@@ -6244,7 +6246,7 @@ class DundeeGuest(CreedenceGuest):
         if pkgToUninstall:
             driversToUninstall = driversToUninstall
         else:
-            driversToUninstall = ['*XENVIF*', '*XENBUS*', '*VEN_5853*']
+            driversToUninstall = xenrt.TEC().lookup("PV_DRIVERS_UNINSTALL_LIST").split(';')
         
         var1 = self.winRegPresent('HKLM', "SOFTWARE\\Wow6432Node\\Citrix\\XenToolsInstaller", "InstallStatus")
         var2 = self.winRegPresent('HKLM', "SOFTWARE\\Citrix\\XenToolsInstaller", "InstallStatus")

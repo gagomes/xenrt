@@ -73,7 +73,7 @@ class TCUpgWinCmp(WindowsUpdateBase):
     def run(self, arglist=None):
 
         log("Install Windows update compatible PV Drivers")
-        super(DundeeGuest , self).installDrivers(source = self.Tools)
+        self.guest.installDrivers(source = self.Tools, pvPkgSrc = "ToolsISO")
         
         log("Enable the Windows Updates from the Host")
         self.guest.enableWindowsPVUpdates()
@@ -86,10 +86,10 @@ class TCUpgNonWinCmp(WindowsUpdateBase):
     def run(self, arglist=None):
 
         log("Install Non-Windows update compatible PV Drivers")
-        super(DundeeGuest , self).installDrivers(source = self.Tools)
+        self.guest.installDrivers(source = self.Tools, pvPkgSrc = "ToolsISO")
         
         log("Uninstall Non-Windows Update Compatible PV Drivers")
-        super(DundeeGuest , self).uninstallDrivers()
+        self.guest.uninstallDrivers()
         
         log("Enable the Windows Updates from the Host")
         self.guest.enableWindowsPVUpdates()
@@ -105,31 +105,31 @@ class TCUpgToolsIso(WindowsUpdateBase):
         self.guest.installDrivers(source = self.Tools)
 
         log("Upgrade the tools using tools.iso")
-        super(DundeeGuest , self).installDrivers(waitForDaemon)
+        self.guest.installDrivers(pvPkgSrc = "ToolsISO")
 
 class TCSkipPvPkg(WindowsUpdateBase):
 
     def skipPvPkginst(self, pkgList):
         
         log("Take snapshot of the VM")
-        snapshot = self.snapshot()
+        snapshot = self.guest.snapshot()
         
         log("Install PV Drivers on the windows guest")
-        self.installDrivers(packagesToInstall = pkgList)
+        self.guest.installDrivers(packagesToInstall = pkgList)
         
-        self.waitForDaemon(300, desc="Guest check after installation of PV Packages %s" %(pkgList))
+        self.guest.waitForDaemon(300, desc="Guest check after installation of PV Packages %s" %(pkgList))
         
         log("Revert the VM to the State before tools were uninstalled")
-        self.revert(snapshot)
-        self.removeSnapshot(snapshot)
-        self.lifecycleOperation("vm-start")
+        self.guest.revert(snapshot)
+        self.guest.removeSnapshot(snapshot)
+        self.guest.lifecycleOperation("vm-start")
         
     def run(self, arglist=None):
 
         pvDriversList = xenrt.TEC().lookup("PV_DRIVERS_LIST").split(';')
         
         for pkg in pvDriversList:
-            self.guest.skipPvPkginst(random.sample(pvDriverList, 4))
+            self.skipPvPkginst(random.sample(pvDriverList, 4))
 
 class TCRemovePvpkg(WindowsUpdateBase):
 
@@ -137,9 +137,8 @@ class TCRemovePvpkg(WindowsUpdateBase):
     def removePvpkg(self,pvPkg):
 
         log("Install PV Drivers on the windows guest")
-        self.uninstallDrivers(pkgToUninstall = pvPkg)
-        
-        self.waitForDaemon(300, desc="Guest check after Uninstallation of PV Packages %s" %(pkgList))
+        self.guest.uninstallDrivers(pkgToUninstall = pvPkg)
+        self.guest.waitForDaemon(300, desc="Guest check after Uninstallation of PV Packages %s" %(pkgList))
         
     def run(self, arglist=None):
         
@@ -149,4 +148,4 @@ class TCRemovePvpkg(WindowsUpdateBase):
         self.guest.installDrivers()
         
         for pkg in pvDriversToRm:
-            self.guest.removePvPkg(pkg)
+            self.removePvPkg(pkg)

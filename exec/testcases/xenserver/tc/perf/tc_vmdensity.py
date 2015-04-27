@@ -686,10 +686,19 @@ while not ipv6:
     print "not found local ipv6 yet"
     for line in subprocess.check_output("ifconfig").split(\\n"):
         print line
+        if "HWaddr" in line:
+            macx=map(lambda x:x.strip(), line.split("HWaddr ")[1].split(":"))
+            print macx
+            ipv6_6 = "fe%s" % (macx[3],)
+            ipv6_7 = "%s%s" % (macx[4],macx[5])
         if "inet6 addr:" in line and "Scope:Global" in line:
-            ipv6 = line.split("/")[0].split(": ")[1]
-            print "found local ipv6 %s" % (ipv6,)
-            break
+            _ipv6 = line.split("/")[0].split(": ")[1]
+            _ipv6x = _ipv6.split(":")
+            print _ipv6x
+            if _ipv6x[6]==ipv6_6 and _ipv6x[7]==ipv6_7:
+                ipv6=_ipv6
+                print "found local ipv6 %s" % (ipv6,)
+                break
 """
             bind_ipv6_fn = "s.bind((ipv6,0))"
         else:

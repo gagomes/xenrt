@@ -269,28 +269,14 @@ class Host(_Entity):
                 xenrt.TEC().logverbose("Rebooting host...")
                 self.ref.reboot()
 
-            mockd = xenrt.TEC().getFile(self.ref.V6MOCKD_LOCATION)
-            if mockd:
-                try:
-                    xenrt.TEC().logverbose("v6mockd present - using clearwater licensing")
+            try:
+                if isinstance(self.ref, xenrt.lib.xenserver.ClearwaterHost):
                     self.ref.execdom0("xe host-apply-edition edition=free")
-                except Exception, e:
-                    xenrt.TEC().logverbose("Host reset exception: %s" % (str(e)))
-            else:
-                try:
-                    if self.ref.execdom0("test -e /opt/xensource/libexec/v6d.orig",
-                                          retval="code") != 0:
-                        self.ref.execdom0("mv -f /opt/xensource/libexec/v6d "
-                                          "/opt/xensource/libexec/v6d.orig")
-                        self.ref.execdom0("cp -f %s/utils/v6testd "
-                                          "/opt/xensource/libexec/v6d" %
-                                          (xenrt.TEC().lookup("REMOTE_SCRIPTDIR")))
-                        self.ref.execdom0("service v6d restart")
-                except Exception, e:
-                    xenrt.TEC().logverbose("Host reset exception: %s" % (str(e)))
-                try: self.ref.execdom0("xe host-apply-edition edition=platinum")
-                except Exception, e:
-                    xenrt.TEC().logverbose("Host reset exception: %s" % (str(e)))
+                else:
+                    (addr, port) = xenrt.TEC().lookup("DEFAULT_CITRIX_LICENSE_SERVER").split(":")
+                    self.ref.execdom0("xe host-apply-edition edition=platinum license-server-address=%s license-server-port=%s" % (addr, port))
+            except Exception, e:
+                xenrt.TEC().logverbose("Host reset exception: %s" % (str(e)))
             try:
                 self.ref.waitForEnabled(300)            
             except:

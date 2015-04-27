@@ -11,8 +11,8 @@
 
   <prepare>
     <pool id="0">
-      <host id="0" license="no" usev6testd="no" />
-      <host id="1" license="no" usev6testd="no" />
+      <host id="0" license="no" defaultlicense="no" />
+      <host id="1" license="no" defaultlicense="no" />
     </pool>
   </prepare>
 </xenrt>

@@ -351,8 +351,8 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
             if ls:
                 host["license"] = ls
         
-        if "usev6testd" in node:
-            host["usev6testd"] = node["usev6testd"]
+        if "defaultlicense" in node:
+            host["defaultlicense"] = node["defaultlicense"]
         if "noisos" in node:
             host["noisos"] = node.get("noisos", False)
         host["suppackcds"] = node.get("suppackcds")
@@ -731,12 +731,12 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
             ls = xenrt.TEC().lookup("OPTION_LIC_SKU", None)
             if ls:
                 host["license"] = ls
-        usev6testd = self.expand(node.getAttribute("usev6testd"))
-        if usev6testd:
-            if usev6testd[0] in ('y', 't', '1', 'Y', 'T'):
-                host["usev6testd"] = True
+        defaultlicense = self.expand(node.getAttribute("defaultlicense"))
+        if defaultlicense:
+            if defaultlicense[0] in ('y', 't', '1', 'Y', 'T'):
+                host["defaultlicense"] = True
             else:
-                host["usev6testd"] = False
+                host["defaultlicense"] = False
         noisos = self.expand(node.getAttribute("noisos"))
         if noisos:
             if noisos[0] in ('y', 't', '1', 'Y', 'T'):

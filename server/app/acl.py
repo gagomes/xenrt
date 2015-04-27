@@ -107,11 +107,11 @@ class ACLHelper(object):
             if not rc:
                 break
             if rc[1].strip() in ["scheduled", "slaved", "running"]:
-                machines[rc[0]] = rc[3].strip()
+                machines[rc[0].strip()] = rc[3].strip()
             elif rc[2] is not None:
-                machines[rc[0]] = rc[2].strip()
+                machines[rc[0].strip()] = rc[2].strip()
             else:
-                machines[rc[0]] = None
+                machines[rc[0].strip()] = None
         cur.close()
 
         return machines

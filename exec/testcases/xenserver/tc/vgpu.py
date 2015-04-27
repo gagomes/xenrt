@@ -1840,7 +1840,7 @@ class FunctionalBase(VGPUAllocationModeBase):
         step("Install host drivers")
         self.typeOfvGPU.installHostDrivers(self.getAllHosts())
 
-        self.sr = self.host.getSRs(type="ext", local=True)[0]
+        self.sr = self.host.lookupDefaultSR()
         self.prepareGPUGroups()
 
     def typeofvGPU(self, typeOfvGPU = None):

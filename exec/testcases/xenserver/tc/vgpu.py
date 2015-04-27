@@ -3476,6 +3476,7 @@ class TCPoolIntelGPU(IntelBase):
                     vm2.setState("DOWN")
                     # setState() defaults to trying to start vms on the same host when in a pool.
                     vm1.start(specifyOn=False)
+                    xenrt.sleep(10)
                     vm2.start(specifyOn=False)
 
 class TCAlloModeK200NFS(VGPUAllocationModeBase):

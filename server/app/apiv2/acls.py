@@ -276,7 +276,10 @@ class GetAcl(_AclBase):
                 else:
                     filteredEntry = e
                     break
-            acl.entries = [filteredEntry]
+            if filteredEntry:
+                acl.entries = [filteredEntry]
+            else:
+                acl.entries = []
         return acl
 
 class NewAcl(_AclBase):

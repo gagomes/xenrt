@@ -666,7 +666,8 @@ while not os.path.isfile("%s%s") and i<600000:
 """
         if xenrt.TEC().lookup("USE_GUEST_IPV6", False):
             afinet = "socket.AF_INET6"
-            get_ipv6_fn = """
+            if guest.windows:
+                get_ipv6_fn = """
 import subprocess
 ipv6 = False
 while not ipv6:
@@ -676,6 +677,19 @@ while not ipv6:
         if "  IPv6 Address" in line:
             ipv6 = line.split(": ")[1]
             print "found local ipv6 %s" % (ipv6,)
+"""
+            else:
+                get_ipv6_fn = """
+import subprocess
+ipv6 = False
+while not ipv6:
+    print "not found local ipv6 yet"
+    for line in subprocess.check_output("ifconfig").split(\\n"):
+        print line
+        if "inet6 addr:" in line and "Scope:Global" in line:
+            ipv6 = line.split("/")[0].split(": ")[1]
+            print "found local ipv6 %s" % (ipv6,)
+            break
 """
             bind_ipv6_fn = "s.bind((ipv6,0))"
         else:

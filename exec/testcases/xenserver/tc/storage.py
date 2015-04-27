@@ -4810,6 +4810,11 @@ class TCCIFSLifecycle(xenrt.TestCase):
 
         # Introduce SR
         self.sr.introduce()
+        xenrt.sleep(10)
+        
+        self.sr.scan()
+
+        self.sr.check()
 
         # Destroy SR.
         self.sr.destroy()
@@ -4820,5 +4825,4 @@ class TCCIFSVDILifecycle(xenrt.TestCase):
         pass
 
     def run(self, arglist):
-        # Trying to aggregate lots of different TCs that do similar
         pass

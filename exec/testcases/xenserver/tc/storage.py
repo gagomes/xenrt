@@ -4831,7 +4831,7 @@ class TCCIFSLifecycle(xenrt.TestCase):
         # Check number of VDIs.
 
         # Destroy SR.
-        self.sr.destroy()
+        self.sr.remove()
 
 class TCCIFSVDILifecycle(xenrt.TestCase):
 

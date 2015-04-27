@@ -501,20 +501,19 @@ class TCUnsupFlags(xenrt.TestCase):
     }
 
     def createTempSeq(self, productType=None, productVersion=None, version=None, **kargs):
-        seq = "tempSeq.seq"
         seqContent  = """<xenrt><prepare><host id="0" """
         seqContent += 'productType="%s" ' % productType if productType else ""
         seqContent += 'productVersion="%s" '% productVersion if productVersion else ""
         seqContent += 'version="%s" ' % version if version else ""
         seqContent += """/></prepare></xenrt>"""
-        seqFile ="%s/seqs/tempSeq.seq" % xenrt.TEC().lookup("XENRT_BASE", "/usr/share/xenrt")
-        with open("%s/seqs/%s" % (xenrt.TEC().lookup("XENRT_BASE"), seq), 'w') as seqFile:
-            seqFile.write(seqContent)
-        log("Temp Seq file content : %s" % seqContent)
-        return seq
 
-    def doSequence(self, seqFileName):
-        seqFile = xenrt.findSeqFile(seqFileName)
+        seqFile =xenrt.TEC().tempFile()
+        with open(seqFile, 'w') as file:
+            file.write(seqContent)
+        log("Temp Seq file content : %s" % seqContent)
+        return seqFile
+
+    def doSequence(self, seqFile):
         seq = xenrt.TestSequence(seqFile)
         seq.doPreprepare()
         seq.doPrepare()
@@ -556,7 +555,7 @@ class TCUnsupFlags(xenrt.TestCase):
 
             passed = False
             try:
-                self.doSequence(seqFileName=seqFile)
+                self.doSequence(seqFile)
                 passed = True
             except Exception, e:
                 warning(str(e))

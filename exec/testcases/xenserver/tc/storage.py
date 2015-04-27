@@ -4799,21 +4799,34 @@ class TCCIFSLifecycle(xenrt.TestCase):
         self.sr = xenrt.productLib(host=self.host).SMBStorageRepository(self.host, "CIFS-SR")
 
     def run(self, arglist):
+        noOfVdis = 10  # Creating 10 VDI's
+        size = 400      # Each VDI of size 400B
+
         # Create SR.
         self.sr.create(self.share)
 
-        # Create some VDIs and keep track of them.
+        # Create some VDIs
+        actualVdis = [self.host.createVDI(size, sruuid=self.sr.uuid, name="VDI_%s" % i)for i in range(noOfVdis)]
+
 
         # Forget SR
         self.sr.forget()
 
         # Introduce SR
         self.sr.introduce()
-        xenrt.sleep(10)
+        xenrt.sleep(100)
         
-        self.sr.scan()
+        # self.sr.scan()
+        VDIs_present = set(self.sr.listVDIs())
+        VDIs_missing = filter(lambda vdi: vdi not in VDIs_present, VDIs_present)
 
-        self.sr.check()
+        for vdi in VDIs_missing:
+            xenrt.TEC().logverbose("VDI %s is missing after SR introduce" % vdi)
+            
+        if len(VDIs_missing) > 0:
+            raise xenrt.XRTFailure("VDIs are missing after SR introduce")
+
+        # self.sr.check()
 
         # Check number of VDIs.
 

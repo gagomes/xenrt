@@ -65,7 +65,7 @@ class AclTests(XenRTUnitTestCase):
             if userid in ["user1","user2"]:
                 return ["group1"]
             return []
-        self.acl._groups_for_userid = groupsForUserId
+        self.acl.groups_for_userid = groupsForUserId
         def useridsForGroup(group):
             if group == "group1":
                 return ["user1","user2"]

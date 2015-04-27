@@ -1279,31 +1279,34 @@ class SourceISOCheck(xenrt.TestCase):
         for sourceFile, sourceBuildPath in self.SOURCE_ISO_FILES.iteritems():
             try:
                 # e.g download xe-phase-3/source-1.iso and list the RPMs.
-                iso = xenrt.TEC().getFile(sourceBuildPath+"/"+sourceFile, sourceFile)
-                if iso:
-                    mount = xenrt.MountISO(iso)
+                file = xenrt.TEC().getFile(sourceBuildPath+"/"+sourceFile, sourceFile)
+                if re.search(r'iso',sourceFile):
+                    mount = xenrt.MountISO(file)
                     mountpoint = mount.getMount()
+                else:
+                    mountpoint = xenrt.TEC().tempDir()
+                    xenrt.util.command("tar -xvf %s -C %s" % (file, mountpoint))
 
-                    if self.APPLIANCE_NAME == "DVSC Controller VM":
-                        # Retrieve all the package file names with .dsc extension.
-                        tmpSourceRpmPackageList = xenrt.recursiveFileSearch(mountpoint, "*.dsc")
-                    else:
-                        tmpSourceRpmPackageList = xenrt.recursiveFileSearch(mountpoint, "*.src.rpm")
+                if self.APPLIANCE_NAME == "DVSC Controller VM":
+                    # Retrieve all the package file names with .dsc extension.
+                    tmpSourceRpmPackageList = xenrt.recursiveFileSearch(mountpoint, "*.dsc")
+                else:
+                    tmpSourceRpmPackageList = xenrt.recursiveFileSearch(mountpoint, "*.src.rpm")
 
-                    if not tmpSourceRpmPackageList:
-                        raise xenrt.XRTFailure("Unable to obtain the list of rpm packages from %s/%s for %s." %
-                                                                (sourceBuildPath, sourceFile, self.APPLIANCE_NAME))
+                if not tmpSourceRpmPackageList:
+                    raise xenrt.XRTFailure("Unable to obtain the list of rpm packages from %s/%s for %s." %
+                                                            (sourceBuildPath, sourceFile, self.APPLIANCE_NAME))
 
-                    if self.APPLIANCE_NAME == "DVSC Controller VM":
-                        # Obtain the filenames without extension (.dsc)
-                        tmpSourceRpmPackageList = [os.path.splitext(filename)[0] for filename in tmpSourceRpmPackageList]
+                if self.APPLIANCE_NAME == "DVSC Controller VM":
+                    # Obtain the filenames without extension (.dsc)
+                    tmpSourceRpmPackageList = [os.path.splitext(filename)[0] for filename in tmpSourceRpmPackageList]
 
-                    # To obtain merged list of unique RPMs.
-                    sourceRpmPackageList = sourceRpmPackageList + tmpSourceRpmPackageList
-                    isosFound += 1
+                # To obtain merged list of unique RPMs.
+                sourceRpmPackageList = sourceRpmPackageList + tmpSourceRpmPackageList
+                isosFound += 1
             finally:
                 try:
-                    if iso:
+                    if file:
                         mount.unmount()
                 except:
                     pass
@@ -1390,13 +1393,21 @@ class TCDom0SourceCheck(SourceISOCheck): # TC-17998
     """Verify dom0 source iso (xe-phase-3/source-1.iso & source-4.iso) for missing RPMs."""
 
     APPLIANCE_NAME = "Dom0"
-    SOURCE_ISO_FILES = {'source-1.iso': 'xe-phase-3', 'source-4.iso': 'xe-phase-3', 'source.iso': 'xe-phase-3'}
-
+    
+    SOURCE_ISO_FILES = {'source-1.iso': 'xe-phase-3', 'source-4.iso': 'xe-phase-3'}
+   
     IGNORE_EXTRA_RPM_PACKAGES = ['libev', 'perf-tools'] # in addition to the list of base packages.
                                                         # perf-tools missing from tampa onwards
 
     def run(self, arglist=None):
-
+        
+        versiontype = xenrt.TEC().lookup("PRODUCT_VERSION", None)
+        cpatches = xenrt.TEC().lookupLeaves("CPATCHES_%s" % string.upper(versiontype))
+        if len(cpatches) == 1:
+            hotfixDirectory = re.search(r'(\S+)/XS\S+\.',cpatches[0])
+            filename= re.search(r'\S+hotfix-(\S+)$',hotfixDirectory.group(1))
+            self.SOURCE_ISO_FILES[filename.group(1)+'-src-pkgs.tar']= hotfixDirectory.group(1)
+            
         # This list inlcudes rpm's installed in Dom0. (which is distributed in source-1.iso & source-4.iso)
         installedRpmList = self.host.execdom0("for r in `rpm -qa`; "
             "do gpl=`rpm -q --qf %{License} $r|grep -ci \"GPL\|Apache\|AFL\|Artistic\|DFSG\|MPL\"`; "

@@ -3,16 +3,46 @@ import math, copy
 
 class ACL(object):
 
-    def __init__(self, aclid, name, parent, entries, machines):
+    def __init__(self, aclid, name, parent, owner, entries, machines):
         self.aclid = aclid
         self.name = name
         self.parent = parent
+        self.owner = owner
         self.entries = entries
         self.machines = machines
 
+    def toDict(self):
+        """Return a dictionary representation ready for JSON"""
+        acl = {
+            "parent": self.parent,
+            "owner": self.owner,
+            "name": self.name
+        }
+
+        entries = []
+        for e in self.entries:
+            entry = {
+                "prio": e.prio,
+                "type": e.entryType,
+                "userid": e.userid,
+                "grouplimit": e.grouplimit,
+                "grouppercent": e.grouppercent,
+                "userlimit": e.userlimit,
+                "userpercent": e.userpercent,
+                "maxleasehours": e.maxleasehours
+            }
+            if e.machinecount is not None:
+                entry['machinecount'] = e.machinecount
+                entry['usermachines'] = e.usermachines
+            entries.append(entry)
+        acl['entries'] = entries
+
+        return acl
+
 class ACLEntry(object):
 
-    def __init__(self, entryType, userid, grouplimit, grouppercent, userlimit, userpercent, maxleasehours):
+    def __init__(self, prio, entryType, userid, grouplimit, grouppercent, userlimit, userpercent, maxleasehours):
+        self.prio = prio
         self.entryType = entryType
         self.userid = userid
         self.grouplimit = grouplimit
@@ -20,6 +50,8 @@ class ACLEntry(object):
         self.userlimit = userlimit
         self.userpercent = userpercent
         self.maxleasehours = maxleasehours
+        self.machinecount = None
+        self.usermachines = None
 
 class ACLHelper(object):
 
@@ -29,7 +61,10 @@ class ACLHelper(object):
         self._userGroupCache = {}
         self._aclCache = {}
 
-    def get_acl(self, aclid):
+    def get_acl(self, aclid, withCounts=False):
+        if withCounts:
+            return self._get_acl_counts(aclid)
+
         if not aclid in self._aclCache:
             self._get_acl(aclid)
         return self._aclCache[aclid]
@@ -38,15 +73,16 @@ class ACLHelper(object):
         db = self.page.getDB()
         cur = db.cursor()
 
-        cur.execute("SELECT name, parent FROM tblacls WHERE aclid=%s", [aclid])
+        cur.execute("SELECT name, parent, owner FROM tblacls WHERE aclid=%s", [aclid])
         rc = cur.fetchone()
         if not rc:
             raise KeyError("ACL not found")
         name = rc[0].strip()
         parent = rc[1]
+        owner = rc[2]
 
         entries = []
-        cur.execute("SELECT type, userid, grouplimit, grouppercent, userlimit, userpercent, maxleasehours FROM tblaclentries WHERE aclid=%s ORDER BY prio", [aclid])
+        cur.execute("SELECT type, userid, grouplimit, grouppercent, userlimit, userpercent, maxleasehours, prio FROM tblaclentries WHERE aclid=%s ORDER BY prio", [aclid])
         while True:
             rc = cur.fetchone()
             if not rc:
@@ -56,9 +92,9 @@ class ACLHelper(object):
                     return data
                 return int(data)
 
-            entries.append(ACLEntry(rc[0].strip(), rc[1].strip(), __int(rc[2]), __int(rc[3]), __int(rc[4]), __int(rc[5]), __int(rc[6])))
+            entries.append(ACLEntry(rc[7], rc[0].strip(), rc[1].strip(), __int(rc[2]), __int(rc[3]), __int(rc[4]), __int(rc[5]), __int(rc[6])))
 
-        self._aclCache[aclid] = ACL(aclid, name, parent, entries, self._get_machines_in_acl(aclid))
+        self._aclCache[aclid] = ACL(aclid, name, parent, owner, entries, self._get_machines_in_acl(aclid))
 
     def _get_machines_in_acl(self, aclid):
         db = self.page.getDB()
@@ -79,6 +115,48 @@ class ACLHelper(object):
         cur.close()
 
         return machines
+
+    def _get_acl_counts(self, aclid):
+        acl = self.get_acl(aclid, withCounts=False)
+        machines = copy.copy(acl.machines)
+        for e in acl.entries:
+            count = 0
+            userMachines = {}
+            if e.entryType == 'user':
+                # Identify all machines used by this user
+                userMachines[e.userid] = []
+                for m in machines:
+                    if machines[m] == e.userid:
+                        machines[m] = None
+                        count += 1
+                        userMachines[e.userid].append(m)
+            elif e.entryType == 'group':
+                # Identify all machines used by this group
+                groupUsers = self._userids_for_group(e.userid)
+                for m in machines:
+                    if machines[m] in groupUsers:
+                        user = machines[m]
+                        machines[m] = None
+                        count += 1
+                        if not user in userMachines.keys():
+                            userMachines[user] = []
+                        userMachines[user].append(m)
+            elif e.entryType == 'default':
+                # Identify all other in use machines
+                for m in machines:
+                    if machines[m] is not None:
+                        user = machines[m]
+                        if not user in userMachines.keys():
+                            userMachines[user] = []
+                        userMachines[user].append(m)
+                        count += 1
+            else:
+                raise Exception("Unknown entryType %s" % e.entryType)
+
+            # Set the properties on the ACL
+            e.machinecount = count
+            e.usermachines = userMachines
+        return acl
 
     def check_acl(self, aclid, userid, machines, leaseHours=None, ignoreParent=False):
         """Returns a tuple (allowed, reason_if_false) if the given user can have machines under this acl"""

@@ -68,7 +68,7 @@ class TCSnapRevertNoTools(WindowsUpdateBase):
         if not self.guest.checkPVDevicesState():
             raise xenrt.XRTFailure("PV Tools present after the Reverting VM to state where tools were not installed ")
 
-class TCUpgWinCompatible(WindowsUpdateBase):
+class TCUpgWinCmp(WindowsUpdateBase):
     
     def run(self, arglist=None):
 
@@ -115,7 +115,7 @@ class TCSkipPvPkg(WindowsUpdateBase):
         snapshot = self.snapshot()
         
         log("Install PV Drivers on the windows guest")
-        self.installDrivers(pkgList)
+        self.installDrivers(packagesToInstall = pkgList)
         
         self.waitForDaemon(300, desc="Guest check after installation of PV Packages %s" %(pkgList))
         
@@ -126,36 +126,27 @@ class TCSkipPvPkg(WindowsUpdateBase):
         
     def run(self, arglist=None):
 
-        self.pvDriversList = xenrt.TEC().lookup("PV_DRIVERS_LIST").split(';')
+        pvDriversList = xenrt.TEC().lookup("PV_DRIVERS_LIST").split(';')
         
-        for pkg in self.pvDriversList:
-            self.guest.skipPvPkginst(random.sample(self.pvDriverList, 4))
+        for pkg in pvDriversList:
+            self.guest.skipPvPkginst(random.sample(pvDriverList, 4))
 
 class TCRemovePvpkg(WindowsUpdateBase):
 
 
     def removePvpkg(self,pvPkg):
-        
-        log("Take snapshot of the VM")
-        snapshot = self.snapshot()
-        
+
         log("Install PV Drivers on the windows guest")
-        self.uninstallDrivers(pvPkg)
+        self.uninstallDrivers(pkgToUninstall = pvPkg)
         
         self.waitForDaemon(300, desc="Guest check after Uninstallation of PV Packages %s" %(pkgList))
         
-        log("Revert the VM to the State before tools were uninstalled")
-        self.revert(snapshot)
-        self.removeSnapshot(snapshot)
-        self.lifecycleOperation("vm-start")
-        
     def run(self, arglist=None):
         
-        self.pvDriversToRm = xenrt.TEC().lookup("PV_DRIVERS_UNINSTALL_LIST").split(';')
+        pvDriversToRm = xenrt.TEC().lookup("PV_DRIVERS_UNINSTALL_LIST").split(';')
         
         log("Install PV Drivers on the windows guest")
-        self.installDrivers()
+        self.guest.installDrivers()
         
-        for item in self.pvDriversToRm:
-            
-            self.removePvPkg(self.pvDriversToRm)
+        for pkg in pvDriversToRm:
+            self.guest.removePvPkg(pkg)

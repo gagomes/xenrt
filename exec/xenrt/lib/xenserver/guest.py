@@ -6081,7 +6081,7 @@ class DundeeGuest(CreedenceGuest):
                 xenrt.GEC().dbconnect.jobUpdate("RND_PV_DRIVERS_LIST_VALUE",randomPvDriversList)
                 return randomPvDriversList
 
-    def installDrivers(self, source=None, extrareboot=False, useLegacy=False, useHostTimeUTC=False, expectUpToDate=True, installFullWindowsGuestAgent=True, useDotNet=True):
+    def installDrivers(self, source=None, extrareboot=False, useLegacy=False, useHostTimeUTC=False, expectUpToDate=True, installFullWindowsGuestAgent=True, useDotNet=True, packagesToInstall=None):
         """
         Install PV Tools on Windows Guest
         """
@@ -6117,15 +6117,25 @@ class DundeeGuest(CreedenceGuest):
                 
             if installFullWindowsGuestAgent:
                 self.installFullWindowsGuestAgent()
-                
+            
+            if source:
+                if os.path.exists(source):
+                    toolsTgz = source
+                else:
+                    toolsTgz = xenrt.TEC().getFile(source)
+                self.xmlrpcSendFile(toolsTgz, "c:\\tools.tgz")
+            else:
             # Download the Individual PV packages
-            self.xmlrpcSendFile(xenrt.TEC().getFile("xe-phase-1/%s" %(xenrt.TEC().lookup("PV_DRIVERS_LOCATION"))), "c:\\tools.tgz")
+                self.xmlrpcSendFile(xenrt.TEC().getFile("xe-phase-1/%s" %(xenrt.TEC().lookup("PV_DRIVERS_LOCATION"))), "c:\\tools.tgz")
             pvToolsDir = self.xmlrpcTempDir()
             self.xmlrpcExtractTarball("c:\\tools.tgz", pvToolsDir)
             
-            #Get the list of the Packages to be installed in random order
-            packages = self.setRandomPvDriverList()
-            packages = packages.split(';')
+            if packagesToInstall:
+                packages = packagesToInstall
+            else:
+                #Get the list of the Packages to be installed in random order
+                packages = self.setRandomPvDriverList()
+                packages = packages.split(';')
             
             #Install the PV Packages one by one
             for pkg in packages:
@@ -6228,10 +6238,13 @@ class DundeeGuest(CreedenceGuest):
             
         xenrt.TEC().logverbose("PV Devices are installed and Running on %s " %(self.getName()))
 
-    def uninstallDrivers(self, waitForDaemon=True):
+    def uninstallDrivers(self, waitForDaemon=True, pkgToUninstall = None):
         
         installed = False
-        driversToUninstall = ['*XENVIF*', '*XENBUS*', '*VEN_5853*']
+        if pkgToUninstall:
+            driversToUninstall = driversToUninstall
+        else:
+            driversToUninstall = ['*XENVIF*', '*XENBUS*', '*VEN_5853*']
         
         var1 = self.winRegPresent('HKLM', "SOFTWARE\\Wow6432Node\\Citrix\\XenToolsInstaller", "InstallStatus")
         var2 = self.winRegPresent('HKLM', "SOFTWARE\\Citrix\\XenToolsInstaller", "InstallStatus")

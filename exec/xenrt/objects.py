@@ -7539,7 +7539,7 @@ class GenericGuest(GenericPlace):
                         if self.execguest("test -e %s" % (filename), retval="code") == 0:
                             self.execguest("rm -f %s" % (filename))
 
-                if self.execguest("[ -e /etc/apt/sources.list.d/updates.list ]", retval="code") and int(debVer) in (6, 7) and xenrt.TEC().lookup("APT_SERVER", None):
+                if self.execguest("[ -e /etc/apt/sources.list.d/updates.list ]", retval="code") and int(debVer) in (6, 7, 8) and xenrt.TEC().lookup("APT_SERVER", None):
                     codename = self.execguest("cat /etc/apt/sources.list | grep '^deb' | awk '{print $3}' | head -1").strip()
                     self.execguest("echo deb %s/debsecurity %s/updates main >> /etc/apt/sources.list.d/updates.list" % (xenrt.TEC().lookup("APT_SERVER"), codename))
                     self.execguest("echo deb %s/debian %s-updates main >> /etc/apt/sources.list.d/updates.list" % (xenrt.TEC().lookup("APT_SERVER"), codename))

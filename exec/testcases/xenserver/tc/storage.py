@@ -4797,11 +4797,21 @@ class TCCIFSLifecycle(xenrt.TestCase):
         self.host = self.getDefaultHost()
         share = xenrt.VMSMBShare()
         self.sr = xenrt.productLib(host=self.host).SMBStorageRepository(self.host, "CIFS-SR")
-        self.sr.create(share)
 
     def run(self, arglist):
+        # Create SR.
+        self.sr.create(share)
+
+        # Could create some VDI here and then check the health after lifecycles.
+        # Method of checking health?
+
+        # Forget SR
         self.sr.forget()
+
+        # Introduce SR
         self.sr.introduce()
+
+        # Destroy SR.
         self.sr.destroy()
 
 class TCCIFSVDILifecycle(xenrt.TestCase):
@@ -4810,4 +4820,5 @@ class TCCIFSVDILifecycle(xenrt.TestCase):
         pass
 
     def run(self, arglist):
+        # Trying to aggregate lots of different TCs that do similar
         pass

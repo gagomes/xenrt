@@ -247,6 +247,11 @@ class GetAcl(_AclBase):
          'in': 'query',
          'required': False,
          'description': 'Include current counts. Defaults to false',
+         'type': 'boolean'},
+        {'name': 'onlymine',
+         'in': 'query',
+         'required': False,
+         'description': 'Only show ACL entries which affect you. Defaults to false',
          'type': 'boolean'}
     ]
     RESPONSES = { "200": {"description": "Successful response"},
@@ -256,7 +261,26 @@ class GetAcl(_AclBase):
         aclid = self.getIntFromMatchdict("id")
         withCounts = self.request.params.get("counts", "false") == "true"
         acls = self.getAcls(limit=1, ids=[aclid], exceptionIfEmpty=True, withCounts=withCounts)
-        return acls[aclid]
+        acl = acls[aclid]
+        if self.request.params.get("onlymine", "false") == "true":
+            filteredEntry = None
+            user = self.getUser().userid
+            groups = self.getACLHelper().groups_for_userid(user)
+            for e in acl['entries']:
+                if e['type'] == "user" and e['userid'] == user:
+                    filteredEntry = e
+                    break
+                elif e['type'] == "group" and e['userid'] in groups:
+                    filteredEntry = e
+                    break
+                elif e['type'] == "default":
+                    filteredEntry = e
+                    break
+            if filteredEntry:
+                acl['entries'] = [filteredEntry]
+            else:
+                acl['entries'] = []
+        return acl
 
 class NewAcl(_AclBase):
     WRITE = True

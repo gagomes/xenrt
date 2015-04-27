@@ -693,7 +693,7 @@ while not ipv6:
             ipv6_7 = "%s%s" % (macx[4],macx[5])
         if "inet6 addr:" in line and "Scope:Global" in line:
             _ipv6 = line.split("/")[0].split(": ")[1]
-            _ipv6x = _ipv6.split(":")
+            _ipv6x = map(lambda i: i.zfill(4), _ipv6.split(":"))
             print _ipv6x
             if _ipv6x[6]==ipv6_6 and _ipv6x[7]==ipv6_7:
                 ipv6=_ipv6

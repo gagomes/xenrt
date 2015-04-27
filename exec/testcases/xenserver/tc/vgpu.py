@@ -3079,9 +3079,6 @@ class TCExportImportK2GPU(FunctionalBase):
         step("Testing OS %s with %s type vGPU" % (osType, expVGPUType))
         masterVM = self.masterVMs[osType]
         
-        #masterVM.setState("DOWN")
-        #self.configureVGPU(config, masterVM)
-        #masterVM.setState("UP")
         self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], masterVM)
 
         log("Install guest drivers for %s" % str(masterVM))
@@ -3170,8 +3167,6 @@ class TCNonWindowsK1(FunctionalBase):
         expVGPUType = self.getConfigurationName(config)
 
         log("Creating vGPU of type %s" % (expVGPUType))
-        #vm.setState("DOWN")
-        #self.configureVGPU(config, vm)
         self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
 
         try:
@@ -3321,8 +3316,6 @@ class MixedGPUBootstorm(BootstormBase):
             self.__configureMasterAndPopulate(windowsMaster, config, remainingCapacity, installer, self.nvidWinvGPU)
 
     def __configureMasterAndPopulate(self, master, config, allocation, installer, typeVgpu):
-        #installer.createOnGuest(master)
-        #master.setState("UP")
         typeVgpu.attachvGPUToVM(installer, master)
         typeVgpu.installGuestDrivers(master, self.getConfigurationName(config))
         master.setState("DOWN")

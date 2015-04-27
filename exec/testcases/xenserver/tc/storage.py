@@ -4802,8 +4802,7 @@ class TCCIFSLifecycle(xenrt.TestCase):
         # Create SR.
         self.sr.create(self.share)
 
-        # Could create some VDI here and then check the health after lifecycles.
-        # Method of checking health?
+        # Create some VDIs and keep track of them.
 
         # Forget SR
         self.sr.forget()
@@ -4815,6 +4814,8 @@ class TCCIFSLifecycle(xenrt.TestCase):
         self.sr.scan()
 
         self.sr.check()
+
+        # Check number of VDIs.
 
         # Destroy SR.
         self.sr.destroy()

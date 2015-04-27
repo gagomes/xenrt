@@ -266,20 +266,20 @@ class GetAcl(_AclBase):
             filteredEntry = None
             user = self.getUser().userid
             groups = self.getACLHelper().groups_for_userid(user)
-            for e in acl.entries:
-                if e['type'] == "user" and e['userid'] == self.getUser().userid:
+            for e in acl['entries']:
+                if e['type'] == "user" and e['userid'] == user:
                     filteredEntry = e
                     break
                 elif e['type'] == "group" and e['userid'] in groups:
                     filteredEntry = e
                     break
-                else:
+                elif e['type'] == "default":
                     filteredEntry = e
                     break
             if filteredEntry:
-                acl.entries = [filteredEntry]
+                acl['entries'] = [filteredEntry]
             else:
-                acl.entries = []
+                acl['entries'] = []
         return acl
 
 class NewAcl(_AclBase):

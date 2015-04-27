@@ -699,7 +699,6 @@ while not ipv6:
                 ipv6=_ipv6
                 print "found local ipv6 %s" % (ipv6,)
                 break
-    time.sleep(1)
 """
             bind_ipv6_fn = "s.bind((ipv6,0))"
         else:

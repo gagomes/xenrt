@@ -684,7 +684,7 @@ import subprocess
 ipv6 = False
 while not ipv6:
     print "not found local ipv6 yet"
-    for line in subprocess.check_output("ifconfig").split(\\n"):
+    for line in subprocess.check_output("ifconfig").split("\\n"):
         print line
         if "HWaddr" in line:
             macx=map(lambda x:x.strip(), line.split("HWaddr ")[1].split(":"))

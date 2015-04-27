@@ -171,7 +171,7 @@ class ACLHelper(object):
         """Returns True if the given user can have machines under this acl"""
         aclMachines = copy.copy(acl.machines)
         extraMachines = copy.copy(machines)
-        usergroups = self._groups_for_userid(userid)
+        usergroups = self.groups_for_userid(userid)
         usercount = 0
         for m in aclMachines:
             if aclMachines[m] == userid:
@@ -266,7 +266,7 @@ class ACLHelper(object):
         self._groupCache[group] = results
         return results
 
-    def _groups_for_userid(self, userid):
+    def groups_for_userid(self, userid):
         if userid in self._userGroupCache:
             return self._userGroupCache[userid]
         db = self.page.getDB()

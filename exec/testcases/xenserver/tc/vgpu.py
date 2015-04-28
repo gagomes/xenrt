@@ -2277,7 +2277,7 @@ class TCNovGPUTypeGiven(FunctionalBase):
 
         log("Creating vGPU ")
 
-        self.typeOfvGPU.attatchGPU(self.vGPUCreator[config], vm, groupUUID)
+        self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm, groupUUID)
 
         vgpuType, vgpuuuid = self.typeOfvGPUonVM(vm)
 

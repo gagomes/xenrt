@@ -120,13 +120,35 @@ clean all
                 vm.xmlrpcWriteFile("C:\\erase.script", script)
                 vm.xmlrpcExec("diskpart /s C:\\erase.script")
 
-    def runPhase(self, count, op):
-        for blocksize in self.blocksizes:
-            # TODO we don't support pre-defined access patterns with 'latency', only integer block sizes
-            blocksize = int(blocksize)
-            # Run synexec master
-            proc, port = libsynexec.start_master_on_controller(
-                    """/bin/bash :CONF:
+    def runPhasePrepareCommand(self, blocksize, op):
+        if self.bench == "fio":
+            return """/bin/bash :CONF:
+#!/bin/bash
+
+for i in {b..%s}; do
+    pididx=0
+    echo $(($(/root/fio/fio --name=iometer \
+                            --direct=1 \
+                            --ioengine=libaio \
+                            --filename=/dev/xvd$i \
+                            --minimal \
+                            --terse-version=3 \
+                            --rw=%s \
+                            --iodepth=%d \
+                            --bssplit=%d/100 \
+                            --runtime=%d %s | cut -d";" -f%d) * 1024)) &> /root/out-$i &
+    pid[$pididx]=$!
+    ((pididx++))
+done
+
+for ((idx=0; idx<pididx; idx++)); do
+  wait ${pid[$idx]}
+done
+""" % (chr(ord('a') + self.vbds_per_vm), "randread" if op == "r" else "randwrite",
+       self.queuedepth, blocksize, self.duration,
+       "--zero_buffers" if self.zeros else "", 6 if op == "r" else 47)
+        else:
+            return """/bin/bash :CONF:
 #!/bin/bash
 
 for i in {b..%s}; do
@@ -140,8 +162,16 @@ for ((idx=0; idx<pididx; idx++)); do
   wait ${pid[$idx]}
 done
 """ % (chr(ord('a') + self.vbds_per_vm), "" if op == "r" else " -w",
-       " -z" if self.zeros else "", blocksize, self.duration),
-                    self.jobid, len(self.vm))
+       " -z" if self.zeros else "", blocksize, self.duration)
+
+    def runPhase(self, count, op):
+        for blocksize in self.blocksizes:
+            # TODO we don't support pre-defined access patterns with 'latency', only integer block sizes
+            blocksize = int(blocksize)
+
+            # Run synexec master
+            proc, port = libsynexec.start_master_on_controller(self.runPhasePrepareCommand(blocksize, op),
+                                                               self.jobid, len(self.vm))
 
             for vm in self.vm:
                 libsynexec.start_slave(vm, self.jobid, port)

@@ -18,7 +18,14 @@ class WindowsUpdateBase(xenrt.TestCase):
         self.snapshot = self.guest.snapshot()
         if self.args.has_key('TOOLS'):
             self.Tools = self.args['TOOLS']
-            
+
+    def postRun(self):
+        
+        log("Revert the VM back to the original state")
+        self.guest.revert(self.snapshot)
+        self.guest.lifecycleOperation("vm-start")
+        self.guest.removeSnapshot(self.snapshot)
+        
 class TCSnapRevertTools(WindowsUpdateBase):
     
     def run(self, arglist=None):
@@ -34,18 +41,13 @@ class TCSnapRevertTools(WindowsUpdateBase):
         
         log("Revert the VM to the State before tools were uninstalled")
         self.guest.revert(snapshot)
+        self.guest.removeSnapshot(snapshot)
         
         self.guest.start()
         
         log("Verify tools are present after the VM is reverted to previous state")
         if self.guest.checkPVDevicesState() and not self.guest.checkPVDriversStatus(ignoreException = True):
             raise xenrt.XRTFailure("PV Tools not present after the Reverting VM to state where tools were installed ")
-    
-    def postrun(self):
-
-        log("Revert the VM back to the original state")
-        self.guest.revert(self.snapshot)
-        self.guest.lifecycleOperation("vm-start")
         
 class TCSnapRevertNoTools(WindowsUpdateBase):
     
@@ -59,16 +61,10 @@ class TCSnapRevertNoTools(WindowsUpdateBase):
         
         log("Revert the VM to the State before tools were uninstalled")
         self.guest.revert(snapshot)
-        
+        self.guest.removeSnapshot(snapshot)
         self.guest.lifecycleOperation("vm-start")
         
         log("Verify tools are not present after the VM is reverted to previous state")
         if not self.guest.checkPVDevicesState():
             raise xenrt.XRTFailure("PV Tools present after the Reverting VM to state where tools were not installed ")
-    
-    def postrun(self):
-
-        log("Revert the VM back to the original state")
-        self.guest.revert(self.snapshot)
-        self.guest.lifecycleOperation("vm-start")
         

@@ -4,6 +4,12 @@
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
   </variables>
 
+  <scheduler>
+    <pool>VMX,SVM</pool>
+    <param>SITE=SC04</param>
+    <param>MACHINES_REQUIRED=1</param>
+  </scheduler>
+
   <prepare>
     
     <host id="0">

@@ -240,7 +240,7 @@ class XenRTSchedule(XenRTAPIPage):
                     outfh.write("  scheduling %u on %s (%d)\n" % (int(jobid), str(selected), schedid))
                     if alsoPrintToVerbose:
                         verbose.write("  scheduling %u on %s (%d)\n" % (int(jobid), str(selected), schedid))
-                    self.schedule_on(outfh, int(jobid), selected)
+                    self.schedule_on(outfh, int(jobid), selected, details['USERID'])
                     
                     if not site:
                         site = machines[selected[0]][1]
@@ -329,7 +329,7 @@ class XenRTSchedule(XenRTAPIPage):
         except Exception, e:
             print "WARNING: Could not run scm_check_leases - %s" % str(e)
 
-    def schedule_on(self, outfh, job, machines):
+    def schedule_on(self, outfh, job, machines, userid):
         db = self.getDB()
         debug = False
         if not debug:
@@ -375,6 +375,9 @@ class XenRTSchedule(XenRTAPIPage):
                 cur.execute(sql)
                 cur.close()
         if not debug:
+            # Update the ACL cache
+            for m in machines:
+                self.getACLHelper().update_acl_cache(m, userid)
             # Now we're complete, mark the job as running
             self.set_status(job, app.constants.JOB_STATUS_RUNNING, commit=True)
 

@@ -3464,6 +3464,7 @@ class TCPoolIntelGPU(IntelBase):
                     self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
                     self.typeOfvGPU.installGuestDrivers(vm, self.getConfigurationName(config))
                     self.typeOfvGPU.assertvGPURunningInVM(vm, self.getConfigurationName(config))
+                    vm.setState("DOWN")
 
                 for i in range(10):
                     vm1.setState("DOWN")

@@ -5,12 +5,24 @@
   </variables>
 
   <prepare>
-    <host id="0"/>
+    
+    <host id="0">
+      <storage type="smb" name="CIFS-SR"/>
+    </host>
   </prepare>
 
   <testsequence>
     <serial group="CIFSLifecycle">
+      <!--
       <testcase id="xenserver.tc.storage.TCCIFSLifecycle"/>
+      -->
+      <testcase id="xenserver.tc.storage.TCCIFSOddSize"/>
+      <testcase id="xenserver.tc.storage.TCCIFSZeroedContents"/>
+      <testcase id="xenserver.tc.storage.TCCIFSVDIResizeShrink"/>
+      <testcase id="xenserver.tc.storage.TCCIFSVDIResizeGrowSmall"/>
+      <testcase id="xenserver.tc.storage.TCCIFSVDIResizeGrowLarge"/>
+      <testcase id="xenserver.tc.storage.TCCIFSVDIResizeOnline"/>
+      <testcase id="xenserver.tc.storage.TCCIFSVDIResizeDataCheck"/>
     </serial>
   </testsequence>
 

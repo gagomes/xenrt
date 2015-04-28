@@ -163,6 +163,8 @@
                 <xs:attribute name ="device" use="optional" type="xs:string"/>
                 <xs:attribute name ="bridge" use="optional" type="xs:string"/>
                 <xs:attribute name ="ip" use="optional" type="xs:string"/>
+                <xs:attribute name ="sriov" use="optional" type="xbool"/>
+                <xs:attribute name ="physdev" use="optional" type="xs:string"/>
               </xs:complexType>
             </xs:element>
             <xs:element name ="disk" minOccurs="0" maxOccurs="unbounded">

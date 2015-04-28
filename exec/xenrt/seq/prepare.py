@@ -747,6 +747,14 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
         if defaultHost and defaultHost[0] in ('y', 't', '1', 'Y', 'T'):
             host['default'] = True
         host["suppackcds"] = self.expand(node.getAttribute("suppackcds"))
+        iommu = self.expand(node.getAttribute("iommu"))
+        if iommu:
+            if iommu[0] in ('y', 't', '1', 'Y', 'T'):
+                host["iommu"] = True
+            else:
+                host["iommu"] = False
+        else:
+            host["iommu"] = False
         disablefw = self.expand(node.getAttribute("disablefw"))
         if disablefw:
             if disablefw[0] in ('y', 't', '1', 'Y', 'T'):
@@ -841,6 +849,7 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
 
         vm["guestname"] = self.expand(node.getAttribute("name"))
         vm["vifs"] = []       
+        vm["sriovvifs"] = []
         vm["ips"] = {}       
         vm["disks"] = []
         vm["postinstall"] = []
@@ -878,12 +887,17 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
                         if a.nodeType == a.TEXT_NODE:
                             vm["arch"] = self.expand(str(a.data))
                 elif x.localName == "network":
-                    device = self.expand(x.getAttribute("device"))
-                    bridge = self.expand(x.getAttribute("bridge"))
-                    ip = self.expand(x.getAttribute("ip"))
-                    vm["vifs"].append([device, bridge, xenrt.randomMAC(), None])
-                    if ip:
-                        vm["ips"][int(device)] = ip
+                    sriov = self.expand(x.getAttribute("sriov"))
+                    if sriov == "true" or sriov == "yes":
+                        physdev = self.expand(x.getAttribute("physdev"))
+                        vm["sriovvifs"].append([physdev, None])
+                    else:
+                        device = self.expand(x.getAttribute("device"))
+                        bridge = self.expand(x.getAttribute("bridge"))
+                        ip = self.expand(x.getAttribute("ip"))
+                        vm["vifs"].append([device, bridge, xenrt.randomMAC(), None])
+                        if ip:
+                            vm["ips"][int(device)] = ip
                 elif x.localName == "disk":
                     device = self.expand(x.getAttribute("device"))
                     size = self.expand(x.getAttribute("size"))

@@ -4380,7 +4380,56 @@ def parseSequenceVIFs(guest, host, vifs):
         update.append([device, bridge, mac, ip])
     return update
 
+def parseSequenceSRIOVVIFs(guest, host, vifs):
+    update = []
+    for v in vifs:
+        physdev, ip = v
 
+        # Convert physdev into a physical device name on the host (e.g. 'eth0')
+        xenrt.TEC().logverbose("Converting physdev='%s' into physical device name..." % (physdev))
+        if not physdev:
+            physdev = host.getPrimaryBridge()
+            # we assume the host already has SRIOV enabled
+            iovirt = xenrt.lib.xenserver.IOvirt(host)
+            eth_devs = iovirt.getSRIOVEthDevices()
+            if len(eth_devs) == 0:
+                raise xenrt.XRTFailure("No SR-IOV devices on host %s" % (host))
+            physdev = eth_devs[0]
+            xenrt.TEC().logverbose("Available physical devices are %s; using %s" % (eth_devs, physdev))
+        else:
+            netname = physdev
+            netuuid = host.getNetworkUUID(netname)
+            if not netuuid:
+                raise xenrt.XRTError("Could not find physical device on network '%s'" % (netname))
+            # Convert network-uuid into physical device
+            args = "host-uuid=%s" % (host.uuid)
+            pifuuid = host.parseListForUUID("pif-list", "network-uuid", netuuid, args)
+            xenrt.TEC().logverbose("PIF on network %s (for %s) is %s" % (netuuid, netname, pifuuid))
+            if not pifuuid:
+                raise xenrt.XRTError("couldn't get PIF uuid for network with uuid '%s'" % (netuuid))
+            # Get the assumed enumeration ID for this PIF
+            physdev = host.genParamGet("pif", pifuuid, "device")
+            xenrt.TEC().logverbose("Physical device on network %s is %s" % (netname, physdev))
+
+        update.append([physdev, ip])
+    return update
+
+def setupSRIOVVIFs(guest, host, sriovvifs):
+    if sriovvifs:
+        xenrt.TEC().logverbose("Setting up SR-IOV VIFs %s for guest %s on host %s..." % (sriovvifs, guest, host))
+
+        # We assume the host already has SR-IOV enabled
+        iovirt = xenrt.lib.xenserver.IOvirt(host)
+        eth_devs = iovirt.getSRIOVEthDevices()
+        xenrt.TEC().logverbose("Available physical devices are %s" % (eth_devs))
+
+        for (physdev, ip) in sriovvifs:
+            # Check whether it's in the list of devices
+            if not (physdev in eth_devs):
+                raise xenrt.XRTError("Physical device %s not in list of available SR-IOV devices %s" % (physdev, eth_devs))
+
+            pcidev = iovirt.assignFreeVFToVM(guest.uuid, physdev)
+            xenrt.TEC().logverbose("Assigned PCI device %s on %s to %s" % (pcidev, physdev, guest))
 
 def createVMFromFile(host,
                      guestname,
@@ -4392,6 +4441,7 @@ def createVMFromFile(host,
                      bootparams=None,
                      suffix=None,
                      vifs=[],
+                     sriovvifs=[],
                      ips={},
                      sr=None,
                      *args,
@@ -4406,6 +4456,7 @@ def createVMFromFile(host,
     guest.imported = True
     guest.ips = ips
     vifs = parseSequenceVIFs(guest, host, vifs)
+    sriovvifs = parseSequenceSRIOVVIFs(guest, host, sriovvifs)
     
     if userfile:
         share = xenrt.ExternalNFSShare()
@@ -4431,6 +4482,9 @@ def createVMFromFile(host,
     guest.paramSet("is-a-template", "false")
     guest.reparseVIFs()
     guest.vifs.sort()
+
+    setupSRIOVVIFs(guest, host, sriovvifs)
+
     if bootparams:
         bp = guest.getBootParams()
         if len(bp) > 0: bp += " "
@@ -4598,6 +4652,7 @@ def createVM(host,
              corespersocket=None,
              memory=None,
              vifs=[],
+             sriovvifs=[], # XXX currently unimplemented; see createVMFromFile
              bridge=None,
              sr=None,
              guestparams=[],

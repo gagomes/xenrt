@@ -2567,6 +2567,33 @@ class TC8509(_TCResizeDataCheck):
     SRTYPE = "lvmoiscsi"
     DOM0 = "slave"
     FORCEOFFLINE = True
+
+# CIFS Resize
+class TCCIFSVDIResizeShrink(_TCResizeShrink):
+    """Attempting to shrink a CIFS VDI should fail with a suitable error."""
+
+    SRTYPE = "cifs"
+
+class TCCIFSVDIResizeGrowSmall(_TCResizeGrow):
+    """Grow a CIFS VDI of a round size by 1 byte."""
+
+    SRTYPE = "cifs"
+
+class TCCIFSVDIResizeGrowLarge(_TCResizeGrow2):
+    """Grow a CIFS VDI twice in large chunks."""
+
+    SRTYPE = "cifs"
+
+class TCCIFSVDIResizeOnline(_TCResizeOnline):
+    """Resize a CIFS VDI attached to a running VM."""
+
+    SRTYPE = "cifs"
+
+class TCCIFSVDIResizeDataCheck(_TCResizeDataCheck):
+    """Data integrity of resized CIFS VDI."""
+
+    SRTYPE = "cifs"
+    FORCEOFFLINE = True
     
 #############################################################################
 # VDI create testcases
@@ -2705,6 +2732,12 @@ class TC8525(_TCVDICreateRoundup):
     """VDI create of a odd size Equallogic VDI should round up to the next allocation unit"""
 
     SRTYPE = "equal"
+
+class TCCIFSOddSize(_TCVDICreateRoundup):
+    """CIFS Odd size"""
+
+    SRTYPE = "cifs"  # Not sure if type is cifs or smb in XS. Perhaps bug here.
+
 
 #############################################################################
 # SR introduce testcases
@@ -3467,6 +3500,11 @@ class TC10680(TC10671):
     """A freshly created VDI should contain entirely zero data (NetApp thick provisioning)"""
 
     SRTYPE = "netapp"
+
+class TCCIFSZeroedContents(TC10671):
+    """CIFS Zeroed contents"""
+
+    SRTYPE = "cifs"
 
 # New Test cases added for copying from one host to another 
 

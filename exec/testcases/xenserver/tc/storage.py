@@ -4816,7 +4816,7 @@ class TCCIFSLifecycle(xenrt.TestCase):
         self.sr.introduce()
         xenrt.sleep(100)
         
-        # self.sr.scan()
+        self.sr.scan()
         VDIs_present = set(self.sr.listVDIs())
         VDIs_missing = filter(lambda vdi: vdi not in VDIs_present, VDIs_present)
 
@@ -4826,9 +4826,7 @@ class TCCIFSLifecycle(xenrt.TestCase):
         if len(VDIs_missing) > 0:
             raise xenrt.XRTFailure("VDIs are missing after SR introduce")
 
-        # self.sr.check()
-
-        # Check number of VDIs.
+        self.sr.check()
 
         # Destroy SR.
         self.sr.remove()

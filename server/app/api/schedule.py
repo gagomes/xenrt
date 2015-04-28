@@ -166,7 +166,7 @@ class XenRTSchedule(XenRTAPIPage):
                             for m in leasedmachineslist:
                                 if not m[1] in offline_sites:
                                     leasedmachines[m[0]] = m
-                            verbose.write("Job specified specific mahines, so machines (%s) available\n" % ",".join(leasedmachines.keys()))
+                            verbose.write("Job specified specific machines, so machines (%s) available\n" % ",".join(leasedmachines.keys()))
                         else:
                             leasedmachines = {}
                         mxs = string.split(details["MACHINE"], ",")

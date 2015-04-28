@@ -116,6 +116,12 @@ class ACLHelper(object):
 
         return machines
 
+    def update_acl_cache(self, machine, userid):
+        """Update any ACLs for the given machine to note it is in use by userid"""
+        for aclid in self._aclCache:
+            if machine in self._aclCache[aclid].machines:
+                self._aclCache[aclid].machines[machine] = userid
+
     def _get_acl_counts(self, aclid):
         acl = self.get_acl(aclid, withCounts=False)
         machines = copy.copy(acl.machines)

@@ -27,7 +27,6 @@
       <testcase id="xenserver.tc.storage.TCCIFSVDIResizeShrink"/>
       <testcase id="xenserver.tc.storage.TCCIFSVDIResizeGrowSmall"/>
       <testcase id="xenserver.tc.storage.TCCIFSVDIResizeGrowLarge"/>
-      <testcase id="xenserver.tc.storage.TCCIFSVDIResizeOnline"/>
       <testcase id="xenserver.tc.storage.TCCIFSVDIResizeDataCheck"/>
     </serial>
   </testsequence>

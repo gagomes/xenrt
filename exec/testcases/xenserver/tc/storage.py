@@ -2584,11 +2584,6 @@ class TCCIFSVDIResizeGrowLarge(_TCResizeGrow2):
 
     SRTYPE = "cifs"
 
-class TCCIFSVDIResizeOnline(_TCResizeOnline):
-    """Resize a CIFS VDI attached to a running VM."""
-
-    SRTYPE = "cifs"
-
 class TCCIFSVDIResizeDataCheck(_TCResizeDataCheck):
     """Data integrity of resized CIFS VDI."""
 

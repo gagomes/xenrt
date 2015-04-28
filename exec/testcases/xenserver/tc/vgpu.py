@@ -60,7 +60,7 @@ CardName = {
 }
 
 VendorName = {
-    DiffvGPUType.NvidiaWinvGPU : "PCI.VEN_10DE.*(NVIDIA|VGA|Display).*"
+    DiffvGPUType.NvidiaWinvGPU : "PCI.VEN_10DE.*(NVIDIA|VGA|Display).*",
     DiffvGPUType.IntelWinvGPU : "PCI.VEN.*Intel.*Graphics.*"
 }
 

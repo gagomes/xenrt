@@ -35,6 +35,9 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
         self.vbds_per_vm = libperf.getArgument(arglist, "vbds_per_vm", int, 1)
         self.vcpus_per_vm = libperf.getArgument(arglist, "vcpus_per_vm", int, None)
 
+        # Benchmark program to use for linux vm. If the value is different than fio, would use latency
+        self.bench = libperf.getArgument(arglist, "benchmark", str, "fio")
+
         # A number in MB; e.g. 1024
         self.vm_ram = libperf.getArgument(arglist, "vm_ram", int, None)
 
@@ -369,6 +372,18 @@ Version 1.1.0
                              (op, count + 1, dispblocksize, vm.getName().split("-")[0], vm.getName().split("-")[1], j, result))
                     j += 1
 
+    def installFioOnLinuxGuest(self):
+        disturl = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
+        filename = "fio-2.2.7-22-g36870.tar.bz2"
+        fiourl = "%s/performance/support-files/%s" % (disturl, filename)
+        xenrt.TEC().logverbose("Getting fio from %s" % (fiourl))
+        fiofile = xenrt.TEC().getFile(fiourl,fiourl)
+        sftp = self.template.sftpClient()
+        rootfiotar = "/root/%s" % filename
+        sftp.copyTo(fiofile, rootfiotar)
+        self.template.execguest('tar xjf %s' % rootfiotar)
+        self.template.execguest('cd /root/fio && make')
+
     def installTemplate(self, guests):
         # Install 'vm-template'
         if not self.isNameinGuests(guests, "vm-template"):
@@ -407,7 +422,12 @@ Version 1.1.0
             else:
                 if isinstance(self.template, xenrt.lib.esx.Guest):
                     self.template.installTools()
-                self.template.installLatency()
+
+                if self.bench == "fio":
+                    self.installFioOnLinuxGuest()
+                else:
+                    self.template.installLatency()
+
                 libsynexec.initialise_slave(self.template)
 
             if self.distro.startswith("rhel") or self.distro.startswith("centos") or self.distro.startswith("oel"):

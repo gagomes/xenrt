@@ -570,7 +570,10 @@ Version 1.1.0
         if self.windows:
             libperf.logArg("ioengine", "iometer")
         else:
-            libperf.logArg("ioengine", "latency")
+            if self.bench == "fio":
+                libperf.logArg("ioengine", "fio")
+            else:
+                libperf.logArg("ioengine", "latency")
 
         if self.prepopulate:
             if self.windows:

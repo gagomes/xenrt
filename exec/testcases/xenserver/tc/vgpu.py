@@ -2439,7 +2439,7 @@ class TCRevertvGPUSnapshot(FunctionalBase):
             vm = self.createMaster(osType)
 
             log("Creating vGPU of type %s" % (self.getConfigurationName(self.VGPU_CONFIG[0])))
-            self.typeOfvGPU.attachvGPUToVM(self.VGPU_CONFIG[0], vm)
+            self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[self.VGPU_CONFIG[0]], vm)
 
             log("Install guest drivers for %s" % str(vm))
             self.typeOfvGPU.installGuestDrivers(vm,self.getConfigurationName(self.VGPU_CONFIG[0]))
@@ -2630,7 +2630,7 @@ class TCRevertnonvGPUSnapshot(FunctionalBase):
             snapshot = vm.snapshot()
 
             log("Creating vGPU of type %s" % (self.getConfigurationName(self.VGPU_CONFIG[0])))
-            self.typeOfvGPU.attachvGPUToVM(self.VGPU_CONFIG[0], vm)
+            self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[self.VGPU_CONFIG[0]], vm)
 
             log("Install guest drivers for %s" % str(vm))
             self.typeOfvGPU.installGuestDrivers(vm,expVGPUType)
@@ -2669,7 +2669,7 @@ class TCChangeK2vGPUType(TCRevertvGPUSnapshot):
                 vm.destroyvGPU()
 
                 log("Creating vGPU of type %s" % (self.getConfigurationName(config)))
-                self.typeOfvGPU.attachvGPUToVM(config, vm)
+                self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
 
                 xenrt.sleep(300)
 

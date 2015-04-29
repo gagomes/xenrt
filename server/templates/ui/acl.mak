@@ -90,7 +90,7 @@ $(function() {
             aclContent.append(groupLimitsDiv);
         }             
 
-        aclContent.append("Maximum lease hours: <input type=\"text\" id=\"maxlease\" value=\"" + (entry.maxleasehours ? entry.maxleasehours : "") + "\" />");
+        aclContent.append("Maximum lease hours: <input type=\"text\" id=\"maxlease\" value=\"" + (entry.maxleasehours ? entry.maxleasehours : "") + "\" /><br />");
 
         aclContent.append("Allow preemptable use: <input type=\"checkbox\" id=\"preemptableuse\" " + (entry.preemptableuse ? "checked" : "") + " />");
 

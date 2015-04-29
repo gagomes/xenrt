@@ -257,7 +257,7 @@ class _MachineBase(XenRTAPIv2Page):
         
         db = self.getDB()
         cur = db.cursor()
-        cur.execute("UPDATE tblMachines SET leaseTo = NULL, comment = NULL, leasefrom = NULL, leasereason = NULL "
+        cur.execute("UPDATE tblMachines SET leaseTo = NULL, comment = NULL, leasefrom = NULL, leasereason = NULL, preemptablelease = NULL "
                     "WHERE machine = %s",
                     [machine])
 
@@ -330,7 +330,7 @@ class _MachineBase(XenRTAPIv2Page):
 
         db = self.getDB()
         cur = db.cursor()
-        cur.execute("UPDATE tblMachines SET leaseTo = %s, leasefrom = %s, comment = %s, leasereason = %s, preemptable = %s "
+        cur.execute("UPDATE tblMachines SET leaseTo = %s, leasefrom = %s, comment = %s, leasereason = %s, preemptablelease = %s "
                     "WHERE machine = %s",
                     [leaseTo, leaseFrom, user, reason, machine, preemptable])
         

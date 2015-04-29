@@ -162,8 +162,12 @@ endif
 
 .PHONY: dsh
 dsh:
+ifeq ($(PUPPETNODE),yes)
+	$(info Skipping NTP config)
+else
 	$(info Configuring DSH...)
 	ln -sfT $(ROOT)/$(INTERNAL)/config/dsh $(HOME)/.dsh
+endif
 
 .PHONY: ntp
 ntp:
@@ -192,22 +196,25 @@ endif
 
 .PHONY: snmp
 snmp:
+ifeq ($(PUPPETNODE),yes)
+	$(info Skipping SNMP config)
+else
 	$(info Configuring SNMP...)
 	if [ -e $(SNMP) ]; then $(SUDO) sed -i 's/^mibs :/# mibs :/' $(SNMP); fi
+endif
 
 .PHONY: sudoers
 sudoers:
+ifeq ($(PUPPETNODE),yes)
+	$(info Skipping sudo config)
+else
 	$(info Enabling password-less sudo...)
 	$(call BACKUP,$(SUDOERS))
 	$(SUDO) sed -i '/nagios/d' $(SUDOERS)
 	$(SUDOSH) 'echo "nagios ALL=NOPASSWD: ALL" >> $(SUDOERS)'
 	$(SUDO) sed -i 's/ALL=(ALL)/ALL=NOPASSWD:/' $(SUDOERS)
 	$(SUDO) sed -i 's/ALL=(ALL:ALL)/ALL=NOPASSWD:/' $(SUDOERS)
-
-.PHONY: sudoers-uninstall
-sudoers-uninstall:
-	$(info Restoring original sudo configuration...)
-	$(call RESTORE,$(SUDOERS))
+endif
 
 .PHONY: winpe
 winpe:
@@ -277,12 +284,6 @@ nfs: $(SCRATCHDIR)
 	$(SUDO) chown $(USERID):$(GROUPID) $(IMAGEDIR)
 	$(SUDO) /etc/init.d/nfs-kernel-server restart
 
-.PHONY: nfs-uninstall
-nfs-uninstall:
-	$(info Uninstalling NFS...)
-	$(call RESTORE,$(EXPORTS))
-	$(SUDO) /etc/init.d/nfs-kernel-server stop 
-
 .PHONY: dhcpdb
 dhcpdb: files
 	$(SUDO) mv $(ROOT)/$(XENRT)/xenrtdhcpd.cfg $(SHAREDIR)/xenrtdhcpd/xenrtdhcpd.cfg
@@ -326,12 +327,6 @@ else
 endif
 
 
-.PHONY: dhcpd-uninstall
-dhcpd-uninstall:
-	$(info Uninstalling DHCPD...)
-	$(call RESTORE,$(DHCPD))
-	$(SUDO) /etc/init.d/isc-dhcp-server stop
-
 .PHONY: dhcpd6
 dhcpd6: files
 ifeq ($(DODHCPD6),yes)
@@ -365,12 +360,6 @@ ifeq ($(DOHOSTS),yes)
 	$(SUDO) /etc/init.d/dnsmasq restart
 endif
 
-.PHONY: hosts-uninstall
-hosts-uninstall:
-	$(info Uninstalling $(HOSTS)...)
-	$(call RESTORE,$(HOSTS))
-	-$(SUDO) /etc/init.d/dnsmasq stop
-
 .PHONY: network
 network: files
 ifeq ($(DONETWORK),yes)
@@ -384,14 +373,6 @@ ifeq ($(DONETWORK),yes)
 else
 	$(info Skipping network config)
 endif
-
-.PHONY: network-uninstall
-network-uninstall:
-	$(info Uninstalling VLAN interfaces...)
-	-for I in `ip link | egrep -o "eth0.[0-9]+"`; do $(SUDO) ifdown $${I}; done
-	-$(SUDO) rmmod 8021q
-	$(call RESTORE,$(MODULES))
-	$(call RESTORE,$(INTERFACES))
 
 $(TFTPROOT)/ipxe.embedded.0:
 	$(info Building undionly.kpxe)
@@ -436,12 +417,6 @@ endif
 	$(SUDO) chown -R $(USERID):$(GROUPID) $(TFTPROOT)
 	-make $(TFTPROOT)/ipxe.embedded.0
 
-.PHONY: tftp-uninstall
-tftp-uninstall:
-	$(info Uninstalling TFTP...)
-	$(call RESTORE,$(INETD))
-	-$(SUDO) /etc/init.d/$(INETD_DAEMON) stop
-
 .PHONY: httpd
 httpd:
 	$(info apache is now configured with puppet)
@@ -463,12 +438,6 @@ else
 	$(SUDO) sed -i "s/false/true/" $(ISCSI)
 	$(SUDO) /etc/init.d/iscsitarget restart
 endif
-
-.PHONY: iscsi-uninstall
-iscsi-uninstall:
-	$(info Uninstalling ISCSI target...)
-	$(call RESTORE,$(ISCSI))
-	-$(SUDO) /etc/init.d/iscsitarget stop
 
 .PHONY: conserver
 conserver: files
@@ -492,22 +461,12 @@ ifeq ($(DOCONSERVER),yes)
 	$(SUDOSH) 'chmod 600 /var/lib/cons/.ssh/*'
 endif
 
-.PHONY: conserver-uninstall
-conserver-uninstall:
-	$(info Uninstalling conserver...)
-	$(call RESTORE,$(CONSERVER))
-
 .PHONY: ftp
 ftp:
 	$(info Setting up vsftpd)
 	$(call BACKUP,$(VSFTPD))
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/vsftpd/vsftpd.conf $(VSFTPD)
 	$(SUDO) /etc/init.d/vsftpd restart 
-
-.PHONY: ftp-uninstall
-ftp-uninstall:
-	$(info Uninstalling vsftpd...)
-	$(call RESTORE,$(VSFTPD))
 
 .PHONY: loop
 loop:
@@ -548,11 +507,6 @@ ifeq ($(DOLOGROTATE),yes)
 	$(SUDO) sed -i 's/rotate 52/rotate 7/' /etc/logrotate.d/apache2
 endif
 
-.PHONY: nagios-uninstall
-nagios-uninstall:
-	$(info Uninstalling vsftpd...)
-	$(SUDO) rm $(NRPECONFDIR)/xenrt.cfg
-
 .PHONY: cron
 cron:
 ifeq ($(DOCRON),yes)
@@ -584,29 +538,10 @@ ifeq ($(DOSITECONTROLLERCMD),yes)
 	$(SUDO) chmod a+x $(BINDIR)/xenrtsitecontroller
 endif
 
-.PHONY: cron-uninstall
-cron-uninstall:
-	$(info Uninstalling crontab...)
-	$(SUDO) crontab -r
-
 .PHONY: infrastructure
 infrastructure: api ssh winpe files prompt autofs dhcpd dhcpd6 hosts network nagios conserver logrotate cron sitecontrollercmd nfs tftp iscsi sudoers ftp snmp extrapackages loop dsh ntp $(SHAREDIR)/images/vms/etch-4.1.img symlinks samba libvirt
 	$(info XenRT infrastructure installed.)
 
-
-.PHONY: infrastructure-uninstall
-infrastructure-uninstall: network-uninstall \
-			  nfs-uninstall \
-			  dhcpd-uninstall \
-			  hosts-uninstall \
-			  tftp-uninstall \
-			  iscsi-uninstall \
-			  conserver-uninstall \
-			  sudoers-uninstall \
-			  ftp-uninstall \
-			  nagios-uninstall \
-			  cron-uninstall
-	$(info XenRT Infrastructure uninstalled.)			
 
 .PHONY: marvin
 marvin:

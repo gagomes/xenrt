@@ -100,7 +100,7 @@ class _JobBase(_MachineBase):
 
         jobs = {}
 
-        cur.execute("SELECT j.jobid, j.version, j.revision, j.options, j.jobstatus, j.userid, j.machine, j.uploaded, j.removed FROM tbljobs j %s WHERE %s ORDER BY j.jobid DESC LIMIT %%s" % (joinquery, " AND ".join(conditions)), self.expandVariables(params))
+        cur.execute("SELECT j.jobid, j.version, j.revision, j.options, j.jobstatus, j.userid, j.machine, j.uploaded, j.removed, j.preemptable FROM tbljobs j %s WHERE %s ORDER BY j.jobid DESC LIMIT %%s" % (joinquery, " AND ".join(conditions)), self.expandVariables(params))
         while True:
             rc = cur.fetchone()
             if not rc:
@@ -112,7 +112,8 @@ class _JobBase(_MachineBase):
                 "status": self.getJobStatus(rc[4].strip(), rc[8]),
                 "rawstatus": rc[4].strip(),
                 "removed": True if rc[8] and rc[8].strip() == "yes" else False,
-                "machines": rc[6].strip().split(",") if rc[6] else []
+                "machines": rc[6].strip().split(",") if rc[6] else [],
+                "preemptable": bool(rc[9])
             }
             if rc[8] and rc[8].strip():
                 jobs[rc[0]]['params']["REMOVED"] = rc[8].strip()
@@ -761,8 +762,6 @@ class NewJob(_JobBase):
             params['JOBGROUP'] = jobGroup['id']
             params['JOBGROUPTAG'] = jobGroup['tag']
             
-
-
         params['JOB_FILES_SERVER'] = config.log_server
         params['LOG_SERVER'] = config.log_server
 
@@ -778,6 +777,8 @@ class NewJob(_JobBase):
 
         if preemptable:
             self.updateJobField("PREEMPTABLE", True)
+            # And lower the priority of the job
+            params['JOBPRIO'] = str(int(params.get('JOBPRIO', 3)) + 5)
 
         for p in params.keys():
             self.updateJobField(p, params[p])

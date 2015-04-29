@@ -90,7 +90,7 @@ class _MachineBase(XenRTAPIv2Page):
             conditions.append("m.machine != ('_' || s.site)")
 
 
-        query = "SELECT m.machine, m.site, m.cluster, m.pool, m.status, m.resources, m.flags, m.comment, m.leaseto, m.leasereason, m.leasefrom, m.leasepolicy, s.flags, m.jobid, m.descr, m.aclid, s.ctrladdr, s.location, m.prio FROM tblmachines m INNER JOIN tblsites s ON m.site=s.site"
+        query = "SELECT m.machine, m.site, m.cluster, m.pool, m.status, m.resources, m.flags, m.comment, m.leaseto, m.leasereason, m.leasefrom, m.leasepolicy, s.flags, m.jobid, m.descr, m.aclid, s.ctrladdr, s.location, m.prio, m.preemptablelease FROM tblmachines m INNER JOIN tblsites s ON m.site=s.site"
         if conditions:
             query += " WHERE %s" % " AND ".join(conditions)
 
@@ -123,6 +123,7 @@ class _MachineBase(XenRTAPIv2Page):
                 "ctrladdr": rc[16].strip() if rc[16] else None,
                 "location": rc[17].strip() if rc[17] else None,
                 "prio": rc[18],
+                "preemptablelease": rc[19],
                 "params": {}
             }
             machine['leasecurrentuser'] = bool(machine['leaseuser'] and machine['leaseuser'] == self.getUser().userid)
@@ -308,6 +309,10 @@ class _MachineBase(XenRTAPIv2Page):
         machines = self.getMachines(limit=1, machines=[machine], exceptionIfEmpty=True)
 
         leasePolicy = machines[machine]['leasepolicy']
+
+        if preemptable: # Preemptable leases are limited to 6 hours
+            leasePolicy = max(leasePolicy, 6)
+
         if leasePolicy and duration > leasePolicy:
             if besteffort:
                 duration = leasePolicy

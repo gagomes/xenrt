@@ -238,6 +238,10 @@ def start_job(job):
             cmd.append("-D")
             cmd.append("%s=%s" % (k, data[k]))
 
+    if job.get("preemptable"):
+        cmd.append("-D")
+        cmd.append("PREEMPTABLE=yes")
+
     cmdl = string.join(cmd)
 
     if data.has_key("XRTBRANCH") and len(data["XRTBRANCH"]) > 0:

@@ -35,6 +35,7 @@ class _MachineBase(XenRTAPIv2Page):
                     machines=[],
                     flags=[],
                     aclids=[],
+                    groups=[],
                     limit=None,
                     offset=0,
                     pseudoHosts=False,
@@ -51,6 +52,10 @@ class _MachineBase(XenRTAPIv2Page):
         if clusters:
             conditions.append(self.generateInCondition("m.cluster", clusters))
             params.extend(clusters)
+
+        if groups:
+            conditions.append(self.generateInCondition("m.mgroup", groups))
+            params.extend(groups)
 
         if sites:
             conditions.append(self.generateInCondition("m.site", sites))
@@ -90,7 +95,7 @@ class _MachineBase(XenRTAPIv2Page):
             conditions.append("m.machine != ('_' || s.site)")
 
 
-        query = "SELECT m.machine, m.site, m.cluster, m.pool, m.status, m.resources, m.flags, m.comment, m.leaseto, m.leasereason, m.leasefrom, m.leasepolicy, s.flags, m.jobid, m.descr, m.aclid, s.ctrladdr, s.location, m.prio FROM tblmachines m INNER JOIN tblsites s ON m.site=s.site"
+        query = "SELECT m.machine, m.site, m.cluster, m.pool, m.status, m.resources, m.flags, m.comment, m.leaseto, m.leasereason, m.leasefrom, m.leasepolicy, s.flags, m.jobid, m.descr, m.aclid, s.ctrladdr, s.location, m.prio, m.mgroup FROM tblmachines m INNER JOIN tblsites s ON m.site=s.site"
         if conditions:
             query += " WHERE %s" % " AND ".join(conditions)
 
@@ -107,6 +112,7 @@ class _MachineBase(XenRTAPIv2Page):
                 "site": rc[1].strip(),
                 "cluster": rc[2].strip(),
                 "pool": rc[3].strip(),
+                "group": rc[19].strip() if rc[19] else None,
                 "rawstatus": rc[4].strip(),
                 "status": self.getMachineStatus(rc[4].strip(), rc[7].strip() if rc[7] else None, rc[3].strip()),
                 "flags": [],
@@ -197,13 +203,15 @@ class _MachineBase(XenRTAPIv2Page):
 
         if key.lower() == "description":
             key = "descr"
+        elif key.lower() == "group":
+            key = "mgroup"
 
         details = machines[machine]['params']
         if key.lower() in ("machine", "comment", "leaseto", "leasereason", "leasefrom"):
             raise XenRTAPIError(HTTPForbidden, "Can't update this field")
         if key.lower() in ("status", "jobid") and not allowReservedField:
             raise XenRTAPIError(HTTPForbidden, "Can't update this field")
-        if key.lower() in ("site", "cluster", "pool", "status", "resources", "flags", "descr", "jobid", "leasepolicy", "aclid", "prio"):
+        if key.lower() in ("site", "cluster", "pool", "status", "resources", "flags", "descr", "jobid", "leasepolicy", "aclid", "prio", "mgroup"):
             cur = db.cursor()
             try:
                 cur.execute("UPDATE tblmachines SET %s=%%s WHERE machine=%%s;" % (key.lower()), (value, machine))
@@ -443,7 +451,14 @@ class ListMachines(_MachineBase):
           'in': 'query',
           'name': 'search',
           'required': False,
-          'type': 'string'}
+          'type': 'string'},
+         {'collectionFormat': 'multi',
+          'description': 'Filter on group - can specify multiple',
+          'in': 'query',
+          'items': {'type': 'string'},
+          'name': 'group',
+          'required': False,
+          'type': 'array'}
           ]
     RESPONSES = { "200": {"description": "Successful response"}}
     TAGS = ["machines"]
@@ -458,6 +473,7 @@ class ListMachines(_MachineBase):
                                 machines = self.getMultiParam("machine"),
                                 flags = self.getMultiParam("flag"),
                                 aclids = self.getMultiParam("aclid"),
+                                groups = self.getMultiParam("group"),
                                 pseudoHosts = self.request.params.get("pseudohosts") == "true",
                                 limit=int(self.request.params.get("limit", 0)),
                                 offset=int(self.request.params.get("offset", 0)),

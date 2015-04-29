@@ -675,6 +675,10 @@ class NewJob(_JobBase):
             "inputdir": {
                 "type": "string",
                 "description": "Input directory for the job"
+            },
+            "preemptable": {
+                "type": "boolean",
+                "description": "Run job on a preemptable basis - can be cancelled for scheduled testing (ACL policy dependent)"
             }
         }
     }}

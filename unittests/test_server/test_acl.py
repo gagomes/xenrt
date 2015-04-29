@@ -85,6 +85,30 @@ class AclTests(XenRTUnitTestCase):
         # Over limit
         self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy'] * 5))
 
+    def test_user_limit_disallow_preempt(self):
+        acl = self._setupAclReturns()
+        acl.entries = [app.acl.ACLEntry(0, "user","user1",None,None,5,None,None,False)]
+        # Under limit
+        self.assertTupleTrue(self.acl._check_acl(acl, "user1", ['dummy'] * 3))
+        # On limit
+        self.assertTupleTrue(self.acl._check_acl(acl, "user1", ['dummy'] * 4))
+        # Over limit
+        self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy'] * 5))
+        # Over limit and disallow preempt
+        self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy'] * 5, preemptable=True))
+
+    def test_user_limit_allow_preempt(self):
+        acl = self._setupAclReturns()
+        acl.entries = [app.acl.ACLEntry(0, "user","user1",None,None,5,None,None,True)]
+        # Under limit
+        self.assertTupleTrue(self.acl._check_acl(acl, "user1", ['dummy'] * 3))
+        # On limit
+        self.assertTupleTrue(self.acl._check_acl(acl, "user1", ['dummy'] * 4))
+        # Over limit
+        self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy'] * 5))
+        # Over limit, but allow preempt
+        self.assertTupleTrue(self.acl._check_acl(acl, "user1", ['dummy'] * 5, preemptable=True))
+
     def test_user_percent(self):
         acl = self._setupAclReturns()
         acl.entries = [app.acl.ACLEntry(0, "user","user1",None,None,None,50,None,False)] # 50% = 3 machines
@@ -106,6 +130,30 @@ class AclTests(XenRTUnitTestCase):
         self.assertTupleTrue(self.acl._check_acl(acl, "user1", ['dummy'] * 3))
         # Over limit
         self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy'] * 4))
+
+    def test_group_limit_disallow_preempt(self):
+        acl = self._setupAclReturns()
+        acl.entries = [app.acl.ACLEntry(0, "group","group1",5,None,None,None,None,False)]
+        # Under limit
+        self.assertTupleTrue(self.acl._check_acl(acl, "user1", ['dummy'] * 2))
+        # On limit
+        self.assertTupleTrue(self.acl._check_acl(acl, "user1", ['dummy'] * 3))
+        # Over limit
+        self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy'] * 4))
+        # Over limit, but allow preempt
+        self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy'] * 5, preemptable=True))
+
+    def test_group_limit_allow_preempt(self):
+        acl = self._setupAclReturns()
+        acl.entries = [app.acl.ACLEntry(0, "group","group1",5,None,None,None,None,True)]
+        # Under limit
+        self.assertTupleTrue(self.acl._check_acl(acl, "user1", ['dummy'] * 2))
+        # On limit
+        self.assertTupleTrue(self.acl._check_acl(acl, "user1", ['dummy'] * 3))
+        # Over limit
+        self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy'] * 4))
+        # Over limit, but allow preempt
+        self.assertTupleTrue(self.acl._check_acl(acl, "user1", ['dummy'] * 5, preemptable=True))
 
     def test_group_percent(self):
         acl = self._setupAclReturns()
@@ -148,6 +196,30 @@ class AclTests(XenRTUnitTestCase):
         self.assertTupleTrue(self.acl._check_acl(acl, "user3", ['dummy'] * 4))
         # Over limit
         self.assertTupleFalse(self.acl._check_acl(acl, "user3", ['dummy'] * 5))
+
+    def test_default_userlimit_disallow_preempt(self):
+        acl = self._setupAclReturns()
+        acl.entries = [app.acl.ACLEntry(0, "default","",None,None,5,None,None,False)]
+        # Under limit
+        self.assertTupleTrue(self.acl._check_acl(acl, "user3", ['dummy'] * 3))
+        # On limit
+        self.assertTupleTrue(self.acl._check_acl(acl, "user3", ['dummy'] * 4))
+        # Over limit
+        self.assertTupleFalse(self.acl._check_acl(acl, "user3", ['dummy'] * 5))
+        # Over limit, but allow preempt
+        self.assertTupleFalse(self.acl._check_acl(acl, "user3", ['dummy'] * 5, preemptable=True))
+
+    def test_default_userlimit_allow_preempt(self):
+        acl = self._setupAclReturns()
+        acl.entries = [app.acl.ACLEntry(0, "default","",None,None,5,None,None,True)]
+        # Under limit
+        self.assertTupleTrue(self.acl._check_acl(acl, "user3", ['dummy'] * 3))
+        # On limit
+        self.assertTupleTrue(self.acl._check_acl(acl, "user3", ['dummy'] * 4))
+        # Over limit
+        self.assertTupleFalse(self.acl._check_acl(acl, "user3", ['dummy'] * 5))
+        # Over limit, but allow preempt
+        self.assertTupleTrue(self.acl._check_acl(acl, "user3", ['dummy'] * 5, preemptable=True))
 
     def test_default_userpercent(self):
         acl = self._setupAclReturns()

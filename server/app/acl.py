@@ -108,6 +108,7 @@ class ACLHelper(object):
             rc = cur.fetchone()
             if not rc:
                 break
+            # Machine is considered in use if there's either a non-preemptable job running or a non-preemptable lease
             if rc[1].strip() in ["scheduled", "slaved", "running"] and not rc[4]:
                 machines[rc[0].strip()] = rc[3].strip()
             elif rc[2] is not None and not rc[5]:
@@ -212,7 +213,7 @@ class ACLHelper(object):
                 else:
                     if preemptable:
                         if e.preemptableuse:
-                            return True,
+                            return True, None
                         else:
                             return False, "ACL does now allow preemptable use for this user"
                     # Our user - check their usage
@@ -229,7 +230,7 @@ class ACLHelper(object):
                 if e.entryType == 'default' or e.userid in usergroups:
                     if preemptable:
                         if e.preemptableuse:
-                            return True,
+                            return True,None
                         else:
                             return False, "ACL does now allow preemptable use for this group"
                     # A group our user is in - identify overall usage and per user usage for users in the acl

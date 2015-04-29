@@ -81,7 +81,7 @@ class ACLHelper(object):
             raise KeyError("ACL not found")
         name = rc[0].strip()
         parent = rc[1]
-        owner = rc[2]
+        owner = rc[2].strip()
 
         entries = []
         cur.execute("SELECT type, userid, grouplimit, grouppercent, userlimit, userpercent, maxleasehours, prio, preemptableuse FROM tblaclentries WHERE aclid=%s ORDER BY prio", [aclid])

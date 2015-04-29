@@ -76,6 +76,8 @@ def parse_job(rc,cur):
         d['UPLOADED'] = string.strip(rc[6])
     if rc[7] and string.strip(rc[7]) != "":
         d['REMOVED'] = string.strip(rc[7])
+    if rc[8]:
+        d['PREEMPTABLE'] = "yes"
 
     cur.execute("SELECT param, value FROM tblJobDetails WHERE " +
                 "jobid = %s;", [rc[0]])

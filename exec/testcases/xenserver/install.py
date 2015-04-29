@@ -1275,42 +1275,41 @@ class SourceISOCheck(xenrt.TestCase):
         """Obtains a list of rpms provided in the source files"""
 
         sourceRpmPackageList = []
-        isosFound = 0
+        
         for sourceFile, sourceBuildPath in self.SOURCE_ISO_FILES.iteritems():
             try:
                 # e.g download xe-phase-3/source-1.iso and list the RPMs.
                 file = xenrt.TEC().getFile(sourceBuildPath+"/"+sourceFile, sourceFile)
-                if re.search(r'iso',sourceFile):
-                    mount = xenrt.MountISO(file)
-                    mountpoint = mount.getMount()
-                else:
-                    mountpoint = xenrt.TEC().tempDir()
-                    xenrt.util.command("tar -xvf %s -C %s" % (file, mountpoint))
+                if file:                
+                    if re.search(r'iso',sourceFile):
+                        mount = xenrt.MountISO(file)
+                        mountpoint = mount.getMount()
+                    else:
+                        mountpoint = xenrt.TEC().tempDir()
+                        xenrt.util.command("tar -xvf %s -C %s" % (file, mountpoint))
 
-                if self.APPLIANCE_NAME == "DVSC Controller VM":
-                    # Retrieve all the package file names with .dsc extension.
-                    tmpSourceRpmPackageList = xenrt.recursiveFileSearch(mountpoint, "*.dsc")
-                else:
-                    tmpSourceRpmPackageList = xenrt.recursiveFileSearch(mountpoint, "*.src.rpm")
+                    if self.APPLIANCE_NAME == "DVSC Controller VM":
+                        # Retrieve all the package file names with .dsc extension.
+                        tmp_list = xenrt.recursiveFileSearch(mountpoint, "*.dsc")
+                        tmpSourceRpmPackageList = [os.path.splitext(filename)[0] for filename in tmp_list]
+                        
+                    else:
+                        tmpSourceRpmPackageList = xenrt.recursiveFileSearch(mountpoint, "*.src.rpm")
 
-                if not tmpSourceRpmPackageList:
-                    raise xenrt.XRTFailure("Unable to obtain the list of rpm packages from %s/%s for %s." %
+                    if not tmpSourceRpmPackageList:
+                        raise xenrt.XRTFailure("Unable to obtain the list of rpm packages from %s/%s for %s." %
                                                             (sourceBuildPath, sourceFile, self.APPLIANCE_NAME))
-
-                if self.APPLIANCE_NAME == "DVSC Controller VM":
-                    # Obtain the filenames without extension (.dsc)
-                    tmpSourceRpmPackageList = [os.path.splitext(filename)[0] for filename in tmpSourceRpmPackageList]
-
-                # To obtain merged list of unique RPMs.
-                sourceRpmPackageList = sourceRpmPackageList + tmpSourceRpmPackageList
-                isosFound += 1
+                                           
+                    # To obtain merged list of unique RPMs.
+                    sourceRpmPackageList = sourceRpmPackageList + tmpSourceRpmPackageList
+                    
             finally:
                 try:
                     if file:
                         mount.unmount()
                 except:
                     pass
-        if isosFound == 0:
+        if not sourceRpmPackageList:
             xenrt.TEC().skip("Unable to obtain any source ISOs for %s." % (self.APPLIANCE_NAME))
             return False
         sourceRpmPackageList.sort()

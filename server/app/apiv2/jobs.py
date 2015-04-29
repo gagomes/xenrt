@@ -236,6 +236,11 @@ class _JobBase(_MachineBase):
         db = self.getDB()
 
         if key in app.constants.core_params:
+            if key in app.constants.bool_params and isinstance(value, basestring):
+                if value and value[0].lower() in ("y", "t", "1"):
+                    value = True
+                else:
+                    value = False
             cur = db.cursor()
             try:
                 cur.execute("UPDATE tbljobs SET %s=%%s WHERE jobid=%%s;" % (key), 
@@ -700,7 +705,8 @@ class NewJob(_JobBase):
                flags=None,
                email=None,
                inputdir=None,
-               lease=None):
+               lease=None,
+               preemptable=None):
         
         if not params:
             params = {}
@@ -714,7 +720,7 @@ class NewJob(_JobBase):
 
         db = self.getDB()
         cur = db.cursor()
-        cur.execute("INSERT INTO tbljobs (jobstatus, userid, version, revision, options, uploaded,removed) VALUES ('new', %s, '', '', '', '', '') RETURNING jobid", [self.getUser().userid])
+        cur.execute("INSERT INTO tbljobs (jobstatus, userid, version, revision, options, uploaded,removed,preemptable) VALUES ('new', %s, '', '', '', '', '',NULL) RETURNING jobid", [self.getUser().userid])
         rc = cur.fetchone()
         self.jobid = int(rc[0])
 
@@ -766,6 +772,9 @@ class NewJob(_JobBase):
             self.updateJobField("MACHINE_HOLD_FOR_OK", lease['duration'] * 60, params)
             self.updateJobField("MACHINE_HOLD_REASON", lease.get("reason", ""), params)
 
+        if preemptable:
+            self.updateJobField("PREEMPTABLE", True)
+
         for p in params.keys():
             self.updateJobField(p, params[p])
 
@@ -799,7 +808,8 @@ class NewJob(_JobBase):
                            flags=j.get("flags"),
                            email=j.get("email") if j.has_key("email") else self.getUser().email,
                            inputdir=j.get("inputdir"),
-                           lease=j.get("lease_machines"))
+                           lease=j.get("lease_machines"),
+                           preemptable=j.get("preemptable"))
 
 class _GetAttachmentUrl(_JobBase):
     REQTYPE = "GET"

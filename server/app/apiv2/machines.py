@@ -291,7 +291,7 @@ class _MachineBase(XenRTAPIv2Page):
         finally:
             cur.close()
 
-    def lease(self, machine, user, duration, reason, force, besteffort, commit=True):
+    def lease(self, machine, user, duration, reason, force, besteffort, preemptable, commit=True):
         leaseFrom = time.strftime("%Y-%m-%d %H:%M:%S",
                                 time.gmtime(time.time()))
         if duration:
@@ -324,7 +324,7 @@ class _MachineBase(XenRTAPIv2Page):
             raise XenRTAPIError(HTTPNotAcceptable, "Machines is already leased for longer", canForce=True)
 
         if machines[machine]['aclid']:
-            result, reason = self.getACLHelper().check_acl(machines[machine]['aclid'], user, [machine], duration)
+            result, reason = self.getACLHelper().check_acl(machines[machine]['aclid'], user, [machine], duration, preemptable)
             if not result:
                 raise XenRTAPIError(HTTPUnauthorized, "ACL: %s" % reason, canForce=False)
 
@@ -520,6 +520,10 @@ class LeaseMachine(_MachineBase):
                 "besteffort": {
                     "type": "boolean",
                     "description": "Borrow for as long as long as policy allows, don't fail if can't be borrowed",
+                    "default": False},
+                "preemptable": {
+                    "type": "boolean",
+                    "description": "Borrow on a preemptable basis - can be taken back for scheduled testing (ACL policy dependent)",
                     "default": False}
                 }
             }
@@ -535,7 +539,7 @@ class LeaseMachine(_MachineBase):
         except Exception, e:
             raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
         try:
-            self.lease(self.request.matchdict['name'], self.getUser().userid, params['duration'], params['reason'], params.get('force', False), params.get('besteffort', False))
+            self.lease(self.request.matchdict['name'], self.getUser().userid, params['duration'], params['reason'], params.get('force', False), params.get('besteffort', False), params.get('preemptable', False))
         except:
             if params.get('besteffort', False):
                 return {}

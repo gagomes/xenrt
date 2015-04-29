@@ -293,84 +293,14 @@ class XenRTBorrow(XenRTMachinePage):
 
     def render(self):
         """Handle the borrow CLI call"""
-        try:
-            db = self.getDB()
-            form = self.request.params
-            userid = None
-            reason = None
-            force = False
-            hours = 24
-            machine = form["machine"]
-            if form.has_key("USERID"):
-                userid = form["USERID"]
-            if form.has_key("reason"):
-                reason = form["reason"]
-            if form.has_key("hours"):
-                hours = int(form["hours"])
-            leaseToTime = time.gmtime(time.time() + (hours * 3600))
-            leaseTo = time.strftime("%Y-%m-%d %H:%M:%S", leaseToTime)
-            leaseFrom = time.strftime("%Y-%m-%d %H:%M:%S",
-                                    time.gmtime(time.time()))
-            if form.has_key("forever"):
-                leaseTo = "2030-01-01 00:00:00"
-                leaseToTime = time.strptime(leaseTo, "%Y-%m-%d %H:%M:%S")
-                hours = (calendar.timegm(leaseToTime) - time.time()) / 3600
-            if form.has_key("force"):
-                force = True
-            cur = db.cursor()
-            cur.execute("SELECT comment, leaseTo, leasepolicy FROM tblmachines WHERE machine = %s", [machine])
-            rc = cur.fetchone()
-            cur.close()
-            if rc[2] and hours > rc[2]:
-                if rc[2] > 48:
-                    return "ERROR: The policy for this manchine only allows leasing for %d days, please contact QA if you need a longer lease" % (rc[2]/24)
-                else:
-                    return "ERROR: The policy for this manchine only allows leasing for %d hours, please contact QA if you need a longer lease" % rc[2]
-            if rc[0] and rc[0].strip() != userid and not force:
-                return "ERROR: machine already leased to %s (use --force to override)" % rc[0].strip()
-            if rc[1] and rc[1].timetuple() > leaseToTime and not force:
-                return "ERROR: machine already leased for longer (use --force to override)"
-            cur = db.cursor()
-            cur.execute("UPDATE tblMachines SET leaseTo = %s, leasefrom = %s, comment = %s, leasereason = %s "
-                        "WHERE machine = %s",
-                        [leaseTo, leaseFrom, userid, reason, machine])
-            db.commit()
-            cur.close()        
-            return "OK"        
-        except:
-            traceback.print_exc()
-            return "ERROR updating database"
+        return "ERROR: This API is superseded"
 
 class XenRTReturn(XenRTMachinePage):
     WRITE = True
 
     def render(self):
         """handle the return CLI call"""
-        try:
-            form = self.request.params
-            db = self.getDB()
-            machine = form["machine"]
-            force = False
-            if form.has_key("force"):
-                force = True
-            userid = None
-            if form.has_key("USERID"):
-                userid = form["USERID"]
-            cur = db.cursor()
-            cur.execute("SELECT comment FROM tblmachines WHERE machine = %s", [machine])
-            rc = cur.fetchone()
-            cur.close()
-            if rc[0] and userid and rc[0].strip() != userid and not force:
-                return "ERROR: machine is not leased to you (use --force to override)"
-            cur = db.cursor()
-            cur.execute("UPDATE tblMachines SET leaseTo = NULL, comment = NULL, leasefrom = NULL, leasereason = NULL "
-                        "WHERE machine = %s", [machine])
-            db.commit()
-            cur.close()        
-            return "OK"        
-        except:
-            traceback.print_exc(file=sys.stderr)
-            return "ERROR updating database\n"    
+        return "ERROR: This API is superseded"
 
 class XenRTMachine(XenRTMachinePage):
     def render(self):

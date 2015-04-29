@@ -92,6 +92,8 @@ $(function() {
 
         aclContent.append("Maximum lease hours: <input type=\"text\" id=\"maxlease\" value=\"" + (entry.maxleasehours ? entry.maxleasehours : "") + "\" />");
 
+        aclContent.append("Allow preemptable use: <input type=\"checkbox\" id=\"preemptableuse\" " + (entry.preemptableuse ? "checked" : "") + " />");
+
         aclDiv.append(aclHeader);
         aclDiv.append(aclContent);
         $( ".aclcolumn" ).append(aclDiv);
@@ -143,6 +145,7 @@ $(function() {
             }
             if (c.find("#maxlease").val())
                 entry.maxleasehours = parseInt(c.find("#maxlease").val());
+            entry.preemptableuse = c.find("#preemptableuse").is(":checked");
             entries.push(entry);
         });
         acl.entries = entries;

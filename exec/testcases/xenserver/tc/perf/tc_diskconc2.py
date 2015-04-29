@@ -37,6 +37,7 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
 
         # Benchmark program to use for linux vm. If the value is different than fio, would use latency
         self.bench = libperf.getArgument(arglist, "benchmark", str, "fio")
+        self.sequential = libperf.getArgument(arglist, "sequential", bool, True)
 
         # A number in MB; e.g. 1024
         self.vm_ram = libperf.getArgument(arglist, "vm_ram", int, None)
@@ -122,6 +123,10 @@ clean all
 
     def runPhasePrepareCommand(self, blocksize, op):
         if self.bench == "fio":
+            rw = "read" if op == "r" else "write"
+            if not self.sequential:
+                rw = "randread" if op == "r" else "randwrite"
+
             return """/bin/bash :CONF:
 #!/bin/bash
 
@@ -144,7 +149,7 @@ done
 for ((idx=0; idx<pididx; idx++)); do
   wait ${pid[$idx]}
 done
-""" % (chr(ord('a') + self.vbds_per_vm), "randread" if op == "r" else "randwrite",
+""" % (chr(ord('a') + self.vbds_per_vm), rw,
        self.queuedepth, blocksize, self.duration,
        "--zero_buffers" if self.zeros else "", 6 if op == "r" else 47)
         else:

@@ -129,7 +129,7 @@ class _MachineBase(XenRTAPIv2Page):
                 "ctrladdr": rc[16].strip() if rc[16] else None,
                 "location": rc[17].strip() if rc[17] else None,
                 "prio": rc[18],
-                "preemptablelease": rc[20],
+                "preemptablelease": bool(rc[20]) if rc[7] else None,
                 "params": {}
             }
             machine['leasecurrentuser'] = bool(machine['leaseuser'] and machine['leaseuser'] == self.getUser().userid)
@@ -319,7 +319,7 @@ class _MachineBase(XenRTAPIv2Page):
         leasePolicy = machines[machine]['leasepolicy']
 
         if preemptable: # Preemptable leases are limited to 6 hours
-            leasePolicy = max(leasePolicy, 6)
+            leasePolicy = min(leasePolicy, 6)
 
         if leasePolicy and duration > leasePolicy:
             if besteffort:
@@ -337,7 +337,7 @@ class _MachineBase(XenRTAPIv2Page):
             raise XenRTAPIError(HTTPNotAcceptable, "Machines is already leased for longer", canForce=True)
 
         if machines[machine]['aclid']:
-            result, reason = self.getACLHelper().check_acl(machines[machine]['aclid'], user, [machine], duration, preemptable)
+            result, reason = self.getACLHelper().check_acl(machines[machine]['aclid'], user, [machine], duration, preemptable=preemptable)
             if not result:
                 raise XenRTAPIError(HTTPUnauthorized, "ACL: %s" % reason, canForce=False)
 

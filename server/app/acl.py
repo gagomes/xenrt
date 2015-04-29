@@ -29,7 +29,8 @@ class ACL(object):
                 "grouppercent": e.grouppercent,
                 "userlimit": e.userlimit,
                 "userpercent": e.userpercent,
-                "maxleasehours": e.maxleasehours
+                "maxleasehours": e.maxleasehours,
+                "preemptableuse": e.preemptableuse
             }
             if e.machinecount is not None:
                 entry['machinecount'] = e.machinecount
@@ -41,7 +42,7 @@ class ACL(object):
 
 class ACLEntry(object):
 
-    def __init__(self, prio, entryType, userid, grouplimit, grouppercent, userlimit, userpercent, maxleasehours):
+    def __init__(self, prio, entryType, userid, grouplimit, grouppercent, userlimit, userpercent, maxleasehours, preemptableuse):
         self.prio = prio
         self.entryType = entryType
         self.userid = userid
@@ -52,6 +53,7 @@ class ACLEntry(object):
         self.maxleasehours = maxleasehours
         self.machinecount = None
         self.usermachines = None
+        self.preemptableuse = preemptableuse
 
 class ACLHelper(object):
 
@@ -79,10 +81,10 @@ class ACLHelper(object):
             raise KeyError("ACL not found")
         name = rc[0].strip()
         parent = rc[1]
-        owner = rc[2]
+        owner = rc[2].strip()
 
         entries = []
-        cur.execute("SELECT type, userid, grouplimit, grouppercent, userlimit, userpercent, maxleasehours, prio FROM tblaclentries WHERE aclid=%s ORDER BY prio", [aclid])
+        cur.execute("SELECT type, userid, grouplimit, grouppercent, userlimit, userpercent, maxleasehours, prio, preemptableuse FROM tblaclentries WHERE aclid=%s ORDER BY prio", [aclid])
         while True:
             rc = cur.fetchone()
             if not rc:
@@ -92,7 +94,7 @@ class ACLHelper(object):
                     return data
                 return int(data)
 
-            entries.append(ACLEntry(rc[7], rc[0].strip(), rc[1].strip(), __int(rc[2]), __int(rc[3]), __int(rc[4]), __int(rc[5]), __int(rc[6])))
+            entries.append(ACLEntry(rc[7], rc[0].strip(), rc[1].strip(), __int(rc[2]), __int(rc[3]), __int(rc[4]), __int(rc[5]), __int(rc[6]), bool(rc[8])))
 
         self._aclCache[aclid] = ACL(aclid, name, parent, owner, entries, self._get_machines_in_acl(aclid))
 
@@ -100,24 +102,36 @@ class ACLHelper(object):
         db = self.page.getDB()
         machines = {}
         cur = db.cursor()
-        cur.execute("SELECT m.machine, m.status, m.comment, j.userid FROM tblmachines AS m INNER JOIN tblacls AS a ON m.aclid = a.aclid LEFT JOIN tbljobs AS j ON m.jobid = j.jobid WHERE (m.aclid = %s OR a.parent = %s)",
+        cur.execute("SELECT m.machine, m.status, m.comment, j.userid, j.preemptable, m.preemptablelease FROM tblmachines AS m INNER JOIN tblacls AS a ON m.aclid = a.aclid LEFT JOIN tbljobs AS j ON m.jobid = j.jobid WHERE (m.aclid = %s OR a.parent = %s)",
                     (aclid, aclid))
         while True:
             rc = cur.fetchone()
             if not rc:
                 break
-            if rc[1].strip() in ["scheduled", "slaved", "running"]:
-                machines[rc[0].strip()] = rc[3].strip()
-            elif rc[2] is not None:
-                machines[rc[0].strip()] = rc[2].strip()
-            else:
-                machines[rc[0].strip()] = None
+
+            machines[rc[0].strip()] = self._get_user_for_machine(rc[1].strip(),
+                                                             rc[2].strip() if rc[2] else None, 
+                                                             rc[3].strip() if rc[3] else None,
+                                                             rc[4],
+                                                             rc[5])
         cur.close()
 
         return machines
 
-    def update_acl_cache(self, machine, userid):
+    def _get_user_for_machine(self, status, leaseuser, jobuser, jobpreemptable, leasepreemptable):
+        # Machine is considered in use if there's either a non-preemptable job running or a non-preemptable lease
+        if status in ["scheduled", "slaved", "running"] and not jobpreemptable:
+            return jobuser
+        elif leaseuser is not None and not leasepreemptable:
+            return leaseuser
+        else:
+            return None
+
+    def update_acl_cache(self, machine, userid, preemptable):
         """Update any ACLs for the given machine to note it is in use by userid"""
+        if preemptable:
+            # We haven't really used any machines
+            return
         for aclid in self._aclCache:
             if machine in self._aclCache[aclid].machines:
                 self._aclCache[aclid].machines[machine] = userid
@@ -164,16 +178,16 @@ class ACLHelper(object):
             e.usermachines = userMachines
         return acl
 
-    def check_acl(self, aclid, userid, machines, leaseHours=None, ignoreParent=False):
+    def check_acl(self, aclid, userid, machines, leaseHours=None, ignoreParent=False, preemptable=False):
         """Returns a tuple (allowed, reason_if_false) if the given user can have machines under this acl"""
         acl = self.get_acl(aclid)
-        result, reason = self._check_acl(acl, userid, machines, leaseHours)
+        result, reason = self._check_acl(acl, userid, machines, leaseHours, preemptable)
         if result and acl.parent and not ignoreParent:
             # We have to check the parent ACL as well
-            return self._check_acl(self.get_acl(acl.parent), userid, machines, leaseHours)
+            return self._check_acl(self.get_acl(acl.parent), userid, machines, leaseHours, preemptable)
         return result, reason 
 
-    def _check_acl(self, acl, userid, machines, leaseHours=None):
+    def _check_acl(self, acl, userid, machines, leaseHours=None, preemptable=False):
         """Returns True if the given user can have machines under this acl"""
         aclMachines = copy.copy(acl.machines)
         extraMachines = copy.copy(machines)
@@ -205,6 +219,12 @@ class ACLHelper(object):
                             aclMachines[m] = None
                     continue
                 else:
+                    if preemptable:
+                        if e.preemptableuse:
+                            return True, None
+                        else:
+                            # TODO improve error message here to use a term other than preemptable
+                            return False, "ACL does now allow preemptable use for this user"
                     # Our user - check their usage
                     if e.userlimit is not None and usercount > e.userlimit:
                         return False, "%s limited to %d machines" % (e.userid, e.userlimit)
@@ -217,6 +237,12 @@ class ACLHelper(object):
                     return True, None
             elif e.entryType == 'group' or e.entryType == 'default':
                 if e.entryType == 'default' or e.userid in usergroups:
+                    if preemptable:
+                        if e.preemptableuse:
+                            return True,None
+                        else:
+                            # TODO improve error message here to use a term other than preemptable
+                            return False, "ACL does now allow preemptable use for this group"
                     # A group our user is in - identify overall usage and per user usage for users in the acl
                     groupcount = usercount
                     if e.entryType == 'default':

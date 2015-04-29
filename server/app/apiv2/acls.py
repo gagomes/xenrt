@@ -45,6 +45,10 @@ class _AclBase(XenRTAPIv2Page):
             "maxleasehours": {
                 "type": "integer",
                 "description": "Number of hours machine can be leased by this user/group"
+            },
+            "preemptableuse": {
+                "type": "boolean",
+                "description": "Allow entry to run preemptable jobs and do preemptable machine leases"
             }
         }
     }
@@ -127,8 +131,8 @@ class _AclBase(XenRTAPIv2Page):
         elif not self.validateAndCache(entry['type'], entry['userid']):
             raise XenRTAPIError(HTTPNotAcceptable, "Could not find %s '%s' in AD" % (entry['type'], entry['userid']))
 
-        fields = ["aclid", "prio", "type", "userid"]
-        values = [aclid, entry['prio'], entry['type'], entry['userid']]
+        fields = ["aclid", "prio", "type", "userid", "preemptableuse"]
+        values = [aclid, entry['prio'], entry['type'], entry['userid'], entry.get('preemptableuse', False)]
         for f in ['grouplimit', 'grouppercent', 'userlimit', 'userpercent', 'maxleasehours']:
             if entry.has_key(f) and entry[f]:
                 fields.append(f)

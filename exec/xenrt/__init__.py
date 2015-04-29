@@ -3402,6 +3402,9 @@ class GlobalExecutionContext(object):
                         c.append(u)
                     # Best effort borrow
                     c.append("-b")
+                    # Preemptable borrows for preemptable jobs
+                    if xenrt.TEC().lookup("PREEMPTABLE", False, boolean=True):
+                        c.append("-p")
                     xenrt.TEC().logverbose("Borrowing %s" % m)
                     self.dbconnect.jobctrl("borrow", c)
             if regok:

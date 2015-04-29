@@ -95,7 +95,7 @@ class _MachineBase(XenRTAPIv2Page):
             conditions.append("m.machine != ('_' || s.site)")
 
 
-        query = "SELECT m.machine, m.site, m.cluster, m.pool, m.status, m.resources, m.flags, m.comment, m.leaseto, m.leasereason, m.leasefrom, m.leasepolicy, s.flags, m.jobid, m.descr, m.aclid, s.ctrladdr, s.location, m.prio, m.mgroup FROM tblmachines m INNER JOIN tblsites s ON m.site=s.site"
+        query = "SELECT m.machine, m.site, m.cluster, m.pool, m.status, m.resources, m.flags, m.comment, m.leaseto, m.leasereason, m.leasefrom, m.leasepolicy, s.flags, m.jobid, m.descr, m.aclid, s.ctrladdr, s.location, m.prio, m.mgroup, m.preemptable FROM tblmachines m INNER JOIN tblsites s ON m.site=s.site"
         if conditions:
             query += " WHERE %s" % " AND ".join(conditions)
 
@@ -129,6 +129,7 @@ class _MachineBase(XenRTAPIv2Page):
                 "ctrladdr": rc[16].strip() if rc[16] else None,
                 "location": rc[17].strip() if rc[17] else None,
                 "prio": rc[18],
+                "preemptablelease": bool(rc[20]) if rc[7] else None,
                 "params": {}
             }
             machine['leasecurrentuser'] = bool(machine['leaseuser'] and machine['leaseuser'] == self.getUser().userid)
@@ -265,7 +266,7 @@ class _MachineBase(XenRTAPIv2Page):
         
         db = self.getDB()
         cur = db.cursor()
-        cur.execute("UPDATE tblMachines SET leaseTo = NULL, comment = NULL, leasefrom = NULL, leasereason = NULL "
+        cur.execute("UPDATE tblMachines SET leaseTo = NULL, comment = NULL, leasefrom = NULL, leasereason = NULL, preemptablelease = NULL "
                     "WHERE machine = %s",
                     [machine])
 
@@ -299,7 +300,7 @@ class _MachineBase(XenRTAPIv2Page):
         finally:
             cur.close()
 
-    def lease(self, machine, user, duration, reason, force, besteffort, commit=True):
+    def lease(self, machine, user, duration, reason, force, besteffort, preemptable, commit=True):
         leaseFrom = time.strftime("%Y-%m-%d %H:%M:%S",
                                 time.gmtime(time.time()))
         if duration:
@@ -316,6 +317,10 @@ class _MachineBase(XenRTAPIv2Page):
         machines = self.getMachines(limit=1, machines=[machine], exceptionIfEmpty=True)
 
         leasePolicy = machines[machine]['leasepolicy']
+
+        if preemptable: # Preemptable leases are limited to 6 hours
+            leasePolicy = min(leasePolicy, 6)
+
         if leasePolicy and duration > leasePolicy:
             if besteffort:
                 duration = leasePolicy
@@ -332,15 +337,15 @@ class _MachineBase(XenRTAPIv2Page):
             raise XenRTAPIError(HTTPNotAcceptable, "Machines is already leased for longer", canForce=True)
 
         if machines[machine]['aclid']:
-            result, reason = self.getACLHelper().check_acl(machines[machine]['aclid'], user, [machine], duration)
+            result, reason = self.getACLHelper().check_acl(machines[machine]['aclid'], user, [machine], duration, preemptable=preemptable)
             if not result:
                 raise XenRTAPIError(HTTPUnauthorized, "ACL: %s" % reason, canForce=False)
 
         db = self.getDB()
         cur = db.cursor()
-        cur.execute("UPDATE tblMachines SET leaseTo = %s, leasefrom = %s, comment = %s, leasereason = %s "
+        cur.execute("UPDATE tblMachines SET leaseTo = %s, leasefrom = %s, comment = %s, leasereason = %s, preemptablelease = %s "
                     "WHERE machine = %s",
-                    [leaseTo, leaseFrom, user, reason, machine])
+                    [leaseTo, leaseFrom, user, reason, preemptable, machine])
         
         timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))
         
@@ -536,6 +541,10 @@ class LeaseMachine(_MachineBase):
                 "besteffort": {
                     "type": "boolean",
                     "description": "Borrow for as long as long as policy allows, don't fail if can't be borrowed",
+                    "default": False},
+                "preemptable": {
+                    "type": "boolean",
+                    "description": "Borrow on a preemptable basis - can be taken back for scheduled testing (ACL policy dependent)",
                     "default": False}
                 }
             }
@@ -551,7 +560,7 @@ class LeaseMachine(_MachineBase):
         except Exception, e:
             raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
         try:
-            self.lease(self.request.matchdict['name'], self.getUser().userid, params['duration'], params['reason'], params.get('force', False), params.get('besteffort', False))
+            self.lease(self.request.matchdict['name'], self.getUser().userid, params['duration'], params['reason'], params.get('force', False), params.get('besteffort', False), params.get('preemptable', False))
         except:
             if params.get('besteffort', False):
                 return {}

@@ -76,6 +76,8 @@ def parse_job(rc,cur):
         d['UPLOADED'] = string.strip(rc[6])
     if rc[7] and string.strip(rc[7]) != "":
         d['REMOVED'] = string.strip(rc[7])
+    if rc[8]:
+        d['PREEMPTABLE'] = "yes"
 
     cur.execute("SELECT param, value FROM tblJobDetails WHERE " +
                 "jobid = %s;", [rc[0]])
@@ -597,4 +599,10 @@ def update_ad_teams():
         print "Mapping %s to %s" % (u, userMapping[u])
         cur.execute("UPDATE tblusers SET team=%s WHERE userid=%s", [userMapping[u], u])
 
-    db.commit()        
+    db.commit()       
+
+def toBool(var):
+    if isinstance(var, basestring):
+        return var and var[0].lower() in ("y", "t", "1")
+    else:
+        return bool(var)

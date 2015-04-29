@@ -332,3 +332,13 @@ class AclTests(XenRTUnitTestCase):
         acl.entries = [app.acl.ACLEntry(0, "user","user1",None,None,2,None,None,False)]
         self.assertTupleTrue(self.acl._check_acl(acl, "user1", ["machine1","machine4"]))
 
+    def test_acl_user_for_machine(self):
+
+        self.assertEqual(self.acl._get_user_for_machine("idle", None, None, False, False), None)
+        self.assertEqual(self.acl._get_user_for_machine("running", None, "user1", False, False), "user1")
+        self.assertEqual(self.acl._get_user_for_machine("running", None, "user1", True, False), None)
+        self.assertEqual(self.acl._get_user_for_machine("running", "user1", "user1", True, False), "user1")
+        self.assertEqual(self.acl._get_user_for_machine("running", "user1", "user1", False, True), "user1")
+        self.assertEqual(self.acl._get_user_for_machine("running", "user1", "user1", True, True), None)
+        self.assertEqual(self.acl._get_user_for_machine("idle", "user1", None, False, True), None)
+        self.assertEqual(self.acl._get_user_for_machine("idle", "user1", None, False, False), "user1")

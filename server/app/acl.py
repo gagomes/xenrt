@@ -108,16 +108,24 @@ class ACLHelper(object):
             rc = cur.fetchone()
             if not rc:
                 break
-            # Machine is considered in use if there's either a non-preemptable job running or a non-preemptable lease
-            if rc[1].strip() in ["scheduled", "slaved", "running"] and not rc[4]:
-                machines[rc[0].strip()] = rc[3].strip()
-            elif rc[2] is not None and not rc[5]:
-                machines[rc[0].strip()] = rc[2].strip()
-            else:
-                machines[rc[0].strip()] = None
+
+            machines[rc[0].strip()] = self._get_user_for_machine(rc[1].strip(),
+                                                             rc[2].strip() if rc[2] else None, 
+                                                             rc[3].strip() if rc[3] else None,
+                                                             rc[4],
+                                                             rc[5])
         cur.close()
 
         return machines
+
+    def _get_user_for_machine(self, status, leaseuser, jobuser, jobpreemptable, leasepreemptable):
+        # Machine is considered in use if there's either a non-preemptable job running or a non-preemptable lease
+        if status in ["scheduled", "slaved", "running"] and not jobpreemptable:
+            return jobuser
+        elif leaseuser is not None and not leasepreemptable:
+            return leaseuser
+        else:
+            return None
 
     def update_acl_cache(self, machine, userid, preemptable):
         """Update any ACLs for the given machine to note it is in use by userid"""
@@ -215,6 +223,7 @@ class ACLHelper(object):
                         if e.preemptableuse:
                             return True, None
                         else:
+                            # TODO improve error message here to use a term other than preemptable
                             return False, "ACL does now allow preemptable use for this user"
                     # Our user - check their usage
                     if e.userlimit is not None and usercount > e.userlimit:
@@ -232,6 +241,7 @@ class ACLHelper(object):
                         if e.preemptableuse:
                             return True,None
                         else:
+                            # TODO improve error message here to use a term other than preemptable
                             return False, "ACL does now allow preemptable use for this group"
                     # A group our user is in - identify overall usage and per user usage for users in the acl
                     groupcount = usercount

@@ -599,4 +599,10 @@ def update_ad_teams():
         print "Mapping %s to %s" % (u, userMapping[u])
         cur.execute("UPDATE tblusers SET team=%s WHERE userid=%s", [userMapping[u], u])
 
-    db.commit()        
+    db.commit()       
+
+def toBool(var):
+    if isinstance(var, basestring):
+        return var and var[0].lower() in ("y", "t", "1")
+    else:
+        return bool(var)

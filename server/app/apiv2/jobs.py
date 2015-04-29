@@ -2,6 +2,7 @@ from app.apiv2 import *
 from machines import _MachineBase
 from pyramid.httpexceptions import *
 import app.constants
+import app.utils
 import calendar
 import json
 import jsonschema
@@ -237,11 +238,8 @@ class _JobBase(_MachineBase):
         db = self.getDB()
 
         if key in app.constants.core_params:
-            if key in app.constants.bool_params and isinstance(value, basestring):
-                if value and value[0].lower() in ("y", "t", "1"):
-                    value = True
-                else:
-                    value = False
+            if key in app.constants.bool_params:
+                value = app.utils.toBool(value)
             cur = db.cursor()
             try:
                 cur.execute("UPDATE tbljobs SET %s=%%s WHERE jobid=%%s;" % (key), 

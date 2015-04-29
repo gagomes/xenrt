@@ -190,13 +190,12 @@ class ACLHelper(object):
         extraMachines = copy.copy(machines)
         usergroups = self.groups_for_userid(userid)
         usercount = 0
-        if not preemptable:
-            for m in aclMachines:
-                if aclMachines[m] == userid:
-                    usercount += 1
-                    if m in extraMachines:
-                        # The machine is already in use by the user, so we don't need to double count it
-                        extraMachines.remove(m)
+        for m in aclMachines:
+            if aclMachines[m] == userid:
+                usercount += 1
+                if m in extraMachines:
+                    # The machine is already in use by the user, so we don't need to double count it
+                    extraMachines.remove(m)
 
         if len(extraMachines) == 0:
             # All machines the user is asking for are already theirs, so no need

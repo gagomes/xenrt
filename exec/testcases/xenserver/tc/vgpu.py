@@ -1671,7 +1671,7 @@ class VGPUAllocationModeBase(VGPUOwnedVMsTest):
                     quadro += 1
                 elif CardDeviceName[CardType.Intel] in device:
                     intel += 1
-            if k1 % NumOfPGPUPerCard[CardType.K1] or k2 % NumOfPGPUPerCard[CardType.K2] or quadro % NumOfPGPUPerCard[CardType.Quadro] or NumOfPGPUPerCard[CardType.Intel]:
+            if k1 % NumOfPGPUPerCard[CardType.K1] or k2 % NumOfPGPUPerCard[CardType.K2] or quadro % NumOfPGPUPerCard[CardType.Quadro] or intel % NumOfPGPUPerCard[CardType.Intel]:
                 raise xenrt.XRTError("Number of PGPU does not match with cards description. found %d K1, %d K2, %d quadro, %d intel PGPU(s)" % (k1, k2,quadro,intel))
             cards[host] = {"K1" : k1 / NumOfPGPUPerCard[CardType.K1], "K2" : k2 / NumOfPGPUPerCard[CardType.K2]}
             log("Found a host with " + str(cards[host]))

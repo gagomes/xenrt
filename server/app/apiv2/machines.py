@@ -330,9 +330,9 @@ class _MachineBase(XenRTAPIv2Page):
 
         db = self.getDB()
         cur = db.cursor()
-        cur.execute("UPDATE tblMachines SET leaseTo = %s, leasefrom = %s, comment = %s, leasereason = %s "
+        cur.execute("UPDATE tblMachines SET leaseTo = %s, leasefrom = %s, comment = %s, leasereason = %s, preemptable = %s "
                     "WHERE machine = %s",
-                    [leaseTo, leaseFrom, user, reason, machine])
+                    [leaseTo, leaseFrom, user, reason, machine, preemptable])
         
         timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))
         

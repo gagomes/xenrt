@@ -135,6 +135,7 @@ for i in {b..%s}; do
     echo $(($(/root/fio/fio --name=iometer \
                             --direct=1 \
                             --ioengine=libaio \
+                            --io_size=1024TB \
                             --filename=/dev/xvd$i \
                             --minimal \
                             --terse-version=3 \

@@ -431,13 +431,6 @@ class ListMachines(_MachineBase):
           'name': 'aclid',
           'required': False,
           'type': 'array'},
-         {'collectionFormat': 'multi',
-          'description': 'Filter on group - can specify multiple',
-          'in': 'query',
-          'items': {'type': 'string'},
-          'name': 'group',
-          'required': False,
-          'type': 'array'},
          {'description': 'Limit the number of results. Defaults to unlimited',
           'in': 'query',
           'name': 'limit',
@@ -458,7 +451,14 @@ class ListMachines(_MachineBase):
           'in': 'query',
           'name': 'search',
           'required': False,
-          'type': 'string'}
+          'type': 'string'},
+         {'collectionFormat': 'multi',
+          'description': 'Filter on group - can specify multiple',
+          'in': 'query',
+          'items': {'type': 'string'},
+          'name': 'group',
+          'required': False,
+          'type': 'array'}
           ]
     RESPONSES = { "200": {"description": "Successful response"}}
     TAGS = ["machines"]

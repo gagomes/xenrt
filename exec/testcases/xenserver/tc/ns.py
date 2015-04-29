@@ -1547,7 +1547,7 @@ class NSSRIOV(SRIOVTests):
     
     # We have to release all the allocated IPv4 address 
     ALLOCATED_IPADDRS = []
-    NS_XVA = "NSVPX-XEN-10.0-72.5_nc.xva"
+    NS_XVA = "NSVPX-XEN-10.5-52.11_nc.xva"
     GOLDEN_VM = None
     NETWORK = 'NPRI' # 'NSEC'; Orjen has SR-IOV nics on NSEC
     
@@ -1599,26 +1599,33 @@ class NSSRIOV(SRIOVTests):
         return vpx
 
     def getLicenseFile(self):
-        lic = "CNS_V1000_SERVER_PLT_Retail.lic"
-        working = xenrt.TEC().getWorkdir()
-        out = os.path.join(working, lic)
-        lic_url = "http://www.uk.xensource.com/~jobyp/CNS_V1000_SERVER_PLT_Retail.lic"
-        xenrt.command('wget %s -O %s' % (lic_url, out))
-        self.license_file = out
+        lic = "CNS_V3000_SERVER_PLT_Retail.lic"
+        out = xenrt.TEC().getFile("%s/tallahassee/%s" % (xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),lic)) 
+        self.license_file = out.strip()
         return self.license_file
 
     def installLicense(self, vpx):
+    
+        step("Checking if VPX already has license")
+            
         if hasattr(self, 'license_file') and self.license_file is not None:
             pass
+        
         else:
             self.license_file = self.getLicenseFile()
+
+        
+        step("copy license file from tempdir on controller to guest...........")
 
         if vpx.getState() != "UP":
             self.startVPX(vpx)
             
         sftp = vpx.sftpClient(username='nsroot')
-        sftp.copyTo(self.license_file, os.path.join("/nsconfig/license", os.path.basename(self.license_file)))
+        
+        sftp.copyTo(self.license_file, os.path.join('/nsconfig/license',os.path.basename(self.license_file)))
         sftp.close()
+        
+        
         vpx.waitForSSH(timeout=100,cmd='sh ns ip',username='nsroot')
         self.rebootVPX(vpx)
         return

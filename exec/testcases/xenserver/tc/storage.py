@@ -4863,11 +4863,3 @@ class TCCIFSLifecycle(xenrt.TestCase):
 
         # Destroy SR.
         self.sr.remove()
-
-class TCCIFSVDILifecycle(xenrt.TestCase):
-
-    def prepare(self, arglist):
-        pass
-
-    def run(self, arglist):
-        pass

@@ -18,6 +18,7 @@ class XenRTSchedule(XenRTAPIPage):
     def cli(self):
         if not self.isDBMaster():
             print "Skipping schedule as this node is not the master"
+            return
         dryrun = False
         ignore = False
         verbose = None

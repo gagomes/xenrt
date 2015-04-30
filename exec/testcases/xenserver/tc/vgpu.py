@@ -1,5 +1,5 @@
 import xenrt
-import copy, time, random, re, json, string, threading
+import copy, time, random, re, json, string, threading, os
 import testcases.xenserver.guest
 from xenrt.lazylog import step, comment, log, warning
 from testcases.benchmarks import workloads
@@ -3168,11 +3168,10 @@ class TCNonWindowsK1(FunctionalBase):
 
         expVGPUType = self.getConfigurationName(config)
 
-        log("Creating vGPU of type %s" % (expVGPUType))
-        self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
+        log("Creating vGPU of type %s, and trying to start." % (expVGPUType))
 
         try:
-            vm.setState("UP")
+            self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
         except Exception as e:
             vm.destroyvGPU()
             self.checkError(e)

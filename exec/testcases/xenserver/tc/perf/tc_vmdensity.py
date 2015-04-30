@@ -518,6 +518,7 @@ def APIEvent(experiment):
 class GuestEvent(object):
     # dict: ip -> ...
     events = {}
+    INET = socket.AF_INET
     UDP_IP = socket.gethostbyname(socket.gethostname())
     UDP_PORT = 5000
     EVENT = None
@@ -526,6 +527,19 @@ class GuestEvent(object):
         if not self.EVENT:
             self.log("Abstract class!")
         self.experiment = experiment
+
+        self.INET = socket.AF_INET
+        if xenrt.TEC().lookup("USE_GUEST_IPV6", False):
+            self.INET = socket.AF_INET6
+
+        if self.INET == socket.AF_INET6:
+            import netifaces
+            ifs = netifaces.ifaddresses('eth0')
+            xenrt.TEC().logverbose("interfaces(eth0)=%s" % (ifs,))
+            self.UDP_IP = filter(lambda x: not x['addr'].startswith('fe80'), ifs[netifaces.AF_INET6])[0]['addr']
+
+        xenrt.TEC().logverbose("UDP_IP=%s" % (self.UDP_IP,))
+
         thread.start_new_thread(self.listen,())
 
     def script_filename(self):
@@ -554,7 +568,7 @@ class GuestEvent(object):
             pass
 
     def listen(self):
-        sock = socket.socket( socket.AF_INET, # Internet
+        sock = socket.socket( self.INET,          # IPv4/6
                               socket.SOCK_DGRAM ) # UDP
         bound=False
         while not bound:
@@ -568,7 +582,12 @@ class GuestEvent(object):
 
         while True:
             try:
-                msg, (guest_ip, guest_port) = sock.recvfrom( 16)#, socket.MSG_DONTWAIT ) # buffer size is smallest possible to fit one msg only
+                if xenrt.TEC().lookup("USE_GUEST_IPV6", False):
+                    msg, (guest_ip, guest_port, foo, bar) = sock.recvfrom( 16)#, socket.MSG_DONTWAIT ) # buffer size is smallest possible to fit one msg only
+                    # pad ipv6 with missing 0s so that it matches the one returned by guests via xenrt
+                    guest_ip = ":".join(map(lambda i: i.zfill(4), guest_ip.split(":")))
+                else:
+                    msg, (guest_ip, guest_port) = sock.recvfrom( 16)#, socket.MSG_DONTWAIT ) # buffer size is smallest possible to fit one msg only
                 if not self.events.has_key(guest_ip):
                     guest_name="n/a"
                     if self.experiment.ip_to_guest.has_key(guest_ip):
@@ -628,6 +647,8 @@ import socket
 import time
 import os.path
 
+%s
+
 controller_ip = "%s"
 controller_udp_port = %s
 i=0
@@ -635,20 +656,63 @@ while not os.path.isfile("%s%s") and i<600000:
     msg = "%s+MSG%%s" %% i
     print "sending to (%%s:%%s):%%s" %% (controller_ip,controller_udp_port,msg)
     try:
-        s = socket.socket( socket.AF_INET, socket.SOCK_DGRAM)
+        s = socket.socket( %s, socket.SOCK_DGRAM)
+        %s
         s.sendto(msg, (controller_ip, controller_udp_port))
     except Exception, e:
         print "exception %%s" %% e
     time.sleep(3.0)
     i=i+1
 """
+        if xenrt.TEC().lookup("USE_GUEST_IPV6", False):
+            afinet = "socket.AF_INET6"
+            if guest.windows:
+                get_ipv6_fn = """
+import subprocess
+ipv6 = False
+while not ipv6:
+    print "not found local ipv6 yet"
+    for line in subprocess.check_output("ipconfig").split("\\r\\n"):
+        print line
+        if "  IPv6 Address" in line:
+            ipv6 = line.split(": ")[1]
+            print "found local ipv6 %s" % (ipv6,)
+"""
+            else:
+                get_ipv6_fn = """
+import subprocess
+ipv6 = False
+while not ipv6:
+    print "not found local ipv6 yet"
+    for line in subprocess.check_output("ifconfig").split("\\n"):
+        print line
+        if "HWaddr" in line:
+            macx=map(lambda x:x.strip(), line.split("HWaddr ")[1].split(":"))
+            print macx
+            ipv6_6 = "fe%s" % (macx[3],)
+            ipv6_7 = "%s%s" % (macx[4],macx[5])
+        if "inet6 addr:" in line and "Scope:Global" in line:
+            _ipv6 = line.split("/")[0].split(": ")[1]
+            _ipv6x = map(lambda i: i.zfill(4), _ipv6.split(":"))
+            print _ipv6x
+            if _ipv6x[6]==ipv6_6 and _ipv6x[7]==ipv6_7:
+                ipv6=_ipv6
+                print "found local ipv6 %s" % (ipv6,)
+                break
+"""
+            bind_ipv6_fn = "s.bind((ipv6,0))"
+        else:
+            afinet = "socket.AF_INET"
+            get_ipv6_fn = ""
+            bind_ipv6_fn = ""
+
         if guest.windows: 
-            script = script % (self.UDP_IP, self.UDP_PORT,"c:\\",self.stop_filename(), self.EVENT)
+            script = script % (get_ipv6_fn, self.UDP_IP, self.UDP_PORT,"c:\\",self.stop_filename(), self.EVENT, afinet, bind_ipv6_fn)
             script_path = "c:\\%s" % self.script_filename()
             guest.xmlrpcWriteFile(script_path, script)
             self.addEventTrigger(guest,script_path)
         else:#posix guest
-            script = script % (self.UDP_IP, self.UDP_PORT,"/",self.stop_filename(), self.EVENT)
+            script = script % (get_ipv6_fn, self.UDP_IP, self.UDP_PORT,"/",self.stop_filename(), self.EVENT, afinet, bind_ipv6_fn)
             script_path = "/%s" % self.script_filename()
             sf = xenrt.TEC().tempFile()
             file(sf, "w").write(script)
@@ -1607,6 +1671,7 @@ class Experiment_vmrun(Experiment):
     loginvsiexclude = []
     vmcooloff = "0"
     xentrace = []
+    vlans = 0
     
 
     #this event handles change of values of dimension XSVERSIONS
@@ -1679,6 +1744,16 @@ class Experiment_vmrun(Experiment):
             xenrt.TEC().logverbose("Using PRODUCT_VERSION=%s" % xenrt.TEC().lookup("PRODUCT_VERSION", None))
 
             networkcfg = ""
+            for dom0param in self.dom0params:
+                if "vlan" in dom0param:
+                    # "vlan:X" = create X vlans in the host
+                    vlan_params = dom0param.split("=")
+                    self.vlans = 0
+                    if len(vlan_params) > 1:
+                        self.vlans = int(vlan_params[1])
+            for i in range(0, self.vlans):
+              networkcfg += '<VLAN network="VR%02u" />' % (i+1)
+
             name_defaultsr = "%ssr" % (self.defaultsr,)
             if self.defaultsr in ["lvm","ext"] or self.defaultsr.startswith("ext:"):
                 localsr = self.defaultsr.split(":")[0] #ignore : and anything after it
@@ -1692,12 +1767,15 @@ class Experiment_vmrun(Experiment):
                 if "xrtuk-08-" in hn:
                     xenrt.TEC().logverbose("%s: xrtuk-08-* host detected, using NSEC+jumbo network configuration" % hn)
                     sharedsr = '<storage type="%s" name="%s" jumbo="true" network="NSEC"/>' % (self.defaultsr, name_defaultsr)
-                    networkcfg = """<NETWORK><PHYSICAL network="NPRI"><NIC /><MANAGEMENT /><VMS /></PHYSICAL><PHYSICAL network="NSEC"><NIC /><STORAGE /></PHYSICAL></NETWORK>"""
+                    networkcfg = """<NETWORK><PHYSICAL network="NPRI"><NIC /><MANAGEMENT /><VMS />%s</PHYSICAL><PHYSICAL network="NSEC"><NIC /><STORAGE /></PHYSICAL></NETWORK>"""
                 else:
                     xenrt.TEC().logverbose("%s: xrtuk-08-* host NOT detected, using default network configuration" % hn)
+                    if self.vlans > 0:
+                        networkcfg = '<NETWORK><PHYSICAL network="NPRI"><NIC/><MANAGEMENT /><VMS />%s</PHYSICAL></NETWORK>' % (networkcfg,)
 
             seq = "<pool><host installsr=\"%s\">%s%s</host></pool>" % (localsr,sharedsr, networkcfg)
             #seq = "<pool><host/></pool>"
+            xenrt.TEC().logverbose("sequence=%s" % (seq,))
             pool_xmlnode = xml.dom.minidom.parseString(seq)
             prepare = PrepareNode(pool_xmlnode, pool_xmlnode, {}) 
             prepare.runThis()
@@ -1721,13 +1799,24 @@ class Experiment_vmrun(Experiment):
                     #this sed works in xs5.6sp2- only
                     host.execdom0('sed -i \'s/sys.argv\[2:\]$/sys.argv\[2:\]\\nqemu_args.append("-priv")\\n/\' /opt/xensource/libexec/qemu-dm-wrapper')
 
- 
+
             host = self.tc.getDefaultHost()
+
+            if self.vlans > 0:
+                #create any extra VLANs in the host
+                host.createNetworkTopology(networkcfg)
+
+
             host.defaultsr = name_defaultsr # hack: because esx doesn't have a pool class to set up the defaultsr when creating the host via sequence above with 'default' option in <storage>
             pool = self.tc.getDefaultPool()
-            if pool:
-                sr_uuid = host.parseListForUUID("sr-list", "name-label", name_defaultsr)
-                pool.setPoolParam("default-SR", sr_uuid)
+            sr_uuid = host.parseListForUUID("sr-list", "name-label", name_defaultsr)
+            xenrt.TEC().logverbose("pool=%s, name_defaultsr='%s', sr_uuid='%s'" % (pool, name_defaultsr, sr_uuid))
+            if sr_uuid:
+                if pool:
+                    pool.setPoolParam("default-SR", sr_uuid)
+                else:
+                    pool_uuid = host.minimalList("pool-list")[0]
+                    host.genParamSet("pool", pool_uuid, "default-SR", sr_uuid)
 
             set_dom0disksched(host,self.dom0disksched) 
             patch_qemu_wrapper(host,self.qemuparams)
@@ -1936,6 +2025,7 @@ class Experiment_vmrun(Experiment):
                 #model vm not found in host, install it from scratch
                 #g0 = host.guestFactory()(vm_name, vm_template, host=host)
                 #g0.createGuestFromTemplate(vm_template, defaultSR)
+                use_ipv6 = xenrt.TEC().lookup("USE_GUEST_IPV6", False)
 
                 if self.distro.endswith(".img"):
                     #import vm from image
@@ -1951,7 +2041,7 @@ class Experiment_vmrun(Experiment):
                     postinstall=[]
                     if "nopvdrivers" not in self.vmpostinstall:
                         postinstall+=['installDrivers']
-                    g0=lib.guest.createVM(host,vm_name,self.distro,vifs=self.vmvifs,disks=self.vmdisks,vcpus=self.vmvcpus,corespersocket=self.vm_cores_per_socket,memory=self.vmram,guestparams=self.vmparams,postinstall=postinstall,sr=defaultSR,arch=self.arch)
+                    g0=lib.guest.createVM(host,vm_name,self.distro,vifs=self.vmvifs,disks=self.vmdisks,vcpus=self.vmvcpus,corespersocket=self.vm_cores_per_socket,memory=self.vmram,guestparams=self.vmparams,postinstall=postinstall,sr=defaultSR,arch=self.arch,use_ipv6=use_ipv6)
                     #g0.install(host,isoname=xenrt.DEFAULT,distro=self.distro,sr=defaultSR)
                     #g0.check()
                     #g0.installDrivers()
@@ -1961,7 +2051,7 @@ class Experiment_vmrun(Experiment):
                     postinstall=[]
                     if "convertHVMtoPV" in self.vmpostinstall:
                         postinstall+=['convertHVMtoPV']
-                    g0=lib.guest.createVM(host,vm_name,self.distro,vifs=self.vmvifs,disks=self.vmdisks,vcpus=self.vmvcpus,corespersocket=self.vm_cores_per_socket,memory=self.vmram,guestparams=self.vmparams,postinstall=postinstall,sr=defaultSR,arch=self.arch)
+                    g0=lib.guest.createVM(host,vm_name,self.distro,vifs=self.vmvifs,disks=self.vmdisks,vcpus=self.vmvcpus,corespersocket=self.vm_cores_per_socket,memory=self.vmram,guestparams=self.vmparams,postinstall=postinstall,sr=defaultSR,arch=self.arch,use_ipv6=use_ipv6)
                     #g0.install(host,isoname=xenrt.DEFAULT,distro=self.distro,sr=defaultSR, repository="cdrom",method="CDROM")
 
                 g0.check()
@@ -2264,11 +2354,27 @@ MachinePassword=%s
             return
 
         def install_guests_in_a_host(g0):
+            cli = g0.host.getCLIInstance()
+            s = cli.execute("pif-list", "params=network-uuid,VLAN")
+            xenrt.TEC().logverbose("pif-list=%s" % (s,))
+            all_network_uuids = map(lambda kv:(kv[0].split(":")[1].strip(),kv[1].split(":")[1].strip()), filter(lambda el:len(el)>1, map(lambda vs:vs.split("\n"),s.split("\n\n\n"))))
+            xenrt.TEC().logverbose("all_network_uuids=%s" % (all_network_uuids,))
+
+            # only those network uuids with a vlan
+            network_uuids = map(lambda (v,n):n, filter(lambda (vlan,network_uuid): vlan<>"-1", all_network_uuids))
+            xenrt.TEC().logverbose("network_uuids with vlan=%s" % (network_uuids,))
+
             # We'll do the installation on default SR
             for i in self.getDimensions()['VMS']:
                 g = g0.cloneVM() #name=("%s-%i" % (vm_name,i)))
                 #xenrt.TEC().registry.guestPut(g.getName(),g)
                 self.guests[i] = g
+                if self.vlans > 0:
+                    # assign networks to clones in round-robin fashion
+                    network_uuid = network_uuids[ i % len(network_uuids) ]
+                    g.removeAllVIFs()
+                    g.createVIF(bridge=network_uuid)
+
             return
 
         def install_guests():
@@ -2619,6 +2725,8 @@ MachinePassword=%s
                 timeout = 600 + self.measurement_1.base_measurement * self.tc.THRESHOLD
             if guest.use_ipv6:
                 guest.mainip = guest.getIPv6AutoConfAddress(vifname)
+                #normalise ipv6 with 0s
+                guest.mainip = ":".join(map(lambda i: i.zfill(4), guest.mainip.split(":")))
             else:
                 guest.mainip = guest.getHost().arpwatch(bridge, mac, timeout=timeout)
             self.ip_to_guest[guest.mainip] = guest

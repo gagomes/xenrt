@@ -111,7 +111,7 @@
           <xs:attribute name="productVersion" use="optional" type="xs:string" />
           <xs:attribute name="version" use="optional" type="xs:string" />
           <xs:attribute name="diskCount" use="optional" type="xs:positiveInteger" />
-          <xs:attribute name="usev6testd" use="optional" type="xbool" />
+          <xs:attribute name="defaultlicense" use="optional" type="xbool" />
           <xs:attribute name="installsr" use="optional" type="installsrType" />
           <xs:attribute name="suppackcds" use="optional" type="xs:string" />
           <xs:attribute name="alias" use="optional" type="xs:string" />

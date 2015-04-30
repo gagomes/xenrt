@@ -20,7 +20,7 @@ class XenRTSchedule(XenRTAPIPage):
             print "Skipping schedule as this node is not the master"
         dryrun = False
         ignore = False
-        verbose = False
+        verbose = None
 
         try:
             optlist, optx = getopt.getopt(sys.argv[2:], "vdi")
@@ -31,7 +31,7 @@ class XenRTSchedule(XenRTAPIPage):
                 elif flag == "-i":
                     ignore = True
                 elif flag == "-v":
-                    verbose = True
+                    verbose = sys.stdout
         except getopt.GetoptError:
             raise Exception("Unknown argument")
 
@@ -52,14 +52,14 @@ class XenRTSchedule(XenRTAPIPage):
                 return HTTPFound(location="http://%s/xenrt/api/schedule" % config.partner_ha_node)
         dryrun = False
         ignore = False
-        verbose = False
+        verbose = None
+        outfh = StringIO.StringIO()
         if form.has_key("dryrun") and form["dryrun"] == "yes":
             dryrun = True
         if form.has_key("ignore") and form["ignore"] == "yes":
             ignore = True
         if form.has_key("verbose") and form["verbose"] == "yes":
-            verbose = True
-        outfh = StringIO.StringIO()
+            verbose = outfh
         self.schedule_jobs(outfh, dryrun=dryrun, ignore=ignore, verbose=verbose)
         ret = outfh.getvalue()
         outfh.close()
@@ -71,25 +71,33 @@ class XenRTSchedule(XenRTAPIPage):
             self.mutex.close()
         return ret
 
-    def schedule_jobs(self, outfh, dryrun=False, ignore=False, verbose=False):
+    def schedule_jobs(self, outfh, dryrun=False, ignore=False, verbose=None):
         """New world job scheduler - assigns machines to jobs"""
 
         # Generate a random integer to track in logs
         schedid = random.randint(0,1000)
 
-        if verbose:
-            outfh.write("Job scheduler ID %d started %s" % (schedid, time.strftime("%a, %d %b %Y %H:%M:%S +0000\n", time.gmtime())))
+        writeVerboseFile = False
+        alsoPrintToVerbose = False
+
+        if not verbose:
+            verbose = StringIO.StringIO()
+            writeVerboseFile = True
+            alsoPrintToVerbose = True
+
+        prelocktime = time.mktime(time.gmtime())
+
+        verbose.write("Job scheduler ID %d started %s" % (schedid, time.strftime("%a, %d %b %Y %H:%M:%S +0000\n", time.gmtime())))
         self.get_lock()
-        if verbose:
-            outfh.write("%d acquired lock %s" % (schedid, time.strftime("%a, %d %b %Y %H:%M:%S +0000\n", time.gmtime())))
+        verbose.write("%d acquired lock %s" % (schedid, time.strftime("%a, %d %b %Y %H:%M:%S +0000\n", time.gmtime())))
+        postlocktime = time.mktime(time.gmtime())
 
         offline_sites = [x[0] for x in self.scm_site_list(status="offline")]
         sites = self.scm_site_list(checkFull=True)
         sitecapacity = {}
         for s in sites:
             sitecapacity[s[0]] = s[8]
-            if verbose:
-                outfh.write("%s remaining capacity %d\n" % (s[0], s[8]))
+            verbose.write("%s remaining capacity %d\n" % (s[0], s[8]))
         try:
 
             # Machines we have available
@@ -132,8 +140,8 @@ class XenRTSchedule(XenRTAPIPage):
                         jobdesc = " (%s)" % (details["JOBDESC"])
                     else:
                         jobdesc = ""
-                    if verbose or dryrun:
-                        outfh.write("New job %s%s\n" % (jobid, jobdesc))
+                    preemptable = details.get("PREEMPTABLE", "").lower() == "yes"
+                    verbose.write("New job %s%s\n" % (jobid, jobdesc))
 
                     # Variables to record the scheduling data
                     site = None      # All machines will be at the same site
@@ -145,7 +153,7 @@ class XenRTSchedule(XenRTAPIPage):
                         try:
                             machines_required = int(details["MACHINES_REQUIRED"])
                         except ValueError:
-                            outfh.write("Warning: skipping job %s because of invalid MACHINES_REQUIRED value\n" % jobid)
+                            verbose.write("Warning: skipping job %s because of invalid MACHINES_REQUIRED value\n" % jobid)
                             continue
                     else:
                         machines_required = 1
@@ -159,15 +167,13 @@ class XenRTSchedule(XenRTAPIPage):
                             for m in leasedmachineslist:
                                 if not m[1] in offline_sites:
                                     leasedmachines[m[0]] = m
-                            if verbose:
-                                outfh.write("Job specified specific mahines, so machines (%s) available\n" % ",".join(leasedmachines.keys()))
+                            verbose.write("Job specified specific machines, so machines (%s) available\n" % ",".join(leasedmachines.keys()))
                         else:
                             leasedmachines = {}
                         mxs = string.split(details["MACHINE"], ",")
                         if len(mxs) > 0:
                             if machines.has_key(mxs[0]) or leasedmachines.has_key(mxs[0]):
-                                if verbose:
-                                    outfh.write("  wants %s, it is available\n" % (mxs[0]))
+                                verbose.write("  wants %s, it is available\n" % (mxs[0]))
                                 selected.append(mxs[0])
                                 if leasedmachines.has_key(mxs[0]):
                                     site = leasedmachines[mxs[0]][1]
@@ -178,8 +184,7 @@ class XenRTSchedule(XenRTAPIPage):
                                 if cluster == None:
                                     cluster = ""
                             else:
-                                if verbose:
-                                    outfh.write("  wants %s, not available\n" % (mxs[0]))
+                                verbose.write("  wants %s, not available\n" % (mxs[0]))
                                 # unscheduable at the moment
                                 continue
                             # Any remaining machines have site and cluster ignored
@@ -189,20 +194,17 @@ class XenRTSchedule(XenRTAPIPage):
                                     break
                                 if machines.has_key(mx) or leasedmachines.has_key(mx):
                                     selected.append(mx)
-                                    if verbose:
-                                        outfh.write("  wants %s, it is available\n" % (mx))
+                                    verbose.write("  wants %s, it is available\n" % (mx))
                                 else:
-                                    if verbose:
-                                        outfh.write("  wants %s, not available\n" % (mx))
+                                    verbose.write("  wants %s, not available\n" % (mx))
                                     # unscheduable at the moment
                                     schedulable = False
 
                             if not schedulable:
                                 continue
                             # Do one ACL check at this stage
-                            if not self.check_acl_for_machines(selected, details['USERID'], number=len(selected)):
-                                if verbose:
-                                    outfh.write("  at least one specified machine not allowed by ACL\n")
+                            if not self.check_acl_for_machines(selected, details['USERID'], number=len(selected), preemptable=preemptable):
+                                verbose.write("  at least one specified machine not allowed by ACL\n")
                                 continue
                     else:
                         if details.has_key("SITE"):
@@ -224,6 +226,7 @@ class XenRTSchedule(XenRTAPIPage):
                                              site,
                                              cluster,
                                              details,
+                                             preemptable,
                                              verbose=verbose)
 
                     if len(selected) < machines_required:
@@ -237,7 +240,9 @@ class XenRTSchedule(XenRTAPIPage):
                         outfh.write("  could schedule %u on %s\n" % (int(jobid), str(selected)))
                         continue
                     outfh.write("  scheduling %u on %s (%d)\n" % (int(jobid), str(selected), schedid))
-                    self.schedule_on(outfh, int(jobid), selected)
+                    if alsoPrintToVerbose:
+                        verbose.write("  scheduling %u on %s (%d)\n" % (int(jobid), str(selected), schedid))
+                    self.schedule_on(outfh, int(jobid), selected, details['USERID'], preemptable)
                     
                     if not site:
                         site = machines[selected[0]][1]
@@ -260,8 +265,15 @@ class XenRTSchedule(XenRTAPIPage):
         finally:
             self.release_lock()
 
-        if verbose:
-            outfh.write("Scheduler %d completed %s\n" % (schedid,time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime())))
+        verbose.write("Scheduler %d completed %s\n" % (schedid,time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime())))
+        finishtime = time.mktime(time.gmtime())
+
+        outfh.write("Scheduler took %ds to acquire lock and %ds to run\n" % (int(postlocktime-prelocktime), int(finishtime-postlocktime)))
+        if alsoPrintToVerbose:
+            verbose.write("Scheduler took %ds to acquire lock and %ds to run\n" % (int(postlocktime-prelocktime), int(finishtime-postlocktime)))
+        if writeVerboseFile:
+            with open("%s/schedule.log" % config.schedule_log_dir, "w") as f:
+                f.write(verbose.getvalue())
 
 
     def get_lock(self):
@@ -319,7 +331,7 @@ class XenRTSchedule(XenRTAPIPage):
         except Exception, e:
             print "WARNING: Could not run scm_check_leases - %s" % str(e)
 
-    def schedule_on(self, outfh, job, machines):
+    def schedule_on(self, outfh, job, machines, userid, preemptable):
         db = self.getDB()
         debug = False
         if not debug:
@@ -365,6 +377,9 @@ class XenRTSchedule(XenRTAPIPage):
                 cur.execute(sql)
                 cur.close()
         if not debug:
+            # Update the ACL cache
+            for m in machines:
+                self.getACLHelper().update_acl_cache(m, userid, preemptable)
             # Now we're complete, mark the job as running
             self.set_status(job, app.constants.JOB_STATUS_RUNNING, commit=True)
 
@@ -426,7 +441,7 @@ class XenRTSchedule(XenRTAPIPage):
                 pass
         return jobs
 
-    def scm_select_machines(self, outfh, machines, number, selected, site, cluster, details, verbose=False):
+    def scm_select_machines(self, outfh, machines, number, selected, site, cluster, details, preemptable, verbose=None):
         """Select <number> machines from the <machines> dictionary.
 
         The job may be partly done already and the <selected> list will contain
@@ -485,35 +500,30 @@ class XenRTSchedule(XenRTAPIPage):
         cs.sort(key=lambda x: clusterprios[x])
         for cluster in cs:
             s, c = cluster
-            if verbose:
-                outfh.write("  checking site %s, cluster %s...\n" % (s, c))
+            verbose.write("  checking site %s, cluster %s...\n" % (s, c))
 
             # Check the available shared resources on the site
             if details.has_key("SHAREDRESOURCES"):
                 sharedresourcesavailable = self.site_available_shared_resources(s)
                 sharedresourcesneeded = app.utils.parse_shared_resources(details["SHAREDRESOURCES"])
-                if verbose:
-                    outfh.write("Shared resources available: %s\n" % ("/".join(map(lambda x:"%s=%s" % (x, sharedresourcesavailable[x]), sharedresourcesavailable.keys()))))
-                    outfh.write("Shared resources needed: %s\n" % ("/".join(map(lambda x:"%s=%s" % (x, sharedresourcesneeded[x]), sharedresourcesneeded.keys()))))
+                verbose.write("Shared resources available: %s\n" % ("/".join(map(lambda x:"%s=%s" % (x, sharedresourcesavailable[x]), sharedresourcesavailable.keys()))))
+                verbose.write("Shared resources needed: %s\n" % ("/".join(map(lambda x:"%s=%s" % (x, sharedresourcesneeded[x]), sharedresourcesneeded.keys()))))
                 valid = True
                 for r in sharedresourcesneeded.keys():
                     if (not sharedresourcesavailable.has_key(r)) or sharedresourcesavailable[r] < sharedresourcesneeded[r]:
-                        if verbose:
-                            outfh.write("Too small - not enough %s\n" % r)
+                        verbose.write("Too small - not enough %s\n" % r)
                         valid = False
                 if not valid:
                     continue
             
             # Check there are enough machines left in the cluster
             if len(clusters[cluster]) < number:
-                if verbose:
-                    outfh.write("    too small (%u < %u)\n" % (len(clusters[cluster]), number))
+                verbose.write("    too small (%u < %u)\n" % (len(clusters[cluster]), number))
                 continue
 
             # Check there are no ACL restrictions
-            if not self.check_acl_for_machines(clusters[cluster].keys(), details['USERID'], selected, number):
-                if verbose:
-                    outfh.write("    not allowed by ACL\n")
+            if not self.check_acl_for_machines(clusters[cluster].keys(), details['USERID'], selected, number, preemptable):
+                verbose.write("    not allowed by ACL\n")
                 continue
 
             selx = []
@@ -622,8 +632,7 @@ class XenRTSchedule(XenRTAPIPage):
                             continue
 
                     # All OK
-                    if verbose:
-                        outfh.write("      %s suitable\n" % (m[0]))
+                    verbose.write("      %s suitable\n" % (m[0]))
                     found = True
                     selx.append(m[0])
                     needed -= 1
@@ -637,12 +646,10 @@ class XenRTSchedule(XenRTAPIPage):
             # If we found enough machines in this pool then we're done
             if needed == 0:
                 selected.extend(selx)
-                if verbose:
-                    outfh.write("    sufficient machines found (%u)\n" % (len(selected)))
+                verbose.write("    sufficient machines found (%u)\n" % (len(selected)))
                 return True
             else:
-                if verbose:
-                    outfh.write("    insufficient machines found\n")
+                verbose.write("    insufficient machines found\n")
 
         # If we get here then we were not able to find sufficient machines
         # in any cluster.
@@ -685,7 +692,7 @@ class XenRTSchedule(XenRTAPIPage):
 
         return policies      
 
-    def check_acl_for_machines(self, machines, userid, already_selected=[], number=1):
+    def check_acl_for_machines(self, machines, userid, already_selected=[], number=1, preemptable=False):
         # Identify the policies we need to check
         policies = self.get_acls_for_machines(machines)
         if len(policies.keys()) == 0:
@@ -709,7 +716,7 @@ class XenRTSchedule(XenRTAPIPage):
                 # be taken into account otherwise
                 machineCount += existingPolicies[p]
 
-            if not self.getACLHelper().check_acl(p, userid, machines[:machineCount], ignoreParent=True)[0]:
+            if not self.getACLHelper().check_acl(p, userid, machines[:machineCount], ignoreParent=True, preemptable=preemptable)[0]:
                 return False
 
         return True

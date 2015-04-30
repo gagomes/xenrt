@@ -27,7 +27,7 @@ class GetUser(XenRTAPIv2Page):
         u = self.getUser()
         if not u:
             return {}
-        return {"user": u.userid, "email": u.email, "team": u.team}
+        return {"user": u.userid, "email": u.email, "team": u.team, "admin": u.admin, "groups": u.groups}
 
 class GetUserDetails(XenRTAPIv2Page):
     PATH = "/userdetails/{user}"
@@ -46,7 +46,7 @@ class GetUserDetails(XenRTAPIv2Page):
         u = app.user.User(self, self.matchdict('user'))
         if not u.valid:
             raise XenRTAPIError(HTTPNotFound, "User not found")
-        return {"user": u.userid, "email": u.email, "team": u.team}
+        return {"user": u.userid, "email": u.email, "team": u.team, "admin": u.admin, "groups": u.groups}
 
 class GetUsersDetails(XenRTAPIv2Page):
     PATH = "/usersdetails"
@@ -67,7 +67,7 @@ class GetUsersDetails(XenRTAPIv2Page):
         for user in self.getMultiParam("user"):
             u = app.user.User(self, user)
             if u.valid:
-                ret[u.userid] = {"user": u.userid, "email": u.email, "team": u.team}
+                ret[u.userid] = {"user": u.userid, "email": u.email, "team": u.team, "admin": u.admin, "groups": u.groups}
         return ret
 
 class ADLookup(XenRTAPIv2Page):

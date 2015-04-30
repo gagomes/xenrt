@@ -1,0 +1,20 @@
+<xenrt>
+  <default name="FLAGSTOCHECK" value="" />
+  <default name="UPDATEMACHINE" value="no" />
+  <default name="AUTOFLAGGERTAG" value="" />
+  <testsequence>
+    <ifeq x="${UPDATEMACHINE}" y="yes">
+      <testcase id="testcases.maintenance.TCUnsupFlags">
+        <arg>FLAGSTOCHECK=${FLAGSTOCHECK}</arg>
+        <arg>UPDATEMACHINE</arg>
+        <arg>AUTOFLAGGERTAG=${AUTOFLAGGERTAG}</arg>
+      </testcase>
+    </ifeq>
+    <ifeq x="${UPDATEMACHINE}" y="no">
+      <testcase id="testcases.maintenance.TCUnsupFlags">
+        <arg>FLAGSTOCHECK=${FLAGSTOCHECK}</arg>
+        <arg>AUTOFLAGGERTAG=${AUTOFLAGGERTAG}</arg>
+      </testcase>
+    </ifeq>
+  </testsequence>
+</xenrt>

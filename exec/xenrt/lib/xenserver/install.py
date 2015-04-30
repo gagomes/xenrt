@@ -361,35 +361,6 @@ cat root/unplug-vcpus.bak | \
         return installer_ssh
 
     @property
-    def postInstallV6(self):
-        v6hack = ""
-        mockd = xenrt.TEC().getFile(self.host.V6MOCKD_LOCATION)
-        if self.upgrade and not mockd:
-            # Set up a temporary WWW directory to hold the v6testd
-            v6webdir = xenrt.WebDirectory()
-            v6testdfile = xenrt.TEC().getFile("xe-phase-1/v6testd", "v6testd")
-            if v6testdfile:
-                v6webdir.copyIn(v6testdfile, "v6testd")
-            else:
-                xenrt.TEC().warning("XenRT failed to download a corresponding v6testd."
-                        "falling back to pre-boston")
-                v6webdir.copyIn("%s/utils/v6testd" % (xenrt.TEC().lookup("LOCAL_SCRIPTDIR")))
-            v6hack = """
-# Dropping in fake daemon if required
-if [ -x opt/xensource/libexec/v6d ]; then  
-  mv opt/xensource/libexec/v6d opt/xensource/libexec/v6d.orig
-  if (wget %s -O opt/xensource/libexec/v6d); then
-    chmod a+x opt/xensource/libexec/v6d
-  else
-    echo "Failed to download v6 fake daemon"
-    # Put the original back - it's better than not having one at all
-    mv opt/xensource/libexec/v6d.orig opt/xensource/libexec/v6d
-  fi
-fi
-""" % (v6webdir.getURL("v6testd"))
-        return v6hack
-
-    @property
     def postInstallDom0RamDisk(self):
         # Hack for a different ramdisk size
         dom0rdsizehack = ""
@@ -1091,7 +1062,6 @@ sleep 30
         postInstall.append(self.postInstallUnplugDom0vCPUs)
         postInstall.append(self.postInstallBlacklistDrivers)
         postInstall.append(self.postInstallSSH)
-        postInstall.append(self.postInstallV6)
         postInstall.append(self.postInstallDom0MemPool)
         postInstall.append(self.postInstallNonDebugXen)
         postInstall.append(self.postInstallFirstBootSR)

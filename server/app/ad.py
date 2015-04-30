@@ -45,7 +45,9 @@ class ActiveDirectory(object):
             self._groupCache[dn] = group
         return self._groupCache[dn]
 
-    def get_all_members_of_group(self, group, _isDN=False, _visitedGroups=[]):
+    def get_all_members_of_group(self, group, _isDN=False, _visitedGroups=None):
+        if _visitedGroups is None:
+            _visitedGroups = [] # Workaround Python crazyness: http://docs.python-guide.org/en/latest/writing/gotchas/
         if _isDN:
             groupres = group, self._getDN(group)
         else:
@@ -64,7 +66,9 @@ class ActiveDirectory(object):
                 members += self.get_all_members_of_group(m, _isDN=True, _visitedGroups=_visitedGroups)
         return members
 
-    def get_groups_for_user(self, username, _isDN=False, _visitedGroups=[]):
+    def get_groups_for_user(self, username, _isDN=False, _visitedGroups=None):
+        if _visitedGroups is None:
+            _visitedGroups = [] # Workaround Python crazyness: http://docs.python-guide.org/en/latest/writing/gotchas/
         if _isDN:
             groupres = username, self._getDN(username)
         else:

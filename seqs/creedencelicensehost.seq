@@ -8,13 +8,13 @@
   </variables>
 
   <prepare>
-      <host id="0" license="no" usev6testd="no">
+      <host id="0" license="no" defaultlicense="no">
         <vm name="LicenseServer">
           <file>%LICENSE_SERVER_XVA%</file>
           <postinstall action="installV6LicenseServer"/>
         </vm>
       </host>
-      <host id="1" license="no" usev6testd="no">
+      <host id="1" license="no" defaultlicense="no">
       </host>
   </prepare>
 

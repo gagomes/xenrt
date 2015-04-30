@@ -62,6 +62,7 @@ class XenRTAPIv2Swagger(XenRTPage):
                 {"name": "sites", "description": "Operations on XenRT sites"},
                 {"name": "apikeys", "description": "Operations on XenRT API keys"},
                 {"name": "backend", "description": "Operations used by XenRT controllers, not for general use"},
+                {"name": "acls", "description": "Operations on XenRT Access Control Lists"},
                 {"name": "misc", "description": "Miscellaneous operations"}
             ],
             "definitions": {}

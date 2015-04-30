@@ -2090,6 +2090,9 @@ exit /B 1
             netscaler.installNSTools()
         netscaler.checkFeatures()
 
+    def setupVCenter(self, vCenterVersion="5.5.0-update02"):
+        vcenter = xenrt.lib.esx.getVCenter(guest=self, vCenterVersion=vCenterVersion)
+
     def setupUnsupGuest(self, getIP=None):
         self.tailored = True
         self.enlightenedDrivers = False

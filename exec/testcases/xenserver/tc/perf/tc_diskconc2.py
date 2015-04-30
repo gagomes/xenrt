@@ -35,6 +35,10 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
         self.vbds_per_vm = libperf.getArgument(arglist, "vbds_per_vm", int, 1)
         self.vcpus_per_vm = libperf.getArgument(arglist, "vcpus_per_vm", int, None)
 
+        # Benchmark program to use for linux vm. If the value is different than fio, would use latency
+        self.bench = libperf.getArgument(arglist, "benchmark", str, "fio")
+        self.sequential = libperf.getArgument(arglist, "sequential", bool, True)
+
         # A number in MB; e.g. 1024
         self.vm_ram = libperf.getArgument(arglist, "vm_ram", int, None)
 
@@ -117,13 +121,40 @@ clean all
                 vm.xmlrpcWriteFile("C:\\erase.script", script)
                 vm.xmlrpcExec("diskpart /s C:\\erase.script")
 
-    def runPhase(self, count, op):
-        for blocksize in self.blocksizes:
-            # TODO we don't support pre-defined access patterns with 'latency', only integer block sizes
-            blocksize = int(blocksize)
-            # Run synexec master
-            proc, port = libsynexec.start_master_on_controller(
-                    """/bin/bash :CONF:
+    def runPhasePrepareCommand(self, blocksize, op):
+        if self.bench == "fio":
+            rw = "read" if op == "r" else "write"
+            if not self.sequential:
+                rw = "randread" if op == "r" else "randwrite"
+
+            return """/bin/bash :CONF:
+#!/bin/bash
+
+for i in {b..%s}; do
+    pididx=0
+    echo $(($(/root/fio/fio --name=iometer \
+                            --direct=1 \
+                            --ioengine=libaio \
+                            --io_size=1024TB \
+                            --filename=/dev/xvd$i \
+                            --minimal \
+                            --terse-version=3 \
+                            --rw=%s \
+                            --iodepth=%d \
+                            --bssplit=%d/100 \
+                            --runtime=%d %s | cut -d";" -f%d) * 1024)) &> /root/out-$i &
+    pid[$pididx]=$!
+    ((pididx++))
+done
+
+for ((idx=0; idx<pididx; idx++)); do
+  wait ${pid[$idx]}
+done
+""" % (chr(ord('a') + self.vbds_per_vm), rw,
+       self.queuedepth, blocksize, self.duration,
+       "--zero_buffers" if self.zeros else "", 6 if op == "r" else 47)
+        else:
+            return """/bin/bash :CONF:
 #!/bin/bash
 
 for i in {b..%s}; do
@@ -137,8 +168,16 @@ for ((idx=0; idx<pididx; idx++)); do
   wait ${pid[$idx]}
 done
 """ % (chr(ord('a') + self.vbds_per_vm), "" if op == "r" else " -w",
-       " -z" if self.zeros else "", blocksize, self.duration),
-                    self.jobid, len(self.vm))
+       " -z" if self.zeros else "", blocksize, self.duration)
+
+    def runPhase(self, count, op):
+        for blocksize in self.blocksizes:
+            # TODO we don't support pre-defined access patterns with 'latency', only integer block sizes
+            blocksize = int(blocksize)
+
+            # Run synexec master
+            proc, port = libsynexec.start_master_on_controller(self.runPhasePrepareCommand(blocksize, op),
+                                                               self.jobid, len(self.vm))
 
             for vm in self.vm:
                 libsynexec.start_slave(vm, self.jobid, port)
@@ -369,6 +408,18 @@ Version 1.1.0
                              (op, count + 1, dispblocksize, vm.getName().split("-")[0], vm.getName().split("-")[1], j, result))
                     j += 1
 
+    def installFioOnLinuxGuest(self):
+        disturl = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
+        filename = "fio-2.2.7-22-g36870.tar.bz2"
+        fiourl = "%s/performance/support-files/%s" % (disturl, filename)
+        xenrt.TEC().logverbose("Getting fio from %s" % (fiourl))
+        fiofile = xenrt.TEC().getFile(fiourl,fiourl)
+        sftp = self.template.sftpClient()
+        rootfiotar = "/root/%s" % filename
+        sftp.copyTo(fiofile, rootfiotar)
+        self.template.execguest('tar xjf %s' % rootfiotar)
+        self.template.execguest('cd /root/fio && make')
+
     def installTemplate(self, guests):
         # Install 'vm-template'
         if not self.isNameinGuests(guests, "vm-template"):
@@ -407,7 +458,12 @@ Version 1.1.0
             else:
                 if isinstance(self.template, xenrt.lib.esx.Guest):
                     self.template.installTools()
-                self.template.installLatency()
+
+                if self.bench == "fio":
+                    self.installFioOnLinuxGuest()
+                else:
+                    self.template.installLatency()
+
                 libsynexec.initialise_slave(self.template)
 
             if self.distro.startswith("rhel") or self.distro.startswith("centos") or self.distro.startswith("oel"):
@@ -520,7 +576,10 @@ Version 1.1.0
         if self.windows:
             libperf.logArg("ioengine", "iometer")
         else:
-            libperf.logArg("ioengine", "latency")
+            if self.bench == "fio":
+                libperf.logArg("ioengine", "fio")
+            else:
+                libperf.logArg("ioengine", "latency")
 
         if self.prepopulate:
             if self.windows:

@@ -51,32 +51,52 @@ class TCLinuxUpgrade(xenrt.TestCase, object):
     def upgradeCommand(self):
         pass
 
-class TCUbuntuUpgrade(TCLinuxUpgrade):
+class _TCDebianStyleUpgrade(TCLinuxUpgrade):
 
-    UBUNTU_NAME_MAP = {"ubuntu1404": "trusty",
-                       "ubuntu1204": "precise",
-                       "ubuntu1004": "lucid" }
+    DISTRO_NAME_MAP = {"ubuntu1404": ("trusty", "Ubuntu 14.04"),
+                       "ubuntu1204": ("precise", "Ubuntu 12.04"),
+                       "ubuntu1004": ("lucid", "Ubuntu 10.04"),
+                       "debian60": ("squeeze", "Debian GNU/Linux 6"),
+                       "debian70": ("wheezy", "Debian GNU/Linux 7"),
+                       "debian80": ("jessie", "Debian GNU/Linux 8")}
 
     def preconfigureGuest(self):
 
         newDistro = self.args['upgradeto']
-        ubuntuName = self.UBUNTU_NAME_MAP[newDistro]
-        ubuntuUrl  = xenrt.TEC().lookup(["RPM_SOURCE", newDistro, self.guest.arch, "HTTP"])
+        distroName = self.DISTRO_NAME_MAP[newDistro][0]
+        self.releaseName = self.DISTRO_NAME_MAP[newDistro][1]
+        distroUrl  = xenrt.TEC().lookup(["RPM_SOURCE", newDistro, self.guest.arch, "HTTP"])
         sourceList = "/etc/apt/sources.list"
 
-        #replace the sources.list
-        self.guest.execguest("echo deb %s %s main restricted > %s" % (ubuntuUrl, ubuntuName,sourceList ))
-        self.guest.execguest("echo deb %s %s-updates main restricted >> %s" % (ubuntuUrl, ubuntuName, sourceList))
+        self.configureSources(sourceList, distroUrl, distroName)
 
         self.guest.execguest("apt-get update")
         xenrt.TEC().comment("apt-get update completed")
+        if self.args['upgradeto'] == "debian80":
+            self.guest.execguest("apt-get -y --force-yes install libperl4-corelibs-perl")
 
     def upgradeCommand(self):
-        return "/bin/echo -e 'Y\n' | apt-get -y --force-yes dist-upgrade"
+        return "/bin/echo -e 'Y\\n' | apt-get -y --force-yes dist-upgrade"
 
     def checkUpgrade(self):
-        ubuntuRelease = self.guest.execguest("cat /etc/issue.net")
-        if not re.search(r"^Ubuntu 14.04" , ubuntuRelease) : raise xenrt.XRTError("Upgrade was not successful")
+        distroRelease = self.guest.execguest("cat /etc/issue.net")
+        if not re.search(self.releaseName, distroRelease) : raise xenrt.XRTError("Upgrade was not successful")
+
+class TCUbuntuUpgrade(_TCDebianStyleUpgrade):
+
+    def configureSources(self, sourceList, distroUrl, distroName):
+        #replace the sources.list
+        self.guest.execguest("echo deb %s %s main restricted universe multiverse > %s" % (distroUrl, distroName,sourceList ))
+        self.guest.execguest("echo deb %s %s-updates main restricted universe multiverse >> %s" % (distroUrl, distroName, sourceList))
+
+class TCDebianUpgrade(_TCDebianStyleUpgrade):
+    def configureSources(self, sourceList, distroUrl, distroName):
+        self.guest.execguest("echo deb %s %s main > %s" % (distroUrl, distroName,sourceList ))
+        if self.guest.execguest("[ -e /etc/apt/sources.list.d/updates.list ]", retval="code") == 0 and xenrt.TEC().lookup("APT_SERVER", None):
+                self.guest.execguest("echo deb %s/debsecurity %s/updates main > /etc/apt/sources.list.d/updates.list" % (xenrt.TEC().lookup("APT_SERVER"), distroName))
+                self.guest.execguest("echo deb %s/debian %s-updates main >> /etc/apt/sources.list.d/updates.list" % (xenrt.TEC().lookup("APT_SERVER"), distroName))
+            
+        
 
 class TCCentosUpgrade(TCLinuxUpgrade):
 

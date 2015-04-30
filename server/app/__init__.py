@@ -175,7 +175,7 @@ class XenRTPage(Page):
         cur = self.getDB().cursor()    
         d = {}
         cur.execute("SELECT jobid, version, revision, options, jobStatus, "
-                    "userId, uploaded, removed FROM tbljobs WHERE " +
+                    "userId, uploaded, removed, preemptable FROM tbljobs WHERE " +
                     "jobId = %s;", [id])
         rc = cur.fetchone()
         if rc:

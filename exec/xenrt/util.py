@@ -838,17 +838,22 @@ def compareIPForSort(a, b):
 
 class ThreadWithException(threading.Thread):
 
-    def __init__(self, group=None, target=None, name=None, args=(), kwargs={}):
+    def __init__(self, group=None, target=None, getData=False, name=None, args=(), kwargs={}):
         # Initialise an empty exception object
         self.exception = None
         self.target = target
+        self.getData = getData
+        self.data = None
         self.args = args
         self.kwargs = kwargs
         threading.Thread.__init__(self, group=group, name=name)
 
     def run(self):
         try:
-            self.target(*self.args, **self.kwargs)
+            if self.getData:
+                self.data = self.target(*self.args, **self.kwargs)
+            else:
+                self.target(*self.args, **self.kwargs)
         except Exception, e:
             traceback.print_exc(file=sys.stderr)
             self.exception = e

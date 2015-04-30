@@ -24,39 +24,39 @@ class AclTests(XenRTUnitTestCase):
 
     def test_check_acl(self):
         """Tests check_acl parent/child handling"""
-        parentAcl = app.acl.ACL(1, "parent", None, [], {})
-        childAcl = app.acl.ACL(2, "child", 1, [], {})
+        parentAcl = app.acl.ACL(1, "parent", None, "unittests", [], {})
+        childAcl = app.acl.ACL(2, "child", 1, "unittests", [], {})
         self.acl.get_acl = Mock(side_effect = lambda aclid: aclid == 1 and parentAcl or childAcl)
 
         # Parent
         self.acl._check_acl = Mock(return_value=(True,None))
         self.assertTupleTrue(self.acl.check_acl(1, "userid", 5, None), "check_acl returned incorrect result")
-        self.acl._check_acl.assert_called_once_with(parentAcl, "userid", 5, None)
+        self.acl._check_acl.assert_called_once_with(parentAcl, "userid", 5, None, False)
 
         self.acl._check_acl.reset_mock()
         self.acl._check_acl.return_value = (False, "Test")
         self.assertTupleFalse(self.acl.check_acl(1, "userid", 5, None), "check_acl returned incorrect result")
-        self.acl._check_acl.assert_called_once_with(parentAcl, "userid", 5, None)
+        self.acl._check_acl.assert_called_once_with(parentAcl, "userid", 5, None, False)
 
         # Child (both true)
         self.acl._check_acl.reset_mock()
         self.acl._check_acl.return_value = (True, None)
         self.assertTupleTrue(self.acl.check_acl(2, "userid", 5, None), "check_acl returned incorrect result")
-        self.acl._check_acl.assert_any_call(parentAcl, "userid", 5, None)
-        self.acl._check_acl.assert_any_call(childAcl, "userid", 5, None)
+        self.acl._check_acl.assert_any_call(parentAcl, "userid", 5, None, False)
+        self.acl._check_acl.assert_any_call(childAcl, "userid", 5, None, False)
         self.assertEqual(self.acl._check_acl.call_count, 2)
 
         # Child (child false)
         self.acl._check_acl.reset_mock()
         self.acl._check_acl.return_value = (False, "Test")
         self.assertTupleFalse(self.acl.check_acl(2, "userid", 5, None), "check_acl returned incorrect result")
-        self.acl._check_acl.assert_called_once_with(childAcl, "userid", 5, None)
+        self.acl._check_acl.assert_called_once_with(childAcl, "userid", 5, None, False)
 
         # Child (parent false)
-        self.acl._check_acl = Mock(side_effect = lambda acl,userid,num,lease: (acl.aclid == 2, None))
-        self.assertTupleFalse(self.acl.check_acl(2, "userid", 5, None), "check_acl returned incorrect result")
-        self.acl._check_acl.assert_any_call(parentAcl, "userid", 5, None)
-        self.acl._check_acl.assert_any_call(childAcl, "userid", 5, None)
+        self.acl._check_acl = Mock(side_effect = lambda acl,userid,num,lease,preemptable: (acl.aclid == 2, None))
+        self.assertTupleFalse(self.acl.check_acl(2, "userid", 5, None, False), "check_acl returned incorrect result")
+        self.acl._check_acl.assert_any_call(parentAcl, "userid", 5, None, False)
+        self.acl._check_acl.assert_any_call(childAcl, "userid", 5, None, False)
         self.assertEqual(self.acl._check_acl.call_count, 2)
 
     def _setupAclReturns(self):
@@ -65,19 +65,19 @@ class AclTests(XenRTUnitTestCase):
             if userid in ["user1","user2"]:
                 return ["group1"]
             return []
-        self.acl._groups_for_userid = groupsForUserId
+        self.acl.groups_for_userid = groupsForUserId
         def useridsForGroup(group):
             if group == "group1":
                 return ["user1","user2"]
             return []
         self.acl._userids_for_group = useridsForGroup
-        return app.acl.ACL(1, "test", None, [], {"machine1":"user1", "machine2":"user2", "machine3":"user3", "machine4":None, "machine5":None, "machine6":None})
+        return app.acl.ACL(1, "test", None, "unittests", [], {"machine1":"user1", "machine2":"user2", "machine3":"user3", "machine4":None, "machine5":None, "machine6":None})
 
     # User limit tests use user1 who is already using 1 machine
 
     def test_user_limit(self):
         acl = self._setupAclReturns()
-        acl.entries = [app.acl.ACLEntry("user","user1",None,None,5,None,None)]
+        acl.entries = [app.acl.ACLEntry(0, "user","user1",None,None,5,None,None,False)]
         # Under limit
         self.assertTupleTrue(self.acl._check_acl(acl, "user1", ['dummy'] * 3))
         # On limit
@@ -85,9 +85,33 @@ class AclTests(XenRTUnitTestCase):
         # Over limit
         self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy'] * 5))
 
+    def test_user_limit_disallow_preempt(self):
+        acl = self._setupAclReturns()
+        acl.entries = [app.acl.ACLEntry(0, "user","user1",None,None,5,None,None,False)]
+        # Under limit
+        self.assertTupleTrue(self.acl._check_acl(acl, "user1", ['dummy'] * 3))
+        # On limit
+        self.assertTupleTrue(self.acl._check_acl(acl, "user1", ['dummy'] * 4))
+        # Over limit
+        self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy'] * 5))
+        # Over limit and disallow preempt
+        self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy'] * 5, preemptable=True))
+
+    def test_user_limit_allow_preempt(self):
+        acl = self._setupAclReturns()
+        acl.entries = [app.acl.ACLEntry(0, "user","user1",None,None,5,None,None,True)]
+        # Under limit
+        self.assertTupleTrue(self.acl._check_acl(acl, "user1", ['dummy'] * 3))
+        # On limit
+        self.assertTupleTrue(self.acl._check_acl(acl, "user1", ['dummy'] * 4))
+        # Over limit
+        self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy'] * 5))
+        # Over limit, but allow preempt
+        self.assertTupleTrue(self.acl._check_acl(acl, "user1", ['dummy'] * 5, preemptable=True))
+
     def test_user_percent(self):
         acl = self._setupAclReturns()
-        acl.entries = [app.acl.ACLEntry("user","user1",None,None,None,50,None)] # 50% = 3 machines
+        acl.entries = [app.acl.ACLEntry(0, "user","user1",None,None,None,50,None,False)] # 50% = 3 machines
         # Under limit
         self.assertTupleTrue(self.acl._check_acl(acl, "user1", ['dummy'] * 1))
         # On limit
@@ -99,7 +123,7 @@ class AclTests(XenRTUnitTestCase):
 
     def test_group_limit(self):
         acl = self._setupAclReturns()
-        acl.entries = [app.acl.ACLEntry("group","group1",5,None,None,None,None)]
+        acl.entries = [app.acl.ACLEntry(0, "group","group1",5,None,None,None,None,False)]
         # Under limit
         self.assertTupleTrue(self.acl._check_acl(acl, "user1", ['dummy'] * 2))
         # On limit
@@ -107,9 +131,33 @@ class AclTests(XenRTUnitTestCase):
         # Over limit
         self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy'] * 4))
 
+    def test_group_limit_disallow_preempt(self):
+        acl = self._setupAclReturns()
+        acl.entries = [app.acl.ACLEntry(0, "group","group1",5,None,None,None,None,False)]
+        # Under limit
+        self.assertTupleTrue(self.acl._check_acl(acl, "user1", ['dummy'] * 2))
+        # On limit
+        self.assertTupleTrue(self.acl._check_acl(acl, "user1", ['dummy'] * 3))
+        # Over limit
+        self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy'] * 4))
+        # Over limit, but allow preempt
+        self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy'] * 5, preemptable=True))
+
+    def test_group_limit_allow_preempt(self):
+        acl = self._setupAclReturns()
+        acl.entries = [app.acl.ACLEntry(0, "group","group1",5,None,None,None,None,True)]
+        # Under limit
+        self.assertTupleTrue(self.acl._check_acl(acl, "user1", ['dummy'] * 2))
+        # On limit
+        self.assertTupleTrue(self.acl._check_acl(acl, "user1", ['dummy'] * 3))
+        # Over limit
+        self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy'] * 4))
+        # Over limit, but allow preempt
+        self.assertTupleTrue(self.acl._check_acl(acl, "user1", ['dummy'] * 5, preemptable=True))
+
     def test_group_percent(self):
         acl = self._setupAclReturns()
-        acl.entries = [app.acl.ACLEntry("group","group1",None,70,None,None,None)] # 70% = 4 machines
+        acl.entries = [app.acl.ACLEntry(0, "group","group1",None,70,None,None,None,False)] # 70% = 4 machines
         # Under limit
         self.assertTupleTrue(self.acl._check_acl(acl, "user1", ['dummy'] * 1))
         # On limit
@@ -119,7 +167,7 @@ class AclTests(XenRTUnitTestCase):
 
     def test_group_userlimit(self):
         acl = self._setupAclReturns()
-        acl.entries = [app.acl.ACLEntry("group","group1",None,None,5,None,None)]
+        acl.entries = [app.acl.ACLEntry(0, "group","group1",None,None,5,None,None,False)]
         # Under limit
         self.assertTupleTrue(self.acl._check_acl(acl, "user1", ['dummy'] * 3))
         # On limit
@@ -129,7 +177,7 @@ class AclTests(XenRTUnitTestCase):
 
     def test_group_userpercent(self):
         acl = self._setupAclReturns()
-        acl.entries = [app.acl.ACLEntry("group","group1",None,None,None,50,None)]
+        acl.entries = [app.acl.ACLEntry(0, "group","group1",None,None,None,50,None,False)]
         # Under limit
         self.assertTupleTrue(self.acl._check_acl(acl, "user1", ['dummy'] * 1))
         # On limit
@@ -141,7 +189,7 @@ class AclTests(XenRTUnitTestCase):
 
     def test_default_userlimit(self):
         acl = self._setupAclReturns()
-        acl.entries = [app.acl.ACLEntry("default","",None,None,5,None,None)]
+        acl.entries = [app.acl.ACLEntry(0, "default","",None,None,5,None,None,False)]
         # Under limit
         self.assertTupleTrue(self.acl._check_acl(acl, "user3", ['dummy'] * 3))
         # On limit
@@ -149,9 +197,33 @@ class AclTests(XenRTUnitTestCase):
         # Over limit
         self.assertTupleFalse(self.acl._check_acl(acl, "user3", ['dummy'] * 5))
 
+    def test_default_userlimit_disallow_preempt(self):
+        acl = self._setupAclReturns()
+        acl.entries = [app.acl.ACLEntry(0, "default","",None,None,5,None,None,False)]
+        # Under limit
+        self.assertTupleTrue(self.acl._check_acl(acl, "user3", ['dummy'] * 3))
+        # On limit
+        self.assertTupleTrue(self.acl._check_acl(acl, "user3", ['dummy'] * 4))
+        # Over limit
+        self.assertTupleFalse(self.acl._check_acl(acl, "user3", ['dummy'] * 5))
+        # Over limit, but allow preempt
+        self.assertTupleFalse(self.acl._check_acl(acl, "user3", ['dummy'] * 5, preemptable=True))
+
+    def test_default_userlimit_allow_preempt(self):
+        acl = self._setupAclReturns()
+        acl.entries = [app.acl.ACLEntry(0, "default","",None,None,5,None,None,True)]
+        # Under limit
+        self.assertTupleTrue(self.acl._check_acl(acl, "user3", ['dummy'] * 3))
+        # On limit
+        self.assertTupleTrue(self.acl._check_acl(acl, "user3", ['dummy'] * 4))
+        # Over limit
+        self.assertTupleFalse(self.acl._check_acl(acl, "user3", ['dummy'] * 5))
+        # Over limit, but allow preempt
+        self.assertTupleTrue(self.acl._check_acl(acl, "user3", ['dummy'] * 5, preemptable=True))
+
     def test_default_userpercent(self):
         acl = self._setupAclReturns()
-        acl.entries = [app.acl.ACLEntry("default","",None,None,None,50,None)]
+        acl.entries = [app.acl.ACLEntry(0, "default","",None,None,None,50,None,False)]
         # Under limit
         self.assertTupleTrue(self.acl._check_acl(acl, "user3", ['dummy'] * 1))
         # On limit
@@ -161,7 +233,7 @@ class AclTests(XenRTUnitTestCase):
 
     def test_default_grouplimit(self):
         acl = self._setupAclReturns()
-        acl.entries = [app.acl.ACLEntry("default","",5,None,None,None,None)]
+        acl.entries = [app.acl.ACLEntry(0, "default","",5,None,None,None,None,False)]
         # Under limit
         self.assertTupleTrue(self.acl._check_acl(acl, "user3", ['dummy'] * 1))
         # On limit
@@ -171,7 +243,7 @@ class AclTests(XenRTUnitTestCase):
 
     def test_default_grouppercent(self):
         acl = self._setupAclReturns()
-        acl.entries = [app.acl.ACLEntry("default","",None,84,None,None,None)] # 84% = 5 machines
+        acl.entries = [app.acl.ACLEntry(0, "default","",None,84,None,None,None,False)] # 84% = 5 machines
         # Under limit
         self.assertTupleTrue(self.acl._check_acl(acl, "user3", ['dummy'] * 1))
         # On limit
@@ -183,7 +255,7 @@ class AclTests(XenRTUnitTestCase):
 
     def test_leasehours(self):
         acl = self._setupAclReturns()
-        acl.entries = [app.acl.ACLEntry("group","group1",None,None,None,None,12)]
+        acl.entries = [app.acl.ACLEntry(0, "group","group1",None,None,None,None,12,False)]
         # Under limit
         self.assertTupleTrue(self.acl._check_acl(acl, "user1", ['dummy'], 6))
         # On limit
@@ -196,51 +268,51 @@ class AclTests(XenRTUnitTestCase):
     def test_matching_user(self):
         """Check matching user limit is applied and evaluation stops"""
         acl = self._setupAclReturns()
-        acl.entries = [app.acl.ACLEntry("user","user1",None,None,5,None,None), app.acl.ACLEntry("group","group1",None,None,4,None,None), app.acl.ACLEntry("default","",None,None,1,None,None)]
+        acl.entries = [app.acl.ACLEntry(0, "user","user1",None,None,5,None,None,False), app.acl.ACLEntry(1, "group","group1",None,None,4,None,None,False), app.acl.ACLEntry(2, "default","",None,None,1,None,None,False)]
         self.assertTupleTrue(self.acl._check_acl(acl, "user1", ['dummy'] * 4)) # +4 for user1 brings him to 5, which would fail the group / default limit
 
     def test_users_removed_groups(self):
         """Check users specifically listed in the ACL don't contribute to group entries"""
         acl = self._setupAclReturns()
-        acl.entries = [app.acl.ACLEntry("user","user1",None,None,5,None,None), app.acl.ACLEntry("group","group1",None,None,4,None,None)]
+        acl.entries = [app.acl.ACLEntry(0, "user","user1",None,None,5,None,None,False), app.acl.ACLEntry(1, "group","group1",None,None,4,None,None,False)]
         self.assertTupleTrue(self.acl._check_acl(acl, "user2", ['dummy'] * 3)) # +3 for user2 brings him to 4, user1's 1 shouldn't count in the group count
 
     def test_nonmatching_user(self):
         """Check non matching user entries are ignored"""
         acl = self._setupAclReturns()
-        acl.entries = [app.acl.ACLEntry("user","user1",None,None,5,None,None), app.acl.ACLEntry("group","group1",None,None,4,None,None)]
+        acl.entries = [app.acl.ACLEntry(0, "user","user1",None,None,5,None,None,False), app.acl.ACLEntry(1, "group","group1",None,None,4,None,None,False)]
         self.assertTupleFalse(self.acl._check_acl(acl, "user2", ['dummy'] * 4)) # +4 for user2 brings him to 5, which shouldn't be allowed
 
     def test_no_user_fallthrough(self):
         """Check failing user limit is applied even if a later group limit is OK"""
         acl = self._setupAclReturns()
-        acl.entries = [app.acl.ACLEntry("user","user1",None,None,2,None,None), app.acl.ACLEntry("group","group1",None,None,5,None,None)]
+        acl.entries = [app.acl.ACLEntry(0, "user","user1",None,None,2,None,None,False), app.acl.ACLEntry(1, "group","group1",None,None,5,None,None,False)]
         self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy'] * 2)) # +2 for user1 brings him to 3, which should fail
 
     def test_group_matching(self):
         """Check matching group limit is applied even if a later user limit is OK"""
         acl = self._setupAclReturns()
-        acl.entries = [app.acl.ACLEntry("group","group1",None,None,5,None,None), app.acl.ACLEntry("user","user1",None,None,2,None,None)]
+        acl.entries = [app.acl.ACLEntry(0, "group","group1",None,None,5,None,None,False), app.acl.ACLEntry(1, "user","user1",None,None,2,None,None,False)]
         self.assertTupleTrue(self.acl._check_acl(acl, "user1", ['dummy'] * 4)) # +4 for user1 brings him to 5, which should be allowed by the group limit
-        acl.entries = [app.acl.ACLEntry("group","group1",None,None,2,None,None), app.acl.ACLEntry("user","user1",None,None,5,None,None)]
+        acl.entries = [app.acl.ACLEntry(0, "group","group1",None,None,2,None,None,False), app.acl.ACLEntry(1, "user","user1",None,None,5,None,None,False)]
         self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy'] * 4)) # +4 for user1 brings him to 5, which isn't allowed by the group, but is by the later user
 
     def test_group_nonmatching(self):
         """Check non matching group limit falls through to a later user limit"""
         acl = self._setupAclReturns()
-        acl.entries = [app.acl.ACLEntry("group","group2",None,None,5,None,None), app.acl.ACLEntry("user","user1",None,None,2,None,None)]
+        acl.entries = [app.acl.ACLEntry(0, "group","group2",None,None,5,None,None,False), app.acl.ACLEntry(1, "user","user1",None,None,2,None,None,False)]
         self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy'] * 4)) # +4 for user1 brings him to 5, which is allowed by the group, but isn't by the later user
 
     def test_default_fallthrough(self):
         """Check non matching user / group entries fall through to default entry"""
         acl = self._setupAclReturns()
-        acl.entries = [app.acl.ACLEntry("user","user1",None,None,1,None,None), app.acl.ACLEntry("group","group1",None,None,2,None,None), app.acl.ACLEntry("default","",None,None,5,None,None)]
+        acl.entries = [app.acl.ACLEntry(0, "user","user1",None,None,1,None,None,False), app.acl.ACLEntry(1, "group","group1",None,None,2,None,None,False), app.acl.ACLEntry(2, "default","",None,None,5,None,None,False)]
         self.assertTupleTrue(self.acl._check_acl(acl, "user3", ['dummy'] * 4))
 
     def test_groups_removed_default(self):
         """Check groups specifically listed in the ACL don't contribute to default entries"""
         acl = self._setupAclReturns()
-        acl.entries = [app.acl.ACLEntry("group","group1",None,None,2,None,None), app.acl.ACLEntry("default","",4,None,None,None,None)]
+        acl.entries = [app.acl.ACLEntry(0, "group","group1",None,None,2,None,None,False), app.acl.ACLEntry(1, "default","",4,None,None,None,None,False)]
         self.assertTupleTrue(self.acl._check_acl(acl, "user3", ['dummy'] * 3)) # +3 for user3 brings him to 4, user1 and user2's 1s shouldn't count because of the group match
 
     # Note we have chosen to ignore machines in use by someone else in the same group, as the logic becomes too complicated
@@ -250,13 +322,23 @@ class AclTests(XenRTUnitTestCase):
         """Check that an ACL doesn't double count a machine already in use by the user"""
         acl = self._setupAclReturns()
         # user1 is limited to 1 machine, and will ask to use machine1 (which they already have)
-        acl.entries = [app.acl.ACLEntry("user","user1",None,None,1,None,None)]
+        acl.entries = [app.acl.ACLEntry(0, "user","user1",None,None,1,None,None,False)]
         self.assertTupleTrue(self.acl._check_acl(acl, "user1", ["machine1"]))
 
     def test_some_already_inuse(self):
         """Check that an ACL doesn't double count one machine already in use of others"""
         acl = self._setupAclReturns()
         # user1 is limited to 2 machines, and will ask to use machine1 (which they already have), and machine4 (which is free)
-        acl.entries = [app.acl.ACLEntry("user","user1",None,None,2,None,None)]
+        acl.entries = [app.acl.ACLEntry(0, "user","user1",None,None,2,None,None,False)]
         self.assertTupleTrue(self.acl._check_acl(acl, "user1", ["machine1","machine4"]))
 
+    def test_acl_user_for_machine(self):
+
+        self.assertEqual(self.acl._get_user_for_machine("idle", None, None, False, False), None)
+        self.assertEqual(self.acl._get_user_for_machine("running", None, "user1", False, False), "user1")
+        self.assertEqual(self.acl._get_user_for_machine("running", None, "user1", True, False), None)
+        self.assertEqual(self.acl._get_user_for_machine("running", "user1", "user1", True, False), "user1")
+        self.assertEqual(self.acl._get_user_for_machine("running", "user1", "user1", False, True), "user1")
+        self.assertEqual(self.acl._get_user_for_machine("running", "user1", "user1", True, True), None)
+        self.assertEqual(self.acl._get_user_for_machine("idle", "user1", None, False, True), None)
+        self.assertEqual(self.acl._get_user_for_machine("idle", "user1", None, False, False), "user1")

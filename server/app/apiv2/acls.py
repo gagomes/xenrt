@@ -45,6 +45,10 @@ class _AclBase(XenRTAPIv2Page):
             "maxleasehours": {
                 "type": "integer",
                 "description": "Number of hours machine can be leased by this user/group"
+            },
+            "preemptableuse": {
+                "type": "boolean",
+                "description": "Allow entry to run preemptable jobs and do preemptable machine leases"
             }
         }
     }
@@ -55,7 +59,8 @@ class _AclBase(XenRTAPIv2Page):
                 names=[],
                 limit=None,
                 offset=0,
-                exceptionIfEmpty=False):
+                exceptionIfEmpty=False,
+                withCounts = False):
         cur = self.getDB().cursor()
         params = []
         conditions = []
@@ -72,52 +77,28 @@ class _AclBase(XenRTAPIv2Page):
             conditions.append(self.generateInCondition("a.name", names))
             params.extend(names)
 
-        query = "SELECT a.aclid, a.parent, a.owner, a.name FROM tblacls a"
+        query = "SELECT a.aclid FROM tblacls a"
         if conditions:
             query += " WHERE %s" % " AND ".join(conditions)
 
         cur.execute(query, self.expandVariables(params))
 
-        ret = {}
+        aclids = []
 
         while True:
             rc = cur.fetchone()
             if not rc:
                 break
-            acl = {
-                "parent": rc[1],
-                "owner": rc[2].strip(),
-                "name": rc[3].strip()
-            }
+            aclids.append(rc[0])
 
-            ret[rc[0]] = acl
-        if len(ret.keys()) == 0:
+        if len(aclids) == 0:
             if exceptionIfEmpty:
                 raise XenRTAPIError(HTTPNotFound, "ACL not found")
 
-            return ret
+            return {}
 
-        for a in ret.keys():
-            # Get the ACL entries
-            query = "SELECT ae.prio, ae.type, ae.userid, ae.grouplimit, ae.grouppercent, ae.userlimit, ae.userpercent, ae.maxleasehours FROM tblaclentries ae WHERE ae.aclid=%s ORDER BY ae.prio"
-            cur.execute(query, [a])
-            entries = []
-            while True:
-                rc = cur.fetchone()
-                if not rc:
-                    break
-                entry = {
-                    "prio": rc[0],
-                    "type": rc[1].strip(),
-                    "userid": rc[2].strip(),
-                    "grouplimit": rc[3],
-                    "grouppercent": rc[4],
-                    "userlimit": rc[5],
-                    "userpercent": rc[6],
-                    "maxleasehours": rc[7]
-                }
-                entries.append(entry)
-            ret[a]['entries'] = entries
+        aclHelper = self.getACLHelper()
+        ret = {aclid: aclHelper.get_acl(aclid, withCounts=withCounts).toDict() for aclid in aclids}
 
         if limit:
             aclsToReturn = sorted(ret.keys())[offset:offset+limit]
@@ -150,8 +131,8 @@ class _AclBase(XenRTAPIv2Page):
         elif not self.validateAndCache(entry['type'], entry['userid']):
             raise XenRTAPIError(HTTPNotAcceptable, "Could not find %s '%s' in AD" % (entry['type'], entry['userid']))
 
-        fields = ["aclid", "prio", "type", "userid"]
-        values = [aclid, entry['prio'], entry['type'], entry['userid']]
+        fields = ["aclid", "prio", "type", "userid", "preemptableuse"]
+        values = [aclid, entry['prio'], entry['type'], entry['userid'], entry.get('preemptableuse', False)]
         for f in ['grouplimit', 'grouppercent', 'userlimit', 'userpercent', 'maxleasehours']:
             if entry.has_key(f) and entry[f]:
                 fields.append(f)
@@ -265,14 +246,45 @@ class GetAcl(_AclBase):
          'in': 'path',
          'required': True,
          'description': 'ACL id to fetch',
-         'type': 'integer'}]
+         'type': 'integer'},
+        {'name': 'counts',
+         'in': 'query',
+         'required': False,
+         'description': 'Include current counts. Defaults to false',
+         'type': 'boolean'},
+        {'name': 'onlymine',
+         'in': 'query',
+         'required': False,
+         'description': 'Only show ACL entries which affect you. Defaults to false',
+         'type': 'boolean'}
+    ]
     RESPONSES = { "200": {"description": "Successful response"},
                   "404": {"description": "ACL not found"}}
 
     def render(self):
         aclid = self.getIntFromMatchdict("id")
-        acls = self.getAcls(limit=1, ids=[aclid], exceptionIfEmpty=True)
-        return acls[aclid]
+        withCounts = self.request.params.get("counts", "false") == "true"
+        acls = self.getAcls(limit=1, ids=[aclid], exceptionIfEmpty=True, withCounts=withCounts)
+        acl = acls[aclid]
+        if self.request.params.get("onlymine", "false") == "true":
+            filteredEntry = None
+            user = self.getUser().userid
+            groups = self.getACLHelper().groups_for_userid(user)
+            for e in acl['entries']:
+                if e['type'] == "user" and e['userid'] == user:
+                    filteredEntry = e
+                    break
+                elif e['type'] == "group" and e['userid'] in groups:
+                    filteredEntry = e
+                    break
+                elif e['type'] == "default":
+                    filteredEntry = e
+                    break
+            if filteredEntry:
+                acl['entries'] = [filteredEntry]
+            else:
+                acl['entries'] = []
+        return acl
 
 class NewAcl(_AclBase):
     WRITE = True

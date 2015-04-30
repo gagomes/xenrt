@@ -140,6 +140,7 @@ class XenRTSchedule(XenRTAPIPage):
                         jobdesc = " (%s)" % (details["JOBDESC"])
                     else:
                         jobdesc = ""
+                    preemptable = details.get("PREEMPTABLE", "").lower() == "yes"
                     verbose.write("New job %s%s\n" % (jobid, jobdesc))
 
                     # Variables to record the scheduling data
@@ -166,7 +167,7 @@ class XenRTSchedule(XenRTAPIPage):
                             for m in leasedmachineslist:
                                 if not m[1] in offline_sites:
                                     leasedmachines[m[0]] = m
-                            verbose.write("Job specified specific mahines, so machines (%s) available\n" % ",".join(leasedmachines.keys()))
+                            verbose.write("Job specified specific machines, so machines (%s) available\n" % ",".join(leasedmachines.keys()))
                         else:
                             leasedmachines = {}
                         mxs = string.split(details["MACHINE"], ",")
@@ -202,7 +203,7 @@ class XenRTSchedule(XenRTAPIPage):
                             if not schedulable:
                                 continue
                             # Do one ACL check at this stage
-                            if not self.check_acl_for_machines(selected, details['USERID'], number=len(selected)):
+                            if not self.check_acl_for_machines(selected, details['USERID'], number=len(selected), preemptable=preemptable):
                                 verbose.write("  at least one specified machine not allowed by ACL\n")
                                 continue
                     else:
@@ -225,6 +226,7 @@ class XenRTSchedule(XenRTAPIPage):
                                              site,
                                              cluster,
                                              details,
+                                             preemptable,
                                              verbose=verbose)
 
                     if len(selected) < machines_required:
@@ -240,7 +242,7 @@ class XenRTSchedule(XenRTAPIPage):
                     outfh.write("  scheduling %u on %s (%d)\n" % (int(jobid), str(selected), schedid))
                     if alsoPrintToVerbose:
                         verbose.write("  scheduling %u on %s (%d)\n" % (int(jobid), str(selected), schedid))
-                    self.schedule_on(outfh, int(jobid), selected)
+                    self.schedule_on(outfh, int(jobid), selected, details['USERID'], preemptable)
                     
                     if not site:
                         site = machines[selected[0]][1]
@@ -329,7 +331,7 @@ class XenRTSchedule(XenRTAPIPage):
         except Exception, e:
             print "WARNING: Could not run scm_check_leases - %s" % str(e)
 
-    def schedule_on(self, outfh, job, machines):
+    def schedule_on(self, outfh, job, machines, userid, preemptable):
         db = self.getDB()
         debug = False
         if not debug:
@@ -375,6 +377,9 @@ class XenRTSchedule(XenRTAPIPage):
                 cur.execute(sql)
                 cur.close()
         if not debug:
+            # Update the ACL cache
+            for m in machines:
+                self.getACLHelper().update_acl_cache(m, userid, preemptable)
             # Now we're complete, mark the job as running
             self.set_status(job, app.constants.JOB_STATUS_RUNNING, commit=True)
 
@@ -436,7 +441,7 @@ class XenRTSchedule(XenRTAPIPage):
                 pass
         return jobs
 
-    def scm_select_machines(self, outfh, machines, number, selected, site, cluster, details, verbose=None):
+    def scm_select_machines(self, outfh, machines, number, selected, site, cluster, details, preemptable, verbose=None):
         """Select <number> machines from the <machines> dictionary.
 
         The job may be partly done already and the <selected> list will contain
@@ -517,7 +522,7 @@ class XenRTSchedule(XenRTAPIPage):
                 continue
 
             # Check there are no ACL restrictions
-            if not self.check_acl_for_machines(clusters[cluster].keys(), details['USERID'], selected, number):
+            if not self.check_acl_for_machines(clusters[cluster].keys(), details['USERID'], selected, number, preemptable):
                 verbose.write("    not allowed by ACL\n")
                 continue
 
@@ -687,7 +692,7 @@ class XenRTSchedule(XenRTAPIPage):
 
         return policies      
 
-    def check_acl_for_machines(self, machines, userid, already_selected=[], number=1):
+    def check_acl_for_machines(self, machines, userid, already_selected=[], number=1, preemptable=False):
         # Identify the policies we need to check
         policies = self.get_acls_for_machines(machines)
         if len(policies.keys()) == 0:
@@ -711,7 +716,7 @@ class XenRTSchedule(XenRTAPIPage):
                 # be taken into account otherwise
                 machineCount += existingPolicies[p]
 
-            if not self.getACLHelper().check_acl(p, userid, machines[:machineCount], ignoreParent=True)[0]:
+            if not self.getACLHelper().check_acl(p, userid, machines[:machineCount], ignoreParent=True, preemptable=preemptable)[0]:
                 return False
 
         return True

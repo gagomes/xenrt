@@ -121,16 +121,12 @@ class Config(object):
         # self.config["POWERCTL_ILO_SCRIPT"] = "${XENRT_BASE}/ext/iloreboot"
 
         self.config["OPTION_USE_EMS"] = "yes"
-        self.config["DEBIAN_MODULES"] = "gcc binutils make patch flex bzip2 time stunnel4"
+        self.config["DEBIAN_MODULES"] = "gcc binutils make patch flex bzip2 time stunnel4 libaio-dev libaio1"
         self.config["DEBIAN_MODULES2"] = "g++"
         self.config["DEBIAN_ETCH_MODULES"] = "autoconf automake autotools-dev libtool libaio-dev libaio1"
 
         self.config["MAX_CONCURRENT_VMS"] = "50"
         self.config["MAX_CONCURRENT_VIFS"] = "200"
-
-        # See if this controller is running an apt-cacher
-        if os.path.exists("/local/apt-cache"):
-            self.config["APT_CACHER"] = "http://${XENRT_SERVER_ADDRESS}/debian"
 
         self.config["TEMPLATE_NAME_DEBIAN"] = "Debian Sarge Guest Template"
         self.config["TEMPLATE_NAME_DEBIAN_SARGE"] = "Debian Sarge Guest Template"

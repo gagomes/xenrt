@@ -2,6 +2,7 @@ from app.apiv2 import *
 from machines import _MachineBase
 from pyramid.httpexceptions import *
 import app.constants
+import app.utils
 import calendar
 import json
 import jsonschema
@@ -100,7 +101,7 @@ class _JobBase(_MachineBase):
 
         jobs = {}
 
-        cur.execute("SELECT j.jobid, j.version, j.revision, j.options, j.jobstatus, j.userid, j.machine, j.uploaded, j.removed FROM tbljobs j %s WHERE %s ORDER BY j.jobid DESC LIMIT %%s" % (joinquery, " AND ".join(conditions)), self.expandVariables(params))
+        cur.execute("SELECT j.jobid, j.version, j.revision, j.options, j.jobstatus, j.userid, j.machine, j.uploaded, j.removed, j.preemptable FROM tbljobs j %s WHERE %s ORDER BY j.jobid DESC LIMIT %%s" % (joinquery, " AND ".join(conditions)), self.expandVariables(params))
         while True:
             rc = cur.fetchone()
             if not rc:
@@ -112,7 +113,8 @@ class _JobBase(_MachineBase):
                 "status": self.getJobStatus(rc[4].strip(), rc[8]),
                 "rawstatus": rc[4].strip(),
                 "removed": True if rc[8] and rc[8].strip() == "yes" else False,
-                "machines": rc[6].strip().split(",") if rc[6] else []
+                "machines": rc[6].strip().split(",") if rc[6] else [],
+                "preemptable": bool(rc[9])
             }
             if rc[8] and rc[8].strip():
                 jobs[rc[0]]['params']["REMOVED"] = rc[8].strip()
@@ -236,6 +238,8 @@ class _JobBase(_MachineBase):
         db = self.getDB()
 
         if key in app.constants.core_params:
+            if key in app.constants.bool_params:
+                value = app.utils.toBool(value)
             cur = db.cursor()
             try:
                 cur.execute("UPDATE tbljobs SET %s=%%s WHERE jobid=%%s;" % (key), 
@@ -670,6 +674,10 @@ class NewJob(_JobBase):
             "inputdir": {
                 "type": "string",
                 "description": "Input directory for the job"
+            },
+            "preemptable": {
+                "type": "boolean",
+                "description": "Run job on a preemptable basis - can be cancelled for scheduled testing (ACL policy dependent)"
             }
         }
     }}
@@ -700,7 +708,8 @@ class NewJob(_JobBase):
                flags=None,
                email=None,
                inputdir=None,
-               lease=None):
+               lease=None,
+               preemptable=None):
         
         if not params:
             params = {}
@@ -714,7 +723,7 @@ class NewJob(_JobBase):
 
         db = self.getDB()
         cur = db.cursor()
-        cur.execute("INSERT INTO tbljobs (jobstatus, userid, version, revision, options, uploaded,removed) VALUES ('new', %s, '', '', '', '', '') RETURNING jobid", [self.getUser().userid])
+        cur.execute("INSERT INTO tbljobs (jobstatus, userid, version, revision, options, uploaded,removed,preemptable) VALUES ('new', %s, '', '', '', '', '',NULL) RETURNING jobid", [self.getUser().userid])
         rc = cur.fetchone()
         self.jobid = int(rc[0])
 
@@ -751,8 +760,6 @@ class NewJob(_JobBase):
             params['JOBGROUP'] = jobGroup['id']
             params['JOBGROUPTAG'] = jobGroup['tag']
             
-
-
         params['JOB_FILES_SERVER'] = config.log_server
         params['LOG_SERVER'] = config.log_server
 
@@ -765,6 +772,11 @@ class NewJob(_JobBase):
         if lease and lease.get("duration"):
             self.updateJobField("MACHINE_HOLD_FOR_OK", lease['duration'] * 60, params)
             self.updateJobField("MACHINE_HOLD_REASON", lease.get("reason", ""), params)
+
+        if preemptable:
+            self.updateJobField("PREEMPTABLE", True)
+            # And lower the priority of the job
+            params['JOBPRIO'] = str(int(params.get('JOBPRIO', 3)) + 5)
 
         for p in params.keys():
             self.updateJobField(p, params[p])
@@ -799,7 +811,8 @@ class NewJob(_JobBase):
                            flags=j.get("flags"),
                            email=j.get("email") if j.has_key("email") else self.getUser().email,
                            inputdir=j.get("inputdir"),
-                           lease=j.get("lease_machines"))
+                           lease=j.get("lease_machines"),
+                           preemptable=j.get("preemptable"))
 
 class _GetAttachmentUrl(_JobBase):
     REQTYPE = "GET"

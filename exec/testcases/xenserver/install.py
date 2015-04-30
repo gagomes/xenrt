@@ -1414,7 +1414,7 @@ class TCDom0SourceCheck(SourceISOCheck): # TC-17998
             for i in patches:
                 hotfixDirectory = os.path.split(i)
                 filename =  hotfixDirectory[0].split("hotfix-")[-1]
-                self.SOURCE_ISO_FILES[filename.group(1)+'-src-pkgs.tar']= hotfixDirectory[0]
+                self.SOURCE_ISO_FILES[filename+'-src-pkgs.tar']= hotfixDirectory[0]
             
         # This list inlcudes rpm's installed in Dom0. (which is distributed in source-1.iso & source-4.iso)
         installedRpmList = self.host.execdom0("for r in `rpm -qa`; "

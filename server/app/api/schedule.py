@@ -3,7 +3,7 @@ from app.api import XenRTAPIPage
 from pyramid.httpexceptions import HTTPFound
 
 import traceback, StringIO, string, time, random, sys, calendar, getopt
-
+import psycopg2
 import config, app
 
 class XenRTSchedule(XenRTAPIPage):
@@ -73,7 +73,7 @@ class XenRTSchedule(XenRTAPIPage):
 
     def schedule_jobs(self, outfh, dryrun=False, ignore=False, verbose=None):
         """New world job scheduler - assigns machines to jobs"""
-
+    
         # Generate a random integer to track in logs
         schedid = random.randint(0,1000)
 
@@ -88,7 +88,11 @@ class XenRTSchedule(XenRTAPIPage):
         prelocktime = time.mktime(time.gmtime())
 
         verbose.write("Job scheduler ID %d started %s" % (schedid, time.strftime("%a, %d %b %Y %H:%M:%S +0000\n", time.gmtime())))
-        self.get_lock()
+        try:
+            self.get_lock()
+        except psycopg2.OperationalError:
+            outfh.write("Another schedule is already in progress, aborting\n")
+            return
         verbose.write("%d acquired lock %s" % (schedid, time.strftime("%a, %d %b %Y %H:%M:%S +0000\n", time.gmtime())))
         postlocktime = time.mktime(time.gmtime())
 
@@ -283,7 +287,7 @@ class XenRTSchedule(XenRTAPIPage):
             if not self.mutex:
                 self.mutex = app.db.dbWriteInstance()
             cur = self.mutex.cursor()
-            cur.execute("LOCK TABLE scheduleLock")
+            cur.execute("LOCK TABLE scheduleLock NOWAIT")
             self.mutex_held = 1
 
     def release_lock(self):

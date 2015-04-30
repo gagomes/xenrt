@@ -14,6 +14,8 @@
         <vcpus>2</vcpus>
         <network device="0" />
         <disk device="0" size="14" />
+        <postinstall action="preCloneTailor"/>
+        <postinstall action="shutdown"/>
       </vm>
       <vm name="win7-x86">
         <distro>win7-x86</distro>
@@ -21,6 +23,8 @@
         <vcpus>2</vcpus>
         <network device="0" />
         <disk device="0" size="14" />
+        <postinstall action="preCloneTailor"/>
+        <postinstall action="shutdown"/>
       </vm>
       <vm name="win81-x86">
         <distro>win81-x86</distro>
@@ -28,6 +32,8 @@
         <vcpus>2</vcpus>
         <network device="0" />
         <disk device="0" size="14" />
+        <postinstall action="preCloneTailor"/>
+        <postinstall action="shutdown"/>
       </vm>
       <vm name="ws12-x64">
         <distro>ws12-x64</distro>
@@ -36,6 +42,8 @@
         <vcpus>2</vcpus>
         <network device="0" />
         <disk device="0" size="14" />
+        <postinstall action="preCloneTailor"/>
+        <postinstall action="shutdown"/>
       </vm>
       <vm name="win8-x86">
         <distro>win8-x86</distro>
@@ -43,6 +51,8 @@
         <vcpus>2</vcpus>
         <network device="0" />
         <disk device="0" size="14" />
+        <postinstall action="preCloneTailor"/>
+        <postinstall action="shutdown"/>
       </vm>
   </host>
   </prepare>

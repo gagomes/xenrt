@@ -14,18 +14,21 @@ class WindowsUpdateBase(xenrt.TestCase):
         
         self.args  = self.parseArgsKeyValue(arglist)
         self.host = self.getDefaultHost()
-        self.guest = self.host.getGuest(self.args['guest'])
-        self.snapshot = self.guest.snapshot()
+        self.remoteHost = self.getHost("RESOURCE_HOST_1")
         if self.args.has_key('TOOLS'):
             self.Tools = self.args['TOOLS']
+            
+        goldVM = self.host.getGuest(self.args['guest'])
+        self.guest = goldVM.cloneVM()
+
+        self.guest.lifecycleOperation("vm-start")
+        xenrt.sleep(50)
+        self.uninstallOnCleanup(self.guest)
 
     def postRun(self):
         
-        log("Revert the VM back to the original state")
-        self.guest.revert(self.snapshot)
-        self.guest.lifecycleOperation("vm-start")
-        self.guest.removeSnapshot(self.snapshot)
-        
+        pass
+
 class TCSnapRevertTools(WindowsUpdateBase):
     
     def run(self, arglist=None):
@@ -123,22 +126,22 @@ class TCSkipPvPkg(WindowsUpdateBase):
         self.guest.revert(snapshot)
         self.guest.removeSnapshot(snapshot)
         self.guest.lifecycleOperation("vm-start")
-        
+
     def run(self, arglist=None):
 
-        pvDriversList = xenrt.TEC().lookup("PV_DRIVERS_LIST").split(';')
+        pvDriverList = xenrt.TEC().lookup("PV_DRIVERS_LIST").split(';')
         
-        for pkg in pvDriversList:
+        for pkg in pvDriverList:
             self.skipPvPkginst(random.sample(pvDriverList, 4))
 
 class TCRemovePvpkg(WindowsUpdateBase):
 
 
-    def removePvpkg(self,pvPkg):
+    def removePvPkg(self,pvPkg):
 
         log("Install PV Drivers on the windows guest")
         self.guest.uninstallDrivers(pkgToUninstall = pvPkg)
-        self.guest.waitForDaemon(300, desc="Guest check after Uninstallation of PV Packages %s" %(pkgList))
+        self.guest.waitForDaemon(300, desc="Guest check after Uninstallation of PV Packages %s" %(pvPkg))
         
     def run(self, arglist=None):
         

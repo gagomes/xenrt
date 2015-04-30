@@ -4828,7 +4828,7 @@ class TCCIFSLifecycle(xenrt.TestCase):
 
     def prepare(self, arglist):
         self.host = self.getDefaultHost()
-        self.share = xenrt.VMSMBShare()
+        self.share = xenrt.ExternalSMBShare(version=3)
         self.sr = xenrt.productLib(host=self.host).SMBStorageRepository(self.host, "CIFS-SR")
 
     def run(self, arglist):

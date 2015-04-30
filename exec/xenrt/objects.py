@@ -9228,9 +9228,10 @@ class GenericGuest(GenericPlace):
             os.makedirs(d)
         self.xmlrpcGetFile("c:\\windows\\temp\\devcon.log", "%s/devcon.log" % (d))
         gpuDetected = 0
-        gpuPatterns = ["PCI.VEN_10DE.*(NVIDIA|VGA).*"  #nvidia pci vendor id
+        gpuPatterns = ["PCI.VEN_10DE.*(NVIDIA|VGA).*"   #nvidia pci vendor id
                         ,"PCI.VEN_1002.*(ATI|VGA).*"    #ati/amd pci vendor id
                         ,"PCI.VEN_102B.*(Matrox|VGA).*" #matrox  pci vendor id
+                        ,"PCI.VEN.*Intel.*Graphics.*"   #intel pci vendor id
                        ]
         f = open("%s/devcon.log"%d)
         for line in f:

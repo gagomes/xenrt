@@ -814,6 +814,8 @@ class XenRTList(XenRTCommand):
                     raise Exception("Unknown argument '%s'\n" % (flag))
         except getopt.GetoptError:
             raise Exception("Unknown argument\n")
+        if not "status" in details:
+            details['status'] = ["new", "running"]
         jobs = self.xenrt.get_jobs(params=True, limit=10000, results=True, **details)
         
         fieldwidths = [7, 8, 12, 9, 13, 18, 21]

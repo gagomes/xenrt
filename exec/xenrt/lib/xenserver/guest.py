@@ -3185,7 +3185,15 @@ exit /B 1
         elif g.mainip: 
             if re.match("169\.254\..*", g.mainip):
                 raise xenrt.XRTFailure("VM gave itself a link-local address.")
-
+        
+        #If cloned vm is windows with no tools 
+        if not g.mainip:
+            g.lifecycleOperation("vm-start")
+            vifname, bridge, mac, c = vifs[0]
+            arptime = 10800
+            g.mainip = self.getHost().arpwatch(bridge, mac, timeout=arptime)
+            g.lifecycleOperation("vm-shutdown", force=True)
+            
         g.setHostnameViaXenstore()
         return g
 

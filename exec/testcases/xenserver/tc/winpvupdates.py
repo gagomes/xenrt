@@ -14,17 +14,18 @@ class WindowsUpdateBase(xenrt.TestCase):
         
         self.args  = self.parseArgsKeyValue(arglist)
         self.host = self.getDefaultHost()
-        self.guest = self.host.getGuest(self.args['guest'])
-        self.snapshot = self.guest.snapshot()
-        if self.args.has_key('TOOLS'):
-            self.Tools = self.args['TOOLS']
+        self.remoteHost = self.getHost("RESOURCE_HOST_1")
+        
+        goldVM = self.host.getGuest(self.args['guest'])
+        self.guest = goldVM.cloneVM()
+
+        self.guest.lifecycleOperation("vm-start")
+        xenrt.sleep(50)
+        self.uninstallOnCleanup(self.guest)
 
     def postRun(self):
         
-        log("Revert the VM back to the original state")
-        self.guest.revert(self.snapshot)
-        self.guest.lifecycleOperation("vm-start")
-        self.guest.removeSnapshot(self.snapshot)
+        pass
         
 class TCSnapRevertTools(WindowsUpdateBase):
     

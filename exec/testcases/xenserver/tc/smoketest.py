@@ -16,6 +16,10 @@ class _TCSmokeTest(xenrt.TestCase):
     DISTRO = None
     ROOTDISK = None
 
+    @property
+    def minimalTest(self):
+        return False
+
     def prepare(self, arglist):
 
         self.memory = None
@@ -104,26 +108,27 @@ class _TCSmokeTest(xenrt.TestCase):
             if self.runSubcase("setMemory", (), "OS", "SetMemory") != \
                     xenrt.RESULT_PASS:
                 return
-        if self.runSubcase("lifecycle", (), "OS", "Lifecycle") != \
-                xenrt.RESULT_PASS:
-            return
-        if self.PAUSEUNPAUSE:
-            if self.runSubcase("pauseunpause", (), "OS", "PauseUnpause") != \
+        if not self.minimalTest:
+            if self.runSubcase("lifecycle", (), "OS", "Lifecycle") != \
                     xenrt.RESULT_PASS:
                 return
-        else:
-            if self.runSubcase("suspendresume", (), "OS", "SuspendResume") != \
+            if self.PAUSEUNPAUSE:
+                if self.runSubcase("pauseunpause", (), "OS", "PauseUnpause") != \
+                        xenrt.RESULT_PASS:
+                    return
+            else:
+                if self.runSubcase("suspendresume", (), "OS", "SuspendResume") != \
+                        xenrt.RESULT_PASS:
+                    return
+                if self.runSubcase("migrate", ("false"), "OS", "Migrate") != \
+                        xenrt.RESULT_PASS:
+                    return
+                if self.runSubcase("migrate", ("true"), "OS", "LiveMigrate") != \
+                        xenrt.RESULT_PASS:
+                    return
+            if self.runSubcase("settle", (), "OS", "Settle") != \
                     xenrt.RESULT_PASS:
                 return
-            if self.runSubcase("migrate", ("false"), "OS", "Migrate") != \
-                    xenrt.RESULT_PASS:
-                return
-            if self.runSubcase("migrate", ("true"), "OS", "LiveMigrate") != \
-                    xenrt.RESULT_PASS:
-                return
-        if self.runSubcase("settle", (), "OS", "Settle") != \
-                xenrt.RESULT_PASS:
-            return
         if self.runSubcase("shutdown", (), "OS", "Shutdown") != \
                 xenrt.RESULT_PASS:
             return
@@ -207,6 +212,11 @@ class TCSmokeTestTemplateDefaults(_TCSmokeTest):
             return "TC-26955"
         else:
             return "TC-26870"
+
+    @property
+    def minimalTest(self):
+        # Only minimal test for dev linux guests
+        return xenrt.isDevLinux(self.tcsku):
 
 class TCSmokeTestShadowPT(TCSmokeTestTemplateDefaults):
     # Template defaults on Shadow

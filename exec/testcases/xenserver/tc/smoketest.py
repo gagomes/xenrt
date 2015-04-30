@@ -216,7 +216,7 @@ class TCSmokeTestTemplateDefaults(_TCSmokeTest):
     @property
     def minimalTest(self):
         # Only minimal test for dev linux guests
-        return xenrt.isDevLinux(self.tcsku):
+        return xenrt.isDevLinux(self.tcsku)
 
 class TCSmokeTestShadowPT(TCSmokeTestTemplateDefaults):
     # Template defaults on Shadow

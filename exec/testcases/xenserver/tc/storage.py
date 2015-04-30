@@ -2731,7 +2731,7 @@ class TC8525(_TCVDICreateRoundup):
 class TCCIFSOddSize(_TCVDICreateRoundup):
     """CIFS Odd size"""
 
-    SRTYPE = "cifs"  # Not sure if type is cifs or smb in XS. Perhaps bug here.
+    SRTYPE = "cifs"
 
 
 #############################################################################
@@ -4832,7 +4832,7 @@ class TCCIFSLifecycle(xenrt.TestCase):
         self.sr = xenrt.productLib(host=self.host).SMBStorageRepository(self.host, "CIFS-SR")
 
     def run(self, arglist):
-        noOfVdis = 10  # Creating 10 VDI's
+        noOfVdis = 10   # Creating 10 VDI's
         size = 400      # Each VDI of size 400B
 
         # Create SR.
@@ -4840,7 +4840,6 @@ class TCCIFSLifecycle(xenrt.TestCase):
 
         # Create some VDIs
         actualVdis = [self.host.createVDI(size, sruuid=self.sr.uuid, name="VDI_%s" % i)for i in range(noOfVdis)]
-
 
         # Forget SR
         self.sr.forget()

@@ -1281,7 +1281,7 @@ class SourceISOCheck(xenrt.TestCase):
                 # e.g download xe-phase-3/source-1.iso and list the RPMs.
                 file = xenrt.TEC().getFile(sourceBuildPath+"/"+sourceFile, sourceFile)
                 if file:                
-                    if re.search(r'iso',sourceFile):
+                    if sourceFile.endswith("iso"):
                         mount = xenrt.MountISO(file)
                         mountpoint = mount.getMount()
                     else:
@@ -1400,12 +1400,21 @@ class TCDom0SourceCheck(SourceISOCheck): # TC-17998
 
     def run(self, arglist=None):
         
-        versiontype = xenrt.TEC().lookup("PRODUCT_VERSION", None)
-        cpatches = xenrt.TEC().lookupLeaves("CPATCHES_%s" % string.upper(versiontype))
+        versiontype = xenrt.TEC().lookup("PRODUCT_VERSION")
+        
+        patches = xenrt.TEC().lookupLeaves("CARBON_PATCHES_%s" % string.upper(versiontype))        
+        if len(patches) == 1:
+            patches = string.split(patches[0], ",")
+        cpatches = xenrt.TEC().lookupLeaves("CPATCHES_%s" % string.upper(versiontype)) 
         if len(cpatches) == 1:
-            hotfixDirectory = re.search(r'(\S+)/XS\S+\.',cpatches[0])
-            filename= re.search(r'\S+hotfix-(\S+)$',hotfixDirectory.group(1))
-            self.SOURCE_ISO_FILES[filename.group(1)+'-src-pkgs.tar']= hotfixDirectory.group(1)
+            cpatches =  string.split(cpatches[0], ",")
+        patches.extend(cpatches)
+        
+        if len(patches) >= 1:
+            for i in patches:
+                hotfixDirectory = os.path.split(i)
+                filename =  hotfixDirectory[0].split("hotfix-")[-1]
+                self.SOURCE_ISO_FILES[filename.group(1)+'-src-pkgs.tar']= hotfixDirectory[0]
             
         # This list inlcudes rpm's installed in Dom0. (which is distributed in source-1.iso & source-4.iso)
         installedRpmList = self.host.execdom0("for r in `rpm -qa`; "

@@ -1,5 +1,5 @@
 import xenrt
-import copy, time, random, re, json, string, threading, os
+import os, copy, time, random, re, json, string, threading
 import testcases.xenserver.guest
 from xenrt.lazylog import step, comment, log, warning
 from testcases.benchmarks import workloads
@@ -27,7 +27,8 @@ NumOfPGPUPerCard = {
     CardType.Quadro : 1,
     CardType.Intel : 1,
     CardType.NotAvailable : 0
-    }
+}
+
 MaxNumOfVGPUPerPGPU = {
     VGPUConfig.K100 :  8,
     VGPUConfig.K120 :  8,
@@ -42,21 +43,20 @@ MaxNumOfVGPUPerPGPU = {
     VGPUConfig.K280 : 1,
     VGPUConfig.K2PassThrough : 1,
     VGPUConfig.PassThrough : 1
-    }
+}
 
 CardDeviceName = {
-        CardType.K1 : "GRID K1",
-        CardType.K2 : "GRID K2",
-        CardType.Quadro : "Quadro",
-        CardType.Intel : "Integrated"
-    }
+    CardType.K1 : "GRID K1",
+    CardType.K2 : "GRID K2",
+    CardType.Quadro : "Quadro",
+    CardType.Intel : "Integrated"
+}
 
 CardName = {
-        CardType.K1 : "K1",
-        CardType.K2 : "K2",
-        CardType.Quadro : "Quadro",
-        CardType.Intel : "Intel"
-
+    CardType.K1 : "K1",
+    CardType.K2 : "K2",
+    CardType.Quadro : "Quadro",
+    CardType.Intel : "Intel"
 }
 
 VendorName = {

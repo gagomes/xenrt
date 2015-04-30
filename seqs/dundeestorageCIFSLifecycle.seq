@@ -19,7 +19,9 @@
 
   <testsequence>
     <serial group="CIFSLifecycle">
+      <!-- SR Lifecycle tests -->
       <testcase id="xenserver.tc.storage.TCCIFSLifecycle" tc="TC-26986"/>
+      <!--  VDI Lifecycle tests -->
       <testcase id="xenserver.tc.storage.TCCIFSOddSize" tc="TC-8523" sku="WithCIFS"/>
       <testcase id="xenserver.tc.storage.TCCIFSZeroedContents" tc="TC-10671" sku="WithCIFS"/>
       <testcase id="xenserver.tc.storage.TCCIFSVDIResizeShrink" tc="TC-8475" sku="WithCIFS"/>

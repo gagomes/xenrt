@@ -3799,6 +3799,7 @@ class DebianPreseedFile(object):
         self.postscript = postscript
         self.poweroff = poweroff
         self.disk = disk
+        self.repository = "http://gb.archive.ubuntu.com/ubuntu"
         
     def generate(self):
         if self.distro.startswith("debian") and not self.distro.startswith("debian50"):

@@ -5,7 +5,7 @@ from xenrt.lazylog import step, comment, log, warning
 
 class LabCostPerTechArea():
 
-    def __init__(self, suiteId, arglist):
+    def __init__(self, suiteId, arglist=None):
         self.suiteId = suiteId
         self.nbrOfSuiteRunsToCheck = 5
 

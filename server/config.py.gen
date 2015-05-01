@@ -1,4 +1,4 @@
-import os, xml.dom.minidom, re, string
+import os, xml.dom.minidom, re, string, glob
 
 cfg = {}
 
@@ -14,16 +14,23 @@ else:
 cfg['url_base'] = "http://%s/share/control" % (addr)
 cfg['tmp_base'] = "/tmp"
 cfg['max_db_connections'] = "8"
-cfg['db_sync_timeout'] = "60"
 cfg['partner_ha_node'] = ""
 cfg['auth_enabled'] = "@authenabled@"
 cfg['ldap_uri'] = ""
 cfg['ldap_user'] = ""
 cfg['ldap_pass'] = ""
 cfg['ldap_base'] = ""
+cfg['group_mapping'] = ""
+cfg['admin_group'] = ""
+cfg['schedule_log_dir'] = "/var/xenrt"
 # Parse a site config file
+cfs = glob.glob("%s/conf.d/*/*.xml" % confdir)
 cf = "%s/site.xml" % (confdir)
+
 if os.path.exists(cf):
+    cfs.append(cf)
+
+for cf in cfs:
     dom = xml.dom.minidom.parse(cf)
     for i in dom.childNodes:
         if i.nodeType == i.ELEMENT_NODE:
@@ -55,8 +62,6 @@ if os.path.exists(cf):
                                     cfg['log_server'] = data
                                 elif name == "MAX_DB_CONNECTIONS_PER_PROCESS":
                                     cfg['max_db_connections'] = data
-                                elif name == "DB_SYNC_TIMEOUT":
-                                    cfg['db_sync_timeout'] = data
                                 elif name == "PARTNER_HA_NODE":
                                     cfg['partner_ha_node'] = data
                                 elif name == "LDAP_URI":
@@ -67,6 +72,12 @@ if os.path.exists(cf):
                                     cfg['ldap_pass'] = data
                                 elif name == "LDAP_BASE":
                                     cfg['ldap_base'] = data
+                                elif name == "AD_GROUP_MAPPING":
+                                    cfg['group_mapping'] = data
+                                elif name == "ADMIN_GROUP":
+                                    cfg['admin_group'] = data
+                                elif name == "SCHEDULE_LOG_DIR":
+                                    cfg['schedule_log_dir'] = data
 
 cfg['results'] = "%s/results" % basedir
 cfg['sharedir'] = "@sharedir@"

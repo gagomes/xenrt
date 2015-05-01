@@ -330,12 +330,7 @@ class _ImpExpBase(xenrt.TestCase):
 
 
     def preRun(self, host):
-        arch = None
-        # Create 64-bit guest to run 64-bit xe CLI, when using 64-bit Dom0
-        hostarch = host.execdom0("uname -m").strip()
-        if hostarch.endswith("64"):
-            arch="x86-64"
-        self.cliguest = self.createGuest(host, distro=self.CLIDISTRO, arch=arch)
+        self.cliguest = self.createGuest(host, distro=self.CLIDISTRO)
         self.guestsToClean.append(self.cliguest)
         if self.CLIDISTRO in ["debian","sarge","etch"] or not self.CLIDISTRO:
             # Need to add an extra disk, as root one is too small
@@ -738,6 +733,10 @@ class TC9040(_ImpExpBase):
 class TC12565(_ImpExpBase):
     """Import/Export test using CLI on SLES 11 SP1"""
     CLIDISTRO="sles111"
+
+class TC26943(_ImpExpBase):
+    """Import/Export test using CLI on CENTOS 7"""
+    CLIDISTRO="centos7_x86-64"
 
 class TC6840(_ImpExpBase):
     """Import/Export test using CLI on Windows 2003 EE SP2"""

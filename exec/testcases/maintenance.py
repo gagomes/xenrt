@@ -10,6 +10,7 @@
 
 import sys, re, string, os.path, urllib, traceback, time, shutil, stat, os
 import xenrt
+from xenrt.lazylog import step, comment, log, warning
 
 class TCSiteStatus(xenrt.TestCase):
     """Record items of XenRT site status in result fields."""
@@ -25,6 +26,10 @@ class TCSyncRPMs(xenrt.TestCase):
     """Synchronise local RPM/deb repositories with the central repository"""
 
     def doRepo(self, distro, arch):
+        nosync = xenrt.TEC().lookup(["RPM_SOURCE", distro, arch, "NOSYNC"],
+                                      False, boolean=True)
+        if nosync:
+            return
         nfspaths = xenrt.TEC().lookup(["RPM_SOURCE", distro, arch, "NFS"],
                                       None)
         if not nfspaths:
@@ -460,3 +465,110 @@ class TCSysInfo(xenrt.TestCase):
         f = file(filename, "w")
         f.write(pcistring)
         f.close()
+
+class TCUnsupFlags(xenrt.TestCase):
+    ALL_FLAGS = {
+# XenServer
+"unsup_6.0"     : { "productVersion":"Boston",      "isSetIfPass":False, "version":"/usr/groups/release/XenServer-6.x/XS-6.0.0/RTM-50762" },
+"unsup_6.0.2"   : { "productVersion":"Sanibel",     "isSetIfPass":False, "version":"/usr/groups/release/XenServer-6.x/XS-6.0.2/RTM-53456" },
+"unsup_6.1"     : { "productVersion":"Tampa",       "isSetIfPass":False, "version":"/usr/groups/release/XenServer-6.x/XS-6.1.0/RTM" },
+"unsup_6.2"     : { "productVersion":"Clearwater",  "isSetIfPass":False, "version":"/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446" },
+"unsup_6.5"     : { "productVersion":"Creedence",   "isSetIfPass":False, "version":"/usr/groups/release/XenServer-6.x/XS-6.5/RTM-90233" },
+"unsup_7"       : { "productVersion":"Dundee",      "isSetIfPass":False, "version":"/usr/groups/build/trunk/latest" },
+# ESXi VMware
+"unsup_vmware55"    : { "productType" : "esx",      "productVersion":"5.5.0-update02",      "isSetIfPass": False },
+"unsup_vmware51"    : { "productType" : "esx",      "productVersion":"5.1.0",               "isSetIfPass": False },
+"unsup_vmware5"     : { "productType" : "esx",      "productVersion":"5.0.0.update01",      "isSetIfPass": False },
+# HyperV
+"unsup_ws12r2"      : { "productType":"hyperv",     "productVersion":"ws12r2-x64",          "isSetIfPass": False },
+"unsup_hvs12r2"     : { "productType":"hyperv",     "productVersion":"hvs12r2-x64",         "isSetIfPass": False },
+# KVM
+"unsup_rhel63"      : { "productType":"kvm",        "productVersion":"rhel63_x86-64",       "isSetIfPass": False },
+"unsup_rhel64"      : { "productType":"kvm",        "productVersion":"rhel64_x86-64",       "isSetIfPass": False },
+"unsup_rhel65"      : { "productType":"kvm",        "productVersion":"rhel65_x86-64",       "isSetIfPass": False },
+# Native Linux
+"unsup_centos6x32"  : { "productType":"nativelinux", "productVersion":"centos6_x86-32",     "isSetIfPass": False },
+"unsup_centos6"     : { "productType":"nativelinux", "productVersion":"centos6_x86-64",     "isSetIfPass": False },
+"unsup_centos7"     : { "productType":"nativelinux", "productVersion":"centos7_x86-64",     "isSetIfPass": False },
+"unsup_debian7x32"  : { "productType":"nativelinux", "productVersion":"debian70_x86-32",    "isSetIfPass": False },
+"unsup_debian7"     : { "productType":"nativelinux", "productVersion":"debian70_x86-64",    "isSetIfPass": False },
+"unsup_oel6x32"     : { "productType":"nativelinux", "productVersion":"oel6_x86-32",        "isSetIfPass": False },
+"unsup_oel6"        : { "productType":"nativelinux", "productVersion":"oel6_x86-64",        "isSetIfPass": False },
+"unsup_oel7"        : { "productType":"nativelinux", "productVersion":"oel7_x86-64",        "isSetIfPass": False },
+"unsup_rhel6x32"    : { "productType":"nativelinux", "productVersion":"rhel6_x86-32",       "isSetIfPass": False },
+"unsup_rhel6"       : { "productType":"nativelinux", "productVersion":"rhel6_x86-64",       "isSetIfPass": False },
+"unsup_rhel7"       : { "productType":"nativelinux", "productVersion":"rhel7_x86-64",       "isSetIfPass": False }
+    }
+
+    def createTempSeq(self, productType=None, productVersion=None, version=None, **kargs):
+        seqContent  = """<xenrt><prepare><host id="0" """
+        seqContent += 'productType="%s" ' % productType if productType else ""
+        seqContent += 'productVersion="%s" '% productVersion if productVersion else ""
+        seqContent += 'version="%s" ' % version if version else ""
+        seqContent += """/></prepare></xenrt>"""
+
+        seqFile =xenrt.TEC().tempFile()
+        with open(seqFile, 'w') as file:
+            file.write(seqContent)
+        log("Temp Seq file content : %s" % seqContent)
+        return seqFile
+
+    def doSequence(self, seqFile):
+        seq = xenrt.TestSequence(seqFile)
+        seq.doPreprepare()
+        seq.doPrepare()
+
+    def isPropAlreadySet(self, flag):
+        return flag in xenrt.APIFactory().get_machine(self.machineName)['flags']
+
+    def prepare(self, arglist):
+        self.machineName = xenrt.PhysicalHost(xenrt.TEC().lookup("RESOURCE_HOST_0")).name
+        self.flags = {}
+        self.updateMachine = False
+        self.updateMachineWithAutoFlaggerTag = ""
+
+        args = self.parseArgsKeyValue(arglist)
+        if "FLAGSTOCHECK" in args:
+            [ self.flags.update({ flag:self.ALL_FLAGS[flag] }) for flag in args["FLAGSTOCHECK"].split(",") if flag in self.ALL_FLAGS]
+        elif "AllFLAGS" in args:
+            self.flags.update(self.ALL_FLAGS)
+        if "UPDATEMACHINE" in args:
+            self.updateMachine = True
+        if "AUTOFLAGGERTAG" in args:
+            self.updateMachineWithAutoFlaggerTag = args["AUTOFLAGGERTAG"]
+
+    def run(self, arglist=[]):
+        if self.updateMachineWithAutoFlaggerTag:
+            params = xenrt.APIFactory().get_machine(self.machineName)['params']
+            if "AUTOFLAGGERTAG" in params and params["AUTOFLAGGERTAG"] == self.updateMachineWithAutoFlaggerTag:
+                comment("Machine %s has already been checked. Exiting." % self.machineName)
+                return
+
+        for flag,flagData in self.flags.iteritems():
+            if "seqFile" in flagData:
+                seqFile=flagData["seqFile"]
+            elif "productType" in flagData or "productVersion" in flagData or "version" in flagData:
+                seqFile = self.createTempSeq(**flagData)
+            else:
+                warning("Unimplemented")
+            log("Using Temp Seq File : %s" % seqFile)
+
+            passed = False
+            try:
+                self.doSequence(seqFile)
+                passed = True
+            except Exception, e:
+                warning(str(e))
+
+            if passed == flagData["isSetIfPass"] and not self.isPropAlreadySet(flag):
+                comment("Adding flag '%s' to machine '%s'" % (flag, self.machineName))
+                xenrt.APIFactory().update_machine(self.machineName, addflags=[flag])
+            elif passed != flagData["isSetIfPass"] and self.isPropAlreadySet(flag):
+                comment("Removing flag '%s' from machine '%s'" % (flag, self.machineName))
+                xenrt.APIFactory().update_machine(self.machineName, delflags=[flag])
+            else:
+                comment("Machine '%s' %s flag '%s'" % (self.machineName,"is already having required" if self.isPropAlreadySet(flag) else "neither need nor has", flag))
+
+        if self.updateMachineWithAutoFlaggerTag:
+            comment("Updating Autoflagger tag for Machine '%s': '%s'" % (self.machineName, self.updateMachineWithAutoFlaggerTag))
+            xenrt.APIFactory().update_machine(self.machineName, params={'AUTOFLAGGERTAG':self.updateMachineWithAutoFlaggerTag})

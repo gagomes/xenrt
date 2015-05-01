@@ -35,7 +35,7 @@ def createHost(id=0,
                noAutoPatch=False,
                disablefw=False,
                cpufreqgovernor=None,
-               usev6testd=True,
+               defaultlicense=True,
                ipv6=None,
                noipv4=False,
                basicNetwork=True,
@@ -102,7 +102,7 @@ def createHost(id=0,
 
     host.execvirt("virsh net-destroy default")
     host.execvirt("virsh net-undefine default")
-    host.createNetwork("cloudbr0")
+    host.createNetwork("cloudbr0", useDHCP=True)
 
     networkConfig  = "<network>"
     networkConfig += "<name>cloudbr0</name>"
@@ -192,17 +192,21 @@ class KVMHost(xenrt.lib.libvirt.Host):
     def getBridgeByName(self, name):
         return (self.execvirt("virsh net-info %s | grep 'Bridge' | tr -s ' ' | cut -d ' ' -f 2" % name)).strip()
 
-    def createNetwork(self, name="bridge", iface=None):
+    def createNetwork(self, name="bridge", iface=None, useDHCP=False):
         if iface is None: iface = self.getDefaultInterface()
-        try:
-            self.execvirt("virsh iface-bridge %s %s --no-stp 10" % (iface, name))
-        except:
-            # We do sometimes lose connection during these operations
-            # Wait 1 minute then check all is OK
-            xenrt.sleep(60)
-            bdata = self.execvirt("brctl show")
-            if not name in bdata:
-                raise xenrt.XRTError("Failure attempting to set up network bridge")
+
+        # We can lose the SSH connection during this operation - if this happens it can interrupt completion
+        # so we do a trick to ensure it runs in the background
+        dhcp = ""
+        if useDHCP:
+            dhcp = "&& echo 'BOOTPROTO=dhcp' >> /etc/sysconfig/network-scripts/ifcfg-%s && service network restart" % name
+        self.execvirt("(sleep 5 && virsh iface-bridge %s %s --no-stp 10 %s) > /dev/null 2>&1 < /dev/null &" % (iface, name, dhcp))
+
+        # Wait 1 minute then check the operation has completed OK
+        xenrt.sleep(60)
+        bdata = self.execvirt("brctl show")
+        if not name in bdata:
+            raise xenrt.XRTError("Failure attempting to set up network bridge")
 
     def removeNetwork(self, bridge=None, nwuuid=None):
         if bridge:

@@ -46,6 +46,7 @@ class XenRTUIPage(XenRTPage):
      <ul>
        <li><a href='/xenrt/ui/machines'><span>Machines</span></a></li>
        <li><a href='/xenrt/ui/acls'><span>Access Control Lists</span></a></li>
+       <li><a href='/xenrt/ui/utilisation'><span>Lab Utilisation</span></a></li>
      </ul>
    </li>
    <li><a href='/xenrt/ui/logs'><span>Browse logs</span></a></li>
@@ -82,13 +83,14 @@ class XenRTUIPage(XenRTPage):
 <p>
 <div id="user"><div style="float:right">%s</div></div>
 </p>""" % self.loggedInAs()
-        return {"commonhead": commonhead, "commonbody": commonbody}
-    
+        return {"commonhead": commonhead, "commonbody": commonbody, "userIsAdmin": self.getUser() and self.getUser().admin}
+
 PageFactory(XenRTUIPage, "/ui", renderer="__main__:templates/ui/index.mak")
 PageFactory(XenRTUIPage, "/ui/", renderer="__main__:templates/ui/index.mak")
 PageFactory(XenRTUIPage, "/ui/logs", renderer="__main__:templates/ui/logs.mak")
 PageFactory(XenRTUIPage, "/ui/apikey", renderer="__main__:templates/ui/apikey.mak")
 PageFactory(XenRTUIPage, "/ui/machines", renderer="__main__:templates/ui/machines.mak")
 PageFactory(XenRTUIPage, "/ui/machine", renderer="__main__:templates/ui/machine.mak")
+PageFactory(XenRTUIPage, "/ui/utilisation", renderer="__main__:templates/ui/utilisation.mak")
 PageFactory(XenRTUIPage, "/ui/acls", renderer="__main__:templates/ui/acls.mak")
 PageFactory(XenRTUIPage, "/ui/acl", renderer="__main__:templates/ui/acl.mak")

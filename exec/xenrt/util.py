@@ -89,6 +89,7 @@ __all__ = ["timenow",
            "getCCPCommit",
            "isUrlFetchable",
            "isWindows",
+           "isDevLinux",
            "is32BitPV",
            "getUpdateDistro"
            ]
@@ -837,17 +838,22 @@ def compareIPForSort(a, b):
 
 class ThreadWithException(threading.Thread):
 
-    def __init__(self, group=None, target=None, name=None, args=(), kwargs={}):
+    def __init__(self, group=None, target=None, getData=False, name=None, args=(), kwargs={}):
         # Initialise an empty exception object
         self.exception = None
         self.target = target
+        self.getData = getData
+        self.data = None
         self.args = args
         self.kwargs = kwargs
         threading.Thread.__init__(self, group=group, name=name)
 
     def run(self):
         try:
-            self.target(*self.args, **self.kwargs)
+            if self.getData:
+                self.data = self.target(*self.args, **self.kwargs)
+            else:
+                self.target(*self.args, **self.kwargs)
         except Exception, e:
             traceback.print_exc(file=sys.stderr)
             self.exception = e
@@ -1278,8 +1284,12 @@ def getRandomULAPrefix():
     return global_id
 
 def jobOnMachine(machine, jobid):
-    job = xenrt.APIFactory().get_job(int(jobid))
-    return machine in job['machines']
+    try:
+        job = xenrt.APIFactory().get_job(int(jobid))
+    except:
+        return False
+    else:
+        return machine in job['machines']
 
 def canCleanJobResources(jobid):
     try:
@@ -1382,18 +1392,22 @@ def keepSetup():
     return False
 
 def getADConfig():
+
     ad = xenrt.TEC().lookup("AD_CONFIG")
     domain=ad['DOMAIN']
     dns=ad['DNS']
     domainName = ad['DOMAIN_NAME']
     adminUser = ad['ADMIN_USER']
     adminPassword = ad['ADMIN_PASSWORD']
+    allUsers = ad['USERS']
     dcAddress = ad['DC_ADDRESS']
     dcDistro = ad['DC_DISTRO']
 
-    ADConfig = namedtuple('ADConfig', ['domain', 'domainName', 'adminUser', 'adminPassword', 'dns', 'dcAddress', 'dcDistro'])
+    allUsers = xenrt.TEC().lookup(["AD_CONFIG", "USERS"])
 
-    return ADConfig(domain=domain, domainName=domainName, adminUser=adminUser, adminPassword=adminPassword, dns=dns, dcAddress=dcAddress, dcDistro=dcDistro)
+    ADConfig = namedtuple('ADConfig', ['domain', 'domainName', 'adminUser', 'allUsers','adminPassword', 'dns', 'dcAddress', 'dcDistro'])
+
+    return ADConfig(domain=domain, domainName=domainName, adminUser=adminUser, allUsers=allUsers, adminPassword=adminPassword, dns=dns, dcAddress=dcAddress, dcDistro=dcDistro)
 
 def getDistroAndArch(distrotext):
     if isWindows(distrotext):
@@ -1423,6 +1437,17 @@ def getDistroAndArch(distrotext):
 
 def isWindows(distro):
     return distro[0] in ("v", "w")
+
+def isDevLinux(distro):
+    if isWindows(distro):
+        return False
+    if "fedora" in distro:
+        return True
+    if "testing" in distro:
+        return True
+    if "devel" in distro:
+        return True
+    return False
 
 def getMarvinFile():
     marvinversion = xenrt.TEC().lookup("MARVIN_VERSION", None)

@@ -1,0 +1,27 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="nfs" name="nfssr_v3"/>
+      <storage type="nfs" name="nfssr_v4" options="v4"/>
+      <storage type="nfs" name="nfssr_filesr" options="filesr"/>
+      <storage type="nfs" name="nfssr_nosubdir" options="nosubdir"/>
+      <storage type="smb" name="cifssr" options="vm"/>
+      <host id="0"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="CIFS VDI Copy">
+      <testcase id="xenserver.tc.storage.TC26951" name="CIFS to NFSv3" tc="TC-26951"/>
+      <testcase id="xenserver.tc.storage.TC26952" name="CIFS to NFSv4" tc="TC-26952"/>
+      <testcase id="xenserver.tc.storage.TC26953" name="CIFS to NFS FILE" tc="TC-26953"/>
+      <testcase id="xenserver.tc.storage.TC26954" name="CIFS to NFS NoSubDir" tc="TC-26954"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

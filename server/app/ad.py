@@ -21,13 +21,22 @@ class ActiveDirectory(object):
         results = self._ldap.search_s(self._base, ldap.SCOPE_SUBTREE, filter_format("(&(objectClass=group)(CN=%s))", [groupname]), attrlist=['sAMAccountName'])
         return not (len(results) == 0 or results[0][0] is None)
 
+    def is_disabled(self, username):
+        uac = self._getUserAttribute(username, "userAccountControl")
+        if uac and (int(uac) & 2 == 2): # ADS_UF_ACCOUNTDISABLE = 2 - https://msdn.microsoft.com/en-us/library/ms680832%28v=vs.85%29.aspx
+            return True
+        return False
+
     def get_email(self, username):
-        results = self._ldap.search_s(self._base, ldap.SCOPE_SUBTREE, filter_format("(&(objectClass=person)(sAMAccountName=%s))", [username]), attrlist=['mail'])
+        return self._getUserAttribute(username, "mail")
+
+    def _getUserAttribute(self, username, attribute):
+        results = self._ldap.search_s(self._base, ldap.SCOPE_SUBTREE, filter_format("(&(objectClass=person)(sAMAccountName=%s))", [username]), attrlist=[attribute])
         if len(results) == 0 or results[0][0] is None:
             raise KeyError("%s not a valid user" % username)
         dn, data = results[0]
-        if data.has_key('mail') and len(data['mail']) >= 1:
-            return data['mail'][0]
+        if data.has_key(attribute) and len(data[attribute]) >= 1:
+            return data[attribute][0]
         return None
 
     def _getDN(self, dn):
@@ -36,7 +45,9 @@ class ActiveDirectory(object):
             self._groupCache[dn] = group
         return self._groupCache[dn]
 
-    def get_all_members_of_group(self, group, _isDN=False, _visitedGroups=[]):
+    def get_all_members_of_group(self, group, _isDN=False, _visitedGroups=None):
+        if _visitedGroups is None:
+            _visitedGroups = [] # Workaround Python crazyness: http://docs.python-guide.org/en/latest/writing/gotchas/
         if _isDN:
             groupres = group, self._getDN(group)
         else:
@@ -46,14 +57,18 @@ class ActiveDirectory(object):
             return []
         _visitedGroups.append(dn)
         if 'person' in group['objectClass']:
-            return [group['sAMAccountName'][0]]
+            if group.has_key('sAMAccountName'):
+                return [group['sAMAccountName'][0]]
+            return []
         members = []
         if group.has_key('member'):
             for m in group['member']:
                 members += self.get_all_members_of_group(m, _isDN=True, _visitedGroups=_visitedGroups)
         return members
 
-    def get_groups_for_user(self, username, _isDN=False, _visitedGroups=[]):
+    def get_groups_for_user(self, username, _isDN=False, _visitedGroups=None):
+        if _visitedGroups is None:
+            _visitedGroups = [] # Workaround Python crazyness: http://docs.python-guide.org/en/latest/writing/gotchas/
         if _isDN:
             groupres = username, self._getDN(username)
         else:

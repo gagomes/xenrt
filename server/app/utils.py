@@ -76,6 +76,8 @@ def parse_job(rc,cur):
         d['UPLOADED'] = string.strip(rc[6])
     if rc[7] and string.strip(rc[7]) != "":
         d['REMOVED'] = string.strip(rc[7])
+    if rc[8]:
+        d['PREEMPTABLE'] = "yes"
 
     cur.execute("SELECT param, value FROM tblJobDetails WHERE " +
                 "jobid = %s;", [rc[0]])
@@ -363,9 +365,11 @@ def refresh_ad_caches(removeUsers=False):
 
     cur = db.cursor()
     print "Validating users in tblusers..."
-    cur.execute("SELECT userid,email FROM tblusers")
+    cur.execute("SELECT userid,email,disabled FROM tblusers")
     userCount = 0
     usersToRemove = []
+    usersToDisable = []
+    usersToEnable = []
     emailUpdates = []
     while True:
         rc = cur.fetchone()
@@ -378,6 +382,12 @@ def refresh_ad_caches(removeUsers=False):
             dbEmail = rc[1] and rc[1].strip()
             if adEmail != dbEmail:
                 emailUpdates.append((userid, adEmail))
+            adDisabled = ad.is_disabled(userid)
+            dbDisabled = rc[2]
+            if adDisabled and not dbDisabled:
+                usersToDisable.append(userid)
+            elif not adDisabled and dbDisabled:
+                usersToEnable.append(userid)
         except KeyError:
             usersToRemove.append(userid)
 
@@ -394,6 +404,13 @@ def refresh_ad_caches(removeUsers=False):
     for u,e in emailUpdates:
         print "Updating email address for %s (%s)" % (u,e)
         cur.execute("UPDATE tblusers SET email=%s WHERE userid=%s", [e,u])
+
+    for u in usersToEnable:
+        print "Enabling %s" % u
+        cur.execute("UPDATE tblusers SET disabled='0' WHERE userid=%s", [u])
+    for u in usersToDisable:
+        print "Disabling %s" % u
+        cur.execute("UPDATE tblusers SET disabled='1' WHERE userid=%s", [u])
 
     print "\nRefreshing group cache..."
     def _deleteGroup(groupid):
@@ -415,6 +432,10 @@ def refresh_ad_caches(removeUsers=False):
         if not rc:
             break
         aclGroups.append(rc[0].strip())
+
+    # Also put the admin group in the cache
+    if not config.admin_group in aclGroups:
+        aclGroups.append(config.admin_group)
 
     # Add any groups not in the DB to the DB
     extraGroups = set(aclGroups) - set(groups.values())
@@ -548,3 +569,40 @@ def sendMail(fromaddr, toaddrs, subject, message, reply=None):
     server.sendmail(fromaddr, toaddrs, msg)
     server.quit()
 
+def update_ad_teams():
+    db = app.db.dbWriteInstance()
+    ad = app.ad.ActiveDirectory()
+
+    cur = db.cursor()
+    cur.execute("SELECT userid FROM tblusers WHERE team IS NULL")
+    users = {}
+    while True:
+        rc = cur.fetchone()
+        if not rc:
+            break
+        users[rc[0].strip().lower()] = rc[0].strip()
+
+    mapping = json.loads(config.group_mapping)
+    userMapping = {}
+
+    for group in mapping:
+        adGroup = group[0]
+        name = group[1]
+        print "Processing %s (%s)" % (adGroup, name)
+        allGroupUsers = ad.get_all_members_of_group(adGroup)
+        for u in allGroupUsers:
+            if u.lower() in users:
+                userMapping[users[u.lower()]] = name
+                del users[u.lower()]
+
+    for u in userMapping:
+        print "Mapping %s to %s" % (u, userMapping[u])
+        cur.execute("UPDATE tblusers SET team=%s WHERE userid=%s", [userMapping[u], u])
+
+    db.commit()       
+
+def toBool(var):
+    if isinstance(var, basestring):
+        return var and var[0].lower() in ("y", "t", "1")
+    else:
+        return bool(var)

@@ -455,7 +455,7 @@ class IPMI(_PowerCtlBase):
             user = "-U %s" % (ipmiuser)
         else:
             user = ""
-        command = "ipmitool -I %s -H %s %s %s %s" % \
+        command = "ipmitool -vv -I %s -H %s %s %s %s" % \
                    (ipmiintf, address, auth, user, action)
         try:
             return self.command(command)

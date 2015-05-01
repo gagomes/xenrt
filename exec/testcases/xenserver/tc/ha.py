@@ -94,6 +94,7 @@ class _HASmoketest(xenrt.TestCase):
         if self.pool.master.isCentOS7Dom0():
             self.pool.master.execdom0("systemctl stop xapi.service")
             self.pool.master.execdom0("systemctl disable xapi.service")
+            self.pool.master.execdom0("mv /etc/init.d/xapi /etc/init.d/xapi.disabled")
         else:
             self.pool.master.execdom0("mv /etc/init.d/xapi "
                                       "/etc/init.d/xapi.disabled")
@@ -109,6 +110,7 @@ class _HASmoketest(xenrt.TestCase):
         oldMaster.waitForSSH(300, desc="Old master boot after host fence")
         oldMaster.execdom0("rm -f /etc/xensource/xapi_block_startup")
         if oldMaster.isCentOS7Dom0():
+            oldMaster.execdom0("mv /etc/init.d/xapi.disabled /etc/init.d/xapi")
             oldMaster.execdom0("systemctl enable xapi.service")
         else:
             oldMaster.execdom0("mv /etc/init.d/xapi.disabled "
@@ -461,6 +463,12 @@ class _HATest(xenrt.TestCase):
                 sr = self.createSharedNFSSR(pool.master, "NFS_SF_SR")
                 self.sr = sr
                 pool.addSRToPool(sr)
+            elif self.SF_STORAGE.startswith("cifs"):
+                share = xenrt.VMSMBShare()
+                sr = xenrt.productLib(host=master).SMBStorageRepository(master, "CIFS-SR")
+                self.sr = sr
+                sr.create(share)
+                pool.addSRToPool(sr)
             elif (scsiid and self.SF_STORAGE != "iscsi" and not iscsiLun):
                 # Use FC
                 sr = xenrt.lib.xenserver.FCStorageRepository(master, "fc")
@@ -747,6 +755,10 @@ class TC26902(TC7495):
         host1 = self.getHost("RESOURCE_HOST_1")
         pool = self.configureHAPool([host0,host1])
         self.check(pool)
+
+class TCStateFileCIFS(TC7495):
+    """Verify StateFile can be located on shared CIFS storage"""
+    SF_STORAGE = "cifs"
 
 class TC7935(_HATest):
     """Verify that pool-ha-enable honours the heartbeat-sr-uuids parameter"""
@@ -3267,6 +3279,17 @@ class _StuckState(_HATest):
                                  # network config, this is believed due to the
                                  # db not having synced
 
+    def blockNFSOnBoot(self, host):
+        host.execdom0("cp %s/remote/unblocknfs.sh /etc/unblocknfs.sh" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"))
+        if host.isCentOS7Dom0():
+            host.execdom0("cp %s/remote/blocknfs_c7.sh /etc/init.d/blocknfs" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"))
+            host.execdom0("chmod a+x /etc/init.d/blocknfs")
+            host.execdom0("chkconfig --add blocknfs")
+        else:
+            host.execdom0("cp %s/remote/blocknfsonboot.sh /etc/blocknfsonboot.sh" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"))
+            host.execdom0("chmod a+x /etc/blocknfsonboot.sh")
+            host.execdom0("ln -s /etc/blocknfsonboot.sh /etc/rc3.d/S09blocknfs")
+
 class TC8127(_StuckState):
     """Disable HA and Statefile delete with offline host"""
 
@@ -3334,11 +3357,7 @@ class TC8129(_StuckState):
         # 1. power off slave
         self.hostsToPowerOn.append(self.slave)
         if self.SF_STORAGE.startswith("nfs"):
-            self.slave.execdom0("cp %s/remote/blocknfsonboot.sh /etc/blocknfsonboot.sh" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"))
-            self.slave.execdom0("cp %s/remote/unblocknfs.sh /etc/unblocknfs.sh" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"))
-            self.slave.execdom0("chmod a+x /etc/blocknfsonboot.sh")
-            self.slave.execdom0("chmod a+x /etc/unblocknfs.sh")
-            self.slave.execdom0("ln -s /etc/blocknfsonboot.sh /etc/rc3.d/S09blocknfs")
+            self.blockNFSOnBoot(self.slave)
         self.slave.shutdown()
         self.slave.machine.powerctl.off()
         time.sleep(10)
@@ -3395,18 +3414,14 @@ class TC8130(_StuckState):
         # 1. power off all nodes
         if self.SF_STORAGE.startswith("nfs"):
             for host in [self.slave, self.master]:
-                host.execdom0("cp %s/remote/blocknfsonboot.sh /etc/blocknfsonboot.sh" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"))
-                host.execdom0("cp %s/remote/unblocknfs.sh /etc/unblocknfs.sh" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"))
-                host.execdom0("chmod a+x /etc/blocknfsonboot.sh")
-                host.execdom0("chmod a+x /etc/unblocknfs.sh")
-                host.execdom0("ln -s /etc/blocknfsonboot.sh /etc/rc3.d/S09blocknfs")
+                self.blockNFSOnBoot(host)
         self.hostsToPowerOn.append(self.slave)
         self.hostsToPowerOn.append(self.master)
         self.poweroff(self.slave)
         self.poweroff(self.master)
         time.sleep(10)
         # 2. block access to the statefile globally (already done in the case of NFS)
-        if self.SF_STORAGE != "nfs" or self.SF_STORAGE != "nfs4":
+        if self.SF_STORAGE != "nfs" and self.SF_STORAGE != "nfs4":
             self.target.shutdown()
         # 3. power on all nodes
         self.master.machine.powerctl.on()
@@ -3453,18 +3468,14 @@ class TC8131(_StuckState):
         # 1. power off both hosts
         if self.SF_STORAGE.startswith("nfs"):
             for host in [self.slave, self.master]:
-                host.execdom0("cp %s/remote/blocknfsonboot.sh /etc/blocknfsonboot.sh" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"))
-                host.execdom0("cp %s/remote/unblocknfs.sh /etc/unblocknfs.sh" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"))
-                host.execdom0("chmod a+x /etc/blocknfsonboot.sh")
-                host.execdom0("chmod a+x /etc/unblocknfs.sh")
-                host.execdom0("ln -s /etc/blocknfsonboot.sh /etc/rc3.d/S09blocknfs")
+                self.blockNFSOnBoot(host)
         self.hostsToPowerOn.append(self.slave)
         self.hostsToPowerOn.append(self.master)
         self.poweroff(self.slave)
         self.poweroff(self.master)
         time.sleep(10)
         # 2. block access to the statefile globally (already done in the case of NFS)
-        if self.SF_STORAGE != "nfs" or self.SF_STORAGE != "nfs4":
+        if self.SF_STORAGE != "nfs" and self.SF_STORAGE != "nfs4":
             self.target.shutdown()
         # 3. power on slave
         self.slave.machine.powerctl.on()

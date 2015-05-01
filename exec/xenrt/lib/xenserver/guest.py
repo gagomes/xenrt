@@ -293,7 +293,7 @@ class Guest(xenrt.GenericGuest):
         # Workaround # RHEL/CentOS/OEL 6 or later requires at least 1G ram.
         if distro:
             m = re.match("(rhel|centos|oel|sl)[dw]?(\d)\d*", distro)
-            if m and int(m.group(2)) >= 6:
+            if (m and int(m.group(2)) >= 6) or distro.startswith("fedora"):
                 if (self.memory and self.memory<1024) or not self.memory:
                     self.memory = 1024
                                         
@@ -304,7 +304,7 @@ class Guest(xenrt.GenericGuest):
 
         # Hack to use correct kickstart for rhel6
         if distro and kickstart == "standard":
-            if distro.startswith("rhel6"):
+            if distro.startswith("rhel6") or distro.startswith("rhelw6"):
                 kickstart = "rhel6"
             if distro.startswith("oel6"):
                 kickstart = "oel6"
@@ -567,6 +567,15 @@ class Guest(xenrt.GenericGuest):
                     self.execcmd("rpm -ivh --force %s"%(kernelFix))
                 tempRoot = self.execcmd("grep -Eo 'root=UUID=[0-9a-f-]+' /boot/grub2/grub.cfg | head -n 1").split('\n')[0]
                 self.execcmd("sed -i 's^root=/dev/mapper/VolGroup-lv_root^%s^' /boot/grub2/grub.cfg"%(tempRoot))
+            elif distro and distro == 'oel71':
+                _new_kernel = kernelUpdatesPrefix + "/OEL74/"
+                _new_kernel_path = ["kernel-uek-firmware-3.8.13-55.1.5.el7uek.xs.x86_64.rpm",
+                                    "kernel-uek-3.8.13-55.1.5.el7uek.xs.x86_64.rpm",
+                                    "kernel-uek-devel-3.8.13-55.1.5.el7uek.xs.x86_64.rpm"]
+                for kernelFix in _new_kernel_path:
+                    xenrt.TEC().logverbose("wget %s/%s"%(_new_kernel,kernelFix))
+                    self.execcmd("wget %s/%s"%(_new_kernel,kernelFix))
+                    self.execcmd("rpm -ivh --force %s"%(kernelFix))
             elif distro and distro in ['rhel7','centos7']:
                 _new_kernel = kernelUpdatesPrefix + "/RHEL7/"
                 _new_kernel_path = ["kernel-devel-3.10.0-123.20.1.el7.xs.x86_64.rpm",
@@ -577,8 +586,20 @@ class Guest(xenrt.GenericGuest):
                     xenrt.TEC().logverbose("wget %s/%s"%(_new_kernel,kernelFix))
                     self.execcmd("wget %s/%s"%(_new_kernel,kernelFix))
                     self.execcmd("rpm -ivh --force %s"%(kernelFix))
+            elif distro and distro in ['rhel71','centos71']:
+                _new_kernel = kernelUpdatesPrefix + "/RHEL71/"
+                _new_kernel_path = ["kernel-devel-3.10.0-229.1.2.el7.xs.x86_64.rpm",
+                                    "kernel-3.10.0-229.1.2.el7.xs.src.rpm",
+                                    "kernel-3.10.0-229.1.2.el7.xs.x86_64.rpm",
+                                    "kernel-headers-3.10.0-229.1.2.el7.xs.x86_64.rpm"]
+                for kernelFix in _new_kernel_path:
+                    xenrt.TEC().logverbose("wget %s/%s"%(_new_kernel,kernelFix))
+                    self.execcmd("wget %s/%s"%(_new_kernel,kernelFix))
+                    self.execcmd("rpm -ivh --force %s"%(kernelFix))
             else:
                 raise xenrt.XRTError("XSKernel requested, but not available for this distro (%s)" % distro)
+            del self.special['XSKernel']
+            self.reboot()
 
     def installCoreOS(self):
         self.host.installContainerPack()
@@ -590,15 +611,16 @@ class Guest(xenrt.GenericGuest):
         config = cli.execute("host-call-plugin host-uuid=%s plugin=xscontainer fn=get_config_drive_default args:templateuuid=%s" % (host.uuid, templateUUID)).rstrip().lstrip("True")
         self.password = xenrt.TEC().lookup("ROOT_PASSWORD")
         passwd = crypt.crypt(self.password, '$6$SALT$')
-        proxy = xenrt.TEC().lookup("HTTP_PROXY", None)
-        if proxy:
-            config += """
+        proxy = xenrt.TEC().lookup("HTTP_PROXY")
+        
+        config += """
   - path: /etc/systemd/system/docker.service.d/http-proxy.conf
     owner: core:core
     permissions: 0644
     content: |
       [Service]
       Environment="HTTP_PROXY=http://%s" """ % proxy
+        
         config += """
 users:
   - name: root
@@ -626,7 +648,7 @@ users:
 
         channel = self.distro.split("-")[-1]
         
-        self.execguest("coreos-install -d /dev/xvda -V current -C %s -o xen -b %s/amd64-usr" % (channel, xenrt.TEC().lookup(["RPM_SOURCE", self.distro, "x86-64", "HTTP"])))
+        self.execguest("http_proxy=http://%s coreos-install -d /dev/xvda -V current -C %s -o xen" % (proxy, channel))
 
         self.shutdown()
 
@@ -719,7 +741,7 @@ users:
             if cdnames and len(cdnames) > 0:
                 if self.distro and \
                     (re.search("debian\d+", self.distro) or \
-                    re.search("rhel6", self.distro) or \
+                    re.search("rhel[dw]?6", self.distro) or \
                     re.search("oel6", self.distro) or \
                     re.search("sl6", self.distro) or \
                     re.search("centos6", self.distro) or \
@@ -2060,21 +2082,27 @@ exit /B 1
         if doSet:
             self.getInstance().os.setIPs(ipSpec)
 
-    def setupNetscalerVPX(self):
+    def setupNetscalerVPX(self, installNSTools=False):
         netscaler = xenrt.lib.netscaler.NetScaler.setupNetScalerVpx(self, useVIFs=True)
         xenrt.GEC().registry.objPut("netscaler", self.name, netscaler)
         netscaler.applyLicense(netscaler.getLicenseFileFromXenRT())
+        if installNSTools:
+            netscaler.installNSTools()
         netscaler.checkFeatures()
 
-    def setupUnsupGuest(self):
+    def setupVCenter(self, vCenterVersion="5.5.0-update02"):
+        vcenter = xenrt.lib.esx.getVCenter(guest=self, vCenterVersion=vCenterVersion)
+
+    def setupUnsupGuest(self, getIP=None):
         self.tailored = True
         self.enlightenedDrivers = False
         self.noguestagent = True
         if self.getState() == "DOWN":
-            self.lifecycleOperation('vm-start')
-        if not self.mainip:
-            _, bridge, mac, _ = self.vifs[0]
+            self.lifecycleOperation('vm-start', specifyOn=False)
+        if (getIP is None and not self.mainip) or getIP:
+            vifname, bridge, mac, _ = self.vifs[0]
             self.mainip = self.getHost().arpwatch(bridge, mac, timeout=1800)
+            self.vifs[0] = (vifname, bridge, mac, self.mainip)
 
     def setupDomainServer(self):
         self.installPowerShell()
@@ -2546,6 +2574,17 @@ exit /B 1
         if pcpus:
             limits.append(pcpus)
 
+        # Limit based on memory size
+        guestmem = self.memory
+        if not guestmem and self.distro:
+            host = xenrt.TEC().registry.hostGet("RESOURCE_HOST_DEFAULT")
+            guestmem = host.getTemplateParams(self.distro, self.arch).defaultMemory
+        if guestmem:
+            memlimit = guestmem / int(xenrt.TEC().lookup("RND_VCPUS_MB_PER_VCPU", "64"))
+            limits.append(memlimit)
+        else:
+            xenrt.TEC().warning("Cannot determine guest memory")
+
         if limits:
             return min(limits)
 
@@ -2554,13 +2593,16 @@ exit /B 1
         return 4
 
     def setRandomVcpus(self):
-        xenrt.TEC().logverbose("Setting random vcpus for VM ")
         maxVcpusSupported = self.getMaxSupportedVCPUCount()
-        randomVcpus = random.randint(1, maxVcpusSupported)
+        maxRandom = min(maxVcpusSupported, 4)
+        xenrt.TEC().logverbose("Setting random vcpus for VM between 1 and %d (max supported %d)" % (maxRandom, maxVcpusSupported))
+        randomVcpus = random.randint(1, maxRandom)
         with xenrt.GEC().getLock("RND_VCPUS"):
             dbVal = int(xenrt.TEC().lookup("RND_VCPUS_VAL", "0"))
             if dbVal != 0:
                 xenrt.TEC().logverbose("Using vcpus from DB: %d" % dbVal)
+                if dbVal > maxVcpusSupported:
+                    xenrt.TEC().warning("DB vcpus value is greater than maxVcpusSupported!")
                 self.setVCPUs(dbVal)
             else:
                 xenrt.TEC().logverbose("Randomly choosen vcpus is %d" % randomVcpus)
@@ -3917,13 +3959,18 @@ exit /B 1
 
         toolscdname = self.insertToolsCD()
         device="sr0"
-        
+
         if not self.isHVMLinux():
-            device = self.getHost().minimalList("vbd-list", 
+            deviceList = self.getHost().minimalList("vbd-list", 
                                                 "device", 
                                                 "type=CD vdi-name-label=%s vm-uuid=%s" %
-                                                (toolscdname, self.getUUID()))[0]
-        
+                                                (toolscdname, self.getUUID()))
+
+            if deviceList:
+                device = deviceList[0]
+            else:
+                raise xenrt.XRTFailure("VBD for tools ISO not found")
+
         for dev in [device, device, "cdrom"]:
             try:
                 self.execguest("mount /dev/%s /mnt" % (dev))
@@ -4282,6 +4329,12 @@ exit /B 1
     def getDeploymentRecord(self):
         ret = super(Guest, self).getDeploymentRecord()
         ret['networks'] = {}
+        try:
+            os = self.paramGet("os-version")
+            if os and os != "<not in database>":
+                ret['os']['reported'] = dict([x.split(": ") for x in self.paramGet("os-version").split("; ")])
+        except:
+            pass
         for v in self.vifs:
             (device, bridge, mac, ip) = v
             nwuuid = self.getHost().getNetworkUUID(bridge)
@@ -4294,7 +4347,7 @@ exit /B 1
         
         ret['disks'] = {}
         for d in self.listDiskDevices():
-            vdiuuid = self.getHost().minimalList("vbd-list", "vdi-uuid", "vm-uuid=%s userdevice=0" % self.uuid)[0]
+            vdiuuid = self.getHost().minimalList("vbd-list", "vdi-uuid", "vm-uuid=%s userdevice=%s" % (self.uuid, d))[0]
             params = self.getHost().parameterList("vdi-list", ["virtual-size","sr-uuid", "sr-name-label"], "uuid=%s" % vdiuuid)[0]
 
             ret['disks'][d] = {
@@ -4354,6 +4407,7 @@ def createVMFromFile(host,
     else:
         displayname = guestname
     guest = host.guestFactory()(displayname, host=host)
+    guest.imported = True
     guest.ips = ips
     vifs = parseSequenceVIFs(guest, host, vifs)
     
@@ -4374,7 +4428,7 @@ def createVMFromFile(host,
             dirname = os.path.dirname(filename)
             d = host.execdom0("mktemp -d").strip()
             host.execdom0("mount -t nfs %s %s" % (dirname, d))
-            guest.importVM(host, "%s/%s" % (d, os.path.basename(filename)), imageIsOnHost=True, sr=sr)
+            guest.importVM(host, "%s/%s" % (d, os.path.basename(filename)), imageIsOnHost=True, sr=sr, vifs=vifs)
             host.execdom0("umount %s" % d)
         else:
             guest.importVM(host, xenrt.TEC().getFile(filename), vifs=vifs, sr=sr)
@@ -4392,7 +4446,10 @@ def createVMFromFile(host,
         guest.memset(memory)
     xenrt.TEC().registry.guestPut(guestname, guest)
     for p in postinstall:
-        eval("guest.%s()" % (p))
+        if "(" in p:
+            eval("guest.%s" % (p))
+        else:
+            eval("guest.%s()" % (p))
     if packages:
         guest.installPackages(packages)
     return guest
@@ -4502,7 +4559,7 @@ def createVMFromPrebuiltTemplate(host,
     g.ips = ips
 
     g.removeAllVIFs()
-    if re.search("[vw]", distro):
+    if xenrt.isWindows(distro):
         g.windows = True
         g.vifstem = g.VIFSTEMHVM
         g.password = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS", "ADMINISTRATOR_PASSWORD"])
@@ -4530,8 +4587,6 @@ def createVMFromPrebuiltTemplate(host,
         g.enlightenedDrivers = False
 
     g.changeCD("xs-tools.iso")
-    # The apt source needs updating to the controller
-    g.special['tailor_apt_source'] = True
     g.special.update(special)
     g.start() 
     
@@ -4621,7 +4676,7 @@ def createVM(host,
                                 password=password)
         g.distro = distro
         g.arch = arch
-        if re.search("[vw]", distro):
+        if xenrt.isWindows(distro):
             g.windows = True
             g.vifstem = g.VIFSTEMHVM
             g.password = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS", "ADMINISTRATOR_PASSWORD"])
@@ -4638,6 +4693,8 @@ def createVM(host,
         vifs = parseSequenceVIFs(g, host, vifs)
 
         # The install method doesn't do this for us.
+        if memory:
+            g.setMemory(memory)
         if vcpus:
             g.setVCPUs(vcpus)
         elif xenrt.TEC().lookup("RND_VCPUS", default=False, boolean=True):
@@ -4646,8 +4703,6 @@ def createVM(host,
             g.setCoresPerSocket(corespersocket)
         elif xenrt.TEC().lookup("RND_CORES_PER_SOCKET", default=False, boolean=True):
             g.setRandomCoresPerSocket(host, vcpus)
-        if memory:
-            g.setMemory(memory)
 
         if bootparams:
             bp = g.getBootParams()
@@ -4736,7 +4791,10 @@ def createVM(host,
                 g.xmlrpcExec("cscript //b //NoLogo c:\\postrun.vbs")
                 g.xmlrpcRemoveFile("c:\\postrun.vbs")
         else:
-            eval("g.%s()" % (p))
+            if "(" in p:
+                eval("g.%s" % (p))
+            else:
+                eval("g.%s()" % (p))
 
     if packages:
         g.installPackages(packages)
@@ -6064,7 +6122,7 @@ class DundeeGuest(CreedenceGuest):
                 self.installFullWindowsGuestAgent()
                 
             # Download the Individual PV packages
-            self.xmlrpcSendFile(xenrt.TEC().getFile("xe-phase-1/%s" %(xenrt.TEC().lookup("PV_DRIVERS_LOCATION", None))), "c:\\tools.tgz")
+            self.xmlrpcSendFile(xenrt.TEC().getFile("xe-phase-1/%s" %(xenrt.TEC().lookup("PV_DRIVERS_LOCATION"))), "c:\\tools.tgz")
             pvToolsDir = self.xmlrpcTempDir()
             self.xmlrpcExtractTarball("c:\\tools.tgz", pvToolsDir)
             
@@ -6115,7 +6173,7 @@ class DundeeGuest(CreedenceGuest):
         
         #Download the tools if not present already
         if toolsDirectory is None:
-            self.xmlrpcSendFile(xenrt.TEC().getFile("xe-phase-1/%s" %(PV_DRIVERS_LOCATION)), "c:\\tools.tgz")
+            self.xmlrpcSendFile(xenrt.TEC().getFile("xe-phase-1/%s" %(xenrt.TEC().lookup("PV_DRIVERS_LOCATION"))), "c:\\tools.tgz")
             toolsDirectory = self.xmlrpcTempDir()
             self.xmlrpcExtractTarball("c:\\tools.tgz", toolsDirectory)
         
@@ -6204,7 +6262,7 @@ class DundeeGuest(CreedenceGuest):
             
             for driver in driversToUninstall:
             
-                batch.append("C:\\devcon64.exe remove %s\r\n" %(driver))
+                batch.append("C:\\%s remove %s\r\n" %(devconexe, driver))
                 batch.append("ping 127.0.0.1 -n 10 -w 1000\r\n")
 
             for file in oemFileList:

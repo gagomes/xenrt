@@ -2,6 +2,7 @@ from app.apiv2 import *
 from machines import _MachineBase
 from pyramid.httpexceptions import *
 import app.constants
+import app.utils
 import calendar
 import json
 import jsonschema
@@ -100,7 +101,7 @@ class _JobBase(_MachineBase):
 
         jobs = {}
 
-        cur.execute("SELECT j.jobid, j.version, j.revision, j.options, j.jobstatus, j.userid, j.machine, j.uploaded, j.removed FROM tbljobs j %s WHERE %s ORDER BY j.jobid DESC LIMIT %%s" % (joinquery, " AND ".join(conditions)), self.expandVariables(params))
+        cur.execute("SELECT j.jobid, j.version, j.revision, j.options, j.jobstatus, j.userid, j.machine, j.uploaded, j.removed, j.preemptable FROM tbljobs j %s WHERE %s ORDER BY j.jobid DESC LIMIT %%s" % (joinquery, " AND ".join(conditions)), self.expandVariables(params))
         while True:
             rc = cur.fetchone()
             if not rc:
@@ -112,7 +113,8 @@ class _JobBase(_MachineBase):
                 "status": self.getJobStatus(rc[4].strip(), rc[8]),
                 "rawstatus": rc[4].strip(),
                 "removed": True if rc[8] and rc[8].strip() == "yes" else False,
-                "machines": rc[6].strip().split(",") if rc[6] else []
+                "machines": rc[6].strip().split(",") if rc[6] else [],
+                "preemptable": bool(rc[9])
             }
             if rc[8] and rc[8].strip():
                 jobs[rc[0]]['params']["REMOVED"] = rc[8].strip()
@@ -221,10 +223,23 @@ class _JobBase(_MachineBase):
 
         return jobs
 
+    def removeJob(self, jobid, commit=True):
+        jobinfo = self.getJobs(1, ids=[jobid], getParams=False,getResults=False,getLog=False, exceptionIfEmpty=True)[jobid]
+        self.updateJobField(jobid, "REMOVED", "yes", commit=False)
+        if self.getUser():
+            self.updateJobField(jobid, "REMOVED_BY", self.getUser().userid, commit=False)
+        
+        if commit:
+            self.getDB().commit()
+
+        return jobinfo
+
     def updateJobField(self, jobid, key, value, commit=True):
         db = self.getDB()
 
         if key in app.constants.core_params:
+            if key in app.constants.bool_params:
+                value = app.utils.toBool(value)
             cur = db.cursor()
             try:
                 cur.execute("UPDATE tbljobs SET %s=%%s WHERE jobid=%%s;" % (key), 
@@ -265,7 +280,6 @@ class _JobBase(_MachineBase):
 
         finally:
             cur.close()
-
 
 class ListJobs(_JobBase):
     PATH = "/jobs"
@@ -449,6 +463,49 @@ class GetTest(_JobBase):
 
         return jobs.values()[0]['results'][detail]
 
+class RemoveJobs(_JobBase):
+    WRITE = True
+    PATH = "/jobs"
+    REQTYPE = "DELETE"
+    SUMMARY = "Removes multiple jobs"
+    TAGS = ["jobs"]
+    PARAMS = [
+        {'name': 'body',
+         'in': 'body',
+         'required': True,
+         'description': 'Jobs to remove',
+         'schema': { "$ref": "#/definitions/removejobs" }
+        }]
+    RESPONSES = { "200": {"description": "Successful response"}}
+    OPERATION_ID = "remove_jobs"
+    DEFINITIONS = {"removejobs": {
+        "title": "Remove Jobs",
+        "type": "object",
+        "properties": {
+            "jobs": {
+                "type": "array",
+                "description": "Jobs to remove",
+                "items": {"type": "integer"}
+            }
+        },
+        "required": ["jobs"]
+    }}
+
+    def render(self):
+        try:
+            if self.request.body.strip():
+                j = json.loads(self.request.body)
+                jsonschema.validate(j, self.DEFINITIONS['removejobs'])
+            else:
+                j = {}
+        except Exception, e:
+            raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
+        for job in j['jobs']:
+            self.removeJob(job)
+        self.getDB().commit()
+                 
+        return {}
+
 class RemoveJob(_JobBase):
     WRITE = True
     PATH = "/job/{id}"
@@ -490,11 +547,7 @@ class RemoveJob(_JobBase):
         except Exception, e:
             raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
         job = int(self.request.matchdict['id'])
-        jobinfo = self.getJobs(1, ids=[job], getParams=False,getResults=False,getLog=False, exceptionIfEmpty=True)[job]
-        if jobinfo['status'] not in ('done', 'removed'):
-            self.updateJobField(job, "REMOVED", "yes")
-            if self.getUser():
-                self.updateJobField(job, "REMOVED_BY", self.getUser().userid)
+        jobinfo = self.removeJob(job)
         if j.get('return_machines'):
             for m in jobinfo['machines']:
                 self.return_machine(m, self.getUser().userid, False, canForce=False, commit=False)
@@ -621,6 +674,10 @@ class NewJob(_JobBase):
             "inputdir": {
                 "type": "string",
                 "description": "Input directory for the job"
+            },
+            "preemptable": {
+                "type": "boolean",
+                "description": "Run job on a preemptable basis - can be cancelled for scheduled testing (ACL policy dependent)"
             }
         }
     }}
@@ -651,7 +708,8 @@ class NewJob(_JobBase):
                flags=None,
                email=None,
                inputdir=None,
-               lease=None):
+               lease=None,
+               preemptable=None):
         
         if not params:
             params = {}
@@ -665,7 +723,7 @@ class NewJob(_JobBase):
 
         db = self.getDB()
         cur = db.cursor()
-        cur.execute("INSERT INTO tbljobs (jobstatus, userid, version, revision, options, uploaded,removed) VALUES ('new', %s, '', '', '', '', '') RETURNING jobid", [self.getUser().userid])
+        cur.execute("INSERT INTO tbljobs (jobstatus, userid, version, revision, options, uploaded,removed,preemptable) VALUES ('new', %s, '', '', '', '', '',NULL) RETURNING jobid", [self.getUser().userid])
         rc = cur.fetchone()
         self.jobid = int(rc[0])
 
@@ -675,7 +733,7 @@ class NewJob(_JobBase):
             self.updateJobField("MACHINES_REQUIRED", str(len(specifiedMachines)), params)
         else:
             if resources:
-                self.updateJobField("RESOURCES_REQUIRED", ",".join(resources), params)
+                self.updateJobField("RESOURCES_REQUIRED", "/".join(resources), params)
             if flags:
                 self.updateJobField("FLAGS", ",".join(flags), params)
             if pools:
@@ -702,8 +760,6 @@ class NewJob(_JobBase):
             params['JOBGROUP'] = jobGroup['id']
             params['JOBGROUPTAG'] = jobGroup['tag']
             
-
-
         params['JOB_FILES_SERVER'] = config.log_server
         params['LOG_SERVER'] = config.log_server
 
@@ -714,8 +770,13 @@ class NewJob(_JobBase):
             self.updateJobField("INPUTDIR", inputdir, params)
 
         if lease and lease.get("duration"):
-            self.updateJobField("MACHINE_HOLD_FOR", lease['duration'] * 60, params)
+            self.updateJobField("MACHINE_HOLD_FOR_OK", lease['duration'] * 60, params)
             self.updateJobField("MACHINE_HOLD_REASON", lease.get("reason", ""), params)
+
+        if preemptable:
+            self.updateJobField("PREEMPTABLE", True)
+            # And lower the priority of the job
+            params['JOBPRIO'] = str(int(params.get('JOBPRIO', 3)) + 5)
 
         for p in params.keys():
             self.updateJobField(p, params[p])
@@ -750,7 +811,8 @@ class NewJob(_JobBase):
                            flags=j.get("flags"),
                            email=j.get("email") if j.has_key("email") else self.getUser().email,
                            inputdir=j.get("inputdir"),
-                           lease=j.get("lease_machines"))
+                           lease=j.get("lease_machines"),
+                           preemptable=j.get("preemptable"))
 
 class _GetAttachmentUrl(_JobBase):
     REQTYPE = "GET"
@@ -938,6 +1000,7 @@ RegisterAPI(ListJobs)
 RegisterAPI(GetJob)
 RegisterAPI(GetTest)
 RegisterAPI(RemoveJob)
+RegisterAPI(RemoveJobs)
 RegisterAPI(NewJob)
 RegisterAPI(UpdateJob)
 RegisterAPI(GetAttachmentPreRun)

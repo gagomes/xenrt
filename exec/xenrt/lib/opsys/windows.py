@@ -6,6 +6,7 @@ except:
     pass
 from xenrt.lib.opsys import OS, registerOS
 from zope.interface import implements
+from xenrt.lazylog import *
 
 __all__ = ["WindowsOS"]
 
@@ -258,63 +259,86 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
                                      transport=trans, 
                                      allow_none=True)
 
-    def execCmd(self, command, level=xenrt.RC_FAIL, desc="Remote command",
-                   returndata=False, returnerror=True, returnrc=False,
-                   timeout=300, ignoredata=False, powershell=False,ignoreHealthCheck=False):
+    def execCmd(self,
+                command,
+                level=xenrt.RC_FAIL,
+                desc="Remote command",
+                returndata=False,
+                returnerror=True,
+                returnrc=False,
+                timeout=300,
+                ignoredata=False,
+                powershell=False,
+                winrm=False,
+                ignoreHealthCheck=False):
         """Execute a command and wait for completion."""
         currentPollPeriod = 1
         maxPollPeriod = 16
 
         try:
-            xenrt.TEC().logverbose("Running on %s via daemon: %s" %
-                                   (self.parent.getIP(), command.encode("utf-8")))
-            started = xenrt.util.timenow()
-            s = self._xmlrpc()
-            if powershell:
-                ref = s.runpshell(command.encode("utf-16").encode("uu"))
-            else:
-                ref = s.runbatch(command.encode("utf-16").encode("uu"))
-            xenrt.sleep(currentPollPeriod, log=False)
-            errors = 0
-            if xenrt.TEC().lookup("EXTRA_TIME", False, boolean=True):
-                maxerrors = 6
-            else:
-                maxerrors = 2
-            while True:
-                try:
-                    st = s.poll(ref)
-                    errors = 0
-                except socket.error, e:
-                    errors = errors + 1
-                    if errors > maxerrors:
-                        raise
-                    st = "ERROR"
-                if st == "DONE":
-                    break
-                if timeout:
-                    now = xenrt.util.timenow()
-                    deadline = started + timeout
-                    if now > deadline:
-                        xenrt.TEC().logverbose("Timed out polling for %s on %s"
-                                               % (ref, self.parent.getIP()))
-                        return xenrt.XRT("%s timed out" % (desc), level)
+            log("Running on %s via %s: %s" % (self.parent.getIP(),
+                "WinRM[PS]" if (winrm and powershell) else "WinRM" if winrm else "Powershell" if powershell else "Daemon",
+                command.encode("utf-8")))
 
-                if currentPollPeriod < maxPollPeriod:
-                    currentPollPeriod *= 2
-                    currentPollPeriod = min(currentPollPeriod, maxPollPeriod)
+            started = xenrt.util.timenow()
+            if winrm:
+                s = self.winRM()
+                t = xenrt.util.ThreadWithException(target=s.run_ps if powershell else s.run_cmd, getData=True, args=[command])
+                t.setDaemon(True)
+                t.start()
+                t.join(timeout)
+                if t.isAlive():
+                    xenrt.XRT("WinRM command seems to hung or is expecting input.", level)
+                if t.exception:
+                    xenrt.XRT(str(t.exception), level)
+                ref = t.data
+                rc= ref.status_code
+                data= None if ignoredata else ref.std_out if rc==0 else ref.std_err
+            else:
+                s = self._xmlrpc()
+                if powershell:
+                    ref = s.runpshell(command.encode("utf-16").encode("uu"))
+                else:
+                    ref = s.runbatch(command.encode("utf-16").encode("uu"))
 
                 xenrt.sleep(currentPollPeriod, log=False)
-            if not ignoredata:
-                data = s.log(ref)
+                errors = 0
+                if xenrt.TEC().lookup("EXTRA_TIME", False, boolean=True):
+                    maxerrors = 6
+                else:
+                    maxerrors = 2
+                while True:
+                    try:
+                        st = s.poll(ref)
+                        errors = 0
+                    except socket.error, e:
+                        errors = errors + 1
+                        if errors > maxerrors:
+                            raise
+                        st = "ERROR"
+                    if st == "DONE":
+                        break
+                    if timeout:
+                        now = xenrt.util.timenow()
+                        deadline = started + timeout
+                        if now > deadline:
+                            xenrt.TEC().logverbose("Timed out polling for %s on %s"
+                                                   % (ref, self.parent.getIP()))
+                            return xenrt.XRT("%s timed out" % (desc), level)
+                    if currentPollPeriod < maxPollPeriod:
+                        currentPollPeriod *= 2
+                        currentPollPeriod = min(currentPollPeriod, maxPollPeriod)
+                    xenrt.sleep(currentPollPeriod, log=False)
+                data = None if ignoredata else s.log(ref)
+                rc = s.returncode(ref)
+                try:
+                    s.cleanup(ref)
+                except Exception, e:
+                    xenrt.TEC().warning("Got exception while cleaning up after "
+                                        "execCmd: %s" % (str(e)))
+
+            if data:
                 xenrt.TEC().log(data.encode("utf-8"))
-            else:
-                data = None
-            rc = s.returncode(ref)
-            try:
-                s.cleanup(ref)
-            except Exception, e:
-                xenrt.TEC().warning("Got exception while cleaning up after "
-                                    "execCmd: %s" % (str(e)))
             if rc != 0 and returnerror:
                 return xenrt.XRT("%s returned error (%d)" % (desc, rc),
                                  level,

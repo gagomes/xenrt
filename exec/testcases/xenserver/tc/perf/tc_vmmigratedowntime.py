@@ -24,13 +24,13 @@ class TCTimeVMMigrateDowntime(libperf.PerfTestCase):
         self.vmname        = libperf.getArgument(arglist, "guest",         str, None)
         self.vmimage       = libperf.getArgument(arglist, "vmimage",       str, None)
         self.numiters      = libperf.getArgument(arglist, "numiters",      int, 100)
-        self.useImportedVM = libperf.getArgument(arglist, "useimportedvm", int, False)
+        self.useImportedVM = libperf.getArgument(arglist, "useimportedvm", bool, False)
 
         self.initialiseHostList()
         self.configureAllHosts()
 
     def prepareVM(self):
-        if self.useImportedVM:
+        if self.useImportedVM or self.vmimage:
             # Get a handle on local storage
             sruuid = self.host.getLocalSR()
 

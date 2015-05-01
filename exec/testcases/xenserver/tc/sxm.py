@@ -1327,7 +1327,7 @@ class LiveMigrate(xenrt.TestCase):
                 xenrt.TEC().logverbose("Error occurred while monitoring Migration of VM %s from host %s" % (vmName,srcHost))
                 totalFailures = totalFailures + 1
 
-            elif results[vmName]['eventStatus'] == "COMPLETED":
+            elif results[vmName]['eventStatus'] == "COMPLETED" or results[vmName]['eventStatus'] == "NOT_RUNNING":
 
                 test_status = [] 
                 # Don't  check the guest in the case of failed/errored non-negative tests
@@ -1757,6 +1757,10 @@ class InsuffSpaceDestSR(MidMigrateFailure):
         vm.shutdown()
         vm.resizeDisk(device,225280)
         vm.start()
+
+        #creating large VDI(200GB) on destination SR
+        host = self.test_config['host_B']
+        vdi = host.createVDI( 204800 * xenrt.MEGA)
 
 class LargeDiskWin(LiveMigrate):
 

@@ -10,7 +10,7 @@
 
 
 import sys, string, os.path, glob, time, re, math, random, shutil, os, stat, datetime
-import traceback, threading, types
+import traceback, threading, types, collections
 import xml.dom.minidom, libxml2
 import tarfile
 import IPy
@@ -164,7 +164,7 @@ def createHost(id=0,
                addToLogCollectionList=False,
                disablefw=False,
                cpufreqgovernor=None,
-               usev6testd=True,
+               defaultlicense=True,
                ipv6=None,
                enableAllPorts=True,
                noipv4=False,
@@ -309,7 +309,7 @@ def createHost(id=0,
                           suppackcds=suppackcds)
 
     if license:
-        if not usev6testd:
+        if not defaultlicense:
             guest = xenrt.TEC().registry.guestGet("LICENSE_SERVER")
             licenseServer = None
             if guest:
@@ -320,7 +320,7 @@ def createHost(id=0,
                 guest.windows = True
                 xenrt.TEC().registry.guestPut("LICENSE_SERVER", guest)
                 licenseServer = guest.getV6LicenseServer(useEarlyRelease=False, install=False)
-            host.license(edition=license, usev6testd=False, v6server=licenseServer)
+            host.license(edition=license, v6server=licenseServer)
         elif type(license) == type(""):
             host.license(sku=license)
         else:
@@ -569,7 +569,6 @@ class Host(xenrt.GenericHost):
     INSTALL_INTERFACE_SPEC = "MAC"
     LINUX_INTERFACE_PREFIX = "xenbr"
     USE_CCISS = True
-    V6MOCKD_LOCATION = "binary-packages/RPMS/domain0/RPMS/i686/v6mockd-0-0.i686.rpm"
 
     def __init__(self, machine, productVersion="Orlando", productType="xenserver"):
         xenrt.GenericHost.__init__(self,
@@ -1301,32 +1300,6 @@ rm -f opt/xensource/sm/%s
 ln -s %s opt/xensource/sm/%s
 """ % (srfile, srtarget, srfile, srtarget, srfile)
 
-        v6hack = ""
-        mockd = xenrt.TEC().getFile(self.V6MOCKD_LOCATION)
-        if upgrade and not mockd:
-            # Set up a temporary WWW directory to hold the v6testd
-            v6webdir = xenrt.WebDirectory()
-            v6testdfile = xenrt.TEC().getFile("xe-phase-1/v6testd", "v6testd")
-            if v6testdfile:
-                v6webdir.copyIn(v6testdfile, "v6testd")
-            else:
-                xenrt.TEC().warning("XenRT failed to download a corresponding v6testd."
-                        "falling back to pre-boston")
-                v6webdir.copyIn("%s/utils/v6testd" % (xenrt.TEC().lookup("LOCAL_SCRIPTDIR")))
-            v6hack = """
-# Dropping in fake daemon if required
-if [ -x opt/xensource/libexec/v6d ]; then  
-  mv opt/xensource/libexec/v6d opt/xensource/libexec/v6d.orig
-  if (wget %s -O opt/xensource/libexec/v6d); then
-    chmod a+x opt/xensource/libexec/v6d
-  else
-    echo "Failed to download v6 fake daemon"
-    # Put the original back - it's better than not having one at all
-    mv opt/xensource/libexec/v6d.orig opt/xensource/libexec/v6d
-  fi
-fi
-""" % (v6webdir.getURL("v6testd"))
-
         # Hack for different dom0 static memory allocation
         dom0memhack = ""
         dom0mem = xenrt.TEC().lookup("DOM0_MEM", None)
@@ -1484,7 +1457,6 @@ chmod 755 etc/init.d/xapi
 %s
 %s
 %s
-%s
 
 # Apply an overlay if we have one
 if [ -n "%s" ]; then
@@ -1519,7 +1491,6 @@ sleep 30
        unplugcpus,
        smhackstxt,
        installer_ssh,
-       v6hack,
        dom0memhack,
        dom0rdsizehack,
        dom0blkbkorderhack,
@@ -3723,27 +3694,6 @@ fi
         xenrt.TEC().logverbose("New RPMS:\n" + "\n".join(newRpms))
         xenrt.TEC().logverbose("Removed RPMS:\n" + "\n".join(removedRpms))
         
-        # update v6d with the fake daemon since this could have been replaced by the hotfix
-        if self.execdom0("test -e /opt/xensource/libexec/v6d", retval="code") == 0:
-            if self.execdom0("test -e /opt/xensource/libexec/v6d.orig", retval="code") == 0:
-                if self.execdom0("diff -q /opt/xensource/libexec/v6d /opt/xensource/libexec/v6d.patchorig", retval="code") == 1:
-                    # the hotfix has updated v6d - back up this v6d and reinstall v6testd
-                    self.execdom0("mv -f /opt/xensource/libexec/v6d /opt/xensource/libexec/v6d.orig")
-                    
-                    # check if we can retrieve the matching v6testd from /usr/groups/xenrt
-                    f = None
-                    m = re.search("XS\d+E[^\d]*\d+", patchfile)
-                    if m:   
-                        f = xenrt.TEC().getFile("/usr/groups/xenrt/v6testd/v6testd." + m.group())
-                    if f:
-                        sftp = self.sftpClient()
-                        sftp.copyTo(f, "/opt/xensource/libexec/v6d")
-                        sftp.close()
-                    else:
-                        # get the "universal" v6testd from XenRT scripts directory
-                        self.execdom0("cp -f %s/utils/v6testd /opt/xensource/libexec/v6d" % (xenrt.TEC().lookup("REMOTE_SCRIPTDIR")))
-                    self.execdom0("service v6d restart")
-            
         if applyGuidance:
             guidance = self.genParamGet("patch", patch_uuid,"after-apply-guidance")
             self.applyGuidance(guidance)
@@ -6268,7 +6218,7 @@ fi
         """Return the UUID of the specified guest."""
         return self.parseListForUUID("vm-list", "name-label", guest.name)
     
-    def license(self, sku="XE Enterprise", expirein=None, usev6testd=True, v6server=None, applyedition=True, edition=None):
+    def license(self, sku="XE Enterprise", expirein=None, v6server=None, applyedition=True, edition=None):
         """Apply a license to the host"""
     
         keyfile = None
@@ -6482,17 +6432,17 @@ fi
                     template = self.chooseTemplate("TEMPLATE_NAME_WIN10")
             elif re.search("ws12", distro) and re.search("x64", distro):
                 template = self.chooseTemplate("TEMPLATE_NAME_WS12_64")
-            elif re.search("debian\d+", distro):
+            elif re.search("debian.+", distro):
                 if hvm:
                     template = self.chooseTemplate("TEMPLATE_OTHER_MEDIA")
                 else:
-                    r = re.search("debian(\d+)", distro)
+                    r = re.search("debian(.+)", distro)
                     if arch and arch == "x86-64":
                         template = self.chooseTemplate("TEMPLATE_NAME_DEBIAN_%s_64" %
-                                                   (r.group(1)))
+                                                   (r.group(1).upper()))
                     else:
                         template = self.chooseTemplate("TEMPLATE_NAME_DEBIAN_%s" %
-                                               (r.group(1)))
+                                               (r.group(1).upper()))
             elif re.search("debian", distro):
                 template = self.chooseTemplate("TEMPLATE_NAME_DEBIAN")
             elif re.search("sarge", distro):
@@ -6515,11 +6465,17 @@ fi
                     template = self.chooseTemplate("TEMPLATE_NAME_RHEL_6_64")
                 else:
                     template = self.chooseTemplate("TEMPLATE_NAME_RHEL_6")
+            elif re.search(r"rhelw66", distro):
+                template = self.chooseTemplate("TEMPLATE_NAME_RHEL_w66_64")
+            elif re.search(r"rheld66",distro):
+                template = self.chooseTemplate("TEMPLATE_NAME_RHEL_d66_64")
             elif re.search(r"rhel7", distro):
                 template = self.chooseTemplate("TEMPLATE_NAME_RHEL_7_64")
             elif re.search(r"rhel4", distro):
                 v = re.search(r"rhel(\d+)", distro).group(1)
                 template = self.chooseTemplate("TEMPLATE_NAME_RHEL_%s" % (v))
+            elif re.search(r"fedora", distro):
+                template = self.chooseTemplate("TEMPLATE_NAME_FEDORA")
             elif re.search(r"oel5", distro):
                 if hvm:
                     template = self.chooseTemplate("TEMPLATE_OTHER_MEDIA")
@@ -6572,8 +6528,15 @@ fi
                         template = self.chooseTemplate(\
                             "TEMPLATE_NAME_SLES_%s_64" % (v))
                     else:
-                        template = self.chooseTemplate("TEMPLATE_NAME_SLES_%s"
-                                                       % (v))
+                        template = self.chooseTemplate(\
+						    "TEMPLATE_NAME_SLES_%s" % (v))
+            elif re.search(r"sled\d+", distro):
+                v = re.search(r"sled(\d+)", distro).group(1)
+                if arch and arch == "x86-64":
+                    template = self.chooseTemplate(\
+                            "TEMPLATE_NAME_SLED_%s_64" % (v))
+                else:
+                    template = self.chooseTemplate("TEMPLATE_NAME_SLED_%s" % (v))
             elif re.search(r"sl7", distro):
                 template = self.chooseTemplate("TEMPLATE_NAME_SL_7_64")
             elif re.search(r"sl\d+",distro):
@@ -6587,7 +6550,6 @@ fi
                     else:
                         template = self.chooseTemplate("TEMPLATE_NAME_SL_%s"
                                                        % (v))
-
             elif re.search("solaris10u9-32", distro):
                 template = self.chooseTemplate("TEMPLATE_NAME_SOLARIS_10U9_32")
             elif re.search("solaris10u9", distro):
@@ -6607,6 +6569,8 @@ fi
                         template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_1204")
             elif re.search("ubuntu1404", distro):
                 template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_1404")
+            elif re.search("ubuntudevel", distro):
+                template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_DEVEL")
             elif re.search("coreos-", distro):
                 template = self.chooseTemplate("TEMPLATE_NAME_COREOS")
             elif re.search(r"other", distro):
@@ -6627,6 +6591,22 @@ fi
                 raise e
 
         return template
+
+    def getTemplateParams(self, distro, arch):
+        try:
+            tname = self.getTemplate(distro=distro, arch=arch)
+        except:
+            xenrt.TEC().warning("Couldn't find template for %s %s" % (distro, arch))
+
+        if tname:
+            tuuid = self.minimalList("template-list", args="name-label='%s'" % tname)[0]
+            defMemory = int(self.genParamGet("template", tuuid, "memory-static-max"))/xenrt.MEGA
+            defVCPUs = int(self.genParamGet("template", tuuid, "VCPUs-max"))
+        else:
+            defMemory = None
+            defVCPUs = None
+
+        return collections.namedtuple("TemplateParams", ["defaultMemory", "defaultVCPUs"])(defMemory, defVCPUs)
         
     def isEnabled(self):
         """Return True if this host is enabled as far as xapi is concerned."""
@@ -7629,7 +7609,10 @@ rm -f /etc/xensource/xhad.conf || true
                       getreply=False)
 
         # Remove any NFS blocks
-        self.execdom0("rm -f /etc/rc3.d/S09blocknfs || true")
+        if self.isCentOS7Dom0():
+            self.execdom0("chkconfig --del blocknfs || true")
+        else:
+            self.execdom0("rm -f /etc/rc3.d/S09blocknfs || true")
 
         # Do the normal reset procedure
         try:
@@ -8153,7 +8136,7 @@ rm -f /etc/xensource/xhad.conf || true
  
         license = XenServerLicenseFactory().maxLicenseSkuHost(self)
         LicenseManager().addLicensesToServer(v6server,license,getLicenseInUse=False)
-        self.license(edition = license.getEdition(), v6server=v6server,usev6testd=False)
+        self.license(edition = license.getEdition(), v6server=v6server)
         
     def getIpTablesFirewall(self):
         """IPTablesFirewall object used to create and delete iptables rules."""
@@ -8224,7 +8207,7 @@ rm -f /etc/xensource/xhad.conf || true
                 else:
                     special['UpdateTo'] = None
         
-        m = re.match("^(oel[dw]?|sl[dw]?|rhel[dw]?|centos[dw]?)(\d)xs$", distro)
+        m = re.match("^(oel[dw]?|sl[dw]?|rhel[dw]?|centos[dw]?)(\d+)xs$", distro)
         if m:
             distro = "%s%s" % (m.group(1), m.group(2))
             special['XSKernel'] = True
@@ -8429,7 +8412,7 @@ class MNRHost(Host):
         except:
             raise xenrt.XRTFailure("Unable to determine parent of fake-bridge interface %s." % bridge)
 
-    def license(self, sku="XE Enterprise", edition=None, expirein=None, usev6testd=True, v6server=None, activateFree=True, applyEdition=True):
+    def license(self, sku="XE Enterprise", edition=None, expirein=None, v6server=None, activateFree=True, applyEdition=True):
         if self.special.has_key('v6licensing') and self.special['v6licensing']:
             # Use v6 licensing
 
@@ -8447,34 +8430,6 @@ class MNRHost(Host):
                 if not editions.has_key(sku):
                     raise xenrt.XRTError("No edition mapping for sku %s" % (sku))
                 edition = editions[sku]                    
-
-            if usev6testd:
-                # Make sure the v6testd is in use
-                # Try to get it from xe-phase-1
-                if self.execdom0("test -e /opt/xensource/libexec/v6d.orig",
-                                 retval="code") != 0:
-                    self.execdom0("mv -f /opt/xensource/libexec/v6d "
-                                  "/opt/xensource/libexec/v6d.orig")
-                    rpm = xenrt.TEC().getFile("xe-phase-1/v6-test.rpm", "v6-test.rpm")
-                    if rpm:
-                        sftp = self.sftpClient()
-                        try:
-                            sftp.copyTo(rpm, "/tmp/v6-test.rpm")
-                        finally:
-                            sftp.close()
-                        self.execdom0("rpm -i --force /tmp/v6-test.rpm")
-                    else:
-                        self.execdom0("cp -f %s/utils/v6testd "
-                                      "/opt/xensource/libexec/v6d" %
-                                  (xenrt.TEC().lookup("REMOTE_SCRIPTDIR")))
-                    self.execdom0("service v6d restart")
-            else:
-                # Check we haven't previously replaced the v6 daemon
-                if self.execdom0("test -e /opt/xensource/libexec/v6d.orig",
-                                 retval="code") == 0:
-                    self.execdom0("mv -f /opt/xensource/libexec/v6d.orig "
-                                  "/opt/xensource/libexec/v6d")
-                    self.execdom0("service v6d restart")
 
             if expirein and not edition == "free":
                 # Enable the license expiry FIST point
@@ -8499,9 +8454,13 @@ class MNRHost(Host):
             args = []
             args.append("host-uuid=%s" % (self.getMyHostUUID()))
             args.append("edition=%s" % (edition))
-            if not usev6testd:
+            if v6server:
                 args.append("license-server-address=%s" % (v6server.getAddress()))
                 args.append("license-server-port=%s" % (v6server.getPort()))
+            else:
+                (addr, port) = xenrt.TEC().lookup("DEFAULT_CITRIX_LICENSE_SERVER").split(":")
+                args.append("license-server-address=%s" % (addr))
+                args.append("license-server-port=%s" % (port))
             if applyEdition:
                 cli.execute("host-apply-edition", string.join(args))
 
@@ -8510,7 +8469,7 @@ class MNRHost(Host):
                 return Host.license(self, sku="FG Free", expirein=expirein)
 
             # If we used a real v6 server, check its details were stored correctly
-            if not usev6testd:
+            if v6server:
                 addr = self.paramGet("license-server", "address")
                 port = int(self.paramGet("license-server", "port"))
                 if addr != v6server.getAddress() or port != v6server.getPort():
@@ -9604,6 +9563,25 @@ class BostonHost(MNRHost):
             bridge = None
             device = None
         return (bridge, device)
+        
+    def enableVirtualFunctions(self):
+
+        out = self.execdom0("grep -v '^#' /etc/modprobe.d/ixgbe 2> /dev/null; echo -n ''").strip()
+        if len(out) > 0:
+            return
+
+        numPFs = int(self.execdom0('lspci | grep 82599 | wc -l').strip())
+        #we check ixgbe version so as to understand netsclaer VPX specific - NS drivers: in which case, configuration differs slightly. 
+        ixgbe_version = self.execdom0("modinfo ixgbe | grep 'version:        '") 
+        if numPFs > 0:
+            if (re.search("NS", ixgbe_version.split()[1])):
+                maxVFs = "63" + (",63" * (numPFs - 1))
+            else:
+                maxVFs = "40"
+            self.execdom0('echo "options ixgbe max_vfs=%s" > "/etc/modprobe.d/ixgbe"' % (maxVFs))
+
+            self.reboot()
+            self.waitForSSH(300, desc="host reboot after enabling virtual functions")
 
     def createNetworkTopology(self, topology):
         """Create the topology specified by XML on this host. Takes either
@@ -10518,7 +10496,7 @@ class BostonHost(MNRHost):
 #############################################################################
 class BostonXCPHost(BostonHost):
   
-    def license(self, sku="XE Enterprise", edition=None, expirein=None, usev6testd=True, v6server=None, activateFree=True, applyEdition=True):
+    def license(self, sku="XE Enterprise", edition=None, expirein=None, v6server=None, activateFree=True, applyEdition=True):
         xenrt.TEC().logverbose("No license required for XCP Host")
 
     def checkVersionSpecific(self):
@@ -10772,25 +10750,7 @@ class TampaHost(BostonHost):
     def getQemuDMWrapper(self):
         return "/opt/xensource/libexec/qemu-dm-wrapper"
 
-    def enableVirtualFunctions(self):
-
-        out = self.execdom0("grep -v '^#' /etc/modprobe.d/ixgbe 2> /dev/null; echo -n ''").strip()
-        if len(out) > 0:
-            return
-
-        numPFs = int(self.execdom0('lspci | grep 82599 | wc -l').strip())
-        #we check ixgbe version so as to understand netsclaer VPX specific - NS drivers: in which case, configuration differs slightly. 
-        ixgbe_version = self.execdom0("modinfo ixgbe | grep 'version:        '") 
-        if numPFs > 0:
-            if (re.search("NS", ixgbe_version.split()[1])):
-                maxVFs = "63" + (",63" * (numPFs - 1))
-            else:
-                maxVFs = "40"
-            self.execdom0('echo "options ixgbe max_vfs=%s" > "/etc/modprobe.d/ixgbe"' % (maxVFs))
-
-            self.reboot()
-            self.waitForSSH(300, desc="host reboot after enabling virtual functions")
-
+    
     def validLicenses(self, xenserverOnly=False):
         """
         Get a license object which contains the details of a license settings
@@ -10806,7 +10766,7 @@ class TampaHost(BostonHost):
 #############################################################################
 class TampaXCPHost(TampaHost):
 
-    def license(self, sku="XE Enterprise", edition=None, expirein=None, usev6testd=True, v6server=None, activateFree=True, applyEdition=True):
+    def license(self, sku="XE Enterprise", edition=None, expirein=None, v6server=None, activateFree=True, applyEdition=True):
         xenrt.TEC().logverbose("No license required for XCP Host")
 
     def checkVersionSpecific(self):
@@ -10826,21 +10786,11 @@ class ClearwaterHost(TampaHost):
     DOM0_VCPU_NOT_PINNED = 'nopin'
     
     #This is a temp license function once clearwater and trunk will be in sync this will become "license" funtion
-    def license(self, edition = "free", v6server = None, mockLicense = False, sku=None,usev6testd=False):
+    def license(self, edition = "per-socket", v6server = None, sku=None):
 
-        if mockLicense == True:
-
-            expTime = datetime.datetime.now() + datetime.timedelta(days=365)
-             
-            self.installMockLicenseD()
-            
-            self.setMockLicenseExp(edition = edition, numLic = 100, licExp = expTime.strftime('%s'), saExp = expTime.strftime('%s'))
-  
         if edition == "per-socket" or edition == "xendesktop":
 
             licensed = True
-            if not v6server and not mockLicense:
-                raise xenrt.XRTError("V6 server not defined")
         else:
             
             licensed = False
@@ -10855,69 +10805,16 @@ class ClearwaterHost(TampaHost):
         if v6server:
             args.append("license-server-address=%s" % (v6server.getAddress()))
             args.append("license-server-port=%s" % (v6server.getPort()))
+        else:
+            (addr, port) = xenrt.TEC().lookup("DEFAULT_CITRIX_LICENSE_SERVER").split(":")
+            args.append("license-server-address=%s" % (addr))
+            args.append("license-server-port=%s" % (port))
 
         cli.execute("host-apply-edition", string.join(args))
 
-        self.checkHostLicenseState(edition , licensed)
+        self.checkHostLicenseState(edition , licensed, checkFeatures=False)
   
-    def installMockLicenseD(self):
-
-        filename = "mockd.rpm"
-        mockd = xenrt.TEC().getFile(self.V6MOCKD_LOCATION)
-
-        try:
-            xenrt.checkFileExists(mockd)
-        except:
-            raise xenrt.XRTError("mock rpm file is not present in the build")
-
-        mockdrpmPath = "/tmp/%s" % (filename)
-
-        sh = self.sftpClient()
-        try:
-            sh.copyTo(mockd,mockdrpmPath)
-        finally:
-            sh.close()
-
-        self.execdom0("rpm --force -Uvh %s" % (mockdrpmPath))
-
-        self.execdom0("service v6d restart")
- 
-    def setMockLicenseExp(self, edition, numLic, licExp, saExp):
-        #edition = 'per-socket', socket = 5, licExp = 1367448431, saExp = 1367448431    
- 
-        licArgs = []        
-
-        if edition == 'xendesktop':
-            licArgs.append('XD')
-        elif edition == 'per-socket': 
-            licArgs.append('XS')
-        else:
-            raise xenrt.XRTError("Invalid edition")
-
-        if numLic < 1:
-            raise xenrt.XRTFailure("Invalid license count")
-
-        licArgs.append(str(numLic))
-
-        try:
-            licenseExpiry = datetime.datetime.fromtimestamp(float(licExp))
-            saExpiry = datetime.datetime.fromtimestamp(float(saExp))
-        except Exception, e:
-            raise xenrt.XRTFailure("Invalid license or SA expiry: %s" % str(e))
-
-        le = str(licenseExpiry.year) + '.' + '%02d' % (licenseExpiry.month - 1) + '%02d' % (licenseExpiry.day + 1)
-        sae = str(saExpiry.year) + '.' + '%02d' % (saExpiry.month - 1) + '%02d' % (saExpiry.day + 1)
-
-        licArgs.append(le)
-        licArgs.append(sae)
-
-        self.execdom0("echo %s >/tmp/mock.lic" % (string.join(licArgs)))
-
-    def uninstallMockLicense(self):
-
-        self.installv6dRPM()
- 
-    def checkHostLicenseState(self, edition, licensed = False):
+    def checkHostLicenseState(self, edition, licensed = False, checkFeatures=True):
 
         details = self.getLicenseDetails()
 
@@ -10926,15 +10823,17 @@ class ClearwaterHost(TampaHost):
         if not (edition == details["edition"]):
             raise xenrt.XRTFailure("Host %s is not licensed with %s. Is has got edition %s" % (self.getName() , edition , details["edition"]))
 
-        if not details.has_key("restrict_hotfix_apply"):
-            raise xenrt.XRTFailure("Host %s does not have restrict_hotfix_apply" % (self.getName()))
+        if checkFeatures:
 
-        if edition == "free" or licensed == False:
-            if details["restrict_hotfix_apply"] == "false":
-                raise xenrt.XRTFailure("Hotfix can be applied through Xencenter when host %s is not licensed" % (self.getName()))
-        elif licensed == True:
-            if details["restrict_hotfix_apply"] == "True":
-                raise xenrt.XRTFailure("Hotfix cannot be applied through Xencenter when host %s is licensed" % (self.getName()))
+            if not details.has_key("restrict_hotfix_apply"):
+                raise xenrt.XRTFailure("Host %s does not have restrict_hotfix_apply" % (self.getName()))
+    
+            if edition == "free" or licensed == False:
+                if details["restrict_hotfix_apply"] == "false":
+                    raise xenrt.XRTFailure("Hotfix can be applied through Xencenter when host %s is not licensed" % (self.getName()))
+            elif licensed == True:
+                if details["restrict_hotfix_apply"] == "True":
+                    raise xenrt.XRTFailure("Hotfix cannot be applied through Xencenter when host %s is licensed" % (self.getName()))
                 
     def checkSkuMarketingName(self):
 
@@ -11444,11 +11343,22 @@ done
             pass
         xenrt.TEC().logverbose(self.execdom0("cat /tmp/vifdebug.%d.log" % int(domid)))
 
+    def installNVIDIASupPack(self):
+
+        def getURL():
+            baseurl = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
+            return "%s/vgpudriver/hostdriver/" % (baseurl)
+
+        defaultSupPack = "NVIDIA-vgx-xenserver-6.5-346.61.x86_64.iso"
+        suppack = xenrt.TEC().lookup("VGPU_SUPPACK", default=defaultSupPack)
+
+        if not self.checkRPMInstalled(suppack):
+            url = getURL()
+            self.installHostSupPacks(url, suppack)
+
 #############################################################################
 
 class CreedenceHost(ClearwaterHost):
-
-    V6MOCKD_LOCATION = "binary-packages/RPMS/domain0/RPMS/x86_64/v6mockd-0-0.x86_64.rpm"
 
     def guestFactory(self):
         return xenrt.lib.xenserver.guest.CreedenceGuest
@@ -11488,7 +11398,7 @@ class CreedenceHost(ClearwaterHost):
     def vSwitchCoverageLog(self):
         self.vswitchAppCtl("coverage/show")
 
-    def license(self, v6server=None, sku="enterprise-per-socket", usev6testd=True, edition=None):
+    def license(self, v6server=None, sku="enterprise-per-socket", edition=None):
         """
         In order to keep backwards compatability "sku" arg is called sku
         but really it needs the edition to be passed in
@@ -11502,25 +11412,6 @@ class CreedenceHost(ClearwaterHost):
         if ed:
             sku=ed
 
-        if  usev6testd and not v6server:
-            # Make sure the v6testd is in use
-            # Try to get it from xe-phase-1
-            if self.execdom0("test -e /opt/xensource/libexec/v6d.orig",
-                             retval="code") != 0:
-                self.execdom0("mv -f /opt/xensource/libexec/v6d "
-                              "/opt/xensource/libexec/v6d.orig")
-                rpm = xenrt.TEC().getFile("binary-packages/RPMS/domain0/RPMS/x86_64/v6testd-0*.rpm", "v6-test.rpm")
-                if rpm:
-                    sftp = self.sftpClient()
-                    try:
-                        sftp.copyTo(rpm, "/tmp/v6-test.rpm")
-                    finally:
-                        sftp.close()
-                    self.execdom0("rpm -i --force /tmp/v6-test.rpm")
-                    self.execdom0("service v6d restart")
-                else:
-                    xenrt.XRTError("v6testd RPM nor found")
-         
         if edition:
             sku = edition
 
@@ -11528,6 +11419,10 @@ class CreedenceHost(ClearwaterHost):
         if v6server:
             args.append("license-server-address=%s" % (v6server.getAddress()))
             args.append("license-server-port=%s" % (v6server.getPort()))
+        else:
+            (addr, port) = xenrt.TEC().lookup("DEFAULT_CITRIX_LICENSE_SERVER").split(":")
+            args.append("license-server-address=%s" % (addr))
+            args.append("license-server-port=%s" % (port))
 
         cli.execute("host-apply-edition", string.join(args))
         self.checkLicenseState(sku)
@@ -12251,12 +12146,11 @@ class DummyStorageRepository(StorageRepository):
         self._create("dummy", {}, physical_size=size)
 
 class CIFSISOStorageRepository(StorageRepository):
-
     def create(self,
                server,
                share,
-               type,
-               content_type="",
+               type="iso",
+               content_type="iso",
                username="Administrator",
                password=None,
                use_secret=False):
@@ -12276,6 +12170,7 @@ class CIFSISOStorageRepository(StorageRepository):
         args.append("type=%s" % (type))
         args.append("content-type=%s" % (content_type))
         args.append("host-uuid=%s" % (self.host.getMyHostUUID()))
+        args.append("shared=true")
         self.uuid = cli.execute("sr-create", string.join(args), strip=True)
         
     def check(self):
@@ -12485,20 +12380,21 @@ class SMBStorageRepository(StorageRepository):
 
     SHARED = True
 
-    def create(self, share=None):
+    def create(self, share=None, cifsuser=None):
         if not share:
-            share = xenrt.ExternalSMBShare(version=3)
+            share = xenrt.ExternalSMBShare(version=3, cifsuser=cifsuser)
 
         dconf = {}
         smconf = {}
-        dconf["server"] = share.getLinuxUNCPath() 
-        if share.domain:
-            dconf['username'] = "%s\\\\%s" % (share.domain, share.user)
-        else:
-            dconf['username'] = share.user
+        dconf["server"] = share.getLinuxUNCPath()
+
+        # CLI is not accepting the domain name at present. (1036047)
+        #if share.domain:
+        #    dconf['username'] = "%s\\\\%s" % (share.domain, share.user)
+        #else:
+        dconf['username'] = share.user
         dconf['password'] = share.password
-        self._create("cifs",
-                     dconf)
+        self._create("cifs", dconf)
 
     def check(self):
         StorageRepository.checkCommon(self, "cifs")
@@ -13547,6 +13443,7 @@ class Pool(object):
                     # Using CA-33324 workaround
                     # Relicense to ensure we have the correct edition
                     edition = xenrt.TEC().lookup("OPTION_LIC_SKU", None)
+                    xenrt.sleep(60)
                     if edition:
                         slave.license(edition=edition)
                     else:
@@ -14722,11 +14619,7 @@ class ClearwaterPool(TampaPool):
         return socketCount
 
     #This is a temp license function once clearwater and trunk will be in sync this will become "license" funtion
-    def license(self, edition = "free", v6server = None, mockLicense = False,sku=None):
-
-        if edition == "per-socket" or edition == "xendesktop":
-            if not v6server and not mockLicense:
-                raise xenrt.XRTError("V6 server not defined")
+    def license(self, edition = "free", v6server = None, sku=None):
 
         cli = self.master.getCLIInstance()
 
@@ -14738,6 +14631,10 @@ class ClearwaterPool(TampaPool):
         if v6server:
             args.append("license-server-address=%s" % (v6server.getAddress()))
             args.append("license-server-port=%s" % (v6server.getPort()))
+        else:
+            (addr, port) = xenrt.TEC().lookup("DEFAULT_CITRIX_LICENSE_SERVER").split(":")
+            args.append("license-server-address=%s" % (addr))
+            args.append("license-server-port=%s" % (port))
 
         cli.execute("pool-apply-edition", string.join(args))
 
@@ -14751,7 +14648,7 @@ class CreedencePool(ClearwaterPool):
     def hostFactory(self):
         return xenrt.lib.xenserver.CreedenceHost
 
-    def license(self,v6server=None, sku="enterprise-per-socket", usev6testd=True):
+    def license(self,v6server=None, sku="enterprise-per-socket"):
 
         args = []
         cli = self.master.getCLIInstance()
@@ -14761,6 +14658,10 @@ class CreedencePool(ClearwaterPool):
         if v6server:
             args.append("license-server-address=%s" % (v6server.getAddress()))
             args.append("license-server-port=%s" % (v6server.getPort()))
+        else:
+            (addr, port) = xenrt.TEC().lookup("DEFAULT_CITRIX_LICENSE_SERVER").split(":")
+            args.append("license-server-address=%s" % (addr))
+            args.append("license-server-port=%s" % (port))
 
         cli.execute("pool-apply-edition", string.join(args))
 

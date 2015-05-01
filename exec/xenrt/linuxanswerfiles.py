@@ -55,14 +55,20 @@ class RHELKickStartFile(object):
         self.host=host
         self.vifs=vifs
         self.mounturl=mounturl
+        self.desktop = False
         
     def generate(self):
         return self._generateKS()
 
     def _generateKS(self):
-        if self.distro.startswith("rhel7") or self.distro.startswith("oel7") or self.distro.startswith("centos7") or self.distro.startswith("sl7"):
+        if self.distro.startswith("fedora"):
+            kf=self._generateFedora()
+        elif self.distro.startswith("rhel7") or self.distro.startswith("oel7") or self.distro.startswith("centos7") or self.distro.startswith("sl7"):
             kf=self._generate7()
-        elif self.distro.startswith("rhel6") or self.distro.startswith("oel6") or self.distro.startswith("centos6") or self.distro.startswith("sl6"):
+        elif re.match("^(rhel|centos|oel|sl)[w]?6\d*",self.distro):
+            kf=self._generate6()
+        elif self.distro.startswith("rheld6"):
+            self.desktop = True
             kf=self._generate6()
         elif self.distro.startswith("rhel5") or self.distro.startswith("oel5") or self.distro.startswith("centos5") or self.distro.startswith("sl5"):
             kf=self._generate5()
@@ -76,6 +82,12 @@ class RHELKickStartFile(object):
             return ("key %s" %(pKey))
         else:
             return ""
+            
+    def _package(self):
+        if self.desktop:
+            return "basic-desktop"
+        else:
+            return "development"
 
     def _password(self):
         if not self.password:
@@ -174,7 +186,7 @@ zerombr
 # not guaranteed to work
 clearpart --all --initlabel
 part /boot --fstype=%s --size=%d --ondisk=%s
-part pv.8 --grow --size=1 --ondisk=%s --maxsize=12000 
+part pv.8 --grow --size=1 --ondisk=%s --maxsize=20000
 volgroup VolGroup --pesize=32768 pv.8
 logvol / --fstype=ext4 --name=lv_root --vgname=VolGroup --grow --size=1024 --maxsize=51200
 logvol swap --name=lv_swap --vgname=VolGroup --grow --size=1008 --maxsize=2016
@@ -260,6 +272,114 @@ umount /tmp/xenrttmpmount
 %%end""" % (postInstall,self.mounturl, self.rpmpost, self.sleeppost)
         return out
                 
+    def _generateFedora(self):
+      
+
+        out = """install
+text
+%s
+lang en_US.UTF-8
+keyboard us
+network --device %s --onboot yes --bootproto dhcp
+rootpw --iscrypted %s
+firewall --service==ssh
+authconfig --enableshadow --enablemd5
+selinux --disabled
+timezone %s
+bootloader --location=mbr --append="crashkernel=auto rhgb quiet"
+zerombr
+# The following is the partition information you requested
+# Note that any partitions you deleted are not expressed
+# here so unless you clear all partitions first, this is
+# not guaranteed to work
+clearpart --all --initlabel
+part /boot --fstype=%s --size=%d --ondisk=%s
+part pv.8 --grow --size=1 --ondisk=%s --maxsize=20000
+volgroup VolGroup --pesize=32768 pv.8
+logvol / --fstype=ext4 --name=lv_root --vgname=VolGroup --grow --size=1024 --maxsize=51200
+logvol swap --name=lv_swap --vgname=VolGroup --grow --size=1008 --maxsize=2016
+%s
+%s
+
+%%packages
+@ core
+@ development-tools
+@ standard
+bridge-utils
+lvm2
+e2fsprogs
+nfs-utils
+stunnel
+net-tools
+wget
+time
+%s
+%%end
+""" % (self._url(),
+       self.ethDevice,
+       self._password(),
+       self._timezone(),
+       self.bootDiskFS,
+       self.bootDiskSize,
+       self.mainDisk,
+       self.mainDisk,
+       self._key(),
+       self._more(),
+       self._extra()
+       )
+
+        if self.installOn == xenrt.HypervisorType.xen:
+            postInstall = self._netconfig(self.vifs,self.host)
+        else:
+            postInstall = """
+    CONFDIR=/etc/sysconfig/network-scripts
+    MAC=`grep ^HWADDR ${CONFDIR}/ifcfg-%s | cut -d = -f 2 | tr '[:lower:]' '[:upper:]'`
+    if [ "$MAC" != "%s" ]; then
+        sed -i -e's/ONBOOT=yes/ONBOOT=no/' ${CONFDIR}/ifcfg-%s
+        for c in ${CONFDIR}/ifcfg-eth*; do
+            MAC=`grep ^HWADDR $c | cut -d = -f 2 | tr '[:lower:]' '[:upper:]'`
+            if [ "$MAC" = "%s" ]; then
+                sed -i -e's/ONBOOT=no/ONBOOT=yes/' $c
+                echo 'BOOTPROTO=dhcp' >> $c
+            fi
+        done
+    fi
+
+    sed -i '/^serial/d' /boot/grub/grub.conf
+    sed -i '/^terminal/d' /boot/grub/grub.conf
+
+    echo "# CP-8436: Load mlx4_en whenever we try to load mlx4_core" > /etc/modprobe.d/mlx4.conf
+    echo "install mlx4_core /sbin/modprobe --ignore-install mlx4_core && /sbin/modprobe mlx4_en" >> /etc/modprobe.d/mlx4.conf
+""" % (self.ethdev, self.ethmac, self.ethdev, self.ethmac)
+
+        out = out+ """
+%%post
+echo "#!/bin/bash" >> /etc/rc.d/rc.local
+echo "# Flush firewall rules to avoid blocking iperf, synexec, etc." >> /etc/rc.d/rc.local
+echo "iptables -F" >> /etc/rc.d/rc.local
+echo "sleep 10" >> /etc/rc.d/rc.local
+echo "ping -c 1 `ip route show | grep default | awk '{print $3}' | head -1` || true" >> /etc/rc.d/rc.local
+echo "sleep 10" >> /etc/rc.d/rc.local
+echo "ping -c 1 `ip route show | grep default | awk '{print $3}' | head -1` || true" >> /etc/rc.d/rc.local
+echo "sleep 10" >> /etc/rc.d/rc.local
+echo "ping -c 1 `ip route show | grep default | awk '{print $3}' | head -1` || true" >> /etc/rc.d/rc.local
+echo "sleep 10" >> /etc/rc.d/rc.local
+echo "ping -c 1 `ip route show | grep default | awk '{print $3}' | head -1` || true" >> /etc/rc.d/rc.local
+echo "sleep 10" >> /etc/rc.d/rc.local
+echo "ping -c 1 `ip route show | grep default | awk '{print $3}' | head -1` || true" >> /etc/rc.d/rc.local
+echo "sleep 10" >> /etc/rc.d/rc.local
+echo "ping -c 1 `ip route show | grep default | awk '{print $3}' | head -1` || true" >> /etc/rc.d/rc.local
+chmod +x /etc/rc.d/rc.local
+%s
+mkdir /tmp/xenrttmpmount
+mount -onolock -t nfs %s /tmp/xenrttmpmount
+%s
+touch /tmp/xenrttmpmount/.xenrtsuccess
+umount /tmp/xenrttmpmount
+%s
+%%end""" % (postInstall,self.mounturl, self.rpmpost, self.sleeppost)
+        return out
+                
     def _generate6(self):
       
         # RHEL 6.4+ allows use of the unsupported_hardware command, which means we'll be able to run it on newer hardware
@@ -300,7 +420,7 @@ logvol swap --name=lv_swap --vgname=VolGroup --grow --size=1008 --maxsize=2016
 
 %%packages
 @ core
-@ development
+@ %s
 @ console-internet
 @ network-tools
 bridge-utils
@@ -321,6 +441,7 @@ stunnel
        self.mainDisk,
        self._key(),
        self._more(),
+       self._package(),
        self._extra()
        )
 
@@ -358,7 +479,8 @@ touch /tmp/xenrttmpmount/.xenrtsuccess
 umount /tmp/xenrttmpmount
 %s""" % (postInstall,self.mounturl, self.rpmpost, self.sleeppost)
         return out
-                
+        
+                    
     def _generate4(self):
         
         out = """install
@@ -552,14 +674,15 @@ class SLESAutoyastFile(object):
             kf=self._generateNative()
         
     def _generateAY(self):
-       
-        if self.distro.startswith("sles11") or self.distro.startswith("sles111") or self.distro.startswith("sles112"):
+        if self.distro.startswith("sles11"):
             kf=self._generateSLES11x()
         elif self.distro.startswith("sles12"):
             kf=self._generateSLES12()
         elif self.distro.startswith("sles94"):
             kf=self._generateSLES94()
-        else :
+        elif self.distro.startswith("sled11"):
+            kf=self._generateSLED11()
+        else:
             kf=self._generateStandard()
             
         if not self.pxe:
@@ -1009,7 +1132,224 @@ umount /tmp/xenrttmpmount
        self.bootDiskSize
        )
         return ks
-        
+ 
+    def _generateSLED11(self):
+        ks="""<?xml version="1.0"?>
+<!DOCTYPE profile SYSTEM "/usr/share/autoinstall/dtd/profile.dtd">
+<profile xmlns="http://www.suse.com/1.0/yast2ns" xmlns:config="http://www.suse.com/1.0/configns">
+  <configure>
+    <networking>
+      <dns>
+        <dhcp_hostname config:type="boolean">false</dhcp_hostname>
+        <dhcp_resolv config:type="boolean">false</dhcp_resolv>
+      </dns>
+      <routing>
+        <ip_forward config:type="boolean">false</ip_forward>
+      </routing>
+      <interfaces config:type="list">
+        <interface>
+          <bootproto>dhcp</bootproto>
+          <device>%s</device>        
+          <startmode>onboot</startmode>
+        </interface>
+      </interfaces>
+    </networking>
+    <printer>
+      <cups_installation config:type="symbol">server</cups_installation>
+      <default></default>
+      <printcap config:type="list"/>
+      <server_hostname></server_hostname>
+      <spooler>cups</spooler>
+    </printer>
+    <runlevel>
+      <default>3</default>
+    </runlevel>
+    <security>
+      <console_shutdown>reboot</console_shutdown>
+      <cracklib_dict_path>/usr/lib/cracklib_dict</cracklib_dict_path>
+      <cwd_in_root_path>no</cwd_in_root_path>
+      <cwd_in_user_path>no</cwd_in_user_path>
+      <displaymanager_remote_access>no</displaymanager_remote_access>
+      <enable_sysrq>no</enable_sysrq>
+      <fail_delay>3</fail_delay>
+      <faillog_enab>yes</faillog_enab>
+      <gid_max>60000</gid_max>
+      <gid_min>1000</gid_min>
+      <kdm_shutdown>auto</kdm_shutdown>
+      <lastlog_enab>yes</lastlog_enab>
+      <obscure_checks_enab>yes</obscure_checks_enab>
+      <pass_max_days>99999</pass_max_days>
+      <pass_max_len>8</pass_max_len>
+      <pass_min_days>0</pass_min_days>
+      <pass_min_len>5</pass_min_len>
+      <pass_warn_age>7</pass_warn_age>
+      <passwd_encryption>des</passwd_encryption>
+      <passwd_use_cracklib>yes</passwd_use_cracklib>
+      <permission_security>easy</permission_security>
+      <run_updatedb_as>nobody</run_updatedb_as>
+      <system_gid_max>499</system_gid_max>
+      <system_gid_min>100</system_gid_min>
+      <system_uid_max>499</system_uid_max>
+      <system_uid_min>100</system_uid_min>
+      <uid_max>60000</uid_max>
+      <uid_min>1000</uid_min>
+      <useradd_cmd>/usr/sbin/useradd.local</useradd_cmd>
+      <userdel_postcmd>/usr/sbin/userdel-post.local</userdel_postcmd>
+      <userdel_precmd>/usr/sbin/userdel-pre.local</userdel_precmd>
+    </security>
+    <sound>
+      <configure_detected config:type="boolean">false</configure_detected>
+      <modules_conf config:type="list"/>
+      <rc_vars/>
+      <volume_settings config:type="list"/>
+    </sound>
+    <users config:type="list">
+      <user>
+        <encrypted config:type="boolean">false</encrypted>
+        <user_password>%s</user_password>
+        <username>root</username>
+      </user>
+    </users>
+    <scripts>
+      <chroot-scripts config:type="list"/>      
+      <post-scripts config:type="list"/>
+      <pre-scripts config:type="list"/>      
+      <init-scripts config:type="list">
+        <script>
+          <filename>post.sh</filename>
+          <interpreter>shell</interpreter> 
+          <source><![CDATA[
+#!/bin/sh
+
+mkdir /tmp/xenrttmpmount
+mount -onolock -t nfs %s /tmp/xenrttmpmount
+touch /tmp/xenrttmpmount/.xenrtsuccess
+umount /tmp/xenrttmpmount
+%s
+sleep 120
+%s
+]]>
+          </source>
+        </script>
+      </init-scripts>
+    </scripts>
+  </configure>
+  <install>
+    <bootloader>
+      <activate config:type="boolean">true</activate>
+      <device_map config:type="list">
+        <device_map_entry>
+          <firmware>(hd0)</firmware>
+          <linux>/dev/%s</linux>
+        </device_map_entry>
+      </device_map>
+      <global config:type="list">
+        <global_entry>
+          <key>color</key>
+          <value>white/blue black/light-gray</value>
+        </global_entry>
+        <global_entry>
+          <key>default</key>
+          <value>0</value>
+        </global_entry>
+        <global_entry>
+          <key>timeout</key>
+          <value>5</value>
+        </global_entry>
+      </global>
+      <loader_device>/dev/%s</loader_device>
+      <loader_type>grub</loader_type>
+      <location>mbr</location>
+      <repl_mbr config:type="boolean">true</repl_mbr>
+      <sections config:type="list">
+        <section config:type="list">
+          <section_entry>
+            <key>title</key>
+            <value>Linux</value>
+          </section_entry>
+          <section_entry>
+            <key>root</key>
+            <value>(hd0,0)</value>
+          </section_entry>
+          <section_entry>
+            <key>kernel</key>
+            <value>/boot/vmlinuz root=/dev/%s2 selinux=0 serial console=ttyS0,115200 load_ramdisk=1 splash=silent showopts elevator=cfq</value>
+          </section_entry>
+          <section_entry>
+            <key>initrd</key>
+            <value>/boot/initrd</value>
+          </section_entry>
+        </section>
+      </sections>
+    </bootloader>
+    <general>
+      <clock>
+        <hwclock>localtime</hwclock>
+        <timezone>%s</timezone>
+      </clock>
+      <keyboard>
+        <keymap>english-uk</keymap>
+      </keyboard>
+      <language>en_GB</language>
+      <mode>
+        <confirm config:type="boolean">false</confirm>
+        <forceboot config:type="boolean">false</forceboot>
+      </mode>
+      <mouse>
+        <id>none</id>
+      </mouse>
+      <signature-handling>
+        <accept_verification_failed config:type="boolean">true</accept_verification_failed>
+        <accept_file_without_checksum config:type="boolean">true</accept_file_without_checksum> 
+      </signature-handling>  
+    </general>
+    <partitioning config:type="list">
+      <drive>
+        <device>/dev/%s</device>
+        <initialize config:type="boolean">false</initialize>
+        <partitions config:type="list">
+          <partition>
+            <filesystem config:type="symbol">ext2</filesystem>
+            <format config:type="boolean">true</format>
+            <loop_fs config:type="boolean">false</loop_fs>
+            <mount>/boot</mount>
+            <partition_id config:type="integer">131</partition_id>
+            <partition_type>primary</partition_type>
+            <size>%sM</size>
+          </partition>
+          <partition>
+            <filesystem config:type="symbol">ext2</filesystem>
+            <format config:type="boolean">true</format>
+            <loop_fs config:type="boolean">false</loop_fs>
+            <mount>/</mount>
+            <partition_id config:type="integer">131</partition_id>
+            <partition_type>primary</partition_type>
+            <size>7G</size>
+          </partition>
+        </partitions>
+        <use>all</use>
+      </drive>
+    </partitioning>
+    <software>
+      <patterns config:type="list">
+        <pattern>Basis-Devel</pattern>
+      </patterns>
+    </software>
+  </install>
+</profile>
+""" % (self.ethDevice,
+       self._password(),
+       self.signalDir,
+       self._postInstall(),
+       self._rebootAfterInstall(),
+       self.mainDisk,
+       self.mainDisk,
+       self.mainDisk,
+       self._timezone(),
+       self.mainDisk,
+       self._bootDiskSize()
+       )
+        return ks
 
     def _generateSLES12(self):
         ks = """<?xml version="1.0"?>
@@ -3461,9 +3801,9 @@ class DebianPreseedFile(object):
         self.disk = disk
         
     def generate(self):
-        if self.distro.startswith("debian60") or self.distro.startswith("debian70"):
+        if self.distro.startswith("debian") and not self.distro.startswith("debian50"):
             ps=self.generateDebian()
-        elif self.distro.startswith("ubuntu1004") or self.distro.startswith("ubuntu1204") or self.distro.startswith("ubuntu1404"):
+        elif self.distro.startswith("ubuntu"):
             ps=self.generateUbuntu()
         else :
             ps=self.generateDebian5()
@@ -3480,6 +3820,10 @@ class DebianPreseedFile(object):
             return "squeeze"
         elif self.distro.startswith("debian70"):
             return "wheezy" 
+        elif self.distro.startswith("debian80"):
+            return "jessie" 
+        elif self.distro.startswith("debiantesting"):
+            return "testing" 
     
     def _password(self):
         if not self.password:
@@ -3541,9 +3885,20 @@ d-i    apt-setup/security_path  string %s""" % (self.httphost,self.httppath, sel
         squeeze=["","tasksel tasksel/first                           multiselect standard"]
         wheezy=["d-i base-installer/install-recommends boolean false",
                 "tasksel tasksel/first   multiselect standard"]
+        jessie=["d-i base-installer/install-recommends boolean false",
+                "tasksel tasksel/first   multiselect standard"]
         if self.distro.startswith("debian60"):
             subs=squeeze
             st=""
+        elif self.distro.startswith("debian80") or self.distro.startswith("debiantesting"):
+            subs=jessie
+            st="d-i preseed/late_command string sed -i 's/PermitRootLogin without-password/PermitRootLogin yes/g' /target/etc/ssh/sshd_config; /target/etc/init.d/ssh restart;"
+            if not self.disk:
+                # Debian jessie enumerates the disks in the installer as xvda (on Xen) in 64-bit, but sda in 32-bit
+                if "64" in self.arch and self.installOn==xenrt.HypervisorType.xen:
+                    self.disk = "/dev/xvda"
+                else:
+                    self.disk = "/dev/sda"
         else:
             subs=wheezy
             if self.distro.startswith("debian70") and "64" in self.arch:
@@ -3650,6 +4005,8 @@ d-i apt-setup/services-select multiselect none
             st=ubuntu1264
         elif self.distro.startswith("ubuntu1404"):
             st = ubuntu1404
+        elif self.distro.startswith("ubuntudevel"):
+            st = ubuntu1404
         else:
             st=ubuntu1204                
         
@@ -3684,7 +4041,7 @@ d-i passwd/root-password-crypted    password %s
 
 popularity-contest    popularity-contest/participate    boolean    false
 tasksel    tasksel/first            multiselect standard
-d-i pkgsel/include string openssh-server psmisc patch build-essential flex bc
+d-i pkgsel/include string openssh-server psmisc patch build-essential flex bc python
 d-i    grub-installer/only_debian    boolean true
 d-i    finish-install/reboot_in_progress    note
 d-i    debian-installer/exit/poweroff    boolean true

@@ -210,7 +210,8 @@ class XenRTAPIPage(XenRTPage):
             qrystr = "WHERE %s" % string.join(qry, " AND ")
         sql = """SELECT m.machine, m.site, m.cluster, m.pool, m.status,
                         m.resources, m.flags, m.descr, m.comment, m.leaseTo,
-                        m.jobid, m.leasefrom, m.leasereason
+                        m.jobid, m.leasefrom, m.leasereason,
+                        COALESCE(m.prio, (SELECT 5 FROM tblmachinedata d WHERE d.key='RESTRICTION' AND d.machine=m.machine), 3) prio
                  FROM tblMachines m %s ORDER BY machine;""" % (qrystr)
         cur = db.cursor()
         cur.execute(sql, params)
@@ -378,14 +379,8 @@ class DumpHeaders(XenRTAPIPage):
 PageFactory(XenRTLogServer, "/api/logserver", compatAction="getlogserver")
 PageFactory(DumpHeaders, "/api/dumpheaders")
 
-import app.api.jobs
-import app.api.sites
-import app.api.machines
 import app.api.schedule
-import app.api.suite
 import app.api.controller
 import app.api.files
-import app.api.results
 import app.api.guestfile
-import app.api.resources
 import app.api.dbchecks

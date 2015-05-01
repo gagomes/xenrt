@@ -370,8 +370,13 @@ class VGPUTest(object):
         return DriverType.Unsigned
 
     def installNvidiaHostDrivers(self,allHosts):
+        useSuppPack = xenrt.TEC().lookup("VGPU_WITH_SUPPACK", default="no")
+
         for host in allHosts:
-            host.installNVIDIAHostDrivers()
+            if useSuppPack.startswith("yes"):
+                host.installNVIDIASupPack()
+            else:
+                host.installNVIDIAHostDrivers()
 
     def installNvidiaWindowsDrivers(self, guest,vgputype):
         vendor = VendorName[DiffvGPUType.NvidiaWinvGPU]
@@ -2056,10 +2061,7 @@ class _AddPassthroughToFullGPU(VGPUOwnedVMsTest):
 
     def __prepareClones(self, config):
 
-        totalPGPUs = len(GPUGroupManager(self.getDefaultHost()).getPGPUUuids(all = True)) 
-        nonSupportedGPUs = len(self.getDefaultHost().minimalList("pgpu-list", args="enabled-VGPU-types="))
-        numberRequired = totalPGPUs - nonSupportedGPUs
-        log("Number of pGPUs: %d" % numberRequired)
+        numberRequired = len(GPUGroupManager(self.getDefaultHost()).getPGPUUuids())
 
         self.__shutdownMaster()
         for x in range(numberRequired):
@@ -2100,12 +2102,6 @@ class _AddPassthroughToFullGPU(VGPUOwnedVMsTest):
             return
 
         raise xenrt.XRTFailure("guest with configTobeChecked was allowed to start on a pre-used pGPU")
-
-    def postRun(self):
-        for guest in self.__clones:
-            self._removeGuest(guest)
-        self._removeGuest(self.__ptGuest)
-        super(_AddPassthroughToFullGPU, self).postRun()
 
 class TCAddPassthroughToFullGPUK100(_AddPassthroughToFullGPU):
      def __init__(self):

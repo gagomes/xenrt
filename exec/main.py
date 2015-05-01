@@ -992,6 +992,9 @@ if not remote:
        xenrt.TEC().lookup("FORCE_REMOTE_HTTP", False, boolean=True):
         remote = True
 
+if xenrt.TEC().lookup("JOB_PASSWORD", False, boolean=True) and xenrt.TEC().lookup("JOBID", None):
+    xenrt.GEC().config.setVariable("ROOT_PASSWORD", "%s%s" % (xenrt.TEC().lookup("ROOT_PASSWORD"), xenrt.TEC().lookup("JOBID")))
+
 # Select a suitable file manager
 gec.filemanager = xenrt.filemanager.getFileManager()
 

@@ -8601,8 +8601,8 @@ class GenericGuest(GenericPlace):
             fr = xenrt.TEC().tempFile()
             if release == "testing":
                 # Testing presently doesn't have an installer
-                baseurl = "%s/usr/groups/xenrt/deb-testing/installer/%s/" % (xenrt.TEC().lookup("FORCE_HTTP_FETCH"), arch)
-                xenrt.getHTTP(baseurl + "vmlinuz", fk)
+                baseurl = "http://d-i.debian.org/daily-images/%s/daily/netboot/debian-installer/%s/" % (arch, arch)
+                xenrt.getHTTP(baseurl + "linux", fk)
                 xenrt.getHTTP(baseurl + "initrd.gz", fr)
             else:
                 xenrt.getHTTP(_url + boot_dir + "linux", fk)

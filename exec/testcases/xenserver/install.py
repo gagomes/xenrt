@@ -1281,7 +1281,7 @@ class SourceISOCheck(xenrt.TestCase):
                 # e.g download xe-phase-3/source-1.iso and list the RPMs.
                 file = xenrt.TEC().getFile(sourceBuildPath+"/"+sourceFile, sourceFile)
                 if file:                
-                    if sourceFile.endswith("iso"):
+                    if sourceFile.endswith(".iso"):
                         mount = xenrt.MountISO(file)
                         mountpoint = mount.getMount()
                     else:

@@ -8595,12 +8595,18 @@ class GenericGuest(GenericPlace):
                     release = "testing"
                 _url = repository + "/dists/%s/" % (release)
                 boot_dir = "main/installer-%s/current/images/netboot/debian-installer/%s/" % (arch, arch)
-
+            
             # Pull boot files from HTTP repository
             fk = xenrt.TEC().tempFile()
             fr = xenrt.TEC().tempFile()
-            xenrt.getHTTP(_url + boot_dir + "linux", fk)
-            xenrt.getHTTP(_url + boot_dir + "initrd.gz", fr)
+            if release == "testing":
+                # Testing presently doesn't have an installer
+                baseurl = "%s/usr/groups/xenrt/deb-testing/installer/%s/" % (xenrt.TEC().lookup("FORCE_HTTP_FETCH"), arch)
+                xenrt.getHTTP(baseurl + "vmlinuz", fk)
+                xenrt.getHTTP(baseurl + "initrd.gz", fr)
+            else:
+                xenrt.getHTTP(_url + boot_dir + "linux", fk)
+                xenrt.getHTTP(_url + boot_dir + "initrd.gz", fr)
 
             # Construct a PXE target
             pxe = xenrt.PXEBoot(remoteNfs=self.getHost().lookup("REMOTE_PXE", None))

@@ -15,7 +15,7 @@ class LabCostPerTechArea():
         ####
     
         step("Get latest suite run history")
-        u = urllib.urlopen("%s/suitehistoryjson/%s" % ("http://10.102.123.151:8080", self.suiteId))
+        u = urllib.urlopen("%s/suitehistoryjson/%s" % (xenrt.TEC().lookup("TESTRUN_URL"), self.suiteId))
         suiteRunData = json.loads(u.read().strip())
         suiteRunIds = [int(srid) for srid in suiteRunData.keys()]
         suiteRunIds.sort(reverse=True)

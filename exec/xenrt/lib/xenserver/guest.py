@@ -6150,9 +6150,8 @@ class DundeeGuest(CreedenceGuest):
                 packages = self.setRandomPvDriverList()
                 packages = packages.split(';')
             
-            #Install the PV Packages one by one
-            for pkg in packages:
-                self.installPVPackage(pkg, pvToolsDir)
+            #Install the PV Packages
+            self.installPVPackage(packages, pvToolsDir)
            
             xenrt.sleep(30)
             self.reboot()
@@ -6184,11 +6183,11 @@ class DundeeGuest(CreedenceGuest):
                     break
                 xenrt.sleep(10)
 
-    def installPVPackage(self, packageName = None, toolsDirectory = None):
+    def installPVPackage(self, packageList = None, toolsDirectory = None):
         """ Installing Individual PV package """
         
         #If packageName is none then raise error
-        if packageName is None:
+        if packageList is None:
             raise xenrt.XRTError("PV package to install not specified")
         
         #Download the tools if not present already
@@ -6202,9 +6201,9 @@ class DundeeGuest(CreedenceGuest):
             arch = "x64"
         else:
             arch = "x86"
-        
-        self.xmlrpcStart("%s\\%s\\%s\\dpinst.exe /sw" % (toolsDirectory, packageName, arch))
-        xenrt.sleep(30)
+        for pkg in packageList:
+            self.xmlrpcStart("%s\\%s\\%s\\dpinst.exe /sw" % (toolsDirectory, pkg, arch))
+            xenrt.sleep(30)
 
     def installFullWindowsGuestAgent(self):
         """ Install Windows Guest Agent from xs tools """

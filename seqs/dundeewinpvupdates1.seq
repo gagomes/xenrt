@@ -80,9 +80,6 @@
         <testcase id="xenserver.tc.winpvupdates.TCSkipPvPkg" name="SkipPvPkg,${D}">
         <arg>guest=${D}</arg>
         </testcase>
-        <testcase id="xenserver.tc.winpvupdates.TCRemovePvpkg" name="RemovePvpkg,${D}">
-        <arg>guest=${D}</arg>
-        </testcase>
      </for>
   </testsequence>
 </xenrt>

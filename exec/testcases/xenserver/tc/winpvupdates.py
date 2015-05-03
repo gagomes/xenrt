@@ -78,6 +78,8 @@ class TCUpgWinCmp(WindowsUpdateBase):
         log("Install Windows update compatible PV Drivers")
         self.guest.installDrivers(source = self.Tools, pvPkgSrc = "ToolsISO")
         
+        self.guest.shutdown()
+        
         log("Enable the Windows Updates from the Host")
         self.guest.enableWindowsPVUpdates()
         
@@ -93,6 +95,8 @@ class TCUpgNonWinCmp(WindowsUpdateBase):
         
         log("Uninstall Non-Windows Update Compatible PV Drivers")
         self.guest.uninstallDrivers()
+        
+        self.guest.lifecycleOperation("vm-shutdown", force=True)
         
         log("Enable the Windows Updates from the Host")
         self.guest.enableWindowsPVUpdates()
@@ -118,7 +122,8 @@ class TCSkipPvPkg(WindowsUpdateBase):
         snapshot = self.guest.snapshot()
         
         log("Install PV Drivers on the windows guest")
-        self.guest.installDrivers(packagesToInstall = pkgList)
+        self.guest.installPVPackage(packagesToInstall = pkgList)
+        self.guest.reboot()
         
         self.guest.waitForDaemon(300, desc="Guest check after installation of PV Packages %s" %(pkgList))
         
@@ -133,22 +138,3 @@ class TCSkipPvPkg(WindowsUpdateBase):
         
         for pkg in pvDriverList:
             self.skipPvPkginst(random.sample(pvDriverList, 4))
-
-class TCRemovePvpkg(WindowsUpdateBase):
-
-
-    def removePvPkg(self,pvPkg):
-
-        log("Install PV Drivers on the windows guest")
-        self.guest.uninstallDrivers(pkgToUninstall = pvPkg)
-        self.guest.waitForDaemon(300, desc="Guest check after Uninstallation of PV Packages %s" %(pvPkg))
-        
-    def run(self, arglist=None):
-        
-        pvDriversToRm = xenrt.TEC().lookup("PV_DRIVERS_UNINSTALL_LIST").split(';')
-        
-        log("Install PV Drivers on the windows guest")
-        self.guest.installDrivers()
-        
-        for pkg in pvDriversToRm:
-            self.removePvPkg(pkg)

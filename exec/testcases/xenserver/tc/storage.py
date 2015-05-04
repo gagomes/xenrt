@@ -3946,10 +3946,10 @@ touch write_done_%d.dat""" % (tapdiskpath, params.strip(), fileid)
         # Create a VDI of a certain size (say DISK_SIZE) and attach it to dom0
         self.sruuid = self.host.lookupDefaultSR()
         self.vdiuuid = self.host.createVDI(self.DISK_SIZE, sruuid=self.sruuid, name="XenRT-VDI")
-        self.vmuuid = self.host.getMyDomain0UUID()
+        self.guest = self.host.createBasicGuest(distro='centos54')
 
         self.vbduuid = self.cli.execute("vbd-create vm-uuid=%s vdi-uuid=%s device=autodetect" %
-                                                                (self.vmuuid, self.vdiuuid), strip=True)
+                                                                (self.guest.getUUID(), self.vdiuuid), strip=True)
         self.cli.execute("vbd-plug uuid=%s" % (self.vbduuid))
         time.sleep(10)
 

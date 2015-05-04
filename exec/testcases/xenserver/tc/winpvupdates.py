@@ -83,6 +83,8 @@ class TCUpgWinCmp(WindowsUpdateBase):
         log("Enable the Windows Updates from the Host")
         self.guest.enableWindowsPVUpdates()
         
+        self.guest.start()
+        
         log("Update PV Drivers on the windows guest")
         self.guest.installDrivers()
 
@@ -94,7 +96,7 @@ class TCUpgNonWinCmp(WindowsUpdateBase):
         self.guest.installDrivers(source = self.Tools, pvPkgSrc = "ToolsISO")
         
         log("Uninstall Non-Windows Update Compatible PV Drivers")
-        self.guest.uninstallDrivers()
+        self.guest.uninstallDrivers(source = self.Tools)
         
         self.guest.lifecycleOperation("vm-shutdown", force=True)
         
@@ -122,7 +124,7 @@ class TCSkipPvPkg(WindowsUpdateBase):
         snapshot = self.guest.snapshot()
         
         log("Install PV Drivers on the windows guest")
-        self.guest.installPVPackage(packagesToInstall = pkgList)
+        self.guest.installPVPackage(packageList = pkgList)
         self.guest.reboot()
         
         self.guest.waitForDaemon(300, desc="Guest check after installation of PV Packages %s" %(pkgList))

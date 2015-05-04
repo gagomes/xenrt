@@ -5532,32 +5532,43 @@ class TampaGuest(BostonGuest):
                 break
             xenrt.sleep(10)
 
-    def uninstallDrivers(self, waitForDaemon=True):
+    def uninstallDrivers(self, waitForDaemon=True, source=None):
 
         # Insert the tools ISO
         self.changeCD("xs-tools.iso")
         xenrt.sleep(30)
-
+        
+        if source:
+            if os.path.exists(source):
+                toolsTgz = source
+            else:
+                toolsTgz = xenrt.TEC().getFile(source)
+            self.xmlrpcSendFile(toolsTgz, "c:\\tools.tgz")
+            pvToolsDir = self.xmlrpcTempDir()
+            self.xmlrpcExtractTarball("c:\\tools.tgz", pvToolsDir)
+        else:
+            pvToolsDir = "D:"
+            
         if self.usesLegacyDrivers() or xenrt.TEC().lookup("USE_LEGACY_DRIVERS", False, boolean=True):
             BostonGuest.uninstallDrivers(self, waitForDaemon)
         else:
             batch = ""
 
             if self.xmlrpcGetArch() == "amd64":
-                batch = batch + "MsiExec.exe /X D:\\citrixxendriversx64.msi /passive /norestart\r\n"
+                batch = batch + "MsiExec.exe /X %s\\citrixxendriversx64.msi /passive /norestart\r\n" %(pvToolsDir)
                 batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
-                batch = batch + "MsiExec.exe /X D:\\citrixguestagentx64.msi /passive /norestart\r\n"
+                batch = batch + "MsiExec.exe /X %s\\citrixguestagentx64.msi /passive /norestart\r\n" %(pvToolsDir)
                 batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
-                batch = batch + "MsiExec.exe /X D:\\citrixvssx64.msi /passive /norestart\r\n"
+                batch = batch + "MsiExec.exe /X %s\\citrixvssx64.msi /passive /norestart\r\n" %(pvToolsDir)
             else:
-                batch = batch + "MsiExec.exe /X D:\\citrixxendriversx86.msi /passive /norestart\r\n"
+                batch = batch + "MsiExec.exe /X %s\\citrixxendriversx86.msi /passive /norestart\r\n" %(pvToolsDir)
                 batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
-                batch = batch + "MsiExec.exe /X D:\\citrixguestagentx86.msi /passive /norestart\r\n"
+                batch = batch + "MsiExec.exe /X %s\\citrixguestagentx86.msi /passive /norestart\r\n" %(pvToolsDir)
                 batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
-                batch = batch + "MsiExec.exe /X D:\\citrixvssx86.msi /passive /norestart\r\n"
+                batch = batch + "MsiExec.exe /X %s\\citrixvssx86.msi /passive /norestart\r\n" %(pvToolsDir)
 
             batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
-            batch = batch + "MsiExec.exe /X D:\\installwizard.msi /passive /norestart\r\n"
+            batch = batch + "MsiExec.exe /X %s\\installwizard.msi /passive /norestart\r\n" %(pvToolsDir)
             batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
             batch = batch + "shutdown -r\r\n"
 
@@ -6250,7 +6261,7 @@ class DundeeGuest(CreedenceGuest):
             
         xenrt.TEC().logverbose("PV Devices are installed and Running on %s " %(self.getName()))
 
-    def uninstallDrivers(self, waitForDaemon=True, pkgToUninstall = None):
+    def uninstallDrivers(self, waitForDaemon=True, pkgToUninstall=None, source=None):
         
         installed = False
         if pkgToUninstall:
@@ -6261,7 +6272,7 @@ class DundeeGuest(CreedenceGuest):
         var1 = self.winRegPresent('HKLM', "SOFTWARE\\Wow6432Node\\Citrix\\XenToolsInstaller", "InstallStatus")
         var2 = self.winRegPresent('HKLM', "SOFTWARE\\Citrix\\XenToolsInstaller", "InstallStatus")
         if var1 or var2:
-            super(DundeeGuest , self).uninstallDrivers(waitForDaemon)
+            super(DundeeGuest , self).uninstallDrivers(waitForDaemon, source=None)
             
         else:
             #Drivers are installed using PV Packages uninstall them separately
@@ -6311,7 +6322,6 @@ class DundeeGuest(CreedenceGuest):
         """ Enable the windows updates by setting pci_pv flag to true on the host"""
 
         self.paramSet("platform:pci_pv", "true")
-        self.reboot()
 
     def checkWindowsPVUpdates(self):
         """ Check whether the windows pv updates is enabled on the host"""

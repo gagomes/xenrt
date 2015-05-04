@@ -65,19 +65,22 @@
         <testcase id="xenserver.tc.winpvupdates.TCSnapRevertNoTools" tc="TC-26988" name="SnapRvtNoTools,${D}">
         <arg>guest=${D}</arg>
         </testcase>
-        <testcase id="xenserver.tc.winpvupdates.TCUpgWinCmp" name="UpgWinCmp,${D}">
+        <testcase id="xenserver.tc.winpvupdates.TCUpgWinCmp" tc="TC-26989" name="UpgWinCmp,${D}">
         <arg>guest=${D}</arg>
         <arg>TOOLS=/usr/groups/xenrt/pvtools/trunk-car1755-xstools.tgz</arg>
         </testcase>
-        <testcase id="xenserver.tc.winpvupdates.TCUpgNonWinCmp" name="UpgNonWinCmp,${D}">
+        <testcase id="xenserver.tc.winpvupdates.TCUpgNonWinCmp" tc="TC-26990" name="UpgNonWinCmp,${D}">
         <arg>guest=${D}</arg>
         <arg>TOOLS=/usr/groups/xenrt/pvtools/creedencertm.tgz</arg>
         </testcase>
-        <testcase id="xenserver.tc.winpvupdates.TCUpgToolsIso" name="UpgToolsIso,${D}">
+        <testcase id="xenserver.tc.winpvupdates.TCUpgToolsIso" tc="TC-26991" name="UpgToolsIso,${D}">
         <arg>guest=${D}</arg>
         <arg>TOOLS=/usr/groups/xenrt/pvtools/trunk-car1755.tgz</arg>
         </testcase>
-        <testcase id="xenserver.tc.winpvupdates.TCSkipPvPkg" name="SkipPvPkg,${D}">
+        <testcase id="xenserver.tc.winpvupdates.TCSkipPvPkg" tc="TC-26992" name="SkipPvPkg,${D}">
+        <arg>guest=${D}</arg>
+        </testcase>
+        <testcase id="xenserver.tc.winpvupdates.TCSkipPvPkgNoAgent" tc="TC-26993" name="SkipPvPkgNoAgent,${D}">
         <arg>guest=${D}</arg>
         </testcase>
      </for>

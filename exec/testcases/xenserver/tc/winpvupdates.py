@@ -25,11 +25,30 @@ class WindowsUpdateBase(xenrt.TestCase):
         self.guest.lifecycleOperation("vm-start")
         xenrt.sleep(50)
         self.uninstallOnCleanup(self.guest)
-
+    
+    def skipPvPkginst(self, pkgList, useGuestAgent=True):
+        
+        step("Take snapshot of the VM")
+        snapshot = self.guest.snapshot()
+        
+        if useGuestAgent:
+            self.guest.installFullWindowsGuestAgent()
+            
+        step("Install PV Drivers on the windows guest")
+        self.guest.installPVPackage(packageList = pkgList)
+        self.guest.reboot()
+        
+        self.guest.waitForDaemon(300, desc="Guest check after installation of PV Packages %s" %(pkgList))
+        
+        step("Revert the VM to the State before tools were uninstalled")
+        self.guest.revert(snapshot)
+        self.guest.removeSnapshot(snapshot)
+        self.guest.lifecycleOperation("vm-start")
+    
     def postRun(self):
         
         pass
-
+    
 class TCSnapRevertTools(WindowsUpdateBase):
     
     def run(self, arglist=None):
@@ -76,68 +95,65 @@ class TCUpgWinCmp(WindowsUpdateBase):
     
     def run(self, arglist=None):
 
-        log("Install Windows update compatible PV Drivers")
+        step("Install Windows update compatible PV Drivers")
         self.guest.installDrivers(source = self.Tools, pvPkgSrc = "ToolsISO")
         
         self.guest.shutdown()
         
-        log("Enable the Windows Updates from the Host")
+        step("Enable the Windows Updates from the Host")
         self.guest.enableWindowsPVUpdates()
         
         self.guest.start()
         
-        log("Update PV Drivers on the windows guest")
+        step("Update PV Drivers on the windows guest")
         self.guest.installDrivers()
 
 class TCUpgNonWinCmp(WindowsUpdateBase):
 
     def run(self, arglist=None):
 
-        log("Install Non-Windows update compatible PV Drivers")
+        step("Install Non-Windows update compatible PV Drivers")
         self.guest.installDrivers(source = self.Tools, pvPkgSrc = "ToolsISO")
         
-        log("Uninstall Non-Windows Update Compatible PV Drivers")
+        step("Uninstall Non-Windows Update Compatible PV Drivers")
         self.guest.uninstallDrivers(source = self.Tools)
         
         self.guest.lifecycleOperation("vm-shutdown", force=True)
         
-        log("Enable the Windows Updates from the Host")
+        step("Enable the Windows Updates from the Host")
         self.guest.enableWindowsPVUpdates()
         
-        log("Install PV Drivers on the windows guest")
+        step("Install PV Drivers on the windows guest")
         self.guest.installDrivers()
 
 class TCUpgToolsIso(WindowsUpdateBase):
 
     def run(self, arglist=None):
         
-        log("Install the PV Drivers on the Windows Guest")
+        step("Install the PV Drivers on the Windows Guest")
         self.guest.installDrivers(source = self.Tools)
 
-        log("Upgrade the tools using tools.iso")
+        step("Upgrade the tools using tools.iso")
         self.guest.installDrivers(pvPkgSrc = "ToolsISO")
 
 class TCSkipPvPkg(WindowsUpdateBase):
 
-    def skipPvPkginst(self, pkgList):
-        
-        log("Take snapshot of the VM")
-        snapshot = self.guest.snapshot()
-        
-        log("Install PV Drivers on the windows guest")
-        self.guest.installPVPackage(packageList = pkgList)
-        self.guest.reboot()
-        
-        self.guest.waitForDaemon(300, desc="Guest check after installation of PV Packages %s" %(pkgList))
-        
-        log("Revert the VM to the State before tools were uninstalled")
-        self.guest.revert(snapshot)
-        self.guest.removeSnapshot(snapshot)
-        self.guest.lifecycleOperation("vm-start")
-
     def run(self, arglist=None):
-
+        
+        step("Get the list of the Pv packages ")
         pvDriverList = xenrt.TEC().lookup("PV_DRIVERS_LIST").split(';')
         
+        step("Try all possible combinations by skipping each package with Guest Agent installed")
         for pkg in pvDriverList:
             self.skipPvPkginst(random.sample(pvDriverList, 4))
+
+class TCSkipPvPkgNoAgent(WindowsUpdateBase):
+
+    def run(self, arglist=None):
+        
+        step("Get the list of the Pv packages ")
+        pvDriverList = xenrt.TEC().lookup("PV_DRIVERS_LIST").split(';')
+        
+        step("Try all possible combinations by skipping each package with Guest Agent Not installed")
+        for pkg in pvDriverList:
+            self.skipPvPkginst(random.sample(pvDriverList, 4), useGuestAgent=False)

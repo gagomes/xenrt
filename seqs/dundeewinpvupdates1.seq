@@ -59,10 +59,10 @@
 
   <testsequence group="WindowsPVUpdate">
     <for iter="D" values="${WINDISTROS}">
-        <testcase id="xenserver.tc.winpvupdates.TCSnapRevertTools" name="SnapRvtTools,${D}">
+        <testcase id="xenserver.tc.winpvupdates.TCSnapRevertTools" tc="TC-26987" name="SnapRvtTools,${D}">
         <arg>guest=${D}</arg>
         </testcase>
-        <testcase id="xenserver.tc.winpvupdates.TCSnapRevertNoTools" name="SnapRvtNoTools,${D}">
+        <testcase id="xenserver.tc.winpvupdates.TCSnapRevertNoTools" tc="TC-26988" name="SnapRvtNoTools,${D}">
         <arg>guest=${D}</arg>
         </testcase>
      </for>

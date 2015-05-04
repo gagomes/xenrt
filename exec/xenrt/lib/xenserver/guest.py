@@ -3192,9 +3192,8 @@ exit /B 1
         #If cloned vm is windows with no tools 
         if not g.mainip:
             g.lifecycleOperation("vm-start")
-            vifname, bridge, mac, c = vifs[0]
-            arptime = 10800
-            g.mainip = self.getHost().arpwatch(bridge, mac, timeout=arptime)
+            vifname, bridge, mac, ip = vifs[0]
+            g.mainip = self.getHost().arpwatch(bridge, mac, timeout=10800)
             g.lifecycleOperation("vm-shutdown", force=True)
             
         g.setHostnameViaXenstore()

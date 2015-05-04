@@ -6,7 +6,7 @@
 
 import socket, re, string, time, traceback, sys, random, copy, math
 import xenrt, xenrt.lib.xenserver
-from xenrt.lazylog import log
+from xenrt.lazylog import step, comment, log
 
 class WindowsUpdateBase(xenrt.TestCase):
     
@@ -15,11 +15,12 @@ class WindowsUpdateBase(xenrt.TestCase):
         self.args  = self.parseArgsKeyValue(arglist)
         self.host = self.getDefaultHost()
         self.remoteHost = self.getHost("RESOURCE_HOST_1")
+
         if self.args.has_key('TOOLS'):
             self.Tools = self.args['TOOLS']
-            
-        goldVM = self.host.getGuest(self.args['guest'])
-        self.guest = goldVM.cloneVM()
+
+        self.goldVM = self.host.getGuest(self.args['guest'])
+        self.guest = self.goldVM.cloneVM()
 
         self.guest.lifecycleOperation("vm-start")
         xenrt.sleep(50)
@@ -33,22 +34,22 @@ class TCSnapRevertTools(WindowsUpdateBase):
     
     def run(self, arglist=None):
         
-        log("Install PV Drivers on the windows guest")
+        step("Install PV Drivers on the windows guest")
         self.guest.installDrivers()
         
-        log("Take snapshot of the VM")
+        step("Take snapshot of the VM")
         snapshot = self.guest.snapshot()
         
-        log("Uninstall the PV Drivers on the Guest")
+        step("Uninstall the PV Drivers on the Guest")
         self.guest.uninstallDrivers()
         
-        log("Revert the VM to the State before tools were uninstalled")
+        step("Revert the VM to the State before tools were uninstalled")
         self.guest.revert(snapshot)
         self.guest.removeSnapshot(snapshot)
         
         self.guest.start()
         
-        log("Verify tools are present after the VM is reverted to previous state")
+        step("Verify tools are present after the VM is reverted to previous state")
         if self.guest.checkPVDevicesState() and not self.guest.checkPVDriversStatus(ignoreException = True):
             raise xenrt.XRTFailure("PV Tools not present after the Reverting VM to state where tools were installed ")
         
@@ -56,18 +57,18 @@ class TCSnapRevertNoTools(WindowsUpdateBase):
     
     def run(self, arglist=None):
         
-        log("Take snapshot of the VM")
+        step("Take snapshot of the VM")
         snapshot = self.guest.snapshot()
         
-        log("Install PV Drivers on the windows guest")
+        step("Install PV Drivers on the windows guest")
         self.guest.installDrivers()
         
-        log("Revert the VM to the State before tools were uninstalled")
+        step("Revert the VM to the State before tools were uninstalled")
         self.guest.revert(snapshot)
         self.guest.removeSnapshot(snapshot)
         self.guest.lifecycleOperation("vm-start")
         
-        log("Verify tools are not present after the VM is reverted to previous state")
+        step("Verify tools are not present after the VM is reverted to previous state")
         if not self.guest.checkPVDevicesState():
             raise xenrt.XRTFailure("PV Tools present after the Reverting VM to state where tools were not installed ")
 

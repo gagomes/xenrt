@@ -143,9 +143,13 @@ class TCSkipPvPkg(WindowsUpdateBase):
         step("Get the list of the Pv packages ")
         pvDriverList = xenrt.TEC().lookup("PV_DRIVERS_LIST").split(';')
         
-        step("Try all possible combinations by skipping each package with Guest Agent installed")
-        for pkg in pvDriverList:
-            self.skipPvPkginst(random.sample(pvDriverList, 4))
+        self.guest.installFullWindowsGuestAgent()
+            
+        step("Install PV Drivers on the windows guest")
+        self.guest.installPVPackage(packageList = random.sample(pvDriverList, 4))
+        self.guest.reboot()
+        
+        self.guest.waitForDaemon(300, desc="Guest check after installation of PV Packages %s" %(pkgList))
 
 class TCSkipPvPkgNoAgent(WindowsUpdateBase):
 
@@ -154,6 +158,8 @@ class TCSkipPvPkgNoAgent(WindowsUpdateBase):
         step("Get the list of the Pv packages ")
         pvDriverList = xenrt.TEC().lookup("PV_DRIVERS_LIST").split(';')
         
-        step("Try all possible combinations by skipping each package with Guest Agent Not installed")
-        for pkg in pvDriverList:
-            self.skipPvPkginst(random.sample(pvDriverList, 4), useGuestAgent=False)
+        step("Install PV Drivers on the windows guest")
+        self.guest.installPVPackage(packageList = random.sample(pvDriverList, 4))
+        self.guest.reboot()
+        
+        self.guest.waitForDaemon(300, desc="Guest check after installation of PV Packages %s" %(pkgList))

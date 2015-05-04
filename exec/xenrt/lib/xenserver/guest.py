@@ -6260,7 +6260,7 @@ class DundeeGuest(CreedenceGuest):
             
         xenrt.TEC().logverbose("PV Devices are installed and Running on %s " %(self.getName()))
 
-    def uninstallDrivers(self, waitForDaemon=True, pkgToUninstall=None, source=None):
+    def uninstallDrivers(self, waitForDaemon=True, source=None, pkgToUninstall=None):
         
         installed = False
         if pkgToUninstall:

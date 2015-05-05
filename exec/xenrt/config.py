@@ -3845,9 +3845,15 @@ class Config(object):
         # Burgess - xen-hyp. Rolls up XS62E014, XS62E017, XS62ESP1002, XS62ESP1004, XS62ESP1006, XS62ESP1007, XS62ESP1008, XS62ESP1011, XS62ESP1013, XS62ESP1015, XS62ESP1016
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1019"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1019/92015/hotfix-XS62ESP1019/XS62ESP1019.xsupdate"
         
+        # Renovado - xs-tools. Rolls up XS62E015, XS62ESP1003, XS62ESP1012
+        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1020"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1020/100961/hotfix-XS62ESP1020/XS62ESP1020.xsupdate"
+        
         # Kraken2 - xen-device-model. Rolls up XS62E014, XS62E017, XS62ESP1002, XS62ESP1004, XS62ESP1006, XS62ESP1007, XS62ESP1008, XS62ESP1011, XS62ESP1013, XS62ESP1015, XS62ESP1016, XS62ESP1019
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1021"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1021/100343/hotfix-XS62ESP1021/XS62ESP1021.xsupdate"
         
+        #Deadlock - xen-hyp. Rolls up XS62E014, XS62E017, XS62ESP1002, XS62ESP1004, XS62ESP1006, XS62ESP1007, XS62ESP1008, XS62ESP1011, XS62ESP1013, XS62ESP1015, XS62ESP1016, XS62ESP1019
+        #Limited availability
+        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1022"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1022/100367/hotfix-XS62ESP1022/XS62ESP1022.xsupdate"
         
         
         #Creedence hotfixes
@@ -4036,8 +4042,8 @@ class Config(object):
             self.config["CARBON_PATCHES_CLEARWATER"]["HF04"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1004"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF09"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1009"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF14"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1014"]
-            self.config["CARBON_PATCHES_CLEARWATER"]["HF12"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1012"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF17"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1017"]
+            self.config["CARBON_PATCHES_CLEARWATER"]["HF20"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1020"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF21"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1021"]
 
         if not self.config.has_key("CARBON_PATCHES_CREEDENCE"):

@@ -3276,11 +3276,11 @@ DHCPServer = 1
 
         isLegacy = True
         try:
-            debversion = float(self.execcmd("cat /etc/debian_version").strip())
+            debversion = int(self.execcmd("cat /etc/debian_version").strip().split(".")[0])
         except:
             debversion = None
 
-        if debversion >= 6.0:
+        if debversion >= 6:
             isLegacy = False
 
         try:
@@ -3299,7 +3299,7 @@ DHCPServer = 1
 
             # Get and install the iscsi target
             
-            if debversion >= 7.0:
+            if debversion >= 7:
                 self.execcmd("apt-get install -y --force-yes iscsitarget iscsitarget-dkms")
                 self.execcmd('sed -i "s/false/true/" /etc/default/iscsitarget')
                 self.execcmd('/etc/init.d/iscsitarget restart')
@@ -3317,7 +3317,7 @@ DHCPServer = 1
             # Prerequisites
             self.execcmd("apt-get install libssl-dev --force-yes -y")
 
-            if debversion == 4.0 and self.execcmd("uname -r").strip() == "2.6.18.8.xs5.5.0.14.443":
+            if debversion == 4 and self.execcmd("uname -r").strip() == "2.6.18.8.xs5.5.0.14.443":
                 # On Etch on George we need to workaround the fact the updates repo no longer exists,
                 # and thus we don't pick up kernel headers from it
                 url = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP")

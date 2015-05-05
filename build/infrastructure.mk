@@ -272,18 +272,6 @@ endif
 dhcpd6: files
 ifeq ($(DODHCPD6),yes)
 	$(info Installing IPv6 DHCPD...)
-	$(SUDO) tar -xvzkf $(TEST_INPUTS)/dibbler/dibbler-2012-08-06.tar.gz -C /local
-	-$(SUDOSH) 'if [ ! -e /local/dibbler-0.8.2-git/Makefile ]; then cd /local/dibbler-0.8.2-git && ./configure; fi'
-	$(SUDO) make -C /local/dibbler-0.8.2-git install
-	$(SUDO) mkdir -p `dirname $(DHCPD6)`
-	$(SUDO) chown -R $(USERID):$(GROUPID) `dirname $(DHCPD6)`
-	$(SUDO) mkdir -p /var/lib/dibbler
-	$(SUDO) chown -R $(USERID):$(GROUPID) /var/lib/dibbler
-	$(SUDO) mkdir -p /var/log/dibbler
-	$(SUDO) chown -R $(USERID):$(GROUPID) /var/log/dibbler
-	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/dibbler/dibbler-server /etc/init.d/
-	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/dibbler/logrotate /etc/logrotate.d/dibbler
-	$(SUDO) update-rc.d dibbler-server defaults
 	-$(SUDO) mv $(ROOT)/$(XENRT)/dibbler-server.conf $(DHCPD6)
 	-$(SUDO) /etc/init.d/dibbler-server stop 
 	-$(SUDO) /etc/init.d/dibbler-server start 

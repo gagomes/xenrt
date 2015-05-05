@@ -7,16 +7,13 @@ BACKUP	= if [ -e $(1) ]; then $(SUDO) cp $(1) $(1).xrt; fi
 RESTORE = if [ -e $(1).xrt ]; then $(SUDO) mv $(1).xrt $(1); fi
 
 ifeq ($(PRODUCTIONCONFIG),yes)
-DOSSH ?= yes
 DOWINPE ?= yes
 DOFILES ?= yes
-DOPROMPT ?= yes
 DOAUTOFS ?= yes
 DODHCPD ?= yes
 DODHCPD6 ?= yes
 DOHOSTS ?= yes
 DONETWORK ?= yes
-DONAGIOS ?= yes
 DOCONSERVER ?= yes
 DOLOGROTATE ?= yes
 DOCRON ?= yes
@@ -25,11 +22,9 @@ DOLIBVIRT ?= yes
 DOGITCONFIG ?= yes
 endif
 ifeq ($(NISPRODUCTIONCONFIG),yes)
-DOSSH ?= yes
 DOWINPE ?= yes
 DOFILES ?= yes
 DOHOSTS ?= yes
-DONAGIOS ?= yes
 DOCONSERVER ?= yes
 DOLOGROTATE ?= yes
 DOCRON ?= yes
@@ -37,9 +32,6 @@ DOSITECONTROLLERCMD ?= yes
 DOAUTOFS ?= yes
 DOLIBVIRT ?= yes
 DOGITCONFIG ?= yes
-endif
-ifeq ($(SSHCONFIG),yes)
-DOSSH ?= yes
 endif
 
 INETD_DAEMON ?= openbsd-inetd
@@ -160,49 +152,6 @@ ifeq ($(DOLIBVIRT),yes)
 	$(SUDO) rm -rf $(TMP)
 endif
 
-.PHONY: dsh
-dsh:
-ifeq ($(PUPPETNODE),yes)
-	$(info Skipping NTP config)
-else
-	$(info Configuring DSH...)
-	ln -sfT $(ROOT)/$(INTERNAL)/config/dsh $(HOME)/.dsh
-endif
-
-.PHONY: ntp
-ntp:
-ifeq ($(PUPPETNODE),yes)
-	$(info Skipping NTP config)
-else
-	$(info Configuring NTP...)
-	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/ntp/ntp.conf /etc/ntp.conf
-	$(SUDO) sed -i 's/__NTP__/$(NTP_SERVER)/' /etc/ntp.conf
-	$(SUDO) /etc/init.d/ntp restart
-endif
-
-.PHONY: ssh
-ssh:
-	$(info Configuring SSH...)
-ifeq ($(DOSSH),yes)
-	cp $(ROOT)/$(XENRT)/infrastructure/ssh/config $(HOME)/.ssh/config
-	$(SUDO) sed -i '/PermitBlacklistedKeys/d' /etc/ssh/sshd_config
-	$(SUDOSH) 'echo "PermitBlacklistedKeys yes" >> /etc/ssh/sshd_config'
-	$(SUDO) /etc/init.d/ssh reload
-	cp $(ROOT)/$(INTERNAL)/config/ssh/* $(HOME)/.ssh/
-	chmod 600 $(HOME)/.ssh/id_*
-else
-	$(info Skipping config)
-endif
-
-.PHONY: snmp
-snmp:
-ifeq ($(PUPPETNODE),yes)
-	$(info Skipping SNMP config)
-else
-	$(info Configuring SNMP...)
-	if [ -e $(SNMP) ]; then $(SUDO) sed -i 's/^mibs :/# mibs :/' $(SNMP); fi
-endif
-
 .PHONY: sudoers
 sudoers:
 ifeq ($(PUPPETNODE),yes)
@@ -244,14 +193,6 @@ files:
 ifeq ($(DOFILES),yes)
 	$(info Creating infrastructure configuration files...)
 	$(SHAREDIR)/exec/main.py --make-configs --debian
-endif
-
-.PHONY: prompt 
-prompt:
-ifeq ($(DOPROMPT),yes)
-	$(info Setting bash prompt...)
-	sed -i '/$(SITE)/d' $(HOME)/.bashrc
-	echo PS1=\"$(SITE):\$$PS1\" >> $(HOME)/.bashrc
 endif
 
 .PHONY: autofs
@@ -442,31 +383,9 @@ endif
 .PHONY: conserver
 conserver: files
 ifeq ($(DOCONSERVER),yes)
-	$(call BACKUP,$(CONSERVER))
-	$(SUDO) mv $(ROOT)/$(XENRT)/console.cf $(CONSERVER)
-	$(SUDO) apt-get install -y --force-yes conserver-server
 	$(SUDO) mv $(ROOT)/$(XENRT)/conserver.cf /etc/conserver/conserver.cf
-	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/conserver/* /etc/conserver/
-	$(SUDO) mkdir -p /local/consoles
-	$(SUDO) chmod -R a+rw /local/consoles
 	$(SUDO) /etc/init.d/conserver-server start || $(SUDO) /etc/init.d/conserver-server reload
-	$(SUDO) mkdir -p /var/lib/cons
-	grep "^cons:" /etc/group || $(SUDO) groupadd cons
-	grep "^cons:" /etc/passwd || $(SUDO) useradd cons -g cons -d /var/lib/cons
-	$(SUDO) mkdir -p /var/lib/cons/.ssh
-	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/conserver/cons /usr/local/bin
-	$(SUDOSH) 'echo -n "command=\"/usr/local/bin/cons\",no-port-forwarding,no-X11-forwarding,no-agent-forwarding " > /var/lib/cons/.ssh/authorized_keys'
-	$(SUDOSH) 'cat $(ROOT)/$(INTERNAL)/keys/ssh/id_rsa_cons.pub >> /var/lib/cons/.ssh/authorized_keys'
-	$(SUDO) chown -R cons:cons /var/lib/cons/.ssh
-	$(SUDOSH) 'chmod 600 /var/lib/cons/.ssh/*'
 endif
-
-.PHONY: ftp
-ftp:
-	$(info Setting up vsftpd)
-	$(call BACKUP,$(VSFTPD))
-	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/vsftpd/vsftpd.conf $(VSFTPD)
-	$(SUDO) /etc/init.d/vsftpd restart 
 
 .PHONY: loop
 loop:
@@ -475,26 +394,6 @@ loop:
 	-$(SUDO) rmmod -f loop
 	-$(SUDO) modprobe loop max_loop=256
 	$(SUDO) sed -i 's/^exit 0/rmmod -f loop\nmodprobe loop max_loop=256/' /etc/rc.local
-
-.PHONY: nagios
-nagios:
-ifeq ($(DONAGIOS),yes)
-	$(info Setting up nagios)
-	$(SUDO) apt-get install -y --force-yes nagios-nrpe-server nagios-plugins
-	$(SUDO) sed -i 's/^allowed_hosts/#allowed_hosts/g' $(NRPE)
-	$(SUDO) sed -i 's/dont_blame_nrpe=0/dont_blame_nrpe=1/g' $(NRPE)
-	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/nagios/xenrt.cfg $(NRPECONFDIR)
-	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/nagios/check_* /usr/lib/nagios/plugins/
-ifeq ($(PUPPETNODE),yes)
-	$(SUDO) sed -i '/command[check_disk]/d' $(NRPECONFDIR)/xenrt.cfg
-else
-	$(SUDO) sed -i '/nrpe_user=/d' $(NRPE)
-	$(SUDO) sed -i '/nrpe_group=/d' $(NRPE)
-	$(SUDOSH) "echo 'nrpe_user=$(USERNAME)' >> $(NRPECONFDIR)/xenrt.cfg"
-	$(SUDOSH) "echo 'nrpe_group=$(GROUPNAME)' >> $(NRPECONFDIR)/xenrt.cfg"
-endif
-	$(SUDO) /etc/init.d/nagios-nrpe-server restart 
-endif
 
 .PHONY: logrotate
 logrotate:
@@ -539,7 +438,7 @@ ifeq ($(DOSITECONTROLLERCMD),yes)
 endif
 
 .PHONY: infrastructure
-infrastructure: api ssh winpe files prompt autofs dhcpd dhcpd6 hosts network nagios conserver logrotate cron sitecontrollercmd nfs tftp iscsi sudoers ftp snmp extrapackages loop dsh ntp $(SHAREDIR)/images/vms/etch-4.1.img symlinks samba libvirt
+infrastructure: api winpe files autofs dhcpd dhcpd6 hosts network conserver logrotate cron sitecontrollercmd nfs tftp iscsi sudoers extrapackages loop $(SHAREDIR)/images/vms/etch-4.1.img symlinks samba libvirt
 	$(info XenRT infrastructure installed.)
 
 

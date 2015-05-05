@@ -1802,7 +1802,14 @@ class Config(object):
         # LXC currently uses KVM for System VMs, so use the KVM template
         self.config["CLOUD_CONFIG"]["4.5"]["SYSTEM_TEMPLATES"]["lxc"] = self.config["CLOUD_CONFIG"]["4.5"]["SYSTEM_TEMPLATES"]["kvm"]
 
-        self.config["CLOUD_CONFIG"]["4.6.0"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.5"])
+        self.config["CLOUD_CONFIG"]["4.5.1"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.5"])
+        self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-04-16-4.5.1-xen.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["kvm"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-04-16-4.5.1-kvm.qcow2.bz2"
+        self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["hyperv"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-04-16-4.5.1-hyperv.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["vmware"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-04-16-4.5.1-vmware.ova"
+        self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["lxc"] = self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["kvm"]
+
+        self.config["CLOUD_CONFIG"]["4.6.0"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.5.1"])
 
         # Specify which version 'master' currently maps to
         self.config["CLOUD_MASTER_MAP"] = "4.6.0"

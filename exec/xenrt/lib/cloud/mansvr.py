@@ -368,7 +368,8 @@ class ManagementServer(object):
             elif len(versionMatches) == 0:
                 xenrt.TEC().warning('Management Server version could not be determined')
             else:
-                raise xenrt.XRTError('Multiple version detected: %s' % (versionMatches))
+                # Choose the most specific match (this is for e.g. 4.5 vs 4.5.1)
+                self.__version = max(versionMatches, key=len)
 
             xenrt.TEC().comment('Using Management Server version: %s' % (self.__version))
         return self.__version

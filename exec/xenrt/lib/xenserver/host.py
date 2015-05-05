@@ -9777,6 +9777,9 @@ class BostonHost(MNRHost):
                     # Enable LACP *after* creating the bond
                     if bondMode == "lacp":
                         self._setPifsForLacp(pifs)
+
+                    # CA-165518: On UK machines after enabling the LACP on the switch side, connectivity to the host goes down for some time
+                    xenrt.sleep(180)
             
                     # check that specified pifs are indeed the bond slaves 
                     slaves = self.genParamGet("bond", bonduuid, "slaves").split("; ")

@@ -31,6 +31,7 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
                                               "512,1024,2048,4096,8192,16384,32768,65536,131072,262144,524288,1048576,2097152,4194304")
         self.blocksizes = self.blocksizes.strip().split(",")
         self.queuedepth = libperf.getArgument(arglist, "queue_depth", int, 1)
+        self.multiqueue = libperf.getArgument(arglist, "multiqueue", int, None)
         self.vms_per_sr = libperf.getArgument(arglist, "vms_per_sr", int, 1)
         self.vbds_per_vm = libperf.getArgument(arglist, "vbds_per_vm", int, 1)
         self.vcpus_per_vm = libperf.getArgument(arglist, "vcpus_per_vm", int, None)
@@ -38,6 +39,9 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
         # Benchmark program to use for linux vm. If the value is different than fio, would use latency
         self.bench = libperf.getArgument(arglist, "benchmark", str, "fio")
         self.sequential = libperf.getArgument(arglist, "sequential", bool, True)
+
+        # Optional VM image to use as a template
+        self.vm_image = libperf.getArgument(arglist, "vm_image", str, None)
 
         # A number in MB; e.g. 1024
         self.vm_ram = libperf.getArgument(arglist, "vm_ram", int, None)
@@ -85,6 +89,31 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
     def prepare(self, arglist=None):
         self.basicPrepare(arglist)
 
+
+    def vm_start(self, vm, vbd_uuids):
+        if not self.multiqueue:
+            vm.start()
+        else:
+            # Start a vm in paused state
+            # Write the number of queues to xenstored in dom0 backend
+            # Unpause the vm
+
+            vm_uuid = vm.getUUID()
+
+            self.host.execdom0("xe vm-start uuid=%s paused=true" % (vm_uuid))
+
+            vmid = self.host.execdom0("list_domains | grep %s" % (vm_uuid)).strip().split(" ")[0]
+
+            for vbd_uuid in vbd_uuids:
+                vdi_uuid = self.host.execdom0("xe vbd-list uuid=%s params=vdi-uuid --minimal" % (vbd_uuid))
+                vbdid = self.host.execdom0("xenstore-ls -f /xapi/%s | grep vdi-id | grep %s" % (vm_uuid, vdi_uuid)).split("/")[5]
+                self.host.execdom0("xenstore-write /local/domain/0/backend/vbd/%s/%s/multi-queue-max-queues '%s'" % (vmid, vbdid, self.multiqueue))
+
+            vm.unpause()
+
+            time.sleep(30)
+            # TODO find a way for proper wait
+
     def createVMsForSR(self, sr):
         for i in range(self.vms_per_sr):
             xenrt.TEC().progress("Installing VM %d on disk %s" % (i, self.sr_to_diskname[sr]))
@@ -94,18 +123,22 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
             self.vm.append(cloned_vm)
             self.host.addGuest(cloned_vm)
 
+            vbd_uuids = []
+
             for j in range(self.vbds_per_vm):
                 vbd_uuid = cloned_vm.createDisk(sizebytes=self.vdi_size,
                                                 sruuid=sr,
                                                 smconfig=self.sm_config,
                                                 returnVBD=True)
 
+                vbd_uuids.append(vbd_uuid)
+
                 if self.backend == "xen-tapdisk3":
                     self.host.genParamSet("vbd", vbd_uuid, "other-config:backend-kind", "vbd3")
                 elif self.backend == "xen-tapdisk2" or self.backend == "xen-blkback":
                     self.host.genParamSet("vbd", vbd_uuid, "other-config:backend-kind", "vbd")
 
-            cloned_vm.start()
+            self.vm_start(cloned_vm, vbd_uuids)
 
     def runPrepopulate(self):
         for vm in self.vm:
@@ -427,15 +460,32 @@ Version 1.1.0
 
             postinstall = [] if self.postinstall is None else self.postinstall.split(",")
 
-            self.template = xenrt.productLib(host=self.host).guest.createVM(\
-                    host=self.host,
-                    guestname="vm-template",
-                    vcpus=self.vcpus_per_vm,
-                    memory=self.vm_ram,
-                    distro=self.distro,
-                    arch=self.arch,
-                    postinstall=postinstall,
-                    vifs=self.host.guestFactory().DEFAULT)
+            if self.vm_image:
+                sr = self.host.chooseSR()
+                #self.template = self.importVMFromRefBase(self.host, self.vm_image, self.vm_image, sr)
+                vm_name = self.vm_image
+                g = self.host.guestFactory()(\
+                    vm_name, "NO_TEMPLATE",
+                    password=xenrt.TEC().lookup("DEFAULT_PASSWORD"))
+                xenrt.TEC().registry.guestPut(vm_name, g)
+                g.host = self.host
+                g.windows = False
+
+                g.importVM(self.host, "/mnt/distfiles-perf/base/%s" % (self.vm_image), sr=sr)
+                self.template = g
+
+                self.template.removeCD()
+                g.start()
+            else:
+                self.template = xenrt.productLib(host=self.host).guest.createVM(\
+                        host=self.host,
+                        guestname="vm-template",
+                        vcpus=self.vcpus_per_vm,
+                        memory=self.vm_ram,
+                        distro=self.distro,
+                        arch=self.arch,
+                        postinstall=postinstall,
+                        vifs=self.host.guestFactory().DEFAULT)
 
             if self.template.windows:
                 if not isinstance(self.template, xenrt.lib.esx.Guest):

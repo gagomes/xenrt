@@ -20,7 +20,7 @@
           <postinstall action="preCloneTailor"/>
         </vm>
       </host>
-      <host id="2"/>
+      <host id="2" license="free"/>
     </pool> 
   </prepare>
 

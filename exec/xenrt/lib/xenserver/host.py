@@ -2080,21 +2080,6 @@ fi
         if xenrt.TEC().lookup("HOST_POST_INSTALL_REBOOT", False, boolean=True):
             self.reboot()
 
-        dom0mem = xenrt.TEC().lookup("OPTION_DOM0_MEM", None)
-        if dom0mem:
-            dom0_uuid = self.execdom0("xe vm-list is-control-domain=true --minimal").strip()
-            mem_static_max = self.execdom0("xe vm-param-get uuid=%s param-name=memory-static-max" % dom0_uuid).strip()
-            set_target = xenrt.TEC().lookup("OPT_DOM0MEM_SET_TARGET", True, boolean=True)
-            if set_target:
-                self.execdom0("xe vm-memory-target-set uuid=%s target=%s" % (dom0_uuid,mem_static_max))
-                time.sleep(30) #dom0 needs a couple of seconds to set the memory target
-                mem_actual = self.execdom0("xe vm-param-get uuid=%s param-name=memory-actual" % dom0_uuid).strip()
-                if mem_static_max != mem_actual:
-                    raise xenrt.XRTFailure("dom0 mem_static_max=%s != mem_actual=%s" % (mem_static_max,mem_actual))
-                mem_dyn_min = self.execdom0("xe vm-param-get uuid=%s param-name=memory-dynamic-min" % dom0_uuid).strip()
-                if mem_static_max != mem_dyn_min:
-                    raise xenrt.XRTFailure("dom0 mem_static_max=%s != mem_dyn_min=%s" % (mem_static_max,mem_dyn_min))
-
         optionRootMpath = self.lookup("OPTION_ROOT_MPATH", None)
         if optionRootMpath != None and len(optionRootMpath) > 0:
             # Check to ensure that there is a multipath topology if we did multipath boot.

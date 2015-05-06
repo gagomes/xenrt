@@ -154,7 +154,7 @@ class ACLHelper(object):
                 # Identify all machines used by this group
                 groupUsers = self._userids_for_group(e.userid)
                 for m in machines:
-                    if machines[m] in groupUsers:
+                    if machines[m] and machines[m].lower() in groupUsers:
                         user = machines[m]
                         machines[m] = None
                         count += 1
@@ -249,7 +249,7 @@ class ACLHelper(object):
                         groupcount += len(filter(lambda m: m and m != userid, aclMachines.values()))
                     else:
                         for u in self._userids_for_group(e.userid):
-                            if u == userid:
+                            if u == userid.lower():
                                 continue # Don't count our user as we've already accounted for that
                             groupcount += len(filter(lambda m: m == u, aclMachines.values()))
                     grouppercent = int(math.ceil((groupcount * 100.0) / len(aclMachines)))
@@ -276,7 +276,7 @@ class ACLHelper(object):
                     # A group our user isn't in, remove it's usage so we don't count it in later rules
                     userids = self._userids_for_group(e.userid)
                     for m in aclMachines:
-                        if aclMachines[m] in userids:
+                        if aclMachines[m] and aclMachines[m].lower() in userids:
                             aclMachines[m] = None
             else:
                 raise Exception("Unknown entryType %s" % e.entryType)
@@ -303,7 +303,7 @@ class ACLHelper(object):
             return self._userGroupCache[userid]
         db = self.page.getDB()
         cur = db.cursor()
-        cur.execute("SELECT g.name FROM tblgroups g INNER JOIN tblgroupusers gu ON g.groupid = gu.groupid WHERE gu.userid=%s", [userid])
+        cur.execute("SELECT g.name FROM tblgroups g INNER JOIN tblgroupusers gu ON g.groupid = gu.groupid WHERE gu.userid=%s", [userid.lower()])
         results = []
         while True:
             rc = cur.fetchone()

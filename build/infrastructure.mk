@@ -41,9 +41,6 @@ serverbase := $(patsubst http://%/share/control,http://%,$(serverbase))
 serverbase := $(patsubst http://%/xenrt,http://%,$(serverbase))
 serverbase := $(patsubst http://%/control,http://%,$(serverbase))
 
-.PHONY: extrapackages
-extrapackages: extrapackages-install
-	
 .PHONY: apibuild
 apibuild:
 ifeq ($(APIBUILD), yes)
@@ -76,45 +73,6 @@ api:
 	$(SUDOSH) 'cd $(TMP) && pip install -I $(serverbase)/xenrtapi.tar.gz'
 	$(SUDO) rm -rf $(TMP)
 
-.PHONY: extrapackages-install
-extrapackages-install:
-	$(info Installing extra packages not included in preseed file)
-	$(SUDO) apt-get update
-	$(SUDO) apt-get install -y --force-yes unzip zip ipmitool openipmi snmp-mibs-downloader dsh curl libxml2-utils python-profiler expect patchutils pylint libxml2-dev libpcap-dev libssl-dev telnet python-pygresql openssh-server psmisc less postgresql mercurial sudo make nfs-common rsync gcc python-crypto python-ipy python-simplejson python-paramiko python-fpconst python-soappy python-imaging python-logilab-common python-logilab-astng python-pywbem python-epydoc python-numpy python-tlslite python-libxml2 pylint nfs-kernel-server stunnel ntp dnsmasq vlan tftpd-hpa iscsitarget rpm2cpio module-assistant debhelper genisoimage conserver-client vim screen apt-cacher vsftpd python-matplotlib nmap ucspi-tcp uuid-runtime realpath autofs lsof xfsprogs libnet-ldap-perl python-mysqldb sshpass postgresql postgresql-client build-essential snmp python-lxml python-requests gcc-multilib squashfs-tools fping python-setuptools libapache2-mod-wsgi python-dev cabextract elinks python-pip python-psycopg2 libkrb5-dev python-ldap
-	# Wheezy only
-	-$(SUDO) apt-get install -y --force-yes libc6-i386 xcp-xe
-	-$(SUDO) apt-get install -y --force-yes git
-	-$(SUDO) apt-get install -y --force-yes git-core
-	-$(SUDO) apt-get install -y --force-yes default-jre-headless
-
-	$(SUDO) easy_install --upgrade requests_oauthlib
-	$(SUDO) easy_install --upgrade pyramid
-	$(SUDO) easy_install --upgrade pyramid_chameleon
-	$(SUDO) easy_install --upgrade pyramid_mako
-	$(SUDO) easy_install --upgrade flup
-	$(SUDO) easy_install paramiko==1.15.2
-	$(SUDO) easy_install --upgrade uwsgi
-	$(SUDO) easy_install --upgrade zope.interface
-	$(SUDO) easy_install --upgrade nose
-	$(SUDO) easy_install --upgrade mock
-	$(SUDO) easy_install --upgrade pep8
-	$(SUDO) easy_install --upgrade jenkinsapi
-	$(SUDO) easy_install --upgrade virtualenv
-	$(SUDO) easy_install --upgrade fs
-	$(SUDO) easy_install --upgrade netifaces
-	$(SUDO) easy_install --upgrade mysql-connector-python
-	$(SUDO) easy_install --upgrade kerberos
-	$(SUDO) easy_install --upgrade pywinrm
-	$(SUDO) easy_install --upgrade pyyaml
-	$(SUDO) easy_install --upgrade jsonschema
-	$(SUDO) easy_install --upgrade pip
-	$(SUDO) easy_install --upgrade pdoc
-	$(SUDO) easy_install --upgrade uwsgitop
-
-	$(SUDO) ln -sf `which genisoimage` /usr/bin/mkisofs
-	$(SUDO) apt-get install -y --force-yes python-m2crypto
-	$(SUDO) sed -i 's/^URLopener.open_https \=/# Removed as this breaks urllib\n# URLopener.open_https \=/' /usr/share/pyshared/M2Crypto/m2urllib.py
-
 $(SHAREDIR)/images/vms/etch-4.1.img:
 	$(info Installing etch image)
 	mkdir -p $(SHAREDIR)/images/vms
@@ -122,7 +80,7 @@ $(SHAREDIR)/images/vms/etch-4.1.img:
 	-gunzip $(SHAREDIR)/images/vms/etch-4.1.img.gz
 
 .PHONY: libvirt
-libvirt: extrapackages libvirt-pkg /usr/lib/libvirt-qemu.so.0.1000.0 /usr/local/lib/python2.6/dist-packages/virtinst
+libvirt: libvirt-pkg /usr/lib/libvirt-qemu.so.0.1000.0 /usr/local/lib/python2.6/dist-packages/virtinst
 
 libvirt-pkg:
 ifeq ($(DOLIBVIRT),yes)
@@ -147,19 +105,6 @@ ifeq ($(DOLIBVIRT),yes)
 	tar xzf $(TEST_INPUTS)/libvirt/virtinst-0.600.3.tar.gz -C $(TMP)
 	cd $(TMP)/virtinst-0.600.3;$(SUDO) python setup.py install > /dev/null
 	$(SUDO) rm -rf $(TMP)
-endif
-
-.PHONY: sudoers
-sudoers:
-ifeq ($(PUPPETNODE),yes)
-	$(info Skipping sudo config)
-else
-	$(info Enabling password-less sudo...)
-	$(call BACKUP,$(SUDOERS))
-	$(SUDO) sed -i '/nagios/d' $(SUDOERS)
-	$(SUDOSH) 'echo "nagios ALL=NOPASSWD: ALL" >> $(SUDOERS)'
-	$(SUDO) sed -i 's/ALL=(ALL)/ALL=NOPASSWD:/' $(SUDOERS)
-	$(SUDO) sed -i 's/ALL=(ALL:ALL)/ALL=NOPASSWD:/' $(SUDOERS)
 endif
 
 .PHONY: winpe
@@ -343,7 +288,7 @@ ifeq ($(DOSITECONTROLLERCMD),yes)
 endif
 
 .PHONY: infrastructure
-infrastructure: api winpe files autofs dhcpd dhcpd6 hosts network conserver logrotate cron sitecontrollercmd sudoers extrapackages loop $(SHAREDIR)/images/vms/etch-4.1.img symlinks libvirt
+infrastructure: puppetrun api winpe files autofs dhcpd dhcpd6 hosts network conserver logrotate cron sitecontrollercmd loop $(SHAREDIR)/images/vms/etch-4.1.img symlinks libvirt
 	$(info XenRT infrastructure installed.)
 
 
@@ -357,18 +302,21 @@ marvin:
 
 .PHONY: puppetrun
 puppetrun:
+ifeq ($(PUPPETNODE),yes)
 	$(SUDO) puppet agent -t
+else
+	make ${PUPPETREPO}
+	$(SUDO) puppet apply -e 'class {"xenrt_controller::xenrt_dev": user => "${USERNAME}", group => "${GROUPNAME}"}' --modulepath ${ROOT}/${PUPPETREPO}/modules -t
+endif
 
 .PHONY: puppet-%
 puppet-%:
-ifeq ($(PUPPETNODE),yes)
 	$(info Installing puppet agent)
 	wget -O puppet-release.deb https://apt.puppetlabs.com/puppetlabs-release-$(patsubst puppet-%,%,$@).deb
 	$(SUDO) dpkg -i puppet-release.deb
 	$(SUDO) apt-get update
 	$(SUDO) apt-get install -y puppet
+ifeq ($(PUPPETNODE),yes)
 	$(SUDO) cp $(ROOT)/$(INTERNAL)/config/puppet/puppet.conf /etc/puppet
 	$(SUDO) sed -i 's/xenrt.xs.citrite.net/xenrt.citrite.net/' /etc/resolv.conf
-else
-	$(info This node must be set as a PUPPETNODE in the config.mk file)
 endif

@@ -13,6 +13,7 @@ WSGITHREADS ?= 1
 CURRENT_DIR ?= $(shell pwd)
 AUTH_REALM ?= citrite
 NFS_LIB_PATH ?= /usr/groups/xenrt/lib
+PUPPETREPO ?= puppet-configs.git
 
 include build/tools.mk
 
@@ -37,7 +38,7 @@ REVISION	= $(GIT) --git-dir=$(1)/.git --work-tree=$(1) log -1 --pretty=format:"$
 CONSKEY=$(shell cat $(ROOT)/$(INTERNAL)/keys/ssh/id_rsa_cons)
 
 .PHONY: update 
-update: $(XENRT) $(INTERNAL)
+update: $(XENRT) $(INTERNAL) $(PUPPETREPO)
 	$(info Updated XenRT repositories.)
 
 .PHONY: minimal-install
@@ -141,6 +142,7 @@ uninstall:
 	$(info Updating $@ repository...)
 	[ -d $(ROOT)/$@ ] || $(GIT) clone $(GITPATH)/$@ $(ROOT)/$@
 	cd $(ROOT)/$@ && $(GIT) pull
+	cd $(ROOT)/$@ && $(GIT) submodule update --init
 
 .PHONY: $(CONFDIR)
 $(CONFDIR):

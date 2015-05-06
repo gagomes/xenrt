@@ -963,10 +963,8 @@ users:
         elif self.distro and re.search("solaris", self.distro):
             self.execguest("nohup /usr/sbin/poweroff >/tmp/poweroff.out 2>/tmp/poweroff.err </dev/null &")
         else:
-            try:
-                self.execguest("/sbin/poweroff")
-            except:
-                pass
+            self.execguest("(sleep 5 && /sbin/poweroff) >/dev/null 2>&1 </dev/null &")
+            xenrt.sleep(10)
 
     def unenlightenedReboot(self):
         if self.windows:
@@ -974,10 +972,8 @@ users:
         elif self.distro and re.search("solaris", self.distro):
             self.execguest("nohup /usr/sbin/reboot >/tmp/reboot.out 2>/tmp/reboot.err </dev/null &")
         else:
-            try:
-                self.execguest("/sbin/reboot")
-            except:
-                pass
+            self.execguest("(sleep 5 && /sbin/reboot) >/dev/null 2>&1 </dev/null &")
+            xenrt.sleep(10)
 
     def reboot(self, force=False, skipsniff=None):
         if not force:

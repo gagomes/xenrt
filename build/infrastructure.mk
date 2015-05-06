@@ -306,7 +306,7 @@ ifeq ($(PUPPETNODE),yes)
 	$(SUDO) puppet agent -t
 else
 	make ${PUPPETREPO}
-	$(SUDO) puppet apply -e 'class {"xenrt_controller::xenrt_dev": user => "${USERNAME}", group => "${GROUPNAME}"}' --modulepath ${ROOT}/${PUPPETREPO}/modules -t
+	$(SUDO) puppet apply -e 'class {"xenrt_controller::xenrt_dev": user => "${USERNAME}", group => "${GROUPNAME}"}' --modulepath ${ROOT}/${PUPPETREPO}/modules --verbose --show_diff
 endif
 
 .PHONY: puppet-%

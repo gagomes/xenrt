@@ -2795,6 +2795,18 @@ class TC10590(_TCLVHDLeafCoalesce):
     SRTYPE = "lvmohba"
     SRTYPE_SECOND_VDI = "lvmohba"
     
+    def doCheckChains(self, retries=5):
+        try:
+            _TCLVHDLeafCoalesce.doCheckChains(self)
+        except Exception, e:
+            if retries > 0:
+                xenrt.TEC().logverbose("doCheckChains failed; retrying leaf coalesce in 30s (%d)..." % retries)
+                time.sleep(30)
+                self.waitForCoalesce()
+                self.doCheckChains(retries = retries - 1)
+            else:
+                raise e
+    
 class TC10591(_TCLVHDLeafCoalesce):
     """Leaf node coalesce of a running VM with one VHD on LVMoHBA SR and one on local LVM SR"""
     
@@ -3151,7 +3163,7 @@ class TC12424(_TCLVHDOnlineLeafCoalesce):
         self.waitForCoalesce()
 
         # Check VDI chains are now of length 1
-        self.runSubcase("doCheckChains", (), "Guest", "Chains")
+        self.runSubcase("", (), "Guest", "Chains")
 
         # Verify the in-VM data patterns
         self.runSubcase("checkPatterns", (), "Guest", "Patterns")

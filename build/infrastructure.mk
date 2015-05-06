@@ -81,11 +81,8 @@ extrapackages-install:
 	$(info Installing extra packages not included in preseed file)
 	$(SUDO) apt-get update
 	$(SUDO) apt-get install -y --force-yes unzip zip ipmitool openipmi snmp-mibs-downloader dsh curl libxml2-utils python-profiler expect patchutils pylint libxml2-dev libpcap-dev libssl-dev telnet python-pygresql openssh-server psmisc less postgresql mercurial sudo make nfs-common rsync gcc python-crypto python-ipy python-simplejson python-paramiko python-fpconst python-soappy python-imaging python-logilab-common python-logilab-astng python-pywbem python-epydoc python-numpy python-tlslite python-libxml2 pylint nfs-kernel-server stunnel ntp dnsmasq vlan tftpd-hpa iscsitarget rpm2cpio module-assistant debhelper genisoimage conserver-client vim screen apt-cacher vsftpd python-matplotlib nmap ucspi-tcp uuid-runtime realpath autofs lsof xfsprogs libnet-ldap-perl python-mysqldb sshpass postgresql postgresql-client build-essential snmp python-lxml python-requests gcc-multilib squashfs-tools fping python-setuptools libapache2-mod-wsgi python-dev cabextract elinks python-pip python-psycopg2 libkrb5-dev python-ldap
-	# Squeeze only
-	-$(SUDO) apt-get install -y --force-yes iscsitarget-source
 	# Wheezy only
 	-$(SUDO) apt-get install -y --force-yes libc6-i386 xcp-xe
-	-$(SUDO) apt-get install -y --force-yes samba cifs-utils
 	-$(SUDO) apt-get install -y --force-yes git
 	-$(SUDO) apt-get install -y --force-yes git-core
 	-$(SUDO) apt-get install -y --force-yes default-jre-headless
@@ -211,20 +208,6 @@ symlinks:
 	$(info Creating symlinks)
 	$(foreach symlink,$(SYMLINKS), $(SUDOSH) 'mkdir -p `dirname \`echo $(symlink) | cut -d "," -f 2\``; ln -sfT `echo $(symlink) | cut -d "," -f 1` `echo $(symlink) | cut -d "," -f 2`';)
 
-.PHONY: nfs
-nfs: $(SCRATCHDIR)
-	$(info Installing NFS...)
-	$(call BACKUP,$(EXPORTS))
-	$(SUDOSH) 'echo "$(IMAGEDIR) *(ro,$(NFSCOMMON))" > $(EXPORTS)'
-	$(SUDOSH) 'echo "$(SCRATCHDIR) *(rw,$(NFSCOMMON))" >> $(EXPORTS)'
-	$(SUDOSH) 'echo "$(XVADIR) *(rw,$(NFSCOMMON))" >> $(EXPORTS)'
-	$(SUDOSH) 'echo "/local/tftpboot *(rw,$(NFSCOMMON))" >> $(EXPORTS)'
-	$(foreach dir,$(EXTRANFSDIRS), $(SUDOSH) 'echo "$(dir) *(rw,$(NFSCOMMON))" >> $(EXPORTS)';)
-	$(SUDO) mkdir -p $(IMAGEDIR)
-	$(SUDO) mkdir -p $(XVADIR)
-	$(SUDO) chown $(USERID):$(GROUPID) $(IMAGEDIR)
-	$(SUDO) /etc/init.d/nfs-kernel-server restart
-
 .PHONY: dhcpdb
 dhcpdb: files
 	$(SUDO) mv $(ROOT)/$(XENRT)/xenrtdhcpd.cfg $(SHAREDIR)/xenrtdhcpd/xenrtdhcpd.cfg
@@ -285,7 +268,6 @@ ifeq ($(DOHOSTS),yes)
 	$(info Installing $(HOSTS)...)
 	$(call BACKUP,$(HOSTS))
 	$(SUDO) mv $(ROOT)/$(XENRT)/hosts $(HOSTS)
-	$(SUDO) mv $(ROOT)/$(XENRT)/dnsmasq.conf /etc/dnsmasq.conf
 	$(SUDO) /etc/init.d/dnsmasq restart
 endif
 
@@ -301,71 +283,6 @@ ifeq ($(DONETWORK),yes)
 	$(SUDO) ifup -a
 else
 	$(info Skipping network config)
-endif
-
-$(TFTPROOT)/ipxe.embedded.0:
-	$(info Building undionly.kpxe)
-	mkdir -p $(SHAREDIR)/ipxe
-	rsync -axl $(TEST_INPUTS)/ipxe/src $(SHAREDIR)/ipxe
-	echo "#!ipxe" > $(SHAREDIR)/ipxe/src/ipxe.script
-	echo dhcp >> $(SHAREDIR)/ipxe/src/ipxe.script
-	echo chain http://`ip addr | grep 'state UP' -A2 | grep inet | head -1 | awk '{print $$2}' | cut -d "/" -f 1`/tftp/default-ipxe.cgi >> $(SHAREDIR)/ipxe/src/ipxe.script
-	make -C $(SHAREDIR)/ipxe/src bin/undionly.kpxe EMBED=ipxe.script
-	$(SUDO) cp $(SHAREDIR)/ipxe/src/bin/undionly.kpxe $@
-
-.PHONY: tftp
-tftp:
-	$(info Installing TFTP...)
-	$(call BACKUP,$(INETD))
-	$(SUDO) mkdir -p /local/tftpboot
-	$(SUDO) ln -sfT /local/tftpboot $(TFTPROOT)
-	$(SUDO) mkdir -p $(TFTPROOT)/pxelinux.cfg
-	$(SUDO) sed -i 's#/srv/tftp#$(TFTPROOT)#g' /etc/default/tftpd-hpa
-	$(SUDO) /etc/init.d/tftpd-hpa restart
-	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/pxe/syslinux/pxelinux.0 $(TFTPROOT)
-	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/pxe/syslinux/menu.c32 $(TFTPROOT)
-	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/pxe/syslinux/mboot.c32 $(TFTPROOT)
-	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/pxe/syslinux/chain.c32 $(TFTPROOT)
-	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/pxe/syslinux/memdisk $(TFTPROOT)
-	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/pxe/banner $(TFTPROOT)
-	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/pxe/default $(TFTPROOT)/pxelinux.cfg
-	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/pxe/razor.ipxe $(TFTPROOT)
-	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/pxe/default-ipxe.cgi $(TFTPROOT)
-	$(SUDO) sed -i 's/__RAZOR_SERVER__/$(RAZOR_SERVER)/' $(TFTPROOT)/razor.ipxe
-	-$(SUDO) cp $(TEST_INPUTS)/ipxe/undionly.kpxe $(TFTPROOT)
-	-$(SUDO) ln -sf undionly.kpxe $(TFTPROOT)/ipxe.0
-	-$(SUDO) cp -R $(TEST_INPUTS)/clean $(TFTPROOT)
-	$(SUDO) mkdir -p $(TFTPROOT)/tinycorelinux
-	$(SUDO) mkdir -p $(TFTPROOT)/ipxe.cfg
-	-$(SUDO) cp $(TEST_INPUTS)/tinycorelinux/output/vmlinuz $(TFTPROOT)/tinycorelinux/
-	-$(SUDO) cp $(TEST_INPUTS)/tinycorelinux/output/core-xenrt.gz $(TFTPROOT)/tinycorelinux/
-	-$(SUDO) wget -O $(TFTPROOT)/grubx64.efi $(UEFI_GRUB_SOURCE)
-ifdef WINDOWS_ISOS
-	$(SUDO) ln -sfT $(WINDOWS_ISOS)/winpe $(TFTPROOT)/winpe
-endif
-	$(SUDO) chown -R $(USERID):$(GROUPID) $(TFTPROOT)
-	-make $(TFTPROOT)/ipxe.embedded.0
-
-.PHONY: httpd
-httpd:
-	$(info apache is now configured with puppet)
-
-.PHONY: samba
-samba:
-	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/samba/smb.conf /etc/samba/smb.conf
-	$(SUDO) sed -i s/xenrtd/$(USERNAME)/ /etc/samba/smb.conf
-	$(SUDO) /etc/init.d/samba restart
-
-.PHONY: iscsi
-iscsi:
-ifeq ($(BUILDISCSI),no)
-	$(info Skipping iSCSI target setup)
-else
-	$(info Installing ISCSI target...)
-	$(SUDO) apt-get install -y --force-yes linux-headers-`uname -r`
-	$(SUDO) apt-get install -y --force-yes iscsitarget iscsitarget-dkms	
-	$(SUDO) sed -i "s/false/true/" $(ISCSI)
-	$(SUDO) /etc/init.d/iscsitarget restart
 endif
 
 .PHONY: conserver
@@ -426,7 +343,7 @@ ifeq ($(DOSITECONTROLLERCMD),yes)
 endif
 
 .PHONY: infrastructure
-infrastructure: api winpe files autofs dhcpd dhcpd6 hosts network conserver logrotate cron sitecontrollercmd nfs tftp iscsi sudoers extrapackages loop $(SHAREDIR)/images/vms/etch-4.1.img symlinks samba libvirt
+infrastructure: api winpe files autofs dhcpd dhcpd6 hosts network conserver logrotate cron sitecontrollercmd sudoers extrapackages loop $(SHAREDIR)/images/vms/etch-4.1.img symlinks libvirt
 	$(info XenRT infrastructure installed.)
 
 

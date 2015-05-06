@@ -320,3 +320,7 @@ ifeq ($(PUPPETNODE),yes)
 	$(SUDO) cp $(ROOT)/$(INTERNAL)/config/puppet/puppet.conf /etc/puppet
 	$(SUDO) sed -i 's/xenrt.xs.citrite.net/xenrt.citrite.net/' /etc/resolv.conf
 endif
+
+.PHONY: puppet
+puppet:
+	make puppet-`grep -Iroh -e wheezy -e squeeze -e precise -e lucid -e trusty -e jessie /etc/apt 2>/dev/null | head -1`

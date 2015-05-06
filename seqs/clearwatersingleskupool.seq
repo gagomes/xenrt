@@ -12,8 +12,8 @@
         <postinstall action="installV6LicenseServer"/>
       </vm>
     </host>
-    <pool id="0" license="free">
-      <host id="1">
+    <pool id="0">
+      <host id="1" license="free">
         <vm name="linux">
           <distro>debian60</distro>
           <network device="0" />

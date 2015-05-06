@@ -10788,6 +10788,12 @@ class ClearwaterHost(TampaHost):
     #This is a temp license function once clearwater and trunk will be in sync this will become "license" funtion
     def license(self, edition = "per-socket", v6server = None, sku=None):
 
+        cli = self.getCLIInstance()
+        args = []
+
+        if sku:
+            edition = sku
+
         if edition == "per-socket" or edition == "xendesktop":
 
             licensed = True
@@ -10795,10 +10801,6 @@ class ClearwaterHost(TampaHost):
             
             licensed = False
  
-        cli = self.getCLIInstance()
-
-        args = []
-
         args.append("host-uuid=%s" % (self.getMyHostUUID()))
         args.append("edition=%s" % (edition))
   
@@ -14588,6 +14590,9 @@ class ClearwaterPool(TampaPool):
         cli = self.master.getCLIInstance()
 
         args = []
+
+        if sku:
+            edition = sku
 
         args.append("uuid=%s" % (self.getUUID()))
         args.append("edition=%s" % (edition))

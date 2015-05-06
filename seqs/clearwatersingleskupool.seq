@@ -6,13 +6,13 @@
   </variables>
 
   <prepare>
-    <host id="0">
+    <host id="0" license="free">
       <vm name="LicenseServer">
         <file>%LICENSE_SERVER_XVA%</file>
         <postinstall action="installV6LicenseServer"/>
       </vm>
     </host>
-    <pool id="0">
+    <pool id="0" license="free">
       <host id="1">
         <vm name="linux">
           <distro>debian60</distro>

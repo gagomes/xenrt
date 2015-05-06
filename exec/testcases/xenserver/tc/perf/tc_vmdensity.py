@@ -2627,7 +2627,7 @@ MachinePassword=%s
     def do_DOM0RAM(self, value, coord):
         xenrt.TEC().logverbose("DEBUG: DOM0RAM value=[%s]" % value)
         # change dom0 ram in MB and reboot host
-        xenrt.TEC().config.setVariable("OPTION_DOM0_MEM", ("%sM,max:%sM" % (value,)))
+        xenrt.TEC().config.setVariable("OPTION_DOM0_MEM", ("%sM,max:%sM" % (value, value)))
         self.dom0ram=value
 
     def do_DOM0PARAMS(self, value, coord):

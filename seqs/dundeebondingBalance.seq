@@ -23,6 +23,7 @@
 
   <testsequence>
     <serial group="Balancing">
+      <testcase id="xenserver.tc.bonding.TC8310" blocker="yes"/>
       <testcase id="xenserver.tc.bonding.TC17755" blocker="yes"/>
       <testcase id="xenserver.tc.bonding.TC17756" blocker="yes"/>
     </serial>

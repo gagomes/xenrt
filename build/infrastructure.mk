@@ -314,6 +314,7 @@ puppet-%:
 	$(info Installing puppet agent)
 	wget -O puppet-release.deb https://apt.puppetlabs.com/puppetlabs-release-$(patsubst puppet-%,%,$@).deb
 	$(SUDO) dpkg -i puppet-release.deb
+	rm puppet-release.deb
 	$(SUDO) apt-get update
 	$(SUDO) apt-get install -y puppet
 ifeq ($(PUPPETNODE),yes)

@@ -115,8 +115,7 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
 
             vm.unpause()
 
-            time.sleep(30)
-            # TODO find a way for proper wait
+            vm.waitReadyAfterStart()
 
     def createVMsForSR(self, sr):
         for i in range(self.vms_per_sr):

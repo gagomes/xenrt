@@ -776,15 +776,6 @@ users:
     def start(self, reboot=False, skipsniff=False, specifyOn=True,\
               extratime=False, managenetwork=None, managebridge=None, 
               forcedReboot = False):
-
-        # we should be able to wipe previous setting by giving
-        # managenetwork/bridge = False arguments
-
-        if managenetwork is not None:
-            self.managenetwork = managenetwork
-        if managebridge is not None:
-            self.managebridge = managebridge
-
         # Start the VM
         if reboot:
             xenrt.TEC().progress("Rebooting guest VM %s" % (self.name))
@@ -809,6 +800,19 @@ users:
         else:
             xenrt.TEC().progress("Starting guest VM %s" % (self.name))
             self.lifecycleOperation("vm-start",specifyOn=specifyOn)
+
+        self.waitReadyAfterStart(skipsniff, extratime, managenetwork, managebridge)
+
+    def waitReadyAfterStart(self, skipsniff=False, extratime=False,\
+                            managenetwork=None, managebridge=None):
+
+        # we should be able to wipe previous setting by giving
+        # managenetwork/bridge = False arguments
+
+        if managenetwork is not None:
+            self.managenetwork = managenetwork
+        if managebridge is not None:
+            self.managebridge = managebridge
 
         # Wait for the VM to come up.
         xenrt.TEC().progress("Waiting for the VM to enter the UP state")

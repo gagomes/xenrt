@@ -541,11 +541,6 @@ Version 1.1.0
         guests = self.host.guests.values()
         self.installTemplate(guests)
 
-        # Save original SM backend type and set new one if necessary
-        if self.backend == "xen-blkback":
-            original_backend = self.host.execdom0('grep ^VDI_TYPE_RAW /opt/xensource/sm/vhdutil.py | sed "s/VDI_TYPE_RAW = \'\\(.\\+\\)\'/\\1/"').strip()
-            self.host.execdom0('sed -i "s/^VDI_TYPE_RAW = \'\\(aio\|phy\\)\'$/VDI_TYPE_RAW = \'phy\'/" /opt/xensource/sm/vhdutil.py')
-
         # Create SRs on the given devices
         for device in self.devices:
             if device == "default":
@@ -652,7 +647,3 @@ Version 1.1.0
                 self.runPhaseWindows(i, 'r')
             else:
                 self.runPhase(i, 'r')
-
-        # Restore original backend type if necessary
-        if self.backend == "xen-blkback":
-            self.host.execdom0('sed -i "s/^VDI_TYPE_RAW = \'\\(aio\|phy\\)\'$/VDI_TYPE_RAW = \'%s\'/" /opt/xensource/sm/vhdutil.py' % original_backend)

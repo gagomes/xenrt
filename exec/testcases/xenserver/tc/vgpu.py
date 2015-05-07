@@ -892,8 +892,8 @@ class TCVGPUCloneVM(VGPUOwnedVMsTest):
 
         if not self.args.has_key("typeofvgpu"):
             raise xenrt.XRTError("Type of vGPU not defined")
-        else:
-            tofvgpu = self.args["typeofvgpu"]
+
+        tofvgpu = self.args["typeofvgpu"]
         if tofvgpu == self.getDiffvGPUName(DiffvGPUType.NvidiaWinvGPU):
             self.typeofvgpu = NvidiaWindowsvGPU()
         if tofvgpu == self.getDiffvGPUName(DiffvGPUType.IntelWinvGPU):

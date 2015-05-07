@@ -117,8 +117,13 @@ class NetScaler(object):
         for n in networks[1:]:
             i += 1
             xenrt.TEC().logverbose("Creating VLAN %d for network %s" % (i, n))
+
+            # Find out the name NetScaler has given to the interface
+            lines = self.__netScalerCliCommand("show interfaces")
+            iface = next(line.split('\t')[1].split(' ')[1] for line in lines if line.startswith("%d)" % (i)))
+
             self.__netScalerCliCommand("add vlan %d" % i)
-            self.__netScalerCliCommand("bind vlan %d -ifnum 1/%d" % (i, i))
+            self.__netScalerCliCommand("bind vlan %d -ifnum %s" % (i, iface))
             dev, ip, masklen = [x for x in ipSpec if x[0] == "eth%d" % (i-1)][0]
             if ip:
                 self.__subnetips[n] = ip

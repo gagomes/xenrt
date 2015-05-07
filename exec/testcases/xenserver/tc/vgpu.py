@@ -471,8 +471,8 @@ class VGPUTest(object):
         if not intelPGPUUUID:
             raise xenrt.XRTFailure("No Intel GPU found")
 
-        host.unblockDom0AccessToOboardPGPU(intelPGPUUUID)
-        host.enablHostDisplay()
+        host.unblockDom0AccessToOnboardPGPU(intelPGPUUUID)
+        host.enableHostDisplay()
         host.reboot()
         verifyUnblocked()
  

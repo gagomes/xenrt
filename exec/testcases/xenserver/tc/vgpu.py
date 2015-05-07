@@ -3834,7 +3834,7 @@ class GPUGroup(object):
     """
 
     def __init__(self, host, uuid):
-        self.__gridtype__ = ""
+        self.__gridtype = ""
         self.__meta__ = ""
         #self.__allocmode__ = None
         self.host = host
@@ -3843,25 +3843,25 @@ class GPUGroup(object):
         #self.updateAllocationMode()
 
     def getGridType(self):
-        if self.__gridtype__ == "":
+        if self.__gridtype == "":
             self.updatePGPUList()
-        return self.__gridtype__
+        return self.__gridtype
 
     def updatePGPUList(self):
         self.gpuList = self.host.minimalList("pgpu-list", "", "gpu-group-uuid=%s" % (self.uuid,))
         log("GPU group %s has %s pgpus." % (self.uuid, self.gpuList))
-        if self.__gridtype__ == "" and len(self.gpuList) > 0:
+        if self.__gridtype == "" and len(self.gpuList) > 0:
             device = self.host.genParamGet("pgpu", self.gpuList[0], "device-name")
             if CardDeviceName[CardType.K1] in device:
-                self.__gridtype__ = CardName[CardType.K1]
+                self.__gridtype = CardName[CardType.K1]
             elif CardDeviceName[CardType.K2] in device:
-                self.__gridtype__ = CardName[CardType.K2]
+                self.__gridtype = CardName[CardType.K2]
             elif CardDeviceName[CardType.Intel] in device:
-                self.__gridtype__ = CardName[CardType.Intel]
+                self.__gridtype = CardName[CardType.Intel]
             elif CardDeviceName[CardType.Quadro] in device:
-                self.__gridtype__ = CardName[CardType.Quadro]
+                self.__gridtype = CardName[CardType.Quadro]
             else:
-                self.__gridtype__ = "unknown"
+                self.__gridtype = "unknown"
 
     #def updateAllocationMode(self):
         #self.__allocmode__ = self.host.genParamGet("gpu-group", self.uuid, "allocation-algorithm")

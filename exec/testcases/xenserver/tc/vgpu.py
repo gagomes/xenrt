@@ -432,6 +432,12 @@ class VGPUTest(object):
         hostdisplay = host.getHostParam("display")
         return __checkAccess(hostdisplay, "display param on host")
 
+    def __getValidPGPU(self, pgpus, cardName, host):
+        for uuid in pgpu:
+            if cardName in host.genParamGet("pgpu", uuid ,"vendor-name"):
+                if host.getName() == host.genParamGet("pgpu", uuid, "host-name-label"):
+                    return uuid
+
     def blockDom0Access(self, cardName, host, reboot=True):
         def verifyBlocked():
             if self.__checkDom0Access(host, intelPGPUUUID):
@@ -439,15 +445,9 @@ class VGPUTest(object):
             if self.__checkDisplay(host):
                 raise xenrt.XRTError("Host display was not successfully disabled.")
 
-        pgpu = host.minimalList("pgpu-list")
-
-        intelPGPUUUID = None
-        for uuid in pgpu:
-            if cardName in host.genParamGet("pgpu", uuid ,"vendor-name"):
-                if host.getName() == host.genParamGet("pgpu", uuid, "host-name-label"):
-                    intelPGPUUUID = uuid
-                    break
-
+        pgpus = host.minimalList("pgpu-list")
+        intelPGPUUUID = __getValidPGPU(pgpus, cardName, host)
+        
         if not intelPGPUUUID:
             raise xenrt.XRTFailure("No Intel GPU found")
 
@@ -465,14 +465,8 @@ class VGPUTest(object):
             if not self.__checkDisplay(host):
                 raise xenrt.XRTError("Host display was not successfully enabled.")
 
-        pgpu = host.minimalList("pgpu-list")
-        
-        intelPGPUUUID = None
-        for uuid in pgpu:
-            if cardName in host.genParamGet("pgpu", uuid ,"vendor-name"):
-                if host.getName() == host.genParamGet("pgpu", uuid, "host-name-label"):
-                    intelPGPUUUID = uuid
-                    break
+        pgpus = host.minimalList("pgpu-list")
+        intelPGPUUUID = __getValidPGPU(pgpus, cardName, host)
 
         if not intelPGPUUUID:
             raise xenrt.XRTFailure("No Intel GPU found")

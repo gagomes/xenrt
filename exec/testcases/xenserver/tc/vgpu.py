@@ -1936,12 +1936,14 @@ class DifferentGPU(object):
         """
         pass
 
+    @abstractmethod
     def blockDom0Access(self, host, reboot=True):
         """
         Block Dom0 Access to onboard graphics card
         """
         pass
 
+    @abstractmethod
     def unblockDom0Access(self, host):
         """
         Block Dom0 Access to onboard graphics card

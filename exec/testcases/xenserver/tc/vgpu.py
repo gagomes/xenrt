@@ -3374,8 +3374,8 @@ class TCIntelSetupNegative(IntelBase):
                     raise xenrt.XRTFailure("Can attach Intel GPU to vm, while Host not rebooted after blocking Dom0 Access.")
                 except:
                     pass
-
-                self.typeOfvGPU.unblockDom0Access(self.host)
+                finally:
+                    self.typeOfvGPU.unblockDom0Access(self.host)
 
 
 class TCIntelGPUSnapshotNegative(IntelBase):
@@ -3407,10 +3407,9 @@ class TCIntelGPUSnapshotNegative(IntelBase):
                     raise xenrt.XRTFailure("Able to revert to Intel GPU Passthrough enabled snapshot, after unblocking Dom0 Access to Host.")
                 except:
                     pass
-
-                # Return to blocked state for rest of distros.
-                self.typeOfvGPU.blockDom0Access(self.host)
-
+                finally:
+                    # Return to blocked state for rest of distros.
+                    self.typeOfvGPU.blockDom0Access(self.host)
 
 class TCIntelGPUReuse(IntelBase):
     """Intel GPU can be reused once it is down."""

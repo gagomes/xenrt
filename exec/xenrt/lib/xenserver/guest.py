@@ -4537,6 +4537,7 @@ def createVMFromFile(host,
     guest.reparseVIFs()
     guest.vifs.sort()
 
+    guest.sriovvifs = sriovvifs
     setupSRIOVVIFs(guest, host, sriovvifs)
 
     if bootparams:

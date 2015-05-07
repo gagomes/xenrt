@@ -414,25 +414,23 @@ class VGPUTest(object):
         vgpucreator.createOnGuest(vm, groupuuid)
         vm.setState("UP")
 
-    def __checkDom0Access(self, host, gpuuuid):
-        """Returns True or False, as to if the dom0-access pgpu param is enabled or disabled."""
-        access = host.genParamGet("pgpu", gpuuuid, "dom0-access")
+    def __checkAccess(self, access, errorCode):
         if access == "enabled":
             return True
         elif access == "disabled":
             return False
         else:
-            raise xenrt.XRTError("dom0-access param on gpu, uuid %s, was neither enabled or disabled." % (gpuuuid))
+            raise xenrt.XRTError("%s was neither enabled or disabled." % (something))
+
+    def __checkDom0Access(self, host, gpuuuid):
+        """Returns True or False, as to if the dom0-access pgpu param is enabled or disabled."""
+        access = host.genParamGet("pgpu", gpuuuid, "dom0-access")
+        return __checkAccess(access, "dom0-access param on gpu")
 
     def __checkDisplay(self, host):
         """Returns True or False, as to if the display host param is enabled or disabled."""
         hostdisplay = host.getHostParam("display")
-        if hostdisplay == "enabled":
-            return True
-        elif hostdisplay == "disabled":
-            return False
-        else:
-            raise xenrt.XRTError("display param on host was neither enabled or disabled.")
+        return __checkAccess(hostdisplay, "display param on host")
 
     def blockDom0Access(self, cardName, host, reboot=True):
         def verifyBlocked():

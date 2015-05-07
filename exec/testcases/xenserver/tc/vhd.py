@@ -2800,7 +2800,7 @@ class TC10589(_TCLVHDLeafCoalesce):
 
     SRTYPE = "lvmohba"
 
-class TC(_TCLVHDLeafCoalesce):
+class TC10590(_TCLVHDLeafCoalesce):
     """Leaf node coalesce of a running VM with two VHDs on LVMoHBA SR"""
     
     SCENARIO = _TCLVHDLeafCoalesce.SCENARIO_TWO_VBDS_SAME_SR

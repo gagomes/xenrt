@@ -3352,30 +3352,33 @@ class IntelBase(FunctionalBase):
                 vm.enableFullCrashDump()
             self.masterVMsSnapshot[osType] = vm.snapshot()
 
+    @abstractmethod
+    def insideRun(self, vm, config):
+        pass
+
+    def run(self, arglist):
+        for config in self.VGPU_CONFIG:
+            for distro in self.REQUIRED_DISTROS:
+                osType = self.getOSType(distro)
+                
+                vm = self.masterVMs[osType]
+                self.insideRun(vm, config)
 
 class TCIntelSetupNegative(IntelBase):
     """
     Passthrough GPU to win VM without rebooting host after block.
     """
+    def insideRun(self, vm, config):
+        self.typeOfvGPU.unblockDom0Access(self.host)
+        self.typeOfvGPU.blockDom0Access(self.host, reboot=False)
 
-    def run(self, arglist):
-
-        for config in self.VGPU_CONFIG:
-            for distro in self.REQUIRED_DISTROS:
-                osType = self.getOSType(distro)
-
-                self.typeOfvGPU.unblockDom0Access(self.host)
-                self.typeOfvGPU.blockDom0Access(self.host, reboot=False)
-
-                vm = self.masterVMs[osType]
-
-                try:
-                    self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
-                    raise xenrt.XRTFailure("Can attach Intel GPU to vm, while Host not rebooted after blocking Dom0 Access.")
-                except:
-                    pass
-                finally:
-                    self.typeOfvGPU.unblockDom0Access(self.host)
+        try:
+            self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
+            raise xenrt.XRTFailure("Can attach Intel GPU to vm, while Host not rebooted after blocking Dom0 Access.")
+        except:
+            pass
+        finally:
+            self.typeOfvGPU.unblockDom0Access(self.host)
 
 
 class TCIntelGPUSnapshotNegative(IntelBase):
@@ -3383,33 +3386,28 @@ class TCIntelGPUSnapshotNegative(IntelBase):
     Revert GPU Passthrough snapshot (negative).
     """
 
-    def run(self, arglist):
-        for config in self.VGPU_CONFIG:
-            for distro in self.REQUIRED_DISTROS:
-                osType = self.getOSType(distro)
-                vm = self.masterVMs[osType]
+    def insideRun(self, vm, config):
+        self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
 
-                self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
+        withGPUSnapshot = vm.snapshot()
 
-                withGPUSnapshot = vm.snapshot()
+        vm.setState("DOWN")
+        vm.destroyvGPU()
+        self.typeOfvGPU.unblockDom0Access(self.host)
 
-                vm.setState("DOWN")
-                vm.destroyvGPU()
-                self.typeOfvGPU.unblockDom0Access(self.host)
+        vm.setState("UP")
+        # VM will shutdown after revert.
+        vm.revert(withGPUSnapshot)
 
-                vm.setState("UP")
-                # VM will shutdown after revert.
-                vm.revert(withGPUSnapshot)
-
-                # VM should fail to start.
-                try:
-                    vm.setState("UP")
-                    raise xenrt.XRTFailure("Able to revert to Intel GPU Passthrough enabled snapshot, after unblocking Dom0 Access to Host.")
-                except:
-                    pass
-                finally:
-                    # Return to blocked state for rest of distros.
-                    self.typeOfvGPU.blockDom0Access(self.host)
+        # VM should fail to start.
+        try:
+            vm.setState("UP")
+            raise xenrt.XRTFailure("Able to revert to Intel GPU Passthrough enabled snapshot, after unblocking Dom0 Access to Host.")
+        except:
+            pass
+        finally:
+            # Return to blocked state for rest of distros.
+            self.typeOfvGPU.blockDom0Access(self.host)
 
 class TCIntelGPUReuse(IntelBase):
     """Intel GPU can be reused once it is down."""
@@ -3436,30 +3434,24 @@ class TCIntelGPUReuse(IntelBase):
 class TCPoolIntelGPU(IntelBase):
     """Intel GPU Passthrough in a pool"""
 
-    def run(self, arglist):
+    def insideRun(self, vm, config):
+        vm.setState("DOWN")
+        vm1 = vm.cloneVM(noIP=False)
+        vm2 = vm.cloneVM(noIP=False)
 
-        for config in self.VGPU_CONFIG:
-            for distro in self.REQUIRED_DISTROS:
-                osType = self.getOSType(distro)
+        for vm in [vm1, vm2]:
+            self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
+            self.typeOfvGPU.installGuestDrivers(vm, self.getConfigurationName(config))
+            self.typeOfvGPU.assertvGPURunningInVM(vm, self.getConfigurationName(config))
+            vm.setState("DOWN")
 
-                masterVM = self.masterVMs[osType]
-                masterVM.setState("DOWN")
-                vm1 = masterVM.cloneVM(noIP=False)
-                vm2 = masterVM.cloneVM(noIP=False)
-
-                for vm in [vm1, vm2]:
-                    self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
-                    self.typeOfvGPU.installGuestDrivers(vm, self.getConfigurationName(config))
-                    self.typeOfvGPU.assertvGPURunningInVM(vm, self.getConfigurationName(config))
-                    vm.setState("DOWN")
-
-                for i in range(10):
-                    vm1.setState("DOWN")
-                    vm2.setState("DOWN")
-                    # setState() defaults to trying to start vms on the same host when in a pool.
-                    vm1.start(specifyOn=False)
-                    xenrt.sleep(10)
-                    vm2.start(specifyOn=False)
+        for i in range(10):
+            vm1.setState("DOWN")
+            vm2.setState("DOWN")
+            # setState() defaults to trying to start vms on the same host when in a pool.
+            vm1.start(specifyOn=False)
+            xenrt.sleep(10)
+            vm2.start(specifyOn=False)
 
 class TCAlloModeK200NFS(VGPUAllocationModeBase):
 

@@ -147,7 +147,7 @@ class TCSkipPvPkg(WindowsUpdateBase):
         
         pkgList = random.sample(pvDriverList, 4)
         step("Install PV Drivers on the windows guest")
-        self.guest.installPVPackage(packageList = pkglist )
+        self.guest.installPVPackage(packageList = pkgList )
         self.guest.reboot()
         
         self.guest.waitForDaemon(300, desc="Guest check after installation of PV Packages %s" %(pkgList))
@@ -161,7 +161,7 @@ class TCSkipPvPkgNoAgent(WindowsUpdateBase):
         
         pkgList = random.sample(pvDriverList, 4)
         step("Install PV Drivers on the windows guest")
-        self.guest.installPVPackage(packageList = pkglist )
+        self.guest.installPVPackage(packageList = pkgList )
         self.guest.reboot()
         
         self.guest.waitForDaemon(300, desc="Guest check after installation of PV Packages %s" %(pkgList))

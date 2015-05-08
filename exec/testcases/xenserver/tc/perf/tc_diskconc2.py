@@ -32,6 +32,7 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
         self.blocksizes = self.blocksizes.strip().split(",")
         self.queuedepth = libperf.getArgument(arglist, "queue_depth", int, 1)
         self.multiqueue = libperf.getArgument(arglist, "multiqueue", int, None)
+        self.num_threads = libperf.getArgument(arglist, "num_threads", int, 1)
         self.vms_per_sr = libperf.getArgument(arglist, "vms_per_sr", int, 1)
         self.vbds_per_vm = libperf.getArgument(arglist, "vbds_per_vm", int, 1)
         self.vcpus_per_vm = libperf.getArgument(arglist, "vcpus_per_vm", int, None)
@@ -175,10 +176,11 @@ for i in {b..%s}; do
                             --filename=/dev/xvd$i \
                             --minimal \
                             --terse-version=3 \
+                            --numjobs=%d \
                             --rw=%s \
                             --iodepth=%d \
                             --bssplit=%d/100 \
-                            --runtime=%d %s | cut -d";" -f%d) * 1024)) &> /root/out-$i &
+                            --runtime=%d %s | cut -d";" -f%d | paste -sd+ - | bc) * 1024)) &> /root/out-$i &
     pid[$pididx]=$!
     ((pididx++))
 done
@@ -186,7 +188,7 @@ done
 for ((idx=0; idx<pididx; idx++)); do
   wait ${pid[$idx]}
 done
-""" % (chr(ord('a') + self.vbds_per_vm), rw,
+""" % (chr(ord('a') + self.vbds_per_vm), self.num_threads, rw,
        self.queuedepth, blocksize, self.duration,
        "--zero_buffers" if self.zeros else "", 6 if op == "r" else 47)
         else:

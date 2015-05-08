@@ -156,8 +156,7 @@ class TCRemoteNoseSetup(_TCRemoteNoseBase):
             testData['configurableData']['host']['password'] = xenrt.TEC().lookup("ROOT_PASSWORD")
             # ISO replacements
             if testData['configurableData'].has_key("bootableIso"):
-                testData['configurableData']['bootableIso']['url'] = "%s/memtest86+-5.01.iso" % xenrt.TEC().lookup("EXPORT_ISO_HTTP_STATIC")
-                testData['configurableData']['bootableIso']['ostype'] = "Other (64-bit)"
+                testData['configurableData']['bootableIso']['url'] = "%s/centos63_x86-64.iso" % xenrt.TEC().lookup("EXPORT_ISO_HTTP_STATIC")
             for i in ["iso", "iso1", "iso2"]:
                 if testData.has_key(i):
                     testData[i]['url'] = "%s/dummy.iso" % xenrt.TEC().lookup("EXPORT_ISO_HTTP_STATIC")

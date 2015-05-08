@@ -2523,7 +2523,8 @@ class _TCLVHDLeafCoalesce(xenrt.TestCase):
                     # Expected
                     pass
                 else:
-                    raise e
+                    raise e            
+                    
             if vhdparent:
                 raise xenrt.XRTError("VDI still has vhd-parent after leaf "
                                      "coalesce", vdiuuid)
@@ -2585,8 +2586,20 @@ class _TCLVHDLeafCoalesce(xenrt.TestCase):
             self.runSubcase("doCheckFreeSpace", (), "SR", "FreeSpace")
 
             # Check VDI chains are now of length 1
-            self.runSubcase("doCheckChains", (), "Guest", "Chains")
-
+            retries = 5
+            while retries:
+                try:
+                    self.runSubcase("doCheckChains", (), "Guest", "Chains")
+                    break
+                except xenrt.XRTError, e:
+                    xenrt.TEC().logverbose("VDI still has parent-VHD after leaf coalesce; retrying (%d) time checking in 30s ..." % retries)
+                    time.sleep(30)
+                    retries = retries -1
+                    if not retries:
+                        raise e
+                except Exception, e:
+                    raise e
+                       
         # Verify the in-VM data patterns
         if not self.WINDOWS:
             self.runSubcase("checkPatterns", (), "Guest", "Patterns")
@@ -2648,20 +2661,8 @@ class TC10566(_TCLVHDLeafCoalesce):
 class TC10567(_TCLVHDLeafCoalesce):
     """Leaf node coalesce of a suspended VM with two VHDs on local LVM SR"""
     
-    SCENARIO = _TCLVHDLeafCoalesce.SCENARIO_TWO_VBDS_SAME_SR
-    VM_STATE = "SUSPENDED"
-    
-    def doCheckChains(self, retries=5):
-        try:
-            _TCLVHDLeafCoalesce.doCheckChains(self)
-        except Exception, e:
-            if retries > 0:
-                xenrt.TEC().logverbose("doCheckChains failed; retrying leaf coalesce in 30s (%d)..." % retries)
-                time.sleep(30)
-                self.waitForCoalesce()
-                self.doCheckChains(retries = retries - 1)
-            else:
-                raise e
+    SCENARIO =.SCENARIO_TWO_VBDS_SAME_SR
+    VM_STATE = "SUSPENDED"    
 
 class TC10568(_TCLVHDLeafCoalesce):
     """Leaf node coalesce of a suspended VM with one VHD on local LVM SR with the VHD being resized after the snapshot"""
@@ -2805,19 +2806,7 @@ class TC10590(_TCLVHDLeafCoalesce):
     
     SCENARIO = _TCLVHDLeafCoalesce.SCENARIO_TWO_VBDS_SAME_SR
     SRTYPE = "lvmohba"
-    SRTYPE_SECOND_VDI = "lvmohba"
-    
-    def doCheckChains(self, retries=5):
-        try:
-            _TCLVHDLeafCoalesce.doCheckChains(self)
-        except Exception, e:
-            if retries > 0:
-                xenrt.TEC().logverbose("doCheckChains failed; retrying leaf coalesce in 30s (%d)..." % retries)
-                time.sleep(30)
-                self.waitForCoalesce()
-                self.doCheckChains(retries = retries - 1)
-            else:
-                raise e
+    SRTYPE_SECOND_VDI = "lvmohba"       
     
 class TC10591(_TCLVHDLeafCoalesce):
     """Leaf node coalesce of a running VM with one VHD on LVMoHBA SR and one on local LVM SR"""

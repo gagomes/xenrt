@@ -464,21 +464,17 @@ Version 1.1.0
             postinstall = [] if self.postinstall is None else self.postinstall.split(",")
 
             if self.vm_image:
-                sr = self.host.chooseSR()
-                #self.template = self.importVMFromRefBase(self.host, self.vm_image, self.vm_image, sr)
-                vm_name = self.vm_image
-                g = self.host.guestFactory()(\
-                    vm_name, "NO_TEMPLATE",
-                    password=xenrt.TEC().lookup("DEFAULT_PASSWORD"))
-                xenrt.TEC().registry.guestPut(vm_name, g)
-                g.host = self.host
-                g.windows = False
+                disturl = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
+                vmurl = "%s/performance/base/%s" % (disturl, self.vm_image)
+                xenrt.TEC().logverbose("Getting vm from %s" % (vmurl))
 
-                g.importVM(self.host, "/mnt/distfiles-perf/base/%s" % (self.vm_image), sr=sr)
-                self.template = g
+                self.template = xenrt.productLib(host=self.host).guest.createVMFromFile(
+                        host=self.host,
+                        guestname=self.vm_image,
+                        filename=vmurl)
 
                 self.template.removeCD()
-                g.start()
+                self.template.start()
             else:
                 self.template = xenrt.productLib(host=self.host).guest.createVM(\
                         host=self.host,

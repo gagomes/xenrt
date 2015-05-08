@@ -46,7 +46,7 @@ minimal-install: install
 
 .PHONY: server
 server: install
-	$(SUDO) cp $(SHAREDIR)/server/xenrt-server service 
+	$(SUDO) cp $(SHAREDIR)/server/xenrt-server /etc/init.d 
 	$(SUDO) insserv xenrt-server
 	-$(SUDO) systemctl daemon-reload
 	$(SUDOSH) 'service xenrt-server start || $(SUDO) service xenrt-server reload'

@@ -142,7 +142,7 @@ ifeq ($(XENRT_DHCPD), yes)
 	$(info Removing ISC DHCPD)
 	$(SUDO) apt-get remove -y isc-dhcp-server
 	$(SUDOSH) 'su postgres -c "psql < $(SHAREDIR)/xenrtdhcpd/dhcp.sql"'
-	$(SUDO) cp $(SHAREDIR)/xenrtdhcpd/xenrtdhcpd-init service xenrtdhcpd
+	$(SUDO) cp $(SHAREDIR)/xenrtdhcpd/xenrtdhcpd-init /etc/init.d/xenrtdhcpd
 	$(SUDO) insserv xenrtdhcpd
 	-$(SUDO) systemctl daemon-reload
 	$(SUDO) mv $(ROOT)/$(XENRT)/xenrtdhcpd.cfg $(SHAREDIR)/xenrtdhcpd/xenrtdhcpd.cfg

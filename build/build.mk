@@ -19,7 +19,7 @@ include build/utils.mk
 fullsetup: setup disklessdebian
 
 .PHONY: setup 
-setup: sudoers extrapackages update install server test-tarballs infrastructure
+setup: update install server test-tarballs infrastructure
 	$(info XenRT setup completed.)
 
 .PHONY: minsetup

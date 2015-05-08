@@ -38,7 +38,7 @@ REVISION	= $(GIT) --git-dir=$(1)/.git --work-tree=$(1) log -1 --pretty=format:"$
 CONSKEY=$(shell cat $(ROOT)/$(INTERNAL)/keys/ssh/id_rsa_cons)
 
 .PHONY: update 
-update: $(XENRT) $(INTERNAL) $(PUPPETREPO)
+update: $(XENRT) $(INTERNAL)
 	$(info Updated XenRT repositories.)
 
 .PHONY: minimal-install

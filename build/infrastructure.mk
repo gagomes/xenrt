@@ -142,16 +142,18 @@ ifeq ($(XENRT_DHCPD), yes)
 	$(info Removing ISC DHCPD)
 	$(SUDO) apt-get remove -y isc-dhcp-server
 	$(SUDOSH) 'su postgres -c "psql < $(SHAREDIR)/xenrtdhcpd/dhcp.sql"'
-	$(SUDO) cp $(SHAREDIR)/xenrtdhcpd/xenrtdhcpd-init /etc/init.d/xenrtdhcpd
+	$(SUDO) cp $(SHAREDIR)/xenrtdhcpd/xenrtdhcpd-init service xenrtdhcpd
 	$(SUDO) insserv xenrtdhcpd
+	-$(SUDO) systemctl daemon-reload
 	$(SUDO) mv $(ROOT)/$(XENRT)/xenrtdhcpd.cfg $(SHAREDIR)/xenrtdhcpd/xenrtdhcpd.cfg
-	$(SUDO) /etc/init.d/xenrtdhcpd restart
+	$(SUDO) service xenrtdhcpd restart
 	$(SUDO) sed -i '/leases/d' $(INETD)
 	$(SUDOSH) 'echo "5556            stream  tcp     nowait          nobody  /usr/bin/python python $(SHAREDIR)/xenrtdhcpd/leases.py" >> $(INETD)'
-	$(SUDO) /etc/init.d/$(INETD_DAEMON) restart
+	$(SUDO) service $(INETD_DAEMON) restart
 else
 	-$(SUDO) insserv -r xenrtdhcpd
-	$(SUDO) rm -f /etc/init.d/xenrtdhcpd
+	-$(SUDO) systemctl daemon-reload
+	$(SUDO) rm -f service xenrtdhcpd
 ifeq ($(DHCP_UID_WORKAROUND),yes)
 	-$(ROOT)/$(XENRT)/infrastructure/dhcpd/build.sh
 endif
@@ -162,10 +164,10 @@ ifeq ($(DHCP_UID_WORKAROUND),yes)
 	$(ROOT)/$(XENRT)/infrastructure/dhcpd/build.sh
 endif
 	$(SUDO) mv $(ROOT)/$(XENRT)/dhcpd.conf $(DHCPD)
-	$(SUDO) /etc/init.d/isc-dhcp-server restart
+	$(SUDO) service isc-dhcp-server restart
 	$(SUDO) sed -i '/leases/d' $(INETD)
 	$(SUDOSH) 'echo "5556            stream  tcp     nowait          nobody  /bin/cat cat /var/lib/dhcp/dhcpd.leases" >> $(INETD)'
-	$(SUDO) /etc/init.d/$(INETD_DAEMON) restart
+	$(SUDO) service $(INETD_DAEMON) restart
 endif
 else
 	$(info Skipping DHCP config)
@@ -177,8 +179,8 @@ dhcpd6: files
 ifeq ($(DODHCPD6),yes)
 	$(info Installing IPv6 DHCPD...)
 	-$(SUDO) mv $(ROOT)/$(XENRT)/dibbler-server.conf $(DHCPD6)
-	-$(SUDO) /etc/init.d/dibbler-server stop 
-	-$(SUDO) /etc/init.d/dibbler-server start 
+	-$(SUDO) service dibbler-server stop 
+	-$(SUDO) service dibbler-server start 
 else
 	$(info Skipping DHCP6 config)
 endif
@@ -189,7 +191,7 @@ ifeq ($(DOHOSTS),yes)
 	$(info Installing $(HOSTS)...)
 	$(call BACKUP,$(HOSTS))
 	$(SUDO) mv $(ROOT)/$(XENRT)/hosts $(HOSTS)
-	$(SUDO) /etc/init.d/dnsmasq restart
+	$(SUDO) service dnsmasq restart
 endif
 
 .PHONY: network
@@ -210,7 +212,7 @@ endif
 conserver: files
 ifeq ($(DOCONSERVER),yes)
 	$(SUDO) mv $(ROOT)/$(XENRT)/conserver.cf /etc/conserver/conserver.cf
-	$(SUDO) /etc/init.d/conserver-server start || $(SUDO) /etc/init.d/conserver-server reload
+	$(SUDO) service conserver-server start || $(SUDO) service conserver-server reload
 endif
 
 .PHONY: loop

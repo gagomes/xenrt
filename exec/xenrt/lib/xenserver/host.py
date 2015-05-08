@@ -11496,10 +11496,10 @@ class CreedenceHost(ClearwaterHost):
         self.__exectuteAccessCommand(gpuuuid, "pgpu-enable-dom0-access")
 
     def disableHostDisplay(self):
-        __exectuteAccessCommand(self.uuid, "host-disable-display")
+        self.__exectuteAccessCommand(self.uuid, "host-disable-display")
 
     def enableHostDisplay(self):
-        __exectuteAccessCommand(self.uuid, "host-enable-display")
+        self.__exectuteAccessCommand(self.uuid, "host-enable-display")
 
 #############################################################################
 class DundeeHost(CreedenceHost):

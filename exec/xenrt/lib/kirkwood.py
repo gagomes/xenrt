@@ -251,9 +251,12 @@ hKIs4YWO6PDU3wwSSCLAmTvFuTj0VOFEfUaWax7tTkrj
 
     def handshake(self, tlsConnection):
         try:
+            settings = tlslite.api.HandshakeSettings()
+            settings.minVersion=(3,0)
             tlsConnection.handshakeServer(certChain=self.certChain,
                                           privateKey=self.privateKey,
-                                          sessionCache=self.sessionCache)
+                                          sessionCache=self.sessionCache,
+                                          settings=settings)
             tlsConnection.ignoreAbruptClose = True
             return True
         except tlslite.api.TLSError, error:

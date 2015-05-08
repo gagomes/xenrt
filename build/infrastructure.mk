@@ -215,14 +215,6 @@ ifeq ($(DOCONSERVER),yes)
 	$(SUDO) service conserver-server start || $(SUDO) service conserver-server reload
 endif
 
-.PHONY: loop
-loop:
-	$(info Setting up Loop devices)
-	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/loop/local-loop /etc/modprobe.d/
-	-$(SUDO) rmmod -f loop
-	-$(SUDO) modprobe loop max_loop=256
-	$(SUDO) sed -i 's/^exit 0/rmmod -f loop\nmodprobe loop max_loop=256/' /etc/rc.local
-
 .PHONY: logrotate
 logrotate:
 ifeq ($(DOLOGROTATE),yes)
@@ -266,7 +258,7 @@ ifeq ($(DOSITECONTROLLERCMD),yes)
 endif
 
 .PHONY: infrastructure
-infrastructure: puppetrun api winpe files dhcpd dhcpd6 hosts network conserver logrotate cron sitecontrollercmd loop libvirt
+infrastructure: puppetrun api winpe files dhcpd dhcpd6 hosts network conserver logrotate cron sitecontrollercmd libvirt
 	$(info XenRT infrastructure installed.)
 
 

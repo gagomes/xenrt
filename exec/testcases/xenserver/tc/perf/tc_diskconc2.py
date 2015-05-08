@@ -43,6 +43,10 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
         # Optional VM image to use as a template
         self.vm_image = libperf.getArgument(arglist, "vm_image", str, None)
 
+        # If vm_image is set, treat it as a distro name
+        if self.vm_image:
+            self.distro  = self.vm_image
+
         # A number in MB; e.g. 1024
         self.vm_ram = libperf.getArgument(arglist, "vm_ram", int, None)
 

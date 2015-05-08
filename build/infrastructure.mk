@@ -287,8 +287,8 @@ else
 	$(SUDO) puppet apply -e 'class {"xenrt_controller::xenrt_dev": user => "${USERNAME}", group => "${GROUPNAME}"}' --modulepath ${ROOT}/${PUPPETREPO}/modules --verbose --show_diff
 endif
 
-.PHONY: puppet-%
-puppet-%:
+.PHONY: puppetinstall-%
+puppetinstall-%:
 	$(info Installing puppet agent)
 	wget -O puppet-release.deb https://apt.puppetlabs.com/puppetlabs-release-$(patsubst puppet-%,%,$@).deb
 	$(SUDO) dpkg -i puppet-release.deb
@@ -300,6 +300,6 @@ ifeq ($(PUPPETNODE),yes)
 	$(SUDO) sed -i 's/xenrt.xs.citrite.net/xenrt.citrite.net/' /etc/resolv.conf
 endif
 
-.PHONY: puppet
-puppet:
-	make puppet-`grep -Iroh -e wheezy -e squeeze -e precise -e lucid -e trusty -e jessie /etc/apt 2>/dev/null | head -1`
+.PHONY: puppetinstall
+puppetinstall:
+	make puppetinstall-`grep -Iroh -e wheezy -e squeeze -e precise -e lucid -e trusty -e jessie /etc/apt 2>/dev/null | head -1`

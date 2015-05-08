@@ -446,7 +446,7 @@ class VGPUTest(object):
                 raise xenrt.XRTError("Host display was not successfully disabled.")
 
         pgpus = host.minimalList("pgpu-list")
-        intelPGPUUUID = __getValidPGPU(pgpus, cardName, host)
+        intelPGPUUUID = self.__getValidPGPU(pgpus, cardName, host)
         
         if not intelPGPUUUID:
             raise xenrt.XRTFailure("No Intel GPU found")
@@ -466,7 +466,7 @@ class VGPUTest(object):
                 raise xenrt.XRTError("Host display was not successfully enabled.")
 
         pgpus = host.minimalList("pgpu-list")
-        intelPGPUUUID = __getValidPGPU(pgpus, cardName, host)
+        intelPGPUUUID = self.__getValidPGPU(pgpus, cardName, host)
 
         if not intelPGPUUUID:
             raise xenrt.XRTFailure("No Intel GPU found")

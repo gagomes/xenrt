@@ -1699,17 +1699,12 @@ class _FailoverBondTest(_AggregateBondTest):
                     expected_paths += 1
                     self.check(expected_paths)
                     macs_disabled.remove(mac)
-                else:
-                    # Make sure we are not bringing all NIC's down : ( CA-149995 )
-                    if len(macs_disabled) != total_paths - 1:
+                elif len(macs_disabled) != total_paths - 1:
                         self.disablePath(host, mac)
                         time.sleep(100)
                         expected_paths -= 1
-                        if expected_paths != 0:
-                            time.sleep(60)
-                            self.check(expected_paths)
-                            macs_disabled.add(mac)
-                    
+                        self.check(expected_paths)
+                        macs_disabled.add(mac)
         return
         
     def run(self, arglist=None):

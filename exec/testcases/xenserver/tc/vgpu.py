@@ -16,7 +16,7 @@ class SRType(object): Local, NFS, ISCSI = range(3)
 class VMStartMethod(object): OneByOne, Simultenous = range(2)
 class CardType(object): K1, K2, Quadro, Intel, NotAvailable = range(5)
 class DriverType(object): Signed, Unsigned = range(2)
-class vGPUType(object): NvidiaWinvGPU, NvidiaLinuxvGPU, IntelWinvGPU = range(3)
+class DiffvGPUType(object): NvidiaWinvGPU, NvidiaLinuxvGPU, IntelWinvGPU = range(3)
 
 """
 Constants
@@ -60,8 +60,8 @@ CardName = {
 }
 
 VendorName = {
-    vGPUType.NvidiaWinvGPU : "PCI.VEN_10DE.*(NVIDIA|VGA|Display).*",
-    vGPUType.IntelWinvGPU : "PCI.VEN.*Intel.*Graphics.*"
+    DiffvGPUType.NvidiaWinvGPU : "PCI.VEN_10DE.*(NVIDIA|VGA|Display).*",
+    DiffvGPUType.IntelWinvGPU : "PCI.VEN.*Intel.*Graphics.*"
 }
 
 """
@@ -271,9 +271,9 @@ class VGPUTest(object):
     }
 
     _DIFFVGPUTYPE = {
-        vGPUType.NvidiaWinvGPU : "nvidiawinvgpu",
-        vGPUType.NvidiaLinuxvGPU : "nvidialinuxvgpu",
-        vGPUType.IntelWinvGPU : "intelwinvgpu"
+        DiffvGPUType.NvidiaWinvGPU : "nvidiawinvgpu",
+        DiffvGPUType.NvidiaLinuxvGPU : "nvidialinuxvgpu",
+        DiffvGPUType.IntelWinvGPU : "intelwinvgpu"
     }
 
     def getDiffvGPUName(self, typeofvGPU):
@@ -379,7 +379,7 @@ class VGPUTest(object):
                 host.installNVIDIAHostDrivers()
 
     def installNvidiaWindowsDrivers(self, guest,vgputype):
-        vendor = VendorName[vGPUType.NvidiaWinvGPU]
+        vendor = VendorName[DiffvGPUType.NvidiaWinvGPU]
         if not self.isvGPURunningInWinVM(guest, vgputype, vendor):
             guest.installNvidiaVGPUDriver(self.driverType)
 
@@ -825,9 +825,9 @@ class TCVGPUSetup(VGPUOwnedVMsTest):
             raise xenrt.XRTError("Type of vGPU not defined")
         else:
             tofvgpu = self.args["typeofvgpu"]
-        if tofvgpu == self.getDiffvGPUName(vGPUType.NvidiaWinvGPU):
+        if tofvgpu == self.getDiffvGPUName(DiffvGPUType.NvidiaWinvGPU):
             self.typeofvgpu = NvidiaWindowsvGPU()
-        if tofvgpu == self.getDiffvGPUName(vGPUType.IntelWinvGPU):
+        if tofvgpu == self.getDiffvGPUName(DiffvGPUType.IntelWinvGPU):
             self.typeofvgpu = IntelWindowsvGPU()
 
     def run(self, arglist):
@@ -894,9 +894,9 @@ class TCVGPUCloneVM(VGPUOwnedVMsTest):
             raise xenrt.XRTError("Type of vGPU not defined")
 
         tofvgpu = self.args["typeofvgpu"]
-        if tofvgpu == self.getDiffvGPUName(vGPUType.NvidiaWinvGPU):
+        if tofvgpu == self.getDiffvGPUName(DiffvGPUType.NvidiaWinvGPU):
             self.typeofvgpu = NvidiaWindowsvGPU()
-        if tofvgpu == self.getDiffvGPUName(vGPUType.IntelWinvGPU):
+        if tofvgpu == self.getDiffvGPUName(DiffvGPUType.IntelWinvGPU):
             self.typeofvgpu = IntelWindowsvGPU()
 
     def run(self, arglist):
@@ -978,7 +978,7 @@ class TCGPUBootstorm(VGPUOwnedVMsTest):
         guest.start()
         self.times[guest.name] = xenrt.util.timenow() - self.starttime
         if self.vgpuconfig:
-            vendor = VendorName[vGPUType.NvidiaWinvGPU]
+            vendor = VendorName[DiffvGPUType.NvidiaWinvGPU]
             self.assertvGPURunningInWinVM(guest, self.vgpuconfig, vendor)
 
 
@@ -1825,11 +1825,11 @@ class FunctionalBase(VGPUAllocationModeBase):
         # If there are any other environments needed, initialize them to the correct vars.
         if self.OTHERS:
             for typeOfvGPU in self.OTHERS:
-                if typeOfvGPU == self.getDiffvGPUName(vGPUType.NvidiaWinvGPU):
+                if typeOfvGPU == self.getDiffvGPUName(DiffvGPUType.NvidiaWinvGPU):
                     self.nvidWinvGPU = self.typeofvGPU(typeOfvGPU)
-                if typeOfvGPU == self.getDiffvGPUName(vGPUType.NvidiaLinuxvGPU):
+                if typeOfvGPU == self.getDiffvGPUName(DiffvGPUType.NvidiaLinuxvGPU):
                     self.nvidLinvGPU = self.typeofvGPU(typeOfvGPU)
-                if typeOfvGPU == self.getDiffvGPUName(vGPUType.IntelWinvGPU):
+                if typeOfvGPU == self.getDiffvGPUName(DiffvGPUType.IntelWinvGPU):
                     self.nvidWinvGPU = self.typeofvGPU(typeOfvGPU)
 
         step("Install host drivers")
@@ -1846,11 +1846,11 @@ class FunctionalBase(VGPUAllocationModeBase):
         if not self.TYPE_OF_VGPU:
             raise xenrt.XRTFailure("Type of vGPU not defined")
 
-        if self.TYPE_OF_VGPU == self.getDiffvGPUName(vGPUType.NvidiaWinvGPU):
+        if self.TYPE_OF_VGPU == self.getDiffvGPUName(DiffvGPUType.NvidiaWinvGPU):
             return NvidiaWindowsvGPU() 
-        if self.TYPE_OF_VGPU == self.getDiffvGPUName(vGPUType.NvidiaLinuxvGPU):
+        if self.TYPE_OF_VGPU == self.getDiffvGPUName(DiffvGPUType.NvidiaLinuxvGPU):
             return NvidiaLinuxvGPU()
-        if self.TYPE_OF_VGPU == self.getDiffvGPUName(vGPUType.IntelWinvGPU):
+        if self.TYPE_OF_VGPU == self.getDiffvGPUName(DiffvGPUType.IntelWinvGPU):
             return IntelWindowsvGPU()
 
     def parseArgs(self,arglist):
@@ -1959,11 +1959,11 @@ class NvidiaWindowsvGPU(DifferentGPU):
         VGPUTest().installNvidiaWindowsDrivers(guest, vGPUType)
 
     def assertvGPURunningInVM(self, guest, vGPUType):
-        vendor = VendorName[vGPUType.NvidiaWinvGPU]
+        vendor = VendorName[DiffvGPUType.NvidiaWinvGPU]
         VGPUTest().assertvGPURunningInWinVM(guest, vGPUType, vendor)
 
     def assertvGPUNotRunningInVM(self, guest, vGPUType):
-        vendor = VendorName[vGPUType.NvidiaWinvGPU]
+        vendor = VendorName[DiffvGPUType.NvidiaWinvGPU]
         VGPUTest().assertvGPUNotRunningInWinVM(guest, vGPUType, vendor)
 
     def runWorkload(self,vm):
@@ -2021,11 +2021,11 @@ class IntelWindowsvGPU(DifferentGPU):
         VGPUTest().installIntelWindowsDrivers(guest, vGPUType)
 
     def assertvGPURunningInVM(self, guest, vGPUType):
-        vendor = VendorName[vGPUType.IntelWinvGPU]
+        vendor = VendorName[DiffvGPUType.IntelWinvGPU]
         VGPUTest().assertvGPURunningInWinVM(guest, vGPUType, vendor)
 
     def assertvGPUNotRunningInVM(self, guest, vGPUType):
-        vendor = VendorName[vGPUType.IntelWinvGPU]
+        vendor = VendorName[DiffvGPUType.IntelWinvGPU]
         VGPUTest().assertvGPUNotRunningInWinVM(guest, vGPUType, vendor)
 
     def runWorkload(self,vm):
@@ -4395,7 +4395,7 @@ class TCinstallNVIDIAGuestDrivers(VGPUOwnedVMsTest):
 
         g = self.getGuest(vmName)
         g.installNvidiaVGPUDriver(self.driverType)
-        vendor = VendorName[vGPUType.NvidiaWinvGPU]
+        vendor = VendorName[DiffvGPUType.NvidiaWinvGPU]
         self.assertvGPURunningInWinVM(g,self._CONFIGURATION[int(vgpuType)], vendor)
 
 class TCcreatevGPU(VGPUAllocationModeBase):

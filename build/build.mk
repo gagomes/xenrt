@@ -11,12 +11,11 @@ include build/infrastructure.mk
 include build/tests.mk
 include build/iso.mk
 include build/linuxiso.mk
-include build/disklessdebian.mk
 include build/debugger.mk
 include build/utils.mk
 
 .PHONY: fullsetup
-fullsetup: setup disklessdebian
+fullsetup: setup
 
 .PHONY: setup 
 setup: update install server test-tarballs infrastructure

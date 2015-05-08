@@ -258,7 +258,7 @@ ifeq ($(DOSITECONTROLLERCMD),yes)
 endif
 
 .PHONY: infrastructure
-infrastructure: puppetrun api winpe files dhcpd dhcpd6 hosts network conserver logrotate cron sitecontrollercmd libvirt
+infrastructure: puppetrun api winpe machines files dhcpd dhcpd6 hosts network conserver logrotate cron sitecontrollercmd libvirt
 	$(info XenRT infrastructure installed.)
 
 

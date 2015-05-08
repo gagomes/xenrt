@@ -433,7 +433,7 @@ class VGPUTest(object):
         return __checkAccess(hostdisplay, "display param on host")
 
     def __getValidPGPU(self, pgpus, cardName, host):
-        for uuid in pgpu:
+        for uuid in pgpus:
             if cardName in host.genParamGet("pgpu", uuid ,"vendor-name"):
                 if host.getName() == host.genParamGet("pgpu", uuid, "host-name-label"):
                     return uuid

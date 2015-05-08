@@ -2661,7 +2661,7 @@ class TC10566(_TCLVHDLeafCoalesce):
 class TC10567(_TCLVHDLeafCoalesce):
     """Leaf node coalesce of a suspended VM with two VHDs on local LVM SR"""
     
-    SCENARIO =.SCENARIO_TWO_VBDS_SAME_SR
+    SCENARIO = SCENARIO_TWO_VBDS_SAME_SR
     VM_STATE = "SUSPENDED"    
 
 class TC10568(_TCLVHDLeafCoalesce):

@@ -281,7 +281,7 @@ marvin:
 .PHONY: puppetrun
 puppetrun:
 ifeq ($(PUPPETNODE),yes)
-	$(SUDO) puppet agent -t
+	$(SUDO) puppet agent --verbose --show_diff
 else
 	make ${PUPPETREPO}
 	$(SUDO) puppet apply -e 'class {"xenrt_controller::xenrt_dev": user => "${USERNAME}", group => "${GROUPNAME}"}' --modulepath ${ROOT}/${PUPPETREPO}/modules --verbose --show_diff

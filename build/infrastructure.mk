@@ -153,7 +153,7 @@ ifeq ($(XENRT_DHCPD), yes)
 else
 	-$(SUDO) insserv -r xenrtdhcpd
 	-$(SUDO) systemctl daemon-reload
-	$(SUDO) rm -f service xenrtdhcpd
+	$(SUDO) rm -f /etc/init.d/xenrtdhcpd
 ifeq ($(DHCP_UID_WORKAROUND),yes)
 	-$(ROOT)/$(XENRT)/infrastructure/dhcpd/build.sh
 endif

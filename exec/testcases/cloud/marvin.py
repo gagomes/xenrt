@@ -207,15 +207,17 @@ class TCRemoteNose(_TCRemoteNoseBase):
         if self.args.has_key("hypervisor"):
             noseargs += " --hypervisor=%s" % self.args['hypervisor']
 
-        self.runner.execguest("nosetests -v --logging-level=DEBUG --log-folder-path=%s --with-marvin --marvin-config=/root/marvin.cfg --with-xunit --xunit-file=%s/results.xml %s /root/cloudstack/%s" %
-                   (self.workdir,
-                    self.workdir,
-                    noseargs,
-                    self.args['file']), timeout=28800, retval="code")
+        try:
+            self.runner.execguest("nosetests -v --logging-level=DEBUG --log-folder-path=%s --with-marvin --marvin-config=/root/marvin.cfg --with-xunit --xunit-file=%s/results.xml %s /root/cloudstack/%s" %
+                       (self.workdir,
+                        self.workdir,
+                        noseargs,
+                        self.args['file']), timeout=28800, retval="code")
+        finally:
+            sftp = self.runner.sftpClient()
+            logdir = xenrt.TEC().getLogdir()
+            sftp.copyTreeFrom(self.workdir, logdir + '/marvin')
 
-        sftp = self.runner.sftpClient()
-        logdir = xenrt.TEC().getLogdir()
-        sftp.copyTreeFrom(self.workdir, logdir + '/marvin')
         self.parseResultsXML("%s/marvin/results.xml" % logdir)
 
     def truncateText(self, text):

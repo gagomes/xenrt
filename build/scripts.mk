@@ -164,7 +164,7 @@ endif
 	if [ -e $(ROOT)/$(INTERNAL)/keys ]; then $(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/keys` $@/keys; fi
 	$(SUDO) mkdir -p $@/conf.d
 	$(foreach dir,$(CONFDIRS), $(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(dir)` $@/conf.d/$(dir);)
-	$(SUDO) sh -c 'echo "$(SITE)" > $@/siteid'
+	$(SUDO) sh -c '/bin/echo -n "$(SITE)" > $@/siteid'
 	-$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/suites` $@/suites
 
 .PHONY: docs

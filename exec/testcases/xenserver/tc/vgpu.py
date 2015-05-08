@@ -425,12 +425,12 @@ class VGPUTest(object):
     def __checkDom0Access(self, host, gpuuuid):
         """Returns True or False, as to if the dom0-access pgpu param is enabled or disabled."""
         access = host.genParamGet("pgpu", gpuuuid, "dom0-access")
-        return __checkAccess(access, "dom0-access param on gpu")
+        return self.__checkAccess(access, "dom0-access param on gpu")
 
     def __checkDisplay(self, host):
         """Returns True or False, as to if the display host param is enabled or disabled."""
         hostdisplay = host.getHostParam("display")
-        return __checkAccess(hostdisplay, "display param on host")
+        return self.__checkAccess(hostdisplay, "display param on host")
 
     def __getValidPGPU(self, pgpus, cardName, host):
         for uuid in pgpus:

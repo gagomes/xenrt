@@ -2,6 +2,7 @@
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <PREPARE_WORKERS>7</PREPARE_WORKERS>
     <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
   </variables>
 

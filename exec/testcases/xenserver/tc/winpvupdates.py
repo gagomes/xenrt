@@ -7,6 +7,8 @@
 import socket, re, string, time, traceback, sys, random, copy, math
 import xenrt, xenrt.lib.xenserver
 from xenrt.lazylog import step, comment, log
+from testcases.xenserver.tc.upgrade import _TCCrossVersionImport
+from testcases.xenserver.tc.sxm import LiveMigrate, SxmFromLowToHighVersion
 
 class WindowsUpdateBase(xenrt.TestCase):
     
@@ -213,7 +215,7 @@ class TCSxmFrmLowToHighPVChk(SxmFromLowToHighVersion):
     def run(self, arglist=None):
         
         step("Migrate the VM's")
-        LiveMigrate.run(self, arglist)
+        SxmFromLowToHighVersion.run(self, arglist)
 
         step("Verify windows pv updates are disabled after migration")
         for guest in self.guests:

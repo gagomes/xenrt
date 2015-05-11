@@ -123,6 +123,8 @@ class TCUpgNonWinCmp(WindowsUpdateBase):
         step("Enable the Windows Updates from the Host")
         self.guest.enableWindowsPVUpdates()
         
+        self.guest.lifecycleOperation("vm-start")
+        
         step("Install PV Drivers on the windows guest")
         self.guest.installDrivers()
 
@@ -135,6 +137,26 @@ class TCUpgToolsIso(WindowsUpdateBase):
 
         step("Upgrade the tools using tools.iso")
         self.guest.installDrivers(pvPkgSrc = "ToolsISO")
+        
+        if not self.guest.pvDriversUpToDate():
+            raise xenrt.XRTFailure("PV Drivers are not up-to-date after upgrade using tools ISO")
+
+class TCPVDriverDwngrdFails(WindowsUpdateBase):
+    
+    def run(self, arglist=None):
+        
+        step("Install PV Drivers on the windows guest")
+        self.guest.installDrivers()
+        try:
+            step("Try downgrading the tools with the older version of Tools ISO")
+            self.guest.installDrivers(source = self.Tools, pvPkgSrc = "ToolsISO")
+            
+        except exception , e:
+            if re.search("", str(e)):#include the search string
+                xenrt.TEC().logverbose("Tools downgrade with older version of tools ISO Failed as expected")
+                pass
+        else:
+            raise xenrt.XRTFailure("Tools downgrade with older version of tools ISO successful")
 
 class TCSkipPvPkg(WindowsUpdateBase):
 
@@ -151,6 +173,8 @@ class TCSkipPvPkg(WindowsUpdateBase):
         self.guest.reboot()
         
         self.guest.waitForDaemon(300, desc="Guest check after installation of PV Packages %s" %(pkgList))
+        
+        xenrt.TEC().logverbose("Guest %s is reachable after installation of PV Packages %s" %(pkgList))
 
 class TCSkipPvPkgNoAgent(WindowsUpdateBase):
 
@@ -165,3 +189,51 @@ class TCSkipPvPkgNoAgent(WindowsUpdateBase):
         self.guest.reboot()
         
         self.guest.waitForDaemon(300, desc="Guest check after installation of PV Packages %s" %(pkgList))
+        
+        xenrt.TEC().logverbose("Guest %s is reachable after installation of PV Packages %s" %(pkgList))
+
+class TCHostUpgradePVChk(xenrt.TestCase):
+
+    def prepare(self, arglist=None):
+
+        self.host = self.getHost("RESOURCE_HOST_0")
+        self.guest = self.host.createGenericWindowsGuest(distro="win7sp1-x64")
+        self.guest.shutdown()
+        self.host.upgrade()
+        
+    def run(self, arglist=None):
+
+        if self.guest.checkWindowsPVUpdates():
+            raise xenrt.XRTFailure("Windows PV updates are enabled on the VM after upgrading host")
+
+        xenrt.TEC().logverbose("Windows PV updates are disabled on the VM after upgrading host as expected")
+        
+class TCSxmFrmLowToHighPVChk(SxmFromLowToHighVersion):
+    
+    def run(self, arglist=None):
+        
+        step("Migrate the VM's")
+        LiveMigrate.run(self, arglist)
+
+        step("Verify windows pv updates are disabled after migration")
+        for guest in self.guests:
+            if guest.windows and guest.checkWindowsPVUpdates():
+                raise xenrt.XRTFailure("Windows PV updates are enabled on the VM Migrated from Older host to Newer host")
+
+        xenrt.TEC().logverbose("Windows PV updates are disabled on the VM Migrated from Older host to Newer host as expected")
+
+class TCCrossVerImpPVChk(_TCCrossVersionImport):
+
+    DISTROS = ["win7sp1-x86", "ws08sp2-x64"]
+    
+    def run(self, arglist=None):
+        
+        step("Import the VM's from Older host to Newer host")
+        _TCCrossVersionImport.run(self, arglist)
+        
+        step("Verify windows pv updates are disabled after migration")
+        for guest in self.guests:
+            if guest.windows and guest.checkWindowsPVUpdates():
+                raise xenrt.XRTFailure("Windows PV updates are enabled on the VM imported from Older host to Newer host")
+
+        xenrt.TEC().logverbose("Windows PV updates are disabled on the VM imported from Older host to Newer host as expected ")

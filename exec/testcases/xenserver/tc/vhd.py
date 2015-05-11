@@ -2120,6 +2120,7 @@ class _TCLVHDLeafCoalesce(xenrt.TestCase):
     HISTORY = [("snapshot", "snap1"), ("delete", "snap1")]
     SCENARIO = SCENARIO_SINGLE_VBD
     WINDOWS = False
+    RETRY_CHECK_VDI_CHAINS = 5
 
     def writePatternToFile(self, filename, patternid=0):
         """Write a 1GB deterministic pattern to a file"""
@@ -2586,14 +2587,14 @@ class _TCLVHDLeafCoalesce(xenrt.TestCase):
             self.runSubcase("doCheckFreeSpace", (), "SR", "FreeSpace")
 
             # Check VDI chains are now of length 1
-            retries = 5
+            retries = self.RETRY_CHECK_VDI_CHAINS
             while retries:
                 try:
                     self.runSubcase("doCheckChains", (), "Guest", "Chains")
                     break
                 except xenrt.XRTError, e:
                     xenrt.TEC().logverbose("VDI still has parent-VHD after leaf coalesce; retrying (%d) time checking in 30s ..." % retries)
-                    time.sleep(30)
+                    time.sleep(60)
                     retries = retries -1
                     if not retries:
                         raise e

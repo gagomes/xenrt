@@ -44,8 +44,13 @@ class TCBlackWidow(libperf.PerfTestCase):
         for i in range(2, self.clients+1):
             self.nscli(vpx_ns, "add ns ip 43.54.181.%d 255.255.0.0 -vServer DISABLED" % (i))
 
-        # Make 43.* traffic go down the second interface
-        self.nscli(vpx_ns, "bind vlan 2 -IPAddress 43.54.181.2 255.255.0.0")
+        # Find the ID of the second VLAN
+        vlan_ord = 2
+        lines = self.nscli(vpx_ns, "show vlan")
+        vlan_idx = next(line.split('\t')[1].split(' ')[2] for line in lines if line.startswith("%d)" % (vlan_ord)))
+
+        # Make 43.* traffic go down the right interface
+        self.nscli(vpx_ns, "bind vlan %s -IPAddress 43.54.181.2 255.255.0.0" % (vlan_idx))
 
         self.nscli(vpx_ns, 'save ns config')
 

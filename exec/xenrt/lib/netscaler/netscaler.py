@@ -51,6 +51,8 @@ class NetScaler(object):
                 else:
                     warning("Unimplemented Section: Unable to determine xenrt network type for guest vifs. Continuing with 'NPRI'")
 
+            networks_sriov = [x[1] for x in vpxGuest.sriovvifs]
+
             mgmtNet = networks[0]
             cls.configureVpxNetworkToVmParams(vpxGuest, mgmtNet)
             vpxGuest.lifecycleOperation('vm-start')
@@ -58,7 +60,7 @@ class NetScaler(object):
             vpxGuest.waitForSSH(timeout=300, username='nsroot', cmd='shell')
             vpx = cls(vpxGuest, mgmtNet)
             vpx.checkFeatures("On fresh install:")
-            vpx.setup(networks)
+            vpx.setup(networks, networks_sriov)
         if _removeHostFromVCenter:
             host.removeFromVCenter()
         return vpx
@@ -111,7 +113,7 @@ class NetScaler(object):
         self.__mgmtNet = mgmtNet
         xenrt.TEC().logverbose('NetScaler VPX Version: %s' % (self.version))
 
-    def setup(self, networks):
+    def setup(self, networks, networks_sriov):
         i = 1
         ipSpec = self.__vpxGuest.getIPSpec()
         for n in networks[1:]:
@@ -139,7 +141,26 @@ class NetScaler(object):
             self.__netScalerCliCommand('bind vlan %d -IPAddress %s %s' % (i, self.__subnetips[n], subnet))
         self.__subnetips[networks[0]] = xenrt.StaticIP4Addr(network=networks[0]).getAddr()
         self.__netScalerCliCommand('add ip %s %s' % (self.__subnetips[networks[0]], xenrt.getNetworkParam(networks[0], "SUBNETMASK")))
-        self.__netScalerCliCommand('save ns config')
+
+        for n in networks_sriov:
+            i += 1
+            xenrt.TEC().logverbose("Creating VLAN %d for SR-IOV VIF on network %s" % (i, n))
+
+            # Find out the name NetScaler has given to the interface
+            lines = self.__netScalerCliCommand("show interfaces")
+            iface = next(line.split('\t')[1].split(' ')[1] for line in lines if line.startswith("%d)" % (i)))
+
+            # If this network is a VLAN, get the physical VLAN id
+            (vlan_id, subnet, netmask) = self.__vpxGuest.host.getVLAN(n) # TODO If it's not a VLAN, just do something like the above
+            xenrt.TEC().logverbose("We want a tagged VLAN with id %d" % (vlan_id))
+
+            # Tag traffic on this interface with the VLAN tag
+            self.__netScalerCliCommand("set interface %s -tagall OFF" % (iface))
+            self.__netScalerCliCommand("add vlan %d" % (vlan_id))
+            self.__netScalerCliCommand("bind vlan %d -ifnum %s" % (vlan_id, iface))
+            self.__netScalerCliCommand("set interface %s -tagall ON" % (iface)) # This is necessary to make it work, and it must be done after the 'bind vlan' command.
+
+        #self.__netScalerCliCommand('save ns config')
 
     def __netScalerCliCommand(self, command):
         """Helper method for creating specific NetScaler CLI command methods"""

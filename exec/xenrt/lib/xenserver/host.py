@@ -7113,13 +7113,32 @@ fi
                               "[0-9a-f]{4}-[0-9a-f]{12}).vhd", data)
         elif srtype in ["lvm", "lvmoiscsi", "lvmohba"]:
             path = "VG_XenStorage-%s" % (sruuid)
-            data = host.execdom0("lvs --noheadings -o lv_name %s" % (path))
+            if self.isThinProvisioningSR(sruuid):
+                data = host.execdom0("xenvm lvs --noheadings -o lv_name %s" % (path))
+            else:
+                data = host.execdom0("lvs --noheadings -o lv_name %s" % (path))
             return re.findall(\
                 r"(?:VHD|LV)-([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
                 "[0-9a-f]{4}-[0-9a-f]{12})", data)
         else:
             raise xenrt.XRTError("listVHDs unimplemented for %s" % (srtype))
-            
+
+    def isThinProvisioningSR(self, sruuid):
+        """Return a sr is thinly provisioned."""
+        srtype = self.genParamGet("sr", sruuid, "type")
+        if srtype in ["lvm", "lvmoiscsi", "lvmohba"]:
+            try:
+                alloc = self.genParamGet("sr", sruuid, "sm-config", "allocation")
+                #usevhd = self.getParamGet("sr", sruuid, "sm-config", "use_vhd")
+                if alloc == "dynamic":# and usevhd == "true":
+                    return True
+
+            except:
+                xenrt.TEC().logverbose("Cannot find 'allocation' from sm-config key.")
+                pass
+
+        return False
+
     def logout(self, subject):
         xenrt.TEC().logverbose("Logging out all sessions associated "
                                "with %s." % (subject.name))

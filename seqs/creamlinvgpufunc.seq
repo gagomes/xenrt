@@ -2,29 +2,12 @@
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
-    <PREPARE_WORKERS>7</PREPARE_WORKERS>
+    <PREPARE_WORKERS>5</PREPARE_WORKERS>
     <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
   </variables>
 
   <prepare>
     <host installsr="ext" license="enterprise-per-socket">
-      <vm name="masterwin7sp1-x64">
-        <distro>win7sp1-x64</distro>
-        <arch>x86-64</arch>
-        <memory>2048</memory>
-        <vcpus>2</vcpus>
-        <postinstall action="installDrivers" />
-        <network device="0" />
-        <disk device="0" size="24" />
-      </vm>
-      <vm name="masterwin8-x86">
-        <distro>win8-x86</distro>
-        <memory>2048</memory>
-        <vcpus>2</vcpus>
-        <postinstall action="installDrivers" />
-        <network device="0" />
-        <disk device="0" size="24" />
-      </vm>
       <vm name="mastercentos7_x86-64">
         <distro>centos7</distro>
         <arch>x86-64</arch>
@@ -40,7 +23,7 @@
         <network device="0" />
         <disk device="0" size="8" />
       </vm>
-      <vm name="masterubuntu1404_x86-32">
+      <vm name="masterubuntu1404_x86-64">
         <distro>ubuntu1404</distro>
         <arch>x86-64</arch>
         <memory>1024</memory>

@@ -33,6 +33,7 @@ class PacketCatcher(object):
             sftp.copyFrom(self.datafile, d)
         except Exception, e:
             raise xenrt.XRTError("Failed to obtain capture data: %s", str(e))
+        self.host.execdom0("rm -f %s" % (self.datafile))
 
         # Read captured data and process it.
         data = ""

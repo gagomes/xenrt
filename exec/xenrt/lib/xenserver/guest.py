@@ -3184,7 +3184,14 @@ exit /B 1
         elif g.mainip: 
             if re.match("169\.254\..*", g.mainip):
                 raise xenrt.XRTFailure("VM gave itself a link-local address.")
-
+        
+        #If cloned vm is windows with no tools 
+        if not g.mainip:
+            g.lifecycleOperation("vm-start")
+            vifname, bridge, mac, ip = vifs[0]
+            g.mainip = self.getHost().arpwatch(bridge, mac, timeout=10800)
+            g.lifecycleOperation("vm-shutdown", force=True)
+            
         g.setHostnameViaXenstore()
         return g
 
@@ -6251,8 +6258,8 @@ class DundeeGuest(CreedenceGuest):
             self.enablePowerShellUnrestricted()
             
             #Get the OEM files to be deleted after uninstalling drivers
-            oemFileList = self.xmlrpcExec("C:\\%s dp_enum | select-string 'Citrix' -Context 1,0 | findstr 'oem'" %(devconexe), returndata = True, powershell=True).strip().splitlines()
-            oemFileList = [item.strip() for item in oemFileList][1:]
+            oemFileList = self.xmlrpcExec("pnputil.exe -e | select-string 'Citrix' -Context 1,0 | findstr 'oem'" , returndata = True, powershell=True).split()
+            oemFileList = [item for item in oemFileList if item.startswith('oem')]
             
             batch = []
             
@@ -6268,18 +6275,29 @@ class DundeeGuest(CreedenceGuest):
             self.xmlrpcWriteFile("c:\\uninst.bat", string.join(batch))
             self.xmlrpcStart("c:\\uninst.bat")
         
-        self.reboot()
+        self.xmlrpcReboot()
         
         if not self.xmlrpcIsAlive():
             raise xenrt.XRTFailure("XML-RPC not alive after tools uninstallation")
         
         # Verify PV devices have been removed after tools uninstallation
-        if self.checkPVDevicesState() and not self.checkPVDriversStatus(ignoreException = True):
+        if self.checkPVDevicesState():
             xenrt.TEC().logverbose("PV Packages are uninstalled Successfully")
         else:
             raise xenrt.XRTFailure("PV Packages are not uninstalled")
             
         self.enlightenedDrivers = False
+
+    def enableWindowsPVUpdates(self):
+        """ Enable the windows updates by setting pci_pv flag to true on the host"""
+
+        self.paramSet("platform:pci_pv", "true")
+        self.reboot()
+
+    def checkWindowsPVUpdates(self):
+        """ Check whether the windows pv updates is enabled on the host"""
+        
+        return self.paramGet("platform", "pci_pv")
 
 class StorageMotionObserver(xenrt.EventObserver):
 

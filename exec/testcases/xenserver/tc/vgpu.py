@@ -344,8 +344,13 @@ class VGPUTest(object):
         return DriverType.Unsigned
 
     def installNvidiaHostDrivers(self,allHosts):
+        useSuppPack = xenrt.TEC().lookup("VGPU_WITH_SUPPACK", default="no")
+
         for host in allHosts:
-            host.installNVIDIAHostDrivers()
+            if useSuppPack.startswith("yes"):
+                host.installNVIDIASupPack()
+            else:
+                host.installNVIDIAHostDrivers()
 
     def installNvidiaWindowsDrivers(self, guest,vgputype):
         if not self.checkvGPURunningInVM(guest, vgputype):

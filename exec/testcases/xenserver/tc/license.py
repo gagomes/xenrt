@@ -886,7 +886,6 @@ class _PoolJoinBase(xenrt.TestCase):
     JOIN_SKU = None
     JOIN_EDN = None
     ALLOWED = False
-    USEV6TESTD = True
     LICENSES = []
 
     def prepare(self, arglist=None):
@@ -895,36 +894,19 @@ class _PoolJoinBase(xenrt.TestCase):
         self.host1 = self.getHost("RESOURCE_HOST_1")
         self.host2 = self.getHost("RESOURCE_HOST_2")
 
-        if self.USEV6TESTD:
-            self.v6 = None
-        else:
-            guest = self.host0.createGenericWindowsGuest()
-            self.uninstallOnCleanup(guest)
-            self.v6 = guest.getV6LicenseServer()
-            self.v6.removeAllLicenses()
-            for lic in self.LICENSES:
-                self.v6.addLicense(lic)
-
-
         # License the first two with the POOL_SKU or POOL_EDNS
         if self.POOL_EDNS:
-            self.host0.license(edition=self.POOL_EDNS[0],
-                               usev6testd=self.USEV6TESTD, v6server=self.v6)
-            self.host1.license(edition=self.POOL_EDNS[0],
-                               usev6testd=self.USEV6TESTD, v6server=self.v6)
+            self.host0.license(edition=self.POOL_EDNS[0])
+            self.host1.license(edition=self.POOL_EDNS[0])
         else:
-            self.host0.license(sku=self.POOL_SKU,
-                               usev6testd=self.USEV6TESTD, v6server=self.v6)
-            self.host1.license(sku=self.POOL_SKU,
-                               usev6testd=self.USEV6TESTD, v6server= self.v6)
+            self.host0.license(sku=self.POOL_SKU)
+            self.host1.license(sku=self.POOL_SKU)
 
         # License the third with the JOIN_SKU or JOIN_EDN
         if self.JOIN_EDN:
-            self.host2.license(edition=self.JOIN_EDN,
-                               usev6testd=self.USEV6TESTD, v6server=self.v6)                               
+            self.host2.license(edition=self.JOIN_EDN)
         else:
-            self.host2.license(sku=self.JOIN_SKU,
-                               usev6testd=self.USEV6TESTD, v6server=self.v6)                               
+            self.host2.license(sku=self.JOIN_SKU)
 
         # Create a pool out of the first two
         self.pool = xenrt.lib.xenserver.poolFactory(self.host0.productVersion)(self.host0)
@@ -948,8 +930,7 @@ class _PoolJoinBase(xenrt.TestCase):
 
         if self.POOL_EDNS and len(self.POOL_EDNS) > 1:
             # Relicense hsot1 with the second pool edition
-            self.host1.license(edition=self.POOL_EDNS[1],
-                               usev6testd=self.USEV6TESTD, v6server=self.v6)
+            self.host1.license(edition=self.POOL_EDNS[1])
 
     def run(self, arglist=None):
         # Try and add the third host to the pool
@@ -2533,8 +2514,6 @@ class TC11220(_PoolJoinBase):
     POOL_EDNS = ["enterprise", "platinum"]
     JOIN_EDN = "enterprise-xd"
     ALLOWED = True
-    # Unfortunately, v6testd doesn't support enterprise-xd yet
-    USEV6TESTD = False
     LICENSES = ["valid-enterprise", "valid-platinum", "valid-enterprise-xd"]
 # Joining platinum
 class TC10080(_PoolJoinBase):
@@ -3020,7 +2999,7 @@ class TC9945(xenrt.TestCase):
         self.host = self.getDefaultHost()
 
     def run(self, arglist=None):
-        self.host.license(edition=self.EDITION, usev6testd=False, v6server=self.v6)
+        self.host.license(edition=self.EDITION, v6server=self.v6)
 
     def preLogs(self):
         # Collect the v6 server log
@@ -3091,7 +3070,7 @@ class _V6Transition(xenrt.TestCase):
 
         if self.host.paramGet("edition") != self.FROM:
             xenrt.TEC().logverbose("Licensing host to %s" % (self.FROM))
-            self.host.license(edition=self.FROM, usev6testd=False, v6server=self.v6)
+            self.host.license(edition=self.FROM, v6server=self.v6)
 
         er = ""
         if self.host.special['v6earlyrelease']:
@@ -3131,7 +3110,7 @@ class _V6Transition(xenrt.TestCase):
     def run(self, arglist=None):
         xenrt.TEC().logverbose("Transitioning host from %s to %s" % (self.FROM, self.TO))
         try:
-            self.host.license(edition=self.TO, usev6testd=False, v6server=self.v6b, activateFree=False)
+            self.host.license(edition=self.TO, v6server=self.v6b, activateFree=False)
         except xenrt.XRTFailure, e:
             if not self.BLOCKED:
                 raise e
@@ -3395,7 +3374,7 @@ class _V6GraceBase(xenrt.TestCase):
         self.v6.removeAllLicenses()
         self.v6.addLicense(self.LICENSE)
         self.host = self.getDefaultHost()
-        self.host.license(edition=self.EDITION, usev6testd=False, v6server=self.v6)
+        self.host.license(edition=self.EDITION, v6server=self.v6)
 
         self.guest = self.host.createGenericLinuxGuest()
         self.uninstallOnCleanup(self.guest)
@@ -3799,7 +3778,7 @@ class TC10848(xenrt.TestCase):
     def run(self, arglist=None):
         # Try and apply an early release license and check it works
         try:
-            self.host.license(edition="enterprise", usev6testd=False, v6server=self.v6)
+            self.host.license(edition="enterprise", v6server=self.v6)
         except:
             if not self.EXPECT_FAIL:
                 raise xenrt.XRTFailure("Unexpectedly unable to apply early release license")
@@ -3832,7 +3811,7 @@ class TC11218(xenrt.TestCase):
         if licinfo['edition'] != edition_from:
             raise xenrt.XRTException("Expected pre-edition %s, got %s"
                                      % (edition_from, licinfo['edition']))
-        self.host.license(edition=edition_to, usev6testd=False,
+        self.host.license(edition=edition_to,
                           v6server=self.v6)
         licinfo = self.host.getLicenseDetails()
         if licinfo['edition'] != edition_to:
@@ -3879,7 +3858,7 @@ class TC20922(xenrt.TestCase):
         self.licenseServer = self.licenseGuest.getV6LicenseServer()
         self.licenseServer.addLicense("valid-persocket")
         # License the host against a valid license server
-        self.host.license(sku="per-socket", v6server=self.licenseServer, mockLicense=False)
+        self.host.license(sku="per-socket", v6server=self.licenseServer)
         if len(self.licenseServer.getLicenseUsage("CXS_STD_CCS")) != 1:
             raise xenrt.XRTError("License not in use on license server after applying license")
 

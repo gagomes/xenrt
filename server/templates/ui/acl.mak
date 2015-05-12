@@ -7,12 +7,12 @@ ${commonhead | n}
     <script>
 $(function() {
     $( document ).ready(function () {
-        populateAcls();
 
         // Are we creating a new ACL or editing an existing one
         var id = unescape(self.location.search.substring(1));
         if (id == "new")
         {
+            populateAcls("${'${user}'}");
             // Create a new one
             $ ( "#aclname" ).val("New ACL");
         } else if ($.isNumeric(id))
@@ -25,6 +25,7 @@ $(function() {
                 $( "#aclname" ).val(data.name);
                 if (data.parent != null)
                     $( "#parent" ).val(data.parent);
+                populateAcls(data.owner);
                 // TODO: Ensure we process this in sorted order
                 $.each(data.entries, function(prio, entry) {
                     addEntry(entry);
@@ -44,8 +45,8 @@ $(function() {
         });
 
 });
-    function populateAcls() {
-        $.getJSON ("/xenrt/api/v2/acls", {"owner": "${'${user}'}"})
+    function populateAcls(owner) {
+        $.getJSON ("/xenrt/api/v2/acls", {"owner": owner})
             .done(function(data) {
                 $.each(data, function(aclid, acldata) {
                     if (acldata.parent == null)
@@ -89,7 +90,9 @@ $(function() {
             aclContent.append(groupLimitsDiv);
         }             
 
-        aclContent.append("Maximum lease hours: <input type=\"text\" id=\"maxlease\" value=\"" + (entry.maxleasehours ? entry.maxleasehours : "") + "\" />");
+        aclContent.append("Maximum lease hours: <input type=\"text\" id=\"maxlease\" value=\"" + (entry.maxleasehours ? entry.maxleasehours : "") + "\" /><br />");
+
+        aclContent.append("Allow preemptable use: <input type=\"checkbox\" id=\"preemptableuse\" " + (entry.preemptableuse ? "checked" : "") + " />");
 
         aclDiv.append(aclHeader);
         aclDiv.append(aclContent);
@@ -142,6 +145,7 @@ $(function() {
             }
             if (c.find("#maxlease").val())
                 entry.maxleasehours = parseInt(c.find("#maxlease").val());
+            entry.preemptableuse = c.find("#preemptableuse").is(":checked");
             entries.push(entry);
         });
         acl.entries = entries;
@@ -158,13 +162,13 @@ $(function() {
                     success: function() {
                         $( "#overlay" ).hide();
                         $( "#loading" ).hide();
-                        $('#savebutton').prop('disabled', false);
+                        $( '#saveacl' ).prop('disabled', false);
                         alert("ACL saved");
                     },
                     error: function(jqXHR, textStatus, errorThrown) {
                         $( "#overlay" ).hide();
                         $( "#loading" ).hide();
-                        $('#savebutton').prop('disabled', false);
+                        $( '#saveacl' ).prop('disabled', false);
                         alert("Failed to save ACL - " + textStatus + "-" + errorThrown);
                     }
                    });
@@ -184,7 +188,7 @@ $(function() {
                     error: function(jqXHR, textStatus, errorThrown) {
                         $( "#overlay" ).hide();
                         $( "#loading" ).hide();
-                        $('#savebutton').prop('disabled', false);
+                        $( '#saveacl' ).prop('disabled', false);
                         alert("Failed to save ACL - " + textStatus + "-" + errorThrown);
                     }
                    });

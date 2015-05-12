@@ -234,6 +234,7 @@ class DBConnect(object):
                          bufferfile=filename)
 
 
+@xenrt.irregularName
 def APIFactory():
     config = ConfigParser.ConfigParser()
     if not config.read("%s/.xenrtrc" % os.path.expanduser("~")):

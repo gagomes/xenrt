@@ -1,3 +1,4 @@
+import config
 import base64, hashlib, random
 
 class User(object):
@@ -9,6 +10,7 @@ class User(object):
         self._apiKey = None
         self._disabled = False
         self._team = None
+        self._groups = None
 
     @classmethod
     def fromApiKey(cls, page, apiKey):
@@ -57,9 +59,27 @@ class User(object):
         return self._disabled
 
     @property
+    def groups(self):
+        """List of groups we know the user to be in"""
+        if self._groups is None:
+            self._getGroups()
+        return self._groups
+
+    def _getGroups(self):
+        db = self.page.getDB()
+        cur = db.cursor()
+        cur.execute("SELECT g.name FROM tblgroups g INNER JOIN tblgroupusers gu ON g.groupid = gu.groupid WHERE gu.userid=%s", [self.userid.lower()])
+        self._groups = []
+        while True:
+            rc = cur.fetchone()
+            if not rc:
+                break
+            self._groups.append(rc[0].strip())
+
+    @property
     def admin(self):
         """Property that defines if the user is a XenRT admin"""
-        return True
+        return config.admin_group in self.groups
 
     def removeApiKey(self):
         if self.apiKey:

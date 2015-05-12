@@ -83,8 +83,8 @@ class XenRTUIPage(XenRTPage):
 <p>
 <div id="user"><div style="float:right">%s</div></div>
 </p>""" % self.loggedInAs()
-        return {"commonhead": commonhead, "commonbody": commonbody}
-    
+        return {"commonhead": commonhead, "commonbody": commonbody, "userIsAdmin": self.getUser() and self.getUser().admin}
+
 PageFactory(XenRTUIPage, "/ui", renderer="__main__:templates/ui/index.mak")
 PageFactory(XenRTUIPage, "/ui/", renderer="__main__:templates/ui/index.mak")
 PageFactory(XenRTUIPage, "/ui/logs", renderer="__main__:templates/ui/logs.mak")

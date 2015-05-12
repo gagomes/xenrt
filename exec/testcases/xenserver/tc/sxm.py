@@ -1758,6 +1758,10 @@ class InsuffSpaceDestSR(MidMigrateFailure):
         vm.resizeDisk(device,225280)
         vm.start()
 
+        #creating large VDI(200GB) on destination SR
+        host = self.test_config['host_B']
+        vdi = host.createVDI( 102400 * xenrt.MEGA)
+
 class LargeDiskWin(LiveMigrate):
 
     def setTestParameters(self):

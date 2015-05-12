@@ -13,6 +13,7 @@ WSGITHREADS ?= 1
 CURRENT_DIR ?= $(shell pwd)
 AUTH_REALM ?= citrite
 NFS_LIB_PATH ?= /usr/groups/xenrt/lib
+PUPPETREPO ?= puppet-configs.git
 
 include build/tools.mk
 
@@ -45,9 +46,10 @@ minimal-install: install
 
 .PHONY: server
 server: install
-	$(SUDO) cp $(SHAREDIR)/server/xenrt-server /etc/init.d/
+	$(SUDO) cp $(SHAREDIR)/server/xenrt-server /etc/init.d 
 	$(SUDO) insserv xenrt-server
-	$(SUDOSH) '/etc/init.d/xenrt-server start || $(SUDO) /etc/init.d/xenrt-server reload'
+	-$(SUDO) systemctl daemon-reload
+	$(SUDOSH) 'service xenrt-server start || $(SUDO) service xenrt-server reload'
 	sleep 1
 	make apibuild
 
@@ -141,6 +143,7 @@ uninstall:
 	$(info Updating $@ repository...)
 	[ -d $(ROOT)/$@ ] || $(GIT) clone $(GITPATH)/$@ $(ROOT)/$@
 	cd $(ROOT)/$@ && $(GIT) pull
+	cd $(ROOT)/$@ && $(GIT) submodule update --init
 
 .PHONY: $(CONFDIR)
 $(CONFDIR):
@@ -161,7 +164,7 @@ endif
 	if [ -e $(ROOT)/$(INTERNAL)/keys ]; then $(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/keys` $@/keys; fi
 	$(SUDO) mkdir -p $@/conf.d
 	$(foreach dir,$(CONFDIRS), $(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(dir)` $@/conf.d/$(dir);)
-	$(SUDO) sh -c 'echo "$(SITE)" > $@/siteid'
+	$(SUDO) sh -c '/bin/echo -n "$(SITE)" > $@/siteid'
 	-$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/suites` $@/suites
 
 .PHONY: docs

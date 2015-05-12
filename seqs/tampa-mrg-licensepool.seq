@@ -13,7 +13,7 @@
   </scheduler>
   <prepare>
     <pool id="0">
-      <host id="0" license="no" usev6testd="no">
+      <host id="0" license="no" defaultlicense="no">
         <vm name="Windows XP SP3">
           <distro>winxpsp3</distro>
           <memory>512</memory>
@@ -24,7 +24,7 @@
           <storage>NFS-SR</storage>
         </vm>
       </host>
-      <host id="1" license="no" usev6testd="no">
+      <host id="1" license="no" defaultlicense="no">
         <vm name="CentOS 5.0">
           <distro>centos5</distro>
           <memory>1024</memory>

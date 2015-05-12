@@ -522,7 +522,7 @@ class _DellSwitch(_CiscoStyleSwitch):
                 m = re_wrapped.match(lines[i])
                 if m:
                     wrapped = m.group(1).strip()
-                    s1, s2 = lines[i-1].rsplit(',', 1)
+                    s1, s2 = lines[i-1].rsplit(None, 1)
                     lines[i-1] = s1 + ", " + wrapped + s2
         lines = filter(re_ch.match,lines)
         if setChRange is True:
@@ -677,7 +677,7 @@ class _CiscoIOSSwitch(_CiscoStyleSwitch):
                 m = re_wrapped.match(lines[i])
                 if m:
                     wrapped = m.group(1).strip()
-                    s1, s2 = lines[i-1].rsplit(',', 1)
+                    s1, s2 = lines[i-1].rsplit(None, 1)
                     lines[i-1] = s1 + ", " + wrapped + s2
         lines = filter(re_ch.match,lines)
         lines = filter(lambda x: len(x.split()) > 3 , lines)

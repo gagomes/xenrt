@@ -17,8 +17,8 @@
     <!-- The TOE -->
     <pool ssl="true">
       <storage type="nfs" name="shared" default="true"/>
-      <host id="0" license="platinum" usev6testd="false"/>
-      <host id="1" license="platinum" usev6testd="false"/>
+      <host id="0" license="platinum" defaultlicense="false"/>
+      <host id="1" license="platinum" defaultlicense="false"/>
       <NETWORK>
         <PHYSICAL network="NPRI">
           <NIC/>

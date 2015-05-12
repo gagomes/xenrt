@@ -49,7 +49,7 @@ class XenRTPage(Page):
             return None
 
         if "x-fake-user" in lcheaders:
-            if self.ALLOW_FAKE_USER and user.admin: 
+            if self.ALLOW_FAKE_USER: 
                 fakeUser = app.user.User(self, lcheaders['x-fake-user'])
                 if fakeUser.valid or True:
                     self._user = fakeUser
@@ -175,7 +175,7 @@ class XenRTPage(Page):
         cur = self.getDB().cursor()    
         d = {}
         cur.execute("SELECT jobid, version, revision, options, jobStatus, "
-                    "userId, uploaded, removed FROM tbljobs WHERE " +
+                    "userId, uploaded, removed, preemptable FROM tbljobs WHERE " +
                     "jobId = %s;", [id])
         rc = cur.fetchone()
         if rc:

@@ -414,25 +414,29 @@ class VGPUTest(object):
         vgpucreator.createOnGuest(vm, groupuuid)
         vm.setState("UP")
 
-    def __checkDom0Access(self, host, gpuuuid):
-        """Returns True or False, as to if the dom0-access pgpu param is enabled or disabled."""
-        access = host.genParamGet("pgpu", gpuuuid, "dom0-access")
+    def __checkAccess(self, access, errorCode):
         if access == "enabled":
             return True
         elif access == "disabled":
             return False
         else:
-            raise xenrt.XRTError("dom0-access param on gpu, uuid %s, was neither enabled or disabled." % (gpuuuid))
+            raise xenrt.XRTError("%s was neither enabled or disabled." % (something))
+
+    def __checkDom0Access(self, host, gpuuuid):
+        """Returns True or False, as to if the dom0-access pgpu param is enabled or disabled."""
+        access = host.genParamGet("pgpu", gpuuuid, "dom0-access")
+        return self.__checkAccess(access, "dom0-access param on gpu")
 
     def __checkDisplay(self, host):
         """Returns True or False, as to if the display host param is enabled or disabled."""
         hostdisplay = host.getHostParam("display")
-        if hostdisplay == "enabled":
-            return True
-        elif hostdisplay == "disabled":
-            return False
-        else:
-            raise xenrt.XRTError("display param on host was neither enabled or disabled.")
+        return self.__checkAccess(hostdisplay, "display param on host")
+
+    def __getValidPGPU(self, pgpus, cardName, host):
+        for uuid in pgpus:
+            if cardName in host.genParamGet("pgpu", uuid ,"vendor-name"):
+                if host.getName() == host.genParamGet("pgpu", uuid, "host-name-label"):
+                    return uuid
 
     def blockDom0Access(self, cardName, host, reboot=True):
         def verifyBlocked():
@@ -441,15 +445,9 @@ class VGPUTest(object):
             if self.__checkDisplay(host):
                 raise xenrt.XRTError("Host display was not successfully disabled.")
 
-        pgpu = host.minimalList("pgpu-list")
-
-        intelPGPUUUID = None
-        for uuid in pgpu:
-            if cardName in host.genParamGet("pgpu", uuid ,"vendor-name"):
-                if host.getName() == host.genParamGet("pgpu", uuid, "host-name-label"):
-                    intelPGPUUUID = uuid
-                    break
-
+        pgpus = host.minimalList("pgpu-list")
+        intelPGPUUUID = self.__getValidPGPU(pgpus, cardName, host)
+        
         if not intelPGPUUUID:
             raise xenrt.XRTFailure("No Intel GPU found")
 
@@ -467,20 +465,14 @@ class VGPUTest(object):
             if not self.__checkDisplay(host):
                 raise xenrt.XRTError("Host display was not successfully enabled.")
 
-        pgpu = host.minimalList("pgpu-list")
-        
-        intelPGPUUUID = None
-        for uuid in pgpu:
-            if cardName in host.genParamGet("pgpu", uuid ,"vendor-name"):
-                if host.getName() == host.genParamGet("pgpu", uuid, "host-name-label"):
-                    intelPGPUUUID = uuid
-                    break
+        pgpus = host.minimalList("pgpu-list")
+        intelPGPUUUID = self.__getValidPGPU(pgpus, cardName, host)
 
         if not intelPGPUUUID:
             raise xenrt.XRTFailure("No Intel GPU found")
 
-        host.unblockDom0AccessToOboardPGPU(intelPGPUUUID)
-        host.enablHostDisplay()
+        host.unblockDom0AccessToOnboardPGPU(intelPGPUUUID)
+        host.enableHostDisplay()
         host.reboot()
         verifyUnblocked()
  
@@ -900,8 +892,8 @@ class TCVGPUCloneVM(VGPUOwnedVMsTest):
 
         if not self.args.has_key("typeofvgpu"):
             raise xenrt.XRTError("Type of vGPU not defined")
-        else:
-            tofvgpu = self.args["typeofvgpu"]
+
+        tofvgpu = self.args["typeofvgpu"]
         if tofvgpu == self.getDiffvGPUName(DiffvGPUType.NvidiaWinvGPU):
             self.typeofvgpu = NvidiaWindowsvGPU()
         if tofvgpu == self.getDiffvGPUName(DiffvGPUType.IntelWinvGPU):
@@ -1944,12 +1936,14 @@ class DifferentGPU(object):
         """
         pass
 
+    @abstractmethod
     def blockDom0Access(self, host, reboot=True):
         """
         Block Dom0 Access to onboard graphics card
         """
         pass
 
+    @abstractmethod
     def unblockDom0Access(self, host):
         """
         Block Dom0 Access to onboard graphics card
@@ -3360,30 +3354,33 @@ class IntelBase(FunctionalBase):
                 vm.enableFullCrashDump()
             self.masterVMsSnapshot[osType] = vm.snapshot()
 
+    @abstractmethod
+    def insideRun(self, vm, config):
+        pass
+
+    def run(self, arglist):
+        for config in self.VGPU_CONFIG:
+            for distro in self.REQUIRED_DISTROS:
+                osType = self.getOSType(distro)
+                
+                vm = self.masterVMs[osType]
+                self.insideRun(vm, config)
 
 class TCIntelSetupNegative(IntelBase):
     """
     Passthrough GPU to win VM without rebooting host after block.
     """
+    def insideRun(self, vm, config):
+        self.typeOfvGPU.unblockDom0Access(self.host)
+        self.typeOfvGPU.blockDom0Access(self.host, reboot=False)
 
-    def run(self, arglist):
-
-        for config in self.VGPU_CONFIG:
-            for distro in self.REQUIRED_DISTROS:
-                osType = self.getOSType(distro)
-
-                self.typeOfvGPU.unblockDom0Access(self.host)
-                self.typeOfvGPU.blockDom0Access(self.host, reboot=False)
-
-                vm = self.masterVMs[osType]
-
-                try:
-                    self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
-                    raise xenrt.XRTFailure("Can attach Intel GPU to vm, while Host not rebooted after blocking Dom0 Access.")
-                except:
-                    pass
-
-                self.typeOfvGPU.unblockDom0Access(self.host)
+        try:
+            self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
+            raise xenrt.XRTFailure("Can attach Intel GPU to vm, while Host not rebooted after blocking Dom0 Access.")
+        except:
+            pass
+        finally:
+            self.typeOfvGPU.unblockDom0Access(self.host)
 
 
 class TCIntelGPUSnapshotNegative(IntelBase):
@@ -3391,34 +3388,28 @@ class TCIntelGPUSnapshotNegative(IntelBase):
     Revert GPU Passthrough snapshot (negative).
     """
 
-    def run(self, arglist):
-        for config in self.VGPU_CONFIG:
-            for distro in self.REQUIRED_DISTROS:
-                osType = self.getOSType(distro)
-                vm = self.masterVMs[osType]
+    def insideRun(self, vm, config):
+        self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
 
-                self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
+        withGPUSnapshot = vm.snapshot()
 
-                withGPUSnapshot = vm.snapshot()
+        vm.setState("DOWN")
+        vm.destroyvGPU()
+        self.typeOfvGPU.unblockDom0Access(self.host)
 
-                vm.setState("DOWN")
-                vm.destroyvGPU()
-                self.typeOfvGPU.unblockDom0Access(self.host)
+        vm.setState("UP")
+        # VM will shutdown after revert.
+        vm.revert(withGPUSnapshot)
 
-                vm.setState("UP")
-                # VM will shutdown after revert.
-                vm.revert(withGPUSnapshot)
-
-                # VM should fail to start.
-                try:
-                    vm.setState("UP")
-                    raise xenrt.XRTFailure("Able to revert to Intel GPU Passthrough enabled snapshot, after unblocking Dom0 Access to Host.")
-                except:
-                    pass
-
-                # Return to blocked state for rest of distros.
-                self.typeOfvGPU.blockDom0Access(self.host)
-
+        # VM should fail to start.
+        try:
+            vm.setState("UP")
+            raise xenrt.XRTFailure("Able to revert to Intel GPU Passthrough enabled snapshot, after unblocking Dom0 Access to Host.")
+        except:
+            pass
+        finally:
+            # Return to blocked state for rest of distros.
+            self.typeOfvGPU.blockDom0Access(self.host)
 
 class TCIntelGPUReuse(IntelBase):
     """Intel GPU can be reused once it is down."""
@@ -3445,30 +3436,24 @@ class TCIntelGPUReuse(IntelBase):
 class TCPoolIntelGPU(IntelBase):
     """Intel GPU Passthrough in a pool"""
 
-    def run(self, arglist):
+    def insideRun(self, vm, config):
+        vm.setState("DOWN")
+        vm1 = vm.cloneVM(noIP=False)
+        vm2 = vm.cloneVM(noIP=False)
 
-        for config in self.VGPU_CONFIG:
-            for distro in self.REQUIRED_DISTROS:
-                osType = self.getOSType(distro)
+        for vm in [vm1, vm2]:
+            self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
+            self.typeOfvGPU.installGuestDrivers(vm, self.getConfigurationName(config))
+            self.typeOfvGPU.assertvGPURunningInVM(vm, self.getConfigurationName(config))
+            vm.setState("DOWN")
 
-                masterVM = self.masterVMs[osType]
-                masterVM.setState("DOWN")
-                vm1 = masterVM.cloneVM(noIP=False)
-                vm2 = masterVM.cloneVM(noIP=False)
-
-                for vm in [vm1, vm2]:
-                    self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
-                    self.typeOfvGPU.installGuestDrivers(vm, self.getConfigurationName(config))
-                    self.typeOfvGPU.assertvGPURunningInVM(vm, self.getConfigurationName(config))
-                    vm.setState("DOWN")
-
-                for i in range(10):
-                    vm1.setState("DOWN")
-                    vm2.setState("DOWN")
-                    # setState() defaults to trying to start vms on the same host when in a pool.
-                    vm1.start(specifyOn=False)
-                    xenrt.sleep(10)
-                    vm2.start(specifyOn=False)
+        for i in range(10):
+            vm1.setState("DOWN")
+            vm2.setState("DOWN")
+            # setState() defaults to trying to start vms on the same host when in a pool.
+            vm1.start(specifyOn=False)
+            xenrt.sleep(10)
+            vm2.start(specifyOn=False)
 
 class TCAlloModeK200NFS(VGPUAllocationModeBase):
 
@@ -3849,7 +3834,7 @@ class GPUGroup(object):
     """
 
     def __init__(self, host, uuid):
-        self.__gridtype__ = ""
+        self.__gridtype = ""
         self.__meta__ = ""
         #self.__allocmode__ = None
         self.host = host
@@ -3858,25 +3843,25 @@ class GPUGroup(object):
         #self.updateAllocationMode()
 
     def getGridType(self):
-        if self.__gridtype__ == "":
+        if self.__gridtype == "":
             self.updatePGPUList()
-        return self.__gridtype__
+        return self.__gridtype
 
     def updatePGPUList(self):
         self.gpuList = self.host.minimalList("pgpu-list", "", "gpu-group-uuid=%s" % (self.uuid,))
         log("GPU group %s has %s pgpus." % (self.uuid, self.gpuList))
-        if self.__gridtype__ == "" and len(self.gpuList) > 0:
+        if self.__gridtype == "" and len(self.gpuList) > 0:
             device = self.host.genParamGet("pgpu", self.gpuList[0], "device-name")
             if CardDeviceName[CardType.K1] in device:
-                self.__gridtype__ = CardName[CardType.K1]
+                self.__gridtype = CardName[CardType.K1]
             elif CardDeviceName[CardType.K2] in device:
-                self.__gridtype__ = CardName[CardType.K2]
+                self.__gridtype = CardName[CardType.K2]
             elif CardDeviceName[CardType.Intel] in device:
-                self.__gridtype__ = CardName[CardType.Intel]
+                self.__gridtype = CardName[CardType.Intel]
             elif CardDeviceName[CardType.Quadro] in device:
-                self.__gridtype__ = CardName[CardType.Quadro]
+                self.__gridtype = CardName[CardType.Quadro]
             else:
-                self.__gridtype__ = "unknown"
+                self.__gridtype = "unknown"
 
     #def updateAllocationMode(self):
         #self.__allocmode__ = self.host.genParamGet("gpu-group", self.uuid, "allocation-algorithm")

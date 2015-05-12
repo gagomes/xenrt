@@ -2629,7 +2629,7 @@ class Config(object):
         self.config["TOOLS_HOTFIXES"]["SanibelCC"] = {"RTM": []}
         self.config["TOOLS_HOTFIXES"]["Tampa"] = {"RTM": []}
         self.config["TOOLS_HOTFIXES"]["Clearwater"] = {"RTM": [], "SP1": []}
-        self.config["TOOLS_HOTFIXES"]["Creedence"] = {"RTM": []}
+        self.config["TOOLS_HOTFIXES"]["Creedence"] = {"RTM": [], "SP1": []}
 
         self.config["GUEST_TESTS"] = {}
 
@@ -3859,6 +3859,7 @@ class Config(object):
         
         # Renovado - xs-tools. Rolls up XS62E015, XS62ESP1003, XS62ESP1012
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1020"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1020/100961/hotfix-XS62ESP1020/XS62ESP1020.xsupdate"
+        self.config["TOOLS_HOTFIXES"]["Clearwater"]["SP1"].append("XS62ESP1020")
         
         # Kraken2 - xen-device-model. Rolls up XS62E014, XS62E017, XS62ESP1002, XS62ESP1004, XS62ESP1006, XS62ESP1007, XS62ESP1008, XS62ESP1011, XS62ESP1013, XS62ESP1015, XS62ESP1016, XS62ESP1019
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1021"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1021/100343/hotfix-XS62ESP1021/XS62ESP1021.xsupdate"

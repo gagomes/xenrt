@@ -12,6 +12,7 @@ import threading, BaseHTTPServer, xml.dom.minidom, types, urllib, time, base64
 import random, socket, httplib
 import SocketServer, tlslite.api, sys, xml.sax.saxutils
 import xenrt
+reload(__import__('sys')).setdefaultencoding('utf8')
 
 # Symbols we want to export from the package.
 __all__ = ["FakeKirkwood",

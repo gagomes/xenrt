@@ -88,7 +88,7 @@
       <testcase tc="TC-20871" id="testcases.xenserver.tc.vgpu.TCExportImportK2GPU">
         <arg>distro=6</arg>
         <arg>typeofvgpu=nvidiawinvgpu</arg>
-        <arg>vgpuconfig=8,11</arg>
+        <arg>vgpuconfig=8</arg>
       </testcase>
 
       <testcase tc="TC-20835" id="testcases.xenserver.tc.vgpu.TCAddPassthroughToFullGPUK200">

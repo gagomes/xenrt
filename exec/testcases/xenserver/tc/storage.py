@@ -4827,6 +4827,9 @@ class TCCIFSLifecycle(xenrt.TestCase):
     """SR Lifecycle operations."""
 
     def prepare(self, arglist):
+
+        self.args = self.parseArgsKeyValue(arglist)
+
         self.host = self.getDefaultHost()
         srtype = "cifs"
 
@@ -4834,8 +4837,8 @@ class TCCIFSLifecycle(xenrt.TestCase):
         self.sr = xenrt.lib.xenserver.SMBStorageRepository.fromExistingSR(self.host, xsr.uuid)
 
     def run(self, arglist):
-        noOfVdis = 10   # Creating 10 VDI's
-        size = 400      # Each VDI of size 400B
+        noOfVdis = self.args["numberofvdis"]
+        sizeInBytes = 400
 
         # Create SR.
         self.sr.create(self.share)

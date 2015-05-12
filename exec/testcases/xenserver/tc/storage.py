@@ -4837,8 +4837,8 @@ class TCCIFSLifecycle(xenrt.TestCase):
         self.sr = xenrt.lib.xenserver.SMBStorageRepository.fromExistingSR(self.host, xsr.uuid)
 
     def run(self, arglist):
-        noOfVdis = self.args["numberofvdis"]
-        sizeInBytes = 400
+        noOfVdis = int(self.args["numberofvdis"])
+        sizeInBytes = int(self.args["size"])
 
         # Create SR.
         self.sr.create(self.share)

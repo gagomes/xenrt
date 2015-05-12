@@ -4828,8 +4828,10 @@ class TCCIFSLifecycle(xenrt.TestCase):
 
     def prepare(self, arglist):
         self.host = self.getDefaultHost()
-        self.share = xenrt.ExternalSMBShare(version=3)
-        self.sr = xenrt.productLib(host=self.host).SMBStorageRepository(self.host, "CIFS-SR")
+        srtype = "cifs"
+
+        xsr = next((s for s in self.host.asXapiObject().SR() if s.srType() == srtype), None)
+        self.sr = xenrt.lib.xenserver.SMBStorageRepository.fromExistingSR(self.host, xsr.uuid)
 
     def run(self, arglist):
         noOfVdis = 10   # Creating 10 VDI's

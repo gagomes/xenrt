@@ -8,7 +8,7 @@ import socket, re, string, time, traceback, sys, random, copy, math
 import xenrt, xenrt.lib.xenserver
 from xenrt.lazylog import step, comment, log
 from testcases.xenserver.tc.upgrade import _TCCrossVersionImport
-from testcases.xenserver.tc.sxm import LiveMigrate, SxmFromLowToHighVersion
+from testcases.xenserver.tc.sxm import SxmFromLowToHighVersion
 
 class WindowsUpdateBase(xenrt.TestCase):
     
@@ -143,7 +143,7 @@ class TCUpgToolsIso(WindowsUpdateBase):
         if not self.guest.pvDriversUpToDate():
             raise xenrt.XRTFailure("PV Drivers are not up-to-date after upgrade using tools ISO")
 
-class TCPVDriverDwngrdFails(WindowsUpdateBase):
+class TCPVDriverDwngrd(WindowsUpdateBase):
     
     def run(self, arglist=None):
         
@@ -154,9 +154,9 @@ class TCPVDriverDwngrdFails(WindowsUpdateBase):
             self.guest.installDrivers(source = self.Tools, pvPkgSrc = "ToolsISO")
             
         except exception , e:
-            if re.search("", str(e)):#include the search string
-                xenrt.TEC().logverbose("Tools downgrade with older version of tools ISO Failed as expected")
-                pass
+            #if re.search("", str(e)):#include the search string
+            xenrt.TEC().logverbose("Tools downgrade with older version of tools ISO Failed as expected")
+            pass
         else:
             raise xenrt.XRTFailure("Tools downgrade with older version of tools ISO successful")
 
@@ -198,14 +198,19 @@ class TCHostUpgradePVChk(xenrt.TestCase):
 
     def prepare(self, arglist=None):
 
-        self.host = self.getHost("RESOURCE_HOST_0")
+        old = xenrt.TEC().lookup("OLD_PRODUCT_VERSION")
+        oldversion = xenrt.TEC().lookup("OLD_PRODUCT_INPUTDIR")
+        
+        self.host = xenrt.lib.xenserver.createHost(id=0,
+                                                   version=oldversion,
+                                                   productVersion=old)
         self.guest = self.host.createGenericWindowsGuest(distro="win7sp1-x64")
         self.guest.shutdown()
         self.host.upgrade()
         
     def run(self, arglist=None):
 
-        if self.guest.checkWindowsPVUpdates():
+        if self.guest.getAutoUpdateDriverState():
             raise xenrt.XRTFailure("Windows PV updates are enabled on the VM after upgrading host")
 
         xenrt.TEC().logverbose("Windows PV updates are disabled on the VM after upgrading host as expected")
@@ -219,7 +224,7 @@ class TCSxmFrmLowToHighPVChk(SxmFromLowToHighVersion):
 
         step("Verify windows pv updates are disabled after migration")
         for guest in self.guests:
-            if guest.windows and guest.checkWindowsPVUpdates():
+            if guest.windows and guest.getAutoUpdateDriverState():
                 raise xenrt.XRTFailure("Windows PV updates are enabled on the VM Migrated from Older host to Newer host")
 
         xenrt.TEC().logverbose("Windows PV updates are disabled on the VM Migrated from Older host to Newer host as expected")
@@ -235,7 +240,7 @@ class TCCrossVerImpPVChk(_TCCrossVersionImport):
         
         step("Verify windows pv updates are disabled after migration")
         for guest in self.guests:
-            if guest.windows and guest.checkWindowsPVUpdates():
+            if guest.windows and guest.getAutoUpdateDriverState():
                 raise xenrt.XRTFailure("Windows PV updates are enabled on the VM imported from Older host to Newer host")
 
         xenrt.TEC().logverbose("Windows PV updates are disabled on the VM imported from Older host to Newer host as expected ")

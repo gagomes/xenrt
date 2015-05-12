@@ -6326,7 +6326,12 @@ class DundeeGuest(CreedenceGuest):
         """ Check whether the windows pv updates is enabled on the host"""
         
         return self.paramGet("platform", "pci_pv")
-
+    
+    def getAutoUpdateDriverState(self):
+        """ Check whether the Windows Auto PV Driver updates is enabled on the VM"""
+        
+        return xenstoreRead("/local/domain/%u/control/auto-update-drivers" %(self.getDomid()))
+        
 class StorageMotionObserver(xenrt.EventObserver):
 
     def startObservingSXMMigrate(self,vm,destHost,destSession):

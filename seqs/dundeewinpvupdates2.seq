@@ -1,0 +1,28 @@
+<xenrt>
+
+  <default name="OLD_PRODUCT_VERSION" value="Clearwater"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446"/>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <pool id="0">
+      <host id="0" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}"/>
+    </pool>
+
+    <pool id="1">
+      <host id="1"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="WindowsPVUpdate">
+     <testcase id="xenserver.tc.winpvupdates.TCSxmFrmLowToHighPVChk" tc="TC-27003" name="SxmFrmLowToHighPVChk,${D}" />
+     <testcase id="xenserver.tc.winpvupdates.TCCrossVerImpPVChk" tc="TC-27004" name="CrossVerImpPVChk,${D}" />
+     <testcase id="xenserver.tc.winpvupdates.TCHostUpgradePVChk" tc="TC-27002" name="HostUpgradePVChk,${D}" />
+    </serial>
+  </testsequence>
+
+</xenrt>

@@ -2885,7 +2885,7 @@ class Config(object):
 
         self.config["DEFAULT_HOTFIX_BRANCH"] = {}
         self.config["DEFAULT_HOTFIX_BRANCH"]["Clearwater"] = "SP1"
-        self.config["DEFAULT_HOTFIX_BRANCH"]["Creedence"] = "RTM"
+        self.config["DEFAULT_HOTFIX_BRANCH"]["Creedence"] = "SP1"
         
         self.config["HOTFIXES"]["Orlando"]["RTM"]["HF1"] = "/usr/groups/release/XenServer-5.0.0-Update1RC3/XenServer-5.0.0-Update1.xsupdate"
         self.config["HOTFIXES"]["Orlando"]["RTM"]["HF2"] = "/usr/groups/release/XenServer-5.0.0-Update2RC3/XenServer-5.0.0-Update2.xsupdate"
@@ -3893,7 +3893,11 @@ class Config(object):
         
         # Crashnet: kernel. Rolls up Nothing.
         self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E008"] = "/usr/groups/release/XenServer-6.x/XS-6.5/hotfixes/XS65E008/100346/hotfix-XS65E008/XS65E008.xsupdate"
-      
+
+
+        # 6.5 SP1 (Cream) - start of SP1 branch, rolls up all previous hotfixes (till XS65E008)
+        self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1"] = "/usr/groups/release/XenServer-6.x/XS-6.5-SP1/RTM-101064/hotfix-XS65ESP1/XS65ESP1.xsupdate"
+        self.config["TOOLS_HOTFIXES"]["Creedence"]["SP1"].append("XS65ESP1")
 
 
         return
@@ -4072,6 +4076,8 @@ class Config(object):
             self.config["CARBON_PATCHES_CREEDENCE"]["HF05"] = self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E005"]
             self.config["CARBON_PATCHES_CREEDENCE"]["HF07"] = self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E007"]
             self.config["CARBON_PATCHES_CREEDENCE"]["HF08"] = self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E008"]
+        elif branch == "SP1":
+            self.config["CARBON_PATCHES_CREEDENCE"]["HF00"] = self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1"]
 
     def readFromFile(self, filename, path=None):
         """Read config from an XML file."""

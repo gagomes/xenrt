@@ -645,6 +645,13 @@ class _CreedenceRTM(_Hotfix):
 class _CreedenceRTMHFd(_CreedenceRTM):
     INITIAL_HOTFIXES = ["XS65E001", "XS65E002", "XS65E003", "XS65E005", "XS65E006", "XS65E007", "XS65E008"]
     
+class _CreedenceSP1(_CreedenceRTM):
+    INITIAL_BRANCH = "SP1"
+    INITIAL_HOTFIXES = ["XS65ESP1"]
+    
+class _CreedenceSP1HFd(_CreedenceSP1):
+    INITIAL_HOTFIXES = ["XS65ESP1"]
+    
     
 # Upgrades
 class _OrlandoRTMviaMiamiHF3(_MiamiHF3):
@@ -821,6 +828,10 @@ class TC23786(_CreedenceRTMHFd):
     """Apply hotfix to XenServer 6.5 RTM with all previous released (non-SP1) hotfixes applied"""
     pass
     
+class TC27009(_CreedenceSP1HFd):
+    """Apply hotfix to XenServer 6.5 SP1 with all previous released (SP1) hotfixes applied"""
+    pass
+    
 # Negative tests (the hotfix should not apply to this base)
 class TC10545(_OrlandoRTM):
     """Apply hotfix to XenServer 5.0.0 RTM (should fail)"""
@@ -895,16 +906,28 @@ class TC20945(_ClearwaterRTM):
     NEGATIVE = True
 
 class TC23783(_ClearwaterRTM):
-    """Apply XS-6.5 hotfix to XenServer 6.2 (should fail)"""
+    """Apply hotfix to XenServer 6.2 (should fail)"""
     NEGATIVE = True
     
 class TC23785(_ClearwaterSP1):
-    """Apply XS-6.5 hotfix to XenServer 6.2 SP1(should fail)"""
+    """Apply hotfix to XenServer 6.2 SP1(should fail)"""
+    NEGATIVE = True
+    
+class TC27005(_CreedenceRTM):
+    """Apply hotfix to XenServer 6.5(should fail)"""
     NEGATIVE = True
 
 class TC23784(_CreedenceRTM):
     """Apply XS 6.5 hotfix to XenServer 6.5 RTM"""
     pass
+
+class TC27006(_CreedenceSP1):
+    """Apply XS 6.5 SP1 hotfix to XenServer 6.5 SP1"""
+    pass
+
+class TC27007(_CreedenceSP1):
+    """Apply hotfix to XenServer 6.5 SP1(should fail)"""
+    NEGATIVE = True
 
 class TCvGPUTechPreview(_ClearwaterRTM):
     """Apply hotfix to XenServer 6.2 RTM with vGPU Tech Preview installed"""
@@ -1011,6 +1034,10 @@ class TC20946(_ClearwaterSP1):
     
 class TC23787(_CreedenceRTM):
     """Apply XS 6.5 hotfix to XenServer 6.5 RTM (pool)"""
+    POOLED = True
+
+class TC27008(_CreedenceSP1):
+    """Apply XS 6.5 SP1 hotfix to XenServer 6.5 SP1 (pool)"""
     POOLED = True
 #############################################################################
 # Upgrade with a rollup

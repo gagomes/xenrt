@@ -2621,7 +2621,7 @@ class Config(object):
         self.config["HOTFIXES"]["SanibelCC"] = {"RTM": {}}
         self.config["HOTFIXES"]["Tampa"] = {"RTM": {}}
         self.config["HOTFIXES"]["Clearwater"] = {"RTM": {}, "SP1": {}}
-        self.config["HOTFIXES"]["Creedence"] = {"RTM": {}}
+        self.config["HOTFIXES"]["Creedence"] = {"RTM": {}, "SP1": {}}
 
         self.config["TOOLS_HOTFIXES"] = {}
         self.config["TOOLS_HOTFIXES"]["Boston"] = {"RTM": []}

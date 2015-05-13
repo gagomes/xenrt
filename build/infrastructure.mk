@@ -15,7 +15,6 @@ DOHOSTS ?= yes
 DONETWORK ?= yes
 DOCONSERVER ?= yes
 DOLOGROTATE ?= yes
-DOCRON ?= yes
 DOSITECONTROLLERCMD ?= yes
 DOLIBVIRT ?= yes
 DOGITCONFIG ?= yes
@@ -26,7 +25,6 @@ DOFILES ?= yes
 DOHOSTS ?= yes
 DOCONSERVER ?= yes
 DOLOGROTATE ?= yes
-DOCRON ?= yes
 DOSITECONTROLLERCMD ?= yes
 DOLIBVIRT ?= yes
 DOGITCONFIG ?= yes
@@ -226,17 +224,6 @@ ifeq ($(DOLOGROTATE),yes)
 	$(SUDO) sed -i 's/rotate 52/rotate 7/' /etc/logrotate.d/apache2
 endif
 
-.PHONY: cron
-cron:
-ifeq ($(DOCRON),yes)
-	$(info Setting up crontab)
-	cp $(ROOT)/$(XENRT)/infrastructure/cron/xenrt.cron.in $(ROOT)/$(XENRT)/infrastructure/cron/xenrt.cron
-	sed -i 's#@@BINDIR@@#$(BINDIR)#g' $(ROOT)/$(XENRT)/infrastructure/cron/xenrt.cron
-	sed -i 's#@@SHAREDIR@@#$(SHAREDIR)#g' $(ROOT)/$(XENRT)/infrastructure/cron/xenrt.cron
-	sed -i 's#@@CONFDIR@@#$(CONFDIR)#g' $(ROOT)/$(XENRT)/infrastructure/cron/xenrt.cron
-	crontab $(ROOT)/$(XENRT)/infrastructure/cron/xenrt.cron
-endif
-
 .PHONY: gitconfig
 gitconfig:
 ifeq ($(DOGITCONFIG),yes)
@@ -258,7 +245,7 @@ ifeq ($(DOSITECONTROLLERCMD),yes)
 endif
 
 .PHONY: infrastructure
-infrastructure: puppetrun api winpe machines files dhcpd dhcpd6 hosts network conserver logrotate cron sitecontrollercmd libvirt
+infrastructure: puppetrun api winpe machines files dhcpd dhcpd6 hosts network conserver logrotate sitecontrollercmd libvirt
 	$(info XenRT infrastructure installed.)
 
 

@@ -2128,14 +2128,7 @@ class _TCCrossVersionImport(xenrt.TestCase):
                                            "name-label",
                                            newlabel)
 
-        # Install a VM on the newer host to be the platform for running
-        # the import and export commands.
-        arch = None
-        # Create 64-bit guest to run 64-bit xe CLI, when using 64-bit Dom0
-        hostarch = self.host1.execdom0("uname -m").strip()
-        if hostarch.endswith("64"):
-            arch="x86-64"
-        self.cliguest = self.host1.createGenericLinuxGuest(arch=arch)
+        self.cliguest = self.host1.createGenericLinuxGuest()
         self.uninstallOnCleanup(self.cliguest)
         # Need to add an extra disk, as root one is too small
         ud = None

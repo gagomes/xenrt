@@ -227,6 +227,7 @@
         <arg>guest=win7</arg>
         <arg>vgpuconfig=K120</arg>
         <arg>clones=8</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
       </testcase>
       <testcase tc="TC-20710" id="testcases.xenserver.tc.vgpu.TCGPUBenchmark" name="win7k120clone" sku="win7k120clone">
         <arg>guest=win7</arg>

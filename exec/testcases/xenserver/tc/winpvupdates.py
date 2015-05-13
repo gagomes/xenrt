@@ -22,21 +22,33 @@ class WindowsUpdateBase(xenrt.TestCase):
             self.Tools = self.args['TOOLS']
 
         self.goldVM = self.host.getGuest(self.args['guest'])
-        self.guest = self.goldVM.cloneVM()
+        self.guest = self.cloneVM(self.goldVM)
 
         self.guest.lifecycleOperation("vm-start")
         xenrt.sleep(50)
         self.uninstallOnCleanup(self.guest)
-        
+
     def getAutoUpdateDriverState(self, guest):
         """ Check whether the Windows Auto PV Driver updates is enabled on the VM"""
         
         return xenstoreRead("/local/domain/%u/control/auto-update-drivers" %(guest.getDomid()))
-        
+
     def postRun(self):
         
         pass
+
+    def cloneVM(self, guest):
+        """ If cloned VM is windows with no tools"""
     
+        g = None
+        g = guest.cloneVM()
+        if not g.mainip:
+            g.lifecycleOperation("vm-start")
+            vifname, bridge, mac, ip = vifs[0]
+            g.mainip = self.getHost().arpwatch(bridge, mac, timeout=10800)
+            g.lifecycleOperation("vm-shutdown", force=True)
+        return g
+
 class TCSnapRevertTools(WindowsUpdateBase):
     
     def run(self, arglist=None):

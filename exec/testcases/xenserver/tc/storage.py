@@ -2567,6 +2567,28 @@ class TC8509(_TCResizeDataCheck):
     SRTYPE = "lvmoiscsi"
     DOM0 = "slave"
     FORCEOFFLINE = True
+
+# CIFS Resize
+class TCCIFSVDIResizeShrink(_TCResizeShrink):
+    """Attempting to shrink a CIFS VDI should fail with a suitable error."""
+
+    SRTYPE = "cifs"
+
+class TCCIFSVDIResizeGrowSmall(_TCResizeGrow):
+    """Grow a CIFS VDI of a round size by 1 byte."""
+
+    SRTYPE = "cifs"
+
+class TCCIFSVDIResizeGrowLarge(_TCResizeGrow2):
+    """Grow a CIFS VDI twice in large chunks."""
+
+    SRTYPE = "cifs"
+
+class TCCIFSVDIResizeDataCheck(_TCResizeDataCheck):
+    """Data integrity of resized CIFS VDI."""
+
+    SRTYPE = "cifs"
+    FORCEOFFLINE = True
     
 #############################################################################
 # VDI create testcases
@@ -2705,6 +2727,12 @@ class TC8525(_TCVDICreateRoundup):
     """VDI create of a odd size Equallogic VDI should round up to the next allocation unit"""
 
     SRTYPE = "equal"
+
+class TCCIFSOddSize(_TCVDICreateRoundup):
+    """CIFS Odd size"""
+
+    SRTYPE = "cifs"
+
 
 #############################################################################
 # SR introduce testcases
@@ -3468,6 +3496,11 @@ class TC10680(TC10671):
 
     SRTYPE = "netapp"
 
+class TCCIFSZeroedContents(TC10671):
+    """CIFS Zeroed contents"""
+
+    SRTYPE = "cifs"
+
 # New Test cases added for copying from one host to another 
 
 class TC12158(_VDICopy):
@@ -3943,13 +3976,13 @@ touch write_done_%d.dat""" % (tapdiskpath, params.strip(), fileid)
         self.host = self.getDefaultHost()
         self.cli = self.host.getCLIInstance()
 
-        # Create a VDI of a certain size (say DISK_SIZE) and attach it to dom0
+        # Create a VDI of a certain size (say DISK_SIZE) and attach it to VM
         self.sruuid = self.host.lookupDefaultSR()
         self.vdiuuid = self.host.createVDI(self.DISK_SIZE, sruuid=self.sruuid, name="XenRT-VDI")
-        self.vmuuid = self.host.getMyDomain0UUID()
+        self.guest = self.host.createGenericLinuxGuest()
 
         self.vbduuid = self.cli.execute("vbd-create vm-uuid=%s vdi-uuid=%s device=autodetect" %
-                                                                (self.vmuuid, self.vdiuuid), strip=True)
+                                                                (self.guest.getUUID(), self.vdiuuid), strip=True)
         self.cli.execute("vbd-plug uuid=%s" % (self.vbduuid))
         time.sleep(10)
 
@@ -4789,3 +4822,48 @@ class TC26974(xenrt.TestCase):
         share = xenrt.VMSMBShare()
         sr = xenrt.productLib(host=self.host).SMBStorageRepository(self.host, "CIFS-SR")
         sr.create(share)
+
+class TCCIFSLifecycle(xenrt.TestCase):
+    """SR Lifecycle operations."""
+
+    def prepare(self, arglist):
+
+        self.args = self.parseArgsKeyValue(arglist)
+
+        self.host = self.getDefaultHost()
+        srtype = "cifs"
+
+        xsr = next((s for s in self.host.asXapiObject().SR() if s.srType() == srtype), None)
+        self.sr = xenrt.lib.xenserver.SMBStorageRepository.fromExistingSR(self.host, xsr.uuid)
+
+    def run(self, arglist):
+        noOfVdis = int(self.args["numberofvdis"])
+        sizeInBytes = int(self.args["size"])
+
+        # Create SR.
+        self.sr.create(self.share)
+
+        # Create some VDIs
+        actualVdis = [self.host.createVDI(size, sruuid=self.sr.uuid, name="VDI_%s" % i)for i in range(noOfVdis)]
+
+        # Forget SR
+        self.sr.forget()
+
+        # Introduce SR
+        self.sr.introduce()
+        xenrt.sleep(100)
+        
+        self.sr.scan()
+        VDIs_present = set(self.sr.listVDIs())
+        # Get a list of any VDIs that are now missing
+        VDIs_missing = filter(lambda vdi: vdi not in VDIs_present, actualVdis)
+
+        xenrt.TEC().logverbose("VDIs missing after SR introduce: " % (",".join(VDIs_missing)))
+            
+        if len(VDIs_missing) > 0:
+            raise xenrt.XRTFailure("VDIs are missing after SR introduce")
+
+        self.sr.check()
+
+        # Destroy SR.
+        self.sr.remove()

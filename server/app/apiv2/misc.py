@@ -70,6 +70,58 @@ class GetUsersDetails(XenRTAPIv2Page):
                 ret[u.userid] = {"user": u.userid, "email": u.email, "team": u.team, "admin": u.admin, "groups": u.groups}
         return ret
 
+class GetGroupDetails(XenRTAPIv2Page):
+    PATH = "/groupdetails/{group}"
+    REQTYPE = "GET"
+    SUMMARY = "Get details for a XenRT group"
+    PARAMS = [
+        {'name': 'group',
+         'in': 'path',
+         'required': True,
+         'description': 'Group to fetch',
+         'type': 'string'}]
+    RESPONSES = {"200": {"description": "Successful response"}}
+    TAGS = ["misc"]
+
+    def render(self):
+        cur = self.getDB().cursor()
+        cur.execute("SELECT gu.userid FROM tblgroupusers gu INNER JOIN tblgroups g ON gu.groupid = g.groupid WHERE g.name=%s", [self.matchdict('group')])
+        users = []
+        while True:
+            rc = cur.fetchone()
+            if not rc:
+                break
+            users.append(rc[0].strip())
+        return {"group": self.matchdict('group'), "users": users}
+
+class GetGroupsDetails(XenRTAPIv2Page):
+    PATH = "/groupsdetails"
+    REQTYPE = "GET"
+    SUMMARY = "Get details for multiple XenRT group"
+    PARAMS = [
+        {'name': 'group',
+         'in': 'query',
+         'required': True,
+         'description': 'Group to fetch',
+         'type': 'array',
+         'items': {'type': 'string'}}]
+    RESPONSES = {"200": {"description": "Successful response"}}
+    TAGS = ["misc"]
+
+    def render(self):
+        ret = {}
+        for group in self.getMultiParam("group"):
+            cur = self.getDB().cursor()
+            cur.execute("SELECT gu.userid FROM tblgroupusers gu INNER JOIN tblgroups g ON gu.groupid = g.groupid WHERE g.name=%s", [group])
+            users = []
+            while True:
+                rc = cur.fetchone()
+                if not rc:
+                    break
+                users.append(rc[0].strip())
+            ret[group] = {"group": group, "users": users}
+        return ret
+
 class ADLookup(XenRTAPIv2Page):
     PATH = "/ad"
     REQTYPE = "GET"
@@ -110,3 +162,5 @@ RegisterAPI(GetUser)
 RegisterAPI(ADLookup)
 RegisterAPI(GetUserDetails)
 RegisterAPI(GetUsersDetails)
+RegisterAPI(GetGroupDetails)
+RegisterAPI(GetGroupsDetails)

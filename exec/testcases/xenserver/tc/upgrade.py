@@ -2127,7 +2127,6 @@ class _TCCrossVersionImport(xenrt.TestCase):
                                            network,
                                            "name-label",
                                            newlabel)
-
         self.cliguest = self.host1.createGenericLinuxGuest()
         self.uninstallOnCleanup(self.cliguest)
         # Need to add an extra disk, as root one is too small

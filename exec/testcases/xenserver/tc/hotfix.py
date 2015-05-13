@@ -636,7 +636,7 @@ class _ClearwaterSP1(_ClearwaterRTM):
     INITIAL_HOTFIXES = ["XS62ESP1"]
     
 class _ClearwaterSP1HFd(_ClearwaterSP1):
-    INITIAL_HOTFIXES = ["XS62ESP1", "XS62ESP1002", "XS62ESP1003", "XS62ESP1004", "XS62ESP1005", "XS62ESP1006", "XS62ESP1007", "XS62ESP1008", "XS62ESP1009", "XS62ESP1011", "XS62ESP1012", "XS62ESP1013", "XS62ESP1014", "XS62ESP1015", "XS62ESP1016", "XS62ESP1017", "XS62ESP1019", "XS62ESP1021"]
+    INITIAL_HOTFIXES = ["XS62ESP1", "XS62ESP1002", "XS62ESP1003", "XS62ESP1004", "XS62ESP1005", "XS62ESP1006", "XS62ESP1007", "XS62ESP1008", "XS62ESP1009", "XS62ESP1011", "XS62ESP1012", "XS62ESP1013", "XS62ESP1014", "XS62ESP1015", "XS62ESP1016", "XS62ESP1017", "XS62ESP1019", "XS62ESP1020", "XS62ESP1021", "XS62ESP1024"]
     
 class _CreedenceRTM(_Hotfix):
     INITIAL_VERSION = "Creedence"
@@ -644,6 +644,13 @@ class _CreedenceRTM(_Hotfix):
     
 class _CreedenceRTMHFd(_CreedenceRTM):
     INITIAL_HOTFIXES = ["XS65E001", "XS65E002", "XS65E003", "XS65E005", "XS65E006", "XS65E007", "XS65E008"]
+    
+class _CreedenceSP1(_CreedenceRTM):
+    INITIAL_BRANCH = "SP1"
+    INITIAL_HOTFIXES = ["XS65ESP1"]
+    
+class _CreedenceSP1HFd(_CreedenceSP1):
+    INITIAL_HOTFIXES = ["XS65ESP1"]
     
     
 # Upgrades
@@ -821,6 +828,10 @@ class TC23786(_CreedenceRTMHFd):
     """Apply hotfix to XenServer 6.5 RTM with all previous released (non-SP1) hotfixes applied"""
     pass
     
+class TC27009(_CreedenceSP1HFd):
+    """Apply hotfix to XenServer 6.5 SP1 with all previous released (SP1) hotfixes applied"""
+    pass
+    
 # Negative tests (the hotfix should not apply to this base)
 class TC10545(_OrlandoRTM):
     """Apply hotfix to XenServer 5.0.0 RTM (should fail)"""
@@ -895,16 +906,28 @@ class TC20945(_ClearwaterRTM):
     NEGATIVE = True
 
 class TC23783(_ClearwaterRTM):
-    """Apply XS-6.5 hotfix to XenServer 6.2 (should fail)"""
+    """Apply hotfix to XenServer 6.2 (should fail)"""
     NEGATIVE = True
     
 class TC23785(_ClearwaterSP1):
-    """Apply XS-6.5 hotfix to XenServer 6.2 SP1(should fail)"""
+    """Apply hotfix to XenServer 6.2 SP1(should fail)"""
+    NEGATIVE = True
+    
+class TC27005(_CreedenceRTM):
+    """Apply hotfix to XenServer 6.5(should fail)"""
     NEGATIVE = True
 
 class TC23784(_CreedenceRTM):
     """Apply XS 6.5 hotfix to XenServer 6.5 RTM"""
     pass
+
+class TC27006(_CreedenceSP1):
+    """Apply XS 6.5 SP1 hotfix to XenServer 6.5 SP1"""
+    pass
+
+class TC27007(_CreedenceSP1):
+    """Apply hotfix to XenServer 6.5 SP1(should fail)"""
+    NEGATIVE = True
 
 class TCvGPUTechPreview(_ClearwaterRTM):
     """Apply hotfix to XenServer 6.2 RTM with vGPU Tech Preview installed"""
@@ -1011,6 +1034,10 @@ class TC20946(_ClearwaterSP1):
     
 class TC23787(_CreedenceRTM):
     """Apply XS 6.5 hotfix to XenServer 6.5 RTM (pool)"""
+    POOLED = True
+
+class TC27008(_CreedenceSP1):
+    """Apply XS 6.5 SP1 hotfix to XenServer 6.5 SP1 (pool)"""
     POOLED = True
 #############################################################################
 # Upgrade with a rollup

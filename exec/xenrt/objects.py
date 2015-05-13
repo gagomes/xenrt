@@ -3276,11 +3276,11 @@ DHCPServer = 1
 
         isLegacy = True
         try:
-            debversion = float(self.execcmd("cat /etc/debian_version").strip())
+            debversion = int(self.execcmd("cat /etc/debian_version").strip().split(".")[0])
         except:
             debversion = None
 
-        if debversion >= 6.0:
+        if debversion >= 6:
             isLegacy = False
 
         try:
@@ -3299,7 +3299,7 @@ DHCPServer = 1
 
             # Get and install the iscsi target
             
-            if debversion >= 7.0:
+            if debversion >= 7:
                 self.execcmd("apt-get install -y --force-yes iscsitarget iscsitarget-dkms")
                 self.execcmd('sed -i "s/false/true/" /etc/default/iscsitarget')
                 self.execcmd('/etc/init.d/iscsitarget restart')
@@ -3317,7 +3317,7 @@ DHCPServer = 1
             # Prerequisites
             self.execcmd("apt-get install libssl-dev --force-yes -y")
 
-            if debversion == 4.0 and self.execcmd("uname -r").strip() == "2.6.18.8.xs5.5.0.14.443":
+            if debversion == 4 and self.execcmd("uname -r").strip() == "2.6.18.8.xs5.5.0.14.443":
                 # On Etch on George we need to workaround the fact the updates repo no longer exists,
                 # and thus we don't pick up kernel headers from it
                 url = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP")
@@ -8595,12 +8595,18 @@ class GenericGuest(GenericPlace):
                     release = "testing"
                 _url = repository + "/dists/%s/" % (release)
                 boot_dir = "main/installer-%s/current/images/netboot/debian-installer/%s/" % (arch, arch)
-
+            
             # Pull boot files from HTTP repository
             fk = xenrt.TEC().tempFile()
             fr = xenrt.TEC().tempFile()
-            xenrt.getHTTP(_url + boot_dir + "linux", fk)
-            xenrt.getHTTP(_url + boot_dir + "initrd.gz", fr)
+            if release == "testing":
+                # Testing presently doesn't have an installer
+                baseurl = "http://d-i.debian.org/daily-images/%s/daily/netboot/debian-installer/%s/" % (arch, arch)
+                xenrt.getHTTP(baseurl + "linux", fk)
+                xenrt.getHTTP(baseurl + "initrd.gz", fr)
+            else:
+                xenrt.getHTTP(_url + boot_dir + "linux", fk)
+                xenrt.getHTTP(_url + boot_dir + "initrd.gz", fr)
 
             # Construct a PXE target
             pxe = xenrt.PXEBoot(remoteNfs=self.getHost().lookup("REMOTE_PXE", None))

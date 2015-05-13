@@ -2080,21 +2080,6 @@ fi
         if xenrt.TEC().lookup("HOST_POST_INSTALL_REBOOT", False, boolean=True):
             self.reboot()
 
-        dom0mem = xenrt.TEC().lookup("OPTION_DOM0_MEM", None)
-        if dom0mem:
-            dom0_uuid = self.execdom0("xe vm-list is-control-domain=true --minimal").strip()
-            mem_static_max = self.execdom0("xe vm-param-get uuid=%s param-name=memory-static-max" % dom0_uuid).strip()
-            set_target = xenrt.TEC().lookup("OPT_DOM0MEM_SET_TARGET", True, boolean=True)
-            if set_target:
-                self.execdom0("xe vm-memory-target-set uuid=%s target=%s" % (dom0_uuid,mem_static_max))
-                time.sleep(30) #dom0 needs a couple of seconds to set the memory target
-                mem_actual = self.execdom0("xe vm-param-get uuid=%s param-name=memory-actual" % dom0_uuid).strip()
-                if mem_static_max != mem_actual:
-                    raise xenrt.XRTFailure("dom0 mem_static_max=%s != mem_actual=%s" % (mem_static_max,mem_actual))
-                mem_dyn_min = self.execdom0("xe vm-param-get uuid=%s param-name=memory-dynamic-min" % dom0_uuid).strip()
-                if mem_static_max != mem_dyn_min:
-                    raise xenrt.XRTFailure("dom0 mem_static_max=%s != mem_dyn_min=%s" % (mem_static_max,mem_dyn_min))
-
         optionRootMpath = self.lookup("OPTION_ROOT_MPATH", None)
         if optionRootMpath != None and len(optionRootMpath) > 0:
             # Check to ensure that there is a multipath topology if we did multipath boot.
@@ -7128,13 +7113,32 @@ fi
                               "[0-9a-f]{4}-[0-9a-f]{12}).vhd", data)
         elif srtype in ["lvm", "lvmoiscsi", "lvmohba"]:
             path = "VG_XenStorage-%s" % (sruuid)
-            data = host.execdom0("lvs --noheadings -o lv_name %s" % (path))
+            if self.isThinProvisioningSR(sruuid):
+                data = host.execdom0("xenvm lvs --noheadings -o lv_name %s" % (path))
+            else:
+                data = host.execdom0("lvs --noheadings -o lv_name %s" % (path))
             return re.findall(\
                 r"(?:VHD|LV)-([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
                 "[0-9a-f]{4}-[0-9a-f]{12})", data)
         else:
             raise xenrt.XRTError("listVHDs unimplemented for %s" % (srtype))
-            
+
+    def isThinProvisioningSR(self, sruuid):
+        """Return a sr is thinly provisioned."""
+        srtype = self.genParamGet("sr", sruuid, "type")
+        if srtype in ["lvm", "lvmoiscsi", "lvmohba"]:
+            try:
+                alloc = self.genParamGet("sr", sruuid, "sm-config", "allocation")
+                #usevhd = self.getParamGet("sr", sruuid, "sm-config", "use_vhd")
+                if alloc == "dynamic":# and usevhd == "true":
+                    return True
+
+            except:
+                xenrt.TEC().logverbose("Cannot find 'allocation' from sm-config key.")
+                pass
+
+        return False
+
     def logout(self, subject):
         xenrt.TEC().logverbose("Logging out all sessions associated "
                                "with %s." % (subject.name))
@@ -9491,6 +9495,8 @@ class BostonHost(MNRHost):
     def _setPifsForLacp(self, pifs):
         switch = xenrt.lib.switch.createSwitchForPifs(self, pifs)
         switch.setLACP()
+        # Turning on LACP results in a delay before the host is reachable again ( CA-165518 )
+        self.waitForSSH(120, desc="Host reachability after enabling LACP on switch")
 
     def _unsetPifsForLacp(self, pifs):
         switch = xenrt.lib.switch.createSwitchForPifs(self, pifs)
@@ -9698,7 +9704,7 @@ class BostonHost(MNRHost):
                     # Enable LACP *after* creating the bond
                     if bondMode == "lacp":
                         self._setPifsForLacp(pifs)
-            
+
                     # check that specified pifs are indeed the bond slaves 
                     slaves = self.genParamGet("bond", bonduuid, "slaves").split("; ")
                     if (set(slaves)-set(pifs)):
@@ -10788,6 +10794,12 @@ class ClearwaterHost(TampaHost):
     #This is a temp license function once clearwater and trunk will be in sync this will become "license" funtion
     def license(self, edition = "per-socket", v6server = None, sku=None):
 
+        cli = self.getCLIInstance()
+        args = []
+
+        if sku:
+            edition = sku
+
         if edition == "per-socket" or edition == "xendesktop":
 
             licensed = True
@@ -10795,10 +10807,6 @@ class ClearwaterHost(TampaHost):
             
             licensed = False
  
-        cli = self.getCLIInstance()
-
-        args = []
-
         args.append("host-uuid=%s" % (self.getMyHostUUID()))
         args.append("edition=%s" % (edition))
   
@@ -14588,6 +14596,9 @@ class ClearwaterPool(TampaPool):
         cli = self.master.getCLIInstance()
 
         args = []
+
+        if sku:
+            edition = sku
 
         args.append("uuid=%s" % (self.getUUID()))
         args.append("edition=%s" % (edition))

@@ -1760,7 +1760,7 @@ class InsuffSpaceDestSR(MidMigrateFailure):
 
         #creating large VDI(200GB) on destination SR
         host = self.test_config['host_B']
-        vdi = host.createVDI( 204800 * xenrt.MEGA)
+        vdi = host.createVDI( 102400 * xenrt.MEGA)
 
 class LargeDiskWin(LiveMigrate):
 

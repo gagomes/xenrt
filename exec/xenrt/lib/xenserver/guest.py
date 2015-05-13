@@ -963,10 +963,8 @@ users:
         elif self.distro and re.search("solaris", self.distro):
             self.execguest("nohup /usr/sbin/poweroff >/tmp/poweroff.out 2>/tmp/poweroff.err </dev/null &")
         else:
-            try:
-                self.execguest("/sbin/poweroff")
-            except:
-                pass
+            self.execguest("(sleep 5 && /sbin/poweroff) >/dev/null 2>&1 </dev/null &")
+            xenrt.sleep(10)
 
     def unenlightenedReboot(self):
         if self.windows:
@@ -974,10 +972,8 @@ users:
         elif self.distro and re.search("solaris", self.distro):
             self.execguest("nohup /usr/sbin/reboot >/tmp/reboot.out 2>/tmp/reboot.err </dev/null &")
         else:
-            try:
-                self.execguest("/sbin/reboot")
-            except:
-                pass
+            self.execguest("(sleep 5 && /sbin/reboot) >/dev/null 2>&1 </dev/null &")
+            xenrt.sleep(10)
 
     def reboot(self, force=False, skipsniff=None):
         if not force:
@@ -3188,14 +3184,7 @@ exit /B 1
         elif g.mainip: 
             if re.match("169\.254\..*", g.mainip):
                 raise xenrt.XRTFailure("VM gave itself a link-local address.")
-        
-        #If cloned vm is windows with no tools 
-        if not g.mainip:
-            g.lifecycleOperation("vm-start")
-            vifname, bridge, mac, ip = vifs[0]
-            g.mainip = self.getHost().arpwatch(bridge, mac, timeout=10800)
-            g.lifecycleOperation("vm-shutdown", force=True)
-            
+
         g.setHostnameViaXenstore()
         return g
 

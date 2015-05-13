@@ -6271,7 +6271,7 @@ class DundeeGuest(CreedenceGuest):
         var1 = self.winRegPresent('HKLM', "SOFTWARE\\Wow6432Node\\Citrix\\XenToolsInstaller", "InstallStatus")
         var2 = self.winRegPresent('HKLM', "SOFTWARE\\Citrix\\XenToolsInstaller", "InstallStatus")
         if var1 or var2:
-            super(DundeeGuest , self).uninstallDrivers(waitForDaemon, source=None)
+            super(DundeeGuest , self).uninstallDrivers(waitForDaemon, source)
             
         else:
             #Drivers are installed using PV Packages uninstall them separately
@@ -6327,11 +6327,6 @@ class DundeeGuest(CreedenceGuest):
         
         return self.paramGet("platform", "pci_pv")
     
-    def getAutoUpdateDriverState(self):
-        """ Check whether the Windows Auto PV Driver updates is enabled on the VM"""
-        
-        return xenstoreRead("/local/domain/%u/control/auto-update-drivers" %(self.getDomid()))
-        
 class StorageMotionObserver(xenrt.EventObserver):
 
     def startObservingSXMMigrate(self,vm,destHost,destSession):

@@ -85,7 +85,7 @@
         </testcase>
         <testcase id="xenserver.tc.winpvupdates.TCPVDriverDwngrd" tc="TC-27001" name="PVDriverDwngrd,${D}">
         <arg>guest=${D}</arg>
-        <arg>TOOLS=/usr/groups/xenrt/pvtools/creedencertm.tgz</arg>
+        <arg>TOOLS=/usr/groups/xenrt/pvtools/clearwaterrtm.tgz</arg>
         </testcase>
      </for>
   </testsequence>

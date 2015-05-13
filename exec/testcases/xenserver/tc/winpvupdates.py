@@ -27,26 +27,12 @@ class WindowsUpdateBase(xenrt.TestCase):
         self.guest.lifecycleOperation("vm-start")
         xenrt.sleep(50)
         self.uninstallOnCleanup(self.guest)
-    
-    def skipPvPkginst(self, pkgList, useGuestAgent=True):
         
-        step("Take snapshot of the VM")
-        snapshot = self.guest.snapshot()
+    def getAutoUpdateDriverState(self, guest):
+        """ Check whether the Windows Auto PV Driver updates is enabled on the VM"""
         
-        if useGuestAgent:
-            self.guest.installFullWindowsGuestAgent()
-            
-        step("Install PV Drivers on the windows guest")
-        self.guest.installPVPackage(packageList = pkgList)
-        self.guest.reboot()
+        return xenstoreRead("/local/domain/%u/control/auto-update-drivers" %(guest.getDomid()))
         
-        self.guest.waitForDaemon(300, desc="Guest check after installation of PV Packages %s" %(pkgList))
-        
-        step("Revert the VM to the State before tools were uninstalled")
-        self.guest.revert(snapshot)
-        self.guest.removeSnapshot(snapshot)
-        self.guest.lifecycleOperation("vm-start")
-    
     def postRun(self):
         
         pass
@@ -100,6 +86,8 @@ class TCUpgWinCmp(WindowsUpdateBase):
         step("Install Windows update compatible PV Drivers")
         self.guest.installDrivers(source = self.Tools, pvPkgSrc = "ToolsISO")
         
+        oldVersion = self.guest.getPVDriverVersion()
+        
         self.guest.shutdown()
         
         step("Enable the Windows Updates from the Host")
@@ -109,6 +97,11 @@ class TCUpgWinCmp(WindowsUpdateBase):
         
         step("Update PV Drivers on the windows guest")
         self.guest.installDrivers()
+        
+        newVersion = self.guest.getPVDriverVersion()
+        
+        if not newVersion > oldVersion:
+            raise xenrt.XRTFailure("PV Drivers Failed to upgrade OldVersion > NewVersion (%s > %s)" %(oldVersion, newVersion))
 
 class TCUpgNonWinCmp(WindowsUpdateBase):
 
@@ -116,6 +109,8 @@ class TCUpgNonWinCmp(WindowsUpdateBase):
 
         step("Install Non-Windows update compatible PV Drivers")
         self.guest.installDrivers(source = self.Tools, pvPkgSrc = "ToolsISO")
+        
+        oldVersion = self.guest.getPVDriverVersion()
         
         step("Uninstall Non-Windows Update Compatible PV Drivers")
         self.guest.uninstallDrivers(source = self.Tools)
@@ -129,19 +124,28 @@ class TCUpgNonWinCmp(WindowsUpdateBase):
         
         step("Install PV Drivers on the windows guest")
         self.guest.installDrivers()
-
+        
+        newVersion = self.guest.getPVDriverVersion()
+        
+        if not newVersion > oldVersion:
+            raise xenrt.XRTFailure("PV Drivers Failed to upgrade OldVersion > NewVersion (%s > %s)" %(oldVersion, newVersion))
+            
 class TCUpgToolsIso(WindowsUpdateBase):
 
     def run(self, arglist=None):
         
         step("Install the PV Drivers on the Windows Guest")
         self.guest.installDrivers(source = self.Tools)
-
+        
+        oldVersion = self.guest.getPVDriverVersion()
+        
         step("Upgrade the tools using tools.iso")
         self.guest.installDrivers(pvPkgSrc = "ToolsISO")
         
-        if not self.guest.pvDriversUpToDate():
-            raise xenrt.XRTFailure("PV Drivers are not up-to-date after upgrade using tools ISO")
+        newVersion = self.guest.getPVDriverVersion()
+        
+        if not newVersion > oldVersion:
+            raise xenrt.XRTFailure("PV Drivers Failed to upgrade OldVersion > NewVersion (%s > %s)" %(oldVersion, newVersion))
 
 class TCPVDriverDwngrd(WindowsUpdateBase):
     
@@ -149,16 +153,17 @@ class TCPVDriverDwngrd(WindowsUpdateBase):
         
         step("Install PV Drivers on the windows guest")
         self.guest.installDrivers()
-        try:
-            step("Try downgrading the tools with the older version of Tools ISO")
-            self.guest.installDrivers(source = self.Tools, pvPkgSrc = "ToolsISO")
-            
-        except exception , e:
-            #if re.search("", str(e)):#include the search string
-            xenrt.TEC().logverbose("Tools downgrade with older version of tools ISO Failed as expected")
-            pass
-        else:
-            raise xenrt.XRTFailure("Tools downgrade with older version of tools ISO successful")
+        
+        oldVersion = self.guest.getPVDriverVersion()
+        
+        step("Try downgrading the tools with the older version of Tools ISO")
+        self.guest.installDrivers(source = self.Tools, pvPkgSrc = "ToolsISO")
+        
+        newVersion = self.guest.getPVDriverVersion()
+        
+        if newVersion > oldVersion:
+            raise xenrt.XRTFailure("PV Drivers downgrade successful from %s to %s" %(oldVersion, newVersion))
+
 
 class TCSkipPvPkg(WindowsUpdateBase):
 
@@ -176,7 +181,7 @@ class TCSkipPvPkg(WindowsUpdateBase):
         
         self.guest.waitForDaemon(300, desc="Guest check after installation of PV Packages %s" %(pkgList))
         
-        xenrt.TEC().logverbose("Guest %s is reachable after installation of PV Packages %s" %(pkgList))
+        xenrt.TEC().logverbose("%s is reachable after installation of PV Packages %s" %(self.guest.getName(), pkgList))
 
 class TCSkipPvPkgNoAgent(WindowsUpdateBase):
 
@@ -192,7 +197,7 @@ class TCSkipPvPkgNoAgent(WindowsUpdateBase):
         
         self.guest.waitForDaemon(300, desc="Guest check after installation of PV Packages %s" %(pkgList))
         
-        xenrt.TEC().logverbose("Guest %s is reachable after installation of PV Packages %s" %(pkgList))
+        xenrt.TEC().logverbose("%s is reachable after installation of PV Packages %s" %(self.guest.getName(), pkgList))
 
 class TCHostUpgradePVChk(xenrt.TestCase):
 
@@ -204,13 +209,13 @@ class TCHostUpgradePVChk(xenrt.TestCase):
         self.host = xenrt.lib.xenserver.createHost(id=0,
                                                    version=oldversion,
                                                    productVersion=old)
-        self.guest = self.host.createGenericWindowsGuest(distro="win7sp1-x64")
+        self.guest = self.host.createGenericWindowsGuest(distro="win7-x86")
         self.guest.shutdown()
         self.host.upgrade()
         
     def run(self, arglist=None):
 
-        if self.guest.getAutoUpdateDriverState():
+        if self.getAutoUpdateDriverState(self.guest):
             raise xenrt.XRTFailure("Windows PV updates are enabled on the VM after upgrading host")
 
         xenrt.TEC().logverbose("Windows PV updates are disabled on the VM after upgrading host as expected")
@@ -224,7 +229,7 @@ class TCSxmFrmLowToHighPVChk(SxmFromLowToHighVersion):
 
         step("Verify windows pv updates are disabled after migration")
         for guest in self.guests:
-            if guest.windows and guest.getAutoUpdateDriverState():
+            if guest.windows and self.getAutoUpdateDriverState(guest):
                 raise xenrt.XRTFailure("Windows PV updates are enabled on the VM Migrated from Older host to Newer host")
 
         xenrt.TEC().logverbose("Windows PV updates are disabled on the VM Migrated from Older host to Newer host as expected")
@@ -239,8 +244,8 @@ class TCCrossVerImpPVChk(_TCCrossVersionImport):
         _TCCrossVersionImport.run(self, arglist)
         
         step("Verify windows pv updates are disabled after migration")
-        for guest in self.guests:
-            if guest.windows and guest.getAutoUpdateDriverState():
+        for guest in self.host1.listGuests():
+            if guest.windows and self.getAutoUpdateDriverState(guest):
                 raise xenrt.XRTFailure("Windows PV updates are enabled on the VM imported from Older host to Newer host")
 
         xenrt.TEC().logverbose("Windows PV updates are disabled on the VM imported from Older host to Newer host as expected ")

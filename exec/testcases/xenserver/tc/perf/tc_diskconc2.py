@@ -107,12 +107,32 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
 
             self.host.execdom0("xe vm-start uuid=%s paused=true" % (vm_uuid))
 
-            vmid = self.host.execdom0("list_domains | grep %s" % (vm_uuid)).strip().split(" ")[0]
+            vmid = self.host.execdom0("list_domains | grep %s" % (vm_uuid)).strip().split(" ")[0].strip()
+
+            backend_xs_name = "vbd3" if self.backend == "xen-tapdisk3" else "vbd";
 
             for vbd_uuid in vbd_uuids:
-                vdi_uuid = self.host.execdom0("xe vbd-list uuid=%s params=vdi-uuid --minimal" % (vbd_uuid))
-                vbdid = self.host.execdom0("xenstore-ls -f /xapi/%s | grep vdi-id | grep %s" % (vm_uuid, vdi_uuid)).split("/")[5]
-                self.host.execdom0("xenstore-write /local/domain/0/backend/vbd/%s/%s/multi-queue-max-queues '%s'" % (vmid, vbdid, self.multiqueue))
+                vdi_uuid = self.host.execdom0("xe vbd-list uuid=%s params=vdi-uuid --minimal" % (vbd_uuid)).strip()
+                vbdid = self.host.execdom0("xenstore-ls -f /xapi/%s | grep vdi-id | grep %s" % (vm_uuid, vdi_uuid)).split("/")[5].strip()
+                self.host.execdom0("xenstore-write /local/domain/0/backend/%s/%s/%s/multi-queue-max-queues '%s'" %
+                                   (backend_xs_name, vmid, vbdid, self.multiqueue))
+
+                if self.backend == "xen-tapdisk3":
+                    sr_uuid = self.host.execdom0("xe vdi-list uuid=%s params=sr-uuid --minimal" % (vdi_uuid)).strip()
+                    vhd = "/dev/VG_XenStorage-%s/VHD-%s" % (sr_uuid, vdi_uuid)
+
+                    for queue in range(self.multiqueue):
+                        self.host.execdom0("tap-ctl create -a vhd:%s" % (vhd))
+
+                    tapdisk_list = self.host.execdom0("tap-ctl list | grep %s" % (vhd)).strip().split("\n")
+
+                    queue = 0
+                    for line in tapdisk_list:
+                        pid, minor = map(lambda x:x.split("=")[1], line.split(' '))[:2]
+
+                        self.host.execdom0("xenstore-write /local/domain/%s/device/vbd/%s/queue-%s/pid %s" % (vmid, vbdid, queue, pid))
+                        self.host.execdom0("xenstore-write /local/domain/%s/device/vbd/%s/queue-%s/minor %s" % (vmid, vbdid, queue, minor))
+                        queue += 1
 
             vm.unpause()
 

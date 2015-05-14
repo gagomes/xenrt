@@ -9240,9 +9240,10 @@ class GenericGuest(GenericPlace):
             os.makedirs(d)
         self.xmlrpcGetFile("c:\\windows\\temp\\devcon.log", "%s/devcon.log" % (d))
         gpuDetected = 0
-        gpuPatterns = ["PCI.VEN_10DE.*(NVIDIA|VGA).*"  #nvidia pci vendor id
+        gpuPatterns = ["PCI.VEN_10DE.*(NVIDIA|VGA).*"   #nvidia pci vendor id
                         ,"PCI.VEN_1002.*(ATI|VGA).*"    #ati/amd pci vendor id
                         ,"PCI.VEN_102B.*(Matrox|VGA).*" #matrox  pci vendor id
+                        ,"PCI.VEN.*Intel.*Graphics.*"   #intel pci vendor id
                        ]
         f = open("%s/devcon.log"%d)
         for line in f:
@@ -9294,11 +9295,32 @@ class GenericGuest(GenericPlace):
         self.xmlrpcSendFile("%s/%s" % (tempDir,tarBall),"c:\\%s" % tarBall)
 
         self.xmlrpcExtractTarball("c:\\%s" % tarBall,"c:\\")
+        vbScript = """
+Set WshShell = WScript.CreateObject("WScript.Shell")
+WScript.sleep 60000
+WshShell.Run "cmd", 9
+WScript.sleep 1000
+WshShell.SendKeys "c:\%s -s"
+WshShell.SendKeys "{ENTER}"
+WScript.sleep 180000
 
-        returncode = self.xmlrpcExec("c:\\%s /s /noreboot" % (fileName),
+WshShell.SendKeys "{ENTER}"
+WScript.sleep 1000
+WshShell.SendKeys "{LEFT}"
+WshShell.SendKeys "{ENTER}"
+WScript.sleep 1000
+WshShell.SendKeys "{ENTER}"
+
+WScript.sleep 180000
+
+WshShell.SendKeys "{ENTER}"
+WScript.sleep 1000
+WshShell.SendKeys "{ENTER}"
+""" % (fileName)
+        self.xmlrpcWriteFile("c:\\vb.vbs",vbScript)
+        returncode = self.xmlrpcExec("c:\\vb.vbs",
                                       level=xenrt.RC_OK, returnerror=False, returnrc=True,
                                       timeout = 600)
-
         # Wait for some time to settle down with driver installer.
         xenrt.sleep(30)
 

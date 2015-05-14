@@ -2088,7 +2088,7 @@ exit /B 1
         netscaler.applyLicense(netscaler.getLicenseFileFromXenRT())
         if installNSTools:
             netscaler.installNSTools()
-        netscaler.checkFeatures()
+        netscaler.checkFeatures("Test results after applying license:")
 
     def setupVCenter(self, vCenterVersion="5.5.0-update02"):
         vcenter = xenrt.lib.esx.getVCenter(guest=self, vCenterVersion=vCenterVersion)

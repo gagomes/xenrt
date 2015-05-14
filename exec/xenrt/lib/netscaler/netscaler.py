@@ -61,6 +61,7 @@ class NetScaler(object):
             # Wait / Check for SSH connectivity
             vpxGuest.waitForSSH(timeout=300, username='nsroot', cmd='shell')
             vpx = cls(vpxGuest, mgmtNet)
+            vpx.checkFeatures("On fresh install:")
             vpx.setup(networks)
         return vpx
 
@@ -209,9 +210,22 @@ class NetScaler(object):
         #writes the number of PEs to log file
         pe = max(map(lambda x: x.split()[0],filter(lambda x: re.match('^\d',x),self.__netScalerCliCommand('stat cpus'))))
         return pe
+        
+    def licenseTest(self):
+        #checks features before before applying license
+        featNo = filter(lambda x: len(x.split(':')) > 1 and x.split(':')[1].strip()=="YES",self.__netScalerCliCommand('show ns license'))
+        if len(featNo) != 1 or featNo[0].split(':')[0].strip()=="SSL offloading":
+            xenrt.TEC().logverbose('License test failed')
+        else:
+            xenrt.TEC().logverbose('License test passed')
 
-    def checkFeatures(self):
-        xenrt.TEC().logverbose('The NetScaler version is %s' % (self.version))
-        xenrt.TEC().logverbose('The NetScaler management IP is %s' % (self.managementIp))
-        xenrt.TEC().logverbose('The model number ID is %s' % (self.checkModNum()))
-        xenrt.TEC().logverbose('The Number of PEs: %s' % (self.checkCPU()))
+        
+    def checkFeatures(self, flag = ""):
+        xenrt.TEC().logverbose(flag)
+        xenrt.TEC().logverbose('The version of the provisioned VPX is %s' % (self.version))
+        xenrt.TEC().logverbose('The management IP of the provisioned VPX is %s' % (self.managementIp))
+        xenrt.TEC().logverbose('The model number ID of the provisioned VPX is %s' % (self.checkModNum()))
+        xenrt.TEC().logverbose('The Number of PEs of the provisioned VPX: %s' % (self.checkCPU()))
+        xenrt.TEC().logverbose('The build version in ns.conf is: %s' % (self.__netScalerCliCommand("shell head -1 /flash/nsconfig/ns.conf")))
+        xenrt.TEC().logverbose('The show run output in ns.conf is : %s ' % (self.__netScalerCliCommand('sh run')[0]))
+        self.licenseTest()

@@ -45,7 +45,7 @@ class WindowsUpdateBase(xenrt.TestCase):
         if not g.mainip:
             g.lifecycleOperation("vm-start")
             vifname, bridge, mac, ip = g.vifsN[0]
-            g.mainip = self.getHost().arpwatch(bridge, mac, timeout=10800)
+            g.mainip = self.host.arpwatch(bridge, mac, timeout=10800)
             g.lifecycleOperation("vm-shutdown", force=True)
         return g
 

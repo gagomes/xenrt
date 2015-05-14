@@ -903,6 +903,8 @@ class LiveMigrate(xenrt.TestCase):
         check_VM_is_running = True
         if self.test_config.has_key('vm_lifecycle_operation') and self.test_config['vm_lifecycle_operation']:
             check_VM_is_running = False
+        if vm['pre_power_state'] != 'UP':
+            check_VM_is_running = False
         if self.test_config.has_key('vm_reboot') and self.test_config['vm_reboot']:
             check_VM_is_running = True
         
@@ -1498,6 +1500,10 @@ class LiveMigrate(xenrt.TestCase):
         for i in range(self.test_config['iterations']):
             xenrt.TEC().logverbose("Iteration %s"%(i+1))
             self.preHook()
+
+            for guest in self.guests:
+                vm_config = self.vm_config[guest.getName()]
+                vm_config['pre_power_state'] = guest.getState()
 
             if self.test_config.has_key('use_xe') and self.test_config['use_xe']:
                 self.migrateVMsWithXe()

@@ -1121,8 +1121,7 @@ class LiveMigrate(xenrt.TestCase):
         if not self.test_config['win_crash']:
             try:
                 if not (vm.has_key('nodrivers') and vm['nodrivers']):
-                    if guest.getState() != 'UP':
-                        guest.start()
+                    guest.setState('UP')
                     guest.check()
             except Exception as e:
                 err = 'FAILURE_SXM: ' + str(e)
@@ -1433,12 +1432,11 @@ class LiveMigrate(xenrt.TestCase):
         else:
             self.test_config['test_status'][guest.getName()] = test_status
         
-        if guest.getState() != 'UP':
-            try:
-                guest.start()
-            except Exception as e:
-                test_status.append("FAILURE_SXM: guest.start() [%s] failed with '%s'" % 
-                                                (guest.getUUID(), e))
+        try:
+            guest.setState('UP')
+        except Exception as e:
+            test_status.append("FAILURE_SXM: guest.start() [%s] failed with '%s'" %
+                               (guest.getUUID(), e))
         try:
             guest.shutdown()
             guest.start()

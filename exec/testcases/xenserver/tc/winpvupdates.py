@@ -28,11 +28,6 @@ class WindowsUpdateBase(xenrt.TestCase):
         xenrt.sleep(50)
         self.uninstallOnCleanup(self.guest)
 
-    def getAutoUpdateDriverState(self, guest):
-        """ Check whether the Windows Auto PV Driver updates is enabled on the VM"""
-        
-        return xenstoreRead("/local/domain/%u/control/auto-update-drivers" %(guest.getDomid()))
-
     def postRun(self):
         
         pass
@@ -227,7 +222,7 @@ class TCHostUpgradePVChk(xenrt.TestCase):
         
     def run(self, arglist=None):
 
-        if self.getAutoUpdateDriverState(self.guest):
+        if self.guest.getAutoUpdateDriverState():
             raise xenrt.XRTFailure("Windows PV updates are enabled on the VM after upgrading host")
 
         xenrt.TEC().logverbose("Windows PV updates are disabled on the VM after upgrading host as expected")
@@ -241,7 +236,7 @@ class TCSxmFrmLowToHighPVChk(SxmFromLowToHighVersion):
 
         step("Verify windows pv updates are disabled after migration")
         for guest in self.guests:
-            if guest.windows and self.getAutoUpdateDriverState(guest):
+            if guest.windows and guest.getAutoUpdateDriverState():
                 raise xenrt.XRTFailure("Windows PV updates are enabled on the VM Migrated from Older host to Newer host")
 
         xenrt.TEC().logverbose("Windows PV updates are disabled on the VM Migrated from Older host to Newer host as expected")
@@ -257,7 +252,7 @@ class TCCrossVerImpPVChk(_TCCrossVersionImport):
         
         step("Verify windows pv updates are disabled after migration")
         for guest in self.host1.listGuests():
-            if guest.windows and self.getAutoUpdateDriverState(guest):
+            if guest.windows and guest.getAutoUpdateDriverState():
                 raise xenrt.XRTFailure("Windows PV updates are enabled on the VM imported from Older host to Newer host")
 
         xenrt.TEC().logverbose("Windows PV updates are disabled on the VM imported from Older host to Newer host as expected ")

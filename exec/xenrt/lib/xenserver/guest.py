@@ -4353,6 +4353,10 @@ exit /B 1
 
         return ret
 
+    def getAutoUpdateDriverState(self):
+        """ Check whether the Windows Auto PV Driver updates is enabled on the VM"""
+        
+        return xenstoreRead("/local/domain/%u/control/auto-update-drivers" %(self.getDomid()))
 #############################################################################
 
 def parseSequenceVIFs(guest, host, vifs):

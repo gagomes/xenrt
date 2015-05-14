@@ -963,10 +963,8 @@ users:
         elif self.distro and re.search("solaris", self.distro):
             self.execguest("nohup /usr/sbin/poweroff >/tmp/poweroff.out 2>/tmp/poweroff.err </dev/null &")
         else:
-            try:
-                self.execguest("/sbin/poweroff")
-            except:
-                pass
+            self.execguest("(sleep 5 && /sbin/poweroff) >/dev/null 2>&1 </dev/null &")
+            xenrt.sleep(10)
 
     def unenlightenedReboot(self):
         if self.windows:
@@ -974,10 +972,8 @@ users:
         elif self.distro and re.search("solaris", self.distro):
             self.execguest("nohup /usr/sbin/reboot >/tmp/reboot.out 2>/tmp/reboot.err </dev/null &")
         else:
-            try:
-                self.execguest("/sbin/reboot")
-            except:
-                pass
+            self.execguest("(sleep 5 && /sbin/reboot) >/dev/null 2>&1 </dev/null &")
+            xenrt.sleep(10)
 
     def reboot(self, force=False, skipsniff=None):
         if not force:
@@ -6255,8 +6251,8 @@ class DundeeGuest(CreedenceGuest):
             self.enablePowerShellUnrestricted()
             
             #Get the OEM files to be deleted after uninstalling drivers
-            oemFileList = self.xmlrpcExec("C:\\%s dp_enum | select-string 'Citrix' -Context 1,0 | findstr 'oem'" %(devconexe), returndata = True, powershell=True).strip().splitlines()
-            oemFileList = [item.strip() for item in oemFileList][1:]
+            oemFileList = self.xmlrpcExec("pnputil.exe -e | select-string 'Citrix' -Context 1,0 | findstr 'oem'" , returndata = True, powershell=True).split()
+            oemFileList = [item for item in oemFileList if item.startswith('oem')]
             
             batch = []
             
@@ -6272,18 +6268,29 @@ class DundeeGuest(CreedenceGuest):
             self.xmlrpcWriteFile("c:\\uninst.bat", string.join(batch))
             self.xmlrpcStart("c:\\uninst.bat")
         
-        self.reboot()
+        self.xmlrpcReboot()
         
         if not self.xmlrpcIsAlive():
             raise xenrt.XRTFailure("XML-RPC not alive after tools uninstallation")
         
         # Verify PV devices have been removed after tools uninstallation
-        if self.checkPVDevicesState() and not self.checkPVDriversStatus(ignoreException = True):
+        if self.checkPVDevicesState():
             xenrt.TEC().logverbose("PV Packages are uninstalled Successfully")
         else:
             raise xenrt.XRTFailure("PV Packages are not uninstalled")
             
         self.enlightenedDrivers = False
+
+    def enableWindowsPVUpdates(self):
+        """ Enable the windows updates by setting pci_pv flag to true on the host"""
+
+        self.paramSet("platform:pci_pv", "true")
+        self.reboot()
+
+    def checkWindowsPVUpdates(self):
+        """ Check whether the windows pv updates is enabled on the host"""
+        
+        return self.paramGet("platform", "pci_pv")
 
 class StorageMotionObserver(xenrt.EventObserver):
 

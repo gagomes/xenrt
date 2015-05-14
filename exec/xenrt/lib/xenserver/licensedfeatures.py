@@ -278,8 +278,11 @@ class DundeeEnabledFeatures(CreedenceEnabledFeatures):
     def getFeatures(self, sku):
         features = super(DundeeEnabledFeatures, self).getFeatures(sku)
 
-        if sku >= self.enterprise:
-            features.extend([CIFSStorage()])
+        # CIFS Licensing on trunk temporarily set to free.
+        # Needs to be re added to Enabled Features once licensing returns to normal in Trunk.
+
+        # if sku >= self.enterprise:
+        #    features.extend([CIFSStorage()])
 
         return features
 

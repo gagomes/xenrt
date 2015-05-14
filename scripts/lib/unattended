@@ -285,7 +285,7 @@ build_iso_common() {
 #            ${TEMPDIR}/iso/\$OEM\$/\$1/install/sfu.xrt
 #    fi
 
-    mkisofs \
+    genisoimage \
         -quiet \
         -b ${WINVERSION}.img \
         ${MKISOFLAGS} \

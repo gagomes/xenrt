@@ -1802,7 +1802,19 @@ class Config(object):
         # LXC currently uses KVM for System VMs, so use the KVM template
         self.config["CLOUD_CONFIG"]["4.5"]["SYSTEM_TEMPLATES"]["lxc"] = self.config["CLOUD_CONFIG"]["4.5"]["SYSTEM_TEMPLATES"]["kvm"]
 
-        self.config["CLOUD_CONFIG"]["4.6.0"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.5"])
+        self.config["CLOUD_CONFIG"]["4.5.1"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.5"])
+        self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-04-16-4.5.1-xen.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["kvm"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-04-16-4.5.1-kvm.qcow2.bz2"
+        self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["hyperv"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-04-16-4.5.1-hyperv.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["vmware"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-04-16-4.5.1-vmware.ova"
+        self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["lxc"] = self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["kvm"]
+
+        self.config["CLOUD_CONFIG"]["4.6.0"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.5.1"])
+        self.config["CLOUD_CONFIG"]["4.6.0"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-05-05-master-4.6.0-xen.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["4.6.0"]["SYSTEM_TEMPLATES"]["kvm"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-05-05-master-4.6.0-kvm.qcow2.bz2"
+        self.config["CLOUD_CONFIG"]["4.6.0"]["SYSTEM_TEMPLATES"]["hyperv"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-05-05-master-4.6.0-hyperv.vhd.zip"
+        self.config["CLOUD_CONFIG"]["4.6.0"]["SYSTEM_TEMPLATES"]["vmware"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-05-05-master-4.6.0-vmware.ova"
+        self.config["CLOUD_CONFIG"]["4.6.0"]["SYSTEM_TEMPLATES"]["lxc"] = self.config["CLOUD_CONFIG"]["4.6.0"]["SYSTEM_TEMPLATES"]["kvm"]
 
         # Specify which version 'master' currently maps to
         self.config["CLOUD_MASTER_MAP"] = "4.6.0"
@@ -2609,7 +2621,7 @@ class Config(object):
         self.config["HOTFIXES"]["SanibelCC"] = {"RTM": {}}
         self.config["HOTFIXES"]["Tampa"] = {"RTM": {}}
         self.config["HOTFIXES"]["Clearwater"] = {"RTM": {}, "SP1": {}}
-        self.config["HOTFIXES"]["Creedence"] = {"RTM": {}}
+        self.config["HOTFIXES"]["Creedence"] = {"RTM": {}, "SP1": {}}
 
         self.config["TOOLS_HOTFIXES"] = {}
         self.config["TOOLS_HOTFIXES"]["Boston"] = {"RTM": []}
@@ -2617,7 +2629,7 @@ class Config(object):
         self.config["TOOLS_HOTFIXES"]["SanibelCC"] = {"RTM": []}
         self.config["TOOLS_HOTFIXES"]["Tampa"] = {"RTM": []}
         self.config["TOOLS_HOTFIXES"]["Clearwater"] = {"RTM": [], "SP1": []}
-        self.config["TOOLS_HOTFIXES"]["Creedence"] = {"RTM": []}
+        self.config["TOOLS_HOTFIXES"]["Creedence"] = {"RTM": [], "SP1": []}
 
         self.config["GUEST_TESTS"] = {}
 
@@ -2873,7 +2885,7 @@ class Config(object):
 
         self.config["DEFAULT_HOTFIX_BRANCH"] = {}
         self.config["DEFAULT_HOTFIX_BRANCH"]["Clearwater"] = "SP1"
-        self.config["DEFAULT_HOTFIX_BRANCH"]["Creedence"] = "RTM"
+        self.config["DEFAULT_HOTFIX_BRANCH"]["Creedence"] = "SP1"
         
         self.config["HOTFIXES"]["Orlando"]["RTM"]["HF1"] = "/usr/groups/release/XenServer-5.0.0-Update1RC3/XenServer-5.0.0-Update1.xsupdate"
         self.config["HOTFIXES"]["Orlando"]["RTM"]["HF2"] = "/usr/groups/release/XenServer-5.0.0-Update2RC3/XenServer-5.0.0-Update2.xsupdate"
@@ -3845,9 +3857,19 @@ class Config(object):
         # Burgess - xen-hyp. Rolls up XS62E014, XS62E017, XS62ESP1002, XS62ESP1004, XS62ESP1006, XS62ESP1007, XS62ESP1008, XS62ESP1011, XS62ESP1013, XS62ESP1015, XS62ESP1016
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1019"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1019/92015/hotfix-XS62ESP1019/XS62ESP1019.xsupdate"
         
+        # Renovado - xs-tools. Rolls up XS62E015, XS62ESP1003, XS62ESP1012
+        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1020"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1020/100961/hotfix-XS62ESP1020/XS62ESP1020.xsupdate"
+        self.config["TOOLS_HOTFIXES"]["Clearwater"]["SP1"].append("XS62ESP1020")
+        
         # Kraken2 - xen-device-model. Rolls up XS62E014, XS62E017, XS62ESP1002, XS62ESP1004, XS62ESP1006, XS62ESP1007, XS62ESP1008, XS62ESP1011, XS62ESP1013, XS62ESP1015, XS62ESP1016, XS62ESP1019
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1021"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1021/100343/hotfix-XS62ESP1021/XS62ESP1021.xsupdate"
         
+        #Deadlock - xen-hyp. Rolls up XS62E014, XS62E017, XS62ESP1002, XS62ESP1004, XS62ESP1006, XS62ESP1007, XS62ESP1008, XS62ESP1011, XS62ESP1013, XS62ESP1015, XS62ESP1016, XS62ESP1019
+        #Limited availability
+        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1022"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1022/100367/hotfix-XS62ESP1022/XS62ESP1022.xsupdate"
+        
+        # Lola - kernel. Rolls up XS62ESP1005, XS62ESP1009
+        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1024"] = "/usr/groups/build/clearwater-sp1-lcm/101109/hotfix-XS62ESP1024/XS62ESP1024.xsupdate"
         
         
         #Creedence hotfixes
@@ -3872,7 +3894,11 @@ class Config(object):
         
         # Crashnet: kernel. Rolls up Nothing.
         self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E008"] = "/usr/groups/release/XenServer-6.x/XS-6.5/hotfixes/XS65E008/100346/hotfix-XS65E008/XS65E008.xsupdate"
-      
+
+
+        # 6.5 SP1 (Cream) - start of SP1 branch, rolls up all previous hotfixes (till XS65E008)
+        self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1"] = "/usr/groups/release/XenServer-6.x/XS-6.5-SP1/RTM-101064/hotfix-XS65ESP1/XS65ESP1.xsupdate"
+        self.config["TOOLS_HOTFIXES"]["Creedence"]["SP1"].append("XS65ESP1")
 
 
         return
@@ -4034,11 +4060,11 @@ class Config(object):
         elif branch == "SP1":
             self.config["CARBON_PATCHES_CLEARWATER"]["HF00"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF04"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1004"]
-            self.config["CARBON_PATCHES_CLEARWATER"]["HF09"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1009"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF14"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1014"]
-            self.config["CARBON_PATCHES_CLEARWATER"]["HF12"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1012"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF17"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1017"]
+            self.config["CARBON_PATCHES_CLEARWATER"]["HF20"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1020"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF21"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1021"]
+            self.config["CARBON_PATCHES_CLEARWATER"]["HF24"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1024"]
 
         if not self.config.has_key("CARBON_PATCHES_CREEDENCE"):
             self.config["CARBON_PATCHES_CREEDENCE"] = {}
@@ -4051,6 +4077,8 @@ class Config(object):
             self.config["CARBON_PATCHES_CREEDENCE"]["HF05"] = self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E005"]
             self.config["CARBON_PATCHES_CREEDENCE"]["HF07"] = self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E007"]
             self.config["CARBON_PATCHES_CREEDENCE"]["HF08"] = self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E008"]
+        elif branch == "SP1":
+            self.config["CARBON_PATCHES_CREEDENCE"]["HF00"] = self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1"]
 
     def readFromFile(self, filename, path=None):
         """Read config from an XML file."""

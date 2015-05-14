@@ -716,7 +716,11 @@ class NewJob(_JobBase):
 
         if params.has_key("JOBGROUP") and params.has_key("JOBGROUPTAG") and not jobGroup:
             jobGroup = {"id": params['JOBGROUP'], "tag": params['JOBGROUPTAG']}
-     
+
+        if params.has_key("PREEMPTABLE") and preemptable is None:
+            preemptable = app.utils.toBool(params["PREEMPTABLE"])
+            del params["PREEMPTABLE"]
+
         self.removeParams(params, ["USERID", "REMOVED", "UPLOADED", "JOBSTATUS", "REMOVED_BY"])
 
         params["JOB_SUBMITTED"] = time.asctime(time.gmtime()) + " UTC"

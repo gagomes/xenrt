@@ -3326,8 +3326,8 @@ exit /B 1
                     raise xenrt.XRTFailure("Snapshot not halted",
                                            "Snapshot UUID %s" % (uuid))
         else:
-            if host.genParamGet("template", uuid, "power-state") != \
-                                "halted":
+            if host.genParamGet("template", uuid, "power-state") not in \
+                                ["halted", "suspended"]:
                 raise xenrt.XRTFailure("Snapshot not halted",
                                        "Snapshot UUID %s" % (uuid))
 

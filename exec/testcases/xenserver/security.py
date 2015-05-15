@@ -578,3 +578,35 @@ class TCXSA112(_TCXSA):
     
     def postRun(self):
         self.host.execdom0("cp -f {0}.backup {0}".format(self.hvmloaderPath))
+
+class TCXSA133(_TCXSA):
+    """Test to verify XSA-133"""
+    # Jira TC
+    
+    def prepare(self, arglist=None):
+        _TCXSA.prepare(self, arglist)
+        #change log level
+        self.host.execdom0("sed -e 's/\(append .*xen\S*.gz\)/\\0 loglvl=all guest_loglvl=all/' /boot/extlinux.conf > tmp && mv tmp /boot/extlinux.conf -f")
+        self.host.reboot()
+        
+        self.guest = self.host.createGenericEmptyGuest()
+        if self.guest.getState() != "DOWN":
+            self.guest.shutdown()
+        
+        self.replaceHvmloader("https://issues.citrite.net/secure/attachment/750982/test-hvm64-xsa-133")
+        
+    def run(self, arglist=None):
+        self.guest.start()
+        
+        xenrt.sleep(60)
+        self.guest.checkHealth()
+        self.checkHost()
+        serlog = string.join(self.host.machine.getConsoleLogHistory(), "\n")
+        xenrt.TEC().logverbose(serlog)
+        
+        xenrt.TEC().logverbose(self.guest.getState())
+        
+        xenrt.TEC().tc.pause("paused..")
+        
+    def postRun(self):
+        self.host.execdom0("cp -f {0}.backup {0}".format(self.hvmloaderPath))

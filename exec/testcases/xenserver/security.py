@@ -604,7 +604,7 @@ class TCXSA133(_TCXSA):
             state = self.guest.getState()
 
             # Check if we have a successful run
-            data = self.host.execdom0("grep qemu-dm-%s\\[%s\\] /var/log/messages /var/log/daemon.log || true" % (domid, qpid))
+            data = self.host.execdom0("grep qemu-dm-%s /var/log/messages /var/log/daemon.log || true" % (domid))
 
             if "XSA-133 PoC done - not vulnerable" in data:
                 xenrt.TEC().logverbose("Test completed successfully")

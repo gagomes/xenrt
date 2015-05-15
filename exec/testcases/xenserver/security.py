@@ -581,7 +581,7 @@ class TCXSA112(_TCXSA):
 
 class TCXSA133(_TCXSA):
     """Test to verify XSA-133"""
-    # Jira TC
+    # Jira TC-27014
     
     def prepare(self, arglist=None):
         _TCXSA.prepare(self, arglist)
@@ -609,8 +609,9 @@ class TCXSA133(_TCXSA):
                 xenrt.TEC().logverbose("Test completed successfully")
                 break
 
-            if state == "DOWN" or self.host.execdom0("test -d /proc/%s" % (qpid), retval="code") != 0:
+            # We have to check that the guest is still up after we spot qemu not running, otherwise we can get caught by a race...
+            if state == "DOWN" or (self.host.execdom0("test -d /proc/%s" % (qpid), retval="code") != 0 and self.guest.getState() != "DOWN"):
                 raise xenrt.XRTFailure("Host appears vulnerable to XSA-133")
-        
+
     def postRun(self):
         self.host.execdom0("cp -f {0}.backup {0}".format(self.hvmloaderPath))

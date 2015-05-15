@@ -5549,9 +5549,9 @@ class GenericHost(GenericPlace):
         ay=SLESAutoyastFile( distro,
                              nfsdir.getMountURL(""),
                              mainDisk,
-                             method,
-                             ethDevice,
-                             isntallOn="native",
+                             installOn="native",
+                             method=method,
+                             ethDevice=ethDevice,
                              password=self.password,
                              extraPackages=extrapackages,
                              bootDiskSize=bootDiskSize,
@@ -9967,7 +9967,7 @@ while True:
         @rtype boolean
         """
         if self.windows:
-            raise XRTError("Function can only be used to check for installed RPMs on linux.")
+            raise xenrt.XRTError("Function can only be used to check for installed RPMs on linux.")
 
         #rpm should NOT contain file extn .rpm, so split off any file extension
         fileWithoutExt = os.path.splitext(rpm)[0]

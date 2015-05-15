@@ -578,3 +578,42 @@ class TCXSA112(_TCXSA):
     
     def postRun(self):
         self.host.execdom0("cp -f {0}.backup {0}".format(self.hvmloaderPath))
+
+class TCXSA133(_TCXSA):
+    """Test to verify XSA-133"""
+    # Jira TC-27014
+    
+    def prepare(self, arglist=None):
+        _TCXSA.prepare(self, arglist)
+        self.guest = self.host.createGenericEmptyGuest()
+        self.replaceHvmloader("http://files.uk.xensource.com/usr/groups/xenrt/xsa_test_files/test-hvm64-xsa-133")
+        
+    def run(self, arglist=None):
+
+        # We can't use start() as this expects a VM to boot and do 'normal' things
+        self.guest.lifecycleOperation("vm-start", timeout=30)
+        domid = self.guest.getDomid()
+        qpid = self.host.xenstoreRead("/local/domain/%u/qemu-pid" % domid)
+
+        starttime = xenrt.util.timenow()
+        while True:
+            if xenrt.util.timenow() - starttime > 1800:
+                raise xenrt.XRTError("Timed out waiting for XSA-133 test")
+
+            qemuRunning = (self.host.execdom0("test -d /proc/%s" % (qpid), retval="code") == 0)
+            state = self.guest.getState()
+
+            # Check if we have a successful run
+            data = self.host.execdom0("grep qemu-dm-%s /var/log/messages /var/log/daemon.log || true" % (domid))
+
+            if "XSA-133 PoC done - not vulnerable" in data:
+                xenrt.TEC().logverbose("Test completed successfully")
+                break
+
+            if state == "DOWN" or not qemuRunning:
+                raise xenrt.XRTFailure("Host appears vulnerable to XSA-133")
+
+            xenrt.sleep(30)
+
+    def postRun(self):
+        self.host.execdom0("cp -f {0}.backup {0}".format(self.hvmloaderPath))

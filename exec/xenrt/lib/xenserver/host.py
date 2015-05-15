@@ -1637,7 +1637,7 @@ done
         pxecfg.mbootArgsModule1Add("ramdisk_size=65536")
         pxecfg.mbootArgsModule1Add("install")
         
-        if not xenrt.TEC().lookup("OPTION_NO_ANSWERFILE", False):
+        if not xenrt.TEC().lookup("OPTION_NO_ANSWERFILE", False, boolean=True):
             if upgrade:
                 pxecfg.mbootArgsModule1Add("rt_answerfile=%s" %
                                            (packdir.getURL("%s-upgrade.xml" %
@@ -2677,7 +2677,7 @@ fi
 
         # if the installer was run manually then we don't expect
         # the host config to match the install config.
-        if xenrt.TEC().lookup("OPTION_NO_ANSWERFILE", False):
+        if xenrt.TEC().lookup("OPTION_NO_ANSWERFILE", False, boolean=True):
             return
         
         if ok == 0:

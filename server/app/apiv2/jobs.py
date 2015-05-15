@@ -501,7 +501,7 @@ class RemoveJobs(_JobBase):
         except Exception, e:
             raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
         for job in j['jobs']:
-            self.removeJob(job)
+            self.removeJob(job, commit=False)
         self.getDB().commit()
                  
         return {}

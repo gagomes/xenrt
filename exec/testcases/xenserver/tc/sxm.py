@@ -535,6 +535,8 @@ class LiveMigrate(xenrt.TestCase):
                 self.args['reuse_VM'] = True
             else:
                 self.args['reuse_VM'] = False
+        # pass on the arglist so that individual testcase can interpret its specific args if necessary
+        self.arglist = arglist
         return
 
     def identifyPoolAAndB(self):

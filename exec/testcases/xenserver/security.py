@@ -613,5 +613,7 @@ class TCXSA133(_TCXSA):
             if state == "DOWN" or not qemuRunning:
                 raise xenrt.XRTFailure("Host appears vulnerable to XSA-133")
 
+            xenrt.sleep(30)
+
     def postRun(self):
         self.host.execdom0("cp -f {0}.backup {0}".format(self.hvmloaderPath))

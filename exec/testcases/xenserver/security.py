@@ -585,28 +585,32 @@ class TCXSA133(_TCXSA):
     
     def prepare(self, arglist=None):
         _TCXSA.prepare(self, arglist)
-        #change log level
-        self.host.execdom0("sed -e 's/\(append .*xen\S*.gz\)/\\0 loglvl=all guest_loglvl=all/' /boot/extlinux.conf > tmp && mv tmp /boot/extlinux.conf -f")
-        self.host.reboot()
-        
         self.guest = self.host.createGenericEmptyGuest()
-        if self.guest.getState() != "DOWN":
-            self.guest.shutdown()
-        
-        self.replaceHvmloader("https://issues.citrite.net/secure/attachment/750982/test-hvm64-xsa-133")
+        self.replaceHvmloader("http://files.uk.xensource.com/usr/groups/xenrt/xsa_test_files/test-hvm64-xsa-133")
         
     def run(self, arglist=None):
-        self.guest.start()
-        
-        xenrt.sleep(60)
-        self.guest.checkHealth()
-        self.checkHost()
-        serlog = string.join(self.host.machine.getConsoleLogHistory(), "\n")
-        xenrt.TEC().logverbose(serlog)
-        
-        xenrt.TEC().logverbose(self.guest.getState())
-        
-        xenrt.TEC().tc.pause("paused..")
+
+        # We can't use start() as this expects a VM to boot and do 'normal' things
+        self.guest.lifecycleOperation("vm-start", timeout=30)
+        domid = self.guest.getDomid()
+        qpid = self.host.xenstoreRead("/local/domain/%u/qemu-pid" % domid)
+
+        starttime = xenrt.util.timenow()
+        while True:
+            if xenrt.util.timenow() - starttime > 1800:
+                raise xenrt.XRTError("Timed out waiting for XSA-133 test")
+
+            state = self.guest.getState()
+
+            # Check if we have a successful run
+            data = self.host.execdom0("grep qemu-dm-%s[%s] /var/log/messages /var/log/daemon.log || true" % (domid, qpid))
+
+            if "XSA-133 PoC done - not vulnerable" in data:
+                xenrt.TEC().logverbose("Test completed successfully")
+                break
+
+            if state == "DOWN" or self.host.execdom0("test -d /proc/%s" % (qpid), retval="code") != 0:
+                raise xenrt.XRTFailure("Host appears vulnerable to XSA-133")
         
     def postRun(self):
         self.host.execdom0("cp -f {0}.backup {0}".format(self.hvmloaderPath))

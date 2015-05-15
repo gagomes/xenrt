@@ -2460,6 +2460,48 @@ class CheckpointVMStorageMigration(LiveMigrate):
             guest.checkpoint()
         return
 
+
+class SnapCheckVMStorageMigration(LiveMigrate):
+
+    def preHook(self):
+
+        LiveMigrate.preHook(self)
+
+        snapshots = 0
+        checkpoints = 0
+
+        for arg in self.arglist:
+            if arg.startswith('snapshots'):
+                snapshots = int(arg.split('=')[1])
+            if arg.startswith('checkpoints'):
+                checkpoints = int(arg.split('=')[1])
+        actions = [lambda g: g.snapshot() for i in range(snapshots)] + [lambda g: g.checkpoint() for i in range(checkpoints)]
+        random.shuffle(actions)
+
+        for vm in self.vm_config.values():
+            guest = vm['obj']
+            for act in actions:
+                # Use reboot process to generate VDI diff
+                guest.reboot()
+                act(guest)
+            vm['snapshots'] = guest.getHost().minimalList("snapshot-list", args="snapshot-of=%s" % guest.getUUID())
+        return
+
+    def postHook(self):
+
+        LiveMigrate.postHook(self)
+
+        for vm in self.vm_config.values():
+            guest = vm['obj']
+            for snapshot in vm['snapshots']:
+                try:
+                    guest.checkSnapshot(snapshot)
+                    guest.removeSnapshot(snapshot)
+                except Exception as e:
+                    raise xenrt.XRTFailure("FAILURE_SXM: VM %s failed on checking/destroying snapshot/checkpoint %s: %s'" %(guest.getUUID(), snapshot, e))
+            del vm['snapshots']
+
+
 #class TC17219(LiveMigrate):
 class InvalidDrvVerVMStorageMigration(LiveMigrate):
     """Verifying Cross Pool Storage Migration when the VM has an invalid version of PV driver"""

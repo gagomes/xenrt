@@ -7,6 +7,9 @@
        TC-27072 - Cross Pool Storage Migration when VM is in suspend state
        TC-27073 - Intra Pool Storage Migration when VM is in halted state
        TC-27074 - Intra Pool Storage Migration when VM is in suspended state
+       TC-27075 - Cross Pool Storage Migration for VM with multiple snapshots
+       TC-27076 - Cross Pool Storage Migration for VM with multiple checkpoints
+       TC-27077 - Cross Pool Storage Migration for VM with mixed number of snapshots and checkpoints
 
   -->
 
@@ -51,6 +54,29 @@
         <arg>src_SR=ext</arg>
         <arg>dest_SR=ext</arg>
         <arg>test=intra-pool</arg>
+      </testcase>
+
+    </serial>
+
+    <serial group="UnResSXMSnapshotPlus">
+
+      <testcase id="xenserver.tc.sxm.SnapCheckVMStorageMigration" name="TC27075" tc="TC-27075">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+        <arg>snapshots=5</arg>
+      </testcase>
+
+      <testcase id="xenserver.tc.sxm.SnapCheckVMStorageMigration" name="TC27076" tc="TC-27076">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+        <arg>checkpoints=5</arg>
+      </testcase>
+
+      <testcase id="xenserver.tc.sxm.SnapCheckVMStorageMigration" name="TC27077" tc="TC-27077">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+        <arg>snapshots=3</arg>
+        <arg>checkpoints=3</arg>
       </testcase>
 
     </serial>

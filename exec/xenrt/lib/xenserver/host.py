@@ -1739,7 +1739,7 @@ done
         
         # this option allows manual installation i.e. you step through
         # the XS installer manually and it detects for when this is finished.
-        if xenrt.TEC().lookup("OPTION_NO_ANSWERFILE", False):
+        if xenrt.TEC().lookup("OPTION_NO_ANSWERFILE", False, boolean=True):
             
             xenrt.TEC().logverbose("User is to step through installer manually")
             xenrt.TEC().logverbose("Waiting 5 mins")

@@ -596,29 +596,19 @@ class TCXSA133(_TCXSA):
         qpid = self.host.xenstoreRead("/local/domain/%u/qemu-pid" % domid)
 
         starttime = xenrt.util.timenow()
-        qemuWaited = False
         while True:
             if xenrt.util.timenow() - starttime > 1800:
                 raise xenrt.XRTError("Timed out waiting for XSA-133 test")
 
             qemuRunning = (self.host.execdom0("test -d /proc/%s" % (qpid), retval="code") == 0)
-            vmState = self.guest.getState()
+            state = self.guest.getState()
 
             # Check if we have a successful run
-            data = self.host.execdom0("grep qemu-dm-%s[%s] /var/log/messages /var/log/daemon.log || true" % (domid, qpid))
+            data = self.host.execdom0("grep qemu-dm-%s\\[%s\\] /var/log/messages /var/log/daemon.log || true" % (domid, qpid))
 
             if "XSA-133 PoC done - not vulnerable" in data:
                 xenrt.TEC().logverbose("Test completed successfully")
                 break
-
-            # We have to check that the guest is still up after we spot qemu not running, otherwise we can get caught by a race...
-            if not qemuRunning and vmState == "UP" and not qemuWaited:
-                # It looks like qemu might have crashed, however to avoid race
-                # conditions we should wait 30 seconds and then check again, as
-                # the VM may have shutdown cleanly in the meantime
-                xenrt.sleep(30)
-                qemuWaited = True
-                continue
 
             if state == "DOWN" or not qemuRunning:
                 raise xenrt.XRTFailure("Host appears vulnerable to XSA-133")

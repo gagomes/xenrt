@@ -1444,7 +1444,7 @@ class VGPUAllocationModeBase(VGPUOwnedVMsTest):
 
     def cloneVM(self, env, getlog=False):
         log("Cloning %s vm." % (env,))
-        vm = self.masterVMs[env].cloneVM(noIP=False)
+        vm = self.masterVMs[env].cloneVM()
         self.uninstallOnCleanup(vm)
         if getlog:
             self.getLogsFrom(vm)

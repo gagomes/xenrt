@@ -4504,6 +4504,16 @@ class GenericHost(GenericPlace):
                 g.uninstall()
                 xenrt.sleep(15)
 
+    def transformCommand(self, command):
+        """
+        Tranform commands if it is required on Host
+        
+        @param command: The command that can be transformed.
+        @return: transformed command
+        """
+
+        return command
+
     def execdom0(self,
                  command,
                  username=None,
@@ -4535,7 +4545,7 @@ class GenericHost(GenericPlace):
         if not password:
             password = self.password
         return xenrt.ssh.SSH(self.getIP(),
-                             command,
+                             self.transformCommand(command),
                              level=level,
                              retval=retval,
                              password=password,

@@ -24,6 +24,7 @@ import XenAPI
 from xenrt.lazylog import *
 from xenrt.lib.xenserver.iptablesutil import IpTablesFirewall
 from xenrt.lib.xenserver.licensing import LicenseManager, XenServerLicenseFactory
+from itertools import imap
 
 
 # Symbols we want to export from the package.
@@ -11653,6 +11654,38 @@ class DundeeHost(CreedenceHost):
             pxe.addGrubEntry("local", localEntry)
             pxe.setDefault("local")
             pxe.writeOut(self.machine)
+
+    def transformCommand(self, command):
+        """
+        Dundee requires disabling metadata_readonly flag to run raw storage command.
+        To implement this overrideing GenericHost.transformCommand()
+
+        @param command: The command that can be transformed.
+        @return: transformed command
+        """
+
+        # From Dundee (and CentOS 7 dom0) requires special flag/options
+        # to execute raw storage commands that modify storage including
+        # volume, pv and lv.
+
+        if any(imap(command.startswith, ["vgcreate",
+                                    "vgchange",
+                                    "vgremove",
+                                    "vgextend",
+                                    "lvrename",
+                                    "lvcreate",
+                                    "lvchange",
+                                    "lvremove",
+                                    "lvresize",
+                                    "pvresize",
+                                    "pvcreate",
+                                    "pvchange",
+                                    "pvremove",
+                                    ])):
+            command = command + " --config global{metadata_read_only=0}"
+
+        return command
+
 
 #############################################################################
 

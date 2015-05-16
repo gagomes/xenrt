@@ -270,6 +270,7 @@ class LiveMigrate(xenrt.TestCase):
         self.test_config['monitoring_failure'] = False
         self.test_config['skip_vmdowntime']=False
         self.test_config['use_vmsecnetwork']=False
+        self.test_config['copy'] = False
 
         return
  
@@ -535,6 +536,8 @@ class LiveMigrate(xenrt.TestCase):
                 self.args['reuse_VM'] = True
             else:
                 self.args['reuse_VM'] = False
+            if arg.startswith('copy'):
+                self.args['copy'] = True
         # pass on the arglist so that individual testcase can interpret its specific args if necessary
         self.arglist = arglist
         return
@@ -689,6 +692,8 @@ class LiveMigrate(xenrt.TestCase):
         if self.args.has_key('use_vmsecnetwork'):
             self.test_config['use_vmsecnetwork'] = self.args['use_vmsecnetwork']
 
+        if self.args.has_key('copy'):
+            self.test_config['copy'] = self.args['copy']
         return
 
     def checkNumOfVDIs(self, guest):
@@ -1083,14 +1088,14 @@ class LiveMigrate(xenrt.TestCase):
             test_status.extend(self.assertPresenceOfDestVDIsOnRelevantSRs(guest))
 
         # Check presence of source VDIs
-        if self.test_config['cancel_migration'] or self.test_config['negative_test']:
+        if self.test_config['cancel_migration'] or self.test_config['negative_test'] or self.test_config['copy']:
             test_status.extend(self.assertPresenceOfSrcVDIs(guest))
         else:
             test_status.extend(self.assertAbsenceOfSrcVDIs(guest))
 
 
         if self.test_config['type_of_migration'] == 'inter-pool':
-            if self.test_config['cancel_migration'] or self.test_config['negative_test']:
+            if self.test_config['cancel_migration'] or self.test_config['negative_test'] or self.test_config['copy']:
                 test_status.extend(self.assertPresenceOfSrcVifNw(guest))
             else:
                 test_status.extend(self.assertPresenceOfDestVIFNw(guest))
@@ -1320,7 +1325,8 @@ class LiveMigrate(xenrt.TestCase):
 
         params = {'dest_host' : self.vm_config[guest.getName()]['dest_host'],
                   'VDI_SR_map' : self.vm_config[guest.getName()]['VDI_SR_map'],
-                  'VIF_NW_map' : self.vm_config[guest.getName()]['VIF_NW_map']}
+                  'VIF_NW_map' : self.vm_config[guest.getName()]['VIF_NW_map'],
+                  'copy' : self.test_config['copy']}
         return params
 
 
@@ -1463,7 +1469,7 @@ class LiveMigrate(xenrt.TestCase):
             try:
                 guest.migrateVM(remote_host=dest_host,
                                 vdi_sr_list=params['VDI_SR_map'].items(),
-                                live="true")
+                                live="true", copy=self.test_config['copy'])
             except Exception as e:
                 xenrt.TEC().logverbose("Migration of VM %s failed with '%s'"
                                        % (guest.getUUID(), e))
@@ -1526,7 +1532,9 @@ class LiveMigrate(xenrt.TestCase):
                 self.hook()
                 for obs in self.observers:
                     obs.waitToFinish()
-
+                    # In case of migration copy, we need to redirect the vm object onto the result VM
+                    if self.test_config['copy']:
+                        obs.vm.uuid = obs.vm.getHost().getGuestUUID(obs.vm) or obs.vm.getHost().minimalList("template-list", args="name-label='%s'" % obs.vm.name)[0] or obs.vm.uuid
                 self.postHook()
 
                 if self.test_config['immediate_failure']:

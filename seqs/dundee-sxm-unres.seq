@@ -12,6 +12,9 @@
        TC-27077 - Cross Pool Storage Migration for VM with mixed number of snapshots and checkpoints
        TC-27078 - Cross Pool Storage Migration Copy when VM is in halted state
        TC-27079 - Cross Pool Storage Migration Copy when VM is running (negative test)
+       TC-27080 - Cross Pool Storage Migration for user defined template
+       TC-27081 - Cross Pool Storage Migration Copy for user defined template
+       TC-27082 - Cross Pool Storage Migration Copy for system template (negative test)
 
   -->
 
@@ -93,6 +96,29 @@
       </testcase>
 
       <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC27079" tc="TC-27079">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+        <arg>copy</arg>
+        <arg>negative_test</arg>
+      </testcase>
+
+    </serial>
+
+
+    <serial group="UnResSXMTemplateMigrate">
+
+      <testcase id="xenserver.tc.sxm.UserTemplateStorageMigration" name="TC27080" tc="TC-27080">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+      </testcase>
+
+      <testcase id="xenserver.tc.sxm.UserTemplateStorageMigration" name="TC27081" tc="TC-27081">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+        <arg>copy</arg>
+      </testcase>
+
+      <testcase id="xenserver.tc.sxm.SystemTemplateStorageMigration" name="TC27082" tc="TC-27082">
         <arg>src_SR=ext</arg>
         <arg>dest_SR=lvm</arg>
         <arg>copy</arg>

@@ -2771,3 +2771,41 @@ class VMRevertedToSnapshot(LiveMigrate):
             for vif in allVifs:
                 vif_nw_map.update({vif:mainNWuuid})
         self.vm_config[vm.getName()]['VIF_NW_map'] = vif_nw_map
+
+
+class UserTemplateStorageMigration(LiveMigrate):
+    """Intra Pool Storage Migration when the VM is an halted state"""
+
+    def preHook(self):
+
+        LiveMigrate.preHook(self)
+        for vm in self.vm_config.values():
+            guest = vm['obj']
+            guest.setState("DOWN")
+            guest.paramSet("is-a-template", "true")
+        return
+
+    def postHook(self):
+
+        for vm in self.vm_config.values():
+            guest = vm['obj']
+            guest.getHost().genParamSet("template", guest.getUUID(), "is-a-template", "false")
+        LiveMigrate.postHook(self)
+
+class SystemTemplateStorageMigration(UserTemplateStorageMigration):
+    """Intra Pool Storage Migration when the VM is an halted state"""
+
+    def preHook(self):
+
+        UserTemplateStorageMigration.preHook(self)
+        for vm in self.vm_config.values():
+            guest = vm['obj']
+            guest.paramSet("other-config:default_template", "true")
+        return
+
+    def postHook(self):
+
+        for vm in self.vm_config.values():
+            guest = vm['obj']
+            guest.paramSet("other-config:default_template", "false")
+        UserTemplateStorageMigration.postHook(self)

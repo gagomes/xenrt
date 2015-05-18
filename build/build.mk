@@ -33,11 +33,3 @@ newmachines: update machines files dhcpd dhcpd6 hosts conserver
 newmachine-%:
 	make update machine-$(patsubst newmachine-%,%,$@) files dhcpd dhcpd6 hosts conserver
 	$(info XenRT new machine setup completed.)
-
-.PHONY: remove
-remove: uninstall clean infrastructure-uninstall
-	$(info Removed XenRT from this host.)
-
-.PHONY: purge
-purge: remove isos-clean tests-clean
-	$(info Purged XenRT from this host.)

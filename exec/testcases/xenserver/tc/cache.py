@@ -598,7 +598,9 @@ class _Cache(xenrt.TestCase):
                                                     master.compileWindowsProgram(path) + "\\winread.exe")   
                     master.shutdown()
                 else:
-                    master = self.host.createGenericLinuxGuest(start=False, sr=sr)
+                    master = self.host.createGenericLinuxGuest(start=True, sr=sr)
+                    master.preCloneTailor()
+                    master.shutdown()
                     xenrt.TEC().registry.guestPut(masterkey, master)
             gold = xenrt.TEC().registry.guestGet(masterkey).copyVM()
             xenrt.TEC().registry.guestPut(goldkey, gold)

@@ -55,7 +55,7 @@ server: install
 
 .PHONY: install
 install: tarlibs $(NEWDIRS) utils $(SRCDIRS) exec $(LINKS) $(SCRATCHDIR) \
-	 $(SHAREDIR)/VERSION $(SHAREDIR)/SITE $(CONFDIR) \
+	 $(SHAREDIR)/VERSION $(SHAREDIR)/SITE \
 	 $(BINLINKS) images $(JOBRESULTDIR) progs tar $(VARDIR) pythonlibs copy unittests
 	$(info XenRT installation completed.)	 
 
@@ -132,40 +132,12 @@ clean:
 	$(info Removing compiled XenRT scripts...)
 	$(RM) $(SCRIPTS) $(GENCODE)
 
-.PHONY: uninstall
-uninstall:
-	$(info Uninstalling XenRT...)
-	$(SUDO) $(RMTREE) $(SHAREDIR)
-	$(SUDO) $(RMTREE) $(CONFDIR)
-
 .PHONY: %.git
 %.git:
 	$(info Updating $@ repository...)
 	[ -d $(ROOT)/$@ ] || $(GIT) clone $(GITPATH)/$@ $(ROOT)/$@
 	cd $(ROOT)/$@ && $(GIT) pull
 	cd $(ROOT)/$@ && $(GIT) submodule update --init
-
-.PHONY: $(CONFDIR)
-$(CONFDIR):
-	$(info Creating link to $@...)#
-	$(SUDO) mkdir -p $@
-ifeq ($(PRODUCTIONCONFIG),yes)
-	$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(SITE)/site.xml` $@/site.xml
-	$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(SITE)/machines` $@/machinesinput
-	$(SUDO) mkdir -p $@/machines
-	$(SUDO) chown $(USERID):$(GROUPID) $@/machines
-endif
-ifeq ($(NISPRODUCTIONCONFIG),yes)
-	$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(SITE)/site.xml` $@/site.xml
-	$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(SITE)/machines` $@/machinesinput
-	$(SUDO) mkdir -p $@/machines
-	$(SUDO) chown $(USERID):$(GROUPID) $@/machines
-endif
-	if [ -e $(ROOT)/$(INTERNAL)/keys ]; then $(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/keys` $@/keys; fi
-	$(SUDO) mkdir -p $@/conf.d
-	$(foreach dir,$(CONFDIRS), $(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(dir)` $@/conf.d/$(dir);)
-	$(SUDO) sh -c '/bin/echo -n "$(SITE)" > $@/siteid'
-	-$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/suites` $@/suites
 
 .PHONY: docs
 docs:

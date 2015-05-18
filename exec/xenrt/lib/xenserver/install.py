@@ -166,7 +166,7 @@ class DundeeInstaller(object):
         
         # this option allows manual installation i.e. you step through
         # the XS installer manually and it detects for when this is finished.
-        if xenrt.TEC().lookup("OPTION_NO_ANSWERFILE", False):
+        if xenrt.TEC().lookup("OPTION_NO_ANSWERFILE", False, boolean=True):
             
             xenrt.TEC().logverbose("User is to step through installer manually")
             xenrt.TEC().logverbose("Waiting 5 mins")
@@ -659,7 +659,7 @@ sleep 30
             for n in nics:
                 dom0args.append("map_netdev=eth%u:s:%s" % (n, self.host.getNICMACAddress(n)))
         dom0args.append("install")
-        if not xenrt.TEC().lookup("OPTION_NO_ANSWERFILE", False):
+        if not xenrt.TEC().lookup("OPTION_NO_ANSWERFILE", False, boolean=True):
             dom0args.append("rt_answerfile=%s" % (answerfileUrl))
         if xenrt.TEC().lookup("OPTION_BASH_SHELL", False, boolean=True):
             dom0args.append("bash-shell")
@@ -770,7 +770,7 @@ sleep 30
         pxecfg.mbootArgsModule1Add("ramdisk_size=65536")
         pxecfg.mbootArgsModule1Add("install")
         
-        if not xenrt.TEC().lookup("OPTION_NO_ANSWERFILE", False):
+        if not xenrt.TEC().lookup("OPTION_NO_ANSWERFILE", False, boolean=True):
             pxecfg.mbootArgsModule1Add("rt_answerfile=%s" % (answerfileUrl))
         
         pxecfg.mbootArgsModule1Add("output=ttyS0")

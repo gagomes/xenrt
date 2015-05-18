@@ -6100,7 +6100,7 @@ class DundeeGuest(CreedenceGuest):
                 xenrt.GEC().dbconnect.jobUpdate("RND_PV_DRIVERS_LIST_VALUE",randomPvDriversList)
                 return randomPvDriversList
 
-    def installDrivers(self, source=None, extrareboot=False, useLegacy=False, useHostTimeUTC=False, expectUpToDate=True, installFullWindowsGuestAgent=True, useDotNet=True, packagesToInstall=None, pvPkgSrc = None):
+    def installDrivers(self, source=None, extrareboot=False, useLegacy=False, useHostTimeUTC=False, expectUpToDate=True, installFullWindowsGuestAgent=True, useDotNet=True, pvPkgSrc = None):
         """
         Install PV Tools on Windows Guest
         """
@@ -6151,15 +6151,13 @@ class DundeeGuest(CreedenceGuest):
             pvToolsDir = self.xmlrpcTempDir()
             self.xmlrpcExtractTarball("c:\\tools.tgz", pvToolsDir)
             
-            if packagesToInstall:
-                packages = packagesToInstall
-            else:
-                #Get the list of the Packages to be installed in random order
-                packages = self.setRandomPvDriverList()
-                packages = packages.split(';')
+            #Get the list of the Packages to be installed in random order
+            packages = self.setRandomPvDriverList()
+            packages = packages.split(';')
             
             #Install the PV Packages
-            self.installPVPackage(packages, pvToolsDir)
+            for pkg in packages:
+                self.installPVPackage(pkg, pvToolsDir)
            
             xenrt.sleep(30)
             self.reboot()
@@ -6191,11 +6189,11 @@ class DundeeGuest(CreedenceGuest):
                     break
                 xenrt.sleep(10)
 
-    def installPVPackage(self, packageList = None, toolsDirectory = None):
+    def installPVPackage(self, packageName = None, toolsDirectory = None):
         """ Installing Individual PV package """
         
         #If packageName is none then raise error
-        if packageList is None:
+        if packageName is None:
             raise xenrt.XRTError("PV package to install not specified")
         
         #Download the tools if not present already
@@ -6209,9 +6207,8 @@ class DundeeGuest(CreedenceGuest):
             arch = "x64"
         else:
             arch = "x86"
-        for pkg in packageList:
-            self.xmlrpcStart("%s\\%s\\%s\\dpinst.exe /sw" % (toolsDirectory, pkg, arch))
-            xenrt.sleep(30)
+        self.xmlrpcStart("%s\\%s\\%s\\dpinst.exe /sw" % (toolsDirectory, pkg, arch))
+        xenrt.sleep(30)
 
     def installFullWindowsGuestAgent(self):
         """ Install Windows Guest Agent from xs tools """
@@ -6258,13 +6255,10 @@ class DundeeGuest(CreedenceGuest):
             
         xenrt.TEC().logverbose("PV Devices are installed and Running on %s " %(self.getName()))
 
-    def uninstallDrivers(self, waitForDaemon=True, source=None, pkgToUninstall=None):
+    def uninstallDrivers(self, waitForDaemon=True, source=None):
         
         installed = False
-        if pkgToUninstall:
-            driversToUninstall = pkgToUninstall
-        else:
-            driversToUninstall = xenrt.TEC().lookup("PV_DRIVERS_UNINSTALL_LIST").split(';')
+        driversToUninstall = ['*XENVIF*', '*XENBUS*', '*VEN_5853*']
         
         var1 = self.winRegPresent('HKLM', "SOFTWARE\\Wow6432Node\\Citrix\\XenToolsInstaller", "InstallStatus")
         var2 = self.winRegPresent('HKLM', "SOFTWARE\\Citrix\\XenToolsInstaller", "InstallStatus")

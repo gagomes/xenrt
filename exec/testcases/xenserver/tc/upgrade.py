@@ -2274,10 +2274,10 @@ class _TCCrossVersionImport(xenrt.TestCase):
         xenrt.TEC().progress("Uninstalling %s" % (distro))
         try:
             xenrt.TEC().setInputDir(xenrt.TEC().lookup("OLD_PRODUCT_INPUTDIR"))
-            guest.uninstall()
+            self.uninstallOnCleanup(guest)
         finally:
             xenrt.TEC().setInputDir(None)
-        newguest.uninstall()
+        self.uninstallOnCleanup(newguest)
 
     def run(self, arglist):
 

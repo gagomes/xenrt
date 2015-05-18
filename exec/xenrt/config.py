@@ -155,7 +155,6 @@ class Config(object):
         self.config["PV_DRIVER_INSTALLATION_SOURCE"] = ["Packages", "ToolsISO"]
         self.config["PV_DRIVERS_LIST"] = "xenbus;xeniface;xennet;xenvbd;xenvif"
         self.config["PV_DRIVERS_LOCATION"] = "win-tools-builds.tar"
-        self.config["PV_DRIVERS_UNINSTALL_LIST"] = "*XENVIF*;*XENBUS*;*VEN_5853*"
         
         self.config["BUILTIN_XS_GUEST_AGENT"] = "sarge,etch"
 

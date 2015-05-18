@@ -324,7 +324,7 @@ class Guest(xenrt.GenericGuest):
                 arch = "x86-32"
             isostem = host.lookup(["OS_INSTALL_ISO", distro], distro)
             cds = host.minimalList("cd-list", "name-label")
-            trylist = ["%s.iso" % (isostem)]
+            trylist = ["%s_xenrtinst.iso" % (isostem), "%s.iso" % (isostem)]
 
             if distro == "w2k3eesp2pae":
                 trylist.append("w2k3eesp2.iso")

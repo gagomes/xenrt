@@ -2593,13 +2593,13 @@ class _TCLVHDLeafCoalesce(xenrt.TestCase):
                     self.runSubcase("doCheckChains", (), "Guest", "Chains")
                     break
                 except xenrt.XRTError, e:
-                    xenrt.TEC().logverbose("VDI still has parent-VHD after leaf coalesce; retrying (%d) time checking in 30s ..." % retries)
-                    time.sleep(60)
+                    xenrt.TEC().logverbose("VDI still has parent-VHD after leaf coalesce; retrying checking in 60s ...")
+                    xenrt.sleep(60)
                     retries = retries -1
                     if not retries:
-                        raise e
+                        raise 
                 except Exception, e:
-                    raise e
+                    raise 
                        
         # Verify the in-VM data patterns
         if not self.WINDOWS:

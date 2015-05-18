@@ -215,8 +215,9 @@ class TCHostUpgradePVChk(xenrt.TestCase):
         
         self.host = xenrt.lib.xenserver.createHost(id=0,
                                                    version=oldversion,
-                                                   productVersion=old)
-        self.guest = self.host.createGenericWindowsGuest(distro="win7-x86")
+                                                   productVersion=old,
+                                                   withisos=True)
+        self.guest = self.host.createGenericWindowsGuest(distro="win7sp1-x64")
         self.guest.shutdown()
         self.host.upgrade()
         
@@ -251,7 +252,8 @@ class TCCrossVerImpPVChk(_TCCrossVersionImport):
         _TCCrossVersionImport.run(self, arglist)
         
         step("Verify windows pv updates are disabled after migration")
-        for guest in self.host1.listGuests():
+        guests=[self.host1.getGuest(g) for g in self.host1.listGuests()]
+        for guest in guests:
             if guest.windows and guest.getAutoUpdateDriverState():
                 raise xenrt.XRTFailure("Windows PV updates are enabled on the VM imported from Older host to Newer host")
 

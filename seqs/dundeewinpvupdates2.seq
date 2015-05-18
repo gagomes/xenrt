@@ -62,7 +62,7 @@
  
   <testsequence group="WindowsPVUpdate"> 
     <for iter="D" values="${WINDISTROS}"> 
-        <testcase id="xenserver.tc.winpvupdates.TestMigrateSXM" tc="TC-26996" name="TestMigrateSXM,${D}"> 
+        <testcase id="xenserver.tc.winpvupdates.TestMigrateSXM" tc="TC-26996" name="TestMigrateSXM,${D}" sku="TestMigrateSXM/${D}"> 
         <arg>guest=${D}</arg> 
         </testcase> 
     </for> 

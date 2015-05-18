@@ -65,7 +65,7 @@
         <testcase id="xenserver.tc.winpvupdates.TCSnapRevertNoTools" tc="TC-26988" name="SnapRvtNoTools,${D}">
         <arg>guest=${D}</arg>
         </testcase>
-        <testcase id="xenserver.tc.winpvupdates.TestCheckpointVmOps" tc="TC-26995" name="TestCheckpointVmOps,${D}"> 
+        <testcase id="xenserver.tc.winpvupdates.TestCheckpointVmOps" tc="TC-26995" name="TestCheckpointVmOps,${D}" sku="TestCheckpointVmOps/${D}"> 
         <arg>guest=${D}</arg> 
         </testcase>
     </for>

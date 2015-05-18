@@ -2897,18 +2897,7 @@ class _TCLVHDOnlineLeafCoalesce(_TCLVHDLeafCoalesce):
     def doLeafCoalesce(self):
         self.waitForCoalesce()
 
-    def doCheckChains(self, retries=5):
-        try:
-            _TCLVHDLeafCoalesce.doCheckChains(self)
-        except Exception, e:
-            if retries > 0:
-                xenrt.TEC().logverbose("doCheckChains failed; retrying leaf coalesce in 30s (%d)..." % retries)
-                time.sleep(30)
-                self.waitForCoalesce()
-                self.doCheckChains(retries = retries - 1)
-            else:
-                raise e
-
+    
     def keepWriting(self):
         cmd = "nohup cat /dev/urandom > test 2> test.err < /dev/null &"
         self.guest.execguest(cmd, getreply=False)

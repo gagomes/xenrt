@@ -1,31 +1,70 @@
-<xenrt>
-
-  <default name="OLD_PRODUCT_VERSION" value="Clearwater"/>
-  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446"/>
-
-  <variables>
-    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
-  </variables>
-
-  <prepare>
-    <pool id="0">
-      <host id="0" installsr="lvm" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}"/>
-    </pool>
-
-    <pool id="1">
-      <host id="1" installsr="lvm" />
-    </pool>
-  </prepare>
-
-  <testsequence>
-    <serial group="WindowsPVUpdate">
-        <testcase id="xenserver.tc.winpvupdates.TCSxmFrmLowToHighPVChk" tc="TC-27003" name="SxmFrmLowToHighPVChk" >
-           <arg>src_SR=lvm</arg>
-           <arg>dest_SR=lvm</arg>
-        </testcase>
-        <testcase id="xenserver.tc.winpvupdates.TCCrossVerImpPVChk" tc="TC-27004" name="CrossVerImpPVChk" />
-        <testcase id="xenserver.tc.winpvupdates.TCHostUpgradePVChk" tc="TC-27002" name="HostUpgradePVChk" />
-    </serial>
-  </testsequence>
-
+<xenrt> 
+  <default name="WINDISTROS" value="win8-x86,win7-x86,ws08r2-x64,win81-x86,ws12-x64"/> 
+  <variables> 
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION> 
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR> 
+    <PV_DRIVER_SOURCE>Packages</PV_DRIVER_SOURCE> 
+  </variables> 
+  <prepare> 
+  <host id="0"> 
+     <vm name="ws08r2-x64"> 
+        <distro>ws08r2-x64</distro> 
+        <arch>x86-64</arch> 
+        <memory>1024</memory> 
+        <vcpus>2</vcpus> 
+        <network device="0" /> 
+        <disk device="0" size="14" /> 
+        <postinstall action="preCloneTailor"/> 
+        <postinstall action="shutdown"/> 
+      </vm> 
+      <vm name="win7-x86"> 
+        <distro>win7-x86</distro> 
+        <memory>2048</memory> 
+        <vcpus>2</vcpus> 
+        <network device="0" /> 
+        <disk device="0" size="14" /> 
+        <postinstall action="preCloneTailor"/> 
+        <postinstall action="shutdown"/> 
+      </vm> 
+      <vm name="win81-x86"> 
+        <distro>win81-x86</distro> 
+        <memory>2048</memory> 
+        <vcpus>2</vcpus> 
+        <network device="0" /> 
+        <disk device="0" size="14" /> 
+        <postinstall action="preCloneTailor"/> 
+        <postinstall action="shutdown"/> 
+      </vm> 
+      <vm name="ws12-x64"> 
+        <distro>ws12-x64</distro> 
+        <arch>x86-64</arch> 
+        <memory>2048</memory> 
+        <vcpus>2</vcpus> 
+        <network device="0" /> 
+        <disk device="0" size="14" /> 
+        <postinstall action="preCloneTailor"/> 
+        <postinstall action="shutdown"/> 
+      </vm> 
+      <vm name="win8-x86"> 
+        <distro>win8-x86</distro> 
+        <memory>2048</memory> 
+        <vcpus>2</vcpus> 
+        <network device="0" /> 
+        <disk device="0" size="14" /> 
+        <postinstall action="preCloneTailor"/> 
+        <postinstall action="shutdown"/> 
+      </vm> 
+  </host> 
+  <host id="1"> 
+  </host> 
+ 
+  </prepare> 
+ 
+  <testsequence group="WindowsPVUpdate"> 
+    <for iter="D" values="${WINDISTROS}"> 
+        <testcase id="xenserver.tc.winpvupdates.TestMigrateSXM" tc="TC-26996" name="TestMigrateSXM,${D}" sku="TestMigrateSXM/${D}"> 
+        <arg>guest=${D}</arg> 
+        </testcase> 
+    </for> 
+  </testsequence> 
 </xenrt>

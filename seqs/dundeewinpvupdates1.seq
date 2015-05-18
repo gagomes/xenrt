@@ -65,6 +65,9 @@
         <testcase id="xenserver.tc.winpvupdates.TCSnapRevertNoTools" tc="TC-26988" name="SnapRvtNoTools,${D}">
         <arg>guest=${D}</arg>
         </testcase>
+        <testcase id="xenserver.tc.winpvupdates.TestCheckpointVmOps" tc="TC-26995" name="TestCheckpointVmOps,${D}" sku="TestCheckpointVmOps/${D}"> 
+        <arg>guest=${D}</arg> 
+        </testcase>
         <testcase id="xenserver.tc.winpvupdates.TCUpgWinCmp" tc="TC-26989" name="UpgWinCmp,${D}">
         <arg>guest=${D}</arg>
         <arg>TOOLS=/usr/groups/xenrt/pvtools/trunk-car1755-xstools.tgz</arg>
@@ -87,6 +90,6 @@
         <arg>guest=${D}</arg>
         <arg>TOOLS=/usr/groups/xenrt/pvtools/clearwaterrtm.tgz</arg>
         </testcase>
-     </for>
+    </for> 
   </testsequence>
 </xenrt>

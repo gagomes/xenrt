@@ -1,11 +1,12 @@
 <xenrt>
 
   <variables>
-    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
   </variables>
 
   <prepare>
-    <host>
+    <host id="0">
+      <storage type="nfs" name="nfssr" default="true" />
       <vm name="win7">
         <distro>win7sp1-x86</distro>
         <network device="0"/>
@@ -24,25 +25,26 @@
         <arg>benchmark=UnigineTropics</arg>
       </testcase>
     </serial>
-    <serial group="Win7-x86-K120">
+    <serial group="Win7-x86-IntelGPU">
       <testcase tc="TC-20788" id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
         <arg>guest=win7</arg>
-        <arg>vgpuconfig=K120</arg>
-        <arg>typeofvgpu=nvidiawinvgpu</arg>
+        <arg>vgpuconfig=passthrough</arg>
+        <arg>typeofvgpu=intelwinvgpu</arg>
       </testcase>
       <testcase tc="TC-20782" id="testcases.xenserver.tc.vgpu.TCVGPUCloneVM">
         <arg>guest=win7</arg>
-        <arg>vgpuconfig=K120</arg>
-        <arg>clones=64</arg>
-        <arg>typeofvgpu=nvidiawinvgpu</arg>
+        <arg>vgpuconfig=passthrough</arg>
+        <arg>clones=1</arg>
+        <arg>typeofvgpu=intelwinvgpu</arg>
       </testcase>
       <testcase tc="TC-20783" id="testcases.xenserver.tc.vgpu.TCGPUWorkload">
         <arg>guest=win7</arg>
-        <arg>clones=64</arg>
-        <arg>vgpuconfig=K120</arg>
+        <arg>clones=1</arg>
+        <arg>typeofvgpu=intelwinvgpu</arg>
+        <arg>vgpuconfig=passthrough</arg>
 <!--        <arg>benchmark=UnigineSanctuary</arg> -->
-        <arg>benchmark=UnigineTropics</arg> 
-        <arg>time=172800</arg>
+        <arg>benchmark=UnigineTropics</arg>  
+        <arg>time=259200</arg>
       </testcase>
 
 <!--

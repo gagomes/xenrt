@@ -675,9 +675,9 @@ class TCImportExport(xenrt.TestCase):
             if lvm:
                 # Provision with LVM tools
                 vg = string.strip(\
-                    host.execdom0("vgs --noheadings -o size,name,size "
+                    host.execRawStorageCommand(sr, "vgs --noheadings -o size,name,size "
                                   "--separator=, | cut -d, -f2"))
-                host.execdom0("lvcreate -n importexport -L 20G %s" % (vg))
+                host.execRawStorageCommand(sr, "lvcreate -n importexport -L 20G %s" % (vg))
                 self.vg = vg
                 dev = "%s/importexport" % (vg)
             else:
@@ -982,6 +982,12 @@ class TCImportExport(xenrt.TestCase):
                 pass
         if self.host:
             cli = self.host.getCLIInstance()
+
+        # get sr uuid for cleanup.
+        sr = None
+        if self.vdi and self.vg:
+            sr = self.host.genParamGet("vdi", self.vdi, "sr-uuid")
+
         try:
             if self.tmpmnt:
                 self.host.execdom0("umount %s" % (self.tmpmnt))
@@ -1012,7 +1018,7 @@ class TCImportExport(xenrt.TestCase):
         # Clean up mounts and LVs
         try:
             if self.vg:
-                self.host.execdom0("lvremove --force "
+                self.host.execRawStorageCommand(sr, "lvremove --force "
                                    "/dev/%s/importexport" % (self.vg))
         except Exception, e:
             toraise = e
@@ -2576,6 +2582,7 @@ class TCPVHVMIInstall(xenrt.TestCase):
         arch = args.get("arch") or "x86-32"
         sr = args.get("sr") or None
         sruuid = None
+        host = self.getDefaultHost()
         if sr:
             if xenrt.isUUID(sr):
                 sruuid = sr

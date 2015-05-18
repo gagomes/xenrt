@@ -81,3 +81,39 @@ class TCSnapRevertNoTools(WindowsUpdateBase):
         if not self.guest.checkPVDevicesState():
             raise xenrt.XRTFailure("PV Tools present after the Reverting VM to state where tools were not installed ")
         
+class TestCheckpointVmOps(WindowsUpdateBase): 
+     
+    def run(self, arglist=None): 
+         
+        step("Install PV Drivers on the windows guest") 
+        self.guest.installDrivers() 
+         
+        step("Take checkpoint of the VM") 
+        checkpoint1 = self.guest.checkpoint() 
+         
+        step("Suspend windows guest") 
+        self.guest.suspend() 
+         
+        step("Resuming windows guest") 
+        self.guest.resume() 
+        self.guest.check() 
+         
+        step("Removing checkpoint") 
+        self.guest.removeSnapshot(checkpoint1) 
+        self.guest.check() 
+         
+class TestMigrateSXM(WindowsUpdateBase): 
+     
+    def run(self, arglist=None): 
+         
+        step("Install PV Drivers on the windows guest") 
+        self.guest.installDrivers() 
+         
+        step("Live Migrating windows guest") 
+        self.guest.migrateVM(remote_host=self.remoteHost, live="true") 
+        self.guest.check() 
+         
+        step("Non-Live Migrating windows guest") 
+        self.guest.migrateVM(remote_host=self.host) 
+        self.guest.check()
+        

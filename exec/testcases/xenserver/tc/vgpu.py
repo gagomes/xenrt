@@ -3480,6 +3480,12 @@ class TCIntelvGPUReuse(IntelBase):
         # This format can be ported into the existing case above, TCIntelGPUReuse if some setup steps are taken care of.
         # Mainly blocking of Dom0 access by default in this case.
         # Would be preferable to remove the x2 distro dependancy from the above case too.
+        pass
+
+class TCPoolIntelBootstorm(IntelBase):
+
+    def insideRun(self, vm, config):
+        pass
 
 class TCAlloModeK200NFS(VGPUAllocationModeBase):
 

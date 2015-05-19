@@ -3485,6 +3485,18 @@ class TCIntelvGPUReuse(IntelBase):
 class TCPoolIntelBootstorm(IntelBase):
 
     def insideRun(self, vm, config):
+        # Config for host is one blocked, one not.
+
+        # Master vm
+        # Creating a GPU Passthrough clone on the blocked host.
+        # Creating a vGPU clone (x2/3/7) on the other. (Max vms capable?)
+
+        # Shutdown all
+        # Bootstorm all
+
+        # Shutdown all plus unblock Dom0 access on host again.
+        # Bootstorm on all VMs again. Make sure Passthrough ones fail.
+            # What is the point of the negative case nested in here for? 
         pass
 
 class TCAlloModeK200NFS(VGPUAllocationModeBase):

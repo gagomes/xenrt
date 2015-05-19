@@ -1,5 +1,5 @@
 #!/bin/bash
-
+set -ex
 make -C ~/xenrt.git update install
 
-xrt1 --run-suite $*
+python -u /usr/share/xenrt/exec/main.py --run-suite $*

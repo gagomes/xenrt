@@ -475,48 +475,7 @@ class Suite(SuiteConfigurable):
                 self.api.remove_job(jobid)
             raise xenrt.XRTError("Error starting jobs for testrun %s" %
                                  (testrun))
-        if not debug and not xenrt.TEC().lookup(["CLIOPTIONS", "SUITE_TESTRUN_RERUN"], None):
-            self.jenkinsMonitor(testrun) 
         return testrun
-
-    def jenkinsMonitor(self, suiterun):
-        jenkins = xenrt.TEC().lookup("JENKINS_URL", None)
-        if jenkins:
-            jenkinsCLI = xenrt.TEC().lookup("JENKINS_CLI", None)
-            jenkinsProject = xenrt.TEC().lookup("JENKINS_SUITERUN_PROJECT", None)
-           
-            # Get the name of the suite run we want to put in Jenkins
-            u = urllib.urlopen("%s/tools/suiterunname?suiterun=%s" % (xenrt.TEC().lookup("TESTRUN_URL"), suiterun))
-            np = u.read().split(",")
-            srtext = "%s - %s (%s), %s (%s)" % (np[0], np[1], np[2], np[3], suiterun)
-            
-            # Find out what the old Jenkins build number is 
-            xmltext = urllib.urlopen("%s/job/%s/api/xml/?xpath=/freeStyleProject/lastBuild/number" % (jenkins, jenkinsProject)).read()
-            oldBuild = xenrt.util.getTextFromXmlNode(xml.dom.minidom.parseString(xmltext).getElementsByTagName("number")[0])
-            
-            emailaddr = xenrt.TEC().lookup("JENKINS_EMAIL", None)
-            if emailaddr:
-                email = "-p 'Email=%s'" % emailaddr
-            else:
-                email = ""
-
-            # Create a new build in Jenkins
-            xenrt.util.command("%s -s %s build '%s' -p 'Suite run ID=%s' %s" % (jenkinsCLI, jenkins, jenkinsProject, suiterun, email))
-
-            # The jenkins CLI doesn't have a way of getting the build number we just built, so we need to guess based on the last build number
-            # It seems that the CLI might return before the build has actually started, so we'll wait for the last build number to change
-            deadline = xenrt.timenow() + 30
-            while True:
-                xmltext = urllib.urlopen("%s/job/%s/api/xml/?xpath=/freeStyleProject/lastBuild/number" % (jenkins, jenkinsProject)).read()
-                build = xenrt.util.getTextFromXmlNode(xml.dom.minidom.parseString(xmltext).getElementsByTagName("number")[0])
-                if build != oldBuild:
-                    xenrt.util.command("%s -s %s set-build-display-name '%s' '%s' '%s'" % (jenkinsCLI, jenkins, jenkinsProject, build, srtext))
-                    xenrt.util.command("%s -s %s set-build-description '%s' '%s' '%s'" % (jenkinsCLI, jenkins, jenkinsProject, build, string.join(sys.argv)))
-                    break
-                if xenrt.timenow() > deadline:
-                    xenrt.TEC().warning("Could not find new build in Jenkins, not updating suite run")
-                    break
-                xenrt.sleep(5)
 
     def listTCsInSequences(self, quiet=False):
         reply = []

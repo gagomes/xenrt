@@ -1822,6 +1822,7 @@ class FunctionalBase(VGPUAllocationModeBase):
         self.masterVMsSnapshot = {}
         self.host = self.getDefaultHost()
         self.pools =[]
+        self.hostInstallParams = {}
 
         self.parseArgs(arglist)
 
@@ -1838,7 +1839,7 @@ class FunctionalBase(VGPUAllocationModeBase):
                     self.nvidWinvGPU = self.typeofvGPU(typeOfvGPU)
 
         step("Install host drivers")
-        self.typeOfvGPU.installHostDrivers(self.getAllHosts())
+        self.typeOfvGPU.installHostDrivers(self.getAllHosts(), self.hostInstallParams)
 
         self.sr = self.host.lookupDefaultSR()
         self.prepareGPUGroups()
@@ -1871,6 +1872,11 @@ class FunctionalBase(VGPUAllocationModeBase):
                 self.OTHERS = map(str,arg.split('=')[1].split(','))
             if arg.startswith('novgpu'):
                 self.NOVGPU = True
+            if arg.startswith('blockdom0access'):
+                if arg.split('=')[1] == "false":
+                    this.hostInstallParams['blockDom0'] = False
+                else
+                    this.hostInstallParams['blockDom0'] = True
  
     def run(self,arglist):
 
@@ -1900,7 +1906,7 @@ class DifferentGPU(object):
     __metaclass__ = ABCMeta
 
     @abstractmethod
-    def installHostDrivers(self,allHosts):
+    def installHostDrivers(self, allHosts, params=None):
         """
         install Host drivers in case of vGPU
         """
@@ -1957,7 +1963,7 @@ class DifferentGPU(object):
 
 class NvidiaWindowsvGPU(DifferentGPU):
 
-    def installHostDrivers(self,allHosts):
+    def installHostDrivers(self, allHosts, params=None):
         VGPUTest().installNvidiaHostDrivers(allHosts)
 
     def installGuestDrivers(self, guest, vGPUType):
@@ -1987,7 +1993,7 @@ class NvidiaWindowsvGPU(DifferentGPU):
 
 class NvidiaLinuxvGPU(DifferentGPU):
 
-    def installHostDrivers(self,allHosts):
+    def installHostDrivers(self, allHosts, params=None):
         xenrt.TEC().logverbose("Not implemented")
         pass
 
@@ -2017,10 +2023,19 @@ class NvidiaLinuxvGPU(DifferentGPU):
 
 class IntelWindowsvGPU(DifferentGPU):
 
-    def installHostDrivers(self, allHosts):
-        xenrt.TEC().logverbose("Instead of installing Host drivers, blocking Dom0 access to Intel GPU")
-        for host in allHosts:
-            self.blockDom0Access(host)
+    def installHostDrivers(self, allHosts, params=None):
+
+        def __block():
+            xenrt.TEC().logverbose("Instead of installing Host drivers, blocking Dom0 access to Intel GPU")
+            for host in allHosts:
+                self.blockDom0Access(host)
+
+        # Dont block if blockDom0 value is false.
+        if "blockDom0" in params:
+            if params["blockDom0"]:
+                __block()
+        else:
+            __block()
 
     def installGuestDrivers(self, guest, vGPUType):
         VGPUTest().installIntelWindowsDrivers(guest, vGPUType)

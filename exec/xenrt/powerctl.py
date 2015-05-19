@@ -550,6 +550,13 @@ class Custom(_PowerCtlBase):
             xenrt.sleep(5)
             self.runCustom("ON")
 
+    def status(self):
+        xenrt.TEC().logverbose("Running custom command to get power status for machine %s" % (self.machine.name))
+        if not self.machine.host.lookup("CUSTOM_POWER_STATUS", None):
+            return ("unknown", "Custom")
+        else:
+            return (self.runCustom("STATUS"), "Custom")
+
     def runCustom(self, action):
         # Look up command
         cmd = self.machine.host.lookup("CUSTOM_POWER_%s" % (action), None)

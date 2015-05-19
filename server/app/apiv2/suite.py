@@ -1,4 +1,5 @@
 from app.apiv2 import *
+import app.db
 from pyramid.httpexceptions import *
 import json
 import jsonschema
@@ -63,11 +64,13 @@ class StartSuite(_SuiteStartBase):
             }
         }
     RESPONSES = { "200": {"description": "Successful response"}}
-    OPERATION_ID = "start_suiterun"
+    OPERATION_ID = "start_suite_run"
     PARAM_ORDER = ['suite', 'branch', 'version']
     TAGS = ['suiterun']
 
     def render(self):
+        if not app.db.isDBMaster():
+            raise XenRTAPIError(HTTPBadRequest, "This request must be made on the master node")
         try: 
             params = json.loads(self.request.body)
             jsonschema.validate(params, self.DEFINITIONS['startsuite'])
@@ -97,7 +100,7 @@ class StartSuite(_SuiteStartBase):
             command += " -D %s=%s" % (p, params['params'][p])
 
         token = re.sub(r'\W+', '', datetime.datetime.now().isoformat())
-        wdir = "/local/scratch/suiteruns/%s" % token
+        wdir = "/local/scratch/www/suiteruns/%s" % token
         os.makedirs(wdir)
 
         with open("%s/command" % wdir, "w") as f:
@@ -111,4 +114,63 @@ class StartSuite(_SuiteStartBase):
             f.write("%d\n" % pid)
         return token
 
+class StartSuiteStatus(XenRTAPIv2Page):
+    PATH = "/suiterun/start/{token}"
+    REQTYPE = "POST"
+    SUMMARY = "Get status on suite run starting"
+    PARAMS = [
+        {"name": "token",
+         "type": "string",
+         "in": "path",
+         "description": "Token to get the status for"
+        }]
+    RESPONSES = { "200": {"description": "Successful response"}}
+    OPERATION_ID = "get_start_suite_run_status"
+    TAGS = ['suiterun']
+
+    def render(self):
+        token = self.request.matchdict['token']
+        wdir = "/local/scratch/www/suiteruns/%s" % token
+        with open("%s/user" % wdir) as f:
+            user = f.read().strip()
+        with open("%s/command" % wdir) as f:
+            command = f.read().strip()
+        if os.path.exists("%s/exitcode" % wdir):
+            with open("%s/exitcode" % wdir) as f:
+                if f.read().strip() == "0":
+                    status = "success"
+                else:
+                    status = "error"
+        else:
+            with open("%s/pid" % wdir) as f:
+                pid = f.read().strip()
+            if os.path.exists("/proc/%s" % pid):
+                status = "running"
+            else:
+                status = "error"
+        suiterun = None
+        includedsuiteruns = []
+        if os.path.exists("%s/run.out" % wdir):
+            with open("%s/run.out" % wdir) as f:
+                for l in f:
+                    m = re.search("INCLUDED SUITE (\d+)", l)
+                    if m:
+                        includesuiteruns.append(int(m.group(1)))
+                    else:
+                        m = re.search("SUITE (\d+)", l)
+                        if m:
+                            suiterun = int(m.group(1))
+        ret = {
+            "user": user,
+            "command": command,
+            "status": status,
+            "suiterun": suiterun,
+            "includedsuiteruns": includedsuiteruns,
+            "console": "http://%s/export/suiteruns/%s/run.out" % (self.request.host, token)
+        }
+
+        return ret
+
+
 RegisterAPI(StartSuite)
+RegisterAPI(StartSuiteStatus)

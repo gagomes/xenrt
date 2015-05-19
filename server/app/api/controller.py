@@ -10,7 +10,7 @@ class XenRTPower(XenRTAPIPage):
         machine = None
         powerop = None
 
-        powerargs = { "off" : "--poweroff", "on": "--poweron", "reboot": "--powercycle" , "nmi": "--nmi"}
+        powerargs = { "off" : "--poweroff", "on": "--poweron", "reboot": "--powercycle" , "nmi": "--nmi", "status": "--powerstatus"}
 
         try:
             if form.has_key("machine"):

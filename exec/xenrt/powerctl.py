@@ -45,6 +45,10 @@ class _PowerCtlBase(object):
     def triggerNMI(self):
         raise xenrt.XRTError("Unimplemented")
 
+    def status(self):
+        """Returns a tuple of (status, source) indicating the power status"""
+        return ("unknown", "unknown")
+
     def command(self, command, retval="string"):
         if self.verbose:
             sys.stderr.write("Executing %s\n" % command)
@@ -253,6 +257,47 @@ class PDU(_PowerCtlBase):
                 xenrt.sleep(random.randint(0, 20))
             self.snmp("cycle")
 
+    def status(self):
+        if len(self.pdus) == 0:
+            raise xenrt.XRTError("No PDU found for %s" %
+                                 (self.machine.name))
+        result = None
+        for p in self.pdus:
+            (address, comm, oidbase, pduport, values) = p
+            command = "snmpget -v1 -c %s %s %s.%s" % \
+                      (comm, address, oidbase, pduport)
+            pdulock = xenrt.resources.CentralResource()
+            attempts = 0
+            while True:
+                try:
+                    pdulock.acquire("SNMP_PDU")
+                    break
+                except:
+                    xenrt.sleep(10)
+                    attempts += 1
+                    if attempts > 6:
+                        raise xenrt.XRTError("Couldn't get SNMP PDU lock.")
+            try:
+                attempts = 0
+                while True:
+                    try:
+                        data = self.command(command)
+                        m = re.search("INTEGER: (\d)", data)
+                        if m:
+                            val = int(m.group(1))
+                            result = [x for x in values.keys() if values[x]==val][0]
+                            break
+                    except Exception, e:
+                        if self.verbose:
+                            sys.stderr.write("SNMP failed, waiting 30 seconds before retry\n")
+                        attempts += 1
+                        if attempts >= 3:
+                            raise
+                        xenrt.sleep(30)
+            finally:
+                pdulock.release()
+        return (result, "PDU")
+
 class ILO(_PowerCtlBase):
 
     def off(self):
@@ -340,6 +385,13 @@ class IPMIWithPDUFallback(_PowerCtlBase):
                 xenrt.sleep(60)
                 self.machine.consoleLogger.reload()
 
+    def status(self):
+        try:
+            return self.ipmi.status()
+        except:
+            xenrt.TEC().logverbose("IPMI failed, falling back to PDU control")
+            return self.PDU.status()
+
     def cycle(self, fallback=False):
         try:
             if fallback:
@@ -393,6 +445,13 @@ class IPMI(_PowerCtlBase):
             if self.antiSurge:
                 xenrt.sleep(random.randint(0, 20))
             self.ipmi("chassis power on")
+
+    def status(self):
+        result = self.ipmi("chassis power status")
+        m = re.search("Chassis Power is (.+)\n", result)
+        if m:
+            return (m.group(1), "IPMI")
+        return ("unknown", "IPMI")
 
     def cycle(self, fallback=False):
         xenrt.TEC().logverbose("Power cycling machine %s" % (self.machine.name))

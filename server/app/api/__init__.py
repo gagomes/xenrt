@@ -379,14 +379,8 @@ class DumpHeaders(XenRTAPIPage):
 PageFactory(XenRTLogServer, "/api/logserver", compatAction="getlogserver")
 PageFactory(DumpHeaders, "/api/dumpheaders")
 
-import app.api.jobs
-import app.api.sites
-import app.api.machines
 import app.api.schedule
-import app.api.suite
 import app.api.controller
 import app.api.files
-import app.api.results
 import app.api.guestfile
-import app.api.resources
 import app.api.dbchecks

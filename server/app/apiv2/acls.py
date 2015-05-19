@@ -98,7 +98,7 @@ class _AclBase(XenRTAPIv2Page):
             return {}
 
         aclHelper = self.getACLHelper()
-        ret = {aclid: aclHelper.get_acl(aclid, withCounts=withCounts).toDict() for aclid in aclids}
+        ret = dict([[aclid, aclHelper.get_acl(aclid, withCounts=withCounts).toDict()] for aclid in aclids])
 
         if limit:
             aclsToReturn = sorted(ret.keys())[offset:offset+limit]

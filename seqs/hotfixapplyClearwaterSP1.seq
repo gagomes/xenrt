@@ -20,6 +20,7 @@
   <testsequence group="HF_CLRSP1">
 
     <testcase id="xenserver.tc.hotfix.TC20944" />
+    <testcase id="xenserver.tc.hotfix.TC27007" />
     <testcase id="xenserver.tc.hotfix.TC20945" />
     <testcase id="xenserver.tc.hotfix.TC19912" />
     <testcase id="xenserver.tc.hotfix.TC16632" />

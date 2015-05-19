@@ -3,7 +3,7 @@ from app.api import XenRTAPIPage
 from pyramid.httpexceptions import HTTPFound
 
 import traceback, StringIO, string, time, random, sys, calendar, getopt
-
+import psycopg2
 import config, app
 
 class XenRTSchedule(XenRTAPIPage):
@@ -18,6 +18,7 @@ class XenRTSchedule(XenRTAPIPage):
     def cli(self):
         if not self.isDBMaster():
             print "Skipping schedule as this node is not the master"
+            return
         dryrun = False
         ignore = False
         verbose = None
@@ -43,37 +44,9 @@ class XenRTSchedule(XenRTAPIPage):
             self.mutex.close()
 
 
-    def render(self):
-        form = self.request.params
-        if not self.isDBMaster():
-            if form.get("besteffort") == "yes":
-                return "Skipping schedule as this node is not the master"
-            else:
-                return HTTPFound(location="http://%s/xenrt/api/schedule" % config.partner_ha_node)
-        dryrun = False
-        ignore = False
-        verbose = None
-        outfh = StringIO.StringIO()
-        if form.has_key("dryrun") and form["dryrun"] == "yes":
-            dryrun = True
-        if form.has_key("ignore") and form["ignore"] == "yes":
-            ignore = True
-        if form.has_key("verbose") and form["verbose"] == "yes":
-            verbose = outfh
-        self.schedule_jobs(outfh, dryrun=dryrun, ignore=ignore, verbose=verbose)
-        ret = outfh.getvalue()
-        outfh.close()
-        if not ret:
-            ret = ""
-        if self.mutex:
-            if self.mutex_held:
-                self.release_lock()
-            self.mutex.close()
-        return ret
-
     def schedule_jobs(self, outfh, dryrun=False, ignore=False, verbose=None):
         """New world job scheduler - assigns machines to jobs"""
-
+    
         # Generate a random integer to track in logs
         schedid = random.randint(0,1000)
 
@@ -88,7 +61,11 @@ class XenRTSchedule(XenRTAPIPage):
         prelocktime = time.mktime(time.gmtime())
 
         verbose.write("Job scheduler ID %d started %s" % (schedid, time.strftime("%a, %d %b %Y %H:%M:%S +0000\n", time.gmtime())))
-        self.get_lock()
+        try:
+            self.get_lock()
+        except psycopg2.OperationalError:
+            outfh.write("Another schedule is already in progress, aborting\n")
+            return
         verbose.write("%d acquired lock %s" % (schedid, time.strftime("%a, %d %b %Y %H:%M:%S +0000\n", time.gmtime())))
         postlocktime = time.mktime(time.gmtime())
 
@@ -283,7 +260,7 @@ class XenRTSchedule(XenRTAPIPage):
             if not self.mutex:
                 self.mutex = app.db.dbWriteInstance()
             cur = self.mutex.cursor()
-            cur.execute("LOCK TABLE scheduleLock")
+            cur.execute("LOCK TABLE scheduleLock NOWAIT")
             self.mutex_held = 1
 
     def release_lock(self):
@@ -721,4 +698,3 @@ class XenRTSchedule(XenRTAPIPage):
 
         return True
 
-PageFactory(XenRTSchedule, "/api/schedule", compatAction="schedule")

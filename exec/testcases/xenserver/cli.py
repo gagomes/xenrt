@@ -113,7 +113,7 @@ class TCCLI(xenrt.TestCase):
                 sr = srl[0]
                 if lvm:
                     # Provision with LVM tools
-                    vgs = host.execdom0("vgs --noheadings -o size,name,size "
+                    vgs = host.execRawStorageCommand(sr, "vgs --noheadings -o size,name,size "
                                         "--separator=, | cut -d, -f2").split()
                     self.vg = None
                     for vg in vgs:
@@ -124,8 +124,7 @@ class TCCLI(xenrt.TestCase):
                         if re.search(r"read failed", vg):
                             continue
                         try:
-                            host.execdom0("lvcreate -n importexport -L 10G %s"
-                                          % (vg))
+                            host.execRawStorageCommand(sr, "lvcreate -n importexport -L 10G %s" % (vg))
                             self.vg = vg
                             break
                         except:
@@ -364,6 +363,10 @@ class TCCLI(xenrt.TestCase):
 
             except Exception, e:
                 toraise = e
+            # Find SR uuid before delete vdi and vg.
+            sr = None
+            if self.vdi and self.vg:
+                sr = self.hostToClean.genParamGet("vdi", self.vdi, "sr-uuid")
             try:
                 if self.vbd:
                     cli.execute("vbd-unplug",
@@ -389,7 +392,7 @@ class TCCLI(xenrt.TestCase):
             # Clean up mounts and LVs
             try:
                 if self.vg:
-                    self.hostToClean.execdom0("lvremove --force "
+                    self.hostToClean.execRawStorageCommand(sr, "lvremove --force "
                                               "/dev/%s/importexport" %
                                               (self.vg))
             except Exception, e:
@@ -406,7 +409,7 @@ class TCCLI(xenrt.TestCase):
                 if xenrt.TEC().lookup("OPTION_APPLY_LICENSE",
                                       True,
                                       boolean=True):
-                    self.hostToClean.license()                    
+                    self.hostToClean.license()
             except Exception, e:
                 toraise = e
 

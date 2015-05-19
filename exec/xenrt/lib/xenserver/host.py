@@ -11822,8 +11822,7 @@ class StorageRepository(object):
         srtype = self.host.genParamGet("sr", self.uuid, "type")
         try:
             alloc = self.host.genParamGet("sr", self.uuid, "sm-config", "allocation")
-            #usevhd = self.host.getParamGet("sr", sruuid, "sm-config", "use_vhd")
-            if alloc == "dynamic":# and usevhd == "true":
+            if alloc == "dynamic":
                 return True
 
         except:
@@ -11902,7 +11901,6 @@ class StorageRepository(object):
                      for x,y in actualDeviceConfiguration.items()])
         if self.thinProv:
             smconf["allocation"] = "dynamic"
-            smconf["use_vhd"] = "true"
         args.extend(["sm-config:%s=\"%s\"" % (x, y)
                     for x,y in smconf.items()])
         self.uuid = cli.execute("sr-create", string.join(args)).strip()

@@ -10,7 +10,7 @@ from abc import ABCMeta, abstractmethod
 Enums
 """
 class VGPUOS(object): Win7x86, Win7x64, WS2008R2, Win8x86, Win8x64, Win81x86, Win81x64, WS12x64, WS12R2x64,DEBIAN,Centos7,Rhel7,Oel7,Ubuntu1404x86,Ubuntu1404x64 = range(15)
-class VGPUConfig(object): K100, K120, K140, K160, K180, K1PassThrough, K200, K220, K240, K260, K280, K2PassThrough, PassThrough = range(13)
+class VGPUConfig(object): K100, K120, K140, K160, K180, K1PassThrough, K200, K220, K240, K260, K280, K2PassThrough, PassThrough, IntelvGPU = range(14)
 class VGPUDistribution(object): BreadthFirst, DepthFirst = range(2)
 class SRType(object): Local, NFS, ISCSI = range(3)
 class VMStartMethod(object): OneByOne, Simultenous = range(2)
@@ -42,7 +42,8 @@ MaxNumOfVGPUPerPGPU = {
     VGPUConfig.K260 :  2,
     VGPUConfig.K280 : 1,
     VGPUConfig.K2PassThrough : 1,
-    VGPUConfig.PassThrough : 1
+    VGPUConfig.PassThrough : 1,
+    VGPUConfig.IntelvGPU : 3
 }
 
 CardDeviceName = {
@@ -191,6 +192,9 @@ class VGPUInstaller(object):
             elif self.__config == VGPUConfig.PassThrough: 
                 if CardName[CardType.Quadro] in gtype or CardName[CardType.Intel] in gtype:
                     return group.uuid
+            elif self.__config == VGPUConfig.IntelvGPU:
+                if CardName[CardType.Intel] in gtype:
+                    return group.uuid
 
         raise xenrt.XRTFailure("A group of config %s was required but none were found" % str(self.__config))
 
@@ -267,7 +271,8 @@ class VGPUTest(object):
         VGPUConfig.K260 : "K260",
         VGPUConfig.K280 : "K280",
         VGPUConfig.K2PassThrough : "K2passthrough",
-        VGPUConfig.PassThrough : "passthrough"
+        VGPUConfig.PassThrough : "passthrough",
+        VGPUConfig.IntelvGPU : "Intel GVT-g"
     }
 
     _DIFFVGPUTYPE = {

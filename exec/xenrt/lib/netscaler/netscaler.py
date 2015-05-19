@@ -220,8 +220,8 @@ class NetScaler(object):
             xenrt.TEC().logverbose('License test passed')
 
         
-    def checkFeatures(self, flag = ""):
-        xenrt.TEC().logverbose(flag)
+    def checkFeatures(self, msg):
+        xenrt.TEC().logverbose(msg)
         xenrt.TEC().logverbose('The version of the provisioned VPX is %s' % (self.version))
         xenrt.TEC().logverbose('The management IP of the provisioned VPX is %s' % (self.managementIp))
         xenrt.TEC().logverbose('The model number ID of the provisioned VPX is %s' % (self.checkModNum()))

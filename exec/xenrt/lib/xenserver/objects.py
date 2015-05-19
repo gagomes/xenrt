@@ -123,7 +123,7 @@ class XapiObject(object):
         uuid = self.cli.execute("%s-param-get  uuid=%s param-name=%s" % (self.type, self.uuid, paramName)).strip()
         return objectFactory().getObject(objType)(self.cli, objType, uuid)
 
-    def getObjectsReferencing(self, refObjectType, currentObjectType):
+    def getObjectsReferencing(self, refObjectType, currentObjectType=None):
         """
         Get objects that reference the current object
         @var refObjectType: the type to look up
@@ -133,7 +133,10 @@ class XapiObject(object):
         @return XapiObjects represented the objects that reference the current object
         @rtype list of XapiObjects
         """
-        uuids = self.cli.execute("%s-list %s-uuid=%s --minimal" % (refObjectType, currentObjectType, self.uuid)).strip().split(',')
+        if currentObjectType:
+            uuids = self.cli.execute("%s-list %s-uuid=%s --minimal" % (refObjectType, currentObjectType, self.uuid)).strip().split(',')
+        else:
+            uuids = self.cli.execute("%s-list --minimal" % refObjectType).strip().split(',')
         return [objectFactory().getObject(refObjectType)(self.cli, refObjectType, uuid) for uuid in uuids]
 
     def getObjectsFromListing(self, refObjectType):
@@ -234,8 +237,10 @@ class XapiHost(NamedXapiObject):
     OBJECT_TYPE = "host"
 
     @xenrt.irregularName
-    def SR(self):
-        return self.getObjectsReferencingName(SR.OBJECT_TYPE, self.OBJECT_TYPE)
+    def SR(self, localOnly=True):
+        if localOnly:
+            return self.getObjectsReferencingName(SR.OBJECT_TYPE, self.OBJECT_TYPE)
+        return self.getObjectsReferencing(SR.OBJECT_TYPE)
 
 
 class PBD(XapiObject):

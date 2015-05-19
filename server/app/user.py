@@ -68,7 +68,7 @@ class User(object):
     def _getGroups(self):
         db = self.page.getDB()
         cur = db.cursor()
-        cur.execute("SELECT g.name FROM tblgroups g INNER JOIN tblgroupusers gu ON g.groupid = gu.groupid WHERE gu.userid=%s", [self.userid])
+        cur.execute("SELECT g.name FROM tblgroups g INNER JOIN tblgroupusers gu ON g.groupid = gu.groupid WHERE gu.userid=%s", [self.userid.lower()])
         self._groups = []
         while True:
             rc = cur.fetchone()

@@ -21,6 +21,7 @@
   <testsequence group="HF_CREEDENCE_RTM">
 
     <testcase id="xenserver.tc.hotfix.TC23784" />
+    <testcase id="xenserver.tc.hotfix.TC27007" />
     <testcase id="xenserver.tc.hotfix.TC23785" />
     <testcase id="xenserver.tc.hotfix.TC23783" />
     <testcase id="xenserver.tc.hotfix.TC19912" />

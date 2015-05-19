@@ -198,9 +198,12 @@ class DebianLinux(DebianBasedLinux):
     @property
     def isoName(self):
         if self.distro == "debian60":
-            return "deb6_%s.iso" % self.arch
+            return "deb6_%s_xenrtinst.iso" % self.arch
         elif self.distro == "debian70":
-            return "deb7_%s.iso" % self.arch
+            return "deb7_%s_xenrtinst.iso" % self.arch
+        elif self.distro == "debian80":
+            return "deb8_%s_xenrtinst.iso" % self.arch
+
 
 class UbuntuLinux(DebianBasedLinux):
     """ NOTE: Lucid is not supported on XS 6.2 for ISO install but should work for http install"""
@@ -222,7 +225,7 @@ class UbuntuLinux(DebianBasedLinux):
 
     @property
     def isoName(self):
-        return "%s_%s.iso" % (self.distro, self.arch)
+        return "%s_%s_xenrtinst.iso" % (self.distro, self.arch)
 
 
 registerOS(DebianLinux)

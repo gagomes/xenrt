@@ -1273,12 +1273,12 @@ class _TCVDICreate(xenrt.TestCase):
         elif self.SRTYPE in ["lvm", "lvmoiscsi", "lvmohba"]:
             vpath = "VG_XenStorage-%s/VHD-%s" % (self.sr, uuid)
             lpath = "VG_XenStorage-%s/LV-%s" % (self.sr, uuid)
-            if self.host.execdom0("lvdisplay %s" % (vpath), retval="code") == 0:
+            if self.host.execRawStorageCommand(self.sr, "lvdisplay %s" % (vpath), retval="code") == 0:
                 foundtype = "VHD"
-                foundsize = int(self.host.execdom0("lvdisplay -c %s 2> /dev/null" % (vpath)).split(":")[6]) * 512
-            elif self.host.execdom0("lvdisplay %s" % (lpath), retval="code") == 0:
+                foundsize = int(self.host.execRawStorageCommand(self.sr, "lvdisplay -c %s 2> /dev/null" % (vpath)).split(":")[6]) * 512
+            elif self.host.execRawStorageCommand(self.sr, "lvdisplay %s" % (lpath), retval="code") == 0:
                 foundtype = "LV"
-                foundsize = int(self.host.execdom0("lvdisplay -c %s 2> /dev/null" % (lpath)).split(":")[6]) * 512
+                foundsize = int(self.host.execRawStorageCommand(self.sr, "lvdisplay -c %s 2> /dev/null" % (lpath)).split(":")[6]) * 512
             else:
                 raise xenrt.XRTFailure("VDI missing", uuid)
         else:
@@ -1831,7 +1831,7 @@ class _LVHDPerformance(xenrt.TestCase):
     def isRaw(self, vdiuuid):
         sruuid = self.host.genParamGet("vdi", vdiuuid, "sr-uuid")
         path = "VG_XenStorage-%s/LV-%s" % (sruuid, vdiuuid)
-        try: data = self.host.execdom0("lvdisplay -c %s" % (path))
+        try: data = self.host.execRawStorageCommand(sruuid, "lvdisplay -c %s" % (path))
         except: return False
         realsize = int(data.split(":")[6])*512
         virtualsize = int(self.host.genParamGet("vdi", vdiuuid, "virtual-size"))

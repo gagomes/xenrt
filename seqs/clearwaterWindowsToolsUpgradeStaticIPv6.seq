@@ -2,13 +2,13 @@
 
   <!-- Tampa to Clearwater VM Tools/drivers/kernel upgrade test -->
 
-  <default name="OLD_PRODUCT_VERSION" value="Tampa"/>
-  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.1/RTM-59235"/>
+  <default name="OLD_PRODUCT_VERSION" value="Sanibel"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.0.2/RTM-53456"/>
   <default name="GUESTMEMORY" value="1024"/>
   <default name="GUESTVCPUS" value="2"/>
 
   <variables>
-    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
     <PREPARE_WORKERS>3</PREPARE_WORKERS>
   </variables>
 

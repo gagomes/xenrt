@@ -4,7 +4,7 @@
   <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.0.0/RTM-50762"/>
   
   <variables>
-    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
     <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
   </variables>
 
@@ -26,6 +26,6 @@
       <arg>input=DEFAULT</arg>
     </testcase>
     <testcase id="xenserver.install.TCApplyReqdPatches"/>
-    <testcase id="xenserver.tc.pvdrivers.TCToolsMissingUninstall" name="TC23775" tc="TC-23775" />
+    <testcase id="xenserver.tc.pvdrivers.TCToolsMissingUninstall" name="TC27017" tc="TC-27017" />
   </testsequence>
 </xenrt>

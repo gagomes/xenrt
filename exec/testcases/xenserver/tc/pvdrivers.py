@@ -1122,6 +1122,50 @@ class TCToolsMissingUninstall(xenrt.TestCase):
             xenrt.TEC().logverbose("Tools are upto date")
         else:
             raise xenrt.XRTFailure("Guest tools are out of date")
+            
+class TCToolsVBscriptEngineOff(xenrt.TestCase):
+    """Test for SCTX-1650. Verify upgrade of XenTools from XS 6.0 to XS 6.1 is successfull when vbscript engine is not available"""
+    #TC-27017
+    def prepare(self, arglist=None):
+        self.host = self.getDefaultHost()
+        self.guest = self.host.getGuest("VMWin2k8")
+        self.guest.start()
+
+    def run(self, arglist=None):
+        step("Disable vbscript Engine")
+        
+        self.guest.xmlrpcExec("cd C:\\Windows\\System32")
+        self.guest.xmlrpcExec("takeown /f C:\\Windows\\System32\\vbscript1.dll")
+        self.guest.xmlrpcExec("echo y| cacls C:\\Windows\System32\\vbscript1.dll /G administrator:F")
+        self.guest.xmlrpcExec("rename vbscript1.dll vbscript2.dll")
+                 
+        step("Install latest PV tools")
+        self.guest.installDrivers()
+        self.guest.waitForAgent(60)
+        
+        if self.guest.pvDriversUpToDate():
+            xenrt.TEC().logverbose("Tools are upto date")
+        else:
+            raise xenrt.XRTFailure("Guest tools are out of date")
+            
+class TCSysrepInstallsSuccessfullyAfterToolsUpgrade(xenrt.TestCase):
+    """Test for SCTX-1906. verifies that after upgrade of XenTools from XS 6.0 to XS 6.2, Sysrep.exe runs successfully"""
+    #TC-27018
+    def prepare(self, arglist=None):
+        self.host = self.getDefaultHost()
+        self.guest = self.host.getGuest("VMWin2k8")
+        self.guest.start()
+        
+        step("Install latest PV tools")
+        self.guest.installDrivers()
+        self.guest.waitForAgent(60)
+
+    def run(self, arglist=None):
+        step("Check whether Sysprep gets installed")
+        if self.guest.xmlrpcDoSysprep():
+            xenrt.TEC().logverbose("Sysprep is installed successfully")
+        else:
+            raise xenrt.XRTFailure("Sysprep is not installed")
 
 class TCBootStartDriverUpgrade(xenrt.TestCase):
     """Test for CA-158777 upgrade issue with boot start driver"""

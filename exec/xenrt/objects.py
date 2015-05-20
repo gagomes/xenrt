@@ -2776,7 +2776,12 @@ Add-WindowsFeature as-net-framework"""
         rpm = None
         hostarch = self.execcmd("uname -m").strip()
         # Try an explicit path first - this is used for OEM update tests
-        rpmpath = xenrt.TEC().lookup("XE_RPM", None)
+        # Use static linked version of xe on Dundee if the distro is not Centos 7
+        if isinstance(self.host, xenrt.lib.xenserver.DundeeHost) and not self.distro == 'centos7':
+            rpmpath = "xe-phase-1/client_install/xe-cli-6.2.0-70442c.i686.rpm"
+        else:
+            rpmpath = xenrt.TEC().lookup("XE_RPM", None)
+
         if rpmpath:
             rpm = xenrt.TEC().getFile(rpmpath)
         if not rpm:
@@ -7534,7 +7539,7 @@ class GenericGuest(GenericPlace):
                         if self.execguest("test -e %s" % (filename), retval="code") == 0:
                             self.execguest("rm -f %s" % (filename))
 
-                if self.execguest("[ -e /etc/apt/sources.list.d/updates.list ]", retval="code") and int(debVer) in (6, 7) and xenrt.TEC().lookup("APT_SERVER", None):
+                if self.execguest("[ -e /etc/apt/sources.list.d/updates.list ]", retval="code") and int(debVer) in (6, 7, 8) and xenrt.TEC().lookup("APT_SERVER", None):
                     codename = self.execguest("cat /etc/apt/sources.list | grep '^deb' | awk '{print $3}' | head -1").strip()
                     self.execguest("echo deb %s/debsecurity %s/updates main >> /etc/apt/sources.list.d/updates.list" % (xenrt.TEC().lookup("APT_SERVER"), codename))
                     self.execguest("echo deb %s/debian %s-updates main >> /etc/apt/sources.list.d/updates.list" % (xenrt.TEC().lookup("APT_SERVER"), codename))
@@ -7751,7 +7756,7 @@ class GenericGuest(GenericPlace):
                     pass
 
         if not self.windows:
-            xenrt.TEC().logverbose("Guest %s is running kernel %s" % (self.name, self.execguest("uname -r")))
+            xenrt.TEC().logverbose("Guest %s is running kernel %s" % (self.name, self.execguest("uname -a")))
 
 
         if not self.windows:

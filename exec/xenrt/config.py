@@ -128,10 +128,6 @@ class Config(object):
         self.config["MAX_CONCURRENT_VMS"] = "50"
         self.config["MAX_CONCURRENT_VIFS"] = "200"
 
-        # See if this controller is running an apt-cacher
-        if os.path.exists("/local/apt-cache"):
-            self.config["APT_CACHER"] = "http://${XENRT_SERVER_ADDRESS}/debian"
-
         self.config["TEMPLATE_NAME_DEBIAN"] = "Debian Sarge Guest Template"
         self.config["TEMPLATE_NAME_DEBIAN_SARGE"] = "Debian Sarge Guest Template"
         self.config["TEMPLATE_NAME_DEBIAN_ETCH"] = "Debian Etch Guest Template"

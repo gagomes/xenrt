@@ -351,8 +351,8 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
             if ls:
                 host["license"] = ls
         
-        if "usev6testd" in node:
-            host["usev6testd"] = node["usev6testd"]
+        if "defaultlicense" in node:
+            host["defaultlicense"] = node["defaultlicense"]
         if "noisos" in node:
             host["noisos"] = node.get("noisos", False)
         host["suppackcds"] = node.get("suppackcds")
@@ -731,12 +731,12 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
             ls = xenrt.TEC().lookup("OPTION_LIC_SKU", None)
             if ls:
                 host["license"] = ls
-        usev6testd = self.expand(node.getAttribute("usev6testd"))
-        if usev6testd:
-            if usev6testd[0] in ('y', 't', '1', 'Y', 'T'):
-                host["usev6testd"] = True
+        defaultlicense = self.expand(node.getAttribute("defaultlicense"))
+        if defaultlicense:
+            if defaultlicense[0] in ('y', 't', '1', 'Y', 'T'):
+                host["defaultlicense"] = True
             else:
-                host["usev6testd"] = False
+                host["defaultlicense"] = False
         noisos = self.expand(node.getAttribute("noisos"))
         if noisos:
             if noisos[0] in ('y', 't', '1', 'Y', 'T'):
@@ -1001,6 +1001,30 @@ class PrepareNode(object):
                 preprepareNode.appendChild(hostNode)
             self.toplevel.preprepare = PrepareNode(self.toplevel, preprepareNode, params)
 
+    def chooseISOSRType(self, host, sr):
+        # Check what the SR supports
+        if not sr.get("cifspath"):
+            return "nfs"
+        if not sr.get("nfspath"):
+            return "cifs"
+        
+        # Check what the host supports
+        lib = xenrt.productLib(host=host)
+        if not hasattr(lib, "CIFSISOStorageRepository"):
+            return "nfs"
+        if not hasattr(lib, "ISOStorageRepository"):
+            return "cifs"
+
+        # Both the SR and the host can do CIFS and NFS. So now check whether we've selected one in this job
+        with xenrt.GEC().getLock("ISO_SR_TYPE"):
+            ret = xenrt.TEC().lookup("ISO_SR_TYPE", None)
+            if not ret:
+                ret = random.choice(("cifs", "nfs"))
+                xenrt.GEC().config.setVariable("ISO_SR_TYPE", ret)
+                xenrt.GEC().dbconnect.jobUpdate("ISO_SR_TYPE",ret)
+            return ret
+
+
     def debugDisplay(self):
         xenrt.TEC().logverbose("Hosts:\n" + pprint.pformat(self.hosts))
         xenrt.TEC().logverbose("Pools:\n" + pprint.pformat(self.pools))
@@ -1142,7 +1166,8 @@ class PrepareNode(object):
                             self.srs.insert(0, {"host":host["name"], 
                                                 "name":"XenRT ISOs",
                                                 "type":"iso",
-                                                "path":xenrt.TEC().lookup("EXPORT_ISO_NFS"),
+                                                "nfspath":xenrt.TEC().lookup("EXPORT_ISO_NFS"),
+                                                "cifspath": xenrt.TEC().lookup("EXPORT_ISO_CIFS", None),
                                                 "default":False,
                                                 "blkbackPoolSize":""})
                             isos2 = xenrt.TEC().lookup("EXPORT_ISO_NFS_STATIC", None)
@@ -1150,7 +1175,8 @@ class PrepareNode(object):
                                 self.srs.insert(0, {"host":host["name"],
                                                     "name":"XenRT static ISOs",
                                                     "type":"iso",
-                                                    "path":isos2,
+                                                    "nfspath":isos2,
+                                                    "cifspath": xenrt.TEC().lookup("EXPORT_ISO_CIFS_STATIC", None),
                                                     "default":False,
                                                     "blkbackPoolSize":""})
                             if xenrt.TEC().lookup("USE_PREBUILT_TEMPLATES", False, boolean=True):
@@ -1270,9 +1296,18 @@ class PrepareNode(object):
                         else:
                             sr.create(share)
                     elif s["type"] == "iso":
-                        sr = xenrt.productLib(host=host).ISOStorageRepository(host, s["name"])
-                        server, path = s["path"].split(":")
-                        sr.create(server, path)
+                        srtype = self.chooseISOSRType(host, s)
+                        if srtype == "nfs":
+                            sr = xenrt.productLib(host=host).ISOStorageRepository(host, s["name"])
+                            server, path = s["nfspath"].split(":")
+                            sr.create(server, path)
+                        elif srtype == "cifs":
+                            sr = xenrt.productLib(host=host).CIFSISOStorageRepository(host, s["name"])
+                            (username, password, path) = s["cifspath"].split(":")
+                            m = re.match("\\\\\\\\(.+?)\\\\(.+)", path)
+                            server = m.group(1)
+                            share = m.group(2)
+                            sr.create(server, share, username=username, password=password)
                         sr.scan()
                     elif s['type'] == "nfstemplate":
                         try:

@@ -49,21 +49,6 @@ serverbase := $(patsubst http://%/share/control,http://%,$(serverbase))
 serverbase := $(patsubst http://%/xenrt,http://%,$(serverbase))
 serverbase := $(patsubst http://%/control,http://%,$(serverbase))
 
-.PHONY: aptcacher
-aptcacher:
-	$(info Configuring apt-cacher...)
-	$(SUDO) ln -sfT $(TEST_INPUTS)/apt-cache /local/apt-cache
-	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/apt-cacher/apt-cacher.conf $(APTCACHER)
-	$(SUDO) sed -i 's/group=xenrtd/group=$(GROUPNAME)/' $(APTCACHER)
-	$(SUDO) sed -i 's/user=xenrtd/user=$(USERNAME)/' $(APTCACHER)
-	$(SUDO) ln -sfT /usr/share/apt-cacher $(WEBROOT)/apt
-	$(SUDO) mkdir -p /var/log/apt-cacher 
-	$(SUDO) chown -R $(USERID):$(GROUPID) /var/log/apt-cacher
-	-$(SUDO) ln -s apt-cacher.pl $(WEBROOT)/apt/apt-cacher-cgi.pl
-ifeq ($(APT_CACHER_ONLINE),yes)
-	$(SUDO) sed -i 's/offline_mode=1/offline_mode=0/' $(APTCACHER)
-endif
-
 .PHONY: extrapackages
 extrapackages: extrapackages-install
 	
@@ -605,7 +590,7 @@ cron-uninstall:
 	$(SUDO) crontab -r
 
 .PHONY: infrastructure
-infrastructure: api ssh winpe files prompt autofs dhcpd dhcpd6 hosts network nagios conserver logrotate cron sitecontrollercmd nfs tftp iscsi sudoers aptcacher ftp snmp extrapackages loop dsh ntp $(SHAREDIR)/images/vms/etch-4.1.img symlinks samba libvirt
+infrastructure: api ssh winpe files prompt autofs dhcpd dhcpd6 hosts network nagios conserver logrotate cron sitecontrollercmd nfs tftp iscsi sudoers ftp snmp extrapackages loop dsh ntp $(SHAREDIR)/images/vms/etch-4.1.img symlinks samba libvirt
 	$(info XenRT infrastructure installed.)
 
 

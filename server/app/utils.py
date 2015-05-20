@@ -431,6 +431,10 @@ def refresh_ad_caches(removeUsers=False):
             break
         aclGroups.append(rc[0].strip())
 
+    # Also put the admin group in the cache
+    if not config.admin_group in aclGroups:
+        aclGroups.append(config.admin_group)
+
     # Add any groups not in the DB to the DB
     extraGroups = set(aclGroups) - set(groups.values())
     for g in extraGroups:

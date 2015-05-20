@@ -21,7 +21,7 @@
     </prepare>
     
   <testsequence>
-    <testcase id="xenserver.tc.vgpu.TCcreatevGPU" name="Win7sp1x86K140VGPU" tc="TC-23748" sku="TCcreatevGPU">
+    <testcase id="xenserver.tc.vgpu.TCcreatevGPU" name="Win7sp1x86INTELVGPU" tc="TC-23748" sku="TCcreatevGPU">
       <arg>vmName=vgpufeaturevm</arg>
       <arg>vgpuconfig=13</arg>
       <arg>startVM=False</arg>

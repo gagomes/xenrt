@@ -50,6 +50,7 @@ class XenRTUIPage(XenRTPage):
      </ul>
    </li>
    <li><a href='/xenrt/ui/logs'><span>Browse logs</span></a></li>
+   <li><a href='/xenrt/ui/suiterun'><span>Run Suite</span></a></li>
    <li class='has-sub'><a href='#'><span>API</span></a>
       <ul>
          <li><a href='/xenrt/swagger' target="_blank"><span>API Documentation</span></a></li>
@@ -94,3 +95,4 @@ PageFactory(XenRTUIPage, "/ui/machine", renderer="__main__:templates/ui/machine.
 PageFactory(XenRTUIPage, "/ui/utilisation", renderer="__main__:templates/ui/utilisation.mak")
 PageFactory(XenRTUIPage, "/ui/acls", renderer="__main__:templates/ui/acls.mak")
 PageFactory(XenRTUIPage, "/ui/acl", renderer="__main__:templates/ui/acl.mak")
+PageFactory(XenRTUIPage, "/ui/suiterun", renderer="__main__:templates/ui/suiterun.mak")

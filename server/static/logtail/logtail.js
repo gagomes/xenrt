@@ -122,7 +122,7 @@ function get_log() {
 
                 setTimeout(get_log, poll);
             } else {
-                throw "Unknown AJAX Error (status " + xhr.status + ")";
+                setTimeout(get_log, poll);
             }
         }
     });

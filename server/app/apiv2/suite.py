@@ -116,7 +116,7 @@ class StartSuite(_SuiteStartBase):
 
 class StartSuiteStatus(XenRTAPIv2Page):
     PATH = "/suiterun/start/{token}"
-    REQTYPE = "POST"
+    REQTYPE = "GET"
     SUMMARY = "Get status on suite run starting"
     PARAMS = [
         {"name": "token",
@@ -150,14 +150,18 @@ class StartSuiteStatus(XenRTAPIv2Page):
                 status = "error"
         suiterun = None
         includedsuiteruns = []
+        jobs = {}
         if os.path.exists("%s/run.out" % wdir):
             with open("%s/run.out" % wdir) as f:
                 for l in f:
-                    m = re.search("INCLUDED SUITE (\d+)", l)
+                    m = re.search("^Starting (.+?)\.\.\. (\d+)", l)
+                    if m:
+                        jobs[m.group(1)] = int(m.group(2))
+                    m = re.search("^INCLUDED SUITE (\d+)", l)
                     if m:
                         includesuiteruns.append(int(m.group(1)))
                     else:
-                        m = re.search("SUITE (\d+)", l)
+                        m = re.search("^SUITE (\d+)", l)
                         if m:
                             suiterun = int(m.group(1))
         ret = {
@@ -166,6 +170,7 @@ class StartSuiteStatus(XenRTAPIv2Page):
             "status": status,
             "suiterun": suiterun,
             "includedsuiteruns": includedsuiteruns,
+            "jobs": jobs,
             "console": "http://%s/export/suiteruns/%s/run.out" % (self.request.host, token)
         }
 

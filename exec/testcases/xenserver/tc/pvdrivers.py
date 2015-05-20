@@ -1166,6 +1166,27 @@ class TCSysrepInstallsSuccessfullyAfterToolsUpgrade(xenrt.TestCase):
             xenrt.TEC().logverbose("Sysprep is installed successfully")
         else:
             raise xenrt.XRTFailure("Sysprep is not installed")
+            
+class TCToolsIPv6Disabled(xenrt.TestCase):
+    """Test for SCTX-1919. Verify upgrade of XenTools from XS 6.0 to XS 6.1 is successfull when IPv6 is disabled"""
+    #TC-27019
+    def prepare(self, arglist=None):
+        self.host = self.getDefaultHost()
+        self.guest = self.host.getGuest("VMWin2k8")
+        self.guest.start()
+
+    def run(self, arglist=None):
+        step("Disable IPv6 Settings")
+        self.guest.disableIPv6()
+      
+        step("Install latest PV tools")
+        self.guest.installDrivers()
+        self.guest.waitForAgent(60)
+        
+        if self.guest.pvDriversUpToDate():
+            xenrt.TEC().logverbose("Tools are upto date")
+        else:
+            raise xenrt.XRTFailure("Guest tools are out of date")
 
 class TCBootStartDriverUpgrade(xenrt.TestCase):
     """Test for CA-158777 upgrade issue with boot start driver"""

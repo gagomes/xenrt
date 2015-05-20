@@ -79,6 +79,8 @@ for cf in cfs:
                                     cfg['admin_group'] = data
                                 elif name == "SCHEDULE_LOG_DIR":
                                     cfg['schedule_log_dir'] = data
+                                elif name == "MASTER_SERVER":
+                                    cfg['master_server'] = data
 
 cfg['results'] = "%s/results" % basedir
 cfg['sharedir'] = "@sharedir@"

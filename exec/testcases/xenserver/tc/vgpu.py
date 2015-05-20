@@ -3448,7 +3448,7 @@ class TCIntelGPUReuse(IntelBase):
         maxNumVMs = MaxNumOfVGPUPerPGPU[config]
 
         for i in range(maxNumVMs + 1):
-            clones.append(vm.clone(noIP=False))
+            clones.append(vm.cloneVM(noIP=False))
 
         # Install and start Max.
         for i in range(maxNumVMs):

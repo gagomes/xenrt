@@ -331,6 +331,7 @@ class Guest(xenrt.GenericGuest):
 
             if arch:
                 trylist.append("%s_%s.iso" % (isostem, arch))
+                trylist.append("%s_%s_xenrtinst.iso" % (isostem, arch))
             isoname = None
             for tryit in trylist:
                 if tryit in cds:

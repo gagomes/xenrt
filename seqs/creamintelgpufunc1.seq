@@ -59,7 +59,7 @@
     <serial group="IntelGPUPassthrough">
 
       <testcase id="testcases.xenserver.tc.vgpu.TCBasicVerifOfAllK2config"  name="TC-26944" tc="TC-26944">
-        <arg>distro=3,4</arg>
+        <arg>distro=0,3,4</arg>
         <arg>typeofvgpu=intelwinvgpu</arg>
         <arg>vgpuconfig=12</arg>
       </testcase>
@@ -71,7 +71,7 @@
       </testcase>
 
       <testcase id="testcases.xenserver.tc.vgpu.TCIntelGPUReuse" name="TC-26946" tc="TC-26946">
-        <arg>distro=1,0</arg>
+        <arg>distro=1</arg>
         <arg>typeofvgpu=intelwinvgpu</arg>
         <arg>vgpuconfig=12</arg>
       </testcase>

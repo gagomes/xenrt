@@ -4469,30 +4469,17 @@ class TCinstallNVIDIAGuestDrivers(VGPUOwnedVMsTest):
 
 class TCcreatevGPU(VGPUAllocationModeBase):
 
-    POOL = [["K1"]]
-    REQUIRED_DISTROS = [VGPUOS.Win7x86]
-    VGPU_CONFIG = [VGPUConfig.K120]
-
     def run(self,arglist):
 
-        vgpuType = None
-        startVM = "True"   #reason for being string is because we are getting string from seq file
-        for arg in arglist:
-            if arg.startswith('vgputype'):
-                vgpuType = arg.split('=')[1]
-            if arg.startswith('vmName'):
-                vmName = arg.split('=')[1]
-            if arg.startswith('distro'):
-                self.REQUIRED_DISTROS[0] = int(arg.split('=')[1])
-            if arg.startswith('startVM'):
-                startVM = arg.split('=')[1]
+        self.startVM = "True"   #reason for being string is because we are getting string from seq file
+        self.parseArgs(arglist)
 
-        if not vmName:
+        if not self.vmName:
             raise xenrt.XRTError("VM Name not passed")
-        if not vgpuType:
+        if not self.VGPU_CONFIG:
             raise xenrt.XRTError("VGPU type not passed")
 
-        g = self.getGuest(vmName)
+        g = self.getGuest(self.vmName)
 
         g.snapshot('beforevGPU')
 
@@ -4500,13 +4487,25 @@ class TCcreatevGPU(VGPUAllocationModeBase):
 
         step("Creating %d vGPUs configurations." % (len(self.VGPU_CONFIG),))
         self.vGPUCreator = {}
-        self.vGPUCreator[int(vgpuType)] = VGPUInstaller(self.host, int(vgpuType))
+        self.vGPUCreator[int(self.VGPU_CONFIG[0])] = VGPUInstaller(self.host, int(self.VGPU_CONFIG[0]))
 
-        self.configureVGPU(int(vgpuType), g)
-        if startVM == "True":
+        self.configureVGPU(int(self.VGPU_CONFIG[0]), g)
+        if self.startVM == "True":
             g.setState("UP")
 
         g.snapshot('aftervGPU')
+
+    def parseArgs(self,arglist):
+
+        for arg in arglist:
+            if arg.startswith('vgpuconfig'):
+                self.VGPU_CONFIG = map(int,arg.split('=')[1].split(','))
+
+            if arg.startswith('vmName'):
+                self.vmName = arg.split('=')[1]
+
+            if arg.startswith('startVM'):
+                self.startVM = arg.split('=')[1]
 
     def postRun(self):
         """Stop the vgpu from being cleaned up."""

@@ -569,7 +569,7 @@ class SshInstallerThread(threading.Thread):
 class Host(xenrt.GenericHost):
     """Encapsulate a XenServer host."""
 
-    
+    SNMPCONF = "/etc/snmp/snmpd.conf"
     INSTALL_INTERFACE_SPEC = "MAC"
     LINUX_INTERFACE_PREFIX = "xenbr"
     USE_CCISS = True
@@ -11547,6 +11547,7 @@ class CreedenceHost(ClearwaterHost):
 #############################################################################
 class DundeeHost(CreedenceHost):
     USE_CCISS = False
+    SNMPCONF = "/etc/snmp/snmpd.xs.conf"
 
     def __init__(self, machine, productVersion="Dundee", productType="xenserver"):
         CreedenceHost.__init__(self,

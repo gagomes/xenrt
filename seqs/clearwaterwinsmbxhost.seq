@@ -3,7 +3,7 @@
   <!-- Clearwater Windows SMB cross host file transfer test -->
 
   <variables>
-    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
   </variables>
 
   <prepare>

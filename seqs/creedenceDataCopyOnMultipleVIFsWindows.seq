@@ -1,6 +1,6 @@
 <xenrt>
   <variables>
-    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
     <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
   </variables>
 

@@ -3434,24 +3434,30 @@ class TCIntelGPUSnapshotNegative(IntelBase):
 class TCIntelGPUReuse(IntelBase):
     """Intel GPU can be reused once it is down."""
 
-    def run(self, arglist):
+    def insideRun(self, vm, config):
 
-        if len(self.REQUIRED_DISTROS) < 2:
-            raise xenrt.XRTFailure("Number of distros required are 2")
+        def __prepareVM(vm, config):
+            self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
+            self.typeOfvGPU.installGuestDrivers(vm, self.getConfigurationName(config))
+            self.typeOfvGPU.assertvGPURunningInVM(vm, self.getConfigurationName(config))
+            vm.setState("UP")
 
-        masterVM1 = self.masterVMs[self.getOSType(self.REQUIRED_DISTROS[0])]
-        masterVM1.setState("DOWN")
-        masterVM2 = self.masterVMs[self.getOSType(self.REQUIRED_DISTROS[1])]
-        masterVM2.setState("DOWN")
+        vm.setState("DOWN")
 
-        vm1 = masterVM1.cloneVM(noIP=False)
-        vm2 = masterVM2.cloneVM(noIP=False)
+        clones = []
+        maxNumVMs = MaxNumOfVGPUPerPGPU[config]
 
-        for vm in [vm1, vm2]:
-            self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[self.VGPU_CONFIG[0]], vm)
-            self.typeOfvGPU.installGuestDrivers(vm, self.getConfigurationName(self.VGPU_CONFIG[0]))
-            self.typeOfvGPU.assertvGPURunningInVM(vm, self.getConfigurationName(self.VGPU_CONFIG[0]))
-            vm.setState("DOWN")
+        for i in range(maxNumVMs + 1):
+            clones.append(vm.clone(noIP=False))
+
+        # Install and start Max.
+        for i in range(maxNumVMs):
+            __prepareVM(clones[i], config)
+
+        # First (maxNumVMs) of clones are setup and running, filling the gpu.
+        # Shut down first, and setup last VM. Reusing resource.
+        clones[0].setState("DOWN")
+        __prepareVM(clones[-1], config)
 
 class TCPoolIntelGPU(IntelBase):
     """Intel GPU Passthrough in a pool"""

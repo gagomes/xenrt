@@ -3459,6 +3459,10 @@ class TCIntelGPUReuse(IntelBase):
         clones[0].setState("DOWN")
         __prepareVM(clones[-1], config)
 
+        # Shutdown all vms.
+        for vm in clones:
+            vm.setState("DOWN")
+
 class TCPoolIntelGPU(IntelBase):
     """Intel GPU Passthrough in a pool"""
 

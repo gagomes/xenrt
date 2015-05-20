@@ -1,0 +1,32 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+    <PREPARE_WORKERS>5</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+  <pool id="0">
+    <host installsr="ext" license="enterprise-per-socket"/>
+    <storage type="nfs" name="nfs_sourceSR" />
+    <!--
+    Need to figure out what vms we need for all the tests, and probably prepare them here in parallel.
+    -->
+  </pool>  
+  </prepare>
+
+  <testsequence>
+    <serial group="IntelvGPU">
+
+      <testcase id="testcases.xenserver.tc.vgpu.SomevGPUTestCase">
+        <arg>distro=0</arg>
+        <arg>typeofvgpu=intelwinvgpu</arg>
+        <arg>blockDom0=false</arg>
+        <arg>vgpuconfig=13</arg>
+      </testcase>
+
+    </serial>
+  </testsequence>
+
+</xenrt>

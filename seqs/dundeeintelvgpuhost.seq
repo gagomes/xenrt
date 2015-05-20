@@ -67,6 +67,13 @@
         <arg>vgpuconfig=13</arg>
       </testcase>
 
+      <testcase id="testcases.xenserver.tc.vgpu.TCIntelGPUReuse">
+        <arg>distro=0</arg>
+        <arg>typeofvgpu=intelwinvgpu</arg>
+        <arg>blockDom0=false</arg>
+        <arg>vgpuconfig=13</arg>
+      </testcase>
+
     </serial>
   </testsequence>
 

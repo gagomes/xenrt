@@ -51,6 +51,10 @@ class StartSuite(_SuiteStartBase):
                         "type": "boolean",
                         "description": "Whether to rerun all tests in the suite"
                     },
+                    "rerunifneeded": {
+                        "type": "boolean",
+                        "description": "Whether to rerun all tests in the suite if it already exists"
+                    },
                     "seqs": {
                         "type": "array",
                         "description": "Sequences to run",
@@ -92,6 +96,9 @@ class StartSuite(_SuiteStartBase):
 
         if params.get("rerunall"):
             command += " --rerun-all"
+
+        if params.get("rerunifneeded"):
+            command += " --rerun-if-needed"
 
         if params.get("seqs"):
             command += " --suite-seqs %s" % ",".join(params['seqs'])

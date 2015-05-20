@@ -19,7 +19,7 @@ $(function() {
             "version": $("#version").val(),
             "rerun": $("#rerun").is(":checked"),
             "rerunall": $("#rerunall").is(":checked"),
-            "rerunifexists": $("#rerunifexists").is(":checked")
+            "rerunifneeded": $("#rerunifneeded").is(":checked")
         };
         
         if ($("#seqs").val() != "") {
@@ -93,7 +93,7 @@ ${commonbody | n}
 <tr><td>Params: </td><td><textarea id="params"></textarea></td></tr>
 <tr><td>Rerun a subset of sequences: </td><td><input type="checkbox" id="rerun"></td></tr>
 <tr><td>Rerun all: </td><td><input type="checkbox" id="rerunall"></td></tr>
-<tr><td>Rerun if exists: </td><td><input type="checkbox" id="rerunifexists"></td></tr>
+<tr><td>Rerun if needed: </td><td><input type="checkbox" id="rerunifneeded"></td></tr>
 </table>
 <button id="start" class="ui-state-default ui-corner-all">Start Suite`</button>
 <div id="status"></div>

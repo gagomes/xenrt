@@ -927,6 +927,10 @@ for sv in setvars:
     config.setVariable(var, value)
 config.setSecondaryVariables()
 
+if config.lookup("WINPDB_DEBUG", False, boolean=True):
+    import rpdb2
+    rpdb2.start_embedded_debugger('xenroot', fAllowRemote=True)
+
 gec = xenrt.GlobalExecutionContext(config=config)
 
 for f in skip:

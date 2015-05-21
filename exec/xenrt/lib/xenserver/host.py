@@ -11778,7 +11778,7 @@ class StorageRepository(object):
         self.lun = None
         self.resources = {}
         self.isDestroyed = False
-        self.thinProv = thin_prov
+        self.__thinProv = thin_prov
 
         # Recorded by _create for possible future use by introduce
         self.srtype = None
@@ -11886,6 +11886,15 @@ class StorageRepository(object):
         cli.execute("sr-destroy", "uuid=%s" % (self.uuid))
         self.isDestroyed = True
 
+    def __isEligibleThinProvisioning(self, srtype=None):
+        """Evaluate sr type to check whether it supports thin provisioning"""
+
+        if not srtype:
+            srtype = self.srtype
+        if srtype in ["lvm", "lvmoiscsi", "lvmohba"]:
+            return True
+        return False
+
     def _create(self, srtype, dconf, physical_size=0, content_type="", smconf={}):
         actualDeviceConfiguration = dict(self.EXTRA_DCONF)
         actualDeviceConfiguration.update(dconf)
@@ -11901,8 +11910,11 @@ class StorageRepository(object):
             args.append("shared=true")
         args.extend(["device-config:%s=\"%s\"" % (x, y)
                      for x,y in actualDeviceConfiguration.items()])
-        if self.thinProv:
-            smconf["allocation"] = "dynamic"
+        if self.__thinProv:
+            if self.__isEligibleThinProvisioning(srtype):
+                smconf["allocation"] = "dynamic"
+            else:
+                xenrt.warning("SR: %s is marked as thin provisioning but %s does not support it. Ignoring..." % (self.name, srtype))
         args.extend(["sm-config:%s=\"%s\"" % (x, y)
                     for x,y in smconf.items()])
         self.uuid = cli.execute("sr-create", string.join(args)).strip()

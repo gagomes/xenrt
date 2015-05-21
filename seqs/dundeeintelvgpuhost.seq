@@ -63,7 +63,7 @@
       <testcase id="testcases.xenserver.tc.vgpu.TCBasicVerifOfAllK2config">
         <arg>distro=0,1,5,6,8</arg>
         <arg>typeofvgpu=intelwinvgpu</arg>
-        <arg>blockDom0=false</arg>
+        <arg>blockdom0access=false</arg>
         <arg>vgpuconfig=13</arg>
       </testcase>
 

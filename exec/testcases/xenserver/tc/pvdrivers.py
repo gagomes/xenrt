@@ -1107,7 +1107,7 @@ class TCToolsMissingUninstall(xenrt.TestCase):
     #TC-23775
     def prepare(self, arglist=None):
         self.host = self.getDefaultHost()
-        self.guest = self.host.getGuest("VMWin2k8")
+        self.guest = self.host.getGuest("VMWin2k80")
         self.guest.start()
 
     def run(self, arglist=None):
@@ -1128,7 +1128,7 @@ class TCToolsVBscriptEngineOff(xenrt.TestCase):
     #TC-27017
     def prepare(self, arglist=None):
         self.host = self.getDefaultHost()
-        self.guest = self.host.getGuest("VMWin2k8")
+        self.guest = self.host.getGuest("VMWin2k81")
         self.guest.start()
 
     def run(self, arglist=None):
@@ -1153,7 +1153,7 @@ class TCSysrepAfterToolsUpgrade(xenrt.TestCase):
     #TC-27018
     def prepare(self, arglist=None):
         self.host = self.getDefaultHost()
-        self.guest = self.host.getGuest("VMWin2k8")
+        self.guest = self.host.getGuest("VMWin2k82")
         self.guest.start()
         
         step("Install latest PV tools")
@@ -1178,7 +1178,7 @@ class TCToolsIPv6Disabled(xenrt.TestCase):
     #TC-27019
     def prepare(self, arglist=None):
         self.host = self.getDefaultHost()
-        self.guest = self.host.getGuest("VMWin2k8")
+        self.guest = self.host.getGuest("VMWin2k83")
         self.guest.start()
 
     def run(self, arglist=None):

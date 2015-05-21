@@ -2038,11 +2038,11 @@ class IntelWindowsvGPU(DifferentGPU):
 
     def assertvGPURunningInVM(self, guest, vGPUType):
         vendor = VendorName[DiffvGPUType.IntelWinvGPU]
-        VGPUTest().assertvGPURunningInWinVM(guest, vGPUType, vendor)
+        VGPUTest().assertvGPURunningInWinVM(guest, CardName[CardType.Intel], vendor)
 
     def assertvGPUNotRunningInVM(self, guest, vGPUType):
         vendor = VendorName[DiffvGPUType.IntelWinvGPU]
-        VGPUTest().assertvGPUNotRunningInWinVM(guest, vGPUType, vendor)
+        VGPUTest().assertvGPUNotRunningInWinVM(guest, CardName[CardType.Intel], vendor)
 
     def runWorkload(self,vm):
         VGPUTest().runWindowsWorkload(vm)

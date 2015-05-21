@@ -1874,9 +1874,9 @@ class FunctionalBase(VGPUAllocationModeBase):
                 self.NOVGPU = True
             if arg.startswith('blockdom0access'):
                 if arg.split('=')[1] == "false":
-                    this.hostInstallParams['blockDom0'] = False
+                    self.hostInstallParams['blockDom0'] = False
                 else:
-                    this.hostInstallParams['blockDom0'] = True
+                    self.hostInstallParams['blockDom0'] = True
  
     def run(self,arglist):
 

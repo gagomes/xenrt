@@ -1135,9 +1135,9 @@ class TCToolsVBscriptEngineOff(xenrt.TestCase):
         step("Disable vbscript Engine")
         
         self.guest.xmlrpcExec("cd C:\\Windows\\System32")
-        self.guest.xmlrpcExec("takeown /f C:\\Windows\\System32\\vbscript1.dll")
-        self.guest.xmlrpcExec("echo y| cacls C:\\Windows\System32\\vbscript1.dll /G administrator:F")
-        self.guest.xmlrpcExec("rename vbscript1.dll vbscript2.dll")
+        self.guest.xmlrpcExec("takeown /f C:\\Windows\\System32\\vbscript.dll")
+        self.guest.xmlrpcExec("echo y| cacls C:\\Windows\System32\\vbscript.dll /G administrator:F")
+        self.guest.xmlrpcExec("rename vbscript.dll vbscript1.dll")
                  
         step("Install latest PV tools")
         self.guest.installDrivers()

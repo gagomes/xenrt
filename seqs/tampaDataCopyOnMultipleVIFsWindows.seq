@@ -1,0 +1,29 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <host id="0">
+      <vm name="Windows VM">
+        <distro>generic-windows</distro>
+        <memory>2048</memory>
+        <network device="0" />
+        <network device="1" bridge="xenbr1"/>
+        <network device="2" bridge="xenbr2"/>
+        <network device="3" bridge="xenbr3"/>
+        <network device="4" bridge="xenbr4"/>
+        <network device="5" bridge="xenbr5"/>
+       <disk device="0" size="40" />
+       <disk device="1" size="20" format="yes" />
+       <postinstall action="installDrivers"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence group="WindowsVIFsTest">
+    <testcase id="xenserver.tc.guest.TCCopyDataOnMultipleVIFsWindows" tc="TC-21715"/>
+  </testsequence>
+
+</xenrt>

@@ -65,6 +65,24 @@ VendorName = {
     DiffvGPUType.IntelWinvGPU : "PCI.VEN.*Intel.*Graphics.*"
 }
 
+VGPUConfiguration = {
+        VGPUConfig.K100 : "K100",
+        VGPUConfig.K120 : "K120",
+        VGPUConfig.K140 : "K140",
+        VGPUConfig.K160 : "K160",
+        VGPUConfig.K180 : "K180",
+        VGPUConfig.K1PassThrough : "K1passthrough",
+        VGPUConfig.K200 : "K200",
+        VGPUConfig.K220 : "K220",
+        VGPUConfig.K240 : "K240",
+        VGPUConfig.K260 : "K260",
+        VGPUConfig.K280 : "K280",
+        VGPUConfig.K2PassThrough : "K2passthrough",
+        VGPUConfig.PassThrough : "passthrough",
+        VGPUConfig.IntelvGPU : "Intel GVT-g"
+}
+
+
 """
 Helper classes
 """
@@ -201,21 +219,14 @@ class VGPUInstaller(object):
     def typeUUID(self):
         vGPUTypes = self.__host.getSupportedVGPUTypes()
         # Look up the string representations of the VGPUConfig members filtering them on the required config
-        selectedConfigs = [attr for attr in dir(VGPUConfig()) if not callable(attr) and not attr.startswith("__") and getattr(VGPUConfig, attr) == self.__config]
+        #selectedConfigs = [attr for attr in dir(VGPUConfig()) if not callable(attr) and not attr.startswith("__") and getattr(VGPUConfig, attr) == self.__config]
+        selectedConfig = VGPUConfiguration[self.__config]
 
-        if len(selectedConfigs) < 1:
+        if not selectedConfig:
             raise xenrt.XRTFailure("No selected configs found")
 
-        selectedConfig = selectedConfigs[0]
-
-        if VGPUConfig.K2PassThrough == self.__config or VGPUConfig.K1PassThrough == self.__config or VGPUConfig.PassThrough == self.__config:
-            selectedConfig = self.__TYPE_PT
-            # Workaround NVIDIA-132 where the host will crash if a bugtool is taken
-            self.__host.execdom0("rm -rf /etc/xensource/bugtool/NVIDIA*")
-
-        for vGPUType in vGPUTypes:
-            if selectedConfig in vGPUType:
-                return vGPUTypes[vGPUType]
+        if selectedConfig in vGPUTypes.keys():
+            return vGPUTypes[selectedConfig]
         raise xenrt.XRTFailure("No type of %s was found in %s" % (selectedConfig, str(vGPUTypes)))
 
     def createOnGuest(self, guest, groupUUID = None, replacevGPU=False):
@@ -258,22 +269,6 @@ Test base classes
 """
 # TODO remove multiple inheritance
 class VGPUTest(object):
-    _CONFIGURATION = {
-        VGPUConfig.K100 : "K100",
-        VGPUConfig.K120 : "K120",
-        VGPUConfig.K140 : "K140",
-        VGPUConfig.K160 : "K160",
-        VGPUConfig.K180 : "K180",
-        VGPUConfig.K1PassThrough : "K1passthrough",
-        VGPUConfig.K200 : "K200",
-        VGPUConfig.K220 : "K220",
-        VGPUConfig.K240 : "K240",
-        VGPUConfig.K260 : "K260",
-        VGPUConfig.K280 : "K280",
-        VGPUConfig.K2PassThrough : "K2passthrough",
-        VGPUConfig.PassThrough : "passthrough",
-        VGPUConfig.IntelvGPU : "Intel GVT-g"
-    }
 
     _DIFFVGPUTYPE = {
         DiffvGPUType.NvidiaWinvGPU : "nvidiawinvgpu",
@@ -534,9 +529,9 @@ class VGPUOwnedVMsTest(xenrt.TestCase,VGPUTest):
         return self.__OPTIONS[vgpuos]
 
     def getConfigurationName(self, configuration):
-        if not configuration in self._CONFIGURATION:
+        if not configuration in VGPUConfiguration:
             raise xenrt.XRTError("Unexpected configuration number: %s" % configuration)
-        return self._CONFIGURATION[configuration]
+        return VGPUConfiguration[configuration]
 
     def __masterVmName(self, requiredOS):
         os = self.getOSType(requiredOS)
@@ -843,7 +838,7 @@ class TCVGPUSetup(VGPUOwnedVMsTest):
         #setting up dom0 mem
         self.host.execdom0("/opt/xensource/libexec/xen-cmdline --set-xen dom0_mem=4096M,max:6144M")
         self.host.reboot()
-        cfg = [x for x in self._CONFIGURATION.keys() if self._CONFIGURATION[x]==self.args['vgpuconfig']][0]
+        cfg = [x for x in VGPUConfiguration.keys() if VGPUConfiguration[x]==self.args['vgpuconfig']][0]
         installer = VGPUInstaller(self.host, cfg)
         installer.createOnGuest(self.guest)
         self.guest.setState("UP")
@@ -4468,7 +4463,7 @@ class TCinstallNVIDIAGuestDrivers(VGPUOwnedVMsTest):
         g = self.getGuest(vmName)
         g.installNvidiaVGPUDriver(self.driverType)
         vendor = VendorName[DiffvGPUType.NvidiaWinvGPU]
-        self.assertvGPURunningInWinVM(g,self._CONFIGURATION[int(vgpuType)], vendor)
+        self.assertvGPURunningInWinVM(g,VGPUConfiguration[int(vgpuType)], vendor)
 
 class TCcreatevGPU(VGPUAllocationModeBase):
    

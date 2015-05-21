@@ -3485,28 +3485,6 @@ class TCPoolIntelGPU(IntelBase):
             xenrt.sleep(10)
             vm2.start(specifyOn=False)
 
-class TCIntelvGPUReuse(IntelBase):
-
-    def insideRun(self, vm, config):
-        # Handling already blocked vGPU.
-
-        # Have the master VM, probably win7 sp1 or something.
-        # new config for intel vgpu.
-        # Use MaxNumOfVGPUPerPGPU with the config to find out the max allowed.
-
-        # Clone Max + 1 vms from the master.
-
-        # Start len(Max) VMs (7).
-        # Turn off first VM.
-        # Start Last VM.
-
-        # Confirms reuse of resource.
-
-        # This format can be ported into the existing case above, TCIntelGPUReuse if some setup steps are taken care of.
-        # Mainly blocking of Dom0 access by default in this case.
-        # Would be preferable to remove the x2 distro dependancy from the above case too.
-        pass
-
 class TCPoolIntelBootstorm(IntelBase):
 
     def insideRun(self, vm, config):

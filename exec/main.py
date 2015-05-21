@@ -927,10 +927,6 @@ for sv in setvars:
     config.setVariable(var, value)
 config.setSecondaryVariables()
 
-if config.lookup("WINPDB_DEBUG", False, boolean=True):
-    import rpdb2
-    rpdb2.start_embedded_debugger('xenroot', fAllowRemote=True)
-
 gec = xenrt.GlobalExecutionContext(config=config)
 
 for f in skip:
@@ -2278,6 +2274,10 @@ if aux:
 #############################################################################
 
 xenrt.TEC().logverbose("Command line: %s" % (string.join(sys.argv)))
+
+if xenrt.TEC().lookup("WINPDB_DEBUG", False, boolean=True):
+    import rpdb2
+    rpdb2.start_embedded_debugger(xenrt.TEC().lookup("JOBID", "xenroot"), fAllowRemote=True)
 
 # XML-RPC server
 running = True

@@ -503,6 +503,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["MNR"]["LATEST_rhel4"] = "rhel48"
         self.config["VERSION_CONFIG"]["MNR"]["LATEST_rhel5"] = "rhel56"
         self.config["VERSION_CONFIG"]["MNR"]["LATEST_rhel6"] = "rhel6"
+        self.config["VERSION_CONFIG"]["MNR"]["DOM0_PARTITIONS"] = {1:4*xenrt.GIGA, 2:4*xenrt.GIGA, 3:"*"}
 
         # Cowley
         self.config["VERSION_CONFIG"]["Cowley"] = self.config["VERSION_CONFIG"]["MNR"]
@@ -1200,6 +1201,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Dundee"]["TEMPLATE_NAME_SDK"] = ""  # SDK not present in trunk
         self.config["VERSION_CONFIG"]["Dundee"]["MAX_VDIS_PER_SR_cifs"] = "600"
         self.config["VERSION_CONFIG"]["Dundee"]["MAX_ATTACHED_VDIS_PER_SR_cifs"] = "600"
+        self.config["VERSION_CONFIG"]["Dundee"]["DOM0_PARTITIONS"] = {1:18*xenrt.GIGA, 2:18*xenrt.GIGA, 3:"*", 4:511*xenrt.MEGA, 5:4*xenrt.GIGA, 6:1023*xenrt.MEGA}
 
         # Libvirt
         self.config["VERSION_CONFIG"]["Libvirt"] = {}

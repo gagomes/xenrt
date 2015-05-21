@@ -5211,3 +5211,69 @@ if __name__ == "__main__":
             if "Client_requested_size_over_limit" not in str(e):
                 raise
 
+class TCDom0PartitionClean(xenrt.TestCase):
+    #TC-27020
+    """Test case for checking Dom0 disk partitioning on clean installation: Dundee onwards(REQ-176)"""
+
+    def prepare(self, arglist):
+        self.host = self.getDefaultHost()
+    
+    def run(self, arglist):
+        step("Compare Dom0 partitions")
+        partitions = self.host.lookup("DOM0_PARTITIONS")
+        if self.host.compareDom0Partitions(partitions):
+            log("Found expected Dom0 partitions on XS clean installation: %s" % partitions)
+        else:
+            raise xenrt.XRTFailure("Found unexpected partitions on XS clean install. Expected: %s Found: %s" % (partitions, self.host.getDom0Partitions()))
+        
+
+
+class TCSwapPartition(xenrt.TestCase):
+    #TC-27021
+    """Test case for checking if SWAP partition is in use when running out of memory"""
+
+    def prepare(self, arglist):
+        self.host = self.getDefaultHost()
+    
+    def run(self, arglist):
+        step("Fetch Size of Swap Partition")
+        (swapSize,swapUsed)= [float(i) for i in self.host.execdom0("free -m | grep Swap | awk '{print $2,$3}'").split(' ')]
+        #If dundee host, check is swap partition size is as expected
+        if isinstance(self.host, xenrt.lib.xenserver.DundeeHost):
+            expectedSwapSize =  float(self.host.getDom0Partitions()[6])/xenrt.MEGA
+            if expectedSwapSize  - swapSize > 2:
+                raise xenrt.XRTFailure("Found unexpected swap parttion size. Expected:%s Found:%s" % (expectedSwapSize , swapSize))
+        
+        step("Eat up memory by running a script")
+        self.host.execdom0("yum --disablerepo=citrix --enablerepo=base,updates install -y gcc")
+        memEaterScript = """#include <stdlib.h>
+#include <string.h>
+int main()
+{
+while(1)
+{
+void *m = malloc(1024*1024);
+memset(m,0,1024*1024);
+}
+return 0;
+}"""
+        sftp = self.host.sftpClient()
+        t = xenrt.TEC().tempFile()
+        with open(t, 'w') as f:
+            f.write(memEaterScript)
+        sftp.copyTo(t, "/memEater.c")
+        sftp.close()
+        self.host.execdom0("gcc -o /memEater /memEater.c")
+        
+        self.host.execdom0("/memEater", level=xenrt.RC_OK)
+        
+        step("Check if swap is in use")
+        (swapSize,newSwapUsed)= [float(i) for i in self.host.execdom0("free -m | grep Swap | awk '{print $2,$3}'").split(' ')]
+        if newSwapUsed > swapUsed:
+            log("SWAP is in use as expected. SWAP size = %s, SWAP memory in use = %s" % (swapSize,newSwapUsed))
+        else:
+            raise xenrt.XRTFailure("SWAP partition is not in use. SWAP size = %s, SWAP memory in use = %s" % (swapSize,newSwapUsed))
+        
+
+
+

@@ -1148,7 +1148,7 @@ class TCToolsVBscriptEngineOff(xenrt.TestCase):
         else:
             raise xenrt.XRTFailure("Guest tools are out of date")
             
-class TCSysrepInstallsSuccessfullyAfterToolsUpgrade(xenrt.TestCase):
+class TCSysrepAfterToolsUpgrade(xenrt.TestCase):
     """Test for SCTX-1906. verifies that after upgrade of XenTools from XS 6.0 to XS 6.2, Sysrep.exe runs successfully"""
     #TC-27018
     def prepare(self, arglist=None):

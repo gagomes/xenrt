@@ -6839,7 +6839,7 @@ fi
         cli.execute("host-enable-external-auth", string.join(args)).strip()
         
         # Using CA-33290 workaround
-        if (self.execdom0("test -e /opt/pbis", retval="code") == 0):
+        if self.execdom0("test -e /opt/pbis", retval="code") == 0:
             self.execdom0("/opt/pbis/bin/lwsm set-log-level eventlog all debug")
         else:
             self.execdom0("/opt/likewise/bin/lw-set-log-level debug")

@@ -4469,7 +4469,7 @@ class TCinstallNVIDIAGuestDrivers(VGPUOwnedVMsTest):
 
 class TCcreatevGPU(VGPUAllocationModeBase):
    
-    def preapre(self,arglist):
+    def prepare(self,arglist):
 
         self.startVM = "True"   #reason for being string is because we are getting string from seq file
  

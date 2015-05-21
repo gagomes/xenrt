@@ -3502,6 +3502,31 @@ class TCPoolIntelBootstorm(IntelBase):
             # What is the point of the negative case nested in here for? 
         pass
 
+class TCSwitchIntelGPUModes(IntelBase):
+
+    def run(self, arglist):
+        # get master.. loop over distros.
+
+        # Might not be able to use inside run if need two configs at the same time.
+
+        # create two VMs from master.
+        # setup vgpu on first vm, drivers + verify working etc.
+
+        # shutdown vgpu vm, block dom0 access and reboot host.
+
+        # setup gpu passthrough on the second vm, drivers + verify.
+
+        # shutdown passthrough vm, and try to start vgpu vm (should fail).
+
+        # unblock dom0 access again, reboot host.
+
+        # start vgpu vm (should work fine).
+
+        # shutdown vgpu vm, and try to start gpu passthrough vm (should fail.)
+
+        # leave host in a proper state.
+        pass
+
 class TCAlloModeK200NFS(VGPUAllocationModeBase):
 
     """

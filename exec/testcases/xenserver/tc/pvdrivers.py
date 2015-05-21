@@ -1159,10 +1159,16 @@ class TCSysrepAfterToolsUpgrade(xenrt.TestCase):
         step("Install latest PV tools")
         self.guest.installDrivers()
         self.guest.waitForAgent(60)
+        
+        if self.guest.pvDriversUpToDate():
+            xenrt.TEC().logverbose("Tools are upto date")
+        else:
+            raise xenrt.XRTFailure("Guest tools are out of date")
+
 
     def run(self, arglist=None):
         step("Check whether Sysprep gets installed")
-        if self.guest.xmlrpcDoSysprep():
+        if self.guest.sysPrepOOBE():
             xenrt.TEC().logverbose("Sysprep is installed successfully")
         else:
             raise xenrt.XRTFailure("Sysprep is not installed")

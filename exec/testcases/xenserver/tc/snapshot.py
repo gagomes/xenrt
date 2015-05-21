@@ -1031,14 +1031,16 @@ class TC7865(_VMSnapshotBase):
         self.guest.suspend()
 
         # Get the list of suspend images.
-        svdis1 = self.guest.host.minimalList("vbd-list", "vdi-uuid", args = "vm-uuid=%s" % self.guest.getUUID())
+        svdis1 = []
+        svdis1.append(self.guest.paramGet("suspend-VDI-uuid"))
 
         # Perform the snapshot.
         uuid = self.guest.snapshot()
         self.removeTemplateOnCleanup(self.guest.host, uuid)
 
         # Get the list of suspend images.
-        svdis2 = self.guest.host.minimalList("vbd-list", "vdi-uuid", args = "vm-uuid=%s" % self.guest.getUUID())
+        svdis2 = []
+        svdis2.append(self.guest.paramGet("suspend-VDI-uuid"))
 
         # Check we haven't leaked any suspend images.
         expsvdi = len(svdis1)

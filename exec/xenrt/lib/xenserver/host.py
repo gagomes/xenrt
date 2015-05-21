@@ -11580,6 +11580,7 @@ class DundeeHost(CreedenceHost):
             self.execdom0("sed -i s/vbd3/vbd/ /etc/xenopsd.conf")
             self.execdom0("chkconfig --del xenopsd-xc")
             self.execdom0("chkconfig --add xenopsd-xenlight")
+            self.execdom0("sed -i -r 's/classic/xenlight/g' /etc/xapi.conf")
             self.restartToolstack()
 
     def _checkForFailedFirstBootScripts(self):

@@ -40,7 +40,7 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
 
         # Benchmark program to use for linux vm. If the value is different than fio, would use latency
         self.bench = libperf.getArgument(arglist, "benchmark", str, "fio")
-        self.sequential = libperf.getArgument(arglist, "sequential", bool, True)
+        self.sequential = libperf.getArgument(arglist, "sequential", toBool, True)
 
         # Optional VM image to use as a template
         self.vm_image = libperf.getArgument(arglist, "vm_image", str, None)

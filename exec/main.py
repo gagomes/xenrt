@@ -166,8 +166,9 @@ def usage(fd):
     --poweroff <machine>                  Power off a machine
     --poweron <machine>                   Power on a machine
     --powercycle <machine>                Power cycle a machine
-    --bootdev <device>                     When power cycleing, boot a machine with a specific target (e.g. "bios")
+    --bootdev <device>                    When power cycling, boot a machine with a specific target (e.g. "bios")
     --nmi <machine>                       Sent NMI to a machine
+    --powerstatus <machine>               Get power status for a machine
     --mconfig <machine>                   See XML config for a machine
     --bootdiskless <machine>              Boot a machine into diskless Linux
     --bootwinpe <machine>                 Boot a machine into WinPE
@@ -370,6 +371,7 @@ try:
                                       'powercycle=',
                                       'bootdev=',
                                       'nmi=',
+                                      'powerstatus=',
                                       'mconfig=',
                                       'bootdiskless=',
                                       'bootwinpe=',
@@ -769,6 +771,11 @@ try:
             powercontrol = True
             powerhost = value
             poweroperation = "nmi"
+            aux = True
+        elif flag == "--powerstatus":
+            powercontrol = True
+            powerhost = value
+            poweroperation = "status"
             aux = True
         elif flag == "--mconfig":
             mconfig = value
@@ -2099,7 +2106,7 @@ if powercontrol:
         powerctltype = "APCPDU"
     else:
         powerctltype = None
-    if not powerhost in xenrt.TEC().lookup("HOST_CONFIGS").keys():
+    if not powerhost in xenrt.TEC().lookup("HOST_CONFIGS", {}).keys():
         print "Loading %s from Racktables" % powerhost
         xenrt.readMachineFromRackTables(powerhost)
     machine = xenrt.PhysicalHost(powerhost, ipaddr="0.0.0.0", powerctltype=powerctltype)
@@ -2117,6 +2124,8 @@ if powercontrol:
         machine.powerctl.cycle()
     elif poweroperation == "nmi":
         machine.powerctl.triggerNMI()
+    elif poweroperation == "status":
+        print "POWERSTATUS: %s" % str(machine.powerctl.status())
 
 if mconfig:
     xenrt.tools.machineXML(mconfig)

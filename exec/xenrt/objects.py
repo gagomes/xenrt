@@ -3276,11 +3276,11 @@ DHCPServer = 1
 
         isLegacy = True
         try:
-            debversion = float(self.execcmd("cat /etc/debian_version").strip())
+            debversion = int(self.execcmd("cat /etc/debian_version").strip().split(".")[0])
         except:
             debversion = None
 
-        if debversion >= 6.0:
+        if debversion >= 6:
             isLegacy = False
 
         try:
@@ -3299,7 +3299,7 @@ DHCPServer = 1
 
             # Get and install the iscsi target
             
-            if debversion >= 7.0:
+            if debversion >= 7:
                 self.execcmd("apt-get install -y --force-yes iscsitarget iscsitarget-dkms")
                 self.execcmd('sed -i "s/false/true/" /etc/default/iscsitarget')
                 self.execcmd('/etc/init.d/iscsitarget restart')
@@ -3317,7 +3317,7 @@ DHCPServer = 1
             # Prerequisites
             self.execcmd("apt-get install libssl-dev --force-yes -y")
 
-            if debversion == 4.0 and self.execcmd("uname -r").strip() == "2.6.18.8.xs5.5.0.14.443":
+            if debversion == 4 and self.execcmd("uname -r").strip() == "2.6.18.8.xs5.5.0.14.443":
                 # On Etch on George we need to workaround the fact the updates repo no longer exists,
                 # and thus we don't pick up kernel headers from it
                 url = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP")
@@ -4504,6 +4504,16 @@ class GenericHost(GenericPlace):
                 g.uninstall()
                 xenrt.sleep(15)
 
+    def transformCommand(self, command):
+        """
+        Tranform commands if it is required on Host
+        
+        @param command: The command that can be transformed.
+        @return: transformed command
+        """
+
+        return command
+
     def execdom0(self,
                  command,
                  username=None,
@@ -4535,7 +4545,7 @@ class GenericHost(GenericPlace):
         if not password:
             password = self.password
         return xenrt.ssh.SSH(self.getIP(),
-                             command,
+                             self.transformCommand(command),
                              level=level,
                              retval=retval,
                              password=password,
@@ -5549,9 +5559,9 @@ class GenericHost(GenericPlace):
         ay=SLESAutoyastFile( distro,
                              nfsdir.getMountURL(""),
                              mainDisk,
-                             method,
-                             ethDevice,
-                             isntallOn="native",
+                             installOn="native",
+                             method=method,
+                             ethDevice=ethDevice,
                              password=self.password,
                              extraPackages=extrapackages,
                              bootDiskSize=bootDiskSize,
@@ -8595,12 +8605,18 @@ class GenericGuest(GenericPlace):
                     release = "testing"
                 _url = repository + "/dists/%s/" % (release)
                 boot_dir = "main/installer-%s/current/images/netboot/debian-installer/%s/" % (arch, arch)
-
+            
             # Pull boot files from HTTP repository
             fk = xenrt.TEC().tempFile()
             fr = xenrt.TEC().tempFile()
-            xenrt.getHTTP(_url + boot_dir + "linux", fk)
-            xenrt.getHTTP(_url + boot_dir + "initrd.gz", fr)
+            if release == "testing":
+                # Testing presently doesn't have an installer
+                baseurl = "http://d-i.debian.org/daily-images/%s/daily/netboot/debian-installer/%s/" % (arch, arch)
+                xenrt.getHTTP(baseurl + "linux", fk)
+                xenrt.getHTTP(baseurl + "initrd.gz", fr)
+            else:
+                xenrt.getHTTP(_url + boot_dir + "linux", fk)
+                xenrt.getHTTP(_url + boot_dir + "initrd.gz", fr)
 
             # Construct a PXE target
             pxe = xenrt.PXEBoot(remoteNfs=self.getHost().lookup("REMOTE_PXE", None))
@@ -9234,9 +9250,10 @@ class GenericGuest(GenericPlace):
             os.makedirs(d)
         self.xmlrpcGetFile("c:\\windows\\temp\\devcon.log", "%s/devcon.log" % (d))
         gpuDetected = 0
-        gpuPatterns = ["PCI.VEN_10DE.*(NVIDIA|VGA).*"  #nvidia pci vendor id
+        gpuPatterns = ["PCI.VEN_10DE.*(NVIDIA|VGA).*"   #nvidia pci vendor id
                         ,"PCI.VEN_1002.*(ATI|VGA).*"    #ati/amd pci vendor id
                         ,"PCI.VEN_102B.*(Matrox|VGA).*" #matrox  pci vendor id
+                        ,"PCI.VEN.*Intel.*Graphics.*"   #intel pci vendor id
                        ]
         f = open("%s/devcon.log"%d)
         for line in f:
@@ -9288,11 +9305,32 @@ class GenericGuest(GenericPlace):
         self.xmlrpcSendFile("%s/%s" % (tempDir,tarBall),"c:\\%s" % tarBall)
 
         self.xmlrpcExtractTarball("c:\\%s" % tarBall,"c:\\")
+        vbScript = """
+Set WshShell = WScript.CreateObject("WScript.Shell")
+WScript.sleep 60000
+WshShell.Run "cmd", 9
+WScript.sleep 1000
+WshShell.SendKeys "c:\%s -s"
+WshShell.SendKeys "{ENTER}"
+WScript.sleep 180000
 
-        returncode = self.xmlrpcExec("c:\\%s /s /noreboot" % (fileName),
+WshShell.SendKeys "{ENTER}"
+WScript.sleep 1000
+WshShell.SendKeys "{LEFT}"
+WshShell.SendKeys "{ENTER}"
+WScript.sleep 1000
+WshShell.SendKeys "{ENTER}"
+
+WScript.sleep 180000
+
+WshShell.SendKeys "{ENTER}"
+WScript.sleep 1000
+WshShell.SendKeys "{ENTER}"
+""" % (fileName)
+        self.xmlrpcWriteFile("c:\\vb.vbs",vbScript)
+        returncode = self.xmlrpcExec("c:\\vb.vbs",
                                       level=xenrt.RC_OK, returnerror=False, returnrc=True,
                                       timeout = 600)
-
         # Wait for some time to settle down with driver installer.
         xenrt.sleep(30)
 
@@ -9939,7 +9977,7 @@ while True:
         @rtype boolean
         """
         if self.windows:
-            raise XRTError("Function can only be used to check for installed RPMs on linux.")
+            raise xenrt.XRTError("Function can only be used to check for installed RPMs on linux.")
 
         #rpm should NOT contain file extn .rpm, so split off any file extension
         fileWithoutExt = os.path.splitext(rpm)[0]

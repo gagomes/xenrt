@@ -121,7 +121,7 @@ class Config(object):
         # self.config["POWERCTL_ILO_SCRIPT"] = "${XENRT_BASE}/ext/iloreboot"
 
         self.config["OPTION_USE_EMS"] = "yes"
-        self.config["DEBIAN_MODULES"] = "gcc binutils make patch flex bzip2 time stunnel4"
+        self.config["DEBIAN_MODULES"] = "gcc binutils make patch flex bzip2 time stunnel4 libaio-dev libaio1"
         self.config["DEBIAN_MODULES2"] = "g++"
         self.config["DEBIAN_ETCH_MODULES"] = "autoconf automake autotools-dev libtool libaio-dev libaio1"
 
@@ -1802,7 +1802,19 @@ class Config(object):
         # LXC currently uses KVM for System VMs, so use the KVM template
         self.config["CLOUD_CONFIG"]["4.5"]["SYSTEM_TEMPLATES"]["lxc"] = self.config["CLOUD_CONFIG"]["4.5"]["SYSTEM_TEMPLATES"]["kvm"]
 
-        self.config["CLOUD_CONFIG"]["4.6.0"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.5"])
+        self.config["CLOUD_CONFIG"]["4.5.1"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.5"])
+        self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-04-16-4.5.1-xen.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["kvm"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-04-16-4.5.1-kvm.qcow2.bz2"
+        self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["hyperv"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-04-16-4.5.1-hyperv.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["vmware"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-04-16-4.5.1-vmware.ova"
+        self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["lxc"] = self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["kvm"]
+
+        self.config["CLOUD_CONFIG"]["4.6.0"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.5.1"])
+        self.config["CLOUD_CONFIG"]["4.6.0"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-05-05-master-4.6.0-xen.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["4.6.0"]["SYSTEM_TEMPLATES"]["kvm"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-05-05-master-4.6.0-kvm.qcow2.bz2"
+        self.config["CLOUD_CONFIG"]["4.6.0"]["SYSTEM_TEMPLATES"]["hyperv"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-05-05-master-4.6.0-hyperv.vhd.zip"
+        self.config["CLOUD_CONFIG"]["4.6.0"]["SYSTEM_TEMPLATES"]["vmware"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-05-05-master-4.6.0-vmware.ova"
+        self.config["CLOUD_CONFIG"]["4.6.0"]["SYSTEM_TEMPLATES"]["lxc"] = self.config["CLOUD_CONFIG"]["4.6.0"]["SYSTEM_TEMPLATES"]["kvm"]
 
         # Specify which version 'master' currently maps to
         self.config["CLOUD_MASTER_MAP"] = "4.6.0"
@@ -2609,7 +2621,7 @@ class Config(object):
         self.config["HOTFIXES"]["SanibelCC"] = {"RTM": {}}
         self.config["HOTFIXES"]["Tampa"] = {"RTM": {}}
         self.config["HOTFIXES"]["Clearwater"] = {"RTM": {}, "SP1": {}}
-        self.config["HOTFIXES"]["Creedence"] = {"RTM": {}}
+        self.config["HOTFIXES"]["Creedence"] = {"RTM": {}, "SP1": {}}
 
         self.config["TOOLS_HOTFIXES"] = {}
         self.config["TOOLS_HOTFIXES"]["Boston"] = {"RTM": []}
@@ -2617,7 +2629,7 @@ class Config(object):
         self.config["TOOLS_HOTFIXES"]["SanibelCC"] = {"RTM": []}
         self.config["TOOLS_HOTFIXES"]["Tampa"] = {"RTM": []}
         self.config["TOOLS_HOTFIXES"]["Clearwater"] = {"RTM": [], "SP1": []}
-        self.config["TOOLS_HOTFIXES"]["Creedence"] = {"RTM": []}
+        self.config["TOOLS_HOTFIXES"]["Creedence"] = {"RTM": [], "SP1": []}
 
         self.config["GUEST_TESTS"] = {}
 
@@ -2806,38 +2818,43 @@ class Config(object):
         self.config["GUEST_TESTS"]["Cream"]["XenApp"] = ['w2k3eesp2_XenApp', 'w2k3eesp2-x64_XenApp', 'ws08sp2-x86_XenApp', 'ws08sp2-x64_XenApp', 'ws08r2sp1-x64_XenApp']
 
         self.config["GUEST_TESTS"]["Dundee"] = {}
-        self.config["GUEST_TESTS"]["Dundee"]["Primary"] = ['centos511_x86-32',
-         'centos511_x86-64','centos66_x86-32','centos66_x86-64','centos71_x86-64',
-         'debian60_x86-32','debian60_x86-64','debian70_x86-32','debian70_x86-64','debian80_x86-32','debian80_x86-64',
-         'oel511_x86-32','oel511_x86-64','oel66_x86-32','oel66_x86-64','oel71_x86-64',
-         'rhel48_x86-32','rhel511_x86-32','rhel511_x86-64','rhel66_x86-32','rhel66_x86-64',
-         'rheld66_x86-64','rhelw66_x86-64','rhel71_x86-64',
-         'sl511_x86-32','sl511_x86-64','sl66_x86-32','sl66_x86-64','sl71_x86-64',
-         'sles104_x86-32','sles104_x86-64','sles113_x86-32','sles113_x86-64','sles12_x86-64',
-         'ubuntu1204_x86-32','ubuntu1204_x86-64','ubuntu1404_x86-32','ubuntu1404_x86-64',
-         'vistaeesp2','w2k3eesp2','w2k3eesp2-x64','win10-x64','win10-x86',
-         'win7sp1-x64','win7sp1-x86','win8-x64','win8-x86','win81-x64','win81-x86','winxpsp3','ws08dcsp2-x64',
-         'ws08dcsp2-x86','ws08r2dcsp1-x64','ws12-x64','ws12core-x64','ws12r2-x64','ws12r2core-x64',
-         'rhel5u_x86-32', 'rhel5u_x86-64', 'rhel6u_x86-32', 'rhel6u_x86-64', 'rhel7u_x86-64', 'rhel71xs_x86-64',
-         'sl5u_x86-32', 'sl5u_x86-64', 'sl6u_x86-32', 'sl6u_x86-64', 'sl7u_x86-64',
-         'centos5u_x86-32', 'centos5u_x86-64', 'centos6u_x86-32', 'centos6u_x86-64', 'centos7u_x86-64', 'centos71xs_x86-64',
-         'oel5u_x86-32', 'oel5u_x86-64', 'oel6u_x86-32', 'oel6u_x86-64', 'oel7u_x86-64', 'oel71xs_x86-64','sled113_x86-64',
-         'debiantesting_x86-32','debiantesting_x86-64','ubuntudevel_x86-32','ubuntudevel_x86-64','fedoralatest_x86-64']
-        self.config["GUEST_TESTS"]["Dundee"]["Secondary"] = ['centos45_x86-32','centos46_x86-32','centos47_x86-32',
-         'centos48_x86-32','centos51_x86-32','centos51_x86-64','centos52_x86-32','centos52_x86-64','centos53_x86-32',
-         'centos53_x86-64','centos54_x86-32','centos54_x86-64','centos55_x86-32','centos55_x86-64','centos56_x86-32','centos56_x86-64','centos57_x86-32','centos57_x86-64',
-         'centos58_x86-32','centos58_x86-64','centos59_x86-32','centos59_x86-64','centos63_x86-32','centos63_x86-64',
-         'centos64_x86-32','centos64_x86-64','oel53_x86-32','oel53_x86-64','oel54_x86-32','oel54_x86-64','oel55_x86-32',
-         'oel55_x86-64','oel56_x86-32','oel56_x86-64','oel57_x86-32','oel57_x86-64','oel58_x86-32','oel58_x86-64',
-         'oel59_x86-32','oel59_x86-64','oel63_x86-32','oel63_x86-64','oel64_x86-32','oel64_x86-64','rhel45_x86-32',
-         'rhel46_x86-32','rhel47_x86-32','rhel51_x86-32','rhel51_x86-64','rhel52_x86-32','rhel52_x86-64','rhel53_x86-32',
-         'rhel53_x86-64','rhel54_x86-32','rhel54_x86-64','rhel55_x86-32','rhel55_x86-64','rhel56_x86-32','rhel56_x86-64',
-         'rhel57_x86-32','rhel57_x86-64','rhel58_x86-32','rhel58_x86-64','rhel59_x86-32','rhel59_x86-64','rhel63_x86-32',
-         'rhel63_x86-64','rhel64_x86-32','rhel64_x86-64','sles102_x86-32','sles102_x86-64','sles103_x86-32',
-         'sles103_x86-64','w2k3eer2','w2k3ser2','w2k3sesp2','win7-x64','ws08r2-x64', 'win7-x86',
-         'rhel510_x86-32','rhel510_x86-64','centos510_x86-32','centos510_x86-64','oel510_x86-32','oel510_x86-64',
-         'rhel65_x86-32','rhel65_x86-64','centos65_x86-32','centos65_x86-64','oel65_x86-32','oel65_x86-64',
-         'rhel7_x86-64', 'oel7_x86-64', 'centos7_x86-64', 'sl7_x86-64']
+        self.config["GUEST_TESTS"]["Dundee"]["Primary"] = ['centos5u_x86-32', 'centos5u_x86-64',
+            'centos6u_x86-32', 'centos6u_x86-64', 'centos7u_x86-64',
+            'debian70_x86-32', 'debian70_x86-64', 'debian80_x86-32', 'debian80_x86-64',
+            'oel511_x86-32', 'oel511_x86-64', 'oel5u_x86-32', 'oel5u_x86-64', 'oel66_x86-32', 'oel66_x86-64',
+            'oel6u_x86-32', 'oel6u_x86-64', 'oel71_x86-64', 'oel71xs_x86-64', 'oel7u_x86-64',
+            'rhel511_x86-32', 'rhel511_x86-64', 'rhel5u_x86-32', 'rhel5u_x86-64', 'rhel66_x86-32', 'rhel66_x86-64',
+            'rhel6u_x86-32', 'rhel6u_x86-64', 'rhel71_x86-64', 'rhel71xs_x86-64', 'rhel7u_x86-64',
+            'sles113_x86-32', 'sles113_x86-64', 'sles12_x86-64',
+            'ubuntu1204_x86-32', 'ubuntu1204_x86-64', 'ubuntu1404_x86-32', 'ubuntu1404_x86-64',
+            'winxpsp3', 'w2k3eesp2', 'w2k3eesp2-x64',
+            'vistaeesp2', 'ws08dcsp2-x64', 'ws08dcsp2-x86',
+            'win7sp1-x64', 'win7sp1-x86', 'ws08r2dcsp1-x64',
+            'win8-x64', 'win8-x86', 'ws12-x64',
+            'win81-x64', 'win81-x86', 'ws12r2-x64',
+            'win10-x64', 'win10-x86']
+        self.config["GUEST_TESTS"]["Dundee"]["Secondary"] = ['centos511_x86-32', 'centos511_x86-64', 
+            'centos66_x86-32', 'centos66_x86-64', 'centos71_x86-64', 'centos71xs_x86-64',
+            'debian60_x86-32', 'debian60_x86-64', 'rhel48_x86-32', 'rheld66_x86-64', 'rhelw66_x86-64',
+            'rhel63_x86-32', 'rhel63_x86-64',
+            'sl511_x86-32', 'sl511_x86-64', 'sl5u_x86-32', 'sl5u_x86-64', 'sl66_x86-32', 'sl66_x86-64',
+            'sl6u_x86-32', 'sl6u_x86-64', 'sl71_x86-64', 'sl7u_x86-64',
+            'sles104_x86-32', 'sles104_x86-64', 'ws12core-x64', 'ws12r2core-x64']
+        self.config["GUEST_TESTS"]["Dundee"]["Tertiary"] = ['centos45_x86-32', 'centos46_x86-32', 'centos47_x86-32', 'centos48_x86-32',
+            'centos510_x86-32', 'centos510_x86-64', 'centos51_x86-32', 'centos51_x86-64', 'centos52_x86-32', 'centos52_x86-64',
+            'centos53_x86-32', 'centos53_x86-64', 'centos54_x86-32', 'centos54_x86-64', 'centos55_x86-32', 'centos55_x86-64',
+            'centos56_x86-32', 'centos56_x86-64', 'centos57_x86-32', 'centos57_x86-64', 'centos58_x86-32', 'centos58_x86-64',
+            'centos59_x86-32', 'centos59_x86-64', 'centos63_x86-32', 'centos63_x86-64', 'centos64_x86-32', 'centos64_x86-64',
+            'centos65_x86-32', 'centos65_x86-64', 'centos7_x86-64',
+            'oel510_x86-32', 'oel510_x86-64', 'oel53_x86-32', 'oel53_x86-64', 'oel54_x86-32', 'oel54_x86-64', 'oel55_x86-32', 'oel55_x86-64',
+            'oel56_x86-32', 'oel56_x86-64', 'oel57_x86-32', 'oel57_x86-64', 'oel58_x86-32', 'oel58_x86-64', 'oel59_x86-32', 'oel59_x86-64',
+            'oel63_x86-32', 'oel63_x86-64', 'oel64_x86-32', 'oel64_x86-64', 'oel65_x86-32', 'oel65_x86-64', 'oel7_x86-64',
+            'rhel45_x86-32', 'rhel46_x86-32', 'rhel47_x86-32', 'rhel510_x86-32', 'rhel510_x86-64', 'rhel51_x86-32', 'rhel51_x86-64',
+            'rhel52_x86-32', 'rhel52_x86-64', 'rhel53_x86-32', 'rhel53_x86-64', 'rhel54_x86-32', 'rhel54_x86-64', 'rhel55_x86-32', 'rhel55_x86-64',
+            'rhel56_x86-32', 'rhel56_x86-64', 'rhel57_x86-32', 'rhel57_x86-64', 'rhel58_x86-32', 'rhel58_x86-64', 'rhel59_x86-32', 'rhel59_x86-64',
+            'rhel64_x86-32', 'rhel64_x86-64', 'rhel65_x86-32', 'rhel65_x86-64', 'rhel7_x86-64',
+            'sl7_x86-64', 'sles102_x86-32', 'sles102_x86-64', 'sles103_x86-32', 'sles103_x86-64', 'win7-x64', 'win7-x86', 'ws08r2-x64']
+        self.config["GUEST_TESTS"]["Dundee"]["Dev"] = ['debiantesting_x86-32', 'debiantesting_x86-64', 'fedoralatest_x86-64', 'ubuntudevel_x86-32', 'ubuntudevel_x86-64']
         self.config["GUEST_TESTS"]["Dundee"]["XenApp"] = ['w2k3eesp2_XenApp', 'w2k3eesp2-x64_XenApp', 'ws08sp2-x86_XenApp', 'ws08sp2-x64_XenApp', 'ws08r2sp1-x64_XenApp']
        
         # Linux install methods supported
@@ -2868,7 +2885,7 @@ class Config(object):
 
         self.config["DEFAULT_HOTFIX_BRANCH"] = {}
         self.config["DEFAULT_HOTFIX_BRANCH"]["Clearwater"] = "SP1"
-        self.config["DEFAULT_HOTFIX_BRANCH"]["Creedence"] = "RTM"
+        self.config["DEFAULT_HOTFIX_BRANCH"]["Creedence"] = "SP1"
         
         self.config["HOTFIXES"]["Orlando"]["RTM"]["HF1"] = "/usr/groups/release/XenServer-5.0.0-Update1RC3/XenServer-5.0.0-Update1.xsupdate"
         self.config["HOTFIXES"]["Orlando"]["RTM"]["HF2"] = "/usr/groups/release/XenServer-5.0.0-Update2RC3/XenServer-5.0.0-Update2.xsupdate"
@@ -3404,6 +3421,9 @@ class Config(object):
         
         # Kraken2: xen-device-model .Rolls up XS60E014,XS60E018, XS60E020,XS60E023, XS60E024,XS60E026, XS60E028,XS60E029, XS60E033,XS60E034, XS60E035,XS60E037, XS60E039,XS60E040,XS60E042, XS60E045
         self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E046"] = "/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E046/100352/hotfix-XS60E046/XS60E046.xsupdate"
+        
+        # Floppy: xen-device-model .Rolls up XS60E014,XS60E018, XS60E020,XS60E023, XS60E024,XS60E026, XS60E028,XS60E029, XS60E033,XS60E034, XS60E035,XS60E037, XS60E039,XS60E040,XS60E042, XS60E045, XS60E046
+        self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E047"] = "/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E047/101556/hotfix-XS60E047/XS60E047.xsupdate"
        
        
        
@@ -3524,6 +3544,9 @@ class Config(object):
         
         #Kraken2 : xen-device-model. Rolls up XS602E001,XS602E003, XS602E004,XS602E005, XS602E007,XS602E008, XS602E011,XS602E013, XS602E014,XS602E016, XS602E017,XS602E018, XS602E020,XS602E021, XS602E022,XS602E023, XS602E025,XS602E026, XS602E027,XS602E028, XS602E029,XS602E030 XS602E032,XS602E033 XS602E034,XS602E035 XS602E036, XS602E038, XS602E041
         self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E042"] = "/usr/groups/release/XenServer-6.x/XS-6.0.2/hotfixes/XS602E042/100341/hotfix-XS602E042/XS602E042.xsupdate"
+        
+        #Floppy : xen-device-model. Rolls up XS602E001,XS602E003, XS602E004,XS602E005, XS602E007,XS602E008, XS602E011,XS602E013, XS602E014,XS602E016, XS602E017,XS602E018, XS602E020,XS602E021, XS602E022,XS602E023, XS602E025,XS602E026, XS602E027,XS602E028, XS602E029,XS602E030 XS602E032,XS602E033 XS602E034,XS602E035 XS602E036, XS602E038, XS602E041, XS602E042
+        self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E043"] = "/usr/groups/release/XenServer-6.x/XS-6.0.2/hotfixes/XS602E043/101570/hotfix-XS602E043/XS602E043.xsupdate"
       
       
       
@@ -3675,6 +3698,9 @@ class Config(object):
         
         # Kraken2: xen-device-model. Rolls up XS61E003, XS61E004, XS61E006, XS61E008, XS61E009, XS61E012, XS61E013, XS61E017, XS61E019, XS61E020,XS61E021, XS61E022, XS61E023, XS61E024, XS61E025, XS61E026, XS61E027, XS61E032, XS61E033, XS61E036, XS61E037, XS61E041, XS61E043, XS61E045, XS61E046, XS61E050
         self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E051"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E051/100342/hotfix-XS61E051/XS61E051.xsupdate"
+        
+        # Floppy: xen-device-model. Rolls up XS61E003, XS61E004, XS61E006, XS61E008, XS61E009, XS61E012, XS61E013, XS61E017, XS61E019, XS61E020,XS61E021, XS61E022, XS61E023, XS61E024, XS61E025, XS61E026, XS61E027, XS61E032, XS61E033, XS61E036, XS61E037, XS61E041, XS61E043, XS61E045, XS61E046, XS61E050, XS61E051
+        self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E052"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E052/101561/hotfix-XS61E052/XS61E052.xsupdate"
       
       
       
@@ -3730,6 +3756,9 @@ class Config(object):
         
         # Kraken2 - xen-device-model . Rolls up XS602ECC001, XS602ECC002, XS602ECC003, XS602ECC005, XS602ECC006,XS602ECC007, XS602ECC008, XS602ECC011, XS602ECC012, XS602ECC014, XS602ECC017
         self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC018"] = "/usr/groups/release/XenServer-6.x/sweeney/hotfixes/XS602ECC018/100339/hotfix-XS602ECC018/XS602ECC018.xsupdate"
+        
+        # Floppy - xen-device-model . Rolls up XS602ECC001, XS602ECC002, XS602ECC003, XS602ECC005, XS602ECC006,XS602ECC007, XS602ECC008, XS602ECC011, XS602ECC012, XS602ECC014, XS602ECC017, XS602ECC018
+        self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC019"] = "/usr/groups/release/XenServer-6.x/sweeney/hotfixes/XS602ECC019/101571/hotfix-XS602ECC019/XS602ECC019.xsupdate"
       
       
         # vGPU Tech Preview hotfix, Rolls up XS62E001 and XS62E002
@@ -3840,9 +3869,22 @@ class Config(object):
         # Burgess - xen-hyp. Rolls up XS62E014, XS62E017, XS62ESP1002, XS62ESP1004, XS62ESP1006, XS62ESP1007, XS62ESP1008, XS62ESP1011, XS62ESP1013, XS62ESP1015, XS62ESP1016
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1019"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1019/92015/hotfix-XS62ESP1019/XS62ESP1019.xsupdate"
         
+        # Renovado - xs-tools. Rolls up XS62E015, XS62ESP1003, XS62ESP1012
+        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1020"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1020/100961/hotfix-XS62ESP1020/XS62ESP1020.xsupdate"
+        self.config["TOOLS_HOTFIXES"]["Clearwater"]["SP1"].append("XS62ESP1020")
+        
         # Kraken2 - xen-device-model. Rolls up XS62E014, XS62E017, XS62ESP1002, XS62ESP1004, XS62ESP1006, XS62ESP1007, XS62ESP1008, XS62ESP1011, XS62ESP1013, XS62ESP1015, XS62ESP1016, XS62ESP1019
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1021"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1021/100343/hotfix-XS62ESP1021/XS62ESP1021.xsupdate"
         
+        #Deadlock - xen-hyp. Rolls up XS62E014, XS62E017, XS62ESP1002, XS62ESP1004, XS62ESP1006, XS62ESP1007, XS62ESP1008, XS62ESP1011, XS62ESP1013, XS62ESP1015, XS62ESP1016, XS62ESP1019
+        #Limited availability
+        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1022"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1022/100367/hotfix-XS62ESP1022/XS62ESP1022.xsupdate"
+        
+        # Lola - kernel. Rolls up XS62ESP1005, XS62ESP1009
+        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1024"] = "/usr/groups/build/clearwater-sp1-lcm/101109/hotfix-XS62ESP1024/XS62ESP1024.xsupdate"
+        
+        # Floppy- xen-device-model. Rolls up XS62E014, XS62E017, XS62ESP1002, XS62ESP1004, XS62ESP1006, XS62ESP1007, XS62ESP1008, XS62ESP1011, XS62ESP1013, XS62ESP1015, XS62ESP1016, XS62ESP1019, XS62ESP1021, XS62ESP1022
+        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1025"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1025/101557/hotfix-XS62ESP1025/XS62ESP1025.xsupdate"
         
         
         #Creedence hotfixes
@@ -3867,7 +3909,19 @@ class Config(object):
         
         # Crashnet: kernel. Rolls up Nothing.
         self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E008"] = "/usr/groups/release/XenServer-6.x/XS-6.5/hotfixes/XS65E008/100346/hotfix-XS65E008/XS65E008.xsupdate"
-      
+        
+        # Floppy: xen-device-model. Rolls up XS65E006, XS65E007.
+        self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E009"] = "/usr/groups/release/XenServer-6.x/XS-6.5/hotfixes/XS65E009/101559/hotfix-XS65E009/XS65E009.xsupdate"
+
+
+        # 6.5 SP1 (Cream) - start of SP1 branch, rolls up all previous hotfixes (till XS65E008)
+        self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1"] = "/usr/groups/release/XenServer-6.x/XS-6.5-SP1/RTM-101064/hotfix-XS65ESP1/XS65ESP1.xsupdate"
+        self.config["TOOLS_HOTFIXES"]["Creedence"]["SP1"].append("XS65ESP1")
+        
+        # XS 6.5 SP1 Xencenter- XS65ESP1001
+        
+        # Floppy: xen-device-model. Rolls up XS65E006, XS65E007.
+        self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1002"] = "/usr/groups/release/XenServer-6.x/XS-6.5-SP1/hotfixes/XS65ESP1002/101510/hotfix-XS65ESP1002/XS65ESP1002.xsupdate"
 
 
         return
@@ -3981,7 +4035,7 @@ class Config(object):
         self.config["CARBON_PATCHES_BOSTON"]["HF38"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E038"]
         self.config["CARBON_PATCHES_BOSTON"]["HF41"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E041"]
         self.config["CARBON_PATCHES_BOSTON"]["HF43"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E043"]
-        self.config["CARBON_PATCHES_BOSTON"]["HF46"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E046"]
+        self.config["CARBON_PATCHES_BOSTON"]["HF47"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E047"]
         
         if not self.config.has_key("CARBON_PATCHES_SANIBEL"):
             self.config["CARBON_PATCHES_SANIBEL"] = {}
@@ -3992,7 +4046,7 @@ class Config(object):
         self.config["CARBON_PATCHES_SANIBEL"]["HF31"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E031"]
         self.config["CARBON_PATCHES_SANIBEL"]["HF37"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E037"]
         self.config["CARBON_PATCHES_SANIBEL"]["HF39"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E039"]
-        self.config["CARBON_PATCHES_SANIBEL"]["HF42"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E042"]
+        self.config["CARBON_PATCHES_SANIBEL"]["HF43"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E043"]
         
         if not self.config.has_key("CARBON_PATCHES_SANIBELCC"):
             self.config["CARBON_PATCHES_SANIBELCC"] = {}
@@ -4001,7 +4055,7 @@ class Config(object):
         self.config["CARBON_PATCHES_SANIBELCC"]["HF10"] = self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC010"]
         self.config["CARBON_PATCHES_SANIBELCC"]["HF13"] = self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC013"]
         self.config["CARBON_PATCHES_SANIBELCC"]["HF15"] = self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC015"]
-        self.config["CARBON_PATCHES_SANIBELCC"]["HF18"] = self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC018"]
+        self.config["CARBON_PATCHES_SANIBELCC"]["HF19"] = self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC019"]
         
         if not self.config.has_key("CARBON_PATCHES_TAMPA"):
             self.config["CARBON_PATCHES_TAMPA"] = {}
@@ -4013,7 +4067,7 @@ class Config(object):
         self.config["CARBON_PATCHES_TAMPA"]["HF42"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E042"]
         self.config["CARBON_PATCHES_TAMPA"]["HF44"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E044"]
         self.config["CARBON_PATCHES_TAMPA"]["HF48"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E048"]
-        self.config["CARBON_PATCHES_TAMPA"]["HF51"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E051"]
+        self.config["CARBON_PATCHES_TAMPA"]["HF52"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E052"]
 
         if not self.config.has_key("CARBON_PATCHES_CLEARWATER"):
             self.config["CARBON_PATCHES_CLEARWATER"] = {}
@@ -4029,11 +4083,11 @@ class Config(object):
         elif branch == "SP1":
             self.config["CARBON_PATCHES_CLEARWATER"]["HF00"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF04"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1004"]
-            self.config["CARBON_PATCHES_CLEARWATER"]["HF09"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1009"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF14"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1014"]
-            self.config["CARBON_PATCHES_CLEARWATER"]["HF12"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1012"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF17"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1017"]
-            self.config["CARBON_PATCHES_CLEARWATER"]["HF21"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1021"]
+            self.config["CARBON_PATCHES_CLEARWATER"]["HF20"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1020"]
+            self.config["CARBON_PATCHES_CLEARWATER"]["HF24"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1024"]
+            self.config["CARBON_PATCHES_CLEARWATER"]["HF25"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1025"]
 
         if not self.config.has_key("CARBON_PATCHES_CREEDENCE"):
             self.config["CARBON_PATCHES_CREEDENCE"] = {}
@@ -4044,8 +4098,11 @@ class Config(object):
             self.config["CARBON_PATCHES_CREEDENCE"]["HF02"] = self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E002"]
             self.config["CARBON_PATCHES_CREEDENCE"]["HF03"] = self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E003"]
             self.config["CARBON_PATCHES_CREEDENCE"]["HF05"] = self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E005"]
-            self.config["CARBON_PATCHES_CREEDENCE"]["HF07"] = self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E007"]
             self.config["CARBON_PATCHES_CREEDENCE"]["HF08"] = self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E008"]
+            self.config["CARBON_PATCHES_CREEDENCE"]["HF09"] = self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E009"]
+        elif branch == "SP1":
+            self.config["CARBON_PATCHES_CREEDENCE"]["HF00"] = self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1"]
+            self.config["CARBON_PATCHES_CREEDENCE"]["HF02"] = self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1002"]
 
     def readFromFile(self, filename, path=None):
         """Read config from an XML file."""

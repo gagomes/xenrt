@@ -10,7 +10,7 @@
 # Description:       Controls the XenRT WSGI server.
 ### END INIT INFO
 
-DAEMON=/usr/bin/uwsgi
+DAEMON=/usr/local/bin/uwsgi
 ARGS=@sharedir@/server/uwsgi.ini
 PIDFILE=/var/run/xenrt-server.pid
 

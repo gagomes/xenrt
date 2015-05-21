@@ -814,6 +814,8 @@ class XenRTList(XenRTCommand):
                     raise Exception("Unknown argument '%s'\n" % (flag))
         except getopt.GetoptError:
             raise Exception("Unknown argument\n")
+        if not "status" in details:
+            details['status'] = ["new", "running"]
         jobs = self.xenrt.get_jobs(params=True, limit=10000, results=True, **details)
         
         fieldwidths = [7, 8, 12, 9, 13, 18, 21]
@@ -1148,6 +1150,7 @@ class XenRTBorrow(XenRTCommand):
     -d <days>      Number of days to borrow for (default is 1)
     -r <reason>    Reason for borrowing machine
     -b             Best effort borrow (borrow for as long as long as policy allows, don't fail if can't be borrowed)
+    -p             Borrow on a preemptable basis - can be taken back for scheduled testing (ACL policy dependent)
     """
     group = "Machine"
 
@@ -1160,8 +1163,9 @@ class XenRTBorrow(XenRTCommand):
         force = False
         user = None
         besteffort = False
+        preemptable = False
         try:
-            optlist, optx = getopt.getopt(args[1:], 'h:u:d:fr:b', "force")
+            optlist, optx = getopt.getopt(args[1:], 'h:u:d:fr:bp', "force")
             for argpair in optlist:
                 (flag, value) = argpair
                 if flag == '-h':
@@ -1178,12 +1182,14 @@ class XenRTBorrow(XenRTCommand):
                     force = True
                 elif flag == "-b":
                     besteffort = True
+                elif flag == "-p":
+                    preemptable = True
         except getopt.GetoptError:
             raise Exception("Unknown argument\n")
         if user:
             self.xenrt.customHeaders['X-Fake-User'] = user
 
-        self.xenrt.lease_machine(machine, duration, reason, force=force, besteffort=besteffort)
+        self.xenrt.lease_machine(machine, duration, reason, force=force, besteffort=besteffort, preemptable=preemptable)
 
 class XenRTReturn(XenRTCommand):
 
@@ -1487,42 +1493,12 @@ class XenRTDownload(XenRTCommand):
 class XenRTSchedule(XenRTCommand):
 
     name = "schedule"
-    summary = "Run the job scheduler to assign jobs to machines"
-    usage = """
-    -v     Verbose output
-    -d     Perform a dry run to see what could be scheduled, do not schedule
-    -i     Ignore current allocations when performing a dry run
-    -b     Best effort - don't rediect to master if a slave is connected to
-    """
+    summary = "No longer supported"
+    usage = ""
     group = "Scheduler"
     
     def run(self, args):
-        details = {}
-        showstatus = False
-        details['USERID'] = pwd.getpwuid(os.getuid())[0]
-        try:
-            optlist, optx = getopt.getopt(args, 'divjb')
-            for argpair in optlist:
-                (flag, value) = argpair
-                if flag == '-d':
-                    details["dryrun"] = "yes"
-                elif flag == "-i":
-                    details["ignore"] = "yes"
-                elif flag == "-v":
-                    details["verbose"] = "yes"
-                elif flag == "-b":
-                    details["besteffort"] = "yes"
-                elif flag == "-j":
-                    showstatus = True
-        except getopt.GetoptError:
-            raise Exception("Unknown argument\n")
-        url = self.xenrt.base.replace("/v2", "/schedule")
-        r = requests.get(url, params=details)
-        r.raise_for_status()
-        reply = r.text
-        if showstatus:
-            reply += "Schedule complete\n"
-        self.printout(reply)
+        self.printout("On demand schedule no longer supported - performed in background only\n")
 
 class XenRTMDefine(XenRTCommand):
 

@@ -12,6 +12,7 @@ import threading, BaseHTTPServer, xml.dom.minidom, types, urllib, time, base64
 import random, socket, httplib
 import SocketServer, tlslite.api, sys, xml.sax.saxutils
 import xenrt
+reload(__import__('sys')).setdefaultencoding('utf8')
 
 # Symbols we want to export from the package.
 __all__ = ["FakeKirkwood",
@@ -251,9 +252,12 @@ hKIs4YWO6PDU3wwSSCLAmTvFuTj0VOFEfUaWax7tTkrj
 
     def handshake(self, tlsConnection):
         try:
+            settings = tlslite.api.HandshakeSettings()
+            settings.minVersion=(3,0)
             tlsConnection.handshakeServer(certChain=self.certChain,
                                           privateKey=self.privateKey,
-                                          sessionCache=self.sessionCache)
+                                          sessionCache=self.sessionCache,
+                                          settings=settings)
             tlsConnection.ignoreAbruptClose = True
             return True
         except tlslite.api.TLSError, error:

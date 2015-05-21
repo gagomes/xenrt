@@ -46,7 +46,7 @@ class RHELBasedLinux(LinuxOS):
 
     @property
     def _defaultIsoName(self):
-        return "%s_%s.iso" % (self.distro, self.arch)
+        return "%s_%s_xenrtinst.iso" % (self.distro, self.arch)
 
     @property
     def installURL(self):

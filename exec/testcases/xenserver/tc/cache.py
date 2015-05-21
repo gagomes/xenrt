@@ -25,10 +25,22 @@ class PacketCatcher(object):
         xenrt.TEC().logverbose("PacketCatcher: Stopping capture on %s... (PID %s)" % 
                                (self.host.getName(), self.pid))
         self.host.execdom0("kill %s" % (self.pid))
-        data = self.host.execdom0("cat %s" % (self.datafile), nolog=self.nolog)
-        self.host.execdom0("rm -f %s" % (self.datafile)) 
+
+        # obtain file and save it into log dir for easier analysis.
+        d = "%s/captured-%s" % (xenrt.TEC().getLogdir(), time.strftime("%Y%m%d-%H%M%S"))
+        try:
+            sftp = self.host.sftpClient()
+            sftp.copyFrom(self.datafile, d)
+        except Exception, e:
+            raise xenrt.XRTError("Failed to obtain capture data: %s", str(e))
+        self.host.execdom0("rm -f %s" % (self.datafile))
+
+        # Read captured data and process it.
+        data = ""
+        with open(d, "r") as fp:
+            data = fp.read()
         self.processData(data)
-    
+
     def processData(self, data):
         timestamps = re.findall("\d+\.\d+ IP", data)
         for t in timestamps:
@@ -586,7 +598,9 @@ class _Cache(xenrt.TestCase):
                                                     master.compileWindowsProgram(path) + "\\winread.exe")   
                     master.shutdown()
                 else:
-                    master = self.host.createGenericLinuxGuest(start=False, sr=sr)
+                    master = self.host.createGenericLinuxGuest(start=True, sr=sr)
+                    master.preCloneTailor()
+                    master.shutdown()
                     xenrt.TEC().registry.guestPut(masterkey, master)
             gold = xenrt.TEC().registry.guestGet(masterkey).copyVM()
             xenrt.TEC().registry.guestPut(goldkey, gold)
@@ -1460,7 +1474,7 @@ class _CachePerformance(_Cache):
             for i in range(self.GUESTS):
                 self.createTargetVM(windows=True, cached=self.CACHED, reset=self.RESET)
             self.iocounter.start()
-            self.packetCatcher.startCapture("dst port nfs -i %s" % (self.host.getPrimaryBridge()))
+            self.packetCatcher.startCapture("dst port nfs -i %s -vvv" % (self.host.getPrimaryBridge()))
             guestsToStart = copy.copy(self.guests)
             # Booting one guest first to pull everything into the read-cache
             # so that subsequent guests can read from the cache instead of nfs.

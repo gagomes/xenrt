@@ -3,7 +3,7 @@ from app.api import XenRTAPIPage
 from pyramid.httpexceptions import HTTPFound
 
 import traceback, StringIO, string, time, random, sys, calendar, getopt
-
+import psycopg2
 import config, app
 
 class XenRTSchedule(XenRTAPIPage):
@@ -18,6 +18,7 @@ class XenRTSchedule(XenRTAPIPage):
     def cli(self):
         if not self.isDBMaster():
             print "Skipping schedule as this node is not the master"
+            return
         dryrun = False
         ignore = False
         verbose = None
@@ -43,37 +44,9 @@ class XenRTSchedule(XenRTAPIPage):
             self.mutex.close()
 
 
-    def render(self):
-        form = self.request.params
-        if not self.isDBMaster():
-            if form.get("besteffort") == "yes":
-                return "Skipping schedule as this node is not the master"
-            else:
-                return HTTPFound(location="http://%s/xenrt/api/schedule" % config.partner_ha_node)
-        dryrun = False
-        ignore = False
-        verbose = None
-        outfh = StringIO.StringIO()
-        if form.has_key("dryrun") and form["dryrun"] == "yes":
-            dryrun = True
-        if form.has_key("ignore") and form["ignore"] == "yes":
-            ignore = True
-        if form.has_key("verbose") and form["verbose"] == "yes":
-            verbose = outfh
-        self.schedule_jobs(outfh, dryrun=dryrun, ignore=ignore, verbose=verbose)
-        ret = outfh.getvalue()
-        outfh.close()
-        if not ret:
-            ret = ""
-        if self.mutex:
-            if self.mutex_held:
-                self.release_lock()
-            self.mutex.close()
-        return ret
-
     def schedule_jobs(self, outfh, dryrun=False, ignore=False, verbose=None):
         """New world job scheduler - assigns machines to jobs"""
-
+    
         # Generate a random integer to track in logs
         schedid = random.randint(0,1000)
 
@@ -88,7 +61,11 @@ class XenRTSchedule(XenRTAPIPage):
         prelocktime = time.mktime(time.gmtime())
 
         verbose.write("Job scheduler ID %d started %s" % (schedid, time.strftime("%a, %d %b %Y %H:%M:%S +0000\n", time.gmtime())))
-        self.get_lock()
+        try:
+            self.get_lock()
+        except psycopg2.OperationalError:
+            outfh.write("Another schedule is already in progress, aborting\n")
+            return
         verbose.write("%d acquired lock %s" % (schedid, time.strftime("%a, %d %b %Y %H:%M:%S +0000\n", time.gmtime())))
         postlocktime = time.mktime(time.gmtime())
 
@@ -140,6 +117,7 @@ class XenRTSchedule(XenRTAPIPage):
                         jobdesc = " (%s)" % (details["JOBDESC"])
                     else:
                         jobdesc = ""
+                    preemptable = details.get("PREEMPTABLE", "").lower() == "yes"
                     verbose.write("New job %s%s\n" % (jobid, jobdesc))
 
                     # Variables to record the scheduling data
@@ -202,7 +180,7 @@ class XenRTSchedule(XenRTAPIPage):
                             if not schedulable:
                                 continue
                             # Do one ACL check at this stage
-                            if not self.check_acl_for_machines(selected, details['USERID'], number=len(selected)):
+                            if not self.check_acl_for_machines(selected, details['USERID'], number=len(selected), preemptable=preemptable):
                                 verbose.write("  at least one specified machine not allowed by ACL\n")
                                 continue
                     else:
@@ -225,6 +203,7 @@ class XenRTSchedule(XenRTAPIPage):
                                              site,
                                              cluster,
                                              details,
+                                             preemptable,
                                              verbose=verbose)
 
                     if len(selected) < machines_required:
@@ -240,7 +219,7 @@ class XenRTSchedule(XenRTAPIPage):
                     outfh.write("  scheduling %u on %s (%d)\n" % (int(jobid), str(selected), schedid))
                     if alsoPrintToVerbose:
                         verbose.write("  scheduling %u on %s (%d)\n" % (int(jobid), str(selected), schedid))
-                    self.schedule_on(outfh, int(jobid), selected, details['USERID'])
+                    self.schedule_on(outfh, int(jobid), selected, details['USERID'], preemptable)
                     
                     if not site:
                         site = machines[selected[0]][1]
@@ -281,7 +260,7 @@ class XenRTSchedule(XenRTAPIPage):
             if not self.mutex:
                 self.mutex = app.db.dbWriteInstance()
             cur = self.mutex.cursor()
-            cur.execute("LOCK TABLE scheduleLock")
+            cur.execute("LOCK TABLE scheduleLock NOWAIT")
             self.mutex_held = 1
 
     def release_lock(self):
@@ -329,7 +308,7 @@ class XenRTSchedule(XenRTAPIPage):
         except Exception, e:
             print "WARNING: Could not run scm_check_leases - %s" % str(e)
 
-    def schedule_on(self, outfh, job, machines, userid):
+    def schedule_on(self, outfh, job, machines, userid, preemptable):
         db = self.getDB()
         debug = False
         if not debug:
@@ -377,7 +356,7 @@ class XenRTSchedule(XenRTAPIPage):
         if not debug:
             # Update the ACL cache
             for m in machines:
-                self.getACLHelper().update_acl_cache(m, userid)
+                self.getACLHelper().update_acl_cache(m, userid, preemptable)
             # Now we're complete, mark the job as running
             self.set_status(job, app.constants.JOB_STATUS_RUNNING, commit=True)
 
@@ -439,7 +418,7 @@ class XenRTSchedule(XenRTAPIPage):
                 pass
         return jobs
 
-    def scm_select_machines(self, outfh, machines, number, selected, site, cluster, details, verbose=None):
+    def scm_select_machines(self, outfh, machines, number, selected, site, cluster, details, preemptable, verbose=None):
         """Select <number> machines from the <machines> dictionary.
 
         The job may be partly done already and the <selected> list will contain
@@ -520,7 +499,7 @@ class XenRTSchedule(XenRTAPIPage):
                 continue
 
             # Check there are no ACL restrictions
-            if not self.check_acl_for_machines(clusters[cluster].keys(), details['USERID'], selected, number):
+            if not self.check_acl_for_machines(clusters[cluster].keys(), details['USERID'], selected, number, preemptable):
                 verbose.write("    not allowed by ACL\n")
                 continue
 
@@ -690,7 +669,7 @@ class XenRTSchedule(XenRTAPIPage):
 
         return policies      
 
-    def check_acl_for_machines(self, machines, userid, already_selected=[], number=1):
+    def check_acl_for_machines(self, machines, userid, already_selected=[], number=1, preemptable=False):
         # Identify the policies we need to check
         policies = self.get_acls_for_machines(machines)
         if len(policies.keys()) == 0:
@@ -714,9 +693,8 @@ class XenRTSchedule(XenRTAPIPage):
                 # be taken into account otherwise
                 machineCount += existingPolicies[p]
 
-            if not self.getACLHelper().check_acl(p, userid, machines[:machineCount], ignoreParent=True)[0]:
+            if not self.getACLHelper().check_acl(p, userid, machines[:machineCount], ignoreParent=True, preemptable=preemptable)[0]:
                 return False
 
         return True
 
-PageFactory(XenRTSchedule, "/api/schedule", compatAction="schedule")

@@ -4468,11 +4468,23 @@ class TCinstallNVIDIAGuestDrivers(VGPUOwnedVMsTest):
         self.assertvGPURunningInWinVM(g,self._CONFIGURATION[int(vgpuType)], vendor)
 
 class TCcreatevGPU(VGPUAllocationModeBase):
-
-    def run(self,arglist):
+   
+    def preapre(self,arglist):
 
         self.startVM = "True"   #reason for being string is because we are getting string from seq file
+ 
+        self.guests = {}
+        self.masterVMs = {}
+        self.masterVMsSnapshot = {}
+        self.host = self.getDefaultHost()
+        self.pools =[]
+
         self.parseArgs(arglist)
+
+        self.sr = self.host.lookupDefaultSR()
+        self.prepareGPUGroups()
+
+    def run(self,arglist):
 
         if not self.vmName:
             raise xenrt.XRTError("VM Name not passed")

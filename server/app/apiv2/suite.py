@@ -8,6 +8,7 @@ import os
 import subprocess
 import datetime
 import re
+import xml.dom.minidom
 
 class _SuiteStartBase(XenRTAPIv2Page):
     pass
@@ -84,6 +85,8 @@ class StartSuite(_SuiteStartBase):
             raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
         
         restrict = None
+
+        x = xml.dom.minidom.parse("/etc/xenrt/suites/%s" % params['suite'])
 
         for i in x.childNodes:
             if i.nodeType == i.ELEMENT_NODE and i.localName == "suite":

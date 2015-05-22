@@ -228,8 +228,9 @@ class VGPUInstaller(object):
         if not selectedConfig:
             raise xenrt.XRTFailure("No selected configs found")
 
-        if selectedConfig in vGPUTypes.keys():
-            return vGPUTypes[selectedConfig]
+        selectedConfig = selectedConfigs[0]
+        if VGPUConfig.K2PassThrough == self.__config or VGPUConfig.K1PassThrough == self.__config or VGPUConfig.PassThrough == self.__config:
+            selectedConfig = self.__TYPE_PT
 
         raise xenrt.XRTFailure("No type of %s was found in %s" % (selectedConfig, str(vGPUTypes)))
 

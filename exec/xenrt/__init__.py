@@ -394,9 +394,6 @@ class TestCase(object):
         self.xentoplogger = None
         self._fhsToClose = []
         self._initDone = True
-        ### This is to provide the testcase instance to the debugger, inorder to allow the debugger to pause
-        if 'xenrt.lib.debugger' in sys.modules:
-            self.debugger = xenrt.lib.debugger.debuggerFunctions(self)
         return
 
     #########################################################################
@@ -3595,20 +3592,6 @@ class GlobalExecutionContext(object):
         for this run."""
         for t in l.split(","):
             self.addKnownIssue(t)
-
-############################################################################
-# Debugger Methods                                                         #
-############################################################################
-
-import ast, pickle, subprocess, copy
-
-def debuggerAction( type = 'breakpoint', condition = True):
-    xenrt.TEC().logverbose('Unable to pause for Breakpoint: Debugging Mode set to false')
-    
-
-
-
-
 
 #############################################################################
 

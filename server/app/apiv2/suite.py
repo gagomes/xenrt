@@ -66,13 +66,17 @@ class StartSuite(_SuiteStartBase):
                     "params": {
                         "type": "object",
                         "description": "Key-value pair of parameters"
+                    },
+                    "xenrtbranch": {
+                        "type": "string",
+                        "description": "XenRT branch to use to submit suite (note that XRTBRANCH also needs to be set in the suite"
                     }
                 }
             }
         }
     RESPONSES = { "200": {"description": "Successful response"}}
     OPERATION_ID = "start_suite_run"
-    PARAM_ORDER = ['suite', 'branch', 'version', 'sku', 'params', 'seqs', 'rerun', 'rerunall', 'rerunifneeded']
+    PARAM_ORDER = ['suite', 'branch', 'version', 'sku', 'params', 'seqs', 'rerun', 'rerunall', 'rerunifneeded', 'xenrtbranch']
     TAGS = ['suiterun']
 
     def render(self):
@@ -112,7 +116,9 @@ class StartSuite(_SuiteStartBase):
         return {"token": token}
 
     def startSuite(self, params):
-        command = "/usr/local/bin/runsuite /etc/xenrt/suites/%s -b %s -r %s" % (params['suite'], params['branch'], params['version'])
+        token = re.sub(r'\W+', '', datetime.datetime.now().isoformat())
+        xbranch = params.get("xenrtbranch", "stable")
+        command = "/usr/local/bin/runsuite2 %s %s %s -b %s -r %s" % (token, xbranch, params['suite'], params['branch'], params['version'])
 
         if params.get("sku"):
             command += " --sku /etc/xenrt/suites/%s.sku" % params['sku']
@@ -132,7 +138,6 @@ class StartSuite(_SuiteStartBase):
         for p in params.get("params", {}).keys():
             command += " -D %s=%s" % (p, params['params'][p])
 
-        token = re.sub(r'\W+', '', datetime.datetime.now().isoformat())
         wdir = "/local/scratch/www/suiteruns/%s" % token
         os.makedirs(wdir)
 

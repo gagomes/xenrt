@@ -203,11 +203,8 @@ class VGPUInstaller(object):
             raise xenrt.XRTFailure("No selected configs found")
 
         selectedConfig = selectedConfigs[0]
-
         if VGPUConfig.K2PassThrough == self.__config or VGPUConfig.K1PassThrough == self.__config or VGPUConfig.PassThrough == self.__config:
             selectedConfig = self.__TYPE_PT
-            # Workaround NVIDIA-132 where the host will crash if a bugtool is taken
-            self.__host.execdom0("rm -rf /etc/xensource/bugtool/NVIDIA*")
 
         for vGPUType in vGPUTypes:
             if selectedConfig in vGPUType:

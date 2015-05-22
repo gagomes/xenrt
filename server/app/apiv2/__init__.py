@@ -50,6 +50,7 @@ class XenRTAPIv2Swagger(XenRTPage):
             },
             "basePath": "%s/api/v2" % u.path.rstrip("/"),
             "host": u.netloc,
+            "masterhost": config.master_server,
             "schemes": [u.scheme],
             "consumes": ["application/json"],
             "produces": ["application/json"],
@@ -63,6 +64,7 @@ class XenRTAPIv2Swagger(XenRTPage):
                 {"name": "apikeys", "description": "Operations on XenRT API keys"},
                 {"name": "backend", "description": "Operations used by XenRT controllers, not for general use"},
                 {"name": "acls", "description": "Operations on XenRT Access Control Lists"},
+                {"name": "suiterun", "description": "Operations to start suiteruns"},
                 {"name": "misc", "description": "Miscellaneous operations"}
             ],
             "definitions": {}
@@ -89,6 +91,8 @@ class XenRTAPIv2Swagger(XenRTPage):
                 spec['paths'][cls.PATH][cls.REQTYPE.lower()]['returnKey'] = cls.RETURN_KEY
             if cls.OPERATION_ID:
                 spec['paths'][cls.PATH][cls.REQTYPE.lower()]['operationId'] = cls.OPERATION_ID
+            if cls.MASTER_ONLY:
+                spec['paths'][cls.PATH][cls.REQTYPE.lower()]['masterOnly'] = True
             spec['definitions'].update(cls.DEFINITIONS)
         return spec
 
@@ -105,6 +109,7 @@ class XenRTAPIv2Page(XenRTPage):
     RETURN_KEY = None
     HIDDEN = False
     FILEAPI = False
+    MASTER_ONLY = False
 
     def getIntFromMatchdict(self, paramName):
         if not paramName in self.request.matchdict:
@@ -138,3 +143,4 @@ import app.apiv2.acls
 import app.apiv2.misc
 import app.apiv2.resources
 import app.apiv2.results
+import app.apiv2.suite

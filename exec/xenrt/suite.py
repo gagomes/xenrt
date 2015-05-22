@@ -411,6 +411,12 @@ class Suite(SuiteConfigurable):
             testrun = j.createTRTickets(self.id,rev,None,True,branch=branch,devrun=devrunCalc)
         elif debug or not self.id:
             testrun = "1"
+        elif xenrt.TEC().lookup(["CLIOPTIONS", "SUITE_TESTRUN_RERUN_IF_NEEDED"], None):
+            testrun = j.createTRTickets(self.id,rev,None,False,branch=branch,devrun=devrunCalc)
+            if not testrun or not re.search(r"^\d+$", testrun):
+                testrun = j.createTRTickets(self.id,rev,None,True,branch=branch,devrun=devrunCalc)
+                if not testrun:
+                    raise xenrt.XRTError("Unable to obtain a testrun ID")
         else:
             testrun = j.createTRTickets(self.id,rev,None,False,branch=branch,devrun=devrunCalc)
             if not testrun:

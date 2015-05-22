@@ -569,7 +569,7 @@ class SshInstallerThread(threading.Thread):
 class Host(xenrt.GenericHost):
     """Encapsulate a XenServer host."""
 
-    
+    SNMPCONF = "/etc/snmp/snmpd.conf"
     INSTALL_INTERFACE_SPEC = "MAC"
     LINUX_INTERFACE_PREFIX = "xenbr"
     USE_CCISS = True
@@ -11547,6 +11547,7 @@ class CreedenceHost(ClearwaterHost):
 #############################################################################
 class DundeeHost(CreedenceHost):
     USE_CCISS = False
+    SNMPCONF = "/etc/snmp/snmpd.xs.conf"
 
     def __init__(self, machine, productVersion="Dundee", productType="xenserver"):
         CreedenceHost.__init__(self,
@@ -11579,6 +11580,7 @@ class DundeeHost(CreedenceHost):
             self.execdom0("sed -i s/vbd3/vbd/ /etc/xenopsd.conf")
             self.execdom0("chkconfig --del xenopsd-xc")
             self.execdom0("chkconfig --add xenopsd-xenlight")
+            self.execdom0("sed -i -r 's/classic/xenlight/g' /etc/xapi.conf")
             self.restartToolstack()
 
     def _checkForFailedFirstBootScripts(self):
@@ -12622,6 +12624,9 @@ class ISCSIStorageRepository(StorageRepository):
                                                jumbo=jumbo,
                                                mpprdac=mpp_rdac,
                                                ttype = ttype)
+            if not lun.getID():
+                findSCSIID = True
+
         self.lun = lun
         self.subtype = subtype
         self.noiqnset = noiqnset

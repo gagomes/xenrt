@@ -135,6 +135,7 @@ def usage(fd):
                                           tags to run
     --rerun                               Force a rerun of part of a suite
     --rerun-all                           Force a rerun of a suite
+    --rerun-if-needed                     Rerun a suite if needed
     --suite-tcs <list>                    Comma separated list of TCs to
                                           run (use with --rerun)
     --devrun                              Run the suite as a development run
@@ -387,6 +388,7 @@ try:
                                       'testrun=',
                                       'rerun',
                                       'rerun-all',
+                                      'rerun-if-needed',
                                       'sku=',
                                       'delay-for=',
                                       'run-tool=',
@@ -818,6 +820,8 @@ try:
             setvars.append((["CLIOPTIONS", "SUITE_TESTRUN"], value))
         elif flag == "--rerun":
             setvars.append((["CLIOPTIONS", "SUITE_TESTRUN_RERUN"], True))
+        elif flag == "--rerun-if-needed":
+            setvars.append((["CLIOPTIONS", "SUITE_TESTRUN_RERUN_IF_NEEDED"], True))
         elif flag == "--rerun-all":
             setvars.append((["CLIOPTIONS", "SUITE_TESTRUN_RERUN"], True))
             setvars.append((["CLIOPTIONS", "SUITE_TESTRUN_RERUN_ALL"], True))
@@ -2270,6 +2274,10 @@ if aux:
 #############################################################################
 
 xenrt.TEC().logverbose("Command line: %s" % (string.join(sys.argv)))
+
+if xenrt.TEC().lookup("WINPDB_DEBUG", False, boolean=True):
+    import rpdb2
+    rpdb2.start_embedded_debugger(xenrt.TEC().lookup("JOBID", "xenroot"), fAllowRemote=True)
 
 # XML-RPC server
 running = True

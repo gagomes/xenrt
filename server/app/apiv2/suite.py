@@ -1,5 +1,6 @@
 from app.apiv2 import *
 import app.db
+import app.ad
 from pyramid.httpexceptions import *
 import json
 import jsonschema
@@ -82,6 +83,27 @@ class StartSuite(_SuiteStartBase):
         except Exception, e:
             raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
         
+        restrict = None
+
+        for i in x.childNodes:
+            if i.nodeType == i.ELEMENT_NODE and i.localName == "suite":
+                for j in i.childNodes:
+                    if j.nodeType == j.ELEMENT_NODE and j.localName == "restrict":
+                        for a in j.childNodes:
+                            if a.nodeType == a.TEXT_NODE and str(a.data).strip():
+                                restrict = str(a.data).strip().split(",")
+        if restrict:
+            allow = False
+            mygroups = app.ad.ActiveDirectory().get_groups_for_user(self.getUser().userid)
+            mygroups.append(self.getUser().userid)
+
+            for r in restrict:
+                if r in mygroups:
+                    allow=True
+                    break
+            if not allow:
+                raise XenRTAPIError(HTTPForbidden, "You do not have permission to run this suite - only members of %s can run this suite" % ",".join(restrict))
+
         token = self.startSuite(params)
 
         return {"token": token}

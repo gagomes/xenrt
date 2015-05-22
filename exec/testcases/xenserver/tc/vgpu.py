@@ -3483,8 +3483,11 @@ class TCPoolIntelGPU(IntelBase):
 
 class TCPoolIntelBootstorm(IntelBase):
 
-    def insideRun(self, vm, config):
-        # Config for host is one blocked, one not.
+    def run(self, arglist):
+        # Need two configs at a time, might not be able to use inside run.
+
+        # Identify both hosts.
+        # Configure hosts. One needs to be blocked.
 
         # Master vm
         # Creating a GPU Passthrough clone on the blocked host.
@@ -3496,7 +3499,7 @@ class TCPoolIntelBootstorm(IntelBase):
         # Shutdown all plus unblock Dom0 access on host again.
         # Bootstorm on all VMs again. Make sure Passthrough ones fail.
             # What is the point of the negative case nested in here for? 
-        pass
+        pass        
 
 class TCSwitchIntelGPUModes(IntelBase):
 

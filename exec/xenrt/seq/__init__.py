@@ -31,8 +31,11 @@ def findSeqFile(seqfile):
     @rtype: string 
     @return an absolute path to a sequence file given the basename.
     """
-    SEQ_LOC = "seqs"
-    path = os.path.join(xenrt.TEC().lookup("XENRT_BASE", None), SEQ_LOC)
+    if xenrt.TEC().lookup("SEQ_LOCATION", None):
+        path = xenrt.TEC().lookup("SEQ_LOCATION")
+    else:
+        SEQ_LOC = "seqs"
+        path = os.path.join(xenrt.TEC().lookup("XENRT_BASE", None), SEQ_LOC)
     xenrt.TEC().logverbose("Looking for seq file in %s ..." % (path))
     filename = os.path.join(path, seqfile)
     if not os.path.exists(filename):

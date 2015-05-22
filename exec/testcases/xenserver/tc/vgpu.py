@@ -3489,20 +3489,39 @@ class TCPoolIntelBootstorm(IntelBase):
 
     def run(self, arglist):
         # Need two configs at a time, might not be able to use inside run.
+        # Get from the seq file.
+        passConfig = None
+        vgpuConfig = None
 
         # Identify both hosts.
+        passHost = None
+        vgpuHost = None
+
         # Configure hosts. One needs to be blocked.
+        # Can set to not block on prepare.
+
+        self.typeOfvGPU.blockDom0Access(passHost)
+
 
         # Master vm
+
         # Creating a GPU Passthrough clone on the blocked host.
+        passVM = masterVM.cloneVM()
+        self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[passConfig], passVM)
+
         # Creating a vGPU clone (x2/3/7) on the other. (Max vms capable?)
+        vgpuVM = masterVM.cloneVM()
+        self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[vgpuConfig], vgpuVM)
+        # clone X times.
 
         # Shutdown all
-        # Bootstorm all
+
+        # Bootstorm all, preferably in parallel
 
         # Shutdown all plus unblock Dom0 access on host again.
         # Bootstorm on all VMs again. Make sure Passthrough ones fail.
-            # What is the point of the negative case nested in here for? 
+            # What is the point of the negative case nested in here for?
+            # TCSwitchIntelGPUModes, should cover negative cases.
         pass        
 
 class TCSwitchIntelGPUModes(IntelBase):

@@ -3555,6 +3555,7 @@ class TCSwitchIntelGPUModes(IntelBase):
             (passConfig, vgpuConfig) = self.VGPU_CONFIG
 
             # create two VMs from master.
+            masterVM.setState("DOWN")
             passVM = masterVM.cloneVM()
             vgpuVM = masterVM.cloneVM()
 

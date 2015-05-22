@@ -14,6 +14,7 @@ class _SuiteStartBase(XenRTAPIv2Page):
 class StartSuite(_SuiteStartBase):
     PATH = "/suiterun/start"
     REQTYPE = "POST"
+    MASTER_ONLY = True
     SUMMARY = "Start suite run"
     PARAMS = [
         {'name': 'body',
@@ -69,7 +70,7 @@ class StartSuite(_SuiteStartBase):
         }
     RESPONSES = { "200": {"description": "Successful response"}}
     OPERATION_ID = "start_suite_run"
-    PARAM_ORDER = ['suite', 'branch', 'version']
+    PARAM_ORDER = ['suite', 'branch', 'version', 'sku', 'params', 'seqs', 'rerun', 'rerunall', 'rerunifneeded']
     TAGS = ['suiterun']
 
     def render(self):
@@ -124,6 +125,7 @@ class StartSuite(_SuiteStartBase):
 class StartSuiteStatus(XenRTAPIv2Page):
     PATH = "/suiterun/start/{token}"
     REQTYPE = "GET"
+    MASTER_ONLY = True
     SUMMARY = "Get status on suite run starting"
     PARAMS = [
         {"name": "token",

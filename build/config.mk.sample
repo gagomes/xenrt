@@ -55,6 +55,4 @@ BUILDISCSI          = no
 BUILDALLTESTS       = yes
 XVADIR      = /local/xvas
 DISKLESSROOT = /local/disklessdebian
-DYTHONINSTALLATION = /usr/share/dython
-VIRTUALENVPATH = /usr/share/dython-env
 

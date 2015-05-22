@@ -42,7 +42,10 @@ class Path(object):
 
     @property
     def methodContent(self):
-        ret = """    $path = $("http://" + $XenRTCreds.Server + "/xenrt/api/v2%s")\n""" % self.path.replace("{", "${")
+        if self.masterOnly:
+            ret = """    $path = $("http://" + $XenRTCreds.MasterServer + "/xenrt/api/v2%s")\n""" % self.path.replace("{", "${")
+        else:
+            ret = """    $path = $("http://" + $XenRTCreds.Server + "/xenrt/api/v2%s")\n""" % self.path.replace("{", "${")
         ret += """    $paramdict = @{}\n"""
         for p in self.queryParams:
             q = self.powerShellParamName(p)
@@ -158,6 +161,10 @@ class Path(object):
         return ret
 
     @property
+    def masterOnly(self):
+        return bool(self.data.get("masterOnly"))
+
+    @property
     def methodName(self):
         if self.data.get('operationId'):
             ret = self.data['operationId']
@@ -205,6 +212,7 @@ class PowerShellBindings(XenRTAPIv2Swagger):
         self.scheme = swagger['schemes'][0]
         self.base = swagger['basePath']
         self.host = swagger['host']
+        self.masterhost = swagger['masterhost']
 
     def generateFile(self):
         ret = """<#
@@ -219,6 +227,7 @@ Set-StrictMode -Version Latest
 $XenRTCreds = New-Object object |
     Add-Member -MemberType NoteProperty -Name "ApiKey" -Value "" -Passthru |
     Add-Member -MemberType NoteProperty -Name "Server" -Value "%s" -Passthru
+    Add-Member -MemberType NoteProperty -Name "MasterServer" -Value "%s" -Passthru
 
 function Connect-XenRT {
 <#
@@ -232,14 +241,20 @@ function Connect-XenRT {
     The API key, if not using kerberos
 .PARAMETER Server
     The server to connect to (defaults to %s)
+.PARAMETER MasterServer
+    The master server to connect to (defaults to %s)
 #>
 param(
     [parameter(mandatory=$false)][switch]$UseDefaultCredentials,
     [parameter(mandatory=$false)][string]$ApiKey,
-    [parameter(mandatory=$false)][string]$Server
+    [parameter(mandatory=$false)][string]$Server,
+    [parameter(mandatory=$false)][string]$MasterServer
     )
     if ($Server) {
         $XenRTCreds.Server=$Server
+    }
+    if ($MasterServer) {
+        $XenRTCreds.MasterServer=$MasterServer
     }
     if ($UseDefaultCredentials) {
         $path = $("http://" + $XenRTCreds.Server + "/xenrt/api/v2/apikey")
@@ -250,7 +265,7 @@ param(
     }
     Write-Output $("Logged in as " + (Get-XenRTLoggedinUser).user)
 }
-""" % (self.host, self.host)
+""" % (self.host, self.masterhost, self.host, self.masterhost)
         for func in self.funcs:
             if func.skip:
                 continue

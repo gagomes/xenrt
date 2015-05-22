@@ -248,7 +248,7 @@ endif
 	-rsync -axl $(ROOT)/$(INTERNAL)/$(notdir $@) $(SHAREDIR)
 
 .PHONY: exec
-exec:
+exec: $(SCRIPTS)
 	$(info Installing files to $(EXECDIR))
 ifeq ($(CLEANSCRIPTS),yes)
 	rsync -axl --delete $(notdir $@)/* $(SHAREDIR)/$(EXECDIR)/

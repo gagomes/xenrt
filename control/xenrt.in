@@ -1847,6 +1847,7 @@ class XenRTRunSuite(XenRTCommand):
     [-b <branch>]     Branch to test
     [-s <sku>]        SKU to test
     [-S <seqs>]       Suite sequences to run
+    [-x <xenrt_branch>] XenRT branch to use to submit suite (note that XRTBRANCH also needs to be set in the suite
     [-R]              Attempt to rerun if suite already exists
     """
     group = "Suite"
@@ -1862,6 +1863,8 @@ class XenRTRunSuite(XenRTCommand):
                 (flag, value) = argpair
                 if flag == "-b":
                     data['branch'] = value
+                elif flag == "-X":
+                    data['xenrtbranch'] = value
                 elif flag == "-s":
                     data['sku'] = "%s" % value.replace(".sku", "")
                 elif flag == "-S":

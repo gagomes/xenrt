@@ -482,7 +482,7 @@ class VM(_Entity):
         self.ref = host.createGenericEmptyGuest(memory=self.MEM)
         
         # just use random linux iso
-        self.ref.changeCD("centos58_x86-64_xenrinst.iso")
+        self.ref.changeCD("centos58_x86-64_xenrtinst.iso")
         self.ref.setState(self.STATE)
         if self.STATE == "UP":
             self.ref.pretendToHaveXenTools()

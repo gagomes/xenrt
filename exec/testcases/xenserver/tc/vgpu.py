@@ -222,6 +222,9 @@ class VGPUInstaller(object):
         #selectedConfigs = [attr for attr in dir(VGPUConfig()) if not callable(attr) and not attr.startswith("__") and getattr(VGPUConfig, attr) == self.__config]
         selectedConfig = VGPUConfiguration[self.__config]
 
+        if VGPUConfig.K2PassThrough == self.__config or VGPUConfig.K1PassThrough == self.__config or VGPUConfig.PassThrough == self.__config:
+            selectedConfig = self.__TYPE_PT
+
         if not selectedConfig:
             raise xenrt.XRTFailure("No selected configs found")
 

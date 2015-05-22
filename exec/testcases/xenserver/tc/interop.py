@@ -556,10 +556,10 @@ powershell %s""" % (self.ASF_WORKING_DIR, netUseCommand, command)
 
         # Install tests
         try:
-            rData = self.executeASFShellCommand(asfCont, 'Install-Tests -Repository %s -TestRepositoryPath %s -TestSuites %s -UserName %s -Password %s' % (asfRepository, asfRepositoryPath, ','.join(testSuites), self.XD_SVC_ACCOUNT_USERNAME, self.XD_SVC_ACCOUNT_PASSWORD))
+            rData = self.executeASFShellCommand(asfCont, 'Install-Tests -Repository %s -TestRepositoryPath %s -TestSuites %s -UserName %s -Password %s' % (asfRepository, asfRepositoryPath, ','.join(testSuites), self.XD_SVC_ACCOUNT_USERNAME, self.XD_SVC_ACCOUNT_PASSWORD), timeout=600)
         except xenrt.XRTFailure, e:
             xenrt.TEC().logverbose('Try again - issue being investigated: %s' % (e.data))
-            rData = self.executeASFShellCommand(asfCont, 'Install-Tests -Repository %s -TestRepositoryPath %s -TestSuites %s -UserName %s -Password %s' % (asfRepository, asfRepositoryPath, ','.join(testSuites), self.XD_SVC_ACCOUNT_USERNAME, self.XD_SVC_ACCOUNT_PASSWORD))
+            rData = self.executeASFShellCommand(asfCont, 'Install-Tests -Repository %s -TestRepositoryPath %s -TestSuites %s -UserName %s -Password %s' % (asfRepository, asfRepositoryPath, ','.join(testSuites), self.XD_SVC_ACCOUNT_USERNAME, self.XD_SVC_ACCOUNT_PASSWORD), timeout=600)
 
         map(lambda x:xenrt.TEC().logverbose(x), rData)
 

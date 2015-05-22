@@ -252,7 +252,7 @@ class XenRT(object):
         if not server:
             server = self._getXenRTServer() or "%s"
         if not masterserver:
-            masterserver = self._getMasterXenRTServer() or "%s"
+            masterserver = self._getXenRTMasterServer() or "%s"
         self.base = "%s://%%s%s" %% server
         self.masterbase = "%s://%%s%s" %% masterserver
 

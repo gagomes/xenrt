@@ -63,6 +63,7 @@ class XenRTAPIv2Swagger(XenRTPage):
                 {"name": "apikeys", "description": "Operations on XenRT API keys"},
                 {"name": "backend", "description": "Operations used by XenRT controllers, not for general use"},
                 {"name": "acls", "description": "Operations on XenRT Access Control Lists"},
+                {"name": "suiterun", "description": "Operations to start suiteruns"},
                 {"name": "misc", "description": "Miscellaneous operations"}
             ],
             "definitions": {}
@@ -138,3 +139,4 @@ import app.apiv2.acls
 import app.apiv2.misc
 import app.apiv2.resources
 import app.apiv2.results
+import app.apiv2.suite

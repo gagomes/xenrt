@@ -65,6 +65,24 @@ VendorName = {
     DiffvGPUType.IntelWinvGPU : "PCI.VEN.*Intel.*Graphics.*"
 }
 
+VGPUConfiguration = {
+        VGPUConfig.K100 : "K100",
+        VGPUConfig.K120 : "K120",
+        VGPUConfig.K140 : "K140",
+        VGPUConfig.K160 : "K160",
+        VGPUConfig.K180 : "K180",
+        VGPUConfig.K1PassThrough : "K1passthrough",
+        VGPUConfig.K200 : "K200",
+        VGPUConfig.K220 : "K220",
+        VGPUConfig.K240 : "K240",
+        VGPUConfig.K260 : "K260",
+        VGPUConfig.K280 : "K280",
+        VGPUConfig.K2PassThrough : "K2passthrough",
+        VGPUConfig.PassThrough : "passthrough",
+        VGPUConfig.IntelvGPU : "Intel GVT-g"
+}
+
+
 """
 Helper classes
 """
@@ -201,21 +219,15 @@ class VGPUInstaller(object):
     def typeUUID(self):
         vGPUTypes = self.__host.getSupportedVGPUTypes()
         # Look up the string representations of the VGPUConfig members filtering them on the required config
-        selectedConfigs = [attr for attr in dir(VGPUConfig()) if not callable(attr) and not attr.startswith("__") and getattr(VGPUConfig, attr) == self.__config]
+        #selectedConfigs = [attr for attr in dir(VGPUConfig()) if not callable(attr) and not attr.startswith("__") and getattr(VGPUConfig, attr) == self.__config]
+        selectedConfig = VGPUConfiguration[self.__config]
 
-        if len(selectedConfigs) < 1:
+        if not selectedConfig:
             raise xenrt.XRTFailure("No selected configs found")
 
-        selectedConfig = selectedConfigs[0]
+        if selectedConfig in vGPUTypes.keys():
+            return vGPUTypes[selectedConfig]
 
-        if VGPUConfig.K2PassThrough == self.__config or VGPUConfig.K1PassThrough == self.__config or VGPUConfig.PassThrough == self.__config:
-            selectedConfig = self.__TYPE_PT
-            # Workaround NVIDIA-132 where the host will crash if a bugtool is taken
-            self.__host.execdom0("rm -rf /etc/xensource/bugtool/NVIDIA*")
-
-        for vGPUType in vGPUTypes:
-            if selectedConfig in vGPUType:
-                return vGPUTypes[vGPUType]
         raise xenrt.XRTFailure("No type of %s was found in %s" % (selectedConfig, str(vGPUTypes)))
 
     def createOnGuest(self, guest, groupUUID = None, replacevGPU=False):
@@ -258,22 +270,6 @@ Test base classes
 """
 # TODO remove multiple inheritance
 class VGPUTest(object):
-    _CONFIGURATION = {
-        VGPUConfig.K100 : "K100",
-        VGPUConfig.K120 : "K120",
-        VGPUConfig.K140 : "K140",
-        VGPUConfig.K160 : "K160",
-        VGPUConfig.K180 : "K180",
-        VGPUConfig.K1PassThrough : "K1passthrough",
-        VGPUConfig.K200 : "K200",
-        VGPUConfig.K220 : "K220",
-        VGPUConfig.K240 : "K240",
-        VGPUConfig.K260 : "K260",
-        VGPUConfig.K280 : "K280",
-        VGPUConfig.K2PassThrough : "K2passthrough",
-        VGPUConfig.PassThrough : "passthrough",
-        VGPUConfig.IntelvGPU : "Intel GVT-g"
-    }
 
     _DIFFVGPUTYPE = {
         DiffvGPUType.NvidiaWinvGPU : "nvidiawinvgpu",
@@ -534,9 +530,9 @@ class VGPUOwnedVMsTest(xenrt.TestCase,VGPUTest):
         return self.__OPTIONS[vgpuos]
 
     def getConfigurationName(self, configuration):
-        if not configuration in self._CONFIGURATION:
+        if not configuration in VGPUConfiguration:
             raise xenrt.XRTError("Unexpected configuration number: %s" % configuration)
-        return self._CONFIGURATION[configuration]
+        return VGPUConfiguration[configuration]
 
     def __masterVmName(self, requiredOS):
         os = self.getOSType(requiredOS)
@@ -843,7 +839,7 @@ class TCVGPUSetup(VGPUOwnedVMsTest):
         #setting up dom0 mem
         self.host.execdom0("/opt/xensource/libexec/xen-cmdline --set-xen dom0_mem=4096M,max:6144M")
         self.host.reboot()
-        cfg = [x for x in self._CONFIGURATION.keys() if self._CONFIGURATION[x]==self.args['vgpuconfig']][0]
+        cfg = [x for x in VGPUConfiguration.keys() if VGPUConfiguration[x]==self.args['vgpuconfig']][0]
         installer = VGPUInstaller(self.host, cfg)
         installer.createOnGuest(self.guest)
         self.guest.setState("UP")
@@ -1874,9 +1870,9 @@ class FunctionalBase(VGPUAllocationModeBase):
                 self.NOVGPU = True
             if arg.startswith('blockdom0access'):
                 if arg.split('=')[1] == "false":
-                    this.hostInstallParams['blockDom0'] = False
+                    self.hostInstallParams['blockDom0'] = False
                 else:
-                    this.hostInstallParams['blockDom0'] = True
+                    self.hostInstallParams['blockDom0'] = True
  
     def run(self,arglist):
 
@@ -2042,11 +2038,11 @@ class IntelWindowsvGPU(DifferentGPU):
 
     def assertvGPURunningInVM(self, guest, vGPUType):
         vendor = VendorName[DiffvGPUType.IntelWinvGPU]
-        VGPUTest().assertvGPURunningInWinVM(guest, vGPUType, vendor)
+        VGPUTest().assertvGPURunningInWinVM(guest, CardName[CardType.Intel], vendor)
 
     def assertvGPUNotRunningInVM(self, guest, vGPUType):
         vendor = VendorName[DiffvGPUType.IntelWinvGPU]
-        VGPUTest().assertvGPUNotRunningInWinVM(guest, vGPUType, vendor)
+        VGPUTest().assertvGPUNotRunningInWinVM(guest, CardName[CardType.Intel], vendor)
 
     def runWorkload(self,vm):
         VGPUTest().runWindowsWorkload(vm)
@@ -3485,28 +3481,6 @@ class TCPoolIntelGPU(IntelBase):
             xenrt.sleep(10)
             vm2.start(specifyOn=False)
 
-class TCIntelvGPUReuse(IntelBase):
-
-    def insideRun(self, vm, config):
-        # Handling already blocked vGPU.
-
-        # Have the master VM, probably win7 sp1 or something.
-        # new config for intel vgpu.
-        # Use MaxNumOfVGPUPerPGPU with the config to find out the max allowed.
-
-        # Clone Max + 1 vms from the master.
-
-        # Start len(Max) VMs (7).
-        # Turn off first VM.
-        # Start Last VM.
-
-        # Confirms reuse of resource.
-
-        # This format can be ported into the existing case above, TCIntelGPUReuse if some setup steps are taken care of.
-        # Mainly blocking of Dom0 access by default in this case.
-        # Would be preferable to remove the x2 distro dependancy from the above case too.
-        pass
-
 class TCPoolIntelBootstorm(IntelBase):
 
     def insideRun(self, vm, config):
@@ -3522,6 +3496,31 @@ class TCPoolIntelBootstorm(IntelBase):
         # Shutdown all plus unblock Dom0 access on host again.
         # Bootstorm on all VMs again. Make sure Passthrough ones fail.
             # What is the point of the negative case nested in here for? 
+        pass
+
+class TCSwitchIntelGPUModes(IntelBase):
+
+    def run(self, arglist):
+        # get master.. loop over distros.
+
+        # Might not be able to use inside run if need two configs at the same time.
+
+        # create two VMs from master.
+        # setup vgpu on first vm, drivers + verify working etc.
+
+        # shutdown vgpu vm, block dom0 access and reboot host.
+
+        # setup gpu passthrough on the second vm, drivers + verify.
+
+        # shutdown passthrough vm, and try to start vgpu vm (should fail).
+
+        # unblock dom0 access again, reboot host.
+
+        # start vgpu vm (should work fine).
+
+        # shutdown vgpu vm, and try to start gpu passthrough vm (should fail.)
+
+        # leave host in a proper state.
         pass
 
 class TCAlloModeK200NFS(VGPUAllocationModeBase):
@@ -4465,14 +4464,26 @@ class TCinstallNVIDIAGuestDrivers(VGPUOwnedVMsTest):
         g = self.getGuest(vmName)
         g.installNvidiaVGPUDriver(self.driverType)
         vendor = VendorName[DiffvGPUType.NvidiaWinvGPU]
-        self.assertvGPURunningInWinVM(g,self._CONFIGURATION[int(vgpuType)], vendor)
+        self.assertvGPURunningInWinVM(g,VGPUConfiguration[int(vgpuType)], vendor)
 
 class TCcreatevGPU(VGPUAllocationModeBase):
-
-    def run(self,arglist):
+   
+    def prepare(self,arglist):
 
         self.startVM = "True"   #reason for being string is because we are getting string from seq file
+ 
+        self.guests = {}
+        self.masterVMs = {}
+        self.masterVMsSnapshot = {}
+        self.host = self.getDefaultHost()
+        self.pools =[]
+
         self.parseArgs(arglist)
+
+        self.sr = self.host.lookupDefaultSR()
+        self.prepareGPUGroups()
+
+    def run(self,arglist):
 
         if not self.vmName:
             raise xenrt.XRTError("VM Name not passed")

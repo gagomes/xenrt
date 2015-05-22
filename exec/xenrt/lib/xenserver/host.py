@@ -7136,6 +7136,7 @@ fi
         sr = self.genParamGet("vdi", vdiuuid, "sr-uuid")
         srtype = self.genParamGet("sr", sr, "type")
         host = self.getSRMaster(sr)
+        host.execdom0("xe sr-scan uuid=%s" % sr)
         foundsize = 0
         if srtype in ["ext", "nfs"]:
             path = "/var/run/sr-mount/%s/%s.vhd" % (sr, vdiuuid)

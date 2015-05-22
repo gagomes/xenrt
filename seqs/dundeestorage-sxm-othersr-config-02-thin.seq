@@ -1,0 +1,41 @@
+<?xml version="1.0" ?>
+<xenrt>
+
+  <!-- Sequence to test the various storage xen migration test cases. -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <!-- <pool id="0" name="SXMPool"> -->
+    <pool id="0">
+      <storage type="nfs" name="nfs_sourceSR"/>
+      <storage type="nfs" name="nfs_targetSR"/>
+      <storage type="lvmoiscsi" name="lvmoiscsi_sourceSR" options="thin"/>
+      <storage type="lvmoiscsi" name="lvmoiscsi_targetSR" options="thin"/>
+      <host id="0" installsr="ext" />
+      <host id="1" installsr="lvm" />
+    </pool>
+  </prepare>
+
+  <testsequence>
+
+    <serial group="LiveVDISXM">
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16913" tc="TC-16913">
+        <arg>test=LiveVDI</arg>
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvmoiscsi</arg>
+      </testcase>
+
+      <!-- live vdi migration from sr-type lvm to nfs, lvmoiscsi respectively. -->
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16917" tc="TC-16917">
+        <arg>test=LiveVDI</arg>
+        <arg>src_SR=lvm</arg>
+        <arg>dest_SR=nfs</arg>
+      </testcase>
+   </serial>
+
+  </testsequence>
+
+</xenrt>

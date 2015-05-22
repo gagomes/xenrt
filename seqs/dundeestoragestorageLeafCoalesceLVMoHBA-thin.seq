@@ -1,0 +1,36 @@
+<xenrt>
+
+  <!-- LVHD leaf coalesce tests for LVMoHBA -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+    <USE_MULTIPATH>yes</USE_MULTIPATH>
+  </variables>
+
+  <prepare>
+    <pool>
+      <host id="0"/>
+      <host id="1"/>
+      <storage type="fc" name="fcsr" default="true" options="thin"/>
+    </pool>
+    <host id="2"/>
+    <host id="3"/>
+  </prepare>
+
+  <testsequence group="LVM">
+    <testcase id="xenserver.tc.vhd.TC10589"/>
+    <testcase id="xenserver.tc.vhd.TC10590"/>
+    <testcase id="xenserver.tc.vhd.TC10591"/>
+    <testcase id="xenserver.tc.vhd.TC10592"/>
+    <testcase id="xenserver.tc.vhd.TC10593"/>
+    <testcase id="xenserver.tc.vhd.TC10594"/>
+    <testcase id="xenserver.tc.vhd.TC10595"/>
+    <testcase id="xenserver.tc.vhd.TC10596"/>
+    <testcase id="xenserver.tc.vhd.TC10597"/>
+    <testcase id="xenserver.tc.vhd.TC10598"/>
+    <testcase id="xenserver.tc.vhd.TC10599"/>
+  </testsequence>
+
+</xenrt>

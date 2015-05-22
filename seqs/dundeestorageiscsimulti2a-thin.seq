@@ -1,0 +1,51 @@
+<xenrt>
+
+  <!-- 2 host iSCSI Multipath tests a -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <pool id="0">
+      <host id="0"/>
+    </pool>
+    <pool id="1">
+      <host id="1"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="TC-7832">
+      <testcase id="xenserver.tc.multipath.TC7835">
+        <arg>thin=yes</arg>
+      </testcase>
+      <testcase id="xenserver.tc.multipath.TC8370">
+        <arg>thin=yes</arg>
+      </testcase>
+    </serial>
+    <serial group="TC-8136">
+      <testcase id="xenserver.tc.multipath.TC8133">
+        <arg>thin=yes</arg>
+      </testcase>
+      <testcase id="xenserver.tc.multipath.TC8134">
+        <arg>thin=yes</arg>
+      </testcase>
+      <testcase id="xenserver.tc.multipath.TC8137">
+        <arg>thin=yes</arg>
+      </testcase>
+      <testcase id="xenserver.tc.multipath.TC8138">
+        <arg>thin=yes</arg>
+      </testcase>
+      <testcase id="xenserver.tc.multipath.TC8139">
+        <arg>thin=yes</arg>
+      </testcase>
+    </serial>
+    <serial group="HFX-680">
+      <testcase id="xenserver.tc.multipath.TC18787">
+        <arg>thin=yes</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+
+</xenrt>

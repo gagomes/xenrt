@@ -9,9 +9,6 @@
         TC17094 - Verifying VM life cycle operations during an Intra Pool Storage Migration
         TC17097 - Verifying Intra Pool Storage Migration to destination SR with invalid SR UUID
         TC17100 - Verifying Intra Pool Storage Migration when the VM has raw VDI attached
-        TC17102 - Intra Pool Storage Migration when the VM is an halted state
-        TC17103 - Intra Pool Storage Migration when the VM is in a suspended state
-        TC17104 - Intra Pool Storage Migration when the VM is in a paused state
 
   -->
 
@@ -62,27 +59,6 @@
         <arg>src_SR=ext</arg>
         <arg>dest_SR=lvm</arg>
         <arg>immediate_failure</arg>
-      </testcase>
-
-      <!-- TC17102 - Intra Pool Storage Migration when the VM is an halted state. -->
-      <testcase id="xenserver.tc.sxm.HaltedVMStorageMigration" name="TC17102" tc="TC-17102">
-        <arg>src_SR=ext</arg>
-        <arg>dest_SR=lvm</arg>
-        <arg>negative_test</arg>
-      </testcase>
-
-      <!-- TC17103 - Intra Pool Storage Migration when the VM is in a suspended state. -->
-      <testcase id="xenserver.tc.sxm.SuspendedVMStorageMigration" name="TC17103" tc="TC-17103">
-        <arg>src_SR=ext</arg>
-        <arg>dest_SR=lvm</arg>
-        <arg>negative_test</arg>
-      </testcase>
-
-      <!-- TC17104 - Intra Pool Storage Migration when the VM is in a paused state. -->
-      <testcase id="xenserver.tc.sxm.PausedVMStorageMigration" name="TC17104" tc="TC-17104">
-        <arg>src_SR=ext</arg>
-        <arg>dest_SR=lvm</arg>
-        <arg>negative_test</arg>
       </testcase>
 
     </serial>

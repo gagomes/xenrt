@@ -46,6 +46,10 @@ class StartSuite(_SuiteStartBase):
                         "type": "string",
                         "description": "Suite run SKU"
                     },
+                    "devrun": {
+                        "type": "boolean",
+                        "description": "Whether to run this suite as a dev run"
+                    },
                     "rerun": {
                         "type": "boolean",
                         "description": "Whether to rerun tests"
@@ -76,7 +80,7 @@ class StartSuite(_SuiteStartBase):
         }
     RESPONSES = { "200": {"description": "Successful response"}}
     OPERATION_ID = "start_suite_run"
-    PARAM_ORDER = ['suite', 'branch', 'version', 'sku', 'params', 'seqs', 'rerun', 'rerunall', 'rerunifneeded', 'xenrtbranch']
+    PARAM_ORDER = ['suite', 'branch', 'version', 'sku', 'params', 'seqs', 'rerun', 'rerunall', 'rerunifneeded', 'xenrtbranch', 'devrun']
     TAGS = ['suiterun']
 
     def render(self):
@@ -122,6 +126,9 @@ class StartSuite(_SuiteStartBase):
 
         if params.get("sku"):
             command += " --sku /etc/xenrt/suites/%s.sku" % params['sku']
+
+        if params.get("devrun"):
+            command += " --devrun"
 
         if params.get("rerun"):
             command += " --rerun"

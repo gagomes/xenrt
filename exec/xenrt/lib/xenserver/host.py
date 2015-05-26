@@ -8278,7 +8278,8 @@ rm -f /etc/xensource/xhad.conf || true
     def getDom0Partitions(self):
 
         """
-        Return disk partitions on Dom0
+        Return dom0 disk partitions and there size in KB
+        return Format: {1: 19327352832, 2: 19327352832, 3: '*', 4: 535822336, 5: 4294967296, 6: 1072693248} 
         """
         primarydisk = self.getInventoryItem("PRIMARY_DISK")
         partitions = [p.split(' ') for p in self.execdom0("sgdisk -p %s | awk '$1 ~ /[0-9]+/ {print $1,$4,$5}'" % primarydisk).splitlines()]
@@ -8291,15 +8292,15 @@ rm -f /etc/xensource/xhad.conf || true
         """
         dom0Partitions = self.getDom0Partitions()
         if len(partitions) != len(dom0Partitions):
-            log("Number of Partitions in dom0 is different from expected number of partitions")
+            log("Number of Partitions in dom0 is different from expected number of partitions. Expected %s. Found %s" % (partitions,dom0Partitions ))
             return False
         else:
             diffkeys = [k for k in partitions if partitions[k] != dom0Partitions[k]]
             if len(diffkeys) == 1 and (3 in diffkeys):
-                log("Dom0 has expected partition schema")
+                log("Dom0 has expected partition schema: %s" % dom0Partitions)
                 return True
             else:
-                log("One or more partition size is different from expected")
+                log("One or more partition size is different from expected. Expected %s. Found %s" % ((partitions,dom0Partitions )))
                 return False
 
 #############################################################################

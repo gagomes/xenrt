@@ -12,7 +12,7 @@
   <default name="GUESTDISTRO" value="rhel57" />
   <default name="GUESTARCH" value="x86-32" />
   <default name="TCID" value="TC-11007" />
-  <default name="POOLSTRESSSNAP" value="10" />
+  <default name="POOLSTRESSSNAP" value="20" />
   <default name="DURATION" value="NA" />
   <default name="ITERATIONS" value="450" />
 

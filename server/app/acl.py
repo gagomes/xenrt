@@ -169,7 +169,7 @@ class ACLHelper(object):
                         userMachines[user].append(m)
                 for u in groupUsers:
                     if not u in userMachines.keys() and u in preemptableUsers:
-                        userMachines[user] = []
+                        userMachines[u] = []
 
             elif e.entryType == 'default':
                 # Identify all other in use machines

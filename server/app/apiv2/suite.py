@@ -94,15 +94,16 @@ class StartSuite(_SuiteStartBase):
         
         restrict = None
 
-        x = xml.dom.minidom.parse("/etc/xenrt/suites/%s" % params['suite'])
+        if os.path.exists("/etc/xenrt/suites/%s" % params['suite']):
+            x = xml.dom.minidom.parse("/etc/xenrt/suites/%s" % params['suite'])
 
-        for i in x.childNodes:
-            if i.nodeType == i.ELEMENT_NODE and i.localName == "suite":
-                for j in i.childNodes:
-                    if j.nodeType == j.ELEMENT_NODE and j.localName == "restrict":
-                        for a in j.childNodes:
-                            if a.nodeType == a.TEXT_NODE and str(a.data).strip():
-                                restrict = str(a.data).strip().split(",")
+            for i in x.childNodes:
+                if i.nodeType == i.ELEMENT_NODE and i.localName == "suite":
+                    for j in i.childNodes:
+                        if j.nodeType == j.ELEMENT_NODE and j.localName == "restrict":
+                            for a in j.childNodes:
+                                if a.nodeType == a.TEXT_NODE and str(a.data).strip():
+                                    restrict = str(a.data).strip().split(",")
         if restrict:
             allow = False
             mygroups = app.ad.ActiveDirectory().get_groups_for_user(self.getUser().userid)

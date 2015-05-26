@@ -1,6 +1,6 @@
 <xenrt>
 
-  <!-- Clearwater to Dundee VM Tools/drivers/kernel upgrade test -->
+  <!-- From Clearwater VM Tools/drivers/kernel upgrade test -->
 
   <default name="OLD_PRODUCT_VERSION" value="Clearwater"/>
   <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446"/>

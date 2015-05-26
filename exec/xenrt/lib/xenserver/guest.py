@@ -6341,6 +6341,8 @@ class DundeeGuest(CreedenceGuest):
 
         self.paramSet("auto-update-drivers", "false")
         
+        if self.checkWindowsPVUpdates():
+            raise xenrt.XRTFailure("Windows PV updates Failed to be disabled on VM")
     def checkWindowsPVUpdates(self):
         """ Check whether the windows pv updates is enabled on the host"""
         

@@ -17,7 +17,8 @@ class WindowsUpdateBase(xenrt.TestCase):
         self.args  = self.parseArgsKeyValue(arglist)
         self.host = self.getDefaultHost()
         self.remoteHost = self.getHost("RESOURCE_HOST_1")
-
+        self.Tools = None
+        
         if self.args.has_key('TOOLS'):
             self.Tools = self.args['TOOLS']
 
@@ -253,3 +254,4 @@ class TCSxmFrmLowToHighPVChk(SxmFromLowToHighVersion):
                 raise xenrt.XRTFailure("Windows PV updates are enabled on the VM Migrated from Older host to Newer host")
 
         xenrt.TEC().logverbose("Windows PV updates are disabled on the VM Migrated from Older host to Newer host as expected")
+

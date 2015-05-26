@@ -4360,8 +4360,11 @@ exit /B 1
     def getAutoUpdateDriverState(self):
         """ Check whether the Windows Auto PV Driver updates is enabled on the VM"""
         
-        return self.getHost().xenstoreRead("/local/domain/%u/control/auto-update-drivers" %(self.getDomid()))
-        
+        if self.getHost().xenstoreExists("/local/domain/%u/control/auto-update-drivers" %(self.getDomid())):
+            return self.getHost().xenstoreRead("/local/domain/%u/control/auto-update-drivers" %(self.getDomid()))
+        else:
+            raise xenrt.XRTFailure("cannot find auto-update-driver path in the xenstore")
+
 #############################################################################
 
 def parseSequenceVIFs(guest, host, vifs):
@@ -6144,6 +6147,10 @@ class DundeeGuest(CreedenceGuest):
                     toolsTgz = source
                 else:
                     toolsTgz = xenrt.TEC().getFile(source)
+
+                if not toolsTgz:
+                    raise xenrt.XRTFailure("Failed to get Windows PV tools location")
+
                 self.xmlrpcSendFile(toolsTgz, "c:\\tools.tgz")
             else:
             # Download the Individual PV packages
@@ -6310,14 +6317,34 @@ class DundeeGuest(CreedenceGuest):
         self.enlightenedDrivers = False
 
     def enableWindowsPVUpdates(self):
-        """ Enable the windows updates by setting pci_pv flag to true on the host"""
+        """ Enable the windows updates by setting 'auto-update-drivers' flag to true on the host"""
 
-        self.paramSet("platform:pci_pv", "true")
+        if self.getState() != "DOWN":
+            self.shutdown()
 
+        if self.pvDriversUpToDate():
+            raise xenrt.XRTFailure("Windows PV updates cannot be enabled on VM with PV Drivers Installed")
+
+        self.paramSet("auto-update-drivers", "true")
+        
+        if not self.checkWindowsPVUpdates():
+            raise xenrt.XRTFailure("Windows PV updates Failed to be enabled on VM")
+
+    def disableWindowsPVUpdates(self):
+        """ Disable the windows updates by setting 'auto-update-drivers' flag to false on the host"""
+        
+        if self.getState() != "DOWN":
+            self.shutdown()
+
+        if self.pvDriversUpToDate():
+            raise xenrt.XRTFailure("Windows PV updates cannot be disabled on VM with PV Drivers Installed")
+
+        self.paramSet("auto-update-drivers", "false")
+        
     def checkWindowsPVUpdates(self):
         """ Check whether the windows pv updates is enabled on the host"""
         
-        return self.paramGet("platform", "pci_pv")
+        return self.paramGet("auto-update-drivers")
     
 class StorageMotionObserver(xenrt.EventObserver):
 

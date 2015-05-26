@@ -3485,44 +3485,69 @@ class TCPoolIntelGPU(IntelBase):
 
 class TCPoolIntelBootstorm(IntelBase):
 
+    def prepare(self, arglist):
+        super(TCPoolIntelBootstorm, self).prepare(arglist)
+        self.hosts = self.getDefaultPool().getHosts()
+
     def run(self, arglist):
-        # Need two configs at a time, might not be able to use inside run.
-        # Get from the seq file.
-        passConfig = None
-        vgpuConfig = None
 
-        # Identify both hosts.
-        passHost = None
-        vgpuHost = None
+        def __prepareVM(vm, config):
+            self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
+            self.typeOfvGPU.installGuestDrivers(vm, self.getConfigurationName(config))
+            self.typeOfvGPU.assertvGPURunningInVM(vm, self.getConfigurationName(config))
 
-        # Configure hosts. One needs to be blocked.
-        # Can set to not block on prepare.
+        for distro in self.REQUIRED_DISTROS:
+            osType = self.getOSType(distro)
+            masterVM = self.masterVMs[osType]
 
-        self.typeOfvGPU.blockDom0Access(passHost)
+            if not len(self.VGPU_CONFIG) == 2:
+                raise xenrt.XRTError("Need a config length of 2 for mixed vgpu/passthrough bootstorm.")
+
+            (passConfig, vgpuConfig) = self.VGPU_CONFIG
+
+            # Assuming both hosts have the same capabilities, don't care which one we choose for each type.
+            passHost = self.hosts[0]
+            vgpuHost = self.hosts[1]
+
+            self.typeOfvGPU.blockDom0Access(passHost)
+
+            # Creating a GPU Passthrough vm.
+            passVM = masterVM.cloneVM()
+            __prepareVM(passVM, passConfig)
+
+            # Creating a vGPU vm.
+            vgpuVM = masterVM.cloneVM()
+            __prepareVM(vgpuVM, vgpuConfig)
+
+            # Shutdown all
+            for vm in (vgpuVM, passVM):
+                vm.setState("DOWN")
+
+            # Start all VMs in parallel. Should start on their respective hosts.
+            pt = [xenrt.PTask(self.bootstormStartVM, vm) for vm in (passVM, vgpuVM)]
+            xenrt.pfarm(pt)
+
+            # Wait for the VMs to be up in parallel.
+            pt = [xenrt.PTask(vm.poll, "UP") for vm in (passVM, vgpuVM)]
+            xenrt.pfarm(pt)
+
+            self.typeOfvGPU.assertvGPURunningInVM(passVM, self.getConfigurationName(passConfig))
+            self.typeOfvGPU.assertvGPURunningInVM(vgpuVM, self.getConfigurationName(vgpuConfig))
 
 
-        # Master vm
+            # Shutdown all plus unblock Dom0 access on host again.
+            # Bootstorm on all VMs again. Make sure Passthrough ones fail.
+                # What is the point of the negative case nested in here for?
+                # TCSwitchIntelGPUModes, should cover negative cases.
 
-        # Creating a GPU Passthrough clone on the blocked host.
-        passVM = masterVM.cloneVM()
-        self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[passConfig], passVM)
-        self.typeOfvGPU.installGuestDrivers(vm, self.getConfigurationName(config))
-
-        # Creating a vGPU clone (x2/3/7) on the other. (Max vms capable?)
-        vgpuVM = masterVM.cloneVM()
-        self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[vgpuConfig], vgpuVM)
-        # clone X times.
-
-        # Shutdown all
-
-        # Bootstorm all, preferably in parallel
-            # Need to use start(specifyOn=False), to avoid starting on specific hosts.
-
-        # Shutdown all plus unblock Dom0 access on host again.
-        # Bootstorm on all VMs again. Make sure Passthrough ones fail.
-            # What is the point of the negative case nested in here for?
-            # TCSwitchIntelGPUModes, should cover negative cases.
-        pass        
+    def bootstormStartVM(self, vm):
+        try:
+            name = vm.getName()
+            name = name.replace(" ", "\ ")
+            cmd = "xe vm-start vm=%s" % name
+            self.runAsync(self.host, cmd, timeout=3600, ignoreSSHErrors=False)
+        except Exception, e:
+            raise xenrt.XRTFailure("Failed to start vm %s - %s" % (vm.getName(), str(e)))
 
 class TCSwitchIntelGPUModes(IntelBase):
 
@@ -3544,11 +3569,8 @@ class TCSwitchIntelGPUModes(IntelBase):
             osType = self.getOSType(distro)
             masterVM = self.masterVMs[osType]
 
-            passConfig = None
-            vgpuConfig = None
-
             if not len(self.VGPU_CONFIG) == 2:
-                raise xenrt.XRTError("Need a config length of 2 for mixed vgpu/passthrough bootstorm.")
+                raise xenrt.XRTError("Need a config length of 2 for TCSwitchIntelGPUModes.")
 
             (passConfig, vgpuConfig) = self.VGPU_CONFIG
 

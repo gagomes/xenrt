@@ -228,10 +228,8 @@ class VGPUInstaller(object):
         if not selectedConfig:
             raise xenrt.XRTFailure("No selected configs found")
 
-        selectedConfig = selectedConfigs[0]
-        if VGPUConfig.K2PassThrough == self.__config or VGPUConfig.K1PassThrough == self.__config or VGPUConfig.PassThrough == self.__config:
-            selectedConfig = self.__TYPE_PT
-
+        if selectedConfig in vGPUTypes.keys():
+            return vGPUTypes[selectedConfig]
         raise xenrt.XRTFailure("No type of %s was found in %s" % (selectedConfig, str(vGPUTypes)))
 
     def createOnGuest(self, guest, groupUUID = None, replacevGPU=False):
@@ -3489,46 +3487,101 @@ class TCPoolIntelBootstorm(IntelBase):
 
     def run(self, arglist):
         # Need two configs at a time, might not be able to use inside run.
+        # Get from the seq file.
+        passConfig = None
+        vgpuConfig = None
 
         # Identify both hosts.
+        passHost = None
+        vgpuHost = None
+
         # Configure hosts. One needs to be blocked.
+        # Can set to not block on prepare.
+
+        self.typeOfvGPU.blockDom0Access(passHost)
+
 
         # Master vm
+
         # Creating a GPU Passthrough clone on the blocked host.
+        passVM = masterVM.cloneVM()
+        self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[passConfig], passVM)
+        self.typeOfvGPU.installGuestDrivers(vm, self.getConfigurationName(config))
+
         # Creating a vGPU clone (x2/3/7) on the other. (Max vms capable?)
+        vgpuVM = masterVM.cloneVM()
+        self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[vgpuConfig], vgpuVM)
+        # clone X times.
 
         # Shutdown all
-        # Bootstorm all
+
+        # Bootstorm all, preferably in parallel
+            # Need to use start(specifyOn=False), to avoid starting on specific hosts.
 
         # Shutdown all plus unblock Dom0 access on host again.
         # Bootstorm on all VMs again. Make sure Passthrough ones fail.
-            # What is the point of the negative case nested in here for? 
+            # What is the point of the negative case nested in here for?
+            # TCSwitchIntelGPUModes, should cover negative cases.
         pass        
 
 class TCSwitchIntelGPUModes(IntelBase):
 
     def run(self, arglist):
-        # get master.. loop over distros.
 
-        # Might not be able to use inside run if need two configs at the same time.
+        def __prepareVM(vm, config):
+            self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
+            self.typeOfvGPU.installGuestDrivers(vm, self.getConfigurationName(config))
+            self.typeOfvGPU.assertvGPURunningInVM(vm, self.getConfigurationName(config))
 
-        # create two VMs from master.
-        # setup vgpu on first vm, drivers + verify working etc.
+        def __tryStartVM(vm, error):
+            try:
+                vm.setState("UP")
+                raise xenrt.XRTFailure(error)
+            except:
+                pass
 
-        # shutdown vgpu vm, block dom0 access and reboot host.
+        for distro in self.REQUIRED_DISTROS:
+            osType = self.getOSType(distro)
+            masterVM = self.masterVMs[osType]
 
-        # setup gpu passthrough on the second vm, drivers + verify.
+            passConfig = None
+            vgpuConfig = None
 
-        # shutdown passthrough vm, and try to start vgpu vm (should fail).
+            if not len(self.VGPU_CONFIG) == 2:
+                raise xenrt.XRTError("Need a config length of 2 for mixed vgpu/passthrough bootstorm.")
 
-        # unblock dom0 access again, reboot host.
+            (passConfig, vgpuConfig) = self.VGPU_CONFIG
 
-        # start vgpu vm (should work fine).
+            # create two VMs from master.
+            masterVM.setState("DOWN")
+            passVM = masterVM.cloneVM()
+            vgpuVM = masterVM.cloneVM()
 
-        # shutdown vgpu vm, and try to start gpu passthrough vm (should fail.)
+            # setup vgpu on first vm, drivers + verify working etc.
+            __prepareVM(vgpuVM, vgpuConfig)
 
-        # leave host in a proper state.
-        pass
+            # shutdown vgpu vm, block dom0 access and reboot host.
+            vgpuVM.setState("DOWN")
+            self.typeOfvGPU.blockDom0Access(self.host)
+
+            # setup gpu passthrough on the second vm, drivers + verify.
+            __prepareVM(passVM, passConfig)
+
+            # shutdown passthrough vm, and try to start vgpu vm (should fail).
+            passVM.setState("DOWN")
+
+            __tryStartVM(vgpuVM, "Was able to start vgpu vm, when in gpu passthrough config mode.")
+
+            # unblock dom0 access again, reboot host.
+            self.typeOfvGPU.unblockDom0Access(self.host)
+
+            # start vgpu vm (should work fine).
+            vgpuVM.setState("UP")
+
+            # shutdown vgpu vm, and try to start gpu passthrough vm (should fail.)
+            vgpuVM.setState("DOWN")
+
+            __tryStartVM(passVM, "Was able to start passthrough vm, when in vgpu config mode.")
 
 class TCAlloModeK200NFS(VGPUAllocationModeBase):
 

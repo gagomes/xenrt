@@ -60,18 +60,25 @@
   <testsequence>
     <serial group="IntelvGPU">
 
-      <testcase id="testcases.xenserver.tc.vgpu.TCBasicVerifOfAllK2config">
+      <testcase id="testcases.xenserver.tc.vgpu.TCBasicVerifOfAllK2config" tc="TC-00000">
         <arg>distro=0,1,5,6,8</arg>
         <arg>typeofvgpu=intelwinvgpu</arg>
         <arg>blockdom0access=false</arg>
         <arg>vgpuconfig=13</arg>
       </testcase>
 
-      <testcase id="testcases.xenserver.tc.vgpu.TCIntelGPUReuse">
+      <testcase id="testcases.xenserver.tc.vgpu.TCIntelGPUReuse" tc="TC-00001">
         <arg>distro=0</arg>
         <arg>typeofvgpu=intelwinvgpu</arg>
         <arg>blockdom0access=false</arg>
         <arg>vgpuconfig=13</arg>
+      </testcase>
+
+      <testcase id="testcases.xenserver.tc.vgpu.TCSwitchIntelGPUModes" tc="TC-00002">
+        <arg>distro=0</arg>
+        <arg>typeofvgpu=intelwinvgpu</arg>
+        <arg>blockdom0access=false</arg>
+        <arg>vgpuconfig=12,13</arg>
       </testcase>
 
     </serial>

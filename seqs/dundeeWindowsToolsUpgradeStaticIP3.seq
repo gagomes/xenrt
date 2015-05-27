@@ -15,11 +15,13 @@
 
   <prepare>
     <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}">
+      <storage type="nfs" name="nfs" />
       <bridge name="internal"/>
       <vm name="win8-x86">
         <distro>win8-x86</distro>
         <memory>${GUESTMEMORY}</memory>
         <vcpus>${GUESTVCPUS}</vcpus>
+        <storage>nfs</storage>
         <network device="0"/>
         <network device="1" bridge="internal"/>
         <postinstall action="disableIPv6"/>
@@ -30,6 +32,7 @@
         <distro>win8-x64</distro>
         <memory>${GUESTMEMORY}</memory>
         <vcpus>${GUESTVCPUS}</vcpus>
+        <storage>nfs</storage>
         <network device="0"/>
         <network device="1" bridge="internal"/>
         <postinstall action="installDrivers"/>
@@ -39,6 +42,7 @@
         <distro>ws12-x64</distro>
         <memory>${GUESTMEMORY}</memory>
         <vcpus>${GUESTVCPUS}</vcpus>
+        <storage>nfs</storage>
         <network device="0"/>
         <network device="1" bridge="internal"/>
         <postinstall action="installDrivers"/>
@@ -48,6 +52,7 @@
         <distro>ws12core-x64</distro>
         <memory>${GUESTMEMORY}</memory>
         <vcpus>${GUESTVCPUS}</vcpus>
+        <storage>nfs</storage>
         <network device="0"/>
         <network device="1" bridge="internal"/>
         <postinstall action="disableIPv6"/>
@@ -58,6 +63,7 @@
         <distro>win81-x86</distro>
         <memory>${GUESTMEMORY}</memory>
         <vcpus>${GUESTVCPUS}</vcpus>
+        <storage>nfs</storage>
         <network device="0"/>
         <network device="1" bridge="internal"/>
         <postinstall action="installDrivers"/>
@@ -67,6 +73,7 @@
         <distro>win81-x64</distro>
         <memory>${GUESTMEMORY}</memory>
         <vcpus>${GUESTVCPUS}</vcpus>
+        <storage>nfs</storage>
         <network device="0"/>
         <network device="1" bridge="internal"/>
         <postinstall action="installDrivers"/>
@@ -76,6 +83,7 @@
         <distro>ws12r2-x64</distro>
         <memory>${GUESTMEMORY}</memory>
         <vcpus>${GUESTVCPUS}</vcpus>
+        <storage>nfs</storage>
         <network device="0"/>
         <network device="1" bridge="internal"/>
         <postinstall action="installDrivers"/>
@@ -85,6 +93,7 @@
         <distro>ws12r2core-x64</distro>
         <memory>${GUESTMEMORY}</memory>
         <vcpus>${GUESTVCPUS}</vcpus>
+        <storage>nfs</storage>
         <network device="0"/>
         <network device="1" bridge="internal"/>
         <postinstall action="installDrivers"/>

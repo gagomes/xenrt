@@ -3174,17 +3174,17 @@ exit /B 1
         g.recreateVIFs(newMACs=True)
         # Default IP to the first one we find unless g has managebridge or
         # managenetwork defined.
-        g.vifs = ((g.managenetwork or g.managebridge)
+        vifs = ((g.managenetwork or g.managebridge)
                 and g.getVIFs(network=g.managenetwork, \
                               bridge=g.managebridge).keys()
                 or g.vifs)
 
-        ips = filter(None, map(lambda (nic, vbridge, mac, ip):ip, g.vifs))
+        ips = filter(None, map(lambda (nic, vbridge, mac, ip):ip, vifs))
         if ips and not noIP:
             g.mainip = ips[0]
-        g.vifs.sort()
-        if g.use_ipv6 and g.vifs:
-            g.mainip = g.getIPv6AutoConfAddress(device=g.vifs[0][0])
+        vifs.sort()
+        if g.use_ipv6 and vifs:
+            g.mainip = g.getIPv6AutoConfAddress(device=vifs[0][0])
         elif g.mainip: 
             if re.match("169\.254\..*", g.mainip):
                 raise xenrt.XRTFailure("VM gave itself a link-local address.")

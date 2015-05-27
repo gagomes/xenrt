@@ -411,6 +411,7 @@ class Guest(xenrt.lib.libvirt.Guest):
             datastore="datastore1"
         command ='ovftool '
         command+='-ds=%s ' % datastore
+        command+='-n=%s ' % self.name
         command+='--net:"VM Network"="VM Network" --net:NS_NIC_1_1="VM Network" '
         command+='%s vi://%s:%s@%s/' % (file, "root", host.password, host.getIP())
         xenrt.command(command)

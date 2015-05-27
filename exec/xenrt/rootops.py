@@ -109,7 +109,7 @@ class MountNFS(Mount):
 
 class MountSMB(Mount):
     def __init__(self, smb, domain, username, password, retry=True):
-        Mount.__init__(self, "//%s" % smb.replace(":","/"), options="username=%s,password=%s,domain=%s" % (username, password, domain), mtype="cifs", retry=retry)
+        Mount.__init__(self, "//%s" % smb.replace(":/","/"), options="username=%s,password=%s,domain=%s" % (username, password, domain), mtype="cifs", retry=retry)
 
 def mountWinISO(distro):
     """Mount a Windows ISO globally for the controller"""

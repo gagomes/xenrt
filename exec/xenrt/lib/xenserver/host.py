@@ -12094,10 +12094,6 @@ class LVMStorageRepository(StorageRepository):
     SHARED = False
     CLEANUP = "destroy"
 
-    def __init__(self, host, name, thin_prov=True):
-        super(LVMStorageRepository, self).__init__(host, name)
-        self.thinProv = thin_prov
-
     def create(self, device, physical_size=0, content_type="", smconf={}):
         self._create("lvm", {"device":device}, physical_size, content_type, smconf)
 

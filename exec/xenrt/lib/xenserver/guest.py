@@ -6149,7 +6149,7 @@ class DundeeGuest(CreedenceGuest):
                     toolsTgz = xenrt.TEC().getFile(source)
 
                 if not toolsTgz:
-                    raise xenrt.XRTFailure("Failed to get Windows PV tools location")
+                    raise xenrt.XRTError("Failed to get Windows PV tools location")
 
                 self.xmlrpcSendFile(toolsTgz, "c:\\tools.tgz")
             else:
@@ -6343,6 +6343,7 @@ class DundeeGuest(CreedenceGuest):
         
         if self.checkWindowsPVUpdates():
             raise xenrt.XRTFailure("Windows PV updates Failed to be disabled on VM")
+
     def checkWindowsPVUpdates(self):
         """ Check whether the windows pv updates is enabled on the host"""
         

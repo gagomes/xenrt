@@ -415,3 +415,5 @@ class Guest(xenrt.lib.libvirt.Guest):
         command+='--net:"VM Network"="VM Network" --net:NS_NIC_1_1="VM Network" '
         command+='%s vi://%s:%s@%s/' % (file, "root", host.password, host.getIP())
         xenrt.command(command)
+        xenrt.sleep(10)
+        self.existing(host)

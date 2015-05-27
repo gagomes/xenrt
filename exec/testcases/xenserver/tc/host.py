@@ -5237,12 +5237,7 @@ class TCSwapPartition(xenrt.TestCase):
     
     def run(self, arglist):
         step("Fetch Size of Swap Partition")
-        (swapSize,swapUsed)= [float(i) for i in self.host.execdom0("free -m | grep Swap | awk '{print $2,$3}'").split(' ')]
-        #If dundee host, check is swap partition size is as expected
-        if isinstance(self.host, xenrt.lib.xenserver.DundeeHost):
-            expectedSwapSize =  float(self.host.getDom0Partitions()[6])/xenrt.MEGA
-            if expectedSwapSize  - swapSize > 2:
-                raise xenrt.XRTFailure("Found unexpected swap parttion size. Expected:%s Found:%s" % (expectedSwapSize , swapSize))
+        swapUsed= [float(i) for i in self.host.execdom0("free -m | grep Swap | awk '{print $3}'").split(' ')]
         
         step("Eat up memory by running a script")
         self.host.execdom0("yum --disablerepo=citrix --enablerepo=base,updates install -y gcc")

@@ -503,7 +503,6 @@ class Config(object):
         self.config["VERSION_CONFIG"]["MNR"]["LATEST_rhel4"] = "rhel48"
         self.config["VERSION_CONFIG"]["MNR"]["LATEST_rhel5"] = "rhel56"
         self.config["VERSION_CONFIG"]["MNR"]["LATEST_rhel6"] = "rhel6"
-        self.config["VERSION_CONFIG"]["MNR"]["DOM0_PARTITIONS"] = {1:4*xenrt.GIGA, 2:4*xenrt.GIGA, 3:"*"}
 
         # Cowley
         self.config["VERSION_CONFIG"]["Cowley"] = self.config["VERSION_CONFIG"]["MNR"]
@@ -861,6 +860,8 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Tampa"]["EXPECTED_CRASHDUMP_FILES"] = "xen-crashdump-analyser.log,xen.log,dom0.log"
         self.config["VERSION_CONFIG"]["Tampa"]["V6_DBV"] = "2010.0521"
         self.config["VERSION_CONFIG"]["Tampa"]["IDLE_VMs_DOM0_CPU_Utilize"] = "260"
+        # XenServer dom0 partitions
+        self.config["VERSION_CONFIG"]["Tampa"]["DOM0_PARTITIONS"] = {1:4*xenrt.GIGA, 2:4*xenrt.GIGA, 3:"*"}
         
         # CHECKME: Need to fix this (Tallahassee is rolled into Tampa)
         self.config["VERSION_CONFIG"]["Tampa"]["MAX_VDIS_PER_VM"] = "15"
@@ -949,6 +950,8 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Clearwater"]["LATEST_rhel4"] = "rhel48"
         self.config["VERSION_CONFIG"]["Clearwater"]["LATEST_rhel5"] = "rhel59"
         self.config["VERSION_CONFIG"]["Clearwater"]["LATEST_rhel6"] = "rhel64"
+        # XenServer dom0 partitions
+        self.config["VERSION_CONFIG"]["Clearwater"]["DOM0_PARTITIONS"] = {1:4*xenrt.GIGA, 2:4*xenrt.GIGA, 3:"*"}
 
         
         # Creedence
@@ -1184,6 +1187,8 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Creedence"]["LATEST_sl5"] = "sl511"
         self.config["VERSION_CONFIG"]["Creedence"]["LATEST_sl6"] = "sl66"
         self.config["VERSION_CONFIG"]["Creedence"]["LATEST_sl7"] = "sl71"
+        # XenServer dom0 partitions
+        self.config["VERSION_CONFIG"]["Creedence"]["DOM0_PARTITIONS"] = {1:4*xenrt.GIGA, 2:4*xenrt.GIGA, 3:"*"}
         
         # Cream
         self.config["VERSION_CONFIG"]["Cream"] = copy.deepcopy(self.config["VERSION_CONFIG"]["Creedence"])
@@ -1201,6 +1206,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Dundee"]["TEMPLATE_NAME_SDK"] = ""  # SDK not present in trunk
         self.config["VERSION_CONFIG"]["Dundee"]["MAX_VDIS_PER_SR_cifs"] = "600"
         self.config["VERSION_CONFIG"]["Dundee"]["MAX_ATTACHED_VDIS_PER_SR_cifs"] = "600"
+        # XenServer dom0 partitions
         self.config["VERSION_CONFIG"]["Dundee"]["DOM0_PARTITIONS"] = {1:18*xenrt.GIGA, 2:18*xenrt.GIGA, 3:"*", 4:511*xenrt.MEGA, 5:4*xenrt.GIGA, 6:1023*xenrt.MEGA}
 
         # Libvirt

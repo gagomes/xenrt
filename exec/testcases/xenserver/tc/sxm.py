@@ -1236,19 +1236,18 @@ class LiveMigrate(xenrt.TestCase):
             vm['VIF_NW_map'] = {}
             for vif in allVifs:
                 if self.test_config['use_vmsecnetwork']:
-                    nwuuid=host.genParamGet("vif",vif,"network-uuid").strip()
-                    nwname= host.genParamGet("network",nwuuid,"other-config","xenrtnetname")
-                    xenrt.TEC().logverbose("Network name for vif %s is %s"%(vif,nwname))
-                    if nwname =="NSEC":                                
-                        if len(destHost.listSecondaryNICs("NSEC")):
-                            pifs = {}
-                            pifs["NSEC"] = destHost.getNICPIF(destHost.listSecondaryNICs("NSEC")[0])
-                            secNWuuid = destHost.genParamGet("pif",pifs['NSEC'],"network-uuid").strip()
+                    vmNWuuid=host.genParamGet("vif",vif,"network-uuid").strip()
+                    vmNWname= host.genParamGet("network",vmNWuuid,"other-config","xenrtnetname")
+                    xenrt.TEC().logverbose("Network name for vif %s is %s"%(vif,vmNWname))
+                    if vmNWname =="NSEC":
+                        nsecList=destHost.listSecondaryNICs("NSEC")
+                        if nsecList:
+                            nsecPif=destHost.getNICPIF(nsecList[0])
+                            secNWuuid = destHost.genParamGet("pif",nsecPif,"network-uuid").strip()
                             xenrt.TEC().logverbose("Destination VIF %s set to NSEC network %s"%(vif,secNWuuid))
                             vm['VIF_NW_map'].update({vif:secNWuuid})
                         else:
-                            vm['VIF_NW_map'].update({vif:mainNWuuid})
-                            raise Exception("Destination VIF %s set to NPRI network %s.The guest will loose ip post cross-pool sxm as the network will change"%(vif,mainNWuuid))
+                            raise xenrt.XRTError("On destination host there is No NSEC network which can be assigned as destination network for migrating VM")
                 else:
                     xenrt.TEC().logverbose("Destination VIF %s set to NPRI network %s"%(vif,mainNWuuid))
                     vm['VIF_NW_map'].update({vif:mainNWuuid})

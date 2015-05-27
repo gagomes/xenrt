@@ -5237,7 +5237,7 @@ class TCSwapPartition(xenrt.TestCase):
     
     def run(self, arglist):
         step("Fetch Size of Swap Partition")
-        swapUsed= [float(i) for i in self.host.execdom0("free -m | grep Swap | awk '{print $3}'").split(' ')]
+        swapUsed= float(self.host.execdom0("free -m | grep Swap | awk '{print $3}'"))
         
         step("Eat up memory by running a script")
         self.host.execdom0("yum --disablerepo=citrix --enablerepo=base,updates install -y gcc")

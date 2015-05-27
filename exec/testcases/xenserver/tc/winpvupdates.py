@@ -17,10 +17,10 @@ class WindowsUpdateBase(xenrt.TestCase):
         self.args  = self.parseArgsKeyValue(arglist)
         self.host = self.getDefaultHost()
         self.remoteHost = self.getHost("RESOURCE_HOST_1")
-        self.Tools = None
+        self.tools = None
         
         if self.args.has_key('TOOLS'):
-            self.Tools = self.args['TOOLS']
+            self.tools = self.args['TOOLS']
 
         self.goldVM = self.host.getGuest(self.args['guest'])
         self.guest = self.cloneVM(self.goldVM)
@@ -127,7 +127,7 @@ class TCUpgWinCmp(WindowsUpdateBase):
     def run(self, arglist=None):
 
         step("Install Windows update compatible PV Drivers")
-        self.guest.installDrivers(source = self.Tools, pvPkgSrc = "ToolsISO")
+        self.guest.installDrivers(source = self.tools, pvPkgSrc = "ToolsISO")
         
         oldVersion = self.guest.getPVDriverVersion()
         
@@ -151,12 +151,12 @@ class TCUpgNonWinCmp(WindowsUpdateBase):
     def run(self, arglist=None):
 
         step("Install Non-Windows update compatible PV Drivers")
-        self.guest.installDrivers(source = self.Tools, pvPkgSrc = "ToolsISO")
+        self.guest.installDrivers(source = self.tools, pvPkgSrc = "ToolsISO")
         
         oldVersion = self.guest.getPVDriverVersion()
         
         step("Uninstall Non-Windows Update Compatible PV Drivers")
-        self.guest.uninstallDrivers(source = self.Tools)
+        self.guest.uninstallDrivers(source = self.tools)
         
         self.guest.lifecycleOperation("vm-shutdown", force=True)
         
@@ -178,7 +178,7 @@ class TCUpgToolsIso(WindowsUpdateBase):
     def run(self, arglist=None):
         
         step("Install the PV Drivers on the Windows Guest")
-        self.guest.installDrivers(source = self.Tools)
+        self.guest.installDrivers(source = self.tools)
         
         oldVersion = self.guest.getPVDriverVersion()
         
@@ -200,7 +200,7 @@ class TCPVDriverDwngrd(WindowsUpdateBase):
         oldVersion = self.guest.getPVDriverVersion()
         
         step("Try downgrading the tools with the older version of Tools ISO")
-        self.guest.installDrivers(source = self.Tools, pvPkgSrc = "ToolsISO")
+        self.guest.installDrivers(source = self.tools, pvPkgSrc = "ToolsISO")
         
         newVersion = self.guest.getPVDriverVersion()
         

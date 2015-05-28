@@ -27,7 +27,9 @@ def createVMFromFile(host,
                      memory=None,
                      suffix=None,
                      ips={},
-                     sr=None):
+                     sr=None,
+                     *args,
+                     **kwargs):
     if not isinstance(host, xenrt.GenericHost):
         host = xenrt.TEC().registry.hostGet(host)
     if suffix:

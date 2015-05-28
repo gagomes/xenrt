@@ -192,7 +192,7 @@ class GenericPlace(object):
     def getName(self):
         raise xenrt.XRTError("Unimplemented")
 
-    def paramGet(self, paramName):
+    def paramGet(self, paramName, paramKey=None):
         raise xenrt.XRTError("Unimplemented")
 
     def tailor(self):

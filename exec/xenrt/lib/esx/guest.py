@@ -410,10 +410,10 @@ class Guest(xenrt.lib.libvirt.Guest):
             ovftool=xenrt.TEC().getFile("http://10.102.123.140/misc/VMware-ovftool-4.1.0-2459827-lin.x86_64.bundle")
             xenrt.command("sudo sh %s --eulas-agreed --regular --required"% ovftool)
         if not sr:
-            sr="datastore1"
-        command ='ovftool '
-        command+='-ds=%s ' % sr
+            sr=host.getDefaultDatastore()
+        command ='ovftool --noSSLVerify '
         command+='-n=%s ' % self.name
+        command+='-ds=%s ' % sr
         command+='--net:"VM Network"="VM Network" --net:NS_NIC_1_1="VM Network" ' # TODO - remove hard coding for network
         command+='%s vi://%s:%s@%s/' % (file, "root", host.password, host.getIP())
         xenrt.command(command)

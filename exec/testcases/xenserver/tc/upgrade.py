@@ -3402,23 +3402,20 @@ class ADUpgradeAuthentication(_FeatureOperationAfterUpgrade):
             self.authserver.getSubject(name="ADPBISgroup2"), "pool-admin")
        
     def featureTest(self):
-        for host in self.poolsToUpgrade[0].getHosts():
-            host.setDNSServer(self.authserver.place.getIP())
-            
+        
         # Add extra user(s) to the subject-list
         for user in self.ADDREMOVEUSERS:
             self.poolsToUpgrade[0].allow(\
                 self.authserver.getSubject(name=user), "pool-admin")
             try:
                 xenrt.TEC().logverbose("Adding role by self")
-                #self.poolsToUpgrade[0].addRole(self.authserver.getSubject(name=user), "pool-admin")
                 uuid = self.poolsToUpgrade[0].master.getSubjectUUID(self.authserver.getSubject(name=user))
-                cli_role = self.poolsToUpgrade[0].getCLIInstance()
-                args_addrole = []
-                args_addrole.append("role-name='pool-admin'")
-                args_addrole.append("uuid=%s" % (uuid))
+                cliRole = self.poolsToUpgrade[0].getCLIInstance()
+                argsAddrole = []
+                argsAddrole.append("role-name='pool-admin'")
+                argsAddrole.append("uuid=%s" % (uuid))
                 xenrt.TEC().logverbose("Executing CLI command to add role by self")
-                cli_role.execute("subject-role-add", string.join(args_addrole),\
+                cliRole.execute("subject-role-add", string.join(args_addrole),\
                     username="root",password=self.poolsToUpgrade[0].master.password)
                 xenrt.TEC().logverbose("adding role to the queue thingy")
                 self.authserver.getSubject(name=user).roles.add("pool-admin")

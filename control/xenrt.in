@@ -728,7 +728,7 @@ class XenRTMList2(XenRTCommand):
                     status = "(%d)" % machines[m]['jobid']
 
                 if show == "Resources":
-                    comment = "/".join(machines[m]['resources'])
+                    comment = "/".join([k + "=" + v for k, v in machines[m]['resources'].iteritems()])
                 elif show == "Properties":
                     comment = ",".join(machines[m]['flags'])
                 elif show == "Description":

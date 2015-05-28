@@ -1,0 +1,127 @@
+<xenrt>
+  <variables>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+  </variables>
+  <scheduler>
+    <resources>memory&gt;=20G/disk1&gt;=140G</resources>
+    <param>MACHINES_REQUIRED=2</param>
+    <flags>nfs,privvlan,staticip</flags>
+  </scheduler>
+
+  <default name="THREADS" value="2"/>
+  <default name="INSTANCES" value="4"/>
+
+  <prepare>
+    <cloud>
+{
+    "zones": [
+        {
+            "name": "XenRT-Zone-0",
+            "networktype": "Advanced",
+            "guestcidraddress": "192.168.192.0/20",
+            "pods": [
+                {
+                    "name": "XenRT-Zone-0-Pod-0",
+                    "XRT_PodIPRangeSize": 5,
+                    "clusters": [
+                        {
+                            "name": "XenRT-Zone-0-Pod-0-Cluster-0",
+                            "hypervisor": "XenServer",
+                            "XRT_Hosts": 2
+                        }
+                    ]
+                }
+            ],
+            "ipranges": [
+                {
+                    "XRT_GuestIPRangeSize": 10
+                }
+            ],
+            "physical_networks": [
+                {
+                    "name": "AdvPhyNetwork0",
+                    "isolationmethods": [
+                        "VLAN"
+                    ],
+                    "XRT_VLANRangeSize": 2,
+                    "traffictypes": [
+                        {
+                            "typ": "Guest"
+                        },
+                        {
+                            "typ": "Management"
+                        },
+                        {
+                            "typ": "Public"
+                        }
+                    ],
+                    "providers": [
+                        {
+                            "broadcastdomainrange": "ZONE",
+                            "name": "VirtualRouter"
+                        },
+                        {
+                            "broadcastdomainrange": "ZONE",
+                            "name": "VpcVirtualRouter"
+                        },
+                        {
+                            "broadcastdomainrange": "ZONE",
+                            "name": "InternalLbVm"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
+</cloud>
+    <sharedhost>
+      <vm name="CS-MS">
+        <distro>rhel63</distro>
+        <arch>x86-64</arch>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installCloudManagementServer" />
+        <network device="0" />
+        <disk device="0" size="12" />
+      </vm>
+    </sharedhost>
+  </prepare>
+  
+<testsequence>
+    <testcase id="cloud.tc.xdscalability.TCXenDesktopCloneVMs">
+      <arg>instances=${INSTANCES}</arg>
+      <arg>threads=${THREADS}</arg>
+    </testcase>
+    <testcase id="cloud.tc.xdscalability.TCScaleVMXenDesktopStart">
+      <arg>threads=${THREADS}</arg>
+    </testcase>
+    <testcase id="cloud.tc.xdscalability.TCScaleVMXenDesktopReboot">
+      <arg>threads=${THREADS}</arg>
+      <arg>iterations=2</arg>
+    </testcase>
+    <testcase id="cloud.tc.xdscalability.TCScaleVMXenDesktopShutdown">
+      <arg>threads=${THREADS}</arg>
+    </testcase>
+    <testcase id="cloud.tc.xdscalability.TCScaleVMXenDesktopStart" name="Start2">
+      <arg>threads=${THREADS}</arg>
+    </testcase>
+    <testcase id="cloud.tc.xdscalability.TCScaleVMXenDesktopShutdown" name="Shutdown2">
+      <arg>threads=${THREADS}</arg>
+    </testcase>
+    <testcase id="cloud.tc.xdscalability.TCScaleVMXenDesktopUpdate">
+      <arg>threads=${THREADS}</arg>
+    </testcase>
+    <testcase id="cloud.tc.xdscalability.TCScaleVMXenDesktopStart" name="Start3">
+      <arg>threads=${THREADS}</arg>
+    </testcase>
+    <testcase id="cloud.tc.xdscalability.TCScaleVMXenDesktopShutdown" name="Shutdown3">
+      <arg>threads=${THREADS}</arg>
+    </testcase>
+    <testcase id="cloud.tc.xdscalability.TCScaleVMXenDesktopDelete">
+      <arg>threads=${THREADS}</arg>
+    </testcase>
+  </testsequence>
+</xenrt>
+

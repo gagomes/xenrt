@@ -205,7 +205,17 @@ def createHost(id=0,
     if productVersion:
         hosttype = productVersion
     else:
-        hosttype = xenrt.TEC().lookup("PRODUCT_VERSION", "Orlando")
+        fn = xenrt.TEC().getFile("%s/xe-phase-1/globals" % xenrt.TEC().getInputDir(), "%s/globals" % xenrt.TEC().getInputDir())
+        if fn:
+            for l in open(fn).xreadlines():
+                m = re.match('^PRODUCT_VERSION="(.+)"', l)
+                if m:
+                    hosttype = xenrt.TEC().lookup(["PRODUCT_CODENAMES", m.group(1)], None)
+                    if hosttype:
+                        break
+        if not hosttype:
+            hosttype = xenrt.TEC().lookup("PRODUCT_VERSION", "Orlando")
+            
     host = xenrt.lib.xenserver.hostFactory(hosttype)(m,
                                                      productVersion=hosttype)
 

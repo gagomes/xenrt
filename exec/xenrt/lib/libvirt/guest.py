@@ -8,7 +8,7 @@
 # conditions as licensed by XenSource, Inc. All other rights reserved.
 #
 
-import re, time, socket, string, xml.dom.minidom, IPy
+import os, re, time, socket, string, xml.dom.minidom, IPy
 
 import xenrt
 import libvirt
@@ -37,8 +37,20 @@ def createVMFromFile(host,
     guest.imported = True
     guest.ips = ips
 
-    guest.importVM(host, xenrt.TEC().getFile(filename), sr=sr)
+    file=xenrt.TEC().getFile(filename)
+    if file.endswith(".zip"):
+        fileDir=xenrt.TEC().tempDir()
+        xenrt.command("unzip -o %s -d %s" % (file,fileDir))
+        for root, dirs, files in os.walk(fileDir):
+            files = [fi for fi in files if fi.endswith((".ovf",".ova"))]
+            if files:
+                file=fileDir+"/"+files[0]
+            else:
+                raise xenrt.XRTError("Unknown VM containter type inside zip")
 
+    guest.importVM(host, file, sr=sr)
+
+    guest.password = None
     guest.tailored = True
     if memory:
         guest.memset(memory)

@@ -1,17 +1,13 @@
 <xenrt>
-
   <default name="GUESTMEMORY" value="512" />
   <default name="GUESTVCPUS" value="2" />
   <default name="GUESTVERSION" value="ws08sp2-x86" />
   <default name="GUESTDISK" value="16384" />
   <default name="GUESTDISKLIN" value="5120" />
   <default name="PAIRSPERHOST" value="A,B,C" />
-  <default name="LINUXINSTALLPAR" value="2" />
   <default name="HOSTPAIRS" value="(0,1),(1,2),(2,3),(3,0)" />
-  <default name="OPTION_EMBEDDED" value="no" />
-  <default name="GUESTDISTRO" value="rhel57" />
+  <default name="GUESTDISTRO" value="rhel511" />
   <default name="GUESTARCH" value="x86-32" />
-  <default name="TCID" value="TC-11007" />
   <default name="POOLSTRESSSNAP" value="20" />
   <default name="DURATION" value="NA" />
   <default name="ITERATIONS" value="450" />
@@ -20,14 +16,8 @@
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
     <EXTRA_TIME>yes</EXTRA_TIME>
     <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
-    <PREPARE_WORKERS>2</PREPARE_WORKERS>
     <OPTION_CLONE_TEMPLATE>yes</OPTION_CLONE_TEMPLATE>
   </variables>
-
-  <semaphores>
-    <TCDebianInstall count="${LINUXINSTALLPAR}" />
-    <TCVendorInstall count="${LINUXINSTALLPAR}" />
-  </semaphores>
 
   <prepare>
     <pool>
@@ -50,112 +40,62 @@
     </pool>
   </prepare>
 
-  <collection name="commonops">
-    <testcase id="xenserver.guest.TCLifeCycleLoop">
-      <arg>guest=${GUESTNAME}</arg>
-      <arg>duration=${DURATION}</arg>
-      <arg>iterations=${ITERATIONS}</arg>
-      <arg>snap=${POOLSTRESSSNAP}</arg>
-      <arg>peerhost=${OTHERHOST}</arg>
-    </testcase>
-  </collection>
-
-  <collection name="debguest">
-    <serial>
-      <testcase id="xenserver.guest.TCXenServerDebianInstall" name="TCDebianInstall">
-        <arg>${HOSTNAME}</arg>
-        <arg>guest=${GUESTNAME}</arg>
-        <arg>memory=${GUESTMEMORY}</arg>
-        <arg>vcpus=${GUESTVCPUS}</arg>
-      </testcase>
-      <include collection="commonops" />
-      <finally>
-        <testcase id="guestops.basic.TCShutdown">
-          <arg>guest=${GUESTNAME}</arg>
-          <arg>again</arg>
-        </testcase>
-      </finally>
-    </serial>
-  </collection>
-
-  <collection name="rhelguest">
-    <serial>
-      <testcase id="xenserver.guest.TCXenServerVendorInstall" name="TCVendorInstall">
-        <arg>${HOSTNAME}</arg>
-        <arg>guest=${GUESTNAME}</arg>
-        <arg>version=${GUESTDISTRO}</arg>
-        <arg>arch=${GUESTARCH}</arg>
-        <arg>memory=${GUESTMEMORY}</arg>
-        <arg>vcpus=${GUESTVCPUS}</arg>
-        <arg>disksize=${GUESTDISKLIN}</arg>
-      </testcase>
-      <include collection="commonops" />
-      <finally>
-        <testcase id="guestops.basic.TCShutdown">
-          <arg>guest=${GUESTNAME}</arg>
-          <arg>again</arg>
-        </testcase>
-      </finally>
-    </serial>
-  </collection>
-
-  <collection name="winguest">
-    <serial>
-      <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="TCWindowsInstall">
-        <arg>${HOSTNAME}</arg>
-        <arg>guest=${GUESTNAME}</arg>
-        <arg>version=${GUESTVERSION}</arg>
-        <arg>memory=${GUESTMEMORY}</arg>
-        <arg>vcpus=${GUESTVCPUS}</arg>
-        <arg>disksize=${GUESTDISK}</arg>
-      </testcase>
-      <testcase id="guestops.drivers.TCDriverInstall">
-        <arg>guest=${GUESTNAME}</arg>
-      </testcase>
-      <include collection="commonops" />
-      <finally>
-        <testcase id="guestops.basic.TCShutdown">
-          <arg>guest=${GUESTNAME}</arg>
-          <arg>again</arg>
-        </testcase>
-      </finally>
-    </serial>
-  </collection>
-
   <testsequence>
-
-    <!-- Install guests on each host -->
-
-    <parallel tc="${TCID}">
+    <parallel>
       <for iter="P,S" values="${HOSTPAIRS}">
         <for iter="C" values="${PAIRSPERHOST}">
           <serial group="iSCSI.LinuxGuest.${P}${C}">
-            <ifin item="${GUESTDISTRO}" list="etch,sarge,debian,debian50">
-              <include collection="debguest">
-                <param name="HOSTNAME" value="RESOURCE_HOST_${P}" />
-                <param name="OTHERHOST" value="RESOURCE_HOST_${S}" />
-                <param name="GUESTNAME" value="debguest${P}${C}" />
-              </include>
-            </ifin>
-            <ifnotin item="${GUESTDISTRO}" list="etch,sarge,debian,debian50">
-              <include collection="rhelguest">
-                <param name="HOSTNAME" value="RESOURCE_HOST_${P}" />
-                <param name="OTHERHOST" value="RESOURCE_HOST_${S}" />
-                <param name="GUESTNAME" value="rhguest${P}${C}" />
-              </include>
-            </ifnotin>
+            <testcase id="xenserver.guest.TCXenServerVendorInstall" tc="TC-11007" name="Install.Lin${P}${C}" sku="Install.Lin${P}${C}">
+              <arg>RESOURCE_HOST_${P}</arg>
+              <arg>guest=rhguest${P}${C}</arg>
+              <arg>version=${GUESTDISTRO}</arg>
+              <arg>arch=${GUESTARCH}</arg>
+              <arg>memory=${GUESTMEMORY}</arg>
+              <arg>vcpus=${GUESTVCPUS}</arg>
+              <arg>disksize=${GUESTDISKLIN}</arg>
+            </testcase>
+            <testcase id="xenserver.guest.TCLifeCycleLoop" tc="TC-11007" name="LifeCycle.Lin${P}${C}" sku="LifeCycle.Lin${P}${C}">
+              <arg>guest=rhguest${P}${C}</arg>
+              <arg>duration=${DURATION}</arg>
+              <arg>iterations=${ITERATIONS}</arg>
+              <arg>snap=${POOLSTRESSSNAP}</arg>
+              <arg>peerhost=RESOURCE_HOST_${S}</arg>
+            </testcase>
+            <finally>
+              <testcase id="guestops.basic.TCShutdown">
+                <arg>guest=rhguest${P}${C}</arg>
+                <arg>again</arg>
+              </testcase>
+            </finally>
           </serial>
           <serial group="iSCSI.WindowsGuest.${P}${C}">
-            <include collection="winguest">
-              <param name="HOSTNAME" value="RESOURCE_HOST_${P}" />
-              <param name="OTHERHOST" value="RESOURCE_HOST_${S}" />
-              <param name="GUESTNAME" value="winguest${P}${C}" />
-            </include>
+            <testcase id="xenserver.guest.TCXenServerWindowsInstall" tc="TC-11007" name="Install.Win${P}${C}" sku="Install.Win${P}${C}">
+              <arg>RESOURCE_HOST_${P}</arg>
+              <arg>guest=winguest${P}${C}</arg>
+              <arg>version=${GUESTVERSION}</arg>
+              <arg>memory=${GUESTMEMORY}</arg>
+              <arg>vcpus=${GUESTVCPUS}</arg>
+              <arg>disksize=${GUESTDISK}</arg>
+            </testcase>
+            <testcase id="guestops.drivers.TCDriverInstall" tc="TC-11007" name="DriverInstall.Win${P}${C}" sku="DriverInstall.Win${P}${C}">
+              <arg>guest=winguest${P}${C}</arg>
+            </testcase>
+            <testcase id="xenserver.guest.TCLifeCycleLoop" tc="TC-11007" name="LifeCycle.Win${P}${C}" sku="LifeCycle.Win${P}${C}">
+              <arg>guest=winguest${P}${C}</arg>
+              <arg>duration=${DURATION}</arg>
+              <arg>iterations=${ITERATIONS}</arg>
+              <arg>snap=${POOLSTRESSSNAP}</arg>
+              <arg>peerhost=RESOURCE_HOST_${S}</arg>
+            </testcase>
+            <finally>
+              <testcase id="guestops.basic.TCShutdown">
+                <arg>guest=winguest${P}${C}</arg>
+                <arg>again</arg>
+              </testcase>
+            </finally>
           </serial>
         </for>
       </for>
     </parallel>
-
   </testsequence>
-
 </xenrt>

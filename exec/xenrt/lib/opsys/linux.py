@@ -71,7 +71,10 @@ class LinuxOS(OS):
                                      port=self.parent.getPort(trafficType="SSH"))
 
     def populateFromExisting(self):
-        self.findPassword()
+        if self.parent.getPowerState() != xenrt.PowerState.up:
+            self.password = xenrt.TEC().lookup("ROOT_PASSWORD")
+        else:
+            self.findPassword()
 
     def findPassword(self, ipList=[]):
         """Try some passwords to determine which to use"""
@@ -146,10 +149,13 @@ class LinuxOS(OS):
     def defaultMemory(self):
         return 256
 
-    def assertHealthy(self):
-        # Wait for basic SSH access
-        self.waitForSSH(timeout=180)
-        stampFile = "/tmp/healthy"
-        self.execSSH("dd if=/dev/urandom oflag=direct of=%s count=1024"
-                      % stampFile)
-        self.execSSH("dd if=%s iflag=direct of=/dev/null" % stampFile)
+    def assertHealthy(self, quick=False):
+        if self.parent.getPowerState() == xenrt.PowerState.up:
+            # Wait for basic SSH access
+            self.waitForSSH(timeout=180)
+            if quick:
+                return
+            stampFile = "/tmp/healthy"
+            self.execSSH("dd if=/dev/urandom oflag=direct of=%s count=1024"
+                          % stampFile)
+            self.execSSH("dd if=%s iflag=direct of=/dev/null" % stampFile)

@@ -121,7 +121,8 @@ class XLToolstack(object):
                        startOn=None,
                        installTools=True,
                        useTemplateIfAvailable=True,
-                       hypervisorType=xenrt.HypervisorType.xen):
+                       hypervisorType=xenrt.HypervisorType.xen,
+                       start=True):
 
         if hypervisorType != xenrt.HypervisorType.xen:
             raise xenrt.XRTError("XL only supports the Xen hypervisor")
@@ -135,6 +136,9 @@ class XLToolstack(object):
             self._createInstanceISO(instance, startOn)
         else:
             raise xenrt.XRTError("Specified instance does not have a supported install method")
+
+        if not start:
+            instance.stop()
 
         # TODO: tools?
         return instance

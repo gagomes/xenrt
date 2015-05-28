@@ -1,7 +1,7 @@
 <xenrt>
   <variables>
     <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
-    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
   </variables>
   <scheduler>
     <resources>memory&gt;=20G/disk1&gt;=140G</resources>

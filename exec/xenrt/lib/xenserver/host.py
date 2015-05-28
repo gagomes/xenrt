@@ -207,10 +207,10 @@ def createHost(id=0,
     else:
         fn = xenrt.TEC().getFile("%s/xe-phase-1/globals" % xenrt.TEC().getInputDir(), "%s/globals" % xenrt.TEC().getInputDir())
         if fn:
-            for l in open(fn).xreadlines():
-                m = re.match('^PRODUCT_VERSION="(.+)"', l)
-                if m:
-                    hosttype = xenrt.TEC().lookup(["PRODUCT_CODENAMES", m.group(1)], None)
+            for line in open(fn).xreadlines():
+                match = re.match('^PRODUCT_VERSION="(.+)"', line)
+                if match:
+                    hosttype = xenrt.TEC().lookup(["PRODUCT_CODENAMES", match.group(1)], None)
                     if hosttype:
                         break
         if not hosttype:

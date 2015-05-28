@@ -13,9 +13,44 @@ import re, time, socket, string, xml.dom.minidom, IPy
 import xenrt
 import libvirt
 
-__all__ = ["createVM",
+__all__ = ["createVMFromFile",
+           "createVM",
            "Guest",
            "tryupto"]
+
+def createVMFromFile(host,
+                     guestname,
+                     filename,
+                     postinstall=[],
+                     packages=[],
+                     memory=None,
+                     suffix=None,
+                     ips={},
+                     sr=None):
+    if not isinstance(host, xenrt.GenericHost):
+        host = xenrt.TEC().registry.hostGet(host)
+    if suffix:
+        displayname = "%s-%s" % (guestname, suffix)
+    else:
+        displayname = guestname
+    guest = host.guestFactory()(displayname, host=host)
+    guest.imported = True
+    guest.ips = ips
+
+    guest.importVM(host, xenrt.TEC().getFile(filename), sr=sr)
+
+    guest.tailored = True
+    if memory:
+        guest.memset(memory)
+    xenrt.TEC().registry.guestPut(guestname, guest)
+    for p in postinstall:
+        if "(" in p:
+            eval("guest.%s" % (p))
+        else:
+            eval("guest.%s()" % (p))
+    if packages:
+        guest.installPackages(packages)
+    return guest
 
 def createVM(host,
              guestname,

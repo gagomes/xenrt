@@ -12,10 +12,12 @@ import re, xml.dom.minidom
 import xenrt
 import libvirt
 
-__all__ = ["createVM",
+__all__ = ["createVMFromFile",
+           "createVM",
            "Guest"]
 
 createVM = xenrt.lib.libvirt.createVM
+createVMFromFile = xenrt.lib.libvirt.createVMFromFile
 
 class Guest(xenrt.lib.libvirt.Guest):
     DEFAULT = -10
@@ -399,7 +401,7 @@ class Guest(xenrt.lib.libvirt.Guest):
         for sleepType in ["monitor", "disk", "standby", "hibernate"]:
             self.xmlrpcExec("powercfg -change -%s-timeout-ac 0" % (sleepType))
 
-    def importVM(self, host, file, datastore=None):
+    def importVM(self, host, file, sr=None):
         """
         file is be an absolute path on site controller of type *.ovf or *.ova, which is to be imported.
         """
@@ -407,10 +409,10 @@ class Guest(xenrt.lib.libvirt.Guest):
         if ovftoolVersion==1:
             ovftool=xenrt.TEC().getFile("http://10.102.123.140/misc/VMware-ovftool-4.1.0-2459827-lin.x86_64.bundle")
             xenrt.command("sudo sh %s --eulas-agreed --regular --required"% ovftool)
-        if not datastore:
-            datastore="datastore1"
+        if not sr:
+            sr="datastore1"
         command ='ovftool '
-        command+='-ds=%s ' % datastore
+        command+='-ds=%s ' % sr
         command+='-n=%s ' % self.name
         command+='--net:"VM Network"="VM Network" --net:NS_NIC_1_1="VM Network" '
         command+='%s vi://%s:%s@%s/' % (file, "root", host.password, host.getIP())

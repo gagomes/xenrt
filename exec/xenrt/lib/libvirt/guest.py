@@ -23,6 +23,7 @@ def createVMFromFile(host,
                      filename,
                      postinstall=[],
                      packages=[],
+                     vcpus=None,
                      memory=None,
                      suffix=None,
                      ips={},
@@ -52,6 +53,8 @@ def createVMFromFile(host,
 
     guest.password = None
     guest.tailored = True
+    if vcpus:
+        guest.cpuset(vcpus)
     if memory:
         guest.memset(memory)
     xenrt.TEC().registry.guestPut(guestname, guest)

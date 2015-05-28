@@ -187,7 +187,7 @@ class _TCScaleVMOp(_TimedTestCase):
 
     def verifyVM(self, vm):
         vm.assertHealthy(quick=True)
-        if vm.special.get("gold2"):
+        if vm.special.get("gold2") and vm.getPowerState() == xenrt.PowerState.up:
             vm.os.execSSH("test -e /root/gold2")
 
     def doVMWorker(self, func):

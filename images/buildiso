@@ -16,18 +16,18 @@ set -e
 PASSWORD="xensource"
 
 # Versions using SSH instead of SFU.
-NOSFU=${NOSFU:-"longhorn vistaee vistaeesp1 w2k3ee-x64 w2k3eesp2-x64 vistaee-x64 vistaeesp1-x64 ws08-x86 ws08-x64 ws08dc-x86 ws08dc-x64 win7-x86 win7-x64 win7sp1-x86 win7sp1-x64 win8-x86 win8-x64 win81-x86 win81-x64 ws08r2-x64 ws08r2sp1-x64 ws08r2dc-x64 vistaeesp2 vistaeesp2-x64 ws08sp2-x86 ws08sp2-x64 ws08dcsp2-x86 ws08dcsp2-x64 ws08r2dcsp1-x64 ws12-x64 ws12core-x64 ws12r2-x64 ws12r2core-x64 hvs12r2-x64 ws12r2u0-x64 ws12r2u0core-x64 ws12r2u1-x64 ws12r2u1core-x64 win81u0-x86 win81u0-x64  win81u1-x86 win81u1-x64 win10-x86 win10-x64"}
+NOSFU=${NOSFU:-"longhorn vistaee vistaeesp1 w2k3ee-x64 w2k3eesp2-x64 vistaee-x64 vistaeesp1-x64 ws08-x86 ws08-x64 ws08dc-x86 ws08dc-x64 win7-x86 win7-x64 win7sp1-x86 win7sp1-x64 win8-x86 win8-x64 win81-x86 win81-x64 ws08r2-x64 ws08r2sp1-x64 ws08r2dc-x64 vistaeesp2 vistaeesp2-x64 ws08sp2-x86 ws08sp2-x64 ws08dcsp2-x86 ws08dcsp2-x64 ws08r2dcsp1-x64 ws12-x64 ws12core-x64 ws12r2-x64 ws12r2core-x64 hvs12r2-x64 ws12r2u0-x64 ws12r2u0core-x64 ws12r2u1-x64 ws12r2u1core-x64 win81u0-x86 win81u0-x64  win81u1-x86 win81u1-x64 win10-x86 win10-x64 ws10-x64"}
 
 # Versions using the new XML style autoinstall scripts.
-XML="longhorn vistaee vistaeesp1 vistaee-x64 vistaeesp1-x64 ws08-x86 ws08-x64 ws08dc-x86 ws08dc-x64 win7-x86 win7-x64 win7sp1-x86 win7sp1-x64 win8-x86 win8-x64 win81-x86 win81-x64 ws08r2-x64 ws08r2sp1-x64 ws08r2dc-x64 vistaeesp2 vistaeesp2-x64 ws08sp2-x86 ws08sp2-x64 ws08dcsp2-x86 ws08dcsp2-x64 ws08r2dcsp1-x64 ws12-x64 ws12core-x64 ws12r2-x64 ws12r2core-x64 hvs12r2-x64 ws12r2u0-x64 ws12r2u0core-x64 ws12r2u1-x64 ws12r2u1core-x64 win81u0-x86 win81u0-x64 win81u1-x86 win81u1-x64 win10-x86 win10-x64"
+XML="longhorn vistaee vistaeesp1 vistaee-x64 vistaeesp1-x64 ws08-x86 ws08-x64 ws08dc-x86 ws08dc-x64 win7-x86 win7-x64 win7sp1-x86 win7sp1-x64 win8-x86 win8-x64 win81-x86 win81-x64 ws08r2-x64 ws08r2sp1-x64 ws08r2dc-x64 vistaeesp2 vistaeesp2-x64 ws08sp2-x86 ws08sp2-x64 ws08dcsp2-x86 ws08dcsp2-x64 ws08r2dcsp1-x64 ws12-x64 ws12core-x64 ws12r2-x64 ws12r2core-x64 hvs12r2-x64 ws12r2u0-x64 ws12r2u0core-x64 ws12r2u1-x64 ws12r2u1core-x64 win81u0-x86 win81u0-x64 win81u1-x86 win81u1-x64 win10-x86 win10-x64 ws10-x64"
 
 VIRIDIAN="070417 070306"
 
 # Versions using a UDF filesystem on the ISO.
-UDF="vistaee vistaee-x64 vistaeesp1 vistaeesp1-x64 ws08-x86 ws08-x64 ws08dc-x86 ws08dc-x64 win7-x86 win7-x64 win7sp1-x86 win7sp1-x64 win8-x86 win8-x64 win81-x86 win81-x64 ws08r2-x64 ws08r2sp1-x64 ws08r2dc-x64 vistaeesp2 vistaeesp2-x64 ws08sp2-x86 ws08sp2-x64 ws08dcsp2-x86 ws08dcsp2-x64 ws08r2dcsp1-x64 ws12-x64 ws12core-x64 ws12r2-x64 ws12r2core-x64 hvs12r2-x64 ws12r2u0-x64 ws12r2u0core-x64 ws12r2u1-x64 ws12r2u1core-x64 win81u0-x86 win81u0-x64 win81u1-x86 win81u1-x64 win10-x86 win10-x64"
+UDF="vistaee vistaee-x64 vistaeesp1 vistaeesp1-x64 ws08-x86 ws08-x64 ws08dc-x86 ws08dc-x64 win7-x86 win7-x64 win7sp1-x86 win7sp1-x64 win8-x86 win8-x64 win81-x86 win81-x64 ws08r2-x64 ws08r2sp1-x64 ws08r2dc-x64 vistaeesp2 vistaeesp2-x64 ws08sp2-x86 ws08sp2-x64 ws08dcsp2-x86 ws08dcsp2-x64 ws08r2dcsp1-x64 ws12-x64 ws12core-x64 ws12r2-x64 ws12r2core-x64 hvs12r2-x64 ws12r2u0-x64 ws12r2u0core-x64 ws12r2u1-x64 ws12r2u1core-x64 win81u0-x86 win81u0-x64 win81u1-x86 win81u1-x64 win10-x86 win10-x64 ws10-x64"
 
 # 64-bit versions.
-AMD64="longhorn w2k3ee-x64 w2k3eesp2-x64 vistaee-x64 vistaeesp1-x64 ws08-x64 ws08dc-x64 winxpsp2-x64 win7-x64 win7sp1-x64 win8-x64 win81-x64 ws08r2-x64 ws08r2sp1-x64 ws08r2dc-x64 vistaeesp2-x64 ws08sp2-x64 ws08dcsp2-x64 ws08r2dcsp1-x64 ws12-x64 ws12core-x64 ws12r2-x64 ws12r2core-x64 hvs12r2-x64 ws12r2u0-x64 ws12r2u0core-x64 ws12r2u1-x64 ws12r2u1core-x64 win81u0-x64 win81u1-x64 win10-x64"
+AMD64="longhorn w2k3ee-x64 w2k3eesp2-x64 vistaee-x64 vistaeesp1-x64 ws08-x64 ws08dc-x64 winxpsp2-x64 win7-x64 win7sp1-x64 win8-x64 win81-x64 ws08r2-x64 ws08r2sp1-x64 ws08r2dc-x64 vistaeesp2-x64 ws08sp2-x64 ws08dcsp2-x64 ws08r2dcsp1-x64 ws12-x64 ws12core-x64 ws12r2-x64 ws12r2core-x64 hvs12r2-x64 ws12r2u0-x64 ws12r2u0core-x64 ws12r2u1-x64 ws12r2u1core-x64 win81u0-x64 win81u1-x64 win10-x64 ws10-x64"
 
 MULTIACTIVATIONKEY="ws08r2-x64 ws08r2sp1-x64 ws08r2dc-x64 ws08r2dcsp1-x64 ws08-x86 ws08-x64 ws08dc-x86 ws08dc-x64 ws08sp2-x86 ws08sp2-x64 ws08dcsp2-x86 ws08dcsp2-x64 win8-x86 win8-x64"
 

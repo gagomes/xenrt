@@ -97,8 +97,14 @@ class TCXenDesktopCloneVMs(_TCCloneVMs):
         instance = self.cloud.createInstanceFromTemplate("xdgold%s" % zone, name=vmname, zone=zone, start=False)
         self.addTiming("TIME_VM_CLONE_COMPLETE_%s:%.3f" % (vmname, xenrt.util.timenow(float=True)))
         # Create extra disks (identity disk and PVD) on the same SR as the golden VDI
-        #vm.createDisk(sruuid=goldsr, userdevice=1, sizebytes=xenrt.GIGA)
-        #vm.createDisk(sruuid=goldsr, userdevice=2, sizebytes=xenrt.GIGA)
+
+        zoneId = [x.id for x in self.cloud.marvin.cloudApi.listZones() if x.name == zone][0]
+        diskOfferingId = [x.id for x in self.cloud.marvin.cloudApi.listDiskOfferings() if x.name=="Custom"][0]
+
+        disk1 = self.cloud.marvin.cloudApi.createVolume(name="%s-0" % vmname, size=1, diskofferingid=diskOfferingId, zoneid=zoneId).id
+        disk2 = self.cloud.marvin.cloudApi.createVolume(name="%s-1" % vmname, size=1, diskofferingid=diskOfferingId, zoneid=zoneId).id
+        self.cloud.marvin.cloudApi.attachVolume(id=disk1, virtualmachineid=instance.toolstackId)
+        self.cloud.marvin.cloudApi.attachVolume(id=disk2, virtualmachineid=instance.toolstackId)
 
         self.addTiming("TIME_VM_CLONE_ATTACHPVD_%s:%.3f" % (vmname, xenrt.util.timenow(float=True)))
 
@@ -181,7 +187,7 @@ class _TCScaleVMOp(_TimedTestCase):
 
     def verifyVM(self, vm):
         vm.assertHealthy(quick=True)
-        if vm.special.get("gold2"):
+        if vm.special.get("gold2") and vm.getPowerState() == xenrt.PowerState.up:
             vm.os.execSSH("test -e /root/gold2")
 
     def doVMWorker(self, func):

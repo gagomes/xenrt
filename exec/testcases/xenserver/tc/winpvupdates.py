@@ -254,4 +254,3 @@ class TCSxmFrmLowToHighPVChk(SxmFromLowToHighVersion):
                 raise xenrt.XRTFailure("Windows PV updates are enabled on the VM Migrated from Older host to Newer host")
 
         xenrt.TEC().logverbose("Windows PV updates are disabled on the VM Migrated from Older host to Newer host as expected")
-

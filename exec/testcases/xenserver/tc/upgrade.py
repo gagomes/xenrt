@@ -3390,20 +3390,18 @@ class ADUpgradeAuthentication(_FeatureOperationAfterUpgrade):
         if not authguest:
             raise xenrt.XRTError("Could not find %s VM" % (self.AUTHSERVER))
         self.authserver = authguest.getActiveDirectoryServer()
-        
+                
+               
+    def featureTest(self):
         for host in self.poolsToUpgrade[0].getHosts():
             host.setDNSServer(self.authserver.place.getIP())
-
+            
         self.poolsToUpgrade[0].enableAuthentication(self.authserver, setDNS=False)
         self.authserver.createSubjectGraph(self.SUBJECTGRAPH)
         self.poolsToUpgrade[0].allow(\
             self.authserver.getSubject(name="ADPBISuserA"), "pool-admin")
         self.poolsToUpgrade[0].allow(\
             self.authserver.getSubject(name="ADPBISgroup2"), "pool-admin")
-       
-    def featureTest(self):
-        for host in self.poolsToUpgrade[0].getHosts():
-            host.setDNSServer(self.authserver.place.getIP())
 
         
         # Add extra user(s) to the subject-list
@@ -3420,7 +3418,7 @@ class ADUpgradeAuthentication(_FeatureOperationAfterUpgrade):
                 xenrt.TEC().logverbose("Executing CLI command to add role by self")
                 cliRole.execute("subject-role-add", string.join(args_addrole),\
                     username="root",password=self.poolsToUpgrade[0].master.password)
-                xenrt.TEC().logverbose("adding role to the queue thingy")
+                xenrt.TEC().logverbose("adding role to the queue ")
                 self.authserver.getSubject(name=user).roles.add("pool-admin")
 
             except:

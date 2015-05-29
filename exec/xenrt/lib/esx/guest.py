@@ -421,8 +421,8 @@ class Guest(xenrt.lib.libvirt.Guest):
         brs = host.getBridges()
 
         command ='ovftool --noSSLVerify '
-        command+='-n=%s ' % self.name
-        command+='-ds=%s ' % sr
+        command+='-n="%s" ' % self.name
+        command+='-ds="%s" ' % sr
         for net in ovfNetworkList:
             if net["name"].strip() in brs:
                 command+='--net:"%s"="%s" ' % (net["name"].strip(),net["name"].strip())

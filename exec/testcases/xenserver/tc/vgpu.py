@@ -229,7 +229,7 @@ class VGPUInstaller(object):
 
         for vGPUType in vGPUTypes.keys():
             if selectedConfig in vGPUType:
-                return vGPUTypes[selectedConfig]
+                return vGPUTypes[vGPUType]
         raise xenrt.XRTFailure("No type of %s was found in %s" % (selectedConfig, str(vGPUTypes)))
 
     def createOnGuest(self, guest, groupUUID = None, replacevGPU=False):

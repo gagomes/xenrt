@@ -1153,7 +1153,7 @@ class TCSysrepAfterToolsUpgrade(xenrt.TestCase):
     #TC-27018
     def prepare(self, arglist=None):
         self.host = self.getDefaultHost()
-        self.guest = self.host.getGuest("VMWin2k82")
+        self.guest = self.host.getGuest("VMWin2k8")
         self.guest.start()
         
         step("Install latest PV tools")

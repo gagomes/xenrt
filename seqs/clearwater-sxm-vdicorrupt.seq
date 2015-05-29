@@ -1,0 +1,40 @@
+<?xml version="1.0" ?>
+<xenrt>
+
+  <!-- Sequence to test the various storage xen migration test cases. -->
+  <default name="ITERATIONS" value="1"/>
+
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <pool id="0">
+      <storage type="nfs" name="nfs_sourceSR_1" />
+      <storage type="lvmoiscsi" name="lvmoiscsi_sourceSR_1" />
+      <host id="0" installsr="ext" />
+      <host id="1" installsr="lvm" />
+    </pool>
+    <pool id="1">
+      <storage type="nfs" name="nfs_sourceSR_2" />
+      <storage type="lvmoiscsi" name="lvmoiscsi_sourceSR_2" />
+      <host id="2" installsr="lvm" />
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="VDICorruptDurSXM">
+      <testcase id="xenserver.tc.sxm.VDICorruptionDurSXM" name="TC27152" tc="TC-27152">
+      </testcase>
+      <testcase id="xenserver.tc.sxm.VDICorruptionDurSXM" name="TC27153" tc="TC-27153">
+        <arg>test=intra-pool</arg>
+        <arg>src_host=RESOURCE_HOST_0</arg>
+        <arg>dest_host=RESOURCE_HOST_1</arg>
+      </testcase>
+      <testcase id="xenserver.tc.sxm.VDICorruptionDurLiveVDI" name="TC27154" tc="TC-27154">
+        <arg>test=LiveVDI</arg>
+      </testcase>
+      </serial>
+  </testsequence>
+
+</xenrt>

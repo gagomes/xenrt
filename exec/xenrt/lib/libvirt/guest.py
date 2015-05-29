@@ -958,6 +958,23 @@ class Guest(xenrt.GenericGuest):
         for vif in vifsToRemove:
             self.removeVIF(mac=vif[2])
 
+    def recreateVIFs(self, newMACs = False):
+        """Recreate all VIFs we have in the guest's object config"""
+        vifs = list(self.vifs)
+        self.removeVIFs(multiple=True)
+        self.mainip = None
+        self.vifs = vifs
+        if newMACs:
+            for v in self.vifs:
+                eth, bridge, mac, ip = v
+                self.createVIF(eth, bridge)
+            self.reparseVIFs()
+            self.vifs.sort()
+        else:
+            for v in self.vifs:
+                eth, bridge, mac, ip = v
+                self.createVIF(eth, bridge, mac)
+
     def getVIFs(self):
         xmlstr = self._getXML()
         xmldom = xml.dom.minidom.parseString(xmlstr)

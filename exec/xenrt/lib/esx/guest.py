@@ -438,5 +438,4 @@ class Guest(xenrt.lib.libvirt.Guest):
             self.vifs.sort()
         else:
             self.vifs = vifs
-        ## TODO - write recreateVIFs(...), removeVIF(...) methods for libvirt/esx guest and uncomment below line.
-        #self.recreateVIFs(newMACs=True)
+        self.recreateVIFs(newMACs=True)

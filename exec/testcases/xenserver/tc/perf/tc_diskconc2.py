@@ -1,4 +1,4 @@
-import xenrt, libperf, string, os, os.path, threading, time, re
+import xenrt, libperf, string, os, os.path, threading, time, re, math
 import libsynexec
 
 def toBool(val):
@@ -33,6 +33,12 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
         self.queuedepth = libperf.getArgument(arglist, "queue_depth", int, 1)
         self.multiqueue = libperf.getArgument(arglist, "multiqueue", int, None)
         self.multipage = libperf.getArgument(arglist, "multipage", int, None)
+
+        is_power2 = self.multipage != 0 and ((self.multipage & (self.multipage - 1)) == 0)
+
+        if not is_power2:
+            raise ValueError("Multipage %s is not a power of 2" % (self.multipage))
+
         self.num_threads = libperf.getArgument(arglist, "num_threads", int, 1)
         self.vms_per_sr = libperf.getArgument(arglist, "vms_per_sr", int, 1)
         self.vbds_per_vm = libperf.getArgument(arglist, "vbds_per_vm", int, 1)
@@ -121,8 +127,9 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
                     self.host.execdom0("xenstore-write /local/domain/0/backend/%s/%s/%s/multi-queue-max-queues '%s'" %
                                        (backend_xs_name, vmid, vbdid, self.multiqueue))
                 else:
-                    self.host.execdom0("xenstore-write /local/domain/0/backend/%s/%s/%s/max-ring-pages '%s'" %
-                                       (backend_xs_name, vmid, vbdid, self.multipage))
+                    order = int(math.log(self.multipage, 2))
+                    self.host.execdom0("xenstore-write /local/domain/0/backend/%s/%s/%s/max-ring-page-order '%s'" %
+                                       (backend_xs_name, vmid, vbdid, order))
 
                 if self.backend == "xen-tapdisk3" and self.multiqueue:
                     sr_uuid = self.host.execdom0("xe vdi-list uuid=%s params=sr-uuid --minimal" % (vdi_uuid)).strip()

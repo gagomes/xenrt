@@ -103,24 +103,24 @@ class Guest(xenrt.lib.libvirt.Guest):
         newxmlstr = oldxmlstr.replace("</devices>", devicexmlstr + "\n  </devices>")
         self._redefineXML(newxmlstr)
 
-    def _updateDevice(self, devicexmlstr, hotplug=False, remove=False):
+    def _updateDevice(self, devicexmlstr, hotplug=False, removeOnly=False):
         oldxmlstr = self._getXML()
         xmldom = xml.dom.minidom.parseString(oldxmlstr)
         devicexmldom = xml.dom.minidom.parseString(devicexmlstr)
-        devicetargetdev = devicexmldom.getElementsByTagName("target")[0].getAttribute("dev")
-        devices = [target.parentNode for target in xmldom.getElementsByTagName("target") if target.getAttribute("dev") == devicetargetdev]
-        if len(devices) == 0:
-            raise xenrt.XRTFailure("Can't update/remove device %s -- device not found" % devicetargetdev)
-        for device in devices:
+        deviceToRemove=devicexmldom.childNodes[0]
+        devicesMatched = [target for target in xmldom.getElementsByTagName(deviceToRemove.localName) if xenrt.util.checkXMLDomSubset(target ,deviceToRemove)]
+        if len(devicesMatched) == 0:
+            raise xenrt.XRTFailure("Can't update/remove device %s -- device not found" % deviceToRemove.localName)
+        for device in devicesMatched:
             device.parentNode.removeChild(device)
             device.unlink()
-        if not remove:
+        if not removeOnly:
             xmldom.getElementsByTagName("devices")[0].appendChild(devicexmldom.documentElement)
         newxmlstr = xmldom.toxml()
         self._redefineXML(newxmlstr)
 
     def _removeDevice(self, devicexmlstr, hotplug=False):
-        self._updateDevice(devicexmlstr, hotplug=hotplug, remove=True)
+        self._updateDevice(devicexmlstr, hotplug=hotplug, removeOnly=True)
 
     def _getXML(self):
         return xenrt.lib.libvirt.tryupto(self.virDomain.XMLDesc)(libvirt.VIR_DOMAIN_XML_INACTIVE)

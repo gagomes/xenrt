@@ -935,6 +935,14 @@ class Guest(xenrt.GenericGuest):
             if bridge != oldbridge:
                 self.vifs[index] = (oldeth, bridge, oldmac, oldip)
 
+    def removeVIF(self, mac):
+        vifxmlstr = """
+        <interface type='bridge'>
+            <mac address='%s'/>
+        </interface>""" % mac
+        self._removeDevice(vifxmlstr)
+        self.vifs = [vif for vif in self.vifs if vif[2]!=mac]
+
     def removeVIFs(self, name=None, mac=None, eth=None, ip=None, multiple=False):
         self.reparseVIFs()
         vifsToRemove= [ vif for vif in self.vifs
@@ -948,7 +956,7 @@ class Guest(xenrt.GenericGuest):
             xenrt.TEC().warning("No vif exists matching condition")
 
         for vif in vifsToRemove:
-            raise xenrt.XRTError("Unimplemented")
+            self.removeVIF(mac=vif[2])
 
     def getVIFs(self):
         xmlstr = self._getXML()

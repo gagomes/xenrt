@@ -218,8 +218,7 @@ class VGPUInstaller(object):
 
     def typeUUID(self):
         vGPUTypes = self.__host.getSupportedVGPUTypes()
-        # Look up the string representations of the VGPUConfig members filtering them on the required config
-        #selectedConfigs = [attr for attr in dir(VGPUConfig()) if not callable(attr) and not attr.startswith("__") and getattr(VGPUConfig, attr) == self.__config]
+
         selectedConfig = VGPUConfiguration[self.__config]
 
         if VGPUConfig.K2PassThrough == self.__config or VGPUConfig.K1PassThrough == self.__config or VGPUConfig.PassThrough == self.__config:
@@ -228,8 +227,9 @@ class VGPUInstaller(object):
         if not selectedConfig:
             raise xenrt.XRTFailure("No selected configs found")
 
-        if selectedConfig in vGPUTypes.keys():
-            return vGPUTypes[selectedConfig]
+        for vGPUType in vGPUTypes.keys():
+            if selectedConfig in vGPUType:
+                return vGPUTypes[selectedConfig]
         raise xenrt.XRTFailure("No type of %s was found in %s" % (selectedConfig, str(vGPUTypes)))
 
     def createOnGuest(self, guest, groupUUID = None, replacevGPU=False):

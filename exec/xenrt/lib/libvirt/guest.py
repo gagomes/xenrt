@@ -318,7 +318,19 @@ class Guest(xenrt.GenericGuest):
                 xenrt.TEC().logverbose("Ignoring request to hotplug update device")
         self.virDomain.updateDeviceFlags(devicexmlstr, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
 
-    # TODO: _removeDevice with hotunplugging
+    def _removeDevice(self, devicexmlstr, hotplug=False):
+        """Remove an existing device in the domain."""
+        xenrt.TEC().logverbose("Destroying device in %s" % self.name)
+        if hotplug:
+            if self.getState() == "UP" and self.enlightenedDrivers:
+                try:
+                    self.virDomain.detachDeviceFlags(devicexmlstr, libvirt.VIR_DOMAIN_AFFECT_LIVE | libvirt.VIR_DOMAIN_AFFECT_CONFIG)
+                    return
+                except:
+                    xenrt.TEC().warning("Could not hotplug destroy device")
+            else:
+                xenrt.TEC().logverbose("Ignoring request to hotplug destroy device")
+        self.virDomain.updateDeviceFlags(devicexmlstr, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
 
     def _getXML(self):
         """Get the XML description of the domain."""
@@ -922,6 +934,21 @@ class Guest(xenrt.GenericGuest):
             oldeth, oldbridge, oldmac, oldip = self.vifs[index]
             if bridge != oldbridge:
                 self.vifs[index] = (oldeth, bridge, oldmac, oldip)
+
+    def removeVIFs(self, name=None, mac=None, eth=None, ip=None, multiple=False):
+        self.reparseVIFs()
+        vifsToRemove= [ vif for vif in self.vifs
+                        if (vif[0]==eth or eth==None) and
+                        (vif[1]==name or name==None) and
+                        (vif[2]==mac or mac==None) and
+                        (vif[3]==ip or ip==None) ]
+        if len(vifsToRemove)>1 and not multiple:
+            raise xenrt.XRTError("More than 1 vif exist matching condition: %s" % vifsToRemove)
+        elif len(vifsToRemove)==0:
+            xenrt.TEC().warning("No vif exists matching condition")
+
+        for vif in vifsToRemove:
+            raise xenrt.XRTError("Unimplemented")
 
     def getVIFs(self):
         xmlstr = self._getXML()

@@ -3429,50 +3429,8 @@ class TCIntelGPUSnapshotNegative(IntelBase):
             # Return to blocked state for rest of distros.
             self.typeOfvGPU.blockDom0Access(self.host)
 
-class TCIntelRevertvGPUSnapshot(IntelBase):
-    """
-    Revert vGPU snapshot.
-    """
-    
-    def insideRun(self, vm, config):
-        
-        log("Creating vGPU of type %s" % (self.getConfigurationName([config])))
-        self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
 
-        log("Install guest drivers for %s" % str(vm))
-        self.typeOfvGPU.installGuestDrivers(vm,self.getConfigurationName([config]))
 
-        log("Checking whether vGPU is runnnig on the VM or not")
-        self.typeOfvGPU.assertvGPURunningInVM(vm,self.getConfigurationName([config]))
-        
-        expVGPUType = self.getConfigurationName(self.getConfigurationName([config]))
-        snapshot = vm.snapshot()
- 
-        vm.setState("DOWN")
-        vm.destroyvGPU()
-
-        vm.setState("UP")
-        self.typeOfvGPU.assertvGPUNotRunningInVM(vm,expVGPUType)
-
-        vgpuType, vgpuuuid = self.typeOfvGPUonVM(vm)
-
-        if vgpuType:
-            raise xenrt.XRTFailure("VM has got vGPU of type %s with uuid %s" % (vgpuType,vgpuuuid))
-
-        vm.revert(snapshot)
-        vm.setState("UP")
-        self.typeOfvGPU.assertvGPURunningInVM(vm,expVGPUType)
-
-        vgpuType, vgpuuuid = self.typeOfvGPUonVM(vm)
-
-        if not vgpuType:
-            raise xenrt.XRTFailure("VM has not got any vGPU")
-
-        if not ((expVGPUType.lower() in vgpuType.lower()) or (vgpuType.lower() in expVGPUType.lower())):
-            raise xenrt.XRTFailure("VM has not got expected vGPU type which is %s" % (expVGPUType))
-        vm.setState("DOWN")
-        
-        
 class TCIntelGPUReuse(IntelBase):
     """Intel GPU can be reused once it is down."""
 

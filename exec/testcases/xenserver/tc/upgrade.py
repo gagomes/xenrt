@@ -3408,21 +3408,22 @@ class ADUpgradeAuthentication(_FeatureOperationAfterUpgrade):
         for user in self.ADDREMOVEUSERS:
             self.poolsToUpgrade[0].allow(\
                 self.authserver.getSubject(name=user), "pool-admin")
+            xenrt.TEC().logverbose("Adding role by self")
+            uuid = self.poolsToUpgrade[0].master.getSubjectUUID(self.authserver.getSubject(name=user))
+            cliRole = self.poolsToUpgrade[0].getCLIInstance()
+            argsAddrole = []
+            argsAddrole.append("role-name='pool-admin'")
+            argsAddrole.append("uuid=%s" % (uuid))
+            xenrt.TEC().logverbose("Executing CLI command to add role by self")
             try:
-                xenrt.TEC().logverbose("Adding role by self")
-                uuid = self.poolsToUpgrade[0].master.getSubjectUUID(self.authserver.getSubject(name=user))
-                cliRole = self.poolsToUpgrade[0].getCLIInstance()
-                argsAddrole = []
-                argsAddrole.append("role-name='pool-admin'")
-                argsAddrole.append("uuid=%s" % (uuid))
-                xenrt.TEC().logverbose("Executing CLI command to add role by self")
-                cliRole.execute("subject-role-add", string.join(args_addrole),\
+                cliRole.execute("subject-role-add", string.join(argsAddrole),\
                     username="root",password=self.poolsToUpgrade[0].master.password)
-                xenrt.TEC().logverbose("adding role to the queue ")
-                self.authserver.getSubject(name=user).roles.add("pool-admin")
-
             except:
                 xenrt.TEC().logverbose("Role seems to be added already")
+            xenrt.TEC().logverbose("adding role to the queue ")
+            self.authserver.getSubject(name=user).roles.add("pool-admin")
+
+            
 
         xenrt.sleep(120)
         # Test authentication

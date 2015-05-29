@@ -917,6 +917,8 @@ class Guest(xenrt.GenericGuest):
     def createVIF(self, eth, bridge, mac=None):
         if not mac:
             mac = xenrt.randomMAC()
+        if not bridge:
+            bridge=host.getPrimaryBridge()
 
         model = self._getNetworkDeviceModel()
         vifxmlstr = """

@@ -1078,6 +1078,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_SLES_113"] = "SUSE Linux Enterprise Server 11 SP3 (32-bit),SUSE Linux Enterprise Server 11 SP3"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_SLES_113_64"] = "SUSE Linux Enterprise Server 11 SP3 (64-bit),SUSE Linux Enterprise Server 11 SP3 x64"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_SLES_12_64"] = "SUSE Linux Enterprise Server 12 (64-bit)"
+        self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_SLES_114_64"] = "SUSE Linux Enterprise Server 11 SP3 (64-bit),SUSE Linux Enterprise Server 11 SP3 x64"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_SL_511"] = "Scientific Linux 5 (32-bit)"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_SL_511_64"] = "Scientific Linux 5 (64-bit)"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_SL_66"] = "Scientific Linux 6 (32-bit)"
@@ -1761,6 +1762,7 @@ class Config(object):
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["ubuntu1404_x86-64"] = "Ubuntu 14.04 (64-bit)"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["sles113_x86-32"] = "SUSE Linux Enterprise Server 11 SP3 (32-bit)"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["sles113_x86-64"] = "SUSE Linux Enterprise Server 11 SP3 (64-bit)"
+        self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["sles114_x86-64"] = "SUSE Linux Enterprise Server 11 SP4 RC1 (64-bit)"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["centos65_x86-32"] = "CentOS 6.5 (32-bit)"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["centos65_x86-64"] = "CentOS 6.5 (64-bit)"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["rhel65_x86-32"] = "Red Hat Enterprise Linux 6.5 (32-bit)"
@@ -2484,6 +2486,13 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["sles113"]["MAXMEMORY64"] = "524288"
         self.config["GUEST_LIMITATIONS"]["sles113"]["MAX_VM_VCPUS"] = "32"
         self.config["GUEST_LIMITATIONS"]["sles113"]["MAX_VM_VCPUS64"] = "32"
+        self.config["GUEST_LIMITATIONS"]["sles114"] = {}
+        self.config["GUEST_LIMITATIONS"]["sles114"]["MINMEMORY"] = "4096"
+        self.config["GUEST_LIMITATIONS"]["sles114"]["STATICMINMEMORY"] = "512"
+        self.config["GUEST_LIMITATIONS"]["sles114"]["MAXMEMORY"] = "16384"
+        self.config["GUEST_LIMITATIONS"]["sles114"]["MAXMEMORY64"] = "524288"
+        self.config["GUEST_LIMITATIONS"]["sles114"]["MAX_VM_VCPUS"] = "32"
+        self.config["GUEST_LIMITATIONS"]["sles114"]["MAX_VM_VCPUS64"] = "32"
         self.config["GUEST_LIMITATIONS"]["sled113"] = {}
         self.config["GUEST_LIMITATIONS"]["sled113"]["MINMEMORY"] = "4096"
         self.config["GUEST_LIMITATIONS"]["sled113"]["STATICMINMEMORY"] = "512"
@@ -2825,7 +2834,7 @@ class Config(object):
             'oel6u_x86-32', 'oel6u_x86-64', 'oel71_x86-64', 'oel71xs_x86-64', 'oel7u_x86-64',
             'rhel511_x86-32', 'rhel511_x86-64', 'rhel5u_x86-32', 'rhel5u_x86-64', 'rhel66_x86-32', 'rhel66_x86-64',
             'rhel6u_x86-32', 'rhel6u_x86-64', 'rhel71_x86-64', 'rhel71xs_x86-64', 'rhel7u_x86-64',
-            'sles113_x86-32', 'sles113_x86-64', 'sles12_x86-64',
+            'sles113_x86-32', 'sles113_x86-64', 'sles12_x86-64','sles114_x86-64'
             'ubuntu1204_x86-32', 'ubuntu1204_x86-64', 'ubuntu1404_x86-32', 'ubuntu1404_x86-64',
             'winxpsp3', 'w2k3eesp2', 'w2k3eesp2-x64',
             'vistaeesp2', 'ws08dcsp2-x64', 'ws08dcsp2-x86',

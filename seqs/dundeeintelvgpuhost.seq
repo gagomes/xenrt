@@ -88,7 +88,7 @@
         <arg>vgpuconfig=13</arg>
       </testcase>
       
-      <testcase id="testcases.xenserver.tc.vgpu.TCRevertvGPUSnapshot" tc="TC-00003">
+      <testcase id="testcases.xenserver.tc.vgpu.TCRevertvGPUSnapshot" tc="TC-00004">
         <arg>distro=6,8</arg>
         <arg>typeofvgpu=intelwinvgpu</arg>
         <arg>blockdom0access=false</arg>

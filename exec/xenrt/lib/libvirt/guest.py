@@ -28,6 +28,7 @@ def createVMFromFile(host,
                      suffix=None,
                      ips={},
                      sr=None,
+                     vifs=[],
                      *args,
                      **kwargs):
     if not isinstance(host, xenrt.GenericHost):
@@ -51,7 +52,7 @@ def createVMFromFile(host,
             else:
                 raise xenrt.XRTError("Unknown VM containter type inside zip")
 
-    guest.importVM(host, file, sr=sr)
+    guest.importVM(host, file, sr=sr, vifs=vifs)
 
     guest.password = None
     guest.tailored = True
@@ -901,7 +902,10 @@ class Guest(xenrt.GenericGuest):
 
         self._redefineXML(xmldom.toxml())
 
-    def createVIF(self, eth, bridge, mac):
+    def createVIF(self, eth, bridge, mac=None):
+        if not mac:
+            mac = xenrt.randomMAC()
+
         model = self._getNetworkDeviceModel()
         vifxmlstr = """
         <interface type='bridge'>

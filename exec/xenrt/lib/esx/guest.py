@@ -401,7 +401,7 @@ class Guest(xenrt.lib.libvirt.Guest):
         for sleepType in ["monitor", "disk", "standby", "hibernate"]:
             self.xmlrpcExec("powercfg -change -%s-timeout-ac 0" % (sleepType))
 
-    def importVM(self, host, file, sr=None):
+    def importVM(self, host, file, sr=None, vifs=[]):
         """
         file is be an absolute path on site controller of type *.ovf or *.ova, which is to be imported.
         """
@@ -426,5 +426,12 @@ class Guest(xenrt.lib.libvirt.Guest):
                 command+='--net:"%s"="%s" ' % (net["name"].strip(),host.getPrimaryBridge())
         command+='%s vi://%s:%s@%s/' % (file, "root", host.password, host.getIP())
         xenrt.command(command)
+        if not vifs:
+            self.reparseVIFs()
+            self.vifs.sort()
+        else:
+            self.vifs = vifs
+        ## TODO - write recreateVIFs(...), removeVIF(...) methods for libvirt/esx guest and uncomment below line.
+        #self.recreateVIFs(newMACs=True)
         xenrt.sleep(10)
         self.existing(host)

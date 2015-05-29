@@ -5671,15 +5671,23 @@ class GenericHost(GenericPlace):
         # Make post install script
         serport = self.lookup("SERIAL_CONSOLE_PORT", "0")
         serbaud = self.lookup("SERIAL_CONSOLE_BAUD", "115200")
+        extra = ""
+        if distro.startswith("debian80") or distro.startswith("debiantesting"):
+            extra += """sed -i 's/PermitRootLogin without-password/PermitRootLogin yes/g' /etc/ssh/sshd_config
+/etc/init.d/ssh restart
+"""
+
         piscript = """#!/bin/bash
 # Ensure we get dom0 serial console (there should be a way to do this through preseed but I can't find an obvious way)
 sed -i 's/GRUB_CMDLINE_LINUX=""/GRUB_CMDLINE_LINUX="console=tty0 console=ttyS%s,%sn8"/' /etc/default/grub
 /usr/sbin/update-grub
 
+%s
+
 # Signal completion
 wget -q -O - %s/share/control/signal?key=%s
 exit 0
-""" % (serport, serbaud, xenrt.TEC().lookup("LOCALURL"),  sigkey)
+""" % (serport, serbaud, extra, xenrt.TEC().lookup("LOCALURL"),  sigkey)
         pifile = "post-install-%s.sh" % (self.getName())
         pifilename = "%s/%s" % (xenrt.TEC().getLogdir(), pifile)
         f = file(pifilename, "w")

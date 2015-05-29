@@ -32,6 +32,7 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
         self.blocksizes = self.blocksizes.strip().split(",")
         self.queuedepth = libperf.getArgument(arglist, "queue_depth", int, 1)
         self.multiqueue = libperf.getArgument(arglist, "multiqueue", int, None)
+        self.multipage = libperf.getArgument(arglist, "multipage", int, None)
         self.num_threads = libperf.getArgument(arglist, "num_threads", int, 1)
         self.vms_per_sr = libperf.getArgument(arglist, "vms_per_sr", int, 1)
         self.vbds_per_vm = libperf.getArgument(arglist, "vbds_per_vm", int, 1)
@@ -39,7 +40,7 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
 
         # Benchmark program to use for linux vm. If the value is different than fio, would use latency
         self.bench = libperf.getArgument(arglist, "benchmark", str, "fio")
-        self.sequential = libperf.getArgument(arglist, "sequential", bool, True)
+        self.sequential = libperf.getArgument(arglist, "sequential", toBool, True)
 
         # Optional VM image to use as a template
         self.vm_image = libperf.getArgument(arglist, "vm_image", str, None)
@@ -62,6 +63,8 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
         self.zeros = libperf.getArgument(arglist, "zeros", bool, False)
         self.prepopulate = libperf.getArgument(arglist, "prepopulate", toBool, True)
 
+        self.vm_disk_scheduler = libperf.getArgument(arglist, "vm_disk_scheduler", str, "default")
+        self.vm_disk_nomerges = libperf.getArgument(arglist, "vm_disk_nomerges", str, "default")
         # Disk schedulers are specified in the form deviceA=X,deviceB=Y,...
         # To specify the scheduler for the default SR, use default=Z
         schedulers = libperf.getArgument(arglist, "disk_schedulers", str, "").strip()
@@ -96,7 +99,7 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
 
 
     def vm_start(self, vm, vbd_uuids):
-        if not self.multiqueue:
+        if not self.multiqueue and not self.multipage:
             vm.start()
         else:
             # Start a vm in paused state
@@ -114,10 +117,14 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
             for vbd_uuid in vbd_uuids:
                 vdi_uuid = self.host.execdom0("xe vbd-list uuid=%s params=vdi-uuid --minimal" % (vbd_uuid)).strip()
                 vbdid = self.host.execdom0("xenstore-ls -f /xapi/%s | grep vdi-id | grep %s" % (vm_uuid, vdi_uuid)).split("/")[5].strip()
-                self.host.execdom0("xenstore-write /local/domain/0/backend/%s/%s/%s/multi-queue-max-queues '%s'" %
-                                   (backend_xs_name, vmid, vbdid, self.multiqueue))
+                if self.multiqueue:
+                    self.host.execdom0("xenstore-write /local/domain/0/backend/%s/%s/%s/multi-queue-max-queues '%s'" %
+                                       (backend_xs_name, vmid, vbdid, self.multiqueue))
+                else:
+                    self.host.execdom0("xenstore-write /local/domain/0/backend/%s/%s/%s/max-ring-pages '%s'" %
+                                       (backend_xs_name, vmid, vbdid, self.multipage))
 
-                if self.backend == "xen-tapdisk3":
+                if self.backend == "xen-tapdisk3" and self.multiqueue:
                     sr_uuid = self.host.execdom0("xe vdi-list uuid=%s params=sr-uuid --minimal" % (vdi_uuid)).strip()
                     vhd = "/dev/VG_XenStorage-%s/VHD-%s" % (sr_uuid, vdi_uuid)
 
@@ -137,6 +144,16 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
             vm.unpause()
 
             vm.waitReadyAfterStart()
+
+            for vbd_uuid in vbd_uuids:
+                vdi_uuid = self.host.execdom0("xe vbd-list uuid=%s params=vdi-uuid --minimal" % (vbd_uuid)).strip()
+                vbdid = self.host.execdom0("xenstore-ls -f /xapi/%s | grep vdi-id | grep %s" % (vm_uuid, vdi_uuid)).split("/")[5].strip()
+                blkdev = self.host.execdom0("xenstore-read /local/domain/0/backend/%s/%s/%s/dev" %
+                                   (backend_xs_name, vmid, vbdid)).strip()
+                if self.vm_disk_scheduler != "default":
+                    vm.execguest("echo %s > /sys/block/%s/queue/scheduler" % (self.vm_disk_scheduler, blkdev))
+                if self.vm_disk_nomerges != "default":
+                    vm.execguest("echo %s > /sys/block/%s/queue/nomerges" % (self.vm_disk_nomerges, blkdev))
 
     def createVMsForSR(self, sr):
         for i in range(self.vms_per_sr):

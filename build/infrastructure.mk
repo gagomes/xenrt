@@ -210,7 +210,7 @@ endif
 conserver: files
 ifeq ($(DOCONSERVER),yes)
 	$(SUDO) mv $(ROOT)/$(XENRT)/conserver.cf /etc/conserver/conserver.cf
-	$(SUDO) service conserver-server start || $(SUDO) service conserver-server reload
+	$(SUDO) service conserver-server reload || $(SUDO) service conserver-server restart || $(SUDO) service conserver-server start
 endif
 
 .PHONY: logrotate

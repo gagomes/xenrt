@@ -61,7 +61,7 @@ class GuestWrapper(object):
     def resumeInstance(self, instance, on):
         self.guest.resume()
     
-    def createInstance(self, distro, name, vcpus,  memory, vifs, rootdisk, extraConfig, startOn, installTools, useTemplateIfAvailable, hypervisorType):
+    def createInstance(self, distro, name, vcpus,  memory, vifs, rootdisk, extraConfig, startOn, installTools, useTemplateIfAvailable, hypervisorType, start):
         """Create and install and instance on this toolstack"""
 
     def createOSTemplate(self, distro, rootdisk,installTools, useTemplateIfAvailable, hypervisorType=None):

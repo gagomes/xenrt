@@ -52,7 +52,7 @@ class OS(object):
     def knownDistro(distro):
         return False
 
-    def assertHealthy(self):
+    def assertHealthy(self, quick=False):
         raise xenrt.XRTError("Not implemented")
 
     def getLogs(self, path):

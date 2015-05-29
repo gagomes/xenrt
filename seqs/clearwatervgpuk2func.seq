@@ -7,7 +7,7 @@
   </variables>
 
   <prepare>
-    <host installsr="ext" license="enterprise-per-socket">
+    <host installsr="ext" license="per-socket">
       <vm name="masterwin7-x64">
         <distro>win7-x64</distro>
         <arch>x86-64</arch>

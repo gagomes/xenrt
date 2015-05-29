@@ -8,7 +8,7 @@
 # conditions as licensed by XenSource, Inc. All other rights reserved.
 #
 
-import re, xml.dom.minidom
+import re, xml.dom.minidom, xmltodict
 import xenrt
 import libvirt
 
@@ -411,10 +411,19 @@ class Guest(xenrt.lib.libvirt.Guest):
             xenrt.command("sudo sh %s --eulas-agreed --regular --required"% ovftool)
         if not sr:
             sr=host.getDefaultDatastore()
+        ovfInfo=xenrt.command("ovftool --machineOutput %s" % file)
+        ovfInfoDict=xmltodict.parse("<data"+ovfInfo.split("probeResult")[1].replace("\n+","")+"data>")
+        ovfNetworkList=ovfInfoDict["data"]["networks"]["network"]
+        brs = host.getBridges()
+
         command ='ovftool --noSSLVerify '
         command+='-n=%s ' % self.name
         command+='-ds=%s ' % sr
-        command+='--net:"VM Network"="VM Network" --net:NS_NIC_1_1="VM Network" ' # TODO - remove hard coding for network
+        for net in ovfNetworkList:
+            if net["name"].strip() in brs:
+                command+='--net:"%s"="%s" ' % (net["name"].strip(),net["name"].strip())
+            else:
+                command+='--net:"%s"="%s" ' % (net["name"].strip(),host.getPrimaryBridge())
         command+='%s vi://%s:%s@%s/' % (file, "root", host.password, host.getIP())
         xenrt.command(command)
         xenrt.sleep(10)

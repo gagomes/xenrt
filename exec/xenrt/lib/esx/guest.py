@@ -426,6 +426,8 @@ class Guest(xenrt.lib.libvirt.Guest):
                 command+='--net:"%s"="%s" ' % (net["name"].strip(),host.getPrimaryBridge())
         command+='%s vi://%s:%s@%s/' % (file, "root", host.password, host.getIP())
         xenrt.command(command)
+        xenrt.sleep(10)
+
         if not vifs:
             self.reparseVIFs()
             self.vifs.sort()
@@ -433,5 +435,4 @@ class Guest(xenrt.lib.libvirt.Guest):
             self.vifs = vifs
         ## TODO - write recreateVIFs(...), removeVIF(...) methods for libvirt/esx guest and uncomment below line.
         #self.recreateVIFs(newMACs=True)
-        xenrt.sleep(10)
         self.existing(host)

@@ -722,7 +722,7 @@ time_based
 numjobs=4
 """
         if self.drive:
-            inifile += "directory=%s\n" % self.drive
+            inifile += "directory=%s\\:\\\n" % self.drive
         self.guest.xmlrpcWriteFile("c:\\workload.fio", inifile) 
         self.guest.xmlrpcUnpackTarball("%s/fiowin.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), "c:\\")
 

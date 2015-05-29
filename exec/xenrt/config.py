@@ -950,8 +950,6 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Clearwater"]["LATEST_rhel4"] = "rhel48"
         self.config["VERSION_CONFIG"]["Clearwater"]["LATEST_rhel5"] = "rhel59"
         self.config["VERSION_CONFIG"]["Clearwater"]["LATEST_rhel6"] = "rhel64"
-        # XenServer dom0 partitions
-        self.config["VERSION_CONFIG"]["Clearwater"]["DOM0_PARTITIONS"] = {1:4*xenrt.GIGA, 2:4*xenrt.GIGA, 3:"*"}
 
         
         # Creedence

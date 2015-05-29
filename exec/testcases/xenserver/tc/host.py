@@ -5240,26 +5240,14 @@ class TCSwapPartition(xenrt.TestCase):
         swapUsed= float(self.host.execdom0("free -m | grep Swap | awk '{print $3}'"))
         
         step("Eat up memory by running a script")
-        self.host.execdom0("yum --disablerepo=citrix --enablerepo=base,updates install -y gcc")
-        memEaterScript = """#include <stdlib.h>
-#include <string.h>
-int main()
-{
-while(1)
-{
-void *m = malloc(1024*1024);
-memset(m,0,1024*1024);
-}
-return 0;
-}"""
+        memEater = xenrt.TEC().getFile("http://files.uk.xensource.com/usr/groups/xenrt/memEater_x64")
         sftp = self.host.sftpClient()
-        t = xenrt.TEC().tempFile()
-        with open(t, 'w') as f:
-            f.write(memEaterScript)
-        sftp.copyTo(t, "/memEater.c")
-        sftp.close()
-        self.host.execdom0("gcc -o /memEater /memEater.c")
-        
+        try:
+            xenrt.TEC().logverbose('About to copy "%s to "%s" on host.' \
+                                        % (memEater, "/memEater"))
+            sftp.copyTo(memEater, "/memEater")
+        finally:
+            sftp.close()
         self.host.execdom0("/memEater", level=xenrt.RC_OK)
         
         step("Check if swap is in use")

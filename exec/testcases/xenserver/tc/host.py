@@ -5240,7 +5240,7 @@ class TCSwapPartition(xenrt.TestCase):
         swapUsed= float(self.host.execdom0("free -m | grep Swap | awk '{print $3}'"))
         
         step("Eat up memory by running a script")
-        self.host.execdom0("%s/utils/memEater_x64" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"), level=xenrt.RC_OK)
+        self.host.execdom0("cp -f %s/utils/memEater_x64 /root/; chmod +x /root/memEater_x64; /root/memEater_x64" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"), level=xenrt.RC_OK)
         
         step("Check if swap is in use")
         (swapSize,newSwapUsed)= [float(i) for i in self.host.execdom0("free -m | grep Swap | awk '{print $2,$3}'").split(' ')]

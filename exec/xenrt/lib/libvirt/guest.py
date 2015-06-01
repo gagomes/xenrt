@@ -918,7 +918,7 @@ class Guest(xenrt.GenericGuest):
         if not mac:
             mac = xenrt.randomMAC()
         if not bridge:
-            bridge=host.getPrimaryBridge()
+            bridge=self.host.getPrimaryBridge()
 
         model = self._getNetworkDeviceModel()
         vifxmlstr = """

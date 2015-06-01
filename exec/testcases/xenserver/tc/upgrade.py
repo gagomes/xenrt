@@ -1166,12 +1166,6 @@ class TCAutoInstaller(xenrt.TestCase):
         elif protocol == "HTTP":
             imageDir = xenrt.WebDirectory()
         elif protocol == "FTP":
-            # Check that the FTP server is running on this controller
-            msg = xenrt.rootops.sudo("/etc/init.d/vsftpd status")
-            running = re.search('is running', msg)
-            if not running:
-                raise xenrt.XRTFailure("FTP server not running on controller")
-
             imageDir = xenrt.FTPDirectory()
             imageDir.setUsernameAndPassword('xenrtd', 'xensource')
         else:

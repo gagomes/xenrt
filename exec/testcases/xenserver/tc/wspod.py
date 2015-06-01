@@ -12,6 +12,7 @@ import string, time, re, os.path, json, random, xml.dom.minidom
 import sys, traceback
 import xenrt
 from xenrt.lazylog import *
+import testcases.benchmarks.workloads
 
 class TCStoragePCIPassthrough(xenrt.TestCase):
     def prepare(self, arglist):
@@ -36,3 +37,22 @@ class TCStoragePCIPassthrough(xenrt.TestCase):
         if "sendbioskey" in args:
             self.guest.special['sendbioskey'] = True
         self.guest.start()
+
+        mylunid = int([self.host.lookup(["FC", x, 'LUNID']) for x in self.host.lookup("FC").keys() if not self.host.lookup(["FC", x, "SHARED"], True, boolean=True)][0])
+        
+        disks = json.loads(self.guest.xmlrpcExec(
+            "Get-WmiObject -Class win32_diskdrive | Where {$_.SCSILogicalUnit -eq %d} | Select Name | ConvertTo-Json -Compress" % mylunid,
+            powershell=True,
+            returndata=True).strip().splitlines()[-1])
+       
+
+        mydisk = [re.search("PHYSICALDRIVE(\d+)", x['Name']).group(1) for x in disks if not x['Name'].endswith("PHYSICALDRIVE0")][0]
+
+        self.guest.xmlrpcInitializeDisk(mydisk)
+        self.guest.xmlrpcFormat("e", quick=True)
+        self.fio = testcases.benchmarks.workloads.FIOWindows(self.guest, drive="e")
+        self.fio.install()
+
+    def run(self, arglist):
+        self.fio.runCheck()
+

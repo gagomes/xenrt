@@ -411,6 +411,8 @@ class Guest(xenrt.lib.libvirt.Guest):
         """
         file is be an absolute path on site controller of type *.ovf or *.ova, which is to be imported.
         """
+        if not host.datacenter:
+            host.addToVCenter()
         ovftoolVersion = xenrt.command("ovftool --version", level=xenrt.RC_OK)
         if ovftoolVersion==1:
             ovftool=xenrt.TEC().getFile(xenrt.TEC().lookup("VMWARE_OVFTOOL_LINUX64","http://10.102.123.140/misc/VMware-ovftool-4.1.0-2459827-lin.x86_64.bundle"))
@@ -432,7 +434,7 @@ class Guest(xenrt.lib.libvirt.Guest):
                 command+='--net:"%s"="%s" ' % (net["name"].strip(),host.getPrimaryBridge())
         command+='%s vi://%s:%s@%s/' % (file, "root", host.password, host.getIP())
         xenrt.command(command)
-        xenrt.sleep(60)
+        xenrt.sleep(15)
         self.existing(host)
 
         if not vifs:

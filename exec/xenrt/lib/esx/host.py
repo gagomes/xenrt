@@ -8,7 +8,7 @@
 # conditions as licensed by XenSource, Inc. All other rights reserved.
 #
 
-import csv, os, re, string, StringIO, random
+import csv, os, re, string, StringIO, random, uuid
 import xenrt
 
 __all__ = ["createHost",

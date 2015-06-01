@@ -413,7 +413,7 @@ class Guest(xenrt.lib.libvirt.Guest):
         """
         ovftoolVersion = xenrt.command("ovftool --version", level=xenrt.RC_OK)
         if ovftoolVersion==1:
-            ovftool=xenrt.TEC().getFile("http://10.102.123.140/misc/VMware-ovftool-4.1.0-2459827-lin.x86_64.bundle")
+            ovftool=xenrt.TEC().getFile(xenrt.TEC().lookup("VMWARE_OVFTOOL_LINUX64","http://10.102.123.140/misc/VMware-ovftool-4.1.0-2459827-lin.x86_64.bundle"))
             xenrt.command("sudo sh %s --eulas-agreed --regular --required"% ovftool)
         if not sr:
             sr=host.getDefaultDatastore()

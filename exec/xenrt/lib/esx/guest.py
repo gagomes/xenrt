@@ -432,7 +432,7 @@ class Guest(xenrt.lib.libvirt.Guest):
                 command+='--net:"%s"="%s" ' % (net["name"].strip(),host.getPrimaryBridge())
         command+='%s vi://%s:%s@%s/' % (file, "root", host.password, host.getIP())
         xenrt.command(command)
-        xenrt.sleep(5)
+        xenrt.sleep(15)
         self.existing(host)
 
         if not vifs:

@@ -1,0 +1,15 @@
+<xenrt> 
+  
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0"/>              
+  </prepare>
+
+  <testsequence>    
+      <testcase id="xenserver.tc.security.ADPBISDirectoryCheck" tc="TC-27047" name="PBISDirectoriesVerification" />   
+  </testsequence>
+
+</xenrt>

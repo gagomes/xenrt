@@ -4458,6 +4458,7 @@ class TCcreatevGPU(VGPUAllocationModeBase):
 
         self.host = g.host
 
+        g.setState("DOWN")
         step("Creating %d vGPUs configurations." % (len(self.VGPU_CONFIG),))
         self.vGPUCreator = {}
         self.vGPUCreator[int(self.VGPU_CONFIG[0])] = VGPUInstaller(self.host, int(self.VGPU_CONFIG[0]))
@@ -4501,6 +4502,4 @@ class TCcheckNvidiaDriver(xenrt.TestCase):
             pass
 
         if host.execdom0("grep -e 'nvidia: disagrees about version of symbol' -e 'nvidia: Unknown symbol' /var/log/kern.log", retval="code") == 0:
-            raise xenrt.XRTFailure("NVIDIA driver is not correctly built for the current host kernel")
-
-
+            raise xenrt.XRTFailure("NVIDIA driver is not correctly built for t

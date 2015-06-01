@@ -48,6 +48,14 @@ class TCStoragePCIPassthrough(xenrt.TestCase):
 
         mydisk = [re.search("PHYSICALDRIVE(\d+)", x['Name']).group(1) for x in disks if not x['Name'].endswith("PHYSICALDRIVE0")][0]
 
+        mpiodisk = [re.search("^MPIO Disk(\d+)", x).group(1) for x in self.guest.xmlrpcExec("mpclaim -s -d", returndata=True).splitlines() if " Disk 1 " in x][0]
+
+        self.guest.xmlrpcExec("mpclaim -l -d %s 5" % mpiodisk)
+
+        self.guest.xmlrpcDiskpartCommand("rescan")
+        self.guest.xmlrpcDiskpartCommand("select disk %s\nclean" % mydisk)
+        self.guest.xmlrpcDiskpartCommand("rescan")
+
         self.guest.xmlrpcInitializeDisk(mydisk)
         self.guest.xmlrpcFormat("e", quick=True)
         self.fio = testcases.benchmarks.workloads.FIOWindows(self.guest, drive="e")

@@ -4502,4 +4502,6 @@ class TCcheckNvidiaDriver(xenrt.TestCase):
             pass
 
         if host.execdom0("grep -e 'nvidia: disagrees about version of symbol' -e 'nvidia: Unknown symbol' /var/log/kern.log", retval="code") == 0:
-            raise xenrt.XRTFailure("NVIDIA driver is not correctly built for t
+            raise xenrt.XRTFailure("NVIDIA driver is not correctly built for the current host kernel")
+
+

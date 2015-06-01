@@ -110,6 +110,8 @@ class Guest(xenrt.lib.libvirt.Guest):
         deviceToRemove=devicexmldom.childNodes[0]
         devicesMatched = [target for target in xmldom.getElementsByTagName(deviceToRemove.localName) if xenrt.util.checkXMLDomSubset(target ,deviceToRemove)]
         if len(devicesMatched) == 0:
+            xenrt.TEC().logverbose("guest XML data: %s" % xmldom.toxml())
+            xenrt.TEC().logverbose("device to be removed XML data: %s" % deviceToRemove.toxml())
             raise xenrt.XRTFailure("Can't update/remove device %s -- device not found" % deviceToRemove.localName)
         for device in devicesMatched:
             device.parentNode.removeChild(device)

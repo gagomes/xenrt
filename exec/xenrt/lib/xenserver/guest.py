@@ -819,6 +819,11 @@ users:
         xenrt.TEC().progress("Waiting for the VM to enter the UP state")
         self.poll("UP", pollperiod=1)
 
+        # Workaround for PCI passthrough buggy option ROM to send a key
+        if self.special.get("sendbioskey"):
+            xenrt.sleep(10)
+            self.sendVncKeys([0xff0d])
+
         vifs = ((self.managenetwork or self.managebridge)
                 and self.getVIFs(network=self.managenetwork, bridge=self.managebridge).keys()
                 or map(lambda v: v[0], self.vifs))

@@ -24,7 +24,7 @@ class TCStoragePCIPassthrough(xenrt.TestCase):
         else:
             self.guest = self.host.guests.values()[0]
 
-        self.duration = int(self.args.get("duration", 0)) * 60
+        self.duration = int(args.get("duration", 0)) * 60
 
         multipathing = None
         if "multipathing" in args:

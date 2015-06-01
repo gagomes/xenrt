@@ -13,7 +13,7 @@ import sys, traceback
 import xenrt
 from xenrt.lazylog import *
 
-class TCStoragePCIPassthrough(xenrt.Testcase):
+class TCStoragePCIPassthrough(xenrt.TestCase):
     def prepare(self, arglist):
         args = self.parseArgsKeyValue(arglist)
         self.host = self.getDefaultHost()

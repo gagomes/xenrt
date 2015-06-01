@@ -23,7 +23,14 @@ class TCStoragePCIPassthrough(xenrt.TestCase):
             self.guest = self.getGuest(gname)
         else:
             self.guest = self.host.guests.values()[0]
+
+        self.duration = int(self.args.get("duration", 0)) * 60
+
+        multipathing = None
         if "multipathing" in args:
+            multipathing = args['multipathing'] or 5 # Weighted path
+
+        if multipathing:
             self.guest.setState("UP")
             self.guest.xmlrpcExec("Install-WindowsFeature -Name Multipath-IO", powershell=True)
             self.guest.reboot()
@@ -48,9 +55,9 @@ class TCStoragePCIPassthrough(xenrt.TestCase):
 
         mydisk = [re.search("PHYSICALDRIVE(\d+)", x['Name']).group(1) for x in disks if not x['Name'].endswith("PHYSICALDRIVE0")][0]
 
-        mpiodisk = [re.search("^MPIO Disk(\d+)", x).group(1) for x in self.guest.xmlrpcExec("mpclaim -s -d", returndata=True).splitlines() if " Disk 1 " in x][0]
-
-        self.guest.xmlrpcExec("mpclaim -l -d %s 5" % mpiodisk)
+        if multipathing:
+            mpiodisk = [re.search("^MPIO Disk(\d+)", x).group(1) for x in self.guest.xmlrpcExec("mpclaim -s -d", returndata=True).splitlines() if " Disk %s " % mydisk in x][0]
+            self.guest.xmlrpcExec("mpclaim -l -d %s %s" % (mpiodisk, multipathing))
 
         self.guest.xmlrpcDiskpartCommand("rescan")
         self.guest.xmlrpcDiskpartCommand("select disk %s\nclean" % mydisk)
@@ -62,5 +69,9 @@ class TCStoragePCIPassthrough(xenrt.TestCase):
         self.fio.install()
 
     def run(self, arglist):
-        self.fio.runCheck()
+        deadline = xenrt.timenow() + self.duration
+        while True:
+            self.fio.runCheck()
+            if xenrt.timenow() > deadline:
+                break
 

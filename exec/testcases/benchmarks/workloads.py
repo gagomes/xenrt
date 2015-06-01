@@ -729,7 +729,7 @@ numjobs=4
     def runCheck(self):
         inifile = """[check]
 rw=rw
-size=64m
+size=512m
 numjobs=4
 """
         if self.drive:

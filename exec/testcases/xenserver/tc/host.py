@@ -4904,7 +4904,7 @@ class TCDiffChecksums(xenrt.TestCase):
                         "/etc/xensource-inventory", "/etc/xensource/ptoken",
                         "/etc/xensource/xapi-ssl.pem", "/var/lib/likewise/db/registry.db",
                         "/var/lib/nfs/statd/state", "/var/lib/ntp/drift",
-                        "/var/lib/random-seed"]:
+                        "/var/lib/random-seed", "/var/lib/pbis/db/registry.db"]:
                 continue
 
             if any([path.startswith(sw) for sw in ["/boot/initrd", "/etc/blkid/blkid",

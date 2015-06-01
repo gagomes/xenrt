@@ -5,7 +5,7 @@ from sets import Set as unique
 
 class PacketCatcher(object):
 
-    def __init__(self, host, delay=0, nolog=True):
+    def __init__(self, host, delay=2, nolog=True):
         self.host = host
         self.packets = []
         self.pid = None
@@ -123,7 +123,7 @@ class NFSPacketCatcher(PacketCatcher):
 
 class IOPPacketCatcher(PacketCatcher):
 
-    def __init__(self, host, delay=0, nolog=True):
+    def __init__(self, host, delay=2, nolog=True):
         PacketCatcher.__init__(self, host, delay, nolog)
         self.iterations = 0
         self.reads = [] 
@@ -639,7 +639,7 @@ class _Cache(xenrt.TestCase):
         self.host = self.getDefaultHost()
         if not self.host.genParamGet("sr", self.host.lookupDefaultSR(), "type") == "nfs":
             raise xenrt.XRTError("The default SR must be an nfs one.")
-        self.packetCatcher = NFSPacketCatcher(self.host, delay=0)
+        self.packetCatcher = NFSPacketCatcher(self.host, delay=2)
         if isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
             self.host.disableReadCaching()
         self.enableCaching()

@@ -1222,7 +1222,9 @@ class SourceISOCheck(xenrt.TestCase):
                         'likewise-open-lwsm', 
                         'likewise-open-netlogon', 
                         'likewise-open-rpc', 
-                        'likewise-open-srvsvc'
+                        'likewise-open-srvsvc',
+                        'pbis-open',
+                        'pbis-open-upgrade'
                         ]
 
     # list of extra rpm packages to be ignored from comparision.

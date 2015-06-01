@@ -205,7 +205,17 @@ def createHost(id=0,
     if productVersion:
         hosttype = productVersion
     else:
-        hosttype = xenrt.TEC().lookup("PRODUCT_VERSION", "Orlando")
+        fn = xenrt.TEC().getFile("%s/xe-phase-1/globals" % xenrt.TEC().getInputDir(), "%s/globals" % xenrt.TEC().getInputDir())
+        if fn:
+            for line in open(fn).xreadlines():
+                match = re.match('^PRODUCT_VERSION="(.+)"', line)
+                if match:
+                    hosttype = xenrt.TEC().lookup(["PRODUCT_CODENAMES", match.group(1)], None)
+                    if hosttype:
+                        break
+        if not hosttype:
+            hosttype = xenrt.TEC().lookup("PRODUCT_VERSION", "Orlando")
+            
     host = xenrt.lib.xenserver.hostFactory(hosttype)(m,
                                                      productVersion=hosttype)
 
@@ -6843,7 +6853,10 @@ fi
         cli.execute("host-enable-external-auth", string.join(args)).strip()
         
         # Using CA-33290 workaround
-        self.execdom0("/opt/likewise/bin/lw-set-log-level debug")
+        if self.execdom0("test -e /opt/pbis", retval="code") == 0:
+            self.execdom0("/opt/pbis/bin/lwsm set-log-level eventlog all debug")
+        else:
+            self.execdom0("/opt/likewise/bin/lw-set-log-level debug")
         xenrt.sleep(5)
         
     def enableIPOnPIF(self, pifuuid):
@@ -11778,7 +11791,7 @@ class StorageRepository(object):
         self.lun = None
         self.resources = {}
         self.isDestroyed = False
-        self.thinProv = thin_prov
+        self.__thinProv = thin_prov
 
         # Recorded by _create for possible future use by introduce
         self.srtype = None
@@ -11886,6 +11899,15 @@ class StorageRepository(object):
         cli.execute("sr-destroy", "uuid=%s" % (self.uuid))
         self.isDestroyed = True
 
+    def __isEligibleThinProvisioning(self, srtype=None):
+        """Evaluate sr type to check whether it supports thin provisioning"""
+
+        if not srtype:
+            srtype = self.srtype
+        if srtype in ["lvm", "lvmoiscsi", "lvmohba"]:
+            return True
+        return False
+
     def _create(self, srtype, dconf, physical_size=0, content_type="", smconf={}):
         actualDeviceConfiguration = dict(self.EXTRA_DCONF)
         actualDeviceConfiguration.update(dconf)
@@ -11901,8 +11923,11 @@ class StorageRepository(object):
             args.append("shared=true")
         args.extend(["device-config:%s=\"%s\"" % (x, y)
                      for x,y in actualDeviceConfiguration.items()])
-        if self.thinProv:
-            smconf["allocation"] = "dynamic"
+        if self.__thinProv:
+            if self.__isEligibleThinProvisioning(srtype):
+                smconf["allocation"] = "dynamic"
+            else:
+                xenrt.warning("SR: %s is marked as thin provisioning but %s does not support it. Ignoring..." % (self.name, srtype))
         args.extend(["sm-config:%s=\"%s\"" % (x, y)
                     for x,y in smconf.items()])
         self.uuid = cli.execute("sr-create", string.join(args)).strip()
@@ -12081,10 +12106,6 @@ class LVMStorageRepository(StorageRepository):
 
     SHARED = False
     CLEANUP = "destroy"
-
-    def __init__(self, host, name, thin_prov=True):
-        super(LVMStorageRepository, self).__init__(host, name)
-        self.thinProv = thin_prov
 
     def create(self, device, physical_size=0, content_type="", smconf={}):
         self._create("lvm", {"device":device}, physical_size, content_type, smconf)

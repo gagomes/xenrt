@@ -121,6 +121,7 @@ class CloudStack(object):
                        installTools=True,
                        useTemplateIfAvailable=True,
                        hypervisorType=None,
+                       start=True,
                        zone=None):
 
         return self.__createInstance(distro=distro,
@@ -134,6 +135,7 @@ class CloudStack(object):
                                      installTools=installTools,
                                      useTemplateIfAvailable=useTemplateIfAvailable,
                                      hypervisorType=hypervisorType,
+                                     start=start,
                                      zone=zone)
 
     def __createInstance(self,
@@ -149,6 +151,7 @@ class CloudStack(object):
                          installTools=True,
                          useTemplateIfAvailable=True,
                          hypervisorType=None,
+                         start=True,
                          zone=None):
         
         zoneid = None
@@ -285,7 +288,8 @@ class CloudStack(object):
 
             # If we don't have an install method, we created this from a template, so we just need to start it.
             if not instance.os.installMethod:
-                instance.start()
+                if start:
+                    instance.start()
             else:
                 if instance.outboundip and instance.os.installMethod == xenrt.InstallMethod.IsoWithAnswerFile:
                     # We could have multiple instances behind the same IP, so we can only do one install at a time
@@ -316,7 +320,8 @@ class CloudStack(object):
                 self.cloudApi.createTags(resourceids=[instance.toolstackId],
                                          resourcetype="userVm",
                                          tags=[{"key":"tools", "value":"yes"}])
-
+            if not start:
+                self.stopInstance(instance)
         except Exception, ex:
             raise
             try:
@@ -518,7 +523,9 @@ class CloudStack(object):
                                    vifs=None,
                                    extraConfig={},
                                    startOn=None,
-                                   installTools=True):
+                                   installTools=True,
+                                   start=True,
+                                   zone=None):
         if not name:
             name = xenrt.util.randomGuestName()
         template = [x for x in self.cloudApi.listTemplates(templatefilter="all", name=templateName) if x.name==templateName][0]
@@ -534,7 +541,9 @@ class CloudStack(object):
                                      vifs=vifs,
                                      extraConfig=extraConfig,
                                      startOn=startOn,
-                                     installTools=installTools)
+                                     installTools=installTools,
+                                     start=start,
+                                     zone=zone)
 
     def ejectInstanceIso(self, instance):
         self.cloudApi.detachIso(virtualmachineid = instance.toolstackId)

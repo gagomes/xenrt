@@ -67,18 +67,11 @@
         <arg>vgpuconfig=13</arg>
       </testcase>
 
-      <testcase id="testcases.xenserver.tc.vgpu.TCIntelGPUReuse" tc="TC-00001">
+      <testcase id="testcases.xenserver.tc.vgpu.TCIntelGPUReuse" tc="TC-26946">
         <arg>distro=0</arg>
         <arg>typeofvgpu=intelwinvgpu</arg>
         <arg>blockdom0access=false</arg>
         <arg>vgpuconfig=13</arg>
-      </testcase>
-
-      <testcase id="testcases.xenserver.tc.vgpu.TCSwitchIntelGPUModes" tc="TC-00002">
-        <arg>distro=0</arg>
-        <arg>typeofvgpu=intelwinvgpu</arg>
-        <arg>blockdom0access=false</arg>
-        <arg>vgpuconfig=12,13</arg>
       </testcase>
 
       <testcase id="testcases.xenserver.tc.vgpu.TCRevertvGPUSnapshot" tc="TC-00003">

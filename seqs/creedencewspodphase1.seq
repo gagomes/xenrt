@@ -1,6 +1,7 @@
 <xenrt>
   <variables>
     <CARBON_RPM_UPDATES>http://malcolmc.uk.xensource.com/storage-passthrough/xen-dom0-tools-4.4.1-1.9.0.477.28876.x86_64.rpm</CARBON_RPM_UPDATES>
+    <FORCE_RPM_UPDATES>yes</FORCE_RPM_UPDATES>
     <APPLY_ALL_RELEASED_HFXS>yes</APPLY_ALL_RELEASED_HFXS>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
   </variables>

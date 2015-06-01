@@ -735,7 +735,7 @@ numjobs=4
         if self.drive:
             inifile += "directory=%s\\:\\\n" % self.drive
         self.guest.xmlrpcWriteFile("c:\\check.fio", inifile) 
-        self.guest.xmlrpcExec(self.cmdline.replace("workload", "check"))
+        self.guest.xmlrpcExec(self.cmdline.replace("workload", "check"), timeout=3600)
 
 class WindowsExperienceIndex(Workload):
 

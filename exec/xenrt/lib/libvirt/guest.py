@@ -946,8 +946,7 @@ class Guest(xenrt.GenericGuest):
         self.vifs = [vif for vif in self.vifs if vif[2]!=mac]
 
     def removeVIFs(self, name=None, mac=None, eth=None, ip=None, multiple=False):
-        self.reparseVIFs()
-        vifsToRemove= [ vif for vif in self.vifs
+        vifsToRemove= [ vif for vif in self.getVIFs()
                         if (vif[0]==eth or eth==None) and
                         (vif[1]==name or name==None) and
                         (vif[2]==mac or mac==None) and

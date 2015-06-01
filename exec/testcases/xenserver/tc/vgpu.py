@@ -3536,12 +3536,6 @@ class TCPoolIntelBootstorm(IntelBase):
             self.typeOfvGPU.assertvGPURunningInVM(passVM, self.getConfigurationName(passConfig))
             self.typeOfvGPU.assertvGPURunningInVM(vgpuVM, self.getConfigurationName(vgpuConfig))
 
-
-            # Shutdown all plus unblock Dom0 access on host again.
-            # Bootstorm on all VMs again. Make sure Passthrough ones fail.
-                # What is the point of the negative case nested in here for?
-                # TCSwitchIntelGPUModes, should cover negative cases.
-
     def bootstormStartVM(self, vm):
         try:
             name = vm.getName()

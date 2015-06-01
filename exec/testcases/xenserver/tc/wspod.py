@@ -27,10 +27,8 @@ class TCStoragePCIPassthrough(xenrt.TestCase):
         self.duration = int(args.get("duration", 0)) * 60
 
         multipathing = None
-        if "multipathing" in args:
-            multipathing = args['multipathing'] or 5 # Weighted path
 
-        if multipathing:
+        if "multipathing" in args:
             self.guest.setState("UP")
             self.guest.xmlrpcExec("Install-WindowsFeature -Name Multipath-IO", powershell=True)
             self.guest.reboot()
@@ -45,20 +43,20 @@ class TCStoragePCIPassthrough(xenrt.TestCase):
             self.guest.special['sendbioskey'] = True
         self.guest.start()
 
-        mylunid = int([self.host.lookup(["FC", x, 'LUNID']) for x in self.host.lookup("FC").keys() if not self.host.lookup(["FC", x, "SHARED"], True, boolean=True)][0])
+        mylun = [self.host.lookup(["FC", x]) for x in self.host.lookup("FC").keys() if not self.host.lookup(["FC", x, "SHARED"], True, boolean=True)][0]
         
         disks = json.loads(self.guest.xmlrpcExec(
-            "Get-WmiObject -Class win32_diskdrive | Where {$_.SCSILogicalUnit -eq %d} | Select Name | ConvertTo-Json -Compress" % mylunid,
+            "Get-WmiObject -Class win32_diskdrive | Where {$_.SCSILogicalUnit -eq %d} | Select Name | ConvertTo-Json -Compress" % int(mylun['LUNID']),
             powershell=True,
             returndata=True).strip().splitlines()[-1])
        
 
         mydisk = [re.search("PHYSICALDRIVE(\d+)", x['Name']).group(1) for x in disks if not x['Name'].endswith("PHYSICALDRIVE0")][0]
 
-        if multipathing:
+        if mylun.get('MPCLAIM'):
             mpiodisk = [re.search("^MPIO Disk(\d+)", x).group(1) for x in self.guest.xmlrpcExec("mpclaim -s -d", returndata=True).splitlines() if " Disk %s " % mydisk in x][0]
-            self.guest.xmlrpcExec("mpclaim -l -d %s %s" % (mpiodisk, multipathing))
-
+            self.guest.xmlrpcExec("mpclaim -l -d %s %s" % (mpiodisk, mylun['MPCLAIM']))
+        
         self.guest.xmlrpcDiskpartCommand("rescan")
         self.guest.xmlrpcDiskpartCommand("select disk %s\nclean" % mydisk)
         self.guest.xmlrpcDiskpartCommand("rescan")

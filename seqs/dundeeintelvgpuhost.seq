@@ -94,6 +94,13 @@
         <arg>blockdom0access=false</arg>
         <arg>vgpuconfig=13</arg>
       </testcase>
+      
+      <testcase id="testcases.xenserver.tc.vgpu.TCExportImportK2GPU" tc="TC-00005">
+        <arg>distro=0</arg>
+        <arg>typeofvgpu=intelwinvgpu</arg>
+        <arg>blockdom0access=false</arg>
+        <arg>vgpuconfig=13</arg>
+      </testcase>
     
     </serial>
   </testsequence>

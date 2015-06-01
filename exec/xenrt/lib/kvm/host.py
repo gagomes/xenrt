@@ -463,6 +463,9 @@ EOF
             if expectedCommit and commit != expectedCommit:
                 raise xenrt.XRTError("ACS/CCP agent commit %s does not match expected commit %s" % (commit, expectedCommit))
 
+        # Ensure NFS mounts use v3 by default
+        self.execdom0("echo 'Defaultvers=3' >> /etc/nfsmount.conf") 
+
         # Write the stamp file to record this has already been done
         self.execdom0("mkdir -p /var/lib/xenrt")
         self.execdom0("touch /var/lib/xenrt/cloudTailored")

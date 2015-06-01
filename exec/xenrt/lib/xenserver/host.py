@@ -8179,9 +8179,14 @@ rm -f /etc/xensource/xhad.conf || true
         return sruuid
 
     def isHAPEnabled(self):
-        dmesg = self.execdom0("grep 'Hardware Assisted Paging' /var/log/xen-dmesg || true")
+        dmesg = self.execdom0("grep 'Hardware Assisted Paging' /var/log/xen/hypervisor.log || true")
+       
+        #for backward compatibility checking in /var/log/xen-dmesg
+        if "Hardware Assisted Paging" not in dmesg:
+            dmesg = self.execdom0("grep 'Hardware Assisted Paging' /var/log/xen-dmesg || true")
 
-        return "HVM: Hardware Assisted Paging detected and enabled." in dmesg or "HVM: Hardware Assisted Paging (HAP) detected" in dmesg
+        return "HVM: Hardware Assisted Paging detected and enabled." in dmesg or\
+                          "HVM: Hardware Assisted Paging (HAP) detected" in dmesg
 
     def resolveDistroName(self, distro):
         origDistro = distro

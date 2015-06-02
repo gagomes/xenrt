@@ -59,7 +59,7 @@
   </collection>
 
   <collection name="win_guests">
-    <testcase id="xenserver.tc.sxm.LiveMigrate" name="sxm_win_${S}_${I}" tc="TC-17879">
+    <testcase id="xenserver.tc.sxm.LiveMigrate" name="sxm_win_${S}_${I}" sku="sxm_win_${S}_${I}" tc="TC-17879">
       <arg>gname=${GUEST}</arg>
       <arg>src_host=${SRC_HOST}</arg>
       <arg>src_SR_type=nfs</arg>

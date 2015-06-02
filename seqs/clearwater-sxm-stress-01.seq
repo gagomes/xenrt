@@ -1,6 +1,5 @@
 <xenrt>
 
-  <default name="TCID" value="TC-17442" />
   <default name="ITERATIONS" value="100" />
 
   <variables>
@@ -11,12 +10,6 @@
     <PREPARE_WORKERS>4</PREPARE_WORKERS>
     <OPTION_CLONE_TEMPLATE>yes</OPTION_CLONE_TEMPLATE>
   </variables>
-  
-  <scheduler>
-    <pool>VMX,SVM</pool>
-    <param>MACHINES_REQUIRED=4</param>
-    <resources>memory&gt;=32G/disk1&gt;=500G/NPRI&gt;=1/NSEC&gt;=1</resources>
-  </scheduler>
 
   <prepare>
     <pool id="0">
@@ -80,7 +73,7 @@
   </collection>
 
   <collection name="win_guests">
-    <testcase id="xenserver.tc.sxm.LiveMigrate" name="sxm_win_${S}_${I}" tc="TC-17442">
+    <testcase id="xenserver.tc.sxm.LiveMigrate" name="sxm_win_${S}_${I}" sku="sxm_win_${S}_${I}" tc="TC-17442">
       <arg>gname=${GUEST}</arg>
       <arg>src_host=${SRC_HOST}</arg>
       <arg>dest_host=${DEST_HOST}</arg>

@@ -2445,6 +2445,7 @@ class TCRevertvGPUSnapshot(FunctionalBase):
 
             log("Creating Master VM of type %s" % osType)
             vm = self.createMaster(osType)
+            cleanSnap = vm.snapshot()
 
             log("Creating vGPU of type %s" % (self.getConfigurationName(self.VGPU_CONFIG[0])))
             self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[self.VGPU_CONFIG[0]], vm)
@@ -2459,6 +2460,9 @@ class TCRevertvGPUSnapshot(FunctionalBase):
             log("Cloning VM from Master VM")
             g = self.cloneVM(osType)
             self.guests[osType] = g
+
+            log("Reverting Master VM back to clean state.")
+            vm.revert(cleanSnap)
 
     def run(self,arglist):
 

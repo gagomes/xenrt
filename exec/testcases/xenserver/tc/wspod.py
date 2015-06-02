@@ -43,7 +43,7 @@ class TCStoragePCIPassthrough(xenrt.TestCase):
         self.guest.paramSet("other-config:pci", "0/0000:%s" % pci)
 
         # Dodgy hack for option ROMs that require "Press Any Key to continue". This will hopefully be addressed before release!
-        if "sendbioskey" in args:
+        if xenrt.TEC().lookup("WORKAROUND_CA172261", False, boolean=True):
             self.guest.special['sendbioskey'] = True
         self.guest.start()
 

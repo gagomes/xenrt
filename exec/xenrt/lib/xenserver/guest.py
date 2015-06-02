@@ -6033,6 +6033,26 @@ default:
         """Installs docker into a guest"""
 
         self.getDocker().install()
+    
+    def installToolSteps(self):
+        """ Install Windows Guest Agent from xs tools """
+        
+        #Mount the tools CD 
+        self.changeCD("xs-tools.iso")
+        xenrt.sleep(30)
+        pvToolsDir = "D:"
+        
+        self.xmlrpcStart("%s\\citrixxendriversx64.msi  /passive /forcerestart" %(pvToolsDir))
+        self.xmlrpcStart("%s\\citrixvssx64.msi  /passive /forcerestart" %(pvToolsDir))
+        self.xmlrpcStart("%s\\dotNetFx40_Full_x86_x64.exe" %(pvToolsDir))
+        self.xmlrpcStart("%s\\citrixguestagentx64.msi  /passive /forcerestart" %(pvToolsDir))  
+        self.xmlrpcStart("%s\\installwizard.msi  /passive /forcerestart" %(pvToolsDir))
+        
+        xenrt.sleep(30)
+        
+        #Eject the tools CD from the VM.
+        self.changeCD(None)
+        
 
     def getDocker(self, method="XAPI"):
 
@@ -6052,6 +6072,8 @@ default:
             return xenrt.lib.xenserver.docker.UbuntuDocker(self.getHost(), self, controller)
         else:
             raise xenrt.XRTFailure("Docker installation unimplemented on distro %s" % self.distro)
+            
+    
 
 class DundeeGuest(CreedenceGuest):
 
@@ -6205,25 +6227,7 @@ class DundeeGuest(CreedenceGuest):
         #Eject the tools CD from the VM.
         self.changeCD(None)
 
-    def installToolSteps(self):
-        """ Install Windows Guest Agent from xs tools """
-        
-        #Mount the tools CD 
-        self.changeCD("xs-tools.iso")
-        xenrt.sleep(30)
-        pvToolsDir = "D:"
-        
-        self.xmlrpcStart("%s\\citrixxendriversx64.msi  /passive /forcerestart" %(pvToolsDir))
-        self.xmlrpcStart("%s\\citrixvssx64.msi  /passive /forcerestart" %(pvToolsDir))
-        self.xmlrpcStart("%s\\dotNetFx40_Full_x86_x64.exe" %(pvToolsDir))
-        self.xmlrpcStart("%s\\citrixguestagentx64.msi  /passive /forcerestart" %(pvToolsDir))  
-        self.xmlrpcStart("%s\\installwizard.msi  /passive /forcerestart" %(pvToolsDir))
-        
-        xenrt.sleep(30)
-        
-        #Eject the tools CD from the VM.
-        self.changeCD(None)
-        
+    
     def sc(self, command ):
         """SC is a command line program used for communicating with the Service control manager and services"""
         
@@ -6580,3 +6584,4 @@ def shutdownMulti(guestlist, timeout=None, clitimeout=7200, timer=None):
         xenrt.sleep(15)
 
     xenrt.TEC().logverbose("Shutdown %u guests" % (len(guestlist)))
+    

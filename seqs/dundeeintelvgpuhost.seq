@@ -74,14 +74,14 @@
         <arg>vgpuconfig=13</arg>
       </testcase>
 
-      <testcase id="testcases.xenserver.tc.vgpu.TCRevertvGPUSnapshot" name="TC-26352" tc="TC-26352" sku="IntelvGPU">
+      <testcase id="testcases.xenserver.tc.vgpu.TCExportImportK2GPU" name="TC-20871" tc="TC-20871" sku="IntelvGPU">
         <arg>distro=0</arg>
         <arg>typeofvgpu=intelwinvgpu</arg>
         <arg>blockdom0access=false</arg>
         <arg>vgpuconfig=13</arg>
       </testcase>
 
-      <testcase id="testcases.xenserver.tc.vgpu.TCExportImportK2GPU" name="TC-20871" tc="TC-20871" sku="IntelvGPU">
+      <testcase id="testcases.xenserver.tc.vgpu.TCRevertvGPUSnapshot" name="TC-26352" tc="TC-26352" sku="IntelvGPU">
         <arg>distro=0</arg>
         <arg>typeofvgpu=intelwinvgpu</arg>
         <arg>blockdom0access=false</arg>

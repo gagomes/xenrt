@@ -4854,7 +4854,7 @@ class TCCIFSLifecycle(xenrt.TestCase):
         sizeInBytes = int(self.args["size"])
 
         # Create some VDIs
-        actualVdis = [self.host.createVDI(size, sruuid=self.sr.uuid, name="VDI_%s" % i)for i in range(noOfVdis)]
+        actualVdis = [self.host.createVDI(sizeInBytes, sruuid=self.sr.uuid, name="VDI_%s" % i)for i in range(noOfVdis)]
 
         # Forget SR
         self.sr.forget()

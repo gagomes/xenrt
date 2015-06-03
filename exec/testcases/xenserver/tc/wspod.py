@@ -107,3 +107,18 @@ class TCStoragePCIPassthrough(xenrt.TestCase):
             if xenrt.timenow() > deadline:
                 break
 
+class TCForkOp(xenrt.TestCase):
+    def prepare(self, arglist=[]):
+        self.host = self.getDefaultHost()
+        self.guest = self.host.guests.values()[0]
+        self.guest.execcmd("wget -O - '%s/meliotest.tgz' | tar -xz -C /root" % xenrt.TEC().lookup("TEST_TARBALL_BASE"))
+        self.guest.execcmd("mv /root/meliotest/bat /root/bat")
+        self.guest.execcmd("sed '/  call_wd_repair/d' /root/meliotest/fork_op/begin_fs_spec")
+
+    def run(self, arglist=[]):
+        out = self.guest.execcmd("cd /root/meliotest/fork_op && /bin/echo -e '\\n' | ./NSnD /fs1/dir2 1 100 local").splitlines()
+        if out[-1] != 'FORK_OP_RESULT=0':
+            raise xenrt.XRTFailure("fork_op returned non-zero: %s" % out[-1])
+    
+    def preLogs(self):
+        self.guest.sftpClient().copyTreeFromRecurse("/logs", xenrt.TEC().getLogdir())

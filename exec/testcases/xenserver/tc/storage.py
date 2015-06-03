@@ -4868,7 +4868,7 @@ class TCCIFSLifecycle(xenrt.TestCase):
         # Get a list of any VDIs that are now missing
         VDIs_missing = filter(lambda vdi: vdi not in VDIs_present, actualVdis)
 
-        xenrt.TEC().logverbose("VDIs missing after SR introduce: " % (",".join(VDIs_missing)))
+        xenrt.TEC().logverbose("VDIs missing after SR introduce: %s" % (",".join(VDIs_missing)))
             
         if len(VDIs_missing) > 0:
             raise xenrt.XRTFailure("VDIs are missing after SR introduce")

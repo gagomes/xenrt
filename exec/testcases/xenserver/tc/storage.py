@@ -4853,9 +4853,6 @@ class TCCIFSLifecycle(xenrt.TestCase):
         noOfVdis = int(self.args["numberofvdis"])
         sizeInBytes = int(self.args["size"])
 
-        # Create SR.
-        self.sr.create(self.share)
-
         # Create some VDIs
         actualVdis = [self.host.createVDI(size, sruuid=self.sr.uuid, name="VDI_%s" % i)for i in range(noOfVdis)]
 

@@ -81,7 +81,7 @@
               <arg>guest=winguest${P}${C}</arg>
             </testcase>
             <testcase id="xenserver.guest.TCLifeCycleLoop" tc="TC-27044" name="LifeCycle.Win${P}${C}" sku="LifeCycle.Win${P}${C}">
-              <arg>guest=rhguest${P}${C}</arg>
+              <arg>guest=winguest${P}${C}</arg>
               <arg>duration=${DURATION}</arg>
               <arg>iterations=${ITERATIONS}</arg>
               <arg>snap=${POOLSTRESSSNAP}</arg>

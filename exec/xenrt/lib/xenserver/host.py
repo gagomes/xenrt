@@ -11911,7 +11911,7 @@ class StorageRepository(object):
         srtype = self.host.genParamGet("sr", self.uuid, "type")
         try:
             alloc = self.host.genParamGet("sr", self.uuid, "sm-config", "allocation")
-            if alloc == "dynamic":
+            if alloc == "thin":
                 return True
 
         except:
@@ -12181,6 +12181,25 @@ class LVMStorageRepository(StorageRepository):
 
     SHARED = False
     CLEANUP = "destroy"
+
+    @property
+    def thinProvisioning(self):
+        """Return whether sr is thinly provisioned."""
+
+        if not self.uuid:
+            raise xenrt.XRTError("SR instance is not associated with actual SR.")
+
+        srtype = self.host.genParamGet("sr", self.uuid, "type")
+        try:
+            alloc = self.host.genParamGet("sr", self.uuid, "sm-config", "allocation")
+            if alloc == "dynamic":
+                return True
+
+        except:
+            # sm-config may not have 'allocation' key.
+            pass
+
+        return False
 
     def create(self, device, physical_size=0, content_type="", smconf={}):
         self._create("lvm", {"device":device}, physical_size, content_type, smconf)

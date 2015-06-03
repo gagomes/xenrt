@@ -9,7 +9,7 @@
 #
 
 import xenrt
-from xenrt.lib.xenserver import LVMStorageRepository, ISCSIStorageRepository, HBAStorageRepository
+from xenrt.lib.xenserver import LVMStorageRepository, ISCSIStorageRepository, HBAStorageRepository, NFSStorageRepository
 
 
 # Symbols we want to export from the package.
@@ -28,5 +28,7 @@ def getStorageRepositoryClass(host, sruuid):
         return ISCSIStorageRepository
     if srtype == "lvmohba":
         return HBAStorageRepository
+    if srtype == "nfs":
+        return NFSStorageRepository
 
     raise xenrt.XRTError("%s SR type class getter is not implemented." % srtype)

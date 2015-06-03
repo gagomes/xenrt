@@ -6305,12 +6305,11 @@ class DundeeGuest(CreedenceGuest):
             for file in oemFileList:
                 batch.append("pnputil.exe -f -d %s\r\n" %(file)) 
                 batch.append("ping 127.0.0.1 -n 10 -w 1000\r\n")
+            batch.append("shutdown -r\r\n")
             
             self.xmlrpcWriteFile("c:\\uninst.bat", string.join(batch))
             self.xmlrpcStart("c:\\uninst.bat")
-        
-        self.xmlrpcReboot()
-        
+
         if not self.xmlrpcIsAlive():
             raise xenrt.XRTFailure("XML-RPC not alive after tools uninstallation")
         

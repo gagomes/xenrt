@@ -97,6 +97,10 @@ class TCStoragePCIPassthrough(xenrt.TestCase):
         self.fio.install()
 
     def run(self, arglist):
+
+        # Reboot the guest before we start to check that we can reset the PCI device
+        self.guest.reboot()
+
         deadline = xenrt.timenow() + self.duration
         while True:
             self.fio.runCheck()

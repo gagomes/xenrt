@@ -113,7 +113,7 @@ class TCForkOp(xenrt.TestCase):
         self.guest = self.host.guests.values()[0]
         self.guest.execcmd("wget -O - '%s/meliotest.tgz' | tar -xz -C /root" % xenrt.TEC().lookup("TEST_TARBALL_BASE"))
         self.guest.execcmd("mv /root/meliotest/bat /root/bat")
-        self.guest.execcmd("sed '/  call_wd_repair/d' /root/meliotest/fork_op/begin_fs_spec")
+        self.guest.execcmd("sed -i '/  call_wd_repair/d' /root/meliotest/fork_op/begin_fs_spec")
         self.guest.execcmd("mkdir -p /fs1")
 
     def run(self, arglist=[]):

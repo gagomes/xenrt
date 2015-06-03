@@ -4121,19 +4121,21 @@ class Config(object):
         """Read config from an XML file."""
         self.parseConfig(filename, path=path)
 
-    def writeOut(self, fd, dict=None, pref=[]):
+    def writeOut(self, fd, conf=None, pref=[]):
         """Write the config out to a file descriptor"""
-        if dict == None:
-            dict = self.config
-        keys = dict.keys()
+        if conf == None:
+            conf = self.config
+        keys = conf.keys()
         keys.sort()
         for key in keys:
-            if type(dict[key]) == type(""):
-                s = re.sub(r"\$\{(\w+)\}", self.lookupHelper, dict[key])
+            if type(conf[key]) == type(""):
+                s = re.sub(r"\$\{(\w+)\}", self.lookupHelper, conf[key])
                 value = string.replace(s, "'", "\\'")
                 fd.write("%s='%s'\n" % (string.join(pref + [key], "."), value))
+            elif type(conf[key]) == list:
+                fd.write("%s=%s\n" % (string.join(pref + [key], "."), str(conf[key]))) 
             else:
-                self.writeOut(fd, dict[key], pref + [key])
+                self.writeOut(fd, conf[key], pref + [key])
 
     def setVariable(self, key, value):
         """Write a variable to the config"""

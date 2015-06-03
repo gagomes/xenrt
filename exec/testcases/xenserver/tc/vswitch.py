@@ -3139,7 +3139,7 @@ class SRTrafficwithGRO(NetworkThroughputwithGRO):
 
             if re.search(self.TYPE,"iscsi", re.I):
                 # Set up the SR on the host, plug the pbd etc
-                sr = xenrt.lib.xenserver.host.ISCSIStorageRepository(self.host,
+                sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.host,
                                                                     "test-iscsi")
                 lun = xenrt.ISCSILunSpecified("xenrt-test/%s/%s" %
                                             (self.iqn, ip))
@@ -3154,7 +3154,7 @@ class SRTrafficwithGRO(NetworkThroughputwithGRO):
                     nicNotTested.append(nic)
                     installFlag=0
             else:
-                sr = xenrt.lib.xenserver.host.NFSStorageRepository(self.host,
+                sr = xenrt.lib.xenserver.NFSStorageRepository(self.host,
                                                                     "test-nfs")
                 try:
                     sr.create(self.srvm.getIP(), nfsDir)

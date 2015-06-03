@@ -1073,7 +1073,7 @@ class _TCVDICreate(xenrt.TestCase):
             try:
                 # Create a LVMoISCSI SR on a temporary LUN
                 self.lun = xenrt.ISCSITemporaryLun(250)
-                self.tempsr = xenrt.lib.xenserver.host.ISCSIStorageRepository(\
+                self.tempsr = xenrt.lib.xenserver.ISCSIStorageRepository(\
                     self.host, "LegacyLVM")
                 self.tempsr.create(self.lun, subtype="lvm", findSCSIID=True, noiqnset=True)
                 # Forget and reintroduce the SR putting restoring the sm name
@@ -1687,7 +1687,7 @@ class TC8682(_LVHDRTBase):
     TIMEOUT = 10400
 
     def extraPrepare(self):
-        self.dummy = xenrt.lib.xenserver.host.DummyStorageRepository(self.host, "dummy")
+        self.dummy = xenrt.lib.xenserver.DummyStorageRepository(self.host, "dummy")
         self.dummy.create("10GiB")
         self.guest = self.host.createGenericLinuxGuest()
         self.uninstallOnCleanup(self.guest)

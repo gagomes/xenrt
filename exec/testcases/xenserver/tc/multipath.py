@@ -100,7 +100,7 @@ class _SoftwareMultipath(xenrt.TestCase):
     def run(self, arglist=None):
 
         # Set up the SR on the host
-        sr = xenrt.lib.xenserver.host.ISCSIStorageRepository(self.host0,
+        sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.host0,
                                                              "TC7835")
         self.lun = xenrt.ISCSILunSpecified("xenrt-test/%s/%s" %
                                       (self.targetiqn,
@@ -316,7 +316,7 @@ class _TC8012(_SoftwareMultipath):
 
     def run(self, arglist=None):
         # Set up the SR on the host
-        sr = xenrt.lib.xenserver.host.ISCSIStorageRepository(self.host0,
+        sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.host0,
                                                              "TC8012")
         self.lun = xenrt.ISCSILunSpecified("xenrt-test/%s/%s" %
                                       (self.targetiqn,
@@ -415,7 +415,7 @@ class _TC8013(_SoftwareMultipath):
 
     def run(self, arglist=None):
         step('Set up the SR on the host')
-        sr = xenrt.lib.xenserver.host.ISCSIStorageRepository(self.host0,
+        sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.host0,
                                                              "TC8013")
         self.lun = xenrt.ISCSILunSpecified("xenrt-test/%s/%s" %
                                       (self.targetiqn,
@@ -600,7 +600,7 @@ class TC8031(xenrt.TestCase):
             self.host1.enableMultipathing(mpp_rdac=self.MPP_RDAC)
             
         # Setup iSCSI SR on master 
-        self.sr = xenrt.lib.xenserver.host.ISCSIStorageRepository(self.host0,
+        self.sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.host0,
                                                              "TC8031")
         if not self.MPP_RDAC:
             self.lun = xenrt.ISCSILunSpecified("%s/%s/%s" %
@@ -879,7 +879,7 @@ class TC8113(xenrt.TestCase):
         self.pool = xenrt.lib.xenserver.poolFactory(self.host0.productVersion)(self.host0)
 
         # Setup iSCSI SR on master
-        self.sr = xenrt.lib.xenserver.host.ISCSIStorageRepository(self.host0,
+        self.sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.host0,
                                                              "TC8113")
 
         if not self.MPP_RDAC:
@@ -1071,7 +1071,7 @@ class _TC8133(xenrt.TestCase):
             self.paths = 4
 
         # Set up the SR on the host
-        sr = xenrt.lib.xenserver.host.ISCSIStorageRepository(self.host,
+        sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.host,
                                                              "_TC8133")
         
         if not self.MPP_RDAC:
@@ -1688,7 +1688,7 @@ class TC9765(_TC8159):
     def createSR(self, host):
         self.host = self.getDefaultHost()
         self.cvsmserver = xenrt.CVSMServer(xenrt.TEC().registry.guestGet("CVSMSERVER"))
-        self.sr = xenrt.lib.xenserver.host.CVSMStorageRepository(self.host,
+        self.sr = xenrt.lib.xenserver.CVSMStorageRepository(self.host,
                                                                  "cslgsr")
         minsize = int(self.host.lookup("SR_NETAPP_MINSIZE", 40))
         maxsize = int(self.host.lookup("SR_NETAPP_MAXSIZE", 1000000))
@@ -1711,7 +1711,7 @@ class TC12900(TC9765):
 
     def createSR(self, host):
         self.host = self.getDefaultHost()
-        self.sr = xenrt.lib.xenserver.host.IntegratedCVSMStorageRepository(self.host,
+        self.sr = xenrt.lib.xenserver.IntegratedCVSMStorageRepository(self.host,
                                                                            "cslgsr")
         minsize = int(self.host.lookup("SR_NETAPP_MINSIZE", 40))
         maxsize = int(self.host.lookup("SR_NETAPP_MAXSIZE", 1000000))
@@ -1728,7 +1728,7 @@ class TC13991(TC12900):
 
     def createSR(self, host):
         self.host = self.getDefaultHost()
-        self.sr = xenrt.lib.xenserver.host.IntegratedCVSMStorageRepository(self.host,
+        self.sr = xenrt.lib.xenserver.IntegratedCVSMStorageRepository(self.host,
                                                                            "cslgsr")
         minsize = int(self.host.lookup("SR_EQL_MINSIZE", 40))
         maxsize = int(self.host.lookup("SR_EQL_MAXSIZE", 1000000))
@@ -1775,7 +1775,7 @@ class TC9771(_TC8159):
     def createSR(self, host):
         self.host = self.getDefaultHost()
         self.cvsmserver = xenrt.CVSMServer(xenrt.TEC().registry.guestGet("CVSMSERVER"))
-        self.sr = xenrt.lib.xenserver.host.CVSMStorageRepository(self.host,
+        self.sr = xenrt.lib.xenserver.CVSMStorageRepository(self.host,
                                                                  "cslgsr")
         self.fcarray = xenrt.FCHBATarget()
         self.cvsmserver.addStorageSystem(self.fcarray)
@@ -1793,7 +1793,7 @@ class TC12735(TC9771):
 
     def createSR(self, host):
         self.host = self.getDefaultHost()
-        self.sr = xenrt.lib.xenserver.host.IntegratedCVSMStorageRepository(self.host,
+        self.sr = xenrt.lib.xenserver.IntegratedCVSMStorageRepository(self.host,
                                                                            "cslgsr")
         self.fcarray = xenrt.FCHBATarget()
         self.sr.create(self.fcarray,
@@ -1809,7 +1809,7 @@ class TC13986(TC12735):
 
     def createSR(self, host):
         self.host = self.getDefaultHost()
-        self.sr = xenrt.lib.xenserver.host.IntegratedCVSMStorageRepository(self.host,
+        self.sr = xenrt.lib.xenserver.IntegratedCVSMStorageRepository(self.host,
                                                                            "cslgsr")
         self.fcarray = xenrt.FCHBATarget()
         self.sr.create(self.fcarray,
@@ -2003,7 +2003,7 @@ class TC9767(_MultipathFailureSmoketest):
     def createSR(self, host):
         self.host = self.getDefaultHost()
         self.cvsmserver = xenrt.CVSMServer(xenrt.TEC().registry.guestGet("CVSMSERVER"))
-        self.sr = xenrt.lib.xenserver.host.CVSMStorageRepository(self.host,
+        self.sr = xenrt.lib.xenserver.CVSMStorageRepository(self.host,
                                                                  "cslgsr")
         minsize = int(self.host.lookup("SR_NETAPP_MINSIZE", 40))
         maxsize = int(self.host.lookup("SR_NETAPP_MAXSIZE", 1000000))
@@ -2026,7 +2026,7 @@ class TC12901(TC9767):
 
     def createSR(self, host):
         self.host = self.getDefaultHost()
-        self.sr = xenrt.lib.xenserver.host.IntegratedCVSMStorageRepository(self.host,
+        self.sr = xenrt.lib.xenserver.IntegratedCVSMStorageRepository(self.host,
                                                                            "cslgsr")
         minsize = int(self.host.lookup("SR_NETAPP_MINSIZE", 40))
         maxsize = int(self.host.lookup("SR_NETAPP_MAXSIZE", 1000000))
@@ -2043,7 +2043,7 @@ class TC13992(TC12901):
 
     def createSR(self, host):
         self.host = self.getDefaultHost()
-        self.sr = xenrt.lib.xenserver.host.IntegratedCVSMStorageRepository(self.host,
+        self.sr = xenrt.lib.xenserver.IntegratedCVSMStorageRepository(self.host,
                                                                            "cslgsr")
         minsize = int(self.host.lookup("SR_EQL_MINSIZE", 40))
         maxsize = int(self.host.lookup("SR_EQL_MAXSIZE", 1000000))
@@ -2214,7 +2214,7 @@ class _TC8233(xenrt.TestCase):
         time.sleep(60)
 
         # Add the SR
-        sr = xenrt.lib.xenserver.host.ISCSIStorageRepository(m, "_TC8233")
+        sr = xenrt.lib.xenserver.ISCSIStorageRepository(m, "_TC8233")
         if not self.MPP_RDAC:
             self.lun = xenrt.ISCSILunSpecified("%s/%s/%s" %
                                           (self.initiator,
@@ -2446,7 +2446,7 @@ class TC9084(xenrt.TestCase):
 
         # Now add an iSCSI SR to the pool, and enable HA on it
         # Set up the SR on the host
-        sr = xenrt.lib.xenserver.host.ISCSIStorageRepository(self.pool.master,
+        sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.pool.master,
                                                              "HA_Multipath")
         # IQN will be iqn.2008-09.com.xensource:<vm_uuid>
         iqn = "iqn.2008-09.com.xensource:%s" % (self.target.getUUID())
@@ -2894,7 +2894,7 @@ class TC9088(xenrt.TestCase):
 
         # Now add an iSCSI SR to the pool, and enable HA on it
         # Set up the SR on the host
-        sr = xenrt.lib.xenserver.host.ISCSIStorageRepository(self.pool.master,
+        sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.pool.master,
                                                              "HA_Multipath")
         self.sr = sr
         self.lun = xenrt.ISCSILunSpecified("xenrt-test/%s/%s" %

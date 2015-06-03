@@ -2865,9 +2865,9 @@ class _SYMCSFXREDO(xenrt.TestCase):
         self.pool = xenrt.TestCase().getDefaultPool()
         self.host = self.getDefaultHost()
         self.slave = self.pool.getSlaves()[0]
-        self.sr = xenrt.lib.xenserver.host.ISCSIStorageRepository(self.host, "iscsisr")
+        self.sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.host, "iscsisr")
         self.sr.create()
-        self.hba = xenrt.lib.xenserver.host.HBAStorageRepository(self.host, "hbasr")
+        self.hba = xenrt.lib.xenserver.HBAStorageRepository(self.host, "hbasr")
         self.hba.create()
         self.poolsrUUIDs = self.pool.master.getSRs()       
         masterUUID = self.pool.master.getMyHostUUID()

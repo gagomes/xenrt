@@ -1843,7 +1843,7 @@ class Experiment_vmrun(Experiment):
                     host.forgetSR(uuids[0])
 
                 diskname = host.execdom0("basename `readlink -f %s`" % device).strip()
-                sr = xenrt.lib.xenserver.host.EXTStorageRepository(host, 'SR-%s' % diskname)
+                sr = xenrt.lib.xenserver.EXTStorageRepository(host, 'SR-%s' % diskname)
                 sr.create(device)
                 host.pool.setPoolParam("default-SR", sr.uuid)
 

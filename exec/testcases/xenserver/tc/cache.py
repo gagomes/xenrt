@@ -13,11 +13,17 @@ class PacketCatcher(object):
         self.nolog = nolog
         self.datafile = self.host.execdom0("mktemp").strip()
 
-    def startCapture(self, pattern):
+    def startCapture(self, params):
+
+        #if isinstance(self.host, xenrt.lib.xenserver.ClearwaterHost):
+            #params = params + " -B 64000"
+        if isinstance(self.host, xenrt.lib.xenserver.DundeeHost):
+            params = params + " -U"
+
         self.packets = []
         xenrt.TEC().logverbose("PacketCatcher: Starting capture on %s..." % (self.host.getName()))
         self.pid = self.host.execdom0("tcpdump %s &> %s & echo $!" % 
-                                      (pattern, self.datafile)).strip()
+                                      (params, self.datafile)).strip()
 
     def stopCapture(self):
         xenrt.TEC().logverbose("Sleeping for %ss." % (self.delay))
@@ -284,8 +290,6 @@ class _Cache(xenrt.TestCase):
         self.configureNetwork()
         xenrt.TEC().logverbose("Capturing all NFS traffic on %s." % (self.host.getName()))
         param = "tcp port nfs and host %s -i %s -tt -x -s 65535 -vv" % (self.host.getIP(),self.host.getPrimaryBridge())
-        #if isinstance(self.host, xenrt.lib.xenserver.ClearwaterHost):
-            #param = param + " -B 64000"
         self.packetCatcher.startCapture(param)
     
     def endMeasurement(self):

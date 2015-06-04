@@ -5,10 +5,13 @@
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
     <DOTNETVERSION>3.5</DOTNETVERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
   </variables>
 
   <prepare>
-    <host />
+    <host>
+      <storage type="nfs" name="NFSForWindows" />
+    </host>
   </prepare>
 
   <testsequence>

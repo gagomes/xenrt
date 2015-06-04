@@ -3181,15 +3181,13 @@ class BootstormBase(FunctionalBase):
         for vm, config in self.vms:
             vm.setState("DOWN")
 
-        self.startAllVMs(self.vms)
-
         # Start all VMs in parallel.
-        #pt = [xenrt.PTask(self.bootstormStartVM, vm) for vm, config in self.vms]
-        #xenrt.pfarm(pt)
+        pt = [xenrt.PTask(self.bootstormStartVM, vm) for vm, config in self.vms]
+        xenrt.pfarm(pt)
 
         # Wait for the VMs to be up in parallel.
-        #pt = [xenrt.PTask(vm.poll, "UP") for vm, config in self.vms]
-        #xenrt.pfarm(pt)
+        pt = [xenrt.PTask(vm.poll, "UP") for vm, config in self.vms]
+        xenrt.pfarm(pt)
 
         for vm, config in self.vms:
             if vm.windows:

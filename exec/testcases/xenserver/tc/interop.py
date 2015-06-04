@@ -555,11 +555,13 @@ powershell %s""" % (self.ASF_WORKING_DIR, netUseCommand, command)
         testSuites = ['Common', 'TestApi', 'LayoutBvts']
 
         # Install tests
-        try:
-            rData = self.executeASFShellCommand(asfCont, 'Install-Tests -Repository %s -TestRepositoryPath %s -TestSuites %s -UserName %s -Password %s' % (asfRepository, asfRepositoryPath, ','.join(testSuites), self.XD_SVC_ACCOUNT_USERNAME, self.XD_SVC_ACCOUNT_PASSWORD), timeout=600)
-        except xenrt.XRTFailure, e:
-            xenrt.TEC().logverbose('Try again - issue being investigated: %s' % (e.data))
-            rData = self.executeASFShellCommand(asfCont, 'Install-Tests -Repository %s -TestRepositoryPath %s -TestSuites %s -UserName %s -Password %s' % (asfRepository, asfRepositoryPath, ','.join(testSuites), self.XD_SVC_ACCOUNT_USERNAME, self.XD_SVC_ACCOUNT_PASSWORD), timeout=600)
+        # Temporary workaround for a false positive from the GSO virus scanner
+        data = asfCont.xmlrpcReadFile("C:\\ASF\\environment\\SAL\\TestManager\\TestManager.psm1")
+        asfCont.xmlrpcExec("attrib -r C:\\ASF\\environment\\SAL\\TestManager\\TestManager.psm1")
+        asfCont.xmlrpcRemoveFile("C:\\ASF\\environment\\SAL\\TestManager\\TestManager.psm1")
+        asfCont.xmlrpcWriteFile("C:\\ASF\\environment\\SAL\\TestManager\\TestManager.psm1", data.replace("\"release.txt\"", "\"release.txt\",\"Install-Tools.ps1\""))
+
+        rData = self.executeASFShellCommand(asfCont, 'Install-Tests -Repository %s -TestRepositoryPath %s -TestSuites %s -UserName %s -Password %s' % (asfRepository, asfRepositoryPath, ','.join(testSuites), self.XD_SVC_ACCOUNT_USERNAME, self.XD_SVC_ACCOUNT_PASSWORD), timeout=600)
 
         map(lambda x:xenrt.TEC().logverbose(x), rData)
 

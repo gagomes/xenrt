@@ -1078,7 +1078,6 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_SLES_113"] = "SUSE Linux Enterprise Server 11 SP3 (32-bit),SUSE Linux Enterprise Server 11 SP3"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_SLES_113_64"] = "SUSE Linux Enterprise Server 11 SP3 (64-bit),SUSE Linux Enterprise Server 11 SP3 x64"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_SLES_12_64"] = "SUSE Linux Enterprise Server 12 (64-bit)"
-        self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_SLES_114_64"] = "SUSE Linux Enterprise Server 11 SP3 (64-bit),SUSE Linux Enterprise Server 11 SP3 x64"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_SL_511"] = "Scientific Linux 5 (32-bit)"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_SL_511_64"] = "Scientific Linux 5 (64-bit)"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_SL_66"] = "Scientific Linux 6 (32-bit)"
@@ -1201,6 +1200,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Dundee"]["TEMPLATE_NAME_SDK"] = ""  # SDK not present in trunk
         self.config["VERSION_CONFIG"]["Dundee"]["MAX_VDIS_PER_SR_cifs"] = "600"
         self.config["VERSION_CONFIG"]["Dundee"]["MAX_ATTACHED_VDIS_PER_SR_cifs"] = "600"
+        self.config["VERSION_CONFIG"]["Dundee"]["TEMPLATE_NAME_SLES_114_64"] = "SUSE Linux Enterprise Server 11 SP3 (64-bit),SUSE Linux Enterprise Server 11 SP3 x64"
 
         # Libvirt
         self.config["VERSION_CONFIG"]["Libvirt"] = {}
@@ -2834,7 +2834,7 @@ class Config(object):
             'oel6u_x86-32', 'oel6u_x86-64', 'oel71_x86-64', 'oel71xs_x86-64', 'oel7u_x86-64',
             'rhel511_x86-32', 'rhel511_x86-64', 'rhel5u_x86-32', 'rhel5u_x86-64', 'rhel66_x86-32', 'rhel66_x86-64',
             'rhel6u_x86-32', 'rhel6u_x86-64', 'rhel71_x86-64', 'rhel71xs_x86-64', 'rhel7u_x86-64',
-            'sles113_x86-32', 'sles113_x86-64', 'sles12_x86-64','sles114_x86-64',
+            'sles113_x86-32', 'sles113_x86-64', 'sles114_x86-64','sles12_x86-64',
             'ubuntu1204_x86-32', 'ubuntu1204_x86-64', 'ubuntu1404_x86-32', 'ubuntu1404_x86-64',
             'winxpsp3', 'w2k3eesp2', 'w2k3eesp2-x64',
             'vistaeesp2', 'ws08dcsp2-x64', 'ws08dcsp2-x86',

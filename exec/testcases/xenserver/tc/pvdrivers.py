@@ -1168,10 +1168,8 @@ class TCSysrepAfterToolsUpgrade(xenrt.TestCase):
 
     def run(self, arglist=None):
         step("Check whether Sysprep gets installed")
-        if self.guest.sysPrepOOBE():
-            xenrt.TEC().logverbose("Sysprep is installed successfully")
-        else:
-            raise xenrt.XRTFailure("Snot installed")
+        self.guest.sysPrepOOBE()
+        
             
 class TCToolsIPv6Disabled(xenrt.TestCase):
     """Test for SCTX-1919. Verify upgrade of XenTools from XS 6.0 to XS 6.1 is successfull when IPv6 is disabled"""

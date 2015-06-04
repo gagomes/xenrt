@@ -297,12 +297,12 @@
     <serial group="Win7-x86-K2PT">
       <testcase tc="TC-20748" id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
         <arg>guest=win7</arg>
-        <arg>vgpuconfig=K2PassThrough</arg>
+        <arg>vgpuconfig=K2passthrough</arg>
         <arg>typeofvgpu=nvidiawinvgpu</arg>
       </testcase>
       <testcase tc="TC-20708" id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
         <arg>guest=win7</arg>
-        <arg>vgpuconfig=K2PassThrough</arg>
+        <arg>vgpuconfig=K2passthrough</arg>
         <arg>benchmark=SPECViewPerf11</arg>
         <arg>benchmark=UnigineSanctuary</arg>
         <arg>benchmark=UnigineTropics</arg>

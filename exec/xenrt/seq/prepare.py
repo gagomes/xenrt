@@ -124,6 +124,11 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
                                 simpleHostNode = {'noisos': True}
                                 if cluster.has_key('XRT_ContainerHostIds'):
                                     simpleHostNode['container'] = cluster['XRT_ContainerHostIds'][h]
+                                    if cluster.has_key('XRT_vHostMemory'):
+                                        if type(cluster['XRT_vHostMemory']) == list:
+                                            simpleHostNode['vmemory'] = cluster['XRT_vHostMemory'][h]
+                                        else:
+                                            simpleHostNode['vmemory'] = cluster['XRT_vHostMemory']
                                 else:
                                     hostId = self.__minAvailableHost(poolHosts)
                                     poolHosts.append(int(hostId))

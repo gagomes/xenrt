@@ -819,6 +819,11 @@ users:
         xenrt.TEC().progress("Waiting for the VM to enter the UP state")
         self.poll("UP", pollperiod=1)
 
+        # Workaround for PCI passthrough buggy option ROM to send a key
+        if self.special.get("sendbioskey"):
+            xenrt.sleep(10)
+            self.sendVncKeys([0xff0d])
+
         vifs = ((self.managenetwork or self.managebridge)
                 and self.getVIFs(network=self.managenetwork, bridge=self.managebridge).keys()
                 or map(lambda v: v[0], self.vifs))
@@ -6300,12 +6305,11 @@ class DundeeGuest(CreedenceGuest):
             for file in oemFileList:
                 batch.append("pnputil.exe -f -d %s\r\n" %(file)) 
                 batch.append("ping 127.0.0.1 -n 10 -w 1000\r\n")
+            batch.append("shutdown -r\r\n")
             
             self.xmlrpcWriteFile("c:\\uninst.bat", string.join(batch))
             self.xmlrpcStart("c:\\uninst.bat")
-        
-        self.xmlrpcReboot()
-        
+
         if not self.xmlrpcIsAlive():
             raise xenrt.XRTFailure("XML-RPC not alive after tools uninstallation")
         

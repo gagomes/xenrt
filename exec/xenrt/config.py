@@ -860,6 +860,8 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Tampa"]["EXPECTED_CRASHDUMP_FILES"] = "xen-crashdump-analyser.log,xen.log,dom0.log"
         self.config["VERSION_CONFIG"]["Tampa"]["V6_DBV"] = "2010.0521"
         self.config["VERSION_CONFIG"]["Tampa"]["IDLE_VMs_DOM0_CPU_Utilize"] = "260"
+        # XenServer dom0 partitions
+        self.config["VERSION_CONFIG"]["Tampa"]["DOM0_PARTITIONS"] = {1:4*xenrt.GIGA, 2:4*xenrt.GIGA, 3:"*"}
         
         # CHECKME: Need to fix this (Tallahassee is rolled into Tampa)
         self.config["VERSION_CONFIG"]["Tampa"]["MAX_VDIS_PER_VM"] = "15"
@@ -1183,6 +1185,8 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Creedence"]["LATEST_sl5"] = "sl511"
         self.config["VERSION_CONFIG"]["Creedence"]["LATEST_sl6"] = "sl66"
         self.config["VERSION_CONFIG"]["Creedence"]["LATEST_sl7"] = "sl71"
+        # XenServer dom0 partitions
+        self.config["VERSION_CONFIG"]["Creedence"]["DOM0_PARTITIONS"] = {1:4*xenrt.GIGA, 2:4*xenrt.GIGA, 3:"*"}
         
         # Cream
         self.config["VERSION_CONFIG"]["Cream"] = copy.deepcopy(self.config["VERSION_CONFIG"]["Creedence"])
@@ -1201,6 +1205,9 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Dundee"]["MAX_VDIS_PER_SR_cifs"] = "600"
         self.config["VERSION_CONFIG"]["Dundee"]["MAX_ATTACHED_VDIS_PER_SR_cifs"] = "600"
         self.config["VERSION_CONFIG"]["Dundee"]["TEMPLATE_NAME_SLES_114_64"] = "SUSE Linux Enterprise Server 11 SP3 (64-bit),SUSE Linux Enterprise Server 11 SP3 x64"
+
+        # XenServer dom0 partitions
+        self.config["VERSION_CONFIG"]["Dundee"]["DOM0_PARTITIONS"] = {1:18*xenrt.GIGA, 2:18*xenrt.GIGA, 3:"*", 4:511*xenrt.MEGA, 5:4*xenrt.GIGA, 6:1023*xenrt.MEGA}
 
         # Libvirt
         self.config["VERSION_CONFIG"]["Libvirt"] = {}
@@ -3899,6 +3906,9 @@ class Config(object):
         # Floppy- xen-device-model. Rolls up XS62E014, XS62E017, XS62ESP1002, XS62ESP1004, XS62ESP1006, XS62ESP1007, XS62ESP1008, XS62ESP1011, XS62ESP1013, XS62ESP1015, XS62ESP1016, XS62ESP1019, XS62ESP1021, XS62ESP1022
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1025"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1025/101557/hotfix-XS62ESP1025/XS62ESP1025.xsupdate"
         
+        # Caboodle- xapi, xen, sm, isL, rrdd, nfs, perf-tools, kexec. Rolls up XS62E014, XS62E017, XS62ESP1002, XS62ESP1004, XS62ESP1006, XS62ESP1007, XS62ESP1008, XS62ESP1011, XS62ESP1013, XS62ESP1015, XS62ESP1016, XS62ESP1019, XS62ESP1021, XS62ESP1022, XS62ESP1025
+        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1026"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1026/101918/hotfix-XS62ESP1026/XS62ESP1026.xsupdate"
+        
         
         #Creedence hotfixes
         # Gloss: XenCenter, Rolls up nothing
@@ -4100,7 +4110,7 @@ class Config(object):
             self.config["CARBON_PATCHES_CLEARWATER"]["HF17"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1017"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF20"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1020"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF24"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1024"]
-            self.config["CARBON_PATCHES_CLEARWATER"]["HF25"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1025"]
+            self.config["CARBON_PATCHES_CLEARWATER"]["HF26"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1026"]
 
         if not self.config.has_key("CARBON_PATCHES_CREEDENCE"):
             self.config["CARBON_PATCHES_CREEDENCE"] = {}

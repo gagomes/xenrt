@@ -8179,9 +8179,14 @@ rm -f /etc/xensource/xhad.conf || true
         return sruuid
 
     def isHAPEnabled(self):
-        dmesg = self.execdom0("grep 'Hardware Assisted Paging' /var/log/xen-dmesg || true")
+        dmesg = self.execdom0("grep 'Hardware Assisted Paging' /var/log/xen/hypervisor.log || true")
+       
+        #for backward compatibility checking in /var/log/xen-dmesg
+        if "Hardware Assisted Paging" not in dmesg:
+            dmesg = self.execdom0("grep 'Hardware Assisted Paging' /var/log/xen-dmesg || true")
 
-        return "HVM: Hardware Assisted Paging detected and enabled." in dmesg or "HVM: Hardware Assisted Paging (HAP) detected" in dmesg
+        return "HVM: Hardware Assisted Paging detected and enabled." in dmesg or\
+                          "HVM: Hardware Assisted Paging (HAP) detected" in dmesg
 
     def resolveDistroName(self, distro):
         origDistro = distro
@@ -8274,7 +8279,34 @@ rm -f /etc/xensource/xhad.conf || true
                             getreply,
                             password
                             )
+    
+    def getDom0Partitions(self):
 
+        """
+        Return dom0 disk partitions and there size in KB
+        return Format: {1: 19327352832, 2: 19327352832, 3: '*', 4: 535822336, 5: 4294967296, 6: 1072693248} 
+        """
+        primarydisk = self.getInventoryItem("PRIMARY_DISK")
+        partitions = [p.split(' ') for p in self.execdom0("sgdisk -p %s | awk '$1 ~ /[0-9]+/ {print $1,$4,$5}'" % primarydisk).splitlines()]
+        return {int(p[0]) : float(p[1]) * (xenrt.GIGA if p[2]=='GiB' else xenrt.MEGA) for p in partitions}
+
+    def compareDom0Partitions(self, partitions):
+
+        """
+        Return True if dom0 disk partition schema matches the schema 'partition' else return False
+        """
+        dom0Partitions = self.getDom0Partitions()
+        if len(partitions) != len(dom0Partitions):
+            log("Number of Partitions in dom0 is different from expected number of partitions. Expected %s. Found %s" % (partitions,dom0Partitions ))
+            return False
+        else:
+            diffkeys = [k for k in partitions if partitions[k] != dom0Partitions[k] and partitions[k] != "*"]
+            if len(diffkeys) == 0:
+                log("Dom0 has expected partition schema: %s" % dom0Partitions)
+                return True
+            else:
+                log("One or more partition size is different from expected. Expected %s. Found %s" % ((partitions,dom0Partitions )))
+                return False
 
 #############################################################################
 

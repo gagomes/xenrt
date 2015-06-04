@@ -10,7 +10,7 @@
 
   <prepare>
     <host>
-      <storage type="nfs" name="NFSForWindows" />
+      <storage type="nfs" name="NFSForWindows" default="true" />
     </host>
   </prepare>
 

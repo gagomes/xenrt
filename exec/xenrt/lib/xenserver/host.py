@@ -8288,7 +8288,7 @@ rm -f /etc/xensource/xhad.conf || true
         """
         primarydisk = self.getInventoryItem("PRIMARY_DISK")
         partitions = [p.split(' ') for p in self.execdom0("sgdisk -p %s | awk '$1 ~ /[0-9]+/ {print $1,$4,$5}'" % primarydisk).splitlines()]
-        return {int(p[0]) : float(p[1]) * (xenrt.GIGA if p[2]=='GiB' else xenrt.MEGA) for p in partitions}
+        return dict([(int(p[0]), float(p[1]) * (xenrt.GIGA if p[2]=='GiB' else xenrt.MEGA)) for p in partitions])
 
     def compareDom0Partitions(self, partitions):
 

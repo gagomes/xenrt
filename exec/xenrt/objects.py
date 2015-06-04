@@ -10793,8 +10793,8 @@ DomainLevel=%s
 InstallDNS=Yes
 ConfirmGc=Yes
 CreateDNSDelegation=No
-DatabasePath="C:\Windows\NTDS"
-LogPath="C:\Windows\NTDS"
+DatabasePath="C:\Windows\\NTDS"
+LogPath="C:\Windows\\NTDS"
 SYSVOLPath="C:\Windows\SYSVOL"
 SafeModeAdminPassword=%s
 RebootOnSuccess=No
@@ -10819,13 +10819,13 @@ RebootOnSuccess=No
         psscript = """Import-Module ADDSDeployment;
 Install-ADDSForest `
 -CreateDnsDelegation:$false `
--DatabasePath "C:\Windows\NTDS" `
+-DatabasePath "C:\Windows\\NTDS" `
 -DomainMode "%s" `
 -DomainName "%s" `
 -DomainNetbiosName "%s" `
 -ForestMode "%s" `
 -InstallDns:$true `
--LogPath "C:\Windows\NTDS" `
+-LogPath "C:\Windows\\NTDS" `
 -NoRebootOnCompletion:$true `
 -SysvolPath "C:\Windows\SYSVOL" `
 -Force:$true `

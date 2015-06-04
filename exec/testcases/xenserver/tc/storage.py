@@ -4853,11 +4853,8 @@ class TCCIFSLifecycle(xenrt.TestCase):
         noOfVdis = int(self.args["numberofvdis"])
         sizeInBytes = int(self.args["size"])
 
-        # Create SR.
-        self.sr.create(self.share)
-
         # Create some VDIs
-        actualVdis = [self.host.createVDI(size, sruuid=self.sr.uuid, name="VDI_%s" % i)for i in range(noOfVdis)]
+        actualVdis = [self.host.createVDI(sizeInBytes, sruuid=self.sr.uuid, name="VDI_%s" % i)for i in range(noOfVdis)]
 
         # Forget SR
         self.sr.forget()
@@ -4871,7 +4868,7 @@ class TCCIFSLifecycle(xenrt.TestCase):
         # Get a list of any VDIs that are now missing
         VDIs_missing = filter(lambda vdi: vdi not in VDIs_present, actualVdis)
 
-        xenrt.TEC().logverbose("VDIs missing after SR introduce: " % (",".join(VDIs_missing)))
+        xenrt.TEC().logverbose("VDIs missing after SR introduce: %s" % (",".join(VDIs_missing)))
             
         if len(VDIs_missing) > 0:
             raise xenrt.XRTFailure("VDIs are missing after SR introduce")

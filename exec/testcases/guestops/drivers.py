@@ -184,4 +184,4 @@ class TCGPODoesNotBSOD(xenrt.TestCase):
         """
         guest.winRegAdd("HKLM", """SOFTWARE\Policies\Microsoft\Windows\DeviceInstall\Restrictions""", "DenyDeviceIDs", "DWORD", 1)
         guest.winRegAdd("HKLM", """SOFTWARE\Policies\Microsoft\Windows\DeviceInstall\Restrictions""", "DenyDeviceIDsRetroactive", "DWORD", 0)
-        guest.winRegAdd("HKLM", """SOFTWARE\Policies\Microsoft\Windows\DeviceInstall\Restrictions\DenyDeviceIDs""", "1", "SZ", "USB\\Class_0e&SubClass_03&Prot_00")
+        guest.winRegAdd("HKLM", """SOFTWARE\Policies\Microsoft\Windows\DeviceInstall\Restrictions\DenyDeviceIDs""", "1", "SZ", """USB\\Class_0e&SubClass_03&Prot_00""")

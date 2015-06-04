@@ -1,0 +1,25 @@
+<xenrt>
+  <!-- SRIOV tests -->
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <pool id="0">
+      <host id="0" installsr="ext"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="tallahassee">
+      <testcase id="xenserver.tc.ns.TCNsSuppPack" blocker="yes"/>
+      <testcase id="xenserver.tc.ns.TC18685"/>
+      <testcase id="xenserver.tc.ns.TC18822"/>
+      <!--testcase id="xenserver.tc.ns.TC18823"/-->
+      <testcase id="xenserver.tc.ns.TC18824"/>
+      <testcase id="xenserver.tc.ns.TC19038"/>
+    </serial>
+  </testsequence>
+  
+</xenrt>
+

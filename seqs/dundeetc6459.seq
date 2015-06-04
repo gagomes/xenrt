@@ -1,0 +1,23 @@
+<xenrt>
+
+  <!-- MNR unsupported OS test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <default name="PARALLEL" value="1"/>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+
+    <parallel workers="${PARALLEL}" group="Unsupported">
+      <testcase id="xenserver.tc.unsupported.TC6460" prio="3"/>
+      <testcase id="xenserver.tc.unsupported.TC6461" prio="3"/>
+    </parallel>
+  </testsequence>
+
+</xenrt>

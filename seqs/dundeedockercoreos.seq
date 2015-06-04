@@ -1,0 +1,39 @@
+<xenrt>
+
+  <!-- Docker test sequence using CoreOS guest. -->
+
+  <default name="DISTRO" value="coreos-stable" />
+
+  <variables>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+  </variables>
+
+  <prepare>
+    <pool id="0">
+      <host id="0">
+        <vm name="${DISTRO}">
+          <distro>${DISTRO}</distro>
+          <arch>x86-64</arch>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="50" />
+          <postinstall action="dockerInstall" />
+        </vm>
+      </host>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="CoreOS">
+
+      <testcase id="xenserver.tc.docker.TCContainerLifeCycle" tc="TC-23918" name="ContainerLifeCycle" sku="CoreOS" />
+      <testcase id="xenserver.tc.docker.TCGuestsLifeCycle" tc="TC-26443" name="GuestsLifeCycle" sku="CoreOS" />
+      <testcase id="xenserver.tc.docker.TCScaleContainers" tc="TC-26523" name="ScaleContainers" sku="CoreOS" />
+
+    </serial>
+  </testsequence>
+
+</xenrt>

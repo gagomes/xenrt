@@ -1,0 +1,18 @@
+<xenrt>
+
+  <!-- Boston template test sequence - runs without linux.iso -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <CARBON_EXTRA_CDS>NONE</CARBON_EXTRA_CDS>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence group="HostTemplates">
+    <testcase id="xenserver.tc.host.TC26941" />
+  </testsequence>
+
+</xenrt>

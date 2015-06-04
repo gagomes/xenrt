@@ -1,0 +1,62 @@
+<xenrt>
+
+  <!-- MNR Active Directory Pool Operations Sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>16</PREPARE_WORKERS>
+  </variables>
+
+  <preprepare>
+    <host id="0">
+      <vm name="AUTHSERVER">
+        <distro>ws08sp2-x86</distro>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="installPowerShell"/>
+        <postinstall action="enablePowerShellUnrestricted"/>
+      </vm>
+    </host>
+    <host id="1">
+      <vm name="ALTAUTHSERVER">
+        <distro>ws08sp2-x86</distro>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="installPowerShell"/>
+        <postinstall action="enablePowerShellUnrestricted"/>
+      </vm>
+    </host>
+    <host id="2" />
+  </preprepare>
+
+  <prepare>
+    <pool>
+      <host container="0" vname="xs0"/>
+      <host container="1" vname="xs1"/>
+      <host container="2" vname="xs2"/>
+      <host container="0" vname="xs3"/>
+      <host container="1" vname="xs4"/>
+      <host container="2" vname="xs5"/>
+      <host container="0" vname="xs6"/>
+      <host container="1" vname="xs7"/>
+      <host container="2" vname="xs8"/>
+      <host container="0" vname="xs9"/>
+      <host container="1" vname="xs10"/>
+      <host container="2" vname="xs11"/>
+      <host container="0" vname="xs12"/>
+      <host container="1" vname="xs13"/>
+      <host container="2" vname="xs14"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="PoolOps">
+      <testcase id="xenserver.tc.security.TC8531"/>
+      <testcase id="xenserver.tc.security.TC8532"/>
+      <testcase id="xenserver.tc.security.TC8534"/>
+      <testcase id="xenserver.tc.security.TC8528"/>
+      <testcase id="xenserver.tc.rbacapi.TC10725"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

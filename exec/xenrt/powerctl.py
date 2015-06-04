@@ -14,7 +14,7 @@
 import sys, os, string, time, random, re
 import xenrt, xenrt.util
 
-class _PowerCtlBase:
+class _PowerCtlBase(object):
     """A base class for power control implementations"""
 
     def __init__(self, machine):
@@ -45,13 +45,20 @@ class _PowerCtlBase:
     def triggerNMI(self):
         raise xenrt.XRTError("Unimplemented")
 
+    def status(self):
+        """Returns a tuple of (status, source) indicating the power status"""
+        return ("unknown", "unknown")
+
     def command(self, command, retval="string"):
         if self.verbose:
             sys.stderr.write("Executing %s\n" % command)
-        return xenrt.util.command(command, retval)
+        return xenrt.util.localOrRemoteCommand(command, retval)
 
     def setVerbose(self):
         self.verbose = True
+
+    def setBootDev(self, dev, persistent=False):
+        raise xenrt.XRTError("Unsupported")
 
 class Dummy(_PowerCtlBase):
 
@@ -250,6 +257,47 @@ class PDU(_PowerCtlBase):
                 xenrt.sleep(random.randint(0, 20))
             self.snmp("cycle")
 
+    def status(self):
+        if len(self.pdus) == 0:
+            raise xenrt.XRTError("No PDU found for %s" %
+                                 (self.machine.name))
+        result = None
+        for p in self.pdus:
+            (address, comm, oidbase, pduport, values) = p
+            command = "snmpget -v1 -c %s %s %s.%s" % \
+                      (comm, address, oidbase, pduport)
+            pdulock = xenrt.resources.CentralResource()
+            attempts = 0
+            while True:
+                try:
+                    pdulock.acquire("SNMP_PDU")
+                    break
+                except:
+                    xenrt.sleep(10)
+                    attempts += 1
+                    if attempts > 6:
+                        raise xenrt.XRTError("Couldn't get SNMP PDU lock.")
+            try:
+                attempts = 0
+                while True:
+                    try:
+                        data = self.command(command)
+                        m = re.search("INTEGER: (\d)", data)
+                        if m:
+                            val = int(m.group(1))
+                            result = [x for x in values.keys() if values[x]==val][0]
+                            break
+                    except Exception, e:
+                        if self.verbose:
+                            sys.stderr.write("SNMP failed, waiting 30 seconds before retry\n")
+                        attempts += 1
+                        if attempts >= 3:
+                            raise
+                        xenrt.sleep(30)
+            finally:
+                pdulock.release()
+        return (result, "PDU")
+
 class ILO(_PowerCtlBase):
 
     def off(self):
@@ -304,6 +352,9 @@ class IPMIWithPDUFallback(_PowerCtlBase):
         self.ipmi = IPMI(machine)
         self.PDU = PDU(machine)
 
+    def setBootDev(self, dev, persist=False):
+        self.ipmi.setBootDev(dev, persist)
+
     def setVerbose(self):
         _PowerCtlBase.setVerbose(self)
         self.ipmi.setVerbose()
@@ -334,6 +385,13 @@ class IPMIWithPDUFallback(_PowerCtlBase):
                 xenrt.sleep(60)
                 self.machine.consoleLogger.reload()
 
+    def status(self):
+        try:
+            return self.ipmi.status()
+        except:
+            xenrt.TEC().logverbose("IPMI failed, falling back to PDU control")
+            return self.PDU.status()
+
     def cycle(self, fallback=False):
         try:
             if fallback:
@@ -356,6 +414,12 @@ class IPMI(_PowerCtlBase):
         elif re.search("is on", status):
             return "on"
 
+    def setBootDev(self, dev, persist=False):
+        cmd = "chassis bootdev %s" % dev
+        if persist:
+            cmd += " options=persistent"
+        self.ipmi(cmd, resetOnFailure=False)
+
     def triggerNMI(self):
         self.ipmi("chassis power diag")
 
@@ -373,11 +437,21 @@ class IPMI(_PowerCtlBase):
         # Wait a random delay to try to avoid power surges when testing
         # with multiple machines.
         if xenrt.TEC().lookupHost(self.machine.name, "IPMI_IGNORE_STATUS", False, boolean=True) or self.getPower() != "on":
-            if xenrt.TEC().lookupHost(self.machine.name, "IPMI_SET_PXE",False, boolean=True):
-                self.ipmi("chassis bootdev pxe")
+            if xenrt.TEC().lookupHost(self.machine.name, "IPMI_SET_PXE",True, boolean=True):
+                try:
+                    self.setBootDev("pxe", True)
+                except:
+                    xenrt.TEC().logverbose("Warning: failed to set boot dwvice to PXE")
             if self.antiSurge:
                 xenrt.sleep(random.randint(0, 20))
             self.ipmi("chassis power on")
+
+    def status(self):
+        result = self.ipmi("chassis power status")
+        m = re.search("Chassis Power is (.+)\n", result)
+        if m:
+            return (m.group(1), "IPMI")
+        return ("unknown", "IPMI")
 
     def cycle(self, fallback=False):
         xenrt.TEC().logverbose("Power cycling machine %s" % (self.machine.name))
@@ -405,8 +479,11 @@ class IPMI(_PowerCtlBase):
             if self.machine.consoleLogger:
                 self.machine.consoleLogger.reload()
             
-        if xenrt.TEC().lookupHost(self.machine.name, "IPMI_SET_PXE",False, boolean=True):
-            self.ipmi("chassis bootdev pxe")
+        if xenrt.TEC().lookupHost(self.machine.name, "IPMI_SET_PXE",True, boolean=True):
+            try:
+                self.setBootDev("pxe", True)
+            except:
+                xenrt.TEC().logverbose("Warning: failed to set boot dwvice to PXE")
         offon = xenrt.TEC().lookupHost(self.machine.name, "IPMI_RESET_UNSUPPORTED",False, boolean=True)
         if offon:
             if xenrt.TEC().lookupHost(self.machine.name, "IPMI_IGNORE_STATUS", False, boolean=True) or currentPower == "on":
@@ -421,7 +498,7 @@ class IPMI(_PowerCtlBase):
             else:
                 self.ipmi("chassis power on") # In case the machine was hard powered off
 
-    def ipmi(self, action):
+    def ipmi(self, action, resetOnFailure=True):
         # New method
         address = self.machine.host.lookup("BMC_ADDRESS", None)
         if not address:
@@ -437,9 +514,20 @@ class IPMI(_PowerCtlBase):
             user = "-U %s" % (ipmiuser)
         else:
             user = ""
-        command = "ipmitool -I %s -H %s %s %s %s" % \
+        command = "ipmitool -vv -I %s -H %s %s %s %s" % \
                    (ipmiintf, address, auth, user, action)
-        return self.command(command)
+        try:
+            return self.command(command)
+        except Exception, e:
+            resetcmd = self.machine.host.lookup("BMC_RESET_COMMAND", None)
+            if resetcmd and resetOnFailure:
+                xenrt.TEC().logverbose("Could not execute command: %s" % str(e))
+                self.command(resetcmd) # Reset the BMC
+                xenrt.sleep(60) # Allow 1 minute for the IPMI controller to restart
+                return self.command(command)
+            else:
+                raise
+
 
 class Custom(_PowerCtlBase):
 
@@ -453,9 +541,21 @@ class Custom(_PowerCtlBase):
 
     def cycle(self, fallback=False):
         xenrt.TEC().logverbose("Running custom command to power cycle machine %s" % (self.machine.name))
-        self.runCustom("CYCLE")
-        xenrt.sleep(5)
-        self.runCustom("ON")
+        if not self.machine.host.lookup("CUSTOM_POWER_CYCLE", None):
+            self.runCustom("OFF")
+            xenrt.sleep(10)
+            self.runCustom("ON")
+        else:
+            self.runCustom("CYCLE")
+            xenrt.sleep(5)
+            self.runCustom("ON")
+
+    def status(self):
+        xenrt.TEC().logverbose("Running custom command to get power status for machine %s" % (self.machine.name))
+        if not self.machine.host.lookup("CUSTOM_POWER_STATUS", None):
+            return ("unknown", "Custom")
+        else:
+            return (self.runCustom("STATUS"), "Custom")
 
     def runCustom(self, action):
         # Look up command

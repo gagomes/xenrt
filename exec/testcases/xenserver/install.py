@@ -135,58 +135,8 @@ class TCXenServerInstall(xenrt.TestCase):
             xenrt.TEC().comment("Installing multiple hosts: %s" %
                                 (string.join(map(lambda x:x.getName(), hosts),
                                              ", ")))
-
-            imageName = xenrt.TEC().lookup("CARBON_CD_IMAGE_NAME", 'main.iso')
-            xenrt.TEC().logverbose("Using XS install image name: %s" % (imageName))
-            cd = xenrt.TEC().getFile("xe-phase-1/%s" % (imageName), imageName) 
-            if not cd:
-                raise xenrt.XRTError("No CD image supplied.")
-            
-            xenrt.checkFileExists(cd)
-            xenrt.TEC().comment("Using ISO %s" % (cd))
-            mount = xenrt.MountISO(cd)
-            self.mountList.append(mount)
-            mountpoint = mount.getMount()
-        
-            # Copy installer packages to a web/nfs directory
-            if source == "url":
-                packdir = xenrt.WebDirectory()
-            elif source == "nfs":
-                packdir = xenrt.NFSDirectory()
-            else:
-                raise xenrt.XRTError("Unknown install source method '%s'." %
-                                     (source))
-            if os.path.exists("%s/packages" % (mountpoint)):
-                # Pre 0.4.3-1717 layout
-                packdir.copyIn("%s/packages/*" % (mountpoint))
-            else:
-                # Split ISO layout
-                packdir.copyIn("%s/packages.*" % (mountpoint))
-
-            # If we have any extra CDs, copy the extra packages as well
-            if extracds:
-                ecds = extracds
-            else:
-                ecds = hosts[0].getDefaultAdditionalCDList()
-            if ecds:
-                for ecdi in string.split(ecds, ","):
-                    if os.path.exists(ecdi):
-                        # XRT-813 transition, remove this eventually
-                        ecd = ecdi
-                    else:
-                        ecd = xenrt.TEC().getFile("xe-phase-1/%s" % (os.path.basename(ecdi)),
-                                                  os.path.basename(ecdi))
-                    xenrt.TEC().comment("Using extra CD %s" % (ecd))
-                    try:
-                        emount = xenrt.MountISO(ecd)
-                        emountpoint = emount.getMount()
-                        packdir.copyIn("%s/packages.*" % (emountpoint))
-                    finally:
-                        emount.unmount()
-            installsource = packdir, mountpoint
         else:
             hosts = [host]
-            installsource = None
 
         # Start the install
         tocomplete = []
@@ -204,10 +154,10 @@ class TCXenServerInstall(xenrt.TestCase):
             interfaces.append((None, "yes", "dhcp", None, None, None, ipv6_mode, ipv6_addr, gateway6))
             if nosr:
                 disks = []
-                primarydisk = host.getInstallDisk(ccissIfAvailable=host.USE_CCISS)
+                primarydisk = host.getInstallDisk(ccissIfAvailable=host.USE_CCISS, legacySATA=(not host.isCentOS7Dom0()))
             else:
-                disks = host.getGuestDisks(count=diskcount, ccissIfAvailable=host.USE_CCISS)
-                primarydisk= host.getInstallDisk(ccissIfAvailable=host.USE_CCISS)
+                disks = host.getGuestDisks(count=diskcount, ccissIfAvailable=host.USE_CCISS, legacySATA=(not host.isCentOS7Dom0()))
+                primarydisk= host.getInstallDisk(ccissIfAvailable=host.USE_CCISS, legacySATA=(not host.isCentOS7Dom0()))
 
             self.getLogsFrom(host)
             if xenrt.TEC().lookup(["CLIOPTIONS", "NOPREPARE"], False,
@@ -217,17 +167,20 @@ class TCXenServerInstall(xenrt.TestCase):
                 xenrt.TEC().registry.hostPut(machine, host)
                 xenrt.TEC().skip("Skipping because of --noprepare option")
             else:
+                if bootloader:
+                    kwargs = {"bootloader": bootloader}
+                else:
+                    kwargs = {}
                 handle = host.install(interfaces=interfaces,
                                       primarydisk=primarydisk,
                                       guestdisks=disks,
                                       source=source,
                                       extracds=extracds,
-                                      installsource=installsource,
                                       async=multi,
                                       installSRType=installSRType,
                                       timezone=timezone,
                                       ntpserver=ntpserver,
-                                      bootloader=bootloader)
+                                      **kwargs)
                 if multi:
                     tocomplete.append((host,
                                        handle,
@@ -1269,7 +1222,9 @@ class SourceISOCheck(xenrt.TestCase):
                         'likewise-open-lwsm', 
                         'likewise-open-netlogon', 
                         'likewise-open-rpc', 
-                        'likewise-open-srvsvc'
+                        'likewise-open-srvsvc',
+                        'pbis-open',
+                        'pbis-open-upgrade'
                         ]
 
     # list of extra rpm packages to be ignored from comparision.
@@ -1322,39 +1277,41 @@ class SourceISOCheck(xenrt.TestCase):
         """Obtains a list of rpms provided in the source files"""
 
         sourceRpmPackageList = []
-        isosFound = 0
+        
         for sourceFile, sourceBuildPath in self.SOURCE_ISO_FILES.iteritems():
             try:
                 # e.g download xe-phase-3/source-1.iso and list the RPMs.
-                iso = xenrt.TEC().getFile(sourceBuildPath+"/"+sourceFile, sourceFile)
-                if iso:
-                    mount = xenrt.MountISO(iso)
-                    mountpoint = mount.getMount()
+                file = xenrt.TEC().getFile(sourceBuildPath+"/"+sourceFile, sourceFile)
+                if file:                
+                    if sourceFile.endswith(".iso"):
+                        mount = xenrt.MountISO(file)
+                        mountpoint = mount.getMount()
+                    else:
+                        mountpoint = xenrt.TEC().tempDir()
+                        xenrt.util.command("tar -xvf %s -C %s" % (file, mountpoint))
 
                     if self.APPLIANCE_NAME == "DVSC Controller VM":
                         # Retrieve all the package file names with .dsc extension.
-                        tmpSourceRpmPackageList = xenrt.recursiveFileSearch(mountpoint, "*.dsc")
+                        tmp_list = xenrt.recursiveFileSearch(mountpoint, "*.dsc")
+                        tmpSourceRpmPackageList = [os.path.splitext(filename)[0] for filename in tmp_list]
+                        
                     else:
                         tmpSourceRpmPackageList = xenrt.recursiveFileSearch(mountpoint, "*.src.rpm")
 
                     if not tmpSourceRpmPackageList:
                         raise xenrt.XRTFailure("Unable to obtain the list of rpm packages from %s/%s for %s." %
-                                                                (sourceBuildPath, sourceFile, self.APPLIANCE_NAME))
-
-                    if self.APPLIANCE_NAME == "DVSC Controller VM":
-                        # Obtain the filenames without extension (.dsc)
-                        tmpSourceRpmPackageList = [os.path.splitext(filename)[0] for filename in tmpSourceRpmPackageList]
-
+                                                            (sourceBuildPath, sourceFile, self.APPLIANCE_NAME))
+                                           
                     # To obtain merged list of unique RPMs.
                     sourceRpmPackageList = sourceRpmPackageList + tmpSourceRpmPackageList
-                    isosFound += 1
+                    
             finally:
                 try:
-                    if iso:
+                    if file:
                         mount.unmount()
                 except:
                     pass
-        if isosFound == 0:
+        if not sourceRpmPackageList:
             xenrt.TEC().skip("Unable to obtain any source ISOs for %s." % (self.APPLIANCE_NAME))
             return False
         sourceRpmPackageList.sort()
@@ -1437,13 +1394,30 @@ class TCDom0SourceCheck(SourceISOCheck): # TC-17998
     """Verify dom0 source iso (xe-phase-3/source-1.iso & source-4.iso) for missing RPMs."""
 
     APPLIANCE_NAME = "Dom0"
-    SOURCE_ISO_FILES = {'source-1.iso': 'xe-phase-3', 'source-4.iso': 'xe-phase-3', 'source.iso': 'xe-phase-3'}
-
+    
+    SOURCE_ISO_FILES = {'source-1.iso': 'xe-phase-3', 'source-4.iso': 'xe-phase-3'}
+   
     IGNORE_EXTRA_RPM_PACKAGES = ['libev', 'perf-tools'] # in addition to the list of base packages.
                                                         # perf-tools missing from tampa onwards
 
     def run(self, arglist=None):
-
+        
+        versiontype = xenrt.TEC().lookup("PRODUCT_VERSION")
+        
+        patches = xenrt.TEC().lookupLeaves("CARBON_PATCHES_%s" % string.upper(versiontype))        
+        if len(patches) == 1:
+            patches = string.split(patches[0], ",")
+        cpatches = xenrt.TEC().lookupLeaves("CPATCHES_%s" % string.upper(versiontype)) 
+        if len(cpatches) == 1:
+            cpatches =  string.split(cpatches[0], ",")
+        patches.extend(cpatches)
+        
+        if len(patches) >= 1:
+            for i in patches:
+                hotfixDirectory = os.path.split(i)
+                filename =  hotfixDirectory[0].split("hotfix-")[-1]
+                self.SOURCE_ISO_FILES[filename+'-src-pkgs.tar']= hotfixDirectory[0]
+            
         # This list inlcudes rpm's installed in Dom0. (which is distributed in source-1.iso & source-4.iso)
         installedRpmList = self.host.execdom0("for r in `rpm -qa`; "
             "do gpl=`rpm -q --qf %{License} $r|grep -ci \"GPL\|Apache\|AFL\|Artistic\|DFSG\|MPL\"`; "
@@ -1620,8 +1594,6 @@ class TCVPXConversionSourceCheck(SourceISOCheck): # TC-18001
         #self.convServer.doSanityChecks()
         # Increasing default uptime from 300 seconds to 3600 seconds
         self.convServer.increaseConversionVMUptime(3600)
-        # Install SSH on the Conversion VM
-        self.convServer.installSSH()
         g.hasSSH = True
         time.sleep(30)
 

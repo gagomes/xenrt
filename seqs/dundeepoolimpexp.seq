@@ -1,0 +1,24 @@
+<xenrt>
+
+  <!-- Pool import and export sequence. -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool id="0">
+      <host id="0"/>
+      <host id="1"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <testcase id="xenserver.tc.impexp.TC8361"/>
+    <testcase id="xenserver.tc.impexp.TC8362"/>
+    <testcase id="xenserver.tc.impexp.TC8363"/>
+    <testcase id="xenserver.tc.impexp.TC9176"/>
+  </testsequence>
+
+</xenrt>

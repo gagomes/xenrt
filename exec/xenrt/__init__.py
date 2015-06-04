@@ -14,7 +14,7 @@
 
 import sys, string, os.path, traceback, time, tempfile, stat, threading, re
 import socket, os, shutil, xml.dom.minidom, thread, glob, inspect, types, urllib2
-import signal, popen2, IPy, urllib
+import signal, popen2, IPy, urllib, json
 from zope.interface import providedBy
 
 def irregularName(obj):
@@ -69,6 +69,7 @@ def resultDisplay(resultcode):
 
 STANDARD_LOGS = ["/var/log/messages",
                  "/var/log/daemon.log",
+                 "/var/log/user.log",
                  "/var/log/xend.log",
                  "/var/log/xend-debug.log",
                  "/var/log/xen-hotplug.log",
@@ -142,7 +143,7 @@ log_error_strings = {
 
 
 
-import xenrt.resources, xenrt.ssh, xenrt.registry, xenrt.ctrl, xenrt.dbconnect, xenrt.infrastructuresetup
+import xenrt.resources, xenrt.ssh, xenrt.registry, xenrt.dbconnect, xenrt.infrastructuresetup
 
 def version():
     """Returns the current harness version"""
@@ -335,7 +336,7 @@ def setGec(gec):
 
 #############################################################################
 
-class TestCase:
+class TestCase(object):
     """The definition and implementation of a testcase.
 
     This is the parent class for all testcases."""
@@ -356,8 +357,11 @@ class TestCase:
             # Yeah baby
         self.priority = 1
         self.results = xenrt.results.TestResults(priority=self.priority)
-        self.tec = TestExecutionContext(xenrt.GEC(), self, anon=anon)
-        setTec(self.tec)
+        if xenrt.GEC().config.lookup("TEC_ALLOCATE", True, boolean=True):
+            self.tec = TestExecutionContext(xenrt.GEC(), self, anon=anon)
+            setTec(self.tec)
+        else:
+            self.tec = xenrt.TEC()
         self.basename = self.tcid
         self.state = TCI_NEW
         self.reply = None
@@ -390,9 +394,6 @@ class TestCase:
         self.xentoplogger = None
         self._fhsToClose = []
         self._initDone = True
-        ### This is to provide the testcase instance to the debugger, inorder to allow the debugger to pause
-        if 'xenrt.lib.debugger' in sys.modules:
-            self.debugger = xenrt.lib.debugger.debuggerFunctions(self)
         return
 
     #########################################################################
@@ -512,6 +513,9 @@ logdata call.
 
     def setTCSKU(self, tcsku):
         self.tcsku = tcsku
+
+    def getDefaultJiraTC(self):
+        return None
 
     #########################################################################
     # Testcase execution
@@ -822,10 +826,10 @@ logdata call.
                 eval("self.%s()" % (method))
             elif type(args) == type((1,2)):
                 eval("self.%s(*args)" % (method))
-            elif type(args) == types.InstanceType:
-                eval("self.%s(args)" % (method))
-            else:
+            elif not hasattr(args, "__class__") or args.__class__.__module__ == "__builtin__":
                 eval("self.%s(%s)" % (method, `args`))
+            else:
+                eval("self.%s(args)" % (method))
             self.testcaseResult(scgroup, sctest, RESULT_PASS)
             reply = RESULT_PASS
         except XRTFailure, e:
@@ -1195,7 +1199,7 @@ Abort this testcase with: xenrt interact %s -n '%s'
                     xenrt.TEC().logverbose("Exception running %s on %s: %s" %
                                            (c, place.getName(), str(e)))
             # parse logs for errors
-            for log in ["messages", "xensource.log", "SMlog", "xha.log", "daemon.log", "kern.log"]:
+            for log in ["messages", "xensource.log", "SMlog", "xha.log", "daemon.log", "kern.log", "user.log"]:
                 try:
                     # See if it's there
                     if os.path.exists("%s/%s" % (d,log)):
@@ -1279,6 +1283,11 @@ Abort this testcase with: xenrt interact %s -n '%s'
                                 if not line in place.thingsWeHaveReported:
                                     place.thingsWeHaveReported.append(line)
                                     self._warnWithPrefix("Out of memory in %s: %s" % (log,line))
+
+                            if "crashed too quickly after start" in line:
+                                if not line in place.thingsWeHaveReported:
+                                    place.thingsWeHaveReported.append(line)
+                                    self._warnWithPrefix("crashed too quickly after start in %s: %s" % (log,line))
 
                 except:
                     pass
@@ -1675,8 +1684,8 @@ Abort this testcase with: xenrt interact %s -n '%s'
         if self._host:
             return self.getHost(self._host)
         else:
-            self._host = "RESOURCE_HOST_0"
-            return self.getHost("RESOURCE_HOST_0")
+            self._host = "RESOURCE_HOST_DEFAULT"
+            return self.getHost("RESOURCE_HOST_DEFAULT")
 
     def getDefaultToolstack(self):
         t = self.tec.gec.registry.toolstackGetDefault()
@@ -1913,7 +1922,7 @@ class TCAnon(TestCase):
         # break some aspects of Jira integration
         self.basename = "TCAnon"
 
-class JobTest:
+class JobTest(object):
     """Base class for a job level testcase"""
     TCID = None
     FAIL_MSG = "Job level test failed"
@@ -1927,7 +1936,7 @@ class JobTest:
     def postJob(self):
         raise xenrt.XRTError("Unimplemented")
 
-class TestExecutionContext:
+class TestExecutionContext(object):
     """Dynamic context associated with the execution of a testcase."""
     def __init__(self, gec, tc, anon=False):
         """Constructor.
@@ -1981,6 +1990,9 @@ class TestExecutionContext:
         if self.workdir:
             self.workdir.remove()
             self.workdir = None
+        if self.logdir:
+            self.logdir.remove()
+            self.logdir = None
 
     def getWorkdir(self):
         """Return the path to the working directory for this context."""
@@ -2248,13 +2260,14 @@ logdata call."""
         if self.tc:
             self.tc.setResult(RESULT_SKIPPED)
 
-    def getFile(self, *filename):
+    def getFile(self, *filename, **kwargs):
         """Look up a name with the file manager."""
         if not self.gec.filemanager:
             raise XRTError("No filemanager object")
+        replaceExistingIfDiffers = kwargs.get("replaceExistingIfDiffers", False)
         ret = None
         for f in filename:
-            ret = self.gec.filemanager.getFile(f)
+            ret = self.gec.filemanager.getFile(f, replaceExistingIfDiffers=replaceExistingIfDiffers)
             if ret:
                 break
         return ret
@@ -2514,7 +2527,7 @@ class ConsoleLoggerXapi(ConsoleLogger):
                 if self.finished:
                     break
 
-class PhysicalHost:
+class PhysicalHost(object):
     """A physical machine."""
     def __init__(self, name, ipaddr=None, powerctltype=None):
         """Constructor.
@@ -2632,7 +2645,7 @@ def markThread():
         GEC().runMarkCallbacks()
         xenrt.sleep(60, log=False)
 
-class GlobalExecutionContext:
+class GlobalExecutionContext(object):
     """Current global execution state."""
     def __init__(self, config=None):
         self.loghistory = []
@@ -2648,13 +2661,14 @@ class GlobalExecutionContext:
         self.markCallbacks = []
         self.results = xenrt.results.GlobalResults()
         self.registry = xenrt.registry.Registry()
-        self.dbconnect = xenrt.DBConnect(self.config.lookup("JOBID", None),
-                                         xenrt.ctrl.Commands(raw=1))
+        self.dbconnect = xenrt.DBConnect(self.config.lookup("JOBID", None))
         self.anontec = TCAnon(self).tec
         self.skipTests = {}
+        self.skipSkus = {}
         self.skipGroups = {}
         self.skipTypes = {}
         self.noSkipTests = {}
+        self.noSkipSkus = {}
         self.noSkipGroups = {}
         self.priority = None
         self.harnesserror = False
@@ -2858,8 +2872,10 @@ class GlobalExecutionContext:
             t.results.reason(str(e))
             xenrt.TEC().logverbose(traceback.format_exc())
             xenrt.TEC().logverbose(str(e), pref='REASON')
-        t.setJiraTC(jiratc)
         t.setTCSKU(tcsku)
+        if not jiratc:
+            jiratc = t.getDefaultJiraTC()
+        t.setJiraTC(jiratc)
         t.marvinTestConfig = marvinTestConfig
         if name and group:
             t._rename("%s/%s" % (group, name))
@@ -2877,6 +2893,26 @@ class GlobalExecutionContext:
             phase = group
         else:
             phase = "Phase 99"
+        logtcid = None
+        if not jiratc:
+            m = re.match("TC(\d+)", t.basename)
+            if m:
+                logtcid = "TC-%s" % m.group(1)
+        else:
+            logtcid = jiratc
+        if logtcid and tcsku:
+            logtcid += "_%s" % tcsku
+        if logtcid:
+            self.dbconnect.jobLogData(phase,
+                                      t.basename,
+                                      "TCID",
+                                      logtcid)
+
+        self.dbconnect.jobLogData(phase,
+                                  t.basename,
+                                  "TCClass",
+                                  "%s.%s" % (tcclass.__module__, tcclass.__name__))
+
         t.runon = runon
         if prio:
             t._setPriority(prio)
@@ -2906,6 +2942,8 @@ class GlobalExecutionContext:
                 noskip = True
             if jiratc and self.noSkipTests.has_key(string.replace(jiratc,"-","")):
                 noskip = True
+            if tcsku and self.noSkipSkus.has_key(tcsku):
+                noskip = True
             if not noskip:
                 t.tec.skip("Skipped by SKIPALL")
         else:
@@ -2927,6 +2965,8 @@ class GlobalExecutionContext:
                 t.tec.skip("Skipped by %s" % (ttype))
             if jiratc and self.skipTests.has_key(string.replace(jiratc,"-","")):
                 t.tec.skip("Skipped by %s" % (jiratc))
+            if tcsku and self.skipSkus.has_key(tcsku):
+                t.tec.skip("Skipped by %s" % (tcsku))
 
         if self.priority != None and prio != None:
             if prio > self.priority:
@@ -2945,6 +2985,8 @@ class GlobalExecutionContext:
                     if self.noSkipTests.has_key(l[-1]):
                         noskip = True
                 if t.group and self.noSkipGroups.has_key(t.group):
+                    noskip = True
+                if tcsku and self.noSkipSkus.has_key(tcsku):
                     noskip = True
                 if not noskip:
                     t.tec.skip("TC prio %u < target prio %u" %
@@ -3095,6 +3137,11 @@ class GlobalExecutionContext:
         self.skipTests[tcid] = True
         self.logverbose("Test will be skipped: %s" % (tcid))
 
+    def skipSku(self, sku):
+        """Register a test case to be skipped."""
+        self.skipSkus[sku] = True
+        self.logverbose("Test will be skipped: %s" % (sku))
+
     def skipGroup(self, group):
         """Register a test group to be skipped."""
         self.skipGroups[group] = True
@@ -3109,6 +3156,11 @@ class GlobalExecutionContext:
         """Register a test case to not be skipped."""
         self.noSkipTests[tcid] = True
         self.logverbose("Test will not be skipped: %s" % (tcid))
+
+    def noSkipSku(self, sku):
+        """Register a test case to not be skipped."""
+        self.noSkipSkus[sku] = True
+        self.logverbose("Test will not be skipped: %s" % (sku))
 
     def noSkipGroup(self, group):
         """Register a test group to not be skipped."""
@@ -3291,6 +3343,14 @@ class GlobalExecutionContext:
                 except Exception, ex2:
                     xenrt.TEC().logverbose("Exception getting logs: %s" % str(ex2))
 
+            try:
+                logdir = self.anontec.getLogdir()
+                record = xenrt.GEC().registry.getDeploymentRecord()
+                with open("%s/deployment.json" % logdir, "w") as f:
+                    f.write(json.dumps(record, indent=2))
+                self.dbconnect.jobUpload("%s/deployment.json" % logdir, prefix="deployment.json")
+            except Exception, e:
+                xenrt.TEC().logverbose("Exception getting deployment record: %s" % str(e))
 
             self.results.report(sys.stdout)
             if self.harnesserror:
@@ -3302,7 +3362,9 @@ class GlobalExecutionContext:
             if ok:
                 sys.stdout.write("Sequence: PASS\n")
                 x = "OK"
-                borrow = xenrt.TEC().lookup("MACHINE_HOLD_FOR", None)
+                borrow = xenrt.TEC().lookup("MACHINE_HOLD_FOR_OK", xenrt.TEC().lookup("MACHINE_HOLD_FOR_PASS", None))
+                if not borrow:
+                    borrow = xenrt.TEC().lookup("MACHINE_HOLD_FOR", None)
             else:
                 sys.stdout.write("Sequence: FAIL\n")
                 x = "ERROR"
@@ -3335,8 +3397,13 @@ class GlobalExecutionContext:
                     if u:
                         c.append("-u")
                         c.append(u)
+                    # Best effort borrow
+                    c.append("-b")
+                    # Preemptable borrows for preemptable jobs
+                    if xenrt.TEC().lookup("PREEMPTABLE", False, boolean=True):
+                        c.append("-p")
                     xenrt.TEC().logverbose("Borrowing %s" % m)
-                    self.dbconnect.jobctrl("borrow", c, buffer=True)
+                    self.dbconnect.jobctrl("borrow", c)
             if regok:
                 sys.stdout.write("Regression: PASS\n")
                 x = "OK"
@@ -3526,20 +3593,6 @@ class GlobalExecutionContext:
         for t in l.split(","):
             self.addKnownIssue(t)
 
-############################################################################
-# Debugger Methods                                                         #
-############################################################################
-
-import ast, pickle, subprocess, copy
-
-def debuggerAction( type = 'breakpoint', condition = True):
-    xenrt.TEC().logverbose('Unable to pause for Breakpoint: Debugging Mode set to false')
-    
-
-
-
-
-
 #############################################################################
 
 def checkTarball(tarball):
@@ -3614,7 +3667,7 @@ from xenrt.util import *
 from xenrt.registry import *
 from xenrt.objects import *
 from xenrt.config import *
-from xenrt.sequence import *
+from xenrt.seq import *
 from xenrt.results import *
 from xenrt.formatter import *
 from xenrt.filemanager import *

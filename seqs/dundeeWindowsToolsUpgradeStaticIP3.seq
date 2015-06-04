@@ -1,0 +1,129 @@
+<xenrt>
+
+  <!-- From Clearwater VM Tools/drivers/kernel upgrade test -->
+
+  <default name="OLD_PRODUCT_VERSION" value="Clearwater"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446"/>
+  <default name="GUESTMEMORY" value="1024"/>
+  <default name="GUESTVCPUS" value="2"/>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>6</PREPARE_WORKERS>
+    <HFX_BRANCH_CLEARWATER>RTM</HFX_BRANCH_CLEARWATER>
+  </variables>
+
+  <prepare>
+    <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}">
+      <storage type="nfs" name="nfs" />
+      <bridge name="internal"/>
+      <vm name="win8-x86">
+        <distro>win8-x86</distro>
+        <memory>${GUESTMEMORY}</memory>
+        <vcpus>${GUESTVCPUS}</vcpus>
+        <storage>nfs</storage>
+        <network device="0"/>
+        <network device="1" bridge="internal"/>
+        <postinstall action="disableIPv6"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="win8-x64">
+        <distro>win8-x64</distro>
+        <memory>${GUESTMEMORY}</memory>
+        <vcpus>${GUESTVCPUS}</vcpus>
+        <storage>nfs</storage>
+        <network device="0"/>
+        <network device="1" bridge="internal"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="ws12-x64">
+        <distro>ws12-x64</distro>
+        <memory>${GUESTMEMORY}</memory>
+        <vcpus>${GUESTVCPUS}</vcpus>
+        <storage>nfs</storage>
+        <network device="0"/>
+        <network device="1" bridge="internal"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="ws12core-x64">
+        <distro>ws12core-x64</distro>
+        <memory>${GUESTMEMORY}</memory>
+        <vcpus>${GUESTVCPUS}</vcpus>
+        <storage>nfs</storage>
+        <network device="0"/>
+        <network device="1" bridge="internal"/>
+        <postinstall action="disableIPv6"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="win81-x86">
+        <distro>win81-x86</distro>
+        <memory>${GUESTMEMORY}</memory>
+        <vcpus>${GUESTVCPUS}</vcpus>
+        <storage>nfs</storage>
+        <network device="0"/>
+        <network device="1" bridge="internal"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="win81-x64">
+        <distro>win81-x64</distro>
+        <memory>${GUESTMEMORY}</memory>
+        <vcpus>${GUESTVCPUS}</vcpus>
+        <storage>nfs</storage>
+        <network device="0"/>
+        <network device="1" bridge="internal"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="ws12r2-x64">
+        <distro>ws12r2-x64</distro>
+        <memory>${GUESTMEMORY}</memory>
+        <vcpus>${GUESTVCPUS}</vcpus>
+        <storage>nfs</storage>
+        <network device="0"/>
+        <network device="1" bridge="internal"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="ws12r2core-x64">
+        <distro>ws12r2core-x64</distro>
+        <memory>${GUESTMEMORY}</memory>
+        <vcpus>${GUESTVCPUS}</vcpus>
+        <storage>nfs</storage>
+        <network device="0"/>
+        <network device="1" bridge="internal"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="testpeer">
+        <distro>debian60</distro>
+        <network device="0" />
+        <network device="1" bridge="internal"/>
+        <postinstall action="preCloneTailor"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="HostInstallation" blocker="yes">
+      <testcase id="xenserver.install.TCXenServerUpgrade">
+        <arg>input=DEFAULT</arg>
+      </testcase>
+    </serial>
+    <serial group="UpgVM">
+      <testcase id="xenserver.tc.upgrade.TC19900"/>
+      <testcase id="xenserver.tc.upgrade.TC19901"/>
+      <testcase id="xenserver.tc.upgrade.TC19902"/>
+      <testcase id="xenserver.tc.upgrade.TC19903"/>
+      <testcase id="xenserver.tc.upgrade.TC20716"/>
+      <testcase id="xenserver.tc.upgrade.TC20717"/>
+      <testcase id="xenserver.tc.upgrade.TC20718"/>
+      <testcase id="xenserver.tc.upgrade.TC20719"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

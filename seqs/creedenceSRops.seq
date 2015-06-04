@@ -19,6 +19,7 @@
     <testcase id="xenserver.tc.storage.TC7366" prio="3"/>
     <testcase id="xenserver.tc.storage.TC7367" prio="3"/>
     <testcase id="xenserver.tc.storage.TC7368" prio="3"/>
+    <testcase id="xenserver.tc.storage.TC23336" prio="3"/>
     <testcase id="xenserver.tc.storage.TC7369" prio="3"/>
     <testcase id="xenserver.storage.TCMultipleSRs" tc="TC-7310" prio="3"/>
     <testcase id="xenserver.tc.storage.TC8538" prio="3"/>

@@ -9,13 +9,16 @@
 #
 
 import sys, string, getopt, urllib, os, pwd, traceback, signal, time
-import tempfile, re, pickle, threading
+import tempfile, re, pickle, threading, ConfigParser
 sys.path.append(os.path.dirname(sys.argv[0]))
-import xenrt
+import xenrtapi
 
 _sharedir = "@sharedir@"
 _rootdir = "@rootdir@"
 _vardir = "@vardir@"
+_stablebranch = "@stablebranch@"
+if not _stablebranch:
+    _stablebranch = "master"
 
 optparse = []
 optparse.append(("OPTIONS", "--arch", True))
@@ -81,18 +84,12 @@ burstjobs = 3
 ratehistoryfile = "/tmp/xenrt-site-controller-history.dat"
 
 logserver=None
-# Communication with central control daemon
-com = xenrt.Commands(raw=1)
-logserver=None
 
 # Dirty hack to use the JOBSERVER_PROXY and rate limit variables
 if os.path.exists("/etc/xenrt/site.xml"):
     f = file("/etc/xenrt/site.xml", "r")
     data = f.read()
     f.close()
-    r = re.search("<JOBSERVER_PROXY>(http:.*?)<\/JOBSERVER_PROXY>", data)
-    if r:
-        com.setProxies({'http': r.group(1)})
     r = re.search("<JOB_RATE_LIMIT_WINDOW>(\d+)<\/JOB_RATE_LIMIT_WINDOW>", data)
     if r:
         ratewindow = int(r.group(1))
@@ -105,6 +102,28 @@ if os.path.exists("/etc/xenrt/site.xml"):
     r = re.search("<LOG_SERVER>(.+)<\/LOG_SERVER>", data)
     if r:
         logserver = r.group(1)
+try:
+    config = ConfigParser.ConfigParser()
+    config.read("%s/.xenrtrc" % os.path.expanduser("~"))
+    apikey = config.get("xenrt", "apikey").strip()
+except:
+    raise Exception("No API key found in ~/.xenrtrc") 
+try:
+    server = config.get("xenrt", "server").strip()
+except:
+    server = None
+
+xenrt = xenrtapi.XenRT(apikey=apikey, server=server)
+
+try:
+    print "Logged into XenRT as %s" % xenrt.get_loggedinuser()
+except:
+    print "Could not login to XenRT"
+    raise
+
+if not logserver:
+    logserver = xenrt.get_logserver()
+    
 
 def fqdn(host):
     global domain
@@ -148,34 +167,15 @@ def checkJobRunning(jobid):
     f.close()
     return pid
 
-def startDebuggerJob(jobid, cmd):
-    dythonPath = '/usr/share/dython-env/bin/python'   # '/home/xenrtd/req_stuff_breakpoints/v3/bin/python'
-    debugCmd = []
-    debugCmd.append(dythonPath)
-    debugCmd.append('%s/control/debuggerinvoker.py'%(_sharedir))
-    debugCmd.append('%s'%(jobid))
-    cmd.insert(0,dythonPath)
-    debugList = []
-    debugList.append(debug)
-    debugList.append(logserver)
-    debugList.append(cmd)
-    fileObj  = open("%s/results/jobs/%s/jobData" %(_sharedir, jobid), 'wb')
-    pickle.dump(debugList, fileObj)
-    fileObj.close()
-    trace("exec: %s\n" % (string.join(cmd)))
-    os.spawnv(os.P_NOWAIT, debugCmd[0], debugCmd)
-
-  
-
-
-def start_job(jobid):
+def start_job(job):
     """Start a job using the machines previously scheduled"""
     global com, _sharedir, _rootdir, args, debug
     # Create a working directory
-    resdir = "%s/results/jobs/%s" % (_sharedir, jobid)
+    resdir = "%s/results/jobs/%d" % (_sharedir, job['id'])
     os.makedirs(resdir)
-   
-    data = com.run("status", ["%s" % (jobid)])
+    data = job['params']
+    data['USERID'] = job['user']
+    data['JOBID'] = str(job['id'])
     cmd = ["%s/exec/main.py" % (_sharedir)]
     cmd.append("-V")
     cmd.append("-C")
@@ -201,8 +201,7 @@ def start_job(jobid):
         cmd.append("--sequence")
         cmd.append("%s" % (data["DEPS"]))
     else:
-        com.run("update", [jobid, "FAILED", "No sequence file specified"])
-        com.run("complete", [jobid])
+        xenrt.update_job(job['id'], params={"FAILED": "No sequence file specified"}, complete=True)
         return
     if data.has_key("TESTCASEFILES"):
         cmd.append("--testcasefiles")
@@ -218,22 +217,24 @@ def start_job(jobid):
                 and not k in optparsevars:
             cmd.append("-D")
             cmd.append("%s=%s" % (k, data[k]))
+
+    if job.get("preemptable"):
+        cmd.append("-D")
+        cmd.append("PREEMPTABLE=yes")
+
     cmdl = string.join(cmd)
 
     if data.has_key("XRTBRANCH") and len(data["XRTBRANCH"]) > 0:
         branch = data['XRTBRANCH']
         otherBranch = True
     else:
-        branch = "master"
+        branch = _stablebranch
         otherBranch = False
     trace("Using branch '%s'\n" % (branch))
 
     try:
-
-
-        
         execCmd("cd %s && git reset --hard" % (_rootdir), errorException=False)
-        execCmd("cd %s && git checkout -f master && git reset --hard" % (_rootdir))
+        execCmd("cd %s && git checkout -f %s && git reset --hard" % (_rootdir, _stablebranch))
         execCmd("cd %s && git pull --ff-only" % (_rootdir), errorException=otherBranch)
 
         if otherBranch:
@@ -245,23 +246,22 @@ def start_job(jobid):
             execCmd("cd %s && git checkout -f %s && git reset --hard" % (_rootdir, branch))
             execCmd("cd %s && git pull --ff-only" % (_rootdir), errorException=otherBranch)
             try:
-                execCmd("cd %s && git merge master --no-edit" % (_rootdir))
+                execCmd("cd %s && git merge %s --no-edit" % (_rootdir, _stablebranch))
             except:
-                execCmd("cd %s && git merge master -m Merge" % (_rootdir))
+                execCmd("cd %s && git merge %s -m Merge" % (_rootdir, _stablebranch))
         
-        execCmd("cd %s/../xenrt-internal.git && git checkout -f master && git reset --hard && git pull --ff-only" % (_rootdir), errorException=False)
+        execCmd("cd %s/../xenrt-internal.git && git checkout -f %s && git reset --hard && git pull --ff-only" % (_rootdir, _stablebranch), errorException=False)
 
     except Exception, e:
         # Failed set-up, so bail out.
         errmsg = "Failed to checkout from git - %s" % str(e) 
         execCmd("cd %s && git reset --hard" % (_rootdir), errorException=False)
-        execCmd("cd %s && git checkout -f master && git reset --hard" % (_rootdir), errorException=False)
+        execCmd("cd %s && git checkout -f %s && git reset --hard" % (_rootdir, _stablebranch), errorException=False)
         if otherBranch:
             execCmd("cd %s && git branch -D %s" % (_rootdir, branch), errorException=False)
         trace("%s\n" % (errmsg))
         if not debug:
-            com.run("update", [jobid, "FAILED", errmsg])
-            com.run("complete", [jobid])
+            xenrt.update_job(job['id'], params={"FAILED": errmsg[:200]}, complete=True)
         return
     
     custompatchtmp = ""
@@ -269,22 +269,25 @@ def start_job(jobid):
         errmsg = ""
         
         # download custom-patch from scheduler
-        custompatchtmp = "/tmp/" + jobid + data["CUSTOM_PATCH"]
-        com.run("download", [jobid, "-p", data["CUSTOM_PATCH"], "-f", custompatchtmp])
-
-        if os.path.isfile(custompatchtmp):
-            # apply patch
-            rc = os.system("cd %s && patch -p1 < %s" % (_rootdir, custompatchtmp))
-            if rc > 0:
-                errmsg = "Couldn't import custom patch %s" % (data["CUSTOM_PATCH"])
+        custompatchtmp = "/tmp/" + str(job['id']) + data["CUSTOM_PATCH"]
+        patchurl = xenrt.get_job_attachment_pre_run(job['id'], data["CUSTOM_PATCH"])
+        try:
+            urllib.urlretrieve(patchurl, custompatchtmp)
+        except Exception, e:
+            errmsg = "Could not download custom patch - %s" % str(e)
         else:
-            errmsg = "Couldn't find custom patch %s" % (data["CUSTOM_PATCH"])
+            if os.path.isfile(custompatchtmp):
+                # apply patch
+                rc = os.system("cd %s && patch -p1 < %s" % (_rootdir, custompatchtmp))
+                if rc > 0:
+                    errmsg = "Could not import custom patch %s" % (data["CUSTOM_PATCH"])
+            else:
+                errmsg = "Could not find custom patch %s" % (data["CUSTOM_PATCH"])
             
         if len(errmsg) > 0:
             trace("%s\n" % (errmsg))
             if not debug:
-                com.run("update", [jobid, "FAILED", errmsg])
-                com.run("complete", [jobid])
+                xenrt.update_job(job['id'], params={"FAILED": errmsg}, complete=True)
             
             if len(custompatchtmp) > 0 and os.path.isfile(custompatchtmp):
                 os.system("cd %s && git reset --hard" % (_rootdir))
@@ -296,30 +299,16 @@ def start_job(jobid):
             return
 
 
-    if 'DEBUG' in data and data['DEBUG'] == 'yes':
-        try:
-            os.system("cd %s && make minimal-install BUILDPREFIX=%s" % (_rootdir,jobid))
-            cmd[0] = '%s/%s-exec/main.py'%(_sharedir,jobid)
-            startDebuggerJob(jobid, cmd)
-        except Exception as e:
-            print 'ERROR here: %s'%(e)
-    elif 'VENV2' in data and data['VENV'] == 'yes':
-        os.system("cd %s && make minimal-install" % (_rootdir))
-        cmd.insert(0, "%s/venvs/%s" % (_sharedir, jobid))
-        cmd.insert(0, "%s/control/venvwrapper2.sh" % _sharedir)
+    os.system("cd %s && make minimal-install" % (_rootdir))
+    cmd.insert(0, str(job['id']))
+    cmd.insert(0, resdir)
+    cmd.insert(0, "%s/venvs/%d" % (_sharedir, job['id']))
+    cmd.insert(0, "%s/control/venvwrapper2.sh" % _sharedir)
+    cmdl = string.join(cmd)
+    trace("exec: %s\n" % (cmdl))
+    if not debug:
         pid = os.spawnv(os.P_NOWAIT, cmd[0], cmd)
-        com.run("update", [jobid, "HARNESS_PID", "%u" % (pid)])
-    else:
-        os.system("cd %s && make minimal-install" % (_rootdir))
-        cmd.insert(0, "%s/venvs/%s" % (_sharedir, jobid))
-        cmd.insert(0, "%s/control/venvwrapper.sh" % _sharedir)
-        cmdl = string.join(cmd)
-        trace("exec: %s\n" % (cmdl))
-        if not debug:
-            if logserver:
-                com.run("update", [jobid, "LOG_SERVER", "%s" % logserver])
-            pid = os.spawnv(os.P_NOWAIT, cmd[0], cmd)
-            com.run("update", [jobid, "HARNESS_PID", "%u" % (pid)])
+        xenrt.update_job(job['id'], params={"HARNESS_PID": "%u" % (pid), "LOG_SERVER": logserver})
 
     time.sleep(30)
     if len(custompatchtmp) > 0 and os.path.isfile(custompatchtmp):
@@ -330,7 +319,7 @@ def start_job(jobid):
         os.system("cd %s && git reset --hard" % (_rootdir))
         os.system("rm -f %s" % custompatchtmp)
     
-    os.system("cd %s && git checkout -f master" % (_rootdir))
+    os.system("cd %s && git checkout -f %s" % (_rootdir, _stablebranch))
     if otherBranch:
         os.system("cd %s && git branch -D %s" % (_rootdir, branch))
     os.system("cd %s && make minimal-install" % (_rootdir))
@@ -421,64 +410,66 @@ if __name__ == '__main__':
 
     # Obtain the list of machines at our site
     trace("Fetching list of machines.\n")
-    mlist = com.run("mlist2", ["-s", site, "-C"])
+    mlist = xenrt.get_machines(site=[site], pseudohosts=True)
 
     # For each machine, check whether we have a job running
     newjobs = {}
     ready = {}
     deadjobs = []
-    for m in mlist:
-        trace("Checking machine %s..." % (m[0]))
-        if m[1] == "idle":
+    for machine in sorted(mlist.keys()):
+        m = mlist[machine]
+        trace("Checking machine %s..." % (m['name']))
+        if m['rawstatus'] == "idle":
             trace(" idle\n")
-        elif m[1] == "slaved":
+        elif m['rawstatus'] == "slaved":
             # Check whether the job has been marked as completed
-            data = com.run("status", ["%s" % (m[2])])
-            if data.has_key("JOBSTATUS") and data["JOBSTATUS"] == "done":
-                trace(" completed jobid %s\n" % (m[2]))
-                com.run("mstatus", [m[0], "idle"])
-                com.run("event", ["JobEnd", m[0], m[2]])
+            data = xenrt.get_job(m['jobid'])
+            if data["rawstatus"] == "done":
+                trace(" completed jobid %d\n" % (m['jobid']))
+                xenrt.update_machine(m['name'], status="idle")
+                xenrt.new_event("JobEnd", m['name'], str(m['jobid']))
             else:
-                trace(" running jobid %s (slave)\n" % (m[2]))
-        elif m[1] == "scheduled":
-            trace(" scheduled to run %s\n" % (m[2]))
-            data = com.run("status", ["%s" % (m[2])])
-            if data.has_key("REMOVED") and data["REMOVED"] == "yes":
+                trace(" running jobid %d (slave)\n" % (m['jobid']))
+        elif m['rawstatus'] == "scheduled":
+            trace(" scheduled to run %d\n" % (m['jobid']))
+            data = xenrt.get_job(m['jobid'])
+            if data['removed']:
                 trace(" removed, so not starting job\n")
-                com.run("complete", [m[2]])
-                com.run("mstatus", [m[0], "idle"])
+                xenrt.update_job(m['jobid'], complete=True)
+                xenrt.update_machine(m['name'], status="idle")
             else:
-                if not newjobs.has_key(m[2]):
-                    newjobs[m[2]] = []
-                newjobs[m[2]].append(m[0])
-                ready[m[0]] = True
-        elif m[1] == "running":
+                if not newjobs.has_key(str(m['jobid'])):
+                    newjobs[str(m['jobid'])] = []
+                newjobs[str(m['jobid'])].append(m['name'])
+                ready[m['name']] = True
+        elif m['rawstatus'] == "running":
             # Check whether the job has been marked as completed
-            data = com.run("status", ["%s" % (m[2])])
-            if data.has_key("JOBSTATUS") and data["JOBSTATUS"] == "done":
-                trace(" completed jobid %s\n" % (m[2]))
-                com.run("mstatus", [m[0], "idle"])
-                com.run("event", ["JobEnd", m[0], m[2]])
-                os.spawnl(os.P_NOWAIT, "%s/exec/main.py" % _sharedir, "%s/exec/main.py" % _sharedir, "--cleanup-temp-dirs", m[2])
+            data = xenrt.get_job(m['jobid'])
+            if data['rawstatus'] == "done":
+                trace(" completed jobid %d\n" % (m['jobid']))
+                xenrt.update_machine(m['name'], status="idle")
+                xenrt.new_event("JobEnd", m['name'], str(m['jobid']))
+                os.spawnl(os.P_NOWAIT, "%s/exec/main.py" % _sharedir, "%s/exec/main.py" % _sharedir, "--cleanup-temp-dirs", str(m['jobid']))
             else:
                 hpid = None
-                if data.has_key("HARNESS_PID") and os.path.exists("/proc/%s/stat" % data['HARNESS_PID']):
-                    hpid = data['HARNESS_PID']
+                if data['params'].has_key("HARNESS_PID") and os.path.exists("/proc/%s/stat" % data['params']['HARNESS_PID']):
+                    hpid = data['params']['HARNESS_PID']
                 if hpid:
-                    trace(" running jobid %s, process %s\n" % (m[2], hpid))
+                    trace(" running jobid %d, process %s\n" % (m['jobid'], hpid))
                 else:
-                    trace(" running jobid %s. ERROR - no process for job\n" % (m[2]))
-                    deadjobs.append(m[2])
-                if data.has_key("REMOVED") and data["REMOVED"] == "yes":
-                    trace("Job %s set as removed, killing job\n" % m[2])
-                    killJob(m[2])
-                    com.run("complete", [m[2]])
-                    com.run("mstatus", [m[0], "idle"])
-                    os.spawnl(os.P_NOWAIT, "%s/exec/main.py" % _sharedir, "%s/exec/main.py" % _sharedir, "--cleanup-temp-dirs", m[2])
+                    trace(" running jobid %d. ERROR - no process for job\n" % (m['jobid']))
+                    xenrt.update_job(m['jobid'], params={"DEAD_JOB": "yes"})
+                    deadjobs.append(str(m['jobid']))
+                if data['removed']:
+                    trace("Job %d set as removed, killing job\n" % m['jobid'])
+                    killJob(str(m['jobid']))
+                    xenrt.update_job(m['jobid'], complete=True)
+                    xenrt.update_machine(m['name'], status="idle")
+                    os.spawnl(os.P_NOWAIT, "%s/exec/main.py" % _sharedir, "%s/exec/main.py" % _sharedir, "--cleanup-temp-dirs", str(m['jobid']))
                     if not (data.has_key("OPTION_KEEP_NFS") and data["OPTION_KEEP_NFS"] == "yes"):
-                        os.spawnl(os.P_NOWAIT, "%s/exec/main.py" % _sharedir, "%s/exec/main.py" % _sharedir, "--cleanup-nfs-dirs", m[2])
+                        os.spawnl(os.P_NOWAIT, "%s/exec/main.py" % _sharedir, "%s/exec/main.py" % _sharedir, "--cleanup-nfs-dirs", str(m['jobid']))
         else:
-            trace(" unknown status %s\n" % (m[1]))
+            trace(" unknown status %s\n" % (m['rawstatus']))
 
     f = open("%s/deadjobs" % _vardir, "w")
     f.write("%s\n" % (", ".join(deadjobs)))
@@ -488,7 +479,8 @@ if __name__ == '__main__':
     # first and lower priority jobs are more likely to be rate limited.
     newjobprios = {}
     for j in newjobs.keys():
-        data = com.run("status", ["%s" % (j)])
+        job = xenrt.get_job(int(j))
+        data = job['params']
         prio = 3
         if data.has_key("JOBPRIO"):
             try:
@@ -519,16 +511,13 @@ if __name__ == '__main__':
                 for m in newjobs[j]:
                     machines.append(m)
                     del ready[m]
-                    com.run("mstatus", [m, "running"])
-                for machine in machines:
-                    com.run("event", ["JobStart", machine, j])
+                    xenrt.update_machine(m, status="running")
 
                 # Set the user of the job to the DB events table for quick access later
-                data = com.run("status", ["%s" % j])
-                if data.has_key("USERID"):
-                    com.run("event", ["JobStartUser", data["USERID"], j])
-
-                start_job(j)
+                job = xenrt.get_job(int(j))
+                for machine in job['machines']:
+                    xenrt.new_event("JobStart", machine, str(j))
+                start_job(job)
                 starttimes.append(now)
                 maystart = maystart - 1
             else:

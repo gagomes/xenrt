@@ -1,0 +1,20 @@
+<xenrt>
+
+  <!-- Retina Scan -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <RETINA_SCAN_COMPONENT_ID>24</RETINA_SCAN_COMPONENT_ID>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <serial group="RetinaScan">
+      <testcase id="xenserver.tc.security.TCRetinaScan" tc="TC-17217"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

@@ -12,3 +12,4 @@ MAILTO=#XenServerQAadmin@citrite.net
 0 15 * * 6 @@SHAREDIR@@/scripts/refreshwinguests `cat @@CONFDIR@@/siteid` 432000 2>&1 | logger -t xenrtrefreshwinguests; fi
 * * * * * @@SHAREDIR@@/server/check_web.py 2>&1 | logger -t xenrtcheckweb
 * * * * * sudo @@SHAREDIR@@/xenrtdhcpd/checkdhcp.py 2>&1 | logger -t xenrtcheckdhcp
+* * * * * sudo @@SHAREDIR@@/xenrtdhcpd/watchdog 2>&1 | logger -t xenrtcheckdhcppid

@@ -24,7 +24,7 @@
       <testcase id="xenserver.tc.ns.TC12710"/>
       <testcase id="xenserver.tc.ns.TC14935"/>
       <testcase id="xenserver.tc.ns.TC18604"/>
-      <testcase id="xenserver.tc.ns.TC18781"/>
+      <!--testcase id="xenserver.tc.ns.TC18781"/-->
     </serial>
   </testsequence>
   

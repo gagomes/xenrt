@@ -1,6 +1,7 @@
-import string, re, os
-
-import config
+import string, re, os, json, mimetypes
+import smtplib
+import time
+import config, app.db, app.ad
 
 colours = {"pass":       ("green", None, "#90c040"),
            "fail":       ("orange", None, None),
@@ -75,9 +76,11 @@ def parse_job(rc,cur):
         d['UPLOADED'] = string.strip(rc[6])
     if rc[7] and string.strip(rc[7]) != "":
         d['REMOVED'] = string.strip(rc[7])
+    if rc[8]:
+        d['PREEMPTABLE'] = "yes"
 
-    cur.execute(("SELECT param, value FROM tblJobDetails WHERE " +
-                      "jobid = %u;") % (rc[0]))
+    cur.execute("SELECT param, value FROM tblJobDetails WHERE " +
+                "jobid = %s;", [rc[0]])
     
     while 1:
         rd = cur.fetchone()
@@ -88,7 +91,7 @@ def parse_job(rc,cur):
             d[string.strip(rd[0])] = string.strip(rd[1])
     
     if d['JOBSTATUS'] == "running":
-        cur.execute("SELECT COUNT(result) FROM tblresults WHERE jobid=%s AND result='paused';" % (d['JOBID']))
+        cur.execute("SELECT COUNT(result) FROM tblresults WHERE jobid=%s AND result='paused';", [d['JOBID']])
         rd = cur.fetchone()
         if rd[0] > 0:
             d['PAUSED'] = "yes"
@@ -145,7 +148,7 @@ def mystrip(s):
     return string.strip(str(s))
 
 def sqlescape(s):
-    return string.replace(s, "'", "''")
+    raise Exception("sqlescape should not be used, use the database layers quoting instead")
 
 def parse_shared_resources(resourcestring):
     result = {}
@@ -175,9 +178,6 @@ def check_resources(available, required):
 
     # Check arguments are properly formed.
     if check_input(available) or check_input(required):
-        print "Error. malformed inputs to check_resources"
-        print available
-        print required
         return 0
 	
     # Parse the two lists.
@@ -251,7 +251,8 @@ def check_input(commandline):
     Check that an argument conforms to the format specified in XRT-66. Return 0
     if the input is correctly formed, 1 otherwise.
     """	
-
+    if commandline == "":
+        return 0
     if re.match('([A-Za-z0-9_]+(<=|>=|=|<|>)[0-9]+[kMGT]?/)*([A-Za-z0-9_]+(<=|>=|=|>|<)[0-9]+[kMGT]?$)', 
 		commandline) == None:
         return 1
@@ -321,4 +322,287 @@ def check_constraint(constraint, entry):
             return 1
     # Constraint wasn't satisifed.
     return 0
-	
+
+class XLogLocation(object):
+    def __init__(self, location):
+        self.location = location
+        (coarseStr, fineStr) = self.location.split("/")
+        self.coarse = int(coarseStr, 16)
+        self.fine = int(fineStr, 16)
+
+    def __cmp__(self, other):
+        if self.coarse > other.coarse:
+            return 1
+        elif self.coarse < other.coarse:
+            return -1
+        elif self.fine > other.fine:
+            return 1
+        elif self.fine < other.fine:
+            return -1
+        else:
+            assert self.coarse == other.coarse
+            assert self.fine == other.fine
+            return 0
+
+    def __str__(self):
+        return self.location
+
+def create_seq_from_deployment(deployment):
+    if not isinstance(deployment, basestring):
+        deployment = json.dumps(deployment, indent=2)
+    return """<xenrt>
+  <variables>
+    <OPTION_KEEP_SETUP>yes</OPTION_KEEP_SETUP>
+  </variables>
+  <prepare>
+%s
+  </prepare>
+</xenrt>""" % deployment
+
+def refresh_ad_caches(removeUsers=False):
+    db = app.db.dbWriteInstance()
+    ad = app.ad.ActiveDirectory()
+
+    cur = db.cursor()
+    print "Validating users in tblusers..."
+    cur.execute("SELECT userid,email,disabled FROM tblusers")
+    userCount = 0
+    usersToRemove = []
+    usersToDisable = []
+    usersToEnable = []
+    emailUpdates = []
+    while True:
+        rc = cur.fetchone()
+        if not rc:
+            break
+        userCount += 1
+        userid = rc[0].strip()
+        try:
+            adEmail = ad.get_email(userid)
+            dbEmail = rc[1] and rc[1].strip()
+            if adEmail != dbEmail:
+                emailUpdates.append((userid, adEmail))
+            adDisabled = ad.is_disabled(userid)
+            dbDisabled = rc[2]
+            if adDisabled and not dbDisabled:
+                usersToDisable.append(userid)
+            elif not adDisabled and dbDisabled:
+                usersToEnable.append(userid)
+        except KeyError:
+            usersToRemove.append(userid)
+
+    if len(usersToRemove) > (userCount / 20):
+        raise Exception("AD suggests >5% of users no longer exist, this seems unlikely...")
+
+    if removeUsers:
+        for u in usersToRemove:
+            print "Removing %s" % u
+            cur.execute("DELETE FROM tblusers WHERE userid=%s", [u])
+    elif len(usersToRemove) > 0:
+        print "There are %d users no longer in AD" % (len(usersToRemove))
+
+    for u,e in emailUpdates:
+        print "Updating email address for %s (%s)" % (u,e)
+        cur.execute("UPDATE tblusers SET email=%s WHERE userid=%s", [e,u])
+
+    for u in usersToEnable:
+        print "Enabling %s" % u
+        cur.execute("UPDATE tblusers SET disabled='0' WHERE userid=%s", [u])
+    for u in usersToDisable:
+        print "Disabling %s" % u
+        cur.execute("UPDATE tblusers SET disabled='1' WHERE userid=%s", [u])
+
+    print "\nRefreshing group cache..."
+    def _deleteGroup(groupid):
+        cur.execute("DELETE FROM tblgroupusers WHERE groupid=%s", [groupid])
+        cur.execute("DELETE FROM tblgroups WHERE groupid=%s", [groupid])
+
+    cur.execute("SELECT groupid,name FROM tblgroups")
+    groups = {}
+    while True:
+        rc = cur.fetchone()
+        if not rc:
+            break
+        groups[rc[0]] = rc[1].strip()
+
+    aclGroups = []
+    cur.execute("SELECT userid FROM tblaclentries WHERE type='group'")
+    while True:
+        rc = cur.fetchone()
+        if not rc:
+            break
+        aclGroups.append(rc[0].strip())
+
+    # Also put the admin group in the cache
+    if not config.admin_group in aclGroups:
+        aclGroups.append(config.admin_group)
+
+    # Add any groups not in the DB to the DB
+    extraGroups = set(aclGroups) - set(groups.values())
+    for g in extraGroups:
+        cur.execute("INSERT INTO tblgroups (name) VALUES (%s) RETURNING groupid", [g])
+        rc = cur.fetchone()
+        groups[rc[0]] = g
+
+    for gid in groups:
+        gname = groups[gid]
+        print gname,
+        # Check if the group is still actually in use by any acls
+        if not gname in aclGroups:
+            print "..No longer required, removing"
+            _deleteGroup(gid)
+            continue
+        # Is it valid in AD?
+        if not ad.is_valid_group(gname):
+            print "..not found in AD, removing"
+            _deleteGroup(gid)
+            # TODO: Email the ACL owner(s) to let them know we've removed entries pointing at the group
+            cur.execute("DELETE FROM tblaclentries WHERE type='group' AND userid=%s", [gname])
+            continue
+        # Update the members
+        adMembers = ad.get_all_members_of_group(gname)
+        dbMembers = []
+        cur.execute("SELECT userid FROM tblgroupusers WHERE groupid=%s", [gid])
+        while True:
+            rc = cur.fetchone()
+            if not rc:
+                break
+            dbMembers.append(rc[0].strip())
+        am = set(adMembers)
+        dm = set(dbMembers)
+
+        newMembers = am - dm
+        removeMembers = dm - am
+        for m in newMembers:
+            cur.execute("INSERT INTO tblgroupusers (groupid,userid) VALUES (%s,%s)", [gid, m])
+        for m in removeMembers:
+            cur.execute("DELETE FROM tblgroupusers WHERE groupid=%s AND userid=%s", [gid, m])
+
+        print "..%d added, %d removed" % (len(newMembers), len(removeMembers))
+
+    db.commit()
+
+def isBinary(fname):
+    if string.split(fname, ".")[-1] in ('gz',
+                                       'tgz',
+                                       'bz2',
+                                       'tbz2',
+                                       'zip',
+                                       'exe',
+                                       'jpg',
+                                       'jpeg',
+                                       'png',
+                                       'gif'):
+        return True
+    else:
+        return False
+
+def getTarIndex(tarfile, urlname):
+    if os.path.exists("%s.index" % tarfile):
+        indexFH = open("%s.index" % tarfile)
+        createIndex = False
+    else:
+        indexFH = os.popen("tar -jvtf %s" % (tarfile))
+        createIndex = True
+
+    index = indexFH.readlines()
+    indexFH.close()
+
+    if createIndex and len(index) > 0:
+        try:
+            f = open("%s.index" % tarfile, "w")
+            for l in index:
+                f.write(l)
+            f.close()
+        except:
+            pass
+
+    listing = {}
+
+    for l in index:
+        ll = l.split()
+        fn = " ".join(ll[5:len(ll)])
+        size = int(ll[2])
+        if fn[0:2] == "./":
+            fn = fn[2:]
+
+        if not fn:
+            continue
+        if fn[-1] == "/":
+            continue
+        
+        listing[fn] = {
+            "name": fn,
+            "url": "%s/api/files/v2/log/%s/%s" % (config.url_base.rstrip("/"), urlname, fn),
+            "size": size,
+            "content_type": getContentTypeAndEncoding(fn)[0]
+        }
+
+    return listing
+
+def getContentTypeAndEncoding(fn):
+    (ctype, encoding) = mimetypes.guess_type(fn)
+    if not ctype:
+        if fn.endswith("/messages") \
+                or fn.endswith(".log") \
+                or fn.endswith(".out") \
+                or fn.endswith("/SMlog") \
+                or fn.endswith("/syslog"):
+            ctype = "text/plain"
+        elif fn.endswith(".db"):
+            ctype = "application/xml"
+        else:
+            ctype = "application/octet-stream"
+    return (ctype, encoding)
+
+def sendMail(fromaddr, toaddrs, subject, message, reply=None):
+    if not config.smtp_server:
+        return
+    now = time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime())
+    msg = ("Date: %s\r\nFrom: %s\r\nTo: %s\r\nSubject: %s\r\n"
+           % (now, fromaddr, ", ".join(toaddrs), subject))
+    if reply:
+        msg = msg + "Reply-To: %s\r\n" % (reply)
+    msg = msg + "\r\n" + message
+
+    server = smtplib.SMTP(config.smtp_server)
+    server.sendmail(fromaddr, toaddrs, msg)
+    server.quit()
+
+def update_ad_teams():
+    db = app.db.dbWriteInstance()
+    ad = app.ad.ActiveDirectory()
+
+    cur = db.cursor()
+    cur.execute("SELECT userid FROM tblusers WHERE team IS NULL")
+    users = {}
+    while True:
+        rc = cur.fetchone()
+        if not rc:
+            break
+        users[rc[0].strip().lower()] = rc[0].strip()
+
+    mapping = json.loads(config.group_mapping)
+    userMapping = {}
+
+    for group in mapping:
+        adGroup = group[0]
+        name = group[1]
+        print "Processing %s (%s)" % (adGroup, name)
+        allGroupUsers = ad.get_all_members_of_group(adGroup)
+        for u in allGroupUsers:
+            if u.lower() in users:
+                userMapping[users[u.lower()]] = name
+                del users[u.lower()]
+
+    for u in userMapping:
+        print "Mapping %s to %s" % (u, userMapping[u])
+        cur.execute("UPDATE tblusers SET team=%s WHERE userid=%s", [userMapping[u], u])
+
+    db.commit()       
+
+def toBool(var):
+    if isinstance(var, basestring):
+        return var and var[0].lower() in ("y", "t", "1")
+    else:
+        return bool(var)

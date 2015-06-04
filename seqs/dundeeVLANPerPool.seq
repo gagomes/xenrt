@@ -1,0 +1,21 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+     <host id="0">
+      <storage type="nfs" name="shared" default="true"/>
+    </host>
+  </prepare>
+
+  <testsequence>
+  
+    <!-- 800 VLANs per host(vswitch) -->
+    <testcase id="testcases.xenserver.tc.maxima.TC18881" blocker="yes"/>
+    <!-- 800 VLANs per host(linux bridge) -->
+    <testcase id="testcases.xenserver.tc.maxima.TC18846"/>
+    
+  </testsequence>
+</xenrt>

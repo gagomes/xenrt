@@ -1,0 +1,208 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>6</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host>
+      <vm name="winxp">
+        <distro>winxpsp3</distro>
+        <memory>512</memory>
+        <vcpus>1</vcpus>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+      <vm name="w2k3-x86">
+        <distro>w2k3eesp2</distro>
+        <memory>512</memory>
+        <vcpus>1</vcpus>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+      <vm name="ws08-x86">
+        <distro>ws08sp2-x86</distro>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+      <vm name="win7-x86">
+        <distro>win7sp1-x86</distro>
+        <memory>1024</memory>
+        <vcpus>1</vcpus>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+      <vm name="win8-x86">
+        <distro>win8-x86</distro>
+        <memory>1024</memory>
+        <vcpus>1</vcpus>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+      <vm name="win81-x64">
+        <distro>win81-x64</distro>
+        <memory>1024</memory>
+        <vcpus>1</vcpus>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+      <vm name="win10-x86">
+        <distro>win10-x86</distro>
+        <memory>1024</memory>
+        <vcpus>1</vcpus>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <parallel workers="6">
+      <serial group="winxp">
+        <testcase id="xenserver.tc.guest.WMIPowerShell" tc="TC-19101">
+          <arg>guest=winxp</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMIVBS" tc="TC-19102">
+          <arg>guest=winxp</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMICheckVMName" tc="TC-19103">
+          <arg>guest=winxp</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMICheckVMIP" tc="TC-19104">
+          <arg>guest=winxp</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMICheckXenStoreRead" tc="TC-19105">
+          <arg>guest=winxp</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMICheckXenStoreWrite" tc="TC-19106">
+          <arg>guest=winxp</arg>
+        </testcase>
+      </serial>
+      <serial group="w2k3-x86">
+        <testcase id="xenserver.tc.guest.WMIPowerShell" tc="TC-19107">
+          <arg>guest=w2k3-x86</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMIVBS" tc="TC-19108">
+          <arg>guest=w2k3-x86</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMICheckVMName" tc="TC-19109">
+          <arg>guest=w2k3-x86</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMICheckVMIP" tc="TC-19110">
+          <arg>guest=w2k3-x86</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMICheckXenStoreRead" tc="TC-19111">
+          <arg>guest=w2k3-x86</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMICheckXenStoreWrite" tc="TC-19112">
+          <arg>guest=w2k3-x86</arg>
+        </testcase>
+      </serial>
+      <serial group="ws08-x86">
+        <testcase id="xenserver.tc.guest.WMIPowerShell" tc="TC-19125">
+          <arg>guest=ws08-x86</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMIVBS" tc="TC-19126">
+          <arg>guest=ws08-x86</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMICheckVMName" tc="TC-19127">
+          <arg>guest=ws08-x86</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMICheckVMIP" tc="TC-19128">
+          <arg>guest=ws08-x86</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMICheckXenStoreRead" tc="TC-19129">
+          <arg>guest=ws08-x86</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMICheckXenStoreWrite" tc="TC-19130">
+          <arg>guest=ws08-x86</arg>
+        </testcase>
+      </serial>
+      <serial group="win7-x86">
+        <testcase id="xenserver.tc.guest.WMIPowerShell" tc="TC-19137">
+          <arg>guest=win7-x86</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMIVBS" tc="TC-19138">
+          <arg>guest=win7-x86</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMICheckVMName" tc="TC-19139">
+          <arg>guest=win7-x86</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMICheckVMIP" tc="TC-19140">
+          <arg>guest=win7-x86</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMICheckXenStoreRead" tc="TC-19141">
+          <arg>guest=win7-x86</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMICheckXenStoreWrite" tc="TC-19142">
+          <arg>guest=win7-x86</arg>
+        </testcase>
+      </serial>
+      <serial group="win8-x86">
+        <testcase id="xenserver.tc.guest.WMIPowerShell" tc="TC-19155">
+          <arg>guest=win8-x86</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMIVBS" tc="TC-19156">
+          <arg>guest=win8-x86</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMICheckVMName" tc="TC-19157">
+          <arg>guest=win8-x86</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMICheckVMIP" tc="TC-19158">
+          <arg>guest=win8-x86</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMICheckXenStoreRead" tc="TC-19159">
+          <arg>guest=win8-x86</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMICheckXenStoreWrite" tc="TC-19160">
+          <arg>guest=win8-x86</arg>
+        </testcase>
+      </serial>
+      <serial group="win81-x64">
+        <testcase id="xenserver.tc.guest.WMIPowerShell" tc="TC-20003">
+          <arg>guest=win81-x64</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMIVBS" tc="TC-20004">
+          <arg>guest=win81-x64</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMICheckVMName" tc="TC-20005">
+          <arg>guest=win81-x64</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMICheckVMIP" tc="TC-20006">
+          <arg>guest=win81-x64</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMICheckXenStoreRead" tc="TC-20007">
+          <arg>guest=win81-x64</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMICheckXenStoreWrite" tc="TC-20008">
+          <arg>guest=win81-x64</arg>
+        </testcase>
+      </serial>
+      <serial group="win10-x86">
+        <testcase id="xenserver.tc.guest.WMIPowerShell" tc="TC-26427">
+          <arg>guest=win10-x86</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMIVBS" tc="TC-26428">
+          <arg>guest=win10-x86</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMICheckVMName" tc="TC-26429">
+          <arg>guest=win10-x86</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMICheckVMIP" tc="TC-26430">
+          <arg>guest=win10-x86</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMICheckXenStoreRead" tc="TC-26431">
+          <arg>guest=win10-x86</arg>
+        </testcase>
+        <testcase id="xenserver.tc.guest.WMICheckXenStoreWrite" tc="TC-26432">
+          <arg>guest=win10-x86</arg>
+        </testcase>
+      </serial>
+
+    </parallel>
+  </testsequence>
+
+</xenrt>

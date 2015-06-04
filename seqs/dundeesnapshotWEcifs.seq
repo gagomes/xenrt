@@ -1,0 +1,22 @@
+<xenrt>
+
+  <!-- MNR VM snapshot test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host>
+      <storage type="smb" name="cifssr" options="vm" default="true"/>
+    </host>
+  </prepare>
+
+  <testsequence group="VMSnapshot">
+    <testcase id="xenserver.tc.snapshot.TC7851" name="TC7851.WithCIFs" sku="WithCIFs" prio="3"/>
+    <testcase id="xenserver.tc.snapshot.TC9705" name="TC9705.WithCIFs" sku="WithCIFs" prio="3"/>
+    <testcase id="xenserver.tc.snapshot.TC7852" name="TC7852.WithCIFs" sku="WithCIFs" prio="3"/>
+    <testcase id="xenserver.tc.snapshot.TC9708" name="TC9708.WithCIFs" sku="WithCIFs" prio="3"/>
+  </testsequence>
+
+</xenrt>

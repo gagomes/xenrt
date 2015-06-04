@@ -1,0 +1,107 @@
+<xenrt>
+
+  <!-- v6 licensing tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0" />
+  </prepare>
+
+  <testsequence>
+    <serial group="Default">
+      <testcase id="xenserver.tc.license.TC9054"/>
+      <testcase id="xenserver.tc.license.TC11000"/>
+      <testcase id="xenserver.tc.license.TC11003"/>
+    </serial>
+    <serial group="Free">
+      <testcase id="xenserver.tc.license.TC8788"/>
+      <testcase id="xenserver.tc.license.TC8789"/>
+      <testcase id="xenserver.tc.license.TC8790"/>
+      <testcase id="xenserver.tc.license.TC8791"/>
+      <testcase id="xenserver.tc.license.TC8792"/>
+      <testcase id="xenserver.tc.license.TC8794"/>
+      <testcase id="xenserver.tc.license.TC8795"/>
+      <testcase id="xenserver.tc.license.TC8796"/>
+      <testcase id="xenserver.tc.license.TC9055"/>
+      <testcase id="xenserver.tc.license.TC10999"/>
+      <testcase id="xenserver.tc.license.TC11004"/>
+      <testcase id="xenserver.tc.license.TC11334"/>
+      <testcase id="xenserver.tc.license.TC8817"/>
+      <testcase id="xenserver.tc.license.TC12525"/>
+      <testcase id="xenserver.tc.license.TC13499"/>
+      <testcase id="xenserver.tc.license.TC14441"/>      
+    </serial>
+    <serial group="Advanced">
+      <testcase id="xenserver.tc.license.TC11264"/>
+      <testcase id="xenserver.tc.license.TC11265"/>
+      <testcase id="xenserver.tc.license.TC11266"/>
+      <testcase id="xenserver.tc.license.TC11267"/>
+      <testcase id="xenserver.tc.license.TC11268"/>
+      <testcase id="xenserver.tc.license.TC11270"/>
+      <testcase id="xenserver.tc.license.TC11271"/>
+      <testcase id="xenserver.tc.license.TC11272"/>
+      <testcase id="xenserver.tc.license.TC11290"/>
+      <testcase id="xenserver.tc.license.TC11273"/>
+      <testcase id="xenserver.tc.license.TC11291"/>
+      <testcase id="xenserver.tc.license.TC11335"/>
+      <testcase id="xenserver.tc.license.TC11307"/>
+      <testcase id="xenserver.tc.license.TC12522"/>
+      <testcase id="xenserver.tc.license.TC13500"/>
+      <testcase id="xenserver.tc.license.TC14442"/>      
+    </serial>
+    <serial group="Enterprise">
+      <testcase id="xenserver.tc.license.TC9997"/>
+      <testcase id="xenserver.tc.license.TC9998"/>
+      <testcase id="xenserver.tc.license.TC9999"/>
+      <testcase id="xenserver.tc.license.TC10000"/>
+      <testcase id="xenserver.tc.license.TC10001"/>
+      <testcase id="xenserver.tc.license.TC10003"/>
+      <testcase id="xenserver.tc.license.TC10004"/>
+      <testcase id="xenserver.tc.license.TC10005"/>
+      <testcase id="xenserver.tc.license.TC11001"/>
+      <testcase id="xenserver.tc.license.TC11005"/>
+      <testcase id="xenserver.tc.license.TC11336"/>
+      <testcase id="xenserver.tc.license.TC10018"/>
+      <testcase id="xenserver.tc.license.TC12523"/>
+      <testcase id="xenserver.tc.license.TC13497"/>
+      <testcase id="xenserver.tc.license.TC14443"/>      
+    </serial>
+    <serial group="Platinum">
+      <testcase id="xenserver.tc.license.TC10008"/>
+      <testcase id="xenserver.tc.license.TC10009"/>
+      <testcase id="xenserver.tc.license.TC10010"/>
+      <testcase id="xenserver.tc.license.TC10011"/>
+      <testcase id="xenserver.tc.license.TC10012"/>
+      <testcase id="xenserver.tc.license.TC10014"/>
+      <testcase id="xenserver.tc.license.TC10015"/>
+      <testcase id="xenserver.tc.license.TC10016"/>
+      <testcase id="xenserver.tc.license.TC11002"/>
+      <testcase id="xenserver.tc.license.TC11006"/>
+      <testcase id="xenserver.tc.license.TC11337"/>
+      <testcase id="xenserver.tc.license.TC10019"/>
+      <testcase id="xenserver.tc.license.TC12524"/>
+      <testcase id="xenserver.tc.license.TC13498"/>
+      <testcase id="xenserver.tc.license.TC14444"/>      
+    </serial>
+    <serial group="Report">
+      <testcase id="xenserver.tc.license.TC8866"/>
+      <testcase id="xenserver.tc.license.TC8867"/>
+      <testcase id="xenserver.tc.license.TC8868"/>
+      <testcase id="xenserver.tc.license.TC11308"/>
+      <testcase id="xenserver.tc.license.TC10020"/>
+      <testcase id="xenserver.tc.license.TC10021"/>
+    </serial>
+    <serial group="Misc">
+      <testcase id="xenserver.tc.license.TC10165"/>
+      <testcase id="xenserver.tc.license.TC10755"/>
+    </serial>
+    <!-- Tests after this point are destructive -->
+    <serial group="Boot">
+      <testcase id="xenserver.tc.license.TC8873"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

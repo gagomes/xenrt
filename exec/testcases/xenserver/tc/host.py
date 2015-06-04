@@ -914,11 +914,17 @@ class TC8341(xenrt.TestCase):
     def getMountCount(self, max=False):
         if max: pattern = "Maximum mount count"
         else: pattern = "Mount count"
-        return int(self.host.execdom0("tune2fs -l %s | "
-                                      "grep '%s' | "
-                                      "cut -d ':' -f 2" % 
-                                      (self.rootdisk, pattern)).strip())
- 
+        cmd = "tune2fs -l %s | grep '%s' | cut -d ':' -f 2"
+        count = int(self.host.execdom0(cmd % (self.rootdisk, pattern)).strip())
+        if max and count <= 0:
+            xenrt.TEC().logverbose("Maximum mount count was %d. Changing it to 30 for tests." % count)
+            self.host.execdom0("tune2fs -c 30 %s" % self.rootdisk)
+            count = int(self.host.execdom0(cmd % (self.rootdisk, pattern)).strip())
+            if count != 30:
+                raise xenrt.XRTError("Failed to change 'Maximum mount count' to 30.")
+
+        return count
+
     def prepare(self, arglist):
         self.host = self.getDefaultHost()
         volume = "/"
@@ -935,7 +941,7 @@ class TC8341(xenrt.TestCase):
                                (self.rootdisk, maxmountcount))
         xenrt.TEC().logverbose("Setting mount count to 'Maximum mount count' - 1. (%s)" %
                                (maxmountcount - 1))
-        self.host.execdom0("tune2fs -C %s %s" % (maxmountcount - 1, self.rootdisk))
+        self.host.execdom0("tune2fs -C %d %s" % (maxmountcount - 1, self.rootdisk))
         # Knock the mount count up to 'Maximum mount count'.
         self.host.reboot()
         # Try for a FSCK. If this passes we're good to go.
@@ -1458,20 +1464,18 @@ class TC8913(xenrt.TestCase):
         data = self.host.execdom0("service snmpd status | cat")
         if "running" in data:
             self.wasrunning = True
-        data = self.host.execdom0("/sbin/chkconfig --list snmpd")
-        if "3:on" in data:
+        if self.host.snmpdIsEnabled():
             self.wasenabled = True
 
     def run(self, arglist=None):
         # Enable snmpd service
-        self.host.execdom0("/sbin/chkconfig snmpd on")
+        self.host.enableSnmpd()
 
         # Reboot
         self.host.reboot()
 
         # Check the service is still enabled
-        data = self.host.execdom0("/sbin/chkconfig --list snmpd")
-        if not "3:on" in data:
+        if not self.host.snmpdIsEnabled():
             raise xenrt.XRTFailure("snmpd service disabled after reboot")
 
         # Make sure the snmpd service is reported as running
@@ -1489,12 +1493,10 @@ class TC8913(xenrt.TestCase):
             if not self.wasrunning:
                 self.host.execdom0("service snmpd stop")
             if not self.wasenabled:
-                self.host.execdom0("/sbin/chkconfig snmpd off")
+                self.host.disableSnmpd()
 
 class TC8914(xenrt.TestCase):
     """Dom0 SNMP (when enabled by hacking dom0) can be quiered for SNMPv2-MIB::sysContact and SNMPv2-MIB::sysLocation"""
-
-    SNMPCONF = "/etc/snmp/snmpd.conf"
 
     def prepare(self, arglist=None):
         self.oldconf = None
@@ -1505,14 +1507,13 @@ class TC8914(xenrt.TestCase):
         if not "running" in data:
             self.wasrunning = False
             self.host.execdom0("service snmpd start")
-        data = self.host.execdom0("/sbin/chkconfig --list snmpd")
-        if not "3:on" in data:
-            self.host.execdom0("/sbin/chkconfig snmpd on")
+        if not self.host.snmpdIsEnabled():
+            self.host.enableSnmpd()
             self.wasenabled = False
 
         # Back up the old config
         oldconf = self.host.hostTempFile() + ".bak"
-        self.host.execdom0("mv %s %s" % (self.SNMPCONF, oldconf))
+        self.host.execdom0("mv %s %s" % (self.host.SNMPCONF, oldconf))
         self.oldconf = oldconf
 
         # Make sure the firewall allows SNMP through
@@ -1524,7 +1525,7 @@ class TC8914(xenrt.TestCase):
             self.host.execdom0("iptables -I RH-Firewall-1-INPUT 1 -m state "
                                "--state NEW -m udp -p udp --dport %u "
                                "-j ACCEPT" % (port))
-        self.host.execdom0("service iptables save")
+        self.host.iptablesSave()
 
     def checkSNMP(self):
         for com in ["xenrtsnmprw", "xenrtsnmpro"]:
@@ -1557,7 +1558,7 @@ syslocation XenRT syslocation
         xenrt.TEC().copyToLogDir(fn, "snmpd.conf")
         sftp = self.host.sftpClient()
         try:
-            sftp.copyTo(fn, self.SNMPCONF)
+            sftp.copyTo(fn, self.host.SNMPCONF)
         finally:
             sftp.close()
 
@@ -1587,14 +1588,14 @@ syslocation XenRT syslocation
     def postRun(self):
         if self.host:
             if self.oldconf:
-                self.host.execdom0("rm -f %s" % (self.SNMPCONF))
-                self.host.execdom0("cp %s %s" % (self.oldconf, self.SNMPCONF))
+                self.host.execdom0("rm -f %s" % (self.host.SNMPCONF))
+                self.host.execdom0("cp %s %s" % (self.oldconf, self.host.SNMPCONF))
             if self.wasrunning:
                 self.host.execdom0("service snmpd restart")
             else:
                 self.host.execdom0("service snmpd stop")
             if not self.wasenabled:
-                self.host.execdom0("/sbin/chkconfig snmpd off")
+                self.host.disableSnmpd()
 
 class TC9989(xenrt.TestCase):
     """Verify SNMP is disabled by default in Dom0."""
@@ -1604,7 +1605,7 @@ class TC9989(xenrt.TestCase):
 
         # Make sure the snmpd service is reported as stopped
         data = self.host.execdom0("service snmpd status | cat")
-        if not "stopped" in data:
+        if not "inactive" in data and not "stopped" in data:
             raise xenrt.XRTFailure("snmpd service is not stopped")
 
         # Make sure the snmpd process is not running
@@ -1612,13 +1613,11 @@ class TC9989(xenrt.TestCase):
         if "snmpd" in data:
             raise xenrt.XRTFailure("snmpd process is running")
 
-        # Make sure the snmpd service is not enabled in chkconfig
-        data = self.host.execdom0("/sbin/chkconfig --list snmpd")
-        if "3:on" in data:
-            raise xenrt.XRTFailure("snmpd service is enabled in chkconfig")
+        # Make sure the snmpd service is not enabled
+        if self.host.snmpdIsEnabled():
+            raise xenrt.XRTFailure("snmpd service is enabled")
 
 class _SNMPConfigTest(xenrt.TestCase):
-    SNMPCONF = "/etc/snmp/snmpd.conf"
     MIB_II_SUBTREES = ["system",
                        "interfaces",
                        "at",
@@ -1632,7 +1631,7 @@ class _SNMPConfigTest(xenrt.TestCase):
         self.host = self.getDefaultHost()
 
         # Get the contents of the SNMP configuration file
-        self.snmp_config_data = self.host.execdom0("cat %s" % (self.SNMPCONF))
+        self.snmp_config_data = self.host.execdom0("cat %s" % (self.host.SNMPCONF))
         self.snmp_config_lines = str(self.snmp_config_data).splitlines()
 
 class TC9990(_SNMPConfigTest):
@@ -1653,7 +1652,7 @@ class TC9990(_SNMPConfigTest):
  
         if missing_subtrees:
             raise xenrt.XRTFailure("MIB-II subtrees not defined in %s: %s" % 
-                                   (self.SNMPCONF, ", ".join(missing_subtrees)))
+                                   (self.host.SNMPCONF, ", ".join(missing_subtrees)))
 
 class TC9991(_SNMPConfigTest):
     """Verify the SNMP default configuration file does not contain unsupported components"""
@@ -1665,12 +1664,12 @@ class TC9991(_SNMPConfigTest):
             r = re.match(r'view\s+\S+\s+included\s+(\S+)', line)
             if r:
                 subtree = r.group(1)
-                if subtree not in self.MIB_II_SUBTREES:
+                if subtree not in self.MIB_II_SUBTREES and subtree != ".1":
                     unsupported_subtrees.append(subtree)
 
         if unsupported_subtrees:
             raise xenrt.XRTFailure("Unsupported SNMP components found in %s: %s" % 
-                                   (self.SNMPCONF, ", ".join(unsupported_subtrees)))
+                                   (self.host.SNMPCONF, ", ".join(unsupported_subtrees)))
 
 class TC9992(_SNMPConfigTest):
     """Verify the SNMP default configuration file restricts write access to the views"""
@@ -1700,9 +1699,8 @@ class TC9993(_SNMPConfigTest):
             self.host.execdom0("service snmpd start")
             xenrt.TEC().logverbose("Waiting 60s after starting snmpd (CA-70508)...")
             time.sleep(60)
-        data = self.host.execdom0("/sbin/chkconfig --list snmpd")
-        if not "3:on" in data:
-            self.host.execdom0("/sbin/chkconfig snmpd on")
+        if not self.host.snmpdIsEnabled():
+            self.host.enableSnmpd()
             self.wasenabled = False
 
         # Make sure the firewall allows SNMP through
@@ -1714,7 +1712,7 @@ class TC9993(_SNMPConfigTest):
             self.host.execdom0("iptables -I RH-Firewall-1-INPUT 1 -m state "
                                "--state NEW -m udp -p udp --dport %u "
                                "-j ACCEPT" % (port))
-        self.host.execdom0("service iptables save")
+        self.host.iptablesSave()
 
         # Find the community name
         for line in self.snmp_config_lines:
@@ -1725,7 +1723,7 @@ class TC9993(_SNMPConfigTest):
 
     def run(self, arglist=None):
         if not self.community:
-            raise xenrt.XRTFailure("Community name not found in %s" % (self.SNMPCONF))
+            raise xenrt.XRTFailure("Community name not found in %s" % (self.host.SNMPCONF))
 
         # Make sure the snmpd service is reported as running
         data = self.host.execdom0("service snmpd status | cat")
@@ -1760,13 +1758,13 @@ class TC9993(_SNMPConfigTest):
             else:
                 self.host.execdom0("service snmpd stop")
             if not self.wasenabled:
-                self.host.execdom0("/sbin/chkconfig snmpd off")
+                self.host.disableSnmpd()
 
 class TC9995(TC9993):
     """Stress test system with large number of VIFs while SNMP daemon is processing queries"""
 
     NUMBER_VMS = 10
-    MEMORY = 128
+    MEMORY = 256
     ITERATIONS = 2 
     CLITIMEOUT = 1800
     ALLOWED_DIFF = 0.1 # 10%
@@ -1845,7 +1843,7 @@ class TC9995(TC9993):
 
     def run(self, arglist=None):
         if not self.community:
-            raise xenrt.XRTFailure("Community name not found in %s" % (self.SNMPCONF))
+            raise xenrt.XRTFailure("Community name not found in %s" % (self.host.SNMPCONF))
 
         # Make sure the snmpd service is reported as running
         data = self.host.execdom0("service snmpd status | cat")
@@ -2379,8 +2377,10 @@ class TC21632(_TCHostPowerON):
         # Get the OpenManage Supplemental Pack from distmaster and install.
         master.execdom0("wget -nv '%sdellomsupppack.tgz' -O - | tar -zx -C /tmp" %
                                                 (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
-
-        dellomSupppack = "dellomsupppack-%s.iso" % master.productVersion.lower().strip()
+        productVersion = master.productVersion.lower().strip()
+        if productVersion == 'cream':
+            productVersion = 'creedence'
+        dellomSupppack = "dellomsupppack-%s.iso" % productVersion
         master.execdom0("mv /tmp/dellomsupppack/%s /root" % dellomSupppack)
 
         if self.UNSATISFIED_DEPENDENCY:
@@ -2479,7 +2479,40 @@ class TC10814(TC10181):
             if not r:
                 raise xenrt.XRTFailure("power-on-mode not shown correctly in "
                                        "host params")
-            
+
+class TC26941(xenrt.TestCase):
+    """Test that the list of templates matches the expected list"""
+
+    def run(self, arglist=None):
+        host = self.getDefaultHost()
+        version = host.productVersion
+
+        hostTemplates = host.minimalList("template-list", params="name-label", args="other-config:default_template=true")
+        # The expected templates are the first entry in the list of templates for the host's XenServer version
+        expectedTemplates = [xenrt.TEC().lookup(["VERSION_CONFIG", version, x]).split(",")[0] for x in xenrt.TEC().lookup(["VERSION_CONFIG", version]).keys() if x.startswith("TEMPLATE_") and xenrt.TEC().lookup(["VERSION_CONFIG", version, x])]
+
+        missing = []
+        unexpected = []
+
+        for t in expectedTemplates:
+            if t not in hostTemplates:
+                missing.append(t)
+        
+        for t in hostTemplates:
+            if t not in expectedTemplates:
+                unexpected.append(t)
+
+        failure = []
+        if missing:
+            failure.append("Template(s) %s missing from host" % ", ".join(missing))
+        if unexpected:
+            failure.append("Template(s) %s on host are unexpected" % ", ".join(unexpected))
+
+        if failure:
+            raise xenrt.XRTFailure(" and ".join(failure))
+
+
+
 class _TemplateExists(xenrt.TestCase):
     """Check a specific template exists or doesn't exist."""
 
@@ -4835,6 +4868,121 @@ class TCDom0Checksums(xenrt.TestCase):
         f = open("%s/md5sums.txt" % (xenrt.TEC().getLogdir()), "w")
         f.write(out)
         f.close()
+
+class TCDiffChecksums(xenrt.TestCase):
+    def run(self, arglist):
+        logdir = xenrt.TEC().getLogdir()
+        logServer = xenrt.TEC().lookup("LOG_SERVER")
+        jobid = xenrt.GEC().jobid()
+
+        # Retrieve the checksum files
+        xenrt.command("wget -O %s/original.txt http://%s/xenrt/logs/job/%d/IsoRepack/TCOriginalChecksums/binary/md5sums.txt" % (logdir, logServer, jobid))
+        xenrt.command("wget -O %s/repacked.txt http://%s/xenrt/logs/job/%d/IsoRepack/TCRepackedChecksums/binary/md5sums.txt" % (logdir, logServer, jobid))
+        xenrt.command("wget -O %s/hotfixed.txt http://%s/xenrt/logs/job/%d/IsoRepack/TCHotfixedChecksums/binary/md5sums.txt" % (logdir, logServer, jobid))
+
+        # Filter each file to remove known volatile entries
+        self.filterChecksums("%s/original.txt" % logdir)
+        self.filterChecksums("%s/repacked.txt" % logdir)
+        self.filterChecksums("%s/hotfixed.txt" % logdir)
+
+        # Output the diffs
+        self.diff("original", "repacked", "originalVsRepacked.txt")
+        self.diff("original", "hotfixed", "originalVsHotfixed.txt")
+        self.diff("repacked", "hotfixed", "repackedVsHotfixed.txt")
+
+    def filterChecksums(self, checksumFile):
+        f = open(checksumFile, "r")
+        entries = f.read().splitlines()
+        f.close()
+        filteredEntries = []
+        for e in entries:
+            es = e.split()
+            path = es[1]
+            if path in ["/boot/ldlinux.sys", "/etc/adjtime", "/etc/fstab",
+                        "/etc/issue", "/etc/mtab", "/etc/ntp.conf.predhclient",
+                        "/etc/openvswitch/conf.db", "/etc/xensource/boot_time_cpus",
+                        "/etc/xensource-inventory", "/etc/xensource/ptoken",
+                        "/etc/xensource/xapi-ssl.pem", "/var/lib/likewise/db/registry.db",
+                        "/var/lib/nfs/statd/state", "/var/lib/ntp/drift",
+                        "/var/lib/random-seed", "/var/lib/pbis/db/registry.db"]:
+                continue
+
+            if any([path.startswith(sw) for sw in ["/boot/initrd", "/etc/blkid/blkid",
+                                                   "/etc/firstboot.d/data/", "/etc/firstboot.d/state/",
+                                                   "/etc/lvm/backup/", "/etc/lvm/cache/", "/etc/ssh/ssh_host_",
+                                                   "/etc/sysconfig/network-scripts/interface-rename-data/",
+                                                   "/var/run/", "/var/xapi/"]]):
+                continue
+            filteredEntries.append(e)
+        f = open(checksumFile, "w")
+        f.write("\n".join(filteredEntries))
+        f.close()
+
+    def diff(self, a, b, output):
+        logdir = xenrt.TEC().getLogdir()
+        diff = xenrt.command("diff -u %s/%s.txt %s/%s.txt" % (logdir, a, logdir, b), ignoreerrors=True)
+        f = open("%s/%s" % (logdir, output), "w")
+        f.write(diff)
+        f.close()
+        xenrt.TEC().logverbose("%s vs %s host diff at %s" % (a, b, output))
+
+class TCIsoChecksums(xenrt.TestCase):
+    """Testcase to compare checksums on a XenServer ISO with a reference ISO"""
+
+    def run(self, arglist):
+        # We expect the input dir will be the directory with the repacked ISO
+        # We can find the old directory by looking up PIDIR_<PRODUCT_VERSION>
+
+        productVersion = xenrt.TEC().lookup("PRODUCT_VERSION").upper()
+        imagePath = xenrt.TEC().lookup("CD_PATH_%s" % productVersion,
+                                       xenrt.TEC().lookup('CD_PATH', 'xe-phase-1'))
+        originalIso = xenrt.TEC().getFile(os.path.join(xenrt.TEC().lookup("PIDIR_%s" % productVersion), imagePath, "main.iso"))
+        repackedIso = xenrt.TEC().getFile(os.path.join(imagePath, "main.iso"))
+
+        logdir = xenrt.TEC().getLogdir()
+
+        # Checksum all files on the ISOs
+        xenrt.TEC().logdelimit("Comparing ISO contents")
+        originalMount = xenrt.MountISO(originalIso)
+        originalSums = xenrt.command("cd %s; find . -type f | sort | xargs md5sum" % originalMount.getMount(), timeout=1800)
+        originalMount.unmount()
+        f = open("%s/original_md5s.txt" % logdir, "w")
+        f.write(originalSums)
+        f.close()
+        repackMount = xenrt.MountISO(repackedIso)
+        repackSums = xenrt.command("cd %s; find . -type f | sort | xargs md5sum" % repackMount.getMount(), timeout=1800)
+        repackMount.unmount()
+        f = open("%s/repack_md5s.txt" % logdir, "w")
+        f.write(repackSums)
+        f.close()
+
+        diff = xenrt.command("diff -u %s/original_md5s.txt %s/repack_md5s.txt" % (logdir, logdir), ignoreerrors=True)
+        f = open("%s/md5_diff.txt" % logdir, "w")
+        f.write(diff)
+        f.close()
+
+        xenrt.TEC().logverbose("ISO contents diff written to md5_diff.txt")
+
+        # Compare the boot sectors
+        xenrt.TEC().logdelimit("Comparing ISO boot images")
+        origBoot = xenrt.command("%s/geteltorito %s | md5sum | awk '{print $1}'" % (xenrt.TEC().lookup("LOCAL_SCRIPTDIR"), originalIso), strip=True)
+        repackBoot = xenrt.command("%s/geteltorito %s | md5sum | awk '{print $1}'" % (xenrt.TEC().lookup("LOCAL_SCRIPTDIR"), repackedIso), strip=True)
+        if origBoot != repackBoot:
+            raise xenrt.XRTFailure("Boot image checksums differ", data="Original %s, Repack %s" % (origBoot, repackBoot))
+
+        # Compare the volume label
+        xenrt.TEC().logdelimit("Comparing ISO volume labels")
+        origLabel = xenrt.command("file -b %s" % originalIso, strip=True)
+        repackLabel = xenrt.command("file -b %s" % repackedIso, strip=True)
+        if origLabel == repackLabel:
+            raise xenrt.XRTFailure("ISO volume labels are identical")
+
+        # Output isoinfo for reference
+        xenrt.TEC().logdelimit("Getting isoinfo")
+        xenrt.TEC().logverbose("Original ISO:")
+        xenrt.command("isoinfo -d -i %s" % originalIso)
+        xenrt.TEC().logverbose("Repacked ISO:")
+        xenrt.command("isoinfo -d -i %s" % repackedIso)
         
 class TC21452(xenrt.TestCase):
     """Testcase to verify whether logrotate -v -f works(CA-108965)"""
@@ -5013,3 +5161,94 @@ class TCCheckLocalDVD(xenrt.TestCase):
             self.virtualmedia.unmountCD()
         except:
             pass
+
+class TCSlaveConnectivity(xenrt.TestCase):
+    #TC-23773
+    """Test case for SCTX-1562- slave servers lost connection to master server 
+    on receiving error for writing a packet that exceeds the 300k limit"""
+    def prepare(self, arglist):
+        step("Create plugin on the slave host")
+        self.pool = self.getDefaultPool()
+        plugin="""#!/usr/bin/python
+import XenAPIPlugin
+BRAIN_STR = "brain!"
+
+def main(session, args):
+    try:
+        size = int(args["brain-size"])
+        return (BRAIN_STR * (size / len(BRAIN_STR) + 1))[:size]
+    except KeyError:
+        raise RuntimeError("No argument found with key 'brain-size'.")
+
+if __name__ == "__main__":
+    XenAPIPlugin.dispatch({"main": main})
+"""
+
+        self.slave = self.pool.slaves.values()[0]
+        sftp = self.slave.sftpClient()
+        t = xenrt.TEC().tempFile()
+        with open(t, 'w') as f:
+            f.write(plugin)
+        sftp.copyTo(t, "/etc/xapi.d/plugins/braindump")
+        self.slave.execdom0("chmod +x /etc/xapi.d/plugins/braindump")
+        sftp.close()
+        
+    def run(self, arglist=None):
+        step("Call plugin from the master host")
+        cli = self.pool.master.getCLIInstance()
+        args = []
+        args.append("host-uuid=%s" % (self.slave.getMyHostUUID()))
+        args.append("plugin=braindump")
+        args.append("fn=main")
+        args.append("args:brain-size=$(( 310*1024 ))")
+        try:
+            output = cli.execute("host-call-plugin", string.join(args), timeout=600)
+            if "brain" in output:
+                xenrt.TEC().logverbose("Expected output: %s" % (output))
+            else:
+                raise xenrt.XRTFailure("Unexpected output: %s" % (output))
+        except Exception, e:
+            if "Client_requested_size_over_limit" not in str(e):
+                raise
+
+class TCDom0PartitionClean(xenrt.TestCase):
+    #TC-27020
+    """Test case for checking Dom0 disk partitioning on clean installation: Dundee onwards(REQ-176)"""
+
+    def prepare(self, arglist):
+        self.host = self.getDefaultHost()
+    
+    def run(self, arglist):
+        step("Compare Dom0 partitions")
+        partitions = self.host.lookup("DOM0_PARTITIONS")
+        if self.host.compareDom0Partitions(partitions):
+            log("Found expected Dom0 partitions on XS clean installation: %s" % partitions)
+        else:
+            raise xenrt.XRTFailure("Found unexpected partitions on XS clean install. Expected: %s Found: %s" % (partitions, self.host.getDom0Partitions()))
+        
+
+
+class TCSwapPartition(xenrt.TestCase):
+    #TC-27021
+    """Test case for checking if SWAP partition is in use when running out of memory"""
+
+    def prepare(self, arglist):
+        self.host = self.getDefaultHost()
+    
+    def run(self, arglist):
+        step("Fetch Size of Swap Partition")
+        swapUsed= float(self.host.execdom0("free -m | grep Swap | awk '{print $3}'"))
+        
+        step("Eat up memory by running a script")
+        self.host.execdom0("cp -f %s/utils/memEater_x64 /root/; chmod +x /root/memEater_x64; /root/memEater_x64" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"), level=xenrt.RC_OK)
+        
+        step("Check if swap is in use")
+        (swapSize,newSwapUsed)= [float(i) for i in self.host.execdom0("free -m | grep Swap | awk '{print $2,$3}'").split(' ')]
+        if newSwapUsed > swapUsed:
+            log("SWAP is in use as expected. SWAP size = %s, SWAP memory in use = %s" % (swapSize,newSwapUsed))
+        else:
+            raise xenrt.XRTFailure("SWAP partition is not in use. SWAP size = %s, SWAP memory in use = %s" % (swapSize,newSwapUsed))
+        
+
+
+

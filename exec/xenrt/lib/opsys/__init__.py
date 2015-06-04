@@ -52,11 +52,14 @@ class OS(object):
     def knownDistro(distro):
         return False
 
-    def assertHealthy(self):
+    def assertHealthy(self, quick=False):
         raise xenrt.XRTError("Not implemented")
 
     def getLogs(self, path):
         pass
+
+    def setIPs(self, ipSpec):
+        raise xenrt.XRTError("Not implemented")
 
 def registerOS(os):
     oslist.append(os)

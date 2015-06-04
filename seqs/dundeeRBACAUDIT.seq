@@ -1,0 +1,42 @@
+<xenrt>
+
+  <!-- MNR RBAC API Test Sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+    <CLEAR_EVENT_LOGS_ON_FETCH>true</CLEAR_EVENT_LOGS_ON_FETCH>
+    <NESTED_HVM>yes</NESTED_HVM>
+  </variables>
+
+  <preprepare>
+    <host id="0">
+      <vm name="AUTHSERVER">
+        <distro>ws08sp2-x86</distro>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="installPowerShell"/>
+        <postinstall action="enablePowerShellUnrestricted"/>
+      </vm>
+    </host> 
+  </preprepare>
+  
+  <prepare>
+    <pool>
+      <host container="0" vname="xs0" />
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="RBAC">
+      <testcase id="testcases.xenserver.tc.rbacapi.TC10208"/>        
+      <testcase id="testcases.xenserver.tc.rbacapi.TC10209"/>        
+      <testcase id="testcases.xenserver.tc.rbacapi.TC10210"/>        
+      <testcase id="testcases.xenserver.tc.rbacapi.TC10211"/>        
+      <testcase id="testcases.xenserver.tc.rbacapi.TC10212"/>        
+      <testcase id="testcases.xenserver.tc.rbacapi.TC10213"/>        
+      <testcase id="testcases.xenserver.tc.security.TC11217"/>        
+    </serial>
+  </testsequence>
+
+</xenrt>

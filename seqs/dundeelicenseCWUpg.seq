@@ -1,0 +1,83 @@
+<?xml version="1.0" ?>
+<xenrt>
+
+  <!-- Verify Clearwater to Creedence upgrade license tests -->
+
+  <default name="OLD_PRODUCT_VERSION" value="Clearwater"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446/"/>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>    
+    <OLD_PRODUCT_INPUTDIR>/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446/</OLD_PRODUCT_INPUTDIR>
+    <OLD_PRODUCT_VERSION>Clearwater</OLD_PRODUCT_VERSION>    
+  </variables>
+
+ <preprepare>
+      <host id="0">
+        <vm name="LicenseServer">
+          <file>%LICENSE_SERVER_XVA%</file>
+          <postinstall action="installV6LicenseServer"/>
+        </vm>
+        <vm name="oldLicenseServer">
+          <file>%OLD_LICENSE_SERVER_XVA%</file>
+          <postinstall action="installV6LicenseServer"/>
+        </vm>
+      </host>
+ </preprepare>
+
+  <prepare>     
+        <pool id="0">
+        <host id="1" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}" license="no"> 
+        </host>        
+        <host id="2" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}" license="no"/>
+        <storage type="nfs" name="nfssr" default="true"/>
+       </pool> 
+  </prepare>
+
+  <testsequence>
+   <serial group="LicensedCWUpgrade">      
+      <testcase id="xenserver.tc.mulskulicense.TCUpgrade" name="LicenseCWCRUPG1" tc="TC-23366">
+        <arg>expectedsku=PerSocketEnterprise</arg>
+        <arg>oldlicenseserver=oldLicenseServer</arg>
+        <arg>oldlicensesku=PerSocket</arg>
+        <arg>newlicenseserver=LicenseServer</arg>
+        <arg>grace</arg>
+      </testcase>  
+      <action action="prepare"/>
+      <testcase id="xenserver.tc.mulskulicense.TCUpgrade" name="LicenseCWCRUPG2" tc="TC-23367">
+        <arg>expectedsku=PerSocketEnterprise</arg>
+        <arg>oldlicensesku=PerSocket</arg>
+        <arg>newlicenseserver=LicenseServer</arg>
+        <arg>addlicfiles</arg>
+      </testcase>
+      <action action="prepare"/>
+      <testcase id="xenserver.tc.mulskulicense.TCUpgrade" name="LicenseCWCRUPG3" tc="TC-23365">
+        <arg>expectedsku=PerSocketEnterprise</arg>
+        <arg>oldlicensesku=PerSocket</arg>
+        <arg>newlicenseserver=LicenseServer</arg>
+      </testcase> 
+      <action action="prepare"/>
+      <testcase id="xenserver.tc.mulskulicense.TCUpgrade" name="LicenseCWCRUPG4" tc="TC-23368">
+        <arg>expectedsku=XenDesktop</arg>
+        <arg>oldlicenseserver=oldLicenseServer</arg>
+        <arg>oldlicensesku=XenDesktop</arg>
+        <arg>newlicenseserver=LicenseServer</arg>
+        <arg>grace</arg>
+      </testcase>
+      <action action="prepare"/>
+      <testcase id="xenserver.tc.mulskulicense.TCUpgrade" name="LicenseCWCRUPG5" tc="TC-23369">
+        <arg>expectedsku=XenDesktop</arg>
+        <arg>oldlicensesku=XenDesktop</arg>
+        <arg>newlicenseserver=LicenseServer</arg>
+        <arg>addlicfiles</arg>
+      </testcase>
+      <action action="prepare"/>
+      <testcase id="xenserver.tc.mulskulicense.TCUpgrade" name="LicenseCWCRUPG6" tc="TC-23370">
+        <arg>expectedsku=XenDesktop</arg>
+        <arg>oldlicensesku=XenDesktop</arg>
+        <arg>newlicenseserver=LicenseServer</arg>
+      </testcase>
+   </serial>   
+    
+  </testsequence>
+</xenrt>

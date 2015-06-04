@@ -1,0 +1,29 @@
+<xenrt>
+
+  <!-- SR operations tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <FINALLY_UNINSTALL>yes</FINALLY_UNINSTALL>
+    <OPTION_BLOCK_ON_SKIP>yes</OPTION_BLOCK_ON_SKIP>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence group="SRTests">
+    <testcase id="xenserver.tc.storage.TC6824" prio="3"/>
+    <testcase id="xenserver.tc.storage.TC6825" prio="3"/>
+    <testcase id="xenserver.tc.storage.TC7366" prio="3"/>
+    <testcase id="xenserver.tc.storage.TC7367" prio="3"/>
+    <testcase id="xenserver.tc.storage.TC7368" prio="3"/>
+    <testcase id="xenserver.tc.storage.TC7369" prio="3"/>
+    <testcase id="xenserver.storage.TCMultipleSRs" tc="TC-7310" prio="3"/>
+    <testcase id="xenserver.tc.storage.TC8538" prio="3"/>
+    <testcase id="xenserver.tc.storage.TC9085" prio="3"/>
+    <testcase id="xenserver.tc.storage.TC12818" prio="3"/>
+  </testsequence>
+
+</xenrt>

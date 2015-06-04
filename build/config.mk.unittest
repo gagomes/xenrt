@@ -1,0 +1,60 @@
+#
+# XenRT Build Configuration
+#
+
+ROOT                = $(shell realpath ..)
+
+SITE                = DEV
+WEB_CONTROL_PATH    = http://localhost/control/
+GITPATH             = git://hg.uk.xensource.com/xenrt
+
+PRODUCTIONCONFIG    = no
+
+WINDOWS_ISOS_INPUTS        = /local/inputs/windows
+TEST_INPUTS         = /local/inputs/tests
+
+SHAREDIR            = $(shell pwd)/output
+CONFDIR             = /etc/xenrt
+CONFDIRS            = 
+SCRATCHDIR          = /local/scratch
+IMAGEDIR            = /local/outputs/images
+TFTPROOT            = /tftpboot
+WEBROOT             = /var/www
+JOBRESULTDIR        = /local/scratch/results
+
+INTERNAL            = xenrt-internal.git
+PATCHQUEUE          = xenrt.pq.git
+PERFPATCHQUEUE      = xenrt.perf-pq.git
+XENRT               = $(shell basename `pwd`)
+INTERNALPATCHQUEUE  = xenrt-internal.pq.git
+
+NFSCOMMON           = sync,no_root_squash,insecure,subtree_check
+
+EXPORTS             = /etc/exports
+DHCPD               = /etc/dhcp/dhcpd.conf
+HOSTS               = /etc/hosts
+MODULES             = /etc/modules
+INTERFACES          = /etc/network/interfaces
+INETD               = /etc/inetd.conf
+INETD_DAEMON        = openbsd-inetd
+HTTPD           = /etc/lighttpd/lighttpd.conf
+HTTPDCONFDIR    = /etc/lighttpd/conf-enabled
+APTCACHER       = /etc/apt-cacher/apt-cacher.conf
+VSFTPD          = /etc/vsftpd.conf
+NRPE            = /etc/nagios/nrpe.cfg
+NRPECONFDIR     = /etc/nagios/nrpe.d
+ISCSI           = /etc/default/iscsitarget
+SUDOERS         = /etc/sudoers
+CONSERVER       = /etc/conserver/console.cf
+SNMP            = /etc/snmp/snmp.conf
+
+PXESOURCE       = 
+BINDIR      = /usr/local/bin
+
+BUILDISCSI          = no
+BUILDALLTESTS       = yes
+XVADIR      = /local/xvas
+DISKLESSROOT = /local/disklessdebian
+
+CLEANSCRIPTS = yes
+DOUTILS = no

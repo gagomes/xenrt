@@ -19,10 +19,10 @@
   </prepare>
   <testsequence>
     <serial group="NegativeLUNperVDIPool">
-      
+
       <!-- Verify whether Storage Xen Motion is possible with LUN/VDI SR -->
-      <testcase id="xenserver.tc.lunpervdi.TC18378" name="TC18378" tc="TC-18378"/>
-    
+      <testcase id="xenserver.tc.lunpervdi.TC18378" name="TC18378" tc="TC-18378" />
+
     </serial>
   </testsequence>
 </xenrt>

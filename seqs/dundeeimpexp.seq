@@ -1,0 +1,30 @@
+<xenrt>
+
+  <!-- export/import tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <FINALLY_UNINSTALL>yes</FINALLY_UNINSTALL>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence group="ImpExp">
+    <testcase id="xenserver.tc.impexp.TC11203" prio="3"/>
+    <testcase id="xenserver.tc.impexp.TC9175" prio="3"/>
+    <testcase id="xenserver.tc.impexp.TC9978" prio="3"/>
+    <testcase id="xenserver.tc.impexp.TC9979" prio="3"/>
+    <testcase id="xenserver.tc.impexp.TC9980" prio="3"/>
+    <testcase id="xenserver.tc.impexp.TC12562" prio="3"/>
+    <testcase id="xenserver.tc.impexp.TC12566" prio="3"/>
+    <testcase id="xenserver.tc.impexp.TC12567" prio="3"/>
+    <testcase id="xenserver.tc.impexp.TC19932" prio="3"/>
+    <testcase id="xenserver.tc.impexp.TC19933" prio="3"/>
+    <testcase id="xenserver.tc.impexp.TC19934" prio="3"/>
+    <testcase id="xenserver.tc.impexp.TC19935" prio="3"/>
+    <testcase id="xenserver.tc.impexp.TC26943" prio="3"/>
+  </testsequence>
+
+</xenrt>

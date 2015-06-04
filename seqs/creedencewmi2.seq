@@ -56,7 +56,6 @@
         <network device="0"/>
         <postinstall action="installDrivers"/>
       </vm>
-
     </host>
   </prepare>
 
@@ -201,8 +200,7 @@
         <testcase id="xenserver.tc.guest.WMICheckXenStoreWrite" tc="TC-20014">
           <arg>guest=win81-x64</arg>
         </testcase>
-      </serial>
-
+        </serial>
     </parallel>
   </testsequence>
 

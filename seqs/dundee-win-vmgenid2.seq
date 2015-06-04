@@ -1,0 +1,19 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+  <prepare>
+    <pool id="0">
+      <storage type="nfs" name="nfs_sourceSR" />
+      <host id="0" />
+      <host id="1" />
+    </pool>
+    <host id="2" />
+  </prepare>
+  <testsequence>
+    <serial group="VMgen">
+      <testcase id="testcases.xenserver.tc.vmgenid.TC20633" />
+      <testcase id="testcases.xenserver.tc.vmgenid.TC20634" />
+    </serial>
+  </testsequence>
+</xenrt>

@@ -1,0 +1,31 @@
+  <xenrt>
+    <variables>
+      <PREPARE_WORKERS>1</PREPARE_WORKERS>
+      <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+      <OPTION_DEFAULT_SR>true</OPTION_DEFAULT_SR>
+      <USE_MULTIPATH>yes</USE_MULTIPATH>
+      <ISCSI_TYPE>flash-reserved</ISCSI_TYPE>
+    </variables>
+
+    <prepare>
+      <host>
+        <NETWORK>
+          <PHYSICAL network="NPRI" jumbo="yes" speed="10G">
+            <NIC/>
+            <VMS/>
+            <MANAGEMENT/>
+          </PHYSICAL>
+          <PHYSICAL network="NSEC" jumbo="yes" speed="10G">
+            <NIC/>
+            <STORAGE/>
+          </PHYSICAL>
+        </NETWORK>
+        <storage type="lvmoiscsi" name="iSCSI" default="true" options="jumbo"/>
+      </host>
+    </prepare>
+
+    <testsequence>
+      <testcase id="xenserver.tc.perf.tc_diskconc2.TCDiskConcurrent2" host="RESOURCE_HOST_0">
+      </testcase>
+    </testsequence>
+  </xenrt>

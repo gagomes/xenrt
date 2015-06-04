@@ -37,12 +37,22 @@ def createHost(id=0,
                addToLogCollectionList=False,
                disablefw=False,
                cpufreqgovernor=None,
-               usev6testd=True,
+               defaultlicense=True,
                ipv6=None,
                enableAllPorts=True,
                noipv4=False,
                basicNetwork=True,
-               extraConfig=None):
+               extraConfig=None,
+               containerHost=None,
+               vHostName=None,
+               vHostCpus=2,
+               vHostMemory=4096,
+               vHostDiskSize=50,
+               vHostSR=None,
+               vNetworks=None):
+
+    if containerHost != None:
+        raise xenrt.XRTError("Nested hosts not supported for this host type")
 
     machine = str("RESOURCE_HOST_%s" % (id))
     mname = xenrt.TEC().lookup(machine)
@@ -62,6 +72,7 @@ def createHost(id=0,
         xenrt.TEC().logverbose("Before changing cpufreq governor: %s" % (output,))
 
         # For each CPU, set the scaling_governor. This command will fail if the host does not support cpufreq scaling (e.g. BIOS power regulator is not in OS control mode)
+        # TODO also make this persist across reboots
         host.execcmd("for cpu in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo %s > $cpu; done" % (cpufreqgovernor,))
 
         output = host.execcmd("head /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor || true")
@@ -143,6 +154,9 @@ class OSSHost(xenrt.lib.native.NativeLinuxHost):
 
     def arpwatch(self, iface, mac, timeout):
         """Monitor an interface (or bridge) for an ARP reply"""
+
+        if xenrt.TEC().lookup("XENRT_DHCPD", False, boolean=True):
+            xenrt.lib.native.NativeLinuxHost.arpwatch(self, iface, mac, timeout)
 
         xenrt.TEC().logverbose("Sniffing ARPs on %s for %s" % (iface, mac))
 

@@ -206,7 +206,7 @@ class SRIOVTests(xenrt.TestCase):
     def _createIO(self, host):
         io = xenrt.lib.xenserver.IOvirt(host)
         io.enableIOMMU(restart_host=False)
-        io.enableVirtualFunctions()
+        host.enableVirtualFunctions()
         return io
 
     def getSRIOVEthDevices(self):
@@ -819,7 +819,7 @@ class NSBVT(xenrt.TestCase):
     ATS_PASSWORD = "freebsd"
 
     # Client VMs should reside on Client VLAN 
-    ATS = "ATS.xva"
+    ATS = "ATS_10_5.xva"
     BWC1="BWC1.xva"
     BWC2="BWC2.xva"
     LCLNT1="LCLNT1.xva"
@@ -836,12 +836,13 @@ class NSBVT(xenrt.TestCase):
     IIS3 = "IIS3.xva"
 
     # NS VMs
-    VPX1 = "VPX1.xva"
-    VPX2 = "VPX2.xva"
+    VPX1 = "VPX1_10_5.xva"
+    VPX2 = "VPX2_10_5.xva"
 
     # Acceptable failures
-    IGNORE_TESTS = set(['26.2.1.37', '26.2.1.53', '26.2.1.87', '26.2.1.150'])
-    
+    IGNORE_TESTS = set(['26.2.1.14'])
+    PASS_TESTS = xenrt.TEC().lookup("EXPECTED_TEST_PASSES", 127)
+
     def getMountDir(self, mounts, src_path):
         
         for line in mounts:
@@ -1040,14 +1041,12 @@ class NSBVT(xenrt.TestCase):
         self.configureTestVM(host, vlan_lst, xva_path, vm_key, start_vm)
         
         return
-
-
+    
     def configureClient(self, start_vm=True):
         
         self.cfg['clnt_nfs_dir'] = self.mountXvaNfsDir(self.cfg['clnt'])
         
         client_test_vms = [self.BWC1, self.BWC2, self.LCLNT1, self.LCLNT2, self.WCLNT1]
-        
         for xva in client_test_vms:
             self.configureClientVM(xva, start_vm)
             
@@ -1103,6 +1102,7 @@ class NSBVT(xenrt.TestCase):
         
         ats = self.cfg["ats"]
         test_id = ats.execcmd("su atsuser -c 'cat /home/atsuser/www/cgi-bin/1'").strip()
+        if not re.search(self.expected_id, test_id) : raise xenrt.XRTError("Wrong Test ID %s generated" %(test_id))
         return test_id
 
         
@@ -1145,15 +1145,18 @@ class NSBVT(xenrt.TestCase):
         return
 
 
-    def getFailedTests(self):
+    def getTestStatus(self):
         
         results = self.parseTestResults()
         failed_tests = dict()
+        passed_tests = dict()
         for tc_id in results.keys(): 
             if results[tc_id][1] == 'FAILED':
                 failed_tests[tc_id] = results[tc_id]
+            elif results[tc_id][1] == 'PASSED':
+                passed_tests[tc_id] = results[tc_id]
 
-        return failed_tests
+        return (failed_tests,passed_tests)
 
 
     def createSanityLogDir(self):
@@ -1222,6 +1225,7 @@ class NSBVT(xenrt.TestCase):
         ats = self.cfg["ats"]
         xenrt.TEC().logverbose("Starting NS Sanity test run")
         
+        self.expected_id = "Test-" + ats.execcmd("date +%Y_%m_%d",username='atsuser', password="atsuser").strip()
         out = ats.execcmd("cd /home/atsuser/www/cgi-bin/; perl ns-sanity.pl START ", 
                           username='atsuser',
                           retval='code', 
@@ -1289,7 +1293,7 @@ class NSBVT(xenrt.TestCase):
         self.startTest()
 
         # A little wait can do wonders
-        time.sleep(60 * 5)
+        time.sleep(60 * 10)
         status = self.pollTestStatus()
         if status == 'RUNNING':
             self.stopTest()
@@ -1299,8 +1303,13 @@ class NSBVT(xenrt.TestCase):
 
         xenrt.TEC().logverbose("Sanity test status is %s" % status)
         
+        failed_tests,passed_tests = self.getTestStatus()
+        
+        #Currently there are 128 tests cases running, out of which 127 test cases should pass
+        if len(passed_tests) < self.PASS_TESTS :
+            raise xenrt.XRTFailure("NS Sanity test failed since we did not get %s pass results." %(self.PASS_TESTS))
+        
         if status == 'FAILED':
-            failed_tests = self.getFailedTests()
             if not self.testsExpectedToFail(failed_tests):
                 raise xenrt.XRTFailure("NS Sanity test failed")
         elif status != 'PASSED':
@@ -1342,7 +1351,7 @@ class TC14935(xenrt.TestCase):
         # cannot easily check this is enforced but the main threat here
         # is losing the patch which makes the timeslice tunable.
         self.host.reboot()
-        if isinstance(self.host, xenrt.lib.xenserver.SarasotaHost):
+        if isinstance(self.host, xenrt.lib.xenserver.DundeeHost):
             self.host.execdom0("xl debug-keys r")
         else:
             self.host.execdom0("/opt/xensource/debug/xenops debugkeys r")
@@ -1538,7 +1547,7 @@ class NSSRIOV(SRIOVTests):
     
     # We have to release all the allocated IPv4 address 
     ALLOCATED_IPADDRS = []
-    NS_XVA = "NSVPX-XEN-10.0-72.5_nc.xva"
+    NS_XVA = "NSVPX-XEN-10.5-52.11_nc.xva"
     GOLDEN_VM = None
     NETWORK = 'NPRI' # 'NSEC'; Orjen has SR-IOV nics on NSEC
     
@@ -1590,26 +1599,33 @@ class NSSRIOV(SRIOVTests):
         return vpx
 
     def getLicenseFile(self):
-        lic = "CNS_V1000_SERVER_PLT_Retail.lic"
-        working = xenrt.TEC().getWorkdir()
-        out = os.path.join(working, lic)
-        lic_url = "http://www.uk.xensource.com/~jobyp/CNS_V1000_SERVER_PLT_Retail.lic"
-        xenrt.command('wget %s -O %s' % (lic_url, out))
-        self.license_file = out
+        lic = "CNS_V3000_SERVER_PLT_Retail.lic"
+        out = xenrt.TEC().getFile("%s/tallahassee/%s" % (xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),lic)) 
+        self.license_file = out.strip()
         return self.license_file
 
     def installLicense(self, vpx):
+    
+        step("Checking if VPX already has license")
+            
         if hasattr(self, 'license_file') and self.license_file is not None:
             pass
+        
         else:
             self.license_file = self.getLicenseFile()
+
+        
+        step("copy license file from tempdir on controller to guest...........")
 
         if vpx.getState() != "UP":
             self.startVPX(vpx)
             
         sftp = vpx.sftpClient(username='nsroot')
-        sftp.copyTo(self.license_file, os.path.join("/nsconfig/license", os.path.basename(self.license_file)))
+        
+        sftp.copyTo(self.license_file, os.path.join('/nsconfig/license',os.path.basename(self.license_file)))
         sftp.close()
+        
+        
         vpx.waitForSSH(timeout=100,cmd='sh ns ip',username='nsroot')
         self.rebootVPX(vpx)
         return
@@ -1707,7 +1723,7 @@ class NSSRIOV(SRIOVTests):
     def enableSRIOV(self, host):
         iovirt = xenrt.lib.xenserver.IOvirt(host)
         iovirt.enableIOMMU(restart_host=False)
-        iovirt.enableVirtualFunctions()
+        host.enableVirtualFunctions()
         return iovirt
         
     def assignVFs(self, iovirt, vpx, eths):
@@ -1961,7 +1977,7 @@ class TC18685(NSSRIOV):
         self.host = self.getDefaultHost()
         self.io = xenrt.lib.xenserver.IOvirt(self.host)
         self.io.enableIOMMU(restart_host=False)
-        self.io.enableVirtualFunctions()
+        self.host.enableVirtualFunctions()
         self.GOLDEN_VM = self.importNsXva(self.host, "NSVPX-XEN-10.0-72.5_nc.xva")
         self.TraffGen = self.GOLDEN_VM.cloneVM(name ='Traffic Generator VPX')
         self.prepVpxForFirstboot(self.host,self.TraffGen)
@@ -2075,7 +2091,7 @@ class TC18823(NSSRIOV):
         self.host = self.getDefaultHost()
         self.io = xenrt.lib.xenserver.IOvirt(self.host)
         self.io.enableIOMMU(restart_host=False)
-        self.io.enableVirtualFunctions()
+        self.host.enableVirtualFunctions()
         self.GOLDEN_VM = self.importNsXva(self.host, "NSVPX-XEN-10.0-72.5_nc.xva")
         self.uninstallOnCleanup(self.GOLDEN_VM)
         self.TraffGen = self.GOLDEN_VM.cloneVM(name ='Traffic Generator VPX')

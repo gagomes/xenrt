@@ -5,6 +5,10 @@ def assertTrue(actualValue, message=None):
     assertEquals(True, actualValue, message)
 
 
+def assertFalse(actualValue, message=None):
+    assertEquals(False, actualValue, message)
+
+
 def assertEquals(expectedValue, actualValue, message=None):
     if expectedValue != actualValue:
         msg = message
@@ -12,9 +16,10 @@ def assertEquals(expectedValue, actualValue, message=None):
             msg = '%s != %s' % (repr(expectedValue), repr(actualValue))
         raise xenrt.XRTFailure(msg)
 
+def assertIn(expectedFragment, actualData, message=None):
+    if not message:
+        message = "%s was not found in %s" % (expectedFragment, actualData)
 
-def assertIn(expectedFragment, actualData):
     if expectedFragment not in actualData:
-        raise xenrt.XRTFailure(
-            '%s was not found in %s' % (expectedFragment, actualData))
+        raise xenrt.XRTFailure(message)
 

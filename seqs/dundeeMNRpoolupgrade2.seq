@@ -1,0 +1,28 @@
+<xenrt>
+
+  <!-- From Clearwater NFS pool rolling upgrade (with suspend) test -->
+
+  <default name="OLD_PRODUCT_VERSION" value="Clearwater"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446"/>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <RPU_WINDOWS_VERSION>ws08sp2-x86</RPU_WINDOWS_VERSION>
+    <RPU_LINUX_VERSION>oel65</RPU_LINUX_VERSION>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="nfs" name="nfssr" default="true"/>
+      <allhosts productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <testcase group="Upgrade" id="xenserver.tc.upgrade.TC8765" blocker="yes"/>
+    <testcase group="Upgrade" id="guestops.basic.TCVerifyUEKonUpgrade" tc="TC-21716">
+        <arg>guest=Linux</arg>
+    </testcase>
+  </testsequence>
+
+</xenrt>

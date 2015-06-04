@@ -125,7 +125,7 @@ class _BondTestCase(xenrt.TestCase):
         stackName = netportSplit[0]
         return stackName
 
-class Bond:
+class Bond(object):
     """Structure to hold the basic data of one bond"""
     
     def __init__(self,device,bridge,uuid):
@@ -1699,15 +1699,12 @@ class _FailoverBondTest(_AggregateBondTest):
                     expected_paths += 1
                     self.check(expected_paths)
                     macs_disabled.remove(mac)
-                else:
-                    self.disablePath(host, mac)
-                    time.sleep(100)
-                    expected_paths -= 1
-                    if expected_paths != 0:
-                        time.sleep(60)
+                elif len(macs_disabled) != total_paths - 1:
+                        self.disablePath(host, mac)
+                        time.sleep(100)
+                        expected_paths -= 1
                         self.check(expected_paths)
-                    macs_disabled.add(mac)
-                    
+                        macs_disabled.add(mac)
         return
         
     def run(self, arglist=None):
@@ -2225,7 +2222,7 @@ class _BondBalance(_AggregateBondTest):
                 if re.search("Cannot allocate memory", tcpdump):
                     raise xenrt.XRTError("tcpdump in dom0 failed with 'Cannot allocate memory'")
                 # Parse this to get the count
-                m = re.search("(\d+) packets captured", tcpdump)
+                m = re.search("(\d+) packet\w* captured", tcpdump)
                 counts[(nic,mac)] = int(m.group(1))
 
         return counts
@@ -3186,7 +3183,7 @@ class TC14909(xenrt.TestCase):
         if int(pifmtu) != 9000:
             errors.append("Bond PIF MTU is %s, expecting 9000" % (pifmtu))
         ifconfig = self.host.execdom0("ifconfig %s" % (self.bond[0]))
-        if not "MTU:9000" in ifconfig:
+        if not "MTU:9000" in ifconfig and not "mtu 9000" in ifconfig:
             errors.append("Bond device MTU is not 9000")
 
         if len(errors) > 0:

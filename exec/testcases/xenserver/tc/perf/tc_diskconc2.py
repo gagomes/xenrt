@@ -25,12 +25,29 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
         # /dev/disk/by-id/X,/dev/disk/by-id/Y,...
         # Use "default" to use the default SR (which will *not* be destroyed)
         self.devices = libperf.getArgument(arglist, "devices", str, "default").strip().split(",")
+
+        # blocksizes is a list of either bytes or names of pre-defined access patterns, e.g. "tesco"
         self.blocksizes = libperf.getArgument(arglist, "blocksizes",  str,
                                               "512,1024,2048,4096,8192,16384,32768,65536,131072,262144,524288,1048576,2097152,4194304")
-        self.blocksizes = map(int, self.blocksizes.strip().split(","))
+        self.blocksizes = self.blocksizes.strip().split(",")
+        self.queuedepth = libperf.getArgument(arglist, "queue_depth", int, 1)
+        self.multiqueue = libperf.getArgument(arglist, "multiqueue", int, None)
+        self.multipage = libperf.getArgument(arglist, "multipage", int, None)
+        self.num_threads = libperf.getArgument(arglist, "num_threads", int, 1)
         self.vms_per_sr = libperf.getArgument(arglist, "vms_per_sr", int, 1)
         self.vbds_per_vm = libperf.getArgument(arglist, "vbds_per_vm", int, 1)
         self.vcpus_per_vm = libperf.getArgument(arglist, "vcpus_per_vm", int, None)
+
+        # Benchmark program to use for linux vm. If the value is different than fio, would use latency
+        self.bench = libperf.getArgument(arglist, "benchmark", str, "fio")
+        self.sequential = libperf.getArgument(arglist, "sequential", toBool, True)
+
+        # Optional VM image to use as a template
+        self.vm_image = libperf.getArgument(arglist, "vm_image", str, None)
+
+        # If vm_image is set, treat it as a distro name
+        if self.vm_image:
+            self.distro  = self.vm_image
 
         # A number in MB; e.g. 1024
         self.vm_ram = libperf.getArgument(arglist, "vm_ram", int, None)
@@ -46,6 +63,8 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
         self.zeros = libperf.getArgument(arglist, "zeros", bool, False)
         self.prepopulate = libperf.getArgument(arglist, "prepopulate", toBool, True)
 
+        self.vm_disk_scheduler = libperf.getArgument(arglist, "vm_disk_scheduler", str, "default")
+        self.vm_disk_nomerges = libperf.getArgument(arglist, "vm_disk_nomerges", str, "default")
         # Disk schedulers are specified in the form deviceA=X,deviceB=Y,...
         # To specify the scheduler for the default SR, use default=Z
         schedulers = libperf.getArgument(arglist, "disk_schedulers", str, "").strip()
@@ -78,6 +97,64 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
     def prepare(self, arglist=None):
         self.basicPrepare(arglist)
 
+
+    def vm_start(self, vm, vbd_uuids):
+        if not self.multiqueue and not self.multipage:
+            vm.start()
+        else:
+            # Start a vm in paused state
+            # Write the number of queues to xenstored in dom0 backend
+            # Unpause the vm
+
+            vm_uuid = vm.getUUID()
+
+            self.host.execdom0("xe vm-start uuid=%s paused=true" % (vm_uuid))
+
+            vmid = self.host.execdom0("list_domains | grep %s" % (vm_uuid)).strip().split(" ")[0].strip()
+
+            backend_xs_name = "vbd3" if self.backend == "xen-tapdisk3" else "vbd";
+
+            for vbd_uuid in vbd_uuids:
+                vdi_uuid = self.host.execdom0("xe vbd-list uuid=%s params=vdi-uuid --minimal" % (vbd_uuid)).strip()
+                vbdid = self.host.execdom0("xenstore-ls -f /xapi/%s | grep vdi-id | grep %s" % (vm_uuid, vdi_uuid)).split("/")[5].strip()
+                if self.multiqueue:
+                    self.host.execdom0("xenstore-write /local/domain/0/backend/%s/%s/%s/multi-queue-max-queues '%s'" %
+                                       (backend_xs_name, vmid, vbdid, self.multiqueue))
+                else:
+                    self.host.execdom0("xenstore-write /local/domain/0/backend/%s/%s/%s/max-ring-pages '%s'" %
+                                       (backend_xs_name, vmid, vbdid, self.multipage))
+
+                if self.backend == "xen-tapdisk3" and self.multiqueue:
+                    sr_uuid = self.host.execdom0("xe vdi-list uuid=%s params=sr-uuid --minimal" % (vdi_uuid)).strip()
+                    vhd = "/dev/VG_XenStorage-%s/VHD-%s" % (sr_uuid, vdi_uuid)
+
+                    for queue in range(self.multiqueue):
+                        self.host.execdom0("tap-ctl create -a vhd:%s" % (vhd))
+
+                    tapdisk_list = self.host.execdom0("tap-ctl list | grep %s" % (vhd)).strip().split("\n")
+
+                    queue = 0
+                    for line in tapdisk_list:
+                        pid, minor = map(lambda x:x.split("=")[1], line.split(' '))[:2]
+
+                        self.host.execdom0("xenstore-write /local/domain/%s/device/vbd/%s/queue-%s/pid %s" % (vmid, vbdid, queue, pid))
+                        self.host.execdom0("xenstore-write /local/domain/%s/device/vbd/%s/queue-%s/minor %s" % (vmid, vbdid, queue, minor))
+                        queue += 1
+
+            vm.unpause()
+
+            vm.waitReadyAfterStart()
+
+            for vbd_uuid in vbd_uuids:
+                vdi_uuid = self.host.execdom0("xe vbd-list uuid=%s params=vdi-uuid --minimal" % (vbd_uuid)).strip()
+                vbdid = self.host.execdom0("xenstore-ls -f /xapi/%s | grep vdi-id | grep %s" % (vm_uuid, vdi_uuid)).split("/")[5].strip()
+                blkdev = self.host.execdom0("xenstore-read /local/domain/0/backend/%s/%s/%s/dev" %
+                                   (backend_xs_name, vmid, vbdid)).strip()
+                if self.vm_disk_scheduler != "default":
+                    vm.execguest("echo %s > /sys/block/%s/queue/scheduler" % (self.vm_disk_scheduler, blkdev))
+                if self.vm_disk_nomerges != "default":
+                    vm.execguest("echo %s > /sys/block/%s/queue/nomerges" % (self.vm_disk_nomerges, blkdev))
+
     def createVMsForSR(self, sr):
         for i in range(self.vms_per_sr):
             xenrt.TEC().progress("Installing VM %d on disk %s" % (i, self.sr_to_diskname[sr]))
@@ -87,18 +164,22 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
             self.vm.append(cloned_vm)
             self.host.addGuest(cloned_vm)
 
+            vbd_uuids = []
+
             for j in range(self.vbds_per_vm):
                 vbd_uuid = cloned_vm.createDisk(sizebytes=self.vdi_size,
                                                 sruuid=sr,
                                                 smconfig=self.sm_config,
                                                 returnVBD=True)
 
+                vbd_uuids.append(vbd_uuid)
+
                 if self.backend == "xen-tapdisk3":
                     self.host.genParamSet("vbd", vbd_uuid, "other-config:backend-kind", "vbd3")
                 elif self.backend == "xen-tapdisk2" or self.backend == "xen-blkback":
                     self.host.genParamSet("vbd", vbd_uuid, "other-config:backend-kind", "vbd")
 
-            cloned_vm.start()
+            self.vm_start(cloned_vm, vbd_uuids)
 
     def runPrepopulate(self):
         for vm in self.vm:
@@ -114,11 +195,41 @@ clean all
                 vm.xmlrpcWriteFile("C:\\erase.script", script)
                 vm.xmlrpcExec("diskpart /s C:\\erase.script")
 
-    def runPhase(self, count, op):
-        for blocksize in self.blocksizes:
-            # Run synexec master
-            proc, port = libsynexec.start_master_on_controller(
-                    """/bin/bash :CONF:
+    def runPhasePrepareCommand(self, blocksize, op):
+        if self.bench == "fio":
+            rw = "read" if op == "r" else "write"
+            if not self.sequential:
+                rw = "randread" if op == "r" else "randwrite"
+
+            return """/bin/bash :CONF:
+#!/bin/bash
+
+for i in {b..%s}; do
+    pididx=0
+    echo $(($(/root/fio/fio --name=iometer \
+                            --direct=1 \
+                            --ioengine=libaio \
+                            --io_size=1024TB \
+                            --filename=/dev/xvd$i \
+                            --minimal \
+                            --terse-version=3 \
+                            --numjobs=%d \
+                            --rw=%s \
+                            --iodepth=%d \
+                            --bssplit=%d/100 \
+                            --runtime=%d %s | cut -d";" -f%d | paste -sd+ - | bc) * 1024)) &> /root/out-$i &
+    pid[$pididx]=$!
+    ((pididx++))
+done
+
+for ((idx=0; idx<pididx; idx++)); do
+  wait ${pid[$idx]}
+done
+""" % (chr(ord('a') + self.vbds_per_vm), self.num_threads, rw,
+       self.queuedepth, blocksize, self.duration,
+       "--zero_buffers" if self.zeros else "", 6 if op == "r" else 47)
+        else:
+            return """/bin/bash :CONF:
 #!/bin/bash
 
 for i in {b..%s}; do
@@ -132,8 +243,16 @@ for ((idx=0; idx<pididx; idx++)); do
   wait ${pid[$idx]}
 done
 """ % (chr(ord('a') + self.vbds_per_vm), "" if op == "r" else " -w",
-       " -z" if self.zeros else "", blocksize, self.duration),
-                    self.jobid, len(self.vm))
+       " -z" if self.zeros else "", blocksize, self.duration)
+
+    def runPhase(self, count, op):
+        for blocksize in self.blocksizes:
+            # TODO we don't support pre-defined access patterns with 'latency', only integer block sizes
+            blocksize = int(blocksize)
+
+            # Run synexec master
+            proc, port = libsynexec.start_master_on_controller(self.runPhasePrepareCommand(blocksize, op),
+                                                               self.jobid, len(self.vm))
 
             for vm in self.vm:
                 libsynexec.start_slave(vm, self.jobid, port)
@@ -172,6 +291,50 @@ done
         nbname = self.get_nbname(self.vm[0])
 
         for blocksize in self.blocksizes:
+            if blocksize == 'tesco':
+                accessSpecs = [
+                    ("Email Server - R60 W40- RND- 4K",    "NONE", ["4096,100,60,100,0,1,0,0"]),
+                    ("Database Server - R70 W30- RND- 8K", "NONE", ["8192,100,70,100,0,1,0,0"]),
+                    ("Web Server - R95 W5- RND- Var",      "NONE", [
+                        "2048,20,95,100,0,1,0,0",
+                        "4096,19,95,100,0,1,0,0",
+                        "8192,18,95,100,0,1,0,0",
+                        "16384,17,95,100,0,1,0,0",
+                        "32768,16,95,100,0,1,0,0",
+                        "65536,10,95,100,0,1,0,0"]),
+                    ("Online Tranaction Processing (OLTP)  Server - R80 W20- RND- Var", "NONE", [
+                        "2048,33,80,100,0,1,0,0",
+                        "4096,33,95,100,0,1,0,0",
+                        "8192,34,80,100,0,1,0,0"]),
+                    ("Archical File Server - R90 W10- SEQ- Var", "NONE", [
+                        "65536,13,90,0,0,1,0,0",
+                        "262144,34,95,100,0,1,0,0",
+                        "524288,23,80,100,0,1,0,0",
+                        "1048576,20,80,100,0,1,0,0",
+                        "5242880,10,80,100,0,1,0,0"]),
+                    ("User Store File Server - R80 W20- SEQ- Var", "NONE", [
+                        "65536,13,80,0,0,1,0,0",
+                        "262144,34,95,100,0,1,0,0",
+                        "524288,23,80,100,0,1,0,0",
+                        "1048576,20,80,100,0,1,0,0",
+                        "5242880,10,80,100,0,1,0,0"]),
+                    ("Streaming Media Server - R98 W2- SEQ- Var", "NONE", [
+                        "65536,2,98,0,0,1,0,0",
+                        "262144,5,95,100,0,1,0,0",
+                        "524288,10,80,100,0,1,0,0",
+                        "1048576,17,80,100,0,1,0,0",
+                        "5242880,66,80,100,0,1,0,0"]),
+                    ("Burst Read- 2M",  "NONE", ["2097152,100,100,0,0,16,0,0"]),
+                    ("Burst Write- 2M", "NONE", ["2097152,100,0,0,0,16,0,0"]),
+                    ("Std Read- 2M",    "NONE", ["2097152,100,100,0,0,1,0,0"]),
+                    ("Std Write- 2M",   "NONE", ["2097152,100,0,0,0,1,0,0"])
+                ]
+            else:
+                # treat the block size as a number of bytes
+                accessSpecs = [
+                    ("custom", "ALL", ["%d,100,%d,0,0,1,%d,0" % (int(blocksize), 100 if op == "r" else 0, int(blocksize))])
+                ]
+
             config = """Version 1.1.0 
 'TEST SETUP ====================================================================
 'Test Description
@@ -216,14 +379,21 @@ done
 	Total Error Count
 'END results display
 'ACCESS SPECIFICATIONS =========================================================
-'Access specification name,default assignment
-	custom,ALL
-'size,%% of size,%% reads,%% random,delay,burst,align,reply
-	%d,100,%d,0,0,1,%d,0
-'END access specifications
-'MANAGER LIST ==================================================================
-""" % (self.duration, blocksize, 100 if op == "r" else 0, blocksize)
+""" % (self.duration)
 
+            for (name, defaultAssign, specs) in accessSpecs:
+                config += """'Access specification name,default assignment
+	%s,%s
+'size,%% of size,%% reads,%% random,delay,burst,align,reply
+""" % (name, defaultAssign)
+
+                for spec in specs:
+                    config += """	%s
+""" % (spec)
+
+            config += """'END access specifications
+'MANAGER LIST ==================================================================
+"""
             for i, vm in enumerate(self.vm):
                 config += """'Manager ID, manager name
 	%d,%s
@@ -238,13 +408,18 @@ done
 	DISK
 'Default target settings for worker
 'Number of outstanding IOs,test connection rate,transactions per connection,use fixed seed,fixed seed value
-	1,DISABLED,1,DISABLED,0
+	%d,DISABLED,1,DISABLED,0
 'Disk maximum size,starting sector,Data pattern
 	0,0,0
 'End default target settings for worker
 'Assigned access specs
-	custom
-'End assigned access specs
+""" % (i+1, self.queuedepth)
+
+                    for (name, _, _) in accessSpecs:
+                        config += """	%s
+""" % (name)
+
+                    config += """'End assigned access specs
 'Target assignments
 'Target
 	%d: "XENSRC PVDISK 2.0"
@@ -253,7 +428,7 @@ done
 'End target
 'End target assignments
 'End worker
-""" % (i + 1, i + 1)
+""" % (i+1)
 
                 config += "'End manager\n"
 
@@ -270,8 +445,8 @@ Version 1.1.0
                 threads.append(thread)
 
             # Start the master
-            filename = "results-%s-%d-%d.csv" % (op, count, blocksize)
-            self.vm[0].xmlrpcExec("C:\\iometer.exe /c C:\\workload.icf /r C:\\%s /t 100" % filename)
+            filename = "results-%s-%d-%s.csv" % (op, count, blocksize)
+            self.vm[0].xmlrpcExec("C:\\iometer.exe /c C:\\workload.icf /r C:\\%s /t 100" % filename, timeout=1200)
 
             # Wait for the dynamo processes to finish
             for thread in threads:
@@ -285,18 +460,40 @@ Version 1.1.0
             # Process the results into the same format as synexec+latency uses
             i = 0
             for line in data.split("\n"):
+                if line.startswith("'Results"):
+                    i = 0
                 if line.startswith("MANAGER"):
                     vm = self.vm[i]
                     j = 0
                     i += 1
                 if line.startswith("WORKER"):
                     line = line.split(",")
-                    result = line[13 if op == "r" else 14]
-                    result = float(result) * 1000000 * self.duration
+                    if blocksize == 'tesco':
+                        result = float(line[13]) + float(line[14]) # sum read + write
+                        # delete whitespace from the name of the workload
+                        op = "tesco-%s" % (line[2])
+                        op = op.replace(' ', '')
+                        dispblocksize = 0
+                    else:
+                        result = float(line[13 if op == "r" else 14])
+                        dispblocksize = blocksize
+                    result = result * 1000000 * self.duration
                     result = long(result)
-                    self.log("slave", "%s %d %d %s %s %d %s" %
-                             (op, count + 1, blocksize, vm.getName().split("-")[0], vm.getName().split("-")[1], j, result))
+                    self.log("slave", "%s %d %s %s %s %d %s" %
+                             (op, count + 1, dispblocksize, vm.getName().split("-")[0], vm.getName().split("-")[1], j, result))
                     j += 1
+
+    def installFioOnLinuxGuest(self):
+        disturl = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
+        filename = "fio-2.2.7-22-g36870.tar.bz2"
+        fiourl = "%s/performance/support-files/%s" % (disturl, filename)
+        xenrt.TEC().logverbose("Getting fio from %s" % (fiourl))
+        fiofile = xenrt.TEC().getFile(fiourl,fiourl)
+        sftp = self.template.sftpClient()
+        rootfiotar = "/root/%s" % filename
+        sftp.copyTo(fiofile, rootfiotar)
+        self.template.execguest('tar xjf %s' % rootfiotar)
+        self.template.execguest('cd /root/fio && make')
 
     def installTemplate(self, guests):
         # Install 'vm-template'
@@ -305,15 +502,28 @@ Version 1.1.0
 
             postinstall = [] if self.postinstall is None else self.postinstall.split(",")
 
-            self.template = xenrt.productLib(host=self.host).guest.createVM(\
-                    host=self.host,
-                    guestname="vm-template",
-                    vcpus=self.vcpus_per_vm,
-                    memory=self.vm_ram,
-                    distro=self.distro,
-                    arch=self.arch,
-                    postinstall=postinstall,
-                    vifs=xenrt.productLib(host=self.host).Guest.DEFAULT)
+            if self.vm_image:
+                disturl = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
+                vmurl = "%s/performance/base/%s" % (disturl, self.vm_image)
+                xenrt.TEC().logverbose("Getting vm from %s" % (vmurl))
+
+                self.template = xenrt.productLib(host=self.host).guest.createVMFromFile(
+                        host=self.host,
+                        guestname=self.vm_image,
+                        filename=vmurl)
+
+                self.template.removeCD()
+                self.template.start()
+            else:
+                self.template = xenrt.productLib(host=self.host).guest.createVM(\
+                        host=self.host,
+                        guestname="vm-template",
+                        vcpus=self.vcpus_per_vm,
+                        memory=self.vm_ram,
+                        distro=self.distro,
+                        arch=self.arch,
+                        postinstall=postinstall,
+                        vifs=self.host.guestFactory().DEFAULT)
 
             if self.template.windows:
                 if not isinstance(self.template, xenrt.lib.esx.Guest):
@@ -323,6 +533,7 @@ Version 1.1.0
                 urlperf = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
                 pvsexe = "TargetOSOptimizer.exe"
                 pvsurl = "%s/performance/support-files/%s" % (urlperf, pvsexe)
+                xenrt.TEC().logverbose("Getting pvsfile from %s" % (pvsurl))
                 pvsfile = xenrt.TEC().getFile(pvsurl,pvsurl)
                 cpath = "c:\\%s" % pvsexe
                 self.template.xmlrpcSendFile(pvsfile, cpath)
@@ -335,7 +546,12 @@ Version 1.1.0
             else:
                 if isinstance(self.template, xenrt.lib.esx.Guest):
                     self.template.installTools()
-                self.template.installLatency()
+
+                if self.bench == "fio":
+                    self.installFioOnLinuxGuest()
+                else:
+                    self.template.installLatency()
+
                 libsynexec.initialise_slave(self.template)
 
             if self.distro.startswith("rhel") or self.distro.startswith("centos") or self.distro.startswith("oel"):
@@ -359,11 +575,6 @@ Version 1.1.0
         guests = self.host.guests.values()
         self.installTemplate(guests)
 
-        # Save original SM backend type and set new one if necessary
-        if self.backend == "xen-blkback":
-            original_backend = self.host.execdom0('grep ^VDI_TYPE_RAW /opt/xensource/sm/vhdutil.py | sed "s/VDI_TYPE_RAW = \'\\(.\\+\\)\'/\\1/"').strip()
-            self.host.execdom0('sed -i "s/^VDI_TYPE_RAW = \'\\(aio\|phy\\)\'$/VDI_TYPE_RAW = \'phy\'/" /opt/xensource/sm/vhdutil.py')
-
         # Create SRs on the given devices
         for device in self.devices:
             if device == "default":
@@ -371,6 +582,10 @@ Version 1.1.0
                 self.sr_to_diskname[sr] = "default"
             elif device.startswith("xen-sr="):
                 device = sr = device.split('=')[1]
+                self.sr_to_diskname[sr] = sr.split("-")[0]
+            elif device.startswith("xen-srname="):
+                srname = device.split('=')[1]
+                sr = self.host.minimalList("sr-list", args="name-label=%s" % (srname))[0]
                 self.sr_to_diskname[sr] = sr.split("-")[0]
             elif device.startswith("xen-device="):
                 device = device.split('=')[1]
@@ -417,6 +632,22 @@ Version 1.1.0
 
                 sr = self.host.getSRUUID(diskname)
                 self.sr_to_diskname[sr] = diskname
+            elif device.startswith("kvm-device="):
+                device = device.split('=')[1]
+
+                diskname = self.host.execdom0("basename `readlink -f %s`" % device).strip()
+                srname = "SR-%s" % (diskname)
+                sr = xenrt.lib.kvm.EXTStorageRepository(self.host, srname)
+                sr.create(device)
+
+                # Reload the host information until the new SR appears
+                while srname not in self.host.srs:
+                    time.sleep(1)
+                    self.host.existing()
+                    xenrt.TEC().logverbose("host has SRs %s" % (self.host.srs))
+
+                sr = self.host.getSRUUID(srname)
+                self.sr_to_diskname[sr] = diskname
 
             # Set the SR scheduler
             if device in self.disk_schedulers:
@@ -428,7 +659,10 @@ Version 1.1.0
         if self.windows:
             libperf.logArg("ioengine", "iometer")
         else:
-            libperf.logArg("ioengine", "latency")
+            if self.bench == "fio":
+                libperf.logArg("ioengine", "fio")
+            else:
+                libperf.logArg("ioengine", "latency")
 
         if self.prepopulate:
             if self.windows:
@@ -447,7 +681,3 @@ Version 1.1.0
                 self.runPhaseWindows(i, 'r')
             else:
                 self.runPhase(i, 'r')
-
-        # Restore original backend type if necessary
-        if self.backend == "xen-blkback":
-            self.host.execdom0('sed -i "s/^VDI_TYPE_RAW = \'\\(aio\|phy\\)\'$/VDI_TYPE_RAW = \'%s\'/" /opt/xensource/sm/vhdutil.py' % original_backend)

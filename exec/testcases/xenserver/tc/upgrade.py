@@ -1166,12 +1166,6 @@ class TCAutoInstaller(xenrt.TestCase):
         elif protocol == "HTTP":
             imageDir = xenrt.WebDirectory()
         elif protocol == "FTP":
-            # Check that the FTP server is running on this controller
-            msg = xenrt.rootops.sudo("/etc/init.d/vsftpd status")
-            running = re.search('is running', msg)
-            if not running:
-                raise xenrt.XRTFailure("FTP server not running on controller")
-
             imageDir = xenrt.FTPDirectory()
             imageDir.setUsernameAndPassword('xenrtd', 'xensource')
         else:
@@ -1200,6 +1194,15 @@ class TCAutoInstaller(xenrt.TestCase):
         self.callCheckAndInstall(imageLocation=imageDir.getURL(""))
         # Verify the actual install
         self.host.reboot(timeout=1800)
+
+        self.host.checkVersion()
+        
+        if self.host.productVersion == "Sanibel" and xenrt.TEC().lookup("PRODUCT_VERSION") == "Boston":
+            # this is OK...if you put Boston in the sequence...you'll get Sanibel as the host product version
+            return
+        
+        if self.host.productVersion != xenrt.TEC().lookup("PRODUCT_VERSION"):
+            raise xenrt.XRTFailure("Host Product Version (%s) doesn't match test Product Version (%s)" % (self.host.productVersion, xenrt.TEC().lookup("PRODUCT_VERSION")))
 
     def callCheckAndInstall(self, imageLocation, expectedToSucceed=True):
         xenrt.TEC().logverbose("Image Location: %s" % (imageLocation))
@@ -1422,7 +1425,7 @@ class TC14898(TC6725):
     """Single host upgrade from Cowley on HP G6 hardware"""
     pass
 
-class _XenCert:
+class _XenCert(object):
     """Uses the XenCert SR regression test in dom0 maintained by the storage team."""
 
     def runXenCertiCSLG(self,host,adapterid,comment="",sr=None):
@@ -2058,7 +2061,7 @@ class _TCCrossVersionImport(xenrt.TestCase):
         # Install the current version on host 1
         if xenrt.TEC().lookup("OPTION_CC", False, boolean=True):
             # Install this as a CC host
-            self.host1 = xenrt.lib.xenserver.createHost(id=1, usev6testd=False, license="platinum")
+            self.host1 = xenrt.lib.xenserver.createHost(id=1, license="platinum")
             # Set up the network requirements
             self.host1.createNetworkTopology("""<NETWORK>
         <PHYSICAL network="NPRI">
@@ -2118,15 +2121,7 @@ class _TCCrossVersionImport(xenrt.TestCase):
                                            network,
                                            "name-label",
                                            newlabel)
-
-        # Install a VM on the newer host to be the platform for running
-        # the import and export commands.
-        arch = None
-        # Create 64-bit guest to run 64-bit xe CLI, when using 64-bit Dom0
-        hostarch = self.host1.execdom0("uname -m").strip()
-        if hostarch.endswith("64"):
-            arch="x86-64"
-        self.cliguest = self.host1.createGenericLinuxGuest(arch=arch)
+        self.cliguest = self.host1.createGenericLinuxGuest()
         self.uninstallOnCleanup(self.cliguest)
         # Need to add an extra disk, as root one is too small
         ud = None
@@ -2273,10 +2268,10 @@ class _TCCrossVersionImport(xenrt.TestCase):
         xenrt.TEC().progress("Uninstalling %s" % (distro))
         try:
             xenrt.TEC().setInputDir(xenrt.TEC().lookup("OLD_PRODUCT_INPUTDIR"))
-            guest.uninstall()
+            self.uninstallOnCleanup(guest)
         finally:
             xenrt.TEC().setInputDir(None)
-        newguest.uninstall()
+        self.uninstallOnCleanup(newguest)
 
     def run(self, arglist):
 
@@ -2435,8 +2430,9 @@ class _VMToolsUpgrade(xenrt.TestCase):
             guest = self.guest
         if guest.windows:
 
-            if guest.pvDriversUpToDate():
-                raise xenrt.XRTFailure("PV drivers should not be reported as up-to-date before driver upgrade")
+            if not isinstance(self.host, xenrt.lib.xenserver.DundeeHost):
+                if guest.pvDriversUpToDate():
+                    raise xenrt.XRTFailure("PV drivers should not be reported as up-to-date before driver upgrade")
 
             guest.installDrivers()
 

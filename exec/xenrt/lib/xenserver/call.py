@@ -11,7 +11,7 @@
 import string, re, time
 import xenrt
 
-class _Call:
+class _Call(object):
     """Class representing a call for later evaluation."""
 
     TYPE = ""
@@ -147,7 +147,7 @@ class SSHCall(_Call):
     def execute(self, host, username, password):
         self.session.execdom0(self.operation, username=username, password=password)
 
-class _FatalCall:
+class _FatalCall(object):
 
     TIMEOUT = 360 
 
@@ -165,12 +165,11 @@ rm -f /etc/firstboot.d/data/host.conf || true
 rm -f /etc/firstboot.d/05-filesystem-summarise || true
 echo master > /etc/xensource/pool.conf
 /etc/init.d/xapi start
-/etc/init.d/firstboot start
+/etc/init.d/firstboot restart
 xe host-apply-edition edition=platinum"""
         master = self.context.entities["Pool"].ref.master
         #from Clearwater onwards no platinum licensing present
-        mockd = xenrt.TEC().getFile(master.V6MOCKD_LOCATION)
-        if mockd:
+        if isinstance(master, xenrt.lib.xenserver.ClearwaterHost):
            s=s.replace("edition=platinum", "edition=free")
            
         master.execdom0("echo '%s' > /root/reset" % (s), newlineok=True)

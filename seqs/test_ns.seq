@@ -1,0 +1,66 @@
+<xenrt>
+  <variables>
+    <OPTION_KEEP_SETUP>yes</OPTION_KEEP_SETUP>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+  </variables>
+  <scheduler>
+    <resources>memory&gt;=8G</resources>
+    <param>MACHINES_REQUIRED=1</param>
+    <flags>privvlan,staticip</flags>
+  </scheduler>
+  <prepare>
+    <vlan name="CLIENT_VLAN" />
+    <vlan name="SERVER_VLAN" />
+    <host id="0">
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <VMS />
+          <MANAGEMENT />
+          <NIC />
+          <VLAN network="SERVER_VLAN" />
+          <VLAN network="CLIENT_VLAN" />
+        </PHYSICAL>
+      </NETWORK>
+      <vm name="client1">
+        <distro>debian70</distro>
+        <memory>256</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <network device="1" bridge="CLIENT_VLAN" ip="172.16.0.2/24" />
+        <disk device="0" size="8" />
+      </vm>
+      <vm name="client2">
+        <distro>debian70</distro>
+        <memory>256</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <network device="1" bridge="CLIENT_VLAN" ip="172.16.0.3/24" />
+        <disk device="0" size="8" />
+      </vm>
+      <vm name="server1">
+        <distro>debian70</distro>
+        <memory>256</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <network device="1" bridge="SERVER_VLAN" ip="172.16.1.2/24" />
+        <disk device="0" size="8" />
+      </vm>
+      <vm name="server2">
+        <distro>debian70</distro>
+        <memory>256</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <network device="1" bridge="SERVER_VLAN" ip="172.16.1.3/24" />
+        <disk device="0" size="8" />
+      </vm>
+      <vm name="NetScaler-VPX">
+        <file>/usr/groups/xenrt/NSVPX-XEN-10.5-52.11_nc.xva</file>
+        <network device="0" />
+        <network device="1" bridge="CLIENT_VLAN" ip="172.16.0.1/24" />
+        <network device="2" bridge="SERVER_VLAN" ip="172.16.1.1/24" />
+        <postinstall action="setupNetscalerVPX" />
+      </vm>
+    </host>
+  </prepare>
+</xenrt>
+

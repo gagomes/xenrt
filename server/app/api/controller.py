@@ -10,7 +10,7 @@ class XenRTPower(XenRTAPIPage):
         machine = None
         powerop = None
 
-        powerargs = { "off" : "--poweroff", "on": "--poweron", "reboot": "--powercycle" , "nmi": "--nmi"}
+        powerargs = { "off" : "--poweroff", "on": "--poweron", "reboot": "--powercycle" , "nmi": "--nmi", "status": "--powerstatus"}
 
         try:
             if form.has_key("machine"):
@@ -25,6 +25,8 @@ class XenRTPower(XenRTAPIPage):
 
             # Form a command line to launch the suite
             cmd = ["%s/exec/main.py" % config.sharedir, powerargs[powerop], machine]
+            if form.has_key("bootdev"):
+                cmd.append("--bootdev %s" % form['bootdev'])
             self.request.response.body_file = os.popen("%s 2>&1" % string.join(cmd))
             self.request.response.content_type="text/plain"
             return self.request.response
@@ -116,9 +118,9 @@ class XenRTReleaseResources(XenRTAPIPage):
             os.system(string.join(cmd))
         return "OK"
 
-PageFactory(XenRTGetResource, "getresource", "/api/controller/getresource")
-PageFactory(XenRTListResources, "listresources", "/api/controller/listresources")
-PageFactory(XenRTReleaseResources, "releaseresources", "/api/controller/releaseresources", contentType="text/plain")
-PageFactory(XenRTPower, "power", "/api/controller/power", compatAction="power")
-PageFactory(XenRTSNetwork, "snetwork", "/api/controller/network", compatAction="network")
-PageFactory(XenRTMConfig, "mconfig", "/api/controller/machinecfg", compatAction="mconfig")
+PageFactory(XenRTGetResource, "/api/controller/getresource")
+PageFactory(XenRTListResources, "/api/controller/listresources")
+PageFactory(XenRTReleaseResources, "/api/controller/releaseresources", contentType="text/plain")
+PageFactory(XenRTPower, "/api/controller/power", compatAction="power")
+PageFactory(XenRTSNetwork, "/api/controller/network", compatAction="network")
+PageFactory(XenRTMConfig, "/api/controller/machinecfg", compatAction="mconfig")

@@ -1,0 +1,28 @@
+<xenrt>
+
+  <!-- MNR HA test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0"/>
+    <host id="1"/>
+    <host id="2"/>
+    <host id="3"/>
+    <host id="4"/>
+  </prepare>
+
+  <testsequence>
+    <serial group="HeartbeatFailures">
+      <testcase id="xenserver.tc.ha.TC7695"/>
+      <testcase id="xenserver.tc.ha.TC7697"/>
+      <testcase id="xenserver.tc.ha.TC7698"/>
+      <testcase id="xenserver.tc.ha.TC7707"/>
+      <testcase id="xenserver.tc.ha.TC7700"/>
+      <testcase id="xenserver.tc.ha.TC7701"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

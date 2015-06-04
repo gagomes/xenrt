@@ -2521,7 +2521,11 @@ class TC10666(xenrt.TestCase):
         # Check a likewise lookup for the old SID fails in a suitable way
         ok = True
         try:
-            self.pool.master.execdom0("/opt/likewise/bin/lw-find-by-sid %s" % 
+            if self.pool.master.execdom0("test -e /opt/pbis", retval="code") == 0:
+                self.pool.master.execdom0("/opt/pbis/bin/find-by-sid %s" % 
+                                      (self.sid0))
+            else:
+                self.pool.master.execdom0("/opt/likewise/bin/lw-find-by-sid %s" % 
                                       (self.sid0))
             ok = False
         except xenrt.XRTFailure, e:
@@ -2722,7 +2726,6 @@ class TC17802(xenrt.TestCase):
 csi0() {
 	local final
 	final=$1
-#	echo -n $'\x9b' > /dev/console
 	echo -n $'\x1b''[' > /dev/console
 	for ((n=0; n < 512000; n=n+1)); do
 		echo -n "1;" > /dev/console
@@ -2738,7 +2741,6 @@ csi(){
 }
 
 gen_csi0() {
-#	echo -n $'\x9b'  > /dev/console
 	echo -n $'\x1b''['  > /dev/console
 	echo -n $1 > /dev/console # number
 	echo -n $2 > /dev/console # operation

@@ -1,0 +1,21 @@
+<xenrt>
+
+  <!-- MNR TC-7007/22 fast migrate test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <parallel>
+      <testcase id="xenserver.tc.stress.TC7007"/>
+      <testcase id="xenserver.tc.stress.TC7022"/>
+    </parallel>
+  </testsequence>
+
+</xenrt>

@@ -1,0 +1,17 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <SUPPLEMENTAL_PACK_CDS>/usr/groups/xenrt/distmaster/vgpu/nvidia-vgx-xenserver-6.5-340.57.iso</SUPPLEMENTAL_PACK_CDS>
+  </variables>
+
+
+  <prepare>
+    <host id="0" license="no" defaultlicense="no">
+    </host>
+  </prepare>
+
+  <testsequence group="nvidiaVGPUSuppacksinstall">
+    <testcase id="xenserver.tc.suppacks.TCinstallVgpuPacksWithXenServer">
+    </testcase>
+  </testsequence>
+</xenrt>

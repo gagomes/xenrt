@@ -17,7 +17,6 @@ print """Content-type: text/plain
 
 menu
 item default  Default XenRT boot
-item winpe  Boot into WinPE
 item razor  Boot into Razor MicroKernel
 item tc     Boot into Tinycore Linux
 item end    Local boot
@@ -29,10 +28,6 @@ echo Loading PXELINUX
 set 210:string tftp://${next-server}/
 chain tftp://${next-server}/pxelinux.0
 goto end
-
-:winpe
-echo Loading WinPE
-chain http://${next-server}/wininstall/netinstall/default/boot.ipxe
 
 :razor
 echo Loading Razor Microkernel

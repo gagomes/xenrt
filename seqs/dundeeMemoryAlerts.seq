@@ -1,0 +1,25 @@
+<xenrt>
+
+  <!-- XS Alert Tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <FINALLY_UNINSTALL>yes</FINALLY_UNINSTALL>
+    <OLD_PRODUCT_VERSION>Tampa</OLD_PRODUCT_VERSION>
+    <OLD_PRODUCT_INPUTDIR>/usr/groups/release/XenServer-6.x/XS-6.1/RTM-59235</OLD_PRODUCT_INPUTDIR>
+  </variables>
+
+  <prepare>
+    <host id="0"/>
+  </prepare>
+  
+  <testsequence group="Memory Alerts">
+    <testcase id="testcases.xenserver.tc.alert.MemoryAlerts" tc="TC-18682" prio="1"/>
+  </testsequence>
+
+  <testsequence group="AlertsafterUpgrade">
+    <testcase id="testcases.xenserver.tc.alert.MemoryAlertsonUpgrade" tc="TC-19083" prio="1"/>
+  </testsequence>
+
+
+</xenrt>

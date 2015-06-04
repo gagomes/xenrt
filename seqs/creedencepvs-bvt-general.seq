@@ -5,12 +5,12 @@
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
     <PREPARE_WORKERS>2</PREPARE_WORKERS>
     <FINALLY_UNINSTALL>yes</FINALLY_UNINSTALL>
-    <PVS_BUILD_LOCATION>\\xenrtcifs.xenrt.xs.citrite.net\share\PVS\7.1</PVS_BUILD_LOCATION>
   </variables>
 
   <default name="PXE_NETWORK" value="PVSNET"/>
   <default name="SRV_DISTRO" value="ws08sp2-x86"/>
   <default name="DEV_DISTRO" value="win7-x86"/>
+  <default name="PVS_BUILD_LOCATION" value="\\xenrtcifs.xenrt.xs.citrite.net\share\PVS\7.1"/>
   
   <prepare>
     <host>
@@ -20,6 +20,7 @@
         <vcpus>4</vcpus>
         <network device="0"/>
         <postinstall action="installDrivers"/>
+        <postinstall action="installPowerShell20"/>
       </vm>
       <vm name="${DEV_DISTRO}">
         <distro>${DEV_DISTRO}</distro>
@@ -27,6 +28,7 @@
         <vcpus>2</vcpus>
         <network device="0"/>
         <postinstall action="installDrivers"/>
+        <postinstall action="installPowerShell20"/>
       </vm>
       <bridge name="${PXE_NETWORK}"/>
     </host>

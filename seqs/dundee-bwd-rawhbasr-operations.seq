@@ -1,0 +1,33 @@
+<xenrt>
+
+  <!-- LPV RawHBA SR Operation Tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host />
+  </prepare>
+
+  <testsequence>
+    <serial group="LPVSRTests">
+
+      <!-- RawHBASR Sanity Check. -->
+      <testcase id="xenserver.tc.lunpervdi.TC18348" name="TC18348" tc="TC-18348" />
+      <!-- LVHDoHBA is been excluded. -->
+      <testcase id="xenserver.tc.lunpervdi.TC18349" name="TC18349" tc="TC-18349" />
+      <!-- Forgetting LUN/VDI. -->
+      <testcase id="xenserver.tc.lunpervdi.TC18354" name="TC18354" tc="TC-18354" />
+      <!-- Adding/deleting LUN/VDI. -->
+      <testcase id="xenserver.tc.lunpervdi.TC18355" name="TC18355" tc="TC-18355" />
+      <!-- LUN Resize. -->
+      <testcase id="xenserver.tc.lunpervdi.TC18357" name="TC18357" tc="TC-18357" />
+
+      <!-- Creation of second rawHBA SR. -->
+      <testcase id="xenserver.tc.lunpervdi.TC18369" name="TC18369" tc="TC-18369" />
+
+    </serial>
+  </testsequence>
+
+</xenrt>

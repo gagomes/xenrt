@@ -144,7 +144,7 @@ class TC8175(xenrt.TestCase):
             self.runSubcase("checkEvent", (e[0], e[1], e[2]), "VM", e[0])
 
 class TC8176(xenrt.TestCase):
-    """Alerts can be sent via email. Use TC8176PrioPostTampa for Sarasota and later."""
+    """Alerts can be sent via email. Use TC8176PrioPostTampa for Dundee and later."""
 
     def __init__(self, tcid=None):
         self.smtpServer = None
@@ -166,7 +166,7 @@ class TC8176(xenrt.TestCase):
                                     (xenrt.TEC().lookup("XENRT_SERVER_ADDRESS"),
                                      self.smtpServer.port))
 
-        # This functionality has changed from Sarasota onwards. if condition is done to support both versions
+        # This functionality has changed from Dundee onwards. if condition is done to support both versions
         # https://confluence.uk.xensource.com/display/engp/XenServer+alert+proposal+%28was+audit%29
         if self.newPriority == True:
             self.prioMsgEmailChk(host, pool, testname="TC8176_a", testPriority=3, isReceived=True )
@@ -347,7 +347,7 @@ class TC8176(xenrt.TestCase):
             self.smtpServer.stop()
 
 class TC8176PrioPostTampa(TC8176):
-    """Alerts can be sent via email. New Priority applies to Sarasota and later."""
+    """Alerts can be sent via email. New Priority applies to Dundee and later."""
 
     def __init__(self, tcid=None):
         TC8176.__init__(self, tcid=tcid)
@@ -647,7 +647,7 @@ class MemoryAlerts(_AlertBase):
             raise xenrt.XRTError("Machine local SR not sufficient to run this test")
 
         # Check Product version, for clearwater priority=5, post CLW, priority=3
-        if not isinstance(self.host, xenrt.lib.xenserver.SarasotaHost) and not isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
+        if not isinstance(self.host, xenrt.lib.xenserver.DundeeHost) and not isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
             self.PRIORITY=5
 
         # Setup required to generate memory alerts
@@ -777,10 +777,10 @@ class StorageAlerts(_AlertBase):
 
     def prepare(self, arglist=None):
         self.MESSAGES=[]
-        self.VARIANCE=200
+        self.VARIANCE=250
         """Fill up the host so that alerts can get generated"""
         self.host = self.getHost("RESOURCE_HOST_0")
-        numVMs=2
+        numVDIs=2
 
         # Enable the non-default DS
         self.host.execdom0("xe-enable-all-plugin-metrics true")
@@ -807,16 +807,34 @@ class StorageAlerts(_AlertBase):
                             alarmLevel=self.ALARMLEVEL,
                             alarmTriggerPeriod=self.ALARMTRIGGERPERIOD,
                             alarmAutoInhibitPeriod=self.ALARMAUTOINIHIBITPERIOD)
-        self.createWindowsVM(host=self.host, srtype=self.uuid, waitForStart=True)
 
-        # Setup required to generate alerts
-        for i in range(numVMs):
-            self.createWindowsVM(host=self.host, srtype=self.uuid)
+        #Create a generic linux guest
+        guest = self.host.createGenericLinuxGuest(sr = self.uuid)
+        self.uninstallOnCleanup(guest)
+        
+        for i in range(numVDIs):
+            #Create VDI of size 10GB to generate storage alerts by copying and destroying it multiple times.
+            device = guest.createDisk(sizebytes=2*xenrt.GIGA, sruuid=self.uuid, returnDevice=True)
+            time.sleep(5)
+            #Fill some space on the VDI 
+            guest.execguest("mkfs.ext3 /dev/%s" % device)
+            guest.execguest("mount /dev/%s /mnt" % device)
+            xenrt.TEC().logverbose("Creating some random data on VDI.")
+            guest.execguest("dd if=/dev/zero of=/mnt/random oflag=direct bs=1M count=1000")
 
+        if self.INTELLICACHE:
+            cli=self.host.getCLIInstance()
+            if guest.getState() != "DOWN":
+                guest.shutdown(force=True)
+            for vdi in self.host.minimalList("vdi-list",
+                                                 args="sr-uuid=%s" % (self.uuid)): 
+                cli.execute("vdi-param-set","allow-caching=true uuid=%s" % vdi)
+            guest.start()
+        
         memLeft=self.host.getMaxMemory()
         xenrt.TEC().logverbose("SR Alerts: Memory left after install %s" % memLeft)
         # Check Product version, for clearwater priority=5, post CLW, priority=3
-        if not isinstance(self.host, xenrt.lib.xenserver.SarasotaHost):
+        if not isinstance(self.host, xenrt.lib.xenserver.DundeeHost):
             self.PRIORITY=5
 
         # Start the sr spammer thread here
@@ -917,11 +935,11 @@ class TC18680(StorageAlerts):
         if not "ext" in srType:
             raise xenrt.XRTError("Local storage of the host does not support thin provisioning")
         try:
-            cli.execute("host-disable")
-            cli.execute("host-enable-local-storage-caching", "sr-uuid=%s" % 
-                        self.host.getLocalSR())
-        except Exception,e:
+            xenrt.sleep(50)
+            self.host.disable()
+            self.host.enableCaching(self.host.getLocalSR())
+        except Exception, e:
             raise xenrt.XRTFailure("Enabling intellicache failed with exception %s" % e)
         finally:
-            cli.execute("host-enable")
+            self.host.enable()
         StorageAlerts.prepare(self, arglist)

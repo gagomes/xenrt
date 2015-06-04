@@ -254,6 +254,19 @@ class _TCXSA(xenrt.TestCase):
                     raise
                     
             self.host.execdom0("xe vm-list")
+    
+    def replaceHvmloader(self, path):
+        """Replace hvmloader with file at given 'path'"""
+        self.hvmloaderPath = self.host.execdom0("find /usr/ -type f -name hvmloader").strip()
+        self.host.execdom0("cp -f {0} {0}.backup".format(self.hvmloaderPath))
+        hvmloader = xenrt.TEC().getFile(path)
+        sftp = self.host.sftpClient()
+        try:
+            xenrt.TEC().logverbose('About to copy "%s to "%s" on host.' \
+                                        % (hvmloader, self.hvmloaderPath))
+            sftp.copyTo(hvmloader, self.hvmloaderPath)
+        finally:
+            sftp.close()
 
 class TCXSA24(_TCXSA):
     VULN = 24
@@ -316,10 +329,7 @@ class TCXSA23(_TCXSA):
     
     def prepare(self, arglist=None):
         _TCXSA.prepare(self, arglist)
-        self.host.execdom0("cp -f /usr/lib/xen/boot/hvmloader /usr/lib/xen/boot/hvmloader.backup")
-        
-        url = "http://hg.uk.xensource.com/closed/xen-hypercall-fuzzer.hg/raw-file/tip/misc/hvmloader-xen-4.1-xsa23"
-        self.host.execdom0("wget '%s' -O /usr/lib/xen/boot/hvmloader" % url)
+        self.replaceHvmloader("http://hg.uk.xensource.com/closed/xen-hypercall-fuzzer.hg/raw-file/tip/misc/hvmloader-xen-4.1-xsa23")
     
     def run(self, arglist=None):
         vm = self.host.execdom0("xe vm-install new-name-label=vm template-name=\"Other install media\"").strip()
@@ -494,3 +504,116 @@ class TCXSA55(TCXSA24):
                 raise xenrt.XRTFailure("Unexpected error message while starting a VM with invalid kernel", data=str(e.data))
         else:
             raise xenrt.XRTFailure("Succeeded to start a VM with an invalid kernel")
+
+class TCXSA87(TCXSA29):
+    """Test to verify XSA-87"""
+    # Jira TC-23743
+    
+    VULN = 87
+
+    def run(self, arglist=None):
+        
+        self.host.execdom0("xl create /root/minios.cfg")
+        self.checkHost()
+        
+        if not self.host.guestconsolelogs:
+            raise xenrt.XRTFailure("No guest console logs")
+        filename = "%s/console.*.log" % (self.host.guestconsolelogs)
+        logs = self.host.execdom0("tail -n 100 %s" % (filename))
+        
+        if "Xen appears still vulnerable to XSA-87!" in logs:
+            raise xenrt.XRTFailure("XSA-87 not reported as fixed.")
+        elif "XSA-87 appears fixed" in logs:
+            xenrt.TEC().logverbose("XSA-87 fixed")
+        else:
+            raise xenrt.XRTFailure("Unexpected output. 'XSA-87' not found in logs")
+            
+class TCXSA111(_TCXSA):
+    """Test to verify XSA-111"""
+    # Jira TC-23744
+
+    def prepare(self, arglist=None):
+        _TCXSA.prepare(self, arglist)
+        self.replaceHvmloader("http://files.uk.xensource.com/usr/groups/xenrt/xsa_test_files/test-hvm-xsa-111")
+
+    def run(self, arglist=None):
+        vm = self.host.execdom0("xe vm-install new-name-label=vm template-name=\"Other install media\"").strip()
+        self.host.execdom0("xe vm-cd-add uuid=%s cd-name=\"win7-x86.iso\" device=3" % vm)
+        self.host.execdom0("xe vm-start uuid=%s" % vm, timeout=30)
+
+        self.checkHost()
+
+        xenrt.TEC().logverbose("Expected output: Host didn't crash")
+
+    def postRun(self):
+        self.host.execdom0("cp -f {0}.backup {0}".format(self.hvmloaderPath))
+
+class TCXSA112(_TCXSA):
+    """Test to verify XSA-112"""
+    # Jira TC-23745
+    
+    def prepare(self, arglist=None):
+        _TCXSA.prepare(self, arglist)
+        #change log level
+        self.host.execdom0("sed -e 's/\(append .*xen\S*.gz\)/\\0 loglvl=all guest_loglvl=all/' /boot/extlinux.conf > tmp && mv tmp /boot/extlinux.conf -f")
+        self.host.reboot()
+        
+        self.replaceHvmloader("http://files.uk.xensource.com/usr/groups/xenrt/xsa_test_files/test-hvm-xsa-112")
+        
+    def run(self, arglist=None):
+        vm = self.host.execdom0("xe vm-install new-name-label=vm template-name=\"Other install media\"").strip()
+        self.host.execdom0("xe vm-cd-add uuid=%s cd-name=\"win7-x86.iso\" device=4" % vm)
+        self.host.execdom0("xe vm-start uuid=%s" % vm, timeout=30)
+    
+        self.checkHost()
+        serlog = string.join(self.host.machine.getConsoleLogHistory(), "\n")
+        xenrt.TEC().logverbose(serlog)
+        
+        if "All done: Poisoned value found as expected" in serlog:
+            xenrt.TEC().logverbose("Expected output: Found 'Poisoned value found as expected' in serial log")
+        elif "Test failed: Expected to find poisoned value" in serlog:
+            raise xenrt.XRTFailure("XSA-112 not fixed.Found 'Test failed: Expected to find poisoned value' in logs")
+        else:
+            raise xenrt.XRTFailure("Unexpected output in serial logs")
+    
+    def postRun(self):
+        self.host.execdom0("cp -f {0}.backup {0}".format(self.hvmloaderPath))
+
+class TCXSA133(_TCXSA):
+    """Test to verify XSA-133"""
+    # Jira TC-27014
+    
+    def prepare(self, arglist=None):
+        _TCXSA.prepare(self, arglist)
+        self.guest = self.host.createGenericEmptyGuest()
+        self.replaceHvmloader("http://files.uk.xensource.com/usr/groups/xenrt/xsa_test_files/test-hvm64-xsa-133")
+        
+    def run(self, arglist=None):
+
+        # We can't use start() as this expects a VM to boot and do 'normal' things
+        self.guest.lifecycleOperation("vm-start", timeout=30)
+        domid = self.guest.getDomid()
+        qpid = self.host.xenstoreRead("/local/domain/%u/qemu-pid" % domid)
+
+        starttime = xenrt.util.timenow()
+        while True:
+            if xenrt.util.timenow() - starttime > 1800:
+                raise xenrt.XRTError("Timed out waiting for XSA-133 test")
+
+            qemuRunning = (self.host.execdom0("test -d /proc/%s" % (qpid), retval="code") == 0)
+            state = self.guest.getState()
+
+            # Check if we have a successful run
+            data = self.host.execdom0("grep qemu-dm-%s /var/log/messages /var/log/daemon.log || true" % (domid))
+
+            if "XSA-133 PoC done - not vulnerable" in data:
+                xenrt.TEC().logverbose("Test completed successfully")
+                break
+
+            if state == "DOWN" or not qemuRunning:
+                raise xenrt.XRTFailure("Host appears vulnerable to XSA-133")
+
+            xenrt.sleep(30)
+
+    def postRun(self):
+        self.host.execdom0("cp -f {0}.backup {0}".format(self.hvmloaderPath))

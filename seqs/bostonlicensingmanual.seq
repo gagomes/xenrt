@@ -1,10 +1,10 @@
 <xenrt>
-  <!-- Pre-SKU flattening using v6d oldest from Augusta
+  <!-- Pre-SKU flattening using v6d oldest from Dundee
    1. Pool of 2 Boston hosts with NFS storage
    2. Install a licence server VM on NFS 
    -->
 
-  <!-- NOTE: Boston is the oldest supported version from AUGUSTA -->
+  <!-- NOTE: Boston is the oldest supported version from Dundee -->
 
   <default name="OLD_PRODUCT_VERSION" value="Boston"/>
   <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.0.0/RTM-50762/"/>
@@ -14,13 +14,13 @@
   </variables>
   <prepare>
     <pool id="0">
-      <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}" usev6testd="false" license="no" id="0">
+      <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}" defaultlicense="false" license="no" id="0">
         <vm name="Licence Server">
           <file>%LICENSE_SERVER_XVA%</file>
           <postinstall action="installV6LicenseServer" />
         </vm>
       </host>
-      <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}" usev6testd="false" license="no" id="1" />
+      <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}" defaultlicense="false" license="no" id="1" />
     </pool>
   </prepare>
 </xenrt>

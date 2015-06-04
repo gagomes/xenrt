@@ -17,7 +17,7 @@ Helper methods
 def wip(fn):
     """
     Work-in-progress decorator @wip
-    This decorator lets you check tests into version control and not gate a push 
+    This decorator lets you check tests into version control and not gate a push
     while allowing you to work on making them pass
      - If the test fails it will be skipped
      - If the test passes it will report a failure
@@ -47,7 +47,7 @@ def interfaceMock(interfaceClass):
 
 def _createInterfaceMock(interfaces):
     """Dynamically create a Mock sub class that implements the given zope.interfaces"""
-        
+
     spec = reduce(lambda fullSpec, intf: fullSpec + intf.names(), interfaces, [])
     # the init method, automatically specifying the interface methods
     def init(self, *args, **kwargs):
@@ -77,7 +77,7 @@ class XenRTBaseTestCase(unittest.TestCase):
 
     def combinatorial(self, listA, listB = None):
         """
-        Create a combinatorial set of data 
+        Create a combinatorial set of data
         If listB is not provided the result will be a combination of listA with listA
         @param listA: data to combine
         @type listA: list
@@ -92,7 +92,7 @@ class XenRTBaseTestCase(unittest.TestCase):
 
     def combinatorialExcluding(self, exclusionList, listA, listB = None):
         """
-        Create a combinatorial set of data 
+        Create a combinatorial set of data
         If listB is not provided the result will be a combination of listA with listA
         @param exclusionList: data to exclude from the result
         @type: list of tuples
@@ -107,7 +107,7 @@ class XenRTBaseTestCase(unittest.TestCase):
 
     def sequential(self, listA, listB):
         """
-        Create a sequential set of data. For lists of mismatching lengths None will be 
+        Create a sequential set of data. For lists of mismatching lengths None will be
         provided eg [1,2,3] and ['a','b'] -> [(1,a), (2,b), (3,None)]
         @param listA: data to combine
         @type listA: list
@@ -124,7 +124,7 @@ class XenRTBaseTestCase(unittest.TestCase):
         @param listOfData: data to run the provided lambda over
         @type listOfData: list
         @param functionPointer: a test to run on each list item
-        @type functionPointer: lambda 
+        @type functionPointer: lambda
         """
         [functionPointer(data) for data in listOfData]
 
@@ -163,7 +163,7 @@ class XenRTTestCaseUnitTestCase(XenRTUnitTestCase):
         except:
             self.tearDown()
             raise
-   
+
     def _createHost(self):
         host = Mock()
         host.execdom0 = Mock(return_value=None)
@@ -171,7 +171,7 @@ class XenRTTestCaseUnitTestCase(XenRTUnitTestCase):
 
 
     def tearDown(self):
-        for p in [self.gecPatcher, self.tecPatcher, self.regPatcher, 
+        for p in [self.gecPatcher, self.tecPatcher, self.regPatcher,
                   self.ldriPatcher, self.hostPatcher, self.guestPatcher]:
             try:
                 p.stop()

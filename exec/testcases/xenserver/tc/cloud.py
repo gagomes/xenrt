@@ -18,7 +18,7 @@ except ImportError:
     use_jenkins_api = False
 
 
-class CSStorage():
+class CSStorage(object):
     MS_NFS = 'MS-NFS'
     EXT_NFS = 'EXT-NFS'
 
@@ -57,7 +57,7 @@ class CSStorage():
             pass
 
 
-class MarvinConfig():
+class MarvinConfig(object):
 
     def __init__(self, manSvrVMAddr):
         self.marvinCfg = {}

@@ -13,7 +13,7 @@ from  xenrt.lazylog import log, step
 __all__ = ["TXTCommand", "AttestationIdParser", "TpmQuoteParser", "TXTSuppPackInstaller", "TXTErrorParser"]
 
 
-class TXTSuppPackInstaller:
+class TXTSuppPackInstaller(object):
 
     __PASSWORD = "xenroot"
     __CONFIG_FILE = "/opt/xensource/tpm/config"
@@ -55,7 +55,7 @@ class TXTSuppPackInstaller:
         host.reboot()
 
 
-class TXTCommand:
+class TXTCommand(object):
     __PLUGIN_NAME = "tpm"
     __ATT_ID_KEY = "tpm_get_attestation_identity"
     __QUOTE_KEY = "tpm_get_quote"
@@ -173,8 +173,7 @@ class TXTCommand:
             raise
 
     def __attemptLogParse(self, host):
-        logName = "/var/log/messages"
-        parser = TXTErrorParser.fromHostFile(host,logName)
+        parser = TXTErrorParser.fromHostFile(host, "/var/log/messages", "/var/log/kern.log", "/var/log/user.log")
         step("Parsing logs from host: %s" % host)
         self.__writeToNewLog("extractedTPMErrors.log", '\n'.join(parser.locateAllTpmData()))
         keyErrs = parser.locateKeyErrors()
@@ -192,7 +191,7 @@ class TXTCommand:
                 xenrt.TEC().logverbose(m)
 
 
-class TpmParser:
+class TpmParser(object):
     def _getSHA1(self, data):
         sha1 = hashlib.sha1()
         sha1.update(data)
@@ -212,7 +211,7 @@ class TpmParser:
         return base64.b64encode(nonce)
 
 
-class AttestationIdParser:
+class AttestationIdParser(object):
 
     __TPM_CERT_KEY = "xentxt:TPM_Endorsement_Certficate"
     __EKPUB_KEY = "xentxt:TPM_Endorsement_KEY_PEM"
@@ -646,7 +645,7 @@ class TXTErrorParser(object):
         self.__log = logFileAsList
 
     @classmethod
-    def fromHostFile(cls, host, filename):
+    def fromHostFile(cls, host, *filename):
         """
         Alt. constructor. Read marker matches from the log
         on the host and then construct this class
@@ -654,11 +653,13 @@ class TXTErrorParser(object):
         filename: the file name on the host to parse
         """
         data = []
-        for m in cls.MARKERS:
-            try:
-                data += host.execcmd("grep '%s' %s" % (m, filename)).split('\n')
-            except:
-                log("grep failed for %s - no data found" % m)
+        for fname in filename:
+            for m in cls.MARKERS:
+                grep = "grep '%s' %s" % (m, fname)
+                if host.execcmd(grep, retval="code") < 1:
+                    data += host.execcmd(grep).split('\n')
+                else:
+                    log("grep failed for %s in file %s - no data found" % (m, fname))
         return cls(data)
 
     def __locateKeyLines(self, marker):

@@ -1,0 +1,41 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <pool>
+      <host id="0">
+        <vm name="Deb1">
+          <distro>debian70</distro>
+          <memory>512</memory>
+          <network device="0"/>
+         </vm>
+      </host>
+      <host id="1">
+        <vm name="Deb2">
+          <distro>debian70</distro>
+          <memory>512</memory>
+          <storage>nfsSR</storage>
+          <network device="0"/>
+        </vm>
+      </host>
+      <host id="2">
+        <vm name="Deb3">
+          <distro>debian70</distro>
+          <memory>512</memory>
+          <storage>nfsSR</storage>
+          <network device="0"/>
+        </vm>
+      </host>
+      <storage type="nfs" name="nfsSR"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <!-- reference test-cases to be included in the sequence here: -->
+    <!-- The dotted name here reflects the directory structure inside xenrt.git/exec/ -->
+    <testcase id="testcases.xenserver.tc.ha.TCHaRestartProtectedVms" tc="TC-23742"/>
+    
+  </testsequence>
+</xenrt>

@@ -1,7 +1,6 @@
 #
 # XenRT Test Makefile
 #
-include build/config.mk
 include build/tools.mk
 
 TESTS	= $(patsubst %,$(SHAREDIR)/%.tgz,$(wildcard tests/*))
@@ -24,7 +23,8 @@ tests-clean:
 
 $(SHAREDIR)/tests:
 	$(info Creating test tarball output directory... \($@\))
-	$(SUDO) mkdir -p $(SHAREDIR)/tests
+	$(SUDO) mkdir -p /local/outputs/tests
+	$(SUDO) ln -sfT /local/outputs/tests $(SHAREDIR)/tests
 	$(SUDO) chown $(USERID):$(GROUPID) $(SHAREDIR)/tests
 
 .PHONY: $(TESTS)

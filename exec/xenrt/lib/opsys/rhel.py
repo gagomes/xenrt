@@ -46,7 +46,7 @@ class RHELBasedLinux(LinuxOS):
 
     @property
     def _defaultIsoName(self):
-        return "%s_%s.iso" % (self.distro, self.arch)
+        return "%s_%s_xenrtinst.iso" % (self.distro, self.arch)
 
     @property
     def installURL(self):
@@ -150,7 +150,7 @@ class RHELBasedLinux(LinuxOS):
         xenrt.waitForFile("%s/.xenrtsuccess" % (self.nfsdir.path()),
                               installtime,
                               desc="RHEL based installation")
-        if self.distro.startswith("rhel7") or self.distro.startswith("centos7") or self.distro.startswith("oel7"):
+        if self.distro.startswith("rhel7") or self.distro.startswith("centos7") or self.distro.startswith("oel7") or self.distro.startswith("fedora"):
             # This is likely to be a force stop, so we'll sleep to allow the disk to sync
             xenrt.sleep(60)
         self.parent.stop()

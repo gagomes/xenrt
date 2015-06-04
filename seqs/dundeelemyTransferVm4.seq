@@ -1,0 +1,17 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence group="TransferVMTest">
+    <testcase id="xenserver.tc.transfervm.TC14102"/>
+    <testcase id="xenserver.tc.transfervm.TC14109"/>
+  </testsequence>
+
+</xenrt>
+

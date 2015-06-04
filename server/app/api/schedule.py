@@ -1,59 +1,80 @@
 from server import PageFactory
 from app.api import XenRTAPIPage
+from pyramid.httpexceptions import HTTPFound
 
-import traceback, StringIO, string, time, random, pgdb
-
+import traceback, StringIO, string, time, random, sys, calendar, getopt
+import psycopg2
 import config, app
 
 class XenRTSchedule(XenRTAPIPage):
+    WRITE = True
+
 
     def __init__(self, request):
         super(XenRTSchedule, self).__init__(request)
         self.mutex = None
         self.mutex_held = False
 
-    def render(self):
-        form = self.request.params
+    def cli(self):
+        if not self.isDBMaster():
+            print "Skipping schedule as this node is not the master"
+            return
         dryrun = False
         ignore = False
-        verbose = False
-        if form.has_key("dryrun") and form["dryrun"] == "yes":
-            dryrun = True
-        if form.has_key("ignore") and form["ignore"] == "yes":
-            ignore = True
-        if form.has_key("verbose") and form["verbose"] == "yes":
-            verbose = True
-        outfh = StringIO.StringIO()
-        self.schedule_jobs(outfh, dryrun=dryrun, ignore=ignore, verbose=verbose)
-        ret = outfh.getvalue()
-        outfh.close()
-        if not ret:
-            ret = ""
+        verbose = None
+
+        try:
+            optlist, optx = getopt.getopt(sys.argv[2:], "vdi")
+            for argpair in optlist:
+                (flag, value) = argpair
+                if flag == "-d":
+                    dryrun = True
+                elif flag == "-i":
+                    ignore = True
+                elif flag == "-v":
+                    verbose = sys.stdout
+        except getopt.GetoptError:
+            raise Exception("Unknown argument")
+
+        self.schedule_jobs(sys.stdout, dryrun=dryrun, ignore=ignore, verbose=verbose)
+
         if self.mutex:
             if self.mutex_held:
                 self.release_lock()
             self.mutex.close()
-        return ret
 
-    def schedule_jobs(self, outfh, dryrun=False, ignore=False, verbose=False):
+
+    def schedule_jobs(self, outfh, dryrun=False, ignore=False, verbose=None):
         """New world job scheduler - assigns machines to jobs"""
-
+    
         # Generate a random integer to track in logs
         schedid = random.randint(0,1000)
 
-        if verbose:
-            outfh.write("Job scheduler ID %d started %s" % (schedid, time.strftime("%a, %d %b %Y %H:%M:%S +0000\n", time.gmtime())))
-        self.get_lock()
-        if verbose:
-            outfh.write("%d acquired lock %s" % (schedid, time.strftime("%a, %d %b %Y %H:%M:%S +0000\n", time.gmtime())))
+        writeVerboseFile = False
+        alsoPrintToVerbose = False
+
+        if not verbose:
+            verbose = StringIO.StringIO()
+            writeVerboseFile = True
+            alsoPrintToVerbose = True
+
+        prelocktime = time.mktime(time.gmtime())
+
+        verbose.write("Job scheduler ID %d started %s" % (schedid, time.strftime("%a, %d %b %Y %H:%M:%S +0000\n", time.gmtime())))
+        try:
+            self.get_lock()
+        except psycopg2.OperationalError:
+            outfh.write("Another schedule is already in progress, aborting\n")
+            return
+        verbose.write("%d acquired lock %s" % (schedid, time.strftime("%a, %d %b %Y %H:%M:%S +0000\n", time.gmtime())))
+        postlocktime = time.mktime(time.gmtime())
 
         offline_sites = [x[0] for x in self.scm_site_list(status="offline")]
         sites = self.scm_site_list(checkFull=True)
         sitecapacity = {}
         for s in sites:
             sitecapacity[s[0]] = s[8]
-            if verbose:
-                outfh.write("%s remaining capacity %d\n" % (s[0], s[8]))
+            verbose.write("%s remaining capacity %d\n" % (s[0], s[8]))
         try:
 
             # Machines we have available
@@ -90,134 +111,146 @@ class XenRTSchedule(XenRTAPIPage):
 
             # For each job try to find suitable machine(s)
             for jobid in jobidlist:
-                details = jobs[jobid]
-                if details.has_key("JOBDESC"):
-                    jobdesc = " (%s)" % (details["JOBDESC"])
-                else:
-                    jobdesc = ""
-                if verbose or dryrun:
-                    outfh.write("New job %s%s\n" % (jobid, jobdesc))
-
-                # Variables to record the scheduling data
-                site = None      # All machines will be at the same site
-                cluster = None   # All machines will be from the same cluster
-                selected = []    # The machines we choose
-
-                # Check how many machines are needed
-                if details.has_key("MACHINES_REQUIRED"):
-                    try:
-                        machines_required = int(details["MACHINES_REQUIRED"])
-                    except ValueError:
-                        outfh.write("Warning: skipping job %s because of invalid MACHINES_REQUIRED value\n" % jobid)
-                        continue
-                else:
-                    machines_required = 1
-
-                # If the job explicitly asked for named machine(s) then check
-                # their availability.
-                if details.has_key("MACHINE"):
-                    if details.has_key("USERID"):
-                        leasedmachineslist = self.scm_machine_list(status="idle", leasecheck=details['USERID'])
-                        leasedmachines = {}
-                        for m in leasedmachineslist:
-                            if not m[1] in offline_sites:
-                                leasedmachines[m[0]] = m
-                        if verbose:
-                            outfh.write("Job specified specific mahines, so machines (%s) available\n" % ",".join(leasedmachines.keys()))
+                try:
+                    details = jobs[jobid]
+                    if details.has_key("JOBDESC"):
+                        jobdesc = " (%s)" % (details["JOBDESC"])
                     else:
-                        leasedmachines = {}
-                    mxs = string.split(details["MACHINE"], ",")
-                    if len(mxs) > 0:
-                        if machines.has_key(mxs[0]) or leasedmachines.has_key(mxs[0]):
-                            if verbose:
-                                outfh.write("  wants %s, it is available\n" % (mxs[0]))
-                            selected.append(mxs[0])
-                            if leasedmachines.has_key(mxs[0]):
-                                site = leasedmachines[mxs[0]][1]
-                                cluster = leasedmachines[mxs[0]][2]
-                            else:
-                                site = machines[mxs[0]][1]
-                                cluster = machines[mxs[0]][2]
-                            if cluster == None:
-                                cluster = ""
+                        jobdesc = ""
+                    preemptable = details.get("PREEMPTABLE", "").lower() == "yes"
+                    verbose.write("New job %s%s\n" % (jobid, jobdesc))
+
+                    # Variables to record the scheduling data
+                    site = None      # All machines will be at the same site
+                    cluster = None   # All machines will be from the same cluster
+                    selected = []    # The machines we choose
+
+                    # Check how many machines are needed
+                    if details.has_key("MACHINES_REQUIRED"):
+                        try:
+                            machines_required = int(details["MACHINES_REQUIRED"])
+                        except ValueError:
+                            verbose.write("Warning: skipping job %s because of invalid MACHINES_REQUIRED value\n" % jobid)
+                            continue
+                    else:
+                        machines_required = 1
+
+                    # If the job explicitly asked for named machine(s) then check
+                    # their availability.
+                    if details.has_key("MACHINE"):
+                        if details.has_key("USERID"):
+                            leasedmachineslist = self.scm_machine_list(status="idle", leasecheck=details['USERID'])
+                            leasedmachines = {}
+                            for m in leasedmachineslist:
+                                if not m[1] in offline_sites:
+                                    leasedmachines[m[0]] = m
+                            verbose.write("Job specified specific machines, so machines (%s) available\n" % ",".join(leasedmachines.keys()))
                         else:
-                            if verbose:
-                                outfh.write("  wants %s, not available\n" % (mxs[0]))
-                            # unscheduable at the moment
-                            continue
-                        # Any remaining machines have site and cluster ignored
-                        schedulable = True
-                        for mx in mxs[1:]:
-                            if len(selected) == machines_required:
-                                break
-                            if machines.has_key(mx) or leasedmachines.has_key(mx):
-                                selected.append(mx)
-                                if verbose:
-                                    outfh.write("  wants %s, it is available\n" % (mx))
+                            leasedmachines = {}
+                        mxs = string.split(details["MACHINE"], ",")
+                        if len(mxs) > 0:
+                            if machines.has_key(mxs[0]) or leasedmachines.has_key(mxs[0]):
+                                verbose.write("  wants %s, it is available\n" % (mxs[0]))
+                                selected.append(mxs[0])
+                                if leasedmachines.has_key(mxs[0]):
+                                    site = leasedmachines[mxs[0]][1]
+                                    cluster = leasedmachines[mxs[0]][2]
+                                else:
+                                    site = machines[mxs[0]][1]
+                                    cluster = machines[mxs[0]][2]
+                                if cluster == None:
+                                    cluster = ""
                             else:
-                                if verbose:
-                                    outfh.write("  wants %s, not available\n" % (mx))
+                                verbose.write("  wants %s, not available\n" % (mxs[0]))
                                 # unscheduable at the moment
-                                schedulable = False
+                                continue
+                            # Any remaining machines have site and cluster ignored
+                            schedulable = True
+                            for mx in mxs[1:]:
+                                if len(selected) == machines_required:
+                                    break
+                                if machines.has_key(mx) or leasedmachines.has_key(mx):
+                                    selected.append(mx)
+                                    verbose.write("  wants %s, it is available\n" % (mx))
+                                else:
+                                    verbose.write("  wants %s, not available\n" % (mx))
+                                    # unscheduable at the moment
+                                    schedulable = False
 
-                        if not schedulable:
-                            continue
-                else:
-                    if details.has_key("SITE"):
-                        site = details["SITE"]
-                    if details.has_key("CLUSTER"):
-                        cluster = details["CLUSTER"]
+                            if not schedulable:
+                                continue
+                            # Do one ACL check at this stage
+                            if not self.check_acl_for_machines(selected, details['USERID'], number=len(selected), preemptable=preemptable):
+                                verbose.write("  at least one specified machine not allowed by ACL\n")
+                                continue
+                    else:
+                        if details.has_key("SITE"):
+                            site = details["SITE"]
+                        if details.has_key("CLUSTER"):
+                            cluster = details["CLUSTER"]
 
-                # If we get here then we may have found one or more machines
-                # explicitly requested by the job. Now find any remaining ones.
-                # We may also have found nothing at all so far which means we're
-                # not yet constrained by site or cluster
-                still_needed = machines_required - len(selected)
+                    # If we get here then we may have found one or more machines
+                    # explicitly requested by the job. Now find any remaining ones.
+                    # We may also have found nothing at all so far which means we're
+                    # not yet constrained by site or cluster
+                    still_needed = machines_required - len(selected)
 
-                if still_needed > 0:
+                    if still_needed > 0:
 
-                    self.scm_select_machines(outfh, machines,
-                                         still_needed,
-                                         selected,
-                                         site,
-                                         cluster,
-                                         details,
-                                         verbose=verbose)
+                        self.scm_select_machines(outfh, machines,
+                                             still_needed,
+                                             selected,
+                                             site,
+                                             cluster,
+                                             details,
+                                             preemptable,
+                                             verbose=verbose)
 
-                if len(selected) < machines_required:
-                    continue
+                    if len(selected) < machines_required:
+                        continue
 
-                # If we've been able to find all the machines we need, go ahead
-                # and schedule them all. The first machine is the primary,
-                # it is the one that triggers the site-controller to run
-                # the harness.
-                if dryrun:
-                    outfh.write("  could schedule %u on %s\n" % (int(jobid), str(selected)))
-                    continue
-                outfh.write("  scheduling %u on %s (%d)\n" % (int(jobid), str(selected), schedid))
-                self.schedule_on(outfh, int(jobid), selected)
-                
-                if not site:
-                    site = machines[selected[0]][1]
-                if self.schedulercache["siteresources"].has_key(site):
-                    del self.schedulercache["siteresources"][site]
+                    # If we've been able to find all the machines we need, go ahead
+                    # and schedule them all. The first machine is the primary,
+                    # it is the one that triggers the site-controller to run
+                    # the harness.
+                    if dryrun:
+                        outfh.write("  could schedule %u on %s\n" % (int(jobid), str(selected)))
+                        continue
+                    outfh.write("  scheduling %u on %s (%d)\n" % (int(jobid), str(selected), schedid))
+                    if alsoPrintToVerbose:
+                        verbose.write("  scheduling %u on %s (%d)\n" % (int(jobid), str(selected), schedid))
+                    self.schedule_on(outfh, int(jobid), selected, details['USERID'], preemptable)
+                    
+                    if not site:
+                        site = machines[selected[0]][1]
+                    if self.schedulercache["siteresources"].has_key(site):
+                        del self.schedulercache["siteresources"][site]
 
-                # And mark these machines as being unavailable
-                for m in selected:
-                    if machines.has_key(m):
-                        del machines[m]
+                    # And mark these machines as being unavailable
+                    for m in selected:
+                        if machines.has_key(m):
+                            del machines[m]
 
-                if sitecapacity.has_key(site):
-                    sitecapacity[site] -= 1
-                    if sitecapacity[site] <= 0:
-                        for m in machines.keys():
-                            if machines[m][1] == site:
-                                del machines[m]
+                    if sitecapacity.has_key(site):
+                        sitecapacity[site] -= 1
+                        if sitecapacity[site] <= 0:
+                            for m in machines.keys():
+                                if machines[m][1] == site:
+                                    del machines[m]
+                except Exception, e:
+                    print "WARNING: Could not schedule job %d - %s" % (int(jobid), str(e))
         finally:
             self.release_lock()
 
-        if verbose:
-            outfh.write("Scheduler %d completed %s\n" % (schedid,time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime())))
+        verbose.write("Scheduler %d completed %s\n" % (schedid,time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime())))
+        finishtime = time.mktime(time.gmtime())
+
+        outfh.write("Scheduler took %ds to acquire lock and %ds to run\n" % (int(postlocktime-prelocktime), int(finishtime-postlocktime)))
+        if alsoPrintToVerbose:
+            verbose.write("Scheduler took %ds to acquire lock and %ds to run\n" % (int(postlocktime-prelocktime), int(finishtime-postlocktime)))
+        if writeVerboseFile:
+            with open("%s/schedule.log" % config.schedule_log_dir, "w") as f:
+                f.write(verbose.getvalue())
 
 
     def get_lock(self):
@@ -225,9 +258,9 @@ class XenRTSchedule(XenRTAPIPage):
             self.mutex_held += 1
         else:
             if not self.mutex:
-                self.mutex = pgdb.connect(config.dbConnectString)
+                self.mutex = app.db.dbWriteInstance()
             cur = self.mutex.cursor()
-            cur.execute("LOCK TABLE scheduleLock")
+            cur.execute("LOCK TABLE scheduleLock NOWAIT")
             self.mutex_held = 1
 
     def release_lock(self):
@@ -252,25 +285,30 @@ class XenRTSchedule(XenRTAPIPage):
                         "m.leaseTo IS NOT NULL")
 
             exp = []
+            exp1 = []
             while True:
                 rc = cur.fetchone()
                 if not rc:
                     break
                 m = string.strip(rc[0])
-                l = string.strip(str(rc[1]))
-                ut = time.mktime(time.strptime(l, "%Y-%m-%d %H:%M:%S"))
+                ut = calendar.timegm(rc[1].timetuple())
                 if ut < time.time():
                     exp.append("'%s'" % (m))
+                    exp1.append(m)
             if len(exp) > 0:
                 cur.execute("UPDATE tblMachines SET leaseTo = NULL, "
                             "comment = NULL, leaseFrom = NULL, leaseReason = NULL WHERE machine in (%s)" %
                             (string.join(exp, ", ")))
+                timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))
+                for e in exp1:
+                    cur.execute("INSERT INTO tblEvents(ts, etype, subject, edata) VALUES (%s, %s, %s, %s);",
+                                    [timenow, "LeaseEnd", e, None])
             db.commit()
             cur.close()
-        except:
-            pass
+        except Exception, e:
+            print "WARNING: Could not run scm_check_leases - %s" % str(e)
 
-    def schedule_on(self, outfh, job, machines):
+    def schedule_on(self, outfh, job, machines, userid, preemptable):
         db = self.getDB()
         debug = False
         if not debug:
@@ -285,7 +323,7 @@ class XenRTSchedule(XenRTAPIPage):
                 else:
                     schstrings[-1] = schstrings[-1] + "," + machine
             if len(schstrings) == 0:
-                raise "No SCHEDULEDON string set"
+                raise "No SCHEDULEDON string set - job %u" % job
             if len(schstrings) > 3:
                 raise "Machine list too long for the three SCHEDULEDON strings: " \
                       "%s" % (string.join(machines, ","))
@@ -316,6 +354,9 @@ class XenRTSchedule(XenRTAPIPage):
                 cur.execute(sql)
                 cur.close()
         if not debug:
+            # Update the ACL cache
+            for m in machines:
+                self.getACLHelper().update_acl_cache(m, userid, preemptable)
             # Now we're complete, mark the job as running
             self.set_status(job, app.constants.JOB_STATUS_RUNNING, commit=True)
 
@@ -364,7 +405,7 @@ class XenRTSchedule(XenRTAPIPage):
                 # since the epoch) in the future.
                 if details.has_key("START_AFTER"):
                     sa = int(details["START_AFTER"])
-                    if sa > int(time.mktime(time.gmtime())):
+                    if sa > int(time.time()):
                         continue
 
                 # Exclude any jobs with time windows that are not currently open
@@ -377,7 +418,7 @@ class XenRTSchedule(XenRTAPIPage):
                 pass
         return jobs
 
-    def scm_select_machines(self, outfh, machines, number, selected, site, cluster, details, verbose=False):
+    def scm_select_machines(self, outfh, machines, number, selected, site, cluster, details, preemptable, verbose=None):
         """Select <number> machines from the <machines> dictionary.
 
         The job may be partly done already and the <selected> list will contain
@@ -425,34 +466,41 @@ class XenRTSchedule(XenRTAPIPage):
                 clusters[(s, c)] = {}
             clusters[(s, c)][m[0]] = m
 
+        clusterprios = {}
+        for cluster in clusters.keys():
+            clusterprios[cluster] = max([int(m[13]) for m in clusters[cluster].values()])
+
         # Try each cluster
         # Randomise the list so we spread the load a bit (XRT-737)
         cs = clusters.keys()
         random.shuffle(cs)
+        cs.sort(key=lambda x: clusterprios[x])
         for cluster in cs:
             s, c = cluster
-            if verbose:
-                outfh.write("  checking site %s, cluster %s...\n" % (s, c))
+            verbose.write("  checking site %s, cluster %s...\n" % (s, c))
+
             # Check the available shared resources on the site
             if details.has_key("SHAREDRESOURCES"):
                 sharedresourcesavailable = self.site_available_shared_resources(s)
                 sharedresourcesneeded = app.utils.parse_shared_resources(details["SHAREDRESOURCES"])
-                if verbose:
-                    outfh.write("Shared resources available: %s\n" % ("/".join(map(lambda x:"%s=%s" % (x, sharedresourcesavailable[x]), sharedresourcesavailable.keys()))))
-                    outfh.write("Shared resources needed: %s\n" % ("/".join(map(lambda x:"%s=%s" % (x, sharedresourcesneeded[x]), sharedresourcesneeded.keys()))))
+                verbose.write("Shared resources available: %s\n" % ("/".join(map(lambda x:"%s=%s" % (x, sharedresourcesavailable[x]), sharedresourcesavailable.keys()))))
+                verbose.write("Shared resources needed: %s\n" % ("/".join(map(lambda x:"%s=%s" % (x, sharedresourcesneeded[x]), sharedresourcesneeded.keys()))))
                 valid = True
                 for r in sharedresourcesneeded.keys():
                     if (not sharedresourcesavailable.has_key(r)) or sharedresourcesavailable[r] < sharedresourcesneeded[r]:
-                        if verbose:
-                            outfh.write("Too small - not enough %s\n" % r)
+                        verbose.write("Too small - not enough %s\n" % r)
                         valid = False
                 if not valid:
                     continue
             
             # Check there are enough machines left in the cluster
             if len(clusters[cluster]) < number:
-                if verbose:
-                    outfh.write("    too small (%u < %u)\n" % (len(clusters[cluster]), number))
+                verbose.write("    too small (%u < %u)\n" % (len(clusters[cluster]), number))
+                continue
+
+            # Check there are no ACL restrictions
+            if not self.check_acl_for_machines(clusters[cluster].keys(), details['USERID'], selected, number, preemptable):
+                verbose.write("    not allowed by ACL\n")
                 continue
 
             selx = []
@@ -480,6 +528,7 @@ class XenRTSchedule(XenRTAPIPage):
                 # Consider each machine in this cluster
                 # Randomise the list so we spread the load a bit (XRT-737)
                 random.shuffle(ms)
+                ms.sort(key=lambda x: int(x[13]))
                 for m in ms:
                     if m[0] in selx:
                         # Machine already provisionally selected
@@ -560,8 +609,7 @@ class XenRTSchedule(XenRTAPIPage):
                             continue
 
                     # All OK
-                    if verbose:
-                        outfh.write("      %s suitable\n" % (m[0]))
+                    verbose.write("      %s suitable\n" % (m[0]))
                     found = True
                     selx.append(m[0])
                     needed -= 1
@@ -575,15 +623,78 @@ class XenRTSchedule(XenRTAPIPage):
             # If we found enough machines in this pool then we're done
             if needed == 0:
                 selected.extend(selx)
-                if verbose:
-                    outfh.write("    sufficient machines found (%u)\n" % (len(selected)))
+                verbose.write("    sufficient machines found (%u)\n" % (len(selected)))
                 return True
             else:
-                if verbose:
-                    outfh.write("    insufficient machines found\n")
+                verbose.write("    insufficient machines found\n")
 
         # If we get here then we were not able to find sufficient machines
         # in any cluster.
         return False
-                
-PageFactory(XenRTSchedule, "schedule", "/api/schedule", compatAction="schedule")
+
+    def get_acls_for_machines(self, machines):
+        if len(machines) == 0:
+            return {}
+
+        db = self.getDB()
+        policies = {}
+        cur = db.cursor()
+
+        # First identify the set of acls and the number of machines from 'machines' that are in that acl
+        cur.execute("SELECT aclid, COUNT(machine) FROM tblmachines WHERE machine IN (%s) AND aclid IS NOT NULL GROUP BY aclid" %
+                    (','.join(map(lambda m: "'%s'" % m, machines))))
+        while True:
+            rc = cur.fetchone()
+            if not rc:
+                break
+            policies[int(rc[0])] = int(rc[1])
+
+        if len(policies.keys()) == 0:
+            return policies
+
+        # Now identify any parent acls that we need to check
+        cur.execute("SELECT a.parent, COUNT(m.machine) FROM tblmachines AS m INNER JOIN tblacls AS a ON m.aclid=a.aclid WHERE machine IN (%s) AND a.parent IS NOT NULL GROUP BY a.parent" %
+                    (','.join(map(lambda m: "'%s'" % m, machines))))
+        while True:
+            rc = cur.fetchone()
+            if not rc:
+                break
+            p = int(rc[0])
+            if policies.has_key(p):
+                # The ACL is in use both directly on some machines and as a parent, so we add the numbers together
+                policies[p] += int(rc[1])
+            else:
+                policies[p] = int(rc[1])
+        cur.close()
+
+        return policies      
+
+    def check_acl_for_machines(self, machines, userid, already_selected=[], number=1, preemptable=False):
+        # Identify the policies we need to check
+        policies = self.get_acls_for_machines(machines)
+        if len(policies.keys()) == 0:
+            # No policies for these machines, so all are OK
+            return True
+
+        existingPolicies = self.get_acls_for_machines(already_selected)
+
+        # TODO: Currently if scheduling from a cluster which has
+        #       machines from different ACLs we take a pessimistic
+        #       view where we assume all machines will be coming
+        #       from that ACL (capped to the number of machines in the ACL).
+        #       This is overly limiting, particularly in a CROSS_CLUSTER
+        #       situation!
+
+        # Go through each policy and check if we're OK
+        for p in policies.keys():
+            machineCount = min(number, policies[p]) # We want 'number' extra machines
+            if existingPolicies.has_key(p):
+                # We do however have to add on any already selected machines in the same ACL as these won't
+                # be taken into account otherwise
+                machineCount += existingPolicies[p]
+
+            if not self.getACLHelper().check_acl(p, userid, machines[:machineCount], ignoreParent=True, preemptable=preemptable)[0]:
+                return False
+
+        return True
+

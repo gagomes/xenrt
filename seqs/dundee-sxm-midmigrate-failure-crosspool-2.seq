@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<xenrt>
+
+  <!-- Sequence to test the various storage xen migration test cases. -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <!-- <pool id="0" name="sourceSXMPool"> -->
+    <pool id="0">
+      <host id="0" installsr="lvm" />
+    </pool>
+    <!-- <pool id="1" name="targetSXMPool"> -->
+    <pool id="1">
+      <host id="1" installsr="ext" />
+    </pool>
+  </prepare>
+
+  <testsequence>
+
+    <serial group="CrossPoolMidMigSXM">
+      <testcase id="xenserver.tc.sxm.InsuffSpaceDestSR" name="TC17127" tc="TC-17127">
+        <arg>src_SR=lvm</arg>
+        <arg>dest_SR=ext</arg>
+        <arg>negative_test</arg>
+      </testcase>
+
+    </serial>
+
+  </testsequence>
+
+</xenrt>
+

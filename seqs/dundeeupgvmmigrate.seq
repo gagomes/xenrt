@@ -1,0 +1,86 @@
+<xenrt>
+
+  <default name="OLD_PRODUCT_VERSION" value="Clearwater"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446"/>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}"/>
+    <host id="1" />
+  </prepare>
+
+  <testsequence>
+    <parallel group="UpgradeVM" workers="3">
+      <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="win7sp1-x86,2G" tc="TC-21208" sku="win7sp1-x86/x86-32/2G" />
+      <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="debian60x86,2G" tc="TC-21208" sku="debian60/x86-32/2G" />
+      <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="win8-x64,7G" tc="TC-21208" sku="win8-x64/x86-64/7G" />
+      <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="win81-x64,11G" tc="TC-21208" sku="win81-x64/x86-64/11G" />
+      <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="w2k3eesp2,13G" tc="TC-21208" sku="w2k3eesp2/x86-32/13G" />
+      <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="winxpsp3,2G" tc="TC-21208" sku="winxpsp3/x86-32/2G" />
+      <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="ws08r2sp1-x64,3G" tc="TC-21208" sku="ws08r2sp1-x64/x86-32/3G" />
+      <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="ws12-x64,5G" tc="TC-21208" sku="ws12-x64/x86-64/5G" />
+      <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="ws12r2core-x64,4G" tc="TC-21208" sku="ws12r2core-x64/x86-64/4G" />
+      <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="vistaeesp2,2G" tc="TC-21208" sku="vistaeesp2/x86-32/2G" />
+      <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="debian70x64,9G" tc="TC-21208" sku="debian70/x86-64/9G" />
+      <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="centos47x86,3G" tc="TC-21208" sku="centos47/x86-32/3G" />
+      <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="centos64x64,8G" tc="TC-21208" sku="centos64/x86-64/8G" />
+      <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="sles112x86,12G" tc="TC-21208" sku="sles112/x86-32/12G" />
+      <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="ubuntu1004x86,15G" tc="TC-21208" sku="ubuntu1004/x86-32/15G" />
+      <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="ubuntu1204x64,12G" tc="TC-21208" sku="ubuntu1204/x86-64/12G" />
+    </parallel>
+    <parallel group="UpgradeVMBalloon" workers="3">
+      <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="win7sp1-x86,4G" tc="TC-21543" sku="win7sp1-x86/x86-32/2G">
+        <arg>BalloonTo=2G</arg>
+      </testcase>
+      <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="debian60x86,2G" tc="TC-21543" sku="debian60/x86-32/2G">
+        <arg>BalloonTo=1G</arg>
+      </testcase>
+      <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="win8-x64,7G" tc="TC-21543" sku="win8-x64/x86-64/7G" >
+        <arg>BalloonTo=4G</arg>
+      </testcase>
+      <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="win81-x64,11G" tc="TC-21543" sku="win81-x64/x86-64/11G">
+        <arg>BalloonTo=9G</arg>
+      </testcase>
+      <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="w2k3eesp2,13G" tc="TC-21543" sku="w2k3eesp2/x86-32/13G">
+        <arg>BalloonTo=2G</arg>
+      </testcase>
+      <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="winxpsp3,2G" tc="TC-21543" sku="winxpsp3/x86-32/2G">
+        <arg>BalloonTo=700M</arg>
+      </testcase>
+      <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="ws08r2sp1-x64,3G" tc="TC-21543" sku="ws08r2sp1-x64/x86-32/3G" >
+        <arg>BalloonTo=1G</arg>
+      </testcase>
+      <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="ws12-x64,5G" tc="TC-21543" sku="ws12-x64/x86-64/5G">
+        <arg>BalloonTo=2G</arg>
+      </testcase>
+      <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="ws12r2core-x64,4G" tc="TC-21543" sku="ws12r2core-x64/x86-64/4G">
+        <arg>BalloonTo=2G</arg>
+      </testcase>
+      <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="vistaeesp2,3G" tc="TC-21543" sku="vistaeesp2/x86-32/2G">
+        <arg>BalloonTo=2G</arg>
+      </testcase>
+      <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="debian70x64,9G" tc="TC-21543" sku="debian70/x86-64/9G">
+        <arg>BalloonTo=8G</arg>
+      </testcase>
+      <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="centos47x86,3G" tc="TC-21543" sku="centos47/x86-32/3G">
+        <arg>BalloonTo=3G</arg>
+      </testcase>
+      <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="centos64x64,8G" tc="TC-21543" sku="centos64/x86-64/8G">
+        <arg>BalloonTo=2G</arg>
+      </testcase>
+      <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="sles112x86,12G" tc="TC-21543" sku="sles112/x86-32/12G">
+        <arg>BalloonTo=7G</arg>
+      </testcase>
+      <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="ubuntu1004x86,15G" tc="TC-21543" sku="ubuntu1004/x86-32/15G">
+        <arg>BalloonTo=13G</arg>
+      </testcase>
+      <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="ubuntu1204x64,12G" tc="TC-21543" sku="ubuntu1204/x86-64/12G">
+        <arg>BalloonTo=2G</arg>
+      </testcase>
+    </parallel>
+  </testsequence>
+
+</xenrt>

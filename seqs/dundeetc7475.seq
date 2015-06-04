@@ -1,0 +1,19 @@
+<xenrt>
+
+  <!-- MNR TC-7475 test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <serial group="DisklessVM">
+      <testcase id="xenserver.tc.guest.TC7475"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

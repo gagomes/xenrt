@@ -1,0 +1,14 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <OLD_PRODUCT_VERSION>MNR</OLD_PRODUCT_VERSION>
+    <OLD_PRODUCT_INPUTDIR>/usr/groups/release/XenServer-5.6.0</OLD_PRODUCT_INPUTDIR>
+  </variables>
+
+  <testsequence>
+    <serial group="ImpExp56">
+      <testcase id="xenserver.tc.upgrade.TC12545"/>
+    </serial>
+  </testsequence>
+</xenrt>

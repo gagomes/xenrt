@@ -1,0 +1,49 @@
+<?xml version="1.0" ?>
+<xenrt>
+
+  <!-- Verify license tests on a pool of Creedence hosts -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <pool>
+      <host id="0" license="no" defaultlicense="no">
+        <vm name="LicenseServer">
+          <file>%LICENSE_SERVER_XVA%</file>
+          <postinstall action="installV6LicenseServer"/>
+        </vm>
+      </host>
+      <host id="1" license="no" defaultlicense="no">
+        <vm name="linux">
+          <distro>debian60</distro>
+          <network device="0" />
+          <postinstall action="preCloneTailor"/>
+        </vm>
+      </host>
+    </pool>
+  </prepare>
+
+  <testsequence>
+
+    <serial group="PoolLicense">
+
+      <testcase id="xenserver.tc.mulskulicense.LicenseBase" name="LicenseBasic" tc="TC-23363">
+        <arg>sku=PerSocketEnterprise,PerUserEnterprise,PerConcurrentUserEnterprise,PerSocketStandard,XenDesktop,XenDesktopXDS,XenDesktopMPS</arg>
+      </testcase>
+
+      <testcase id="xenserver.tc.mulskulicense.TCLicenseExpiry" name="LicenseExpiry" tc="TC-23339">
+        <arg>edition=PerSocketEnterprise,XenDesktop</arg>
+      </testcase>
+
+      <testcase id="xenserver.tc.mulskulicense.TCLicenseGrace" name="LicenseGrace" tc="TC-23338">
+        <arg>edition=PerSocketEnterprise,XenDesktop</arg>
+      </testcase>
+
+    </serial>
+
+  </testsequence>
+
+</xenrt>
+

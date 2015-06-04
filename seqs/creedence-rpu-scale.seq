@@ -1,5 +1,5 @@
 <xenrt>
-
+  <!-- XenDesktop RPU scale with a mid-sized deployment -->
   <default name="VMSPERHOST" value="5" />
   <default name="THREADS" value="50" />
   <default name="DISTRO" value="win7sp1-x86" />
@@ -13,18 +13,12 @@
     <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
     <NTHREADS>50</NTHREADS>
     <ENABLE_VM_CONSOLE_LOGS>no</ENABLE_VM_CONSOLE_LOGS>
+    <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
   </variables>
-
-  <scheduler>
-    <param>MACHINES_REQUIRED=16</param>
-    <pool>VMX</pool>
-    <param>SITE=SC03</param>
-    <!-- cl11-01,cl11-02,cl11-03,cl11-04,cl11-05,cl11-06,cl11-07,cl11-08,cl11-09,cl11-10,cl11-11,cl11-12,cl11-13,cl11-14,cl11-15,cl11-16 -->
-  </scheduler>
 
   <prepare>
     <pool>
-      <storage type="nfs" name="nfs1" default="true" network="STORAGE01"/>
+      <storage type="nfs" name="nfs1" default="true"/>
       <allhosts productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}" />
 
       <vm name="gold0">
@@ -42,13 +36,13 @@
   </prepare>
 
   <testsequence>
-    <testcase id="xenserver.tc.scalability.TCXenDesktopCloneVMs">
+    <testcase id="xenserver.tc.scalability.TCXenDesktopCloneVMs" tc="TC-26852" sku="CloneVMs" name="CloneVMs">
       <arg>vmsperhost=${VMSPERHOST}</arg>
       <arg>threads=${THREADS}</arg>
     </testcase>
-    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopStart">
+    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopStart" tc="TC-26852" sku="XDStartVMs" name="XDStartVMs">
       <arg>threads=${THREADS}</arg>
     </testcase>
-    <!-- testcase id="xenserver.tc.scalability.TCScaleXenDesktopRpu" / -->
+    <testcase id="xenserver.tc.scalability.TCScaleXenDesktopRpu"  tc="TC-26852" sku="RPU" name="RPU"/>
   </testsequence>
 </xenrt>

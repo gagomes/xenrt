@@ -13,6 +13,7 @@ import socket, re, string, time, traceback, sys, random, copy, os, os.path, urll
 import xenrt, xenrt.lib.xenserver, XenAPI, httplib, threading
 import base64, subprocess, zlib
 import xml.dom.minidom 
+from xml.dom.minidom import parseString
 from xml.dom import minidom
 from xenrt.lazylog import step, comment, log, warning
 
@@ -1489,7 +1490,7 @@ print allocated
         try:
             host.execdom0("echo '%s' >/tmp/tmp/scriptAllocated.py" % script)
             python = host.execdom0('which python').strip()
-            data = host.execdom0("%s /tmp/tmp/scriptAllocated.py" % python,timeout=900)
+            data = host.execdom0("%s /tmp/tmp/scriptAllocated.py" % python,timeout=1080)
         except:
             raise xenrt.XRTFailure("Unable to get the allocated blocks")
         data = data.replace("[","")
@@ -2303,7 +2304,7 @@ class TC14140(TC14139):
   
     USESSL = True
 
-class IscsiTest(_TransferVM,VhdFunctions):
+class IscsiTest(VhdFunctions):
 
     SIZE = None
  
@@ -2449,15 +2450,13 @@ client = yes
             tempStr = self.cli.execute("sr-probe",string.join(args))
         except Exception, e:
             tempStr = str(e.data)
+            tempStr = '\n'.join(tempStr.split('\n')[2:])
 
-        count = 1
-        while 1:
-            line = tempStr.splitlines()[count]
-            if "<SCSIid>" in line:
-                scsiId = tempStr.splitlines()[count +1]
-                scsiId = scsiId.strip()
-                break
-            count = count +1
+        temp = parseString(tempStr)
+        ids = temp.getElementsByTagName('SCSIid')
+        for id in ids:
+            for node in id.childNodes:
+                scsiId = (node.nodeValue).strip()
         return scsiId
 
     def postRun(self):

@@ -1,0 +1,103 @@
+<xenrt>
+
+  <!-- Read Caching Funcitonal Tests -->
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0" installsr="ext">
+      <vm name="arnie">
+        <distro>generic-linux</distro>
+        <postinstall action="snapshot" />
+      </vm>
+      <vm name="sly">
+        <distro>generic-linux</distro>
+        <storage>nfssr</storage>
+        <postinstall action="snapshot" />
+      </vm>
+      <vm name="vandamme">
+        <distro>generic-linux</distro>
+        <storage>cifssr</storage>
+        <postinstall action="snapshot" />
+      </vm>
+      <storage type="nfs" name="nfssr" />
+      <storage type="smb" name="cifssr" options="vm"/>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="RCNFS">
+      <!-- Verify both xapi and tap-ctl are set by licensing state and the values agree -->
+      <testcase id="testcases.xenserver.tc.readcaching.TCLicensingRCEnabled" tc="TC-23923" name="TC-23923.WithHotfix" sku="WithHotfix">
+        <arg>bothChecks=yes</arg>
+        <arg>vm=arnie</arg>
+      </testcase>
+
+      <testcase id="testcases.xenserver.tc.readcaching.TCLicensingRCDisabled" tc="TC-23924" name="TC-23924">
+        <arg>bothChecks=yes</arg>
+        <arg>vm=arnie</arg>
+      </testcase>
+
+      <!-- Switch off RC with a low level hook and check it is off -->
+      <testcase id="testcases.xenserver.tc.readcaching.TCOdirectRCDisabled" tc="TC-23925" name="TC-23925">
+        <arg>bothChecks=yes</arg>
+        <arg>vm=arnie</arg>
+      </testcase>
+
+      <!-- The prepare should switch this back on so verify that again RC is back -->
+      <testcase id="testcases.xenserver.tc.readcaching.TCLicensingRCEnabled" tc="TC-23923" name="TC-23923.LowLevelEnabled" sku="LowLevelEnabled">
+        <arg>bothChecks=yes</arg>
+        <arg>vm=arnie</arg>
+      </testcase>
+
+      <!-- Test a series of lifecycle ops to check RC is disabled -->
+      <testcase id="testcases.xenserver.tc.readcaching.TCRCForLifeCycleOps" tc="TC-23926" name="TC-23926">
+        <arg>vm=arnie</arg>
+      </testcase>
+
+      <!-- Test SR plug-unplug -->
+      <testcase id="testcases.xenserver.tc.readcaching.TCRCForSRPlug" tc="TC-23927" name="TC-23927">
+        <arg>bothChecks=yes</arg>
+        <arg>vm=sly</arg>
+      </testcase>
+    </serial>
+
+    <serial group="RCCIFS">
+      <!-- Verify both xapi and tap-ctl are set by licensing state and the values agree -->
+      <testcase id="testcases.xenserver.tc.readcaching.TCLicensingRCEnabled" tc="TC-23923" name="TC-23923.CIFSWithHotfix" sku="CIFSWithHotfix">
+        <arg>bothChecks=yes</arg>
+        <arg>vm=vandamme</arg>
+      </testcase>
+
+      <testcase id="testcases.xenserver.tc.readcaching.TCLicensingRCDisabled" tc="TC-23924" name="TC-23924.WithCIFS" sku="WithCIFS">
+        <arg>bothChecks=yes</arg>
+        <arg>vm=vandamme</arg>
+      </testcase>
+
+      <!-- Switch off RC with a low level hook and check it is off -->
+      <testcase id="testcases.xenserver.tc.readcaching.TCOdirectRCDisabled" tc="TC-23925" name="TC-23925.WithCIFS" sku="WithCIFS">
+        <arg>bothChecks=yes</arg>
+        <arg>vm=vandamme</arg>
+      </testcase>
+
+      <!-- The prepare should switch this back on so verify that again RC is back -->
+      <testcase id="testcases.xenserver.tc.readcaching.TCLicensingRCEnabled" tc="TC-23923" name="TC-23923.CIFSLowLevelEnabled" sku="CIFSLowLevelEnabled">
+        <arg>bothChecks=yes</arg>
+        <arg>vm=vandamme</arg>
+      </testcase>
+
+      <!-- Test a series of lifecycle ops to check RC is disabled -->
+      <testcase id="testcases.xenserver.tc.readcaching.TCRCForLifeCycleOps" tc="TC-23926" name="TC-23926.WithCIFS" sku="WithCIFS">
+        <arg>vm=vandamme</arg>
+      </testcase>
+
+      <!-- Test SR plug-unplug -->
+      <testcase id="testcases.xenserver.tc.readcaching.TCRCForSRPlug" tc="TC-23927" name="TC-23927.WithCIFS" sku="WithCIFS">
+        <arg>bothChecks=yes</arg>
+        <arg>vm=vandamme</arg>
+      </testcase>
+
+    </serial>
+  </testsequence>
+</xenrt>

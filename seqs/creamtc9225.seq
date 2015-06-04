@@ -1,0 +1,20 @@
+<xenrt>
+
+  <!-- Live checkpoint per OS consistency tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <serial group="Snappoint">
+      <testcase id="xenserver.tc.checkpoint.TC26423"/>
+      <testcase id="xenserver.tc.checkpoint.TC26424"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

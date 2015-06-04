@@ -4,7 +4,7 @@
   <!-- Jumbo Test Sequence -->
 
   <variables>
-    <PRODUCT_VERSION>Sarasota</PRODUCT_VERSION>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
     <NETWORK_BACKEND>vswitch</NETWORK_BACKEND>
   </variables>
 

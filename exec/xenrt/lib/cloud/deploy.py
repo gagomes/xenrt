@@ -22,7 +22,8 @@ class DeployerPlugin(object):
         self.currentZoneIx = -1
         self.currentPodIx = -1
         self.currentClusterIx = -1
-        self.currentPrimaryStoreIx = -1
+        self.currentPrimaryStoreZoneIx = -1
+        self.currentPrimaryStoreClusterIx = -1
 
         self.currentZoneName = None
         self.currentPodName = None
@@ -39,6 +40,7 @@ class DeployerPlugin(object):
             self.currentZoneIx += 1
             self.currentPodIx = -1
             self.currentClusterIx = -1
+            self.currentPrimaryStoreZoneIx = -1
             nameValue = 'XenRT-Zone-%d' % (self.currentZoneIx)
         elif key == 'Pod':
             self.currentPodIx += 1
@@ -46,7 +48,7 @@ class DeployerPlugin(object):
             nameValue = '%s-Pod-%d' % (self.currentZoneName, self.currentPodIx)
         elif key == 'Cluster':
             self.currentClusterIx += 1
-            self.currentPrimaryStoreIx = -1
+            self.currentPrimaryStoreClusterIx = -1
             nameValue = '%s-Cluster-%d' % (self.currentPodName, self.currentClusterIx)
         xenrt.TEC().logverbose('getName returned: %s for key: %s' % (nameValue, key))
         return nameValue
@@ -102,7 +104,7 @@ class DeployerPlugin(object):
             xenrt.GEC().registry.dump()
             xenrt.TEC().logverbose("XRT_NetscalerGateway")
             ns = xenrt.GEC().registry.objGet("netscaler", ref['XRT_NetscalerGateway'])
-            return ns.gatewayIp(ref.get("XRT_VlanName", "NPRI"))
+            return ns.subnetIp(ref.get("XRT_VlanName", "NPRI"))
         else:
             return xenrt.getNetworkParam(ref.get("XRT_VlanName", "NPRI"), "GATEWAY")
 
@@ -253,10 +255,19 @@ class DeployerPlugin(object):
         else:
             ps.append({"XRT_PriStorageType": "NFS"})
         return ps
-    
+
     def getPrimaryStorageName(self, key, ref):
-        self.currentPrimaryStoreIx += 1
-        name = '%s-Primary-Store-%d' % (self.currentClusterName, self.currentPrimaryStoreIx)
+        if ref.get("scope",False) == "zone":
+            if "hypervisor" not in ref:
+                raise xenrt.XRTError('hypervisor not specified for zone wide primary storage.')
+            elif ref["hypervisor"] not in ["KVM", "vmware"]:
+                raise xenrt.XRTError('Only KVM and vmware hypervisor support zone wide primary storage.')
+            ref["XRT_PriStorageType"] = "NFS"
+            self.currentPrimaryStoreZoneIx += 1
+            name = '%s-Primary-Store-%d' % (self.currentZoneName, self.currentPrimaryStoreZoneIx)
+        else:
+            self.currentPrimaryStoreClusterIx += 1
+            name = '%s-Primary-Store-%d' % (self.currentClusterName, self.currentPrimaryStoreClusterIx)
         return name
 
     def getPrimaryStorageUrl(self, key, ref):
@@ -314,9 +325,9 @@ class DeployerPlugin(object):
     def getHostsForCluster(self, key, ref):
         xenrt.TEC().logverbose('getHostsForCluster, %s, %s' % (key, ref))
         hosts = []
-        if ref.has_key('hypervisor') and ref['hypervisor'].lower() == 'xenserver' and ref.has_key('XRT_MasterHostId'):
+        if ref.has_key('hypervisor') and ref['hypervisor'].lower() == 'xenserver' and ref.has_key('XRT_MasterHostName'):
             # TODO - move this to the host notify block (in notifyNewElement)
-            hostObject = xenrt.TEC().registry.hostGet('RESOURCE_HOST_%d' % (ref['XRT_MasterHostId']))
+            hostObject = xenrt.TEC().registry.hostGet(ref['XRT_MasterHostName'])
             try:
                 hostObject.tailorForCloudStack()
             except:
@@ -406,7 +417,7 @@ class DeployerPlugin(object):
 
         if not self.hyperVMsi:
             # Install CloudPlatform packages
-            cloudInputDir = xenrt.TEC().lookup("CLOUDINPUTDIR", None)
+            cloudInputDir = self.marvin.mgtSvr.getCCPInputs()
             if not cloudInputDir:
                 raise xenrt.XRTError("No CLOUDINPUTDIR specified")
             xenrt.TEC().logverbose("Downloading %s" % cloudInputDir)

@@ -267,7 +267,7 @@ build_iso_common() {
 	        ${TEMPDIR}/iso/\$OEM\$/\$1/install/kb899522.xrt
     fi
     # Vista hack
-    if echo ${WINVERSION} | grep -q -e vistaee -e ws08 -e win7 -e win8 -e ws12 -e hvs12; then
+    if echo ${WINVERSION} | grep -q -e vistaee -e ws08 -e win7 -e win8 -e ws12 -e hvs12 -e win10 -e ws10; then
         echo yes > \
             ${TEMPDIR}/iso/\$OEM\$/\$1/install/vistafix.xrt
     fi
@@ -285,7 +285,7 @@ build_iso_common() {
 #            ${TEMPDIR}/iso/\$OEM\$/\$1/install/sfu.xrt
 #    fi
 
-    mkisofs \
+    genisoimage \
         -quiet \
         -b ${WINVERSION}.img \
         ${MKISOFLAGS} \

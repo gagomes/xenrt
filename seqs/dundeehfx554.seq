@@ -1,0 +1,18 @@
+<xenrt>
+
+  <!-- Tests for HFX554 (CA-89061) -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host />
+  </prepare>
+
+  <testsequence>
+    <testcase id="testcases.xenserver.tc.network.TCIperfDom0toWin2k8R2SP1x64" tc="TC-18498"/>
+    <testcase id="testcases.xenserver.tc.network.TCIperfDom0toWin7x64" tc="TC-18503"/>
+    <testcase id="testcases.xenserver.tc.network.TCIperfDom0toWin7x32" tc="TC-18504"/>
+  </testsequence>
+</xenrt>

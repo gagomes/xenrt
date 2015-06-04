@@ -14,7 +14,7 @@ import xenrt, xenrt.util
 
 __all__ = ["getFileManager"]
 
-class FileManager:
+class FileManager(object):
     """Filemanager base class, used for controllers with access to the same
     file tree as the job scheduler"""
 

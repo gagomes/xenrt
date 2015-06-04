@@ -119,8 +119,6 @@ class SingleSkuBase(xenrt.TestCase):
 
         if self.USELICENSESERVER:
             self.licenseServer()
-        else:
-            self.mockLicenseDaemon()
 
     def licenseServer(self):
 
@@ -131,11 +129,6 @@ class SingleSkuBase(xenrt.TestCase):
         if self.LICENSEFILE:
             self.v6.addLicense(self.LICENSEFILE)
             self.updateLicenseCount()
-
-    def mockLicenseDaemon(self):
- 
-        # TODO  write code to support Mock License Daemon
-        pass
 
     def preLicenseApplyAction(self):
 
@@ -161,7 +154,7 @@ class SingleSkuBase(xenrt.TestCase):
         else:
             obj = self.param['poolObj']
 
-        obj.templicense(edition = edition, v6server = v6server)
+        obj.license(edition= edition, v6server = v6server)
 
     def resetSystem(self):
        
@@ -351,15 +344,11 @@ class VerifyHostSocketCount(xenrt.TestCase):
         self.hosts = [self.getDefaultHost()]
 
     def getSocketsFromXenrt(self,host):
-   
-        resources = xenrt.GEC().dbconnect.jobctrl("machine", [host.getName()])["RESOURCES"].split("/")
-        for resource in resources:
-            match = re.search("sockets=\d+",resource)
-            if match:
-                count = match.group(0).strip().split('=')[1]
-                break
-
-        return int(count)
+        resources = xenrt.GEC().dbconnect.api.get_machine(host.getName())['resources']
+        if "sockets" in resources:
+            return int(resources['sockets'])
+        else:
+            raise xenrt.XRTError("Number of sockets not defined in XenRT")
 
     def run(self,arglist=None):
 
@@ -419,7 +408,7 @@ class SufficientLicenseUpgrade(SingleSkuBase):
         
         #Apply the platinum edition to the host/pool
         for h in self.param['hosts']:
-            h.license(edition=preedition, usev6testd=False, v6server=self.v6)
+            h.license(edition=preedition, v6server=self.v6)
 
         
         #Upgrade the Host/Pool
@@ -458,7 +447,7 @@ class InsufficientLicenseUpgrade(SingleSkuBase):
         
         #Apply the platinum edition to the host/pool
         for h in self.param['hosts']:
-            h.license(edition=preedition, usev6testd=False, v6server=self.v6)
+            h.license(edition=preedition, v6server=self.v6)
 
         if preedition != "platinum":
             self.v6.removeAllLicenses()
@@ -503,7 +492,7 @@ class FreeEdnSufficientLicenseUpgrade(SingleSkuBase):
         
         #Apply the free edition to the host/pool prior to upgrade
         for h in self.param['hosts']:
-            h.license(edition="free", usev6testd=False, v6server=self.v6)
+            h.license(edition="free", v6server=self.v6)
         
         #Upgrade the Host/Pool
         if self.param['system'] == 'host':
@@ -534,7 +523,7 @@ class FreeEdnInsuffLicenseUpgrade(SingleSkuBase):
         
         #Apply the free edition to the host/pool prior to upgrade
         for h in self.param['hosts']:
-            h.license(edition="free", usev6testd=False, v6server=self.v6)
+            h.license(edition="free", v6server=self.v6)
         
         #Upgrade the Host/Pool
         if self.param['system'] == 'host':
@@ -562,7 +551,7 @@ class HostLicExpiry(SingleSkuBase):
         self.affectedHost = guest.host
         licenseInfo = self.affectedHost.getLicenseDetails()        
         expiry = xenrt.util.parseXapiTime(licenseInfo['expiry'])
-        self.affectedHost.execdom0("/etc/init.d/ntpd stop")
+        self.affectedHost.execdom0("service ntpd stop")
         expiretarget = expiry - 300
         expiretarget = time.gmtime(expiretarget)
         self.affectedHost.execdom0("date -u %s" % (time.strftime("%m%d%H%M%Y.%S",expiretarget)))
@@ -689,7 +678,7 @@ class GraceLic(SingleSkuBase):
 
         for host in self.param['hosts']:
             host.execdom0("ntpdate `grep -e '^server ' /etc/ntp.conf | sed q | sed 's/server //'` || true")
-            host.execdom0("/etc/init.d/ntpd start")
+            host.execdom0("service ntpd start")
             host.restartToolstack()
 
     def connRestrdAfterGraceExp(self):
@@ -714,7 +703,7 @@ class GraceLic(SingleSkuBase):
                 raise xenrt.XRTFailure("Host does not have grace license")
      
             expiry = xenrt.util.parseXapiTime(licenseInfo['expiry'])
-            host.execdom0("/etc/init.d/ntpd stop")
+            host.execdom0("service ntpd stop")
             expiretarget = expiry - 300
             expiretarget = time.gmtime(expiretarget)
             host.execdom0("date -u %s" % (time.strftime("%m%d%H%M%Y.%S",expiretarget)))
@@ -804,7 +793,7 @@ class GraceLic(SingleSkuBase):
         #reset time
         for host in self.param['hosts']:
             host.execdom0("ntpdate `grep -e '^server ' /etc/ntp.conf | sed q | sed 's/server //'` || true")
-            host.execdom0("/etc/init.d/ntpd start")
+            host.execdom0("service ntpd start")
             host.restartToolstack()
 
 class NotEnoughLic(SingleSkuBase): 
@@ -879,13 +868,13 @@ class ExpiredUpgrade(SingleSkuBase):
         
         #Apply the platinum edition to the host/pool
         for h in self.param['hosts']:
-            h.license(edition=preedition, usev6testd=False, v6server=self.v6)        
+            h.license(edition=preedition, v6server=self.v6)        
         
         #Expire the host or master of the Pool
         host = self.param['hosts'][0]
         licenseInfo = host.getLicenseDetails()
         expiry = xenrt.util.parseXapiTime(licenseInfo['expiry'])
-        host.execdom0("/etc/init.d/ntpd stop")
+        host.execdom0("service ntpd stop")
         expiretarget = expiry - 300
         expiretarget = time.gmtime(expiretarget)
         host.execdom0("date -u %s" % (time.strftime("%m%d%H%M%Y.%S",expiretarget)))
@@ -941,13 +930,13 @@ class   InsufficientExpiredUpgrade(SingleSkuBase):
         
         #Apply the platinum edition to the host/pool
         for h in self.param['hosts']:
-            h.license(edition=preedition, usev6testd=False, v6server=self.v6)        
+            h.license(edition=preedition, v6server=self.v6)        
         
         #Expire the host or master of the Pool
         host = self.param['hosts'][0]
         licenseInfo = host.getLicenseDetails()
         expiry = xenrt.util.parseXapiTime(licenseInfo['expiry'])
-        host.execdom0("/etc/init.d/ntpd stop")
+        host.execdom0("service ntpd stop")
         expiretarget = expiry - 300
         expiretarget = time.gmtime(expiretarget)
         host.execdom0("date -u %s" % (time.strftime("%m%d%H%M%Y.%S",expiretarget)))

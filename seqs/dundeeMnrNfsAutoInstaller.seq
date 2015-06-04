@@ -1,0 +1,21 @@
+<xenrt>
+  <!-- Auto-installer tests from MNR using NFS -->
+  <default name="OLD_PRODUCT_VERSION" value="MNR"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-5.6.0"/>
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALLER_PATCH>
+      <INSTALLER>XS56E008.xsupdate</INSTALLER>
+      <PROTOCOL>NFS</PROTOCOL>
+    </INSTALLER_PATCH>
+  </variables>
+
+  <prepare>
+    <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}"/>
+  </prepare>
+
+  <testsequence>
+    <testcase group="Upgrade" id="xenserver.tc.upgrade.TCAutoInstaller" tc="TC-13503"/>
+  </testsequence>
+
+</xenrt>

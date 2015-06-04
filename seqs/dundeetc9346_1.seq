@@ -1,0 +1,20 @@
+<xenrt>
+
+  <!-- host memory allocation/reporting/limit verification tests, 32 bit PV -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <serial group="TC9346">
+      <testcase id="xenserver.tc.host.TC9349" />
+    </serial>
+  </testsequence>
+
+</xenrt>

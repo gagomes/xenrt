@@ -1,0 +1,28 @@
+<xenrt>
+
+  <!-- MNR TC-8008 Sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0"/>
+    <host id="1"/>
+    <host id="2"/>
+  </prepare>
+
+  <testsequence>
+    <serial group="TC-7484">
+      <testcase id="xenserver.tc.ha.TC8043"/>
+    </serial>
+    <serial group="TC-8132">
+      <testcase id="xenserver.tc.ha.TC8127"/>
+      <testcase id="xenserver.tc.ha.TC8128"/>
+      <testcase id="xenserver.tc.ha.TC8129"/>
+      <testcase id="xenserver.tc.ha.TC8130"/>
+      <testcase id="xenserver.tc.ha.TC8131"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

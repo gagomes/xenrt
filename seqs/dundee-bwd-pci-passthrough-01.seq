@@ -1,0 +1,72 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <EXTRA_TIME>yes</EXTRA_TIME>
+    <POOL_NO_DEFAULT_SR>yes</POOL_NO_DEFAULT_SR>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+    <OPTION_CLONE_TEMPLATE>yes</OPTION_CLONE_TEMPLATE>
+  </variables>
+
+  <prepare>
+    <pool id="0" master="M1">
+      <storage type="nfs" name="nfs_SR"/>
+      <host id="0" installsr="lvm" alias="M1"/>
+      <host id="1" installsr="lvm" alias="S1"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+
+    <serial group="guest_installation">
+      <!--win1 is on master-->
+      <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="win1_install" tc="TC-18446" sku="win1_install">
+        <arg>M1</arg>
+        <arg>guest=win1</arg>
+        <arg>distro=ws08sp2-x64</arg>
+        <arg>memory=1024</arg>
+        <arg>sr=Local storage</arg>
+      </testcase>
+      <testcase id="guestops.drivers.TCDriverInstall" blocker="yes" name="win1_driver" tc="TC-18446" sku="win1_driver">
+        <arg>guest=win1</arg>
+        <arg>resident_on=M1</arg>
+      </testcase>
+
+      <!--win2 is on slave-->
+      <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="win2_install" tc="TC-18446" sku="win2_install">
+        <arg>S1</arg>
+        <arg>guest=win2</arg>
+        <arg>distro=ws08sp2-x86</arg>
+        <arg>memory=1024</arg>
+        <arg>sr=Local storage</arg>
+      </testcase>
+      <testcase id="guestops.drivers.TCDriverInstall" blocker="yes" name="win2_driver" tc="TC-18446" sku="win2_driver">
+        <arg>guest=win2</arg>
+        <arg>resident_on=S1</arg>
+      </testcase>
+      
+      <!--lin1 is on master-->
+      <testcase id="xenserver.guest.TCXenServerVendorInstall" name="lin1_install" tc="TC-18446" sku="lin1_install">
+        <arg>M1</arg>
+        <arg>guest=lin1</arg>
+        <arg>distro=sles111</arg>
+        <arg>memory=1024</arg>
+        <arg>sr=Local storage</arg>
+      </testcase>
+
+      <!--lin2 is on slave-->
+      <testcase id="xenserver.guest.TCXenServerVendorInstall" name="lin2_install" tc="TC-18446" sku="lin2_install">
+        <arg>S1</arg>
+        <arg>guest=lin2</arg>
+        <arg>distro=sles111</arg>
+        <arg>memory=1024</arg>
+        <arg>sr=Local storage</arg>
+      </testcase>
+    </serial>
+      
+    <serial group="pci_passthroug">
+      <testcase id="xenserver.tc.host.PCIPassThrough" name="pci_passthroug" tc="TC-18446" sku="pci_passthroug">
+        <arg>guests=(win1:2),(lin1:1),(win2:2),(lin2:1)</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+</xenrt>

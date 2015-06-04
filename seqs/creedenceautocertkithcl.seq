@@ -1,0 +1,26 @@
+<xenrt>
+
+  <!-- HCL - Auto Certification Kit for HCL of Creedence -->
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool>
+      <host id="0"/>
+      <host id="1"/>
+      <storage type="nfs" name="nfssr" default="true"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+
+    <serial group="AutoCertKit">
+      <testcase id="xenserver.tc.autocert.XSAutoCertKit" tc="TC-16589"/>
+    </serial>
+
+  </testsequence>
+
+</xenrt>

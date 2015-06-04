@@ -1,0 +1,21 @@
+<xenrt>
+
+  <!-- Using LUNs configured using PowerVault Modular Array -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>1</PREPARE_WORKERS>
+    <USE_MULTIPATH>yes</USE_MULTIPATH>
+  </variables>
+
+  <prepare>
+    <host id="0" />
+  </prepare>
+
+  <testsequence>
+    <serial group="PowerVault">
+      <testcase id="xenserver.tc.multipath.TC15464" name="FCMultiPowerVault" sku="PowerVault" tc="TC-15464"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

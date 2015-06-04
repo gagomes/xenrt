@@ -1,0 +1,18 @@
+<xenrt>
+  <!-- Test host gets enabled after pool join if it has a VLAN that the pool does not have -->
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <pool id="0">
+      <host id="0" />
+    </pool>
+    <host id="1" noisos="yes" />
+  </prepare>
+
+  <testsequence>
+    <testcase id="xenserver.tc.network.TC12527" />
+  </testsequence>
+
+</xenrt>

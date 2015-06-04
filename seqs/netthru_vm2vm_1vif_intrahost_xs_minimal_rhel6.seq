@@ -1,0 +1,56 @@
+<?xml version="1.0"?>
+<xenrt>
+  <variables>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+    <QUICK_LOGS_ON_PASS>True</QUICK_LOGS_ON_PASS>
+  </variables>
+
+  <prepare>
+      <host id="0">
+        <NETWORK>
+          <!--<PHYSICAL network="NPRI" jumbo="yes" speed="10G" name="NET_A"> -->
+          <PHYSICAL network="NPRI" jumbo="yes" name="NET_A"> <!-- intrahost doesn't use the 10gb nic, so run with any nic -->
+            <NIC/>
+            <!--<VMS/>  #unnecessary because we are using bridge directly in the VMs -->
+            <MANAGEMENT/>
+          </PHYSICAL>
+        </NETWORK>
+        <vm name="rhel6-0-1v">
+          <distro>rhel6</distro>
+          <arch>x86-64</arch>
+          <network device="0" bridge="NET_A"/>
+          <vcpus>2</vcpus>
+          <memory>2048</memory>
+          <postinstall action="pause"/><!-- do not interfere with other vms  -->
+        </vm>
+        <vm name="rhel6-1-1v">
+          <distro>rhel6</distro>
+          <arch>x86-64</arch>
+          <network device="0" bridge="NET_A"/>
+          <vcpus>2</vcpus>
+          <memory>2048</memory>
+          <postinstall action="pause"/><!-- do not interfere with other vms  -->
+        </vm>
+      </host>
+
+  </prepare>
+
+  <testsequence>
+
+    <serial group="rhel6/t01/v01">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=1</arg>
+        <arg>endpoint0=rhel6-0-1v</arg>
+        <arg>endpoint1=rhel6-1-1v</arg>
+      </testcase>
+    </serial>
+    <serial group="rhel6/t08/v01">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=8</arg>
+        <arg>endpoint0=rhel6-0-1v</arg>
+        <arg>endpoint1=rhel6-1-1v</arg>
+      </testcase>
+    </serial>
+
+  </testsequence>
+</xenrt>

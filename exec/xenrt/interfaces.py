@@ -18,7 +18,7 @@ class Toolstack(Interface):
     def instanceSupportedLifecycleOperations(instance):
         """Return the lifecycle operations supported by the specified instance on this toolstack"""
 
-    def createInstance(distro, name, vcpus,  memory, vifs, rootdisk, extraConfig, startOn, installTools, useTemplateIfAvailable, hypervisorType):
+    def createInstance(distro, name, vcpus,  memory, vifs, rootdisk, extraConfig, startOn, installTools, useTemplateIfAvailable, hypervisorType, start):
         """Create and install and instance on this toolstack"""
 
     def createOSTemplate(distro, rootdisk,installTools, useTemplateIfAvailable, hypervisorType=None):
@@ -145,7 +145,7 @@ class OS(Interface):
     def populateFromExisting():
         """Populate class members from an existing OS installaion"""
 
-    def assertHealthy():
+    def assertHealthy(quick):
         """Quickly verify that the OS is in a healthy state"""
 
     def preCloneTailor():

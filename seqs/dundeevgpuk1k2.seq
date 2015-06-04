@@ -1,0 +1,27 @@
+<xenrt>
+
+  <!-- vGPU Allocation mode tests and group tests with 1 K1 host and 1 K2 host. -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="nfs" name="nfssr" default="true"/>
+      <host id="0" installsr="lvm" />
+    </pool>
+    <host id="1" installsr="lvm" />
+  </prepare>
+
+  <testsequence>
+    <serial group="VGPUK1K2">
+      <!-- 1 * <K1 * 1> + 1 * <K2 * 1> hosts. -->
+      <testcase id="testcases.xenserver.tc.vgpu.TCAlloModeMixedPool" name="TC20864" tc="TC-20864" />
+      <!-- 1 * <K1 * 1> + 1 * <K2 * 1> hosts. -->
+      <testcase id="testcases.xenserver.tc.vgpu.TCGPUGroupK1K2" name="TC20865" tc="TC-20865" />
+      <!-- 1 * <K1 * 1> + 1 * <K2 * 1> hosts. -->
+      <testcase id="testcases.xenserver.tc.vgpu.TCGPUGroupTiedConf" name="TC20866" tc="TC-20866" />
+    </serial>
+  </testsequence>
+</xenrt>

@@ -1,0 +1,21 @@
+<xenrt>
+
+  <!-- MNR automated manual test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare> 
+
+  <testsequence group="AutoMan">
+    <testcase id="xenserver.tc.manual.TC647"/>
+    <testcase id="xenserver.tc.manual.TC401"/>
+    <testcase id="xenserver.tc.manual.TC403"/>
+    <testcase id="xenserver.tc.manual.TC968"/>
+    <testcase id="xenserver.tc.manual.TC967"/>
+  </testsequence>
+
+</xenrt>

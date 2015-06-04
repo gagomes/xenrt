@@ -1,0 +1,54 @@
+<?xml version="1.0" ?>
+<xenrt>
+
+  <!-- Sequence to test the various storage xen migration test cases. -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <!-- <pool id="0" name="SXMPool"> -->
+    <pool id="0">
+      <storage type="nfs" name="nfs_targetSR"/>
+      <host id="0" installsr="ext" />
+      <host id="1" installsr="lvm" />
+    </pool>
+  </prepare>
+
+  <testsequence>
+
+    <serial group="IntraPoolSXM">
+      <!-- intra-pool sxm migration from sr-type ext to lvm, nfs, lvmoiscsi respectively. -->
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16861" tc="TC-16861">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+      </testcase>
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC17362" tc="TC-17362">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+        <arg>use_xe</arg>
+      </testcase>
+    </serial>
+
+    <!-- Concurrent VM intrapool migrate -->
+    <serial group="ConcurrentVMsInterPool">
+      <testcase id="xenserver.tc.sxm.ConcurrentVMMigrate1" name="TC17346" tc="TC-17346">
+        <arg>src_SR=lvm</arg>
+        <arg>dest_SR=ext</arg>
+      </testcase>
+    </serial>
+
+    <serial group="LiveVDISXM">
+      <!-- live vdi migration from sr-type ext to nfs, lvmoiscsi respectively. -->
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16912" tc="TC-16912">
+        <arg>test=LiveVDI</arg>
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=nfs</arg>
+      </testcase>
+
+    </serial>
+
+  </testsequence>
+
+</xenrt>

@@ -2,7 +2,7 @@ import socket, re, string, time, traceback, sys, random, copy, os.path
 import xenrt, xenrt.lib.xenserver
 from xenrt.lazylog import step, comment, log
 
-class IPv6Address:
+class IPv6Address(object):
     # I am not proud of this class, but it seems to do the job...
     def __init__(self, addr, prefixlen):
         if type(addr) == str:
@@ -394,7 +394,7 @@ class IPv6TC4pt2(IPv6TC1pt2):
 class IPv6TC5(IPv6TC1pt2):
     TUNNEL = True
 
-class IPv6Portlock:
+class IPv6Portlock(object):
     "Port locking"
     
     host = None

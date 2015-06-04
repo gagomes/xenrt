@@ -63,7 +63,7 @@
         </testcase>
         <testcase id="guestops.cpu.TCCPUWalk" tc="TC-21229">
           <arg>guest=sles113</arg>
-          <arg>max=8</arg>
+          <arg>max=32</arg>
           <arg>noplugwindows</arg>
         </testcase>
         <finally>

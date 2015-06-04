@@ -1,0 +1,21 @@
+<xenrt>
+
+  <!-- Dundee TRIM Support on local SR created by SSD -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <serial group="FuncTRIMSSD">
+
+      <testcase id="xenserver.tc.lunspace.TrimFunctionalTestSSD" tc="TC-21649"/>
+
+    </serial>
+  </testsequence>
+
+</xenrt>

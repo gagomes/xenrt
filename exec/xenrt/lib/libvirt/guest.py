@@ -8,7 +8,7 @@
 # conditions as licensed by XenSource, Inc. All other rights reserved.
 #
 
-import re, time, socket, string, xml.dom.minidom
+import re, time, socket, string, xml.dom.minidom, IPy
 
 import xenrt
 import libvirt
@@ -35,9 +35,8 @@ def createVM(host,
              notools=False,
              bootparams=None,
              use_ipv6=False,
-             dontstartinstall=False,
-             installXenToolsInPostInstall=False,
-             suffix=None):
+             suffix=None,
+             ips={}):
 
     if not isinstance(host, xenrt.GenericHost):
         host = xenrt.TEC().registry.hostGet(host)
@@ -83,6 +82,7 @@ def createVM(host,
         if not bridge:
             raise xenrt.XRTError("Failed to choose a bridge for createVM on "
                                  "host !%s" % (host.getName()))
+        bridge = host.getBridgeByName(bridge)
         update.append([device, bridge, mac, ip])
     vifs = update
 
@@ -128,39 +128,33 @@ def createVM(host,
               repository=repository,
               pxe=pxe,
               notools=notools,
-              use_ipv6=use_ipv6,
-              dontstartinstall=dontstartinstall,
-              installXenToolsInPostInstall=installXenToolsInPostInstall)
+              use_ipv6=use_ipv6)
 
-    if not dontstartinstall:
+    if g.windows:
+        g.xmlrpcShutdown()
+    else:
+        g.execguest("/sbin/shutdown -h now")
+    g.poll("DOWN")
 
-        #g.reboot()
-        #g.check()
+    diskstoformat = []
+    for disk in disks:
+        device, size, format = disk
+        if str(device) != "0":
+            d = g.createDisk(sizebytes=int(size)*xenrt.GIGA,userdevice=device)
+            if format:
+                diskstoformat.append(d)
+
+    g.start()
+
+    for d in diskstoformat:
         if g.windows:
-            g.xmlrpcShutdown()
+            letter = g.xmlrpcPartition(d)
+            g.xmlrpcFormat(letter, timeout=3600)
         else:
-            g.execguest("/sbin/shutdown -h now")
-        g.poll("DOWN")
-
-        diskstoformat = []
-        for disk in disks:
-            device, size, format = disk
-            if str(device) != "0":
-                d = g.createDisk(sizebytes=int(size)*xenrt.GIGA,userdevice=device)
-                if format:
-                    diskstoformat.append(d)
-
-        g.start()
-
-        for d in diskstoformat:
-            if g.windows:
-                letter = g.xmlrpcPartition(d)
-                g.xmlrpcFormat(letter, timeout=3600)
-            else:
-                # FIXME: this is probably wrong
-                letter = g.DEVICE_DISK_PREFIX + chr(int(d)+ord('a'))
-                g.execguest("mkfs.ext2 /dev/%s" % (letter))
-                g.execguest("mount /dev/%s /mnt" % (letter))
+            # FIXME: this is probably wrong
+            letter = g.DEVICE_DISK_PREFIX + chr(int(d)+ord('a'))
+            g.execguest("mkfs.ext2 /dev/%s" % (letter))
+            g.execguest("mount /dev/%s /mnt" % (letter))
 
     # Store the object in the registry.
     xenrt.TEC().registry.guestPut(guestname, g)
@@ -245,7 +239,7 @@ class Guest(xenrt.GenericGuest):
 
     def _attachDevice(self, devicexmlstr, hotplug=False):
         """Attach a new device to the domain."""
-        xenrt.TEC().logverbose("Attaching device to %s" % self.name)
+        xenrt.TEC().logverbose("Attaching device to %s: devicexml=%s" % (self.name, devicexmlstr))
         if hotplug:
             if self.getState() == "UP" and self.enlightenedDrivers:
                 try:
@@ -365,9 +359,7 @@ class Guest(xenrt.GenericGuest):
                 notools=False,
                 extradisks=None,
                 bridge=None,
-                use_ipv6=False,
-                dontstartinstall=False,
-                installXenToolsInPostInstall=False):
+                use_ipv6=False):
 
         self.setHost(host)
         if not self.virConn:
@@ -375,12 +367,14 @@ class Guest(xenrt.GenericGuest):
 
         # Hack to use correct kickstart for rhel6
         if distro and kickstart == "standard":
-            if distro.startswith("rhel6"):
+            if distro.startswith("rhel6") or distro.startswith("rhelw6"):
                 kickstart = "rhel6"
             if distro.startswith("oel6"):
                 kickstart = "oel6"
             if distro.startswith("centos6"):
                 kickstart = "centos6"
+            if distro.startswith("sl6"):
+                kickstart = "sl6"
 
         # Have we been asked to choose an ISO automatically?
         if isoname == xenrt.DEFAULT:
@@ -392,7 +386,7 @@ class Guest(xenrt.GenericGuest):
             else:
                 arch = "x86-32"
             isostem = host.lookup(["OS_INSTALL_ISO", distro], distro)
-            trylist = ["%s.iso" % (isostem)]
+            trylist = ["%s_xenrtinst.iso" % (isostem), "%s.iso" % (isostem)]
 
             if distro == "w2k3eesp2pae":
                 trylist.append("w2k3eesp2.iso")
@@ -555,9 +549,7 @@ class Guest(xenrt.GenericGuest):
                                config=kickstart,
                                pxe=pxe,
                                extrapackages=extrapackages,
-                               options=options,
-                               start=not dontstartinstall,
-                               installXenToolsInPostInstall=False)
+                               options=options)
         elif isoname:
             xenrt.TEC().logverbose("Installing Linux from ISO...")
             dev = "%sa" % (self.vendorInstallDevicePrefix())
@@ -597,24 +589,21 @@ class Guest(xenrt.GenericGuest):
                                kickstart,
                                pxe=pxe,
                                extrapackages=extrapackages,
-                               options={"maindisk": dev},
-                               start=not dontstartinstall,
-                               installXenToolsInPostInstall=installXenToolsInPostInstall)
+                               options={"maindisk": dev})
 
         self._postInstall()
 
-        if not dontstartinstall:
-            if start:
-                self.start()
+        if start:
+            self.start()
 
-            xenrt.TEC().comment("Created %s guest named %s with %u vCPUS and "
-                                "%uMB memory."
-                                % (self.template, self.name, self.vcpus,
-                                   self.memory))
+        xenrt.TEC().comment("Created %s guest named %s with %u vCPUS and "
+                            "%uMB memory."
+                            % (self.template, self.name, self.vcpus,
+                               self.memory))
 
-            ip = self.getIP()
-            if ip:
-                xenrt.TEC().logverbose("Guest address is %s" % (ip))
+        ip = self.getIP()
+        if ip:
+            xenrt.TEC().logverbose("Guest address is %s" % (ip))
 
     def installWindows(self, isoname):
         """Install Windows into a VM"""
@@ -715,8 +704,12 @@ class Guest(xenrt.GenericGuest):
             self.xmlrpcShutdown()
         self.poll("DOWN", timeout=360)
 
-    def removeDisk(self, userdevice, keepvdi=False):
-        userdevicename = self._getDiskDevicePrefix() + chr(int(userdevice)+ord('a'))
+    # The normal interface for removeDisk only provides userdevice (0), but we
+    # allow the optional use of userdevicename ('sda') here for convenience.
+    def removeDisk(self, userdevice=None, keepvdi=False, userdevicename=None):
+        if not userdevicename:
+            assert type(userdevice) == int
+            userdevicename = self._getDiskDevicePrefix() + chr(int(userdevice)+ord('a'))
 
         oldxmlstr = self._getXML()
         oldxmldom = xml.dom.minidom.parseString(oldxmlstr)
@@ -744,13 +737,15 @@ class Guest(xenrt.GenericGuest):
                    userdevice=None, bootable=False,
                    plug=True, vdiuuid=None, returnVBD=False,
                    returnDevice=False,
-                   smconfig=None, name=None, format=None):
+                   smconfig=None, name=None, format=None,
+                   controllerType=None, controllerModel=None):
         """Creates a disk and attaches it to the guest.
         This method should be called when the guest is shut down.
 
         sizebytes - size in bytes or a string such as 5000MiB or 5GiB
         sruuid - UUID of SR to create disk on
-        userdevice - user-specified device number (e.g. 0 maps to "sda", 3 to "sdd" etc)
+        userdevice - user-specified device number (e.g. 0 maps to "sda", 3 to "sdd" etc, or 0 maps
+                     to "sdp" if controller==1)
         bootable - currently unused. To ensure that this disk will be booted from,
                    plug the VDI as userdevice 0 and call self._setBoot(self._getDiskDevicePrefix())
         plug - whether to attach to the guest
@@ -760,6 +755,8 @@ class Guest(xenrt.GenericGuest):
         smconfig - unused
         name - name of the disk, defaults to a random name
         format - disk format, defaults to self.DEFAULT_DISK_FORMAT
+        controllerType - the bus on which to put the disk (e.g. scsi), defaults to type of bus 0
+        controllerModel - model of the controller (e.g. lsilogic)
         Returns the device number (e.g. a return value of 3 specifies the VDI was attached to hdd)
         """
         # there is no such thing as a VDI uuid in libvirt.
@@ -773,11 +770,6 @@ class Guest(xenrt.GenericGuest):
 #            sruuid = self.getHost().lookupDefaultSR()
         if not sruuid:
             sruuid = self.getHost().lookupDefaultSR()
-
-        if userdevice is None:
-            userdevicename = self._getNextBlockDevice()
-        else:
-            userdevicename = self._getDiskDevicePrefix() +chr(int(userdevice)+ord('a'))
 
         if not format:
             format = self.DEFAULT_DISK_FORMAT
@@ -796,7 +788,7 @@ class Guest(xenrt.GenericGuest):
 
         if plug:
             # Create the VBD.
-            self._createVBD(sruuid, vdiname, format, userdevicename)
+            userdevicename = self._createVBD(sruuid, vdiname, format, userdevice, controllerType, controllerModel)
 
         if existingVDI:
             xenrt.TEC().logverbose("Added existing VDI %s as %s." %
@@ -805,7 +797,57 @@ class Guest(xenrt.GenericGuest):
             xenrt.TEC().logverbose("Added %s of size %s using SR %s." %
                                    (userdevicename, sizebytes, sruuid))
 
-        return userdevice
+        return userdevicename
+
+    def createController(self, typ='scsi', model='lsilogic'):
+        # Find an unused index for controllers of this type
+        oldxmlstr = self._getXML()
+        xmldom = xml.dom.minidom.parseString(oldxmlstr)
+
+        highestindex = 0
+        for node in xmldom.getElementsByTagName("devices")[0].getElementsByTagName("controller"):
+            if node.getAttribute('type') == typ:
+                index = int(node.getAttribute('index'))
+                if index > highestindex:
+                    highestindex = index
+
+        newindex = highestindex + 1
+
+        # Create the new controller
+        contxmlstr = "<controller type='%s' index='%s' model='%s'/>" % (typ, newindex, model)
+        self._attachDevice(contxmlstr, hotplug=True)
+
+        # Return the index
+        return newindex
+
+    def removeController(self, typ='scsi', index=0):
+        oldxmlstr = self._getXML()
+        xmldom = xml.dom.minidom.parseString(oldxmlstr)
+
+        # iterate over all existing controllers
+        for node in xmldom.getElementsByTagName("devices")[0].getElementsByTagName("controller"):
+            if node.getAttribute('index') == index:
+                node.parentNode.removeChild(node)
+                node.unlink()
+
+        self._redefineXML(xmldom.toxml())
+
+    def changeControllerDriver(self, newDriver, typ='scsi', index=None):
+        oldxmlstr = self._getXML()
+        xmldom = xml.dom.minidom.parseString(oldxmlstr)
+
+        # iterate over all existing controllers to find the one(s) we want
+        found = False
+        for node in xmldom.getElementsByTagName("devices")[0].getElementsByTagName("controller"):
+            if node.getAttribute('type') == typ:
+                if index is None or int(node.getAttribute('index')) == index:
+                    node.setAttribute('model', newDriver)
+                    found = True
+
+        if not found:
+            xenrt.TEC().warning("changeControllerDriver couldn't find a controller of type '%s' with index '%s'" % (typ, index))
+
+        self._redefineXML(xmldom.toxml())
 
     def createVIF(self, eth, bridge, mac):
         model = self._getNetworkDeviceModel()
@@ -829,30 +871,46 @@ class Guest(xenrt.GenericGuest):
         xmlstr = self._getXML()
         xmldom = xml.dom.minidom.parseString(xmlstr)
         reply = {}
+        id = 0
         for node in xmldom.getElementsByTagName("devices")[0].getElementsByTagName("interface"):
             if node.getAttribute("type") == "bridge":
                 bridge = node.getElementsByTagName("source")[0].getAttribute("bridge")
-                brinfo = self.host.execdom0("brctl show %s" % bridge)
-                r = re.search("(nic\d+|eth\d+)", brinfo)
-                if r:
-                    nic = r.group(1)
-                    mac = node.getElementsByTagName("mac")[0].getAttribute("address")
-                    ip = None
-                    reply[nic] = (mac, ip, bridge)
+                nic = self.VIFSTEM + str(id)
+                mac = node.getElementsByTagName("mac")[0].getAttribute("address")
+                ip = None
+                reply[nic] = (mac, ip, bridge)
+                id += 1
         xmldom.unlink()
         return reply
 
-    def _getNextBlockDevice(self, prefix=None):
+    def _baseDeviceForBus(self, busid=0):
+        return (ord('p')-ord('a'))*busid + ord('a')
+
+    def _getNextBlockDevice(self, prefix=None, controllerType='scsi', controllerIndex=0):
         if prefix is None:
             prefix = self._getDiskDevicePrefix()
-        maxchar = ord('a')-1
-        for hdmatch in re.finditer(r"""<target[^>]*dev=['"]%s(\w)""" % prefix,
-                                   self._getXML()):
-            hdchar = hdmatch.group(1)
-            if ord(hdchar) > maxchar:
-                maxchar = ord(hdchar)
-        userdevice = maxchar+1-ord('a')
-        return prefix + chr(userdevice+ord('a'))
+
+        # TODO we should go to double letters for controllerIndex > 1
+        base = self._baseDeviceForBus(busid=controllerIndex)
+        maxchar = base-1
+
+        xmlstr = self._getXML()
+        xmldom = xml.dom.minidom.parseString(xmlstr)
+        # Find all disks on this controller
+        for node in xmldom.getElementsByTagName("devices")[0].getElementsByTagName("disk"):
+            bus = node.getElementsByTagName("target")[0].getAttribute("bus")
+            controller = node.getElementsByTagName("address")[0].getAttribute("controller")
+            if controller == '':
+                c = 0
+            else:
+                c = int(controller)
+            if controllerType == bus and controllerIndex == c:
+                dev = node.getElementsByTagName("target")[0].getAttribute("dev")
+                hdchar = dev.strip(prefix)
+                if ord(hdchar) > maxchar:
+                    maxchar = ord(hdchar)
+        userdevice = maxchar+1-base
+        return prefix + chr(userdevice+base)
 
     def _setBoot(self, devicetype):
         """See http://libvirt.org/formatdomain.html#elementsOSBIOS.
@@ -935,7 +993,7 @@ class Guest(xenrt.GenericGuest):
                 break
         else:
             # no existing cdrom drive; create a block device name
-            device = self._getNextBlockDevice("hd")
+            device = self._getNextBlockDevice("hd", controllerType="ide")
             targetxml = "<target dev=\"%s\"/>" % device
             changeCDFunction = self._attachDevice
         oldxmldom.unlink()
@@ -983,7 +1041,7 @@ class Guest(xenrt.GenericGuest):
                                    (nic, vbridge, mac))
             self.vifs.append((nic, vbridge, mac, ip))
             if self.use_ipv6:
-                if not self.mainip:
+                if not self.mainip or IPy.IP(self.mainip).version() != 6:
                     self.mainip = self.getIPv6AutoConfAddress(device=nic)
             else:
                 if not self.mainip or (re.match("169\.254\..*", self.mainip)
@@ -1094,6 +1152,8 @@ class Guest(xenrt.GenericGuest):
                     if self.xmlrpcIsAlive():
                         self.xmlrpcShutdown()
                     else:
+                        xenrt.TEC().logverbose("soft shutdown requested but not possible; calling 'sync' before destroying domain")
+                        self.execcmd("sync")
                         self.virDomain.destroy()
         elif command == "vm-reboot":
             try:
@@ -1283,14 +1343,14 @@ class Guest(xenrt.GenericGuest):
                     newdisk = sr.copyVDI(vdiname, newdiskname)
                 else:
                     newdisk = sr.cloneVDI(vdiname, newdiskname)
-            except:
-                xenrt.TEC().logverbose("Not cloning disk image %s" % sourcefile)
+            except Exception, e:
+                xenrt.TEC().logverbose("Not cloning disk image %s due to exception %s" % (sourcefile, e))
                 newdisk = sourcefile
             source.setAttribute("file", newdisk)
 
         # create new mac addresses
         for node in xmldom.getElementsByTagName("devices")[0].getElementsByTagName("mac"):
-            node.parentNode.removeChild(node)
+            node.setAttribute("address", xenrt.randomMAC())
 
         # clone the domain
         xmldom.getElementsByTagName("name")[0].childNodes[0].data = newname

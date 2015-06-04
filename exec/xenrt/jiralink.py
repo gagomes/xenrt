@@ -15,7 +15,7 @@ import jirarest.client
 
 __all__ = ["JiraLink", "getJiraLink"]
 
-class JiraLink:
+class JiraLink(object):
     """XenRT Jira Link"""
 
     TRIAGE = "10760"
@@ -40,29 +40,35 @@ class JiraLink:
         self.TESTRUN_URL = xenrt.TEC().lookup("TESTRUN_URL", None)
         self.customFields = None
 
-        self.connected = True
-        try:
-            self.jira = jirarest.client.JIRA(options={'server': self.JIRA_URL}, basic_auth=(self.JIRA_USER, self.JIRA_PASS))
-            self.jira.session()
-        except Exception, e:
-            traceback.print_exc(file=sys.stderr)
-            xenrt.TEC().logverbose("JiraLink Exception: %s" % (str(e)))
-            self.connected = False        
-
+        self.connected = False
         self.tickets = {}
 
         self._bufferdir = xenrt.GEC().config.lookup("JIRA_BUFFER_DIR", None)
         if self._bufferdir and not os.path.exists(self._bufferdir):
             os.makedirs(self._bufferdir)
 
+    def getJiraExceptionText(self, exception):
+        try:
+            return str(exception)
+        except UnicodeEncodeError:
+            return 'HTTP {0}: "{1}"\n{2}'.format(exception.status_code, exception.text.encode('ascii', 'ignore'), exception.url)
+
+    @property
+    def jira(self):
+        self.attemptToConnect()
+        return self._jira
+
     def attemptToConnect(self):
         """If we've not already established a 'connection' with Jira then
         try again. Return the connected status."""
         if not self.connected:
             try:
-                self.jira = jirarest.client.JIRA(options={'server': self.JIRA_URL}, basic_auth=(self.JIRA_USER, self.JIRA_PASS))
-                self.jira.session()
+                self._jira = jirarest.client.JIRA(options={'server': self.JIRA_URL}, basic_auth=(self.JIRA_USER, self.JIRA_PASS))
+                self._jira.session()
                 self.connected = True
+            except jirarest.exceptions.JIRAError, e:
+                traceback.print_exc(file=sys.stderr)
+                xenrt.TEC().logverbose("JiraLink Exception: %s" % (self.getJiraExceptionText(e)))
             except Exception, e:
                 traceback.print_exc(file=sys.stderr)
                 xenrt.TEC().logverbose("JiraLink Exception on connect: %s" %
@@ -910,6 +916,8 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
                 try:
                     fcntl.flock(f, fcntl.LOCK_EX)
                     x = ["Subcase", str(sr), str(tc), str(subcasename), str(result)]
+                    if tcsku:
+                        x.append(str(tcsku))
                     f.write("%s\n" % (string.join(x, "\t")))
                 finally:
                     f.close()           
@@ -930,6 +938,8 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
                     fcntl.flock(f, fcntl.LOCK_EX)
                     x = ["Test", str(sr), str(tc), str(result), str(ticket),
                          str(detailid)]
+                    if tcsku:
+                        x.append(str(tcsku))
                     f.write("%s\n" % (string.join(x, "\t")))
                 finally:
                     f.close()           
@@ -980,7 +990,10 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
                     result = fitem[3]
                     ticket = fitem[4]
                     detailid = fitem[5]
-                    tcsku = fitem[6]
+                    if len(fitem) > 6:
+                        tcsku = fitem[6]
+                    else:
+                        tcsku = None
                     xenrt.TEC().logverbose("Replaying %s on SR %s" % (tc,sr))
                     self.testrunRecordRun(sr,tc,result,ticket,detailid,tcsku)
                 elif recordtype == "Subcase":
@@ -988,7 +1001,10 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
                     tc = fitem[2]
                     subcase  = fitem[3]
                     result = fitem[4]
-                    tcsku = fitem[5]
+                    if len(fitem) > 5:
+                        tcsku = fitem[5]
+                    else:
+                        tcsku = None
                     self.testrunRecordSubResult(sr,tc,subcase,result,tcsku)
             except Exception, e:
                 notdone.append(item)
@@ -1044,6 +1060,7 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
         track2 = re.sub(r"/\d+-xenrt[-]?\w+/", "/xxxxxx-xenrtxxxxxx/", track2)
         track2 = re.sub(r"=xenrt\w+", "=xenrtxxxxxx", track2)
         track2 = re.sub(r" xenrt\w+", " xenrtxxxxxx", track2)
+        track2 = re.sub(r"/tmp/xenrt\w+", "/tmp/xenrtxxxxxx", track2)
         track2 = re.sub(r"job\d+", "jobxxxxxx", track2)
         track2 = re.sub(r"/tmp/dist[A-Za-z0-9]+/", "/tmp/distxxxxxx/", track2)
         # A half-hearted attempt to match IPv6 addresses!
@@ -1271,6 +1288,8 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
             # Handle the case where we don't want to add a seen again comment
             if seenagain is None:
                 xenrt.GEC().logverbose("Not commenting on existing issue %s" % (issueToComment.key))
+            elif hasattr(issueToComment.fields, "labels") and "NoSeenAgain" in issueToComment.fields.labels:
+                xenrt.GEC().logverbose("NoSeenAgain label present, not commenting on existing issue %s" % (issueToComment.key))
             else:
                 xenrt.GEC().logverbose("Decided to comment on existing issue")
                 j.add_comment(issueToComment.key, seenagain)
@@ -1467,7 +1486,7 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
         elif result == "notrun":
             trresult = "blocked"
         elif result == "skipped":
-            trresult = "notrun"
+            trresult = "skipped"
         else:
             raise xenrt.XRTFailure("Unknown result type %s" % (result))
         return trresult
@@ -1537,6 +1556,10 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
     def _searchJiraIssues(self,autoref):
         ar = autoref[:255]
         ar = ar.replace("\\", "\\\\")
+
+        #Fix for CA-162858 to explicitly escape '"'
+        ar = ar.replace('\"', '\\\"')
+
         arShort = ar.split("/")[1]
         longref = "\\\"%s\\\"" % ar
         shortref = "\\\"%s\\\"" % arShort

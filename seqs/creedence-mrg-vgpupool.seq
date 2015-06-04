@@ -1,0 +1,38 @@
+<xenrt>
+
+  <!-- Creedence - tesing a pool of vGPU hosts -->
+
+  <variables>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <OPTION_AD_ENABLE>yes</OPTION_AD_ENABLE>
+  </variables>
+
+  <prepare>
+    <pool id="0">
+      <host id="0" license="no" defaultlicense="no">
+        <vm name="Windows 7 SP1">
+          <distro>win7sp1-x86</distro>
+          <memory>2048</memory>
+          <vcpus>2</vcpus>
+          <postinstall action="installDrivers" />
+          <network device="0" />
+          <disk device="0" size="24" />
+          <storage>NFS-SR</storage>
+        </vm>
+      </host>
+      <host id="1" license="no" defaultlicense="no">
+        <vm name="Windows 8.1">
+          <distro>win81-x86</distro>
+          <memory>2048</memory>
+          <vcpus>2</vcpus>
+          <postinstall action="installDrivers" />
+          <network device="0" />
+          <disk device="0" size="24" />
+          <storage>NFS-SR</storage>
+        </vm>
+      </host>
+      <storage type="nfs" name="NFS-SR" />
+    </pool>
+  </prepare>
+</xenrt>

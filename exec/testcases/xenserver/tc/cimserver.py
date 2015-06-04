@@ -13,11 +13,12 @@ import socket, re, string, time, traceback, sys, random, copy, os, os.path, urll
 
 import xenrt, xenrt.lib.xenserver, XenAPI
 import xml.dom.minidom
+from xml.dom.minidom import parseString
 import urllib2
 import datetime, random
 from xenrt.lazylog import log, warning
 
-class _CIMInterface: 
+class _CIMInterface(object): 
 
     PACK = "xenserver-integration-suite.iso"
 #    RPMS = ["xs-cim-cmpi-5.6.199-39460c",
@@ -394,7 +395,12 @@ class _WSMANProtocol(_CIMInterface):
         (_, mask, gateway) = self.host.getNICAllocatedIPAddress(0)
         # Export vm
         psScript = xenrt.lib.xenserver.exportWSMANVM(self.hostPassword,self.hostIPAddr,vmuuid,transProtocol,ssl,static_ip,mask,gateway)
-        self.psExecution(psScript,timeout = 40000)
+        try:
+            ret = self.psExecution(psScript,timeout = 40000)
+            self.getTheWsmanScriptsLogs("exportWSMANVMScriptsOutput.txt")
+        except Exception, e:
+            self.getTheWsmanScriptsLogs("exportWSMANVMScriptsOutput.txt")
+            raise xenrt.XRTFailure("Failure caught while executing wsman scripts")
         xenrt.TEC().logverbose("VM %s exported" % (vmuuid))
 
     def verifyExport(self,vdiuuid,vdiName):
@@ -441,8 +447,13 @@ class _WSMANProtocol(_CIMInterface):
         (_, mask, gateway) = self.host.getNICAllocatedIPAddress(0)
         # import VM
         psScript = xenrt.lib.xenserver.importWSMANVM(self.hostPassword,self.hostIPAddr,vmuuid,transProtocol,ssl,vmName,vmProc,vmRam,static_ip,mask,gateway)
-        ret = self.psExecution(psScript,timeout = 20000)
-        vm = ret.splitlines()[2]
+        try:
+            ret = self.psExecution(psScript,timeout = 40000)
+            vm = ret.splitlines()[2]
+            self.getTheWsmanScriptsLogs("importWSMANVMScriptsOutput.txt")
+        except Exception, e:
+            self.getTheWsmanScriptsLogs("importWSMANVMScriptsOutput.txt")
+            raise xenrt.XRTFailure("Failure caught while executing wsman scripts")
         xenrt.TEC().logverbose("VM %s imported" % (vm))
         return vm
        
@@ -498,7 +509,7 @@ class _WSMANProtocol(_CIMInterface):
 
         # Copy the PV tools ISO from the host to use as an example ISO
         # in our CIFS SR
-        remotefile = host.toolsISOPath("windows")
+        remotefile = host.toolsISOPath()
         if not remotefile:
             raise xenrt.XRTError("Could not find PV tools ISO in dom0")
         cd = "%s/xs-tools.iso" % (xenrt.TEC().getWorkdir())
@@ -750,15 +761,23 @@ class _WSMANProtocol(_CIMInterface):
         base = xenrt.TEC().getLogdir()
         self.guest.xmlrpcGetFile("C:\\%s" % filename, "%s/%s" % (base,filename))
         self.guest.xmlrpcRemoveFile("C:\\%s" % filename)
-    
+
+    def getIPRange(self,staticIPs):
+
+        s_obj = xenrt.StaticIP4Addr.getIPRange(staticIPs+1)
+        start_ip = s_obj[1].getAddr()
+        end_ip = s_obj[staticIPs].getAddr()
+        return start_ip,end_ip
+
     def exportVMSnapshotTree(self,vmuuid,staticIPs):
 
         self.createSharedDirectory()
         driveName = "Q:\\"
         if staticIPs:
-            s_obj = xenrt.StaticIP4Addr.getIPRange(staticIPs+1)
-            start_ip = s_obj[1].getAddr()
-            end_ip = s_obj[staticIPs].getAddr()
+            start_ip,end_ip = self.getIPRange(staticIPs)
+            s_ip = start_ip.split('.')
+            if (int(s_ip[3]) == 0) or ((int(s_ip[3]) + staticIPs) >= 255):
+                start_ip,end_ip = self.getIPRange(staticIPs)
             (_, mask, gateway) = self.host.getNICAllocatedIPAddress(0)
             psScript = xenrt.lib.xenserver.exportWSMANSnapshotTree(self.hostPassword,self.hostIPAddr,vmuuid,driveName,start_ip,end_ip,mask,gateway)
         else:
@@ -1633,15 +1652,13 @@ class SRFunctions(_CimBase):
 
             time.sleep(300)
  
-            count = 1 
-            while 1:
-                line = tempStr.splitlines()[count]
-                if "<SCSIid>" in line:
-                    scsiId = tempStr.splitlines()[count +1]
-                    scsiId = scsiId.strip()
-                    break
-                count = count +1
-           
+            tempStr = '\n'.join(tempStr.split('\n')[2:])
+            temp = parseString(tempStr)
+            ids = temp.getElementsByTagName('SCSIid')
+            for id in ids:
+                for node in id.childNodes:
+                    scsiId = (node.nodeValue).strip()
+
             ret = self.protocolObj.createISCSISR(self.isoSRName,targetIp,iqn,scsiId,user,password)
 
             try:            
@@ -3897,7 +3914,7 @@ class TC14435(NetworkTest):
 
 
 
-class Kvp():
+class Kvp(object):
     HASH_THRESHOLD = 512
 
     def __init__(self, key, value, deviceId=None):

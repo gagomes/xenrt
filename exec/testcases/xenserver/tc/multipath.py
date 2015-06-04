@@ -3701,6 +3701,10 @@ class DellPowerVaultIscsiMultipath(_DellPowerVaultMultipathing):
 class TC15464(xenrt.TestCase):
     """Test the consistency of devices in the multipath group"""
 
+    # CL03 machines configured to have LUNs from both EMC Clariion & PowerVault arrays.
+    # However, when used in the test, by default it uses LUNs from PowerVault.
+    # CL05 machines are configured to have LUNs from EMC Clariion only.
+
     def prepare(self, arglist=None):
         pool = self.getDefaultPool()
         if pool is None:
@@ -4139,7 +4143,7 @@ class TC21455(xenrt.TestCase):
         while(xenrt.timenow()<=deadline):
             pid = self.host.execdom0("pidof multipathd || true").strip()
             if pid :
-                xenrt.TEC().logverbose("Multipathd restarted with process id %d" % (pid))
+                xenrt.TEC().logverbose("Multipathd restarted with process id %s" % (pid))
                 break
         if(xenrt.timenow() > deadline):
             raise xenrt.XRTFailure("Mutlipathd did not restart with in 2m+2s")
@@ -4206,12 +4210,12 @@ class TC18156(xenrt.TestCase):
         eqlmpconf += "\\t\\tvendor \"EQLOGIC\"\\n"
         eqlmpconf += "\\t\\tproduct \"100E-00\"\\n"
         eqlmpconf += "\\t\\tpath_grouping_policy multibus\\n"
-        eqlmpconf += "\\t\\tgetuid_callout \"/sbin/scsi_id -g -u -s /block/%n\"\\n"
-        # TODO: Remove above line and uncomment below lines when Centos 6.4 userspace in use
-        #if isinstance(self.host, xenrt.lib.xenserver.SarasotaHost):
-        #    eqlmpconf += "\\t\\tgetuid_callout \"/sbin/scsi_id -g -u --devices /dev/%n\"\\n"
-        #else:
-        #    eqlmpconf += "\\t\\tgetuid_callout \"/sbin/scsi_id -g -u -s /block/%n\"\\n"
+        
+        if isinstance(self.host, xenrt.lib.xenserver.DundeeHost):
+            eqlmpconf += "\\t\\tgetuid_callout \"" + self.host.scsiIdPath() + " -g -u --devices /dev/%n\"\\n"
+        else:
+            eqlmpconf += "\\t\\tgetuid_callout \"" + self.host.scsiIdPath() + " -g -u -s /block/%n\"\\n"
+        
         eqlmpconf += "\\t\\tpath_checker readsector0\\n"
         eqlmpconf += "\\t\\tfailback immediate\\n"
         eqlmpconf += "\\t\\tpath_selector \"round-robin 0\"\\n"
@@ -4413,7 +4417,7 @@ class TC18782(xenrt.TestCase):
                 multipathDebuginfoRpmFilePath = xenrt.TEC().getFile("binary-packages/RPMS/domain0/RPMS/i386/%s.i386.rpm" %
                                                                                                 multipathDebuginfoRpmFileName)
             else:
-                multipathDebuginfoRpmFilePath = xenrt.TEC().getFile("binary-packages/RPMS/domain0/RPMS/x86_64/valgrind-3.9.0-xs.10649.2569..x86_64.rpm")
+                multipathDebuginfoRpmFilePath = xenrt.TEC().getFile("binary-packages/RPMS/domain0/RPMS/x86_64/valgrind-3.*.rpm")
 
             if not multipathDebuginfoRpmFilePath:
                 xenrt.TEC().logverbose("Device-mapper-multipath-debuginfo file path does not exist. "
@@ -4827,7 +4831,7 @@ class TCValidatePathCount(_TC8159):
         
         totalPaths = len(host.getMultipathInfo()[self.scsiid])
         activePaths = len(host.getMultipathInfo(onlyActive=True)[self.scsiid])
-        expectedPaths = [activePaths-1, totalPaths]
+        expectedPaths = [activePaths-2, totalPaths] # -2 because, the number of paths depends on the physical configuration.
         
         step("Drop one path by disabling port")
         host.disableFCPort(1)

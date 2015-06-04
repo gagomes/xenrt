@@ -23,5 +23,11 @@
     <serial group="SCTX1879">
       <testcase id="xenserver.tc.guest.TC21711" tc="TC-21711" />
     </serial>
+    <serial group="hfx1003">
+      <testcase id="xenserver.tc.network.TC2VlansPerBridge" tc="TC-20912"/>
+    </serial>
+    <serial group="SCTX-1421">
+      <testcase id="xenserver.tc.guest.TCMemoryDumpBootDriverFlag" tc="TC-23777"/>
+    </serial>
   </testsequence>
 </xenrt>

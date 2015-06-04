@@ -1,0 +1,30 @@
+<xenrt>
+  <!-- pv guest pool scalability test -->
+  <default name="POSTRUN_CLEANUP" value="cleanup"/>    <!-- nocleanup|cleanup|forcecleanup -->
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>8</PREPARE_WORKERS>
+    <EXTRA_TIME>yes</EXTRA_TIME>
+    <BUGTOOL_MODE_STRESS>yes</BUGTOOL_MODE_STRESS>
+    <NO_LOGS_ON_PASS>yes</NO_LOGS_ON_PASS>
+    <QUICKLOGS>yes</QUICKLOGS>
+    <NO_GUEST_LOGS>yes</NO_GUEST_LOGS>
+    <NO_TC_HOST_SERIAL_LOGS>yes</NO_TC_HOST_SERIAL_LOGS>
+    <DOM0_MEM>8192</DOM0_MEM>
+  </variables>
+
+  <prepare>
+    <pool id="0">
+      <allhosts />
+      <storage type="nfs" name="nfssr" default="true" />
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="VMPoolScaledDown">
+      <testcase id="testcases.xenserver.tc.scalability.TC23327" name="TC23327">
+        <arg>postrun=${POSTRUN_CLEANUP}</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+</xenrt>

@@ -1,0 +1,121 @@
+<xenrt>
+
+  <!-- 16 Test Host vSwitch CHIN Scalability -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>8</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool id="1">
+      <host id="16">
+        <vm name="controller">
+          <file>%CONTROLLER_XVA%</file>
+          <bootparams>rootssh</bootparams>
+          <postinstall action="start"/>
+        </vm>
+      </host>
+    </pool>
+    
+    <pool id="0">
+      <host id="0" noisos="true">
+        <vmgroup basename="p0h0" number="3">
+          <distro>generic-linux</distro>
+        </vmgroup>
+      </host>
+      <host id="1" noisos="true">
+        <vmgroup basename="p0h1" number="3">
+          <distro>generic-linux</distro>
+        </vmgroup>
+      </host>
+      <host id="2" noisos="true">
+        <vmgroup basename="p0h2" number="3">
+          <distro>generic-linux</distro>
+        </vmgroup>
+      </host>
+      <host id="3" noisos="true">
+        <vmgroup basename="p0h3" number="3">
+          <distro>generic-linux</distro>
+        </vmgroup>
+      </host>
+      <host id="4" noisos="true">
+        <vmgroup basename="p0h4" number="3">
+          <distro>generic-linux</distro>
+        </vmgroup>
+      </host>
+      <host id="5" noisos="true">
+        <vmgroup basename="p0h5" number="3">
+          <distro>generic-linux</distro>
+        </vmgroup>
+      </host>
+      <host id="6" noisos="true">
+        <vmgroup basename="p0h6" number="3">
+          <distro>generic-linux</distro>
+        </vmgroup>
+      </host>
+      <host id="7" noisos="true">
+        <vmgroup basename="p0h7" number="3">
+          <distro>generic-linux</distro>
+        </vmgroup>
+      </host>
+      <host id="8" noisos="true">
+        <vmgroup basename="p0h8" number="3">
+          <distro>generic-linux</distro>
+        </vmgroup>
+      </host>
+      <host id="9" noisos="true">
+        <vmgroup basename="p0h9" number="3">
+          <distro>generic-linux</distro>
+        </vmgroup>
+      </host>
+      <host id="10" noisos="true">
+        <vmgroup basename="p0h10" number="3">
+          <distro>generic-linux</distro>
+        </vmgroup>
+      </host>
+      <host id="11" noisos="true">
+        <vmgroup basename="p0h11" number="3">
+          <distro>generic-linux</distro>
+        </vmgroup>
+      </host>
+      <host id="12" noisos="true">
+        <vmgroup basename="p0h12" number="3">
+          <distro>generic-linux</distro>
+        </vmgroup>
+      </host>
+      <host id="13" noisos="true">
+        <vmgroup basename="p0h13" number="3">
+          <distro>generic-linux</distro>
+        </vmgroup>
+      </host>
+      <host id="14" noisos="true">
+        <vmgroup basename="p0h14" number="3">
+          <distro>generic-linux</distro>
+        </vmgroup>
+      </host>
+      <host id="15" noisos="true">
+        <vmgroup basename="p0h15" number="3">
+          <distro>generic-linux</distro>
+        </vmgroup>
+      </host>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="vSwitch">
+      <testcase id="xenserver.tc.vswitch.TC12543"/>
+      <testcase id="xenserver.tc.vswitch.TC12551"/>
+    </serial>
+    <serial>
+      <finally>
+        <testcase id="guestops.basic.TCShutdown">
+            <arg>guest=controller</arg>
+            <arg>again</arg>
+        </testcase>
+      </finally>
+    </serial>
+  </testsequence>
+
+</xenrt>
+

@@ -1,0 +1,127 @@
+<xenrt>
+
+  <default name="GUESTMEMORY" value="512" />
+  <default name="GUESTVCPUS" value="2" />
+  <default name="GUESTVERSION" value="ws08sp2-x86" />
+  <default name="GUESTDISK" value="DEFAULT" />
+  <default name="VMOPSITER" value="100" />
+  <default name="PAIRSPERHOST" value="A,B,C" />
+  <default name="SRMWORKLOADS" value="noworkloads" />
+  <default name="HOSTPAIRS" value="(0,1),(1,2),(2,3),(3,0)" />
+  <default name="GUESTDISTRO" value="rhel511" />
+  <default name="GUESTARCH" value="x86-32" />
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <EXTRA_TIME>yes</EXTRA_TIME>
+    <EXTRA_ARP_TIME>yes</EXTRA_ARP_TIME>
+    <USE_MULTIPATH>yes</USE_MULTIPATH>
+  </variables>
+
+  <prepare>
+    <pool>
+      <allhosts />
+      <storage type="fc" name="fcsr" default="true" />
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <NIC />
+          <MANAGEMENT />
+        </PHYSICAL>
+        <PHYSICAL network="NSEC">
+          <NIC />
+          <VMS />
+        </PHYSICAL>
+      </NETWORK>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <parallel>
+      <for iter="P,S" values="${HOSTPAIRS}">
+        <for iter="C" values="${PAIRSPERHOST}">
+          <serial group="FC.LinuxGuest.${P}${C}">
+            <testcase id="xenserver.guest.TCXenServerVendorInstall" tc="TC-8376" name="Install.Lin${P}${C}" sku="Install.Lin${P}${C}">
+              <arg>RESOURCE_HOST_${P}</arg>
+              <arg>guest=rhguest${P}${C}</arg>
+              <arg>version=${GUESTDISTRO}</arg>
+              <arg>arch=${GUESTARCH}</arg>
+              <arg>memory=${GUESTMEMORY}</arg>
+              <arg>vcpus=${GUESTVCPUS}</arg>
+            </testcase>
+            <testcase id="guestops.basic.TCStartStop" tc="TC-8376" name="StartStop.Lin${P}${C}" sku="StartStop.Lin${P}${C}">
+              <arg>guest=rhguest${P}${C}</arg>
+              <arg>loops=${VMOPSITER}</arg>
+            </testcase>
+            <testcase id="guestops.basic.TCReboot" tc="TC-8376" name="Reboot.Lin${P}${C}" sku="Reboot.Lin${P}${C}">
+              <arg>guest=rhguest${P}${C}</arg>
+              <arg>loops=${VMOPSITER}</arg>
+            </testcase>
+            <testcase id="guestops.srm.TCSuspendResume" tc="TC-8376" name="SusRes.Lin${P}${C}" sku="SusRes.Lin${P}${C}">
+              <arg>guest=rhguest${P}${C}</arg>
+              <arg>loops=${VMOPSITER}</arg>
+              <arg>${SRMWORKLOADS}</arg>
+            </testcase>
+            <testcase id="guestops.srm.TCMigrate" tc="TC-8376" name="Migrate.Lin${P}${C}" sku="Migrate.Lin${P}${C}">
+              <arg>guest=rhguest${P}${C}</arg>
+              <arg>loops=${VMOPSITER}</arg>
+              <arg>live</arg>
+              <arg>to=RESOURCE_HOST_${S}</arg>
+              <arg>${SRMWORKLOADS}</arg>
+            </testcase>
+            <testcase id="guestops.basic.TCShutdown">
+              <arg>guest=rhguest${P}${C}</arg>
+            </testcase>
+            <finally>
+              <testcase id="guestops.basic.TCShutdown">
+                <arg>guest=rhguest${P}${C}</arg>
+                <arg>again</arg>
+              </testcase>
+            </finally>
+          </serial>
+          <serial group="FC.WindowsGuest.${P}${C}">
+            <testcase id="xenserver.guest.TCXenServerWindowsInstall" tc="TC-8376" name="Install.Win${P}${C}" sku="Install.Win${P}${C}">
+              <arg>RESOURCE_HOST_${P}</arg>
+              <arg>guest=winguest${P}${C}</arg>
+              <arg>version=${GUESTVERSION}</arg>
+              <arg>memory=${GUESTMEMORY}</arg>
+              <arg>vcpus=${GUESTVCPUS}</arg>
+              <arg>disksize=${GUESTDISK}</arg>
+            </testcase>
+            <testcase id="guestops.drivers.TCDriverInstall" tc="TC-8376" name="DriverInstall.Win${P}${C}" sku="DriverInstall.Win${P}${C}">
+              <arg>guest=winguest${P}${C}</arg>
+            </testcase>
+            <testcase id="guestops.basic.TCStartStop" tc="TC-8376" name="StartStop.Win${P}${C}" sku="StartStop.Win${P}${C}">
+              <arg>guest=winguest${P}${C}</arg>
+              <arg>loops=${VMOPSITER}</arg>
+            </testcase>
+            <testcase id="guestops.basic.TCReboot" tc="TC-8376" name="Reboot.Win${P}${C}" sku="Reboot.Win${P}${C}">
+              <arg>guest=winguest${P}${C}</arg>
+              <arg>loops=${VMOPSITER}</arg>
+            </testcase>
+            <testcase id="guestops.srm.TCSuspendResume" tc="TC-8376" name="SusRes.Win${P}${C}" sku="SusRes.Win${P}${C}">
+              <arg>guest=winguest${P}${C}</arg>
+              <arg>loops=${VMOPSITER}</arg>
+              <arg>${SRMWORKLOADS}</arg>
+            </testcase>
+            <testcase id="guestops.srm.TCMigrate" tc="TC-8376" name="Migrate.Win${P}${C}" sku="Migrate.Win${P}${C}">
+              <arg>guest=winguest${P}${C}</arg>
+              <arg>loops=${VMOPSITER}</arg>
+              <arg>live</arg>
+              <arg>to=RESOURCE_HOST_${S}</arg>
+              <arg>${SRMWORKLOADS}</arg>
+            </testcase>
+            <testcase id="guestops.basic.TCShutdown">
+              <arg>guest=winguest${P}${C}</arg>
+            </testcase>
+            <finally>
+              <testcase id="guestops.basic.TCShutdown">
+                <arg>guest=winguest${P}${C}</arg>
+                <arg>again</arg>
+              </testcase>
+            </finally>
+          </serial>
+        </for>
+      </for>
+    </parallel>
+  </testsequence>
+</xenrt>

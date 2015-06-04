@@ -4,14 +4,15 @@
 # Testcases for checkpoint and rollback features.
 #
 # Copyright (c) 2009 Citrix Systems, Inc. All use and distribution of this
-# copyrighted material is governed by and subject to terms and conditions 
+# copyrighted material is governed by and subject to terms and conditions
 # as licensed by Citrix Systems, Inc. All other rights reserved.
 #
 
-import xml.dom.minidom, re, string, copy, time, os, random 
+import xml.dom.minidom, re, string, copy, time, os, random
 import xenrt
+from xenrt.lazylog import log
 
-class Comparer:
+class Comparer(object):
 
     def getparameters(self, root, uuid):
         if not xenrt.isUUID(uuid): return {}
@@ -28,7 +29,7 @@ class Comparer:
         comparison = self.getparameters(root, corresponding)
         if not len(original) == len(comparison):
             raise xenrt.XRTFailure("Objects have a different number of parameters.")
-        values = dict(zip(original.keys(), 
+        values = dict(zip(original.keys(),
                       zip(original.values(), comparison.values())))
         differences = dict(filter(lambda (x,(y,z)):not y == z, values.items()))
         tobechecked = map(lambda (x,y):x, self.checks[root])
@@ -42,7 +43,7 @@ class Comparer:
             if parameter in values:
                 x,y = values[parameter]
                 if not condition(self, x, y, object, corresponding):
-                    xenrt.TEC().logverbose("Unexpected value for %s. (%s, %s) (%s, %s)" % 
+                    xenrt.TEC().logverbose("Unexpected value for %s. (%s, %s) (%s, %s)" %
                                            (parameter, x, y, object, corresponding))
                     self.errors.append((root, parameter, x, y))
             else:
@@ -51,25 +52,25 @@ class Comparer:
         return True
 
     def validateMultiple(self, root, uuid):
-        comparison = self.host.minimalList("%s-list" % (root), args="vm-uuid=%s" % (uuid))  
+        comparison = self.host.minimalList("%s-list" % (root), args="vm-uuid=%s" % (uuid))
         if not len(self.objects[root]) == len(comparison):
             raise xenrt.XRTFailure("Found a different number of %ss." % (root.upper()))
         for object in self.objects[root]:
             device = self.objects[root][object]["device"]
             for corresponding in comparison:
-                if self.host.genParamGet(root, corresponding, "device") == device: 
+                if self.host.genParamGet(root, corresponding, "device") == device:
                     self.validateObject(root, object, corresponding)
 
     # TODO Get this list of known values checked.
     def __init__(self, host, guest):
         self.errors = []
-        self.objects = {}   
+        self.objects = {}
         self.ignore = {}
-        self.checks = {} 
+        self.checks = {}
         self.host = host
         self.guest = guest
-        
-        self.ignore["vm"] = [] 
+
+        self.ignore["vm"] = []
         self.ignore["vif"] = []
         self.ignore["vbd"] = []
         self.ignore["vdi"] = []
@@ -78,7 +79,7 @@ class Comparer:
         self.checks["vif"]      =   []
         self.checks["vbd"]      =   []
         self.checks["vdi"]      =   []
-        
+
         self.update()
 
     def update(self):
@@ -118,16 +119,16 @@ class Comparer:
 
     def checkSnapshotInfo(self, x, y, alpha, beta):
         try: snapshotparams = dict([ a.split(": ") for a in y.split("; ") ])
-        except: return False 
+        except: return False
         current = self.host.genParamGet("vm", alpha, "power-state")
         expected = {"disk-snapshot-type"        :   "crash_consistent",
                     "power-state-at-snapshot"   :   current.capitalize()}
-        return snapshotparams == expected 
+        return snapshotparams == expected
 
     def checkSnapshotTime(self, x, y, alpha, beta):
         return xenrt.util.timenow() - xenrt.util.parseXapiTime(y) < 300
 
-    # The equality check deals with ISOs. 
+    # The equality check deals with ISOs.
     def validatevdi(self, x, y, alpha, beta): return (x == y) or self.validateObject("vdi", x, y)
 
     # Expected to change without user action.
@@ -137,8 +138,8 @@ class Comparer:
                        ("vbd", "io_write_kbs"),
                        ("vbd", "io_read_kbs"),
                        ("vdi", "physical-utilisation")]
-    
-    # Expected to change when we snapshot, checkpoint or create a template. 
+
+    # Expected to change when we snapshot, checkpoint or create a template.
     IGNORECOMMON =    [("vm",  "allowed-operations"),
                        ("vm",  "resident-on"),
                        ("vif", "uuid"),
@@ -198,8 +199,8 @@ class Comparer:
 
     def validateCheckpoint(self, uuid):
         addignore   = [("vm",  "suspend-VDI-uuid"),
-                       ("vbd", "current-operations"), 
-                       ("vbd", "attachable"), 
+                       ("vbd", "current-operations"),
+                       ("vbd", "attachable"),
                        ("vdi", "current-operations")] # XXX Why?
         addchecks   = [("vm",  "power-state",    lambda s,x,y,a,b:y == "suspended")]
         addignore += self.IGNOREVOLATILE + self.IGNORECOMMON + self.SNAPPOINTIGNORE
@@ -208,13 +209,13 @@ class Comparer:
 
     def validateCheckpointRollback(self, uuid):
         addignore   = [("vm",  "suspend-VDI-uuid"), #XXX Why?
-                       ("vm",  "parent"),           
+                       ("vm",  "parent"),
                        ("vdi", "snapshots"),
-                       ("vdi", "xenstore-data"),    
-                       ("vm",  "dom-id"),            
-                       ("vm",  "guest-metrics-last-updated"), 
-                       ("vm",  "platform"), 
-                       ("vm",  "other"), 
+                       ("vdi", "xenstore-data"),
+                       ("vm",  "dom-id"),
+                       ("vm",  "guest-metrics-last-updated"),
+                       ("vm",  "platform"),
+                       ("vm",  "other"),
                        ("vm",  "PV-drivers-version"),
                        ("vm",  "possible-hosts"),
                        ("vm",  "memory-actual")] # XXX Discrepancy: memory-actual (268435456, 16384) transient
@@ -243,8 +244,8 @@ class Comparer:
         return self.test(uuid, addignore, addchecks)
 
     def validateTemplate(self, uuid):
-        addignore   = [("vm",  "snapshots"), 
-                       ("vm",  "other-config"), 
+        addignore   = [("vm",  "snapshots"),
+                       ("vm",  "other-config"),
                        ("vif", "MAC"),
                        ("vif", "MAC-autogenerated"),
                        ("vdi", "snapshots")]
@@ -256,7 +257,7 @@ class Comparer:
         return self.test(uuid, addignore, addchecks)
 
     def validateInstance(self, uuid):
-        addignore = [("vm",  "xenstore-data"), 
+        addignore = [("vm",  "xenstore-data"),
                      ("vm",  "start-time"),
                      ("vm",  "install-time"),
                      ("vm",  "last-boot-record"),
@@ -290,7 +291,7 @@ class _SnappointRollback(xenrt.TestCase):
     OPERATION = ""
 
     def snapshot(self):
-        self.snappoint = self.guest.snapshot() 
+        self.snappoint = self.guest.snapshot()
         self.checkSnapshot()
 
     def quiesced(self):
@@ -299,13 +300,13 @@ class _SnappointRollback(xenrt.TestCase):
 
     def checkpoint(self):
         self.snappoint = self.guest.checkpoint()
-        self.checkCheckpoint()    
-    
+        self.checkCheckpoint()
+
     def checkSnapshot(self):
         if self.INITIALSTATE == "UP":
             self.guest.checkHealth()
-        addignore = [("vm",  "parent"),    
-                     ("vm",  "snapshots"), 
+        addignore = [("vm",  "parent"),
+                     ("vm",  "snapshots"),
                      ("vbd", "allowed-operations")] # XXX (pause; unpause; attach, pause; unpause)
         errors = self.comparer.validateGuest(self.guest.getUUID(), addignore=addignore)
         if errors:
@@ -316,7 +317,7 @@ class _SnappointRollback(xenrt.TestCase):
         if errors:
             xenrt.TEC().warning("Snapshot check failed: %s" % (errors))
             #raise xenrt.XRTFailure("Snapshot check failed: %s" % (errors))
- 
+
     def checkCheckpoint(self):
         if self.INITIALSTATE == "UP":
             # Make sure we're not in the suspended state any more
@@ -329,9 +330,9 @@ class _SnappointRollback(xenrt.TestCase):
                 raise xenrt.XRTFailure("Guest still in suspended state "
                                        "after checkpoint")
             self.guest.checkHealth()
-        addignore = [("vm",  "parent"),    
+        addignore = [("vm",  "parent"),
                      ("vm",  "snapshots"),
-                     ("vm",  "suspend-VDI-uuid"), 
+                     ("vm",  "suspend-VDI-uuid"),
                      ("vbd", "allowed-operations")] # XXX (pause; unpause; attach, pause; unpause)
         errors = self.comparer.validateGuest(self.guest.getUUID(), addignore=addignore)
         if errors:
@@ -344,7 +345,7 @@ class _SnappointRollback(xenrt.TestCase):
             #raise xenrt.XRTFailure("Checkpoint check failed: %s" % (errors))
 
     def rollback(self):
-        self.guest.revert(self.snappoint) 
+        self.guest.revert(self.snappoint)
         if self.OPERATION == "checkpoint":
             errors = self.comparer.validateCheckpointRollback(self.guest.getUUID())
             if errors:
@@ -363,10 +364,22 @@ class _SnappointRollback(xenrt.TestCase):
     def removeSnapshot(self, uuid):
         self.guest.removeSnapshot(uuid)
 
+    def __chooseSR(self, arglist, host):
+        """Select the zeroth sr from the SR_INSTALL_NAME variable
+
+        :returns: sr-uuid -- of the named sr else local as default
+        """
+        srName = xenrt.TEC().lookup("SR_INSTALL_NAME", None)
+        if srName:
+            log("Attempting to use SR called {srname}".format(srname=srName))
+
+        return host.getSRByName(srName)[0] if srName else host.getLocalSR()
+
     def prepare(self, arglist):
         self.snappoint = None
         self.host = self.getDefaultHost()
-        self.sr = self.host.getLocalSR()
+        self.sr = self.__chooseSR(arglist, self.host)
+        log("SR UUID is {sruuid}".format(sruuid=self.sr))
         self.host.addExtraLogFile("/var/log/SMlog")
         if not self.EXISTING_GUEST:
             self.guest = None
@@ -391,7 +404,7 @@ class _SnappointRollback(xenrt.TestCase):
             elif self.DISTRO == "DEFAULT":
                 self.guest = self.host.createGenericLinuxGuest(name=name, sr=self.sr)
             else:
-                self.guest = self.host.createGenericWindowsGuest(distro=self.DISTRO, 
+                self.guest = self.host.createGenericWindowsGuest(distro=self.DISTRO,
                                                                  memory=1024,
                                                                  sr=self.sr)
                 self.guest.setName(name)
@@ -428,7 +441,7 @@ class _SnappointRollback(xenrt.TestCase):
         except: pass
         try: self.host.waitForCoalesce(self.sr)
         except: pass
-    
+
 class _SnappointTrees(_SnappointRollback):
     """Superclass for creating arbitrary trees of snappoints."""
 
@@ -438,10 +451,10 @@ class _SnappointTrees(_SnappointRollback):
         current = self.snappoint
         method(self)
         self.snappoint = _SnappointTrees.SnappointTreeNode(self.snappoint)
-        if current: 
+        if current:
             current.children.append(self.snappoint)
             self.snappoint.parent = current
-        else: 
+        else:
             self.snaptrees.append(self.snappoint)
 
     def checkpoint(self):
@@ -451,7 +464,7 @@ class _SnappointTrees(_SnappointRollback):
         self._snappoint(_SnappointRollback.snapshot)
 
     def rollback(self, snappoint):
-        self.snappoint = snappoint.value         
+        self.snappoint = snappoint.value
         _SnappointRollback.rollback(self)
         self.snappoint = snappoint
 
@@ -475,7 +488,7 @@ class _SnappointTrees(_SnappointRollback):
 
         def __init__(self, value):
             self.value = value
-            self.id = "" 
+            self.id = ""
             self.parent = ""
             self.children = []
 
@@ -483,7 +496,7 @@ class _SnappointTrees(_SnappointRollback):
             yield self
             for child in self.children:
                 for node in child.traverse():
-                    yield node 
+                    yield node
 
         def depth(self):
             if not self.children:
@@ -505,7 +518,7 @@ class _SnappointTrees(_SnappointRollback):
             id = node.getAttribute("id")
             self.snapshot()
         else:
-            return 
+            return
         if id: self.snappoint.id = id
         current = self.snappoint
         for x in node.childNodes:
@@ -521,20 +534,20 @@ class _SnappointTrees(_SnappointRollback):
                 children = self.host.genParamGet("snapshot", uuid, "children").split("; ")
                 if children == ['']:
                     children = []
-                if node == self.snappoint: 
+                if node == self.snappoint:
                     expected = len(node.children) + 1
-                else: 
+                else:
                     expected = len(node.children)
                 if not len(children) == expected:
                     raise xenrt.XRTFailure("Differing number of children. (%s, %s)" %
                                            (children, node.children))
                 for child in node.children:
                     if not child.value in children:
-                        raise xenrt.XRTFailure("Child mismatch: %s, %s" % 
+                        raise xenrt.XRTFailure("Child mismatch: %s, %s" %
                                                (child.value, children))
                     parent = self.host.genParamGet("snapshot", child.value, "parent")
                     if not parent == node.value:
-                        raise xenrt.XRTFailure("Parent mismatch: %s, %s" % 
+                        raise xenrt.XRTFailure("Parent mismatch: %s, %s" %
                                                (node.value, parent))
 
     def getNodeById(self, id):
@@ -548,7 +561,7 @@ class _SnappointTrees(_SnappointRollback):
         self.checkTree()
 
     def prepare(self, arglist):
-        self.snaptrees = [] 
+        self.snaptrees = []
         _SnappointRollback.prepare(self, arglist)
 
     def run(self, arglist):
@@ -566,7 +579,7 @@ class _SnappointTrees(_SnappointRollback):
 class _MixedSnapshots(_SnappointTrees):
     """Snappoint stress tests base class."""
 
-    ITERATIONS = None 
+    ITERATIONS = None
     MAXCHAIN = 30
 
     OPERATION = "checkpoint"
@@ -579,7 +592,7 @@ class _MixedSnapshots(_SnappointTrees):
                 if depth >= self.MAXCHAIN:
                     self.rollback(self.getNodeById(random.randrange(i)))
                     continue
-            self.checkpoint()   
+            self.checkpoint()
             self.snappoint.id = i
             if i and random.choice([True, False]):
                 self.rollback(self.getNodeById(random.randrange(i)))
@@ -652,9 +665,9 @@ class _CheckpointOperation(_SnappointRollback):
             xenrt.TEC().warning("Clone failed.")
             if not re.search("VM_IS_SNAPSHOT", e.data):
                 raise xenrt.XRTFailure("Clone failed with unexpected error (%s)" % (str(e)))
-        else: 
+        else:
             xenrt.TEC().logverbose("Snapshot clone succeeded.")
-    
+
     def copy(self):
         xenrt.TEC().logverbose("Attempting to copy snapshot.")
         cli = self.host.getCLIInstance()
@@ -666,7 +679,7 @@ class _CheckpointOperation(_SnappointRollback):
             xenrt.TEC().warning("Copy failed.")
             if not re.search("VM_IS_SNAPSHOT", e.data):
                 raise xenrt.XRTFailure("Copy failed with unexpected error (%s)" % (str(e)))
-        else: 
+        else:
             xenrt.TEC().logverbose("Snapshot copy succeeded.")
 
     def rollbackdeleted(self):
@@ -674,7 +687,7 @@ class _CheckpointOperation(_SnappointRollback):
         self.guest.shutdown()
         self.guest.lifecycleOperation("vm-destroy", force=True)
         _SnappointRollback.rollback(self)
- 
+
     def run(self, arglist):
         result = self.runSubcase(self.OPERATION, (), "Live", self.OPERATION.capitalize())
         if not result == xenrt.RESULT_PASS: return
@@ -712,7 +725,7 @@ class _CheckpointConsistency(_SnappointRollback):
         self.guest.xmlrpcCreateFile("c:\\before_snapshot", "")
         _SnappointRollback.checkpoint(self)
         self.guest.xmlrpcCreateFile("c:\\after_snapshot", "")
-        for w in self.workloads: 
+        for w in self.workloads:
             w.stop()
             w.stopped = False
 
@@ -733,14 +746,14 @@ class _CheckpointConsistency(_SnappointRollback):
                 else:
                     raise xenrt.XRTFailure("Workload not running after rollback. (%s, %s)" %
                                            (w, ps))
-        for w in self.workloads: 
+        for w in self.workloads:
             w.stop()
             w.stopped = False
-        
+
     def postRun(self):
         try: self.guest.setState("UP")
         except: pass
-        try: 
+        try:
             for w in self.workloads: w.stop()
         except: pass
         try: self.guest.xmlrpcRemoveFile("c:\\before_snapshot")
@@ -757,7 +770,7 @@ class TC9207(_SnappointRollback):
 
 class TC9208(_SnappointRollback):
     """Snapshot and rollback of a suspended VM."""
- 
+
     INITIALSTATE = "SUSPENDED"
     OPERATION = "snapshot"
 
@@ -869,11 +882,11 @@ class TC9217(_CheckpointOperation):
         command = xenrt.lib.xenserver.cli.buildCommandLine(self.host, command)
         self.template = self.cliguest.execguest(command, timeout=3600).strip()
         self.removeTemplateOnCleanup(self.host, self.template)
-        allowed = [("vm",  "start-time"), 
+        allowed = [("vm",  "start-time"),
                    ("vm",  "install-time"),
-                   ("vm",  "memory-actual"), 
+                   ("vm",  "memory-actual"),
                    ("vm",  "VCPUs-number"),
-                   ("vm",  "parent")] 
+                   ("vm",  "parent")]
         errors = self.comparer.validateTemplate(self.template)
         errors = filter(lambda x:not x in allowed, errors)
         if errors:
@@ -882,22 +895,17 @@ class TC9217(_CheckpointOperation):
 
     def prepare(self, arglist):
         _CheckpointOperation.prepare(self, arglist)
-        hostarch = self.host.execdom0("uname -m").strip()
-        if hostarch.endswith("64"):
-            arch="x86-64"
-        else:
-            arch="x86-32"
-        self.cliguest = self.host.createGenericLinuxGuest(arch=arch)
+        self.cliguest = self.host.createGenericLinuxGuest()
         self.uninstallOnCleanup(self.cliguest)
         device = self.host.parseListForOtherParam("vbd-list",
                                                   "vm-uuid",
                                                    self.cliguest.getUUID(),
                                                   "device",
-                                                  "userdevice=%s" % 
+                                                  "userdevice=%s" %
                                                   (self.cliguest.createDisk(sizebytes=30*1024**3)))
         self.cliguest.execguest("mkfs.ext2 /dev/%s" % (device))
         self.cliguest.execguest("mount /dev/%s /mnt" % (device))
-        self.image = "/mnt/export-checkpoint.img" 
+        self.image = "/mnt/export-checkpoint.img"
         self.cliguest.installCarbonLinuxCLI()
         self.getLogsFrom(self.cliguest)
         self.guest.preCloneTailor()
@@ -992,7 +1000,7 @@ class TC9714(_CheckpointConsistency):
     """Checkpoint and rollback consistency on Windows 7"""
 
     DISTRO = "win7-x86"
-    
+
 class TC9715(_CheckpointConsistency):
     """Checkpoint and rollback consistency on Windows 7 x64"""
 
@@ -1002,38 +1010,46 @@ class TC12557(_CheckpointConsistency):
     """Checkpoint and rollback consistency on Windows 7 SP1"""
 
     DISTRO = "win7sp1-x86"
-    
+
 class TC12558(_CheckpointConsistency):
     """Checkpoint and rollback consistency on Windows 7 SP1 x64"""
 
     DISTRO = "win7sp1-x64"
-    
+
 class TC20686(_CheckpointConsistency):
     """Checkpoint and rollback consistency on Windows 8 x86"""
     DISTRO = "win8-x86"
-    
+
 class TC20687(_CheckpointConsistency):
     """Checkpoint and rollback consistency on Windows Server 2012 (x64)"""
     DISTRO = "ws12-x64"
-    
+
 class TC20002(_CheckpointConsistency):
     """Checkpoint and rollback consistency on Windows 81 x64"""
     DISTRO = "win81-x64"
-    
+
 class TC21644(_CheckpointConsistency):
     """Checkpoint and rollback consistency on Windows server 2012 """
     DISTRO = "win81-x64"
-    
+
 class TC21645(_CheckpointConsistency):
     """Checkpoint and rollback consistency on Windows 81 x64"""
     DISTRO = "win81-x64"
-    
+
+class TC26423(_CheckpointConsistency):
+    """Checkpoint and rollback consistency on Windows 10 x86"""
+    DISTRO = "win10-x86"
+
+class TC26424(_CheckpointConsistency):
+    """Checkpoint and rollback consistency on Windows 10 x64"""
+    DISTRO = "win10-x64"
+
 class TC9234(_SnappointTrees):
     """Check snapshot trees are preserved across pool join."""
 
     INITIALSTATE = "UP"
     OPERATION = "checkpoint"
-    
+
     SNAPTREE = """
 <checkpoint>
   <checkpoint>
@@ -1133,12 +1149,12 @@ class TC9236(xenrt.TestCase):
             if i-1 in self.snapshots:
                 if not parent == self.snapshots[i-1]:
                     raise xenrt.XRTFailure("Snapshot has unexpected parent field. (%s != %s)" %
-                                           (parent, self.snapshots[i-1])) 
+                                           (parent, self.snapshots[i-1]))
             if i+1 in self.snapshots:
                 if not self.snapshots[i+1] in children:
                     raise xenrt.XRTFailure("Snapshot has unexpected children. (%s not in %s)" %
                                            (self.snapshots[i+1], children))
-    
+
 class _CheckpointSmoketest(_SnappointRollback):
     """VM checkpoint and rollback smoketest."""
 
@@ -1179,7 +1195,7 @@ class _CheckpointSmoketest(_SnappointRollback):
             pass
         else:
             raise xenrt.XRTFailure("Post-snappoint flag still present.")
-        
+
     def postRun(self):
         try: self.guest.setState("UP")
         except: pass
@@ -1274,18 +1290,18 @@ class TC11211(_CheckpointSmoketest):
 
     DISTRO = "sles102"
     ARCH = "x86-64"
-    
+
 class TC21646(_CheckpointSmoketest):
     """VM checkpoint and rollback smoketest of a Debian 7 x86 VM"""
 
     DISTRO = "debian70"
-    
+
 class TC21647(_CheckpointSmoketest):
     """VM checkpoint and rollback smoketest of a Ubuntu 14.04 x64 VM"""
 
     DISTRO = "ubuntu1404"
     ARCH = "x86-64"
-    
+
 class TC21648(_CheckpointSmoketest):
     """VM checkpoint and rollback smoketest of a RHEL 7 x64 VM"""
 

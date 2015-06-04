@@ -1,0 +1,84 @@
+<?xml version="1.0"?>
+<!-- netthru_vm2bare_1vif_interhost_xsbare_eth1static_ipri_minimal.seq
+
+  This sequence contains network throughput experiments between
+  a VM in XenServer and bare metal hosts.
+
+  The VM has two VIFs, with eth1 on the IPRI network (NET_A).
+  The host also has eth1 on NET_A.
+  We use eth1 for the iperf session.
+
+-->
+<xenrt>
+  <variables>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+    <QUICK_LOGS_ON_PASS>True</QUICK_LOGS_ON_PASS>
+  </variables>
+
+  <prepare>
+
+    <host id="0">
+      <NETWORK>
+        <PHYSICAL name="NET_MGMT">
+          <MANAGEMENT/>
+          <NIC/>
+        </PHYSICAL>
+        <PHYSICAL network="IPRI" name="NET_A">
+          <NIC/>
+        </PHYSICAL>
+      </NETWORK>
+
+      <vm name="rhel6-0-1v">
+        <distro>rhel6</distro>
+	<arch>x86-64</arch>
+        <network device="0" bridge="NET_MGMT"/>
+        <network device="1" bridge="NET_A"/>
+        <vcpus>2</vcpus>
+        <memory>2048</memory>
+        <postinstall action="pause"/><!-- do not interfere with other vms  -->
+      </vm>
+    </host>
+
+    <!-- a baremetal machine -->
+    <host id="1" productVersion="centos65-x64" productType="nativelinux" cpufreqgovernor="performance">
+      <NETWORK>
+        <PHYSICAL name="NET_MGMT">
+          <MANAGEMENT/>
+          <NIC/>
+        </PHYSICAL>
+        <PHYSICAL network="IPRI" name="NET_A">
+          <NIC/>
+        </PHYSICAL>
+      </NETWORK>
+    </host>
+
+  </prepare>
+
+  <testsequence>
+
+    <serial group="rhel6/t01/v01">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=1</arg>
+        <arg>endpoint0=rhel6-0-1v</arg>
+        <arg>endpoint0dev=1</arg>
+        <arg>endpoint0ip=192.168.0.88</arg>
+        <arg>endpoint1=RESOURCE_HOST_1</arg>
+        <arg>endpoint1dev=IPRI</arg>
+        <arg>endpoint1ip=192.168.0.99</arg>
+      </testcase>
+    </serial>
+    <serial group="rhel6/t08/v01">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=8</arg>
+        <arg>endpoint0=rhel6-0-1v</arg>
+        <arg>endpoint0dev=1</arg>
+        <arg>endpoint0ip=192.168.0.88</arg>
+        <arg>endpoint1=RESOURCE_HOST_1</arg>
+        <arg>endpoint1dev=IPRI</arg>
+        <arg>endpoint1ip=192.168.0.99</arg>
+      </testcase>
+    </serial>
+
+  </testsequence>
+
+</xenrt>

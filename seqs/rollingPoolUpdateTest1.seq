@@ -10,6 +10,7 @@
   <default name="VM_ACTION_ON_HOST_REBOOT" value="EVACUATE" />    <!-- EVACUATE | SUSPEND | SHUTDOWN-->
   <default name="SKIP_HFX_INITIAL_VERSION" value="yes"/>
   <default name="SKIP_HFX_FINAL_VERSION" value="yes"/>
+  <default name="RPU_TC_ID" value="TC-21007"/>
   
   <variables>
     <PRODUCT_VERSION>${TESTED_PRODUCT_VERSION}</PRODUCT_VERSION>
@@ -55,7 +56,7 @@
       <host id="1" productVersion="${FROM_PRODUCT_VERSION}" version="${FROM_PRODUCT_INPUTDIR}">
         <vm name="ubuntu1004">
           <distro>ubuntu1004</distro>
-          <memory>128</memory>
+          <memory>512</memory>
           <vcpus>2</vcpus>
           <network device="0" />
           <disk device="0" size="8" />
@@ -95,7 +96,7 @@
         <arg>vmActionIfHostRebootRequired=${VM_ACTION_ON_HOST_REBOOT}</arg>
         <arg>skipApplyRequiredPatches=${SKIP_HFX_INITIAL_VERSION}</arg>
       </testcase>
-      <testcase id="testcases.xenserver.tc.hotfix.TC21007">
+      <testcase id="testcases.xenserver.tc.hotfix.TC21007" tc="${RPU_TC_ID}" sku="${FROM_PRODUCT_VERSION}" name="${FROM_PRODUCT_VERSION}">
         <arg>FINAL_VERSION=${TO_PRODUCT_VERSION}</arg>
         <arg>vmActionIfHostRebootRequired=${VM_ACTION_ON_HOST_REBOOT}</arg>
         <arg>skipApplyRequiredPatches=${SKIP_HFX_FINAL_VERSION}</arg>

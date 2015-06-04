@@ -3,6 +3,7 @@ import requests, os.path
 
 __all__ = ["VirtualMediaFactory"]
 
+@xenrt.irregularName
 def VirtualMediaFactory(machine):
     bmc = machine.lookup("BMC_TYPE", None)
     if bmc == "SUPERMICRO":

@@ -1,0 +1,270 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host>
+      <vm name="win7">
+        <distro>win7sp1-x86</distro>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+      <vm name="win7x64">
+        <distro>win7sp1-x64</distro>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+      <vm name="ws08r2">
+        <distro>ws08r2sp1-x64</distro>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="Win7-x86-BenchInst">
+      <testcase tc="TC-20725" id="testcases.xenserver.tc.vgpu.TCGPUBenchmarkInstall">
+        <arg>guest=win7</arg>
+        <arg>benchmark=SPECViewPerf11</arg>
+        <arg>benchmark=UnigineSanctuary</arg>
+        <arg>benchmark=UnigineTropics</arg>
+        <arg>benchmark=WindowsExperienceIndex</arg>
+        <arg>benchmark=Redway3DTurbine</arg>
+        <arg>benchmark=WebGL</arg>
+      </testcase>
+    </serial>
+    <serial group="Win7-x64-BenchInst">
+      <testcase tc="TC-20728" id="testcases.xenserver.tc.vgpu.TCGPUBenchmarkInstall">
+        <arg>guest=win7x64</arg>
+        <arg>benchmark=SPECViewPerf11</arg>
+        <arg>benchmark=UnigineSanctuary</arg>
+        <arg>benchmark=UnigineTropics</arg>
+        <arg>benchmark=WindowsExperienceIndex</arg>
+        <arg>benchmark=Redway3DTurbine</arg>
+        <arg>benchmark=WebGL</arg>
+      </testcase>
+    </serial>
+    <serial group="WS08R2-BenchInst">
+      <testcase tc="TC-20730" id="testcases.xenserver.tc.vgpu.TCGPUBenchmarkInstall">
+        <arg>guest=ws08r2</arg>
+        <arg>benchmark=SPECViewPerf11</arg>
+        <arg>benchmark=UnigineSanctuary</arg>
+        <arg>benchmark=UnigineTropics</arg>
+        <arg>benchmark=WindowsExperienceIndex</arg>
+        <arg>benchmark=Redway3DTurbine</arg>
+        <arg>benchmark=WebGL</arg>
+      </testcase>
+    </serial>
+<!--    <serial group="Pin">
+      <testcase id="testcases.xenserver.tc.vgpu.TCVGPUNode0Pin">
+        <arg>guest=win7</arg>
+      </testcase>
+    </serial> -->
+    <serial group="Win7-x86-K140">
+      <testcase tc="TC-20734" id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
+        <arg>guest=win7</arg>
+        <arg>vgpuconfig=K140</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+      </testcase>
+      <testcase tc="TC-20702" id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
+        <arg>guest=win7</arg>
+        <arg>vgpuconfig=K140</arg>
+        <arg>benchmark=SPECViewPerf11</arg>
+        <arg>benchmark=UnigineSanctuary</arg>
+        <arg>benchmark=UnigineTropics</arg>
+        <arg>benchmark=WindowsExperienceIndex</arg>
+        <arg>benchmark=Redway3DTurbine</arg>
+        <arg>benchmark=WebGL</arg>
+      </testcase>
+      <testcase tc="TC-20768" id="guestops.basic.TCShutdown">
+        <arg>guest=win7</arg>
+      </testcase>
+    </serial>
+    <serial group="Win7-x86-K140Scale">
+      <testcase tc="TC-20737" id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
+        <arg>guest=win7</arg>
+        <arg>vgpuconfig=K140</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+      </testcase>
+      <testcase tc="TC-20751" id="testcases.xenserver.tc.vgpu.TCVGPUCloneVM">
+        <arg>guest=win7</arg>
+        <arg>vgpuconfig=K140</arg>
+        <arg>clones=4</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+      </testcase>
+      <testcase tc="TC-20709" id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
+        <arg>guest=win7</arg>
+        <arg>clones=4</arg>
+        <arg>vgpuconfig=K140</arg>
+        <arg>benchmark=SPECViewPerf11</arg>
+        <arg>benchmark=UnigineSanctuary</arg>
+        <arg>benchmark=UnigineTropics</arg>
+        <arg>benchmark=WindowsExperienceIndex</arg>
+        <arg>benchmark=Redway3DTurbine</arg>
+        <arg>benchmark=WebGL</arg>
+      </testcase>
+      <testcase tc="TC-20758" id="testcases.xenserver.tc.vgpu.TCVGPUDeleteClones">
+        <arg>guest=win7</arg>
+        <arg>clones=4</arg>
+      </testcase>
+    </serial>
+    <serial group="Win7-x64-K140">
+      <testcase tc="TC-20735" id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
+        <arg>guest=win7x64</arg>
+        <arg>vgpuconfig=K140</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+      </testcase>
+      <testcase tc="TC-20763" id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
+        <arg>guest=win7x64</arg>
+        <arg>vgpuconfig=K140</arg>
+        <arg>benchmark=SPECViewPerf11</arg>
+        <arg>benchmark=UnigineSanctuary</arg>
+        <arg>benchmark=UnigineTropics</arg>
+        <arg>benchmark=WindowsExperienceIndex</arg>
+        <arg>benchmark=Redway3DTurbine</arg>
+        <arg>benchmark=WebGL</arg>
+      </testcase>
+      <testcase id="guestops.basic.TCShutdown">
+        <arg>guest=win7x64</arg>
+      </testcase>
+    </serial>
+    <serial group="WS08R2-K140">
+      <testcase tc="TC-20736" id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
+        <arg>guest=ws08r2</arg>
+        <arg>vgpuconfig=K140</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+      </testcase>
+      <testcase tc="TC-20765" id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
+        <arg>guest=ws08r2</arg>
+        <arg>vgpuconfig=K140</arg>
+        <arg>benchmark=SPECViewPerf11</arg>
+        <arg>benchmark=UnigineSanctuary</arg>
+        <arg>benchmark=UnigineTropics</arg>
+        <arg>benchmark=WindowsExperienceIndex</arg>
+        <arg>benchmark=Redway3DTurbine</arg>
+        <arg>benchmark=WebGL</arg>
+      </testcase>
+      <testcase tc="TC-20770" id="guestops.basic.TCShutdown">
+        <arg>guest=ws08r2</arg>
+      </testcase>
+    </serial>
+    <serial group="Win7-x86-K100">
+      <testcase tc="TC-20731" id="testcases.xenserver.tc.vgpu.TCVGPUSetup" name="win7k100setup" sku="win7k100setup">
+        <arg>guest=win7</arg>
+        <arg>vgpuconfig=K100</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+      </testcase>
+      <testcase tc="TC-20703" id="testcases.xenserver.tc.vgpu.TCGPUBenchmark" name="win7k100" sku="win7k100">
+        <arg>guest=win7</arg>
+        <arg>vgpuconfig=K100</arg>
+        <arg>benchmark=UnigineSanctuary</arg>
+        <arg>benchmark=UnigineTropics</arg>
+        <arg>benchmark=WindowsExperienceIndex</arg>
+        <arg>benchmark=Redway3DTurbine</arg>
+        <arg>benchmark=WebGL</arg>
+      </testcase>
+      <testcase tc="TC-20767" id="guestops.basic.TCShutdown" name="win7k100shutdown" sku="win7k100shutdown">
+        <arg>guest=win7</arg>
+      </testcase>
+    </serial>
+    <serial group="Win7-x86-K100Scale">
+      <testcase tc="TC-20732" id="testcases.xenserver.tc.vgpu.TCVGPUSetup" name="win7k100scalesetup" sku="win7k100scalesetup">
+        <arg>guest=win7</arg>
+        <arg>vgpuconfig=K100</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+      </testcase>
+      <testcase tc="TC-20749" id="testcases.xenserver.tc.vgpu.TCVGPUCloneVM" name="win7k100scaleclone" sku="win7k100scaleclone">
+        <arg>guest=win7</arg>
+        <arg>vgpuconfig=K100</arg>
+        <arg>clones=8</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+      </testcase>
+      <testcase tc="TC-20710" id="testcases.xenserver.tc.vgpu.TCGPUBenchmark" name="win7k100clone" sku="win7k100clone">
+        <arg>guest=win7</arg>
+        <arg>clones=8</arg>
+        <arg>vgpuconfig=K100</arg>
+        <arg>benchmark=UnigineSanctuary</arg>
+        <arg>benchmark=UnigineTropics</arg>
+        <arg>benchmark=WindowsExperienceIndex</arg>
+        <arg>benchmark=Redway3DTurbine</arg>
+        <arg>benchmark=WebGL</arg>
+      </testcase>
+      <testcase tc="TC-20756" id="testcases.xenserver.tc.vgpu.TCVGPUDeleteClones" name="win7k100del" sku="win7k100del">
+        <arg>guest=win7</arg>
+        <arg>clones=8</arg>
+      </testcase>
+    </serial>
+
+    <serial group="Win7-x86-K120">
+      <testcase tc="TC-20731" id="testcases.xenserver.tc.vgpu.TCVGPUSetup" name="win7k120setup" sku="win7k120setup">
+        <arg>guest=win7</arg>
+        <arg>vgpuconfig=K120</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+      </testcase>
+      <testcase tc="TC-20703" id="testcases.xenserver.tc.vgpu.TCGPUBenchmark" name="win7k120" sku="win7k120">
+        <arg>guest=win7</arg>
+        <arg>vgpuconfig=K120</arg>
+        <arg>benchmark=UnigineSanctuary</arg>
+        <arg>benchmark=UnigineTropics</arg>
+        <arg>benchmark=WindowsExperienceIndex</arg>
+        <arg>benchmark=Redway3DTurbine</arg>
+        <arg>benchmark=WebGL</arg>
+      </testcase>
+      <testcase tc="TC-20767" id="guestops.basic.TCShutdown" name="win7k120shutdown" sku="win7k120shutdown">
+        <arg>guest=win7</arg>
+      </testcase>
+    </serial>
+    <serial group="Win7-x86-K120Scale">
+      <testcase tc="TC-20732" id="testcases.xenserver.tc.vgpu.TCVGPUSetup" name="win7k120scalesetup" sku="win7k120scalesetup">
+        <arg>guest=win7</arg>
+        <arg>vgpuconfig=K120</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+      </testcase>
+      <testcase tc="TC-20749" id="testcases.xenserver.tc.vgpu.TCVGPUCloneVM" name="win7k120scaleclone" sku="win7k120scaleclone">
+        <arg>guest=win7</arg>
+        <arg>vgpuconfig=K120</arg>
+        <arg>clones=8</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+      </testcase>
+      <testcase tc="TC-20710" id="testcases.xenserver.tc.vgpu.TCGPUBenchmark" name="win7k120clone" sku="win7k120clone">
+        <arg>guest=win7</arg>
+        <arg>clones=8</arg>
+        <arg>vgpuconfig=K120</arg>
+        <arg>benchmark=UnigineSanctuary</arg>
+        <arg>benchmark=UnigineTropics</arg>
+        <arg>benchmark=WindowsExperienceIndex</arg>
+        <arg>benchmark=Redway3DTurbine</arg>
+        <arg>benchmark=WebGL</arg>
+      </testcase>
+      <testcase tc="TC-20756" id="testcases.xenserver.tc.vgpu.TCVGPUDeleteClones" name="win7k120del" sku="win7k120del">
+        <arg>guest=win7</arg>
+        <arg>clones=8</arg>
+      </testcase>
+    </serial>
+
+    <serial group="Win7-x86-K1PT">
+      <testcase tc="TC-20739" id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
+        <arg>guest=win7</arg>
+        <arg>vgpuconfig=K1passthrough</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+      </testcase>
+      <testcase tc="TC-20704" id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
+        <arg>guest=win7</arg>
+        <arg>vgpuconfig=K1passthrough</arg>
+        <arg>benchmark=SPECViewPerf11</arg>
+        <arg>benchmark=UnigineSanctuary</arg>
+        <arg>benchmark=UnigineTropics</arg>
+        <arg>benchmark=WindowsExperienceIndex</arg>
+        <arg>benchmark=Redway3DTurbine</arg>
+        <arg>benchmark=WebGL</arg>
+      </testcase>
+      <testcase tc="TC-20771" id="guestops.basic.TCShutdown">
+        <arg>guest=win7</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+
+</xenrt>

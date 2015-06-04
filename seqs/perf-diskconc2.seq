@@ -6,9 +6,7 @@
     </variables>
 
     <prepare>
-      <pool>
-        <allhosts/>
-      </pool>
+      <host/>
     </prepare>
 
     <testsequence>

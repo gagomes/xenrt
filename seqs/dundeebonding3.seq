@@ -1,0 +1,20 @@
+<xenrt>
+
+  <!-- Multiple nic tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <CARBON_EXTRA_CDS>linux.iso</CARBON_EXTRA_CDS>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <serial group="ActivePassiveBonding">
+      <testcase id="xenserver.tc.bonding.TC12519"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

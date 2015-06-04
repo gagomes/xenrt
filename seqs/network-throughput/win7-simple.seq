@@ -1,13 +1,11 @@
   <xenrt>
     <variables>
       <PREPARE_WORKERS>2</PREPARE_WORKERS>
-      <ENABLE_CITRIXCERT>yes</ENABLE_CITRIXCERT>
-      <ALWAYS_TEST_SIGN>yes</ALWAYS_TEST_SIGN>
     </variables>
 
     <prepare>
       <pool>
-        <host id="0" license="platinum">
+        <host id="0">
             <NETWORK>
                 <PHYSICAL network="NPRI">
                     <MANAGEMENT mode="static" />
@@ -15,7 +13,7 @@
                 </PHYSICAL>
             </NETWORK>
         </host>
-        <host id="1" license="platinum">
+        <host id="1">
             <NETWORK>
                 <PHYSICAL network="NPRI">
                     <MANAGEMENT mode="static" />

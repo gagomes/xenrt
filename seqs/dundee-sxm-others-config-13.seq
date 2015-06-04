@@ -1,0 +1,36 @@
+<xenrt>
+
+  <!-- Sequence to test the various storage xen migration test cases.
+
+       TC17345 - Verifying Inter Pool Storage Migration with Heterogeneous CPU Pooling.
+
+  -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <!-- <pool id="0" name="sourceSXMPool"> -->
+    <pool id="0">
+      <host id="0" installsr="ext" />
+    </pool>
+    <!-- <pool id="1" name="targetSXMPool"> -->
+    <pool id="1">
+      <host id="1" installsr="lvm" />
+    </pool>
+  </prepare>
+
+  <testsequence>
+
+    <serial group="IntraPoolSXM">
+      <!-- intra-pool sxm migration from sr-type ext to lvm. -->
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC17345" tc="TC-17345">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+      </testcase>
+    </serial>
+
+  </testsequence>
+
+</xenrt>

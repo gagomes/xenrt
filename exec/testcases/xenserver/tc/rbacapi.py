@@ -60,7 +60,7 @@ class _APIGet(testcases.xenserver.tc.security._RBAC):
         testcases.xenserver.tc.security._RBAC.prepare(self, arglist)
         
         #MESSAGE_REMOVED for VM_guest_metrics.get_disks and get_memory in trunk
-        if isinstance(self.pool.master, xenrt.lib.xenserver.SarasotaHost):
+        if isinstance(self.pool.master, xenrt.lib.xenserver.DundeeHost):
             self.ALLOWED["xenapi.VM_guest_metrics.get_disks"]="MESSAGE_REMOVED"
             self.ALLOWED["xenapi.VM_guest_metrics.get_memory"]="MESSAGE_REMOVED"
             
@@ -308,7 +308,7 @@ class _APISet(testcases.xenserver.tc.security._RBAC):
                 if call=="xenapi.Bond.set_property":
                     apicall.environment=["LacpBond"]
                     apicall.parameters=["LacpBond.getHandle()","hashing_algorithm","tcpudp_ports"]
-                #PIF.set_property added for Augusta
+                #PIF.set_property added for Dundee
                 if call=="xenapi.PIF.set_property":
                     apicall.parameters=["PIF.getHandle()","gro","off"]
                 #for VBD.set_mode the VM needs to be in halted state, a seperate class OffVBD has

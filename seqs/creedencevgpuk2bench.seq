@@ -67,6 +67,7 @@
       <testcase tc="TC-20744" id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
         <arg>guest=win7</arg>
         <arg>vgpuconfig=K260</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
       </testcase>
       <testcase tc="TC-20705" id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
         <arg>guest=win7</arg>
@@ -86,11 +87,13 @@
       <testcase tc="TC-20747" id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
         <arg>guest=win7</arg>
         <arg>vgpuconfig=K260</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
       </testcase>
       <testcase tc="TC-20755" id="testcases.xenserver.tc.vgpu.TCVGPUCloneVM">
         <arg>guest=win7</arg>
         <arg>vgpuconfig=K260</arg>
         <arg>clones=2</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
       </testcase>
       <testcase tc="TC-20711" id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
         <arg>guest=win7</arg>
@@ -112,6 +115,7 @@
       <testcase tc="TC-20745" id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
         <arg>guest=win7x64</arg>
         <arg>vgpuconfig=K260</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
       </testcase>
       <testcase tc="TC-20764" id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
         <arg>guest=win7x64</arg>
@@ -131,6 +135,7 @@
       <testcase tc="TC-20746" id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
         <arg>guest=ws08r2</arg>
         <arg>vgpuconfig=K260</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
       </testcase>
       <testcase tc="TC-20766" id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
         <arg>guest=ws08r2</arg>
@@ -150,6 +155,7 @@
       <testcase tc="TC-20742" id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
         <arg>guest=win7</arg>
         <arg>vgpuconfig=K240</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
       </testcase>
       <testcase tc="TC-20706" id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
         <arg>guest=win7</arg>
@@ -169,11 +175,13 @@
       <testcase tc="TC-20743" id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
         <arg>guest=win7</arg>
         <arg>vgpuconfig=K240</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
       </testcase>
       <testcase tc="TC-20754" id="testcases.xenserver.tc.vgpu.TCVGPUCloneVM">
         <arg>guest=win7</arg>
         <arg>vgpuconfig=K240</arg>
         <arg>clones=4</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
       </testcase>
       <testcase tc="TC-20712" id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
         <arg>guest=win7</arg>
@@ -192,11 +200,12 @@
       </testcase>
     </serial>
     <serial group="Win7-x86-K200">
-      <testcase tc="TC-20740" id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
+      <testcase tc="TC-20740" id="testcases.xenserver.tc.vgpu.TCVGPUSetup" name="win7k200setup" sku="win7k200setup">
         <arg>guest=win7</arg>
         <arg>vgpuconfig=K200</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
       </testcase>
-      <testcase tc="TC-20707" id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
+      <testcase tc="TC-20707" id="testcases.xenserver.tc.vgpu.TCGPUBenchmark" name="win7k200bench" sku="win7k200bench">
         <arg>guest=win7</arg>
         <arg>vgpuconfig=K200</arg>
         <arg>benchmark=UnigineSanctuary</arg>
@@ -205,21 +214,23 @@
         <arg>benchmark=Redway3DTurbine</arg>
         <arg>benchmark=WebGL</arg>
       </testcase>
-      <testcase tc="TC-20772" id="guestops.basic.TCShutdown">
+      <testcase tc="TC-20772" id="guestops.basic.TCShutdown" name="win7k200shutdown" sku="win7k200shutdown">
         <arg>guest=win7</arg>
       </testcase>
     </serial>
     <serial group="Win7-x86-K200Scale">
-      <testcase tc="TC-20741" id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
+      <testcase tc="TC-20741" id="testcases.xenserver.tc.vgpu.TCVGPUSetup" name="win7k200sclaesetup" sku="win7k200scalesetup">
         <arg>guest=win7</arg>
         <arg>vgpuconfig=K200</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
       </testcase>
-      <testcase tc="TC-20753" id="testcases.xenserver.tc.vgpu.TCVGPUCloneVM">
+      <testcase tc="TC-20753" id="testcases.xenserver.tc.vgpu.TCVGPUCloneVM" name="win7k200scaleclone" sku="win7k200scaleclone">
         <arg>guest=win7</arg>
         <arg>vgpuconfig=K200</arg>
         <arg>clones=8</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
       </testcase>
-      <testcase tc="TC-20713" id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
+      <testcase tc="TC-20713" id="testcases.xenserver.tc.vgpu.TCGPUBenchmark" name="win7k200clone" sku="win7k200clone">
         <arg>guest=win7</arg>
         <arg>clones=8</arg>
         <arg>vgpuconfig=K200</arg>
@@ -229,18 +240,19 @@
         <arg>benchmark=Redway3DTurbine</arg>
         <arg>benchmark=WebGL</arg>
       </testcase>
-      <testcase tc="TC-20760" id="testcases.xenserver.tc.vgpu.TCVGPUDeleteClones">
+      <testcase tc="TC-20760" id="testcases.xenserver.tc.vgpu.TCVGPUDeleteClones" name="win7k200del" sku="win7k200del">
         <arg>guest=win7</arg>
         <arg>clones=8</arg>
       </testcase>
     </serial>
 
     <serial group="Win7-x86-K220">
-      <testcase tc="TC-20740" id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
+      <testcase tc="TC-20740" id="testcases.xenserver.tc.vgpu.TCVGPUSetup" name="win7k220setup" sku="win7k220setup">
         <arg>guest=win7</arg>
         <arg>vgpuconfig=K220</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
       </testcase>
-      <testcase tc="TC-20707" id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
+      <testcase tc="TC-20707" id="testcases.xenserver.tc.vgpu.TCGPUBenchmark" name="win7k220bench" sku="win7k220bench">
         <arg>guest=win7</arg>
         <arg>vgpuconfig=K220</arg>
         <arg>benchmark=UnigineSanctuary</arg>
@@ -249,21 +261,23 @@
         <arg>benchmark=Redway3DTurbine</arg>
         <arg>benchmark=WebGL</arg>
       </testcase>
-      <testcase tc="TC-20772" id="guestops.basic.TCShutdown">
+      <testcase tc="TC-20772" id="guestops.basic.TCShutdown" name="win7k220shutdown" sku="win7k220shutdown">
         <arg>guest=win7</arg>
       </testcase>
     </serial>
     <serial group="Win7-x86-K220Scale">
-      <testcase tc="TC-20741" id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
+      <testcase tc="TC-20741" id="testcases.xenserver.tc.vgpu.TCVGPUSetup" name="win7k220sclaesetup" sku="win7k220scalesetup">
         <arg>guest=win7</arg>
         <arg>vgpuconfig=K220</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
       </testcase>
-      <testcase tc="TC-20753" id="testcases.xenserver.tc.vgpu.TCVGPUCloneVM">
+      <testcase tc="TC-20753" id="testcases.xenserver.tc.vgpu.TCVGPUCloneVM" name="win7k220scaleclone" sku="win7k220scaleclone">
         <arg>guest=win7</arg>
         <arg>vgpuconfig=K220</arg>
         <arg>clones=8</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
       </testcase>
-      <testcase tc="TC-20713" id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
+      <testcase tc="TC-20713" id="testcases.xenserver.tc.vgpu.TCGPUBenchmark" name="win7k220clone" sku="win7k220clone">
         <arg>guest=win7</arg>
         <arg>clones=8</arg>
         <arg>vgpuconfig=K220</arg>
@@ -273,7 +287,7 @@
         <arg>benchmark=Redway3DTurbine</arg>
         <arg>benchmark=WebGL</arg>
       </testcase>
-      <testcase tc="TC-20760" id="testcases.xenserver.tc.vgpu.TCVGPUDeleteClones">
+      <testcase tc="TC-20760" id="testcases.xenserver.tc.vgpu.TCVGPUDeleteClones"  name="win7k220del" sku="win7k220del">
         <arg>guest=win7</arg>
         <arg>clones=8</arg>
       </testcase>
@@ -284,6 +298,7 @@
       <testcase tc="TC-20748" id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
         <arg>guest=win7</arg>
         <arg>vgpuconfig=K2PassThrough</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
       </testcase>
       <testcase tc="TC-20708" id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
         <arg>guest=win7</arg>

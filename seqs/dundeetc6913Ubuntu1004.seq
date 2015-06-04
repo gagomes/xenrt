@@ -1,0 +1,50 @@
+<xenrt>
+
+  <!-- Linux suites tests for ubuntu1004 -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <default name="PARALLEL" value="2" />
+
+  <prepare>
+    <host>
+      <vm name="ubuntu1004">
+        <distro>ubuntu1004</distro>
+        <vcpus>2</vcpus>
+        <memory>512</memory>
+        <!-- CA-61400 -->
+        <network device="0" />
+        <postinstall action="shutdown" />
+      </vm>
+      <vm name="ubuntu1004x64">
+        <distro>ubuntu1004</distro>
+        <vcpus>2</vcpus>
+        <memory>1024</memory>
+        <arch>x86-64</arch>
+        <network device="0" />
+        <postinstall action="shutdown" />
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <parallel workers="${PARALLEL}">
+      <serial group="ubuntu1004" guest="ubuntu1004">
+        <testcase id="benchmarks.micro.TClmbench" tc="TC-13829" prio="3">
+          <arg>quick</arg>
+        </testcase>
+
+        <!-- Removing as couldn't get to finish on Ubuntu -->
+        <!--<testcase id="benchmarks.func.TCltp" tc="TC-13825" prio="3"/>-->
+      </serial>
+      <serial group="ubuntu1004x64" guest="ubuntu1004x64">
+        <testcase id="benchmarks.micro.TClmbench" tc="TC-13830" prio="3">
+          <arg>quick</arg>
+        </testcase>
+        <!--<testcase id="benchmarks.func.TCltp" tc="TC-13826" prio="3"/>-->
+      </serial>
+    </parallel>
+  </testsequence>
+</xenrt>

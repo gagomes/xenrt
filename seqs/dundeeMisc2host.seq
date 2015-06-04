@@ -1,0 +1,20 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <pool>
+      <host id="0" />
+      <host id="1" />
+    </pool>
+  </prepare>
+
+  <testsequence>
+   <serial group="Snowball">
+    <testcase id="testcases.xenserver.tc.vhd.TC20995"/>
+   </serial>
+   <testcase id="testcases.xenserver.tc.storage.TCPbdDuplicateSecret" tc="TC-21719"/>
+   <testcase id="testcases.xenserver.tc.host.TCSlaveConnectivity" name = "TC23773" tc ="TC-23773"/>
+  </testsequence>
+</xenrt>

@@ -7,6 +7,7 @@ import xenrt
 import random, string
 import tc_networkthroughput2
 from random import randrange
+import libsynexec
 
 # Expects the sequence file to set up two VMs, called 'endpoint0' and 'endpoint1'
 #
@@ -39,7 +40,7 @@ class TCNetworkThroughputMultipleVifs(tc_networkthroughput2.TCNetworkThroughputP
         #netback_per_cpu (tampa, clearwater) uses a "[netback" thread per cpu
         #netback_per_vif (sarasota onwards) uses a "[vif" thread per vif
         nr_netback_threads_per_cpu = int(host_endpoint.execcmd('ps aux| grep "\[netback/*." |grep -v grep | wc -l').strip())
-        nr_netback_threads_per_vif = int(host_endpoint.execcmd('ps aux| grep "\[vif*." |grep -v dealloc |grep -v grep | wc -l').strip())
+        nr_netback_threads_per_vif = int(host_endpoint.execcmd('ps aux| grep "\[vif*." |grep -v -- -dea |grep -v grep | wc -l').strip())
 
         # basic sanity checks
         if nr_netback_threads_per_cpu > 0 and nr_netback_threads_per_vif > 0:
@@ -162,7 +163,7 @@ class TCNetworkThroughputMultipleVifs(tc_networkthroughput2.TCNetworkThroughputP
             endpoints[endpoint] = [] # list of vms cloned from endpoint
             self.start_endpoint(endpoint) #required state to install iperf
             endpoint.installIperf(version="2.0.5")
-            self.install_synexec(endpoint)
+            libsynexec.initialise_slave(endpoint)
 
         # reuse any existing clone
         for g in self.guests:
@@ -206,23 +207,6 @@ class TCNetworkThroughputMultipleVifs(tc_networkthroughput2.TCNetworkThroughputP
             else:
                 endpoint.execcmd("apt-get install --force-yes -y git")
 
-    def install_synexec(self, endpoint):
-        self.install_git(endpoint)
-        outfile = "/tmp/synexec_install.out"
-        script = "cd /root && if [ ! -d synexec ]; then git clone https://github.com/franciozzy/synexec && cd synexec && make; fi >%s 2>&1" % (outfile,)
-        endpoint.addExtraLogFile(outfile)
-        return endpoint.execcmd(script)
-
-    def run_synexec_slave(self, endpoint, session):
-        return endpoint.execcmd("nohup /root/synexec/synexec_slave -s %s 0</dev/null 1>/tmp/synexec_slave_%s_out 2>&1  &" % (session,session))
-
-    def run_synexec_master(self, endpoint, session, slave_number, configfile):
-        cmd = "/root/synexec/synexec_master -s %s %s %s" % (session, slave_number, configfile)
-        self.log(None, "run_synexec_master: going to execute on %s: %s" % (endpoint.getIP(), cmd))
-        if self.dopause.lower() == "on" or (xenrt.TEC().lookup("PAUSE_AT_MASTER_ON_PHASE", "None") in self.getPhase()):
-            self.pause('paused before run_synexec_master')  # pause the tc and wait for user assistance
-        return endpoint.execcmd(cmd)
-
     def runIperf(self, origin, origindev, dest, destdev, interval=1, duration=30, threads=1, protocol="tcp"):
 
         prot_switch = None
@@ -245,27 +229,31 @@ class TCNetworkThroughputMultipleVifs(tc_networkthroughput2.TCNetworkThroughputP
                 # Start server
                 d.execcmd("nohup iperf %s -s 0<&- &>/dev/null &" % (prot_switch,)) # should be implemented in startIperf()
 
+            # 1.5. initialise synexec master in endpoint0
+            libsynexec.initialise_master_in_guest(origin)
+
             # 2. start synexec slave in each vm in endpoint0s + endpoint0
             for i in range(len(origin_endpoints)):
                 o = origin_endpoints[i]
                 d   = dest_endpoints[i]
                 destIP = self.getIP(d, destdev)
-                self.run_synexec_slave(o, synexec_session)
+                libsynexec.start_slave(o, synexec_session)
                 o.execcmd("echo %s > %s" % (destIP, iperf_in_file))
 
             # 3. create synexec master script in endpoint 0 to run iperf -c in each slave
-            master_script_path = "/tmp/synexec.master.in"
             master_script = """/bin/sh :CONF:
 #!/bin/sh
 DEST_IP=$(cat "%s")
 iperf %s -c ${DEST_IP} -i %d -t %d -f m -P %d >%s 2>&1
 """ % (iperf_in_file, prot_switch, interval, duration, threads, iperf_out_file)
             self.log(None, "synexec_master_script=%s" % (master_script,))
-            origin.execcmd("echo '%s' > %s" % (master_script, master_script_path))
+
+            if self.dopause.lower() == "on" or (xenrt.TEC().lookup("PAUSE_AT_MASTER_ON_PHASE", "None") in self.getPhase()):
+                self.pause('paused before running synexec_master')  # pause the tc and wait for user assistance
 
             # 4. start synexec master in endpoint0
             # 5. wait for synexec master to finish (=all synexec slaves finished iperf -c)
-            master_out = self.run_synexec_master(origin, synexec_session, len(origin_endpoints), master_script_path)
+            master_out = libsynexec.start_master_in_guest(origin, master_script, synexec_session, len(origin_endpoints))
             self.log(None, master_out)
 
             # 6. kill iperf servers in each vm in endpoints1s + endpoint1
@@ -274,8 +262,7 @@ iperf %s -c ${DEST_IP} -i %d -t %d -f m -P %d >%s 2>&1
                 d.execcmd("killall iperf || true")
                 d.execcmd("killall -9 iperf || true")
             for o in origin_endpoints:
-                o.execcmd("killall synexec_slave || true")
-                o.execcmd("killall -9 synexec_slave || true")
+                libsynexec.kill_slave(o)
 
             # 7. collect the iperf -c output in each endpoint0s + endpoint0
             output = []

@@ -1,7 +1,6 @@
 #
 # XenRT ISO Makefile
 #
-include build/config.mk
 include build/tools.mk
 
 ISOS	= $(shell cat $(ROOT)/$(INTERNAL)/keys/windows | awk '{ print "$(IMAGEDIR)/"$$1".iso" }')
@@ -26,7 +25,7 @@ $(IMAGEDIR)/%.iso:
 	$(info Building $@...)
 	cp -v $(TEST_INPUTS)/activepython/* $(ROOT)/$(XENRT)/images/windows/iso/common/\$$1/install/python/
 	[ -e /usr/bin/mkisofs ] || $(SUDO) ln -s `which genisoimage` /usr/bin/mkisofs
-	$(SUDO) $(MKISO) $(WINDOWS_ISOS)/$(notdir $@) \
+	$(SUDO) $(MKISO) $(WINDOWS_ISOS_INPUTS)/$(notdir $@) \
 			 $(call STRIP,$@) \
 			 $@ NOSFU=ALL
 

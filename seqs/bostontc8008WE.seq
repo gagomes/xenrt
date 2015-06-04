@@ -21,6 +21,7 @@
       <testcase id="xenserver.tc.ha.TC8128"/>
       <testcase id="xenserver.tc.ha.TC8129"/>
       <testcase id="xenserver.tc.ha.TC8130"/>
+      <testcase id="xenserver.tc.ha.TC8131"/>
     </serial>
   </testsequence>
 

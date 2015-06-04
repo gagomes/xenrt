@@ -14,7 +14,7 @@ from xenrt.lazylog import step, comment, log, warning
 # Symbols we want to export from the package.
 __all__ = ["Scapy", "TcpDump", "Telnet", "HackersChoiceFirewall6Ubuntu", "HackersChoiceFloodRouter26Ubuntu"]
 
-class Telnet:
+class Telnet(object):
     """Telnet is a utility for network service reachability test."""
 
     def __init__(self, host, port):
@@ -30,7 +30,7 @@ class Telnet:
             pass
         return False
 
-class Scapy:
+class Scapy(object):
     """Scapy is a utility for creating and sending network packets. http://www.secdev.org/projects/scapy/"""
     
     def __init__(self, guest):
@@ -184,7 +184,7 @@ sendp(rdpcap('%s'), iface='%s')
         finally:
             sftp.close()
 
-class TcpDump:
+class TcpDump(object):
     """TcpDump is a command-line network packet analyzer"""
     
     def __init__(self, guest):

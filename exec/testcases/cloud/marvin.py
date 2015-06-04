@@ -99,6 +99,11 @@ class TCRemoteNoseSetup(_TCRemoteNoseBase):
         except:
             xenrt.TEC().logverbose("test_data not supported")
         else:
+            # Older versions of marvin don't have configurableData.
+            # Initialise it to an empty dict here so we don't get exceptions
+            # later on
+            if not testData.has_key('configurableData'):
+                testData['configurableData'] = {}
             if self.args.has_key("resources"):
                 resources = self.args['resources'].split(",")
             else:   
@@ -109,12 +114,24 @@ class TCRemoteNoseSetup(_TCRemoteNoseBase):
             if "iscsi" in resources:
                 lun = xenrt.ISCSITemporaryLun(100)
                 testData['iscsi'] = {"url": "iscsi://%s/%s/%d" % (lun.getServer(), lun.getTargetName(), lun.getLunID()), "name": "Test iSCSI Storage"}
+                testData['configurableData']['iscsi'] = {"url": "iscsi://%s/%s/%d" % (lun.getServer(), lun.getTargetName(), lun.getLunID()), "name": "Test iSCSI Storage"}
+            if "portableip" in resources:
+                range = xenrt.StaticIP4Addr().getIPRange(4)
+                testData['configurableData']['portableIpRange']['startip'] = range[0].getAddr()
+                testData['configurableData']['portableIpRange']['endip'] = range[-1].getAddr()
+                testData['configurableData']['portableIpRange']['gateway'] = xenrt.getNetworkParam("NPRI", "GATEWAY")
+                testData['configurableData']['portableIpRange']['netmask'] = xenrt.getNetworkParam("NPRI", "SUBNETMASK")
+                testData['configurableData']['portableIpRange']['vlan'] = 1000
             if "netscaler" in resources:
                 netscaler = NetScaler.setupNetScalerVpx('NetScaler-VPX')
                 netscaler.applyLicense(netscaler.getLicenseFileFromXenRT())
-                testData['netscaler_VPX']['ipaddress'] = netscaler.managementIp
-                testData['netscaler_VPX']['privateinterface'] = '1/1'
-            
+                testData['configurableData']['netscaler']['ipaddress'] = netscaler.managementIp
+                testData['configurableData']['netscaler']['username'] = 'nsroot'
+                testData['configurableData']['netscaler']['password'] = 'nsroot'
+                testData['configurableData']['netscaler']['networkdevicetype'] = 'NetscalerVPXLoadBalancer'
+                testData['configurableData']['netscaler']['publicinterface'] = '1/1'
+                testData['configurableData']['netscaler']['privateinterface'] = '1/1'
+                testData['configurableData']['netscaler']['numretries'] = '2'
             if self.args['hypervisor'].lower() == "hyperv":
                 testData['service_offering']['memory'] = 512
                 testData['service_offerings']['memory'] = 512
@@ -135,7 +152,14 @@ class TCRemoteNoseSetup(_TCRemoteNoseBase):
             testData['medium']['hypervisor'] = self.args['hypervisor']
             testData['server']['hypervisor'] = self.args['hypervisor']
             testData['server_without_disk']['hypervisor'] = self.args['hypervisor']
-            testData['host_password'] = "xenroot"
+            testData['host_password'] = xenrt.TEC().lookup("ROOT_PASSWORD")
+            testData['configurableData']['host']['password'] = xenrt.TEC().lookup("ROOT_PASSWORD")
+            # ISO replacements
+            if testData['configurableData'].has_key("bootableIso"):
+                testData['configurableData']['bootableIso']['url'] = "%s/centos63_x86-64_xenrtinst.iso" % xenrt.TEC().lookup("EXPORT_ISO_HTTP_STATIC")
+            for i in ["iso", "iso1", "iso2"]:
+                if testData.has_key(i):
+                    testData[i]['url'] = "%s/dummy.iso" % xenrt.TEC().lookup("EXPORT_ISO_HTTP_STATIC")
             with open("%s/testdata.cfg" % xenrt.TEC().getLogdir(), "w") as f:
                 f.write(json.dumps(testData, indent=2))
     
@@ -149,10 +173,12 @@ class TCRemoteNoseSetup(_TCRemoteNoseBase):
 
 class TCRemoteNoseSimSetup(_TCRemoteNoseBase):
     def run(self, arglist):
-        mgmtSvrIp = self.getGuest("CS-MS").getIP()
+        mgmtSvr = self.getGuest("CS-MS")
+        mgmtSvrIp = mgmtSvr.getIP()
         cfg = json.loads(self.runner.execguest("cat /root/cloudstack/%s | grep -v \"^#\"" % self.args['deploy']))
         cfg['dbSvr']['dbSvr'] = mgmtSvrIp
         cfg['mgtSvr'][0]['mgtSvrIp'] = mgmtSvrIp
+        cfg['mgtSvr'][0]['passwd'] = mgmtSvr.password
 
         with open("%s/marvin.cfg" % xenrt.TEC().getLogdir(), "w") as f:
             f.write(json.dumps(cfg, indent=2))
@@ -187,15 +213,17 @@ class TCRemoteNose(_TCRemoteNoseBase):
         if self.args.has_key("hypervisor"):
             noseargs += " --hypervisor=%s" % self.args['hypervisor']
 
-        self.runner.execguest("nosetests -v --logging-level=DEBUG --log-folder-path=%s --with-marvin --marvin-config=/root/marvin.cfg --with-xunit --xunit-file=%s/results.xml %s /root/cloudstack/%s" %
-                   (self.workdir,
-                    self.workdir,
-                    noseargs,
-                    self.args['file']), timeout=28800, retval="code")
+        try:
+            self.runner.execguest("nosetests -v --logging-level=DEBUG --log-folder-path=%s --with-marvin --marvin-config=/root/marvin.cfg --with-xunit --xunit-file=%s/results.xml %s /root/cloudstack/%s" %
+                       (self.workdir,
+                        self.workdir,
+                        noseargs,
+                        self.args['file']), timeout=28800, retval="code")
+        finally:
+            sftp = self.runner.sftpClient()
+            logdir = xenrt.TEC().getLogdir()
+            sftp.copyTreeFrom(self.workdir, logdir + '/marvin')
 
-        sftp = self.runner.sftpClient()
-        logdir = xenrt.TEC().getLogdir()
-        sftp.copyTreeFrom(self.workdir, logdir + '/marvin')
         self.parseResultsXML("%s/marvin/results.xml" % logdir)
 
     def truncateText(self, text):
@@ -246,6 +274,12 @@ class TCRemoteNose(_TCRemoteNoseBase):
                 elif t.getElementsByTagName("skipped"):
                     result = xenrt.RESULT_SKIPPED
                 self.testcaseResult(t.getAttribute("classname"), t.getAttribute("name"), result, self.getReason(msg))
+                if msg and len(msg) > 12500:
+                    # Need to trim the message for Jira
+                    newmsg = msg[:2500]
+                    newmsg += "\n\n-- trimmed - full logs available on link above --\n\n"
+                    newmsg += msg[-10000:]
+                    msg = newmsg
                 self.failures["%s/%s" % (t.getAttribute("classname"), t.getAttribute("name"))] = msg
 
             newsuite = newdoc.createElement("testsuite")

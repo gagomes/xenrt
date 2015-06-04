@@ -25,9 +25,7 @@ class Windows81GPUPTCrashtest(xenrt.TestCase):
         image = Image.open(filename)
 
         if not guest_lib.isBSODBlue(image):
-            raise xenrt.XRTFailure(
-                'The screenshot [{0}] does not look like a BSOD'.format(
-                    filename))
+            raise xenrt.XRTFailure('The screenshot does not look like a BSOD')
 
     def passThroughGPUTo(self, guest):
         host = guest.getHost()

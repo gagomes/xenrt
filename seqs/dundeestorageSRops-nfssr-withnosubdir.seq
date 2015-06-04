@@ -1,0 +1,29 @@
+<xenrt>
+
+  <!-- NFR SR with no sub directory operations tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <FINALLY_UNINSTALL>yes</FINALLY_UNINSTALL>
+    <OPTION_BLOCK_ON_SKIP>yes</OPTION_BLOCK_ON_SKIP>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+    <NFSSR_WITH_NOSUBDIR>yes</NFSSR_WITH_NOSUBDIR>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence group="withNoSubDirNFS">
+
+      <testcase id="xenserver.tc.storage.TC20948" prio="3"/>
+      <testcase id="xenserver.tc.storage.TC20949" prio="3"/>
+      <testcase id="xenserver.tc.storage.TC20950" prio="3"/>
+      <!-- These are not valid scenarios as per CP-7178
+      <testcase id="xenserver.tc.storage.TC20951" prio="3"/>
+      <testcase id="xenserver.tc.storage.TC20952" prio="3"/> 
+      -->
+    
+  </testsequence>
+
+</xenrt>

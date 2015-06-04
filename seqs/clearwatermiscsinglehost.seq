@@ -9,17 +9,18 @@
     <serial group="HFX959">
       <testcase id="xenserver.tc.network.TC20918" />
     </serial>
+    <!--Invalid as per comments in CA-108916
     <serial group="HFX927">
       <testcase id="xenserver.tc.license.TC20922" />
-    </serial>
-    <serial group="HFX952">
-      <testcase id="xenserver.tc.host.TC20917" />
-    </serial>
+    </serial>-->
     <serial group="CA108965">
       <testcase id="xenserver.tc.host.TC21452" />
     </serial>
     <serial group="hfx1003">
       <testcase id="xenserver.tc.network.TC2VlansPerBridge" tc="TC-20912"/>
+    </serial>
+    <serial group="hfx1168">
+      <testcase id="xenserver.tc.guest.TCMemoryDumpBootDriverFlag" tc="TC-23777"/>
     </serial>
   </testsequence>
 </xenrt>

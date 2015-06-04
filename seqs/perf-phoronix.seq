@@ -1,0 +1,14 @@
+  <xenrt>
+    <variables>
+      <PREPARE_WORKERS>1</PREPARE_WORKERS>
+    </variables>
+
+    <prepare>
+      <allhosts/>
+    </prepare>
+
+    <testsequence>
+      <testcase id="xenserver.tc.perf.tc_phoronix.TCPhoronix" host="RESOURCE_HOST_0">
+      </testcase>
+    </testsequence>
+  </xenrt>

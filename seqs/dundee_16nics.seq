@@ -1,0 +1,30 @@
+<?xml version="1.0" ?>
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+  
+  <prepare>
+    <host>
+      <vm name="lin0">
+        <distro>debian60</distro>
+        <network device="0"/>
+        <postinstall action="preCloneTailor"/>
+      </vm>
+    </host>
+  </prepare>
+  
+  <testsequence>
+    <serial group="16NICS">
+      <testcase id="xenserver.tc.network.TCWith16Nics" tc="TC-15864"/>  
+      <testcase id="xenserver.tc.bonding.FourAPBondsOn16NICs" tc="TC-15915"/>  
+      <testcase id="xenserver.tc.bonding.FourAABondsOn16NICs" tc="TC-15916" />  
+      <testcase id="xenserver.tc.bonding.LacpBondx4On16NICs" tc="TC-15919"/>  
+      <testcase id="xenserver.tc.bonding.VarBondx4On16NICs" tc="TC-15917"/>  
+      <testcase id="xenserver.tc.bonding.VarBondx3On16NICs" tc="TC-15918"/>  
+    </serial>
+  </testsequence>
+
+</xenrt>

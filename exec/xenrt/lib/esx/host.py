@@ -33,11 +33,21 @@ def createHost(id=0,
                noAutoPatch=False,
                disablefw=False,
                cpufreqgovernor=None,
-               usev6testd=True,
+               defaultlicense=True,
                ipv6=None,
                noipv4=False,
                basicNetwork=True,
-               extraConfig={}):
+               extraConfig={},
+               containerHost=None,
+               vHostName=None,
+               vHostCpus=2,
+               vHostMemory=4096,
+               vHostDiskSize=50,
+               vHostSR=None,
+               vNetworks=None):
+
+    if containerHost != None:
+        raise xenrt.XRTError("Nested hosts not supported for this host type")
 
     machine = str("RESOURCE_HOST_%s" % (id, ))
 
@@ -65,7 +75,7 @@ def createHost(id=0,
 
     if installSRType != "no":
         # Add the default SR which is installed by ESX
-        sr = xenrt.lib.esx.EXTStorageRepository(host, "datastore1")
+        sr = xenrt.lib.esx.EXTStorageRepository(host, host.getDefaultDatastore())
         sr.existing()
         host.addSR(sr)
 
@@ -75,12 +85,32 @@ def createHost(id=0,
     if extraConfig.has_key("dc") and extraConfig.has_key("cluster"):
         host.addToVCenter(extraConfig["dc"], extraConfig["cluster"])
 
+    if cpufreqgovernor:
+        # Roughly map the Linux cpufreqgovernor names onto ESXi policy names
+        nameMapping = {
+            "performance": "static",
+            "ondemand": "dynamic",
+            "powersave": "low",
+        }
+        if cpufreqgovernor in nameMapping:
+            policy = nameMapping[cpufreqgovernor]
+        else:
+            policy = cpufreqgovernor
+
+        cur = host.getCurrentPowerPolicy()
+        xenrt.TEC().logverbose("Before changing cpufreq governor: %s" % (cur,))
+
+        host.setPowerPolicy(policy)
+
+        cur = host.getCurrentPowerPolicy()
+        xenrt.TEC().logverbose("After changing cpufreq governor: %s" % (cur,))
+
     return host
 
 class ESXHost(xenrt.lib.libvirt.Host):
 
     LIBVIRT_REMOTE_DAEMON = False
-    TCPDUMP = "tcpdump-uw"
+    TCPDUMP = "tcpdump-uw -p" # -p makes it not use promiscuous mode, which causes packets to be duplicated
 
     def __init__(self, machine, productType="esx", productVersion="esx"):
         xenrt.lib.libvirt.Host.__init__(self, machine,
@@ -93,9 +123,18 @@ class ESXHost(xenrt.lib.libvirt.Host):
     def guestFactory(self):
         return xenrt.lib.esx.guest.Guest
 
+    # Normally it's datastore1, but sometimes you get datastore2. Not clear why.
+    def getDefaultDatastore(self):
+        if self.defaultsr:
+            default = self.defaultsr
+        else:
+            # Let's return the first one we find in the list of volumes.
+            default = self.execdom0("cd /vmfs/volumes && ls -d datastore* | head -n 1").strip()
+        xenrt.TEC().logverbose("default sr = %s" % (default,))
+        return default
+
     def lookupDefaultSR(self):
-        # TODO
-        return self.srs["datastore1"].uuid
+        return self.srs[self.getDefaultDatastore()].uuid
 
     def getSRNameFromPath(self, srpath):
         """Returns the name of the SR in the path.
@@ -168,7 +207,44 @@ class ESXHost(xenrt.lib.libvirt.Host):
         """Return the first *physical nic* on the host. See output from 'esxcfg-nics -l'"""
         return "vmnic0"
 
+    def getAssumedId(self, friendlyname):
+        # NET_A -> vmnic8       esxcfg-vswitch -l
+        #       -> MAC          esxcfg-nics -l
+        #       -> assumedid    h.listSecondaryNICs()
+
+        # Find out which NIC(s) are on this network
+        nics = self.execcmd("esxcfg-vswitch -l | grep '^  %s ' | awk '{print $4}'" % (friendlyname)).strip().split('\n')
+        xenrt.TEC().logverbose("getAssumedId (ESXHost %s): network '%s' corresponds to NICs %s" % (self, friendlyname, nics))
+
+        def nicToAssumedId(nic):
+            # Get the MAC address
+            nicmac = self.execcmd("esxcfg-nics -l | grep '^%s ' | awk '{print $7}'" % (nic)).strip().split('\n')[0]
+            xenrt.TEC().logverbose("getAssumedId (ESXHost %s): NIC '%s' has MAC address %s" % (self, nic, nicmac))
+
+            # Convert MAC to assumedid
+            assumedid = self.listSecondaryNICs(macaddr=nicmac)[0]
+            xenrt.TEC().logverbose("getAssumedId (ESXHost %s): MAC %s corresponds to assumedid %d" % (self, nicmac, assumedid))
+
+            return assumedid
+
+        return nicToAssumedId(nics[0])
+
+    def getNIC(self, assumedid):
+        """ Return the product enumeration name (e.g. "vmnic0") for the
+        assumed enumeration ID (integer)"""
+        mac = self.getNICMACAddress(assumedid)
+        mac = xenrt.util.normaliseMAC(mac)
+        ieth = self.execcmd("esxcfg-nics -l | fgrep -i ' %s ' | awk '{print $1}'" % (mac)).strip()
+        if ieth == '':
+            raise xenrt.XRTError("Could not find interface with MAC %s" % (mac))
+        else:
+            xenrt.TEC().logverbose("getNIC: interface with MAC %s is %s" % (mac, ieth))
+            return ieth
+
     def arpwatch(self, iface, mac, **kwargs):
+        if xenrt.TEC().lookup("XENRT_DHCPD", False, boolean=True):
+            xenrt.lib.libvirt.Host.arpwatch(self, iface, mac, **kwargs)
+
         xenrt.TEC().logverbose("Working out vmkernel device for iface='%s' in order to arpwatch for %s..." % (iface, mac))
 
         cmds = [
@@ -270,9 +346,12 @@ reboot
         bootcfgtext += "prefix=%s" % pxe.makeBootPath("")   # ... and use our PXE path as a prefix instead
         bootcfgtext = re.sub(r"--- useropts\.gz", r"", bootcfgtext)        # this file seems to cause only trouble, and getting rid of it seems to have no side effects...
         bootcfgtext = re.sub(r"--- jumpstrt\.gz", r"", bootcfgtext)        # this file (in ESXi 5.5) is similar
-        bootcfgtext2 = re.sub(r"--- tools.t00", r"", bootcfgtext)          # this file is too large to get over netboot from atftpd (as used in CBGLAB01), so we will install it after host-installation
-        deferToolsPackInstallation = (bootcfgtext2 <> bootcfgtext)
-        bootcfgtext = bootcfgtext2
+        if self.esxiVersion < "5.5":
+            deferToolsPackInstallation = False
+        else:
+            bootcfgtext2 = re.sub(r"--- tools.t00", r"", bootcfgtext)      # this file is too large to get over netboot from atftpd (as used in CBGLAB01), so we will install it after host-installation
+            deferToolsPackInstallation = (bootcfgtext2 <> bootcfgtext)
+            bootcfgtext = bootcfgtext2
         bootcfgtext = re.sub(r"(kernelopt=.*)", r"\1 debugLogToSerial=1 logPort=com1 ks=%s" %
                              ("nfs://%s%s" % (nfsdir.getHostAndPath(ksname))), bootcfgtext)
         bootcfg.write(bootcfgtext)
@@ -325,8 +404,8 @@ reboot
             toolsFile = "%s/tools.t00" % (mountpoint)
 
             # Use the first-named datastore to temporarily dump the file. (Alternatively, could use /tardisks?)
-            firstDatastore = self.execdom0("ls -d /vmfs/volumes/datastore* | head -n 1").strip()
-            destFilePath = "%s/tools.t00" % (firstDatastore)
+            firstDatastore = self.getDefaultDatastore()
+            destFilePath = "/vmfs/volumes/%s/tools.t00" % (firstDatastore)
             sftp = self.sftpClient()
             try:
                 sftp.copyTo(toolsFile, destFilePath)
@@ -387,6 +466,9 @@ reboot
             if len(nicList) == 1  and len(vlanList) == 0:
                 pri_eth = self.getNICPIF(nicList[0])
 
+                if pri_eth == '':
+                    raise xenrt.XRTError("Could not find vmnic device for device %d" % (nicList[0]))
+
                 # Set up new vSwitch if necessary
                 xenrt.TEC().logverbose("Processing %s: %s" % (pri_eth, p))
                 pri_bridge = self.getBridge(pri_eth)
@@ -426,3 +508,29 @@ reboot
 
     def addToVCenter(self, dc, cluster):
         xenrt.lib.esx.getVCenter().addHost(self, dc, cluster)
+
+    def setPowerPolicy(self, policyname):
+        script = """
+from pyVim.connect import Connect
+si = Connect()
+hostConfig = si.RetrieveContent().rootFolder.childEntity[0].hostFolder.childEntity[0].host[0]
+key = None
+for policy in hostConfig.config.powerSystemCapability.availablePolicy:
+    if policy.shortName == "%s":
+        key = policy.key
+
+# Change to new policy
+hostConfig.GetConfigManager().GetPowerSystem().ConfigurePowerPolicy(key)
+""" % (policyname)
+        self.execcmd("echo '%s' | python" % (script))
+
+    def getCurrentPowerPolicy(self):
+        script = """
+from pyVim.connect import Connect
+si = Connect()
+hostConfig = si.RetrieveContent().rootFolder.childEntity[0].hostFolder.childEntity[0].host[0]
+
+# Report existing policy
+print hostConfig.GetConfigManager().GetPowerSystem().info.currentPolicy.shortName
+"""
+        return self.execcmd("echo '%s' | python" % (script)).strip()

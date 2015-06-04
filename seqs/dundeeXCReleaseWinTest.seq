@@ -1,0 +1,24 @@
+<xenrt>
+  <!-- Clearwater PR1604 Clearwater Release Parameters: XenCenter-->
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+    <DOTNETVERSION>3.5</DOTNETVERSION>
+  </variables>
+
+  <prepare>
+    <host id="0"/>
+  </prepare>
+  
+  <testsequence>
+    <serial group="XenCenter">
+      <testcase id="testcases.xenserver.tc.gui.TC19053"/>
+      <testcase id="testcases.xenserver.tc.gui.TC19054"/>
+      <testcase id="testcases.xenserver.tc.gui.TC19055"/>
+      <testcase id="testcases.xenserver.tc.gui.TC19056"/>
+      <testcase id="testcases.xenserver.tc.gui.TC19057"/>
+      <testcase id="testcases.xenserver.tc.gui.TC19058"/>
+      <testcase id="testcases.xenserver.tc.gui.TC19059"/>
+    </serial>
+  </testsequence>
+</xenrt>

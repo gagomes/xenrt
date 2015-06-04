@@ -6,11 +6,11 @@ ROOT                = $(shell realpath ..)
 
 SITE                = DEV
 WEB_CONTROL_PATH    = http://localhost/control/
-GITPATH             = git://hg.uk.xensource.com/xenrt
+GITPATH             = git@gitlab.citrite.net:xenrt
 
 PRODUCTIONCONFIG    = no
 
-WINDOWS_ISOS        = /local/inputs/windows
+WINDOWS_ISOS_INPUTS        = /local/inputs/windows
 TEST_INPUTS         = /local/inputs/tests
 
 SHAREDIR            = /usr/share/xenrt
@@ -55,6 +55,4 @@ BUILDISCSI          = no
 BUILDALLTESTS       = yes
 XVADIR      = /local/xvas
 DISKLESSROOT = /local/disklessdebian
-DYTHONINSTALLATION = /usr/share/dython
-VIRTUALENVPATH = /usr/share/dython-env
 

@@ -1,11 +1,13 @@
 from app import XenRTPage
 from server import PageFactory
 
-import app.constants
+import app.constants, app.db
 
 import config
 
 import string
+from pyramid.httpexceptions import *
+import requests
 
 class XenRTAPIPage(XenRTPage):
 
@@ -16,19 +18,17 @@ class XenRTAPIPage(XenRTPage):
     def scm_site_list(self, status=None,checkFull=False):
         """Return details of sites."""
 
-        qry = []
-        if status:
-            qry.append("status = '%s'" % (status))
-        if len(qry) == 0:
-            qrystr = ""
-        else:
-            qrystr = "WHERE %s" % string.join(qry, " AND ")
-
         sql = """SELECT s.site, s.status, s.flags, s.descr, s.comment, s.ctrladdr,
                         s.adminid, s.maxjobs
-                 FROM tblSites s %s ORDER BY site;""" % (qrystr)
+                 FROM tblSites s WHERE 1=1"""
+        params = []
+        if status:
+            sql += " AND status = %s"
+            params.append(status)
+
+        sql += " ORDER BY site;"
         cur = self.getDB().cursor()
-        cur.execute(sql)
+        cur.execute(sql, params) 
 
         reply = []
         while 1:
@@ -80,11 +80,10 @@ class XenRTAPIPage(XenRTPage):
     def scm_site_get(self, site):
         """Get details of a site"""
         cur = self.getDB().cursor()
-        sql = """SELECT s.site, s.status, s.flags, s.descr, s.comment, s.ctrladdr,
-                        s.adminid, s.maxjobs, s.sharedresources
-                 FROM tblSites s WHERE s.site = '%s'
-                 """ % (app.utils.sqlescape(site))
-        cur.execute(sql)
+        cur.execute("""SELECT s.site, s.status, s.flags, s.descr, s.comment, s.ctrladdr,
+                              s.adminid, s.maxjobs, s.sharedresources
+                       FROM tblSites s WHERE s.site = %s""",
+                    [site])
         rc = cur.fetchone()
         cur.close()
         if not rc:
@@ -113,60 +112,59 @@ class XenRTAPIPage(XenRTPage):
 
     def list_jobs_for_site(self, site):
         cur = self.getDB().cursor()
-        cur.execute("SELECT jobid FROM tblmachines WHERE site='%s' AND (status='scheduled' OR status='running');" % app.utils.sqlescape(site))
+        cur.execute("SELECT jobid FROM tblmachines WHERE site=%s AND (status='scheduled' OR status='running');", [site])
         rc = cur.fetchall()
         return map(lambda x: x[0], rc)
 
     def scm_machine_update(self, machine, site, cluster, pool, status, resources,
                            flags, descr, leasepolicy):
         if pool:
-            dpool = "'%s'" % (app.utils.sqlescape(pool))
+            dpool = pool
         else:
             dpool = "default"
         if status:
-            dstatus = "'%s'" % (app.utils.sqlescape(status))
+            dstatus = status
         else:
-            dstatus = "default"
+            dstatus = "idle"
         db = self.getDB()
         cur = db.cursor()
-        sql = "SELECT machine FROM tblMachines WHERE machine = '%s'" % (machine)
-        cur.execute(sql)
+        cur.execute("SELECT machine FROM tblMachines WHERE machine = %s", [machine])
         if cur.fetchone():
             u = []
-            if site:
-                u.append("site = '%s'" % (app.utils.sqlescape(site)))
-            if cluster:
-                u.append("cluster = '%s'" % (app.utils.sqlescape(cluster)))
-            if pool:
-                u.append("pool = '%s'" % (app.utils.sqlescape(pool)))
-            if status:
-                u.append("status = '%s'" % (app.utils.sqlescape(status)))
-            if resources:
-                u.append("resources = '%s'" % (app.utils.sqlescape(resources)))
-            if flags:
-                u.append("flags = '%s'" % (app.utils.sqlescape(flags)))
-            if descr:
-                u.append("descr = '%s'" % (app.utils.sqlescape(descr)))
-            if leasepolicy != None:
+            if site is not None:
+                u.append(("site", site))
+            if cluster is not None:
+                u.append(("cluster", cluster))
+            if pool is not None:
+                u.append(("pool", pool))
+            if status is not None:
+                u.append(("status", status))
+            if resources is not None:
+                u.append(("resources", resources))
+            if flags is not None:
+                u.append(("flags", flags))
+            if descr is not None:
+                u.append(("descr", descr))
+            if leasepolicy is not None:
                 if leasepolicy == "":
-                    u.append("leasepolicy = NULL")
+                    u.append(("leasepolicy", None))
                 else:
-                    u.append("leasepolicy = %d" % (int(leasepolicy)))
-            sql = "UPDATE tblMachines SET %s WHERE machine = '%s'" % \
-                  (string.join(u, ", "), app.utils.sqlescape(machine))
+                    u.append(("leasepolicy", int(leasepolicy)))
+
+            sqlset = []
+            params = []
+            for param, val in u:
+                sqlset.append("%s = %%s" % param)
+                params.append(val)
+            sql = "UPDATE tblMachines SET %s WHERE machine = %%s" % (string.join(sqlset, ", "))
+            params.append(machine)
+            cur.execute(sql, params)
         else:
             sql = """INSERT into tblMachines (machine, site, cluster, pool,
                                               status, resources, flags, descr)
                      VALUES
-            ('%s', '%s', '%s', %s, %s, '%s', '%s', '%s')""" % (app.utils.sqlescape(machine),
-                                                               app.utils.sqlescape(site),
-                                                               app.utils.sqlescape(cluster),
-                                                               dpool,
-                                                               dstatus,
-                                                               app.utils.sqlescape(resources),
-                                                               app.utils.sqlescape(flags),
-                                                               app.utils.sqlescape(descr))
-        cur.execute(sql)
+            (%s, %s, %s, %s, %s, %s, %s, %s)"""
+            cur.execute(sql, [machine, site, cluster, dpool, dstatus, resources, flags, descr])
         db.commit()
         cur.close()
 
@@ -182,34 +180,41 @@ class XenRTAPIPage(XenRTPage):
         db = self.getDB()
 
         qry = []
+        params = []
         if site:
-            qry.append("site = '%s'" % (site))
+            qry.append("site = %s")
+            params.append(site)
         if cluster:
-            qry.append("cluster = '%s'" % (cluster))
+            qry.append("cluster = %s")
+            params.append(cluster)
         if machine:
-            qry.append("machine = '%s'" % (machine))
+            qry.append("machine = %s")
+            params.append(machine)
         if status:
-            qry.append("status = '%s'" % (status))
+            qry.append("status = %s")
+            params.append(status)
         if pool:
-            qry.append("pool = '%s'" % (pool))
+            qry.append("pool = %s")
+            params.append(pool)
         if leasecheck != None:
             if leasecheck == True:
                 qry.append("leaseTo IS NOT NULL")
             elif leasecheck == False:
                 qry.append("leaseTo IS NULL")
             else:
-                qry.append("leaseTo IS NOT NULL AND comment='%s'" % leasecheck)
+                qry.append("leaseTo IS NOT NULL AND comment=%s")
+                params.append(leasecheck)
         if len(qry) == 0:
             qrystr = ""
         else:
             qrystr = "WHERE %s" % string.join(qry, " AND ")
         sql = """SELECT m.machine, m.site, m.cluster, m.pool, m.status,
                         m.resources, m.flags, m.descr, m.comment, m.leaseTo,
-                        m.jobid, m.leasefrom, m.leasereason
+                        m.jobid, m.leasefrom, m.leasereason,
+                        COALESCE(m.prio, (SELECT 5 FROM tblmachinedata d WHERE d.key='RESTRICTION' AND d.machine=m.machine), 3) prio
                  FROM tblMachines m %s ORDER BY machine;""" % (qrystr)
         cur = db.cursor()
-        cur.execute(sql)
-
+        cur.execute(sql, params)
         reply = []
         while 1:
             rc = cur.fetchone()
@@ -228,11 +233,11 @@ class XenRTAPIPage(XenRTPage):
         
         if param in app.constants.core_params:
             cur.execute("SELECT jobid, %s FROM tblJobs WHERE jobid in (%s)" %
-                    (app.utils.sqlescape(param), string.join(map(str, joblist), ",")))
+                        (param, string.join(map(str, joblist), ",")))
         else:
             cur.execute("SELECT jobid, value FROM tblJobDetails WHERE jobid in (%s)"
-                    " AND param = '%s'" %
-                    (string.join(map(str, joblist), ","), app.utils.sqlescape(param)))
+                        " AND param = %%s" %
+                        (string.join(map(str, joblist), ",")), [param])
         reply = {}
         while True:
             rc = cur.fetchone()
@@ -280,8 +285,8 @@ class XenRTAPIPage(XenRTPage):
             d["LEASEPOLICY"] = maindata[13]
 
         cur = db.cursor()
-        cur.execute(("SELECT key, value FROM tblMachineData " +
-                     "WHERE machine = '%s';") % (machine))
+        cur.execute("SELECT key, value FROM tblMachineData " +
+                    "WHERE machine = %s;", [machine])
         while 1:
             rc = cur.fetchone()
             if not rc:
@@ -298,9 +303,9 @@ class XenRTAPIPage(XenRTPage):
         sql = """SELECT m.machine, m.site, m.cluster, m.pool, m.status,
                         m.resources, m.flags, m.descr, m.comment, m.leaseTo,
                         m.jobid, m.leasefrom, m.leasereason, m.leasepolicy
-                 FROM tblMachines m WHERE m.machine = '%s'
-                 """ % (app.utils.sqlescape(machine))
-        cur.execute(sql)
+                 FROM tblMachines m WHERE m.machine = %s
+                 """
+        cur.execute(sql, [machine])
         rc = cur.fetchone()
         cur.close()
         if not rc:
@@ -315,7 +320,7 @@ class XenRTAPIPage(XenRTPage):
             jobstatus = app.constants.job_status_desc[status]
        
             cur = db.cursor()
-            cur.execute(("UPDATE tbljobs SET jobstatus='%s' WHERE jobid=%u;") % (jobstatus,id))
+            cur.execute("UPDATE tbljobs SET jobstatus=%s WHERE jobid=%s;", [jobstatus,id])
             if commit:
                 db.commit()
 
@@ -333,8 +338,8 @@ class XenRTAPIPage(XenRTPage):
         if key in app.constants.core_params:
             cur = db.cursor()
             try:
-                cur.execute("UPDATE tbljobs SET %s='%s' WHERE jobid=%u;" % 
-                            (key,value,id))
+                cur.execute("UPDATE tbljobs SET %s=%%s WHERE jobid=%%s;" % (key), 
+                            [value,id])
                 if commit:
                     db.commit()
             finally:
@@ -344,21 +349,24 @@ class XenRTAPIPage(XenRTPage):
             try:
                 if not details.has_key(key):
                     cur.execute("INSERT INTO tbljobdetails (jobid,param,value) "
-                                "VALUES (%u,'%s','%s');" % (id, key, value))
+                                "VALUES (%s,%s,%s);", [id, key, value])
                 elif len(value) > 0:
-                    cur.execute("UPDATE tbljobdetails SET value='%s' WHERE "
-                                "jobid=%u AND param='%s';" % (value,id,key))
+                    cur.execute("UPDATE tbljobdetails SET value=%s WHERE "
+                                "jobid=%s AND param=%s;", [value,id,key])
                 else:
                     # Use empty string as a way to delete a property
-                    cur.execute("DELETE FROM tbljobdetails WHERE jobid=%u "
-                                "AND param='%s';" % (id, key))
+                    cur.execute("DELETE FROM tbljobdetails WHERE jobid=%s "
+                                "AND param=%s;", [id, key])
                 db.commit()
             finally:
                 cur.close()
+    
+    def isDBMaster(self, returnDetail=False):
+        return app.db.isDBMaster(returnDetail)
 
-class XenRTMasterURL(XenRTAPIPage):
+class XenRTLogServer(XenRTAPIPage):
     def render(self):
-        return config.masterurl
+        return config.log_server
 
 class DumpHeaders(XenRTAPIPage):
     def render(self):
@@ -367,16 +375,12 @@ class DumpHeaders(XenRTAPIPage):
             out += "%s: %s\n" % h
         return out
 
-PageFactory(XenRTMasterURL, "masterurl", "/api/masterurl", compatAction="getmasterurl")
-PageFactory(DumpHeaders, "dumpheaders", "/api/dumpheaders")
 
-import app.api.jobs
-import app.api.sites
-import app.api.machines
+PageFactory(XenRTLogServer, "/api/logserver", compatAction="getlogserver")
+PageFactory(DumpHeaders, "/api/dumpheaders")
+
 import app.api.schedule
-import app.api.suite
 import app.api.controller
 import app.api.files
-import app.api.results
 import app.api.guestfile
-import app.api.resources
+import app.api.dbchecks

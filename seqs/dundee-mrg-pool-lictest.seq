@@ -1,0 +1,18 @@
+<xenrt>
+
+  <!-- Dundee - license test using a pool of hosts -->
+
+  <variables>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+    <OPTION_AD_ENABLE>yes</OPTION_AD_ENABLE>
+  </variables>
+
+  <prepare>
+    <pool id="0">
+      <host id="0" license="no" defaultlicense="no" />
+      <host id="1" license="no" defaultlicense="no" />
+    </pool>
+  </prepare>
+</xenrt>

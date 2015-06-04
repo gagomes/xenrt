@@ -12,7 +12,7 @@ import inspect, re, copy, tempfile, string
 import xenrt
 from xenrt.lib.xenserver.call import *
 
-class Context:
+class Context(object):
 
     def __init__(self, pool):
         self.pool = pool
@@ -113,7 +113,7 @@ class Context:
             xenrt.TEC().logverbose("-> '%s'" % (expression))
             return expression
             
-class _Entity:
+class _Entity(object):
     """Superclass for creating various XenServer entities.
        See subclasses for examples."""
 
@@ -257,7 +257,7 @@ class Host(_Entity):
             try: self.ref.execdom0("/etc/init.d/xapi start")
             except Exception, e:
                 xenrt.TEC().logverbose("Host reset exception: %s" % (str(e)))
-            try: self.ref.execdom0("/etc/init.d/firstboot start")
+            try: self.ref.execdom0("/etc/init.d/firstboot restart")
             except Exception, e:
                 xenrt.TEC().logverbose("Host reset exception: %s" % (str(e)))
                 try: self.ref.execdom0("rm -f /etc/firstboot.d/state/*")
@@ -269,30 +269,19 @@ class Host(_Entity):
                 xenrt.TEC().logverbose("Rebooting host...")
                 self.ref.reboot()
 
-            mockd = xenrt.TEC().getFile(self.ref.V6MOCKD_LOCATION)
-            if mockd:
-                try:
-                    xenrt.TEC().logverbose("v6mockd present - using clearwater licensing")
+            try:
+                if isinstance(self.ref, xenrt.lib.xenserver.ClearwaterHost):
                     self.ref.execdom0("xe host-apply-edition edition=free")
-                except Exception, e:
-                    xenrt.TEC().logverbose("Host reset exception: %s" % (str(e)))
-            else:
-                try:
-                    if self.ref.execdom0("test -e /opt/xensource/libexec/v6d.orig",
-                                          retval="code") != 0:
-                        self.ref.execdom0("mv -f /opt/xensource/libexec/v6d "
-                                          "/opt/xensource/libexec/v6d.orig")
-                        self.ref.execdom0("cp -f %s/utils/v6testd "
-                                          "/opt/xensource/libexec/v6d" %
-                                          (xenrt.TEC().lookup("REMOTE_SCRIPTDIR")))
-                        self.ref.execdom0("service v6d restart")
-                except Exception, e:
-                    xenrt.TEC().logverbose("Host reset exception: %s" % (str(e)))
-                try: self.ref.execdom0("xe host-apply-edition edition=platinum")
-                except Exception, e:
-                    xenrt.TEC().logverbose("Host reset exception: %s" % (str(e)))
-                
-            xenrt.sleep(150) # adding some delay for the toolstack to initialise
+                else:
+                    (addr, port) = xenrt.TEC().lookup("DEFAULT_CITRIX_LICENSE_SERVER").split(":")
+                    self.ref.execdom0("xe host-apply-edition edition=platinum license-server-address=%s license-server-port=%s" % (addr, port))
+            except Exception, e:
+                xenrt.TEC().logverbose("Host reset exception: %s" % (str(e)))
+            try:
+                self.ref.waitForEnabled(300)            
+            except:
+                self.ref.enable()
+                self.ref.waitForEnabled(300)            
             self.live = False
 
 class Default(_Entity): 
@@ -493,7 +482,7 @@ class VM(_Entity):
         self.ref = host.createGenericEmptyGuest(memory=self.MEM)
         
         # just use random linux iso
-        self.ref.changeCD("centos58_x86-64.iso")
+        self.ref.changeCD("centos58_x86-64_xenrtinst.iso")
         self.ref.setState(self.STATE)
         if self.STATE == "UP":
             self.ref.pretendToHaveXenTools()

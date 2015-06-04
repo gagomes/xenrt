@@ -3,7 +3,8 @@ from app.api import XenRTAPIPage
 
 import app.utils
 
-import string, shutil, traceback
+import string, shutil, traceback, mimetypes
+from pyramid.httpexceptions import HTTPFound, HTTPNotFound, HTTPInternalServerError
 
 class XenRTDownload(XenRTAPIPage):
     def render(self):
@@ -33,78 +34,42 @@ class XenRTDownload(XenRTAPIPage):
             self.request.response.content_disposition = "attachment; filename=\"%d.tar.bz2\"" % (id)
             return self.request.response
         except Exception, e:
-            traceback.print_exc()
             if isinstance(e, IOError):
                 # We can still report error to client at this point
                 return "ERROR File missing"
             else:
                 return "ERROR Internal error"
 
-class XenRTUpload(XenRTAPIPage):
+class XenRTJobFileDownload(XenRTAPIPage):
     def render(self):
-        form = self.request.params
-        prefix = ""
-        phase = None
-        test = None
-        if form.has_key("phase"):
-            phase = form["phase"]
-        if form.has_key("test"):
-            test = form["test"]
-        if form.has_key("prefix"):
-            prefix = form["prefix"]
-            prefix = string.replace(prefix, '<', '')
-            prefix = string.replace(prefix, '>', '')
-            prefix = string.replace(prefix, '/', '')
-            prefix = string.replace(prefix, '&', '')
-            prefix = string.replace(prefix, '\\', '')
-        if not form.has_key("id"):
-            return "ERROR No job ID supplied"
-        id = string.atoi(form["id"])
+        prejob = self.request.params.get("prejob") in ("yes", "true")
 
-        # See if this is for a particular test
-        if phase and test:
-            detailid = self.lookup_detailid(id, phase, test)
-            if detailid == -1:
-                return "ERROR Could not find detailID for %u %s %s" % \
-                      (id, phase, test)
-            id = detailid
-            prefix = "test"
+        details = self.get_job(self.request.matchdict['job'])
+        if prejob:
+            server = details['JOB_FILES_SERVER']
+        else:
+            server = details['LOG_SERVER']
 
-        if not self.request.params.has_key("file"):
-            return "ERROR No file supplied"
-        fh = None
-        data = None
+        if server != self.request.host:
+            return HTTPFound(location="http://%s%s" % (server, self.request.path_qs))
+
+        filename = self.request.matchdict['filename']
+        (ctype, encoding) = mimetypes.guess_type(filename)
+        if not ctype:
+            ctype = "application/octet-stream"
+        
         try:
-            fh = self.request.POST["file"].file
-        except:
-            data = self.request.params["file"]
-        try:
-            filename = app.utils.results_filename(prefix, id, mkdir=1)
-            fout = file(filename, 'w')
-            if fh:
-                shutil.copyfileobj(fh, fout)
+            localfilename = app.utils.results_filename(filename, int(self.request.matchdict['job']))
+            self.request.response.body_file = file(localfilename, "r")
+            self.request.response.content_type=ctype
+            if encoding:
+                self.request.response.content_encoding=encoding
+            return self.request.response
+        except Exception, e:
+            if isinstance(e, IOError):
+                return HTTPNotFound()
             else:
-                fout.write(data)
-            fout.close()
-        except:
-            traceback.print_exc()
-            return "ERROR Internal error"
+                return HTTPInternalServerError()
 
-        if phase and test:
-            self.update_detailid_uploaded(id, "yes")
-       
-        return "OK"
-
-    def update_detailid_uploaded(self, detailid, uploaded):
-        db = self.getDB()
-        cur = db.cursor()
-
-        cur.execute("UPDATE tblResults SET uploaded = '%s' WHERE detailid = %u" %
-                    (uploaded, detailid))
-
-        db.commit()
-
-        cur.close()
-
-PageFactory(XenRTDownload, "download", "/api/files/download", compatAction="download")
-PageFactory(XenRTUpload, "upload", "/api/files/upload", compatAction="upload")
+PageFactory(XenRTDownload, "/api/files/download", compatAction="download")
+PageFactory(XenRTJobFileDownload, "/api/getjobfile/{job}/{filename}")

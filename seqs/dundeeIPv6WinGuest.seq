@@ -1,0 +1,41 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <CARBON_EXTRA_CDS>linux.iso</CARBON_EXTRA_CDS>
+  </variables>
+  
+
+  <prepare>
+    <pool id="0">
+      <host id="0">
+      </host>
+    </pool>
+    <pool id="1">
+      <host id="1" />
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <NIC/>
+          <STORAGE/>
+        </PHYSICAL>
+        <PHYSICAL network="NSEC">
+          <NIC/>
+          <MANAGEMENT/>
+          <VMS/>
+        </PHYSICAL>
+      </NETWORK>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="IPv6WinGuest">
+      <testcase id="xenserver.tc.ipv6.IPv6WinGuest" tc="TC-16130" />
+      <testcase id="xenserver.tc.ipv6.IPv6Win64Guest" tc="TC-16134" />
+      <testcase id="xenserver.tc.ipv6.IPv6WinGuestOnBond" tc="TC-16135" />
+      <testcase id="xenserver.tc.ipv6.IPv6WinGuestOnVlan" tc="TC-16136" />
+      <testcase id="xenserver.tc.ipv6.IPv6InterWinGuest" tc="TC-16281" />
+      <testcase id="xenserver.tc.ipv6.IPv6WinGuestDhcp" tc="TC-16354" />
+      <testcase id="xenserver.tc.ipv6.IPv6InterWinPingXL" tc="TC-16626" />
+    </serial>
+  </testsequence>
+
+</xenrt>

@@ -27,7 +27,7 @@ __all__ = ["Burnintest",
            "WindowsExperienceIndex",
            "Dummy"]
 
-class Workload:
+class Workload(object):
 
     def __init__(self, guest):
         self.guest = guest
@@ -359,6 +359,40 @@ class LinuxSysbench(LinuxWorkload):
         self.guest.execguest("cd %s && make" % (self.workdir))
         self.guest.execguest("cd %s && make install" % (self.workdir))
 
+class FIOLinux(LinuxWorkload):
+    def __init__(self, guest):
+        LinuxWorkload.__init__(self, guest)
+        self.name = "FIOLinux"
+        self.tarball = "fiowin.tgz"
+        self.process = "fio"
+        self.cmdline = "at now -f /root/startfio.sh" 
+
+    def install(self, startOnBoot=False):
+        LinuxWorkload.install(self, startOnBoot)
+        if self.guest.execguest("test -e /etc/debian_version", retval="code") == 0:
+            self.guest.execguest("apt-get install -y --force-yes zlib1g-dev")
+        elif self.guest.execguest("test -e /etc/redhat-release", retval="code") == 0:
+            self.guest.execguest("yum install -y zlib-devel")
+        else:
+            raise xenrt.XRTError("Guest is not supported")
+        self.guest.execguest("cd %s/src && ./configure" % self.workdir)
+        self.guest.execguest("cd %s/src && make" % self.workdir)
+        self.guest.execguest("cd %s/src && make install" % self.workdir)
+        inifile = """[workload]
+rw=randrw
+size=512m
+runtime=1382400
+time_based
+numjobs=4
+"""
+        t = xenrt.TempDirectory()
+        sftp = self.guest.sftpClient()
+        file("%s/workload.fio" % (t.path()), "w").write(inifile)
+        sftp.copyTo("%s/workload.fio" % (t.path()), "/root/workload.fio")
+        self.guest.execguest("echo 'fio /root/workload.fio' > /root/startfio.sh")
+        self.guest.execguest("chmod a+x /root/startfio.sh")
+        
+
 class Burnintest(Workload):
     
     def __init__(self, guest):
@@ -665,6 +699,43 @@ class IOMeter(Workload):
                              (self.workdir))
         except:
             xenrt.TEC().comment("Error disabling firewall")
+
+class FIOWindows(Workload):
+    def __init__(self, guest, drive=None):
+        Workload.__init__(self, guest)
+        self.name = "fio"
+        self.process = "fio.exe"
+        if self.guest.distro.endswith("x64"):
+            arch = "x64"
+        else:
+            arch = "x86"
+        self.drive = drive
+        self.cmdline = "c:\\fiowin\\%s\\fio.exe c:\\workload.fio" % arch
+
+    def install(self, startOnBoot=False):
+        Workload.install(self, startOnBoot)
+        inifile = """[workload]
+rw=randrw
+size=512m
+runtime=1382400
+time_based
+numjobs=4
+"""
+        if self.drive:
+            inifile += "directory=%s\\:\\\n" % self.drive
+        self.guest.xmlrpcWriteFile("c:\\workload.fio", inifile) 
+        self.guest.xmlrpcUnpackTarball("%s/fiowin.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), "c:\\")
+
+    def runCheck(self):
+        inifile = """[check]
+rw=rw
+size=512m
+numjobs=4
+"""
+        if self.drive:
+            inifile += "directory=%s\\:\\\n" % self.drive
+        self.guest.xmlrpcWriteFile("c:\\check.fio", inifile) 
+        self.guest.xmlrpcExec(self.cmdline.replace("workload", "check"), timeout=3600)
 
 class WindowsExperienceIndex(Workload):
 

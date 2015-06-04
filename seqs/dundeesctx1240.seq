@@ -1,0 +1,20 @@
+<xenrt>
+  <!-- Clearwater Tests from Tampa Hotfix HFX793 Tests  -->
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <pool id="0">
+      <host id="0"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="SnapshotCoallesce">
+      <testcase id="xenserver.tc.storage.TC19276" name="TC19276" tc="TC-19276" />
+    </serial>
+  </testsequence>
+
+</xenrt>
+

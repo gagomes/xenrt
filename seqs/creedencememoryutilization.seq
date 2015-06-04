@@ -6,24 +6,24 @@
   <prepare>
     <pool id="0">
       <host id="0">
-        <vm name="debian60">
-          <distro>debian60</distro>
-          <memory>128</memory>
-          <vcpus>2</vcpus>
-          <network device="0" />
-          <disk device="0" size="8" />
-          <storage>NFS</storage>
-        </vm>
-        <vm name="rhel56">
-          <distro>rhel56</distro>
+        <vm name="debian70">
+          <distro>debian70</distro>
           <memory>512</memory>
           <vcpus>2</vcpus>
           <network device="0" />
           <disk device="0" size="8" />
           <storage>NFS</storage>
         </vm>
-        <vm name="centos56">
-          <distro>centos56</distro>
+        <vm name="rhel65">
+          <distro>rhel65</distro>
+          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+          <storage>NFS</storage>
+        </vm>
+        <vm name="centos65">
+          <distro>centos65</distro>
           <memory>512</memory>
           <vcpus>2</vcpus>
           <network device="0" />
@@ -46,8 +46,8 @@
           <disk device="0" size="24" />
           <storage>NFS</storage>
         </vm>
-        <vm name="sles111">
-          <distro>sles111</distro>
+        <vm name="sles113">
+          <distro>sles113</distro>
           <memory>512</memory>
           <vcpus>2</vcpus>
           <network device="0" />

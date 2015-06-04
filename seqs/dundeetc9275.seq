@@ -1,0 +1,48 @@
+<?xml version="1.0" ?>
+
+<xenrt>
+
+  <!-- Windows guests NIC preserving after PVdrivers installation test sequence -->
+
+  <default name="DEFAULTWIN" value="ws08sp2-x86"/>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host>
+      <vm name="defaultwin">
+        <distro>${DEFAULTWIN}</distro>
+        <vcpus>1</vcpus>
+        <memory>512</memory>
+        <network device="0" />
+        <disk device="0" size="20" />
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="TC9275">
+      <testcase id="xenserver.tc.pvdrivers.TC9276">
+        <arg>guest=defaultwin</arg>
+      </testcase>
+      <testcase id="xenserver.tc.pvdrivers.TC9277">
+        <arg>guest=defaultwin</arg>
+      </testcase>
+      <testcase id="xenserver.tc.pvdrivers.TC9278">
+        <arg>guest=defaultwin</arg>
+      </testcase>
+      <testcase id="xenserver.tc.pvdrivers.TC9279">
+        <arg>guest=defaultwin</arg>
+      </testcase>
+      <testcase id="xenserver.tc.pvdrivers.TC9280">
+        <arg>guest=defaultwin</arg>
+      </testcase>
+      <testcase id="xenserver.tc.pvdrivers.TC9281">
+        <arg>guest=defaultwin</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+</xenrt>
+

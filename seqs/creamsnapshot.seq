@@ -1,0 +1,29 @@
+<xenrt>
+
+  <!-- VM snapshot tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <host>
+      <vm name="Windows-VM-with-drivers">
+        <distro>ws08sp2-x64</distro>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence group="VMSnapshot">
+    <serial group="VMSnapshot">
+      <testcase id="xenserver.tc.snapshot.TC26421" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC26422" prio="3"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

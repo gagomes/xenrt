@@ -4,14 +4,14 @@
 # Testcases for snapshot features.
 #
 # Copyright (c) 2008 Citrix Systems, Inc. All use and distribution of this
-# copyrighted material is governed by and subject to terms and conditions 
+# copyrighted material is governed by and subject to terms and conditions
 # as licensed by Citrix Systems, Inc. All other rights reserved.
 #
 
 import string, time, re, traceback, sys
 import xml.dom.minidom
 import xenrt, testcases
-from xenrt.lazylog import step
+from xenrt.lazylog import log, step
 
 class _VDISnapshotBase(xenrt.TestCase):
     """Base class for VDI Snapshot Tests."""
@@ -32,14 +32,14 @@ class _VDISnapshotBase(xenrt.TestCase):
         sftp = self.host.sftpClient()
         sd = self.host.hostTempDir()
         t = xenrt.TempDirectory()
-        
+
         s = "%s/cmd.sh" % (sd)
         filename = "%s/cmd.sh" % (t.path())
-        
+
         file(filename, "w").write(command)
         sftp.copyTo("%s/cmd.sh" % (t.path()), s)
         self.host.execdom0("chmod +x %s" % (s))
-        data = self.host.execdom0("/opt/xensource/debug/with-vdi %s %s" %  
+        data = self.host.execdom0("/opt/xensource/debug/with-vdi %s %s" %
                                   (vdiuuid, s))
         self.host.execdom0("rm -rf %s" % (sd))
         t.remove()
@@ -58,10 +58,10 @@ class _VDISnapshotBase(xenrt.TestCase):
 
     def vdimodify(self, vdiuuid):
         modify = """
-mount /dev/${DEVICE} /mnt 
+mount /dev/${DEVICE} /mnt
 dd if=/dev/urandom of=/mnt/random bs=1M count=10
 umount /mnt
-""" 
+"""
         self.vdicommand(modify, vdiuuid)
         xenrt.TEC().logverbose("Modified VDI %s." % (vdiuuid))
 
@@ -70,7 +70,7 @@ umount /mnt
         g = self.host.createGenericLinuxGuest(sr=self.sr)
         self.guests.append(g)
         return g
-    
+
     def postRun(self):
         # For debugging purposes list the VDIs we have
         cli = self.host.getCLIInstance()
@@ -113,7 +113,7 @@ class _VDISnapshotStress(_VDISnapshotBase):
     def startworkload(self, guest):
         sftp = guest.sftpClient()
         t = xenrt.TempDirectory()
-        
+
         script = """
 CMD="/usr/local/bin/sysbench --test=fileio --validate=on --file-total-size=90M --file-test-mode=rndrw"
 LOG="/tmp/work.log"
@@ -121,13 +121,13 @@ cd /mnt
 ${CMD} prepare 2>&1 >> ${LOG}
 while [ -e /tmp/.workflag ]; do
     ${CMD} run 2>&1 >> ${LOG}
-done 
+done
 cd /
 umount /mnt
 """
         s = "/tmp/workload.sh"
         filename = "%s/workload.sh" % (t.path())
-        
+
         file(filename, "w").write(script)
         sftp.copyTo(filename, s)
         guest.execguest("chmod +x %s" % (s))
@@ -150,7 +150,7 @@ umount /mnt
             raise xenrt.XRTError("No %s SR found on host." % (self.SRTYPE))
         self.sr = srs[0]
         self.host.waitForCoalesce(self.sr)
-        
+
         g = self.createguest()
 
         xenrt.TEC().logverbose("Creating a test VDI.")
@@ -158,14 +158,14 @@ umount /mnt
                                       sruuid=self.sr,
                                       smconfig=self.VDICREATE_SMCONFIG)
         self.vdis.append(vdiuuid)
-       
+
         xenrt.TEC().logverbose("Plugging VDI.")
         userdevice = g.createDisk(vdiuuid=vdiuuid)
         device = self.host.parseListForOtherParam("vbd-list",
                                                   "vm-uuid",
                                                    g.getUUID(),
                                                   "device",
-                                                  "userdevice=%s" % 
+                                                  "userdevice=%s" %
                                                   (userdevice))
 
         xenrt.TEC().logverbose("Formatting VDI within VM.")
@@ -174,7 +174,7 @@ umount /mnt
         g.execguest("mount /dev/%s /mnt" % (device))
 
         self.startworkload(g)
-        
+
         self.loop(iterations, vdiuuid)
 
         # Stop the workload
@@ -220,12 +220,12 @@ class TC9690(_TC7802):
     """Repeated CVSM VDI snapshot/destroy under I/O load."""
 
     SRTYPE = "cslg"
- 
+
 class TC9927(_TC7802):
     """Repeated CVSM-fc VDI snapshot/destroy under I/O load."""
 
     SRTYPE = "cslg"
-   
+
 class _TC7801(_VDISnapshotStress):
     """Repeated VDI snapshot under I/O load followed by repeated destroy."""
 
@@ -234,14 +234,14 @@ class _TC7801(_VDISnapshotStress):
             xenrt.TEC().logverbose("Snapshot iteration %s." % (i))
             snapuuid = self.host.snapshotVDI(vdiuuid)
             self.vdis.append(snapuuid)
-       
+
         for i in range(iterations):
             xenrt.TEC().logverbose("Delete iteration %s." % (i))
             self.host.destroyVDI(self.vdis[i+1])
-       
+
 class TC7801(_TC7801):
     """Repeated VDI snapshot under I/O load followed by repeated destroy."""
-     
+
     ITERATIONS = 29
 
 class TC7965(_TC7801):
@@ -294,13 +294,13 @@ umount /mnt
     def run(self, arglist):
         self.host = self.getDefaultHost()
         iterations = self.ITERATIONS
-        
+
         srs = self.host.getSRs(type=self.SRTYPE)
         if not srs:
             raise xenrt.XRTError("No %s SR found on host." % (self.SRTYPE))
         self.sr = srs[0]
         self.host.waitForCoalesce(self.sr)
-        
+
         g = self.createguest()
 
         xenrt.TEC().logverbose("Creating a test VDI.")
@@ -308,20 +308,20 @@ umount /mnt
                                       sruuid=self.sr,
                                       smconfig=self.VDICREATE_SMCONFIG)
         self.vdis.append(vdiuuid)
-       
+
         xenrt.TEC().logverbose("Plugging VDI.")
         userdevice = g.createDisk(vdiuuid=vdiuuid)
         device = self.host.parseListForOtherParam("vbd-list",
                                                   "vm-uuid",
                                                    g.getUUID(),
                                                   "device",
-                                                  "userdevice=%s" % 
+                                                  "userdevice=%s" %
                                                   (userdevice))
         xenrt.TEC().logverbose("Formatting VDI within VM.")
         time.sleep(30)
         g.execguest("mkfs.ext2 /dev/%s" % (device))
         g.execguest("mount /dev/%s /mnt" % (device))
-        
+
         xenrt.TEC().progress("Running %s iterations..." % (iterations))
         for i in range(iterations):
             xenrt.TEC().progress("Starting iteration %s..." % (i))
@@ -333,7 +333,7 @@ umount /mnt
             g.execguest("sync")
             data = self.check(snapuuid)
             if not data == i:
-                raise xenrt.XRTFailure("Wrong count. Expected %s. Got %s." % 
+                raise xenrt.XRTFailure("Wrong count. Expected %s. Got %s." %
                                        (i, data))
 
         g.shutdown()
@@ -374,7 +374,7 @@ class TC9692(_TC7800):
     """Multiple CVSM VDI snapshots of the same original."""
 
     SRTYPE = "cslg"
-    
+
     def __init__(self, tcid=None):
         _TC7800.__init__(self,tcid)
         self.size=1000*1024*1024
@@ -396,13 +396,13 @@ class TC7799(_VDISnapshotBase):
 
     def run(self, arglist):
         self.host = self.getDefaultHost()
-        
+
         srs = self.host.getSRs(type=self.SRTYPE)
         if not srs:
             raise xenrt.XRTError("No %s SR found on host." % (self.SRTYPE))
         self.sr = srs[0]
         self.host.waitForCoalesce(self.sr)
-        
+
         xenrt.TEC().logverbose("Creating a test VDI.")
         vdiuuid = self.host.createVDI(self.size,
                                       sruuid=self.sr,
@@ -449,24 +449,24 @@ class TC9693(TC7799):
     """CVSM Snapshot of a snapshot."""
 
     SRTYPE = "cslg"
-    
+
 class TC9928(TC7799):
     """CVSM-fc Snapshot of a snapshot."""
 
     SRTYPE = "cslg"
-  
+
 class TC7798(_VDISnapshotBase):
     """Deleting the original shouldn't affect the snapshot VDI."""
 
     def run(self, arglist):
         self.host = self.getDefaultHost()
-        
+
         srs = self.host.getSRs(type=self.SRTYPE)
         if not srs:
             raise xenrt.XRTError("No %s SR found on host." % (self.SRTYPE))
         self.sr = srs[0]
         self.host.waitForCoalesce(self.sr)
-        
+
         xenrt.TEC().logverbose("Creating a test VDI.")
         vdiuuid = self.host.createVDI(self.size,
                                       sruuid=self.sr,
@@ -517,13 +517,13 @@ class TC7797(_VDISnapshotBase):
 
     def run(self, arglist):
         self.host = self.getDefaultHost()
-        
+
         srs = self.host.getSRs(type=self.SRTYPE)
         if not srs:
             raise xenrt.XRTError("No %s SR found on host." % (self.SRTYPE))
         self.sr = srs[0]
         self.host.waitForCoalesce(self.sr)
-        
+
         xenrt.TEC().logverbose("Creating a test VDI.")
         vdiuuid = self.host.createVDI(self.size,
                                       sruuid=self.sr,
@@ -586,14 +586,14 @@ class TC7796(_VDISnapshotBase):
                                       sruuid=self.sr,
                                       smconfig=self.VDICREATE_SMCONFIG)
         self.vdis.append(vdiuuid)
-       
+
         xenrt.TEC().logverbose("Plugging VDI.")
         userdevice = g.createDisk(vdiuuid=vdiuuid)
         device = self.host.parseListForOtherParam("vbd-list",
                                                   "vm-uuid",
                                                    g.getUUID(),
                                                   "device",
-                                                  "userdevice=%s" % 
+                                                  "userdevice=%s" %
                                                   (userdevice))
         xenrt.TEC().logverbose("Formatting VDI within VM.")
         time.sleep(30)
@@ -612,9 +612,9 @@ class TC7796(_VDISnapshotBase):
         self.vdis.append(snapuuid)
 
         g.unplugDisk(userdevice)
-        
+
         xenrt.TEC().logverbose("Comparing hashes after snapshotting.")
-        snaphash = self.vdichecksum(snapuuid) 
+        snaphash = self.vdichecksum(snapuuid)
         vdihashsnap = self.vdichecksum(vdiuuid)
         if not snaphash == vdihashvmoriginal:
             raise xenrt.XRTFailure("Hash of snapshot is different to original.")
@@ -670,14 +670,14 @@ class TC7795(_VDISnapshotBase):
         self.vdis.append(snapuuid)
 
         xenrt.TEC().logverbose("Comparing hashes after snapshotting.")
-        snaphash = self.vdichecksum(snapuuid) 
+        snaphash = self.vdichecksum(snapuuid)
         vdihashsnap = self.vdichecksum(vdiuuid)
         if not snaphash == vdihashoriginal:
             raise xenrt.XRTFailure("Hash of snapshot is different to original.")
         if not vdihashsnap == vdihashoriginal:
             raise xenrt.XRTFailure("Hash of VDI after snapshot is different to original.")
-        
-        xenrt.TEC().logverbose("Modifying original VDI.") 
+
+        xenrt.TEC().logverbose("Modifying original VDI.")
         self.vdimodify(vdiuuid)
 
         xenrt.TEC().logverbose("Comparing hashes after modification.")
@@ -686,7 +686,7 @@ class TC7795(_VDISnapshotBase):
         if not snaphashvdimod == vdihashoriginal:
             raise xenrt.XRTFailure("Hash of snapshot is different to original.")
         if vdihashvdimod == vdihashoriginal:
-            raise xenrt.XRTFailure("Hash of VDI after modifcation is the same as original.") 
+            raise xenrt.XRTFailure("Hash of VDI after modifcation is the same as original.")
 
         xenrt.TEC().logverbose("Modifying snapshot.")
         self.vdimodify(snapuuid)
@@ -697,7 +697,7 @@ class TC7795(_VDISnapshotBase):
         if snaphashsnapmod == snaphash:
             raise xenrt.XRTFailure("Hash of snapshot after modification is the same as original.")
         if not vdihashsnapmod == vdihashvdimod:
-            raise xenrt.XRTFailure("Hash of VDI is different to original.") 
+            raise xenrt.XRTFailure("Hash of VDI is different to original.")
 
 class TC7959(TC7795):
     """LVM VDI snapshot creation and operation."""
@@ -733,7 +733,7 @@ class TC7794(_VDISnapshotBase):
             raise xenrt.XRTError("No %s SR found on host." % (self.SRTYPE))
         self.sr = srs[0]
         self.host.waitForCoalesce(self.sr)
-        
+
         xenrt.TEC().logverbose("Creating a test VDI.")
         vdiuuid = self.host.createVDI(self.size,
                                       sruuid=self.sr,
@@ -741,14 +741,14 @@ class TC7794(_VDISnapshotBase):
         self.vdis.append(vdiuuid)
         self.vdiformat(vdiuuid)
         self.vdimodify(vdiuuid)
-        
+
         vdihashoriginal = self.vdichecksum(vdiuuid)
         xenrt.TEC().logverbose("Creating VDI snapshot.")
         snapuuid = self.host.snapshotVDI(vdiuuid)
         self.vdis.append(snapuuid)
-        
+
         xenrt.TEC().logverbose("Comparing hashes after snapshotting.")
-        snaphash = self.vdichecksum(snapuuid) 
+        snaphash = self.vdichecksum(snapuuid)
         vdihashsnap = self.vdichecksum(vdiuuid)
         if not snaphash == vdihashoriginal:
             raise xenrt.XRTFailure("Hash of snapshot is different to original.")
@@ -778,7 +778,7 @@ class TC9921(TC7794):
     """CVSM-FC VDI Snapshot of an unplugged VDI."""
 
     SRTYPE = "cslg"
-    
+
 class TC7793(_VDISnapshotBase):
     """VDI Snapshot fails with a suitable error on LVM SRs."""
 
@@ -797,10 +797,10 @@ class TC7793(_VDISnapshotBase):
         failed = False
         try:
             self.host.snapshotVDI(vdiuuid)
-        except Exception, e: 
+        except Exception, e:
             failed = True
             if not re.search(self.expected, e.data):
-                raise xenrt.XRTFailure("Snapshot failed with unexpected error message. (%s)" % 
+                raise xenrt.XRTFailure("Snapshot failed with unexpected error message. (%s)" %
                                        (e.data))
         if not failed:
             raise xenrt.XRTFailure("VDI snapshot did not fail on LVM.")
@@ -823,13 +823,13 @@ umount /mnt
     def run(self, arglist):
         self.host = self.getDefaultHost()
         iterations = 365
-        
+
         srs = self.host.getSRs(type=self.SRTYPE)
         if not srs:
             raise xenrt.XRTError("No %s SR found on host." % (self.SRTYPE))
         self.sr = srs[0]
         self.host.waitForCoalesce(self.sr)
-        
+
         g = self.createguest()
 
         xenrt.TEC().logverbose("Creating a test VDI.")
@@ -837,25 +837,25 @@ umount /mnt
                                       sruuid=self.sr,
                                       smconfig=self.VDICREATE_SMCONFIG)
         self.vdis.append(vdiuuid)
-       
+
         xenrt.TEC().logverbose("Plugging VDI.")
         userdevice = g.createDisk(vdiuuid=vdiuuid)
         device = self.host.parseListForOtherParam("vbd-list",
                                                   "vm-uuid",
                                                    g.getUUID(),
                                                   "device",
-                                                  "userdevice=%s" % 
+                                                  "userdevice=%s" %
                                                   (userdevice))
         xenrt.TEC().logverbose("Formatting VDI within VM.")
         time.sleep(30)
         g.execguest("mkfs.ext2 /dev/%s" % (device))
         g.execguest("mount /dev/%s /mnt" % (device))
-        
+
         xenrt.TEC().progress("Running %s iterations..." % (iterations))
         for i in range(iterations):
             xenrt.TEC().progress("Starting iteration %s..." % (i))
             startiter = xenrt.timenow()
-            
+
             g.execguest("echo %s > /mnt/counter" % (i))
             g.execguest("sync")
 
@@ -866,12 +866,12 @@ umount /mnt
                                                         uuid,
                                                         "vdi-uuid",
                                                         "device=%s" % (device))
-            
+
             g.execguest("echo XXX > /mnt/counter")
             g.execguest("sync")
             data = self.check(snapvdiuuid)
             if not data == i:
-                raise xenrt.XRTFailure("Wrong count. Expected %s. Got %s." % 
+                raise xenrt.XRTFailure("Wrong count. Expected %s. Got %s." %
                                        (i, data))
 
             g.host.removeTemplate(uuid)
@@ -895,24 +895,40 @@ umount /mnt
                 xenrt.TEC().logverbose("Sleeping for %d seconds before next "
                                        "iteration" % (t))
                 time.sleep(t)
-            
+
+
 class TC9047(TC8079):
     """Simulate a year of daily VM snapshot backups of a Linux VM on local LVM.
     """
 
     SRTYPE = "lvm"
-    
+
+
 class _VMSnapshotBase(xenrt.TestCase):
 
     SRTYPE = None
     VMNAME = None
 
+    # Consts: Lookup keys for args in arglist
+    __GUEST_KEY = "guest"
+    __XAPI_SR_KEY = "xapisrtype"
+
+    def __parseArgs(self, arglist):
+        """Parse args from arglist
+
+        Expect these args to superseed any values sotred in the class variables
+
+        """
+        argDict = self.parseArgsKeyValue(arglist)
+
+        if self.__GUEST_KEY in argDict:
+            self.VMNAME = argDict[self.__GUEST_KEY]
+        if self.__XAPI_SR_KEY in argDict:
+            self.SRTYPE = argDict[self.__XAPI_SR_KEY]
+
     def prepare(self, arglist):
-    
-        for arg in arglist:
-            l = string.split(arg, "=", 1)
-            if l[0] == "guest":
-                self.VMNAME = l[1]
+
+        self.__parseArgs(arglist)
 
         # If we have a VM already the use that, otherwise create one
         self.guest = self.getGuest(self.VMNAME)
@@ -931,7 +947,7 @@ class _VMSnapshotBase(xenrt.TestCase):
                 self.guest = host.createGenericWindowsGuest(sr=sruuid)
             else:
                 self.guest = host.createGenericLinuxGuest(sr=sruuid)
-            self.uninstallOnCleanup(self.guest)    
+            self.uninstallOnCleanup(self.guest)
         else:
             # Check the guest is healthy and reboot if it is already up
             try:
@@ -944,6 +960,7 @@ class _VMSnapshotBase(xenrt.TestCase):
             except xenrt.XRTFailure, e:
                 raise xenrt.XRTError("Guest broken before we started: %s" %
                                      (str(e)))
+
 
 class TC7849(_VMSnapshotBase):
     """VM snapshot creation of a simple halted VM"""
@@ -974,7 +991,7 @@ class TC7850(_VMSnapshotBase):
         # Perform the snapshot.
         uuid = self.guest.snapshot()
         self.removeTemplateOnCleanup(self.guest.host, uuid)
-        
+
         # Check the original VM.
         self.guest.checkHealth()
 
@@ -1014,14 +1031,16 @@ class TC7865(_VMSnapshotBase):
         self.guest.suspend()
 
         # Get the list of suspend images.
-        svdis1 = self.guest.host.minimalList("vdi-list", args="type=Suspend")
+        svdis1 = []
+        svdis1.append(self.guest.paramGet("suspend-VDI-uuid"))
 
         # Perform the snapshot.
         uuid = self.guest.snapshot()
         self.removeTemplateOnCleanup(self.guest.host, uuid)
 
         # Get the list of suspend images.
-        svdis2 = self.guest.host.minimalList("vdi-list", args="type=Suspend")
+        svdis2 = []
+        svdis2.append(self.guest.paramGet("suspend-VDI-uuid"))
 
         # Check we haven't leaked any suspend images.
         expsvdi = len(svdis1)
@@ -1045,7 +1064,7 @@ class TC7865(_VMSnapshotBase):
 
 class TC7866(_VMSnapshotBase):
     """VM snapshot creation of a simple running Linux VM"""
-    
+
     VMNAME = "Linux-VM"
 
     def run(self, arglist):
@@ -1057,12 +1076,12 @@ class TC7866(_VMSnapshotBase):
         # Perform the snapshot
         uuid = self.guest.snapshot()
         self.removeTemplateOnCleanup(self.guest.host, uuid)
-        
+
         # Check the original VM
         self.guest.checkHealth()
 
 class _VMSnapshotPerSR(_VMSnapshotBase):
-    
+
     VMNAME = "Linux-VM"
 
     def run(self, arglist):
@@ -1074,7 +1093,7 @@ class _VMSnapshotPerSR(_VMSnapshotBase):
         # Perform the snapshot
         uuid = self.guest.snapshot()
         self.removeTemplateOnCleanup(self.guest.host, uuid)
-        
+
         # Check the original VM
         self.guest.checkHealth()
 
@@ -1122,12 +1141,12 @@ class TC9699(_VMSnapshotPerSR):
     """VM snapshot operation on CVSM"""
 
     SRTYPE = "cslg"
- 
+
 class TC9937(_VMSnapshotPerSR):
     """VM snapshot operation on CVSM-fc"""
 
     SRTYPE = "cslg"
-   
+
 class _VMSnapshotPerOS(xenrt.TestCase):
 
     IN_GUEST_VSS = False
@@ -1249,7 +1268,7 @@ class _VMSnapshotPerOS(xenrt.TestCase):
 
     def doShutdown(self):
         self.guest.shutdown()
-        
+
     def run(self, arglist):
 
         # Perform the snapshot
@@ -1262,7 +1281,7 @@ class _VMSnapshotPerOS(xenrt.TestCase):
 
     def postRun(self):
         try: self.guest.shutdown(again=True)
-        except: pass 
+        except: pass
         cli = self.host.getCLIInstance()
         allsnaps = self.host.minimalList("vdi-list", "uuid",
                                          "is-a-snapshot=true")
@@ -1299,7 +1318,7 @@ class _VMSnapshotPerOSQuiesced(_VMSnapshotPerOS):
         self.guest.checkHealth()
         # Shut down the original VM
         self.runSubcase("doShutdown", (), "Orig", "Shutdown")
-        
+
     def postRun(self):
         _VMSnapshotPerOS.postRun(self)
         try: self.host.removeTemplate(self.snapuuid)
@@ -1310,17 +1329,17 @@ class _VMSnapshotPerOSVSS(_VMSnapshotPerOS):
     IN_GUEST_VSS = True
     WORKLOADS = None
     ORIG_SHUTDOWN = True
-    TEMPLATE = False 
+    TEMPLATE = False
     SNAPSHOT_TYPE = None
 
     def __init__(self):
         _VMSnapshotPerOS.__init__(self)
         self.disks = ["C"]
-        self.snapshotvdis = {} 
+        self.snapshotvdis = {}
         self.snapshot = None
         self.componentxml = None
         self.vssset = None
-        self.flagfile = None 
+        self.flagfile = None
         self.importguest = None
 
     def prepare(self, arglist):
@@ -1385,10 +1404,10 @@ class _VMSnapshotPerOSVSS(_VMSnapshotPerOS):
         try:
             data = self.guest.xmlrpcReadFile(output)
             match = re.search("Returned (?P<code>.*)", data)
-            if match: 
+            if match:
                 xenrt.TEC().reason("Error running vshadow: %s" % (match.group("code").strip()))
             match = re.search("Error text: (?P<text>.*)", data)
-            if match: 
+            if match:
                 xenrt.TEC().reason("Error running vshadow: %s" % (match.group("text").strip()))
                 errortext = match.group("text").strip()
             logname = "%s/vshadow-%s.txt" % (xenrt.TEC().getLogdir(), xenrt.timenow())
@@ -1438,8 +1457,8 @@ class _VMSnapshotPerOSVSS(_VMSnapshotPerOS):
         self.guest.checkSnapshotVDIs(self.snapshotvdis.keys())
         self.snapshot = None
         for snapshotvdi in self.snapshotvdis:
-            snapshotuuid = self.host.parseListForOtherParam("vbd-list", 
-                                                            "vdi-uuid", 
+            snapshotuuid = self.host.parseListForOtherParam("vbd-list",
+                                                            "vdi-uuid",
                                                              snapshotvdi,
                                                             "vm-uuid")
             if self.TEMPLATE:
@@ -1449,7 +1468,7 @@ class _VMSnapshotPerOSVSS(_VMSnapshotPerOS):
             self.snapshot = snapshotuuid
         if self.TEMPLATE:
             self.guest.checkSnapshot(self.snapshot)
-            
+
     def vssImport(self):
         """Import a VSS snapshot into a Windows VM."""
         xenrt.TEC().logverbose(self.vssList())
@@ -1467,22 +1486,22 @@ class _VMSnapshotPerOSVSS(_VMSnapshotPerOS):
             self.vssParseOutput(vshadowoutput)
             xenrt.TEC().logverbose(self.vssList())
             raise xenrt.XRTFailure("Snapshot import failed! (%s)" % (str(e)))
-        
+
         if not self.snapshotvdis:
             self.vssParseComponent(filename)
-            
+
         # Check the snapshot VDIs now have VBDs in the VM.
         importguestvdis = self.importguest.getHost().minimalList("vbd-list",
                                                                  "vdi-uuid",
                                                                  "type=Disk "
-                                                                 "vm-uuid=%s" % 
+                                                                 "vm-uuid=%s" %
                                                                  (self.importguest.getUUID()))
         for vdi in self.snapshotvdis:
             if not vdi in importguestvdis:
                 raise xenrt.XRTFailure("A snapshot VDI doesn't have a "
                                        "VBD in the original VM.",
                                        "VDI %s" % (vdi))
- 
+
     def vssDelete(self):
         """Delete a VSS snapshot. Leaves the template."""
         remotetemp = self.guest.xmlrpcTempDir()
@@ -1503,7 +1522,7 @@ class _VMSnapshotPerOSVSS(_VMSnapshotPerOS):
             try:
                 self.guest.xmlrpcExec("c:\\vshadow.exe -tracing -ds={%s} > %s" % (vssuuid, vshadowoutput),
                                        timeout=600)
-            finally:        
+            finally:
                 self.vssParseOutput(vshadowoutput)
             end = xenrt.timenow()
             if end - start > 300:
@@ -1523,8 +1542,8 @@ class _VMSnapshotPerOSVSS(_VMSnapshotPerOS):
                                                "VDI %s" % (vdi))
             # Check snapshot VDI is gone from the VM.
             for vdi in self.snapshotvdis:
-                if self.snapshotvdis[vdi] == vssuuid:   
-                    if vdi in guestvdisafter:    
+                if self.snapshotvdis[vdi] == vssuuid:
+                    if vdi in guestvdisafter:
                         raise xenrt.XRTFailure("A snapshot VDI doesn't seem to "
                                                "have been removed from the original VM.",
                                                "VDI %s" % (vdi))
@@ -1548,7 +1567,7 @@ class _VMSnapshotPerOSVSS(_VMSnapshotPerOS):
 
     def workloadsStop(self):
         self.guest.stopWorkloads(self.workloads)
-        
+
     def createFlags(self):
         self.flagfile = "%s.flag" % (xenrt.timenow())
         for disk in self.disks:
@@ -1560,22 +1579,22 @@ class _VMSnapshotPerOSVSS(_VMSnapshotPerOS):
         if not result == xenrt.RESULT_PASS: return result
         # Start VM workloads.
         if self.WORKLOADS:
-            result = self.runSubcase("workloadsStart", (), "Workloads", "Start") 
+            result = self.runSubcase("workloadsStart", (), "Workloads", "Start")
             if not result == xenrt.RESULT_PASS: return result
         # Perform the snapshot.
         result = self.runSubcase("vssSnapshot", (), "VSS", "Snapshot")
         if not result == xenrt.RESULT_PASS: return result
         # Attach the snapshot to the VM.
-        result = self.runSubcase("vssImport", (), "VSS", "Import") 
+        result = self.runSubcase("vssImport", (), "VSS", "Import")
         if not result == xenrt.RESULT_PASS: return result
         # Read data from the snapshot within the VM.
-        result = self.runSubcase("vssRead", (), "VSS", "ReadData") 
+        result = self.runSubcase("vssRead", (), "VSS", "ReadData")
         if not result == xenrt.RESULT_PASS: return result
         # Detach the snapshot from the VM.
         result = self.runSubcase("vssDelete", (), "VSS", "Delete")
         if not result == xenrt.RESULT_PASS: return result
         # Check the original VM is healthy.
-        result = self.runSubcase("guest.checkHealth", (), "Check", "Original") 
+        result = self.runSubcase("guest.checkHealth", (), "Check", "Original")
         if not result == xenrt.RESULT_PASS: return result
         # Stop VM workloads.
         if self.WORKLOADS:
@@ -1583,7 +1602,7 @@ class _VMSnapshotPerOSVSS(_VMSnapshotPerOS):
         # Shut down the original VM.
         if self.ORIG_SHUTDOWN:
             self.runSubcase("doShutdown", (), "Orig", "Shutdown")
-        
+
     def postRun(self):
         try: _VMSnapshotPerOS.postRun(self)
         except: pass
@@ -1597,12 +1616,12 @@ class _VMSnapshotPerOSVSS(_VMSnapshotPerOS):
 
 class TC9205(_VMSnapshotPerOSVSS):
     """Check importing too many snapshots fails correctly"""
-    
+
     VMNAME = "Windows-VM-with-drivers"
     TEMPLATE = False
 
     DISKS = 15
-    FAILAT = 13 
+    FAILAT = 13
 
     def prepare(self, arglist):
         _VMSnapshotPerOSVSS.prepare(self, arglist)
@@ -1620,20 +1639,20 @@ class TC9205(_VMSnapshotPerOSVSS):
 
     def customImport(self, i):
         xenrt.TEC().logverbose("Import iteration %s." % (i))
-        try: 
+        try:
             self.vssImport()
         except:
-            if i >= self.FAILAT: 
+            if i >= self.FAILAT:
                 xenrt.TEC().logverbose("Import failed as expected.")
                 return
             else: raise xenrt.XRTFailure("Import failed on iteration %s." % (i))
         if i >= self.FAILAT:
             raise xenrt.XRTFailure("Import succeeded on iteration %s." % (i))
         xenrt.TEC().logverbose("Import succeeded.")
-                
+
 
     def run(self, arglist):
-        self.snaps = [] 
+        self.snaps = []
         # Take sufficient snapshots.
         for i in range(self.DISKS):
             self.snapshotvdis = {}
@@ -1644,7 +1663,7 @@ class TC9205(_VMSnapshotPerOSVSS):
             self.snaps.append((self.componentxml, self.snapshotvdis))
         for i in range(len(self.snaps)):
             self.componentxml, self.snapshotvdis = self.snaps[i]
-            result = self.runSubcase("customImport", (i), "VSS", "Import-%s" % (i)) 
+            result = self.runSubcase("customImport", (i), "VSS", "Import-%s" % (i))
         #Check the version of host
         version = self.host.checkVersion(versionNumber=True)
         xenrt.TEC().logverbose("The version we got is %s" % version)
@@ -1658,7 +1677,7 @@ class TC9205(_VMSnapshotPerOSVSS):
             self.host.execdom0("grep 'No free VBD devices found!' /var/log/SMlog*")
         else:
             self.host.execdom0("grep 'No free devs found!' /var/log/SMlog*")
- 
+
     def postRun(self):
         _VMSnapshotPerOS.postRun(self)
         for i in range(len(self.snaps)):
@@ -1673,34 +1692,34 @@ class TC9205(_VMSnapshotPerOSVSS):
 
 class TC9177(_VMSnapshotPerOSVSS, _VMSnapshotPerOSQuiesced):
     """Test transportable-snapshot-id parameter is valid"""
-    
+
     VMNAME = "Windows-VM-with-drivers"
 
     def run(self, arglist):
         try: self.guest.disableVSS()
         except: pass
         self.guest.enableVSS()
-        
+
         result = self.runSubcase("createFlags", (), "Flags", "Create")
         if not result == xenrt.RESULT_PASS: return result
-        
+
         result = self.runSubcase("quiescedSnapshot", (), "Quiesced", "Snapshot")
         if not result == xenrt.RESULT_PASS: return
 
-        self.componentxml = self.host.genParamGet("template", 
-                                                   self.snapuuid, 
+        self.componentxml = self.host.genParamGet("template",
+                                                   self.snapuuid,
                                                   "transportable-snapshot-id").decode("hex").decode("utf-16").strip("\0")
-    
-        result = self.runSubcase("vssImport", (), "VSS", "Import") 
+
+        result = self.runSubcase("vssImport", (), "VSS", "Import")
         if not result == xenrt.RESULT_PASS: return
-        
-        result = self.runSubcase("vssRead", (), "VSS", "ReadData") 
+
+        result = self.runSubcase("vssRead", (), "VSS", "ReadData")
         if not result == xenrt.RESULT_PASS: return
-        
+
         result = self.runSubcase("vssDelete", (), "VSS", "Delete")
         if not result == xenrt.RESULT_PASS: return
-        
-        result = self.runSubcase("guest.checkHealth", (), "Check", "Original") 
+
+        result = self.runSubcase("guest.checkHealth", (), "Check", "Original")
         if not result == xenrt.RESULT_PASS: return
 
 class TC12173(_VMSnapshotPerOSVSS):
@@ -1709,7 +1728,7 @@ class TC12173(_VMSnapshotPerOSVSS):
     VMNAME = "Windows-VM-with-drivers"
     DISTRO = "ws08-x86"
     SNAPSHOT_TYPE = "non-transportable"
- 
+
     def run(self, arglist):
         try: self.guest.disableVSS()
         except: pass
@@ -1720,7 +1739,7 @@ class TC12173(_VMSnapshotPerOSVSS):
 
 class TC8220(_VMSnapshotPerOSVSS):
     """Import a snapshot on another VM of the same Windows version."""
-        
+
     # Distro to use for importing VM.
     DISTRO = "ws08-x86"
     VMNAME = "Windows-VM-with-drivers"
@@ -1732,11 +1751,11 @@ class TC8220(_VMSnapshotPerOSVSS):
         self.importguest.enableVSS()
 
     def vssImportFail(self):
-        try: 
+        try:
             self.vssImport()
-        except: 
+        except:
             pass
-        else: 
+        else:
             raise xenrt.XRTFailure("Import succeeded.")
 
     def run(self, arglist):
@@ -1744,16 +1763,16 @@ class TC8220(_VMSnapshotPerOSVSS):
         if not result == xenrt.RESULT_PASS: return
 
         # Try to import it.
-        result = self.runSubcase("vssImportFail", (), "VSS", "ImportFail") 
+        result = self.runSubcase("vssImportFail", (), "VSS", "ImportFail")
         if not result == xenrt.RESULT_PASS: return
 
         xenrt.TEC().logverbose("Enabling import.")
         self.importguest.paramSet("other-config:snapmanager", "true")
 
         # Try to import it.
-        result = self.runSubcase("vssImport", (), "VSS", "Import") 
+        result = self.runSubcase("vssImport", (), "VSS", "Import")
         if not result == xenrt.RESULT_PASS: return
-    
+
     def postRun(self):
         _VMSnapshotPerOSVSS.postRun(self)
         try: self.importguest.xmlrpcExec("echo y | c:\\vshadow.exe -da")
@@ -1768,7 +1787,7 @@ class TC9136(TC8220):
 
 class TC8221(TC8220):
     """Import a snapshot on another VM of a different Windows version."""
-        
+
     DISTRO = "w2k3eesp2"
 
 class TC0001(TC8221):
@@ -1794,7 +1813,7 @@ class TC8218(_VMSnapshotPerOSVSS):
 class TC9134(TC8218):
     """VSS snapshot with and without an attached ISO."""
 
-    TEMPLATE = True 
+    TEMPLATE = True
 
 class TC8219(_VMSnapshotPerOSVSS):
     """Repeated snapshot creation and deletion."""
@@ -1802,8 +1821,8 @@ class TC8219(_VMSnapshotPerOSVSS):
     VMNAME = "Windows-VM-with-drivers"
     ORIG_SHUTDOWN = False
 
-    def run(self, arglist): 
-        iterations = 10  
+    def run(self, arglist):
+        iterations = 10
         for i in range(iterations):
             xenrt.TEC().logverbose("Starting iteration %s..." % (i))
             _VMSnapshotPerOSVSS.run(self, arglist)
@@ -1813,9 +1832,9 @@ class TC8219(_VMSnapshotPerOSVSS):
 class TC9135(TC8219):
     """Repeated snapshot creation and deletion."""
 
-    TEMPLATE = True 
+    TEMPLATE = True
 
-class _MultipleVBD:
+class _MultipleVBD(object):
     """VSS snapshot with multiple VBDs."""
 
     VMNAME = "Windows-VM-with-drivers"
@@ -1823,15 +1842,15 @@ class _MultipleVBD:
 
     def __init__(self):
         self.guest = None
-    
+
     def run(self, arglist):
         self.disksToRemove = []
         size = 1024*1024*1024 # 1GB.
 
         # We only feel comfortable testing this many.
-        allowed = 1 
+        allowed = 1
         xenrt.TEC().logverbose("Aiming for %s iterations." % (allowed))
- 
+
         for i in range(allowed):
             xenrt.TEC().logverbose("Starting iteration %s..." % (i))
             d = self.guest.createDisk(size)
@@ -1852,19 +1871,19 @@ class _MultipleVBD:
 
     def doTest(self):
         pass
- 
+
     def postRun(self):
         for d in self.disksToRemove:
             try: self.guest.removeDisk(d)
             except: pass
 
-class TC8193(_MultipleVBD, _VMSnapshotPerOSVSS): 
+class TC8193(_MultipleVBD, _VMSnapshotPerOSVSS):
     """VSS snapshot with multiple VBDs."""
 
     def __init__(self):
         _MultipleVBD.__init__(self)
         _VMSnapshotPerOSVSS.__init__(self)
-    
+
     def doTest(self):
         _VMSnapshotPerOSVSS.run(self, [])
         self.snapshotvdis = {}
@@ -1883,7 +1902,7 @@ class TC8193(_MultipleVBD, _VMSnapshotPerOSVSS):
             data = data.strip()
             if not data == self.flagfile:
                 raise xenrt.XRTFailure("Incorrect data read back from snapshot.")
-    
+
     def postRun(self):
         _VMSnapshotPerOSVSS.postRun(self)
         _MultipleVBD.postRun(self)
@@ -1891,7 +1910,7 @@ class TC8193(_MultipleVBD, _VMSnapshotPerOSVSS):
 class TC9133(TC8193):
     """VSS snapshot with multiple VBDs."""
 
-    TEMPLATE = True 
+    TEMPLATE = True
 
 class TC9070(TC8193):
     """VSS snapshot of indvidual disks"""
@@ -1921,7 +1940,7 @@ class TC9058(_MultipleVBD, _VMSnapshotPerOSQuiesced):
     def __init__(self):
         _MultipleVBD.__init__(self)
         _VMSnapshotPerOSQuiesced.__init__(self)
-    
+
     def doTest(self):
         for d in self.disks:
             self.guest.xmlrpcCreateFile("%s:\\xenrt.flag" % (d), d)
@@ -1930,7 +1949,7 @@ class TC9058(_MultipleVBD, _VMSnapshotPerOSQuiesced):
             raise xenrt.XRTFailure("Snapshot test failed.")
         try: self.guest.start()
         except: pass
-        hidden = re.findall("Volume\s+(\d+).*Hidden", 
+        hidden = re.findall("Volume\s+(\d+).*Hidden",
                              self.instance.xmlrpcExec("echo list volume | diskpart",
                              returndata=True))
         for h in hidden:
@@ -1944,7 +1963,7 @@ class TC9058(_MultipleVBD, _VMSnapshotPerOSQuiesced):
         except: pass
         try: self.instance.uninstall()
         except: pass
-   
+
     def postRun(self):
         _VMSnapshotPerOSQuiesced.postRun(self)
         _MultipleVBD.postRun(self)
@@ -1957,8 +1976,8 @@ class TC8177(_VMSnapshotPerOSVSS):
 
 class TC9132(TC8177):
     """VSS snapshot with a disk I/O workload running"""
-    
-    TEMPLATE = True 
+
+    TEMPLATE = True
 
 class _SpanningVolume(_VMSnapshotPerOS):
     """Base class for testing snapshots of Windows volumes that span multiple VBDs."""
@@ -1975,10 +1994,10 @@ class _SpanningVolume(_VMSnapshotPerOS):
         number = 2
 
         _VMSnapshotPerOS.prepare(self, arglist)
-       
+
         # Install KB932532.
         self.guest.installKB932532()
- 
+
         # Create the disk devices.
         for i in range(number):
             d = self.guest.createDisk(size)
@@ -2015,21 +2034,21 @@ class _SpanningVolume(_VMSnapshotPerOS):
 
 class TC8180(_VMSnapshotPerOSVSS, _SpanningVolume):
     """VSS snapshot of a Windows volume that spans multiple VBDs."""
-   
+
     VMNAME = "Windows-VM-with-drivers"
 
     def prepare(self, arglist):
         _SpanningVolume.prepare(self, arglist)
         _VMSnapshotPerOSVSS.prepare(self, arglist)
- 
+
     def postRun(self):
         _VMSnapshotPerOSVSS.postRun(self)
         _SpanningVolume.postRun(self)
 
 class TC9137(TC8180):
     """VSS snapshot of a Windows volume that spans multiple VBDs."""
-    
-    TEMPLATE = False 
+
+    TEMPLATE = False
 
 class TC8282(_VMSnapshotPerOSQuiesced, _SpanningVolume):
     """Quiesced snapshot of a Windows volume that spans multiple VBDs."""
@@ -2046,7 +2065,7 @@ class TC8282(_VMSnapshotPerOSQuiesced, _SpanningVolume):
         if self.instance:
             try:
                 try:
-                    hidden = re.findall("Volume\s+(\d+).*Hidden", 
+                    hidden = re.findall("Volume\s+(\d+).*Hidden",
                                          self.instance.xmlrpcExec("echo list volume | diskpart",
                                          returndata=True))
                     for h in hidden:
@@ -2071,7 +2090,7 @@ class TC8104(_VMSnapshotPerOSVSS):
 class TC9128(TC8104):
     """Quiesced snapshot creation from within the guest using VSS tools."""
 
-    TEMPLATE = True 
+    TEMPLATE = True
 
 class TC8117(_VMSnapshotPerOSQuiesced):
     """Quiesced VM snapshot operation on NFS SR."""
@@ -2234,7 +2253,7 @@ class TC9704(_VMSnapshotPerOSQuiesced):
     """Quiesced VM snapshot operation with Windows Server 2008 SP2 x64"""
 
     DISTRO = "ws08sp2-x64"
-    
+
 class TC9702(_VMSnapshotPerOSQuiesced):
     """Quiesced VM snapshot operation with Windows Server 2008 R2 x64"""
 
@@ -2289,12 +2308,12 @@ class TC9707(_VMSnapshotPerOS):
     """VM snapshot operation with Windows Server 2008 R2 x64"""
 
     DISTRO = "ws08r2-x64"
-    
+
 class TC12559(_VMSnapshotPerOS):
     """VM snapshot operation with Windows Server 2008 R2 SP1 x64"""
 
     DISTRO = "ws08r2sp1-x64"
-    
+
 class TC7855(_VMSnapshotPerOS):
     """VM snapshot operation with Windows Vista EE SP1"""
 
@@ -2314,7 +2333,7 @@ class TC9709(_VMSnapshotPerOS):
     """VM snapshot operation with Windows Vista EE SP2 x64"""
 
     DISTRO = "vistaeesp2-x64"
-    
+
 class TC7857(_VMSnapshotPerOS):
     """VM snapshot operation with Windows XP SP3"""
 
@@ -2350,12 +2369,21 @@ class TC20554(_VMSnapshotPerOS):
 
     DISTRO = "win81-x86"
 
+class TC26421(_VMSnapshotPerOS):
+    """VM snapshot operation with Windows 10 x86"""
+
+    DISTRO = "win10-x86"
+
+class TC26422(_VMSnapshotPerOS):
+    """VM snapshot operation with Windows 10 x64"""
+
+    DISTRO = "win10-x64"
 
 class TC20555(_VMSnapshotPerOS):
     """VM snapshot operation with Windows 12 R2 x64"""
 
     DISTRO = "ws12r2-x64"
-    
+
 class TC20556(_VMSnapshotPerOS):
     """VM snapshot operation with Windows 12 Core R2 x64"""
 
@@ -2387,7 +2415,7 @@ class TC8105(_VMSnapshotPerOSVSS):
 
 class TC9129(TC8105):
 
-    TEMPLATE = True 
+    TEMPLATE = True
 
 class TC8106(_VMSnapshotPerOSVSS):
     """Quiesced snapshot operation on Windows Server 2003 EE SP2 x64 using VSS tools"""
@@ -2396,7 +2424,7 @@ class TC8106(_VMSnapshotPerOSVSS):
 
 class TC9130(TC8106):
 
-    TEMPLATE = True 
+    TEMPLATE = True
 
 class TC8107(_VMSnapshotPerOSVSS):
     """Quiesced snapshot operation on Windows Vista EE SP1 using VSS tools"""
@@ -2431,7 +2459,7 @@ class TC9710(_VMSnapshotPerOSVSS):
 
     DISTRO = "ws08sp2-x86"
     TEMPLATE = True
-    
+
 class TC0016(TC8109):
 
     TEMPLATE = False
@@ -2481,12 +2509,12 @@ class TC20694(_VMSnapshotPerOSVSS):
 class TC20701(_VMSnapshotPerOSVSS):
     """Quiesced snapshot operation on Windows 8 x86 using VSS tools"""
     DISTRO = "win8-x86"
-    
+
 class TC9712(TC9987):
     """Quiesced snapshot operation on Windows Server 2008 R2 x64 using VSS tools"""
 
     TEMPLATE = True
-    
+
 class TC18772(_VMSnapshotPerOSVSS):
     """Quiesced snapshot operation on Windows Server 2008 SP2 x64 using VSS tools"""
     DISTRO = "ws12-x64"
@@ -2511,7 +2539,7 @@ class TC8190(xenrt.TestCase):
         self.guest.installDrivers()
         self.guest.installVSSTools()
 
-        data = self.guest.xmlrpcExec("c:\\vshadow.exe -p -t=test.xml c:", 
+        data = self.guest.xmlrpcExec("c:\\vshadow.exe -p -t=test.xml c:",
                                       returndata=True, returnerror=False)
         if not re.search("VOLUME_NOT_SUPPORTED", data):
             xenrt.TEC().logverbose(data)
@@ -2554,7 +2582,7 @@ class TC11740(_VMSnapshotBase):
         xenrt.TEC().logverbose("Attempting snapshot (expected to work)...")
         self.trySnapshot()
         self.guest.checkHealth()
-        
+
         # Set the xenstore key to false
         self.guest.host.xenstoreWrite("/local/domain/%s/vm-data/allowvssprovider" % (self.guest.getDomid()), "false")
         xenrt.TEC().logverbose("Attempting snapshot (expected to fail due to xenstore key)...")
@@ -2564,12 +2592,12 @@ class TC11740(_VMSnapshotBase):
             pass
         else:
             raise xenrt.XRTFailure("Able to take snapshot while xenstore vm-data/allowvssprovider was set to false")
-        
+
         self.guest.checkHealth()
         self.guest.host.xenstoreRm("/local/domain/%s/vm-data/allowvssprovider" % (self.guest.getDomid()))
 
     def postRun(self):
-        try:            
+        try:
             self.guest.paramRemove("xenstore-data","vm-data/allowvssprovider")
         except:
             pass
@@ -2577,7 +2605,7 @@ class TC11740(_VMSnapshotBase):
             self.guest.reboot()
         except:
             pass
-        
+
     def trySnapshot(self):
         # Perform the snapshot.
         try:
@@ -2591,44 +2619,44 @@ class TC11740(_VMSnapshotBase):
 class TC20976(xenrt.TestCase):
     """HFX820 Test to check cached file of base VDI image is deleted by cleanup.py -c"""
     VDISIZE="1GiB"
-   
+
     def prepare(self,arglist=[]):
-        
+
         self.host=self.getDefaultHost()
         g=self.host.listGuests(running=True)
-        self.guest=self.host.getGuest(g[0])    
+        self.guest=self.host.getGuest(g[0])
         self.guest.shutdown()
         self.host.disable()
         self.host.enableCaching()
-        self.host.enable()      
+        self.host.enable()
         self.nfsuuid=self.host.getSRs(type="nfs")[0]
         self.vdiuuid=self.host.createVDI(self.VDISIZE,sruuid=self.nfsuuid,name="vdi1")
         self.host.genParamSet("vdi",self.vdiuuid,"allow-caching","true")
         self.host.genParamSet("vdi",self.vdiuuid,"on-boot","persist")
-        
-       
+
+
     def run(self, arglist=[]):
-        
+
         step("Create vhd cache files")
         self.guest.start()
         vdiSnapshot=self.host.snapshotVDI(self.vdiuuid)
-        args = ["device=%s" % "autodetect", 
+        args = ["device=%s" % "autodetect",
                 "vdi-uuid=%s"  % vdiSnapshot,
                 "vm-uuid=%s" % self.guest.uuid,
                 ]
-        
+
         cli = self.host.getCLIInstance()
         vbd = cli.execute("vbd-create", string.join(args), strip=True)
 
         xenrt.TEC().logverbose("Plugging VBD on %s" % self.guest.getName())
         cli.execute("vbd-plug", "uuid=%s" % vbd)
         self.cachefiles = self.host.execdom0("ls /var/run/sr-mount/%s/*.vhdcache" % \
-                                           (self.host.getLocalSR())).strip().splitlines() 
+                                           (self.host.getLocalSR())).strip().splitlines()
         if len(self.cachefiles)!=2:
             raise xenrt.XRTFailure(".vhdcache files were not generated")
         for i in self.cachefiles:
             xenrt.TEC().logverbose(i)
-        
+
         step("Unplugging and deleting snapshot VDI")
         cli.execute("vbd-unplug", "uuid=%s" % vbd)
         cli.execute("vdi-destroy","uuid=%s" % vdiSnapshot)
@@ -2636,10 +2664,10 @@ class TC20976(xenrt.TestCase):
                                            (self.host.getLocalSR())).strip().splitlines()
         if len(self.cachefiles) != 1 :
             raise xenrt.XRTFailure("vdi-destroy didn't delete cached file")
-        
+
         step("Listing cached file left in local storage")
         xenrt.TEC().logverbose(self.cachefiles[0])
-        
+
         step("Updating time of host")
         self.host.execdom0("/etc/init.d/ntpd stop")
         self.host.execdom0("echo \" The current time\" `date` ")
@@ -2647,9 +2675,9 @@ class TC20976(xenrt.TestCase):
         self.host.execdom0("echo \" The current time\" `date -s \"2 hours\"` ")
 
         step("Delete vhd cache file")
-        #Deleting cached base image file that was there for more than 2 hours 
+        #Deleting cached base image file that was there for more than 2 hours
         #Executing cleanup script
-        self.host.execdom0("/opt/xensource/sm/cleanup.py -u %s -c 2" %(self.host.getLocalSR()))                                           
+        self.host.execdom0("/opt/xensource/sm/cleanup.py -u %s -c 2" %(self.host.getLocalSR()))
         baseCacheFile=self.host.execdom0("test -e /var/run/sr-mount/%s/*.vhdcache", retval="code")
         if not baseCacheFile:
             raise xenrt.XRTFailure("Cached base VDI image was not deleted")
@@ -2666,7 +2694,7 @@ class TC17898(xenrt.TestCase):
 
         if len(self.pool.getSlaves()) != 2:
             raise xenrt.XRTFailure("This testcase requires a pool of 3 hosts.")
-                    
+
         sr1 = self.master.minimalList("sr-list name-label=nfs1")[0]
 
         self.vdiuuid = self.master.createVDI(xenrt.GIGA, sruuid=sr1, name="XenRT-VDI")
@@ -2704,14 +2732,14 @@ class TC17898(xenrt.TestCase):
         count = 0
         for host in self.pool.getSlaves():
             count += self.sparseRunningCount(host)
-        
+
         if count != 2:
             raise xenrt.XRTFailure(
                 "vdi-copy not distributed across slaves (%d copies)" % count)
 
 
     def sparseRunningCount(self, host):
-        try:    
+        try:
             out = host.execdom0("pgrep -fl sparse_dd").split('\n')
         except:
             xenrt.TEC().logverbose("sparseRunningCount() exception caught:\n%s" % traceback.format_exc())
@@ -2722,28 +2750,28 @@ class TC17898(xenrt.TestCase):
 
 class TC18784(xenrt.TestCase):
     """Verify the delay when deleting snapshot on an SR that is more than a Terabytes  (HFX-664,HFX-663)"""
- 
+
     def __init__(self, tcid=None):
         xenrt.TestCase.__init__(self, tcid=tcid)
         self.VMNAME = "ws08sp2-x86"
         self.TIMEOUT = 10
         self.DISTRO = "ws08sp2-x86"
-        
+
     def prepare(self, arglist):
         #Refer CA-112240 to understand the implementation
         vsizeGb = 1024 # VDI size in Gb
-        
+
         self.host = self.getDefaultHost()
-        
+
         self.sruuid = self.host.minimalList("sr-list", args="name-label=Local\ storage")
         self.guest = self.host.createGenericWindowsGuest(name=self.VMNAME, sr=self.sruuid[0], distro=self.DISTRO)
-        
+
         before = self.guest.xmlrpcListDisks()
-        
+
         xenrt.TEC().logverbose("Creating a VDI of size - %d Gb -" % (vsizeGb))
         self.vdiuuid = self.host.createVDI(vsizeGb*xenrt.GIGA, sruuid=self.sruuid[0], name="XenRT-VDI")
         vmuuid = self.guest.getUUID()
-        
+
         xenrt.TEC().logverbose("Plugging VDI.")
         self.vbduuid = self.host.execdom0("xe vbd-create vm-uuid=%s vdi-uuid=%s device=autodetect" % (vmuuid, self.vdiuuid)).strip()
         self.host.execdom0("xe vbd-plug uuid=%s" % (self.vbduuid))
@@ -2756,38 +2784,38 @@ class TC18784(xenrt.TestCase):
         xenrt.TEC().logverbose("Partitioning disk %s." % (disk))
         self.letter = self.guest.xmlrpcPartition(disk)
         xenrt.TEC().logverbose("Formatting disk %s." % (self.letter))
-        self.guest.xmlrpcFormat(self.letter,timeout=7200, quick=True)        
-        
+        self.guest.xmlrpcFormat(self.letter,timeout=7200, quick=True)
+
         #xenrt.sleep(10)
         self.uninstallOnCleanup(self.guest)
-        
-    def run(self, arglist=None):        
-        
+
+    def run(self, arglist=None):
+
         #Create a dummy file, before and after the VDI Snapshot
         self.guest.xmlrpcCreateEmptyFile("%s:\\%s" % (self.letter,"1.tst"),25600) #25GB file
         snapshotuuid = self.host.snapshotVDI(self.vdiuuid)
         self.guest.xmlrpcCreateEmptyFile("%s:\\%s" % (self.letter,"2.tst"),25600) #25GB file
-        
+
         # Delete the VDI snapshot
         self.host.destroyVDI(snapshotuuid)
-        
+
         #xenrt.sleep(10)
         # Wait for any GC to complete
         start = xenrt.timenow()
         self.host.waitForCoalesce(self.sruuid[0], self.TIMEOUT * 600)
         end = xenrt.timenow()
         xenrt.TEC().logverbose("Coalesce took approximately %u seconds" % (int(end-start)))
-        
+
         tcol = 550 # Expected wait time for coalesce (Without the HFX, this number is expected to cross 1000)
         if ((int(end-start))>tcol):
             raise xenrt.XRTError("Coalesce took approximately %u seconds; expected is %u seconds " %(int(end-start),tcol))
-    
+
     def postRun(self):
-    
+
         if self.guest != None:
             if self.guest.getState() == "UP":
                 self.guest.shutdown()
-        
+
         if self.vdiuuid:
             self.host.destroyVDI(self.vdiuuid)
 
@@ -2819,7 +2847,7 @@ class TC21699(_VMSnapshotBase):
                                                   "vm-uuid",
                                                    self.guest.getUUID(),
                                                   "device",
-                                                  "userdevice=%s" % 
+                                                  "userdevice=%s" %
                                                   (userdevice))
         xenrt.TEC().logverbose("Formatting VDI within VM.")
         time.sleep(30)
@@ -2830,7 +2858,7 @@ class TC21699(_VMSnapshotBase):
 
         errorString = "Exporting metadata of a snapshot is not allowed"
 
-        grepCode= self.host.execdom0("grep '%s' /var/log/xensource.log" % 
+        grepCode= self.host.execdom0("grep '%s' /var/log/xensource.log" %
                                         errorString, retval="code", level=xenrt.RC_OK)
 
         # 0 = Errors found.
@@ -2838,3 +2866,269 @@ class TC21699(_VMSnapshotBase):
             raise xenrt.XRTFailure("Error relating to failed exporting of metadata found in /var/log/xensource.log")
         else:
             xenrt.TEC().logverbose("There were no problems found in the log file.")
+
+
+class SnapshotVDILink(xenrt.TestCase):
+    """ Snapshot links are properly reflected in "snapshot-of" params of snapshot VDIs before and after SXM """
+    
+    VDISIZE = 5 * xenrt.GIGA
+
+    def __init__(self, tcid=None):
+        
+        xenrt.TestCase.__init__(self, tcid=tcid)
+
+        self.host0 = self.getHost("RESOURCE_HOST_0")
+        self.host1 = self.getHost("RESOURCE_HOST_1")
+        self.snapshotVdiList = {}
+        self.vmVdiList = {}
+        self.snapshot = None
+    
+    def prepare(self, arglist):
+
+        # Create a Guest
+        self.guest = self.host0.createGenericLinuxGuest()
+
+
+    def verifyLinksOnSnapshot(self):
+
+        # Get the base VDI of the VM
+        vmVdiUuid = self.host0.minimalList("vbd-list", "vdi-uuid", "type=Disk vm-uuid=%s " % (self.guest.getUUID()))[0]
+        log ("Base VDI uuid is %s" % vmVdiUuid)
+        self.vmVdiList["0"] = vmVdiUuid
+        
+        # Add 3 extra VDIs
+        sruuid = self.host0.getLocalSR()
+        for i in range (1,4):
+            extraVdi = self.host0.createVDI(self.VDISIZE, sruuid, name="%s" % i)
+            self.guest.createDisk(sruuid=sruuid, vdiuuid=extraVdi)
+            log ("Extra VDI attached to VM before snapshot is %s" % extraVdi)
+            self.vmVdiList["%s" % i] = extraVdi
+        
+        # Take VM snapshot
+        self.snapshot = self.guest.snapshot()
+        
+        # Get the snapshot VDIs
+        snapshotList = self.host0.minimalList("vbd-list", "vdi-uuid", "type=Disk vm-uuid=%s " % self.snapshot)
+        for vdi in snapshotList:
+            snapshotVdiName = self.host0.minimalList("vdi-param-get uuid=%s param-name=name-label" % vdi)[0]
+            log ("Snapshot VDI we got is %s" % vdi)
+            self.snapshotVdiList[snapshotVdiName] = vdi
+    
+        # Check the snapshot-of links
+        for key,value in self.snapshotVdiList.items():
+            snapshotLink = self.host0.minimalList("vdi-param-get uuid=%s param-name=snapshot-of" % value)[0]
+            log ("After Snapshot: snapshot-of link we got for snapshot VDI %s is %s" % (value, snapshotLink))
+            if snapshotLink != self.vmVdiList[key]:
+                raise xenrt.XRTFailure("snapshot-of link broken, For snapshot VDI %s link is %s" % (value, snapshotLink))
+    
+    
+    def verifyLinksOnRevert(self, ):
+        
+        snapshotRevertVdiList = {}
+        
+        # Revert to snapshot
+        self.guest.revert(self.snapshot)
+        
+        # Get the VM VDIs after snapshot revert
+        vmRevertedVdiList = self.host0.minimalList("vbd-list", "vdi-uuid", "type=Disk vm-uuid=%s " % self.guest.getUUID())
+        for vdi in vmRevertedVdiList:
+            newVdiName = self.host0.minimalList("vdi-param-get uuid=%s param-name=name-label" % vdi)[0]
+            log ("After snapshot revert new VDI we got is %s" % vdi)
+            snapshotRevertVdiList[newVdiName] = vdi
+        
+        # Check the snapshot-of links after snapshot revert
+        for key,value in self.snapshotVdiList.items():
+            snapshotLink = self.host0.minimalList("vdi-param-get uuid=%s param-name=snapshot-of" % value)[0]
+            log ("After Snapshot Revert: snapshot-of link we got for snapshot VDI %s is %s" % (snapshotLink,value))
+            if snapshotLink != snapshotRevertVdiList[key]:
+                raise xenrt.XRTFailure("snapshot-of link broken, For snapshot VDI %s link is %s" % (value, snapshotLink))
+
+
+        # Start the guest
+        self.guest.start()
+        
+    def verifyLinksOnMigration(self, ):
+
+        sxmVmVdiList = {}
+        sxmSnapshotVdiList = {}
+        
+        # Migrate the VM
+        self.guest.migrateVM(remote_host=self.host1)
+        
+        # Get the new base VDIs of the Guest after SXM
+        vdiList = self.host1.minimalList("vbd-list", "vdi-uuid", "type=Disk vm-uuid=%s " % self.guest.getUUID())
+        for vdi in vdiList:
+            newVdiName = self.host1.minimalList("vdi-param-get uuid=%s param-name=name-label" % vdi)[0]
+            log ("After SXM new VDI we got is %s" % vdi)
+            sxmVmVdiList[newVdiName] = vdi
+    
+        # Get the new snapshot VDIs of the Guest after SXM
+        vdiList = self.host1.minimalList("vbd-list", "vdi-uuid", "type=Disk vm-uuid=%s " % self.snapshot)
+        for vdi in vdiList:
+            newVdiName = self.host1.minimalList("vdi-param-get uuid=%s param-name=name-label" % vdi)[0]
+            log ("After SXM new snapshot VDI we got is %s" % vdi)
+            sxmSnapshotVdiList[newVdiName] = vdi
+
+        # Verify snapshot link after SXM
+        for key,value in sxmSnapshotVdiList.items():
+            snapshotLink = self.host1.minimalList("vdi-param-get uuid=%s param-name=snapshot-of" % value)[0]
+            log ("After SXM: snapshot-of link we got for snapshot VDI %s link is %s" % (value,snapshotLink))
+            if snapshotLink != sxmVmVdiList[key]:
+                raise xenrt.XRTFailure("snapshot-of link broken, For snapshot VDI %s link is %s" % (value, snapshotLink))
+    
+    def run(self, arglist):
+        self.verifyLinksOnSnapshot()
+        self.verifyLinksOnRevert()
+        self.verifyLinksOnMigration()
+    
+
+class SnapshotLinkOnVdiDelete(SnapshotVDILink):
+    """ Snapshot links are properly reflected in "snapshot-of" params of snapshot VDIs before and after SXM 
+        On deleting a VM VDI before revert """
+    
+    DELETEVDI = "2"
+    
+    def deleteVmDisk(self):
+        vbduuid = self.host0.genParamGet("vdi", self.vmVdiList[self.DELETEVDI], "vbd-uuids")
+        cli = self.host0.getCLIInstance()
+        cli.execute("vbd-unplug", "uuid=%s" % (vbduuid))
+        cli.execute("vbd-destroy", "uuid=%s" % (vbduuid))
+        cli.execute("vdi-destroy", "uuid=%s" % (self.vmVdiList[self.DELETEVDI]))
+    
+
+    def run(self, arglist):
+        
+        self.verifyLinksOnSnapshot()
+        self.deleteVmDisk()
+        self.verifyLinksOnRevert()
+        self.verifyLinksOnMigration()
+    
+
+class RetainingVDIOnSnapshotRevert(xenrt.TestCase):
+    """ Additional VDI attached to snapshot VM should not get deleted on snapshot revert """
+
+    VDISIZE = 5 * xenrt.GIGA
+
+    def __init__(self, tcid=None):
+        xenrt.TestCase.__init__(self, tcid=tcid)
+
+    def prepare(self, arglist):
+
+        # Create a Guest
+        self.host = self.getHost("RESOURCE_HOST_0")
+        self.guest = self.host.createGenericLinuxGuest()
+
+
+    def run(self, arglist):
+
+        sruuid = self.host.getLocalSR()
+
+        # Create a new disk and attach it to VM before snapshot
+        extraVdiUuid1 = self.host.createVDI(self.VDISIZE, sruuid)
+        vbdUuid = self.guest.createDisk(sruuid=sruuid, vdiuuid=extraVdiUuid1, returnVBD=True)
+        log ("Extra VDI uuid added before snapshot is %s" % extraVdiUuid1)
+
+        # Detach this VDI
+        self.host.getCLIInstance().execute("vbd-unplug", "uuid=%s" % vbdUuid)
+        self.host.getCLIInstance().execute("vbd-destroy", "uuid=%s" % vbdUuid)
+
+        # Create a snapshot of the VM
+        snapuuid = self.guest.snapshot()
+
+        # Create a new disk and attach it to VM after snasphot
+        extraVdiUuid2 = self.host.createVDI(self.VDISIZE, sruuid)
+        self.guest.createDisk(sruuid=sruuid, vdiuuid=extraVdiUuid1)
+        log ("Extra VDI uuid added after snapshot is %s" % extraVdiUuid2)
+
+        # Revert the snapshot
+        self.guest.revert(snapuuid)
+
+        # Check the extra vdi attached in not deleted
+        vdis = self.host.minimalList("vdi-list", "uuid", "sr-uuid=%s " % sruuid)
+
+        log ("VDIs on Local SR after snapshot revert are %s" % vdis)
+        if not (extraVdiUuid2 in vdis):
+            raise xenrt.XRTFailure("VDI %s attached to VM after snapshot got deleted after snapshot revert" % extraVdiUuid2)
+
+        if not (extraVdiUuid1 in vdis):
+            raise xenrt.XRTFailure("VDI %s attached to VM before snapshot got deleted after snapshot revert" % extraVdiUuid1)
+
+
+class SnapshotVDILinkOnUpgrade(xenrt.TestCase):
+    """ On Upgrade Snapshot Links should not be broken """
+
+    def __init__(self, tcid=None):
+        xenrt.TestCase.__init__(self, tcid=tcid)
+
+    def prepare(self, arglist):
+
+        # Create a Guest
+        self.pool = self.getDefaultPool()
+        self.master = self.pool.master
+        self.slave = self.pool.slaves.values()[0]
+        self.sruuid = self.slave.getLocalSR()
+        self.guest = self.slave.createGenericLinuxGuest(sr=self.sruuid)
+
+
+    def run(self, arglist):
+
+        # Get the base VDI of the Guest
+        vmVdiUuid = self.slave.minimalList("vbd-list", "vdi-uuid", "type=Disk vm-uuid=%s " % (self.guest.getUUID()))[0]
+
+        # Take a snapshot of VM
+        snapshotUuid = self.guest.snapshot()
+
+        # Get the attached VDI of snapshot
+        snapshotVdiUuid = self.slave.minimalList("vbd-list", "vdi-uuid", "type=Disk vm-uuid=%s " % snapshotUuid)[0]
+
+        # Get the snapshot-of link of snapshot VDI
+        snapshotLinkVdi = self.slave.minimalList("vdi-param-get uuid=%s param-name=snapshot-of" % snapshotVdiUuid)[0]
+        log ("Snapshot-of link we got for snapshot vdi %s is %s" % (snapshotVdiUuid, snapshotLinkVdi))
+        if vmVdiUuid != snapshotLinkVdi:
+            raise xenrt.XRTFailure("snapshot link is broken for snapshot vdi %s" % snapshotVdiUuid)
+
+        # Apply the Cream Hotfix
+        self.master.applyRequiredPatches()
+        self.slave.applyRequiredPatches()
+
+        # Get the base VDI of the Guest after Upgrade
+        upgradedVmVdiUuid = self.slave.minimalList("vbd-list", "vdi-uuid", "type=Disk vm-uuid=%s " % (self.guest.getUUID()))[0]
+
+        # Get the attached VDI of snapshot
+        upgradedSnapshotVdiUuid = self.slave.minimalList("vbd-list", "vdi-uuid", "type=Disk vm-uuid=%s " % snapshotUuid)[0]
+
+        # Get the snapshot-of link of snapshot VDI
+        upgradedSnapshotLinkVdi = self.slave.minimalList("vdi-param-get uuid=%s param-name=snapshot-of" % upgradedSnapshotVdiUuid)[0]
+        log ("Snapshot-of link we got for snapshot vdi %s is %s" % (upgradedSnapshotVdiUuid, upgradedSnapshotLinkVdi))
+        if upgradedVmVdiUuid != upgradedSnapshotLinkVdi:
+            raise xenrt.XRTFailure("snapshot link is broken for snapshot vdi %s" % upgradedSnapshotVdiUuid)
+
+        # Revert to snapshot
+        self.guest.revert(snapshotUuid)
+
+        # Start the guest
+        self.guest.start()
+
+        # Get the new base VDI of the Guest
+        vmRevertedVdiUuid = self.slave.minimalList("vbd-list", "vdi-uuid", "type=Disk vm-uuid=%s " % (self.guest.getUUID()))[0]
+
+        # Get the new snapshot-of link of snapshot VDI
+        snapshotLinkVdiAfterRevert = self.slave.minimalList("vdi-param-get uuid=%s param-name=snapshot-of" % upgradedSnapshotVdiUuid)[0]
+        log ("Snapshot-of link we got for snapshot vdi %s is %s" % (upgradedSnapshotVdiUuid, snapshotLinkVdiAfterRevert))
+        if vmRevertedVdiUuid != snapshotLinkVdiAfterRevert:
+            raise xenrt.XRTFailure("snapshot link is broken for snapshot vdi %s" % upgradedSnapshotVdiUuid)
+
+        # Migrate the VM
+        self.guest.migrateVM(remote_host=self.master)
+
+        # Get the new base VDI of the Guest
+        vmRevertedVdiUuid = self.master.minimalList("vbd-list", "vdi-uuid", "type=Disk vm-uuid=%s " % (self.guest.getUUID()))[0]
+
+        # Get the attached VDI of snapshot
+        snapshotVdiUuid = self.master.minimalList("vbd-list", "vdi-uuid", "type=Disk vm-uuid=%s " % snapshotUuid)[0]
+
+        # Get the snapshot-of link of snapshot VDI
+        snapshotLinkVdi = self.master.minimalList("vdi-param-get uuid=%s param-name=snapshot-of" % snapshotVdiUuid)[0]
+        log ("Snapshot-of link we got for snapshot vdi %s is %s" % (snapshotVdiUuid, snapshotLinkVdi))
+        if vmRevertedVdiUuid != snapshotLinkVdi:
+            raise xenrt.XRTFailure("snapshot link is broken for snapshot vdi %s after SXM" % snapshotVdiUuid)

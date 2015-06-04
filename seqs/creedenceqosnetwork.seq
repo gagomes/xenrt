@@ -1,0 +1,19 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <pool>
+      <host id="0" />
+    </pool>
+  </prepare>
+
+  <testsequence group="QoSNetwork">
+    <testcase id="xenserver.tc.network.TCQoSNetwork" tc="TC-23333">
+      <!--<arg>guest=TestVM</arg>-->
+    </testcase>
+  </testsequence>
+
+</xenrt>

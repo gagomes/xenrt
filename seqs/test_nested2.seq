@@ -1,0 +1,14 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+  </variables>
+
+  <preprepare>
+    <host id="0" />
+  </preprepare>
+
+  <prepare>
+    <host container="0" vname="test1" />
+  </prepare>
+</xenrt>
+

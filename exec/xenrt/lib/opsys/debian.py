@@ -1,4 +1,4 @@
-import xenrt, os.path, os, shutil
+import xenrt, os.path, os, shutil, IPy
 from xenrt.lib.opsys import LinuxOS, registerOS
 from xenrt.linuxanswerfiles import DebianPreseedFile
 from abc import ABCMeta, abstractproperty
@@ -154,6 +154,31 @@ class DebianBasedLinux(LinuxOS):
         # Now wait for an SSH response in the remaining time
         self.waitForSSH(timeout)
 
+    def setIPs(self, ipSpec):
+        ifs = []
+        ifcfgs = []
+        for i in ipSpec:
+            (eth, ip, masklen) = i
+            ifs.append(eth)
+            if ip:
+                mask = IPy.IP("0.0.0.0/%s" % masklen).netmask().strNormal()
+                ifcfgs.append("iface %s inet static\n\taddress %s\n\tnetmask %s\n" % (eth, ip, mask))
+            else:
+                ifcfgs.append("iface %s inet dhcp\n" % eth)
+
+        content = "auto lo %s\n\n" % " ".join(ifs)
+        content += "iface lo inet loopback\n\n"
+        content += "\n".join(ifcfgs)
+        sftp = self.sftpClient()
+        f = xenrt.TEC().tempFile()
+        with open(f, "w") as fh:
+            fh.write(content)
+        sftp.copyTo(f, "/etc/network/interfaces")
+        self.execSSH("ifup -a")
+        # Check we haven't broken networking
+        self.execSSH("true")
+
+
 class DebianLinux(DebianBasedLinux):
     implements(xenrt.interfaces.InstallMethodPV, xenrt.interfaces.InstallMethodIsoWithAnswerFile)
    
@@ -173,9 +198,12 @@ class DebianLinux(DebianBasedLinux):
     @property
     def isoName(self):
         if self.distro == "debian60":
-            return "deb6_%s.iso" % self.arch
+            return "deb6_%s_xenrtinst.iso" % self.arch
         elif self.distro == "debian70":
-            return "deb7_%s.iso" % self.arch
+            return "deb7_%s_xenrtinst.iso" % self.arch
+        elif self.distro == "debian80":
+            return "deb8_%s_xenrtinst.iso" % self.arch
+
 
 class UbuntuLinux(DebianBasedLinux):
     """ NOTE: Lucid is not supported on XS 6.2 for ISO install but should work for http install"""
@@ -197,7 +225,7 @@ class UbuntuLinux(DebianBasedLinux):
 
     @property
     def isoName(self):
-        return "%s_%s.iso" % (self.distro, self.arch)
+        return "%s_%s_xenrtinst.iso" % (self.distro, self.arch)
 
 
 registerOS(DebianLinux)

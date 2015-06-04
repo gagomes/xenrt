@@ -455,9 +455,9 @@ class TCMultipleVDI(xenrt.TestCase):
                 for j in range(0, (len(devices) - nvbds)):
                     dtr = self.disksToClean.pop()
                     if hotremove:
-                        g.unplugDisk(dtr)
-                    g.removeDisk(dtr)
-
+                        xenrt.sleep(30)
+                        g.unplugDisk(dtr) 
+                    g.removeDisk(dtr)   
             if g.getState() == "DOWN":            
                 g.start()
                 if g.distro and "vista" in g.distro:
@@ -963,7 +963,7 @@ class TCStorage(xenrt.TestCase):
                      (self.tec.getWorkdir()), "r")
             pf = f.read()
             f.close()
-            aptupdate = """run $DOMU_REM_CMD "echo deb %s etch main > /etc/apt/sources.list" """ % (xenrt.TEC().lookup("APT_CACHER", "http://ftp.debian.org/debian"))
+            aptupdate = """run $DOMU_REM_CMD "echo deb %s/debarchive etch main > /etc/apt/sources.list" """ % (xenrt.TEC().lookup("APT_SERVER"))
             pf = re.sub("bonnie_install\(\)\s*{",
                         "bonnie_install()\n{\n%s" % (aptupdate),
                         pf)
@@ -1110,9 +1110,7 @@ class TCStorage(xenrt.TestCase):
             if "SKIP_EXT" in self.capabilities:
                 env['SKIP_EXT'] = "yes"
         # If we have a local apt-cacher us it
-        aptcacher = xenrt.TEC().lookup("APT_CACHER", None)
-        if aptcacher and ("APT_CACHER" in self.capabilities):
-            env["APT_CACHER"] = aptcacher
+        env["APT_CACHER"] = "%s/debarchive" % xenrt.TEC().lookup("APT_SERVER")
         if "TOOLS_ROOT" in self.capabilities:
             env["TOOLS_ROOT"] = self.toolsRoot
 

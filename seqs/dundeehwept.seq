@@ -1,0 +1,18 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+
+    <serial group="EPT">
+      <testcase id="xenserver.tc.host.TC13818" prio="3"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

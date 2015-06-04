@@ -1,0 +1,18 @@
+<xenrt>
+
+  <!-- Midnight Ride LVM storage stress test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence group="LVM">
+    <testcase id="xenserver.tc.snapshot.TC9047"/>
+  </testsequence>
+
+</xenrt>

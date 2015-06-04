@@ -1,0 +1,26 @@
+<xenrt>
+  <!-- 2TB vdi corruption test-->
+  <default name="OLD_PRODUCT_VERSION" value="Sanibel"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.0.2/RTM-53456"/>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
+  </variables>
+
+  <prepare>
+    <host id="0" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}">
+      <vm name="debian60">
+        <distro>debian60</distro>
+        <memory>512</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="8" />
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <testcase id="testcases.xenserver.tc.storage.TCVdiCorruption" name="TC-21641" tc="TC-21641"/>
+  </testsequence>
+</xenrt>

@@ -36,11 +36,21 @@ def createHost(id=0,
                noAutoPatch=False,
                disablefw=False,
                cpufreqgovernor=None,
-               usev6testd=True,
+               defaultlicense=True,
                ipv6=None,
                noipv4=False,
                basicNetwork=True,
-               extraConfig=None):
+               extraConfig=None,
+               containerHost=None,
+               vHostName=None,
+               vHostCpus=2,
+               vHostMemory=4096,
+               vHostDiskSize=50,
+               vHostSR=None,
+               vNetworks=None):
+
+    if containerHost != None:
+        raise xenrt.XRTError("Nested hosts not supported for this host type")
 
     machine = str("RESOURCE_HOST_%s" % (id))
 
@@ -313,8 +323,6 @@ New-VMSwitch -Name externalSwitch -NetAdapterName $ethernet.Name -AllowManagemen
     def arpwatch(self, iface, mac, timeout=600, level=xenrt.RC_FAIL):
         """Monitor an interface (or bridge) for an ARP reply"""
 
-        # TODO currently we just poll leases.
-
         deadline = xenrt.util.timenow() + timeout
 
         while True:
@@ -323,7 +331,7 @@ New-VMSwitch -Name externalSwitch -NetAdapterName $ethernet.Name -AllowManagemen
                 break
             xenrt.sleep(20)
             if xenrt.util.timenow() > deadline:
-                xenrt.XRT("Timed out monitoring for guest ARP/DHCP", level, data=mac)
+                xenrt.XRT("Timed out monitoring for guest DHCP lease", level, data=mac)
 
         return ip
 

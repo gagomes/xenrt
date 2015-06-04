@@ -1,0 +1,25 @@
+<xenrt>
+  <!-- Java SDK built and run from the command line -->
+  
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+  <prepare>
+    <host id="0">
+      <vm name="ubuntu1004_runner">
+        <distro>ubuntu1004</distro>
+        <memory>128</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="8" />
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <testcase id="xenserver.gui.TCJavaSDKUnitTests" tc="TC-20911">
+        <!-- Name of the VM to run the tests -->
+        <arg>runner_vm=ubuntu1004_runner</arg> 
+    </testcase>
+  </testsequence>
+</xenrt>

@@ -1,0 +1,38 @@
+<xenrt>
+
+  <!-- Boston HA test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0"/>
+    <host id="1"/>
+    <host id="2"/>
+    <host id="3"/>
+  </prepare>
+
+  <testsequence>
+    <serial group="VMProtection">
+      <testcase id="xenserver.tc.ha.TC7506"/>
+    </serial>
+    <serial group="StartupShutdown">
+      <testcase id="xenserver.tc.ha.TC7511"/>
+    </serial>
+    <serial group="StatefileFailures">
+      <testcase id="xenserver.tc.ha.TC7686"/>
+      <testcase id="xenserver.tc.ha.TC7687"/>
+      <testcase id="xenserver.tc.ha.TC7688"/>
+      
+      <testcase id="xenserver.tc.ha.TC13542"/>
+      <testcase id="xenserver.tc.ha.TC13543"/>
+      <testcase id="xenserver.tc.ha.TC13544"/>
+      
+    </serial>
+    <serial group="HeartbeatFailures">
+      <testcase id="xenserver.tc.ha.TC7702"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

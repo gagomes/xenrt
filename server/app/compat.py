@@ -17,7 +17,7 @@ class XenRTCompat(XenRTPage):
         compat = server.ServerInstance().getCompatAction(action)
 
         if compat:
-            return compat(self.request).render()
+            return compat(self.request).renderWrapper()
         elif action == "frame":
             querystr = self.queryStrFromParams(['jobs', 'detailid'])
             if len(querystr) > 0:
@@ -63,4 +63,4 @@ class XenRTCompat(XenRTPage):
                 retParams.append("%s=%s" % (p, self.request.params[p]))
         return "&".join(retParams)
 
-PageFactory(XenRTCompat, "compat", "/queue.cgi")
+PageFactory(XenRTCompat, "/queue.cgi")

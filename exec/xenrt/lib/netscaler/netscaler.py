@@ -2,6 +2,7 @@
 import xenrt
 import os
 import re
+import IPy
 from pprint import pformat
 
 __all__ = ["NetScaler"]
@@ -10,9 +11,12 @@ class NetScaler(object):
     """Class that provides an interface for creating, controlling and observing a NetScaler VPX"""
 
     @classmethod
-    def setupNetScalerVpx(cls, vpxName, networks=["NPRI"]):
+    def setupNetScalerVpx(cls, vpx, useVIFs=False, networks=["NPRI"]):
         """Takes a VM name (present in the registry) and returns a NetScaler object"""
-        vpxGuest = xenrt.TEC().registry.guestGet(vpxName)
+        if isinstance(vpx, basestring):
+            vpxGuest = xenrt.TEC().registry.guestGet(vpx)
+        else:
+            vpxGuest = vpx
         host = vpxGuest.host
         xenrt.TEC().logverbose('Using VPX Appliance: %s on host: %s - current state: %s' % (vpxGuest.getName(), host.getName(), vpxGuest.getState()))
         xenrt.TEC().logverbose("VPX Guest:\n" + pformat(vpxGuest.__dict__))
@@ -33,12 +37,16 @@ class NetScaler(object):
             if vpxGuest.getState() == 'UP':
                 vpxGuest.shutdown()
 
-            # Configure the VIFs
-            vpxGuest.removeAllVIFs()
+            if not useVIFs:
+                # Configure the VIFs
+                vpxGuest.removeAllVIFs()
 
+                for n in networks:
+                    vpxGuest.createVIF(bridge=n)
+            else:
+                networks = [vpxGuest.getNetworkNameForVIF(x[0]) for x in vpxGuest.vifs]
             mgmtNet = networks[0]
-            for n in networks:
-                vpxGuest.createVIF(bridge=n)
+            xenrt.TEC().logverbose("Setting up networks %s" % (", ".join(networks)))
 
             # Configure the management network for the VPX
             vpxGuest.mainip = xenrt.StaticIP4Addr(network=mgmtNet).getAddr()
@@ -53,6 +61,7 @@ class NetScaler(object):
             # Wait / Check for SSH connectivity
             vpxGuest.waitForSSH(timeout=300, username='nsroot', cmd='shell')
             vpx = cls(vpxGuest, mgmtNet)
+            vpx.checkFeatures("On fresh install:")
             vpx.setup(networks)
         return vpx
 
@@ -71,21 +80,33 @@ class NetScaler(object):
         self.__vpxGuest = vpxGuest
         self.__version = None
         self.__managementIp = None
-        self.__gateways = {}
+        self.__subnetips = {}
         self.__mgmtNet = mgmtNet
         xenrt.TEC().logverbose('NetScaler VPX Version: %s' % (self.version))
 
     def setup(self, networks):
         i = 1
+        ipSpec = self.__vpxGuest.getIPSpec()
         for n in networks[1:]:
             i += 1
+            xenrt.TEC().logverbose("Creating VLAN %d for network %s" % (i, n))
             self.__netScalerCliCommand("add vlan %d" % i)
             self.__netScalerCliCommand("bind vlan %d -ifnum 1/%d" % (i, i))
-            self.__gateways[n] = xenrt.StaticIP4Addr(network=n).getAddr()
-            self.__netScalerCliCommand('add ip %s %s' % (self.__gateways[n], xenrt.getNetworkParam(n, "SUBNETMASK")))
-            self.__netScalerCliCommand('bind vlan %d -IPAddress %s %s' % (i, self.__gateways[n], xenrt.getNetworkParam(n, "SUBNETMASK")))
-        self.__gateways[networks[0]] = xenrt.StaticIP4Addr(network=networks[0]).getAddr()
-        self.__netScalerCliCommand('add ip %s %s' % (self.__gateways[networks[0]], xenrt.getNetworkParam(networks[0], "SUBNETMASK")))
+            dev, ip, masklen = [x for x in ipSpec if x[0] == "eth%d" % (i-1)][0]
+            if ip:
+                self.__subnetips[n] = ip
+                subnet = IPy.IP("0.0.0.0/%s" % masklen).netmask().strNormal()
+            else:
+                try:
+                    subnet = xenrt.getNetworkParam(n, "SUBNETMASK")
+                except:
+                    # Must be a private VLAN with no static IP defined
+                    continue
+                self.__subnetips[n] = xenrt.StaticIP4Addr(network=n).getAddr()
+            self.__netScalerCliCommand('add ip %s %s' % (self.__subnetips[n], subnet))
+            self.__netScalerCliCommand('bind vlan %d -IPAddress %s %s' % (i, self.__subnetips[n], subnet))
+        self.__subnetips[networks[0]] = xenrt.StaticIP4Addr(network=networks[0]).getAddr()
+        self.__netScalerCliCommand('add ip %s %s' % (self.__subnetips[networks[0]], xenrt.getNetworkParam(networks[0], "SUBNETMASK")))
         self.__netScalerCliCommand('save ns config')
 
     def __netScalerCliCommand(self, command):
@@ -95,6 +116,14 @@ class NetScaler(object):
         data = map(lambda x:x.strip(), filter(lambda x:not x.startswith(' Done'), data.splitlines()))
         xenrt.TEC().logverbose('NetScaler Command [%s] - Returned: %s' % (command, '\n'.join(data)))
         return data
+
+    def installNSTools(self):
+        nstools = xenrt.TEC().lookup('NS_TOOLS_PATH')
+        toolsfile = nstools.split("/")[-1]
+        self.__netScalerCliCommand("shell mkdir -p /var/BW")
+        self.__vpxGuest.sftpClient(username='nsroot').copyTo( xenrt.TEC().getFile(nstools),"/var/BW/%s" % (toolsfile))
+        self.__netScalerCliCommand("shell cd /var/BW && tar xvfz %s" % toolsfile)
+        self.__netScalerCliCommand("shell /var/BW/nscsconfig --help || true")
 
     @property
     def version(self):
@@ -155,10 +184,10 @@ class NetScaler(object):
             self.__managementIp = managementIp
         return self.__managementIp
 
-    def gatewayIp(self, network=None):
+    def subnetIp(self, network=None):
         if not network:
             network="NPRI"
-        return self.__gateways[network]
+        return self.__subnetips[network]
 
     def disableL3(self):
         self.__netScalerCliCommand("disable ns mode L3")
@@ -168,5 +197,35 @@ class NetScaler(object):
         self.__netScalerCliCommand("set rnat %s %s -natIP %s" % (
                     xenrt.getNetworkParam(privateNetwork, "SUBNET"),
                     xenrt.getNetworkParam(privateNetwork, "SUBNETMASK"),
-                    self.gatewayIp(network=publicNetwork)))
+                    self.subnetIp(network=publicNetwork)))
         self.__netScalerCliCommand('save ns config')
+
+    def checkModNum(self):
+        #returns the model number
+        modData = filter(lambda x:x.startswith('Model Number ID'), self.__netScalerCliCommand('show ns license'))
+        modNum = modData[0].split(':')[1].strip()
+        return modNum
+
+    def checkCPU(self):
+        #writes the number of PEs to log file
+        pe = max(map(lambda x: x.split()[0],filter(lambda x: re.match('^\d',x),self.__netScalerCliCommand('stat cpus'))))
+        return pe
+        
+    def licenseTest(self):
+        #checks features before before applying license
+        featNo = filter(lambda x: len(x.split(':')) > 1 and x.split(':')[1].strip()=="YES",self.__netScalerCliCommand('show ns license'))
+        if len(featNo) != 1 or featNo[0].split(':')[0].strip()=="SSL offloading":
+            xenrt.TEC().logverbose('License test failed')
+        else:
+            xenrt.TEC().logverbose('License test passed')
+
+        
+    def checkFeatures(self, msg):
+        xenrt.TEC().logverbose(msg)
+        xenrt.TEC().logverbose('The version of the provisioned VPX is %s' % (self.version))
+        xenrt.TEC().logverbose('The management IP of the provisioned VPX is %s' % (self.managementIp))
+        xenrt.TEC().logverbose('The model number ID of the provisioned VPX is %s' % (self.checkModNum()))
+        xenrt.TEC().logverbose('The Number of PEs of the provisioned VPX: %s' % (self.checkCPU()))
+        xenrt.TEC().logverbose('The build version in ns.conf is: %s' % (self.__netScalerCliCommand("shell head -1 /flash/nsconfig/ns.conf")))
+        xenrt.TEC().logverbose('The show run output in ns.conf is : %s ' % (self.__netScalerCliCommand('sh run')[0]))
+        self.licenseTest()

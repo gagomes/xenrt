@@ -1,4 +1,4 @@
- #
+#
 # XenRT: Test harness for Xen and the XenServer product family
 #
 # Host networking standalone testcases
@@ -315,7 +315,7 @@ class MngReconfigure(xenrt.TestCase):
         xenrt.TEC().logverbose("Finding IP address of new management "
                                "interface...")
         data = host.execdom0("ifconfig xenbr%s" % (nmi[-1]))
-        nip = re.search(".*inet addr:(?P<ip>[0-9\.]+)", data).group("ip")
+        nip = re.search(".*inet (addr:)?(?P<ip>[0-9\.]+)", data).group("ip")
         xenrt.TEC().logverbose("Interface %s appears to have IP %s." %
                                (nmi, nip))
 
@@ -327,7 +327,7 @@ class MngReconfigure(xenrt.TestCase):
         
         cli.execute("pif-reconfigure-ip uuid=%s mode=None" % (defaultuuid))
         data = host.execdom0("ifconfig xenbr%s" % (default[-1]))
-        r = re.search(".*inet addr:(?P<ip>[0-9\.]+)", data)
+        r = re.search(".*inet (addr:)?(?P<ip>[0-9\.]+)", data)
         if r:
             raise xenrt.XRTFailure("Old management interface still has IP "
                                    "address")
@@ -368,7 +368,7 @@ class MngReconfigure(xenrt.TestCase):
         
         cli.execute("pif-reconfigure-ip uuid=%s mode=None" % (nmiuuid))
         data = host.execdom0("ifconfig xenbr%s" % (nmi[-1]))
-        r = re.search(".*inet addr:(?P<ip>[0-9\.]+)", data)
+        r = re.search(".*inet (addr:)?(?P<ip>[0-9\.]+)", data)
         if r:
             raise xenrt.XRTFailure("Previous management interface still has "
                                    "IP address")
@@ -834,7 +834,8 @@ class _TC8095(xenrt.TestCase):
             finally:
                 if tracepid:
                     try:
-                        # Stop the tcpdump
+                        # Wait for tcpdump to flush its output and stop
+                        time.sleep(5)
                         self.host.execdom0("kill -TERM %s" % (tracepid))
                         time.sleep(2)
                     except:
@@ -920,7 +921,7 @@ class _TC8095(xenrt.TestCase):
         if not re.search(r"UP", data):
             raise xenrt.XRTFailure("Primary interface not UP")
         try:
-            ip = re.search(".*inet addr:(?P<ip>[0-9\.]+)", data).group("ip")
+            ip = re.search(".*inet (addr:)?(?P<ip>[0-9\.]+)", data).group("ip")
         except:
             raise xenrt.XRTFailure("No IP address found for primary interface")
         if ip != pifip:
@@ -2286,7 +2287,7 @@ sock.close()
             self.guest.start()
 
         #stop iptables on host
-        self.host.execdom0("/etc/init.d/iptables stop")
+        self.host.execdom0("service iptables stop")
 
         #start recv.py on host, try-except block needed because this will throw ssh timed out exception
         try:
@@ -2390,7 +2391,7 @@ class TC20921(xenrt.TestCase):
         self.guest.execguest("vconfig add eth0 %s" % (vlanid))
         self.guest.execguest("dhclient eth0.%s" % (vlanid))
         data = self.guest.execguest("ifconfig eth0.%s" % (vlanid))
-        ip = re.search(".*inet addr:(?P<ip>[0-9\.]+)", data)
+        ip = re.search(".*inet (addr:)?(?P<ip>[0-9\.]+)", data)
         return ip
         
     def run(self, arglist=None):
@@ -2482,3 +2483,138 @@ class TC2VlansPerBridge(xenrt.TestCase):
         self.cli.execute("vlan-destroy", "uuid=%s" % self.hostVlan2)
         self.cli.execute("network-destroy", "uuid=%s" % self.network)
         self.host.reboot()
+
+
+class TCQoSNetwork(xenrt.TestCase):
+
+    def __init__(self, tcid="TCQoSNetwork"):
+        xenrt.TestCase.__init__(self, tcid)
+        self.timeout = 300
+        self.guestsToClean = []
+
+    def run(self, arglist=None):
+        """Argument is either a machine name or "guest=<guestname>" to
+        use an existing guest."""
+
+        guestname = xenrt.TEC().lookup("guest", None, boolean=False)
+        for arg in arglist:
+            l = string.split(arg, "=")
+            if l[0] == "guest":
+                if not guestname:
+                    guestname = l[1]
+                    xenrt.TEC().logverbose("found guest name: %s" % guestname)
+            elif l[0] == "config":
+                matching = xenrt.TEC().registry.guestLookup(\
+                            **xenrt.util.parseXMLConfigString(l[1]))
+                for n in matching:
+                    xenrt.TEC().comment("Found matching guest(s): %s" % (matching))
+                if matching:
+                    guestname = matching[0]
+            elif l[0] == "timeout":
+                self.timeout = int(l[1])
+            else:
+                raise xenrt.XRTError("Unknown argument %s" % (arglist[0]))
+
+        self.declareTestcase("LinuxGuest", "rate100")
+        self.declareTestcase("LinuxGuest", "rate1000")
+        self.declareTestcase("LinuxGuest", "rate5000")
+
+        if guestname:
+            # Use existing guest
+            g = self.getGuest(guestname)
+            if not g:
+                raise xenrt.XRTError("Unable to find guest %s in registry" %
+                                     (guestname))
+            self.getLogsFrom(g.host)
+            if g.getState() == "DOWN":
+                g.start()
+        else:
+            self.host = self.getDefaultHost()
+            self.getLogsFrom(self.host)
+
+            # Create a basic guest
+            g = self.host.createGenericLinuxGuest()
+            self.guestsToClean.append(g)
+
+        g.installIperf()
+
+        # Get a peer.
+        self.peer = xenrt.NetworkTestPeer()
+
+        # Check we can get network transfers with an acceptable rate
+        measured = self.testRate(g)
+        self.tec.comment("Unlimited guest rate %u KBytes/sec" % (measured))
+        g.shutdown()
+        self.qosguest = g
+
+        self.runSubcase("rate", (100, measured), "LinuxGuest", "rate100")
+        self.runSubcase("rate", (1000, measured), "LinuxGuest", "rate1000")
+        self.runSubcase("rate", (5000, measured), "LinuxGuest", "rate5000")
+
+    def testRate(self, guest):
+        """Perform a transfer from the VM and measure the rate (KBytes/sec)"""
+        data = guest.execcmd("iperf -c %s -t %d -f K -i 60" % 
+                             (self.peer.getAddress(), self.timeout), timeout=self.timeout + 30)
+        readings = map(float, re.findall("([0-9\.]+) KBytes/sec", data))
+        return sum(readings)/len(readings)
+
+    def rate(self, target=100, unlimited_measured = None):
+
+        g = self.qosguest
+        g.setState("DOWN")
+        vifs = g.getVIFs() 
+        try:
+            for v in vifs.keys():
+                g.setVIFRate(v, target)
+
+            g.start()
+            measuredlim = self.testRate(g)
+            self.tec.comment("%u limited guest rate %u KBytes/sec" % (target, measuredlim))
+
+            # Put the rate back to zero and check again
+            if unlimited_measured:
+                measured = unlimited_measured
+                self.tec.comment("Given unlimited guest rate %u KBytes/sec" % (measured))
+            else:
+                g.shutdown()
+                for v in vifs.keys():
+                    g.setVIFRate(v)
+
+                g.start()
+                measured = self.testRate(g)
+                self.tec.comment("Unlimited guest rate %u KBytes/sec" % (measured))
+        except Exception, e:
+            raise e
+        finally:
+            g.setState("DOWN")
+            for v in vifs.keys():
+                g.setVIFRate(v)
+
+        # Check the unlimited rate is somewhat more than the target restriction
+        # so there is actually something to test.
+        wl = target * 2
+        if measured < wl:
+            self.tec.warning("Unlimited rate %u KBytes/sec is not a lot higher than the target limit of %u KBytes/sec" % (measured, target))
+
+        # Check measured limited rate is within 50% and 120% of the target
+        wh = target * 120 / 100
+        wl = target / 2
+        if measuredlim > wh:
+            raise xenrt.XRTFailure("Measured rate %u KBytes/sec is more than 20%% higher than the target %u KBytes/sec" % (measuredlim, target))
+        if measuredlim < wl:
+            raise xenrt.XRTFailure("Measured rate %u KBytes/sec is more than 50%% lower than the target %u KBytes/sec" % (measuredlim, target))
+
+    def postRun(self):
+        if self.peer:
+            try:
+                self.peer.release()
+            except:
+                pass
+        for g in self.guestsToClean:
+            try:
+                g.shutdown(force=True)
+            except:
+                pass
+            g.poll("DOWN", 120, level=xenrt.RC_ERROR)
+            g.uninstall()
+

@@ -47,21 +47,15 @@ class _ImpExpBase(xenrt.TestCase):
         pass
 
     def run(self,arglist):
-        host = None
-        try:
-            # Get a host to use.
-            host = self.getDefaultHost()
-            self.host = host
-            self.preRun(host)
-            guest = self.createGuest(host,
-                                     distro=self.DISTRO,
-                                     srtype=self.SRTYPE,
-                                     disksize=self.DISKSIZE)
-            self.guest = guest
-            self.guestsToClean.append(guest)
-        except xenrt.XRTFailure, e:
-            # Not a failure of the testcase.
-            raise xenrt.XRTError(e.reason)
+        host = self.getDefaultHost()
+        self.host = host
+        self.preRun(host)
+        guest = self.createGuest(host,
+                                 distro=self.DISTRO,
+                                 srtype=self.SRTYPE,
+                                 disksize=self.DISKSIZE)
+        self.guest = guest
+        self.guestsToClean.append(guest)
 
         origvifs = guest.getVIFs()
 
@@ -336,12 +330,7 @@ class _ImpExpBase(xenrt.TestCase):
 
 
     def preRun(self, host):
-        arch = None
-        # Create 64-bit guest to run 64-bit xe CLI, when using 64-bit Dom0
-        hostarch = host.execdom0("uname -m").strip()
-        if hostarch.endswith("64"):
-            arch="x86-64"
-        self.cliguest = self.createGuest(host, distro=self.CLIDISTRO, arch=arch)
+        self.cliguest = self.createGuest(host, distro=self.CLIDISTRO)
         self.guestsToClean.append(self.cliguest)
         if self.CLIDISTRO in ["debian","sarge","etch"] or not self.CLIDISTRO:
             # Need to add an extra disk, as root one is too small
@@ -745,6 +734,10 @@ class TC12565(_ImpExpBase):
     """Import/Export test using CLI on SLES 11 SP1"""
     CLIDISTRO="sles111"
 
+class TC26943(_ImpExpBase):
+    """Import/Export test using CLI on CENTOS 7"""
+    CLIDISTRO="centos7_x86-64"
+
 class TC6840(_ImpExpBase):
     """Import/Export test using CLI on Windows 2003 EE SP2"""
     CLIDISTRO="w2k3eesp2"
@@ -853,13 +846,13 @@ class TC18491(xenrt.TestCase):
         self.guest = self.getGuest("vm")
         
         webDir = xenrt.WebDirectory()
-        webDir.copyIn(xenrt.TEC().getFile("/usr/groups/xenrt/v6vpx11-12-1_unzipped.xva"))
+        webDir.copyIn(xenrt.TEC().getFile("/usr/groups/xenrt/v6/v6vpx11-12-1_unzipped.xva"))
         self.guest.execguest("cd / && wget %s" % webDir.getURL("v6vpx11-12-1_unzipped.xva"))
         
         # install NFS server on guest
         self.guest.execguest("apt-get install -y --force-yes nfs-kernel-server nfs-common portmap")
         self.guest.execguest("echo '/ *(ro,sync,no_root_squash,insecure,subtree_check)' > /etc/exports")
-        self.guest.execguest("/etc/init.d/portmap start")
+        self.guest.execguest("/etc/init.d/portmap start || /etc/init.d/rpcbind start")
         self.guest.execguest("/etc/init.d/nfs-common start || true")
         self.guest.execguest("/etc/init.d/nfs-kernel-server start || true")
 

@@ -1,0 +1,40 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+      <host id="0">
+        <vm name="myVM0">
+          <distro>centos62</distro>
+          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+        </vm>
+        <vm name="myVM1">
+          <distro>win7-x86</distro>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <postinstall action="installDrivers" />
+          <network device="0" />
+          <disk device="0" size="24" />
+       </vm>
+       <vm name="myVM2">
+          <distro>rhel62</distro>
+          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+       </vm>
+      </host>
+  </prepare>
+
+  <testsequence>
+     <serial group="vcpuXpin">
+        <testcase id="testcases.xenserver.tc.host.TC19361"/>
+        <testcase id="testcases.xenserver.tc.host.TC19362"/>
+     </serial>
+  </testsequence>
+</xenrt>

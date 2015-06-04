@@ -1,0 +1,28 @@
+<xenrt>
+
+  <!-- MNR CC Test Sequence -->
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host id="0"/>
+    <host id="1" noisos="yes"/>
+  </prepare>
+      
+  <testsequence>
+    <parallel group="CC-Xen">
+      <testcase id="testcases.xenserver.tc.cc.TC10795" host="RESOURCE_HOST_0" />
+      <testcase id="testcases.xenserver.tc.cc.TC10796" host="RESOURCE_HOST_1" />
+    </parallel>
+    <serial group="CC-SSL">
+      <testcase id="testcases.xenserver.tc.cc.TC10940" />
+      <testcase id="testcases.xenserver.tc.cc.TC10941" />
+      <testcase id="testcases.xenserver.tc.cc.TC11228" />
+      <testcase id="testcases.xenserver.tc.cc.TC11229" />
+      <testcase id="testcases.xenserver.tc.cc.TC11008" />
+    </serial>
+  </testsequence>
+  
+</xenrt>

@@ -1,0 +1,22 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+
+    <!-- This is changed between tests-->
+    <OPTION_ROOT_MPATH></OPTION_ROOT_MPATH>
+
+    <OLD_PRODUCT_INPUTDIR>/usr/groups/release/XenServer-5.6.0</OLD_PRODUCT_INPUTDIR>
+    <OLD_PRODUCT_VERSION>MNR</OLD_PRODUCT_VERSION>
+    <SR_ISCSI_MINSIZE>8</SR_ISCSI_MINSIZE>
+  </variables>
+
+  <testsequence>
+    <serial group="Upgrade">
+      <testcase id="xenserver.tc.upgrade.TC12210" />
+      <testcase id="xenserver.tc.upgrade.TC12186" />
+      <testcase id="xenserver.tc.upgrade.TC12211" />
+      <testcase id="xenserver.tc.upgrade.TC12212" />
+    </serial>
+  </testsequence>
+</xenrt>

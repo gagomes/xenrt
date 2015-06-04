@@ -1,0 +1,5 @@
+#!/bin/bash
+set -ex
+make -C ~/xenrt.git update install
+
+python -u /usr/share/xenrt/exec/main.py --run-suite $*

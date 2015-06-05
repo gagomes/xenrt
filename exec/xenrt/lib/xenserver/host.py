@@ -2601,7 +2601,7 @@ fi
         if not interfaces:
             interfaces = self.i_interfaces
         if not interfaces:
-            interfaces = [(None, "yes", None, None, None, None, None, None, None)]
+            interfaces = [(None, "yes", "dhcp", None, None, None, None, None, None)]
         if not ntpserver:
             ntpserver = self.i_ntpserver
         if not nameserver:
@@ -2667,24 +2667,6 @@ fi
             name, enabled, proto, ip, netmask, gateway, protov6, ip6, gw6 = i
             if not name:
                 name = self.getDefaultInterface()
-                
-            proto = self.minimalList("pif-list",
-                                     "IP-configuration-mode",
-                                     "device=%s" % (name))[0]
-                                     
-            if proto == "Static":
-            
-                ip = self.minimalList("pif-list",   
-                                  "IP",
-                                  "device=%s  host-name-label=%s" % (name,self.getName()))[0]
-                                   
-                netmask = self.minimalList("pif-list",
-                                       "netmask",
-                                       "device=%s host-name-label=%s" % (name,self.getName()))[0]
-                                       
-                gateway = self.minimalList("pif-list",
-                                       "gateway",
-                                       "device=%s host-name-label=%s" % (name,self.getName()))[0]
 
             if self.checkNetworkInterfaceConfig(name, proto, ip, netmask, gateway) == 0:
                 ok = 0
@@ -8850,7 +8832,7 @@ class MNRHost(Host):
             
         ok = 1
         
-        if proto == "DHCP":
+        if proto == "dhcp":
             if self.execdom0("test -e /var/run/dhclient-%s.pid" % name, retval="code") != 0:
                 xenrt.TEC().reason("No dhclient PID file found for interface %s " % name)
                 ok = 0
@@ -8862,7 +8844,7 @@ class MNRHost(Host):
                 elif os.path.basename(self.execdom0("readlink /proc/%d/exe" % pid).strip()) != "dhclient":
                     xenrt.TEC().reason("Process %d is not /sbin/dhclient" % pid)
                     ok = 0
-        elif proto == "Static":
+        elif proto == "static":
             if self.execdom0("test -e /var/run/dhclient-%s.pid" % name, retval="code") == 0:
                 pid = int(self.execdom0("cat /var/run/dhclient-%s.pid" % name).strip())
                 if self.execdom0("test -d /proc/%d" % pid, retval="code") == 0 and \

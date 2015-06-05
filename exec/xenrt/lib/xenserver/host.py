@@ -2601,7 +2601,7 @@ fi
         if not interfaces:
             interfaces = self.i_interfaces
         if not interfaces:
-            interfaces = [(None, "yes", None, None, None, None, None, None, None)]
+            interfaces = [(None, "yes", "dhcp", None, None, None, None, None, None)]
         if not ntpserver:
             ntpserver = self.i_ntpserver
         if not nameserver:
@@ -2667,25 +2667,6 @@ fi
             name, enabled, proto, ip, netmask, gateway, protov6, ip6, gw6 = i
             if not name:
                 name = self.getDefaultInterface()
-                
-            proto = self.minimalList("pif-list",
-                                     "IP-configuration-mode",
-                                     "device=%s" % (name))[0]
-            proto = proto.lower()
-                                     
-            if proto == "static":
-            
-                ip = self.minimalList("pif-list",   
-                                  "IP",
-                                  "device=%s  host-name-label=%s" % (name,self.getName()))[0]
-                                   
-                netmask = self.minimalList("pif-list",
-                                       "netmask",
-                                       "device=%s host-name-label=%s" % (name,self.getName()))[0]
-                                       
-                gateway = self.minimalList("pif-list",
-                                       "gateway",
-                                       "device=%s host-name-label=%s" % (name,self.getName()))[0]
 
             if self.checkNetworkInterfaceConfig(name, proto, ip, netmask, gateway) == 0:
                 ok = 0

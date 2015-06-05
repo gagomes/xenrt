@@ -15,7 +15,7 @@
   </prepare>
 
   <testsequence>
-    <parallel group="PShell" workers="5">
+    <parallel group="PShell" workers="3">
       <testcase id="xenserver.gui.TC8300" />
       <testcase id="xenserver.gui.TC8304" />
       <testcase id="xenserver.gui.TC8305" />

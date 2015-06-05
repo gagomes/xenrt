@@ -50,7 +50,7 @@ def createVMFromFile(host,
             if files:
                 file=fileDir+"/"+files[0]
             else:
-                raise xenrt.XRTError("Unknown VM containter type inside zip")
+                raise xenrt.XRTError("Unknown VM container type inside zip")
 
     guest.importVM(host, file, sr=sr, vifs=vifs)
 
@@ -960,6 +960,9 @@ class Guest(xenrt.GenericGuest):
 
         for vif in vifsToRemove:
             self.removeVIF(mac=vif[2])
+
+    def removeAllVIFs(self):
+        self.removeVIFs(multiple=True)
 
     def recreateVIFs(self, newMACs = False):
         """Recreate all VIFs we have in the guest's object config"""

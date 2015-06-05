@@ -411,7 +411,9 @@ class Guest(xenrt.lib.libvirt.Guest):
         """
         file is be an absolute path on site controller of type *.ovf or *.ova, which is to be imported.
         """
+        _removeHostFromVCenter = False
         if not host.datacenter:
+            _removeHostFromVCenter = True
             host.addToVCenter()
         ovftoolVersion = xenrt.command("ovftool --version", level=xenrt.RC_OK)
         if ovftoolVersion==1:
@@ -443,3 +445,6 @@ class Guest(xenrt.lib.libvirt.Guest):
         else:
             self.vifs = vifs
         self.recreateVIFs(newMACs=True)
+
+        if _removeHostFromVCenter:
+            host.removeFromVCenter()

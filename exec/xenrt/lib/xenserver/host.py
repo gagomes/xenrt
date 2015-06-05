@@ -2671,9 +2671,8 @@ fi
             proto = self.minimalList("pif-list",
                                      "IP-configuration-mode",
                                      "device=%s" % (name))[0]
-            proto = proto.lower()
                                      
-            if proto == "static":
+            if proto == "Static":
             
                 ip = self.minimalList("pif-list",   
                                   "IP",
@@ -8851,7 +8850,7 @@ class MNRHost(Host):
             
         ok = 1
         
-        if proto == "dhcp":
+        if proto == "DHCP":
             if self.execdom0("test -e /var/run/dhclient-%s.pid" % name, retval="code") != 0:
                 xenrt.TEC().reason("No dhclient PID file found for interface %s " % name)
                 ok = 0
@@ -8863,7 +8862,7 @@ class MNRHost(Host):
                 elif os.path.basename(self.execdom0("readlink /proc/%d/exe" % pid).strip()) != "dhclient":
                     xenrt.TEC().reason("Process %d is not /sbin/dhclient" % pid)
                     ok = 0
-        elif proto == "static":
+        elif proto == "Static":
             if self.execdom0("test -e /var/run/dhclient-%s.pid" % name, retval="code") == 0:
                 pid = int(self.execdom0("cat /var/run/dhclient-%s.pid" % name).strip())
                 if self.execdom0("test -d /proc/%d" % pid, retval="code") == 0 and \

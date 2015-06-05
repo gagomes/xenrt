@@ -3396,9 +3396,6 @@ class ADUpgradeAuthentication(_FeatureOperationAfterUpgrade):
             self.authserver.getSubject(name="ADPBISgroup2"), "pool-admin")
        
     def featureTest(self):
-        for host in self.poolsToUpgrade[0].getHosts():
-            host.setDNSServer(self.authserver.place.getIP())
-
         
         # Add extra user(s) to the subject-list
         for user in self.ADDREMOVEUSERS:

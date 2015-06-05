@@ -579,6 +579,12 @@ powershell %s""" % (self.ASF_WORKING_DIR, netUseCommand, command)
         serverTemplates = filter(lambda x:x['HypName'] == host.getName() and not x['TemplateName'].startswith('__') and not x['TemplateName'].startswith('ASF') and x['ServerOs'] == 'True', templateList)
         xenrt.TEC().logverbose('Using Server Templates: %s' % (map(lambda x:x['OSName'].strip(), serverTemplates)))
 
+        # Temporary workaround for ENG DFS issues
+        data = asfCont.xmlrpcReadFile("C:\\asf\\tests\\layoutbvts\\xenserver\\setup.ps1")
+        asfCont.xmlrpcExec("attrib -r C:\\asf\\tests\\layoutbvts\\xenserver\\setup.ps1")
+        asfCont.xmlrpcRemoveFile("C:\\asf\\tests\\layoutbvts\\xenserver\\setup.ps1")
+        asfCont.xmlrpcWriteFile("C:\\asf\\tests\\layoutbvts\\xenserver\\setup.ps1", data.replace("Install-SAL", "Install-SAL -RepositoryPath \"\\\\camarc01.eng.citrite.net\\planb\\automation\\SAL\""))
+
         self.executeASFShellCommand(asfCont, 'c:\\asf\\tests\\layoutbvts\\xenserver\\setup.ps1 -ClientTemplate %s -DdcTemplate %s -VdaTemplates %s' % (clientTemplates[0]['TemplateName'], serverTemplates[0]['TemplateName'], clientTemplates[0]['TemplateName']))
 
         # Temp - workaround

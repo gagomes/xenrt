@@ -12,6 +12,7 @@
         <vcpus>2</vcpus>
         <network device="0" />
         <disk device="0" size="24" />
+        <postinstall action="snapshot" />
       </vm>
     </host>
   </prepare>

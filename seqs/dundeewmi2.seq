@@ -70,8 +70,8 @@
         <vcpus>1</vcpus>
         <network device="0" />
         <storage>nfs</storage>
-        <postinstall action="installDrivers" />-->
-      </vm>
+        <postinstall action="installDrivers" />
+      </vm>-->
     </host>
   </prepare>
 

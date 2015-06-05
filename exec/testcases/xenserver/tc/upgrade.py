@@ -3411,12 +3411,9 @@ class ADUpgradeAuthentication(_FeatureOperationAfterUpgrade):
             xenrt.TEC().logverbose("Executing CLI command to add role by self")
             try:
                 cliRole.execute("subject-role-add", string.join(argsAddrole),\
-                    username="root",password=self.poolsToUpgrade[0].master.password)                                    
-            except xenrt.XRTException, e:
-                if "Role already exists" in e.reason:
-                    xenrt.TEC().logverbose("Role seems to be added already")
-                else:
-                    raise
+                    username="root",password=self.poolsToUpgrade[0].master.password)
+            except:
+                xenrt.TEC().logverbose("Role seems to be added already")
             xenrt.TEC().logverbose("adding role to the queue ")
             self.authserver.getSubject(name=user).roles.add("pool-admin")
 

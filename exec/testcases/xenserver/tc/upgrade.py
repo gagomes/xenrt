@@ -3444,28 +3444,30 @@ class TC10718(_FeatureOperationAfterUpgrade):
             self.authserver.getSubject(name=user).roles.add("pool-admin")
             
     def cliAuthentication(self,auth=None):
-        for user in self.TESTUSERS + self.ADDREMOVEUSERS:
-            subject = self.authserver.getSubject(name=user)
-            ok = True
-            try:
+        try:
+            for user in self.TESTUSERS + self.ADDREMOVEUSERS:
+                subject = self.authserver.getSubject(name=user)
+                ok = True
                 self.cli.execute("vm-list",
                                  username=subject.name,
                                  password=subject.password)
                 ok = False
-            except xenrt.XRTException, e:
-                if auth:
-                    raise            
-            if not ok and not auth:
-                raise xenrt.XRTFailure("Removed subject was able to "
-                                       "authenticate using CLI")
+                
+        except xenrt.XRTException, e:
+            if auth:
+                raise
+            
+        if not ok and not auth:
+            raise xenrt.XRTFailure("Removed subject was able to "
+                                   "authenticate using CLI")
                
     
     def sshAuthentication(self,auth=None):
-        for user in self.TESTUSERS + self.ADDREMOVEUSERS:
-            subject = self.authserver.getSubject(name=user)
-            for host in self.poolsToUpgrade[0].getHosts():
-                ok = True
-                try:
+        try:
+            for user in self.TESTUSERS + self.ADDREMOVEUSERS:
+                subject = self.authserver.getSubject(name=user)
+                for host in self.poolsToUpgrade[0].getHosts():
+                    ok = True
                     if subject.server.domainname:
                         username = "%s\\%s" % (subject.server.domainname,
                                                subject.name)
@@ -3475,16 +3477,16 @@ class TC10718(_FeatureOperationAfterUpgrade):
                                   username=username,
                                   password=subject.password)
                     ok = False
-                except xenrt.XRTException, e:
-                    if auth:
-                        if e.reason == "SSH authentication failed":
-                            raise xenrt.XRTFailure(e.reason, e.data)
-                        raise xenrt.XRTError(e.reason, e.data)
-                    else:
-                        if e.reason != "SSH authentication failed":
-                            raise xenrt.XRTError(e.reason, e.data)
-                if not ok and not auth:
-                    raise xenrt.XRTFailure("Removed subject was able to "
+        except xenrt.XRTException, e:
+            if auth:
+                if e.reason == "SSH authentication failed":
+                        raise xenrt.XRTFailure(e.reason, e.data)
+                raise xenrt.XRTError(e.reason, e.data)
+            else:
+                if e.reason != "SSH authentication failed":
+                    raise xenrt.XRTError(e.reason, e.data)
+        if not ok and not auth:
+            raise xenrt.XRTFailure("Removed subject was able to "
                                            "authenticate using SSH")
 
     def featureTest(self):
@@ -3516,8 +3518,8 @@ class TC10718(_FeatureOperationAfterUpgrade):
         # Check an auth
         subject = self.authserver.getSubject(name=self.TESTUSERS[0])
         self.cli.execute("vm-list",
-                         username=subject.name,
-                         password=subject.password)
+                    username=subject.name,
+                    password=subject.password)
                     
 class ADUpgradeAuthentication(TC10718):
 

@@ -701,7 +701,7 @@ class IOMeter(Workload):
             xenrt.TEC().comment("Error disabling firewall")
 
 class FIOWindows(Workload):
-    def __init__(self, guest):
+    def __init__(self, guest, drive=None):
         Workload.__init__(self, guest)
         self.name = "fio"
         self.process = "fio.exe"
@@ -709,6 +709,7 @@ class FIOWindows(Workload):
             arch = "x64"
         else:
             arch = "x86"
+        self.drive = drive
         self.cmdline = "c:\\fiowin\\%s\\fio.exe c:\\workload.fio" % arch
 
     def install(self, startOnBoot=False):
@@ -720,8 +721,21 @@ runtime=1382400
 time_based
 numjobs=4
 """
+        if self.drive:
+            inifile += "directory=%s\\:\\\n" % self.drive
         self.guest.xmlrpcWriteFile("c:\\workload.fio", inifile) 
         self.guest.xmlrpcUnpackTarball("%s/fiowin.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), "c:\\")
+
+    def runCheck(self):
+        inifile = """[check]
+rw=rw
+size=512m
+numjobs=4
+"""
+        if self.drive:
+            inifile += "directory=%s\\:\\\n" % self.drive
+        self.guest.xmlrpcWriteFile("c:\\check.fio", inifile) 
+        self.guest.xmlrpcExec(self.cmdline.replace("workload", "check"), timeout=3600)
 
 class WindowsExperienceIndex(Workload):
 

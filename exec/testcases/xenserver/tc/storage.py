@@ -655,7 +655,7 @@ class TC7366(SRSanityTestTemplate):
     """Create an iSCSI SR on a LUN other then LUN ID 0"""
     CHECK_FOR_OPEN_ISCSI = True
 
-    def createSR(self,host,guest):
+    def createSR(self, host, guest, thinProv=False):
         iqn = None
         try:
             # Prepare guest to be an iSCSI target
@@ -672,7 +672,7 @@ class TC7366(SRSanityTestTemplate):
 
         # Set up the SR on the host and plug the pbd etc
         host.setIQN("xenrt-test-iqn-TC7366")
-        sr = xenrt.lib.xenserver.host.ISCSIStorageRepository(host,"test-iscsi")
+        sr = xenrt.lib.xenserver.host.ISCSIStorageRepository(host, "test-iscsi", thinProv)
         lun = xenrt.ISCSIIndividualLun(None,
                                        1,
                                        server=guest.getIP(),
@@ -695,7 +695,7 @@ class TC7367(SRSanityTestTemplate):
     LUN_SIZES = [512, 1024]
     CHECK_FOR_OPEN_ISCSI = True
 
-    def createSR(self,host,guest):
+    def createSR(self, host, guest, thinProv=False):
         iqn = None
         try:
             # Prepare guest to be an iSCSI target
@@ -789,7 +789,7 @@ class TC7367(SRSanityTestTemplate):
         srs = []
         for lunid in range(self.NUM_LUNS):
             sr = xenrt.lib.xenserver.host.ISCSIStorageRepository(\
-                host, "test-iscsi%u" % (lunid))
+                host, "test-iscsi%u" % (lunid), thinProv)
             lun = xenrt.ISCSIIndividualLun(None,
                                            lunid,
                                            server=guest.getIP(),
@@ -825,6 +825,19 @@ class TC7367(SRSanityTestTemplate):
             raise xenrt.XRTFailure("SR on LUN1 missing after forget of the SR "
                                    "on LUN0")
         self.checkSRs()
+
+class TC27042(TC7366):
+    """Create a thin provisioning iSCSI SR on a LUN other then LUN ID 0"""
+    CHECK_FOR_OPEN_ISCSI = True
+
+    def createSR(self,host,guest):
+        return super(TC27042, self).createSR(host, guest, True)
+
+class TC27043(TC7367):
+    """Create two thin provisioning iSCSI SRs on LUNs on the same target"""
+
+    def createSR(self,host,guest):
+        return super(TC27043, self).createSR(host, guest, True)
 
 class TC9085(TC7367):
     """Create LVMoISCSI SRs on 64 LUNs having first probed the target"""
@@ -4840,11 +4853,8 @@ class TCCIFSLifecycle(xenrt.TestCase):
         noOfVdis = int(self.args["numberofvdis"])
         sizeInBytes = int(self.args["size"])
 
-        # Create SR.
-        self.sr.create(self.share)
-
         # Create some VDIs
-        actualVdis = [self.host.createVDI(size, sruuid=self.sr.uuid, name="VDI_%s" % i)for i in range(noOfVdis)]
+        actualVdis = [self.host.createVDI(sizeInBytes, sruuid=self.sr.uuid, name="VDI_%s" % i)for i in range(noOfVdis)]
 
         # Forget SR
         self.sr.forget()
@@ -4858,7 +4868,7 @@ class TCCIFSLifecycle(xenrt.TestCase):
         # Get a list of any VDIs that are now missing
         VDIs_missing = filter(lambda vdi: vdi not in VDIs_present, actualVdis)
 
-        xenrt.TEC().logverbose("VDIs missing after SR introduce: " % (",".join(VDIs_missing)))
+        xenrt.TEC().logverbose("VDIs missing after SR introduce: %s" % (",".join(VDIs_missing)))
             
         if len(VDIs_missing) > 0:
             raise xenrt.XRTFailure("VDIs are missing after SR introduce")

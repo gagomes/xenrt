@@ -324,13 +324,14 @@ class Guest(xenrt.GenericGuest):
                 arch = "x86-32"
             isostem = host.lookup(["OS_INSTALL_ISO", distro], distro)
             cds = host.minimalList("cd-list", "name-label")
-            trylist = ["%s.iso" % (isostem)]
+            trylist = ["%s_xenrtinst.iso" % (isostem), "%s.iso" % (isostem)]
 
             if distro == "w2k3eesp2pae":
                 trylist.append("w2k3eesp2.iso")
 
             if arch:
                 trylist.append("%s_%s.iso" % (isostem, arch))
+                trylist.append("%s_%s_xenrtinst.iso" % (isostem, arch))
             isoname = None
             for tryit in trylist:
                 if tryit in cds:
@@ -776,15 +777,6 @@ users:
     def start(self, reboot=False, skipsniff=False, specifyOn=True,\
               extratime=False, managenetwork=None, managebridge=None, 
               forcedReboot = False):
-
-        # we should be able to wipe previous setting by giving
-        # managenetwork/bridge = False arguments
-
-        if managenetwork is not None:
-            self.managenetwork = managenetwork
-        if managebridge is not None:
-            self.managebridge = managebridge
-
         # Start the VM
         if reboot:
             xenrt.TEC().progress("Rebooting guest VM %s" % (self.name))
@@ -810,9 +802,27 @@ users:
             xenrt.TEC().progress("Starting guest VM %s" % (self.name))
             self.lifecycleOperation("vm-start",specifyOn=specifyOn)
 
+        self.waitReadyAfterStart(skipsniff, extratime, managenetwork, managebridge)
+
+    def waitReadyAfterStart(self, skipsniff=False, extratime=False,\
+                            managenetwork=None, managebridge=None):
+
+        # we should be able to wipe previous setting by giving
+        # managenetwork/bridge = False arguments
+
+        if managenetwork is not None:
+            self.managenetwork = managenetwork
+        if managebridge is not None:
+            self.managebridge = managebridge
+
         # Wait for the VM to come up.
         xenrt.TEC().progress("Waiting for the VM to enter the UP state")
         self.poll("UP", pollperiod=1)
+
+        # Workaround for PCI passthrough buggy option ROM to send a key
+        if self.special.get("sendbioskey"):
+            xenrt.sleep(10)
+            self.sendVncKeys([0xff0d])
 
         vifs = ((self.managenetwork or self.managebridge)
                 and self.getVIFs(network=self.managenetwork, bridge=self.managebridge).keys()
@@ -2084,7 +2094,7 @@ exit /B 1
         netscaler.applyLicense(netscaler.getLicenseFileFromXenRT())
         if installNSTools:
             netscaler.installNSTools()
-        netscaler.checkFeatures()
+        netscaler.checkFeatures("Test results after applying license:")
 
     def setupVCenter(self, vCenterVersion="5.5.0-update02"):
         vcenter = xenrt.lib.esx.getVCenter(guest=self, vCenterVersion=vCenterVersion)
@@ -4353,6 +4363,14 @@ exit /B 1
 
         return ret
 
+    def getAutoUpdateDriverState(self):
+        """ Check whether the Windows Auto PV Driver updates is enabled on the VM"""
+        
+        if self.getHost().xenstoreExists("/local/domain/%u/control/auto-update-drivers" %(self.getDomid())):
+            return self.getHost().xenstoreRead("/local/domain/%u/control/auto-update-drivers" %(self.getDomid()))
+        else:
+            raise xenrt.XRTFailure("cannot find auto-update-driver path in the xenstore")
+
 #############################################################################
 
 def parseSequenceVIFs(guest, host, vifs):
@@ -5520,32 +5538,43 @@ class TampaGuest(BostonGuest):
                 break
             xenrt.sleep(10)
 
-    def uninstallDrivers(self, waitForDaemon=True):
+    def uninstallDrivers(self, waitForDaemon=True, source=None):
 
         # Insert the tools ISO
         self.changeCD("xs-tools.iso")
         xenrt.sleep(30)
-
+        
+        if source:
+            if os.path.exists(source):
+                toolsTgz = source
+            else:
+                toolsTgz = xenrt.TEC().getFile(source)
+            self.xmlrpcSendFile(toolsTgz, "c:\\tools.tgz")
+            pvToolsDir = self.xmlrpcTempDir()
+            self.xmlrpcExtractTarball("c:\\tools.tgz", pvToolsDir)
+        else:
+            pvToolsDir = "D:"
+            
         if self.usesLegacyDrivers() or xenrt.TEC().lookup("USE_LEGACY_DRIVERS", False, boolean=True):
             BostonGuest.uninstallDrivers(self, waitForDaemon)
         else:
             batch = ""
 
             if self.xmlrpcGetArch() == "amd64":
-                batch = batch + "MsiExec.exe /X D:\\citrixxendriversx64.msi /passive /norestart\r\n"
+                batch = batch + "MsiExec.exe /X %s\\citrixxendriversx64.msi /passive /norestart\r\n" %(pvToolsDir)
                 batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
-                batch = batch + "MsiExec.exe /X D:\\citrixguestagentx64.msi /passive /norestart\r\n"
+                batch = batch + "MsiExec.exe /X %s\\citrixguestagentx64.msi /passive /norestart\r\n" %(pvToolsDir)
                 batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
-                batch = batch + "MsiExec.exe /X D:\\citrixvssx64.msi /passive /norestart\r\n"
+                batch = batch + "MsiExec.exe /X %s\\citrixvssx64.msi /passive /norestart\r\n" %(pvToolsDir)
             else:
-                batch = batch + "MsiExec.exe /X D:\\citrixxendriversx86.msi /passive /norestart\r\n"
+                batch = batch + "MsiExec.exe /X %s\\citrixxendriversx86.msi /passive /norestart\r\n" %(pvToolsDir)
                 batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
-                batch = batch + "MsiExec.exe /X D:\\citrixguestagentx86.msi /passive /norestart\r\n"
+                batch = batch + "MsiExec.exe /X %s\\citrixguestagentx86.msi /passive /norestart\r\n" %(pvToolsDir)
                 batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
-                batch = batch + "MsiExec.exe /X D:\\citrixvssx86.msi /passive /norestart\r\n"
+                batch = batch + "MsiExec.exe /X %s\\citrixvssx86.msi /passive /norestart\r\n" %(pvToolsDir)
 
             batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
-            batch = batch + "MsiExec.exe /X D:\\installwizard.msi /passive /norestart\r\n"
+            batch = batch + "MsiExec.exe /X %s\\installwizard.msi /passive /norestart\r\n" %(pvToolsDir)
             batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
             batch = batch + "shutdown -r\r\n"
 
@@ -6080,7 +6109,7 @@ class DundeeGuest(CreedenceGuest):
                 xenrt.GEC().dbconnect.jobUpdate("RND_PV_DRIVERS_LIST_VALUE",randomPvDriversList)
                 return randomPvDriversList
 
-    def installDrivers(self, source=None, extrareboot=False, useLegacy=False, useHostTimeUTC=False, expectUpToDate=True, installFullWindowsGuestAgent=True, useDotNet=True):
+    def installDrivers(self, source=None, extrareboot=False, useLegacy=False, useHostTimeUTC=False, expectUpToDate=True, installFullWindowsGuestAgent=True, useDotNet=True, pvPkgSrc = None):
         """
         Install PV Tools on Windows Guest
         """
@@ -6095,8 +6124,10 @@ class DundeeGuest(CreedenceGuest):
         ToolsISO : Install PV Drivers through ToolsISO
         Packages : Install PV Drivers from individual PV packages
         """
-
-        pvDriverSource = xenrt.TEC().lookup("PV_DRIVER_SOURCE", None)
+        if pvPkgSrc:
+            pvDriverSource =pvPkgSrc
+        else:
+            pvDriverSource = xenrt.TEC().lookup("PV_DRIVER_SOURCE", None)
 
         if pvDriverSource == "Random":
             pvDriverSource = self.setRandomPvDriverSource()
@@ -6116,9 +6147,20 @@ class DundeeGuest(CreedenceGuest):
                 
             if installFullWindowsGuestAgent:
                 self.installFullWindowsGuestAgent()
-                
+            
+            if source:
+                if os.path.exists(source):
+                    toolsTgz = source
+                else:
+                    toolsTgz = xenrt.TEC().getFile(source)
+
+                if not toolsTgz:
+                    raise xenrt.XRTError("Failed to get Windows PV tools location")
+
+                self.xmlrpcSendFile(toolsTgz, "c:\\tools.tgz")
+            else:
             # Download the Individual PV packages
-            self.xmlrpcSendFile(xenrt.TEC().getFile("xe-phase-1/%s" %(xenrt.TEC().lookup("PV_DRIVERS_LOCATION"))), "c:\\tools.tgz")
+                self.xmlrpcSendFile(xenrt.TEC().getFile("xe-phase-1/%s" %(xenrt.TEC().lookup("PV_DRIVERS_LOCATION"))), "c:\\tools.tgz")
             pvToolsDir = self.xmlrpcTempDir()
             self.xmlrpcExtractTarball("c:\\tools.tgz", pvToolsDir)
             
@@ -6126,7 +6168,7 @@ class DundeeGuest(CreedenceGuest):
             packages = self.setRandomPvDriverList()
             packages = packages.split(';')
             
-            #Install the PV Packages one by one
+            #Install the PV Packages
             for pkg in packages:
                 self.installPVPackage(pkg, pvToolsDir)
            
@@ -6178,8 +6220,7 @@ class DundeeGuest(CreedenceGuest):
             arch = "x64"
         else:
             arch = "x86"
-        
-        self.xmlrpcStart("%s\\%s\\%s\\dpinst.exe /sw" % (toolsDirectory, packageName, arch))
+        self.xmlrpcStart("%s\\%s\\%s\\dpinst.exe /sw" % (toolsDirectory, pkg, arch))
         xenrt.sleep(30)
 
     def installFullWindowsGuestAgent(self):
@@ -6227,7 +6268,7 @@ class DundeeGuest(CreedenceGuest):
             
         xenrt.TEC().logverbose("PV Devices are installed and Running on %s " %(self.getName()))
 
-    def uninstallDrivers(self, waitForDaemon=True):
+    def uninstallDrivers(self, waitForDaemon=True, source=None):
         
         installed = False
         driversToUninstall = ['*XENVIF*', '*XENBUS*', '*VEN_5853*']
@@ -6235,7 +6276,7 @@ class DundeeGuest(CreedenceGuest):
         var1 = self.winRegPresent('HKLM', "SOFTWARE\\Wow6432Node\\Citrix\\XenToolsInstaller", "InstallStatus")
         var2 = self.winRegPresent('HKLM', "SOFTWARE\\Citrix\\XenToolsInstaller", "InstallStatus")
         if var1 or var2:
-            super(DundeeGuest , self).uninstallDrivers(waitForDaemon)
+            super(DundeeGuest , self).uninstallDrivers(waitForDaemon, source)
             
         else:
             #Drivers are installed using PV Packages uninstall them separately
@@ -6264,12 +6305,11 @@ class DundeeGuest(CreedenceGuest):
             for file in oemFileList:
                 batch.append("pnputil.exe -f -d %s\r\n" %(file)) 
                 batch.append("ping 127.0.0.1 -n 10 -w 1000\r\n")
+            batch.append("shutdown -r\r\n")
             
             self.xmlrpcWriteFile("c:\\uninst.bat", string.join(batch))
             self.xmlrpcStart("c:\\uninst.bat")
-        
-        self.xmlrpcReboot()
-        
+
         if not self.xmlrpcIsAlive():
             raise xenrt.XRTFailure("XML-RPC not alive after tools uninstallation")
         
@@ -6282,16 +6322,38 @@ class DundeeGuest(CreedenceGuest):
         self.enlightenedDrivers = False
 
     def enableWindowsPVUpdates(self):
-        """ Enable the windows updates by setting pci_pv flag to true on the host"""
+        """ Enable the windows updates by setting 'auto-update-drivers' flag to true on the host"""
 
-        self.paramSet("platform:pci_pv", "true")
-        self.reboot()
+        if self.getState() != "DOWN":
+            self.shutdown()
+
+        if self.pvDriversUpToDate():
+            raise xenrt.XRTFailure("Windows PV updates cannot be enabled on VM with PV Drivers Installed")
+
+        self.paramSet("auto-update-drivers", "true")
+        
+        if not self.checkWindowsPVUpdates():
+            raise xenrt.XRTFailure("Windows PV updates Failed to be enabled on VM")
+
+    def disableWindowsPVUpdates(self):
+        """ Disable the windows updates by setting 'auto-update-drivers' flag to false on the host"""
+        
+        if self.getState() != "DOWN":
+            self.shutdown()
+
+        if self.pvDriversUpToDate():
+            raise xenrt.XRTFailure("Windows PV updates cannot be disabled on VM with PV Drivers Installed")
+
+        self.paramSet("auto-update-drivers", "false")
+        
+        if self.checkWindowsPVUpdates():
+            raise xenrt.XRTFailure("Windows PV updates Failed to be disabled on VM")
 
     def checkWindowsPVUpdates(self):
         """ Check whether the windows pv updates is enabled on the host"""
         
-        return self.paramGet("platform", "pci_pv")
-
+        return self.paramGet("auto-update-drivers")
+    
 class StorageMotionObserver(xenrt.EventObserver):
 
     def startObservingSXMMigrate(self,vm,destHost,destSession):

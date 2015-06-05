@@ -891,6 +891,35 @@ class PowerMachine(_MachineBase):
         if r.text.startswith("ERROR"):
             raise XenRTAPIError(HTTPInternalServerError, r.text)
         return {"output": r.text.strip()}
+
+class PowerMachineStatus(_MachineBase):
+    REQTYPE="GET"
+    WRITE = True
+    PATH = "/machine/{name}/power"
+    TAGS = ["machines"]
+    PARAMS = [
+        {'name': 'name',
+         'in': 'path',
+         'required': True,
+         'description': 'Machine to get power status',
+         'type': 'string'}]
+    RESPONSES = { "200": {"description": "Successful response"}}
+    OPERATION_ID = "power_machine_status"
+    PARAM_ORDER=["name"]
+    SUMMARY = "Get the power status for a machine"
+
+    def render(self):
+        machine = self.getMachines(limit=1, machines=[self.request.matchdict['name']], exceptionIfEmpty=True)[self.request.matchdict['name']]
+
+        reqdict = {"machine": machine['name'], "powerop": "status"}
+        r = requests.get("http://%s/xenrt/api/controller/power" % machine['ctrladdr'], params=reqdict)
+        r.raise_for_status()
+        if r.text.startswith("ERROR"):
+            raise XenRTAPIError(HTTPInternalServerError, r.text)
+        m = re.search("POWERSTATUS: \('(.+)', '(.+)'\)\n", r.text)
+        if not m:
+            raise XenRTAPIError(HTTPInternalServerError, r.text)
+        return {"status": m.group(1), "source": m.group(2)}
     
 class NotifyBorrow(_MachineBase):
     def run(self):
@@ -933,3 +962,4 @@ RegisterAPI(UpdateMachine)
 RegisterAPI(NewMachine)
 RegisterAPI(RemoveMachine)
 RegisterAPI(PowerMachine)
+RegisterAPI(PowerMachineStatus)

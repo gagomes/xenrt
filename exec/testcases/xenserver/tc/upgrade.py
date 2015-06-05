@@ -1166,12 +1166,6 @@ class TCAutoInstaller(xenrt.TestCase):
         elif protocol == "HTTP":
             imageDir = xenrt.WebDirectory()
         elif protocol == "FTP":
-            # Check that the FTP server is running on this controller
-            msg = xenrt.rootops.sudo("/etc/init.d/vsftpd status")
-            running = re.search('is running', msg)
-            if not running:
-                raise xenrt.XRTFailure("FTP server not running on controller")
-
             imageDir = xenrt.FTPDirectory()
             imageDir.setUsernameAndPassword('xenrtd', 'xensource')
         else:
@@ -2274,10 +2268,10 @@ class _TCCrossVersionImport(xenrt.TestCase):
         xenrt.TEC().progress("Uninstalling %s" % (distro))
         try:
             xenrt.TEC().setInputDir(xenrt.TEC().lookup("OLD_PRODUCT_INPUTDIR"))
-            guest.uninstall()
+            self.uninstallOnCleanup(guest)
         finally:
             xenrt.TEC().setInputDir(None)
-        newguest.uninstall()
+        self.uninstallOnCleanup(newguest)
 
     def run(self, arglist):
 
@@ -3366,7 +3360,6 @@ class TC20654(_WindowsPVUpgradeWithStaticIPv6):
 
     VMNAME = "ws12r2core-x64"
 
-
 class TC10718(_FeatureOperationAfterUpgrade):
     """Continued operation of AD authentication following host/pool update/upgrade"""
 
@@ -3426,78 +3419,50 @@ class TC10718(_FeatureOperationAfterUpgrade):
             self.authserver.getSubject(name="TC10718userA"), "pool-admin")
         self.poolsToUpgrade[0].allow(\
             self.authserver.getSubject(name="TC10718group2"), "pool-admin")
-
-    def featureTest(self):
-        for host in self.poolsToUpgrade[0].getHosts():
-            host.setDNSServer(self.authserver.place.getIP())
-
+            
+    def addExtraUsers(self):
         # Add extra user(s) to the subject-list
         for user in self.ADDREMOVEUSERS:
             self.poolsToUpgrade[0].allow(\
                 self.authserver.getSubject(name=user), "pool-admin")
+            xenrt.TEC().logverbose("Adding role ")
+            uuid = self.poolsToUpgrade[0].master.getSubjectUUID(self.authserver.getSubject(name=user))
+            cliRole = self.poolsToUpgrade[0].getCLIInstance()
+            argsAddrole = []
+            argsAddrole.append("role-name='pool-admin'")
+            argsAddrole.append("uuid=%s" % (uuid))
+            xenrt.TEC().logverbose("Executing CLI command to add role ")
             try:
-                xenrt.TEC().logverbose("Adding role by self")
-                #self.poolsToUpgrade[0].addRole(self.authserver.getSubject(name=user), "pool-admin")
-                uuid = self.poolsToUpgrade[0].master.getSubjectUUID(self.authserver.getSubject(name=user))
-                cli_role = self.poolsToUpgrade[0].getCLIInstance()
-                args_addrole = []
-                args_addrole.append("role-name='pool-admin'")
-                args_addrole.append("uuid=%s" % (uuid))
-                xenrt.TEC().logverbose("Executing CLI command to add role by self")
-                cli_role.execute("subject-role-add", string.join(args_addrole),\
-                    username="root",password=self.poolsToUpgrade[0].master.password)
-                xenrt.TEC().logverbose("adding role to the queue thingy")
-                self.authserver.getSubject(name=user).roles.add("pool-admin")
-
-            except:
-                xenrt.TEC().logverbose("Role seems to be added already")
-
-        time.sleep(120)
-        # Test authentication
-        cli = self.poolsToUpgrade[0].getCLIInstance()
+                cliRole.execute("subject-role-add", string.join(argsAddrole),\
+                    username="root",password=self.poolsToUpgrade[0].master.password)                                    
+            except xenrt.XRTException, e:
+                if "Role already exists" in e.reason:
+                    xenrt.TEC().logverbose("Role seems to be added already")
+                else:
+                    raise
+            xenrt.TEC().logverbose("adding role to the queue ")
+            self.authserver.getSubject(name=user).roles.add("pool-admin")
+            
+    def cliAuthentication(self,auth=None):
         for user in self.TESTUSERS + self.ADDREMOVEUSERS:
             subject = self.authserver.getSubject(name=user)
-            # CLI
-            cli.execute("vm-list",
-                        username=subject.name,
-                        password=subject.password)
-
-            # SSH
-            for host in self.poolsToUpgrade[0].getHosts():
-                try:
-                    if subject.server.domainname:
-                        username = "%s\\%s" % (subject.server.domainname,
-                                               subject.name)
-                    else:
-                        username = subject.name
-                    host.execdom0("true",
-                                  username=username,
-                                  password=subject.password)
-                except xenrt.XRTException, e:
-                    if e.reason == "SSH authentication failed":
-                        raise xenrt.XRTFailure(e.reason, e.data)
-                    raise xenrt.XRTError(e.reason, e.data)
-
-        # Remove the extra user(s) from the subject-list
-        for user in self.ADDREMOVEUSERS:
-            self.poolsToUpgrade[0].deny(self.authserver.getSubject(name=user))
-
-        # Test user removed user(s) cannot authenticate
-        for user in self.ADDREMOVEUSERS:
-            subject = self.authserver.getSubject(name=user)
-            # CLI
             ok = True
             try:
-                cli.execute("vm-list",
-                            username=subject.name,
-                            password=subject.password)
+                self.cli.execute("vm-list",
+                                 username=subject.name,
+                                 password=subject.password)
                 ok = False
-            except xenrt.XRTFailure, e:
-                pass
-            if not ok:
+            except xenrt.XRTException, e:
+                if auth:
+                    raise            
+            if not ok and not auth:
                 raise xenrt.XRTFailure("Removed subject was able to "
                                        "authenticate using CLI")
-            # SSH
+               
+    
+    def sshAuthentication(self,auth=None):
+        for user in self.TESTUSERS + self.ADDREMOVEUSERS:
+            subject = self.authserver.getSubject(name=user)
             for host in self.poolsToUpgrade[0].getHosts():
                 ok = True
                 try:
@@ -3511,11 +3476,37 @@ class TC10718(_FeatureOperationAfterUpgrade):
                                   password=subject.password)
                     ok = False
                 except xenrt.XRTException, e:
-                    if e.reason != "SSH authentication failed":
+                    if auth:
+                        if e.reason == "SSH authentication failed":
+                            raise xenrt.XRTFailure(e.reason, e.data)
                         raise xenrt.XRTError(e.reason, e.data)
-                if not ok:
+                    else:
+                        if e.reason != "SSH authentication failed":
+                            raise xenrt.XRTError(e.reason, e.data)
+                if not ok and not auth:
                     raise xenrt.XRTFailure("Removed subject was able to "
                                            "authenticate using SSH")
+
+    def featureTest(self):
+        for host in self.poolsToUpgrade[0].getHosts():
+            host.setDNSServer(self.authserver.place.getIP())
+        self.addExtraUsers()
+
+        # Test CLI authentication
+        self.cli = self.poolsToUpgrade[0].getCLIInstance()
+        self.cliAuthentication(auth=True)
+
+        # Test SSH authentication
+        self.sshAuthentication(auth=True)
+
+        # Remove the user(s) from the subject-list
+        for user in self.TESTUSERS + self.ADDREMOVEUSERS:
+            self.poolsToUpgrade[0].deny(self.authserver.getSubject(name=user))
+
+        # Test removed user(s) cannot authenticate
+        self.cliAuthentication(auth=False)
+        self.sshAuthentication(auth=False)
+        
 
         # Disable and re-enable AD authentication
         self.poolsToUpgrade[0].disableAuthentication(self.authserver,
@@ -3524,10 +3515,59 @@ class TC10718(_FeatureOperationAfterUpgrade):
 
         # Check an auth
         subject = self.authserver.getSubject(name=self.TESTUSERS[0])
-        cli.execute("vm-list",
-                    username=subject.name,
-                    password=subject.password)
+        self.cli.execute("vm-list",
+                         username=subject.name,
+                         password=subject.password)
+                    
+class ADUpgradeAuthentication(TC10718):
 
+    def prepare(self, arglist):
+        self.poolsToUpgrade.append(self.getDefaultPool())
+        authguest = self.getGuest(self.AUTHSERVER)
+        if not authguest:
+            raise xenrt.XRTError("Could not find %s VM" % (self.AUTHSERVER))
+        self.authserver = authguest.getActiveDirectoryServer()
+                
+               
+    def featureTest(self):
+        for host in self.poolsToUpgrade[0].getHosts():
+            host.setDNSServer(self.authserver.place.getIP())
+            
+        self.poolsToUpgrade[0].enableAuthentication(self.authserver, setDNS=False)
+        self.authserver.createSubjectGraph(self.SUBJECTGRAPH)
+        self.poolsToUpgrade[0].allow(\
+            self.authserver.getSubject(name="TC10718userA"), "pool-admin")
+        self.poolsToUpgrade[0].allow(\
+            self.authserver.getSubject(name="TC10718group2"), "pool-admin")
+        
+        # Add extra user(s) to the subject-list
+        self.addExtraUsers()
+        
+        #Test CLI authentication
+        self.cli = self.poolsToUpgrade[0].getCLIInstance()
+        self.cliAuthentication(auth=True)
+
+        # Test SSH authentication
+        self.sshAuthentication(auth=True)
+                    
+        self.poolsToUpgrade[0].disableAuthentication(self.authserver,
+                                                     disable=True)
+                                                     
+        # Test removed user(s) cannot authenticate
+        self.cliAuthentication(auth=False)
+        self.sshAuthentication(auth=False)    
+    
+    def run(self, arglist):
+        # Perform the upgrade/update
+        if self.runSubcase("featureOpUpgrade", (), "Do", "Upgrade") != \
+               xenrt.RESULT_PASS:
+            return
+
+        # Verify functionality after the upgrade/update
+        if self.runSubcase("featureTest", (), "Check", "After") != \
+               xenrt.RESULT_PASS:
+            return
+    
 class TC12611(TC10718):
     """Continued operation of RBAC following host/pool update/upgrade."""
 

@@ -1,0 +1,95 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host>
+      <vm name="win7">
+        <distro>win7sp1-x86</distro>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+      <vm name="win7x64">
+        <distro>win7sp1-x64</distro>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="Win7-x86-BenchInst">
+      <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmarkInstall">
+        <arg>guest=win7</arg>
+        <arg>benchmark=SPECViewPerf11</arg>
+        <arg>benchmark=UnigineSanctuary</arg>
+        <arg>benchmark=UnigineTropics</arg>
+        <arg>benchmark=WindowsExperienceIndex</arg>
+        <arg>benchmark=Redway3DTurbine</arg>
+        <arg>benchmark=WebGL</arg>
+      </testcase>
+    </serial>
+    <serial group="Win7-x64-BenchInst">
+      <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmarkInstall">
+        <arg>guest=win7x64</arg>
+        <arg>benchmark=SPECViewPerf11</arg>
+        <arg>benchmark=UnigineSanctuary</arg>
+        <arg>benchmark=UnigineTropics</arg>
+        <arg>benchmark=WindowsExperienceIndex</arg>
+        <arg>benchmark=Redway3DTurbine</arg>
+        <arg>benchmark=WebGL</arg>
+      </testcase>
+    </serial>
+
+
+    <serial group="Win7-x86-IntelGPU">
+      <testcase id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
+        <arg>guest=win7</arg>
+        <arg>vgpuconfig=passthrough</arg>
+        <arg>typeofvgpu=intelwinvgpu</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
+        <arg>guest=win7</arg>
+        <arg>vgpuconfig=passthrough</arg>
+        <arg>benchmark=SPECViewPerf11</arg>
+        <arg>benchmark=UnigineSanctuary</arg>
+        <arg>benchmark=UnigineTropics</arg>
+        <arg>benchmark=WindowsExperienceIndex</arg>
+        <arg>benchmark=Redway3DTurbine</arg>
+        <arg>benchmark=WebGL</arg>
+        <arg>typeofvgpu=intelwinvgpu</arg>
+      </testcase>
+      <testcase id="guestops.basic.TCShutdown">
+        <arg>guest=win7</arg>
+      </testcase>
+    </serial>
+
+
+    <serial group="Win7-x64-IntelGPU">
+      <testcase id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
+        <arg>guest=win7x64</arg>
+        <arg>vgpuconfig=passthrough</arg>
+        <arg>typeofvgpu=intelwinvgpu</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
+        <arg>guest=win7x64</arg>
+        <arg>vgpuconfig=passthrough</arg>
+        <arg>benchmark=SPECViewPerf11</arg>
+        <arg>benchmark=UnigineSanctuary</arg>
+        <arg>benchmark=UnigineTropics</arg>
+        <arg>benchmark=WindowsExperienceIndex</arg>
+        <arg>benchmark=Redway3DTurbine</arg>
+        <arg>benchmark=WebGL</arg>
+        <arg>typeofvgpu=intelwinvgpu</arg>
+      </testcase>
+      <testcase id="guestops.basic.TCShutdown">
+        <arg>guest=win7x64</arg>
+      </testcase>
+    </serial>
+
+
+  </testsequence>
+
+</xenrt>

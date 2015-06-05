@@ -24,6 +24,7 @@ import XenAPI
 from xenrt.lazylog import *
 from xenrt.lib.xenserver.iptablesutil import IpTablesFirewall
 from xenrt.lib.xenserver.licensing import LicenseManager, XenServerLicenseFactory
+from itertools import imap
 
 
 # Symbols we want to export from the package.
@@ -36,12 +37,15 @@ __all__ = ["Host",
            "DundeeHost",
            "CreedenceHost",
            "ClearwaterHost",
+           "StorageRepository",
+           "LVMStorageRepository",
            "NFSStorageRepository",
            "NFSv4StorageRepository",
            "SMBStorageRepository",
            "FileStorageRepository",
            "FileStorageRepositoryNFS",
            "ISCSIStorageRepository",
+           "HBAStorageRepository",
            "IntegratedCVSMStorageRepository",
            "CVSMStorageRepository",
            "NetAppStorageRepository",
@@ -201,7 +205,17 @@ def createHost(id=0,
     if productVersion:
         hosttype = productVersion
     else:
-        hosttype = xenrt.TEC().lookup("PRODUCT_VERSION", "Orlando")
+        fn = xenrt.TEC().getFile("%s/xe-phase-1/globals" % xenrt.TEC().getInputDir(), "%s/globals" % xenrt.TEC().getInputDir())
+        if fn:
+            for line in open(fn).xreadlines():
+                match = re.match('^PRODUCT_VERSION="(.+)"', line)
+                if match:
+                    hosttype = xenrt.TEC().lookup(["PRODUCT_CODENAMES", match.group(1)], None)
+                    if hosttype:
+                        break
+        if not hosttype:
+            hosttype = xenrt.TEC().lookup("PRODUCT_VERSION", "Orlando")
+            
     host = xenrt.lib.xenserver.hostFactory(hosttype)(m,
                                                      productVersion=hosttype)
 
@@ -565,7 +579,7 @@ class SshInstallerThread(threading.Thread):
 class Host(xenrt.GenericHost):
     """Encapsulate a XenServer host."""
 
-    
+    SNMPCONF = "/etc/snmp/snmpd.conf"
     INSTALL_INTERFACE_SPEC = "MAC"
     LINUX_INTERFACE_PREFIX = "xenbr"
     USE_CCISS = True
@@ -1636,7 +1650,7 @@ done
         pxecfg.mbootArgsModule1Add("ramdisk_size=65536")
         pxecfg.mbootArgsModule1Add("install")
         
-        if not xenrt.TEC().lookup("OPTION_NO_ANSWERFILE", False):
+        if not xenrt.TEC().lookup("OPTION_NO_ANSWERFILE", False, boolean=True):
             if upgrade:
                 pxecfg.mbootArgsModule1Add("rt_answerfile=%s" %
                                            (packdir.getURL("%s-upgrade.xml" %
@@ -1738,7 +1752,7 @@ done
         
         # this option allows manual installation i.e. you step through
         # the XS installer manually and it detects for when this is finished.
-        if xenrt.TEC().lookup("OPTION_NO_ANSWERFILE", False):
+        if xenrt.TEC().lookup("OPTION_NO_ANSWERFILE", False, boolean=True):
             
             xenrt.TEC().logverbose("User is to step through installer manually")
             xenrt.TEC().logverbose("Waiting 5 mins")
@@ -2557,7 +2571,7 @@ fi
         if not interfaces:
             interfaces = self.i_interfaces
         if not interfaces:
-            interfaces = [(None, "yes", "dhcp", None, None, None, None, None, None)]
+            interfaces = [(None, "yes", None, None, None, None, None, None, None)]
         if not ntpserver:
             ntpserver = self.i_ntpserver
         if not nameserver:
@@ -2623,6 +2637,25 @@ fi
             name, enabled, proto, ip, netmask, gateway, protov6, ip6, gw6 = i
             if not name:
                 name = self.getDefaultInterface()
+                
+            proto = self.minimalList("pif-list",
+                                     "IP-configuration-mode",
+                                     "device=%s" % (name))[0]
+            proto = proto.lower()
+                                     
+            if proto == "static":
+            
+                ip = self.minimalList("pif-list",   
+                                  "IP",
+                                  "device=%s  host-name-label=%s" % (name,self.getName()))[0]
+                                   
+                netmask = self.minimalList("pif-list",
+                                       "netmask",
+                                       "device=%s host-name-label=%s" % (name,self.getName()))[0]
+                                       
+                gateway = self.minimalList("pif-list",
+                                       "gateway",
+                                       "device=%s host-name-label=%s" % (name,self.getName()))[0]
 
             if self.checkNetworkInterfaceConfig(name, proto, ip, netmask, gateway) == 0:
                 ok = 0
@@ -2676,7 +2709,7 @@ fi
 
         # if the installer was run manually then we don't expect
         # the host config to match the install config.
-        if xenrt.TEC().lookup("OPTION_NO_ANSWERFILE", False):
+        if xenrt.TEC().lookup("OPTION_NO_ANSWERFILE", False, boolean=True):
             return
         
         if ok == 0:
@@ -5631,12 +5664,13 @@ fi
     def makeLocalNFSSR(self):
         """Uses space on a local LVM SR to provide a locally hosted NFS
         SR."""
+        sr = self.getLocalSR()
         vgdata = string.split(\
-            self.execdom0("vgs --noheadings -o name,vg_free_count "
+            self.execRawStorageCommand(sr, "vgs --noheadings -o name,vg_free_count "
                           "--separator=,"), ",")
         vg = string.strip(vgdata[0])
         vgsize = string.strip(vgdata[1])
-        self.execdom0("lvcreate -n nfsserver -l %s %s" % (vgsize, vg))
+        self.execRawStorageCommand("lvcreate -n nfsserver -l %s %s" % (vgsize, vg), sr)
         dev = "/dev/%s/nfsserver" % (vg)
         self.execdom0("mkfs.ext3 %s" % (dev))
         self.execdom0("mkdir -p /nfsserver")
@@ -5649,7 +5683,7 @@ fi
         self.execdom0("mv /etc/sysconfig/network /etc/sysconfig/network.orig")
         self.execdom0("sed -e's/^PMAP_ARGS/#PMAP_ARGS/' "
                       "< /etc/sysconfig/network.orig > /etc/sysconfig/network")
-        self.execdom0("echo 'lvchange -ay %s' >> /etc/rc.local" % (vg))
+        self.execdom0("echo '%s' >> /etc/rc.local" % self.modifyRawStorageCommand(sr, "lvchange -ay %s" % vg))
         self.execdom0("echo 'mount /nfsserver' >> /etc/rc.local")
         self.reboot()
         nfssr = NFSStorageRepository(self, "localnfssr")
@@ -6838,7 +6872,10 @@ fi
         cli.execute("host-enable-external-auth", string.join(args)).strip()
         
         # Using CA-33290 workaround
-        self.execdom0("/opt/likewise/bin/lw-set-log-level debug")
+        if self.execdom0("test -e /opt/pbis", retval="code") == 0:
+            self.execdom0("/opt/pbis/bin/lwsm set-log-level eventlog all debug")
+        else:
+            self.execdom0("/opt/likewise/bin/lw-set-log-level debug")
         xenrt.sleep(5)
         
     def enableIPOnPIF(self, pifuuid):
@@ -7068,16 +7105,14 @@ fi
         elif srtype in ["lvm", "lvmoiscsi", "lvmohba"]:
             vpath = "VG_XenStorage-%s/VHD-%s" % (sr, vdiuuid)
             lpath = "VG_XenStorage-%s/LV-%s" % (sr, vdiuuid)
-            if host.execdom0("lvdisplay %s" % (vpath), retval="code") == 0:
+            if host.execRawStorageCommand(sr, "lvdisplay %s" % (vpath), retval="code") == 0:
                 foundtype = "VHD"
-                foundsize = int(host.execdom0(\
-                    "lvdisplay -c %s 2> /dev/null" % (vpath)).split(":")[6]) \
-                    * 512
-            elif host.execdom0("lvdisplay %s" % (lpath), retval="code") == 0:
+                foundsize = int(host.execRawStorageCommand(sr,
+                    "lvdisplay -c %s 2> /dev/null" % (vpath)).split(":")[6]) * 512
+            elif host.execRawStorageCommand(sr, "lvdisplay %s" % (lpath), retval="code") == 0:
                 foundtype = "LV"
-                foundsize = int(host.execdom0(\
-                    "lvdisplay -c %s 2> /dev/null" % (lpath)).split(":")[6]) \
-                    * 512
+                foundsize = int(host.execRawStorageCommand(sr,
+                    "lvdisplay -c %s 2> /dev/null" % (lpath)).split(":")[6]) * 512
             else:
                 raise xenrt.XRTFailure("VDI missing", vdiuuid)
         elif srtype in ["rawhba"]:
@@ -7113,31 +7148,12 @@ fi
                               "[0-9a-f]{4}-[0-9a-f]{12}).vhd", data)
         elif srtype in ["lvm", "lvmoiscsi", "lvmohba"]:
             path = "VG_XenStorage-%s" % (sruuid)
-            if self.isThinProvisioningSR(sruuid):
-                data = host.execdom0("xenvm lvs --noheadings -o lv_name %s" % (path))
-            else:
-                data = host.execdom0("lvs --noheadings -o lv_name %s" % (path))
+            data = host.execRawStorageCommand(sruuid, "lvs --noheadings -o lv_name %s" % (path))
             return re.findall(\
                 r"(?:VHD|LV)-([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
                 "[0-9a-f]{4}-[0-9a-f]{12})", data)
         else:
             raise xenrt.XRTError("listVHDs unimplemented for %s" % (srtype))
-
-    def isThinProvisioningSR(self, sruuid):
-        """Return a sr is thinly provisioned."""
-        srtype = self.genParamGet("sr", sruuid, "type")
-        if srtype in ["lvm", "lvmoiscsi", "lvmohba"]:
-            try:
-                alloc = self.genParamGet("sr", sruuid, "sm-config", "allocation")
-                #usevhd = self.getParamGet("sr", sruuid, "sm-config", "use_vhd")
-                if alloc == "dynamic":# and usevhd == "true":
-                    return True
-
-            except:
-                xenrt.TEC().logverbose("Cannot find 'allocation' from sm-config key.")
-                pass
-
-        return False
 
     def logout(self, subject):
         xenrt.TEC().logverbose("Logging out all sessions associated "
@@ -7483,10 +7499,10 @@ logger "Stopping xentrace loop, host has less than 512M disk space free"
             return False
         elif srtype in ["lvm", "lvmoiscsi", "lvmohba"]:
             path = "VG_XenStorage-%s/VHD-%s" % (sruuid, vdiuuid)
-            if host.execdom0("lvdisplay %s" % (path), retval="code") == 0:
+            if host.execRawStorageCommand(sruuid, "lvdisplay %s" % (path), retval="code") == 0:
                 return True
             path = "VG_XenStorage-%s/LV-%s" % (sruuid, vdiuuid)
-            if host.execdom0("lvdisplay %s" % (path), retval="code") == 0:
+            if host.execRawStorageCommand(sruuid, "lvdisplay %s" % (path), retval="code") == 0:
                 return True
             return False
         else:
@@ -7503,7 +7519,7 @@ logger "Stopping xentrace loop, host has less than 512M disk space free"
             path = "/var/run/sr-mount/%s/%s.vhd" % (sr, vdiuuid)
         elif srtype in ["lvm", "lvmoiscsi", "lvmohba"]:
             lvpath = "/dev/VG_XenStorage-%s/LV-%s" % (sr, vdiuuid)
-            if host.execdom0("lvdisplay %s" % (lvpath), retval="code") == 0:
+            if host.execRawStorageCommand(sr, "lvdisplay %s" % (lvpath), retval="code") == 0:
                 # This is a raw LV VDI with no parent
                 return None
 
@@ -8182,9 +8198,14 @@ rm -f /etc/xensource/xhad.conf || true
         return sruuid
 
     def isHAPEnabled(self):
-        dmesg = self.execdom0("grep 'Hardware Assisted Paging' /var/log/xen-dmesg || true")
+        dmesg = self.execdom0("grep 'Hardware Assisted Paging' /var/log/xen/hypervisor.log || true")
+       
+        #for backward compatibility checking in /var/log/xen-dmesg
+        if "Hardware Assisted Paging" not in dmesg:
+            dmesg = self.execdom0("grep 'Hardware Assisted Paging' /var/log/xen-dmesg || true")
 
-        return "HVM: Hardware Assisted Paging detected and enabled." in dmesg or "HVM: Hardware Assisted Paging (HAP) detected" in dmesg
+        return "HVM: Hardware Assisted Paging detected and enabled." in dmesg or\
+                          "HVM: Hardware Assisted Paging (HAP) detected" in dmesg
 
     def resolveDistroName(self, distro):
         origDistro = distro
@@ -8227,6 +8248,84 @@ rm -f /etc/xensource/xhad.conf || true
                 "uuid": s['uuid'],
                 "name": s['name-label']})
         return ret
+
+    def modifyRawStorageCommand(self, sr, command):
+        """
+        Evaluate SR and modify command if required.
+
+        @param command: command to run from dom0.
+        @param sr: a storage repository object or sruuid.
+        @return: a modified command
+        """
+
+        return command
+
+    def execRawStorageCommand(self,
+                            sr,
+                            command,
+                            username=None,
+                            retval="string",
+                            level=xenrt.RC_FAIL,
+                            timeout=300,
+                            idempotent=False,
+                            newlineok=False,
+                            nolog=False,
+                            outfile=None,
+                            useThread=False,
+                            getreply=True,
+                            password=None):
+
+        """
+        Raw storage commands such as lvcreate, pvresize and etc may need to be
+        modified before executed.
+        """
+
+        # Thin provisioning SR requires to run raw storage command via xenvm
+        # as storages, which is created via xenvmd, are only exposed by
+        # xenvmd.
+        command = self.modifyRawStorageCommand(sr, command)
+
+        return self.execdom0(command,
+                            username,
+                            retval,
+                            level,
+                            timeout,
+                            idempotent,
+                            newlineok,
+                            nolog,
+                            outfile,
+                            useThread,
+                            getreply,
+                            password
+                            )
+    
+    def getDom0Partitions(self):
+
+        """
+        Return dom0 disk partitions and there size in KB
+        return Format: {1: 19327352832, 2: 19327352832, 3: '*', 4: 535822336, 5: 4294967296, 6: 1072693248} 
+        """
+        primarydisk = self.getInventoryItem("PRIMARY_DISK")
+        partitions = [p.split(' ') for p in self.execdom0("sgdisk -p %s | awk '$1 ~ /[0-9]+/ {print $1,$4,$5}'" % primarydisk).splitlines()]
+        return dict([(int(p[0]), float(p[1]) * (xenrt.GIGA if p[2]=='GiB' else xenrt.MEGA)) for p in partitions])
+
+    def compareDom0Partitions(self, partitions):
+
+        """
+        Return True if dom0 disk partition schema matches the schema 'partition' else return False
+        """
+        dom0Partitions = self.getDom0Partitions()
+        if len(partitions) != len(dom0Partitions):
+            log("Number of Partitions in dom0 is different from expected number of partitions. Expected %s. Found %s" % (partitions,dom0Partitions ))
+            return False
+        else:
+            diffkeys = [k for k in partitions if partitions[k] != dom0Partitions[k] and partitions[k] != "*"]
+            if len(diffkeys) == 0:
+                log("Dom0 has expected partition schema: %s" % dom0Partitions)
+                return True
+            else:
+                log("One or more partition size is different from expected. Expected %s. Found %s" % ((partitions,dom0Partitions )))
+                return False
 
 #############################################################################
 
@@ -11487,11 +11586,32 @@ class CreedenceHost(ClearwaterHost):
 
             self.execdom0("xe-install-supplemental-pack /tmp/xscontainer.iso")
 
-        
+    def __exectuteAccessCommand(self, uuid, accessCommand):
+        if not uuid:
+            raise xenrt.XRTFailure("No PGPU uuid given")
+
+        cli = self.getCLIInstance()
+        args = []
+
+        args.append("uuid=%s" % uuid)
+        cli.execute(accessCommand, string.join(args))
+
+    def blockDom0AccessToOnboardPGPU(self, gpuuuid):
+        self.__exectuteAccessCommand(gpuuuid, "pgpu-disable-dom0-access")
+
+    def unblockDom0AccessToOnboardPGPU(self, gpuuuid):
+        self.__exectuteAccessCommand(gpuuuid, "pgpu-enable-dom0-access")
+
+    def disableHostDisplay(self):
+        self.__exectuteAccessCommand(self.uuid, "host-disable-display")
+
+    def enableHostDisplay(self):
+        self.__exectuteAccessCommand(self.uuid, "host-enable-display")
 
 #############################################################################
 class DundeeHost(CreedenceHost):
     USE_CCISS = False
+    SNMPCONF = "/etc/snmp/snmpd.xs.conf"
 
     def __init__(self, machine, productVersion="Dundee", productType="xenserver"):
         CreedenceHost.__init__(self,
@@ -11524,6 +11644,7 @@ class DundeeHost(CreedenceHost):
             self.execdom0("sed -i s/vbd3/vbd/ /etc/xenopsd.conf")
             self.execdom0("chkconfig --del xenopsd-xc")
             self.execdom0("chkconfig --add xenopsd-xenlight")
+            self.execdom0("sed -i -r 's/classic/xenlight/g' /etc/xapi.conf")
             self.restartToolstack()
 
     def _checkForFailedFirstBootScripts(self):
@@ -11634,6 +11755,75 @@ class DundeeHost(CreedenceHost):
             pxe.setDefault("local")
             pxe.writeOut(self.machine)
 
+    def transformCommand(self, command):
+        """
+        Dundee requires disabling metadata_readonly flag to run raw storage command.
+        To implement this overrideing GenericHost.transformCommand()
+
+        @param command: The command that can be transformed.
+        @return: transformed command
+        """
+
+        # From Dundee (and CentOS 7 dom0) requires special flag/options
+        # to execute raw storage commands that modify storage including
+        # volume, pv and lv.
+
+        if any(imap(command.startswith, ["vgcreate",
+                                    "vgchange",
+                                    "vgremove",
+                                    "vgextend",
+                                    "lvrename",
+                                    "lvcreate",
+                                    "lvchange",
+                                    "lvremove",
+                                    "lvresize",
+                                    "pvresize",
+                                    "pvcreate",
+                                    "pvchange",
+                                    "pvremove",
+                                    ])):
+            command = command + " --config global{metadata_read_only=0}"
+
+        return command
+
+    def modifyRawStorageCommand(self, sr, command):
+        """
+        Evaluate SR and modify command to run via xenvm if given SR is
+        a thin provisioning SR.
+        Overriding Host.modifyRawStorageCommand
+
+        @param command: command to run from dom0.
+        @param sr: a storage repository object or sruuid.
+        @return: a modified command
+        """
+
+        # Without knowing SR, cannot determine whether it requires modification.
+        if not sr:
+            return command
+
+        # If given SR is not an SR instance consider it is a uuid and
+        # get a Storage instance from uuid.
+        if not isinstance(sr, StorageRepository):
+            sr = xenrt.lib.xenserver.getStorageRepositoryClass(self, sr).fromExistingSR(self, sr)
+
+        if sr.thinProvisioning and any(imap(command.startswith, ["lvchange",
+                                            "lvcreate",
+                                            "lvdisplay",
+                                            "lvremove",
+                                            "lvrename",
+                                            "lvresize",
+                                            "lvs",
+                                            "pvremove",
+                                            "pvs",
+                                            "vgcreate",
+                                            "vgremove",
+                                            "vgs"
+            ])):
+            command = "xenvm " + command
+
+        return command
+
+
 #############################################################################
 
 class StorageRepository(object):
@@ -11645,13 +11835,14 @@ class StorageRepository(object):
     SIZEVAR = None
     EXTRA_DCONF = {}
 
-    def __init__(self, host, name):
+    def __init__(self, host, name, thin_prov=False):
         self.host = host
         self.name = name
         self.uuid = None
         self.lun = None
         self.resources = {}
         self.isDestroyed = False
+        self.__thinProv = thin_prov
 
         # Recorded by _create for possible future use by introduce
         self.srtype = None
@@ -11671,7 +11862,7 @@ class StorageRepository(object):
         @return: an instance of the class with the SR metadata populated
         @rtype: StorageRepository or decendent
         """
-        xsr = next((sr for sr in host.asXapiObject().SR() if sr.uuid == sruuid), None)
+        xsr = next((sr for sr in host.asXapiObject().SR(False) if sr.uuid == sruuid), None)
 
         if not xsr:
             raise ValueError("Could not find sruuid %s on host %s" %(sruuid, host))
@@ -11679,12 +11870,32 @@ class StorageRepository(object):
         instance = cls(host, xsr.name())
         instance.uuid = xsr.uuid
         instance.srtype = xsr.srType()
+        instance.host = host
 
         xpbd = next((p for p in xsr.PBD() if p.host() == host.asXapiObject()), None)
         instance.dconf = xpbd.deviceConfig()
         instance.smconf = xsr.smConfig()
         instance.content_type = xsr.contentType()
         return instance
+
+    @property
+    def thinProvisioning(self):
+        """Return whether sr is thinly provisioned."""
+
+        if not self.uuid:
+            raise xenrt.XRTError("SR instance is not associated with actual SR.")
+
+        srtype = self.host.genParamGet("sr", self.uuid, "type")
+        try:
+            alloc = self.host.genParamGet("sr", self.uuid, "sm-config", "allocation")
+            if alloc == "dynamic":
+                return True
+
+        except:
+            # sm-config may not have 'allocation' key.
+            pass
+
+        return False
 
     def create(self, physical_size=0, content_type="", smconf={}):
         raise xenrt.XRTError("Unimplemented")
@@ -11739,13 +11950,22 @@ class StorageRepository(object):
         cli.execute("sr-destroy", "uuid=%s" % (self.uuid))
         self.isDestroyed = True
 
-    def _create(self, type, dconf, physical_size=0, content_type="", smconf={}):
+    def __isEligibleThinProvisioning(self, srtype=None):
+        """Evaluate sr type to check whether it supports thin provisioning"""
+
+        if not srtype:
+            srtype = self.srtype
+        if srtype in ["lvm", "lvmoiscsi", "lvmohba"]:
+            return True
+        return False
+
+    def _create(self, srtype, dconf, physical_size=0, content_type="", smconf={}):
         actualDeviceConfiguration = dict(self.EXTRA_DCONF)
         actualDeviceConfiguration.update(dconf)
 
         cli = self.host.getCLIInstance()
         args = []
-        args.append("type=%s" % (type))
+        args.append("type=%s" % (srtype))
         args.append("content-type=%s" % (content_type))
         if not physical_size == None:
             args.append("physical-size=%s" % (physical_size))
@@ -11754,10 +11974,15 @@ class StorageRepository(object):
             args.append("shared=true")
         args.extend(["device-config:%s=\"%s\"" % (x, y)
                      for x,y in actualDeviceConfiguration.items()])
+        if self.__thinProv:
+            if self.__isEligibleThinProvisioning(srtype):
+                smconf["allocation"] = "dynamic"
+            else:
+                xenrt.warning("SR: %s is marked as thin provisioning but %s does not support it. Ignoring..." % (self.name, srtype))
         args.extend(["sm-config:%s=\"%s\"" % (x, y)
                     for x,y in smconf.items()])
         self.uuid = cli.execute("sr-create", string.join(args)).strip()
-        self.srtype = type
+        self.srtype = srtype
         self.dconf = actualDeviceConfiguration
         self.content_type = content_type
         self.smconf = smconf
@@ -11933,8 +12158,8 @@ class LVMStorageRepository(StorageRepository):
     SHARED = False
     CLEANUP = "destroy"
 
-    def create(self, device, physical_size=0, content_type=""):
-        self._create("lvm", {"device":device})
+    def create(self, device, physical_size=0, content_type="", smconf={}):
+        self._create("lvm", {"device":device}, physical_size, content_type, smconf)
 
 class IntegratedCVSMStorageRepository(StorageRepository):
     SHARED = True
@@ -12471,6 +12696,9 @@ class ISCSIStorageRepository(StorageRepository):
                                                jumbo=jumbo,
                                                mpprdac=mpp_rdac,
                                                ttype = ttype)
+            if not lun.getID():
+                findSCSIID = True
+
         self.lun = lun
         self.subtype = subtype
         self.noiqnset = noiqnset
@@ -14302,6 +14530,7 @@ def watchForInstallCompletion(installs):
                 del waiting[filename]
 
         xenrt.sleep(15)
+
 
 #############################################################################
 

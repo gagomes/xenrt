@@ -2194,7 +2194,7 @@ class TC12550(_VSwitch):
     def prepare(self, arglist):
         _VSwitch.prepare(self, arglist)
         if isinstance(self.host, xenrt.lib.xenserver.TampaHost):
-            self.myguest = self.host.createBasicGuest("debian60")
+            self.myguest = self.host.createBasicGuest("generic-linux")
         else:
             self.myguest = self.host.createBasicGuest("debian50")
         # myguest eth0 is now sitting on xenbr0 - but we want it on xenbr1 

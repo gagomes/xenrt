@@ -4504,6 +4504,16 @@ class GenericHost(GenericPlace):
                 g.uninstall()
                 xenrt.sleep(15)
 
+    def transformCommand(self, command):
+        """
+        Tranform commands if it is required on Host
+        
+        @param command: The command that can be transformed.
+        @return: transformed command
+        """
+
+        return command
+
     def execdom0(self,
                  command,
                  username=None,
@@ -4535,7 +4545,7 @@ class GenericHost(GenericPlace):
         if not password:
             password = self.password
         return xenrt.ssh.SSH(self.getIP(),
-                             command,
+                             self.transformCommand(command),
                              level=level,
                              retval=retval,
                              password=password,
@@ -5549,9 +5559,9 @@ class GenericHost(GenericPlace):
         ay=SLESAutoyastFile( distro,
                              nfsdir.getMountURL(""),
                              mainDisk,
-                             method,
-                             ethDevice,
-                             isntallOn="native",
+                             installOn="native",
+                             method=method,
+                             ethDevice=ethDevice,
                              password=self.password,
                              extraPackages=extrapackages,
                              bootDiskSize=bootDiskSize,
@@ -5661,15 +5671,23 @@ class GenericHost(GenericPlace):
         # Make post install script
         serport = self.lookup("SERIAL_CONSOLE_PORT", "0")
         serbaud = self.lookup("SERIAL_CONSOLE_BAUD", "115200")
+        extra = ""
+        if distro.startswith("debian80") or distro.startswith("debiantesting"):
+            extra += """sed -i 's/PermitRootLogin without-password/PermitRootLogin yes/g' /etc/ssh/sshd_config
+/etc/init.d/ssh restart
+"""
+
         piscript = """#!/bin/bash
 # Ensure we get dom0 serial console (there should be a way to do this through preseed but I can't find an obvious way)
 sed -i 's/GRUB_CMDLINE_LINUX=""/GRUB_CMDLINE_LINUX="console=tty0 console=ttyS%s,%sn8"/' /etc/default/grub
 /usr/sbin/update-grub
 
+%s
+
 # Signal completion
 wget -q -O - %s/share/control/signal?key=%s
 exit 0
-""" % (serport, serbaud, xenrt.TEC().lookup("LOCALURL"),  sigkey)
+""" % (serport, serbaud, extra, xenrt.TEC().lookup("LOCALURL"),  sigkey)
         pifile = "post-install-%s.sh" % (self.getName())
         pifilename = "%s/%s" % (xenrt.TEC().getLogdir(), pifile)
         f = file(pifilename, "w")
@@ -9240,9 +9258,10 @@ class GenericGuest(GenericPlace):
             os.makedirs(d)
         self.xmlrpcGetFile("c:\\windows\\temp\\devcon.log", "%s/devcon.log" % (d))
         gpuDetected = 0
-        gpuPatterns = ["PCI.VEN_10DE.*(NVIDIA|VGA).*"  #nvidia pci vendor id
+        gpuPatterns = ["PCI.VEN_10DE.*(NVIDIA|VGA).*"   #nvidia pci vendor id
                         ,"PCI.VEN_1002.*(ATI|VGA).*"    #ati/amd pci vendor id
                         ,"PCI.VEN_102B.*(Matrox|VGA).*" #matrox  pci vendor id
+                        ,"PCI.VEN.*Intel.*Graphics.*"   #intel pci vendor id
                        ]
         f = open("%s/devcon.log"%d)
         for line in f:
@@ -9294,11 +9313,32 @@ class GenericGuest(GenericPlace):
         self.xmlrpcSendFile("%s/%s" % (tempDir,tarBall),"c:\\%s" % tarBall)
 
         self.xmlrpcExtractTarball("c:\\%s" % tarBall,"c:\\")
+        vbScript = """
+Set WshShell = WScript.CreateObject("WScript.Shell")
+WScript.sleep 60000
+WshShell.Run "cmd", 9
+WScript.sleep 1000
+WshShell.SendKeys "c:\%s -s"
+WshShell.SendKeys "{ENTER}"
+WScript.sleep 180000
 
-        returncode = self.xmlrpcExec("c:\\%s /s /noreboot" % (fileName),
+WshShell.SendKeys "{ENTER}"
+WScript.sleep 1000
+WshShell.SendKeys "{LEFT}"
+WshShell.SendKeys "{ENTER}"
+WScript.sleep 1000
+WshShell.SendKeys "{ENTER}"
+
+WScript.sleep 180000
+
+WshShell.SendKeys "{ENTER}"
+WScript.sleep 1000
+WshShell.SendKeys "{ENTER}"
+""" % (fileName)
+        self.xmlrpcWriteFile("c:\\vb.vbs",vbScript)
+        returncode = self.xmlrpcExec("c:\\vb.vbs",
                                       level=xenrt.RC_OK, returnerror=False, returnrc=True,
                                       timeout = 600)
-
         # Wait for some time to settle down with driver installer.
         xenrt.sleep(30)
 
@@ -9945,7 +9985,7 @@ while True:
         @rtype boolean
         """
         if self.windows:
-            raise XRTError("Function can only be used to check for installed RPMs on linux.")
+            raise xenrt.XRTError("Function can only be used to check for installed RPMs on linux.")
 
         #rpm should NOT contain file extn .rpm, so split off any file extension
         fileWithoutExt = os.path.splitext(rpm)[0]
@@ -10753,8 +10793,8 @@ DomainLevel=%s
 InstallDNS=Yes
 ConfirmGc=Yes
 CreateDNSDelegation=No
-DatabasePath="C:\Windows\NTDS"
-LogPath="C:\Windows\NTDS"
+DatabasePath="C:\Windows\\NTDS"
+LogPath="C:\Windows\\NTDS"
 SYSVOLPath="C:\Windows\SYSVOL"
 SafeModeAdminPassword=%s
 RebootOnSuccess=No
@@ -10779,13 +10819,13 @@ RebootOnSuccess=No
         psscript = """Import-Module ADDSDeployment;
 Install-ADDSForest `
 -CreateDnsDelegation:$false `
--DatabasePath "C:\Windows\NTDS" `
+-DatabasePath "C:\Windows\\NTDS" `
 -DomainMode "%s" `
 -DomainName "%s" `
 -DomainNetbiosName "%s" `
 -ForestMode "%s" `
 -InstallDns:$true `
--LogPath "C:\Windows\NTDS" `
+-LogPath "C:\Windows\\NTDS" `
 -NoRebootOnCompletion:$true `
 -SysvolPath "C:\Windows\SYSVOL" `
 -Force:$true `

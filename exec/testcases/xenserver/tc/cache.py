@@ -5,7 +5,7 @@ from sets import Set as unique
 
 class PacketCatcher(object):
 
-    def __init__(self, host, delay=0, nolog=False):
+    def __init__(self, host, delay=2, nolog=True):
         self.host = host
         self.packets = []
         self.pid = None
@@ -13,11 +13,17 @@ class PacketCatcher(object):
         self.nolog = nolog
         self.datafile = self.host.execdom0("mktemp").strip()
 
-    def startCapture(self, pattern):
+    def startCapture(self, params):
+
+        #if isinstance(self.host, xenrt.lib.xenserver.ClearwaterHost):
+            #params = params + " -B 64000"
+        if isinstance(self.host, xenrt.lib.xenserver.DundeeHost):
+            params = params + " -U"
+
         self.packets = []
         xenrt.TEC().logverbose("PacketCatcher: Starting capture on %s..." % (self.host.getName()))
         self.pid = self.host.execdom0("tcpdump %s &> %s & echo $!" % 
-                                      (pattern, self.datafile)).strip()
+                                      (params, self.datafile)).strip()
 
     def stopCapture(self):
         xenrt.TEC().logverbose("Sleeping for %ss." % (self.delay))
@@ -40,6 +46,11 @@ class PacketCatcher(object):
         with open(d, "r") as fp:
             data = fp.read()
         self.processData(data)
+        if not xenrt.TEC().lookup("KEEP_TCPDUMP_LOG", False, boolean=True):
+            try:
+                os.remove(d)
+            except:
+                pass
 
     def processData(self, data):
         timestamps = re.findall("\d+\.\d+ IP", data)
@@ -51,7 +62,7 @@ class PacketCatcher(object):
             r = re.search("(%s.*?)\s+0x0000" % (t), contents, re.DOTALL)
             if not r:
                 raise xenrt.XRTError("Could not find header in contents '%s'" % (contents))
-            header = r.group(1)
+            header = r.group(1).replace("\n", "").replace("\r", "")
             body = re.sub("\s+", "", "".join(re.findall("0x\w{4}:\s+(.*)", contents)))
             self.packets.append((header, body))
 
@@ -118,7 +129,7 @@ class NFSPacketCatcher(PacketCatcher):
 
 class IOPPacketCatcher(PacketCatcher):
 
-    def __init__(self, host, delay=0, nolog=False):
+    def __init__(self, host, delay=2, nolog=True):
         PacketCatcher.__init__(self, host, delay, nolog)
         self.iterations = 0
         self.reads = [] 
@@ -129,10 +140,14 @@ class IOPPacketCatcher(PacketCatcher):
         return PacketCatcher.startCapture(self, pattern)
 
     def processData(self, data):
+        if isinstance(self.host, xenrt.lib.xenserver.DundeeHost):
+            exclude = "null|proc"
+        else:
+            exclude = "null|win:proc"
         self.reads.append(len(filter(lambda x:re.search("read", x), 
-                              filter(lambda x:not re.search("null|win|proc", x), data.splitlines()))))
+                              filter(lambda x:not re.search(exclude, x), data.splitlines()))))
         self.writes.append(len(filter(lambda x:re.search("write", x), 
-                               filter(lambda x:not re.search("null|win|proc", x), data.splitlines()))))
+                               filter(lambda x:not re.search(exclude, x), data.splitlines()))))
 
 class _Cache(xenrt.TestCase):
 
@@ -274,9 +289,7 @@ class _Cache(xenrt.TestCase):
     def beginMeasurement(self): 
         self.configureNetwork()
         xenrt.TEC().logverbose("Capturing all NFS traffic on %s." % (self.host.getName()))
-        param = "tcp port nfs and host %s -i %s -tt -x -s 65535 -vvv" % (self.host.getIP(),self.host.getPrimaryBridge())
-        #if isinstance(self.host, xenrt.lib.xenserver.ClearwaterHost):
-            #param = param + " -B 64000"
+        param = "tcp port nfs and host %s -i %s -tt -x -s 65535 -vv" % (self.host.getIP(),self.host.getPrimaryBridge())
         self.packetCatcher.startCapture(param)
     
     def endMeasurement(self):
@@ -598,7 +611,9 @@ class _Cache(xenrt.TestCase):
                                                     master.compileWindowsProgram(path) + "\\winread.exe")   
                     master.shutdown()
                 else:
-                    master = self.host.createGenericLinuxGuest(start=False, sr=sr)
+                    master = self.host.createGenericLinuxGuest(start=True, sr=sr)
+                    master.preCloneTailor()
+                    master.shutdown()
                     xenrt.TEC().registry.guestPut(masterkey, master)
             gold = xenrt.TEC().registry.guestGet(masterkey).copyVM()
             xenrt.TEC().registry.guestPut(goldkey, gold)
@@ -628,7 +643,7 @@ class _Cache(xenrt.TestCase):
         self.host = self.getDefaultHost()
         if not self.host.genParamGet("sr", self.host.lookupDefaultSR(), "type") == "nfs":
             raise xenrt.XRTError("The default SR must be an nfs one.")
-        self.packetCatcher = NFSPacketCatcher(self.host, delay=0)
+        self.packetCatcher = NFSPacketCatcher(self.host, delay=2)
         if isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
             self.host.disableReadCaching()
         self.enableCaching()
@@ -1472,7 +1487,7 @@ class _CachePerformance(_Cache):
             for i in range(self.GUESTS):
                 self.createTargetVM(windows=True, cached=self.CACHED, reset=self.RESET)
             self.iocounter.start()
-            self.packetCatcher.startCapture("dst port nfs -i %s -vvv" % (self.host.getPrimaryBridge()))
+            self.packetCatcher.startCapture("dst port nfs -i %s -x -s 65535 -vv" % (self.host.getPrimaryBridge()))
             guestsToStart = copy.copy(self.guests)
             # Booting one guest first to pull everything into the read-cache
             # so that subsequent guests can read from the cache instead of nfs.
@@ -1494,8 +1509,14 @@ class _CachePerformance(_Cache):
                 self.packetCatcher.reads, self.packetCatcher.writes  
 
     def check(self, base, value, maxgain, mingain):
-        xenrt.TEC().logverbose("BASE: %s VALUE: %s" % (base, value)) 
-        observed = xenrt.mean(map(float, value))/xenrt.mean(map(float, base))
+        xenrt.TEC().logverbose("BASE: %s VALUE: %s" % (base, value))
+        
+        numerator = xenrt.mean(map(float, value))
+        denominator = xenrt.mean(map(float, base))
+        if denominator == 0:
+            raise xenrt.XRTError("Mean of base is 0. Did measurement run properly?")
+
+        observed = numerator / denominator
         if observed > maxgain:
             raise xenrt.XRTFailure("Performance metric not reached: %s > %s" % (observed, maxgain))
         elif observed < mingain:
@@ -1544,7 +1565,7 @@ class TC12006(_CachePerformance):
     READMAXGAIN = 0.7
     READMINGAIN = 0.01
     #WRITEMAXGAIN = 1.15 # Due to increase in cache writeback, this increase is expected.
-    WRITEMAXGAIN = 1.3 # Refer CA-124004
+    WRITEMAXGAIN = 1.5 # Refer CA-124004
     WRITEMINGAIN = 0.5 # Ensure writes are still being sent back to nfs.
 
 class _ReadCachePerformance(_CachePerformance):

@@ -2521,7 +2521,11 @@ class TC10666(xenrt.TestCase):
         # Check a likewise lookup for the old SID fails in a suitable way
         ok = True
         try:
-            self.pool.master.execdom0("/opt/likewise/bin/lw-find-by-sid %s" % 
+            if self.pool.master.execdom0("test -e /opt/pbis", retval="code") == 0:
+                self.pool.master.execdom0("/opt/pbis/bin/find-by-sid %s" % 
+                                      (self.sid0))
+            else:
+                self.pool.master.execdom0("/opt/likewise/bin/lw-find-by-sid %s" % 
                                       (self.sid0))
             ok = False
         except xenrt.XRTFailure, e:

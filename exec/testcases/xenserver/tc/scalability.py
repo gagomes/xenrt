@@ -666,7 +666,6 @@ class TC19270(_VMScalability):
     CHECKHEALTH=True
     TRYMAX = True
     NET_BRIDGE = False
-    DOM0MEM = 8192
     MEMORY=128
     ARCH = "x86-64"
     #DOM0CPUS = False

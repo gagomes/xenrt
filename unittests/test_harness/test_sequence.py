@@ -40,11 +40,17 @@ class TestFindingSeqFile(XenRTUnitTestCase):
         data = [None, 1, [1, 2, 3]]
         self.run_for_many(data, check)
 
+    def dummy_lookup(self, param, default=None):
+        if param == "XENRT_BASE":
+            return self.BASE
+        elif param == "SEQ_LOCATION":
+            return None
+
     @patch("xenrt.TEC")
     @patch("os.path.exists")
     def __test_expected_paths_found(self, data, ospath, tec):
         path, expected = data
-        tec.return_value.lookup.return_value = self.BASE
+        tec.return_value.lookup.side_effect = self.dummy_lookup
         ospath.return_value = True
         result = xenrt.seq.findSeqFile(path)
         self.assertEqual(expected, result)

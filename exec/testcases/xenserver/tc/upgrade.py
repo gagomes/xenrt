@@ -3462,7 +3462,7 @@ class TC10718(_FeatureOperationAfterUpgrade):
                                    "authenticate using CLI")
                
     
-    def sshAuthentication(self,auth=None):
+    def sshAuthentication(auth=None):
         try:
             for user in self.TESTUSERS + self.ADDREMOVEUSERS:
                 subject = self.authserver.getSubject(name=user)
@@ -3546,7 +3546,6 @@ class ADUpgradeAuthentication(TC10718):
         self.addExtraUsers()
         
         #Test CLI authentication
-        self.cli = self.poolsToUpgrade[0].getCLIInstance()
         self.cliAuthentication(auth=True)
 
         # Test SSH authentication

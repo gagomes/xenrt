@@ -16,6 +16,19 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
         self.sr_to_diskname = {}
         self.host = self.getDefaultHost()
 
+    def setup_null_device(self, device):
+        x = device.split(":")
+        null_device_params = None
+        null_device = x[0]
+
+        if len(x) > 1:
+            null_device_params = x[1]
+
+        self.host.execdom0("modprobe null_blk %s" % (null_device_params if null_device_params else ""))
+        self.host.execdom0("sed -i 's/\/dev\/null/%s/' /opt/xensource/sm/DummySR" % (null_device.replace("/", "\/")))
+        sr_uuid = self.host.execdom0("xe sr-create name-label=nullsr type=dummy physical-size=8GiB").strip()
+        return sr_uuid
+
     def parseArgs(self, arglist):
         # Parse generic arguments
         libperf.PerfTestCase.parseArgs(self, arglist)
@@ -590,6 +603,9 @@ Version 1.1.0
             if device == "default":
                 sr = self.host.lookupDefaultSR()
                 self.sr_to_diskname[sr] = "default"
+            elif device.startswith("/dev/nullb"):
+                sr = self.setup_null_device(device)
+                self.sr_to_diskname[sr] = device.split(":")[0]
             elif device.startswith("xen-sr="):
                 device = sr = device.split('=')[1]
                 self.sr_to_diskname[sr] = sr.split("-")[0]

@@ -3186,7 +3186,7 @@ class BootstormBase(FunctionalBase):
         xenrt.pfarm(pt)
 
         # Wait for the VMs to be up in parallel.
-        pt = [xenrt.PTask(vm.poll, "UP") for vm, config in self.vms]
+        pt = [xenrt.PTask(vm.waitReadyAfterStart) for vm, config in self.vms]
         xenrt.pfarm(pt)
 
         for vm, config in self.vms:

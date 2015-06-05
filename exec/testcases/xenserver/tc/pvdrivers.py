@@ -1168,9 +1168,17 @@ class TCSysrepAfterToolsUpgrade(xenrt.TestCase):
 
     def run(self, arglist=None):
         step("Check whether Sysprep gets installed")
-        self.guest.sysPrepOOBE()
+        oldComputerName=self.guest.xmlrpcGetEnvVar('COMPUTERNAME')
+        self.guest.xmlrpcDoSysprep()
+        self.guest.reboot()
+        self.guest.checkPVDevices()
+        newComputerName=self.guest.xmlrpcGetEnvVar('COMPUTERNAME')
+        if oldComputerName != newComputerName:
+            xenrt.TEC().logverbose("Sysprep is installed successfully after tools upgrade.")
+        else:
+            xenrt.TEC().logverbose("Sysprep is not installed.")
         
-            
+        
 class TCToolsIPv6Disabled(xenrt.TestCase):
     """Test for SCTX-1919. Verify upgrade of XenTools from XS 6.0 to XS 6.1 is successfull when IPv6 is disabled"""
     #TC-27019

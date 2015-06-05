@@ -216,14 +216,14 @@ for i in {b..%s}; do
     echo $(($(/root/fio/fio --name=iometer \
                             --direct=1 \
                             --ioengine=libaio \
-                            --io_size=1024TB \
+                            --time_based \
                             --filename=/dev/xvd$i \
                             --minimal \
                             --terse-version=3 \
                             --numjobs=%d \
                             --rw=%s \
                             --iodepth=%d \
-                            --bssplit=%d/100 \
+                            --bs=%d \
                             --runtime=%d %s | cut -d";" -f%d | paste -sd+ - | bc) * 1024)) &> /root/out-$i &
     pid[$pididx]=$!
     ((pididx++))
@@ -518,6 +518,9 @@ Version 1.1.0
                         host=self.host,
                         guestname=self.vm_image,
                         filename=vmurl)
+
+                if self.vcpus_per_vm:
+                    self.template.cpuset(self.vcpus_per_vm)
 
                 self.template.removeCD()
                 self.template.start()

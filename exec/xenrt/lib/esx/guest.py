@@ -417,8 +417,7 @@ class Guest(xenrt.lib.libvirt.Guest):
             host.addToVCenter()
         ovftoolVersion = xenrt.command("ovftool --version", level=xenrt.RC_OK)
         if ovftoolVersion==1:
-            ovftool=xenrt.TEC().getFile(xenrt.TEC().lookup("VMWARE_OVFTOOL_LINUX64","http://10.102.123.140/misc/VMware-ovftool-4.1.0-2459827-lin.x86_64.bundle"))
-            xenrt.command("sudo sh %s --eulas-agreed --regular --required"% ovftool)
+            raise xenrt.XRTError("ovftool is required for vm import on esx")
         if not sr:
             sr=host.getDefaultDatastore()
         ovfInfo=xenrt.command("ovftool --machineOutput %s" % file)

@@ -175,6 +175,7 @@ class TCGPODoesNotBSOD(xenrt.TestCase):
         host = self.getDefaultHost()
         guest = self.getGuest(host.listGuests()[0])
         self.__setGPO(guest)
+        guest.reboot()
         guest.installDrivers()
         guest.checkHealth()
 

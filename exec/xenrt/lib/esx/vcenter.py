@@ -240,6 +240,10 @@ LS_URL=\"https://%s:7444/lookupservice/sdk\" \
                                                         self.password,
                                                         dc), returndata=True, winrm=self.useWinrm))
 
+    def removeHost(self, host):
+        # TODO - remove only host and not complete datacenter, if datacenter has more hosts in it. Same applies for cluster.
+        self.removeDataCenter(host.datacenter)
+
 def getVCenter(guest=None, vCenterVersion="5.5.0-update02"):
     if not guest:
         global _vcenter

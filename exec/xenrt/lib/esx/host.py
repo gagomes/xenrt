@@ -518,6 +518,12 @@ reboot
         self.datacenter=dc
         self.cluster=cluster
 
+    def removeFromVCenter(self):
+        if self.datacenter:
+            xenrt.lib.esx.getVCenter().removeHost(self)
+            self.datacenter=None
+            self.cluster=None
+
     def setPowerPolicy(self, policyname):
         script = """
 from pyVim.connect import Connect

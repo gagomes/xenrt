@@ -226,7 +226,7 @@ class _Hotfix(xenrt.TestCase):
             except xenrt.XRTFailure, e:
                 if "required_version" in e.data and "6.2_vGPU_Tech_Preview" in e.data:
                     xenrt.TEC().logverbose("Patch apply failed as expected when 6.2_vGPU_Tech_Preview is already installed")
-                elif "required_version" in e.data and not "XenServer 6.2 Service Pack" in e.data:
+                elif "required_version" in e.data and not "Service Pack" in e.data:
                     if not "^" in e.data or not e.data.strip().endswith("$"):
                         raise xenrt.XRTFailure("Version regex not correctly anchored")
                     elif not "\\." in e.data and not "BUILD_NUMBER" in e.data:
@@ -305,23 +305,29 @@ class _Hotfix(xenrt.TestCase):
         xenrt.TEC().logverbose("Installing Mercurial so can get driver disks")
         
         td = xenrt.TEC().tempDir()
-        xenrt.util.command("cd %s && hg clone %s" % (td, xenrt.TEC().lookup("DRIVER_DISK_REPO")))
-        # remove all but isos
+        if "driverdisks.hg" in xenrt.TEC().lookup("DRIVER_DISK_REPO"):
+            xenrt.util.command("cd %s && hg clone %s driverDisk" % (td, xenrt.TEC().lookup("DRIVER_DISK_REPO")))
+        else:
+            xenrt.util.command("wget -r --no-parent --reject 'index.html*' %s -P %s/driverDisk" % (xenrt.TEC().lookup("DRIVER_DISK_REPO"), td))
+            #extract zip files
+            xenrt.util.command("cd %s && find ./ -name *.zip -exec sh -c 'unzip -d `dirname {}` {}' ';'" % td)
+        # remove all but iso
         xenrt.util.command("cd %s && find -type f | grep -v .iso | xargs rm -f " % td)
-        # remove files from .hg/
-        xenrt.util.command("cd %s &&  find driverdisks.hg/.hg -type f -exec rm {} \;"  % td)
         # tar the content, copy to the host and untar
-        xenrt.util.command("cd %s && tar -czf driverdisks.hg.tgz driverdisks.hg" % td)
+        xenrt.util.command("cd %s && tar -czf driverdisks.tgz driverDisk" % (td))
         sftp = self.host.sftpClient()
         try: 
-            sftp.copyTo(td+"/driverdisks.hg.tgz", "/driverdisks.hg.tgz")
+            sftp.copyTo("%s/driverdisks.tgz" % td, "/driverdisks.tgz")
         finally:
             sftp.close()
-        self.host.execdom0("cd / && tar -xzf driverdisks.hg.tgz && rm /driverdisks.hg.tgz")
+        self.host.execdom0("cd / && tar -xzf driverdisks.tgz && rm /driverdisks.tgz")
 
         xenrt.TEC().logverbose("Listing driver disks for this kernel")
-        self.host.execdom0("uname -r")
-        isos = self.host.execdom0('cd / && find /driverdisks.hg | grep "`uname -r`" | grep ".iso$" || true').strip().splitlines()
+        if isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
+            isos = self.host.execdom0('cd / && find /driverDisk | grep ".iso$" || true').strip().splitlines()
+        else:
+            self.host.execdom0("uname -r")
+            isos = self.host.execdom0('cd / && find /driverDisk | grep "`uname -r`" | grep ".iso$" || true').strip().splitlines()
         
         for i in range(len(isos)):
             
@@ -358,7 +364,8 @@ class _Hotfix(xenrt.TestCase):
                 
                 for ko in self.host.execdom0('cd / && find /tmp/%d/%d | grep ".ko$" || true' % (i, j)).strip().splitlines():
                     koShort = re.match(".*/(.*?)\.ko$", ko).group(1)
-                    kos[koShort] = self.host.execdom0('modinfo %s | grep "^srcversion:"' % ko)
+                    if not koShort in kos or 'xen' in ko:
+                        kos[koShort] = self.host.execdom0('modinfo %s | grep "^srcversion:"' % ko)
 
             # list all rpms before installing driver disk
             rpmsBefore = self.host.execdom0("rpm -qa|sort").splitlines()
@@ -380,15 +387,24 @@ class _Hotfix(xenrt.TestCase):
             rpmsAfter = self.host.execdom0("rpm -qa|sort").splitlines()
             
             # get list of all new rpms installed (according to the system)
-            newRpms = filter(lambda x: not x in rpmsBefore, rpmsAfter)
+            newRpms = sorted(filter(lambda x: not x in rpmsBefore, rpmsAfter),reverse=True)
             xenrt.TEC().logverbose("New RPMS:\n" + "\n".join(newRpms))
             
              # now uninstall (this helps when you have multiple versions of the same driver)
+            uniqueNewRpms =  []
             for rpm in newRpms:
-                self.host.execdom0("rpm -ev %s" % rpm)
+                try:
+                    self.host.execdom0("rpm -ev %s" % rpm)
+                    uniqueNewRpms.append(rpm)
+                except Exception, e:
+                    if "Failed dependencies" in e.data:
+                        newRpms.append(rpm)
+                    else:
+                        raise
+                    
                 
-            if len(newRpms) != len(driverDiskRpms):
-                raise xenrt.XRTFailure("Incorrect RPMs installed by driver disk. Expected %d. Found %d." % (len(driverDiskRpms), len(newRpms)))
+            if len(uniqueNewRpms) != len(driverDiskRpms):
+                raise xenrt.XRTFailure("Incorrect RPMs installed by driver disk. Expected %d. Found %d." % (len(driverDiskRpms), len(uniqueNewRpms)))
 
             # remove repository stamp from xapi database
             try:

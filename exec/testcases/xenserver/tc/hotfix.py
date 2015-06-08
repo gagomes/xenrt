@@ -387,7 +387,7 @@ class _Hotfix(xenrt.TestCase):
             rpmsAfter = self.host.execdom0("rpm -qa|sort").splitlines()
             
             # get list of all new rpms installed (according to the system)
-            newRpms = sorted(filter(lambda x: not x in rpmsBefore, rpmsAfter),reverse=True)
+            newRpms = filter(lambda x: not x in rpmsBefore, rpmsAfter)
             xenrt.TEC().logverbose("New RPMS:\n" + "\n".join(newRpms))
             
              # now uninstall (this helps when you have multiple versions of the same driver)

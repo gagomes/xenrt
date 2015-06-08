@@ -280,7 +280,7 @@ class XapiEvent(Util):
         self.events = {}
 
     def getSession(self):
-        session = self.host.getAPISession()
+        session = self.host.getAPISession(secure=False)
         xenrt.TEC().logverbose("XapiEvent: session=%s" % session)
         return session
 
@@ -1701,14 +1701,19 @@ class Experiment_vmrun(Experiment):
                 urlsuffix = value #.lower() # eg. "trunk-ring0/54990"
                 url = "%s/usr/groups/xen/carbon/%s" % (urlpref, urlsuffix)
             product_version = (value.split("/")[0]).capitalize() #"Boston"
+            xenrt.TEC().logverbose("url=%s" % (url,))
 
             def setInputDir(url):
+                xenrt.TEC().logverbose("setting config.variable inputdir...")
                 xenrt.TEC().config.setVariable("INPUTDIR",url) #"%s/usr/groups/xen/carbon/boston/50762"%urlpref)
+                xenrt.TEC().logverbose("setting inputdir...")
                 xenrt.TEC().setInputDir(url) #"%s/usr/groups/xen/carbon/boston/50762"%urlpref)
                 xenrt.GEC().filemanager = xenrt.filemanager.getFileManager()
                 #sanity check: does this url exist?
                 bash_cmd = "wget --server-response %s 2>&1|grep HTTP/|awk '{print $2}'" % url
+                xenrt.TEC().logverbose("about to call popen with \"%s\"..." % (bash_cmd,))
                 p = subprocess.Popen(bash_cmd,shell=True,stdout=subprocess.PIPE)
+                xenrt.TEC().logverbose("about to read popen stdout...")
                 http_code = p.stdout.read().strip()
                 inputdir_ok = not ("404" in http_code)
                 if inputdir_ok:

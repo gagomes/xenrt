@@ -20,50 +20,65 @@ class NetScaler(object):
         host = vpxGuest.host
         xenrt.TEC().logverbose('Using VPX Appliance: %s on host: %s - current state: %s' % (vpxGuest.getName(), host.getName(), vpxGuest.getState()))
         xenrt.TEC().logverbose("VPX Guest:\n" + pformat(vpxGuest.__dict__))
-
         vpxGuest.noguestagent = True
         vpxGuest.password = 'nsroot'
 
         try:
-            vpxMgmtIp = vpxGuest.paramGet(paramName='xenstore-data', paramKey='vm-data/ip')
+            vpxMgmtIp = cls.getVpxIpFromVmParams(vpxGuest)
             xenrt.xrtAssert(vpxGuest.mainip == vpxMgmtIp and vpxGuest.mainip != None, 'Netscaler VPX guest has inconsistent or NULL IP Address')
             if vpxGuest.getState() == 'DOWN':
                 vpxGuest.lifecycleOperation('vm-start')
-
             # Wait / Check for SSH connectivity
             vpxGuest.waitForSSH(timeout=300, username='nsroot', cmd='shell')
             vpx = cls(vpxGuest, None)
         except xenrt.XRTFailure, e:
             if vpxGuest.getState() == 'UP':
                 vpxGuest.shutdown()
-
             if not useVIFs:
                 # Configure the VIFs
+                # TODO - write removeAllVIFs() for libvirt guest
                 vpxGuest.removeAllVIFs()
-
                 for n in networks:
+                    # TODO - createVIF has diff args/defaults for diff guest
                     vpxGuest.createVIF(bridge=n)
             else:
                 networks = [vpxGuest.getNetworkNameForVIF(x[0]) for x in vpxGuest.vifs]
             mgmtNet = networks[0]
-            xenrt.TEC().logverbose("Setting up networks %s" % (", ".join(networks)))
-
-            # Configure the management network for the VPX
-            vpxGuest.mainip = xenrt.StaticIP4Addr(network=mgmtNet).getAddr()
-            gateway = xenrt.getNetworkParam(mgmtNet, "GATEWAY")
-            mask = xenrt.getNetworkParam(mgmtNet, "SUBNETMASK")
-            vpxGuest.paramSet('xenstore-data:vm-data/ip', vpxGuest.mainip)
-            vpxGuest.paramSet('xenstore-data:vm-data/netmask', mask)
-            vpxGuest.paramSet('xenstore-data:vm-data/gateway', gateway)
-
+            cls.configureVpxNetworkToVmParams(vpxGuest, mgmtNet)
             vpxGuest.lifecycleOperation('vm-start')
-
             # Wait / Check for SSH connectivity
             vpxGuest.waitForSSH(timeout=300, username='nsroot', cmd='shell')
             vpx = cls(vpxGuest, mgmtNet)
             vpx.checkFeatures("On fresh install:")
             vpx.setup(networks)
         return vpx
+
+    @classmethod
+    def configureVpxNetworkToVmParams(cls, vpxGuest, mgmtNet):
+        """Configure the management network for the VPX"""
+        vpxGuest.mainip = xenrt.StaticIP4Addr(network=mgmtNet).getAddr()
+        gateway = xenrt.getNetworkParam(mgmtNet, "GATEWAY")
+        mask = xenrt.getNetworkParam(mgmtNet, "SUBNETMASK")
+        if isinstance(vpxGuest, xenrt.lib.xenserver.Guest):
+            vpxGuest.paramSet('xenstore-data:vm-data/ip', vpxGuest.mainip)
+            vpxGuest.paramSet('xenstore-data:vm-data/netmask', mask)
+            vpxGuest.paramSet('xenstore-data:vm-data/gateway', gateway)
+        elif isinstance(vpxGuest, xenrt.lib.esx.Guest):
+            paramValue ="ip=%s&netmask=%s&gateway=%s" % (vpxGuest.mainip, mask, gateway)
+            # TODO - implement paramSet for ESX Guest
+            vpxGuest.paramSet('machine.id', paramValue)
+        else:
+            raise xenrt.XRTError("Unimplemented")
+
+    @classmethod
+    def getVpxIpFromVmParams(cls, vpxGuest):
+        if isinstance(vpxGuest, xenrt.lib.xenserver.Guest):
+            return vpxGuest.paramGet(paramName='xenstore-data', paramKey='vm-data/ip')
+        elif isinstance(vpxGuest, xenrt.lib.esx.Guest):
+            # TODO - implement paramGet for ESX Guest
+            return vpxGuest.paramGet(paramName='AdvancedSetting', paramKey='machine.id').split("&")[0]
+        else:
+            raise xenrt.XRTError("Unimplemented")
 
     @classmethod
     def createVPXOnHost(cls, host, vpxName=None, vpxHttpLocation=None):

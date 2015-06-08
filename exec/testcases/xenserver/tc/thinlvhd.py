@@ -160,3 +160,169 @@ class ResetOnBootThinSRSpace(_ResetOnBootBase):
             raise xenrt.XRTFailure("VM did not release the space when state set to shutdown. Physical SR size before :%s and SR size after VM shutdown: %s" %(srSizeBefore,srSizeAfter))
         xenrt.TEC().logverbose("Physical SR space for the VDI changed as expected")
 
+
+class _ThinProvisioningBase(xenrt.TestCase):
+    """Base class of thinprovisioning TCS.
+    All TC specific utilities should be implemented in this class."""
+
+    QUANTUM_RATIO = 0.2
+
+    def prepare(self, arglist=[]):
+        self.sr = self.getThinProvisioningSRs()
+        self.setDefaultThinProv()
+
+    def setDefaultThinProv(self):
+        """Set default provisining rate to QUANTUM_RATIO"""
+        for sr in self.sr:
+            sr.setDefaultVDIAllocation(self.QUANTUM_RATIO)
+
+    def createThinSR(self,
+                host=None,
+                name=None,
+                srtype="lvmoiscsi",
+                ietvm=False, 
+                size=0,
+                deviceconfig=None,
+                thin_prov=False):
+        """Creates a SR with given parameters.
+        """
+
+        if not host:
+            host = self.getDefaultHost()
+        if not name or len(name) == 0:
+            name = srtype + "sr"
+
+        return None
+
+    def getDefaultSR(self):
+        """Find default SR and return SR instance."""
+        host = self.host
+        if not host:
+            host = self.getDefaultHost()
+
+        sruuid = host.lookupDefaultSR()
+        return xenrt.lib.xenserver.getStorageRepositoryClass(host, sruuid).fromExistingSR(host, sruuid)
+
+    def getThinProvisioningSRs(self):
+        """Find all ThinProvisioning SRs
+        
+        @return: a list of thin provisioned SRs. [] if none exists.
+        """
+
+        host = self.host
+        if not host:
+            host = self.getDefaultHost()
+
+        srs = [xenrt.lib.xenserver.getStorageRepositoryClass(host, sr.uuid).fromExistingSR(host, sr.uuid)
+                for sr in host.asXapiObject().SR(False)]
+
+        return [sr for sr in srs if sr.thinProvisioning]
+
+    def getPhysicalSize(self, sr):
+        """Return physical size of sr."""
+
+        #Dev does not have API for this yet
+
+        return 0
+
+    def fillDisk(self, guest, targetDir=None, size=512*1024*1024*1024):
+        """Fill target disk by creating an empty file with
+        given size on the given directory.
+
+        @param guest: Target VM
+        @param targetDir: Target directory of the VM. If none is given, use tmp
+            by default.
+        @param size: Size of the file to create in byte. Use 512M by default.
+
+        If failed to create file due to any reason, raise an xenrt.XRTError.
+        """
+
+        if not targetDir:
+            targetDir = guest.execguest("mktemp")
+
+        guest.execguest("dd if=/dev/zero of=%s bs=4096 count=%d conv=notrunc" %
+            (targetDir, size/4096))
+
+
+class TCThinProvisioned(_ThinProvisioningBase):
+    """Verify LUN creates smaller than virtual size of all VDIs contained."""
+
+    def prepare(self, arglist=[]):
+
+        self.srs = self.getThinProvisioningSRs()
+        if not self.srs:
+            raise XRTError("No thin provisioning SR found.")
+
+    def runCase(self, sr, vms):
+
+        log("Checking SR: %s..." % sr.name())
+
+        origsize = self.getPhysicalSize(sr)
+        self.guests = []
+        for vm in range(vms):
+            guest = self.host.createGenericLinuxGues(sr=sr.uuid)
+            guest.setState("DOWN")
+            guest.preCloneTailor()
+            self.uninstallOnCleanup(guest)
+            self.guests.append(guest)
+ 
+        aftersize = self.getPhysicalSize(sr)
+
+        if aftersize <= origsize:
+            raise xenrt.XRTFailure("SR size is decreased after %d VDI creation. (before: %d, after %d)" %
+                    (vms, origsize, aftersize))
+
+        vdisize = 0
+        for guest in self.guests:
+            for xvdi in guest.asXapiObject().VDI():
+                vdisize += xvdi.size()
+
+        if aftersize >= origsize + vdisize:
+            raise xenrt.XRTFailure("SR size is bigger than sum of all VDIs on ThinLVHD. (before: %d, after: %d, vdi: %s)" %
+                    (origsize, aftersize, vdisize))
+        
+    def run(self, arglist=[]):
+
+        args = self.parseArgsKeyValue(arglist)
+        vms = 5
+        if "vms" in args:
+            vms = args["vms"]
+
+        for sr in self.sr:
+            self.runSubcase("runCase", (sr, vms), sr.name, "Check %d VDIs" % vms)
+
+
+class TCSRIncrement(_ThinProvisioningBase):
+    """Check SR is increment on VDI increase."""
+
+    def prepare(self, arglist=[]):
+
+        super(_ThinProvisioningBase, self).prepare(arglist)
+
+        if not self.srs:
+            raise XRTError("No thin provisioning SR found.")
+
+    def runCase(self, sr):
+
+        log("Checking SR: %s..." % sr.name())
+
+        guest = self.host.createGenericLinuxGues(sr=sr.uuid)
+        guest.setState("DOWN")
+        guest.preCloneTailor()
+        self.uninstallOnCleanup(guest)
+ 
+        origsize = self.getPhysicalSize(sr)
+
+        self.fillDisk(guest, size=1024*1024*1024) # filling 1 GB
+
+        aftersize = self.getPhyscialSize(sr)
+
+        if aftersize <= origsize:
+            raise xenrt.XRTFailure("SR size is not growing. (SR: %s, before: %d, after: %d)" %
+                (sr.uuid, origsize, aftersize))
+
+    def run(self, arglist=[]):
+
+        for sr in self.sr:
+            self.runSubcase("runCase", (sr,), sr.name, "Check %s" % sr.name)
+

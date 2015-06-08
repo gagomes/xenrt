@@ -83,8 +83,10 @@ class TestSpace(Util):
     def getPoints(self,dimensions):
         result = [[]]
         d_order = self.getdOrder()
+        xenrt.TEC().logverbose("d_order = %s" % (d_order,))
         for d in d_order:
             result=[x+[y] for x in result for y in dimensions[d]]
+            xenrt.TEC().logverbose("result = %s" % (result,))
         return result
 
     # return the dimensions that changed between 2 points

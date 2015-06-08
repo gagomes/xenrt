@@ -233,9 +233,6 @@ def start_job(job):
     trace("Using branch '%s'\n" % (branch))
 
     try:
-
-
-        
         execCmd("cd %s && git reset --hard" % (_rootdir), errorException=False)
         execCmd("cd %s && git checkout -f %s && git reset --hard" % (_rootdir, _stablebranch))
         execCmd("cd %s && git pull --ff-only" % (_rootdir), errorException=otherBranch)
@@ -264,7 +261,7 @@ def start_job(job):
             execCmd("cd %s && git branch -D %s" % (_rootdir, branch), errorException=False)
         trace("%s\n" % (errmsg))
         if not debug:
-            xenrt.update_job(job['id'], params={"FAILED": errmsg}, complete=True)
+            xenrt.update_job(job['id'], params={"FAILED": errmsg[:200]}, complete=True)
         return
     
     custompatchtmp = ""

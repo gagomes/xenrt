@@ -1240,8 +1240,10 @@ def exitcb():
             s.xmlrpcNop()
         except Exception, e:
             print str(e)
-
-    gec.onExit(aux)
+    try:
+        gec.onExit(aux)
+    except Exception, e:
+        print str(e)
     if not aux:
         gec.dbconnect.jobUpdate("FINISHED",
                                 time.asctime(time.gmtime()) + " UTC")

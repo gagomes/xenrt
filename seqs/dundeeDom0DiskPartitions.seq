@@ -1,0 +1,14 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0"/>
+  </prepare>
+
+  <testsequence>
+    <testcase id="xenserver.tc.host.TCDom0PartitionClean" name="TC27020" tc="TC-27020"/>
+    <testcase id="xenserver.tc.host.TCSwapPartition" name="TC27021" tc="TC-27021"/>
+  </testsequence>
+</xenrt>

@@ -1,5 +1,4 @@
 <xenrt>
-
   <default name="ITERATIONS" value="100" />
 
   <variables>
@@ -30,12 +29,12 @@
 
   <collection name="install_guests">
     <serial>
-      <testcase id="xenserver.guest.TCXenServerVendorInstall" name="lin0_install_${H}" tc="TC-17472" sku="lin0_install_${H}">
+      <!--<testcase id="xenserver.guest.TCXenServerVendorInstall" name="lin0_install_${H}" tc="TC-17472" sku="lin0_install_${H}">
         <arg>${HOSTNAME}</arg>
         <arg>guest=lin0</arg>
         <arg>distro=sles111</arg>
         <arg>memory=1024</arg>
-      </testcase>
+      </testcase>-->
       <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="win0_install_${H}" tc="TC-17472" sku="win0_install_${H}">
         <arg>${HOSTNAME}</arg>
         <arg>guest=win0</arg>
@@ -50,24 +49,26 @@
         <arg>guest=win0</arg>
         <arg>resident_on=${HOSTNAME}</arg>
       </testcase>
-      <testcase id="guestops.basic.TCShutdown" name="lin0_shutdown_${H}" tc="TC-17472" sku="lin0_shutdown_${H}">
+      <!--<testcase id="guestops.basic.TCShutdown" name="lin0_shutdown_${H}" tc="TC-17472" sku="lin0_shutdown_${H}">
         <arg>guest=lin0</arg>
         <arg>resident_on=${HOSTNAME}</arg>
-      </testcase>
+      </testcase>-->
     </serial>
   </collection>
 
   <collection name="win_guests">
-    <testcase id="xenserver.tc.sxm.LiveMigrate" name="sxm_win_${S}_${I}" tc="TC-17472" sku="sxm_win_${S}_${I}">
+    <testcase id="xenserver.tc.sxm.LiveMigrate" name="sxm_win_${S}_${I}" sku="sxm_win_${S}_${I}" tc="TC-17472">
       <arg>gname=${GUEST}</arg>
       <arg>src_host=${SRC_HOST}</arg>
       <arg>dest_host=${DEST_HOST}</arg>
       <arg>src_SR_type=lvm</arg>
       <arg>dest_SR_type=lvm</arg>
       <arg>iterations=${ITERATIONS}</arg>
+      <arg>use_vmsecnetwork</arg>
+      <arg>skip_vmdowntime</arg>
     </testcase>
   </collection>
-
+<!--
   <collection name="lin_guests">
     <testcase id="xenserver.tc.sxm.LiveMigrate" name="sxm_lin_${S}_${I}" tc="TC-17472" sku="sxm_lin_${S}_${I}">
       <arg>gname=${GUEST}</arg>
@@ -77,7 +78,7 @@
       <arg>dest_SR_type=lvm</arg>
       <arg>iterations=${ITERATIONS}</arg>
     </testcase>
-  </collection>
+  </collection>-->
 
   <testsequence>
 
@@ -91,7 +92,7 @@
 
     <parallel tc="${TCID}">
       <for iter="S,D" values="(0,1)">
-        <for iter="I" values="1,2,3">
+        <for iter="I" values="1,2">
           <include collection="win_guests">
             <param name="SRC_HOST" value="RESOURCE_HOST_${S}" />
             <param name="DEST_HOST" value="RESOURCE_HOST_${D}" />

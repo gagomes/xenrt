@@ -88,7 +88,7 @@ class TestSpace(Util):
             dims = dimensions[d]
             xenrt.TEC().logverbose("dims.type = %s, dims = %s" % (type(dims).__name__, dims))
             result=[x+[y] for x in result for y in dims]
-            xenrt.TEC().logverbose("result = %s" % (result,))
+            #xenrt.TEC().logverbose("result = %s" % (result,))
         return result
 
     # return the dimensions that changed between 2 points

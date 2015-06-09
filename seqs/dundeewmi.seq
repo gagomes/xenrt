@@ -13,7 +13,6 @@
         <vcpus>1</vcpus>
         <network device="0"/>
         <postinstall action="installDrivers"/>
-        <storage>nfs1</storage>
       </vm>
       <vm name="w2k3-x86">
         <distro>w2k3eesp2</distro>
@@ -21,7 +20,6 @@
         <vcpus>1</vcpus>
         <network device="0"/>
         <postinstall action="installDrivers"/>
-        <storage>nfs1</storage>
       </vm>
       <vm name="ws08-x86">
         <distro>ws08sp2-x86</distro>
@@ -29,7 +27,6 @@
         <vcpus>2</vcpus>
         <network device="0"/>
         <postinstall action="installDrivers"/>
-        <storage>nfs1</storage>
       </vm>
       <vm name="win7-x86">
         <distro>win7sp1-x86</distro>
@@ -37,7 +34,6 @@
         <vcpus>1</vcpus>
         <network device="0"/>
         <postinstall action="installDrivers"/>
-        <storage>nfs1</storage>
       </vm>
       <vm name="win8-x86">
         <distro>win8-x86</distro>
@@ -45,7 +41,6 @@
         <vcpus>1</vcpus>
         <network device="0"/>
         <postinstall action="installDrivers"/>
-        <storage>nfs1</storage>
       </vm>
       <vm name="win81-x64">
         <distro>win81-x64</distro>
@@ -53,7 +48,6 @@
         <vcpus>1</vcpus>
         <network device="0"/>
         <postinstall action="installDrivers"/>
-        <storage>nfs1</storage>
       </vm>
       <!--<vm name="win10-x86">
         <distro>win10-x86</distro>
@@ -61,7 +55,6 @@
         <vcpus>1</vcpus>
         <network device="0"/>
         <postinstall action="installDrivers"/>
-        <storage>nfs1</storage>
       </vm>-->
     <storage type="nfs" name="nfs1" default="true" />
     </host>    

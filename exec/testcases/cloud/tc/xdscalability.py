@@ -38,12 +38,14 @@ class _TCCloneVMs(_TimedTestCase):
         self.cloud = self.getDefaultToolstack()
         self.zones = [x.name for x in self.cloud.marvin.cloudApi.listZones()]
         for z in self.zones:
+            # TODO allow different distro to be specified
             gold = self.cloud.createInstance(distro="debian70_x86-32", zone=z)
         
             # Do any XD tailoring here
             gold.stop()
             self.cloud.createTemplateFromInstance(gold, "xdgold%s" % z)
             gold.start()
+            # TODO handle Windows/Linux here
             gold.os.execSSH("echo gold2 > /root/gold2")
             gold.stop()
             self.cloud.createTemplateFromInstance(gold, "xdgold2%s" % z)
@@ -103,6 +105,7 @@ class TCXenDesktopCloneVMs(_TCCloneVMs):
 
         disk1 = self.cloud.marvin.cloudApi.createVolume(name="%s-0" % vmname, size=1, diskofferingid=diskOfferingId, zoneid=zoneId).id
         disk2 = self.cloud.marvin.cloudApi.createVolume(name="%s-1" % vmname, size=1, diskofferingid=diskOfferingId, zoneid=zoneId).id
+        # TODO: Attach and detach volumes from a running VM (emulate XD volume worker)
         self.cloud.marvin.cloudApi.attachVolume(id=disk1, virtualmachineid=instance.toolstackId)
         self.cloud.marvin.cloudApi.attachVolume(id=disk2, virtualmachineid=instance.toolstackId)
 
@@ -187,8 +190,11 @@ class _TCScaleVMOp(_TimedTestCase):
 
     def verifyVM(self, vm):
         vm.assertHealthy(quick=True)
-        if vm.special.get("gold2") and vm.getPowerState() == xenrt.PowerState.up:
-            vm.os.execSSH("test -e /root/gold2")
+        if vm.getPowerState() == xenrt.PowerState.up:
+            # TODO check disks are attached properly from inside the VM
+            if vm.special.get("gold2"):
+                # TODO handle windows/linux here
+                vm.os.execSSH("test -e /root/gold2")
 
     def doVMWorker(self, func):
         # Worker thread function for performing operations on VMs.

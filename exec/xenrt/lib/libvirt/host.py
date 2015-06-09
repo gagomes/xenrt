@@ -82,12 +82,13 @@ class Host(xenrt.GenericHost):
 
         return virConn
 
-    def execvirt(self, cmd):
+    def execvirt(self, cmd, cmdPostConnect=""):
         """Execute a command on the machine running libvirt. (Not in xenrt.lib.xenserver)"""
         if self.LIBVIRT_REMOTE_DAEMON:
             return self.execdom0(cmd)
         else:
             cmd += " --connect \"%s\" " % self._getVirURL()
+            cmd += cmdPostConnect
             child = pexpect.spawn(cmd)
             child.expect("Enter username for .*: ")
             child.sendline("root")

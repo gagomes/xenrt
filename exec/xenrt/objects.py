@@ -192,7 +192,7 @@ class GenericPlace(object):
     def getName(self):
         raise xenrt.XRTError("Unimplemented")
 
-    def paramGet(self, paramName):
+    def paramGet(self, paramName, paramKey=None):
         raise xenrt.XRTError("Unimplemented")
 
     def tailor(self):
@@ -4339,36 +4339,6 @@ class GenericHost(GenericPlace):
         except:
             traceback.print_exc(file=sys.stderr)
             xenrt.TEC().logverbose("Exception instantiating job test %s" % str(jt))
-
-    def rebuildInitrd(self):
-        """
-        Rebuild the initrd of the host in-place
-        This is virtually akin to applying a kernel hotfix
-        The MD5 sums of the files should be different before and after
-
-        Fingers crossed no reboot happens until the following 2 steps complete
-        successfully or the machine will be trashed. There is away to avoid
-        the below in clearwater and newer, but we'll need to do this for Tampa
-        too. For clearwater and greater just need to do
-        "sh initrd*.xen.img.cmd -f" without removing the original image file
-        but the old-style way should work regardless of age
-        """
-
-        xenrt.TEC().logverbose("Rebuilding initrd for host %s..." % str(self))
-        kernel = self.execdom0("uname -r").strip()
-        imgFile = "initrd-{0}.img".format(kernel)
-        xenrt.TEC().logverbose("Original md5sum = %s" %
-                               self.execdom0("md5sum /boot/%s" % imgFile))
-        xenrt.TEC().logverbose(
-            "Removing boot image %s and rebuilding" % imgFile)
-        self.execdom0("cd /boot")
-        self.execdom0("rm -rf %s" % imgFile)
-        self.execdom0(
-            """new-kernel-pkg.py --install --package=kernel-xen --mkinitrd "$@" %s""" % kernel)
-
-        xenrt.TEC().logverbose("New md5sum = %s" %
-                               self.execdom0("md5sum /boot/%s" % imgFile))
-        xenrt.TEC().logverbose("initrd has been rebuilt")
 
     def disableMultipathingInKernel(self, reboot=True):
         """
@@ -10793,8 +10763,8 @@ DomainLevel=%s
 InstallDNS=Yes
 ConfirmGc=Yes
 CreateDNSDelegation=No
-DatabasePath="C:\Windows\NTDS"
-LogPath="C:\Windows\NTDS"
+DatabasePath="C:\Windows\\NTDS"
+LogPath="C:\Windows\\NTDS"
 SYSVOLPath="C:\Windows\SYSVOL"
 SafeModeAdminPassword=%s
 RebootOnSuccess=No
@@ -10819,13 +10789,13 @@ RebootOnSuccess=No
         psscript = """Import-Module ADDSDeployment;
 Install-ADDSForest `
 -CreateDnsDelegation:$false `
--DatabasePath "C:\Windows\NTDS" `
+-DatabasePath "C:\Windows\\NTDS" `
 -DomainMode "%s" `
 -DomainName "%s" `
 -DomainNetbiosName "%s" `
 -ForestMode "%s" `
 -InstallDns:$true `
--LogPath "C:\Windows\NTDS" `
+-LogPath "C:\Windows\\NTDS" `
 -NoRebootOnCompletion:$true `
 -SysvolPath "C:\Windows\SYSVOL" `
 -Force:$true `

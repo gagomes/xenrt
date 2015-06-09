@@ -2281,7 +2281,7 @@ class TC12550(_VSwitch):
         for vlan_name in vlan_names:
             vlan_id, vlan_subnet, vlan_netmask = self.host.getVLAN(vlan_name)
             interface = "eth1.%d" % vlan_id
-            self.myguest.execguest("ifdown %s" % interface)
+            self.myguest.execguest("ip link set %s down" % interface)
             self.removeVLANLink(self.myguest, "eth1", vlan_id)    
 
 

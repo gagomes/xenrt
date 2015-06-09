@@ -200,6 +200,8 @@ class ManagementServer(object):
         marvinApi.setCloudGlobalConfig("secstorage.allowed.internal.sites", internalMask.strNormal())
         if not xenrt.TEC().lookup("MARVIN_SETUP", False, boolean=True):
             marvinApi.setCloudGlobalConfig("use.external.dns", "true")
+        endpoint_url = "http://%s:8096/client/api" % marvinApi.mgtSvrDetails.mgtSvrIp
+        marvinApi.setCloudGlobalConfig("endpointe.url", endpoint_url)
         marvinApi.setCloudGlobalConfig("check.pod.cidrs", "false", restartManagementServer=True)
         xenrt.GEC().dbconnect.jobUpdate("CLOUD_MGMT_SVR_IP", self.place.getIP())
         xenrt.TEC().registry.toolstackPut("cloud", xenrt.lib.cloud.CloudStack(place=self.place))

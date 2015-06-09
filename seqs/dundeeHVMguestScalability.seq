@@ -25,7 +25,7 @@
       <arg>VMPOSTINSTALL='[["pvdrvnorsc","nowinupd","noparallel","noserial","nocdrom","xdtailor","optimise"]]'</arg>
       <arg>VMCRON='["0:25:waitvmlogin"]'</arg>
       <arg>THRESHOLD=500.0</arg>
-      <arg>DEFAULTSR=nfs</arg>
+      <arg>DEFAULTSR=["nfs"]</arg>
     </testcase>
   </testsequence>
 </xenrt>

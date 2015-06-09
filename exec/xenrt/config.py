@@ -1595,7 +1595,18 @@ class Config(object):
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["w2k3eesp2"] = "Windows Server 2003 Enterprise Edition(32-bit)"
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["w2k3eesp2-x64"] = "Windows Server 2003 Enterprise Edition(64-bit)"
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["w2k3sesp2"] = "Windows Server 2003 Standard Edition(32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["ws08-x86"] = "Windows Server 2008 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["ws08-x64"] = "Windows Server 2008 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["ws08sp2-x86"] = "Windows Server 2008 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["ws08sp2-x64"] = "Windows Server 2008 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["ws08r2-x64"] = "Windows Server 2008 R2 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["ws08r2sp1-x64"] = "Windows Server 2008 R2 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["win7-x86"] = "Windows 7 (32-bit)"
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["win7sp1-x86"] = "Windows 7 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["win7-x64"] = "Windows 7 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["win7sp1-x64"] = "Windows 7 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["win8-x86"] = "Windows 8 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["win8-x64"] = "Windows 8 (64-bit)"
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["debian60_x86-32"] = "Debian GNU/Linux 6(64-bit)"
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["debian60_x86-64"] = "Debian GNU/Linux 6(64-bit)"
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["debian70_x86-32"] = "Debian GNU/Linux 7(32-bit)"
@@ -1759,6 +1770,8 @@ class Config(object):
         self.config["CLOUD_CONFIG"]["4.1"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvmtemplate-2013-07-12-master-xen.vhd.bz2"
 
         self.config["CLOUD_CONFIG"]["4.2"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.1"])
+        self.config["CLOUD_CONFIG"]["4.2"]["OS_NAMES"]["ws12-x64"] = "Windows Server 2012 (64-bit)"
+        self.config["CLOUD_CONFIG"]["4.2"]["OS_NAMES"]["ws12core-x64"] = "Windows Server 2012 (64-bit)"
         self.config["CLOUD_CONFIG"]["4.2"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvmtemplate64-2014-10-28-4.2-xen.vhd.bz2"
         self.config["CLOUD_CONFIG"]["4.2"]["SYSTEM_TEMPLATES"]["kvm"] = "/usr/groups/xenrt/cloud/systemvmtemplate64-2014-10-31-master-kvm.qcow2.bz2"
         self.config["CLOUD_CONFIG"]["4.2"]["SYSTEM_TEMPLATES"]["vmware"] = "/usr/groups/xenrt/cloud/systemvmtemplate64-2014-10-31-master-vmware.ova"
@@ -1782,6 +1795,8 @@ class Config(object):
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["oel65_x86-64"] = "Oracle Enterprise Linux 6.5 (64-bit)"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["win81-x86"] = "Windows 8.1 (32-bit)"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["win81-x64"] = "Windows 8.1 (64-bit)"
+        self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["ws12r2-x64"] = "Windows Server 2012 R2 (64-bit)"
+        self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["ws12r2core-x64"] = "Windows Server 2012 R2 (64-bit)"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["centos510_x86-32"] = "CentOS 5.10 (32-bit)"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["centos510_x86-64"] = "CentOS 5.10 (64-bit)"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["rhel7_x86-64"] = "Red Hat Enterprise Linux 7.0"
@@ -4131,19 +4146,21 @@ class Config(object):
         """Read config from an XML file."""
         self.parseConfig(filename, path=path)
 
-    def writeOut(self, fd, dict=None, pref=[]):
+    def writeOut(self, fd, conf=None, pref=[]):
         """Write the config out to a file descriptor"""
-        if dict == None:
-            dict = self.config
-        keys = dict.keys()
+        if conf == None:
+            conf = self.config
+        keys = conf.keys()
         keys.sort()
         for key in keys:
-            if type(dict[key]) == type(""):
-                s = re.sub(r"\$\{(\w+)\}", self.lookupHelper, dict[key])
+            if type(conf[key]) == type(""):
+                s = re.sub(r"\$\{(\w+)\}", self.lookupHelper, conf[key])
                 value = string.replace(s, "'", "\\'")
                 fd.write("%s='%s'\n" % (string.join(pref + [key], "."), value))
+            elif type(conf[key]) == list:
+                fd.write("%s=%s\n" % (string.join(pref + [key], "."), str(conf[key]))) 
             else:
-                self.writeOut(fd, dict[key], pref + [key])
+                self.writeOut(fd, conf[key], pref + [key])
 
     def setVariable(self, key, value):
         """Write a variable to the config"""

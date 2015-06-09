@@ -85,7 +85,9 @@ class TestSpace(Util):
         d_order = self.getdOrder()
         xenrt.TEC().logverbose("d_order = %s" % (d_order,))
         for d in d_order:
-            result=[x+[y] for x in result for y in dimensions[d]]
+            dims = dimensions[d]
+            xenrt.TEC().logverbose("dims.type = %s, dims = %s" % (type(dims).__name__, dims))
+            result=[x+[y] for x in result for y in dims]
             xenrt.TEC().logverbose("result = %s" % (result,))
         return result
 

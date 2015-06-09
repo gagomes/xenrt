@@ -417,7 +417,7 @@ class VGPUTest(object):
         elif access == "disabled":
             return False
         else:
-            raise xenrt.XRTError("%s was neither enabled or disabled." % (something))
+            raise xenrt.XRTError("%s was neither enabled or disabled." % (errorCode))
 
     def __checkDom0Access(self, host, gpuuuid):
         """Returns True or False, as to if the dom0-access pgpu param is enabled or disabled."""
@@ -3186,7 +3186,7 @@ class BootstormBase(FunctionalBase):
         xenrt.pfarm(pt)
 
         # Wait for the VMs to be up in parallel.
-        pt = [xenrt.PTask(vm.poll, "UP") for vm, config in self.vms]
+        pt = [xenrt.PTask(vm.waitReadyAfterStart) for vm, config in self.vms]
         xenrt.pfarm(pt)
 
         for vm, config in self.vms:

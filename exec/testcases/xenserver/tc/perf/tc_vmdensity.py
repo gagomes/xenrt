@@ -3196,7 +3196,11 @@ class TCVMDensity(libperf.PerfTestCase):
 
         #populate unset values preferrably from command line
         def setprm(key,default=None):
-            value = eval(str(xenrt.TEC().lookup(key,default)))
+            s = str(xenrt.TEC().lookup(key,default))
+            if s == "":
+                value = s
+            else:
+                value = eval(s)
             tv = type(value).__name__
             td = type(default).__name__
             reset = False

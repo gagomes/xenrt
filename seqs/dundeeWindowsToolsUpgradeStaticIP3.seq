@@ -9,7 +9,7 @@
 
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
-    <PREPARE_WORKERS>6</PREPARE_WORKERS>
+    <PREPARE_WORKERS>9</PREPARE_WORKERS>
     <HFX_BRANCH_CLEARWATER>RTM</HFX_BRANCH_CLEARWATER>
   </variables>
 
@@ -115,14 +115,16 @@
       </testcase>
     </serial>
     <serial group="UpgVM">
-      <testcase id="xenserver.tc.upgrade.TC19900"/>
-      <testcase id="xenserver.tc.upgrade.TC19901"/>
-      <testcase id="xenserver.tc.upgrade.TC19902"/>
-      <testcase id="xenserver.tc.upgrade.TC19903"/>
-      <testcase id="xenserver.tc.upgrade.TC20716"/>
-      <testcase id="xenserver.tc.upgrade.TC20717"/>
-      <testcase id="xenserver.tc.upgrade.TC20718"/>
-      <testcase id="xenserver.tc.upgrade.TC20719"/>
+      <parallel>
+        <testcase id="xenserver.tc.upgrade.TC19900"/>
+        <testcase id="xenserver.tc.upgrade.TC19901"/>
+        <testcase id="xenserver.tc.upgrade.TC19902"/>
+        <testcase id="xenserver.tc.upgrade.TC19903"/>
+        <testcase id="xenserver.tc.upgrade.TC20716"/>
+        <testcase id="xenserver.tc.upgrade.TC20717"/>
+        <testcase id="xenserver.tc.upgrade.TC20718"/>
+        <testcase id="xenserver.tc.upgrade.TC20719"/>
+      </parallel>
     </serial>
   </testsequence>
 

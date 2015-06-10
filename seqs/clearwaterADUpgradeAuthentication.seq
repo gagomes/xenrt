@@ -30,6 +30,7 @@
 
   <testsequence>
     <testcase id="xenserver.tc.upgrade.ADUpgradeAuthentication" tc="TC-27040" name="ADUpAuthentication" />
+    <testcase id="xenserver.tc.security.ADPBISDirectoryCheck" tc="TC-27048" name="PBISDirectoriesVerification" />
   </testsequence>
 
 </xenrt>

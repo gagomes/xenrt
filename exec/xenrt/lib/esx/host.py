@@ -537,6 +537,9 @@ for policy in hostConfig.config.powerSystemCapability.availablePolicy:
     if policy.shortName == "%s":
         key = policy.key
 
+if not key:
+    exit(1)
+
 # Change to new policy
 hostConfig.GetConfigManager().GetPowerSystem().ConfigurePowerPolicy(key)
 """ % (policyname)

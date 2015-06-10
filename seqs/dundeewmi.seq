@@ -56,7 +56,8 @@
         <network device="0"/>
         <postinstall action="installDrivers"/>
       </vm>-->
-    </host>
+    <storage type="nfs" name="nfs1" default="true" />
+    </host>    
   </prepare>
 
   <testsequence>

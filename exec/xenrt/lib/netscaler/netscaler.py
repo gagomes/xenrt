@@ -73,7 +73,8 @@ class NetScaler(object):
         if isinstance(vpxGuest, xenrt.lib.xenserver.Guest):
             return vpxGuest.paramGet(paramName='xenstore-data', paramKey='vm-data/ip')
         elif isinstance(vpxGuest, xenrt.lib.esx.Guest):
-            return vpxGuest.paramGet(paramName='machine.id').split("&")[0]
+            data = vpxGuest.paramGet(paramName='machine.id')
+            return data.split("&")[0] if data else None
         else:
             raise xenrt.XRTError("Unimplemented")
 

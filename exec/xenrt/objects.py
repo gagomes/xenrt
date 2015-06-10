@@ -9965,6 +9965,14 @@ while True:
     def installDrivers(self):
         pass
 
+    def setupNetscalerVPX(self, installNSTools=False):
+        netscaler = xenrt.lib.netscaler.NetScaler.setupNetScalerVpx(self, useVIFs=True)
+        xenrt.GEC().registry.objPut("netscaler", self.name, netscaler)
+        netscaler.applyLicense(netscaler.getLicenseFileFromXenRT())
+        if installNSTools:
+            netscaler.installNSTools()
+        netscaler.checkFeatures("Test results after applying license:")
+
 class EventObserver(xenrt.XRTThread):
 
     def __init__(self,host,session,eventClass,taskRef,timeout):

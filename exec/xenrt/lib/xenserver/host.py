@@ -150,6 +150,17 @@ def logInstallEvent(func):
             raise
     return wrapper
 
+def productVersionFromInputDir(inputDir):
+    fn = xenrt.TEC().getFile("%s/xe-phase-1/globals" % inputDir, "%s/globals" % inputDir)
+    if fn:
+        for line in open(fn).xreadlines():
+            match = re.match('^PRODUCT_VERSION="(.+)"', line)
+            if match:
+                hosttype = xenrt.TEC().lookup(["PRODUCT_CODENAMES", match.group(1)], None)
+                if hosttype:
+                    return hosttype
+    return xenrt.TEC().lookup("PRODUCT_VERSION", None)
+
 @logInstallEvent
 def createHost(id=0,
                version=None,
@@ -205,17 +216,8 @@ def createHost(id=0,
     if productVersion:
         hosttype = productVersion
     else:
-        fn = xenrt.TEC().getFile("%s/xe-phase-1/globals" % xenrt.TEC().getInputDir(), "%s/globals" % xenrt.TEC().getInputDir())
-        if fn:
-            for line in open(fn).xreadlines():
-                match = re.match('^PRODUCT_VERSION="(.+)"', line)
-                if match:
-                    hosttype = xenrt.TEC().lookup(["PRODUCT_CODENAMES", match.group(1)], None)
-                    if hosttype:
-                        break
-        if not hosttype:
-            hosttype = xenrt.TEC().lookup("PRODUCT_VERSION", "Orlando")
-            
+        hosttype = productVersionFromInputDir(xenrt.TEC().getInputDir())
+
     host = xenrt.lib.xenserver.hostFactory(hosttype)(m,
                                                      productVersion=hosttype)
 
@@ -1844,8 +1846,8 @@ fi
 
     def upgrade(self, newVersion=None, suppackcds=None):
         """Upgrade this host"""
-        if not newVersion:            
-            newVersion = xenrt.TEC().lookup("PRODUCT_VERSION", None)
+        if not newVersion:
+            newVersion = productVersionFromInputDir(xenrt.TEC().getInputDir())
 
         # Clear the CLI cache
         xenrt.lib.xenserver.cli.clearCacheFor(self.machine)
@@ -13142,7 +13144,7 @@ class Pool(object):
             raise xenrt.XRTError("Cannot upgrade an HA enabled pool")
         
         if not newVersion:
-            newVersion = xenrt.TEC().lookup("PRODUCT_VERSION", None)
+            newVersion = productVersionFromInputDir(xenrt.TEC().getInputDir())
 
         # Construct a new pool object, and call its _upgrade method
         newPool = xenrt.lib.xenserver.poolFactory(newVersion)(self.master)
@@ -14927,9 +14929,11 @@ class RollingPoolUpdate(object):
         self.patch = None
 
     def doUpdateVariables(self):
+        inputProductVersion = productVersionFromInputDir(xenrt.TEC().lookup("INPUTDIR"))
+
         if not self.newVersion:
             if self.upgrade:
-                self.newVersion = xenrt.TEC().lookup("PRODUCT_VERSION", None)
+                self.newVersion = inputProductVersion
             else:
                 self.newVersion = self.poolRef.master.productVersion
 
@@ -14937,13 +14941,13 @@ class RollingPoolUpdate(object):
             self.upgrade = False
 
         if self.upgrade:
-            if self.newVersion == xenrt.TEC().lookup("PRODUCT_VERSION", None):
+            if self.newVersion == inputProductVersion:
                 xenrt.TEC().setInputDir(None)
             else:
                 newInputdir = productInputdirForVersion(self.newVersion)
                 xenrt.TEC().setInputDir(newInputdir)
 
-        if self.newVersion == xenrt.TEC().lookup("PRODUCT_VERSION", None):
+        if self.newVersion == inputProductVersion:
             self.patch = xenrt.TEC().lookup("THIS_HOTFIX", None)
         if not self.patch:
             self.patch = xenrt.TEC().lookup("THIS_HOTFIX_%s" % (self.newVersion.upper()), None)

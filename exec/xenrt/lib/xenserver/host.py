@@ -6170,7 +6170,7 @@ fi
                                     password.encode('ascii', 'replace'), local, slave))
             if secure:
                 v = sys.version_info
-                if v.major == 2 and v.minor >= 7 and v.micro >= 9:
+                if v.major == 2 and ((v.minor == 7 and v.micro >= 9) or v.minor > 7):
                     xenrt.TEC().logverbose("Disabling certificate verification on >=Python 2.7.9")
                     ssl._create_default_https_context = ssl._create_unverified_context
                 session = XenAPI.Session('https://%s:443' % useIP)

@@ -298,6 +298,8 @@ class ESXHost(xenrt.lib.libvirt.Host):
 
         isoname = "/usr/groups/xenrt/esx/ESXi-%s.iso" % self.esxiVersion
         esxiso = xenrt.TEC().getFile(isoname)
+        if not esxiso:
+            raise xenrt.XRTError("Couldn't find ISO %s" % (isoname))
 
         mount = xenrt.rootops.MountISO(esxiso)
         mountpoint = mount.getMount()

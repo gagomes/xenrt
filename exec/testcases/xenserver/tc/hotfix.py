@@ -11,7 +11,7 @@
 import socket, re, string, time, traceback, sys, random, copy, shutil, os, re
 import xenrt, xenrt.lib.xenserver
 from xenrt import XRTError
-from xenrt.lazylog import step
+from xenrt.lazylog import step, log
 
 class _Hotfix(xenrt.TestCase):
 
@@ -302,8 +302,7 @@ class _Hotfix(xenrt.TestCase):
         if not xenrt.TEC().lookup("DRIVER_DISK_REPO", None):
             return
         
-        xenrt.TEC().logverbose("Installing Mercurial so can get driver disks")
-        
+        step("Fetch DriverDisk repo")
         td = xenrt.TEC().tempDir()
         if "driverdisks.hg" in xenrt.TEC().lookup("DRIVER_DISK_REPO"):
             xenrt.util.command("cd %s && hg clone %s driverDisk" % (td, xenrt.TEC().lookup("DRIVER_DISK_REPO")))
@@ -315,6 +314,7 @@ class _Hotfix(xenrt.TestCase):
         xenrt.util.command("cd %s && find -type f | grep -v .iso | xargs rm -f " % td)
         # tar the content, copy to the host and untar
         xenrt.util.command("cd %s && tar -czf driverdisks.tgz driverDisk" % (td))
+        step("Copy the driver disks content to host")
         sftp = self.host.sftpClient()
         try: 
             sftp.copyTo("%s/driverdisks.tgz" % td, "/driverdisks.tgz")
@@ -322,16 +322,18 @@ class _Hotfix(xenrt.TestCase):
             sftp.close()
         self.host.execdom0("cd / && tar -xzf driverdisks.tgz && rm /driverdisks.tgz")
 
-        xenrt.TEC().logverbose("Listing driver disks for this kernel")
+        step("Listing driver disks for this kernel")
         if isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
             isos = self.host.execdom0('cd / && find /driverDisk | grep ".iso$" || true').strip().splitlines()
         else:
             self.host.execdom0("uname -r")
             isos = self.host.execdom0('cd / && find /driverDisk | grep "`uname -r`" | grep ".iso$" || true').strip().splitlines()
         
+        step("Performing tests for all the driver disks")
         for i in range(len(isos)):
+            step("Testing %s" % (isos[i]))
             
-            # mount driver disk
+            log("mount the driver disk")
             self.host.execdom0("mkdir /mnt/%d" % i)
             self.host.execdom0("mount -o loop %s /mnt/%d" % (isos[i], i))
             
@@ -349,14 +351,14 @@ class _Hotfix(xenrt.TestCase):
             self.host.execdom0("sed -i 's/if \[ -d \$installed_repos_dir\/$identifier \]/if \[ 0 -eq 1 \]/' /tmp/%d/install.sh" % i)
             self.host.execdom0('sed -i "s/print msg/return/" /tmp/%d/install.sh || true' % i)
             
-            # list rpms in driver disk
+            log("List rpms in driver disk")
             xenrt.TEC().logverbose("Listing RPMs in driver disk")
             driverDiskRpms = self.host.execdom0('cd / && find /tmp/%d | grep ".rpm$"' % i).strip().splitlines()
             
             # dictionary of kernel objects for cross referencing against installed ones after driver disk has been installed
             kos = {}
             
-            # manually unpack all rpms to get driver names and versions
+            log("Manually unpack all rpms to get driver names and versions")
             xenrt.TEC().logverbose("Unpacking all RPMs in driver disk so can get version numbers")
             for j in range(len(driverDiskRpms)):
                 self.host.execdom0("mkdir /tmp/%d/%d" % (i, j))
@@ -370,10 +372,10 @@ class _Hotfix(xenrt.TestCase):
             # list all rpms before installing driver disk
             rpmsBefore = self.host.execdom0("rpm -qa|sort").splitlines()
         
-            # install driver disk
+            log("Install the driver disk")
             self.host.execdom0("cd /tmp/%d && ./install.sh" % i)
             
-            # ensure the module dependency table has been updated correctly
+            log("Ensure the module dependency table has been updated correctly")
             for ko in kos:
                 if len(self.host.execdom0("modinfo %s | grep `uname -r`" % ko).strip().splitlines()) == 0:
                     raise xenrt.XRTFailure("Could not find kernel version in driver modinfo for %s" % ko)
@@ -387,10 +389,12 @@ class _Hotfix(xenrt.TestCase):
             rpmsAfter = self.host.execdom0("rpm -qa|sort").splitlines()
             
             # get list of all new rpms installed (according to the system)
+            log("Get the list of new rpms after installation")
             newRpms = filter(lambda x: not x in rpmsBefore, rpmsAfter)
             xenrt.TEC().logverbose("New RPMS:\n" + "\n".join(newRpms))
             
              # now uninstall (this helps when you have multiple versions of the same driver)
+            log("Uninstall the driver disk: remove rpms")
             uniqueNewRpms =  []
             for rpm in newRpms:
                 try:
@@ -402,7 +406,7 @@ class _Hotfix(xenrt.TestCase):
                     else:
                         raise
                     
-                
+            log("Check the number of rpms installed is as expected")
             if len(uniqueNewRpms) != len(driverDiskRpms):
                 raise xenrt.XRTFailure("Incorrect RPMs installed by driver disk. Expected %d. Found %d." % (len(driverDiskRpms), len(uniqueNewRpms)))
 

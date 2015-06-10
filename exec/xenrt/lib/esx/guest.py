@@ -8,14 +8,16 @@
 # conditions as licensed by XenSource, Inc. All other rights reserved.
 #
 
-import re, xml.dom.minidom
+import re, xml.dom.minidom, xmltodict
 import xenrt
 import libvirt
 
-__all__ = ["createVM",
+__all__ = ["createVMFromFile",
+           "createVM",
            "Guest"]
 
 createVM = xenrt.lib.libvirt.createVM
+createVMFromFile = xenrt.lib.libvirt.createVMFromFile
 
 class Guest(xenrt.lib.libvirt.Guest):
     DEFAULT = -10
@@ -101,20 +103,26 @@ class Guest(xenrt.lib.libvirt.Guest):
         newxmlstr = oldxmlstr.replace("</devices>", devicexmlstr + "\n  </devices>")
         self._redefineXML(newxmlstr)
 
-    def _updateDevice(self, devicexmlstr, hotplug=False):
+    def _updateDevice(self, devicexmlstr, hotplug=False, removeOnly=False):
         oldxmlstr = self._getXML()
         xmldom = xml.dom.minidom.parseString(oldxmlstr)
         devicexmldom = xml.dom.minidom.parseString(devicexmlstr)
-        devicetargetdev = devicexmldom.getElementsByTagName("target")[0].getAttribute("dev")
-        devices = [target.parentNode for target in xmldom.getElementsByTagName("target") if target.getAttribute("dev") == devicetargetdev]
-        if len(devices) == 0:
-            raise xenrt.XRTFailure("Can't update device %s -- device not found" % devicetargetdev)
-        for device in devices:
+        deviceToRemove=devicexmldom.childNodes[0]
+        devicesMatched = [target for target in xmldom.getElementsByTagName(deviceToRemove.localName) if xenrt.util.checkXMLDomSubset(target ,deviceToRemove)]
+        if len(devicesMatched) == 0:
+            xenrt.TEC().logverbose("guest XML data: %s" % xmldom.toxml())
+            xenrt.TEC().logverbose("device to be removed XML data: %s" % deviceToRemove.toxml())
+            raise xenrt.XRTFailure("Can't update/remove device %s -- device not found" % deviceToRemove.localName)
+        for device in devicesMatched:
             device.parentNode.removeChild(device)
             device.unlink()
-        xmldom.getElementsByTagName("devices")[0].appendChild(devicexmldom.documentElement)
+        if not removeOnly:
+            xmldom.getElementsByTagName("devices")[0].appendChild(devicexmldom.documentElement)
         newxmlstr = xmldom.toxml()
         self._redefineXML(newxmlstr)
+
+    def _removeDevice(self, devicexmlstr, hotplug=False):
+        self._updateDevice(devicexmlstr, hotplug=hotplug, removeOnly=True)
 
     def _getXML(self):
         return xenrt.lib.libvirt.tryupto(self.virDomain.XMLDesc)(libvirt.VIR_DOMAIN_XML_INACTIVE)
@@ -398,3 +406,44 @@ class Guest(xenrt.lib.libvirt.Guest):
         # Also disable automatic sleep
         for sleepType in ["monitor", "disk", "standby", "hibernate"]:
             self.xmlrpcExec("powercfg -change -%s-timeout-ac 0" % (sleepType))
+
+    def importVM(self, host, file, sr=None, vifs=[]):
+        """
+        file is be an absolute path on site controller of type *.ovf or *.ova, which is to be imported.
+        """
+        _removeHostFromVCenter = False
+        if not host.datacenter:
+            _removeHostFromVCenter = True
+            host.addToVCenter()
+        ovftoolVersion = xenrt.command("ovftool --version", level=xenrt.RC_OK)
+        if ovftoolVersion==1:
+            raise xenrt.XRTError("ovftool is required for vm import on esx")
+        if not sr:
+            sr=host.getDefaultDatastore()
+        ovfInfo=xenrt.command("ovftool --machineOutput %s" % file)
+        ovfInfoDict=xmltodict.parse("<data"+ovfInfo.split("probeResult")[1].replace("\n+","")+"data>")
+        ovfNetworkList=ovfInfoDict["data"]["networks"]["network"]
+        brs = host.getBridges()
+
+        command ='ovftool --noSSLVerify '
+        command+='-n="%s" ' % self.name
+        command+='-ds="%s" ' % sr
+        for net in ovfNetworkList:
+            if net["name"].strip() in brs:
+                command+='--net:"%s"="%s" ' % (net["name"].strip(),net["name"].strip())
+            else:
+                command+='--net:"%s"="%s" ' % (net["name"].strip(),host.getPrimaryBridge())
+        command+='%s vi://%s:%s@%s/' % (file, "root", host.password, host.getIP())
+        xenrt.command(command)
+        xenrt.sleep(15)
+        self.existing(host)
+
+        if not vifs:
+            self.reparseVIFs()
+            self.vifs.sort()
+        else:
+            self.vifs = vifs
+        self.recreateVIFs(newMACs=True)
+
+        if _removeHostFromVCenter:
+            host.removeFromVCenter()

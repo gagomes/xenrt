@@ -583,6 +583,7 @@ class Host(xenrt.GenericHost):
     INSTALL_INTERFACE_SPEC = "MAC"
     LINUX_INTERFACE_PREFIX = "xenbr"
     USE_CCISS = True
+    INITRD_REBUILD_SCRIPT = "new-kernel-pkg.py"
 
     def __init__(self, machine, productVersion="Orlando", productType="xenserver"):
         xenrt.GenericHost.__init__(self,
@@ -638,6 +639,35 @@ class Host(xenrt.GenericHost):
         self.registerJobTest(xenrt.lib.xenserver.jobtests.JTCoresPerSocket)
         
         self.installationCookie = "%012x" % xenrt.random.randint(0,0xffffffffffff)
+
+    def rebuildInitrd(self):
+        """
+        Rebuild the initrd of the host in-place
+        This is virtually akin to applying a kernel hotfix
+        The MD5 sums of the files should be different before and after
+
+        Fingers crossed no reboot happens until the following 2 steps complete
+        successfully or the machine will be trashed. There is away to avoid
+        the below in clearwater and newer, but we'll need to do this for Tampa
+        too. For clearwater and greater just need to do
+        "sh initrd*.xen.img.cmd -f" without removing the original image file
+        but the old-style way should work regardless of age
+        """
+
+        xenrt.TEC().logverbose("Rebuilding initrd for host %s..." % str(self))
+        kernel = self.execdom0("uname -r").strip()
+        imgFile = "initrd-{0}.img".format(kernel)
+        xenrt.TEC().logverbose("Original md5sum = %s" %
+                               self.execdom0("md5sum /boot/%s" % imgFile))
+        xenrt.TEC().logverbose(
+            "Removing boot image %s and rebuilding" % imgFile)
+        self.execdom0("cd /boot")
+        self.execdom0("rm -rf %s" % imgFile)
+        self.execdom0('%s --install --package=kernel-xen --mkinitrd "$@" %s' % (self.INITRD_REBUILD_SCRIPT, kernel))
+
+        xenrt.TEC().logverbose("New md5sum = %s" %
+                               self.execdom0("md5sum /boot/%s" % imgFile))
+        xenrt.TEC().logverbose("initrd has been rebuilt")
 
     def asXapiObject(self):
         objType = xenrt.lib.xenserver.XapiHost.OBJECT_TYPE
@@ -2571,7 +2601,7 @@ fi
         if not interfaces:
             interfaces = self.i_interfaces
         if not interfaces:
-            interfaces = [(None, "yes", None, None, None, None, None, None, None)]
+            interfaces = [(None, "yes", "dhcp", None, None, None, None, None, None)]
         if not ntpserver:
             ntpserver = self.i_ntpserver
         if not nameserver:
@@ -2637,25 +2667,6 @@ fi
             name, enabled, proto, ip, netmask, gateway, protov6, ip6, gw6 = i
             if not name:
                 name = self.getDefaultInterface()
-                
-            proto = self.minimalList("pif-list",
-                                     "IP-configuration-mode",
-                                     "device=%s" % (name))[0]
-            proto = proto.lower()
-                                     
-            if proto == "static":
-            
-                ip = self.minimalList("pif-list",   
-                                  "IP",
-                                  "device=%s  host-name-label=%s" % (name,self.getName()))[0]
-                                   
-                netmask = self.minimalList("pif-list",
-                                       "netmask",
-                                       "device=%s host-name-label=%s" % (name,self.getName()))[0]
-                                       
-                gateway = self.minimalList("pif-list",
-                                       "gateway",
-                                       "device=%s host-name-label=%s" % (name,self.getName()))[0]
 
             if self.checkNetworkInterfaceConfig(name, proto, ip, netmask, gateway) == 0:
                 ok = 0
@@ -11612,6 +11623,7 @@ class CreedenceHost(ClearwaterHost):
 class DundeeHost(CreedenceHost):
     USE_CCISS = False
     SNMPCONF = "/etc/snmp/snmpd.xs.conf"
+    INITRD_REBUILD_SCRIPT = "new-kernel-pkg"
 
     def __init__(self, machine, productVersion="Dundee", productType="xenserver"):
         CreedenceHost.__init__(self,

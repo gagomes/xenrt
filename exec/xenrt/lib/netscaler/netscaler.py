@@ -36,10 +36,9 @@ class NetScaler(object):
                 vpxGuest.shutdown()
             if not useVIFs:
                 # Configure the VIFs
-                # TODO - write removeAllVIFs() for libvirt guest
                 vpxGuest.removeAllVIFs()
                 for n in networks:
-                    # TODO - createVIF has diff args/defaults for diff guest
+                    # TODO - createVIF has diff args/defaults for guests on xenserver and ESX
                     vpxGuest.createVIF(bridge=n)
             else:
                 networks = [vpxGuest.getNetworkNameForVIF(x[0]) for x in vpxGuest.vifs]
@@ -65,7 +64,6 @@ class NetScaler(object):
             vpxGuest.paramSet('xenstore-data:vm-data/gateway', gateway)
         elif isinstance(vpxGuest, xenrt.lib.esx.Guest):
             paramValue ="ip=%s&netmask=%s&gateway=%s" % (vpxGuest.mainip, mask, gateway)
-            # TODO - implement paramSet for ESX Guest
             vpxGuest.paramSet('machine.id', paramValue)
         else:
             raise xenrt.XRTError("Unimplemented")
@@ -75,8 +73,7 @@ class NetScaler(object):
         if isinstance(vpxGuest, xenrt.lib.xenserver.Guest):
             return vpxGuest.paramGet(paramName='xenstore-data', paramKey='vm-data/ip')
         elif isinstance(vpxGuest, xenrt.lib.esx.Guest):
-            # TODO - implement paramGet for ESX Guest
-            return vpxGuest.paramGet(paramName='AdvancedSetting', paramKey='machine.id').split("&")[0]
+            return vpxGuest.paramGet(paramName='machine.id').split("&")[0]
         else:
             raise xenrt.XRTError("Unimplemented")
 

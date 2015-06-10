@@ -9,9 +9,7 @@
   </variables>
 
   <prepare>
-    <host>
-      <storage type="nfs" name="NFSForWindows" default="true" />
-    </host>
+    <host />
   </prepare>
 
   <testsequence>

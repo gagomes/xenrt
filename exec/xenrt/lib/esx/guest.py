@@ -447,3 +447,27 @@ class Guest(xenrt.lib.libvirt.Guest):
 
         if _removeHostFromVCenter:
             host.removeFromVCenter()
+
+    def paramSet(self, paramName, paramValue ):
+        if not self.host or not self.host.datacenter:
+            raise xenrt.XRTError("guest.host not added to VCenter")
+        command = r"""New-AdvancedSetting -Entity (Get-VM -Name %s)  -Name "%s" -Value "%s" -Confirm:$false -Force:$true """ % ( self.name, paramName, paramValue)
+        xenrt.lib.esx.getVCenter().execPowerCLI(command)
+
+    def paramGet(self, paramName, paramKey=[], returnDict=False ):
+        if not self.host or not self.host.datacenter:
+            raise xenrt.XRTError("guest.host not added to VCenter")
+        command = r"""Get-AdvancedSetting -Entity (Get-VM -Name %s)  -Name "%s" | Format-List """ % ( self.name, paramName)
+        if paramKey:
+            command += r"""-Property %s """ % ",".join(paramKey)
+        res=xenrt.lib.esx.getVCenter().execPowerCLI(command, returndata=True)
+        # Join wrapped lines
+        res=re.sub(r'(?<=\S)\s*\n\s+(?=\S)',"", res)
+        # Parse data to dict
+        dict={}
+        for line in res.split("\n"):
+            data = line.split(":", 1)
+            dict.update({data[0].strip(): data[1].strip()})
+        if returnDict:
+            return dict
+        return dict["Value"]

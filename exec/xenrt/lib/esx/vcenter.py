@@ -141,6 +141,39 @@ LS_URL=\"https://%s:7444/lookupservice/sdk\" \
         self.guest.addExtraLogFile("%TEMP%\\vm-powercli.log")
         self.guest.xmlrpcExec(command, timeout=1800)
 
+    def execPowerCLI(self,
+                    command,
+                    level=xenrt.RC_FAIL,
+                    desc="PowerCLI Remote command",
+                    returndata=False,
+                    returnerror=True,
+                    returnrc=False,
+                    timeout=300,
+                    ignoredata=False,
+                    ignoreHealthCheck=False):
+        """Execute a powercli command and wait for completion."""
+        pwrCliCmd  = r"""Add-PSSnapIn vm* """
+        pwrCliCmd += "\n" + r"""Connect-ViServer -Server %s -User %s -Password %s """ % (self.address, self.username, self.password)
+        pwrCliCmd += "\n" + r"""echo "XenRT Output:" """
+        pwrCliCmd += "\n" + command
+        data = self.vc.os.execCmd(pwrCliCmd,
+                            level=level,
+                            desc=desc,
+                            returndata=returndata,
+                            returnerror=returnerror,
+                            returnrc=returnrc,
+                            timeout=timeout,
+                            ignoredata=ignoredata,
+                            powershell=True,
+                            winrm=self.useWinrm,
+                            ignoreHealthCheck=ignoreHealthCheck)
+        if returndata:
+            data = data.split("XenRT Output:")[-1].strip()
+            # Remove extra whitespaces/lines
+            return re.sub(r'(?<=\S)\s*\n(?=\S)',"\n", data)
+        else:
+            return data
+
     def isVCenterInstalled(self):
         services = self.vc.os.execCmd("get-service -displayname VMware* | where-object {$_.Status -eq 'Running'}", returndata=True, powershell=True, winrm=self.useWinrm).strip()
         if "VMware VirtualCenter Server" in services:

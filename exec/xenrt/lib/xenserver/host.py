@@ -205,7 +205,17 @@ def createHost(id=0,
     if productVersion:
         hosttype = productVersion
     else:
-        hosttype = xenrt.TEC().lookup("PRODUCT_VERSION", "Orlando")
+        fn = xenrt.TEC().getFile("%s/xe-phase-1/globals" % xenrt.TEC().getInputDir(), "%s/globals" % xenrt.TEC().getInputDir())
+        if fn:
+            for line in open(fn).xreadlines():
+                match = re.match('^PRODUCT_VERSION="(.+)"', line)
+                if match:
+                    hosttype = xenrt.TEC().lookup(["PRODUCT_CODENAMES", match.group(1)], None)
+                    if hosttype:
+                        break
+        if not hosttype:
+            hosttype = xenrt.TEC().lookup("PRODUCT_VERSION", "Orlando")
+            
     host = xenrt.lib.xenserver.hostFactory(hosttype)(m,
                                                      productVersion=hosttype)
 
@@ -573,6 +583,7 @@ class Host(xenrt.GenericHost):
     INSTALL_INTERFACE_SPEC = "MAC"
     LINUX_INTERFACE_PREFIX = "xenbr"
     USE_CCISS = True
+    INITRD_REBUILD_SCRIPT = "new-kernel-pkg.py"
 
     def __init__(self, machine, productVersion="Orlando", productType="xenserver"):
         xenrt.GenericHost.__init__(self,
@@ -628,6 +639,35 @@ class Host(xenrt.GenericHost):
         self.registerJobTest(xenrt.lib.xenserver.jobtests.JTCoresPerSocket)
         
         self.installationCookie = "%012x" % xenrt.random.randint(0,0xffffffffffff)
+
+    def rebuildInitrd(self):
+        """
+        Rebuild the initrd of the host in-place
+        This is virtually akin to applying a kernel hotfix
+        The MD5 sums of the files should be different before and after
+
+        Fingers crossed no reboot happens until the following 2 steps complete
+        successfully or the machine will be trashed. There is away to avoid
+        the below in clearwater and newer, but we'll need to do this for Tampa
+        too. For clearwater and greater just need to do
+        "sh initrd*.xen.img.cmd -f" without removing the original image file
+        but the old-style way should work regardless of age
+        """
+
+        xenrt.TEC().logverbose("Rebuilding initrd for host %s..." % str(self))
+        kernel = self.execdom0("uname -r").strip()
+        imgFile = "initrd-{0}.img".format(kernel)
+        xenrt.TEC().logverbose("Original md5sum = %s" %
+                               self.execdom0("md5sum /boot/%s" % imgFile))
+        xenrt.TEC().logverbose(
+            "Removing boot image %s and rebuilding" % imgFile)
+        self.execdom0("cd /boot")
+        self.execdom0("rm -rf %s" % imgFile)
+        self.execdom0('%s --install --package=kernel-xen --mkinitrd "$@" %s' % (self.INITRD_REBUILD_SCRIPT, kernel))
+
+        xenrt.TEC().logverbose("New md5sum = %s" %
+                               self.execdom0("md5sum /boot/%s" % imgFile))
+        xenrt.TEC().logverbose("initrd has been rebuilt")
 
     def asXapiObject(self):
         objType = xenrt.lib.xenserver.XapiHost.OBJECT_TYPE
@@ -6843,7 +6883,10 @@ fi
         cli.execute("host-enable-external-auth", string.join(args)).strip()
         
         # Using CA-33290 workaround
-        self.execdom0("/opt/likewise/bin/lw-set-log-level debug")
+        if self.execdom0("test -e /opt/pbis", retval="code") == 0:
+            self.execdom0("/opt/pbis/bin/lwsm set-log-level eventlog all debug")
+        else:
+            self.execdom0("/opt/likewise/bin/lw-set-log-level debug")
         xenrt.sleep(5)
         
     def enableIPOnPIF(self, pifuuid):
@@ -8166,9 +8209,14 @@ rm -f /etc/xensource/xhad.conf || true
         return sruuid
 
     def isHAPEnabled(self):
-        dmesg = self.execdom0("grep 'Hardware Assisted Paging' /var/log/xen-dmesg || true")
+        dmesg = self.execdom0("grep 'Hardware Assisted Paging' /var/log/xen/hypervisor.log || true")
+       
+        #for backward compatibility checking in /var/log/xen-dmesg
+        if "Hardware Assisted Paging" not in dmesg:
+            dmesg = self.execdom0("grep 'Hardware Assisted Paging' /var/log/xen-dmesg || true")
 
-        return "HVM: Hardware Assisted Paging detected and enabled." in dmesg or "HVM: Hardware Assisted Paging (HAP) detected" in dmesg
+        return "HVM: Hardware Assisted Paging detected and enabled." in dmesg or\
+                          "HVM: Hardware Assisted Paging (HAP) detected" in dmesg
 
     def resolveDistroName(self, distro):
         origDistro = distro
@@ -8261,7 +8309,34 @@ rm -f /etc/xensource/xhad.conf || true
                             getreply,
                             password
                             )
+    
+    def getDom0Partitions(self):
 
+        """
+        Return dom0 disk partitions and there size in KB
+        return Format: {1: 19327352832, 2: 19327352832, 3: '*', 4: 535822336, 5: 4294967296, 6: 1072693248} 
+        """
+        primarydisk = self.getInventoryItem("PRIMARY_DISK")
+        partitions = [p.split(' ') for p in self.execdom0("sgdisk -p %s | awk '$1 ~ /[0-9]+/ {print $1,$4,$5}'" % primarydisk).splitlines()]
+        return dict([(int(p[0]), float(p[1]) * (xenrt.GIGA if p[2]=='GiB' else xenrt.MEGA)) for p in partitions])
+
+    def compareDom0Partitions(self, partitions):
+
+        """
+        Return True if dom0 disk partition schema matches the schema 'partition' else return False
+        """
+        dom0Partitions = self.getDom0Partitions()
+        if len(partitions) != len(dom0Partitions):
+            log("Number of Partitions in dom0 is different from expected number of partitions. Expected %s. Found %s" % (partitions,dom0Partitions ))
+            return False
+        else:
+            diffkeys = [k for k in partitions if partitions[k] != dom0Partitions[k] and partitions[k] != "*"]
+            if len(diffkeys) == 0:
+                log("Dom0 has expected partition schema: %s" % dom0Partitions)
+                return True
+            else:
+                log("One or more partition size is different from expected. Expected %s. Found %s" % ((partitions,dom0Partitions )))
+                return False
 
 #############################################################################
 
@@ -11548,6 +11623,7 @@ class CreedenceHost(ClearwaterHost):
 class DundeeHost(CreedenceHost):
     USE_CCISS = False
     SNMPCONF = "/etc/snmp/snmpd.xs.conf"
+    INITRD_REBUILD_SCRIPT = "new-kernel-pkg"
 
     def __init__(self, machine, productVersion="Dundee", productType="xenserver"):
         CreedenceHost.__init__(self,
@@ -11778,7 +11854,7 @@ class StorageRepository(object):
         self.lun = None
         self.resources = {}
         self.isDestroyed = False
-        self.thinProv = thin_prov
+        self.__thinProv = thin_prov
 
         # Recorded by _create for possible future use by introduce
         self.srtype = None
@@ -11886,6 +11962,15 @@ class StorageRepository(object):
         cli.execute("sr-destroy", "uuid=%s" % (self.uuid))
         self.isDestroyed = True
 
+    def __isEligibleThinProvisioning(self, srtype=None):
+        """Evaluate sr type to check whether it supports thin provisioning"""
+
+        if not srtype:
+            srtype = self.srtype
+        if srtype in ["lvm", "lvmoiscsi", "lvmohba"]:
+            return True
+        return False
+
     def _create(self, srtype, dconf, physical_size=0, content_type="", smconf={}):
         actualDeviceConfiguration = dict(self.EXTRA_DCONF)
         actualDeviceConfiguration.update(dconf)
@@ -11901,8 +11986,11 @@ class StorageRepository(object):
             args.append("shared=true")
         args.extend(["device-config:%s=\"%s\"" % (x, y)
                      for x,y in actualDeviceConfiguration.items()])
-        if self.thinProv:
-            smconf["allocation"] = "dynamic"
+        if self.__thinProv:
+            if self.__isEligibleThinProvisioning(srtype):
+                smconf["allocation"] = "dynamic"
+            else:
+                xenrt.warning("SR: %s is marked as thin provisioning but %s does not support it. Ignoring..." % (self.name, srtype))
         args.extend(["sm-config:%s=\"%s\"" % (x, y)
                     for x,y in smconf.items()])
         self.uuid = cli.execute("sr-create", string.join(args)).strip()
@@ -12081,10 +12169,6 @@ class LVMStorageRepository(StorageRepository):
 
     SHARED = False
     CLEANUP = "destroy"
-
-    def __init__(self, host, name, thin_prov=True):
-        super(LVMStorageRepository, self).__init__(host, name)
-        self.thinProv = thin_prov
 
     def create(self, device, physical_size=0, content_type="", smconf={}):
         self._create("lvm", {"device":device}, physical_size, content_type, smconf)

@@ -200,12 +200,12 @@
     <serial group="Win8-x86-K1PT">
       <testcase id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
         <arg>guest=win8</arg>
-        <arg>vgpuconfig=K1PassThrough</arg>
+        <arg>vgpuconfig=K1passthrough</arg>
         <arg>typeofvgpu=nvidiawinvgpu</arg>
       </testcase>
       <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
         <arg>guest=win8</arg>
-        <arg>vgpuconfig=K1PassThrough</arg>
+        <arg>vgpuconfig=K1passthrough</arg>
         <arg>benchmark=SPECViewPerf11</arg>
         <arg>benchmark=UnigineSanctuary</arg>
         <arg>benchmark=UnigineTropics</arg>

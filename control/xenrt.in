@@ -728,7 +728,7 @@ class XenRTMList2(XenRTCommand):
                     status = "(%d)" % machines[m]['jobid']
 
                 if show == "Resources":
-                    comment = "/".join(machines[m]['resources'])
+                    comment = "/".join([k + "=" + v for k, v in machines[m]['resources'].iteritems()])
                 elif show == "Properties":
                     comment = ",".join(machines[m]['flags'])
                 elif show == "Description":
@@ -1858,7 +1858,7 @@ class XenRTRunSuite(XenRTCommand):
         data['version'] = args[1]
         data['params'] = {}
         if len(args) > 2:
-            optlist, optx = getopt.getopt(args[2:], 'b:s:D:S:RVx:')
+            optlist, optx = getopt.getopt(args[2:], 'b:s:D:S:RVx:', ['devrun'])
             for argpair in optlist:
                 (flag, value) = argpair
                 if flag == "-b":
@@ -1876,6 +1876,8 @@ class XenRTRunSuite(XenRTCommand):
                     self.verbose = True
                 elif flag == "-R":
                     data['rerunifneeded'] = True
+                elif flag == "--devrun":
+                    data['devrun'] = True
         
         token = self.xenrt.start_suite_run(**data)['token']
 

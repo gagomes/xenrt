@@ -46,6 +46,10 @@ class StartSuite(_SuiteStartBase):
                         "type": "string",
                         "description": "Suite run SKU"
                     },
+                    "devrun": {
+                        "type": "boolean",
+                        "description": "Whether to run this suite as a dev run"
+                    },
                     "rerun": {
                         "type": "boolean",
                         "description": "Whether to rerun tests"
@@ -76,7 +80,7 @@ class StartSuite(_SuiteStartBase):
         }
     RESPONSES = { "200": {"description": "Successful response"}}
     OPERATION_ID = "start_suite_run"
-    PARAM_ORDER = ['suite', 'branch', 'version', 'sku', 'params', 'seqs', 'rerun', 'rerunall', 'rerunifneeded', 'xenrtbranch']
+    PARAM_ORDER = ['suite', 'branch', 'version', 'sku', 'params', 'seqs', 'rerun', 'rerunall', 'rerunifneeded', 'xenrtbranch', 'devrun']
     TAGS = ['suiterun']
 
     def render(self):
@@ -90,15 +94,16 @@ class StartSuite(_SuiteStartBase):
         
         restrict = None
 
-        x = xml.dom.minidom.parse("/etc/xenrt/suites/%s" % params['suite'])
+        if os.path.exists("/etc/xenrt/suites/%s" % params['suite']):
+            x = xml.dom.minidom.parse("/etc/xenrt/suites/%s" % params['suite'])
 
-        for i in x.childNodes:
-            if i.nodeType == i.ELEMENT_NODE and i.localName == "suite":
-                for j in i.childNodes:
-                    if j.nodeType == j.ELEMENT_NODE and j.localName == "restrict":
-                        for a in j.childNodes:
-                            if a.nodeType == a.TEXT_NODE and str(a.data).strip():
-                                restrict = str(a.data).strip().split(",")
+            for i in x.childNodes:
+                if i.nodeType == i.ELEMENT_NODE and i.localName == "suite":
+                    for j in i.childNodes:
+                        if j.nodeType == j.ELEMENT_NODE and j.localName == "restrict":
+                            for a in j.childNodes:
+                                if a.nodeType == a.TEXT_NODE and str(a.data).strip():
+                                    restrict = str(a.data).strip().split(",")
         if restrict:
             allow = False
             mygroups = app.ad.ActiveDirectory().get_groups_for_user(self.getUser().userid)
@@ -122,6 +127,9 @@ class StartSuite(_SuiteStartBase):
 
         if params.get("sku"):
             command += " --sku /etc/xenrt/suites/%s.sku" % params['sku']
+
+        if params.get("devrun"):
+            command += " --devrun"
 
         if params.get("rerun"):
             command += " --rerun"

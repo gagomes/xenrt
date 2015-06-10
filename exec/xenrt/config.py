@@ -860,6 +860,8 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Tampa"]["EXPECTED_CRASHDUMP_FILES"] = "xen-crashdump-analyser.log,xen.log,dom0.log"
         self.config["VERSION_CONFIG"]["Tampa"]["V6_DBV"] = "2010.0521"
         self.config["VERSION_CONFIG"]["Tampa"]["IDLE_VMs_DOM0_CPU_Utilize"] = "260"
+        # XenServer dom0 partitions
+        self.config["VERSION_CONFIG"]["Tampa"]["DOM0_PARTITIONS"] = {1:4*xenrt.GIGA, 2:4*xenrt.GIGA, 3:"*"}
         
         # CHECKME: Need to fix this (Tallahassee is rolled into Tampa)
         self.config["VERSION_CONFIG"]["Tampa"]["MAX_VDIS_PER_VM"] = "15"
@@ -1183,6 +1185,8 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Creedence"]["LATEST_sl5"] = "sl511"
         self.config["VERSION_CONFIG"]["Creedence"]["LATEST_sl6"] = "sl66"
         self.config["VERSION_CONFIG"]["Creedence"]["LATEST_sl7"] = "sl71"
+        # XenServer dom0 partitions
+        self.config["VERSION_CONFIG"]["Creedence"]["DOM0_PARTITIONS"] = {1:4*xenrt.GIGA, 2:4*xenrt.GIGA, 3:"*"}
         
         # Cream
         self.config["VERSION_CONFIG"]["Cream"] = copy.deepcopy(self.config["VERSION_CONFIG"]["Creedence"])
@@ -1200,6 +1204,10 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Dundee"]["TEMPLATE_NAME_SDK"] = ""  # SDK not present in trunk
         self.config["VERSION_CONFIG"]["Dundee"]["MAX_VDIS_PER_SR_cifs"] = "600"
         self.config["VERSION_CONFIG"]["Dundee"]["MAX_ATTACHED_VDIS_PER_SR_cifs"] = "600"
+        self.config["VERSION_CONFIG"]["Dundee"]["TEMPLATE_NAME_SLES_114_64"] = "SUSE Linux Enterprise Server 11 SP3 (64-bit),SUSE Linux Enterprise Server 11 SP3 x64"
+
+        # XenServer dom0 partitions
+        self.config["VERSION_CONFIG"]["Dundee"]["DOM0_PARTITIONS"] = {1:18*xenrt.GIGA, 2:18*xenrt.GIGA, 3:"*", 4:511*xenrt.MEGA, 5:4*xenrt.GIGA, 6:1023*xenrt.MEGA}
 
         # Libvirt
         self.config["VERSION_CONFIG"]["Libvirt"] = {}
@@ -1587,7 +1595,18 @@ class Config(object):
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["w2k3eesp2"] = "Windows Server 2003 Enterprise Edition(32-bit)"
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["w2k3eesp2-x64"] = "Windows Server 2003 Enterprise Edition(64-bit)"
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["w2k3sesp2"] = "Windows Server 2003 Standard Edition(32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["ws08-x86"] = "Windows Server 2008 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["ws08-x64"] = "Windows Server 2008 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["ws08sp2-x86"] = "Windows Server 2008 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["ws08sp2-x64"] = "Windows Server 2008 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["ws08r2-x64"] = "Windows Server 2008 R2 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["ws08r2sp1-x64"] = "Windows Server 2008 R2 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["win7-x86"] = "Windows 7 (32-bit)"
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["win7sp1-x86"] = "Windows 7 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["win7-x64"] = "Windows 7 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["win7sp1-x64"] = "Windows 7 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["win8-x86"] = "Windows 8 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["win8-x64"] = "Windows 8 (64-bit)"
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["debian60_x86-32"] = "Debian GNU/Linux 6(64-bit)"
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["debian60_x86-64"] = "Debian GNU/Linux 6(64-bit)"
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["debian70_x86-32"] = "Debian GNU/Linux 7(32-bit)"
@@ -1751,6 +1770,8 @@ class Config(object):
         self.config["CLOUD_CONFIG"]["4.1"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvmtemplate-2013-07-12-master-xen.vhd.bz2"
 
         self.config["CLOUD_CONFIG"]["4.2"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.1"])
+        self.config["CLOUD_CONFIG"]["4.2"]["OS_NAMES"]["ws12-x64"] = "Windows Server 2012 (64-bit)"
+        self.config["CLOUD_CONFIG"]["4.2"]["OS_NAMES"]["ws12core-x64"] = "Windows Server 2012 (64-bit)"
         self.config["CLOUD_CONFIG"]["4.2"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvmtemplate64-2014-10-28-4.2-xen.vhd.bz2"
         self.config["CLOUD_CONFIG"]["4.2"]["SYSTEM_TEMPLATES"]["kvm"] = "/usr/groups/xenrt/cloud/systemvmtemplate64-2014-10-31-master-kvm.qcow2.bz2"
         self.config["CLOUD_CONFIG"]["4.2"]["SYSTEM_TEMPLATES"]["vmware"] = "/usr/groups/xenrt/cloud/systemvmtemplate64-2014-10-31-master-vmware.ova"
@@ -1761,6 +1782,7 @@ class Config(object):
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["ubuntu1404_x86-64"] = "Ubuntu 14.04 (64-bit)"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["sles113_x86-32"] = "SUSE Linux Enterprise Server 11 SP3 (32-bit)"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["sles113_x86-64"] = "SUSE Linux Enterprise Server 11 SP3 (64-bit)"
+        self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["sles114_x86-64"] = "SUSE Linux Enterprise Server 11 SP4 RC1 (64-bit)"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["centos65_x86-32"] = "CentOS 6.5 (32-bit)"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["centos65_x86-64"] = "CentOS 6.5 (64-bit)"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["rhel65_x86-32"] = "Red Hat Enterprise Linux 6.5 (32-bit)"
@@ -1773,6 +1795,8 @@ class Config(object):
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["oel65_x86-64"] = "Oracle Enterprise Linux 6.5 (64-bit)"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["win81-x86"] = "Windows 8.1 (32-bit)"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["win81-x64"] = "Windows 8.1 (64-bit)"
+        self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["ws12r2-x64"] = "Windows Server 2012 R2 (64-bit)"
+        self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["ws12r2core-x64"] = "Windows Server 2012 R2 (64-bit)"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["centos510_x86-32"] = "CentOS 5.10 (32-bit)"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["centos510_x86-64"] = "CentOS 5.10 (64-bit)"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["rhel7_x86-64"] = "Red Hat Enterprise Linux 7.0"
@@ -1803,10 +1827,10 @@ class Config(object):
         self.config["CLOUD_CONFIG"]["4.5"]["SYSTEM_TEMPLATES"]["lxc"] = self.config["CLOUD_CONFIG"]["4.5"]["SYSTEM_TEMPLATES"]["kvm"]
 
         self.config["CLOUD_CONFIG"]["4.5.1"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.5"])
-        self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-04-16-4.5.1-xen.vhd.bz2"
-        self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["kvm"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-04-16-4.5.1-kvm.qcow2.bz2"
-        self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["hyperv"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-04-16-4.5.1-hyperv.vhd.bz2"
-        self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["vmware"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-04-16-4.5.1-vmware.ova"
+        self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-05-14-4.5.1-xen.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["kvm"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-05-14-4.5.1-kvm.qcow2.bz2"
+        self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["hyperv"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-05-14-4.5.1-hyperv.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["vmware"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-05-14-4.5.1-vmware.ova"
         self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["lxc"] = self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["kvm"]
 
         self.config["CLOUD_CONFIG"]["4.6.0"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.5.1"])
@@ -2484,6 +2508,13 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["sles113"]["MAXMEMORY64"] = "524288"
         self.config["GUEST_LIMITATIONS"]["sles113"]["MAX_VM_VCPUS"] = "32"
         self.config["GUEST_LIMITATIONS"]["sles113"]["MAX_VM_VCPUS64"] = "32"
+        self.config["GUEST_LIMITATIONS"]["sles114"] = {}
+        self.config["GUEST_LIMITATIONS"]["sles114"]["MINMEMORY"] = "4096"
+        self.config["GUEST_LIMITATIONS"]["sles114"]["STATICMINMEMORY"] = "512"
+        self.config["GUEST_LIMITATIONS"]["sles114"]["MAXMEMORY"] = "16384"
+        self.config["GUEST_LIMITATIONS"]["sles114"]["MAXMEMORY64"] = "524288"
+        self.config["GUEST_LIMITATIONS"]["sles114"]["MAX_VM_VCPUS"] = "32"
+        self.config["GUEST_LIMITATIONS"]["sles114"]["MAX_VM_VCPUS64"] = "32"
         self.config["GUEST_LIMITATIONS"]["sled113"] = {}
         self.config["GUEST_LIMITATIONS"]["sled113"]["MINMEMORY"] = "4096"
         self.config["GUEST_LIMITATIONS"]["sled113"]["STATICMINMEMORY"] = "512"
@@ -2825,7 +2856,7 @@ class Config(object):
             'oel6u_x86-32', 'oel6u_x86-64', 'oel71_x86-64', 'oel71xs_x86-64', 'oel7u_x86-64',
             'rhel511_x86-32', 'rhel511_x86-64', 'rhel5u_x86-32', 'rhel5u_x86-64', 'rhel66_x86-32', 'rhel66_x86-64',
             'rhel6u_x86-32', 'rhel6u_x86-64', 'rhel71_x86-64', 'rhel71xs_x86-64', 'rhel7u_x86-64',
-            'sles113_x86-32', 'sles113_x86-64', 'sles12_x86-64',
+            'sles113_x86-32', 'sles113_x86-64', 'sles114_x86-64','sles12_x86-64',
             'ubuntu1204_x86-32', 'ubuntu1204_x86-64', 'ubuntu1404_x86-32', 'ubuntu1404_x86-64',
             'winxpsp3', 'w2k3eesp2', 'w2k3eesp2-x64',
             'vistaeesp2', 'ws08dcsp2-x64', 'ws08dcsp2-x86',
@@ -3688,6 +3719,10 @@ class Config(object):
         # Lull: xen-hyp, xapi, xen-device-model, xenbugtool. Rolls up XS61E003, XS61E004, XS61E006, XS61E008, XS61E009, XS61E012, XS61E013, XS61E017, XS61E019, XS61E020,XS61E021, XS61E022, XS61E023, XS61E024, XS61E025, XS61E026, XS61E027, XS61E032, XS61E033, XS61E036, XS61E037, XS61E041, XS61E043, XS61E045
         self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E046"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E046/89882/hotfix-XS61E046/XS61E046.xsupdate"
         
+        # Repetir: xen-tools. Rolls up XS61E010, XS61E029, XS61E038
+        self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E047"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E047/101342/hotfix-XS61E047/XS61E047.xsupdate"
+        self.config["TOOLS_HOTFIXES"]["Tampa"]["RTM"].append("XS61E047")
+        
         # Ghost: glibc. Rolls up nothing
         self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E048"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E048/91291/hotfix-XS61E048/XS61E048.xsupdate"
         
@@ -3886,6 +3921,9 @@ class Config(object):
         # Floppy- xen-device-model. Rolls up XS62E014, XS62E017, XS62ESP1002, XS62ESP1004, XS62ESP1006, XS62ESP1007, XS62ESP1008, XS62ESP1011, XS62ESP1013, XS62ESP1015, XS62ESP1016, XS62ESP1019, XS62ESP1021, XS62ESP1022
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1025"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1025/101557/hotfix-XS62ESP1025/XS62ESP1025.xsupdate"
         
+        # Caboodle- xapi, xen, sm, isL, rrdd, nfs, perf-tools, kexec. Rolls up XS62E014, XS62E017, XS62ESP1002, XS62ESP1004, XS62ESP1006, XS62ESP1007, XS62ESP1008, XS62ESP1011, XS62ESP1013, XS62ESP1015, XS62ESP1016, XS62ESP1019, XS62ESP1021, XS62ESP1022, XS62ESP1025
+        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1026"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1026/101918/hotfix-XS62ESP1026/XS62ESP1026.xsupdate"
+        
         
         #Creedence hotfixes
         # Gloss: XenCenter, Rolls up nothing
@@ -4062,10 +4100,10 @@ class Config(object):
         self.config["CARBON_PATCHES_TAMPA"]["HF01"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E001"]
         self.config["CARBON_PATCHES_TAMPA"]["HF09"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E009"]
         self.config["CARBON_PATCHES_TAMPA"]["HF20"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E020"]
-        self.config["CARBON_PATCHES_TAMPA"]["HF38"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E038"]
         self.config["CARBON_PATCHES_TAMPA"]["HF40"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E040"]
         self.config["CARBON_PATCHES_TAMPA"]["HF42"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E042"]
         self.config["CARBON_PATCHES_TAMPA"]["HF44"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E044"]
+        self.config["CARBON_PATCHES_TAMPA"]["HF47"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E047"]
         self.config["CARBON_PATCHES_TAMPA"]["HF48"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E048"]
         self.config["CARBON_PATCHES_TAMPA"]["HF52"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E052"]
 
@@ -4087,7 +4125,7 @@ class Config(object):
             self.config["CARBON_PATCHES_CLEARWATER"]["HF17"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1017"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF20"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1020"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF24"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1024"]
-            self.config["CARBON_PATCHES_CLEARWATER"]["HF25"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1025"]
+            self.config["CARBON_PATCHES_CLEARWATER"]["HF26"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1026"]
 
         if not self.config.has_key("CARBON_PATCHES_CREEDENCE"):
             self.config["CARBON_PATCHES_CREEDENCE"] = {}
@@ -4108,19 +4146,21 @@ class Config(object):
         """Read config from an XML file."""
         self.parseConfig(filename, path=path)
 
-    def writeOut(self, fd, dict=None, pref=[]):
+    def writeOut(self, fd, conf=None, pref=[]):
         """Write the config out to a file descriptor"""
-        if dict == None:
-            dict = self.config
-        keys = dict.keys()
+        if conf == None:
+            conf = self.config
+        keys = conf.keys()
         keys.sort()
         for key in keys:
-            if type(dict[key]) == type(""):
-                s = re.sub(r"\$\{(\w+)\}", self.lookupHelper, dict[key])
+            if type(conf[key]) == type(""):
+                s = re.sub(r"\$\{(\w+)\}", self.lookupHelper, conf[key])
                 value = string.replace(s, "'", "\\'")
                 fd.write("%s='%s'\n" % (string.join(pref + [key], "."), value))
+            elif type(conf[key]) == list:
+                fd.write("%s=%s\n" % (string.join(pref + [key], "."), str(conf[key]))) 
             else:
-                self.writeOut(fd, dict[key], pref + [key])
+                self.writeOut(fd, conf[key], pref + [key])
 
     def setVariable(self, key, value):
         """Write a variable to the config"""

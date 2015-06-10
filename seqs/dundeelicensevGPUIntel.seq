@@ -1,0 +1,35 @@
+<xenrt>
+
+  <!-- Verify features with different licenses on Creedence host -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+      <host id="0" license="no" defaultlicense="no">
+        <vm name="LicenseServer">
+          <file>%LICENSE_SERVER_XVA%</file>
+          <postinstall action="installV6LicenseServer"/>
+        </vm>
+        <vm name="vgpufeaturevm">
+          <distro>win7sp1-x86</distro>
+          <network device="0" />
+          <postinstall action="installDrivers"/>
+        </vm>
+      </host>
+    </prepare>
+    
+  <testsequence>
+    <testcase id="xenserver.tc.vgpu.TCcreatevGPU" name="Win7sp1x86INTELVGPU" tc="TC-23748" sku="TCcreatevGPU">
+      <arg>vmName=vgpufeaturevm</arg>
+      <arg>vgpuconfig=13</arg>
+      <arg>startVM=False</arg>
+    </testcase>
+
+    <testcase id="xenserver.tc.mulskulicense.TCVirtualGPUFeature" name="VirtualGPUFeature" tc="TC-23748" sku="VirtualGPUFeature">
+      <arg>sku=PerSocketEnterprise,PerUserEnterprise,PerConcurrentUserEnterprise,PerSocketStandard,XenDesktopXDS,XenDesktopMPS</arg>
+    </testcase>
+  </testsequence>
+
+</xenrt>

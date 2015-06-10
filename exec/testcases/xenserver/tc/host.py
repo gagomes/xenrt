@@ -4904,7 +4904,7 @@ class TCDiffChecksums(xenrt.TestCase):
                         "/etc/xensource-inventory", "/etc/xensource/ptoken",
                         "/etc/xensource/xapi-ssl.pem", "/var/lib/likewise/db/registry.db",
                         "/var/lib/nfs/statd/state", "/var/lib/ntp/drift",
-                        "/var/lib/random-seed"]:
+                        "/var/lib/random-seed", "/var/lib/pbis/db/registry.db"]:
                 continue
 
             if any([path.startswith(sw) for sw in ["/boot/initrd", "/etc/blkid/blkid",
@@ -5210,4 +5210,45 @@ if __name__ == "__main__":
         except Exception, e:
             if "Client_requested_size_over_limit" not in str(e):
                 raise
+
+class TCDom0PartitionClean(xenrt.TestCase):
+    #TC-27020
+    """Test case for checking Dom0 disk partitioning on clean installation: Dundee onwards(REQ-176)"""
+
+    def prepare(self, arglist):
+        self.host = self.getDefaultHost()
+    
+    def run(self, arglist):
+        step("Compare Dom0 partitions")
+        partitions = self.host.lookup("DOM0_PARTITIONS")
+        if self.host.compareDom0Partitions(partitions):
+            log("Found expected Dom0 partitions on XS clean installation: %s" % partitions)
+        else:
+            raise xenrt.XRTFailure("Found unexpected partitions on XS clean install. Expected: %s Found: %s" % (partitions, self.host.getDom0Partitions()))
+        
+
+
+class TCSwapPartition(xenrt.TestCase):
+    #TC-27021
+    """Test case for checking if SWAP partition is in use when running out of memory"""
+
+    def prepare(self, arglist):
+        self.host = self.getDefaultHost()
+    
+    def run(self, arglist):
+        step("Fetch Size of Swap Partition")
+        swapUsed= float(self.host.execdom0("free -m | grep Swap | awk '{print $3}'"))
+        
+        step("Eat up memory by running a script")
+        self.host.execdom0("cp -f %s/utils/memEater_x64 /root/; chmod +x /root/memEater_x64; /root/memEater_x64" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"), level=xenrt.RC_OK)
+        
+        step("Check if swap is in use")
+        (swapSize,newSwapUsed)= [float(i) for i in self.host.execdom0("free -m | grep Swap | awk '{print $2,$3}'").split(' ')]
+        if newSwapUsed > swapUsed:
+            log("SWAP is in use as expected. SWAP size = %s, SWAP memory in use = %s" % (swapSize,newSwapUsed))
+        else:
+            raise xenrt.XRTFailure("SWAP partition is not in use. SWAP size = %s, SWAP memory in use = %s" % (swapSize,newSwapUsed))
+        
+
+
 

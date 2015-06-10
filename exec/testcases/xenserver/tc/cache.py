@@ -5,7 +5,7 @@ from sets import Set as unique
 
 class PacketCatcher(object):
 
-    def __init__(self, host, delay=0, nolog=True):
+    def __init__(self, host, delay=2, nolog=True):
         self.host = host
         self.packets = []
         self.pid = None
@@ -13,11 +13,17 @@ class PacketCatcher(object):
         self.nolog = nolog
         self.datafile = self.host.execdom0("mktemp").strip()
 
-    def startCapture(self, pattern):
+    def startCapture(self, params):
+
+        #if isinstance(self.host, xenrt.lib.xenserver.ClearwaterHost):
+            #params = params + " -B 64000"
+        if isinstance(self.host, xenrt.lib.xenserver.DundeeHost):
+            params = params + " -U"
+
         self.packets = []
         xenrt.TEC().logverbose("PacketCatcher: Starting capture on %s..." % (self.host.getName()))
         self.pid = self.host.execdom0("tcpdump %s &> %s & echo $!" % 
-                                      (pattern, self.datafile)).strip()
+                                      (params, self.datafile)).strip()
 
     def stopCapture(self):
         xenrt.TEC().logverbose("Sleeping for %ss." % (self.delay))
@@ -123,7 +129,7 @@ class NFSPacketCatcher(PacketCatcher):
 
 class IOPPacketCatcher(PacketCatcher):
 
-    def __init__(self, host, delay=0, nolog=True):
+    def __init__(self, host, delay=2, nolog=True):
         PacketCatcher.__init__(self, host, delay, nolog)
         self.iterations = 0
         self.reads = [] 
@@ -284,8 +290,6 @@ class _Cache(xenrt.TestCase):
         self.configureNetwork()
         xenrt.TEC().logverbose("Capturing all NFS traffic on %s." % (self.host.getName()))
         param = "tcp port nfs and host %s -i %s -tt -x -s 65535 -vv" % (self.host.getIP(),self.host.getPrimaryBridge())
-        #if isinstance(self.host, xenrt.lib.xenserver.ClearwaterHost):
-            #param = param + " -B 64000"
         self.packetCatcher.startCapture(param)
     
     def endMeasurement(self):
@@ -639,7 +643,7 @@ class _Cache(xenrt.TestCase):
         self.host = self.getDefaultHost()
         if not self.host.genParamGet("sr", self.host.lookupDefaultSR(), "type") == "nfs":
             raise xenrt.XRTError("The default SR must be an nfs one.")
-        self.packetCatcher = NFSPacketCatcher(self.host, delay=0)
+        self.packetCatcher = NFSPacketCatcher(self.host, delay=2)
         if isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
             self.host.disableReadCaching()
         self.enableCaching()
@@ -1561,7 +1565,7 @@ class TC12006(_CachePerformance):
     READMAXGAIN = 0.7
     READMINGAIN = 0.01
     #WRITEMAXGAIN = 1.15 # Due to increase in cache writeback, this increase is expected.
-    WRITEMAXGAIN = 1.3 # Refer CA-124004
+    WRITEMAXGAIN = 1.5 # Refer CA-124004
     WRITEMINGAIN = 0.5 # Ensure writes are still being sent back to nfs.
 
 class _ReadCachePerformance(_CachePerformance):

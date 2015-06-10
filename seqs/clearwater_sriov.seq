@@ -5,7 +5,7 @@
   <variables>
     <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
     <PREPARE_WORKERS>1</PREPARE_WORKERS>
-    <!--DDK_CD_IMAGE>/usr/groups/release/XenServer-6.x/XS-6.2-SP1/RTM-77323/xe-phase-2/ddk.iso</DDK_CD_IMAGE-->
+    <DDK_CD_IMAGE>/usr/groups/release/XenServer-6.x/XS-6.2-SP1/RTM-77323/xe-phase-2/ddk.iso</DDK_CD_IMAGE>
   </variables>
 
   <prepare>

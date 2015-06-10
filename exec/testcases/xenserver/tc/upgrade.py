@@ -2844,7 +2844,7 @@ class _WindowsPVUpgradeWithStaticIP(_VMToolsUpgrade):
 
         self.guest.shutdown()
   
-     def postRun(self):
+    def postRun(self):
     
         self.guest.shutdown()
         self.staticiIP.release()

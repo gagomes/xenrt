@@ -467,7 +467,8 @@ class Guest(xenrt.lib.libvirt.Guest):
         dict={}
         for line in res.split("\n"):
             data = line.split(":", 1)
-            dict.update({data[0].strip(): data[1].strip()})
+            if data and len(data) == 2:
+                dict.update({data[0].strip(): data[1].strip()})
         if returnDict:
             return dict
-        return dict["Value"]
+        return dict["Value"] if "Value" in dict else None

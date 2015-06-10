@@ -421,6 +421,7 @@ def command(command, retval="string", level=xenrt.RC_FAIL, timeout=3600,
     @param nolog: If C{True} then don't log the command (for sensitive
         command lines containing passwords)
     """
+    xenrt.TEC().logverbose("DEBUG-command %r" % command)
     if string.find(command, "\n") > -1 and not newlineok:
         if nolog:
             xenrt.TEC().warning("Command with newline")

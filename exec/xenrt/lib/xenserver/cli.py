@@ -250,6 +250,7 @@ class Session(object):
                                                  returndata=True)).strip()
                 else:
                     try:
+                        xenrt.TEC().logverbose("DEBUG command: %r/xe %s" % (self.dir,c))
                         reply = xenrt.command("%s/xe %s" % (self.dir,c),
                                               retval=retval,
                                               level=level,
@@ -259,6 +260,7 @@ class Session(object):
                                               nolog=nolog)
                         return reply
                     except xenrt.XRTException, e:
+                        xenrt.TEC().logverbose("DEBUG e.data: %r" % e.data)
                         # Propogate connectivity problems to retry loop
                         if e.data and re.search(r"Connection reset by peer",
                                                 e.data):

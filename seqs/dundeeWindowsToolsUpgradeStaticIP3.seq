@@ -94,6 +94,7 @@
         <distro>debian60</distro>
         <network device="0" bridge="NSEC"/>
         <postinstall action="preCloneTailor"/>
+        <postinstall action="start"/>
       </vm>
       <NETWORK>
         <PHYSICAL network="NPRI">

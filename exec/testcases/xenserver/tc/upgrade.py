@@ -2796,8 +2796,6 @@ class _FeatureOperationAfterUpgrade(xenrt.TestCase):
 class _WindowsPVUpgradeWithStaticIP(_VMToolsUpgrade):
     def prepare(self,arglist):
         self.testpeer = self.getGuest("testpeer")
-        if self.testpeer.getState() != "UP":
-            self.testpeer.start()
         _VMToolsUpgrade.prepare(self,arglist)
         if not self.guest.windows:
             raise xenrt.XRTError("Guest is not windows")

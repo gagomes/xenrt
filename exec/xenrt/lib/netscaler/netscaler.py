@@ -4,6 +4,7 @@ import os
 import re
 import IPy
 from pprint import pformat
+from xenrt.lazylog import *
 
 __all__ = ["NetScaler"]
 
@@ -23,15 +24,15 @@ class NetScaler(object):
         vpxGuest.noguestagent = True
         vpxGuest.password = 'nsroot'
 
-        try:
-            vpxMgmtIp = cls.getVpxIpFromVmParams(vpxGuest)
-            xenrt.xrtAssert(vpxGuest.mainip == vpxMgmtIp and vpxGuest.mainip != None, 'Netscaler VPX guest has inconsistent or NULL IP Address')
+        vpxMgmtIp = cls.getVpxIpFromVmParams(vpxGuest)
+        if vpxMgmtIp and vpxGuest.mainip and vpxMgmtIp==vpxGuest.mainip:
             if vpxGuest.getState() == 'DOWN':
                 vpxGuest.lifecycleOperation('vm-start')
             # Wait / Check for SSH connectivity
             vpxGuest.waitForSSH(timeout=300, username='nsroot', cmd='shell')
             vpx = cls(vpxGuest, None)
-        except xenrt.XRTFailure, e:
+        else:
+            warning('Netscaler VPX guest has inconsistent or NULL IP Address')
             if vpxGuest.getState() == 'UP':
                 vpxGuest.shutdown()
             if not useVIFs:

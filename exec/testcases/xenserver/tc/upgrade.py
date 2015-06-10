@@ -2812,7 +2812,7 @@ class _WindowsPVUpgradeWithStaticIP(_VMToolsUpgrade):
         self.guest.xmlrpcExec("netsh firewall set icmpsetting 8")
 
         # Sanity check that it's currently working
-        self.testpeer.execguest("ping -c %s" % self.staticIP.getAddr())
+        self.testpeer.execguest("ping -c 10 %s" % self.staticIP.getAddr())
 
 
     def run(self, arglist):

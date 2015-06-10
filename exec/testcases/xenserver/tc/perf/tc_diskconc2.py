@@ -236,7 +236,7 @@ for i in {b..%s}; do
                             --direct=1 \
                             --ioengine=libaio \
                             --time_based \
-                            --filename=/dev/xvd$i \
+                            --filename=$(ls -1 /dev/*d$i) \
                             --minimal \
                             --terse-version=3 \
                             --numjobs=%d \

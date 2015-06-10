@@ -269,7 +269,7 @@ endif
 .PHONY: puppetinstall-%
 puppetinstall-%:
 	$(info Installing puppet agent)
-	wget -O puppet-release.deb https://apt.puppetlabs.com/puppetlabs-release-$(patsubst puppet-%,%,$@).deb
+	wget -O puppet-release.deb https://apt.puppetlabs.com/puppetlabs-release-$(patsubst puppetinstall-%,%,$@).deb
 	$(SUDO) dpkg -i puppet-release.deb
 	rm puppet-release.deb
 	$(SUDO) apt-get update

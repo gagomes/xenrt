@@ -8,11 +8,12 @@
 # conditions as licensed by Citrix Systems, Inc. All other rights reserved.
 #
 
-import sys, string, time
+import string, time
 import xenrt
 
+
 class TCVerifyDriversUptoDate(xenrt.TestCase):
-    
+
     def run(self, arglist=None):
         gname = None
         for arg in arglist:
@@ -22,12 +23,13 @@ class TCVerifyDriversUptoDate(xenrt.TestCase):
 
         if not gname:
             raise xenrt.XRTError("No guest name specified.")
-        
+
         guest = self.getGuest(gname)
         self.getLogsFrom(guest.host)
-        
+
         if not guest.pvDriversUpToDate():
             raise xenrt.XRTFailure("PV Drivers are not reported as up-to-date after installation")
+
 
 class TCVerifyDriversOutOfDate(xenrt.TestCase):
 
@@ -47,6 +49,7 @@ class TCVerifyDriversOutOfDate(xenrt.TestCase):
         if guest.pvDriversUpToDate():
             raise xenrt.XRTFailure("PV Drivers are not reported as out-of-date")
 
+
 class TCDriverInstall(xenrt.TestCase):
 
     def __init__(self):
@@ -60,7 +63,7 @@ class TCDriverInstall(xenrt.TestCase):
                               boolean=True):
             xenrt.TEC().skip("Skipping because of --noinstall option.")
             return
-    
+
         # Mandatory args.
         gname = None
         verify = False
@@ -85,7 +88,7 @@ class TCDriverInstall(xenrt.TestCase):
                 resident_on = l[1]
             elif l[0] == "useHostTimeUTC":
                 useHostTimeUTC = True
-        
+
         if not gname:
             raise xenrt.XRTError("No guest name specified.")
 
@@ -96,7 +99,7 @@ class TCDriverInstall(xenrt.TestCase):
         else:
             guest = self.getGuest(gname)
         self.getLogsFrom(guest.host)
-        
+
         # Make sure the guest is up
         if guest.getState() == "DOWN":
             xenrt.TEC().comment("Starting guest for driver install")
@@ -109,7 +112,7 @@ class TCDriverInstall(xenrt.TestCase):
             guest.installDrivers(useHostTimeUTC=useHostTimeUTC)
         else:
             guest.installDrivers()
-        
+
         if xenrt.TEC().lookup("DISABLE_EMULATED_DEVICES", False, boolean=True):
             guest.shutdown()
             cli = guest.getCLIInstance()
@@ -122,6 +125,7 @@ class TCDriverInstall(xenrt.TestCase):
         if verify:
             time.sleep(120)
             guest.enableDriverVerifier()
+
 
 class TCDriverUpgrade(xenrt.TestCase):
 
@@ -164,3 +168,21 @@ class TCDriverUpgrade(xenrt.TestCase):
         guest.waitForAgent(60)
         guest.shutdown()
 
+
+class TCGPODoesNotBSOD(xenrt.TestCase):
+
+    def run(self, arglist=None):
+        host = self.getDefaultHost()
+        guest = self.getGuest(host.listGuests()[0])
+        self.__setGPO(guest)
+        guest.reboot()
+        guest.installDrivers()
+        guest.checkHealth()
+
+    def __setGPO(self, guest):
+        """
+        This is the registry key settings for the required Group Policy Object
+        """
+        guest.winRegAdd("HKLM", """SOFTWARE\Policies\Microsoft\Windows\DeviceInstall\Restrictions""", "DenyDeviceIDs", "DWORD", 1)
+        guest.winRegAdd("HKLM", """SOFTWARE\Policies\Microsoft\Windows\DeviceInstall\Restrictions""", "DenyDeviceIDsRetroactive", "DWORD", 0)
+        guest.winRegAdd("HKLM", """SOFTWARE\Policies\Microsoft\Windows\DeviceInstall\Restrictions\DenyDeviceIDs""", "1", "SZ", """USB\\\\Class_0e&SubClass_03&Prot_00""")

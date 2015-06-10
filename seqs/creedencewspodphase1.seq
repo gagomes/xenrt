@@ -20,7 +20,7 @@
   </prepare>
 
   <testsequence>
-    <testcase id="xenserver.tc.wspod.TCStoragePCIPassthrough">
+    <testcase id="xenserver.tc.wspod.TCStoragePCIPassthrough" tc="TC-27061">
       <arg>multipathing</arg>
       <arg>pci=MPT SAS-2</arg>
       <arg>guest=ws</arg>

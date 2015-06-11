@@ -9,7 +9,7 @@
 
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
-    <PREPARE_WORKERS>3</PREPARE_WORKERS>
+    <PREPARE_WORKERS>4</PREPARE_WORKERS>
   </variables>
 
   <prepare>
@@ -58,9 +58,11 @@
       </testcase>
     </serial>
     <serial group="UpgVM">
-      <testcase id="xenserver.tc.upgrade.TC18826"/>
-      <testcase id="xenserver.tc.upgrade.TC18827"/>
-      <testcase id="xenserver.tc.upgrade.TC18829"/>
+      <parallel>
+        <testcase id="xenserver.tc.upgrade.TC18826"/>
+        <testcase id="xenserver.tc.upgrade.TC18827"/>
+        <testcase id="xenserver.tc.upgrade.TC18829"/>
+      </parallel>
     </serial>
   </testsequence>
 

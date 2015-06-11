@@ -1385,13 +1385,13 @@ class TCUpgradeMultipathedRootDisk(_SingleHostUpgrade):
 
     def fakeKernelHotfix(self):
         step("Faking a kernel hotifx by rebuilding initrd...")
-        self.host.rebuildInitrd()
-        self.host.reboot()
+        self.getDefaultHost().rebuildInitrd()
+        self.getDefaultHost().reboot()
 
     def checkMPIsOn(self, expectedOn=True):
         step("Checking the state of multipathing...")
-        log(self.host.getMultipathInfo())
-        mpOn = len(self.host.getMultipathInfo()) >= 1
+        log(self.getDefaultHost().getMultipathInfo())
+        mpOn = len(self.getDefaultHost().getMultipathInfo()) >= 1
 
         if mpOn != expectedOn:
             raise xenrt.XRTError(

@@ -681,6 +681,7 @@ class TC7366(SRSanityTestTemplate):
         time.sleep(60)
         
         # Make sure it's the 1024MB LUN we used
+        host.execdom0("xe sr-scan uuid=%s" % sr.uuid)
         size = sr.physicalSizeMB()
         if size < 950:
             raise xenrt.XRTFailure("The SR was only %uMB in size. The LUN "

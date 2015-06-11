@@ -3456,8 +3456,11 @@ class Config(object):
         # Floppy: xen-device-model .Rolls up XS60E014,XS60E018, XS60E020,XS60E023, XS60E024,XS60E026, XS60E028,XS60E029, XS60E033,XS60E034, XS60E035,XS60E037, XS60E039,XS60E040,XS60E042, XS60E045, XS60E046
         self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E047"] = "/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E047/101556/hotfix-XS60E047/XS60E047.xsupdate"
        
-       
-       
+        # Harry: xen-device-model. Rolls up XS60E014,XS60E018, XS60E020,XS60E023, XS60E024,XS60E026, XS60E028,XS60E029, XS60E033,XS60E034, XS60E035,XS60E037, XS60E039,XS60E040,XS60E042, XS60E045, XS60E046, XS60E047 
+        self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E048"] = "/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E048/101900/hotfix-XS60E048/XS60E048.xsupdate"
+        
+        # Sally: xen, xen-device-model. Rolls up XS60E014,XS60E018, XS60E020,XS60E023, XS60E024,XS60E026, XS60E028,XS60E029, XS60E033,XS60E034, XS60E035,XS60E037, XS60E039,XS60E040,XS60E042, XS60E045, XS60E046, XS60E047, XS60E048 
+        self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E049"] = "/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E049/102099/hotfix-XS60E049/XS60E049.xsupdate"
        
          # Sonja xen
         self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E004"] = "/usr/groups/release/XenServer-6.x/XS-6.0.2/hotfixes/XS602E004/56521/hotfix-XS602E004/XS602E004.xsupdate"
@@ -3579,6 +3582,8 @@ class Config(object):
         #Floppy : xen-device-model. Rolls up XS602E001,XS602E003, XS602E004,XS602E005, XS602E007,XS602E008, XS602E011,XS602E013, XS602E014,XS602E016, XS602E017,XS602E018, XS602E020,XS602E021, XS602E022,XS602E023, XS602E025,XS602E026, XS602E027,XS602E028, XS602E029,XS602E030 XS602E032,XS602E033 XS602E034,XS602E035 XS602E036, XS602E038, XS602E041, XS602E042
         self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E043"] = "/usr/groups/release/XenServer-6.x/XS-6.0.2/hotfixes/XS602E043/101570/hotfix-XS602E043/XS602E043.xsupdate"
       
+        #Sally : xen, xen-device-model. Rolls up XS602E001,XS602E003, XS602E004,XS602E005, XS602E007,XS602E008, XS602E011,XS602E013, XS602E014,XS602E016, XS602E017,XS602E018, XS602E020,XS602E021, XS602E022,XS602E023, XS602E025,XS602E026, XS602E027,XS602E028, XS602E029,XS602E030 XS602E032,XS602E033 XS602E034,XS602E035 XS602E036, XS602E038, XS602E041, XS602E042,XS602E043
+        self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E044"] = "/usr/groups/release/XenServer-6.x/XS-6.0.2/hotfixes/XS602E044/102102/hotfix-XS602E044/XS602E044.xsupdate"
       
       
         # Adam: sm. Rolls up Nothing
@@ -3736,7 +3741,12 @@ class Config(object):
         
         # Floppy: xen-device-model. Rolls up XS61E003, XS61E004, XS61E006, XS61E008, XS61E009, XS61E012, XS61E013, XS61E017, XS61E019, XS61E020,XS61E021, XS61E022, XS61E023, XS61E024, XS61E025, XS61E026, XS61E027, XS61E032, XS61E033, XS61E036, XS61E037, XS61E041, XS61E043, XS61E045, XS61E046, XS61E050, XS61E051
         self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E052"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E052/101561/hotfix-XS61E052/XS61E052.xsupdate"
+        
+        # Harry: xen-device-model. Rolls up XS61E003, XS61E004, XS61E006, XS61E008, XS61E009, XS61E012, XS61E013, XS61E017, XS61E019, XS61E020,XS61E021, XS61E022, XS61E023, XS61E024, XS61E025, XS61E026, XS61E027, XS61E032, XS61E033, XS61E036, XS61E037, XS61E041, XS61E043, XS61E045, XS61E046, XS61E050, XS61E051,XS61E051,XS61E052
+        self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E053"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E053/101913/hotfix-XS61E053/XS61E053.xsupdate"
       
+        # Sally: xen, xen-device-model. Rolls up XS61E003, XS61E004, XS61E006, XS61E008, XS61E009, XS61E012, XS61E013, XS61E017, XS61E019, XS61E020,XS61E021, XS61E022, XS61E023, XS61E024, XS61E025, XS61E026, XS61E027, XS61E032, XS61E033, XS61E036, XS61E037, XS61E041, XS61E043, XS61E045, XS61E046, XS61E050, XS61E051,XS61E051,XS61E052,XS61E053
+        self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E054"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E054/102106/hotfix-XS61E054/XS61E054.xsupdate"
       
       
         # Viola: Xen 
@@ -3795,6 +3805,8 @@ class Config(object):
         # Floppy - xen-device-model . Rolls up XS602ECC001, XS602ECC002, XS602ECC003, XS602ECC005, XS602ECC006,XS602ECC007, XS602ECC008, XS602ECC011, XS602ECC012, XS602ECC014, XS602ECC017, XS602ECC018
         self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC019"] = "/usr/groups/release/XenServer-6.x/sweeney/hotfixes/XS602ECC019/101571/hotfix-XS602ECC019/XS602ECC019.xsupdate"
       
+        # Sally - xen, xen-device-model . Rolls up XS602ECC001, XS602ECC002, XS602ECC003, XS602ECC005, XS602ECC006,XS602ECC007, XS602ECC008, XS602ECC011, XS602ECC012, XS602ECC014, XS602ECC017, XS602ECC018,XS602ECC019
+        self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC020"] = "/usr/groups/release/XenServer-6.x/sweeney/hotfixes/XS602ECC020/102104/hotfix-XS602ECC020/XS602ECC020.xsupdate"
       
         # vGPU Tech Preview hotfix, Rolls up XS62E001 and XS62E002
         self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62ETP001"] = "/usr/groups/release/XenServer-6.x/XS-6.2/tech-preview/hotfix-XS62ETP001/XS62ETP001.xsupdate"
@@ -3924,6 +3936,8 @@ class Config(object):
         # Caboodle- xapi, xen, sm, isL, rrdd, nfs, perf-tools, kexec. Rolls up XS62E014, XS62E017, XS62ESP1002, XS62ESP1004, XS62ESP1006, XS62ESP1007, XS62ESP1008, XS62ESP1011, XS62ESP1013, XS62ESP1015, XS62ESP1016, XS62ESP1019, XS62ESP1021, XS62ESP1022, XS62ESP1025
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1026"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1026/101918/hotfix-XS62ESP1026/XS62ESP1026.xsupdate"
         
+        # Sally- xapi, xen-device-model. Rolls up XS62E014, XS62E017, XS62ESP1002, XS62ESP1004, XS62ESP1006, XS62ESP1007, XS62ESP1008, XS62ESP1011, XS62ESP1013, XS62ESP1015, XS62ESP1016, XS62ESP1019, XS62ESP1021, XS62ESP1022, XS62ESP1025,XS62ESP1026
+        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1027"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1027/102105/hotfix-XS62ESP1027/XS62ESP1027.xsupdate"
         
         #Creedence hotfixes
         # Gloss: XenCenter, Rolls up nothing
@@ -3951,6 +3965,8 @@ class Config(object):
         # Floppy: xen-device-model. Rolls up XS65E006, XS65E007.
         self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E009"] = "/usr/groups/release/XenServer-6.x/XS-6.5/hotfixes/XS65E009/101559/hotfix-XS65E009/XS65E009.xsupdate"
 
+        # Sally: xen-device-model. Rolls up XS65E006, XS65E007, XS65E009.
+        self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E010"] = "/usr/groups/release/XenServer-6.x/XS-6.5/hotfixes/XS65E010/102131/hotfix-XS65E010/XS65E010.xsupdate"
 
         # 6.5 SP1 (Cream) - start of SP1 branch, rolls up all previous hotfixes (till XS65E008)
         self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1"] = "/usr/groups/release/XenServer-6.x/XS-6.5-SP1/RTM-101064/hotfix-XS65ESP1/XS65ESP1.xsupdate"
@@ -3961,6 +3977,8 @@ class Config(object):
         # Floppy: xen-device-model. Rolls up XS65E006, XS65E007.
         self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1002"] = "/usr/groups/release/XenServer-6.x/XS-6.5-SP1/hotfixes/XS65ESP1002/101510/hotfix-XS65ESP1002/XS65ESP1002.xsupdate"
 
+        # Sally: xen, xen-device-model. Rolls up XS65E009, XS65E010, XS65ESP1002 .
+        self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1004"] = "/usr/groups/release/XenServer-6.x/XS-6.5-SP1/hotfixes/XS65ESP1004/102101/hotfix-XS65ESP1004/XS65ESP1004.xsupdate"
 
         return
 
@@ -4074,6 +4092,8 @@ class Config(object):
         self.config["CARBON_PATCHES_BOSTON"]["HF41"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E041"]
         self.config["CARBON_PATCHES_BOSTON"]["HF43"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E043"]
         self.config["CARBON_PATCHES_BOSTON"]["HF47"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E047"]
+        self.config["CARBON_PATCHES_BOSTON"]["HF48"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E048"]
+        self.config["CARBON_PATCHES_BOSTON"]["HF49"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E049"]
         
         if not self.config.has_key("CARBON_PATCHES_SANIBEL"):
             self.config["CARBON_PATCHES_SANIBEL"] = {}
@@ -4085,6 +4105,7 @@ class Config(object):
         self.config["CARBON_PATCHES_SANIBEL"]["HF37"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E037"]
         self.config["CARBON_PATCHES_SANIBEL"]["HF39"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E039"]
         self.config["CARBON_PATCHES_SANIBEL"]["HF43"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E043"]
+        self.config["CARBON_PATCHES_SANIBEL"]["HF44"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E044"]
         
         if not self.config.has_key("CARBON_PATCHES_SANIBELCC"):
             self.config["CARBON_PATCHES_SANIBELCC"] = {}
@@ -4094,6 +4115,7 @@ class Config(object):
         self.config["CARBON_PATCHES_SANIBELCC"]["HF13"] = self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC013"]
         self.config["CARBON_PATCHES_SANIBELCC"]["HF15"] = self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC015"]
         self.config["CARBON_PATCHES_SANIBELCC"]["HF19"] = self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC019"]
+        self.config["CARBON_PATCHES_SANIBELCC"]["HF20"] = self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC020"]
         
         if not self.config.has_key("CARBON_PATCHES_TAMPA"):
             self.config["CARBON_PATCHES_TAMPA"] = {}
@@ -4106,6 +4128,8 @@ class Config(object):
         self.config["CARBON_PATCHES_TAMPA"]["HF47"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E047"]
         self.config["CARBON_PATCHES_TAMPA"]["HF48"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E048"]
         self.config["CARBON_PATCHES_TAMPA"]["HF52"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E052"]
+        self.config["CARBON_PATCHES_TAMPA"]["HF53"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E053"]
+        self.config["CARBON_PATCHES_TAMPA"]["HF54"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E054"]
 
         if not self.config.has_key("CARBON_PATCHES_CLEARWATER"):
             self.config["CARBON_PATCHES_CLEARWATER"] = {}
@@ -4126,7 +4150,8 @@ class Config(object):
             self.config["CARBON_PATCHES_CLEARWATER"]["HF20"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1020"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF24"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1024"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF26"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1026"]
-
+            self.config["CARBON_PATCHES_CLEARWATER"]["HF27"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1027"]
+             
         if not self.config.has_key("CARBON_PATCHES_CREEDENCE"):
             self.config["CARBON_PATCHES_CREEDENCE"] = {}
 
@@ -4138,9 +4163,11 @@ class Config(object):
             self.config["CARBON_PATCHES_CREEDENCE"]["HF05"] = self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E005"]
             self.config["CARBON_PATCHES_CREEDENCE"]["HF08"] = self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E008"]
             self.config["CARBON_PATCHES_CREEDENCE"]["HF09"] = self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E009"]
+            self.config["CARBON_PATCHES_CREEDENCE"]["HF10"] = self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E010"]
         elif branch == "SP1":
             self.config["CARBON_PATCHES_CREEDENCE"]["HF00"] = self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1"]
             self.config["CARBON_PATCHES_CREEDENCE"]["HF02"] = self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1002"]
+            self.config["CARBON_PATCHES_CREEDENCE"]["HF04"] = self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1004"]
 
     def readFromFile(self, filename, path=None):
         """Read config from an XML file."""

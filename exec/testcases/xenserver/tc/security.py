@@ -1099,7 +1099,24 @@ class TC8400(_AuthenticationBase):
         self.users.append(user)
         self.pool.allow(user, "pool-admin")
         self.valid.append("user")
-
+        
+class ADPBISDirectoryCheck(xenrt.TestCase):
+    def prepare(self, arglist=None):
+        self.host = self.getDefaultHost()
+        
+    def run(self, arglist=None):
+        pbisDirectories = ['/etc/pbis','/opt/pbis','/var/lib/pbis']
+        missingDirectories =[]
+        
+        for directory in pbisDirectories:
+            if self.host.execdom0("test -d %s" % directory, retval="code") !=0:
+                missingDirectories.append(directory)
+        
+        if not missingDirectories:
+            xenrt.TEC().logverbose("PBIS directories exist")
+        else:            
+            raise xenrt.XRTFailure("Following PBIS folders do not exist: %s" % ",".join(missingDirectories))
+        
 class TC10890(TC8400):
 
     USEDOMAINNAME = True

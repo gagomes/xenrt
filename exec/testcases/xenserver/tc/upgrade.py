@@ -3359,7 +3359,7 @@ class TC20654(_WindowsPVUpgradeWithStaticIPv6):
     """ Upgrade Windows Server 2012R2 x64 PV tools with static IPv6 Address from tools ISO hotfix"""
 
     VMNAME = "ws12r2core-x64"
-
+  
 
 class TC10718(_FeatureOperationAfterUpgrade):
     """Continued operation of AD authentication following host/pool update/upgrade"""

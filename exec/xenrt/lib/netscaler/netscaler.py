@@ -23,6 +23,10 @@ class NetScaler(object):
         xenrt.TEC().logverbose("VPX Guest:\n" + pformat(vpxGuest.__dict__))
         vpxGuest.noguestagent = True
         vpxGuest.password = 'nsroot'
+        _removeHostFromVCenter = False
+        if isinstance(host, xenrt.lib.esx.ESXHost) and not host.datacenter:
+            _removeHostFromVCenter = True
+            host.addToVCenter()
 
         vpxMgmtIp = cls.getVpxIpFromVmParams(vpxGuest)
         if vpxMgmtIp and vpxGuest.mainip and vpxMgmtIp==vpxGuest.mainip:
@@ -55,6 +59,8 @@ class NetScaler(object):
             vpx = cls(vpxGuest, mgmtNet)
             vpx.checkFeatures("On fresh install:")
             vpx.setup(networks)
+        if _removeHostFromVCenter:
+            host.removeFromVCenter()
         return vpx
 
     @classmethod

@@ -5,6 +5,7 @@
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
     <DOTNETVERSION>3.5</DOTNETVERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
   </variables>
 
   <prepare>
@@ -12,7 +13,7 @@
   </prepare>
 
   <testsequence>
-    <parallel group="PShell" workers="5">
+    <parallel group="PShell" workers="3">
       <testcase id="xenserver.gui.TC8300" />
       <testcase id="xenserver.gui.TC8304" />
       <testcase id="xenserver.gui.TC8305" />

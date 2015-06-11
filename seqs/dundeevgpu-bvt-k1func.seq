@@ -25,8 +25,9 @@
 
   <testsequence group="Win7sp1x86K140">
     <testcase id="xenserver.tc.vgpu.TCcreatevGPU" name="Win7sp1x86K140VGPU">
-      <arg>vmName=masterwin7sp1-x86</arg>
-      <arg>vgputype=1</arg>
+      <arg>vmName=vgpufeaturevm</arg>
+      <arg>vgpuconfig=1</arg>
+      <arg>startVM=False</arg>
     </testcase>
     <testcase id="xenserver.tc.vgpu.TCinstallNVIDIAGuestDrivers" name="Win7sp1x86K140Drivers">
       <arg>vmName=masterwin7sp1-x86</arg>

@@ -90,7 +90,7 @@
   </prepare>
   
 <testsequence>
-    <testcase id="cloud.tc.xdscalability.TCXenDesktopCloneVMs">
+    <testcase id="cloud.tc.xdscalability.TCXenDesktopCloneVMs" blocker="yes">
       <arg>instances=${INSTANCES}</arg>
       <arg>threads=${THREADS}</arg>
     </testcase>

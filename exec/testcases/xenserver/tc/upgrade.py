@@ -1385,13 +1385,13 @@ class TCUpgradeMultipathedRootDisk(_SingleHostUpgrade):
 
     def fakeKernelHotfix(self):
         step("Faking a kernel hotifx by rebuilding initrd...")
-        self.host.rebuildInitrd()
-        self.host.reboot()
+        self.getDefaultHost().rebuildInitrd()
+        self.getDefaultHost().reboot()
 
     def checkMPIsOn(self, expectedOn=True):
         step("Checking the state of multipathing...")
-        log(self.host.getMultipathInfo())
-        mpOn = len(self.host.getMultipathInfo()) >= 1
+        log(self.getDefaultHost().getMultipathInfo())
+        mpOn = len(self.getDefaultHost().getMultipathInfo()) >= 1
 
         if mpOn != expectedOn:
             raise xenrt.XRTError(
@@ -3360,6 +3360,7 @@ class TC20654(_WindowsPVUpgradeWithStaticIPv6):
 
     VMNAME = "ws12r2core-x64"
 
+
 class TC10718(_FeatureOperationAfterUpgrade):
     """Continued operation of AD authentication following host/pool update/upgrade"""
 
@@ -3386,30 +3387,7 @@ class TC10718(_FeatureOperationAfterUpgrade):
             raise xenrt.XRTError("Could not find %s VM" % (self.AUTHSERVER))
         self.authserver = authguest.getActiveDirectoryServer()
 
-        # Use static IP addressing to avoid loss of DNS server after upgrade
-        #cli = self.poolsToUpgrade[0].getCLIInstance()
-       # for host in self.poolsToUpgrade[0].getHosts():
-      #      pifuuid = host.minimalList("pif-list",args="host-uuid=%s management=true" % (host.getMyHostUUID()))[0]
-      #      ip = host.genParamGet("pif",pifuuid,"IP")
-      #      netmask = host.genParamGet("pif",pifuuid,"netmask")
-      #      # For some reason the gateway doesn't seem to get written to the DB
-     #       gateway = host.execdom0("route -n | grep -e '^0.0.0.0'").strip().split()[1]
-     #       args = []
-     #       args.append("uuid=%s" % (pifuuid))
-     #       args.append("mode=static")
-     #       args.append("ip=%s" % (ip))
-     #       args.append("dns=%s" % (self.authserver.place.getIP()))
-     #       args.append("gateway=%s" % (gateway))
-     #       args.append("netmask=%s" % (netmask))
-     #       try:
-     #           cli.execute("pif-reconfigure-ip", string.join(args))
-     #       except:
-     #           # We expect a momentary connection blip
-     #           pass
-            # Set the install time parameter so the upgrade doesn't complain
-        #    host.i_interfaces = [(None, "yes", "static", ip, netmask, gateway, None, None, None)]
-
-
+        
         for host in self.poolsToUpgrade[0].getHosts():
             host.setDNSServer(self.authserver.place.getIP())
 
@@ -3458,7 +3436,6 @@ class TC10718(_FeatureOperationAfterUpgrade):
             if not ok and not auth:
                 raise xenrt.XRTFailure("Removed subject was able to "
                                        "authenticate using CLI")
-               
     
     def sshAuthentication(self,auth=None):
         for user in self.TESTUSERS + self.ADDREMOVEUSERS:
@@ -3486,16 +3463,17 @@ class TC10718(_FeatureOperationAfterUpgrade):
                 if not ok and not auth:
                     raise xenrt.XRTFailure("Removed subject was able to "
                                            "authenticate using SSH")
-
+    
     def featureTest(self):
         for host in self.poolsToUpgrade[0].getHosts():
             host.setDNSServer(self.authserver.place.getIP())
+
         self.addExtraUsers()
 
         # Test CLI authentication
         self.cli = self.poolsToUpgrade[0].getCLIInstance()
         self.cliAuthentication(auth=True)
-
+        
         # Test SSH authentication
         self.sshAuthentication(auth=True)
 
@@ -3506,7 +3484,6 @@ class TC10718(_FeatureOperationAfterUpgrade):
         # Test removed user(s) cannot authenticate
         self.cliAuthentication(auth=False)
         self.sshAuthentication(auth=False)
-        
 
         # Disable and re-enable AD authentication
         self.poolsToUpgrade[0].disableAuthentication(self.authserver,
@@ -3515,9 +3492,9 @@ class TC10718(_FeatureOperationAfterUpgrade):
 
         # Check an auth
         subject = self.authserver.getSubject(name=self.TESTUSERS[0])
-        self.cli.execute("vm-list",
-                         username=subject.name,
-                         password=subject.password)
+        cli.execute("vm-list",
+                    username=subject.name,
+                    password=subject.password)
                     
 class ADUpgradeAuthentication(TC10718):
 
@@ -3527,8 +3504,8 @@ class ADUpgradeAuthentication(TC10718):
         if not authguest:
             raise xenrt.XRTError("Could not find %s VM" % (self.AUTHSERVER))
         self.authserver = authguest.getActiveDirectoryServer()
-                
-               
+        
+                       
     def featureTest(self):
         for host in self.poolsToUpgrade[0].getHosts():
             host.setDNSServer(self.authserver.place.getIP())
@@ -3555,7 +3532,7 @@ class ADUpgradeAuthentication(TC10718):
                                                      
         # Test removed user(s) cannot authenticate
         self.cliAuthentication(auth=False)
-        self.sshAuthentication(auth=False)    
+        self.sshAuthentication(auth=False) 
     
     def run(self, arglist):
         # Perform the upgrade/update
@@ -3567,7 +3544,7 @@ class ADUpgradeAuthentication(TC10718):
         if self.runSubcase("featureTest", (), "Check", "After") != \
                xenrt.RESULT_PASS:
             return
-    
+            
 class TC12611(TC10718):
     """Continued operation of RBAC following host/pool update/upgrade."""
 

@@ -681,6 +681,7 @@ class TC7366(SRSanityTestTemplate):
         time.sleep(60)
         
         # Make sure it's the 1024MB LUN we used
+        host.execdom0("xe sr-scan uuid=%s" % sr.uuid)
         size = sr.physicalSizeMB()
         if size < 950:
             raise xenrt.XRTFailure("The SR was only %uMB in size. The LUN "
@@ -4685,7 +4686,7 @@ class TCVdiCorruption(xenrt.TestCase):
             outfile = self.guest.execguest("dd if=/dev/zero of=/mnt/vdi1/file1 bs=512 count=4294967400 conv=notrunc", timeout=43200)
         except Exception, e:
             xenrt.TEC().logverbose("Exception raised: %s" % (str(e)))
-            availSpace = self.guest.execguest("df -h /dev/%s | tail -n 1 | awk '{print $4}'" % (device))
+            availSpace = self.guest.execguest("df -h /dev/%s | tail -n 1 | awk '{print $4}'" % (device)).strip()
             if "Input/output error" in str(e.data):
                 if availSpace == "0":
                     xenrt.TEC().logverbose("Expected output: Disk is full and dd command exited with an error")
@@ -4704,7 +4705,7 @@ class TCVdiCorruption(xenrt.TestCase):
             else: 
                 raise xenrt.XRTFailure("Unexpected error occured: %s" % (str(e)))
         else:
-            availSpace = self.guest.execguest("df -h /dev/%s | tail -n 1 | awk '{print $4}'" % (device))
+            availSpace = self.guest.execguest("df -h /dev/%s | tail -n 1 | awk '{print $4}'" % (device)).strip()
             if availSpace <> "0":
                 raise xenrt.XRTFailure("Unexpected output. Disk is not full and dd command exited without any error.available space=%s" % (availSpace))
     

@@ -20,12 +20,12 @@
       <arg>RUNS=[1]</arg>
       <arg>VMS=range(1,1001)</arg>
       <arg>DOM0PARAMS=[["vlan=5"]]</arg>
-      <arg>VMTYPES='["win7sp1-x86"]'</arg>
+      <arg>VMTYPES=["win7sp1-x86"]</arg>
       <arg>EXPERIMENT="vmrun_cron"</arg>
-      <arg>VMPOSTINSTALL='[["pvdrvnorsc","nowinupd","noparallel","noserial","nocdrom","xdtailor","optimise"]]'</arg>
-      <arg>VMCRON='["0:25:waitvmlogin"]'</arg>
+      <arg>VMPOSTINSTALL=[["pvdrvnorsc","nowinupd","noparallel","noserial","nocdrom","xdtailor","optimise"]]</arg>
+      <arg>VMCRON=["0:25:waitvmlogin"]</arg>
       <arg>THRESHOLD=500.0</arg>
-      <arg>DEFAULTSR=nfs</arg>
+      <arg>DEFAULTSR=["nfs"]</arg>
     </testcase>
   </testsequence>
 </xenrt>

@@ -4406,6 +4406,7 @@ def createVMFromFile(host,
                      userfile=False,
                      postinstall=[],
                      packages=[],
+                     vcpus=None,
                      memory=None,
                      bootparams=None,
                      suffix=None,
@@ -4456,6 +4457,8 @@ def createVMFromFile(host,
         guest.setBootParams(bp)
     guest.password = None
     guest.tailored = True
+    if vcpus:
+        guest.cpuset(vcpus)
     if memory:
         guest.memset(memory)
     xenrt.TEC().registry.guestPut(guestname, guest)

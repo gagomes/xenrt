@@ -98,8 +98,7 @@
       </vm>
       <vm name="testpeer">
         <distro>debian60</distro>
-        <network device="0" />
-        <network device="1" bridge="NSEC"/>
+        <network device="0" bridge="NSEC"/>
         <postinstall action="preCloneTailor"/>
       </vm>
       <NETWORK>

@@ -1511,6 +1511,14 @@ class Guest(xenrt.GenericGuest):
     def vendorInstallDevicePrefix(self):
         return self._getDiskDevicePrefix()
 
+    def getIPSpec(self):
+        ipSpec = []
+        for v in self.vifs:
+            (eth, bridge, mac, currentIp) = v
+            ipData = self.paramGet("xenrt-ip-%s" % eth)
+            (newIP, mask) = ipData.split("/") if ipData else [None, None]
+            ipSpec.append((eth, newIP, mask))
+        return ipSpec
 
     def paramSet(self, paramName, paramValue):
         xenrt.TEC().logverbose("WARNING: paramSet called! paramName=%s, paramValue=%s" % (paramName, paramValue))

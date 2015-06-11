@@ -11,6 +11,7 @@
     <PIDIR_SANIBEL>/usr/groups/release/XenServer-6.x/XS-6.0.2/RTM-53456</PIDIR_SANIBEL>
     <PIDIR_TAMPA>/usr/groups/release/XenServer-6.x/XS-6.1/RTM-59235</PIDIR_TAMPA>
     <PIDIR_CLEARWATER>/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446</PIDIR_CLEARWATER>
+    <PIDIR_CREEDENCE>/usr/groups/release/XenServer-6.x/XS-6.5/RTM-90233</PIDIR_CREEDENCE>
     <PATCH_DESCRIPTIONS />
     <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
   </variables>

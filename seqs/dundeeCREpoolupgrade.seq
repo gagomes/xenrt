@@ -20,8 +20,5 @@
 
   <testsequence>
     <testcase group="Upgrade" id="xenserver.tc.upgrade.TC8765" blocker="yes" sku="Creedence"/>
-    <testcase group="Upgrade" id="guestops.basic.TCVerifyUEKonUpgrade" tc="TC-21716" sku="Creedence">
-        <arg>guest=Linux</arg>
-    </testcase>
   </testsequence>
 </xenrt>

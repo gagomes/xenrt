@@ -102,7 +102,6 @@
         <network device="1" bridge="NSEC"/>
         <postinstall action="preCloneTailor"/>
       </vm>
-    </host>
       <NETWORK>
         <PHYSICAL network="NPRI">
           <NIC/>
@@ -112,7 +111,7 @@
           <NIC/>
         </PHYSICAL>
       </NETWORK>
-
+    </host>
   </prepare>
 
   <testsequence>

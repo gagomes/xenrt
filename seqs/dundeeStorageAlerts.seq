@@ -19,8 +19,10 @@
    <serial group="StorageAlerts">
     <testcase id="testcases.xenserver.tc.alert.StorageAlerts" tc="TC-18677" prio="1"/>
     <testcase id="testcases.xenserver.tc.alert.TC18678" tc="TC-18678" prio="1"/>
-    <testcase id="testcases.xenserver.tc.alert.TC18680" tc="TC-18680" prio="1"/>
     <testcase id="testcases.xenserver.tc.alert.TC18679" tc="TC-18679" prio="1"/>
+   </serial>
+   <serial group="AlertsWhenCache">
+    <testcase id="testcases.xenserver.tc.alert.TC18680" tc="TC-18680" prio="1"/>
    </serial>
    <serial group="AlertsOnUpgrade">
     <testcase id="testcases.xenserver.tc.alert.TC19830" prio="1"/>

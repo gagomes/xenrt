@@ -35,14 +35,18 @@ class NetScaler(object):
             warning('Netscaler VPX guest has inconsistent or NULL IP Address')
             if vpxGuest.getState() == 'UP':
                 vpxGuest.shutdown()
+
             if not useVIFs:
                 # Configure the VIFs
                 vpxGuest.removeAllVIFs()
                 for n in networks:
-                    # TODO - createVIF has diff args/defaults for guests on xenserver and ESX
                     vpxGuest.createVIF(bridge=n)
             else:
-                networks = [vpxGuest.getNetworkNameForVIF(x[0]) for x in vpxGuest.vifs]
+                if isinstance(vpxGuest, xenrt.lib.xenserver.Guest):
+                    networks = [vpxGuest.getNetworkNameForVIF(x[0]) for x in vpxGuest.vifs]
+                else:
+                    warning("Unimplemented Section: Unable to determine xenrt network type for guest vifs. Continuing with 'NPRI'")
+
             mgmtNet = networks[0]
             cls.configureVpxNetworkToVmParams(vpxGuest, mgmtNet)
             vpxGuest.lifecycleOperation('vm-start')
@@ -75,7 +79,7 @@ class NetScaler(object):
             return vpxGuest.paramGet(paramName='xenstore-data', paramKey='vm-data/ip')
         elif isinstance(vpxGuest, xenrt.lib.esx.Guest):
             data = vpxGuest.paramGet(paramName='machine.id')
-            return data.split("&")[0] if data else None
+            return data.split("&")[0].strip("ip=") if data else None
         else:
             raise xenrt.XRTError("Unimplemented")
 

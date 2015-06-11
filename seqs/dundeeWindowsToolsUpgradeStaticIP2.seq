@@ -9,18 +9,17 @@
 
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
-    <PREPARE_WORKERS>3</PREPARE_WORKERS>
+    <PREPARE_WORKERS>6</PREPARE_WORKERS>
   </variables>
 
   <prepare>
     <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}">
-      <bridge name="internal"/>
       <vm name="ws08sp2-x86">
         <distro>ws08sp2-x86</distro>
         <memory>${GUESTMEMORY}</memory>
         <vcpus>${GUESTVCPUS}</vcpus>
         <network device="0"/>
-        <network device="1" bridge="internal"/>
+        <network device="1" bridge="NSEC"/>
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
       </vm>
@@ -29,7 +28,7 @@
         <memory>${GUESTMEMORY}</memory>
         <vcpus>${GUESTVCPUS}</vcpus>
         <network device="0"/>
-        <network device="1" bridge="internal"/>
+        <network device="1" bridge="NSEC"/>
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
       </vm>
@@ -38,7 +37,7 @@
         <memory>${GUESTMEMORY}</memory>
         <vcpus>${GUESTVCPUS}</vcpus>
         <network device="0"/>
-        <network device="1" bridge="internal"/>
+        <network device="1" bridge="NSEC"/>
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
       </vm>
@@ -47,7 +46,7 @@
         <memory>${GUESTMEMORY}</memory>
         <vcpus>${GUESTVCPUS}</vcpus>
         <network device="0"/>
-        <network device="1" bridge="internal"/>
+        <network device="1" bridge="NSEC"/>
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
       </vm>
@@ -56,16 +55,26 @@
         <memory>${GUESTMEMORY}</memory>
         <vcpus>${GUESTVCPUS}</vcpus>
         <network device="0"/>
-        <network device="1" bridge="internal"/>
+        <network device="1" bridge="NSEC"/>
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
       </vm>
       <vm name="testpeer">
         <distro>debian60</distro>
         <network device="0" />
-        <network device="1" bridge="internal"/>
+        <network device="1" bridge="NSEC"/>
         <postinstall action="preCloneTailor"/>
       </vm>
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <NIC/>
+          <MANAGEMENT/>
+        </PHYSICAL>
+        <PHYSICAL network="NSEC">
+          <NIC/>
+        </PHYSICAL>
+      </NETWORK>
+
     </host>
   </prepare>
 
@@ -74,13 +83,16 @@
       <testcase id="xenserver.install.TCXenServerUpgrade">
         <arg>input=DEFAULT</arg>
       </testcase>
+      <testcase id="xenserver.tc.upgrade.TCStarttestpeer" blocker="yes"/>
     </serial>
     <serial group="UpgVM">
-      <testcase id="xenserver.tc.upgrade.TC15223"/>
-      <testcase id="xenserver.tc.upgrade.TC15225"/>
-      <testcase id="xenserver.tc.upgrade.TC15227"/>
-      <testcase id="xenserver.tc.upgrade.TC15229"/>
-      <testcase id="xenserver.tc.upgrade.TC15230"/>
+      <parallel>
+        <testcase id="xenserver.tc.upgrade.TC15223"/>
+        <testcase id="xenserver.tc.upgrade.TC15225"/>
+        <testcase id="xenserver.tc.upgrade.TC15227"/>
+        <testcase id="xenserver.tc.upgrade.TC15229"/>
+        <testcase id="xenserver.tc.upgrade.TC15230"/>
+      </parallel>
     </serial>
   </testsequence>
 

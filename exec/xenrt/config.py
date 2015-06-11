@@ -4094,8 +4094,6 @@ class Config(object):
         self.config["CARBON_PATCHES_BOSTON"]["HF38"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E038"]
         self.config["CARBON_PATCHES_BOSTON"]["HF41"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E041"]
         self.config["CARBON_PATCHES_BOSTON"]["HF43"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E043"]
-        self.config["CARBON_PATCHES_BOSTON"]["HF47"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E047"]
-        self.config["CARBON_PATCHES_BOSTON"]["HF48"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E048"]
         self.config["CARBON_PATCHES_BOSTON"]["HF49"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E049"]
         
         if not self.config.has_key("CARBON_PATCHES_SANIBEL"):
@@ -4107,7 +4105,6 @@ class Config(object):
         self.config["CARBON_PATCHES_SANIBEL"]["HF31"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E031"]
         self.config["CARBON_PATCHES_SANIBEL"]["HF37"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E037"]
         self.config["CARBON_PATCHES_SANIBEL"]["HF39"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E039"]
-        self.config["CARBON_PATCHES_SANIBEL"]["HF43"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E043"]
         self.config["CARBON_PATCHES_SANIBEL"]["HF44"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E044"]
         
         if not self.config.has_key("CARBON_PATCHES_SANIBELCC"):
@@ -4117,7 +4114,6 @@ class Config(object):
         self.config["CARBON_PATCHES_SANIBELCC"]["HF10"] = self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC010"]
         self.config["CARBON_PATCHES_SANIBELCC"]["HF13"] = self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC013"]
         self.config["CARBON_PATCHES_SANIBELCC"]["HF15"] = self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC015"]
-        self.config["CARBON_PATCHES_SANIBELCC"]["HF19"] = self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC019"]
         self.config["CARBON_PATCHES_SANIBELCC"]["HF20"] = self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC020"]
         
         if not self.config.has_key("CARBON_PATCHES_TAMPA"):
@@ -4130,8 +4126,6 @@ class Config(object):
         self.config["CARBON_PATCHES_TAMPA"]["HF44"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E044"]
         self.config["CARBON_PATCHES_TAMPA"]["HF47"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E047"]
         self.config["CARBON_PATCHES_TAMPA"]["HF48"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E048"]
-        self.config["CARBON_PATCHES_TAMPA"]["HF52"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E052"]
-        self.config["CARBON_PATCHES_TAMPA"]["HF53"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E053"]
         self.config["CARBON_PATCHES_TAMPA"]["HF54"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E054"]
 
         if not self.config.has_key("CARBON_PATCHES_CLEARWATER"):
@@ -4152,7 +4146,6 @@ class Config(object):
             self.config["CARBON_PATCHES_CLEARWATER"]["HF17"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1017"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF20"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1020"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF24"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1024"]
-            self.config["CARBON_PATCHES_CLEARWATER"]["HF26"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1026"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF27"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1027"]
              
         if not self.config.has_key("CARBON_PATCHES_CREEDENCE"):
@@ -4165,12 +4158,10 @@ class Config(object):
             self.config["CARBON_PATCHES_CREEDENCE"]["HF03"] = self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E003"]
             self.config["CARBON_PATCHES_CREEDENCE"]["HF05"] = self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E005"]
             self.config["CARBON_PATCHES_CREEDENCE"]["HF08"] = self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E008"]
-            self.config["CARBON_PATCHES_CREEDENCE"]["HF09"] = self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E009"]
             self.config["CARBON_PATCHES_CREEDENCE"]["HF10"] = self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E010"]
             self.config["CARBON_PATCHES_CREEDENCE"]["HF11"] = self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E011"]
         elif branch == "SP1":
             self.config["CARBON_PATCHES_CREEDENCE"]["HF00"] = self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1"]
-            self.config["CARBON_PATCHES_CREEDENCE"]["HF02"] = self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1002"]
             self.config["CARBON_PATCHES_CREEDENCE"]["HF04"] = self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1004"]
 
     def readFromFile(self, filename, path=None):

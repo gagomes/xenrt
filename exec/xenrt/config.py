@@ -3980,6 +3980,10 @@ class Config(object):
         # Floppy: xen-device-model. Rolls up XS65E006, XS65E007.
         self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1002"] = "/usr/groups/release/XenServer-6.x/XS-6.5-SP1/hotfixes/XS65ESP1002/101510/hotfix-XS65ESP1002/XS65ESP1002.xsupdate"
 
+        # Take1: xen-tools fixes.
+        self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1003"] = "/usr/groups/release/XenServer-6.x/XS-6.5-SP1/hotfixes/XS65ESP1003/101805/hotfix-XS65ESP1003/XS65ESP1003.xsupdate"
+        self.config["TOOLS_HOTFIXES"]["Creedence"]["SP1"].append("XS65ESP1003")
+        
         # Sally: xen, xen-device-model. Rolls up XS65E009, XS65E010, XS65ESP1002 .
         self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1004"] = "/usr/groups/release/XenServer-6.x/XS-6.5-SP1/hotfixes/XS65ESP1004/102101/hotfix-XS65ESP1004/XS65ESP1004.xsupdate"
 
@@ -4162,6 +4166,7 @@ class Config(object):
             self.config["CARBON_PATCHES_CREEDENCE"]["HF11"] = self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E011"]
         elif branch == "SP1":
             self.config["CARBON_PATCHES_CREEDENCE"]["HF00"] = self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1"]
+            self.config["CARBON_PATCHES_CREEDENCE"]["HF03"] = self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1003"]
             self.config["CARBON_PATCHES_CREEDENCE"]["HF04"] = self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1004"]
 
     def readFromFile(self, filename, path=None):

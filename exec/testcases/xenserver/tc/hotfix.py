@@ -650,7 +650,7 @@ class _CreedenceSP1(_CreedenceRTM):
     INITIAL_HOTFIXES = ["XS65ESP1"]
     
 class _CreedenceSP1HFd(_CreedenceSP1):
-    INITIAL_HOTFIXES = ["XS65ESP1","XS65ESP1002","XS65ESP1004"]
+    INITIAL_HOTFIXES = ["XS65ESP1","XS65ESP1002","XS65ESP1003","XS65ESP1004"]
     
     
 # Upgrades

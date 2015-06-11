@@ -16,14 +16,13 @@
   <prepare>
     <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}">
      <storage type="nfs" name="nfs" />
-     <bridge name="internal"/>
       <vm name="win8-x86">
         <distro>win8-x86</distro>
         <memory>${GUESTMEMORY}</memory>
         <vcpus>${GUESTVCPUS}</vcpus>
         <storage>nfs</storage>
         <network device="0"/>
-        <network device="1" bridge="internal"/>
+        <network device="1" bridge="NSEC"/>
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
       </vm>
@@ -33,7 +32,7 @@
         <vcpus>${GUESTVCPUS}</vcpus>
         <storage>nfs</storage>
         <network device="0"/>
-        <network device="1" bridge="internal"/>
+        <network device="1" bridge="NSEC"/>
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
       </vm>
@@ -43,7 +42,7 @@
         <vcpus>${GUESTVCPUS}</vcpus>
         <storage>nfs</storage>
         <network device="0"/>
-        <network device="1" bridge="internal"/>
+        <network device="1" bridge="NSEC"/>
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
       </vm>
@@ -53,7 +52,7 @@
         <vcpus>${GUESTVCPUS}</vcpus>
         <storage>nfs</storage>
         <network device="0"/>
-        <network device="1" bridge="internal"/>
+        <network device="1" bridge="NSEC"/>
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
       </vm>
@@ -63,7 +62,7 @@
         <vcpus>${GUESTVCPUS}</vcpus>
         <storage>nfs</storage>
         <network device="0"/>
-        <network device="1" bridge="internal"/>
+        <network device="1" bridge="NSEC"/>
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
       </vm>
@@ -73,7 +72,7 @@
         <vcpus>${GUESTVCPUS}</vcpus>
         <storage>nfs</storage>
         <network device="0"/>
-        <network device="1" bridge="internal"/>
+        <network device="1" bridge="NSEC"/>
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
       </vm>
@@ -83,7 +82,7 @@
         <vcpus>${GUESTVCPUS}</vcpus>
         <storage>nfs</storage>
         <network device="0"/>
-        <network device="1" bridge="internal"/>
+        <network device="1" bridge="NSEC"/>
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
       </vm>
@@ -93,17 +92,27 @@
         <vcpus>${GUESTVCPUS}</vcpus>
         <storage>nfs</storage>
         <network device="0"/>
-        <network device="1" bridge="internal"/>
+        <network device="1" bridge="NSEC"/>
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
       </vm>
       <vm name="testpeer">
         <distro>debian60</distro>
         <network device="0" />
-        <network device="1" bridge="internal"/>
+        <network device="1" bridge="NSEC"/>
         <postinstall action="preCloneTailor"/>
       </vm>
     </host>
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <NIC/>
+          <MANAGEMENT/>
+        </PHYSICAL>
+        <PHYSICAL network="NSEC">
+          <NIC/>
+        </PHYSICAL>
+      </NETWORK>
+
   </prepare>
 
   <testsequence>
@@ -113,14 +122,16 @@
       </testcase>
     </serial>
     <serial group="UpgVM">
-      <testcase id="xenserver.tc.upgrade.TC19904"/>
-      <testcase id="xenserver.tc.upgrade.TC19905"/>
-      <testcase id="xenserver.tc.upgrade.TC19906"/>
-      <testcase id="xenserver.tc.upgrade.TC19907"/>
-      <testcase id="xenserver.tc.upgrade.TC20720"/>
-      <testcase id="xenserver.tc.upgrade.TC20721"/>
-      <testcase id="xenserver.tc.upgrade.TC20722"/>
-      <testcase id="xenserver.tc.upgrade.TC20723"/>
+      <parallel>
+        <testcase id="xenserver.tc.upgrade.TC19904"/>
+        <testcase id="xenserver.tc.upgrade.TC19905"/>
+        <testcase id="xenserver.tc.upgrade.TC19906"/>
+        <testcase id="xenserver.tc.upgrade.TC19907"/>
+        <testcase id="xenserver.tc.upgrade.TC20720"/>
+        <testcase id="xenserver.tc.upgrade.TC20721"/>
+        <testcase id="xenserver.tc.upgrade.TC20722"/>
+        <testcase id="xenserver.tc.upgrade.TC20723"/>
+      </parallel>
     </serial>
   </testsequence>
 

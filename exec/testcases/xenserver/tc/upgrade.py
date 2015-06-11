@@ -2792,6 +2792,12 @@ class _FeatureOperationAfterUpgrade(xenrt.TestCase):
         if self.runSubcase("featureTest", (), "Check", "After") != \
                xenrt.RESULT_PASS:
             return
+class TCStarttestpeer(xenrt.TestCase):
+
+    def run(self,arglist):
+ 
+        testpeer = self.getGuest("testpeer")
+        
 
 class _WindowsPVUpgradeWithStaticIP(_VMToolsUpgrade):
     def prepare(self,arglist):

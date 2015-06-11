@@ -112,6 +112,7 @@
       <testcase id="xenserver.install.TCXenServerUpgrade">
         <arg>input=DEFAULT</arg>
       </testcase>
+      <testcase id="xenserver.tc.upgrade.TCStarttestpeer" blocker="yes"/>
     </serial>
     <serial group="UpgVM">
       <parallel>

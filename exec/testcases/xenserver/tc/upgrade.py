@@ -2797,7 +2797,8 @@ class TCStarttestpeer(xenrt.TestCase):
     def run(self,arglist):
  
         testpeer = self.getGuest("testpeer")
-        
+        if testpeer.getState() != "UP":
+            testpeer.start()        
 
 class _WindowsPVUpgradeWithStaticIP(_VMToolsUpgrade):
     def prepare(self,arglist):

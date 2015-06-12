@@ -2647,7 +2647,7 @@ class _VMToolsUpgradeNotOutOfDate(_VMToolsUpgrade):
 class TC12530(_VMToolsUpgradeNotOutOfDate):
     """MNR RHEL 5.4 tools should be up-to-date on Cowley"""
 
-    VMNAME = "rhel54"
+    VMNAME = "rhel5x"
 
 class _FeatureOperationAfterUpgrade(xenrt.TestCase):
     """Template testcase for verifying that a feature set up before an update

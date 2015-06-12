@@ -878,6 +878,22 @@ class TC9319(TC9318):
     
     DISTRO = "ws08sp2-x64"
 
+class _TCminiStressXenMotion(_TCXenMotionNonLocal):
+
+    MEMORY = 1024
+    VCPUS = 2
+    VARCH = "VMXHAP"
+    LOOPITERS = 100 
+
+class TCwin2k8x86(_TCminiStressXenMotion)
+    """Inter-host XenMotions of a multi-vCPU Windows Server 2008 32 bit VM on EPT"""
+
+    DISTRO = "ws08sp2-x86"
+
+class TCwin2k8x64(_TCminiStressXenMotion):
+    """Inter-host XenMotions of a multi-vCPU Windows Server 2008 64 bit VM on EPT"""
+
+    DISTRO = "ws08sp2-x64"
 
 class _TCClockDrift(xenrt.TestCase):
 

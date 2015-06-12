@@ -501,7 +501,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["MNR"]["DEFAULT_RPU_LINUX_VERSION"] = "rhel54"
         self.config["VERSION_CONFIG"]["MNR"]["MAX_VM_VCPUS"] = "8"
         self.config["VERSION_CONFIG"]["MNR"]["LATEST_rhel4"] = "rhel48"
-        self.config["VERSION_CONFIG"]["MNR"]["LATEST_rhel5"] = "rhel56"
+        self.config["VERSION_CONFIG"]["MNR"]["LATEST_rhel5"] = "rhel54"
         self.config["VERSION_CONFIG"]["MNR"]["LATEST_rhel6"] = "rhel6"
 
         # Cowley

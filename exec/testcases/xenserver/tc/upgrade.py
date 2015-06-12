@@ -2817,8 +2817,8 @@ class _WindowsPVUpgradeWithStaticIP(_VMToolsUpgrade):
         self.guest.xmlrpcExec("netsh firewall set icmpsetting 8")
 
         # Sanity check that it's currently working
-        self.testpeer.execguest("ping -c 10 %s" % self.staticIP.getAddr())
-
+        #self.testpeer.execguest("ping -c 10 %s" % self.staticIP.getAddr())
+        xenrt.command("ping -c 10 %s" % self.staticIP.getAddr())
 
     def run(self, arglist):
 
@@ -2835,7 +2835,8 @@ class _WindowsPVUpgradeWithStaticIP(_VMToolsUpgrade):
         self.guest.getWindowsIPConfigData()
 
         # Check the VM kept it's static IP after the tools upgrade
-        self.testpeer.execguest("ping -c 10 %s" % self.staticIP.getAddr())
+        #self.testpeer.execguest("ping -c 10 %s" % self.staticIP.getAddr())
+        xenrt.command("ping -c 10 %s" % self.staticIP.getAddr())
 
         # Uninstall tools
         if self.runSubcase("uninstallTools", (), "Tools", "Uninstall") != xenrt.RESULT_PASS:
@@ -2845,7 +2846,8 @@ class _WindowsPVUpgradeWithStaticIP(_VMToolsUpgrade):
 
         # Check the VM kept it's static IP after the tools uninstallation
         if isinstance(self.guest, xenrt.lib.xenserver.guest.TampaGuest) and self.guest.host.productVersion != "Tampa" and not self.guest.usesLegacyDrivers():
-            self.testpeer.execguest("ping -c 10 %s" % self.staticIP.getAddr())
+            xenrt.command("ping -c 10 %s" % self.staticIP.getAddr())
+            #self.testpeer.execguest("ping -c 10 %s" % self.staticIP.getAddr())
 
         self.guest.shutdown()
   

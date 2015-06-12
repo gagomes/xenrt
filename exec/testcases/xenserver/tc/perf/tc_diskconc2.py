@@ -47,10 +47,11 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
         self.multiqueue = libperf.getArgument(arglist, "multiqueue", int, None)
         self.multipage = libperf.getArgument(arglist, "multipage", int, None)
 
-        is_power2 = self.multipage != 0 and ((self.multipage & (self.multipage - 1)) == 0)
+        if self.multipage:
+            is_power2 = self.multipage != 0 and ((self.multipage & (self.multipage - 1)) == 0)
 
-        if not is_power2:
-            raise ValueError("Multipage %s is not a power of 2" % (self.multipage))
+            if not is_power2:
+                raise ValueError("Multipage %s is not a power of 2" % (self.multipage))
 
         self.num_threads = libperf.getArgument(arglist, "num_threads", int, 1)
         self.vms_per_sr = libperf.getArgument(arglist, "vms_per_sr", int, 1)

@@ -45,6 +45,7 @@
       <testcase id="xenserver.tc.storage.TC7367" prio="3"/>
       <testcase id="xenserver.tc.storage.TC27042" prio="3"/>
       <testcase id="xenserver.tc.storage.TC27043" prio="3"/>
+      <testcase id="xenserver.cli.TCQuicktestThinLVHD" tc="TC-27062" prio="3"/>
     </serial>
   </testsequence>
 

@@ -5541,6 +5541,10 @@ class TampaGuest(BostonGuest):
                 break
             xenrt.sleep(10)
 
+        # Eject tools ISO
+        self.changeCD(None)
+        xenrt.sleep(5)
+
     def uninstallDrivers(self, waitForDaemon=True, source=None):
 
         # Insert the tools ISO

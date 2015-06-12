@@ -1261,6 +1261,7 @@ def createWSMANCifsIsoSr(password = None,
     $actionUri = $xenEnum
     $newSrName = "%s" 
     $location = "%s"
+    $type = "cifs"
     $isoPath = ""
     $cifsUser = "%s"
     $cifsPass = "%s"
@@ -1275,6 +1276,7 @@ def createWSMANCifsIsoSr(password = None,
         <Settings>
             <rasd:CIM_ResourceAllocationSettingData xsi:type="CIM_ResourceAllocationSettingData_Type">
               <rasd:Connection>location=$location</rasd:Connection>
+              <rasd:Connection>type=$type</rasd:Connection>
               <rasd:Connection>iso_path=$isoPath</rasd:Connection>
               <rasd:Connection>username=$cifsUser</rasd:Connection>
               <rasd:Connection>cifspassword=$cifsPass</rasd:Connection>

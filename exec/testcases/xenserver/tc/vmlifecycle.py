@@ -885,7 +885,7 @@ class _TCminiStressXenMotion(_TCXenMotionNonLocal):
     VARCH = "VMXHAP"
     LOOPITERS = 100 
 
-class TCwin2k8x86(_TCminiStressXenMotion)
+class TCwin2k8x86(_TCminiStressXenMotion):
     """Inter-host XenMotions of a multi-vCPU Windows Server 2008 32 bit VM on EPT"""
 
     DISTRO = "ws08sp2-x86"

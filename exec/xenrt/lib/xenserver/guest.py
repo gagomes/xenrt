@@ -5541,6 +5541,10 @@ class TampaGuest(BostonGuest):
                 break
             xenrt.sleep(10)
 
+        # Eject tools ISO
+        self.changeCD(None)
+        xenrt.sleep(5)
+
     def uninstallDrivers(self, waitForDaemon=True, source=None):
 
         # Insert the tools ISO
@@ -5615,6 +5619,10 @@ class TampaGuest(BostonGuest):
             time.sleep(90)
             self.paramSet("platform:device_id", "0002")
             self.start()
+
+        # Eject tools ISO
+        self.changeCD(None)
+        xenrt.sleep(5)
 
     def sxmVMMigrate(self,migrateParameters,pauseAfterMigrate=True,timeout = 3600):
 

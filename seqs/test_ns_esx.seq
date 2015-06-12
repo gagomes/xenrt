@@ -15,6 +15,7 @@
         <network device="0" bridge="VM Network"/>
         <memory>4096</memory>
         <vcpus>4</vcpus>
+        <postinstall action="setupNetscalerVPX" />
       </vm>
     </host>
   </prepare>

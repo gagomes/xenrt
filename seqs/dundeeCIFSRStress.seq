@@ -14,7 +14,6 @@
   <default name="ITERATIONS" value="450" />
 
   <variables>
-    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
     <EXTRA_TIME>yes</EXTRA_TIME>
     <EXTRA_ARP_TIME>yes</EXTRA_ARP_TIME>
     <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
@@ -23,8 +22,11 @@
 
   <prepare>
     <pool>
-      <allhosts />
-      <storage type="smb" name="cifs-sr" default="true" />
+      <host id="0"/>
+      <host id="1"/>
+      <host id="2"/>
+      <host id="3"/>
+      <storage type="smb" name="cifs-sr" default="true" options="host-4-p"/>
       <NETWORK>
         <PHYSICAL network="NPRI">
           <NIC />
@@ -35,6 +37,7 @@
         </PHYSICAL>
       </NETWORK>
     </pool>
+    <host productType="nativewindows" productVersion="ws12r2-x64" id="4" />
   </prepare>
 
   <testsequence>

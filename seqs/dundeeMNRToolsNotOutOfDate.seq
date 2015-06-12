@@ -1,20 +1,23 @@
 <xenrt>
-
   <!-- Checks tools up-to-date after upgrade -->
-
-  <default name="OLD_PRODUCT_VERSION" value="Creedence"/>
-  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.5/RTM-90233"/>
-  <default name="GUESTMEMORY" value="1024"/>
-  <default name="GUESTVCPUS" value="2"/>
+  
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+  
+  <default name="OLD_PRODUCT_VERSION" value="Creedence" />
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.5/RTM-90233" />
+  <default name="GUESTMEMORY" value="1024" />
+  <default name="GUESTVCPUS" value="2" />
 
   <prepare>
     <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}">
-      <vm name="rhel5xs">
-        <distro>rhel5xs</distro>
+      <vm name="rhel5x">
+        <distro>rhel5x</distro>
         <memory>${GUESTMEMORY}</memory>
         <vcpus>${GUESTVCPUS}</vcpus>
-        <network device="0"/>
-        <postinstall action="shutdown"/>
+        <network device="0" />
+        <postinstall action="shutdown" />
       </vm>
 
     </host>
@@ -27,7 +30,7 @@
       </testcase>
     </serial>
     <serial group="UpgToolsUpToDate">
-      <testcase id="xenserver.tc.upgrade.TC12530"/>
+      <testcase id="xenserver.tc.upgrade.TC12530" />
     </serial>
   </testsequence>
 

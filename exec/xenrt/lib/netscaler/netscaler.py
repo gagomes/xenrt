@@ -82,7 +82,10 @@ class NetScaler(object):
     @classmethod
     def getVpxIpFromVmParams(cls, vpxGuest):
         if isinstance(vpxGuest, xenrt.lib.xenserver.Guest):
-            return vpxGuest.paramGet(paramName='xenstore-data', paramKey='vm-data/ip')
+            try:
+                return vpxGuest.paramGet(paramName='xenstore-data', paramKey='vm-data/ip')
+            except:
+                return None
         elif isinstance(vpxGuest, xenrt.lib.esx.Guest):
             data = vpxGuest.paramGet(paramName='machine.id')
             return data.split("&")[0].strip("ip=") if data else None

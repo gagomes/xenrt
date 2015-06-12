@@ -535,6 +535,9 @@ Version 1.1.0
                 if self.vcpus_per_vm:
                     self.template.cpuset(self.vcpus_per_vm)
 
+                if self.vm_ram:
+                    self.template.memset(self.vm_ram)
+
                 self.template.removeCD()
                 self.template.start()
             else:

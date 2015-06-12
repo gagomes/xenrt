@@ -163,6 +163,10 @@ class NetScaler(object):
         self.__vpxGuest.lifecycleOperation('vm-reboot')
         # Wait / Check for SSH connectivity
         self.__vpxGuest.waitForSSH(timeout=300, username='nsroot', cmd='shell')
+        # On ESX host VM comes up and goes down for around a minute
+        if isinstance(self.__vpxGuest, xenrt.lib.esx.Guest):
+            xenrt.sleep(60)
+            self.__vpxGuest.waitForSSH(timeout=120, username='nsroot', cmd='shell')
 
     def getLicenseFileFromXenRT(self):
         # TODO - Allow for different licenses to be specified

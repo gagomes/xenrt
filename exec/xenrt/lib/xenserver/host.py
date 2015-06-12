@@ -11658,6 +11658,10 @@ class DundeeHost(CreedenceHost):
         # check there are no failed first boot scripts
         self._checkForFailedFirstBootScripts()
         
+        if xenrt.TEC().lookup("STUNNEL_TLS", False, boolean=True):
+            self.execdom0("rpm -e stunnel || true")
+            self.restartToolstack()
+        
         if xenrt.TEC().lookup("LIBXL_XENOPSD", False, boolean=True):
             self.execdom0("service xenopsd-xc stop")
             self.execdom0("sed -i s/vbd3/vbd/ /etc/xenopsd.conf")

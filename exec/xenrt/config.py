@@ -3969,7 +3969,7 @@ class Config(object):
         self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E010"] = "/usr/groups/release/XenServer-6.x/XS-6.5/hotfixes/XS65E010/102131/hotfix-XS65E010/XS65E010.xsupdate"
 
         # Dither: Toolstack fix for incorrect link state in VM 
-        self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E011"] = "usr/groups/release/XenServer-6.x/XS-6.5/hotfixes/XS65E011/101890/hotfix-XS65E011/XS65E011.xsupdate"
+        self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E011"] = "/usr/groups/release/XenServer-6.x/XS-6.5/hotfixes/XS65E011/101890/hotfix-XS65E011/XS65E011.xsupdate"
         
         # 6.5 SP1 (Cream) - start of SP1 branch, rolls up all previous hotfixes (till XS65E008)
         self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1"] = "/usr/groups/release/XenServer-6.x/XS-6.5-SP1/RTM-101064/hotfix-XS65ESP1/XS65ESP1.xsupdate"

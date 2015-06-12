@@ -5620,6 +5620,10 @@ class TampaGuest(BostonGuest):
             self.paramSet("platform:device_id", "0002")
             self.start()
 
+        # Eject tools ISO
+        self.changeCD(None)
+        xenrt.sleep(5)
+
     def sxmVMMigrate(self,migrateParameters,pauseAfterMigrate=True,timeout = 3600):
 
         # This is the lib call for Storage Xen Motion Migrate

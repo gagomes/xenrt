@@ -109,7 +109,7 @@ class TCDriverInstall(xenrt.TestCase):
                 raise xenrt.XRTError(e.reason)
 
         if isinstance(guest, xenrt.lib.xenserver.guest.TampaGuest):
-            guest.installDrivers(useHostTimeUTC=useHostTimeUTC)
+            guest.installDrivers(useHostTimeUTC=useHostTimeUTC,ejectISO=False)
         else:
             guest.installDrivers()
 

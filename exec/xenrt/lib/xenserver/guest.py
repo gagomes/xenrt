@@ -5380,7 +5380,7 @@ class TampaGuest(BostonGuest):
     def installLegacyDrivers(self):
         self.installDrivers(useLegacy=True)
 
-    def installDrivers(self, source=None, extrareboot=False, useLegacy=False, useHostTimeUTC=False, expectUpToDate=True):
+    def installDrivers(self, source=None, extrareboot=False, useLegacy=False, useHostTimeUTC=False, expectUpToDate=True, ejectISO=True):
         if not self.windows:
             xenrt.TEC().skip("Non Windows guest, no drivers to install")
             return
@@ -5542,8 +5542,9 @@ class TampaGuest(BostonGuest):
             xenrt.sleep(10)
 
         # Eject tools ISO
-        self.changeCD(None)
-        xenrt.sleep(5)
+        if ejectISO:
+            self.changeCD(None)
+            xenrt.sleep(5)
 
     def uninstallDrivers(self, waitForDaemon=True, source=None):
 

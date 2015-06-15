@@ -11,12 +11,13 @@
   </prepare>
 
   <testsequence>
-    <serial group="Linux1">
-      <testcase id="xenserver.tc.balloon.TC9341"/>
-      <testcase id="xenserver.tc.balloon.TC20691"/>
-      <testcase id="xenserver.tc.balloon.TC12597"/>
-      <testcase id="xenserver.tc.balloon.TC12596"/>
-    </serial>
+    <parallel group="LinuxBalloonMaxRange" workers="2">
+      <for iter="D" values="%DISTROS%"> 
+        <testcase id="xenserver.tc.balloon.TCLinuxMaxRange" name="${D}" sku="${D}" tc="TC-9325">
+        <arg>DISTRO=${D}</arg>
+        </testcase>
+      </for>
+    </parallel>
   </testsequence>
 
 </xenrt>

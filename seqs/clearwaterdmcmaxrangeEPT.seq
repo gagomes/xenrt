@@ -11,11 +11,14 @@
   </prepare>
 
   <testsequence>
-    <serial group="WindowsEPT">
-      <testcase id="xenserver.tc.balloon.TC9779"/>
-      <testcase id="xenserver.tc.balloon.TC9785"/>
-      <testcase id="xenserver.tc.balloon.TC12607"/>
-    </serial>
+    <parallel group="WindowsBalloonMaxRange" workers="2">
+      <for iter="D" values="%DISTROS%"> 
+        <testcase id="xenserver.tc.balloon.TCWindowsMaxRange" name="${D}" sku="${D}" tc="TC-9777">
+        <arg>DISTRO=${D}</arg>
+        <arg>HAP=EPT</arg>
+        </testcase>
+      </for>
+    </parallel>
   </testsequence>
 
 </xenrt>

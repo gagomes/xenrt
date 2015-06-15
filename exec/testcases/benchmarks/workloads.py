@@ -63,9 +63,16 @@ class Workload(object):
             data = "@echo off\n%s\n" % (string.replace(self.cmdline,
                                                      "%s",
                                                      self.workdir))
-            self.guest.xmlrpcWriteFile("c:\\docume~1\\alluse~1\\startm~1\\"
-                                       "programs\\startup\\XRT_%s_%s.bat" % 
-                                       (self.name, self.workdir.split("\\")[-1]), data)
+            if self.guest.xmlrpcFileExists("c:\\~1\\alluse~1\\startm~1\\programs\\startup"):
+                startupPath = "c:\\~1\\alluse~1\\startm~1\\programs\\startup"
+            elif self.guest.xmlrpcFileExists("c:\\programData\\microsoft\\windows\\start menu\\programs\\startup"):
+                startupPath = "c:\\programData\\microsoft\\windows\\start menu\\programs\\startup"
+            else:
+                raise xenrt.XRTFailure("Start up path for guest unknown")
+            
+            self.guest.xmlrpcWriteFile("%s\\XRT_%s_%s.bat" % (startupPath, 
+                                           self.name, self.workdir.split("\\")[-1]), data)
+            
 
     def start(self):
         if self.skip:

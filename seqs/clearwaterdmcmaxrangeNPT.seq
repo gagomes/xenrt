@@ -1,6 +1,6 @@
 <xenrt>
 
-  <!-- memory balloon driver NPT max range stability tests -->
+  <!-- memory balloon driver EPT max range stability tests -->
 
   <variables>
     <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
@@ -11,10 +11,14 @@
   </prepare>
 
   <testsequence>
-    <serial group="WindowsNPT">
-      <testcase id="xenserver.tc.balloon.TC9784"/>
-      <testcase id="xenserver.tc.balloon.TC12606"/>
-    </serial>
+    <parallel group="WindowsBalloonMaxRange" workers="2">
+      <for iter="D" values="%DISTROS%"> 
+        <testcase id="xenserver.tc.balloon.TCWindowsMaxRange" name="${D}" sku="${D}" tc="TC-9776">
+        <arg>DISTRO=${D}</arg>
+        <arg>HAP=NPT</arg>
+        </testcase>
+      </for>
+    </parallel>
   </testsequence>
 
 </xenrt>

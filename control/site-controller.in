@@ -61,7 +61,8 @@ def execCmd(cmd, errorException=True):
 # Kill self if still running after 5 minutes
 class WatchdogThread(threading.Thread):
     def run(self):
-        time.sleep(300)
+        time.sleep(600)
+        print "Site controller taken too long, killing"
         os.kill(os.getpid(), signal.SIGKILL)
 
 watchdog = WatchdogThread()

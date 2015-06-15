@@ -143,6 +143,15 @@ def mountWinISO(distro):
         if not "%s on %s" % (iso, mountpoint) in mounts and (len(loopDevs) == 0 or (not "%s on %s" % (loopDevs[0], mountpoint))):
             sudo("mkdir -p %s" % mountpoint)
             sudo("mount -o loop %s %s" % (iso, mountpoint))
+        else:
+            # Check whether the loop mount has gone bad, and if it has then remount
+            try:
+                f = open("%s/Autounattend.xml" % mountpoint)
+                f.close()
+            except:
+                sudo("umount -f %s" % mountpoint)
+                sudo("mkdir -p %s" % mountpoint)
+                sudo("mount -o loop %s %s" % (iso, mountpoint))
         return mountpoint
     finally:
         isolock.release()

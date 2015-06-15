@@ -639,7 +639,19 @@ powershell %s""" % (self.ASF_WORKING_DIR, netUseCommand, command)
 
     def executeAsfTests(self, asfCont):
         try:
-            result = self.executeASFShellCommand(asfCont, 'Invoke-AsfWorkFlow -NewWindow', timeout=60*60*3)
+            command = """$rc = @(Invoke-AsfWorkflow)
+$rc = $rc[$rc.Length-1]
+Write-Host "Invoke-AsfWorkflow exited: $rc"
+
+if ($rc -ne 0){
+    try {
+        $errorReason = Get-AsfFailureMessage $rc
+    } catch {}
+    Throw "Invoke-AsfWorkflow : $rc - $errorReason"
+}
+return $rc
+"""
+            result = self.executeASFShellCommand(asfCont, command.replace("\n","; "), timeout=60*60*3)
             xenrt.TEC().comment('ASF Test Returned Result: %s' % (result))
         except Exception, e:
             xenrt.TEC().comment('ASF Test Returned Exception: %s' % (e))

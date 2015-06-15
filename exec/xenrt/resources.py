@@ -1550,7 +1550,7 @@ class SpecifiedSMBShare(object):
 class ISCSIVMLun(ISCSILun):
     """ A tempory LUN in a VM """
     
-    def __init__(self,hostIndex=None,sizeMB=None, totalSizeMB=None, guestName="xenrt-iscsi-target"):
+    def __init__(self,hostIndex=None,sizeMB=None, totalSizeMB=None, guestName="xenrt-iscsi-target", bridges=None):
         if not hostIndex:
             self.host = xenrt.TEC().registry.hostGet("RESOURCE_HOST_0")
         else:
@@ -1561,7 +1561,7 @@ class ISCSIVMLun(ISCSILun):
 
         # Check if we already have the VM on this host, if we don't, then create it, otherwise attach to the existing one.
         if not self.host.guests.has_key(self.guestName):
-            self._createISCSIVM(sizeMB, totalSizeMB)
+            self._createISCSIVM(sizeMB, totalSizeMB, bridges=bridges)
         else:
             self.guest = self.host.guests[self.guestName]
             self._existingISCSIVM(sizeMB)
@@ -1607,13 +1607,14 @@ class ISCSIVMLun(ISCSILun):
         self.targetname = self.guest.execguest("head -1 /etc/ietd.conf  | awk '{print $2}'").strip() # Find the Target IQN name from ietd.conf
         self.lunid = int(self.guest.execguest("tail -1 /etc/ietd.conf | awk '{print $2}'").strip()) + 1 # Find the next available LUN ID
 
-    def _createISCSIVM(self, sizeMB, totalSizeMB):
-        networks = self.host.minimalList("pif-list", "network-uuid", "management=true host-uuid=%s" % self.host.getMyHostUUID()) # Find the management interface on this host
-        networks.extend(self.host.minimalList("pif-list", "network-uuid", "IP-configuration-mode=DHCP host-uuid=%s management=false" % self.host.getMyHostUUID())) # And all of the non-management DHCP addresses
-        networks.extend(self.host.minimalList("pif-list", "network-uuid", "IP-configuration-mode=static host-uuid=%s management=false" % self.host.getMyHostUUID())) # And all of the non-management static addresses
-        bridges = [] # For XenRT we actually need the bridges, not the network UUIDs
-        for n in networks:
-            bridges.append(self.host.genParamGet("network", n, "bridge"))
+    def _createISCSIVM(self, sizeMB, totalSizeMB, bridges=None):
+        if not bridges:
+            networks = self.host.minimalList("pif-list", "network-uuid", "management=true host-uuid=%s" % self.host.getMyHostUUID()) # Find the management interface on this host
+            networks.extend(self.host.minimalList("pif-list", "network-uuid", "IP-configuration-mode=DHCP host-uuid=%s management=false" % self.host.getMyHostUUID())) # And all of the non-management DHCP addresses
+            networks.extend(self.host.minimalList("pif-list", "network-uuid", "IP-configuration-mode=static host-uuid=%s management=false" % self.host.getMyHostUUID())) # And all of the non-management static addresses
+            bridges = [] # For XenRT we actually need the bridges, not the network UUIDs
+            for n in networks:
+                bridges.append(self.host.genParamGet("network", n, "bridge"))
         
         self.guest = self.host.createGenericLinuxGuest(name=self.guestName, bridge=bridges[0]) # Create the VM, putting the main VIF on the management network
         i = 1

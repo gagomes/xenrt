@@ -46,6 +46,7 @@
         <network device="0" />
         <disk device="0" size="24" />
       </vm>
+    <storage type="nfs" name="nfs1" default="true" />
     </host>
   </prepare>
     <testsequence>

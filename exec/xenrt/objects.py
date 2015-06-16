@@ -17,6 +17,7 @@ import testcases.benchmarks.workloads
 import bz2, simplejson, json
 import IPy
 import XenAPI
+import ssl
 import xml.etree.ElementTree as ET
 from xenrt.lazylog import log, warning
 from xenrt.linuxanswerfiles import *
@@ -11440,6 +11441,10 @@ class DVSCWebServices(object):
 
 
     def request (self, method, url, headers=None, params=""):
+        v = sys.version_info
+        if v.major == 2 and ((v.minor == 7 and v.micro >= 9) or v.minor > 7):
+            xenrt.TEC().logverbose("Disabling certificate verification on >=Python 2.7.9")
+            ssl._create_default_https_context = ssl._create_unverified_context
         xenrt.TEC().logverbose("request")
         if self.auto == True and self.keepAlive == False:
             self.login("admin", self.admin_pw)

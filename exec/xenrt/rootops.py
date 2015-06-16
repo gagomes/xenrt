@@ -147,6 +147,7 @@ def mountWinISO(distro):
             # Check whether the loop mount has gone bad, and if it has then remount
             try:
                 f = open("%s/Autounattend.xml" % mountpoint)
+                f.read()
                 f.close()
             except:
                 sudo("umount -f %s" % mountpoint)

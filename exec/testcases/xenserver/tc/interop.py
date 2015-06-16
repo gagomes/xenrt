@@ -462,7 +462,7 @@ class TCXdAsfSetup(xenrt.TestCase):
 
     XD_SVC_ACCOUNT_USERNAME = 'ENG\\svc_testautomation'
     XD_SVC_ACCOUNT_PASSWORD = 't41ly.h13Q1'
-    XD_DOWNLOADS_PATH = '\\\\eng.citrite.net\\cam\\downloads'
+    XD_DOWNLOADS_PATH = '\\\\eng.citrite.net\\global\\layouts\\cds'
 
     ASF_NETWORK_NAME = 'AutoBVT2'
     ASF_WORKING_DIR = 'c:\\asf'
@@ -507,9 +507,10 @@ class TCXdAsfSetup(xenrt.TestCase):
 
         return guestDict
 
-    def executeASFShellCommand(self, asfCont, command, csvFormat=False, timeout=300):
+    def executeASFShellCommand(self, asfCont, command, csvFormat=False, timeout=300, netUse=False):
         csvFormatStr = csvFormat and '| convertto-csv' or ''
-        commandStr = 'cd %s; Import-Module asf; echo "xrtretdatastart"; %s %s; echo "xrtretdataend"' % (self.ASF_WORKING_DIR, command, csvFormatStr)
+        netUseCommand = netUse and 'net use %s /user:%s %s /persistent:yes; ' % (self.XD_DOWNLOADS_PATH, self.XD_SVC_ACCOUNT_USERNAME, self.XD_SVC_ACCOUNT_PASSWORD) or ''
+        commandStr = '%scd %s; Import-Module asf; echo "xrtretdatastart"; %s %s; echo "xrtretdataend"' % (netUseCommand,self.ASF_WORKING_DIR, command, csvFormatStr)
         rValue = asfCont.xmlrpcExec(commandStr, powershell=True, returndata=True, timeout=timeout).splitlines()
         rData = []
         storeLines = False
@@ -651,7 +652,7 @@ if ($rc -ne 0){
 }
 return $rc
 """
-            result = self.executeASFShellCommand(asfCont, command.replace("\n","; "), timeout=60*60*3)
+            result = self.executeASFShellCommand(asfCont, command.replace("\n","; "), timeout=60*60*3, netUse=True)
             xenrt.TEC().comment('ASF Test Returned Result: %s' % (result))
         except Exception, e:
             xenrt.TEC().comment('ASF Test Returned Exception: %s' % (e))

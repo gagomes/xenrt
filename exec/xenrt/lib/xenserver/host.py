@@ -12152,6 +12152,7 @@ class StorageRepository(object):
 
     def physicalSizeMB(self):
         """Returns the physical size of this SR in MB."""
+        self.scan()
         return int(self.paramGet("physical-size"))/xenrt.MEGA
 
     def release(self):

@@ -7399,7 +7399,7 @@ class GenericGuest(GenericPlace):
         self.findPassword()
 
         if not self.windows:
-            # some time we get an error doing this recursive copy, very soon after a vm-start (CA-172621)
+            # sometimes we get an error doing this recursive copy very soon after a vm-start (CA-172621)
             # attempting to fix with a sleep.
             xenrt.sleep(10)
 

@@ -7399,6 +7399,10 @@ class GenericGuest(GenericPlace):
         self.findPassword()
 
         if not self.windows:
+            # some time we get an error doing this recursive copy, very soon after a vm-start (CA-172621)
+            # attempting to fix with a sleep.
+            xenrt.sleep(10)
+
             # Copy the test scripts to the guest
             xrt = xenrt.TEC().lookup("XENRT_BASE", "/usr/share/xenrt")
             sdir = xenrt.TEC().lookup("REMOTE_SCRIPTDIR")

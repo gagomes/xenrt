@@ -1,4 +1,4 @@
-import xenrt, libperf, string, os, os.path, threading, time, re
+import xenrt, libperf, string, os, os.path, threading, time, re, math
 import libsynexec
 
 def toBool(val):
@@ -15,6 +15,19 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
         self.vm = []
         self.sr_to_diskname = {}
         self.host = self.getDefaultHost()
+
+    def setup_null_device(self, device):
+        x = device.split(":")
+        null_device_params = None
+        null_device = x[0]
+
+        if len(x) > 1:
+            null_device_params = x[1]
+
+        self.host.execdom0("modprobe null_blk %s" % (null_device_params if null_device_params else ""))
+        self.host.execdom0("sed -i 's/\/dev\/null/%s/' /opt/xensource/sm/DummySR" % (null_device.replace("/", "\/")))
+        sr_uuid = self.host.execdom0("xe sr-create name-label=nullsr type=dummy physical-size=8GiB").strip()
+        return sr_uuid
 
     def parseArgs(self, arglist):
         # Parse generic arguments
@@ -33,6 +46,13 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
         self.queuedepth = libperf.getArgument(arglist, "queue_depth", int, 1)
         self.multiqueue = libperf.getArgument(arglist, "multiqueue", int, None)
         self.multipage = libperf.getArgument(arglist, "multipage", int, None)
+
+        if self.multipage:
+            is_power2 = self.multipage != 0 and ((self.multipage & (self.multipage - 1)) == 0)
+
+            if not is_power2:
+                raise ValueError("Multipage %s is not a power of 2" % (self.multipage))
+
         self.num_threads = libperf.getArgument(arglist, "num_threads", int, 1)
         self.vms_per_sr = libperf.getArgument(arglist, "vms_per_sr", int, 1)
         self.vbds_per_vm = libperf.getArgument(arglist, "vbds_per_vm", int, 1)
@@ -121,8 +141,9 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
                     self.host.execdom0("xenstore-write /local/domain/0/backend/%s/%s/%s/multi-queue-max-queues '%s'" %
                                        (backend_xs_name, vmid, vbdid, self.multiqueue))
                 else:
-                    self.host.execdom0("xenstore-write /local/domain/0/backend/%s/%s/%s/max-ring-pages '%s'" %
-                                       (backend_xs_name, vmid, vbdid, self.multipage))
+                    order = int(math.log(self.multipage, 2))
+                    self.host.execdom0("xenstore-write /local/domain/0/backend/%s/%s/%s/max-ring-page-order '%s'" %
+                                       (backend_xs_name, vmid, vbdid, order))
 
                 if self.backend == "xen-tapdisk3" and self.multiqueue:
                     sr_uuid = self.host.execdom0("xe vdi-list uuid=%s params=sr-uuid --minimal" % (vdi_uuid)).strip()
@@ -209,14 +230,14 @@ for i in {b..%s}; do
     echo $(($(/root/fio/fio --name=iometer \
                             --direct=1 \
                             --ioengine=libaio \
-                            --io_size=1024TB \
+                            --time_based \
                             --filename=/dev/xvd$i \
                             --minimal \
                             --terse-version=3 \
                             --numjobs=%d \
                             --rw=%s \
                             --iodepth=%d \
-                            --bssplit=%d/100 \
+                            --bs=%d \
                             --runtime=%d %s | cut -d";" -f%d | paste -sd+ - | bc) * 1024)) &> /root/out-$i &
     pid[$pididx]=$!
     ((pididx++))
@@ -512,6 +533,12 @@ Version 1.1.0
                         guestname=self.vm_image,
                         filename=vmurl)
 
+                if self.vcpus_per_vm:
+                    self.template.cpuset(self.vcpus_per_vm)
+
+                if self.vm_ram:
+                    self.template.memset(self.vm_ram)
+
                 self.template.removeCD()
                 self.template.start()
             else:
@@ -580,6 +607,9 @@ Version 1.1.0
             if device == "default":
                 sr = self.host.lookupDefaultSR()
                 self.sr_to_diskname[sr] = "default"
+            elif device.startswith("/dev/nullb"):
+                sr = self.setup_null_device(device)
+                self.sr_to_diskname[sr] = device.split(":")[0]
             elif device.startswith("xen-sr="):
                 device = sr = device.split('=')[1]
                 self.sr_to_diskname[sr] = sr.split("-")[0]

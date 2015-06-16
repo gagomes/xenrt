@@ -17,18 +17,13 @@
     <parallel workers="${PARALLEL}">
 
       <testcase id="xenserver.tc.pvdrivers.TC9181"/>
-      <testcase id="xenserver.tc.pvdrivers.TC9182"/>
-      <testcase id="xenserver.tc.pvdrivers.TC9577"/>
       <testcase id="xenserver.tc.pvdrivers.TC9184"/>
-      <testcase id="xenserver.tc.pvdrivers.TC9185"/>
-      <testcase id="xenserver.tc.pvdrivers.TC9578"/>
       <testcase id="xenserver.tc.pvdrivers.TC11037"/>
       <testcase id="xenserver.tc.pvdrivers.TC11043"/>
       <testcase id="xenserver.tc.pvdrivers.TC11038"/>
       <testcase id="xenserver.tc.pvdrivers.TC11040"/>
       <testcase id="xenserver.tc.pvdrivers.TC11042"/>
       <testcase id="xenserver.tc.pvdrivers.TC11044"/>
-      <testcase id="xenserver.tc.pvdrivers.TC11047"/>
       <testcase id="xenserver.tc.pvdrivers.TC11053"/>
       <testcase id="xenserver.tc.pvdrivers.TC11048"/>
       <testcase id="xenserver.tc.pvdrivers.TC11050"/>

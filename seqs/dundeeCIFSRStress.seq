@@ -18,7 +18,6 @@
     <EXTRA_ARP_TIME>yes</EXTRA_ARP_TIME>
     <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
     <OPTION_CLONE_TEMPLATE>yes</OPTION_CLONE_TEMPLATE>
-    <PREPARE_WORKERS>5</PREPARE_WORKERS>
   </variables>
 
   <prepare>
@@ -27,9 +26,17 @@
       <host id="1"/>
       <host id="2"/>
       <host id="3"/>
-      <storage type="smb" name="cifs-sr" default="true" options="host-4-c"/>
+      <storage type="smb" name="cifs-sr" default="true"/>
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <NIC />
+          <MANAGEMENT />
+          <VLAN network="VR04">
+            <VMS />
+          </VLAN>
+        </PHYSICAL>
+      </NETWORK>
     </pool>
-    <host productType="nativewindows" productVersion="ws12r2-x64" id="4" />
   </prepare>
 
   <testsequence>

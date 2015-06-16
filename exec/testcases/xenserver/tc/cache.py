@@ -2088,11 +2088,6 @@ class TCUpgrade(_ResetOnBootBase):
     def prepare(self, arglist = []):
         self.settingUpTestEnvironment()
         
-        # Need to eject CD but keep CD drive for later use, PV driver update.
-        self.goldVM.setState("UP")
-        self.host.getCLIInstance().execute("vm-cd-eject uuid=%s" % (self.goldVM.uuid))
-        self.goldVM.shutdown()
-        
         self.guests = []
         self.vdis = {}
         

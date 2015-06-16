@@ -3,6 +3,7 @@ from pyramid.httpexceptions import *
 
 class _APIKeyBase(XenRTAPIv2Page):
     WRITE = True
+    WAIT = False
 
     def _getOrGenerateAPIKey(self):
         user = self.getUser()

@@ -914,11 +914,13 @@ class Guest(xenrt.GenericGuest):
 
         self._redefineXML(xmldom.toxml())
 
-    def createVIF(self, eth, bridge, mac=None):
+    def createVIF(self, eth=None, bridge="NPRI", mac=None):
         if not mac:
             mac = xenrt.randomMAC()
-        if not bridge:
+        if not bridge or bridge=="NPRI":
             bridge=self.host.getPrimaryBridge()
+        elif bridge == "NSEC":
+            raise xenrt.XRTError("Unimplemented")
 
         model = self._getNetworkDeviceModel()
         vifxmlstr = """
@@ -929,7 +931,7 @@ class Guest(xenrt.GenericGuest):
         </interface>""" % (mac, bridge, "<model type='%s'/>" % model if model else "")
         self._attachDevice(vifxmlstr)
 
-        if not eth in [x[0] for x in self.vifs]:
+        if not eth or not eth in [x[0] for x in self.vifs]:
             self.vifs.append((eth, bridge, mac, None))
         else:
             index = [i for i,x in enumerate(self.vifs) if x[0] == eth][0]
@@ -1509,6 +1511,14 @@ class Guest(xenrt.GenericGuest):
     def vendorInstallDevicePrefix(self):
         return self._getDiskDevicePrefix()
 
+    def getIPSpec(self):
+        ipSpec = []
+        for v in self.vifs:
+            (eth, bridge, mac, currentIp) = v
+            ipData = self.paramGet("xenrt-ip-%s" % eth)
+            (newIP, mask) = ipData.split("/") if ipData else [None, None]
+            ipSpec.append((eth, newIP, mask))
+        return ipSpec
 
     def paramSet(self, paramName, paramValue):
         xenrt.TEC().logverbose("WARNING: paramSet called! paramName=%s, paramValue=%s" % (paramName, paramValue))

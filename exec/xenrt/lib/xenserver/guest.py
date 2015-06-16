@@ -2088,14 +2088,6 @@ exit /B 1
         if doSet:
             self.getInstance().os.setIPs(ipSpec)
 
-    def setupNetscalerVPX(self, installNSTools=False):
-        netscaler = xenrt.lib.netscaler.NetScaler.setupNetScalerVpx(self, useVIFs=True)
-        xenrt.GEC().registry.objPut("netscaler", self.name, netscaler)
-        netscaler.applyLicense(netscaler.getLicenseFileFromXenRT())
-        if installNSTools:
-            netscaler.installNSTools()
-        netscaler.checkFeatures("Test results after applying license:")
-
     def setupVCenter(self, vCenterVersion="5.5.0-update02"):
         vcenter = xenrt.lib.esx.getVCenter(guest=self, vCenterVersion=vCenterVersion)
 

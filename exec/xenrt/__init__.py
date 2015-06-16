@@ -3677,7 +3677,7 @@ from xenrt.filecache import *
 from xenrt.tools import *
 from xenrt.suite import *
 from xenrt.lazylog import *
-from xenrt.ssl import *
+from xenrt.sslutils import *
 from xenrt.storageadmin import *
 from xenrt.racktableslink import *
 from xenrt.archive import *

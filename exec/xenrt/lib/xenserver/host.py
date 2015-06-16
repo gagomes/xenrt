@@ -14736,7 +14736,7 @@ class MNRPool(Pool):
            appropriately"""
 
         # Set up a CA to use
-        self.ca = xenrt.ssl.CertificateAuthority()
+        self.ca = xenrt.sslutils.CertificateAuthority()
 
         # Install the CA certificate
         self.installCertificate(self.ca.certificate)

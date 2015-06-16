@@ -148,11 +148,13 @@ def mountWinISO(distro):
             try:
                 f = open("%s/Autounattend.xml" % mountpoint)
                 f.read()
-                f.close()
             except:
+                f.close()
                 sudo("umount -f %s" % mountpoint)
                 sudo("mkdir -p %s" % mountpoint)
                 sudo("mount -o loop %s %s" % (iso, mountpoint))
+            else:
+                f.close()
         return mountpoint
     finally:
         isolock.release()

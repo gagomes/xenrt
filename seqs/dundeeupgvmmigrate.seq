@@ -26,7 +26,7 @@
       <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="vistaeesp2,2G" tc="TC-21208" sku="vistaeesp2/x86-32/2G" />
       <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="debian70x64,9G" tc="TC-21208" sku="debian70/x86-64/9G" />
       <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="centos47x86,3G" tc="TC-21208" sku="centos47/x86-32/3G" />
-      <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="centos64x64,8G" tc="TC-21208" sku="centos64/x86-64/8G" />
+      <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="centos66x64,8G" tc="TC-21208" sku="centos66/x86-64/8G" />
       <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="sles112x86,12G" tc="TC-21208" sku="sles112/x86-32/12G" />
       <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="ubuntu1004x86,15G" tc="TC-21208" sku="ubuntu1004/x86-32/15G" />
       <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="ubuntu1204x64,12G" tc="TC-21208" sku="ubuntu1204/x86-64/12G" />
@@ -68,7 +68,7 @@
       <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="centos47x86,3G" tc="TC-21543" sku="centos47/x86-32/3G">
         <arg>BalloonTo=3G</arg>
       </testcase>
-      <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="centos64x64,8G" tc="TC-21543" sku="centos64/x86-64/8G">
+      <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="centos66x64,8G" tc="TC-21543" sku="centos66/x86-64/8G">
         <arg>BalloonTo=2G</arg>
       </testcase>
       <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="sles112x86,12G" tc="TC-21543" sku="sles112/x86-32/12G">

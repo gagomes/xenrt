@@ -1,4 +1,4 @@
-import xenrt, libperf, string, os, os.path, threading, time, re
+import xenrt, libperf, string, os, os.path, threading, time, re, math
 import libsynexec
 
 def toBool(val):
@@ -16,6 +16,19 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
         self.sr_to_diskname = {}
         self.host = self.getDefaultHost()
 
+    def setup_null_device(self, device):
+        x = device.split(":")
+        null_device_params = None
+        null_device = x[0]
+
+        if len(x) > 1:
+            null_device_params = x[1]
+
+        self.host.execdom0("modprobe null_blk %s" % (null_device_params if null_device_params else ""))
+        self.host.execdom0("sed -i 's/\/dev\/null/%s/' /opt/xensource/sm/DummySR" % (null_device.replace("/", "\/")))
+        sr_uuid = self.host.execdom0("xe sr-create name-label=nullsr type=dummy physical-size=8GiB").strip()
+        return sr_uuid
+
     def parseArgs(self, arglist):
         # Parse generic arguments
         libperf.PerfTestCase.parseArgs(self, arglist)
@@ -31,13 +44,30 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
                                               "512,1024,2048,4096,8192,16384,32768,65536,131072,262144,524288,1048576,2097152,4194304")
         self.blocksizes = self.blocksizes.strip().split(",")
         self.queuedepth = libperf.getArgument(arglist, "queue_depth", int, 1)
+        self.multiqueue = libperf.getArgument(arglist, "multiqueue", int, None)
+        self.multipage = libperf.getArgument(arglist, "multipage", int, None)
+
+        if self.multipage:
+            is_power2 = self.multipage != 0 and ((self.multipage & (self.multipage - 1)) == 0)
+
+            if not is_power2:
+                raise ValueError("Multipage %s is not a power of 2" % (self.multipage))
+
+        self.num_threads = libperf.getArgument(arglist, "num_threads", int, 1)
         self.vms_per_sr = libperf.getArgument(arglist, "vms_per_sr", int, 1)
         self.vbds_per_vm = libperf.getArgument(arglist, "vbds_per_vm", int, 1)
         self.vcpus_per_vm = libperf.getArgument(arglist, "vcpus_per_vm", int, None)
 
         # Benchmark program to use for linux vm. If the value is different than fio, would use latency
         self.bench = libperf.getArgument(arglist, "benchmark", str, "fio")
-        self.sequential = libperf.getArgument(arglist, "sequential", bool, True)
+        self.sequential = libperf.getArgument(arglist, "sequential", toBool, True)
+
+        # Optional VM image to use as a template
+        self.vm_image = libperf.getArgument(arglist, "vm_image", str, None)
+
+        # If vm_image is set, treat it as a distro name
+        if self.vm_image:
+            self.distro  = self.vm_image
 
         # A number in MB; e.g. 1024
         self.vm_ram = libperf.getArgument(arglist, "vm_ram", int, None)
@@ -53,6 +83,8 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
         self.zeros = libperf.getArgument(arglist, "zeros", bool, False)
         self.prepopulate = libperf.getArgument(arglist, "prepopulate", toBool, True)
 
+        self.vm_disk_scheduler = libperf.getArgument(arglist, "vm_disk_scheduler", str, "default")
+        self.vm_disk_nomerges = libperf.getArgument(arglist, "vm_disk_nomerges", str, "default")
         # Disk schedulers are specified in the form deviceA=X,deviceB=Y,...
         # To specify the scheduler for the default SR, use default=Z
         schedulers = libperf.getArgument(arglist, "disk_schedulers", str, "").strip()
@@ -85,6 +117,65 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
     def prepare(self, arglist=None):
         self.basicPrepare(arglist)
 
+
+    def vm_start(self, vm, vbd_uuids):
+        if not self.multiqueue and not self.multipage:
+            vm.start()
+        else:
+            # Start a vm in paused state
+            # Write the number of queues to xenstored in dom0 backend
+            # Unpause the vm
+
+            vm_uuid = vm.getUUID()
+
+            self.host.execdom0("xe vm-start uuid=%s paused=true" % (vm_uuid))
+
+            vmid = self.host.execdom0("list_domains | grep %s" % (vm_uuid)).strip().split(" ")[0].strip()
+
+            backend_xs_name = "vbd3" if self.backend == "xen-tapdisk3" else "vbd";
+
+            for vbd_uuid in vbd_uuids:
+                vdi_uuid = self.host.execdom0("xe vbd-list uuid=%s params=vdi-uuid --minimal" % (vbd_uuid)).strip()
+                vbdid = self.host.execdom0("xenstore-ls -f /xapi/%s | grep vdi-id | grep %s" % (vm_uuid, vdi_uuid)).split("/")[5].strip()
+                if self.multiqueue:
+                    self.host.execdom0("xenstore-write /local/domain/0/backend/%s/%s/%s/multi-queue-max-queues '%s'" %
+                                       (backend_xs_name, vmid, vbdid, self.multiqueue))
+                else:
+                    order = int(math.log(self.multipage, 2))
+                    self.host.execdom0("xenstore-write /local/domain/0/backend/%s/%s/%s/max-ring-page-order '%s'" %
+                                       (backend_xs_name, vmid, vbdid, order))
+
+                if self.backend == "xen-tapdisk3" and self.multiqueue:
+                    sr_uuid = self.host.execdom0("xe vdi-list uuid=%s params=sr-uuid --minimal" % (vdi_uuid)).strip()
+                    vhd = "/dev/VG_XenStorage-%s/VHD-%s" % (sr_uuid, vdi_uuid)
+
+                    for queue in range(self.multiqueue):
+                        self.host.execdom0("tap-ctl create -a vhd:%s" % (vhd))
+
+                    tapdisk_list = self.host.execdom0("tap-ctl list | grep %s" % (vhd)).strip().split("\n")
+
+                    queue = 0
+                    for line in tapdisk_list:
+                        pid, minor = map(lambda x:x.split("=")[1], line.split(' '))[:2]
+
+                        self.host.execdom0("xenstore-write /local/domain/%s/device/vbd/%s/queue-%s/pid %s" % (vmid, vbdid, queue, pid))
+                        self.host.execdom0("xenstore-write /local/domain/%s/device/vbd/%s/queue-%s/minor %s" % (vmid, vbdid, queue, minor))
+                        queue += 1
+
+            vm.unpause()
+
+            vm.waitReadyAfterStart()
+
+            for vbd_uuid in vbd_uuids:
+                vdi_uuid = self.host.execdom0("xe vbd-list uuid=%s params=vdi-uuid --minimal" % (vbd_uuid)).strip()
+                vbdid = self.host.execdom0("xenstore-ls -f /xapi/%s | grep vdi-id | grep %s" % (vm_uuid, vdi_uuid)).split("/")[5].strip()
+                blkdev = self.host.execdom0("xenstore-read /local/domain/0/backend/%s/%s/%s/dev" %
+                                   (backend_xs_name, vmid, vbdid)).strip()
+                if self.vm_disk_scheduler != "default":
+                    vm.execguest("echo %s > /sys/block/%s/queue/scheduler" % (self.vm_disk_scheduler, blkdev))
+                if self.vm_disk_nomerges != "default":
+                    vm.execguest("echo %s > /sys/block/%s/queue/nomerges" % (self.vm_disk_nomerges, blkdev))
+
     def createVMsForSR(self, sr):
         for i in range(self.vms_per_sr):
             xenrt.TEC().progress("Installing VM %d on disk %s" % (i, self.sr_to_diskname[sr]))
@@ -94,18 +185,22 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
             self.vm.append(cloned_vm)
             self.host.addGuest(cloned_vm)
 
+            vbd_uuids = []
+
             for j in range(self.vbds_per_vm):
                 vbd_uuid = cloned_vm.createDisk(sizebytes=self.vdi_size,
                                                 sruuid=sr,
                                                 smconfig=self.sm_config,
                                                 returnVBD=True)
 
+                vbd_uuids.append(vbd_uuid)
+
                 if self.backend == "xen-tapdisk3":
                     self.host.genParamSet("vbd", vbd_uuid, "other-config:backend-kind", "vbd3")
                 elif self.backend == "xen-tapdisk2" or self.backend == "xen-blkback":
                     self.host.genParamSet("vbd", vbd_uuid, "other-config:backend-kind", "vbd")
 
-            cloned_vm.start()
+            self.vm_start(cloned_vm, vbd_uuids)
 
     def runPrepopulate(self):
         for vm in self.vm:
@@ -135,14 +230,15 @@ for i in {b..%s}; do
     echo $(($(/root/fio/fio --name=iometer \
                             --direct=1 \
                             --ioengine=libaio \
-                            --io_size=1024TB \
+                            --time_based \
                             --filename=/dev/xvd$i \
                             --minimal \
                             --terse-version=3 \
+                            --numjobs=%d \
                             --rw=%s \
                             --iodepth=%d \
-                            --bssplit=%d/100 \
-                            --runtime=%d %s | cut -d";" -f%d) * 1024)) &> /root/out-$i &
+                            --bs=%d \
+                            --runtime=%d %s | cut -d";" -f%d | paste -sd+ - | bc) * 1024)) &> /root/out-$i &
     pid[$pididx]=$!
     ((pididx++))
 done
@@ -150,7 +246,7 @@ done
 for ((idx=0; idx<pididx; idx++)); do
   wait ${pid[$idx]}
 done
-""" % (chr(ord('a') + self.vbds_per_vm), rw,
+""" % (chr(ord('a') + self.vbds_per_vm), self.num_threads, rw,
        self.queuedepth, blocksize, self.duration,
        "--zero_buffers" if self.zeros else "", 6 if op == "r" else 47)
         else:
@@ -427,15 +523,34 @@ Version 1.1.0
 
             postinstall = [] if self.postinstall is None else self.postinstall.split(",")
 
-            self.template = xenrt.productLib(host=self.host).guest.createVM(\
-                    host=self.host,
-                    guestname="vm-template",
-                    vcpus=self.vcpus_per_vm,
-                    memory=self.vm_ram,
-                    distro=self.distro,
-                    arch=self.arch,
-                    postinstall=postinstall,
-                    vifs=self.host.guestFactory().DEFAULT)
+            if self.vm_image:
+                disturl = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
+                vmurl = "%s/performance/base/%s" % (disturl, self.vm_image)
+                xenrt.TEC().logverbose("Getting vm from %s" % (vmurl))
+
+                self.template = xenrt.productLib(host=self.host).guest.createVMFromFile(
+                        host=self.host,
+                        guestname=self.vm_image,
+                        filename=vmurl)
+
+                if self.vcpus_per_vm:
+                    self.template.cpuset(self.vcpus_per_vm)
+
+                if self.vm_ram:
+                    self.template.memset(self.vm_ram)
+
+                self.template.removeCD()
+                self.template.start()
+            else:
+                self.template = xenrt.productLib(host=self.host).guest.createVM(\
+                        host=self.host,
+                        guestname="vm-template",
+                        vcpus=self.vcpus_per_vm,
+                        memory=self.vm_ram,
+                        distro=self.distro,
+                        arch=self.arch,
+                        postinstall=postinstall,
+                        vifs=self.host.guestFactory().DEFAULT)
 
             if self.template.windows:
                 if not isinstance(self.template, xenrt.lib.esx.Guest):
@@ -487,16 +602,14 @@ Version 1.1.0
         guests = self.host.guests.values()
         self.installTemplate(guests)
 
-        # Save original SM backend type and set new one if necessary
-        if self.backend == "xen-blkback":
-            original_backend = self.host.execdom0('grep ^VDI_TYPE_RAW /opt/xensource/sm/vhdutil.py | sed "s/VDI_TYPE_RAW = \'\\(.\\+\\)\'/\\1/"').strip()
-            self.host.execdom0('sed -i "s/^VDI_TYPE_RAW = \'\\(aio\|phy\\)\'$/VDI_TYPE_RAW = \'phy\'/" /opt/xensource/sm/vhdutil.py')
-
         # Create SRs on the given devices
         for device in self.devices:
             if device == "default":
                 sr = self.host.lookupDefaultSR()
                 self.sr_to_diskname[sr] = "default"
+            elif device.startswith("/dev/nullb"):
+                sr = self.setup_null_device(device)
+                self.sr_to_diskname[sr] = device.split(":")[0]
             elif device.startswith("xen-sr="):
                 device = sr = device.split('=')[1]
                 self.sr_to_diskname[sr] = sr.split("-")[0]
@@ -598,7 +711,3 @@ Version 1.1.0
                 self.runPhaseWindows(i, 'r')
             else:
                 self.runPhase(i, 'r')
-
-        # Restore original backend type if necessary
-        if self.backend == "xen-blkback":
-            self.host.execdom0('sed -i "s/^VDI_TYPE_RAW = \'\\(aio\|phy\\)\'$/VDI_TYPE_RAW = \'%s\'/" /opt/xensource/sm/vhdutil.py' % original_backend)

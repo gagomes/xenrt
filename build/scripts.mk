@@ -13,6 +13,7 @@ WSGITHREADS ?= 1
 CURRENT_DIR ?= $(shell pwd)
 AUTH_REALM ?= citrite
 NFS_LIB_PATH ?= /usr/groups/xenrt/lib
+PUPPETREPO ?= puppet-configs.git
 
 include build/tools.mk
 
@@ -27,7 +28,7 @@ NEWDIRS		:= locks state results
 SCRIPTS		:= $(patsubst %.in,%,$(wildcard **/*.in))
 GENCODE		:= $(patsubst %.gen,%,$(wildcard **/*.gen))
 LINKS		:= control/xenrt.py $(EXECDIR)/xenrt/ctrl.py control/xrt control/xrt1
-BINLINKS    := xenrt xrt xrt1 xrtbranch runsuite xenrtnew
+BINLINKS    := xenrt xrt xrt1 xrtbranch runsuite runsuite2 xenrtnew
 
 SRCDIRS		:= $(addprefix $(SHAREDIR)/,$(SRCDIRS))
 NEWDIRS		:= $(addprefix $(SHAREDIR)/,$(NEWDIRS))
@@ -45,15 +46,16 @@ minimal-install: install
 
 .PHONY: server
 server: install
-	$(SUDO) cp $(SHAREDIR)/server/xenrt-server /etc/init.d/
+	$(SUDO) cp $(SHAREDIR)/server/xenrt-server /etc/init.d 
 	$(SUDO) insserv xenrt-server
-	$(SUDOSH) '/etc/init.d/xenrt-server start || $(SUDO) /etc/init.d/xenrt-server reload'
+	-$(SUDO) systemctl daemon-reload
+	$(SUDOSH) 'service xenrt-server start || $(SUDO) service xenrt-server reload'
 	sleep 1
 	make apibuild
 
 .PHONY: install
 install: tarlibs $(NEWDIRS) utils $(SRCDIRS) exec $(LINKS) $(SCRATCHDIR) \
-	 $(SHAREDIR)/VERSION $(SHAREDIR)/SITE $(CONFDIR) \
+	 $(SHAREDIR)/VERSION $(SHAREDIR)/SITE \
 	 $(BINLINKS) images $(JOBRESULTDIR) progs tar $(VARDIR) pythonlibs copy unittests
 	$(info XenRT installation completed.)	 
 
@@ -130,39 +132,12 @@ clean:
 	$(info Removing compiled XenRT scripts...)
 	$(RM) $(SCRIPTS) $(GENCODE)
 
-.PHONY: uninstall
-uninstall:
-	$(info Uninstalling XenRT...)
-	$(SUDO) $(RMTREE) $(SHAREDIR)
-	$(SUDO) $(RMTREE) $(CONFDIR)
-
 .PHONY: %.git
 %.git:
 	$(info Updating $@ repository...)
 	[ -d $(ROOT)/$@ ] || $(GIT) clone $(GITPATH)/$@ $(ROOT)/$@
 	cd $(ROOT)/$@ && $(GIT) pull
-
-.PHONY: $(CONFDIR)
-$(CONFDIR):
-	$(info Creating link to $@...)#
-	$(SUDO) mkdir -p $@
-ifeq ($(PRODUCTIONCONFIG),yes)
-	$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(SITE)/site.xml` $@/site.xml
-	$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(SITE)/machines` $@/machinesinput
-	$(SUDO) mkdir -p $@/machines
-	$(SUDO) chown $(USERID):$(GROUPID) $@/machines
-endif
-ifeq ($(NISPRODUCTIONCONFIG),yes)
-	$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(SITE)/site.xml` $@/site.xml
-	$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(SITE)/machines` $@/machinesinput
-	$(SUDO) mkdir -p $@/machines
-	$(SUDO) chown $(USERID):$(GROUPID) $@/machines
-endif
-	if [ -e $(ROOT)/$(INTERNAL)/keys ]; then $(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/keys` $@/keys; fi
-	$(SUDO) mkdir -p $@/conf.d
-	$(foreach dir,$(CONFDIRS), $(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(dir)` $@/conf.d/$(dir);)
-	$(SUDO) sh -c 'echo "$(SITE)" > $@/siteid'
-	-$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/suites` $@/suites
+	cd $(ROOT)/$@ && $(GIT) submodule update --init
 
 .PHONY: docs
 docs:
@@ -215,6 +190,10 @@ xenrtnew:
 runsuite:
 	$(info Creating link to $@...)
 	$(SUDO) ln -sf $(SHAREDIR)/control/runsuite $(BINDIR)/$@
+
+runsuite2:
+	$(info Creating link to $@...)
+	$(SUDO) ln -sf $(SHAREDIR)/control/runsuite2 $(BINDIR)/$@
 
 images:
 	$(info Creating link to $@...)
@@ -273,7 +252,7 @@ endif
 	-rsync -axl $(ROOT)/$(INTERNAL)/$(notdir $@) $(SHAREDIR)
 
 .PHONY: exec
-exec:
+exec: $(SCRIPTS)
 	$(info Installing files to $(EXECDIR))
 ifeq ($(CLEANSCRIPTS),yes)
 	rsync -axl --delete $(notdir $@)/* $(SHAREDIR)/$(EXECDIR)/

@@ -408,7 +408,8 @@ class _APITest(testcases.xenserver.tc.security._RBAC):
                "xenapi.VDI.db_introduce"                :   "PERMISSION_DENIED",
                "xenapi.pool.enable_local_storage_caching"   : "HOSTS_FAILED_TO_ENABLE_CACHING",
                "xenapi.VM.create_template"              :   "MESSAGE_METHOD_UNKNOWN",
-               "xenapi.VBD.unplug_force"                :   "OPERATION_NOT_ALLOWED"}
+               "xenapi.VBD.unplug_force"                :   "OPERATION_NOT_ALLOWED",
+               "xenapi.VBD.unplug_force_no_safety_check" :   "OPERATION_NOT_ALLOWED"}
 
     FATAL = {"xenapi.host.management_disable":"ProtocolError",
              "xenapi.host.local_management_reconfigure":"NONESUCH",

@@ -24,7 +24,7 @@ def repackiso(inputiso, outputiso, isolinuxfile):
         print "Copied files, now overwriting isolinux.cfg"
         execcmd("sudo cp %s %s/repack/isolinux/isolinux.cfg" % (isolinuxfile, td))
         print "Overwritten isolinux.cfg, building ISO"
-        execcmd("sudo mkisofs -J -R -o %s -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table %s/repack" % (outputiso, td))
+        execcmd("sudo genisoimage -J -R -o %s -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table %s/repack" % (outputiso, td))
     finally:
         execcmd("sudo umount %s/mp" % td)
         execcmd("sudo rm -rf %s" % td)
@@ -44,7 +44,7 @@ if __name__ == "__main__":
 
     isoname = inputiso.split("/")[-1]
 
-    m = re.match("(.*)[-_](x86-\d\d)\.iso", isoname)
+    m = re.match("(.*)[-_](x86-\d\d)(_xenrtinst)?\.iso", isoname)
 
     if m:
         doTailor = True

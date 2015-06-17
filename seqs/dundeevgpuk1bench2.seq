@@ -67,6 +67,7 @@
       <testcase id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
         <arg>guest=win81</arg>
         <arg>vgpuconfig=K140</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
       </testcase>
       <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
         <arg>guest=win81</arg>
@@ -86,11 +87,13 @@
       <testcase id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
         <arg>guest=win81</arg>
         <arg>vgpuconfig=K140</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
       </testcase>
       <testcase id="testcases.xenserver.tc.vgpu.TCVGPUCloneVM">
         <arg>guest=win81</arg>
         <arg>vgpuconfig=K140</arg>
         <arg>clones=4</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
       </testcase>
       <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
         <arg>guest=win81</arg>
@@ -106,12 +109,14 @@
       <testcase id="testcases.xenserver.tc.vgpu.TCVGPUDeleteClones">
         <arg>guest=win81</arg>
         <arg>clones=4</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
       </testcase>
     </serial>
     <serial group="Win81-x64-K140">
       <testcase id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
         <arg>guest=win81x64</arg>
         <arg>vgpuconfig=K140</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
       </testcase>
       <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
         <arg>guest=win81x64</arg>
@@ -131,6 +136,7 @@
       <testcase id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
         <arg>guest=ws12r2</arg>
         <arg>vgpuconfig=K140</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
       </testcase>
       <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
         <arg>guest=ws12r2</arg>
@@ -150,6 +156,7 @@
       <testcase id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
         <arg>guest=win81</arg>
         <arg>vgpuconfig=K100</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
       </testcase>
       <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
         <arg>guest=win81</arg>
@@ -168,11 +175,13 @@
       <testcase id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
         <arg>guest=win81</arg>
         <arg>vgpuconfig=K100</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
       </testcase>
       <testcase id="testcases.xenserver.tc.vgpu.TCVGPUCloneVM">
         <arg>guest=win81</arg>
         <arg>vgpuconfig=K100</arg>
         <arg>clones=8</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
       </testcase>
       <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
         <arg>guest=win81</arg>
@@ -194,6 +203,7 @@
       <testcase id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
         <arg>guest=win81</arg>
         <arg>vgpuconfig=K120</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
       </testcase>
       <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
         <arg>guest=win81</arg>
@@ -212,11 +222,13 @@
       <testcase id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
         <arg>guest=win81</arg>
         <arg>vgpuconfig=K120</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
       </testcase>
       <testcase id="testcases.xenserver.tc.vgpu.TCVGPUCloneVM">
         <arg>guest=win81</arg>
         <arg>vgpuconfig=K120</arg>
         <arg>clones=8</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
       </testcase>
       <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
         <arg>guest=win81</arg>
@@ -238,11 +250,12 @@
     <serial group="Win81-x86-K1PT">
       <testcase id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
         <arg>guest=win81</arg>
-        <arg>vgpuconfig=K1PassThrough</arg>
+        <arg>vgpuconfig=K1passthrough</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
       </testcase>
       <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
         <arg>guest=win81</arg>
-        <arg>vgpuconfig=K1PassThrough</arg>
+        <arg>vgpuconfig=K1passthrough</arg>
         <arg>benchmark=SPECViewPerf11</arg>
         <arg>benchmark=UnigineSanctuary</arg>
         <arg>benchmark=UnigineTropics</arg>

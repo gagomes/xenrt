@@ -14,8 +14,8 @@
 
   <prepare>
     <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}">
-      <vm name="rhel54">
-        <distro>rhel54</distro>
+      <vm name="rhel5x">
+        <distro>rhel5x</distro>
         <memory>${GUESTMEMORY}</memory>
         <vcpus>${GUESTVCPUS}</vcpus>
         <network device="0"/>

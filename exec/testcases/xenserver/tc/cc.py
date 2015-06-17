@@ -9,7 +9,7 @@ class _CCBase(xenrt.TestCase):
 class _SSLCert(xenrt.TestCase):
 
     def configureSSL(self, hosts):
-        self.ca = xenrt.ssl.CertificateAuthority() 
+        self.ca = xenrt.sslutils.CertificateAuthority() 
         self.pems = {}
         for host in hosts:
             self.pems[host.getName()] = self.ca.createHostPEM(host, 
@@ -364,7 +364,7 @@ class _SSLBase(_CCSetup):
         except:
             self.debug_on_fail = ""
         self.disableSSL(self.hosts)
-        self.ca = xenrt.ssl.CertificateAuthority(expired=self.EXPIRED)
+        self.ca = xenrt.sslutils.CertificateAuthority(expired=self.EXPIRED)
         self.pems = {}
         for host in self.hosts:
             self.pems[host.getName()] = self.ca.createHostPEM(host, 

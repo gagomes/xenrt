@@ -23,10 +23,10 @@ class TestSLESLinuxOverrides(XenRTUnitTestCase):
     def testIsoNameImplementation(self):
         """Given a SLES distro name, When the ISO name is requested, Then expect the name to be converted"""
 
-        data = {("sles10_x86-32", "sles10_x86-32.iso"), 
-                ("sles112_x86-64", "sles112_x86-64.iso"), 
-                ("sles11_x86-32", "sles11_x86-32.iso"), 
-                ("sles102_x86-64", "sles102_x86-64.iso"), 
+        data = {("sles10_x86-32", "sles10_x86-32_xenrtinst.iso"), 
+                ("sles112_x86-64", "sles112_x86-64_xenrtinst.iso"), 
+                ("sles11_x86-32", "sles11_x86-32_xenrtinst.iso"), 
+                ("sles102_x86-64", "sles102_x86-64_xenrtinst.iso"), 
                 ("hopkins", None)}
 
         self.run_for_many(data, self.__testIsoNameImplementation)

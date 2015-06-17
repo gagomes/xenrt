@@ -12,6 +12,7 @@
     <QUICKLOGS>yes</QUICKLOGS>
     <NO_GUEST_LOGS>yes</NO_GUEST_LOGS>
     <NO_TC_HOST_SERIAL_LOGS>yes</NO_TC_HOST_SERIAL_LOGS>
+    <DOM0_MEM>8192</DOM0_MEM>
   </variables>
 
   <prepare>

@@ -1,4 +1,3 @@
-<?xml version="1.0" ?>
 <xenrt>
 
   <!-- Verify features with different licenses on Creedence host -->
@@ -19,32 +18,23 @@
           <postinstall action="installDrivers"/>
         </vm>
       </host>
-      <host>
-        
-      </host>  
     </prepare>
 
   <testsequence group="HostDrivers">
-    <testcase id="xenserver.tc.vgpu.TCinstallNVIDIAHostDrivers">
+    <testcase id="xenserver.tc.vgpu.TCinstallNVIDIAHostDrivers" tc="TC-23748" sku="TCinstallNVIDIAHostDrivers" name="TCinstallNVIDIAHostDrivers">
     </testcase>
   </testsequence>
 
   <testsequence>
-    <testcase id="xenserver.tc.vgpu.TCcreatevGPU" name="Win7sp1x86K140VGPU">
+    <testcase id="xenserver.tc.vgpu.TCcreatevGPU" name="Win7sp1x86K140VGPU" tc="TC-23748" sku="TCcreatevGPU">
       <arg>vmName=vgpufeaturevm</arg>
-      <arg>vgputype=false</arg>
+      <arg>vgpuconfig=1</arg>
       <arg>startVM=False</arg>
     </testcase>
 
-    <testcase id="xenserver.tc.mulskulicense.TCVirtualGPUFeature" name="VirtualGPUFeature" tc="TC-23748">
+    <testcase id="xenserver.tc.mulskulicense.TCVirtualGPUFeature" name="VirtualGPUFeature" tc="TC-23748" sku="VirtualGPUFeature">
       <arg>sku=PerSocketEnterprise,PerUserEnterprise,PerConcurrentUserEnterprise,PerSocketStandard,XenDesktopXDS,XenDesktopMPS</arg>
     </testcase>
   </testsequence>
 
 </xenrt>
-
-<!--
-<pool>VGPU,VGPUBIG</pool>
-<resources>k1&gt;=1</resources>
-<param>MACHINES_REQUIRED=1</param>
--->

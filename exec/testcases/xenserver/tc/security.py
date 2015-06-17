@@ -1099,7 +1099,24 @@ class TC8400(_AuthenticationBase):
         self.users.append(user)
         self.pool.allow(user, "pool-admin")
         self.valid.append("user")
-
+        
+class ADPBISDirectoryCheck(xenrt.TestCase):
+    def prepare(self, arglist=None):
+        self.host = self.getDefaultHost()
+        
+    def run(self, arglist=None):
+        pbisDirectories = ['/etc/pbis','/opt/pbis','/var/lib/pbis']
+        missingDirectories =[]
+        
+        for directory in pbisDirectories:
+            if self.host.execdom0("test -d %s" % directory, retval="code") !=0:
+                missingDirectories.append(directory)
+        
+        if not missingDirectories:
+            xenrt.TEC().logverbose("PBIS directories exist")
+        else:            
+            raise xenrt.XRTFailure("Following PBIS folders do not exist: %s" % ",".join(missingDirectories))
+        
 class TC10890(TC8400):
 
     USEDOMAINNAME = True
@@ -2521,7 +2538,11 @@ class TC10666(xenrt.TestCase):
         # Check a likewise lookup for the old SID fails in a suitable way
         ok = True
         try:
-            self.pool.master.execdom0("/opt/likewise/bin/lw-find-by-sid %s" % 
+            if self.pool.master.execdom0("test -e /opt/pbis", retval="code") == 0:
+                self.pool.master.execdom0("/opt/pbis/bin/find-by-sid %s" % 
+                                      (self.sid0))
+            else:
+                self.pool.master.execdom0("/opt/likewise/bin/lw-find-by-sid %s" % 
                                       (self.sid0))
             ok = False
         except xenrt.XRTFailure, e:

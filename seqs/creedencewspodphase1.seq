@@ -1,0 +1,29 @@
+<xenrt>
+  <variables>
+    <CARBON_RPM_UPDATES>/usr/groups/xenrt/rpms/xen-dom0-tools-4.4.1-1.9.0.477.28876.x86_64.rpm</CARBON_RPM_UPDATES>
+    <FORCE_RPM_UPDATES>yes</FORCE_RPM_UPDATES>
+    <APPLY_ALL_RELEASED_HFXS>yes</APPLY_ALL_RELEASED_HFXS>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+  </variables>
+  <prepare>
+    <host id="0">
+      <vm name="ws">
+        <distro>ws12r2-x64</distro>
+        <arch>x86-64</arch>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <network device="0" />
+        <disk device="0" size="32" />
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <testcase id="xenserver.tc.wspod.TCStoragePCIPassthrough" tc="TC-27061">
+      <arg>multipathing</arg>
+      <arg>pci=MPT SAS-2</arg>
+      <arg>guest=ws</arg>
+    </testcase>
+  </testsequence>
+</xenrt>

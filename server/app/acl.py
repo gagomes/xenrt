@@ -98,7 +98,7 @@ class ACLHelper(object):
 
         self._aclCache[aclid] = ACL(aclid, name, parent, owner, entries, self._get_machines_in_acl(aclid))
 
-    def _get_machines_in_acl(self, aclid):
+    def _get_machines_in_acl(self, aclid, preemptableUse=False):
         db = self.page.getDB()
         machines = {}
         cur = db.cursor()
@@ -113,17 +113,18 @@ class ACLHelper(object):
                                                              rc[2].strip() if rc[2] else None, 
                                                              rc[3].strip() if rc[3] else None,
                                                              rc[4],
-                                                             rc[5])
+                                                             rc[5],
+                                                             preemptableUse)
         cur.close()
 
         return machines
 
-    def _get_user_for_machine(self, status, leaseuser, jobuser, jobpreemptable, leasepreemptable):
+    def _get_user_for_machine(self, status, leaseuser, jobuser, jobpreemptable, leasepreemptable, preemptableUse=False):
         # Machine is considered in use if there's either a non-preemptable job running or a non-preemptable lease
-        if status in ["scheduled", "slaved", "running"] and not jobpreemptable:
-            return jobuser
-        elif leaseuser is not None and not leasepreemptable:
-            return leaseuser
+        if status in ["scheduled", "slaved", "running"] and ((jobpreemptable and preemptableUse) or not (jobpreemptable or preemptableUse)):
+            return jobuser.lower()
+        elif leaseuser is not None and ((leasepreemptable and preemptableUse) or not (leasepreemptable or preemptableUse)):
+            return leaseuser.lower()
         else:
             return None
 
@@ -134,11 +135,16 @@ class ACLHelper(object):
             return
         for aclid in self._aclCache:
             if machine in self._aclCache[aclid].machines:
-                self._aclCache[aclid].machines[machine] = userid
+                if userid:
+                    self._aclCache[aclid].machines[machine] = userid.lower()
+                else:
+                    self._aclCache[aclid].machines[machine] = None
 
     def _get_acl_counts(self, aclid):
         acl = self.get_acl(aclid, withCounts=False)
         machines = copy.copy(acl.machines)
+        preemptableMachines = self._get_machines_in_acl(aclid, preemptableUse=True)
+        preemptableUsers = filter(None, preemptableMachines.values())
         for e in acl.entries:
             count = 0
             userMachines = {}
@@ -154,13 +160,17 @@ class ACLHelper(object):
                 # Identify all machines used by this group
                 groupUsers = self._userids_for_group(e.userid)
                 for m in machines:
-                    if machines[m] in groupUsers:
+                    if machines[m] and machines[m] in groupUsers:
                         user = machines[m]
                         machines[m] = None
                         count += 1
                         if not user in userMachines.keys():
                             userMachines[user] = []
                         userMachines[user].append(m)
+                for u in groupUsers:
+                    if not u in userMachines.keys() and u in preemptableUsers:
+                        userMachines[u] = []
+
             elif e.entryType == 'default':
                 # Identify all other in use machines
                 for m in machines:
@@ -170,6 +180,10 @@ class ACLHelper(object):
                             userMachines[user] = []
                         userMachines[user].append(m)
                         count += 1
+                    elif preemptableMachines[m] is not None:
+                        user = preemptableMachines[m]
+                        if not user in userMachines.keys():
+                            userMachines[user] = []
             else:
                 raise Exception("Unknown entryType %s" % e.entryType)
 
@@ -181,10 +195,10 @@ class ACLHelper(object):
     def check_acl(self, aclid, userid, machines, leaseHours=None, ignoreParent=False, preemptable=False):
         """Returns a tuple (allowed, reason_if_false) if the given user can have machines under this acl"""
         acl = self.get_acl(aclid)
-        result, reason = self._check_acl(acl, userid, machines, leaseHours, preemptable)
+        result, reason = self._check_acl(acl, userid.lower(), machines, leaseHours, preemptable)
         if result and acl.parent and not ignoreParent:
             # We have to check the parent ACL as well
-            return self._check_acl(self.get_acl(acl.parent), userid, machines, leaseHours, preemptable)
+            return self._check_acl(self.get_acl(acl.parent), userid.lower(), machines, leaseHours, preemptable)
         return result, reason 
 
     def _check_acl(self, acl, userid, machines, leaseHours=None, preemptable=False):
@@ -303,7 +317,7 @@ class ACLHelper(object):
             return self._userGroupCache[userid]
         db = self.page.getDB()
         cur = db.cursor()
-        cur.execute("SELECT g.name FROM tblgroups g INNER JOIN tblgroupusers gu ON g.groupid = gu.groupid WHERE gu.userid=%s", [userid])
+        cur.execute("SELECT g.name FROM tblgroups g INNER JOIN tblgroupusers gu ON g.groupid = gu.groupid WHERE gu.userid=%s", [userid.lower()])
         results = []
         while True:
             rc = cur.fetchone()

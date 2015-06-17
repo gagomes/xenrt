@@ -124,6 +124,11 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
                                 simpleHostNode = {'noisos': True}
                                 if cluster.has_key('XRT_ContainerHostIds'):
                                     simpleHostNode['container'] = cluster['XRT_ContainerHostIds'][h]
+                                    if cluster.has_key('XRT_vHostMemory'):
+                                        if type(cluster['XRT_vHostMemory']) == list:
+                                            simpleHostNode['vmemory'] = cluster['XRT_vHostMemory'][h]
+                                        else:
+                                            simpleHostNode['vmemory'] = cluster['XRT_vHostMemory']
                                 else:
                                     hostId = self.__minAvailableHost(poolHosts)
                                     poolHosts.append(int(hostId))
@@ -1203,11 +1208,14 @@ class PrepareNode(object):
                 for s in self.srs:
                     host = xenrt.TEC().registry.hostGet(s["host"]) 
                     if s["type"] == "lvmoiscsi":
+                        thinProv = False
+                        if s["options"] and "thin" in s["options"].split(","):
+                            thinProv = True
                         if host.lookup("USE_MULTIPATH", False, boolean=True):
                             mp = True
                         else:
                             mp = None
-                        sr = xenrt.productLib(host=host).ISCSIStorageRepository(host, s["name"])
+                        sr = xenrt.productLib(host=host).ISCSIStorageRepository(host, s["name"], thinProv)
                         if s["options"] and "iet" in s["options"].split(","):
                             # Create the SR using an IET LUN from the controller
                             lun = xenrt.ISCSITemporaryLun(300)
@@ -1345,18 +1353,24 @@ class PrepareNode(object):
                         sr = xenrt.productLib(host=host).EQLStorageRepository(host, s["name"])
                         sr.create(eql, options=options, multipathing=mp)
                     elif s["type"] == "fc":
-                        sr = xenrt.productLib(host=host).FCStorageRepository(host, s["name"])
+                        thinProv = False
+                        if s.has_key("options") and s["options"] and "thin" in s["options"].split(","):
+                            thinProv = True
+                        sr = xenrt.productLib(host=host).FCStorageRepository(host, s["name"], thinProv)
                         if host.lookup("USE_MULTIPATH", False, boolean=True):
                             mp = True
                         else:
                             mp = None
+                        fcsr = None
                         if s.has_key("options") and s["options"]:
-                            fcsr = s["options"]
-                        else:
+                            for opt in s["options"].split(","):
+                                if opt != "thin":
+                                    fcsr = opt
+                        if not fcsr:
                             fcsr = host.lookup("SR_FC", "yes")
                             if fcsr == "yes":
                                 fcsr = "LUN0"
-                        
+
                         scsiid = host.lookup(["FC", fcsr, "SCSIID"], None)
                         sr.create(scsiid, multipathing=mp)
                     elif s["type"] == "cvsmnetapp":

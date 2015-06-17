@@ -154,6 +154,12 @@ class TCRemoteNoseSetup(_TCRemoteNoseBase):
             testData['server_without_disk']['hypervisor'] = self.args['hypervisor']
             testData['host_password'] = xenrt.TEC().lookup("ROOT_PASSWORD")
             testData['configurableData']['host']['password'] = xenrt.TEC().lookup("ROOT_PASSWORD")
+            # ISO replacements
+            if testData['configurableData'].has_key("bootableIso"):
+                testData['configurableData']['bootableIso']['url'] = "%s/centos63_x86-64_xenrtinst.iso" % xenrt.TEC().lookup("EXPORT_ISO_HTTP_STATIC")
+            for i in ["iso", "iso1", "iso2"]:
+                if testData.has_key(i):
+                    testData[i]['url'] = "%s/dummy.iso" % xenrt.TEC().lookup("EXPORT_ISO_HTTP_STATIC")
             with open("%s/testdata.cfg" % xenrt.TEC().getLogdir(), "w") as f:
                 f.write(json.dumps(testData, indent=2))
     
@@ -207,15 +213,17 @@ class TCRemoteNose(_TCRemoteNoseBase):
         if self.args.has_key("hypervisor"):
             noseargs += " --hypervisor=%s" % self.args['hypervisor']
 
-        self.runner.execguest("nosetests -v --logging-level=DEBUG --log-folder-path=%s --with-marvin --marvin-config=/root/marvin.cfg --with-xunit --xunit-file=%s/results.xml %s /root/cloudstack/%s" %
-                   (self.workdir,
-                    self.workdir,
-                    noseargs,
-                    self.args['file']), timeout=28800, retval="code")
+        try:
+            self.runner.execguest("nosetests -v --logging-level=DEBUG --log-folder-path=%s --with-marvin --marvin-config=/root/marvin.cfg --with-xunit --xunit-file=%s/results.xml %s /root/cloudstack/%s" %
+                       (self.workdir,
+                        self.workdir,
+                        noseargs,
+                        self.args['file']), timeout=28800, retval="code")
+        finally:
+            sftp = self.runner.sftpClient()
+            logdir = xenrt.TEC().getLogdir()
+            sftp.copyTreeFrom(self.workdir, logdir + '/marvin')
 
-        sftp = self.runner.sftpClient()
-        logdir = xenrt.TEC().getLogdir()
-        sftp.copyTreeFrom(self.workdir, logdir + '/marvin')
         self.parseResultsXML("%s/marvin/results.xml" % logdir)
 
     def truncateText(self, text):

@@ -655,7 +655,7 @@ class TC7366(SRSanityTestTemplate):
     """Create an iSCSI SR on a LUN other then LUN ID 0"""
     CHECK_FOR_OPEN_ISCSI = True
 
-    def createSR(self,host,guest):
+    def createSR(self, host, guest, thinProv=False):
         iqn = None
         try:
             # Prepare guest to be an iSCSI target
@@ -672,7 +672,7 @@ class TC7366(SRSanityTestTemplate):
 
         # Set up the SR on the host and plug the pbd etc
         host.setIQN("xenrt-test-iqn-TC7366")
-        sr = xenrt.lib.xenserver.host.ISCSIStorageRepository(host,"test-iscsi")
+        sr = xenrt.lib.xenserver.host.ISCSIStorageRepository(host, "test-iscsi", thinProv)
         lun = xenrt.ISCSIIndividualLun(None,
                                        1,
                                        server=guest.getIP(),
@@ -681,6 +681,7 @@ class TC7366(SRSanityTestTemplate):
         time.sleep(60)
         
         # Make sure it's the 1024MB LUN we used
+        host.execdom0("xe sr-scan uuid=%s" % sr.uuid)
         size = sr.physicalSizeMB()
         if size < 950:
             raise xenrt.XRTFailure("The SR was only %uMB in size. The LUN "
@@ -695,7 +696,7 @@ class TC7367(SRSanityTestTemplate):
     LUN_SIZES = [512, 1024]
     CHECK_FOR_OPEN_ISCSI = True
 
-    def createSR(self,host,guest):
+    def createSR(self, host, guest, thinProv=False):
         iqn = None
         try:
             # Prepare guest to be an iSCSI target
@@ -789,7 +790,7 @@ class TC7367(SRSanityTestTemplate):
         srs = []
         for lunid in range(self.NUM_LUNS):
             sr = xenrt.lib.xenserver.host.ISCSIStorageRepository(\
-                host, "test-iscsi%u" % (lunid))
+                host, "test-iscsi%u" % (lunid), thinProv)
             lun = xenrt.ISCSIIndividualLun(None,
                                            lunid,
                                            server=guest.getIP(),
@@ -825,6 +826,19 @@ class TC7367(SRSanityTestTemplate):
             raise xenrt.XRTFailure("SR on LUN1 missing after forget of the SR "
                                    "on LUN0")
         self.checkSRs()
+
+class TC27042(TC7366):
+    """Create a thin provisioning iSCSI SR on a LUN other then LUN ID 0"""
+    CHECK_FOR_OPEN_ISCSI = True
+
+    def createSR(self,host,guest):
+        return super(TC27042, self).createSR(host, guest, True)
+
+class TC27043(TC7367):
+    """Create two thin provisioning iSCSI SRs on LUNs on the same target"""
+
+    def createSR(self,host,guest):
+        return super(TC27043, self).createSR(host, guest, True)
 
 class TC9085(TC7367):
     """Create LVMoISCSI SRs on 64 LUNs having first probed the target"""
@@ -2567,6 +2581,28 @@ class TC8509(_TCResizeDataCheck):
     SRTYPE = "lvmoiscsi"
     DOM0 = "slave"
     FORCEOFFLINE = True
+
+# CIFS Resize
+class TCCIFSVDIResizeShrink(_TCResizeShrink):
+    """Attempting to shrink a CIFS VDI should fail with a suitable error."""
+
+    SRTYPE = "cifs"
+
+class TCCIFSVDIResizeGrowSmall(_TCResizeGrow):
+    """Grow a CIFS VDI of a round size by 1 byte."""
+
+    SRTYPE = "cifs"
+
+class TCCIFSVDIResizeGrowLarge(_TCResizeGrow2):
+    """Grow a CIFS VDI twice in large chunks."""
+
+    SRTYPE = "cifs"
+
+class TCCIFSVDIResizeDataCheck(_TCResizeDataCheck):
+    """Data integrity of resized CIFS VDI."""
+
+    SRTYPE = "cifs"
+    FORCEOFFLINE = True
     
 #############################################################################
 # VDI create testcases
@@ -2705,6 +2741,12 @@ class TC8525(_TCVDICreateRoundup):
     """VDI create of a odd size Equallogic VDI should round up to the next allocation unit"""
 
     SRTYPE = "equal"
+
+class TCCIFSOddSize(_TCVDICreateRoundup):
+    """CIFS Odd size"""
+
+    SRTYPE = "cifs"
+
 
 #############################################################################
 # SR introduce testcases
@@ -3468,6 +3510,11 @@ class TC10680(TC10671):
 
     SRTYPE = "netapp"
 
+class TCCIFSZeroedContents(TC10671):
+    """CIFS Zeroed contents"""
+
+    SRTYPE = "cifs"
+
 # New Test cases added for copying from one host to another 
 
 class TC12158(_VDICopy):
@@ -3943,13 +3990,13 @@ touch write_done_%d.dat""" % (tapdiskpath, params.strip(), fileid)
         self.host = self.getDefaultHost()
         self.cli = self.host.getCLIInstance()
 
-        # Create a VDI of a certain size (say DISK_SIZE) and attach it to dom0
+        # Create a VDI of a certain size (say DISK_SIZE) and attach it to VM
         self.sruuid = self.host.lookupDefaultSR()
         self.vdiuuid = self.host.createVDI(self.DISK_SIZE, sruuid=self.sruuid, name="XenRT-VDI")
-        self.vmuuid = self.host.getMyDomain0UUID()
+        self.guest = self.host.createGenericLinuxGuest()
 
         self.vbduuid = self.cli.execute("vbd-create vm-uuid=%s vdi-uuid=%s device=autodetect" %
-                                                                (self.vmuuid, self.vdiuuid), strip=True)
+                                                                (self.guest.getUUID(), self.vdiuuid), strip=True)
         self.cli.execute("vbd-plug uuid=%s" % (self.vbduuid))
         time.sleep(10)
 
@@ -4639,7 +4686,7 @@ class TCVdiCorruption(xenrt.TestCase):
             outfile = self.guest.execguest("dd if=/dev/zero of=/mnt/vdi1/file1 bs=512 count=4294967400 conv=notrunc", timeout=43200)
         except Exception, e:
             xenrt.TEC().logverbose("Exception raised: %s" % (str(e)))
-            availSpace = self.guest.execguest("df -h /dev/%s | tail -n 1 | awk '{print $4}'" % (device))
+            availSpace = self.guest.execguest("df -h /dev/%s | tail -n 1 | awk '{print $4}'" % (device)).strip()
             if "Input/output error" in str(e.data):
                 if availSpace == "0":
                     xenrt.TEC().logverbose("Expected output: Disk is full and dd command exited with an error")
@@ -4658,7 +4705,7 @@ class TCVdiCorruption(xenrt.TestCase):
             else: 
                 raise xenrt.XRTFailure("Unexpected error occured: %s" % (str(e)))
         else:
-            availSpace = self.guest.execguest("df -h /dev/%s | tail -n 1 | awk '{print $4}'" % (device))
+            availSpace = self.guest.execguest("df -h /dev/%s | tail -n 1 | awk '{print $4}'" % (device)).strip()
             if availSpace <> "0":
                 raise xenrt.XRTFailure("Unexpected output. Disk is not full and dd command exited without any error.available space=%s" % (availSpace))
     
@@ -4789,3 +4836,45 @@ class TC26974(xenrt.TestCase):
         share = xenrt.VMSMBShare()
         sr = xenrt.productLib(host=self.host).SMBStorageRepository(self.host, "CIFS-SR")
         sr.create(share)
+
+class TCCIFSLifecycle(xenrt.TestCase):
+    """SR Lifecycle operations."""
+
+    def prepare(self, arglist):
+
+        self.args = self.parseArgsKeyValue(arglist)
+
+        self.host = self.getDefaultHost()
+        srtype = "cifs"
+
+        xsr = next((s for s in self.host.asXapiObject().SR() if s.srType() == srtype), None)
+        self.sr = xenrt.lib.xenserver.SMBStorageRepository.fromExistingSR(self.host, xsr.uuid)
+
+    def run(self, arglist):
+        noOfVdis = int(self.args["numberofvdis"])
+        sizeInBytes = int(self.args["size"])
+
+        # Create some VDIs
+        actualVdis = [self.host.createVDI(sizeInBytes, sruuid=self.sr.uuid, name="VDI_%s" % i)for i in range(noOfVdis)]
+
+        # Forget SR
+        self.sr.forget()
+
+        # Introduce SR
+        self.sr.introduce()
+        xenrt.sleep(100)
+        
+        self.sr.scan()
+        VDIs_present = set(self.sr.listVDIs())
+        # Get a list of any VDIs that are now missing
+        VDIs_missing = filter(lambda vdi: vdi not in VDIs_present, actualVdis)
+
+        xenrt.TEC().logverbose("VDIs missing after SR introduce: %s" % (",".join(VDIs_missing)))
+            
+        if len(VDIs_missing) > 0:
+            raise xenrt.XRTFailure("VDIs are missing after SR introduce")
+
+        self.sr.check()
+
+        # Destroy SR.
+        self.sr.remove()

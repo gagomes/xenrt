@@ -5,9 +5,9 @@ from xenrt.lazylog import step, comment, log, warning
 
 class LabCostPerTechArea():
 
-    def __init__(self, suiteId, arglist=None):
+    def __init__(self, suiteId, nbrOfSuiteRunsToCheck=5, arglist=None):
         self.suiteId = suiteId
-        self.nbrOfSuiteRunsToCheck = 5
+        self.nbrOfSuiteRunsToCheck = nbrOfSuiteRunsToCheck
 
     def generate(self):
         step("Get latest suite run history")

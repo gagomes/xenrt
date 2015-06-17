@@ -415,14 +415,22 @@ def createHotfixSymlinks():
     for h in hfdict.keys():
         xenrt.command("ln -sf %s %s/%s.xsupdate" % (hfdict[h], hotfixpath, h))
 
-def generateLabCostPerTechArea(suiteId, outputDir):
+def generateLabCostPerTechArea(suiteId, outputDir=None):
+    if outputDir:
+        outputDir=outputDir.rstrip("/")
+        if os.path.exists("%s/%s.json" % (outputDir,suiteId)):
+            raise xenrt.XRTError("Data file '%s/%s.json' already exist" % (outputDir,suiteId)) 
 
-    # TODO check if we have JSON already created for suite, skip generation and use it.
-
-    cls = xenrt.generatestats.LabCostPerTechArea(suiteId)
+    cls = xenrt.generatestats.LabCostPerTechArea(suiteId, nbrOfSuiteRunsToCheck=10)
     data, tcMissingData = cls.generate()
 
-    # TODO : save data as JSON to a file, to be used by a website.
-    
-    print "Lab cost per TA for suite %s : %s" % (suiteId, data)
-    print "Testcases not having run history: %s" % (tcMissingData)
+    tempDir = xenrt.TEC().tempDir()
+    with open("%s/%s.json" % (tempDir.rstrip("/"),suiteId), "w") as f:
+        f.write(json.dumps(data, indent=2))
+    with open("%s/%s_tcs_missing_run_history.json" % (tempDir.rstrip("/"),suiteId), "w") as f:
+        f.write(json.dumps(data, indent=2))
+    if outputDir:
+        if not os.path.exists(outputDir):
+            os.makedirs(outputDir)
+        xenrt.command("cp -f -r %s/* %s" % (tempDir,outputDir))
+    print "Data saved in directory '%s'" % (outputDir if outputDir else tempDir)

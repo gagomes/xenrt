@@ -6224,7 +6224,7 @@ class DundeeGuest(CreedenceGuest):
             arch = "x64"
         else:
             arch = "x86"
-        self.xmlrpcStart("%s\\%s\\%s\\dpinst.exe /sw" % (toolsDirectory, pkg, arch))
+        self.xmlrpcStart("%s\\%s\\%s\\dpinst.exe /sw" % (toolsDirectory, packageName, arch))
         xenrt.sleep(30)
 
     def installFullWindowsGuestAgent(self):

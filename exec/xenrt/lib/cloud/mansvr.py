@@ -51,8 +51,8 @@ class ManagementServer(object):
         managementServerOk = False
         maxRetries = timeout/60
         maxReboots = 2
-        reboots = 0
-        while(reboots <= maxReboots and not managementServerOk):
+        rebootChecks = 0
+        while(rebootChecks <= maxReboots and not managementServerOk):
             retries = 0
             while(retries < maxRetries):
                 retries += 1
@@ -76,11 +76,11 @@ class ManagementServer(object):
                     xenrt.TEC().logverbose('Attempt to reach Management Server [%s] on Port: %d failed with error: %s' % (self.place.getIP(), port, ioErr.strerror))
                     xenrt.sleep(60)
 
-            if not managementServerOk and reboots < maxReboots:
-                xenrt.TEC().logverbose('Restarting Management Server: Attempt: %d of %d' % (reboots+1, maxReboots))
+            if not managementServerOk and rebootChecks < maxReboots:
+                xenrt.TEC().logverbose('Restarting Management Server: Attempt: %d of %d' % (rebootChecks+1, maxReboots))
                 self.place.execcmd('mysql -u cloud --password=cloud --execute="UPDATE cloud.configuration SET value=8096 WHERE name=\'integration.api.port\'"')
-                self.restart(checkHealth=False, startStop=(reboots > 0))
-                reboots += 1
+                self.restart(checkHealth=False, startStop=(rebootChecks > 0))
+            rebootChecks += 1
 
         if not managementServerOk:
             # Store the MS logs

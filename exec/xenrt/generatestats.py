@@ -42,7 +42,7 @@ class LabCostPerTechArea():
                 except Exception,e: 
                     log("WARNING: Job %s has exception: %s" % (job, e))
 
-        step("Processing Data: seq as primary key -> testcase as primary id")
+        step("Processing Data: seq as primary key -> testcase as primary key")
         tcData={}
         TimeMissingTAInfo = timedelta(0, 0, 0)
         tcMissingHistory = []
@@ -84,4 +84,6 @@ class LabCostPerTechArea():
             else:
                 techAreaData[tcData[tc]['techarea']] += tcData[tc]['runtime'].total_seconds()/3600
 
+        log("Cost per TA (machineHours): %s" % techAreaData)
+        log("TCs having no run history : %s" % tcMissingHistory)
         return (techAreaData, tcMissingHistory)

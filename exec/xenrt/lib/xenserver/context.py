@@ -793,7 +793,7 @@ class NFSSR(SR):
     SRLABEL = "RBACTestSR"
 
     def create(self):
-        srclass = xenrt.lib.xenserver.host.NFSStorageRepository
+        srclass = xenrt.lib.xenserver.NFSStorageRepository
         self.ref = srclass(self.get("Host").ref, self.SRLABEL)
         self.ref.create()
         self.uuid = self.ref.uuid

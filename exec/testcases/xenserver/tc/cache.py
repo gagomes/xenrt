@@ -1419,7 +1419,7 @@ class TC12422(xenrt.TestCase):
 
     def prepare(self, arglist=[]):
         self.host = self.getDefaultHost()
-        sr = xenrt.lib.xenserver.host.EXTStorageRepository(self.host, "Second\ Local\ Storage")
+        sr = xenrt.lib.xenserver.EXTStorageRepository(self.host, "Second\ Local\ Storage")
         defaultlist = string.join(map(lambda x:"sd"+chr(97+x), range(2)))
         guestdisks = string.split(self.host.lookup("OPTION_CARBON_DISKS", defaultlist))
         if len(guestdisks) < 2:

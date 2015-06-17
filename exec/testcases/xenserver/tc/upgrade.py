@@ -1517,7 +1517,7 @@ class TCXenCert(_XenCert,xenrt.TestCase):
                 minsize = int(self.host.lookup("SR_NETAPP_MINSIZE", 40))
                 maxsize = int(self.host.lookup("SR_NETAPP_MAXSIZE", 1000000))
                 self.target = xenrt.NetAppTarget(minsize=minsize, maxsize=maxsize)
-                self.sr = xenrt.lib.xenserver.host.IntegratedCVSMStorageRepository(self.host,"CVSMSR")
+                self.sr = xenrt.lib.xenserver.IntegratedCVSMStorageRepository(self.host,"CVSMSR")
                 self.sr.resources["target"] = self.target
                 self.sr.create(self.target,
                                protocol="iscsi",
@@ -1526,7 +1526,7 @@ class TCXenCert(_XenCert,xenrt.TestCase):
             elif self.adapterid == "NETAPP_FC":
                 self.adapterid = "NETAPP"
                 self.target = xenrt.FCHBATarget()
-                self.sr = xenrt.lib.xenserver.host.IntegratedCVSMStorageRepository(self.host,"CVSMSR")
+                self.sr = xenrt.lib.xenserver.IntegratedCVSMStorageRepository(self.host,"CVSMSR")
                 self.sr.resources["target"] = self.target
                 self.sr.create(self.target,
                                protocol="fc",
@@ -1536,7 +1536,7 @@ class TCXenCert(_XenCert,xenrt.TestCase):
                 minsize = int(self.host.lookup("SR_EQL_MINSIZE", 40))
                 maxsize = int(self.host.lookup("SR_EQL_MAXSIZE", 1000000))
                 self.target = xenrt.EQLTarget(minsize=minsize, maxsize=maxsize)
-                self.sr = xenrt.lib.xenserver.host.IntegratedCVSMStorageRepository(self.host,"CVSMSR")
+                self.sr = xenrt.lib.xenserver.IntegratedCVSMStorageRepository(self.host,"CVSMSR")
                 self.sr.resources["target"] = self.target
                 self.sr.create(self.target,
                                protocol="iscsi",
@@ -1547,7 +1547,7 @@ class TCXenCert(_XenCert,xenrt.TestCase):
                 minsize = int(self.host.lookup("SR_SMIS_ISCSI_MINSIZE", 40))
                 maxsize = int(self.host.lookup("SR_SMIS_ISCSI_MAXSIZE", 1000000))
                 self.target = xenrt.SMISiSCSITarget()
-                self.sr = xenrt.lib.xenserver.host.IntegratedCVSMStorageRepository(self.host,"CVSMSR")
+                self.sr = xenrt.lib.xenserver.IntegratedCVSMStorageRepository(self.host,"CVSMSR")
                 self.sr.resources["target"] = self.target
                 self.sr.create(self.target,
                                protocol="iscsi",
@@ -1558,7 +1558,7 @@ class TCXenCert(_XenCert,xenrt.TestCase):
                 minsize = int(self.host.lookup("SR_SMIS_FC_MINSIZE", 40))
                 maxsize = int(self.host.lookup("SR_SMIS_FC_MAXSIZE", 1000000))
                 self.target = xenrt.SMISFCTarget()
-                self.sr = xenrt.lib.xenserver.host.IntegratedCVSMStorageRepository(self.host,"CVSMSR")
+                self.sr = xenrt.lib.xenserver.IntegratedCVSMStorageRepository(self.host,"CVSMSR")
                 self.sr.resources["target"] = self.target
                 self.sr.create(self.target,
                                protocol="fc",
@@ -1632,7 +1632,7 @@ class _ICSLGNetAppHostUpgrade(_XenCert):
         minsize = int(self.host.lookup("SR_NETAPP_MINSIZE", 40))
         maxsize = int(self.host.lookup("SR_NETAPP_MAXSIZE", 1000000))
         netapp = xenrt.NetAppTarget(minsize=minsize, maxsize=maxsize)
-        sr = xenrt.lib.xenserver.host.IntegratedCVSMStorageRepository(self.host,"CVSMSR")
+        sr = xenrt.lib.xenserver.IntegratedCVSMStorageRepository(self.host,"CVSMSR")
         sr.resources["target"] = netapp
         self.host.addSR(sr)
         self.runXenCertiCSLG(self.host,self.CSLG_ADAPTERID,"(DURING TESTPREPARE)")
@@ -2008,7 +2008,7 @@ class TC12058(_SingleHostUpgrade):
         self.host.execdom0('echo "%s" > /etc/mpp.conf' % '\n'.join([a + '=' + b for (a, b) in mppconf.items()]))
 
         # Setup iSCSI SR
-        self.sr = xenrt.lib.xenserver.host.ISCSIStorageRepository(self.host, "TCxxxx")
+        self.sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.host, "TCxxxx")
         lun = xenrt.ISCSILunSpecified("%s/%s/%s" %
                                       (self.initiator,
                                        self.targetiqn,

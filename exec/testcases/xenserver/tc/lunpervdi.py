@@ -166,7 +166,7 @@ class LunPerVDI(xenrt.TestCase):
 
         xenrt.TEC().logverbose("Creating RawHBA (LUN/VDI SR)")
 
-        self.sr = xenrt.lib.xenserver.host.RawHBAStorageRepository(self.hosts[0], "RawHBA")
+        self.sr = xenrt.lib.xenserver.RawHBAStorageRepository(self.hosts[0], "RawHBA")
         self.sr.create()
         # It is important to scan RawHBA SR at this moment.
         self.sr.scan()
@@ -973,7 +973,7 @@ class TC18372(LunPerVDI):
 
         step("Creating a lvmohba SR")
         scsiid = self.hosts[0].lookup(["FC", "LUN0", "SCSIID"], None)
-        hba = xenrt.lib.xenserver.host.HBAStorageRepository(self.hosts[0], "hbasr")
+        hba = xenrt.lib.xenserver.HBAStorageRepository(self.hosts[0], "hbasr")
         hba.create(scsiid)
         self.pool.addSRToPool(hba)
         

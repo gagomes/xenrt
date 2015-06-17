@@ -628,7 +628,7 @@ Version 1.1.0
                     self.host.forgetSR(uuids[0])
 
                 diskname = self.host.execdom0("basename `readlink -f %s`" % device).strip()
-                sr = xenrt.lib.xenserver.host.LVMStorageRepository(self.host, 'SR-%s' % diskname)
+                sr = xenrt.lib.xenserver.LVMStorageRepository(self.host, 'SR-%s' % diskname)
                 sr.create(device)
                 sr = sr.uuid
                 self.sr_to_diskname[sr] = diskname

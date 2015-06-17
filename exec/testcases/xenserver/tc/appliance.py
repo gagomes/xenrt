@@ -512,7 +512,7 @@ class _ConversionVM(xenrt.TestCase):
             #self.host0.addSR(sr)
             #nappconf = self.host0.lookup("sr0_netapp", None)
             #self.napp = \
-                #xenrt.lib.xenserver.host.NetAppTargetSpecified(nappconf)
+                #xenrt.lib.xenserver.NetAppTargetSpecified(nappconf)
         
         g = self.host0.guestFactory()(self.convServerName, "NO_TEMPLATE", password=xenrt.TEC().lookup("DEFAULT_PASSWORD"))
         self.convServer = xenrt.ConversionApplianceServer(g)

@@ -60,7 +60,7 @@ class _LinuxHostedNFSv3Server(_AbstractLinuxHostedNFSServer):
         return ["mkdir -p %s" % path for path in self.paths]
 
     def getStorageRepositoryClass(self):
-        return xenrt.lib.xenserver.host.NFSStorageRepository
+        return xenrt.lib.xenserver.NFSStorageRepository
 
     def prepareDomZero(self, host):
         pass
@@ -81,7 +81,7 @@ class _LinuxHostedNFSv4Server(_AbstractLinuxHostedNFSServer):
         return prepareCommands
 
     def getStorageRepositoryClass(self):
-        return xenrt.lib.xenserver.host.NFSv4StorageRepository
+        return xenrt.lib.xenserver.NFSv4StorageRepository
 
     def hostNameCouldBeResolved(self, host):
         return 0 == host.execdom0('ping -c 1 -W1 $(hostname)', retval='code')
@@ -98,7 +98,7 @@ class _LinuxHostedNFSv4Server(_AbstractLinuxHostedNFSServer):
 
 class _LinuxHostedNFSV4ISOServer(_LinuxHostedNFSv4Server):
     def getStorageRepositoryClass(self):
-        return xenrt.lib.xenserver.host.NFSv4ISOStorageRepository
+        return xenrt.lib.xenserver.NFSv4ISOStorageRepository
         
 def linuxBasedNFSServer(revision, paths):
     if revision == 3:
@@ -307,7 +307,7 @@ class NFSSRSanityTest(SRSanityTestTemplate):
                 sr.create(guest.getIP(),"/sr", nosubdir=True) # NFS SR with no sub directory sanity test
                 
         elif self.SR_TYPE == "file":
-            sr = xenrt.lib.xenserver.host.FileStorageRepositoryNFS(host, self.SRNAME)
+            sr = xenrt.lib.xenserver.FileStorageRepositoryNFS(host, self.SRNAME)
             sr.create(guest.getIP(),"/sr")
 
         return sr.uuid
@@ -423,12 +423,12 @@ class TC20949(SRSanityTestTemplate):
         server, path = xenrt.ExternalNFSShare().getMount().split(":")
 
         # Create a NFS SR with no sub directory.
-        nfsSR = xenrt.lib.xenserver.host.NFSStorageRepository(host, "nfssr-withnosubdir-1")
+        nfsSR = xenrt.lib.xenserver.NFSStorageRepository(host, "nfssr-withnosubdir-1")
         nfsSR.create(server, path, nosubdir=True)
         self.sruuids.append(nfsSR.uuid)
 
         # Create another NFS SR with no sub directory on the same NFS path.
-        nfsSR = xenrt.lib.xenserver.host.NFSStorageRepository(host, "nfssr-withnosubdir-2")
+        nfsSR = xenrt.lib.xenserver.NFSStorageRepository(host, "nfssr-withnosubdir-2")
         nfsSR.create(server, path, nosubdir=True)
         self.sruuids.append(nfsSR.uuid)
         
@@ -462,14 +462,14 @@ class TCCoexistenceOfNFS4NoSubDirs(NFSSRSanityTestTemplate):
         server, path = xenrt.ExternalNFSShare(version="4").getMount().split(":")
 
         # Create a NFS SR with no sub directory.
-        nfsSR = xenrt.lib.xenserver.host.NFSv4StorageRepository(host, "nfssr-withnosubdir-1")
+        nfsSR = xenrt.lib.xenserver.NFSv4StorageRepository(host, "nfssr-withnosubdir-1")
         nfsSR.create(server, path, nosubdir=True)
         self.sruuids.append(nfsSR.uuid)
        
         self.verifyVersion(host, nfsSR.uuid, "4")
         
         # Create another NFS SR with no sub directory on the same NFS path.
-        nfsSR = xenrt.lib.xenserver.host.NFSv4StorageRepository(host, "nfssr-withnosubdir-2")
+        nfsSR = xenrt.lib.xenserver.NFSv4StorageRepository(host, "nfssr-withnosubdir-2")
         nfsSR.create(server, path, nosubdir=True)
         self.sruuids.append(nfsSR.uuid)
         
@@ -484,12 +484,12 @@ class TC20950(SRSanityTestTemplate):
         server, path = xenrt.ExternalNFSShare().getMount().split(":")
 
         # Create a NFS SR with no sub directory.
-        nfsSR = xenrt.lib.xenserver.host.NFSStorageRepository(host, "nfssr-withnosubdir-3")
+        nfsSR = xenrt.lib.xenserver.NFSStorageRepository(host, "nfssr-withnosubdir-3")
         nfsSR.create(server, path, nosubdir=True)
         self.sruuids.append(nfsSR.uuid)
         
         # Create a classic NFS SR on the same path.
-        nfsSR = xenrt.lib.xenserver.host.NFSStorageRepository(host, "nfssr-classic-1")
+        nfsSR = xenrt.lib.xenserver.NFSStorageRepository(host, "nfssr-classic-1")
         nfsSR.create(server, path)
         self.sruuids.append(nfsSR.uuid)        
 
@@ -502,14 +502,14 @@ class TCCoexitenceNFS4NoSubDirClassic(NFSSRSanityTestTemplate):
         server, path = xenrt.ExternalNFSShare(version="4").getMount().split(":")
 
         # Create a NFS SR with no sub directory.
-        nfsSR = xenrt.lib.xenserver.host.NFSv4StorageRepository(host, "nfssr-withnosubdir-3")
+        nfsSR = xenrt.lib.xenserver.NFSv4StorageRepository(host, "nfssr-withnosubdir-3")
         nfsSR.create(server, path, nosubdir=True)
         self.sruuids.append(nfsSR.uuid)
         
         self.verifyVersion(host, nfsSR.uuid, "4")
 
         # Create a classic NFS SR on the same path.
-        nfsSR = xenrt.lib.xenserver.host.NFSv4StorageRepository(host, "nfssr-classic-1")
+        nfsSR = xenrt.lib.xenserver.NFSv4StorageRepository(host, "nfssr-classic-1")
         nfsSR.create(server, path)
         self.sruuids.append(nfsSR.uuid)
 
@@ -524,14 +524,14 @@ class TCCoexistenceNFS4AndNFSv3(NFSSRSanityTestTemplate):
         server, path = xenrt.ExternalNFSShare(version="4").getMount().split(":")
 
         # Create a NFS v4 SR with no sub directory.
-        nfsSR = xenrt.lib.xenserver.host.NFSv4StorageRepository(host, "nfssr-v4")
+        nfsSR = xenrt.lib.xenserver.NFSv4StorageRepository(host, "nfssr-v4")
         nfsSR.create(server, path, nosubdir=True)
         self.sruuids.append(nfsSR.uuid)
         
         self.verifyVersion(host, nfsSR.uuid, "4")
 
         # Create a v3 SR with no sub directory.
-        nfsSR = xenrt.lib.xenserver.host.NFSStorageRepository(host, "nfssr-v3")
+        nfsSR = xenrt.lib.xenserver.NFSStorageRepository(host, "nfssr-v3")
         nfsSR.create(server, path, nosubdir=True)
         self.sruuids.append(nfsSR.uuid)
 
@@ -546,12 +546,12 @@ class TC20951(SRSanityTestTemplate):
         server, path = xenrt.ExternalNFSShare().getMount().split(":")
 
         # Create a NFS SR with no sub directory.
-        nfsSR = xenrt.lib.xenserver.host.NFSStorageRepository(host, "nfssr-withnosubdir-4")
+        nfsSR = xenrt.lib.xenserver.NFSStorageRepository(host, "nfssr-withnosubdir-4")
         nfsSR.create(server, path, nosubdir=True)
         self.sruuids.append(nfsSR.uuid)        
 
         # Create a file SR on the same NFS path.
-        fileSR = xenrt.lib.xenserver.host.FileStorageRepositoryNFS(host, "nfssr-filesr-1")
+        fileSR = xenrt.lib.xenserver.FileStorageRepositoryNFS(host, "nfssr-filesr-1")
         fileSR.create(server, path)
         self.sruuids.append(fileSR.uuid)        
 
@@ -564,12 +564,12 @@ class TC20952(SRSanityTestTemplate):
         server, path = xenrt.ExternalNFSShare().getMount().split(":")
 
         # Create a classic NFS SR.
-        nfsSR = xenrt.lib.xenserver.host.NFSStorageRepository(host, "nfssr-classic-2")
+        nfsSR = xenrt.lib.xenserver.NFSStorageRepository(host, "nfssr-classic-2")
         nfsSR.create(server, path)
         self.sruuids.append(nfsSR.uuid)        
 
         # Create a file SR on the same NFS path.
-        fileSR = xenrt.lib.xenserver.host.FileStorageRepositoryNFS(host, "nfssr-filesr-2")
+        fileSR = xenrt.lib.xenserver.FileStorageRepositoryNFS(host, "nfssr-filesr-2")
         fileSR.create(server, path)
         self.sruuids.append(fileSR.uuid)
 
@@ -594,7 +594,7 @@ class TC6825(SRSanityTestTemplate):
         time.sleep(10)
 
         # Set up the SR on the host and plug the pbd etc
-        sr = xenrt.lib.xenserver.host.ISCSIStorageRepository(host,"test-iscsi")
+        sr = xenrt.lib.xenserver.ISCSIStorageRepository(host,"test-iscsi")
         lun = xenrt.ISCSILunSpecified("xenrt-test/%s/%s" % 
                                       (iqn, guest.getIP()))
         # Find out the SCSIID
@@ -672,7 +672,7 @@ class TC7366(SRSanityTestTemplate):
 
         # Set up the SR on the host and plug the pbd etc
         host.setIQN("xenrt-test-iqn-TC7366")
-        sr = xenrt.lib.xenserver.host.ISCSIStorageRepository(host, "test-iscsi", thinProv)
+        sr = xenrt.lib.xenserver.ISCSIStorageRepository(host, "test-iscsi", thinProv)
         lun = xenrt.ISCSIIndividualLun(None,
                                        1,
                                        server=guest.getIP(),
@@ -789,7 +789,7 @@ class TC7367(SRSanityTestTemplate):
         # Create the SRs
         srs = []
         for lunid in range(self.NUM_LUNS):
-            sr = xenrt.lib.xenserver.host.ISCSIStorageRepository(\
+            sr = xenrt.lib.xenserver.ISCSIStorageRepository(\
                 host, "test-iscsi%u" % (lunid), thinProv)
             lun = xenrt.ISCSIIndividualLun(None,
                                            lunid,
@@ -902,7 +902,7 @@ class TC7369(SRSanityTestTemplate):
             guest.createISCSITargetLun(0, xenrt.KILO)
 
         # Set up the SR on the host and plug the pbd etc
-        srx = xenrt.lib.xenserver.host.ISCSIStorageRepository(host,"test-iscsi")
+        srx = xenrt.lib.xenserver.ISCSIStorageRepository(host,"test-iscsi")
         lun = xenrt.ISCSILunSpecified("xenrt-test/%s/%s" % (iqn, guest.getIP()))
         try:
             srx.create(lun, subtype="lvm", findSCSIID=True)
@@ -911,7 +911,7 @@ class TC7369(SRSanityTestTemplate):
         else:
             raise xenrt.XRTFailure("Was able to create iSCSI SR without CHAP")
 
-        sr = xenrt.lib.xenserver.host.ISCSIStorageRepository(host,"test-iscsi")
+        sr = xenrt.lib.xenserver.ISCSIStorageRepository(host,"test-iscsi")
         lun = xenrt.ISCSILunSpecified("xenrt-test/%s/%s" % (iqn, guest.getIP()))
         lun.setCHAP(self.user, self.password)
         
@@ -2789,7 +2789,7 @@ class TC8537(xenrt.TestCase):
 
         # Create a LVMoISCSI SR
         self.lun = xenrt.ISCSITemporaryLun(100)
-        self.sr = xenrt.lib.xenserver.host.ISCSIStorageRepository(self.host,
+        self.sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.host,
                                                                   "TC853x")
         if not self.USE_VHD:
             # Hack the SM to use a different name for the MGT volume
@@ -3072,7 +3072,7 @@ class TC9050(_SRSmokeTest):
         self.pool = self.getDefaultPool()
         self.host = self.pool.master
         self.cvsmserver = xenrt.CVSMServer(xenrt.TEC().registry.guestGet("CVSMSERVER"))
-        self.sr = xenrt.lib.xenserver.host.CVSMStorageRepository(self.host,
+        self.sr = xenrt.lib.xenserver.CVSMStorageRepository(self.host,
                                                                  "cslgsr")
         minsize = int(self.host.lookup("SR_NETAPP_MINSIZE", 40))
         maxsize = int(self.host.lookup("SR_NETAPP_MAXSIZE", 1000000))
@@ -3100,7 +3100,7 @@ class TC12687(TC9050):
     def prepare(self, arglist):
         self.pool = self.getDefaultPool()
         self.host = self.pool.master
-        self.sr = xenrt.lib.xenserver.host.IntegratedCVSMStorageRepository(self.host,
+        self.sr = xenrt.lib.xenserver.IntegratedCVSMStorageRepository(self.host,
                                                                            "cslgsr")
         minsize = int(self.host.lookup("SR_NETAPP_MINSIZE", 40))
         maxsize = int(self.host.lookup("SR_NETAPP_MAXSIZE", 1000000))
@@ -3125,7 +3125,7 @@ class TC13980(TC12687):
     def prepare(self, arglist):
         self.pool = self.getDefaultPool()
         self.host = self.pool.master
-        self.sr = xenrt.lib.xenserver.host.IntegratedCVSMStorageRepository(self.host,
+        self.sr = xenrt.lib.xenserver.IntegratedCVSMStorageRepository(self.host,
                                                                            "cslgsr")
         minsize = int(self.host.lookup("SR_EQL_MINSIZE", 40))
         maxsize = int(self.host.lookup("SR_EQL_MAXSIZE", 1000000))
@@ -3152,7 +3152,7 @@ class TC14926(TC9050):
     def prepare(self, arglist):
         self.pool = self.getDefaultPool()
         self.host = self.pool.master
-        self.sr = xenrt.lib.xenserver.host.IntegratedCVSMStorageRepository(self.host,
+        self.sr = xenrt.lib.xenserver.IntegratedCVSMStorageRepository(self.host,
                                                                            "cslgsr")
         minsize = int(self.host.lookup("SR_SMIS_ISCSI_MINSIZE", 40))
         maxsize = int(self.host.lookup("SR_SMIS_ISCSI_MAXSIZE", 1000000))
@@ -3179,7 +3179,7 @@ class TC15174(TC14926):
     def prepare(self, arglist):
         self.pool = self.getDefaultPool()
         self.host = self.pool.master
-        self.sr = xenrt.lib.xenserver.host.IntegratedCVSMStorageRepository(self.host,
+        self.sr = xenrt.lib.xenserver.IntegratedCVSMStorageRepository(self.host,
                                                                            "cslgsr")
         minsize = int(self.host.lookup("SR_SMIS_FC_MINSIZE", 40))
         maxsize = int(self.host.lookup("SR_SMIS_FC_MAXSIZE", 1000000))
@@ -3278,7 +3278,7 @@ class TC9351(_SRSmokeTest):
             traceback.print_exc(file=sys.stderr)
             xenrt.TEC().warning("Exception blocking iscsi traffic: %s" % (str(e)))
         self.cvsmserver = xenrt.CVSMServer(xenrt.TEC().registry.guestGet("CVSMSERVER"))
-        self.sr = xenrt.lib.xenserver.host.CVSMStorageRepository(self.host,
+        self.sr = xenrt.lib.xenserver.CVSMStorageRepository(self.host,
                                                                  "cslgsr")
         self.cvsmserver.addStorageSystem(self.fcarray)
 
@@ -3321,7 +3321,7 @@ class TC12688(TC9351):
         except Exception,e:
             traceback.print_exc(file=sys.stderr)
             xenrt.TEC().warning("Exception blocking iscsi traffic: %s" % (str(e)))
-        self.sr = xenrt.lib.xenserver.host.IntegratedCVSMStorageRepository(self.host,
+        self.sr = xenrt.lib.xenserver.IntegratedCVSMStorageRepository(self.host,
                                                                            "cslgsr")
 
     def createSR(self):
@@ -3360,7 +3360,7 @@ class TC13982(TC12688):
         except Exception,e:
             traceback.print_exc(file=sys.stderr)
             xenrt.TEC().warning("Exception blocking iscsi traffic: %s" % (str(e)))
-        self.sr = xenrt.lib.xenserver.host.IntegratedCVSMStorageRepository(self.host,
+        self.sr = xenrt.lib.xenserver.IntegratedCVSMStorageRepository(self.host,
                                                                            "cslgsr")
 
     def createSR(self):

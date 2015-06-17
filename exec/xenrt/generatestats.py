@@ -10,10 +10,6 @@ class LabCostPerTechArea():
         self.nbrOfSuiteRunsToCheck = 5
 
     def generate(self):
-
-        # TODO check if we have JSON already created for suite, if exists and not outdated(not older than 30 days), skip generation and use it.
-        ####
-    
         step("Get latest suite run history")
         u = urllib.urlopen("%s/suitehistoryjson/%s" % (xenrt.TEC().lookup("TESTRUN_URL"), self.suiteId))
         suiteRunData = json.loads(u.read().strip())
@@ -79,22 +75,13 @@ class LabCostPerTechArea():
             [tcData[issue.key].update({'techarea':([comp.name for comp in issue.fields.components][0])}) if issue.fields.components else None for issue in result]
 
         step("Processing Data. testcase as primary key -> techArea as primary key")
-        techAreaData = {'Unknown' : TimeMissingTAInfo.total_seconds()}
+        techAreaData = {'Unknown' : TimeMissingTAInfo.total_seconds()/3600}
         for tc in tcData:
             if not 'techarea' in tcData[tc]:
-                techAreaData['Unknown'] += tcData[tc]['runtime'].total_seconds()
+                techAreaData['Unknown'] += tcData[tc]['runtime'].total_seconds()/3600
             elif not tcData[tc]['techarea'] in techAreaData:
-                techAreaData[tcData[tc]['techarea']]= tcData[tc]['runtime'].total_seconds()
+                techAreaData[tcData[tc]['techarea']]= tcData[tc]['runtime'].total_seconds()/3600
             else:
-                techAreaData[tcData[tc]['techarea']] += tcData[tc]['runtime'].total_seconds()
+                techAreaData[tcData[tc]['techarea']] += tcData[tc]['runtime'].total_seconds()/3600
 
         return (techAreaData, tcMissingHistory)
-
-def generateLabCostPerTechArea(suiteId):
-    cls = LabCostPerTechArea(suiteId)
-    data, tcMissingData = cls.generate()
-
-    # TODO : save data as JSON to a file, to be used by a website.
-    
-    log("Lab cost per TA for suite %s : %s" % (suiteId, data))
-    warning("Testcases not having run history: %s" % (tcMissingData))

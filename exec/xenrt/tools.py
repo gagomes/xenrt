@@ -9,7 +9,7 @@
 #
 
 import sys, string, re, xml.dom.minidom, os, xmlrpclib, urllib, json, time
-import xenrt
+import xenrt, xenrt.generatestats
 from xml.sax.saxutils import escape
 
 global tccache
@@ -414,3 +414,15 @@ def createHotfixSymlinks():
 
     for h in hfdict.keys():
         xenrt.command("ln -sf %s %s/%s.xsupdate" % (hfdict[h], hotfixpath, h))
+
+def generateLabCostPerTechArea(suiteId, outputDir):
+
+    # TODO check if we have JSON already created for suite, skip generation and use it.
+
+    cls = xenrt.generatestats.LabCostPerTechArea(suiteId)
+    data, tcMissingData = cls.generate()
+
+    # TODO : save data as JSON to a file, to be used by a website.
+    
+    print "Lab cost per TA for suite %s : %s" % (suiteId, data)
+    print "Testcases not having run history: %s" % (tcMissingData)

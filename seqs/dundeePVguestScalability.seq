@@ -17,7 +17,7 @@
       <arg>VMRAM=[256]</arg>
       <arg>RUNS=[1]</arg>
       <arg>VMS=range(1,1001)</arg>
-      <arg>VMTYPES=["debian70:x86-64"]</arg>
+      <arg>VMTYPES=["ubuntu1204:x86-64"]</arg>
       <arg>EXPERIMENT="vmrun_cron"</arg>
       <arg>VMCRON=["0:25:waitvmlogin"]</arg>
       <arg>THRESHOLD=500.0</arg>

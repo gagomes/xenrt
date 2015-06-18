@@ -9,7 +9,7 @@
 #
 
 import socket, re, string, time, traceback, sys, random, copy, shutil, os, re
-import xenrt, xenrt.lib.xenserver
+import xenrt, xenrt.lib.xenserver, testcases.xenserver.tc.upgrade
 from xenrt import XRTError
 from xenrt.lazylog import step, log
 

@@ -83,7 +83,7 @@
   </prepare>
   <testsequence>
     <serial group="RPU">
-      <testcase id="testcases.xenserver.tc.upgrade.TCRollingPoolHFX" name="AddHFXtoOldVersion">
+      <testcase id="testcases.xenserver.tc.hotfix.TCRollingPoolHFX" name="AddHFXtoOldVersion">
         <arg>vmActionIfHostRebootRequired=EVACUATE</arg>
         <arg>applyAllHFXsBeforeApplyAction=True</arg>
       </testcase>

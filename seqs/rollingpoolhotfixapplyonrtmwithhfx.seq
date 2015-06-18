@@ -79,7 +79,7 @@
 
   <testsequence>
     <serial group="RollHfxOnRtmWithHfxs">
-      <testcase id="testcases.xenserver.tc.upgrade.TCRollingPoolHFX" tc="TC-21001">
+      <testcase id="testcases.xenserver.tc.hotfix.TCRollingPoolHFX" tc="TC-21001">
         <arg>vmActionIfHostRebootRequired=${VM_ACTION_ON_HOST_REBOOT}</arg>
         <arg>skipApplyRequiredPatches=yes</arg>
       </testcase>

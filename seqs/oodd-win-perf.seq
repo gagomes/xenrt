@@ -42,7 +42,7 @@
     <serial>
 
       <serial group="ApplyReleasedHFXs" blocker="yes">
-        <testcase id="testcases.xenserver.tc.upgrade.TCRollingPoolHFX" blocker="yes">
+        <testcase id="testcases.xenserver.tc.hotfix.TCRollingPoolHFX" blocker="yes">
           <arg>vmActionIfHostRebootRequired=${VM_ACTION_ON_HOST_REBOOT}</arg>
           <arg>applyAllHFXsBeforeApplyAction=True</arg>
         </testcase>

@@ -92,7 +92,7 @@
   </prepare>
   <testsequence>
     <serial group="RPU">
-      <testcase id="testcases.xenserver.tc.upgrade.TCRollingPoolHFX" name="AddHFXtoOldVersion">
+      <testcase id="testcases.xenserver.tc.hotfix.TCRollingPoolHFX" name="AddHFXtoOldVersion">
         <arg>vmActionIfHostRebootRequired=${VM_ACTION_ON_HOST_REBOOT}</arg>
         <arg>skipApplyRequiredPatches=${SKIP_HFX_INITIAL_VERSION}</arg>
       </testcase>

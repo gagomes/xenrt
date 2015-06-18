@@ -2120,6 +2120,28 @@ class TCApplyHotfixes(xenrt.TestCase):
             self.host.applyPatch(xenrt.TEC().getFile(patches[p]), patchClean=True)
         self.host.reboot()
 
+class TCRollingPoolHFX(xenrt.lib.xenserver.host.TCRollingPoolUpdate):
+    """
+    Install Required HFX(s) for a current release on a pool 
+    Install All Required Patches and THIS_HOTFIX and perform most significant apply action.
+    """
+    
+    UPGRADE = False
+
+class TC21007(xenrt.lib.xenserver.host.TCRollingPoolUpdate):
+    """
+    Perform rolling pool update test with Xapi restart on hosts in intermediate states 
+    during Rolling pool update. Regression test for HFX-1033, HFX-1034, HFX-1035.
+    """
+
+    def prepare(self, arglist):
+        TCRollingPoolUpdate.prepare(self, arglist)
+        self.preEvacuate = self.doRestartToolstack
+        self.preReboot = self.doRestartToolstack
+
+    def doRestartToolstack(self, host):
+        host.restartToolstack()
+
 class TCDecryptHotfix(xenrt.TestCase):
     """Test-case for CA-144941"""
 

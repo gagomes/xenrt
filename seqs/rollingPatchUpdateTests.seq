@@ -85,7 +85,7 @@
 
   <testsequence>
     <serial group="RollingHfxTest">
-      <testcase id="testcases.xenserver.tc.upgrade.TCRollingPoolHFX" name="RollingPatchApply" tc="TC-20991">
+      <testcase id="testcases.xenserver.tc.hotfix.TCRollingPoolHFX" name="RollingPatchApply" tc="TC-20991">
         <arg>vmActionIfHostRebootRequired=${VM_ACTION_ON_HOST_REBOOT}</arg>
         <arg>applyAllHFXsBeforeApplyAction=True</arg>
       </testcase>

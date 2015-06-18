@@ -4829,17 +4829,25 @@ class TCDriverDisk(xenrt.TestCase):
         driverDiskPath = xenrt.TEC().lookup("DRIVER_DISK")
         # Get ISO name from path
         from os.path import basename
-        iso = basename(driverDiskPath)
-        isoPath = "%s/%s" % (remoteDir, iso)
+        ddFile = basename(driverDiskPath)
+        ddFilePath = "%s/%s" % (remoteDir, ddFile)
 
         sftp = self.host.sftpClient()
         try:
             xenrt.TEC().logverbose('About to copy "%s to "%s" on host.' \
-                                        % (driverDiskPath, isoPath))
-            sftp.copyTo(xenrt.TEC().getFile(driverDiskPath), isoPath)
+                                        % (driverDiskPath, ddFilePath))
+            sftp.copyTo(xenrt.TEC().getFile(driverDiskPath), ddFilePath)
         finally:
             sftp.close()
-       
+        
+        if "zip" in driverDiskPath:
+            mountpoint = "/tmp/dd_directory"
+            self.host.execdom0("unzip %s -d %s" % (ddFilePath, mountpoint))
+            isoPath = self.host.execdom0("find %s -name *iso" % (mountpoint)).strip()
+            iso = basename(isoPath)
+        else:
+            isoPath = ddFilePath
+            iso = basename(driverDiskPath)
 
         res = self.host.execdom0('if [ -e %s ]; then echo "found"; fi' % isoPath)
         xenrt.TEC().logverbose('Result: "%s"' % res)
@@ -4907,6 +4915,9 @@ class TCDriverDisk(xenrt.TestCase):
             xenrt.TEC().logverbose("modprobe output: '%s'" % stdout)
             if stdout.strip() != "":
                 raise xenrt.XRTFailure("Loading kernel module %s may have failed, see stout: '%s'" % (ko, stdout))
+                
+            version = self.host.execdom0("modinfo %s | grep -e '^version:' | awk '{print $2}'" % ko).strip()
+            xenrt.TEC().logverbose("Driver version: %s" % (version))
                 
         #check if kdump  is built
         xenrt.TEC().logverbose("Check if kdump is built")

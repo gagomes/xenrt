@@ -1320,7 +1320,7 @@ class _SingleHostUpgrade(xenrt.TestCase):
 
         if self.SAFE2UPGRAGE_CHECK:
             self.host.checkSafe2Upgrade()
-        
+
         # Upgrade the host and VMs
         upgsteps = []
 
@@ -3772,7 +3772,7 @@ class TC12212(_MultipathSingleHostUpgrade):
 
 class _RpuNewPartionsSingleHost(_SingleHostUpgrade):
 
-    EXTRASUBCASES = [("checkPartitions", (), "checkPartitions", "checkPartitions")]
+    EXTRASUBCASES = [("checkPartitions", (), "Check", "Partitions")]
     SAFE2UPGRAGE_CHECK = True
     NEW_PARTITIONS = False
 
@@ -3782,12 +3782,12 @@ class _RpuNewPartionsSingleHost(_SingleHostUpgrade):
             partitions = xenrt.TEC().lookup(["VERSION_CONFIG",xenrt.TEC().lookup("PRODUCT_VERSION"),"DOM0_PARTITIONS"])
         else:
             partitions = xenrt.TEC().lookup(["VERSION_CONFIG",xenrt.TEC().lookup("PRODUCT_VERSION"),"DOM0_PARTITIONS_OLD"])
-        log("Expected partions: %s" % partitions)
-        
-        if self.host.compareDom0Partitions(partitions):
-            log("Found expected Dom0 partitions on XS clean installation: %s" % partitions)
-        else:
+        log("Expected partitions: %s" % partitions)
+
+        if not self.host.compareDom0Partitions(partitions):
             raise xenrt.XRTFailure("Found unexpected partitions on XS clean install. Expected: %s Found: %s" % (partitions, self.host.getDom0Partitions()))
+        log("Found expected Dom0 partitions on XS clean installation: %s" % partitions)
+
 
 class TCRpuNewPartSingle(_RpuNewPartionsSingleHost):
     """TC-27063 - Dom0 disk partitioning on single host upgrade with no VMs on local storage"""
@@ -4322,7 +4322,7 @@ class TCRollingPoolUpdate(xenrt.TestCase, xenrt.lib.xenserver.host.RollingPoolUp
     """
 
     UPGRADE = True
-    
+
     def parseArgs(self, arglist):
         #Parse the arguments
         args = self.parseArgsKeyValue(arglist)
@@ -4336,7 +4336,7 @@ class TCRollingPoolUpdate(xenrt.TestCase, xenrt.lib.xenserver.host.RollingPoolUp
             self.applyAllHFXsBeforeApplyAction = False
         if "skipApplyRequiredPatches" in args.keys() and args["skipApplyRequiredPatches"].lower() == "yes":
             self.skipApplyRequiredPatches = True
-    
+
     def prepare(self, arglist):
         self.pool = self.getDefaultPool()
         self.newPool = None
@@ -4350,7 +4350,7 @@ class TCRollingPoolUpdate(xenrt.TestCase, xenrt.lib.xenserver.host.RollingPoolUp
         
         #Parse arguments coming from sequence file
         self.parseArgs(arglist)
-        
+
         # Eject CDs in all VMs
         for h in self.pool.getHosts():
             for guestName in h.listGuests():
@@ -4369,7 +4369,7 @@ class TCRollingPoolUpdate(xenrt.TestCase, xenrt.lib.xenserver.host.RollingPoolUp
         self.preCheckVMs(self.pool)
         self.doUpdate()
         self.postCheckVMs(self.newPool)
-        
+
     def preCheckVMs(self,pool):
         self.expectedRunningVMs = 0
         for h in pool.getHosts():
@@ -4377,7 +4377,7 @@ class TCRollingPoolUpdate(xenrt.TestCase, xenrt.lib.xenserver.host.RollingPoolUp
             xenrt.TEC().logverbose("Host: %s has %d running guests [%s]" % (h.getName(), len(runningGuests), runningGuests))
             self.expectedRunningVMs += len(runningGuests)
         xenrt.TEC().logverbose("Pre-upgrade running VMs: %d" % (self.expectedRunningVMs))
-    
+
     def postCheckVMs(self,pool):
         postUpgradeRunningGuests = 0
         for h in pool.getHosts():
@@ -4401,22 +4401,22 @@ class TCRpuPartitions(TCRollingPoolUpdate):
     def preMasterUpdate(self):
         TCRollingPoolUpdate.preMasterUpdate(self)
         self.checkSafe2Upgrade(slave)
-        
+
     def preSlaveUpdate(self, slave):
         TCRollingPoolUpdate.preSlaveUpdate(self, slave)
         self.checkSafe2Upgrade(slave)
-    
+
     def postMasterUpdate(self):
         TCRollingPoolUpdate.postMasterUpdate(self)
         self.checkPartitions(self.newPool.master)
-    
+
     def postSlaveUpdate(self, slave):
         TCRollingPoolUpdate.postSlaveUpdate(self, slave)
         self.checkPartitions(slave)
-    
+
     def safe2Upgrade(self, host):
         self.NEW_PARTITIONS[host.getName()] = host.checkSafe2Upgrade()
-    
+
     def checkPartitions(self, host):
         """Function to check if DOM0 partitions are as expected"""
         step("Check if dom0 partitions are as expected")
@@ -4426,8 +4426,7 @@ class TCRpuPartitions(TCRollingPoolUpdate):
             partitions = xenrt.TEC().lookup(["VERSION_CONFIG",xenrt.TEC().lookup("PRODUCT_VERSION"),"DOM0_PARTITIONS_OLD"])
         log("Expected partions: %s" % partitions)
 
-        if host.compareDom0Partitions(partitions):
-            log("Found expected Dom0 partitions on XS clean installation: %s" % partitions)
-        else:
+        if not host.compareDom0Partitions(partitions):
             raise xenrt.XRTFailure("Found unexpected partitions on XS clean install. Expected: %s Found: %s" % (partitions, host.getDom0Partitions()))
+        log("Found expected Dom0 partitions on XS clean installation: %s" % partitions)
 

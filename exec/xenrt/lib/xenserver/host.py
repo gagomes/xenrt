@@ -8346,11 +8346,10 @@ rm -f /etc/xensource/xhad.conf || true
                 return False
 
     def checkSafe2Upgrade(self):
-        """Function to check is new partitions will be created on upgrade to dundee- CAR-1866"""
+        """Function to check if new partitions will be created on upgrade to dundee- CAR-1866"""
         #This workaround is required because new plugins are yet to be added to released XS versions
         if xenrt.TEC().lookup("WORKAROUND_CAR1866", default=True, boolean=True):
             step("Replace prepare_upgrade_plugin with the custom plugin")
-            log(xenrt.TEC().lookup("OLD_PRODUCT_VERSION"))
             plugin = xenrt.TEC().getFile("/usr/groups/xenrt/upgrade_plugins/%s_prepare_host_upgrade.py" % (xenrt.TEC().lookup("OLD_PRODUCT_VERSION")))
             sftp = self.sftpClient()
             try:
@@ -8359,7 +8358,7 @@ rm -f /etc/xensource/xhad.conf || true
                 sftp.copyTo(plugin, "/etc/xapi.d/plugins/prepare_host_upgrade.py")
             finally:
                 sftp.close()
-        
+
         step("Call testSafe2Upgrade function and check if its output is as expected")
         sruuid = self.getLocalSR()
         vdis = len(self.minimalList("vdi-list", args="sr-uuid=%s" % (sruuid)))
@@ -8368,37 +8367,34 @@ rm -f /etc/xensource/xhad.conf || true
         log("Size of disk: %dGiB" % srsize)
         expectedOutput = "false" if (vdis > 0 or srsize < 38) else "true"
         log("Plugin should return: %s" % expectedOutput)
-        
+
         cli = self.getCLIInstance()
         args = []
         args.append("host-uuid=%s" % (self.getMyHostUUID()))
         args.append("plugin=prepare_host_upgrade.py")
         args.append("fn=testSafe2Upgrade")
         output = cli.execute("host-call-plugin", string.join(args), timeout=300).strip()
-        if output == expectedOutput:
-            xenrt.TEC().logverbose("Expected output: %s" % (output))
-        else:
+        if output != expectedOutput:
             raise xenrt.XRTFailure("Unexpected output: %s" % (output))
-        
+        xenrt.TEC().logverbose("Expected output: %s" % (output))
+
         step("Call main plugin and check if testSafe2Upgrade returned true")
         args = []
         args.append("host-uuid=%s" % (self.getMyHostUUID()))
         args.append("plugin=prepare_host_upgrade.py")
         args.append("fn=main")
-        args.append("args:url=%s/xe-phase-1/" % (xenrt.TEC().lookup("FORCE_HTTP_FETCH", "") + xenrt.TEC().lookup("INPUTDIR", "")))
+        args.append("args:url=%s/xe-phase-1/" % (xenrt.TEC().lookup("FORCE_HTTP_FETCH") + xenrt.TEC().lookup("INPUTDIR")))
         output = cli.execute("host-call-plugin", string.join(args), timeout=300).strip()
-        if output == "true":
-            xenrt.TEC().logverbose("Expected output: %s" % (output))
-        else:
+        if output != "true":
             raise xenrt.XRTFailure("Unexpected output: %s" % (output))
-        
+        xenrt.TEC().logverbose("Expected output: %s" % (output))
+
         if expectedOutput=="true":
             step("Check if safe2upgrade file is created")
             res = self.execdom0('ls /var/preserve/safe2upgrade')
             if 'No such file or directory' in res or res.strip() == '':
                 raise xenrt.XRTFailure("Unexpected output: /var/preserve/safe2upgrade file is not created")
-            else:
-                log("/var/preserve/safe2upgrade file is created as expected")
+            log("/var/preserve/safe2upgrade file is created as expected")
         return True if expectedOutput == "true" else False
 
 #############################################################################

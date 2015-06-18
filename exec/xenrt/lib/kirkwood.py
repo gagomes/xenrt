@@ -175,13 +175,10 @@ class KirkwoodHTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         except KirkwoodAccessException:
             self.send_error(403, "Forbidden")
             return
-        
-        self.send_response(200)
-        self.send_header("Content-type", "text/plain")
-        self.end_headers()
-        xenrt.TEC().logverbose("Kirkwood reply length %d bytes" % (len(reply)))
+
+        xenrt.TEC().logverbose("Kirkwood reply original length %d bytes" % (len(reply)))
         # sys.stderr.write(str(len(reply)))
-        badLengths = [1675,1835]
+        badLengths = [1676,1835]
         if (len(reply) - 27) % 32 == 0 or len(reply) in badLengths:
             # Work round a strange bug in the tlslite library, by padding the
             # response with an extra null byte (XRT-5022)
@@ -189,8 +186,13 @@ class KirkwoodHTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             # Majority seem to be a multiple of 32 characters (with a 27 char
             # header)
             reply += chr(0)
+        xenrt.TEC().logverbose("Kirkwood reply padded length %d bytes" % (len(reply)))
+        self.send_response(200)
+        self.send_header("Content-type", "text/plain")
+        self.send_header("Content-Length", str(len(reply)))
+        self.end_headers()
 
-        self.wfile.write(reply)        
+        self.wfile.write(reply)
 
 class KirkwoodHTTPServer(SocketServer.ThreadingMixIn,
                          tlslite.api.TLSSocketServerMixIn,
@@ -261,8 +263,12 @@ hKIs4YWO6PDU3wwSSCLAmTvFuTj0VOFEfUaWax7tTkrj
             tlsConnection.ignoreAbruptClose = True
             return True
         except tlslite.api.TLSError, error:
+            xenrt.TEC().logverbose("Kirkwood Handshake failure: %r" % error)
             sys.stderr.write("Handshake failure: %s\n" % (str(error)))
             return False
+        except Exception, e:
+            xenrt.TEC().logverbose("Kirkwood Handshake common failure: %r" % error)
+            raise e
 
 class FakeKirkwood(threading.Thread):
     METHODS = ["AddXenServer",
@@ -416,6 +422,9 @@ class FakeKirkwood(threading.Thread):
             </b:KeyValueOfstringstring>
 """ % (xml.sax.saxutils.escape(pc),xml.sax.saxutils.escape(self.poolConfig[pc]))
         reply += "          </OptimizationParms>\n"
+        
+        xenrt.TEC().logverbose("DEBUG - response=%r" % reply)
+        
         return reply
 
     def vMGetRecommendations(self, rawrequest, params):

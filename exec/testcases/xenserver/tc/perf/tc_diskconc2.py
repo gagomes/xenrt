@@ -353,7 +353,7 @@ done
             else:
                 # treat the block size as a number of bytes
                 accessSpecs = [
-                    ("custom", "ALL", ["%d,100,%d,0,0,1,%d,0" % (int(blocksize), 100 if op == "r" else 0, int(blocksize))])
+                    ("custom", "ALL", ["%d,100,%d,%d,0,1,%d,0" % (int(blocksize), 100 if op == "r" else 0, 0 if self.sequential else 100, int(blocksize))])
                 ]
 
             config = """Version 1.1.0 
@@ -423,7 +423,10 @@ done
 """ % (i + 1, nbname, "" if i == 0 else vm.mainip)
 
                 for i in range(self.vbds_per_vm):
-                    config += """'Worker
+                    for thread in range(self.num_threads):
+                        vbd_num = i + 1
+                        worker = i * self.num_threads + thread + 1
+                        config += """'Worker
 	Worker %d
 'Worker type
 	DISK
@@ -434,13 +437,13 @@ done
 	0,0,0
 'End default target settings for worker
 'Assigned access specs
-""" % (i+1, self.queuedepth)
+""" % (worker, self.queuedepth)
 
-                    for (name, _, _) in accessSpecs:
-                        config += """	%s
+                        for (name, _, _) in accessSpecs:
+                            config += """	%s
 """ % (name)
 
-                    config += """'End assigned access specs
+                            config += """'End assigned access specs
 'Target assignments
 'Target
 	%d: "XENSRC PVDISK 2.0"
@@ -449,7 +452,7 @@ done
 'End target
 'End target assignments
 'End worker
-""" % (i+1)
+""" % (vbd_num)
 
                 config += "'End manager\n"
 

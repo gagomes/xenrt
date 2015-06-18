@@ -4400,7 +4400,7 @@ class TCRpuPartitions(TCRollingPoolUpdate):
 
     def preMasterUpdate(self):
         TCRollingPoolUpdate.preMasterUpdate(self)
-        self.checkSafe2Upgrade(slave)
+        self.checkSafe2Upgrade(self.newPool.master)
 
     def preSlaveUpdate(self, slave):
         TCRollingPoolUpdate.preSlaveUpdate(self, slave)

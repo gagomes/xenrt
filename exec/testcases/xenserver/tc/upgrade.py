@@ -4414,7 +4414,7 @@ class TCRpuPartitions(TCRollingPoolUpdate):
         TCRollingPoolUpdate.postSlaveUpdate(self, slave)
         self.checkPartitions(slave)
 
-    def safe2Upgrade(self, host):
+    def checkSafe2Upgrade(self, host):
         self.NEW_PARTITIONS[host.getName()] = host.checkSafe2Upgrade()
 
     def checkPartitions(self, host):

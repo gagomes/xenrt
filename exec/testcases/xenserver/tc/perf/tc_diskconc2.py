@@ -483,6 +483,8 @@ Version 1.1.0
 
             # Process the results into the same format as synexec+latency uses
             i = 0
+            threads_per_vbd_left = self.num_threads
+            results_per_vbd = 0
             for line in data.split("\n"):
                 if line.startswith("'Results"):
                     i = 0
@@ -503,9 +505,16 @@ Version 1.1.0
                         dispblocksize = blocksize
                     result = result * 1000000 * self.duration
                     result = long(result)
+
+                    results_per_vbd = results_per_vbd + result
+                    threads_per_vbd_left = threads_per_vbd_left - 1
+
+                if threads_per_vbd_left == 0:
                     self.log("slave", "%s %d %s %s %s %d %s" %
-                             (op, count + 1, dispblocksize, vm.getName().split("-")[0], vm.getName().split("-")[1], j, result))
+                             (op, count + 1, dispblocksize, vm.getName().split("-")[0], vm.getName().split("-")[1], j, results_per_vbd))
                     j += 1
+                    results_per_vbd = 0
+                    threads_per_vbd_left = self.num_threads
 
     def installFioOnLinuxGuest(self):
         disturl = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")

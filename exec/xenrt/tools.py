@@ -9,7 +9,12 @@
 #
 
 import sys, string, re, xml.dom.minidom, os, xmlrpclib, urllib, json, time
-import xenrt, xenrt.generatestats
+import xenrt
+
+try:
+    import xenrt.generatestats
+except:
+    pass
 from xml.sax.saxutils import escape
 
 global tccache

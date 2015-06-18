@@ -2867,7 +2867,7 @@ class Config(object):
         self.config["GUEST_TESTS"]["Dundee"]["Secondary"] = ['centos511_x86-32', 'centos511_x86-64', 
             'centos66_x86-32', 'centos66_x86-64', 'centos71_x86-64', 'centos71xs_x86-64',
             'debian60_x86-32', 'debian60_x86-64', 'rhel48_x86-32', 'rheld66_x86-64', 'rhelw66_x86-64',
-            'rhel63_x86-32', 'rhel63_x86-64',
+            'rhel63_x86-64',
             'sl511_x86-32', 'sl511_x86-64', 'sl5u_x86-32', 'sl5u_x86-64', 'sl66_x86-32', 'sl66_x86-64',
             'sl6u_x86-32', 'sl6u_x86-64', 'sl71_x86-64', 'sl7u_x86-64',
             'sles104_x86-32', 'sles104_x86-64', 'ws12core-x64', 'ws12r2core-x64']
@@ -2883,7 +2883,7 @@ class Config(object):
             'rhel45_x86-32', 'rhel46_x86-32', 'rhel47_x86-32', 'rhel510_x86-32', 'rhel510_x86-64', 'rhel51_x86-32', 'rhel51_x86-64',
             'rhel52_x86-32', 'rhel52_x86-64', 'rhel53_x86-32', 'rhel53_x86-64', 'rhel54_x86-32', 'rhel54_x86-64', 'rhel55_x86-32', 'rhel55_x86-64',
             'rhel56_x86-32', 'rhel56_x86-64', 'rhel57_x86-32', 'rhel57_x86-64', 'rhel58_x86-32', 'rhel58_x86-64', 'rhel59_x86-32', 'rhel59_x86-64',
-            'rhel64_x86-32', 'rhel64_x86-64', 'rhel65_x86-32', 'rhel65_x86-64', 'rhel7_x86-64',
+            'rhel63_x86-32', 'rhel64_x86-32', 'rhel64_x86-64', 'rhel65_x86-32', 'rhel65_x86-64', 'rhel7_x86-64',
             'sl7_x86-64', 'sles102_x86-32', 'sles102_x86-64', 'sles103_x86-32', 'sles103_x86-64', 'win7-x64', 'win7-x86', 'ws08r2-x64']
         self.config["GUEST_TESTS"]["Dundee"]["Dev"] = ['debiantesting_x86-32', 'debiantesting_x86-64', 'fedoralatest_x86-64', 'ubuntudevel_x86-32', 'ubuntudevel_x86-64']
         self.config["GUEST_TESTS"]["Dundee"]["XenApp"] = ['w2k3eesp2_XenApp', 'w2k3eesp2-x64_XenApp', 'ws08sp2-x86_XenApp', 'ws08sp2-x64_XenApp', 'ws08r2sp1-x64_XenApp']

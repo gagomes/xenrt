@@ -11403,11 +11403,6 @@ done
         if xenrt.TEC().lookup("FORCE_NON_DEBUG_XEN", None):
             self.assertNotRunningDebugXen()
 
-        if self.getName() == "capelin":
-            xenrt.TEC().logverbose("Machine is capelin")
-            self.execdom0('echo "options bnx2x debug=0x100032" > /etc/modprobe.d/bnx2x')
-            self.reboot()
-
     def postInstall(self):
         TampaHost.postInstall(self)
         #CP-6193: Verify check for XenRT installation cookie
@@ -11636,18 +11631,6 @@ class DundeeHost(CreedenceHost):
         # check there are no failed first boot scripts
         self._checkForFailedFirstBootScripts()
         
-        if xenrt.TEC().lookup("STUNNEL_TLS", False, boolean=True):
-            self.execdom0("rpm -e stunnel || true")
-            self.restartToolstack()
-        
-        if xenrt.TEC().lookup("LIBXL_XENOPSD", False, boolean=True):
-            self.execdom0("service xenopsd-xc stop")
-            self.execdom0("sed -i s/vbd3/vbd/ /etc/xenopsd.conf")
-            self.execdom0("chkconfig --del xenopsd-xc")
-            self.execdom0("chkconfig --add xenopsd-xenlight")
-            self.execdom0("sed -i -r 's/classic/xenlight/g' /etc/xapi.conf")
-            self.restartToolstack()
-
     def _checkForFailedFirstBootScripts(self):
         for f in self.execdom0("(cd /etc/firstboot.d/state && ls)").strip().splitlines():
             msg = self.execdom0("cat /etc/firstboot.d/state/%s" % f).strip()
@@ -11824,6 +11807,27 @@ class DundeeHost(CreedenceHost):
 
         return command
 
+    def installComplete(self, handle, waitfor=False, upgrade=False):
+        CreedenceHost.installComplete(self, handle, waitfor, upgrade)
+        if xenrt.TEC().lookup("STUNNEL_TLS", False, boolean=True):
+            self.execdom0("rpm -e stunnel || true")
+            self.restartToolstack()
+
+        if xenrt.TEC().lookup("LIBXL_XENOPSD", False, boolean=True):
+            self.execdom0("service xenopsd-xc stop")
+            self.execdom0("sed -i s/vbd3/vbd/ /etc/xenopsd.conf")
+            self.execdom0("chkconfig --del xenopsd-xc")
+            self.execdom0("chkconfig --add xenopsd-xenlight")
+            self.execdom0("sed -i -r 's/classic/xenlight/g' /etc/xapi.conf")
+            self.restartToolstack()
+
+        if xenrt.TEC().lookup("USE_HOST_IPV6", False, boolean=True):
+            xenrt.TEC().logverbose("Setting %s's primary address type as IPv6" % self.getName())
+            pif = self.execdom0('xe pif-list management=true --minimal').strip()
+            self.execdom0('xe host-management-disable')
+            self.execdom0('xe pif-set-primary-address-type primary_address_type=ipv6 uuid=%s' % pif)
+            self.execdom0('xe host-management-reconfigure pif-uuid=%s' % pif)
+            self.waitForSSH(300, "%s host-management-reconfigure (IPv6)" % self.getName())
 
 #############################################################################
 

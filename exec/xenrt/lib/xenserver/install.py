@@ -192,14 +192,6 @@ class DundeeInstaller(object):
         else:
             self.host.installComplete(handle, waitfor=True, upgrade=self.upgrade)
 
-        if xenrt.TEC().lookup("USE_HOST_IPV6", False, boolean=True):
-            xenrt.TEC().logverbose("Setting %s's primary address type as IPv6" % self.host.getName())
-            pif = self.host.execdom0('xe pif-list management=true --minimal').strip()
-            self.host.execdom0('xe host-management-disable')
-            self.host.execdom0('xe pif-set-primary-address-type primary_address_type=ipv6 uuid=%s' % pif)
-            self.host.execdom0('xe host-management-reconfigure pif-uuid=%s' % pif)
-            self.host.waitForSSH(300, "%s host-management-reconfigure (IPv6)" % self.host.getName())
-        
         return None
 
     @property

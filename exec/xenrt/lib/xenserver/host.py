@@ -8337,7 +8337,7 @@ rm -f /etc/xensource/xhad.conf || true
             log("Number of Partitions in dom0 is different from expected number of partitions. Expected %s. Found %s" % (partitions,dom0Partitions ))
             return False
         else:
-            diffkeys = [k for k in partitions if partitions[k] != dom0Partitions[k] and partitions[k] != "*"]
+            diffkeys = [k for k in partitions if partitions[k] != "*" and int(partitions[k]) - int(dom0Partitions[k]) > 1048576]
             if len(diffkeys) == 0:
                 log("Dom0 has expected partition schema: %s" % dom0Partitions)
                 return True

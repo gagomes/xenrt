@@ -517,6 +517,7 @@ class _RollingPoolUpgrade(_PoolUpgrade):
                 xenrt.RESULT_PASS:
             return
 
+
 class _NonRollingPoolUpgrade(_PoolUpgrade):
 
     NONROLLING = True
@@ -1246,6 +1247,7 @@ class _SingleHostUpgrade(xenrt.TestCase):
     USE_EXISTING_HOST = False
     NO_VMS = False
     EXTRASUBCASES = []
+    SAFE2UPGRAGE_CHECK = False
 
     def installVMs(self):
         if isinstance(self.host, xenrt.lib.xenserver.MNRHost) and not isinstance(self.host, xenrt.lib.xenserver.TampaHost):
@@ -1263,7 +1265,14 @@ class _SingleHostUpgrade(xenrt.TestCase):
         self.host.check()
         if len(self.host.listGuests()) == 0 and not self.NO_VMS:
             raise xenrt.XRTFailure("VMs missing after host upgrade")
-
+    
+    def installOld(self):
+        old = xenrt.TEC().lookup("OLD_PRODUCT_VERSION")
+        oldversion = xenrt.TEC().lookup("OLD_PRODUCT_INPUTDIR")
+        self.host = xenrt.lib.xenserver.createHost(id=0,
+                                                   version=oldversion,
+                                                   productVersion=old)
+    
     def upgradeVMs(self):
         for g in self.guests:
             xenrt.TEC().progress("Upgrading VM %s" % (g.getName()))
@@ -1278,6 +1287,69 @@ class _SingleHostUpgrade(xenrt.TestCase):
                 else:
                     g.installTools()
             g.check()
+
+    def checkSafe2Upgrade(self):
+        """Function to check is new partitions will be created on upgrade to dundee- CAR-1866"""
+        #this a workaround because new plugins are yet to be added to released XS versions
+        step("Replace prepare_upgrade_plugin with the custom plugin")
+        log(xenrt.TEC().lookup("OLD_PRODUCT_VERSION"))
+        plugin = xenrt.TEC().getFile("/usr/groups/xenrt/upgrade_plugins/%s_prepare_host_upgrade.py" % (xenrt.TEC().lookup("OLD_PRODUCT_VERSION")))
+        sftp = self.host.sftpClient()
+        try:
+            xenrt.TEC().logverbose('About to copy "%s to "%s" on host.' \
+                                        % (plugin, "/etc/xapi.d/plugins/prepare_host_upgrade.py"))
+            sftp.copyTo(plugin, "/etc/xapi.d/plugins/prepare_host_upgrade.py")
+        finally:
+            sftp.close()
+        
+        step("Call testSafe2Upgrade function and check if its output is as expected")
+        sruuid = self.host.getLocalSR()
+        vdis = len(self.host.minimalList("vdi-list", args="sr-uuid=%s" % (sruuid)))
+        log("Number of VDIs on local stotage: %d" % vdis)
+        srsize = int(self.host.genParamGet("sr", sruuid, "physical-size"))/xenrt.GIGA
+        log("Size of disk: %dGiB" % srsize)
+        if vdis > 0 or srsize < 38:
+            expectedOutput = "false"
+        else:
+            expectedOutput = "true"
+        log("Plugin should return: %s" % expectedOutput)
+        
+        cli = self.host.getCLIInstance()
+        args = []
+        args.append("host-uuid=%s" % (self.host.getMyHostUUID()))
+        args.append("plugin=prepare_host_upgrade.py")
+        args.append("fn=testSafe2Upgrade")
+        try:
+            output = cli.execute("host-call-plugin", string.join(args), timeout=300).strip()
+            if output == expectedOutput:
+                xenrt.TEC().logverbose("Expected output: %s" % (output))
+            else:
+                raise xenrt.XRTFailure("Unexpected output: %s" % (output))
+        except Exception, e:
+            raise
+        
+        step("Call main plugin and check if testSafe2Upgrade returned true")
+        args = []
+        args.append("host-uuid=%s" % (self.host.getMyHostUUID()))
+        args.append("plugin=prepare_host_upgrade.py")
+        args.append("fn=main")
+        args.append("args:url=%s/xe-phase-1/" % (xenrt.TEC().lookup("FORCE_HTTP_FETCH", "") + xenrt.TEC().lookup("INPUTDIR", "")))
+        try:
+            output = cli.execute("host-call-plugin", string.join(args), timeout=300).strip()
+            if output == "true":
+                xenrt.TEC().logverbose("Expected output: %s" % (output))
+            else:
+                raise xenrt.XRTFailure("Unexpected output: %s" % (output))
+        except Exception, e:
+            raise
+        
+        if expectedOutput=="true":
+            step("Check if safe2upgrade file is created")
+            res = self.host.execdom0('ls /var/preserve/safe2upgrade')
+            if 'No such file or directory' in res or res.strip() == '':
+                raise xenrt.XRTFailure("Unexpected output: /var/preserve/safe2upgrade file is not created")
+            else:
+                log("/var/preserve/safe2upgrade file is created as expected")
 
     def checkVMs(self):
         for g in self.guests:
@@ -1309,6 +1381,11 @@ class _SingleHostUpgrade(xenrt.TestCase):
                    xenrt.RESULT_PASS:
                 return
 
+        if self.SAFE2UPGRAGE_CHECK:
+            if self.runSubcase("checkSafe2Upgrade", (), "PrevGA", "checkSafe2Upgrdae") != \
+                   xenrt.RESULT_PASS:
+                return
+        
         # Upgrade the host and VMs
         upgsteps = []
 
@@ -3758,6 +3835,37 @@ class TC12212(_MultipathSingleHostUpgrade):
     SR_MULTIPATHED = True
     ROOT_DISK_MULTIPATHED_NEW = True
 
+class _RpuNewPartionsSingleHost(_SingleHostUpgrade):
+
+    EXTRASUBCASES = [("checkPartitions", (), "checkPartitions", "checkPartitions")]
+    SAFE2UPGRAGE_CHECK = True
+    NEW_PARTITIONS = False
+
+    def checkPartitions(self, arglist=[]):
+        step("Check if dom0 partitions are as expected")
+        if self.NEW_PARTITIONS:
+            partitions = xenrt.TEC().lookup(["VERSION_CONFIG",xenrt.TEC().lookup("PRODUCT_VERSION"),"DOM0_PARTITIONS"])
+        else:
+            partitions = xenrt.TEC().lookup(["VERSION_CONFIG",xenrt.TEC().lookup("PRODUCT_VERSION"),"DOM0_PARTITIONS_OLD"])
+        log("Expected partions: %s" % partitions)
+        
+        if self.host.compareDom0Partitions(partitions):
+            log("Found expected Dom0 partitions on XS clean installation: %s" % partitions)
+        else:
+            raise xenrt.XRTFailure("Found unexpected partitions on XS clean install. Expected: %s Found: %s" % (partitions, self.host.getDom0Partitions()))
+
+class TCRpuNewPartSingle(_RpuNewPartionsSingleHost):
+    """TC-27063 - Dom0 disk partitioning on single host upgrade with no VMs on local storage"""
+
+    NEW_PARTITIONS = True
+    NO_VMS = True
+
+class TCRpuOldPartSingle(_RpuNewPartionsSingleHost):
+    """TC-27064 - Dom0 disk partitioning on single host upgrade with VMs on local storage"""
+
+    NEW_PARTITIONS = False
+    NO_VMS = False
+
 class TC14930(_FeatureOperationAfterUpgrade):
     """Continued operation of VMPP feature"""
 
@@ -4272,3 +4380,204 @@ class TCUpgradeVMMigrate(xenrt.TestCase):
             memory = int(memory[:-1]) * 1024
 
         return memory
+
+class TCRollingPoolUpdate(xenrt.TestCase, xenrt.lib.xenserver.host.RollingPoolUpdate):
+    """
+    Base class for Rolling Pool update/upgrade
+    """
+
+    UPGRADE = True
+    
+    def parseArgs(self, arglist):
+        #Parse the arguments
+        args = self.parseArgsKeyValue(arglist)
+        if "INITIAL_VERSION" in args.keys():
+            self.INITIAL_VERSION = args["INITIAL_VERSION"]
+        if "FINAL_VERSION" in args.keys():
+            self.FINAL_VERSION   = args["FINAL_VERSION"]
+        if "vmActionIfHostRebootRequired" in args.keys():
+            self.vmActionIfHostRebootRequired = args["vmActionIfHostRebootRequired"]
+        if "applyAllHFXsBeforeApplyAction" in args.keys() and args["applyAllHFXsBeforeApplyAction"].lower() =="no":
+            self.applyAllHFXsBeforeApplyAction = False
+        if "skipApplyRequiredPatches" in args.keys() and args["skipApplyRequiredPatches"].lower() == "yes":
+            self.skipApplyRequiredPatches = True
+    
+    def prepare(self, arglist):
+        self.pool = self.getDefaultPool()
+        self.newPool = None
+        self.INITIAL_VERSION = self.pool.master.productVersion
+        self.FINAL_VERSION = None
+        self.vmActionIfHostRebootRequired = "SHUTDOWN"
+        self.applyAllHFXsBeforeApplyAction = True
+        self.preEvacuate = None
+        self.preReboot = None
+        self.skipApplyRequiredPatches = False
+        
+        #Parse arguments coming from sequence file
+        self.parseArgs(arglist)
+        
+        # Eject CDs in all VMs
+        for h in self.pool.getHosts():
+            for guestName in h.listGuests():
+                self.getGuest(guestName).changeCD(None)
+
+        xenrt.lib.xenserver.host.RollingPoolUpdate.__init__(self, poolRef = self.pool, 
+                                                            newVersion=self.FINAL_VERSION,
+                                                            upgrade = self.UPGRADE,
+                                                            applyAllHFXsBeforeApplyAction=self.applyAllHFXsBeforeApplyAction,
+                                                            vmActionIfHostRebootRequired=self.vmActionIfHostRebootRequired,
+                                                            preEvacuate=self.preEvacuate,
+                                                            preReboot=self.preReboot,
+                                                            skipApplyRequiredPatches=self.skipApplyRequiredPatches)
+
+    def run(self, arglist=None):
+        self.preCheckVMs(self.pool)
+        self.doUpdate()
+        self.postCheckVMs(self.newPool)
+        
+    def preCheckVMs(self,pool):
+        self.expectedRunningVMs = 0
+        for h in pool.getHosts():
+            runningGuests = h.listGuests(running=True)
+            xenrt.TEC().logverbose("Host: %s has %d running guests [%s]" % (h.getName(), len(runningGuests), runningGuests))
+            self.expectedRunningVMs += len(runningGuests)
+        xenrt.TEC().logverbose("Pre-upgrade running VMs: %d" % (self.expectedRunningVMs))
+    
+    def postCheckVMs(self,pool):
+        postUpgradeRunningGuests = 0
+        for h in pool.getHosts():
+            h.verifyHostFunctional(migrateVMs=False)
+
+            runningGuests = h.listGuests(running=True)
+            xenrt.TEC().logverbose("Host: %s has %d running guests [%s]" % (h.getName(), len(runningGuests), runningGuests))
+            postUpgradeRunningGuests += len(runningGuests)
+
+        xenrt.TEC().logverbose("Post-upgrade running VMs: %d" % (postUpgradeRunningGuests))
+        if self.expectedRunningVMs != postUpgradeRunningGuests:
+            xenrt.TEC().logverbose("Expected VMs in running state: %d, Actual: %d" % (self.expectedRunningVMs, postUpgradeRunningGuests))
+            raise xenrt.XRTFailure("Not all VMs in running state after upgrade complete") 
+
+class TCRollingPoolHFX(TCRollingPoolUpdate):
+    """
+    Install Required HFX(s) for a current release on a pool 
+    Install All Required Patches and THIS_HOTFIX and perform most significant apply action.
+    """
+    
+    UPGRADE = False
+
+class TC21007(TCRollingPoolUpdate):
+    """
+    Perform rolling pool update test with Xapi restart on hosts in intermediate states 
+    during Rolling pool update. Regression test for HFX-1033, HFX-1034, HFX-1035.
+    """
+
+    def prepare(self, arglist):
+        TCRollingPoolUpdate.prepare(self, arglist)
+        self.preEvacuate = self.doRestartToolstack
+        self.preReboot = self.doRestartToolstack
+
+    def doRestartToolstack(self, host):
+        host.restartToolstack()
+
+class TCRpuPartitions(TCRollingPoolUpdate):
+    """
+    Perform Rolling pool upgrade after calling testSafe
+    """
+    NEW_PARTITIONS = {}
+
+    def preMasterUpdate(self):
+        TCRollingPoolUpdate.preMasterUpdate(self)
+        self.checkSafe2Upgrade(self.newPool.master)
+        
+    def preSlaveUpdate(self, slave):
+        TCRollingPoolUpdate.preSlaveUpdate(self, slave)
+        self.checkSafe2Upgrade(slave)
+    
+    def postMasterUpdate(self):
+        TCRollingPoolUpdate.postMasterUpdate(self)
+        self.checkPartitions(self.newPool.master)
+    
+    def postSlaveUpdate(self, slave):
+        TCRollingPoolUpdate.postSlaveUpdate(self, slave)
+        self.checkPartitions(slave)
+    
+    def checkSafe2Upgrade(self, host):
+        """Function to check is new partitions will be created on upgrade to dundee- CAR-1866"""
+        
+        #this a workaround because new plugins are yet to be added to released XS versions
+        step("Replace prepare_upgrade_plugin with the custom plugin")
+        log(xenrt.TEC().lookup("OLD_PRODUCT_VERSION"))
+        plugin = xenrt.TEC().getFile("/usr/groups/xenrt/upgrade_plugins/%s_prepare_host_upgrade.py" % (xenrt.TEC().lookup("OLD_PRODUCT_VERSION")))
+        sftp = host.sftpClient()
+        try:
+            xenrt.TEC().logverbose('About to copy "%s to "%s" on host.' \
+                                        % (plugin, "/etc/xapi.d/plugins/prepare_host_upgrade.py"))
+            sftp.copyTo(plugin, "/etc/xapi.d/plugins/prepare_host_upgrade.py")
+        finally:
+            sftp.close()
+        
+        step("Call testSafe2Upgrade function and check if its output is as expected")
+        sruuid = host.getLocalSR()
+        vdis = len(host.minimalList("vdi-list", args="sr-uuid=%s" % (sruuid)))
+        log("Number of VDIs on local stotage: %d" % vdis)
+        srsize = int(host.genParamGet("sr", sruuid, "physical-size"))/xenrt.GIGA
+        log("Size of disk: %dGiB" % srsize)
+        if vdis > 0 or srsize < 38:
+            expectedOutput = "false"
+            self.NEW_PARTITIONS[host.getName()] = False
+        else:
+            expectedOutput = "true"
+            self.NEW_PARTITIONS[host.getName()] = True
+        log("Plugin should return: %s" % expectedOutput)
+        
+        cli = host.getCLIInstance()
+        args = []
+        args.append("host-uuid=%s" % (host.getMyHostUUID()))
+        args.append("plugin=prepare_host_upgrade.py")
+        args.append("fn=testSafe2Upgrade")
+        try:
+            output = cli.execute("host-call-plugin", string.join(args), timeout=300).strip()
+            if output == expectedOutput:
+                xenrt.TEC().logverbose("Expected output: %s" % (output))
+            else:
+                raise xenrt.XRTFailure("Unexpected output: %s" % (output))
+        except Exception, e:
+            raise
+        
+        step("Call main plugin and check if testSafe2Upgrade returned true")
+        args = []
+        args.append("host-uuid=%s" % (host.getMyHostUUID()))
+        args.append("plugin=prepare_host_upgrade.py")
+        args.append("fn=main")
+        args.append("args:url=%s/xe-phase-1/" % (xenrt.TEC().lookup("FORCE_HTTP_FETCH", "") + xenrt.TEC().lookup("INPUTDIR", "")))
+        try:
+            output = cli.execute("host-call-plugin", string.join(args), timeout=300).strip()
+            if output == "true":
+                xenrt.TEC().logverbose("Expected output: %s" % (output))
+            else:
+                raise xenrt.XRTFailure("Unexpected output: %s" % (output))
+        except Exception, e:
+            raise
+        
+        if expectedOutput=="true":
+            step("Check if safe2upgrade file is created")
+            res = host.execdom0('ls /var/preserve/safe2upgrade')
+            if 'No such file or directory' in res or res.strip() == '':
+                raise xenrt.XRTFailure("Unexpected output: /var/preserve/safe2upgrade file is not created")
+            else:
+                log("/var/preserve/safe2upgrade file is created as expected")
+    
+    def checkPartitions(self, host):
+        """Function to check if DOM0 partitions are as expected"""
+        step("Check if dom0 partitions are as expected")
+        if self.NEW_PARTITIONS[host.getName()]:
+            partitions = xenrt.TEC().lookup(["VERSION_CONFIG",xenrt.TEC().lookup("PRODUCT_VERSION"),"DOM0_PARTITIONS"])
+        else:
+            partitions = xenrt.TEC().lookup(["VERSION_CONFIG",xenrt.TEC().lookup("PRODUCT_VERSION"),"DOM0_PARTITIONS_OLD"])
+        log("Expected partions: %s" % partitions)
+
+        if host.compareDom0Partitions(partitions):
+            log("Found expected Dom0 partitions on XS clean installation: %s" % partitions)
+        else:
+            raise xenrt.XRTFailure("Found unexpected partitions on XS clean install. Expected: %s Found: %s" % (partitions, host.getDom0Partitions()))
+

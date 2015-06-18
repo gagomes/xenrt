@@ -92,11 +92,11 @@
   </prepare>
   <testsequence>
     <serial group="RPU">
-      <testcase id="testcases.xenserver.tc.hotfix.TCRollingPoolHFX" name="AddHFXtoOldVersion">
+      <testcase id="testcases.xenserver.tc.upgrade.TCRollingPoolHFX" name="AddHFXtoOldVersion">
         <arg>vmActionIfHostRebootRequired=${VM_ACTION_ON_HOST_REBOOT}</arg>
         <arg>skipApplyRequiredPatches=${SKIP_HFX_INITIAL_VERSION}</arg>
       </testcase>
-      <testcase id="testcases.xenserver.tc.hotfix.TCRollingPoolUpdate" name="TCRPUWithHFX" tc="${RPU_TC_ID}">
+      <testcase id="testcases.xenserver.tc.upgrade.TCRollingPoolUpdate" name="TCRPUWithHFX" tc="${RPU_TC_ID}">
         <arg>FINAL_VERSION=${TO_PRODUCT_VERSION}</arg>
         <arg>vmActionIfHostRebootRequired=${VM_ACTION_ON_HOST_REBOOT}</arg>
         <arg>skipApplyRequiredPatches=${SKIP_HFX_FINAL_VERSION}</arg>

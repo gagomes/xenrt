@@ -51,7 +51,7 @@
             </testcase>
          </serial>
          <serial group="RPU" blocker="yes">
-            <testcase id="testcases.xenserver.tc.hotfix.TCRollingPoolUpdate" blocker="yes">
+            <testcase id="testcases.xenserver.tc.upgrade.TCRollingPoolUpdate" blocker="yes">
                <arg>vmActionIfHostRebootRequired=${VM_ACTION_ON_HOST_REBOOT}</arg>
                <arg>applyAllHFXsBeforeApplyAction=True</arg>
             </testcase>

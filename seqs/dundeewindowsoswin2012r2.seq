@@ -7,19 +7,12 @@
     <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
   </variables>
 
-  <default name="PARALLEL" value="2" />
-  <default name="MIGRATEPAR" value="1" />
-
-  <semaphores>
-    <TCMigrate count="${MIGRATEPAR}" />
-  </semaphores>
-
   <prepare>
     <host />
   </prepare>
 
   <testsequence>
-    <parallel workers="${PARALLEL}">
+    <parallel>
       <serial group="ws12r2-x64">
         <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="VMInstall" tc="TC-19965">
           <arg>RESOURCE_HOST_0</arg>
@@ -33,16 +26,16 @@
           </testcase>
           <testcase id="guestops.basic.TCStartStop" tc="TC-19967">
             <arg>guest=ws12r2-x64</arg>
-            <arg>loops=10</arg>
+            <arg>loops=5</arg>
           </testcase>
           <testcase id="guestops.basic.TCReboot" tc="TC-19968">
             <arg>guest=ws12r2-x64</arg>
-            <arg>loops=10</arg>
+            <arg>loops=5</arg>
           </testcase>
           <testcase id="guestops.srm.TCSuspendResume" tc="TC-19969">
             <arg>guest=ws12r2-x64</arg>
             <arg>workloads</arg>
-            <arg>loops=10</arg>
+            <arg>loops=5</arg>
           </testcase>
           <testcase id="guestops.srm.TCMigrate" tc="TC-19970">
             <arg>guest=ws12r2-x64</arg>
@@ -93,16 +86,16 @@
           </testcase>
           <testcase id="guestops.basic.TCStartStop" tc="TC-19979">
             <arg>guest=ws12r2core-x64</arg>
-            <arg>loops=10</arg>
+            <arg>loops=5</arg>
           </testcase>
           <testcase id="guestops.basic.TCReboot" tc="TC-19980">
             <arg>guest=ws12r2core-x64</arg>
-            <arg>loops=10</arg>
+            <arg>loops=5</arg>
           </testcase>
           <testcase id="guestops.srm.TCSuspendResume" tc="TC-19981">
             <arg>guest=ws12r2core-x64</arg>
             <arg>workloads</arg>
-            <arg>loops=10</arg>
+            <arg>loops=5</arg>
           </testcase>
           <testcase id="guestops.srm.TCMigrate" tc="TC-19982">
             <arg>guest=ws12r2core-x64</arg>

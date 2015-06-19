@@ -7,19 +7,12 @@
     <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
   </variables>
 
-  <default name="PARALLEL" value="2"/>
-  <default name="MIGRATEPAR" value="1"/>
-
-  <semaphores>
-    <TCMigrate count="${MIGRATEPAR}"/>
-  </semaphores>
-
   <prepare>
     <host/>
   </prepare>
 
   <testsequence>
-    <parallel workers="${PARALLEL}">
+    <parallel>
 
     <serial group="ws08sp2-x86">
       <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="VMInstall" tc="TC-9629">
@@ -34,16 +27,16 @@
         </testcase>
         <testcase id="guestops.basic.TCStartStop" tc="TC-9631">
         <arg>guest=ws08sp2-x86</arg>
-        <arg>loops=10</arg>
+        <arg>loops=5</arg>
         </testcase>
         <testcase id="guestops.basic.TCReboot" tc="TC-9632">
         <arg>guest=ws08sp2-x86</arg>
-        <arg>loops=10</arg>
+        <arg>loops=5</arg>
         </testcase>
         <testcase id="guestops.srm.TCSuspendResume" tc="TC-9633">
         <arg>guest=ws08sp2-x86</arg>
         <arg>workloads</arg>
-        <arg>loops=10</arg>
+        <arg>loops=5</arg>
         </testcase>
         <testcase id="guestops.srm.TCMigrate" tc="TC-9634">
         <arg>guest=ws08sp2-x86</arg>
@@ -54,7 +47,7 @@
         <arg>guest=ws08sp2-x86</arg>
         <arg>live</arg>
         <arg>workloads</arg>
-        <arg>loops=10</arg>
+        <arg>loops=5</arg>
         </testcase>
         <!-- <testcase id="guestops.srm.TCHibernate" tc="TC-9636">
         <arg>guest=ws08sp2-x86</arg>
@@ -100,16 +93,16 @@
         </testcase>
         <testcase id="guestops.basic.TCStartStop" tc="TC-9643">
         <arg>guest=ws08sp2-x64</arg>
-        <arg>loops=10</arg>
+        <arg>loops=5</arg>
         </testcase>
         <testcase id="guestops.basic.TCReboot" tc="TC-9644">
         <arg>guest=ws08sp2-x64</arg>
-        <arg>loops=10</arg>
+        <arg>loops=5</arg>
         </testcase>
         <testcase id="guestops.srm.TCSuspendResume" tc="TC-9645">
         <arg>guest=ws08sp2-x64</arg>
         <arg>workloads</arg>
-        <arg>loops=10</arg>
+        <arg>loops=5</arg>
         </testcase>
         <testcase id="guestops.srm.TCMigrate" tc="TC-9646">
         <arg>guest=ws08sp2-x64</arg>
@@ -120,7 +113,7 @@
         <arg>guest=ws08sp2-x64</arg>
         <arg>live</arg>
         <arg>workloads</arg>
-        <arg>loops=10</arg>
+        <arg>loops=5</arg>
         </testcase>
         <!-- <testcase id="guestops.srm.TCHibernate" tc="TC-9648">
         <arg>guest=ws08sp2-x64</arg>

@@ -8,12 +8,6 @@
     <OPTION_OEM_ALL_LOGS>yes</OPTION_OEM_ALL_LOGS>
   </variables>
 
-  <default name="MIGRATEPAR" value="1"/>
-
-  <semaphores>
-    <TCMigrate count="${MIGRATEPAR}"/>
-  </semaphores>
-
   <prepare>
     <host/>
   </prepare>
@@ -32,16 +26,16 @@
         </testcase>
         <testcase id="guestops.basic.TCStartStop" tc="TC-7518">
           <arg>guest=winxpsp3</arg>
-          <arg>loops=10</arg>
+          <arg>loops=5</arg>
         </testcase>
         <testcase id="guestops.basic.TCReboot" tc="TC-7519">
           <arg>guest=winxpsp3</arg>
-          <arg>loops=10</arg>
+          <arg>loops=5</arg>
         </testcase>
         <testcase id="guestops.srm.TCSuspendResume" tc="TC-7520">
           <arg>guest=winxpsp3</arg>
           <arg>workloads</arg>
-          <arg>loops=10</arg>
+          <arg>loops=5</arg>
         </testcase>
         <testcase id="guestops.srm.TCMigrate" tc="TC-7521">
           <arg>guest=winxpsp3</arg>
@@ -52,7 +46,7 @@
           <arg>guest=winxpsp3</arg>
           <arg>live</arg>
           <arg>workloads</arg>
-          <arg>loops=10</arg>
+          <arg>loops=5</arg>
         </testcase>
         <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-7524">
           <arg>N/A</arg>

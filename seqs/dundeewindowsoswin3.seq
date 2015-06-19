@@ -7,19 +7,12 @@
     <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
   </variables>
 
-  <default name="PARALLEL" value="2"/>
-  <default name="MIGRATEPAR" value="1"/>
-
-  <semaphores>
-    <TCMigrate count="${MIGRATEPAR}"/>
-  </semaphores>
-
   <prepare>
     <host/>
   </prepare>
 
   <testsequence>
-    <parallel workers="${PARALLEL}">
+    <parallel>
 
     <serial group="vistaeesp2">
       <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="VMInstall" tc="TC-9602">
@@ -34,16 +27,16 @@
         </testcase>
         <testcase id="guestops.basic.TCStartStop" tc="TC-9604">
         <arg>guest=vistaeesp2</arg>
-        <arg>loops=10</arg>
+        <arg>loops=5</arg>
         </testcase>
         <testcase id="guestops.basic.TCReboot" tc="TC-9605">
         <arg>guest=vistaeesp2</arg>
-        <arg>loops=10</arg>
+        <arg>loops=5</arg>
         </testcase>
         <testcase id="guestops.srm.TCSuspendResume" tc="TC-9606">
         <arg>guest=vistaeesp2</arg>
         <arg>workloads</arg>
-        <arg>loops=10</arg>
+        <arg>loops=5</arg>
         <arg>clone</arg>
         </testcase>
         <testcase id="guestops.srm.TCMigrate" tc="TC-9607">
@@ -56,7 +49,7 @@
         <arg>guest=vistaeesp2</arg>
         <arg>live</arg>
         <arg>workloads</arg>
-        <arg>loops=10</arg>
+        <arg>loops=5</arg>
         <arg>clone</arg>
         </testcase>
         <!-- <testcase id="guestops.srm.TCHibernate" tc="TC-9609">

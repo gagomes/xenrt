@@ -7,19 +7,12 @@
     <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
   </variables>
 
-  <default name="PARALLEL" value="2"/>
-  <default name="MIGRATEPAR" value="1"/>
-
-  <semaphores>
-    <TCMigrate count="${MIGRATEPAR}"/>
-  </semaphores>
-
   <prepare>
     <host/>
   </prepare>
 
   <testsequence>
-    <parallel workers="${PARALLEL}">
+    <parallel>
 
     <serial group="win8-x86">
       <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="VMInstall" tc="TC-17915">
@@ -37,16 +30,16 @@
         </testcase>
         <testcase id="guestops.basic.TCStartStop" tc="TC-17917">
         <arg>guest=win8-x86</arg>
-        <arg>loops=10</arg>
+        <arg>loops=5</arg>
         </testcase>
         <testcase id="guestops.basic.TCReboot" tc="TC-17918">
         <arg>guest=win8-x86</arg>
-        <arg>loops=10</arg>
+        <arg>loops=5</arg>
         </testcase>
         <testcase id="guestops.srm.TCSuspendResume" tc="TC-17919">
         <arg>guest=win8-x86</arg>
         <arg>workloads</arg>
-        <arg>loops=10</arg>
+        <arg>loops=5</arg>
         </testcase>
         <testcase id="guestops.srm.TCMigrate" tc="TC-17920">
         <arg>guest=win8-x86</arg>
@@ -100,16 +93,16 @@
         </testcase>
         <testcase id="guestops.basic.TCStartStop" tc="TC-17929">
         <arg>guest=win8-x64</arg>
-        <arg>loops=10</arg>
+        <arg>loops=5</arg>
         </testcase>
         <testcase id="guestops.basic.TCReboot" tc="TC-17930">
         <arg>guest=win8-x64</arg>
-        <arg>loops=10</arg>
+        <arg>loops=5</arg>
         </testcase>
         <testcase id="guestops.srm.TCSuspendResume" tc="TC-17931">
         <arg>guest=win8-x64</arg>
         <arg>workloads</arg>
-        <arg>loops=10</arg>
+        <arg>loops=5</arg>
         </testcase>
         <testcase id="guestops.srm.TCMigrate" tc="TC-17932">
         <arg>guest=win8-x64</arg>

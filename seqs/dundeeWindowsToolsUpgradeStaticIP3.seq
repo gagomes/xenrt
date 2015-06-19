@@ -1,6 +1,6 @@
 <xenrt>
 
-  <!-- Clearwater to Dundee VM Tools/drivers/kernel upgrade test -->
+  <!-- from Clearwater VM Tools/drivers/kernel upgrade test -->
 
   <default name="OLD_PRODUCT_VERSION" value="Clearwater"/>
   <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446"/>
@@ -15,7 +15,7 @@
 
   <prepare>
     <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}">
-
+      <storage type="nfs" name="nfs" />
       <vm name="win8-x86">
         <distro>win8-x86</distro>
         <memory>${GUESTMEMORY}</memory>

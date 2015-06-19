@@ -640,7 +640,7 @@ powershell %s""" % (self.ASF_WORKING_DIR, netUseCommand, command)
 
     def executeAsfTests(self, asfCont):
         try:
-            command = """$rc = @(Invoke-AsfWorkflow)
+            command = """$rc = @(Invoke-AsfWorkflow -NewWindow)
 $rc = $rc[$rc.Length-1]
 Write-Host "Invoke-AsfWorkflow exited: $rc"
 

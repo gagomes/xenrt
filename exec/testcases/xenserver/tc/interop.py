@@ -462,7 +462,7 @@ class TCXdAsfSetup(xenrt.TestCase):
 
     XD_SVC_ACCOUNT_USERNAME = 'ENG\\svc_testautomation'
     XD_SVC_ACCOUNT_PASSWORD = 't41ly.h13Q1'
-    XD_DOWNLOADS_PATH = '\\\\eng.citrite.net\\cam\\downloads'
+    XD_DOWNLOADS_PATH = '\\\\eng.citrite.net\\global\\layouts\\cds'
 
     ASF_NETWORK_NAME = 'AutoBVT2'
     ASF_WORKING_DIR = 'c:\\asf'
@@ -507,9 +507,10 @@ class TCXdAsfSetup(xenrt.TestCase):
 
         return guestDict
 
-    def executeASFShellCommand(self, asfCont, command, csvFormat=False, timeout=300):
+    def executeASFShellCommand(self, asfCont, command, csvFormat=False, timeout=300, netUse=False):
         csvFormatStr = csvFormat and '| convertto-csv' or ''
-        commandStr = 'cd %s; Import-Module asf; echo "xrtretdatastart"; %s %s; echo "xrtretdataend"' % (self.ASF_WORKING_DIR, command, csvFormatStr)
+        netUseCommand = netUse and 'net use %s /user:%s %s /persistent:yes; ' % (self.XD_DOWNLOADS_PATH, self.XD_SVC_ACCOUNT_USERNAME, self.XD_SVC_ACCOUNT_PASSWORD) or ''
+        commandStr = '%scd %s; Import-Module asf; echo "xrtretdatastart"; %s %s; echo "xrtretdataend"' % (netUseCommand,self.ASF_WORKING_DIR, command, csvFormatStr)
         rValue = asfCont.xmlrpcExec(commandStr, powershell=True, returndata=True, timeout=timeout).splitlines()
         rData = []
         storeLines = False
@@ -551,14 +552,17 @@ powershell %s""" % (self.ASF_WORKING_DIR, netUseCommand, command)
 
     def configureAsfController(self, asfCont, xdVersion, host):
         asfRepository = xdVersion
+        asfRepositoryPath = "\\\\camesarc01.eng.citrite.net\\planb\\Automation\\Tests\\XD"
         testSuites = ['Common', 'TestApi', 'LayoutBvts']
 
         # Install tests
-        try:
-            rData = self.executeASFShellCommand(asfCont, 'Install-Tests -Repository %s -TestSuites %s -UserName %s -Password %s' % (asfRepository, ','.join(testSuites), self.XD_SVC_ACCOUNT_USERNAME, self.XD_SVC_ACCOUNT_PASSWORD))
-        except xenrt.XRTFailure, e:
-            xenrt.TEC().logverbose('Try again - issue being investigated: %s' % (e.data))
-            rData = self.executeASFShellCommand(asfCont, 'Install-Tests -Repository %s -TestSuites %s -UserName %s -Password %s' % (asfRepository, ','.join(testSuites), self.XD_SVC_ACCOUNT_USERNAME, self.XD_SVC_ACCOUNT_PASSWORD))
+        # Temporary workaround for a false positive from the GSO virus scanner
+        data = asfCont.xmlrpcReadFile("C:\\ASF\\environment\\SAL\\TestManager\\TestManager.psm1")
+        asfCont.xmlrpcExec("attrib -r C:\\ASF\\environment\\SAL\\TestManager\\TestManager.psm1")
+        asfCont.xmlrpcRemoveFile("C:\\ASF\\environment\\SAL\\TestManager\\TestManager.psm1")
+        asfCont.xmlrpcWriteFile("C:\\ASF\\environment\\SAL\\TestManager\\TestManager.psm1", data.replace("\"release.txt\"", "\"release.txt\",\"Install-Tools.ps1\""))
+
+        rData = self.executeASFShellCommand(asfCont, 'Install-Tests -Repository %s -TestRepositoryPath %s -TestSuites %s -UserName %s -Password %s' % (asfRepository, asfRepositoryPath, ','.join(testSuites), self.XD_SVC_ACCOUNT_USERNAME, self.XD_SVC_ACCOUNT_PASSWORD), timeout=600)
 
         map(lambda x:xenrt.TEC().logverbose(x), rData)
 
@@ -575,6 +579,12 @@ powershell %s""" % (self.ASF_WORKING_DIR, netUseCommand, command)
         xenrt.TEC().logverbose('Using Client Templates: %s' % (map(lambda x:x['OSName'].strip(), clientTemplates)))
         serverTemplates = filter(lambda x:x['HypName'] == host.getName() and not x['TemplateName'].startswith('__') and not x['TemplateName'].startswith('ASF') and x['ServerOs'] == 'True', templateList)
         xenrt.TEC().logverbose('Using Server Templates: %s' % (map(lambda x:x['OSName'].strip(), serverTemplates)))
+
+        # Temporary workaround for ENG DFS issues
+        data = asfCont.xmlrpcReadFile("C:\\asf\\tests\\layoutbvts\\xenserver\\setup.ps1")
+        asfCont.xmlrpcExec("attrib -r C:\\asf\\tests\\layoutbvts\\xenserver\\setup.ps1")
+        asfCont.xmlrpcRemoveFile("C:\\asf\\tests\\layoutbvts\\xenserver\\setup.ps1")
+        asfCont.xmlrpcWriteFile("C:\\asf\\tests\\layoutbvts\\xenserver\\setup.ps1", data.replace("Install-SAL", "Install-SAL -RepositoryPath \"\\\\camarc01.eng.citrite.net\\planb\\automation\\SAL\" -UserName %s -Password %s" % (self.XD_SVC_ACCOUNT_USERNAME, self.XD_SVC_ACCOUNT_PASSWORD)))
 
         self.executeASFShellCommand(asfCont, 'c:\\asf\\tests\\layoutbvts\\xenserver\\setup.ps1 -ClientTemplate %s -DdcTemplate %s -VdaTemplates %s' % (clientTemplates[0]['TemplateName'], serverTemplates[0]['TemplateName'], clientTemplates[0]['TemplateName']))
 
@@ -630,7 +640,19 @@ powershell %s""" % (self.ASF_WORKING_DIR, netUseCommand, command)
 
     def executeAsfTests(self, asfCont):
         try:
-            result = self.executeASFShellCommand(asfCont, 'Invoke-AsfWorkFlow -NewWindow', timeout=60*60*3)
+            command = """$rc = @(Invoke-AsfWorkflow -NewWindow)
+$rc = $rc[$rc.Length-1]
+Write-Host "Invoke-AsfWorkflow exited: $rc"
+
+if ($rc -ne 0){
+    try {
+        $errorReason = Get-AsfFailureMessage $rc
+    } catch {}
+    Throw "Invoke-AsfWorkflow : $rc - $errorReason"
+}
+return $rc
+"""
+            result = self.executeASFShellCommand(asfCont, command.replace("\n","; "), timeout=60*60*3, netUse=True)
             xenrt.TEC().comment('ASF Test Returned Result: %s' % (result))
         except Exception, e:
             xenrt.TEC().comment('ASF Test Returned Exception: %s' % (e))

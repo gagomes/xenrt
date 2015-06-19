@@ -16,8 +16,8 @@
 
   <testsequence>
     <parallel group="EPT">
-      <testcase id="xenserver.tc.vmlifecycle.TCwin2k8x86"/>
-      <testcase id="xenserver.tc.vmlifecycle.TCwin2k8x64"/>
+      <testcase tc="TC-27067" id="xenserver.tc.vmlifecycle.TCwin2k8x86"/>
+      <testcase tc="TC-27068" id="xenserver.tc.vmlifecycle.TCwin2k8x64"/>
     </parallel>
   </testsequence>
 

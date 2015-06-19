@@ -9,7 +9,7 @@
 
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
-    <PREPARE_WORKERS>9</PREPARE_WORKERS>
+    <PREPARE_WORKERS>8</PREPARE_WORKERS>
     <HFX_BRANCH_CLEARWATER>RTM</HFX_BRANCH_CLEARWATER>
   </variables>
 
@@ -90,11 +90,6 @@
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
       </vm>
-      <vm name="testpeer">
-        <distro>debian60</distro>
-        <network device="0" bridge="NSEC"/>
-        <postinstall action="preCloneTailor"/>
-      </vm>
       <NETWORK>
         <PHYSICAL network="NPRI">
           <NIC/>
@@ -112,20 +107,17 @@
       <testcase id="xenserver.install.TCXenServerUpgrade">
         <arg>input=DEFAULT</arg>
       </testcase>
-      <testcase id="xenserver.tc.upgrade.TCStarttestpeer" blocker="yes"/>
     </serial>
-    <serial group="UpgVM">
-      <parallel>
-        <testcase id="xenserver.tc.upgrade.TC19900" sku="RTM" name="TC19900_RTM"/>
-        <testcase id="xenserver.tc.upgrade.TC19901" sku="RTM" name="TC19901_RTM"/>
-        <testcase id="xenserver.tc.upgrade.TC19902" sku="RTM" name="TC19902_RTM"/>
-        <testcase id="xenserver.tc.upgrade.TC19903" sku="RTM" name="TC19903_RTM"/>
-        <testcase id="xenserver.tc.upgrade.TC20716" sku="RTM" name="TC20716_RTM"/>
-        <testcase id="xenserver.tc.upgrade.TC20717" sku="RTM" name="TC20717_RTM"/>
-        <testcase id="xenserver.tc.upgrade.TC20718" sku="RTM" name="TC20718_RTM"/>
-        <testcase id="xenserver.tc.upgrade.TC20719" sku="RTM" name="TC20719_RTM"/>
-      </parallel>
-    </serial>
+    <parallel>
+      <testcase id="xenserver.tc.upgrade.TC19900" sku="RTM" name="TC19900_RTM"/>
+      <testcase id="xenserver.tc.upgrade.TC19901" sku="RTM" name="TC19901_RTM"/>
+      <testcase id="xenserver.tc.upgrade.TC19902" sku="RTM" name="TC19902_RTM"/>
+      <testcase id="xenserver.tc.upgrade.TC19903" sku="RTM" name="TC19903_RTM"/>
+      <testcase id="xenserver.tc.upgrade.TC20716" sku="RTM" name="TC20716_RTM"/>
+      <testcase id="xenserver.tc.upgrade.TC20717" sku="RTM" name="TC20717_RTM"/>
+      <testcase id="xenserver.tc.upgrade.TC20718" sku="RTM" name="TC20718_RTM"/>
+      <testcase id="xenserver.tc.upgrade.TC20719" sku="RTM" name="TC20719_RTM"/>
+    </parallel>
   </testsequence>
 
 </xenrt>

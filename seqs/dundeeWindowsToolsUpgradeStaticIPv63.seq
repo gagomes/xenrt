@@ -9,7 +9,7 @@
 
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
-    <PREPARE_WORKERS>9</PREPARE_WORKERS>
+    <PREPARE_WORKERS>8</PREPARE_WORKERS>
     <HFX_BRANCH_CLEARWATER>RTM</HFX_BRANCH_CLEARWATER>
   </variables>
 
@@ -96,11 +96,6 @@
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
       </vm>
-      <vm name="testpeer">
-        <distro>debian60</distro>
-        <network device="0" bridge="NSEC"/>
-        <postinstall action="preCloneTailor"/>
-      </vm>
       <NETWORK>
         <PHYSICAL network="NPRI">
           <NIC/>
@@ -119,18 +114,16 @@
         <arg>input=DEFAULT</arg>
       </testcase>
     </serial>
-    <serial group="UpgVM">
-      <parallel>
-        <testcase id="xenserver.tc.upgrade.TC19904"/>
-        <testcase id="xenserver.tc.upgrade.TC19905"/>
-        <testcase id="xenserver.tc.upgrade.TC19906"/>
-        <testcase id="xenserver.tc.upgrade.TC19907"/>
-        <testcase id="xenserver.tc.upgrade.TC20720"/>
-        <testcase id="xenserver.tc.upgrade.TC20721"/>
-        <testcase id="xenserver.tc.upgrade.TC20722"/>
-        <testcase id="xenserver.tc.upgrade.TC20723"/>
-      </parallel>
-    </serial>
+    <parallel>
+      <testcase id="xenserver.tc.upgrade.TC19904"/>
+      <testcase id="xenserver.tc.upgrade.TC19905"/>
+      <testcase id="xenserver.tc.upgrade.TC19906"/>
+      <testcase id="xenserver.tc.upgrade.TC19907"/>
+      <testcase id="xenserver.tc.upgrade.TC20720"/>
+      <testcase id="xenserver.tc.upgrade.TC20721"/>
+      <testcase id="xenserver.tc.upgrade.TC20722"/>
+      <testcase id="xenserver.tc.upgrade.TC20723"/>
+    </parallel>
   </testsequence>
 
 </xenrt>

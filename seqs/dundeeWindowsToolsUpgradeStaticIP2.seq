@@ -9,7 +9,7 @@
 
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
-    <PREPARE_WORKERS>6</PREPARE_WORKERS>
+    <PREPARE_WORKERS>5</PREPARE_WORKERS>
   </variables>
 
   <prepare>
@@ -59,11 +59,6 @@
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
       </vm>
-      <vm name="testpeer">
-        <distro>debian60</distro>
-        <network device="0" bridge="NSEC"/>
-        <postinstall action="preCloneTailor"/>
-      </vm>
       <NETWORK>
         <PHYSICAL network="NPRI">
           <NIC/>
@@ -82,17 +77,14 @@
       <testcase id="xenserver.install.TCXenServerUpgrade">
         <arg>input=DEFAULT</arg>
       </testcase>
-      <testcase id="xenserver.tc.upgrade.TCStarttestpeer" blocker="yes"/>
     </serial>
-    <serial group="UpgVM">
-      <parallel>
-        <testcase id="xenserver.tc.upgrade.TC15223"/>
-        <testcase id="xenserver.tc.upgrade.TC15225"/>
-        <testcase id="xenserver.tc.upgrade.TC15227"/>
-        <testcase id="xenserver.tc.upgrade.TC15229"/>
-        <testcase id="xenserver.tc.upgrade.TC15230"/>
-      </parallel>
-    </serial>
+    <parallel>
+      <testcase id="xenserver.tc.upgrade.TC15223"/>
+      <testcase id="xenserver.tc.upgrade.TC15225"/>
+      <testcase id="xenserver.tc.upgrade.TC15227"/>
+      <testcase id="xenserver.tc.upgrade.TC15229"/>
+      <testcase id="xenserver.tc.upgrade.TC15230"/>
+    </parallel>
   </testsequence>
 
 </xenrt>

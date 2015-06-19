@@ -9,7 +9,7 @@
 
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
-    <PREPARE_WORKERS>4</PREPARE_WORKERS>
+    <PREPARE_WORKERS>3</PREPARE_WORKERS>
   </variables>
 
   <prepare>
@@ -41,11 +41,6 @@
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
       </vm>
-      <vm name="testpeer">
-        <distro>debian60</distro>
-        <network device="0" bridge="NSEC"/>
-        <postinstall action="preCloneTailor"/>
-      </vm>
       <NETWORK>
         <PHYSICAL network="NPRI">
           <NIC/>
@@ -65,13 +60,11 @@
         <arg>input=DEFAULT</arg>
       </testcase>
     </serial>
-    <serial group="UpgVM">
-      <parallel>
-        <testcase id="xenserver.tc.upgrade.TC18828"/>
-        <testcase id="xenserver.tc.upgrade.TC18830"/>
-        <testcase id="xenserver.tc.upgrade.TC18832"/>
-      </parallel>
-    </serial>
+    <parallel>
+      <testcase id="xenserver.tc.upgrade.TC18828"/>
+      <testcase id="xenserver.tc.upgrade.TC18830"/>
+      <testcase id="xenserver.tc.upgrade.TC18832"/>
+    </parallel>
   </testsequence>
 
 </xenrt>

@@ -368,6 +368,8 @@ subnet %s netmask %s {
                     "      hardware ethernet %s;\n"
                     "    }\n" % (machine.replace("_","-"), addr, mac))
             intfcfg['eth0']['reservations'][mac] = {"name": machine.replace("_","-"), "ip": addr}
+            if config.lookup(["HOST_CONFIGS", machine, "USE_IPXE"], False, boolean=True):
+                intfcfg['eth0']['reservations'][mac]['ipxe'] = True
     # Get entries for other interfaces with statically assigned addresses
     hostSecondaryEntries = {}
     for machine in machines:

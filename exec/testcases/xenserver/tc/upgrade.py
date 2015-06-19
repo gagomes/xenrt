@@ -2807,22 +2807,20 @@ class _FeatureOperationAfterUpgrade(xenrt.TestCase):
 
 class _WindowsPVUpgradeWithStaticIP(_VMToolsUpgrade):
     def prepare(self,arglist):
-        self.testpeer = self.getGuest("testpeer")
-        if self.testpeer.getState() != "UP":
-            self.testpeer.start()
         _VMToolsUpgrade.prepare(self,arglist)
         if not self.guest.windows:
             raise xenrt.XRTError("Guest is not windows")
         # Reconfigure the VIFs on the private networks
-        self.guest.configureNetwork("eth1", "192.168.1.2", "255.255.255.0")
-        self.testpeer.configureNetwork("eth1", "192.168.1.1", "255.255.255.0")
+        self.staticIP = xenrt.StaticIP4Addr(network="NSEC")
+        self.guest.configureNetwork("eth1", self.staticIP.getAddr(),xenrt.TEC().lookup(["NETWORK_CONFIG",
+                                       "SECONDARY",
+                                       "SUBNETMASK"]))
 
         # Stop the firewall blocking ICMP
         self.guest.xmlrpcExec("netsh firewall set icmpsetting 8")
 
         # Sanity check that it's currently working
-        self.testpeer.execguest("ping -c 10 192.168.1.2")
-
+        xenrt.command("ping -c 10 %s" % self.staticIP.getAddr())
 
     def run(self, arglist):
 
@@ -2839,7 +2837,7 @@ class _WindowsPVUpgradeWithStaticIP(_VMToolsUpgrade):
         self.guest.getWindowsIPConfigData()
 
         # Check the VM kept it's static IP after the tools upgrade
-        self.testpeer.execguest("ping -c 10 192.168.1.2")
+        xenrt.command("ping -c 10 %s" % self.staticIP.getAddr())
 
         # Uninstall tools
         if self.runSubcase("uninstallTools", (), "Tools", "Uninstall") != xenrt.RESULT_PASS:
@@ -2849,9 +2847,14 @@ class _WindowsPVUpgradeWithStaticIP(_VMToolsUpgrade):
 
         # Check the VM kept it's static IP after the tools uninstallation
         if isinstance(self.guest, xenrt.lib.xenserver.guest.TampaGuest) and self.guest.host.productVersion != "Tampa" and not self.guest.usesLegacyDrivers():
-            self.testpeer.execguest("ping -c 10 192.168.1.2")
+            xenrt.command("ping -c 10 %s" % self.staticIP.getAddr())
 
         self.guest.shutdown()
+  
+    def postRun(self):
+    
+        self.guest.shutdown()
+        self.staticIP.release()
 
 class _WindowsPVUpgradeWithStaticIPv6(_VMToolsUpgrade):
     def prepare(self, arglist):

@@ -1,6 +1,6 @@
 <xenrt>
 
-  <!-- From Clearwater VM Tools/drivers/kernel upgrade test -->
+  <!-- from Clearwater VM Tools/drivers/kernel upgrade test -->
 
   <default name="OLD_PRODUCT_VERSION" value="Clearwater"/>
   <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446"/>
@@ -9,21 +9,19 @@
 
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
-    <PREPARE_WORKERS>6</PREPARE_WORKERS>
+    <PREPARE_WORKERS>8</PREPARE_WORKERS>
     <HFX_BRANCH_CLEARWATER>RTM</HFX_BRANCH_CLEARWATER>
   </variables>
 
   <prepare>
     <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}">
       <storage type="nfs" name="nfs" />
-      <bridge name="internal"/>
       <vm name="win8-x86">
         <distro>win8-x86</distro>
         <memory>${GUESTMEMORY}</memory>
         <vcpus>${GUESTVCPUS}</vcpus>
-        <storage>nfs</storage>
         <network device="0"/>
-        <network device="1" bridge="internal"/>
+        <network device="1" bridge="NSEC"/>
         <postinstall action="disableIPv6"/>
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
@@ -32,9 +30,8 @@
         <distro>win8-x64</distro>
         <memory>${GUESTMEMORY}</memory>
         <vcpus>${GUESTVCPUS}</vcpus>
-        <storage>nfs</storage>
         <network device="0"/>
-        <network device="1" bridge="internal"/>
+        <network device="1" bridge="NSEC"/>
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
       </vm>
@@ -42,9 +39,8 @@
         <distro>ws12-x64</distro>
         <memory>${GUESTMEMORY}</memory>
         <vcpus>${GUESTVCPUS}</vcpus>
-        <storage>nfs</storage>
         <network device="0"/>
-        <network device="1" bridge="internal"/>
+        <network device="1" bridge="NSEC"/>
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
       </vm>
@@ -52,9 +48,8 @@
         <distro>ws12core-x64</distro>
         <memory>${GUESTMEMORY}</memory>
         <vcpus>${GUESTVCPUS}</vcpus>
-        <storage>nfs</storage>
         <network device="0"/>
-        <network device="1" bridge="internal"/>
+        <network device="1" bridge="NSEC"/>
         <postinstall action="disableIPv6"/>
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
@@ -63,9 +58,8 @@
         <distro>win81-x86</distro>
         <memory>${GUESTMEMORY}</memory>
         <vcpus>${GUESTVCPUS}</vcpus>
-        <storage>nfs</storage>
         <network device="0"/>
-        <network device="1" bridge="internal"/>
+        <network device="1" bridge="NSEC"/>
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
       </vm>
@@ -73,9 +67,8 @@
         <distro>win81-x64</distro>
         <memory>${GUESTMEMORY}</memory>
         <vcpus>${GUESTVCPUS}</vcpus>
-        <storage>nfs</storage>
         <network device="0"/>
-        <network device="1" bridge="internal"/>
+        <network device="1" bridge="NSEC"/>
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
       </vm>
@@ -83,9 +76,8 @@
         <distro>ws12r2-x64</distro>
         <memory>${GUESTMEMORY}</memory>
         <vcpus>${GUESTVCPUS}</vcpus>
-        <storage>nfs</storage>
         <network device="0"/>
-        <network device="1" bridge="internal"/>
+        <network device="1" bridge="NSEC"/>
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
       </vm>
@@ -93,18 +85,20 @@
         <distro>ws12r2core-x64</distro>
         <memory>${GUESTMEMORY}</memory>
         <vcpus>${GUESTVCPUS}</vcpus>
-        <storage>nfs</storage>
         <network device="0"/>
-        <network device="1" bridge="internal"/>
+        <network device="1" bridge="NSEC"/>
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
       </vm>
-      <vm name="testpeer">
-        <distro>debian60</distro>
-        <network device="0" />
-        <network device="1" bridge="internal"/>
-        <postinstall action="preCloneTailor"/>
-      </vm>
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <NIC/>
+          <MANAGEMENT/>
+        </PHYSICAL>
+        <PHYSICAL network="NSEC">
+          <NIC/>
+        </PHYSICAL>
+      </NETWORK>
     </host>
   </prepare>
 
@@ -114,16 +108,16 @@
         <arg>input=DEFAULT</arg>
       </testcase>
     </serial>
-    <serial group="UpgVM">
-      <testcase id="xenserver.tc.upgrade.TC19900"/>
-      <testcase id="xenserver.tc.upgrade.TC19901"/>
-      <testcase id="xenserver.tc.upgrade.TC19902"/>
-      <testcase id="xenserver.tc.upgrade.TC19903"/>
-      <testcase id="xenserver.tc.upgrade.TC20716"/>
-      <testcase id="xenserver.tc.upgrade.TC20717"/>
-      <testcase id="xenserver.tc.upgrade.TC20718"/>
-      <testcase id="xenserver.tc.upgrade.TC20719"/>
-    </serial>
+    <parallel group="UpgVM">
+      <testcase id="xenserver.tc.upgrade.TC19900" sku="RTM" name="TC19900_RTM"/>
+      <testcase id="xenserver.tc.upgrade.TC19901" sku="RTM" name="TC19901_RTM"/>
+      <testcase id="xenserver.tc.upgrade.TC19902" sku="RTM" name="TC19902_RTM"/>
+      <testcase id="xenserver.tc.upgrade.TC19903" sku="RTM" name="TC19903_RTM"/>
+      <testcase id="xenserver.tc.upgrade.TC20716" sku="RTM" name="TC20716_RTM"/>
+      <testcase id="xenserver.tc.upgrade.TC20717" sku="RTM" name="TC20717_RTM"/>
+      <testcase id="xenserver.tc.upgrade.TC20718" sku="RTM" name="TC20718_RTM"/>
+      <testcase id="xenserver.tc.upgrade.TC20719" sku="RTM" name="TC20719_RTM"/>
+    </parallel>
   </testsequence>
 
 </xenrt>

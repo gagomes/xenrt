@@ -114,7 +114,7 @@
         <arg>input=DEFAULT</arg>
       </testcase>
     </serial>
-    <parallel>
+    <parallel group="UpgVM">
       <testcase id="xenserver.tc.upgrade.TC19904"/>
       <testcase id="xenserver.tc.upgrade.TC19905"/>
       <testcase id="xenserver.tc.upgrade.TC19906"/>

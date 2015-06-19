@@ -445,6 +445,12 @@ def generateLabCostPerTechArea(suiteId, outputDir=None):
         if outputDir:
             xenrt.command("cp -f -r %s/* %s" % (tempDir,outputDir))
         print "Data saved in directory '%s'" % (outputDir if outputDir else tempDir)
+    except Exception, e:
+        errorLogDir = "%s/logs" % outputDir
+        if not os.path.exists(errorLogDir):
+            os.makedirs(errorLogDir)
+        with open("%s/%s.error" % (errorLogDir,suiteId), "w") as f:
+            f.write("[%s] %s" % (str(xenrt.GEC().jobid()) or "nojob", e))
     finally:
         os.unlink("%s/%s.generating" % (outputDir,suiteId))
 

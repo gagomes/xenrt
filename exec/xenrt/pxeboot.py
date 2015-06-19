@@ -215,7 +215,7 @@ LABEL %s
 
 class PXEBoot(xenrt.resources.DirectoryResource):
     """A directory on a PXE server."""
-    def __init__(self, place=None, abspath=False, removeOnExit=False, iSCSILUN=None, remoteNfs=None):
+    def __init__(self, place=None, abspath=False, removeOnExit=False, iSCSILUN=None, remoteNfs=None, ipxeInUse = False):
         self.abspath = abspath
         self.mount = None
         # Allow us to specify a guest to use as a PXE server.
@@ -229,7 +229,7 @@ class PXEBoot(xenrt.resources.DirectoryResource):
         else:
             self.tftpbasedir = xenrt.TEC().lookup("TFTP_BASE")
         self.iSCSILUN = iSCSILUN
-        if self.iSCSILUN and not xenrt.TEC().lookup("USE_IPXE", False, boolean=True):
+        if self.iSCSILUN and not xenrt.TEC().lookup("USE_IPXE", False, boolean=True) and not ipxeInUse:
             raise xenrt.XRTError("Must use iPXE to use do iSCSI boot")
         self.pxebasedir = os.path.normpath(
             self.tftpbasedir + "/" + \

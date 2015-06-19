@@ -844,7 +844,7 @@ class Host(xenrt.GenericHost):
                              (self.machine.name))
         
         # Get a PXE directory to put boot files in
-        pxe = xenrt.PXEBoot(iSCSILUN = self.bootLun)
+        pxe = xenrt.PXEBoot(iSCSILUN = self.bootLun, ipxeInUse = self.lookup("USE_IPXE", False, boolean=True))
         use_mboot_img = xenrt.TEC().lookup("USE_MBOOT_IMG", False, boolean=True)
        
         # Pull installer boot files from CD image and put into PXE

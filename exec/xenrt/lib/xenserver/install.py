@@ -141,7 +141,7 @@ class DundeeInstaller(object):
             self.setupInstallUefiPxe(pxe, mountpoint, answerfileUrl)
         else:
             # Get a PXE directory to put boot files in
-            pxe = xenrt.PXEBoot(iSCSILUN = self.host.bootLun)
+            pxe = xenrt.PXEBoot(iSCSILUN = self.host.bootLun, ipxeInUse = self.host.lookup("USE_IPXE", False, boolean=True))
             self.setupInstallPxe(pxe, mountpoint, answerfileUrl)
         # We're done with the ISO now
         mount.unmount()

@@ -9,7 +9,8 @@
 #
 
 import socket, re, string, time, traceback, sys, random, copy, shutil, os, re
-import xenrt, xenrt.lib.xenserver, testcases.xenserver.tc.upgrade
+import xenrt, xenrt.lib.xenserver
+from testcases.xenserver.tc.upgrade import TCRollingPoolUpdate 
 from xenrt import XRTError
 from xenrt.lazylog import step, log
 
@@ -2120,7 +2121,7 @@ class TCApplyHotfixes(xenrt.TestCase):
             self.host.applyPatch(xenrt.TEC().getFile(patches[p]), patchClean=True)
         self.host.reboot()
 
-class TCRollingPoolHFX(testcases.xenserver.tc.upgrade.TCRollingPoolUpdate):
+class TCRollingPoolHFX(TCRollingPoolUpdate):
     """
     Install Required HFX(s) for a current release on a pool 
     Install All Required Patches and THIS_HOTFIX and perform most significant apply action.
@@ -2128,7 +2129,7 @@ class TCRollingPoolHFX(testcases.xenserver.tc.upgrade.TCRollingPoolUpdate):
     
     UPGRADE = False
 
-class TC21007(testcases.xenserver.tc.upgrade.TCRollingPoolUpdate):
+class TC21007(TCRollingPoolUpdate):
     """
     Perform rolling pool update test with Xapi restart on hosts in intermediate states 
     during Rolling pool update. Regression test for HFX-1033, HFX-1034, HFX-1035.

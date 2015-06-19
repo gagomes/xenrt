@@ -3770,7 +3770,7 @@ class TC12212(_MultipathSingleHostUpgrade):
     SR_MULTIPATHED = True
     ROOT_DISK_MULTIPATHED_NEW = True
 
-class _RpuNewPartionsSingleHost(_SingleHostUpgrade):
+class _RpuNewPartitionsSingleHost(_SingleHostUpgrade):
 
     EXTRASUBCASES = [("checkPartitions", (), "Check", "Partitions")]
     SAFE2UPGRAGE_CHECK = True
@@ -3789,13 +3789,13 @@ class _RpuNewPartionsSingleHost(_SingleHostUpgrade):
         log("Found expected Dom0 partitions on XS clean installation: %s" % partitions)
 
 
-class TCRpuNewPartSingle(_RpuNewPartionsSingleHost):
+class TCRpuNewPartSingle(_RpuNewPartitionsSingleHost):
     """TC-27063 - Dom0 disk partitioning on single host upgrade with no VMs on local storage"""
 
     NEW_PARTITIONS = True
     NO_VMS = True
 
-class TCRpuOldPartSingle(_RpuNewPartionsSingleHost):
+class TCRpuOldPartSingle(_RpuNewPartitionsSingleHost):
     """TC-27064 - Dom0 disk partitioning on single host upgrade with VMs on local storage"""
 
     NEW_PARTITIONS = False
@@ -4424,7 +4424,7 @@ class TCRpuPartitions(TCRollingPoolUpdate):
             partitions = xenrt.TEC().lookup(["VERSION_CONFIG",xenrt.TEC().lookup("PRODUCT_VERSION"),"DOM0_PARTITIONS"])
         else:
             partitions = xenrt.TEC().lookup(["VERSION_CONFIG",xenrt.TEC().lookup("PRODUCT_VERSION"),"DOM0_PARTITIONS_OLD"])
-        log("Expected partions: %s" % partitions)
+        log("Expected partitions: %s" % partitions)
 
         if not host.compareDom0Partitions(partitions):
             raise xenrt.XRTFailure("Found unexpected partitions on XS clean install. Expected: %s Found: %s" % (partitions, host.getDom0Partitions()))

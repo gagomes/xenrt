@@ -3330,14 +3330,36 @@ class _HackersChoiceIPv6DoS(TCBadPackets):
         except:
             log("Could not measure the usage - ignoring this issue")
             return False
-    
+
+    def __hostCPUUsage(self,host):  
+        pid = None
+        pidLocations = ["/var/run/xenstore.pid", "/var/run/xenstored.pid"]
+        for p in pidLocations:
+            try:
+                pid = int(host.execdom0("cat %s" % (p)))
+                break
+            except:
+                pass
+        if pid:
+            host.execdom0("[ -d /proc/%u ]" % (pid))
+            pcpu = int(host.execdom0("ps -p %u -o pcpu --no-headers | "
+                                     "sed -e's/\..*//'" % (pid)).strip())
+        return pcpu/100
+
+    def _isHostMaxedOut(self,host):
+        usage = self.__hostCPUUsage(host)
+        if usage > self.__STOP_ATTACK_THRESHOLD:
+            raise xenrt.XRTFailure("Host CPU is maxed out at %s" % str(usage))
+        else:
+            log("Host CPU is %s, which is under threshold" % str(usage))              
+
     def _usage(self, guest):
         return float(guest.asXapiObject().cpuUsage['0'])
     
     def __gameOn(self, gameOver):
         return time.time() < gameOver
     
-    def _maxOutGuest(self, package, victim, attacker):
+    def _maxOutGuest(self, package, victim, attacker, count):
         gameOver = time.time() + self._TIMEOUT
         log("Game over at: %s" % str(gameOver))
         
@@ -3346,7 +3368,15 @@ class _HackersChoiceIPv6DoS(TCBadPackets):
 
         while not self.__guestIsMaxedOut(victim):
             if not self.__gameOn(gameOver):
-                raise xenrt.XRTFailure("Timed out while trying to max out the guest")
+                log("Timed out while trying to max out the guest")
+                self._isHostMaxedOut(self.host)
+                if count <= 5:
+                    log("Retrying attack %s of 5" % str(count+1))
+                    self._maxOutGuest(package,victim,attacker,count+1)
+                else:
+                    raise xenrt.XRTFailure("All attempted attacks failed to max out the guest")
+            if count > 0:
+                return
             log("zzzzzz.....")
             time.sleep(self._SLEEP)
         
@@ -3382,7 +3412,7 @@ class _HackersChoiceIPv6DoS(TCBadPackets):
         #----------------------------------------------------------
         step("Run the package and check for the guest maxing out") 
         #----------------------------------------------------------
-        self._maxOutGuest(self._package, victimVm, attacker)
+        self._maxOutGuest(self._package, victimVm, attacker,0)
         
         #-------------------------------         
         step("Shutdown the attacker")
@@ -3401,10 +3431,14 @@ class _HackersChoiceIPv6DoS(TCBadPackets):
             if self.__guestIsMaxedOut(victim):
                 log("Waited %d secs for CPU to recover from attack and usage is %.2f" 
                                        % (self.__VERIFICATION_PERIOD, self._usage(victim)))
-                raise xenrt.XRTFailure("Failed to recover from attack")
+                log("%s failed to recover from attack" % str(victim))
             else:
-                log("Victim appears to have recovered from the attack usage =%.2f" 
-                    % self._usage(victim))
+                log("%s appears to have recovered from the attack usage =%.2f" 
+                    % (victim,self._usage(victim)))
+        #--------------------------
+        step("Check host")
+        #--------------------------
+        self._isHostMaxedOut(self.host)
 
 class TCHackersChoiceIPv6FloodRouter(_HackersChoiceIPv6DoS):
     def __init__(self):

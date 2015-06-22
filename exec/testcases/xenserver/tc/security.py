@@ -3349,9 +3349,9 @@ class _HackersChoiceIPv6DoS(TCBadPackets):
     def _isHostMaxedOut(self,host):
         usage = self.__hostCPUUsage(host)
         if usage > self.__STOP_ATTACK_THRESHOLD:
-            raise xenrt.XRTFailure("Host CPU is maxed out at %s" % str(usage))
+            raise xenrt.XRTFailure("Host CPU is maxed out at %.2f" % float(usage))
         else:
-            log("Host CPU is %s, which is under threshold" % str(usage))              
+            log("Host CPU is %.2f, which is under threshold" % float(usage))              
 
     def _usage(self, guest):
         return float(guest.asXapiObject().cpuUsage['0'])

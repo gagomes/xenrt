@@ -5656,7 +5656,6 @@ class TampaGuest(BostonGuest):
         eventClass.append("task")
 
         if host <> destHost:
-            destSession = destHost.getAPISession(secure=False)
             taskRef = self.vmLiveMigrate(migrateParameters,pauseAfterMigrate,session,destSession)
         else:
             #Might be different for VDI Migrate

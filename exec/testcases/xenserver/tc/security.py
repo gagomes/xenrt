@@ -3344,7 +3344,7 @@ class _HackersChoiceIPv6DoS(TCBadPackets):
             host.execdom0("[ -d /proc/%u ]" % (pid))
             pcpu = int(host.execdom0("ps -p %u -o pcpu --no-headers | "
                                      "sed -e's/\..*//'" % (pid)).strip())
-        return pcpu/100
+        return float(pcpu)/100
 
     def _isHostMaxedOut(self,host):
         usage = self.__hostCPUUsage(host)

@@ -1,0 +1,50 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0">
+      <storage type="nfs" name="nfssr" default="true" />
+      <vm name="win7">
+        <distro>win7sp1-x86</distro>
+        <network device="0"/>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="Win7-x86-BenchInst">
+      <testcase tc="TC-20784" id="testcases.xenserver.tc.vgpu.TCGPUBenchmarkInstall" sku="IntelvGPUStress">
+        <arg>guest=win7</arg>
+        <arg>benchmark=UnigineTropics</arg>
+      </testcase>
+    </serial>
+    <serial group="Win7-x86-IntelGVT-g">
+      <testcase tc="TC-20788" id="testcases.xenserver.tc.vgpu.TCVGPUSetup" sku="IntelvGPUStress">
+        <arg>guest=win7</arg>
+        <arg>vgpuconfig=Intel GVT-g</arg>
+        <arg>typeofvgpu=intelwinvgpu</arg>
+        <arg>blockdom0access=false</arg>
+      </testcase>
+      <testcase tc="TC-20782" id="testcases.xenserver.tc.vgpu.TCVGPUCloneVM" sku="IntelvGPUStress">
+        <arg>guest=win7</arg>
+        <arg>vgpuconfig=Intel GVT-g</arg>
+        <arg>clones=3</arg>
+        <arg>typeofvgpu=intelwinvgpu</arg>
+      </testcase>
+      <testcase tc="TC-20783" id="testcases.xenserver.tc.vgpu.TCGPUWorkload" sku="IntelvGPUStress">
+        <arg>guest=win7</arg>
+        <arg>clones=3</arg>
+        <arg>vgpuconfig=Intel GVT-g</arg>
+        <arg>benchmark=UnigineTropics</arg>
+        <arg>time=172800</arg>
+      </testcase>
+
+    </serial>
+  </testsequence>
+</xenrt>

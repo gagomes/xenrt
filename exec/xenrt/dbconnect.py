@@ -49,7 +49,7 @@ class DBConnect(object):
         commandline = "%s %s" % (command, string.join([pipes.quote(x) for x in args]))
         xenrt.TEC().logverbose("XenRT CLI %s" % (commandline))
         try:
-            xenrt.util.command("xenrtnew %s" % commandline)
+            return xenrt.util.command("xenrtnew %s" % commandline)
         except:
             if not buffer:
                 raise

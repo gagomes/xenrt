@@ -3436,7 +3436,8 @@ class GlobalExecutionContext(object):
                     details = self.dbconnect.jobctrl("status", [str(jobid)])
                     xenrt.TEC().logverbose("Calling %s" % u)
                     try:
-                        urllib2.urlopen(u, urllib.urlencode(details), timeout=300)
+                        detailsDict = dict(map(lambda x : (x.split("=")[0], "=".join(x.split("=")[1:]).strip('\'')), details.strip().split('\n')))
+                        urllib2.urlopen(u, urllib.urlencode(detailsDict), timeout=300)
                     except Exception, e:
                         xenrt.TEC().logverbose("WARNING: Could not load callback URL %s" % u)
 

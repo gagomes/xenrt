@@ -8594,8 +8594,6 @@ class GenericGuest(GenericPlace):
                 # Testing presently doesn't have an installer, the caller needs to set up an SR.
                 fk = options['installer_kernel']
                 fr = options['installer_initrd']
-                xenrt.getHTTP(baseurl + "linux", fk)
-                xenrt.getHTTP(baseurl + "initrd.gz", fr)
             else:
                 fk = xenrt.TEC().tempFile()
                 fr = xenrt.TEC().tempFile()

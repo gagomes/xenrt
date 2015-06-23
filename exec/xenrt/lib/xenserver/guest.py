@@ -4293,7 +4293,13 @@ exit /B 1
     def getNetworkNameForVIF(self, vifname):
         mac, ip, bridge = self.getVIF(vifname=vifname)
         network = self.host.getNetworkUUID(bridge)
-        return self.host.genParamGet("network", network, "other-config", "xenrtnetname")
+        try:
+            return self.host.genParamGet("network", network, "other-config", "xenrtnetname")
+        except:
+            if bridge == self.host.getPrimaryBridge():
+                return "NPRI"
+            else:
+                return self.host.genParamGet("network", network, "name-label")
 
     def installXenMobileAppliance(self):
         self.lifecycleOperation("vm-start", specifyOn=True)

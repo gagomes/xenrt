@@ -482,6 +482,8 @@ class Guest(xenrt.GenericGuest):
         elif repository and not isoname:
             dev = "%sa" % (self.vendorInstallDevicePrefix())
             options={"maindisk": dev}
+            nfsdir = None
+            nfssr = None
             if pxe:
                 if distro == "debiantesting":
                     cdname = "%s.iso" % str(uuid.uuid4())
@@ -502,8 +504,6 @@ class Guest(xenrt.GenericGuest):
                     options["installer_initrd"] = "%s/initrd.gz" % nfsdir.path()
                     self.paramSet("HVM-boot-params-order", "cn")
                 else:
-                    nfsdir = None
-                    nfssr = None
                     try:
                         self.insertToolsCD()
                     except:

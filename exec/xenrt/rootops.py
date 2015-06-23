@@ -109,7 +109,7 @@ class MountNFS(Mount):
 
 class MountSMB(Mount):
     def __init__(self, smb, domain, username, password, retry=True):
-       Mount.__init__(self, smb, options="username=%s,password=%s,domain=%s" % (username, password, domain), mtype="cifs", retry=retry)
+        Mount.__init__(self, "//%s" % smb.replace(":/","/"), options="username=%s,password=%s,domain=%s" % (username, password, domain), mtype="cifs", retry=retry)
 
 def mountWinISO(distro):
     """Mount a Windows ISO globally for the controller"""
@@ -143,6 +143,18 @@ def mountWinISO(distro):
         if not "%s on %s" % (iso, mountpoint) in mounts and (len(loopDevs) == 0 or (not "%s on %s" % (loopDevs[0], mountpoint))):
             sudo("mkdir -p %s" % mountpoint)
             sudo("mount -o loop %s %s" % (iso, mountpoint))
+        else:
+            # Check whether the loop mount has gone bad, and if it has then remount
+            try:
+                f = open("%s/Autounattend.xml" % mountpoint)
+                f.read()
+            except:
+                f.close()
+                sudo("umount -f %s" % mountpoint)
+                sudo("mkdir -p %s" % mountpoint)
+                sudo("mount -o loop %s %s" % (iso, mountpoint))
+            else:
+                f.close()
         return mountpoint
     finally:
         isolock.release()

@@ -666,7 +666,6 @@ class TC19270(_VMScalability):
     CHECKHEALTH=True
     TRYMAX = True
     NET_BRIDGE = False
-    DOM0MEM = 8192
     MEMORY=128
     ARCH = "x86-64"
     #DOM0CPUS = False
@@ -1953,12 +1952,13 @@ class TCScaleXenDesktopRpu(xenrt.TestCase):
         # Check that none of the VMs have CDs inserted into their drives.
         cdList = self.pool.master.parameterList(command='cd-list', params=['name-label', 'vbd-uuids', 'uuid'])
         insertedList = filter(lambda x:x['vbd-uuids'] != '', cdList)
-        vbdUuids = insertedList[0].get('vbd-uuids').split('; ')
-        vmUUIDsWithCdsInDrives = [self.pool.master.minimalList(command='vbd-list', params='vm-uuid', args='uuid=%s' % x) for x in vbdUuids]
-        flattenedList = [i for subList in vmUUIDsWithCdsInDrives for i in subList]
-        log("List of VM UUIDs with CDs inserted: %s" % flattenedList)
-        map(lambda x:self.pool.master.getCLIInstance().execute('vm-cd-eject uuid=%s' % (x)), flattenedList)
-        log("All CDs ejected")
+        if len(insertedList) > 0:
+            vbdUuids = insertedList[0].get('vbd-uuids').split('; ')
+            vmUUIDsWithCdsInDrives = [self.pool.master.minimalList(command='vbd-list', params='vm-uuid', args='uuid=%s' % x) for x in vbdUuids]
+            flattenedList = [i for subList in vmUUIDsWithCdsInDrives for i in subList]
+            log("List of VM UUIDs with CDs inserted: %s" % flattenedList)
+            map(lambda x:self.pool.master.getCLIInstance().execute('vm-cd-eject uuid=%s' % (x)), flattenedList)
+            log("All CDs ejected")
 
 class TCScaleVMStart(_TCScaleVMLifecycle):
     # Concrete test case to start all of the VMs, Conventional Style

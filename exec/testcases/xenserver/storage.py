@@ -878,11 +878,11 @@ class TCStorage(xenrt.TestCase):
             lunconf = host.lookup("USE_ISCSI_SM", None)
             if lunconf:
                 # This is an explicitly specified LUN
-                self.iscsi = xenrt.lib.xenserver.host.ISCSILunSpecified(lunconf)
+                self.iscsi = xenrt.lib.xenserver.ISCSILunSpecified(lunconf)
             else:
                 minsize = int(host.lookup("SR_ISCSI_MINSIZE", 50))
                 maxsize = int(host.lookup("SR_ISCSI_MAXSIZE", 1000000))
-                self.iscsi = xenrt.lib.xenserver.host.ISCSILun(minsize=minsize,
+                self.iscsi = xenrt.lib.xenserver.ISCSILun(minsize=minsize,
                                                                maxsize=maxsize)
             host.setIQN(self.iscsi.getInitiatorName())
             self.srsTested.append("iSCSI")
@@ -897,7 +897,7 @@ class TCStorage(xenrt.TestCase):
             else:
                 minsize = int(host.lookup("SR_NETAPP_MINSIZE", 40))
                 maxsize = int(host.lookup("SR_NETAPP_MAXSIZE", 1000000))
-                self.napp = xenrt.lib.xenserver.host.NetAppTarget(minsize=minsize, maxsize=maxsize)
+                self.napp = xenrt.lib.xenserver.NetAppTarget(minsize=minsize, maxsize=maxsize)
             self.srsTested.append("NetApp")
 
         if self.testEQL:
@@ -910,7 +910,7 @@ class TCStorage(xenrt.TestCase):
             else:
                 minsize = int(host.lookup("SR_EQL_MINSIZE", 40))
                 maxsize = int(host.lookup("SR_EQL_MAXSIZE", 1000000))
-                self.eql = xenrt.lib.xenserver.host.EQLTarget(minsize=minsize, maxsize=maxsize)
+                self.eql = xenrt.lib.xenserver.EQLTarget(minsize=minsize, maxsize=maxsize)
             self.srsTested.append("EqualLogic")
 
         if self.testNFS:

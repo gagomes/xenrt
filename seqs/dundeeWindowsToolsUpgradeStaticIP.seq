@@ -1,6 +1,6 @@
 <xenrt>
 
-  <!-- Sanibel to Clearwater VM Tools/drivers/kernel upgrade test -->
+  <!-- From Sanibel VM Tools/drivers/kernel upgrade test -->
 
   <default name="OLD_PRODUCT_VERSION" value="Sanibel"/>
   <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.0.2/RTM-53456"/>
@@ -9,18 +9,17 @@
 
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
-    <PREPARE_WORKERS>3</PREPARE_WORKERS>
+    <PREPARE_WORKERS>4</PREPARE_WORKERS>
   </variables>
 
   <prepare>
     <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}">
-      <bridge name="internal"/>
       <vm name="ws08r2sp1-x64">
         <distro>ws08r2sp1-x64</distro>
         <memory>${GUESTMEMORY}</memory>
         <vcpus>${GUESTVCPUS}</vcpus>
         <network device="0"/>
-        <network device="1" bridge="internal"/>
+        <network device="1" bridge="NSEC"/>
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
       </vm>
@@ -29,7 +28,7 @@
         <memory>${GUESTMEMORY}</memory>
         <vcpus>${GUESTVCPUS}</vcpus>
         <network device="0"/>
-        <network device="1" bridge="internal"/>
+        <network device="1" bridge="NSEC"/>
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
       </vm>
@@ -38,7 +37,7 @@
         <memory>${GUESTMEMORY}</memory>
         <vcpus>${GUESTVCPUS}</vcpus>
         <network device="0"/>
-        <network device="1" bridge="internal"/>
+        <network device="1" bridge="NSEC"/>
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
       </vm>
@@ -47,16 +46,20 @@
         <memory>${GUESTMEMORY}</memory>
         <vcpus>${GUESTVCPUS}</vcpus>
         <network device="0"/>
-        <network device="1" bridge="internal"/>
+        <network device="1" bridge="NSEC"/>
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
       </vm>
-      <vm name="testpeer">
-        <distro>debian60</distro>
-        <network device="0" />
-        <network device="1" bridge="internal"/>
-        <postinstall action="preCloneTailor"/>
-      </vm>
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <NIC/>
+          <MANAGEMENT/>
+        </PHYSICAL>
+        <PHYSICAL network="NSEC">
+          <NIC/>
+        </PHYSICAL>
+      </NETWORK>
+
     </host>
   </prepare>
 
@@ -66,12 +69,12 @@
         <arg>input=DEFAULT</arg>
       </testcase>
     </serial>
-    <serial group="UpgVM">
+    <parallel group="UpgVM">
       <testcase id="xenserver.tc.upgrade.TC15220"/>
       <testcase id="xenserver.tc.upgrade.TC15222"/>
       <testcase id="xenserver.tc.upgrade.TC15224"/>
       <testcase id="xenserver.tc.upgrade.TC15228"/>
-    </serial>
+    </parallel>
   </testsequence>
 
 </xenrt>

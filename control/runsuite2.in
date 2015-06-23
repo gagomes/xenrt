@@ -1,0 +1,31 @@
+#!/bin/bash
+set -ex
+make -C @rootdir@ update install
+
+token=$1
+rm -rf @rootdir@/../suiteruns/$1
+
+trap "{ rm -rf @rootdir@/../suiteruns/$token; rm -rf @sharedir@/$token-exec; }" EXIT
+
+mkdir -p @rootdir@/../suiteruns/$1
+git clone @rootdir@ ~/suiteruns/$1/xenrt.git
+git clone @rootdir@/../xenrt-internal.git ~/suiteruns/$1/xenrt-internal.git
+cp @rootdir@/build/config.mk ~/suiteruns/$1/xenrt.git/build/config.mk
+cp @rootdir@/.git/config ~/suiteruns/$1/xenrt.git/.git/config
+cp @rootdir@/../xenrt-internal.git/.git/config ~/suiteruns/$1/xenrt-internal.git/.git/config
+
+cd @rootdir@/../suiteruns/$1/xenrt-internal.git && git pull && git checkout $2
+cd @rootdir@/../suiteruns/$1/xenrt.git && git pull && git checkout $2
+
+BUILDPREFIX=$1 make -C @rootdir@/../suiteruns/$1/xenrt.git exec
+
+suite=@rootdir@/../suiteruns/$1/xenrt-internal.git/suites/$3
+
+cd @rootdir@/../suiteruns/$1/xenrt.git && git checkout $2
+
+shift
+shift
+shift
+
+python -u @sharedir@/$token-exec/main.py -D SEQ_LOCATION=@rootdir@/../suiteruns/$token/xenrt.git/seqs --run-suite $suite $*
+

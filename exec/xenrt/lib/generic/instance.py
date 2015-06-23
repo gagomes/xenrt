@@ -27,6 +27,7 @@ class Instance(object):
         self.memory = memory or self.os.defaultMemory
         self.vifs = vifs or [("%s0" % (self.os.vifStem), None,
                               xenrt.randomMAC(), None)]
+        self.special = {}
 
     @property
     def hypervisorType(self):
@@ -191,8 +192,8 @@ class Instance(object):
     def revertToSnapshot(self, name):
         return self.toolstack.revertInstanceToSnapshot(self, name)
 
-    def assertHealthy(self):
-        self.os.assertHealthy()
+    def assertHealthy(self, quick=False):
+        self.os.assertHealthy(quick=quick)
 
     def screenshot(self, path):
         return self.toolstack.instanceScreenshot(self, path)

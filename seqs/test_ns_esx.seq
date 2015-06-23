@@ -1,0 +1,22 @@
+<xenrt>
+  <default name="NSVPX_OVF" value="sftp://build:nsbuild@10.102.1.233/home/build/builds_tagma/build_tagma_54_9/NSVPX-ESX-10.5-54.9_nc.zip" />
+  <variables>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+  </variables>
+  <scheduler>
+    <resources>memory&gt;=30G/disk1&gt;=140G</resources>
+    <param>MACHINES_REQUIRED=1</param>
+    <flags>vcenter</flags>
+  </scheduler>
+  <prepare>
+    <host productType="esx" productVersion="5.5.0-update02" id="0">
+      <vm name="NS-VPX1">
+        <file>${NSVPX_OVF}</file>
+        <network device="0" bridge="VM Network"/>
+        <memory>4096</memory>
+        <vcpus>4</vcpus>
+        <postinstall action="setupNetscalerVPX" />
+      </vm>
+    </host>
+  </prepare>
+</xenrt>

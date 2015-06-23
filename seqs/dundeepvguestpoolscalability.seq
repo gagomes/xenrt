@@ -10,6 +10,7 @@
     <QUICKLOGS>yes</QUICKLOGS>
     <NO_GUEST_LOGS>yes</NO_GUEST_LOGS>
     <NO_TC_HOST_SERIAL_LOGS>yes</NO_TC_HOST_SERIAL_LOGS>
+    <DOM0_MEM>8192</DOM0_MEM>
   </variables>
 
   <prepare>
@@ -22,7 +23,6 @@
   <testsequence>
     <serial group="VMPoolScaledDown">
       <testcase id="testcases.xenserver.tc.scalability.TC23327" name="TC23327">
-        <arg>dom0mem=8192</arg>
         <arg>postrun=${POSTRUN_CLEANUP}</arg>
       </testcase>
     </serial>

@@ -1376,7 +1376,7 @@ class TC8611(_PoolTest):
 
         # Set up the iSCSI HA SR
         self.lun = xenrt.ISCSITemporaryLun(300)
-        self.sr = xenrt.lib.xenserver.host.ISCSIStorageRepository(\
+        self.sr = xenrt.lib.xenserver.ISCSIStorageRepository(\
             self.pool.master, "TC-8611")
         self.sr.create(self.lun, subtype="lvm", findSCSIID=True, noiqnset=True)
         self.pool.enableHA()
@@ -1396,7 +1396,7 @@ class TC8611(_PoolTest):
 
         # Set up the iSCSI HA SR
         self.lun = xenrt.ISCSITemporaryLun(300)
-        self.sr = xenrt.lib.xenserver.host.ISCSIStorageRepository(\
+        self.sr = xenrt.lib.xenserver.ISCSIStorageRepository(\
             self.pool.master, "TC-8611")
         self.sr.create(self.lun, subtype="lvm", findSCSIID=True, noiqnset=True)
         self.pool.enableHA()

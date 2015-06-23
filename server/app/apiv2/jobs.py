@@ -223,8 +223,7 @@ class _JobBase(_MachineBase):
 
         return jobs
 
-    def removeJob(self, jobid, commit=True):
-        jobinfo = self.getJobs(1, ids=[jobid], getParams=False,getResults=False,getLog=False, exceptionIfEmpty=True)[jobid]
+    def removeJob(self, jobid, commit=True, returnJobInfo=True):
         self.updateJobField(jobid, "REMOVED", "yes", commit=False)
         if self.getUser():
             self.updateJobField(jobid, "REMOVED_BY", self.getUser().userid, commit=False)
@@ -232,7 +231,9 @@ class _JobBase(_MachineBase):
         if commit:
             self.getDB().commit()
 
-        return jobinfo
+        if returnJobInfo:
+            jobinfo = self.getJobs(1, ids=[jobid], getParams=False,getResults=False,getLog=False, exceptionIfEmpty=True)[jobid]
+            return jobinfo
 
     def updateJobField(self, jobid, key, value, commit=True):
         db = self.getDB()
@@ -501,7 +502,7 @@ class RemoveJobs(_JobBase):
         except Exception, e:
             raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
         for job in j['jobs']:
-            self.removeJob(job)
+            self.removeJob(job, commit=False, returnJobInfo=False)
         self.getDB().commit()
                  
         return {}
@@ -716,7 +717,11 @@ class NewJob(_JobBase):
 
         if params.has_key("JOBGROUP") and params.has_key("JOBGROUPTAG") and not jobGroup:
             jobGroup = {"id": params['JOBGROUP'], "tag": params['JOBGROUPTAG']}
-     
+
+        if params.has_key("PREEMPTABLE") and preemptable is None:
+            preemptable = app.utils.toBool(params["PREEMPTABLE"])
+            del params["PREEMPTABLE"]
+
         self.removeParams(params, ["USERID", "REMOVED", "UPLOADED", "JOBSTATUS", "REMOVED_BY"])
 
         params["JOB_SUBMITTED"] = time.asctime(time.gmtime()) + " UTC"

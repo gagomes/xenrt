@@ -24,7 +24,6 @@ XRTPROF_FILENAME = os.path.join(("TMP" in os.environ and os.environ["TMP"] or \
 
 _console = "@console@"
 _conserver = "@conserver@"
-_jenkins = "@jenkins@"
 _conskey = """@conskey@"""
 _authrealm = """@authrealm@"""
 
@@ -729,7 +728,7 @@ class XenRTMList2(XenRTCommand):
                     status = "(%d)" % machines[m]['jobid']
 
                 if show == "Resources":
-                    comment = "/".join(machines[m]['resources'])
+                    comment = "/".join([k + "=" + v for k, v in machines[m]['resources'].iteritems()])
                 elif show == "Properties":
                     comment = ",".join(machines[m]['flags'])
                 elif show == "Description":
@@ -1081,7 +1080,7 @@ class XenRTMBroken(XenRTCommand):
         if m:
             ticket = m.group(1)
         else:
-            ticket = None
+            ticket = ""
 
         self.xenrt.update_machine(machine, broken = {"broken": True, "info": reason, "ticket": ticket})
 
@@ -1848,108 +1847,60 @@ class XenRTRunSuite(XenRTCommand):
     [-b <branch>]     Branch to test
     [-s <sku>]        SKU to test
     [-S <seqs>]       Suite sequences to run
+    [-x <xenrt_branch>] XenRT branch to use to submit suite (note that XRTBRANCH also needs to be set in the suite)
     [-R]              Attempt to rerun if suite already exists
-    [-v]              Verbose
     """
     group = "Suite"
 
-    def findBuild(self):
-        global _jenkins
-        for i in range(20):
-            time.sleep(5)
-            j = json.load(urllib.urlopen("%s/job/Suite%%20Run%%20Basic/api/json?depth=1" % _jenkins))
-            for b in j['builds']:
-                for a in b['actions']:
-                    if a.has_key("parameters"):
-                        for p in a['parameters']:
-                            if p['name'] == "Cookie" and p['value'] == self.cookie:
-                                self.build = b['url']
-                                if self.verbose:
-                                    print "Found Build %s" % self.build
-                                return
-            if self.verbose:
-                print "Could not find build in job, retrying..."
-        raise Exception("Could not find build")
-
-    def waitForBuildCompletion(self):
-        for i in range(30):
-            j = json.load(urllib.urlopen("%s/api/json" % self.build))
-            if self.verbose:
-                print "Building status: %s" % j['building']
-            if not j['building']:
-                if j['result'] != "SUCCESS":
-                    # Find the failure reason if available
-                    lines = urllib.urlopen("%s/consoleText" % self.build)
-                    reason = "Unknown"
-                    for l in lines:
-                        if l.startswith("REASON: "):
-                            reason = l[8:].strip()
-                            break
-                    raise Exception("Could not start suite: %s (%s)" % (str(j['result']), reason))
-                return
-            time.sleep(10)
-
-        raise Exception("Starting suite timed out")
-
-    def getSuiteRunAndJobs(self):
-        j = json.load(urllib.urlopen("%s/api/json" % self.build))
-        m = re.search("\((\d+)\)$", j['fullDisplayName'])
-        if not m:
-            raise Exception("Could not determine suite run number")
-        sr = m.group(1)
-
-
-        lines = urllib.urlopen("%s/consoleText" % self.build)
-        jobs = {}
-        for l in lines:
-            m = re.match("^Starting (\S+?)\.\.\. (\d+)$", l)
-            if m:
-                jobs[m.group(1)] = m.group(2)
-
-        return (sr, jobs)
-
     def run(self, args):
-        global _jenkins
-        self.verbose = False
-        if len(args) < 2:
-            raise Exception("Invalid usage\n")
-        
-        self.cookie = str(random.randint(0, 2**31-1))
-        jenkins = {"Update Mercurial": "true",
-                   "Additional_Args": "",
-                   "Cookie": self.cookie,
-                   "Attempt Rerun": "false"}
-
-        jenkins['Suite'] = "/etc/xenrt/suites/%s" % args[0]
-        jenkins['Version'] = args[1]
+        data = {}
+        data['suite'] = args[0]
+        data['version'] = args[1]
+        data['params'] = {}
         if len(args) > 2:
-            optlist, optx = getopt.getopt(args[2:], 'b:s:D:S:RV')
+            optlist, optx = getopt.getopt(args[2:], 'b:s:D:S:RVx:', ['devrun'])
             for argpair in optlist:
                 (flag, value) = argpair
                 if flag == "-b":
-                    jenkins['Branch'] = value
+                    data['branch'] = value
+                elif flag == "-x":
+                    data['xenrtbranch'] = value
                 elif flag == "-s":
-                    jenkins['sku'] = "/etc/xenrt/suites/%s" % value
+                    data['sku'] = "%s" % value.replace(".sku", "")
                 elif flag == "-S":
-                    jenkins["Additional_Args"] += "--suite-seqs %s " % value
+                    data['seqs'] = value.split(",")
                 elif flag == "-D":
-                    jenkins["Additional_Args"] += "-D %s "% value
+                    (k, v) = value.split("=", 2)
+                    data['params'][k] = v
                 elif flag == "-V":
                     self.verbose = True
                 elif flag == "-R":
-                    jenkins['Attempt Rerun'] = "true"
-                    
-        u = urllib.urlopen("%s/job/Suite%%20Run%%20Basic/buildWithParameters" % _jenkins, urllib.urlencode(jenkins))
-        u.close()
-        if self.verbose:
-            print "Suite submitted, finding build number..."
-        self.findBuild()
-        self.waitForBuildCompletion()
-        (suite, jobs) = self.getSuiteRunAndJobs()
+                    data['rerunifneeded'] = True
+                elif flag == "--devrun":
+                    data['devrun'] = True
+        
+        token = self.xenrt.start_suite_run(**data)['token']
 
-        reply = ["SR%s\n" % suite]
-        for j in jobs.keys():
-            reply.append("%s:%s\n" % (j, jobs[j]))
+        self.printout("Got token %s\n" % token)
+        
+        info = self.xenrt.get_start_suite_run_status(token)
+        console = info['console']
+        self.printout("Console log at %s\n" % console)
+        i = 0
+        while info['status'] == "running":
+            self.printout("Suite is starting\n")
+            if i > 30:
+                raise Exception("Starting suite timed out - see %s for more information" % console)
+            i += 1
+            info = self.xenrt.get_start_suite_run_status(token)
+            time.sleep(5)
+
+        if info['status'] != "success":
+            raise Exception("Error starting suite - see %s for more information" % console)
+            
+        reply = ["SR%d\n" % info['suiterun']]
+        for j in info['jobs'].keys():
+            reply.append("%s:%s\n" % (j, info['jobs'][j]))
         for r in reply:
             self.printout(r)
 

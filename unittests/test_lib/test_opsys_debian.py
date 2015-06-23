@@ -21,8 +21,8 @@ class TestDebianLinuxOverrides(XenRTUnitTestCase):
     
     def testIsoNameImplementation(self):
         """Given a debain distro name, When the ISO name is requested, Then expect the name to be converted"""
-        data={("debian60_x86-32", "deb6_x86-32.iso"), ("debian70_x86-64", "deb7_x86-64.iso"),
-              ("debian60", "deb6_x86-64.iso"), ("bobbins", None)}
+        data={("debian60_x86-32", "deb6_x86-32_xenrtinst.iso"), ("debian70_x86-64", "deb7_x86-64_xenrtinst.iso"),
+              ("debian60", "deb6_x86-64_xenrtinst.iso"), ("bobbins", None)}
         self.run_for_many(data, self.__testIsoNameImplementation)
 
     def __testIsoNameImplementation(self, data):
@@ -61,10 +61,10 @@ class TestUbuntuLinuxOverrides(XenRTUnitTestCase):
     
     def testIsoNameImplementation(self):
         """Given a ubuntu distro name, When the ISO name is requested, Then expect the name to be converted"""
-        data={("ubuntu1004_x86-32", "ubuntu1004_x86-32.iso"), 
-              ("ubuntu1204_x86-64", "ubuntu1204_x86-64.iso"),
-              ("ubuntu1004", "ubuntu1004_x86-64.iso"), 
-              ("ubuntu1404", "ubuntu1404_x86-64.iso")}
+        data={("ubuntu1004_x86-32", "ubuntu1004_x86-32_xenrtinst.iso"), 
+              ("ubuntu1204_x86-64", "ubuntu1204_x86-64_xenrtinst.iso"),
+              ("ubuntu1004", "ubuntu1004_x86-64_xenrtinst.iso"), 
+              ("ubuntu1404", "ubuntu1404_x86-64_xenrtinst.iso")}
         self.run_for_many(data, self.__testIsoNameImplementation)
 
     def __testIsoNameImplementation(self, data):

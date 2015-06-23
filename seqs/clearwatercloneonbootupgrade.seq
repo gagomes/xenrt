@@ -20,6 +20,7 @@
         <postinstall action="installDrivers"/>
         <postinstall action="preCloneTailor"/>
         <postinstall action="xenDesktopTailor"/>
+        <postinstall action="shutdown"/>
         <network device="0" />
         <network device="1" />
         <vcpus>2</vcpus>

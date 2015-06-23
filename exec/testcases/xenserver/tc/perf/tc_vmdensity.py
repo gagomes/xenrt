@@ -83,8 +83,12 @@ class TestSpace(Util):
     def getPoints(self,dimensions):
         result = [[]]
         d_order = self.getdOrder()
+        xenrt.TEC().logverbose("d_order = %s" % (d_order,))
         for d in d_order:
-            result=[x+[y] for x in result for y in dimensions[d]]
+            dims = dimensions[d]
+            xenrt.TEC().logverbose("dims.type = %s, dims = %s" % (type(dims).__name__, dims))
+            result=[x+[y] for x in result for y in dims]
+            #xenrt.TEC().logverbose("result = %s" % (result,))
         return result
 
     # return the dimensions that changed between 2 points
@@ -280,7 +284,7 @@ class XapiEvent(Util):
         self.events = {}
 
     def getSession(self):
-        session = self.host.getAPISession()
+        session = self.host.getAPISession(secure=False)
         xenrt.TEC().logverbose("XapiEvent: session=%s" % session)
         return session
 
@@ -1701,14 +1705,19 @@ class Experiment_vmrun(Experiment):
                 urlsuffix = value #.lower() # eg. "trunk-ring0/54990"
                 url = "%s/usr/groups/xen/carbon/%s" % (urlpref, urlsuffix)
             product_version = (value.split("/")[0]).capitalize() #"Boston"
+            xenrt.TEC().logverbose("url=%s" % (url,))
 
             def setInputDir(url):
+                xenrt.TEC().logverbose("setting config.variable inputdir...")
                 xenrt.TEC().config.setVariable("INPUTDIR",url) #"%s/usr/groups/xen/carbon/boston/50762"%urlpref)
+                xenrt.TEC().logverbose("setting inputdir...")
                 xenrt.TEC().setInputDir(url) #"%s/usr/groups/xen/carbon/boston/50762"%urlpref)
                 xenrt.GEC().filemanager = xenrt.filemanager.getFileManager()
                 #sanity check: does this url exist?
                 bash_cmd = "wget --server-response %s 2>&1|grep HTTP/|awk '{print $2}'" % url
+                xenrt.TEC().logverbose("about to call popen with \"%s\"..." % (bash_cmd,))
                 p = subprocess.Popen(bash_cmd,shell=True,stdout=subprocess.PIPE)
+                xenrt.TEC().logverbose("about to read popen stdout...")
                 http_code = p.stdout.read().strip()
                 inputdir_ok = not ("404" in http_code)
                 if inputdir_ok:
@@ -1834,7 +1843,7 @@ class Experiment_vmrun(Experiment):
                     host.forgetSR(uuids[0])
 
                 diskname = host.execdom0("basename `readlink -f %s`" % device).strip()
-                sr = xenrt.lib.xenserver.host.EXTStorageRepository(host, 'SR-%s' % diskname)
+                sr = xenrt.lib.xenserver.EXTStorageRepository(host, 'SR-%s' % diskname)
                 sr.create(device)
                 host.pool.setPoolParam("default-SR", sr.uuid)
 
@@ -3186,9 +3195,23 @@ class TCVMDensity(libperf.PerfTestCase):
             xenrt.TEC().logverbose("init: INPUTDIR=%s => XSVERSIONS=%s" % (inputdir,self.XSVERSIONS))
 
         #populate unset values preferrably from command line
-        def setprm(key,default=None): 
-            if not getattr(self, key): #if not yet set
-                setattr(self, key, eval(str(xenrt.TEC().lookup(key,default))))
+        def setprm(key,default=None):
+            s = str(xenrt.TEC().lookup(key,default))
+            if s == "":
+                value = s
+            else:
+                value = eval(s)
+            tv = type(value).__name__
+            td = type(default).__name__
+            reset = False
+            if default:
+                if td == "list" and td <> tv:
+                    # eg. value is string but should be list (because default is list)
+                    value = eval(str(value))
+                    reset = True
+            if not getattr(self, key) or reset: #if not yet set or type needs updating
+                setattr(self, key, value)
+
         setprm("VMS")
         setprm("XSVERSIONS")
         setprm("RUNS")
@@ -3263,39 +3286,42 @@ class TCVMDensity(libperf.PerfTestCase):
         setprm("XENTRACE", default=[])
 
         #print resulting parameters
-        xenrt.TEC().logverbose("run: VMS=%s" % self.VMS)
-        xenrt.TEC().logverbose("run: XSVERSIONS=%s" % self.XSVERSIONS)
-        xenrt.TEC().logverbose("run: RUNS=%s" % self.RUNS)
-        xenrt.TEC().logverbose("run: MACHINES=%s" % self.MACHINES)
-        xenrt.TEC().logverbose("run: VMTYPES=%s" % self.VMTYPES)
-        xenrt.TEC().logverbose("run: THRESHOLD=%s" % self.THRESHOLD)
-        xenrt.TEC().logverbose("run: DOM0RAM=%s" % self.DOM0RAM)
-        xenrt.TEC().logverbose("run: XENSCHED=%s" % self.XENSCHED)
-        xenrt.TEC().logverbose("run: VMPARAMS=%s" % self.VMPARAMS)
-        xenrt.TEC().logverbose("run: EXPERIMENT=%s" % self.EXPERIMENT)
-        xenrt.TEC().logverbose("run: VMDISKS=%s" % self.VMDISKS)
-        xenrt.TEC().logverbose("run: VMRAM=%s" % self.VMRAM)
-        xenrt.TEC().logverbose("run: DOM0DISKSCHED=%s" % self.DOM0DISKSCHED)
-        xenrt.TEC().logverbose("run: QEMUPARAMS=%s" % self.QEMUPARAMS)
-        xenrt.TEC().logverbose("run: DEFAULTSR=%s" % self.DEFAULTSR)
-        xenrt.TEC().logverbose("run: VMLOADS=%s" % self.VMLOADS)
-        xenrt.TEC().logverbose("run: PERFSTATS=%s" % self.PERFSTATS)
-        xenrt.TEC().logverbose("run: VMVIFS=%s" % self.VMVIFS)
-        xenrt.TEC().logverbose("run: VMPOSTINSTALL=%s" % self.VMPOSTINSTALL)
-        xenrt.TEC().logverbose("run: MEASURE=%s" % self.MEASURE)
-        xenrt.TEC().logverbose("run: VMCRON=%s" % self.VMCRON)
-        xenrt.TEC().logverbose("run: DOM0PARAMS=%s" % self.DOM0PARAMS)
-        xenrt.TEC().logverbose("run: XENPARAMS=%s" % self.XENPARAMS)
-        xenrt.TEC().logverbose("run: XENOPSPARAMS=%s" % self.XENOPSPARAMS)
-        xenrt.TEC().logverbose("run: VMVCPUS=%s" % self.VMVCPUS)
-        xenrt.TEC().logverbose("run: EXISTINGHOST=%s" % self.EXISTINGHOST)
-        xenrt.TEC().logverbose("run: XDSUPPORT=%s" % self.XDSUPPORT)
-        xenrt.TEC().logverbose("run: POSTCLONEWORKER=%s" % self.POSTCLONEWORKER)
-        xenrt.TEC().logverbose("run: HOSTVMMAP=%s" % self.HOSTVMMAP)
-        xenrt.TEC().logverbose("run: LOGINVSIEXCLUDE=%s" % self.LOGINVSIEXCLUDE)
-        xenrt.TEC().logverbose("run: VMCOOLOFF=%s" % self.VMCOOLOFF)
-        xenrt.TEC().logverbose("run: LOADSPERVM=%s" % self.LOADSPERVM)
-        xenrt.TEC().logverbose("run: XENTRACE=%s" % self.XENTRACE)
+        def ty(x):
+            return "%s, type = %s" % (x, type(x).__name__)
+
+        xenrt.TEC().logverbose("run: VMS=%s" % ty(self.VMS))
+        xenrt.TEC().logverbose("run: XSVERSIONS=%s" % ty(self.XSVERSIONS))
+        xenrt.TEC().logverbose("run: RUNS=%s" % ty(self.RUNS))
+        xenrt.TEC().logverbose("run: MACHINES=%s" % ty(self.MACHINES))
+        xenrt.TEC().logverbose("run: VMTYPES=%s" % ty(self.VMTYPES))
+        xenrt.TEC().logverbose("run: THRESHOLD=%s" % ty(self.THRESHOLD))
+        xenrt.TEC().logverbose("run: DOM0RAM=%s" % ty(self.DOM0RAM))
+        xenrt.TEC().logverbose("run: XENSCHED=%s" % ty(self.XENSCHED))
+        xenrt.TEC().logverbose("run: VMPARAMS=%s" % ty(self.VMPARAMS))
+        xenrt.TEC().logverbose("run: EXPERIMENT=%s" % ty(self.EXPERIMENT))
+        xenrt.TEC().logverbose("run: VMDISKS=%s" % ty(self.VMDISKS))
+        xenrt.TEC().logverbose("run: VMRAM=%s" % ty(self.VMRAM))
+        xenrt.TEC().logverbose("run: DOM0DISKSCHED=%s" % ty(self.DOM0DISKSCHED))
+        xenrt.TEC().logverbose("run: QEMUPARAMS=%s" % ty(self.QEMUPARAMS))
+        xenrt.TEC().logverbose("run: DEFAULTSR=%s" % ty(self.DEFAULTSR))
+        xenrt.TEC().logverbose("run: VMLOADS=%s" % ty(self.VMLOADS))
+        xenrt.TEC().logverbose("run: PERFSTATS=%s" % ty(self.PERFSTATS))
+        xenrt.TEC().logverbose("run: VMVIFS=%s" % ty(self.VMVIFS))
+        xenrt.TEC().logverbose("run: VMPOSTINSTALL=%s" % ty(self.VMPOSTINSTALL))
+        xenrt.TEC().logverbose("run: MEASURE=%s" % ty(self.MEASURE))
+        xenrt.TEC().logverbose("run: VMCRON=%s" % ty(self.VMCRON))
+        xenrt.TEC().logverbose("run: DOM0PARAMS=%s" % ty(self.DOM0PARAMS))
+        xenrt.TEC().logverbose("run: XENPARAMS=%s" % ty(self.XENPARAMS))
+        xenrt.TEC().logverbose("run: XENOPSPARAMS=%s" % ty(self.XENOPSPARAMS))
+        xenrt.TEC().logverbose("run: VMVCPUS=%s" % ty(self.VMVCPUS))
+        xenrt.TEC().logverbose("run: EXISTINGHOST=%s" % ty(self.EXISTINGHOST))
+        xenrt.TEC().logverbose("run: XDSUPPORT=%s" % ty(self.XDSUPPORT))
+        xenrt.TEC().logverbose("run: POSTCLONEWORKER=%s" % ty(self.POSTCLONEWORKER))
+        xenrt.TEC().logverbose("run: HOSTVMMAP=%s" % ty(self.HOSTVMMAP))
+        xenrt.TEC().logverbose("run: LOGINVSIEXCLUDE=%s" % ty(self.LOGINVSIEXCLUDE))
+        xenrt.TEC().logverbose("run: VMCOOLOFF=%s" % ty(self.VMCOOLOFF))
+        xenrt.TEC().logverbose("run: LOADSPERVM=%s" % ty(self.LOADSPERVM))
+        xenrt.TEC().logverbose("run: XENTRACE=%s" % ty(self.XENTRACE))
 
         experiment_classname = "Experiment_%s" % self.EXPERIMENT
         experiment = globals()[experiment_classname](self)

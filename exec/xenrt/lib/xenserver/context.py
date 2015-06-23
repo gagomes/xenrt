@@ -482,7 +482,7 @@ class VM(_Entity):
         self.ref = host.createGenericEmptyGuest(memory=self.MEM)
         
         # just use random linux iso
-        self.ref.changeCD("centos58_x86-64.iso")
+        self.ref.changeCD("centos58_x86-64_xenrtinst.iso")
         self.ref.setState(self.STATE)
         if self.STATE == "UP":
             self.ref.pretendToHaveXenTools()
@@ -793,7 +793,7 @@ class NFSSR(SR):
     SRLABEL = "RBACTestSR"
 
     def create(self):
-        srclass = xenrt.lib.xenserver.host.NFSStorageRepository
+        srclass = xenrt.lib.xenserver.NFSStorageRepository
         self.ref = srclass(self.get("Host").ref, self.SRLABEL)
         self.ref.create()
         self.uuid = self.ref.uuid

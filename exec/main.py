@@ -135,6 +135,7 @@ def usage(fd):
                                           tags to run
     --rerun                               Force a rerun of part of a suite
     --rerun-all                           Force a rerun of a suite
+    --rerun-if-needed                     Rerun a suite if needed
     --suite-tcs <list>                    Comma separated list of TCs to
                                           run (use with --rerun)
     --devrun                              Run the suite as a development run
@@ -166,8 +167,9 @@ def usage(fd):
     --poweroff <machine>                  Power off a machine
     --poweron <machine>                   Power on a machine
     --powercycle <machine>                Power cycle a machine
-    --bootdev <device>                     When power cycleing, boot a machine with a specific target (e.g. "bios")
+    --bootdev <device>                    When power cycling, boot a machine with a specific target (e.g. "bios")
     --nmi <machine>                       Sent NMI to a machine
+    --powerstatus <machine>               Get power status for a machine
     --mconfig <machine>                   See XML config for a machine
     --bootdiskless <machine>              Boot a machine into diskless Linux
     --bootwinpe <machine>                 Boot a machine into WinPE
@@ -370,6 +372,7 @@ try:
                                       'powercycle=',
                                       'bootdev=',
                                       'nmi=',
+                                      'powerstatus=',
                                       'mconfig=',
                                       'bootdiskless=',
                                       'bootwinpe=',
@@ -385,6 +388,7 @@ try:
                                       'testrun=',
                                       'rerun',
                                       'rerun-all',
+                                      'rerun-if-needed',
                                       'sku=',
                                       'delay-for=',
                                       'run-tool=',
@@ -770,6 +774,11 @@ try:
             powerhost = value
             poweroperation = "nmi"
             aux = True
+        elif flag == "--powerstatus":
+            powercontrol = True
+            powerhost = value
+            poweroperation = "status"
+            aux = True
         elif flag == "--mconfig":
             mconfig = value
             aux = True
@@ -811,6 +820,8 @@ try:
             setvars.append((["CLIOPTIONS", "SUITE_TESTRUN"], value))
         elif flag == "--rerun":
             setvars.append((["CLIOPTIONS", "SUITE_TESTRUN_RERUN"], True))
+        elif flag == "--rerun-if-needed":
+            setvars.append((["CLIOPTIONS", "SUITE_TESTRUN_RERUN_IF_NEEDED"], True))
         elif flag == "--rerun-all":
             setvars.append((["CLIOPTIONS", "SUITE_TESTRUN_RERUN"], True))
             setvars.append((["CLIOPTIONS", "SUITE_TESTRUN_RERUN_ALL"], True))
@@ -1229,8 +1240,10 @@ def exitcb():
             s.xmlrpcNop()
         except Exception, e:
             print str(e)
-
-    gec.onExit(aux)
+    try:
+        gec.onExit(aux)
+    except Exception, e:
+        print str(e)
     if not aux:
         gec.dbconnect.jobUpdate("FINISHED",
                                 time.asctime(time.gmtime()) + " UTC")
@@ -2099,7 +2112,7 @@ if powercontrol:
         powerctltype = "APCPDU"
     else:
         powerctltype = None
-    if not powerhost in xenrt.TEC().lookup("HOST_CONFIGS").keys():
+    if not powerhost in xenrt.TEC().lookup("HOST_CONFIGS", {}).keys():
         print "Loading %s from Racktables" % powerhost
         xenrt.readMachineFromRackTables(powerhost)
     machine = xenrt.PhysicalHost(powerhost, ipaddr="0.0.0.0", powerctltype=powerctltype)
@@ -2117,6 +2130,8 @@ if powercontrol:
         machine.powerctl.cycle()
     elif poweroperation == "nmi":
         machine.powerctl.triggerNMI()
+    elif poweroperation == "status":
+        print "POWERSTATUS: %s" % str(machine.powerctl.status())
 
 if mconfig:
     xenrt.tools.machineXML(mconfig)
@@ -2261,6 +2276,10 @@ if aux:
 #############################################################################
 
 xenrt.TEC().logverbose("Command line: %s" % (string.join(sys.argv)))
+
+if xenrt.TEC().lookup("WINPDB_DEBUG", False, boolean=True):
+    import rpdb2
+    rpdb2.start_embedded_debugger(xenrt.TEC().lookup("JOBID", "xenroot"), fAllowRemote=True)
 
 # XML-RPC server
 running = True

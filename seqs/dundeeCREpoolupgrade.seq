@@ -1,0 +1,24 @@
+<xenrt>
+
+  <!-- From Creedence NFS pool rolling upgrade (with suspend) test -->
+
+  <default name="OLD_PRODUCT_VERSION" value="Creedence"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.5/RTM-90233"/>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <RPU_WINDOWS_VERSION>ws08sp2-x86</RPU_WINDOWS_VERSION>
+    <RPU_LINUX_VERSION>oel65</RPU_LINUX_VERSION>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="nfs" name="nfssr" default="true"/>
+      <allhosts productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <testcase group="Upgrade" id="xenserver.tc.upgrade.TC8765" blocker="yes" sku="Creedence"/>
+  </testsequence>
+</xenrt>

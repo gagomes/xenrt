@@ -7,19 +7,12 @@
     <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
   </variables>
 
-  <default name="PARALLEL" value="2"/>
-  <default name="MIGRATEPAR" value="1"/>
-
-  <semaphores>
-    <TCMigrate count="${MIGRATEPAR}"/>
-  </semaphores>
-
   <prepare>
     <host/>
   </prepare>
 
   <testsequence>
-    <parallel workers="${PARALLEL}">
+    <parallel>
 
     <serial group="w2k3eesp2">
       <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="VMInstall" tc="TC-7035">
@@ -34,16 +27,16 @@
         </testcase>
         <testcase id="guestops.basic.TCStartStop" tc="TC-7037">
           <arg>guest=w2k3eesp2</arg>
-          <arg>loops=10</arg>
+          <arg>loops=5</arg>
         </testcase>
         <testcase id="guestops.basic.TCReboot" tc="TC-7038">
           <arg>guest=w2k3eesp2</arg>
-          <arg>loops=10</arg>
+          <arg>loops=5</arg>
         </testcase>
         <testcase id="guestops.srm.TCSuspendResume" tc="TC-7039">
           <arg>guest=w2k3eesp2</arg>
           <arg>workloads</arg>
-          <arg>loops=10</arg>
+          <arg>loops=5</arg>
         </testcase>
         <testcase id="guestops.srm.TCMigrate" tc="TC-7040">
           <arg>guest=w2k3eesp2</arg>
@@ -54,7 +47,7 @@
           <arg>guest=w2k3eesp2</arg>
           <arg>live</arg>
           <arg>workloads</arg>
-          <arg>loops=10</arg>
+          <arg>loops=5</arg>
         </testcase>
         <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-7043">
           <arg>N/A</arg>
@@ -96,16 +89,16 @@
         </testcase>
         <testcase id="guestops.basic.TCStartStop" tc="TC-7048">
           <arg>guest=w2k3eesp2-x64</arg>
-          <arg>loops=10</arg>
+          <arg>loops=5</arg>
         </testcase>
         <testcase id="guestops.basic.TCReboot" tc="TC-7049">
           <arg>guest=w2k3eesp2-x64</arg>
-          <arg>loops=10</arg>
+          <arg>loops=5</arg>
         </testcase>
         <testcase id="guestops.srm.TCSuspendResume" tc="TC-7050">
           <arg>guest=w2k3eesp2-x64</arg>
           <arg>workloads</arg>
-          <arg>loops=10</arg>
+          <arg>loops=5</arg>
         </testcase>
         <testcase id="guestops.srm.TCMigrate" tc="TC-7051">
           <arg>guest=w2k3eesp2-x64</arg>
@@ -116,7 +109,7 @@
           <arg>guest=w2k3eesp2-x64</arg>
           <arg>live</arg>
           <arg>workloads</arg>
-          <arg>loops=10</arg>
+          <arg>loops=5</arg>
         </testcase>
         <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-7054">
           <arg>N/A</arg>

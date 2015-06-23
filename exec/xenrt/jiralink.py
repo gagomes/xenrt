@@ -41,17 +41,6 @@ class JiraLink(object):
         self.customFields = None
 
         self.connected = False
-        try:
-            self.jira = jirarest.client.JIRA(options={'server': self.JIRA_URL}, basic_auth=(self.JIRA_USER, self.JIRA_PASS))
-            self.jira.session()
-            self.connected = True
-        except jirarest.exceptions.JIRAError, e:
-            traceback.print_exc(file=sys.stderr)
-            xenrt.TEC().logverbose("JiraLink Exception: %s" % (self.getJiraExceptionText(e)))
-        except Exception, e:
-            traceback.print_exc(file=sys.stderr)
-            xenrt.TEC().logverbose("JiraLink Exception: %s" % (str(e)))
-
         self.tickets = {}
 
         self._bufferdir = xenrt.GEC().config.lookup("JIRA_BUFFER_DIR", None)
@@ -64,14 +53,22 @@ class JiraLink(object):
         except UnicodeEncodeError:
             return 'HTTP {0}: "{1}"\n{2}'.format(exception.status_code, exception.text.encode('ascii', 'ignore'), exception.url)
 
+    @property
+    def jira(self):
+        self.attemptToConnect()
+        return self._jira
+
     def attemptToConnect(self):
         """If we've not already established a 'connection' with Jira then
         try again. Return the connected status."""
         if not self.connected:
             try:
-                self.jira = jirarest.client.JIRA(options={'server': self.JIRA_URL}, basic_auth=(self.JIRA_USER, self.JIRA_PASS))
-                self.jira.session()
+                self._jira = jirarest.client.JIRA(options={'server': self.JIRA_URL}, basic_auth=(self.JIRA_USER, self.JIRA_PASS))
+                self._jira.session()
                 self.connected = True
+            except jirarest.exceptions.JIRAError, e:
+                traceback.print_exc(file=sys.stderr)
+                xenrt.TEC().logverbose("JiraLink Exception: %s" % (self.getJiraExceptionText(e)))
             except Exception, e:
                 traceback.print_exc(file=sys.stderr)
                 xenrt.TEC().logverbose("JiraLink Exception on connect: %s" %

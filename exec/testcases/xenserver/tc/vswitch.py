@@ -2194,7 +2194,7 @@ class TC12550(_VSwitch):
     def prepare(self, arglist):
         _VSwitch.prepare(self, arglist)
         if isinstance(self.host, xenrt.lib.xenserver.TampaHost):
-            self.myguest = self.host.createBasicGuest("debian60")
+            self.myguest = self.host.createBasicGuest("generic-linux")
         else:
             self.myguest = self.host.createBasicGuest("debian50")
         # myguest eth0 is now sitting on xenbr0 - but we want it on xenbr1 
@@ -2281,7 +2281,7 @@ class TC12550(_VSwitch):
         for vlan_name in vlan_names:
             vlan_id, vlan_subnet, vlan_netmask = self.host.getVLAN(vlan_name)
             interface = "eth1.%d" % vlan_id
-            self.myguest.execguest("ifdown %s" % interface)
+            self.myguest.execguest("ip link set %s down" % interface)
             self.removeVLANLink(self.myguest, "eth1", vlan_id)    
 
 
@@ -3139,7 +3139,7 @@ class SRTrafficwithGRO(NetworkThroughputwithGRO):
 
             if re.search(self.TYPE,"iscsi", re.I):
                 # Set up the SR on the host, plug the pbd etc
-                sr = xenrt.lib.xenserver.host.ISCSIStorageRepository(self.host,
+                sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.host,
                                                                     "test-iscsi")
                 lun = xenrt.ISCSILunSpecified("xenrt-test/%s/%s" %
                                             (self.iqn, ip))
@@ -3154,7 +3154,7 @@ class SRTrafficwithGRO(NetworkThroughputwithGRO):
                     nicNotTested.append(nic)
                     installFlag=0
             else:
-                sr = xenrt.lib.xenserver.host.NFSStorageRepository(self.host,
+                sr = xenrt.lib.xenserver.NFSStorageRepository(self.host,
                                                                     "test-nfs")
                 try:
                     sr.create(self.srvm.getIP(), nfsDir)

@@ -74,7 +74,7 @@ class PortLock(xenrt.TestCase):
             self.getLogsFrom(self.linux_guest_2)
         
     def checkKernLogForId(self, id, allowed):
-        resp = self.host.execdom0("cat /var/log/kern.log")
+        resp = self.host.execdom0('cat /var/log/kern.log | grep "%s" || true' % id)
         
         if allowed:
             xenrt.TEC().logverbose("Checking that %s is in /var/log/kern.log" % id)

@@ -11,25 +11,21 @@
     <FORCE_NON_DEBUG_XEN>yes</FORCE_NON_DEBUG_XEN>
     <DISABLE_GUEST_IPV4>yes</DISABLE_GUEST_IPV4>
     <USE_GUEST_IPV6>yes</USE_GUEST_IPV6>
+    <OPTION_DOM0_MEM>8192M,max:8192M</OPTION_DOM0_MEM>
   </variables>
 
-  <prepare>
-    <host id="0">
-     <storage type="nfs" name="shared" default="true"/>
-    </host>
-  </prepare>
-
   <testsequence>
-    <testcase id="xenserver.tc.perf.tc_vmdensity.TCVMDensity" host="RESOURCE_HOST_0">
+    <testcase id="xenserver.tc.perf.tc_vmdensity.TCVMDensity" host="RESOURCE_HOST_0" tc="TC-19271">
       <arg>VMRAM=[896]</arg>
       <arg>RUNS=[1]</arg>
       <arg>VMS=range(1,1001)</arg>
       <arg>DOM0PARAMS=[["vlan=5"]]</arg>
-      <arg>VMTYPES='["win7sp1-x86"]'</arg>
+      <arg>VMTYPES=["win7sp1-x86"]</arg>
       <arg>EXPERIMENT="vmrun_cron"</arg>
-      <arg>VMPOSTINSTALL='[["pvdrvnorsc","nowinupd","noparallel","noserial","nocdrom","xdtailor","optimise"]]'</arg>
-      <arg>VMCRON='["0:25:waitvmlogin"]'</arg>
+      <arg>VMPOSTINSTALL=[["pvdrvnorsc","nowinupd","noparallel","noserial","nocdrom","xdtailor","optimise"]]</arg>
+      <arg>VMCRON=["0:25:waitvmlogin"]</arg>
       <arg>THRESHOLD=500.0</arg>
+      <arg>DEFAULTSR=["nfs"]</arg>
     </testcase>
   </testsequence>
 </xenrt>

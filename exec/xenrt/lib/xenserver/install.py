@@ -141,7 +141,7 @@ class DundeeInstaller(object):
             self.setupInstallUefiPxe(pxe, mountpoint, answerfileUrl)
         else:
             # Get a PXE directory to put boot files in
-            pxe = xenrt.PXEBoot(iSCSILUN = self.host.bootLun)
+            pxe = xenrt.PXEBoot(iSCSILUN = self.host.bootLun, ipxeInUse = self.host.lookup("USE_IPXE", False, boolean=True))
             self.setupInstallPxe(pxe, mountpoint, answerfileUrl)
         # We're done with the ISO now
         mount.unmount()
@@ -166,7 +166,7 @@ class DundeeInstaller(object):
         
         # this option allows manual installation i.e. you step through
         # the XS installer manually and it detects for when this is finished.
-        if xenrt.TEC().lookup("OPTION_NO_ANSWERFILE", False):
+        if xenrt.TEC().lookup("OPTION_NO_ANSWERFILE", False, boolean=True):
             
             xenrt.TEC().logverbose("User is to step through installer manually")
             xenrt.TEC().logverbose("Waiting 5 mins")
@@ -192,14 +192,6 @@ class DundeeInstaller(object):
         else:
             self.host.installComplete(handle, waitfor=True, upgrade=self.upgrade)
 
-        if xenrt.TEC().lookup("USE_HOST_IPV6", False, boolean=True):
-            xenrt.TEC().logverbose("Setting %s's primary address type as IPv6" % self.host.getName())
-            pif = self.host.execdom0('xe pif-list management=true --minimal').strip()
-            self.host.execdom0('xe host-management-disable')
-            self.host.execdom0('xe pif-set-primary-address-type primary_address_type=ipv6 uuid=%s' % pif)
-            self.host.execdom0('xe host-management-reconfigure pif-uuid=%s' % pif)
-            self.host.waitForSSH(300, "%s host-management-reconfigure (IPv6)" % self.host.getName())
-        
         return None
 
     @property
@@ -659,7 +651,7 @@ sleep 30
             for n in nics:
                 dom0args.append("map_netdev=eth%u:s:%s" % (n, self.host.getNICMACAddress(n)))
         dom0args.append("install")
-        if not xenrt.TEC().lookup("OPTION_NO_ANSWERFILE", False):
+        if not xenrt.TEC().lookup("OPTION_NO_ANSWERFILE", False, boolean=True):
             dom0args.append("rt_answerfile=%s" % (answerfileUrl))
         if xenrt.TEC().lookup("OPTION_BASH_SHELL", False, boolean=True):
             dom0args.append("bash-shell")
@@ -770,7 +762,7 @@ sleep 30
         pxecfg.mbootArgsModule1Add("ramdisk_size=65536")
         pxecfg.mbootArgsModule1Add("install")
         
-        if not xenrt.TEC().lookup("OPTION_NO_ANSWERFILE", False):
+        if not xenrt.TEC().lookup("OPTION_NO_ANSWERFILE", False, boolean=True):
             pxecfg.mbootArgsModule1Add("rt_answerfile=%s" % (answerfileUrl))
         
         pxecfg.mbootArgsModule1Add("output=ttyS0")

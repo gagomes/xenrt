@@ -1,0 +1,76 @@
+<xenrt>
+
+  <default name="GUESTMEMORY" value="512" />
+  <default name="GUESTVCPUS" value="2" />
+  <default name="GUESTVERSION" value="ws08sp2-x86" />
+  <default name="GUESTDISK" value="16384" />
+  <default name="GUESTDISKLIN" value="5120" />
+  <default name="PAIRSPERHOST" value="A,B,C" />
+  <default name="HOSTPAIRS" value="(0,1),(1,2),(2,3),(3,0)" />
+  <default name="GUESTDISTRO" value="rhel511" />
+  <default name="GUESTARCH" value="x86-32" />
+  <default name="POOLSTRESSSNAP" value="20" />
+  <default name="DURATION" value="NA" />
+  <default name="ITERATIONS" value="450" />
+
+  <scheduler>
+    <pool>VMX</pool>
+    <resources>memory&gt;=16G/cores&gt;=4</resources>
+    <param>SITE=SC04</param>
+  </scheduler>
+
+  <variables>
+    <EXTRA_TIME>yes</EXTRA_TIME>
+    <EXTRA_ARP_TIME>yes</EXTRA_ARP_TIME>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+    <OPTION_CLONE_TEMPLATE>yes</OPTION_CLONE_TEMPLATE>
+  </variables>
+
+  <prepare>
+    <pool>
+      <host id="0" />
+      <storage type="smb" name="cifs-sr" default="true" />
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <parallel>
+      <serial>
+        <testcase id="xenserver.guest.TCXenServerVendorInstall">
+          <arg>RESOURCE_HOST_0</arg>
+          <arg>guest=rhguest0</arg>
+          <arg>version=${GUESTDISTRO}</arg>
+          <arg>arch=${GUESTARCH}</arg>
+          <arg>memory=${GUESTMEMORY}</arg>
+          <arg>vcpus=${GUESTVCPUS}</arg>
+          <arg>disksize=${GUESTDISKLIN}</arg>
+        </testcase>
+        <testcase id="xenserver.guest.TCLifeCycleLoop">
+          <arg>guest=rhguest0</arg>
+          <arg>duration=${DURATION}</arg>
+          <arg>iterations=${ITERATIONS}</arg>
+          <arg>snap=${POOLSTRESSSNAP}</arg>
+        </testcase>
+      </serial>
+      <serial>
+        <testcase id="xenserver.guest.TCXenServerWindowsInstall">
+          <arg>RESOURCE_HOST_0</arg>
+          <arg>guest=winguest0</arg>
+          <arg>version=${GUESTVERSION}</arg>
+          <arg>memory=${GUESTMEMORY}</arg>
+          <arg>vcpus=${GUESTVCPUS}</arg>
+          <arg>disksize=${GUESTDISK}</arg>
+        </testcase>
+        <testcase id="guestops.drivers.TCDriverInstall">
+          <arg>guest=winguest0</arg>
+        </testcase>
+        <testcase id="xenserver.guest.TCLifeCycleLoop">
+          <arg>guest=winguest0</arg>
+          <arg>duration=${DURATION}</arg>
+          <arg>iterations=${ITERATIONS}</arg>
+          <arg>snap=${POOLSTRESSSNAP}</arg>
+        </testcase>
+      </serial>
+    </parallel>
+  </testsequence>
+</xenrt>

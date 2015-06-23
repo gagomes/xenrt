@@ -141,7 +141,7 @@ class DundeeInstaller(object):
             self.setupInstallUefiPxe(pxe, mountpoint, answerfileUrl)
         else:
             # Get a PXE directory to put boot files in
-            pxe = xenrt.PXEBoot(iSCSILUN = self.host.bootLun)
+            pxe = xenrt.PXEBoot(iSCSILUN = self.host.bootLun, ipxeInUse = self.host.lookup("USE_IPXE", False, boolean=True))
             self.setupInstallPxe(pxe, mountpoint, answerfileUrl)
         # We're done with the ISO now
         mount.unmount()
@@ -166,7 +166,7 @@ class DundeeInstaller(object):
         
         # this option allows manual installation i.e. you step through
         # the XS installer manually and it detects for when this is finished.
-        if xenrt.TEC().lookup("OPTION_NO_ANSWERFILE", False):
+        if xenrt.TEC().lookup("OPTION_NO_ANSWERFILE", False, boolean=True):
             
             xenrt.TEC().logverbose("User is to step through installer manually")
             xenrt.TEC().logverbose("Waiting 5 mins")
@@ -192,14 +192,6 @@ class DundeeInstaller(object):
         else:
             self.host.installComplete(handle, waitfor=True, upgrade=self.upgrade)
 
-        if xenrt.TEC().lookup("USE_HOST_IPV6", False, boolean=True):
-            xenrt.TEC().logverbose("Setting %s's primary address type as IPv6" % self.host.getName())
-            pif = self.host.execdom0('xe pif-list management=true --minimal').strip()
-            self.host.execdom0('xe host-management-disable')
-            self.host.execdom0('xe pif-set-primary-address-type primary_address_type=ipv6 uuid=%s' % pif)
-            self.host.execdom0('xe host-management-reconfigure pif-uuid=%s' % pif)
-            self.host.waitForSSH(300, "%s host-management-reconfigure (IPv6)" % self.host.getName())
-        
         return None
 
     @property
@@ -359,35 +351,6 @@ cat root/unplug-vcpus.bak | \
         else:
             installer_ssh = ""
         return installer_ssh
-
-    @property
-    def postInstallV6(self):
-        v6hack = ""
-        mockd = xenrt.TEC().getFile(self.host.V6MOCKD_LOCATION)
-        if self.upgrade and not mockd:
-            # Set up a temporary WWW directory to hold the v6testd
-            v6webdir = xenrt.WebDirectory()
-            v6testdfile = xenrt.TEC().getFile("xe-phase-1/v6testd", "v6testd")
-            if v6testdfile:
-                v6webdir.copyIn(v6testdfile, "v6testd")
-            else:
-                xenrt.TEC().warning("XenRT failed to download a corresponding v6testd."
-                        "falling back to pre-boston")
-                v6webdir.copyIn("%s/utils/v6testd" % (xenrt.TEC().lookup("LOCAL_SCRIPTDIR")))
-            v6hack = """
-# Dropping in fake daemon if required
-if [ -x opt/xensource/libexec/v6d ]; then  
-  mv opt/xensource/libexec/v6d opt/xensource/libexec/v6d.orig
-  if (wget %s -O opt/xensource/libexec/v6d); then
-    chmod a+x opt/xensource/libexec/v6d
-  else
-    echo "Failed to download v6 fake daemon"
-    # Put the original back - it's better than not having one at all
-    mv opt/xensource/libexec/v6d.orig opt/xensource/libexec/v6d
-  fi
-fi
-""" % (v6webdir.getURL("v6testd"))
-        return v6hack
 
     @property
     def postInstallDom0RamDisk(self):
@@ -688,7 +651,7 @@ sleep 30
             for n in nics:
                 dom0args.append("map_netdev=eth%u:s:%s" % (n, self.host.getNICMACAddress(n)))
         dom0args.append("install")
-        if not xenrt.TEC().lookup("OPTION_NO_ANSWERFILE", False):
+        if not xenrt.TEC().lookup("OPTION_NO_ANSWERFILE", False, boolean=True):
             dom0args.append("rt_answerfile=%s" % (answerfileUrl))
         if xenrt.TEC().lookup("OPTION_BASH_SHELL", False, boolean=True):
             dom0args.append("bash-shell")
@@ -799,7 +762,7 @@ sleep 30
         pxecfg.mbootArgsModule1Add("ramdisk_size=65536")
         pxecfg.mbootArgsModule1Add("install")
         
-        if not xenrt.TEC().lookup("OPTION_NO_ANSWERFILE", False):
+        if not xenrt.TEC().lookup("OPTION_NO_ANSWERFILE", False, boolean=True):
             pxecfg.mbootArgsModule1Add("rt_answerfile=%s" % (answerfileUrl))
         
         pxecfg.mbootArgsModule1Add("output=ttyS0")
@@ -1091,7 +1054,6 @@ sleep 30
         postInstall.append(self.postInstallUnplugDom0vCPUs)
         postInstall.append(self.postInstallBlacklistDrivers)
         postInstall.append(self.postInstallSSH)
-        postInstall.append(self.postInstallV6)
         postInstall.append(self.postInstallDom0MemPool)
         postInstall.append(self.postInstallNonDebugXen)
         postInstall.append(self.postInstallFirstBootSR)

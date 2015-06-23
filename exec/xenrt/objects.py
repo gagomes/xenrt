@@ -17,6 +17,7 @@ import testcases.benchmarks.workloads
 import bz2, simplejson, json
 import IPy
 import XenAPI
+import ssl
 import xml.etree.ElementTree as ET
 from xenrt.lazylog import log, warning
 from xenrt.linuxanswerfiles import *
@@ -192,7 +193,7 @@ class GenericPlace(object):
     def getName(self):
         raise xenrt.XRTError("Unimplemented")
 
-    def paramGet(self, paramName):
+    def paramGet(self, paramName, paramKey=None):
         raise xenrt.XRTError("Unimplemented")
 
     def tailor(self):
@@ -3276,11 +3277,11 @@ DHCPServer = 1
 
         isLegacy = True
         try:
-            debversion = float(self.execcmd("cat /etc/debian_version").strip())
+            debversion = int(self.execcmd("cat /etc/debian_version").strip().split(".")[0])
         except:
             debversion = None
 
-        if debversion >= 6.0:
+        if debversion >= 6:
             isLegacy = False
 
         try:
@@ -3299,7 +3300,7 @@ DHCPServer = 1
 
             # Get and install the iscsi target
             
-            if debversion >= 7.0:
+            if debversion >= 7:
                 self.execcmd("apt-get install -y --force-yes iscsitarget iscsitarget-dkms")
                 self.execcmd('sed -i "s/false/true/" /etc/default/iscsitarget')
                 self.execcmd('/etc/init.d/iscsitarget restart')
@@ -3317,7 +3318,7 @@ DHCPServer = 1
             # Prerequisites
             self.execcmd("apt-get install libssl-dev --force-yes -y")
 
-            if debversion == 4.0 and self.execcmd("uname -r").strip() == "2.6.18.8.xs5.5.0.14.443":
+            if debversion == 4 and self.execcmd("uname -r").strip() == "2.6.18.8.xs5.5.0.14.443":
                 # On Etch on George we need to workaround the fact the updates repo no longer exists,
                 # and thus we don't pick up kernel headers from it
                 url = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP")
@@ -4340,36 +4341,6 @@ class GenericHost(GenericPlace):
             traceback.print_exc(file=sys.stderr)
             xenrt.TEC().logverbose("Exception instantiating job test %s" % str(jt))
 
-    def rebuildInitrd(self):
-        """
-        Rebuild the initrd of the host in-place
-        This is virtually akin to applying a kernel hotfix
-        The MD5 sums of the files should be different before and after
-
-        Fingers crossed no reboot happens until the following 2 steps complete
-        successfully or the machine will be trashed. There is away to avoid
-        the below in clearwater and newer, but we'll need to do this for Tampa
-        too. For clearwater and greater just need to do
-        "sh initrd*.xen.img.cmd -f" without removing the original image file
-        but the old-style way should work regardless of age
-        """
-
-        xenrt.TEC().logverbose("Rebuilding initrd for host %s..." % str(self))
-        kernel = self.execdom0("uname -r").strip()
-        imgFile = "initrd-{0}.img".format(kernel)
-        xenrt.TEC().logverbose("Original md5sum = %s" %
-                               self.execdom0("md5sum /boot/%s" % imgFile))
-        xenrt.TEC().logverbose(
-            "Removing boot image %s and rebuilding" % imgFile)
-        self.execdom0("cd /boot")
-        self.execdom0("rm -rf %s" % imgFile)
-        self.execdom0(
-            """new-kernel-pkg.py --install --package=kernel-xen --mkinitrd "$@" %s""" % kernel)
-
-        xenrt.TEC().logverbose("New md5sum = %s" %
-                               self.execdom0("md5sum /boot/%s" % imgFile))
-        xenrt.TEC().logverbose("initrd has been rebuilt")
-
     def disableMultipathingInKernel(self, reboot=True):
         """
         Disable multipathing if the root disk of Dom0 has it switched on already
@@ -4504,6 +4475,16 @@ class GenericHost(GenericPlace):
                 g.uninstall()
                 xenrt.sleep(15)
 
+    def transformCommand(self, command):
+        """
+        Tranform commands if it is required on Host
+        
+        @param command: The command that can be transformed.
+        @return: transformed command
+        """
+
+        return command
+
     def execdom0(self,
                  command,
                  username=None,
@@ -4535,7 +4516,7 @@ class GenericHost(GenericPlace):
         if not password:
             password = self.password
         return xenrt.ssh.SSH(self.getIP(),
-                             command,
+                             self.transformCommand(command),
                              level=level,
                              retval=retval,
                              password=password,
@@ -5549,9 +5530,9 @@ class GenericHost(GenericPlace):
         ay=SLESAutoyastFile( distro,
                              nfsdir.getMountURL(""),
                              mainDisk,
-                             method,
-                             ethDevice,
-                             isntallOn="native",
+                             installOn="native",
+                             method=method,
+                             ethDevice=ethDevice,
                              password=self.password,
                              extraPackages=extrapackages,
                              bootDiskSize=bootDiskSize,
@@ -5661,15 +5642,23 @@ class GenericHost(GenericPlace):
         # Make post install script
         serport = self.lookup("SERIAL_CONSOLE_PORT", "0")
         serbaud = self.lookup("SERIAL_CONSOLE_BAUD", "115200")
+        extra = ""
+        if distro.startswith("debian80") or distro.startswith("debiantesting"):
+            extra += """sed -i 's/PermitRootLogin without-password/PermitRootLogin yes/g' /etc/ssh/sshd_config
+/etc/init.d/ssh restart
+"""
+
         piscript = """#!/bin/bash
 # Ensure we get dom0 serial console (there should be a way to do this through preseed but I can't find an obvious way)
 sed -i 's/GRUB_CMDLINE_LINUX=""/GRUB_CMDLINE_LINUX="console=tty0 console=ttyS%s,%sn8"/' /etc/default/grub
 /usr/sbin/update-grub
 
+%s
+
 # Signal completion
 wget -q -O - %s/share/control/signal?key=%s
 exit 0
-""" % (serport, serbaud, xenrt.TEC().lookup("LOCALURL"),  sigkey)
+""" % (serport, serbaud, extra, xenrt.TEC().lookup("LOCALURL"),  sigkey)
         pifile = "post-install-%s.sh" % (self.getName())
         pifilename = "%s/%s" % (xenrt.TEC().getLogdir(), pifile)
         f = file(pifilename, "w")
@@ -7410,6 +7399,10 @@ class GenericGuest(GenericPlace):
         self.findPassword()
 
         if not self.windows:
+            # sometimes we get an error doing this recursive copy very soon after a vm-start (CA-172621)
+            # attempting to fix with a sleep.
+            xenrt.sleep(10)
+
             # Copy the test scripts to the guest
             xrt = xenrt.TEC().lookup("XENRT_BASE", "/usr/share/xenrt")
             sdir = xenrt.TEC().lookup("REMOTE_SCRIPTDIR")
@@ -7539,7 +7532,7 @@ class GenericGuest(GenericPlace):
                         if self.execguest("test -e %s" % (filename), retval="code") == 0:
                             self.execguest("rm -f %s" % (filename))
 
-                if self.execguest("[ -e /etc/apt/sources.list.d/updates.list ]", retval="code") and int(debVer) in (6, 7) and xenrt.TEC().lookup("APT_SERVER", None):
+                if self.execguest("[ -e /etc/apt/sources.list.d/updates.list ]", retval="code") and int(debVer) in (6, 7, 8) and xenrt.TEC().lookup("APT_SERVER", None):
                     codename = self.execguest("cat /etc/apt/sources.list | grep '^deb' | awk '{print $3}' | head -1").strip()
                     self.execguest("echo deb %s/debsecurity %s/updates main >> /etc/apt/sources.list.d/updates.list" % (xenrt.TEC().lookup("APT_SERVER"), codename))
                     self.execguest("echo deb %s/debian %s-updates main >> /etc/apt/sources.list.d/updates.list" % (xenrt.TEC().lookup("APT_SERVER"), codename))
@@ -7756,7 +7749,7 @@ class GenericGuest(GenericPlace):
                     pass
 
         if not self.windows:
-            xenrt.TEC().logverbose("Guest %s is running kernel %s" % (self.name, self.execguest("uname -r")))
+            xenrt.TEC().logverbose("Guest %s is running kernel %s" % (self.name, self.execguest("uname -a")))
 
 
         if not self.windows:
@@ -8595,12 +8588,18 @@ class GenericGuest(GenericPlace):
                     release = "testing"
                 _url = repository + "/dists/%s/" % (release)
                 boot_dir = "main/installer-%s/current/images/netboot/debian-installer/%s/" % (arch, arch)
-
+            
             # Pull boot files from HTTP repository
             fk = xenrt.TEC().tempFile()
             fr = xenrt.TEC().tempFile()
-            xenrt.getHTTP(_url + boot_dir + "linux", fk)
-            xenrt.getHTTP(_url + boot_dir + "initrd.gz", fr)
+            if release == "testing":
+                # Testing presently doesn't have an installer
+                baseurl = "http://d-i.debian.org/daily-images/%s/daily/netboot/debian-installer/%s/" % (arch, arch)
+                xenrt.getHTTP(baseurl + "linux", fk)
+                xenrt.getHTTP(baseurl + "initrd.gz", fr)
+            else:
+                xenrt.getHTTP(_url + boot_dir + "linux", fk)
+                xenrt.getHTTP(_url + boot_dir + "initrd.gz", fr)
 
             # Construct a PXE target
             pxe = xenrt.PXEBoot(remoteNfs=self.getHost().lookup("REMOTE_PXE", None))
@@ -9234,9 +9233,10 @@ class GenericGuest(GenericPlace):
             os.makedirs(d)
         self.xmlrpcGetFile("c:\\windows\\temp\\devcon.log", "%s/devcon.log" % (d))
         gpuDetected = 0
-        gpuPatterns = ["PCI.VEN_10DE.*(NVIDIA|VGA).*"  #nvidia pci vendor id
+        gpuPatterns = ["PCI.VEN_10DE.*(NVIDIA|VGA).*"   #nvidia pci vendor id
                         ,"PCI.VEN_1002.*(ATI|VGA).*"    #ati/amd pci vendor id
                         ,"PCI.VEN_102B.*(Matrox|VGA).*" #matrox  pci vendor id
+                        ,"PCI.VEN.*Intel.*Graphics.*"   #intel pci vendor id
                        ]
         f = open("%s/devcon.log"%d)
         for line in f:
@@ -9288,11 +9288,32 @@ class GenericGuest(GenericPlace):
         self.xmlrpcSendFile("%s/%s" % (tempDir,tarBall),"c:\\%s" % tarBall)
 
         self.xmlrpcExtractTarball("c:\\%s" % tarBall,"c:\\")
+        vbScript = """
+Set WshShell = WScript.CreateObject("WScript.Shell")
+WScript.sleep 60000
+WshShell.Run "cmd", 9
+WScript.sleep 1000
+WshShell.SendKeys "c:\%s -s"
+WshShell.SendKeys "{ENTER}"
+WScript.sleep 180000
 
-        returncode = self.xmlrpcExec("c:\\%s /s /noreboot" % (fileName),
+WshShell.SendKeys "{ENTER}"
+WScript.sleep 1000
+WshShell.SendKeys "{LEFT}"
+WshShell.SendKeys "{ENTER}"
+WScript.sleep 1000
+WshShell.SendKeys "{ENTER}"
+
+WScript.sleep 180000
+
+WshShell.SendKeys "{ENTER}"
+WScript.sleep 1000
+WshShell.SendKeys "{ENTER}"
+""" % (fileName)
+        self.xmlrpcWriteFile("c:\\vb.vbs",vbScript)
+        returncode = self.xmlrpcExec("c:\\vb.vbs",
                                       level=xenrt.RC_OK, returnerror=False, returnrc=True,
                                       timeout = 600)
-
         # Wait for some time to settle down with driver installer.
         xenrt.sleep(30)
 
@@ -9939,7 +9960,7 @@ while True:
         @rtype boolean
         """
         if self.windows:
-            raise XRTError("Function can only be used to check for installed RPMs on linux.")
+            raise xenrt.XRTError("Function can only be used to check for installed RPMs on linux.")
 
         #rpm should NOT contain file extn .rpm, so split off any file extension
         fileWithoutExt = os.path.splitext(rpm)[0]
@@ -9948,6 +9969,14 @@ while True:
 
     def installDrivers(self):
         pass
+
+    def setupNetscalerVPX(self, installNSTools=False):
+        netscaler = xenrt.lib.netscaler.NetScaler.setupNetScalerVpx(self, useVIFs=True)
+        xenrt.GEC().registry.objPut("netscaler", self.name, netscaler)
+        netscaler.applyLicense(netscaler.getLicenseFileFromXenRT())
+        if installNSTools:
+            netscaler.installNSTools()
+        netscaler.checkFeatures("Test results after applying license:")
 
 class EventObserver(xenrt.XRTThread):
 
@@ -10747,8 +10776,8 @@ DomainLevel=%s
 InstallDNS=Yes
 ConfirmGc=Yes
 CreateDNSDelegation=No
-DatabasePath="C:\Windows\NTDS"
-LogPath="C:\Windows\NTDS"
+DatabasePath="C:\Windows\\NTDS"
+LogPath="C:\Windows\\NTDS"
 SYSVOLPath="C:\Windows\SYSVOL"
 SafeModeAdminPassword=%s
 RebootOnSuccess=No
@@ -10773,13 +10802,13 @@ RebootOnSuccess=No
         psscript = """Import-Module ADDSDeployment;
 Install-ADDSForest `
 -CreateDnsDelegation:$false `
--DatabasePath "C:\Windows\NTDS" `
+-DatabasePath "C:\Windows\\NTDS" `
 -DomainMode "%s" `
 -DomainName "%s" `
 -DomainNetbiosName "%s" `
 -ForestMode "%s" `
 -InstallDns:$true `
--LogPath "C:\Windows\NTDS" `
+-LogPath "C:\Windows\\NTDS" `
 -NoRebootOnCompletion:$true `
 -SysvolPath "C:\Windows\SYSVOL" `
 -Force:$true `
@@ -11424,6 +11453,10 @@ class DVSCWebServices(object):
 
 
     def request (self, method, url, headers=None, params=""):
+        v = sys.version_info
+        if v.major == 2 and ((v.minor == 7 and v.micro >= 9) or v.minor > 7):
+            xenrt.TEC().logverbose("Disabling certificate verification on >=Python 2.7.9")
+            ssl._create_default_https_context = ssl._create_unverified_context
         xenrt.TEC().logverbose("request")
         if self.auto == True and self.keepAlive == False:
             self.login("admin", self.admin_pw)

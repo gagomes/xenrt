@@ -136,14 +136,6 @@ class TestDundeeHost(XenRTUnitTestCase):
         host.vswitchAppCtl.assert_called_once_with('coverage/show')
 
     @patch('xenrt.TEC')
-    def testMockLocation(self, tec):
-        host = xenrt.lib.xenserver.host.DundeeHost(None, None)
-
-        self.assertEquals(
-            'binary-packages/RPMS/domain0/RPMS/x86_64/v6mockd-0-0.x86_64.rpm',
-            host.V6MOCKD_LOCATION)
-
-    @patch('xenrt.TEC')
     def testguestFactory(self, tec):
         host = xenrt.lib.xenserver.host.DundeeHost(None, None)
 
@@ -163,53 +155,12 @@ class TestCreedenceHost(XenRTUnitTestCase):
         host.vswitchAppCtl.assert_called_once_with('coverage/show')
 
     @patch('xenrt.TEC')
-    def testMockLocation(self, tec):
-        host = xenrt.lib.xenserver.host.CreedenceHost(None, None)
-
-        self.assertEquals(
-            'binary-packages/RPMS/domain0/RPMS/x86_64/v6mockd-0-0.x86_64.rpm',
-            host.V6MOCKD_LOCATION)
-
-    @patch('xenrt.TEC')
     def testguestFactory(self, tec):
         host = xenrt.lib.xenserver.host.CreedenceHost(None, None)
 
         guestFactory = host.guestFactory()
 
         self.assertEquals('CreedenceGuest', guestFactory.__name__)
-
-
-class TestNFSStorageRepository(XenRTUnitTestCase):
-    def testCreateStoresDeviceConfiguration(self):
-        host = Mock()
-        sr = xenrt.lib.xenserver.host.NFSStorageRepository(host, 'sr-name')
-
-        sr.create('guest-IP', '/nfs-export')
-
-        self.assertEquals(
-            {
-                'server': 'guest-IP',
-                'serverpath': '/nfs-export'
-            },
-            sr.dconf
-        )
-
-
-class TestNFSv4StorageRepository(XenRTUnitTestCase):
-    def testCreateUsesVersion4AsAParameter(self):
-        host = Mock()
-        sr = xenrt.lib.xenserver.host.NFSv4StorageRepository(host, 'sr-name')
-
-        sr.create('guest-IP', '/nfs-export')
-
-        self.assertEquals(
-            {
-                'server': 'guest-IP',
-                'serverpath': '/nfs-export',
-                'nfsversion': '4'
-            },
-            sr.dconf
-        )
 
 
 class TestHostLicenseBehaviourForCreedence(XenRTUnitTestCase):

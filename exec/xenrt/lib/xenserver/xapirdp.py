@@ -27,10 +27,12 @@ class XapiRdp(object):
     def isRdpEnabled(self):
         """ Check that RDP is enabled on the guest : Returns True if RDP enabled else False """
 
+        rdpStatus = False
         xenrt.TEC().logverbose("XAPI trying to check the status of RDP for the guest %s on the host %s" % (self.guest,self.host))
         path = "/local/domain/%u/data/ts" % (self.guest.getDomid())
         tsPath = "/local/domain/%u/control/feature-ts2" % (self.guest.getDomid())
-        rdpStatus = (self.host.xenstoreRead(tsPath)=="1") and (self.host.xenstoreRead(path)=="1")
+        if self.host.execdom0("xenstore-exists %s" % tsPath, retval="code" ) == 0 :
+            rdpStatus = (self.host.xenstoreRead(tsPath)=="1") and (self.host.xenstoreRead(path)=="1")
         return rdpStatus
 
 

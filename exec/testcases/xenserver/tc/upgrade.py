@@ -517,6 +517,7 @@ class _RollingPoolUpgrade(_PoolUpgrade):
                 xenrt.RESULT_PASS:
             return
 
+
 class _NonRollingPoolUpgrade(_PoolUpgrade):
 
     NONROLLING = True
@@ -1166,12 +1167,6 @@ class TCAutoInstaller(xenrt.TestCase):
         elif protocol == "HTTP":
             imageDir = xenrt.WebDirectory()
         elif protocol == "FTP":
-            # Check that the FTP server is running on this controller
-            msg = xenrt.rootops.sudo("/etc/init.d/vsftpd status")
-            running = re.search('is running', msg)
-            if not running:
-                raise xenrt.XRTFailure("FTP server not running on controller")
-
             imageDir = xenrt.FTPDirectory()
             imageDir.setUsernameAndPassword('xenrtd', 'xensource')
         else:
@@ -1252,6 +1247,7 @@ class _SingleHostUpgrade(xenrt.TestCase):
     USE_EXISTING_HOST = False
     NO_VMS = False
     EXTRASUBCASES = []
+    SAFE2UPGRAGE_CHECK = False
 
     def installVMs(self):
         if isinstance(self.host, xenrt.lib.xenserver.MNRHost) and not isinstance(self.host, xenrt.lib.xenserver.TampaHost):
@@ -1269,7 +1265,14 @@ class _SingleHostUpgrade(xenrt.TestCase):
         self.host.check()
         if len(self.host.listGuests()) == 0 and not self.NO_VMS:
             raise xenrt.XRTFailure("VMs missing after host upgrade")
-
+    
+    def installOld(self):
+        old = xenrt.TEC().lookup("OLD_PRODUCT_VERSION")
+        oldversion = xenrt.TEC().lookup("OLD_PRODUCT_INPUTDIR")
+        self.host = xenrt.lib.xenserver.createHost(id=0,
+                                                   version=oldversion,
+                                                   productVersion=old)
+    
     def upgradeVMs(self):
         for g in self.guests:
             xenrt.TEC().progress("Upgrading VM %s" % (g.getName()))
@@ -1314,6 +1317,9 @@ class _SingleHostUpgrade(xenrt.TestCase):
             if self.runSubcase("installVMs", (), "PrevGA", "InstallVMs") != \
                    xenrt.RESULT_PASS:
                 return
+
+        if self.SAFE2UPGRAGE_CHECK:
+            self.host.checkSafe2Upgrade()
 
         # Upgrade the host and VMs
         upgsteps = []
@@ -1391,13 +1397,13 @@ class TCUpgradeMultipathedRootDisk(_SingleHostUpgrade):
 
     def fakeKernelHotfix(self):
         step("Faking a kernel hotifx by rebuilding initrd...")
-        self.host.rebuildInitrd()
-        self.host.reboot()
+        self.getDefaultHost().rebuildInitrd()
+        self.getDefaultHost().reboot()
 
     def checkMPIsOn(self, expectedOn=True):
         step("Checking the state of multipathing...")
-        log(self.host.getMultipathInfo())
-        mpOn = len(self.host.getMultipathInfo()) >= 1
+        log(self.getDefaultHost().getMultipathInfo())
+        mpOn = len(self.getDefaultHost().getMultipathInfo()) >= 1
 
         if mpOn != expectedOn:
             raise xenrt.XRTError(
@@ -1523,7 +1529,7 @@ class TCXenCert(_XenCert,xenrt.TestCase):
                 minsize = int(self.host.lookup("SR_NETAPP_MINSIZE", 40))
                 maxsize = int(self.host.lookup("SR_NETAPP_MAXSIZE", 1000000))
                 self.target = xenrt.NetAppTarget(minsize=minsize, maxsize=maxsize)
-                self.sr = xenrt.lib.xenserver.host.IntegratedCVSMStorageRepository(self.host,"CVSMSR")
+                self.sr = xenrt.lib.xenserver.IntegratedCVSMStorageRepository(self.host,"CVSMSR")
                 self.sr.resources["target"] = self.target
                 self.sr.create(self.target,
                                protocol="iscsi",
@@ -1532,7 +1538,7 @@ class TCXenCert(_XenCert,xenrt.TestCase):
             elif self.adapterid == "NETAPP_FC":
                 self.adapterid = "NETAPP"
                 self.target = xenrt.FCHBATarget()
-                self.sr = xenrt.lib.xenserver.host.IntegratedCVSMStorageRepository(self.host,"CVSMSR")
+                self.sr = xenrt.lib.xenserver.IntegratedCVSMStorageRepository(self.host,"CVSMSR")
                 self.sr.resources["target"] = self.target
                 self.sr.create(self.target,
                                protocol="fc",
@@ -1542,7 +1548,7 @@ class TCXenCert(_XenCert,xenrt.TestCase):
                 minsize = int(self.host.lookup("SR_EQL_MINSIZE", 40))
                 maxsize = int(self.host.lookup("SR_EQL_MAXSIZE", 1000000))
                 self.target = xenrt.EQLTarget(minsize=minsize, maxsize=maxsize)
-                self.sr = xenrt.lib.xenserver.host.IntegratedCVSMStorageRepository(self.host,"CVSMSR")
+                self.sr = xenrt.lib.xenserver.IntegratedCVSMStorageRepository(self.host,"CVSMSR")
                 self.sr.resources["target"] = self.target
                 self.sr.create(self.target,
                                protocol="iscsi",
@@ -1553,7 +1559,7 @@ class TCXenCert(_XenCert,xenrt.TestCase):
                 minsize = int(self.host.lookup("SR_SMIS_ISCSI_MINSIZE", 40))
                 maxsize = int(self.host.lookup("SR_SMIS_ISCSI_MAXSIZE", 1000000))
                 self.target = xenrt.SMISiSCSITarget()
-                self.sr = xenrt.lib.xenserver.host.IntegratedCVSMStorageRepository(self.host,"CVSMSR")
+                self.sr = xenrt.lib.xenserver.IntegratedCVSMStorageRepository(self.host,"CVSMSR")
                 self.sr.resources["target"] = self.target
                 self.sr.create(self.target,
                                protocol="iscsi",
@@ -1564,7 +1570,7 @@ class TCXenCert(_XenCert,xenrt.TestCase):
                 minsize = int(self.host.lookup("SR_SMIS_FC_MINSIZE", 40))
                 maxsize = int(self.host.lookup("SR_SMIS_FC_MAXSIZE", 1000000))
                 self.target = xenrt.SMISFCTarget()
-                self.sr = xenrt.lib.xenserver.host.IntegratedCVSMStorageRepository(self.host,"CVSMSR")
+                self.sr = xenrt.lib.xenserver.IntegratedCVSMStorageRepository(self.host,"CVSMSR")
                 self.sr.resources["target"] = self.target
                 self.sr.create(self.target,
                                protocol="fc",
@@ -1638,7 +1644,7 @@ class _ICSLGNetAppHostUpgrade(_XenCert):
         minsize = int(self.host.lookup("SR_NETAPP_MINSIZE", 40))
         maxsize = int(self.host.lookup("SR_NETAPP_MAXSIZE", 1000000))
         netapp = xenrt.NetAppTarget(minsize=minsize, maxsize=maxsize)
-        sr = xenrt.lib.xenserver.host.IntegratedCVSMStorageRepository(self.host,"CVSMSR")
+        sr = xenrt.lib.xenserver.IntegratedCVSMStorageRepository(self.host,"CVSMSR")
         sr.resources["target"] = netapp
         self.host.addSR(sr)
         self.runXenCertiCSLG(self.host,self.CSLG_ADAPTERID,"(DURING TESTPREPARE)")
@@ -2014,7 +2020,7 @@ class TC12058(_SingleHostUpgrade):
         self.host.execdom0('echo "%s" > /etc/mpp.conf' % '\n'.join([a + '=' + b for (a, b) in mppconf.items()]))
 
         # Setup iSCSI SR
-        self.sr = xenrt.lib.xenserver.host.ISCSIStorageRepository(self.host, "TCxxxx")
+        self.sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.host, "TCxxxx")
         lun = xenrt.ISCSILunSpecified("%s/%s/%s" %
                                       (self.initiator,
                                        self.targetiqn,
@@ -2067,7 +2073,7 @@ class _TCCrossVersionImport(xenrt.TestCase):
         # Install the current version on host 1
         if xenrt.TEC().lookup("OPTION_CC", False, boolean=True):
             # Install this as a CC host
-            self.host1 = xenrt.lib.xenserver.createHost(id=1, usev6testd=False, license="platinum")
+            self.host1 = xenrt.lib.xenserver.createHost(id=1, license="platinum")
             # Set up the network requirements
             self.host1.createNetworkTopology("""<NETWORK>
         <PHYSICAL network="NPRI">
@@ -2127,15 +2133,7 @@ class _TCCrossVersionImport(xenrt.TestCase):
                                            network,
                                            "name-label",
                                            newlabel)
-
-        # Install a VM on the newer host to be the platform for running
-        # the import and export commands.
-        arch = None
-        # Create 64-bit guest to run 64-bit xe CLI, when using 64-bit Dom0
-        hostarch = self.host1.execdom0("uname -m").strip()
-        if hostarch.endswith("64"):
-            arch="x86-64"
-        self.cliguest = self.host1.createGenericLinuxGuest(arch=arch)
+        self.cliguest = self.host1.createGenericLinuxGuest()
         self.uninstallOnCleanup(self.cliguest)
         # Need to add an extra disk, as root one is too small
         ud = None
@@ -2282,10 +2280,10 @@ class _TCCrossVersionImport(xenrt.TestCase):
         xenrt.TEC().progress("Uninstalling %s" % (distro))
         try:
             xenrt.TEC().setInputDir(xenrt.TEC().lookup("OLD_PRODUCT_INPUTDIR"))
-            guest.uninstall()
+            self.uninstallOnCleanup(guest)
         finally:
             xenrt.TEC().setInputDir(None)
-        newguest.uninstall()
+        self.uninstallOnCleanup(newguest)
 
     def run(self, arglist):
 
@@ -2661,7 +2659,7 @@ class _VMToolsUpgradeNotOutOfDate(_VMToolsUpgrade):
 class TC12530(_VMToolsUpgradeNotOutOfDate):
     """MNR RHEL 5.4 tools should be up-to-date on Cowley"""
 
-    VMNAME = "rhel54"
+    VMNAME = "rhel5x"
 
 class _FeatureOperationAfterUpgrade(xenrt.TestCase):
     """Template testcase for verifying that a feature set up before an update
@@ -2809,22 +2807,20 @@ class _FeatureOperationAfterUpgrade(xenrt.TestCase):
 
 class _WindowsPVUpgradeWithStaticIP(_VMToolsUpgrade):
     def prepare(self,arglist):
-        self.testpeer = self.getGuest("testpeer")
-        if self.testpeer.getState() != "UP":
-            self.testpeer.start()
         _VMToolsUpgrade.prepare(self,arglist)
         if not self.guest.windows:
             raise xenrt.XRTError("Guest is not windows")
         # Reconfigure the VIFs on the private networks
-        self.guest.configureNetwork("eth1", "192.168.1.2", "255.255.255.0")
-        self.testpeer.configureNetwork("eth1", "192.168.1.1", "255.255.255.0")
+        self.staticIP = xenrt.StaticIP4Addr(network="NSEC")
+        self.guest.configureNetwork("eth1", self.staticIP.getAddr(),xenrt.TEC().lookup(["NETWORK_CONFIG",
+                                       "SECONDARY",
+                                       "SUBNETMASK"]))
 
         # Stop the firewall blocking ICMP
         self.guest.xmlrpcExec("netsh firewall set icmpsetting 8")
 
         # Sanity check that it's currently working
-        self.testpeer.execguest("ping -c 10 192.168.1.2")
-
+        xenrt.command("ping -c 10 %s" % self.staticIP.getAddr())
 
     def run(self, arglist):
 
@@ -2841,7 +2837,7 @@ class _WindowsPVUpgradeWithStaticIP(_VMToolsUpgrade):
         self.guest.getWindowsIPConfigData()
 
         # Check the VM kept it's static IP after the tools upgrade
-        self.testpeer.execguest("ping -c 10 192.168.1.2")
+        xenrt.command("ping -c 10 %s" % self.staticIP.getAddr())
 
         # Uninstall tools
         if self.runSubcase("uninstallTools", (), "Tools", "Uninstall") != xenrt.RESULT_PASS:
@@ -2851,9 +2847,14 @@ class _WindowsPVUpgradeWithStaticIP(_VMToolsUpgrade):
 
         # Check the VM kept it's static IP after the tools uninstallation
         if isinstance(self.guest, xenrt.lib.xenserver.guest.TampaGuest) and self.guest.host.productVersion != "Tampa" and not self.guest.usesLegacyDrivers():
-            self.testpeer.execguest("ping -c 10 192.168.1.2")
+            xenrt.command("ping -c 10 %s" % self.staticIP.getAddr())
 
         self.guest.shutdown()
+  
+    def postRun(self):
+    
+        self.guest.shutdown()
+        self.staticIP.release()
 
 class _WindowsPVUpgradeWithStaticIPv6(_VMToolsUpgrade):
     def prepare(self, arglist):
@@ -3373,7 +3374,7 @@ class TC20654(_WindowsPVUpgradeWithStaticIPv6):
     """ Upgrade Windows Server 2012R2 x64 PV tools with static IPv6 Address from tools ISO hotfix"""
 
     VMNAME = "ws12r2core-x64"
-
+  
 
 class TC10718(_FeatureOperationAfterUpgrade):
     """Continued operation of AD authentication following host/pool update/upgrade"""
@@ -3401,30 +3402,7 @@ class TC10718(_FeatureOperationAfterUpgrade):
             raise xenrt.XRTError("Could not find %s VM" % (self.AUTHSERVER))
         self.authserver = authguest.getActiveDirectoryServer()
 
-        # Use static IP addressing to avoid loss of DNS server after upgrade
-        #cli = self.poolsToUpgrade[0].getCLIInstance()
-       # for host in self.poolsToUpgrade[0].getHosts():
-      #      pifuuid = host.minimalList("pif-list",args="host-uuid=%s management=true" % (host.getMyHostUUID()))[0]
-      #      ip = host.genParamGet("pif",pifuuid,"IP")
-      #      netmask = host.genParamGet("pif",pifuuid,"netmask")
-      #      # For some reason the gateway doesn't seem to get written to the DB
-     #       gateway = host.execdom0("route -n | grep -e '^0.0.0.0'").strip().split()[1]
-     #       args = []
-     #       args.append("uuid=%s" % (pifuuid))
-     #       args.append("mode=static")
-     #       args.append("ip=%s" % (ip))
-     #       args.append("dns=%s" % (self.authserver.place.getIP()))
-     #       args.append("gateway=%s" % (gateway))
-     #       args.append("netmask=%s" % (netmask))
-     #       try:
-     #           cli.execute("pif-reconfigure-ip", string.join(args))
-     #       except:
-     #           # We expect a momentary connection blip
-     #           pass
-            # Set the install time parameter so the upgrade doesn't complain
-        #    host.i_interfaces = [(None, "yes", "static", ip, netmask, gateway, None, None, None)]
-
-
+        
         for host in self.poolsToUpgrade[0].getHosts():
             host.setDNSServer(self.authserver.place.getIP())
 
@@ -3434,78 +3412,49 @@ class TC10718(_FeatureOperationAfterUpgrade):
             self.authserver.getSubject(name="TC10718userA"), "pool-admin")
         self.poolsToUpgrade[0].allow(\
             self.authserver.getSubject(name="TC10718group2"), "pool-admin")
-
-    def featureTest(self):
-        for host in self.poolsToUpgrade[0].getHosts():
-            host.setDNSServer(self.authserver.place.getIP())
-
+            
+    def addExtraUsers(self):
         # Add extra user(s) to the subject-list
         for user in self.ADDREMOVEUSERS:
             self.poolsToUpgrade[0].allow(\
                 self.authserver.getSubject(name=user), "pool-admin")
+            xenrt.TEC().logverbose("Adding role ")
+            uuid = self.poolsToUpgrade[0].master.getSubjectUUID(self.authserver.getSubject(name=user))
+            cliRole = self.poolsToUpgrade[0].getCLIInstance()
+            argsAddrole = []
+            argsAddrole.append("role-name='pool-admin'")
+            argsAddrole.append("uuid=%s" % (uuid))
+            xenrt.TEC().logverbose("Executing CLI command to add role ")
             try:
-                xenrt.TEC().logverbose("Adding role by self")
-                #self.poolsToUpgrade[0].addRole(self.authserver.getSubject(name=user), "pool-admin")
-                uuid = self.poolsToUpgrade[0].master.getSubjectUUID(self.authserver.getSubject(name=user))
-                cli_role = self.poolsToUpgrade[0].getCLIInstance()
-                args_addrole = []
-                args_addrole.append("role-name='pool-admin'")
-                args_addrole.append("uuid=%s" % (uuid))
-                xenrt.TEC().logverbose("Executing CLI command to add role by self")
-                cli_role.execute("subject-role-add", string.join(args_addrole),\
-                    username="root",password=self.poolsToUpgrade[0].master.password)
-                xenrt.TEC().logverbose("adding role to the queue thingy")
-                self.authserver.getSubject(name=user).roles.add("pool-admin")
-
-            except:
-                xenrt.TEC().logverbose("Role seems to be added already")
-
-        time.sleep(120)
-        # Test authentication
-        cli = self.poolsToUpgrade[0].getCLIInstance()
+                cliRole.execute("subject-role-add", string.join(argsAddrole),\
+                    username="root",password=self.poolsToUpgrade[0].master.password)                                    
+            except xenrt.XRTException, e:
+                if "Role already exists" in e.reason:
+                    xenrt.TEC().logverbose("Role seems to be added already")
+                else:
+                    raise
+            xenrt.TEC().logverbose("adding role to the queue ")
+            self.authserver.getSubject(name=user).roles.add("pool-admin")
+            
+    def cliAuthentication(self,auth=None):
         for user in self.TESTUSERS + self.ADDREMOVEUSERS:
             subject = self.authserver.getSubject(name=user)
-            # CLI
-            cli.execute("vm-list",
-                        username=subject.name,
-                        password=subject.password)
-
-            # SSH
-            for host in self.poolsToUpgrade[0].getHosts():
-                try:
-                    if subject.server.domainname:
-                        username = "%s\\%s" % (subject.server.domainname,
-                                               subject.name)
-                    else:
-                        username = subject.name
-                    host.execdom0("true",
-                                  username=username,
-                                  password=subject.password)
-                except xenrt.XRTException, e:
-                    if e.reason == "SSH authentication failed":
-                        raise xenrt.XRTFailure(e.reason, e.data)
-                    raise xenrt.XRTError(e.reason, e.data)
-
-        # Remove the extra user(s) from the subject-list
-        for user in self.ADDREMOVEUSERS:
-            self.poolsToUpgrade[0].deny(self.authserver.getSubject(name=user))
-
-        # Test user removed user(s) cannot authenticate
-        for user in self.ADDREMOVEUSERS:
-            subject = self.authserver.getSubject(name=user)
-            # CLI
             ok = True
             try:
-                cli.execute("vm-list",
-                            username=subject.name,
-                            password=subject.password)
+                self.cli.execute("vm-list",
+                                 username=subject.name,
+                                 password=subject.password)
                 ok = False
-            except xenrt.XRTFailure, e:
-                pass
-            if not ok:
+            except xenrt.XRTException, e:
+                if auth:
+                    raise            
+            if not ok and not auth:
                 raise xenrt.XRTFailure("Removed subject was able to "
                                        "authenticate using CLI")
-            # SSH
+    
+    def sshAuthentication(self,auth=None):
+        for user in self.TESTUSERS + self.ADDREMOVEUSERS:
+            subject = self.authserver.getSubject(name=user)
             for host in self.poolsToUpgrade[0].getHosts():
                 ok = True
                 try:
@@ -3519,11 +3468,37 @@ class TC10718(_FeatureOperationAfterUpgrade):
                                   password=subject.password)
                     ok = False
                 except xenrt.XRTException, e:
-                    if e.reason != "SSH authentication failed":
+                    if auth:
+                        if e.reason == "SSH authentication failed":
+                            raise xenrt.XRTFailure(e.reason, e.data)
                         raise xenrt.XRTError(e.reason, e.data)
-                if not ok:
+                    else:
+                        if e.reason != "SSH authentication failed":
+                            raise xenrt.XRTError(e.reason, e.data)
+                if not ok and not auth:
                     raise xenrt.XRTFailure("Removed subject was able to "
                                            "authenticate using SSH")
+    
+    def featureTest(self):
+        for host in self.poolsToUpgrade[0].getHosts():
+            host.setDNSServer(self.authserver.place.getIP())
+
+        self.addExtraUsers()
+
+        # Test CLI authentication
+        self.cli = self.poolsToUpgrade[0].getCLIInstance()
+        self.cliAuthentication(auth=True)
+        
+        # Test SSH authentication
+        self.sshAuthentication(auth=True)
+
+        # Remove the user(s) from the subject-list
+        for user in self.TESTUSERS + self.ADDREMOVEUSERS:
+            self.poolsToUpgrade[0].deny(self.authserver.getSubject(name=user))
+
+        # Test removed user(s) cannot authenticate
+        self.cliAuthentication(auth=False)
+        self.sshAuthentication(auth=False)
 
         # Disable and re-enable AD authentication
         self.poolsToUpgrade[0].disableAuthentication(self.authserver,
@@ -3535,7 +3510,56 @@ class TC10718(_FeatureOperationAfterUpgrade):
         cli.execute("vm-list",
                     username=subject.name,
                     password=subject.password)
+                    
+class ADUpgradeAuthentication(TC10718):
 
+    def prepare(self, arglist):
+        self.poolsToUpgrade.append(self.getDefaultPool())
+        authguest = self.getGuest(self.AUTHSERVER)
+        if not authguest:
+            raise xenrt.XRTError("Could not find %s VM" % (self.AUTHSERVER))
+        self.authserver = authguest.getActiveDirectoryServer()
+        
+                       
+    def featureTest(self):
+        for host in self.poolsToUpgrade[0].getHosts():
+            host.setDNSServer(self.authserver.place.getIP())
+            
+        self.poolsToUpgrade[0].enableAuthentication(self.authserver, setDNS=False)
+        self.authserver.createSubjectGraph(self.SUBJECTGRAPH)
+        self.poolsToUpgrade[0].allow(\
+            self.authserver.getSubject(name="TC10718userA"), "pool-admin")
+        self.poolsToUpgrade[0].allow(\
+            self.authserver.getSubject(name="TC10718group2"), "pool-admin")
+        
+        # Add extra user(s) to the subject-list
+        self.addExtraUsers()
+        
+        #Test CLI authentication
+        self.cli = self.poolsToUpgrade[0].getCLIInstance()
+        self.cliAuthentication(auth=True)
+
+        # Test SSH authentication
+        self.sshAuthentication(auth=True)
+                    
+        self.poolsToUpgrade[0].disableAuthentication(self.authserver,
+                                                     disable=True)
+                                                     
+        # Test removed user(s) cannot authenticate
+        self.cliAuthentication(auth=False)
+        self.sshAuthentication(auth=False) 
+    
+    def run(self, arglist):
+        # Perform the upgrade/update
+        if self.runSubcase("featureOpUpgrade", (), "Do", "Upgrade") != \
+               xenrt.RESULT_PASS:
+            return
+
+        # Verify functionality after the upgrade/update
+        if self.runSubcase("featureTest", (), "Check", "After") != \
+               xenrt.RESULT_PASS:
+            return
+            
 class TC12611(TC10718):
     """Continued operation of RBAC following host/pool update/upgrade."""
 
@@ -3748,6 +3772,37 @@ class TC12212(_MultipathSingleHostUpgrade):
     """Test upgrade from multipath path iSCSI SR to multipathed root disk"""
     SR_MULTIPATHED = True
     ROOT_DISK_MULTIPATHED_NEW = True
+
+class _RpuNewPartitionsSingleHost(_SingleHostUpgrade):
+
+    EXTRASUBCASES = [("checkPartitions", (), "Check", "Partitions")]
+    SAFE2UPGRAGE_CHECK = True
+    NEW_PARTITIONS = False
+
+    def checkPartitions(self, arglist=[]):
+        step("Check if dom0 partitions are as expected")
+        if self.NEW_PARTITIONS:
+            partitions = xenrt.TEC().lookup(["VERSION_CONFIG",xenrt.TEC().lookup("PRODUCT_VERSION"),"DOM0_PARTITIONS"])
+        else:
+            partitions = xenrt.TEC().lookup(["VERSION_CONFIG",xenrt.TEC().lookup("PRODUCT_VERSION"),"DOM0_PARTITIONS_OLD"])
+        log("Expected partitions: %s" % partitions)
+
+        if not self.host.compareDom0Partitions(partitions):
+            raise xenrt.XRTFailure("Found unexpected partitions on XS clean install. Expected: %s Found: %s" % (partitions, self.host.getDom0Partitions()))
+        log("Found expected Dom0 partitions on XS clean installation: %s" % partitions)
+
+
+class TCRpuNewPartSingle(_RpuNewPartitionsSingleHost):
+    """TC-27063 - Dom0 disk partitioning on single host upgrade with no VMs on local storage"""
+
+    NEW_PARTITIONS = True
+    NO_VMS = True
+
+class TCRpuOldPartSingle(_RpuNewPartitionsSingleHost):
+    """TC-27064 - Dom0 disk partitioning on single host upgrade with VMs on local storage"""
+
+    NEW_PARTITIONS = False
+    NO_VMS = False
 
 class TC14930(_FeatureOperationAfterUpgrade):
     """Continued operation of VMPP feature"""
@@ -4263,3 +4318,118 @@ class TCUpgradeVMMigrate(xenrt.TestCase):
             memory = int(memory[:-1]) * 1024
 
         return memory
+
+class TCRollingPoolUpdate(xenrt.TestCase, xenrt.lib.xenserver.host.RollingPoolUpdate):
+    """
+    Base class for Rolling Pool update/upgrade
+    """
+
+    UPGRADE = True
+
+    def parseArgs(self, arglist):
+        #Parse the arguments
+        args = self.parseArgsKeyValue(arglist)
+        if "INITIAL_VERSION" in args.keys():
+            self.INITIAL_VERSION = args["INITIAL_VERSION"]
+        if "FINAL_VERSION" in args.keys():
+            self.FINAL_VERSION   = args["FINAL_VERSION"]
+        if "vmActionIfHostRebootRequired" in args.keys():
+            self.vmActionIfHostRebootRequired = args["vmActionIfHostRebootRequired"]
+        if "applyAllHFXsBeforeApplyAction" in args.keys() and args["applyAllHFXsBeforeApplyAction"].lower() =="no":
+            self.applyAllHFXsBeforeApplyAction = False
+        if "skipApplyRequiredPatches" in args.keys() and args["skipApplyRequiredPatches"].lower() == "yes":
+            self.skipApplyRequiredPatches = True
+
+    def prepare(self, arglist):
+        self.pool = self.getDefaultPool()
+        self.newPool = None
+        self.INITIAL_VERSION = self.pool.master.productVersion
+        self.FINAL_VERSION = None
+        self.vmActionIfHostRebootRequired = "SHUTDOWN"
+        self.applyAllHFXsBeforeApplyAction = True
+        self.preEvacuate = None
+        self.preReboot = None
+        self.skipApplyRequiredPatches = False
+        
+        #Parse arguments coming from sequence file
+        self.parseArgs(arglist)
+
+        # Eject CDs in all VMs
+        for h in self.pool.getHosts():
+            for guestName in h.listGuests():
+                self.getGuest(guestName).changeCD(None)
+
+        xenrt.lib.xenserver.host.RollingPoolUpdate.__init__(self, poolRef = self.pool, 
+                                                            newVersion=self.FINAL_VERSION,
+                                                            upgrade = self.UPGRADE,
+                                                            applyAllHFXsBeforeApplyAction=self.applyAllHFXsBeforeApplyAction,
+                                                            vmActionIfHostRebootRequired=self.vmActionIfHostRebootRequired,
+                                                            preEvacuate=self.preEvacuate,
+                                                            preReboot=self.preReboot,
+                                                            skipApplyRequiredPatches=self.skipApplyRequiredPatches)
+
+    def run(self, arglist=None):
+        self.preCheckVMs(self.pool)
+        self.doUpdate()
+        self.postCheckVMs(self.newPool)
+
+    def preCheckVMs(self,pool):
+        self.expectedRunningVMs = 0
+        for h in pool.getHosts():
+            runningGuests = h.listGuests(running=True)
+            xenrt.TEC().logverbose("Host: %s has %d running guests [%s]" % (h.getName(), len(runningGuests), runningGuests))
+            self.expectedRunningVMs += len(runningGuests)
+        xenrt.TEC().logverbose("Pre-upgrade running VMs: %d" % (self.expectedRunningVMs))
+
+    def postCheckVMs(self,pool):
+        postUpgradeRunningGuests = 0
+        for h in pool.getHosts():
+            h.verifyHostFunctional(migrateVMs=False)
+
+            runningGuests = h.listGuests(running=True)
+            xenrt.TEC().logverbose("Host: %s has %d running guests [%s]" % (h.getName(), len(runningGuests), runningGuests))
+            postUpgradeRunningGuests += len(runningGuests)
+
+        xenrt.TEC().logverbose("Post-upgrade running VMs: %d" % (postUpgradeRunningGuests))
+        if self.expectedRunningVMs != postUpgradeRunningGuests:
+            xenrt.TEC().logverbose("Expected VMs in running state: %d, Actual: %d" % (self.expectedRunningVMs, postUpgradeRunningGuests))
+            raise xenrt.XRTFailure("Not all VMs in running state after upgrade complete") 
+
+class TCRpuPartitions(TCRollingPoolUpdate):
+    """
+    Perform Rolling pool upgrade after calling testSafe
+    """
+    NEW_PARTITIONS = {}
+
+    def preMasterUpdate(self):
+        TCRollingPoolUpdate.preMasterUpdate(self)
+        self.checkSafe2Upgrade(self.newPool.master)
+
+    def preSlaveUpdate(self, slave):
+        TCRollingPoolUpdate.preSlaveUpdate(self, slave)
+        self.checkSafe2Upgrade(slave)
+
+    def postMasterUpdate(self):
+        TCRollingPoolUpdate.postMasterUpdate(self)
+        self.checkPartitions(self.newPool.master)
+
+    def postSlaveUpdate(self, slave):
+        TCRollingPoolUpdate.postSlaveUpdate(self, slave)
+        self.checkPartitions(slave)
+
+    def checkSafe2Upgrade(self, host):
+        self.NEW_PARTITIONS[host.getName()] = host.checkSafe2Upgrade()
+
+    def checkPartitions(self, host):
+        """Function to check if DOM0 partitions are as expected"""
+        step("Check if dom0 partitions are as expected")
+        if self.NEW_PARTITIONS[host.getName()]:
+            partitions = xenrt.TEC().lookup(["VERSION_CONFIG",xenrt.TEC().lookup("PRODUCT_VERSION"),"DOM0_PARTITIONS"])
+        else:
+            partitions = xenrt.TEC().lookup(["VERSION_CONFIG",xenrt.TEC().lookup("PRODUCT_VERSION"),"DOM0_PARTITIONS_OLD"])
+        log("Expected partitions: %s" % partitions)
+
+        if not host.compareDom0Partitions(partitions):
+            raise xenrt.XRTFailure("Found unexpected partitions on XS clean install. Expected: %s Found: %s" % (partitions, host.getDom0Partitions()))
+        log("Found expected Dom0 partitions on XS clean installation: %s" % partitions)
+

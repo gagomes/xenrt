@@ -9,6 +9,7 @@ from pyramid.httpexceptions import *
 
 class XenRTPage(Page):
     WRITE = False
+    WAIT = True
     DB_SYNC_CHECK_START_INTERVAL = 0.1
     DB_SYNC_CHECK_MAX_ATTEMPTS = 10
     REQUIRE_AUTH = False
@@ -49,7 +50,7 @@ class XenRTPage(Page):
             return None
 
         if "x-fake-user" in lcheaders:
-            if self.ALLOW_FAKE_USER and user.admin: 
+            if self.ALLOW_FAKE_USER: 
                 fakeUser = app.user.User(self, lcheaders['x-fake-user'])
                 if fakeUser.valid or True:
                     self._user = fakeUser
@@ -100,7 +101,7 @@ class XenRTPage(Page):
             return ret
         finally:
             try:
-                if self.WRITE:
+                if self.WRITE and self.WAIT:
                     self.waitForLocalWrite()
             finally:
                 if self._db:
@@ -175,7 +176,7 @@ class XenRTPage(Page):
         cur = self.getDB().cursor()    
         d = {}
         cur.execute("SELECT jobid, version, revision, options, jobStatus, "
-                    "userId, uploaded, removed FROM tbljobs WHERE " +
+                    "userId, uploaded, removed, preemptable FROM tbljobs WHERE " +
                     "jobId = %s;", [id])
         rc = cur.fetchone()
         if rc:

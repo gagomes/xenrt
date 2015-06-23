@@ -20,16 +20,16 @@
           <disk device="0" size="8" />
           <storage>nfs1</storage>
         </vm>
-        <vm name="rhel57">
-          <distro>rhel57</distro>
+        <vm name="rhel5x">
+          <distro>rhel5x</distro>
           <memory>512</memory>
           <vcpus>2</vcpus>
           <network device="0" />
           <disk device="0" size="8" />
           <storage>nfs1</storage>
         </vm>
-        <vm name="centos57">
-          <distro>centos57</distro>
+        <vm name="centos5x">
+          <distro>centos5x</distro>
           <memory>512</memory>
           <vcpus>2</vcpus>
           <network device="0" />
@@ -62,8 +62,8 @@
           <disk device="0" size="24" />
           <storage>nfs1</storage>
         </vm>
-        <vm name="sles111">
-          <distro>sles111</distro>
+        <vm name="sles113">
+          <distro>sles113</distro>
           <memory>512</memory>
           <vcpus>2</vcpus>
           <network device="0" />
@@ -87,7 +87,7 @@
         <arg>vmActionIfHostRebootRequired=EVACUATE</arg>
         <arg>applyAllHFXsBeforeApplyAction=True</arg>
       </testcase>
-      <testcase id="testcases.xenserver.tc.hotfix.TCRollingPoolUpdate" name="TCRPUWithHFX" tc="TC-21008">
+      <testcase id="testcases.xenserver.tc.upgrade.TCRollingPoolUpdate" name="TCRPUWithHFX" tc="TC-21008">
         <arg>FINAL_VERSION=Dundee</arg>
         <arg>vmActionIfHostRebootRequired=EVACUATE</arg>
         <arg>applyAllHFXsBeforeApplyAction=True</arg>

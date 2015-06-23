@@ -1,0 +1,25 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <PREPARE_WORKERS>5</PREPARE_WORKERS>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+  </variables>
+
+  <prepare>
+    <host installsr="ext" license="enterprise-per-socket" >
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="IntelGPU">
+      <testcase tc="TC-20819" id="testcases.xenserver.tc.vgpu.TCBasicVerifOfAllK2config">
+        <arg>distro=0</arg>
+        <arg>typeofvgpu=intelwinvgpu</arg>
+        <arg>vgpuconfig=12</arg>
+      </testcase>
+
+    </serial>
+  </testsequence>
+
+</xenrt>

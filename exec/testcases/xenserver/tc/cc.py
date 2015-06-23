@@ -9,7 +9,7 @@ class _CCBase(xenrt.TestCase):
 class _SSLCert(xenrt.TestCase):
 
     def configureSSL(self, hosts):
-        self.ca = xenrt.ssl.CertificateAuthority() 
+        self.ca = xenrt.sslutils.CertificateAuthority() 
         self.pems = {}
         for host in hosts:
             self.pems[host.getName()] = self.ca.createHostPEM(host, 
@@ -178,7 +178,6 @@ class _CCSetup(_SSLCert, _CCBase):
    
     def license(self, host):
         host.license(edition=self.EDITION, 
-                     usev6testd=False, 
                      v6server=self.licenseServer)
 
     def configureForCC(self):
@@ -365,7 +364,7 @@ class _SSLBase(_CCSetup):
         except:
             self.debug_on_fail = ""
         self.disableSSL(self.hosts)
-        self.ca = xenrt.ssl.CertificateAuthority(expired=self.EXPIRED)
+        self.ca = xenrt.sslutils.CertificateAuthority(expired=self.EXPIRED)
         self.pems = {}
         for host in self.hosts:
             self.pems[host.getName()] = self.ca.createHostPEM(host, 
@@ -400,7 +399,7 @@ class TC10940(_SSLBase):
 
         # Make sure all hosts are correctly licensed and have SSL verification turned off
         for h in self.hosts:
-            h.license(edition=self.EDITION, usev6testd=False, v6server=self.licenseServer)
+            h.license(edition=self.EDITION, v6server=self.licenseServer)
 
         # Disable SSL verification on all hosts
         self.disableSSL(self.hosts)
@@ -642,7 +641,7 @@ class TC10941(_SSLBase):
             self.pool.eject(self.slave)
             self.pool.resetSSL()
             self.configureForCC()
-            self.slave.license(edition=self.EDITION, usev6testd=False, v6server=self.licenseServer)
+            self.slave.license(edition=self.EDITION, v6server=self.licenseServer)
 
         self.disableSSL(self.hosts)
         self.getLogsFrom(self.master)
@@ -670,7 +669,7 @@ class TC10941(_SSLBase):
         else:
             self.pool.check()
             self.pool.eject(self.slave)
-            self.slave.license(edition=self.EDITION, usev6testd=False, v6server=self.licenseServer)
+            self.slave.license(edition=self.EDITION, v6server=self.licenseServer)
             
         msg = desc + "We expect the pool joining to be %s and it is %s." \
               % (expect and "accepted" or "refused",
@@ -761,7 +760,7 @@ class TC11008(_SSLBase):
         self.slave.enableSSLVerification()
         self.pool.check()
         self.pool.eject(self.slave)
-        self.slave.license(edition=self.EDITION, usev6testd=False, v6server=self.licenseServer)
+        self.slave.license(edition=self.EDITION, v6server=self.licenseServer)
         self.pool.check()
         self.checkConnection(self.slave, self.master, True, "Before pool-join (slave -> master).")
         self.checkConnection(self.master, self.slave, True, "Before pool-join (master -> slave).")
@@ -776,7 +775,7 @@ class TC11008(_SSLBase):
         self.pool.synchroniseRootCertificates()
         self.pool.check()
         self.pool.eject(self.slave)
-        self.slave.license(edition=self.EDITION, usev6testd=False, v6server=self.licenseServer)
+        self.slave.license(edition=self.EDITION, v6server=self.licenseServer)
         self.pool.check()
         self.checkConnection(self.slave, self.master, True, "Before pool-join (slave -> master).")
         self.checkConnection(self.master, self.slave, True, "Before pool-join (master -> slave).")
@@ -1525,7 +1524,7 @@ class TC11353(_CCSetup):
         else:
             self.target = self.pool.getSlaves()[0]
             self.pool.eject(self.target)
-            self.target.license(edition=self.EDITION, usev6testd=False, v6server=self.licenseServer)
+            self.target.license(edition=self.EDITION, v6server=self.licenseServer)
         self.configureForCC()
 
         xenrt.TEC().logverbose("Trying to join host to pool with an invalid username.")

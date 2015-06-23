@@ -41,7 +41,10 @@ class Path(object):
 
     @property
     def methodContent(self):
-        ret = """        path = "%%s%s" %% (self.base)\n""" % self.path
+        if self.masterOnly:
+            ret = """        path = "%%s%s" %% (self.masterbase)\n""" % self.path
+        else:
+            ret = """        path = "%%s%s" %% (self.base)\n""" % self.path
         for p in self.pathParams:
             q = self.pythonParamName(p)
             ret += """        path = path.replace("{%s}", self.__serializeForPath(%s))\n""" % (p, q)
@@ -165,6 +168,10 @@ class Path(object):
         return ret
 
     @property
+    def masterOnly(self):
+        return bool(self.data.get("masterOnly"))
+
+    @property
     def methodName(self):
         if self.data.get('operationId'):
             return self.data['operationId']
@@ -200,6 +207,7 @@ class PythonBindings(XenRTAPIv2Swagger):
         self.scheme = swagger['schemes'][0]
         self.base = swagger['basePath']
         self.host = swagger['host']
+        self.masterhost = swagger['masterhost']
 
     def generateFile(self):
         ret = """#!/usr/bin/python
@@ -230,7 +238,7 @@ class XenRTAPIException(Exception):
         return ret
 
 class XenRT(object):
-    def __init__(self, apikey=None, user=None, password=None, server=None):
+    def __init__(self, apikey=None, user=None, password=None, server=None, masterserver=None):
         \"\"\"
         Constructor
 
@@ -239,10 +247,14 @@ class XenRT(object):
         `user`: Username, for basic authentication  
         `password`: Password, for basic authentication  
         `server`: Server to connect to, if need to override default  
+        `masterserver`: Master Server to connect to, if need to override default  
         \"\"\"
         if not server:
             server = self._getXenRTServer() or "%s"
+        if not masterserver:
+            masterserver = self._getXenRTMasterServer() or "%s"
         self.base = "%s://%%s%s" %% server
+        self.masterbase = "%s://%%s%s" %% masterserver
 
         self.customHeaders = {}
         if apikey:
@@ -281,6 +293,14 @@ class XenRT(object):
         except:
             return None
 
+    def _getXenRTMasterServer(self):
+        if os.getenv("XENRT_MASETER_SERVER"):
+            return os.getenv("XENRT_MASTER_SERVER")
+        try:
+            return self._getConfigFile().get("xenrt", "masterserver").strip()
+        except:
+            return None
+
     def __serializeForQuery(self, data):
         if isinstance(data, bool):
             return str(data).lower()
@@ -313,7 +333,7 @@ class XenRT(object):
                                         traceback)
         response.raise_for_status()
 
-""" % (self.host, self.scheme, self.base)
+""" % (self.host, self.masterhost, self.scheme, self.base, self.scheme, self.base)
         for func in self.funcs:
             ret += "%s\n" % func.methodSignature
             ret += "%s\n" % func.description

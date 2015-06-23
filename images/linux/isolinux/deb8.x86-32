@@ -1,0 +1,9 @@
+default vesamenu.c32
+timeout 1
+
+default install
+label install
+	menu label ^Install
+	menu default
+	kernel /install.386/vmlinuz
+	append vga=788 initrd=/install.386/initrd.gz auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://xenrt-controller.xenrt/xenrt/guestfile/preseed -- quiet 

@@ -2,6 +2,7 @@
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <PREPARE_WORKERS>5</PREPARE_WORKERS>
     <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
   </variables>
 
@@ -9,6 +10,50 @@
   <pool id="0">
     <host installsr="ext" license="enterprise-per-socket"/>
     <storage type="nfs" name="nfs_sourceSR" />
+    <vm name="mastercentos7_x86-64">
+      <distro>centos7</distro>
+      <arch>x86-64</arch>
+      <memory>2048</memory>
+      <vcpus>2</vcpus>
+      <network device="0" />
+      <disk device="0" size="10" />
+      <postinstall action="preCloneTailor"/>
+    </vm>
+    <vm name="masterubuntu1404_x86-32">
+      <distro>ubuntu1404</distro>
+      <memory>1024</memory>
+      <vcpus>2</vcpus>
+      <network device="0" />
+      <disk device="0" size="8" />
+      <postinstall action="preCloneTailor"/>
+    </vm>
+    <vm name="masterubuntu1404_x86-64">
+      <distro>ubuntu1404</distro>
+      <arch>x86-64</arch>
+      <memory>1024</memory>
+      <vcpus>2</vcpus>
+      <network device="0" />
+      <disk device="0" size="8" />
+      <postinstall action="preCloneTailor"/>
+    </vm>
+    <vm name="masteroel7_x86-64">
+      <distro>oel7</distro>
+      <arch>x86-64</arch>
+      <memory>2048</memory>
+      <vcpus>2</vcpus>
+      <network device="0" />
+      <disk device="0" size="10" />
+      <postinstall action="preCloneTailor"/>
+    </vm>
+    <vm name="masterrhel7_x86-64">
+      <distro>rhel7</distro>
+      <arch>x86-64</arch>
+      <memory>2048</memory>
+      <vcpus>2</vcpus>
+      <network device="0" />
+      <disk device="0" size="10" />
+      <postinstall action="preCloneTailor"/>
+    </vm>
   </pool>  
   </prepare>
 

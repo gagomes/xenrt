@@ -35,7 +35,7 @@ def createHost(id=0,
                noAutoPatch=False,
                disablefw=False,
                cpufreqgovernor=None,
-               usev6testd=True,
+               defaultlicense=True,
                ipv6=None,
                noipv4=False,
                basicNetwork=True,
@@ -462,6 +462,9 @@ EOF
             expectedCommit = xenrt.getCCPCommit(self.distro)
             if expectedCommit and commit != expectedCommit:
                 raise xenrt.XRTError("ACS/CCP agent commit %s does not match expected commit %s" % (commit, expectedCommit))
+
+        # Ensure NFS mounts use v3 by default
+        self.execdom0("echo 'Defaultvers=3' >> /etc/nfsmount.conf") 
 
         # Write the stamp file to record this has already been done
         self.execdom0("mkdir -p /var/lib/xenrt")

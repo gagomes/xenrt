@@ -51,8 +51,8 @@ class ManagementServer(object):
         managementServerOk = False
         maxRetries = timeout/60
         maxReboots = 2
-        reboots = 0
-        while(reboots < maxReboots and not managementServerOk):
+        rebootChecks = 0
+        while(rebootChecks <= maxReboots and not managementServerOk):
             retries = 0
             while(retries < maxRetries):
                 retries += 1
@@ -76,11 +76,11 @@ class ManagementServer(object):
                     xenrt.TEC().logverbose('Attempt to reach Management Server [%s] on Port: %d failed with error: %s' % (self.place.getIP(), port, ioErr.strerror))
                     xenrt.sleep(60)
 
-            if not managementServerOk:
-                xenrt.TEC().logverbose('Restarting Management Server: Attempt: %d of %d' % (reboots+1, maxReboots))
+            if not managementServerOk and rebootChecks < maxReboots:
+                xenrt.TEC().logverbose('Restarting Management Server: Attempt: %d of %d' % (rebootChecks+1, maxReboots))
                 self.place.execcmd('mysql -u cloud --password=cloud --execute="UPDATE cloud.configuration SET value=8096 WHERE name=\'integration.api.port\'"')
-                self.restart(checkHealth=False, startStop=(reboots > 0))
-                reboots += 1
+                self.restart(checkHealth=False, startStop=(rebootChecks > 0))
+            rebootChecks += 1
 
         if not managementServerOk:
             # Store the MS logs
@@ -200,6 +200,8 @@ class ManagementServer(object):
         marvinApi.setCloudGlobalConfig("secstorage.allowed.internal.sites", internalMask.strNormal())
         if not xenrt.TEC().lookup("MARVIN_SETUP", False, boolean=True):
             marvinApi.setCloudGlobalConfig("use.external.dns", "true")
+        endpoint_url = "http://%s:8096/client/api" % marvinApi.mgtSvrDetails.mgtSvrIp
+        marvinApi.setCloudGlobalConfig("endpointe.url", endpoint_url)
         marvinApi.setCloudGlobalConfig("check.pod.cidrs", "false", restartManagementServer=True)
         xenrt.GEC().dbconnect.jobUpdate("CLOUD_MGMT_SVR_IP", self.place.getIP())
         xenrt.TEC().registry.toolstackPut("cloud", xenrt.lib.cloud.CloudStack(place=self.place))
@@ -255,7 +257,7 @@ class ManagementServer(object):
 
     def checkJavaVersion(self):
         if self.place.distro.startswith("rhel6") or self.place.distro.startswith("centos6"):
-            if self.version in ['4.4', '4.5', '4.6.0']:
+            if self.version in ['4.4', '4.5', '4.5.1', '4.6.0']:
                 # Check if Java 1.7.0 is installed
                 self.place.execcmd('yum -y install java-1.7.0-openjdk')
                 if not '1.7.0' in self.place.execcmd('java -version').strip():
@@ -368,7 +370,8 @@ class ManagementServer(object):
             elif len(versionMatches) == 0:
                 xenrt.TEC().warning('Management Server version could not be determined')
             else:
-                raise xenrt.XRTError('Multiple version detected: %s' % (versionMatches))
+                # Choose the most specific match (this is for e.g. 4.5 vs 4.5.1)
+                self.__version = max(versionMatches, key=len)
 
             xenrt.TEC().comment('Using Management Server version: %s' % (self.__version))
         return self.__version

@@ -1,0 +1,18 @@
+<xenrt>
+
+  <!-- Hotfix application tests for XenServer 6.5 SP1 -->
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <PIDIR_CREEDENCE>/usr/groups/release/XenServer-6.x/XS-6.5/RTM-90233</PIDIR_CREEDENCE>
+    <PATCH_DESCRIPTIONS />
+    <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
+  </variables>
+
+  <default name="THIS_HOTFIX" value="ToBeSpecifiedOnSubmitCommandLine" />
+
+  <testsequence group="HF_CREEDENCE_SP1">
+    <testcase id="xenserver.tc.hotfix.TC27009" />
+  </testsequence>
+
+</xenrt>

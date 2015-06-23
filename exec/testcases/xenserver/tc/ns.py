@@ -857,7 +857,7 @@ class NSBVT(xenrt.TestCase):
         
         assert self.cfg.has_key('nfs_src')
         nfs_src = self.cfg['nfs_src']
-        cur_mounts = host.execdom0("cat /proc/mounts | cut -f1,2 -d ' ' | grep '%s'" % 
+        cur_mounts = host.execdom0("cat /proc/mounts | cut -f1,2 -d ' ' | grep '%s' || true" % 
                                    nfs_src).splitlines()
         
         if len(cur_mounts) != 0:
@@ -1284,11 +1284,9 @@ class NSBVT(xenrt.TestCase):
         # A little wait can do wonders
         time.sleep(60 * 5)
         
-        # Let us reset the Sanity Test Bed status
-        try:
-            self.stopTest()
-        except:
-            pass
+        # It would be good to cleanup log directory before every run to prevent some residue 
+        ats = self.cfg["ats"]
+        ats.execcmd("rm -rf /home/atsuser/Logs/*", username='atsuser',retval='code', password='atsuser')
         
         self.startTest()
 
@@ -1305,9 +1303,9 @@ class NSBVT(xenrt.TestCase):
         
         failed_tests,passed_tests = self.getTestStatus()
         
-        #Currently there are 128 tests cases running, out of which 127 test cases should pass
-        if len(passed_tests) < self.PASS_TESTS :
-            raise xenrt.XRTFailure("NS Sanity test failed since we did not get %s pass results." %(self.PASS_TESTS))
+        # Printing out number of passed and failed tests
+        xenrt.TEC().logverbose("The number of passed tests = %s" % (len(passed_tests)))
+        xenrt.TEC().logverbose("The number of failed tests = %s" % (len(failed_tests)))
         
         if status == 'FAILED':
             if not self.testsExpectedToFail(failed_tests):
@@ -1547,7 +1545,7 @@ class NSSRIOV(SRIOVTests):
     
     # We have to release all the allocated IPv4 address 
     ALLOCATED_IPADDRS = []
-    NS_XVA = "NSVPX-XEN-10.0-72.5_nc.xva"
+    NS_XVA = "NSVPX-XEN-10.5-52.11_nc.xva"
     GOLDEN_VM = None
     NETWORK = 'NPRI' # 'NSEC'; Orjen has SR-IOV nics on NSEC
     
@@ -1599,26 +1597,33 @@ class NSSRIOV(SRIOVTests):
         return vpx
 
     def getLicenseFile(self):
-        lic = "CNS_V1000_SERVER_PLT_Retail.lic"
-        working = xenrt.TEC().getWorkdir()
-        out = os.path.join(working, lic)
-        lic_url = "http://www.uk.xensource.com/~jobyp/CNS_V1000_SERVER_PLT_Retail.lic"
-        xenrt.command('wget %s -O %s' % (lic_url, out))
-        self.license_file = out
+        lic = "CNS_V3000_SERVER_PLT_Retail.lic"
+        out = xenrt.TEC().getFile("%s/tallahassee/%s" % (xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),lic)) 
+        self.license_file = out.strip()
         return self.license_file
 
     def installLicense(self, vpx):
+    
+        step("Checking if VPX already has license")
+            
         if hasattr(self, 'license_file') and self.license_file is not None:
             pass
+        
         else:
             self.license_file = self.getLicenseFile()
+
+        
+        step("copy license file from tempdir on controller to guest...........")
 
         if vpx.getState() != "UP":
             self.startVPX(vpx)
             
         sftp = vpx.sftpClient(username='nsroot')
-        sftp.copyTo(self.license_file, os.path.join("/nsconfig/license", os.path.basename(self.license_file)))
+        
+        sftp.copyTo(self.license_file, os.path.join('/nsconfig/license',os.path.basename(self.license_file)))
         sftp.close()
+        
+        
         vpx.waitForSSH(timeout=100,cmd='sh ns ip',username='nsroot')
         self.rebootVPX(vpx)
         return

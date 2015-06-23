@@ -21,6 +21,9 @@ cfg['ldap_user'] = ""
 cfg['ldap_pass'] = ""
 cfg['ldap_base'] = ""
 cfg['group_mapping'] = ""
+cfg['admin_group'] = ""
+cfg['schedule_log_dir'] = "/var/xenrt"
+cfg['master_server'] = "master.xenrt.citrite.net"
 # Parse a site config file
 cfs = glob.glob("%s/conf.d/*/*.xml" % confdir)
 cf = "%s/site.xml" % (confdir)
@@ -72,6 +75,12 @@ for cf in cfs:
                                     cfg['ldap_base'] = data
                                 elif name == "AD_GROUP_MAPPING":
                                     cfg['group_mapping'] = data
+                                elif name == "ADMIN_GROUP":
+                                    cfg['admin_group'] = data
+                                elif name == "SCHEDULE_LOG_DIR":
+                                    cfg['schedule_log_dir'] = data
+                                elif name == "MASTER_SERVER":
+                                    cfg['master_server'] = data
 
 cfg['results'] = "%s/results" % basedir
 cfg['sharedir'] = "@sharedir@"

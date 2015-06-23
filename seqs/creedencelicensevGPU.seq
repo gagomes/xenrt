@@ -7,7 +7,7 @@
   </variables>
 
   <prepare>
-      <host id="0" license="no" usev6testd="no">
+      <host id="0" license="no" defaultlicense="no">
         <vm name="LicenseServer">
           <file>%LICENSE_SERVER_XVA%</file>
           <postinstall action="installV6LicenseServer"/>
@@ -28,7 +28,7 @@
   <testsequence>
     <testcase id="xenserver.tc.vgpu.TCcreatevGPU" name="Win7sp1x86K140VGPU" tc="TC-23748" sku="TCcreatevGPU">
       <arg>vmName=vgpufeaturevm</arg>
-      <arg>vgputype=1</arg>
+      <arg>vgpuconfig=1</arg>
       <arg>startVM=False</arg>
     </testcase>
 

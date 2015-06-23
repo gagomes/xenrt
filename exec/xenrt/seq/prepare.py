@@ -49,6 +49,72 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
     def __minAvailablePool(self):
         return self.__minAvailable([int(x['id']) for x in self.parent.pools])
 
+    def handleNetworkNode(self, node):
+        doc = xml.dom.minidom.Document()
+        netNode = doc.createElement("NETWORK")
+        if "controller" in node:
+            netNode.setAttribute("controller", node['controller'])
+        for n in node.get("physical_networks", []):
+            physnode = doc.createElement("PHYSICAL")
+            if "network" in n:
+                physnode.setAttribute("network", n['network'])
+            if "bond_mode" in n:
+                physnode.setAttribute("bond-mode", n['bond_mode'])
+            if "jumbo" in n:
+                physnode.setAttribute("jumbo", "yes" if n['jumbo'] else "no")
+            if "speed" in n:
+                physnode.setAttribute("speed", n['speed'])
+            if "name" in n:
+                physnode.setAttribute("name", n['name'])
+            if "specified_nics" in n:
+                for x in n['specified_nics']:
+                    nicnode = doc.createElement("NIC")
+                    nicnode.setAttribute("enum", x)
+                    physnode.appendChild(nicnode)
+            elif "nics" in n:
+                for x in range(n['nics']):
+                    nicnode = doc.createElement("NIC")
+                    physnode.appendChild(nicnode)
+            else:
+                nicnode = doc.createElement("NIC")
+                physnode.appendChild(nicnode)
+            if n.get("management"):
+                mgmtnode = doc.createElement("MANAGEMENT")
+                if n['management'] != True:
+                    mgmtnode.setAttribute("mode", n['management'])
+                physnode.appendChild(mgmtnode)
+            if n.get("storage"):
+                storagenode = doc.createElement("STORAGE")
+                if n['storage'] != True:
+                    storagenode.setAttribute("mode", n['storage'])
+                physnode.appendChild(storagenode)
+            if n.get("vms"):
+                vmnode = doc.createElement("VMS")
+                physnode.appendChild(vmnode)
+            for v in n.get("vlans", []):
+                vlannode = doc.createElement("VLAN")
+                if "network" in v:
+                    vlannode.setAttribute("network", v['network'])
+                if "name" in v:
+                    vlannode.setAttribute("name", v['name'])
+                if v.get("management"):
+                    mgmtnode = doc.createElement("MANAGEMENT")
+                    if n['management'] != True:
+                        mgmtnode.setAttribute("mode", v['management'])
+                    vlannode.appendChild(mgmtnode)
+                if v.get("storage"):
+                    storagenode = doc.createElement("STORAGE")
+                    if n['storage'] != True:
+                        storagenode.setAttribute("mode", v['storage'])
+                    vlannode.appendChild(storagenode)
+                if v.get("vms"):
+                    vmnode = doc.createElement("VMS")
+                    vlannode.appendChild(vmnode)
+                physnode.appendChild(vlannode)
+            netNode.appendChild(physnode)
+        doc.appendChild(netNode)
+        return doc
+
     def handleMultiHostNode(self, node, pool=None):
         i = node.get('start', 0)
         end = node.get('end', None)
@@ -124,6 +190,11 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
                                 simpleHostNode = {'noisos': True}
                                 if cluster.has_key('XRT_ContainerHostIds'):
                                     simpleHostNode['container'] = cluster['XRT_ContainerHostIds'][h]
+                                    if cluster.has_key('XRT_vHostMemory'):
+                                        if type(cluster['XRT_vHostMemory']) == list:
+                                            simpleHostNode['vmemory'] = cluster['XRT_vHostMemory'][h]
+                                        else:
+                                            simpleHostNode['vmemory'] = cluster['XRT_vHostMemory']
                                 else:
                                     hostId = self.__minAvailableHost(poolHosts)
                                     poolHosts.append(int(hostId))
@@ -259,9 +330,9 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
         if "network" in node:
             # This is a network topology description we can use
             # with createNetworkTopology. Record the whole DOM node
-            self.parent.networksForPools[pool["name"]] = x['topology']
-            if "controller" in x:
-                self.parent.controllersForPools[host["name"]] = x["controller"]
+            self.parent.networksForPools[pool["name"]] = self.handleNetworkNode(node['network'])
+            if "controller" in node['network']:
+                self.parent.controllersForPools[pool["name"]] = node['network']["controller"]
             hasAdvancedNet = True
         
         self.parent.pools.append(pool)
@@ -339,6 +410,7 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
         host['ipv6'] = node.get("ipv6", "")
         host['noipv4'] = node.get("noipv4", False)
         host['diskCount'] = node.get("disk_count", 1)
+        host['iommu'] = node.get("iommu", False)
         if "license" in node:
             if node['license'] == True:
                 host["license"] = True
@@ -351,8 +423,8 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
             if ls:
                 host["license"] = ls
         
-        if "usev6testd" in node:
-            host["usev6testd"] = node["usev6testd"]
+        if "defaultlicense" in node:
+            host["defaultlicense"] = node["defaultlicense"]
         if "noisos" in node:
             host["noisos"] = node.get("noisos", False)
         host["suppackcds"] = node.get("suppackcds")
@@ -382,9 +454,9 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
         if "network" in node:
             # This is a network topology description we can use
             # with createNetworkTopology. Record the whole DOM node
-            self.parent.networksForHosts[host["name"]] = x['topology']
-            if "controller" in x:
-                self.parent.controllersForHosts[host["name"]] = x["controller"]
+            self.parent.networksForHosts[host["name"]] = self.handleNetworkNode(node['network'])
+            if "controller" in node['network']:
+                self.parent.controllersForHosts[host["name"]] = node['network']["controller"]
             hasAdvancedNet = True
 
         host['basicNetwork'] = not hasAdvancedNet
@@ -417,6 +489,7 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
 
         vm["guestname"] = node['name']
         vm["vifs"] = []       
+        vm["sriovvifs"] = []
         vm["ips"] = {}       
         vm["disks"] = []
         vm["postinstall"] = []
@@ -440,12 +513,15 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
         if "arch" in node:
             vm['arch'] = node["arch"]
         for x in node.get("vifs", []):
-            device = x.get("device")
-            bridge = x.get("network", "")
-            ip = x.get("ip")
-            vm["vifs"].append([str(device), bridge, xenrt.randomMAC(), None])
-            if ip:
-                vm["ips"][device] = ip
+            if x.get("sriov", False):
+                vm["sriovvifs"].append([x.get("physdev"), None])
+            else:
+                device = x.get("device")
+                bridge = x.get("network", "")
+                ip = x.get("ip")
+                vm["vifs"].append([str(device), bridge, xenrt.randomMAC(), None])
+                if ip:
+                    vm["ips"][device] = ip
         for x in node.get("disks", []):
             device = x.get("device")
             size = x.get("size")
@@ -731,12 +807,12 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
             ls = xenrt.TEC().lookup("OPTION_LIC_SKU", None)
             if ls:
                 host["license"] = ls
-        usev6testd = self.expand(node.getAttribute("usev6testd"))
-        if usev6testd:
-            if usev6testd[0] in ('y', 't', '1', 'Y', 'T'):
-                host["usev6testd"] = True
+        defaultlicense = self.expand(node.getAttribute("defaultlicense"))
+        if defaultlicense:
+            if defaultlicense[0] in ('y', 't', '1', 'Y', 'T'):
+                host["defaultlicense"] = True
             else:
-                host["usev6testd"] = False
+                host["defaultlicense"] = False
         noisos = self.expand(node.getAttribute("noisos"))
         if noisos:
             if noisos[0] in ('y', 't', '1', 'Y', 'T'):
@@ -747,6 +823,14 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
         if defaultHost and defaultHost[0] in ('y', 't', '1', 'Y', 'T'):
             host['default'] = True
         host["suppackcds"] = self.expand(node.getAttribute("suppackcds"))
+        iommu = self.expand(node.getAttribute("iommu"))
+        if iommu:
+            if iommu[0] in ('y', 't', '1', 'Y', 'T'):
+                host["iommu"] = True
+            else:
+                host["iommu"] = False
+        else:
+            host["iommu"] = False
         disablefw = self.expand(node.getAttribute("disablefw"))
         if disablefw:
             if disablefw[0] in ('y', 't', '1', 'Y', 'T'):
@@ -841,6 +925,7 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
 
         vm["guestname"] = self.expand(node.getAttribute("name"))
         vm["vifs"] = []       
+        vm["sriovvifs"] = []
         vm["ips"] = {}       
         vm["disks"] = []
         vm["postinstall"] = []
@@ -878,12 +963,17 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
                         if a.nodeType == a.TEXT_NODE:
                             vm["arch"] = self.expand(str(a.data))
                 elif x.localName == "network":
-                    device = self.expand(x.getAttribute("device"))
-                    bridge = self.expand(x.getAttribute("bridge"))
-                    ip = self.expand(x.getAttribute("ip"))
-                    vm["vifs"].append([device, bridge, xenrt.randomMAC(), None])
-                    if ip:
-                        vm["ips"][int(device)] = ip
+                    sriov = self.expand(x.getAttribute("sriov"))
+                    if sriov == "true" or sriov == "yes":
+                        physdev = self.expand(x.getAttribute("physdev"))
+                        vm["sriovvifs"].append([physdev, None])
+                    else:
+                        device = self.expand(x.getAttribute("device"))
+                        bridge = self.expand(x.getAttribute("bridge"))
+                        ip = self.expand(x.getAttribute("ip"))
+                        vm["vifs"].append([device, bridge, xenrt.randomMAC(), None])
+                        if ip:
+                            vm["ips"][int(device)] = ip
                 elif x.localName == "disk":
                     device = self.expand(x.getAttribute("device"))
                     size = self.expand(x.getAttribute("size"))
@@ -1203,11 +1293,14 @@ class PrepareNode(object):
                 for s in self.srs:
                     host = xenrt.TEC().registry.hostGet(s["host"]) 
                     if s["type"] == "lvmoiscsi":
+                        thinProv = False
+                        if s["options"] and "thin" in s["options"].split(","):
+                            thinProv = True
                         if host.lookup("USE_MULTIPATH", False, boolean=True):
                             mp = True
                         else:
                             mp = None
-                        sr = xenrt.productLib(host=host).ISCSIStorageRepository(host, s["name"])
+                        sr = xenrt.productLib(host=host).ISCSIStorageRepository(host, s["name"], thinProv)
                         if s["options"] and "iet" in s["options"].split(","):
                             # Create the SR using an IET LUN from the controller
                             lun = xenrt.ISCSITemporaryLun(300)
@@ -1345,18 +1438,24 @@ class PrepareNode(object):
                         sr = xenrt.productLib(host=host).EQLStorageRepository(host, s["name"])
                         sr.create(eql, options=options, multipathing=mp)
                     elif s["type"] == "fc":
-                        sr = xenrt.productLib(host=host).FCStorageRepository(host, s["name"])
+                        thinProv = False
+                        if s.has_key("options") and s["options"] and "thin" in s["options"].split(","):
+                            thinProv = True
+                        sr = xenrt.productLib(host=host).FCStorageRepository(host, s["name"], thinProv)
                         if host.lookup("USE_MULTIPATH", False, boolean=True):
                             mp = True
                         else:
                             mp = None
+                        fcsr = None
                         if s.has_key("options") and s["options"]:
-                            fcsr = s["options"]
-                        else:
+                            for opt in s["options"].split(","):
+                                if opt != "thin":
+                                    fcsr = opt
+                        if not fcsr:
                             fcsr = host.lookup("SR_FC", "yes")
                             if fcsr == "yes":
                                 fcsr = "LUN0"
-                        
+
                         scsiid = host.lookup(["FC", fcsr, "SCSIID"], None)
                         sr.create(scsiid, multipathing=mp)
                     elif s["type"] == "cvsmnetapp":

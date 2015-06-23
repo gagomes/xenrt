@@ -11,13 +11,13 @@
   </variables>
   <prepare>
     <pool id="0">
-      <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}" usev6testd="false" license="no" id="0">
+      <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}" defaultlicense="false" license="no" id="0">
         <vm name="Licence Server">
           <file>%LICENSE_SERVER_XVA%</file>
           <postinstall action="installV6LicenseServer" />
         </vm>
       </host>
-      <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}" usev6testd="false" license="no" id="1" />
+      <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}" defaultlicense="false" license="no" id="1" />
     </pool>
   </prepare>
 </xenrt>

@@ -4024,6 +4024,7 @@ d-i netcfg/choose_interface select eth0
 %s
 d-i    mirror/http/proxy        string 
 d-i    debian-installer/allow_unauthenticated    string true
+d-i apt-setup/backports boolean false
 d-i    time/zone string        string %s
 d-i    partman-auto/method        string regular
 

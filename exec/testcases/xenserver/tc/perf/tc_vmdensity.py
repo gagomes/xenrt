@@ -83,8 +83,12 @@ class TestSpace(Util):
     def getPoints(self,dimensions):
         result = [[]]
         d_order = self.getdOrder()
+        xenrt.TEC().logverbose("d_order = %s" % (d_order,))
         for d in d_order:
-            result=[x+[y] for x in result for y in dimensions[d]]
+            dims = dimensions[d]
+            xenrt.TEC().logverbose("dims.type = %s, dims = %s" % (type(dims).__name__, dims))
+            result=[x+[y] for x in result for y in dims]
+            #xenrt.TEC().logverbose("result = %s" % (result,))
         return result
 
     # return the dimensions that changed between 2 points
@@ -280,7 +284,7 @@ class XapiEvent(Util):
         self.events = {}
 
     def getSession(self):
-        session = self.host.getAPISession()
+        session = self.host.getAPISession(secure=False)
         xenrt.TEC().logverbose("XapiEvent: session=%s" % session)
         return session
 
@@ -518,6 +522,7 @@ def APIEvent(experiment):
 class GuestEvent(object):
     # dict: ip -> ...
     events = {}
+    INET = socket.AF_INET
     UDP_IP = socket.gethostbyname(socket.gethostname())
     UDP_PORT = 5000
     EVENT = None
@@ -526,6 +531,19 @@ class GuestEvent(object):
         if not self.EVENT:
             self.log("Abstract class!")
         self.experiment = experiment
+
+        self.INET = socket.AF_INET
+        if xenrt.TEC().lookup("USE_GUEST_IPV6", False):
+            self.INET = socket.AF_INET6
+
+        if self.INET == socket.AF_INET6:
+            import netifaces
+            ifs = netifaces.ifaddresses('eth0')
+            xenrt.TEC().logverbose("interfaces(eth0)=%s" % (ifs,))
+            self.UDP_IP = filter(lambda x: not x['addr'].startswith('fe80'), ifs[netifaces.AF_INET6])[0]['addr']
+
+        xenrt.TEC().logverbose("UDP_IP=%s" % (self.UDP_IP,))
+
         thread.start_new_thread(self.listen,())
 
     def script_filename(self):
@@ -554,7 +572,7 @@ class GuestEvent(object):
             pass
 
     def listen(self):
-        sock = socket.socket( socket.AF_INET, # Internet
+        sock = socket.socket( self.INET,          # IPv4/6
                               socket.SOCK_DGRAM ) # UDP
         bound=False
         while not bound:
@@ -568,7 +586,12 @@ class GuestEvent(object):
 
         while True:
             try:
-                msg, (guest_ip, guest_port) = sock.recvfrom( 16)#, socket.MSG_DONTWAIT ) # buffer size is smallest possible to fit one msg only
+                if xenrt.TEC().lookup("USE_GUEST_IPV6", False):
+                    msg, (guest_ip, guest_port, foo, bar) = sock.recvfrom( 16)#, socket.MSG_DONTWAIT ) # buffer size is smallest possible to fit one msg only
+                    # pad ipv6 with missing 0s so that it matches the one returned by guests via xenrt
+                    guest_ip = ":".join(map(lambda i: i.zfill(4), guest_ip.split(":")))
+                else:
+                    msg, (guest_ip, guest_port) = sock.recvfrom( 16)#, socket.MSG_DONTWAIT ) # buffer size is smallest possible to fit one msg only
                 if not self.events.has_key(guest_ip):
                     guest_name="n/a"
                     if self.experiment.ip_to_guest.has_key(guest_ip):
@@ -628,6 +651,8 @@ import socket
 import time
 import os.path
 
+%s
+
 controller_ip = "%s"
 controller_udp_port = %s
 i=0
@@ -635,20 +660,63 @@ while not os.path.isfile("%s%s") and i<600000:
     msg = "%s+MSG%%s" %% i
     print "sending to (%%s:%%s):%%s" %% (controller_ip,controller_udp_port,msg)
     try:
-        s = socket.socket( socket.AF_INET, socket.SOCK_DGRAM)
+        s = socket.socket( %s, socket.SOCK_DGRAM)
+        %s
         s.sendto(msg, (controller_ip, controller_udp_port))
     except Exception, e:
         print "exception %%s" %% e
     time.sleep(3.0)
     i=i+1
 """
+        if xenrt.TEC().lookup("USE_GUEST_IPV6", False):
+            afinet = "socket.AF_INET6"
+            if guest.windows:
+                get_ipv6_fn = """
+import subprocess
+ipv6 = False
+while not ipv6:
+    print "not found local ipv6 yet"
+    for line in subprocess.check_output("ipconfig").split("\\r\\n"):
+        print line
+        if "  IPv6 Address" in line:
+            ipv6 = line.split(": ")[1]
+            print "found local ipv6 %s" % (ipv6,)
+"""
+            else:
+                get_ipv6_fn = """
+import subprocess
+ipv6 = False
+while not ipv6:
+    print "not found local ipv6 yet"
+    for line in subprocess.check_output("ifconfig").split("\\n"):
+        print line
+        if "HWaddr" in line:
+            macx=map(lambda x:x.strip(), line.split("HWaddr ")[1].split(":"))
+            print macx
+            ipv6_6 = "fe%s" % (macx[3],)
+            ipv6_7 = "%s%s" % (macx[4],macx[5])
+        if "inet6 addr:" in line and "Scope:Global" in line:
+            _ipv6 = line.split("/")[0].split(": ")[1]
+            _ipv6x = map(lambda i: i.zfill(4), _ipv6.split(":"))
+            print _ipv6x
+            if _ipv6x[6]==ipv6_6 and _ipv6x[7]==ipv6_7:
+                ipv6=_ipv6
+                print "found local ipv6 %s" % (ipv6,)
+                break
+"""
+            bind_ipv6_fn = "s.bind((ipv6,0))"
+        else:
+            afinet = "socket.AF_INET"
+            get_ipv6_fn = ""
+            bind_ipv6_fn = ""
+
         if guest.windows: 
-            script = script % (self.UDP_IP, self.UDP_PORT,"c:\\",self.stop_filename(), self.EVENT)
+            script = script % (get_ipv6_fn, self.UDP_IP, self.UDP_PORT,"c:\\",self.stop_filename(), self.EVENT, afinet, bind_ipv6_fn)
             script_path = "c:\\%s" % self.script_filename()
             guest.xmlrpcWriteFile(script_path, script)
             self.addEventTrigger(guest,script_path)
         else:#posix guest
-            script = script % (self.UDP_IP, self.UDP_PORT,"/",self.stop_filename(), self.EVENT)
+            script = script % (get_ipv6_fn, self.UDP_IP, self.UDP_PORT,"/",self.stop_filename(), self.EVENT, afinet, bind_ipv6_fn)
             script_path = "/%s" % self.script_filename()
             sf = xenrt.TEC().tempFile()
             file(sf, "w").write(script)
@@ -1607,6 +1675,7 @@ class Experiment_vmrun(Experiment):
     loginvsiexclude = []
     vmcooloff = "0"
     xentrace = []
+    vlans = 0
     
 
     #this event handles change of values of dimension XSVERSIONS
@@ -1636,14 +1705,19 @@ class Experiment_vmrun(Experiment):
                 urlsuffix = value #.lower() # eg. "trunk-ring0/54990"
                 url = "%s/usr/groups/xen/carbon/%s" % (urlpref, urlsuffix)
             product_version = (value.split("/")[0]).capitalize() #"Boston"
+            xenrt.TEC().logverbose("url=%s" % (url,))
 
             def setInputDir(url):
+                xenrt.TEC().logverbose("setting config.variable inputdir...")
                 xenrt.TEC().config.setVariable("INPUTDIR",url) #"%s/usr/groups/xen/carbon/boston/50762"%urlpref)
+                xenrt.TEC().logverbose("setting inputdir...")
                 xenrt.TEC().setInputDir(url) #"%s/usr/groups/xen/carbon/boston/50762"%urlpref)
                 xenrt.GEC().filemanager = xenrt.filemanager.getFileManager()
                 #sanity check: does this url exist?
                 bash_cmd = "wget --server-response %s 2>&1|grep HTTP/|awk '{print $2}'" % url
+                xenrt.TEC().logverbose("about to call popen with \"%s\"..." % (bash_cmd,))
                 p = subprocess.Popen(bash_cmd,shell=True,stdout=subprocess.PIPE)
+                xenrt.TEC().logverbose("about to read popen stdout...")
                 http_code = p.stdout.read().strip()
                 inputdir_ok = not ("404" in http_code)
                 if inputdir_ok:
@@ -1679,6 +1753,16 @@ class Experiment_vmrun(Experiment):
             xenrt.TEC().logverbose("Using PRODUCT_VERSION=%s" % xenrt.TEC().lookup("PRODUCT_VERSION", None))
 
             networkcfg = ""
+            for dom0param in self.dom0params:
+                if "vlan" in dom0param:
+                    # "vlan:X" = create X vlans in the host
+                    vlan_params = dom0param.split("=")
+                    self.vlans = 0
+                    if len(vlan_params) > 1:
+                        self.vlans = int(vlan_params[1])
+            for i in range(0, self.vlans):
+              networkcfg += '<VLAN network="VR%02u" />' % (i+1)
+
             name_defaultsr = "%ssr" % (self.defaultsr,)
             if self.defaultsr in ["lvm","ext"] or self.defaultsr.startswith("ext:"):
                 localsr = self.defaultsr.split(":")[0] #ignore : and anything after it
@@ -1692,12 +1776,15 @@ class Experiment_vmrun(Experiment):
                 if "xrtuk-08-" in hn:
                     xenrt.TEC().logverbose("%s: xrtuk-08-* host detected, using NSEC+jumbo network configuration" % hn)
                     sharedsr = '<storage type="%s" name="%s" jumbo="true" network="NSEC"/>' % (self.defaultsr, name_defaultsr)
-                    networkcfg = """<NETWORK><PHYSICAL network="NPRI"><NIC /><MANAGEMENT /><VMS /></PHYSICAL><PHYSICAL network="NSEC"><NIC /><STORAGE /></PHYSICAL></NETWORK>"""
+                    networkcfg = """<NETWORK><PHYSICAL network="NPRI"><NIC /><MANAGEMENT /><VMS />%s</PHYSICAL><PHYSICAL network="NSEC"><NIC /><STORAGE /></PHYSICAL></NETWORK>"""
                 else:
                     xenrt.TEC().logverbose("%s: xrtuk-08-* host NOT detected, using default network configuration" % hn)
+                    if self.vlans > 0:
+                        networkcfg = '<NETWORK><PHYSICAL network="NPRI"><NIC/><MANAGEMENT /><VMS />%s</PHYSICAL></NETWORK>' % (networkcfg,)
 
             seq = "<pool><host installsr=\"%s\">%s%s</host></pool>" % (localsr,sharedsr, networkcfg)
             #seq = "<pool><host/></pool>"
+            xenrt.TEC().logverbose("sequence=%s" % (seq,))
             pool_xmlnode = xml.dom.minidom.parseString(seq)
             prepare = PrepareNode(pool_xmlnode, pool_xmlnode, {}) 
             prepare.runThis()
@@ -1721,13 +1808,24 @@ class Experiment_vmrun(Experiment):
                     #this sed works in xs5.6sp2- only
                     host.execdom0('sed -i \'s/sys.argv\[2:\]$/sys.argv\[2:\]\\nqemu_args.append("-priv")\\n/\' /opt/xensource/libexec/qemu-dm-wrapper')
 
- 
+
             host = self.tc.getDefaultHost()
+
+            if self.vlans > 0:
+                #create any extra VLANs in the host
+                host.createNetworkTopology(networkcfg)
+
+
             host.defaultsr = name_defaultsr # hack: because esx doesn't have a pool class to set up the defaultsr when creating the host via sequence above with 'default' option in <storage>
             pool = self.tc.getDefaultPool()
-            if pool:
-                sr_uuid = host.parseListForUUID("sr-list", "name-label", name_defaultsr)
-                pool.setPoolParam("default-SR", sr_uuid)
+            sr_uuid = host.parseListForUUID("sr-list", "name-label", name_defaultsr)
+            xenrt.TEC().logverbose("pool=%s, name_defaultsr='%s', sr_uuid='%s'" % (pool, name_defaultsr, sr_uuid))
+            if sr_uuid:
+                if pool:
+                    pool.setPoolParam("default-SR", sr_uuid)
+                else:
+                    pool_uuid = host.minimalList("pool-list")[0]
+                    host.genParamSet("pool", pool_uuid, "default-SR", sr_uuid)
 
             set_dom0disksched(host,self.dom0disksched) 
             patch_qemu_wrapper(host,self.qemuparams)
@@ -1745,7 +1843,7 @@ class Experiment_vmrun(Experiment):
                     host.forgetSR(uuids[0])
 
                 diskname = host.execdom0("basename `readlink -f %s`" % device).strip()
-                sr = xenrt.lib.xenserver.host.EXTStorageRepository(host, 'SR-%s' % diskname)
+                sr = xenrt.lib.xenserver.EXTStorageRepository(host, 'SR-%s' % diskname)
                 sr.create(device)
                 host.pool.setPoolParam("default-SR", sr.uuid)
 
@@ -1936,6 +2034,7 @@ class Experiment_vmrun(Experiment):
                 #model vm not found in host, install it from scratch
                 #g0 = host.guestFactory()(vm_name, vm_template, host=host)
                 #g0.createGuestFromTemplate(vm_template, defaultSR)
+                use_ipv6 = xenrt.TEC().lookup("USE_GUEST_IPV6", False)
 
                 if self.distro.endswith(".img"):
                     #import vm from image
@@ -1951,7 +2050,7 @@ class Experiment_vmrun(Experiment):
                     postinstall=[]
                     if "nopvdrivers" not in self.vmpostinstall:
                         postinstall+=['installDrivers']
-                    g0=lib.guest.createVM(host,vm_name,self.distro,vifs=self.vmvifs,disks=self.vmdisks,vcpus=self.vmvcpus,corespersocket=self.vm_cores_per_socket,memory=self.vmram,guestparams=self.vmparams,postinstall=postinstall,sr=defaultSR,arch=self.arch)
+                    g0=lib.guest.createVM(host,vm_name,self.distro,vifs=self.vmvifs,disks=self.vmdisks,vcpus=self.vmvcpus,corespersocket=self.vm_cores_per_socket,memory=self.vmram,guestparams=self.vmparams,postinstall=postinstall,sr=defaultSR,arch=self.arch,use_ipv6=use_ipv6)
                     #g0.install(host,isoname=xenrt.DEFAULT,distro=self.distro,sr=defaultSR)
                     #g0.check()
                     #g0.installDrivers()
@@ -1961,7 +2060,7 @@ class Experiment_vmrun(Experiment):
                     postinstall=[]
                     if "convertHVMtoPV" in self.vmpostinstall:
                         postinstall+=['convertHVMtoPV']
-                    g0=lib.guest.createVM(host,vm_name,self.distro,vifs=self.vmvifs,disks=self.vmdisks,vcpus=self.vmvcpus,corespersocket=self.vm_cores_per_socket,memory=self.vmram,guestparams=self.vmparams,postinstall=postinstall,sr=defaultSR,arch=self.arch)
+                    g0=lib.guest.createVM(host,vm_name,self.distro,vifs=self.vmvifs,disks=self.vmdisks,vcpus=self.vmvcpus,corespersocket=self.vm_cores_per_socket,memory=self.vmram,guestparams=self.vmparams,postinstall=postinstall,sr=defaultSR,arch=self.arch,use_ipv6=use_ipv6)
                     #g0.install(host,isoname=xenrt.DEFAULT,distro=self.distro,sr=defaultSR, repository="cdrom",method="CDROM")
 
                 g0.check()
@@ -2264,11 +2363,27 @@ MachinePassword=%s
             return
 
         def install_guests_in_a_host(g0):
+            cli = g0.host.getCLIInstance()
+            s = cli.execute("pif-list", "params=network-uuid,VLAN")
+            xenrt.TEC().logverbose("pif-list=%s" % (s,))
+            all_network_uuids = map(lambda kv:(kv[0].split(":")[1].strip(),kv[1].split(":")[1].strip()), filter(lambda el:len(el)>1, map(lambda vs:vs.split("\n"),s.split("\n\n\n"))))
+            xenrt.TEC().logverbose("all_network_uuids=%s" % (all_network_uuids,))
+
+            # only those network uuids with a vlan
+            network_uuids = map(lambda (v,n):n, filter(lambda (vlan,network_uuid): vlan<>"-1", all_network_uuids))
+            xenrt.TEC().logverbose("network_uuids with vlan=%s" % (network_uuids,))
+
             # We'll do the installation on default SR
             for i in self.getDimensions()['VMS']:
                 g = g0.cloneVM() #name=("%s-%i" % (vm_name,i)))
                 #xenrt.TEC().registry.guestPut(g.getName(),g)
                 self.guests[i] = g
+                if self.vlans > 0:
+                    # assign networks to clones in round-robin fashion
+                    network_uuid = network_uuids[ i % len(network_uuids) ]
+                    g.removeAllVIFs()
+                    g.createVIF(bridge=network_uuid)
+
             return
 
         def install_guests():
@@ -2520,8 +2635,8 @@ MachinePassword=%s
     #this event handles change of values of dimension DOM0RAM
     def do_DOM0RAM(self, value, coord):
         xenrt.TEC().logverbose("DEBUG: DOM0RAM value=[%s]" % value)
-        # change dom0 ram and reboot host
-        xenrt.TEC().config.setVariable("DOM0_MEM", value)
+        # change dom0 ram in MB and reboot host
+        xenrt.TEC().config.setVariable("OPTION_DOM0_MEM", ("%sM,max:%sM" % (value, value)))
         self.dom0ram=value
 
     def do_DOM0PARAMS(self, value, coord):
@@ -2619,6 +2734,8 @@ MachinePassword=%s
                 timeout = 600 + self.measurement_1.base_measurement * self.tc.THRESHOLD
             if guest.use_ipv6:
                 guest.mainip = guest.getIPv6AutoConfAddress(vifname)
+                #normalise ipv6 with 0s
+                guest.mainip = ":".join(map(lambda i: i.zfill(4), guest.mainip.split(":")))
             else:
                 guest.mainip = guest.getHost().arpwatch(bridge, mac, timeout=timeout)
             self.ip_to_guest[guest.mainip] = guest
@@ -3078,9 +3195,23 @@ class TCVMDensity(libperf.PerfTestCase):
             xenrt.TEC().logverbose("init: INPUTDIR=%s => XSVERSIONS=%s" % (inputdir,self.XSVERSIONS))
 
         #populate unset values preferrably from command line
-        def setprm(key,default=None): 
-            if not getattr(self, key): #if not yet set
-                setattr(self, key, eval(str(xenrt.TEC().lookup(key,default))))
+        def setprm(key,default=None):
+            s = str(xenrt.TEC().lookup(key,default))
+            if s == "":
+                value = s
+            else:
+                value = eval(s)
+            tv = type(value).__name__
+            td = type(default).__name__
+            reset = False
+            if default:
+                if td == "list" and td <> tv:
+                    # eg. value is string but should be list (because default is list)
+                    value = eval(str(value))
+                    reset = True
+            if not getattr(self, key) or reset: #if not yet set or type needs updating
+                setattr(self, key, value)
+
         setprm("VMS")
         setprm("XSVERSIONS")
         setprm("RUNS")
@@ -3155,39 +3286,42 @@ class TCVMDensity(libperf.PerfTestCase):
         setprm("XENTRACE", default=[])
 
         #print resulting parameters
-        xenrt.TEC().logverbose("run: VMS=%s" % self.VMS)
-        xenrt.TEC().logverbose("run: XSVERSIONS=%s" % self.XSVERSIONS)
-        xenrt.TEC().logverbose("run: RUNS=%s" % self.RUNS)
-        xenrt.TEC().logverbose("run: MACHINES=%s" % self.MACHINES)
-        xenrt.TEC().logverbose("run: VMTYPES=%s" % self.VMTYPES)
-        xenrt.TEC().logverbose("run: THRESHOLD=%s" % self.THRESHOLD)
-        xenrt.TEC().logverbose("run: DOM0RAM=%s" % self.DOM0RAM)
-        xenrt.TEC().logverbose("run: XENSCHED=%s" % self.XENSCHED)
-        xenrt.TEC().logverbose("run: VMPARAMS=%s" % self.VMPARAMS)
-        xenrt.TEC().logverbose("run: EXPERIMENT=%s" % self.EXPERIMENT)
-        xenrt.TEC().logverbose("run: VMDISKS=%s" % self.VMDISKS)
-        xenrt.TEC().logverbose("run: VMRAM=%s" % self.VMRAM)
-        xenrt.TEC().logverbose("run: DOM0DISKSCHED=%s" % self.DOM0DISKSCHED)
-        xenrt.TEC().logverbose("run: QEMUPARAMS=%s" % self.QEMUPARAMS)
-        xenrt.TEC().logverbose("run: DEFAULTSR=%s" % self.DEFAULTSR)
-        xenrt.TEC().logverbose("run: VMLOADS=%s" % self.VMLOADS)
-        xenrt.TEC().logverbose("run: PERFSTATS=%s" % self.PERFSTATS)
-        xenrt.TEC().logverbose("run: VMVIFS=%s" % self.VMVIFS)
-        xenrt.TEC().logverbose("run: VMPOSTINSTALL=%s" % self.VMPOSTINSTALL)
-        xenrt.TEC().logverbose("run: MEASURE=%s" % self.MEASURE)
-        xenrt.TEC().logverbose("run: VMCRON=%s" % self.VMCRON)
-        xenrt.TEC().logverbose("run: DOM0PARAMS=%s" % self.DOM0PARAMS)
-        xenrt.TEC().logverbose("run: XENPARAMS=%s" % self.XENPARAMS)
-        xenrt.TEC().logverbose("run: XENOPSPARAMS=%s" % self.XENOPSPARAMS)
-        xenrt.TEC().logverbose("run: VMVCPUS=%s" % self.VMVCPUS)
-        xenrt.TEC().logverbose("run: EXISTINGHOST=%s" % self.EXISTINGHOST)
-        xenrt.TEC().logverbose("run: XDSUPPORT=%s" % self.XDSUPPORT)
-        xenrt.TEC().logverbose("run: POSTCLONEWORKER=%s" % self.POSTCLONEWORKER)
-        xenrt.TEC().logverbose("run: HOSTVMMAP=%s" % self.HOSTVMMAP)
-        xenrt.TEC().logverbose("run: LOGINVSIEXCLUDE=%s" % self.LOGINVSIEXCLUDE)
-        xenrt.TEC().logverbose("run: VMCOOLOFF=%s" % self.VMCOOLOFF)
-        xenrt.TEC().logverbose("run: LOADSPERVM=%s" % self.LOADSPERVM)
-        xenrt.TEC().logverbose("run: XENTRACE=%s" % self.XENTRACE)
+        def ty(x):
+            return "%s, type = %s" % (x, type(x).__name__)
+
+        xenrt.TEC().logverbose("run: VMS=%s" % ty(self.VMS))
+        xenrt.TEC().logverbose("run: XSVERSIONS=%s" % ty(self.XSVERSIONS))
+        xenrt.TEC().logverbose("run: RUNS=%s" % ty(self.RUNS))
+        xenrt.TEC().logverbose("run: MACHINES=%s" % ty(self.MACHINES))
+        xenrt.TEC().logverbose("run: VMTYPES=%s" % ty(self.VMTYPES))
+        xenrt.TEC().logverbose("run: THRESHOLD=%s" % ty(self.THRESHOLD))
+        xenrt.TEC().logverbose("run: DOM0RAM=%s" % ty(self.DOM0RAM))
+        xenrt.TEC().logverbose("run: XENSCHED=%s" % ty(self.XENSCHED))
+        xenrt.TEC().logverbose("run: VMPARAMS=%s" % ty(self.VMPARAMS))
+        xenrt.TEC().logverbose("run: EXPERIMENT=%s" % ty(self.EXPERIMENT))
+        xenrt.TEC().logverbose("run: VMDISKS=%s" % ty(self.VMDISKS))
+        xenrt.TEC().logverbose("run: VMRAM=%s" % ty(self.VMRAM))
+        xenrt.TEC().logverbose("run: DOM0DISKSCHED=%s" % ty(self.DOM0DISKSCHED))
+        xenrt.TEC().logverbose("run: QEMUPARAMS=%s" % ty(self.QEMUPARAMS))
+        xenrt.TEC().logverbose("run: DEFAULTSR=%s" % ty(self.DEFAULTSR))
+        xenrt.TEC().logverbose("run: VMLOADS=%s" % ty(self.VMLOADS))
+        xenrt.TEC().logverbose("run: PERFSTATS=%s" % ty(self.PERFSTATS))
+        xenrt.TEC().logverbose("run: VMVIFS=%s" % ty(self.VMVIFS))
+        xenrt.TEC().logverbose("run: VMPOSTINSTALL=%s" % ty(self.VMPOSTINSTALL))
+        xenrt.TEC().logverbose("run: MEASURE=%s" % ty(self.MEASURE))
+        xenrt.TEC().logverbose("run: VMCRON=%s" % ty(self.VMCRON))
+        xenrt.TEC().logverbose("run: DOM0PARAMS=%s" % ty(self.DOM0PARAMS))
+        xenrt.TEC().logverbose("run: XENPARAMS=%s" % ty(self.XENPARAMS))
+        xenrt.TEC().logverbose("run: XENOPSPARAMS=%s" % ty(self.XENOPSPARAMS))
+        xenrt.TEC().logverbose("run: VMVCPUS=%s" % ty(self.VMVCPUS))
+        xenrt.TEC().logverbose("run: EXISTINGHOST=%s" % ty(self.EXISTINGHOST))
+        xenrt.TEC().logverbose("run: XDSUPPORT=%s" % ty(self.XDSUPPORT))
+        xenrt.TEC().logverbose("run: POSTCLONEWORKER=%s" % ty(self.POSTCLONEWORKER))
+        xenrt.TEC().logverbose("run: HOSTVMMAP=%s" % ty(self.HOSTVMMAP))
+        xenrt.TEC().logverbose("run: LOGINVSIEXCLUDE=%s" % ty(self.LOGINVSIEXCLUDE))
+        xenrt.TEC().logverbose("run: VMCOOLOFF=%s" % ty(self.VMCOOLOFF))
+        xenrt.TEC().logverbose("run: LOADSPERVM=%s" % ty(self.LOADSPERVM))
+        xenrt.TEC().logverbose("run: XENTRACE=%s" % ty(self.XENTRACE))
 
         experiment_classname = "Experiment_%s" % self.EXPERIMENT
         experiment = globals()[experiment_classname](self)

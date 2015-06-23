@@ -10,6 +10,8 @@
     <PIDIR_BOSTON>/usr/groups/release/XenServer-6.x/XS-6.0/RTM-50762</PIDIR_BOSTON>
     <PIDIR_SANIBEL>/usr/groups/release/XenServer-6.x/XS-6.0.2/RTM-53456</PIDIR_SANIBEL>
     <PIDIR_TAMPA>/usr/groups/release/XenServer-6.x/XS-6.1/RTM-59235</PIDIR_TAMPA>
+    <PIDIR_CLEARWATER>/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446</PIDIR_CLEARWATER>
+    <PIDIR_CREEDENCE>/usr/groups/release/XenServer-6.x/XS-6.5/RTM-90233</PIDIR_CREEDENCE>
     <PATCH_DESCRIPTIONS />
     <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
   </variables>
@@ -19,6 +21,9 @@
   <testsequence group="HF_TAMPA">
 
     <testcase id="xenserver.tc.hotfix.TC18162" />
+    <testcase id="xenserver.tc.hotfix.TC27007" />
+    <testcase id="xenserver.tc.hotfix.TC23785" />
+    <testcase id="xenserver.tc.hotfix.TC23783" />
     <testcase id="xenserver.tc.hotfix.TC16632" />
     <testcase id="xenserver.tc.hotfix.TC15306" />
     <testcase id="xenserver.tc.hotfix.TC15216" />

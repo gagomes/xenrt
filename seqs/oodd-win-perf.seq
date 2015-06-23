@@ -66,7 +66,7 @@
       </serial>
 
       <serial group="RollingPoolUpdate" blocker="yes">
-        <testcase id="testcases.xenserver.tc.hotfix.TCRollingPoolUpdate" blocker="yes">
+        <testcase id="testcases.xenserver.tc.upgrade.TCRollingPoolUpdate" blocker="yes">
           <arg>FINAL_VERSION=${TO_PRODUCT_VERSION}</arg>
           <arg>vmActionIfHostRebootRequired=${VM_ACTION_ON_HOST_REBOOT}</arg>
           <arg>applyAllHFXsBeforeApplyAction=True</arg>

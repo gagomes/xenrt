@@ -8,14 +8,67 @@
 # conditions as licensed by XenSource, Inc. All other rights reserved.
 #
 
-import re, time, socket, string, xml.dom.minidom, IPy
+import os, re, time, socket, string, xml.dom.minidom, IPy
 
 import xenrt
 import libvirt
 
-__all__ = ["createVM",
+__all__ = ["createVMFromFile",
+           "createVM",
            "Guest",
            "tryupto"]
+
+def createVMFromFile(host,
+                     guestname,
+                     filename,
+                     postinstall=[],
+                     packages=[],
+                     vcpus=None,
+                     memory=None,
+                     suffix=None,
+                     ips={},
+                     sr=None,
+                     vifs=[],
+                     *args,
+                     **kwargs):
+    if not isinstance(host, xenrt.GenericHost):
+        host = xenrt.TEC().registry.hostGet(host)
+    if suffix:
+        displayname = "%s-%s" % (guestname, suffix)
+    else:
+        displayname = guestname
+    guest = host.guestFactory()(displayname, host=host)
+    guest.imported = True
+    guest.ips = ips
+
+    file=xenrt.TEC().getFile(filename)
+    if file.endswith(".zip"):
+        fileDir=xenrt.TEC().tempDir()
+        xenrt.command("unzip -o %s -d %s" % (file,fileDir))
+        for root, dirs, files in os.walk(fileDir):
+            files = [fi for fi in files if fi.endswith((".ovf",".ova"))]
+            if files:
+                file=fileDir+"/"+files[0]
+            else:
+                raise xenrt.XRTError("Unknown VM container type inside zip")
+
+    guest.importVM(host, file, sr=sr, vifs=vifs)
+
+    guest.password = None
+    guest.tailored = True
+    if vcpus:
+        guest.cpuset(vcpus)
+    if memory:
+        guest.memset(memory)
+    xenrt.TEC().registry.guestPut(guestname, guest)
+    for p in postinstall:
+        if "(" in p:
+            eval("guest.%s" % (p))
+        else:
+            eval("guest.%s()" % (p))
+    if packages:
+        guest.installPackages(packages)
+    return guest
 
 def createVM(host,
              guestname,
@@ -265,7 +318,19 @@ class Guest(xenrt.GenericGuest):
                 xenrt.TEC().logverbose("Ignoring request to hotplug update device")
         self.virDomain.updateDeviceFlags(devicexmlstr, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
 
-    # TODO: _removeDevice with hotunplugging
+    def _removeDevice(self, devicexmlstr, hotplug=False):
+        """Remove an existing device in the domain."""
+        xenrt.TEC().logverbose("Destroying device in %s" % self.name)
+        if hotplug:
+            if self.getState() == "UP" and self.enlightenedDrivers:
+                try:
+                    self.virDomain.detachDeviceFlags(devicexmlstr, libvirt.VIR_DOMAIN_AFFECT_LIVE | libvirt.VIR_DOMAIN_AFFECT_CONFIG)
+                    return
+                except:
+                    xenrt.TEC().warning("Could not hotplug destroy device")
+            else:
+                xenrt.TEC().logverbose("Ignoring request to hotplug destroy device")
+        self.virDomain.updateDeviceFlags(devicexmlstr, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
 
     def _getXML(self):
         """Get the XML description of the domain."""
@@ -386,7 +451,7 @@ class Guest(xenrt.GenericGuest):
             else:
                 arch = "x86-32"
             isostem = host.lookup(["OS_INSTALL_ISO", distro], distro)
-            trylist = ["%s.iso" % (isostem)]
+            trylist = ["%s_xenrtinst.iso" % (isostem), "%s.iso" % (isostem)]
 
             if distro == "w2k3eesp2pae":
                 trylist.append("w2k3eesp2.iso")
@@ -849,7 +914,14 @@ class Guest(xenrt.GenericGuest):
 
         self._redefineXML(xmldom.toxml())
 
-    def createVIF(self, eth, bridge, mac):
+    def createVIF(self, eth=None, bridge="NPRI", mac=None):
+        if not mac:
+            mac = xenrt.randomMAC()
+        if not bridge or bridge=="NPRI":
+            bridge=self.host.getPrimaryBridge()
+        elif bridge == "NSEC":
+            raise xenrt.XRTError("Unimplemented")
+
         model = self._getNetworkDeviceModel()
         vifxmlstr = """
         <interface type='bridge'>
@@ -859,13 +931,57 @@ class Guest(xenrt.GenericGuest):
         </interface>""" % (mac, bridge, "<model type='%s'/>" % model if model else "")
         self._attachDevice(vifxmlstr)
 
-        if not eth in [x[0] for x in self.vifs]:
+        if not eth or not eth in [x[0] for x in self.vifs]:
             self.vifs.append((eth, bridge, mac, None))
         else:
             index = [i for i,x in enumerate(self.vifs) if x[0] == eth][0]
             oldeth, oldbridge, oldmac, oldip = self.vifs[index]
             if bridge != oldbridge:
                 self.vifs[index] = (oldeth, bridge, oldmac, oldip)
+
+    def removeVIF(self, mac):
+        vifxmlstr = """
+        <interface type='bridge'>
+            <mac address='%s'/>
+        </interface>""" % mac
+        self._removeDevice(vifxmlstr)
+        self.vifs = [vif for vif in self.vifs if vif[2]!=mac]
+
+    def removeVIFs(self, name=None, mac=None, eth=None, ip=None, multiple=False):
+        self.vifs=self.getVIFs()
+        self.reparseVIFs()
+        vifsToRemove= [ vif for vif in self.vifs
+                        if (vif[0]==eth or eth==None) and
+                        (vif[1]==name or name==None) and
+                        (vif[2]==mac or mac==None) and
+                        (vif[3]==ip or ip==None) ]
+        if len(vifsToRemove)>1 and not multiple:
+            raise xenrt.XRTError("More than 1 vif exist matching condition: %s" % vifsToRemove)
+        elif len(vifsToRemove)==0:
+            xenrt.TEC().warning("No vif exists matching condition")
+
+        for vif in vifsToRemove:
+            self.removeVIF(mac=vif[2])
+
+    def removeAllVIFs(self):
+        self.removeVIFs(multiple=True)
+
+    def recreateVIFs(self, newMACs = False):
+        """Recreate all VIFs we have in the guest's object config"""
+        vifs = list(self.vifs)
+        self.removeVIFs(multiple=True)
+        self.mainip = None
+        self.vifs = vifs
+        if newMACs:
+            for v in self.vifs:
+                eth, bridge, mac, ip = v
+                self.createVIF(eth, bridge)
+            self.reparseVIFs()
+            self.vifs.sort()
+        else:
+            for v in self.vifs:
+                eth, bridge, mac, ip = v
+                self.createVIF(eth, bridge, mac)
 
     def getVIFs(self):
         xmlstr = self._getXML()
@@ -1395,6 +1511,14 @@ class Guest(xenrt.GenericGuest):
     def vendorInstallDevicePrefix(self):
         return self._getDiskDevicePrefix()
 
+    def getIPSpec(self):
+        ipSpec = []
+        for v in self.vifs:
+            (eth, bridge, mac, currentIp) = v
+            ipData = self.paramGet("xenrt-ip-%s" % eth)
+            (newIP, mask) = ipData.split("/") if ipData else [None, None]
+            ipSpec.append((eth, newIP, mask))
+        return ipSpec
 
     def paramSet(self, paramName, paramValue):
         xenrt.TEC().logverbose("WARNING: paramSet called! paramName=%s, paramValue=%s" % (paramName, paramValue))

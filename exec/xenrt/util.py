@@ -91,6 +91,7 @@ __all__ = ["timenow",
            "isWindows",
            "isDevLinux",
            "is32BitPV",
+           "checkXMLDomSubset",
            "getUpdateDistro"
            ]
 
@@ -838,17 +839,22 @@ def compareIPForSort(a, b):
 
 class ThreadWithException(threading.Thread):
 
-    def __init__(self, group=None, target=None, name=None, args=(), kwargs={}):
+    def __init__(self, group=None, target=None, getData=False, name=None, args=(), kwargs={}):
         # Initialise an empty exception object
         self.exception = None
         self.target = target
+        self.getData = getData
+        self.data = None
         self.args = args
         self.kwargs = kwargs
         threading.Thread.__init__(self, group=group, name=name)
 
     def run(self):
         try:
-            self.target(*self.args, **self.kwargs)
+            if self.getData:
+                self.data = self.target(*self.args, **self.kwargs)
+            else:
+                self.target(*self.args, **self.kwargs)
         except Exception, e:
             traceback.print_exc(file=sys.stderr)
             self.exception = e
@@ -1546,6 +1552,23 @@ def is32BitPV(distro, arch=None, release=None, config=None):
         return False
 
     # We've got this far, so it must be 32 bitPV
+    return True
+
+def checkXMLDomSubset(superset, subset):
+    if subset.localName != superset.localName:
+        return False
+    for index in range(subset.attributes.length):
+        if superset.getAttribute(subset.attributes.item(index).name) != subset.attributes.item(index).value:
+            return False
+    for n in subset.childNodes:
+        if n.nodeType == n.ELEMENT_NODE:
+            sn=superset.getElementsByTagName(n.localName)
+            if len(sn)==0:
+                return False
+            elif len(sn)>1:
+                xenrt.TEC().comment("Multiple node found for '%s' in '%s'" % (n.localName, superset.toxml()))
+            if not checkXMLDomSubset(sn[0],n):
+                return False
     return True
 
 def getUpdateDistro(distro):

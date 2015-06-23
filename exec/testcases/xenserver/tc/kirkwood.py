@@ -835,6 +835,9 @@ class _HostEvacuateRecBase(_KirkwoodBase):
         sruuid = self.pool.master.lookupDefaultSR()
         if self.USE_LOCAL_SR:
             sruuid = self.pool.master.getLocalSR()
+
+        xenrt.TEC().logverbose("SRUUID %r" % sruuid)
+
         g1 = self.pool.master.createGenericLinuxGuest(sr=sruuid)
         self.uninstallOnCleanup(g1)
         if self.VM_OFF_HOST:

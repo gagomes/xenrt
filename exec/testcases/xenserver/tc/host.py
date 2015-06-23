@@ -1498,8 +1498,6 @@ class TC8913(xenrt.TestCase):
 class TC8914(xenrt.TestCase):
     """Dom0 SNMP (when enabled by hacking dom0) can be quiered for SNMPv2-MIB::sysContact and SNMPv2-MIB::sysLocation"""
 
-    SNMPCONF = "/etc/snmp/snmpd.conf"
-
     def prepare(self, arglist=None):
         self.oldconf = None
         self.wasrunning = True
@@ -1515,7 +1513,7 @@ class TC8914(xenrt.TestCase):
 
         # Back up the old config
         oldconf = self.host.hostTempFile() + ".bak"
-        self.host.execdom0("mv %s %s" % (self.SNMPCONF, oldconf))
+        self.host.execdom0("mv %s %s" % (self.host.SNMPCONF, oldconf))
         self.oldconf = oldconf
 
         # Make sure the firewall allows SNMP through
@@ -1560,7 +1558,7 @@ syslocation XenRT syslocation
         xenrt.TEC().copyToLogDir(fn, "snmpd.conf")
         sftp = self.host.sftpClient()
         try:
-            sftp.copyTo(fn, self.SNMPCONF)
+            sftp.copyTo(fn, self.host.SNMPCONF)
         finally:
             sftp.close()
 
@@ -1590,8 +1588,8 @@ syslocation XenRT syslocation
     def postRun(self):
         if self.host:
             if self.oldconf:
-                self.host.execdom0("rm -f %s" % (self.SNMPCONF))
-                self.host.execdom0("cp %s %s" % (self.oldconf, self.SNMPCONF))
+                self.host.execdom0("rm -f %s" % (self.host.SNMPCONF))
+                self.host.execdom0("cp %s %s" % (self.oldconf, self.host.SNMPCONF))
             if self.wasrunning:
                 self.host.execdom0("service snmpd restart")
             else:
@@ -1620,7 +1618,6 @@ class TC9989(xenrt.TestCase):
             raise xenrt.XRTFailure("snmpd service is enabled")
 
 class _SNMPConfigTest(xenrt.TestCase):
-    SNMPCONF = "/etc/snmp/snmpd.conf"
     MIB_II_SUBTREES = ["system",
                        "interfaces",
                        "at",
@@ -1634,7 +1631,7 @@ class _SNMPConfigTest(xenrt.TestCase):
         self.host = self.getDefaultHost()
 
         # Get the contents of the SNMP configuration file
-        self.snmp_config_data = self.host.execdom0("cat %s" % (self.SNMPCONF))
+        self.snmp_config_data = self.host.execdom0("cat %s" % (self.host.SNMPCONF))
         self.snmp_config_lines = str(self.snmp_config_data).splitlines()
 
 class TC9990(_SNMPConfigTest):
@@ -1655,7 +1652,7 @@ class TC9990(_SNMPConfigTest):
  
         if missing_subtrees:
             raise xenrt.XRTFailure("MIB-II subtrees not defined in %s: %s" % 
-                                   (self.SNMPCONF, ", ".join(missing_subtrees)))
+                                   (self.host.SNMPCONF, ", ".join(missing_subtrees)))
 
 class TC9991(_SNMPConfigTest):
     """Verify the SNMP default configuration file does not contain unsupported components"""
@@ -1672,7 +1669,7 @@ class TC9991(_SNMPConfigTest):
 
         if unsupported_subtrees:
             raise xenrt.XRTFailure("Unsupported SNMP components found in %s: %s" % 
-                                   (self.SNMPCONF, ", ".join(unsupported_subtrees)))
+                                   (self.host.SNMPCONF, ", ".join(unsupported_subtrees)))
 
 class TC9992(_SNMPConfigTest):
     """Verify the SNMP default configuration file restricts write access to the views"""
@@ -1726,7 +1723,7 @@ class TC9993(_SNMPConfigTest):
 
     def run(self, arglist=None):
         if not self.community:
-            raise xenrt.XRTFailure("Community name not found in %s" % (self.SNMPCONF))
+            raise xenrt.XRTFailure("Community name not found in %s" % (self.host.SNMPCONF))
 
         # Make sure the snmpd service is reported as running
         data = self.host.execdom0("service snmpd status | cat")
@@ -1846,7 +1843,7 @@ class TC9995(TC9993):
 
     def run(self, arglist=None):
         if not self.community:
-            raise xenrt.XRTFailure("Community name not found in %s" % (self.SNMPCONF))
+            raise xenrt.XRTFailure("Community name not found in %s" % (self.host.SNMPCONF))
 
         # Make sure the snmpd service is reported as running
         data = self.host.execdom0("service snmpd status | cat")
@@ -2868,9 +2865,9 @@ class _SYMCSFXREDO(xenrt.TestCase):
         self.pool = xenrt.TestCase().getDefaultPool()
         self.host = self.getDefaultHost()
         self.slave = self.pool.getSlaves()[0]
-        self.sr = xenrt.lib.xenserver.host.ISCSIStorageRepository(self.host, "iscsisr")
+        self.sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.host, "iscsisr")
         self.sr.create()
-        self.hba = xenrt.lib.xenserver.host.HBAStorageRepository(self.host, "hbasr")
+        self.hba = xenrt.lib.xenserver.HBAStorageRepository(self.host, "hbasr")
         self.hba.create()
         self.poolsrUUIDs = self.pool.master.getSRs()       
         masterUUID = self.pool.master.getMyHostUUID()
@@ -4907,7 +4904,7 @@ class TCDiffChecksums(xenrt.TestCase):
                         "/etc/xensource-inventory", "/etc/xensource/ptoken",
                         "/etc/xensource/xapi-ssl.pem", "/var/lib/likewise/db/registry.db",
                         "/var/lib/nfs/statd/state", "/var/lib/ntp/drift",
-                        "/var/lib/random-seed"]:
+                        "/var/lib/random-seed", "/var/lib/pbis/db/registry.db"]:
                 continue
 
             if any([path.startswith(sw) for sw in ["/boot/initrd", "/etc/blkid/blkid",
@@ -5213,4 +5210,45 @@ if __name__ == "__main__":
         except Exception, e:
             if "Client_requested_size_over_limit" not in str(e):
                 raise
+
+class TCDom0PartitionClean(xenrt.TestCase):
+    #TC-27020
+    """Test case for checking Dom0 disk partitioning on clean installation: Dundee onwards(REQ-176)"""
+
+    def prepare(self, arglist):
+        self.host = self.getDefaultHost()
+    
+    def run(self, arglist):
+        step("Compare Dom0 partitions")
+        partitions = self.host.lookup("DOM0_PARTITIONS")
+        if self.host.compareDom0Partitions(partitions):
+            log("Found expected Dom0 partitions on XS clean installation: %s" % partitions)
+        else:
+            raise xenrt.XRTFailure("Found unexpected partitions on XS clean install. Expected: %s Found: %s" % (partitions, self.host.getDom0Partitions()))
+        
+
+
+class TCSwapPartition(xenrt.TestCase):
+    #TC-27021
+    """Test case for checking if SWAP partition is in use when running out of memory"""
+
+    def prepare(self, arglist):
+        self.host = self.getDefaultHost()
+    
+    def run(self, arglist):
+        step("Fetch Size of Swap Partition")
+        swapUsed= float(self.host.execdom0("free -m | grep Swap | awk '{print $3}'"))
+        
+        step("Eat up memory by running a script")
+        self.host.execdom0("cp -f %s/utils/memEater_x64 /root/; chmod +x /root/memEater_x64; /root/memEater_x64" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"), level=xenrt.RC_OK)
+        
+        step("Check if swap is in use")
+        (swapSize,newSwapUsed)= [float(i) for i in self.host.execdom0("free -m | grep Swap | awk '{print $2,$3}'").split(' ')]
+        if newSwapUsed > swapUsed:
+            log("SWAP is in use as expected. SWAP size = %s, SWAP memory in use = %s" % (swapSize,newSwapUsed))
+        else:
+            raise xenrt.XRTFailure("SWAP partition is not in use. SWAP size = %s, SWAP memory in use = %s" % (swapSize,newSwapUsed))
+        
+
+
 

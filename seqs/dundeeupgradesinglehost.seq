@@ -1,0 +1,17 @@
+<xenrt>
+
+  <!-- Single host upgrade test with safe partitioning -->
+
+  <default name="OLD_PRODUCT_VERSION" value="Clearwater"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446"/>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <testsequence>
+    <testcase group="Upgrade" id="xenserver.tc.upgrade.TCRpuNewPartSingle" tc="TC-27063"/>
+    <testcase group="Upgrade" id="xenserver.tc.upgrade.TCRpuOldPartSingle" tc="TC-27064"/>
+  </testsequence>
+
+</xenrt>

@@ -1,0 +1,44 @@
+<xenrt>
+  <!-- RPU to Dundee tests - old partitions -->
+  <default name="OLD_PRODUCT_VERSION" value="Clearwater"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446"/>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool id="0">
+      <host id="0" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}">
+        <vm name="debian60">
+          <distro>debian60</distro>
+          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+        </vm>
+      </host>
+      <host id="1" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}">
+        <vm name="win7-x86">
+          <distro>win7-x86</distro>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <postinstall action="installDrivers" />
+          <network device="0" />
+          <disk device="0" size="24" />
+        </vm>
+      </host>
+    </pool>
+  </prepare>
+  <testsequence>
+    <serial group="RPU">
+      <testcase id="testcases.xenserver.tc.upgrade.TCRpuPartitions" name="TCRPUOldPartitions" tc="TC-27066">
+        <arg>FINAL_VERSION=Dundee</arg>
+        <arg>vmActionIfHostRebootRequired=SHUTDOWN</arg>
+        <arg>applyAllHFXsBeforeApplyAction=False</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+</xenrt>

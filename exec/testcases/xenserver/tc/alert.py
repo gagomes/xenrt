@@ -780,7 +780,7 @@ class StorageAlerts(_AlertBase):
         self.VARIANCE=250
         """Fill up the host so that alerts can get generated"""
         self.host = self.getHost("RESOURCE_HOST_0")
-        numVDIs=2
+        numVDIs=4
 
         # Enable the non-default DS
         self.host.execdom0("xe-enable-all-plugin-metrics true")
@@ -814,13 +814,13 @@ class StorageAlerts(_AlertBase):
         
         for i in range(numVDIs):
             #Create VDI of size 10GB to generate storage alerts by copying and destroying it multiple times.
-            device = guest.createDisk(sizebytes=2*xenrt.GIGA, sruuid=self.uuid, returnDevice=True)
+            device = guest.createDisk(sizebytes=1*xenrt.GIGA, sruuid=self.uuid, returnDevice=True)
             time.sleep(5)
             #Fill some space on the VDI 
             guest.execguest("mkfs.ext3 /dev/%s" % device)
             guest.execguest("mount /dev/%s /mnt" % device)
             xenrt.TEC().logverbose("Creating some random data on VDI.")
-            guest.execguest("dd if=/dev/zero of=/mnt/random oflag=direct bs=1M count=1000")
+            guest.execguest("dd if=/dev/zero of=/mnt/random oflag=direct bs=1M count=500")
 
         if self.INTELLICACHE:
             cli=self.host.getCLIInstance()

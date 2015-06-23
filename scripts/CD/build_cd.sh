@@ -40,4 +40,4 @@ cp scripts/CD/cleanup.sh /mnt/xenrt
 
 # Make the iso
 cd ${pwd}
-mkisofs -o xenrtCD.iso -r /mnt/xenrt/
+genisoimage -o xenrtCD.iso -r /mnt/xenrt/

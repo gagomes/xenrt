@@ -4,6 +4,7 @@ import os
 import re
 import IPy
 from pprint import pformat
+from xenrt.lazylog import *
 
 __all__ = ["NetScaler"]
 
@@ -20,49 +21,76 @@ class NetScaler(object):
         host = vpxGuest.host
         xenrt.TEC().logverbose('Using VPX Appliance: %s on host: %s - current state: %s' % (vpxGuest.getName(), host.getName(), vpxGuest.getState()))
         xenrt.TEC().logverbose("VPX Guest:\n" + pformat(vpxGuest.__dict__))
-
         vpxGuest.noguestagent = True
         vpxGuest.password = 'nsroot'
+        _removeHostFromVCenter = False
+        if isinstance(host, xenrt.lib.esx.ESXHost) and not host.datacenter:
+            _removeHostFromVCenter = True
+            host.addToVCenter()
 
-        try:
-            vpxMgmtIp = vpxGuest.paramGet(paramName='xenstore-data', paramKey='vm-data/ip')
-            xenrt.xrtAssert(vpxGuest.mainip == vpxMgmtIp and vpxGuest.mainip != None, 'Netscaler VPX guest has inconsistent or NULL IP Address')
+        vpxMgmtIp = cls.getVpxIpFromVmParams(vpxGuest)
+        if vpxMgmtIp and vpxGuest.mainip and vpxMgmtIp==vpxGuest.mainip:
             if vpxGuest.getState() == 'DOWN':
                 vpxGuest.lifecycleOperation('vm-start')
-
             # Wait / Check for SSH connectivity
             vpxGuest.waitForSSH(timeout=300, username='nsroot', cmd='shell')
             vpx = cls(vpxGuest, None)
-        except xenrt.XRTFailure, e:
+        else:
+            warning('Netscaler VPX guest has inconsistent or NULL IP Address')
             if vpxGuest.getState() == 'UP':
                 vpxGuest.shutdown()
 
             if not useVIFs:
                 # Configure the VIFs
                 vpxGuest.removeAllVIFs()
-
                 for n in networks:
                     vpxGuest.createVIF(bridge=n)
             else:
-                networks = [vpxGuest.getNetworkNameForVIF(x[0]) for x in vpxGuest.vifs]
+                if isinstance(vpxGuest, xenrt.lib.xenserver.Guest):
+                    networks = [vpxGuest.getNetworkNameForVIF(x[0]) for x in vpxGuest.vifs]
+                else:
+                    warning("Unimplemented Section: Unable to determine xenrt network type for guest vifs. Continuing with 'NPRI'")
+
             mgmtNet = networks[0]
-            xenrt.TEC().logverbose("Setting up networks %s" % (", ".join(networks)))
-
-            # Configure the management network for the VPX
-            vpxGuest.mainip = xenrt.StaticIP4Addr(network=mgmtNet).getAddr()
-            gateway = xenrt.getNetworkParam(mgmtNet, "GATEWAY")
-            mask = xenrt.getNetworkParam(mgmtNet, "SUBNETMASK")
-            vpxGuest.paramSet('xenstore-data:vm-data/ip', vpxGuest.mainip)
-            vpxGuest.paramSet('xenstore-data:vm-data/netmask', mask)
-            vpxGuest.paramSet('xenstore-data:vm-data/gateway', gateway)
-
+            cls.configureVpxNetworkToVmParams(vpxGuest, mgmtNet)
             vpxGuest.lifecycleOperation('vm-start')
-
             # Wait / Check for SSH connectivity
             vpxGuest.waitForSSH(timeout=300, username='nsroot', cmd='shell')
             vpx = cls(vpxGuest, mgmtNet)
+            vpx.checkFeatures("On fresh install:")
             vpx.setup(networks)
+        if _removeHostFromVCenter:
+            host.removeFromVCenter()
         return vpx
+
+    @classmethod
+    def configureVpxNetworkToVmParams(cls, vpxGuest, mgmtNet):
+        """Configure the management network for the VPX"""
+        vpxGuest.mainip = xenrt.StaticIP4Addr(network=mgmtNet).getAddr()
+        gateway = xenrt.getNetworkParam(mgmtNet, "GATEWAY")
+        mask = xenrt.getNetworkParam(mgmtNet, "SUBNETMASK")
+        if isinstance(vpxGuest, xenrt.lib.xenserver.Guest):
+            vpxGuest.paramSet('xenstore-data:vm-data/ip', vpxGuest.mainip)
+            vpxGuest.paramSet('xenstore-data:vm-data/netmask', mask)
+            vpxGuest.paramSet('xenstore-data:vm-data/gateway', gateway)
+        elif isinstance(vpxGuest, xenrt.lib.esx.Guest):
+            paramValue ="ip=%s&netmask=%s&gateway=%s" % (vpxGuest.mainip, mask, gateway)
+            vpxGuest.paramSet('machine.id', paramValue)
+        else:
+            raise xenrt.XRTError("Unimplemented")
+
+    @classmethod
+    def getVpxIpFromVmParams(cls, vpxGuest):
+        if isinstance(vpxGuest, xenrt.lib.xenserver.Guest):
+            try:
+                return vpxGuest.paramGet(paramName='xenstore-data', paramKey='vm-data/ip')
+            except:
+                return None
+        elif isinstance(vpxGuest, xenrt.lib.esx.Guest):
+            data = vpxGuest.paramGet(paramName='machine.id')
+            return data.split("&")[0].strip("ip=") if data else None
+        else:
+            raise xenrt.XRTError("Unimplemented")
 
     @classmethod
     def createVPXOnHost(cls, host, vpxName=None, vpxHttpLocation=None):
@@ -135,6 +163,10 @@ class NetScaler(object):
         self.__vpxGuest.lifecycleOperation('vm-reboot')
         # Wait / Check for SSH connectivity
         self.__vpxGuest.waitForSSH(timeout=300, username='nsroot', cmd='shell')
+        # On ESX host VM comes up and goes down for around a minute
+        if isinstance(self.__vpxGuest, xenrt.lib.esx.Guest):
+            xenrt.sleep(60)
+            self.__vpxGuest.waitForSSH(timeout=120, username='nsroot', cmd='shell')
 
     def getLicenseFileFromXenRT(self):
         # TODO - Allow for different licenses to be specified
@@ -209,9 +241,22 @@ class NetScaler(object):
         #writes the number of PEs to log file
         pe = max(map(lambda x: x.split()[0],filter(lambda x: re.match('^\d',x),self.__netScalerCliCommand('stat cpus'))))
         return pe
+        
+    def licenseTest(self):
+        #checks features before before applying license
+        featNo = filter(lambda x: len(x.split(':')) > 1 and x.split(':')[1].strip()=="YES",self.__netScalerCliCommand('show ns license'))
+        if len(featNo) != 1 or featNo[0].split(':')[0].strip()=="SSL offloading":
+            xenrt.TEC().logverbose('License test failed')
+        else:
+            xenrt.TEC().logverbose('License test passed')
 
-    def checkFeatures(self):
-        xenrt.TEC().logverbose('The NetScaler version is %s' % (self.version))
-        xenrt.TEC().logverbose('The NetScaler management IP is %s' % (self.managementIp))
-        xenrt.TEC().logverbose('The model number ID is %s' % (self.checkModNum()))
-        xenrt.TEC().logverbose('The Number of PEs: %s' % (self.checkCPU()))
+        
+    def checkFeatures(self, msg):
+        xenrt.TEC().logverbose(msg)
+        xenrt.TEC().logverbose('The version of the provisioned VPX is %s' % (self.version))
+        xenrt.TEC().logverbose('The management IP of the provisioned VPX is %s' % (self.managementIp))
+        xenrt.TEC().logverbose('The model number ID of the provisioned VPX is %s' % (self.checkModNum()))
+        xenrt.TEC().logverbose('The Number of PEs of the provisioned VPX: %s' % (self.checkCPU()))
+        xenrt.TEC().logverbose('The build version in ns.conf is: %s' % (self.__netScalerCliCommand("shell head -1 /flash/nsconfig/ns.conf")))
+        xenrt.TEC().logverbose('The show run output in ns.conf is : %s ' % (self.__netScalerCliCommand('sh run')[0]))
+        self.licenseTest()

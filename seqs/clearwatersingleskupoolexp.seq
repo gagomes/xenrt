@@ -13,14 +13,14 @@
       </vm>
     </host>
     <pool id="0">
-      <host id="1">
+      <host id="1" license="free">
         <vm name="linux">
           <distro>debian60</distro>
           <network device="0" />
           <postinstall action="preCloneTailor"/>
         </vm>
       </host>
-      <host id="2"/>
+      <host id="2" license="free"/>
     </pool> 
   </prepare>
 

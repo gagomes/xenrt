@@ -61,7 +61,8 @@ def execCmd(cmd, errorException=True):
 # Kill self if still running after 5 minutes
 class WatchdogThread(threading.Thread):
     def run(self):
-        time.sleep(300)
+        time.sleep(600)
+        print "Site controller taken too long, killing"
         os.kill(os.getpid(), signal.SIGKILL)
 
 watchdog = WatchdogThread()
@@ -167,26 +168,6 @@ def checkJobRunning(jobid):
     f.close()
     return pid
 
-def startDebuggerJob(jobid, cmd):
-    dythonPath = '/usr/share/dython-env/bin/python'   # '/home/xenrtd/req_stuff_breakpoints/v3/bin/python'
-    debugCmd = []
-    debugCmd.append(dythonPath)
-    debugCmd.append('%s/control/debuggerinvoker.py'%(_sharedir))
-    debugCmd.append('%s'%(jobid))
-    cmd.insert(0,dythonPath)
-    debugList = []
-    debugList.append(debug)
-    debugList.append(logserver)
-    debugList.append(cmd)
-    fileObj  = open("%s/results/jobs/%s/jobData" %(_sharedir, jobid), 'wb')
-    pickle.dump(debugList, fileObj)
-    fileObj.close()
-    trace("exec: %s\n" % (string.join(cmd)))
-    os.spawnv(os.P_NOWAIT, debugCmd[0], debugCmd)
-
-  
-
-
 def start_job(job):
     """Start a job using the machines previously scheduled"""
     global com, _sharedir, _rootdir, args, debug
@@ -238,6 +219,10 @@ def start_job(job):
             cmd.append("-D")
             cmd.append("%s=%s" % (k, data[k]))
 
+    if job.get("preemptable"):
+        cmd.append("-D")
+        cmd.append("PREEMPTABLE=yes")
+
     cmdl = string.join(cmd)
 
     if data.has_key("XRTBRANCH") and len(data["XRTBRANCH"]) > 0:
@@ -249,9 +234,6 @@ def start_job(job):
     trace("Using branch '%s'\n" % (branch))
 
     try:
-
-
-        
         execCmd("cd %s && git reset --hard" % (_rootdir), errorException=False)
         execCmd("cd %s && git checkout -f %s && git reset --hard" % (_rootdir, _stablebranch))
         execCmd("cd %s && git pull --ff-only" % (_rootdir), errorException=otherBranch)
@@ -280,7 +262,7 @@ def start_job(job):
             execCmd("cd %s && git branch -D %s" % (_rootdir, branch), errorException=False)
         trace("%s\n" % (errmsg))
         if not debug:
-            xenrt.update_job(job['id'], params={"FAILED": errmsg}, complete=True)
+            xenrt.update_job(job['id'], params={"FAILED": errmsg[:200]}, complete=True)
         return
     
     custompatchtmp = ""
@@ -318,24 +300,16 @@ def start_job(job):
             return
 
 
-    if 'DEBUG' in data and data['DEBUG'] == 'yes':
-        try:
-            os.system("cd %s && make minimal-install BUILDPREFIX=%d" % (_rootdir,job['id']))
-            cmd[0] = '%s/%d-exec/main.py'%(_sharedir,job['id'])
-            startDebuggerJob(str(job['id']), cmd)
-        except Exception as e:
-            print 'ERROR here: %s'%(e)
-    else:
-        os.system("cd %s && make minimal-install" % (_rootdir))
-        cmd.insert(0, str(job['id']))
-        cmd.insert(0, resdir)
-        cmd.insert(0, "%s/venvs/%d" % (_sharedir, job['id']))
-        cmd.insert(0, "%s/control/venvwrapper2.sh" % _sharedir)
-        cmdl = string.join(cmd)
-        trace("exec: %s\n" % (cmdl))
-        if not debug:
-            pid = os.spawnv(os.P_NOWAIT, cmd[0], cmd)
-            xenrt.update_job(job['id'], params={"HARNESS_PID": "%u" % (pid), "LOG_SERVER": logserver})
+    os.system("cd %s && make minimal-install" % (_rootdir))
+    cmd.insert(0, str(job['id']))
+    cmd.insert(0, resdir)
+    cmd.insert(0, "%s/venvs/%d" % (_sharedir, job['id']))
+    cmd.insert(0, "%s/control/venvwrapper2.sh" % _sharedir)
+    cmdl = string.join(cmd)
+    trace("exec: %s\n" % (cmdl))
+    if not debug:
+        pid = os.spawnv(os.P_NOWAIT, cmd[0], cmd)
+        xenrt.update_job(job['id'], params={"HARNESS_PID": "%u" % (pid), "LOG_SERVER": logserver})
 
     time.sleep(30)
     if len(custompatchtmp) > 0 and os.path.isfile(custompatchtmp):

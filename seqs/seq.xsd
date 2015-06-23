@@ -111,7 +111,8 @@
           <xs:attribute name="productVersion" use="optional" type="xs:string" />
           <xs:attribute name="version" use="optional" type="xs:string" />
           <xs:attribute name="diskCount" use="optional" type="xs:positiveInteger" />
-          <xs:attribute name="usev6testd" use="optional" type="xbool" />
+          <xs:attribute name="defaultlicense" use="optional" type="xbool" />
+          <xs:attribute name="iommu" use="optional" type="xbool" />
           <xs:attribute name="installsr" use="optional" type="installsrType" />
           <xs:attribute name="suppackcds" use="optional" type="xs:string" />
           <xs:attribute name="alias" use="optional" type="xs:string" />
@@ -163,6 +164,8 @@
                 <xs:attribute name ="device" use="optional" type="xs:string"/>
                 <xs:attribute name ="bridge" use="optional" type="xs:string"/>
                 <xs:attribute name ="ip" use="optional" type="xs:string"/>
+                <xs:attribute name ="sriov" use="optional" type="xbool"/>
+                <xs:attribute name ="physdev" use="optional" type="xs:string"/>
               </xs:complexType>
             </xs:element>
             <xs:element name ="disk" minOccurs="0" maxOccurs="unbounded">

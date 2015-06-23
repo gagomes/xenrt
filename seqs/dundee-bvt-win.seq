@@ -5,7 +5,7 @@
   <default name="GUESTMEMORY" value="512"/>
   <default name="GUESTVCPUS" value="2"/>
   <default name="GUESTDISK" value="DEFAULT"/>
-  <default name="GUESTVERSION" value="winxpsp3"/>
+  <default name="GUESTVERSION" value="w2k3eesp2-x64"/>
   <default name="GUEST2MEMORY" value="1024"/>
   <default name="GUEST2VCPUS" value="1"/>
   <default name="GUEST2DISK" value="DEFAULT"/>

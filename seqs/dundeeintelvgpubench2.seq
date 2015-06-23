@@ -46,7 +46,7 @@
         <arg>guest=win7</arg>
         <arg>vgpuconfig=Intel GVT-g</arg>
         <arg>typeofvgpu=intelwinvgpu</arg>
-        <arg>blockDom0=false</arg>
+        <arg>blockdom0access=false</arg>
       </testcase>
       <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
         <arg>guest=win7</arg>
@@ -67,7 +67,7 @@
         <arg>guest=win7x64</arg>
         <arg>vgpuconfig=Intel GVT-g</arg>
         <arg>typeofvgpu=intelwinvgpu</arg>
-        <arg>blockDom0=false</arg>
+        <arg>blockdom0access=false</arg>
       </testcase>
       <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
         <arg>guest=win7x64</arg>

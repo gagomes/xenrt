@@ -837,7 +837,7 @@ class TCVGPUSetup(VGPUOwnedVMsTest):
         self.guest.setState("DOWN")
         if not xenrt.TEC().lookup("OPTION_ENABLE_VGPU_VNC", False, boolean=True):
             self.guest.setVGPUVNCActive(False)
-        self.typeofvgpu.installHostDrivers(self.getAllHosts())
+        self.typeofvgpu.installHostDrivers(self.getAllHosts(), self.args)
         #setting up dom0 mem
         self.host.execdom0("/opt/xensource/libexec/xen-cmdline --set-xen dom0_mem=4096M,max:6144M")
         self.host.reboot()
@@ -2021,7 +2021,7 @@ class NvidiaLinuxvGPU(DifferentGPU):
 
 class IntelWindowsvGPU(DifferentGPU):
 
-    def installHostDrivers(self, allHosts, params=None):
+    def installHostDrivers(self, allHosts, params=[]):
 
         def __block():
             xenrt.TEC().logverbose("Instead of installing Host drivers, blocking Dom0 access to Intel GPU")

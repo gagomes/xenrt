@@ -3311,6 +3311,7 @@ class _HackersChoiceIPv6DoS(TCBadPackets):
     _ATTACKER_VM = "attacker"
     _VICTIM_VM = "victim1"
     __STOP_ATTACK_THRESHOLD = 0.50
+    __THRESHOLD_HOST_PERCENT = 50
     _SLEEP = 10
     __WAIT_MULTIPILER= 3
     _TIMEOUT = 60 * 30  # 0.5hr
@@ -3331,28 +3332,12 @@ class _HackersChoiceIPv6DoS(TCBadPackets):
             log("Could not measure the usage - ignoring this issue")
             return False
 
-    def __hostCPUUsage(self,host):  
-        pid = None
-        pidLocations = ["/var/run/xenstore.pid", "/var/run/xenstored.pid"]
-        for p in pidLocations:
-            try:
-                pid = int(host.execdom0("cat %s" % (p)))
-                break
-            except:
-                pass
-        if pid:
-            host.execdom0("[ -d /proc/%u ]" % (pid))
-            pcpu = int(host.execdom0("ps -p %u -o pcpu --no-headers | "
-                                     "sed -e's/\..*//'" % (pid)).strip())
-            log("pcpu %s, return %.2f" % (pcpu,float(pcpu)/100))
-        return float(pcpu)/100
-
     def _isHostMaxedOut(self,host):
-        usage = self.__hostCPUUsage(host)
-        if usage > self.__STOP_ATTACK_THRESHOLD:
-            raise xenrt.XRTFailure("Host CPU is maxed out at %.2f" % float(usage))
+        usage = host.dom0CPUUsage()
+        if usage > self.__THRESHOLD_HOST_PERCENT:
+            raise xenrt.XRTFailure("Host CPU is maxed out at %s%%" % usage)
         else:
-            log("Host CPU is %.2f, which is under threshold" % float(usage))              
+            log("Host CPU is %s%%, which is under threshold" % usage)              
 
     def _usage(self, guest):
         return float(guest.asXapiObject().cpuUsage['0'])

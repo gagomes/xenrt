@@ -608,7 +608,8 @@ class CIFSISOStorageRepository(StorageRepository):
                content_type="iso",
                username="Administrator",
                password=None,
-               use_secret=False):
+               use_secret=False,
+               shared=True):
         if not password:
             password = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS", "ADMINISTRATOR_PASSWORD"])
         cli = self.host.getCLIInstance()
@@ -625,7 +626,7 @@ class CIFSISOStorageRepository(StorageRepository):
         args.append("type=%s" % (type))
         args.append("content-type=%s" % (content_type))
         args.append("host-uuid=%s" % (self.host.getMyHostUUID()))
-        args.append("shared=true")
+        args.append("shared=%s" % "true" if shared else "false")
         self.uuid = cli.execute("sr-create", string.join(args), strip=True)
         
     def check(self):

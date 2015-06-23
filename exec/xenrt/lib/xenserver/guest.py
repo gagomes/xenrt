@@ -1390,6 +1390,39 @@ at > c:\\xenrtatlog.txt
         except:
             xenrt.TEC().warning("Failed to remove file %s" % tmp)
 
+    def installDriversStepByStep(self, waitForDaemon=True):
+
+        # Insert the tools ISO
+        self.changeCD("xs-tools.iso")
+        xenrt.sleep(30)
+
+        batch = ""
+
+        if self.xmlrpcGetArch() == "amd64":
+            batch = batch + "MsiExec.exe /X D:\\citrixxendriversx64.msi /passive /norestart\r\n"
+            batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
+            self.reboot()
+            batch = batch + "MsiExec.exe /X D:\\citrixvssx64.msi /passive /norestart\r\n"
+            self.installDotNetRequiredForDrivers()
+            batch = batch + "MsiExec.exe /X D:\\citrixguestagentx64.msi /passive /norestart\r\n"
+            batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
+            self.reboot()
+            
+        else:
+            batch = batch + "MsiExec.exe /X D:\\citrixxendriversx86.msi /passive /norestart\r\n"
+            batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
+            self.reboot()
+            batch = batch + "MsiExec.exe /X D:\\citrixvssx86.msi /passive /norestart\r\n"
+            self.installDotNetRequiredForDrivers()
+            batch = batch + "MsiExec.exe /X D:\\citrixguestagentx86.msi /passive /norestart\r\n"
+            batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
+            self.reboot()
+
+        batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
+        batch = batch + "MsiExec.exe /X D:\\installwizard.msi /passive /norestart\r\n"
+        batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
+        batch = batch + "shutdown -r\r\n"
+
     def uninstallDrivers(self,waitForDaemon=True):
         # Write the uninstall script
         u = []

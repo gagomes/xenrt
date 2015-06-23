@@ -1200,6 +1200,18 @@ class TCToolsIPv6Disabled(xenrt.TestCase):
         else:
             raise xenrt.XRTFailure("Guest tools are out of date")
 
+class TCInstallXenToolsStepByStep(xenrt.Testcase):
+    """Test for SCTX-2054. Install tools step by step instead of running the installer"""
+    #TC-27011
+    def prepare(self, arglist=None):
+        self.host = self.getDefaultHost()
+        self.guest = self.host.getGuest("VMWin2k84")
+        self.guest.start()
+        
+    def run(self, arglist=None):
+        step("Install x64 drivers")
+        self.guest.installDriversStepByStep()
+    
 class TCBootStartDriverUpgrade(xenrt.TestCase):
     """Test for CA-158777 upgrade issue with boot start driver"""
 

@@ -8590,14 +8590,15 @@ class GenericGuest(GenericPlace):
                 boot_dir = "main/installer-%s/current/images/netboot/debian-installer/%s/" % (arch, arch)
             
             # Pull boot files from HTTP repository
-            fk = xenrt.TEC().tempFile()
-            fr = xenrt.TEC().tempFile()
             if release == "testing":
-                # Testing presently doesn't have an installer
-                baseurl = "http://d-i.debian.org/daily-images/%s/daily/netboot/debian-installer/%s/" % (arch, arch)
+                # Testing presently doesn't have an installer, the caller needs to set up an SR.
+                fk = options['installer_kernel']
+                fr = options['installer_initrd']
                 xenrt.getHTTP(baseurl + "linux", fk)
                 xenrt.getHTTP(baseurl + "initrd.gz", fr)
             else:
+                fk = xenrt.TEC().tempFile()
+                fr = xenrt.TEC().tempFile()
                 xenrt.getHTTP(_url + boot_dir + "linux", fk)
                 xenrt.getHTTP(_url + boot_dir + "initrd.gz", fr)
 

@@ -489,10 +489,10 @@ class Guest(xenrt.GenericGuest):
                     darch = "amd64" if "64" in self.arch else "i386"
                     iarch = "amd" if "64" in self.arch else "386"
                     xenrt.GEC().filemanager.getSingleFile("http://cdimage.debian.org/cdimage/daily-builds/daily/arch-latest/%s/iso-cd/debian-testing-%s-netinst.iso" % (darch, darch), "%s/%s" % (nfsdir.path(), cdname))
-                    sr = xenrt.lib.xenserver.ISOStorageRepository(self.getHost(), "debtesting-%s" % cdname)
+                    nfssr = xenrt.lib.xenserver.ISOStorageRepository(self.getHost(), "debtesting-%s" % cdname)
                     server, path = nfsdir.getHostAndPath("")
-                    sr.create(server, path)
-                    sr.scan()
+                    nfssr.create(server, path)
+                    nfssr.scan()
                     self.changeCD(cdname)
                     m = xenrt.MountISO("%s/%s" % (nfsdir.path(), cdname))
                     nfsdir.copyIn("%s/install.%s/vmlinuz" % (m.getMount(), iarch))
@@ -502,6 +502,8 @@ class Guest(xenrt.GenericGuest):
                     options["installer_initrd"] = "%s/initrd.gz" % nfsdir.path()
                     self.paramSet("HVM-boot-params-order", "cn")
                 else:
+                    nfsdir = None
+                    nfssr = None
                     try:
                         self.insertToolsCD()
                     except:
@@ -515,6 +517,9 @@ class Guest(xenrt.GenericGuest):
                                pxe=pxe,
                                extrapackages=extrapackages,
                                options=options)
+            if nfssr:
+                nfssr.forget()
+                nfsdir.remove()
         elif isoname:
             xenrt.TEC().logverbose("Installing Linux from ISO...")
             dev = "%sa" % (self.vendorInstallDevicePrefix())

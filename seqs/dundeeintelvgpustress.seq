@@ -29,7 +29,7 @@
         <arg>guest=win7</arg>
         <arg>vgpuconfig=Intel GVT-g</arg>
         <arg>typeofvgpu=intelwinvgpu</arg>
-        <arg>blockDom0=false</arg>
+        <arg>blockdom0access=false</arg>
       </testcase>
       <testcase tc="TC-20782" id="testcases.xenserver.tc.vgpu.TCVGPUCloneVM" sku="IntelvGPUStress">
         <arg>guest=win7</arg>

@@ -487,6 +487,7 @@ class Guest(xenrt.GenericGuest):
                     cdname = "%s.iso" % str(uuid.uuid4())
                     nfsdir = xenrt.NFSDirectory()
                     darch = "amd64" if "64" in self.arch else "i386"
+                    iarch = "amd" if "64" in self.arch else "386"
                     xenrt.GEC().filemanager.getSingleFile("http://cdimage.debian.org/cdimage/daily-builds/daily/arch-latest/%s/iso-cd/debian-testing-%s-netinst.iso" % (darch, darch), "%s/%s" % (nfsdir.path(), cdname))
                     sr = xenrt.lib.xenserver.ISOStorageRepository(self.getHost(), "debtesting-%s" % cdname)
                     server, path = nfsdir.getHostAndPath("")
@@ -494,8 +495,8 @@ class Guest(xenrt.GenericGuest):
                     sr.scan()
                     self.changeCD(cdname)
                     m = xenrt.MountISO("%s/%s" % (nfsdir.path(), cdname))
-                    nfsdir.copyIn("%s/install.amd/vmlinuz")
-                    nfsdir.copyIn("%s/install.amd/initrd.gz")
+                    nfsdir.copyIn("%s/install.%s/vmlinuz" % iarch)
+                    nfsdir.copyIn("%s/install.%s/initrd.gz" % iarch)
                     m.unmount()
                     options["installer_kernel"] = "%s/vmlinuz" % nfsdir.path()
                     options["installer_initrd"] = "%s/initrd.gz" % nfsdir.path()

@@ -500,6 +500,7 @@ class Guest(xenrt.GenericGuest):
                     m.unmount()
                     options["installer_kernel"] = "%s/vmlinuz" % nfsdir.path()
                     options["installer_initrd"] = "%s/initrd.gz" % nfsdir.path()
+                    self.paramSet("HVM-boot-params-order", "cn")
                 else:
                     try:
                         self.insertToolsCD()

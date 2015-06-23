@@ -7450,7 +7450,10 @@ class GenericGuest(GenericPlace):
             if isDebian:
                 apt_cacher = None
                 debVer = self.execguest("cat /etc/debian_version")
-                debVer = float(re.match(r"\d+(\.\d+)?", debVer).group(0))
+                if "stretch" in debVer or "sid" in debVer:
+                    debVer = 9.0
+                else:
+                    debVer = float(re.match(r"\d+(\.\d+)?", debVer).group(0))
                 if debVer < 5.0:
                     # Pre-Lenny, may have to use a cacher
                     apt_cacher = "%s/debarchive" % xenrt.TEC().lookup("APT_SERVER")

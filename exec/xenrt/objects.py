@@ -2656,6 +2656,16 @@ Add-WindowsFeature as-net-framework"""
         self.execcmd("wget -O - '%s/kernbench3.10.tgz' | tar -xz -C /root" %
                      xenrt.TEC().lookup("TEST_TARBALL_BASE"))
 
+    def installFioWin(self):
+        """Install Fio into the Windows guest"""
+
+        self.xmlrpcUnpackTarball("%s/fiowin.tgz" % xenrt.TEC().lookup("TEST_TARBALL_BASE"), "c:\\")
+
+        if self.getBasicArch() == "x86-64":
+            self.xmlrpcExec("move c:\\fiowin\\x64\\fio.exe c:\\")
+        else:
+            self.xmlrpcExec("move c:\\fiowin\\x86\\fio.exe c:\\")
+
     def installIOMeter(self):
         """Install IOMeter into the guest"""
 

@@ -3026,16 +3026,22 @@ exit /B 1
     def makeNonInteractive(self):
         self.paramSet("PV-args", "noninteractive")
 
-    def enablePXE(self, pxe=True):
+    def enablePXE(self, pxe=True, disableCD=False):
         try:
             self.paramRemove("HVM-boot-params", "order")
         except:
             pass
         if pxe:
-            self.paramSet("HVM-boot-params-order", "dcn")
+            if disableCD:
+                self.paramSet("HVM-boot-params-order", "cn")
+            else:
+                self.paramSet("HVM-boot-params-order", "dcn")
             self.paramSet("HVM-boot-policy", "BIOS order")
         else:
-            self.paramSet("HVM-boot-params-order", "dc")
+            if disableCD:
+                self.paramSet("HVM-boot-params-order", "c")
+            else:
+                self.paramSet("HVM-boot-params-order", "dc")
 
     def chooseSR(self, sr=None):
         return self.getHost().chooseSR(sr=sr)

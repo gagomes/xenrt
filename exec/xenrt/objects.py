@@ -8559,7 +8559,7 @@ class GenericGuest(GenericPlace):
         elif pxe:
             xenrt.TEC().logverbose("Experimental debian pxe installation support")
             # HVM PXE install
-            self.enablePXE()
+            self.enablePXE(disableCD=True)
             if method != "HTTP":
                 raise xenrt.XRTError("%s PXE install not supported" %
                                      (method))
@@ -8703,7 +8703,7 @@ class GenericGuest(GenericPlace):
 
         if pxe:
             # Cancel PXE booting for the new guest
-            self.enablePXE(False)
+            self.enablePXE(False, disableCD=True)
             pxe.remove()
     
         if cleanupdir:

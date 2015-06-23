@@ -3411,7 +3411,7 @@ class _HackersChoiceIPv6DoS(TCBadPackets):
         self.__allowVictimToRecover(victimVm)
         
         #--------------------------   
-        step("Check all victim")
+        step("Check all victims CPU usage")
         #--------------------------
         for victim in victims:
             if self.__guestIsMaxedOut(victim):
@@ -3421,10 +3421,17 @@ class _HackersChoiceIPv6DoS(TCBadPackets):
             else:
                 log("%s appears to have recovered from the attack usage =%.2f" 
                     % (victim,self._usage(victim)))
+
         #--------------------------
-        step("Check host")
+        step("Check host CPU usage")
         #--------------------------
         self._isHostMaxedOut(self.host)
+
+        #--------------------------
+        step("Check Health of all victim vms")
+        #--------------------------
+        for victim in victims:
+            victim.checkHealth()
 
 class TCHackersChoiceIPv6FloodRouter(_HackersChoiceIPv6DoS):
     def __init__(self):

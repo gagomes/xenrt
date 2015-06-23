@@ -4605,7 +4605,7 @@ class TCPbdDuplicateSecret(xenrt.TestCase):
                     username=user,
                     password=secret_uuid,
                     use_secret=True,
-                    shared="false")
+                    shared=False)
         cli=self.host.getCLIInstance()
         cli.execute("sr-param-set","uuid=%s shared=true" % self.srs[0].uuid)
 

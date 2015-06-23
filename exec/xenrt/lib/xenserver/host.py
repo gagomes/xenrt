@@ -172,7 +172,8 @@ def createHost(id=0,
                vHostMemory=4096,
                vHostDiskSize=50,
                vHostSR=None,
-               vNetworks=None):
+               vNetworks=None,
+               iommu=False):
 
     # noisos isn't used here, it is present in the arg list to
     # allow its use as a flag in PrepareNode in sequence.py
@@ -339,6 +340,12 @@ def createHost(id=0,
 
         output = host.execdom0("xenpm get-cpufreq-para | fgrep -e current_governor -e 'cpu id' || true")
         xenrt.TEC().logverbose("After changing cpufreq governor: %s" % (output,))
+
+    if iommu:
+        xenrt.TEC().logverbose("Enabling IOMMU on host %s..." % (host))
+        iovirt = xenrt.lib.xenserver.IOvirt(host)
+        iovirt.enableIOMMU(restart_host=False)
+        host.enableVirtualFunctions()
 
     xenrt.TEC().registry.hostPut(machine, host)
     if name:

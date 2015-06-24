@@ -4604,7 +4604,8 @@ class TCPbdDuplicateSecret(xenrt.TestCase):
                     "iso",
                     username=user,
                     password=secret_uuid,
-                    use_secret=True)
+                    use_secret=True,
+                    shared=False)
         cli=self.host.getCLIInstance()
         cli.execute("sr-param-set","uuid=%s shared=true" % self.srs[0].uuid)
 
@@ -4623,6 +4624,7 @@ class TCPbdDuplicateSecret(xenrt.TestCase):
         args.append("host-uuid=%s" % (self.host1.getMyHostUUID()))
         args.append("sr-uuid=%s" % (self.srs[0].uuid))
         args.extend(["device-config:%s=\"%s\"" % (x, y) for x,y in self.dconf.items()])
+        
         pbd2 = cli.execute("pbd-create", string.join(args)).strip()
 
         cli.execute("pbd-plug uuid=%s" % pbd2)

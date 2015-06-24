@@ -3899,6 +3899,9 @@ d-i    apt-setup/security_path  string %s""" % (self.httphost,self.httppath, sel
                     self.disk = "/dev/xvda"
                 else:
                     self.disk = "/dev/sda"
+                    # Workaround for bootloader issue
+                    if self.distro.startswith("debiantesting"):
+                        st += " sed -i 's/sda/xvda/g' /target/boot/grub/grub.cfg;"
         else:
             subs=wheezy
             if self.distro.startswith("debian70") and "64" in self.arch:

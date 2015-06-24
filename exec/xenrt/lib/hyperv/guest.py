@@ -466,7 +466,7 @@ class Guest(xenrt.GenericGuest):
         if ip:
             xenrt.TEC().logverbose("Guest address is %s" % (ip))
 
-    def enablePXE(self, pxe=True):
+    def enablePXE(self, pxe=True, disableCD=False):
         if pxe:
             self.host.hypervCmd("Set-VMBios -VMName \"%s\" -StartupOrder @(\"LegacyNetworkAdapter\", \"IDE\", \"CD\", \"Floppy\")" % (self.name))
         else:

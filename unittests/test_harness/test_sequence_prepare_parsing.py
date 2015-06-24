@@ -4,6 +4,8 @@ import pprint
 import json
 from mock import patch, Mock, PropertyMock
 from testing import XenRTUnitTestCase
+import os
+import re
 
 
 class TestSeqPrepareParsing(XenRTUnitTestCase):
@@ -25,6 +27,8 @@ class TestSeqPrepareParsing(XenRTUnitTestCase):
         self.addTC(TC8)
         self.addTC(TC9)
         self.addTC(TC10)
+        self.addTC(TC11)
+        self.addTC(TC12)
         self.run_for_many(self.tcs, self.__test_seq_prepare_parsing)
 
     @patch("uuid.uuid4")
@@ -48,13 +52,17 @@ class TestSeqPrepareParsing(XenRTUnitTestCase):
         self.toplevel = Mock()
         xmldict = self.parsePrepare(xmlstr)
         jsondict = self.parsePrepare(jsonstr)
-
-        pprint.pprint(xmldict)
-        with open("unittests-xml.out", "w") as f:
-            pprint.pprint(xmldict, stream=f)
-        pprint.pprint(jsondict)
-        with open("unittests-json.out", "w") as f:
-            pprint.pprint(jsondict, stream=f)
+        if xmldict != jsondict:
+            pprint.pprint(xmldict)
+            with open("unittests-xml.out", "w") as f:
+                pprint.pprint(xmldict, stream=f)
+            pprint.pprint(jsondict)
+            with open("unittests-json.out", "w") as f:
+                pprint.pprint(jsondict, stream=f)
+            print "Diff:"
+            f = os.popen("diff unittests-xml.out unittests-json.out")
+            print f.read()
+            f.close()
         self.assertEqual(xmldict, jsondict)
         if expectedhosts != None:
             self.assertEqual(len(jsondict['hosts']), expectedhosts)
@@ -72,7 +80,17 @@ class TestSeqPrepareParsing(XenRTUnitTestCase):
 
         node.tcname = self.tcname
 
-        return node.__dict__
+        ret = node.__dict__
+
+        for n in ret['networksForHosts'].keys():
+            if not isinstance(ret['networksForHosts'][n], basestring):
+                ret['networksForHosts'][n] = ret['networksForHosts'][n].getElementsByTagName("NETWORK")[0].toxml()
+            ret['networksForHosts'][n] = re.sub(">\s+<", "><", ret['networksForHosts'][n]).strip()
+        for n in ret['networksForPools'].keys():
+            if not isinstance(ret['networksForPools'][n], basestring):
+                ret['networksForPools'][n] = ret['networksForPools'][n].getElementsByTagName("NETWORK")[0].toxml()
+            ret['networksForPools'][n] = re.sub(">\s+<", "><", ret['networksForPools'][n]).strip()
+        return ret
 
     def _lookup(self, var, default="BADVALUE", boolean=False):
 
@@ -643,4 +661,123 @@ class TC10(BaseTC):
           ]
         }
     """
+
+class TC11(BaseTC):
+    # Note: for this test, although the order of subnodes in the XML doesn't affect
+    # the behaviour in XenRT, for this test they need to be in the same order as they're
+    # parsed in the JSON. That is NIC, MANAGEMENT, STORAGE, VMS, VLAN
+
+    XML = """ 
+    <vlan name="CLIENT_VLAN" />
+
+    <host id="0" iommu="true">
+      <NETWORK>
+        <PHYSICAL network="NPRI" speed="10G">
+          <NIC />
+          <MANAGEMENT />
+          <VMS />
+          <VLAN network="CLIENT_VLAN" />
+        </PHYSICAL>
+      </NETWORK>
+      <vm name="NS">
+        <file>ns.xva</file>
+        <network device="0" />
+        <network device="1" sriov="true" physdev="CLIENT_VLAN" />
+        <postinstall action="setupNetscalerVPX(installNSTools=True)" />
+      </vm>
+    </host>
+"""
+
+    JSON = """
+        { "hosts": [
+            { "id": 0,
+              "iommu": true,
+              "vms": [
+                { "name": "NS",
+                  "file_name": "ns.xva",
+                  "vifs": [
+                    { "device": 0 },
+                    { "device": 1, "sriov": true, "physdev": "CLIENT_VLAN" }
+                  ],
+                  "postinstall": [
+                    { "action": "setupNetscalerVPX(installNSTools=True)" }
+                  ]
+                }
+              ],
+              "network": {
+                "physical_networks": [
+                  { "network": "NPRI",
+                    "speed": "10G",
+                    "vms": true,
+                    "management": true,
+                    "nics": 1,
+                    "vlans": [
+                        { "network": "CLIENT_VLAN" }
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "vlans": [ {"name": "CLIENT_VLAN"} ]
+        }
+"""
+
+# Basic pool with specified hosts
+class TC12(BaseTC):
+    XML = """
+    <pool id="0">
+      <host id="0"/>
+      <host id="1"/>
+      <NETWORK controller="controller1">
+        <PHYSICAL bond-mode="lacp" jumbo="yes" name="TestNet" network="NPRI">
+          <NIC />
+          <NIC />
+          <MANAGEMENT mode="static" />
+          <STORAGE mode="dhcp" />
+          <VLAN network="VR02">
+            <MANAGEMENT mode="dhcp" />
+            <STORAGE mode="static" />
+            <VMS />
+          </VLAN>
+        </PHYSICAL>
+        <PHYSICAL network="NSEC">
+          <NIC />
+        </PHYSICAL>
+      </NETWORK>
+    </pool>
+"""
+    
+    JSON = """{
+    "pools": [
+      { "id": 0,
+        "hosts": [
+          { "id": 0},
+          { "id": 1}
+        ],
+        "network": {
+          "controller": "controller1",
+          "physical_networks": [
+            { "nics": 2,
+              "bond_mode": "lacp",
+              "jumbo": true,
+              "name": "TestNet",
+              "network": "NPRI",
+              "management": "static",
+              "storage": "dhcp",
+              "vms": false,
+              "vlans": [
+                { "network": "VR02",
+                  "management": "dhcp",
+                  "storage": "static",
+                  "vms": true
+                }
+              ]
+            },
+            { "network": "NSEC" }
+          ]
+        }
+      }
+    ]
+}"""
 

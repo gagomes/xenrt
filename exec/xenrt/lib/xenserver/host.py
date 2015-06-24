@@ -173,7 +173,8 @@ def createHost(id=0,
                vHostDiskSize=50,
                vHostSR=None,
                vNetworks=None,
-               iommu=False):
+               iommu=False,
+               **kwargs):
 
     # noisos isn't used here, it is present in the arg list to
     # allow its use as a flag in PrepareNode in sequence.py

@@ -4592,7 +4592,7 @@ class GenericHost(GenericPlace):
                                            idempotent=True))
         if space == "100%":
             xenrt.TEC().warning("Domain-0 disk usage is 100%")
-        pcpu = None
+        pcpu = self.dom0CPUUsage()
         if pcpu and pcpu > 40.0:
             xenrt.TEC().warning("xenstore using %.2f%% CPU" % (pcpu))
             log("xenstore using %.2f%% CPU" % (pcpu))

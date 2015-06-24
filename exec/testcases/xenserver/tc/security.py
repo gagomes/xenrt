@@ -3348,7 +3348,7 @@ class _HackersChoiceIPv6DoS(TCBadPackets):
     def __gameOn(self, gameOver):
         return time.time() < gameOver
     
-    def _maxOutGuest(self, package, victim, attacker, count):
+    def _maxOutGuest(self, package, victim, attacker, count=0):
         gameOver = time.time() + self._TIMEOUT
         log("Game over at: %s" % str(gameOver))
         
@@ -3401,7 +3401,7 @@ class _HackersChoiceIPv6DoS(TCBadPackets):
         #----------------------------------------------------------
         step("Run the package and check for the guest maxing out") 
         #----------------------------------------------------------
-        self._maxOutGuest(self._package, victimVm, attacker,0)
+        self._maxOutGuest(self._package, victimVm, attacker)
         
         #-------------------------------         
         step("Shutdown the attacker")

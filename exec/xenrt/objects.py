@@ -4577,8 +4577,7 @@ class GenericHost(GenericPlace):
         pcpu = None
         if pid:
             self.execdom0("[ -d /proc/%u ]" % (pid))
-            pcpu = int(self.execdom0("ps -p %u -o pcpu --no-headers | "
-                                     "sed -e's/\..*//'" % (pid)).strip())
+            pcpu = float(self.execdom0("ps -p %u -o pcpu --no-headers" % (pid)).strip())
         return pcpu
 
 
@@ -4594,9 +4593,9 @@ class GenericHost(GenericPlace):
         if space == "100%":
             xenrt.TEC().warning("Domain-0 disk usage is 100%")
         pcpu = None
-        if pcpu and pcpu > 40:
-            xenrt.TEC().warning("xenstore using %u%% CPU" % (pcpu))
-            log("xenstore using %u%% CPU" % (pcpu))
+        if pcpu and pcpu > 40.0:
+            xenrt.TEC().warning("xenstore using %.2f%% CPU" % (pcpu))
+            log("xenstore using %.2f%% CPU" % (pcpu))
 
     def checkLeasesXenRTDhcpd(self, mac, checkWithPing=False):
         valid = json.loads(xenrt.util.command("%s/xenrtdhcpd/leasesformac.py %s" % (xenrt.TEC().lookup("XENRT_BASE"), mac.lower())))

@@ -12,6 +12,7 @@ import threading, BaseHTTPServer, xml.dom.minidom, types, urllib, time, base64
 import random, socket, httplib
 import SocketServer, tlslite.api, sys, xml.sax.saxutils
 import xenrt
+import ssl
 reload(__import__('sys')).setdefaultencoding('utf8')
 
 # Symbols we want to export from the package.
@@ -529,7 +530,12 @@ class ProxyKirkwood(FakeKirkwood):
         xenrt.TEC().logverbose("path=%s" % path)
         xenrt.TEC().logverbose("headers=%s" % headers)
         xenrt.TEC().logverbose("body=%s" % body)
-        hconn = httplib.HTTPSConnection(self.vpxwlb_ip, self.vpxwlb_port)
+        # some xenrt controller has Python 2.7.9 environment
+        # CA-173134
+        if hasattr(ssl, '_create_unverified_context'):
+            hconn = httplib.HTTPSConnection(self.vpxwlb_ip, self.vpxwlb_port, context=ssl._create_unverified_context())
+        else:
+            hconn = httplib.HTTPSConnection(self.vpxwlb_ip, self.vpxwlb_port)
         hs = dict(headers.items())
         hconn.request(cmd, path, body, hs)
         resp = hconn.getresponse()

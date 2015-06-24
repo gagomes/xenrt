@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='xenrtapi',
-      version='0.06',
+      version='0.07',
       description="API for XenRT",
       url="http://xenrt.citrite.net",
       author="Citrix",

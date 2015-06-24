@@ -481,11 +481,34 @@ class Guest(xenrt.GenericGuest):
             self.installCoreOS()
         elif repository and not isoname:
             dev = "%sa" % (self.vendorInstallDevicePrefix())
+            options={"maindisk": dev}
+            nfsdir = None
+            nfssr = None
             if pxe:
-                try:
-                    self.insertToolsCD()
-                except:
-                    pass
+                if distro == "debiantesting":
+                    cdname = "%s.iso" % str(uuid.uuid4())
+                    nfsdir = xenrt.NFSDirectory()
+                    darch = "amd64" if "64" in self.arch else "i386"
+                    iarch = "amd" if "64" in self.arch else "386"
+                    xenrt.GEC().filemanager.getSingleFile("http://cdimage.debian.org/cdimage/daily-builds/daily/arch-latest/%s/iso-cd/debian-testing-%s-netinst.iso" % (darch, darch), "%s/%s" % (nfsdir.path(), cdname))
+                    nfssr = xenrt.lib.xenserver.ISOStorageRepository(self.getHost(), "debtesting-%s" % cdname)
+                    server, path = nfsdir.getHostAndPath("")
+                    nfssr.create(server, path)
+                    nfssr.scan()
+                    self.changeCD(cdname)
+                    m = xenrt.MountISO("%s/%s" % (nfsdir.path(), cdname))
+                    nfsdir.copyIn("%s/install.%s/vmlinuz" % (m.getMount(), iarch))
+                    nfsdir.copyIn("%s/install.%s/initrd.gz" % (m.getMount(), iarch))
+                    m.unmount()
+                    options["installer_kernel"] = "%s/vmlinuz" % nfsdir.path()
+                    options["installer_initrd"] = "%s/initrd.gz" % nfsdir.path()
+                    self.paramSet("HVM-boot-params-order", "cn")
+                else:
+                    try:
+                        self.insertToolsCD()
+                    except:
+                        pass
+
             # Install using the vendor installer.
             self.installVendor(distro,
                                repository,
@@ -493,7 +516,10 @@ class Guest(xenrt.GenericGuest):
                                kickstart,
                                pxe=pxe,
                                extrapackages=extrapackages,
-                               options={"maindisk": dev})
+                               options=options)
+            if nfssr:
+                nfssr.forget()
+                nfsdir.remove()
         elif isoname:
             xenrt.TEC().logverbose("Installing Linux from ISO...")
             dev = "%sa" % (self.vendorInstallDevicePrefix())
@@ -3000,16 +3026,22 @@ exit /B 1
     def makeNonInteractive(self):
         self.paramSet("PV-args", "noninteractive")
 
-    def enablePXE(self, pxe=True):
+    def enablePXE(self, pxe=True, disableCD=False):
         try:
             self.paramRemove("HVM-boot-params", "order")
         except:
             pass
         if pxe:
-            self.paramSet("HVM-boot-params-order", "dcn")
+            if disableCD:
+                self.paramSet("HVM-boot-params-order", "cn")
+            else:
+                self.paramSet("HVM-boot-params-order", "dcn")
             self.paramSet("HVM-boot-policy", "BIOS order")
         else:
-            self.paramSet("HVM-boot-params-order", "dc")
+            if disableCD:
+                self.paramSet("HVM-boot-params-order", "c")
+            else:
+                self.paramSet("HVM-boot-params-order", "dc")
 
     def chooseSR(self, sr=None):
         return self.getHost().chooseSR(sr=sr)

@@ -108,6 +108,9 @@ def createHost(id=0,
 
     return host
 
+def poolFactory(mastertype):
+    return xenrt.lib.esx.Pool
+
 class ESXHost(xenrt.lib.libvirt.Host):
 
     LIBVIRT_REMOTE_DAEMON = False

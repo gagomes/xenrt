@@ -1058,6 +1058,7 @@ class TCGPUBenchmarkInstall(VGPUOwnedVMsTest):
                     self.testcaseResult("InstallBenchmark", "%s-%s" % (b, g.name), xenrt.RESULT_PASS)
                 except Exception, e:
                     self.testcaseResult("InstallBenchmark", "%s-%s" % (b, g.name), xenrt.RESULT_FAIL, str(e))
+                g.reboot()
 
     #Inherited postrun is deleting all the cloned VMs, snapshots and vGPUs which we dont want
     def postRun(self):

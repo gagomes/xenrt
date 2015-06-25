@@ -517,6 +517,7 @@ class _RollingPoolUpgrade(_PoolUpgrade):
                 xenrt.RESULT_PASS:
             return
 
+
 class _NonRollingPoolUpgrade(_PoolUpgrade):
 
     NONROLLING = True
@@ -1246,6 +1247,7 @@ class _SingleHostUpgrade(xenrt.TestCase):
     USE_EXISTING_HOST = False
     NO_VMS = False
     EXTRASUBCASES = []
+    SAFE2UPGRAGE_CHECK = False
 
     def installVMs(self):
         if isinstance(self.host, xenrt.lib.xenserver.MNRHost) and not isinstance(self.host, xenrt.lib.xenserver.TampaHost):
@@ -1263,7 +1265,14 @@ class _SingleHostUpgrade(xenrt.TestCase):
         self.host.check()
         if len(self.host.listGuests()) == 0 and not self.NO_VMS:
             raise xenrt.XRTFailure("VMs missing after host upgrade")
-
+    
+    def installOld(self):
+        old = xenrt.TEC().lookup("OLD_PRODUCT_VERSION")
+        oldversion = xenrt.TEC().lookup("OLD_PRODUCT_INPUTDIR")
+        self.host = xenrt.lib.xenserver.createHost(id=0,
+                                                   version=oldversion,
+                                                   productVersion=old)
+    
     def upgradeVMs(self):
         for g in self.guests:
             xenrt.TEC().progress("Upgrading VM %s" % (g.getName()))
@@ -1308,6 +1317,9 @@ class _SingleHostUpgrade(xenrt.TestCase):
             if self.runSubcase("installVMs", (), "PrevGA", "InstallVMs") != \
                    xenrt.RESULT_PASS:
                 return
+
+        if self.SAFE2UPGRAGE_CHECK:
+            self.host.checkSafe2Upgrade()
 
         # Upgrade the host and VMs
         upgsteps = []
@@ -2795,22 +2807,20 @@ class _FeatureOperationAfterUpgrade(xenrt.TestCase):
 
 class _WindowsPVUpgradeWithStaticIP(_VMToolsUpgrade):
     def prepare(self,arglist):
-        self.testpeer = self.getGuest("testpeer")
-        if self.testpeer.getState() != "UP":
-            self.testpeer.start()
         _VMToolsUpgrade.prepare(self,arglist)
         if not self.guest.windows:
             raise xenrt.XRTError("Guest is not windows")
         # Reconfigure the VIFs on the private networks
-        self.guest.configureNetwork("eth1", "192.168.1.2", "255.255.255.0")
-        self.testpeer.configureNetwork("eth1", "192.168.1.1", "255.255.255.0")
+        self.staticIP = xenrt.StaticIP4Addr(network="NSEC")
+        self.guest.configureNetwork("eth1", self.staticIP.getAddr(),xenrt.TEC().lookup(["NETWORK_CONFIG",
+                                       "SECONDARY",
+                                       "SUBNETMASK"]))
 
         # Stop the firewall blocking ICMP
         self.guest.xmlrpcExec("netsh firewall set icmpsetting 8")
 
         # Sanity check that it's currently working
-        self.testpeer.execguest("ping -c 10 192.168.1.2")
-
+        xenrt.command("ping -c 10 %s" % self.staticIP.getAddr())
 
     def run(self, arglist):
 
@@ -2827,7 +2837,7 @@ class _WindowsPVUpgradeWithStaticIP(_VMToolsUpgrade):
         self.guest.getWindowsIPConfigData()
 
         # Check the VM kept it's static IP after the tools upgrade
-        self.testpeer.execguest("ping -c 10 192.168.1.2")
+        xenrt.command("ping -c 10 %s" % self.staticIP.getAddr())
 
         # Uninstall tools
         if self.runSubcase("uninstallTools", (), "Tools", "Uninstall") != xenrt.RESULT_PASS:
@@ -2837,9 +2847,14 @@ class _WindowsPVUpgradeWithStaticIP(_VMToolsUpgrade):
 
         # Check the VM kept it's static IP after the tools uninstallation
         if isinstance(self.guest, xenrt.lib.xenserver.guest.TampaGuest) and self.guest.host.productVersion != "Tampa" and not self.guest.usesLegacyDrivers():
-            self.testpeer.execguest("ping -c 10 192.168.1.2")
+            xenrt.command("ping -c 10 %s" % self.staticIP.getAddr())
 
         self.guest.shutdown()
+  
+    def postRun(self):
+    
+        self.guest.shutdown()
+        self.staticIP.release()
 
 class _WindowsPVUpgradeWithStaticIPv6(_VMToolsUpgrade):
     def prepare(self, arglist):
@@ -3758,6 +3773,37 @@ class TC12212(_MultipathSingleHostUpgrade):
     SR_MULTIPATHED = True
     ROOT_DISK_MULTIPATHED_NEW = True
 
+class _RpuNewPartitionsSingleHost(_SingleHostUpgrade):
+
+    EXTRASUBCASES = [("checkPartitions", (), "Check", "Partitions")]
+    SAFE2UPGRAGE_CHECK = True
+    NEW_PARTITIONS = False
+
+    def checkPartitions(self, arglist=[]):
+        step("Check if dom0 partitions are as expected")
+        if self.NEW_PARTITIONS:
+            partitions = xenrt.TEC().lookup(["VERSION_CONFIG",xenrt.TEC().lookup("PRODUCT_VERSION"),"DOM0_PARTITIONS"])
+        else:
+            partitions = xenrt.TEC().lookup(["VERSION_CONFIG",xenrt.TEC().lookup("PRODUCT_VERSION"),"DOM0_PARTITIONS_OLD"])
+        log("Expected partitions: %s" % partitions)
+
+        if not self.host.compareDom0Partitions(partitions):
+            raise xenrt.XRTFailure("Found unexpected partitions on XS clean install. Expected: %s Found: %s" % (partitions, self.host.getDom0Partitions()))
+        log("Found expected Dom0 partitions on XS clean installation: %s" % partitions)
+
+
+class TCRpuNewPartSingle(_RpuNewPartitionsSingleHost):
+    """TC-27063 - Dom0 disk partitioning on single host upgrade with no VMs on local storage"""
+
+    NEW_PARTITIONS = True
+    NO_VMS = True
+
+class TCRpuOldPartSingle(_RpuNewPartitionsSingleHost):
+    """TC-27064 - Dom0 disk partitioning on single host upgrade with VMs on local storage"""
+
+    NEW_PARTITIONS = False
+    NO_VMS = False
+
 class TC14930(_FeatureOperationAfterUpgrade):
     """Continued operation of VMPP feature"""
 
@@ -4272,3 +4318,118 @@ class TCUpgradeVMMigrate(xenrt.TestCase):
             memory = int(memory[:-1]) * 1024
 
         return memory
+
+class TCRollingPoolUpdate(xenrt.TestCase, xenrt.lib.xenserver.host.RollingPoolUpdate):
+    """
+    Base class for Rolling Pool update/upgrade
+    """
+
+    UPGRADE = True
+
+    def parseArgs(self, arglist):
+        #Parse the arguments
+        args = self.parseArgsKeyValue(arglist)
+        if "INITIAL_VERSION" in args.keys():
+            self.INITIAL_VERSION = args["INITIAL_VERSION"]
+        if "FINAL_VERSION" in args.keys():
+            self.FINAL_VERSION   = args["FINAL_VERSION"]
+        if "vmActionIfHostRebootRequired" in args.keys():
+            self.vmActionIfHostRebootRequired = args["vmActionIfHostRebootRequired"]
+        if "applyAllHFXsBeforeApplyAction" in args.keys() and args["applyAllHFXsBeforeApplyAction"].lower() =="no":
+            self.applyAllHFXsBeforeApplyAction = False
+        if "skipApplyRequiredPatches" in args.keys() and args["skipApplyRequiredPatches"].lower() == "yes":
+            self.skipApplyRequiredPatches = True
+
+    def prepare(self, arglist):
+        self.pool = self.getDefaultPool()
+        self.newPool = None
+        self.INITIAL_VERSION = self.pool.master.productVersion
+        self.FINAL_VERSION = None
+        self.vmActionIfHostRebootRequired = "SHUTDOWN"
+        self.applyAllHFXsBeforeApplyAction = True
+        self.preEvacuate = None
+        self.preReboot = None
+        self.skipApplyRequiredPatches = False
+        
+        #Parse arguments coming from sequence file
+        self.parseArgs(arglist)
+
+        # Eject CDs in all VMs
+        for h in self.pool.getHosts():
+            for guestName in h.listGuests():
+                self.getGuest(guestName).changeCD(None)
+
+        xenrt.lib.xenserver.host.RollingPoolUpdate.__init__(self, poolRef = self.pool, 
+                                                            newVersion=self.FINAL_VERSION,
+                                                            upgrade = self.UPGRADE,
+                                                            applyAllHFXsBeforeApplyAction=self.applyAllHFXsBeforeApplyAction,
+                                                            vmActionIfHostRebootRequired=self.vmActionIfHostRebootRequired,
+                                                            preEvacuate=self.preEvacuate,
+                                                            preReboot=self.preReboot,
+                                                            skipApplyRequiredPatches=self.skipApplyRequiredPatches)
+
+    def run(self, arglist=None):
+        self.preCheckVMs(self.pool)
+        self.doUpdate()
+        self.postCheckVMs(self.newPool)
+
+    def preCheckVMs(self,pool):
+        self.expectedRunningVMs = 0
+        for h in pool.getHosts():
+            runningGuests = h.listGuests(running=True)
+            xenrt.TEC().logverbose("Host: %s has %d running guests [%s]" % (h.getName(), len(runningGuests), runningGuests))
+            self.expectedRunningVMs += len(runningGuests)
+        xenrt.TEC().logverbose("Pre-upgrade running VMs: %d" % (self.expectedRunningVMs))
+
+    def postCheckVMs(self,pool):
+        postUpgradeRunningGuests = 0
+        for h in pool.getHosts():
+            h.verifyHostFunctional(migrateVMs=False)
+
+            runningGuests = h.listGuests(running=True)
+            xenrt.TEC().logverbose("Host: %s has %d running guests [%s]" % (h.getName(), len(runningGuests), runningGuests))
+            postUpgradeRunningGuests += len(runningGuests)
+
+        xenrt.TEC().logverbose("Post-upgrade running VMs: %d" % (postUpgradeRunningGuests))
+        if self.expectedRunningVMs != postUpgradeRunningGuests:
+            xenrt.TEC().logverbose("Expected VMs in running state: %d, Actual: %d" % (self.expectedRunningVMs, postUpgradeRunningGuests))
+            raise xenrt.XRTFailure("Not all VMs in running state after upgrade complete") 
+
+class TCRpuPartitions(TCRollingPoolUpdate):
+    """
+    Perform Rolling pool upgrade after calling testSafe
+    """
+    NEW_PARTITIONS = {}
+
+    def preMasterUpdate(self):
+        TCRollingPoolUpdate.preMasterUpdate(self)
+        self.checkSafe2Upgrade(self.newPool.master)
+
+    def preSlaveUpdate(self, slave):
+        TCRollingPoolUpdate.preSlaveUpdate(self, slave)
+        self.checkSafe2Upgrade(slave)
+
+    def postMasterUpdate(self):
+        TCRollingPoolUpdate.postMasterUpdate(self)
+        self.checkPartitions(self.newPool.master)
+
+    def postSlaveUpdate(self, slave):
+        TCRollingPoolUpdate.postSlaveUpdate(self, slave)
+        self.checkPartitions(slave)
+
+    def checkSafe2Upgrade(self, host):
+        self.NEW_PARTITIONS[host.getName()] = host.checkSafe2Upgrade()
+
+    def checkPartitions(self, host):
+        """Function to check if DOM0 partitions are as expected"""
+        step("Check if dom0 partitions are as expected")
+        if self.NEW_PARTITIONS[host.getName()]:
+            partitions = xenrt.TEC().lookup(["VERSION_CONFIG",xenrt.TEC().lookup("PRODUCT_VERSION"),"DOM0_PARTITIONS"])
+        else:
+            partitions = xenrt.TEC().lookup(["VERSION_CONFIG",xenrt.TEC().lookup("PRODUCT_VERSION"),"DOM0_PARTITIONS_OLD"])
+        log("Expected partitions: %s" % partitions)
+
+        if not host.compareDom0Partitions(partitions):
+            raise xenrt.XRTFailure("Found unexpected partitions on XS clean install. Expected: %s Found: %s" % (partitions, host.getDom0Partitions()))
+        log("Found expected Dom0 partitions on XS clean installation: %s" % partitions)
+

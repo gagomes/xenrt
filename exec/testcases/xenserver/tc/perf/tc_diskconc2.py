@@ -58,16 +58,10 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
         self.vbds_per_vm = libperf.getArgument(arglist, "vbds_per_vm", int, 1)
         self.vcpus_per_vm = libperf.getArgument(arglist, "vcpus_per_vm", int, None)
 
-        # Benchmark program to use for linux vm. If the value is different than fio, would use latency
-        self.bench = libperf.getArgument(arglist, "benchmark", str, "fio")
         self.sequential = libperf.getArgument(arglist, "sequential", toBool, True)
 
         # Optional VM image to use as a template
         self.vm_image = libperf.getArgument(arglist, "vm_image", str, None)
-
-        # If vm_image is set, treat it as a distro name
-        if self.vm_image:
-            self.distro  = self.vm_image
 
         # A number in MB; e.g. 1024
         self.vm_ram = libperf.getArgument(arglist, "vm_ram", int, None)
@@ -75,6 +69,17 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
         self.duration = libperf.getArgument(arglist, "duration", int, 60)
         self.vdi_size = libperf.getArgument(arglist, "vdi_size", str, "5GiB")
         self.distro = libperf.getArgument(arglist, "distro", str, "debian60")
+
+        # If vm_image is set, treat it as a distro name
+        if self.vm_image:
+            self.distro  = self.vm_image
+
+        # Benchmark program to use. Windows default: iometer, Linux default: fio
+        if self.distro.startswith("w"):
+            self.bench = libperf.getArgument(arglist, "benchmark", str, "iometer")
+        else:
+            self.bench = libperf.getArgument(arglist, "benchmark", str, "fio")
+
         self.postinstall = libperf.getArgument(arglist, "postinstall", str, None) # comma-separated list of guest function names
         self.arch = libperf.getArgument(arglist, "arch", str, "x86-32")
         self.dom0vcpus  = libperf.getArgument(arglist, "dom0vcpus", int, None)
@@ -300,6 +305,54 @@ done
         return re.search("----+\r\n(.*)<", data, re.MULTILINE).group(1).strip()
 
     def runPhaseWindows(self, count, op):
+        if self.bench == "fio":
+            self.runPhaseWindowsFio(count, op)
+        else:
+            self.runPhaseWindowsIOMeter(count, op)
+
+    def runPhaseWindowsFio(self, count, op):
+        if len(self.vm) > 1:
+            raise ValueError("Windows fio only supports 1 VM")
+
+        guest = self.vm[0]
+
+        for blocksize in self.blocksizes:
+            blocksize = int(blocksize)
+
+            rw = "read" if op == "r" else "write"
+            if not self.sequential:
+                rw = "randread" if op == "r" else "randwrite"
+
+            inifile = """[test]
+direct=1
+ioengine=windowsaio
+time_based
+thread
+group_reporting
+filename=\\\\.\PhysicalDrive1
+numjobs=%d
+rw=%s
+iodepth=%d
+bs=%d
+runtime=%d
+%s
+""" % (self.num_threads, rw,
+       self.queuedepth, blocksize, self.duration,
+       "zero_buffers" if self.zeros else "")
+
+            guest.xmlrpcWriteFile("c:\\workload.fio", inifile)
+            guest.xmlrpcExec("c:\\fio.exe --minimal --terse-version=3 c:\\workload.fio > c:\\fio_results")
+            output = guest.xmlrpcReadFile("c:\\fio_results")
+            output.replace("\r", "").strip()
+
+            self.log("results", output)
+
+            result = long(output.split(";")[5 if op == "r" else 46]) * 1024
+            # Log format: Operation(r,w) iteration, blocksize, diskname, VM number on that SR, VBD number, number of bytes processed
+            self.log("slave", "%s %d %d %s %s %d %s" %
+                     (op, count + 1, blocksize, guest.getName().split("-")[0], guest.getName().split("-")[1], 1, result))
+
+    def runPhaseWindowsIOMeter(self, count, op):
         def dynamo_thread(vm):
             master_ip = self.vm[0].mainip
 
@@ -353,7 +406,7 @@ done
             else:
                 # treat the block size as a number of bytes
                 accessSpecs = [
-                    ("custom", "ALL", ["%d,100,%d,0,0,1,%d,0" % (int(blocksize), 100 if op == "r" else 0, int(blocksize))])
+                    ("custom", "ALL", ["%d,100,%d,%d,0,1,%d,0" % (int(blocksize), 100 if op == "r" else 0, 0 if self.sequential else 100, int(blocksize))])
                 ]
 
             config = """Version 1.1.0 
@@ -423,7 +476,10 @@ done
 """ % (i + 1, nbname, "" if i == 0 else vm.mainip)
 
                 for i in range(self.vbds_per_vm):
-                    config += """'Worker
+                    for thread in range(self.num_threads):
+                        vbd_num = i + 1
+                        worker = i * self.num_threads + thread + 1
+                        config += """'Worker
 	Worker %d
 'Worker type
 	DISK
@@ -434,13 +490,13 @@ done
 	0,0,0
 'End default target settings for worker
 'Assigned access specs
-""" % (i+1, self.queuedepth)
+""" % (worker, self.queuedepth)
 
-                    for (name, _, _) in accessSpecs:
-                        config += """	%s
+                        for (name, _, _) in accessSpecs:
+                            config += """	%s
 """ % (name)
 
-                    config += """'End assigned access specs
+                            config += """'End assigned access specs
 'Target assignments
 'Target
 	%d: "XENSRC PVDISK 2.0"
@@ -449,7 +505,7 @@ done
 'End target
 'End target assignments
 'End worker
-""" % (i+1)
+""" % (vbd_num)
 
                 config += "'End manager\n"
 
@@ -480,6 +536,8 @@ Version 1.1.0
 
             # Process the results into the same format as synexec+latency uses
             i = 0
+            threads_per_vbd_left = self.num_threads
+            results_per_vbd = 0
             for line in data.split("\n"):
                 if line.startswith("'Results"):
                     i = 0
@@ -500,9 +558,16 @@ Version 1.1.0
                         dispblocksize = blocksize
                     result = result * 1000000 * self.duration
                     result = long(result)
+
+                    results_per_vbd = results_per_vbd + result
+                    threads_per_vbd_left = threads_per_vbd_left - 1
+
+                if threads_per_vbd_left == 0:
                     self.log("slave", "%s %d %s %s %s %d %s" %
-                             (op, count + 1, dispblocksize, vm.getName().split("-")[0], vm.getName().split("-")[1], j, result))
+                             (op, count + 1, dispblocksize, vm.getName().split("-")[0], vm.getName().split("-")[1], j, results_per_vbd))
                     j += 1
+                    results_per_vbd = 0
+                    threads_per_vbd_left = self.num_threads
 
     def installFioOnLinuxGuest(self):
         disturl = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
@@ -566,7 +631,10 @@ Version 1.1.0
                 self.template.xmlrpcSendFile(pvsfile, cpath)
                 self.template.xmlrpcExec("%s /s" % cpath)
 
-                self.template.installIOMeter()
+                if self.bench == "fio":
+                    self.template.installFioWin()
+                else:
+                    self.template.installIOMeter()
 
                 # Reboot once more to ensure everything is quiescent
                 self.template.reboot()
@@ -686,13 +754,8 @@ Version 1.1.0
             self.createVMsForSR(sr)
 
         # Log the IO engine used, for RAGE
-        if self.windows:
-            libperf.logArg("ioengine", "iometer")
-        else:
-            if self.bench == "fio":
-                libperf.logArg("ioengine", "fio")
-            else:
-                libperf.logArg("ioengine", "latency")
+
+        libperf.logArg("ioengine", self.bench)
 
         if self.prepopulate:
             if self.windows:

@@ -42,6 +42,7 @@ class StorageRepository(xenrt.lib.libvirt.StorageRepository):
             raise xenrt.XRTError("SRs of type '%s' are not yet supported by ESX" % srtype)
 
         xmldom.unlink()
+        xenrt.sleep(5)
         self.virPool = self.host.virConn.storagePoolLookupByName(self.name)
         self.uuid = self.virPool.UUIDString()
 

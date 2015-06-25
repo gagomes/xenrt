@@ -2656,6 +2656,16 @@ Add-WindowsFeature as-net-framework"""
         self.execcmd("wget -O - '%s/kernbench3.10.tgz' | tar -xz -C /root" %
                      xenrt.TEC().lookup("TEST_TARBALL_BASE"))
 
+    def installFioWin(self):
+        """Install Fio into the Windows guest"""
+
+        self.xmlrpcUnpackTarball("%s/fiowin.tgz" % xenrt.TEC().lookup("TEST_TARBALL_BASE"), "c:\\")
+
+        if self.getBasicArch() == "x86-64":
+            self.xmlrpcExec("move c:\\fiowin\\x64\\fio.exe c:\\")
+        else:
+            self.xmlrpcExec("move c:\\fiowin\\x86\\fio.exe c:\\")
+
     def installIOMeter(self):
         """Install IOMeter into the guest"""
 
@@ -7450,7 +7460,10 @@ class GenericGuest(GenericPlace):
             if isDebian:
                 apt_cacher = None
                 debVer = self.execguest("cat /etc/debian_version")
-                debVer = float(re.match(r"\d+(\.\d+)?", debVer).group(0))
+                if "stretch" in debVer or "sid" in debVer:
+                    debVer = 9.0
+                else:
+                    debVer = float(re.match(r"\d+(\.\d+)?", debVer).group(0))
                 if debVer < 5.0:
                     # Pre-Lenny, may have to use a cacher
                     apt_cacher = "%s/debarchive" % xenrt.TEC().lookup("APT_SERVER")
@@ -8556,7 +8569,7 @@ class GenericGuest(GenericPlace):
         elif pxe:
             xenrt.TEC().logverbose("Experimental debian pxe installation support")
             # HVM PXE install
-            self.enablePXE()
+            self.enablePXE(disableCD=True)
             if method != "HTTP":
                 raise xenrt.XRTError("%s PXE install not supported" %
                                      (method))
@@ -8590,14 +8603,13 @@ class GenericGuest(GenericPlace):
                 boot_dir = "main/installer-%s/current/images/netboot/debian-installer/%s/" % (arch, arch)
             
             # Pull boot files from HTTP repository
-            fk = xenrt.TEC().tempFile()
-            fr = xenrt.TEC().tempFile()
             if release == "testing":
-                # Testing presently doesn't have an installer
-                baseurl = "http://d-i.debian.org/daily-images/%s/daily/netboot/debian-installer/%s/" % (arch, arch)
-                xenrt.getHTTP(baseurl + "linux", fk)
-                xenrt.getHTTP(baseurl + "initrd.gz", fr)
+                # Testing presently doesn't have an installer, the caller needs to set up an SR.
+                fk = options['installer_kernel']
+                fr = options['installer_initrd']
             else:
+                fk = xenrt.TEC().tempFile()
+                fr = xenrt.TEC().tempFile()
                 xenrt.getHTTP(_url + boot_dir + "linux", fk)
                 xenrt.getHTTP(_url + boot_dir + "initrd.gz", fr)
 
@@ -8701,7 +8713,7 @@ class GenericGuest(GenericPlace):
 
         if pxe:
             # Cancel PXE booting for the new guest
-            self.enablePXE(False)
+            self.enablePXE(False, disableCD=True)
             pxe.remove()
     
         if cleanupdir:

@@ -10,6 +10,7 @@
 
 import socket, re, string, time, traceback, sys, random, copy, shutil, os, re
 import xenrt, xenrt.lib.xenserver
+from testcases.xenserver.tc.upgrade import TCRollingPoolUpdate 
 from xenrt import XRTError
 from xenrt.lazylog import step, log
 
@@ -2119,82 +2120,6 @@ class TCApplyHotfixes(xenrt.TestCase):
         for p in patchIdents:
             self.host.applyPatch(xenrt.TEC().getFile(patches[p]), patchClean=True)
         self.host.reboot()
-
-class TCRollingPoolUpdate(xenrt.TestCase):
-    """
-    Upgrade and install all HFXs for the 'to' release on a pool.
-    i.e. Install all HFXs after host upgrade and perform most significant apply action.
-    This means that the master will be at XS version NEW + all HFXs while the slaves are at XS version OLD.
-    """
-
-    UPGRADE = True
-
-    def prepare(self, arglist):
-        
-        self.pool = self.getDefaultPool()
-        self.newPool = None
-        self.INITIAL_VERSION = self.pool.master.productVersion
-        self.FINAL_VERSION = None
-        self.vmActionIfHostRebootRequired = "SHUTDOWN"
-        self.applyAllHFXsBeforeApplyAction = True
-        self.preEvacuate = None
-        self.preReboot = None
-        self.skipApplyRequiredPatches = False
-        
-        args = self.parseArgsKeyValue(arglist)
-        if "INITIAL_VERSION" in args.keys():
-            self.INITIAL_VERSION = args["INITIAL_VERSION"]
-        if "FINAL_VERSION" in args.keys():
-            self.FINAL_VERSION   = args["FINAL_VERSION"]
-        if "vmActionIfHostRebootRequired" in args.keys():
-            self.vmActionIfHostRebootRequired = args["vmActionIfHostRebootRequired"]
-        if "applyAllHFXsBeforeApplyAction" in args.keys() and args["applyAllHFXsBeforeApplyAction"].lower() =="no":
-            self.applyAllHFXsBeforeApplyAction = False
-        if "skipApplyRequiredPatches" in args.keys() and args["skipApplyRequiredPatches"].lower() == "yes":
-            self.skipApplyRequiredPatches = True
-        
-        # Eject CDs in all VMs
-        for h in self.pool.getHosts():
-            for guestName in h.listGuests():
-                self.getGuest(guestName).changeCD(None)
-
-    def doUpdate(self):
-        pool_upgrade = xenrt.lib.xenserver.host.RollingPoolUpdate(poolRef = self.pool, 
-                                                            newVersion=self.FINAL_VERSION,
-                                                            upgrade = self.UPGRADE,
-                                                            applyAllHFXsBeforeApplyAction=self.applyAllHFXsBeforeApplyAction,
-                                                            vmActionIfHostRebootRequired=self.vmActionIfHostRebootRequired,
-                                                            preEvacuate=self.preEvacuate,
-                                                            preReboot=self.preReboot,
-                                                            skipApplyRequiredPatches=self.skipApplyRequiredPatches)
-        self.newPool = self.pool.upgrade(poolUpgrade=pool_upgrade)
-
-    def run(self, arglist=None):
-        self.preCheckVMs(self.pool)
-        self.doUpdate()
-        self.postCheckVMs(self.newPool)
-        
-    def preCheckVMs(self,pool):
-        self.expectedRunningVMs = 0
-        for h in pool.getHosts():
-            runningGuests = h.listGuests(running=True)
-            xenrt.TEC().logverbose("Host: %s has %d running guests [%s]" % (h.getName(), len(runningGuests), runningGuests))
-            self.expectedRunningVMs += len(runningGuests)
-        xenrt.TEC().logverbose("Pre-upgrade running VMs: %d" % (self.expectedRunningVMs))
-    
-    def postCheckVMs(self,pool):
-        postUpgradeRunningGuests = 0
-        for h in pool.getHosts():
-            h.verifyHostFunctional(migrateVMs=False)
-
-            runningGuests = h.listGuests(running=True)
-            xenrt.TEC().logverbose("Host: %s has %d running guests [%s]" % (h.getName(), len(runningGuests), runningGuests))
-            postUpgradeRunningGuests += len(runningGuests)
-
-        xenrt.TEC().logverbose("Post-upgrade running VMs: %d" % (postUpgradeRunningGuests))
-        if self.expectedRunningVMs != postUpgradeRunningGuests:
-            xenrt.TEC().logverbose("Expected VMs in running state: %d, Actual: %d" % (self.expectedRunningVMs, postUpgradeRunningGuests))
-            raise xenrt.XRTFailure("Not all VMs in running state after upgrade complete") 
 
 class TCRollingPoolHFX(TCRollingPoolUpdate):
     """

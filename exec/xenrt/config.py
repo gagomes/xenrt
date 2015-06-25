@@ -1208,6 +1208,7 @@ class Config(object):
 
         # XenServer dom0 partitions
         self.config["VERSION_CONFIG"]["Dundee"]["DOM0_PARTITIONS"] = {1:18*xenrt.GIGA, 2:18*xenrt.GIGA, 3:"*", 4:511*xenrt.MEGA, 5:4*xenrt.GIGA, 6:1023*xenrt.MEGA}
+        self.config["VERSION_CONFIG"]["Dundee"]["DOM0_PARTITIONS_OLD"] = {1:3.5*xenrt.GIGA, 2:4*xenrt.GIGA, 3:"*", 4:512*xenrt.MEGA}
 
         # Libvirt
         self.config["VERSION_CONFIG"]["Libvirt"] = {}

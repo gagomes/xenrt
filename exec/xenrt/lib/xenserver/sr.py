@@ -68,6 +68,7 @@ class StorageRepository(object):
     TYPENAME = None
     SIZEVAR = None
     EXTRA_DCONF = {}
+    THIN_PROV_KEYWORD = "thin"
 
     def __init__(self, host, name, thin_prov=False):
         self.host = host
@@ -122,7 +123,7 @@ class StorageRepository(object):
         srtype = self.host.genParamGet("sr", self.uuid, "type")
         try:
             alloc = self.host.genParamGet("sr", self.uuid, "sm-config", "allocation")
-            if alloc == "thin":
+            if alloc == self.THIN_PROV_KEYWORD:
                 return True
 
         except:
@@ -393,25 +394,6 @@ class LVMStorageRepository(StorageRepository):
     SHARED = False
     CLEANUP = "destroy"
 
-    @property
-    def thinProvisioning(self):
-        """Return whether sr is thinly provisioned."""
-
-        if not self.uuid:
-            raise xenrt.XRTError("SR instance is not associated with actual SR.")
-
-        srtype = self.host.genParamGet("sr", self.uuid, "type")
-        try:
-            alloc = self.host.genParamGet("sr", self.uuid, "sm-config", "allocation")
-            if alloc == "dynamic":
-                return True
-
-        except:
-            # sm-config may not have 'allocation' key.
-            pass
-
-        return False
-
     def create(self, device, physical_size=0, content_type="", smconf={}):
         self._create("lvm", {"device":device}, physical_size, content_type, smconf)
 
@@ -608,7 +590,8 @@ class CIFSISOStorageRepository(StorageRepository):
                content_type="iso",
                username="Administrator",
                password=None,
-               use_secret=False):
+               use_secret=False,
+               shared=True):
         if not password:
             password = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS", "ADMINISTRATOR_PASSWORD"])
         cli = self.host.getCLIInstance()
@@ -625,7 +608,7 @@ class CIFSISOStorageRepository(StorageRepository):
         args.append("type=%s" % (type))
         args.append("content-type=%s" % (content_type))
         args.append("host-uuid=%s" % (self.host.getMyHostUUID()))
-        args.append("shared=true")
+        args.append("shared=%s" % "true" if shared else "false")
         self.uuid = cli.execute("sr-create", string.join(args), strip=True)
         
     def check(self):
@@ -889,6 +872,7 @@ class ISCSIStorageRepository(StorageRepository):
 
     CLEANUP = "destroy"
     SHARED = True
+    THIN_PROV_KEYWORD = "dynamic"
 
     def create(self,
                lun=None,
@@ -1164,6 +1148,7 @@ class HBAStorageRepository(StorageRepository):
 
     CLEANUP = "destroy"
     SHARED = True
+    THIN_PROV_KEYWORD = "dynamic"
 
     def create(self,
                scsiid,

@@ -172,7 +172,9 @@ def createHost(id=0,
                vHostMemory=4096,
                vHostDiskSize=50,
                vHostSR=None,
-               vNetworks=None):
+               vNetworks=None,
+               iommu=False,
+               **kwargs):
 
     # noisos isn't used here, it is present in the arg list to
     # allow its use as a flag in PrepareNode in sequence.py
@@ -339,6 +341,12 @@ def createHost(id=0,
 
         output = host.execdom0("xenpm get-cpufreq-para | fgrep -e current_governor -e 'cpu id' || true")
         xenrt.TEC().logverbose("After changing cpufreq governor: %s" % (output,))
+
+    if iommu:
+        xenrt.TEC().logverbose("Enabling IOMMU on host %s..." % (host))
+        iovirt = xenrt.lib.xenserver.IOvirt(host)
+        iovirt.enableIOMMU(restart_host=False)
+        host.enableVirtualFunctions()
 
     xenrt.TEC().registry.hostPut(machine, host)
     if name:
@@ -844,7 +852,7 @@ class Host(xenrt.GenericHost):
                              (self.machine.name))
         
         # Get a PXE directory to put boot files in
-        pxe = xenrt.PXEBoot(iSCSILUN = self.bootLun)
+        pxe = xenrt.PXEBoot(iSCSILUN = self.bootLun, ipxeInUse = self.lookup("USE_IPXE", False, boolean=True))
         use_mboot_img = xenrt.TEC().lookup("USE_MBOOT_IMG", False, boolean=True)
        
         # Pull installer boot files from CD image and put into PXE
@@ -8315,13 +8323,65 @@ rm -f /etc/xensource/xhad.conf || true
             log("Number of Partitions in dom0 is different from expected number of partitions. Expected %s. Found %s" % (partitions,dom0Partitions ))
             return False
         else:
-            diffkeys = [k for k in partitions if partitions[k] != dom0Partitions[k] and partitions[k] != "*"]
+            diffkeys = [k for k in partitions if partitions[k] != "*" and int(partitions[k]) - int(dom0Partitions[k]) > 1048576]
             if len(diffkeys) == 0:
                 log("Dom0 has expected partition schema: %s" % dom0Partitions)
                 return True
             else:
                 log("One or more partition size is different from expected. Expected %s. Found %s" % ((partitions,dom0Partitions )))
                 return False
+
+    def checkSafe2Upgrade(self):
+        """Function to check if new partitions will be created on upgrade to dundee- CAR-1866"""
+        #This workaround is required because new plugins are yet to be added to released XS versions
+        if xenrt.TEC().lookup("WORKAROUND_CAR1866", default=True, boolean=True):
+            step("Replace prepare_upgrade_plugin with the custom plugin")
+            plugin = xenrt.TEC().getFile("/usr/groups/xenrt/upgrade_plugins/%s_prepare_host_upgrade.py" % (xenrt.TEC().lookup("OLD_PRODUCT_VERSION")))
+            sftp = self.sftpClient()
+            try:
+                xenrt.TEC().logverbose('About to copy "%s to "%s" on host.' \
+                                        % (plugin, "/etc/xapi.d/plugins/prepare_host_upgrade.py"))
+                sftp.copyTo(plugin, "/etc/xapi.d/plugins/prepare_host_upgrade.py")
+            finally:
+                sftp.close()
+
+        step("Call testSafe2Upgrade function and check if its output is as expected")
+        sruuid = self.getLocalSR()
+        vdis = len(self.minimalList("vdi-list", args="sr-uuid=%s" % (sruuid)))
+        log("Number of VDIs on local stotage: %d" % vdis)
+        srsize = int(self.genParamGet("sr", sruuid, "physical-size"))/xenrt.GIGA
+        log("Size of disk: %dGiB" % srsize)
+        expectedOutput = "false" if (vdis > 0 or srsize < 38) else "true"
+        log("Plugin should return: %s" % expectedOutput)
+
+        cli = self.getCLIInstance()
+        args = []
+        args.append("host-uuid=%s" % (self.getMyHostUUID()))
+        args.append("plugin=prepare_host_upgrade.py")
+        args.append("fn=testSafe2Upgrade")
+        output = cli.execute("host-call-plugin", string.join(args), timeout=300).strip()
+        if output != expectedOutput:
+            raise xenrt.XRTFailure("Unexpected output: %s" % (output))
+        xenrt.TEC().logverbose("Expected output: %s" % (output))
+
+        step("Call main plugin and check if testSafe2Upgrade returned true")
+        args = []
+        args.append("host-uuid=%s" % (self.getMyHostUUID()))
+        args.append("plugin=prepare_host_upgrade.py")
+        args.append("fn=main")
+        args.append("args:url=%s/xe-phase-1/" % (xenrt.TEC().lookup("FORCE_HTTP_FETCH") + xenrt.TEC().lookup("INPUTDIR")))
+        output = cli.execute("host-call-plugin", string.join(args), timeout=300).strip()
+        if output != "true":
+            raise xenrt.XRTFailure("Unexpected output: %s" % (output))
+        xenrt.TEC().logverbose("Expected output: %s" % (output))
+
+        if expectedOutput=="true":
+            step("Check if safe2upgrade file is created")
+            res = self.execdom0('ls /var/preserve/safe2upgrade')
+            if 'No such file or directory' in res or res.strip() == '':
+                raise xenrt.XRTFailure("Unexpected output: /var/preserve/safe2upgrade file is not created")
+            log("/var/preserve/safe2upgrade file is created as expected")
+        return True if expectedOutput == "true" else False
 
 #############################################################################
 
@@ -10515,8 +10575,17 @@ class BostonHost(MNRHost):
         self.execdom0("sed -i 's/xen_netback.netback_max_rx_protocol=0//g' /boot/extlinux.conf")
         MNRHost.disableCC(self, reboot)
 
-    def tailorForCloudStack(self):
+    def tailorForCloudStack(self, isBasic=False):
         # Set the Linux templates with PV args to autoinstall
+
+        if isBasic and isinstance(self, xenrt.lib.xenserver.TampaHost) and self.execdom0("test -e /proc/sys/net/bridge", retval="code") == 0:
+            self.execdom0("echo 1 > /proc/sys/net/bridge/bridge-nf-call-iptables")
+            self.execdom0("echo 1 > /proc/sys/net/bridge/bridge-nf-call-arptables")
+            self.execdom0("sed -i '/net.bridge.bridge-nf-call-iptables/d' /etc/sysctl.conf")
+            self.execdom0("sed -i '/net.bridge.bridge-nf-call-arptables/d' /etc/sysctl.conf")
+            self.execdom0("echo 'net.bridge.bridge-nf-call-iptables = 1' >> /etc/sysctl.conf")
+            self.execdom0("echo 'net.bridge.bridge-nf-call-arptables = 1' >> /etc/sysctl.conf")
+
         myip = "xenrt-controller.xenrt"
 
         args = {}
@@ -11403,11 +11472,6 @@ done
         if xenrt.TEC().lookup("FORCE_NON_DEBUG_XEN", None):
             self.assertNotRunningDebugXen()
 
-        if self.getName() == "capelin":
-            xenrt.TEC().logverbose("Machine is capelin")
-            self.execdom0('echo "options bnx2x debug=0x100032" > /etc/modprobe.d/bnx2x')
-            self.reboot()
-
     def postInstall(self):
         TampaHost.postInstall(self)
         #CP-6193: Verify check for XenRT installation cookie
@@ -11636,18 +11700,6 @@ class DundeeHost(CreedenceHost):
         # check there are no failed first boot scripts
         self._checkForFailedFirstBootScripts()
         
-        if xenrt.TEC().lookup("STUNNEL_TLS", False, boolean=True):
-            self.execdom0("rpm -e stunnel || true")
-            self.restartToolstack()
-        
-        if xenrt.TEC().lookup("LIBXL_XENOPSD", False, boolean=True):
-            self.execdom0("service xenopsd-xc stop")
-            self.execdom0("sed -i s/vbd3/vbd/ /etc/xenopsd.conf")
-            self.execdom0("chkconfig --del xenopsd-xc")
-            self.execdom0("chkconfig --add xenopsd-xenlight")
-            self.execdom0("sed -i -r 's/classic/xenlight/g' /etc/xapi.conf")
-            self.restartToolstack()
-
     def _checkForFailedFirstBootScripts(self):
         for f in self.execdom0("(cd /etc/firstboot.d/state && ls)").strip().splitlines():
             msg = self.execdom0("cat /etc/firstboot.d/state/%s" % f).strip()
@@ -11824,6 +11876,27 @@ class DundeeHost(CreedenceHost):
 
         return command
 
+    def installComplete(self, handle, waitfor=False, upgrade=False):
+        CreedenceHost.installComplete(self, handle, waitfor, upgrade)
+        if xenrt.TEC().lookup("STUNNEL_TLS", False, boolean=True):
+            self.execdom0("rpm -e stunnel || true")
+            self.restartToolstack()
+
+        if xenrt.TEC().lookup("LIBXL_XENOPSD", False, boolean=True):
+            self.execdom0("service xenopsd-xc stop")
+            self.execdom0("sed -i s/vbd3/vbd/ /etc/xenopsd.conf")
+            self.execdom0("chkconfig --del xenopsd-xc")
+            self.execdom0("chkconfig --add xenopsd-xenlight")
+            self.execdom0("sed -i -r 's/classic/xenlight/g' /etc/xapi.conf")
+            self.restartToolstack()
+
+        if xenrt.TEC().lookup("USE_HOST_IPV6", False, boolean=True):
+            xenrt.TEC().logverbose("Setting %s's primary address type as IPv6" % self.getName())
+            pif = self.execdom0('xe pif-list management=true --minimal').strip()
+            self.execdom0('xe host-management-disable')
+            self.execdom0('xe pif-set-primary-address-type primary_address_type=ipv6 uuid=%s' % pif)
+            self.execdom0('xe host-management-reconfigure pif-uuid=%s' % pif)
+            self.waitForSSH(300, "%s host-management-reconfigure (IPv6)" % self.getName())
 
 #############################################################################
 

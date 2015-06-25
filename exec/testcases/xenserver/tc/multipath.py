@@ -3805,11 +3805,12 @@ class TC15464(xenrt.TestCase):
 
     def testMultipathSanity(self):
         self.disableRandomFCPorts()
+        xenrt.sleep(180) # wait till devices are disabled.
         self.waitUntilDevicesAreInaccessible()
-        time.sleep(3) # handling CA-124429
+        xenrt.sleep(3) # handling CA-124429
         self.checkWhetherMultipathTopologyHasChanged()
         self.enableFCPorts()
-        time.sleep(120) # wait till devices are accessible
+        xenrt.sleep(180) # wait till devices are accessible
         self.checkSanityOfDevs()
         self.dev_list = self.getDevList() # the devices in the multipath group might change
 
@@ -4449,9 +4450,9 @@ class TC18782(xenrt.TestCase):
     def run(self, arglist=None):
 
         # Install Memcheck, a memory error detector using Valgrind
-        if not isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
-            self.host.execdom0("yum --disablerepo=citrix --enablerepo=base install -y gdb valgrind") # Valgrind v3.5.0
-        else:
+        if isinstance(self.host, xenrt.lib.xenserver.DundeeHost):
+            pass # Nothing to do as the package gdb (gdb-7.6.1-51.el7.x86_64) already installed and latest version.
+        elif isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
             # Valgrind v3.9.0 for Creedence.
             script = """#!/usr/bin/expect
     set timeout 180
@@ -4465,6 +4466,8 @@ class TC18782(xenrt.TestCase):
             self.host.execdom0("echo '%s' > script.sh; exit 0" % script)
             self.host.execdom0("chmod a+x script.sh; exit 0")
             self.host.execdom0("/root/script.sh")
+        else: # Any other hosts.
+            self.host.execdom0("yum --disablerepo=citrix --enablerepo=base install -y gdb valgrind") # Valgrind v3.5.0
 
         # Clean existing multipathd deamon, if any
         commandOutput = self.host.execdom0("killall multipathd; exit 0").strip()

@@ -397,7 +397,7 @@ class Guest(xenrt.lib.libvirt.Guest):
 
         # TODO eject the CD?
 
-    def enablePXE(self, pxe=True):
+    def enablePXE(self, pxe=True, disableCD=False):
         pass
 
     def xmlrpcTailor(self):

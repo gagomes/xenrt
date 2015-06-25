@@ -1,8 +1,5 @@
 <xenrt>
 
-  <default name="OLD_PRODUCT_VERSION" value="Boston" />
-  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.0.0/RTM-50762" />
-
   <variables>
     <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
     <PREPARE_WORKERS>3</PREPARE_WORKERS>
@@ -15,7 +12,7 @@
 
   <prepare>
 
-    <host id="0" license="platinum" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}">
+    <host id="0">
       <NETWORK>
         <PHYSICAL network="NPRI">
           <NIC />
@@ -27,7 +24,7 @@
         </PHYSICAL>
       </NETWORK>
     </host>
-    <host id="1" license="platinum">
+    <host id="1">
       <NETWORK>
         <PHYSICAL network="NPRI">
           <NIC />
@@ -40,7 +37,7 @@
         </PHYSICAL>
       </NETWORK>
     </host>
-    <host id="2" license="platinum" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}">
+    <host id="2">
       <NETWORK>
         <PHYSICAL network="NPRI">
           <NIC />

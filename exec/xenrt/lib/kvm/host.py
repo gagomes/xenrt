@@ -46,7 +46,8 @@ def createHost(id=0,
                vHostMemory=4096,
                vHostDiskSize=50,
                vHostSR=None,
-               vNetworks=None):
+               vNetworks=None,
+               **kwargs):
 
     if containerHost != None:
         raise xenrt.XRTError("Nested hosts not supported for this host type")
@@ -347,12 +348,20 @@ class KVMHost(xenrt.lib.libvirt.Host):
         xenrt.TEC().logverbose("getAssumedId (KVMHost: %s): MAC %s corresponds to assumedids %s" % (self, nicmac, assumedids))
         return assumedids[0]
 
-    def tailorForCloudStack(self, isCCP, isLXC=False):
+    def tailorForCloudStack(self, isCCP, isLXC=False, isBasic=False):
         """Tailor this host for use with ACS/CCP"""
 
         # Check that we haven't already tailored the host
         if self.execdom0("ls /var/lib/xenrt/cloudTailored", retval="code") == 0:
             return
+
+        if isBasic:
+            self.execdom0("echo 1 > /proc/sys/net/bridge/bridge-nf-call-iptables")
+            self.execdom0("echo 1 > /proc/sys/net/bridge/bridge-nf-call-arptables")
+            self.execdom0("sed -i '/net.bridge.bridge-nf-call-iptables/d' /etc/sysctl.conf")
+            self.execdom0("sed -i '/net.bridge.bridge-nf-call-arptables/d' /etc/sysctl.conf")
+            self.execdom0("echo 'net.bridge.bridge-nf-call-iptables = 1' >> /etc/sysctl.conf")
+            self.execdom0("echo 'net.bridge.bridge-nf-call-arptables = 1' >> /etc/sysctl.conf")
 
         # Common operations
         # hostname --fqdn must give a response

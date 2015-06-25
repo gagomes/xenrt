@@ -114,7 +114,7 @@ class XenRTDHCPAllocator(object):
         self._sql("SELECT addr FROM leases WHERE mac='%s' AND interface='%s' ORDER BY expiry DESC" % (mac.lower(), intf))
         r = self.cur.fetchone()
         if r:
-            return r[0]
+            return r[0].split("#")[0].strip()
         else:
             return None
 

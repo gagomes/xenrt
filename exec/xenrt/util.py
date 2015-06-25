@@ -736,7 +736,7 @@ def randomGuestName(distro=None, arch=None):
             arch = ""
         else:
             arch = arch[-2:]
-        return "%s%s%08x" % (distro, arch, random.randint(0, 0x7fffffff))
+        return "xenrt%s%s%08x" % (distro, arch, random.randint(0, 0x7fffffff))
     else:
         return "xenrt%08x%08x" % (random.randint(0, 0x7fffffff),
                                   random.randint(0, 0x7fffffff))

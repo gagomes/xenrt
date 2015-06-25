@@ -172,7 +172,9 @@ def createHost(id=0,
                vHostMemory=4096,
                vHostDiskSize=50,
                vHostSR=None,
-               vNetworks=None):
+               vNetworks=None,
+               iommu=False,
+               **kwargs):
 
     # noisos isn't used here, it is present in the arg list to
     # allow its use as a flag in PrepareNode in sequence.py
@@ -339,6 +341,12 @@ def createHost(id=0,
 
         output = host.execdom0("xenpm get-cpufreq-para | fgrep -e current_governor -e 'cpu id' || true")
         xenrt.TEC().logverbose("After changing cpufreq governor: %s" % (output,))
+
+    if iommu:
+        xenrt.TEC().logverbose("Enabling IOMMU on host %s..." % (host))
+        iovirt = xenrt.lib.xenserver.IOvirt(host)
+        iovirt.enableIOMMU(restart_host=False)
+        host.enableVirtualFunctions()
 
     xenrt.TEC().registry.hostPut(machine, host)
     if name:
@@ -10567,8 +10575,17 @@ class BostonHost(MNRHost):
         self.execdom0("sed -i 's/xen_netback.netback_max_rx_protocol=0//g' /boot/extlinux.conf")
         MNRHost.disableCC(self, reboot)
 
-    def tailorForCloudStack(self):
+    def tailorForCloudStack(self, isBasic=False):
         # Set the Linux templates with PV args to autoinstall
+
+        if isBasic and isinstance(self, xenrt.lib.xenserver.TampaHost) and self.execdom0("test -e /proc/sys/net/bridge", retval="code") == 0:
+            self.execdom0("echo 1 > /proc/sys/net/bridge/bridge-nf-call-iptables")
+            self.execdom0("echo 1 > /proc/sys/net/bridge/bridge-nf-call-arptables")
+            self.execdom0("sed -i '/net.bridge.bridge-nf-call-iptables/d' /etc/sysctl.conf")
+            self.execdom0("sed -i '/net.bridge.bridge-nf-call-arptables/d' /etc/sysctl.conf")
+            self.execdom0("echo 'net.bridge.bridge-nf-call-iptables = 1' >> /etc/sysctl.conf")
+            self.execdom0("echo 'net.bridge.bridge-nf-call-arptables = 1' >> /etc/sysctl.conf")
+
         myip = "xenrt-controller.xenrt"
 
         args = {}

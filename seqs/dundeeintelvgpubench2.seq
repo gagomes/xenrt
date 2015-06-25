@@ -25,6 +25,7 @@
     <serial group="Win7-x86-BenchInst">
       <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmarkInstall">
         <arg>guest=win8</arg>
+        <arg>benchmark=UnigineTropics</arg>
         <arg>benchmark=SPECViewPerf11</arg>
         <arg>benchmark=WindowsExperienceIndex</arg>
         <arg>benchmark=WebGL</arg>
@@ -33,6 +34,7 @@
     <serial group="Win7-x64-BenchInst">
       <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmarkInstall">
         <arg>guest=win8x64</arg>
+        <arg>benchmark=UnigineTropics</arg>
         <arg>benchmark=SPECViewPerf11</arg>
         <arg>benchmark=WindowsExperienceIndex</arg>
         <arg>benchmark=WebGL</arg>
@@ -50,6 +52,7 @@
       <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
         <arg>guest=win8</arg>
         <arg>vgpuconfig=Intel GVT-g</arg>
+        <arg>benchmark=UnigineTropics</arg>
         <arg>benchmark=SPECViewPerf11</arg>
         <arg>benchmark=WindowsExperienceIndex</arg>
         <arg>benchmark=WebGL</arg>
@@ -71,6 +74,7 @@
       <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
         <arg>guest=win8x64</arg>
         <arg>vgpuconfig=Intel GVT-g</arg>
+        <arg>benchmark=UnigineTropics</arg>
         <arg>benchmark=SPECViewPerf11</arg>
         <arg>benchmark=WindowsExperienceIndex</arg>
         <arg>benchmark=WebGL</arg>

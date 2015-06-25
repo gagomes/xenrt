@@ -40,6 +40,7 @@ __all__ = ["getStorageRepositoryClass",
            "ISCSILunSpecified",
            "NetAppTarget",
            "EQLTarget",
+           "SMAPIv3LocalStorageRepository",
             ]
 
 
@@ -396,6 +397,15 @@ class LVMStorageRepository(StorageRepository):
 
     def create(self, device, physical_size=0, content_type="", smconf={}):
         self._create("lvm", {"device":device}, physical_size, content_type, smconf)
+
+
+class SMAPIv3LocalStorageRepository(StorageRepository):
+
+    SHARED = False
+    CLEANUP = "destroy"
+
+    def create(self, device, physical_size=0, content_type="", smconf={}):
+        self._create("btrfs", {"uri":"file:///dev/%s" % device}, physical_size, content_type, smconf)
 
 
 class IntegratedCVSMStorageRepository(StorageRepository):

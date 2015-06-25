@@ -5533,6 +5533,8 @@ fi
         if len(srl) == 0:
             srl = self.getSRs("lvm", local=True)
         if len(srl) == 0:
+            srl = self.getSRs("btrfs", local=True)
+        if len(srl) == 0:
             raise xenrt.XRTError("Could not find suitable local SR")
         return srl[0]
    

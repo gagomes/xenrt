@@ -8,7 +8,17 @@
   </variables>
 
   <prepare>
-    <host diskCount="0" />
+    <host diskCount="0">
+      <vm name="debian">
+        <distro>debian80</distro>
+        <arch>x86-64</arch>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="8" />
+      </vm>
+      <storage type="smapiv3local" name="BTRFS" default="yes" />
+    </host>
   </prepare>
 
 </xenrt>

@@ -21,7 +21,7 @@
 
   <xs:simpleType name="storageType">
     <xs:restriction base="xs:string">
-      <xs:pattern value="nfs|lvmoiscsi|fc|eql|netapp|icvsmeql|icvsmnetapp|icvsmfc|icvsmsmisiscsi|icvsmsmisfc|cvsmnetapp|cvsmeql|cvsmsmisiscsi|cvsmfc|cvsmsmisfc|smb"/>
+      <xs:pattern value="nfs|lvmoiscsi|fc|eql|netapp|icvsmeql|icvsmnetapp|icvsmfc|icvsmsmisiscsi|icvsmsmisfc|cvsmnetapp|cvsmeql|cvsmsmisiscsi|cvsmfc|cvsmsmisfc|smb|smapiv3local|smapiv3shared"/>
     </xs:restriction>
   </xs:simpleType>
 
@@ -110,7 +110,7 @@
           <xs:attribute name="productType" use="optional" type="xs:string" />
           <xs:attribute name="productVersion" use="optional" type="xs:string" />
           <xs:attribute name="version" use="optional" type="xs:string" />
-          <xs:attribute name="diskCount" use="optional" type="xs:positiveInteger" />
+          <xs:attribute name="diskCount" use="optional" type="xs:nonNegativeInteger" />
           <xs:attribute name="defaultlicense" use="optional" type="xbool" />
           <xs:attribute name="iommu" use="optional" type="xbool" />
           <xs:attribute name="installsr" use="optional" type="installsrType" />

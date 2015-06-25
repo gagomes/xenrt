@@ -26,12 +26,18 @@
       <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmarkInstall">
         <arg>guest=win8</arg>
         <arg>benchmark=UnigineTropics</arg>
+        <arg>benchmark=SPECViewPerf11</arg>
+        <arg>benchmark=WindowsExperienceIndex</arg>
+        <arg>benchmark=WebGL</arg>
       </testcase>
     </serial>
     <serial group="Win7-x64-BenchInst">
       <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmarkInstall">
         <arg>guest=win8x64</arg>
         <arg>benchmark=UnigineTropics</arg>
+        <arg>benchmark=SPECViewPerf11</arg>
+        <arg>benchmark=WindowsExperienceIndex</arg>
+        <arg>benchmark=WebGL</arg>
       </testcase>
     </serial>
 
@@ -43,10 +49,25 @@
         <arg>typeofvgpu=intelwinvgpu</arg>
         <arg>blockdom0access=false</arg>
       </testcase>
-      <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
+      <testcase id="testcases.xenserver.tc.vgpu.TCVGPUCloneVM">
         <arg>guest=win8</arg>
         <arg>vgpuconfig=Intel GVT-g</arg>
+        <arg>clones=3</arg>
+        <arg>typeofvgpu=intelwinvgpu</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
+        <arg>guest=win8</arg>
+        <arg>clones=3</arg>
+        <arg>vgpuconfig=Intel GVT-g</arg>
         <arg>benchmark=UnigineTropics</arg>
+        <arg>benchmark=SPECViewPerf11</arg>
+        <arg>benchmark=WindowsExperienceIndex</arg>
+        <arg>benchmark=WebGL</arg>
+        <arg>typeofvgpu=intelwinvgpu</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.vgpu.TCVGPUDeleteClones">
+        <arg>guest=win8</arg>
+        <arg>clones=3</arg>
         <arg>typeofvgpu=intelwinvgpu</arg>
       </testcase>
       <testcase id="guestops.basic.TCShutdown">
@@ -62,10 +83,25 @@
         <arg>typeofvgpu=intelwinvgpu</arg>
         <arg>blockdom0access=false</arg>
       </testcase>
-      <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
+      <testcase id="testcases.xenserver.tc.vgpu.TCVGPUCloneVM">
         <arg>guest=win8x64</arg>
         <arg>vgpuconfig=Intel GVT-g</arg>
+        <arg>clones=3</arg>
+        <arg>typeofvgpu=intelwinvgpu</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
+        <arg>guest=win8x64</arg>
+        <arg>clones=3</arg>
+        <arg>vgpuconfig=Intel GVT-g</arg>
         <arg>benchmark=UnigineTropics</arg>
+        <arg>benchmark=SPECViewPerf11</arg>
+        <arg>benchmark=WindowsExperienceIndex</arg>
+        <arg>benchmark=WebGL</arg>
+        <arg>typeofvgpu=intelwinvgpu</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.vgpu.TCVGPUDeleteClones">
+        <arg>guest=win8x64</arg>
+        <arg>clones=3</arg>
         <arg>typeofvgpu=intelwinvgpu</arg>
       </testcase>
       <testcase id="guestops.basic.TCShutdown">

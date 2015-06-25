@@ -2807,8 +2807,13 @@ exit /B 1
         for uuid in vbds:
             device = self.getHost().genParamGet("vbd", uuid, "userdevice")
             vdiuuid = self.getHost().genParamGet("vbd", uuid, "vdi-uuid")
-            sizebytes = self.getHost().genParamGet("vdi", vdiuuid, "virtual-size")
-            size = int(sizebytes) / xenrt.MEGA
+            
+            if xenrt.isUUID(vdiuuid):
+                sizebytes = self.getHost().genParamGet("vdi", vdiuuid, "virtual-size")
+                size = int(sizebytes) / xenrt.MEGA
+            else:
+                sizebytes = 0
+                size = 0
             data = self.getHost().genParamGet("vbd", uuid, "qos_algorithm_params")
             try:
                 qos = int(re.search("class: ([0-9]+)", data).group(1))

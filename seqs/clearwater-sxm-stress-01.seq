@@ -1,6 +1,6 @@
 <xenrt>
 
-  <default name="ITERATIONS" value="100" />
+  <default name="ITERATIONS" value="300" />
 
   <variables>
     <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>

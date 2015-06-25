@@ -14,9 +14,7 @@
   </prepare>
 
   <testsequence group="DRAC">
-    <testcase id="xenserver.tc.host.TC21632">
-      <arg>unsatisfieddependency</arg>
-    </testcase>
+    <testcase id="xenserver.tc.host.TC21632" />
   </testsequence>
 
 </xenrt>

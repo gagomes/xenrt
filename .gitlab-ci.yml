@@ -1,4 +1,4 @@
-jobs:
-  - script: "cp build/config.mk.unittest build/config.mk && make minimal-check"
-    runner: "xenrt"
-    name: "check_xenrt.git"
+check_xenrt.git:
+  test: "cp build/config.mk.unittest build/config.mk && make minimal-check"
+  tags:
+    - xenrt

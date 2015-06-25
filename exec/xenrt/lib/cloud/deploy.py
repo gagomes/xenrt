@@ -330,8 +330,8 @@ class DeployerPlugin(object):
             hostObject = xenrt.TEC().registry.hostGet(ref['XRT_MasterHostName'])
             try:
                 hostObject.tailorForCloudStack(isBasic = ref.get("XRT_NetworkType", "Basic").lower() == "basic")
-            except:
-                xenrt.TEC().logverbose("Warning - could not run tailorForCloudStack()")
+            except Exception, e:
+                xenrt.TEC().logverbose("Warning - could not run tailorForCloudStack() - %s" % str(e))
 
             if hostObject.pool:
                 hostObjects = hostObject.pool.getHosts()

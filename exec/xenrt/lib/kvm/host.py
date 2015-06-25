@@ -356,12 +356,12 @@ class KVMHost(xenrt.lib.libvirt.Host):
             return
 
         if isBasic:
-            self.host.execdom0("echo 1 > /proc/sys/net/bridge/bridge-nf-call-iptables")
-            self.host.execdom0("echo 1 > /proc/sys/net/bridge/bridge-nf-call-arptables")
-            self.host.execdom0("sed -i '/net.bridge.bridge-nf-call-iptables/d' /etc/sysctl.conf")
-            self.host.execdom0("sed -i '/net.bridge.bridge-nf-call-arptables/d' /etc/sysctl.conf")
-            self.host.execdom0("echo 'net.bridge.bridge-nf-call-iptables = 1' >> /etc/sysctl.conf")
-            self.host.execdom0("echo 'net.bridge.bridge-nf-call-arptables = 1' >> /etc/sysctl.conf")
+            self.execdom0("echo 1 > /proc/sys/net/bridge/bridge-nf-call-iptables")
+            self.execdom0("echo 1 > /proc/sys/net/bridge/bridge-nf-call-arptables")
+            self.execdom0("sed -i '/net.bridge.bridge-nf-call-iptables/d' /etc/sysctl.conf")
+            self.execdom0("sed -i '/net.bridge.bridge-nf-call-arptables/d' /etc/sysctl.conf")
+            self.execdom0("echo 'net.bridge.bridge-nf-call-iptables = 1' >> /etc/sysctl.conf")
+            self.execdom0("echo 'net.bridge.bridge-nf-call-arptables = 1' >> /etc/sysctl.conf")
 
         # Common operations
         # hostname --fqdn must give a response

@@ -10578,13 +10578,13 @@ class BostonHost(MNRHost):
     def tailorForCloudStack(self, isBasic=False):
         # Set the Linux templates with PV args to autoinstall
 
-        if isBasic and isinstance(self, xenrt.lib.xenserver.TampaHost):
-            self.host.execdom0("echo 1 > /proc/sys/net/bridge/bridge-nf-call-iptables")
-            self.host.execdom0("echo 1 > /proc/sys/net/bridge/bridge-nf-call-arptables")
-            self.host.execdom0("sed -i '/net.bridge.bridge-nf-call-iptables/d' /etc/sysctl.conf")
-            self.host.execdom0("sed -i '/net.bridge.bridge-nf-call-arptables/d' /etc/sysctl.conf")
-            self.host.execdom0("echo 'net.bridge.bridge-nf-call-iptables = 1' >> /etc/sysctl.conf")
-            self.host.execdom0("echo 'net.bridge.bridge-nf-call-arptables = 1' >> /etc/sysctl.conf")
+        if isBasic and isinstance(self, xenrt.lib.xenserver.TampaHost) and self.execdom0("test -e /proc/sys/net/bridge", retval="code") == 0:
+            self.execdom0("echo 1 > /proc/sys/net/bridge/bridge-nf-call-iptables")
+            self.execdom0("echo 1 > /proc/sys/net/bridge/bridge-nf-call-arptables")
+            self.execdom0("sed -i '/net.bridge.bridge-nf-call-iptables/d' /etc/sysctl.conf")
+            self.execdom0("sed -i '/net.bridge.bridge-nf-call-arptables/d' /etc/sysctl.conf")
+            self.execdom0("echo 'net.bridge.bridge-nf-call-iptables = 1' >> /etc/sysctl.conf")
+            self.execdom0("echo 'net.bridge.bridge-nf-call-arptables = 1' >> /etc/sysctl.conf")
 
         myip = "xenrt-controller.xenrt"
 

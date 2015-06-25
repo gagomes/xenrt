@@ -3306,7 +3306,7 @@ DHCPServer = 1
                 self.execcmd("apt-get install libssl-dev --force-yes -y")
                 self.execcmd("apt-get install linux-headers-`uname -r` --force-yes -y")
             elif redhat:
-                self.execcmd("yum install -y openssl-devel kernel-headers")
+                self.execcmd("yum --disablerepo=updates install -y openssl-devel kernel-headers")
 
             # Get and install the iscsi target
             

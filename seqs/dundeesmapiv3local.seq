@@ -1,0 +1,13 @@
+<xenrt>
+
+  <!-- VHD storage tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host diskCount="0" />
+  </prepare>
+
+</xenrt>

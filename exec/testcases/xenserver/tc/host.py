@@ -2378,8 +2378,8 @@ class TC21632(_TCHostPowerON):
         self.pool.master.execdom0("wget -nv '%sdellomsupppack.tgz' -O - | tar -zx -C /tmp" %
                                                 (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
         productVersion = self.pool.master.productVersion.lower().strip()
-        if productVersion == 'cream':
-            productVersion = 'creedence'
+        if productVersion == 'cream': productVersion = 'creedence' # Cream is Service Pack 1 for Creedence.
+                                                                   # Hence no change in Dell OpenManage Supppack.
         dellomSupppack = "dellomsupppack-%s.iso" % productVersion
         self.pool.master.execdom0("mv /tmp/dellomsupppack/%s /root" % dellomSupppack)
 

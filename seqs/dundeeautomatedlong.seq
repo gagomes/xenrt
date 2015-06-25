@@ -12,7 +12,7 @@
   </prepare> 
 
   <testsequence group="AutoMan">
-    <testcase id="xenserver.tc.dr.EnableDbReplication"/>
+    <testcase id="xenserver.tc.dr.EnableDbReplication" blocker="yes"/>
     <testcase id="xenserver.tc.manual.TC640"/>
   </testsequence>
 

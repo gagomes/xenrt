@@ -961,7 +961,7 @@ class UpdateJob(_JobBase):
         self.getDB().commit()
         return {}
     
-class AddJobLogItem(_JobBase):
+class NewJobLogItem(_JobBase):
     REQTYPE="POST"
     WRITE = True
     PATH = "/job/{id}/log"
@@ -988,9 +988,10 @@ class AddJobLogItem(_JobBase):
                 "type": "string",
                 "description": "Log item to add"
             },
-        }
+        },
+        "required": "log"
     }}
-    OPERATION_ID = "update_job"
+    OPERATION_ID = "new_job_log_item"
     PARAM_ORDER=["id", "log"]
     SUMMARY = "Add item to job log"
 
@@ -1003,7 +1004,7 @@ class AddJobLogItem(_JobBase):
         db = self.getDB()
         cur = db.cursor()
         timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))
-        cur.execute("INSERT INTO tblEvents (ts, job, log) "
+        cur.execute("INSERT INTO tbljoblog (ts, job, log) "
                     "VALUES (%s, %s, %s);",
                     [timenow, self.request.matchdict['id'], j['log']])
         
@@ -1077,4 +1078,4 @@ RegisterAPI(GetJobDeployment)
 RegisterAPI(EmailJob)
 RegisterAPI(TeardownJobSimple)
 RegisterAPI(RenewJobLeaseSimple)
-RegisterAPI(AddJobLogItem)
+RegisterAPI(NewJobLogItem)

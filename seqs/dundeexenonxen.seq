@@ -3,11 +3,13 @@
   <variables>
     <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
     <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+    <NESTED_HVM>yes</NESTED_HVM>    
     <!--Used for testing only -->
     <param>APPLY_ALL_RELEASED_HFXS=yes</param>
   </variables>
   <scheduler>
     <resources>memory&gt;=20G/disk1&gt;=176G</resources>
+    <flags>!nohap,xenrtdhcpd</flags>
   </scheduler>
   <preprepare>
     <host id="0" />

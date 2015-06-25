@@ -454,7 +454,7 @@ class Guest(xenrt.GenericGuest):
                     if rootdisk < size:
                         xenrt.TEC().warning("Unable to shrink root disk from"
                                             " %uMB to %uMB" % (size, rootdisk))
-                    else:
+                    elif not xenrt.TEC().lookup("NO_RESIZE_VDIS", False, boolean=True):
                         self.resizeDisk(rootdiskid, rootdisk)
                         xenrt.TEC().logverbose("Resized root disk to %uMB" %
                                                (rootdisk))

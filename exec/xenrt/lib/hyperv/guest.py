@@ -34,7 +34,8 @@ def createVM(host,
              bootparams=None,
              use_ipv6=False,
              suffix=None,
-             ips={}):
+             ips={},
+             **kwargs):
 
     if not isinstance(host, xenrt.GenericHost):
         host = xenrt.TEC().registry.hostGet(host)

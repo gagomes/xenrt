@@ -4722,7 +4722,8 @@ def createVM(host,
              bootparams=None,
              use_ipv6=False,
              suffix=None,
-             ips={}):
+             ips={},
+             **kwargs):
 
 
     canUsePrebuiltTemplate = not pxe and not guestparams and not template and not bootparams and not use_ipv6

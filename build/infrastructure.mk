@@ -16,7 +16,6 @@ DONETWORK ?= yes
 DOCONSERVER ?= yes
 DOLOGROTATE ?= yes
 DOSITECONTROLLERCMD ?= yes
-DOLIBVIRT ?= yes
 DOGITCONFIG ?= yes
 endif
 ifeq ($(NISPRODUCTIONCONFIG),yes)
@@ -26,7 +25,6 @@ DOHOSTS ?= yes
 DOCONSERVER ?= yes
 DOLOGROTATE ?= yes
 DOSITECONTROLLERCMD ?= yes
-DOLIBVIRT ?= yes
 DOGITCONFIG ?= yes
 endif
 
@@ -48,7 +46,7 @@ ifeq ($(APIBUILD), yes)
 	cp $(SHAREDIR)/control/xenrtnew $(SHAREDIR)/api_build/python/scripts/xenrtnew
 	cp $(SHAREDIR)/control/xenrt $(SHAREDIR)/api_build/python/scripts/xenrt
 	cd $(SHAREDIR)/api_build/python/ && python setup.py sdist
-	$(SUDO) ln -sf $(SHAREDIR)/api_build/python/dist/xenrtapi-0.06.tar.gz $(WEBROOT)/xenrtapi.tar.gz
+	$(SUDO) ln -sf $(SHAREDIR)/api_build/python/dist/xenrtapi-0.08.tar.gz $(WEBROOT)/xenrtapi.tar.gz
 	$(SUDO) pip install -I $(WEBROOT)/xenrtapi.tar.gz
 	$(SUDO) pdoc --html --html-dir /var/www --overwrite xenrtapi
 	cd $(SHAREDIR)/api_build/python/ && python setup.py sdist upload -r pypi
@@ -68,34 +66,6 @@ api:
 	$(eval TMP := $(shell mktemp -d))
 	$(SUDOSH) 'cd $(TMP) && pip install -I $(serverbase)/xenrtapi.tar.gz'
 	$(SUDO) rm -rf $(TMP)
-
-.PHONY: libvirt
-libvirt: libvirt-pkg /usr/lib/libvirt-qemu.so.0.1000.0 /usr/local/lib/python2.6/dist-packages/virtinst
-
-libvirt-pkg:
-ifeq ($(DOLIBVIRT),yes)
-	$(info Installing libvirt after removing old version included in debian package...)
-	$(SUDO) apt-get remove -y libvirt0 python-libvirt
-	$(SUDO) apt-get install -y --force-yes libgnutls-dev libyajl-dev libdevmapper-dev libcurl4-gnutls-dev python-dev libnl-dev libxml2-dev python-pexpect 
-endif
-
-/usr/lib/libvirt-qemu.so.0.1000.0:
-ifeq ($(DOLIBVIRT),yes)
-	$(eval TMP := $(shell mktemp -d))
-	tar xzf $(TEST_INPUTS)/libvirt/libvirt-1.0.0.tar.gz -C $(TMP)
-	cd $(TMP)/libvirt-1.0.0;./configure --prefix=/usr --localstatedir=/var --with-esx --with-storage-fs --with-python -q
-	cd $(TMP)/libvirt-1.0.0;nice make > /dev/null
-	cd $(TMP)/libvirt-1.0.0;$(SUDO) make install > /dev/null
-	$(SUDO) rm -rf $(TMP)
-endif
-
-/usr/local/lib/python2.6/dist-packages/virtinst:
-ifeq ($(DOLIBVIRT),yes)
-	$(eval TMP := $(shell mktemp -d))
-	tar xzf $(TEST_INPUTS)/libvirt/virtinst-0.600.3.tar.gz -C $(TMP)
-	cd $(TMP)/virtinst-0.600.3;$(SUDO) python setup.py install > /dev/null
-	$(SUDO) rm -rf $(TMP)
-endif
 
 .PHONY: winpe
 winpe:
@@ -245,7 +215,7 @@ ifeq ($(DOSITECONTROLLERCMD),yes)
 endif
 
 .PHONY: infrastructure
-infrastructure: puppetrun api winpe machines files dhcpd dhcpd6 hosts network conserver logrotate sitecontrollercmd libvirt
+infrastructure: puppetrun api winpe machines files dhcpd dhcpd6 hosts network conserver logrotate sitecontrollercmd
 	$(info XenRT infrastructure installed.)
 
 

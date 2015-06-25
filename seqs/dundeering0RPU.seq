@@ -62,8 +62,8 @@
           <disk device="0" size="24" />
           <storage>nfs1</storage>
         </vm>
-        <vm name="sles113">
-          <distro>sles113</distro>
+        <vm name="sles111">
+          <distro>sles111</distro>
           <memory>512</memory>
           <vcpus>2</vcpus>
           <network device="0" />

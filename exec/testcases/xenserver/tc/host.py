@@ -2411,8 +2411,7 @@ class TC21632(_TCHostPowerON):
             raise xenrt.XRTFailure("Failed to install Dell OpenManage Supplemental Pack on master")
 
         # Retart toolstack
-        self.pool.master.execdom0("xe-toolstack-restart")
-        self.pool.master.waitForXapi(600, desc="Xapi response after restart the master")
+        self.pool.master.restartToolstack()
 
 class TC10811(_TCHostPowerON):
     """Testcase Exsures power control is disabled for a host"""

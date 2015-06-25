@@ -1,5 +1,4 @@
-
 check_xenrt.git:
-  test: "cp build/config.mk.unittest build/config.mk && make minimal-check"
+  script: "cp build/config.mk.unittest build/config.mk && make minimal-check"
   tags:
     - xenrt

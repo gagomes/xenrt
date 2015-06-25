@@ -82,6 +82,7 @@
       <arg>iterations=${ITERATIONS}</arg>
       <arg>use_vmsecnetwork</arg>
       <arg>skip_vmdowntime</arg>
+      <arg>use_xe</arg>
     </testcase>
   </collection>
 
@@ -93,6 +94,7 @@
       <arg>src_SR_type=ext</arg>
       <arg>dest_SR_type=ext</arg>
       <arg>iterations=${ITERATIONS}</arg>
+      <arg>use_xe</arg>
     </testcase>
   </collection>-->
 

@@ -1922,7 +1922,7 @@ class CleanReboot123(xenrt.TestCase):
     def run(self, arglist):
         step("Reboot VM on master")     
         masterVM = self.getGuest(arglist[0])
-        xenrt.pfarm([xenrt.PTask(masterVM.reboot, ("force=option")) for option in [True, False]])
+        bootSleep(True)
         
         
         

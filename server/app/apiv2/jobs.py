@@ -989,7 +989,7 @@ class NewJobLogItem(_JobBase):
                 "description": "Log item to add"
             },
         },
-        "required": "log"
+        "required": ["log"]
     }}
     OPERATION_ID = "new_job_log_item"
     PARAM_ORDER=["id", "log"]

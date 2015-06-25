@@ -12,7 +12,8 @@ import csv, os, re, string, StringIO, random, uuid
 import xenrt
 
 __all__ = ["createHost",
-           "ESXHost"]
+           "ESXHost",
+           "poolFactory"]
 
 def createHost(id=0,
                version=None,
@@ -109,7 +110,7 @@ def createHost(id=0,
     return host
 
 def poolFactory(mastertype):
-    return xenrt.lib.esx.Pool
+    return xenrt.lib.esx.pool.ESXPool
 
 class ESXHost(xenrt.lib.libvirt.Host):
 

@@ -1,0 +1,48 @@
+<xenrt>
+
+  <variables>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+    <!--Used for testing only -->
+    <param>APPLY_ALL_RELEASED_HFXS=yes</param>
+  </variables>
+  <scheduler>
+    <resources>memory&gt;=20G/disk1&gt;=176G</resources>
+  </scheduler>
+  <preprepare>
+    <host id="0" />
+  </preprepare>
+  <prepare>
+    <pool id="0">
+      <host container="0" vname="0" vcpus="2" vmemory="4096" vdisksize="64">
+        <vm name="VM on Master">
+          <distro>debian80</distro>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+        </vm>
+      </host>
+      <host container="0" vname="1" vcpus="2" vmemory="4096" vdisksize="64">
+        <vm name="VM on Slave">
+          <distro>debian80</distro>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+        </vm>
+      </host>
+    </pool>
+  </prepare>
+
+
+
+  <testsequence>
+    <!-- reference test-cases to be included in the sequence here: -->
+    <!-- The dotted name here reflects the directory structure inside xenrt.git/exec/ -->
+    <testcase id="xenserver.tc.guest.CleanReboot123" >
+    <arg>vm1 = "VM on Master"</arg>        
+    <arg>vm2 = "VM on Slave"</arg>
+    </testcase>
+    </testsequence>
+</xenrt>

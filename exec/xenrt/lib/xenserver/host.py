@@ -1422,8 +1422,14 @@ cd -
         if firstBootSRInfo:
             (disk, srtype) = firstBootSRInfo
             firstBootSRSetup = """
+rm -f /etc/udev/rules.d/61-xenrt.rules
+rm -f /dev/disk/by-id/*
 if [ -e /sbin/udevadm ]
 then
+    sleep 5
+    /sbin/udevadm trigger --action=add
+    /sbin/udevadm settle
+    sleep 5
     export XRTDISKLINKS=$(/sbin/udevadm info -q symlink -n %s)
 else
     export XRTDISKLINKS=$(udevinfo -q symlink -n %s)

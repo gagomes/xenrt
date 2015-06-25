@@ -2378,8 +2378,9 @@ class TC21632(_TCHostPowerON):
         self.pool.master.execdom0("wget -nv '%sdellomsupppack.tgz' -O - | tar -zx -C /tmp" %
                                                 (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
         productVersion = self.pool.master.productVersion.lower().strip()
-        if productVersion == 'cream': productVersion = 'creedence' # Cream is Service Pack 1 for Creedence.
-                                                                   # Hence no change in Dell OpenManage Supppack.
+        if productVersion == 'cream':    # Cream is Service Pack 1 for Creedence.
+            productVersion = 'creedence' # Hence no change in Dell OpenManage Supppack.
+
         dellomSupppack = "dellomsupppack-%s.iso" % productVersion
         self.pool.master.execdom0("mv /tmp/dellomsupppack/%s /root" % dellomSupppack)
 
@@ -2405,7 +2406,7 @@ class TC21632(_TCHostPowerON):
         xenrt.sleep(30) # Allowing OM to settle before Xapi restart.
         
         if re.search("Pack installation successful", commandOutput):
-                xenrt.TEC().logverbose("Dell OpenManage Supplemental Pack is successfully installed on master %s" % master)
+                xenrt.TEC().logverbose("Dell OpenManage Supplemental Pack is successfully installed on master %s" % self.pool.master)
         else:
             raise xenrt.XRTFailure("Failed to install Dell OpenManage Supplemental Pack on master")
 

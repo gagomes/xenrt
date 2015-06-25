@@ -2163,6 +2163,7 @@ class Commands:
         self.add(XenRTRemove)
         self.add(XenRTSetResult)
         self.add(XenRTLogData)
+        self.add(XenRTJobLog)
         self.add(XenRTShowLog)
         self.add(XenRTMachine)
         self.add(XenRTMList)

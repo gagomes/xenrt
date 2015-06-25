@@ -1398,26 +1398,15 @@ at > c:\\xenrtatlog.txt
 
         batch = ""
 
-        if self.xmlrpcGetArch() == "amd64":
-            batch = batch + "MsiExec.exe /i D:\\citrixxendriversx64.msi /passive /norestart\r\n"
-            batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
-            self.reboot()
-            batch = batch + "\r\n"
-            self.installDotNetRequiredForDrivers()
-            batch = batch + "MsiExec.exe /i D:\\citrixguestagentx64.msi /passive /norestart\r\n"
-            batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
-            self.reboot()
+        batch = batch + "MsiExec.exe /i D:\\citrixxendriversx64.msi /passive /norestart\r\n"
+        batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
+        self.reboot()
+        batch = batch + "\r\n"
+        self.installDotNetRequiredForDrivers()
+        batch = batch + "MsiExec.exe /i D:\\citrixguestagentx64.msi /passive /norestart\r\n"
+        batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
+        self.reboot()
             
-        else:
-            batch = batch + "MsiExec.exe /X D:\\citrixxendriversx86.msi /passive /norestart\r\n"
-            batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
-            self.reboot()
-            batch = batch + "MsiExec.exe /X D:\\citrixvssx86.msi /passive /norestart\r\n"
-            self.installDotNetRequiredForDrivers()
-            batch = batch + "MsiExec.exe /X D:\\citrixguestagentx86.msi /passive /norestart\r\n"
-            batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
-            self.reboot()
-
         batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
         batch = batch + "MsiExec.exe /i D:\\installwizard.msi /passive /norestart\r\n"
         batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"

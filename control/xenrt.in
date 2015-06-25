@@ -1939,7 +1939,6 @@ class XenRTSNetwork(_XenRTControllerOperation):
         details = {'action': 'network'}
         details['USERID'] = pwd.getpwuid(os.getuid())[0]
 
-        addr = self.getControllerAddr(site)
         addr = self.xenrt.get_site(site)['ctrladdr']
         r = requests.get("http://%s/xenrt/api/controller/network" % addr)
         r.raise_for_status()

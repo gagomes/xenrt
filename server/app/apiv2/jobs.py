@@ -199,6 +199,7 @@ class _JobBase(_MachineBase):
                 detailids[rc[2]] = rc[0]
             if getLog:
                 for j in jobs.keys():
+                    jobs[j]['log'] = []
                     for d in jobs[j]['results'].keys():
                         jobs[j]['results'][d]['log'] = []
                 if len(detailids.keys()) > 0:
@@ -212,6 +213,17 @@ class _JobBase(_MachineBase):
                             "ts": calendar.timegm(rc[1].timetuple()),
                             "type": rc[2].strip(),
                             "log": rc[3].strip()
+                            })
+                if len(jobs.keys()) > 0:
+                    jobidlist = ", ".join(["%s"] * len(jobs.keys()))
+                    cur.execute("SELECT job, ts, log FROM tbljoblog WHERE job IN (%s) ORDER BY ts" % jobidlist, jobs.keys())
+                    while True:
+                        rc = cur.fetchone()
+                        if not rc:
+                            break
+                        jobs[rc[0]]['log'].append({
+                            "ts": calendar.timegm(rc[1].timetuple()),
+                            "log": rc[2].strip()
                             })
 
 
@@ -949,6 +961,55 @@ class UpdateJob(_JobBase):
         self.getDB().commit()
         return {}
     
+class AddJobLogItem(_JobBase):
+    REQTYPE="POST"
+    WRITE = True
+    PATH = "/job/{id}/log"
+    TAGS = ["jobs"]
+    PARAMS = [
+        {'name': 'id',
+         'in': 'path',
+         'required': True,
+         'description': 'Job ID to update',
+         'type': 'integer'},
+        {'name': 'body',
+         'in': 'body',
+         'required': True,
+         'description': 'Details of the update',
+         'schema': { "$ref": "#/definitions/addjoblogitem" }
+        }
+    ]
+    RESPONSES = { "200": {"description": "Successful response"}}
+    DEFINITIONS = {"addjoblogitem": {
+        "title": "Update Job",
+        "type": "object",
+        "properties": {
+            "log": {
+                "type": "string",
+                "description": "Log item to add"
+            },
+        }
+    }}
+    OPERATION_ID = "update_job"
+    PARAM_ORDER=["id", "log"]
+    SUMMARY = "Add item to job log"
+
+    def render(self):
+        try:
+            j = json.loads(self.request.body)
+            jsonschema.validate(j, self.DEFINITIONS['addjoblogitem'])
+        except Exception, e:
+            raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
+        db = self.getDB()
+        cur = db.cursor()
+        timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))
+        cur.execute("INSERT INTO tblEvents (ts, job, log) "
+                    "VALUES (%s, %s, %s);",
+                    [timenow, self.request.matchdict['id'], j['log']])
+        
+        db.commit()
+        return {}
+
 class EmailJob(_JobBase):
     PATH = "/job/{id}/email"
     REQTYPE = "POST"
@@ -1016,3 +1077,4 @@ RegisterAPI(GetJobDeployment)
 RegisterAPI(EmailJob)
 RegisterAPI(TeardownJobSimple)
 RegisterAPI(RenewJobLeaseSimple)
+RegisterAPI(AddJobLogItem)

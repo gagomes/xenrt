@@ -10575,8 +10575,17 @@ class BostonHost(MNRHost):
         self.execdom0("sed -i 's/xen_netback.netback_max_rx_protocol=0//g' /boot/extlinux.conf")
         MNRHost.disableCC(self, reboot)
 
-    def tailorForCloudStack(self):
+    def tailorForCloudStack(self, isBasic=False):
         # Set the Linux templates with PV args to autoinstall
+
+        if isBasic and isinstance(self, xenrt.lib.xenserver.TampaHost):
+            self.host.execdom0("echo 1 > /proc/sys/net/bridge/bridge-nf-call-iptables")
+            self.host.execdom0("echo 1 > /proc/sys/net/bridge/bridge-nf-call-arptables")
+            self.host.execdom0("sed -i '/net.bridge.bridge-nf-call-iptables/d' /etc/sysctl.conf")
+            self.host.execdom0("sed -i '/net.bridge.bridge-nf-call-arptables/d' /etc/sysctl.conf")
+            self.host.execdom0("echo 'net.bridge.bridge-nf-call-iptables = 1' >> /etc/sysctl.conf")
+            self.host.execdom0("echo 'net.bridge.bridge-nf-call-arptables = 1' >> /etc/sysctl.conf")
+
         myip = "xenrt-controller.xenrt"
 
         args = {}

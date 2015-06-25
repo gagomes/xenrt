@@ -162,6 +162,7 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
                         xenrt.TEC().warning('LEGACY_CLOUD_BLOCK hosts no longer valid - use XRT_Hosts')
                         cluster['XRT_Hosts'] = cluster.pop('hosts')
 
+                    cluster['XRT_NetworkType'] = zone.get("networktype", "Basic")
                     if not cluster.has_key('hypervisor'):
                         cluster['hypervisor'] = "XenServer"
 

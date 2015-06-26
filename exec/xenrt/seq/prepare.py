@@ -1613,7 +1613,7 @@ class PrepareNode(object):
                                   multipathing=mp)
                     elif s['type'] == "smapiv3local":
                         sr = xenrt.productLib(host=host).SMAPIv3LocalStorageRepository(host, s['name'])
-                        device = s['options'] or "sda3"
+                        device = s['options'] or None
                         sr.create(device, content_type="user")
                     else:
                         raise xenrt.XRTError("Unknown storage type %s" % (s["type"]))

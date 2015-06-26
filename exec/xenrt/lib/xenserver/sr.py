@@ -405,7 +405,18 @@ class SMAPIv3LocalStorageRepository(StorageRepository):
     CLEANUP = "destroy"
 
     def create(self, device, physical_size=0, content_type="", smconf={}):
-        self._create("btrfs", {"uri":"file:///dev/%s" % device}, physical_size, content_type, smconf)
+        if not device:
+            device = self.host.getGuestDisks()[0]
+        if device != self.host.getInstallDisk():
+            self.host.execdom0("sgdisk -Z /dev/%s" % device)
+        self.host.execdom0("sgdisk -N /dev/%s" % device)
+        partition = self.host.execdom0("sgdisk -p /dev/%s| tail -1 | awk '{print $1}'" % device).strip()
+        self.host.execdom0("partprobe")
+        if device.startswith("disk/"):
+            path = "/dev/%s-part%s" % (device, partition)
+        else:
+            path = "/dev/%s%s" % (device, partition)
+        self._create("btrfs", {"uri":"file://%s" % path}, physical_size, content_type, smconf)
 
 
 class IntegratedCVSMStorageRepository(StorageRepository):

@@ -23,6 +23,7 @@
           <vcpus>2</vcpus>
           <network device="0" />
           <disk device="0" size="8" />
+          <storage>NFS Storage Repository 1</storage>
         </vm>
       </host>
       <host container="0" vname="1" vcpus="2" vmemory="4096" vdisksize="64">
@@ -32,8 +33,10 @@
           <vcpus>2</vcpus>
           <network device="0" />
           <disk device="0" size="8" />
+          <storage>NFS Storage Repository 1</storage>
         </vm>
       </host>
+      <storage type="nfs" name="NFS Storage Repository 1" />
     </pool>
   </prepare>
 

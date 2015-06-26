@@ -11879,8 +11879,7 @@ class DundeeHost(CreedenceHost):
     def installComplete(self, handle, waitfor=False, upgrade=False):
         CreedenceHost.installComplete(self, handle, waitfor, upgrade)
         if xenrt.TEC().lookup("STUNNEL_TLS", False, boolean=True):
-            self.execdom0("rpm -e stunnel || true")
-            self.restartToolstack()
+            self.execdom0("xe host-param-set ssl-legacy=false uuid=%s" % self.getMyHostUUID())
 
         if xenrt.TEC().lookup("LIBXL_XENOPSD", False, boolean=True):
             self.execdom0("service xenopsd-xc stop")

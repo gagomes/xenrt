@@ -3227,7 +3227,7 @@ class VM(object):
 
     def __init__(self, guest):
        self._VM = guest
-       self._host = _VM.host
+       self._host = self._VM.host
 
     def checkHealth(self):
         self._VM.checkHealth()
@@ -3312,7 +3312,7 @@ class Attacker(VM):
                 victim.HostIsMaxedOut()
                 if count <= 5:
                     log("Retrying attack %s of 5" % str(count+1))
-                    self.HCFloodRouterMaxOutVictim(victim,count+1)
+                    self.hCFloodRouterMaxOutVictim(victim,count+1)
                 else:
                     raise xenrt.XRTFailure("All attempted attacks failed to max out the guest")
             if count > 0:

@@ -4085,7 +4085,7 @@ fi
         if name:
             args.append("name-label=\"%s\"" % (name))
         else:
-            args.append("name-label=\"Created by XenRT\"")
+            args.append("name-label=\"Created_by_XenRT\"")
         args.append("sr-uuid=%s" % (sruuid))
         args.append("virtual-size=%s" % (sizebytes))
         args.append("type=user")

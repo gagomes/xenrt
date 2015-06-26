@@ -3296,6 +3296,7 @@ class Attacker(VM):
 
     def installHCFloodRouterUbuntu(self, privateNetwork):
         self.hCFloodRouterPackage = xenrt.networkutils.HackersChoiceFloodRouter26Ubuntu(privateNetwork)
+        self.hCFloodRouterPackage.install(self._VM)
 
     def runHCFloodRouterUbuntu(self):
         self.hCFloodRouterPackage.run(self._VM)

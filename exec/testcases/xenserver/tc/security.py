@@ -3336,8 +3336,7 @@ class TempTestCase(xenrt.TestCase, object):
         step("Install package")
         #-------------------------
         attacker.installHCFloodRouterUbuntu(net.PRIVATE_NETWORK)
-
-        victims = [Victim(t) for t in [xenrt.TEC().registry.guestGet(x) for x in self.host.listGuests()] if t.windows]
+        victims = [Victim(t) for t in [xenrt.TEC().registry.guestGet(x) for x in attacker.getHost().listGuests()] if t.windows]
         if not victims:
             raise xenrt.XRTFailure("Couldn't find a windows host")
         targetVM = None

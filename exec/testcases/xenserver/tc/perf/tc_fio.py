@@ -27,20 +27,24 @@ class TCfio(libperf.PerfTestCase):
             self.guest = self.host.guests['debian']
         else:
             self.guest = self.host.createBasicGuest(name="debian", distro="debian70")
-        self.guest.setState("DOWN")
-        # Destroy any additional disks the VM currently has, so we can recreate xvdb on the correct SR
-        self.guest.destroyAdditionalDisks()
-        # Find the SR (just based on type)
-        sruuid = self.host.minimalList("sr-list", "uuid","type=%s" % self.srtype)[0]
-        # Create the new VDI, and mount it in the VM
-        self.guest.createDisk(sizebytes = self.vdiSize, sruuid=sruuid, userdevice=1)
-        self.guest.setState("UP")
-        # Allocate space on the VHD by writing /dev/urandom to it
-        self.guest.execguest("dd if=/dev/urandom of=/dev/xvdb bs=1M count=%d oflag=direct" % (self.vdiSize/xenrt.MEGA))
-        self.guest.reboot()
-        self.guest.execguest("mkdir -p /benchmark")
-        self.guest.execguest("mkfs.ext4 /dev/xvdb")
-        self.guest.execguest("mount /dev/xvdb /benchmark")
+        if self.srtype != "root":
+            self.guest.setState("DOWN")
+            # Destroy any additional disks the VM currently has, so we can recreate xvdb on the correct SR
+            self.guest.destroyAdditionalDisks()
+            # Find the SR (just based on type)
+            sruuid = self.host.minimalList("sr-list", "uuid","type=%s" % self.srtype)[0]
+            # Create the new VDI, and mount it in the VM
+            self.guest.createDisk(sizebytes = self.vdiSize, sruuid=sruuid, userdevice=1)
+            self.guest.setState("UP")
+            # Allocate space on the VHD by writing /dev/urandom to it
+            self.guest.execguest("dd if=/dev/urandom of=/dev/xvdb bs=1M count=%d oflag=direct" % (self.vdiSize/xenrt.MEGA))
+            self.guest.reboot()
+            self.guest.execguest("mkdir -p /benchmark")
+            self.guest.execguest("mkfs.ext4 /dev/xvdb")
+            self.guest.execguest("mount /dev/xvdb /benchmark")
+        else:
+            self.guest.execguest("mkdir -p /benchmark")
+            self.srtypeFull = self.guest.getDiskSRType()
         # Install fio in the VM
         self.guest.execguest("apt-get install -y --force-yes fio")
 

@@ -22,4 +22,9 @@
     </host>
   </prepare>
 
+    <testsequence>
+      <testcase id="xenserver.tc.perf.tc_fio.TCfio">
+        <arg>srtype=root</arg>
+      </testcase>
+    </testsequence>
 </xenrt>

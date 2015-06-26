@@ -409,13 +409,15 @@ class SMAPIv3LocalStorageRepository(StorageRepository):
             device = self.host.getGuestDisks()[0]
         if device != self.host.getInstallDisk():
             self.host.execdom0("sgdisk -Z /dev/%s" % device)
-        self.host.execdom0("sgdisk -N /dev/%s" % device)
-        partition = self.host.execdom0("sgdisk -p /dev/%s| tail -1 | awk '{print $1}'" % device).strip()
+            partition = 1
+        else:
+            partition = int(self.host.execdom0("sgdisk -p /dev/%s| tail -1 | awk '{print $1}'" % device).strip()) + 1
+        self.host.execdom0("sgdisk -N %d /dev/%s" % (partition, device))
         self.host.execdom0("partprobe")
         if device.startswith("disk/"):
-            path = "/dev/%s-part%s" % (device, partition)
+            path = "/dev/%s-part%d" % (device, partition)
         else:
-            path = "/dev/%s%s" % (device, partition)
+            path = "/dev/%s%d" % (device, partition)
         self._create("btrfs", {"uri":"file://%s" % path}, physical_size, content_type, smconf)
 
 

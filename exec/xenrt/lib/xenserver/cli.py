@@ -108,24 +108,21 @@ class Session(object):
                     rpm = "%s/tests/xe/xe-cli.i686.rpm" % xenrt.TEC().lookup("XENRT_BASE")
                 else:
                     for cd in cds:
-                        # TODO: look for x86_64 RPMs if localarch is 64-bit.
                         xenrt.checkFileExists(cd)
                         mount = xenrt.MountISO(cd)
                         mountpoint = mount.getMount()
                         fl = glob.glob("%s/xe-cli-[0-9]*i?86.rpm" % (mountpoint))
                         if len(fl) != 0:
-                            xenrt.TEC().logverbose("Using CLI binary from ISO %s" %
-                                                   (cd))
+                            xenrt.TEC().logverbose("Using CLI binary from ISO %s" % (cd))
                             rpm = fl[-1]
                             break
-                        fl = glob.glob("%s/client_install/xe-cli-[0-9]*i?86.rpm" %
-                                       (mountpoint))
-                        fl.extend(glob.glob(\
-                            "%s/client_install/xenenterprise-cli-[0-9]*i?86.rpm" %
-                            (mountpoint)))
+                        if localarch == "x86_64":
+                            fl = glob.glob("%s/client_install/xe-cli-[0-9]*x86_64.rpm" % (mountpoint))
+                        else:
+                            fl = glob.glob("%s/client_install/xe-cli-[0-9]*i?86.rpm" % (mountpoint))
+                        fl.extend(glob.glob("%s/client_install/xenenterprise-cli-[0-9]*i?86.rpm" % (mountpoint)))
                         if len(fl) != 0:
-                            xenrt.TEC().logverbose("Using CLI binary from ISO %s" %
-                                                   (cd))
+                            xenrt.TEC().logverbose("Using CLI binary from ISO %s" % (cd))
                             rpm = fl[-1]
                             break
                         mount.unmount()

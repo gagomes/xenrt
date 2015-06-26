@@ -3215,11 +3215,10 @@ class TC1660(xenrt.TestCase):
 class NetworkConfigurator(object):
     PRIVATE_NETWORK = "eth1"
 
-    def configureIPv6FloodNet(self,attacker):
-  
-        self.getVM().configureNetwork(self.PRIVATE_NETWORK, "192.168.1.1", "255.255.255.0")
+    def configureHCFloodRouterNet(self,attacker):
+        attacker.getVM().configureNetwork(self.PRIVATE_NETWORK, "192.168.1.1", "255.255.255.0")
         i = 2
-        for g in [ xenrt.TEC().registry.guestGet(x) for x in self.getHost().listGuests() ]:
+        for g in [ xenrt.TEC().registry.guestGet(x) for x in attacker.getHost().listGuests() ]:
             if g.windows:
                 g.configureNetwork(self.PRIVATE_NETWORK, "192.168.1." + str(i), "255.255.255.0")
                 i = i + 1
@@ -3267,7 +3266,7 @@ class Victim(VM):
             return False
 
     def hostIsMaxedOut(self):
-        usage = self._host.dom0CPUUsage()
+        usage = self.checkHostCPUUsage()
         if usage:
             if usage > self.__MAXED_OUT_THRESHOLD:
                 raise xenrt.XRTFailure("Host CPU is maxed out at %.2f%%" % usage)
@@ -3282,7 +3281,7 @@ class Victim(VM):
             try:
                 self.checkHealth()
             except:
-                log("Couldn't check %s health, ignore and allow to recover" % self.getName())
+                log("Couldn't check victims health, ignore and allow to recover")
             log("zzzzz.....")
             time.sleep(10)
 
@@ -3296,10 +3295,10 @@ class Attacker(VM):
         self.scapy.install()
 
     def installHCFloodRouterUbuntu(self, privateNetwork):
-        self.HCFloodRouterPackage = xenrt.networkutils.HackersChoiceFloodRouter26Ubuntu(privateNetwork)
+        self.hCFloodRouterPackage = xenrt.networkutils.HackersChoiceFloodRouter26Ubuntu(privateNetwork)
 
     def runHCFloodRouterUbuntu(self):
-        self.HCFloodRouterPackage.run(self._VM)
+        self.hCFloodRouterPackage.run(self._VM)
 
     def hCFloodRouterMaxOutVictim(self, victim, count=0):
         gameOver = time.time() + (60 * 30) # Timeout 30 mins
@@ -3332,7 +3331,7 @@ class TempTestCase(xenrt.TestCase, object):
         step("Configure Private Network")
         #-------------------------
         net = NetworkConfigurator()
-        net.configureIPv6FloodNet(attacker)
+        net.configureHCFloodRouterNet(attacker)
         #-------------------------
         step("Install package")
         #-------------------------
@@ -3345,12 +3344,13 @@ class TempTestCase(xenrt.TestCase, object):
         for v in victims:
             if v.getName() == "victim1":
                 targetVM = v
+                break
         if not targetVM:
             raise xenrt.XRTFailure("Couldn't find targetVM")
          #----------------------------------------------------------
         step("Run the package and check for the guest maxing out") 
         #----------------------------------------------------------
-        attacker.HCFloodRouterMaxOutVictim(targetVM)
+        attacker.hCFloodRouterMaxOutVictim(targetVM)
         #-------------------------------
         step("Shutdown the attacker")
         #-------------------------------
@@ -3366,7 +3366,7 @@ class TempTestCase(xenrt.TestCase, object):
             if victim.victimIsMaxedOut():
                 log("Waited %d secs for CPU to recover from attack and usage is %.2f"
                                        % (60 * 5, victim.checkVMCPUUsage()))
-                log("%s failed to recover from attack" % str(victim.getName()))
+                log("%s failed to recover from attack" % victim.getName())
             else:
                 log("%s appears to have recovered from the attack usage =%.2f"
                     % (victim.getName(),victim.checkVMCPUUsage()))

@@ -7,7 +7,7 @@
   </variables>
 
   <prepare>
-    <host diskCount="0">
+    <host>
       <vm name="debian">
         <distro>debian80</distro>
         <arch>x86-64</arch>

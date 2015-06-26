@@ -3257,13 +3257,13 @@ class Victim(VM):
         super(Victim,self).__init__(guest)
 
     def victimIsMaxedOut(self):
-      #  try:
+        try:
             usage = self.checkVMCPUUsage()
-            log("%s CPU usage is %.2f" % (guest, usage))
+            log("%s CPU usage is %.2f" % (self.getName(), usage))
             return usage > self.__MAXED_OUT_THRESHOLD
-       # except:
-        #    log("Could not measure the usage - ignoring this issue")
-         #   return False
+        except:
+            log("Could not measure the usage - ignoring this issue")
+            return False
 
     def hostIsMaxedOut(self):
         usage = self.checkHostCPUUsage()

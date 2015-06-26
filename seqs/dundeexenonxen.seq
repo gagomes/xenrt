@@ -1,42 +1,32 @@
 <xenrt>
 
-  <variables>
+    <variables>
     <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
-    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
-    <NESTED_HVM>yes</NESTED_HVM>    
-    <!--Used for testing only -->
-    <param>APPLY_ALL_RELEASED_HFXS=yes</param>
   </variables>
   <scheduler>
-    <resources>memory&gt;=20G/disk1&gt;=176G</resources>
-    <flags>!nohap,xenrtdhcpd</flags>
+    <resources>memory&gt;=20G/disk1&gt;=140G</resources>
+    <param>MACHINES_REQUIRED=2</param>
   </scheduler>
-  <preprepare>
-    <host id="0" />
-  </preprepare>
   <prepare>
     <pool id="0">
-      <host container="0" vname="0" vcpus="2" vmemory="4096" vdisksize="64">
-        <vm name="VM on Master">
+      <host id="0">
+        <vm name="VM_on_master">
           <distro>debian80</distro>
           <memory>1024</memory>
           <vcpus>2</vcpus>
           <network device="0" />
           <disk device="0" size="8" />
-          <storage>NFS Storage Repository 1</storage>
         </vm>
       </host>
-      <host container="0" vname="1" vcpus="2" vmemory="4096" vdisksize="64">
-        <vm name="VM on Slave">
+      <host id="1">
+        <vm name="VM_on_slave">
           <distro>debian80</distro>
           <memory>1024</memory>
           <vcpus>2</vcpus>
           <network device="0" />
           <disk device="0" size="8" />
-          <storage>NFS Storage Repository 1</storage>
         </vm>
       </host>
-      <storage type="nfs" name="NFS Storage Repository 1" />
     </pool>
   </prepare>
 
@@ -46,8 +36,8 @@
     <!-- reference test-cases to be included in the sequence here: -->
     <!-- The dotted name here reflects the directory structure inside xenrt.git/exec/ -->
     <testcase id="xenserver.tc.guest.CleanReboot123" >
-    <arg>vm1 = "VM on Master"</arg>        
-    <arg>vm2 = "VM on Slave"</arg>
+    <arg>vm1 = "VM_on_master"</arg>        
+    <arg>vm2 = "VM_on_slave"</arg>
     </testcase>
     </testsequence>
 </xenrt>

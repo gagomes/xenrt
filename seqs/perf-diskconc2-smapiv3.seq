@@ -6,8 +6,9 @@
     </variables>
 
     <prepare>
-      <host/>
+      <host>
       <storage type="smapiv3local" name="BTRFS" default="yes" options="sdb" />
+      </host>
     </prepare>
 
     <testsequence>

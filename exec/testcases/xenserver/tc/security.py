@@ -3248,7 +3248,7 @@ class VM(object):
         return self._host
 
     def getName(self):
-        self._VM.getName()
+        return self._VM.name
 
 class Victim(VM):
     __MAXED_OUT_THRESHOLD = 50.0

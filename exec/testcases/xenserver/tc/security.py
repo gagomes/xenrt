@@ -3233,7 +3233,7 @@ class VM(object):
         self._VM.checkHealth()
 
     def checkVMCPUUsage(self):
-        return float(self._VM.asXapiObject().cpuUsage['0'] * 100)
+        return float(self._VM.asXapiObject().cpuUsage['0'])*100
 
     def checkHostCPUUsage(self):
         return self._host.dom0CPUUsage()

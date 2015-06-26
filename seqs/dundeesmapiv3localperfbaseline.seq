@@ -21,7 +21,7 @@
 
     <testsequence>
       <testcase id="xenserver.tc.perf.tc_fio.TCfio">
-        <arg>srtype=root</arg>
+        <arg>srtype=lvm</arg>
       </testcase>
     </testsequence>
 </xenrt>

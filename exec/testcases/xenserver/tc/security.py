@@ -3229,7 +3229,7 @@ class VM(object):
        self._VM = guest
        self._host = self._VM.host
 
-    def checkHealth(self):
+    def healthStatus(self):
         self._VM.checkHealth()
 
     def checkVMCPUUsage(self):
@@ -3275,11 +3275,11 @@ class Victim(VM):
         else:
             log("Error returning CPU usage")
 
-    def checkHealthOverTime(self):
+    def healthStatusOverTime(self):
         verifyEnd = time.time() + (60 * 5) # 5 mins
         while time.time() < verifyEnd:
             try:
-                self.checkHealth()
+                self.healthStatus()
             except:
                 log("Couldn't check victims health, ignore and allow to recover")
             log("zzzzz.....")
@@ -3358,7 +3358,7 @@ class TempTestCase(xenrt.TestCase, object):
         #------------------------------------
         step("Wait for victim to recover")
         #------------------------------------
-        targetVM.checkHealthOverTime()
+        targetVM.healthStatusOverTime()
         #--------------------------
         step("Check all victims CPU usage")
         #--------------------------
@@ -3378,7 +3378,7 @@ class TempTestCase(xenrt.TestCase, object):
         step("Check Health of all victim vms")
         #--------------------------
         for victim in victims:
-            victim.checkHealth()
+            victim.healthStatus()
 
 class TCBadPackets(xenrt.TestCase, object):
 

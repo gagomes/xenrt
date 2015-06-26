@@ -9,4 +9,8 @@
     <testcase id="xenserver.tc.ring0.ring0linux.TCRing0LinuxMemoryType" />
   </testsequence>
 
+  <testsequence>
+    <testcase id="xenserver.tc.ring0.ring0linux.TCRing0LinuxAllocBalloon" />
+  </testsequence>
+
 </xenrt>

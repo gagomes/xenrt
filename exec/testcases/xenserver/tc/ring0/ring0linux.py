@@ -14,6 +14,10 @@ class xst(object):
     def path(self, f):
         return "/sys/kernel/debug/xst/%s/%s" % (self.name, f)
 
+    def set_params(self, params):
+        for p in params:
+            self.host.execdom0("echo %d > %s" % (p[1], self.path(p[0])))
+
     def results(self):
         res = self.host.execdom0("cat %s" % (self.path("results")))
         return yaml.load(res)
@@ -59,3 +63,10 @@ class TCRing0LinuxMemoryType(TCRing0LinuxBase):
         step("Run set_memory_uc")
         set_memory_uc = xst(self.host, "set_memory_uc")
         set_memory_uc.run()
+
+class TCRing0LinuxAllocBalloon(TCRing0LinuxBase):
+    def run(self, arglist):
+        step("Run alloc_balloon")
+        t = xst(self.host, "alloc_balloon")
+        t.set_params([("pages", 1024)])
+        t.run()

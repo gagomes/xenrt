@@ -17,7 +17,7 @@
   <testsequence>
     <serial group="IntelGPUPassthroughPool">
 
-      <testcase id="testcases.xenserver.tc.vgpu.TCPoolIntelGPU" name="TC-26979" tc="TC-26979" sku="haswell">
+      <testcase id="testcases.xenserver.tc.vgpu.TCPoolIntelGPU" name="TC-26979" tc="TC-26979" sku="broadwell">
         <arg>distro=1</arg>
         <arg>typeofvgpu=intelwinvgpu</arg>
         <arg>vgpuconfig=12</arg>

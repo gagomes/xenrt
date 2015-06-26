@@ -1395,23 +1395,26 @@ at > c:\\xenrtatlog.txt
         # Insert the tools ISO
         self.changeCD("xs-tools.iso")
         xenrt.sleep(30)
+        batch = []
+        batch.append("MsiExec.exe /X D:\\citrixxendriversx64.msi /passive /norestart\r\n")
+        batch.append("ping 127.0.0.1 -n 10 -w 1000\r\n")
+        batch.append("MsiExec.exe /X D:\\citrixguestagentx64.msi /passive /norestart\r\n")
+        batch.append("ping 127.0.0.1 -n 10 -w 1000\r\n")
+        batch.append("MsiExec.exe /X D:\\citrixvssx64.msi /passive /norestart\r\n")
+        batch.append("ping 127.0.0.1 -n 10 -w 1000\r\n")
+        batch.append("MsiExec.exe /X D:\\installwizard.msi /passive /norestart\r\n")
+        batch.append("ping 127.0.0.1 -n 10 -w 1000\r\n")
+        batch.append("shutdown -r\r\n")
 
-        batch = ""
+        self.xmlrpcWriteFile("c:\\uninst.bat", string.join(batch))
+        self.xmlrpcStart("c:\\uninst.bat")
 
-        batch = batch + "MsiExec.exe /i D:\\citrixxendriversx64.msi /passive /norestart\r\n"
-        batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
-        self.reboot()
-        batch = batch + "\r\n"
-        self.installDotNetRequiredForDrivers()
-        batch = batch + "MsiExec.exe /i D:\\citrixguestagentx64.msi /passive /norestart\r\n"
-        batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
-        self.reboot()
-            
-        batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
-        batch = batch + "MsiExec.exe /i D:\\installwizard.msi /passive /norestart\r\n"
-        batch = batch + "ping 127.0.0.1 -n 10 -w 1000\r\n"
-        batch = batch + "shutdown -r\r\n"
-
+        #wait for reboot
+        xenrt.sleep(60)
+        
+        #Eject the tools CD from the VM.
+        self.changeCD(None)
+        
     def uninstallDrivers(self,waitForDaemon=True):
         # Write the uninstall script
         u = []

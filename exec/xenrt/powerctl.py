@@ -519,14 +519,21 @@ class IPMI(_PowerCtlBase):
         try:
             return self.command(command)
         except Exception, e:
-            resetcmd = self.machine.host.lookup("BMC_RESET_COMMAND", None)
-            if resetcmd and resetOnFailure:
-                xenrt.TEC().logverbose("Could not execute command: %s" % str(e))
-                self.command(resetcmd) # Reset the BMC
-                xenrt.sleep(60) # Allow 1 minute for the IPMI controller to restart
-                return self.command(command)
-            else:
-                raise
+            try:
+                if self.machine.host.lookup("IPMI_RETRY", False, boolean=True):
+                    xenrt.sleep(30)
+                    return self.command(command)
+                else:
+                    raise
+            except Exception, e:
+                resetcmd = self.machine.host.lookup("BMC_RESET_COMMAND", None)
+                if resetcmd and resetOnFailure:
+                    xenrt.TEC().logverbose("Could not execute command: %s" % str(e))
+                    self.command(resetcmd) # Reset the BMC
+                    xenrt.sleep(60) # Allow 1 minute for the IPMI controller to restart
+                    return self.command(command)
+                else:
+                    raise
 
 
 class Custom(_PowerCtlBase):

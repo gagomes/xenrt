@@ -933,6 +933,17 @@ class XenRTLogData(XenRTCommand):
             raise Exception("Invalid usage\n")
         self.xenrt.new_logdata(int(args[0]), args[1], args[2], args[3], args[4])
 
+class XenRTJobLog(XenRTCommand):
+    name = "joblog"
+    summary = "Add item to job log (server call only)"
+    mandatory = "<jobid> <data>"
+    hide = True
+
+    def run(self, args):
+        if len(args) != 2:
+            raise Exception("Invalid usage\n")
+        self.xenrt.new_job_log_item(int(args[0]), args[1])
+
 class XenRTRemove(XenRTCommand):
 
     name = "remove"
@@ -2152,6 +2163,7 @@ class Commands:
         self.add(XenRTRemove)
         self.add(XenRTSetResult)
         self.add(XenRTLogData)
+        self.add(XenRTJobLog)
         self.add(XenRTShowLog)
         self.add(XenRTMachine)
         self.add(XenRTMList)

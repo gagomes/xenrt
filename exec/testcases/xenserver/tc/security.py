@@ -3324,7 +3324,7 @@ class Attacker(VM):
         time.sleep(10 * 3)
         log("%s CPU usage is maxed out: %s" % (victim.getName(), str(victim.victimIsMaxedOut())))
 
-class TempTestCase(xenrt.TestCase, object):
+class TempIPv6FloodRouter(xenrt.TestCase, object):
 
     def run(self, arglist):
         attacker = Attacker(self.getDefaultHost().getGuest("attacker"))
@@ -3606,6 +3606,45 @@ class TCHackersChoiceIPv6FloodRouter(_HackersChoiceIPv6DoS):
     def __init__(self):
         package = xenrt.networkutils.HackersChoiceFloodRouter26Ubuntu(self.PRIVATE_NETWORK)
         super(TCHackersChoiceIPv6FloodRouter, self).__init__(package)
+
+class TempIPv6FloodRouterStress(xenrt.TestCase, object):
+    __STRESS_DURATION = 60 * 60 * 24
+    __STRESS_SLEEP = 60 * 5
+
+    def __wait(self, victims):
+        step("Start the waiting period")
+        gameOver = time.time() + self.__STRESS_DURATION
+        log("Game over in %s" % str(gameOver))
+        log("Start the wait...")
+        while time.time() < gameOver:
+            for victim in victims:
+                log("%s CPU usage is %.2f" % (victim.getName(), victim.checkVMCPUUsage()))
+            log("zzzzz.....")
+            time.sleep(self.__STRESS_SLEEP)
+        log("Wait over")
+
+    def run(self,arglist):
+        attacker = Attacker(self.getDefaultHost().getGuest("attacker"))
+        #-------------------------
+        step("Configure Private Network")
+        #-------------------------
+        net = NetworkConfigurator()
+        net.configureHCFloodRouterNet(attacker)
+        #-------------------------
+        step("Install package")
+        #-------------------------
+        attacker.installHCFloodRouterUbuntu(net.PRIVATE_NETWORK)
+        victims = [Victim(t) for t in [xenrt.TEC().registry.guestGet(x) for x in attacker.getHost().listGuests()] if t.windows]
+        if not victims:
+            raise xenrt.XRTFailure("Couldn't find a windows host")
+
+        #----------------------------------------------------------
+        step("Run the package and check for the guest maxing out")
+        #----------------------------------------------------------
+        attacker.hCFloodRouterMaxOutVictim(victims[0])
+
+        self.__wait(victims)
+        targetVM.hostIsMaxedOut()
 
 class _HackersChoiceIPv6DoSStress(_HackersChoiceIPv6DoS):
     __STRESS_DURATION = 60 * 60 * 24

@@ -45,6 +45,9 @@ class DBConnect(object):
             return detailids[0]
         return None
 
+    def jobLogItem(self, log, **kwargs):
+        return self.api.new_job_log_item(self.jobid(), log, **kwargs)
+
     def jobctrl(self, command, args, bufferfile=None):
         commandline = "%s %s" % (command, string.join([pipes.quote(x) for x in args]))
         xenrt.TEC().logverbose("XenRT CLI %s" % (commandline))

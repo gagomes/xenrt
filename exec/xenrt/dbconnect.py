@@ -46,7 +46,10 @@ class DBConnect(object):
         return None
 
     def jobLogItem(self, log, **kwargs):
-        return self.api.new_job_log_item(self.jobid(), log, **kwargs)
+        try:
+            return self.api.new_job_log_item(self.jobid(), log, **kwargs)
+        except:
+            return None
 
     def jobctrl(self, command, args, bufferfile=None):
         commandline = "%s %s" % (command, string.join([pipes.quote(x) for x in args]))

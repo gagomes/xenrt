@@ -3736,7 +3736,7 @@ class TempIPv6Stress(xenrt.TestCase, object):
         attacker.hCFloodRouterMaxOutVictim(victims[0])
 
         self.__wait(victims)
-        targetVM.hostIsMaxedOut()
+        victims[0].hostIsMaxedOut()
 
 class _HackersChoiceIPv6DoSStress(_HackersChoiceIPv6DoS):
     __STRESS_DURATION = 60 * 60 * 24

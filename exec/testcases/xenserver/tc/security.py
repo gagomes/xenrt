@@ -3342,7 +3342,7 @@ class Attacker(VM):
         time.sleep(10 * 3)
         log("%s CPU usage is maxed out: %s" % (victim.getName(), str(victim.victimIsMaxedOut())))
 
-class TempIPv6FloodRouter(xenrt.TestCase, object):
+class TCHackersChoiceIPv6FloodRouter(xenrt.TestCase, object):
 
     def run(self, arglist):
         attacker = Attacker(self.getDefaultHost().getGuest("attacker"))
@@ -3398,7 +3398,7 @@ class TempIPv6FloodRouter(xenrt.TestCase, object):
         for victim in victims:
             victim.healthStatus()
 
-class TempBadPackets(xenrt.TestCase,object):
+class TCBadPackets(xenrt.TestCase,object):
 
     def run(self, arglist):
         attacker = Attacker(self.getDefaultHost().getGuest("attacker"))
@@ -3421,40 +3421,7 @@ class TempBadPackets(xenrt.TestCase,object):
             for victim in victims:
                 victim.healthStatus()
 
-class TCBadPackets(xenrt.TestCase, object):
-
-    PRIVATE_NETWORK = "eth1"
-    def prepare(self, arglist):
-        self.host = self.getDefaultHost()
-        self.attacker = self.getGuest("attacker")
-        self._setupScapy()
-        self.attacker.configureNetwork(self.PRIVATE_NETWORK, "192.168.1.1", "255.255.255.0")
-        
-        i = 2
-        for g in [ xenrt.TEC().registry.guestGet(x) for x in self.host.listGuests() ]:
-            if g.windows:
-                g.configureNetwork(self.PRIVATE_NETWORK, "192.168.1." + str(i), "255.255.255.0")
-                i = i + 1
-
-    def _setupScapy(self):
-        self.scapy = xenrt.networkutils.Scapy(self.attacker)
-        self.scapy.install()
-        
-    def run(self, arglist):
-        
-        # this is a base64 encoded pcap of a single broadcast packet with multiple VLAN tags (SCTX-1529)
-        badPackets = ["1MOyoQIABAAAAAAAAAAAAACQAQABAAAAAAAAAAAAAAAgAAAAIAAAAP///////wAB/uHerYEAAEqBAABKgQDerd6t3q3erd6t"]
-        
-        for p in badPackets:
-            self.scapy.sendPacket(self.PRIVATE_NETWORK, p)
-        
-        xenrt.sleep(30)
-        
-        for g in [ xenrt.TEC().registry.guestGet(x) for x in self.host.listGuests() ]:
-            if g.windows:
-                g.checkHealth()
-
-class TempIPv6Firewall6(xenrt.TestCase, object):
+class TCHackersChoiceIPv6Firewall6(xenrt.TestCase, object):
 
     def _runPackageTestCase(self, attacker, victim, hackNumber):
         #----------------------------------------
@@ -3505,202 +3472,8 @@ class TempIPv6Firewall6(xenrt.TestCase, object):
                 log("No IPV6 guest found for guest %s, skipping...." % victim.getName())
                 continue
 
-class TCHackersChoiceIPv6Firewall6(TCBadPackets):
-        
-    __IPV6_TAG = "1/ipv6/0"
-    _ATTACKER_VM = "attacker"
-    
-    def _setupScapy(self): pass
-    
-    def _runPackageTestCase(self, package, attacker, victim, ipv6Address, hackNumber):
-        #----------------------------------------
-        step("Run attack %d...." % hackNumber)
-        #----------------------------------------
-        
-        package.runtestcase(attacker, hackNumber)
-        time.sleep(10)
-        log("Results of attack: %s" % str(package.results()))
-        try:
-            #----------------------------------------
-            step("Check the victims health")
-            #----------------------------------------
-            victim.checkHealth()
-        except xenrt.XRTFailure as e:
-            #---------------------------------------------------------------------------------------
-            step("Error caught, attempt to force-reboot host for next subcase and fail this one")
-            #---------------------------------------------------------------------------------------
-            victim.reboot(force=True)
-            raise xenrt.XRTFailure(e)
-        
-    def __runAllPackageTests(self, attacker, victim, ipv6Address):
-        p = xenrt.networkutils.HackersChoiceFirewall6Ubuntu(self.PRIVATE_NETWORK, ipv6Address)
-        
-        #-------------------------
-        step("Install package")
-        #-------------------------
-        p.install(attacker)
-        
-        #------------------------------------------------------------
-        step("Running attacks from %s on vm %s" % (attacker, victim))
-        #------------------------------------------------------------
-        for tc in p.testCasesIds():
-            self.runSubcase("_runPackageTestCase", (p, attacker, victim, ipv6Address, tc), "HackersChoice Firewall6 on %s" % victim, "test %d" % tc)
-
-    def run(self, arglist):
-            a = self.getDefaultHost().getGuest(self._ATTACKER_VM)
-            for g in [ xenrt.TEC().registry.guestGet(x) for x in self.host.listGuests() ]:
-                if g.windows:
-                    addresses = g.asXapiObject().networkAddresses()
-                    log("Addresses found: %s" % str(addresses))
-                    ipv6Network = next((n for n in addresses if self.__IPV6_TAG in n), None)
-                    log("IPV6 address %s found with ID: %s" % (ipv6Network, self.__IPV6_TAG))
-                    
-                    if ipv6Network:
-                        ipv6Address = (':'.join(ipv6Network.split(':')[1:])).strip()
-                        self.__runAllPackageTests(a, g, ipv6Address)
-                    else:
-                        log("No IPV6 guest found for guest %s, skipping...." % g)
-                        continue
-                else:
-                    log("Guest %s was not a windows machine, skipping...." % g)
-
-class _HackersChoiceIPv6DoS(TCBadPackets):
-    
-    _ATTACKER_VM = "attacker"
-    _VICTIM_VM = "victim1"
-    __STOP_ATTACK_THRESHOLD = 0.50
-    __THRESHOLD_HOST_PERCENT = 50.0
-    _SLEEP = 10
-    __WAIT_MULTIPILER= 3
-    _TIMEOUT = 60 * 30  # 0.5hr
-    __VERIFICATION_PERIOD = 60 * 5
-    
-    def __init__(self, package):
-        self._package = package
-        super(_HackersChoiceIPv6DoS, self).__init__()
-    
-    def _setupScapy(self): pass
-    
-    def __guestIsMaxedOut(self, guest):
-        try:
-            usage = self._usage(guest)
-            log("%s CPU usage is %.2f" % (guest, usage))
-            return float(usage) > self.__STOP_ATTACK_THRESHOLD
-        except:
-            log("Could not measure the usage - ignoring this issue")
-            return False
-
-    def _isHostMaxedOut(self,host):
-        usage = host.dom0CPUUsage()
-        if usage:
-            if usage > self.__THRESHOLD_HOST_PERCENT:
-                raise xenrt.XRTFailure("Host CPU is maxed out at %.2f%%" % usage)
-            else:
-                log("Host CPU is %.2f%%, which is under threshold" % usage)
-        else:
-            log("Error returning CPU usage")
-
-    def _usage(self, guest):
-        return float(guest.asXapiObject().cpuUsage['0'])
-    
-    def __gameOn(self, gameOver):
-        return time.time() < gameOver
-    
-    def _maxOutGuest(self, package, victim, attacker, count=0):
-        gameOver = time.time() + self._TIMEOUT
-        log("Game over at: %s" % str(gameOver))
-        
-        log("Package started to run at %s " + str(time.time()))
-        package.run(attacker)
-
-        while not self.__guestIsMaxedOut(victim):
-            if not self.__gameOn(gameOver):
-                log("Timed out while trying to max out the guest")
-                self._isHostMaxedOut(self.host)
-                if count <= 5:
-                    log("Retrying attack %s of 5" % str(count+1))
-                    self._maxOutGuest(package,victim,attacker,count+1)
-                else:
-                    raise xenrt.XRTFailure("All attempted attacks failed to max out the guest")
-            if count > 0:
-                return
-            log("zzzzzz.....")
-            time.sleep(self._SLEEP)
-        
-        log("Give it a couple of secs to be sure.....")
-        time.sleep(self._SLEEP * self.__WAIT_MULTIPILER)
-        log("%s CPU usage is maxed out: %s" % (victim, str(self.__guestIsMaxedOut(victim))))
-
-    def __allowVictimToRecover(self, victim):
-        verifyEnd = time.time() + self.__VERIFICATION_PERIOD
-        while time.time() < verifyEnd:
-            try:
-                victim.checkHealth()
-            except:
-                log("Couldn't check victim's health, ignore and allow to recover")
-            log("zzzzz.....")
-            time.sleep(self._SLEEP)
-
-    def run(self, arglist):
-        attacker = self.getDefaultHost().getGuest(self._ATTACKER_VM)
-        
-        
-        #-------------------------
-        step("Install package")
-        #-------------------------
-        self._package.install(attacker)
-        
-        victims = [t for t in [xenrt.TEC().registry.guestGet(x) for x in self.host.listGuests()] if t.windows]
-        
-        if not victims:
-            raise xenrt.XRTFailure("Couldn't find a windows host")
-        
-        victimVm = self.getDefaultHost().getGuest(self._VICTIM_VM)
-        #----------------------------------------------------------
-        step("Run the package and check for the guest maxing out") 
-        #----------------------------------------------------------
-        self._maxOutGuest(self._package, victimVm, attacker)
-        
-        #-------------------------------
-        step("Shutdown the attacker")
-        #-------------------------------
-        attacker.shutdown()
-        
-        #------------------------------------
-        step("Wait for victim to recover")
-        #------------------------------------
-        self.__allowVictimToRecover(victimVm)
-        
-        #--------------------------
-        step("Check all victims CPU usage")
-        #--------------------------
-        for victim in victims:
-            if self.__guestIsMaxedOut(victim):
-                log("Waited %d secs for CPU to recover from attack and usage is %.2f"
-                                       % (self.__VERIFICATION_PERIOD, self._usage(victim)))
-                log("%s failed to recover from attack" % str(victim))
-            else:
-                log("%s appears to have recovered from the attack usage =%.2f"
-                    % (victim,self._usage(victim)))
-
-        #--------------------------
-        step("Check host CPU usage")
-        #--------------------------
-        self._isHostMaxedOut(self.host)
-
-        #--------------------------
-        step("Check Health of all victim vms")
-        #--------------------------
-        for victim in victims:
-            victim.checkHealth()
-
-class TCHackersChoiceIPv6FloodRouter(_HackersChoiceIPv6DoS):
-    def __init__(self):
-        package = xenrt.networkutils.HackersChoiceFloodRouter26Ubuntu(self.PRIVATE_NETWORK)
-        super(TCHackersChoiceIPv6FloodRouter, self).__init__(package)
-
-class TempIPv6Stress(xenrt.TestCase, object):
-    __STRESS_DURATION = 60 * 15#60 * 24
+class TCIPv6FloodRouterStress(xenrt.TestCase, object):
+    __STRESS_DURATION = 60 * 60 * 24
     __STRESS_SLEEP = 60 * 5
 
     def __wait(self, victims):
@@ -3737,51 +3510,3 @@ class TempIPv6Stress(xenrt.TestCase, object):
 
         self.__wait(victims)
         victims[0].hostIsMaxedOut()
-
-class _HackersChoiceIPv6DoSStress(_HackersChoiceIPv6DoS):
-    __STRESS_DURATION = 60 * 60 * 24
-    __STRESS_SLEEP = 60 * 5
-    
-    def __wait(self, victims):
-        step("Start the waiting period")
-        
-        gameOver = time.time() + self.__STRESS_DURATION
-        log("Game over in %s" % str(gameOver))
-        
-        log("Start the wait...")
-        while time.time() < gameOver:
-            for victim in victims:
-                log("%s CPU usage is %.2f" % (victim, self._usage(victim)))
-                
-            log("zzzzz.....")
-            time.sleep(self.__STRESS_SLEEP)
-        
-        log("Wait over")
-    
-    def run(self, arglist):
-        attacker = self.getDefaultHost().getGuest(self._ATTACKER_VM)
-        package = xenrt.networkutils.HackersChoiceFloodRouter26Ubuntu(self.PRIVATE_NETWORK)
-        
-        #-------------------------
-        step("Install package")
-        #-------------------------
-        package.install(attacker)
-        
-        victims = [t for t in [xenrt.TEC().registry.guestGet(x) for x in self.host.listGuests()] if t.windows]
-        
-        if not victims:
-            raise xenrt.XRTFailure("Couldn't find a windows host")
-        
-        #----------------------------------------------------------
-        step("Run the package and check for the guest maxing out") 
-        #----------------------------------------------------------
-        self._maxOutGuest(package, victims[0], attacker)
-        
-        self.__wait(victims)
-        self.host.checkHealth()
-        
-class TCIPv6FloodRouterStress(_HackersChoiceIPv6DoSStress):
-    def __init__(self):
-        package = xenrt.networkutils.HackersChoiceFloodRouter26Ubuntu(self.PRIVATE_NETWORK)
-        super(TCIPv6FloodRouterStress, self).__init__(package)
-        

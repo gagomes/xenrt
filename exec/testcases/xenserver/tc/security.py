@@ -3700,7 +3700,7 @@ class TCHackersChoiceIPv6FloodRouter(_HackersChoiceIPv6DoS):
         super(TCHackersChoiceIPv6FloodRouter, self).__init__(package)
 
 class TempIPv6Stress(xenrt.TestCase, object):
-    __STRESS_DURATION = 60 * 60 * 24
+    __STRESS_DURATION = 60 * 15#60 * 24
     __STRESS_SLEEP = 60 * 5
 
     def __wait(self, victims):

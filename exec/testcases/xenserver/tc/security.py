@@ -3475,7 +3475,7 @@ class TempIPv6Firewall6(xenrt.TestCase, object):
         attacker.installHCFirewall6Ubuntu(net.PRIVATE_NETWORK)
         victims = [Victim(t) for t in [xenrt.TEC().registry.guestGet(x) for x in attacker.getHost().listGuests()] if t.windows]
         for v in victims:
-            ipv6Address = net.getIPV6AddressOfVM(v.getVM())
+            ipv6Address = net.getIPV6AddressOfVM(v)
             self.__runAllPackageTests(attacker,victim,ipv6Address)
 
 class TCHackersChoiceIPv6Firewall6(TCBadPackets):

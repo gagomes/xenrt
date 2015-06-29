@@ -3699,7 +3699,7 @@ class TCHackersChoiceIPv6FloodRouter(_HackersChoiceIPv6DoS):
         package = xenrt.networkutils.HackersChoiceFloodRouter26Ubuntu(self.PRIVATE_NETWORK)
         super(TCHackersChoiceIPv6FloodRouter, self).__init__(package)
 
-class TempFloodRouterStress(xenrt.TestCase, object):
+class TempIPv6Stress(xenrt.TestCase, object):
     __STRESS_DURATION = 60 * 60 * 24
     __STRESS_SLEEP = 60 * 5
 

@@ -178,7 +178,7 @@ class GPUBenchmark(object):
 class SPECViewPerf11(GPUBenchmark):
 
     SVP_PATH = "C:\\SPEC\\SPECgpc\\SPECviewperf\\viewperf\\viewperf11.0"
-    DEFAULT_RESOLUTION=(1920,1200)
+    DEFAULT_RESOLUTION=(1920,1080)
 
 
     # Command arguments are combined down the tree, working directories are overridden down the tree

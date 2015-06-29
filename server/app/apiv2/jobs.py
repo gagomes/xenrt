@@ -1005,6 +1005,7 @@ class NewJobLogItem(_JobBase):
     OPERATION_ID = "new_job_log_item"
     PARAM_ORDER=["id", "log", "completes", "linked"]
     SUMMARY = "Add item to job log"
+    RETURN_KEY="id"
 
     def render(self):
         try:

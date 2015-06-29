@@ -11,8 +11,8 @@
     <pool id="0">
       <host id="0">
         <vm name="VM_on_master">
-          <distro>debian80</distro>
-          <memory>1024</memory>
+          <distro>debian70</distro>
+          <memory>256</memory>
           <vcpus>2</vcpus>
           <network device="0" />
           <disk device="0" size="8" />
@@ -20,8 +20,8 @@
       </host>
       <host id="1">
         <vm name="VM_on_slave">
-          <distro>debian80</distro>
-          <memory>1024</memory>
+          <distro>debian70</distro>
+          <memory>256</memory>
           <vcpus>2</vcpus>
           <network device="0" />
           <disk device="0" size="8" />

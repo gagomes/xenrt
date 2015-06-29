@@ -1910,18 +1910,16 @@ class TCMemoryDumpBootDriverFlag(xenrt.TestCase):
 class CleanReboot123(xenrt.TestCase):
     """Test Case for SCTX-2017 - VM.clean_reboot is not canceled by VM.hard_reboot if VM is running on slave"""  
     
-    def prepare(self, arglist):
-        hosts = set(self.getAllHosts())
-        if len(hosts) != 2:
-            raise xenrt.XRTError("Need 2 hosts")
-    
-    def bootSleep(self,option):
-        xenrt.pfarm([xenrt.PTask(vm1.reboot, ("force=option"))])
+
+    def bootSleep(self, vm, option):
+        xenrt.pfarm([xenrt.PTask(vm.reboot, ("force=option"))])
         xenrt.sleep(2)
     
     def run(self, arglist):
         step("Reboot VM on master")     
-        masterVM = self.getGuest(arglist[0])
+        host = self.getDefaultHost()
+        guest = self.getGuest("VM_on_master")
+        guest2 = self.getGuest("VM_on_slave")
         bootSleep(True)
         
         

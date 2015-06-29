@@ -180,7 +180,9 @@ class KirkwoodHTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         xenrt.TEC().logverbose("Kirkwood reply original length %d bytes" % (len(reply)))
         # sys.stderr.write(str(len(reply)))
         badLengths = [1676,1835]
-        if (len(reply) - 27) % 32 == 0 or len(reply) in badLengths:
+        #CA-169784 CA-170482
+        goodLengths = [10011, 1211]
+        if ((len(reply) - 27) % 32 == 0 or len(reply) in badLengths) and len(reply) not in goodLengths:
             # Work round a strange bug in the tlslite library, by padding the
             # response with an extra null byte (XRT-5022)
             # Known bad lengths: 955, 1211, 1243, 1675
@@ -401,6 +403,7 @@ class FakeKirkwood(threading.Thread):
       </%sResponse>
     </s:Body>
   </s:Envelope>""" % (method)
+        xenrt.TEC().logverbose("DEBUG - generateReplyXML: data=%r" % data)
         return data
 
     def addXenServer(self, rawrequest, params):

@@ -223,7 +223,7 @@ class _JobBase(_MachineBase):
                             break
                         jobs[rc[0]]['log'].append({
                             "ts": calendar.timegm(rc[1].timetuple()),
-                            "log": rc[2].strip()
+                            "log": rc[2].strip(),
                             "id": rc[3],
                             "linked": rc[4],
                             "completes": rc[5]
@@ -1015,9 +1015,9 @@ class NewJobLogItem(_JobBase):
         db = self.getDB()
         cur = db.cursor()
         timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))
-        cur.execute("INSERT INTO tbljoblog (ts, job, log, linked, completes) "
+        cur.execute("INSERT INTO tbljoblog (ts, job, log, completes, linked) "
                     "VALUES (%s, %s, %s, %s, %s) RETURNING id;",
-                    [timenow, self.request.matchdict['id'], j['log'], j['completes'], j['linked']])
+                    [timenow, self.request.matchdict['id'], j['log'], j.get('completes', False), j.get('linked', None)])
         logid = cur.fetchone()[0]
         db.commit()
         return {"id": logid}

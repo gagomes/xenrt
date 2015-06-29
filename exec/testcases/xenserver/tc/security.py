@@ -3458,7 +3458,7 @@ class TempIPv6Firewall6(xenrt.TestCase, object):
         step("Running attacks from %s on vm %s" % (attacker.getName(), victim.getName()))
         #------------------------------------------------------------
         for tc in attacker.hCFirewall6Package.testCasesIds():
-            self.runSubcase("_runPackageTestCase", (attacker.hCFirewall6Package, attacker, victim, tc), "HackersChoice Firewall6 on %s" % victim.getName(), "test %d" % tc)
+            self.runSubcase("_runPackageTestCase", (attacker, victim, tc), "HackersChoice Firewall6 on %s" % victim.getName(), "test %d" % tc)
 
     def run(self,arglist):
 

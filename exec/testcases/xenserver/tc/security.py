@@ -3417,11 +3417,9 @@ class TempBadPackets(xenrt.TestCase,object):
         xenrt.sleep(30)
 
         victims = [Victim(t) for t in [xenrt.TEC().registry.guestGet(x) for x in attacker.getHost().listGuests()] if t.windows]
-        if not victims:
-            raise xenrt.XRTFailure("Couldn't find a windows host")
-
-        for victim in victims:
-            victim.healthStatus()
+        if victims:
+            for victim in victims:
+                victim.healthStatus()
 
 class TCBadPackets(xenrt.TestCase, object):
 

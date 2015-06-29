@@ -3304,8 +3304,8 @@ class Attacker(VM):
     def __init__(self,guest):
         super(Attacker,self).__init__(guest)
 
-    def installScapy(self,package):
-        self.scapy = package
+    def installScapy(self):
+        self.scapy = xenrt.networkutils.Scapy(self._VM)
         self.scapy.install()
 
     def installHCFloodRouterUbuntu(self, privateNetwork):
@@ -3398,6 +3398,31 @@ class TempIPv6FloodRouter(xenrt.TestCase, object):
         for victim in victims:
             victim.healthStatus()
 
+class TempBadPackets(xenrt.TestCase,object):
+
+    def run(self, arglist):
+        attacker = Attacker(self.getDefaultHost().getGuest("attacker"))
+        #-------------------------
+        step("Configure Private Network")
+        #-------------------------
+        net = NetworkConfigurator()
+        net.configureHCFloodRouterNet(attacker)
+        # this is a base64 encoded pcap of a single broadcast packet with multiple VLAN tags (SCTX-1529)
+        badPackets = ["1MOyoQIABAAAAAAAAAAAAACQAQABAAAAAAAAAAAAAAAgAAAAIAAAAP///////wAB/uHerYEAAEqBAABKgQDerd6t3q3erd6t"]
+        attacker.installScapy()
+
+        for p in badPackets:
+            attacker.scapy.sendPacket(net.PRIVATE_NETWORK, p)
+
+        xenrt.sleep(30)
+
+        victims = [Victim(t) for t in [xenrt.TEC().registry.guestGet(x) for x in attacker.getHost().listGuests()] if t.windows]
+        if not victims:
+            raise xenrt.XRTFailure("Couldn't find a windows host")
+
+        for victim in victims:
+            victim.healthStatus()
+
 class TCBadPackets(xenrt.TestCase, object):
 
     PRIVATE_NETWORK = "eth1"
@@ -3476,7 +3501,11 @@ class TempIPv6Firewall6(xenrt.TestCase, object):
         victims = [Victim(t) for t in [xenrt.TEC().registry.guestGet(x) for x in attacker.getHost().listGuests()] if t.windows]
         for victim in victims:
             ipv6Address = net.getIPV6AddressOfVM(victim)
-            self.__runAllPackageTests(attacker,victim,ipv6Address)
+            if ipv6Address:
+                self.__runAllPackageTests(attacker,victim,ipv6Address)
+            else:
+                log("No IPV6 guest found for guest %s, skipping...." % victim.getName())
+                continue
 
 class TCHackersChoiceIPv6Firewall6(TCBadPackets):
         

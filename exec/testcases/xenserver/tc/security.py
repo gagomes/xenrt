@@ -3453,7 +3453,7 @@ class TempIPv6Firewall6(xenrt.TestCase, object):
             raise xenrt.XRTFailure(e)
 
     def __runAllPackageTests(self, attacker, victim, ipv6Address):
-        attacker.hCFirewall6Package.setIPv6Address(self, ipv6Address)
+        attacker.hCFirewall6Package.setIPv6Address(ipv6Address)
         #------------------------------------------------------------
         step("Running attacks from %s on vm %s" % (attacker.getName(), victim.getName()))
         #------------------------------------------------------------

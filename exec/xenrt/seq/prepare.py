@@ -1876,7 +1876,7 @@ class HostInstallWorker(_InstallWorker):
 
         hostname = xenrt.TEC().lookup("RESOURCE_HOST_%s" % work.get("id", "0"))
 
-        logid = xenrt.GEC().dbconnect.api.new_job_log_item("Installing host %s of type %s" % (hostname, specProductType))
+        logid = xenrt.GEC().dbconnect.jobLogItem("Installing host %s of type %s" % (hostname, specProductType))
 
         if specProductType == "xenserver":
             if versionPath and not specProductVersion and not specVersion:
@@ -1952,24 +1952,24 @@ class HostInstallWorker(_InstallWorker):
 
         if defaultHost:
             xenrt.TEC().registry.hostPut("RESOURCE_HOST_DEFAULT", host)
-        xenrt.GEC().dbconnect.api.new_job_log_item("Installing host %s" % (hostname), linked=logid, completes=True)
+        xenrt.GEC().dbconnect.jobLogItem("Installing host %s" % (hostname), linked=logid, completes=True)
 
 class GuestInstallWorker(_InstallWorker):
     """Worker thread for parallel guest installs"""
     def doWork(self, work):
         if work.has_key("filename"):
-            logid = xenrt.GEC().dbconnect.api.new_job_log_item("Importing VM from %s" % (work['filename']))
+            logid = xenrt.GEC().dbconnect.jobLogItem("Importing VM from %s" % (work['filename']))
             xenrt.productLib(hostname=work["host"]).guest.createVMFromFile(**work)
-            xenrt.GEC().dbconnect.api.new_job_log_item("Completed import VM from %s" % (work['filename']), completes=True, linked=logid)
+            xenrt.GEC().dbconnect.jobLogItem("Completed import VM from %s" % (work['filename']), completes=True, linked=logid)
         else:
-            logid = xenrt.GEC().dbconnect.api.new_job_log_item("Installing VM of type %s" % (work.get("distro", "unknown")))
+            logid = xenrt.GEC().dbconnect.jobLogItem("Installing VM of type %s" % (work.get("distro", "unknown")))
             if xenrt.TEC().lookup("DEFAULT_VIFS", False, boolean=True) and (not "vifs" in work or not work['vifs']):
                 host = work["host"]
                 if not isinstance(host, xenrt.GenericHost):
                     host = xenrt.TEC().registry.hostGet(host)
                 work['vifs'] = host.guestFactory().DEFAULT
             xenrt.productLib(hostname=work["host"]).guest.createVM(**work)
-            xenrt.GEC().dbconnect.api.new_job_log_item("Installed VM of type %s" % (work.get("distro", "unknown")), completes=True, linked=logid)
+            xenrt.GEC().dbconnect.jobLogItem("Installed VM of type %s" % (work.get("distro", "unknown")), completes=True, linked=logid)
 
 class SlaveManagementWorker(_InstallWorker):
     """Worker thread for parallel slave management interface reconfigures"""

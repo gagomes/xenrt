@@ -182,7 +182,7 @@ class SuiteSequence(SuiteConfigurable):
             if not self.name in string.split(seqs, ","):
                 sys.stderr.write("Not running sequence '%s'\n" % (self.name))
                 return (0, runtcs)
-        if excllist and self.name in excllist:
+        elif excllist and self.name in excllist:
             sys.stderr.write("Skipping sequence '%s'\n" % (self.name))
             return (0, runtcs)
         inseq = self.listTCsInSequence(quiet=True)

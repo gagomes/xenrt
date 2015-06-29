@@ -42,7 +42,7 @@
     </serial>
 
 
-    <serial group="Win8-x86-IntelGPU">
+    <serial group="Win8-x86-IntelGVT-g">
       <testcase id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
         <arg>guest=win8</arg>
         <arg>vgpuconfig=Intel GVT-g</arg>
@@ -64,7 +64,7 @@
     </serial>
 
 
-    <serial group="Win8-x64-IntelGPU">
+    <serial group="Win8-x64-IntelGVT-g">
       <testcase id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
         <arg>guest=win8x64</arg>
         <arg>vgpuconfig=Intel GVT-g</arg>

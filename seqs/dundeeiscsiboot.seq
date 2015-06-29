@@ -1,31 +1,28 @@
 <xenrt>
 
   <!-- iSCSI Boot From SAN testcases -->
-    
-  <variables>
-    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
-  </variables>
 
   <prepare>
     <!-- Preparing a iSCSI boot disk on Native Linux -->
     <host productType="nativelinux" productVersion="centos64-x64" id="1" />
-    <host/>
+
+    <!-- The installation of the host using multipathed iSCSI Boot disk is carried out in the test case -->
   </prepare>
 
   <testsequence>
     <serial group="iSCSIBoot">
 
       <!-- iSCSI boot disk on a SAN via Native Linux -->
-      <testcase id="testcases.xenserver.tc.install.TCISCSIBoot" name="TC20845" tc="TC-20845" blocker="yes"/>
+      <testcase id="testcases.xenserver.tc.install.TCISCSIBoot" name="TC20845" tc="TC-20845" blocker="yes" />
 
       <!--NFS SR tests -->
-      <testcase id="testcases.xenserver.tc.install.TC20849"/>
-      <testcase id="testcases.xenserver.tc.install.TC20850"/>
+      <testcase id="testcases.xenserver.tc.install.TC20849" />
+      <testcase id="testcases.xenserver.tc.install.TC20850" />
 
       <!-- iSCSI SR tests -->
-      <testcase id="testcases.xenserver.tc.install.TC20846"/>
-      <testcase id="testcases.xenserver.tc.install.TC20847"/>
-      <testcase id="testcases.xenserver.tc.install.TC20848"/>
+      <testcase id="testcases.xenserver.tc.install.TC20846" />
+      <testcase id="testcases.xenserver.tc.install.TC20847" />
+      <testcase id="testcases.xenserver.tc.install.TC20848" />
 
     </serial>
   </testsequence>

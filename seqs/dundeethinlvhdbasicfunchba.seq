@@ -7,13 +7,13 @@
 
   <prepare>
     <pool>
-      <storage type="lvmoiscsi" name="lvmoiscsisr" default="true" options="ietvm,thin" size="200"/>
+      <storage type="fc" name="lvmohbasr" default="true" options="ietvm,thin" size="200"/>
       <host id="0"/>
     </pool>
   </prepare>
 
   <testsequence>
-    <testcase id="xenserver.tc.thinlvhd.TCThinProvisioned" name="BasicFunc" tc="TC-xxxxx">
-    <testcase id="xenserver.tc.thinlvhd.TCSRIncrement" name="BasicFunc" tc="TC-xxxxx">
+    <testcase id="xenserver.tc.thinlvhd.TCThinProvisioned" name="BasicFunc" />
+    <testcase id="xenserver.tc.thinlvhd.TCSRIncrement" name="BasicFunc" />
   </testsequence>
 </xenrt>

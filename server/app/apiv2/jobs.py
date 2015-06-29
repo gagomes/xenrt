@@ -216,7 +216,7 @@ class _JobBase(_MachineBase):
                             })
                 if len(jobs.keys()) > 0:
                     jobidlist = ", ".join(["%s"] * len(jobs.keys()))
-                    cur.execute("SELECT job, ts, log FROM tbljoblog WHERE job IN (%s) ORDER BY ts" % jobidlist, jobs.keys())
+                    cur.execute("SELECT job, ts, log, id, linked, completes FROM tbljoblog WHERE job IN (%s) ORDER BY ts" % jobidlist, jobs.keys())
                     while True:
                         rc = cur.fetchone()
                         if not rc:
@@ -224,6 +224,9 @@ class _JobBase(_MachineBase):
                         jobs[rc[0]]['log'].append({
                             "ts": calendar.timegm(rc[1].timetuple()),
                             "log": rc[2].strip()
+                            "id": rc[3],
+                            "linked": rc[4],
+                            "completes": rc[5]
                             })
 
 
@@ -988,11 +991,19 @@ class NewJobLogItem(_JobBase):
                 "type": "string",
                 "description": "Log item to add"
             },
+            "completes": {
+                "type": "boolean",
+                "description": "Whether this item completes the operation"
+            },
+            "linked": {
+                "type": "integer",
+                "description": "ID of linked job log item"
+            },
         },
         "required": ["log"]
     }}
     OPERATION_ID = "new_job_log_item"
-    PARAM_ORDER=["id", "log"]
+    PARAM_ORDER=["id", "log", "completes", "linked"]
     SUMMARY = "Add item to job log"
 
     def render(self):
@@ -1004,12 +1015,12 @@ class NewJobLogItem(_JobBase):
         db = self.getDB()
         cur = db.cursor()
         timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))
-        cur.execute("INSERT INTO tbljoblog (ts, job, log) "
-                    "VALUES (%s, %s, %s);",
-                    [timenow, self.request.matchdict['id'], j['log']])
-        
+        cur.execute("INSERT INTO tbljoblog (ts, job, log, linked, completes) "
+                    "VALUES (%s, %s, %s, %s, %s) RETURNING id;",
+                    [timenow, self.request.matchdict['id'], j['log'], j['completes'], j['linked']])
+        logid = cur.fetchone()[0]
         db.commit()
-        return {}
+        return {"id": logid}
 
 class EmailJob(_JobBase):
     PATH = "/job/{id}/email"

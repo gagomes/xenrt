@@ -3214,6 +3214,7 @@ class TC1660(xenrt.TestCase):
 
 class NetworkConfigurator(object):
     PRIVATE_NETWORK = "eth1"
+    __IPV6_TAG = "1/ipv6/0"
 
     def configureHCFloodRouterNet(self,attacker):
         attacker.getVM().configureNetwork(self.PRIVATE_NETWORK, "192.168.1.1", "255.255.255.0")
@@ -3222,6 +3223,19 @@ class NetworkConfigurator(object):
             if g.windows:
                 g.configureNetwork(self.PRIVATE_NETWORK, "192.168.1." + str(i), "255.255.255.0")
                 i = i + 1
+
+    def getIPV6AddressOfVM(self,VM):
+        addresses = VM.getVM().asXapiObject().networkAddresses()
+        log("Addresses found: %s" % str(addresses))
+        ipv6Network = next((n for n in addresses if self.__IPV6_TAG in n), None)
+        log("IPV6 address %s found with ID: %s" % (ipv6Network, self.__IPV6_TAG))
+                    
+        if ipv6Network:
+            ipv6Address = (':'.join(ipv6Network.split(':')[1:])).strip()
+            return ipv6Address
+        else:
+            log("No IPV6 guest found for guest %s" % VM.getName())
+            return False
 
 class VM(object):
 
@@ -3297,6 +3311,10 @@ class Attacker(VM):
     def installHCFloodRouterUbuntu(self, privateNetwork):
         self.hCFloodRouterPackage = xenrt.networkutils.HackersChoiceFloodRouter26Ubuntu(privateNetwork)
         self.hCFloodRouterPackage.install(self._VM)
+
+    def installHCFirewall6Ubuntu(self, privateNetwork):
+        self.hCFirewall6Package = xenrt.networkutils.HackersChoiceFirewall6Ubuntu(privateNetwork)
+        self.hCFirewall6Package.install(self._VM) 
 
     def runHCFloodRouterUbuntu(self):
         self.hCFloodRouterPackage.run(self._VM)
@@ -3412,6 +3430,53 @@ class TCBadPackets(xenrt.TestCase, object):
         for g in [ xenrt.TEC().registry.guestGet(x) for x in self.host.listGuests() ]:
             if g.windows:
                 g.checkHealth()
+
+class TempIPv6Firewall6(xenrt.TestCase, object):
+
+    def _runPackageTestCase(self, attacker, victim, hackNumber):
+        #----------------------------------------
+        step("Run attack %d...." % hackNumber)
+        #----------------------------------------
+        attacker.hCFirewall6Package.runtestcase(attacker.getVM(),hackNumber)
+        time.sleep(10)
+        log("Results of attack: %s" % str(attacker.hCFirewall6Package.results()))
+        try:
+            #----------------------------------------
+            step("Check the victims health")
+            #----------------------------------------
+            victim.healthStatus()
+        except xenrt.XRTFailure as e:
+            #---------------------------------------------------------------------------------------
+            step("Error caught, attempt to force-reboot host for next subcase and fail this one")
+            #---------------------------------------------------------------------------------------
+            victim.getVM().reboot(force=True)
+            raise xenrt.XRTFailure(e)
+
+    def __runAllPackageTests(self, attacker, victim, ipv6Address):
+        attacker.hCFirewall6Package.setIPv6Address(self, ipv6Address)
+        #------------------------------------------------------------
+        step("Running attacks from %s on vm %s" % (attacker.getName(), victim.getName()))
+        #------------------------------------------------------------
+        for tc in p.testCasesIds():
+            self.runSubcase("_runPackageTestCase", (attacker.hCFirewall6Package, attacker, victim, tc), "HackersChoice Firewall6 on %s" % victim.getName(), "test %d" % tc)
+
+    def run(self,arglist):
+
+        attacker = Attacker(self.getDefaultHost().getGuest("attacker"))
+        #-------------------------
+        step("Configure Private Network")
+        #-------------------------
+        net = NetworkConfigurator()
+        net.configureHCFloodRouterNet(attacker)
+
+        #-------------------------
+        step("Install package")
+        #-------------------------
+        attacker.installHCFirewall6Ubuntu(net.PRIVATE_NETWORK)
+        victims = [Victim(t) for t in [xenrt.TEC().registry.guestGet(x) for x in attacker.getHost().listGuests()] if t.windows]
+        for v in victims:
+            ipv6Address = net.getIPV6AddressOfVM(v.getVM())
+            self.__runAllPackageTests(attacker,victim,ipv6Address)
 
 class TCHackersChoiceIPv6Firewall6(TCBadPackets):
         

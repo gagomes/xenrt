@@ -1952,7 +1952,7 @@ class HostInstallWorker(_InstallWorker):
 
         if defaultHost:
             xenrt.TEC().registry.hostPut("RESOURCE_HOST_DEFAULT", host)
-        xenrt.GEC().dbconnect.jobLogItem("Installing host %s" % (hostname), linked=logid, completes=True)
+        xenrt.GEC().dbconnect.jobLogItem("Installed host %s" % (hostname), linked=logid, completes=True)
 
 class GuestInstallWorker(_InstallWorker):
     """Worker thread for parallel guest installs"""

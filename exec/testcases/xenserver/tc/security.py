@@ -3235,7 +3235,7 @@ class NetworkConfigurator(object):
             return ipv6Address
         else:
             log("No IPV6 guest found for guest %s" % VM.getName())
-            return False
+            return None
 
 class VM(object):
 

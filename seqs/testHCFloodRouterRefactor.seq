@@ -54,10 +54,10 @@
   </prepare>
 
   <testsequence>
-    <testcase id="testcases.xenserver.tc.security.TempBadPackets" tc="TC-20875"/>
+    <testcase id="testcases.xenserver.tc.security.TempBadPackets"/>
   </testsequence>
   <testsequence>
-    <testcase id="testcases.xenserver.tc.security.TempIPv6FloodRouterStress" tc="TC-20879"/>
+    <testcase id="testcases.xenserver.tc.security.TempIPv6FloodRouterStress"/>
   </testsequence>
   <testsequence>
     <testcase id="testcases.xenserver.tc.security.TempIPv6Firewall6" tc="TC-20876"/>

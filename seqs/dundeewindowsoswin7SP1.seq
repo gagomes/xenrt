@@ -60,23 +60,6 @@
             <arg>guest=win7sp1-x86</arg>
             <arg>loops=5</arg>
           </testcase> -->
-          <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-11883">
-            <arg>N/A</arg>
-            <arg>guest=win7sp1-x86</arg>
-            <arg>noshutdown</arg>
-            <arg>initial=4</arg>
-            <arg>max=7</arg>
-          </testcase>
-          <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-11884">
-            <arg>N/A</arg>
-            <arg>guest=win7sp1-x86</arg>
-            <arg>noshutdown</arg>
-          </testcase>
-          <testcase id="guestops.cpu.TCCPUWalk" tc="TC-11885">
-            <arg>guest=win7sp1-x86</arg>
-            <arg>max=8</arg>
-            <arg>noplugwindows</arg>
-          </testcase>
           <finally>
             <testcase id="guestops.basic.TCShutdown">
               <arg>guest=win7sp1-x86</arg>
@@ -125,23 +108,6 @@
             <arg>guest=win7sp1-x64</arg>
             <arg>loops=5</arg>
           </testcase> -->
-          <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-11895">
-            <arg>N/A</arg>
-            <arg>guest=win7sp1-x64</arg>
-            <arg>noshutdown</arg>
-            <arg>initial=4</arg>
-            <arg>max=7</arg>
-          </testcase>
-          <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-11896">
-            <arg>N/A</arg>
-            <arg>guest=win7sp1-x64</arg>
-            <arg>noshutdown</arg>
-          </testcase>
-          <testcase id="guestops.cpu.TCCPUWalk" tc="TC-11897">
-            <arg>guest=win7sp1-x64</arg>
-            <arg>max=8</arg>
-            <arg>noplugwindows</arg>
-          </testcase>
           <finally>
             <testcase id="guestops.basic.TCShutdown">
               <arg>guest=win7sp1-x64</arg>

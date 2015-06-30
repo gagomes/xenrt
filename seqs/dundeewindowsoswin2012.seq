@@ -56,23 +56,6 @@
         <arg>guest=ws12-x64</arg>
         <arg>loops=10</arg>
         </testcase> -->
-        <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-17947">
-        <arg>N/A</arg>
-        <arg>guest=ws12-x64</arg>
-        <arg>noshutdown</arg>
-        <arg>initial=4</arg>
-        <arg>max=7</arg>
-        </testcase>
-        <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-17948">
-        <arg>N/A</arg>
-        <arg>guest=ws12-x64</arg>
-        <arg>noshutdown</arg>
-        </testcase>
-        <testcase id="guestops.cpu.TCCPUWalk" tc="TC-17949">
-        <arg>guest=ws12-x64</arg>
-        <arg>max=8</arg>
-        <arg>noplugwindows</arg>
-        </testcase>
         <finally>
           <testcase id="guestops.basic.TCShutdown">
             <arg>guest=ws12-x64</arg>
@@ -117,23 +100,6 @@
         <arg>guest=ws12core-x64</arg>
         <arg>loops=10</arg>
         </testcase> -->
-        <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-17959">
-        <arg>N/A</arg>
-        <arg>guest=ws12core-x64</arg>
-        <arg>noshutdown</arg>
-        <arg>initial=4</arg>
-        <arg>max=7</arg>
-        </testcase>
-        <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-17960">
-        <arg>N/A</arg>
-        <arg>guest=ws12core-x64</arg>
-        <arg>noshutdown</arg>
-        </testcase>
-        <testcase id="guestops.cpu.TCCPUWalk" tc="TC-17961">
-        <arg>guest=ws12core-x64</arg>
-        <arg>max=8</arg>
-        <arg>noplugwindows</arg>
-        </testcase>
         <finally>
           <testcase id="guestops.basic.TCShutdown">
             <arg>guest=ws12core-x64</arg>

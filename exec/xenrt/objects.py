@@ -7551,6 +7551,8 @@ class GenericGuest(GenericPlace):
                     self.execguest("echo deb %s/debian %s-updates main >> /etc/apt/sources.list.d/updates.list" % (xenrt.TEC().lookup("APT_SERVER"), codename))
                     if int(debVer) in (6,):
                         self.execguest("echo deb %s/debian %s-lts main >> /etc/apt/sources.list.d/updates.list" % (xenrt.TEC().lookup("APT_SERVER"), codename))
+                    if int(debVer) in (7,8):
+                        self.execguest("echo deb %s/debian %s-backports main >> /etc/apt/sources.list.d/updates.list" % (xenrt.TEC().lookup("APT_SERVER"), codename))
 
                 try:
                     data = self.execguest("apt-get update")

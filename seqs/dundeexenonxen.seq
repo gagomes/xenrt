@@ -35,7 +35,7 @@
   <testsequence>
     <!-- reference test-cases to be included in the sequence here: -->
     <!-- The dotted name here reflects the directory structure inside xenrt.git/exec/ -->
-    <testcase id="xenserver.tc.guest.CleanReboot123" tc="TC-27029" >
+    <testcase id="xenserver.tc.guest.VmRebootedOnce" tc="TC-27029" >
     <arg>VM_on_master</arg>        
     <arg>VM_on_slave</arg>
     </testcase>

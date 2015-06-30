@@ -1907,21 +1907,40 @@ class TCMemoryDumpBootDriverFlag(xenrt.TestCase):
         else:
             xenrt.TEC().logverbose("Crashdump file found")
             
-class CleanReboot123(xenrt.TestCase):
+class VmRebootedOnce(xenrt.TestCase):
     """Test Case for SCTX-2017 - VM.clean_reboot is not canceled by VM.hard_reboot if VM is running on slave"""  
     
 
-    def bootSleep(self, vm, option):
-        xenrt.pfarm([xenrt.PTask(vm.reboot, ("force=option"))])
-        xenrt.sleep(2)
+    def rebootGuest(self, guestName, option=False):
+        """xe vm-reboot name-label={guest} force={option} >/dev/null 2>&1 </dev/null &""".format(guest=guestName,option=option) 
+    
+    def editInittab(self):
+        """sed -i 's#.*ca:12345:ctrlaltdel:.*#ca:12345:ctrlaltdel:/bin/echo "Oh no You Dont"#' /etc/inittab"""
+    
+    def getDomID(self,guestName):
+        return guestName.getDomid()
     
     def run(self, arglist):
-        step("Reboot VM on master")     
-        host = self.getDefaultHost()
-        guest = self.getGuest("VM_on_master")
-        guest2 = self.getGuest("VM_on_slave")
-        bootSleep(True)
-        
+        for h in arglist:    
+            step("Edit Inittab")
+            editInittab()
+            xenrt.sleep(1)
+            
+            step("VM soft reboot")
+            rebootCountBefore = getDomID(h)
+            log(rebootCountBefore)
+            rebootGuest(h)
+            xenrt.sleep(5)
+            
+            step("VM hard reboot")
+            rebootGuest(h,True)
+            xenrt.sleep(20)
+            rebootCountAfter = getDomID(h)
+            log(rebootCountAfter)
+            
+            step("Check if VM was rebooted only once")
+            if rebootCountAfter - 1 != rebootCountBefore:
+                raise xenrt.XRTFailure("{0} rebooted more than Once").format(h)
         
         
 

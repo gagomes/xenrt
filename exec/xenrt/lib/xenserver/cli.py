@@ -318,7 +318,7 @@ class Session(object):
                         raise e
                         
             except xenrt.XRTException, e:
-                if xenrt.TEC().lookup("WORKAROUND_CA59859", False, boolean=True):
+                if xenrt.TEC().lookup("WORKAROUND_CA59859", True, boolean=True):
                     if command == "pif-reconfigure-ip" and e.data and re.search("Failed to see host on network after timeout expired", e.data):
                         return
                 if not e.data or not \

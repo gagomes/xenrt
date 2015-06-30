@@ -10,7 +10,7 @@
 
   <prepare>
     <host id="0" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}">
-      <vm name="VMWin2k8">
+      <vm name="VMWin2k80">
         <distro>ws08-x86</distro>
         <memory>1024</memory>
         <vcpus>2</vcpus>

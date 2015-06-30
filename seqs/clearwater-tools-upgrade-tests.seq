@@ -10,8 +10,40 @@
 
   <prepare>
     <host id="0" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}">
-      <vm name="templateVM">
-        <distro>ws08-x86</distro>
+      <vm name="VMWin2k80">
+        <distro>ws12r2core-x64</distro>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <network device="0" />
+        <disk device="0" size="24" />
+      </vm>
+      <vm name="VMWin2k81">
+        <distro>ws12r2core-x64</distro>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <network device="0" />
+        <disk device="0" size="24" />
+      </vm>
+      <vm name="VMWin2k82">
+        <distro>ws12r2core-x64</distro>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <network device="0" />
+        <disk device="0" size="24" />
+      </vm>
+      <vm name="VMWin2k83">
+        <distro>ws12r2core-x64</distro>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <network device="0" />
+        <disk device="0" size="24" />
+      </vm>
+      <vm name="VMWin2k84">
+        <distro>ws12r2core-x64</distro>
         <memory>1024</memory>
         <vcpus>2</vcpus>
         <postinstall action="installDrivers" />

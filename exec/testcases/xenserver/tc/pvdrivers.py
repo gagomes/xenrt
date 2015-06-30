@@ -1107,9 +1107,7 @@ class TCToolsMissingUninstall(xenrt.TestCase):
     #TC-23775
     def prepare(self, arglist=None):
         self.host = self.getDefaultHost()
-        templateVM = self.host.getGuest("templateVM")
-        self.guest = templateVM.cloneVM()
-        self.host.addGuest(self.guest)
+        self.guest = self.host.getGuest("VMWin2k80")
         self.guest.start()
 
     def run(self, arglist=None):

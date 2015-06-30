@@ -110,7 +110,7 @@ class TCSyncRPMs(xenrt.TestCase):
                 rsynccmd = self.rsynccmdstem + masterpath + "/ " + \
                            mountpoint + "/"
                 xenrt.TEC().logverbose(rsynccmd)
-                xenrt.command(rsynccmd, timeout=36000)
+                xenrt.sudo(rsynccmd, timeout=36000)
             finally:
                 try:
                     if mount:

@@ -280,9 +280,9 @@ Hacker's choice packages for running IPv6 network attacks
 class HackersChoiceUbuntuPackage(object):
     __metaclass__ = ABCMeta
     
-    PACKAGE = "thc-ipv6-2.3.tgz"
+    PACKAGE = "thc-ipv6-2.7.tgz"
     TARGET_ROOT = "/"
-    TARGET_PATH = "/thc-ipv6-2.3"
+    TARGET_PATH = "/thc-ipv6-2.7"
     
     @abstractmethod
     def run(self, guest): pass

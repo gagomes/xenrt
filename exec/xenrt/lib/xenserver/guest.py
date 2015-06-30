@@ -1396,18 +1396,19 @@ at > c:\\xenrtatlog.txt
         self.changeCD("xs-tools.iso")
         xenrt.sleep(30)
         batch = []
-        batch.append("MsiExec.exe /X D:\\citrixxendriversx64.msi /passive /norestart\r\n")
+        batch.append("MsiExec.exe /i D:\\citrixxendriversx64.msi /passive /norestart\r\n")
         batch.append("ping 127.0.0.1 -n 10 -w 1000\r\n")
-        batch.append("MsiExec.exe /X D:\\citrixguestagentx64.msi /passive /norestart\r\n")
+        batch.append("MsiExec.exe /i D:\\citrixvssx64.msi /passive /norestart\r\n")
         batch.append("ping 127.0.0.1 -n 10 -w 1000\r\n")
-        batch.append("MsiExec.exe /X D:\\citrixvssx64.msi /passive /norestart\r\n")
+        batch.append("D:/dotNetFx40_Full_x86_x64.exe /passive /norestart\r\n")
+        batch.append("MsiExec.exe /i D:\\citrixguestagentx64.msi /passive /norestart\r\n")
         batch.append("ping 127.0.0.1 -n 10 -w 1000\r\n")
-        batch.append("MsiExec.exe /X D:\\installwizard.msi /passive /norestart\r\n")
+        batch.append("MsiExec.exe /i D:\\installwizard.msi /passive /norestart\r\n")
         batch.append("ping 127.0.0.1 -n 10 -w 1000\r\n")
         batch.append("shutdown -r\r\n")
 
-        self.xmlrpcWriteFile("c:\\uninst.bat", string.join(batch))
-        self.xmlrpcStart("c:\\uninst.bat")
+        self.xmlrpcWriteFile("c:\\inst.bat", string.join(batch))
+        self.xmlrpcStart("c:\\inst.bat")
 
         #wait for reboot
         xenrt.sleep(60)

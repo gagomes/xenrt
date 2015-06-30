@@ -1153,7 +1153,7 @@ class TCSysrepAfterToolsUpgrade(xenrt.TestCase):
     #TC-27018
     def prepare(self, arglist=None):
         self.host = self.getDefaultHost()
-        self.guest = self.host.getGuest("VMWin2k8")
+        self.guest = self.host.getGuest("VMWin2k82")
         self.guest.start()
         
         step("Install latest PV tools")
@@ -1211,6 +1211,11 @@ class TCInstallXenToolsStepByStep(xenrt.Testcase):
     def run(self, arglist=None):
         step("Install x64 drivers")
         self.guest.installDriversStepByStep()
+    
+        if self.guest.pvDriversUpToDate():
+            xenrt.TEC().logverbose("Tools are upto date")
+        else:
+            raise xenrt.XRTFailure("Guest tools are out of date")
     
 class TCBootStartDriverUpgrade(xenrt.TestCase):
     """Test for CA-158777 upgrade issue with boot start driver"""

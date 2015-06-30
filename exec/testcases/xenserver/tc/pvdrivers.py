@@ -1107,7 +1107,9 @@ class TCToolsMissingUninstall(xenrt.TestCase):
     #TC-23775
     def prepare(self, arglist=None):
         self.host = self.getDefaultHost()
-        self.guest = self.host.getGuest("VMWin2k80")
+        templateVM = self.host.getGuest("templateVM")
+        self.guest = templateVM.cloneVM()
+        host.addGuest(guest)
         self.guest.start()
 
     def run(self, arglist=None):
@@ -1133,12 +1135,9 @@ class TCToolsVBscriptEngineOff(xenrt.TestCase):
 
     def run(self, arglist=None):
         step("Disable vbscript Engine")
+        self.guest.disableVbscriptEngine()
+        self.guest.reboot()
         
-        self.guest.xmlrpcExec("cd C:\\Windows\\System32")
-        self.guest.xmlrpcExec("takeown /f C:\\Windows\\System32\\vbscript.dll")
-        self.guest.xmlrpcExec("echo y| cacls C:\\Windows\System32\\vbscript.dll /G administrator:F")
-        self.guest.xmlrpcExec("rename vbscript.dll vbscript1.dll")
-                 
         step("Install latest PV tools")
         self.guest.installDrivers()
         self.guest.waitForAgent(60)

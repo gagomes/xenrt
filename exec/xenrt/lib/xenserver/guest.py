@@ -6060,26 +6060,6 @@ default:
 
         self.getDocker().install()
     
-    def installToolSteps(self):
-        """ Install Windows Guest Agent from xs tools """
-        
-        #Mount the tools CD 
-        self.changeCD("xs-tools.iso")
-        xenrt.sleep(30)
-        pvToolsDir = "D:"
-        
-        self.xmlrpcStart("%s\\citrixxendriversx64.msi  /passive /forcerestart" %(pvToolsDir))
-        self.xmlrpcStart("%s\\citrixvssx64.msi  /passive /forcerestart" %(pvToolsDir))
-        self.xmlrpcStart("%s\\dotNetFx40_Full_x86_x64.exe" %(pvToolsDir))
-        self.xmlrpcStart("%s\\citrixguestagentx64.msi  /passive /forcerestart" %(pvToolsDir))  
-        self.xmlrpcStart("%s\\installwizard.msi  /passive /forcerestart" %(pvToolsDir))
-        
-        xenrt.sleep(30)
-        
-        #Eject the tools CD from the VM.
-        self.changeCD(None)
-        
-
     def getDocker(self, method="XAPI"):
 
         if method == "XAPI":

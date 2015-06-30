@@ -3216,7 +3216,7 @@ class NetworkConfigurator(object):
     PRIVATE_NETWORK = "eth1"
     __IPV6_TAG = "1/ipv6/0"
 
-    def configureHCFloodRouterNet(self,attacker):
+    def configureWindowsPrivateNet(self,attacker):
         attacker.getVM().configureNetwork(self.PRIVATE_NETWORK, "192.168.1.1", "255.255.255.0")
         i = 2
         for g in [ xenrt.TEC().registry.guestGet(x) for x in attacker.getHost().listGuests() ]:
@@ -3350,7 +3350,7 @@ class TCHackersChoiceIPv6FloodRouter(xenrt.TestCase, object):
         step("Configure Private Network")
         #-------------------------
         net = NetworkConfigurator()
-        net.configureHCFloodRouterNet(attacker)
+        net.configureWindowsPrivateNet(attacker)
         #-------------------------
         step("Install package")
         #-------------------------
@@ -3406,7 +3406,7 @@ class TCBadPackets(xenrt.TestCase,object):
         step("Configure Private Network")
         #-------------------------
         net = NetworkConfigurator()
-        net.configureHCFloodRouterNet(attacker)
+        net.configureWindowsPrivateNet(attacker)
         # this is a base64 encoded pcap of a single broadcast packet with multiple VLAN tags (SCTX-1529)
         badPackets = ["1MOyoQIABAAAAAAAAAAAAACQAQABAAAAAAAAAAAAAAAgAAAAIAAAAP///////wAB/uHerYEAAEqBAABKgQDerd6t3q3erd6t"]
         attacker.installScapy()
@@ -3457,7 +3457,7 @@ class TCHackersChoiceIPv6Firewall6(xenrt.TestCase, object):
         step("Configure Private Network")
         #-------------------------
         net = NetworkConfigurator()
-        net.configureHCFloodRouterNet(attacker)
+        net.configureWindowsPrivateNet(attacker)
 
         #-------------------------
         step("Install package")
@@ -3494,7 +3494,7 @@ class TCIPv6FloodRouterStress(xenrt.TestCase, object):
         step("Configure Private Network")
         #-------------------------
         net = NetworkConfigurator()
-        net.configureHCFloodRouterNet(attacker)
+        net.configureWindowsPrivateNet(attacker)
         #-------------------------
         step("Install package")
         #-------------------------

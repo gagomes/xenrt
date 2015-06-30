@@ -1581,6 +1581,7 @@ class ISCSIVMLun(ISCSILun):
 
     def _existingISCSIVM(self, sizeMB):
         # Check whether we gave this VM space for all the LUNs upfront. If we didn't, we need to shut it down and resize the VDI
+        iscsitype = self.guest.execguest("cat /root/iscsi_target_type").strip()
         if (self.guest.execguest("cat /etc/xenrtfullyprovisioned").strip() != "yes"):
             device = self.guest.execguest("cat /etc/xenrtiscsidev").strip()
             vdi = self.host.minimalList("vbd-list", "vdi-uuid", "device=%s" % device)[0]
@@ -1590,22 +1591,32 @@ class ISCSIVMLun(ISCSILun):
             self.host.getCLIInstance().execute("vdi-resize", "uuid=%s disk-size=%d" % (vdi, newSize)) # Resize the VDI to current + sizeMB
             self.guest.start()
             # Stop the daemon if it's running
-            try:
-                self.guest.execguest("/etc/init.d/iscsi-target stop")
-            except:
-                pass
-            try:
-                self.guest.execguest("killall ietd")
-            except:
-                pass
+            if iscsitype == "IET":
+                try:
+                    self.guest.execguest("/etc/init.d/iscsi-target stop")
+                except:
+                    pass
+                try:
+                    self.guest.execguest("killall ietd")
+                except:
+                    pass
+            elif iscsitype == "LIO":
+                self.guest.execguest("service target stop")
 
             self.guest.execguest("umount /iscsi") # Now we can unmount the /iscsi volume and resize the filesystem
             self.guest.execguest("e2fsck -pf /dev/%s" % device)
             self.guest.execguest("resize2fs /dev/%s" % device)
             self.guest.execguest("mount /iscsi") # and now mount and start it again.
-            self.guest.execguest("/etc/init.d/iscsi-target start")
-        self.targetname = self.guest.execguest("head -1 /etc/ietd.conf  | awk '{print $2}'").strip() # Find the Target IQN name from ietd.conf
-        self.lunid = int(self.guest.execguest("tail -1 /etc/ietd.conf | awk '{print $2}'").strip()) + 1 # Find the next available LUN ID
+            if iscsitype == "IET":
+                self.guest.execguest("/etc/init.d/iscsi-target start")
+            elif iscsitype == "LIO":
+                self.guest.execguest("service target start")
+        if iscsitype == "IET":
+            self.targetname = self.guest.execguest("head -1 /etc/ietd.conf  | awk '{print $2}'").strip() # Find the Target IQN name from ietd.conf
+            self.lunid = int(self.guest.execguest("tail -1 /etc/ietd.conf | awk '{print $2}'").strip()) + 1 # Find the next available LUN ID
+        elif iscsitype == "LIO":
+            self.targetname = self.guest.execguest("cat /root/iscsi_iqn").strip()
+            self.lunid = int(self.guest.execguest("cat /root/iscsi_lun").strip()) + 1
 
     def _createISCSIVM(self, sizeMB, totalSizeMB, bridges=None):
         if not bridges:

@@ -3469,7 +3469,7 @@ class TCHackersChoiceIPv6Firewall6(xenrt.TestCase, object):
             if ipv6Address:
                 self.__runAllPackageTests(attacker,victim,ipv6Address)
             else:
-                log("No IPV6 guest found for guest %s, skipping...." % victim.getName())
+                log("skipping %s tests...." % victim.getName())
                 continue
 
 class TCIPv6FloodRouterStress(xenrt.TestCase, object):

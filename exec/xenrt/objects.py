@@ -3431,7 +3431,7 @@ DHCPServer = 1
         name = "iscsi%08x" % random.randint(0, 0x7fffffff)
         iqn = self.execcmd("cat /root/iscsi_iqn").strip()
         self.execcmd("echo %d > /root/iscsi_lun" % lunid)
-        self.execcmd("echo '/backstores/fileio create name=%s file_or_dev=%s%s size=%dM' | targetcli" % (name, dir, name, sizemb))
+        self.execcmd("echo '/backstores/fileio create name=%s file_or_dev=%s size=%dM' | targetcli" % (name, os.path.join(dir, name), sizemb))
         self.execcmd("echo '/iscsi/%s/tpgt1/luns create /backstores/fileio/%s lun=%d' | targetcli" % (iqn, name, lunid))
         self.execcmd("/bin/echo -e '/ saveconfig\\nyes' | targetcli")
 

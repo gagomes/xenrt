@@ -3419,19 +3419,21 @@ DHCPServer = 1
 
         return iqn
 
-    def createISCSITargetLun(self, lunid, sizemb, dir="/", thickProvision=True, timeout=1200):
+    def createISCSITargetLun(self, lunid, sizemb, dir="/", thickProvision=True, timeout=1200, existingFile=None):
         targetType = self.execcmd("cat /root/iscsi_target_type").strip()
 
         if targetType == "IET":
-            return self.createISCSITargetLunIET(lunid=lunid, sizemb=sizemb, dir=dir, thickProvision=thickProvision, timeout=timeout)
+            return self.createISCSITargetLunIET(lunid=lunid, sizemb=sizemb, dir=dir, thickProvision=thickProvision, timeout=timeout, existingFile=existingFile)
         elif targetType == "LIO":
-            return self.createISCSITargetLunLIO(lunid=lunid, sizemb=sizemb, dir=dir)
+            return self.createISCSITargetLunLIO(lunid=lunid, sizemb=sizemb, dir=dir, existingFile=existingFile)
 
-    def createISCSITargetLunLIO(self, lunid, sizemb, dir="/"):
+    def createISCSITargetLunLIO(self, lunid, sizemb, dir="/", existingFile=None):
         name = "iscsi%08x" % random.randint(0, 0x7fffffff)
+        if existingFile:
+            self.execcmd("wget -nv -O %s %s" % os.path.join(dir, name), existingFile)
         iqn = self.execcmd("cat /root/iscsi_iqn").strip()
         self.execcmd("echo %d > /root/iscsi_lun" % lunid)
-        self.execcmd("echo '/backstores/fileio create name=%s file_or_dev=%s%s size=%dM' | targetcli" % (name, dir, name, sizemb))
+        self.execcmd("echo '/backstores/fileio create name=%s file_or_dev=%s size=%dM' | targetcli" % (name, os.path.join(dir, name), sizemb))
         self.execcmd("echo '/iscsi/%s/tpgt1/luns create /backstores/fileio/%s lun=%d' | targetcli" % (iqn, name, lunid))
         self.execcmd("/bin/echo -e '/ saveconfig\\nyes' | targetcli")
 
@@ -3440,17 +3442,20 @@ DHCPServer = 1
 
         return scsiid
 
-    def createISCSITargetLunIET(self, lunid, sizemb, dir="/", thickProvision=True, timeout=1200):
+    def createISCSITargetLunIET(self, lunid, sizemb, dir="/", thickProvision=True, timeout=1200, existingFile=None):
         """Creates a LUN on the software iSCSI target installed in this VM."""
 
         # Create a lun
         filename = string.strip(self.execcmd("mktemp %siSCSIXXXXXX" % (dir)))
-        if thickProvision:
-            self.execcmd("dd if=/dev/zero of=%s bs=1M count=%u" %
-                         (filename, sizemb),timeout=1200)
+        if existingFile:
+            self.execcmd("wget -nv -O %s %s" % filename, existingFile)
         else:
-            self.execcmd("dd if=/dev/zero of=%s bs=1M count=0 seek=%u" %
-                         (filename, sizemb),timeout=timeout)
+            if thickProvision:
+                self.execcmd("dd if=/dev/zero of=%s bs=1M count=%u" %
+                             (filename, sizemb),timeout=1200)
+            else:
+                self.execcmd("dd if=/dev/zero of=%s bs=1M count=0 seek=%u" %
+                             (filename, sizemb),timeout=timeout)
 
         scsiid = random.randint(0, 0x7fffffff)
         self.execcmd("echo '        Lun %u Path=%s,Type=fileio,ScsiId=%08x' >> "

@@ -1550,7 +1550,7 @@ class SpecifiedSMBShare(object):
 class ISCSIVMLun(ISCSILun):
     """ A tempory LUN in a VM """
     
-    def __init__(self,hostIndex=None,sizeMB=None, totalSizeMB=None, guestName="xenrt-iscsi-target", bridges=None):
+    def __init__(self,hostIndex=None,sizeMB=None, totalSizeMB=None, guestName="xenrt-iscsi-target", bridges=None, targetType=None):
         if not hostIndex:
             self.host = xenrt.TEC().registry.hostGet("RESOURCE_HOST_0")
         else:
@@ -1561,7 +1561,7 @@ class ISCSIVMLun(ISCSILun):
 
         # Check if we already have the VM on this host, if we don't, then create it, otherwise attach to the existing one.
         if not self.host.guests.has_key(self.guestName):
-            self._createISCSIVM(sizeMB, totalSizeMB, bridges=bridges)
+            self._createISCSIVM(sizeMB, totalSizeMB, bridges=bridges, targetType=targetType)
         else:
             self.guest = self.host.guests[self.guestName]
             self._existingISCSIVM(sizeMB)
@@ -1618,7 +1618,7 @@ class ISCSIVMLun(ISCSILun):
             self.targetname = self.guest.execguest("cat /root/iscsi_iqn").strip()
             self.lunid = int(self.guest.execguest("cat /root/iscsi_lun").strip()) + 1
 
-    def _createISCSIVM(self, sizeMB, totalSizeMB, bridges=None):
+    def _createISCSIVM(self, sizeMB, totalSizeMB, bridges=None, targetType=None):
         if not bridges:
             networks = self.host.minimalList("pif-list", "network-uuid", "management=true host-uuid=%s" % self.host.getMyHostUUID()) # Find the management interface on this host
             networks.extend(self.host.minimalList("pif-list", "network-uuid", "IP-configuration-mode=DHCP host-uuid=%s management=false" % self.host.getMyHostUUID())) # And all of the non-management DHCP addresses
@@ -1638,7 +1638,7 @@ class ISCSIVMLun(ISCSILun):
         
         self.targetname = "iqn.2009-01.xenrt.test:iscsi%08x" % \
                  (random.randint(0, 0x7fffffff))
-        self.guest.installLinuxISCSITarget(iqn = self.targetname) # Install the linux ISCSI target
+        self.guest.installLinuxISCSITarget(iqn = self.targetname, targetType=targetType) # Install the linux ISCSI target
         self.lunid = 0
         if totalSizeMB: # We can tell this class how much space this will need in total, in which case we won't need to resize the VDI later. Store that in /etc/xenrtfullyprovisioned
             self.guest.execguest("echo yes > /etc/xenrtfullyprovisioned")

@@ -356,6 +356,9 @@ def buildCommandLine(host,
     if minimal:
         extras.append("--minimal")
 
+    if xenrt.TEC().lookup("NO_XE_SSL", False, boolean=True):
+        extras.append("--nossl")
+
     c = [command]
     c.append("%s %s" % (serverflag, host.getIP()))
     if useCredentials:

@@ -342,8 +342,8 @@ class Guest(xenrt.GenericGuest):
                                      "(arch %s)" % (distro, arch))
 
         self.isoname = isoname
-        if self.memory and self.isoname and ([i for i in ["win81","ws12r2"] if i in self.isoname]):
-            xenrt.TEC().config.setVariable("OPTION_CLONE_TEMPLATE", True)
+        if self.memory and self.isoname and ([i for i in ["win81","ws12r2"] if i in self.isoname]) and \
+                not isinstance(self, xenrt.lib.xenserver.guest.CreedenceGuest):
             rootdisk = max(32768, 20480 + self.memory)
 
         if distro:
@@ -2807,8 +2807,13 @@ exit /B 1
         for uuid in vbds:
             device = self.getHost().genParamGet("vbd", uuid, "userdevice")
             vdiuuid = self.getHost().genParamGet("vbd", uuid, "vdi-uuid")
-            sizebytes = self.getHost().genParamGet("vdi", vdiuuid, "virtual-size")
-            size = int(sizebytes) / xenrt.MEGA
+            
+            if xenrt.isUUID(vdiuuid):
+                sizebytes = self.getHost().genParamGet("vdi", vdiuuid, "virtual-size")
+                size = int(sizebytes) / xenrt.MEGA
+            else:
+                sizebytes = 0
+                size = 0
             data = self.getHost().genParamGet("vbd", uuid, "qos_algorithm_params")
             try:
                 qos = int(re.search("class: ([0-9]+)", data).group(1))
@@ -4717,7 +4722,8 @@ def createVM(host,
              bootparams=None,
              use_ipv6=False,
              suffix=None,
-             ips={}):
+             ips={},
+             **kwargs):
 
 
     canUsePrebuiltTemplate = not pxe and not guestparams and not template and not bootparams and not use_ipv6

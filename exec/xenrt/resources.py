@@ -1550,7 +1550,7 @@ class SpecifiedSMBShare(object):
 class ISCSIVMLun(ISCSILun):
     """ A tempory LUN in a VM """
     
-    def __init__(self,hostIndex=None,sizeMB=None, totalSizeMB=None, guestName="xenrt-iscsi-target", bridges=None):
+    def __init__(self,hostIndex=None,sizeMB=None, totalSizeMB=None, guestName="xenrt-iscsi-target", bridges=None, targetType=None):
         if not hostIndex:
             self.host = xenrt.TEC().registry.hostGet("RESOURCE_HOST_0")
         else:
@@ -1561,7 +1561,7 @@ class ISCSIVMLun(ISCSILun):
 
         # Check if we already have the VM on this host, if we don't, then create it, otherwise attach to the existing one.
         if not self.host.guests.has_key(self.guestName):
-            self._createISCSIVM(sizeMB, totalSizeMB, bridges=bridges)
+            self._createISCSIVM(sizeMB, totalSizeMB, bridges=bridges, targetType=targetType)
         else:
             self.guest = self.host.guests[self.guestName]
             self._existingISCSIVM(sizeMB)
@@ -1581,6 +1581,7 @@ class ISCSIVMLun(ISCSILun):
 
     def _existingISCSIVM(self, sizeMB):
         # Check whether we gave this VM space for all the LUNs upfront. If we didn't, we need to shut it down and resize the VDI
+        iscsitype = self.guest.execguest("cat /root/iscsi_target_type").strip()
         if (self.guest.execguest("cat /etc/xenrtfullyprovisioned").strip() != "yes"):
             device = self.guest.execguest("cat /etc/xenrtiscsidev").strip()
             vdi = self.host.minimalList("vbd-list", "vdi-uuid", "device=%s" % device)[0]
@@ -1590,24 +1591,33 @@ class ISCSIVMLun(ISCSILun):
             self.host.getCLIInstance().execute("vdi-resize", "uuid=%s disk-size=%d" % (vdi, newSize)) # Resize the VDI to current + sizeMB
             self.guest.start()
             # Stop the daemon if it's running
-            try:
-                self.guest.execguest("/etc/init.d/iscsi-target stop")
-            except:
-                pass
-            try:
-                self.guest.execguest("killall ietd")
-            except:
-                pass
+            if iscsitype == "IET":
+                try:
+                    self.guest.execguest("/etc/init.d/iscsi-target stop")
+                except:
+                    pass
+                try:
+                    self.guest.execguest("killall ietd")
+                except:
+                    pass
 
-            self.guest.execguest("umount /iscsi") # Now we can unmount the /iscsi volume and resize the filesystem
-            self.guest.execguest("e2fsck -pf /dev/%s" % device)
-            self.guest.execguest("resize2fs /dev/%s" % device)
-            self.guest.execguest("mount /iscsi") # and now mount and start it again.
-            self.guest.execguest("/etc/init.d/iscsi-target start")
-        self.targetname = self.guest.execguest("head -1 /etc/ietd.conf  | awk '{print $2}'").strip() # Find the Target IQN name from ietd.conf
-        self.lunid = int(self.guest.execguest("tail -1 /etc/ietd.conf | awk '{print $2}'").strip()) + 1 # Find the next available LUN ID
+                self.guest.execguest("umount /iscsi") # Now we can unmount the /iscsi volume and resize the filesystem
+                self.guest.execguest("e2fsck -pf /dev/%s" % device)
+                self.guest.execguest("resize2fs /dev/%s" % device)
+                self.guest.execguest("mount /iscsi") # and now mount and start it again.
+                if iscsitype == "IET":
+                    self.guest.execguest("/etc/init.d/iscsi-target start")
+            elif iscsitype == "LIO":
+                # Using a modern kernel so online resize possible
+                self.guest.execguest("resize2fs /dev/%s" % device)
+        if iscsitype == "IET":
+            self.targetname = self.guest.execguest("head -1 /etc/ietd.conf  | awk '{print $2}'").strip() # Find the Target IQN name from ietd.conf
+            self.lunid = int(self.guest.execguest("tail -1 /etc/ietd.conf | awk '{print $2}'").strip()) + 1 # Find the next available LUN ID
+        elif iscsitype == "LIO":
+            self.targetname = self.guest.execguest("cat /root/iscsi_iqn").strip()
+            self.lunid = int(self.guest.execguest("cat /root/iscsi_lun").strip()) + 1
 
-    def _createISCSIVM(self, sizeMB, totalSizeMB, bridges=None):
+    def _createISCSIVM(self, sizeMB, totalSizeMB, bridges=None, targetType=None):
         if not bridges:
             networks = self.host.minimalList("pif-list", "network-uuid", "management=true host-uuid=%s" % self.host.getMyHostUUID()) # Find the management interface on this host
             networks.extend(self.host.minimalList("pif-list", "network-uuid", "IP-configuration-mode=DHCP host-uuid=%s management=false" % self.host.getMyHostUUID())) # And all of the non-management DHCP addresses
@@ -1627,7 +1637,7 @@ class ISCSIVMLun(ISCSILun):
         
         self.targetname = "iqn.2009-01.xenrt.test:iscsi%08x" % \
                  (random.randint(0, 0x7fffffff))
-        self.guest.installLinuxISCSITarget(iqn = self.targetname) # Install the linux ISCSI target
+        self.guest.installLinuxISCSITarget(iqn = self.targetname, targetType=targetType) # Install the linux ISCSI target
         self.lunid = 0
         if totalSizeMB: # We can tell this class how much space this will need in total, in which case we won't need to resize the VDI later. Store that in /etc/xenrtfullyprovisioned
             self.guest.execguest("echo yes > /etc/xenrtfullyprovisioned")

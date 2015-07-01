@@ -23,6 +23,7 @@
     <param>MACHINES_REQUIRED=16</param>
     <pool>VMX</pool>
     <param>SITE=SC03</param>
+    <resources>NPRI&gt;=2/NSEC&gt;=2</resources>
     <!-- cl11-01,cl11-02,cl11-03,cl11-04,cl11-05,cl11-06,cl11-07,cl11-08,cl11-09,cl11-10,cl11-11,cl11-12,cl11-13,cl11-14,cl11-15,cl11-16 -->
   </scheduler>
 

@@ -1422,8 +1422,14 @@ cd -
         if firstBootSRInfo:
             (disk, srtype) = firstBootSRInfo
             firstBootSRSetup = """
+rm -f /etc/udev/rules.d/61-xenrt.rules
+rm -f /dev/disk/by-id/*
 if [ -e /sbin/udevadm ]
 then
+    sleep 5
+    /sbin/udevadm trigger --action=add
+    /sbin/udevadm settle
+    sleep 5
     export XRTDISKLINKS=$(/sbin/udevadm info -q symlink -n %s)
 else
     export XRTDISKLINKS=$(udevinfo -q symlink -n %s)
@@ -10575,8 +10581,17 @@ class BostonHost(MNRHost):
         self.execdom0("sed -i 's/xen_netback.netback_max_rx_protocol=0//g' /boot/extlinux.conf")
         MNRHost.disableCC(self, reboot)
 
-    def tailorForCloudStack(self):
+    def tailorForCloudStack(self, isBasic=False):
         # Set the Linux templates with PV args to autoinstall
+
+        if isBasic and isinstance(self, xenrt.lib.xenserver.TampaHost) and self.execdom0("test -e /proc/sys/net/bridge", retval="code") == 0:
+            self.execdom0("echo 1 > /proc/sys/net/bridge/bridge-nf-call-iptables")
+            self.execdom0("echo 1 > /proc/sys/net/bridge/bridge-nf-call-arptables")
+            self.execdom0("sed -i '/net.bridge.bridge-nf-call-iptables/d' /etc/sysctl.conf")
+            self.execdom0("sed -i '/net.bridge.bridge-nf-call-arptables/d' /etc/sysctl.conf")
+            self.execdom0("echo 'net.bridge.bridge-nf-call-iptables = 1' >> /etc/sysctl.conf")
+            self.execdom0("echo 'net.bridge.bridge-nf-call-arptables = 1' >> /etc/sysctl.conf")
+
         myip = "xenrt-controller.xenrt"
 
         args = {}
@@ -11870,8 +11885,7 @@ class DundeeHost(CreedenceHost):
     def installComplete(self, handle, waitfor=False, upgrade=False):
         CreedenceHost.installComplete(self, handle, waitfor, upgrade)
         if xenrt.TEC().lookup("STUNNEL_TLS", False, boolean=True):
-            self.execdom0("rpm -e stunnel || true")
-            self.restartToolstack()
+            self.execdom0("xe host-param-set ssl-legacy=false uuid=%s" % self.getMyHostUUID())
 
         if xenrt.TEC().lookup("LIBXL_XENOPSD", False, boolean=True):
             self.execdom0("service xenopsd-xc stop")

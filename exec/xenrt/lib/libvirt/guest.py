@@ -89,7 +89,8 @@ def createVM(host,
              bootparams=None,
              use_ipv6=False,
              suffix=None,
-             ips={}):
+             ips={},
+             **kwargs):
 
     if not isinstance(host, xenrt.GenericHost):
         host = xenrt.TEC().registry.hostGet(host)
@@ -1356,7 +1357,7 @@ class Guest(xenrt.GenericGuest):
                 self.lifecycleOperation("vm-shutdown", force=True)
             raise
 
-    def reboot(self):
+    def reboot(self, force=False, skipsniff=None):
         self.start(reboot=True)
 
     def suspend(self):

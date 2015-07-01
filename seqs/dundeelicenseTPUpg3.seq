@@ -17,10 +17,6 @@
           <file>%LICENSE_SERVER_XVA%</file>
           <postinstall action="installV6LicenseServer"/>
         </vm>
-        <vm name="oldLicenseServer">
-          <file>%OLD_LICENSE_SERVER_XVA%</file>
-          <postinstall action="installV6LicenseServer"/>
-        </vm>
       </host>
  </preprepare>
 

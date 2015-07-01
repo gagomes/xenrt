@@ -1,32 +1,27 @@
 <xenrt>
-
-  <!-- PV Guests scalability test sequence -->
+  <!-- PVHVM Guests scalability test sequence -->
   
-  <default name="POSTRUN_CLEANUP" value="cleanup"/>    <!-- nocleanup|cleanup|forcecleanup -->
-
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
-    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
-    <LINUX_DISTRO>rhel54</LINUX_DISTRO>
     <EXTRA_TIME>yes</EXTRA_TIME>
     <BUGTOOL_MODE_STRESS>yes</BUGTOOL_MODE_STRESS>
     <NO_LOGS_ON_PASS>yes</NO_LOGS_ON_PASS>
     <QUICKLOGS>yes</QUICKLOGS>
     <NO_GUEST_LOGS>yes</NO_GUEST_LOGS>
     <NO_TC_HOST_SERIAL_LOGS>yes</NO_TC_HOST_SERIAL_LOGS>
+    <OPTION_DOM0_MEM>8192M,max:8192M</OPTION_DOM0_MEM>
   </variables>
 
-  <prepare>
-    <host>
-     <storage type="nfs" name="shared" default="true"/>
-    </host>
-  </prepare>
-
   <testsequence group="VMScale">
-    <testcase id="xenserver.tc.scalability.TC21642">
-        <arg>max=500</arg> <!--  Maximum possible stable HVM VMs with default settings  -->
-        <arg>postrun=nocleanup</arg>
+    <testcase id="xenserver.tc.perf.tc_vmdensity.TCVMDensity" host="RESOURCE_HOST_0" tc="TC-21642">
+      <arg>VMRAM=[256]</arg>
+      <arg>RUNS=[1]</arg>
+      <arg>VMS=range(1,1001)</arg>
+      <arg>VMTYPES=["ubuntu1404:x86-64"]</arg>
+      <arg>EXPERIMENT="vmrun_cron"</arg>
+      <arg>VMCRON=["0:25:waitvmlogin"]</arg>
+      <arg>THRESHOLD=500.0</arg>
+      <arg>DEFAULTSR=["nfs"]</arg>
     </testcase>
   </testsequence>
 </xenrt>
-

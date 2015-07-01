@@ -1,6 +1,9 @@
 # Description: Dell OpenManage Supplimental Pack for XenServer release
 # Status: Downloadable
 # Compiled and Supplied by Dell for XenServer releases.
-b484300a64bd82ae1b874408e1acb4db  ./dellomsupppack-dundee.iso
+8300c760719d2c8b3273d801c6fce169  ./dellomsupppack-dundee.iso
 7a2815812454442e7d24a1b991c889b6  ./dellomsupppack-clearwater.iso
-b484300a64bd82ae1b874408e1acb4db  ./dellomsupppack-creedence.iso
+8300c760719d2c8b3273d801c6fce169  ./dellomsupppack-creedence.iso
+b484300a64bd82ae1b874408e1acb4db  ./dellomsupppack-creedence-pre-release.iso
+8300c760719d2c8b3273d801c6fce169  ./dellomsupppack-dundee-need-a-new-released.iso
+c2c1858329ae1703075868271912ed85  ./dellomsupppack-creedence-released-but-missing-install-file.iso

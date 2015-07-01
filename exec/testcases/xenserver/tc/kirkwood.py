@@ -547,6 +547,7 @@ class _KirkwoodVMStart(_KirkwoodBase):
         recommendations = []
         if len(self.RECOMMENDATIONS) > 0:
             hosts = self.pool.getHosts()
+            xenrt.TEC().logverbose("DEBUG - hosts: %s" % repr(hosts))
             if len(hosts) > self.MIN_POOL_SIZE:
                 raise xenrt.XRTError("Pool too large for testcase (not enough "
                                      "recommendations provided)")
@@ -577,6 +578,7 @@ class _KirkwoodVMStart(_KirkwoodBase):
     
                 # Check it's where we expect it to be
                 host = g.findHost()
+                xenrt.TEC().logverbose("DEBUG - host: %r" % host)
                 if type(self.EXPECT_ON) == types.ListType:
                     validHosts = []
                     validHostNames = []

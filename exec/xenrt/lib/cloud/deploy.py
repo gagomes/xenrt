@@ -329,9 +329,9 @@ class DeployerPlugin(object):
             # TODO - move this to the host notify block (in notifyNewElement)
             hostObject = xenrt.TEC().registry.hostGet(ref['XRT_MasterHostName'])
             try:
-                hostObject.tailorForCloudStack()
-            except:
-                xenrt.TEC().logverbose("Warning - could not run tailorForCloudStack()")
+                hostObject.tailorForCloudStack(isBasic = ref.get("XRT_NetworkType", "Basic").lower() == "basic")
+            except Exception, e:
+                xenrt.TEC().logverbose("Warning - could not run tailorForCloudStack() - %s" % str(e))
 
             if hostObject.pool:
                 hostObjects = hostObject.pool.getHosts()
@@ -349,7 +349,7 @@ class DeployerPlugin(object):
             hostIds = ref['XRT_KVMHostIds'].split(',')
             for hostId in hostIds:
                 h = xenrt.TEC().registry.hostGet('RESOURCE_HOST_%d' % (int(hostId)))
-                h.tailorForCloudStack(self.marvin.mgtSvr.isCCP)
+                h.tailorForCloudStack(self.marvin.mgtSvr.isCCP, isBasic = ref.get("XRT_NetworkType", "Basic").lower() == "basic")
 
                 try:
                     xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSIP", self.marvin.mgtSvr.place.getIP()])
@@ -362,7 +362,7 @@ class DeployerPlugin(object):
             hostIds = ref['XRT_LXCHostIds'].split(',')
             for hostId in hostIds:
                 h = xenrt.TEC().registry.hostGet('RESOURCE_HOST_%d' % (int(hostId)))
-                h.tailorForCloudStack(self.marvin.mgtSvr.isCCP, isLXC=True)
+                h.tailorForCloudStack(self.marvin.mgtSvr.isCCP, isLXC=True, isBasic = ref.get("XRT_NetworkType", "Basic").lower() == "basic")
 
                 try:
                     xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSIP", self.marvin.mgtSvr.place.getIP()])

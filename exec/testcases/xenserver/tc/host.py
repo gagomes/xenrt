@@ -2369,19 +2369,20 @@ class TC21632(_TCHostPowerON):
                                                             % (self.POWERONMETHOD))
 
         # Install Dell OpenManage (OM) Supplemental Pack on pool master.
-        self.installDellOpenManage(self.pool.master)
+        self.installDellOpenManage()
 
-    def installDellOpenManage(self, master):
+    def installDellOpenManage(self):
         """Installs Dell OpenManage Supplemental Pack"""
 
         # Get the OpenManage Supplemental Pack from distmaster and install.
-        master.execdom0("wget -nv '%sdellomsupppack.tgz' -O - | tar -zx -C /tmp" %
+        self.pool.master.execdom0("wget -nv '%sdellomsupppack.tgz' -O - | tar -zx -C /tmp" %
                                                 (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
-        productVersion = master.productVersion.lower().strip()
-        if productVersion == 'cream':
-            productVersion = 'creedence'
+        productVersion = self.pool.master.productVersion.lower().strip()
+        if productVersion == 'cream':    # Cream is Service Pack 1 for Creedence.
+            productVersion = 'creedence' # Hence no change in Dell OpenManage Supppack.
+
         dellomSupppack = "dellomsupppack-%s.iso" % productVersion
-        master.execdom0("mv /tmp/dellomsupppack/%s /root" % dellomSupppack)
+        self.pool.master.execdom0("mv /tmp/dellomsupppack/%s /root" % dellomSupppack)
 
         if self.UNSATISFIED_DEPENDENCY:
             # A timeout of 3 minutes in expect script to allow the OM to install.
@@ -2396,22 +2397,21 @@ class TC21632(_TCHostPowerON):
     expect -exact "Pack installation successful"
     expect eof
     """
-            master.execdom0("echo '%s' > script.sh; exit 0" % script)
-            master.execdom0("chmod a+x script.sh; exit 0")
-            commandOutput = master.execdom0("/root/script.sh xe-install-supplemental-pack %s" % dellomSupppack)
+            self.pool.master.execdom0("echo '%s' > script.sh; exit 0" % script)
+            self.pool.master.execdom0("chmod a+x script.sh; exit 0")
+            commandOutput = self.pool.master.execdom0("/root/script.sh xe-install-supplemental-pack %s" % dellomSupppack)
         else:
-            commandOutput = master.execdom0("xe-install-supplemental-pack %s" % dellomSupppack)
+            commandOutput = self.pool.master.execdom0("xe-install-supplemental-pack %s" % dellomSupppack)
 
         xenrt.sleep(30) # Allowing OM to settle before Xapi restart.
         
         if re.search("Pack installation successful", commandOutput):
-                xenrt.TEC().logverbose("Dell OpenManage Supplemental Pack is successfully installed on master %s" % master)
+                xenrt.TEC().logverbose("Dell OpenManage Supplemental Pack is successfully installed on master %s" % self.pool.master)
         else:
             raise xenrt.XRTFailure("Failed to install Dell OpenManage Supplemental Pack on master")
 
         # Retart toolstack
-        master.execdom0("xe-toolstack-restart")
-        master.waitForXapi(600, desc="Xapi response after restart the master")
+        self.pool.master.restartToolstack()
 
 class TC10811(_TCHostPowerON):
     """Testcase Exsures power control is disabled for a host"""

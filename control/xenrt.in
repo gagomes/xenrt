@@ -1163,8 +1163,9 @@ class XenRTBorrow(XenRTCommand):
         user = None
         besteffort = False
         preemptable = False
+        adminoverride = False
         try:
-            optlist, optx = getopt.getopt(args[1:], 'h:u:d:fr:bp', "force")
+            optlist, optx = getopt.getopt(args[1:], 'h:u:d:fr:bpa', "force")
             for argpair in optlist:
                 (flag, value) = argpair
                 if flag == '-h':
@@ -1183,12 +1184,14 @@ class XenRTBorrow(XenRTCommand):
                     besteffort = True
                 elif flag == "-p":
                     preemptable = True
+                elif flag == "-a":
+                    adminoverride = True
         except getopt.GetoptError:
             raise Exception("Unknown argument\n")
         if user:
             self.xenrt.customHeaders['X-Fake-User'] = user
 
-        self.xenrt.lease_machine(machine, duration, reason, force=force, besteffort=besteffort, preemptable=preemptable)
+        self.xenrt.lease_machine(machine, duration, reason, force=force, besteffort=besteffort, preemptable=preemptable, admin_override=adminoverride)
 
 class XenRTReturn(XenRTCommand):
 
@@ -1905,7 +1908,7 @@ class XenRTRunSuite(XenRTCommand):
             self.printout(r)
 
 class _XenRTControllerOperation(XenRTCommand):
-    def getControllerAddrForMachine(self,machine,args):
+    def getSiteDetailsForMachine(self,machine,args):
         site = None
         self.overrideconsole = None
         try:
@@ -1924,11 +1927,8 @@ class _XenRTControllerOperation(XenRTCommand):
             raise Exception("Unknown argument\n")
         if not site:
             site = self.xenrt.get_machine(machine)['site']
-        return self.getControllerAddr(site)
+        return self.xenrt.get_site(site)
 
-    def getControllerAddr(self,site):
-        return self.xenrt.get_site(site)['ctrladdr']
-        
 class XenRTSNetwork(_XenRTControllerOperation):
     name = "snetwork"
     summary = "Show network info for a site"
@@ -1942,7 +1942,7 @@ class XenRTSNetwork(_XenRTControllerOperation):
         details = {'action': 'network'}
         details['USERID'] = pwd.getpwuid(os.getuid())[0]
 
-        addr = self.getControllerAddr(site)
+        addr = self.xenrt.get_site(site)['ctrladdr']
         r = requests.get("http://%s/xenrt/api/controller/network" % addr)
         r.raise_for_status()
         self.printout(r.text)
@@ -1970,7 +1970,7 @@ class XenRTMConfig(_XenRTControllerOperation):
                     details["generated"] = "yes"
         except getopt.GetoptError:
             raise Exception("Unknown argument\n")
-        addr = self.getControllerAddrForMachine(machine, [])
+        addr = self.getSiteDetailsForMachine(machine, [])['ctrladdr']
         r = requests.get("http://%s/xenrt/api/controller/machinecfg" % addr, params=details)
         r.raise_for_status()
         self.printout(r.text)
@@ -1989,7 +1989,7 @@ class XenRTPower(_XenRTControllerOperation):
             raise Exception("Invalid usage\n")
         machine = args[0]
         self.bootdev = None
-        addr = self.getControllerAddrForMachine(machine, args[2:])
+        addr = self.getSiteDetailsForMachine(machine, args[2:])['ctrladdr']
         if not addr:
             raise Exception("Controller for machine %s not found\n" % machine)
         details = {}
@@ -2029,12 +2029,13 @@ class XenRTConsole(_XenRTControllerOperation):
                     if not m.group(1) in machines:
                         self.printout("%s\n" % m.group(1))
         else:
-            addr = self.getControllerAddrForMachine(machine, args[1:])
+            sitedetails = self.getSiteDetailsForMachine(machine, args[1:])
+            addr = sitedetails.get("ctrladdr")
             if not addr:
                 addr = _conserver
             if self.overrideconsole:
                 console = self.overrideconsole
-            if os.environ.get("SSH_CONSOLE") != "yes":
+            if os.environ.get("SSH_CONSOLE") != "yes" and not "sshconsole" in sitedetails['flags']:
                 os.system("%s -p 3109 -U -M %s %s" % (console, addr, machine.split(".")[0].split("_")[0]))
             else:
                 out = re.sub("(\S{64}) ", "\\1\n", _conskey)
@@ -2089,7 +2090,7 @@ class XenRTMGetResource(_XenRTControllerOperation):
         if len(args) < 2:
             raise Exception("Invalid usage\n")
         machine = args[0]
-        addr = self.getControllerAddrForMachine(machine, args[2:])
+        addr = self.getSiteDetailsForMachine(machine, args[2:])['ctrladdr']
         if not addr:
             raise Exception("Controller for machine %s not found\n" % machine)
         details = {"machine": args[0], "type": args[1]}
@@ -2108,7 +2109,7 @@ class XenRTMListResources(_XenRTControllerOperation):
         if len(args) < 1:
             raise Exception("Invalid usage\n")
         machine = args[0]
-        addr = self.getControllerAddrForMachine(machine, args[1:])
+        addr = self.getSiteDetailsForMachine(machine, args[1:])['ctrladdr']
         if not addr:
             raise Exception("Controller for machine %s not found\n" % machine)
         details = {"machine": args[0]}
@@ -2125,7 +2126,7 @@ class XenRTMReleaseResources(_XenRTControllerOperation):
         if len(args) < 2:
             raise Exception("Invalid usage\n")
         machine = args[0]
-        addr = self.getControllerAddrForMachine(machine, args[1:])
+        addr = self.getSiteDetailsForMachine(machine, args[1:])['ctrladdr']
         if not addr:
             raise Exception("Controller for machine %s not found\n" % machine)
         details = {"resource": []}

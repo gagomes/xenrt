@@ -108,24 +108,21 @@ class Session(object):
                     rpm = "%s/tests/xe/xe-cli.i686.rpm" % xenrt.TEC().lookup("XENRT_BASE")
                 else:
                     for cd in cds:
-                        # TODO: look for x86_64 RPMs if localarch is 64-bit.
                         xenrt.checkFileExists(cd)
                         mount = xenrt.MountISO(cd)
                         mountpoint = mount.getMount()
                         fl = glob.glob("%s/xe-cli-[0-9]*i?86.rpm" % (mountpoint))
                         if len(fl) != 0:
-                            xenrt.TEC().logverbose("Using CLI binary from ISO %s" %
-                                                   (cd))
+                            xenrt.TEC().logverbose("Using CLI binary from ISO %s" % (cd))
                             rpm = fl[-1]
                             break
-                        fl = glob.glob("%s/client_install/xe-cli-[0-9]*i?86.rpm" %
-                                       (mountpoint))
-                        fl.extend(glob.glob(\
-                            "%s/client_install/xenenterprise-cli-[0-9]*i?86.rpm" %
-                            (mountpoint)))
+                        if localarch == "x86_64":
+                            fl = glob.glob("%s/client_install/xe-cli-[0-9]*x86_64.rpm" % (mountpoint))
+                        else:
+                            fl = glob.glob("%s/client_install/xe-cli-[0-9]*i?86.rpm" % (mountpoint))
+                        fl.extend(glob.glob("%s/client_install/xenenterprise-cli-[0-9]*i?86.rpm" % (mountpoint)))
                         if len(fl) != 0:
-                            xenrt.TEC().logverbose("Using CLI binary from ISO %s" %
-                                                   (cd))
+                            xenrt.TEC().logverbose("Using CLI binary from ISO %s" % (cd))
                             rpm = fl[-1]
                             break
                         mount.unmount()
@@ -321,7 +318,7 @@ class Session(object):
                         raise e
                         
             except xenrt.XRTException, e:
-                if xenrt.TEC().lookup("WORKAROUND_CA59859", False, boolean=True):
+                if xenrt.TEC().lookup("WORKAROUND_CA59859", True, boolean=True):
                     if command == "pif-reconfigure-ip" and e.data and re.search("Failed to see host on network after timeout expired", e.data):
                         return
                 if not e.data or not \
@@ -358,6 +355,9 @@ def buildCommandLine(host,
             serverflag = "-h"
     if minimal:
         extras.append("--minimal")
+
+    if xenrt.TEC().lookup("NO_XE_SSL", False, boolean=True):
+        extras.append("--nossl")
 
     c = [command]
     c.append("%s %s" % (serverflag, host.getIP()))

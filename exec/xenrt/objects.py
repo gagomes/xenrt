@@ -3464,7 +3464,9 @@ DHCPServer = 1
                 options = "j"
             else:
                 options = ""
-            self.execcmd("cd %s.tmp && wget -nv -O - %s | tar -xv%s" % (os.path.join(dir, name), url, options))
+            proxy = xenrt.TEC().lookup("HTTP_PROXY", None)
+            proxyflag = " -e http_proxy=%s" % proxy if proxy else ""
+            self.execcmd("cd %s.tmp && wget %s -nv -O - %s | tar -xv%s" % (os.path.join(dir, name), proxyflag, url, options))
             fname = self.execcmd("find %s.tmp -type f" % os.path.join(dir, name)).splitlines()[0].strip()
             self.execcmd("mv %s %s" % (fname, os.path.join(dir, name)))
             self.execcmd("rm -rf %s.tmp" % (os.path.join(dir, name)))

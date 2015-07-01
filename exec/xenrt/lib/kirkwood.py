@@ -179,9 +179,11 @@ class KirkwoodHTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         xenrt.TEC().logverbose("Kirkwood reply original length %d bytes" % (len(reply)))
         # sys.stderr.write(str(len(reply)))
+        # CA-174608 add 9836 as bad length
         badLengths = [1676,1835]
-        #CA-169784 CA-170482
-        goodLengths = [10011, 1211]
+        #CA-169784 CA-170482 
+        #CA-174625 (TC8634, TC8632, TC8631) add 1275 is a good length
+        goodLengths = [10011, 1211, 1275]
         if ((len(reply) - 27) % 32 == 0 or len(reply) in badLengths) and len(reply) not in goodLengths:
             # Work round a strange bug in the tlslite library, by padding the
             # response with an extra null byte (XRT-5022)

@@ -3305,7 +3305,7 @@ DHCPServer = 1
         if int(self.execcmd("cat /root/targetcli_noninteractive").strip()):
             return self.execcmd("targetcli ls /iscsi | grep -1 TPG | tail -1 | awk '{print $2}'").strip()
         else:
-            return self.execcmd("echo 'ls /iscsi' | targetcli | grep -1 TPG | tail -1 | awk '{print $2}'").strip()
+            return re.sub(r'\x1b[^m]*m', '', self.execcmd("echo 'ls /iscsi' | targetcli | grep -1 TPG | tail -1 | awk '{print $2}'").strip())
         
 
     def installLinuxISCSITargetLIO(self, iqn=None, user=None, password=None, outgoingUser=None, outgoingPassword=None):

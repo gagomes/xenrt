@@ -1163,8 +1163,9 @@ class XenRTBorrow(XenRTCommand):
         user = None
         besteffort = False
         preemptable = False
+        adminoverride = False
         try:
-            optlist, optx = getopt.getopt(args[1:], 'h:u:d:fr:bp', "force")
+            optlist, optx = getopt.getopt(args[1:], 'h:u:d:fr:bpa', "force")
             for argpair in optlist:
                 (flag, value) = argpair
                 if flag == '-h':
@@ -1183,12 +1184,14 @@ class XenRTBorrow(XenRTCommand):
                     besteffort = True
                 elif flag == "-p":
                     preemptable = True
+                elif flag == "-a":
+                    adminoverride = True
         except getopt.GetoptError:
             raise Exception("Unknown argument\n")
         if user:
             self.xenrt.customHeaders['X-Fake-User'] = user
 
-        self.xenrt.lease_machine(machine, duration, reason, force=force, besteffort=besteffort, preemptable=preemptable)
+        self.xenrt.lease_machine(machine, duration, reason, force=force, besteffort=besteffort, preemptable=preemptable, admin_override=adminoverride)
 
 class XenRTReturn(XenRTCommand):
 

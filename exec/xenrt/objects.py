@@ -3292,6 +3292,21 @@ DHCPServer = 1
         else:
             raise xenrt.XRTError("Unsupported ISCSI target type %s" % targetType)
 
+    def targetcli(self, command):
+        if int(self.execcmd("cat /root/targetcli_noninteractive").strip()):
+            self.execcmd("targetcli %s" % command)
+        else:
+            if command == "/ saveconfig":
+                self.execcmd("/bin/echo -e '/ saveconfig\\nyes' | targetcli")
+            else:
+                self.execcmd("echo '%s' | targetcli" % command)
+
+    def targetcliGetTpg(self):
+        if int(self.execcmd("cat /root/targetcli_noninteractive").strip()):
+            return self.execcmd("targetcli ls /iscsi | grep -1 TPG | tail -1 | awk '{print $2}'").strip()
+        else:
+            return self.execcmd("echo 'ls /iscsi' | targetcli | grep -1 TPG | tail -1 | awk '{print $2}'").strip()
+        
 
     def installLinuxISCSITargetLIO(self, iqn=None, user=None, password=None, outgoingUser=None, outgoingPassword=None):
         if not iqn:
@@ -3309,22 +3324,33 @@ DHCPServer = 1
             redhat = None
 
         if debversion:
-            self.execcmd("apt-get install -y targetcli")
+            if debversion == 8:
+                self.execcmd("wget -O - %s/jessie-targetcli.tgz | tar -xvz" % xenrt.TEC().lookup("TEST_TARBALL_BASE"))
+                self.execcmd("dpkg -i jessie-targetcli/*.deb || apt-get -yf install")
+            else:
+                self.execcmd("apt-get install -y targetcli")
+            if debversion >=8:
+                self.execcmd("echo 1 > /root/targetcli_noninteractive")
+            else:
+                self.execcmd("echo 0 > /root/targetcli_noninteractive")
         elif redhat:
             self.execcmd("yum install -y targetcli")
-       
-        self.execcmd("echo '/iscsi create %s' | targetcli" % iqn)
+            self.execcmd("chkconfig target on")
+            self.execcmd("echo 1 > /root/targetcli_noninteractive")
+        self.targetcli("/ set global auto_add_default_portal=false") 
+        self.targetcli("/iscsi create %s" % iqn)
+        tpg = self.targetcliGetTpg()
         ips = self.execcmd("ip addr show | grep 'inet ' | awk '{print $2}' | cut -d '/' -f 1 | grep -v 127.0.0.1").strip().splitlines()
         for i in ips:
-            self.execcmd("echo '/iscsi/%s/tpgt1/portals create %s' | targetcli"  % (iqn, i))
+            self.targetcli("/iscsi/%s/%s/portals create %s"  % (iqn, tpg, i))
         # Set up open access 
-        self.execcmd("echo '/iscsi/%s/tpgt1 set attribute authentication=0 demo_mode_write_protect=0 generate_node_acls=1 cache_dynamic_acls=1' | targetcli" % iqn)
+        self.targetcli("/iscsi/%s/%s set attribute authentication=0 demo_mode_write_protect=0 generate_node_acls=1 cache_dynamic_acls=1" % (iqn, tpg))
 
         # Not implementing CHAP yet
         if user or password or outgoingUser or outgoingPassword:
-            raise xenrt.XRTError("CHAP is not supported on LIO luns")
+            raise xenrt.XRTError("XenRT support for CHAP is not implemented on LIO luns")
         
-        self.execcmd("/bin/echo -e '/ saveconfig\\nyes' | targetcli")
+        self.targetcli("/ saveconfig")
         return iqn
         
 
@@ -3433,9 +3459,10 @@ DHCPServer = 1
             self.execcmd("wget -nv -O %s %s" % os.path.join(dir, name), existingFile)
         iqn = self.execcmd("cat /root/iscsi_iqn").strip()
         self.execcmd("echo %d > /root/iscsi_lun" % lunid)
-        self.execcmd("echo '/backstores/fileio create name=%s file_or_dev=%s size=%dM' | targetcli" % (name, os.path.join(dir, name), sizemb))
-        self.execcmd("echo '/iscsi/%s/tpgt1/luns create /backstores/fileio/%s lun=%d' | targetcli" % (iqn, name, lunid))
-        self.execcmd("/bin/echo -e '/ saveconfig\\nyes' | targetcli")
+        self.targetcli("/backstores/fileio create name=%s file_or_dev=%s size=%dM" % (name, os.path.join(dir, name), sizemb))
+        tpg = self.targetcliGetTpg()
+        self.targetcli("/iscsi/%s/%s/luns create /backstores/fileio/%s lun=%d" % (iqn, tpg, name, lunid))
+        self.targetcli("/ saveconfig")
 
         serial = self.execcmd("cat /sys/kernel/config/target/core/*/%s/wwn/vpd_unit_serial" % name).strip().split()[-1]
         scsiid = "36001405" + serial.replace("-", "")[:-7]
@@ -3445,17 +3472,17 @@ DHCPServer = 1
     def createISCSITargetLunIET(self, lunid, sizemb, dir="/", thickProvision=True, timeout=1200, existingFile=None):
         """Creates a LUN on the software iSCSI target installed in this VM."""
 
+        if existingFile:
+            xenrt.TEC().logverbose("Importing existing LUNs is not supported with IET")
+
         # Create a lun
         filename = string.strip(self.execcmd("mktemp %siSCSIXXXXXX" % (dir)))
-        if existingFile:
-            self.execcmd("wget -nv -O %s %s" % filename, existingFile)
+        if thickProvision:
+            self.execcmd("dd if=/dev/zero of=%s bs=1M count=%u" %
+                         (filename, sizemb),timeout=1200)
         else:
-            if thickProvision:
-                self.execcmd("dd if=/dev/zero of=%s bs=1M count=%u" %
-                             (filename, sizemb),timeout=1200)
-            else:
-                self.execcmd("dd if=/dev/zero of=%s bs=1M count=0 seek=%u" %
-                             (filename, sizemb),timeout=timeout)
+            self.execcmd("dd if=/dev/zero of=%s bs=1M count=0 seek=%u" %
+                         (filename, sizemb),timeout=timeout)
 
         scsiid = random.randint(0, 0x7fffffff)
         self.execcmd("echo '        Lun %u Path=%s,Type=fileio,ScsiId=%08x' >> "
@@ -7485,17 +7512,24 @@ class GenericGuest(GenericPlace):
         self.findPassword()
 
         if not self.windows:
-            # sometimes we get an error doing this recursive copy very soon after a vm-start (CA-172621)
-            # attempting to fix with a sleep.
-            xenrt.sleep(10)
-
             # Copy the test scripts to the guest
             xrt = xenrt.TEC().lookup("XENRT_BASE", "/usr/share/xenrt")
             sdir = xenrt.TEC().lookup("REMOTE_SCRIPTDIR")
             self.execguest("rm -rf %s" % sdir)
             self.execguest("mkdir -p %s" % (os.path.dirname(sdir)))
             sftp = self.sftpClient()
-            sftp.copyTreeTo("%s/scripts" % (xrt), sdir)
+
+            # sometimes we get an error doing this recursive copy very soon after a vm-start (CA-172621)
+            max = 3
+            for i in range(max):
+                try:
+                    sftp.copyTreeTo("%s/scripts" % (xrt), sdir)
+                except Exception, ex:
+                    xenrt.TEC().logverbose(str(ex))
+                    if i == max - 1:
+                        raise
+                else:
+                    break
 
             # write out host key to guest to allow us to SSH to guest from dom0. This is a useful diagnostic tool.
             try:
@@ -7627,6 +7661,8 @@ class GenericGuest(GenericPlace):
                     self.execguest("echo deb %s/debian %s-updates main >> /etc/apt/sources.list.d/updates.list" % (xenrt.TEC().lookup("APT_SERVER"), codename))
                     if int(debVer) in (6,):
                         self.execguest("echo deb %s/debian %s-lts main >> /etc/apt/sources.list.d/updates.list" % (xenrt.TEC().lookup("APT_SERVER"), codename))
+                    if int(debVer) in (7,8):
+                        self.execguest("echo deb %s/debian %s-backports main >> /etc/apt/sources.list.d/updates.list" % (xenrt.TEC().lookup("APT_SERVER"), codename))
 
                 try:
                     data = self.execguest("apt-get update")

@@ -1,0 +1,99 @@
+ <xenrt>
+
+  <!-- OS functional tests: ws12-x64 and ws12core-x64 -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+  </variables>
+
+  <default name="PARALLEL" value="2"/>
+  <default name="MIGRATEPAR" value="1"/>
+
+  <semaphores>
+    <TCMigrate count="${MIGRATEPAR}"/>
+  </semaphores>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <parallel workers="${PARALLEL}">
+    <serial group="ws12-x64">
+      <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="VMInstall" tc="TC-17939" sku="heavyOps">
+        <arg>RESOURCE_HOST_0</arg>
+        <arg>guest=ws12-x64</arg>
+        <arg>distro=ws12-x64</arg>
+        <arg>memory=1024</arg>
+      </testcase>
+      <serial guest="ws12-x64">
+        <testcase id="guestops.drivers.TCDriverInstall" tc="TC-17940" sku="heavyOps">
+        <arg>guest=ws12-x64</arg>
+        </testcase>
+        <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-17947">
+        <arg>N/A</arg>
+        <arg>guest=ws12-x64</arg>
+        <arg>noshutdown</arg>
+        <arg>initial=4</arg>
+        <arg>max=5</arg>
+        </testcase>
+        <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-17948">
+        <arg>N/A</arg>
+        <arg>guest=ws12-x64</arg>
+        <arg>noshutdown</arg>
+        </testcase>
+        <testcase id="guestops.cpu.TCCPUWalk" tc="TC-17949">
+        <arg>guest=ws12-x64</arg>
+        <arg>max=5</arg>
+        <arg>noplugwindows</arg>
+        </testcase>
+        <finally>
+          <testcase id="guestops.basic.TCShutdown">
+            <arg>guest=ws12-x64</arg>
+            <arg>finally</arg>
+          </testcase>
+        </finally>
+      </serial>
+    </serial>
+    <serial group="ws12core-x64">
+      <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="VMInstall" tc="TC-17951" sku="heavyOps">
+        <arg>RESOURCE_HOST_0</arg>
+        <arg>guest=ws12core-x64</arg>
+        <arg>distro=ws12core-x64</arg>
+        <arg>memory=1024</arg>
+      </testcase>
+      <serial guest="ws12core-x64">
+        <testcase id="guestops.drivers.TCDriverInstall" tc="TC-17952" sku="heavyOps">
+        <arg>guest=ws12core-x64</arg>
+        </testcase>
+        <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-17959">
+        <arg>N/A</arg>
+        <arg>guest=ws12core-x64</arg>
+        <arg>noshutdown</arg>
+        <arg>initial=4</arg>
+        <arg>max=5</arg>
+        </testcase>
+        <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-17960">
+        <arg>N/A</arg>
+        <arg>guest=ws12core-x64</arg>
+        <arg>noshutdown</arg>
+        </testcase>
+        <testcase id="guestops.cpu.TCCPUWalk" tc="TC-17961">
+        <arg>guest=ws12core-x64</arg>
+        <arg>max=5</arg>
+        <arg>noplugwindows</arg>
+        </testcase>
+        <finally>
+          <testcase id="guestops.basic.TCShutdown">
+            <arg>guest=ws12core-x64</arg>
+            <arg>finally</arg>
+          </testcase>
+        </finally>
+      </serial>
+    </serial>
+
+    </parallel>
+  </testsequence>
+
+</xenrt>

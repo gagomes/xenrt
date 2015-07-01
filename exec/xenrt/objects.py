@@ -3297,7 +3297,7 @@ DHCPServer = 1
             self.execcmd("targetcli %s" % command)
         else:
             if command == "/ saveconfig":
-                self.execcmd("/bin/echo -e '/ saveconfig\\nyes' | targetcli'")
+                self.execcmd("/bin/echo -e '/ saveconfig\\nyes' | targetcli")
             else:
                 self.execcmd("echo '%s' | targetcli" % command)
 

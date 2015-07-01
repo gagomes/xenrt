@@ -4,8 +4,8 @@
 
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
-    <OLD_PRODUCT_INPUTDIR>/usr/groups/release/XenServer-5.6.0</OLD_PRODUCT_INPUTDIR>
-    <OLD_PRODUCT_VERSION>MNR</OLD_PRODUCT_VERSION>
+    <OLD_PRODUCT_INPUTDIR>/usr/groups/release/XenServer-6.x/XS-6.5/RTM-90233</OLD_PRODUCT_INPUTDIR>
+    <OLD_PRODUCT_VERSION>Creedence</OLD_PRODUCT_VERSION>
   </variables>
 
   <prepare>

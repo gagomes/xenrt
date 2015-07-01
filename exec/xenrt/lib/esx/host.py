@@ -8,7 +8,7 @@
 # conditions as licensed by XenSource, Inc. All other rights reserved.
 #
 
-import csv, os, re, string, StringIO, random
+import csv, os, re, string, StringIO, random, uuid
 import xenrt
 
 __all__ = ["createHost",
@@ -44,7 +44,8 @@ def createHost(id=0,
                vHostMemory=4096,
                vHostDiskSize=50,
                vHostSR=None,
-               vNetworks=None):
+               vNetworks=None,
+               **kwargs):
 
     if containerHost != None:
         raise xenrt.XRTError("Nested hosts not supported for this host type")
@@ -116,6 +117,8 @@ class ESXHost(xenrt.lib.libvirt.Host):
         xenrt.lib.libvirt.Host.__init__(self, machine,
                                         productType=productType,
                                         productVersion=productVersion)
+        self.datacenter = None
+        self.cluster = None
 
     def _getVirURL(self):
         return "esx://%s/?no_verify=1" % self.getIP()
@@ -447,7 +450,7 @@ reboot
         mac = xenrt.util.normaliseMAC(mac)
 
         # Iterate over vmnics to find a matching device
-	return self.execdom0("esxcfg-nics -l | fgrep -i %s | awk '{print $1}' | head -n 1" % (mac)).strip()
+        return self.execdom0("esxcfg-nics -l | fgrep -i %s | awk '{print $1}' | head -n 1" % (mac)).strip()
 
     def createNetworkTopology(self, topology):
         """Create the topology specified by XML on this host. Takes either
@@ -506,8 +509,21 @@ reboot
         a string containing XML or a XML DOM node."""
         pass
 
-    def addToVCenter(self, dc, cluster):
+    def addToVCenter(self, dc=None, cluster=None):
+        if not dc:
+            job=xenrt.GEC().jobid() or "nojob"
+            dc='dc-%s-%s' % (uuid.uuid4().hex, job)
+        if not cluster:
+            cluster='cluster-%s' % (uuid.uuid4().hex)
         xenrt.lib.esx.getVCenter().addHost(self, dc, cluster)
+        self.datacenter=dc
+        self.cluster=cluster
+
+    def removeFromVCenter(self):
+        if self.datacenter:
+            xenrt.lib.esx.getVCenter().removeHost(self)
+            self.datacenter=None
+            self.cluster=None
 
     def setPowerPolicy(self, policyname):
         script = """

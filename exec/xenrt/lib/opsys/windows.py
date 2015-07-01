@@ -1192,14 +1192,18 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
                        "Unrestricted")
     # TODO Add JoinDomain and LeaveDomain in context of new object model - currently very tied to host
 
-    def assertHealthy(self):
-       word = self.randomStringGenerator.generate()
-       location = "c:\\xenrthealthcheck"
-       self.createFile(location, word)
-       reread = self.readFile(location)
-       self.removeFile(location)
-       if word not in reread:
-           raise xenrt.XRTError("assertHealthy has failed")
+    def assertHealthy(self, quick=False):
+        if self.parent.getPowerState() == xenrt.PowerState.up:
+            if quick:
+                self.waitForDaemon(30)
+            else:
+                word = self.randomStringGenerator.generate()
+                location = "c:\\xenrthealthcheck"
+                self.createFile(location, word)
+                reread = self.readFile(location)
+                self.removeFile(location)
+                if word not in reread:
+                    raise xenrt.XRTError("assertHealthy has failed")
 
     def getPowershellVersion(self):
         version = 0.0

@@ -2,30 +2,26 @@
 
   <!-- Multipathed iSCSI Boot From SAN testcases -->
 
-  <variables>
-    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
-  </variables>
-
   <prepare>
     <!-- Preparing a iSCSI boot disk on Native Linux -->
     <host productType="nativelinux" productVersion="centos64-x64" id="1" />
-    <host/>
-    
+
+    <!-- The installation of the host using iSCSI Boot disk is carried out in the test case -->
   </prepare>
 
   <testsequence>
     <serial group="iSCSIBootMP">
 
       <!-- Multipathed iSCSI boot disk on a SAN via Native Linux -->
-      <testcase id="testcases.xenserver.tc.install.TCISCSIMultipathBoot" name="TC20851" tc="TC-20851" blocker="yes"/>
+      <testcase id="testcases.xenserver.tc.install.TCISCSIMultipathBoot" name="TC20851" tc="TC-20851" blocker="yes" />
 
       <!-- Multipathed iSCSI SR test -->
-      <testcase id="testcases.xenserver.tc.install.TC20852"/>
+      <testcase id="testcases.xenserver.tc.install.TC20852" />
 
       <!-- Multipathed failover/recovery tests -->
-      <testcase id="testcases.xenserver.tc.install.TC20853"/>
-      <testcase id="testcases.xenserver.tc.install.TC20854"/>
-      <testcase id="testcases.xenserver.tc.install.TC20855"/>
+      <testcase id="testcases.xenserver.tc.install.TC20853" />
+      <testcase id="testcases.xenserver.tc.install.TC20854" />
+      <testcase id="testcases.xenserver.tc.install.TC20855" />
 
     </serial>
   </testsequence>

@@ -168,15 +168,15 @@ class FileManager(object):
                 f.close()
 
                 if multiple:
-                    self.__getMultipleFiles(url, sharedLocation)
+                    self.getMultipleFiles(url, sharedLocation)
                 elif fnr.directory:
-                    self.__getDirectory(url, sharedLocation)
+                    self.getDirectory(url, sharedLocation)
                 elif fnr.singleFileWithWildcard:
-                    self.__getSingleFileWithWildcard(url, sharedLocation)
+                    self.getSingleFileWithWildcard(url, sharedLocation)
                 elif filename.startswith("sftp://"):
-                    self.__getSingleFileViaSftp(filename, sharedLocation)
+                    self.getSingleFileViaSftp(filename, sharedLocation)
                 else:
-                    self.__getSingleFile(url, sharedLocation, isUsingExternalCache)
+                    self.getSingleFile(url, sharedLocation, isUsingExternalCache)
                 os.chmod(sharedLocation, stat.S_IRWXU | stat.S_IRWXG | stat.S_IROTH | stat.S_IXOTH)
 
                 if isUsingExternalCache:
@@ -192,7 +192,7 @@ class FileManager(object):
                 os.unlink("%s.fetching" % sharedLocation)
             self.lock.release()
 
-    def __getSingleFile(self, url, sharedLocation, isUsingExternalCache=False):
+    def getSingleFile(self, url, sharedLocation, isUsingExternalCache=False):
         try:
             # Increase timeout if using external nfs.
             timeout = self.externalFetchTimeout if isUsingExternalCache else self.defaultFetchTimeout
@@ -203,7 +203,7 @@ class FileManager(object):
         else:
             os.rename('%s.part' % sharedLocation, sharedLocation)
 
-    def __getSingleFileWithWildcard(self, url, sharedLocation):
+    def getSingleFileWithWildcard(self, url, sharedLocation):
         try:
             t = xenrt.resources.TempDirectory()
             splitpoint = 0
@@ -219,7 +219,7 @@ class FileManager(object):
         finally:
             t.remove()
 
-    def __getDirectory(self, url, sharedLocation):
+    def getDirectory(self, url, sharedLocation):
         try:
             t = xenrt.resources.TempDirectory()
             u = urlparse.urlparse(url)
@@ -229,7 +229,7 @@ class FileManager(object):
         finally:
             t.remove()
 
-    def __getMultipleFiles(self, url, sharedLocation, maxDepth=2):
+    def getMultipleFiles(self, url, sharedLocation, maxDepth=2):
         """
         Fetch a collection of files from a URL using wget
         depthOfSearch is how far down the URL tree to look for files - default is 2
@@ -248,7 +248,7 @@ class FileManager(object):
             return None
         return True
 
-    def __getSingleFileViaSftp(self, file, sharedLocation):
+    def getSingleFileViaSftp(self, file, sharedLocation):
         """
         Fetch a file which is accessible using ssh rather than web url
         """

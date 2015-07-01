@@ -19,11 +19,6 @@
 
   <testsequence>
     <serial group="CIFSLifecycle">
-      <!-- SR Lifecycle tests -->
-      <testcase id="xenserver.tc.storage.TCCIFSLifecycle" tc="TC-26986">
-        <arg>numberofvdis=10</arg>
-        <arg>size=400</arg>
-      </testcase>
       <!--  VDI Lifecycle tests -->
       <testcase id="xenserver.tc.storage.TCCIFSOddSize" tc="TC-8523" sku="WithCIFS"/>
       <testcase id="xenserver.tc.storage.TCCIFSZeroedContents" tc="TC-10671" sku="WithCIFS"/>
@@ -31,6 +26,11 @@
       <testcase id="xenserver.tc.storage.TCCIFSVDIResizeGrowSmall" tc="TC-8476" sku="WithCIFS"/>
       <testcase id="xenserver.tc.storage.TCCIFSVDIResizeGrowLarge" tc="TC-8477" sku="WithCIFS"/>
       <testcase id="xenserver.tc.storage.TCCIFSVDIResizeDataCheck" tc="TC-8479" sku="WithCIFS"/>
+      <!-- SR Lifecycle tests -->
+      <testcase id="xenserver.tc.storage.TCCIFSLifecycle" tc="TC-26986">
+        <arg>numberofvdis=10</arg>
+        <arg>size=400</arg>
+      </testcase>
     </serial>
   </testsequence>
 

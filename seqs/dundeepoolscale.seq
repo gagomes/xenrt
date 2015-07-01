@@ -1,0 +1,111 @@
+<xenrt>
+
+  <default name="VMSPERHOST" value="50"/>
+  <default name="THREADS" value="50"/>
+  <default name="DISTRO" value="win7sp1-x86"/>
+  <default name="NUMBEROFSLAVESTOREBOOT" value="4"/>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>16</PREPARE_WORKERS>
+    <EXTRA_TIME>yes</EXTRA_TIME>   
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+    <BUGTOOL_MODE_STRESS>yes</BUGTOOL_MODE_STRESS>
+    <NO_LOGS_ON_PASS>yes</NO_LOGS_ON_PASS>
+    <QUICKLOGS>yes</QUICKLOGS>
+    <NO_GUEST_LOGS>yes</NO_GUEST_LOGS>
+    <NO_TC_HOST_SERIAL_LOGS>yes</NO_TC_HOST_SERIAL_LOGS>
+    <NTHREADS>50</NTHREADS>
+    <FLAT_VM_DIST>no</FLAT_VM_DIST>
+  </variables>
+  
+  <scheduler>
+    <param>MACHINES_REQUIRED=16</param>
+    <pool>VMX</pool>
+    <param>SITE=SC03</param>
+    <resources>NPRI&gt;=2/NSEC&gt;=2</resources>
+    <!-- cl11-01,cl11-02,cl11-03,cl11-04,cl11-05,cl11-06,cl11-07,cl11-08,cl11-09,cl11-10,cl11-11,cl11-12,cl11-13,cl11-14,cl11-15,cl11-16 -->
+  </scheduler>
+
+  <prepare>
+    <pool>
+      <storage type="nfs" name="nfs1" default="true" network="STORAGE01"/>
+      <storage type="nfs" name="nfs2" network="STORAGE02"/>
+      <allhosts/>
+      
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <NIC />
+          <NIC />
+          <MANAGEMENT />
+          <VMS />
+        </PHYSICAL>
+        <PHYSICAL network="NSEC">
+          <NIC />
+          <NIC />
+          <STORAGE />
+        </PHYSICAL>
+      </NETWORK>
+
+      
+      <vm name="gold0">
+        <distro>${DISTRO}</distro>
+        <postinstall action="installDrivers"/>
+        <postinstall action="preCloneTailor"/>
+        <postinstall action="xenDesktopTailor"/>
+        <postinstall action="shutdown"/>
+        <postinstall action="removeCD"/>
+        <network device="0" />
+        <vcpus>2</vcpus>
+        <memory>1024</memory>
+        <storage>nfs1</storage>
+      </vm>
+      <vm name="gold1">
+        <distro>${DISTRO}</distro>
+        <postinstall action="installDrivers"/>
+        <postinstall action="preCloneTailor"/>
+        <postinstall action="xenDesktopTailor"/>
+        <postinstall action="shutdown"/>
+        <postinstall action="removeCD"/>
+        <network device="0" />
+        <vcpus>2</vcpus>
+        <memory>1024</memory>
+        <storage>nfs2</storage>
+      </vm>
+      <vm name="XenCenter">
+        <distro>win7sp1-x86</distro>
+        <postinstall action="installDrivers" />
+        <postinstall action="installCarbonWindowsGUI" />
+        <postinstall action="attachXenCenterToHost" />
+        <network device="0" />
+      </vm>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <testcase id="xenserver.tc.scalability.TCXenDesktopCloneVMs" tc="TC-18701">
+      <arg>vmsperhost=${VMSPERHOST}</arg>
+      <arg>threads=${THREADS}</arg>
+    </testcase>
+    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopStart" tc="TC-18703">
+      <arg>threads=${THREADS}</arg>
+    </testcase>
+    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopReboot" tc="TC-18705">
+      <arg>threads=${THREADS}</arg>
+      <arg>iterations=2</arg>
+    </testcase>
+    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopShutdown" tc="TC-18707">
+      <arg>threads=${THREADS}</arg>
+    </testcase>
+    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopStart" name="Start2" tc="TC-18709">
+      <arg>threads=${THREADS}</arg>
+    </testcase>
+    <testcase id="xenserver.tc.scalability.TCStbltyMasterReboot" tc="TC-18808" />
+    <testcase id="xenserver.tc.scalability.TCStbltySlaveReboot" tc="TC-18817" />
+    <testcase id="xenserver.tc.scalability.TCStbltySRReboot" tc="TC-18789" />
+    <testcase id="xenserver.tc.scalability.TCStbltyAllReboot" tc="TC-18818" />
+    <testcase id="xenserver.tc.scalability.TCStbltyMSlaveReboot" tc="TC-21462">
+        <arg>numberOfSlavesToReboot=${NUMBEROFSLAVESTOREBOOT}</arg>
+    </testcase>
+  </testsequence>
+</xenrt>

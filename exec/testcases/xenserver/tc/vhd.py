@@ -1073,7 +1073,7 @@ class _TCVDICreate(xenrt.TestCase):
             try:
                 # Create a LVMoISCSI SR on a temporary LUN
                 self.lun = xenrt.ISCSITemporaryLun(250)
-                self.tempsr = xenrt.lib.xenserver.host.ISCSIStorageRepository(\
+                self.tempsr = xenrt.lib.xenserver.ISCSIStorageRepository(\
                     self.host, "LegacyLVM")
                 self.tempsr.create(self.lun, subtype="lvm", findSCSIID=True, noiqnset=True)
                 # Forget and reintroduce the SR putting restoring the sm name
@@ -1687,7 +1687,7 @@ class TC8682(_LVHDRTBase):
     TIMEOUT = 10400
 
     def extraPrepare(self):
-        self.dummy = xenrt.lib.xenserver.host.DummyStorageRepository(self.host, "dummy")
+        self.dummy = xenrt.lib.xenserver.DummyStorageRepository(self.host, "dummy")
         self.dummy.create("10GiB")
         self.guest = self.host.createGenericLinuxGuest()
         self.uninstallOnCleanup(self.guest)
@@ -2120,6 +2120,7 @@ class _TCLVHDLeafCoalesce(xenrt.TestCase):
     HISTORY = [("snapshot", "snap1"), ("delete", "snap1")]
     SCENARIO = SCENARIO_SINGLE_VBD
     WINDOWS = False
+    RETRY_CHECK_VDI_CHAINS = 5
 
     def writePatternToFile(self, filename, patternid=0):
         """Write a 1GB deterministic pattern to a file"""
@@ -2523,7 +2524,8 @@ class _TCLVHDLeafCoalesce(xenrt.TestCase):
                     # Expected
                     pass
                 else:
-                    raise e
+                    raise e            
+                    
             if vhdparent:
                 raise xenrt.XRTError("VDI still has vhd-parent after leaf "
                                      "coalesce", vdiuuid)
@@ -2585,8 +2587,20 @@ class _TCLVHDLeafCoalesce(xenrt.TestCase):
             self.runSubcase("doCheckFreeSpace", (), "SR", "FreeSpace")
 
             # Check VDI chains are now of length 1
-            self.runSubcase("doCheckChains", (), "Guest", "Chains")
-
+            retries = self.RETRY_CHECK_VDI_CHAINS
+            while retries:
+                try:
+                    self.runSubcase("doCheckChains", (), "Guest", "Chains")
+                    break
+                except xenrt.XRTError, e:
+                    xenrt.TEC().logverbose("VDI still has parent-VHD after leaf coalesce; retrying checking in 60s ...")
+                    xenrt.sleep(60)
+                    retries = retries -1
+                    if not retries:
+                        raise 
+                except Exception, e:
+                    raise 
+                       
         # Verify the in-VM data patterns
         if not self.WINDOWS:
             self.runSubcase("checkPatterns", (), "Guest", "Patterns")
@@ -2648,8 +2662,8 @@ class TC10566(_TCLVHDLeafCoalesce):
 class TC10567(_TCLVHDLeafCoalesce):
     """Leaf node coalesce of a suspended VM with two VHDs on local LVM SR"""
     
-    SCENARIO = _TCLVHDLeafCoalesce.SCENARIO_TWO_VBDS_SAME_SR
-    VM_STATE = "SUSPENDED"
+    SCENARIO =  _TCLVHDLeafCoalesce.SCENARIO_TWO_VBDS_SAME_SR
+    VM_STATE = "SUSPENDED"    
 
 class TC10568(_TCLVHDLeafCoalesce):
     """Leaf node coalesce of a suspended VM with one VHD on local LVM SR with the VHD being resized after the snapshot"""
@@ -2793,7 +2807,7 @@ class TC10590(_TCLVHDLeafCoalesce):
     
     SCENARIO = _TCLVHDLeafCoalesce.SCENARIO_TWO_VBDS_SAME_SR
     SRTYPE = "lvmohba"
-    SRTYPE_SECOND_VDI = "lvmohba"
+    SRTYPE_SECOND_VDI = "lvmohba"       
     
 class TC10591(_TCLVHDLeafCoalesce):
     """Leaf node coalesce of a running VM with one VHD on LVMoHBA SR and one on local LVM SR"""
@@ -2883,18 +2897,7 @@ class _TCLVHDOnlineLeafCoalesce(_TCLVHDLeafCoalesce):
     def doLeafCoalesce(self):
         self.waitForCoalesce()
 
-    def doCheckChains(self, retries=5):
-        try:
-            _TCLVHDLeafCoalesce.doCheckChains(self)
-        except Exception, e:
-            if retries > 0:
-                xenrt.TEC().logverbose("doCheckChains failed; retrying leaf coalesce in 30s (%d)..." % retries)
-                time.sleep(30)
-                self.waitForCoalesce()
-                self.doCheckChains(retries = retries - 1)
-            else:
-                raise e
-
+    
     def keepWriting(self):
         cmd = "nohup cat /dev/urandom > test 2> test.err < /dev/null &"
         self.guest.execguest(cmd, getreply=False)

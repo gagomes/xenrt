@@ -1,0 +1,21 @@
+<xenrt>
+  <variables />
+
+  <prepare>
+    <host id="0">
+      <vm name="win7sp1x64nodrivers">
+        <distro>win7sp1-x64</distro>
+        <arch>x86-64</arch>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="24" />
+        <postinstall action="snapshot" />
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <testcase id="guestops.drivers.TCGPODoesNotBSOD" tc="TC-27024"/>
+  </testsequence>
+</xenrt>

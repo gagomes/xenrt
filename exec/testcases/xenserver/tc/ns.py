@@ -857,7 +857,7 @@ class NSBVT(xenrt.TestCase):
         
         assert self.cfg.has_key('nfs_src')
         nfs_src = self.cfg['nfs_src']
-        cur_mounts = host.execdom0("cat /proc/mounts | cut -f1,2 -d ' ' | grep '%s'" % 
+        cur_mounts = host.execdom0("cat /proc/mounts | cut -f1,2 -d ' ' | grep '%s' || true" % 
                                    nfs_src).splitlines()
         
         if len(cur_mounts) != 0:
@@ -1284,11 +1284,9 @@ class NSBVT(xenrt.TestCase):
         # A little wait can do wonders
         time.sleep(60 * 5)
         
-        # Let us reset the Sanity Test Bed status
-        try:
-            self.stopTest()
-        except:
-            pass
+        # It would be good to cleanup log directory before every run to prevent some residue 
+        ats = self.cfg["ats"]
+        ats.execcmd("rm -rf /home/atsuser/Logs/*", username='atsuser',retval='code', password='atsuser')
         
         self.startTest()
 
@@ -1305,9 +1303,9 @@ class NSBVT(xenrt.TestCase):
         
         failed_tests,passed_tests = self.getTestStatus()
         
-        #Currently there are 128 tests cases running, out of which 127 test cases should pass
-        if len(passed_tests) < self.PASS_TESTS :
-            raise xenrt.XRTFailure("NS Sanity test failed since we did not get %s pass results." %(self.PASS_TESTS))
+        # Printing out number of passed and failed tests
+        xenrt.TEC().logverbose("The number of passed tests = %s" % (len(passed_tests)))
+        xenrt.TEC().logverbose("The number of failed tests = %s" % (len(failed_tests)))
         
         if status == 'FAILED':
             if not self.testsExpectedToFail(failed_tests):

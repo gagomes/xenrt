@@ -430,7 +430,7 @@ class TC18381(TC9352):
 
         # Create RawHBA SR.
         xenrt.TEC().logverbose("Creating RawHBA (LUN/VDI) SR")
-        self.rawHBASR = xenrt.lib.xenserver.host.RawHBAStorageRepository(self.host, "RawHBASR")
+        self.rawHBASR = xenrt.lib.xenserver.RawHBAStorageRepository(self.host, "RawHBASR")
         self.rawHBASR.create()
         self.host.addSR(self.rawHBASR, default=True)
 
@@ -567,7 +567,7 @@ class TC20847(xenrt.TestCase):
         # Create LVMoISCSI SR delivered by a temporary LUN on the XenRT controller, and connect to it using the boot network.
         lun = xenrt.ISCSITemporaryLun(100)
         lun.setNetwork(self.net)
-        iscsiSR = xenrt.lib.xenserver.host.ISCSIStorageRepository(self.host, 
+        iscsiSR = xenrt.lib.xenserver.ISCSIStorageRepository(self.host, 
                                                 "iscsi-sr-on-different-storage-but-same-subnet-as-boot-disk")
         iscsiSR.create(lun, subtype="lvm", findSCSIID=True, noiqnset=True, multipathing=False)
 
@@ -611,7 +611,7 @@ class TC20849(xenrt.TestCase):
         self.iscsiHost.execcmd("exportfs -a")
 
         # Create the nfs SR on the host.
-        nfsSR = xenrt.lib.xenserver.host.NFSStorageRepository(self.host,
+        nfsSR = xenrt.lib.xenserver.NFSStorageRepository(self.host,
                                                     "nfs-sr-on-same-storage-as-boot-disk")
         nfsSR.create(self.iscsiHost.getIP(),"/nfsShare")
 

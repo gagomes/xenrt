@@ -141,7 +141,7 @@ class DundeeInstaller(object):
             self.setupInstallUefiPxe(pxe, mountpoint, answerfileUrl)
         else:
             # Get a PXE directory to put boot files in
-            pxe = xenrt.PXEBoot(iSCSILUN = self.host.bootLun)
+            pxe = xenrt.PXEBoot(iSCSILUN = self.host.bootLun, ipxeInUse = self.host.lookup("USE_IPXE", False, boolean=True))
             self.setupInstallPxe(pxe, mountpoint, answerfileUrl)
         # We're done with the ISO now
         mount.unmount()
@@ -192,14 +192,6 @@ class DundeeInstaller(object):
         else:
             self.host.installComplete(handle, waitfor=True, upgrade=self.upgrade)
 
-        if xenrt.TEC().lookup("USE_HOST_IPV6", False, boolean=True):
-            xenrt.TEC().logverbose("Setting %s's primary address type as IPv6" % self.host.getName())
-            pif = self.host.execdom0('xe pif-list management=true --minimal').strip()
-            self.host.execdom0('xe host-management-disable')
-            self.host.execdom0('xe pif-set-primary-address-type primary_address_type=ipv6 uuid=%s' % pif)
-            self.host.execdom0('xe host-management-reconfigure pif-uuid=%s' % pif)
-            self.host.waitForSSH(300, "%s host-management-reconfigure (IPv6)" % self.host.getName())
-        
         return None
 
     @property
@@ -430,8 +422,14 @@ cd -
         if self.firstBootSRInfo:
             (disk, srtype) = self.firstBootSRInfo
             firstBootSRSetup = """
+rm -f /etc/udev/rules.d/61-xenrt.rules
+rm -f /dev/disk/by-id/*
 if [ -e /sbin/udevadm ]
 then
+    sleep 5
+    /sbin/udevadm trigger --action=add
+    /sbin/udevadm settle
+    sleep 5
     export XRTDISKLINKS=$(/sbin/udevadm info -q symlink -n %s)
 else
     export XRTDISKLINKS=$(udevinfo -q symlink -n %s)

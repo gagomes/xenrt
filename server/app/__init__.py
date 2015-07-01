@@ -9,6 +9,7 @@ from pyramid.httpexceptions import *
 
 class XenRTPage(Page):
     WRITE = False
+    WAIT = True
     DB_SYNC_CHECK_START_INTERVAL = 0.1
     DB_SYNC_CHECK_MAX_ATTEMPTS = 10
     REQUIRE_AUTH = False
@@ -100,7 +101,7 @@ class XenRTPage(Page):
             return ret
         finally:
             try:
-                if self.WRITE:
+                if self.WRITE and self.WAIT:
                     self.waitForLocalWrite()
             finally:
                 if self._db:

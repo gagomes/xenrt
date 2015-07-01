@@ -25,7 +25,7 @@ class TCha(libperf.PerfTestCase):
         target.createISCSITargetLun(0, 1024)
 
         # Create an LVMoiSCSI SR
-        self.sr = xenrt.lib.xenserver.host.ISCSIStorageRepository(self.host, "iscsi-target")
+        self.sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.host, "iscsi-target")
         lun = xenrt.ISCSILunSpecified("xenrt-test/%s/%s" % (iqn, target.getIP()))
         self.sr.create(lun, subtype="lvm", findSCSIID=True)
 

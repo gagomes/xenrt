@@ -87,7 +87,7 @@
         <arg>vmActionIfHostRebootRequired=EVACUATE</arg>
         <arg>applyAllHFXsBeforeApplyAction=True</arg>
       </testcase>
-      <testcase id="testcases.xenserver.tc.hotfix.TCRollingPoolUpdate" name="TCRPUWithHFX" tc="TC-21008">
+      <testcase id="testcases.xenserver.tc.upgrade.TCRollingPoolUpdate" name="TCRPUWithHFX" tc="TC-21008">
         <arg>FINAL_VERSION=Creedence</arg>
         <arg>vmActionIfHostRebootRequired=EVACUATE</arg>
         <arg>applyAllHFXsBeforeApplyAction=True</arg>

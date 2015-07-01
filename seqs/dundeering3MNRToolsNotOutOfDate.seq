@@ -1,21 +1,20 @@
 <xenrt>
 
-  <!-- Treat Midnight Ride non-Windows Tools as up-to-date on Boston -->
+  <!-- Upgrade From Creedence -->
 
-  <default name="OLD_PRODUCT_VERSION" value="MNR"/>
-  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-5.6.0"/>
+  <default name="OLD_PRODUCT_VERSION" value="Creedence"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.5/RTM-90233"/>
   <default name="GUESTMEMORY" value="1024"/>
   <default name="GUESTVCPUS" value="2"/>
 
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
-    <PREPARE_WORKERS>2</PREPARE_WORKERS>
   </variables>
 
   <prepare>
     <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}">
-      <vm name="rhel54">
-        <distro>rhel54</distro>
+      <vm name="rhel5x">
+        <distro>rhel5x</distro>
         <memory>${GUESTMEMORY}</memory>
         <vcpus>${GUESTVCPUS}</vcpus>
         <network device="0"/>

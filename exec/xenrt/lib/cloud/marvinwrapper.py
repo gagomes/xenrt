@@ -257,7 +257,7 @@ class MarvinApi(object):
         xenrt.TEC().logverbose('Using System Templates: %s' % (templates))
         webdir = xenrt.WebDirectory()
         if provider == 'NFS':
-            self.mgtSvr.place.execcmd('mount %s /media' % (storagePath))
+            self.mgtSvr.place.execcmd('mount -t nfs -o nfsvers=3 %s /media' % (storagePath))
         elif provider == 'SMB':
             ad = xenrt.getADConfig()
             self.mgtSvr.place.execcmd('mount -t cifs %s /media -o user=%s,password=%s,domain=%s' % (storagePath, ad.adminUser, ad.adminPassword, ad.domainName))

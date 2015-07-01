@@ -1223,6 +1223,20 @@ class TCQuicktest(xenrt.TestCase):
                 xenrt.TEC().warning("Exception removing temporary ISO SR")
         self.host.uninstallAllGuests()        
 
+
+class TCQuicktestThinLVHD(TCQuicktest):
+    """Run quicktest with thin-lvhd SR"""
+    
+    def prepare(self, arglist=[]):
+        host = self.getDefaultHost()
+        self.host = host
+        sr = xenrt.lib.xenserver.ISCSIStorageRepository(host, "iscsisr", True)
+        lun = xenrt.ISCSIVMLun()
+        sr.create(lun, subtype="lvm", multipathing=None, noiqnset=True, findSCSIID=True)
+        p = host.minimalList("pool-list")[0]
+        host.genParamSet("pool", p, "default-SR", sr.uuid)
+
+
 class TCUseWindowsCLI(xenrt.TestCase):
 
     def __init__(self, tcid="TCUseWindowsCLI"):

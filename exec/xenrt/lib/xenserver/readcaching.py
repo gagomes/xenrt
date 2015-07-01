@@ -27,8 +27,8 @@ class ReadCachingController(object):
 
     def srTypeIsSupported(self):
         sr = self.srForGivenVDI()
-        # Read cache only works for ext and nfs.
-        return sr.srType() == 'nfs' or sr.srType() == 'ext'
+        # Read cache only works for ext, nfs and cifs.
+        return sr.srType() in ('nfs', 'ext', 'cifs')
 
     def srForGivenVDI(self):
         host = self._host.asXapiObject()

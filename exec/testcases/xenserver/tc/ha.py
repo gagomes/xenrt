@@ -320,7 +320,7 @@ class TC7829(xenrt.TestCase):
         guest.createISCSITargetLun(0, 1024)
 
         # Set up the iSCSI SR
-        sr = xenrt.lib.xenserver.host.ISCSIStorageRepository(host,"test-iscsi")
+        sr = xenrt.lib.xenserver.ISCSIStorageRepository(host,"test-iscsi")
         lun = xenrt.ISCSILunSpecified("xenrt-test/%s/%s" %
                                       (iqn, guest.getIP()))
         sr.create(lun,subtype="lvm",findSCSIID=True)
@@ -3648,7 +3648,7 @@ class TC8188(xenrt.TestCase):
         # Set up networking on host0
         host0.createNetworkTopology(netConfig)
         # Set up the SR on host0
-        sr = xenrt.lib.xenserver.host.ISCSIStorageRepository(host0, "TC8188")
+        sr = xenrt.lib.xenserver.ISCSIStorageRepository(host0, "TC8188")
         lun = xenrt.ISCSILunSpecified("xenrt-test/%s/%s" %
                                       (iqn, target.getIP()))
         sr.create(lun, subtype="lvm", findSCSIID=True)
@@ -3887,7 +3887,7 @@ class TC8466(xenrt.TestCase):
         
         # Set up the iSCSI HA SR
         self.lun = xenrt.ISCSITemporaryLun(300)
-        self.sr = xenrt.lib.xenserver.host.ISCSIStorageRepository(\
+        self.sr = xenrt.lib.xenserver.ISCSIStorageRepository(\
             self.pool.master, "TC-8466")
         self.sr.create(self.lun, subtype="lvm", findSCSIID=True, noiqnset=True)
 
@@ -3947,7 +3947,7 @@ class TC8468(xenrt.TestCase):
 
         # Set up the iSCSI HA SR
         self.lun = xenrt.ISCSITemporaryLun(300)
-        self.sr = xenrt.lib.xenserver.host.ISCSIStorageRepository(\
+        self.sr = xenrt.lib.xenserver.ISCSIStorageRepository(\
             self.pool.master, "TC-8468")
         self.sr.create(self.lun, subtype="lvm", findSCSIID=True, noiqnset=True)
 
@@ -4074,7 +4074,7 @@ class TC8469(xenrt.TestCase):
 
         # Set up the iSCSI HA SR
         self.lun = xenrt.ISCSITemporaryLun(300)
-        self.sr = xenrt.lib.xenserver.host.ISCSIStorageRepository(\
+        self.sr = xenrt.lib.xenserver.ISCSIStorageRepository(\
             self.pool.master, "TC-8469")
         self.sr.create(self.lun, subtype="lvm", findSCSIID=True, noiqnset=True)
 
@@ -4295,7 +4295,7 @@ class TC10754(xenrt.TestCase):
         self.host = self.getDefaultHost()
         self.pool = xenrt.lib.xenserver.poolFactory(self.host.productVersion)(self.host)
         self.lun = xenrt.ISCSITemporaryLun(300)
-        self.sr = xenrt.lib.xenserver.host.ISCSIStorageRepository(\
+        self.sr = xenrt.lib.xenserver.ISCSIStorageRepository(\
             self.host, "TC-10754")
         self.sr.create(self.lun, subtype="lvm", findSCSIID=True, noiqnset=True, multipathing=False)
 

@@ -322,7 +322,7 @@ class _LicenseBase(xenrt.TestCase):
         # Set up an LVMoISCSI SR
         try:
             lun = xenrt.ISCSITemporaryLun(300)
-            sr = xenrt.lib.xenserver.host.ISCSIStorageRepository(self.host,"HA")
+            sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.host,"HA")
             sr.create(lun, subtype="lvm", findSCSIID=True, noiqnset=True)
         except xenrt.XRTFailure, e:
             # Not a failure
@@ -1166,7 +1166,7 @@ class _PoolLicenseExpireBase(xenrt.TestCase):
             # Set up an LVMoISCSI SR
             try:
                 lun = xenrt.ISCSITemporaryLun(300)
-                sr = xenrt.lib.xenserver.host.ISCSIStorageRepository(self.pool.master,"HA")
+                sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.pool.master,"HA")
                 self.sr = sr
                 sr.create(lun, subtype="lvm", findSCSIID=True, noiqnset=True)
             except xenrt.XRTFailure, e:

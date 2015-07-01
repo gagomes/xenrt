@@ -10,8 +10,9 @@
 
 import socket, re, string, time, traceback, sys, random, copy, shutil, os, re
 import xenrt, xenrt.lib.xenserver
+from testcases.xenserver.tc.upgrade import TCRollingPoolUpdate 
 from xenrt import XRTError
-from xenrt.lazylog import step
+from xenrt.lazylog import step, log
 
 class _Hotfix(xenrt.TestCase):
 
@@ -226,7 +227,7 @@ class _Hotfix(xenrt.TestCase):
             except xenrt.XRTFailure, e:
                 if "required_version" in e.data and "6.2_vGPU_Tech_Preview" in e.data:
                     xenrt.TEC().logverbose("Patch apply failed as expected when 6.2_vGPU_Tech_Preview is already installed")
-                elif "required_version" in e.data and not "XenServer 6.2 Service Pack" in e.data:
+                elif "required_version" in e.data and not "Service Pack" in e.data:
                     if not "^" in e.data or not e.data.strip().endswith("$"):
                         raise xenrt.XRTFailure("Version regex not correctly anchored")
                     elif not "\\." in e.data and not "BUILD_NUMBER" in e.data:
@@ -302,30 +303,38 @@ class _Hotfix(xenrt.TestCase):
         if not xenrt.TEC().lookup("DRIVER_DISK_REPO", None):
             return
         
-        xenrt.TEC().logverbose("Installing Mercurial so can get driver disks")
-        
+        step("Fetch DriverDisk repo")
         td = xenrt.TEC().tempDir()
-        xenrt.util.command("cd %s && hg clone %s" % (td, xenrt.TEC().lookup("DRIVER_DISK_REPO")))
-        # remove all but isos
+        if "driverdisks.hg" in xenrt.TEC().lookup("DRIVER_DISK_REPO"):
+            xenrt.util.command("cd %s && hg clone %s driverDisk" % (td, xenrt.TEC().lookup("DRIVER_DISK_REPO")))
+        else:
+            xenrt.util.command("wget -r --no-parent --reject 'index.html*' %s -P %s/driverDisk" % (xenrt.TEC().lookup("DRIVER_DISK_REPO"), td))
+            #extract zip files
+            xenrt.util.command("cd %s && find ./ -name *.zip -exec sh -c 'unzip -d `dirname {}` {}' ';'" % td)
+        # remove all but iso
         xenrt.util.command("cd %s && find -type f | grep -v .iso | xargs rm -f " % td)
-        # remove files from .hg/
-        xenrt.util.command("cd %s &&  find driverdisks.hg/.hg -type f -exec rm {} \;"  % td)
         # tar the content, copy to the host and untar
-        xenrt.util.command("cd %s && tar -czf driverdisks.hg.tgz driverdisks.hg" % td)
+        xenrt.util.command("cd %s && tar -czf driverdisks.tgz driverDisk" % (td))
+        step("Copy the driver disks content to host")
         sftp = self.host.sftpClient()
         try: 
-            sftp.copyTo(td+"/driverdisks.hg.tgz", "/driverdisks.hg.tgz")
+            sftp.copyTo("%s/driverdisks.tgz" % td, "/driverdisks.tgz")
         finally:
             sftp.close()
-        self.host.execdom0("cd / && tar -xzf driverdisks.hg.tgz && rm /driverdisks.hg.tgz")
+        self.host.execdom0("cd / && tar -xzf driverdisks.tgz && rm /driverdisks.tgz")
 
-        xenrt.TEC().logverbose("Listing driver disks for this kernel")
-        self.host.execdom0("uname -r")
-        isos = self.host.execdom0('cd / && find /driverdisks.hg | grep "`uname -r`" | grep ".iso$" || true').strip().splitlines()
+        step("Listing driver disks for this kernel")
+        if isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
+            isos = self.host.execdom0('cd / && find /driverDisk | grep ".iso$" || true').strip().splitlines()
+        else:
+            self.host.execdom0("uname -r")
+            isos = self.host.execdom0('cd / && find /driverDisk | grep "`uname -r`" | grep ".iso$" || true').strip().splitlines()
         
+        step("Performing tests for all the driver disks")
         for i in range(len(isos)):
+            step("Testing %s" % (isos[i]))
             
-            # mount driver disk
+            log("mount the driver disk")
             self.host.execdom0("mkdir /mnt/%d" % i)
             self.host.execdom0("mount -o loop %s /mnt/%d" % (isos[i], i))
             
@@ -343,14 +352,14 @@ class _Hotfix(xenrt.TestCase):
             self.host.execdom0("sed -i 's/if \[ -d \$installed_repos_dir\/$identifier \]/if \[ 0 -eq 1 \]/' /tmp/%d/install.sh" % i)
             self.host.execdom0('sed -i "s/print msg/return/" /tmp/%d/install.sh || true' % i)
             
-            # list rpms in driver disk
+            log("List rpms in driver disk")
             xenrt.TEC().logverbose("Listing RPMs in driver disk")
             driverDiskRpms = self.host.execdom0('cd / && find /tmp/%d | grep ".rpm$"' % i).strip().splitlines()
             
             # dictionary of kernel objects for cross referencing against installed ones after driver disk has been installed
             kos = {}
             
-            # manually unpack all rpms to get driver names and versions
+            log("Manually unpack all rpms to get driver names and versions")
             xenrt.TEC().logverbose("Unpacking all RPMs in driver disk so can get version numbers")
             for j in range(len(driverDiskRpms)):
                 self.host.execdom0("mkdir /tmp/%d/%d" % (i, j))
@@ -358,15 +367,16 @@ class _Hotfix(xenrt.TestCase):
                 
                 for ko in self.host.execdom0('cd / && find /tmp/%d/%d | grep ".ko$" || true' % (i, j)).strip().splitlines():
                     koShort = re.match(".*/(.*?)\.ko$", ko).group(1)
-                    kos[koShort] = self.host.execdom0('modinfo %s | grep "^srcversion:"' % ko)
+                    if not koShort in kos or 'xen' in ko:
+                        kos[koShort] = self.host.execdom0('modinfo %s | grep "^srcversion:"' % ko)
 
             # list all rpms before installing driver disk
             rpmsBefore = self.host.execdom0("rpm -qa|sort").splitlines()
         
-            # install driver disk
+            log("Install the driver disk")
             self.host.execdom0("cd /tmp/%d && ./install.sh" % i)
             
-            # ensure the module dependency table has been updated correctly
+            log("Ensure the module dependency table has been updated correctly")
             for ko in kos:
                 if len(self.host.execdom0("modinfo %s | grep `uname -r`" % ko).strip().splitlines()) == 0:
                     raise xenrt.XRTFailure("Could not find kernel version in driver modinfo for %s" % ko)
@@ -380,15 +390,26 @@ class _Hotfix(xenrt.TestCase):
             rpmsAfter = self.host.execdom0("rpm -qa|sort").splitlines()
             
             # get list of all new rpms installed (according to the system)
+            log("Get the list of new rpms after installation")
             newRpms = filter(lambda x: not x in rpmsBefore, rpmsAfter)
             xenrt.TEC().logverbose("New RPMS:\n" + "\n".join(newRpms))
             
              # now uninstall (this helps when you have multiple versions of the same driver)
+            log("Uninstall the driver disk: remove rpms")
+            uniqueNewRpms =  []
             for rpm in newRpms:
-                self.host.execdom0("rpm -ev %s" % rpm)
-                
-            if len(newRpms) != len(driverDiskRpms):
-                raise xenrt.XRTFailure("Incorrect RPMs installed by driver disk. Expected %d. Found %d." % (len(driverDiskRpms), len(newRpms)))
+                try:
+                    self.host.execdom0("rpm -ev %s" % rpm)
+                    uniqueNewRpms.append(rpm)
+                except Exception, e:
+                    if "Failed dependencies" in e.data:
+                        newRpms.append(rpm)
+                    else:
+                        raise
+                    
+            log("Check the number of rpms installed is as expected")
+            if len(uniqueNewRpms) != len(driverDiskRpms):
+                raise xenrt.XRTFailure("Incorrect RPMs installed by driver disk. Expected %d. Found %d." % (len(driverDiskRpms), len(uniqueNewRpms)))
 
             # remove repository stamp from xapi database
             try:
@@ -603,26 +624,26 @@ class _BostonBritney(_BostonRTM):
     INITIAL_HOTFIXES = ["XS60E001"]
 
 class _BostonHFd(_BostonRTM):
-    INITIAL_HOTFIXES = ["XS60E001", "XS60E002", "XS60E003", "XS60E004", "XS60E005", "XS60E006", "XS60E007", "XS60E008", "XS60E010", "XS60E012", "XS60E013", "XS60E014", "XS60E015", "XS60E016", "XS60E017", "XS60E018", "XS60E019", "XS60E020", "XS60E021", "XS60E022", "XS60E023", "XS60E024", "XS60E025", "XS60E026", "XS60E027", "XS60E028", "XS60E029", "XS60E030", "XS60E031", "XS60E032", "XS60E033", "XS60E034", "XS60E035", "XS60E036","XS60E037","XS60E038", "XS60E039","XS60E040", "XS60E041", "XS60E042", "XS60E043", "XS60E045", "XS60E046"]
+    INITIAL_HOTFIXES = ["XS60E001", "XS60E002", "XS60E003", "XS60E004", "XS60E005", "XS60E006", "XS60E007", "XS60E008", "XS60E010", "XS60E012", "XS60E013", "XS60E014", "XS60E015", "XS60E016", "XS60E017", "XS60E018", "XS60E019", "XS60E020", "XS60E021", "XS60E022", "XS60E023", "XS60E024", "XS60E025", "XS60E026", "XS60E027", "XS60E028", "XS60E029", "XS60E030", "XS60E031", "XS60E032", "XS60E033", "XS60E034", "XS60E035", "XS60E036","XS60E037","XS60E038", "XS60E039","XS60E040", "XS60E041", "XS60E042", "XS60E043", "XS60E045", "XS60E046", "XS60E047", "XS60E048", "XS60E049"]
 
 class _SanibelRTM(_Hotfix):
     INITIAL_VERSION = "Sanibel"
     
 class _SanibelHFd(_SanibelRTM):
-    INITIAL_HOTFIXES = ["XS602E004", "XS602E005", "XS602E006", "XS602E007", "XS602E008", "XS602E009", "XS602E010", "XS602E011", "XS602E013", "XS602E014", "XS602E016", "XS602E017", "XS602E018", "XS602E019", "XS602E020", "XS602E021", "XS602E022", "XS602E023", "XS602E024", "XS602E025", "XS602E026", "XS602E027", "XS602E028", "XS602E029", "XS602E030", "XS602E031", "XS602E032", "XS602E033", "XS602E034", "XS602E035", "XS602E036", "XS602E037", "XS602E038", "XS602E039", "XS602E041", "XS602E042"]
+    INITIAL_HOTFIXES = ["XS602E004", "XS602E005", "XS602E006", "XS602E007", "XS602E008", "XS602E009", "XS602E010", "XS602E011", "XS602E013", "XS602E014", "XS602E016", "XS602E017", "XS602E018", "XS602E019", "XS602E020", "XS602E021", "XS602E022", "XS602E023", "XS602E024", "XS602E025", "XS602E026", "XS602E027", "XS602E028", "XS602E029", "XS602E030", "XS602E031", "XS602E032", "XS602E033", "XS602E034", "XS602E035", "XS602E036", "XS602E037", "XS602E038", "XS602E039", "XS602E041", "XS602E042", "XS602E043","XS602E044"]
     
 class _SanibelCCRTM(_Hotfix):
     INITIAL_VERSION = "SanibelCC"
     CC = True
     
 class _SanibelCCHFd(_SanibelCCRTM):
-    INITIAL_HOTFIXES = ["XS602ECC001", "XS602ECC002", "XS602ECC003", "XS602ECC004", "XS602ECC005", "XS602ECC006", "XS602ECC007", "XS602ECC008", "XS602ECC009", "XS602ECC010", "XS602ECC011", "XS602ECC012", "XS602ECC013", "XS602ECC014", "XS602ECC015", "XS602ECC017", "XS602ECC018"]
+    INITIAL_HOTFIXES = ["XS602ECC001", "XS602ECC002", "XS602ECC003", "XS602ECC004", "XS602ECC005", "XS602ECC006", "XS602ECC007", "XS602ECC008", "XS602ECC009", "XS602ECC010", "XS602ECC011", "XS602ECC012", "XS602ECC013", "XS602ECC014", "XS602ECC015", "XS602ECC017", "XS602ECC018", "XS602ECC019","XS602ECC020"]
 
 class _TampaRTM(_Hotfix):
     INITIAL_VERSION = "Tampa"
     
 class _TampaHFd(_TampaRTM):
-    INITIAL_HOTFIXES = ["XS61E001", "XS61E003", "XS61E004", "XS61E008", "XS61E009", "XS61E010", "XS61E013", "XS61E015", "XS61E017",  "XS61E018", "XS61E019", "XS61E020", "XS61E021", "XS61E022", "XS61E023", "XS61E024", "XS61E025", "XS61E026", "XS61E027", "XS61E028", "XS61E029", "XS61E030", "XS61E032", "XS61E033", "XS61E034", "XS61E035", "XS61E036", "XS61E037", "XS61E038", "XS61E039", "XS61E040", "XS61E041", "XS61E042", "XS61E043", "XS61E044", "XS61E045", "XS61E046", "XS61E048", "XS61E050", "XS61E051"]
+    INITIAL_HOTFIXES = ["XS61E001", "XS61E003", "XS61E004", "XS61E008", "XS61E009", "XS61E010", "XS61E013", "XS61E015", "XS61E017",  "XS61E018", "XS61E019", "XS61E020", "XS61E021", "XS61E022", "XS61E023", "XS61E024", "XS61E025", "XS61E026", "XS61E027", "XS61E028", "XS61E029", "XS61E030", "XS61E032", "XS61E033", "XS61E034", "XS61E035", "XS61E036", "XS61E037", "XS61E038", "XS61E039", "XS61E040", "XS61E041", "XS61E042", "XS61E043", "XS61E044", "XS61E045", "XS61E046", "XS61E047", "XS61E048", "XS61E050", "XS61E051", "XS61E052","XS61E053","XS61E054"]
     
 class _ClearwaterRTM(_Hotfix):
     INITIAL_VERSION = "Clearwater"
@@ -636,21 +657,21 @@ class _ClearwaterSP1(_ClearwaterRTM):
     INITIAL_HOTFIXES = ["XS62ESP1"]
     
 class _ClearwaterSP1HFd(_ClearwaterSP1):
-    INITIAL_HOTFIXES = ["XS62ESP1", "XS62ESP1002", "XS62ESP1003", "XS62ESP1004", "XS62ESP1005", "XS62ESP1006", "XS62ESP1007", "XS62ESP1008", "XS62ESP1009", "XS62ESP1011", "XS62ESP1012", "XS62ESP1013", "XS62ESP1014", "XS62ESP1015", "XS62ESP1016", "XS62ESP1017", "XS62ESP1019", "XS62ESP1020", "XS62ESP1021", "XS62ESP1024"]
+    INITIAL_HOTFIXES = ["XS62ESP1", "XS62ESP1002", "XS62ESP1003", "XS62ESP1004", "XS62ESP1005", "XS62ESP1006", "XS62ESP1007", "XS62ESP1008", "XS62ESP1009", "XS62ESP1011", "XS62ESP1012", "XS62ESP1013", "XS62ESP1014", "XS62ESP1015", "XS62ESP1016", "XS62ESP1017", "XS62ESP1019", "XS62ESP1020", "XS62ESP1021", "XS62ESP1024", "XS62ESP1025", "XS62ESP1026","XS62ESP1027"]
     
 class _CreedenceRTM(_Hotfix):
     INITIAL_VERSION = "Creedence"
     INITIAL_BRANCH = "RTM"
     
 class _CreedenceRTMHFd(_CreedenceRTM):
-    INITIAL_HOTFIXES = ["XS65E001", "XS65E002", "XS65E003", "XS65E005", "XS65E006", "XS65E007", "XS65E008"]
+    INITIAL_HOTFIXES = ["XS65E001", "XS65E002", "XS65E003", "XS65E005", "XS65E006", "XS65E007", "XS65E008", "XS65E009","XS65E010","XS65E011"]
     
 class _CreedenceSP1(_CreedenceRTM):
     INITIAL_BRANCH = "SP1"
     INITIAL_HOTFIXES = ["XS65ESP1"]
     
 class _CreedenceSP1HFd(_CreedenceSP1):
-    INITIAL_HOTFIXES = ["XS65ESP1"]
+    INITIAL_HOTFIXES = ["XS65ESP1","XS65ESP1002","XS65ESP1003","XS65ESP1004"]
     
     
 # Upgrades
@@ -2099,82 +2120,6 @@ class TCApplyHotfixes(xenrt.TestCase):
         for p in patchIdents:
             self.host.applyPatch(xenrt.TEC().getFile(patches[p]), patchClean=True)
         self.host.reboot()
-
-class TCRollingPoolUpdate(xenrt.TestCase):
-    """
-    Upgrade and install all HFXs for the 'to' release on a pool.
-    i.e. Install all HFXs after host upgrade and perform most significant apply action.
-    This means that the master will be at XS version NEW + all HFXs while the slaves are at XS version OLD.
-    """
-
-    UPGRADE = True
-
-    def prepare(self, arglist):
-        
-        self.pool = self.getDefaultPool()
-        self.newPool = None
-        self.INITIAL_VERSION = self.pool.master.productVersion
-        self.FINAL_VERSION = None
-        self.vmActionIfHostRebootRequired = "SHUTDOWN"
-        self.applyAllHFXsBeforeApplyAction = True
-        self.preEvacuate = None
-        self.preReboot = None
-        self.skipApplyRequiredPatches = False
-        
-        args = self.parseArgsKeyValue(arglist)
-        if "INITIAL_VERSION" in args.keys():
-            self.INITIAL_VERSION = args["INITIAL_VERSION"]
-        if "FINAL_VERSION" in args.keys():
-            self.FINAL_VERSION   = args["FINAL_VERSION"]
-        if "vmActionIfHostRebootRequired" in args.keys():
-            self.vmActionIfHostRebootRequired = args["vmActionIfHostRebootRequired"]
-        if "applyAllHFXsBeforeApplyAction" in args.keys() and args["applyAllHFXsBeforeApplyAction"].lower() =="no":
-            self.applyAllHFXsBeforeApplyAction = False
-        if "skipApplyRequiredPatches" in args.keys() and args["skipApplyRequiredPatches"].lower() == "yes":
-            self.skipApplyRequiredPatches = True
-        
-        # Eject CDs in all VMs
-        for h in self.pool.getHosts():
-            for guestName in h.listGuests():
-                self.getGuest(guestName).changeCD(None)
-
-    def doUpdate(self):
-        pool_upgrade = xenrt.lib.xenserver.host.RollingPoolUpdate(poolRef = self.pool, 
-                                                            newVersion=self.FINAL_VERSION,
-                                                            upgrade = self.UPGRADE,
-                                                            applyAllHFXsBeforeApplyAction=self.applyAllHFXsBeforeApplyAction,
-                                                            vmActionIfHostRebootRequired=self.vmActionIfHostRebootRequired,
-                                                            preEvacuate=self.preEvacuate,
-                                                            preReboot=self.preReboot,
-                                                            skipApplyRequiredPatches=self.skipApplyRequiredPatches)
-        self.newPool = self.pool.upgrade(poolUpgrade=pool_upgrade)
-
-    def run(self, arglist=None):
-        self.preCheckVMs(self.pool)
-        self.doUpdate()
-        self.postCheckVMs(self.newPool)
-        
-    def preCheckVMs(self,pool):
-        self.expectedRunningVMs = 0
-        for h in pool.getHosts():
-            runningGuests = h.listGuests(running=True)
-            xenrt.TEC().logverbose("Host: %s has %d running guests [%s]" % (h.getName(), len(runningGuests), runningGuests))
-            self.expectedRunningVMs += len(runningGuests)
-        xenrt.TEC().logverbose("Pre-upgrade running VMs: %d" % (self.expectedRunningVMs))
-    
-    def postCheckVMs(self,pool):
-        postUpgradeRunningGuests = 0
-        for h in pool.getHosts():
-            h.verifyHostFunctional(migrateVMs=False)
-
-            runningGuests = h.listGuests(running=True)
-            xenrt.TEC().logverbose("Host: %s has %d running guests [%s]" % (h.getName(), len(runningGuests), runningGuests))
-            postUpgradeRunningGuests += len(runningGuests)
-
-        xenrt.TEC().logverbose("Post-upgrade running VMs: %d" % (postUpgradeRunningGuests))
-        if self.expectedRunningVMs != postUpgradeRunningGuests:
-            xenrt.TEC().logverbose("Expected VMs in running state: %d, Actual: %d" % (self.expectedRunningVMs, postUpgradeRunningGuests))
-            raise xenrt.XRTFailure("Not all VMs in running state after upgrade complete") 
 
 class TCRollingPoolHFX(TCRollingPoolUpdate):
     """

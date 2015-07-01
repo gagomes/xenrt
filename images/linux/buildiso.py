@@ -44,7 +44,7 @@ if __name__ == "__main__":
 
     isoname = inputiso.split("/")[-1]
 
-    m = re.match("(.*)[-_](x86-\d\d)\.iso", isoname)
+    m = re.match("(.*)[-_](x86-\d\d)(_xenrtinst)?\.iso", isoname)
 
     if m:
         doTailor = True

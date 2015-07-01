@@ -1,0 +1,35 @@
+<xenrt>
+
+  <!-- Feature operation after upgrade test: Active Directory -->
+
+  <variables>
+    <PREPARE_WORKERS>3</PREPARE_WORKERS>
+    <CLEAR_EVENT_LOGS_ON_FETCH>true</CLEAR_EVENT_LOGS_ON_FETCH>
+    <PIDIR_CREEDENCE>/usr/groups/release/XenServer-6.x/XS-6.5/RTM-90233</PIDIR_CREEDENCE>
+    <INITIAL_VERSION_PATH>/usr/groups/release/XenServer-6.x/XS-6.5/RTM-90233</INITIAL_VERSION_PATH>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <THIS_UPDATE>UPGRADE</THIS_UPDATE>
+  </variables>
+
+  <prepare>
+    <pool>
+      <host id="0" productVersion="Creedence"/>
+      <host id="1" productVersion="Creedence"/>
+    </pool>
+    <host id="2" productVersion="Creedence">
+      <vm name="AUTHSERVER">
+        <distro>ws08-x86</distro>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="installPowerShell"/>
+        <postinstall action="enablePowerShellUnrestricted"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>    
+    <testcase id="xenserver.tc.upgrade.ADUpgradeAuthentication" tc="TC-27039" name="ADUpAuthentication" />
+    <testcase id="xenserver.tc.security.ADPBISDirectoryCheck" tc="TC-27048" name="PBISDirectoriesVerification" />
+  </testsequence>
+
+</xenrt>

@@ -1,0 +1,51 @@
+<xenrt>
+
+<!-- Basic storage operations tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <FINALLY_UNINSTALL>yes</FINALLY_UNINSTALL>
+    <OPTION_BLOCK_ON_SKIP>yes</OPTION_BLOCK_ON_SKIP>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence group="BasicSRTests">
+
+    <serial group="VDICreate">
+      <testcase id="xenserver.tc.storage.TC8515" prio="3"/>
+      <testcase id="xenserver.tc.storage.TC10671" prio="3"/>
+    </serial>
+
+    <serial group="VDIResize">
+      <testcase id="xenserver.tc.storage.TC8475" prio="3"/>
+      <testcase id="xenserver.tc.storage.TC8477" prio="3"/>
+      <testcase id="xenserver.tc.storage.TC8479" prio="3"/>
+      <testcase id="xenserver.tc.storage.TC8481" prio="3"/>
+    </serial>
+
+    <serial group="VDISnap">
+      <testcase id="xenserver.tc.snapshot.TC7958" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC7959" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC7960" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC7961" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC7962" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC7963" prio="3"/>
+    </serial>
+
+    <serial group="VDIClone">
+      <testcase id="xenserver.tc.vhd.TC8763" prio="3"/>
+    </serial>
+
+    <serial group="iSCSITests">
+      <testcase id="xenserver.tc.storage.TC7366" prio="3"/>
+      <testcase id="xenserver.tc.storage.TC7367" prio="3"/>
+      <testcase id="xenserver.tc.storage.TC27042" prio="3"/>
+      <testcase id="xenserver.tc.storage.TC27043" prio="3"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

@@ -114,7 +114,7 @@ class XenRTDHCPAllocator(object):
         self._sql("SELECT addr FROM leases WHERE mac='%s' AND interface='%s' ORDER BY expiry DESC" % (mac.lower(), intf))
         r = self.cur.fetchone()
         if r:
-            return r[0]
+            return r[0].split("#")[0].strip()
         else:
             return None
 
@@ -239,7 +239,9 @@ class XenRTDHCPAllocator(object):
             packet.setOption("file", strToPaddedList("http://%s/tftp/default-ipxe.cgi" % server, 128))
             _logger.info("Sending http://%s/tftp/default-ipxe.cgi as PXE file" % server)
         else:
-            if self.config['interfaces'][intf].get('ipxe'):
+            override = [x.get("ipxe", False) for x in self.config['interfaces'][intf].get("reservations", {}).values() if x['ip']==ip]
+            ipxeOverride = override and override[0]
+            if self.config['interfaces'][intf].get('ipxe') or ipxeOverride:
                 packet.setOption("file", strToPaddedList("/undionly.kpxe", 128))
                 _logger.info("Sending /undionly.kpxe as PXE file")
             else:

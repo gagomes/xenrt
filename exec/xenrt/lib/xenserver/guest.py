@@ -6059,7 +6059,7 @@ default:
         """Installs docker into a guest"""
 
         self.getDocker().install()
-    
+
     def getDocker(self, method="XAPI"):
 
         if method == "XAPI":
@@ -6079,8 +6079,6 @@ default:
         else:
             raise xenrt.XRTFailure("Docker installation unimplemented on distro %s" % self.distro)
             
-    
-
 class DundeeGuest(CreedenceGuest):
 
     def setRandomPvDriverSource(self):
@@ -6232,7 +6230,6 @@ class DundeeGuest(CreedenceGuest):
         
         #Eject the tools CD from the VM.
         self.changeCD(None)
-
     
     def sc(self, command ):
         """SC is a command line program used for communicating with the Service control manager and services"""
@@ -6590,4 +6587,3 @@ def shutdownMulti(guestlist, timeout=None, clitimeout=7200, timer=None):
         xenrt.sleep(15)
 
     xenrt.TEC().logverbose("Shutdown %u guests" % (len(guestlist)))
-    

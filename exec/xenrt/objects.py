@@ -1,4 +1,3 @@
-
 #
 # XenRT: Test harness for Xen and the XenServer product family
 #
@@ -9141,15 +9140,6 @@ class GenericGuest(GenericPlace):
                 self.reboot()
         else:
             raise xenrt.XRTError('disableIPv6 not implemented for non-windows guests')
-            
-    def disableVbscriptEngine(self, restart=True):
-        if self.windows:
-            self.xmlrpcExec("cd C:\\Windows\\System32")
-            self.xmlrpcExec("takeown /f C:\\Windows\\System32\\vbscript.dll")
-            self.xmlrpcExec("echo y| cacls C:\\Windows\System32\\vbscript.dll /G administrator:F")
-            self.xmlrpcExec("rename vbscript.dll vbscript1.dll")
-        else:
-            raise xenrt.XRTError('disableVbscriptEngine not implemented for non-windows guests')
             
     def specifyStaticIPv6(self,device="eth0"):
 

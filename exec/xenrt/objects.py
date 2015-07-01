@@ -3456,7 +3456,18 @@ DHCPServer = 1
     def createISCSITargetLunLIO(self, lunid, sizemb, dir="/", existingFile=None):
         name = "iscsi%08x" % random.randint(0, 0x7fffffff)
         if existingFile:
-            self.execcmd("wget -nv -O %s %s" % os.path.join(dir, name), existingFile)
+            url = xenrt.filemanager.FileNameResolver(existingFile).url
+            self.execcmd("mkdir -p %s.tmp" % (os.path.join(dir, name)))
+            if url.endswith(".gz") or url.endswith(".tgz"):
+                options = "z"
+            elif url.endswith(".bz2"):
+                options = "j"
+            else:
+                options = ""
+            self.execcmd("cd %s.tmp && wget -nv -O - %s | tar -xv%s" % (os.path.join(dir, name), url, options))
+            fname = self.execcmd("find %s.tmp -type f" % os.path.join(dir, name)).splitlines()[0].strip()
+            self.execcmd("mv %s %s" % (fname, os.path.join(dir, name)))
+            self.execcmd("rm -rf %s.tmp" % (os.path.join(dir, name)))
         iqn = self.execcmd("cat /root/iscsi_iqn").strip()
         self.execcmd("echo %d > /root/iscsi_lun" % lunid)
         self.targetcli("/backstores/fileio create name=%s file_or_dev=%s size=%dM" % (name, os.path.join(dir, name), sizemb))

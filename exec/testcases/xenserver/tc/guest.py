@@ -1941,7 +1941,7 @@ class VmRebootedOnce(xenrt.TestCase):
             log(rebootCountAfter)
             
             step("Check if VM was rebooted only once")
-            if self.rebootCountAfter - 1 != self.rebootCountBefore:
+            if rebootCountAfter - 1 != rebootCountBefore:
                 raise xenrt.XRTFailure("{0} rebooted more than Once").format(h)
         
         

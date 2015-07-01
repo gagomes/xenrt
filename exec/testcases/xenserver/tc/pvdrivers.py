@@ -1107,7 +1107,9 @@ class TCToolsMissingUninstall(xenrt.TestCase):
     #TC-23775
     def prepare(self, arglist=None):
         self.host = self.getDefaultHost()
-        self.guest = self.host.getGuest("VMWin2k80")
+        templateVM = self.host.getGuest("templateVM")
+        self.guest = templateVM.cloneVM()
+        self.host.addGuest(self.guest)
         self.guest.start()
 
     def run(self, arglist=None):
@@ -1128,9 +1130,11 @@ class TCToolsVBscriptEngineOff(xenrt.TestCase):
     #TC-27017
     def prepare(self, arglist=None):
         self.host = self.getDefaultHost()
-        self.guest = self.host.getGuest("VMWin2k81")
+        templateVM = self.host.getGuest("templateVM")
+        self.guest = templateVM.cloneVM()
+        self.host.addGuest(self.guest)
         self.guest.start()
-
+        
     def run(self, arglist=None):
         step("Disable vbscript Engine")
         self.guest.disableVbscriptEngine()
@@ -1150,8 +1154,10 @@ class TCSysrepAfterToolsUpgrade(xenrt.TestCase):
     #TC-27018
     def prepare(self, arglist=None):
         self.host = self.getDefaultHost()
-        self.guest = self.host.getGuest("VMWin2k82")
-        self.guest.start()
+        templateVM = self.host.getGuest("templateVM")
+        self.guest = templateVM.cloneVM()
+        self.host.addGuest(self.guest)
+        self.guest.start()    
         
         step("Install latest PV tools")
         self.guest.installDrivers()
@@ -1181,9 +1187,11 @@ class TCToolsIPv6Disabled(xenrt.TestCase):
     #TC-27019
     def prepare(self, arglist=None):
         self.host = self.getDefaultHost()
-        self.guest = self.host.getGuest("VMWin2k83")
+        templateVM = self.host.getGuest("templateVM")
+        self.guest = templateVM.cloneVM()
+        self.host.addGuest(self.guest)
         self.guest.start()
-
+        
     def run(self, arglist=None):
         step("Disable IPv6 Settings")
         self.guest.disableIPv6()
@@ -1197,12 +1205,14 @@ class TCToolsIPv6Disabled(xenrt.TestCase):
         else:
             raise xenrt.XRTFailure("Guest tools are out of date")
 
-class TCInstallXenToolsStepByStep(xenrt.Testcase):
+class TCInstallXenToolsStepByStep(xenrt.TestCase):
     """Test for SCTX-2054. Install tools step by step instead of running the installer"""
     #TC-27011
     def prepare(self, arglist=None):
         self.host = self.getDefaultHost()
-        self.guest = self.host.getGuest("VMWin2k84")
+        templateVM = self.host.getGuest("templateVM")
+        self.guest = templateVM.cloneVM()
+        self.host.addGuest(self.guest)
         self.guest.start()
         
     def run(self, arglist=None):

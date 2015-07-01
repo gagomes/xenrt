@@ -21,7 +21,7 @@ class XenRTPage(Page):
         self._db = None
         self._ad = None
         self._acl = None
-        self._user = None
+        self._user = {}
 
     def matchdict(self, param):
         return self.request.matchdict[param].replace("%2F", "/")
@@ -29,9 +29,9 @@ class XenRTPage(Page):
     def getUserFromAPIKey(self, apiKey):
         return app.user.User.fromApiKey(self, apiKey)
 
-    def getUser(self):
-        if self._user:
-            return self._user
+    def getUser(self, forceReal=False):
+        if self._user.get(forceReal):
+            return self._user[forceReal]
 
         lcheaders = dict([(k.lower(), v)  for (k,v) in self.request.headers.iteritems()])
         user = None
@@ -49,15 +49,15 @@ class XenRTPage(Page):
         if not user:
             return None
 
-        if "x-fake-user" in lcheaders:
+        if "x-fake-user" in lcheaders and not forceReal:
             if self.ALLOW_FAKE_USER: 
                 fakeUser = app.user.User(self, lcheaders['x-fake-user'])
                 if fakeUser.valid or True:
-                    self._user = fakeUser
+                    self._user[forceReal] = fakeUser
                     return fakeUser
             raise HTTPForbidden()
 
-        self._user = user
+        self._user[forceReal] = user
         return user
 
     def _isValidGroup(self, name):

@@ -767,7 +767,7 @@ class DebianDocker(Docker):
         xenrt.TEC().logverbose("installDocker: Installation of docker environment on guest %s" % self.guest)
         cmdOut = self.guest.execguest("apt-get -y --force-yes install nmap docker.io")
 
-        if not "docker.io start" in cmdOut:
+        if not "Adding group" in cmdOut:
             raise xenrt.XRTError("installDocker: Failed to install docker environment on guest %s" % self.guest)
 
     def updateGuestSourceRpms(self):

@@ -7409,17 +7409,24 @@ class GenericGuest(GenericPlace):
         self.findPassword()
 
         if not self.windows:
-            # sometimes we get an error doing this recursive copy very soon after a vm-start (CA-172621)
-            # attempting to fix with a sleep.
-            xenrt.sleep(10)
-
             # Copy the test scripts to the guest
             xrt = xenrt.TEC().lookup("XENRT_BASE", "/usr/share/xenrt")
             sdir = xenrt.TEC().lookup("REMOTE_SCRIPTDIR")
             self.execguest("rm -rf %s" % sdir)
             self.execguest("mkdir -p %s" % (os.path.dirname(sdir)))
             sftp = self.sftpClient()
-            sftp.copyTreeTo("%s/scripts" % (xrt), sdir)
+
+            # sometimes we get an error doing this recursive copy very soon after a vm-start (CA-172621)
+            max = 3
+            for i in range(max):
+                try:
+                    sftp.copyTreeTo("%s/scripts" % (xrt), sdir)
+                except Exception, ex:
+                    xenrt.TEC().logverbose(str(ex))
+                    if i == max - 1:
+                        raise
+                else:
+                    break
 
             # write out host key to guest to allow us to SSH to guest from dom0. This is a useful diagnostic tool.
             try:

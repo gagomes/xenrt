@@ -3279,7 +3279,83 @@ DHCPServer = 1
             xenrt.TEC().warning("Exception disabling firewall: %s" %
                                 (str(e)))
 
-    def installLinuxISCSITarget(self, iqn=None, user=None, password=None, outgoingUser=None, outgoingPassword=None):
+    def installLinuxISCSITarget(self, iqn=None, user=None, password=None, outgoingUser=None, outgoingPassword=None, targetType=None):
+        if not targetType:
+            targetType = xenrt.TEC().lookup("LINUX_ISCSI_TARGET", "IET")
+
+        self.execcmd("echo %s > /root/iscsi_target_type" % targetType) 
+
+        if targetType == "IET":
+            return self.installLinuxISCSITargetIET(iqn=iqn, user=user, password=password, outgoingUser=outgoingUser, outgoingPassword=outgoingPassword)
+        elif targetType == "LIO":
+            return self.installLinuxISCSITargetLIO(iqn=iqn, user=user, password=password, outgoingUser=outgoingUser, outgoingPassword=outgoingPassword)
+        else:
+            raise xenrt.XRTError("Unsupported ISCSI target type %s" % targetType)
+
+    def targetcli(self, command):
+        if int(self.execcmd("cat /root/targetcli_noninteractive").strip()):
+            self.execcmd("targetcli %s" % command)
+        else:
+            if command == "/ saveconfig":
+                self.execcmd("/bin/echo -e '/ saveconfig\\nyes' | targetcli")
+            else:
+                self.execcmd("echo '%s' | targetcli" % command)
+
+    def targetcliGetTpg(self):
+        if int(self.execcmd("cat /root/targetcli_noninteractive").strip()):
+            return self.execcmd("targetcli ls /iscsi | grep -1 TPG | tail -1 | awk '{print $2}'").strip()
+        else:
+            return self.execcmd("echo 'ls /iscsi' | targetcli | grep -1 TPG | tail -1 | awk '{print $2}'").strip()
+        
+
+    def installLinuxISCSITargetLIO(self, iqn=None, user=None, password=None, outgoingUser=None, outgoingPassword=None):
+        if not iqn:
+            iqn = "iqn.2008-01.xenrt.test:iscsi%08x" % \
+                  (random.randint(0, 0x7fffffff))
+        self.execcmd("echo %s > /root/iscsi_iqn" % iqn)
+        try:
+            debversion = int(self.execcmd("cat /etc/debian_version").strip().split(".")[0])
+        except:
+            debversion = None
+
+        try:
+            redhat = self.execcmd("cat /etc/redhat-release")
+        except:
+            redhat = None
+
+        if debversion:
+            if debversion == 8:
+                self.execcmd("wget -O - %s/jessie-targetcli.tgz | tar -xvz" % xenrt.TEC().lookup("TEST_TARBALL_BASE"))
+                self.execcmd("dpkg -i jessie-targetcli/*.deb || apt-get -yf install")
+            else:
+                self.execcmd("apt-get install -y targetcli")
+            if debversion >=8:
+                self.execcmd("echo 1 > /root/targetcli_noninteractive")
+            else:
+                self.execcmd("echo 0 > /root/targetcli_noninteractive")
+        elif redhat:
+            self.execcmd("yum install -y targetcli")
+            self.execcmd("chkconfig target on")
+            self.execcmd("echo 1 > /root/targetcli_noninteractive")
+        self.targetcli("/ set global auto_add_default_portal=false") 
+        self.targetcli("/iscsi create %s" % iqn)
+        tpg = self.targetcliGetTpg()
+        ips = self.execcmd("ip addr show | grep 'inet ' | awk '{print $2}' | cut -d '/' -f 1 | grep -v 127.0.0.1").strip().splitlines()
+        for i in ips:
+            self.targetcli("/iscsi/%s/%s/portals create %s"  % (iqn, tpg, i))
+        # Set up open access 
+        self.targetcli("/iscsi/%s/%s set attribute authentication=0 demo_mode_write_protect=0 generate_node_acls=1 cache_dynamic_acls=1" % (iqn, tpg))
+
+        # Not implementing CHAP yet
+        if user or password or outgoingUser or outgoingPassword:
+            raise xenrt.XRTError("XenRT support for CHAP is not implemented on LIO luns")
+        
+        self.targetcli("/ saveconfig")
+        return iqn
+        
+
+    
+    def installLinuxISCSITargetIET(self, iqn=None, user=None, password=None, outgoingUser=None, outgoingPassword=None):
         """Installs a Debian VM to be an iSCSI target"""
         if not iqn:
             iqn = "iqn.2008-01.xenrt.test:iscsi%08x" % \
@@ -3370,6 +3446,28 @@ DHCPServer = 1
         return iqn
 
     def createISCSITargetLun(self, lunid, sizemb, dir="/", thickProvision=True, timeout=1200):
+        targetType = self.execcmd("cat /root/iscsi_target_type").strip()
+
+        if targetType == "IET":
+            return self.createISCSITargetLunIET(lunid=lunid, sizemb=sizemb, dir=dir, thickProvision=thickProvision, timeout=timeout)
+        elif targetType == "LIO":
+            return self.createISCSITargetLunLIO(lunid=lunid, sizemb=sizemb, dir=dir)
+
+    def createISCSITargetLunLIO(self, lunid, sizemb, dir="/"):
+        name = "iscsi%08x" % random.randint(0, 0x7fffffff)
+        iqn = self.execcmd("cat /root/iscsi_iqn").strip()
+        self.execcmd("echo %d > /root/iscsi_lun" % lunid)
+        self.targetcli("/backstores/fileio create name=%s file_or_dev=%s size=%dM" % (name, os.path.join(dir, name), sizemb))
+        tpg = self.targetcliGetTpg()
+        self.targetcli("/iscsi/%s/%s/luns create /backstores/fileio/%s lun=%d" % (iqn, tpg, name, lunid))
+        self.targetcli("/ saveconfig")
+
+        serial = self.execcmd("cat /sys/kernel/config/target/core/*/%s/wwn/vpd_unit_serial" % name).strip().split()[-1]
+        scsiid = "36001405" + serial.replace("-", "")[:-7]
+
+        return scsiid
+
+    def createISCSITargetLunIET(self, lunid, sizemb, dir="/", thickProvision=True, timeout=1200):
         """Creates a LUN on the software iSCSI target installed in this VM."""
 
         # Create a lun

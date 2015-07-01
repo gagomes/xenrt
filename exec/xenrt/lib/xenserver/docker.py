@@ -758,3 +758,19 @@ class UbuntuDocker(Docker):
     def updateGuestSourceRpms(self):
 
         xenrt.TEC().logverbose("updateGuestSourceRpms: Update on Ubuntu %s is not required" % self.guest)
+
+class DebianDocker(Docker):
+    """Represents a docker installed on debian guest"""
+
+    def installDocker(self):
+
+        xenrt.TEC().logverbose("installDocker: Installation of docker environment on guest %s" % self.guest)
+        cmdOut = self.guest.execguest("apt-get -y --force-yes install nmap docker.io")
+
+        if not "Adding group" in cmdOut:
+            raise xenrt.XRTError("installDocker: Failed to install docker environment on guest %s" % self.guest)
+
+    def updateGuestSourceRpms(self):
+
+        xenrt.TEC().logverbose("updateGuestSourceRpms: Update on Debian %s is not required" % self.guest)
+

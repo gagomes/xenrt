@@ -105,7 +105,7 @@ def logInstallEvent(func):
                 hostid = kwargs['id']
             elif len(args) > 0:
                 hostid = args[0]
-            if kwargs.has_key('containerHost') and kwargs['containerHost'] != None:
+            if kwargs.get('containerHost') != None:
                 # We don't want to log virtual hosts
                 return None
             return xenrt.TEC().lookup("RESOURCE_HOST_%s" % (hostid), None)

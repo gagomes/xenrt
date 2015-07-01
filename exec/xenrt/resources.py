@@ -1600,17 +1600,16 @@ class ISCSIVMLun(ISCSILun):
                     self.guest.execguest("killall ietd")
                 except:
                     pass
-            elif iscsitype == "LIO":
-                self.guest.execguest("service target stop")
 
-            self.guest.execguest("umount /iscsi") # Now we can unmount the /iscsi volume and resize the filesystem
-            self.guest.execguest("e2fsck -pf /dev/%s" % device)
-            self.guest.execguest("resize2fs /dev/%s" % device)
-            self.guest.execguest("mount /iscsi") # and now mount and start it again.
-            if iscsitype == "IET":
-                self.guest.execguest("/etc/init.d/iscsi-target start")
+                self.guest.execguest("umount /iscsi") # Now we can unmount the /iscsi volume and resize the filesystem
+                self.guest.execguest("e2fsck -pf /dev/%s" % device)
+                self.guest.execguest("resize2fs /dev/%s" % device)
+                self.guest.execguest("mount /iscsi") # and now mount and start it again.
+                if iscsitype == "IET":
+                    self.guest.execguest("/etc/init.d/iscsi-target start")
             elif iscsitype == "LIO":
-                self.guest.execguest("service target start")
+                # Using a modern kernel so online resize possible
+                self.guest.execguest("resize2fs /dev/%s" % device)
         if iscsitype == "IET":
             self.targetname = self.guest.execguest("head -1 /etc/ietd.conf  | awk '{print $2}'").strip() # Find the Target IQN name from ietd.conf
             self.lunid = int(self.guest.execguest("tail -1 /etc/ietd.conf | awk '{print $2}'").strip()) + 1 # Find the next available LUN ID

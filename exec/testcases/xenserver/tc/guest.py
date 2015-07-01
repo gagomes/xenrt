@@ -1914,6 +1914,7 @@ class VmRebootedOnce(xenrt.TestCase):
         host.execdom0("xe vm-reboot name-label=%s force=%s >/dev/null 2>&1 </dev/null &" % (guestName, option))
     
     def editInittab(self, guestName):
+        #this Stops Soft Reboot - Only works on Debian 7 ... won't work on Debian 8 or later 
         guestName.execguest("sed -i 's#.*ca:12345:ctrlaltdel:.*#ca:12345:ctrlaltdel:/bin/echo \"Oh no You Dont\"#' /etc/inittab")
     
     def getDomID(self,guestName):

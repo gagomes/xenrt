@@ -1191,7 +1191,7 @@ class XenRTBorrow(XenRTCommand):
         if user:
             self.xenrt.customHeaders['X-Fake-User'] = user
 
-        self.xenrt.lease_machine(machine, duration, reason, force=force, besteffort=besteffort, preemptable=preemptable)
+        self.xenrt.lease_machine(machine, duration, reason, force=force, besteffort=besteffort, preemptable=preemptable, admin_override=adminoverride)
 
 class XenRTReturn(XenRTCommand):
 

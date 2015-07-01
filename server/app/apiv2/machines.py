@@ -560,7 +560,7 @@ class LeaseMachine(_MachineBase):
         }
     RESPONSES = { "200": {"description": "Successful response"}}
     OPERATION_ID = "lease_machine"
-    PARAM_ORDER = ['name', 'duration', 'reason', 'force', 'besteffort', 'admin_override']
+    PARAM_ORDER = ['name', 'duration', 'reason', 'force', 'besteffort', 'preemptable', 'admin_override']
 
     def render(self):
         try: 

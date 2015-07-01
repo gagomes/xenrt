@@ -305,7 +305,7 @@ class _MachineBase(XenRTAPIv2Page):
                                 time.gmtime(time.time()))
 
         # Only XenRT admins can use admin override
-        if adminoverride and not self.getUser().admin:
+        if adminoverride and not self.getUser(forceReal=True).admin:
             raise XenRTAPIError(HTTPUnauthorized, "Only XenRT admins can use the admin_override functionality")
 
         if duration:

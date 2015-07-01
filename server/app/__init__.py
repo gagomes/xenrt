@@ -29,7 +29,7 @@ class XenRTPage(Page):
     def getUserFromAPIKey(self, apiKey):
         return app.user.User.fromApiKey(self, apiKey)
 
-    def getUser(self):
+    def getUser(self, forceReal=False):
         if self._user:
             return self._user
 
@@ -49,7 +49,7 @@ class XenRTPage(Page):
         if not user:
             return None
 
-        if "x-fake-user" in lcheaders:
+        if "x-fake-user" in lcheaders and not forceReal:
             if self.ALLOW_FAKE_USER: 
                 fakeUser = app.user.User(self, lcheaders['x-fake-user'])
                 if fakeUser.valid or True:

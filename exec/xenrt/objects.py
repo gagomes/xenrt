@@ -3445,16 +3445,31 @@ DHCPServer = 1
 
         return iqn
 
-    def createISCSITargetLun(self, lunid, sizemb, dir="/", thickProvision=True, timeout=1200):
+    def createISCSITargetLun(self, lunid, sizemb, dir="/", thickProvision=True, timeout=1200, existingFile=None):
         targetType = self.execcmd("cat /root/iscsi_target_type").strip()
 
         if targetType == "IET":
-            return self.createISCSITargetLunIET(lunid=lunid, sizemb=sizemb, dir=dir, thickProvision=thickProvision, timeout=timeout)
+            return self.createISCSITargetLunIET(lunid=lunid, sizemb=sizemb, dir=dir, thickProvision=thickProvision, timeout=timeout, existingFile=existingFile)
         elif targetType == "LIO":
-            return self.createISCSITargetLunLIO(lunid=lunid, sizemb=sizemb, dir=dir)
+            return self.createISCSITargetLunLIO(lunid=lunid, sizemb=sizemb, dir=dir, existingFile=existingFile)
 
-    def createISCSITargetLunLIO(self, lunid, sizemb, dir="/"):
+    def createISCSITargetLunLIO(self, lunid, sizemb, dir="/", existingFile=None):
         name = "iscsi%08x" % random.randint(0, 0x7fffffff)
+        if existingFile:
+            url = xenrt.filemanager.FileNameResolver(existingFile).url
+            self.execcmd("mkdir -p %s.tmp" % (os.path.join(dir, name)))
+            if url.endswith(".gz") or url.endswith(".tgz"):
+                options = "z"
+            elif url.endswith(".bz2"):
+                options = "j"
+            else:
+                options = ""
+            proxy = xenrt.TEC().lookup("HTTP_PROXY", None)
+            proxyflag = " -e http_proxy=%s" % proxy if proxy else ""
+            self.execcmd("cd %s.tmp && wget %s -nv -O - %s | tar -xv%s" % (os.path.join(dir, name), proxyflag, url, options))
+            fname = self.execcmd("find %s.tmp -type f" % os.path.join(dir, name)).splitlines()[0].strip()
+            self.execcmd("mv %s %s" % (fname, os.path.join(dir, name)))
+            self.execcmd("rm -rf %s.tmp" % (os.path.join(dir, name)))
         iqn = self.execcmd("cat /root/iscsi_iqn").strip()
         self.execcmd("echo %d > /root/iscsi_lun" % lunid)
         self.targetcli("/backstores/fileio create name=%s file_or_dev=%s size=%dM" % (name, os.path.join(dir, name), sizemb))
@@ -3467,8 +3482,11 @@ DHCPServer = 1
 
         return scsiid
 
-    def createISCSITargetLunIET(self, lunid, sizemb, dir="/", thickProvision=True, timeout=1200):
+    def createISCSITargetLunIET(self, lunid, sizemb, dir="/", thickProvision=True, timeout=1200, existingFile=None):
         """Creates a LUN on the software iSCSI target installed in this VM."""
+
+        if existingFile:
+            xenrt.TEC().logverbose("Importing existing LUNs is not supported with IET")
 
         # Create a lun
         filename = string.strip(self.execcmd("mktemp %siSCSIXXXXXX" % (dir)))

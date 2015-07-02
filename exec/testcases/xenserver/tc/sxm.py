@@ -270,6 +270,7 @@ class LiveMigrate(xenrt.TestCase):
         self.test_config['monitoring_failure'] = False
         self.test_config['skip_vmdowntime']=False
         self.test_config['use_vmsecnetwork']=False
+        self.test_config['copy'] = False
 
         return
  
@@ -535,6 +536,10 @@ class LiveMigrate(xenrt.TestCase):
                 self.args['reuse_VM'] = True
             else:
                 self.args['reuse_VM'] = False
+            if arg.startswith('copy'):
+                self.args['copy'] = True
+        # pass on the arglist so that individual testcase can interpret its specific args if necessary
+        self.arglist = arglist
         return
 
     def identifyPoolAAndB(self):
@@ -687,6 +692,8 @@ class LiveMigrate(xenrt.TestCase):
         if self.args.has_key('use_vmsecnetwork'):
             self.test_config['use_vmsecnetwork'] = self.args['use_vmsecnetwork']
 
+        if self.args.has_key('copy'):
+            self.test_config['copy'] = self.args['copy']
         return
 
     def checkNumOfVDIs(self, guest):
@@ -903,6 +910,8 @@ class LiveMigrate(xenrt.TestCase):
         check_VM_is_running = True
         if self.test_config.has_key('vm_lifecycle_operation') and self.test_config['vm_lifecycle_operation']:
             check_VM_is_running = False
+        if vm['pre_power_state'] != 'UP':
+            check_VM_is_running = False
         if self.test_config.has_key('vm_reboot') and self.test_config['vm_reboot']:
             check_VM_is_running = True
         
@@ -1079,14 +1088,14 @@ class LiveMigrate(xenrt.TestCase):
             test_status.extend(self.assertPresenceOfDestVDIsOnRelevantSRs(guest))
 
         # Check presence of source VDIs
-        if self.test_config['cancel_migration'] or self.test_config['negative_test']:
+        if self.test_config['cancel_migration'] or self.test_config['negative_test'] or self.test_config['copy']:
             test_status.extend(self.assertPresenceOfSrcVDIs(guest))
         else:
             test_status.extend(self.assertAbsenceOfSrcVDIs(guest))
 
 
         if self.test_config['type_of_migration'] == 'inter-pool':
-            if self.test_config['cancel_migration'] or self.test_config['negative_test']:
+            if self.test_config['cancel_migration'] or self.test_config['negative_test'] or self.test_config['copy']:
                 test_status.extend(self.assertPresenceOfSrcVifNw(guest))
             else:
                 test_status.extend(self.assertPresenceOfDestVIFNw(guest))
@@ -1119,8 +1128,7 @@ class LiveMigrate(xenrt.TestCase):
         if not self.test_config['win_crash']:
             try:
                 if not (vm.has_key('nodrivers') and vm['nodrivers']):
-                    if guest.getState() != 'UP':
-                        guest.start()
+                    guest.setState('UP')
                     guest.check()
             except Exception as e:
                 err = 'FAILURE_SXM: ' + str(e)
@@ -1317,7 +1325,8 @@ class LiveMigrate(xenrt.TestCase):
 
         params = {'dest_host' : self.vm_config[guest.getName()]['dest_host'],
                   'VDI_SR_map' : self.vm_config[guest.getName()]['VDI_SR_map'],
-                  'VIF_NW_map' : self.vm_config[guest.getName()]['VIF_NW_map']}
+                  'VIF_NW_map' : self.vm_config[guest.getName()]['VIF_NW_map'],
+                  'copy' : self.test_config['copy']}
         return params
 
 
@@ -1431,12 +1440,11 @@ class LiveMigrate(xenrt.TestCase):
         else:
             self.test_config['test_status'][guest.getName()] = test_status
         
-        if guest.getState() != 'UP':
-            try:
-                guest.start()
-            except Exception as e:
-                test_status.append("FAILURE_SXM: guest.start() [%s] failed with '%s'" % 
-                                                (guest.getUUID(), e))
+        try:
+            guest.setState('UP')
+        except Exception as e:
+            test_status.append("FAILURE_SXM: guest.start() [%s] failed with '%s'" %
+                               (guest.getUUID(), e))
         try:
             guest.shutdown()
             guest.start()
@@ -1461,7 +1469,7 @@ class LiveMigrate(xenrt.TestCase):
             try:
                 guest.migrateVM(remote_host=dest_host,
                                 vdi_sr_list=params['VDI_SR_map'].items(),
-                                live="true")
+                                live="true", copy=self.test_config['copy'])
             except Exception as e:
                 xenrt.TEC().logverbose("Migration of VM %s failed with '%s'"
                                        % (guest.getUUID(), e))
@@ -1499,6 +1507,10 @@ class LiveMigrate(xenrt.TestCase):
             xenrt.TEC().logverbose("Iteration %s"%(i+1))
             self.preHook()
 
+            for guest in self.guests:
+                vm_config = self.vm_config[guest.getName()]
+                vm_config['pre_power_state'] = guest.getState()
+
             if self.test_config.has_key('use_xe') and self.test_config['use_xe']:
                 self.migrateVMsWithXe()
                 self.checkVMs()
@@ -1520,7 +1532,9 @@ class LiveMigrate(xenrt.TestCase):
                 self.hook()
                 for obs in self.observers:
                     obs.waitToFinish()
-
+                    # In case of migration copy, we need to redirect the vm object onto the result VM
+                    if self.test_config['copy']:
+                        obs.vm.uuid = obs.vm.getHost().getGuestUUID(obs.vm) or obs.vm.getHost().minimalList("template-list", args="name-label='%s'" % obs.vm.name)[0] or obs.vm.uuid
                 self.postHook()
 
                 if self.test_config['immediate_failure']:
@@ -2454,6 +2468,48 @@ class CheckpointVMStorageMigration(LiveMigrate):
             guest.checkpoint()
         return
 
+
+class SnapCheckVMStorageMigration(LiveMigrate):
+
+    def preHook(self):
+
+        LiveMigrate.preHook(self)
+
+        snapshots = 0
+        checkpoints = 0
+
+        for arg in self.arglist:
+            if arg.startswith('snapshots'):
+                snapshots = int(arg.split('=')[1])
+            if arg.startswith('checkpoints'):
+                checkpoints = int(arg.split('=')[1])
+        actions = [lambda g: g.snapshot() for i in range(snapshots)] + [lambda g: g.checkpoint() for i in range(checkpoints)]
+        random.shuffle(actions)
+
+        for vm in self.vm_config.values():
+            guest = vm['obj']
+            for act in actions:
+                # Use reboot process to generate VDI diff
+                guest.reboot()
+                act(guest)
+            vm['snapshots'] = guest.getHost().minimalList("snapshot-list", args="snapshot-of=%s" % guest.getUUID())
+        return
+
+    def postHook(self):
+
+        LiveMigrate.postHook(self)
+
+        for vm in self.vm_config.values():
+            guest = vm['obj']
+            for snapshot in vm['snapshots']:
+                try:
+                    guest.checkSnapshot(snapshot)
+                    guest.removeSnapshot(snapshot)
+                except Exception as e:
+                    raise xenrt.XRTFailure("FAILURE_SXM: VM %s failed on checking/destroying snapshot/checkpoint %s: %s'" %(guest.getUUID(), snapshot, e))
+            del vm['snapshots']
+
+
 #class TC17219(LiveMigrate):
 class InvalidDrvVerVMStorageMigration(LiveMigrate):
     """Verifying Cross Pool Storage Migration when the VM has an invalid version of PV driver"""
@@ -2715,3 +2771,41 @@ class VMRevertedToSnapshot(LiveMigrate):
             for vif in allVifs:
                 vif_nw_map.update({vif:mainNWuuid})
         self.vm_config[vm.getName()]['VIF_NW_map'] = vif_nw_map
+
+
+class UserTemplateStorageMigration(LiveMigrate):
+    """Intra Pool Storage Migration when the VM is an halted state"""
+
+    def preHook(self):
+
+        LiveMigrate.preHook(self)
+        for vm in self.vm_config.values():
+            guest = vm['obj']
+            guest.setState("DOWN")
+            guest.paramSet("is-a-template", "true")
+        return
+
+    def postHook(self):
+
+        for vm in self.vm_config.values():
+            guest = vm['obj']
+            guest.getHost().genParamSet("template", guest.getUUID(), "is-a-template", "false")
+        LiveMigrate.postHook(self)
+
+class SystemTemplateStorageMigration(UserTemplateStorageMigration):
+    """Intra Pool Storage Migration when the VM is an halted state"""
+
+    def preHook(self):
+
+        UserTemplateStorageMigration.preHook(self)
+        for vm in self.vm_config.values():
+            guest = vm['obj']
+            guest.paramSet("other-config:default_template", "true")
+        return
+
+    def postHook(self):
+
+        for vm in self.vm_config.values():
+            guest = vm['obj']
+            guest.paramSet("other-config:default_template", "false")
+        UserTemplateStorageMigration.postHook(self)

@@ -11,7 +11,7 @@
   </prepare>
 
   <testsequence>
-    <parallel group="WindowsBalloonMaxRange" workers="2">
+    <parallel group="WindowsBalloonMaxRange" workers="1">
       <for iter="D" values="%DISTROS%"> 
         <testcase id="xenserver.tc.balloon.TCWindowsMaxRange" name="${D}" sku="${D}" tc="TC-9777">
         <arg>DISTRO=${D}</arg>

@@ -9,7 +9,7 @@
 #
 
 import socket, re, string, time, traceback, sys, random, copy, sets, xmlrpclib
-import tempfile, inspect
+import tempfile, inspect, ssl
 import xenrt, xenrt.lib.xenserver, xenrt.networkutils
 from xenrt.lazylog import step, comment, log, warning
 
@@ -104,6 +104,10 @@ class _HTTPHandlerTest(_CCSetup):
 
     def testSession(self, valid):
         if valid:
+            v = sys.version_info
+            if v.major == 2 and ((v.minor == 7 and v.micro >= 9) or v.minor > 7):
+                xenrt.TEC().logverbose("Disabling certificate verification on >=Python 2.7.9")
+                ssl._create_default_https_context = ssl._create_unverified_context
             session = xmlrpclib.Server("https://%s" % (self.host.getIP())).session.login_with_password("root",
                                         self.host.password)["Value"]
             xenrt.TEC().logverbose("Attempt HTTPS operation over HTTPS using a valid session. (%s)" % 

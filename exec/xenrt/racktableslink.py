@@ -13,6 +13,8 @@ def getRackTablesInstance():
     global _rackTablesInstance
     if not _rackTablesInstance:
         rtHost = xenrt.GEC().config.lookup("RACKTABLES_DB_HOST", None)
+        if not rtHost:
+            return None
         rtUser = xenrt.GEC().config.lookup("RACKTABLES_DB_USER", None)
         rtDB = xenrt.GEC().config.lookup("RACKTABLES_DB_NAME", None)
         rtPassword = xenrt.GEC().config.lookup("RACKTABLES_DB_PASSWORD", None)
@@ -29,6 +31,8 @@ def closeRackTablesInstance():
 def readMachineFromRackTables(machine,kvm=False,xrtMachine=None):
     global BMC_ADDRESSES
     rt = getRackTablesInstance()
+    if not rt:
+        return None
     o = rt.getObject(machine)
     ipDict = o.getIPAddrs()
     ip6Dict = o.getIP6Addrs()

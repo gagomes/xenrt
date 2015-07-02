@@ -30,9 +30,7 @@
     <serial group="Debian80">
 
       <testcase id="xenserver.tc.docker.TCContainerLifeCycle" tc="TC-23918" name="ContainerLifeCycle" sku="Debian80" />
-      <testcase id="xenserver.tc.docker.TCGuestsLifeCycle" tc="TC-26443" name="GuestsLifeCycle" sku="Debian80">
-        <arg>containersstarted=yes</arg>
-      </testcase>
+      <testcase id="xenserver.tc.docker.TCGuestsLifeCycle" tc="TC-26443" name="GuestsLifeCycle" sku="Debian80" />
       <testcase id="xenserver.tc.docker.TCScaleContainers" tc="TC-26523" name="ScaleContainers" sku="Debian80" />
 
     </serial>

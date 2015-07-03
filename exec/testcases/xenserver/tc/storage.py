@@ -2029,6 +2029,27 @@ class TC26954(_VDICopy):
     FROM_TYPE = "cifssr"
     TO_TYPE = "nfssr_nosubdir"
 
+class TC27108(_VDICopy):
+    """Verify vdi-copy between an lvmoiscsi SR and a local smapiv3 SR"""
+    FROM_TYPE = "lvmoiscsi"
+    TO_TYPE = "btrfs"
+
+class TC27109(_VDICopy):
+    """Verify vdi-copy between an nfs SR and a local smapiv3 SR"""
+    FROM_TYPE = "nfs"
+    TO_TYPE = "btrfs"
+
+class TC27110(_VDICopy):
+    """Verify vdi-copy between a local smapiv3 SR and a lvmoiscsi SR"""
+    FROM_TYPE = "btrfs"
+    TO_TYPE = "lvmoiscsi"
+
+class TC27111(_VDICopy):
+    """Verify vdi-copy between a local smapiv3 SR and a nfs SR"""
+    FROM_TYPE = "btrfs"
+    TO_TYPE = "nfs"
+
+
 #############################################################################
 # VDI resize testcases
 

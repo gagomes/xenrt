@@ -495,13 +495,25 @@ reboot
                     """ Any port(network) on esx which has ip can be used as management interface."""
                     # TODO fetch ip on this port and set as mainip
                     pass
+            elif len(nicList) == 1  and len(vlanList) > 0:
+                for v in vlanList:
+                    vnetwork, vmgmt, vstorage, vvms, vfriendlynetname = v
+                    vid, subnet, netmask = self.getVLAN(vnetwork)
+
+                    portlist = self.execdom0("esxcli --formatter=csv network vswitch standard portgroup list").strip().split("\n")
+                    portlist = [t_p.split(",") for t_p in portlist]
+                    portlist = [t_p[1] for t_p in portlist if pri_bridge==t_p[3] and vid==t_p[2]]
+                    if len(portlist)>0:
+                        xenrt.TEC().logverbose(" ... already exists")
+                    else:
+                        xenrt.TEC().logverbose("Creating VLAN '%s' on %s (%s)" % (vfriendlynetname, network, str(nicList)))
+                        # Add the network to the vSwitch
+                        self.execdom0("esxcli network vswitch standard portgroup add -v %s -p \"%s\"" % (pri_bridge, vfriendlynetname))
+                        self.execdom0("esxcli network vswitch standard portgroup set -v %d -p \"%s\"" % (vid, vfriendlynetname))
 
             if len(nicList) > 1:
                 raise xenrt.XRTError("Creation of bond on %s using %s unimplemented" %
                                        (network, str(nicList)))
-            if len(vlanList) > 0:
-                raise xenrt.XRTError("Creation of vlan on %s using %s unimplemented" %
-                                       (network, str(vlanList)))
 
     def checkNetworkTopology(self,
                              topology,

@@ -14,8 +14,11 @@
     </host>
   </prepare>
 
-  <testsequence group="VHD">
-    <testcase id="xenserver.storage.TCVDICopy" tc="TC-7304" prio="3">
+  <testsequence group="BTRFS">
+    <testcase id="xenserver.storage.TCVDICopy" tc="TC-27106" prio="3">
+      <arg>srtype=btrfs</arg>
+    </testcase>
+    <testcase id="xenserver.storage.TCVDIClone" tc="TC-27107" prio="3">
       <arg>srtype=btrfs</arg>
     </testcase>
     <serial group="VDIResize">

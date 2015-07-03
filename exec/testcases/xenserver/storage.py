@@ -1878,6 +1878,8 @@ class TCMultipleSRs(xenrt.TestCase):
 class TCVDICopy(xenrt.TestCase):
     """Test the vdi-copy CLI command"""
 
+    THIN_CLONE=False
+
     def __init__(self):
         xenrt.TestCase.__init__(self, "TCVDICopy")
 
@@ -1972,9 +1974,14 @@ class TCVDICopy(xenrt.TestCase):
                 for vdi in vdis:
                     args = []
                     args.append("uuid=%s" % (vdi))
-                    args.append("sr-uuid=%s" % (sr))
-                    newvdis.append(cli.execute("vdi-copy",string.join(args),
-                                               strip=True))
+                    if self.THIN_CLONE:
+                        args.append("new-name-label=clone")
+                        newvdis.append(cli.execute("vdi-clone",string.join(args),
+                                                    strip=True))
+                    else:
+                        args.append("sr-uuid=%s" % (sr))
+                        newvdis.append(cli.execute("vdi-copy",string.join(args),
+                                                    strip=True))
                     cli.execute("vdi-destroy","uuid=%s" % (vdi))
 
                 # Attach the copies to dom0
@@ -2011,6 +2018,9 @@ class TCVDICopy(xenrt.TestCase):
                 success += 1
         finally:
             xenrt.TEC().comment("%u/%u iterations successful" % (success, loops))
+
+class TCVDIClone(TCVDICopy):
+    THIN_CLONE=True
 
 class TCVirtualCDs(xenrt.TestCase):
 

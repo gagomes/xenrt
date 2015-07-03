@@ -4961,6 +4961,9 @@ class TCDuplicateVdiName(xenrt.TestCase):
                 raise xenrt.XRTFailure("VDI location changed after scan")
             if host.genParamGet("vdi", v, "name-label") != "duplicate":
                 raise xenrt.XRTFailure("VDI name-label changed after scan")
+        
+        for v in vdis:
+            host.destroyVDI(v)
 
 class TCVdiSpaceInName(xenrt.TestCase):
     """Test that VDIs with spaces in the name can be used"""
@@ -4980,3 +4983,5 @@ class TCVdiSpaceInName(xenrt.TestCase):
             raise xenrt.XRTFailure("VDI name-label is incorrect after scan")
 
         host.getVdiMD5Sum(vdi)
+
+        host.destroyVDI(vdi)

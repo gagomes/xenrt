@@ -1190,7 +1190,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Creedence"]["LATEST_sl7"] = "sl71"
         # XenServer dom0 partitions
         self.config["VERSION_CONFIG"]["Creedence"]["DOM0_PARTITIONS"] = {1:4*xenrt.GIGA, 2:4*xenrt.GIGA, 3:"*"}
-        self.config["VERSION_CONFIG"]["Creedence"]["INTERNAL_RPU_HOTFIX"] = "/usr/groups/build/cream-lcm/102865/hotfix-XS65ESP1006/XS65ESP1006.xsupdate"
+        self.config["VERSION_CONFIG"]["Creedence"]["INTERNAL_RPU_HOTFIX"] = "/usr/groups/build/cream-lcm/hfx-RPU-latest/hotfix-XS65ESP1006/XS65ESP1006.xsupdate"
         # Cream
         self.config["VERSION_CONFIG"]["Cream"] = copy.deepcopy(self.config["VERSION_CONFIG"]["Creedence"])
         self.config["VERSION_CONFIG"]["Cream"]["LATEST_rhel4"] = "rhel48"
@@ -1200,7 +1200,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Cream"]["TEMPLATE_NAME_RHEL_d66_64"] = "Red Hat Enterprise Linux 6 (64-bit),Red Hat Enterprise Linux 6 x64,Red Hat Enterprise Linux 6.0 (64-bit)"
         self.config["VERSION_CONFIG"]["Cream"]["TEMPLATE_NAME_RHEL_w66_64"] = "Red Hat Enterprise Linux 6 (64-bit),Red Hat Enterprise Linux 6 x64,Red Hat Enterprise Linux 6.0 (64-bit)"
         self.config["VERSION_CONFIG"]["Cream"]["TEMPLATE_NAME_SLED_113_64"] = "SUSE Linux Enterprise Desktop 11 SP3 (64-bit),SUSE Linux Enterprise Server 11 SP3 x64"
-        self.config["VERSION_CONFIG"]["Cream"]["INTERNAL_RPU_HOTFIX"] = "/usr/groups/build/cream-lcm/102865/hotfix-XS65ESP1006/XS65ESP1006.xsupdate"
+        self.config["VERSION_CONFIG"]["Cream"]["INTERNAL_RPU_HOTFIX"] = "/usr/groups/build/cream-lcm/hfx-RPU-latest/hotfix-XS65ESP1006/XS65ESP1006.xsupdate"
 
         # Dundee
         self.config["VERSION_CONFIG"]["Dundee"] = copy.deepcopy(self.config["VERSION_CONFIG"]["Cream"])

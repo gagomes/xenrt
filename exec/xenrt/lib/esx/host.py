@@ -298,6 +298,8 @@ class ESXHost(xenrt.lib.libvirt.Host):
 
         isoname = "/usr/groups/xenrt/esx/ESXi-%s.iso" % self.esxiVersion
         esxiso = xenrt.TEC().getFile(isoname)
+        if not esxiso:
+            raise xenrt.XRTError("Couldn't find ISO %s" % (isoname))
 
         mount = xenrt.rootops.MountISO(esxiso)
         mountpoint = mount.getMount()
@@ -534,6 +536,9 @@ key = None
 for policy in hostConfig.config.powerSystemCapability.availablePolicy:
     if policy.shortName == "%s":
         key = policy.key
+
+if not key:
+    exit(1)
 
 # Change to new policy
 hostConfig.GetConfigManager().GetPowerSystem().ConfigurePowerPolicy(key)

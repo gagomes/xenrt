@@ -342,8 +342,8 @@ class Guest(xenrt.GenericGuest):
                                      "(arch %s)" % (distro, arch))
 
         self.isoname = isoname
-        if self.memory and self.isoname and ([i for i in ["win81","ws12r2"] if i in self.isoname]):
-            xenrt.TEC().config.setVariable("OPTION_CLONE_TEMPLATE", True)
+        if self.memory and self.isoname and ([i for i in ["win81","ws12r2"] if i in self.isoname]) and \
+                not isinstance(self, xenrt.lib.xenserver.guest.CreedenceGuest):
             rootdisk = max(32768, 20480 + self.memory)
 
         if distro:
@@ -3326,8 +3326,8 @@ exit /B 1
                     raise xenrt.XRTFailure("Snapshot not halted",
                                            "Snapshot UUID %s" % (uuid))
         else:
-            if host.genParamGet("template", uuid, "power-state") != \
-                                "halted":
+            if host.genParamGet("template", uuid, "power-state") not in \
+                                ["halted", "suspended"]:
                 raise xenrt.XRTFailure("Snapshot not halted",
                                        "Snapshot UUID %s" % (uuid))
 
@@ -5784,13 +5784,17 @@ class TampaGuest(BostonGuest):
         vdiSRMap = migrateParameters["VDI_SR_map"]
         destHostuuid = migrateParameters["dest_host"].getMyHostUUID()
         networkUUID = migrateParameters["Migrate_Network"]
+        optionsMap = {}
+        if migrateParameters.has_key('copy'):
+            optionsMap["copy"] = str(migrateParameters["copy"]).lower()
 
         xenrt.TEC().logverbose("VM Migrate Parameters: Source VM %s,"
                                                     "VDI to SR Map %s,"
                                                     "VIF to Network Map %s,"
                                                     "Source Host uuid %s,"
-                                                    "Dest Host uuid %s," 
-                                                    "Network uuid %s" % (self.getUUID(),vdiSRMap,migrateParameters["VIF_NW_map"],self.getHost().getMyHostUUID(),destHostuuid,networkUUID))
+                                                    "Dest Host uuid %s,"
+                                                    "Network uuid %s,"
+                                                    "Options %s" % (self.getUUID(),vdiSRMap,migrateParameters["VIF_NW_map"],self.getHost().getMyHostUUID(),destHostuuid,networkUUID,optionsMap))
 
         for key in vdiSRMap.keys():
             vdiRef = session.xenapi.VDI.get_by_uuid(key)
@@ -5809,14 +5813,12 @@ class TampaGuest(BostonGuest):
         networkRef = destSession.xenapi.network.get_by_uuid(networkUUID)
 
         try:
-            strToStrMap = {} 
-            returnMap = destSession.xenapi.host.migrate_receive(destHostRef,networkRef,strToStrMap)
+            returnMap = destSession.xenapi.host.migrate_receive(destHostRef,networkRef,optionsMap)
             xenrt.TEC().logverbose("host.migrate_receive API being called on destination host : %s " %destHostuuid)
         except Exception, e:
             raise xenrt.XRTFailure("Exception occurred while calling migrate_receive on destination host: %s" %e)
         try:
-            strToStrMap = {}
-            taskId = session.xenapi.Async.VM.migrate_send(vmRef,returnMap,pauseAfterMigrate,vdiSRRefMap,vifNetworkRefMap,strToStrMap)
+            taskId = session.xenapi.Async.VM.migrate_send(vmRef,returnMap,pauseAfterMigrate,vdiSRRefMap,vifNetworkRefMap,optionsMap)
             xenrt.TEC().logverbose("Async.VM.migrate API being called on source host : %s " %self.getHost().getMyHostUUID())
         except Exception, e:
             raise xenrt.XRTFailure("Exception occurred while calling migrate send on source host: %s" %e)
@@ -5857,7 +5859,8 @@ class TampaGuest(BostonGuest):
                   dest_sr=None,
                   vif_net_list=None,
                   encrypt=False,
-                  remote_network=None):
+                  remote_network=None,
+                  copy=False):
         cli = self.getCLIInstance()
         if live == "true" and not self.windows:
             self.startLiveMigrateLogger()
@@ -5900,6 +5903,8 @@ class TampaGuest(BostonGuest):
                 cmd = cmd + " live=true"
             else:
                 cmd = cmd + " live=false"
+            if copy:
+                cmd = cmd + " copy=true"
 
             cli.execute(cmd)
 
@@ -6177,6 +6182,8 @@ default:
             return xenrt.lib.xenserver.docker.CentOSDocker(self.getHost(), self, controller)
         elif self.distro.startswith("ubuntu"): #  Ubuntu 14.04
             return xenrt.lib.xenserver.docker.UbuntuDocker(self.getHost(), self, controller)
+        elif self.distro.startswith("debian"): #  Debian Jessie 8.0
+            return xenrt.lib.xenserver.docker.DebianDocker(self.getHost(), self, controller)
         else:
             raise xenrt.XRTFailure("Docker installation unimplemented on distro %s" % self.distro)
 

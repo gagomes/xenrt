@@ -1357,7 +1357,7 @@ class Guest(xenrt.GenericGuest):
                 self.lifecycleOperation("vm-shutdown", force=True)
             raise
 
-    def reboot(self):
+    def reboot(self, force=False, skipsniff=None):
         self.start(reboot=True)
 
     def suspend(self):

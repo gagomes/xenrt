@@ -110,7 +110,7 @@ class _MachineBase(XenRTAPIv2Page):
             machine = {
                 "name": rc[0].strip(),
                 "site": rc[1].strip(),
-                "cluster": rc[2].strip(),
+                "cluster": rc[2].strip() if rc[2] else 'default',
                 "pool": rc[3].strip(),
                 "group": rc[19].strip() if rc[19] else None,
                 "rawstatus": rc[4].strip(),
@@ -300,9 +300,14 @@ class _MachineBase(XenRTAPIv2Page):
         finally:
             cur.close()
 
-    def lease(self, machine, user, duration, reason, force, besteffort, preemptable, commit=True):
+    def lease(self, machine, user, duration, reason, force, besteffort, preemptable, adminoverride, commit=True):
         leaseFrom = time.strftime("%Y-%m-%d %H:%M:%S",
                                 time.gmtime(time.time()))
+
+        # Only XenRT admins can use admin override
+        if adminoverride and not self.getUser(forceReal=True).admin:
+            raise XenRTAPIError(HTTPUnauthorized, "Only XenRT admins can use the admin_override functionality")
+
         if duration:
             forever = False 
             leaseToTime = time.gmtime(time.time() + (duration * 3600))
@@ -321,7 +326,7 @@ class _MachineBase(XenRTAPIv2Page):
         if preemptable: # Preemptable leases are limited to 6 hours
             leasePolicy = min(leasePolicy, 6)
 
-        if leasePolicy and duration > leasePolicy:
+        if leasePolicy and duration > leasePolicy and not adminoverride:
             if besteffort:
                 duration = leasePolicy
                 leaseToTime = time.gmtime(time.time() + (duration * 3600))
@@ -336,7 +341,7 @@ class _MachineBase(XenRTAPIv2Page):
         if not forever and currentLeaseTime and time.gmtime(currentLeaseTime) > leaseToTime and not force:
             raise XenRTAPIError(HTTPNotAcceptable, "Machines is already leased for longer", canForce=True)
 
-        if machines[machine]['aclid']:
+        if machines[machine]['aclid'] and not adminoverride:
             result, reason = self.getACLHelper().check_acl(machines[machine]['aclid'], user, [machine], duration, preemptable=preemptable)
             if not result:
                 raise XenRTAPIError(HTTPUnauthorized, "ACL: %s" % reason, canForce=False)
@@ -545,13 +550,17 @@ class LeaseMachine(_MachineBase):
                 "preemptable": {
                     "type": "boolean",
                     "description": "Borrow on a preemptable basis - can be taken back for scheduled testing (ACL policy dependent)",
-                    "default": False}
+                    "default": False},
+                "admin_override": {
+                    "type": "boolean",
+                    "description": "Override lease policy (only available to admins)",
+                    "defaulti": False}
                 }
             }
         }
     RESPONSES = { "200": {"description": "Successful response"}}
     OPERATION_ID = "lease_machine"
-    PARAM_ORDER = ['name', 'duration', 'reason', 'force', 'besteffort']
+    PARAM_ORDER = ['name', 'duration', 'reason', 'force', 'besteffort', 'preemptable', 'admin_override']
 
     def render(self):
         try: 
@@ -560,7 +569,7 @@ class LeaseMachine(_MachineBase):
         except Exception, e:
             raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
         try:
-            self.lease(self.request.matchdict['name'], self.getUser().userid, params['duration'], params['reason'], params.get('force', False), params.get('besteffort', False), params.get('preemptable', False))
+            self.lease(self.request.matchdict['name'], self.getUser().userid, params['duration'], params['reason'], params.get('force', False), params.get('besteffort', False), params.get('preemptable', False), params.get('admin_override', False))
         except:
             if params.get('besteffort', False):
                 return {}

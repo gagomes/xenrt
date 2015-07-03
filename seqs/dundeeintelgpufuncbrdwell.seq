@@ -1,0 +1,104 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+    <PREPARE_WORKERS>6</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+  <pool id="0">
+    <host installsr="ext" license="enterprise-per-socket"/>
+    <storage type="nfs" name="nfs_sourceSR" />
+    <vm name="masterwin7sp1-x86">
+      <distro>win7sp1-x86</distro>
+      <memory>2048</memory>
+      <vcpus>2</vcpus>
+      <postinstall action="installDrivers" />
+      <network device="0" />
+      <disk device="0" size="24" />
+    </vm>
+    <vm name="masterwin7sp1-x64">
+      <distro>win7sp1-x64</distro>
+      <arch>x86-64</arch>
+      <memory>2048</memory>
+      <vcpus>2</vcpus>
+      <postinstall action="installDrivers" />
+      <network device="0" />
+      <disk device="0" size="24" />
+    </vm>
+    <vm name="masterwin8-x86">
+      <distro>win8-x86</distro>
+      <memory>2048</memory>
+      <vcpus>2</vcpus>
+      <postinstall action="installDrivers" />
+      <network device="0" />
+      <disk device="0" size="24" />
+    </vm>
+    <vm name="masterwin8-x64">
+      <distro>win8-x64</distro>
+      <arch>x86-64</arch>
+      <memory>2048</memory>
+      <vcpus>2</vcpus>
+      <postinstall action="installDrivers" />
+      <network device="0" />
+      <disk device="0" size="24" />
+    </vm>
+    <vm name="masterwin81-x86">
+      <distro>win81-x86</distro>
+      <memory>2048</memory>
+      <vcpus>2</vcpus>
+      <postinstall action="installDrivers" />
+      <network device="0" />
+      <disk device="0" size="24" />
+    </vm>
+    <vm name="masterwin81-x64">
+      <distro>win81-x64</distro>
+      <memory>2048</memory>
+      <vcpus>2</vcpus>
+      <postinstall action="installDrivers" />
+      <network device="0" />
+      <disk device="0" size="24" />
+    </vm>
+
+  </pool>  
+  </prepare>
+
+  <testsequence>
+    <serial group="IntelGPUPassthrough">
+
+      <testcase id="testcases.xenserver.tc.vgpu.TCBasicVerifOfAllK2config"  name="TC-26944" tc="TC-26944" sku="broadwell">
+        <arg>distro=0,1,3,4,5,6</arg>
+        <arg>typeofvgpu=intelwinvgpu</arg>
+        <arg>vgpuconfig=12</arg>
+      </testcase>
+
+      <testcase id="testcases.xenserver.tc.vgpu.TCIntelGPUSnapshotNegative" name="TC-26945" tc="TC-26945" sku="broadwell">
+        <arg>distro=5</arg>
+        <arg>typeofvgpu=intelwinvgpu</arg>
+        <arg>vgpuconfig=12</arg>
+      </testcase>
+
+      <testcase id="testcases.xenserver.tc.vgpu.TCIntelGPUReuse" name="TC-26946" tc="TC-26946" sku="broadwell">
+        <arg>distro=1</arg>
+        <arg>typeofvgpu=intelwinvgpu</arg>
+        <arg>vgpuconfig=12</arg>
+      </testcase>
+
+      <testcase id="testcases.xenserver.tc.vgpu.TCIntelSetupNegative" name="TC-26947" tc="TC-26947" sku="broadwell">
+        <arg>distro=1</arg>
+        <arg>typeofvgpu=intelwinvgpu</arg>
+        <arg>vgpuconfig=12</arg>
+      </testcase>
+
+      <testcase id="testcases.xenserver.tc.vgpu.TCvGPUBalloon" name="TC-26978" tc="TC-26978" sku="broadwell">
+        <arg>distro=1</arg>
+        <arg>typeofvgpu=intelwinvgpu</arg>
+        <arg>vgpuconfig=12</arg>
+        <arg>novgpu</arg>
+      </testcase>
+
+    </serial>
+  </testsequence>
+
+</xenrt>

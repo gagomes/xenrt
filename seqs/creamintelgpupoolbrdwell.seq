@@ -1,0 +1,30 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+
+    <pool id="0">
+      <storage type="nfs" name="nfssr" default="true"/>
+      <host id="0"/>
+      <host id="1"/>
+    </pool>
+
+  </prepare>
+
+  <testsequence>
+    <serial group="IntelGPUPassthroughPool">
+
+      <testcase id="testcases.xenserver.tc.vgpu.TCPoolIntelGPU" name="TC-26979" tc="TC-26979" sku="braodwell">
+        <arg>distro=1</arg>
+        <arg>typeofvgpu=intelwinvgpu</arg>
+        <arg>vgpuconfig=12</arg>
+      </testcase>
+
+
+    </serial>
+  </testsequence>
+
+</xenrt>

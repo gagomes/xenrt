@@ -1878,6 +1878,10 @@ class HostInstallWorker(_InstallWorker):
             defaultHost = work['default']
             del work['default']
 
+        hostname = xenrt.TEC().lookup("RESOURCE_HOST_%s" % work.get("id", "0"))
+
+        logid = xenrt.GEC().dbconnect.jobLogItem("Installing host %s of type %s" % (hostname, specProductType))
+
         if specProductType == "xenserver":
             if versionPath and not specProductVersion and not specVersion:
                 # Install the specified sequence of versions and upgrades/updates
@@ -1952,19 +1956,24 @@ class HostInstallWorker(_InstallWorker):
 
         if defaultHost:
             xenrt.TEC().registry.hostPut("RESOURCE_HOST_DEFAULT", host)
+        xenrt.GEC().dbconnect.jobLogItem("Installed host %s" % (hostname), linked=logid, completes=True)
 
 class GuestInstallWorker(_InstallWorker):
     """Worker thread for parallel guest installs"""
     def doWork(self, work):
         if work.has_key("filename"):
+            logid = xenrt.GEC().dbconnect.jobLogItem("Importing VM from %s" % (work['filename']))
             xenrt.productLib(hostname=work["host"]).guest.createVMFromFile(**work)
+            xenrt.GEC().dbconnect.jobLogItem("Completed import VM from %s" % (work['filename']), completes=True, linked=logid)
         else:
+            logid = xenrt.GEC().dbconnect.jobLogItem("Installing VM of type %s" % (work.get("distro", "unknown")))
             if xenrt.TEC().lookup("DEFAULT_VIFS", False, boolean=True) and (not "vifs" in work or not work['vifs']):
                 host = work["host"]
                 if not isinstance(host, xenrt.GenericHost):
                     host = xenrt.TEC().registry.hostGet(host)
                 work['vifs'] = host.guestFactory().DEFAULT
             xenrt.productLib(hostname=work["host"]).guest.createVM(**work)
+            xenrt.GEC().dbconnect.jobLogItem("Installed VM of type %s" % (work.get("distro", "unknown")), completes=True, linked=logid)
 
 class SlaveManagementWorker(_InstallWorker):
     """Worker thread for parallel slave management interface reconfigures"""

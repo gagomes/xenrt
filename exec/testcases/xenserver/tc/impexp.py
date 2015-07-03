@@ -813,7 +813,7 @@ class TC10628(_ImpExpBase):
 
 class TC10629(_ImpExpBase):
     """Import/Export test of a 20GB VM on NFS SR"""
-    DISTRO = "rhel54" # See SCTX-360
+    DISTRO = "rhel5x" # See SCTX-360
     SRTYPE = "nfs"
     DISKSIZE = 20 # GB
 

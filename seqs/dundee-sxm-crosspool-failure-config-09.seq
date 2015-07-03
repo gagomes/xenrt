@@ -8,8 +8,6 @@
         TC17095 - Verifying VM life cycle operations during a Cross Pool Storage Migration
         TC17098 - Verifying Cross Pool Storage migration to destination SR with invalid SR UUID
         TC17101 - Verifying Cross Pool Storage Migration when the VM has raw VDI attached
-        TC17105 - Verifying Cross Pool Storage Migration when the VM has more than one snapshot
-        TC17106 - Verifying Cross Pool Storage Migration when the VM has one checkpoint
         TC17222 - Verifying Cross Pool Storage Migration when the VM has vGPU assigned
 
   -->
@@ -66,22 +64,6 @@
         <arg>dest_SR=lvm</arg>
         <arg>immediate_failure</arg>
       </testcase>
-
-      <!-- TC17105 - Verifying Cross Pool Storage Migration when the VM has more than one snapshot. -->
-      <testcase id="xenserver.tc.sxm.SnapshotVMStorageMigration" name="TC17105" tc="TC-17105">
-        <arg>src_SR=ext</arg>
-        <arg>dest_SR=lvm</arg>
-        <arg>negative_test</arg>
-      </testcase>
-
-      <!-- TC17106 - Verifying Cross Pool Storage Migration when the VM has one checkpoint. -->
-      <testcase id="xenserver.tc.sxm.CheckpointVMStorageMigration" name="TC17106" tc="TC-17106">
-        <arg>src_SR=ext</arg>
-        <arg>dest_SR=lvm</arg>
-        <arg>negative_test</arg>
-      </testcase>
-
-
 
     </serial>
 

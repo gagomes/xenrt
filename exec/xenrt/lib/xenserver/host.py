@@ -105,6 +105,9 @@ def logInstallEvent(func):
                 hostid = kwargs['id']
             elif len(args) > 0:
                 hostid = args[0]
+            if kwargs.get('containerHost') != None:
+                # We don't want to log virtual hosts
+                return None
             return xenrt.TEC().lookup("RESOURCE_HOST_%s" % (hostid), None)
         except Exception, e:
             xenrt.TEC().logverbose("Exception getting host name to log in events - %s" % str(e))
@@ -1422,8 +1425,14 @@ cd -
         if firstBootSRInfo:
             (disk, srtype) = firstBootSRInfo
             firstBootSRSetup = """
+rm -f /etc/udev/rules.d/61-xenrt.rules
+rm -f /dev/disk/by-id/*
 if [ -e /sbin/udevadm ]
 then
+    sleep 5
+    /sbin/udevadm trigger --action=add
+    /sbin/udevadm settle
+    sleep 5
     export XRTDISKLINKS=$(/sbin/udevadm info -q symlink -n %s)
 else
     export XRTDISKLINKS=$(udevinfo -q symlink -n %s)
@@ -11881,8 +11890,7 @@ class DundeeHost(CreedenceHost):
     def installComplete(self, handle, waitfor=False, upgrade=False):
         CreedenceHost.installComplete(self, handle, waitfor, upgrade)
         if xenrt.TEC().lookup("STUNNEL_TLS", False, boolean=True):
-            self.execdom0("rpm -e stunnel || true")
-            self.restartToolstack()
+            self.execdom0("xe host-param-set ssl-legacy=false uuid=%s" % self.getMyHostUUID())
 
         if xenrt.TEC().lookup("LIBXL_XENOPSD", False, boolean=True):
             self.execdom0("service xenopsd-xc stop")

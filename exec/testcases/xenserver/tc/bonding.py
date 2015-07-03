@@ -1681,7 +1681,8 @@ class _FailoverBondTest(_AggregateBondTest):
         # We need to simulate random UNPLUG and PLUG of NICs.
         permutations = tuple(itertools.permutations(macs))
         expected_paths = total_paths
-        
+        macs_disabled = set([])
+
         for i in range(total_permutation):
             step("Check paths after random failure - permutation %s" % i)
             p1 = random.choice(permutations)
@@ -1689,19 +1690,18 @@ class _FailoverBondTest(_AggregateBondTest):
             p = []
             for i in zip(p1,p2):
                 p.extend(i)
-            macs_disabled = set([])
             for mac in p:
                 if expected_paths != 0:
                     self.check(expected_paths)
                 if mac in macs_disabled:
                     self.enablePath(host, mac)
-                    time.sleep(100)
+                    xenrt.sleep(100)
                     expected_paths += 1
                     self.check(expected_paths)
                     macs_disabled.remove(mac)
                 elif len(macs_disabled) != total_paths - 1:
                         self.disablePath(host, mac)
-                        time.sleep(100)
+                        xenrt.sleep(100)
                         expected_paths -= 1
                         self.check(expected_paths)
                         macs_disabled.add(mac)

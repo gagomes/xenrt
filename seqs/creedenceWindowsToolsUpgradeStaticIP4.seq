@@ -9,7 +9,7 @@
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
-    <PREPARE_WORKERS>6</PREPARE_WORKERS>
+    <PREPARE_WORKERS>8</PREPARE_WORKERS>
   </variables>
 
   <prepare>
@@ -20,7 +20,7 @@
         <memory>${GUESTMEMORY}</memory>
         <vcpus>${GUESTVCPUS}</vcpus>
         <network device="0"/>
-        <network device="1" bridge="internal"/>
+        <network device="1" bridge="NSEC"/>
         <postinstall action="disableIPv6"/>
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
@@ -30,7 +30,7 @@
         <memory>${GUESTMEMORY}</memory>
         <vcpus>${GUESTVCPUS}</vcpus>
         <network device="0"/>
-        <network device="1" bridge="internal"/>
+        <network device="1" bridge="NSEC"/>
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
       </vm>
@@ -39,7 +39,7 @@
         <memory>${GUESTMEMORY}</memory>
         <vcpus>${GUESTVCPUS}</vcpus>
         <network device="0"/>
-        <network device="1" bridge="internal"/>
+        <network device="1" bridge="NSEC"/>
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
       </vm>
@@ -48,7 +48,7 @@
         <memory>${GUESTMEMORY}</memory>
         <vcpus>${GUESTVCPUS}</vcpus>
         <network device="0"/>
-        <network device="1" bridge="internal"/>
+        <network device="1" bridge="NSEC"/>
         <postinstall action="disableIPv6"/>
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
@@ -58,7 +58,7 @@
         <memory>${GUESTMEMORY}</memory>
         <vcpus>${GUESTVCPUS}</vcpus>
         <network device="0"/>
-        <network device="1" bridge="internal"/>
+        <network device="1" bridge="NSEC"/>
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
       </vm>
@@ -67,7 +67,7 @@
         <memory>${GUESTMEMORY}</memory>
         <vcpus>${GUESTVCPUS}</vcpus>
         <network device="0"/>
-        <network device="1" bridge="internal"/>
+        <network device="1" bridge="NSEC"/>
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
       </vm>
@@ -76,7 +76,7 @@
         <memory>${GUESTMEMORY}</memory>
         <vcpus>${GUESTVCPUS}</vcpus>
         <network device="0"/>
-        <network device="1" bridge="internal"/>
+        <network device="1" bridge="NSEC"/>
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
       </vm>
@@ -85,16 +85,20 @@
         <memory>${GUESTMEMORY}</memory>
         <vcpus>${GUESTVCPUS}</vcpus>
         <network device="0"/>
-        <network device="1" bridge="internal"/>
+        <network device="1" bridge="NSEC"/>
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
       </vm>
-      <vm name="testpeer">
-        <distro>debian60</distro>
-        <network device="0" />
-        <network device="1" bridge="internal"/>
-        <postinstall action="preCloneTailor"/>
-      </vm>
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <NIC/>
+          <MANAGEMENT/>
+        </PHYSICAL>
+        <PHYSICAL network="NSEC">
+          <NIC/>
+        </PHYSICAL>
+      </NETWORK>
+
     </host>
   </prepare>
 
@@ -104,7 +108,7 @@
         <arg>input=DEFAULT</arg>
       </testcase>
     </serial>
-    <serial group="UpgVM">
+    <parallel group="UpgVM">
       <testcase id="xenserver.tc.upgrade.TC19900" sku="SP1" name="TC19900_SP1"/>
       <testcase id="xenserver.tc.upgrade.TC19901" sku="SP1" name="TC19901_SP1"/>
       <testcase id="xenserver.tc.upgrade.TC19902" sku="SP1" name="TC19902_SP1"/>
@@ -113,7 +117,7 @@
       <testcase id="xenserver.tc.upgrade.TC20717" sku="SP1" name="TC20717_SP1"/>
       <testcase id="xenserver.tc.upgrade.TC20718" sku="SP1" name="TC20718_SP1"/>
       <testcase id="xenserver.tc.upgrade.TC20719" sku="SP1" name="TC20719_SP1"/>
-    </serial>
+    </parallel>
   </testsequence>
 
 </xenrt>

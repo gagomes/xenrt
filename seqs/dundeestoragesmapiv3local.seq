@@ -47,8 +47,8 @@
       
     </serial>
     <testcase id="xenserver.cli.TCQuicktest" tc="TC-27104"/>
-    <testcase id="xenserver.tc.storage.TC27112" sku="btrfs" />
-    <testcase id="xenserver.tc.storage.TC27113" sku="btrfs" />
+    <testcase id="xenserver.tc.storage.TCDuplicateVdiName" tc="TC-27112" sku="btrfs" />
+    <testcase id="xenserver.tc.storage.TCVdiSpaceInName" tc="TC-27113" sku="btrfs" />
   </testsequence>
 
 </xenrt>

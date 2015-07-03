@@ -4931,7 +4931,7 @@ class TCCIFSLifecycle(xenrt.TestCase):
         # Destroy SR.
         self.sr.remove()
 
-class TC27112(xenrt.TestCase):
+class TCDuplicateVdiName(xenrt.TestCase):
     """Test that VDIs with identical names can be created and don't change on rescan"""
 
     def run(self, arglist):
@@ -4941,6 +4941,7 @@ class TC27112(xenrt.TestCase):
         vdis = []
         vdis.append(host.createVDI("1GiB", sr, name="duplicate"))
         vdis.append(host.createVDI("1GiB", sr, name="duplicate"))
+        # TODO write some random data to each VDI here, and check for unique MD5sums
         locations = {}
         names = {}
         # Check the name-label is "duplicate"
@@ -4953,14 +4954,15 @@ class TC27112(xenrt.TestCase):
             raise xenrt.XRTFailure("locations of the 2 VDIs are not unique")
         # Rescan the SR
         host.getCLIInstance().execute("sr-scan", "uuid=%s" % sr)
-        # Verify that the name and location haven't chnaged after scan
+        # TODO check the MD5sums haven't changed after rescan
+        # Verify that the name and location haven't changed after scan
         for v in vdis:
             if host.genParamGet("vdi", v, "location") != locations[v]:
                 raise xenrt.XRTFailure("VDI location changed after scan")
             if host.genParamGet("vdi", v, "name-label") != "duplicate":
                 raise xenrt.XRTFailure("VDI name-label changed after scan")
 
-class TC27113(xenrt.TestCase):
+class TCVdiSpaceInName(xenrt.TestCase):
     """Test that VDIs with spaces in the name can be used"""
 
     def run(self, arglist):

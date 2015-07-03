@@ -2356,7 +2356,6 @@ fi
         patches.extend(cvpatches)
 
         #Install internal RPU hotfix, if any
-        xenrt.TEC().logverbose(xenrt.TEC().lookup("INSTALL_RPU_HOTFIX", False, boolean=True))
         if xenrt.TEC().lookup("INSTALL_RPU_HOTFIX", False, boolean=True):
             rpuPatch = xenrt.TEC().lookup(["VERSION_CONFIG",self.productVersion,"INTERNAL_RPU_HOTFIX"])
             if rpuPatch:

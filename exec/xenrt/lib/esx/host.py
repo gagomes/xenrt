@@ -434,7 +434,7 @@ reboot
         if interface:
             self.execdom0("esxcli network vswitch standard uplink add -u %s -v %s" % (interface, name))
 
-    def getBridge(self, eth):
+    def getBridgeVSwitchName(self, eth):
         return eth.replace("vmnic","vSwitch") if eth else "vSwitchNoAdapter"
 
     def getNICPIF(self, assumedid):
@@ -477,17 +477,17 @@ reboot
 
                 # Set up new vSwitch if necessary
                 xenrt.TEC().logverbose("Processing %s: %s" % (pri_eth, p))
-                pri_bridge = self.getBridge(pri_eth)
-                has_pri_bridge = self.execdom0("esxcfg-vswitch -l | grep '^%s '|wc -l" % (pri_bridge,)).strip() != "0"
-                if not has_pri_bridge:
-                    self.createNetwork(pri_eth, name=pri_bridge)
+                pri_vswitch = self.getBridgeVSwitchName(pri_eth)
+                has_pri_vswitch = self.execdom0("esxcfg-vswitch -l | grep '^%s '|wc -l" % (pri_vswitch,)).strip() != "0"
+                if not has_pri_vswitch:
+                    self.createNetwork(pri_eth, name=pri_vswitch)
                 if jumbo:
-                    self.execdom0("esxcli network vswitch standard set -v %s -m %d" % (pri_bridge, 9000 if jumbo==True else jumbo ))
+                    self.execdom0("esxcli network vswitch standard set -v %s -m %d" % (pri_vswitch, 9000 if jumbo==True else jumbo ))
 
                 # Create only on single nic non vlan nets
                 if len(vlanList) == 0 and len(nicList) == 1:
                     # Add the network to the vSwitch
-                    self.execdom0("esxcli network vswitch standard portgroup add -v %s -p \"%s\"" % (pri_bridge, friendlynetname))
+                    self.execdom0("esxcli network vswitch standard portgroup add -v %s -p \"%s\"" % (pri_vswitch, friendlynetname))
                     # Create a vmkernel interface on this vSwitch, to be used for arpwatching traffic on this vswitch
                     cmd = "esxcfg-vmknic -a -i DHCP -p \"%s\"" % (friendlynetname)
                     if jumbo:
@@ -506,13 +506,13 @@ reboot
 
                     portlist = self.execdom0("esxcli --formatter=csv network vswitch standard portgroup list").strip().split("\n")
                     portlist = [t_p.split(",") for t_p in portlist]
-                    portlist = [t_p[1] for t_p in portlist if pri_bridge==str(t_p[3]) and vid==int(t_p[2])]
+                    portlist = [t_p[1] for t_p in portlist if pri_vswitch==str(t_p[3]) and vid==int(t_p[2])]
                     if len(portlist)>0:
                         xenrt.TEC().logverbose(" ... already exists")
                     else:
                         xenrt.TEC().logverbose("Creating VLAN '%s' on %s (%s)" % (vfriendlynetname, network, str(nicList)))
                         # Add the network to the vSwitch
-                        self.execdom0("esxcli network vswitch standard portgroup add -v %s -p \"%s\"" % (pri_bridge, vfriendlynetname))
+                        self.execdom0("esxcli network vswitch standard portgroup add -v %s -p \"%s\"" % (pri_vswitch, vfriendlynetname))
                         self.execdom0("esxcli network vswitch standard portgroup set -v %d -p \"%s\"" % (vid, vfriendlynetname))
 
             if len(nicList) > 1:

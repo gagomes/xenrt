@@ -4930,3 +4930,58 @@ class TCCIFSLifecycle(xenrt.TestCase):
 
         # Destroy SR.
         self.sr.remove()
+
+class TCDuplicateVdiName(xenrt.TestCase):
+    """Test that VDIs with identical names can be created and don't change on rescan"""
+
+    def run(self, arglist):
+        host = self.getDefaultHost()
+        sr = host.getSRs(self.tcsku)[0]
+        # Create 2 VDIs with the name "duplicate"
+        vdis = []
+        vdis.append(host.createVDI("1GiB", sr, name="duplicate"))
+        vdis.append(host.createVDI("1GiB", sr, name="duplicate"))
+        # TODO write some random data to each VDI here, and check for unique MD5sums
+        locations = {}
+        names = {}
+        # Check the name-label is "duplicate"
+        for v in vdis:
+            if host.genParamGet("vdi", v, "name-label") != "duplicate":
+                raise xenrt.XRTFailure("name-label on VDI is incorrect before rescan")
+            locations[v] = host.genParamGet("vdi", v, "location")
+        # Check the location is unique 
+        if locations[vdis[0]] == locations[vdis[1]]:
+            raise xenrt.XRTFailure("locations of the 2 VDIs are not unique")
+        # Rescan the SR
+        host.getCLIInstance().execute("sr-scan", "uuid=%s" % sr)
+        # TODO check the MD5sums haven't changed after rescan
+        # Verify that the name and location haven't changed after scan
+        for v in vdis:
+            if host.genParamGet("vdi", v, "location") != locations[v]:
+                raise xenrt.XRTFailure("VDI location changed after scan")
+            if host.genParamGet("vdi", v, "name-label") != "duplicate":
+                raise xenrt.XRTFailure("VDI name-label changed after scan")
+        
+        for v in vdis:
+            host.destroyVDI(v)
+
+class TCVdiSpaceInName(xenrt.TestCase):
+    """Test that VDIs with spaces in the name can be used"""
+
+    def run(self, arglist):
+        host = self.getDefaultHost()
+        sr = host.getSRs(self.tcsku)[0]
+        vdi = host.createVDI("1MiB", sr, name="VDI With Space")
+
+        if host.genParamGet("vdi", vdi, "name-label") != "VDI With Space":
+            raise xenrt.XRTFailure("VDI name-label is incorrect")
+        
+        # Rescan the SR
+        host.getCLIInstance().execute("sr-scan", "uuid=%s" % sr)
+        
+        if host.genParamGet("vdi", vdi, "name-label") != "VDI With Space":
+            raise xenrt.XRTFailure("VDI name-label is incorrect after scan")
+
+        host.getVdiMD5Sum(vdi)
+
+        host.destroyVDI(vdi)

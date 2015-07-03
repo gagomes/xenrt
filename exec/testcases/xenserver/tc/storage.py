@@ -2407,6 +2407,29 @@ class TC8489(_TCResizeDataCheck):
     SRTYPE = "ext"
     FORCEOFFLINE = True
 
+# BTRFS resize
+class TC27089(_TCResizeShrink):
+    """Attempting to shrink a VHDoEXT VDI should fail with a suitable error."""
+
+    SRTYPE = "btrfs"
+    
+class TC27090(_TCResizeGrow):
+    """Grow a VHDoEXT VDI of a round size by 1 byte."""
+
+    SRTYPE = "btrfs"
+    
+class TC27091(_TCResizeGrow2):
+    """Grow a VHDoEXT VDI twice in large chunks."""
+
+    SRTYPE = "btrfs"
+
+class TC27092(_TCResizeDataCheck):
+    """Data integrity of resized VHDoEXT VDI."""
+
+    SRTYPE = "btrfs"
+    FORCEOFFLINE = True
+
+
 # NetApp resize
 class TC8491(_TCResizeShrink):
     """Attempting to shrink a NetApp VDI should fail with a suitable error."""
@@ -3489,6 +3512,12 @@ class TC10672(TC10671):
     """A freshly created VDI should contain entirely zero data (file based VHD)"""
 
     SRTYPE = "ext"
+
+class TC27093(TC10671):
+    """A freshly created VDI should contain entirely zero data (file based VHD)"""
+
+    SRTYPE = "btrfs"
+
 
 class TC10673(TC10671):
     """A freshly created VDI should contain entirely zero data (Equallogic thin provisioning)"""

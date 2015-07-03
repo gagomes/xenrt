@@ -1,0 +1,52 @@
+<xenrt>
+
+  <!-- VHD storage tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <FINALLY_UNINSTALL>yes</FINALLY_UNINSTALL>
+    <OPTION_NO_DISK_CLAIM>yes</OPTION_NO_DISK_CLAIM>
+    <WORKAROUND_CA174211>yes</WORKAROUND_CA174211>
+  </variables>
+
+  <prepare>
+    <host diskCount="0">
+      <storage type="smapiv3local" name="BTRFS" default="yes" />
+    </host>
+  </prepare>
+
+  <testsequence group="BTRFS">
+    <testcase id="xenserver.storage.TCVDICopy" tc="TC-27106" prio="3">
+      <arg>srtype=btrfs</arg>
+    </testcase>
+    <testcase id="xenserver.storage.TCVDIClone" tc="TC-27107" prio="3">
+      <arg>srtype=btrfs</arg>
+    </testcase>
+    <serial group="VDIResize">
+      <testcase id="xenserver.tc.storage.TC27089" prio="3"/>
+      <testcase id="xenserver.tc.storage.TC27090" prio="3"/>
+      <testcase id="xenserver.tc.storage.TC27091" prio="3"/>
+      <testcase id="xenserver.tc.storage.TC27092" prio="3"/>
+    </serial>
+    <serial group="VDICreate">
+      <testcase id="xenserver.tc.storage.TC27093" prio="3" sku="btrfs" />
+    </serial>
+    <serial group="VDISnap">
+      <testcase id="xenserver.tc.snapshot.TC27094" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC27095" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC27096" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC27097" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC27098" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC27099" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC27100" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC27101" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC27102" prio="3"/>
+    </serial>
+    <serial group="VMSnap">
+      <testcase id="xenserver.tc.snapshot.TC27103" prio="3"/>
+      
+    </serial>
+    <testcase id="xenserver.cli.TCQuicktest" tc="TC-27104"/>
+  </testsequence>
+
+</xenrt>

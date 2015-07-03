@@ -4094,7 +4094,10 @@ fi
         if name:
             args.append("name-label=\"%s\"" % (name))
         else:
-            args.append("name-label=\"Created by XenRT\"")
+            if xenrt.TEC().lookup("WORKAROUND_CA174211", False, boolean=True):
+                args.append("name-label=\"Created_by_XenRT\"")
+            else:
+                args.append("name-label=\"Created by XenRT\"")
         args.append("sr-uuid=%s" % (sruuid))
         args.append("virtual-size=%s" % (sizebytes))
         args.append("type=user")
@@ -5541,6 +5544,8 @@ fi
         srl = self.getSRs(type="ext", local=True)
         if len(srl) == 0:
             srl = self.getSRs("lvm", local=True)
+        if len(srl) == 0:
+            srl = self.getSRs("btrfs", local=True)
         if len(srl) == 0:
             raise xenrt.XRTError("Could not find suitable local SR")
         return srl[0]

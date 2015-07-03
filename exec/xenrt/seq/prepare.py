@@ -1611,6 +1611,10 @@ class PrepareNode(object):
                                   protocol="fc",
                                   physical_size=None,
                                   multipathing=mp)
+                    elif s['type'] == "smapiv3local":
+                        sr = xenrt.productLib(host=host).SMAPIv3LocalStorageRepository(host, s['name'])
+                        device = s['options'] or None
+                        sr.create(device, content_type="user")
                     else:
                         raise xenrt.XRTError("Unknown storage type %s" % (s["type"]))
                     #change blkback pool size

@@ -4930,3 +4930,47 @@ class TCCIFSLifecycle(xenrt.TestCase):
 
         # Destroy SR.
         self.sr.remove()
+
+class TC27112(xenrt.TestCase):
+    def run(self, arglist):
+        host = self.getDefaultHost()
+        sr = host.getSRs(self.tcsku)[0]
+        # Create 2 VDIs with the name "duplicate"
+        vdis = []
+        vdis.append(host.createVDI("1GiB", sr, name="duplicate"))
+        vdis.append(host.createVDI("1GiB", sr, name="duplicate"))
+        locations = {}
+        names = {}
+        # Check the name-label is "duplicate"
+        for v in vdis:
+            if host.genParamGet("vdi", v, "name-label") != "duplicate":
+                raise xenrt.XRTFailure("name-label on VDI is incorrect before rescan")
+            locations[v] = host.genParamGet("vdi", v, "location")
+        # Check the location is unique 
+        if locations[vdis[0]] == locations[vdis[1]]:
+            raise xenrt.XRTFailure("locations of the 2 VDIs are not unique")
+        # Rescan the SR
+        host.getCLIInstance().execute("sr-scan", "uuid=%s" % sr)
+        # Verify that the name and location haven't chnaged after scan
+        for v in vdis:
+            if host.genParamGet("vdi", v, "location") != locations[v]:
+                raise xenrt.XRTFailure("VDI location changed after scan")
+            if host.genParamGet("vdi", v, "name-label") != "duplicate":
+                raise xenrt.XRTFailure("VDI name-label changed after scan")
+
+class TC27113(xenrt.TestCase):
+    def run(self, arglist):
+        host = self.getDefaultHost()
+        sr = host.getSRs(self.tcsku)[0]
+        vdi = host.createVDI("1MiB", sr, name="VDI With Space")
+
+        if host.genParamGet("vdi", vdi, "name-label") != "VDI With Space":
+            raise xenrt.XRTFailure("VDI name-label is incorrect")
+        
+        # Rescan the SR
+        host.getCLIInstance().execute("sr-scan", "uuid=%s" % sr)
+        
+        if host.genParamGet("vdi", vdi, "name-label") != "VDI With Space":
+            raise xenrt.XRTFailure("VDI name-label is incorrect after scan")
+
+        host.getVdiMD5Sum(vdi)

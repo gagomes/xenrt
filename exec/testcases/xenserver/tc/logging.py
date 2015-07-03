@@ -321,7 +321,7 @@ class TC19175(xenrt.TestCase):
         t = _GenerateLogs(self.host)
         t.start()
         ExpDirectories = ['/var/log/blktap/', '/var/log/installer/', '/var/log/sa/', '/var/log/samba/', '/var/log/xen/', '/var/log/openvswitch/']
-        OptDirectories = ['/var/log/ntpstats/', '/var/log/audit/', '/var/log/pm/', '/var/log/cups/', '/var/log/ppp/', '/var/log/tuned/']
+        OptDirectories = ['/var/log/ntpstats/', '/var/log/audit/', '/var/log/pm/', '/var/log/cups/', '/var/log/ppp/', '/var/log/tuned/', '/var/log/lost+found/']
         DirectoriesToCheck = '/var/log /var/log/blktap /var/log/xen /var/log/openvswitch'
 
         ActDirectories = self.host.execdom0("ls -d /var/log/*/").split("\n")[:-1]

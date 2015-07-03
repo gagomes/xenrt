@@ -1207,6 +1207,7 @@ class TCToolsIPv6Disabled(xenrt.TestCase):
 
 class TCInstallXenToolsStepByStep(xenrt.TestCase):
     """Test for SCTX-2054. Install tools step by step instead of running the installer"""
+    """testing"""
     #TC-27011
     def prepare(self, arglist=None):
         self.host = self.getDefaultHost()

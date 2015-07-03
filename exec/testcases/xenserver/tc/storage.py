@@ -4932,6 +4932,8 @@ class TCCIFSLifecycle(xenrt.TestCase):
         self.sr.remove()
 
 class TC27112(xenrt.TestCase):
+    """Test that VDIs with identical names can be created and don't change on rescan"""
+
     def run(self, arglist):
         host = self.getDefaultHost()
         sr = host.getSRs(self.tcsku)[0]
@@ -4959,6 +4961,8 @@ class TC27112(xenrt.TestCase):
                 raise xenrt.XRTFailure("VDI name-label changed after scan")
 
 class TC27113(xenrt.TestCase):
+    """Test that VDIs with spaces in the name can be used"""
+
     def run(self, arglist):
         host = self.getDefaultHost()
         sr = host.getSRs(self.tcsku)[0]

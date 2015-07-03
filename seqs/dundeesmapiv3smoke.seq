@@ -3,7 +3,6 @@
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
     <OPTION_NO_DISK_CLAIM>yes</OPTION_NO_DISK_CLAIM>
-    <NO_RESIZE_VDIS>yes</NO_RESIZE_VDIS>
   </variables>
 
   <prepare>

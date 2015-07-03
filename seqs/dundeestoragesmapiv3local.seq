@@ -5,7 +5,7 @@
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
     <FINALLY_UNINSTALL>yes</FINALLY_UNINSTALL>
-    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+    <OPTION_NO_DISK_CLAIM>yes</OPTION_NO_DISK_CLAIM>
   </variables>
 
   <prepare>

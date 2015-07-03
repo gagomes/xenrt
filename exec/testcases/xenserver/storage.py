@@ -2022,6 +2022,10 @@ class TCVDICopy(xenrt.TestCase):
 class TCVDIClone(TCVDICopy):
     THIN_CLONE=True
 
+    def __init__(self):
+        xenrt.TestCase.__init__(self, "TCVDIClone")
+
+
 class TCVirtualCDs(xenrt.TestCase):
 
     def __init__(self):

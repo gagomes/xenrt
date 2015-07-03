@@ -5,6 +5,7 @@
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
     <OPTION_NO_DISK_CLAIM>yes</OPTION_NO_DISK_CLAIM>
+    <WORKAROUND_CA174211>yes</WORKAROUND_CA174211>
   </variables>
 
   <prepare>

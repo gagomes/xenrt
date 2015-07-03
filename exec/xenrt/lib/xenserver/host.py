@@ -4094,7 +4094,10 @@ fi
         if name:
             args.append("name-label=\"%s\"" % (name))
         else:
-            args.append("name-label=\"Created_by_XenRT\"")
+            if xenrt.TEC().lookup("WORKAROUND_CA174211", False, boolean=True):
+                args.append("name-label=\"Created_by_XenRT\"")
+            else:
+                args.append("name-label=\"Created by XenRT\"")
         args.append("sr-uuid=%s" % (sruuid))
         args.append("virtual-size=%s" % (sizebytes))
         args.append("type=user")

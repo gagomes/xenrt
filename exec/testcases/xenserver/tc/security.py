@@ -33,7 +33,7 @@ class _HTTPHandlerTest(_CCSetup):
 
     WGET = "wget --no-check-certificate -O /dev/null"
     PROTOCOL = "https"
-    DENIED = "Authorization fail"
+    DENIED = "Authorization fail|Unauthorised"
 
     def getHandler(self):
         return "export?uuid=%s" % (self.guest.getUUID())
@@ -64,7 +64,7 @@ class _HTTPHandlerTest(_CCSetup):
                                   (self.WGET, self.PROTOCOL, self.host.getIP(),
                                    self.getHandler(), delim, session),
                                    ignoreerrors=True)
-        if re.search(self.DENIED, result):
+        if re.search(self.DENIED, result) and not "200 OK" in result:
             if fail:
                 xenrt.TEC().logverbose("Operation failed as expected.")
             else: 

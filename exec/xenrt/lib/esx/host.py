@@ -467,32 +467,33 @@ reboot
         for p in physList:
             network, nicList, mgmt, storage, vms, friendlynetname, jumbo, vlanList, bondMode = p
             xenrt.TEC().logverbose("Processing p=%s" % (p,))
+            pri_eth = self.getNICPIF(nicList[0])
+
+            if pri_eth == '':
+                raise xenrt.XRTError("Could not find vmnic device for device %d" % (nicList[0]))
+
+            # Set up new vSwitch if necessary
+            xenrt.TEC().logverbose("Processing %s: %s" % (pri_eth, p))
+            pri_bridge = self.getBridge(pri_eth)
+            has_pri_bridge = self.execdom0("esxcfg-vswitch -l | grep '^%s '|wc -l" % (pri_bridge,)).strip() != "0"
+            if not has_pri_bridge:
+                self.createNetwork(pri_eth, name=pri_bridge)
+            if jumbo:
+                self.execdom0("esxcli network vswitch standard set -v %s -m %d" % (pri_bridge, 9000 if jumbo==True else jumbo ))
+
             # create only on single nic non vlan nets
             if len(nicList) == 1  and len(vlanList) == 0:
-                pri_eth = self.getNICPIF(nicList[0])
-
-                if pri_eth == '':
-                    raise xenrt.XRTError("Could not find vmnic device for device %d" % (nicList[0]))
-
-                # Set up new vSwitch if necessary
-                xenrt.TEC().logverbose("Processing %s: %s" % (pri_eth, p))
-                pri_bridge = self.getBridge(pri_eth)
-                has_pri_bridge = self.execdom0("esxcfg-vswitch -l | grep '^%s '|wc -l" % (pri_bridge,)).strip() != "0"
-                if not has_pri_bridge:
-                    self.createNetwork(pri_eth, name=pri_bridge)
-
                 # Add the network to the vSwitch
                 self.execdom0("esxcli network vswitch standard portgroup add -v %s -p \"%s\"" % (pri_bridge, friendlynetname))
-
                 # Create a vmkernel interface on this vSwitch, to be used for arpwatching traffic on this vswitch
-                self.execdom0("esxcfg-vmknic -a -i DHCP -p \"%s\"" % (friendlynetname))
+                cmd = "esxcfg-vmknic -a -i DHCP -p \"%s\"" % (friendlynetname)
+                if jumbo:
+                    cmd += " -m 9000" if jumbo == True else " -m %d" % jumbo
+                self.execdom0(cmd)
 
                 if mgmt:
-                    # TODO move the "Management Network" onto this vSwitch. Not sure how to do this when there's a vmk0 using it.
-                    pass
-
-                if jumbo == True:
-                    # TODO
+                    """ Any port(network) on esx which has ip can be used as management interface."""
+                    # TODO fetch ip on this port and set as mainip
                     pass
 
             if len(nicList) > 1:

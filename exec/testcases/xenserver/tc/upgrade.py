@@ -1319,7 +1319,7 @@ class _SingleHostUpgrade(xenrt.TestCase):
                 return
 
         if self.SAFE2UPGRAGE_CHECK:
-            self.host.checkSafe2Upgrade()
+            self.NEW_PARTITIONS = self.host.checkSafe2Upgrade() or self.NEW_PARTITIONS
 
         # Upgrade the host and VMs
         upgsteps = []
@@ -4433,3 +4433,58 @@ class TCRpuPartitions(TCRollingPoolUpdate):
             raise xenrt.XRTFailure("Found unexpected partitions on XS clean install. Expected: %s Found: %s" % (partitions, host.getDom0Partitions()))
         log("Found expected Dom0 partitions on XS clean installation: %s" % partitions)
 
+class TCUpgradeRestore(xenrt.TestCase):
+    """This test upgrade the host, then restore the old version and upgrade it again and check dom0 partitions are as expected"""
+    #TC-27086
+
+    NEW_PARTITIONS = True
+
+    def prepare(self, arglist=None):
+        #Parse the arguments
+        args = self.parseArgsKeyValue(arglist)
+        if "NEW_PARTITIONS" in args.keys():
+            self.NEW_PARTITIONS = True if args["NEW_PARTITIONS"]=="True" else False
+
+    def run(self, arglist=None):
+        host = self.getDefaultHost()
+
+        if self.NEW_PARTITIONS:
+            step("Call safe to upgrade plugins")
+            host.checkSafe2Upgrade()
+        step("Current partitions of host")
+        partitions1 = host.getDom0Partitions()
+
+        step("Upgrade the host to %s" % xenrt.TEC().lookup("PRODUCT_VERSION", None))
+        newhost = host.upgrade(xenrt.TEC().lookup("PRODUCT_VERSION", None))
+        step("Check partitions of host after upgrade")
+        partitions2 = newhost.getDom0Partitions()
+        self.checkPartitions(newhost)
+
+        step("Restore the host to %s" % xenrt.TEC().lookup("OLD_PRODUCT_VERSION", None))
+        newhost.restoreOldInstallation()
+        step("Partitions of host after restore")
+        partitions3 = host.getDom0Partitions()
+        expectedPartitions = host.lookup("DOM0_PARTITIONS")
+        if not host.compareDom0Partitions(expectedPartitions):
+            raise xenrt.XRTFailure("Found unexpected partitions on XS restore. Expected: %s Found: %s" % (expectedPartitions, partitions3()))
+
+        step("Upgrade the host again to %s" % xenrt.TEC().lookup("PRODUCT_VERSION", None))
+        newhost = host.upgrade(xenrt.TEC().lookup("PRODUCT_VERSION", None))
+        step("Partitions of host after upgrade")
+        partitions4 = newhost.getDom0Partitions()
+        self.checkPartitions(newhost)
+        if not newhost.compareDom0Partitions(partitions2):
+            raise xenrt.XRTFailure("Partitions on XS upgrade is not same as previous upgrade. Expected: %s Found: %s" % (partitions2, partitions4()))
+
+    def checkPartitions(self, host):
+        """Function to check if DOM0 partitions are as expected"""
+        step("Check if dom0 partitions are as expected")
+        if self.NEW_PARTITIONS:
+            partitions = xenrt.TEC().lookup(["VERSION_CONFIG",xenrt.TEC().lookup("PRODUCT_VERSION"),"DOM0_PARTITIONS"])
+        else:
+            partitions = xenrt.TEC().lookup(["VERSION_CONFIG",xenrt.TEC().lookup("PRODUCT_VERSION"),"DOM0_PARTITIONS_OLD"])
+        log("Expected partions: %s" % partitions)
+
+        if not host.compareDom0Partitions(partitions):
+            raise xenrt.XRTFailure("Found unexpected partitions. Expected: %s Found: %s" % (partitions, host.getDom0Partitions()))
+        log("Found expected Dom0 partitions: %s" % partitions)

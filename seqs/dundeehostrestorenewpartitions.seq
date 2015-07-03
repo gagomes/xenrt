@@ -1,0 +1,25 @@
+<xenrt>
+
+  <!-- Dundee host upgrade-restore with new partitions test -->
+
+  <default name="OLD_PRODUCT_VERSION" value="Clearwater"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446"/>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_RPU_HOTFIX>True</INSTALL_RPU_HOTFIX>
+  </variables>
+
+  <prepare>
+    <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}" />
+  </prepare>
+
+  <testsequence>
+    <serial group="HostUpgradeRestore">
+      <testcase id="testcases.xenserver.tc.upgrade.TCUpgradeRestore" tc="TC-27086">
+        <arg>NEW_PARTITIONS=True</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+
+</xenrt>

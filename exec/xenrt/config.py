@@ -676,6 +676,8 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Boston"]["LATEST_rhel4"] = "rhel48"
         self.config["VERSION_CONFIG"]["Boston"]["LATEST_rhel5"] = "rhel56"
         self.config["VERSION_CONFIG"]["Boston"]["LATEST_rhel6"] = "rhel6"
+        self.config["VERSION_CONFIG"]["Boston"]["DOM0_PARTITIONS"] = {1:4*xenrt.GIGA, 2:4*xenrt.GIGA, 3:"*"}
+        self.config["VERSION_CONFIG"]["Boston"]["INTERNAL_RPU_HOTFIX"] = "/usr/groups/build/clearwater-sp1-lcm/hotfix-XS62E006-latest/hotfix-XS62E006/XS62E006.xsupdate"
 
         # XCP Derived from Boston Release
         self.config["VERSION_CONFIG"]["BostonXCP"] = self.config["VERSION_CONFIG"]["Boston"]
@@ -862,6 +864,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Tampa"]["IDLE_VMs_DOM0_CPU_Utilize"] = "260"
         # XenServer dom0 partitions
         self.config["VERSION_CONFIG"]["Tampa"]["DOM0_PARTITIONS"] = {1:4*xenrt.GIGA, 2:4*xenrt.GIGA, 3:"*"}
+        self.config["VERSION_CONFIG"]["Tampa"]["INTERNAL_RPU_HOTFIX"] = "/usr/groups/build/clearwater-sp1-lcm/hotfix-XS62E006-latest/hotfix-XS62E006/XS62E006.xsupdate"
         
         # CHECKME: Need to fix this (Tallahassee is rolled into Tampa)
         self.config["VERSION_CONFIG"]["Tampa"]["MAX_VDIS_PER_VM"] = "15"
@@ -1187,7 +1190,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Creedence"]["LATEST_sl7"] = "sl71"
         # XenServer dom0 partitions
         self.config["VERSION_CONFIG"]["Creedence"]["DOM0_PARTITIONS"] = {1:4*xenrt.GIGA, 2:4*xenrt.GIGA, 3:"*"}
-        
+        self.config["VERSION_CONFIG"]["Creedence"]["INTERNAL_RPU_HOTFIX"] = "/usr/groups/build/cream-lcm/102865/hotfix-XS65ESP1006/XS65ESP1006.xsupdate"
         # Cream
         self.config["VERSION_CONFIG"]["Cream"] = copy.deepcopy(self.config["VERSION_CONFIG"]["Creedence"])
         self.config["VERSION_CONFIG"]["Cream"]["LATEST_rhel4"] = "rhel48"
@@ -1197,6 +1200,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Cream"]["TEMPLATE_NAME_RHEL_d66_64"] = "Red Hat Enterprise Linux 6 (64-bit),Red Hat Enterprise Linux 6 x64,Red Hat Enterprise Linux 6.0 (64-bit)"
         self.config["VERSION_CONFIG"]["Cream"]["TEMPLATE_NAME_RHEL_w66_64"] = "Red Hat Enterprise Linux 6 (64-bit),Red Hat Enterprise Linux 6 x64,Red Hat Enterprise Linux 6.0 (64-bit)"
         self.config["VERSION_CONFIG"]["Cream"]["TEMPLATE_NAME_SLED_113_64"] = "SUSE Linux Enterprise Desktop 11 SP3 (64-bit),SUSE Linux Enterprise Server 11 SP3 x64"
+        self.config["VERSION_CONFIG"]["Cream"]["INTERNAL_RPU_HOTFIX"] = "/usr/groups/build/cream-lcm/102865/hotfix-XS65ESP1006/XS65ESP1006.xsupdate"
 
         # Dundee
         self.config["VERSION_CONFIG"]["Dundee"] = copy.deepcopy(self.config["VERSION_CONFIG"]["Cream"])
@@ -1208,8 +1212,9 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Dundee"]["MAX_VBDS_PER_HOST"] = "4096"
 
         # XenServer dom0 partitions
-        self.config["VERSION_CONFIG"]["Dundee"]["DOM0_PARTITIONS"] = {1:18*xenrt.GIGA, 2:18*xenrt.GIGA, 3:"*", 4:511*xenrt.MEGA, 5:4*xenrt.GIGA, 6:1023*xenrt.MEGA}
+        self.config["VERSION_CONFIG"]["Dundee"]["DOM0_PARTITIONS"] = {1:18*xenrt.GIGA, 2:18*xenrt.GIGA, 3:"*", 4:512*xenrt.MEGA, 5:4*xenrt.GIGA, 6:1024*xenrt.MEGA}
         self.config["VERSION_CONFIG"]["Dundee"]["DOM0_PARTITIONS_OLD"] = {1:3.5*xenrt.GIGA, 2:4*xenrt.GIGA, 3:"*", 4:512*xenrt.MEGA}
+        self.config["VERSION_CONFIG"]["Dundee"]["INTERNAL_RPU_HOTFIX"] = None
 
         # Libvirt
         self.config["VERSION_CONFIG"]["Libvirt"] = {}

@@ -1975,7 +1975,6 @@ class TCVDICopy(xenrt.TestCase):
                     args = []
                     args.append("uuid=%s" % (vdi))
                     if self.THIN_CLONE:
-                        args.append("new-name-label=clone")
                         newvdis.append(cli.execute("vdi-clone",string.join(args),
                                                     strip=True))
                     else:

@@ -87,13 +87,14 @@
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
       </vm>
-        <PHYSICAL network="NPRI">
+      <NETWORK>
+      <PHYSICAL network="NPRI">
           <NIC/>
           <MANAGEMENT/>
-        </PHYSICAL>
-        <PHYSICAL network="NSEC">
+      </PHYSICAL>
+      <PHYSICAL network="NSEC">
           <NIC/>
-        </PHYSICAL>
+      </PHYSICAL>
       </NETWORK>
 
     </host>

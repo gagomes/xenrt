@@ -471,7 +471,8 @@ reboot
         primaryBridges = self.paramGet(param="xenrt/primarybridges", isVMkernelAdvCfg=False)
         if primaryBridges:
             primaryBridges = [b for b in primaryBridges.split(",") if b in self.getBridges()]
-        self.paramSet(param="xenrt/primarybridges", value=",".join(primaryBridges))
+        if primaryBridges:
+            self.paramSet(param="xenrt/primarybridges", value=",".join(primaryBridges))
 
         # parse network config
         physList = self._parseNetworkTopology(topology)

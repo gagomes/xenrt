@@ -469,10 +469,8 @@ reboot
 
         # removing obsolete advance configs on ESX host
         primaryBridges = self.paramGet(param="xenrt/primarybridges", isVMkernelAdvCfg=False)
-        if primaryBridges:
-            primaryBridges = [b for b in primaryBridges.split(",") if b in self.getBridges()]
-        if primaryBridges:
-            self.paramSet(param="xenrt/primarybridges", value=",".join(primaryBridges))
+        primaryBridges = [b for b in primaryBridges.split(",") if b in self.getBridges()] if primaryBridges else []
+        self.paramSet(param="xenrt/primarybridges", value=",".join(primaryBridges))
 
         # parse network config
         physList = self._parseNetworkTopology(topology)

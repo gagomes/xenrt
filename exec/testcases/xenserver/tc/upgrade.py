@@ -4443,7 +4443,7 @@ class TCUpgradeRestore(xenrt.TestCase):
         #Parse the arguments
         args = self.parseArgsKeyValue(arglist)
         if "NEW_PARTITIONS" in args.keys():
-            self.NEW_PARTITIONS = True if args["NEW_PARTITIONS"]=="True" else False
+            self.NEW_PARTITIONS = True if args["NEW_PARTITIONS"].lower() in ["true"] else False
 
     def run(self, arglist=None):
         host = self.getDefaultHost()

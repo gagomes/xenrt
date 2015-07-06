@@ -620,9 +620,16 @@ print hostConfig.GetConfigManager().GetPowerSystem().info.currentPolicy.shortNam
 
     def getBridgeByName(self, name):
         """Return the actual bridge based on the given friendly name. """
-        brs = [br for br in self.getBridges() if name in br]
+        if not name:
+            return self.getPrimaryBridge()
+        if name=="NSEC" or name=="NPRI":
+            raise xenrt.XRTError("Unimplemented")
+        brs = self.getBridges()
+        if name in brs:
+            return name
+        brs = [br for br in brs if name in br]
         if len(brs)==1:
             return brs[0]
         elif len(brs)>1:
-            raise xenrt.XRTError("Multiple Bridge exists matching name")
+            raise xenrt.XRTError("Multiple bridges found")
         return None

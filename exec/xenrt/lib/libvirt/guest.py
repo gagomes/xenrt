@@ -41,6 +41,8 @@ def createVMFromFile(host,
     guest.imported = True
     guest.ips = ips
 
+    vifs = [[device, host.getBridgeByName(bridge), mac, ip] for (device, bridge, mac, ip) in vifs]
+
     file=xenrt.TEC().getFile(filename)
     if file.endswith(".zip"):
         fileDir=xenrt.TEC().tempDir()

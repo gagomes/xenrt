@@ -196,7 +196,12 @@ class ESXHost(xenrt.lib.libvirt.Host):
 
     def getPrimaryBridge(self):
         """Return the first *portgroup* on the host."""
-        # TODO
+        primaryBridges = self.paramGet(self, param="xenrt/primarybridges", isVMkernelAdvCfg=False)
+        if primaryBridges:
+            primaryBridges = primaryBridges.split(",")
+            if len(primaryBridges) > 2:
+                xenrt.TEC().logverbose("Multiple Primary bridges defined, Continuing with %s" % (primaryBridges[0]))
+            return primaryBridges[0]
         brs = self.getBridges()
         if brs:
             return brs[0]
@@ -572,3 +577,19 @@ hostConfig = si.RetrieveContent().rootFolder.childEntity[0].hostFolder.childEnti
 print hostConfig.GetConfigManager().GetPowerSystem().info.currentPolicy.shortName
 """
         return self.execcmd("echo '%s' | python" % (script)).strip()
+
+    def paramGet(self, param, isVMkernelAdvCfg=False):
+        try:
+            if isVMkernelAdvCfg:
+                return self.execdom0("esxcfg-advcfg --get %s" % (param)).strip().split(" is ")[-1]
+            # User defined config
+            return self.execdom0("esxcfg-advcfg --get-user-var --user-var %s" % (param)).strip()
+        except XRTFailure, e:
+            xenrt.TEC().logverbose("advance config '%s' doesn't exist." % param)
+        return None
+
+    def paramSet(self, param, value, isVMkernelAdvCfg=False):
+        if isVMkernelAdvCfg:
+            self.execdom0("esxcfg-advcfg --set '%s' %s" % (value, param))
+        else:
+            self.execdom0("esxcfg-advcfg --set-user-var '%s' --user-var %s" % (value, param))

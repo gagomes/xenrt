@@ -9,7 +9,7 @@
 
   <prepare>
     <!-- <pool id="0" name="SXMPool"> -->
-    <pool id="0">
+    <pool id="0" master="H1">
       <host id="0" installsr="lvm" alias="H1"/>
       <host id="1" installsr="ext" alias="H2"/>
     </pool>

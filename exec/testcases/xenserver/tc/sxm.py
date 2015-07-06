@@ -1788,7 +1788,7 @@ class InsuffMemoryForLiveVDI(LiveMigrate):
        
 class InsuffSpaceDestSR(MidMigrateFailure):
     # Assuming only single VM/VDI is being migrated
-    # Destination SR will have somewhere between 200 GB and 225GB specified in the suite file and since the VM has got 220GB of disk migration should fail
+    # Destination SR will have somewhere between 250 GB and 300GB specified in the suite file and since the VM has got 120GB of disk migration should fail
 
     def preHook(self):
 
@@ -1796,12 +1796,16 @@ class InsuffSpaceDestSR(MidMigrateFailure):
         vm = self.guests[0]
         device = vm.listDiskDevices()[0]
         vm.shutdown()
-        vm.resizeDisk(device,225280)
+        vm.resizeDisk(device,204800)
         vm.start()
 
-        #creating large VDI(200GB) on destination SR
-        host = self.test_config['host_B']
-        vdi = host.createVDI( 102400 * xenrt.MEGA)
+        #creating large VDI(100GB) on destination SR
+        if self.test_config['type_of_migration'] != 'LiveVDI'
+            host = self.test_config['dest_host']
+            localSr = host.getLocalSR()
+            localSRSize = int(host.getSRParam(localSr, "physical-size"))
+            srFreeSpace = localSRSize - int(host.getSRParam(localSr, "physical-utilisation"))
+            vdi = host.createVDI( srFreeSpace - 10 * xenrt.GIGA)
 
 class LargeDiskWin(LiveMigrate):
 

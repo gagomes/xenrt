@@ -1,10 +1,5 @@
 <xenrt>
-
-  <!-- 160 pcpu tests -->
-
-  <variables>
-    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
-  </variables>
+  <!-- PCPUs scale tests -->
 
   <prepare>
     <host id="0">

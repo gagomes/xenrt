@@ -40,6 +40,7 @@ __all__ = ["getStorageRepositoryClass",
            "ISCSILunSpecified",
            "NetAppTarget",
            "EQLTarget",
+           "SMAPIv3LocalStorageRepository",
             ]
 
 
@@ -396,6 +397,28 @@ class LVMStorageRepository(StorageRepository):
 
     def create(self, device, physical_size=0, content_type="", smconf={}):
         self._create("lvm", {"device":device}, physical_size, content_type, smconf)
+
+
+class SMAPIv3LocalStorageRepository(StorageRepository):
+
+    SHARED = False
+    CLEANUP = "destroy"
+
+    def create(self, device, physical_size=0, content_type="", smconf={}):
+        if not device:
+            device = self.host.getGuestDisks()[0]
+        if device != self.host.getInstallDisk():
+            self.host.execdom0("sgdisk -Z /dev/%s" % device)
+            partition = 1
+        else:
+            partition = int(self.host.execdom0("sgdisk -p /dev/%s| tail -1 | awk '{print $1}'" % device).strip()) + 1
+        self.host.execdom0("sgdisk -N %d /dev/%s" % (partition, device))
+        self.host.execdom0("partprobe")
+        if device.startswith("disk/"):
+            path = "/dev/%s-part%d" % (device, partition)
+        else:
+            path = "/dev/%s%d" % (device, partition)
+        self._create("btrfs", {"uri":"file://%s" % path}, physical_size, content_type, smconf)
 
 
 class IntegratedCVSMStorageRepository(StorageRepository):

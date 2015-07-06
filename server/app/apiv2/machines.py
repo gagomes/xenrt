@@ -110,7 +110,7 @@ class _MachineBase(XenRTAPIv2Page):
             machine = {
                 "name": rc[0].strip(),
                 "site": rc[1].strip(),
-                "cluster": rc[2].strip(),
+                "cluster": rc[2].strip() if rc[2] else 'default',
                 "pool": rc[3].strip(),
                 "group": rc[19].strip() if rc[19] else None,
                 "rawstatus": rc[4].strip(),

@@ -2029,6 +2029,27 @@ class TC26954(_VDICopy):
     FROM_TYPE = "cifssr"
     TO_TYPE = "nfssr_nosubdir"
 
+class TC27108(_VDICopy):
+    """Verify vdi-copy between an lvmoiscsi SR and a local smapiv3 SR"""
+    FROM_TYPE = "lvmoiscsi"
+    TO_TYPE = "btrfs"
+
+class TC27109(_VDICopy):
+    """Verify vdi-copy between an nfs SR and a local smapiv3 SR"""
+    FROM_TYPE = "nfs"
+    TO_TYPE = "btrfs"
+
+class TC27110(_VDICopy):
+    """Verify vdi-copy between a local smapiv3 SR and a lvmoiscsi SR"""
+    FROM_TYPE = "btrfs"
+    TO_TYPE = "lvmoiscsi"
+
+class TC27111(_VDICopy):
+    """Verify vdi-copy between a local smapiv3 SR and a nfs SR"""
+    FROM_TYPE = "btrfs"
+    TO_TYPE = "nfs"
+
+
 #############################################################################
 # VDI resize testcases
 
@@ -2406,6 +2427,29 @@ class TC8489(_TCResizeDataCheck):
 
     SRTYPE = "ext"
     FORCEOFFLINE = True
+
+# BTRFS resize
+class TC27089(_TCResizeShrink):
+    """Attempting to shrink a VHDoEXT VDI should fail with a suitable error."""
+
+    SRTYPE = "btrfs"
+    
+class TC27090(_TCResizeGrow):
+    """Grow a VHDoEXT VDI of a round size by 1 byte."""
+
+    SRTYPE = "btrfs"
+    
+class TC27091(_TCResizeGrow2):
+    """Grow a VHDoEXT VDI twice in large chunks."""
+
+    SRTYPE = "btrfs"
+
+class TC27092(_TCResizeDataCheck):
+    """Data integrity of resized VHDoEXT VDI."""
+
+    SRTYPE = "btrfs"
+    FORCEOFFLINE = True
+
 
 # NetApp resize
 class TC8491(_TCResizeShrink):
@@ -3489,6 +3533,12 @@ class TC10672(TC10671):
     """A freshly created VDI should contain entirely zero data (file based VHD)"""
 
     SRTYPE = "ext"
+
+class TC27093(TC10671):
+    """A freshly created VDI should contain entirely zero data (file based VHD)"""
+
+    SRTYPE = "btrfs"
+
 
 class TC10673(TC10671):
     """A freshly created VDI should contain entirely zero data (Equallogic thin provisioning)"""
@@ -4880,3 +4930,58 @@ class TCCIFSLifecycle(xenrt.TestCase):
 
         # Destroy SR.
         self.sr.remove()
+
+class TCDuplicateVdiName(xenrt.TestCase):
+    """Test that VDIs with identical names can be created and don't change on rescan"""
+
+    def run(self, arglist):
+        host = self.getDefaultHost()
+        sr = host.getSRs(self.tcsku)[0]
+        # Create 2 VDIs with the name "duplicate"
+        vdis = []
+        vdis.append(host.createVDI("1GiB", sr, name="duplicate"))
+        vdis.append(host.createVDI("1GiB", sr, name="duplicate"))
+        # TODO write some random data to each VDI here, and check for unique MD5sums
+        locations = {}
+        names = {}
+        # Check the name-label is "duplicate"
+        for v in vdis:
+            if host.genParamGet("vdi", v, "name-label") != "duplicate":
+                raise xenrt.XRTFailure("name-label on VDI is incorrect before rescan")
+            locations[v] = host.genParamGet("vdi", v, "location")
+        # Check the location is unique 
+        if locations[vdis[0]] == locations[vdis[1]]:
+            raise xenrt.XRTFailure("locations of the 2 VDIs are not unique")
+        # Rescan the SR
+        host.getCLIInstance().execute("sr-scan", "uuid=%s" % sr)
+        # TODO check the MD5sums haven't changed after rescan
+        # Verify that the name and location haven't changed after scan
+        for v in vdis:
+            if host.genParamGet("vdi", v, "location") != locations[v]:
+                raise xenrt.XRTFailure("VDI location changed after scan")
+            if host.genParamGet("vdi", v, "name-label") != "duplicate":
+                raise xenrt.XRTFailure("VDI name-label changed after scan")
+        
+        for v in vdis:
+            host.destroyVDI(v)
+
+class TCVdiSpaceInName(xenrt.TestCase):
+    """Test that VDIs with spaces in the name can be used"""
+
+    def run(self, arglist):
+        host = self.getDefaultHost()
+        sr = host.getSRs(self.tcsku)[0]
+        vdi = host.createVDI("1MiB", sr, name="VDI With Space")
+
+        if host.genParamGet("vdi", vdi, "name-label") != "VDI With Space":
+            raise xenrt.XRTFailure("VDI name-label is incorrect")
+        
+        # Rescan the SR
+        host.getCLIInstance().execute("sr-scan", "uuid=%s" % sr)
+        
+        if host.genParamGet("vdi", vdi, "name-label") != "VDI With Space":
+            raise xenrt.XRTFailure("VDI name-label is incorrect after scan")
+
+        host.getVdiMD5Sum(vdi)
+
+        host.destroyVDI(vdi)

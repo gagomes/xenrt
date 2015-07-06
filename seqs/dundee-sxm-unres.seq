@@ -1,0 +1,132 @@
+<?xml version="1.0" ?>
+<xenrt>
+
+  <!-- Sequence to test the behaviors introduced by PR-1545: removing various constraints in SXM:
+
+       TC-27071 - Cross Pool Storage Migration when VM is in halted state
+       TC-27072 - Cross Pool Storage Migration when VM is in suspend state
+       TC-27073 - Intra Pool Storage Migration when VM is in halted state
+       TC-27074 - Intra Pool Storage Migration when VM is in suspended state
+       TC-27075 - Cross Pool Storage Migration for VM with multiple snapshots
+       TC-27076 - Cross Pool Storage Migration for VM with multiple checkpoints
+       TC-27077 - Cross Pool Storage Migration for VM with mixed number of snapshots and checkpoints
+       TC-27078 - Cross Pool Storage Migration Copy when VM is in halted state
+       TC-27079 - Cross Pool Storage Migration Copy when VM is running (negative test)
+       TC-27080 - Cross Pool Storage Migration for user defined template
+       TC-27081 - Cross Pool Storage Migration Copy for user defined template
+       TC-27082 - Cross Pool Storage Migration Copy for system template (negative test)
+
+  -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <!-- <pool id="0" name="sourceSXMPool"> -->
+    <pool id="0">
+      <host id="0" installsr="ext" />
+      <host id="2" installsr="ext" />
+    </pool>
+
+    <!-- <pool id="1" name="sourceSXMPool"> -->
+    <pool id="1">
+      <host id="1" installsr="lvm" />
+    </pool>
+  </prepare>
+
+  <testsequence>
+
+    <serial group="UnResSXMPowerStates">
+
+      <testcase id="xenserver.tc.sxm.HaltedVMStorageMigration" name="TC27071" tc="TC-27071">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+      </testcase>
+
+      <testcase id="xenserver.tc.sxm.SuspendedVMStorageMigration" name="TC27072" tc="TC-27072">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+      </testcase>
+
+      <testcase id="xenserver.tc.sxm.HaltedVMStorageMigration" name="TC27073" tc="TC-27073">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=ext</arg>
+        <arg>test=intra-pool</arg>
+      </testcase>
+
+      <testcase id="xenserver.tc.sxm.SuspendedVMStorageMigration" name="TC27074" tc="TC-27074">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=ext</arg>
+        <arg>test=intra-pool</arg>
+      </testcase>
+
+    </serial>
+
+    <serial group="UnResSXMSnapshotPlus">
+
+      <testcase id="xenserver.tc.sxm.SnapCheckVMStorageMigration" name="TC27075" tc="TC-27075">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+        <arg>snapshots=5</arg>
+      </testcase>
+
+      <testcase id="xenserver.tc.sxm.SnapCheckVMStorageMigration" name="TC27076" tc="TC-27076">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+        <arg>checkpoints=5</arg>
+      </testcase>
+
+      <testcase id="xenserver.tc.sxm.SnapCheckVMStorageMigration" name="TC27077" tc="TC-27077">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+        <arg>snapshots=3</arg>
+        <arg>checkpoints=3</arg>
+      </testcase>
+
+    </serial>
+
+
+    <serial group="UnResSXMCopyMode">
+
+      <testcase id="xenserver.tc.sxm.HaltedVMStorageMigration" name="TC27078" tc="TC-27078">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+        <arg>copy</arg>
+      </testcase>
+
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC27079" tc="TC-27079">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+        <arg>copy</arg>
+        <arg>negative_test</arg>
+      </testcase>
+
+    </serial>
+
+
+    <serial group="UnResSXMTemplateMigrate">
+
+      <testcase id="xenserver.tc.sxm.UserTemplateStorageMigration" name="TC27080" tc="TC-27080">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+      </testcase>
+
+      <testcase id="xenserver.tc.sxm.UserTemplateStorageMigration" name="TC27081" tc="TC-27081">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+        <arg>copy</arg>
+      </testcase>
+
+      <testcase id="xenserver.tc.sxm.SystemTemplateStorageMigration" name="TC27082" tc="TC-27082">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+        <arg>copy</arg>
+        <arg>negative_test</arg>
+      </testcase>
+
+    </serial>
+
+  </testsequence>
+
+</xenrt>

@@ -908,7 +908,7 @@ def machineXML(machine):
 
 def makeConfigFiles(config, debian):
     # Read in all machine config files
-    machines = config.lookup("HOST_CONFIGS").keys()
+    machines = config.lookup("HOST_CONFIGS", {}).keys()
 
     testpeers = config.lookup("TTCP_PEERS", None)
     sharedhosts = config.lookup("SHARED_HOSTS", None)
@@ -928,14 +928,14 @@ def makeConfigFiles(config, debian):
     return 0
 
 def makeSwitchConfig(config, machine):
-    switches = config.lookup("NETSWITCHES").keys()
+    switches = config.lookup("NETSWITCHES", {}).keys()
     if machine in switches:
         makeSwitchConfigForSwitch(config, machine)
     else:
         makeSwitchConfigForMachine(config, machine)
 
 def makeSwitchConfigForSwitch(config, switch):
-    for m in sorted(config.lookup("HOST_CONFIGS").keys()):
+    for m in sorted(config.lookup("HOST_CONFIGS", {}).keys()):
         makeSwitchConfigForMachine(config, m, filterSwitch=switch)
 
 def makeSwitchConfigForMachine(config, machine, filterSwitch=None):

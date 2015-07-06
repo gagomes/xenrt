@@ -51,37 +51,37 @@
     <parallel workers="${PARALLEL}">
       <serial group="vistaeesp2">
         <serial guest="vistaeesp2">
-          <testcase id="guestops.drivers.TCVerifyDriversOutOfDate" tc="TC-20640">
+          <testcase id="guestops.drivers.TCVerifyDriversOutOfDate" tc="TC-20640" sku="${FROM_PRODUCT_VERSION}">
             <arg>guest=vistaeesp2</arg>
           </testcase>          
-          <testcase id="guestops.basic.TCStartStop" tc="TC-9604">
+          <testcase id="guestops.basic.TCStartStop" tc="TC-9604" sku="${FROM_PRODUCT_VERSION}">
             <arg>guest=vistaeesp2</arg>
             <arg>loops=5</arg>
           </testcase>
-          <testcase id="guestops.basic.TCReboot" tc="TC-9605">
+          <testcase id="guestops.basic.TCReboot" tc="TC-9605" sku="${FROM_PRODUCT_VERSION}">
             <arg>guest=vistaeesp2</arg>
             <arg>loops=5</arg>
           </testcase>
-          <testcase id="guestops.srm.TCSuspendResume" tc="TC-9606">
-            <arg>guest=vistaeesp2</arg>
-            <arg>workloads</arg>
-            <arg>loops=5</arg>
-            <arg>clone</arg>
-          </testcase>
-          <testcase id="guestops.srm.TCMigrate" tc="TC-9607">
+          <testcase id="guestops.srm.TCSuspendResume" tc="TC-9606" sku="${FROM_PRODUCT_VERSION}">
             <arg>guest=vistaeesp2</arg>
             <arg>workloads</arg>
             <arg>loops=5</arg>
             <arg>clone</arg>
           </testcase>
-          <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-9608">
+          <testcase id="guestops.srm.TCMigrate" tc="TC-9607" sku="${FROM_PRODUCT_VERSION}">
+            <arg>guest=vistaeesp2</arg>
+            <arg>workloads</arg>
+            <arg>loops=5</arg>
+            <arg>clone</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-9608" sku="${FROM_PRODUCT_VERSION}">
             <arg>guest=vistaeesp2</arg>
             <arg>live</arg>
             <arg>workloads</arg>
             <arg>loops=5</arg>
             <arg>clone</arg>
           </testcase>
-          <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-9610">
+          <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-9610" sku="${FROM_PRODUCT_VERSION}">
             <arg>N/A</arg>
             <arg>guest=vistaeesp2</arg>
             <arg>noshutdown</arg>
@@ -89,20 +89,20 @@
             <arg>max=7</arg>
             <arg>clone</arg>
           </testcase>
-          <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-9611">
+          <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-9611" sku="${FROM_PRODUCT_VERSION}">
             <arg>N/A</arg>
             <arg>guest=vistaeesp2</arg>
             <arg>noshutdown</arg>
           </testcase>
-          <testcase id="guestops.cpu.TCCPUWalk" tc="TC-9612">
+          <testcase id="guestops.cpu.TCCPUWalk" tc="TC-9612" sku="${FROM_PRODUCT_VERSION}">
             <arg>guest=vistaeesp2</arg>
             <arg>max=8</arg>
             <arg>noplugwindows</arg>
           </testcase>
-          <testcase id="xenserver.tc.checkpoint.TC9230">
+          <testcase id="xenserver.tc.checkpoint.TC9230" sku="${FROM_PRODUCT_VERSION}">
             <arg>guest=vistaeesp2</arg>
           </testcase>
-          <testcase id="xenserver.tc.snapshot.TC9708">
+          <testcase id="xenserver.tc.snapshot.TC9708" sku="${FROM_PRODUCT_VERSION}">
             <arg>guest=vistaeesp2</arg>
           </testcase>
           <finally>
@@ -116,34 +116,34 @@
 
       <serial group="ws08sp2-x64">
         <serial guest="ws08sp2-x64">
-          <testcase id="guestops.drivers.TCVerifyDriversOutOfDate" tc="TC-20641">
+          <testcase id="guestops.drivers.TCVerifyDriversOutOfDate" tc="TC-20641" sku="${FROM_PRODUCT_VERSION}">
             <arg>guest=ws08sp2-x64</arg>
           </testcase>
-          <testcase id="guestops.basic.TCStartStop" tc="TC-9643">
-            <arg>guest=ws08sp2-x64</arg>
-            <arg>loops=5</arg>
-          </testcase>
-          <testcase id="guestops.basic.TCReboot" tc="TC-9644">
+          <testcase id="guestops.basic.TCStartStop" tc="TC-9643" sku="${FROM_PRODUCT_VERSION}">
             <arg>guest=ws08sp2-x64</arg>
             <arg>loops=5</arg>
           </testcase>
-          <testcase id="guestops.srm.TCSuspendResume" tc="TC-9645">
+          <testcase id="guestops.basic.TCReboot" tc="TC-9644" sku="${FROM_PRODUCT_VERSION}">
+            <arg>guest=ws08sp2-x64</arg>
+            <arg>loops=5</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCSuspendResume" tc="TC-9645" sku="${FROM_PRODUCT_VERSION}">
             <arg>guest=ws08sp2-x64</arg>
             <arg>workloads</arg>
             <arg>loops=5</arg>
           </testcase>
-          <testcase id="guestops.srm.TCMigrate" tc="TC-9646">
+          <testcase id="guestops.srm.TCMigrate" tc="TC-9646" sku="${FROM_PRODUCT_VERSION}">
             <arg>guest=ws08sp2-x64</arg>
             <arg>workloads</arg>
             <arg>loops=5</arg>
           </testcase>
-          <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-9647">
+          <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-9647" sku="${FROM_PRODUCT_VERSION}">
             <arg>guest=ws08sp2-x64</arg>
             <arg>live</arg>
             <arg>workloads</arg>
             <arg>loops=5</arg>
           </testcase>
-          <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-9649">
+          <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-9649" sku="${FROM_PRODUCT_VERSION}">
             <arg>N/A</arg>
             <arg>guest=ws08sp2-x64</arg>
             <arg>noshutdown</arg>
@@ -151,26 +151,26 @@
             <arg>max=7</arg>
             <arg>clone</arg>
           </testcase>
-          <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-9650">
+          <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-9650" sku="${FROM_PRODUCT_VERSION}">
             <arg>N/A</arg>
             <arg>guest=ws08sp2-x64</arg>
             <arg>noshutdown</arg>
           </testcase>
-          <testcase id="guestops.cpu.TCCPUWalk" tc="TC-9651">
+          <testcase id="guestops.cpu.TCCPUWalk" tc="TC-9651" sku="${FROM_PRODUCT_VERSION}">
             <arg>guest=ws08sp2-x64</arg>
             <arg>max=8</arg>
             <arg>noplugwindows</arg>
           </testcase>
-          <testcase id="xenserver.tc.checkpoint.TC9229">
+          <testcase id="xenserver.tc.checkpoint.TC9229" sku="${FROM_PRODUCT_VERSION}">
             <arg>guest=ws08sp2-x64</arg>
           </testcase>
-          <testcase id="xenserver.tc.snapshot.TC9706">
+          <testcase id="xenserver.tc.snapshot.TC9706" sku="${FROM_PRODUCT_VERSION}">
             <arg>guest=ws08sp2-x64</arg>
           </testcase>
-          <testcase id="xenserver.tc.snapshot.TC9704">
+          <testcase id="xenserver.tc.snapshot.TC9704" sku="${FROM_PRODUCT_VERSION}">
             <arg>guest=ws08sp2-x64</arg>
           </testcase>
-          <testcase id="xenserver.tc.snapshot.TC9711">
+          <testcase id="xenserver.tc.snapshot.TC9711" sku="${FROM_PRODUCT_VERSION}">
             <arg>guest=ws08sp2-x64</arg>
           </testcase>
           <finally>

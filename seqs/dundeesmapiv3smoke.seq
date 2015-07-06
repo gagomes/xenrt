@@ -1,0 +1,21 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <OPTION_NO_DISK_CLAIM>yes</OPTION_NO_DISK_CLAIM>
+    <WORKAROUND_CA174211>yes</WORKAROUND_CA174211>
+  </variables>
+
+  <prepare>
+    <host diskCount="0">
+      <storage type="smapiv3local" name="BTRFS" default="yes" />
+    </host>
+  </prepare>
+
+    <testsequence>
+      <parallel group="VMSmoke" workers="2">
+        <testcase id="xenserver.tc.smoketest.TCSmokeTestTemplateDefaults" name="TC-27087" sku="debian70_x86-32" tc="TC-27087" />
+        <testcase id="xenserver.tc.smoketest.TCSmokeTestTemplateDefaults" name="TC-27088" sku="ws12r2-x64" tc="TC-27088" />
+      </parallel>
+    </testsequence>
+</xenrt>

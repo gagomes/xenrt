@@ -1441,7 +1441,8 @@ at > c:\\xenrtatlog.txt
 
         self.xmlrpcWriteFile("c:\\inst.bat", string.join(batch))
         self.xmlrpcStart("c:\\inst.bat")
-
+        self.reboot()
+        
         #wait for reboot
         xenrt.sleep(60)
         

@@ -613,6 +613,8 @@ print hostConfig.GetConfigManager().GetPowerSystem().info.currentPolicy.shortNam
     def paramSet(self, param, value, isVMkernelAdvCfg=False):
         if isVMkernelAdvCfg:
             self.execdom0("esxcfg-advcfg --set '%s' %s" % (value, param))
+        elif not value:
+            self.execdom0("esxcfg-advcfg --del-user-var --user-var %s" % (param))
         else:
             self.execdom0("esxcfg-advcfg --set-user-var '%s' --user-var %s" % (value, param))
 

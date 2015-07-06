@@ -76,7 +76,7 @@ class _TCDebianStyleUpgrade(TCLinuxUpgrade):
             self.guest.execguest("apt-get -y --force-yes install libperl4-corelibs-perl")
 
     def upgradeCommand(self):
-        return "/bin/echo -e 'Y\\n' | apt-get -y --force-yes dist-upgrade"
+        return "/bin/echo -e 'Y\\n' | apt-get -y --force-yes -o Dpkg::Options::=\"--force-confdef\" -o Dpkg::Options::=\"--force-confold\" dist-upgrade"
 
     def checkUpgrade(self):
         distroRelease = self.guest.execguest("cat /etc/issue.net")

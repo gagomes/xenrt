@@ -736,6 +736,7 @@ class VGPUOwnedVMsTest(xenrt.TestCase,VGPUTest):
         hosts = self.getAllHosts()
 
         vms= []
+        remainingVMs =[]
         for host in hosts:
             cli = host.getCLIInstance()
             step("Shutting down all the guests")
@@ -751,6 +752,16 @@ class VGPUOwnedVMsTest(xenrt.TestCase,VGPUTest):
                     try:
                         cli.execute("vm-uninstall","uuid=%s force=true" % vm) 
                     except: pass
+                else:
+                    remainingVMs.append(vm)
+
+            for vm in remainingVMs:
+                snaps = host.minimalList("snapshot-list", "uuid", "snapshot-of=%s name-label=clean" % vm.uuid)
+                vm.setState("DOWN")
+                if len(snaps) == 0:
+                    log("No snapshot presnet so doing nothing")
+                else:
+                    vm.revert(snaps[0])
 
             step("Destroying all the snapshots")
             snapshots = host.minimalList("snapshot-list")

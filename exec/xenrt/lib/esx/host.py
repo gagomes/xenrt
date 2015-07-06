@@ -204,7 +204,7 @@ class ESXHost(xenrt.lib.libvirt.Host):
             return random.choice(primaryBridges)
         brs = self.getBridges()
         if brs:
-            return brs[0]
+            return "VM Network" if "VM Network" in brs else brs[0]
 
     def getBridgeInterfaces(self, bridge):
         """Return the list of *vmknics* on the host."""
@@ -490,7 +490,7 @@ reboot
                     self.execdom0("esxcli network vswitch standard set -v %s -m %d" % (pri_vswitch, 9000 if jumbo==True else jumbo ))
 
                 # Create only on single nic non vlan nets
-                if len(vlanList) == 0 and len(nicList) == 1:
+                if (len(vlanList) == 0 or vms or mgmt) and len(nicList) == 1:
                     # Add the network to the vSwitch
                     self.execdom0("esxcli network vswitch standard portgroup add -v %s -p \"%s\"" % (pri_vswitch, friendlynetname))
                     # Create a vmkernel interface on this vSwitch, to be used for arpwatching traffic on this vswitch
@@ -536,7 +536,10 @@ reboot
                         self.paramSet(param="xenrt/primarybridges", value=primaryBridges)
 
                     if vmgmt:
-                        self.execdom0("esxcfg-vmknic -a -i DHCP -p \"%s\"" % (vfriendlynetname))
+                        cmd = "esxcfg-vmknic -a -i DHCP -p \"%s\"" % (vfriendlynetname)
+                        if jumbo:
+                            cmd += " -m 9000" if jumbo == True else " -m %d" % jumbo
+                        self.execdom0(cmd)
 
                     if vstorage:
                         raise xenrt.XRTError("unimplemented")
@@ -614,3 +617,12 @@ print hostConfig.GetConfigManager().GetPowerSystem().info.currentPolicy.shortNam
             self.execdom0("esxcfg-advcfg --set '%s' %s" % (value, param))
         else:
             self.execdom0("esxcfg-advcfg --set-user-var '%s' --user-var %s" % (value, param))
+
+    def getBridgeByName(self, name):
+        """Return the actual bridge based on the given friendly name. """
+        brs = [br for br in self.getBridges() if name in br]
+        if len(brs)==1:
+            return brs[0]
+        elif len(brs)>1:
+            raise xenrt.XRTError("Multiple Bridge exists matching name")
+        return None

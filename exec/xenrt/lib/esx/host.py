@@ -196,12 +196,12 @@ class ESXHost(xenrt.lib.libvirt.Host):
 
     def getPrimaryBridge(self):
         """Return the first *portgroup* on the host."""
-        primaryBridges = self.paramGet(self, param="xenrt/primarybridges", isVMkernelAdvCfg=False)
+        primaryBridges = self.paramGet(param="xenrt/primarybridges", isVMkernelAdvCfg=False)
         if primaryBridges:
             primaryBridges = primaryBridges.split(",")
-            if len(primaryBridges) > 2:
+            if len(primaryBridges) > 1:
                 xenrt.TEC().logverbose("Multiple Primary bridges defined, Continuing with %s" % (primaryBridges[0]))
-            return primaryBridges[0]
+            return random.choice(primaryBridges)
         brs = self.getBridges()
         if brs:
             return brs[0]
@@ -504,6 +504,15 @@ reboot
                         # TODO fetch ip on this port and set as mainip
                         pass
 
+                    if vms:
+                        xenrt.TEC().logverbose("Putting VMs on '%s' (%s)" % (friendlynetname, str(nicList)))
+                        existingPrimaryBridges = self.paramGet(param="xenrt/primarybridges", isVMkernelAdvCfg=False)
+                        primaryBridges = "%s,%s" % (existingPrimaryBridges,friendlynetname) if existingPrimaryBridges else friendlynetname
+                        self.paramSet(param="xenrt/primarybridges", value=primaryBridges)
+
+                    if storage:
+                        raise xenrt.XRTError("unimplemented")
+
                 # Create all VLANs
                 for v in vlanList:
                     vnetwork, vmgmt, vstorage, vvms, vfriendlynetname = v
@@ -519,6 +528,18 @@ reboot
                         # Add the network to the vSwitch
                         self.execdom0("esxcli network vswitch standard portgroup add -v %s -p \"%s\"" % (pri_vswitch, vfriendlynetname))
                         self.execdom0("esxcli network vswitch standard portgroup set -v %d -p \"%s\"" % (vid, vfriendlynetname))
+
+                    if vvms:
+                        xenrt.TEC().logverbose("Putting VMs on VLAN '%s' on %s (%s)" % (vfriendlynetname, network, str(nicList)))
+                        existingPrimaryBridges = self.paramGet(param="xenrt/primarybridges", isVMkernelAdvCfg=False)
+                        primaryBridges = "%s,%s" % (existingPrimaryBridges,vfriendlynetname) if existingPrimaryBridges else vfriendlynetname
+                        self.paramSet(param="xenrt/primarybridges", value=primaryBridges)
+
+                    if vmgmt:
+                        self.execdom0("esxcfg-vmknic -a -i DHCP -p \"%s\"" % (vfriendlynetname))
+
+                    if vstorage:
+                        raise xenrt.XRTError("unimplemented")
 
             if len(nicList) > 1:
                 raise xenrt.XRTError("Creation of bond on %s using %s unimplemented" %
@@ -584,7 +605,7 @@ print hostConfig.GetConfigManager().GetPowerSystem().info.currentPolicy.shortNam
                 return self.execdom0("esxcfg-advcfg --get %s" % (param)).strip().split(" is ")[-1]
             # User defined config
             return self.execdom0("esxcfg-advcfg --get-user-var --user-var %s" % (param)).strip()
-        except XRTFailure, e:
+        except xenrt.XRTFailure, e:
             xenrt.TEC().logverbose("advance config '%s' doesn't exist." % param)
         return None
 

@@ -3383,6 +3383,8 @@ class TC20995(xenrt.TestCase):
             if not re.search("already connected", e.data, re.I):
                 raise e
         self.slave.restartToolstack()
+        
+        xenrt.sleep(10)
 
         try:
             cli.execute("vbd-unplug", "uuid=%s" % vbd)

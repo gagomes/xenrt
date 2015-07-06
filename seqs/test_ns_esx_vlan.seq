@@ -15,7 +15,6 @@
       <NETWORK>
         <PHYSICAL network="NPRI">
           <VMS />
-          <MANAGEMENT />
           <NIC />
           <VLAN network="SERVER_VLAN" />
           <VLAN network="CLIENT_VLAN" />

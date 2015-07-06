@@ -16,10 +16,10 @@
         <vm name="${DISTRO}">
           <distro>${DISTRO}</distro>
           <arch>x86-64</arch>
-          <memory>1024</memory>
+          <memory>2048</memory>
           <vcpus>2</vcpus>
           <network device="0" />
-          <disk device="0" size="50" />
+          <disk device="0" size="100" />
           <postinstall action="dockerInstall" />
         </vm>
       </host>

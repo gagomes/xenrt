@@ -375,9 +375,6 @@ class KVMHost(xenrt.lib.libvirt.Host):
         self.execdom0("service ntpd start")
         self.execdom0("chkconfig ntpd on")
 
-        # Set up a yum repository so we can actually install packages
-        self.updateYumConfig(self.distro, self.arch)
-
         self.addExtraLogFile("/var/log/cloudstack")
 
         if isCCP:

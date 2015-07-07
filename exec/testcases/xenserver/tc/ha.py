@@ -1668,12 +1668,14 @@ class _HAHostFailure(_HAFailureTest):
     TEMPORARY = False # We can't have a temporary host failure!
 
     def doFailures(self):
+        downHosts = []
         if self.LOSE_MASTER:
             if not self.pool.master in self.hostsToPowerOn:
                 self.hostsToPowerOn.append(self.pool.master)
             self.poweroff(self.pool.master)
             self.pool.haLiveset.remove(self.pool.master.getMyHostUUID())
             self.newMaster = True
+            downHosts.append(self.pool.master)
 
         slaves = self.pool.slaves.values()
         for i in range(self.LOSE_SLAVES):
@@ -1681,6 +1683,13 @@ class _HAHostFailure(_HAFailureTest):
                 self.hostsToPowerOn.append(slaves[i])
             self.poweroff(slaves[i])
             self.pool.haLiveset.remove(slaves[i].getMyHostUUID())
+            downHosts.append(slaves[i])
+
+        # Verify that all the hosts we've powered down are actually down (CA-174182)
+        for h in downHosts:
+            xenrt.TEC().logverbose("Verifying host %s is down" % h.getName())
+            if h.checkReachable(10,level=xenrt.RC_OK) == xenrt.RC_OK:
+                raise xenrt.XRTError("Host %s still reachable after being powered down" % h.getName())
 
 
 class TC7711(_HAHostFailure):

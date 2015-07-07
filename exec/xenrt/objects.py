@@ -5606,6 +5606,9 @@ class GenericHost(GenericPlace):
             self.execdom0("ethtool -K %s sg off" % (ethDevice))
             self.execdom0("ethtool -K %s tso off" % (ethDevice))
 
+        if not self.updateYumConfig(distro, arch):
+            xenrt.TEC().warning('Failed to specify XenRT yum repo for %s, %s' % (distro, arch))
+
         # Optionally install some RPMs
         rpms = xenrt.TEC().lookupLeaves("RHEL_RPM_UPDATES")
         if len(rpms) == 1:

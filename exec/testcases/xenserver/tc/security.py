@@ -3360,15 +3360,7 @@ class TCHackersChoiceIPv6FloodRouter(xenrt.TestCase):
         #-------------------------
         attacker.installHCFloodRouterUbuntu(net.PRIVATE_NETWORK)
         victims = attacker.identifyWinVictims()
-        if not victims:
-            raise xenrt.XRTFailure("Couldn't find a windows host")
-        targetVM = None
-        for v in victims:
-            if v.getName() == "victim1":
-                targetVM = v
-                break
-        if not targetVM:
-            raise xenrt.XRTFailure("Couldn't find targetVM")
+        targetVM = next(v for v in victims if v.getName() == "victim1")
          #----------------------------------------------------------
         step("Run the package and check for the guest maxing out") 
         #----------------------------------------------------------

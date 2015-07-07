@@ -1103,7 +1103,7 @@ class CA90861Frequency(xenrt.TestCase):
             raise xenrt.XRTFailure("VM failed to boot successfully at least once")
 
 class TCToolsMissingUninstall(xenrt.TestCase):
-    """Test for SCTX-1634. Verify upgrade of XenTools from XS 6.0 to XS 6.2 is successfull"""
+    """Test for SCTX-1634. Verify upgrade of XenTools from a particular version to the latest version is successfull"""
     #TC-23775
     def prepare(self, arglist=None):
         self.host = self.getDefaultHost()
@@ -1126,7 +1126,7 @@ class TCToolsMissingUninstall(xenrt.TestCase):
             raise xenrt.XRTFailure("Guest tools are out of date")
             
 class TCToolsVBscriptEngineOff(xenrt.TestCase):
-    """Test for SCTX-1650. Verify upgrade of XenTools from XS 6.0 to XS 6.1 is successfull when vbscript engine is not available"""
+    """Test for SCTX-1650. Verify upgrade of XenTools from a particular version to the latest version is successfull when vbscript engine is not available"""
     #TC-27017
     def prepare(self, arglist=None):
         self.host = self.getDefaultHost()
@@ -1150,7 +1150,7 @@ class TCToolsVBscriptEngineOff(xenrt.TestCase):
             raise xenrt.XRTFailure("Guest tools are out of date")
             
 class TCSysrepAfterToolsUpgrade(xenrt.TestCase):
-    """Test for SCTX-1906. verifies that after upgrade of XenTools from XS 6.0 to XS 6.2, Sysrep.exe runs successfully"""
+    """Test for SCTX-1906. verifies that after upgrade of XenTools from a particular version to the latest version, Sysrep.exe runs successfully"""
     #TC-27018
     def prepare(self, arglist=None):
         self.host = self.getDefaultHost()
@@ -1183,7 +1183,7 @@ class TCSysrepAfterToolsUpgrade(xenrt.TestCase):
         
         
 class TCToolsIPv6Disabled(xenrt.TestCase):
-    """Test for SCTX-1919. Verify upgrade of XenTools from XS 6.0 to XS 6.1 is successfull when IPv6 is disabled"""
+    """Test for SCTX-1919. Verify upgrade of XenTools from a particular version to the latest version is successful when IPv6 is disabled"""
     #TC-27019
     def prepare(self, arglist=None):
         self.host = self.getDefaultHost()

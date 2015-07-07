@@ -115,7 +115,6 @@ def mountStaticISO(distro, arch=None):
     """Mount a static ISO globally for the controller"""
 
     isolock = xenrt.resources.CentralResource()
-    iso = "%s/%s.iso" % (xenrt.TEC().lookup("EXPORT_ISO_LOCAL"), distro)
     if os.path.exists("%s/%s.iso" % (xenrt.TEC().lookup("EXPORT_ISO_LOCAL"), distro)):
         iso = "%s/%s.iso" % (xenrt.TEC().lookup("EXPORT_ISO_LOCAL"), distro)
         check = "Autounattend.xml"
@@ -124,7 +123,7 @@ def mountStaticISO(distro, arch=None):
         stem = "%s/%s_%s" % (xenrt.TEC().lookup("EXPORT_ISO_LOCAL_STATIC"), xenrt.TEC().lookup(["OS_INSTALL_ISO", distro], distro), arch)
         if not os.path.exists("%s.iso" % stem):
             stem = "%s_xenrtinst" % stem
-        stem = "%s.iso" % stem
+        iso = "%s.iso" % stem
         if distro.startswith("sle"):
             check="README"
         elif distro.startswith("sol"):

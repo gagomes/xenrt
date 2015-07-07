@@ -1437,14 +1437,11 @@ at > c:\\xenrtatlog.txt
         batch.append("ping 127.0.0.1 -n 10 -w 1000\r\n")
         batch.append("MsiExec.exe /i D:\\installwizard.msi /passive /norestart\r\n")
         batch.append("ping 127.0.0.1 -n 10 -w 1000\r\n")
-        batch.append("shutdown -r\r\n")
 
         self.xmlrpcWriteFile("c:\\inst.bat", string.join(batch))
-        self.xmlrpcStart("c:\\inst.bat")
+        self.xmlrpcExec("c:\\inst.bat")
         self.reboot()
-        
-        #wait for reboot
-        xenrt.sleep(60)
+        self.reboot()
         
         #Eject the tools CD from the VM.
         self.changeCD(None)

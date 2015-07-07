@@ -3228,7 +3228,7 @@ class NetworkConfigurator(object):
                 i = i + 1
 
 
-class VM(object):
+class VMSecurityFacade(object):
 
     def __init__(self, guest):
        self._VM = guest
@@ -3257,7 +3257,7 @@ class VM(object):
     def getName(self):
         return self._VM.name
 
-class Victim(VM):
+class Victim(VMSecurityFacade):
     __MAXED_OUT_THRESHOLD = 50.0
 
     def __init__(self,guest):
@@ -3297,7 +3297,7 @@ class Victim(VM):
             log("zzzzz.....")
             time.sleep(10)
 
-class Attacker(VM):
+class Attacker(VMSecurityFacade):
 
     def __init__(self,guest):
         super(Attacker,self).__init__(guest)
@@ -3340,7 +3340,7 @@ class Attacker(VM):
         time.sleep(10 * 3)
         log("%s CPU usage is maxed out: %s" % (victim.getName(), str(victim.victimIsMaxedOut())))
 
-class TCHackersChoiceIPv6FloodRouter(xenrt.TestCase, object):
+class TCHackersChoiceIPv6FloodRouter(xenrt.TestCase):
 
     def run(self, arglist):
         attacker = Attacker(self.getDefaultHost().getGuest("attacker"))
@@ -3396,7 +3396,7 @@ class TCHackersChoiceIPv6FloodRouter(xenrt.TestCase, object):
         for victim in victims:
             victim.healthStatus()
 
-class TCBadPackets(xenrt.TestCase,object):
+class TCBadPackets(xenrt.TestCase):
 
     def run(self, arglist):
         attacker = Attacker(self.getDefaultHost().getGuest("attacker"))
@@ -3419,7 +3419,7 @@ class TCBadPackets(xenrt.TestCase,object):
             for victim in victims:
                 victim.healthStatus()
 
-class TCHackersChoiceIPv6Firewall6(xenrt.TestCase, object):
+class TCHackersChoiceIPv6Firewall6(xenrt.TestCase):
 
     def _runPackageTestCase(self, attacker, victim, hackNumber):
         #----------------------------------------
@@ -3470,7 +3470,7 @@ class TCHackersChoiceIPv6Firewall6(xenrt.TestCase, object):
                 log("skipping %s tests...." % victim.getName())
                 continue
 
-class TCIPv6FloodRouterStress(xenrt.TestCase, object):
+class TCIPv6FloodRouterStress(xenrt.TestCase):
     __STRESS_DURATION = 60 * 60 * 24
     __STRESS_SLEEP = 60 * 5
 

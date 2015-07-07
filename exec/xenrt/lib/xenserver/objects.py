@@ -204,9 +204,9 @@ class VM(NamedXapiObject):
         addresses = self.networkAddresses()
         tag = str(deviceNo) + "/ipv6/" + str(ipNo)
         log("Addresses found: %s" % str(addresses))
-        ipv6Network = next((n for n in addresses if tag in n), None)
+        ipv6Address = next((n for n in addresses if tag in n), None)
         log("IPV6 address %s found with ID: %s" % (ipv6Network, tag))
-        if ipv6Network:
+        if ipv6Address:
             ipv6Address = (':'.join(ipv6Network.split(':')[1:])).strip()
             return ipv6Address
         else:

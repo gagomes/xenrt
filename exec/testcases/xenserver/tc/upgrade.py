@@ -4442,8 +4442,7 @@ class TCUpgradeRestore(xenrt.TestCase):
     def prepare(self, arglist=None):
         #Parse the arguments
         args = self.parseArgsKeyValue(arglist)
-        if "NEW_PARTITIONS" in args.keys():
-            self.NEW_PARTITIONS = True if args["NEW_PARTITIONS"].lower() == "true" else False
+        self.NEW_PARTITIONS = args.get("NEW_PARTITIONS", "True") == "True"
 
     def run(self, arglist=None):
         host = self.getDefaultHost()
@@ -4480,9 +4479,9 @@ class TCUpgradeRestore(xenrt.TestCase):
         """Function to check if DOM0 partitions are as expected"""
         step("Check if dom0 partitions are as expected")
         if self.NEW_PARTITIONS:
-            partitions = xenrt.TEC().lookup(["VERSION_CONFIG",xenrt.TEC().lookup("PRODUCT_VERSION"),"DOM0_PARTITIONS"])
+            partitions = host.lookup("DOM0_PARTITIONS")
         else:
-            partitions = xenrt.TEC().lookup(["VERSION_CONFIG",xenrt.TEC().lookup("PRODUCT_VERSION"),"DOM0_PARTITIONS_OLD"])
+            partitions = host.lookup("DOM0_PARTITIONS_OLD")
         log("Expected partions: %s" % partitions)
 
         if not host.compareDom0Partitions(partitions):

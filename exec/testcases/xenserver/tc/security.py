@@ -3429,7 +3429,7 @@ class TCHackersChoiceIPv6Firewall6(xenrt.TestCase):
         #----------------------------------------
         self.__package.runtestcase(attacker.getVM(),hackNumber)
         time.sleep(10)
-        log("Results of attack: %s" % str(attacker.hCFirewall6Package.results()))
+        log("Results of attack: %s" % str(self.__package.results()))
         try:
             #----------------------------------------
             step("Check the victims health")

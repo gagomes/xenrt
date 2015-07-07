@@ -3232,7 +3232,6 @@ class VM(object):
 
     def __init__(self, guest):
        self._VM = guest
-       self._host = self._VM.host
 
     def healthStatus(self):
         self._VM.checkHealth()
@@ -3240,11 +3239,11 @@ class VM(object):
     def ipv6NetworkAddress(self, deviceNo = 0, ipNo = 0):
         self._VM.asXapiObject().ipv6NetworkAddress(deviceNo, ipNo)
 
-    def checkVMCPUUsage(self):
+    def getVMCPUUsage(self):
         return float(self._VM.asXapiObject().cpuUsage['0'])*100
 
-    def checkHostCPUUsage(self):
-        return self._host.dom0CPUUsage()
+    def getHostCPUUsage(self):
+        return self._VM.host.dom0CPUUsage()
 
     def shutdown(self):
         self._VM.shutdown()
@@ -3253,7 +3252,7 @@ class VM(object):
         return self._VM
 
     def getHost(self):
-        return self._host
+        return self._VM.host
 
     def getName(self):
         return self._VM.name
@@ -3264,24 +3263,29 @@ class Victim(VM):
     def __init__(self,guest):
         super(Victim,self).__init__(guest)
 
-    def victimIsMaxedOut(self):
-        try:
-            usage = self.checkVMCPUUsage()
-            log("%s CPU usage is %.2f" % (self.getName(), usage))
-            return usage > self.__MAXED_OUT_THRESHOLD
-        except:
-            log("Could not measure the usage - ignoring this issue")
+    def victimIsMaxedOut(self,exc = False):
+        usage = self.getVMCPUUsage()
+        log("%s CPU usage is %.2f" % (self.getName(), usage))
+        if usage > self.__MAXED_OUT_THRESHOLD:
+            if exc:
+                raise xenrt.XRTFailure("%s CPU is maxed out at %.2f%%" % (self.getName(),usage))
+            else:
+                return True
+        else:
+            log("%s CPU is %.2f%%, which is under threshold" % (self.getName(),usage))
             return False
 
-    def hostIsMaxedOut(self):
-        usage = self.checkHostCPUUsage()
-        if usage:
-            if usage > self.__MAXED_OUT_THRESHOLD:
+    def hostIsMaxedOut(self, exc = False):
+        usage = self.getHostCPUUsage()
+        if usage > self.__MAXED_OUT_THRESHOLD:
+            if exc:
                 raise xenrt.XRTFailure("Host CPU is maxed out at %.2f%%" % usage)
             else:
-                log("Host CPU is %.2f%%, which is under threshold" % usage)
+                return True
         else:
-            log("Error returning CPU usage")
+                log("Host CPU is %.2f%%, which is under threshold" % usage)
+                return False
+
 
     def healthStatusOverTime(self):
         verifyEnd = time.time() + (60 * 5) # 5 mins
@@ -3322,7 +3326,7 @@ class Attacker(VM):
         while not victim.victimIsMaxedOut:
             if not time.time() < gameOver:
                 log("Timed out while trying to max out the guest")
-                victim.HostIsMaxedOut()
+                victim.HostIsMaxedOut(True)
                 if count <= 5:
                     log("Retrying attack %s of 5" % str(count+1))
                     self.hCFloodRouterMaxOutVictim(victim,count+1)
@@ -3377,15 +3381,15 @@ class TCHackersChoiceIPv6FloodRouter(xenrt.TestCase, object):
         for victim in victims:
             if victim.victimIsMaxedOut():
                 log("Waited %d secs for CPU to recover from attack and usage is %.2f"
-                                       % (60 * 5, victim.checkVMCPUUsage()))
+                                       % (60 * 5, victim.getVMCPUUsage()))
                 log("%s failed to recover from attack" % victim.getName())
             else:
                 log("%s appears to have recovered from the attack usage =%.2f"
-                    % (victim.getName(),victim.checkVMCPUUsage()))
+                    % (victim.getName(),victim.getVMCPUUsage()))
         #--------------------------
         step("Check host CPU usage")
         #--------------------------
-        targetVM.hostIsMaxedOut()
+        targetVM.hostIsMaxedOut(True)
         #--------------------------
         step("Check Health of all victim vms")
         #--------------------------
@@ -3477,7 +3481,7 @@ class TCIPv6FloodRouterStress(xenrt.TestCase, object):
         log("Start the wait...")
         while time.time() < gameOver:
             for victim in victims:
-                log("%s CPU usage is %.2f" % (victim.getName(), victim.checkVMCPUUsage()))
+                log("%s CPU usage is %.2f" % (victim.getName(), victim.getVMCPUUsage()))
             log("zzzzz.....")
             time.sleep(self.__STRESS_SLEEP)
         log("Wait over")
@@ -3503,4 +3507,4 @@ class TCIPv6FloodRouterStress(xenrt.TestCase, object):
         attacker.hCFloodRouterMaxOutVictim(victims[0])
 
         self.__wait(victims)
-        victims[0].hostIsMaxedOut()
+        victims[0].hostIsMaxedOut(True)

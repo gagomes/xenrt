@@ -3421,7 +3421,7 @@ class TCBadPackets(xenrt.TestCase):
 
 
 class TCHackersChoiceIPv6Firewall6(xenrt.TestCase):
-    self.__package = None
+    __package = None
 
     def _runPackageTestCase(self, attacker, victim, hackNumber):
         #----------------------------------------

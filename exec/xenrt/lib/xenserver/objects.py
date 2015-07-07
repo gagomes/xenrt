@@ -1,5 +1,7 @@
 import re
 import xenrt
+from xenrt.lazylog import log
+
 
 """
 Xapi object model base and factory classes

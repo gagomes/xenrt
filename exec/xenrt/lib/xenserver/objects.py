@@ -207,7 +207,7 @@ class VM(NamedXapiObject):
         ipv6Address = next((n for n in addresses if tag in n), None)
         log("IPV6 address %s found with ID: %s" % (ipv6Address, tag))
         if ipv6Address:
-            ipv6Address = (':'.join(ipv6Network.split(':')[1:])).strip()
+            ipv6Address = (':'.join(ipv6Address.split(':')[1:])).strip()
             return ipv6Address
         else:
             log("No IPV6 guest found for guest %s" % self.name())

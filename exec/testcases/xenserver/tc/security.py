@@ -3237,7 +3237,7 @@ class VMSecurityFacade(object):
         self._VM.checkHealth()
 
     def ipv6NetworkAddress(self, deviceNo = 0, ipNo = 0):
-        self._VM.asXapiObject().ipv6NetworkAddress(deviceNo, ipNo)
+        return self._VM.asXapiObject().ipv6NetworkAddress(deviceNo, ipNo)
 
     def getVMCPUUsage(self):
         return float(self._VM.asXapiObject().cpuUsage['0'])*100

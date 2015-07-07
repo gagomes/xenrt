@@ -106,7 +106,7 @@ class WindowsHost(xenrt.GenericHost):
 
     def installWindows(self):
         # Set up the ISO
-        mount = xenrt.mountWinISO(self.productVersion)
+        mount = xenrt.mountStaticISO(self.productVersion)
         nfsdir = xenrt.NFSDirectory()
         xenrt.command("ln -sfT %s %s/iso" % (mount, nfsdir.path()))
 

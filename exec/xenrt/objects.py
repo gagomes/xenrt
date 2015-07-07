@@ -3662,9 +3662,9 @@ DHCPServer = 1
         if not arch:
             arch = self.arch
 
-        url = xenrt.TEC().lookup(["RPM_SOURCE", distro, arch, "HTTP"], None)
-        if not url:
-            return False
+        path = xenrt.mountStaticISO(distro, arch)
+
+        url = "%s%s" % (xenrt.TEC().lookup("RPM_SOURCE_HTTP_BASE"), path)
         try:
             # All versions of CentOS and RHEL7+ don't have Server in the repo path
             if distro.startswith("centos") or distro.startswith("rhel7") or distro.startswith("oel7") or distro.startswith("sl"):
@@ -5486,7 +5486,8 @@ class GenericHost(GenericPlace):
         self.distro = distro
 
         try:
-            repository = xenrt.TEC().lookup(["RPM_SOURCE", distro, arch, method])
+            path = xenrt.mountStaticISO(distro, arch)
+            repository = "%s%s" % (xenrt.TEC().lookup(["RPM_SOURCE_%s_BASE" % method]), path)
 
         except:
             raise xenrt.XRTError("No %s repository for %s %s" %
@@ -5644,11 +5645,8 @@ class GenericHost(GenericPlace):
         self.arch = arch
         self.distro = distro
         try:
-            repositories = string.split(xenrt.TEC().lookup(["RPM_SOURCE",
-                                                            distro,
-                                                            arch,
-                                                            method]))
-            repository = repositories[0]
+            path = xenrt.mountStaticISO(distro, arch)
+            repository = "%s%s" % (xenrt.TEC().lookup(["RPM_SOURCE_%s_BASE" % method]), path)
         except:
             raise xenrt.XRTError("No %s repository for %s %s" %
                                  (method, arch, distro))
@@ -5749,7 +5747,8 @@ class GenericHost(GenericPlace):
         self.distro = distro
 
         try:
-            repository = xenrt.TEC().lookup(["RPM_SOURCE", distro, arch, method])
+            path = xenrt.mountStaticISO(distro, arch)
+            repository = "%s%s" % (xenrt.TEC().lookup(["RPM_SOURCE_%s_BASE" % method]), path)
 
         except:
             raise xenrt.XRTError("No %s repository for %s %s" %
@@ -8141,10 +8140,10 @@ class GenericGuest(GenericPlace):
                     return nfsip
 
                 # Solaris needs pxegrub to install over NFS/HTTP/FTP
-                installdir = xenrt.TEC().lookup(["RPM_SOURCE",distro,self.arch,"NFS"])
+                installdir = xenrt.mountStaticISO(distro, self.arch)
                 installdir = resolvNfs(installdir)
                 configdir = resolvNfs(configdir)
-                repository_http = xenrt.TEC().lookup(["RPM_SOURCE",distro,self.arch,"HTTP"])
+                repository_http = "%s%s" % (xenrt.TEC().lookup(["RPM_SOURCE_%s_BASE" % method]), path)
                 pxebootdir_template = "%s/boot.tar.bz2" % repository_http
                 # installation from a repo only available in Solaris via NFS
                 if method != "NFS": installdir = configdir
@@ -11349,7 +11348,8 @@ class V6LicenseServer(object):
 
             self.place.writeToConsole("sed -i \"/mirrorlist/d\" /etc/yum.repos.d/*\\n")
             xenrt.sleep(5)
-            self.place.writeToConsole("sed -i \"s@#baseurl=http://mirror.centos.org/centos/\$releasever/os/\$basearch/@baseurl=%s@\" /etc/yum.repos.d/*\\n" % xenrt.TEC().lookup(["RPM_SOURCE","centos55","x86-64","HTTP"]))
+            path = xenrt.mountStaticISO("centos55", "x86-64")
+            self.place.writeToConsole("sed -i \"s@#baseurl=http://mirror.centos.org/centos/\$releasever/os/\$basearch/@baseurl=%s%s@\" /etc/yum.repos.d/*\\n" % (xenrt.TEC().lookup(["RPM_SOURCE_HTTP_BASE"]), path))
             xenrt.sleep(5)
 
             #Add the root to lmadmin group so the root has priviledges to lmreread                       

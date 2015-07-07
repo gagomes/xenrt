@@ -3153,10 +3153,8 @@ fi
                 isoname = None
                 if not "Etch" in template and not "Sarge" in template and not "Demo Linux VM" in template:
                     try:
-                        repository = string.split(xenrt.TEC().lookup(["RPM_SOURCE",
-                                                                      distro,
-                                                                      arch,
-                                                                      "HTTP"]))[0]
+                        path = xenrt.mountStaticISO(distro, arch)
+                        repository = "%s%s" % (xenrt.TEC().lookup(["RPM_SOURCE_HTTP_BASE"]), path)
                     except:
                         raise xenrt.XRTError("No HTTP repository for %s %s" %
                                              (arch, distro))
@@ -14119,10 +14117,8 @@ class Tile(object):
                                                          'sr':sr}))
 
         try:
-            repository = string.split(xenrt.TEC().lookup(["RPM_SOURCE",
-                                                          linuxDistro,
-                                                          "x86-32",
-                                                          "HTTP"]))[0]
+            path = xenrt.mountStaticISO(linuxDistro, "x86-32")
+            repository = "%s%s" % (xenrt.TEC().lookup(["RPM_SOURCE_HTTP_BASE"]), path)
         except:
             raise xenrt.XRTError("No HTTP repository for x86-32 %s" %
                                  (linuxDistro))

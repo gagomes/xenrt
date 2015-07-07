@@ -506,10 +506,10 @@ class TCISCSIBoot(xenrt.TestCase): # TC20845
             <MANAGEMENT />
         </PHYSICAL>
     </NETWORK>""")
-        self.bootLun = xenrt.ISCSINativeLinuxLun(self.iscsiHost, sizeMB = 20*xenrt.KILO)
+        self.bootLun = xenrt.ISCSINativeLinuxLun(self.iscsiHost, sizeMB = 50*xenrt.KILO)
 
         # Handling CA-121665
-        self.lun = xenrt.ISCSINativeLinuxLun(self.iscsiHost, sizeMB = 50*xenrt.KILO)
+        self.lun = xenrt.ISCSINativeLinuxLun(self.iscsiHost, sizeMB = 60*xenrt.KILO)
         xenrt.TEC().registry.resourcePut("ISCSISRLUN", self.lun)
 
     def run(self, arglist):
@@ -530,10 +530,10 @@ class TCISCSIMultipathBoot(xenrt.TestCase): #TC20851
             <STORAGE />
         </PHYSICAL>
     </NETWORK>""")
-        self.bootLun = xenrt.ISCSINativeLinuxLun(self.iscsiHost, sizeMB = 20*xenrt.KILO)
+        self.bootLun = xenrt.ISCSINativeLinuxLun(self.iscsiHost, sizeMB = 50*xenrt.KILO)
         
         # Handling CA-121665
-        srlun = xenrt.ISCSINativeLinuxLun(self.iscsiHost, sizeMB = 50*xenrt.KILO)
+        srlun = xenrt.ISCSINativeLinuxLun(self.iscsiHost, sizeMB = 60*xenrt.KILO)
         xenrt.TEC().registry.resourcePut("ISCSISRLUN", srlun)
 
     def run(self, arglist):

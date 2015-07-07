@@ -1253,7 +1253,7 @@ class PrepareNode(object):
                 # subsequent re-prepares.
                 if self.preparecount == 1:
                     for host in masters:
-                        if not host.has_key("noisos") or not host["noisos"]:
+                        if not host.get("noisos") and not xenrt.TEC().lookup("NO_ISO_SRS", False, boolean=True):
                             self.srs.insert(0, {"host":host["name"], 
                                                 "name":"XenRT ISOs",
                                                 "type":"iso",

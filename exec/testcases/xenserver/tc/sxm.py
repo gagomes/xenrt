@@ -1808,10 +1808,10 @@ class InsuffSpaceDestSR(MidMigrateFailure):
         #creating large VDI(100GB) on destination SR
         if self.test_config['type_of_migration'] != 'LiveVDI':
             host = self.test_config['dest_host']
-            localSr = host.getLocalSR()
-            localSRSize = int(host.getSRParam(localSr, "physical-size"))
-            srFreeSpace = localSRSize - int(host.getSRParam(localSr, "physical-utilisation"))
-            vdi = host.createVDI( srFreeSpace - 10 * xenrt.GIGA)
+            localSR = host.getLocalSR()
+            localSRSize = int(host.getSRParam(localSR, "physical-size"))
+            srFreeSpace = localSRSize - int(host.getSRParam(localSR, "physical-utilisation"))
+            vdi = host.createVDI( sizebytes = srFreeSpace - 10 * xenrt.GIGA, sruuid = localSR)
 
 class LargeDiskWin(LiveMigrate):
 

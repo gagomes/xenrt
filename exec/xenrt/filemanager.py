@@ -409,6 +409,8 @@ class FileManager(object):
             if os.path.exists(sharedDir):
                 entries = os.listdir(sharedDir)
                 for entry in entries:
+                    if entry == ".snapshot":
+                        continue
                     cachepath = "%s/%s" % (sharedDir, entry)
                     mtime = os.path.getmtime(cachepath)
                     if (time.time() - mtime) > (days*24*3600):

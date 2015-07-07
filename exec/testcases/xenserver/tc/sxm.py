@@ -1667,6 +1667,12 @@ class MidMigrateFailure(LiveMigrate):
         if self.args.has_key('monitoring_failure'):
             self.test_config['monitoring_failure'] = self.args['monitoring_failure']
 
+        if self.args.has_key('src_host'):
+            self.test_config['src_host'] = self.getHost(self.args['src_host'])
+
+        if self.args.has_key('dest_host'):
+            self.test_config['dest_host'] = self.getHost(self.args['dest_host'])
+
         return
 
     def srFailure(self,host):

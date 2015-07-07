@@ -3309,32 +3309,34 @@ class Attacker(VMSecurityFacade):
         self.scapy.install()
 
     def installHCFloodRouterUbuntu(self, privateNetwork):
-        self.hCFloodRouterPackage = xenrt.networkutils.HackersChoiceFloodRouter26Ubuntu(privateNetwork)
-        self.hCFloodRouterPackage.install(self._VM)
+        hCFloodRouterPackage = xenrt.networkutils.HackersChoiceFloodRouter26Ubuntu(privateNetwork)
+        hCFloodRouterPackage.install(self._VM)
+        return hCFloodRouterPackage
 
     def installHCFirewall6Ubuntu(self, privateNetwork):
-        self.hCFirewall6Package = xenrt.networkutils.HackersChoiceFirewall6Ubuntu(privateNetwork)
-        self.hCFirewall6Package.install(self._VM) 
+        hCFirewall6Package = xenrt.networkutils.HackersChoiceFirewall6Ubuntu(privateNetwork)
+        hCFirewall6Package.install(self._VM)
+        return hCFirewall6Package
 
-    def runHCFloodRouterUbuntu(self):
-        self.hCFloodRouterPackage.run(self._VM)
+    def runHCUbuntuPackage(self,package):
+        package.run(self._VM)
 
     def identifyWinVictims(self):
         return [Victim(xenrt.TEC().registry.guestGet(x)) for x in self._VM.host.listGuests() if x.windows]
 
-    def hCFloodRouterMaxOutVictim(self, victim, count=0):
+    def hCFloodRouterMaxOutVictim(self, victim,package,count=0):
         gameOver = time.time() + (60 * 30) # Timeout 30 mins
         log("Game over at: %s" % str(gameOver))
         
         log("Package started to run at %s " + str(time.time()))
-        self.runHCFloodRouterUbuntu()
+        self.runHCUbuntuPackage(package)
         while not victim.victimIsMaxedOut:
             if not time.time() < gameOver:
                 log("Timed out while trying to max out the guest")
                 victim.HostIsMaxedOut(True)
                 if count <= 5:
                     log("Retrying attack %s of 5" % str(count+1))
-                    self.hCFloodRouterMaxOutVictim(victim,count+1)
+                    self.hCFloodRouterMaxOutVictim(victim,package,count+1)
                 else:
                     raise xenrt.XRTFailure("All attempted attacks failed to max out the guest")
             if count > 0:
@@ -3360,13 +3362,13 @@ class TCHackersChoiceIPv6FloodRouter(xenrt.TestCase):
         #-------------------------
         step("Install package")
         #-------------------------
-        attacker.installHCFloodRouterUbuntu(net.PRIVATE_NETWORK)
+        package = attacker.installHCFloodRouterUbuntu(net.PRIVATE_NETWORK)
         victims = attacker.identifyWinVictims()
         targetVM = next(v for v in victims if v.getName() == "victim1")
          #----------------------------------------------------------
         step("Run the package and check for the guest maxing out") 
         #----------------------------------------------------------
-        attacker.hCFloodRouterMaxOutVictim(targetVM)
+        attacker.hCFloodRouterMaxOutVictim(targetVM, package)
         #-------------------------------
         step("Shutdown the attacker")
         #-------------------------------
@@ -3419,12 +3421,13 @@ class TCBadPackets(xenrt.TestCase):
 
 
 class TCHackersChoiceIPv6Firewall6(xenrt.TestCase):
+    self.__package = None
 
     def _runPackageTestCase(self, attacker, victim, hackNumber):
         #----------------------------------------
         step("Run attack %d...." % hackNumber)
         #----------------------------------------
-        attacker.hCFirewall6Package.runtestcase(attacker.getVM(),hackNumber)
+        self.__package.runtestcase(attacker.getVM(),hackNumber)
         time.sleep(10)
         log("Results of attack: %s" % str(attacker.hCFirewall6Package.results()))
         try:
@@ -3440,7 +3443,7 @@ class TCHackersChoiceIPv6Firewall6(xenrt.TestCase):
             raise xenrt.XRTFailure(e)
 
     def __runAllPackageTests(self, attacker, victim, ipv6Address):
-        attacker.hCFirewall6Package.setIPv6Address(ipv6Address)
+        self.__package.setIPv6Address(ipv6Address)
         #------------------------------------------------------------
         step("Running attacks from %s on vm %s" % (attacker.getName(), victim.getName()))
         #------------------------------------------------------------
@@ -3459,7 +3462,7 @@ class TCHackersChoiceIPv6Firewall6(xenrt.TestCase):
         #-------------------------
         step("Install package")
         #-------------------------
-        attacker.installHCFirewall6Ubuntu(net.PRIVATE_NETWORK)
+        self.__package = attacker.installHCFirewall6Ubuntu(net.PRIVATE_NETWORK)
         victims = attacker.identifyWinVictims()
         for victim in victims:
             ipv6Address = victim.ipv6NetworkAddress(1)
@@ -3496,13 +3499,13 @@ class TCIPv6FloodRouterStress(xenrt.TestCase):
         #-------------------------
         step("Install package")
         #-------------------------
-        attacker.installHCFloodRouterUbuntu(net.PRIVATE_NETWORK)
+        package = attacker.installHCFloodRouterUbuntu(net.PRIVATE_NETWORK)
         victims = attacker.identifyWinVictims()
         if not victims:
             raise xenrt.XRTFailure("Couldn't find a windows host")
         #----------------------------------------------------------
         step("Run the package and check for the guest maxing out")
         #----------------------------------------------------------
-        attacker.hCFloodRouterMaxOutVictim(victims[0])
+        attacker.hCFloodRouterMaxOutVictim(victims[0],package)
         self.__wait(victims)
         victims[0].hostIsMaxedOut(True)

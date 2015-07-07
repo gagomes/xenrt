@@ -3257,6 +3257,7 @@ class VMSecurityFacade(object):
     def getName(self):
         return self._VM.name
 
+
 class Victim(VMSecurityFacade):
     __MAXED_OUT_THRESHOLD = 50.0
 
@@ -3297,6 +3298,7 @@ class Victim(VMSecurityFacade):
             log("zzzzz.....")
             time.sleep(10)
 
+
 class Attacker(VMSecurityFacade):
 
     def __init__(self,guest):
@@ -3316,6 +3318,9 @@ class Attacker(VMSecurityFacade):
 
     def runHCFloodRouterUbuntu(self):
         self.hCFloodRouterPackage.run(self._VM)
+
+    def identifyWinVictims(self):
+        return [Victim(xenrt.TEC().registry.guestGet(x)) for x in self._VM.host.listGuests() if x.windows]
 
     def hCFloodRouterMaxOutVictim(self, victim, count=0):
         gameOver = time.time() + (60 * 30) # Timeout 30 mins
@@ -3340,6 +3345,7 @@ class Attacker(VMSecurityFacade):
         time.sleep(10 * 3)
         log("%s CPU usage is maxed out: %s" % (victim.getName(), str(victim.victimIsMaxedOut())))
 
+
 class TCHackersChoiceIPv6FloodRouter(xenrt.TestCase):
 
     def run(self, arglist):
@@ -3353,7 +3359,7 @@ class TCHackersChoiceIPv6FloodRouter(xenrt.TestCase):
         step("Install package")
         #-------------------------
         attacker.installHCFloodRouterUbuntu(net.PRIVATE_NETWORK)
-        victims = [Victim(t) for t in [xenrt.TEC().registry.guestGet(x) for x in attacker.getHost().listGuests()] if t.windows]
+        victims = attacker.identifyWinVictims()
         if not victims:
             raise xenrt.XRTFailure("Couldn't find a windows host")
         targetVM = None
@@ -3396,6 +3402,7 @@ class TCHackersChoiceIPv6FloodRouter(xenrt.TestCase):
         for victim in victims:
             victim.healthStatus()
 
+
 class TCBadPackets(xenrt.TestCase):
 
     def run(self, arglist):
@@ -3408,16 +3415,14 @@ class TCBadPackets(xenrt.TestCase):
         # this is a base64 encoded pcap of a single broadcast packet with multiple VLAN tags (SCTX-1529)
         badPackets = ["1MOyoQIABAAAAAAAAAAAAACQAQABAAAAAAAAAAAAAAAgAAAAIAAAAP///////wAB/uHerYEAAEqBAABKgQDerd6t3q3erd6t"]
         attacker.installScapy()
-
         for p in badPackets:
             attacker.scapy.sendPacket(net.PRIVATE_NETWORK, p)
-
         xenrt.sleep(30)
-
-        victims = [Victim(t) for t in [xenrt.TEC().registry.guestGet(x) for x in attacker.getHost().listGuests()] if t.windows]
+        victims = attacker.identifyWinVictims()
         if victims:
             for victim in victims:
                 victim.healthStatus()
+
 
 class TCHackersChoiceIPv6Firewall6(xenrt.TestCase):
 
@@ -3461,7 +3466,7 @@ class TCHackersChoiceIPv6Firewall6(xenrt.TestCase):
         step("Install package")
         #-------------------------
         attacker.installHCFirewall6Ubuntu(net.PRIVATE_NETWORK)
-        victims = [Victim(t) for t in [xenrt.TEC().registry.guestGet(x) for x in attacker.getHost().listGuests()] if t.windows]
+        victims = attacker.identifyWinVictims()
         for victim in victims:
             ipv6Address = victim.ipv6NetworkAddress(1)
             if ipv6Address:
@@ -3469,6 +3474,7 @@ class TCHackersChoiceIPv6Firewall6(xenrt.TestCase):
             else:
                 log("skipping %s tests...." % victim.getName())
                 continue
+
 
 class TCIPv6FloodRouterStress(xenrt.TestCase):
     __STRESS_DURATION = 60 * 60 * 24
@@ -3497,14 +3503,12 @@ class TCIPv6FloodRouterStress(xenrt.TestCase):
         step("Install package")
         #-------------------------
         attacker.installHCFloodRouterUbuntu(net.PRIVATE_NETWORK)
-        victims = [Victim(t) for t in [xenrt.TEC().registry.guestGet(x) for x in attacker.getHost().listGuests()] if t.windows]
+        victims = attacker.identifyWinVictims()
         if not victims:
             raise xenrt.XRTFailure("Couldn't find a windows host")
-
         #----------------------------------------------------------
         step("Run the package and check for the guest maxing out")
         #----------------------------------------------------------
         attacker.hCFloodRouterMaxOutVictim(victims[0])
-
         self.__wait(victims)
         victims[0].hostIsMaxedOut(True)

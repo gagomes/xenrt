@@ -10,40 +10,8 @@
 
   <prepare>
     <host id="0" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}">
-      <vm name="VMWin2k80">
-        <distro>ws12r2core-x64</distro>
-        <memory>1024</memory>
-        <vcpus>2</vcpus>
-        <postinstall action="installDrivers" />
-        <network device="0" />
-        <disk device="0" size="24" />
-      </vm>
-      <vm name="VMWin2k81">
-        <distro>ws12r2core-x64</distro>
-        <memory>1024</memory>
-        <vcpus>2</vcpus>
-        <postinstall action="installDrivers" />
-        <network device="0" />
-        <disk device="0" size="24" />
-      </vm>
-      <vm name="VMWin2k82">
-        <distro>ws12r2core-x64</distro>
-        <memory>1024</memory>
-        <vcpus>2</vcpus>
-        <postinstall action="installDrivers" />
-        <network device="0" />
-        <disk device="0" size="24" />
-      </vm>
-      <vm name="VMWin2k83">
-        <distro>ws12r2core-x64</distro>
-        <memory>1024</memory>
-        <vcpus>2</vcpus>
-        <postinstall action="installDrivers" />
-        <network device="0" />
-        <disk device="0" size="24" />
-      </vm>
-      <vm name="VMWin2k84">
-        <distro>ws12r2core-x64</distro>
+      <vm name="templateVM">
+        <distro>ws08-x86</distro>
         <memory>1024</memory>
         <vcpus>2</vcpus>
         <postinstall action="installDrivers" />
@@ -58,10 +26,8 @@
       <arg>input=DEFAULT</arg>
     </testcase>
     <testcase id="xenserver.install.TCApplyReqdPatches"/>
-    <testcase id="xenserver.tc.pvdrivers.TCToolsMissingUninstall" name="TC23775" tc="TC-23775" />
     <testcase id="xenserver.tc.pvdrivers.TCToolsVBscriptEngineOff" name="TC27017" tc="TC-27017" />
     <testcase id="xenserver.tc.pvdrivers.TCSysrepAfterToolsUpgrade" name="TC27018" tc="TC-27018" />
     <testcase id="xenserver.tc.pvdrivers.TCToolsIPv6Disabled" name="TC27019" tc="TC-27019" />
-    <testcase id="xenserver.tc.pvdrivers.TCInstallXenToolsStepByStep" name="TC27011" tc="TC-27011" />
   </testsequence>
 </xenrt>

@@ -1421,30 +1421,6 @@ at > c:\\xenrtatlog.txt
             os.unlink(tmp)
         except:
             xenrt.TEC().warning("Failed to remove file %s" % tmp)
-
-    def installDriversStepByStep(self, waitForDaemon=True):
-
-        # Insert the tools ISO
-        self.changeCD("xs-tools.iso")
-        xenrt.sleep(30)
-        batch = []
-        batch.append("MsiExec.exe /i D:\\citrixxendriversx64.msi /passive /norestart\r\n")
-        batch.append("ping 127.0.0.1 -n 10 -w 1000\r\n")
-        batch.append("MsiExec.exe /i D:\\citrixvssx64.msi /passive /norestart\r\n")
-        batch.append("ping 127.0.0.1 -n 10 -w 1000\r\n")
-        batch.append("D:/dotNetFx40_Full_x86_x64.exe /passive /norestart\r\n")
-        batch.append("MsiExec.exe /i D:\\citrixguestagentx64.msi /passive /norestart\r\n")
-        batch.append("ping 127.0.0.1 -n 10 -w 1000\r\n")
-        batch.append("MsiExec.exe /i D:\\installwizard.msi /passive /norestart\r\n")
-        batch.append("ping 127.0.0.1 -n 10 -w 1000\r\n")
-
-        self.xmlrpcWriteFile("c:\\inst.bat", string.join(batch))
-        self.xmlrpcExec("c:\\inst.bat")
-        self.reboot()
-        self.reboot()
-        
-        #Eject the tools CD from the VM.
-        self.changeCD(None)
         
     def uninstallDrivers(self,waitForDaemon=True):
         # Write the uninstall script

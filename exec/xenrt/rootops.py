@@ -121,7 +121,10 @@ def mountStaticISO(distro, arch=None):
         check = "Autounattend.xml"
         mountpoint = "/winmedia/%s" % distro
     else:
-        iso = "%s/%s_%s.iso" % (xenrt.TEC().lookup("EXPORT_ISO_LOCAL_STATIC"), xenrt.TEC().lookup(["OS_INSTALL_ISO", distro], distro), arch)
+        stem = "%s/%s_%s" % (xenrt.TEC().lookup("EXPORT_ISO_LOCAL_STATIC"), xenrt.TEC().lookup(["OS_INSTALL_ISO", distro], distro), arch)
+        if not os.path.exists("%s.iso" % stem):
+            stem = "%s_xenrtinst" % stem
+        stem = "%s.iso" % stem
         if distro.startswith("sle"):
             check="README"
         elif distro.startswith("sol"):

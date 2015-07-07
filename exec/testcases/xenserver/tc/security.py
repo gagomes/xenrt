@@ -3345,6 +3345,8 @@ class Attacker(VMSecurityFacade):
         time.sleep(10 * 3)
         log("%s CPU usage is maxed out: %s" % (victim.getName(), str(victim.victimIsMaxedOut())))
 
+    def sendScapyPacket(self, net, packet):
+        self.scapy.sendPacket(net, packet)
 
 class TCHackersChoiceIPv6FloodRouter(xenrt.TestCase):
 
@@ -3408,7 +3410,7 @@ class TCBadPackets(xenrt.TestCase):
         badPackets = ["1MOyoQIABAAAAAAAAAAAAACQAQABAAAAAAAAAAAAAAAgAAAAIAAAAP///////wAB/uHerYEAAEqBAABKgQDerd6t3q3erd6t"]
         attacker.installScapy()
         for p in badPackets:
-            attacker.scapy.sendPacket(net.PRIVATE_NETWORK, p)
+            attacker.sendScapyPacket(net.PRIVATE_NETWORK, p)
         xenrt.sleep(30)
         victims = attacker.identifyWinVictims()
         if victims:

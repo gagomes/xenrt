@@ -115,7 +115,7 @@ def mountWinISO(distro):
     """Mount a Windows ISO globally for the controller"""
 
     isolock = xenrt.resources.CentralResource()
-    iso = "%s/%s.iso" % (xenrt.TEC().lookup("EXPORT_ISO_LOCAL_STATIC"), distro)
+    iso = "%s/%s.iso" % (xenrt.TEC().lookup("EXPORT_ISO_LOCAL"), distro)
     mountpoint = "/winmedia/%s" % distro
     attempts = 0
     while True:

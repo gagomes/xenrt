@@ -119,6 +119,7 @@ def mountStaticISO(distro, arch=None):
     if os.path.exists("%s/%s.iso" % (xenrt.TEC().lookup("EXPORT_ISO_LOCAL_STATIC"), distro)):
         iso = "%s/%s.iso" % (xenrt.TEC().lookup("EXPORT_ISO_LOCAL_STATIC"), distro)
         check = "Autounattend.xml"
+        mountpoint = "/winmedia/%s" % distro
     else:
         iso = "%s/%s_%s.iso" % (xenrt.TEC().lookup("EXPORT_ISO_LOCAL"), xenrt.TEC().lookup(["OS_INSTALL_ISO", distro], distro), arch)
         if distro.startswith("sle"):
@@ -127,7 +128,7 @@ def mountStaticISO(distro, arch=None):
             check="Copyright"
         else:
             check="isolinux/isolinux.cfg"
-    mountpoint = "/winmedia/%s" % distro
+        mountpoint = "/linmedia/%s_%s" % (distro, arch)
     attempts = 0
     while True:
         try:

@@ -3322,7 +3322,7 @@ class Attacker(VMSecurityFacade):
         package.run(self._VM)
 
     def identifyWinVictims(self):
-        return [Victim(xenrt.TEC().registry.guestGet(x)) for x in self._VM.host.listGuests() if x.windows]
+        return [Victim(xenrt.TEC().registry.guestGet(x)) for x in self._VM.host.listGuests() if xenrt.TEC().registry.guestGet(x).windows]
 
     def hCFloodRouterMaxOutVictim(self, victim,package,count=0):
         gameOver = time.time() + (60 * 30) # Timeout 30 mins

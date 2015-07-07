@@ -16,6 +16,7 @@
         <postinstall action="installDrivers" />
         <network device="0" />
         <disk device="0" size="24" />
+        <postinstall action="snapshot(name='clean')"/>
       </vm>
       <vm name="masterwin8-x86">
         <distro>win8-x86</distro>
@@ -24,6 +25,7 @@
         <postinstall action="installDrivers" />
         <network device="0" />
         <disk device="0" size="24" />
+        <postinstall action="snapshot(name='clean')"/>
       </vm>
       <vm name="masterwin81-x64">
         <distro>win81-x64</distro>
@@ -33,6 +35,7 @@
         <postinstall action="installDrivers" />
         <network device="0" />
         <disk device="0" size="24" />
+        <postinstall action="snapshot(name='clean')"/>
       </vm>
       <vm name="masterws12-x64">
         <distro>ws12-x64</distro>
@@ -42,6 +45,7 @@
         <postinstall action="installDrivers" />
         <network device="0" />
         <disk device="0" size="32" />
+        <postinstall action="snapshot(name='clean')"/>
       </vm>
     </host>
   </prepare>

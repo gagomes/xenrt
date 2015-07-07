@@ -3218,7 +3218,6 @@ class TC1660(xenrt.TestCase):
 
 class NetworkConfigurator(object):
     PRIVATE_NETWORK = "eth1"
-    __IPV6_TAG = "1/ipv6/0"
 
     def configureWindowsPrivateNet(self,attacker):
         attacker.getVM().configureNetwork(self.PRIVATE_NETWORK, "192.168.1.1", "255.255.255.0")
@@ -3228,18 +3227,6 @@ class NetworkConfigurator(object):
                 g.configureNetwork(self.PRIVATE_NETWORK, "192.168.1." + str(i), "255.255.255.0")
                 i = i + 1
 
-    def getIPV6AddressOfVM(self,VM):
-        addresses = VM.getVM().asXapiObject().networkAddresses()
-        log("Addresses found: %s" % str(addresses))
-        ipv6Network = next((n for n in addresses if self.__IPV6_TAG in n), None)
-        log("IPV6 address %s found with ID: %s" % (ipv6Network, self.__IPV6_TAG))
-                    
-        if ipv6Network:
-            ipv6Address = (':'.join(ipv6Network.split(':')[1:])).strip()
-            return ipv6Address
-        else:
-            log("No IPV6 guest found for guest %s" % VM.getName())
-            return None
 
 class VM(object):
 
@@ -3249,6 +3236,9 @@ class VM(object):
 
     def healthStatus(self):
         self._VM.checkHealth()
+
+    def ipv6NetworkAddress(self, deviceNo = 0, ipNo = 0):
+        self._VM.asXapiObject().ipv6NetworkAddress(deviceNo, ipNo)
 
     def checkVMCPUUsage(self):
         return float(self._VM.asXapiObject().cpuUsage['0'])*100
@@ -3469,7 +3459,7 @@ class TCHackersChoiceIPv6Firewall6(xenrt.TestCase, object):
         attacker.installHCFirewall6Ubuntu(net.PRIVATE_NETWORK)
         victims = [Victim(t) for t in [xenrt.TEC().registry.guestGet(x) for x in attacker.getHost().listGuests()] if t.windows]
         for victim in victims:
-            ipv6Address = net.getIPV6AddressOfVM(victim)
+            ipv6Address = victim.ipv6NetworkAddress(1)
             if ipv6Address:
                 self.__runAllPackageTests(attacker,victim,ipv6Address)
             else:

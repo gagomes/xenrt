@@ -198,6 +198,19 @@ class VM(NamedXapiObject):
     def networkAddresses(self):
         return self.getListParam(self.__NETWORK_ADDRESSES)
 
+    def ipv6NetworkAddress(self, deviceNo = 0, ipNo = 0):
+        addresses = self.networkAddresses()
+        tag = str(deviceNo) + "/ipv6/" + str(ipNo)
+        log("Addresses found: %s" % str(addresses))
+        ipv6Network = next((n for n in addresses if tag in n), None)
+        log("IPV6 address %s found with ID: %s" % (ipv6Network, tag))
+        if ipv6Network:
+            ipv6Address = (':'.join(ipv6Network.split(':')[1:])).strip()
+            return ipv6Address
+        else:
+            log("No IPV6 guest found for guest %s" % self.name())
+            return None
+
     @xenrt.irregularName
     def XapiHost(self):
         return self.getObjectParam(XapiHost.OBJECT_TYPE, self.__RESIDENT)

@@ -66,6 +66,8 @@ class Config(object):
         self.config["EXPORT_ISO_NFS"] = "${XENRT_SERVER_ADDRESS}:${XENRT_BASE}/images/iso"
         self.config["EXPORT_ISO_NFS_STATIC"] = "${XENRT_SERVER_ADDRESS}:${BINARY_INPUTS_LINUX}/iso"
         self.config["EXPORT_XGT_NFS"] = "${XENRT_SERVER_ADDRESS}:${XENRT_BASE}/images/xgts"
+        self.config["RPM_SOURCE_NFS"] = "${XENRT_SERVER_ADDRESS}:${BINARY_INPUTS_LINUX}/distros"
+        self.config["RPM_SOURCE_HTTP"] = "${LOCALURL}/linux/distros"
         self.config["RPM_SOURCE_HTTP_BASE"] = "${LOCALURL}"
         self.config["RPM_SOURCE_NFS_BASE"] = "${XENRT_SERVER_ADDRESS}:"
         self.config["TFTP_BASE"] = "/tftpboot"

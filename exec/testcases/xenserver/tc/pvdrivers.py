@@ -1103,11 +1103,13 @@ class CA90861Frequency(xenrt.TestCase):
             raise xenrt.XRTFailure("VM failed to boot successfully at least once")
 
 class TCToolsMissingUninstall(xenrt.TestCase):
-    """Test for SCTX-1634. Verify upgrade of XenTools from XS 6.0 to XS 6.2 is successfull"""
+    """Test for SCTX-1634. Verify upgrade of XenTools from a particular version to the latest version is successfull"""
     #TC-23775
     def prepare(self, arglist=None):
         self.host = self.getDefaultHost()
-        self.guest = self.host.getGuest("VMWin2k8")
+        templateVM = self.host.getGuest("templateVM")
+        self.guest = templateVM.cloneVM()
+        self.host.addGuest(self.guest)
         self.guest.start()
 
     def run(self, arglist=None):
@@ -1122,7 +1124,87 @@ class TCToolsMissingUninstall(xenrt.TestCase):
             xenrt.TEC().logverbose("Tools are upto date")
         else:
             raise xenrt.XRTFailure("Guest tools are out of date")
+            
+class TCToolsVBscriptEngineOff(xenrt.TestCase):
+    """Test for SCTX-1650. Verify upgrade of XenTools from a particular version to the latest version is successfull when vbscript engine is not available"""
+    #TC-27017
+    def prepare(self, arglist=None):
+        self.host = self.getDefaultHost()
+        templateVM = self.host.getGuest("templateVM")
+        self.guest = templateVM.cloneVM()
+        self.host.addGuest(self.guest)
+        self.guest.start()
+        
+    def run(self, arglist=None):
+        step("Disable vbscript Engine")
+        self.guest.disableVbscriptEngine()
+        self.guest.reboot()
+        
+        step("Install latest PV tools")
+        self.guest.installDrivers()
+        self.guest.waitForAgent(60)
+        
+        if self.guest.pvDriversUpToDate():
+            xenrt.TEC().logverbose("Tools are upto date")
+        else:
+            raise xenrt.XRTFailure("Guest tools are out of date")
+            
+class TCSysrepAfterToolsUpgrade(xenrt.TestCase):
+    """Test for SCTX-1906. verifies that after upgrade of XenTools from a particular version to the latest version, Sysrep.exe runs successfully"""
+    #TC-27018
+    def prepare(self, arglist=None):
+        self.host = self.getDefaultHost()
+        templateVM = self.host.getGuest("templateVM")
+        self.guest = templateVM.cloneVM()
+        self.host.addGuest(self.guest)
+        self.guest.start()    
+        
+        step("Install latest PV tools")
+        self.guest.installDrivers()
+        self.guest.waitForAgent(60)
+        
+        if self.guest.pvDriversUpToDate():
+            xenrt.TEC().logverbose("Tools are upto date")
+        else:
+            raise xenrt.XRTFailure("Guest tools are out of date")
 
+
+    def run(self, arglist=None):
+        step("Check whether Sysprep gets installed")
+        oldComputerName=self.guest.xmlrpcGetEnvVar('COMPUTERNAME')
+        self.guest.xmlrpcDoSysprep()
+        self.guest.reboot()
+        self.guest.checkPVDevices()
+        newComputerName=self.guest.xmlrpcGetEnvVar('COMPUTERNAME')
+        if oldComputerName != newComputerName:
+            xenrt.TEC().logverbose("Sysprep ran successfully after tools upgrade.")
+        else:
+            raise xenrt.XRTFailure("Sysprep doesn't run successfully after tools upgrade.")
+         
+        
+class TCToolsIPv6Disabled(xenrt.TestCase):
+    """Test for SCTX-1919. Verify upgrade of XenTools from a particular version to the latest version is successful when IPv6 is disabled"""
+    #TC-27019
+    def prepare(self, arglist=None):
+        self.host = self.getDefaultHost()
+        templateVM = self.host.getGuest("templateVM")
+        self.guest = templateVM.cloneVM()
+        self.host.addGuest(self.guest)
+        self.guest.start()
+        
+    def run(self, arglist=None):
+        step("Disable IPv6 Settings")
+        self.guest.disableIPv6()
+      
+        step("Install latest PV tools")
+        self.guest.installDrivers()
+        self.guest.waitForAgent(60)
+        
+        if self.guest.pvDriversUpToDate():
+            xenrt.TEC().logverbose("Tools are upto date")
+        else:
+            raise xenrt.XRTFailure("Guest tools are out of date")
+    
 class TCBootStartDriverUpgrade(xenrt.TestCase):
     """Test for CA-158777 upgrade issue with boot start driver"""
 

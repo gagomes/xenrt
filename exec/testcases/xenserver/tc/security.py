@@ -3263,29 +3263,20 @@ class Victim(VMSecurityFacade):
     def __init__(self,guest):
         super(Victim,self).__init__(guest)
 
-    def victimIsMaxedOut(self,exc = False):
-        usage = self.getVMCPUUsage()
-        log("%s CPU usage is %.2f" % (self.getName(), usage))
+    def victimIsMaxedOut(self,raiseExceptionOnFailure = False):
+        return self.__isMaxedOut(self.getVMCPUUsage(),self.getName(),raiseExceptionOnFailure)
+
+    def hostIsMaxedOut(self, raiseExceptionOnFailure = False):
+        return self.__isMaxedOut(self.getHostCPUUsage(),"Host",raiseExceptionOnFailure)
+
+    def __isMaxedOut(self, usuage, name, raiseExceptionOnFailure = False):
         if usage > self.__MAXED_OUT_THRESHOLD:
-            if exc:
-                raise xenrt.XRTFailure("%s CPU is maxed out at %.2f%%" % (self.getName(),usage))
+            if raiseExceptionOnFailure:
+                raise xenrt.XRTFailure("%s CPU is maxed out at %.2f%%" % (name, usage))
             else:
                 return True
         else:
-            log("%s CPU is %.2f%%, which is under threshold" % (self.getName(),usage))
-            return False
-
-    def hostIsMaxedOut(self, exc = False):
-        usage = self.getHostCPUUsage()
-        if usage > self.__MAXED_OUT_THRESHOLD:
-            if exc:
-                raise xenrt.XRTFailure("Host CPU is maxed out at %.2f%%" % usage)
-            else:
-                return True
-        else:
-                log("Host CPU is %.2f%%, which is under threshold" % usage)
-                return False
-
+                log("%s CPU is %.2f%%, which is under threshold" % (name, usage))
 
     def healthStatusOverTime(self):
         verifyEnd = time.time() + (60 * 5) # 5 mins
@@ -3323,7 +3314,7 @@ class Attacker(VMSecurityFacade):
     def identifyWinVictims(self):
         return [Victim(xenrt.TEC().registry.guestGet(x)) for x in self._VM.host.listGuests() if xenrt.TEC().registry.guestGet(x).windows]
 
-    def hCFloodRouterMaxOutVictim(self, victim,package,count=0):
+    def hCMaxOutVictim(self, victim,package,count=0):
         gameOver = time.time() + (60 * 30) # Timeout 30 mins
         log("Game over at: %s" % str(gameOver))
         
@@ -3335,7 +3326,7 @@ class Attacker(VMSecurityFacade):
                 victim.HostIsMaxedOut(True)
                 if count <= 5:
                     log("Retrying attack %s of 5" % str(count+1))
-                    self.hCFloodRouterMaxOutVictim(victim,package,count+1)
+                    self.hCMaxOutVictim(victim,package,count+1)
                 else:
                     raise xenrt.XRTFailure("All attempted attacks failed to max out the guest")
             if count > 0:
@@ -3367,7 +3358,7 @@ class TCHackersChoiceIPv6FloodRouter(xenrt.TestCase):
          #----------------------------------------------------------
         step("Run the package and check for the guest maxing out") 
         #----------------------------------------------------------
-        attacker.hCFloodRouterMaxOutVictim(targetVM, package)
+        attacker.hCMaxOutVictim(targetVM, package)
         #-------------------------------
         step("Shutdown the attacker")
         #-------------------------------
@@ -3505,6 +3496,6 @@ class TCIPv6FloodRouterStress(xenrt.TestCase):
         #----------------------------------------------------------
         step("Run the package and check for the guest maxing out")
         #----------------------------------------------------------
-        attacker.hCFloodRouterMaxOutVictim(victims[0],package)
+        attacker.hCMaxOutVictim(victims[0],package)
         self.__wait(victims)
         victims[0].hostIsMaxedOut(True)

@@ -3421,7 +3421,7 @@ class GlobalResource(CentralResource):
         self.resourceHeld = True
 
     def release(self, atExit=False):
-        if not xenrt.util.keepSetup():
+        if not atExit or not xenrt.util.keepSetup():
             xenrt.GEC().dbconnect.api.release_global_resource(self.getName())
             CentralResource.release(self, atExit)
         

@@ -104,6 +104,8 @@ class _VMScalability(_Scalability):
             self.VBDCOUNT=int(value)
         elif param=="distro":
             self.DISTRO=value
+        elif param=="arch":
+            self.ARCH=value
         elif param=="memory": # memory will be accepted as argument, otherwise 256 will be used
             self.MEMORY=int(value)
         elif param=="dom0mem":

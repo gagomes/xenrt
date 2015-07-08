@@ -83,6 +83,13 @@
         <arg>negative_test</arg>
       </testcase>
 
+      <testcase id="xenserver.tc.sxm.InsuffMemoryForLiveVDI" name="TC21672" tc="TC-21672">
+        <arg>test=LiveVDI</arg>
+        <arg>src_SR=lvm</arg>
+        <arg>dest_SR=lvmoiscsi</arg>
+        <arg>negative_test</arg>
+      </testcase>
+
     </serial>
 
   </testsequence>

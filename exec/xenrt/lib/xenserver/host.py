@@ -2355,6 +2355,12 @@ fi
             cvpatches = string.split(cvpatches[0], ",")
         patches.extend(cvpatches)
 
+        #Install internal RPU hotfix, if any
+        if xenrt.TEC().lookup("INSTALL_RPU_HOTFIX", False, boolean=True):
+            rpuPatch = xenrt.TEC().lookup(["VERSION_CONFIG",self.productVersion,"INTERNAL_RPU_HOTFIX"])
+            if rpuPatch:
+                patches.extend([rpuPatch])
+
         # Apply all the patches we found
         for patch in [x for x in patches if x != "None"]:
             patchFile = xenrt.TEC().getFile(patch)
@@ -8337,7 +8343,7 @@ rm -f /etc/xensource/xhad.conf || true
             log("Number of Partitions in dom0 is different from expected number of partitions. Expected %s. Found %s" % (partitions,dom0Partitions ))
             return False
         else:
-            diffkeys = [k for k in partitions if partitions[k] != "*" and int(partitions[k]) - int(dom0Partitions[k]) > 1048576]
+            diffkeys = [k for k in partitions if partitions[k] != "*" and int(partitions[k]) != int(dom0Partitions[k])]
             if len(diffkeys) == 0:
                 log("Dom0 has expected partition schema: %s" % dom0Partitions)
                 return True
@@ -8348,7 +8354,7 @@ rm -f /etc/xensource/xhad.conf || true
     def checkSafe2Upgrade(self):
         """Function to check if new partitions will be created on upgrade to dundee- CAR-1866"""
         #This workaround is required because new plugins are yet to be added to released XS versions
-        if xenrt.TEC().lookup("WORKAROUND_CAR1866", default=True, boolean=True):
+        if xenrt.TEC().lookup("WORKAROUND_CAR1866", default=False, boolean=True) and not isinstance(self, xenrt.lib.xenserver.DundeeHost):
             step("Replace prepare_upgrade_plugin with the custom plugin")
             plugin = xenrt.TEC().getFile("/usr/groups/xenrt/upgrade_plugins/%s_prepare_host_upgrade.py" % (xenrt.TEC().lookup("OLD_PRODUCT_VERSION")))
             sftp = self.sftpClient()
@@ -8365,7 +8371,7 @@ rm -f /etc/xensource/xhad.conf || true
         log("Number of VDIs on local stotage: %d" % vdis)
         srsize = int(self.genParamGet("sr", sruuid, "physical-size"))/xenrt.GIGA
         log("Size of disk: %dGiB" % srsize)
-        expectedOutput = "false" if (vdis > 0 or srsize < 38) else "true"
+        expectedOutput = "false" if (vdis > 0 or srsize < 38) and not isinstance(self, xenrt.lib.xenserver.DundeeHost) else "true"
         log("Plugin should return: %s" % expectedOutput)
 
         cli = self.getCLIInstance()

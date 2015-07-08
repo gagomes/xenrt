@@ -3662,8 +3662,9 @@ DHCPServer = 1
         if not arch:
             arch = self.arch
 
-        url = xenrt.getLinuxRepo(distro, arch, "HTTP")
-
+        url = xenrt.getLinuxRepo(distro, arch, "HTTP", None)
+        if not url:
+            return False
         try:
             # All versions of CentOS and RHEL7+ don't have Server in the repo path
             if distro.startswith("centos") or distro.startswith("rhel7") or distro.startswith("oel7") or distro.startswith("sl"):
@@ -5484,12 +5485,7 @@ class GenericHost(GenericPlace):
         self.arch = arch
         self.distro = distro
 
-        try:
-            repository = xenrt.getLinuxRepo(distro, arch, method)
-
-        except:
-            raise xenrt.XRTError("No %s repository for %s %s" %
-                                 (method, arch, distro))
+        repository = xenrt.getLinuxRepo(distro, arch, method)
 
         if (re.search(r"rhel7", distro) or \
                 re.search(r"centos7", distro) or \
@@ -5642,11 +5638,7 @@ class GenericHost(GenericPlace):
         """Network install of HVM SLES into this host."""
         self.arch = arch
         self.distro = distro
-        try:
-            repository = xenrt.getLinuxRepo(distro, arch, method)
-        except:
-            raise xenrt.XRTError("No %s repository for %s %s" %
-                                 (method, arch, distro))
+        repository = xenrt.getLinuxRepo(distro, arch, method)
         nfsdir = xenrt.NFSDirectory()
         mainDisk = self.getInstallDisk(ccissIfAvailable=False, legacySATA=True)
         ethDevice = self.getDefaultInterface()
@@ -5743,11 +5735,7 @@ class GenericHost(GenericPlace):
         self.arch = arch
         self.distro = distro
 
-        try:
-            repository = xenrt.getLinuxRepo(distro, arch, method)
-        except:
-            raise xenrt.XRTError("No %s repository for %s %s" %
-                                 (method, arch, distro))
+        repository = xenrt.getLinuxRepo(distro, arch, method)
 
         mainDisk=self.getInstallDisk(ccissIfAvailable=False, legacySATA=True)
 

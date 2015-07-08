@@ -70,8 +70,6 @@ class TCDiskThroughput(libperf.PerfTestCase):
 
             # Get the repository location
             r = xenrt.getLinuxRepo(self.distro, self.arch, self.method)
-            if not r:
-                raise xenrt.XRTError("No NFS repository for %s %s" % (self.arch, self.distro))
             self.repo = string.split(r)[0]
 
             # Install from network repository into the VM

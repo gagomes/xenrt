@@ -21,9 +21,6 @@ class _TCVMInstall(xenrt.TestCase):
             self.repository = "cdrom"
         else:
             r = xenrt.getLinuxRepo(self.distro, self.arch, self.METHOD)
-            if not r:
-                raise xenrt.XRTError("No %s repository for %s %s" %
-                                     (self.METHOD, self.arch, self.distro))
             self.repository = string.split(r)[0]
       
     def run(self, arglist):

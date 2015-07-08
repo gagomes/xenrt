@@ -719,11 +719,7 @@ class TCdvdstore(xenrt.TestCaseWrapper):
 
         # Set up the template guest
         extrapackages = ["mysql","mysql-server","mysql-devel","php","php-mysql"]
-        try:
-            repository = xenrt.getLinuxRepo(distro, arch, method)
-        except:
-            raise xenrt.XRTError("No %s repository for %s %s" %
-                                 (method,arch,distro))
+        repository = xenrt.getLinuxRepo(distro, arch, method)
 
         host = xenrt.TEC().registry.hostGet(machine)
         if not host:

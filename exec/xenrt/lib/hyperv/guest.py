@@ -91,10 +91,7 @@ def createVM(host,
     # TODO: boot params
 
     # Try and determine the repository.
-    try:
-        repository = xenrt.getLinuxRepo(distro, arch, "HTTP")
-    except:
-        repository = None
+    repository = xenrt.getLinuxRepo(distro, arch, "HTTP", None)
 
     # Work out the ISO name.
     if not repository:

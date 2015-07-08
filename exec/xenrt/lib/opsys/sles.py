@@ -47,7 +47,7 @@ class SLESBasedLinux(LinuxOS):
 
     @property
     def installURL(self):
-        return xenrt.getLinuxRepo( self.distro, self.arch, "HTTP")
+        return xenrt.getLinuxRepo( self.distro, self.arch, "HTTP", None)
 
     @property
     def installerKernelAndInitRD(self):

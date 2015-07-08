@@ -3158,11 +3158,7 @@ fi
             else:
                 isoname = None
                 if not "Etch" in template and not "Sarge" in template and not "Demo Linux VM" in template:
-                    try:
-                        repository = xenrt.getLinuxRepo(distro, arch, "HTTP")
-                    except:
-                        raise xenrt.XRTError("No HTTP repository for %s %s" %
-                                             (arch, distro))
+                    repository = xenrt.getLinuxRepo(distro, arch, "HTTP")
 
             guest.distro = distro
             guest.arch = arch
@@ -14121,11 +14117,7 @@ class Tile(object):
                                                          'isoname':isoname,
                                                          'sr':sr}))
 
-        try:
-            repository = xenrt.getLinuxRepo(linuxDistro, "x86-32", "HTTP")
-        except:
-            raise xenrt.XRTError("No HTTP repository for x86-32 %s" %
-                                 (linuxDistro))
+        repository = xenrt.getLinuxRepo(linuxDistro, "x86-32", "HTTP")
 
         linG = self.host.guestFactory()("TileTemplate%u" % (templNo),
                                         self.host.getTemplate(linuxDistro),

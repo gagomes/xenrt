@@ -52,10 +52,7 @@ class DebianBasedLinux(LinuxOS):
 
     @property
     def installURL(self):
-        try:
-            return xenrt.getLinuxRepo(self.distro, self.arch, "HTTP")
-        except:
-            return None
+        return xenrt.getLinuxRepo(self.distro, self.arch, "HTTP", None)
 
     @property
     def _architecture(self):

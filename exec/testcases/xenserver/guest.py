@@ -287,8 +287,7 @@ class TCInPlaceP2V(xenrt.TestCase):
             elif l[0] == "version":
                 distro = l[1]
 
-        repository = string.split(\
-            xenrt.TEC().lookup(["RPM_SOURCE", distro, arch, "NFS"]))[0]
+        repository = xenrt.getLinuxRepo( distro, arch, "NFS")
         
         guest = self.getGuest(gname)
         self.guest = guest

@@ -65,7 +65,7 @@ class _TCDebianStyleUpgrade(TCLinuxUpgrade):
         newDistro = self.args['upgradeto']
         distroName = self.DISTRO_NAME_MAP[newDistro][0]
         self.releaseName = self.DISTRO_NAME_MAP[newDistro][1]
-        distroUrl  = xenrt.TEC().lookup(["RPM_SOURCE", newDistro, self.guest.arch, "HTTP"])
+        distroUrl  = xenrt.getLinuxRepo(newDistro, self.guest.arch, "HTTP")
         sourceList = "/etc/apt/sources.list"
 
         self.configureSources(sourceList, distroUrl, distroName)
@@ -124,7 +124,7 @@ class TCCentosUpgrade(TCLinuxUpgrade):
         xenrt.TEC().comment("Pre upgrade completed")
 
     def upgradeCommand(self):
-        centOsurl = xenrt.TEC().lookup(["RPM_SOURCE","centos7","x86-64", "HTTP"])
+        centOsurl = xenrt.getLinuxRepo("centos7","x86-64", "HTTP")
         #import the centos key
         self.guest.execguest("rpm --import %s/RPM-GPG-KEY-CentOS-7" %(centOsurl))
         return "redhat-upgrade-tool --network 7.0 --force --instrepo %s" %(centOsurl)
@@ -161,7 +161,7 @@ class TCOelUpgrade(TCLinuxUpgrade):
         xenrt.TEC().comment("Pre upgrade completed")
 
     def upgradeCommand(self):
-        oel7Url    = xenrt.TEC().lookup(["RPM_SOURCE","oel7","x86-64", "HTTP"])
+        oel7Url = xenrt.getLinuxRepo("oel7","x86-64", "HTTP")
         return "redhat-upgrade-tool --network 7.0 --force --instrepo %s" %(oel7Url)
 
     def checkUpgrade(self):

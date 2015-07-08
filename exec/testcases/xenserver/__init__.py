@@ -394,8 +394,7 @@ class TCMisc(xenrt.TestCase):
         g = None
         try:
             # Create an HVM guest
-            repository = string.split(\
-             xenrt.TEC().lookup(["RPM_SOURCE", "rhel5", "x86-32", "HTTP"]))[0]
+            repository = xenrt.getLinuxRepo("rhel5", "x86-32", "HTTP")
             template = host.chooseTemplate("TEMPLATE_NAME_UNSUPPORTED_HVM")
             g = host.guestFactory()(xenrt.randomGuestName(), template)
             self.guestsToClean.append(g)

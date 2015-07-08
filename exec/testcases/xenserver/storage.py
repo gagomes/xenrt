@@ -356,11 +356,7 @@ class TCMultipleVDI(xenrt.TestCase):
         else:
             # Create a guest.
             try:
-                repository = string.split(\
-                    xenrt.TEC().lookup(["RPM_SOURCE",
-                                        distro,
-                                        arch,
-                                        method]))[0]
+                repository = xenrt.getLinuxRepo(distro, arch, method)
             except:
                 pass
 

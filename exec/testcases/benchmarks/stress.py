@@ -720,8 +720,7 @@ class TCdvdstore(xenrt.TestCaseWrapper):
         # Set up the template guest
         extrapackages = ["mysql","mysql-server","mysql-devel","php","php-mysql"]
         try:
-            repository = string.split(xenrt.TEC().lookup(["RPM_SOURCE",
-                                      distro, arch, method]))[0]
+            repository = xenrt.getLinuxRepo(distro, arch, method)
         except:
             raise xenrt.XRTError("No %s repository for %s %s" %
                                  (method,arch,distro))

@@ -52,8 +52,8 @@ class TestInterfaces(XenRTTestCaseUnitTestCase):
         # Do the verification
         verifyObject(xenrt.interfaces.OSParent, i)
 
-
-def test_osLibraries():
+@patch("xenrt.mountStaticISO")
+def test_osLibraries(mount):
     """Generate tests for each known OS library"""
 
     def oslib_test(oslib):
@@ -77,6 +77,7 @@ def test_osLibraries():
             if not i in implementedInterfaces:
                 raise AssertionError("Interface %s not implemented but stated in supportedInstallMethods" % i.__name__)
 
+    mount.return_value = "/linmedia/test"
     with patch('xenrt.TEC'):
         for l in xenrt.lib.opsys.oslist:
             # We use lambda functions here so we can give them a unique description

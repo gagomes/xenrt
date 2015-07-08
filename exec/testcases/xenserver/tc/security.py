@@ -3269,7 +3269,7 @@ class Victim(VMSecurityFacade):
     def hostIsMaxedOut(self, raiseExceptionOnFailure = False):
         return self.__isMaxedOut(self.getHostCPUUsage(),"Host",raiseExceptionOnFailure)
 
-    def __isMaxedOut(self, usuage, name, raiseExceptionOnFailure = False):
+    def __isMaxedOut(self, usage, name, raiseExceptionOnFailure = False):
         if usage > self.__MAXED_OUT_THRESHOLD:
             if raiseExceptionOnFailure:
                 raise xenrt.XRTFailure("%s CPU is maxed out at %.2f%%" % (name, usage))

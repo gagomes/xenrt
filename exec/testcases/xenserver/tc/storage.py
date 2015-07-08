@@ -2135,7 +2135,7 @@ class _TCResize(xenrt.TestCase):
             # Were we expecting an error
             if experror:
                 for err in experror:
-                    if re.search(experror, e.data):
+                    if re.search(err, e.data):
                         # This is what we expected
                         xenrt.TEC().logverbose("CLI error as expected")
                         return

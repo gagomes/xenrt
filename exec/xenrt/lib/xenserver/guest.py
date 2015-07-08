@@ -6186,7 +6186,7 @@ default:
             return xenrt.lib.xenserver.docker.DebianDocker(self.getHost(), self, controller)
         else:
             raise xenrt.XRTFailure("Docker installation unimplemented on distro %s" % self.distro)
- 
+
 class DundeeGuest(CreedenceGuest):
 
     def setRandomPvDriverSource(self):

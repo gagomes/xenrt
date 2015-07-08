@@ -3662,9 +3662,8 @@ DHCPServer = 1
         if not arch:
             arch = self.arch
 
-        path = xenrt.mountStaticISO(distro, arch)
+        url = xenrt.getLinuxRepo(distro, arch, "HTTP")
 
-        url = "%s%s" % (xenrt.TEC().lookup("RPM_SOURCE_HTTP_BASE"), path)
         try:
             # All versions of CentOS and RHEL7+ don't have Server in the repo path
             if distro.startswith("centos") or distro.startswith("rhel7") or distro.startswith("oel7") or distro.startswith("sl"):
@@ -5486,8 +5485,7 @@ class GenericHost(GenericPlace):
         self.distro = distro
 
         try:
-            path = xenrt.mountStaticISO(distro, arch)
-            repository = "%s%s" % (xenrt.TEC().lookup(["RPM_SOURCE_%s_BASE" % method]), path)
+            repository = xenrt.getLinuxRepo(distro, arch, method)
 
         except:
             raise xenrt.XRTError("No %s repository for %s %s" %
@@ -5645,8 +5643,7 @@ class GenericHost(GenericPlace):
         self.arch = arch
         self.distro = distro
         try:
-            path = xenrt.mountStaticISO(distro, arch)
-            repository = "%s%s" % (xenrt.TEC().lookup(["RPM_SOURCE_%s_BASE" % method]), path)
+            repository = xenrt.getLinuxRepo(distro, arch, method)
         except:
             raise xenrt.XRTError("No %s repository for %s %s" %
                                  (method, arch, distro))
@@ -5747,9 +5744,7 @@ class GenericHost(GenericPlace):
         self.distro = distro
 
         try:
-            path = xenrt.mountStaticISO(distro, arch)
-            repository = "%s%s" % (xenrt.TEC().lookup(["RPM_SOURCE_%s_BASE" % method]), path)
-
+            repository = xenrt.getLinuxRepo(distro, arch, method)
         except:
             raise xenrt.XRTError("No %s repository for %s %s" %
                                  (method, arch, distro))
@@ -5843,7 +5838,7 @@ exit 0
         xenrt.getHTTP(_url + boot_dir + "initrd.gz", fr)
 
         # Handle any firmware requirements
-        firmware = xenrt.TEC().lookup(["RPM_SOURCE", self.distro, self.arch, "FIRMWARE"], None)
+        firmware = xenrt.TEC().lookup(["DEBIAN_FIRMWARE", self.distro], None)
         if firmware:
             initrd = xenrt.TEC().tempFile()
             fw = xenrt.TEC().tempFile()
@@ -5992,7 +5987,7 @@ exit 0
         pxe1.writeOut(self.machine)
 
         coreos = pxe2.addEntry("coreos", boot="linux")
-        basepath = xenrt.TEC().lookup(["RPM_SOURCE", "coreos-stable", "x86-64", "HTTP"])
+        basepath = xenrt.getLinuxRepo("coreos-stable", "x86-64", "HTTP")
         coreos.linuxSetKernel("%s/amd64-usr/current/coreos_production_pxe.vmlinuz" % basepath, abspath=True)
         coreos.linuxArgsKernelAdd("initrd=%s/amd64-usr/current/coreos_production_pxe_image.cpio.gz cloud-config-url=%s/cloudconfig.yaml" % (basepath, basepath))
     
@@ -8140,10 +8135,10 @@ class GenericGuest(GenericPlace):
                     return nfsip
 
                 # Solaris needs pxegrub to install over NFS/HTTP/FTP
-                installdir = xenrt.mountStaticISO(distro, self.arch)
+                installdir = xenrt.getLinuxRepo(distro,self.arch,"NFS")
                 installdir = resolvNfs(installdir)
                 configdir = resolvNfs(configdir)
-                repository_http = "%s%s" % (xenrt.TEC().lookup(["RPM_SOURCE_%s_BASE" % method]), path)
+                repository_http = xenrt.getLinuxRepo(distro,self.arch,"HTTP")
                 pxebootdir_template = "%s/boot.tar.bz2" % repository_http
                 # installation from a repo only available in Solaris via NFS
                 if method != "NFS": installdir = configdir
@@ -11348,8 +11343,7 @@ class V6LicenseServer(object):
 
             self.place.writeToConsole("sed -i \"/mirrorlist/d\" /etc/yum.repos.d/*\\n")
             xenrt.sleep(5)
-            path = xenrt.mountStaticISO("centos55", "x86-64")
-            self.place.writeToConsole("sed -i \"s@#baseurl=http://mirror.centos.org/centos/\$releasever/os/\$basearch/@baseurl=%s%s@\" /etc/yum.repos.d/*\\n" % (xenrt.TEC().lookup(["RPM_SOURCE_HTTP_BASE"]), path))
+            self.place.writeToConsole("sed -i \"s@#baseurl=http://mirror.centos.org/centos/\$releasever/os/\$basearch/@baseurl=%s@\" /etc/yum.repos.d/*\\n" % xenrt.getLinuxRepo("centos55", "x86-64", "HTTP"))
             xenrt.sleep(5)
 
             #Add the root to lmadmin group so the root has priviledges to lmreread                       

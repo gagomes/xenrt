@@ -4820,8 +4820,7 @@ def createVM(host,
 
         # Try and determine the repository.
         try:
-            path = xenrt.mountStaticISO(distro, arch)
-            repository = "%s%s" % (xenrt.TEC().lookup(["RPM_SOURCE_HTTP_BASE"]), path)
+            repository = xenrt.getLinuxRepo(distro, arch, "HTTP")
         except:
             repository = None
 

@@ -150,11 +150,7 @@ def createVM(host,
 
     # Try and determine the repository.
     try:
-        repository = string.split(\
-                        xenrt.TEC().lookup(["RPM_SOURCE",
-                                             distro,
-                                             arch,
-                                             "HTTP"]))[0]
+        repository = xenrt.getLinuxRepo(distro, arch, "HTTP")
     except:
         repository = None
 

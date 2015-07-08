@@ -52,7 +52,10 @@ class DebianBasedLinux(LinuxOS):
 
     @property
     def installURL(self):
-        return xenrt.TEC().lookup(["RPM_SOURCE", self.distro, self.arch, "HTTP"], None)
+        try:
+            return xenrt.getLinuxRepo(self.distro, self.arch, "HTTP")
+        except:
+            return None
 
     @property
     def _architecture(self):
@@ -110,7 +113,7 @@ class DebianBasedLinux(LinuxOS):
         preseedfile = "preseed-%s.cfg" % (self.parent.name)
         filename = "%s/%s" % (xenrt.TEC().getLogdir(), preseedfile)
         ps = DebianPreseedFile(self.distro,
-                               xenrt.TEC().lookup(["RPM_SOURCE", self.distro, self.arch, "HTTP"]),
+                               xenrt.getLinuxRepo(self.distro, self.arch, "HTTP"),
                                filename,
                                arch=self.arch)
         ps.generate()

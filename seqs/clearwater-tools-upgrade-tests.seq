@@ -26,6 +26,7 @@
       <arg>input=DEFAULT</arg>
     </testcase>
     <testcase id="xenserver.install.TCApplyReqdPatches"/>
+    <testcase id="xenserver.tc.pvdrivers.TCToolsMissingUninstall" name="TC23775" tc="TC-23775" />
     <testcase id="xenserver.tc.pvdrivers.TCToolsVBscriptEngineOff" name="TC27017" tc="TC-27017" />
     <testcase id="xenserver.tc.pvdrivers.TCSysrepAfterToolsUpgrade" name="TC27018" tc="TC-27018" />
     <testcase id="xenserver.tc.pvdrivers.TCToolsIPv6Disabled" name="TC27019" tc="TC-27019" />

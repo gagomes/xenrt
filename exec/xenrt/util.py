@@ -1587,28 +1587,37 @@ def getUpdateDistro(distro):
         raise xenrt.XRTError("No update distro found for %s" % distro)
     return newdistro
 
-def getLinuxRepo(distro, arch, method):
+def getLinuxRepo(distro, arch, method, default=xenrt.XRTError):
 
     if not arch:
         arch = "x86-32"
-    if distro.startswith("debian") or distro.startswith("ubuntu") or distro.startswith("fedora") or distro.startswith("coreos"):
-        if method != "HTTP":
-            raise xenrt.XRTError("Only HTTP install is supported")
-        if distro == "debian50":
-            return xenrt.TEC().lookup("DEBIAN_ARCHIVE_REPO")
-        elif distro.startswith("debian"):
-            return xenrt.TEC().lookup("DEBIAN_REPO")
-        elif distro.startswith("ubuntu"):
-            return xenrt.TEC().lookup("UBUNTU_REPO")
-        elif distro.startswith("fedora"):
-            if arch == "x86-32":
-                farch = "i386"
-            else:
-                farch = arch
-            return "%s/%s/os" % xenrt.TEC().lookup(["FEDORA_REPO", distro])
-        elif distro.startswith("coreos"):
-            channel = distro.split("-")[1]
-            return xenrt.TEC().lookup(["COREOS_REPO", channel])
+    if xenrt.TEC().lookup("LOOP_MOUNT_LINUX", False, boolean=True):
+        if distro.startswith("debian") or distro.startswith("ubuntu") or distro.startswith("fedora") or distro.startswith("coreos"):
+            if method != "HTTP":
+                raise xenrt.XRTError("Only HTTP install is supported")
+            if distro == "debian50":
+                return xenrt.TEC().lookup("DEBIAN_ARCHIVE_REPO", default=default)
+            elif distro.startswith("debian"):
+                return xenrt.TEC().lookup("DEBIAN_REPO", default=default)
+            elif distro.startswith("ubuntu"):
+                return xenrt.TEC().lookup("UBUNTU_REPO", default=default)
+            elif distro.startswith("fedora"):
+                if arch == "x86-32":
+                    farch = "i386"
+                else:
+                    farch = arch
+                return "%s/%s/os" % xenrt.TEC().lookup(["FEDORA_REPO", distro], default=default)
+            elif distro.startswith("coreos"):
+                channel = distro.split("-")[1]
+                return xenrt.TEC().lookup(["COREOS_REPO", channel], default=default)
+        else:
+            try:
+                path = xenrt.mountStaticISO(distro, arch)
+                return "%s%s" % (xenrt.TEC().lookup(["RPM_SOURCE_%s_BASE" % method]), path)
+            except:
+                if default == xenrt.XRTError:
+                    raise
+                else:
+                    return default
     else:
-        path = xenrt.mountStaticISO(distro, arch)
-        return "%s%s" % (xenrt.TEC().lookup(["RPM_SOURCE_%s_BASE" % method]), path)
+        return xenrt.TEC().lookup(["RPM_SOURCE", distro, arch, method], default=default)

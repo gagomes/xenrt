@@ -4,11 +4,11 @@
   <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.0.0/RTM-50762"/>
   
   <variables>
-    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
     <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
   </variables>
 
-  <prepare>
+   <prepare>
     <host id="0" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}">
       <vm name="templateVM">
         <distro>ws08-x86</distro>
@@ -32,3 +32,5 @@
     <testcase id="xenserver.tc.pvdrivers.TCToolsIPv6Disabled" name="TC27019" tc="TC-27019" />
   </testsequence>
 </xenrt>
+
+

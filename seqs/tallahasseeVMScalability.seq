@@ -15,10 +15,14 @@
 
   <testsequence group="VM">
         <testcase id="xenserver.tc.scalability.TC6848">
+                <arg>distro=LINUX</arg>
+                <arg>arch=x86-32</arg>
                 <arg>dom0mem=2940</arg>
                 <arg>max=150</arg>
         </testcase> 
         <testcase id="xenserver.tc.scalability.TC7336">
+                <arg>distro=LINUX</arg>
+                <arg>arch=x86-32</arg>
                 <arg>dom0mem=2940</arg>
                 <arg>max=150</arg>
         </testcase>

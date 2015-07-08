@@ -1591,7 +1591,7 @@ def getLinuxRepo(distro, arch, method):
 
     if not arch:
         arch = "x86-32"
-    if distro.startswith("debian") or distro.startswith("ubuntu") or distro.startswith("fedora"):
+    if distro.startswith("debian") or distro.startswith("ubuntu") or distro.startswith("fedora") or distro.startswith("coreos"):
         if method != "HTTP":
             raise xenrt.XRTError("Only HTTP install is supported")
         if distro == "debian50":
@@ -1606,6 +1606,9 @@ def getLinuxRepo(distro, arch, method):
             else:
                 farch = arch
             return "%s/%s/os" % xenrt.TEC().lookup(["FEDORA_REPO", distro])
+        elif distro.startswith("coreos"):
+            channel = distro.split("-")[1]
+            return xenrt.TEC().lookup(["COREOS_REPO", channel])
     else:
         path = xenrt.mountStaticISO(distro, arch)
         return "%s%s" % (xenrt.TEC().lookup(["RPM_SOURCE_%s_BASE" % method]), path)

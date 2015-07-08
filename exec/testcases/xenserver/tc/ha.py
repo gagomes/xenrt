@@ -1685,6 +1685,9 @@ class _HAHostFailure(_HAFailureTest):
             self.pool.haLiveset.remove(slaves[i].getMyHostUUID())
             downHosts.append(slaves[i])
 
+        # Allow some time for IPMI actions etc to happen
+        xenrt.sleep(10)
+
         # Verify that all the hosts we've powered down are actually down (CA-174182)
         for h in downHosts:
             xenrt.TEC().logverbose("Verifying host %s is down" % h.getName())

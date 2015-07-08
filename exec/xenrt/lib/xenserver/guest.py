@@ -1421,7 +1421,7 @@ at > c:\\xenrtatlog.txt
             os.unlink(tmp)
         except:
             xenrt.TEC().warning("Failed to remove file %s" % tmp)
-        
+
     def uninstallDrivers(self,waitForDaemon=True):
         # Write the uninstall script
         u = []
@@ -6186,7 +6186,7 @@ default:
             return xenrt.lib.xenserver.docker.DebianDocker(self.getHost(), self, controller)
         else:
             raise xenrt.XRTFailure("Docker installation unimplemented on distro %s" % self.distro)
-            
+ 
 class DundeeGuest(CreedenceGuest):
 
     def setRandomPvDriverSource(self):
@@ -6350,7 +6350,7 @@ class DundeeGuest(CreedenceGuest):
         
         #Eject the tools CD from the VM.
         self.changeCD(None)
-    
+
     def sc(self, command ):
         """SC is a command line program used for communicating with the Service control manager and services"""
         

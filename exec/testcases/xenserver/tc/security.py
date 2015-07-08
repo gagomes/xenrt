@@ -3250,8 +3250,8 @@ class VMSecurityFacade(object):
     def shutdown(self):
         self._VM.shutdown()
 
-    def reboot(self, force=False, skipsniff=None):
-        self._VM.reboot(force,skipsniff)
+    def forceReboot(self):
+        self._VM.reboot(force=True)
 
     def getName(self):
         return self._VM.name
@@ -3429,7 +3429,7 @@ class TCHackersChoiceIPv6Firewall6(xenrt.TestCase):
             #---------------------------------------------------------------------------------------
             step("Error caught, attempt to force-reboot host for next subcase and fail this one")
             #---------------------------------------------------------------------------------------
-            victim.reboot(force=True)
+            victim.forceReboot()
             raise xenrt.XRTFailure(e)
 
     def __runAllPackageTests(self, attacker, victim, ipv6Address):

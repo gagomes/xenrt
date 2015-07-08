@@ -4482,7 +4482,7 @@ class TCUpgradeRestore(xenrt.TestCase):
             partitions = host.lookup("DOM0_PARTITIONS")
         else:
             partitions = host.lookup("DOM0_PARTITIONS_OLD")
-        log("Expected partions: %s" % partitions)
+        log("Expected partitions: %s" % partitions)
 
         if not host.compareDom0Partitions(partitions):
             raise xenrt.XRTFailure("Found unexpected partitions. Expected: %s Found: %s" % (partitions, host.getDom0Partitions()))

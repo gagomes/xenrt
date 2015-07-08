@@ -3220,12 +3220,11 @@ class NetworkConfigurator(object):
     PRIVATE_NETWORK = "eth1"
 
     def configureWindowsPrivateNet(self,attacker):
-        attacker.getVM().configureNetwork(self.PRIVATE_NETWORK, "192.168.1.1", "255.255.255.0")
+        attacker.configureNetwork(self.PRIVATE_NETWORK, "192.168.1.1", "255.255.255.0")
         i = 2
-        for g in [ xenrt.TEC().registry.guestGet(x) for x in attacker.getHost().listGuests() ]:
-            if g.windows:
-                g.configureNetwork(self.PRIVATE_NETWORK, "192.168.1." + str(i), "255.255.255.0")
-                i = i + 1
+        for v in attacker.identifyWinVictims():
+            v.configureNetwork(self.PRIVATE_NETWORK, "192.168.1." + str(i), "255.255.255.0")
+            i = i + 1
 
 
 class VMSecurityFacade(object):
@@ -3239,6 +3238,9 @@ class VMSecurityFacade(object):
     def ipv6NetworkAddress(self, deviceNo = 0, ipNo = 0):
         return self._VM.asXapiObject().ipv6NetworkAddress(deviceNo, ipNo)
 
+    def configureNetwork(self, device,ip=None, netmask=None, gateway=None, metric=None):
+        self._VM.configureNetwork(device, ip, netmask, gateway, metric)
+
     def getVMCPUUsage(self):
         return float(self._VM.asXapiObject().cpuUsage['0'])*100
 
@@ -3248,11 +3250,8 @@ class VMSecurityFacade(object):
     def shutdown(self):
         self._VM.shutdown()
 
-    def getVM(self):
-        return self._VM
-
-    def getHost(self):
-        return self._VM.host
+    def reboot(self, force=False, skipsniff=None):
+        self._VM.reboot(force,skipsniff)
 
     def getName(self):
         return self._VM.name
@@ -3314,7 +3313,7 @@ class Attacker(VMSecurityFacade):
         return hCFloodRouterPackage
 
     def installHCFirewall6Ubuntu(self, privateNetwork):
-        hCFirewall6Package = xenrt.networkutils.HackersChoiceFirewall6Ubuntu(privateNetwork)
+        hCFirewall6Package = xenrt.networkutils.HackersChoiceFirewall6Ubuntu(privateNetwork,self._VM)
         hCFirewall6Package.install(self._VM)
         return hCFirewall6Package
 
@@ -3423,11 +3422,11 @@ class TCBadPackets(xenrt.TestCase):
 class TCHackersChoiceIPv6Firewall6(xenrt.TestCase):
     __package = None
 
-    def _runPackageTestCase(self, attacker, victim, hackNumber):
+    def _runPackageTestCase(self, victim, hackNumber):
         #----------------------------------------
         step("Run attack %d...." % hackNumber)
         #----------------------------------------
-        self.__package.runtestcase(attacker.getVM(),hackNumber)
+        self.__package.runtestcase(hackNumber)
         time.sleep(10)
         log("Results of attack: %s" % str(self.__package.results()))
         try:
@@ -3439,7 +3438,7 @@ class TCHackersChoiceIPv6Firewall6(xenrt.TestCase):
             #---------------------------------------------------------------------------------------
             step("Error caught, attempt to force-reboot host for next subcase and fail this one")
             #---------------------------------------------------------------------------------------
-            victim.getVM().reboot(force=True)
+            victim.reboot(force=True)
             raise xenrt.XRTFailure(e)
 
     def __runAllPackageTests(self, attacker, victim, ipv6Address):
@@ -3448,7 +3447,7 @@ class TCHackersChoiceIPv6Firewall6(xenrt.TestCase):
         step("Running attacks from %s on vm %s" % (attacker.getName(), victim.getName()))
         #------------------------------------------------------------
         for tc in self.__package.testCasesIds():
-            self.runSubcase("_runPackageTestCase", (attacker, victim, tc), "HackersChoice Firewall6 on %s" % victim.getName(), "test %d" % tc)
+            self.runSubcase("_runPackageTestCase", (victim, tc), "HackersChoice Firewall6 on %s" % victim.getName(), "test %d" % tc)
 
     def run(self,arglist):
 

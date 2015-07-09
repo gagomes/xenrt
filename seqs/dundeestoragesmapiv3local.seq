@@ -16,12 +16,6 @@
   </prepare>
 
   <testsequence group="BTRFS">
-    <testcase id="xenserver.storage.TCVDICopy" tc="TC-27106" prio="3">
-      <arg>srtype=btrfs</arg>
-    </testcase>
-    <testcase id="xenserver.storage.TCVDIClone" tc="TC-27107" prio="3">
-      <arg>srtype=btrfs</arg>
-    </testcase>
     <serial group="VDIResize">
       <testcase id="xenserver.tc.storage.TC27089" prio="3"/>
       <testcase id="xenserver.tc.storage.TC27090" prio="3"/>
@@ -49,6 +43,12 @@
     <testcase id="xenserver.cli.TCQuicktest" tc="TC-27104"/>
     <testcase id="xenserver.tc.storage.TCDuplicateVdiName" tc="TC-27112" sku="btrfs" />
     <testcase id="xenserver.tc.storage.TCVdiSpaceInName" tc="TC-27113" sku="btrfs" />
+    <testcase id="xenserver.storage.TCVDICopy" tc="TC-27106" prio="3">
+      <arg>srtype=btrfs</arg>
+    </testcase>
+    <testcase id="xenserver.storage.TCVDIClone" tc="TC-27107" prio="3">
+      <arg>srtype=btrfs</arg>
+    </testcase>
   </testsequence>
 
 </xenrt>

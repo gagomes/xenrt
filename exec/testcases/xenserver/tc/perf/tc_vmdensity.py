@@ -1696,14 +1696,13 @@ class Experiment_vmrun(Experiment):
             #self.gec.filemanager.setInputDir(version)
             #print "TEC().config=%s" % xenrt.TEC().config
             
-            urlpref = xenrt.TEC().lookup("FORCE_HTTP_FETCH", "")
 
             inputdir=xenrt.TEC().lookup("INPUTDIR",None)
             if inputdir and inputdir[:1]=="/":       # does it exist and is an absolute path?
-                url = "%s%s" % (urlpref, inputdir)   # then use it
+                url = inputdir   # then use it
             else:                                    # else compute url from xsversion
                 urlsuffix = value #.lower() # eg. "trunk-ring0/54990"
-                url = "%s/usr/groups/xen/carbon/%s" % (urlpref, urlsuffix)
+                url = "/usr/groups/xen/carbon/%s" % (urlsuffix)
             product_version = (value.split("/")[0]).capitalize() #"Boston"
             xenrt.TEC().logverbose("url=%s" % (url,))
 
@@ -1714,12 +1713,7 @@ class Experiment_vmrun(Experiment):
                 xenrt.TEC().setInputDir(url) #"%s/usr/groups/xen/carbon/boston/50762"%urlpref)
                 xenrt.GEC().filemanager = xenrt.filemanager.getFileManager()
                 #sanity check: does this url exist?
-                bash_cmd = "wget --server-response %s 2>&1|grep HTTP/|awk '{print $2}'" % url
-                xenrt.TEC().logverbose("about to call popen with \"%s\"..." % (bash_cmd,))
-                p = subprocess.Popen(bash_cmd,shell=True,stdout=subprocess.PIPE)
-                xenrt.TEC().logverbose("about to read popen stdout...")
-                http_code = p.stdout.read().strip()
-                inputdir_ok = not ("404" in http_code)
+                inputdir_ok = xenrt.GEC().filemanager.fileExists(url)
                 if inputdir_ok:
                     xenrt.TEC().logverbose("http_code=%s: found INPUTDIR at %s" % (http_code,url))
                 else:

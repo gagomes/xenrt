@@ -1312,7 +1312,7 @@ class SourceISOCheck(xenrt.TestCase):
                 except:
                     pass
         if not sourceRpmPackageList:
-            raise xenrt.XRTFailure("Unable to obtain any source ISOs for %s." % (self.APPLIANCE_NAME))
+            raise xenrt.XRTFailure("Unable to obtain any source ISOs for %s (%s)." % (self.APPLIANCE_NAME, self.host.productVersion))
         sourceRpmPackageList.sort()
         self.SOURCE_RPM_PACKAGES = sourceRpmPackageList
 
@@ -1375,18 +1375,14 @@ class SourceISOCheck(xenrt.TestCase):
                     xenrt.TEC().logverbose("The missing rpm packages in %s  after ignoring package version number are \n%s " %
                                                             (self.APPLIANCE_NAME, "\n".join(map(str, diffRpmListWithVersion))))
                                             
-                    raise xenrt.XRTFailure("There are missing rpm packages in %s appliance." %
-                                                                                self.APPLIANCE_NAME)
+                    raise xenrt.XRTFailure("There are missing rpm packages in %s appliance (%s)." % (self.APPLIANCE_NAME, self.host.productVersion))
                 else:
-                    xenrt.TEC().logverbose("No missing rpm packages are found in %s appliance after ignoring the version numbers." %
-                                                                                                                    self.APPLIANCE_NAME)
+                    xenrt.TEC().logverbose("No missing rpm packages are found in %s appliance after ignoring the version numbers." % self.APPLIANCE_NAME)
 
             else: # IGNORE_RPM_VERSION == "no"
-                raise xenrt.XRTFailure("There are missing rpm packages in %s appliance." %
-                                                                                self.APPLIANCE_NAME)
+                raise xenrt.XRTFailure("There are missing rpm packages in %s appliance (%s)." % (self.APPLIANCE_NAME, self.host.productVersion))
         else:
-            xenrt.TEC().logverbose("No missing rpm packages are found in %s appliance." %
-                                                                                self.APPLIANCE_NAME)
+            xenrt.TEC().logverbose("No missing rpm packages are found in %s appliance." % self.APPLIANCE_NAME)
 
 class TCDom0SourceCheck(SourceISOCheck): # TC-17998
     """Verify dom0 source iso (xe-phase-3/source-1.iso & source-4.iso) for missing RPMs."""

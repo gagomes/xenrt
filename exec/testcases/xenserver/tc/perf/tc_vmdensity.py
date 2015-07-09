@@ -1704,6 +1704,7 @@ class Experiment_vmrun(Experiment):
                 urlsuffix = value #.lower() # eg. "trunk-ring0/54990"
                 url = "/usr/groups/xen/carbon/%s" % (urlsuffix)
             product_version = (value.split("/")[0]).capitalize() #"Boston"
+            url = url.rstrip("/") + "/"
             xenrt.TEC().logverbose("url=%s" % (url,))
 
             def setInputDir(url):

@@ -1,0 +1,73 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <PREPARE_WORKERS>5</PREPARE_WORKERS>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+  </variables>
+
+  <prepare>
+    <host installsr="ext" license="per-socket" >
+      <vm name="masterwin7sp1-x86">
+        <distro>win7sp1-x86</distro>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <network device="0" />
+        <disk device="0" size="24" />
+        <postinstall action="snapshot(name='clean')"/>
+      </vm>
+      <vm name="masterws08r2sp1-x64">
+        <distro>ws08r2sp1-x64</distro>
+        <arch>x86-64</arch>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <network device="0" />
+        <disk device="0" size="24" />
+        <postinstall action="snapshot(name='clean')"/>
+      </vm>
+      <vm name="masterwin8-x64">
+        <distro>win8-x64</distro>
+        <arch>x86-64</arch>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <network device="0" />
+        <disk device="0" size="24" />
+        <postinstall action="snapshot(name='clean')"/>
+      </vm>
+      <vm name="masterwin81-x86">
+        <distro>win81-x86</distro>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <network device="0" />
+        <disk device="0" size="24" />
+        <postinstall action="snapshot(name='clean')"/>
+      </vm>
+      <vm name="masterws12r2-x64">
+        <distro>ws12r2-x64</distro>
+        <arch>x86-64</arch>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <network device="0" />
+        <disk device="0" size="32" />
+        <postinstall action="snapshot(name='clean')"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="K1Config">
+      <testcase tc="TC-20819" id="testcases.xenserver.tc.vgpu.TCBasicVerifOfAllK2config">
+        <arg>distro=0,2,4,5,8</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+        <arg>vgpuconfig=0,1,2,4,5</arg>
+      </testcase>
+
+    </serial>
+  </testsequence>
+
+</xenrt>

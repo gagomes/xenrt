@@ -21,8 +21,7 @@ class _TC6460(xenrt.TestCase):
         distro = self.DISTRO
         arch = self.ARCH
 
-        repository = string.split(\
-                    xenrt.TEC().lookup(["RPM_SOURCE", distro, arch, "HTTP"]))[0]
+        repository = xenrt.getLinuxRepo(distro, arch, "HTTP")
         # Get a host to install on
         host = self.getDefaultHost()
 

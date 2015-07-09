@@ -182,9 +182,7 @@ class TCCLI(xenrt.TestCase):
                 linuxhvm.windows = False
                 linuxhvm.setMemory(256)
                 method = "HTTP"
-                repository = string.split(\
-                    xenrt.TEC().lookup(["RPM_SOURCE", "rhel5", "x86-32",
-                                        method]))[0]
+                repository = xenrt.getLinuxRepo("rhel5", "x86-32", method)
                 linuxhvm.install(host,
                                  distro="rhel5",
                                  repository=repository,

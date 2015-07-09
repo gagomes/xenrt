@@ -355,14 +355,7 @@ class TCMultipleVDI(xenrt.TestCase):
             self.guestsToClean.append(g)
         else:
             # Create a guest.
-            try:
-                repository = string.split(\
-                    xenrt.TEC().lookup(["RPM_SOURCE",
-                                        distro,
-                                        arch,
-                                        method]))[0]
-            except:
-                pass
+            repository = xenrt.getLinuxRepo(distro, arch, method, None)
 
             self.host = xenrt.TEC().registry.hostGet(machine)
             if not self.host:

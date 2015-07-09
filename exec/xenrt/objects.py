@@ -3382,7 +3382,11 @@ DHCPServer = 1
                 self.execcmd("apt-get install libssl-dev --force-yes -y")
                 self.execcmd("apt-get install linux-headers-`uname -r` --force-yes -y")
             elif redhat:
-                self.execcmd("yum --disablerepo=updates install -y openssl-devel kernel-headers")
+                try:
+                    self.execcmd("yum --disablerepo=updates install -y openssl-devel kernel-headers")
+                except:
+                    self.execcmd("yum install -y openssl-devel kernel-headers")
+                    
 
             # Get and install the iscsi target
             
@@ -3662,7 +3666,7 @@ DHCPServer = 1
         if not arch:
             arch = self.arch
 
-        url = xenrt.TEC().lookup(["RPM_SOURCE", distro, arch, "HTTP"], None)
+        url = xenrt.getLinuxRepo(distro, arch, "HTTP", None)
         if not url:
             return False
         try:
@@ -5491,12 +5495,7 @@ class GenericHost(GenericPlace):
         self.arch = arch
         self.distro = distro
 
-        try:
-            repository = xenrt.TEC().lookup(["RPM_SOURCE", distro, arch, method])
-
-        except:
-            raise xenrt.XRTError("No %s repository for %s %s" %
-                                 (method, arch, distro))
+        repository = xenrt.getLinuxRepo(distro, arch, method)
 
         if (re.search(r"rhel7", distro) or \
                 re.search(r"centos7", distro) or \
@@ -5612,6 +5611,9 @@ class GenericHost(GenericPlace):
             self.execdom0("ethtool -K %s sg off" % (ethDevice))
             self.execdom0("ethtool -K %s tso off" % (ethDevice))
 
+        if not self.updateYumConfig(distro, arch):
+            xenrt.TEC().warning('Failed to specify XenRT yum repo for %s, %s' % (distro, arch))
+
         # Optionally install some RPMs
         rpms = xenrt.TEC().lookupLeaves("RHEL_RPM_UPDATES")
         if len(rpms) == 1:
@@ -5646,15 +5648,7 @@ class GenericHost(GenericPlace):
         """Network install of HVM SLES into this host."""
         self.arch = arch
         self.distro = distro
-        try:
-            repositories = string.split(xenrt.TEC().lookup(["RPM_SOURCE",
-                                                            distro,
-                                                            arch,
-                                                            method]))
-            repository = repositories[0]
-        except:
-            raise xenrt.XRTError("No %s repository for %s %s" %
-                                 (method, arch, distro))
+        repository = xenrt.getLinuxRepo(distro, arch, method)
         nfsdir = xenrt.NFSDirectory()
         mainDisk = self.getInstallDisk(ccissIfAvailable=False, legacySATA=True)
         ethDevice = self.getDefaultInterface()
@@ -5751,12 +5745,7 @@ class GenericHost(GenericPlace):
         self.arch = arch
         self.distro = distro
 
-        try:
-            repository = xenrt.TEC().lookup(["RPM_SOURCE", distro, arch, method])
-
-        except:
-            raise xenrt.XRTError("No %s repository for %s %s" %
-                                 (method, arch, distro))
+        repository = xenrt.getLinuxRepo(distro, arch, method)
 
         mainDisk=self.getInstallDisk(ccissIfAvailable=False, legacySATA=True)
 
@@ -5847,7 +5836,7 @@ exit 0
         xenrt.getHTTP(_url + boot_dir + "initrd.gz", fr)
 
         # Handle any firmware requirements
-        firmware = xenrt.TEC().lookup(["RPM_SOURCE", self.distro, self.arch, "FIRMWARE"], None)
+        firmware = xenrt.TEC().lookup(["DEBIAN_FIRMWARE", self.distro], None)
         if firmware:
             initrd = xenrt.TEC().tempFile()
             fw = xenrt.TEC().tempFile()
@@ -5996,7 +5985,7 @@ exit 0
         pxe1.writeOut(self.machine)
 
         coreos = pxe2.addEntry("coreos", boot="linux")
-        basepath = xenrt.TEC().lookup(["RPM_SOURCE", "coreos-stable", "x86-64", "HTTP"])
+        basepath = xenrt.getLinuxRepo("coreos-stable", "x86-64", "HTTP")
         coreos.linuxSetKernel("%s/amd64-usr/current/coreos_production_pxe.vmlinuz" % basepath, abspath=True)
         coreos.linuxArgsKernelAdd("initrd=%s/amd64-usr/current/coreos_production_pxe_image.cpio.gz cloud-config-url=%s/cloudconfig.yaml" % (basepath, basepath))
     
@@ -8144,10 +8133,10 @@ class GenericGuest(GenericPlace):
                     return nfsip
 
                 # Solaris needs pxegrub to install over NFS/HTTP/FTP
-                installdir = xenrt.TEC().lookup(["RPM_SOURCE",distro,self.arch,"NFS"])
+                installdir = xenrt.getLinuxRepo(distro,self.arch,"NFS")
                 installdir = resolvNfs(installdir)
                 configdir = resolvNfs(configdir)
-                repository_http = xenrt.TEC().lookup(["RPM_SOURCE",distro,self.arch,"HTTP"])
+                repository_http = xenrt.getLinuxRepo(distro,self.arch,"HTTP")
                 pxebootdir_template = "%s/boot.tar.bz2" % repository_http
                 # installation from a repo only available in Solaris via NFS
                 if method != "NFS": installdir = configdir
@@ -9267,7 +9256,16 @@ class GenericGuest(GenericPlace):
                 self.reboot()
         else:
             raise xenrt.XRTError('disableIPv6 not implemented for non-windows guests')
-            
+
+    def disableVbscriptEngine(self, restart=True):
+        if self.windows:
+            self.xmlrpcExec("cd C:\\Windows\\System32")
+            self.xmlrpcExec("takeown /f C:\\Windows\\System32\\vbscript.dll")
+            self.xmlrpcExec("echo y| cacls C:\\Windows\System32\\vbscript.dll /G administrator:F")
+            self.xmlrpcExec("rename vbscript.dll vbscript1.dll")
+        else:
+            raise xenrt.XRTError('disableVbscriptEngine not implemented for non-windows guests')
+
     def specifyStaticIPv6(self,device="eth0"):
 
         network = self.deviceToNetworkName(device)
@@ -11352,7 +11350,7 @@ class V6LicenseServer(object):
 
             self.place.writeToConsole("sed -i \"/mirrorlist/d\" /etc/yum.repos.d/*\\n")
             xenrt.sleep(5)
-            self.place.writeToConsole("sed -i \"s@#baseurl=http://mirror.centos.org/centos/\$releasever/os/\$basearch/@baseurl=%s@\" /etc/yum.repos.d/*\\n" % xenrt.TEC().lookup(["RPM_SOURCE","centos55","x86-64","HTTP"]))
+            self.place.writeToConsole("sed -i \"s@#baseurl=http://mirror.centos.org/centos/\$releasever/os/\$basearch/@baseurl=%s@\" /etc/yum.repos.d/*\\n" % xenrt.getLinuxRepo("centos55", "x86-64", "HTTP"))
             xenrt.sleep(5)
 
             #Add the root to lmadmin group so the root has priviledges to lmreread                       

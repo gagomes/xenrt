@@ -14,7 +14,7 @@ import xenrt, xenrt.util
 # Symbols we want to export from the package.
 __all__ = ["MountISO",
            "MountNFS",
-           "mountWinISO",
+           "mountStaticISO",
            "nmap",
            "sudo"]
     
@@ -111,16 +111,30 @@ class MountSMB(Mount):
     def __init__(self, smb, domain, username, password, retry=True):
         Mount.__init__(self, "//%s" % smb.replace(":/","/"), options="username=%s,password=%s,domain=%s" % (username, password, domain), mtype="cifs", retry=retry)
 
-def mountWinISO(distro):
-    """Mount a Windows ISO globally for the controller"""
+def mountStaticISO(distro, arch=None):
+    """Mount a static ISO globally for the controller"""
 
     isolock = xenrt.resources.CentralResource()
-    iso = "%s/%s.iso" % (xenrt.TEC().lookup("EXPORT_ISO_LOCAL_STATIC"), distro)
-    mountpoint = "/winmedia/%s" % distro
+    if os.path.exists("%s/%s.iso" % (xenrt.TEC().lookup("EXPORT_ISO_LOCAL"), distro)):
+        iso = "%s/%s.iso" % (xenrt.TEC().lookup("EXPORT_ISO_LOCAL"), distro)
+        check = "Autounattend.xml"
+        mountpoint = "/winmedia/%s" % distro
+    else:
+        stem = "%s/%s_%s" % (xenrt.TEC().lookup("EXPORT_ISO_LOCAL_STATIC"), xenrt.TEC().lookup(["OS_INSTALL_ISO", distro], distro), arch)
+        if not os.path.exists("%s.iso" % stem):
+            stem = "%s_xenrtinst" % stem
+        iso = "%s.iso" % stem
+        if distro.startswith("sle"):
+            check="README"
+        elif distro.startswith("sol"):
+            check="Copyright"
+        else:
+            check="isolinux/isolinux.cfg"
+        mountpoint = "/linmedia/%s_%s" % (distro, arch)
     attempts = 0
     while True:
         try:
-            isolock.acquire("WIN_ISO_%s" % distro)
+            isolock.acquire("STATIC_ISO_%s" % distro)
             break
         except:
             xenrt.sleep(10)
@@ -146,7 +160,7 @@ def mountWinISO(distro):
         else:
             # Check whether the loop mount has gone bad, and if it has then remount
             try:
-                f = open("%s/Autounattend.xml" % mountpoint)
+                f = open("%s/%s" % (mountpoint, check))
                 f.read()
             except:
                 f.close()

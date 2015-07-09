@@ -1715,9 +1715,9 @@ class Experiment_vmrun(Experiment):
                 #sanity check: does this url exist?
                 inputdir_ok = xenrt.GEC().filemanager.fileExists(url)
                 if inputdir_ok:
-                    xenrt.TEC().logverbose("http_code=%s: found INPUTDIR at %s" % (http_code,url))
+                    xenrt.TEC().logverbose("found INPUTDIR at %s" % (url))
                 else:
-                    xenrt.TEC().logverbose("http_code=%s: did not find INPUTDIR at %s" % (http_code,url))
+                    xenrt.TEC().logverbose("did not find INPUTDIR at %s" % (url))
                 return inputdir_ok
 
             inputdir_ok = setInputDir(url)

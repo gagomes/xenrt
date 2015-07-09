@@ -2898,7 +2898,7 @@ class Config(object):
         self.config["GUEST_TESTS"]["Dundee"]["XenApp"] = ['w2k3eesp2_XenApp', 'w2k3eesp2-x64_XenApp', 'ws08sp2-x86_XenApp', 'ws08sp2-x64_XenApp', 'ws08r2sp1-x64_XenApp']
        
         # Linux install methods supported
-        nfsInstallSupport = ["rhel[dw]?[4-6]\d+$", "centos[4-6]\d+$", "sl[5-6]\d+$", "oel[4-6]\d+", "sles9", "sles10", "sles11", "sled\d+"]
+        nfsInstallSupport = ["rhel[dw]?[4-6]\d*_", "centos[4-6]\d*_", "sl[5-6]\d*_", "oel[4-6]\d*_", "sles9", "sles10", "sles11", "sled\d+"]
         noIsoInstallSupport = ["ubuntu1004", "debian60", "debian70", "debian80", "rhel45", "centos45", "centos46", "rhel\d+u", "rhel\d+xs", 
                                "centos\d+u", "centos\d+xs", "oel\d+u", "oel\d+xs", "sl\d+u", "sl\d+xs", "fedoralatest", "debiantesting", "ubuntudevel"]
         noHttpInstallSupport = ["rhel\d+u", "rhel\d+xs", "centos\d+u", "centos\d+xs", "oel\d+u", "oel\d+xs", "sl\d+u", "sl\d+xs"]

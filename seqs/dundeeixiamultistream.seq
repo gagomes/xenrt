@@ -1,0 +1,38 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+    <QUICK_LOGS_ON_PASS>True</QUICK_LOGS_ON_PASS>
+  </variables>
+
+  <prepare>
+    <host id="0">
+      <vm name="g1">
+        <distro>win7sp1-x86</distro>
+        <postinstall action="installDrivers"/>
+        <network device="0" />
+        <vcpus>2</vcpus>
+        <memory>2048</memory>
+      </vm>
+      <vm name="g2">
+        <distro>win7-x64</distro>
+        <postinstall action="installDrivers"/>
+        <network device="0" />
+        <vcpus>2</vcpus>
+        <memory>2048</memory>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="IxiaTests">
+      <testcase id="xenserver.tc.ixia_chariot.IxiaChariotBasedTest" name="IxiaMultistream" tc="TC-27130" >
+        <arg>endpointSpec0=RESOURCE_HOST_0/g1</arg>
+        <arg>endpointSpec1=RESOURCE_HOST_0/g2</arg>
+        <arg>num_threads=5</arg>
+        <arg>ixiaTestFile=ixiatest.tst</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+
+</xenrt>

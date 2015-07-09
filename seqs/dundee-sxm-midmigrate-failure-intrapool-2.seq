@@ -10,9 +10,8 @@
   <prepare>
     <!-- <pool id="0" name="SXMPool"> -->
     <pool id="0">
-      <storage type="nfs" name="nfs_sourceSR"/>
-      <host id="0" installsr="lvm" />
-      <host id="1" installsr="ext" />
+      <host id="0" installsr="lvm" alias="H1"/>
+      <host id="1" installsr="ext" alias="H2"/>
     </pool>
   </prepare>
 
@@ -20,8 +19,10 @@
 
     <serial group="IntraPoolMidMigSXM">
       <testcase id="xenserver.tc.sxm.InsuffSpaceDestSR" name="TC17128" tc="TC-17128">
-        <arg>src_SR=lvm</arg>
-        <arg>dest_SR=ext</arg>
+        <arg>src_SR_type=lvm</arg>
+        <arg>dest_SR_type=ext</arg>
+        <arg>src_host=H1</arg>
+        <arg>dest_host=H2</arg>
         <arg>negative_test</arg>
       </testcase>
     </serial>
@@ -29,8 +30,8 @@
     <serial group="LiveVDISMidMigSXM">
       <testcase id="xenserver.tc.sxm.InsuffSpaceDestSR" name="TC17129" tc="TC-17129">
         <arg>test=LiveVDI</arg>
-        <arg>src_SR=lvm</arg>
-        <arg>dest_SR=nfs</arg>
+        <arg>src_SR_type=lvm</arg>
+        <arg>dest_SR_type=nfs</arg>
         <arg>negative_test</arg>
       </testcase>
     </serial>

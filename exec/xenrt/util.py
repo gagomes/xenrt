@@ -1588,7 +1588,11 @@ def getUpdateDistro(distro):
     return newdistro
 
 def getLinuxRepo(distro, arch, method, default=xenrt.XRTError):
-
+    if isWindows(distro):
+        if default == xenrt.XRTError:
+            raise xenrt.XRTError("No repo for windows")
+        else:
+            return default
     if not arch:
         arch = "x86-32"
     if xenrt.TEC().lookup("LOOP_MOUNT_LINUX", False, boolean=True):

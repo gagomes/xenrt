@@ -113,3 +113,19 @@ class TC6949(_VBDPlugLinux):
     """Hot unplug of a VBD that the Linux VM had attached when it was booted."""
     pass
 
+class sctx817(xenrt.TestCase):
+
+    def run(self,arglist):
+        host = self.getDefaultHost()
+        guest = host.getGuest("Windows Server 2008 R2")
+        sr = host.getSRByName("\"Local storage\"")
+        vbd = guest.createDisk("1073741824", sruuid=str(sr), plug=False, returnVBD=True, mode="RO")
+        try:
+           host.execdom0("xe vbd-plug uuid=%s"%vbd)
+        except:
+            log("bad disk, unable to plug in")
+        result = checkVDBAttached(guest,vbd)
+        if result:
+            raise xenrt.XRTFailure("Read only disk attached to windows")
+        else:
+            log("VBD did not attach in read only mode to the Windows machine")

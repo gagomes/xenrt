@@ -125,7 +125,7 @@ class sctx817(xenrt.TestCase):
            host.execdom0("xe vbd-plug uuid=%s"%vbd)
         except:
             log("bad disk, unable to plug in")
-        result = guest.checkVBDAttached(guest,vbd)
+        result = guest.checkVBDAttached(vbd)
         if result:
             raise xenrt.XRTFailure("Read only disk attached to windows")
         else:

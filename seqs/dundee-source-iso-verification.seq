@@ -41,15 +41,6 @@
       <testcase id="xenserver.install.TCVPXWLBSourceCheck" name="TC18000" tc="TC-18000">
         <arg>ignorerpmversion=${IGNORERMPVERSION}</arg>
       </testcase>
-
-      <testcase id="xenserver.install.TCDDKSourceCheck" name="TC18003" tc="TC-18003">
-        <arg>ignorerpmversion=${IGNORERMPVERSION}</arg>
-      </testcase>
-
-      <testcase id="xenserver.install.TCDXenAPISDKSourceCheck" name="TC18004" tc="TC-18004">
-        <arg>ignorerpmversion=${IGNORERMPVERSION}</arg>
-      </testcase>
-
     </serial>
   </testsequence>
 

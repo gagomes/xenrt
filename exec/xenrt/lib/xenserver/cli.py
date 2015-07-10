@@ -224,9 +224,6 @@ class Session(object):
             (debugOnFail or xenrt.TEC().lookup("XE_DEBUG_ON_FAIL", False, boolean=True))):
             c = c + " --debug-on-fail"
 
-        if xenrt.TEC().lookup("NO_XE_SSL", False, boolean=True) or (xenrt.TEC().lookup("WORKAROUND_CA109448", False, boolean=True) and re.search(".*-(import|upload|restore(-database)?)$",command)):
-            c = c + " --nossl"
-
         if minimal:
             strip = True
 
@@ -357,6 +354,8 @@ def buildCommandLine(host,
         extras.append("--minimal")
 
     if xenrt.TEC().lookup("NO_XE_SSL", False, boolean=True):
+        extras.append("--nossl")
+    elif xenrt.TEC().lookup("WORKAROUND_CA109448", False, boolean=True) and re.search(".*-(import|upload|restore(-database)?)$",command):
         extras.append("--nossl")
 
     c = [command]

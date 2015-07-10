@@ -74,6 +74,7 @@
           <testcase id="guestops.drivers.TCVerifyDriversUptoDate" tc="TC-19832">
             <arg>guest=winguest2</arg>
           </testcase>
+          <testcase id="testcases.xenserver.tc.vbd.TC27127" tc="TC-27127"/>
           <testcase id="guestops.basic.TCStartStop" tc="TC-9357">
             <arg>config=&lt;CONFIG&gt;&lt;CPU&gt;${GUEST2VCPUS}&lt;/CPU&gt;&lt;MEMORY&gt;${GUEST2MEMORY}&lt;/MEMORY&gt;&lt;VERSION&gt;${GUEST2VERSION}&lt;/VERSION&gt;&lt;DISKSIZE&gt;${GUEST2DISK}&lt;/DISKSIZE&gt;&lt;/CONFIG&gt;</arg>
             <arg>loops=${VMOPSITER}</arg>

@@ -113,14 +113,13 @@ class PairTest(object):
     def workingDir(self):
         return '/cygdrive/c/tests/{jobDirName}'.format(jobDirName=self.jobDirName)
 
-    def getCommands(self):
-        commands = [
-            'mkdir {workingDir}',
-            'echo "1 {endpoint1} {endpoint2}" > {workingDir}/clone',
-            '{clonetst} {originalTestWinPath} {cloneWinPath} {testWinPath}',
-            '{runtst} {testWinPath} {resultWinPath}',
-            '{fmttst} {resultWinPath} -v {resultCSVWinPath}',
-        ]
+    def getCommands(self, numThreads):
+        commands = ['mkdir {workingDir}','echo "1 {endpoint1} {endpoint2}" > {workingDir}/clone']
+        for i in range(numThreads - 1):
+                commands.append('echo "1 {endpoint1} {endpoint2}" >> {workingDir}/clone')
+        commands.append('{clonetst} {originalTestWinPath} {cloneWinPath} {testWinPath}')
+        commands.append('{runtst} {testWinPath} {resultWinPath}')
+        commands.append('{fmttst} {resultWinPath} -v {resultCSVWinPath}')
 
         params = dict(
             workingDir=self.workingDir,

@@ -6,11 +6,11 @@ class Command(object):
     A command (or commands) informtion data structure.
     """
     def __init__(self, json):
-        self.command = json
-        self.raiseIfError = ('raiseIfError' in self.command and self.command['raiseIfError']) or True
-        self.resultSource = ('resultSource' in self.command and self.command['resultSource']) or 'RETURN_CODE'
-        self.nextAction = ('nextAction' in self.command and self.command['nextAction']) or None
-        self.timeout = ('timeout' in self.command and self.command['timeout']) or 60
+        self.command = json["command"]
+        self.raiseIfError = ('raiseIfError' in json and json['raiseIfError']) or True
+        self.resultSource = ('resultSource' in json and json['resultSource']) or 'RETURN_CODE'
+        self.nextAction = ('nextAction' in json and json['nextAction']) or None
+        self.timeout = ('timeout' in json and json['timeout']) or 60
         self.returnCode = None
         self.stdout = ''
         self.stderr = ''
@@ -19,6 +19,9 @@ class Command(object):
 class CommandsReader(object):
     """
     Reads json files and build list of Commands.
+
+    Currently using execguest instead of an actual ssh session.
+    Limited by what return information is available in this case, such as return code.
     """
     def __init__(self, jsonstr, session):
         self.current = 0
@@ -29,13 +32,14 @@ class CommandsReader(object):
             self.commands.append(Command(cmd))
 
     def fetch(self):
-        if len(self.commands) < self.current:
+        if len(self.commands) > self.current:
             return self.commands[self.current]
         return None
 
     def execute(self):
         cmd = self.fetch()
         result = {}
+        reboot = False
         if not cmd:
             return result
 
@@ -51,6 +55,7 @@ class CommandsReader(object):
                     raise e
                 else:
                     xenrt.TEC().logverbose(str(e))
+        # Getting assigned to defaults right now.
         result['returnCode'] = cmd.returnCode
         result['stdout'] = cmd.stdout
         result['stderr'] = cmd.stderr
@@ -79,7 +84,7 @@ class Runner(object):
     def runStep(self):
         cmd = self.reader.fetch()
         if cmd:
-            self.output = "Executing: " + cmd.command
+            self.output = "Executing: " + str(cmd.command)
         result = self.reader.execute()
         if not len(result):
             raise xenrt.XRTError("Failed to execute command.")

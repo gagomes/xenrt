@@ -15,6 +15,7 @@ class _ImpExpBase(xenrt.TestCase):
     """Base class for Import/Export testcases"""
 
     DISTRO = None
+    ARCH = None
     CLIDISTRO = None
     USEGUI = False
     UNINSTALL_ORIGINAL = True
@@ -330,7 +331,7 @@ class _ImpExpBase(xenrt.TestCase):
 
 
     def preRun(self, host):
-        self.cliguest = self.createGuest(host, distro=self.CLIDISTRO)
+        self.cliguest = self.createGuest(host, distro=self.CLIDISTRO, arch=self.ARCH)
         self.guestsToClean.append(self.cliguest)
         if self.CLIDISTRO in ["debian","sarge","etch"] or not self.CLIDISTRO:
             # Need to add an extra disk, as root one is too small
@@ -736,7 +737,8 @@ class TC12565(_ImpExpBase):
 
 class TC26943(_ImpExpBase):
     """Import/Export test using CLI on CENTOS 7"""
-    CLIDISTRO="centos7_x86-64"
+    CLIDISTRO = "centos7"
+    ARCH = "x86-64"
 
 class TC6840(_ImpExpBase):
     """Import/Export test using CLI on Windows 2003 EE SP2"""

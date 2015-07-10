@@ -1,0 +1,15 @@
+<xenrt>
+  <!-- Verify that two NFS SRs on different networks can be created --> 
+  <prepare>
+    <pool>
+      <storage type="nfs" name="nfs1" default="true" network="STORAGE01" />
+      <storage type="nfs" name="nfs2" network="STORAGE02" />
+      <host id="0" />
+    </pool>
+
+  </prepare>
+
+  <testsequence>
+    <testcase id="xenserver.tc.storage.TCAllPBDsPlugged" tc="TC-27129" />
+  </testsequence>
+</xenrt>

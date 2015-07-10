@@ -1,4 +1,5 @@
 import xenrt
+from xenrt.lazylog import step
 from xenrt import util
 from xenrt import ixiachariot
 from xenrt import resources
@@ -51,18 +52,19 @@ class IxiaChariotBasedTest(xenrt.TestCase):
         return self.getConfigValue("DISTMASTER_DIR")
 
     def run(self, arglist=None):
-        argDict = util.strlistToDict(arglist)
+        args = self.parseArgsKeyValue(arglist)
+        # numThreads specifies the number of tcp streams between the two end points. By Default it is set to 1
+        numThreads = int(args.get("num_threads", "1"))
         distmasterBase = xenrt.TEC().lookup("TEST_TARBALL_BASE")
-
         endpoint0 = ixiachariot.createEndpoint(
-            argDict['endpointSpec0'], distmasterBase, self)
+            args['endpointSpec0'], distmasterBase, self)
         endpoint1 = ixiachariot.createEndpoint(
-            argDict['endpointSpec1'], distmasterBase, self)
+            args['endpointSpec1'], distmasterBase, self)
 
         endpoint0.install(self.distmasterDir)
         endpoint1.install(self.distmasterDir)
 
-        ixiaTest = argDict['ixiaTestFile']
+        ixiaTest = args['ixiaTestFile']
         jobId = xenrt.GEC().jobid()
 
         pairTest = ixiachariot.PairTest(
@@ -71,14 +73,15 @@ class IxiaChariotBasedTest(xenrt.TestCase):
         console = ixiachariot.Console(
             self.consoleAddress, self.executeOnChariotConsole, XenRTLock())
 
-        for cmd in pairTest.getCommands():
+        step("IXIA console is going to run %d TCP streams between the end points." % numThreads)
+        for cmd in pairTest.getCommands(numThreads):
             console.run(cmd)
 
-        logdir = xenrt.TEC().getLogdir()
+        logDir = xenrt.TEC().getLogdir()
 
         sftpclient = xenrt.ssh.SFTPSession(
             self.consoleAddress,
             username=self.consoleUser)
 
-        sftpclient.copyTreeFrom(pairTest.workingDir, logdir + '/results')
+        sftpclient.copyTreeFrom(pairTest.workingDir, logDir + '/results')
         sftpclient.close()

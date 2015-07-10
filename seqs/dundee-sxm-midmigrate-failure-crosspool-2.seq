@@ -9,12 +9,12 @@
 
   <prepare>
     <!-- <pool id="0" name="sourceSXMPool"> -->
-    <pool id="0">
-      <host id="0" installsr="lvm" />
+    <pool id="0" master="H1">
+      <host id="0" installsr="ext" alias="H1"/>
     </pool>
     <!-- <pool id="1" name="targetSXMPool"> -->
-    <pool id="1">
-      <host id="1" installsr="ext" />
+    <pool id="1" master="H2">
+      <host id="1" installsr="lvm" alias="H2"/>
     </pool>
   </prepare>
 
@@ -22,8 +22,8 @@
 
     <serial group="CrossPoolMidMigSXM">
       <testcase id="xenserver.tc.sxm.InsuffSpaceDestSR" name="TC17127" tc="TC-17127">
-        <arg>src_SR=lvm</arg>
-        <arg>dest_SR=ext</arg>
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
         <arg>negative_test</arg>
       </testcase>
 

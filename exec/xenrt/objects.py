@@ -539,6 +539,25 @@ class GenericPlace(object):
                                       level=level,
                                       desc="Reachability check")
 
+    def checkAlive(self):
+        """Check the location is alive"""
+        if not self.windows:
+            if not self.password:
+                self.findPassword()
+            if xenrt.ssh.SSH(self.getIP(),
+                             "true",
+                             password=self.password,
+                             level=xenrt.RC_OK,
+                             timeout=20,
+                             username="root",
+                             nowarn=True) == xenrt.RC_OK:
+                xenrt.TEC().logverbose(" ... OK reply from %s" %
+                                       (self.getIP()))
+                return True
+            return False
+        else:
+            return self.xmlrpcIsAlive()
+
     def _xmlrpc(self, impatient=False, patient=False, reallyImpatient=False, ipoverride=None):
         if reallyImpatient:
             trans = MyReallyImpatientTrans()
@@ -3382,7 +3401,11 @@ DHCPServer = 1
                 self.execcmd("apt-get install libssl-dev --force-yes -y")
                 self.execcmd("apt-get install linux-headers-`uname -r` --force-yes -y")
             elif redhat:
-                self.execcmd("yum --disablerepo=updates install -y openssl-devel kernel-headers")
+                try:
+                    self.execcmd("yum --disablerepo=updates install -y openssl-devel kernel-headers")
+                except:
+                    self.execcmd("yum install -y openssl-devel kernel-headers")
+                    
 
             # Get and install the iscsi target
             
@@ -6755,7 +6778,7 @@ chain tftp://${next-server}/%s
         disksize = int(self.lookup(("DISK_SIZE"), "50")) * xenrt.GIGA
         guest.createDisk(sizebytes=disksize, sruuid="DEFAULT", bootable=True)
 
-    def _parseNetworkTopology(self, topology):
+    def _parseNetworkTopology(self, topology, useFriendlySuffix=False):
         """Parse a network topology specification. Takes either a string
         containing XML or a XML DOM node."""
         if type(topology) == type(""):
@@ -6835,7 +6858,10 @@ chain tftp://${next-server}/%s
             vms = False
             friendlynetname = phys.getAttribute("name")
             if not friendlynetname:
-                friendlynetname = network
+                if useFriendlySuffix:
+                    friendlynetname = "%s-%s" % (network,xenrt.randomSuffix())
+                else:
+                    friendlynetname = network
             for n in phys.childNodes:
                 if n.nodeType == n.ELEMENT_NODE:
                     if n.localName == "MANAGEMENT":
@@ -6862,7 +6888,10 @@ chain tftp://${next-server}/%s
                 vnetwork = str(vnetwork)
                 vfriendlynetname = vlan.getAttribute("name")
                 if not vfriendlynetname:
-                    vfriendlynetname = vnetwork
+                    if useFriendlySuffix:
+                        vfriendlynetname = "%s-%s" % (vnetwork,xenrt.randomSuffix())
+                    else:
+                        vfriendlynetname = vnetwork
                 # Look for management, storage or VM use on this VLAN
                 vmgmt = False
                 vstorage = False
@@ -9795,17 +9824,18 @@ while True:
         urlprefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
         url = "%s/gpuDriver/PVHVM/%s" % (urlprefix, drivername)
         installfile = xenrt.TEC().getFile(url)
+        installName = "nvidialinuxdriver.run"
         if not installfile:
             raise xenrt.XRTError("Failed to fetch PVHVM GPU NVidia driver.")
         sftp = self.sftpClient()
-        sftp.copyTo(installfile, "/%s" % (os.path.basename(installfile)))
+        sftp.copyTo(installfile, "/%s" % (os.path.basename(installName)))
         sftp.close()
 
         #Call guest methods to install drivers
         if self.distro.startswith("ubuntu"):
-            self.installUbuntuGpuDrivers(drivername)
+            self.installUbuntuGpuDrivers(installName)
         else :
-            self.installRhelGpuDrivers(drivername)
+            self.installRhelGpuDrivers(installName)
 
     def installUbuntuGpuDrivers(self ,drivername):
         self.execcmd("echo 'blacklist nouveau' >> /etc/modprobe.d/blacklist.conf ")

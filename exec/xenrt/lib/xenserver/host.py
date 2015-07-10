@@ -576,6 +576,7 @@ class Host(xenrt.GenericHost):
     LINUX_INTERFACE_PREFIX = "xenbr"
     USE_CCISS = True
     INITRD_REBUILD_SCRIPT = "new-kernel-pkg.py"
+    SOURCE_ISO_FILES = {'source-1.iso': 'xe-phase-3', 'source-4.iso': 'xe-phase-3'}
 
     def __init__(self, machine, productVersion="Orlando", productType="xenserver"):
         xenrt.GenericHost.__init__(self,
@@ -11686,6 +11687,7 @@ class DundeeHost(CreedenceHost):
     USE_CCISS = False
     SNMPCONF = "/etc/snmp/snmpd.xs.conf"
     INITRD_REBUILD_SCRIPT = "new-kernel-pkg"
+    SOURCE_ISO_FILES = {'source.iso': 'xe-phase-3'}
 
     def __init__(self, machine, productVersion="Dundee", productType="xenserver"):
         CreedenceHost.__init__(self,

@@ -2120,6 +2120,8 @@ class _TCResize(xenrt.TestCase):
             self.cli.execute("vbd-plug", "uuid=%s" % (self.vbd))
 
     def doResize(self, newbytes, online, experror):
+        if isinstance(experror, basestring):
+            experror = [experror]
         args = ["uuid=%s" % (self.vdi)]
         if online != None:
             if online:
@@ -2132,13 +2134,13 @@ class _TCResize(xenrt.TestCase):
         except xenrt.XRTFailure, e:
             # Were we expecting an error
             if experror:
-                if re.search(experror, e.data):
-                    # This is what we expected
-                    xenrt.TEC().logverbose("CLI error as expected")
-                    return
-                else:
-                    # We expected an error but got a different one
-                    raise e
+                for err in experror:
+                    if re.search(err, e.data):
+                        # This is what we expected
+                        xenrt.TEC().logverbose("CLI error as expected")
+                        return
+                xenrt.TEC().logverbose("CLI error not as expected")
+                raise e
             # No error expected but we got one
             raise e
         # Did we get a success when we expected an error?
@@ -2211,13 +2213,13 @@ class _TCResizeShrink(_TCResize):
 
     def run(self, arglist):
         if self.runSubcase("doResize",
-                           (self.SHRINK_SIZE_1, None, "VDI Invalid size"),
+                           (self.SHRINK_SIZE_1, None, ["VDI Invalid size", "Shrinking is not supported"]),
                            "Shrink",
                            "nGiB") != \
                xenrt.RESULT_PASS:
             return    
         if self.runSubcase("doResize",
-                           (self.INITIAL_SIZE - 1, None, "VDI Invalid size"),
+                           (self.INITIAL_SIZE - 1, None, ["VDI Invalid size", "Shrinking is not supported"]),
                            "Shrink",
                            "1B") != \
                xenrt.RESULT_PASS:
@@ -4985,3 +4987,10 @@ class TCVdiSpaceInName(xenrt.TestCase):
         host.getVdiMD5Sum(vdi)
 
         host.destroyVDI(vdi)
+
+class TCAllPBDsPlugged(xenrt.TestCase):
+    def run(self, arglist):
+        for host in self.getDefaultPool().getHosts():
+            for pbd in host.minimalList("pbd-list"):
+                if host.genParamGet("pbd", pbd, "currently-attached") != "true":
+                    raise xenrt.XRTFailure("Not all PBDs were attached after pool join")

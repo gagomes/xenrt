@@ -24,12 +24,12 @@
         <network device="0"/>
         <postinstall action="installDrivers"/>
       </vm>
-      <vm name="debian60">
-        <distro>debian60</distro>
+      <vm name="debian70">
+        <distro>debian70</distro>
         <network device="0"/>
       </vm>
-      <vm name="rhel54">
-        <distro>rhel54</distro>
+      <vm name="rhel5x">
+        <distro>rhel5x</distro>
         <network device="0"/>
       </vm>
     </host>
@@ -37,12 +37,12 @@
 
   <testsequence>
     <parallel tc="TC-9734">
-      <testcase id="xenserver.guest.TCMixops" group="debian60">
-        <arg>guest=debian60</arg>
+      <testcase id="xenserver.guest.TCMixops" group="debian70">
+        <arg>guest=debian70</arg>
         <arg>duration=${MIXHOURS}</arg>
       </testcase>
-      <testcase id="xenserver.guest.TCMixops" group="rhel54">
-        <arg>guest=rhel54</arg>
+      <testcase id="xenserver.guest.TCMixops" group="rhel5x">
+        <arg>guest=rhel5x</arg>
         <arg>duration=${MIXHOURS}</arg>
       </testcase>
       <testcase id="xenserver.guest.TCMixops" group="ws08sp2-x86">

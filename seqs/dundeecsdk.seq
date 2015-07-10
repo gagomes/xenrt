@@ -8,7 +8,7 @@
     <host id="0">
       <vm name="ubuntu1004_runner">
         <distro>ubuntu1004</distro>
-        <memory>128</memory>
+        <memory>1024</memory>
         <vcpus>2</vcpus>
         <network device="0" />
         <disk device="0" size="8" />

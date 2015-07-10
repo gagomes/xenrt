@@ -1,5 +1,5 @@
 from xenrt.lib.xenserver.call import APICall
-from xenrt import step, log
+from xenrt import step, log, warning
 from random import sample, choice
 import xenrt
 import re
@@ -401,19 +401,22 @@ class TCBasicFunc(TCRemoteCommandExecBase):
         """Verify xensource log has information of calls."""
 
         args = {}
+        host = guest.host.pool.master
+        # Checking last command.
         if self.METHOD == "cli":
-            host = guest.host.pool.master
             log = host.execdom0("grep 'xe vm-call-plugin vm-uuid=%s plugin=guest-agent-operation " \
                 "fn=run-script' /var/log/xensource.log" % guest.getUUID()).splitlines()[-1]
             for tkn in log.split("args:")[1:]:
                 tkn = tkn.strip()
                 key, val = tkn.split("=", 1)
                 args[key] = val
-        # Todo: Add API call log check once dev done.
-        elif self.METHOD == "api":
-            return
-        elif self.METHOD == "async":
-            return
+        else:
+            log = host.execdom0("grep \"VM.call_plugin: VM = '%s (%s)'; plugin = 'guest-agent-operation'; " \
+                "fn = 'run-script'\" /var/log/xensource.log" % (guest.getUUID(), guest.getName())).splitlines()[-1]
+            for tkn in log.split("arg:")[1:]:
+                tkn = tkn.strip()
+                key, val = tkn.split("=", 1)
+                args[key.strip()] = val.strip()
 
         if "username" not in args:
             raise xenrt.XRTFailure("username is not logged in host xensource.log.")
@@ -760,6 +763,8 @@ class TCGuestAgentMemory(TCStressCommandBase):
 
     USE_TARGET = 2
     MARGIN = 30 * 1024
+    PERIOD = 300 # in second to run.
+    STEP = 10    # in seconds to sleep between iteration.
 
     def runHeavyOutputCommand(self, guest):
         """Running a heavy STDOUT command.
@@ -798,12 +803,16 @@ goto start
 
         self.runHeavyOutputCommand(guest)
 
-        for i in xrange(1,13):
-            xenrt.sleep(10)
+        xenrt.sleep(self.STEP)
+        startram = self.getGuestAgentRamUsage(guest)
+        log("After workload start ram usage: %d" % startram)
+
+        for i in xrange(1, self.PERIOD / self.STEP + 1):
             curram = self.getGuestAgentRamUsage(guest)
             log("After %d sec ram usage: %d" % ((i * 10), curram))
-            if curram > initram + self.MARGIN:
+            if curram > startram + self.MARGIN:
                 raise xenrt.XRTFailure("Ram usage increased significantly.")
+            xenrt.sleep(self.STEP)
 
     def run(self, arglist=None):
         self.runCase(self.verifyGuestAgentMemory)
@@ -828,6 +837,7 @@ class TCTempFileClear(TCStressCommandBase):
         log("Initial file count of temp dir is %d" % initialCnt)
 
         self.runLongRunningCommand(guest, time=60)
+        xenrt.sleep(10)
         runningCnt = self.getTempFileCount()
         log("File count while command is running is %d" % runningCnt)
 
@@ -836,11 +846,11 @@ class TCTempFileClear(TCStressCommandBase):
         log("File coutn after command is executed is %d" % finalCnt)
 
         if runningCnt <= initialCnt:
-            raise xenrt.XRTFailure("Temp file count has decreased while command is running.")
+            warning("Temp file count has decreased while command is running.")
         if finalCnt >= runningCnt:
-            raise xenrt.XRTFailure("Temp file count has increased after command is executed.")
+            raise xenrt.XRTFailure("Temp file count has not decreased after command is done.")
         if finalCnt != initialCnt:
-            log("Temp file count has been changed after command is executed.")
+            warning("Temp file count has been changed after command is executed.")
 
 
 class TCRBAC(TCRemoteCommandExecBase):

@@ -1312,14 +1312,12 @@ class SourceISOCheck(xenrt.TestCase):
                 except:
                     pass
         if not sourceRpmPackageList:
-            xenrt.TEC().skip("Unable to obtain any source ISOs for %s." % (self.APPLIANCE_NAME))
-            return False
+            raise xenrt.XRTFailure("Unable to obtain any source ISOs for %s (%s)." % (self.APPLIANCE_NAME, self.host.productVersion))
         sourceRpmPackageList.sort()
         self.SOURCE_RPM_PACKAGES = sourceRpmPackageList
 
         xenrt.TEC().logverbose("The list of source rpm packages available in %s source ISO are \n%s " %
                                     (self.APPLIANCE_NAME, "\n".join(map(str, self.SOURCE_RPM_PACKAGES))))
-        return True
 
     def ignoreRpmPackagesFromComparison(self):
         """Ignores the specified packages from comparision"""
@@ -1377,29 +1375,27 @@ class SourceISOCheck(xenrt.TestCase):
                     xenrt.TEC().logverbose("The missing rpm packages in %s  after ignoring package version number are \n%s " %
                                                             (self.APPLIANCE_NAME, "\n".join(map(str, diffRpmListWithVersion))))
                                             
-                    raise xenrt.XRTFailure("There are missing rpm packages in %s appliance." %
-                                                                                self.APPLIANCE_NAME)
+                    raise xenrt.XRTFailure("There are missing rpm packages in %s appliance (%s)." % (self.APPLIANCE_NAME, self.host.productVersion))
                 else:
-                    xenrt.TEC().logverbose("No missing rpm packages are found in %s appliance after ignoring the version numbers." %
-                                                                                                                    self.APPLIANCE_NAME)
+                    xenrt.TEC().logverbose("No missing rpm packages are found in %s appliance after ignoring the version numbers." % self.APPLIANCE_NAME)
 
             else: # IGNORE_RPM_VERSION == "no"
-                raise xenrt.XRTFailure("There are missing rpm packages in %s appliance." %
-                                                                                self.APPLIANCE_NAME)
+                raise xenrt.XRTFailure("There are missing rpm packages in %s appliance (%s)." % (self.APPLIANCE_NAME, self.host.productVersion))
         else:
-            xenrt.TEC().logverbose("No missing rpm packages are found in %s appliance." %
-                                                                                self.APPLIANCE_NAME)
+            xenrt.TEC().logverbose("No missing rpm packages are found in %s appliance." % self.APPLIANCE_NAME)
 
 class TCDom0SourceCheck(SourceISOCheck): # TC-17998
     """Verify dom0 source iso (xe-phase-3/source-1.iso & source-4.iso) for missing RPMs."""
 
     APPLIANCE_NAME = "Dom0"
     
-    SOURCE_ISO_FILES = {'source-1.iso': 'xe-phase-3', 'source-4.iso': 'xe-phase-3'}
-   
     IGNORE_EXTRA_RPM_PACKAGES = ['libev', 'perf-tools'] # in addition to the list of base packages.
                                                         # perf-tools missing from tampa onwards
 
+    def prepare(self, arglist=None):
+        self.SOURCE_ISO_FILES = self.getDefaultHost().SOURCE_ISO_FILES
+        SourceISOCheck.prepare(self, arglist)
+    
     def run(self, arglist=None):
         
         versiontype = xenrt.TEC().lookup("PRODUCT_VERSION")
@@ -1427,8 +1423,7 @@ class TCDom0SourceCheck(SourceISOCheck): # TC-17998
         self.setInstalledRpmPackages(installedRpmList)
 
         # Download xe-phase-3/source-1.iso and xe-phase-3/source-4.iso.
-        if not self.setSourceRpmPackages():
-            return # Test is skipping
+        self.setSourceRpmPackages()
 
         self.ignoreRpmPackagesFromComparison()
 
@@ -1483,8 +1478,7 @@ class TCDLVMSourceCheck(SourceISOCheck): # TC-17999
         self.setInstalledRpmPackages(installedRpmList)
 
         # Download xe-phase-3/source-dlvm.iso
-        if not self.setSourceRpmPackages():
-            return # Test is skipping
+        self.setSourceRpmPackages()
 
         self.ignoreRpmPackagesFromComparison()
 
@@ -1548,8 +1542,7 @@ class TCVPXWLBSourceCheck(SourceISOCheck): # TC-18000
         self.ignoreRpmPackagesFromComparison()
 
         # Download xe-phase-3/source-wlb.iso
-        if not self.setSourceRpmPackages():
-            return # Test is skipping
+        self.setSourceRpmPackages()
 
         self.compareRpmPackages()
 
@@ -1636,8 +1629,7 @@ class TCVPXConversionSourceCheck(SourceISOCheck): # TC-18001
         self.ignoreRpmPackagesFromComparison()
 
         # Download xe-phase-3/source-conversion.iso
-        if not self.setSourceRpmPackages():
-            return # Test is skipping
+        self.setSourceRpmPackages()
 
         self.compareRpmPackages()
 
@@ -1698,8 +1690,7 @@ class TCDVSControllerSourceCheck(SourceISOCheck): # TC-18002
         self.ignoreRpmPackagesFromComparison()
 
         # Download xe-phase-3/source-dvsc.iso
-        if not self.setSourceRpmPackages():
-            return # Test is skipping
+        self.setSourceRpmPackages()
 
         self.compareRpmPackages()
 
@@ -1733,8 +1724,7 @@ class TCDDKSourceCheck(SourceISOCheck): # TC-18003
         self.ignoreRpmPackagesFromComparison()
 
         # Download xe-phase-3/source-ddk.iso
-        if not self.setSourceRpmPackages():
-            return # Test is skipping
+        self.setSourceRpmPackages()
 
         self.compareRpmPackages()
 

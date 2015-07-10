@@ -737,6 +737,8 @@ class VGPUOwnedVMsTest(xenrt.TestCase,VGPUTest):
         hosts = self.getAllHosts()
 
         vms= []
+        remainingVMs =[]
+        snaps = []
         for host in hosts:
             cli = host.getCLIInstance()
             step("Shutting down all the guests")
@@ -752,11 +754,22 @@ class VGPUOwnedVMsTest(xenrt.TestCase,VGPUTest):
                     try:
                         cli.execute("vm-uninstall","uuid=%s force=true" % vm) 
                     except: pass
+                else:
+                    remainingVMs.append(vm)
+
+            for vm in remainingVMs:
+                snap = host.minimalList("snapshot-list", "uuid", "snapshot-of=%s name-label=clean" % vm)
+                if len(snap) == 0:
+                    log("No snapshot present so do nothing")
+                else:
+                    snaps.append(snap[0])
+                    cli.execute("snapshot-revert","snapshot-uuid=%s" % snap[0]) 
 
             step("Destroying all the snapshots")
             snapshots = host.minimalList("snapshot-list")
             for snapshot in snapshots: 
-                cli.execute("snapshot-destroy","uuid=%s force=true" % snapshot)
+                if snapshot not in snaps:
+                    cli.execute("snapshot-destroy","uuid=%s force=true" % snapshot)
 
             step("Destroying all the vGPUs")
             vgpus = host.minimalList("vgpu-list")
@@ -4514,6 +4527,160 @@ class TCcheckNvidiaDriver(xenrt.TestCase):
 
         if host.execdom0("grep -e 'nvidia: disagrees about version of symbol' -e 'nvidia: Unknown symbol' /var/log/kern.log", retval="code") == 0:
             raise xenrt.XRTFailure("NVIDIA driver is not correctly built for the current host kernel")
+        
+
+class TCLinuxStress(FunctionalBase):
+    """
+    Runs Stress tests for given time (72 hours by default)
+    Creates guests number of GPUs and run workloads on all guests.
+    """
+
+    def __init__(self):
+        super(TCLinuxStress, self).__init__()
+        self.pgpus = []
+        self.masters = []
+        self.stressguests = []
+        self.host = self.getDefaultHost()
+        # secs in min * mins in hr * hrs in day * duration of test in day.
+        self.duration = 60 * 60 * 24 * 3
+        self.prefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "") + "/linux-pt-guest-installation/"
+        # Default, being set from the seq file.
+        self.benchlocation = "tropics/tropics.run"
+
+    def fetchFile(self, filename):
+        """Download file from disk master"""
+        xenrt.TEC().logverbose("getFile %s" % filename)
+        down = xenrt.TEC().getFile(filename, replaceExistingIfDiffers=True)
+        if not down:
+            raise xenrt.XRTError("Failed to fetch file: %s" % filename)
+        content = ""
+        with open(down, "r") as fh:
+            content = fh.read()
+        return content
+
+    def prepareMasters(self, vms):
+        """
+        Set up the specific environments for each distro.
+        """
+
+        def __prepare(*args):
+            guest = args[0]
+            config = args[1]
+
+            expVGPUType = self.getConfigurationName(config)
+
+            # Install gpu & drivers, and make sure is running ok.
+            self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], guest)
+            self.typeOfvGPU.installGuestDrivers(guest, expVGPUType)
+            self.typeOfvGPU.assertvGPURunningInVM(guest, expVGPUType)
+
+            # Copy benchmark to VM.
+            urlprefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
+            url = "%s/%s" % (urlprefix, self.benchlocation)
+            installfile = xenrt.TEC().getFile(url)
+            if not installfile:
+                raise xenrt.XRTError("Failed to fetch tropics benchmark.")
+            sftp = guest.sftpClient()
+            sftp.copyTo(installfile, "/root/%s" % (os.path.basename(installfile)))
+            sftp.close()
+            
+            # Go through specific guest install steps.
+            json = self.fetchFile(self.prefix + guest.getName() + ".json")
+            runner = Runner(json, guest)
+            runner.runThrough()
+
+        if not len(self.VGPU_CONFIG) == 1:
+            raise xenrt.XRTError("Expected only one VGPU_CONFIG. Number received: %s" % (len(self.VGPU_CONFIG)))
+
+        tasks = []
+        for guest in vms:
+            tasks.append(xenrt.PTask(__prepare, guest, self.VGPU_CONFIG[0]))
+        xenrt.pfarm(tasks)
+
+    def prepareGuests(self):
+        """
+        Clone the set up distros to fill all capacity on the host. 
+        Will scale up depending on number of GPUs in the host.
+        """
+
+        clones = []
+        installer = self.vGPUCreator[self.VGPU_CONFIG[0]]
+
+        # Make sure the VMs are down before cloning.
+        for g in self.stressguests:
+            g.setState("DOWN")
+
+        # Find the remaining capacity.
+        masterCount = len(self.stressguests)
+        remainingCapacity = self.host.remainingGpuCapacity(installer.groupUUID(), installer.typeUUID()) - masterCount
+
+        # Go through the masters and clone in order.
+        for i in range(remainingCapacity):
+            clones.append(self.stressguests[i % masterCount].cloneVM())
+
+        self.stressguests.extend(clones)
+
+        for g in self.stressguests:
+            g.setState("UP")
+
+    def prepare(self, arglist = []):
+
+        super(TCLinuxStress, self).prepare(arglist)
+
+        args = self.parseArgsKeyValue(arglist)
+
+        if "duration" in args:
+            # duration is given in mins from the seq file.
+            self.duration = int(args["duration"]) * 60
+        if "benchlocation" in args:
+            self.benchlocation = args["benchlocation"]
+
+        step("Creating %d vGPUs configurations." % (len(self.VGPU_CONFIG)))
+        self.vGPUCreator = {}
+        for config in self.VGPU_CONFIG:
+            self.vGPUCreator[config] = VGPUInstaller(self.host, config)
+
+        for distro in self.REQUIRED_DISTROS:
+            osType = self.getOSType(distro)
+
+            log("Creating Master VM of type %s" % osType)
+            vm = self.createMaster(osType)
+            vm.enlightenedDrivers = True
+            vm.setState("UP")
+            self.masterVMsSnapshot[osType] = vm.snapshot()
+
+            self.stressguests.append(vm)
+
+        # Install required environment on all master vms.
+        self.prepareMasters(self.stressguests)
+
+        # Clone master VMs to fill capacity on the host.
+        self.prepareGuests()
+
+    def run(self, arglist = []):
+
+        total = len(self.stressguests)
+        wlm = WorkloadManager(self.stressguests)
+        wlm.start()
+        start = time.time()
+
+        running = wlm.check()
+        if running != total:
+            raise xenrt.XRTFailure("Failed to run %d workloads. (%d expected to run)" %
+                ((total - running), total))
+
+        while time.time() - start < self.duration:
+            xenrt.sleep(60) # Should be "60 * 60", for 1 hour sleeps. Using 1 minute for testing.
+            running = wlm.check()
+            xenrt.TEC().logverbose("%d / %d guests are running workloads" % (running, total))
+            if running == 0:
+                raise xenrt.XRTFailure("(0/%d) workloads are running." % (total))
+
+        running = wlm.check()
+        if running != total:
+            raise xenrt.XRTFailure("Only %d out of %d workloads ran for %d hours" %
+            (running, total, (self.duration /60 /60)))
+        xenrt.TEC().logverbose("Successfully ran workloads on %d guests." % (total))
 
 
 class WorkloadManager(object):
@@ -4527,8 +4694,9 @@ class WorkloadManager(object):
     def fetchFile(self, filename):
         """Download file from dist master"""
 
-        xenrt.TEC().getFile(filename)
-        down = xenrt.TEC().logverbose("getFile %s" % filename)
+        xenrt.TEC().logverbose("getFile %s" % filename)
+        down = xenrt.TEC().getFile(filename, replaceExistingIfDiffers=True)
+
         if not down:
             raise xenrt.XRTError("Failed to fetch file: %s" % filename)
         content = ""
@@ -4538,23 +4706,44 @@ class WorkloadManager(object):
 
     def start(self):
         """ start work load"""
-        # This is a simple command of executing tropics (or other workload)
-        # Can be implemented with execguest if prefered.
+
+        json = self.fetchFile(self.prefix + self.workload + "-start.json")
+        self.__startWorkload(self.guests, json)
+
+        # If check fails, then jumpstart.
+        if self.check() != len(self.guests):
+            xenrt.TEC().logverbose("Not all workloads started correctly, try to start again.")
+            self.__jumpStart()
+
+    def __jumpStart(self):
+        """ Try and start any workloads that failed to run the first time. """
+
+        failedWorkloads = []
+        json = self.fetchFile(self.prefix + self.workload + "-jumpstart.json")
+
+        # Build a list of guests where workload didn't start.
+        for guest in self.guests:
+            if not self.__checkGuest(guest):
+                failedWorkloads.append(guest)
+
+        self.__startWorkload(failedWorkloads, json)
+
+    def __startWorkload(self, guests, json):
+        """ Try and start the workload on any guests where it failed to start. """
+
         def __start(guest, json):
             runner = Runner(json, guest)
             runner.runThrough()
 
-        json = self.fetchFile(self.prefix + self.workload + "-start.json")
         tasks = []
-        for guest in self.guests:
-            tasks.append(xenrt.PTask(__start, (guest, json)))
+        for guest in guests:
+            tasks.append(xenrt.PTask(__start, guest, json))
         xenrt.pfarm(tasks)
-        xenrt.sleep(5) # Gice some time to settle down.
+        xenrt.sleep(30) # Give some time to settle down.
 
     def stop(self):
-        """Stop running process"""
-        # This is a simple command of kill tropics (or workload) with killall command
-        # Can be implemented with execguest if prefered.
+        """Stop running process. Script is un-implemented."""
+
         def __stop(guest, json):
             runner = Runner(json, guest)
             runner.runThrough()
@@ -4562,178 +4751,28 @@ class WorkloadManager(object):
         json = self.fetchFile(self.prefix + self.workload + "-stop.json")
         tasks = []
         for guest in self.guests:
-            tasks.append(xenrt.PTask(__stop, (guest, json)))
+            tasks.append(xenrt.PTask(__stop, guest, json))
         xenrt.pfarm(tasks)
 
     def check(self):
-        """Check runber of running processes on guests.
+        """Check number of running processes on guests.
 
         @return: number of running processes
         """
-        # This is a simple check of workload process by checkinng ps.
-        # Can be implemented with execguest if prefered.
+
         running = 0
-        json = self.fetchFile(self.prefix + self.workload + "-check.json")
         for guest in self.guests:
-            runner = Runner(json, guest)
-            ret = runner.runThrough()
-            if ret["returnCode"] == 0:
+            if self.__checkGuest(guest):
                 running += 1
         return running
-        
 
-# Probably going to want it to use functional base. Can get rid of a lot of dupped functionality.
-class TCLinuxPTStress(FunctionalBase):
-    """Runs Stress tests for given time (72 hours by default)
-    Creates guests number of GPUs and run workloads on all guests.
-    """
+    def __checkGuest(self, guest):
+        """ Check if workload is running on a single guest. """
 
-    def __init__(self):
-        self.pgpus = []
-        self.masters = []
-        self.guests = []
-        self.host = self.getDefaultHost()
-        # secs in min * mins in hr * hrs in day * duration of test in day
-        self.duration = 60 * 60 * 24 * 3
-        # Will probably not be needed if typeofvgpu is specified from seq file.
-        self.gpu = "NVIDIA"
-        self.prefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "") + "/linux-pt-guest-installation/"
+        psName = ""
+        if self.workload == "tropics":
+            psName = "Tropics"
 
-    def getGPUGroup(self, name):
-        """Return gpu-group of which name contains given name"""
-        for group in self.host.minimalList("gpu-group"):
-            if name in self.host.genParamGet("gpu-group", group, "name-label"):
-                return group
-        return None
+        return guest.execguest("pgrep '%s'" % psName, retval="code") == 0
 
-    def getPTType(self):
-        """Return vgpu type uuid of gpu pass-through"""
-        for vgputype in self.host.getMinimalList("vgpu-type"):
-            if "passthrough" in self.host.genParamGet("vgpu-type", vgputype, "model-name"):
-                return vgputype
-        return None
 
-    def getSupportedTypesList(self, pgpu):
-        """Return list of supported vgpu types of given pgpu"""
-        supported = self.host.genParamGet("pgpu", pgpu, "supported-VGPU-types").replace(" ", "")
-        if len(supported) > 0:
-            return supported.split(";")
-        return []
-
-    def getPGPUList(self, vgputype):
-        """ Return list of pgpus that support given vgputype """
-        return [pgpu for pgpu in self.host.minimalList("pgpu-list") if vgputype in self.getSupportedTypesList(pgpu)]
-
-    def assignPGPU(self, guest, typeuuid, gpugroupuuid):
-        """Assign a pgpu onto given VM with given type and gpu group"""
-        self.host.getCLIInstance().execute("vgpu-create vgpu-type-uuid=%s vm-uuid=%s gpu-group-uuid=%s" %
-            (typeuuid, guest.getUUID(), gpugroupuuid))
-
-    def fetchFile(self, filename):
-        """Download file from disk master"""
-        xenrt.TEC().getFile(filename)
-        down = xenrt.TEC().logverbose("getFile %s" % filename)
-        if not down:
-            raise xenrt.XRTError("Failed to fetch file: %s" % filename)
-        content = ""
-        with open(down, "r") as fh:
-            content = fh.read()
-        return content
-
-    def prepareMasters(self, vms):
-        """
-        Probably going to be a combination of the existing below, and adding in some
-        of the existing library code to cut complexity (hopefully).
-        """
-        def __prepare(*args):
-            guest = args[0]
-            json = self.fetchFile(self.prefix + guest.getName() + ".json")
-            runner = Runner(json, guest)
-            runner.runThrough()
-
-        tasks = []
-        # Think this will be on the 'vms' list, instead of self.guests. Double check that.
-        for guest in self.guests:
-            tasks.append(xenrt.PTask(__prepare, guest))
-        xenrt.pfarm(tasks)
-
-    def prepareGuests(self):
-        """
-        Not sure about the order for the setup.
-        Make sure the install of stuff in the vm does not rely on the gpu being present.
-        (Think might have to assign the gpu initially, then setup, then can clone from there).
-        """
-        # Check VGPU type uuid of pass-through.
-        vgputypeuuid = self.getPTType()
-        if not vgputypeuuid:
-            raise xenrt.XRTError("Host does not have support GPU pass-through")
-
-        # get List of PGPUs that support passthrough
-        self.pgpus = self.getPGUList(vgputypeuuid)
-        if not self.pgpus:
-            raise xenrt.XRTError("No PGPU supports GPU pass-through")
-
-        # get gpu group
-        gpugroup = self.getGPUGroup(self.gpu)
-        if not gpugroup:
-            raise xenrt.XRTError("Host does not have %s type card or GPU group is not initiated properly." % self.gpu)
-
-        # Clone guests to run and assign pgpu.
-        for i in range(len(self.pgpus)):
-            guest = self.masters[i % len(self.master)].clone()
-            self.uninstallOnCleanup(guest)
-            self.assignPGPU(guest, vgputypeuuid, gpugroup)
-            self.guests.append(guest)
-
-    def prepare(self, arglist = []):
-        """
-        Call super prepare, make sure FunctionalBase stuff is taken care of.
-        Keep concerns of comment in prepareGuests() in mind, the order of the
-        setup being important.
-
-        Might be some specific stuff about identifying the individual distros, 
-        if we want an even spread of types of OS.
-        """
-        # Retian args
-        args = self.parseArgsKeyValue(arglist)
-
-        if "gpu" in args:
-            self.gpu = args["gpu"]
-        if "duration" in args:
-            # duration is given in mins from the seq file.
-            self.duration = int(args["duration"]) * 60
-
-        # Retain list of master VMs from sequence.
-        if not "vms" in args:
-            raise xenrt.XRTError("No Master VMs are passed.")
-
-        # Install required tools on all master vms.
-        self.prepareMasters(args["vms"].split(","))
-
-        # Cline required number of VMs and set gpu pass-through on them
-        self.prepareGuests()
-
-    def run(self, arglist = []):
-
-        total = len(self.guests)
-        wlm = WorkloadManager(self.guests)
-        wlm.start()
-        start = time.time()
-
-        running = wlm.check()
-        if running != total:
-            raise xenrt.XRTFailure("Failed to run %d workloads. (%d expected to run)" %
-                ((total - running), total))
-
-        while time.time() - start < self.duration:
-            xenrt.sleep(60 * 60)
-            running = wlm.check()
-            xenrt.TEC().logverbose("%d / %d guests are running workloads" % (running, total))
-            if running == 0:
-                raise xenrt.XRTFailure("(0/%d) workloads are running." % (total))
-
-        running = wlm.check()
-        if running != total:
-            raise xenrt.XRTFailure("Only %d out of %d workloads ran for %d hours" %
-            (running, total, (self.duration /60 /60)))
-        xenrt.TEC().logverbose("Successfully ran workloads on %d guests." % (total))

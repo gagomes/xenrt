@@ -1122,6 +1122,7 @@ class TCLinuxPTStress(xenrt.TestCase):
             runner.runThrough()
 
         tasks = []
+        # Think this will be on the 'vms' list, instead of self.guests. Double check that.
         for guest in self.guests:
             tasks.append(xenrt.PTask(__prepare, guest))
         xenrt.pfarm(tasks)
@@ -1157,7 +1158,7 @@ class TCLinuxPTStress(xenrt.TestCase):
         if "gpu" in args:
             self.gpu = args["gpu"]
         if "duration" in args:
-            # duration is given in mins.
+            # duration is given in mins from the seq file.
             self.duration = int(args["duration"]) * 60
 
         # Retain list of master VMs from sequence.
@@ -1165,7 +1166,7 @@ class TCLinuxPTStress(xenrt.TestCase):
             raise xenrt.XRTError("No Master VMs are passed.")
 
         # Install required tools on all master vms.
-        self.prepareMaster(args["vms"].split(","))
+        self.prepareMasters(args["vms"].split(","))
 
         # Cline required number of VMs and set gpu pass-through on them
         self.prepareGuests()

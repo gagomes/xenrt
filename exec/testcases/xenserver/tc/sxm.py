@@ -1806,18 +1806,16 @@ class InsuffSpaceDestSR(MidMigrateFailure):
         vm.start()
 
         #creating large VDI(100GB) on destination SR
-        if self.test_config['type_of_migration'] != 'LiveVDI':
-            host = self.test_config['dest_host']
-            localSR = host.getLocalSR()
-            localSRSize = int(host.getSRParam(localSR, "physical-size"))
-            srFreeSpace = localSRSize - int(host.getSRParam(localSR, "physical-utilisation"))
-            self.vdi = host.createVDI( sizebytes = srFreeSpace - 10 * xenrt.GIGA, sruuid = localSR)
+        host = self.test_config['host_B']
+        localSR = host.getLocalSR()
+        localSRSize = int(host.getSRParam(localSR, "physical-size"))
+        srFreeSpace = localSRSize - int(host.getSRParam(localSR, "physical-utilisation"))
+        self.vdi = host.createVDI( sizebytes = srFreeSpace - 10 * xenrt.GIGA, sruuid = localSR)
 
     def postRun(self):
  
-        if self.test_config['type_of_migration'] != 'LiveVDI':
-            host = self.test_config['dest_host']
-            host.destroyVDI(self.vdi)
+        host = self.test_config['host_B']
+        host.destroyVDI(self.vdi)
 
         super(InsuffSpaceDestSR, self).postRun()
       

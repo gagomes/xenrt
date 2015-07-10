@@ -757,11 +757,12 @@ class VGPUOwnedVMsTest(xenrt.TestCase,VGPUTest):
                     remainingVMs.append(vm)
 
             for vm in remainingVMs:
-                snaps.append(host.minimalList("snapshot-list", "uuid", "snapshot-of=%s name-label=clean" % vm)[0])
-                if len(snaps) == 0:
+                snap = host.minimalList("snapshot-list", "uuid", "snapshot-of=%s name-label=clean" % vm)
+                if len(snap) == 0:
                     log("No snapshot present so do nothing")
                 else:
-                    cli.execute("snapshot-revert","snapshot-uuid=%s" % snaps[0]) 
+                    snaps.append(snap[0])
+                    cli.execute("snapshot-revert","snapshot-uuid=%s" % snap[0]) 
 
             step("Destroying all the snapshots")
             snapshots = host.minimalList("snapshot-list")

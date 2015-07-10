@@ -1667,6 +1667,12 @@ class MidMigrateFailure(LiveMigrate):
         if self.args.has_key('monitoring_failure'):
             self.test_config['monitoring_failure'] = self.args['monitoring_failure']
 
+        if self.args.has_key('src_host'):
+            self.test_config['src_host'] = self.getHost(self.args['src_host'])
+
+        if self.args.has_key('dest_host'):
+            self.test_config['dest_host'] = self.getHost(self.args['dest_host'])
+
         return
 
     def srFailure(self,host):
@@ -1800,13 +1806,19 @@ class InsuffSpaceDestSR(MidMigrateFailure):
         vm.start()
 
         #creating large VDI(100GB) on destination SR
-        if self.test_config['type_of_migration'] != 'LiveVDI':
-            host = self.test_config['dest_host']
-            localSr = host.getLocalSR()
-            localSRSize = int(host.getSRParam(localSr, "physical-size"))
-            srFreeSpace = localSRSize - int(host.getSRParam(localSr, "physical-utilisation"))
-            vdi = host.createVDI( srFreeSpace - 10 * xenrt.GIGA)
+        host = self.test_config['host_B']
+        localSR = host.getLocalSR()
+        localSRSize = int(host.getSRParam(localSR, "physical-size"))
+        srFreeSpace = localSRSize - int(host.getSRParam(localSR, "physical-utilisation"))
+        self.vdi = host.createVDI( sizebytes = srFreeSpace - 10 * xenrt.GIGA, sruuid = localSR)
 
+    def postRun(self):
+ 
+        host = self.test_config['host_B']
+        host.destroyVDI(self.vdi)
+
+        super(InsuffSpaceDestSR, self).postRun()
+      
 class LargeDiskWin(LiveMigrate):
 
     def setTestParameters(self):

@@ -81,8 +81,12 @@ class _ThinLVHDBase(xenrt.TestCase):
         if not host:
             host = self.getDefaultHost()
 
-        srs = [xenrt.lib.xenserver.getStorageRepositoryClass(host, sr.uuid).fromExistingSR(host, sr.uuid)
-                for sr in host.asXapiObject().SR(False)]
+        srs = []
+        for sr in host.asXapiObject().SR(False):
+            try:
+                srs.append(xenrt.lib.xenserver.getStorageRepositoryClass(host, sr.uuid).fromExistingSR(host, sr.uuid))
+            except:
+                log("%s type does not support thin-lvhd." % (sr.srType(),))
 
         return [sr for sr in srs if sr.thinProvisioning]
 

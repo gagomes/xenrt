@@ -10,6 +10,7 @@
 
 import re, traceback, sys, string
 import xenrt
+from xenrt.lazylog import log
 
 class _VBDPlug(xenrt.TestCase):
     DISTRO = None
@@ -124,7 +125,7 @@ class TC27127(xenrt.TestCase):
            host.execdom0("xe vbd-plug uuid=%s"%vbd)
         except:
             log("bad disk, unable to plug in")
-        result = checkVDBAttached(guest,vbd)
+        result = guest.checkVBDAttached(vbd)
         if result:
             raise xenrt.XRTFailure("Read only disk attached to windows")
         else:

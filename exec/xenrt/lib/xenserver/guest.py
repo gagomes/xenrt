@@ -2825,7 +2825,7 @@ exit /B 1
                 reply[device] = (size, 0, None, qos)
         return reply
 
-    def checkVDBAttached(self,vbduuid):
+    def checkVBDAttached(self,vbduuid):
         result = self.host.execdom0("xe vbd-param-get param-name=currently-attached uuid=%s"% vbduuid)
         if result.rstrip() == "true":
             return True

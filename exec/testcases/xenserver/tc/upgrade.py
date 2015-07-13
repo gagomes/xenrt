@@ -3775,7 +3775,7 @@ class TC12212(_MultipathSingleHostUpgrade):
 
 class _RpuNewPartitionsSingleHost(_SingleHostUpgrade):
 
-    EXTRASUBCASES = [("checkPartitions", (), "Check", "Partitions")]
+    EXTRASUBCASES = [("checkPartitions", (), "Check", "Partitions"), ("checkSRs", (), "Check", "SRs")]
     SAFE2UPGRAGE_CHECK = True
     NEW_PARTITIONS = False
 
@@ -3791,9 +3791,12 @@ class _RpuNewPartitionsSingleHost(_SingleHostUpgrade):
             raise xenrt.XRTFailure("Found unexpected partitions on XS clean install. Expected: %s Found: %s" % (partitions, self.host.getDom0Partitions()))
         log("Found expected Dom0 partitions on XS clean installation: %s" % partitions)
 
+    def checkSRs(self):
+        step("Check if SRs are working fine")
+        self.host.checkSRs(type=["lvm","ext"])
 
 class TCRpuNewPartSingle(_RpuNewPartitionsSingleHost):
-    """TC-27063 - Dom0 disk partitioning on single host upgrade with no VMs on local storage"""
+    """TC-27064 - Dom0 disk partitioning on single host upgrade with VMs on local storage"""
 
     NEW_PARTITIONS = True
     NO_VMS = True
@@ -3803,6 +3806,39 @@ class TCRpuOldPartSingle(_RpuNewPartitionsSingleHost):
 
     NEW_PARTITIONS = False
     NO_VMS = False
+    
+class TCRpuPrimaryDisk(_RpuNewPartitionsSingleHost):
+    """TC-27064 - Dom0 disk partitioning on single host upgrade with Second Local SR"""
+
+    NEW_PARTITIONS = True
+    NO_VMS = False
+
+    def installVMs(self):
+        #Create Local SR
+        self.createLocalSR()
+        if isinstance(self.host, xenrt.lib.xenserver.MNRHost) and not isinstance(self.host, xenrt.lib.xenserver.TampaHost):
+            g = self.host.createBasicGuest(distro="debian50")
+        else:
+            g = self.host.createGenericLinuxGuest()
+        g.shutdown()
+        self.guests.append(g)
+    
+    def createLocalSR(self):
+        type = xenrt.TEC().lookup("SECOND_SR_TYPE", None)
+        if type == None:
+            return
+        elif type == "lvm":
+            sr = xenrt.lib.xenserver.LVMStorageRepository(self.host, "Second Local Storage")
+        elif type == "ext":
+            sr = xenrt.lib.xenserver.EXTStorageRepository(self.host, "Second\ Local\ Storage")
+        defaultlist = string.join(map(lambda x:"sd"+chr(97+x), range(2)))
+        guestdisks = string.split(self.host.lookup("OPTION_CARBON_DISKS", defaultlist))
+        if len(guestdisks) < 2:
+            raise xenrt.XRTError("Wanted 2 disks but we only have: %s" % (len(guestdisks)))
+        sr.create("/dev/%s" % (guestdisks[1]))
+        sr in self.host.getSRs(type=type)
+        poolUUID = self.host.minimalList("pool-list")[0]
+        self.host.genParamSet("pool", poolUUID, "default-SR", sr.uuid)
 
 class TC14930(_FeatureOperationAfterUpgrade):
     """Continued operation of VMPP feature"""
@@ -4412,10 +4448,12 @@ class TCRpuPartitions(TCRollingPoolUpdate):
     def postMasterUpdate(self):
         TCRollingPoolUpdate.postMasterUpdate(self)
         self.checkPartitions(self.newPool.master)
+        self.checkSRs(self.newPool.master)
 
     def postSlaveUpdate(self, slave):
         TCRollingPoolUpdate.postSlaveUpdate(self, slave)
         self.checkPartitions(slave)
+        self.checkSRs(slave)
 
     def checkSafe2Upgrade(self, host):
         self.NEW_PARTITIONS[host.getName()] = host.checkSafe2Upgrade()
@@ -4432,6 +4470,10 @@ class TCRpuPartitions(TCRollingPoolUpdate):
         if not host.compareDom0Partitions(partitions):
             raise xenrt.XRTFailure("Found unexpected partitions on XS clean install. Expected: %s Found: %s" % (partitions, host.getDom0Partitions()))
         log("Found expected Dom0 partitions on XS clean installation: %s" % partitions)
+
+    def checkSRs(self, host):
+        step("Check if SRs are working fine")
+        host.checkSRs(type=["lvm","ext"])
 
 class TCUpgradeRestore(xenrt.TestCase):
     """This test upgrade the host, then restore the old version and upgrade it again and check dom0 partitions are as expected"""

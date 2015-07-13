@@ -760,6 +760,8 @@ class TCGuestAgentMemory(TCStressCommandBase):
 
     USE_TARGET = 2
     MARGIN = 30 * 1024
+    PERIOD = 300 # in second to run.
+    STEP = 10    # in seconds to sleep between iteration.
 
     def runHeavyOutputCommand(self, guest):
         """Running a heavy STDOUT command.
@@ -798,12 +800,16 @@ goto start
 
         self.runHeavyOutputCommand(guest)
 
-        for i in xrange(1,13):
-            xenrt.sleep(10)
+        xenrt.sleep(self.STEP)
+        startram = self.getGuestAgentRamUsage(guest)
+        log("After workload start ram usage: %d" % startram)
+
+        for i in xrange(1, self.PERIOD / self.STEP + 1):
             curram = self.getGuestAgentRamUsage(guest)
             log("After %d sec ram usage: %d" % ((i * 10), curram))
-            if curram > initram + self.MARGIN:
+            if curram > startram + self.MARGIN:
                 raise xenrt.XRTFailure("Ram usage increased significantly.")
+            xenrt.sleep(self.STEP)
 
     def run(self, arglist=None):
         self.runCase(self.verifyGuestAgentMemory)

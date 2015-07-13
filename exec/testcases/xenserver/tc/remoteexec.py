@@ -1,5 +1,5 @@
 from xenrt.lib.xenserver.call import APICall
-from xenrt import step, log
+from xenrt import step, log, warning
 from random import sample, choice
 import xenrt
 import re
@@ -834,6 +834,7 @@ class TCTempFileClear(TCStressCommandBase):
         log("Initial file count of temp dir is %d" % initialCnt)
 
         self.runLongRunningCommand(guest, time=60)
+        xenrt.sleep(10)
         runningCnt = self.getTempFileCount()
         log("File count while command is running is %d" % runningCnt)
 
@@ -842,11 +843,11 @@ class TCTempFileClear(TCStressCommandBase):
         log("File coutn after command is executed is %d" % finalCnt)
 
         if runningCnt <= initialCnt:
-            raise xenrt.XRTFailure("Temp file count has decreased while command is running.")
+            warning("Temp file count has decreased while command is running.")
         if finalCnt >= runningCnt:
-            raise xenrt.XRTFailure("Temp file count has increased after command is executed.")
+            raise xenrt.XRTFailure("Temp file count has not decreased after command is done.")
         if finalCnt != initialCnt:
-            log("Temp file count has been changed after command is executed.")
+            warning("Temp file count has been changed after command is executed.")
 
 
 class TCRBAC(TCRemoteCommandExecBase):

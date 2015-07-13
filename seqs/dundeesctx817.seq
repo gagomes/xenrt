@@ -19,6 +19,6 @@
   </prepare>
   
   <testsequence>
-    <testcase id="testcases.xenserver.tc.vbd.sctx817"/>
+    <testcase id="testcases.xenserver.tc.vbd.TC27127" tc="TC-27127"/>
   </testsequence>
 </xenrt>

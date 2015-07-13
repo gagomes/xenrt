@@ -113,7 +113,7 @@ class TC6949(_VBDPlugLinux):
     """Hot unplug of a VBD that the Linux VM had attached when it was booted."""
     pass
 
-class sctx817(xenrt.TestCase):
+class TC27127(xenrt.TestCase):
 
     def run(self,arglist):
         host = self.getDefaultHost()

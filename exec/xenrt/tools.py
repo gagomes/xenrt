@@ -423,9 +423,7 @@ def createHotfixSymlinks():
 def generateLabCostPerTechArea(suiteId, outputDir=None):
     if outputDir:
         outputDir=outputDir.rstrip("/")
-        if os.path.exists("%s/%s.json" % (outputDir,suiteId)):
-            raise xenrt.XRTError("Data file '%s/%s.json' already exist" % (outputDir,suiteId))
-        elif os.path.exists("%s/%s.generating" % (outputDir,suiteId)):
+        if os.path.exists("%s/%s.generating" % (outputDir,suiteId)):
             raise xenrt.XRTError("Another process is already generating data")
         else:
             if not os.path.exists(outputDir):

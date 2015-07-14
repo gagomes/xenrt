@@ -2825,13 +2825,6 @@ exit /B 1
                 reply[device] = (size, 0, None, qos)
         return reply
 
-    def checkVBDAttached(self,vbduuid):
-        result = self.host.execdom0("xe vbd-param-get param-name=currently-attached uuid=%s"% vbduuid)
-        if result.rstrip() == "true":
-            return True
-        else:
-            return False
-
     def listVBDUUIDs(self, vbdtype=None):
         """Return a list of VBD UUIDs for this VM with optional type."""
         if vbdtype:

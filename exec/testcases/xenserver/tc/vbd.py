@@ -117,16 +117,10 @@ class TC6949(_VBDPlugLinux):
 class TC27127(xenrt.TestCase):
 
     def run(self,arglist):
-        host = self.getDefaultHost()
-        guest = host.getGuest("Windows Server 2008 R2")
-        sr = host.getSRByName("\"Local storage\"")
-        vbd = guest.createDisk("1073741824", sruuid=str(sr), plug=False, returnVBD=True, mode="RO")
+        guest = self.getDefaultHost().getGuest("Windows Server 2008 R2")
         try:
-           host.execdom0("xe vbd-plug uuid=%s"%vbd)
+            guest.createDisk("1073741824", sruuid="DEFAULT", plug=True, mode="RO")
         except:
-            log("bad disk, unable to plug in")
-        result = guest.checkVBDAttached(vbd)
-        if result:
-            raise xenrt.XRTFailure("Read only disk attached to windows")
+            log("Read only disk failed to attach to the Windows machine")
         else:
-            log("VBD did not attach in read only mode to the Windows machine")
+            raise xenrt.XRTFailure("Read only disk attached to Windows successfully")

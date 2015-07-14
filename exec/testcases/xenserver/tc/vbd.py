@@ -10,6 +10,7 @@
 
 import re, traceback, sys, string
 import xenrt
+from xenrt.lazylog import log
 
 class _VBDPlug(xenrt.TestCase):
     DISTRO = None
@@ -113,3 +114,16 @@ class TC6949(_VBDPlugLinux):
     """Hot unplug of a VBD that the Linux VM had attached when it was booted."""
     pass
 
+class TC27127(xenrt.TestCase):
+
+    def run(self,arglist):
+        guest = self.getDefaultHost().getGuest("winguest2")
+        try:
+            guest.createDisk("1073741824", sruuid="DEFAULT", plug=True, mode="RO")
+        except Exception, ex:
+            if "All VBDs of type 'disk' must be read/write for HVM guests" in str(ex):
+                log("Read only disk failed to attach to the Windows machine")
+            else:
+                raise
+        else:
+            raise xenrt.XRTFailure("Read only disk attached to Windows successfully")

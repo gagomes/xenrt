@@ -4,7 +4,6 @@
 
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
-    <PREPARE_WORKERS>2</PREPARE_WORKERS>
   </variables>
 
   <prepare>

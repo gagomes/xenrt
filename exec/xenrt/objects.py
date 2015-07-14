@@ -545,11 +545,11 @@ class GenericPlace(object):
             if not self.password:
                 self.findPassword()
             if xenrt.ssh.SSH(self.getIP(),
-                             cmd,
+                             "true",
                              password=self.password,
                              level=xenrt.RC_OK,
                              timeout=20,
-                             username=username,
+                             username="root",
                              nowarn=True) == xenrt.RC_OK:
                 xenrt.TEC().logverbose(" ... OK reply from %s" %
                                        (self.getIP()))

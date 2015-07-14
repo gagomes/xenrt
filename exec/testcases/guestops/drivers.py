@@ -46,7 +46,7 @@ class TCVerifyDriversOutOfDate(xenrt.TestCase):
         guest = self.getGuest(gname)
         self.getLogsFrom(guest.host)
 
-        if isinstance(self.host, xenrt.lib.xenserver.DundeeHost):
+        if isinstance(guest.host, xenrt.lib.xenserver.DundeeHost):
             xenrt.TEC().skip("Skipping these tests from Dundee onwards")
         elif guest.pvDriversUpToDate():
             raise xenrt.XRTFailure("PV Drivers are not reported as out-of-date")

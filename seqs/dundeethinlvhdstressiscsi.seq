@@ -23,20 +23,6 @@
     <pool>
       <allhosts />
       <storage type="lvmoiscsi" name="lvmoiscsisr" default="true" options="thin" />
-      <NETWORK>
-        <PHYSICAL network="NPRI">
-          <NIC />
-          <NIC />
-          <MANAGEMENT />
-        </PHYSICAL>
-        <PHYSICAL network="NSEC">
-          <NIC />
-          <NIC />
-          <VLAN network="VR08">
-            <VMS />
-          </VLAN>
-        </PHYSICAL>
-      </NETWORK>
     </pool>
   </prepare>
 

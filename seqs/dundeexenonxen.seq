@@ -1,5 +1,4 @@
 <xenrt>
-
     <variables>
     <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
   </variables>
@@ -28,11 +27,10 @@
         </vm>
       </host>
     </pool>
-  </prepare>
-
-
-
+  </prepare>  
+  
   <testsequence>
+    <!-- This Sequence Disabls Soft Reboot on VM-->
     <!-- reference test-cases to be included in the sequence here: -->
     <!-- The dotted name here reflects the directory structure inside xenrt.git/exec/ -->
     <testcase id="xenserver.tc.guest.VmRebootedOnce" tc="TC-27029" >

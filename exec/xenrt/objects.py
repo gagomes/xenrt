@@ -555,7 +555,7 @@ class GenericPlace(object):
                                        (self.getIP()))
                 return True
             return False
-         else:
+        else:
             return self.xmlrpcIsAlive()
 
     def _xmlrpc(self, impatient=False, patient=False, reallyImpatient=False, ipoverride=None):

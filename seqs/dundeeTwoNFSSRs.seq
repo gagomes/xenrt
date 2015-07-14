@@ -1,4 +1,5 @@
 <xenrt>
+  <!-- Verify that two NFS SRs on different networks can be created --> 
   <prepare>
     <pool>
       <storage type="nfs" name="nfs1" default="true" network="STORAGE01" />

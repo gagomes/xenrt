@@ -98,9 +98,9 @@
           <testcase id="xenserver.tc.checkpoint.TC9713">
             <arg>guest=winguest2</arg>
           </testcase>
-		  <testsequence>
+		  <testcase>
 			<testcase id="testcases.xenserver.tc.vbd.TC27127" tc="TC-27127"/>
-		  </testsequence>
+		  </testcase>
         </serial>
       </parallel>
     </serial>

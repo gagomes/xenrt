@@ -539,6 +539,25 @@ class GenericPlace(object):
                                       level=level,
                                       desc="Reachability check")
 
+    def checkAlive(self):
+        """Check the location is alive"""
+        if not self.windows:
+            if not self.password:
+                self.findPassword()
+            if xenrt.ssh.SSH(self.getIP(),
+                             "true",
+                             password=self.password,
+                             level=xenrt.RC_OK,
+                             timeout=20,
+                             username="root",
+                             nowarn=True) == xenrt.RC_OK:
+                xenrt.TEC().logverbose(" ... OK reply from %s" %
+                                       (self.getIP()))
+                return True
+            return False
+        else:
+            return self.xmlrpcIsAlive()
+
     def _xmlrpc(self, impatient=False, patient=False, reallyImpatient=False, ipoverride=None):
         if reallyImpatient:
             trans = MyReallyImpatientTrans()

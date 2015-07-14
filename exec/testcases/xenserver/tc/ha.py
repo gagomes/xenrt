@@ -1686,12 +1686,12 @@ class _HAHostFailure(_HAFailureTest):
             downHosts.append(slaves[i])
 
         # Allow some time for IPMI actions etc to happen
-        xenrt.sleep(10)
+        xenrt.sleep(15)
 
         # Verify that all the hosts we've powered down are actually down (CA-174182)
         for h in downHosts:
             xenrt.TEC().logverbose("Verifying host %s is down" % h.getName())
-            if h.checkReachable(10,level=xenrt.RC_OK) == xenrt.RC_OK:
+            if h.checkAlive():
                 raise xenrt.XRTError("Host %s still reachable after being powered down" % h.getName())
 
 

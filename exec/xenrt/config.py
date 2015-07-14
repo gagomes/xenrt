@@ -3997,6 +3997,8 @@ class Config(object):
         
         # Sally: xen, xen-device-model. Rolls up XS65E009, XS65E010, XS65ESP1002 .
         self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1004"] = "/usr/groups/release/XenServer-6.x/XS-6.5-SP1/hotfixes/XS65ESP1004/102101/hotfix-XS65ESP1004/XS65ESP1004.xsupdate"
+        
+        # Bandicoot: fixes for Dom0 kernel. 
         self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1005"] = "/usr/groups/release/XenServer-6.x/XS-6.5-SP1/hotfixes/XS65ESP1005/102600/hotfix-XS65ESP1005/XS65ESP1005.xsupdate"
         return
 

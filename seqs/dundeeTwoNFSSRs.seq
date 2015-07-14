@@ -9,6 +9,6 @@
   </prepare>
 
   <testsequence>
-    <testcase id="xenserver.tc.storage.TCPoolAllPBDsPlugged" tc="TC-27129" />
+    <testcase id="xenserver.tc.storage.TCAllPBDsPlugged" tc="TC-27129" />
   </testsequence>
 </xenrt>

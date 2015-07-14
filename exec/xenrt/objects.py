@@ -6839,7 +6839,7 @@ chain tftp://${next-server}/%s
             vms = False
             friendlynetname = phys.getAttribute("name")
             if not friendlynetname:
-                friendlynetname = network
+                friendlynetname = "%s-%s" % (network,xenrt.randomSuffix())
             for n in phys.childNodes:
                 if n.nodeType == n.ELEMENT_NODE:
                     if n.localName == "MANAGEMENT":
@@ -6866,7 +6866,7 @@ chain tftp://${next-server}/%s
                 vnetwork = str(vnetwork)
                 vfriendlynetname = vlan.getAttribute("name")
                 if not vfriendlynetname:
-                    vfriendlynetname = vnetwork
+                    vfriendlynetname = "%s-%s" % (vnetwork,xenrt.randomSuffix())
                 # Look for management, storage or VM use on this VLAN
                 vmgmt = False
                 vstorage = False

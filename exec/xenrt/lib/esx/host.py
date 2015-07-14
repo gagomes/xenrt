@@ -196,10 +196,15 @@ class ESXHost(xenrt.lib.libvirt.Host):
 
     def getPrimaryBridge(self):
         """Return the first *portgroup* on the host."""
-        # TODO
+        primaryBridges = self.paramGet(param="xenrt/primarybridges", isVMkernelAdvCfg=False)
+        if primaryBridges:
+            primaryBridges = primaryBridges.split(",")
+            if len(primaryBridges) > 1:
+                xenrt.TEC().logverbose("Multiple primary bridges defined")
+            return random.choice(primaryBridges)
         brs = self.getBridges()
         if brs:
-            return brs[0]
+            return "VM Network" if "VM Network" in brs else brs[0]
 
     def getBridgeInterfaces(self, bridge):
         """Return the list of *vmknics* on the host."""
@@ -431,10 +436,14 @@ reboot
 
     def createNetwork(self, interface, name="bridge"):
         self.execdom0("esxcli network vswitch standard add -P 128 -v %s" % (name))
-        self.execdom0("esxcli network vswitch standard uplink add -u %s -v %s" % (interface, name))
+        if interface:
+            self.execdom0("esxcli network vswitch standard uplink add -u %s -v %s" % (interface, name))
+        # Add a vmkernel interface to the vSwitch, for arpwatching traffic on this vswitch
+        self.execdom0("esxcli network vswitch standard portgroup add -v %s -p \"%s-kernelport\"" % (name, name))
+        self.execdom0("esxcfg-vmknic -a -i DHCP -p \"%s-kernelport\"" % (name))
 
-    def getBridge(self, eth):
-        return eth.replace("vmnic","vSwitch")
+    def getBridgeVSwitchName(self, eth):
+        return eth.replace("vmnic","vSwitch") if eth else "vSwitchNoAdapter"
 
     def getNICPIF(self, assumedid):
         """ Return the PIF UUID for the assumed enumeration ID (integer)"""
@@ -458,6 +467,12 @@ reboot
         """Create the topology specified by XML on this host. Takes either
         a string containing XML or a XML DOM node."""
 
+        # removing obsolete advance configs on ESX host
+        primaryBridges = self.paramGet(param="xenrt/primarybridges", isVMkernelAdvCfg=False)
+        primaryBridges = [b for b in primaryBridges.split(",") if b in self.getBridges()] if primaryBridges else []
+        self.paramSet(param="xenrt/primarybridges", value=",".join(primaryBridges))
+
+        # parse network config
         physList = self._parseNetworkTopology(topology)
         if not physList:
             xenrt.TEC().logverbose("Empty network configuration.")
@@ -467,40 +482,67 @@ reboot
         for p in physList:
             network, nicList, mgmt, storage, vms, friendlynetname, jumbo, vlanList, bondMode = p
             xenrt.TEC().logverbose("Processing p=%s" % (p,))
-            # create only on single nic non vlan nets
-            if len(nicList) == 1  and len(vlanList) == 0:
-                pri_eth = self.getNICPIF(nicList[0])
-
-                if pri_eth == '':
-                    raise xenrt.XRTError("Could not find vmnic device for device %d" % (nicList[0]))
+            if len(nicList) < 2:
+                pri_eth=None
+                if len(nicList) == 1:
+                    pri_eth = self.getNICPIF(nicList[0])
+                    if pri_eth == '':
+                        raise xenrt.XRTError("Could not find vmnic device for device %d" % (nicList[0]))
 
                 # Set up new vSwitch if necessary
                 xenrt.TEC().logverbose("Processing %s: %s" % (pri_eth, p))
-                pri_bridge = self.getBridge(pri_eth)
-                has_pri_bridge = self.execdom0("esxcfg-vswitch -l | grep '^%s '|wc -l" % (pri_bridge,)).strip() != "0"
-                if not has_pri_bridge:
-                    self.createNetwork(pri_eth, name=pri_bridge)
+                pri_vswitch = self.getBridgeVSwitchName(pri_eth)
+                has_pri_vswitch = self.execdom0("esxcfg-vswitch -l | grep '^%s '|wc -l" % (pri_vswitch,)).strip() != "0"
+                if not has_pri_vswitch:
+                    self.createNetwork(pri_eth, name=pri_vswitch)
+                if jumbo:
+                    self.execdom0("esxcli network vswitch standard set -v %s -m %d" % (pri_vswitch, 9000 if jumbo==True else jumbo ))
 
-                # Add the network to the vSwitch
-                self.execdom0("esxcli network vswitch standard portgroup add -v %s -p \"%s\"" % (pri_bridge, friendlynetname))
+                # Create only on single nic non vlan nets
+                if (len(vlanList) == 0 or vms or mgmt) and len(nicList) == 1:
+                    # Add the network to the vSwitch
+                    self.execdom0("esxcli network vswitch standard portgroup add -v %s -p \"%s\"" % (pri_vswitch, friendlynetname))
 
-                # Create a vmkernel interface on this vSwitch, to be used for arpwatching traffic on this vswitch
-                self.execdom0("esxcfg-vmknic -a -i DHCP -p \"%s\"" % (friendlynetname))
+                    if mgmt or storage:
+                        # TODO move the "Management Network" onto this vSwitch. Not sure how to do this when there's a vmk0 using it.
+                        # ESX doesn't allow same port to be used for vms as well as management. Either we create a new VMKernel port 
+                        # for this purpose or use VMKernel port created along with vswitch in self.createNetwork(...).
+                        raise xenrt.XRTError("unimplemented")
 
-                if mgmt:
-                    # TODO move the "Management Network" onto this vSwitch. Not sure how to do this when there's a vmk0 using it.
-                    pass
+                    if vms:
+                        xenrt.TEC().logverbose("Putting VMs on '%s' (%s)" % (friendlynetname, str(nicList)))
+                        existingPrimaryBridges = self.paramGet(param="xenrt/primarybridges", isVMkernelAdvCfg=False)
+                        primaryBridges = "%s,%s" % (existingPrimaryBridges,friendlynetname) if existingPrimaryBridges else friendlynetname
+                        self.paramSet(param="xenrt/primarybridges", value=primaryBridges)
 
-                if jumbo == True:
-                    # TODO
-                    pass
+                # Create all VLANs
+                for v in vlanList:
+                    vnetwork, vmgmt, vstorage, vvms, vfriendlynetname = v
+                    vid, subnet, netmask = self.getVLAN(vnetwork)
+
+                    portlist = self.execdom0("esxcli --formatter=csv network vswitch standard portgroup list").strip().split("\n")
+                    portlist = [t_p.split(",") for t_p in portlist]
+                    portlist = [t_p[1] for t_p in portlist if pri_vswitch==str(t_p[3]) and vid==int(t_p[2])]
+                    if len(portlist)>0:
+                        xenrt.TEC().logverbose(" ... already exists")
+                    else:
+                        xenrt.TEC().logverbose("Creating VLAN '%s' on %s (%s)" % (vfriendlynetname, network, str(nicList)))
+                        # Add the network to the vSwitch
+                        self.execdom0("esxcli network vswitch standard portgroup add -v %s -p \"%s\"" % (pri_vswitch, vfriendlynetname))
+                        self.execdom0("esxcli network vswitch standard portgroup set -v %d -p \"%s\"" % (vid, vfriendlynetname))
+
+                    if vvms:
+                        xenrt.TEC().logverbose("Putting VMs on VLAN '%s' on %s (%s)" % (vfriendlynetname, network, str(nicList)))
+                        existingPrimaryBridges = self.paramGet(param="xenrt/primarybridges", isVMkernelAdvCfg=False)
+                        primaryBridges = "%s,%s" % (existingPrimaryBridges,vfriendlynetname) if existingPrimaryBridges else vfriendlynetname
+                        self.paramSet(param="xenrt/primarybridges", value=primaryBridges)
+
+                    if vmgmt or vstorage:
+                        raise xenrt.XRTError("unimplemented")
 
             if len(nicList) > 1:
                 raise xenrt.XRTError("Creation of bond on %s using %s unimplemented" %
                                        (network, str(nicList)))
-            if len(vlanList) > 0:
-                raise xenrt.XRTError("Creation of vlan on %s using %s unimplemented" %
-                                       (network, str(vlanList)))
 
     def checkNetworkTopology(self,
                              topology,
@@ -555,3 +597,37 @@ hostConfig = si.RetrieveContent().rootFolder.childEntity[0].hostFolder.childEnti
 print hostConfig.GetConfigManager().GetPowerSystem().info.currentPolicy.shortName
 """
         return self.execcmd("echo '%s' | python" % (script)).strip()
+
+    def paramGet(self, param, isVMkernelAdvCfg=False):
+        try:
+            if isVMkernelAdvCfg:
+                return self.execdom0("esxcfg-advcfg --get %s" % (param)).strip().split(" is ")[-1]
+            # User defined config
+            return self.execdom0("esxcfg-advcfg --get-user-var --user-var %s" % (param)).strip()
+        except xenrt.XRTFailure, e:
+            xenrt.TEC().logverbose("advance config '%s' doesn't exist." % param)
+        return None
+
+    def paramSet(self, param, value, isVMkernelAdvCfg=False):
+        if isVMkernelAdvCfg:
+            self.execdom0("esxcfg-advcfg --set '%s' %s" % (value, param))
+        elif not value:
+            self.execdom0("esxcfg-advcfg --del-user-var --user-var %s" % (param))
+        else:
+            self.execdom0("esxcfg-advcfg --set-user-var '%s' --user-var %s" % (value, param))
+
+    def getBridgeByName(self, name):
+        """Return the actual bridge based on the given friendly name. """
+        if not name:
+            return self.getPrimaryBridge()
+        if name=="NSEC" or name=="NPRI":
+            raise xenrt.XRTError("Unimplemented")
+        brs = self.getBridges()
+        if name in brs:
+            return name
+        brs = [br for br in brs if name in br]
+        if len(brs)==1:
+            return brs[0]
+        elif len(brs)>1:
+            raise xenrt.XRTError("Multiple bridges found")
+        return None

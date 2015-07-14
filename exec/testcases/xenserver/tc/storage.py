@@ -4987,3 +4987,10 @@ class TCVdiSpaceInName(xenrt.TestCase):
         host.getVdiMD5Sum(vdi)
 
         host.destroyVDI(vdi)
+
+class TCAllPBDsPlugged(xenrt.TestCase):
+    def run(self, arglist):
+        for host in self.getDefaultPool().getHosts():
+            for pbd in host.minimalList("pbd-list"):
+                if host.genParamGet("pbd", pbd, "currently-attached") != "true":
+                    raise xenrt.XRTFailure("Not all PBDs were attached after pool join")

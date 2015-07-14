@@ -117,9 +117,10 @@ class TC6949(_VBDPlugLinux):
 class TC27127(xenrt.TestCase):
 
     def run(self,arglist):
-        guest = self.getDefaultHost().getGuest("winguest2")
+        host = self.getDefaultHost()
+        guest = host.getGuest("winguest2")
         try:
-            guest.createDisk("1073741824", sruuid="DEFAULT", plug=True, mode="RO")
+            guest.createDisk("1073741824", sruuid=host.getLocalSR(), plug=True, mode="RO")
         except Exception, ex:
             if "All VBDs of type 'disk' must be read/write for HVM guests" in str(ex):
                 log("Read only disk failed to attach to the Windows machine")

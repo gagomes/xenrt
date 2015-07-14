@@ -99,7 +99,6 @@
             <arg>guest=winguest2</arg>
           </testcase>
 		  <testcase id="testcases.xenserver.tc.vbd.TC27127" tc="TC-27127"/>
-		  </testcase>
         </serial>
       </parallel>
     </serial>

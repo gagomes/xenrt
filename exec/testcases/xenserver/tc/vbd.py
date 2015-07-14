@@ -117,7 +117,7 @@ class TC6949(_VBDPlugLinux):
 class TC27127(xenrt.TestCase):
 
     def run(self,arglist):
-        guest = self.getDefaultHost().getGuest("Windows Server 2008 R2")
+        guest = self.getDefaultHost().getGuest("winguest2")
         try:
             guest.createDisk("1073741824", sruuid="DEFAULT", plug=True, mode="RO")
         except Exception, ex:

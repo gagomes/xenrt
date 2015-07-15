@@ -2179,13 +2179,13 @@ class TCDiscSpacePlugins(xenrt.TestCase):
         xenrt.TEC().logverbose("Available disk space returned by plugin= %sMB" %(actualAvailSpace))
         
         step("Fetch available disk space from df")
-        totalSpace = int(self.host.execdom0("df / -m | awk '{print$2}' | sed 1d"))
-        expectedAvailSpace =  int(self.host.execdom0("df / -m | awk '{print$4}' | sed 1d")) + (totalSpace * .05)
+        (totalSpace,usedSpace) =[int(i.strip()) for i in self.host.execdom0("df / -m | awk '{print$2,$3}' | sed 1d").split(" ")]
+        expectedAvailSpace =  totalSpace-usedSpace
         xenrt.TEC().logverbose("Expected available disk space = %sMB" %(expectedAvailSpace))
         
         step("Verify space returned by the plugin is equal to the value given by df")
         if abs(actualAvailSpace-expectedAvailSpace) > 4:
-            raise xenrt.XRTFailure("get_avail_host_disk_space plugin returned invalid data. Expected=%s. Actual=%s" % (actualAvailSpace,expectedAvailSpace))
+            raise xenrt.XRTFailure("get_avail_host_disk_space plugin returned invalid data. Expected=%s. Actual=%s" % (expectedAvailSpace, actualAvailSpace))
 
     def testCheckPatchUploadPlugin(self):
         #Test functionality of 'check_patch_upload' plugin

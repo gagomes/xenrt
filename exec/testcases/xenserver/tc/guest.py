@@ -1918,7 +1918,7 @@ class VmRebootedOnce(xenrt.TestCase):
         guestName.execguest("sed -i 's#.*ca:12345:ctrlaltdel:.*#ca:12345:ctrlaltdel:/bin/echo \"Oh no You Dont\"#' /etc/inittab")
         xenrt.sleep(1)
     
-    def __getDomID(guestName):
+    def __getDomID(self,guestName):
         return guestName.getDomid()
     
     def run(self, arglist):
@@ -1930,7 +1930,7 @@ class VmRebootedOnce(xenrt.TestCase):
             self.__disableSoftReboot(vm)
                         
             step("VM soft reboot")
-            rebootCountBefore = __getDomID(vm)
+            rebootCountBefore = self.__getDomID(vm)
             log("VM has been Rebooted %s times previously" %rebootCountBefore)
             self.__rebootGuest(host,vm,False)
             xenrt.sleep(5)
@@ -1938,7 +1938,7 @@ class VmRebootedOnce(xenrt.TestCase):
             step("VM hard reboot")
             self.__rebootGuest(host,vm,True)
             xenrt.sleep(20)
-            rebootCountAfter = __getDomID(vm)
+            rebootCountAfter = self.__getDomID(vm)
             log("After Last Reboot total VM reboot count is %s " %rebootCountAfter)
             
             step("Check if VM has been rebooted once")

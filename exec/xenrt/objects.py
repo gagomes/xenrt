@@ -6778,7 +6778,7 @@ chain tftp://${next-server}/%s
         disksize = int(self.lookup(("DISK_SIZE"), "50")) * xenrt.GIGA
         guest.createDisk(sizebytes=disksize, sruuid="DEFAULT", bootable=True)
 
-    def _parseNetworkTopology(self, topology):
+    def _parseNetworkTopology(self, topology, useFriendlySuffix=False):
         """Parse a network topology specification. Takes either a string
         containing XML or a XML DOM node."""
         if type(topology) == type(""):
@@ -6858,7 +6858,10 @@ chain tftp://${next-server}/%s
             vms = False
             friendlynetname = phys.getAttribute("name")
             if not friendlynetname:
-                friendlynetname = "%s-%s" % (network,xenrt.randomSuffix())
+                if useFriendlySuffix:
+                    friendlynetname = "%s-%s" % (network,xenrt.randomSuffix())
+                else:
+                    friendlynetname = network
             for n in phys.childNodes:
                 if n.nodeType == n.ELEMENT_NODE:
                     if n.localName == "MANAGEMENT":
@@ -6885,7 +6888,10 @@ chain tftp://${next-server}/%s
                 vnetwork = str(vnetwork)
                 vfriendlynetname = vlan.getAttribute("name")
                 if not vfriendlynetname:
-                    vfriendlynetname = "%s-%s" % (vnetwork,xenrt.randomSuffix())
+                    if useFriendlySuffix:
+                        vfriendlynetname = "%s-%s" % (vnetwork,xenrt.randomSuffix())
+                    else:
+                        vfriendlynetname = vnetwork
                 # Look for management, storage or VM use on this VLAN
                 vmgmt = False
                 vstorage = False

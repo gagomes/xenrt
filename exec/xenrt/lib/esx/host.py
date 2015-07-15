@@ -473,7 +473,7 @@ reboot
         self.paramSet(param="xenrt/primarybridges", value=",".join(primaryBridges))
 
         # parse network config
-        physList = self._parseNetworkTopology(topology)
+        physList = self._parseNetworkTopology(topology, useFriendlySuffix=True)
         if not physList:
             xenrt.TEC().logverbose("Empty network configuration.")
             return

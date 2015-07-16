@@ -9498,7 +9498,10 @@ WshShell.SendKeys "{ENTER}"
         else:
             filename = xenrt.TEC().lookup("GPU_GUEST_DRIVER_X86",None)
 
-        self.installNvidiaVGPUSignedDriver(filename)
+        urlprefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
+        url = "%s/gpuDriver/%s" % (urlprefix, filename)
+
+        self.installNvidiaVGPUSignedDriver(filename, url)
 
     def __nvidiaX64GuestDriverName(self, driverType):
         X64_SIGNED_FILENAME = "332.83_grid_win8_win7_64bit_english.exe"
@@ -9530,12 +9533,16 @@ WshShell.SendKeys "{ENTER}"
 
     def installNvidiaVGPUDriver(self, driverType):
         driverName = self.requiredVGPUDriverName(driverType)
+
+        urlprefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
+        url = "%s/vgpudriver/vmdriver/%s" % (urlprefix, driverName)        
+
         if driverType == 0:
-            self.installNvidiaVGPUSignedDriver(driverName)
+            self.installNvidiaVGPUSignedDriver(driverName, url)
         else:
             self.installNvidiaVGPUUnsignedDriver(driverName)
 
-    def installNvidiaVGPUSignedDriver(self, filename):
+    def installNvidiaVGPUSignedDriver(self, filename, url):
 
         tarball = "drivers.tgz"
         xenrt.TEC().logverbose("Installing vGPU driver on vm %s" % (self.getName(),))
@@ -9545,8 +9552,6 @@ WshShell.SendKeys "{ENTER}"
             raise xenrt.XRTError("vGPU driver is only available on windows guests.")
 
         try:
-            urlprefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
-            url = "%s/vgpudriver/vmdriver/%s" % (urlprefix, filename)
             installfile = xenrt.TEC().getFile(url)
             if not installfile:
                 raise xenrt.XRTError("Failed to fetch NVidia driver.")

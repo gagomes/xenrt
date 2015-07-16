@@ -12,7 +12,7 @@ class NetScaler(object):
     """Class that provides an interface for creating, controlling and observing a NetScaler VPX"""
 
     @classmethod
-    def setupNetScalerVpx(cls, vpx, useVIFs=False, networks=["NPRI"]):
+    def setupNetScalerVpx(cls, vpx, useVIFs=False, networks=["NPRI"], license=None):
         """Takes a VM name (present in the registry) and returns a NetScaler object"""
         if isinstance(vpx, basestring):
             vpxGuest = xenrt.TEC().registry.guestGet(vpx)
@@ -56,10 +56,17 @@ class NetScaler(object):
             mgmtNet = networks[0]
             cls.configureVpxNetworkToVmParams(vpxGuest, mgmtNet)
             vpxGuest.lifecycleOperation('vm-start')
+
             # Wait / Check for SSH connectivity
             vpxGuest.waitForSSH(timeout=300, username='nsroot', cmd='shell')
             vpx = cls(vpxGuest, mgmtNet)
             vpx.checkFeatures("On fresh install:")
+
+            # Apply license
+            vpx.applyLicense(license)
+            vpx.checkFeatures("Test results after applying license:")
+
+            # Setup networking
             vpx.setup(networks, networks_sriov)
         if _removeHostFromVCenter:
             host.removeFromVCenter()
@@ -194,6 +201,7 @@ class NetScaler(object):
             xenrt.sleep(60)
             self.__vpxGuest.waitForSSH(timeout=120, username='nsroot', cmd='shell')
 
+    @classmethod
     def getLicenseFileFromXenRT(self):
         # TODO - Allow for different licenses to be specified
         vpxLicneseFileName = 'CNS_V3000_SERVER_PLT_Retail.lic'

@@ -10131,12 +10131,11 @@ while True:
         pass
 
     def setupNetscalerVPX(self, installNSTools=False):
-        netscaler = xenrt.lib.netscaler.NetScaler.setupNetScalerVpx(self, useVIFs=True)
+        netscaler = xenrt.lib.netscaler.NetScaler.setupNetScalerVpx(self, useVIFs=True, license=xenrt.lib.netscaler.NetScaler.getLicenseFileFromXenRT())
         xenrt.GEC().registry.objPut("netscaler", self.name, netscaler)
-        netscaler.applyLicense(netscaler.getLicenseFileFromXenRT())
         if installNSTools:
             netscaler.installNSTools()
-        netscaler.checkFeatures("Test results after applying license:")
+        netscaler.checkFeatures("Test results after setting up:")
 
 class EventObserver(xenrt.XRTThread):
 

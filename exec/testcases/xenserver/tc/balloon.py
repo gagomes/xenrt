@@ -896,8 +896,14 @@ class TC9284(xenrt.TestCase):
             #CA-148483 workaround
             if "VM didn't acknowledge the need to shutdown" in str(e) or "Failed_to_acknowledge_shutdown_request" in str(e):
                 xenrt.TEC().logverbose("Migration failed as expected")
-                time.sleep(60)
+                time.sleep(20)
                 try:
+                    start = xenrt.timenow()
+                    deadline = start + 300
+                    while xenrt.timenow() < deadline:
+                        if self.guest.getState() == "DOWN":
+                            break
+                        time.sleep(20)
                     self.guest.start()
                     time.sleep(60)
                 except:

@@ -401,19 +401,22 @@ class TCBasicFunc(TCRemoteCommandExecBase):
         """Verify xensource log has information of calls."""
 
         args = {}
+        host = guest.host.pool.master
+        # Checking last command.
         if self.METHOD == "cli":
-            host = guest.host.pool.master
             log = host.execdom0("grep 'xe vm-call-plugin vm-uuid=%s plugin=guest-agent-operation " \
                 "fn=run-script' /var/log/xensource.log" % guest.getUUID()).splitlines()[-1]
             for tkn in log.split("args:")[1:]:
                 tkn = tkn.strip()
                 key, val = tkn.split("=", 1)
                 args[key] = val
-        # Todo: Add API call log check once dev done.
-        elif self.METHOD == "api":
-            return
-        elif self.METHOD == "async":
-            return
+        else:
+            log = host.execdom0("grep \"VM.call_plugin: VM = '%s (%s)'; plugin = 'guest-agent-operation'; " \
+                "fn = 'run-script'\" /var/log/xensource.log" % (guest.getUUID(), guest.getName())).splitlines()[-1]
+            for tkn in log.split("arg:")[1:]:
+                tkn = tkn.strip()
+                key, val = tkn.split("=", 1)
+                args[key.strip()] = val.strip()
 
         if "username" not in args:
             raise xenrt.XRTFailure("username is not logged in host xensource.log.")

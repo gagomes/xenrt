@@ -9487,18 +9487,18 @@ WshShell.SendKeys "{ENTER}"
 
     def installGPUDriver(self):
 
+
+        if not self.windows:
+            raise xenrt.XRTError("GPU driver is only available on windows guests.")
+
         xenrt.TEC().logverbose("Installing GPU driver on vm %s" % self.getName())
 
-        if self.xmlrpcGetArch() == "amd64":
-            driver="c:\\gpudriver\\DisplayDriver\\310.90\\Win8_WinVista_Win7_64\\International\\setup.exe /passive /n"
+        if self.xmlrpcGetArch().endswith("64"):
+            filename = xenrt.TEC().lookup("GPU_GUEST_DRIVER_X64",None)
         else:
-            driver="c:\\gpudriver\\DisplayDriver\\310.90\\Win8_WinVista_Win7\\International\\setup.exe /passive /n"
-        xenrt.TEC().logverbose("Installing GPU driver %s" % (driver))
-        self.xmlrpcUnpackTarball("%s/gpudriver.tgz" %
-                                 (xenrt.TEC().lookup("TEST_TARBALL_BASE")),
-                                 "c:\\")
-        self.xmlrpcExec(driver, returnerror=False,timeout=1800,ignoreHealthCheck=True)
-        self.reboot()
+            filename = xenrt.TEC().lookup("GPU_GUEST_DRIVER_X86",None)
+
+        self.installNvidiaVGPUSignedDriver(filename)
 
     def __nvidiaX64GuestDriverName(self, driverType):
         X64_SIGNED_FILENAME = "332.83_grid_win8_win7_64bit_english.exe"

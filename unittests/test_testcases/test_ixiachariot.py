@@ -100,6 +100,8 @@ class TestPairTest(XenRTUnitTestCase):
         self.assertEquals([
             'mkdir /cygdrive/c/tests/job087',
             'echo "1 ip1 ip2" > /cygdrive/c/tests/job087/clone',
+	    'echo "1 ip1 ip2" >> /cygdrive/c/tests/job087/clone',
+	    'echo "1 ip1 ip2" >> /cygdrive/c/tests/job087/clone',
             '"/cygdrive/c/Program Files/Ixia/IxChariot/clonetst" '
             + r'"C:\\tests\\testname" '
             + r'"C:\\tests\\job087\\clone" '
@@ -111,7 +113,7 @@ class TestPairTest(XenRTUnitTestCase):
             + r'"C:\\tests\\job087\\result.tst" '
             + r'-v "C:\\tests\\job087\\result.csv"',
         ],
-            pairTest.getCommands())
+            pairTest.getCommands(3))
 
 
 class FakeHostRegistry(object):

@@ -36,9 +36,11 @@ class TCBlackWidow(libperf.PerfTestCase):
         xenrt.TEC().logverbose("setting up %s as blackwidow..." % (vpx))
         vpx_ns = xenrt.lib.netscaler.NetScaler(vpx, None)
 
-        # Remove existing SNIP
-        existingSNIP = self.nscli(vpx_ns, "show ns ip | grep SNIP")[0].split('\t')[1].split(' ')[0]
-        self.nscli(vpx_ns, "rm ns ip %s" % (existingSNIP))
+        # Remove existing SNIP, if any
+        snipLines = self.nscli(vpx_ns, "show ns ip | grep SNIP")
+        for snipLine in snipLines:
+            existingSNIP = snipLine.split('\t')[1].split(' ')[0]
+            self.nscli(vpx_ns, "rm ns ip %s" % (existingSNIP))
 
         # Add HTTP client IPs
         for i in range(2, self.clients+1):
@@ -58,9 +60,11 @@ class TCBlackWidow(libperf.PerfTestCase):
         xenrt.TEC().logverbose("setting up %s as DUT..." % (vpx))
         vpx_ns = xenrt.lib.netscaler.NetScaler(vpx, None)
 
-        # Remove existing SNIP
-        existingSNIP = self.nscli(vpx_ns, "show ns ip | grep SNIP")[0].split('\t')[1].split(' ')[0]
-        self.nscli(vpx_ns, "rm ns ip %s" % (existingSNIP))
+        # Remove existing SNIP, if any
+        snipLines = self.nscli(vpx_ns, "show ns ip | grep SNIP")
+        for snipLine in snipLines:
+            existingSNIP = snipLine.split('\t')[1].split(' ')[0]
+            self.nscli(vpx_ns, "rm ns ip %s" % (existingSNIP))
 
         # Add SNIPs (the origin IP for requests travelling from NS to webserver)
         for i in range(1, self.snips+1):

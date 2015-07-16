@@ -1117,7 +1117,7 @@ class _RPUBasic(xenrt.TestCase):
                     host.addGuest(host.createGenericLinuxGuest(\
                                 sr=srUUID, name=guestName))
 
-        self.upgrader = xenrt.lib.xenserver.host.RollingPoolUpdate(self.pool, 'Boston')
+        self.upgrader = xenrt.lib.xenserver.host.RollingPoolUpdate(self.pool)
 
 
     def run(self, arglist):

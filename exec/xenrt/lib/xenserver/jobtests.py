@@ -68,6 +68,16 @@ class JTPasswords(xenrt.JobTest):
     def postJob(self):
         self.passwords = []
         foundPasswords = []
+        
+        # older XS releases have plain-test passwords in the logs...this causes noise when testing newer XS releases if the tests fail before the host 
+        # is upgraded. To simplify, we only proceed if all the tests passed.
+        
+        if xenrt.GEC().harnesserror:
+            return
+            
+        ok, _, _ = xenrt.GEC().results.check()
+        if not ok:
+            return
 
         self._addPassword(xenrt.TEC().lookup("ROOT_PASSWORD"))
         self._addPassword(xenrt.TEC().lookup("DEFAULT_PASSWORD"))

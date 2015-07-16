@@ -3796,7 +3796,7 @@ class _RpuNewPartitionsSingleHost(_SingleHostUpgrade):
         self.host.checkSRs(type=["lvm","ext"])
 
 class TCRpuNewPartSingle(_RpuNewPartitionsSingleHost):
-    """TC-27064 - Dom0 disk partitioning on single host upgrade with VMs on local storage"""
+    """TC-27063 - Dom0 disk partitioning on single host upgrade with no VMs on local storage"""
 
     NEW_PARTITIONS = True
     NO_VMS = True
@@ -3808,7 +3808,7 @@ class TCRpuOldPartSingle(_RpuNewPartitionsSingleHost):
     NO_VMS = False
     
 class TCRpuPrimaryDisk(_RpuNewPartitionsSingleHost):
-    """TC-27064 - Dom0 disk partitioning on single host upgrade with Second Local SR"""
+    """TC-27064 - Dom0 disk partitioning on single host upgrade with VMs on local storage(additional Local SR)"""
 
     NEW_PARTITIONS = True
     NO_VMS = False

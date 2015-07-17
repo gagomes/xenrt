@@ -8366,12 +8366,12 @@ rm -f /etc/xensource/xhad.conf || true
             partitions.pop(missingPartitions[0], None)
             
         diffkeys = [k for k in partitions if partitions[k] != "*" and int(partitions[k]) != int(dom0Partitions[k])]
-        if len(diffkeys) == 0:
-            log("Dom0 has expected partition schema: %s" % dom0Partitions)
-            return True
-        else:
+        if diffkeys:
             log("One or more partition size is different from expected. Expected %s. Found %s" % ((partitions,dom0Partitions )))
             return False
+        else:
+            log("Dom0 has expected partition schema: %s" % dom0Partitions)
+            return True
 
     def checkSafe2Upgrade(self):
         """Function to check if new partitions will be created on upgrade to dundee- CAR-1866"""
@@ -8395,13 +8395,12 @@ rm -f /etc/xensource/xhad.conf || true
         for sr in sruuid:
             pbd = self.minimalList("pbd-list",args="sr-uuid=%s" % (sr))[0]
             localSrOnSda = self.getInventoryItem("PRIMARY_DISK") in self.genParamGet("pbd",pbd,"device-config", "device")
-            if not localSrOnSda:
-                continue
-            vdis = len(self.minimalList("vdi-list", args="sr-uuid=%s" % (sr)))
-            log("Number of VDIs on local stotage: %d" % vdis)
-            srsize = int(self.genParamGet("sr", sr, "physical-size"))/xenrt.GIGA
-            log("Size of disk: %dGiB" % srsize)
-            expectedOutput = "false" if (vdis > 0 or srsize < 38) and not isinstance(self, xenrt.lib.xenserver.DundeeHost) else "true"
+            if localSrOnSda:
+                vdis = len(self.minimalList("vdi-list", args="sr-uuid=%s" % (sr)))
+                log("Number of VDIs on local stotage: %d" % vdis)
+                srsize = int(self.genParamGet("sr", sr, "physical-size"))/xenrt.GIGA
+                log("Size of disk: %dGiB" % srsize)
+                expectedOutput = "false" if (vdis > 0 or srsize < 38) and not isinstance(self, xenrt.lib.xenserver.DundeeHost) else "true"
         log("Plugin should return: %s" % expectedOutput)
 
         cli = self.getCLIInstance()

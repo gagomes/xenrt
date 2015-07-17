@@ -3833,7 +3833,6 @@ class TCRpuPrimaryDisk(_RpuNewPartitionsSingleHost):
         if len(guestdisks) < 2:
             raise xenrt.XRTError("Wanted 2 disks but we only have: %s" % (len(guestdisks)))
         sr.create("/dev/%s" % (guestdisks[1]))
-        sr in self.host.getSRs(type=type)
         poolUUID = self.host.minimalList("pool-list")[0]
         self.host.genParamSet("pool", poolUUID, "default-SR", sr.uuid)
 

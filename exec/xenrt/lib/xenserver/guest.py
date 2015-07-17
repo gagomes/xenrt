@@ -4436,11 +4436,11 @@ def parseSequenceVIFs(guest, host, vifs):
 def parseSequenceSRIOVVIFs(guest, host, vifs):
     update = []
     for v in vifs:
-        physdev, ip = v
+        netname, ip = v
 
-        # Convert physdev into a physical device name on the host (e.g. 'eth0')
-        xenrt.TEC().logverbose("Converting physdev='%s' into physical device name..." % (physdev))
-        if not physdev:
+        # Convert netname into a physical device name on the host (e.g. 'eth0')
+        xenrt.TEC().logverbose("Converting netname='%s' into physical device name..." % (netname))
+        if not netname:
             physdev = host.getPrimaryBridge()
             # we assume the host already has SRIOV enabled
             iovirt = xenrt.lib.xenserver.IOvirt(host)
@@ -4450,7 +4450,6 @@ def parseSequenceSRIOVVIFs(guest, host, vifs):
             physdev = eth_devs[0]
             xenrt.TEC().logverbose("Available physical devices are %s; using %s" % (eth_devs, physdev))
         else:
-            netname = physdev
             netuuid = host.getNetworkUUID(netname)
             if not netuuid:
                 raise xenrt.XRTError("Could not find physical device on network '%s'" % (netname))
@@ -4464,7 +4463,7 @@ def parseSequenceSRIOVVIFs(guest, host, vifs):
             physdev = host.genParamGet("pif", pifuuid, "device")
             xenrt.TEC().logverbose("Physical device on network %s is %s" % (netname, physdev))
 
-        update.append([physdev, ip])
+        update.append([physdev, netname, ip])
     return update
 
 def setupSRIOVVIFs(guest, host, sriovvifs):
@@ -4476,7 +4475,7 @@ def setupSRIOVVIFs(guest, host, sriovvifs):
         eth_devs = iovirt.getSRIOVEthDevices()
         xenrt.TEC().logverbose("Available physical devices are %s" % (eth_devs))
 
-        for (physdev, ip) in sriovvifs:
+        for (physdev, netname, ip) in sriovvifs:
             # Check whether it's in the list of devices
             if not (physdev in eth_devs):
                 raise xenrt.XRTError("Physical device %s not in list of available SR-IOV devices %s" % (physdev, eth_devs))

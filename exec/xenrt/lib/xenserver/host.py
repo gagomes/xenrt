@@ -8369,9 +8369,8 @@ rm -f /etc/xensource/xhad.conf || true
         if diffkeys:
             log("One or more partition size is different from expected. Expected %s. Found %s" % ((partitions,dom0Partitions )))
             return False
-        else:
-            log("Dom0 has expected partition schema: %s" % dom0Partitions)
-            return True
+        log("Dom0 has expected partition schema: %s" % dom0Partitions)
+        return True
 
     def checkSafe2Upgrade(self):
         """Function to check if new partitions will be created on upgrade to dundee- CAR-1866"""
@@ -8419,7 +8418,7 @@ rm -f /etc/xensource/xhad.conf || true
         args.append("plugin=prepare_host_upgrade.py")
         args.append("fn=main")
         args.append("args:url=%s/xe-phase-1/" % (xenrt.TEC().lookup("FORCE_HTTP_FETCH") + xenrt.TEC().lookup("INPUTDIR")))
-        output = cli.execute("host-call-plugin", string.join(args), timeout=300).strip()
+        output = cli.execute("host-call-plugin", string.join(args), timeout=480).strip()
         if output != "true":
             raise xenrt.XRTFailure("Unexpected output: %s" % (output))
         xenrt.TEC().logverbose("Expected output: %s" % (output))

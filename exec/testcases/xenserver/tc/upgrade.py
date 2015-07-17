@@ -3821,14 +3821,9 @@ class TCRpuPrimaryDisk(_RpuNewPartitionsSingleHost):
         self.guests.append(g)
     
     def createLocalSR(self):
-        type = xenrt.TEC().lookup("SECOND_SR_TYPE", None)
-        if type == None:
-            return
-        elif type == "lvm":
-            sr = xenrt.lib.xenserver.LVMStorageRepository(self.host, "Second Local Storage")
-        elif type == "ext":
-            sr = xenrt.lib.xenserver.EXTStorageRepository(self.host, "Second\ Local\ Storage")
-        defaultlist = string.join(map(lambda x:"sd"+chr(97+x), range(2)))
+        srType = xenrt.TEC().lookup("SECOND_SR_TYPE", "lvm")
+        sr = eval("xenrt.lib.xenserver.%sStorageRepository" % srType.upper())(self.host, "Second\ Local\ Storage")
+        defaultlist = ["sda", "sdb"]
         guestdisks = string.split(self.host.lookup("OPTION_CARBON_DISKS", defaultlist))
         if len(guestdisks) < 2:
             raise xenrt.XRTError("Wanted 2 disks but we only have: %s" % (len(guestdisks)))

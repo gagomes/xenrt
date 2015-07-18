@@ -485,29 +485,10 @@ class Guest(xenrt.GenericGuest):
             nfsdir = None
             nfssr = None
             if pxe:
-                if distro == "debiantesting":
-                    cdname = "%s.iso" % str(uuid.uuid4())
-                    nfsdir = xenrt.NFSDirectory()
-                    darch = "amd64" if "64" in self.arch else "i386"
-                    iarch = "amd" if "64" in self.arch else "386"
-                    xenrt.GEC().filemanager.getSingleFile("http://cdimage.debian.org/cdimage/daily-builds/daily/arch-latest/%s/iso-cd/debian-testing-%s-netinst.iso" % (darch, darch), "%s/%s" % (nfsdir.path(), cdname))
-                    nfssr = xenrt.lib.xenserver.ISOStorageRepository(self.getHost(), "debtesting-%s" % cdname)
-                    server, path = nfsdir.getHostAndPath("")
-                    nfssr.create(server, path)
-                    nfssr.scan()
-                    self.changeCD(cdname)
-                    m = xenrt.MountISO("%s/%s" % (nfsdir.path(), cdname))
-                    nfsdir.copyIn("%s/install.%s/vmlinuz" % (m.getMount(), iarch))
-                    nfsdir.copyIn("%s/install.%s/initrd.gz" % (m.getMount(), iarch))
-                    m.unmount()
-                    options["installer_kernel"] = "%s/vmlinuz" % nfsdir.path()
-                    options["installer_initrd"] = "%s/initrd.gz" % nfsdir.path()
-                    self.paramSet("HVM-boot-params-order", "cn")
-                else:
-                    try:
-                        self.insertToolsCD()
-                    except:
-                        pass
+                try:
+                    self.insertToolsCD()
+                except:
+                    pass
 
             # Install using the vendor installer.
             self.installVendor(distro,

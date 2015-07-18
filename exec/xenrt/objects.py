@@ -4388,6 +4388,23 @@ Loop While not oex3.Stdout.atEndOfStream"""%(applicationEventLogger,systemEventL
 
         self.xmlrpcExec("c:\\windows\\system32\\sysprep\\sysprep.exe /unattend:c:\\unattend.xml /oobe /generalize /quiet /quit", returnerror=False)
 
+    def _softReboot(self, timeout=300):
+        try:
+            self.execdom0("/sbin/reboot", timeout=timeout)
+        except xenrt.XRTFailure, e:
+            if e.reason != "SSH channel closed unexpectedly":
+                raise
+    
+    def upgradeToDebianTesting(self):
+        xenrt.sleep(60)
+        self.execcmd("sed -i s/jessie/testing/g /etc/apt/sources.list")
+        self.execcmd("apt-get update")
+        self.execcmd('apt-get -y --force-yes -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade')
+        self.execcmd('apt-get -y --force-yes -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" dist-upgrade')
+        self._softReboot()
+        xenrt.sleep(60)
+        self.waitForSSH(1200)
+
 class RunOnLocation(GenericPlace):
     def __init__(self, address):
         GenericPlace.__init__(self)
@@ -5385,13 +5402,6 @@ class GenericHost(GenericPlace):
     def getGuestUUID(self, guest):
         return None
 
-    def _softReboot(self, timeout=300):
-        try:
-            self.execdom0("/sbin/reboot", timeout=timeout)
-        except xenrt.XRTFailure, e:
-            if e.reason != "SSH channel closed unexpectedly":
-                raise
-    
     def reboot(self,forced=False,timeout=600):
         """Reboot the host and verify it boots"""
         # Some ILO controllers have broken serial on boot
@@ -5837,7 +5847,8 @@ exit 0
         elif distro == "debian80":
             release = "jessie"
         elif distro == "debiantesting":
-            release = "testing"
+            release = "jessie"
+            self.special['debiantesting_upgrade'] = True
         _url = repository + "/dists/%s/" % (release.lower(), )
         boot_dir = "main/installer-%s/current/images/netboot/debian-installer/%s/" % (arch, arch)
 
@@ -7595,6 +7606,11 @@ class GenericGuest(GenericPlace):
 
             # If Debian then apt-get some stuff
             if isDebian:
+
+                if self.special.get("debiantesting_upgrade"):
+                    self.special['debiantesting_upgrade'] = False
+
+
                 apt_cacher = None
                 debVer = self.execguest("cat /etc/debian_version")
                 if "stretch" in debVer or "sid" in debVer:
@@ -8737,20 +8753,16 @@ class GenericGuest(GenericPlace):
                 elif distro == "debian80":
                     release = "jessie"
                 elif distro == "debiantesting":
-                    release = "testing"
+                    release = "jessie"
+                    self.special['debiantesting_upgrade'] = True
                 _url = repository + "/dists/%s/" % (release)
                 boot_dir = "main/installer-%s/current/images/netboot/debian-installer/%s/" % (arch, arch)
             
             # Pull boot files from HTTP repository
-            if release == "testing":
-                # Testing presently doesn't have an installer, the caller needs to set up an SR.
-                fk = options['installer_kernel']
-                fr = options['installer_initrd']
-            else:
-                fk = xenrt.TEC().tempFile()
-                fr = xenrt.TEC().tempFile()
-                xenrt.getHTTP(_url + boot_dir + "linux", fk)
-                xenrt.getHTTP(_url + boot_dir + "initrd.gz", fr)
+            fk = xenrt.TEC().tempFile()
+            fr = xenrt.TEC().tempFile()
+            xenrt.getHTTP(_url + boot_dir + "linux", fk)
+            xenrt.getHTTP(_url + boot_dir + "initrd.gz", fr)
 
             # Construct a PXE target
             pxe = xenrt.PXEBoot(remoteNfs=self.getHost().lookup("REMOTE_PXE", None))

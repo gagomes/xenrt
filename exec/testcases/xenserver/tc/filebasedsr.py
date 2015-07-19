@@ -197,3 +197,30 @@ class TCFileBasedSRProperty(xenrt.TestCase):
         self.guest.uninstall(True)
         super(TCFileBasedSRProperty, self).postRun()
 
+
+class TCBTRFSSROperation(xenrt.TestCase):
+
+    def prepare(self, arglist=[]):
+        args = self.parseArgsKeyValue(arglist)
+
+        self.host = self.getDefaultHost()
+        self.sr = xenrt.lib.xenserver.StorageRepository.fromExistingSR(self.host, self.host.getLocalSR())
+
+    def run(self, arglist=None):
+
+        log("Creating VDI.")
+        vdi = self.host.createVDI(1 * xenrt.GIGA, self.sr.uuid)
+
+        log("Forget and introduce SR.")
+        self.sr.forget()
+        self.sr.introduce()
+
+        log("Verify VDI is present.")
+        if not vdi in self.host.minimalList("vdi-list"):
+            raise xenrt.XRTFailure("Reintroduced SR does not have the VDI before forget.")
+
+        log("Distroying SR.")
+        self.sr.destroy()
+        if not self.sr.uuid in self.host.minimalList("sm-list"):
+            raise xenrt.XRTFailure("SR info has been disappeared after destroying SR.")
+

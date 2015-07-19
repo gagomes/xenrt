@@ -137,12 +137,11 @@ class XapiObject(object):
             uuids = self.cli.execute("%s-list %s-uuid=%s --minimal" % (refObjectType, currentObjectType, self.uuid)).strip().split(',')
         else:
             uuids = self.cli.execute("%s-list --minimal" % refObjectType).strip().split(',')
-        return [objectFactory().getObject(refObjectType)(self.cli, refObjectType, uuid) for uuid in uuids]
+        return [objectFactory().getObject(refObjectType)(self.cli, refObjectType, uuid) for uuid in uuids if uuid != '']
 
     def getObjectsFromListing(self, refObjectType):
         uuids = self.cli.execute("%s-list --minimal" % refObjectType).strip().split(',')
-        return [objectFactory().getObject(refObjectType)(self.cli, refObjectType, uuid) for uuid in uuids]
-
+        return [objectFactory().getObject(refObjectType)(self.cli, refObjectType, uuid) for uuid in uuids if uuid != '']
 
     def op(self, operation, params="", returnObject=None):
         ret = self.cli.execute("%s-%s uuid=%s %s" % (self.type, operation, self.uuid, params)).strip()
@@ -174,7 +173,7 @@ class NamedXapiObject(XapiObject):
 
     def getObjectsReferencingName(self, refObjectType, currentObjectType):
         uuids = self.cli.execute("%s-list %s=%s --minimal" % (refObjectType, currentObjectType, self.name())).strip().split(',')
-        return [objectFactory().getObject(refObjectType)(self.cli, refObjectType, uuid) for uuid in uuids]
+        return [objectFactory().getObject(refObjectType)(self.cli, refObjectType, uuid) for uuid in uuids if uuid != '']
 
 """
 Additional class implementations

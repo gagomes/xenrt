@@ -1,0 +1,16 @@
+<xenrt>
+  <variables>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+  </variables>
+  <scheduler>
+    <resources>memory&gt;=20G/disk1&gt;=140G</resources>
+  </scheduler>
+  <prepare>
+    <host id="0" installsr="ext" />
+  </prepare>
+
+  <testsequence>
+    <testcase id="xenserver.tc.filebasedsr.TCFileBasedSRProperty" />
+  </testsequence>
+</xenrt>

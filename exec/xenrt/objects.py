@@ -4390,20 +4390,32 @@ Loop While not oex3.Stdout.atEndOfStream"""%(applicationEventLogger,systemEventL
 
     def _softReboot(self, timeout=300):
         try:
-            self.execdom0("/sbin/reboot", timeout=timeout)
+            self.execcmd("/sbin/reboot", timeout=timeout)
         except xenrt.XRTFailure, e:
-            if e.reason != "SSH channel closed unexpectedly":
+            if e.reason != "SSH channel closed unexpectedly" and e.reason != "SSH timed out":
                 raise
     
-    def upgradeToDebianTesting(self):
-        xenrt.sleep(60)
-        self.execcmd("sed -i s/jessie/testing/g /etc/apt/sources.list")
-        self.execcmd("apt-get update")
-        self.execcmd('apt-get -y --force-yes -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade')
-        self.execcmd('apt-get -y --force-yes -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" dist-upgrade')
+    def upgradeDebian(self, newVersion="testing"):
+        codename = self.execguest("cat /etc/apt/sources.list | grep '^deb' | awk '{print $3}' | head -1").strip()
+        self.execcmd("sed -i s/%s/%s/g /etc/apt/sources.list" % (codename, newVersion))
+        if self.execcmd('test -e /etc/apt/sources.list.d/*', retval="code") == 0:
+            self.execcmd("sed -i s/%s/%s/g /etc/apt/sources.list.d/*" % (codename, newVersion))
+        try:
+            self.execcmd("apt-get update")
+        except:
+            self.execcmd("rm -f /etc/apt/sources.list.d/updates.list")
+            self.execcmd("apt-get update")
+        self.execcmd('DEBIAN_FRONTEND=noninteractive apt-get -y --force-yes -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade')
+        self.execcmd('DEBIAN_FRONTEND=noninteractive apt-get -y --force-yes -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" dist-upgrade')
+        self.execcmd('DEBIAN_FRONTEND=noninteractive apt-get -y --force-yes autoremove')
         self._softReboot()
         xenrt.sleep(60)
-        self.waitForSSH(1200)
+        if isinstance(self, GenericHost):
+            timeout = 600 + int(self.lookup("ALLOW_EXTRA_HOST_BOOT_SECONDS", "0"))
+        else:
+            timeout = 600
+        self.waitForSSH(timeout)
+        self.tailor()
 
 class RunOnLocation(GenericPlace):
     def __init__(self, address):
@@ -5023,6 +5035,10 @@ class GenericHost(GenericPlace):
         if not self.windows:
             self.findPassword()
 
+            if self.special.get("debiantesting_upgrade"):
+                self.special['debiantesting_upgrade'] = False
+                self.upgradeDebian(newVersion="testing")
+            
             if xenrt.TEC().lookup("TAILOR_CLEAR_IPTABLES", False, boolean=True):
                 self.execdom0("iptables -P INPUT ACCEPT && iptables -P OUTPUT ACCEPT && iptables -P FORWARD ACCEPT && iptables -F && iptables -X")
                 self.iptablesSave()
@@ -7609,6 +7625,7 @@ class GenericGuest(GenericPlace):
 
                 if self.special.get("debiantesting_upgrade"):
                     self.special['debiantesting_upgrade'] = False
+                    self.upgradeDebian(newVersion="testing")
 
 
                 apt_cacher = None

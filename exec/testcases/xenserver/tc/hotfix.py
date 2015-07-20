@@ -643,7 +643,7 @@ class _TampaRTM(_Hotfix):
     INITIAL_VERSION = "Tampa"
     
 class _TampaHFd(_TampaRTM):
-    INITIAL_HOTFIXES = ["XS61E001", "XS61E003", "XS61E004", "XS61E008", "XS61E009", "XS61E010", "XS61E013", "XS61E015", "XS61E017",  "XS61E018", "XS61E019", "XS61E020", "XS61E021", "XS61E022", "XS61E023", "XS61E024", "XS61E025", "XS61E026", "XS61E027", "XS61E028", "XS61E029", "XS61E030", "XS61E032", "XS61E033", "XS61E034", "XS61E035", "XS61E036", "XS61E037", "XS61E038", "XS61E039", "XS61E040", "XS61E041", "XS61E042", "XS61E043", "XS61E044", "XS61E045", "XS61E046", "XS61E047", "XS61E048", "XS61E050", "XS61E051", "XS61E052","XS61E053","XS61E054"]
+    INITIAL_HOTFIXES = ["XS61E001", "XS61E003", "XS61E004", "XS61E008", "XS61E009", "XS61E010", "XS61E013", "XS61E015", "XS61E017",  "XS61E018", "XS61E019", "XS61E020", "XS61E021", "XS61E022", "XS61E023", "XS61E024", "XS61E025", "XS61E026", "XS61E027", "XS61E028", "XS61E029", "XS61E030", "XS61E032", "XS61E033", "XS61E034", "XS61E035", "XS61E036", "XS61E037", "XS61E038", "XS61E039", "XS61E040", "XS61E041", "XS61E042", "XS61E043", "XS61E044", "XS61E045", "XS61E046", "XS61E047", "XS61E048", "XS61E050", "XS61E051", "XS61E052","XS61E053","XS61E054","XS61E056"]
     
 class _ClearwaterRTM(_Hotfix):
     INITIAL_VERSION = "Clearwater"
@@ -671,7 +671,7 @@ class _CreedenceSP1(_CreedenceRTM):
     INITIAL_HOTFIXES = ["XS65ESP1"]
     
 class _CreedenceSP1HFd(_CreedenceSP1):
-    INITIAL_HOTFIXES = ["XS65ESP1","XS65ESP1002","XS65ESP1003","XS65ESP1004"]
+    INITIAL_HOTFIXES = ["XS65ESP1","XS65ESP1002","XS65ESP1003","XS65ESP1004","XS65ESP1005"]
     
     
 # Upgrades
@@ -2179,13 +2179,13 @@ class TCDiscSpacePlugins(xenrt.TestCase):
         xenrt.TEC().logverbose("Available disk space returned by plugin= %sMB" %(actualAvailSpace))
         
         step("Fetch available disk space from df")
-        totalSpace = int(self.host.execdom0("df / -m | awk '{print$2}' | sed 1d"))
-        expectedAvailSpace =  int(self.host.execdom0("df / -m | awk '{print$4}' | sed 1d")) + (totalSpace * .05)
+        (totalSpace,usedSpace) =[int(i.strip()) for i in self.host.execdom0("df / -m | awk '{print$2,$3}' | sed 1d").split(" ")]
+        expectedAvailSpace =  totalSpace-usedSpace
         xenrt.TEC().logverbose("Expected available disk space = %sMB" %(expectedAvailSpace))
         
         step("Verify space returned by the plugin is equal to the value given by df")
         if abs(actualAvailSpace-expectedAvailSpace) > 4:
-            raise xenrt.XRTFailure("get_avail_host_disk_space plugin returned invalid data. Expected=%s. Actual=%s" % (actualAvailSpace,expectedAvailSpace))
+            raise xenrt.XRTFailure("get_avail_host_disk_space plugin returned invalid data. Expected=%s. Actual=%s" % (expectedAvailSpace, actualAvailSpace))
 
     def testCheckPatchUploadPlugin(self):
         #Test functionality of 'check_patch_upload' plugin

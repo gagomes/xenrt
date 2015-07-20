@@ -1,0 +1,26 @@
+<xenrt>
+
+  <!-- Docker test sequence to test XenServer Docker Machine Driver.  -->
+
+  <variables>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+  </variables>
+
+  <prepare>
+    <pool id="0">
+      <host id="0">
+      </host>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="DockerMachine">
+
+      <testcase id="xenserver.tc.dockermachine.TCDockerMachineLifeCycle" tc="TC-27122"/>
+
+    </serial>
+  </testsequence>
+
+</xenrt>

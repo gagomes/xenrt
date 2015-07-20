@@ -25,8 +25,39 @@
           <disk device="0" size="24" />
           <storage>nfssr</storage>
         </vm>
+        <vm name="win7x64">
+          <distro>win7sp1-x64</distro>
+          <memory>2048</memory>
+          <vcpus>2</vcpus>
+          <postinstall action="installDrivers" />
+          <postinstall action="shutdown" />
+          <network device="0" />
+          <disk device="0" size="24" />
+          <storage>nfssr</storage>
+        </vm>
         <vm name="win81x86">
           <distro>win81-x86</distro>
+          <memory>2048</memory>
+          <vcpus>2</vcpus>
+          <postinstall action="installDrivers" />
+          <postinstall action="shutdown" />
+          <network device="0" />
+          <disk device="0" size="24" />
+          <storage>nfssr</storage>
+        </vm>
+        <vm name="win81x64">
+          <distro>win81-x64</distro>
+          <memory>2048</memory>
+          <vcpus>2</vcpus>
+          <postinstall action="installDrivers" />
+          <postinstall action="shutdown" />
+          <network device="0" />
+          <disk device="0" size="24" />
+          <storage>nfssr</storage>
+        </vm>
+        <vm name="ws2008x86">
+          <distro>ws08sp2-x86</distro>
+          <arch>x86-64</arch>
           <memory>2048</memory>
           <vcpus>2</vcpus>
           <postinstall action="installDrivers" />
@@ -68,13 +99,13 @@
 
       <!-- This has to run before any other tests. -->
       <testcase id="xenserver.tc.remoteexec.TCEnabilityCheck">
-        <arg>masters=win7x86,win81x86,ws2008x64,ws2012x64</arg>
+        <arg>masters=win7x86,win7x64,win81x86,win81x64,ws2008x86,ws2008x64,ws2012x64</arg>
       </testcase>
 
       <parallel workers="3">
         <!-- This takes around 2.5 hours to test VM ops blocked. -->
         <testcase id="xenserver.tc.remoteexec.TCSingleCommand">
-          <arg>masters=win7x86,win81x86,ws2008x64,ws2012x64</arg>
+        <arg>masters=win7x86,win7x64,win81x86,win81x64,ws2008x86,ws2008x64,ws2012x64</arg>
         </testcase>
 
         <!-- This also takes a long time to install 2 new VMs. -->
@@ -82,13 +113,13 @@
 
         <serial>
           <testcase id="xenserver.tc.remoteexec.TCBasicFunc">
-            <arg>masters=win7x86,win81x86,ws2008x64,ws2012x64</arg>
+            <arg>masters=win7x86,win7x64,win81x86,win81x64,ws2008x86,ws2008x64,ws2012x64</arg>
           </testcase>
           <testcase id="xenserver.tc.remoteexec.TCBasicFuncAPI">
-            <arg>masters=win7x86,win81x86,ws2008x64,ws2012x64</arg>
+            <arg>masters=win7x86,win7x64,win81x86,win81x64,ws2008x86,ws2008x64,ws2012x64</arg>
           </testcase>
           <testcase id="xenserver.tc.remoteexec.TCBasicFuncAPIAsync">
-            <arg>masters=win7x86,win81x86,ws2008x64,ws2012x64</arg>
+            <arg>masters=win7x86,win7x64,win81x86,win81x64,ws2008x86,ws2008x64,ws2012x64</arg>
           </testcase>
           <!-- This TC is failing due to dynamic scripts being created.
           New script that emulates CLM script does will be added later.
@@ -96,19 +127,21 @@
             <arg>masters=win7x86,win81x86,ws2008x64,ws2012x64</arg>
           </testcase>-->
           <testcase id="xenserver.tc.remoteexec.TCRateLimit">
-            <arg>masters=win7x86,win81x86,ws2008x64,ws2012x64</arg>
+            <arg>masters=win7x86,win7x64,win81x86,win81x64,ws2008x86,ws2008x64,ws2012x64</arg>
           </testcase>
           <testcase id="xenserver.tc.remoteexec.TCCommandLength">
-            <arg>masters=win7x86,win81x86,ws2008x64,ws2012x64</arg>
+            <arg>masters=win7x86,win7x64,win81x86,win81x64,ws2008x86,ws2008x64,ws2012x64</arg>
           </testcase>
           <testcase id="xenserver.tc.remoteexec.TCGuestAgentMemory">
-            <arg>masters=win7x86,win81x86,ws2008x64,ws2012x64</arg>
+            <arg>masters=win7x86,win7x64,win81x86,win81x64,ws2008x86,ws2008x64,ws2012x64</arg>
           </testcase>
+          <!-- This TC will fail. Dev need to change path of temp dir
+          to system one.
           <testcase id="xenserver.tc.remoteexec.TCTempFileClear">
-            <arg>masters=win7x86,win81x86,ws2008x64,ws2012x64</arg>
-          </testcase>
+            <arg>masters=win7x86,win7x64,win81x86,win81x64,ws2008x86,ws2008x64,ws2012x64</arg>
+          </testcase>-->
           <testcase id="xenserver.tc.remoteexec.TCRBAC">
-            <arg>masters=win7x86,win81x86,ws2008x64,ws2012x64</arg>
+            <arg>masters=win7x86,win7x64,win81x86,win81x64,ws2008x86,ws2008x64,ws2012x64</arg>
           </testcase>
         </serial>
 

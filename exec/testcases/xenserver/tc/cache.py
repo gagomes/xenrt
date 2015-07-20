@@ -1778,7 +1778,10 @@ class _ResetOnBootBase(_Cache):
         self.pool = self.getDefaultPool()
         self.host = self.getDefaultHost()
         
-        xenrt.TEC().logverbose("Found pool: " + self.pool.getName())
+        if self.pool:
+            xenrt.TEC().logverbose("Found pool: " + self.pool.getName())
+        else:
+            xenrt.TEC().logverbose("Single host test.")
         xenrt.TEC().logverbose("Found default host: " + self.host.getName())
         
         self.sr = self.host.lookupDefaultSR()
@@ -1789,10 +1792,6 @@ class _ResetOnBootBase(_Cache):
         if not self.goldVM:
             raise xenrt.XRTError("Cannot find pre-created Gold VM.")
         xenrt.TEC().logverbose("Found Gold VM %s (%s)"  % (self.goldVM.getName(), self.goldVM.getUUID()))
-        
-        # Setting up license. This is not required for Clearwater but for trunk.
-        #for h in self.pool.getHosts():
-            #h.license(edition='platinum')
 
     def prepare(self, arglist=None):
         self.settingUpTestEnvironment()
@@ -2054,12 +2053,17 @@ class _DiskOperationBase(_ResetOnBootBase):
             xenrt.TEC().logverbose("VM migration succeeded.")
 
     def run(self, arglist=[]):
-        self.runSubcase("testCopy", (), "Copy", "Copy")    
-        self.runSubcase("testClone", (), "Clone", "Clone")    
-        self.runSubcase("testSuspend", (), "Suspend", "Suspend")    
-        self.runSubcase("testSnapshot", (), "Snapshot", "Snapshot")    
-        self.runSubcase("testCheckpoint", (), "Checkpoint", "Checkpoint")   
-        self.runSubcase("testMigrate", (), "Migration", "Migration")
+        self.runSubcase("testCopy", (), "Copy", "Copy")
+        self.runSubcase("testClone", (), "Clone", "Clone")
+        self.runSubcase("testSuspend", (), "Suspend", "Suspend")
+        self.runSubcase("testSnapshot", (), "Snapshot", "Snapshot")
+        self.runSubcase("testCheckpoint", (), "Checkpoint", "Checkpoint")
+        # Running migration test only when there is pool
+        if self.pool:
+            xenrt.TEC().logverbose("Found pool %s. Running VM migration test." % self.pool.getName())
+            self.runSubcase("testMigrate", (), "Migration", "Migration")
+        else:
+            xenrt.TEC().logverbose("Found no pool. Skipping VM migration test.")
 
 
 class TCDiskOperationResetVDI(_DiskOperationBase):

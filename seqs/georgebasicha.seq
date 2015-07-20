@@ -4,7 +4,6 @@
 
   <variables>
     <PRODUCT_VERSION>George</PRODUCT_VERSION>
-    <PREPARE_WORKERS>2</PREPARE_WORKERS>
   </variables>
 
   <prepare>

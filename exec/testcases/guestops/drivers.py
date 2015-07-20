@@ -10,7 +10,7 @@
 
 import string, time
 import xenrt
-
+import xenrt.lib.xenserver
 
 class TCVerifyDriversUptoDate(xenrt.TestCase):
 
@@ -46,7 +46,9 @@ class TCVerifyDriversOutOfDate(xenrt.TestCase):
         guest = self.getGuest(gname)
         self.getLogsFrom(guest.host)
 
-        if guest.pvDriversUpToDate():
+        if isinstance(guest.host, xenrt.lib.xenserver.DundeeHost):
+            xenrt.TEC().skip("Skipping these tests from Dundee onwards")
+        elif guest.pvDriversUpToDate():
             raise xenrt.XRTFailure("PV Drivers are not reported as out-of-date")
 
 

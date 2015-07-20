@@ -46,6 +46,9 @@ class _Authenticate(xenrt.TestCase):
     def getLogoutTimeout(self):
         self.xsc.activate("CHANGE_TIMEOUT")
         data = self.xsc.screengrab()
+        data = data.replace("[[", "")
+        data = data.replace("]]", "")
+        data = data.strip()
         self.xsc.reset()
         return int(re.search("Timeout\s+\(minutes\)\s+(?P<timeout>[0-9]+)", 
                               data).group("timeout"))

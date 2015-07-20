@@ -11,7 +11,7 @@
 #import os.path
 import socket, re, string, time, traceback, sys, random, copy, os, os.path, urllib2, filecmp
 import xenrt, xenrt.lib.xenserver, XenAPI, httplib, threading
-import base64, subprocess, zlib
+import base64, subprocess, zlib, ssl
 import xml.dom.minidom 
 from xml.dom.minidom import parseString
 from xml.dom import minidom
@@ -177,13 +177,13 @@ class _TransferVM(xenrt.TestCase):
         resp = conn.getresponse()
         return resp 
 
-    def bitsConnection(self,host,record,packetType,sessionId=None,vhd=False,headers=None,data=None,connection=None,expectedStatus=200,vdiRaw=False,connClose=False,reqheaders=None,ssl=False):
+    def bitsConnection(self,host,record,packetType,sessionId=None,vhd=False,headers=None,data=None,connection=None,expectedStatus=200,vdiRaw=False,connClose=False,reqheaders=None,useSSL=False):
 
         if not record:
             raise xenrt.XRTFailure("Record not found") 
    
         if not connection:
-            if not ssl:
+            if not useSSL:
                 conn = self.httpConnection(record)
             else:
                 conn = self.httpsConnection(record)
@@ -194,7 +194,12 @@ class _TransferVM(xenrt.TestCase):
             reqheaders = {'Authorization': authHeader(record['username'], record['password'])}
         reqheaders['BITS-Packet-Type'] = packetType
         reqheaders['BITS-Supported-Protocols'] = BITS_PROTOCOL
-  
+
+        v = sys.version_info
+        if v.major == 2 and ((v.minor == 7 and v.micro >= 9) or v.minor > 7):
+            xenrt.TEC().logverbose("Disabling certificate verification on >=Python 2.7.9")
+            ssl._create_default_https_context = ssl._create_unverified_context
+
         if sessionId is not None:
             reqheaders['BITS-Session-Id'] = sessionId
 
@@ -533,7 +538,7 @@ class BitsTest(_TransferVM):
         transferMode = 'BITS'
         if not self.RECORD:
             self.ref,self.RECORD,self.vdi = self.prepareForTest(self.host,transferMode,self.SSL)
-        self.RESPHEADERS,self.CONNECTION,reqheaders = self.bitsConnection(self.host,self.RECORD,self.PACKETTYPE,self.SESSIONID,self.VHD,self.HEADERS,self.DATA,self.CONNECTION,self.EXPECTEDSTATUS,self.VDIRAW,self.CONNCLOSE,ssl=self.SSL)     
+        self.RESPHEADERS,self.CONNECTION,reqheaders = self.bitsConnection(self.host,self.RECORD,self.PACKETTYPE,self.SESSIONID,self.VHD,self.HEADERS,self.DATA,self.CONNECTION,self.EXPECTEDSTATUS,self.VDIRAW,self.CONNCLOSE,useSSL=self.SSL)     
         self.checkHeader(self.RESPHEADERS,'Content-Length','0')
         self.checkHeader(self.RESPHEADERS,'BITS-Packet-Type', 'Ack')
         if self.EXPECTEDSESSIONID:
@@ -1615,9 +1620,9 @@ def bitsConnection(packetType,sessionId=None,vhd=False,headers=None,data=None,co
     username = "%s"
     passwd = "%s"
     url = "%s"
-    ssl = %s 
+    useSSL = %s 
     if not connection:
-        if not ssl:
+        if not useSSL:
             conn = httplib.HTTPConnection(ip,int(port))
         else:
             conn = httplib.HTTPSConnection(ip,int(port))
@@ -1683,7 +1688,7 @@ while rangeStart < rangeTotal:
 
 conn.close()
 file.close()
-        """ % (record['ip'],record['port'],record['username'],record['password'],record['url_path'],ssl,auth,content,fileName)
+        """ % (record['ip'],record['port'],record['username'],record['password'],record['url_path'],useSSL,auth,content,fileName)
         try:
             host.execdom0("echo '%s' >/tmp/tmp/upload.py" % script)
             python = host.execdom0('which python').strip()

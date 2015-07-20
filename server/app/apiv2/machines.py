@@ -554,7 +554,7 @@ class LeaseMachine(_MachineBase):
                 "admin_override": {
                     "type": "boolean",
                     "description": "Override lease policy (only available to admins)",
-                    "defaulti": False}
+                    "default": False}
                 }
             }
         }

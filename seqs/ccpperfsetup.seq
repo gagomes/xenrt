@@ -1,6 +1,7 @@
 <xenrt>
   <variables>
     <USE_CCP_SIMULATOR>yes</USE_CCP_SIMULATOR>
+    <CLOUDINPUTDIR>http://repo-ccp.citrix.com/releases/ASF/rhel/6.3/ccp-4.5.1/CloudPlatform-ccp-4.5.1-1237-rhel6.3_Simulator.tar.gz</CLOUDINPUTDIR>
   </variables>
 
   <prepare>

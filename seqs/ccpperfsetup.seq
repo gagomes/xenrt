@@ -11,7 +11,6 @@
         <arch>x86-64</arch>
         <memory>1024</memory>
         <vcpus>2</vcpus>
-        <postinstall action="installCloudManagementServer" />
         <network device="0" />
         <disk device="0" size="12" />
       </vm>

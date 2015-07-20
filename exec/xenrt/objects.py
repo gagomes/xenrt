@@ -4694,7 +4694,7 @@ class GenericHost(GenericPlace):
                 traceback.print_exc(file=sys.stderr)
                 xenrt.TEC().warning("Exception running job test %s: %s" % (str(jt), str(e)))
 
-    def dom0CPUUsage(self):
+    def xapiCPUUsage(self):
         # Check for xenstored using too much CPU, if a pid is not found, None is returned
         pid = None
         pidLocations = ["/var/run/xenstore.pid", "/var/run/xenstored.pid"]

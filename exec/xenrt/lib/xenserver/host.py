@@ -3409,6 +3409,11 @@ fi
                     waittime = interval
                 xenrt.sleep(waittime, log=False)
 
+    def dom0CPUUsage(self):
+        usage = self.host.getXentopData()
+        cpuUsage = usage["0"]["CPU(%)"]
+        return float(cpuUsage)
+
     def getXentopData(self):
         data = self.execdom0("xentop -f -b -i 2").strip()
         data = [ re.split("[\s]+", x.strip()) for x in data.split("\n") ]

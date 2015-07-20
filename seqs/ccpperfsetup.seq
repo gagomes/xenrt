@@ -22,6 +22,11 @@
       <arg>guest=MS-1</arg>
     </testcase>
   </serial>
+  <serial group="Perf">
+    <testcase id="cloud.perf.TCCloudstackPerfExample" name="Perf" blocker="yes">
+      <arg>guest=MS-1</arg>
+    </testcase>
+  </serial>
   </testsequence>
 </xenrt>
 

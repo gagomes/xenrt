@@ -551,11 +551,9 @@ class LiveMigrate(xenrt.TestCase):
         src_host_name = None
         dest_host = None
         dest_host_name = None
-        
-        self.hostSessions = {h.getName() : h.getAPISession(secure=False) for h in self.getAllHosts()}        
-        xenrt.log(self.hostSessions)
 
-        
+        self.hostSessions = {h.getName() : h.getAPISession(secure=False) for h in self.getAllHosts()}
+
         if self.args.has_key('src_host'):
             src_host = self.getHost(self.args['src_host'])
             src_host_name = src_host.getName()

@@ -149,6 +149,9 @@ class _BalloonPerfBase(xenrt.TestCase):
     
     def installGuest(self):
         # Set up the VM
+        guest = self.getGuest(self.DISTRO+self.ARCH)
+        if guest:
+            return guest
         if self.WINDOWS:
             guest = self.host.createGenericWindowsGuest(distro=self.DISTRO, 
                                                         arch=self.ARCH, vcpus=2)
@@ -157,8 +160,8 @@ class _BalloonPerfBase(xenrt.TestCase):
         else:
             guest = self.host.createBasicGuest(distro=self.DISTRO,
                                                arch=self.ARCH)
-
         return guest
+
 class _BalloonSmoketest(_BalloonPerfBase):
     """Base class for balloon driver smoketests and max range tests"""
     DISTRO = "w2k3eesp1"
@@ -527,6 +530,29 @@ class TCLinuxMaxRange(_LinuxMaxRangeBase):
 class TCWindowsMaxRange(_MaxRangeBase):
     """Windows max range test"""
     ITERATIONS = 1
+
+#
+# VM Insatalltion test
+#
+class TCVmInstallation(xenrt.TestCase):
+    """Install VMs passed as distros"""
+    def run(self, arglist=[]):
+        step("Installing Guests in parallel")
+        distros = xenrt.TEC().lookup("DISTROS").split(",")
+        self.host = self.getDefaultHost()
+        pTasks = [xenrt.PTask(self.installGuest,distroName=d) for d in distros]
+        xenrt.TEC().logverbose("Guest installation pTasks are %s" % pTasks)
+        self.guests = xenrt.pfarm(pTasks)
+
+    def installGuest(self, distroName):
+        # Set up the VM
+        (distro, arch) = xenrt.getDistroAndArch(distroName)
+        if distro.startswith("w") or self.DISTRO.startswith("v"):
+            guest = self.host.createGenericWindowsGuest(distro=distro, 
+                                                        arch=arch, vcpus=2, name=distro+arch)
+        else:
+            guest = self.host.createBasicGuest(distro=distro,
+                                               arch=arch, name=distro+arch)
 
 
 class TC9284(xenrt.TestCase):

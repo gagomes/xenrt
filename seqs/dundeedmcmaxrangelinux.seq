@@ -11,6 +11,7 @@
   </prepare>
 
   <testsequence>
+    <testcase id="xenserver.tc.balloon.TCVmInstallation" blocker="yes"/>
     <parallel group="LinuxBalloonMaxRange" workers="1">
       <for iter="D" values="%DISTROS%"> 
         <testcase id="xenserver.tc.balloon.TCLinuxMaxRange" name="${D}" sku="${D}" tc="TC-9325">

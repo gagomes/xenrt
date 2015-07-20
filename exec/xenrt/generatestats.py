@@ -12,7 +12,7 @@ class LabCostPerTechArea():
     def generate(self):
         step("Get latest suite run history")
         u = urllib.urlopen("%s/suitehistoryjson/%s" % (xenrt.TEC().lookup("TESTRUN_URL"), self.suiteId)).read().strip()
-        suiteRunData = json.loads(u if u.startswith("{") else "{}")
+        suiteRunData = json.loads(u)
         suiteRunIds = [int(srid) for srid in suiteRunData.keys()]
         suiteRunIds.sort(reverse=True)
 

@@ -421,11 +421,11 @@ def createHotfixSymlinks():
         xenrt.command("ln -sf %s %s/%s.xsupdate" % (hfdict[h], hotfixpath, h))
 
 def generateLabCostPerTechArea(suiteId, outputDir=None, clearOutputDirContent=False):
+    if outputDir and xenrt.TEC().lookup("GENERATE_STATS_BASEDIR").rstrip("/") not in outputDir:
+        # this part will ensure we only modify dir falling under base dir for stats. 
+        raise xenrt.XRTError("permission denied [ dir not under base stat dir] '%s'" % outputDir)
     if clearOutputDirContent and outputDir:
-        if "/usr/share/xenrt/stats" in outputDir:
-            shutil.rmtree("%s" % outputDir.rstrip("/"))
-        else:
-            print "Permission Denied to remove dir '%s'" % outputDir
+        shutil.rmtree("%s" % outputDir.rstrip("/"))
     elif suiteId:
         if outputDir:
             outputDir=outputDir.rstrip("/")
@@ -436,11 +436,9 @@ def generateLabCostPerTechArea(suiteId, outputDir=None, clearOutputDirContent=Fa
                     os.makedirs(outputDir)
                 with open("%s/%s.generating" % (outputDir,suiteId), "w") as f:
                     f.write(str(xenrt.GEC().jobid()) or "nojob")
-
         try:
             cls = xenrt.generatestats.LabCostPerTechArea(suiteId, nbrOfSuiteRunsToCheck=10)
             data, tcMissingData = cls.generate()
-
             tempDir = xenrt.TEC().tempDir()
             with open("%s/%s.json" % (tempDir,suiteId), "w") as f:
                 f.write(json.dumps(data, indent=2))

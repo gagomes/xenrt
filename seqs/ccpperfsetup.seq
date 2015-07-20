@@ -1,0 +1,27 @@
+<xenrt>
+  <variables>
+    <USE_CCP_SIMULATOR>yes</USE_CCP_SIMULATOR>
+  </variables>
+
+  <prepare>
+    <host id="0">
+      <vm name="MS-1">
+        <distro>rhel65</distro>
+        <arch>x86-64</arch>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installCloudManagementServer" />
+        <network device="0" />
+        <disk device="0" size="12" />
+      </vm>
+    </host>
+  </prepare>
+  <testsequence>
+  <serial group="Setup" blocker="yes">
+    <testcase id="cloud.marvin.TCCloudstackSetup" name="CSSetup" blocker="yes">
+      <arg>guest=MS-1</arg>
+    </testcase>
+  </serial>
+  </testsequence>
+</xenrt>
+

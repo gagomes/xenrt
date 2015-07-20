@@ -2532,6 +2532,7 @@ exit /B 1
                                        "vm-uuid=%s type=Disk" % 
                                        (self.getUUID()))
 
+        self.setState("DOWN")
         if destroyDisks:
             self.destroyAdditionalDisks()
         self.lifecycleOperation("vm-uninstall", force=True)

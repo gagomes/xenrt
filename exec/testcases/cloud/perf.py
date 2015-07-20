@@ -1,6 +1,6 @@
 import xenrt
 
-class TCCloudstackSetup(xenrt.TestCase):
+class TCCloudstackPerfExample(xenrt.TestCase):
     def run(self, arglist):
         self.args = self.parseArgsKeyValue(arglist)
         if self.args.get("guest"):

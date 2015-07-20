@@ -3410,7 +3410,7 @@ fi
                 xenrt.sleep(waittime, log=False)
 
     def dom0CPUUsage(self):
-        usage = self.host.getXentopData()
+        usage = self.getXentopData()
         cpuUsage = usage["0"]["CPU(%)"]
         return float(cpuUsage)
 

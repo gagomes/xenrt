@@ -12,7 +12,7 @@
   </prepare>
 
   <testsequence>
-    <testcase id="xenserver.tc.filebasedsr.TCFileBasedSRProperty" />
-    <testcase id="xenserver.tc.filebasedsr.TCBTRFSSROperation" />
+    <testcase id="xenserver.tc.filebasedsr.TCFileBasedSRProperty" tc="TC-27136" />
+    <testcase id="xenserver.tc.filebasedsr.TCBTRFSSROperation" tc="TC-27137"/>
   </testsequence>
 </xenrt>

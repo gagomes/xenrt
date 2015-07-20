@@ -1743,8 +1743,7 @@ class TC8411(_PoolAuthentication):
         try:
             self.pool.disableAuthentication(self.authserver)
         except xenrt.XRTFailure, e:
-            if not re.search("failed to disable the external "
-                             "authentication of at least one host", e.data):
+            if not ("The pool failed to disable the external authentication of at least one host" in e.data):
                 raise
         else:
             raise xenrt.XRTFailure("Disabling authentication of missing host succeeded.")
@@ -1754,8 +1753,8 @@ class TC8411(_PoolAuthentication):
         except xenrt.XRTFailure, e:
             if not re.search("External authentication in this pool is already enabled", e.data):
                 raise
-        else:
-            raise xenrt.XRTFailure("Heterogenous authentication config wasn't detected.")
+            else:
+                raise xenrt.XRTFailure("Heterogenous authentication config wasn't detected.")
         slave.disableAuthentication(self.authserver) 
         self.pool.enableAuthentication(self.authserver)
 

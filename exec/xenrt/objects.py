@@ -4403,12 +4403,13 @@ Loop While not oex3.Stdout.atEndOfStream"""%(applicationEventLogger,systemEventL
         try:
             self.execcmd("apt-get update")
         except:
+            # We might be upgrading to a version that doesn't have update repos - if that's the case then remove them and try apt-get update again
             self.execcmd("rm -f /etc/apt/sources.list.d/updates.list")
             self.execcmd("apt-get update")
         self.execcmd('DEBIAN_FRONTEND=noninteractive apt-get -y --force-yes -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade')
         self.execcmd('DEBIAN_FRONTEND=noninteractive apt-get -y --force-yes -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" dist-upgrade')
         self.execcmd('DEBIAN_FRONTEND=noninteractive apt-get -y --force-yes autoremove')
-        self._softReboot()
+        self._softReboot(timeout=60)
         xenrt.sleep(60)
         if isinstance(self, GenericHost):
             timeout = 600 + int(self.lookup("ALLOW_EXTRA_HOST_BOOT_SECONDS", "0"))

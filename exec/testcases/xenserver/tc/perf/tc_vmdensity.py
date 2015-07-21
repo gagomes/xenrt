@@ -1812,35 +1812,36 @@ class Experiment_vmrun(Experiment):
 
 
             host.defaultsr = name_defaultsr # hack: because esx doesn't have a pool class to set up the defaultsr when creating the host via sequence above with 'default' option in <storage>
-            pool = self.tc.getDefaultPool()
-            sr_uuid = host.parseListForUUID("sr-list", "name-label", name_defaultsr)
-            xenrt.TEC().logverbose("pool=%s, name_defaultsr='%s', sr_uuid='%s'" % (pool, name_defaultsr, sr_uuid))
-            if sr_uuid:
-                if pool:
-                    pool.setPoolParam("default-SR", sr_uuid)
-                else:
-                    pool_uuid = host.minimalList("pool-list")[0]
-                    host.genParamSet("pool", pool_uuid, "default-SR", sr_uuid)
+            if isinstance(host, xenrt.lib.xenserver.Host):
+                pool = self.tc.getDefaultPool()
+                sr_uuid = host.parseListForUUID("sr-list", "name-label", name_defaultsr)
+                xenrt.TEC().logverbose("pool=%s, name_defaultsr='%s', sr_uuid='%s'" % (pool, name_defaultsr, sr_uuid))
+                if sr_uuid:
+                    if pool:
+                        pool.setPoolParam("default-SR", sr_uuid)
+                    else:
+                        pool_uuid = host.minimalList("pool-list")[0]
+                        host.genParamSet("pool", pool_uuid, "default-SR", sr_uuid)
 
-            set_dom0disksched(host,self.dom0disksched) 
-            patch_qemu_wrapper(host,self.qemuparams)
+                set_dom0disksched(host,self.dom0disksched) 
+                patch_qemu_wrapper(host,self.qemuparams)
 
-            # If given a defaultsr like ext:/dev/sdb, create and ext SR on
-            # /dev/sdb and make it the default SR
-            if self.defaultsr.startswith("ext:"):
-                device = self.defaultsr[4:]
+                # If given a defaultsr like ext:/dev/sdb, create and ext SR on
+                # /dev/sdb and make it the default SR
+                if self.defaultsr.startswith("ext:"):
+                    device = self.defaultsr[4:]
 
-                # Remove any existing SRs on the device
-                uuids = host.minimalList("pbd-list",
-                                         args="params=sr-uuid "
-                                              "device-config:device=%s" % device)
-                for uuid in uuids:
-                    host.forgetSR(uuids[0])
+                    # Remove any existing SRs on the device
+                    uuids = host.minimalList("pbd-list",
+                                             args="params=sr-uuid "
+                                                  "device-config:device=%s" % device)
+                    for uuid in uuids:
+                        host.forgetSR(uuids[0])
 
-                diskname = host.execdom0("basename `readlink -f %s`" % device).strip()
-                sr = xenrt.lib.xenserver.EXTStorageRepository(host, 'SR-%s' % diskname)
-                sr.create(device)
-                host.pool.setPoolParam("default-SR", sr.uuid)
+                    diskname = host.execdom0("basename `readlink -f %s`" % device).strip()
+                    sr = xenrt.lib.xenserver.EXTStorageRepository(host, 'SR-%s' % diskname)
+                    sr.create(device)
+                    host.pool.setPoolParam("default-SR", sr.uuid)
 
             # 1. reinstall pool with $value version of xenserver
             # for each h in self.hosts: self.pool.install_host(...)

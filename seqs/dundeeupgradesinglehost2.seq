@@ -1,0 +1,19 @@
+<xenrt>
+
+  <!-- Single host upgrade test with safe partitioning(VMs on additional Local SR) -->
+
+  <default name="OLD_PRODUCT_VERSION" value="Clearwater"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446"/>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_RPU_HOTFIX>True</INSTALL_RPU_HOTFIX>
+    <SR_ON_PRIMARY_DISK>no</SR_ON_PRIMARY_DISK>
+    <OPTION_NO_DISK_CLAIM>yes</OPTION_NO_DISK_CLAIM>
+    <SECOND_SR_TYPE>lvm</SECOND_SR_TYPE>
+  </variables>
+
+  <testsequence>
+    <testcase group="Upgrade" id="xenserver.tc.upgrade.TCRpuPrimaryDisk" tc="TC-27064"/>
+  </testsequence>
+</xenrt>

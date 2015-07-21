@@ -77,8 +77,8 @@ class SXAPI(object):
     def authenticate(self):
         """Get authenticated and store access key"""
         companies = self.execute(command="companies", params={"client_id": self.apikey})
-        if len(companies) != 1:
-            raise xenrt.XRTError("Expected a company but received %d" % len(companies))
+        if len(companies) < 1:
+            raise xenrt.XRTError("Expected at least 1 company but received %d" % len(companies))
         self.companyId = companies[0]["companyId"]
 
         self.roles = self.execute(command="roles", params={"client_id": self.apikey, "company_id": self.companyId})

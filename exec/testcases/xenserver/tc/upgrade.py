@@ -3815,8 +3815,8 @@ class TCRpuPrimaryDisk(_RpuNewPartitionsSingleHost):
 
     def installVMs(self):
         #Create Local SR
-        self.createLocalSR()
-        g = self.host.createBasicGuest("generic-linux")
+        sr = self.createLocalSR()
+        g = self.host.createBasicGuest("generic-linux", sr=sr)
         g.shutdown()
         self.guests.append(g)
     
@@ -3830,6 +3830,7 @@ class TCRpuPrimaryDisk(_RpuNewPartitionsSingleHost):
         sr.create("/dev/%s" % (guestdisks[1]))
         poolUUID = self.host.minimalList("pool-list")[0]
         self.host.genParamSet("pool", poolUUID, "default-SR", sr.uuid)
+        return sr
 
 class TC14930(_FeatureOperationAfterUpgrade):
     """Continued operation of VMPP feature"""

@@ -1,0 +1,18 @@
+<xenrt>
+  <variables>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+    <OPTION_NO_DISK_CLAIM>yes</OPTION_NO_DISK_CLAIM>
+    <WORKAROUND_CA174211>yes</WORKAROUND_CA174211>
+  </variables>
+  <prepare>
+    <host diskCount="0">
+      <storage type="smapiv3local" name="btrfs" default="true" />
+    </host>
+  </prepare>
+
+  <testsequence>
+    <testcase id="xenserver.tc.filebasedsr.TCFileBasedSRProperty" tc="TC-27136" />
+    <testcase id="xenserver.tc.filebasedsr.TCBTRFSSROperation" tc="TC-27137"/>
+  </testsequence>
+</xenrt>

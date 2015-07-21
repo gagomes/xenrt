@@ -1,0 +1,32 @@
+<xenrt>
+  <variables>
+    <USE_CCP_SIMULATOR>yes</USE_CCP_SIMULATOR>
+    <CLOUDINPUTDIR>http://repo-ccp.citrix.com/releases/ASF/rhel/6.3/ccp-4.5.1/CloudPlatform-ccp-4.5.1-1237-rhel6.3_Simulator.tar.gz</CLOUDINPUTDIR>
+  </variables>
+
+  <prepare>
+    <host id="0">
+      <vm name="MS-1">
+        <distro>rhel65</distro>
+        <arch>x86-64</arch>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="12" />
+      </vm>
+    </host>
+  </prepare>
+  <testsequence>
+  <serial group="Setup" blocker="yes">
+    <testcase id="cloud.marvin.TCCloudstackSetup" name="CSSetup" blocker="yes">
+      <arg>guest=MS-1</arg>
+    </testcase>
+  </serial>
+  <serial group="Perf">
+    <testcase id="cloud.perf.TCCloudstackPerfExample" name="Perf" blocker="yes">
+      <arg>guest=MS-1</arg>
+    </testcase>
+  </serial>
+  </testsequence>
+</xenrt>
+

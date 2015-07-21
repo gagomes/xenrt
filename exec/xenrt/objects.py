@@ -4743,6 +4743,23 @@ class GenericHost(GenericPlace):
                 traceback.print_exc(file=sys.stderr)
                 xenrt.TEC().warning("Exception running job test %s: %s" % (str(jt), str(e)))
 
+    def xapiCPUUsage(self):
+        # Check for xenstored using too much CPU, if a pid is not found, None is returned
+        pid = None
+        pidLocations = ["/var/run/xenstore.pid", "/var/run/xenstored.pid"]
+        for p in pidLocations:
+            try:
+                pid = int(self.execdom0("cat %s" % (p)))
+                break
+            except:
+                pass
+        pcpu = None
+        if pid:
+            self.execdom0("[ -d /proc/%u ]" % (pid))
+            pcpu = float(self.execdom0("ps -p %u -o pcpu --no-headers" % (pid)).strip())
+        return pcpu
+
+
     def checkHealth(self, unreachable=False, noreachcheck=False, desc=""):
         """Make sure the dom0 is in good shape."""
         if unreachable:
@@ -4754,21 +4771,10 @@ class GenericHost(GenericPlace):
                                            idempotent=True))
         if space == "100%":
             xenrt.TEC().warning("Domain-0 disk usage is 100%")
-        # Check for xenstored using too much CPU
-        pid = None
-        pidLocations = ["/var/run/xenstore.pid", "/var/run/xenstored.pid"]
-        for p in pidLocations:
-            try:
-                pid = int(self.execdom0("cat %s" % (p)))
-                break
-            except:
-                pass
-        if pid:
-            self.execdom0("[ -d /proc/%u ]" % (pid))
-            pcpu = int(self.execdom0("ps -p %u -o pcpu --no-headers | "
-                                     "sed -e's/\..*//'" % (pid)).strip())
-            if pcpu > 40:
-                xenrt.TEC().warning("xenstore using %u%% CPU" % (pcpu))
+        pcpu = self.xapiCPUUsage()
+        if pcpu and pcpu > 40.0:
+            xenrt.TEC().warning("xenstore using %.2f%% CPU" % (pcpu))
+            log("xenstore using %.2f%% CPU" % (pcpu))
 
     def checkLeasesXenRTDhcpd(self, mac, checkWithPing=False):
         valid = json.loads(xenrt.util.command("%s/xenrtdhcpd/leasesformac.py %s" % (xenrt.TEC().lookup("XENRT_BASE"), mac.lower())))

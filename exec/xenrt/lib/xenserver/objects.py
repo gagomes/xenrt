@@ -1,5 +1,7 @@
 import re
 import xenrt
+from xenrt.lazylog import log
+
 
 """
 Xapi object model base and factory classes
@@ -196,6 +198,19 @@ class VM(NamedXapiObject):
 
     def networkAddresses(self):
         return self.getListParam(self.__NETWORK_ADDRESSES)
+
+    def ipv6NetworkAddress(self, deviceNo = 0, ipNo = 0):
+        addresses = self.networkAddresses()
+        tag = str(deviceNo) + "/ipv6/" + str(ipNo)
+        log("Addresses found: %s" % str(addresses))
+        ipv6Address = next((n for n in addresses if tag in n), None)
+        log("IPV6 address %s found with ID: %s" % (ipv6Address, tag))
+        if ipv6Address:
+            ipv6Address = (':'.join(ipv6Address.split(':')[1:])).strip()
+            return ipv6Address
+        else:
+            log("No IPV6 guest found for guest %s" % self.name())
+            return None
 
     @xenrt.irregularName
     def XapiHost(self):

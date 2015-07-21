@@ -551,7 +551,9 @@ class LiveMigrate(xenrt.TestCase):
         src_host_name = None
         dest_host = None
         dest_host_name = None
-        
+
+        self.hostSessions = {h.getName() : h.getAPISession(secure=False) for h in self.getAllHosts()}
+
         if self.args.has_key('src_host'):
             src_host = self.getHost(self.args['src_host'])
             src_host_name = src_host.getName()
@@ -1522,7 +1524,7 @@ class LiveMigrate(xenrt.TestCase):
                 for guest in self.guests:
                     try:
                         obs = guest.sxmVMMigrate(self.getGuestMigrateParams(guest),
-                                                 pauseAfterMigrate=self.test_config['paused'])
+                                                 pauseAfterMigrate=self.test_config['paused'] ,hostSessions=self.hostSessions)
                         self.observers.append(obs)
                     except Exception as e:
                         xenrt.TEC().logverbose("INFO_SXM: Exception occurred while trying to call migrate api %s for VM %s" % (str(e),guest.getUUID()))

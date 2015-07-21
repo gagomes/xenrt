@@ -5710,7 +5710,7 @@ class TampaGuest(BostonGuest):
         self.changeCD(None)
         xenrt.sleep(5)
 
-    def sxmVMMigrate(self,migrateParameters,pauseAfterMigrate=True,timeout = 3600):
+    def sxmVMMigrate(self,migrateParameters,pauseAfterMigrate=True,timeout = 3600,hostSessions=None):
 
         # This is the lib call for Storage Xen Motion Migrate
         #
@@ -5728,16 +5728,20 @@ class TampaGuest(BostonGuest):
         # Returns the object of observer
 
         eventClass = []
-
         xenrt.TEC().logverbose("Migrate Parameters: %s" % migrateParameters)
 
         if not migrateParameters.has_key("VDI_SR_map") or not migrateParameters.has_key("dest_host"):
             raise xenrt.XRTError("Essential parameters are not given")
 
         host = self.getHost()
-        session = host.getAPISession(secure=False)
-
         destHost = migrateParameters["dest_host"]
+
+        if hostSessions:
+            sourceSession=hostSessions[host.getName()]
+            destSession=hostSessions[destHost.getName()]
+        else:
+            sourceSession = host.getAPISession(secure=False)
+            destSession = destHost.getAPISession(secure=False)
 
         if not migrateParameters.has_key("Migrate_Network") or not migrateParameters["Migrate_Network"]:
             migrateParameters["Migrate_Network"] = destHost.getManagementNetworkUUID()
@@ -5745,18 +5749,18 @@ class TampaGuest(BostonGuest):
         xenrt.TEC().logverbose("Source Host uuid: %s,"
                                 "Destination Host uuid: %s," % (host.getMyHostUUID(),destHost.getMyHostUUID()))
 
-        destSession = destHost.getAPISession(secure=False)
         eventClass.append("task")
 
         if host <> destHost:
-            taskRef = self.vmLiveMigrate(migrateParameters,pauseAfterMigrate,session,destSession)
+            taskRef = self.vmLiveMigrate(migrateParameters,pauseAfterMigrate,sourceSession,destSession)
         else:
             #Might be different for VDI Migrate
-            taskRef = self.vdiLiveMigrate(migrateParameters,session)           
-        sxmObs = StorageMotionObserver(host, session,eventClass,taskRef,timeout)
+            taskRef = self.vdiLiveMigrate(migrateParameters,sourceSession)           
+        sxmObs = StorageMotionObserver(host, sourceSession,eventClass,taskRef,timeout)
         sxmObs.startObservingSXMMigrate(self,destHost,destSession)
 
         return sxmObs
+
 
     def vmLiveMigrate(self,migrateParameters,pauseAfterMigrate,session,destSession):
 

@@ -5724,8 +5724,7 @@ fi
         """Check if given SRs are working fine, create and delete vdi"""
         sruuid = []
         for srtype in type:
-            sruuid.extend(self.getSRs(type="ext", local=True))
-            sruuid.extend(self.getSRs(type="lvm", local=True))
+            sruuid.extend(self.getSRs(type=srtype, local=True))
         cli = self.getCLIInstance()
         for sr  in sruuid:
             # Create a 256M VDI on the SR

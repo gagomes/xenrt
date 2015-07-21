@@ -8,7 +8,7 @@
 # conditions as licensed by XenSource, Inc. All other rights reserved.
 #
 
-import sys, string, re, xml.dom.minidom, os, xmlrpclib, urllib, json, time
+import sys, string, re, xml.dom.minidom, os, xmlrpclib, urllib, json, time, shutil
 import xenrt
 
 try:
@@ -420,37 +420,39 @@ def createHotfixSymlinks():
     for h in hfdict.keys():
         xenrt.command("ln -sf %s %s/%s.xsupdate" % (hfdict[h], hotfixpath, h))
 
-def generateLabCostPerTechArea(suiteId, outputDir=None):
-    if outputDir:
-        outputDir=outputDir.rstrip("/")
-        if os.path.exists("%s/%s.json" % (outputDir,suiteId)):
-            raise xenrt.XRTError("Data file '%s/%s.json' already exist" % (outputDir,suiteId))
-        elif os.path.exists("%s/%s.generating" % (outputDir,suiteId)):
-            raise xenrt.XRTError("Another process is already generating data")
-        else:
-            if not os.path.exists(outputDir):
-                os.makedirs(outputDir)
-            with open("%s/%s.generating" % (outputDir,suiteId), "w") as f:
-                f.write(str(xenrt.GEC().jobid()) or "nojob")
-
-    try:
-        cls = xenrt.generatestats.LabCostPerTechArea(suiteId, nbrOfSuiteRunsToCheck=10)
-        data, tcMissingData = cls.generate()
-
-        tempDir = xenrt.TEC().tempDir()
-        with open("%s/%s.json" % (tempDir,suiteId), "w") as f:
-            f.write(json.dumps(data, indent=2))
-        with open("%s/%s_tcs_missing_run_history.json" % (tempDir,suiteId), "w") as f:
-            f.write(json.dumps(tcMissingData, indent=2))
+def generateLabCostPerTechArea(suiteId, outputDir=None, clearOutputDirContent=False):
+    if outputDir and xenrt.TEC().lookup("GENERATE_STATS_BASEDIR").rstrip("/") not in outputDir:
+        # this part will ensure we only modify dir falling under base dir for stats. 
+        raise xenrt.XRTError("permission denied [ dir not under base stat dir] '%s'" % outputDir)
+    if clearOutputDirContent and outputDir:
+        shutil.rmtree("%s" % outputDir.rstrip("/"))
+    elif suiteId:
         if outputDir:
-            xenrt.command("cp -f -r %s/* %s" % (tempDir,outputDir))
-        print "Data saved in directory '%s'" % (outputDir if outputDir else tempDir)
-    except Exception, e:
-        errorLogDir = "%s/logs" % outputDir
-        if not os.path.exists(errorLogDir):
-            os.makedirs(errorLogDir)
-        with open("%s/%s.error" % (errorLogDir,suiteId), "w") as f:
-            f.write("[%s] %s" % (str(xenrt.GEC().jobid()) or "nojob", e))
-    finally:
-        os.unlink("%s/%s.generating" % (outputDir,suiteId))
+            outputDir=outputDir.rstrip("/")
+            if os.path.exists("%s/%s.generating" % (outputDir,suiteId)):
+                raise xenrt.XRTError("Another process is already generating data")
+            else:
+                if not os.path.exists(outputDir):
+                    os.makedirs(outputDir)
+                with open("%s/%s.generating" % (outputDir,suiteId), "w") as f:
+                    f.write(str(xenrt.GEC().jobid()) or "nojob")
+        try:
+            cls = xenrt.generatestats.LabCostPerTechArea(suiteId, nbrOfSuiteRunsToCheck=10)
+            data, tcMissingData = cls.generate()
+            tempDir = xenrt.TEC().tempDir()
+            with open("%s/%s.json" % (tempDir,suiteId), "w") as f:
+                f.write(json.dumps(data, indent=2))
+            with open("%s/%s_tcs_missing_run_history.json" % (tempDir,suiteId), "w") as f:
+                f.write(json.dumps(tcMissingData, indent=2))
+            if outputDir:
+                xenrt.command("cp -f -r %s/* %s" % (tempDir,outputDir))
+            print "Data saved in directory '%s'" % (outputDir if outputDir else tempDir)
+        except Exception, e:
+            errorLogDir = "%s/logs" % outputDir
+            if not os.path.exists(errorLogDir):
+                os.makedirs(errorLogDir)
+            with open("%s/%s.error" % (errorLogDir,suiteId), "w") as f:
+                f.write("[%s] %s" % (str(xenrt.GEC().jobid()) or "nojob", e))
+        finally:
+            os.unlink("%s/%s.generating" % (outputDir,suiteId))
 

@@ -74,6 +74,7 @@ class Config(object):
 
         self.config["LOCAL_BASE"] = "/tmp/local"
         self.config["GUEST_CONSOLE_LOGDIR"] = "${LOCAL_BASE}/scratch/xenrt/guest-console-logs"
+        self.config["GENERATE_STATS_BASEDIR"] = "/usr/share/xenrt/stats"
 
         # Networking configuration
         self.config["NETWORK_CONFIG"] = {}

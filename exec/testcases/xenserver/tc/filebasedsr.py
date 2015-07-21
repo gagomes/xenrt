@@ -53,15 +53,21 @@ class TCFileBasedSRProperty(xenrt.TestCase):
         else:
             self.xsr = self.getSRObjByUuid(self.host.getLocalSR())
 
-        self.warSRPath = ""
-        ret = self.host.execdom0("ls /run/sr-mount/%s" % self.xsr.uuid, retval="code", level=xenrt.RC_OK)
-        if ret:
-            lines = self.host.execdom0("df | grep '/run/sr-mount/dev/'").splitlines()
-            if len(lines) > 1:
-                raise xenrt.XRTError("Found more than 1 local storage.")
-            self.srPath = lines[0].split()[-1]
-        else:
+        self.srPath = ""
+        srtype = self.xsr.srType()
+        if srtype == "ext":
             self.srPath = "/run/sr-mount/%s" % self.xsr.uuid
+        elif srtype == "btrfs" or srtype == "smapiv3local":
+            pbds = self.xsr.PBD()
+            if len(pbds) != 1:
+                raise xenrt.XRTError("Expected 1 local storage. Found %d." % len(pbds))
+            dconf = pbds[0].deviceConfig()
+            if "uri" not in dconf:
+                raise xenrt.XRTError("PBD(%s) of BTRFS SR (%s) does not have uri in device config." % \
+                    (pbds[0].uuid, self.xsr.uuid))
+            self.srPath = dconf["uri"][len("file://"):]
+        else:
+            raise xenrt.XRTError("Unexpected sr type: %s" % srtype)
 
     def getRawVDISize(self, vdi):
         """
@@ -108,8 +114,8 @@ class TCFileBasedSRProperty(xenrt.TestCase):
         if rawStatus[2] != virtualAlloc:
             raise xenrt.XRTFailure("Vitual allocation mismatched. %d from %d VDIs / %s in SR property." % (rawStatus[2], len(self.xsr.VDI()), virtualAlloc))
 
-        physicalUtil = self.xsr.getIntParam("physical-utilisation")
         if checkPU:
+            physicalUtil = self.xsr.getIntParam("physical-utilisation")
             if rawStatus[1] != physicalUtil:
                 raise xenrt.XRTFailure("Physical Utilisation mismatched. %d from df / %s in SR property." % (rawStatus[1], physicalUtil))
 
@@ -164,15 +170,15 @@ class TCFileBasedSRProperty(xenrt.TestCase):
 
         self.__verifyBasicProperties(False)
 
-        log("Verifying physical utilisation is increased less than 100 KiB")
+        log("Verifying physical utilisation is increased about 1 GiB")
         physicalUtil = self.xsr.getIntParam("physical-utilisation")
-        if physicalUtil - before > xenrt.GIGA + 10 * xenrt.MEGA or physicalUtil - before < xenrt.GIGA - 10 * xenrt.MEGA:
-            raise xenrt.XRTFailure("Physical utilisazion is different more than 10 MiB after 1 GiB writing.")
+        if physicalUtil - before > xenrt.GIGA + 20 * xenrt.MEGA or physicalUtil - before < xenrt.GIGA - 20 * xenrt.MEGA:
+            raise xenrt.XRTFailure("Physical utilisazion is different more than 20 MiB after 1 GiB writing.")
 
-        log("Verifying size of empty VDI is less than 100 KiB")
+        log("Verifying raw file size is about 1 GiB.")
         vdiSize = self.getRawVDISize(self.vdi)
-        if vdiSize > xenrt.GIGA + 10 * xenrt.MEGA or vdiSize < xenrt.GIGA - 10 * xenrt.MEGA:
-            raise xenrt.XRTFailure("VDI size is outside of +- 10 MiB of 1 GiB")
+        if vdiSize > xenrt.GIGA + 20 * xenrt.MEGA or vdiSize < xenrt.GIGA - 20 * xenrt.MEGA:
+            raise xenrt.XRTFailure("VDI size is different more than 20 MiB after 1 GiB filling.")
 
     def run(self, arglist=[]):
 
@@ -204,19 +210,20 @@ class TCBTRFSSROperation(xenrt.TestCase):
         args = self.parseArgsKeyValue(arglist)
 
         self.host = self.getDefaultHost()
-        self.sr = xenrt.lib.xenserver.StorageRepository.fromExistingSR(self.host, self.host.getLocalSR())
+        sruuid = self.host.getLocalSR()
+        self.sr = xenrt.lib.xenserver.getStorageRepositoryClass(self.host, sruuid).fromExistingSR(self.host, sruuid)
 
     def run(self, arglist=None):
 
         log("Creating VDI.")
-        vdi = self.host.createVDI(1 * xenrt.GIGA, self.sr.uuid)
+        vdi = self.host.createVDI(1 * xenrt.GIGA, self.sr.uuid).strip()
 
         log("Forget and introduce SR.")
         self.sr.forget()
         self.sr.introduce()
 
         log("Verify VDI is present.")
-        if not vdi in self.host.minimalList("vdi-list"):
+        if not vdi in self.sr.listVDIs():
             raise xenrt.XRTFailure("Reintroduced SR does not have the VDI before forget.")
 
         log("Distroying SR.")

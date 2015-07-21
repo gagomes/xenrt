@@ -3816,7 +3816,7 @@ class TCRpuPrimaryDisk(_RpuNewPartitionsSingleHost):
     def installVMs(self):
         #Create Local SR
         sr = self.createLocalSR()
-        g = self.host.createBasicGuest("generic-linux", sr=sr)
+        g = self.host.createBasicGuest("generic-linux", sr=sr.uuid)
         g.shutdown()
         self.guests.append(g)
     

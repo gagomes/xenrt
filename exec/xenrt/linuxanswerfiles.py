@@ -3823,7 +3823,7 @@ class DebianPreseedFile(object):
         elif self.distro.startswith("debian80"):
             return "jessie" 
         elif self.distro.startswith("debiantesting"):
-            return "testing" 
+            return "jessie" 
     
     def _password(self):
         if not self.password:

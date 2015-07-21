@@ -4388,6 +4388,36 @@ Loop While not oex3.Stdout.atEndOfStream"""%(applicationEventLogger,systemEventL
 
         self.xmlrpcExec("c:\\windows\\system32\\sysprep\\sysprep.exe /unattend:c:\\unattend.xml /oobe /generalize /quiet /quit", returnerror=False)
 
+    def _softReboot(self, timeout=300):
+        try:
+            self.execcmd("/sbin/reboot", timeout=timeout)
+        except xenrt.XRTFailure, e:
+            if e.reason != "SSH channel closed unexpectedly" and e.reason != "SSH timed out":
+                raise
+    
+    def upgradeDebian(self, newVersion="testing"):
+        codename = self.execguest("cat /etc/apt/sources.list | grep '^deb' | awk '{print $3}' | head -1").strip()
+        self.execcmd("sed -i s/%s/%s/g /etc/apt/sources.list" % (codename, newVersion))
+        if self.execcmd('test -e /etc/apt/sources.list.d/*', retval="code") == 0:
+            self.execcmd("sed -i s/%s/%s/g /etc/apt/sources.list.d/*" % (codename, newVersion))
+        try:
+            self.execcmd("apt-get update")
+        except:
+            # We might be upgrading to a version that doesn't have update repos - if that's the case then remove them and try apt-get update again
+            self.execcmd("rm -f /etc/apt/sources.list.d/updates.list")
+            self.execcmd("apt-get update")
+        self.execcmd('DEBIAN_FRONTEND=noninteractive apt-get -y --force-yes -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade')
+        self.execcmd('DEBIAN_FRONTEND=noninteractive apt-get -y --force-yes -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" dist-upgrade')
+        self.execcmd('DEBIAN_FRONTEND=noninteractive apt-get -y --force-yes autoremove')
+        self._softReboot(timeout=60)
+        xenrt.sleep(60)
+        if isinstance(self, GenericHost):
+            timeout = 600 + int(self.lookup("ALLOW_EXTRA_HOST_BOOT_SECONDS", "0"))
+        else:
+            timeout = 600
+        self.waitForSSH(timeout)
+        self.tailor()
+
 class RunOnLocation(GenericPlace):
     def __init__(self, address):
         GenericPlace.__init__(self)
@@ -5006,6 +5036,10 @@ class GenericHost(GenericPlace):
         if not self.windows:
             self.findPassword()
 
+            if self.special.get("debiantesting_upgrade"):
+                self.special['debiantesting_upgrade'] = False
+                self.upgradeDebian(newVersion="testing")
+            
             if xenrt.TEC().lookup("TAILOR_CLEAR_IPTABLES", False, boolean=True):
                 self.execdom0("iptables -P INPUT ACCEPT && iptables -P OUTPUT ACCEPT && iptables -P FORWARD ACCEPT && iptables -F && iptables -X")
                 self.iptablesSave()
@@ -5385,13 +5419,6 @@ class GenericHost(GenericPlace):
     def getGuestUUID(self, guest):
         return None
 
-    def _softReboot(self, timeout=300):
-        try:
-            self.execdom0("/sbin/reboot", timeout=timeout)
-        except xenrt.XRTFailure, e:
-            if e.reason != "SSH channel closed unexpectedly":
-                raise
-    
     def reboot(self,forced=False,timeout=600):
         """Reboot the host and verify it boots"""
         # Some ILO controllers have broken serial on boot
@@ -5837,7 +5864,8 @@ exit 0
         elif distro == "debian80":
             release = "jessie"
         elif distro == "debiantesting":
-            release = "testing"
+            release = "jessie"
+            self.special['debiantesting_upgrade'] = True
         _url = repository + "/dists/%s/" % (release.lower(), )
         boot_dir = "main/installer-%s/current/images/netboot/debian-installer/%s/" % (arch, arch)
 
@@ -7595,6 +7623,12 @@ class GenericGuest(GenericPlace):
 
             # If Debian then apt-get some stuff
             if isDebian:
+
+                if self.special.get("debiantesting_upgrade"):
+                    self.special['debiantesting_upgrade'] = False
+                    self.upgradeDebian(newVersion="testing")
+
+
                 apt_cacher = None
                 debVer = self.execguest("cat /etc/debian_version")
                 if "stretch" in debVer or "sid" in debVer:
@@ -8737,20 +8771,16 @@ class GenericGuest(GenericPlace):
                 elif distro == "debian80":
                     release = "jessie"
                 elif distro == "debiantesting":
-                    release = "testing"
+                    release = "jessie"
+                    self.special['debiantesting_upgrade'] = True
                 _url = repository + "/dists/%s/" % (release)
                 boot_dir = "main/installer-%s/current/images/netboot/debian-installer/%s/" % (arch, arch)
             
             # Pull boot files from HTTP repository
-            if release == "testing":
-                # Testing presently doesn't have an installer, the caller needs to set up an SR.
-                fk = options['installer_kernel']
-                fr = options['installer_initrd']
-            else:
-                fk = xenrt.TEC().tempFile()
-                fr = xenrt.TEC().tempFile()
-                xenrt.getHTTP(_url + boot_dir + "linux", fk)
-                xenrt.getHTTP(_url + boot_dir + "initrd.gz", fr)
+            fk = xenrt.TEC().tempFile()
+            fr = xenrt.TEC().tempFile()
+            xenrt.getHTTP(_url + boot_dir + "linux", fk)
+            xenrt.getHTTP(_url + boot_dir + "initrd.gz", fr)
 
             # Construct a PXE target
             pxe = xenrt.PXEBoot(remoteNfs=self.getHost().lookup("REMOTE_PXE", None))

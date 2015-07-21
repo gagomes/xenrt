@@ -155,6 +155,11 @@ class ESXHost(xenrt.lib.libvirt.Host):
     def getSRPathFromName(self, srname):
         return "[%s]" % (srname)
 
+    def parseListForUUID(self, command, param, value, args=""):
+        """Parse the output of a vm-list etc, to get the UUID where the
+        specified parameter is the specified value"""
+        return self.parseListForOtherParam(command, param, value, "uuid", args)
+
     def parseListForOtherParam(self,
                                command,
                                param,

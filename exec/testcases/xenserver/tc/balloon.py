@@ -150,6 +150,7 @@ class _BalloonPerfBase(xenrt.TestCase):
     def installGuest(self):
         # Set up the VM
         guest = self.getGuest(self.DISTRO+self.ARCH)
+        log(guest)
         if guest:
             return guest
         if self.WINDOWS:
@@ -543,6 +544,7 @@ class TCVmInstallation(xenrt.TestCase):
         pTasks = [xenrt.PTask(self.installGuest,distroName=d) for d in distros]
         xenrt.TEC().logverbose("Guest installation pTasks are %s" % pTasks)
         xenrt.pfarm(pTasks)
+        
 
     def installGuest(self, distroName):
         # Set up the VM

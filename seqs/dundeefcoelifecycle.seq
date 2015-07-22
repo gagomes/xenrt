@@ -8,6 +8,36 @@
     
     <host id="0">
       <storage type="fcoe" name="FCOESR"/>
+      
+      <vm name="Windows 8.1">
+        <distro>win81-x86</distro>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <network device="0" />
+        <disk device="0" size="24" />
+        <storage>FCOESR</storage>
+      </vm>
+
+      <vm name="Red Hat Enterprise Linux 7.0">
+        <distro>rhel7</distro>
+        <arch>x86-64</arch>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="10" />
+        <storage>FCOESR</storage>
+      </vm>
+
+      <vm name="Ubuntu Trusty Tahr 14.04">
+        <distro>ubuntu1404</distro>
+        <arch>x86-64</arch>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="8" />
+        <storage>FCOESR</storage>
+      </vm>
     </host>
   </prepare>
 

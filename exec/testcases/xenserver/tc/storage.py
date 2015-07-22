@@ -5066,6 +5066,10 @@ class TCFCOEGuestLifeCycle(xenrt.TestCase):
     """Guest Lifecycle operations on FCoE SR."""
 
     def prepare(self, arglist):
+        
+        srs = host.minimalList("sr-list", args="type=lvmofcoe")
+        if not srs:
+            raise xenrt.XRTFailure("Unable to find a LVMoFCoE SR configured on host %s" % host)
 
         self.host = self.getDefaultHost() 
         self.guests = [self.host.getGuest(g) for g in self.host.listGuests()]

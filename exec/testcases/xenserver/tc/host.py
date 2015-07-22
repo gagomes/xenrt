@@ -24,7 +24,7 @@ class VersionChecks(xenrt.TestCase):
         if conRet == compareTo:
             log(file + " version: " + conRet)
         else:
-            log("version details wrong in %s" % file)
+            log("version details wrong(%s) in %s" % (conRet, file))
             self.__pass = False
             self.__count += 1
 

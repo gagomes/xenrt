@@ -18,13 +18,13 @@
 
   <testsequence group="iSCSI">
     <serial group="VDIResize">
-      <testcase id="xenserver.tc.storage.TC8509" prio="3"/>
+      <testcase id="xenserver.tc.storage.TC8509" prio="3" sku="thin"/>
     </serial>
     <serial group="VMSnap">
-      <testcase id="xenserver.tc.snapshot.TC7861" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC7861" prio="3" sku="thin"/>
       <!-- Remove VSS snapshots on Tampa for now -->
-      <!--<testcase id="xenserver.tc.snapshot.TC8616" prio="3"/>
-      <testcase id="xenserver.tc.snapshot.TC8619" prio="3"/>-->
+      <!--<testcase id="xenserver.tc.snapshot.TC8616" prio="3" sku="thin"/>
+      <testcase id="xenserver.tc.snapshot.TC8619" prio="3" sku="thin"/>-->
     </serial>
   </testsequence>
 

@@ -45,8 +45,8 @@
 
   <testsequence>
     <serial group="TransferVM">
-      <testcase id="testcases.xenserver.tc.appliance.TC11456"/>
-      <testcase id="testcases.xenserver.tc.appliance.TC11457"/>
+      <testcase id="testcases.xenserver.tc.appliance.TC11456" sku="thin"/>
+      <testcase id="testcases.xenserver.tc.appliance.TC11457" sku="thin"/>
     </serial>
   </testsequence>
 

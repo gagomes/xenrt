@@ -22,14 +22,14 @@
   <testsequence>
 
     <serial group="LiveVDISXM">
-      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16913" tc="TC-16913">
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16913" tc="TC-16913" sku="thin">
         <arg>test=LiveVDI</arg>
         <arg>src_SR=ext</arg>
         <arg>dest_SR=lvmoiscsi</arg>
       </testcase>
 
       <!-- live vdi migration from sr-type lvm to nfs, lvmoiscsi respectively. -->
-      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16917" tc="TC-16917">
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16917" tc="TC-16917" sku="thin">
         <arg>test=LiveVDI</arg>
         <arg>src_SR=lvm</arg>
         <arg>dest_SR=nfs</arg>

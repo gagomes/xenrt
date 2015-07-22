@@ -17,21 +17,21 @@
 
   <testsequence>
     <serial group="TC-8012">
-      <testcase id="xenserver.tc.multipath.TC8017">
+      <testcase id="xenserver.tc.multipath.TC8017" sku="thin">
         <arg>thin=yes</arg>
       </testcase>
-      <testcase id="xenserver.tc.multipath.TC8020">
+      <testcase id="xenserver.tc.multipath.TC8020" sku="thin">
         <arg>thin=yes</arg>
       </testcase>
     </serial>
     <serial group="TC-8013">
-      <testcase id="xenserver.tc.multipath.TC8025">
+      <testcase id="xenserver.tc.multipath.TC8025" sku="thin">
         <arg>thin=yes</arg>
       </testcase>
-      <testcase id="xenserver.tc.multipath.TC8026">
+      <testcase id="xenserver.tc.multipath.TC8026" sku="thin">
         <arg>thin=yes</arg>
       </testcase>
-      <testcase id="xenserver.tc.multipath.TC10614">
+      <testcase id="xenserver.tc.multipath.TC10614" sku="thin">
         <arg>thin=yes</arg>
       </testcase>
     </serial>

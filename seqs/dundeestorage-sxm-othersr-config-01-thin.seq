@@ -28,41 +28,41 @@
 
     <serial group="CrossPoolSXM">
       <!-- cross-pool sxm migration from sr-type ext to ext, lvm, nfs, lvmoiscsi respectively. -->
-      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16886" tc="TC-16886">
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16886" tc="TC-16886" sku="thin">
         <arg>src_SR=ext</arg>
         <arg>dest_SR=lvm</arg>
       </testcase>
-      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16887" tc="TC-16887">
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16887" tc="TC-16887" sku="thin">
         <arg>src_SR=ext</arg>
         <arg>dest_SR=nfs</arg>
       </testcase>
 
       <!-- cross-pool sxm migration from sr-type lvm to ext, lvm, nfs, lvmoiscsi respectively. -->
-      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16890" tc="TC-16890">
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16890" tc="TC-16890" sku="thin">
         <arg>src_SR=lvm</arg>
         <arg>dest_SR=ext</arg>
       </testcase>
-      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16893" tc="TC-16893">
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16893" tc="TC-16893" sku="thin">
         <arg>src_SR=lvm</arg>
         <arg>dest_SR=lvmoiscsi</arg>
       </testcase>
 
       <!-- cross-pool sxm migration from sr-type nfs to ext, lvm, nfs, lvmoiscsi respectively. -->
-      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16895" tc="TC-16895">
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16895" tc="TC-16895" sku="thin">
         <arg>src_SR=nfs</arg>
         <arg>dest_SR=ext</arg>
       </testcase>
-      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16897" tc="TC-16897">
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16897" tc="TC-16897" sku="thin">
         <arg>src_SR=nfs</arg>
         <arg>dest_SR=nfs</arg>
       </testcase>
 
       <!-- cross-pool sxm migration from sr-type lvmoiscsi to ext, lvm, nfs, lvmoiscsi respectively. -->
-      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16901" tc="TC-16901">
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16901" tc="TC-16901" sku="thin">
         <arg>src_SR=lvmoiscsi</arg>
         <arg>dest_SR=lvm</arg>
       </testcase>
-      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16902" tc="TC-16902">
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16902" tc="TC-16902" sku="thin">
         <arg>src_SR=lvmoiscsi</arg>
         <arg>dest_SR=nfs</arg>
       </testcase>

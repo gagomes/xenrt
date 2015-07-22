@@ -17,9 +17,9 @@
 
   <testsequence>
     <serial group="TC-8457">
-      <testcase id="xenserver.tc.storage.TC8458"/>
-      <testcase id="xenserver.tc.storage.TC8459"/>
-      <testcase id="xenserver.tc.storage.TC8461"/>
+      <testcase id="xenserver.tc.storage.TC8458" sku="thin"/>
+      <testcase id="xenserver.tc.storage.TC8459" sku="thin"/>
+      <testcase id="xenserver.tc.storage.TC8461" sku="thin"/>
     </serial>
   </testsequence>
 

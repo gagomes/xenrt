@@ -20,17 +20,17 @@
   </prepare>
 
   <testsequence group="LVM">
-    <testcase id="xenserver.tc.vhd.TC10589"/>
-    <testcase id="xenserver.tc.vhd.TC10590"/>
-    <testcase id="xenserver.tc.vhd.TC10591"/>
-    <testcase id="xenserver.tc.vhd.TC10592"/>
-    <testcase id="xenserver.tc.vhd.TC10593"/>
-    <testcase id="xenserver.tc.vhd.TC10594"/>
-    <testcase id="xenserver.tc.vhd.TC10595"/>
-    <testcase id="xenserver.tc.vhd.TC10596"/>
-    <testcase id="xenserver.tc.vhd.TC10597"/>
-    <testcase id="xenserver.tc.vhd.TC10598"/>
-    <testcase id="xenserver.tc.vhd.TC10599"/>
+    <testcase id="xenserver.tc.vhd.TC10589" sku="thin"/>
+    <testcase id="xenserver.tc.vhd.TC10590" sku="thin"/>
+    <testcase id="xenserver.tc.vhd.TC10591" sku="thin"/>
+    <testcase id="xenserver.tc.vhd.TC10592" sku="thin"/>
+    <testcase id="xenserver.tc.vhd.TC10593" sku="thin"/>
+    <testcase id="xenserver.tc.vhd.TC10594" sku="thin"/>
+    <testcase id="xenserver.tc.vhd.TC10595" sku="thin"/>
+    <testcase id="xenserver.tc.vhd.TC10596" sku="thin"/>
+    <testcase id="xenserver.tc.vhd.TC10597" sku="thin"/>
+    <testcase id="xenserver.tc.vhd.TC10598" sku="thin"/>
+    <testcase id="xenserver.tc.vhd.TC10599" sku="thin"/>
   </testsequence>
 
 </xenrt>

@@ -50,16 +50,16 @@
 
   <testsequence>
     <serial group="TC-7803">
-      <testcase id="xenserver.tc.multipath.TC9088">
+      <testcase id="xenserver.tc.multipath.TC9088" sku="thin">
         <arg>thin=yes</arg>
       </testcase>
-      <testcase id="xenserver.tc.multipath.TC9084">
+      <testcase id="xenserver.tc.multipath.TC9084" sku="thin">
         <arg>thin=yes</arg>
       </testcase>
     </serial>
     <serial>
       <finally>
-        <testcase id="guestops.basic.TCShutdown">
+        <testcase id="guestops.basic.TCShutdown" sku="thin">
           <arg>guest=controller</arg>
           <arg>again</arg>
         </testcase>

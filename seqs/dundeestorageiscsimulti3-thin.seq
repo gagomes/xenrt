@@ -20,7 +20,7 @@
 
   <testsequence>
     <serial group="TC-8030">
-      <testcase id="xenserver.tc.multipath.TC8113">
+      <testcase id="xenserver.tc.multipath.TC8113" sku="thin">
         <arg>thin=yes</arg>
       </testcase>
     </serial>

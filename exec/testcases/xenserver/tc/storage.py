@@ -5163,3 +5163,31 @@ class TCFCOEVerifySRProbe(xenrt.TestCase):
             raise xenrt.XRTFailure("sr-probe unexpectedly returned "
                                    "successfully when attempting to "
                                    "find Ethernet information for the luns")
+
+class TCFCOEAfterUpgrade(xenrt.TestCase):
+    """Verify FCOE SR after upgrade to Dundee"""
+    
+    SRTYPE = "lvmofcoe"
+    
+    def prepare(self, arglist=None):
+        old = xenrt.TEC().lookup("OLD_PRODUCT_VERSION")
+        oldversion = xenrt.TEC().lookup("OLD_PRODUCT_INPUTDIR")
+        
+        self.host = xenrt.lib.xenserver.createHost(id=0,
+                                                   version=oldversion,
+                                                   productVersion=old,
+                                                   withisos=True)
+        # Upgrade the host
+        self.host.upgrade()
+    
+    def run(self,arglist):
+        
+        self.fcLun = self.host.lookup("SR_FCHBA", "LUN0")
+        self.fcSRScsiid = self.host.lookup(["FC", self.fcLun, "SCSIID"], None)
+        self.fcSR = xenrt.lib.xenserver.FCOEStorageRepository(self.host, "FCOESR")
+        self.fcSR.create(self.fcSRScsiid)
+        self.host.addSR(self.fcSR, default=True)
+        
+        srs = self.host.minimalList("sr-list", args="type=%s" %(self.SRTYPE))
+        if not srs:
+            raise xenrt.XRTFailure("FCOE SR Creation failed after host upgrade on %s" % self.host)

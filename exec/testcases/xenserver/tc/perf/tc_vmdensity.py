@@ -32,6 +32,7 @@ class Util(object):
             except Exception, e:
                 if i<times-1:
                     xenrt.TEC().logverbose("tryupto: exception %s" % e)
+                    xenrt.TEC().logverbose(traceback.format_exc())
                     pass
                 else: # re-raise the exception if the last attempt doesn't succeed
                     raise

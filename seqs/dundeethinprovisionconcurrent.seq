@@ -1,0 +1,38 @@
+<xenrt>
+
+  <!-- Concurrent access to the shared thin hba sr from multiple hosts in a pool -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="fc" name="fcsr" default="true" options="thin" />
+      <host id="0">
+        <vm name="lingold">
+          <distro>rhel65</distro>
+          <arch>x86-64</arch>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+          <postinstall action="preCloneTailor" />
+        </vm>
+      </host>
+      <host id="1" />
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="ConcurPool">
+      <testcase id="xenserver.tc.thinlvhd.TCConcurrentAccess" name="ConcurAccess" tc="TC-27125">
+        <arg>numberofclones=8</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+
+</xenrt>

@@ -31,9 +31,12 @@ class TCWindowsMelioSetup(xenrt.TestCase):
         win.xmlrpcExec("$ErrorActionPreference = \"Stop\"\nNew-IscsiTargetPortal -TargetPortalAddress %s" % iscsitarget.mainip, powershell=True)
         xenrt.sleep(30)
         win.xmlrpcExec("$ErrorActionPreference = \"Stop\"\nGet-IscsiTarget | Connect-IscsiTarget", powershell=True)
+        xenrt.sleep(30)
+        disk = win.xmlrpcListDisks()[-1]
+
+        if int(disk) == 0:
+            raise xenrt.XRTFailure("iSCSI disk has not been connected")
 
         if not self.shared or not self.initialised:
-            xenrt.sleep(30)
-            disk = win.xmlrpcListDisks()[-1]
             win.xmlrpcDiskpartCommand("select disk %s\nattributes disk clear readonly\nconvert gpt" % disk)
             self.initialised = True

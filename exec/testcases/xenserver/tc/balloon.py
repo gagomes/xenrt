@@ -542,12 +542,12 @@ class TCVmInstallation(xenrt.TestCase):
         self.host = self.getDefaultHost()
         pTasks = [xenrt.PTask(self.installGuest,distroName=d) for d in distros]
         xenrt.TEC().logverbose("Guest installation pTasks are %s" % pTasks)
-        self.guests = xenrt.pfarm(pTasks)
+        xenrt.pfarm(pTasks)
 
     def installGuest(self, distroName):
         # Set up the VM
         (distro, arch) = xenrt.getDistroAndArch(distroName)
-        if distro.startswith("w") or self.DISTRO.startswith("v"):
+        if distro.startswith("w") or distro.startswith("v"):
             guest = self.host.createGenericWindowsGuest(distro=distro, 
                                                         arch=arch, vcpus=2, name=distro+arch)
         else:

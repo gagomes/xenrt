@@ -1615,6 +1615,27 @@ class PrepareNode(object):
                         sr = xenrt.productLib(host=host).SMAPIv3LocalStorageRepository(host, s['name'])
                         device = s['options'] or None
                         sr.create(device, content_type="user")
+                    elif s["type"] == "fcoe":
+                        thinProv = False
+                        if s.has_key("options") and s["options"] and "thin" in s["options"].split(","):
+                            thinProv = True
+                        sr = xenrt.productLib(host=host).FCOEStorageRepository(host, s["name"], thinProv)
+                        if host.lookup("USE_MULTIPATH", False, boolean=True):
+                            mp = True
+                        else:
+                            mp = None
+                        fcoesr = None
+                        if s.has_key("options") and s["options"]:
+                            for opt in s["options"].split(","):
+                                if opt != "thin":
+                                    fcoesr = opt
+                        if not fcoesr:
+                            fcoesr = host.lookup("SR_FC", "yes")
+                            if fcoesr == "yes":
+                                fcoesr = "LUN0"
+
+                        scsiid = host.lookup(["FC", fcoesr, "SCSIID"], None)
+                        sr.create(scsiid, multipathing=mp)
                     else:
                         raise xenrt.XRTError("Unknown storage type %s" % (s["type"]))
                     #change blkback pool size

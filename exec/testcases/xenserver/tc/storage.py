@@ -2649,6 +2649,27 @@ class TCCIFSVDIResizeDataCheck(_TCResizeDataCheck):
 
     SRTYPE = "cifs"
     FORCEOFFLINE = True
+
+class TCFCOEVDIResizeShrink(_TCResizeShrink):
+    """Attempting to shrink a FCoE VDI should fail with a suitable error."""
+
+    SRTYPE = "lvmofcoe"
+
+class TCFCOEVDIResizeGrowSmall(_TCResizeGrow):
+    """Grow a FCoE VDI of a round size by 1 byte."""
+
+    SRTYPE = "lvmofcoe"
+
+class TCFCOEVDIResizeGrowLarge(_TCResizeGrow2):
+    """Grow a FCoE VDI twice in large chunks."""
+
+    SRTYPE = "lvmofcoe"
+
+class TCFCOEVDIResizeDataCheck(_TCResizeDataCheck):
+    """Data integrity of resized FCoE VDI."""
+
+    SRTYPE = "lvmofcoe"
+    FORCEOFFLINE = True
     
 #############################################################################
 # VDI create testcases
@@ -2792,8 +2813,11 @@ class TCCIFSOddSize(_TCVDICreateRoundup):
     """CIFS Odd size"""
 
     SRTYPE = "cifs"
+    
+class TCFCOEOddSize(_TCVDICreateRoundup):
+    """FCoE SR Odd size"""
 
-
+    SRTYPE = "lvmofcoe"
 #############################################################################
 # SR introduce testcases
 
@@ -3567,6 +3591,11 @@ class TCCIFSZeroedContents(TC10671):
 
     SRTYPE = "cifs"
 
+class TCFCOEZeroedContents(TC10671):
+    """FCoE SR Zeroed contents"""
+
+    SRTYPE = "lvmofcoe"
+    
 # New Test cases added for copying from one host to another 
 
 class TC12158(_VDICopy):
@@ -4994,3 +5023,132 @@ class TCAllPBDsPlugged(xenrt.TestCase):
             for pbd in host.minimalList("pbd-list"):
                 if host.genParamGet("pbd", pbd, "currently-attached") != "true":
                     raise xenrt.XRTFailure("Not all PBDs were attached after pool join")
+
+class TCFCOESRLifecycle(xenrt.TestCase):
+    """FCOE SR Lifecycle operations"""
+
+    SRTYPE = "lvmofcoe"
+        
+    def prepare(self, arglist):
+        """ """
+        self.args = self.parseArgsKeyValue(arglist)
+        self.host = self.getDefaultHost()
+
+        xsr = next((s for s in self.host.asXapiObject().SR() if s.srType() == self.SRTYPE), None)
+        self.sr = xenrt.lib.xenserver.FCOEStorageRepository.fromExistingSR(self.host, xsr.uuid)
+        
+    def run(self, arglist):
+ 
+        self.vdiuuid = self.host.getCLIInstance().execute("vdi-create", \
+                    "sr-uuid=%s virtual-size=1024 name-label=XenRTTest type=user" % self.sr.uuid, strip=True)
+        originalVdiSize = self.host.genParamGet("vdi", self.vdiuuid, "virtual-size")
+        self.sr.forget()
+        
+        self.sr.introduce()
+        self.sr.scan()
+       
+        vdiList = self.host.minimalList("vdi-list", args="sr-uuid=%s" % self.sr.uuid)
+        if len(vdiList) != 1:
+            raise xenrt.XRTFailure("Number of VDIs not as expected after re-introduce. Expected 1, got %d" % len(vdiList))
+            
+        if vdiList[0] != self.vdiuuid:
+            raise xenrt.XRTFailure("VDI UUID was not as expected after re-introducing SR")
+            
+        newVdiSize = self.host.genParamGet("vdi", self.vdiuuid, "virtual-size")
+        if newVdiSize != originalVdiSize:
+            raise xenrt.XRTFailure("VDI virtual-size was not as expected - expected %d, got %d" % \
+                                (originalVdiSize, newVdiSize))
+
+        self.sr.check()
+        self.host.getCLIInstance().execute("vdi-destroy", "uuid=%s" % (self.vdiuuid))
+        
+class TCFCOEGuestLifeCycle(xenrt.TestCase):
+    """Guest Lifecycle operations on FCoE SR."""
+
+    def prepare(self, arglist):
+
+        self.host = self.getDefaultHost() 
+        self.guests = [self.host.getGuest(g) for g in self.host.listGuests()]
+        
+    def run(self, arglist):
+
+        for guest in self.guests:
+
+            if guest.getState() == "DOWN":
+                log("Starting guest before commencing lifecycle ops.")
+                guest.start()
+
+            guest.shutdown()
+            guest.start()
+            guest.reboot()
+            guest.suspend()
+            guest.resume()
+
+            snapuuid = guest.snapshot()
+            self.removeTemplate(self.host, snapuuid)
+            
+            checkpointuuid = guest.checkpoint()
+            self.removeTemplate(self.host, checkpointuuid)
+            
+            if guest.getState() == "UP":
+                guest.shutdown()
+                
+            clone = guest.cloneVM()
+            
+            clone.uninstall()
+            guest.uninstall()
+
+class TCFCOEVerifySRProbe(xenrt.TestCase):
+    """Verify FCoE SR Probe operation output has Ethernet information."""
+
+    def prepare(self, arglist):
+
+        self.host = self.getDefaultHost() 
+        
+    def run(self, arglist):
+
+        cli = self.host.getCLIInstance()
+        failProbe = False
+        
+        args = []
+        args.append("type=lvmofcoe")
+        
+        try:
+            cli.execute("sr-probe", string.join(args))
+            failProbe = True
+
+        except xenrt.XRTFailure, e:
+
+            split = e.data.split("<?",1)
+            if len(split) != 2:
+                raise xenrt.XRTFailure("Couldn't find XML output from "
+                                       "sr-probe command")
+
+            dom = xml.dom.minidom.parseString("<?" + split[1])
+            blockDevices = dom.getElementsByTagName("BlockDevice")
+            found = False
+
+            for b in blockDevices:
+                luns = b.getElementsByTagName("lun")
+                if len(luns) == 0:
+                    continue
+                
+                lun = luns[0].childNodes[0].data.strip()
+                eths = b.getElementsByTagName("eth")
+                
+                if len(eths) == 0:
+                    raise xenrt.XRTFailure("Couldn't find ethernet for "
+                                           "lun %u in XML output" %
+                                           (lun))
+                eth = eths[0].childNodes[0].data.strip()
+                log("Found ethernet information %s for lun %s " %(eth , lun))
+                found = True
+                break
+
+        if not found:
+            raise xenrt.XRTFailure("Couldn't find lun in XML output")
+
+        if failProbe:
+            raise xenrt.XRTFailure("sr-probe unexpectedly returned "
+                                   "successfully when attempting to "
+                                   "find Ethernet information for the luns")

@@ -4418,6 +4418,14 @@ Loop While not oex3.Stdout.atEndOfStream"""%(applicationEventLogger,systemEventL
         self.waitForSSH(timeout)
         self.tailor()
 
+    def installWindowsMelio(self):
+        self.xmlrpcFetchFile("%s/melio/sanbolic.cer" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"), "c:\\sanbolic.cer")
+        self.xmlrpcSendFile("%s/distutils/certmgr.exe" % xenrt.TEC().lookup("LOCAL_SCRIPTDIR"), "c:\\certmgr.exe")
+        self.xmlrpcExec("c:\\certmgr.exe /add c:\\sanbolic.cer /c /s /r localmachine trustedpublisher")
+        self.xmlrpcFetchFile("%s/melio/%s" % (xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"), xenrt.TEC().lookup("MELIO_PATH")), "c:\\warm-drive.exe")
+        self.xmlrpcExec("c:\\warm-drive.exe /SILENT")
+        self.disableFirewall()
+
 class RunOnLocation(GenericPlace):
     def __init__(self, address):
         GenericPlace.__init__(self)

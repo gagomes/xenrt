@@ -20,6 +20,7 @@
         <vcpus>4</vcpus>
         <network device="0" />
         <disk device="0" size="32" />
+        <postinstall action="installDrivers" />
       </vm>
       <vm name="win2">
         <distro>ws12r2-x86</distro>
@@ -27,6 +28,7 @@
         <vcpus>4</vcpus>
         <network device="0" />
         <disk device="0" size="32" />
+        <postinstall action="installDrivers" />
       </vm>
     </host>
   </prepare>

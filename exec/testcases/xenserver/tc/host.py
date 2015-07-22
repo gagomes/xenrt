@@ -14,6 +14,51 @@ import datetime
 import itertools, functools
 from xenrt.lazylog import step, comment, log
 
+class VersionDetails(xenrt.TestCase):
+    # TC-27139
+
+    __pass = False
+    __count = 0
+
+    def compare(self, conRet, compareTo, file):
+        if conRet == compareTo:
+            log(file + " version: " + conRet)
+        else:
+            log("version details wrong in %s" % file)
+            self.__pass = False
+            self.__count += 1
+
+    def run(self, arglist):
+        host = self.getDefaultHost()
+
+        revision = host.productRevision.split("-")
+        version = revision[0]
+        build = revision[1]
+
+        redHatVer = host.execdom0("cat /etc/redhat-release").rstrip('\n')
+        redHatVer = redHatVer[18:18+len(build)]
+        self.compare(redHatVer, version + "-" + build,"/etc/redhat-release")
+
+        consoleVer = host.execdom0("grep \"Citrix XenServer Host\" /etc/issue").rstrip('\n')
+        consoleVer = consoleVer[22:]
+        self.compare(consoleVer,str(version + "-" + build), "/etc/issue and on console")
+
+        readMeVer = host.execdom0("grep -o -P \"\d\.\d+\.\d+\" /Read_Me_First.html").rstrip('\n').split()
+        for r in readMeVer:
+            self.compare(r,version, "/ReadMeFirst.html")
+
+        citrixIndexVer = host.execdom0("grep -o -P \"\d\.\d+\.\d+\" /opt/xensource/www/Citrix-index.html").rstrip('\n').split()
+        for c in citrixIndexVer:
+            self.compare(c,version, "/opt/xensource/www/Citrix-index.html")
+
+        indexVer = host.execdom0("grep -o -P \"\d\.\d+\.\d+\" /opt/xensource/www/index.html").rstrip('\n').split()
+        for i in indexVer:
+            self.compare(i,version, "/opt/xensource/www/index.html")
+
+        if not self.__pass:
+            raise xenrt.XRTFailure("%i incorrect entries logged above" % self.__count)
+
+
 class TC6858(xenrt.TestCase):
     """Veryify KERNEL_VERSION in /etc/xensource-inventory matches the
     running dom0 kernel"""

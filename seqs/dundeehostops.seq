@@ -57,6 +57,7 @@
     <testcase id="xenserver.install.TCVerifyDom0DriverVersions" tc="TC-15392"/>
     <testcase id="testcases.xenserver.tc.guest.TC20910" name="TC20910" tc="TC-20910"/>
     <testcase id="testcases.xenserver.cli.TCDom0FullPatchApply" name="TC-21005" tc="TC-21005"/>
+    <testcase id="testcases.xenserver.tc.host.VersionDetails" tc="TC-27139"/>
     <serial>
       <finally>
         <testcase id="guestops.basic.TCShutdown">

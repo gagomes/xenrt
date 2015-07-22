@@ -32,10 +32,10 @@
       </vm>
     </host>
   </prepare>
-  <!--<testsequence>
+  <testsequence>
     <serial group="Setup" blocker="yes">
       <testcase id="xenserver.melio.TCWindowsMelioSetup" name="MelioSetup" blocker="yes" />
     </serial>
-  </testsequence>-->
+  </testsequence>
 </xenrt>
 

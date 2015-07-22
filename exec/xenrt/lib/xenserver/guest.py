@@ -3475,7 +3475,7 @@ exit /B 1
                         reason = "Windows STOP error [%s] in [%s]" % (code, driver)
                 elif xenrt.TEC().lookup("PAUSE_ON_BSOD", False, boolean=True):
                         xenrt.TEC().tc.pause("BSOD Detected - pausing")
-                xenrt.TEC().comment(reason)
+                xenrt.TEC().comment(reason + " on domid " + str(domid) + " on host " + self.getHost().getName())
                 raise xenrt.XRTFailure(reason)
 
     def checkHealth(self, unreachable=False, noreachcheck=False, desc=""):

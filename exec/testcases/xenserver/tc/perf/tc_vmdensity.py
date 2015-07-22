@@ -891,19 +891,19 @@ class Experiment(TestSpace):
                     #this coord failed.
                     #log this but continue
                     #print traceback.print_exc()
-                    traceback.print_exc(file=sys.stdout)
+                    xenrt.TEC().logverbose(traceback.format_exc())
                     raise e
                 except xenrt.XRTError, e:
                     xenrt.TEC().logverbose("Experiment.do_%s(%s):%s" % (d,p2,e))
                     #xenrt raised an error
                     #continue???
                     #print traceback.print_exc()
-                    traceback.print_exc(file=sys.stdout)
+                    xenrt.TEC().logverbose(traceback.format_exc())
                     raise e
                 except Exception, e: #ignore everything else
                     xenrt.TEC().logverbose("EXC: Experiment.do_%s(%s):%s" % (d,p2,e))
                     #print traceback.print_exc()
-                    traceback.print_exc(file=sys.stdout)
+                    xenrt.TEC().logverbose(traceback.format_exc())
                     raise e
 
         for i in range(len(points)):

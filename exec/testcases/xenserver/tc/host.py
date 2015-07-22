@@ -22,7 +22,7 @@ class VersionChecks(xenrt.TestCase):
 
     def compare(self, conRet, compareTo, file):
         if conRet == compareTo:
-            log(file + " version: " + conRet)
+            log(file + " version: " + conRet + " is correct")
         else:
             log("version details wrong(%s) in %s" % (conRet, file))
             self.__pass = False

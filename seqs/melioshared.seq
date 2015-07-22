@@ -15,7 +15,7 @@
         <disk device="0" size="30" />
       </vm>
       <vm name="win1">
-        <distro>ws12r2-x86</distro>
+        <distro>ws12r2-x64</distro>
         <memory>4096</memory>
         <vcpus>4</vcpus>
         <network device="0" />
@@ -23,7 +23,7 @@
         <postinstall action="installDrivers" />
       </vm>
       <vm name="win2">
-        <distro>ws12r2-x86</distro>
+        <distro>ws12r2-x64</distro>
         <memory>4096</memory>
         <vcpus>4</vcpus>
         <network device="0" />

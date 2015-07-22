@@ -5064,10 +5064,12 @@ class TCFCOESRLifecycle(xenrt.TestCase):
         
 class TCFCOEGuestLifeCycle(xenrt.TestCase):
     """Guest Lifecycle operations on FCoE SR."""
-
+    
+    SRTYPE = "lvmofcoe"
+    
     def prepare(self, arglist):
         
-        srs = host.minimalList("sr-list", args="type=lvmofcoe")
+        srs = host.minimalList("sr-list", args="type=%s" %(self.SRTYPE))
         if not srs:
             raise xenrt.XRTFailure("Unable to find a LVMoFCoE SR configured on host %s" % host)
 
@@ -5105,9 +5107,14 @@ class TCFCOEGuestLifeCycle(xenrt.TestCase):
 class TCFCOEVerifySRProbe(xenrt.TestCase):
     """Verify FCoE SR Probe operation output has Ethernet information."""
 
+    SRTYPE = "lvmofcoe"
+
     def prepare(self, arglist):
 
         self.host = self.getDefaultHost() 
+        xsr = next((s for s in self.host.asXapiObject().SR() if s.srType() == self.SRTYPE), None)
+        self.sr = xenrt.lib.xenserver.FCOEStorageRepository.fromExistingSR(self.host, xsr.uuid)
+        self.sr.forget()
         
     def run(self, arglist):
 
@@ -5115,7 +5122,7 @@ class TCFCOEVerifySRProbe(xenrt.TestCase):
         failProbe = False
         
         args = []
-        args.append("type=lvmofcoe")
+        args.append("type=%s" %(self.SRTYPE))
         
         try:
             cli.execute("sr-probe", string.join(args))

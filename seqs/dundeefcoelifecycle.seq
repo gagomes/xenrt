@@ -43,7 +43,6 @@
 
   <testsequence>
     <serial group="FCOELifeCycle">
-        <testcase id="xenserver.tc.storage.TCFCOEVerifySRProbe" tc="TC-27058"/>
         <testcase id="xenserver.tc.storage.TCFCOEGuestLifeCycle" tc="TC-27057"/>
         <testcase id="xenserver.tc.storage.TCFCOESRLifecycle" tc="TC-27056"/>
         <testcase id="xenserver.tc.storage.TCFCOEOddSize" tc="TC-8523" sku="WithFCOE"/>
@@ -52,6 +51,7 @@
         <testcase id="xenserver.tc.storage.TCFCOEVDIResizeGrowSmall" tc="TC-8476" sku="WithFCOE"/>
         <testcase id="xenserver.tc.storage.TCFCOEVDIResizeGrowLarge" tc="TC-8477" sku="WithFCOE"/>
         <testcase id="xenserver.tc.storage.TCFCOEVDIResizeDataCheck" tc="TC-8479" sku="WithFCOE"/>
+        <testcase id="xenserver.tc.storage.TCFCOEVerifySRProbe" tc="TC-27058"/>
     </serial>
   </testsequence>
 

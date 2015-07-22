@@ -48,6 +48,8 @@ class NetScaler(object):
             else:
                 if isinstance(vpxGuest, xenrt.lib.xenserver.Guest):
                     networks = [vpxGuest.getNetworkNameForVIF(x[0]) for x in vpxGuest.vifs]
+                elif isinstance(vpxGuest, xenrt.lib.esx.Guest):
+                    networks = [x[1] for x in vpxGuest.vifs]
                 else:
                     warning("Unimplemented Section: Unable to determine xenrt network type for guest vifs. Continuing with 'NPRI'")
 

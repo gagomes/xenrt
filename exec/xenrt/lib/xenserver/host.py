@@ -7377,6 +7377,12 @@ logger "Stopping xentrace loop, host has less than 512M disk space free"
             else:
                 xenrt.TEC().logverbose("Not enabling multiple vCPUs as there are already %u" % (pcount))
 
+        if xenrt.TEC().lookup("ENABLE_MULTICAST", False, boolean=True):
+            if isinstance(self, xenrt.lib.xenserver.DundeeHost):
+                self.execdom0("sed -i '/multicast off/d' /usr/libexec/xenopsd/vif-real")
+            else:
+                self.execdom0("sed -i '/multicast off/d' /etc/xensource/scripts/vif")
+
     def postUpgrade(self):
         """Perform any product-specific post upgrade actions."""
 

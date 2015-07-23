@@ -342,8 +342,7 @@ class Guest(xenrt.GenericGuest):
                                      "(arch %s)" % (distro, arch))
 
         self.isoname = isoname
-        if self.memory and self.isoname and ([i for i in ["win81","ws12r2"] if i in self.isoname]) and \
-                not isinstance(self, xenrt.lib.xenserver.guest.CreedenceGuest):
+        if self.memory and self.isoname and ([i for i in ["win81","ws12r2"] if i in self.isoname]):
             rootdisk = max(32768, 20480 + self.memory)
 
         if distro:

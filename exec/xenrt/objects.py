@@ -4425,6 +4425,15 @@ Loop While not oex3.Stdout.atEndOfStream"""%(applicationEventLogger,systemEventL
         self.xmlrpcFetchFile("%s/melio/%s" % (xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"), xenrt.TEC().lookup("MELIO_PATH")), "c:\\warm-drive.exe")
         self.xmlrpcExec("c:\\warm-drive.exe /SILENT")
         self.disableFirewall()
+        config = json.loads(unicode(self.xmlrpcReadFile("c:\\program files\\citrix\\warm-drive\\warm-drive.json"), "utf-16"))
+        config['network_settings']['current']['udp_portscan'] = 0
+
+        d = xenrt.TempDirectory()  
+        with open("%s/warm-drive.json" % d.path(), "w") as f:
+            f.write(json.dumps(config, indent=2).replace("\n", "\r\n").encode("utf-16"))
+        self.xmlrpcSendFile("%s/warm-drive.json" % d.path(), "c:\\program files\\citrix\\warm-drive\\warm-drive.json")
+        d.remove()
+        self.reboot()
 
 class RunOnLocation(GenericPlace):
     def __init__(self, address):

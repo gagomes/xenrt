@@ -39,6 +39,7 @@ class TCWindowsMelioSetup(xenrt.TestCase):
         if int(disk) == 0:
             raise xenrt.XRTFailure("iSCSI disk has not been connected")
 
+        win.xmlrpcExec("$ErrorActionPreference = \"Stop\"\nGet-IscsiSession | Register-IscsiSession", powershell=True)
         if not self.shared or not self.initialised:
             win.xmlrpcDiskpartCommand("select disk %s\nattributes disk clear readonly\nconvert gpt" % disk)
             self.initialised = True

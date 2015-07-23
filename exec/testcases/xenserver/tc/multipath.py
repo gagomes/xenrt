@@ -97,11 +97,13 @@ class _SoftwareMultipath(xenrt.TestCase):
                 raise xenrt.XRTError("Could not find a NSEC interface on host")
             self.host0.setIPAddressOnSecondaryInterface(h0nsecaids[0])
 
-    def run(self, arglist=None):
+    def run(self, arglist=[]):
+        # Parse argument to check this is thin provisioning test.
+        thinprov = self.checkArgsKeyValue(arglist, "thin", "yes")
 
         # Set up the SR on the host
         sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.host0,
-                                                             "TC7835")
+                                                             "TC7835", thinprov)
         self.lun = xenrt.ISCSILunSpecified("xenrt-test/%s/%s" %
                                       (self.targetiqn,
                                        self.targetguest.getIP()))
@@ -314,10 +316,13 @@ class _TC8012(_SoftwareMultipath):
     BLOCK = None # Which paths to block: None = neither, "PRI" = Primary, 
                  # "SEC" = Secondary
 
-    def run(self, arglist=None):
+    def run(self, arglist=[]):
+        # Parse argument to check this is thin provisioning test.
+        thinprov = self.checkArgsKeyValue(arglist, "thin", "yes")
+
         # Set up the SR on the host
         sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.host0,
-                                                             "TC8012")
+                                                             "TC8012", thinprov)
         self.lun = xenrt.ISCSILunSpecified("xenrt-test/%s/%s" %
                                       (self.targetiqn,
                                        self.targetguest.getIP()))
@@ -413,10 +418,13 @@ class _TC8013(_SoftwareMultipath):
     MULTITARGET = True # Always want a multihomed target
     SETUPSECNIC = True # Always set up the secondary NIC on the host
 
-    def run(self, arglist=None):
+    def run(self, arglist=[]):
+        # Parse argument to check this is thin provisioning test.
+        thinprov = self.checkArgsKeyValue(arglist, "thin", "yes")
+
         step('Set up the SR on the host')
         sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.host0,
-                                                             "TC8013")
+                                                             "TC8013", thinprov)
         self.lun = xenrt.ISCSILunSpecified("xenrt-test/%s/%s" %
                                       (self.targetiqn,
                                        self.targetguest.getIP()))
@@ -538,7 +546,10 @@ class TC8031(xenrt.TestCase):
     MULTISLAVE = False
     MPP_RDAC = False    # Do we enable MPP-RDAC
 
-    def prepare(self, arglist=None):
+    def prepare(self, arglist=[]):
+        # Parse argument to check this is thin provisioning test.
+        thinprov = self.checkArgsKeyValue(arglist, "thin", "yes")
+
         # Get host objects
         self.host0 = self.getHost("RESOURCE_HOST_0")
         self.host1 = self.getHost("RESOURCE_HOST_1")
@@ -601,7 +612,7 @@ class TC8031(xenrt.TestCase):
             
         # Setup iSCSI SR on master 
         self.sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.host0,
-                                                             "TC8031")
+                                                             "TC8031", thinprov)
         if not self.MPP_RDAC:
             self.lun = xenrt.ISCSILunSpecified("%s/%s/%s" %
                                           (self.initiator,
@@ -817,7 +828,10 @@ class TC8113(xenrt.TestCase):
         self.iterations = 10
         self.lun = None
 
-    def prepare(self, arglist=None):
+    def prepare(self, arglist=[]):
+        # Parse argument to check this is thin provisioning test.
+        thinprov = self.checkArgsKeyValue(arglist, "thin", "yes")
+
         if not self.MPP_RDAC:
             # Set up iSCSI target with enough space for a debian VM
             self.targethost = self.getHost("RESOURCE_HOST_2")
@@ -880,7 +894,7 @@ class TC8113(xenrt.TestCase):
 
         # Setup iSCSI SR on master
         self.sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.host0,
-                                                             "TC8113")
+                                                             "TC8113", thinprov)
 
         if not self.MPP_RDAC:
             self.lun = xenrt.ISCSILunSpecified("%s/%s/%s" %
@@ -976,7 +990,10 @@ class _TC8133(xenrt.TestCase):
         self.pbd = None
         self.lun = None
 
-    def prepare(self, arglist=None):
+    def prepare(self, arglist=[]):
+        # Parse argument to check this is thin provisioning test.
+        thinprov = self.checkArgsKeyValue(arglist, "thin", "yes")
+
         # Get 2 hosts
         self.host = self.getHost("RESOURCE_HOST_0")
         if not self.MPP_RDAC:
@@ -1072,7 +1089,7 @@ class _TC8133(xenrt.TestCase):
 
         # Set up the SR on the host
         sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.host,
-                                                             "_TC8133")
+                                                             "_TC8133", thinprov)
         
         if not self.MPP_RDAC:
             self.lun = xenrt.ISCSILunSpecified("%s/%s/%s" %
@@ -2102,7 +2119,10 @@ class _TC8233(xenrt.TestCase):
         self.lun = None
         self.subnets = []
 
-    def prepare(self, arglist=None):
+    def prepare(self, arglist=[]):
+        # Parse argument to check this is thin provisioning test.
+        thinprov = self.checkArgsKeyValue(arglist, "thin", "yes")
+
         if self.USE_MANAGEMENT:
             netConfig = """<NETWORK>
 <PHYSICAL network="NPRI">
@@ -2214,7 +2234,7 @@ class _TC8233(xenrt.TestCase):
         time.sleep(60)
 
         # Add the SR
-        sr = xenrt.lib.xenserver.ISCSIStorageRepository(m, "_TC8233")
+        sr = xenrt.lib.xenserver.ISCSIStorageRepository(m, "_TC8233", thinprov)
         if not self.MPP_RDAC:
             self.lun = xenrt.ISCSILunSpecified("%s/%s/%s" %
                                           (self.initiator,
@@ -2355,6 +2375,9 @@ class TC9084(xenrt.TestCase):
         self.lun = None
 
     def prepare(self, arglist=None):
+        # Parse argument to check this is thin provisioning test.
+        thinprov = self.checkArgsKeyValue(arglist, "thin", "yes")
+
         # We should have one host, and one pool available
         # Both should have 4 paths available (NPRI, NSEC, VR01 (on NPRI),
         # and VR02 (on NSEC))
@@ -2447,7 +2470,7 @@ class TC9084(xenrt.TestCase):
         # Now add an iSCSI SR to the pool, and enable HA on it
         # Set up the SR on the host
         sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.pool.master,
-                                                             "HA_Multipath")
+                                                             "HA_Multipath", thinprov)
         # IQN will be iqn.2008-09.com.xensource:<vm_uuid>
         iqn = "iqn.2008-09.com.xensource:%s" % (self.target.getUUID())
         
@@ -2815,7 +2838,10 @@ class TC9088(xenrt.TestCase):
         xenrt.TestCase.__init__(self, tcid)
         self.lun = None
 
-    def prepare(self, arglist=None):
+    def prepare(self, arglist=[]):
+        # Parse argument to check this is thin provisioning test.
+        thinprov = self.checkArgsKeyValue(arglist, "thin", "yes")
+
         # We should have one host, and one pool available
         # Both should have 4 paths available (NPRI, NSEC, VR01 (on NPRI),
         # and VR02 (on NSEC))
@@ -2895,7 +2921,7 @@ class TC9088(xenrt.TestCase):
         # Now add an iSCSI SR to the pool, and enable HA on it
         # Set up the SR on the host
         sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.pool.master,
-                                                             "HA_Multipath")
+                                                             "HA_Multipath", thinprov)
         self.sr = sr
         self.lun = xenrt.ISCSILunSpecified("xenrt-test/%s/%s" %
                                       (iqn, self.target.getIP()))

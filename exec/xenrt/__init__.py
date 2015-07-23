@@ -1906,6 +1906,26 @@ rm -f %s
                     kv[aa[0]] = aa[1]
         return kv
 
+    def checkArgsKeyValue(self, args, key, value, raiseIfFalse=False):
+        """Check Key exists and same as value."""
+
+        if type(args) is list:
+            argsdict = self.parseArgsKeyValue(args)
+        elif type(args) is dict:
+            argsdict = args
+        else:
+            if raiseIfFalse:
+                raise xenrt.XRTError("Given args is not a list or a dict." % str(args))
+            return False
+
+        if key in argsdict and argsdict[key] == value:
+            return True
+
+        if raiseIfFalse:
+            raise xenrt.XRTError("Cannot find key from args or value does not match. (args = %s, key = %s, value = %s" % (argsdict, key, value))
+
+        return False
+
     def ticketAttachments(self):
         return []
 

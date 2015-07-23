@@ -1,0 +1,73 @@
+<?xml version="1.0" ?>
+<xenrt>
+
+  <!-- Sequence to test the various storage xen migration test cases. -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <!-- <pool id="0" name="sourceSXMPool"> -->
+    <pool id="0">
+      <storage type="nfs" name="nfs_sourceSR"/>
+      <storage type="lvmoiscsi" name="lvmoiscsi_sourceSR" options="thin"/> 
+      <host id="0" installsr="ext" />
+      <host id="1" installsr="lvm" />
+    </pool>
+    <!-- <pool id="1" name="targetSXMPool"> -->
+    <pool id="1">
+      <storage type="nfs" name="nfs_targetSR"/>
+      <storage type="lvmoiscsi" name="lvmoiscsi_targetSR" options="thin"/>
+      <host id="2" installsr="ext" />
+      <host id="3" installsr="lvm" />
+    </pool>
+  </prepare>
+
+  <testsequence>
+
+    <serial group="CrossPoolSXM">
+      <!-- cross-pool sxm migration from sr-type ext to ext, lvm, nfs, lvmoiscsi respectively. -->
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16886" tc="TC-16886" sku="thin">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+      </testcase>
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16887" tc="TC-16887" sku="thin">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=nfs</arg>
+      </testcase>
+
+      <!-- cross-pool sxm migration from sr-type lvm to ext, lvm, nfs, lvmoiscsi respectively. -->
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16890" tc="TC-16890" sku="thin">
+        <arg>src_SR=lvm</arg>
+        <arg>dest_SR=ext</arg>
+      </testcase>
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16893" tc="TC-16893" sku="thin">
+        <arg>src_SR=lvm</arg>
+        <arg>dest_SR=lvmoiscsi</arg>
+      </testcase>
+
+      <!-- cross-pool sxm migration from sr-type nfs to ext, lvm, nfs, lvmoiscsi respectively. -->
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16895" tc="TC-16895" sku="thin">
+        <arg>src_SR=nfs</arg>
+        <arg>dest_SR=ext</arg>
+      </testcase>
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16897" tc="TC-16897" sku="thin">
+        <arg>src_SR=nfs</arg>
+        <arg>dest_SR=nfs</arg>
+      </testcase>
+
+      <!-- cross-pool sxm migration from sr-type lvmoiscsi to ext, lvm, nfs, lvmoiscsi respectively. -->
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16901" tc="TC-16901" sku="thin">
+        <arg>src_SR=lvmoiscsi</arg>
+        <arg>dest_SR=lvm</arg>
+      </testcase>
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16902" tc="TC-16902" sku="thin">
+        <arg>src_SR=lvmoiscsi</arg>
+        <arg>dest_SR=nfs</arg>
+      </testcase>
+    </serial>
+
+  </testsequence>
+
+</xenrt>

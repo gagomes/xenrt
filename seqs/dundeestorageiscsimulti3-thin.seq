@@ -1,0 +1,29 @@
+<xenrt>
+
+  <!-- 3 host iSCSI Multipath tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <pool id="0">
+      <host id="0"/>
+    </pool>
+    <pool id="1">
+      <host id="1"/>
+    </pool>
+    <pool id="2">
+      <host id="2"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="TC-8030">
+      <testcase id="xenserver.tc.multipath.TC8113" sku="thin">
+        <arg>thin=yes</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+
+</xenrt>

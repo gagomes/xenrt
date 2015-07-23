@@ -2711,19 +2711,16 @@ class TC18494(_Scalability):
         if disksize < sizeToTest:
             raise xenrt.XRTError("The local disk (%s bytes) is smaller than the size we are testing (%s bytes)." %
                                     (disksize, sizeToTest))
-        #get XS version
-        xenServerVersion = host.getInventoryItem("PRODUCT_VERSION")
-        dundeeVersion = '6.6.80'
         #get the local sr and its size
         localSr = host.getLocalSR()
         localSRSize = int(host.getSRParam(localSr, "physical-size"))
         #XenServer seems to allocate 8GB for itself and report rest as local SR
         #However, after Dom0 changes, XS allocates itself around 41GB disk space and reports rest as local SR
         #Add 8GiB to local SR size and compare to the actual size obtained in previous step
-        if xenServerVersion != dundeeVersion:
-            expectedSrSize = disksize - 8 * xenrt.GIGA
-        else:
+        if isinstance(host, xenrt.lib.xenserver.DundeeHost):
             expectedSrSize = disksize - 42 * xenrt.GIGA
+        else:
+            expectedSrSize = disksize - 8 * xenrt.GIGA
         #About 20MB seems to be the overhead (maybe LVM overhead). Subtract 20MiB from expected size too
         expectedSrSize = expectedSrSize - 20 * xenrt.MEGA
         if localSRSize < expectedSrSize:

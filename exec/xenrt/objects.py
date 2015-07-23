@@ -4419,6 +4419,7 @@ Loop While not oex3.Stdout.atEndOfStream"""%(applicationEventLogger,systemEventL
         self.tailor()
 
     def installWindowsMelio(self):
+        self.rename("%s-%s" % (self.name, xenrt.GEC().jobid() or "nojob"))
         self.xmlrpcFetchFile("%s/melio/sanbolic.cer" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"), "c:\\sanbolic.cer")
         self.xmlrpcSendFile("%s/distutils/certmgr.exe" % xenrt.TEC().lookup("LOCAL_SCRIPTDIR"), "c:\\certmgr.exe")
         self.xmlrpcExec("c:\\certmgr.exe /add c:\\sanbolic.cer /c /s /r localmachine trustedpublisher")

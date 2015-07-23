@@ -41,6 +41,7 @@ class TCWindowsMelioSetup(xenrt.TestCase):
         win.installWindowsMelio(renameHost=True)
         config = win.getWindowsMelioConfig()
         config['network_settings']['current']['subnet_ranges'] = " ".join(["%s/32" % x for x in ips]) 
+        win.reboot()
         win.writeWindowsMelioConfig(config)
         win.enablePowerShellUnrestricted() 
         win.xmlrpcExec("$ErrorActionPreference = \"Stop\"\nStart-Service msiscsi", powershell=True)

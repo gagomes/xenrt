@@ -8,7 +8,7 @@
   <prepare>
     <host id="0">
       <vm name="iscsi1">
-        <distro>debian80</distro>
+        <distro>centos71</distro>
         <arch>x86-64</arch>
         <memory>1024</memory>
         <vcpus>2</vcpus>
@@ -16,7 +16,7 @@
         <disk device="0" size="30" />
       </vm>
       <vm name="iscsi2">
-        <distro>debian80</distro>
+        <distro>centos71</distro>
         <arch>x86-64</arch>
         <memory>1024</memory>
         <vcpus>2</vcpus>

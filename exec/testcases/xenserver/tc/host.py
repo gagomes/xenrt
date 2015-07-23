@@ -18,6 +18,7 @@ class VersionChecks(xenrt.TestCase):
     # TC-27139
 
     def __init__(self):
+        super(VersionChecks,self).__init__()
         self.__pass = False
         self.__count = 0
 

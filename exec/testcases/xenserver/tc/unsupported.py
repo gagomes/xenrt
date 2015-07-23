@@ -61,7 +61,7 @@ class _TC6460(xenrt.TestCase):
         
 class TC6460(_TC6460):
     """Install a RHEL5.2 32 bit VM using HVM."""
-    DISTRO = "rhel56"
+    DISTRO = "rhel5x"
     ARCH = "x86-32"
 
 class TC6461(_TC6460):

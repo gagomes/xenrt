@@ -8,15 +8,21 @@ class TCWindowsMelioSetup(xenrt.TestCase):
             iscsitarget = self.getGuest("iscsi")
             iqn = iscsitarget.installLinuxISCSITarget(targetType="LIO")
             iscsitarget.createISCSITargetLun(lunid=0, sizemb=20*xenrt.KILO)
-            self.initialised = False
         else:
             self.shared = False
 
+        # Set up Windows
         i = 1
         while self.getGuest("win%d" % i):
             self.setupWindows(i)
             i+=1
     
+        # Now run the IOCTL to refresh
+        i = 1
+        while self.getGuest("win%d" % i):
+            self.getGuest("win%d" % i).xmlrpcExec('"C:\\Program Files\\Citrix\\Warm-Drive\\Tools\\ioctl.exe" reload_settings', returndata=True, returnerror=False)
+            i+=1
+
     def setupWindows(self, index):
         win = self.getGuest("win%d" % index)
         if self.shared:
@@ -40,6 +46,5 @@ class TCWindowsMelioSetup(xenrt.TestCase):
             raise xenrt.XRTFailure("iSCSI disk has not been connected")
 
         win.xmlrpcExec("$ErrorActionPreference = \"Stop\"\nGet-IscsiSession | Register-IscsiSession", powershell=True)
-        if not self.shared or not self.initialised:
+        if not self.shared:
             win.xmlrpcDiskpartCommand("select disk %s\nattributes disk clear readonly\nconvert gpt" % disk)
-            self.initialised = True

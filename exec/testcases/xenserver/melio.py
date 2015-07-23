@@ -9,6 +9,8 @@ class TCWindowsMelioSetup(xenrt.TestCase):
             iqn = iscsitarget.installLinuxISCSITarget(targetType="LIO")
             iscsitarget.createISCSITargetLun(lunid=0, sizemb=20*xenrt.KILO)
             self.initialised = False
+        else:
+            self.shared = False
 
         i = 1
         while self.getGuest("win%d" % i):

@@ -2,6 +2,7 @@
   <variables>
     <ENABLE_MULTICAST>yes</ENABLE_MULTICAST>
     <MELIO_PATH>6.0.0.47080/citrix-warm-drive-setup.exe</MELIO_PATH>
+    <USE_PREBUILT_TEMPLATES>yes</USE_PREBUILT_TEMPLATES>
   </variables>
 
   <prepare>

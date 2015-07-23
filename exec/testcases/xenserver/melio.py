@@ -11,19 +11,26 @@ class TCWindowsMelioSetup(xenrt.TestCase):
         else:
             self.shared = False
 
+        # Get all of the IPs
+        ips = []
+        i = 1
+        while self.getGuest("win%d" % i):
+            ips.append(self.getGuest("win%d" % i).mainip)
+            i += 1
+
         # Set up Windows
         i = 1
         while self.getGuest("win%d" % i):
-            self.setupWindows(i)
+            self.setupWindows(i, ips)
             i+=1
-    
+  
         # Now run the IOCTL to refresh
         i = 1
         while self.getGuest("win%d" % i):
             self.getGuest("win%d" % i).xmlrpcExec('"C:\\Program Files\\Citrix\\Warm-Drive\\Tools\\ioctl.exe" reload_settings', returndata=True, returnerror=False)
             i+=1
 
-    def setupWindows(self, index):
+    def setupWindows(self, index, ips):
         win = self.getGuest("win%d" % index)
         if self.shared:
             iscsitarget = self.getGuest("iscsi")
@@ -31,7 +38,10 @@ class TCWindowsMelioSetup(xenrt.TestCase):
             iscsitarget = self.getGuest("iscsi%d" % index)
             iqn = iscsitarget.installLinuxISCSITarget(targetType="LIO")
             iscsitarget.createISCSITargetLun(lunid=0, sizemb=20*xenrt.KILO)
-        win.installWindowsMelio()
+        win.installWindowsMelio(renameHost=True)
+        config = win.getWindowsMelioConfig()
+        config['network_settings']['current']['subnet_ranges'] = " ".join(["%s/32" % x for x in ips]) 
+        win.writeWindowsMelioConfig(config)
         win.enablePowerShellUnrestricted() 
         win.xmlrpcExec("$ErrorActionPreference = \"Stop\"\nStart-Service msiscsi", powershell=True)
         win.xmlrpcExec("$ErrorActionPreference = \"Stop\"\nSet-Service -Name msiscsi -StartupType Automatic", powershell=True)

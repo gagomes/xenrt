@@ -17,8 +17,9 @@ from xenrt.lazylog import step, comment, log
 class VersionChecks(xenrt.TestCase):
     # TC-27139
 
-    __pass = False
-    __count = 0
+    def __init__(self):
+        self.__pass = False
+        self.__count = 0
 
     def compare(self, conRet, compareTo, file):
         if conRet == compareTo:
@@ -36,8 +37,8 @@ class VersionChecks(xenrt.TestCase):
         build = revision.split("-")[1]
 
         redHatVer = host.execdom0("cat /etc/redhat-release").rstrip('\n')
-        redHatVer = redHatVer[18:18+len(revision)]
-        self.compare(redHatVer, revision,"/etc/redhat-release")
+        redHatVer = redHatVer[18:18+len(version)]
+        self.compare(redHatVer, version,"/etc/redhat-release")
 
         consoleVer = host.execdom0("grep \"Citrix XenServer Host\" /etc/issue").rstrip('\n')
         consoleVer = consoleVer[22:]
@@ -48,12 +49,12 @@ class VersionChecks(xenrt.TestCase):
             self.compare(r,version, "/ReadMeFirst.html")
 
         citrixIndexVer = host.execdom0("grep -o -P \"\d\.\d+\.\d+\" /opt/xensource/www/Citrix-index.html").rstrip('\n').split()
-        for c in citrixIndexVer:
-            self.compare(c,version, "/opt/xensource/www/Citrix-index.html")
+        self.compare(citrixIndexVer[0],version, "/opt/xensource/www/Citrix-index.html")
+        self.compare(citrixIndexVer[1],revision, "/opt/xensource/www/Citrix-index.html")
 
         indexVer = host.execdom0("grep -o -P \"\d\.\d+\.\d+\" /opt/xensource/www/index.html").rstrip('\n').split()
-        for i in indexVer:
-            self.compare(i,version, "/opt/xensource/www/index.html")
+        self.compare(indexVer[0],version, "/opt/xensource/www/index.html")
+        self.compare(indexVer[1],revision, "/opt/xensource/www/index.html")
 
         if not self.__pass:
             raise xenrt.XRTFailure("%i incorrect entries logged above" % self.__count)

@@ -12906,14 +12906,16 @@ class VifOffloadSettings(object):
 class _WinPEBase(object):
     def __init__(self):
         self._xmlrpc = None
+        self._xmlrpcInit = False
         self.ip = None
 
     @property
     def xmlrpc(self):
-        if self._xmlrpc == None:
+        if not self._xmlrpcInit:
             if not self.ip:
                 raise xenrt.XRTError("IP not known")
             self._xmlrpc = xmlrpclib.ServerProxy("http://%s:8080" % self.ip)
+            self._xmlrpcInit = True
         return self._xmlrpc
 
     def boot(self):

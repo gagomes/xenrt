@@ -1,5 +1,7 @@
 import re
 import xenrt
+from xenrt.lazylog import log
+
 
 """
 Xapi object model base and factory classes
@@ -137,12 +139,11 @@ class XapiObject(object):
             uuids = self.cli.execute("%s-list %s-uuid=%s --minimal" % (refObjectType, currentObjectType, self.uuid)).strip().split(',')
         else:
             uuids = self.cli.execute("%s-list --minimal" % refObjectType).strip().split(',')
-        return [objectFactory().getObject(refObjectType)(self.cli, refObjectType, uuid) for uuid in uuids]
+        return [objectFactory().getObject(refObjectType)(self.cli, refObjectType, uuid) for uuid in uuids if uuid != '']
 
     def getObjectsFromListing(self, refObjectType):
         uuids = self.cli.execute("%s-list --minimal" % refObjectType).strip().split(',')
-        return [objectFactory().getObject(refObjectType)(self.cli, refObjectType, uuid) for uuid in uuids]
-
+        return [objectFactory().getObject(refObjectType)(self.cli, refObjectType, uuid) for uuid in uuids if uuid != '']
 
     def op(self, operation, params="", returnObject=None):
         ret = self.cli.execute("%s-%s uuid=%s %s" % (self.type, operation, self.uuid, params)).strip()
@@ -174,7 +175,7 @@ class NamedXapiObject(XapiObject):
 
     def getObjectsReferencingName(self, refObjectType, currentObjectType):
         uuids = self.cli.execute("%s-list %s=%s --minimal" % (refObjectType, currentObjectType, self.name())).strip().split(',')
-        return [objectFactory().getObject(refObjectType)(self.cli, refObjectType, uuid) for uuid in uuids]
+        return [objectFactory().getObject(refObjectType)(self.cli, refObjectType, uuid) for uuid in uuids if uuid != '']
 
 """
 Additional class implementations
@@ -197,6 +198,19 @@ class VM(NamedXapiObject):
 
     def networkAddresses(self):
         return self.getListParam(self.__NETWORK_ADDRESSES)
+
+    def ipv6NetworkAddress(self, deviceNo = 0, ipNo = 0):
+        addresses = self.networkAddresses()
+        tag = str(deviceNo) + "/ipv6/" + str(ipNo)
+        log("Addresses found: %s" % str(addresses))
+        ipv6Address = next((n for n in addresses if tag in n), None)
+        log("IPV6 address %s found with ID: %s" % (ipv6Address, tag))
+        if ipv6Address:
+            ipv6Address = (':'.join(ipv6Address.split(':')[1:])).strip()
+            return ipv6Address
+        else:
+            log("No IPV6 guest found for guest %s" % self.name())
+            return None
 
     @xenrt.irregularName
     def XapiHost(self):

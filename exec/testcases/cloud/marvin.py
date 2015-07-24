@@ -345,3 +345,13 @@ class TCCombineResults(_TCRemoteNoseBase):
 
         with open("%s/marvin/results.xml" % xenrt.TEC().getLogdir(), "w") as f:
             f.write(d.toprettyxml())
+
+class TCCloudstackSetup(xenrt.TestCase):
+    def run(self, arglist):
+        self.args = self.parseArgsKeyValue(arglist)
+        if self.args.get("guest"):
+            place = self.getGuest(self.args['guest'])
+        else:
+            place = self.getHost(self.args['host'])
+
+        place.installCloudManagementServer()

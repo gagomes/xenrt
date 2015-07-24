@@ -1604,9 +1604,9 @@ print nonFilledBitmaps
         auth = authHeader(record['username'],record['password'])
         content = '"bytes %d-%d/%d" % (rangeStart, rangeAbove - 1, total)'
         if self.USESSL:
-            ssl = "True"
+            useSSL = "True"
         else:
-            ssl = "False"
+            useSSL = "False"
 
         script = u"""
 import httplib

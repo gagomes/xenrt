@@ -4388,6 +4388,36 @@ Loop While not oex3.Stdout.atEndOfStream"""%(applicationEventLogger,systemEventL
 
         self.xmlrpcExec("c:\\windows\\system32\\sysprep\\sysprep.exe /unattend:c:\\unattend.xml /oobe /generalize /quiet /quit", returnerror=False)
 
+    def _softReboot(self, timeout=300):
+        try:
+            self.execcmd("/sbin/reboot", timeout=timeout)
+        except xenrt.XRTFailure, e:
+            if e.reason != "SSH channel closed unexpectedly" and e.reason != "SSH timed out":
+                raise
+    
+    def upgradeDebian(self, newVersion="testing"):
+        codename = self.execguest("cat /etc/apt/sources.list | grep '^deb' | awk '{print $3}' | head -1").strip()
+        self.execcmd("sed -i s/%s/%s/g /etc/apt/sources.list" % (codename, newVersion))
+        if self.execcmd('test -e /etc/apt/sources.list.d/*', retval="code") == 0:
+            self.execcmd("sed -i s/%s/%s/g /etc/apt/sources.list.d/*" % (codename, newVersion))
+        try:
+            self.execcmd("apt-get update")
+        except:
+            # We might be upgrading to a version that doesn't have update repos - if that's the case then remove them and try apt-get update again
+            self.execcmd("rm -f /etc/apt/sources.list.d/updates.list")
+            self.execcmd("apt-get update")
+        self.execcmd('DEBIAN_FRONTEND=noninteractive apt-get -y --force-yes -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade')
+        self.execcmd('DEBIAN_FRONTEND=noninteractive apt-get -y --force-yes -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" dist-upgrade')
+        self.execcmd('DEBIAN_FRONTEND=noninteractive apt-get -y --force-yes autoremove')
+        self._softReboot(timeout=60)
+        xenrt.sleep(60)
+        if isinstance(self, GenericHost):
+            timeout = 600 + int(self.lookup("ALLOW_EXTRA_HOST_BOOT_SECONDS", "0"))
+        else:
+            timeout = 600
+        self.waitForSSH(timeout)
+        self.tailor()
+
 class RunOnLocation(GenericPlace):
     def __init__(self, address):
         GenericPlace.__init__(self)
@@ -4713,6 +4743,23 @@ class GenericHost(GenericPlace):
                 traceback.print_exc(file=sys.stderr)
                 xenrt.TEC().warning("Exception running job test %s: %s" % (str(jt), str(e)))
 
+    def xapiCPUUsage(self):
+        # Check for xenstored using too much CPU, if a pid is not found, None is returned
+        pid = None
+        pidLocations = ["/var/run/xenstore.pid", "/var/run/xenstored.pid"]
+        for p in pidLocations:
+            try:
+                pid = int(self.execdom0("cat %s" % (p)))
+                break
+            except:
+                pass
+        pcpu = None
+        if pid:
+            self.execdom0("[ -d /proc/%u ]" % (pid))
+            pcpu = float(self.execdom0("ps -p %u -o pcpu --no-headers" % (pid)).strip())
+        return pcpu
+
+
     def checkHealth(self, unreachable=False, noreachcheck=False, desc=""):
         """Make sure the dom0 is in good shape."""
         if unreachable:
@@ -4724,21 +4771,10 @@ class GenericHost(GenericPlace):
                                            idempotent=True))
         if space == "100%":
             xenrt.TEC().warning("Domain-0 disk usage is 100%")
-        # Check for xenstored using too much CPU
-        pid = None
-        pidLocations = ["/var/run/xenstore.pid", "/var/run/xenstored.pid"]
-        for p in pidLocations:
-            try:
-                pid = int(self.execdom0("cat %s" % (p)))
-                break
-            except:
-                pass
-        if pid:
-            self.execdom0("[ -d /proc/%u ]" % (pid))
-            pcpu = int(self.execdom0("ps -p %u -o pcpu --no-headers | "
-                                     "sed -e's/\..*//'" % (pid)).strip())
-            if pcpu > 40:
-                xenrt.TEC().warning("xenstore using %u%% CPU" % (pcpu))
+        pcpu = self.xapiCPUUsage()
+        if pcpu and pcpu > 40.0:
+            xenrt.TEC().warning("xenstore using %.2f%% CPU" % (pcpu))
+            log("xenstore using %.2f%% CPU" % (pcpu))
 
     def checkLeasesXenRTDhcpd(self, mac, checkWithPing=False):
         valid = json.loads(xenrt.util.command("%s/xenrtdhcpd/leasesformac.py %s" % (xenrt.TEC().lookup("XENRT_BASE"), mac.lower())))
@@ -5006,6 +5042,10 @@ class GenericHost(GenericPlace):
         if not self.windows:
             self.findPassword()
 
+            if self.special.get("debiantesting_upgrade"):
+                self.special['debiantesting_upgrade'] = False
+                self.upgradeDebian(newVersion="testing")
+            
             if xenrt.TEC().lookup("TAILOR_CLEAR_IPTABLES", False, boolean=True):
                 self.execdom0("iptables -P INPUT ACCEPT && iptables -P OUTPUT ACCEPT && iptables -P FORWARD ACCEPT && iptables -F && iptables -X")
                 self.iptablesSave()
@@ -5385,13 +5425,6 @@ class GenericHost(GenericPlace):
     def getGuestUUID(self, guest):
         return None
 
-    def _softReboot(self, timeout=300):
-        try:
-            self.execdom0("/sbin/reboot", timeout=timeout)
-        except xenrt.XRTFailure, e:
-            if e.reason != "SSH channel closed unexpectedly":
-                raise
-    
     def reboot(self,forced=False,timeout=600):
         """Reboot the host and verify it boots"""
         # Some ILO controllers have broken serial on boot
@@ -5837,7 +5870,8 @@ exit 0
         elif distro == "debian80":
             release = "jessie"
         elif distro == "debiantesting":
-            release = "testing"
+            release = "jessie"
+            self.special['debiantesting_upgrade'] = True
         _url = repository + "/dists/%s/" % (release.lower(), )
         boot_dir = "main/installer-%s/current/images/netboot/debian-installer/%s/" % (arch, arch)
 
@@ -7595,6 +7629,12 @@ class GenericGuest(GenericPlace):
 
             # If Debian then apt-get some stuff
             if isDebian:
+
+                if self.special.get("debiantesting_upgrade"):
+                    self.special['debiantesting_upgrade'] = False
+                    self.upgradeDebian(newVersion="testing")
+
+
                 apt_cacher = None
                 debVer = self.execguest("cat /etc/debian_version")
                 if "stretch" in debVer or "sid" in debVer:
@@ -8737,20 +8777,16 @@ class GenericGuest(GenericPlace):
                 elif distro == "debian80":
                     release = "jessie"
                 elif distro == "debiantesting":
-                    release = "testing"
+                    release = "jessie"
+                    self.special['debiantesting_upgrade'] = True
                 _url = repository + "/dists/%s/" % (release)
                 boot_dir = "main/installer-%s/current/images/netboot/debian-installer/%s/" % (arch, arch)
             
             # Pull boot files from HTTP repository
-            if release == "testing":
-                # Testing presently doesn't have an installer, the caller needs to set up an SR.
-                fk = options['installer_kernel']
-                fr = options['installer_initrd']
-            else:
-                fk = xenrt.TEC().tempFile()
-                fr = xenrt.TEC().tempFile()
-                xenrt.getHTTP(_url + boot_dir + "linux", fk)
-                xenrt.getHTTP(_url + boot_dir + "initrd.gz", fr)
+            fk = xenrt.TEC().tempFile()
+            fr = xenrt.TEC().tempFile()
+            xenrt.getHTTP(_url + boot_dir + "linux", fk)
+            xenrt.getHTTP(_url + boot_dir + "initrd.gz", fr)
 
             # Construct a PXE target
             pxe = xenrt.PXEBoot(remoteNfs=self.getHost().lookup("REMOTE_PXE", None))
@@ -9487,18 +9523,21 @@ WshShell.SendKeys "{ENTER}"
 
     def installGPUDriver(self):
 
+
+        if not self.windows:
+            raise xenrt.XRTError("GPU driver is only available on windows guests.")
+
         xenrt.TEC().logverbose("Installing GPU driver on vm %s" % self.getName())
 
-        if self.xmlrpcGetArch() == "amd64":
-            driver="c:\\gpudriver\\DisplayDriver\\310.90\\Win8_WinVista_Win7_64\\International\\setup.exe /passive /n"
+        if self.xmlrpcGetArch().endswith("64"):
+            filename = xenrt.TEC().lookup("GPU_GUEST_DRIVER_X64",None)
         else:
-            driver="c:\\gpudriver\\DisplayDriver\\310.90\\Win8_WinVista_Win7\\International\\setup.exe /passive /n"
-        xenrt.TEC().logverbose("Installing GPU driver %s" % (driver))
-        self.xmlrpcUnpackTarball("%s/gpudriver.tgz" %
-                                 (xenrt.TEC().lookup("TEST_TARBALL_BASE")),
-                                 "c:\\")
-        self.xmlrpcExec(driver, returnerror=False,timeout=1800,ignoreHealthCheck=True)
-        self.reboot()
+            filename = xenrt.TEC().lookup("GPU_GUEST_DRIVER_X86",None)
+
+        urlprefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
+        url = "%s/gpuDriver/%s" % (urlprefix, filename)
+
+        self.installNvidiaVGPUSignedDriver(filename, url)
 
     def __nvidiaX64GuestDriverName(self, driverType):
         X64_SIGNED_FILENAME = "332.83_grid_win8_win7_64bit_english.exe"
@@ -9530,12 +9569,16 @@ WshShell.SendKeys "{ENTER}"
 
     def installNvidiaVGPUDriver(self, driverType):
         driverName = self.requiredVGPUDriverName(driverType)
+
+        urlprefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
+        url = "%s/vgpudriver/vmdriver/%s" % (urlprefix, driverName)        
+
         if driverType == 0:
-            self.installNvidiaVGPUSignedDriver(driverName)
+            self.installNvidiaVGPUSignedDriver(driverName, url)
         else:
             self.installNvidiaVGPUUnsignedDriver(driverName)
 
-    def installNvidiaVGPUSignedDriver(self, filename):
+    def installNvidiaVGPUSignedDriver(self, filename, url):
 
         tarball = "drivers.tgz"
         xenrt.TEC().logverbose("Installing vGPU driver on vm %s" % (self.getName(),))
@@ -9545,8 +9588,6 @@ WshShell.SendKeys "{ENTER}"
             raise xenrt.XRTError("vGPU driver is only available on windows guests.")
 
         try:
-            urlprefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
-            url = "%s/vgpudriver/vmdriver/%s" % (urlprefix, filename)
             installfile = xenrt.TEC().getFile(url)
             if not installfile:
                 raise xenrt.XRTError("Failed to fetch NVidia driver.")

@@ -1,0 +1,53 @@
+<xenrt>
+
+  <!-- OVF/transferVM tests -->
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host id="0">
+      <storage type="nfs" name="nfssr" default="true"/>
+      <vm name="ToolLinux">
+        <distro>debian60</distro>
+        <disk device="0" size="60"/>
+        <network device="0"/>
+      </vm>
+      <vm name="ToolWin">
+        <distro>ws08sp2-x86</distro>
+        <disk device="0" size="60"/>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+    </host>
+    <host id="1">
+      <storage type="lvmoiscsi" name="lvmoiscsisr" options="thin"/>
+      <storage type="nfs" name="nfssr" />
+      <vm name="DemoLinux">
+        <distro>debian60</distro>
+        <network device="0" />
+        <postinstall action="preCloneTailor"/>
+      </vm>
+      <vm name="DemoWin">
+        <distro>winxpsp3</distro>
+        <disk device="0" size="1" />
+        <network device="0" />
+        <postinstall action="installDrivers" />
+      </vm>
+    </host>
+    <host id="2">
+      <storage type="lvmoiscsi" name="lvmoiscsisr" options="thin"/>
+      <storage type="nfs" name="nfssr" />
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="TransferVM">
+      <testcase id="testcases.xenserver.tc.appliance.TC11456" sku="thin"/>
+      <testcase id="testcases.xenserver.tc.appliance.TC11457" sku="thin"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

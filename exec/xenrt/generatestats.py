@@ -11,13 +11,19 @@ class LabCostPerTechArea():
 
     def generate(self):
         step("Get latest suite run history")
-        u = urllib.urlopen("%s/suitehistoryjson/%s" % (xenrt.TEC().lookup("TESTRUN_URL"), self.suiteId))
-        suiteRunData = json.loads(u.read().strip())
+        u = urllib.urlopen("%s/suitehistoryjson/%s" % (xenrt.TEC().lookup("TESTRUN_URL"), self.suiteId)).read().strip()
+        suiteRunData = json.loads(u)
         suiteRunIds = [int(srid) for srid in suiteRunData.keys()]
         suiteRunIds.sort(reverse=True)
 
-        step("Get testcase and sequence details from suite")
+        step("Add all dummy variables which might be required by any suite.")
         xenrt.TEC().config.setVariable("JIRA_TICKET_TAG", "Test")
+        xenrt.TEC().config.setVariable("THIS_HOTFIX", "Test")
+        xenrt.TEC().config.setVariable("CLOUDINPUTDIR", "Test")
+        xenrt.TEC().config.setVariable("EXTERNAL_LICENSE_SERVER", "Test")
+        xenrt.TEC().config.setVariable("PRODUCT_VERSION", "Test")
+
+        step("Get testcase and sequence details from suite")
         suite = xenrt.suite.Suite(self.suiteId)
         suiteData = {seq.seq: {"testcases":[tc.split("_")[0] if re.match("^TC-\d+$", tc.split("_")[0]) else None for tc in seq.listTCsInSequence(quiet=True)]} for seq in suite.sequences}
 
@@ -61,18 +67,19 @@ class LabCostPerTechArea():
                         tcData.update( {tc:{ 'runtime':( suiteData[seq]['runtime']/tcCountInSeq) }})
 
         step("Fetching TechArea for each TA from Jira.")
-        j = xenrt.jiralink.getJiraLink()
-        count=0
         tcIds = tcData.keys()
         totalCount = len(tcIds)
-        maxCountAllowed = 25
-        while count <= totalCount:
-            log("\tfetching part %d/%d"% (math.ceil(count/maxCountAllowed+1), math.ceil(totalCount/maxCountAllowed+1)))
-            tcIdsSub= tcIds[count:min(count+maxCountAllowed, totalCount)]
-            count +=maxCountAllowed
-            query='Key in (%s)' % ",".join(tcIdsSub)
-            result = j.jira.search_issues(query, maxResults=maxCountAllowed)
-            [tcData[issue.key].update({'techarea':([comp.name for comp in issue.fields.components][0])}) if issue.fields.components else None for issue in result]
+        if totalCount:
+            count=0
+            maxCountAllowed = 25
+            j = xenrt.jiralink.getJiraLink()
+            while count <= totalCount:
+                log("\tfetching part %d/%d"% (math.ceil(count/maxCountAllowed+1), math.ceil(totalCount/maxCountAllowed+1)))
+                tcIdsSub= tcIds[count:min(count+maxCountAllowed, totalCount)]
+                count +=maxCountAllowed
+                query='Key in (%s)' % ",".join(tcIdsSub)
+                result = j.jira.search_issues(query, maxResults=maxCountAllowed)
+                [tcData[issue.key].update({'techarea':([comp.name for comp in issue.fields.components][0])}) if issue.fields.components else None for issue in result]
 
         step("Processing Data. testcase as primary key -> techArea as primary key")
         techAreaData = {'Unknown' : TimeMissingTAInfo.total_seconds()/3600}

@@ -3410,6 +3410,11 @@ fi
                     waittime = interval
                 xenrt.sleep(waittime, log=False)
 
+    def dom0CPUUsage(self):
+        usage = self.getXentopData()
+        cpuUsage = usage["0"]["CPU(%)"]
+        return float(cpuUsage)
+
     def getXentopData(self):
         data = self.execdom0("xentop -f -b -i 2").strip()
         data = [ re.split("[\s]+", x.strip()) for x in data.split("\n") ]
@@ -5715,6 +5720,24 @@ fi
             return sruuid
         raise xenrt.XRTError("Could not find default-SR on !" + self.getName())
 
+    def checkSRs(self, type=["lvm"]):
+        """Check if given SRs are working fine, create and delete vdi"""
+        sruuid = []
+        for srtype in type:
+            sruuid.extend(self.getSRs(type=srtype, local=True))
+        cli = self.getCLIInstance()
+        for sr  in sruuid:
+            # Create a 256M VDI on the SR
+                args = []
+                args.append("name-label='XenRT Test VDI on %s'" % (sr))
+                args.append("sr-uuid=%s" % (sr))
+                args.append("virtual-size=268435456") # 256M
+                args.append("type=user")
+                vdi = cli.execute("vdi-create", string.join(args), strip=True)
+                
+                # Now delete it
+                cli.execute("vdi-destroy","uuid=%s" % (vdi))
+
     def getDBCompatVersion(self):
         try:
             data = self.execdom0("cat /opt/xensource/etc/initial-inventory | "
@@ -7113,6 +7136,7 @@ fi
         sr = self.genParamGet("vdi", vdiuuid, "sr-uuid")
         srtype = self.genParamGet("sr", sr, "type")
         host = self.getSRMaster(sr)
+        host.execdom0("xe sr-scan uuid=%s" % sr)
         foundsize = 0
         if srtype in ["ext", "nfs"]:
             path = "/var/run/sr-mount/%s/%s.vhd" % (sr, vdiuuid)
@@ -7353,6 +7377,12 @@ logger "Stopping xentrace loop, host has less than 512M disk space free"
                 xenrt.TEC().logverbose("Multi vcpu enablement complete")
             else:
                 xenrt.TEC().logverbose("Not enabling multiple vCPUs as there are already %u" % (pcount))
+
+        if xenrt.TEC().lookup("ENABLE_MULTICAST", False, boolean=True):
+            if isinstance(self, xenrt.lib.xenserver.DundeeHost):
+                self.execdom0("sed -i '/multicast off/d' /usr/libexec/xenopsd/vif-real")
+            else:
+                self.execdom0("sed -i '/multicast off/d' /etc/xensource/scripts/vif")
 
     def postUpgrade(self):
         """Perform any product-specific post upgrade actions."""
@@ -8333,17 +8363,20 @@ rm -f /etc/xensource/xhad.conf || true
         Return True if dom0 disk partition schema matches the schema 'partition' else return False
         """
         dom0Partitions = self.getDom0Partitions()
+        
         if len(partitions) != len(dom0Partitions):
-            log("Number of Partitions in dom0 is different from expected number of partitions. Expected %s. Found %s" % (partitions,dom0Partitions ))
-            return False
-        else:
-            diffkeys = [k for k in partitions if partitions[k] != "*" and int(partitions[k]) != int(dom0Partitions[k])]
-            if len(diffkeys) == 0:
-                log("Dom0 has expected partition schema: %s" % dom0Partitions)
-                return True
-            else:
-                log("One or more partition size is different from expected. Expected %s. Found %s" % ((partitions,dom0Partitions )))
+            missingPartitions = list(set(partitions.keys())-set(dom0Partitions.keys()))
+            if len(missingPartitions) > 1 or xenrt.TEC().lookup('SR_ON_PRIMARY_DISK', True, boolean=True):
+                log("Number of Partitions in dom0 is different from expected number of partitions. Expected %s. Found %s" % (partitions,dom0Partitions ))
                 return False
+            partitions.pop(missingPartitions[0], None)
+            
+        diffkeys = [k for k in partitions if partitions[k] != "*" and int(partitions[k]) != int(dom0Partitions[k])]
+        if diffkeys:
+            log("One or more partition size is different from expected. Expected %s. Found %s" % ((partitions,dom0Partitions )))
+            return False
+        log("Dom0 has expected partition schema: %s" % dom0Partitions)
+        return True
 
     def checkSafe2Upgrade(self):
         """Function to check if new partitions will be created on upgrade to dundee- CAR-1866"""
@@ -8360,12 +8393,19 @@ rm -f /etc/xensource/xhad.conf || true
                 sftp.close()
 
         step("Call testSafe2Upgrade function and check if its output is as expected")
-        sruuid = self.getLocalSR()
-        vdis = len(self.minimalList("vdi-list", args="sr-uuid=%s" % (sruuid)))
-        log("Number of VDIs on local stotage: %d" % vdis)
-        srsize = int(self.genParamGet("sr", sruuid, "physical-size"))/xenrt.GIGA
-        log("Size of disk: %dGiB" % srsize)
-        expectedOutput = "false" if (vdis > 0 or srsize < 38) and not isinstance(self, xenrt.lib.xenserver.DundeeHost) else "true"
+        sruuid = []
+        sruuid.extend(self.getSRs(type="ext", local=True))
+        sruuid.extend(self.getSRs(type="lvm", local=True))
+        expectedOutput = "true"
+        for sr in sruuid:
+            pbd = self.minimalList("pbd-list",args="sr-uuid=%s" % (sr))[0]
+            localSrOnSda = self.getInventoryItem("PRIMARY_DISK") in self.genParamGet("pbd",pbd,"device-config", "device")
+            if localSrOnSda:
+                vdis = len(self.minimalList("vdi-list", args="sr-uuid=%s" % (sr)))
+                log("Number of VDIs on local stotage: %d" % vdis)
+                srsize = int(self.genParamGet("sr", sr, "physical-size"))/xenrt.GIGA
+                log("Size of disk: %dGiB" % srsize)
+                expectedOutput = "false" if (vdis > 0 or srsize < 38) and not isinstance(self, xenrt.lib.xenserver.DundeeHost) else "true"
         log("Plugin should return: %s" % expectedOutput)
 
         cli = self.getCLIInstance()
@@ -8384,7 +8424,7 @@ rm -f /etc/xensource/xhad.conf || true
         args.append("plugin=prepare_host_upgrade.py")
         args.append("fn=main")
         args.append("args:url=%s/xe-phase-1/" % (xenrt.TEC().lookup("FORCE_HTTP_FETCH") + xenrt.TEC().lookup("INPUTDIR")))
-        output = cli.execute("host-call-plugin", string.join(args), timeout=300).strip()
+        output = cli.execute("host-call-plugin", string.join(args), timeout=480).strip()
         if output != "true":
             raise xenrt.XRTFailure("Unexpected output: %s" % (output))
         xenrt.TEC().logverbose("Expected output: %s" % (output))

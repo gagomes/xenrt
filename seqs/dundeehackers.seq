@@ -11,6 +11,7 @@
         <memory>2048</memory>
         <postinstall action="disableFirewall" />
         <postinstall action="installDrivers" />
+        <postinstall action="snapshot" />
         <network device="0" />
         <network device="1" bridge="internal"/>
         <disk device="0" size="24" />

@@ -74,6 +74,7 @@ class Config(object):
 
         self.config["LOCAL_BASE"] = "/tmp/local"
         self.config["GUEST_CONSOLE_LOGDIR"] = "${LOCAL_BASE}/scratch/xenrt/guest-console-logs"
+        self.config["GENERATE_STATS_BASEDIR"] = "/usr/share/xenrt/stats"
 
         # Networking configuration
         self.config["NETWORK_CONFIG"] = {}
@@ -1843,10 +1844,10 @@ class Config(object):
         self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["lxc"] = self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["kvm"]
 
         self.config["CLOUD_CONFIG"]["4.6.0"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.5.1"])
-        self.config["CLOUD_CONFIG"]["4.6.0"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-05-05-master-4.6.0-xen.vhd.bz2"
-        self.config["CLOUD_CONFIG"]["4.6.0"]["SYSTEM_TEMPLATES"]["kvm"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-05-05-master-4.6.0-kvm.qcow2.bz2"
-        self.config["CLOUD_CONFIG"]["4.6.0"]["SYSTEM_TEMPLATES"]["hyperv"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-05-05-master-4.6.0-hyperv.vhd.zip"
-        self.config["CLOUD_CONFIG"]["4.6.0"]["SYSTEM_TEMPLATES"]["vmware"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-05-05-master-4.6.0-vmware.ova"
+        self.config["CLOUD_CONFIG"]["4.6.0"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-07-22-4.6.0-xen.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["4.6.0"]["SYSTEM_TEMPLATES"]["kvm"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-07-22-4.6.0-kvm.qcow2.bz2"
+        self.config["CLOUD_CONFIG"]["4.6.0"]["SYSTEM_TEMPLATES"]["hyperv"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-07-22-4.6.0-hyperv.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["4.6.0"]["SYSTEM_TEMPLATES"]["vmware"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-07-22-4.6.0-vmware.ova"
         self.config["CLOUD_CONFIG"]["4.6.0"]["SYSTEM_TEMPLATES"]["lxc"] = self.config["CLOUD_CONFIG"]["4.6.0"]["SYSTEM_TEMPLATES"]["kvm"]
 
         # Specify which version 'master' currently maps to

@@ -12925,8 +12925,8 @@ class _WinPEBase(object):
             try:
                 if self.xmlrpc.file_exists("x:\\execdaemonwinpe.py") and not self.xmlrpc.file_exists("x:\\waiting.stamp"):
                     break
-            except:
-                pass
+            except Exception, e:
+                xenrt.TEC().logverbose("Exception: %s" % str(e))
             if xenrt.util.timenow() > deadline:
                 raise xenrt.XRTError("Timed out waiting for WinPE boot")
             xenrt.sleep(15)

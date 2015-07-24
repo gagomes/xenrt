@@ -666,7 +666,7 @@ users:
     def installWindows(self, isoname):
         """Install Windows into a VM"""
         if xenrt.TEC().lookup("WINPE_GUEST_INSTALL", False, boolean=True):
-            winpe = WinPE(self, "amd64" if isoname.endswith("-x64") else "x86")
+            winpe = WinPE(self, "amd64" if isoname.endswith("-x64.iso") else "x86")
             winpe.boot()
             self.changeCD("xs-tools.iso")
             xenrt.TEC().logverbose("WinPE booted, mounting shares")

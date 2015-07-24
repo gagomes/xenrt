@@ -118,6 +118,7 @@ def mountStaticISO(distro, arch=None, filename=None):
     if filename:
         iso = filename
         mountpoint = "/winmedia/%s" % os.path.basename(filename)
+        check = None
     else:
         if os.path.exists("%s/%s.iso" % (xenrt.TEC().lookup("EXPORT_ISO_LOCAL"), distro)):
             iso = "%s/%s.iso" % (xenrt.TEC().lookup("EXPORT_ISO_LOCAL"), distro)
@@ -161,7 +162,7 @@ def mountStaticISO(distro, arch=None, filename=None):
         if not "%s on %s" % (iso, mountpoint) in mounts and (len(loopDevs) == 0 or (not "%s on %s" % (loopDevs[0], mountpoint))):
             sudo("mkdir -p %s" % mountpoint)
             sudo("mount -o loop %s %s" % (iso, mountpoint))
-        else:
+        elif check:
             # Check whether the loop mount has gone bad, and if it has then remount
             try:
                 f = open("%s/%s" % (mountpoint, check))

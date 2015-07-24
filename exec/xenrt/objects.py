@@ -583,6 +583,7 @@ class GenericPlace(object):
     def xmlrpcUpdate(self):
         """Update the test execution daemon to the latest version"""
         xenrt.TEC().logverbose("Updating XML-RPC daemon on %s" % (self.getIP()))
+        self.xmlrpcExec("attrib -r c:\\execdaemon.py")
         f = file("%s/utils/execdaemon.py" %
                  (xenrt.TEC().lookup("LOCAL_SCRIPTDIR")), "r")
         data = f.read()

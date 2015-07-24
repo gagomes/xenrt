@@ -5091,10 +5091,10 @@ class TCFCOEGuestLifeCycle(xenrt.TestCase):
             guest.resume()
 
             snapuuid = guest.snapshot()
-            self.removeTemplate(self.host, snapuuid)
+            self.host.removeTemplate(snapuuid)
             
             checkpointuuid = guest.checkpoint()
-            self.removeTemplate(self.host, checkpointuuid)
+            self.host.removeTemplate(checkpointuuid)
             
             if guest.getState() == "UP":
                 guest.shutdown()

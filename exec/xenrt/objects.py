@@ -30,7 +30,7 @@ time.strptime('2014-06-12','%Y-%m-%d')
 __all__ = ["GenericPlace", "GenericHost", "NetPeerHost", "GenericGuest", "productLib",
            "RunOnLocation", "ActiveDirectoryServer", "PAMServer", "CVSMServer",
            "WlbApplianceServer", "DemoLinuxVM", "ConversionApplianceServer","EventObserver",
-           "XenMobileApplianceServer"]
+           "XenMobileApplianceServer", "_WinPEBase"]
 
 class MyHTTPConnection(httplib.HTTPConnection):
     XENRT_SOCKET_TIMEOUT = 600
@@ -12903,3 +12903,35 @@ class VifOffloadSettings(object):
             # This isn't available for all Windows/XenServer versions.
             return -1
 
+class _WinPEBase(object):
+    def __init__(self):
+        self._xmlrpc = None
+        self.ip = None
+
+    @property
+    def xmlrpc(self):
+        if not self._xmlrpc:
+            if not self.ip:
+                raise xenrt.XRTError("IP not known")
+            self._xmlrpc = xmlrpclib.ServerProxy("http://%s:8080" % self.ip)
+        return self._xmlrpc
+
+    def boot(self):
+        raise xenrt.XRTError("Not implemented")
+
+    def waitForBoot(self):
+        deadline = xenrt.util.timenow() + 1800
+        while True:
+            try:
+                if self.xmlrpc.file_exists("x:\\execdaemonwinpe.py") and not self.xmlrpc.file_exists("x:\\waiting.stamp"):
+                    break
+            except:
+                pass
+            if xenrt.util.timenow() > deadline:
+                raise xenrt.XRTError("Timed out waiting for WinPE boot")
+            xenrt.sleep(15)
+
+    def reboot(self):
+        self.xmlrpc.write_file("x:\\waiting.stamp", "")
+        self.xmlrpc.start_shell("wpeutil reboot")
+        self.waitForBoot()

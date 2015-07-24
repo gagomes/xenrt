@@ -3418,6 +3418,7 @@ fi
     def dom0CPUUsageOverTime(self,secs):
         deadline = xenrt.util.timenow() + secs
         count = 0
+        cpuUsageTotal = 0
         while xenrt.util.timenow() < deadline:
             count += 1
             cpuUsageTotal += dom0CPUUsage()

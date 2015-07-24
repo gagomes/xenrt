@@ -10131,7 +10131,7 @@ while True:
         pass
 
     def setupNetscalerVPX(self, installNSTools=False):
-        netscaler = xenrt.lib.netscaler.NetScaler.setupNetScalerVpx(self, useVIFs=True, license=xenrt.lib.netscaler.NetScaler.getLicenseFileFromXenRT())
+        netscaler = xenrt.lib.netscaler.NetScaler.setupNetScalerVpx(self, useExistingVIFs=True, license=xenrt.lib.netscaler.NetScaler.getLicenseFileFromXenRT())
         xenrt.GEC().registry.objPut("netscaler", self.name, netscaler)
         if installNSTools:
             netscaler.installNSTools()

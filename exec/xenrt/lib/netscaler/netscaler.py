@@ -12,7 +12,7 @@ class NetScaler(object):
     """Class that provides an interface for creating, controlling and observing a NetScaler VPX"""
 
     @classmethod
-    def setupNetScalerVpx(cls, vpx, useVIFs=False, networks=["NPRI"], license=None):
+    def setupNetScalerVpx(cls, vpx, useExistingVIFs=False, networks=["NPRI"], license=None):
         """Takes a VM name (present in the registry) and returns a NetScaler object"""
         if isinstance(vpx, basestring):
             vpxGuest = xenrt.TEC().registry.guestGet(vpx)
@@ -40,18 +40,14 @@ class NetScaler(object):
             if vpxGuest.getState() == 'UP':
                 vpxGuest.shutdown()
 
-            if not useVIFs:
+            if not useExistingVIFs:
                 # Configure the VIFs
                 vpxGuest.removeAllVIFs()
                 for n in networks:
+                    # createVIF() method still lacks support for NSEC on non-xenserver hypervisors
                     vpxGuest.createVIF(bridge=n)
             else:
-                if isinstance(vpxGuest, xenrt.lib.xenserver.Guest):
-                    networks = [vpxGuest.getNetworkNameForVIF(x[0]) for x in vpxGuest.vifs]
-                elif isinstance(vpxGuest, xenrt.lib.esx.Guest):
-                    networks = [x[1] for x in vpxGuest.vifs]
-                else:
-                    warning("Unimplemented Section: Unable to determine xenrt network type for guest vifs. Continuing with 'NPRI'")
+                networks = [host.getNICNetworkName(host.getAssumedId(x[1])) for x in vpxGuest.vifs]
 
             networks_sriov = [x[1] for x in vpxGuest.sriovvifs]
 

@@ -3421,7 +3421,7 @@ fi
         cpuUsageTotal = 0
         while xenrt.util.timenow() < deadline:
             count += 1
-            cpuUsageTotal += dom0CPUUsage()
+            cpuUsageTotal += self.dom0CPUUsage()
         return float(cpuUsageTotal) / float(count)
 
     def getXentopData(self):

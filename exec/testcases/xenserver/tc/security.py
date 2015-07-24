@@ -3245,7 +3245,7 @@ class VMSecurityFacade(object):
         return float(self._VM.asXapiObject().cpuUsage['0'])*100
 
     def getHostCPUUsage(self):
-        return self._VM.host.dom0CPUUsage()
+        return self._VM.host.dom0CPUUsageOverTime(60)
 
     def shutdown(self):
         self._VM.shutdown()
@@ -3385,8 +3385,16 @@ class TCHackersChoiceIPv6FloodRouter(xenrt.TestCase):
         #--------------------------
         step("Check Health of all victim vms")
         #--------------------------
+        deadVictims = 0
         for victim in victims:
-            victim.healthStatus()
+            try:
+                victim.healthStatus()
+            except:
+                log("problem checking %s healthStatus" % victim.getName())
+                deadVictims += 1
+
+        if deadVictims > 1:
+            raise xenrt.XRTFailure("%d victims failed to recover from attack" % deadVictims)
 
 
 class TCBadPackets(xenrt.TestCase):

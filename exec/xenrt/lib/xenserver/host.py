@@ -3415,6 +3415,14 @@ fi
         cpuUsage = usage["0"]["CPU(%)"]
         return float(cpuUsage)
 
+    def dom0CPUUsageOverTime(self,secs):
+        deadline = xenrt.util.timenow() + secs
+        count = 0
+        while xenrt.util.timenow() < deadline:
+            count += 1
+            cpuUsageTotal += dom0CPUUsage()
+        return float(cpuUsageTotal) / float(count)
+
     def getXentopData(self):
         data = self.execdom0("xentop -f -b -i 2").strip()
         data = [ re.split("[\s]+", x.strip()) for x in data.split("\n") ]

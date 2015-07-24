@@ -12910,7 +12910,7 @@ class _WinPEBase(object):
 
     @property
     def xmlrpc(self):
-        if not self._xmlrpc:
+        if self._xmlrpc != None:
             if not self.ip:
                 raise xenrt.XRTError("IP not known")
             self._xmlrpc = xmlrpclib.ServerProxy("http://%s:8080" % self.ip)

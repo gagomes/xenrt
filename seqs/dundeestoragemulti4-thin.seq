@@ -1,0 +1,71 @@
+<xenrt>
+
+  <!-- 4 host multipath tests  -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0">
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <NIC/>
+          <VLAN network="VR01">
+            <STORAGE/>
+          </VLAN>
+          <MANAGEMENT/>
+        </PHYSICAL>
+        <PHYSICAL network="NSEC">
+          <NIC/>
+          <VLAN network="VR02">
+            <STORAGE/>
+          </VLAN>
+          <STORAGE/>
+        </PHYSICAL>
+      </NETWORK>
+    </host>
+    <pool id="0">
+      <host id="1"/>
+      <host id="2"/>
+      <host id="3"/>
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <NIC/>
+          <VLAN network="VR01">
+            <STORAGE/>
+          </VLAN>
+          <MANAGEMENT/>
+        </PHYSICAL>
+        <PHYSICAL network="NSEC">
+          <NIC/>
+          <VLAN network="VR02">
+            <STORAGE/>
+          </VLAN>
+          <STORAGE/>
+        </PHYSICAL>
+      </NETWORK>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="TC-7803">
+      <testcase id="xenserver.tc.multipath.TC9088" sku="thin">
+        <arg>thin=yes</arg>
+      </testcase>
+      <testcase id="xenserver.tc.multipath.TC9084" sku="thin">
+        <arg>thin=yes</arg>
+      </testcase>
+    </serial>
+    <serial>
+      <finally>
+        <testcase id="guestops.basic.TCShutdown" sku="thin">
+          <arg>guest=controller</arg>
+          <arg>again</arg>
+        </testcase>
+      </finally>
+    </serial>
+  </testsequence>
+
+</xenrt>
+

@@ -411,6 +411,7 @@ class SMAPIv3LocalStorageRepository(StorageRepository):
             self.host.execdom0("sgdisk -Z /dev/%s" % device)
             partition = 1
         else:
+            device = self.host.execdom0("source /etc/xensource-inventory; echo $PRIMARY_DISK | sed 's#/dev/##'").strip()
             partition = int(self.host.execdom0("sgdisk -p /dev/%s| tail -1 | awk '{print $1}'" % device).strip()) + 1
         self.host.execdom0("sgdisk -N %d /dev/%s" % (partition, device))
         self.host.execdom0("partprobe")

@@ -1,0 +1,13 @@
+<xenrt>
+  <variables>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+  </variables>
+  <prepare>
+    <host id="0" installsr="ext" />
+  </prepare>
+
+  <testsequence>
+    <testcase id="xenserver.tc.filebasedsr.TCFileBasedSRProperty" tc="TC-27135"/>
+  </testsequence>
+</xenrt>

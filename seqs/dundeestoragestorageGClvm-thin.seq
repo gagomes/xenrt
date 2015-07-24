@@ -1,0 +1,29 @@
+<xenrt>
+
+  <!-- LVM/LVMoISCSI storage GC/coalesce tests-->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <FINALLY_UNINSTALL>yes</FINALLY_UNINSTALL>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool>
+      <host id="0"/>
+      <host id="1"/>
+      <storage type="lvmoiscsi" name="iscsisr" default="false" options="thin"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="iSCSI">
+      <testcase id="xenserver.tc.vhd.TC8578" sku="thin" />
+      <testcase id="xenserver.tc.vhd.TC8587" sku="thin" />
+      <testcase id="xenserver.tc.vhd.TC8588" sku="thin" />
+      <testcase id="xenserver.tc.vhd.TC8589" sku="thin" />
+    </serial>
+  </testsequence>
+
+</xenrt>

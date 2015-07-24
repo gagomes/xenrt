@@ -14,6 +14,54 @@ import datetime
 import itertools, functools
 from xenrt.lazylog import step, comment, log
 
+class VersionChecks(xenrt.TestCase):
+    # TC-27139
+    '''early warning system that checks version details are correct for the preflight checks'''
+
+    def __init__(self,tcid=None, anon=False):
+        super(VersionChecks,self).__init__(tcid,anon)
+        self.__pass = False
+        self.__count = 0
+
+    def compare(self, conRet, compareTo, file):
+        if conRet == compareTo:
+            log(file + " version: " + conRet + " is correct")
+        else:
+            log("version details wrong(%s) in %s" % (conRet, file))
+            self.__pass = False
+            self.__count += 1
+
+    def run(self, arglist):
+        host = self.getDefaultHost()
+
+        revision = host.productRevision
+        version = revision.split("-")[0]
+        build = revision.split("-")[1]
+
+        redHatVer = host.execdom0("cat /etc/redhat-release").rstrip('\n')
+        redHatVer = redHatVer[18:18+len(version)]
+        self.compare(redHatVer, version,"/etc/redhat-release")
+
+        consoleVer = host.execdom0("grep \"Citrix XenServer Host\" /etc/issue").rstrip('\n')
+        consoleVer = consoleVer[22:]
+        self.compare(consoleVer,revision, "/etc/issue and on console")
+
+        readMeVer = host.execdom0("grep -o -P \"\d\.\d+\.\d+\" /Read_Me_First.html").rstrip('\n').split()
+        for r in readMeVer:
+            self.compare(r,version, "/ReadMeFirst.html")
+
+        citrixIndexVer = host.execdom0("grep -o -P \"\d\.\d+\.\d+\" /opt/xensource/www/Citrix-index.html").rstrip('\n').split()
+        self.compare(citrixIndexVer[0],version, "/opt/xensource/www/Citrix-index.html")
+        self.compare(citrixIndexVer[1],revision, "/opt/xensource/www/Citrix-index.html")
+
+        indexVer = host.execdom0("grep -o -P \"\d\.\d+\.\d+\" /opt/xensource/www/index.html").rstrip('\n').split()
+        self.compare(indexVer[0],version, "/opt/xensource/www/index.html")
+        self.compare(indexVer[1],revision, "/opt/xensource/www/index.html")
+
+        if not self.__pass:
+            raise xenrt.XRTFailure("%i incorrect entries logged above" % self.__count)
+
+
 class TC6858(xenrt.TestCase):
     """Veryify KERNEL_VERSION in /etc/xensource-inventory matches the
     running dom0 kernel"""

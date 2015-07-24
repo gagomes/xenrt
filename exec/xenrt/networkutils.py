@@ -280,9 +280,9 @@ Hacker's choice packages for running IPv6 network attacks
 class HackersChoiceUbuntuPackage(object):
     __metaclass__ = ABCMeta
     
-    PACKAGE = "thc-ipv6-2.3.tgz"
+    PACKAGE = "thc-ipv6-2.7.tgz"
     TARGET_ROOT = "/"
-    TARGET_PATH = "/thc-ipv6-2.3"
+    TARGET_PATH = "/thc-ipv6-2.7"
     
     @abstractmethod
     def run(self, guest): pass
@@ -313,24 +313,27 @@ class HackersChoiceFirewall6Ubuntu(HackersChoiceUbuntuPackage):
     TEST = "firewall6"
     __NUMBER_OF_TESTS = 38 #Tests run from 1 to 38
     
-    def __init__(self, interface, targetipv6, tcpPort = 80):
+    def __init__(self, interface, attacker = None, tcpPort = 80):
         self.__interface = interface
-        self.__targetipv6 = targetipv6
         self.__tcpPort = tcpPort
         self.__results = []
-        
+        self.__attacker = attacker
+
     def testCasesIds(self):
         return range(1, self.__NUMBER_OF_TESTS + 1)
     
-    def run(self, guest):
-        [self.runtestcase(guest, x) for x in self.testCasesIds()]
+    def setIPv6Address(self, targetipv6):
+        self.__targetipv6 = targetipv6
+
+    def run(self):
+        [self.runtestcase(self.__attacker, x) for x in self.testCasesIds()]
             
-    def runtestcase(self, guest, testcaseId):
+    def runtestcase(self, testcaseId):
         self.__results = []
 
-        step("Running firewall6 test case %d on guest %s" % (testcaseId, guest))
+        step("Running firewall6 test case %d on guest %s" % (testcaseId, self.__attacker))
         
-        self.__results.append(guest.execguest("%s/%s %s %s %d %d" % (self.TARGET_PATH, self.TEST, self.__interface, self.__targetipv6, self.__tcpPort, testcaseId)))
+        self.__results.append(self.__attacker.execguest("%s/%s %s %s %d %d" % (self.TARGET_PATH, self.TEST, self.__interface, self.__targetipv6, self.__tcpPort, testcaseId)))
             
     def results(self):
         return self.__results

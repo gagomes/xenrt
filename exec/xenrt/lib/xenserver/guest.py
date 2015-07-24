@@ -342,9 +342,12 @@ class Guest(xenrt.GenericGuest):
                                      "(arch %s)" % (distro, arch))
 
         self.isoname = isoname
-        if self.memory and self.isoname and ([i for i in ["win81","ws12r2"] if i in self.isoname]) and \
-                not isinstance(self, xenrt.lib.xenserver.guest.CreedenceGuest):
-            rootdisk = max(32768, 20480 + self.memory)
+        if self.memory and self.isoname and ([i for i in ["win81","ws12r2"] if i in self.isoname]):
+            if rootdisk == self.DEFAULT:
+                rootdisk = max(32768, 20480 + self.memory)
+            else:
+                rootdisk = max(32768, 20480 + self.memory, rootdisk)
+            xenrt.TEC().logverbose("Increasing root disk to %d" % rootdisk)
 
         if distro:
             self.distro = distro
@@ -485,29 +488,10 @@ class Guest(xenrt.GenericGuest):
             nfsdir = None
             nfssr = None
             if pxe:
-                if distro == "debiantesting":
-                    cdname = "%s.iso" % str(uuid.uuid4())
-                    nfsdir = xenrt.NFSDirectory()
-                    darch = "amd64" if "64" in self.arch else "i386"
-                    iarch = "amd" if "64" in self.arch else "386"
-                    xenrt.GEC().filemanager.getSingleFile("http://cdimage.debian.org/cdimage/daily-builds/daily/arch-latest/%s/iso-cd/debian-testing-%s-netinst.iso" % (darch, darch), "%s/%s" % (nfsdir.path(), cdname))
-                    nfssr = xenrt.lib.xenserver.ISOStorageRepository(self.getHost(), "debtesting-%s" % cdname)
-                    server, path = nfsdir.getHostAndPath("")
-                    nfssr.create(server, path)
-                    nfssr.scan()
-                    self.changeCD(cdname)
-                    m = xenrt.MountISO("%s/%s" % (nfsdir.path(), cdname))
-                    nfsdir.copyIn("%s/install.%s/vmlinuz" % (m.getMount(), iarch))
-                    nfsdir.copyIn("%s/install.%s/initrd.gz" % (m.getMount(), iarch))
-                    m.unmount()
-                    options["installer_kernel"] = "%s/vmlinuz" % nfsdir.path()
-                    options["installer_initrd"] = "%s/initrd.gz" % nfsdir.path()
-                    self.paramSet("HVM-boot-params-order", "cn")
-                else:
-                    try:
-                        self.insertToolsCD()
-                    except:
-                        pass
+                try:
+                    self.insertToolsCD()
+                except:
+                    pass
 
             # Install using the vendor installer.
             self.installVendor(distro,
@@ -2532,6 +2516,7 @@ exit /B 1
                                        "vm-uuid=%s type=Disk" % 
                                        (self.getUUID()))
 
+        self.setState("DOWN")
         if destroyDisks:
             self.destroyAdditionalDisks()
         self.lifecycleOperation("vm-uninstall", force=True)
@@ -3493,7 +3478,7 @@ exit /B 1
                         reason = "Windows STOP error [%s] in [%s]" % (code, driver)
                 elif xenrt.TEC().lookup("PAUSE_ON_BSOD", False, boolean=True):
                         xenrt.TEC().tc.pause("BSOD Detected - pausing")
-                xenrt.TEC().comment(reason)
+                xenrt.TEC().comment(reason + " on domid " + str(domid) + " on host " + self.getHost().getName())
                 raise xenrt.XRTFailure(reason)
 
     def checkHealth(self, unreachable=False, noreachcheck=False, desc=""):
@@ -5709,7 +5694,7 @@ class TampaGuest(BostonGuest):
         self.changeCD(None)
         xenrt.sleep(5)
 
-    def sxmVMMigrate(self,migrateParameters,pauseAfterMigrate=True,timeout = 3600):
+    def sxmVMMigrate(self,migrateParameters,pauseAfterMigrate=True,timeout = 3600,hostSessions=None):
 
         # This is the lib call for Storage Xen Motion Migrate
         #
@@ -5727,16 +5712,20 @@ class TampaGuest(BostonGuest):
         # Returns the object of observer
 
         eventClass = []
-
         xenrt.TEC().logverbose("Migrate Parameters: %s" % migrateParameters)
 
         if not migrateParameters.has_key("VDI_SR_map") or not migrateParameters.has_key("dest_host"):
             raise xenrt.XRTError("Essential parameters are not given")
 
         host = self.getHost()
-        session = host.getAPISession(secure=False)
-
         destHost = migrateParameters["dest_host"]
+
+        if hostSessions:
+            sourceSession=hostSessions[host.getName()]
+            destSession=hostSessions[destHost.getName()]
+        else:
+            sourceSession = host.getAPISession(secure=False)
+            destSession = destHost.getAPISession(secure=False)
 
         if not migrateParameters.has_key("Migrate_Network") or not migrateParameters["Migrate_Network"]:
             migrateParameters["Migrate_Network"] = destHost.getManagementNetworkUUID()
@@ -5744,18 +5733,18 @@ class TampaGuest(BostonGuest):
         xenrt.TEC().logverbose("Source Host uuid: %s,"
                                 "Destination Host uuid: %s," % (host.getMyHostUUID(),destHost.getMyHostUUID()))
 
-        destSession = destHost.getAPISession(secure=False)
         eventClass.append("task")
 
         if host <> destHost:
-            taskRef = self.vmLiveMigrate(migrateParameters,pauseAfterMigrate,session,destSession)
+            taskRef = self.vmLiveMigrate(migrateParameters,pauseAfterMigrate,sourceSession,destSession)
         else:
             #Might be different for VDI Migrate
-            taskRef = self.vdiLiveMigrate(migrateParameters,session)           
-        sxmObs = StorageMotionObserver(host, session,eventClass,taskRef,timeout)
+            taskRef = self.vdiLiveMigrate(migrateParameters,sourceSession)           
+        sxmObs = StorageMotionObserver(host, sourceSession,eventClass,taskRef,timeout)
         sxmObs.startObservingSXMMigrate(self,destHost,destSession)
 
         return sxmObs
+
 
     def vmLiveMigrate(self,migrateParameters,pauseAfterMigrate,session,destSession):
 

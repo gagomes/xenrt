@@ -16,9 +16,10 @@ from xenrt.lazylog import step, comment, log
 
 class VersionChecks(xenrt.TestCase):
     # TC-27139
+    '''early warning system that checks version details are correct for the preflight checks'''
 
-    def __init__(self):
-        super(VersionChecks,self).__init__()
+    def __init__(self,tcid=None, anon=False):
+        super(VersionChecks,self).__init__(tcid,anon)
         self.__pass = False
         self.__count = 0
 

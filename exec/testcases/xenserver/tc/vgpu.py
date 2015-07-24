@@ -4670,7 +4670,7 @@ class TCLinuxStress(FunctionalBase):
                 ((total - running), total))
 
         while time.time() - start < self.duration:
-            xenrt.sleep(60) # Should be "60 * 60", for 1 hour sleeps. Using 1 minute for testing.
+            xenrt.sleep(60 * 60)
             running = wlm.check()
             xenrt.TEC().logverbose("%d / %d guests are running workloads" % (running, total))
             if running == 0:

@@ -670,7 +670,7 @@ users:
             winpe.boot()
             self.changeCD("xs-tools.iso")
             xenrt.TEC().logverbose("WinPE booted, mounting shares")
-            mount = xenrt.mountStaticISO(isoname[:-4])
+            mount = xenrt.mountStaticISO(isoname[:-4], xenrt.TEC().lookup("CUSTOM_WINDOWS_ISO", None))
             nfsdir = xenrt.NFSDirectory()
             xenrt.command("ln -sfT %s %s/iso" % (mount, nfsdir.path()))
 

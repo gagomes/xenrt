@@ -677,18 +677,18 @@ users:
             else:
                 isoMount = tailorMount
             nfsdir = xenrt.NFSDirectory()
-            xenrt.command("ln -sfT %s %s/iso" % (mount, nfsdir.path()))
+            xenrt.command("ln -sfT %s %s/iso" % (isoMount, nfsdir.path()))
 
             os.makedirs("%s/custom" % nfsdir.path())
             customUnattend = xenrt.TEC().lookup("CUSTOM_UNATTEND_FILE", None)
             if customUnattend:
                 xenrt.GEC().filemanager.getSingleFile(customUnattend, "%s/custom/Autounattend.xml" % nfsdir.path())
             else:
-                shutil.copy("%s/iso/Autounattend.xml" % nfsdir.path(), "%s/custom/Autounattend.xml" % nfsdir.path())
+                shutil.copy("%s/Autounattend.xml" % tailorMount, "%s/custom/Autounattend.xml" % nfsdir.path())
 
                 xenrt.command("""sed -i "s#<CommandLine>.*</CommandLine>#<CommandLine>c:\\\\\\\\install\\\\\\\\runonce.cmd</CommandLine>#" %s/custom/Autounattend.xml""" % nfsdir.path())
             
-            shutil.copytree("%s/iso/$OEM$" % nfsdir.path(), "%s/custom/oem" % nfsdir.path())
+            shutil.copytree("%s/$OEM$" % tailorMount, "%s/custom/oem" % nfsdir.path())
             xenrt.command("chmod u+w %s/custom/oem/\\$1/install" % nfsdir.path())
 
             with open("%s/custom/oem/$1/install/runonce.cmd" % nfsdir.path(), "w") as f:

@@ -1,0 +1,34 @@
+<xenrt>
+  <variables>
+    <ENABLE_MULTICAST>yes</ENABLE_MULTICAST>
+    <MELIO_PATH>6.0.0.47080/citrix-warm-drive-setup.exe</MELIO_PATH>
+    <USE_PREBUILT_TEMPLATES>yes</USE_PREBUILT_TEMPLATES>
+  </variables>
+
+  <prepare>
+    <host id="0">
+      <vm name="iscsi">
+        <distro>centos71</distro>
+        <arch>x86-64</arch>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="30" />
+      </vm>
+      <vm name="win1">
+        <distro>ws12r2-x64</distro>
+        <memory>4096</memory>
+        <vcpus>4</vcpus>
+        <network device="0" />
+        <disk device="0" size="32" />
+        <postinstall action="installDrivers" />
+      </vm>
+    </host>
+  </prepare>
+  <testsequence>
+    <serial group="Setup" blocker="yes">
+      <testcase id="xenserver.melio.TCWindowsMelioSetup" name="MelioSetup" blocker="yes" />
+    </serial>
+  </testsequence>
+</xenrt>
+

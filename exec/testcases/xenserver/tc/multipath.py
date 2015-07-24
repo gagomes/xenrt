@@ -4856,3 +4856,78 @@ class TCValidatePathCount(_TC8159):
     def postRun(self):
         self.getDefaultHost().enableFCPort(1)
         _TC8159.postRun(self)
+
+class VerifyMultipathSetup(_TC8159):
+    """Multipathing setup and SR creation using FCOE (lvmofcoe) SR"""
+    PATHS = 2 # 2 paths
+    MORE_PATHS_OK = True
+    
+    def createSR(self, host):
+        fcoesr = host.lookup("SR_FC", "yes")
+        if fcoesr == "yes":
+            fcoesr = "LUN0"
+        self.scsiid = host.lookup(["FC", fcoesr, "SCSIID"], None)
+        sr = xenrt.lib.xenserver.FCOEStorageRepository(host, "fcoe")
+        sr.create(self.scsiid,multipathing=True)
+        return sr
+        
+class TCValidateFCOEMultipathPathCount(_TC8159):
+    """Validate active/total paths of FCOE multipath SR after dropping paths"""
+    PATHS = 2 # 2 paths
+    MORE_PATHS_OK = True
+    PATH_INDICES = [0,1]
+    
+    def createSR(self, host):
+        fcoesr = host.lookup("SR_FC", "yes")
+        if fcoesr == "yes":
+            fcoesr = "LUN0"
+        self.scsiid = host.lookup(["FC", fcoesr, "SCSIID"], None)
+        self.sr = xenrt.lib.xenserver.FCOEStorageRepository(host, "fcoe")
+        self.sr.create(self.scsiid,multipathing=True)
+        return sr
+
+    def disableEthPort(self, pathindex):
+        
+        xenrt.TEC().logverbose("Failing the path %d" % pathindex)
+        
+        mac = self.host.getNICMACAddress(self.host.bootNics[pathindex])
+        self.host.disableNetPort(mac)
+
+    def enableEthPort(self, pathindex):
+              
+        xenrt.TEC().logverbose("Recovering the the path %d" % pathindex)
+        
+        mac = self.host.getNICMACAddress(self.host.bootNics[pathindex])
+        self.host.enableNetPort(mac)
+        
+    def run(self, arglist=None):
+        _TC8159.run(self, arglist)
+        self.host = self.getDefaultHost()
+        
+        totalPaths = len(self.host.getMultipathInfo()[self.scsiid])
+        activePaths = len(self.host.getMultipathInfo(onlyActive=True)[self.scsiid])
+        expectedPaths = [activePaths-2, totalPaths] # -2 because, the number of paths depends on the physical configuration.
+        
+        for i in PATH_INDICES:
+            step("Drop one path by disabling port")
+            self.disableEthPath(i)
+            xenrt.sleep(60)
+        
+            step("Verify active and  total paths")
+            pbd = host.parseListForUUID("pbd-list",
+                                        "sr-uuid",
+                                        self.sr.uuid,
+                                        "host-uuid=%s" % (self.host.getMyHostUUID()))
+            actualPaths = self.host.getMultipathCounts(pbd, self.scsiid)
+            if expectedPaths != actualPaths:
+                raise xenrt.XRTFailure("Multipaths not as expected: Expected:"
+                                       "%d of %d paths active, Actual; %d of %d paths active" %
+                                       (expectedPaths[0], expectedPaths[1], actualPaths[0], actualPaths[1]))
+            else:
+                xenrt.TEC().logverbose("Multipaths as expected: %d of %d active" % (actualPaths[0], actualPaths[1]))
+            
+            self.enableEthPort(i)
+
+    def postRun(self):
+        _TC8159.postRun(self)
+

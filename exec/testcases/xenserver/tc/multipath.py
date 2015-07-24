@@ -4857,7 +4857,7 @@ class TCValidatePathCount(_TC8159):
         self.getDefaultHost().enableFCPort(1)
         _TC8159.postRun(self)
 
-class VerifyMultipathSetup(_TC8159):
+class TCVerifyMultipathSetup(_TC8159):
     """Multipathing setup and SR creation using FCOE (lvmofcoe) SR"""
     PATHS = 2 # 2 paths
     MORE_PATHS_OK = True

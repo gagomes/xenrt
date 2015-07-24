@@ -343,7 +343,11 @@ class Guest(xenrt.GenericGuest):
 
         self.isoname = isoname
         if self.memory and self.isoname and ([i for i in ["win81","ws12r2"] if i in self.isoname]):
-            rootdisk = max(32768, 20480 + self.memory)
+            if rootdisk == self.DEFAULT:
+                rootdisk = max(32768, 20480 + self.memory)
+            else:
+                rootdisk = max(32768, 20480 + self.memory, rootdisk)
+            xenrt.TEC().logverbose("Increasing root disk to %d" % rootdisk)
 
         if distro:
             self.distro = distro

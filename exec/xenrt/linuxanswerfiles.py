@@ -303,7 +303,7 @@ logvol swap --name=lv_swap --vgname=VolGroup --grow --size=1008 --maxsize=2016
 
 %%packages
 @ core
-@ development-tools
+@ development
 @ standard
 bridge-utils
 lvm2

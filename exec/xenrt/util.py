@@ -1608,7 +1608,7 @@ def getLinuxRepo(distro, arch, method, default=xenrt.XRTError):
             if arch == "x86-32":
                 farch = "i386"
             else:
-                farch = arch
+                farch = "x86_64"
             return "%s/%s/os" % (xenrt.TEC().lookup(["FEDORA_REPO", distro], default=default), farch)
         elif distro.startswith("coreos"):
             channel = distro.split("-")[1]

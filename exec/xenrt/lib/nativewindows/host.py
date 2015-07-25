@@ -226,8 +226,8 @@ class WindowsHost(xenrt.GenericHost):
         netcfg = xenrt.TEC().lookup(["NETWORK_CONFIG", "DEFAULT"])
         cmd = "netsh interface ip set address \"%s\" static %s %s %s 1" % (ifname,
                                                                            self.machine.ipaddr,
-                                                                           netcfg['SUBNETMASK'],
-                                                                           netcfg['GATEWAY'])
+                                                                           data[ifname]['Subnet Mask'],
+                                                                           [x for x in data[ifname]['Default Gateway'].split() if re.match("\d+\.\d+\.\d+\.\d+", x)][0])
 
         ref = self.xmlrpcStart(cmd)
         deadline = xenrt.timenow() + 120

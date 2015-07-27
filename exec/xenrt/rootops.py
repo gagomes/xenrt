@@ -8,7 +8,7 @@
 # conditions as licensed by XenSource, Inc. All other rights reserved.
 #
 
-import string, sys, os, tempfile, traceback, stat, shutil, time
+import string, sys, os, tempfile, traceback, stat, shutil, time, os.path
 import xenrt, xenrt.util
 
 # Symbols we want to export from the package.
@@ -111,36 +111,41 @@ class MountSMB(Mount):
     def __init__(self, smb, domain, username, password, retry=True):
         Mount.__init__(self, "//%s" % smb.replace(":/","/"), options="username=%s,password=%s,domain=%s" % (username, password, domain), mtype="cifs", retry=retry)
 
-def mountStaticISO(distro, arch=None):
+def mountStaticISO(distro, arch=None, filename=None):
     """Mount a static ISO globally for the controller"""
 
     isolock = xenrt.resources.CentralResource()
-    if os.path.exists("%s/%s.iso" % (xenrt.TEC().lookup("EXPORT_ISO_LOCAL"), distro)):
-        iso = "%s/%s.iso" % (xenrt.TEC().lookup("EXPORT_ISO_LOCAL"), distro)
-        check = "Autounattend.xml"
-        mountpoint = "/winmedia/%s" % distro
+    if filename:
+        iso = filename
+        mountpoint = "/winmedia/%s" % os.path.basename(filename)
+        check = None
     else:
-        stem = "%s/%s_%s" % (xenrt.TEC().lookup("EXPORT_ISO_LOCAL_STATIC"), xenrt.TEC().lookup(["OS_INSTALL_ISO", distro], distro), arch)
-        if not os.path.exists("%s.iso" % stem):
-            stem = "%s_xenrtinst" % stem
-        iso = "%s.iso" % stem
-        if distro.startswith("sle"):
-            check="README"
-        elif distro.startswith("sol"):
-            check="Copyright"
+        if os.path.exists("%s/%s.iso" % (xenrt.TEC().lookup("EXPORT_ISO_LOCAL"), distro)):
+            iso = "%s/%s.iso" % (xenrt.TEC().lookup("EXPORT_ISO_LOCAL"), distro)
+            check = "Autounattend.xml"
+            mountpoint = "/winmedia/%s" % distro
         else:
-            check="isolinux/isolinux.cfg"
-        mountpoint = "/linmedia/%s_%s" % (distro, arch)
-    attempts = 0
-    while True:
-        try:
-            isolock.acquire("STATIC_ISO_%s" % distro)
-            break
-        except:
-            xenrt.sleep(10)
-            attempts += 1
-            if attempts > 6:
-                raise xenrt.XRTError("Couldn't get Windows ISO lock.")
+            stem = "%s/%s_%s" % (xenrt.TEC().lookup("EXPORT_ISO_LOCAL_STATIC"), xenrt.TEC().lookup(["OS_INSTALL_ISO", distro], distro), arch)
+            if not os.path.exists("%s.iso" % stem):
+                stem = "%s_xenrtinst" % stem
+            iso = "%s.iso" % stem
+            if distro.startswith("sle"):
+                check="README"
+            elif distro.startswith("sol"):
+                check="Copyright"
+            else:
+                check="isolinux/isolinux.cfg"
+            mountpoint = "/linmedia/%s_%s" % (distro, arch)
+        attempts = 0
+        while True:
+            try:
+                isolock.acquire("STATIC_ISO_%s" % distro)
+                break
+            except:
+                xenrt.sleep(10)
+                attempts += 1
+                if attempts > 6:
+                    raise xenrt.XRTError("Couldn't get Windows ISO lock.")
     try:
         # Check the ISO isn't directly mounted and there's no loopback mount for that ISO
         mounts = xenrt.command("mount")
@@ -157,7 +162,7 @@ def mountStaticISO(distro, arch=None):
         if not "%s on %s" % (iso, mountpoint) in mounts and (len(loopDevs) == 0 or (not "%s on %s" % (loopDevs[0], mountpoint))):
             sudo("mkdir -p %s" % mountpoint)
             sudo("mount -o loop %s %s" % (iso, mountpoint))
-        else:
+        elif check:
             # Check whether the loop mount has gone bad, and if it has then remount
             try:
                 f = open("%s/%s" % (mountpoint, check))

@@ -665,12 +665,47 @@ users:
 
     def installWindows(self, isoname):
         """Install Windows into a VM"""
-        self.changeCD(isoname)
+        if xenrt.TEC().lookup("WINPE_GUEST_INSTALL", False, boolean=True):
+            winpe = WinPE(self, "amd64" if isoname.endswith("-x64.iso") else "x86")
+            winpe.boot()
+            self.changeCD("xs-tools.iso")
+            xenrt.TEC().logverbose("WinPE booted, mounting shares")
+            customIso = xenrt.TEC().lookup("CUSTOM_WINDOWS_ISO", None)
+            tailorMount = xenrt.mountStaticISO(isoname[:-4])
+            if customIso:
+                isoMount = xenrt.mountStaticISO(isoname[:-4], filename=customIso)
+            else:
+                isoMount = tailorMount
+            nfsdir = xenrt.NFSDirectory()
+            xenrt.command("ln -sfT %s %s/iso" % (isoMount, nfsdir.path()))
 
-        # Start the VM to install from CD
-        xenrt.TEC().progress("Starting VM %s for unattended install" % self.name)
+            os.makedirs("%s/custom" % nfsdir.path())
+            customUnattend = xenrt.TEC().lookup("CUSTOM_UNATTEND_FILE", None)
+            if customUnattend:
+                xenrt.GEC().filemanager.getSingleFile(customUnattend, "%s/custom/Autounattend.xml" % nfsdir.path())
+            else:
+                shutil.copy("%s/Autounattend.xml" % tailorMount, "%s/custom/Autounattend.xml" % nfsdir.path())
 
-        self.lifecycleOperation("vm-start")
+                xenrt.command("""sed -i "s#<CommandLine>.*</CommandLine>#<CommandLine>c:\\\\\\\\install\\\\\\\\runonce.cmd</CommandLine>#" %s/custom/Autounattend.xml""" % nfsdir.path())
+            
+            shutil.copytree("%s/$OEM$" % tailorMount, "%s/custom/oem" % nfsdir.path())
+            xenrt.command("chmod u+w %s/custom/oem/\\$1/install" % nfsdir.path())
+
+            with open("%s/custom/oem/$1/install/runonce.cmd" % nfsdir.path(), "w") as f:
+                f.write("%systemdrive%\install\python\python.cmd\r\n")
+                f.write("EXIT\r\n")
+            winpe.xmlrpc.exec_shell("net use y: %s\\iso" % nfsdir.getCIFSPath()) 
+            winpe.xmlrpc.exec_shell("net use z: %s\\custom" % nfsdir.getCIFSPath()) 
+            xenrt.TEC().logverbose("Starting installer")
+            # Mount the install share and start the installer
+            winpe.xmlrpc.start_shell("y:\\setup.exe /unattend:z:\\autounattend.xml /m:z:\\oem")
+        else:
+            self.changeCD(isoname)
+
+            # Start the VM to install from CD
+            xenrt.TEC().progress("Starting VM %s for unattended install" % self.name)
+
+            self.lifecycleOperation("vm-start")
 
         # Monitor ARP to see what IP address it gets assigned and try
         # to SSH to the guest on that address
@@ -6710,3 +6745,32 @@ def shutdownMulti(guestlist, timeout=None, clitimeout=7200, timer=None):
         xenrt.sleep(15)
 
     xenrt.TEC().logverbose("Shutdown %u guests" % (len(guestlist)))
+
+class WinPE(xenrt._WinPEBase):
+    def __init__(self, guest, arch):
+        super(WinPE, self).__init__()
+        self.guest = guest
+        self.arch = arch
+
+    def boot(self):
+        self.guest.changeCD("winpe-%s.iso" % self.arch)
+        # Start the VM to install from CD
+        xenrt.TEC().progress("Starting VM %s for WinPE" % self.guest.name)
+
+        self.guest.lifecycleOperation("vm-start")
+
+        # Monitor ARP to see what IP address it gets assigned and try
+        # to SSH to the guest on that address
+        vifname, bridge, mac, c = self.guest.vifs[0]
+
+        if self.guest.reservedIP:
+            self.ip = self.guest.reservedIP
+        else:
+            arptime = 10800
+            self.ip = self.guest.getHost().arpwatch(bridge, mac, timeout=arptime)
+
+        if not self.ip:
+            raise xenrt.XRTFailure("Did not find an IP address")
+
+        xenrt.TEC().progress("Found WinPE IP address %s" % (self.ip))
+        self.waitForBoot()

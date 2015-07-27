@@ -30,7 +30,7 @@ time.strptime('2014-06-12','%Y-%m-%d')
 __all__ = ["GenericPlace", "GenericHost", "NetPeerHost", "GenericGuest", "productLib",
            "RunOnLocation", "ActiveDirectoryServer", "PAMServer", "CVSMServer",
            "WlbApplianceServer", "DemoLinuxVM", "ConversionApplianceServer","EventObserver",
-           "XenMobileApplianceServer"]
+           "XenMobileApplianceServer", "_WinPEBase"]
 
 class MyHTTPConnection(httplib.HTTPConnection):
     XENRT_SOCKET_TIMEOUT = 600
@@ -583,6 +583,7 @@ class GenericPlace(object):
     def xmlrpcUpdate(self):
         """Update the test execution daemon to the latest version"""
         xenrt.TEC().logverbose("Updating XML-RPC daemon on %s" % (self.getIP()))
+        self.xmlrpcExec("attrib -r c:\\execdaemon.py")
         f = file("%s/utils/execdaemon.py" %
                  (xenrt.TEC().lookup("LOCAL_SCRIPTDIR")), "r")
         data = f.read()
@@ -12902,3 +12903,37 @@ class VifOffloadSettings(object):
             # This isn't available for all Windows/XenServer versions.
             return -1
 
+class _WinPEBase(object):
+    def __init__(self):
+        self._xmlrpc = None
+        self._xmlrpcInit = False
+        self.ip = None
+
+    @property
+    def xmlrpc(self):
+        if not self._xmlrpcInit:
+            if not self.ip:
+                raise xenrt.XRTError("IP not known")
+            self._xmlrpc = xmlrpclib.ServerProxy("http://%s:8080" % self.ip)
+            self._xmlrpcInit = True
+        return self._xmlrpc
+
+    def boot(self):
+        raise xenrt.XRTError("Not implemented")
+
+    def waitForBoot(self):
+        deadline = xenrt.util.timenow() + 1800
+        while True:
+            try:
+                if self.xmlrpc.file_exists("x:\\execdaemonwinpe.py") and not self.xmlrpc.file_exists("x:\\waiting.stamp"):
+                    break
+            except Exception, e:
+                xenrt.TEC().logverbose("Exception: %s" % str(e))
+            if xenrt.util.timenow() > deadline:
+                raise xenrt.XRTError("Timed out waiting for WinPE boot")
+            xenrt.sleep(15)
+
+    def reboot(self):
+        self.xmlrpc.write_file("x:\\waiting.stamp", "")
+        self.xmlrpc.start_shell("wpeutil reboot")
+        self.waitForBoot()

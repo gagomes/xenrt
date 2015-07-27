@@ -149,7 +149,7 @@ class _BalloonPerfBase(xenrt.TestCase):
     
     def installGuest(self):
         # Set up the VM
-        guest = self.getGuest(self.DISTRO+self.ARCH)
+        guest = self.host.getGuest(self.DISTRO+self.ARCH)
         log(guest)
         if guest:
             return guest

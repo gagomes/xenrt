@@ -52,7 +52,7 @@
         <arg>distro=10,11,12,13</arg> <!-- All except ubuntu 64 -->
         <arg>typeofvgpu=nvidialinuxvgpu</arg>
         <arg>vgpuconfig=5</arg> <!-- 5 = Passthrough -->
-        <arg>duration=15</arg> <!-- Goal duration is 3 days.. 4320mins -->
+        <arg>duration=4320</arg> <!-- Goal duration is 3 days.. 4320mins -->
         <arg>benchlocation=tropics/tropics.run</arg> <!-- Location of file in distfiles. -->
       </testcase>
     </serial>

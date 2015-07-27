@@ -68,18 +68,18 @@
           <testcase id="guestops.srm.TCSuspendResume" tc="TC-17919" sku="${FROM_PRODUCT_VERSION}">
             <arg>guest=win8-x86</arg>
             <arg>workloads</arg>
-            <arg>loops=5</arg>
+            <arg>loops=2</arg>
           </testcase>
           <testcase id="guestops.srm.TCMigrate" tc="TC-17920" sku="${FROM_PRODUCT_VERSION}">
             <arg>guest=win8-x86</arg>
             <arg>workloads</arg>
-            <arg>loops=5</arg>
+            <arg>loops=2</arg>
           </testcase>
           <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-17921" sku="${FROM_PRODUCT_VERSION}">
             <arg>guest=win8-x86</arg>
             <arg>live</arg>
             <arg>workloads</arg>
-            <arg>loops=5</arg>
+            <arg>loops=2</arg>
           </testcase>
           <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-17923" sku="${FROM_PRODUCT_VERSION}">
             <arg>N/A</arg>
@@ -128,16 +128,16 @@
           </testcase>
           <testcase id="guestops.srm.TCSuspendResume" tc="TC-17943" sku="${FROM_PRODUCT_VERSION}">
             <arg>guest=ws12-x64</arg>
-            <arg>loops=5</arg>
+            <arg>loops=2</arg>
           </testcase>
           <testcase id="guestops.srm.TCMigrate" tc="TC-17944" sku="${FROM_PRODUCT_VERSION}">
             <arg>guest=ws12-x64</arg>
-            <arg>loops=5</arg>
+            <arg>loops=2</arg>
           </testcase>
           <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-17945" sku="${FROM_PRODUCT_VERSION}">
             <arg>guest=ws12-x64</arg>
             <arg>live</arg>
-            <arg>loops=5</arg>
+            <arg>loops=2</arg>
           </testcase>
           <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-17947" sku="${FROM_PRODUCT_VERSION}">
             <arg>N/A</arg>

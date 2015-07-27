@@ -2547,7 +2547,16 @@ class _TCLVHDLeafCoalesce(xenrt.TestCase):
                                        "Is %ub, expected %ub" %
                                        (vsize, self.vdivirtualsizes[i]))
             if self.vdiphysicalsizes[i] != psize:
-                raise xenrt.XRTFailure("VBD physical size mismatch for %u" %
+                sruuid = self.host.genParamGet("vdi", vdiuuid, "sr-uuid")
+                sr = xenrt.lib.xenserver.getStorageRepositoryClass(self.host, sruuid).fromExistingSR(self.host, sruuid)
+                if sr.thinProvisioning:
+                    if psize > self.vdiphysicalsizes[i]:
+                        raise xenrt.XRTFailure("VBD physical size of %u is bigger than virtual size in thin provisioning SR." %
+                                       (i),
+                                       "Is %ub, expected smaller than %ub" %
+                                       (psize, self.vdiphysicalsizes[i]))
+                else:
+                    raise xenrt.XRTFailure("VBD physical size mismatch for %u" %
                                        (i),
                                        "Is %ub, expected %ub" %
                                        (psize, self.vdiphysicalsizes[i]))

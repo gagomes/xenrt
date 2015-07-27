@@ -7136,6 +7136,7 @@ fi
         sr = self.genParamGet("vdi", vdiuuid, "sr-uuid")
         srtype = self.genParamGet("sr", sr, "type")
         host = self.getSRMaster(sr)
+        host.execdom0("xe sr-scan uuid=%s" % sr)
         foundsize = 0
         if srtype in ["ext", "nfs"]:
             path = "/var/run/sr-mount/%s/%s.vhd" % (sr, vdiuuid)
@@ -7508,7 +7509,7 @@ logger "Stopping xentrace loop, host has less than 512M disk space free"
                 pass
             else:
                 raise
-        xenrt.sleep(5) # give the server a few seconds to update resolv.conf
+        xenrt.sleep(60) # give the server a few seconds to update resolv.conf
 
     def setIPAddressOnSecondaryInterface(self, assumedid):
         """Enable a DHCP IP address on a non-management dom0 network

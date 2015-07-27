@@ -2551,7 +2551,13 @@ class _TCLVHDLeafCoalesce(xenrt.TestCase):
                 sr = xenrt.lib.xenserver.getStorageRepositoryClass(self.host, sruuid).fromExistingSR(self.host, sruuid)
                 if sr.thinProvisioning:
                     if psize > self.vdiphysicalsizes[i]:
-                        raise xenrt.XRTFailure("VBD physical size of %u is bigger than virtual size in thin provisioning SR." %
+                        if xenrt.TEC().lookup("WORKAROUND_CA171836", False, boolean=True):
+                            xenrt.TEC().logverbose("VBD physical size of %u is bigger than virtual size in thin provisioning SR." %
+                                       (i),
+                                       "Is %ub, expected smaller than %ub" %
+                                       (psize, self.vdiphysicalsizes[i]))
+                        else:
+                            raise xenrt.XRTFailure("VBD physical size of %u is bigger than virtual size in thin provisioning SR." %
                                        (i),
                                        "Is %ub, expected smaller than %ub" %
                                        (psize, self.vdiphysicalsizes[i]))

@@ -49,7 +49,6 @@
         <testcase id="xenserver.tc.storage.TCFCOESRLifecycle" tc="TC-27056"/>
         <testcase id="xenserver.tc.storage.TCFCOEOddSize" tc="TC-8523" sku="WithFCOE"/>
         <testcase id="xenserver.tc.storage.TCFCOEZeroedContents" tc="TC-10671" sku="WithFCOE"/>
-        <testcase id="xenserver.tc.storage.TCFCOEVDIResizeShrink" tc="TC-8475" sku="WithFCOE"/>
         <testcase id="xenserver.tc.storage.TCFCOEVDIResizeGrowSmall" tc="TC-8476" sku="WithFCOE"/>
         <testcase id="xenserver.tc.storage.TCFCOEVDIResizeGrowLarge" tc="TC-8477" sku="WithFCOE"/>
         <testcase id="xenserver.tc.storage.TCFCOEVDIResizeDataCheck" tc="TC-8479" sku="WithFCOE"/>

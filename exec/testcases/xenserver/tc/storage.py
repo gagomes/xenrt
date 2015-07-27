@@ -2650,11 +2650,6 @@ class TCCIFSVDIResizeDataCheck(_TCResizeDataCheck):
     SRTYPE = "cifs"
     FORCEOFFLINE = True
 
-class TCFCOEVDIResizeShrink(_TCResizeShrink):
-    """Attempting to shrink a FCoE VDI should fail with a suitable error."""
-
-    SRTYPE = "lvmofcoe"
-
 class TCFCOEVDIResizeGrowSmall(_TCResizeGrow):
     """Grow a FCoE VDI of a round size by 1 byte."""
 
@@ -5154,15 +5149,14 @@ class TCFCOEVerifySRProbe(xenrt.TestCase):
                 eth = eths[0].childNodes[0].data.strip()
                 log("Found ethernet information %s for lun %s " %(eth , lun))
                 found = True
-                break
 
-        if not found:
-            raise xenrt.XRTFailure("Couldn't find lun in XML output")
+                if not found:
+                    raise xenrt.XRTFailure("Couldn't find lun in XML output")
 
-        if failProbe:
-            raise xenrt.XRTFailure("sr-probe unexpectedly returned "
-                                   "successfully when attempting to "
-                                   "find Ethernet information for the luns")
+                if failProbe:
+                    raise xenrt.XRTFailure("sr-probe unexpectedly returned "
+                                           "successfully when attempting to "
+                                           "find Ethernet information for the luns")
 
 class TCFCOEAfterUpgrade(xenrt.TestCase):
     """Verify FCOE SR after upgrade to Dundee"""

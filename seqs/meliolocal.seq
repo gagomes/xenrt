@@ -13,7 +13,7 @@
         <memory>1024</memory>
         <vcpus>2</vcpus>
         <network device="0" />
-        <disk device="0" size="30" />
+        <disk device="0" size="50" />
       </vm>
       <vm name="iscsi2">
         <distro>centos71</distro>
@@ -21,7 +21,7 @@
         <memory>1024</memory>
         <vcpus>2</vcpus>
         <network device="0" />
-        <disk device="0" size="30" />
+        <disk device="0" size="50" />
       </vm>
       <vm name="win1">
         <distro>ws12r2-x64</distro>

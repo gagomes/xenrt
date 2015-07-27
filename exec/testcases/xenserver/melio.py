@@ -38,6 +38,7 @@ class TCWindowsMelioSetup(xenrt.TestCase):
             iscsitarget = self.getGuest("iscsi%d" % index)
             iqn = iscsitarget.installLinuxISCSITarget(targetType="LIO")
             iscsitarget.createISCSITargetLun(lunid=0, sizemb=20*xenrt.KILO)
+            iscsitarget.createISCSITargetLun(lunid=1, sizemb=20*xenrt.KILO)
         win.installWindowsMelio(renameHost=True)
         config = win.getWindowsMelioConfig()
         config['network_settings']['current']['subnet_ranges'] = " ".join(["%s/32" % x for x in ips]) 
@@ -51,11 +52,12 @@ class TCWindowsMelioSetup(xenrt.TestCase):
         xenrt.sleep(30)
         win.xmlrpcExec("$ErrorActionPreference = \"Stop\"\nGet-IscsiTarget | Connect-IscsiTarget", powershell=True)
         xenrt.sleep(30)
-        disk = win.xmlrpcListDisks()[-1]
+        disks = win.xmlrpcListDisks()[:-2]
 
-        if int(disk) == 0:
+        if int(disks[0]) == 0:
             raise xenrt.XRTFailure("iSCSI disk has not been connected")
 
         win.xmlrpcExec("$ErrorActionPreference = \"Stop\"\nGet-IscsiSession | Register-IscsiSession", powershell=True)
         if not self.shared:
-            win.xmlrpcDiskpartCommand("select disk %s\nattributes disk clear readonly\nconvert gpt" % disk)
+            for disk in disks:
+                win.xmlrpcDiskpartCommand("select disk %s\nattributes disk clear readonly\nconvert gpt" % disk)

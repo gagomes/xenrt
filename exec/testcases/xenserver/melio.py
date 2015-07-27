@@ -8,6 +8,7 @@ class TCWindowsMelioSetup(xenrt.TestCase):
             iscsitarget = self.getGuest("iscsi")
             iqn = iscsitarget.installLinuxISCSITarget(targetType="LIO")
             iscsitarget.createISCSITargetLun(lunid=0, sizemb=20*xenrt.KILO)
+            iscsitarget.createISCSITargetLun(lunid=1, sizemb=20*xenrt.KILO)
         else:
             self.shared = False
 
@@ -52,7 +53,7 @@ class TCWindowsMelioSetup(xenrt.TestCase):
         xenrt.sleep(30)
         win.xmlrpcExec("$ErrorActionPreference = \"Stop\"\nGet-IscsiTarget | Connect-IscsiTarget", powershell=True)
         xenrt.sleep(30)
-        disks = win.xmlrpcListDisks()[:-2]
+        disks = win.xmlrpcListDisks()[-2:]
 
         if int(disks[0]) == 0:
             raise xenrt.XRTFailure("iSCSI disk has not been connected")

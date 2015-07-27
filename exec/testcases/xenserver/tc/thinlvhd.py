@@ -90,12 +90,19 @@ class _ThinLVHDBase(xenrt.TestCase):
 
         return [sr for sr in srs if sr.thinProvisioning]
 
-    def getPhysicalSize(self, sr):
+    def getPhysicalUtilisation(self, sr):
         """Return physical size of sr."""
 
-        #Dev does not have API for this yet
+        host = self.host
+        if not host:
+            host = self.getDefaultHost()
 
-        return 0
+        xsr = next((s for s in host.asXapiObject().SR() if s.uuid == sr), None)
+        if not xsr:
+            xenrt.XRTError("Cannot find given SR: %s" % (sr,))
+
+        host.execdom0("xe sr-scan uuid=%s" % xsr.uuid)
+        return self.xsr.getIntParam("physical-utilisation")
 
     def fillDisk(self, guest, targetDir=None, size=512*1024*1024*1024):
         """Fill target disk by creating an empty file with
@@ -112,7 +119,7 @@ class _ThinLVHDBase(xenrt.TestCase):
         if not targetDir:
             targetDir = guest.execguest("mktemp")
 
-        guest.execguest("dd if=/dev/zero of=%s bs=4096 count=%d conv=notrunc" %
+        guest.execguest("dd if=/dev/urandom of=%s bs=4096 count=%d conv=notrunc" %
             (targetDir, size/4096))
 
     def isThinProvisioning(self, sr):
@@ -145,7 +152,7 @@ class _ThinLVHDBase(xenrt.TestCase):
         # TODO awaiting Dev: API is not ready yet to change the SR smconfig.
         pass
 
-    def getPhsicalVDISize(self, vdiuuid, host=None ):
+    def getPhysicalVDISize(self, vdiuuid, host=None ):
         if not host:
             host = self.getDefaultHost()
         return host.getVDIPhysicalSizeAndType(vdiuuid)[0]
@@ -299,7 +306,7 @@ class TCThinProvisioned(_ThinLVHDBase):
 
         log("Checking SR: %s..." % sr.name())
 
-        origsize = self.getPhysicalSize(sr)
+        origsize = self.getPhysicalUtilisation(sr)
         self.guests = []
         for vm in range(vms):
             guest = self.host.createGenericLinuxGues(sr=sr.uuid)
@@ -308,7 +315,7 @@ class TCThinProvisioned(_ThinLVHDBase):
             self.uninstallOnCleanup(guest)
             self.guests.append(guest)
  
-        aftersize = self.getPhysicalSize(sr)
+        aftersize = self.getPhysicalUtilisation(sr)
 
         if aftersize <= origsize:
             raise xenrt.XRTFailure("SR size is decreased after %d VDI creation. (before: %d, after %d)" %
@@ -353,11 +360,11 @@ class TCSRIncrement(_ThinLVHDBase):
         guest.preCloneTailor()
         self.uninstallOnCleanup(guest)
  
-        origsize = self.getPhysicalSize(sr)
+        origsize = self.getPhysicalUtilisation(sr)
 
         self.fillDisk(guest, size=1024*1024*1024) # filling 1 GB
 
-        aftersize = self.getPhyscialSize(sr)
+        aftersize = self.getPhysicalUtilisation(sr)
 
         if aftersize <= origsize:
             raise xenrt.XRTFailure("SR size is not growing. (SR: %s, before: %d, after: %d)" %
@@ -423,7 +430,7 @@ class TCThinAllocationDefault(_ThinLVHDBase):
         # TODO awaiting Dev: compare the actual physical size of VDI with the expectedSize ( No API yet )
 
         # Check that quantum allocation is as expected
-        vdiSize = self.getPhsicalVDISize(vdiuuid, self.host)
+        vdiSize = self.getPhysicalVDISize(vdiuuid, self.host)
         expectedSize = vdiSize + self.sizebytes * ( float(quantum) if quantum else self.DEFAULTQUANTUM)
 
         vbduuid = self.host.genParamGet("vdi", vdiuuid, "vbd-uuids")

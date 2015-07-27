@@ -1,6 +1,7 @@
 <xenrt>
+  <default name="NS_NSVPX_BW_XVA" value="/usr/groups/xenrt/NSVPX-XEN-9.3-68.3_nc.xva" />
+  <default name="NS_TOOLS_PATH" value="/usr/groups/xenrt/ns-tools-9.3-68.3.nc.tgz" />
   <default name="NS_NSVPX_XVA" value="/usr/groups/xenrt/NSVPX-XEN-10.5-52.11_nc.xva" />
-  <default name="NS_TOOLS_PATH" value="/usr/groups/xenrt/ns-tools-10.5-52.11.nc.tgz" />
   <default name="BW_NAME" value="blackwidow" />
   <default name="DUT_NAME" value="dut" />
 
@@ -19,8 +20,8 @@
   <prepare>
     <vlan name="CLIENT_VLAN" />
 
-    <!-- Make a NetScaler SDX -->
-    <host id="0" iommu="true">
+    <!-- Make a NetScaler SDX (use Clearwater regardless of PRODUCT_VERSION) -->
+    <host id="0" iommu="true" productType="xenserver" productVersion="Clearwater" version="/usr/groups/xen/carbon/clearwater/70446">
       <NETWORK>
         <PHYSICAL network="NSEC">
           <VMS />
@@ -33,7 +34,7 @@
         </PHYSICAL>
       </NETWORK>
       <vm name="${BW_NAME}">
-        <file>${NS_NSVPX_XVA}</file>
+        <file>${NS_NSVPX_BW_XVA}</file>
         <network device="0" />
         <network device="1" sriov="true" physdev="CLIENT_VLAN" />
         <postinstall action="setupNetscalerVPX(installNSTools=True)" />

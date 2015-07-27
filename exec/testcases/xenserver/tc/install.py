@@ -10,6 +10,7 @@
 
 import xml.dom.minidom, re, string, copy, time, os, random 
 import xenrt, xenrt.lib.xenserver
+import NaServer
 
 class _HostInstall(xenrt.TestCase):
 
@@ -743,4 +744,119 @@ class TC20855(TCISCSIMultipathScenarios):
             self.recoverPath(path)
             self.checkHost()
             self.waitForPathCount(2)
+            self.checkHost()
+
+
+class TCUCSISCSIMultipathScenarios(TCISCSIMultipathScenarios):
+    """Base class for UCS iSCSI multipathed boot scenarios"""
+
+    def prepare(self, arglist):
+        self.host = self.getHost("RESOURCE_HOST_0")
+        self.iscsiHost = self.getHost("RESOURCE_HOST_1")
+        self.scsiid = string.split(self.host.lookup("OPTION_CARBON_DISKS", None), "scsi-")[1]
+
+        ip = self.host.lookup(["UCSISCSI", "TARGET_ADDRESS"], None)
+        username = self.host.lookup(["UCSISCSI", "TARGET_USERNAME"], None)
+        password = self.host.lookup(["UCSISCSI", "TARGET_PASSWORD"], None)
+        self._server = NaServer.NaServer(ip, 1, 0)
+        self._server.set_admin_user(username, password)
+
+        self.paths = self.countActivePaths()
+        xenrt.TEC().logverbose("Number of active paths to boot LUN = %d" % self.paths)
+        if self.countActivePaths() < 2:
+            raise xenrt.XRTError("Host does not have >= 2 paths to boot LUN")
+
+    def controlPath(self, pathindex, state):
+        ifname = self.host.lookup(["UCSISCSI", "VLAN%u" % (pathindex + 1), "INTERFACE"], None)
+        res = self._server.invoke("net-ifconfig-set", "interface-config-info", """
+<interface-name>%s</interface-name>
+<ipspace-name>default-ipspace</ipspace-name>
+<is-enabled>%s</is-enabled>
+""" % (ifname, state))
+        if res.results_errno() != 0:
+            raise Exception("Failed to control port: " + str(res.results_reason()))
+
+    def failPath(self, pathindex):
+        """Fail the iSCSI path based on path index"""
+
+        xenrt.TEC().logverbose("Failing the path %d" % pathindex)
+        self.controlPath(pathindex, "false")
+
+    def recoverPath(self, pathindex):
+        """Recover the iSCSI path based on path index"""
+
+        xenrt.TEC().logverbose("Recovering the the path %d" % pathindex)
+        self.controlPath(pathindex, "true")
+
+    def countActivePaths(self):
+        """Count the number of active paths"""
+
+        xenrt.TEC().logverbose("Coutning the number of paths on host ...")
+        return len(self.host.getMultipathInfo(onlyActive=True)[self.scsiid])
+
+    def postRun(self):
+        xenrt.TEC().logverbose("Ensuring paths are up after testcase")
+        self.recoverPath(0)
+        self.recoverPath(1)
+
+class TC27173(TCUCSISCSIMultipathScenarios):
+    """Create multipathed iSCSI SR on multipathed UCS iSCSI booted machine"""
+
+    def run(self, arglist):
+        bridges = []
+
+        for i in (1, 2):
+            vlan = int(self.host.lookup(["UCSISCSI", "VLAN%u" % i, "NUMBER"], None))
+            nic = self.iscsiHost.getDefaultInterface()
+            vbridge = self.iscsiHost.createNetwork()
+            bridges.append(vbridge)
+            pifuuid = self.iscsiHost.createVLAN(vlan, vbridge, nic)
+
+        self.bootLun = xenrt.resources.ISCSIVMLun(hostIndex=1, sizeMB=50000, bridges=bridges)
+
+        # Creating multipathed iSCSI SR.
+        iscsiSR = xenrt.lib.xenserver.ISCSIStorageRepository(self.host,
+                                                "multipathed-iscsi-sr")
+        iscsiSR.create(self.bootLun, subtype="lvm", multipathing=True, noiqnset=True, findSCSIID=True)
+
+class TCUCSISCSIMultipathFailOnBoot(TCUCSISCSIMultipathScenarios):
+    PATH_INDEX=None
+
+    def run(self, arglist):
+        # Fail the path
+        self.failPath(self.PATH_INDEX)
+        # Check the host is healthy
+        self.checkHost()
+        # Check it only has one less path
+        self.waitForPathCount(self.paths - 1)
+        # Reboot the host
+        self.host.reboot(timeout=3600)
+        # Check one less path is present
+        self.waitForPathCount(self.paths - 1)
+        # Recover the path and reboot (we don't expect it to come back after boot)
+        self.recoverPath(self.PATH_INDEX)
+        self.host.reboot()
+        # And check we now have the correct number of paths
+        self.waitForPathCount(self.paths)
+
+class TC27174(TCUCSISCSIMultipathFailOnBoot):
+    """Bring down the first path at boot on multipathed UCS iSCSI booted machine"""
+    PATH_INDEX=0
+
+class TC27175(TCUCSISCSIMultipathFailOnBoot):
+    """Bring down the second path at boot on multipathed UCS iSCSI booted machine"""
+    PATH_INDEX=1
+
+class TC27176(TCUCSISCSIMultipathScenarios):
+    """Carry out failover of alternate paths on multipathed UCS iSCSI booted machine"""
+    def run(self, arglist):
+        for i in range(10):
+            path = random.randint(0,1)
+            self.failPath(path)
+            self.checkHost()
+            self.waitForPathCount(self.paths - 1)
+            self.checkHost()
+            self.recoverPath(path)
+            self.checkHost()
+            self.waitForPathCount(self.paths)
             self.checkHost()

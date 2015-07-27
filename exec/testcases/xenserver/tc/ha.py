@@ -174,7 +174,7 @@ class TC8192(_HASmoketest):
 
 class TCFCOEHAOperation(_HASmoketest):
     """Verify HA operation on a pool of 2 hosts using multipathed FCOE for HA and VMs"""
-    NUMHOSTS = 2
+    NUMHOSTS = 4
     STATEFILE_SR = "lvmofcoe"
 
 class TC13205(_HASmoketest):

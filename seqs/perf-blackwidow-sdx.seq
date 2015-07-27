@@ -22,7 +22,7 @@
     <!-- Make a NetScaler SDX -->
     <host id="0" iommu="true">
       <NETWORK>
-	<PHYSICAL network="NSEC">
+        <PHYSICAL network="NSEC">
           <VMS />
           <MANAGEMENT />
           <NIC />
@@ -42,12 +42,12 @@
 
     <host id="1">
       <NETWORK>
-	<PHYSICAL network="NSEC">
+        <PHYSICAL network="NSEC">
           <VMS />
           <MANAGEMENT />
           <NIC />
         </PHYSICAL>
-	<PHYSICAL network="NPRI" speed="10G">
+        <PHYSICAL network="NPRI" speed="10G">
           <NIC />
           <VLAN network="CLIENT_VLAN" />
         </PHYSICAL>

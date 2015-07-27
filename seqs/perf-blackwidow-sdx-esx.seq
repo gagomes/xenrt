@@ -23,7 +23,7 @@
     <!-- Make a NetScaler SDX -->
     <host id="0" iommu="true" productType="xenserver" productVersion="Clearwater" version="/usr/groups/xen/carbon/clearwater/70446">
       <NETWORK>
-	<PHYSICAL network="NSEC">
+        <PHYSICAL network="NSEC">
           <VMS />
           <MANAGEMENT />
           <NIC />
@@ -43,11 +43,11 @@
 
     <host id="1">
       <NETWORK>
-	<PHYSICAL network="NSEC">
+        <PHYSICAL network="NSEC">
           <VMS />
           <NIC />
         </PHYSICAL>
-	<PHYSICAL network="NPRI" speed="10G">
+        <PHYSICAL network="NPRI" speed="10G">
           <NIC />
           <VLAN network="CLIENT_VLAN" />
         </PHYSICAL>

@@ -150,7 +150,6 @@ class _BalloonPerfBase(xenrt.TestCase):
     def installGuest(self):
         # Set up the VM
         guest = self.host.getGuest(self.DISTRO+self.ARCH)
-        log(guest)
         if guest:
             return guest
         if self.WINDOWS:
@@ -346,7 +345,7 @@ class _BalloonSmoketest(_BalloonPerfBase):
             self.status = "booted"
 
             step("Check the target has been met correctly")
-            self.guest.waitForTarget(60, desc="Not at target immediately after boot")
+            self.guest.waitForTarget(120, desc="Not at target after boot")
             
             #These changes are added for EXT-119
             step("Check by what how much value can we balloon up/down the VM")

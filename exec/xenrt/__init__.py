@@ -1367,10 +1367,12 @@ Abort this testcase with: xenrt interact %s -n '%s'
                     place.thingsWeHaveReported.append(cdr)
                     self.tec.warning("Crash dump %s found" % (cd))
                     try:
-                        cdd = "%s/crash-%s" % (d, cd)
-                        if not os.path.exists(cdd):
-                            os.mkdir(cdd)
-                        sftp.copyTreeFrom("/var/crash/%s" % (cd), cdd)
+                        size = place.execcmd("du -hs /var/crash/%s | awk '{print $1}'" % cd).strip()
+                        if size[-1] in ("K", "M"):
+                            cdd = "%s/crash-%s" % (d, cd)
+                            if not os.path.exists(cdd):
+                                os.mkdir(cdd)
+                            sftp.copyTreeFrom("/var/crash/%s" % (cd), cdd)
                     except:
                         pass
                     # File a ticket for the crashdump

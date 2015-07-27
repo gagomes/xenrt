@@ -593,6 +593,7 @@ def buildHostsFile(config,machines,testpeers,sharedhosts):
 
     f.write("%s xenrt-controller.xenrt.xenrtcloud\n" % config.lookup("XENRT_SERVER_ADDRESS"))
     f.write("%s wininstall.xenrt\n" % config.lookup("XENRT_SERVER_ADDRESS"))
+    f.write("%s wpad.xenrtcloud\n" % config.lookup("XENRT_SERVER_ADDRESS"))
     secAddr = xenrt.TEC().lookup(["NETWORK_CONFIG", "SECONDARY", "ADDRESS"], None)
     if secAddr:
         f.write("%s xenrt-controller.xenrt.nsec-xenrtcloud\n" % secAddr)

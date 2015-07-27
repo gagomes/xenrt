@@ -8638,7 +8638,7 @@ class GenericGuest(GenericPlace):
         except xenrt.XRTFailure, e:
             self.checkHealth(noreachcheck=True)
             # Check for CA-18131-like symptom
-            self.checkFailuresinConsoleLog()
+            self.checkFailuresinConsoleLogs()
 
         if os.path.exists("%s/rpmupgrade.log" % (nfsdir.path())):
             xenrt.TEC().copyToLogDir("%s/rpmupgrade.log" % (nfsdir.path()))
@@ -8878,7 +8878,7 @@ class GenericGuest(GenericPlace):
 
         if not start:
             return
-
+        step("Starting the guest for automated install")
         # Start the install
         self.lifecycleOperation("vm-start")
 

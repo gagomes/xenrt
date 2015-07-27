@@ -5107,9 +5107,12 @@ class TCFCOEVerifySRProbe(xenrt.TestCase):
     def prepare(self, arglist):
 
         self.host = self.getDefaultHost() 
-        xsr = next((s for s in self.host.asXapiObject().SR() if s.srType() == self.SRTYPE), None)
-        self.sr = xenrt.lib.xenserver.FCOEStorageRepository.fromExistingSR(self.host, xsr.uuid)
-        self.sr.forget()
+        sr = self.host.minimalList("sr-list", args="type=%s" %(self.SRTYPE))
+        
+        if sr:
+            xsr = next((s for s in self.host.asXapiObject().SR() if s.srType() == self.SRTYPE), None)
+            self.sr = xenrt.lib.xenserver.FCOEStorageRepository.fromExistingSR(self.host, xsr.uuid)
+            self.sr.forget()
         
     def run(self, arglist):
 

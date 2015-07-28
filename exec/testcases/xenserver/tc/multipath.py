@@ -4890,14 +4890,14 @@ class TCValidateFCOEMultipathPathCount(_TC8159):
         
         xenrt.TEC().logverbose("Failing the path %d" % pathindex)
         
-        mac = self.host.getNICMACAddress(self.host.bootNics[pathindex])
+        mac = self.host.getNICMACAddress(pathindex)
         self.host.disableNetPort(mac)
 
     def enableEthPort(self, pathindex):
               
         xenrt.TEC().logverbose("Recovering the the path %d" % pathindex)
         
-        mac = self.host.getNICMACAddress(self.host.bootNics[pathindex])
+        mac = self.host.getNICMACAddress(pathindex)
         self.host.enableNetPort(mac)
         
     def run(self, arglist=None):

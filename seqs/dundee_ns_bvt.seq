@@ -11,7 +11,8 @@
   </variables>
 
   <prepare>
-
+    <vlan name="CLIENT_VLAN" />
+    <vlan name="SERVER_VLAN" />
     <host id="0">
       <NETWORK>
         <PHYSICAL network="NPRI">
@@ -20,7 +21,7 @@
         </PHYSICAL>
         <PHYSICAL network="NSEC">
           <NIC />
-          <VLAN network="VR08" />
+          <VLAN network="CLIENT_VLAN" />
         </PHYSICAL>
       </NETWORK>
     </host>
@@ -32,8 +33,8 @@
         </PHYSICAL>
         <PHYSICAL network="NSEC">
           <NIC />
-          <VLAN network="VR08" />
-          <VLAN network="VR07" />
+          <VLAN network="CLIENT_VLAN" />
+          <VLAN network="SERVER_VLAN" />
         </PHYSICAL>
       </NETWORK>
     </host>
@@ -45,7 +46,7 @@
         </PHYSICAL>
         <PHYSICAL network="NSEC">
           <NIC />
-          <VLAN network="VR07" />
+          <VLAN network="SERVER_VLAN" />
         </PHYSICAL>
       </NETWORK>
     </host>

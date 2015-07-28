@@ -812,10 +812,7 @@ class TC12710(xenrt.TestCase):
 
 class NSBVT(xenrt.TestCase):
 
-    CLIENT_VLAN = "VR08"
-    SERVER_VLAN = "VR07"
     XVA_DIR = "ns_xvas"
-
     ATS_PASSWORD = "freebsd"
 
     # Client VMs should reside on Client VLAN 
@@ -1262,6 +1259,8 @@ class NSBVT(xenrt.TestCase):
             raise xenrt.XRTError('NFS directory for NS XVAs not defined!')
         self.cfg["nfs_src"] = nfs_src
         self.cfg["xva_dir"] = self.XVA_DIR
+        self.CLIENT_VLAN = self.getVlanID(self.cfg["clnt"], "CLIENT_VLAN")
+        self.SERVER_VLAN = self.getVlanID(self.cfg["srv"], "SERVER_VLAN")
         
         self.configureServer()
         self.configureNSHost()

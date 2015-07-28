@@ -13,7 +13,7 @@
   </prepare>
 
   <testsequence>
-    <testcase id="xenserver.tc.thinlvhd.TCThinProvisioned" name="BasicFunc" />
-    <testcase id="xenserver.tc.thinlvhd.TCSRIncrement" name="BasicFunc" />
+    <testcase id="xenserver.tc.thinlvhd.TCThinProvisioned" name="BasicFuncInitial" />
+    <testcase id="xenserver.tc.thinlvhd.TCSRIncrement" name="BasicFuncQuantum" />
   </testsequence>
 </xenrt>

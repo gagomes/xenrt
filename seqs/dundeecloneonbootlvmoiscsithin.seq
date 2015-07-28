@@ -7,7 +7,7 @@
 
   <prepare>
     <pool>
-      <storage type="lvmoiscsi" name="lvmoiscsisr" default="true" options="ietvm,thin" size="200"/>
+      <storage type="lvmoiscsi" name="lvmoiscsisr" default="true" options="thin" size="200"/>
       <host id="0"/>
       <host id="1"/>
       <vm name="GoldVM">

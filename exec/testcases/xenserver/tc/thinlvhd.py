@@ -22,14 +22,14 @@ class _ThinLVHDBase(xenrt.TestCase):
     def prepare(self, arglist=[]):
         host = self.getDefaultHost()
         self.sr = self.getThinProvisioningSRs()
-        self.setDefaultThinProv()
+        #self.setDefaultThinProv()
 
-    def setDefaultThinProv(self):
-        """Set default provisining rate to QUANTUM_RATIO"""
-        for sr in self.sr:
-            sr.setDefaultVDIAllocation(self.QUANTUM_RATIO)
+    #def setDefaultThinProv(self):
+        #"""Set default provisining rate to QUANTUM_RATIO"""
+        #for sr in self.sr:
+            #sr.setDefaultVDIAllocation(self.QUANTUM_RATIO)
 
-    def createThinSR(self, host=None, name=None, srtype="lvmoiscsi", ietvm=False, size=0, initialAlloc = None, quantumAlloc = None):
+    def createThinSR(self, host=None, name=None, srtype="lvmoiscsi", ietvm=False, size=0, initialAlloc=None, quantumAlloc=None):
         """Creates a SR with given parameters.
 
         @param host: host instance to handle.
@@ -97,12 +97,12 @@ class _ThinLVHDBase(xenrt.TestCase):
         if not host:
             host = self.getDefaultHost()
 
-        xsr = next((s for s in host.asXapiObject().SR() if s.uuid == sr), None)
+        xsr = next((s for s in host.asXapiObject().SR() if s.uuid == sr.uuid), None)
         if not xsr:
-            xenrt.XRTError("Cannot find given SR: %s" % (sr,))
+            raise xenrt.XRTError("Cannot find given SR: %s" % (sr.uuid,))
 
         host.execdom0("xe sr-scan uuid=%s" % xsr.uuid)
-        return self.xsr.getIntParam("physical-utilisation")
+        return xsr.getIntParam("physical-utilisation")
 
     def fillDisk(self, guest, targetDir=None, size=512*1024*1024*1024):
         """Fill target disk by creating an empty file with
@@ -298,18 +298,18 @@ class TCThinProvisioned(_ThinLVHDBase):
 
     def prepare(self, arglist=[]):
 
-        self.srs = self.getThinProvisioningSRs()
-        if not self.srs:
+        super(TCThinProvisioned, self).prepare(arglist)
+        if not self.sr:
             raise xenrt.XRTError("No thin provisioning SR found.")
 
     def runCase(self, sr, vms):
 
-        log("Checking SR: %s..." % sr.name())
+        log("Checking SR: %s..." % sr.name)
 
         origsize = self.getPhysicalUtilisation(sr)
         self.guests = []
         for vm in range(vms):
-            guest = self.host.createGenericLinuxGues(sr=sr.uuid)
+            guest = self.host.createGenericLinuxGuest(sr=sr.uuid)
             guest.setState("DOWN")
             guest.preCloneTailor()
             self.uninstallOnCleanup(guest)
@@ -329,11 +329,11 @@ class TCThinProvisioned(_ThinLVHDBase):
         if aftersize >= origsize + vdisize:
             raise xenrt.XRTFailure("SR size is bigger than sum of all VDIs on ThinLVHD. (before: %d, after: %d, vdi: %s)" %
                     (origsize, aftersize, vdisize))
-        
+
     def run(self, arglist=[]):
 
         args = self.parseArgsKeyValue(arglist)
-        vms = 5
+        vms = 1
         if "vms" in args:
             vms = args["vms"]
 
@@ -353,9 +353,9 @@ class TCSRIncrement(_ThinLVHDBase):
 
     def runCase(self, sr):
 
-        log("Checking SR: %s..." % sr.name())
+        log("Checking SR: %s..." % sr.name)
 
-        guest = self.host.createGenericLinuxGues(sr=sr.uuid)
+        guest = self.host.createGenericLinuxGuest(sr=sr.uuid)
         guest.setState("DOWN")
         guest.preCloneTailor()
         self.uninstallOnCleanup(guest)

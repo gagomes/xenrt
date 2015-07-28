@@ -2,18 +2,18 @@
 
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
-    <CARBON_EXTRA_CDS>linux.iso</CARBON_EXTRA_CDS>
   </variables>
 
   <prepare>
-    <host/>
+    <host id="0">
+       <storage type="fcoe" name="FCOESR"/>
+    </host>
   </prepare>
 
   <testsequence>
     <serial group="NetworkTests">
-      <testcase id="xenserver.tc.network.TC7339" blocker="yes" prio="3" sku="WithFCOE"/>
-      <testcase id="xenserver.tc.network.TC6632" blocker="yes" prio="3" sku="WithFCOE"/>
-      <testcase id="xenserver.tc.bonding.TC6763" blocker="yes" prio="3" sku="WithFCOE"/>
+      <testcase id="xenserver.tc.network.TCFCOEVmOnVlan" />
+      <testcase id="xenserver.tc.network.TCFCOEMngReconfg"/>
     </serial>
   </testsequence>
 

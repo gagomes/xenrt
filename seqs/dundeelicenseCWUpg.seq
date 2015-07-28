@@ -49,6 +49,7 @@
         <arg>oldlicensesku=PerSocket</arg>
         <arg>newlicenseserver=LicenseServer</arg>
         <arg>addlicfiles</arg>
+		<arg>skipVerify</arg>
       </testcase>
       <action action="prepare"/>
       <testcase id="xenserver.tc.mulskulicense.TCUpgrade" name="LicenseCWCRUPG3" tc="TC-23365">

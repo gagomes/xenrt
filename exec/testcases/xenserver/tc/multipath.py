@@ -4910,7 +4910,7 @@ class TCValidateFCOEMultipathPathCount(_TC8159):
         
         for i in self.PATH_INDICES:
             step("Drop one path by disabling port")
-            self.disableEthPath(i)
+            self.disableEthPort(i)
             xenrt.sleep(60)
         
             step("Verify active and  total paths")

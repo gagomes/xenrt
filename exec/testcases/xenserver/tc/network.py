@@ -2792,7 +2792,7 @@ class TCFCOEMngReconfg(xenrt.TestCase):
         time.sleep(120)
 
         xenrt.TEC().logverbose("Return to using old IP.")
-        host.machine.ipaddr = oldip
+        self.host.machine.ipaddr = oldip
 
         step("Check the agent still responds to an off-host CLI command")
         

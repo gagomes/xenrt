@@ -12,8 +12,8 @@
 
   <testsequence>
     <serial group="NetworkTests">
-      <testcase id="xenserver.tc.network.TCFCOEVmOnVlan" />
-      <testcase id="xenserver.tc.network.TCFCOEMngReconfg"/>
+      <testcase id="xenserver.tc.network.TCFCOEVmVlan" tc="TC-27150"/>
+      <testcase id="xenserver.tc.network.TCFCOEMngR" tc="TC-27151"/>
     </serial>
   </testsequence>
 

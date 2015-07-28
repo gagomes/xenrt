@@ -4908,7 +4908,7 @@ class TCValidateFCOEMultipathPathCount(_TC8159):
         activePaths = len(self.host.getMultipathInfo(onlyActive=True)[self.scsiid])
         expectedPaths = [activePaths-2, totalPaths] # -2 because, the number of paths depends on the physical configuration.
         
-        for i in PATH_INDICES:
+        for i in self.PATH_INDICES:
             step("Drop one path by disabling port")
             self.disableEthPath(i)
             xenrt.sleep(60)

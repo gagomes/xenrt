@@ -67,6 +67,10 @@ class StartSuite(_SuiteStartBase):
                         "description": "Sequences to run",
                         "items": {"type": "string"}
                     },
+                    "delay": {
+                        "type": "integer",
+                        "description": "Delay (in seconds) before starting suite"
+                    },
                     "params": {
                         "type": "object",
                         "description": "Key-value pair of parameters"
@@ -142,6 +146,9 @@ class StartSuite(_SuiteStartBase):
 
         if params.get("seqs"):
             command += " --suite-seqs %s" % ",".join(params['seqs'])
+
+        if params.get("delay"):
+            command += " --delay-for %d" % params['delay']
 
         for p in params.get("params", {}).keys():
             command += " -D %s=%s" % (p, params['params'][p])

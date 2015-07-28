@@ -2618,7 +2618,7 @@ class TCQoSNetwork(xenrt.TestCase):
             g.poll("DOWN", 120, level=xenrt.RC_ERROR)
             g.uninstall()
 
-class TCFCOEVmOnVlan(xenrt.TestCase):
+class TCFCOEVmVlan(xenrt.TestCase):
     """VLAN operations on FCoE SR."""
     
     SRTYPE = "lvmofcoe"
@@ -2693,7 +2693,7 @@ class TCFCOEVmOnVlan(xenrt.TestCase):
             
         g.uninstall()
         
-class TCFCOEMngReconfg(xenrt.TestCase):
+class TCFCOEMngR(xenrt.TestCase):
     """Change management interface with host-management-reconfigure."""
     
     SRTYPE = "lvmofcoe"

@@ -1942,7 +1942,7 @@ class TCGuestCoreDump(xenrt.TestCase):
             raise xenrt.XRTFailure("coredump not generated")
         xenrt.TEC().logverbose("Coredump file found")
         
-        step("Check if Crashdump file size is greater than or equal to guest memory")
+        step("Check Crashdump file is not empry")
         fileSize = int(self.host.execdom0("stat -c %s " + fileName).strip())
         if fileSize == 0:
             raise xenrt.XRTFailure("Empty coredump file is created")

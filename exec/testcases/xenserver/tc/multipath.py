@@ -1572,7 +1572,7 @@ class _TC8159(xenrt.TestCase):
         ids = host.execdom0("ls /dev/disk/by-id").strip().split("\n")
 
         # Create a VM on the SR
-        g = host.createGenericLinuxGuest(sr=sr.uuid)
+        g = host.createBasicGuest(distro='centos54',sr=sr.uuid)
         self.guest = g
         self.uninstallOnCleanup(g)        
         expectedDiskCount = len(self.guest.listVBDUUIDs("Disk"))

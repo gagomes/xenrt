@@ -1912,7 +1912,7 @@ class TCGuestCoreDump(xenrt.TestCase):
     #TC-27146
     def prepare(self, arglist):
         self.host = self.getDefaultHost()
-        step("Install guest")
+        step("Fetch list of guests")
         distro = self.host.lookup("GENERIC_LINUX_OS_64", "centos61")
         self.guest = self.host.createBasicGuest(distro)
         
@@ -1926,20 +1926,25 @@ class TCGuestCoreDump(xenrt.TestCase):
         xenrt.sleep(100)
 
         step("Check guest state")
-        if not self.guest.getState() == "PAUSED":
+        if self.guest.getState() != "PAUSED":
             raise xenrt.XRTFailure("Guest not found in a paused state.")
 
         step("Execute dumpcore")
+        fileName = "/var/log/coredump-test-file"
         if isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
-            self.host.execdom0("xl dump-core %s /var/log/coredump-test-file" % self.guest.getDomid())
+            self.host.execdom0("xl dump-core %s %s" % (self.guest.getDomid(), fileName))
         else:
-            self.host.execdom0("/opt/xensource/libexec/dumpcore -domid %s -file /var/log/coredump-test-file" % self.guest.getDomid())
+            self.host.execdom0("/opt/xensource/libexec/dumpcore -domid %s -file %s" % (self.guest.getDomid(), fileName))
 
-        step("Check if Core dump file exists")
-        file = self.host.execdom0("ls -l /var/log/coredump-test-file")
-        if "no such file or directory" in file:
-            raise xenrt.XRTFailure("Coredump not generated")
-        else:
-            xenrt.TEC().logverbose("Coredump file found")
-            step("Remove file")
-            self.host.execdom0("rm -f /var/log/coredump-test-file")
+        step("Check if Crashdump file exists")
+        file = self.host.execdom0("ls -l %s||true" % (fileName))
+        if re.search(r"No such file or directory", file):
+            raise xenrt.XRTFailure("coredump not generated")
+        xenrt.TEC().logverbose("Coredump file found")
+        
+        step("Check if Crashdump file size is greater than or equal to guest memory")
+        fileSize = int(self.host.execdom0("stat -c %s " + fileName).strip())
+        if fileSize == 0:
+            raise xenrt.XRTFailure("Empty coredump file is created")
+        step("Remove file")
+        self.host.execdom0("rm -f /var/log/crashdump-test-file")

@@ -84,7 +84,7 @@ class StartSuite(_SuiteStartBase):
         }
     RESPONSES = { "200": {"description": "Successful response"}}
     OPERATION_ID = "start_suite_run"
-    PARAM_ORDER = ['suite', 'branch', 'version', 'sku', 'params', 'seqs', 'rerun', 'rerunall', 'rerunifneeded', 'xenrtbranch', 'devrun']
+    PARAM_ORDER = ['suite', 'branch', 'version', 'sku', 'params', 'seqs', 'rerun', 'rerunall', 'rerunifneeded', 'xenrtbranch', 'devrun', 'delay']
     TAGS = ['suiterun']
 
     def render(self):

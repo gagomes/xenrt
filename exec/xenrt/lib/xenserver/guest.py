@@ -5884,8 +5884,6 @@ class TampaGuest(BostonGuest):
         if timer:
             timer.startMeasurement()
 
-        tcpDumps = self.startLiveMigrateTcpDump(host, remote_host, live)
-
         try:
             cmd = "vm-migrate uuid=%s" % self.getUUID()
             if remote_user is None:
@@ -5940,8 +5938,6 @@ class TampaGuest(BostonGuest):
                         raise e
                     raise f
             raise e
-        finally:
-            self.stopLiveMigrateTcpDump(host, remote_host, tcpDumps)
 
         if timer:
             timer.stopMeasurement()
@@ -5960,52 +5956,6 @@ class TampaGuest(BostonGuest):
                 self.waitForSSH(boottime, desc="Guest migrate SSH check")
             else:
                 self.waitForDaemon(boottime, desc="Guest migrate XML-RPC check")
-
-    def startLiveMigrateTcpDump(self, host, remoteHost, live):
-        tcpDumps = {}
-
-        if not host:
-            host = remoteHost
-
-        if host and host.getMyHostUUID() != self.host.getMyHostUUID() and live == "true":
-            try:
-                bridges = []
-                devices = []
-
-                for vif in self.getVIFs().values():
-                    bridges.append(vif[2])
-
-                for bridge in bridges:
-                    devices.append(bridge)
-
-                    pifs = host.parseListForOtherParam("network-list", "bridge", bridge, "PIF-uuids").split("; ")
-
-                    for pif in pifs:
-                        if host.genParamGet("pif", pif, "host-uuid") == host.getMyHostUUID():
-                            devices.append(host.genParamGet("pif", pif, "device"))
-
-                for device in devices:
-                    xenrt.TEC().logverbose("Starting TCP dump on destination host to monitor traffic on " + device)
-                    f = "/tmp/%s_%s" % (device, xenrt.randomGuestName())
-                    pid = host.execdom0("tcpdump -i %s -net arp or icmp6 &> %s & echo $!" % (device, f)).strip()
-                    tcpDumps[pid] = f
-
-            except Exception, ex:
-                xenrt.TEC().logverbose("Exception running startLiveMigrateTcpDump: " + str(ex))
-
-        return tcpDumps
-
-    def stopLiveMigrateTcpDump(self, host, remoteHost, tcpDumps):
-
-        if not host:
-            host = remoteHost
-
-        if host:
-            for pid in tcpDumps:
-                try:
-                    host.execdom0("kill %s; cat %s; rm -f %s" % (pid, tcpDumps[pid], tcpDumps[pid]))
-                except:
-                    pass
 
     def setHostnameViaXenstore(self):
         """

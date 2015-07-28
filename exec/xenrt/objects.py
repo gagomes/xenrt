@@ -19,7 +19,7 @@ import IPy
 import XenAPI
 import ssl
 import xml.etree.ElementTree as ET
-from xenrt.lazylog import log, warning
+from xenrt.lazylog import log, warning, step
 from xenrt.linuxanswerfiles import *
 
 #Dummy import of _strptime module

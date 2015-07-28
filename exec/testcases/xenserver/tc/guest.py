@@ -1912,7 +1912,7 @@ class TCGuestCoreDump(xenrt.TestCase):
     #TC-27146
     def prepare(self, arglist):
         self.host = self.getDefaultHost()
-        step("Fetch list of guests")
+        step("Install guest")
         distro = self.host.lookup("GENERIC_LINUX_OS_64", "centos61")
         self.guest = self.host.createBasicGuest(distro)
         
@@ -1943,8 +1943,7 @@ class TCGuestCoreDump(xenrt.TestCase):
         xenrt.TEC().logverbose("Coredump file found")
         
         step("Check Crashdump file is not empry")
-        fileSize = int(self.host.execdom0("stat -c %s " + fileName).strip())
-        if fileSize == 0:
+        if int(self.host.execdom0("stat -c %s " + fileName).strip()) == 0:
             raise xenrt.XRTFailure("Empty coredump file is created")
         step("Remove file")
         self.host.execdom0("rm -f /var/log/crashdump-test-file")

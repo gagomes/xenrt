@@ -30,5 +30,6 @@
       <testcase id="xenserver.tc.guest.TC21711" tc="TC-21711" />
     </serial>
     <testcase id="xenserver.tc.hotfix.TCDiscSpacePlugins" tc="TC-23995"/>
+    <testcase id="testcases.xenserver.tc.guest.TCGuestCoreDump" tc="TC-27146" />
   </testsequence>
 </xenrt>

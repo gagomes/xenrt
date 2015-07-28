@@ -1906,3 +1906,40 @@ class TCMemoryDumpBootDriverFlag(xenrt.TestCase):
             raise xenrt.XRTFailure("Unexpected output: Crashdump is not created")
         else:
             xenrt.TEC().logverbose("Crashdump file found")
+
+class TCGuestCoreDump(xenrt.TestCase):
+    """Test to validate Linux VM core dump Instructions """
+    #TC-27146
+    def prepare(self, arglist):
+        self.host = self.getDefaultHost()
+        step("Install guest")
+        distro = self.host.lookup("GENERIC_LINUX_OS_64", "centos61")
+        self.guest = self.host.createBasicGuest(distro)
+        
+    def run(self, arglist):
+        xenrt.TEC().logverbose("Guest state is %s" % self.guest.getState())
+        step("Set actions-after-crash to preserve")
+        self.guest.paramSet("actions-after-crash", "preserve")
+
+        step("Crash the guest")
+        self.guest.crash()
+        xenrt.sleep(100)
+
+        step("Check guest state")
+        if not self.guest.getState() == "PAUSED":
+            raise xenrt.XRTFailure("Guest not found in a paused state.")
+
+        step("Execute dumpcore")
+        if isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
+            self.host.execdom0("xl dump-core %s /var/log/coredump-test-file" % self.guest.getDomid())
+        else:
+            self.host.execdom0("/opt/xensource/libexec/dumpcore -domid %s -file /var/log/coredump-test-file" % self.guest.getDomid())
+
+        step("Check if Core dump file exists")
+        file = self.host.execdom0("ls -l /var/log/coredump-test-file")
+        if "no such file or directory" in file:
+            raise xenrt.XRTFailure("Coredump not generated")
+        else:
+            xenrt.TEC().logverbose("Coredump file found")
+            step("Remove file")
+            self.host.execdom0("rm -f /var/log/coredump-test-file")

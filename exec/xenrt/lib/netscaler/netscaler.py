@@ -61,8 +61,9 @@ class NetScaler(object):
             vpx.checkFeatures("On fresh install:")
 
             # Apply license
-            vpx.applyLicense(license)
-            vpx.checkFeatures("Test results after applying license:")
+            if license:
+                vpx.applyLicense(license)
+                vpx.checkFeatures("Test results after applying license:")
 
             # Setup networking
             vpx.setup(networks, networks_sriov)

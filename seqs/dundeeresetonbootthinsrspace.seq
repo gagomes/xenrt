@@ -6,7 +6,7 @@
 
   <prepare>
     <host id="0">
-    <storage type="lvmoiscsi" name="lvmoiscsisr" default="true" options="ietvm,thin" size="200"/>
+    <storage type="lvmoiscsi" name="lvmoiscsisr" default="true" options="ietvm,thin" size="50"/>
     <vm name="GoldVM">
       <distro>debian60</distro>
       <postinstall action="preCloneTailor"/>

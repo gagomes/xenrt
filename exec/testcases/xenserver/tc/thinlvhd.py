@@ -116,11 +116,19 @@ class _ThinLVHDBase(xenrt.TestCase):
         If failed to create file due to any reason, raise an xenrt.XRTError.
         """
 
-        if not targetDir:
-            targetDir = guest.execguest("mktemp")
+        if guest.windows:
+            # TODO: Windows in guest writing has not been tested.
+            if not targetDir:
+                targetDir = "C:\\test.bin"
+            path = xenrt.TEC().lookup("LOCAL_SCRIPTDIR") + "/progs/winwrite/"
+            xenrt.TEC().config.setVariable("WINDOWS_WRITE", guest.compileWindowsProgram(path) + "\\winwrite.exe") 
+            data = guest.xmlrpcExec("%s %s" % (xenrt.TEC().lookup("WINDOWS_WRITE"), targetDir), returndata=True)
 
-        guest.execguest("dd if=/dev/urandom of=%s bs=4096 count=%d conv=notrunc" %
-            (targetDir, size/4096))
+        else:
+            if not targetDir:
+                targetDir = guest.execguest("mktemp")
+
+            guest.execguest("dd if=/dev/urandom of=%s bs=4096 count=%d conv=notrunc" % (targetDir, size/4096))
 
     def isThinProvisioning(self, sr):
         """Return whether given SR is thin provision'ed or not
@@ -253,44 +261,51 @@ class ThinLVMStorageRepository(xenrt.lib.xenserver.LVMStorageRepository):
         smconf["allocation"]="dynamic"
         self._create("lvm",  {"device":device}, smconf=smconf)
 
-class ResetOnBootThinSRSpace(_ResetOnBootBase):
+class ResetOnBootThinSRSpace(_ThinLVHDBase):
     """Verify that VM release the space when VDI on boot set to reset and VM state set to shutdown"""
 
-    VDI_LIST = ["reset"]
-
-    def getSRPhysicalSize(self, vdiuuid):
-        # We yet to have a API to get the actual SR space allocated for specifc VDI
-        return 0
-
     def prepare(self, arglist=None):
-        self.host=self.getDefaultHost()
+        self.host = self.getDefaultHost()
         self.goldVM = xenrt.TestCase.getGuest(self, "GoldVM")
-        self.sr=self.host.lookupDefaultSR()
-        self.guest, self.vdi = self.createTargetVM()
-        #Start the Guest
-        self.guest.setState("UP")
-        # Write some data to guest VDI
-        self.writeVDI(self.vdi[0])
+        self.srs = self.getThinProvisioningSRs()
+        if not self.srs:
+            raise xenrt.XRTError("No thin provisioning SR is found.")
+
+        self.guest = self.goldVM.copyVM(sruuid = self.srs[0].uuid)
+        self.uninstallOnCleanup(self.guest)
 
     def run(self, arglist=None):
-    
-        step("Test trying to check SR physical space allocated for the VDI %s " % (self.vdi[0]))
-        srSizeBefore=self.getSRPhysicalSize(self.vdi[0])
-        xenrt.TEC().logverbose("Physical SR space allocated for the VDI :%s is :%s" % (self.vdi[0], srSizeBefore))
+
+        step("Set VDI to reset on boot.")
+        self.guest.setState("DOWN")
+        for xvdi in self.guest.asXapiObject().VDI():
+            self.host.genParamSet("vdi", xvdi.uuid, "on-boot", "reset")
+
+        srSizeBefore = self.getPhysicalUtilisation(self.srs[0])
+        xenrt.TEC().logverbose("Physical SR space allocated for the VDIs before writing: %d" % (srSizeBefore))
+
+        step("Writing some data onto VDI")
+        self.guest.setState("UP")
+        self.fillDisk(self.guest, size=2*xenrt.GIGA)
+
+        step("Test trying to check SR physical space allocated for the VDI(s)")
+        srSizeAfter = self.getPhysicalUtilisation(self.srs[0])
+        xenrt.TEC().logverbose("Physical SR space allocated for the VDIs after writing: %d" % (srSizeAfter))
 
         # Now shutdown the guest
-        step("Test trying to shutdown the guest whose VDI on boot set to reset") 
-        self.guest.setState("DOWN")
+        step("Rebooting VM to release leaf of VDI") 
+        self.guest.reboot()
 
-        step("Test trying to check the SR physical space allocated for the VDI :%s after the VM shutdown" % (self.vdi[0]))
-        srSizeAfter=self.getSRPhysicalSize(self.vdi[0])
-        xenrt.TEC().logverbose("Physical SR space allocated for the VDI : %s after the VM shutdown is : %s" % (self.vdi[0], srSizeAfter))
+        step("Test trying to check the SR physical space allocated for the VDI after reset-on-boot VM shutdown")
+        srSizeFinal = self.getPhysicalUtilisation(self.srs[0])
+        xenrt.TEC().logverbose("Physical SR space allocated for the VDI after the VM shutdown: %d" % (srSizeFinal))
 
         # We expect VM should release the space when it shutdown and VDI on boot set to 'reset'
-        if srSizeBefore<=srSizeAfter:
-        # TODO : Raise the exception
-            pass
-        xenrt.TEC().logverbose("Physical SR space for the VDI changed as expected")
+        if srSizeBefore >= srSizeAfter:
+            raise xenrt.XRTFailure("SR physical utilisation has not been increased after writing data in VDI.")
+
+        if srSizeAfter >= srSizeFinal:
+            raise xenrt.XRTFailure("SR Physical utilisation is not decreased after reset-on-boot VM rebooted.")
 
 
 class TCThinProvisioned(_ThinLVHDBase):

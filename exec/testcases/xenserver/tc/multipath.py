@@ -4884,7 +4884,7 @@ class TCValidateFCOEMultipathPathCount(_TC8159):
         self.scsiid = host.lookup(["FC", fcoesr, "SCSIID"], None)
         self.sr = xenrt.lib.xenserver.FCOEStorageRepository(host, "fcoe")
         self.sr.create(self.scsiid,multipathing=True)
-        return sr
+        return self.sr
 
     def disableEthPort(self, pathindex):
         

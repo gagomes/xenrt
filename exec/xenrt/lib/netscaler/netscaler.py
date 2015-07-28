@@ -166,7 +166,7 @@ class NetScaler(object):
             self.__netScalerCliCommand("bind vlan %d -ifnum %s" % (vlan_id, iface))
             self.__netScalerCliCommand("set interface %s -tagall ON" % (iface)) # This is necessary to make it work, and it must be done after the 'bind vlan' command.
 
-        #self.__netScalerCliCommand('save ns config')
+        self.__netScalerCliCommand('save ns config')
 
     def __netScalerCliCommand(self, command):
         """Helper method for creating specific NetScaler CLI command methods"""

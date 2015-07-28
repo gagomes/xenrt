@@ -2703,30 +2703,29 @@ class TCFCOEMngReconfg(xenrt.TestCase):
         self.sruuid = self.host.minimalList("sr-list", args="type=%s" %(self.SRTYPE))[0]
         
     def run(self, arglist):
-        """ """
+
         step("Check for default NIC")
-        
-        default = host.getDefaultInterface()
+        default = self.host.getDefaultInterface()
         xenrt.TEC().logverbose("Default NIC for host is %s." % (default))   
-        defaultuuid = host.parseListForUUID("pif-list",
+        defaultuuid = self.host.parseListForUUID("pif-list",
                                             "device",
                                             default).strip()
                                             
         step("Get list of secongary NICs")
         
-        nics = host.listSecondaryNICs()
+        nics = self.host.listSecondaryNICs()
         if len(nics) == 0:
             raise xenrt.XRTError("Test must be run on a host with at "
                                  "least 2 NICs.")
 
-        nmi = host.getSecondaryNIC(nics[0])
+        nmi = self.host.getSecondaryNIC(nics[0])
         xenrt.TEC().logverbose("Using new management interface %s." % (nmi)) 
 
         step("Setting secondary NIC's mode to DHCP")
         
         xenrt.TEC().logverbose("Setting %s mode to DHCP." % (nmi))
-        nmiuuid = host.parseListForUUID("pif-list", "device", nmi).strip()
-        cli = host.getCLIInstance()
+        nmiuuid = self.host.parseListForUUID("pif-list", "device", nmi).strip()
+        cli = self.host.getCLIInstance()
         cli.execute("pif-reconfigure-ip uuid=%s mode=dhcp" % (nmiuuid))
 
         step("Changing management interface to secondary NIC")
@@ -2742,19 +2741,19 @@ class TCFCOEMngReconfg(xenrt.TestCase):
 
         xenrt.TEC().logverbose("Finding IP address of new management "
                                "interface...")
-        data = host.execdom0("ifconfig xenbr%s" % (nmi[-1]))
+        data = self.host.execdom0("ifconfig xenbr%s" % (nmi[-1]))
         nip = re.search(".*inet (addr:)?(?P<ip>[0-9\.]+)", data).group("ip")
         xenrt.TEC().logverbose("Interface %s appears to have IP %s." %
                                (nmi, nip))
 
         xenrt.TEC().logverbose("Start using new IP address.")
-        oldip = host.machine.ipaddr
-        host.machine.ipaddr = nip
+        oldip = self.host.machine.ipaddr
+        self.host.machine.ipaddr = nip
 
         step(" Remove IP configuration from the previous management interface")
         
         cli.execute("pif-reconfigure-ip uuid=%s mode=None" % (defaultuuid))
-        data = host.execdom0("ifconfig xenbr%s" % (default[-1]))
+        data = self.host.execdom0("ifconfig xenbr%s" % (default[-1]))
         r = re.search(".*inet (addr:)?(?P<ip>[0-9\.]+)", data)
         if r:
             raise xenrt.XRTFailure("Old management interface still has IP "
@@ -2806,7 +2805,7 @@ class TCFCOEMngReconfg(xenrt.TestCase):
         step("Remove IP configuration from the previous management interface")
         
         cli.execute("pif-reconfigure-ip uuid=%s mode=None" % (nmiuuid))
-        data = host.execdom0("ifconfig xenbr%s" % (nmi[-1]))
+        data = self.host.execdom0("ifconfig xenbr%s" % (nmi[-1]))
         r = re.search(".*inet (addr:)?(?P<ip>[0-9\.]+)", data)
         if r:
             raise xenrt.XRTFailure("Previous management interface still has "

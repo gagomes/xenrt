@@ -4914,7 +4914,7 @@ class TCValidateFCOEMultipathPathCount(_TC8159):
             xenrt.sleep(60)
         
             step("Verify active and  total paths")
-            pbd = host.parseListForUUID("pbd-list",
+            pbd = self.host.parseListForUUID("pbd-list",
                                         "sr-uuid",
                                         self.sr.uuid,
                                         "host-uuid=%s" % (self.host.getMyHostUUID()))

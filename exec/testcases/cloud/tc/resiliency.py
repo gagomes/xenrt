@@ -33,7 +33,7 @@ class SystemVM(object):
             xenrt.TEC().logverbose('Command: %s returned: %s' % (command, rData))
             return rData
         else:
-            raise XRTError('System VM command execution not supported for non-XS hypervisors')
+            raise xenrt.XRTError('System VM command execution not supported for non-XS hypervisors')
 
     def waitForReady(self, timeout=600, pollPeriod=20):
         """This method check the CP host state, CP System VM state and checks that the agent is running"""

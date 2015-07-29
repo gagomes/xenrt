@@ -187,7 +187,7 @@ class ManagementServer(object):
             dbServer.execcmd('service %s restart' % db)
             dbServer.execcmd('chkconfig %s on' % db)
 
-            dbServer.execcmd('mysql -u root --execute="GRANT ALL PRIVILEGES ON *.* TO \'root\'@\'%\' WITH GRANT OPTION"')
+            dbServer.execcmd('mysql -u root --execute="GRANT ALL PRIVILEGES ON *.* TO \'root\'@\'%\' IDENTIFIED BY \'xensource\' WITH GRANT OPTION"')
             dbServer.execcmd('iptables -I INPUT -p tcp --dport 3306 -j ACCEPT')
             dbServer.execcmd('mysqladmin -u root password xensource')
             dbServer.execcmd('service %s restart' % db)

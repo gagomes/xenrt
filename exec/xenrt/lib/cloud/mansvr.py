@@ -497,7 +497,7 @@ class ManagementServer(object):
             self.netscaler.cli("add lb vserver MS-80 HTTP %s 80 -persistenceType SOURCEIP -cltTimeout 180" % vip.addr)
             self.netscaler.cli("add lb vserver MS-8080 HTTP %s 8080 -persistenceType SOURCEIP -cltTimeout 180" % vip.addr)
             self.netscaler.cli("add lb vserver MS-8096 HTTP %s 8096 -persistenceType NONE -cltTimeout 180" % vip.addr)
-            self.netscaler.cli("add lb vserver MS-8250 TCP %s 8250 -persistenceType NONE -cltTimeout 180" % vip.addr)
+            self.netscaler.cli("add lb vserver MS-8250 TCP %s 8250 -persistenceType SOURCEIP -cltTimeout 180" % vip.addr)
 
             for m in self.allManagementServers:
                 self.netscaler.cli("add server %s %s" % (m.getName(), m.getIP()))

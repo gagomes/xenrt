@@ -4364,6 +4364,16 @@ Loop While not oex3.Stdout.atEndOfStream"""%(applicationEventLogger,systemEventL
                            "SZ",
                             name)
             self.reboot()
+        else:
+            self.execcmd("hostname %s" % name)
+            if self.execcmd('test -e /etc/hostname', retval="code") == 0:
+                self.execcmd("echo %s > /etc/hostname" % name)
+            elif self.execcmd('test -e /etc/sysconfig/network', retval="code") == 0:
+                self.execcmd("sed -i '/HOSTNAME/d' /etc/sysconfig/network")
+                self.execcmd("echo 'HOSTNAME=%s' >> /etc/sysconfig/network" % name)
+            self.execcmd("echo '%s    %s' >> /etc/hosts" % (self.getIP(), name))
+                
+            
 
     def sysPrepOOBE(self):
         if not self.windows:

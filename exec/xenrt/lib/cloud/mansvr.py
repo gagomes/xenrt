@@ -454,7 +454,6 @@ class ManagementServer(object):
     def preManagementServerInstall(self):
         # Check correct Java version is installed (installs correct version if required)
         self.checkJavaVersion()
-        [x.rename(x.getName()) for x in self.allManagementServers]
 
     def postManagementServerInstall(self):
         if not self.isCCP and self.version in ['4.4', '4.5']:
@@ -463,6 +462,7 @@ class ManagementServer(object):
                 m.execcmd('chmod 755 /usr/share/cloudstack-common/scripts/vm/hypervisor/xenserver/vhd-util')
 
     def installCloudManagementServer(self):
+        [x.rename(x.getName()) for x in self.allManagementServers]
         self.preManagementServerInstall()
 
         if self.getCCPInputs():

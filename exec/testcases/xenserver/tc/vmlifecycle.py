@@ -745,7 +745,48 @@ class TC8313(_GuestCrash):
         self.guest = self.host.createBasicGuest(distro,name="Centos57-forTC8313")
         self._guestsToUninstall.append(self.guest)
         self.timeout = 60
+
+class TCGuestCoreDump(xenrt.TestCase):
+    """Test to validate Linux VM core dump Instructions """
+    #TC-27146
+    def prepare(self, arglist):
+        self.host = self.getDefaultHost()
+        step("Install guest")
+        distro = self.host.lookup("GENERIC_LINUX_OS_64", "centos61")
+        self.guest = self.host.createBasicGuest(distro)
         
+    def run(self, arglist):
+        xenrt.TEC().logverbose("Guest state is %s" % self.guest.getState())
+        step("Set actions-after-crash to preserve")
+        self.guest.paramSet("actions-after-crash", "preserve")
+
+        step("Crash the guest")
+        self.guest.crash()
+        xenrt.sleep(100)
+
+        step("Check guest state")
+        if self.guest.getState() != "PAUSED":
+            raise xenrt.XRTFailure("Guest not found in a paused state.")
+
+        step("Execute dumpcore")
+        fileName = "/var/log/coredump-test-file"
+        if isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
+            self.host.execdom0("xl dump-core %s %s" % (self.guest.getDomid(), fileName))
+        else:
+            self.host.execdom0("/opt/xensource/libexec/dumpcore -domid %s -file %s" % (self.guest.getDomid(), fileName))
+
+        step("Check if Crashdump file exists")
+        file = self.host.execdom0("ls -l %s||true" % (fileName))
+        if "No such file or directory" in file:
+            raise xenrt.XRTFailure("Coredump not generated")
+        xenrt.TEC().logverbose("Coredump file found")
+        
+        step("Check Crashdump file is not empry")
+        if int(self.host.execdom0("stat -c %s " + fileName).strip()) == 0:
+            raise xenrt.XRTFailure("Empty coredump file is created")
+        step("Remove file")
+        self.host.execdom0("rm -f /var/log/crashdump-test-file")
+
 class TC9314(testcases.guestops.vmtime.TCGuestTimeOffsetMig):
     """Windows VM with an offset clock should retain the offset across a live migrate"""
 

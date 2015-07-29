@@ -30,6 +30,6 @@
       <testcase id="xenserver.tc.guest.TCMemoryDumpBootDriverFlag" tc="TC-23777"/>
     </serial>
     <testcase id="xenserver.tc.hotfix.TCDiscSpacePlugins" tc="TC-23995"/>
-    <testcase id="testcases.xenserver.tc.guest.TCGuestCoreDump" tc="TC-27146" />
+    <testcase id="testcases.xenserver.tc.vmlifecycle.TCGuestCoreDump" tc="TC-27146" />
   </testsequence>
 </xenrt>

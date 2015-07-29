@@ -7116,6 +7116,7 @@ class GenericGuest(GenericPlace):
         #value is the error message
         error_lists={
         "EIP is at cpuid4_cache_lookup":"EIP is at cpuid4_cache_lookup",
+        "The file sysklogd-1.4.1-40.el5.i386.rpm cannot be opened.":"sysklogd-1.4.1-40.el5.i386.rpm is corrupted",
          
         }
         try:

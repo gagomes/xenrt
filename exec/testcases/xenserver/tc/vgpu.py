@@ -3516,8 +3516,19 @@ class TCPoolIntelBootstorm(IntelBase):
 
     def run(self, arglist):
 
+        def __attachvGPU(vgpucreator, vm, groupuuid=None):
+            """ 
+            Very awkward scenario with multiple hosts and vgpu config.
+            Can't use the usual lib code, as involves some weird flow which forces VMs started on specific host.
+            """
+            vm.setState("DOWN")
+            vgpucreator.createOnGuest(vm, groupuuid)
+            # Doesn't enforce starting guest on default host.
+            self.bootstormStartVM(vm)
+
         def __prepareVM(vm, config):
-            self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
+            # Using our own wrapper to attach vGPU.
+            self.__attachvGPU(self.vGPUCreator[config], vm)
             self.typeOfvGPU.installGuestDrivers(vm, self.getConfigurationName(config))
             self.typeOfvGPU.assertvGPURunningInVM(vm, self.getConfigurationName(config))
 

@@ -489,7 +489,7 @@ class _TCManServerResiliencyBase(_TCCloudResiliencyBase):
 class TCManServerVMReboot(_TCManServerResiliencyBase):
     
     def outage(self):
-        msvm = self.cloud.mgtsvr.place
+        msvm = self.cloud.mgtsvr.primaryManagementServer
         msvm.reboot()
 
     def recover(self):
@@ -499,7 +499,7 @@ class TCManServerVMReboot(_TCManServerResiliencyBase):
 class TCManServerRestart(_TCManServerResiliencyBase):
     
     def outage(self):
-        msvm = self.cloud.mgtsvr.place
+        msvm = self.cloud.mgtsvr.primaryManagementServer
         msvm.execcmd("service cloudstack-management restart")
 
     def recover(self):
@@ -532,7 +532,7 @@ class TCDBOutage(_TCManServerResiliencyBase):
 class TCManServerStartAfterDB(_TCManServerResiliencyBase):
     
     def outage(self):
-        msvm = self.cloud.mgtsvr.place
+        msvm = self.cloud.mgtsvr.primaryManagementServer
         dbvm = self.cloud.mgtsvr.dbServer
         db = self.cloud.mgtsvr.db
         dbvm.execcmd("service %s stop" % db)

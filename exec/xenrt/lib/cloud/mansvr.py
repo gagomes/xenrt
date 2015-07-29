@@ -39,6 +39,10 @@ class ManagementServer(object):
         ret.extend(self.additionalManagementServers)
         return ret
 
+    @property
+    def ip(self):
+        return self.primaryManagementServer.getIP()
+
     def getDatabaseDump(self, destDir):
         path = self.primaryManagementServer.execcmd("mktemp").strip()
         self.primaryManagementServer.execcmd("mysqldump -u cloud --password=cloud --skip-opt cloud > %s" % path)

@@ -3524,6 +3524,7 @@ class TCPoolIntelBootstorm(IntelBase):
         for distro in self.REQUIRED_DISTROS:
             osType = self.getOSType(distro)
             masterVM = self.masterVMs[osType]
+            masterVM.setState("DOWN")
 
             if not len(self.VGPU_CONFIG) == 2:
                 raise xenrt.XRTError("Need a config length of 2 for mixed vgpu/passthrough bootstorm.")

@@ -3528,7 +3528,7 @@ class TCPoolIntelBootstorm(IntelBase):
 
         def __prepareVM(vm, config):
             # Using our own wrapper to attach vGPU.
-            self.__attachvGPU(self.vGPUCreator[config], vm)
+            __attachvGPU(self.vGPUCreator[config], vm)
             self.typeOfvGPU.installGuestDrivers(vm, self.getConfigurationName(config))
             self.typeOfvGPU.assertvGPURunningInVM(vm, self.getConfigurationName(config))
 

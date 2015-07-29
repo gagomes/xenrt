@@ -13,8 +13,11 @@ except ImportError:
 __all__ = ["ManagementServer"]
 
 class ManagementServer(object):
-    def __init__(self, place):
+    def __init__(self, place, dbServer=None, simDbServer=None, additionalManagementServers=None):
         self.place = place
+        self._dbServer = dbServer
+        self._simDbServer = simDbServer
+        self.additionalManagementServers = additionalManagementServers or []
         self.place.addExtraLogFile("/var/log/cloudstack")
         self.__isCCP = None
         self.__version = None
@@ -62,6 +65,8 @@ class ManagementServer(object):
                 port = 8080
                 try:
                     urllib.urlopen('http://%s:%s' % (self.place.getIP(), port))
+                    for m in self.additionalManagementServers:
+                        urllib.urlopen('http://%s:%s' % (m.getIP(), port))
                 except IOError, ioErr:
                     xenrt.TEC().logverbose('Attempt to reach Management Server [%s] on Port: %d failed with error: %s' % (self.place.getIP(), port, ioErr.strerror))
                     xenrt.sleep(60)
@@ -70,6 +75,8 @@ class ManagementServer(object):
                 port = 8096
                 try:
                     urllib.urlopen('http://%s:%s' % (self.place.getIP(), port))
+                    for m in self.additionalManagementServers:
+                        urllib.urlopen('http://%s:%s' % (m.getIP(), port))
                     managementServerOk = True
                     break
                 except IOError, ioErr:
@@ -78,7 +85,7 @@ class ManagementServer(object):
 
             if not managementServerOk and rebootChecks < maxReboots:
                 xenrt.TEC().logverbose('Restarting Management Server: Attempt: %d of %d' % (rebootChecks+1, maxReboots))
-                self.place.execcmd('mysql -u cloud --password=cloud --execute="UPDATE cloud.configuration SET value=8096 WHERE name=\'integration.api.port\'"')
+                self.place.execcmd('mysql -u cloud --password=cloud -h %s --execute="UPDATE cloud.configuration SET value=8096 WHERE name=\'integration.api.port\'"' % self.dbServer.getIP())
                 self.restart(checkHealth=False, startStop=(rebootChecks > 0))
             rebootChecks += 1
 
@@ -93,6 +100,8 @@ class ManagementServer(object):
     def restart(self, checkHealth=True, startStop=False):
         if not startStop:
             self.place.execcmd('service %s-management restart' % (self.cmdPrefix))
+            for m in self.additionalManagementServers:
+                m.execcmd('service %s-management restart' % (self.cmdPrefix))
         else:
             self.stop()
             xenrt.sleep(120)
@@ -103,61 +112,104 @@ class ManagementServer(object):
 
     def stop(self):
         self.place.execcmd('service %s-management stop' % (self.cmdPrefix))
+        for m in self.additionalManagementServers:
+            m.execcmd('service %s-management stop' % (self.cmdPrefix))
 
     def start(self):
         self.place.execcmd('service %s-management start' % (self.cmdPrefix))
+        for m in self.additionalManagementServers:
+            m.execcmd('service %s-management start' % (self.cmdPrefix))
 
 
     def getCCPInputs(self):
         return xenrt.getCCPInputs(self.place.distro)
+
+    @property
+    def dbServer(self):
+        return self._dbServer or self.place
+
+    @property
+    def simDbServer(self):
+        return self._simDbServer or self._dbServer or self.place
 
     def setupManagementServerDatabase(self):
         if self.place.distro.startswith("rhel6") or self.place.distro.startswith("centos6"):
             # Configure SELinux
             self.place.execcmd("sed -i 's/SELINUX=enforcing/SELINUX=permissive/' /etc/selinux/config")
             self.place.execcmd('setenforce Permissive')
-            self.place.execcmd('yum -y install mysql-server mysql')
-        elif self.place.distro.startswith("rhel7") or self.place.distro.startswith("centos7"):
+
+        self.installMySql(self.dbServer)
+        self.installMySql(self.place, server=False)
+
+        if self.place == self.dbServer and not self.additionalManagementServers:
+            host = "localhost"
+        else:
+            host = self.dbServer.getIP()
+        setupDbLoc = self.place.execcmd('find /usr/bin -name %s-setup-databases' % (self.cmdPrefix)).strip()
+        self.place.execcmd('%s cloud:cloud@%s --deploy-as=root:xensource' % (setupDbLoc, host))
+        for m in self.additionalManagementServers:
+            setupDbLoc = m.execcmd('find /usr/bin -name %s-setup-databases' % (self.cmdPrefix)).strip()
+            m.execcmd('%s cloud:cloud@%s' % (setupDbLoc, host))
+        
+        if xenrt.TEC().lookup("USE_CCP_SIMULATOR", False, boolean=True):
+            self.tailorForSimulator()
+
+    def installMySql(self, dbServer, server=True):
+        if dbServer.special['mysql_server_installed']:
+            return
+        db = "mysqld"
+        if server:
+            mysqlPackages = "mysql-server mysql"
+            mariaPackages = "mariabdb-server mariadb"
+        else:
+            mysqlPackages = "mysql"
+            mariaPackages = "mariadb"
+        if dbServer.distro.startswith("rhel6") or dbServer.distro.startswith("centos6"):
+                dbServer.execcmd('yum -y install %s' % mysqlPackages)
+        elif dbServer.distro.startswith("rhel7") or dbServer.distro.startswith("centos7"):
             if xenrt.TEC().lookup("CLOUDSTACK_MARIADB", False, boolean=True):
-                self.place.execcmd('yum -y install mariadb-server mariadb')
+                dbServer.execcmd('yum -y install %s' % mariaPackages)
+                db = "mariadb"
             else:
                 # Add a proxy if we know about one
                 proxy = xenrt.TEC().lookup("HTTP_PROXY", None)
                 if proxy:
-                    self.place.execcmd("sed -i '/proxy/d' /etc/yum.conf")
-                    self.place.execcmd("echo 'proxy=http://%s' >> /etc/yum.conf" % proxy)
-                self.place.execcmd("wget -O mysql-repo.rpm %s/rpms/mysql-community-release-el7-5.noarch.rpm" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"))
-                self.place.execcmd("yum install -y mysql-repo.rpm")
-                if xenrt.TEC().lookup("WORKAROUND_CS30447", True, boolean=True):
+                    dbServer.execcmd("sed -i '/proxy/d' /etc/yum.conf")
+                    dbServer.execcmd("echo 'proxy=http://%s' >> /etc/yum.conf" % proxy)
+                dbServer.execcmd("wget -O mysql-repo.rpm %s/rpms/mysql-community-release-el7-5.noarch.rpm" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"))
+                dbServer.execcmd("yum install -y mysql-repo.rpm")
+                if server and xenrt.TEC().lookup("WORKAROUND_CS30447", True, boolean=True):
                     xenrt.TEC().warning("Using workaround for CS-30447")
-                    self.place.execcmd("yum -y install mysql-community-server-5.6.21")
+                    dbServer.execcmd("yum -y install mysql-community-server-5.6.21")
                 else:
-                    self.place.execcmd('yum -y install mysql-server mysql')
-        self.place.execcmd('service %s restart' % self.db)
-        self.place.execcmd('chkconfig %s on' % self.db)
+                    dbServer.execcmd('yum -y install %s' % mysqlPackages)
+        if server:
+            dbServer.execcmd('service %s restart' % db)
+            dbServer.execcmd('chkconfig %s on' % db)
 
-        self.place.execcmd('mysql -u root --execute="GRANT ALL PRIVILEGES ON *.* TO \'root\'@\'%\' WITH GRANT OPTION"')
-        self.place.execcmd('iptables -I INPUT -p tcp --dport 3306 -j ACCEPT')
-        self.place.execcmd('mysqladmin -u root password xensource')
-        self.place.execcmd('service %s restart' % self.db)
-
-        setupDbLoc = self.place.execcmd('find /usr/bin -name %s-setup-databases' % (self.cmdPrefix)).strip()
-        self.place.execcmd('%s cloud:cloud@localhost --deploy-as=root:xensource' % (setupDbLoc))
-        
-        if xenrt.TEC().lookup("USE_CCP_SIMULATOR", False, boolean=True):
-            self.tailorForSimulator()
+            dbServer.execcmd('mysql -u root --execute="GRANT ALL PRIVILEGES ON *.* TO \'root\'@\'%\' WITH GRANT OPTION"')
+            dbServer.execcmd('iptables -I INPUT -p tcp --dport 3306 -j ACCEPT')
+            dbServer.execcmd('mysqladmin -u root password xensource')
+            dbServer.execcmd('service %s restart' % db)
+            dbServer.special['mysql_server_installed'] = True
 
     def setupManagementServer(self):
         self.place.execcmd('iptables -I INPUT -p tcp --dport 8096 -j ACCEPT')
         setupMsLoc = self.place.execcmd('find /usr/bin -name %s-setup-management' % (self.cmdPrefix)).strip()
         self.place.execcmd(setupMsLoc)
+        for m in self.additionalManagementServers:
+            setupMsLoc = self.place.execcmd('find /usr/bin -name %s-setup-management' % (self.cmdPrefix)).strip()
+            m.execcmd(setupMsLoc)
 
-        self.place.execcmd('mysql -u cloud --password=cloud --execute="UPDATE cloud.configuration SET value=8096 WHERE name=\'integration.api.port\'"')
+        self.place.execcmd('mysql -u cloud --password=cloud -h %s --execute="UPDATE cloud.configuration SET value=8096 WHERE name=\'integration.api.port\'"' % self.dbServer.getIP())
 
         if xenrt.TEC().lookup("USE_CCP_SIMULATOR", False, boolean=True):
             # For some reason the cloud user doesn't seem to have access to the simulator DB
             self.place.execcmd("""sed -i s/db.simulator.username=cloud/db.simulator.username=root/ /usr/share/cloudstack-management/conf/db.properties""")
             self.place.execcmd("""sed -i s/db.simulator.password=cloud/db.simulator.password=xensource/ /usr/share/cloudstack-management/conf/db.properties""")
+            if self.simDbServer != self.place:
+                self.place.execcmd("""sed -i s/db.simulator.host=localhost/db.simulator.host=%s/ /usr/share/cloudstack-management/conf/db.properties""" % self.simDbServer.getIP())
+                
         self.restart(checkHealth=False)
         self.checkManagementServerHealth(timeout=300)
 
@@ -186,7 +238,7 @@ class ManagementServer(object):
                     "%s/cloudTemplates/centos55-httpd-64bit.qcow2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP")
 
         for t in templateSubsts.keys():
-            self.place.execcmd("""mysql -u cloud --password=cloud --execute="UPDATE cloud.vm_template SET url='%s' WHERE url='%s'" """ % (templateSubsts[t], t))
+            self.place.execcmd("""mysql -u cloud --password=cloud -h %s --execute="UPDATE cloud.vm_template SET url='%s' WHERE url='%s'" """ % (self.dbServer.getIP(), templateSubsts[t], t))
 
         self.restart()
 
@@ -195,8 +247,8 @@ class ManagementServer(object):
         internalMask = IPy.IP("%s/%s" % (xenrt.getNetworkParam("NPRI", "SUBNET"), xenrt.getNetworkParam("NPRI", "SUBNETMASK")))
 
         if xenrt.TEC().lookup("USE_CCP_SIMULATOR", False, boolean=True):
-            self.place.execcmd('mysql -u root --password=xensource < /usr/share/cloudstack-management/setup/hypervisor_capabilities.simulator.sql')
-            self.place.execcmd('mysql -u root --password=xensource < /usr/share/cloudstack-management/setup/templates.simulator.sql')
+            self.place.execcmd('mysql -u root --password=xensource -h %s < /usr/share/cloudstack-management/setup/hypervisor_capabilities.simulator.sql', self.dbServer.getIP())
+            self.place.execcmd('mysql -u root --password=xensource -h %s < /usr/share/cloudstack-management/setup/templates.simulator.sql' % self.dbServer.getIP())
         marvinApi.setCloudGlobalConfig("secstorage.allowed.internal.sites", internalMask.strNormal())
         if not xenrt.TEC().lookup("MARVIN_SETUP", False, boolean=True):
             marvinApi.setCloudGlobalConfig("use.external.dns", "true")
@@ -344,7 +396,7 @@ class ManagementServer(object):
             dbVersionMatches = []
             installVersionMatches = []
             try:
-                dbVersion = self.place.execcmd('mysql -u cloud --password=cloud -s -N --execute="SELECT version from cloud.version ORDER BY id DESC LIMIT 1"').strip()
+                dbVersion = self.place.execcmd('mysql -u cloud --password=cloud -h %s -s -N --execute="SELECT version from cloud.version ORDER BY id DESC LIMIT 1"' % self.dbServer.getIP()).strip()
                 xenrt.TEC().logverbose('Found MS version %s from database' % (dbVersion))
                 dbVersionMatches = filter(lambda x:x in dbVersion, versionKeys)
             except Exception, e:
@@ -392,15 +444,16 @@ class ManagementServer(object):
             self.__db = 'mysqld'
 
             if xenrt.TEC().lookup("CLOUDSTACK_MARIADB", False, boolean=True):
-                if self.place.distro.startswith("rhel7") or self.place.distro.startswith("centos7"):
+                if self.dbServer.distro.startswith("rhel7") or self.dbServer.distro.startswith("centos7"):
                     self.__db = "mariadb"
                 else:
                     xenrt.XRTError('Maria DB only support in RHEL / CentOS 7')
         return self.__db
 
     def tailorForSimulator(self):
-        self.place.execcmd('mysql -u root --password=xensource < /usr/share/cloudstack-management/setup/create-database-simulator.sql')
-        self.place.execcmd('mysql -u root --password=xensource < /usr/share/cloudstack-management/setup/create-schema-simulator.sql')
+        self.installMySql(self.simDbServer)
+        self.place.execcmd('mysql -u root --password=xensource -h %s < /usr/share/cloudstack-management/setup/create-database-simulator.sql' % self.simDbServer.getIP())
+        self.place.execcmd('mysql -u root --password=xensource -h %s < /usr/share/cloudstack-management/setup/create-schema-simulator.sql' % self.simDbServer.getIP())
 
     def preManagementServerInstall(self):
         # Check correct Java version is installed (installs correct version if required)

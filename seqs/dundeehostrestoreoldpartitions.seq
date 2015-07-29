@@ -16,7 +16,7 @@
 
   <testsequence>
     <serial group="HostUpgradeRestore">
-      <testcase id="testcases.xenserver.tc.upgrade.TCUpgradeRestore" tc="TC-27086">
+      <testcase id="testcases.xenserver.tc.upgrade.TCUpgradeRestore" tc="TC-27086" sku="oldpartition">
         <arg>NEW_PARTITIONS=False</arg>
       </testcase>
     </serial>

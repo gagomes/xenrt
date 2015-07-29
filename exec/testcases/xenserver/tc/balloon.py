@@ -351,38 +351,36 @@ class _BalloonSmoketest(_BalloonPerfBase):
             step("Check by what how much value can we balloon up/down the VM")
             stepSize = min((maxMem-minMem),9*self.LOW_MEMORY)
             log("Step size = %d" % stepSize)
-            
-            for i in range(3):
-                step("Verify VM can balloon up to smax")
-                memStep = minMem
-                while memStep+stepSize < maxMem:
-                    memStep = memStep + stepSize
-                    self.guest.setDynamicMemRange(memStep, memStep)
-                    self.guest.waitForTarget(800)
-                    time.sleep(10)
-                    self.guest.checkMemory(inGuest=True)
-                self.guest.setDynamicMemRange(maxMem, maxMem)
-                
-                self.guest.waitForTarget(800)
-                time.sleep(10)
-                self.guest.checkMemory(inGuest=True)
-                
-                step("Verify it can balloon down to min")
-                memStep = maxMem
-                xenrt.TEC().logverbose(memStep)
-                while memStep-stepSize > minMem:
-                    memStep = memStep - stepSize
-                    self.guest.setDynamicMemRange(memStep, memStep)
-                    self.guest.waitForTarget(800)
-                    time.sleep(10)
-                    self.guest.checkMemory(inGuest=True)
-                self.guest.setDynamicMemRange(minMem, minMem)
-                
-                self.guest.waitForTarget(800)
-                time.sleep(10)
-                self.guest.checkMemory(inGuest=True)
 
-            
+            step("Verify VM can balloon up to smax")
+            memStep = minMem
+            while memStep+stepSize < maxMem:
+                memStep = memStep + stepSize
+                self.guest.setDynamicMemRange(memStep, memStep)
+                self.guest.waitForTarget(800)
+                time.sleep(10)
+                self.guest.checkMemory(inGuest=True)
+            self.guest.setDynamicMemRange(maxMem, maxMem)
+
+            self.guest.waitForTarget(800)
+            time.sleep(10)
+            self.guest.checkMemory(inGuest=True)
+
+            step("Verify it can balloon down to min")
+            memStep = maxMem
+            xenrt.TEC().logverbose(memStep)
+            while memStep-stepSize > minMem:
+                memStep = memStep - stepSize
+                self.guest.setDynamicMemRange(memStep, memStep)
+                self.guest.waitForTarget(800)
+                time.sleep(10)
+                self.guest.checkMemory(inGuest=True)
+            self.guest.setDynamicMemRange(minMem, minMem)
+
+            self.guest.waitForTarget(800)
+            time.sleep(10)
+            self.guest.checkMemory(inGuest=True)
+
             # Are we meant to do lifecycle ops
             if self.DO_LIFECYCLE_OPS and doLifecycleOps:
                 self.guest.setDynamicMemRange(minMem, maxMem)

@@ -143,7 +143,7 @@ class ManagementServer(object):
     def setupAdditionalManagementServers(self):
         for m in self.additionalManagementServers:
             setupDbLoc = m.execcmd('find /usr/bin -name %s-setup-databases' % (self.cmdPrefix)).strip()
-            m.execcmd('%s cloud:cloud@%s' % (setupDbLoc, host))
+            m.execcmd('%s cloud:cloud@%s' % (setupDbLoc, self.dbServer.getIP()))
         
         for m in self.additionalManagementServers:
             m.execcmd('iptables -I INPUT -p tcp --dport 8096 -j ACCEPT')
@@ -217,6 +217,8 @@ class ManagementServer(object):
             dbServer.execcmd('mysql -u root --execute="GRANT ALL PRIVILEGES ON *.* TO \'root\'@\'%\' IDENTIFIED BY \'xensource\' WITH GRANT OPTION"')
             dbServer.execcmd('iptables -I INPUT -p tcp --dport 3306 -j ACCEPT')
             dbServer.execcmd('mysqladmin -u root password xensource')
+            dbServer.execcmd("sed -i /skip-name-resolve/d /etc/my.cnf")
+            dbServer.execcmd("sed -i s/\\\\[mysqld\\\\]/[mysqld]\\\\nskip-name-resolve/ /etc/my.cnf")
             dbServer.execcmd('service %s restart' % db)
             dbServer.special['mysql_server_installed'] = True
 

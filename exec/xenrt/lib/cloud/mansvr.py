@@ -155,7 +155,7 @@ class ManagementServer(object):
             self.tailorForSimulator()
 
     def installMySql(self, dbServer, server=True):
-        if dbServer.special['mysql_server_installed']:
+        if dbServer.special.get('mysql_server_installed'):
             return
         db = "mysqld"
         if server:

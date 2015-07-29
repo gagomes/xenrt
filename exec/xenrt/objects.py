@@ -7113,11 +7113,17 @@ class GenericGuest(GenericPlace):
         """
         
         #error_list is a dictionary with key is regular expression for expected error
-        #value is the error message
+        #value is the error message that will be displayed
+        #In case this error lists becomes too long, it will be good to move it to a file.
         error_lists={
         "EIP is at cpuid4_cache_lookup":"EIP is at cpuid4_cache_lookup",
-        "The file sysklogd-1.4.1-40.el5.i386.rpm cannot be opened.":"sysklogd-1.4.1-40.el5.i386.rpm is corrupted",
-         
+        "The file (.*.rpm) cannot be opened.": '{0} is corrupted',
+        "kernel BUG at (.*)" : "kernel BUG at {0}",
+        "rcu_sched detected stalls on cpus/tasks": "rcu_sched detected stalls on cpus/tasks",
+        "BUG: unable to handle kernel paging request at virtual address [\d]+" : \
+                                     "BUG: unable to handle kernel paging request at virtual address",
+        "Failure trying to run: chroot /target dpkg.* (.*.deb)" : \
+                                     "Failure trying to run: chroot /target dpkg for {0}",
         }
         try:
             data = self.host.guestConsoleLogTail(self.getDomid())
@@ -7130,7 +7136,8 @@ class GenericGuest(GenericPlace):
             for line in lines:
                 mo=re.search(error, data,re.DOTALL|re.MULTILINE)
                 if mo:
-                    raise xenrt.XRTFailure("Install failed:%s" % error_lists[error])
+                    inputs=mo.groups()
+                    raise xenrt.XRTFailure("Install failed:%s" % error_lists[error].format(*inputs))
 
             lastline = lines[-1].strip()
             if lastline:
@@ -8901,6 +8908,7 @@ class GenericGuest(GenericPlace):
         except xenrt.XRTFailure, e:
             if "Timed out" in e.reason:
                 self.checkHealth(noreachcheck=True)
+                self.checkFailuresinConsoleLogs()
             raise
 
         if self.host.productType == "kvm":

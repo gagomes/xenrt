@@ -257,6 +257,8 @@ class ManagementServer(object):
         if not xenrt.TEC().lookup("MARVIN_SETUP", False, boolean=True):
             marvinApi.setCloudGlobalConfig("use.external.dns", "true")
         endpoint_url = "http://%s:8096/client/api" % marvinApi.mgtSvrDetails.mgtSvrIp
+        if self.additionalManagementServers:
+            marvinApi.setCloudGlobalConfig("agent.lb.enable", "true")
         marvinApi.setCloudGlobalConfig("endpointe.url", endpoint_url)
         marvinApi.setCloudGlobalConfig("check.pod.cidrs", "false", restartManagementServer=True)
         xenrt.GEC().dbconnect.jobUpdate("CLOUD_MGMT_SVR_IP", self.primaryManagementServer.getIP())

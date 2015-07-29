@@ -4419,6 +4419,27 @@ Loop While not oex3.Stdout.atEndOfStream"""%(applicationEventLogger,systemEventL
         self.waitForSSH(timeout)
         self.tailor()
 
+    def installWindowsMelio(self, renameHost=False):
+        if renameHost:
+            self.rename("%s-%s" % (self.name, xenrt.GEC().jobid() or "nojob"))
+        self.xmlrpcFetchFile("%s/melio/sanbolic.cer" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"), "c:\\sanbolic.cer")
+        self.xmlrpcSendFile("%s/distutils/certmgr.exe" % xenrt.TEC().lookup("LOCAL_SCRIPTDIR"), "c:\\certmgr.exe")
+        self.xmlrpcExec("c:\\certmgr.exe /add c:\\sanbolic.cer /c /s /r localmachine trustedpublisher")
+        self.xmlrpcFetchFile("%s/melio/%s" % (xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"), xenrt.TEC().lookup("MELIO_PATH")), "c:\\warm-drive.exe")
+        self.xmlrpcExec("c:\\warm-drive.exe /SILENT")
+        self.disableFirewall()
+
+    def getWindowsMelioConfig(self):
+        return json.loads(unicode(self.xmlrpcReadFile("c:\\program files\\citrix\\warm-drive\\warm-drive.json"), "utf-16"))
+
+    def writeWindowsMelioConfig(self, config):
+        d = xenrt.TempDirectory()  
+        with open("%s/warm-drive.json" % d.path(), "w") as f:
+            f.write(json.dumps(config, indent=2).replace("\n", "\r\n").encode("utf-16"))
+        self.xmlrpcSendFile("%s/warm-drive.json" % d.path(), "c:\\program files\\citrix\\warm-drive\\warm-drive.json")
+        d.remove()
+        self.reboot()
+
 class RunOnLocation(GenericPlace):
     def __init__(self, address):
         GenericPlace.__init__(self)

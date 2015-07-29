@@ -1976,6 +1976,16 @@ class TC9415(_VDICopy):
     FROM_TYPE = "lvm"
     TO_TYPE = "cslg"
 
+class TC27155(_VDICopy):
+    """Verify vdi-copy between an a NFS SR with no sub directory and lvmoiscsi SR"""
+    FROM_TYPE = "nfs"
+    TO_TYPE = "lvmoiscsi"
+
+class TC27156(_VDICopy):
+    """Verify vdi-copy between an ext SR and a lvmoiscsi SR"""
+    FROM_TYPE = "ext"
+    TO_TYPE = "lvmoiscsi"
+
 # NFS SR with no sub directory tests
 class TC20953(_VDICopy):
     """Verify vdi-copy between an lvmoiscsi SR and a NFS SR with no sub directory"""
@@ -2368,17 +2378,27 @@ class TC8475(_TCResizeShrink):
     """Attempting to shrink a LVM VDI should fail with a suitable error."""
 
     SRTYPE = "lvm"
-    
+
+class TC27158(_TCResizeShrink):
+    """Attempting to shrink a LVM VDI should fail with a suitable error."""
+
+    SRTYPE = "lvmoiscsi"
+
 class TC8476(_TCResizeGrow):
     """Grow a LVM VDI of a round size by 1 byte."""
 
     SRTYPE = "lvm"
-    
+
 class TC8477(_TCResizeGrow2):
     """Grow a LVM VDI twice in large chunks."""
 
     SRTYPE = "lvm"
-    
+
+class TC27159(_TCResizeGrow2):
+    """Grow a LVM VDI twice in large chunks."""
+
+    SRTYPE = "lvmoiscsi"
+
 class TC8478(_TCResizeOnline):
     """Resize a LVM VDI attached to a running VM."""
 
@@ -2389,7 +2409,13 @@ class TC8479(_TCResizeDataCheck):
 
     SRTYPE = "lvm"
     FORCEOFFLINE = True
-    
+
+class TC27160(_TCResizeDataCheck):
+    """Data integrity of resized LVM VDI."""
+
+    SRTYPE = "lvmoiscsi"
+    FORCEOFFLINE = True
+
 class TC8481(_TCResizeDataCheck):
     """Data integrity of resized LVM raw VDI."""
 
@@ -2752,6 +2778,11 @@ class TC8515(_TCVDICreateRoundup):
     """VDI create of a odd size LVM VDI should round up to the next allocation unit"""
 
     SRTYPE = "lvm"
+
+class TC27157(_TCVDICreateRoundup):
+    """VDI create of a odd size LVM VDI should round up to the next allocation unit"""
+
+    SRTYPE = "lvmoiscsi"
 
 class TC8520(_TCVDICreateRoundup):
     """VDI create of a odd size VHDoEXT VDI should round up to the next allocation unit"""

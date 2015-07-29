@@ -1,6 +1,7 @@
 <xenrt>
-  <default name="NS_NSVPX_BW_XVA" value="/usr/groups/xenrt/NSVPX-XEN-9.3-68.3_nc.xva" />
-  <default name="NS_TOOLS_PATH" value="/usr/groups/xenrt/ns-tools-9.3-68.3.nc.tgz" />
+  <!-- 9.3-68.3 is the recommended version of BW, but this doesn't support configuring IP from the hypervisor, so we'll use 10.5 -->
+  <default name="NS_NSVPX_BW_XVA" value="/usr/groups/xenrt/NSVPX-XEN-10.5-52.11_nc.xva" />
+  <default name="NS_TOOLS_PATH" value="/usr/groups/xenrt/ns-tools-10.5-52.11.nc.tgz" />
   <default name="NS_NSVPX_XVA" value="/usr/groups/xenrt/NSVPX-XEN-10.5-52.11_nc.xva" />
   <default name="BW_NAME" value="blackwidow" />
   <default name="DUT_NAME" value="dut" />

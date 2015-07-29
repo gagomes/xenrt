@@ -13,7 +13,7 @@ except ImportError:
 __all__ = ["ManagementServer"]
 
 class ManagementServer(object):
-    def __init__(self, place, dbServer=None, simDbServer=None, additionalManagementServers=None):
+    def __init__(self, place, dbServer=None, simDbServer=None, additionalManagementServers=None, netscalerVM=None):
         self.primaryManagementServer = place
         self._dbServer = dbServer
         self._simDbServer = simDbServer
@@ -22,6 +22,8 @@ class ManagementServer(object):
         self.__isCCP = None
         self.__version = None
         self.__db = None
+        self.netscalerVM = netscalerVM
+        self.netscaler = None
         if self.version in ['3.0.7']:
             self.cmdPrefix = 'cloud'
         else:
@@ -481,3 +483,30 @@ class ManagementServer(object):
         self.installApacheProxy()
         self.saveFirewall()
         self.postManagementServerInstall()
+        self.setupNetscaler()
+
+    def setupNetscaler(self):
+        if self.netscalerVM:
+            self.netscaler = xenrt.lib.netscaler.NetScaler.setupNetScalerVpx(self.netscalerVM, license=xenrt.lib.netscaler.NetScaler.getLicenseFileFromXenRT())
+
+            vip = xenrt.StaticIP4Addr()
+            subnet = xenrt.getNetworkParam("NPRI", "SUBNETMASK") 
+            self.netscaler.cli("add ns ip %s %s -type VIP"  % (vip.addr, subnet))
+            self.netscaler.cli("enable ns feature LB")
+
+            self.netscaler.cli("add lb vserver MS-80 HTTP %s 80 -persistenceType SOURCEIP -cltTimeout 180" % vip.addr)
+            self.netscaler.cli("add lb vserver MS-8080 HTTP %s 8080 -persistenceType SOURCEIP -cltTimeout 180" % vip.addr)
+            self.netscaler.cli("add lb vserver MS-8096 HTTP %s 8096 -persistenceType NONE -cltTimeout 180" % vip.addr)
+            self.netscaler.cli("add lb vserver MS-8250 TCP %s 8250 -persistenceType NONE -cltTimeout 180" % vip.addr)
+
+            for m in self.allManagementServers:
+                self.netscaler.cli("add server %s %s" % (m.getName(), m.getIP()))
+                self.netscaler.cli("add service %s-8080 %s HTTP 8080 -gslb NONE -maxClient 0 -maxReq 0 -cip DISABLED -usip NO -useproxyport YES -sp OFF -cltTimeout 180 -svrTimeout 360 -CKA NO -TCPB NO -CMP NO" % m.getName(), m.getName())
+                self.netscaler.cli("bind lb vserver MS-80 %s-8080" % m.getName())
+                self.netscaler.cli("bind lb vserver MS-8080 %s-8080" % m.getName())
+
+                self.netscaler.cli("add service %s-8096 %s HTTP 8096 -gslb NONE -maxClient 0 -maxReq 0 -cip DISABLED -usip NO -useproxyport YES -sp OFF -cltTimeout 180 -svrTimeout 360 -CKA NO -TCPB NO -CMP NO" % (m.getName(), m.getName()))
+                self.netscaler.cli("bind lb vserver MS-8096 %s-8096" % m.getName())
+                self.netscaler.cli("add service %s-8250 %s TCP 8250 -gslb NONE -maxClient 0 -maxReq 0 -cip DISABLED -usip NO -useproxyport YES -sp OFF -cltTimeout 9000 -svrTimeout 9000 -CKA NO -TCPB NO -CMP NO" % (m.getName(), m.getName()))
+                self.netscaler.cli("bind lb vserver MS-8250 %s-8250" % m.getName())
+            self.netscaler.cli("save ns config")

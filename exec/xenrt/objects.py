@@ -2333,14 +2333,6 @@ Add-WindowsFeature as-net-framework"""
         else:
             xenrt.TEC().logverbose('.NET %s version already installed' % (currentDotNet45Version))
 
-    def installCloudPlatformManagementServer(self):
-        manSvr = xenrt.lib.cloud.ManagementServer(self)
-        manSvr.installCloudPlatformManagementServer()
-
-    def installCloudStackManagementServer(self):
-        manSvr = xenrt.lib.cloud.ManagementServer(self)
-        manSvr.installCloudStackManagementServer()
-
     def installCloudManagementServer(self):
         manSvr = xenrt.lib.cloud.ManagementServer(self)
         manSvr.installCloudManagementServer()

@@ -4909,7 +4909,7 @@ class TCValidateFCOEMultipathPathCount(_TC8159):
     <NIC/>   
     <MANAGEMENT/>
   </PHYSICAL>    
-  <PHYSICAL network="NSEC">
+  <PHYSICAL network="NPRI">
     <NIC/>
     <STORAGE/>
   </PHYSICAL>

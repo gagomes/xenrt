@@ -2674,11 +2674,16 @@ class TCFCOEVmVlan(xenrt.TestCase):
 
         step("Shutdown VM ")
         g.shutdown()
-        g.createVIF(bridge=self.host.getPrimaryBridge())
-
+        
         step("Remove the VLAN interface")
         self.host.removeVLAN(vlan)
         self.vlansToRemove.remove(vlan)
+        
+        vifs = self.guest.getVIFs()
+        for vif in vifs:
+            g.removeVIF(vif)
+        
+        g.createVIF(bridge=self.host.getPrimaryBridge())
         
         step("Start VM and copy the file over new interface and verify the md5sum")
         g.start()

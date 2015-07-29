@@ -210,24 +210,6 @@ class Guest(xenrt.GenericGuest):
         if not self.distro and string.lower(self.getName()[0]) == "w":
             self.windows = True
 
-        if not self.arch:
-            if not self.windows:
-                try:
-                    if self.execguest("uname -i").strip() == "x86_64":
-                        self.arch = "x86-64"
-                    else:
-                        self.arch = "x86-32"
-                except:
-                    xenrt.TEC().logverbose("Could not determine architecture")
-            else:
-                try:
-                    if self.xmlrpcGetArch() == "amd64":
-                        self.arch = "x86-64"
-                    else:
-                        self.arch = "x86-32"
-                except:
-                    xenrt.TEC().logverbose("Could not determine architecture")
-
         if not self.windows:
             if self.password is None or self.password.strip() == "":
                 self.password = xenrt.TEC().lookup("ROOT_PASSWORD")
@@ -263,6 +245,26 @@ class Guest(xenrt.GenericGuest):
                 pass
         else:
             xenrt.TEC().logverbose("Guest %s not up to check for daemon" % self.name)
+        
+        if not self.arch:
+            if self.getState() == "UP":
+                if not self.windows:
+                    try:
+                        if self.execguest("uname -i").strip() == "x86_64":
+                            self.arch = "x86-64"
+                        else:
+                            self.arch = "x86-32"
+                    except Exception, e:
+                        xenrt.TEC().logverbose("Could not determine architecture - %s" % str(e))
+                else:
+                    try:
+                        if self.xmlrpcGetArch() == "amd64":
+                            self.arch = "x86-64"
+                        else:
+                            self.arch = "x86-32"
+                    except:
+                        xenrt.TEC().logverbose("Could not determine architecture")
+
 
     def wouldBootHVM(self):
         return (self.paramGet("HVM-boot-policy") == "BIOS order")

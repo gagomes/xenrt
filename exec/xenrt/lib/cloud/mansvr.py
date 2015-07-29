@@ -501,7 +501,7 @@ class ManagementServer(object):
 
             for m in self.allManagementServers:
                 self.netscaler.cli("add server %s %s" % (m.getName(), m.getIP()))
-                self.netscaler.cli("add service %s-8080 %s HTTP 8080 -gslb NONE -maxClient 0 -maxReq 0 -cip DISABLED -usip NO -useproxyport YES -sp OFF -cltTimeout 180 -svrTimeout 360 -CKA NO -TCPB NO -CMP NO" % m.getName(), m.getName())
+                self.netscaler.cli("add service %s-8080 %s HTTP 8080 -gslb NONE -maxClient 0 -maxReq 0 -cip DISABLED -usip NO -useproxyport YES -sp OFF -cltTimeout 180 -svrTimeout 360 -CKA NO -TCPB NO -CMP NO" % (m.getName(), m.getName()))
                 self.netscaler.cli("bind lb vserver MS-80 %s-8080" % m.getName())
                 self.netscaler.cli("bind lb vserver MS-8080 %s-8080" % m.getName())
 

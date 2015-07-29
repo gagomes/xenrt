@@ -19,6 +19,7 @@ class ManagementServer(object):
         self._simDbServer = simDbServer
         self.additionalManagementServers = additionalManagementServers or []
         self.primaryManagementServer.addExtraLogFile("/var/log/cloudstack")
+        self.readyManagementServers = [self.primaryManagementServer]
         self.__isCCP = None
         self.__version = None
         self.__db = None
@@ -76,7 +77,7 @@ class ManagementServer(object):
                 # Check the management server ports are reachable
                 port = 8080
                 try:
-                    for m in self.allManagementServers:
+                    for m in self.readyManagementServers:
                         urllib.urlopen('http://%s:%s' % (m.getIP(), port))
                 except IOError, ioErr:
                     xenrt.TEC().logverbose('Attempt to reach Management Server [%s] on Port: %d failed with error: %s' % (m.getIP(), port, ioErr.strerror))
@@ -85,7 +86,7 @@ class ManagementServer(object):
 
                 port = 8096
                 try:
-                    for m in self.allManagementServers:
+                    for m in self.readyManagementServers:
                         urllib.urlopen('http://%s:%s' % (m.getIP(), port))
                     managementServerOk = True
                     break
@@ -109,7 +110,7 @@ class ManagementServer(object):
 
     def restart(self, checkHealth=True, startStop=False):
         if not startStop:
-            for m in self.allManagementServers:
+            for m in self.readyManagementServers:
                 m.execcmd('service %s-management restart' % (self.cmdPrefix))
         else:
             self.stop()
@@ -120,11 +121,11 @@ class ManagementServer(object):
             self.checkManagementServerHealth()
 
     def stop(self):
-        for m in self.allManagementServers:
+        for m in self.readyManagementServers:
             m.execcmd('service %s-management stop' % (self.cmdPrefix))
 
     def start(self):
-        for m in self.allManagementServers:
+        for m in self.readyManagementServers:
             m.execcmd('service %s-management start' % (self.cmdPrefix))
 
 
@@ -138,6 +139,28 @@ class ManagementServer(object):
     @property
     def simDbServer(self):
         return self._simDbServer or self._dbServer or self.primaryManagementServer
+
+    def setupAdditionalManagementServers(self):
+        for m in self.additionalManagementServers:
+            setupDbLoc = m.execcmd('find /usr/bin -name %s-setup-databases' % (self.cmdPrefix)).strip()
+            m.execcmd('%s cloud:cloud@%s' % (setupDbLoc, host))
+        
+        for m in self.additionalManagementServers:
+            m.execcmd('iptables -I INPUT -p tcp --dport 8096 -j ACCEPT')
+            setupMsLoc = m.execcmd('find /usr/bin -name %s-setup-management' % (self.cmdPrefix)).strip()
+            m.execcmd(setupMsLoc)
+       
+        if xenrt.TEC().lookup("USE_CCP_SIMULATOR", False, boolean=True):
+            # For some reason the cloud user doesn't seem to have access to the simulator DB
+            [x.execcmd("""sed -i s/db.simulator.username=cloud/db.simulator.username=root/ /usr/share/cloudstack-management/conf/db.properties""") for x in self.additionalManagementServers]
+            [x.execcmd("""sed -i s/db.simulator.password=cloud/db.simulator.password=xensource/ /usr/share/cloudstack-management/conf/db.properties""") for x in self.additionalManagementServers]
+            if self.simDbServer != self.primaryManagementServer or self.additionalManagementServers:
+                [x.execcmd("""sed -i s/db.simulator.host=localhost/db.simulator.host=%s/ /usr/share/cloudstack-management/conf/db.properties""" % self.simDbServer.getIP()) for x in self.additionalManagementServers]
+                
+        self.readyManagementServers.extend(self.additionalManagementServers)
+
+        self.restart(checkHealth=False)
+        self.checkManagementServerHealth(timeout=300)
 
     def setupManagementServerDatabase(self):
         for m in self.allManagementServers:
@@ -155,10 +178,6 @@ class ManagementServer(object):
             host = self.dbServer.getIP()
         setupDbLoc = self.primaryManagementServer.execcmd('find /usr/bin -name %s-setup-databases' % (self.cmdPrefix)).strip()
         self.primaryManagementServer.execcmd('%s cloud:cloud@%s --deploy-as=root:xensource' % (setupDbLoc, host))
-        for m in self.additionalManagementServers:
-            setupDbLoc = m.execcmd('find /usr/bin -name %s-setup-databases' % (self.cmdPrefix)).strip()
-            m.execcmd('%s cloud:cloud@%s' % (setupDbLoc, host))
-        
         if xenrt.TEC().lookup("USE_CCP_SIMULATOR", False, boolean=True):
             self.tailorForSimulator()
 
@@ -202,19 +221,18 @@ class ManagementServer(object):
             dbServer.special['mysql_server_installed'] = True
 
     def setupManagementServer(self):
-        for m in self.allManagementServers:
-            m.execcmd('iptables -I INPUT -p tcp --dport 8096 -j ACCEPT')
-            setupMsLoc = m.execcmd('find /usr/bin -name %s-setup-management' % (self.cmdPrefix)).strip()
-            m.execcmd(setupMsLoc)
+        self.primaryManagementServer.execcmd('iptables -I INPUT -p tcp --dport 8096 -j ACCEPT')
+        setupMsLoc = self.primaryManagementServer.execcmd('find /usr/bin -name %s-setup-management' % (self.cmdPrefix)).strip()
+        self.primaryManagementServer.execcmd(setupMsLoc)
 
         self.primaryManagementServer.execcmd('mysql -u cloud --password=cloud -h %s --execute="UPDATE cloud.configuration SET value=8096 WHERE name=\'integration.api.port\'"' % self.dbServer.getIP())
 
         if xenrt.TEC().lookup("USE_CCP_SIMULATOR", False, boolean=True):
             # For some reason the cloud user doesn't seem to have access to the simulator DB
-            [x.execcmd("""sed -i s/db.simulator.username=cloud/db.simulator.username=root/ /usr/share/cloudstack-management/conf/db.properties""") for x in self.allManagementServers]
-            [x.execcmd("""sed -i s/db.simulator.password=cloud/db.simulator.password=xensource/ /usr/share/cloudstack-management/conf/db.properties""") for x in self.allManagementServers]
+            self.primaryManagementServer.execcmd("""sed -i s/db.simulator.username=cloud/db.simulator.username=root/ /usr/share/cloudstack-management/conf/db.properties""")
+            self.primaryManagementServer.execcmd("""sed -i s/db.simulator.password=cloud/db.simulator.password=xensource/ /usr/share/cloudstack-management/conf/db.properties""")
             if self.simDbServer != self.primaryManagementServer or self.additionalManagementServers:
-                [x.execcmd("""sed -i s/db.simulator.host=localhost/db.simulator.host=%s/ /usr/share/cloudstack-management/conf/db.properties""" % self.simDbServer.getIP()) for x in self.allManagementServers]
+                self.primaryManagementServer.execcmd("""sed -i s/db.simulator.host=localhost/db.simulator.host=%s/ /usr/share/cloudstack-management/conf/db.properties""" % self.simDbServer.getIP())
                 
         self.restart(checkHealth=False)
         self.checkManagementServerHealth(timeout=300)
@@ -480,6 +498,7 @@ class ManagementServer(object):
         self.checkJavaVersion()
         self.setupManagementServerDatabase()
         self.setupManagementServer()
+        self.setupAdditionalManagementServers()
         self.installApacheProxy()
         self.saveFirewall()
         self.postManagementServerInstall()

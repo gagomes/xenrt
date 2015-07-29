@@ -630,19 +630,19 @@ class TCXSA138(_TCXSA):
         
     def run(self, arglist=None):
         self.guest.lifecycleOperation("vm-start", timeout=30)
-        domid = self.guest.getDomid()
-        qpid = self.host.xenstoreRead("/local/domain/%u/qemu-pid" % domid)
+        domId = self.guest.getDomid()
+        qPid = self.host.xenstoreRead("/local/domain/%u/qemu-pid" % domId)
 
-        starttime = xenrt.util.timenow()
+        startTime = xenrt.util.timenow()
         while True:
-            if xenrt.util.timenow() - starttime > 1800:
+            if xenrt.util.timenow() - startTime > 1800:
                 raise xenrt.XRTError("Timed out waiting for XSA-138 test")
 
-            qemuRunning = (self.host.execdom0("test -d /proc/%s" % (qpid), retval="code") == 0)
+            qemuRunning = (self.host.execdom0("test -d /proc/%s" % (qPid), retval="code") == 0)
             state = self.guest.getState()
 
             # Check if we have a successful run
-            data = self.host.execdom0("grep qemu-dm-%s /var/log/messages /var/log/daemon.log || true" % (domid))
+            data = self.host.execdom0("grep qemu-dm-%s /var/log/messages /var/log/daemon.log || true" % (domId))
 
             if "XSA-138 PoC done - probably not vulnerable" in data and state == "DOWN":
                 xenrt.TEC().logverbose("Test completed successfully")

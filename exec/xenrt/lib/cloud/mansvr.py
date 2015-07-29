@@ -25,6 +25,7 @@ class ManagementServer(object):
         self.__db = None
         self.netscalerVM = netscalerVM
         self.netscaler = None
+        self.nsvip = None
         if self.version in ['3.0.7']:
             self.cmdPrefix = 'cloud'
         else:
@@ -44,7 +45,7 @@ class ManagementServer(object):
 
     @property
     def ip(self):
-        return self.primaryManagementServer.getIP()
+        return self.nsvip or self.primaryManagementServer.getIP()
 
     def getDatabaseDump(self, destDir):
         path = self.primaryManagementServer.execcmd("mktemp").strip()
@@ -514,11 +515,17 @@ class ManagementServer(object):
             subnet = xenrt.getNetworkParam("NPRI", "SUBNETMASK") 
             self.netscaler.cli("add ns ip %s %s -type VIP"  % (vip.addr, subnet))
             self.netscaler.cli("enable ns feature LB")
+            self.netscaler.cli("enable ns feature RESPONDER")
 
             self.netscaler.cli("add lb vserver MS-80 HTTP %s 80 -persistenceType SOURCEIP -cltTimeout 180" % vip.addr)
             self.netscaler.cli("add lb vserver MS-8080 HTTP %s 8080 -persistenceType SOURCEIP -cltTimeout 180" % vip.addr)
             self.netscaler.cli("add lb vserver MS-8096 HTTP %s 8096 -persistenceType NONE -cltTimeout 180" % vip.addr)
             self.netscaler.cli("add lb vserver MS-8250 TCP %s 8250 -persistenceType SOURCEIP -cltTimeout 180" % vip.addr)
+
+            self.netscaler.cli('add responder action redirect_to_client redirect "\\"/client/\\""')
+            self.netscaler.cli('add responder policy redirect_from_root "HTTP.REQ.URL.EQ(\\"/\\")" redirect_to_client')
+            self.netscaler.cli('bind lb vserver MS-80 -policyName redirect_from_root -priority 100 -gotoPriorityExpression END -type REQUEST')
+
 
             for m in self.allManagementServers:
                 self.netscaler.cli("add server %s %s" % (m.getName(), m.getIP()))
@@ -531,3 +538,4 @@ class ManagementServer(object):
                 self.netscaler.cli("add service %s-8250 %s TCP 8250 -gslb NONE -maxClient 0 -maxReq 0 -cip DISABLED -usip NO -useproxyport YES -sp OFF -cltTimeout 9000 -svrTimeout 9000 -CKA NO -TCPB NO -CMP NO" % (m.getName(), m.getName()))
                 self.netscaler.cli("bind lb vserver MS-8250 %s-8250" % m.getName())
             self.netscaler.cli("save ns config")
+            self.nsvip = vip.addr

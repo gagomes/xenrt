@@ -457,6 +457,11 @@ class TC7963(TC7799):
 
     SRTYPE = "lvm"
 
+class TC27166(TC7799):
+    """LVM Snapshot of a snapshot."""
+
+    SRTYPE = "lvmoiscsi"
+
 class TC27099(TC7799):
     """SMAPIV3 Snapshot of a snapshot."""
 
@@ -519,6 +524,11 @@ class TC7962(TC7798):
     """Deleting the original shouldn't affect the LVM snapshot VDI."""
 
     SRTYPE = "lvm"
+
+class TC27165(TC7798):
+    """Deleting the original shouldn't affect the LVM snapshot VDI."""
+
+    SRTYPE = "lvmoiscsi"
 
 
 class TC27098(TC7798):
@@ -583,6 +593,11 @@ class TC7961(TC7797):
     """Deleting a LVM snapshot shouldn't affect the original VDI."""
 
     SRTYPE = "lvm"
+
+class TC27164(TC7797):
+    """Deleting a LVM snapshot shouldn't affect the original VDI."""
+
+    SRTYPE = "lvmoiscsi"
 
 class TC27097(TC7797):
     """Deleting a SMAPIV3 snapshot shouldn't affect the original VDI."""
@@ -665,6 +680,11 @@ class TC7960(TC7796):
     """LVM snapshot of a plugged VDI."""
 
     SRTYPE = "lvm"
+
+class TC27163(TC7796):
+    """LVM snapshot of a plugged VDI."""
+
+    SRTYPE = "lvmoiscsi"
 
 class TC27096(TC7796):
     """SMAPIV3 snapshot of a plugged VDI."""
@@ -750,6 +770,11 @@ class TC7959(TC7795):
 
     SRTYPE = "lvm"
 
+class TC27162(TC7795):
+    """LVM VDI snapshot creation and operation."""
+
+    SRTYPE = "lvmoiscsi"
+
 class TC27095(TC7795):
     """SMAPIV3 VDI snapshot creation and operation."""
 
@@ -811,6 +836,11 @@ class TC7958(TC7794):
     """LVM VDI Snapshot of an unplugged VDI."""
 
     SRTYPE = "lvm"
+
+class TC27161(TC7794):
+    """LVM VDI Snapshot of an unplugged VDI."""
+
+    SRTYPE = "lvmoiscsi"
 
 class TC27094(TC7794):
     """SMAPIV3 VDI Snapshot of an unplugged VDI."""

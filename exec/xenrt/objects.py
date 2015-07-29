@@ -8901,6 +8901,7 @@ class GenericGuest(GenericPlace):
         except xenrt.XRTFailure, e:
             if "Timed out" in e.reason:
                 self.checkHealth(noreachcheck=True)
+                self.checkFailuresinConsoleLogs()
             raise
 
         if self.host.productType == "kvm":

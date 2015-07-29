@@ -2679,7 +2679,7 @@ class TCFCOEVmVlan(xenrt.TestCase):
         self.host.removeVLAN(vlan)
         self.vlansToRemove.remove(vlan)
         
-        vifs = self.guest.getVIFs()
+        vifs = g.getVIFs()
         for vif in vifs:
             g.removeVIF(vif)
         

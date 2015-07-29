@@ -4886,36 +4886,7 @@ class TCValidateFCOEMultipathPathCount(_TC8159):
         self.sr.create(self.scsiid,multipathing=True)
         return self.sr
         
-    def findPIFToBondWithManagementNIC(self, host,numberOfNics=2):
-        """Returns a list of two PIF UUIDs. The first in the list is the
-        management interface and the second is an interface suitable to
-        join with the current management NIC in a bond.
-        """
-        # Assume that the current management NIC is on the default NIC.
-        managementPIF = host.parseListForUUID("pif-list",
-                                              "management",
-                                              "true",
-                                              "host-uuid=%s" %
-                                              (host.getMyHostUUID()))
-        managementNIC = host.genParamGet("pif", managementPIF, "device")
-        if managementNIC != host.getDefaultInterface():
-            raise xenrt.XRTError("Management interface not initially "
-                                 "on default interface")
-
-        # Find another interface on the NPRI network (same as the default NIC)
-        assumedids = host.listSecondaryNICs("NPRI")
-        if len(assumedids) < (numberOfNics - 1):
-            raise xenrt.XRTError("Could not find secondary NICs on NPRI")
-
-        secPIFs = []
-        numberOfNics = numberOfNics - 1
-        assumedids = assumedids[0:numberOfNics]
-        for id in assumedids:
-            secNIC = host.getSecondaryNIC(id)
-            secPIFs.append(host.parseListForUUID("pif-list","device",secNIC,"host-uuid=%s" % (host.getMyHostUUID())))
-
-        return [managementPIF] +  secPIFs
-
+    
     def disableEthPort(self, pathindex):
         
         xenrt.TEC().logverbose("Failing the path %d" % pathindex)
@@ -4933,8 +4904,18 @@ class TCValidateFCOEMultipathPathCount(_TC8159):
     def run(self, arglist=None):
         _TC8159.run(self, arglist)
         self.host = self.getDefaultHost()
-        newpifs = self.findPIFToBondWithManagementNIC(self.host)
-        self.host.createBond(newpifs,dhcp=True,management=True)
+        netconfig = """<NETWORK>
+  <PHYSICAL network="NPRI">
+    <NIC/>   
+    <MANAGEMENT/>
+  </PHYSICAL>    
+  <PHYSICAL network="NSEC">
+    <NIC/>
+    <STORAGE/>
+  </PHYSICAL>
+</NETWORK>"""
+        
+        self.host.createNetworkTopology(netconfig)
         
         totalPaths = len(self.host.getMultipathInfo()[self.scsiid])
         activePaths = len(self.host.getMultipathInfo(onlyActive=True)[self.scsiid])

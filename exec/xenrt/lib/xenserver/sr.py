@@ -57,6 +57,10 @@ def getStorageRepositoryClass(host, sruuid):
         return HBAStorageRepository
     if srtype == "nfs":
         return NFSStorageRepository
+    if srtype == "ext":
+        return EXTStorageRepository
+    if srtype == "btrfs" or srtype == "smapiv3local":
+        return SMAPIv3LocalStorageRepository
 
     raise xenrt.XRTError("%s SR type class getter is not implemented." % srtype)
 

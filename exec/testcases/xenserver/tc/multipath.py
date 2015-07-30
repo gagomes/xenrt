@@ -4934,7 +4934,7 @@ class TCValidateFCOEMultipathPathCount(_TC8159):
         self.enableEthPort(1)
         _TC8159.postRun(self)
 
-class TCFCOESecondaryPathFailover(TCValidateFCOEMultipathPathCount):
+class _PathFailOver(TCValidateFCOEMultipathPathCount):
     FAILURE_PATH = 1
     
     def checkGuest(self):
@@ -4976,3 +4976,29 @@ class TCFCOESecondaryPathFailover(TCValidateFCOEMultipathPathCount):
 
         self.enableEthPort(self.FAILURE_PATH)
         self.checkGuest()
+
+class TCFCOESecondaryPathFailover(_PathFailOver):
+    FAILURE_PATH = 1
+
+class TCFCOEPrimaryPathFailover(_PathFailOver):
+    FAILURE_PATH = 0
+
+    def run(self,arglist=None):
+        self.host = self.getDefaultHost()
+        netconfig = """<NETWORK>
+  <PHYSICAL network="NPRI">
+    <NIC/>   
+    <MANAGEMENT/>
+  </PHYSICAL>    
+  <PHYSICAL network="NPRI">
+    <NIC/>
+    <STORAGE/>
+  </PHYSICAL>
+</NETWORK>"""
+
+
+        host.createNetworkTopology(netconfig)
+        pif = host.parseListForUUID("pif-list", "device", "eth1")
+        self.host.execcmd("xe host-management-reconfigure pif-uuid=%s" % pif) 
+        _PathFailOver.run(self,arglist)	
+

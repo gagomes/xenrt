@@ -62,7 +62,11 @@
   </prepare>
 
   <testsequence>
-    <testcase id="xenserver.tc.perf.tc_blackwidow.TCBlackWidow">
+    <testcase id="xenserver.tc.perf.tc_blackwidow.TCHttp100KResp">
+      <arg>bw=${BW_NAME}</arg>
+      <arg>dut=${DUT_NAME}</arg>
+    </testcase>
+    <testcase id="xenserver.tc.perf.tc_blackwidow.TCHttp1BResp">
       <arg>bw=${BW_NAME}</arg>
       <arg>dut=${DUT_NAME}</arg>
     </testcase>

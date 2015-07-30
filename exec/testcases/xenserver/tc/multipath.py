@@ -5004,6 +5004,7 @@ class TCFCOEPrimaryPathFailover(_PathFailOver):
         newIP = self.host.minimalList("pif-param-get",args="uuid=%s param-name=IP" % (pif))[0]
         self.host.execcmd("xe host-management-reconfigure pif-uuid=%s" % pif) 
         xenrt.sleep(120)
+        self.host.setIP(newIP)
         _PathFailOver.run(self,arglist)
 
 class TCCheckGuestOperations(TCValidateFCOEMultipathPathCount):

@@ -4997,8 +4997,127 @@ class TCFCOEPrimaryPathFailover(_PathFailOver):
 </NETWORK>"""
 
 
-        host.createNetworkTopology(netconfig)
+        self.host.createNetworkTopology(netconfig)
         pif = host.parseListForUUID("pif-list", "device", "eth1")
         self.host.execcmd("xe host-management-reconfigure pif-uuid=%s" % pif) 
-        _PathFailOver.run(self,arglist)	
+        _PathFailOver.run(self,arglist)
 
+class TCCheckGuestOperations(TCValidateFCOEMultipathPathCount):
+
+    def run(self,arglist=None):
+        TC8159.run(self, arglist)
+        self.host = self.getDefaultHost()
+        netconfig = """<NETWORK>
+  <PHYSICAL network="NPRI">
+    <NIC/>   
+    <MANAGEMENT/>
+  </PHYSICAL>    
+  <PHYSICAL network="NPRI">
+    <NIC/>
+    <STORAGE/>
+  </PHYSICAL>
+</NETWORK>"""
+
+        dev = self.guest.createDisk(sizebytes=5368709120, sruuid=self.sr.uuid, returnDevice=True) # 5GB
+        xenrt.sleep(5)
+        
+        # Launch a periodic read/write script using the new disk
+        self.guest.execguest("%s/remote/readwrite.py /dev/%s > /tmp/rw.log "
+                             "2>&1 < /dev/null &" %
+                             (xenrt.TEC().lookup("REMOTE_SCRIPTDIR"), dev))
+
+        xenrt.sleep(20)
+            
+        self.guest.suspend()
+        self.guest.resume()
+        self.checkGuest()
+
+        self.disableEthPort(1)
+        self.checkGuest()
+        self.guest.suspend()
+        self.guest.resume()
+        self.checkGuest()
+        
+        self.enableEthPort(1)
+        self.checkGuest()
+        self.guest.suspend()
+        self.guest.resume()
+        self.checkGuest()
+
+        self.host.createNetworkTopology(netconfig)
+        pif = host.parseListForUUID("pif-list", "device", "eth1")
+        self.host.execcmd("xe host-management-reconfigure pif-uuid=%s" % pif) 
+        
+
+        self.disableEthPort(0)
+        self.checkGuest()
+        self.guest.suspend()
+        self.guest.resume()
+        self.checkGuest()
+        
+        self.enableEthPort(0)
+        self.checkGuest()
+        self.guest.suspend()
+        self.guest.resume()
+        self.checkGuest()
+
+class TCCheckSROperations(TCValidateFCOEMultipathPathCount):
+    
+    def checkThenDestroySR(self):
+        self.sr.forget()
+        self.sr.introduce()
+        self.sr.check()
+        
+        pbdid = self.host.parseListForUUID("pbd-list", "sr-uuid", self.sr.uuid)
+        cli = self.host.getCLIInstance()
+        cli.execute("pbd-unplug", "uuid=%s" % pbdid)
+        cli.execute("sr-destroy", "uuid=%s" % self.sr.uuid)
+        self.sr = None
+    
+    
+    def run(self, arglist=None):
+        _TC8159.run(self, arglist=None)
+        self.host = self.getDefaultHost()
+        netconfig = """<NETWORK>
+  <PHYSICAL network="NPRI">
+    <NIC/>   
+    <MANAGEMENT/>
+  </PHYSICAL>    
+  <PHYSICAL network="NPRI">
+    <NIC/>
+    <STORAGE/>
+  </PHYSICAL>
+</NETWORK>"""
+        xenrt.sleep(20)
+        self.guest.shutdown()
+        xenrt.sleep(20)
+        self.guest.lifecycleOperation("vm-destroy", force=True)
+        xenrt.sleep(20)
+        self.guest = None
+        cli = self.host.getCLIInstance()
+        vdis = self.host.minimalList("vdi-list", args="sr-uuid=%s" % self.sr.uuid)
+        for vdi in vdis:
+            cli.execute("vdi-destroy", "uuid=%s" % vdi)
+
+        self.checkThenDestroySR()
+        
+        self.disableEthPort(1)
+        self.createSR()
+        self.checkThenDestroySR()
+
+        self.enableEthPort(1)
+        self.createSR()
+        self.checkThenDestroySR()
+
+        self.host.createNetworkTopology(netconfig)
+        pif = host.parseListForUUID("pif-list", "device", "eth1")
+        self.host.execcmd("xe host-management-reconfigure pif-uuid=%s" % pif) 
+        
+        
+        self.disableFCPort(0)
+        self.createSR()
+        self.checkThenDestroySR()
+
+        self.enableFCPort(0)
+        self.createSR()
+        self.checkThenDestroySR()

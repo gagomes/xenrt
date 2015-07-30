@@ -2333,14 +2333,6 @@ Add-WindowsFeature as-net-framework"""
         else:
             xenrt.TEC().logverbose('.NET %s version already installed' % (currentDotNet45Version))
 
-    def installCloudPlatformManagementServer(self):
-        manSvr = xenrt.lib.cloud.ManagementServer(self)
-        manSvr.installCloudPlatformManagementServer()
-
-    def installCloudStackManagementServer(self):
-        manSvr = xenrt.lib.cloud.ManagementServer(self)
-        manSvr.installCloudStackManagementServer()
-
     def installCloudManagementServer(self):
         manSvr = xenrt.lib.cloud.ManagementServer(self)
         manSvr.installCloudManagementServer()
@@ -4372,6 +4364,16 @@ Loop While not oex3.Stdout.atEndOfStream"""%(applicationEventLogger,systemEventL
                            "SZ",
                             name)
             self.reboot()
+        else:
+            self.execcmd("hostname %s" % name)
+            if self.execcmd('test -e /etc/hostname', retval="code") == 0:
+                self.execcmd("echo %s > /etc/hostname" % name)
+            elif self.execcmd('test -e /etc/sysconfig/network', retval="code") == 0:
+                self.execcmd("sed -i '/HOSTNAME/d' /etc/sysconfig/network")
+                self.execcmd("echo 'HOSTNAME=%s' >> /etc/sysconfig/network" % name)
+            self.execcmd("echo '%s    %s' >> /etc/hosts" % (self.getIP(), name))
+                
+            
 
     def sysPrepOOBE(self):
         if not self.windows:
@@ -7013,6 +7015,7 @@ class GenericGuest(GenericPlace):
         self.instance = None
         self.isTemplate = False
         self.imported = False
+        self.sriovvifs = []
         xenrt.TEC().logverbose("Creating %s instance." % (self.__class__.__name__))
 
     def populateSubclass(self, x):
@@ -7030,6 +7033,7 @@ class GenericGuest(GenericPlace):
         x.instance = self.instance
         x.isTemplate = self.isTemplate
         x.imported = self.imported
+        x.sriovvifs = self.sriovvifs
 
     def getDeploymentRecord(self):
         if self.isTemplate:

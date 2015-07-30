@@ -349,9 +349,30 @@ class TCCombineResults(_TCRemoteNoseBase):
 class TCCloudstackSetup(xenrt.TestCase):
     def run(self, arglist):
         self.args = self.parseArgsKeyValue(arglist)
-        if self.args.get("guest"):
-            place = self.getGuest(self.args['guest'])
-        else:
-            place = self.getHost(self.args['host'])
-
-        place.installCloudManagementServer()
+        kwargs = {}
+        if self.args.get("db"):
+            kwargs['dbServer'] = self.getGuest(self.args['db']) or self.getHost(self.args['db'])
+            if not kwargs['dbServer']:
+                raise xenrt.XRTError("Could not find Simulator %s" % self.args['db'])
+        if self.args.get("simulator"):
+            kwargs['simDbServer'] = self.getGuest(self.args['simulator']) or self.getHost(self.args['simulator'])
+            if not kwargs['simDbServer']:
+                raise xenrt.XRTError("Could not find Simulator %s" % self.args['simulator'])
+        managementServers = self.args['management'].split(",")
+        primaryManagementServer = self.getGuest(managementServers[0]) or self.getHost(managementServers[0])
+        
+        if not primaryManagementServer:
+            raise xenrt.XRTError("Could not find primary management server %s" % managementServers[0])
+        if managementServers[1:]:
+            kwargs['additionalManagementServers'] = []
+            for i in managementServers[1:]:
+                kwargs['additionalManagementServers'].append(self.getGuest(i) or self.getHost(i))
+                if not kwargs['additionalManagementServers'][-1]:
+                    raise xenrt.XRTError("Could not find management server %s" % i)
+        if self.args.get("netscaler"):
+            # Netscaler will always be a VPX for now, so always a guest
+            kwargs['netscalerVM'] = self.getGuest(self.args['netscaler'])
+            if not kwargs['netscalerVM']:
+                raise xenrt.XRTError("Could not find Netscaler %s" % self.args['netscaler'])
+        manSvr = xenrt.lib.cloud.ManagementServer(primaryManagementServer, **kwargs)
+        manSvr.installCloudManagementServer()

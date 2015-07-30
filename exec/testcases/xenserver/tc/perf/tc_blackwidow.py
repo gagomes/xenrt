@@ -31,7 +31,7 @@ DEFINE_REQUESTS
         vpx.password = 'nsroot'
 
     def nscli(self, vpx, cmd):
-        return vpx._NetScaler__netScalerCliCommand(cmd)
+        return vpx.cli(cmd)
 
     def setupBlackWidow(self, vpx):
         xenrt.TEC().logverbose("setting up %s as blackwidow..." % (vpx))

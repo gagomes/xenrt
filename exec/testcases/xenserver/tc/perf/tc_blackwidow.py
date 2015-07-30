@@ -88,7 +88,7 @@ class TCBlackWidow(libperf.PerfTestCase):
         self.nscli(vpx_ns, 'save ns config')
 
     def nscli(self, vpx, cmd):
-        return vpx._NetScaler__netScalerCliCommand(cmd)
+        return vpx.cli(cmd)
 
     def workloadFile(self):
         return """DEFINE_CLASSES

@@ -6055,10 +6055,25 @@ exit 0
         pxe1.setDefault("ipxe")
         pxe1.writeOut(self.machine)
 
+        webdir = xenrt.WebDirectory()
+        with open(os.path.join(webdir.path(), "cloudconfig.yaml"), "w") as f:
+            f.write("""#cloud-config
+
+users:
+  - name: root
+    passwd: $1$IpG/0K10$FRR072xrFnouDDxWEG/Br1
+write_files:
+  - path: /xenrt
+    permissions: 0644
+    owner: root
+    content: |
+        xenrt
+""")
+
         coreos = pxe2.addEntry("coreos", boot="linux")
         basepath = xenrt.getLinuxRepo("coreos-stable", "x86-64", "HTTP")
         coreos.linuxSetKernel("%s/amd64-usr/current/coreos_production_pxe.vmlinuz" % basepath, abspath=True)
-        coreos.linuxArgsKernelAdd("initrd=%s/amd64-usr/current/coreos_production_pxe_image.cpio.gz cloud-config-url=%s/cloudconfig.yaml" % (basepath, basepath))
+        coreos.linuxArgsKernelAdd("initrd=%s/amd64-usr/current/coreos_production_pxe_image.cpio.gz cloud-config-url=%s" % (basepath, webdir.getURL("cloudconfig.yaml")))
     
         pxe2.setDefault("coreos")
         filename = pxe2.writeOut(self.machine, suffix="_ipxe")

@@ -274,7 +274,7 @@ class ManagementServer(object):
         internalMask = IPy.IP("%s/%s" % (xenrt.getNetworkParam("NPRI", "SUBNET"), xenrt.getNetworkParam("NPRI", "SUBNETMASK")))
 
         if xenrt.TEC().lookup("USE_CCP_SIMULATOR", False, boolean=True):
-            self.primaryManagementServer.execcmd('mysql -u root --password=xensource -h %s < /usr/share/cloudstack-management/setup/hypervisor_capabilities.simulator.sql', self.dbServer.getIP())
+            self.primaryManagementServer.execcmd('mysql -u root --password=xensource -h %s < /usr/share/cloudstack-management/setup/hypervisor_capabilities.simulator.sql' % self.dbServer.getIP())
             self.primaryManagementServer.execcmd('mysql -u root --password=xensource -h %s < /usr/share/cloudstack-management/setup/templates.simulator.sql' % self.dbServer.getIP())
         marvinApi.setCloudGlobalConfig("secstorage.allowed.internal.sites", internalMask.strNormal())
         if not xenrt.TEC().lookup("MARVIN_SETUP", False, boolean=True):

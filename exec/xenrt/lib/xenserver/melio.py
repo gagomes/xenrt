@@ -36,7 +36,7 @@ class MelioHost(object):
         self.host.execdom0("modprobe warm_drive")
 
     def setupISCSITarget(self):
-        self.lun = xenrt.ISCSIVMself.lun(targetType="LIO", sizeMB=100*xenrt.KILO)
+        self.lun = xenrt.ISCSIVMLun(targetType="LIO", sizeMB=100*xenrt.KILO)
         self.host.execdom0("iscsiadm -m discovery -t st -p %s" % self.lun.getServer())
         self.host.execdom0('iscsiadm -m node --targetname "%s" --portal "%s:3260" --login' % (self.lun.getTargetName(), self.lun.getServer()))
 

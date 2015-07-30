@@ -39,7 +39,7 @@
     </host>
 
     <!-- a baremetal machine -->
-    <host id="1" productVersion="centos65-x64" productType="nativelinux" cpufreqgovernor="performance">
+    <host id="1" productVersion="centos66-x64" productType="nativelinux" cpufreqgovernor="performance">
       <NETWORK>
         <PHYSICAL name="NET_MGMT" jumbo="yes">
           <MANAGEMENT/>

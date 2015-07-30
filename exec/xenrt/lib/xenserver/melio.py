@@ -19,6 +19,12 @@ __all__ = [
 class MelioHost(object):
     def __init__(self, host):
         self.host = host
+        self.lun = None
+
+    def setup(self):
+        self.setupISCSITarget()
+        self.installMelio()
+        self.setupMelioDisk()
 
     def installMelio(self):
         self.host.execdom0("yum install -y boost")
@@ -27,13 +33,14 @@ class MelioHost(object):
         d.copyIn(f)
         self.host.execdom0("wget -O /root/melio.rpm %s" % d.getURL(os.path.basename(f)))
         self.host.execdom0("rpm -U --replacepkgs /root/melio.rpm")
+        self.host.execdom0("modprobe warm_drive")
+
+    def setupISCSITarget(self):
+        self.lun = xenrt.ISCSIVMself.lun(targetType="LIO", sizeMB=100*xenrt.KILO)
+        self.host.execdom0("iscsiadm -m discovery -t st -p %s" % self.lun.getServer())
+        self.host.execdom0('iscsiadm -m node --targetname "%s" --portal "%s:3260" --login' % (self.lun.getTargetName(), self.lun.getServer()))
 
     def setupMelioDisk(self):
-        lun = xenrt.ISCSIVMLun(targetType="LIO", sizeMB=100*xenrt.KILO)
-        self.host.execdom0("iscsiadm -m discovery -t st -p %s" % lun.getServer())
-        self.host.execdom0('iscsiadm -m node --targetname "%s" --portal "%s:3260" --login' % (lun.getTargetName(), lun.getServer()))
-        disk = "/dev/disk/by-id/scsi-%s" % lun.getID()
-
-        self.host.execdom0("modprobe warm_drive")
+        disk = "/dev/disk/by-id/scsi-%s" % self.lun.getID()
         self.host.execdom0("/usr/sbin/wd_format warm_fs mount_1234 %s" % disk)
         self.host.execdom0("mount -t warm_fs %s /mnt" % disk)

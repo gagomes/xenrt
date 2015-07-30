@@ -2123,6 +2123,7 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["ws12-x64"]["MAX_VM_VCPUS"] = "16"
         self.config["GUEST_LIMITATIONS"]["ws12core-x64"] = {}
         self.config["GUEST_LIMITATIONS"]["ws12core-x64"]["MINMEMORY"] = "2048"
+        self.config["GUEST_LIMITATIONS"]["ws12core-x64"]["STATICMINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["ws12core-x64"]["MAXMEMORY"] = "524288"
         self.config["GUEST_LIMITATIONS"]["ws12core-x64"]["MAXSOCKETS"] = "64"
         self.config["GUEST_LIMITATIONS"]["ws12core-x64"]["MAX_VM_VCPUS"] = "16"
@@ -2133,6 +2134,7 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["ws12r2-x64"]["MAX_VM_VCPUS"] = "16"
         self.config["GUEST_LIMITATIONS"]["ws12r2core-x64"] = {}
         self.config["GUEST_LIMITATIONS"]["ws12r2core-x64"]["MINMEMORY"] = "2048"
+        self.config["GUEST_LIMITATIONS"]["ws12r2core-x64"]["STATICMINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["ws12r2core-x64"]["MAXMEMORY"] = "524288"
         self.config["GUEST_LIMITATIONS"]["ws12r2core-x64"]["MAXSOCKETS"] = "64"
         self.config["GUEST_LIMITATIONS"]["ws12r2core-x64"]["MAX_VM_VCPUS"] = "16"

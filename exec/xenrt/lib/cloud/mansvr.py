@@ -151,7 +151,7 @@ class ManagementServer(object):
             setupMsLoc = m.execcmd('find /usr/bin -name %s-setup-management' % (self.cmdPrefix)).strip()
             m.execcmd(setupMsLoc)
        
-        if xenrt.TEC().lookup("USE_CCP_SIMULATOR", False, boolean=True):
+        if xenrt.TEC().lookup("USE_CCP_SIMULATOR", False, boolean=True) or self._simDbServer:
             # For some reason the cloud user doesn't seem to have access to the simulator DB
             [x.execcmd("""sed -i s/db.simulator.username=cloud/db.simulator.username=root/ /usr/share/cloudstack-management/conf/db.properties""") for x in self.additionalManagementServers]
             [x.execcmd("""sed -i s/db.simulator.password=cloud/db.simulator.password=xensource/ /usr/share/cloudstack-management/conf/db.properties""") for x in self.additionalManagementServers]
@@ -179,7 +179,7 @@ class ManagementServer(object):
             host = self.dbServer.getIP()
         setupDbLoc = self.primaryManagementServer.execcmd('find /usr/bin -name %s-setup-databases' % (self.cmdPrefix)).strip()
         self.primaryManagementServer.execcmd('%s cloud:cloud@%s --deploy-as=root:xensource' % (setupDbLoc, host))
-        if xenrt.TEC().lookup("USE_CCP_SIMULATOR", False, boolean=True):
+        if xenrt.TEC().lookup("USE_CCP_SIMULATOR", False, boolean=True) or self._simDbServer:
             self.tailorForSimulator()
 
     def installMySql(self, dbServer, server=True):
@@ -230,7 +230,7 @@ class ManagementServer(object):
 
         self.primaryManagementServer.execcmd('mysql -u cloud --password=cloud -h %s --execute="UPDATE cloud.configuration SET value=8096 WHERE name=\'integration.api.port\'"' % self.dbServer.getIP())
 
-        if xenrt.TEC().lookup("USE_CCP_SIMULATOR", False, boolean=True):
+        if xenrt.TEC().lookup("USE_CCP_SIMULATOR", False, boolean=True) or self._simDbServer:
             # For some reason the cloud user doesn't seem to have access to the simulator DB
             self.primaryManagementServer.execcmd("""sed -i s/db.simulator.username=cloud/db.simulator.username=root/ /usr/share/cloudstack-management/conf/db.properties""")
             self.primaryManagementServer.execcmd("""sed -i s/db.simulator.password=cloud/db.simulator.password=xensource/ /usr/share/cloudstack-management/conf/db.properties""")
@@ -273,7 +273,7 @@ class ManagementServer(object):
 
         internalMask = IPy.IP("%s/%s" % (xenrt.getNetworkParam("NPRI", "SUBNET"), xenrt.getNetworkParam("NPRI", "SUBNETMASK")))
 
-        if xenrt.TEC().lookup("USE_CCP_SIMULATOR", False, boolean=True):
+        if xenrt.TEC().lookup("USE_CCP_SIMULATOR", False, boolean=True) or self._simDbServer:
             self.primaryManagementServer.execcmd('mysql -u root --password=xensource -h %s < /usr/share/cloudstack-management/setup/hypervisor_capabilities.simulator.sql' % self.dbServer.getIP())
             self.primaryManagementServer.execcmd('mysql -u root --password=xensource -h %s < /usr/share/cloudstack-management/setup/templates.simulator.sql' % self.dbServer.getIP())
         marvinApi.setCloudGlobalConfig("secstorage.allowed.internal.sites", internalMask.strNormal())

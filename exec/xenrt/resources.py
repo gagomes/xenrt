@@ -1561,10 +1561,10 @@ class ISCSIVMLun(ISCSILun):
 
         # Check if we already have the VM on this host, if we don't, then create it, otherwise attach to the existing one.
         if not self.host.guests.has_key(self.guestName):
-            self.scsiid = self._createISCSIVM(sizeMB, totalSizeMB, bridges=bridges, targetType=targetType)
-        else:
+            self._createISCSIVM(sizeMB, totalSizeMB, bridges=bridges, targetType=targetType)
+        else
             self.guest = self.host.guests[self.guestName]
-            self.scsiid = self._existingISCSIVM(sizeMB)
+            self._existingISCSIVM(sizeMB)
             
 
         self.outgoingChap = None
@@ -1576,7 +1576,7 @@ class ISCSIVMLun(ISCSILun):
         self.server = self.guest.mainip
         self.secAddrs = {}
         # Add a LUN to this VM
-        self.guest.createISCSITargetLun(self.lunid, int(sizeMB), dir="/iscsi/", thickProvision=False)
+        self.scsiid = self.guest.createISCSITargetLun(self.lunid, int(sizeMB), dir="/iscsi/", thickProvision=False)
 
     def _existingISCSIVM(self, sizeMB):
         # Check whether we gave this VM space for all the LUNs upfront. If we didn't, we need to shut it down and resize the VDI

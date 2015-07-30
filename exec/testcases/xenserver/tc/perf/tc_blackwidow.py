@@ -123,8 +123,6 @@ DEFINE_REQUESTS
 
 #### Testcase core methods ####
     def parseArgs(self, arglist):
-        libperf.PerfTestCase.parseArgs(self, arglist)
-
         # Performance Test Metrics
         self.runtime = libperf.getArgument(arglist, "runtime", int, 120) # duration over which to run the throughput test
         self.snips   = libperf.getArgument(arglist, "snips",   int, 50)  # number of NetScaler clients on the DUT
@@ -133,23 +131,22 @@ DEFINE_REQUESTS
         self.httpClientThreads = libperf.getArgument(arglist, "httpclientthread", int, 500) # number of HTTP client threads
         self.httpClientParallelconn = libperf.getArgument(arglist, "httpclientparallelconn", int, 500) # number of HTTP client parallel connections
 
-    def basicPrepare(self, arglist):
-        libperf.PerfTestCase.basicPrepare(self, arglist)
-
         bw_name  = libperf.getArgument(arglist, "bw",  str, "blackwidow") # name of the VPX to use for BlackWidow
         dut_name = libperf.getArgument(arglist, "dut", str, "dut")        # name of the VPX to use as the device-under-test
         self.guest_bw  = xenrt.GEC().registry.guestGet(bw_name)
         self.guest_dut = xenrt.GEC().registry.guestGet(dut_name)
 
-        self.ns_bw  = self.setupBlackWidow(self.guest_bw)
-        self.ns_dut = self.setupDUT(self.guest_dut)
-
+    def prepare(self, arglist):
+        self.parseArgs(self, arglist)
         self.workloadFileName = None
         self.workload = None
         self.remoteWLDir = "/var/BW/WL"
         # Identifiers used by nscsconfig
         self.server_id = 0 # higher numbers don't seem to result in a running server
         self.client_id = 1
+
+        self.ns_bw  = self.setupBlackWidow(self.guest_bw)
+        self.ns_dut = self.setupDUT(self.guest_dut)
 
     def startWorkload(self):
         pass

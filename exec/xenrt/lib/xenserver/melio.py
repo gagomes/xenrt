@@ -26,7 +26,7 @@ class MelioHost(object):
         d = xenrt.WebDirectory()
         d.copyIn(f)
         self.host.execdom0("wget -O /root/melio.rpm %s" % d.getURL(os.path.basename(f)))
-        self.host.execdom0("rpm -U /root/melio.rpm")
+        self.host.execdom0("rpm -U --replacepkgs /root/melio.rpm")
 
     def setupMelioDisk(self):
         lun = xenrt.ISCSIVMLun(targetType="LIO", sizeMB=100*xenrt.KILO)

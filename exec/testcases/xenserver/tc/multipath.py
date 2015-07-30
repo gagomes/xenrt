@@ -4972,12 +4972,13 @@ class _PathFailOver(TCValidateFCOEMultipathPathCount):
         self.checkGuest()
         
         if self.FAILURE_PATH == 0:
-            self.guest.shutdown()
+            
             vifs = self.guest.getVIFs()
             for vif in vifs:
+                self.guest.unplugVIF(vif)
                 self.guest.removeVIF(vif)
             vif = self.guest.createVIF(eth="eth1",bridge=self.host.getManagementBridge(),plug=True)
-            self.guest.start()
+            self.guest.reboot()
             
 
         self.disableEthPort(self.FAILURE_PATH)

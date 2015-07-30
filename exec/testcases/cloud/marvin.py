@@ -357,7 +357,7 @@ class TCCloudstackSetup(xenrt.TestCase):
         managementServers = self.args['management'].split(",")
         primaryManagementServer = self.getGuest(managementServers[0]) or self.getHost(managementServers[0])
         if managementServers[1:]:
-            kwargs['additionalManagementServers'] = [x.getGuest(x) or x.getHost(x) for x in managementServers[1:]]
+            kwargs['additionalManagementServers'] = [self.getGuest(x) or self.getHost(x) for x in managementServers[1:]]
         if self.args.get("netscaler"):
             # Netscaler will always be a VPX for now, so always a guest
             kwargs['netscalerVM'] = self.getGuest(self.args['netscaler'])

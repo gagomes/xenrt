@@ -27,3 +27,13 @@ class MelioHost(object):
         d.copyIn(f)
         self.host.execdom0("wget -O /root/melio.rpm %s" % d.getURL(os.path.basename(f)))
         self.host.execdom0("rpm -U /root/melio.rpm")
+        self.host.execdom0("modprobe warm_drive")
+
+    def setupMelioDisk(self):
+        lun = xenrt.ISCSIVMLun(targetType="LIO", sizeMB=100*xenrt.KILO)
+        self.host.execdom0("iscsiadm -m discovery -t st -p %s" % lun.getServer())
+        self.host.execdom0('iscsiadm -m node --targetname "%s" --portal "%s:3260" --login' % (lun.getTargetName(), lun.getServer()))
+        disk = "/dev/disk/by-id/scsi-%s" % lun.getID()
+
+        self.host.execdom0("/usr/sbin/wd_format warm_fs mount_1234 %s" % disk)
+        self.host.execdom0("mount -t warm_fs %s /mnt" % disk)

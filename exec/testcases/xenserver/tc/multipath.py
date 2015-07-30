@@ -4955,7 +4955,7 @@ class _PathFailOver(TCValidateFCOEMultipathPathCount):
         except Exception, e:
             traceback.print_exc(file=sys.stderr)
             raise xenrt.XRTError("Exception checking read/write script progress",
-                                 data=str(e))	
+                                 data=str(e))
         
     def run(self, arglist=None):
         _TC8159.run(self, arglist)
@@ -4972,6 +4972,8 @@ class _PathFailOver(TCValidateFCOEMultipathPathCount):
         self.checkGuest()
 
         self.disableEthPort(self.FAILURE_PATH)
+        if self.FAILURE_PATH == 0:
+            self.guest.createVIF(eth="eth1", bridge="xenbr0", plug=True)
         self.checkGuest()
 
         self.enableEthPort(self.FAILURE_PATH)
@@ -5002,13 +5004,12 @@ class TCFCOEPrimaryPathFailover(_PathFailOver):
         newIP = self.host.minimalList("pif-param-get",args="uuid=%s param-name=IP" % (pif))[0]
         self.host.execcmd("xe host-management-reconfigure pif-uuid=%s" % pif) 
         xenrt.sleep(120)
-        self.host.setIP(newIP)
         _PathFailOver.run(self,arglist)
 
 class TCCheckGuestOperations(TCValidateFCOEMultipathPathCount):
 
     def run(self,arglist=None):
-        TC8159.run(self, arglist)
+        _TC8159.run(self, arglist)
         self.host = self.getDefaultHost()
         netconfig = """<NETWORK>
   <PHYSICAL network="NPRI">

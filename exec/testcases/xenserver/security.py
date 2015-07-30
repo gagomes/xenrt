@@ -534,7 +534,7 @@ class TCXSA111(_TCXSA):
 
     def prepare(self, arglist=None):
         _TCXSA.prepare(self, arglist)
-        self.replaceHvmloader("http://files.uk.xensource.com/usr/groups/xenrt/xsa_test_files/test-hvm-xsa-111")
+        self.replaceHvmloader("/usr/groups/xenrt/xsa_test_files/test-hvm-xsa-111")
 
     def run(self, arglist=None):
         vm = self.host.execdom0("xe vm-install new-name-label=vm template-name=\"Other install media\"").strip()
@@ -558,7 +558,7 @@ class TCXSA112(_TCXSA):
         self.host.execdom0("sed -e 's/\(append .*xen\S*.gz\)/\\0 loglvl=all guest_loglvl=all/' /boot/extlinux.conf > tmp && mv tmp /boot/extlinux.conf -f")
         self.host.reboot()
         
-        self.replaceHvmloader("http://files.uk.xensource.com/usr/groups/xenrt/xsa_test_files/test-hvm-xsa-112")
+        self.replaceHvmloader("/usr/groups/xenrt/xsa_test_files/test-hvm-xsa-112")
         
     def run(self, arglist=None):
         vm = self.host.execdom0("xe vm-install new-name-label=vm template-name=\"Other install media\"").strip()
@@ -586,7 +586,7 @@ class TCXSA133(_TCXSA):
     def prepare(self, arglist=None):
         _TCXSA.prepare(self, arglist)
         self.guest = self.host.createGenericEmptyGuest()
-        self.replaceHvmloader("http://files.uk.xensource.com/usr/groups/xenrt/xsa_test_files/test-hvm64-xsa-133")
+        self.replaceHvmloader("/usr/groups/xenrt/xsa_test_files/test-hvm64-xsa-133")
         
     def run(self, arglist=None):
 
@@ -626,7 +626,7 @@ class TCXSA138(_TCXSA):
         _TCXSA.prepare(self, arglist)
         self.guest = self.host.createGenericEmptyGuest()
         self.guest.insertToolsCD()
-        self.replaceHvmloader("http://files.uk.xensource.com/usr/groups/xenrt/xsa_test_files/test-hvm-xsa-138")
+        self.replaceHvmloader("/usr/groups/xenrt/xsa_test_files/test-hvm-xsa-138")
         
     def run(self, arglist=None):
         self.guest.lifecycleOperation("vm-start", timeout=30)

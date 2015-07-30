@@ -25,3 +25,4 @@ from xenrt.lib.xenserver.licensing import *
 from xenrt.lib.xenserver.readcaching import *
 from xenrt.lib.xenserver.docker import *
 from xenrt.lib.xenserver.sr import *
+from xenrt.lib.xenserver.melio import *

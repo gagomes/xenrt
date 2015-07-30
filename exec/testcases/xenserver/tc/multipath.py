@@ -4934,7 +4934,7 @@ class TCValidateFCOEMultipathPathCount(_TC8159):
         self.enableEthPort(1)
         _TC8159.postRun(self)
 
-class TCValidateFCOESecondaryPathFailover(TCValidateFCOEMultipathPathCount):
+class TCFCOESecondaryPathFailover(TCValidateFCOEMultipathPathCount):
     FAILURE_PATH = 1
     
     def checkGuest(self):
@@ -4959,6 +4959,7 @@ class TCValidateFCOESecondaryPathFailover(TCValidateFCOEMultipathPathCount):
         
     def run(self, arglist=None):
         _TC8159.run(self, arglist)
+        self.host = self.getDefaultHost()
         dev = self.guest.createDisk(sizebytes=5368709120, sruuid=self.sr.uuid, returnDevice=True) # 5GB
         xenrt.sleep(5)
         

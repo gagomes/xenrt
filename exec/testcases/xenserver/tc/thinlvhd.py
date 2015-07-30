@@ -377,7 +377,7 @@ class TCSRIncrement(_ThinLVHDBase):
  
         origsize = self.getPhysicalUtilisation(sr)
 
-        self.fillDisk(guest, size=1024*1024*1024) # filling 1 GB
+        self.fillDisk(guest, size = 2 * xenrt.GIGA) # filling 2 GB
 
         aftersize = self.getPhysicalUtilisation(sr)
 

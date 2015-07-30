@@ -137,7 +137,7 @@ DEFINE_REQUESTS
         self.guest_dut = xenrt.GEC().registry.guestGet(dut_name)
 
     def prepare(self, arglist):
-        self.parseArgs(self, arglist)
+        self.parseArgs(arglist)
         self.workloadFileName = None
         self.workload = None
         self.remoteWLDir = "/var/BW/WL"

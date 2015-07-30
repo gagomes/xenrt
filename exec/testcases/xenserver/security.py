@@ -534,7 +534,7 @@ class TCXSA111(_TCXSA):
 
     def prepare(self, arglist=None):
         _TCXSA.prepare(self, arglist)
-        self.replaceHvmloader("http://files.uk.xensource.com/usr/groups/xenrt/xsa_test_files/test-hvm-xsa-111")
+        self.replaceHvmloader("/usr/groups/xenrt/xsa_test_files/test-hvm-xsa-111")
 
     def run(self, arglist=None):
         vm = self.host.execdom0("xe vm-install new-name-label=vm template-name=\"Other install media\"").strip()
@@ -558,7 +558,7 @@ class TCXSA112(_TCXSA):
         self.host.execdom0("sed -e 's/\(append .*xen\S*.gz\)/\\0 loglvl=all guest_loglvl=all/' /boot/extlinux.conf > tmp && mv tmp /boot/extlinux.conf -f")
         self.host.reboot()
         
-        self.replaceHvmloader("http://files.uk.xensource.com/usr/groups/xenrt/xsa_test_files/test-hvm-xsa-112")
+        self.replaceHvmloader("/usr/groups/xenrt/xsa_test_files/test-hvm-xsa-112")
         
     def run(self, arglist=None):
         vm = self.host.execdom0("xe vm-install new-name-label=vm template-name=\"Other install media\"").strip()
@@ -586,7 +586,7 @@ class TCXSA133(_TCXSA):
     def prepare(self, arglist=None):
         _TCXSA.prepare(self, arglist)
         self.guest = self.host.createGenericEmptyGuest()
-        self.replaceHvmloader("http://files.uk.xensource.com/usr/groups/xenrt/xsa_test_files/test-hvm64-xsa-133")
+        self.replaceHvmloader("/usr/groups/xenrt/xsa_test_files/test-hvm64-xsa-133")
         
     def run(self, arglist=None):
 
@@ -612,6 +612,44 @@ class TCXSA133(_TCXSA):
 
             if state == "DOWN" or not qemuRunning:
                 raise xenrt.XRTFailure("Host appears vulnerable to XSA-133")
+
+            xenrt.sleep(30)
+
+    def postRun(self):
+        self.host.execdom0("cp -f {0}.backup {0}".format(self.hvmloaderPath))
+
+class TCXSA138(_TCXSA):
+    """Test to verify XSA-138"""
+    # Jira TC-27142
+    
+    def prepare(self, arglist=None):
+        _TCXSA.prepare(self, arglist)
+        self.guest = self.host.createGenericEmptyGuest()
+        self.guest.insertToolsCD()
+        self.replaceHvmloader("/usr/groups/xenrt/xsa_test_files/test-hvm-xsa-138")
+        
+    def run(self, arglist=None):
+        self.guest.lifecycleOperation("vm-start", timeout=30)
+        domId = self.guest.getDomid()
+        qPid = self.host.xenstoreRead("/local/domain/%u/qemu-pid" % domId)
+
+        startTime = xenrt.util.timenow()
+        while True:
+            if xenrt.util.timenow() - startTime > 1800:
+                raise xenrt.XRTError("Timed out waiting for XSA-138 test")
+
+            qemuRunning = (self.host.execdom0("test -d /proc/%s" % (qPid), retval="code") == 0)
+            state = self.guest.getState()
+
+            # Check if we have a successful run
+            data = self.host.execdom0("grep qemu-dm-%s /var/log/messages /var/log/daemon.log || true" % (domId))
+
+            if "XSA-138 PoC done - probably not vulnerable" in data and state == "DOWN":
+                xenrt.TEC().logverbose("Test completed successfully")
+                break
+
+            if not qemuRunning:
+                raise xenrt.XRTFailure("Host appears vulnerable to XSA-138")
 
             xenrt.sleep(30)
 

@@ -4934,3 +4934,44 @@ class TCValidateFCOEMultipathPathCount(_TC8159):
         self.enableEthPort(1)
         _TC8159.postRun(self)
 
+class TCValidateFCOESecondaryPathFailover(TCValidateFCOEMultipathPathCount):
+    FAILURE_PATH = 1
+    
+    def checkGuest(self):
+        # Check the periodic read/write script is still running on the VM
+        rc = self.guest.execguest("pidof python",retval="code")
+        if rc > 0:
+            # Get the log
+            self.guest.execguest("cat /tmp/rw.log || true")
+            raise xenrt.XRTFailure("Periodic read/write script failed")
+
+        try:
+            first = int(float(self.guest.execguest("tail -n 1 /tmp/rw.log").strip()))
+            time.sleep(30)
+            next = int(float(self.guest.execguest("tail -n 1 /tmp/rw.log").strip()))
+            if next == first:
+                raise xenrt.XRTFailure("Periodic read/write script has not "
+                                       "completed a loop in 30 seconds")
+        except Exception, e:
+            traceback.print_exc(file=sys.stderr)
+            raise xenrt.XRTError("Exception checking read/write script progress",
+                                 data=str(e))	
+        
+    def run(self, arglist=None):
+        _TC8159.run(self, arglist)
+        dev = self.guest.createDisk(sizebytes=5368709120, sruuid=self.sr.uuid, returnDevice=True) # 5GB
+        xenrt.sleep(5)
+        
+        # Launch a periodic read/write script using the new disk
+        self.guest.execguest("%s/remote/readwrite.py /dev/%s > /tmp/rw.log "
+                             "2>&1 < /dev/null &" %
+                             (xenrt.TEC().lookup("REMOTE_SCRIPTDIR"), dev))
+
+        xenrt.sleep(20)    
+        self.checkGuest()
+
+        self.disableEthPort(self.FAILURE_PATH)
+        self.checkGuest()
+
+        self.enableEthPort(self.FAILURE_PATH)
+        self.checkGuest()

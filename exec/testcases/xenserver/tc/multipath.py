@@ -4999,7 +4999,10 @@ class TCFCOEPrimaryPathFailover(_PathFailOver):
 
         self.host.createNetworkTopology(netconfig)
         pif = self.host.parseListForUUID("pif-list", "device", "eth1")
+        newIP = self.host.minimalList("pif-param-get",args="uuid=%s param-name=IP" % (pif))[0]
         self.host.execcmd("xe host-management-reconfigure pif-uuid=%s" % pif) 
+        xenrt.sleep(120)
+        self.host.setIP(newIP)
         _PathFailOver.run(self,arglist)
 
 class TCCheckGuestOperations(TCValidateFCOEMultipathPathCount):
@@ -5046,7 +5049,10 @@ class TCCheckGuestOperations(TCValidateFCOEMultipathPathCount):
 
         self.host.createNetworkTopology(netconfig)
         pif = host.parseListForUUID("pif-list", "device", "eth1")
+        newIP = self.host.minimalList("pif-param-get",args="uuid=%s param-name=IP" % (pif))[0]
         self.host.execcmd("xe host-management-reconfigure pif-uuid=%s" % pif) 
+        xenrt.sleep(120)
+        self.host.setIP(newIP)
         
 
         self.disableEthPort(0)
@@ -5111,7 +5117,10 @@ class TCCheckSROperations(TCValidateFCOEMultipathPathCount):
 
         self.host.createNetworkTopology(netconfig)
         pif = host.parseListForUUID("pif-list", "device", "eth1")
+        newIP = self.host.minimalList("pif-param-get",args="uuid=%s param-name=IP" % (pif))[0]
         self.host.execcmd("xe host-management-reconfigure pif-uuid=%s" % pif) 
+        xenrt.sleep(120)
+        self.host.setIP(newIP)
         
         
         self.disableFCPort(0)

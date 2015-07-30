@@ -1,0 +1,28 @@
+<xenrt>
+
+  <!-- VDI scalability tests for thin provisioning -->
+
+  <default name="DISTRO" value="debian70" />
+  <default name="SRTYPE" value="lvmoiscsi" />
+  <default name="SROPTIONS" value="thin" />
+  <default name="NUMVMS" value="100" />
+  <default name="OUTPUTFILE" value="thinsrscaletiming.log" />
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0" />
+  </prepare>
+
+  <testsequence>
+    <testcase id="xenserver.tc.perf.thinlvhdperf.TCThinVDIscalability" tc="TC-27141" name="TCThinVDIScalability">
+      <arg>distro=${DISTRO}</arg>
+      <arg>srtype=${SRTYPE}</arg>
+      <arg>sroptions=${SROPTIONS}</arg>
+      <arg>numvms=${NUMVMS}</arg>
+      <arg>outputfile=${OUTPUTFILE}</arg>
+    </testcase>
+  </testsequence>
+</xenrt>

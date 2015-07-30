@@ -1440,8 +1440,11 @@ class _TimedTestCase(xenrt.TestCase):
     def addTiming(self, timing):
         self.timings.append(timing)
 
-    def preLogs(self):
-        filename = "%s/xenrt-timings.log" % (xenrt.TEC().getLogdir())
+    def preLogs(self, outputfile=None):
+        if outputfile:
+            filename = "%s/%s" % (xenrt.TEC().getLogdir(), outputfile)
+        else:
+            filename = "%s/xenrt-timings.log" % (xenrt.TEC().getLogdir())
         f = file(filename, "w")
         f.write("\n".join(self.timings))
         f.close()

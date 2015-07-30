@@ -1,0 +1,15 @@
+# Disk Throughput Profiler and Disk Latency tools for gathering performance metrics
+#
+# Copyright 2011-2012 (c) Felipe Franciosi <felipe@paradoxo.org>
+#
+bc37e105adae24f9e61b7f82d2883cd8  ./disklatency/stats
+6106d4dbcf59aa92623ea0251ae2389a  ./disklatency/synexec_master
+6a1ffb3a86db951dea5359e93b1ecbdc  ./disklatency/synexec_slave
+b0e50dcd086128909047cbdaaaf0db77  ./disklatency/latency
+cfcf16bebe533475faf012b938d7a7c8  ./disklatency/latency.c
+2e8f5807cf8e92d53288e460a8d868b9  ./disklatency/yngwie
+1ae00355653d1268b42724670812c9b5  ./disklatency/yngwie.c
+f8e887cfd355d58f2adc67ec1f7c1344  ./disklatency/README
+c069ebe61f19252770c9b176c97b138f  ./diskprofiler/dprofiler
+0b3186e933eab81fe43f400f6b5e399e  ./diskprofiler/dprofiler.c
+909d8525d7b3be0a6d831e1ebf959f8c  ./diskprofiler/README

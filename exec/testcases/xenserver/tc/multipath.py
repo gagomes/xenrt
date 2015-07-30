@@ -4998,7 +4998,7 @@ class TCFCOEPrimaryPathFailover(_PathFailOver):
 
 
         self.host.createNetworkTopology(netconfig)
-        pif = host.parseListForUUID("pif-list", "device", "eth1")
+        pif = self.host.parseListForUUID("pif-list", "device", "eth1")
         self.host.execcmd("xe host-management-reconfigure pif-uuid=%s" % pif) 
         _PathFailOver.run(self,arglist)
 

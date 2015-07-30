@@ -4973,7 +4973,18 @@ class _PathFailOver(TCValidateFCOEMultipathPathCount):
 
         self.disableEthPort(self.FAILURE_PATH)
         if self.FAILURE_PATH == 0:
-            self.guest.createVIF(eth="eth1", bridge="xenbr0", plug=True)
+            networks = self.host.minimalList("pif-list", "network-uuid", "management=false IP-configuration-mode=DHCP")
+            bridge = self.host.genParamGet("network", networks[0], "bridge")
+            self.guest.createVIF(eth="eth1", bridge=bridge,mac=None, plug=True)
+            xenrt.sleep(10)
+            self.guest.execguest("echo 'auto eth1' >> "
+                             "/etc/network/interfaces")
+            self.guest.execguest("echo 'iface eth1 inet dhcp' >> "
+                             "/etc/network/interfaces")
+            self.guest.execguest("echo 'post-up route del -net default "
+                             "dev eth1' >> /etc/network/interfaces")
+            self.guest.execguest("ifup eth1")
+            xenrt.sleep(60)
         self.checkGuest()
 
         self.enableEthPort(self.FAILURE_PATH)

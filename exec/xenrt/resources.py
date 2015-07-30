@@ -1562,7 +1562,7 @@ class ISCSIVMLun(ISCSILun):
         # Check if we already have the VM on this host, if we don't, then create it, otherwise attach to the existing one.
         if not self.host.guests.has_key(self.guestName):
             self._createISCSIVM(sizeMB, totalSizeMB, bridges=bridges, targetType=targetType)
-        else
+        else:
             self.guest = self.host.guests[self.guestName]
             self._existingISCSIVM(sizeMB)
             

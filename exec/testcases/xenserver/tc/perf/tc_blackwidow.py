@@ -104,7 +104,7 @@ DEFINE_REQUESTS
 
         wlFile = "%s/%s" % (self.remoteWLDir, self.workloadFileName)
         self.nscli(vpx_ns, "shell mkdir -p %s" % self.remoteWLDir)
-        vpx_ns.__vpxGuest.sftpClient(username='nsroot').copyTo(tmpFile, wlFile)
+        vpx_ns.getGuest().sftpClient(username='nsroot').copyTo(tmpFile, wlFile)
         self.workload = wlFile
 
     def createHttpServers(self, vpx_ns):

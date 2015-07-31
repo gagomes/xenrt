@@ -91,9 +91,8 @@ DEFINE_REQUESTS
         return vpx_ns
 
     def sampleCounters(self, vpx, ctrs, filename):
-        nitroStats = {ctr:xenrt.getURLContent("http://nsroot:nsroot@%s/nitro/v1/stat/%s" % (vpx.mainip, ctr)) for ctr in ctrs["nitro"]}
-        nsconmsgStats = {ctr:"TODO" for ctr in ctrs["nsconmsg"]}
-        self.log(filename, json.dumps({"nitro":nitroStats,"nsconmsg":nsconmsgStats}))
+        stats = {ctr:xenrt.getURLContent("http://nsroot:nsroot@%s/nitro/v1/stat/%s" % (vpx.mainip, ctr)) for ctr in ctrs}
+        self.log(filename, json.dumps(stats))
 
     def createWorkloadFile(self, vpx_ns):
         if self.workloadFileName not in self.WORKLOADS:
@@ -176,7 +175,7 @@ class TCHttp100KResp(_BlackWidow):
         _BlackWidow.prepare(self, arglist=[])
 
         self.workloadFileName = "100KB.wl"
-        self.statsToCollect = { "nitro": ["protocoltcp"] }
+        self.statsToCollect = ["protocoltcp"]
 
     def startWorkload(self):
         step("startWorkload: create workload file")
@@ -225,7 +224,7 @@ class TCHttp1BResp(TCHttp100KResp):
         self.httpClientParallelconn = libperf.getArgument(arglist, "httpclientparallelconn", int, 200)
 
         self.workloadFileName = "1only.wl"
-        self.statsToCollect = { "nitro": ["protocolhttp"], "nsconmsg": ["http_tot_Req"] }
+        self.statsToCollect = ["protocolhttp"]
 
     def createHttpClients(self, vpx_ns):
         self.nscli(vpx_ns, "shell /var/BW/nscsconfig -s client=%d -s percentpers=0 -s finstop=0 -w %s -s reqperconn=1 -s cltserverip=43.54.30.247 -s threads=%d -s parallelconn=%d -ye start" % (self.client_id, self.workload, self.httpClientThreads, self.httpClientParallelconn))
@@ -243,7 +242,7 @@ class TCTcpVipCps(TCHttp100KResp):
 
         self.workloadFileName = "1only.wl" # Any workload file will do.
         self.dutProtocolVServer = "TCP"
-        self.statsToCollect = { "nitro": ["protocoltcp"], "nsconmsg": ["tcp_tot_ClientOpen"] }
+        self.statsToCollect = ["protocoltcp"]
 
     def createHttpClients(self, vpx_ns):
         self.nscli(vpx_ns, "shell /var/BW/conntest -s %d -p serverip=43.54.30.247 -p parallelconn=%d  -p serverport=80 -p holdconn=0 -y -e conntest" % (self.client_id, self.httpClientParallelconn))

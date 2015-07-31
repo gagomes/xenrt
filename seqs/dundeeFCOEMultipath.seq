@@ -15,7 +15,7 @@
       <testcase id="xenserver.tc.multipath.TCVerifyMultipathSetup" tc="TC-27143"/>
       <testcase id="xenserver.tc.multipath.TCValidateFCOEMultipathPathCount" tc="TC-27144"/>
       <testcase id="xenserver.tc.multipath.TCFCOESecondaryPathFailover" tc="TC-27167"/>
-      <!--testcase id="xenserver.tc.multipath.TCFCOEPrimaryPathFailover" tc="TC-27170"-->
+      <testcase id="xenserver.tc.multipath.TCFCOEPrimaryPathFailover" tc="TC-27170"/>
       <testcase id="xenserver.tc.multipath.TCCheckGuestOperations" tc="TC-27171"/>
       <testcase id="xenserver.tc.multipath.TCCheckSROperations" tc="TC-27172"/>
     </serial>

@@ -4980,6 +4980,36 @@ class _PathFailOver(TCValidateFCOEMultipathPathCount):
 class TCFCOESecondaryPathFailover(_PathFailOver):
     FAILURE_PATH = 1
 
+class TCFCOEPrimaryPathFailover(_PathFailOver):
+    FAILURE_PATH = 0
+    
+    def disablesysfs(self, portindex):
+        self.host.execdom0("echo 0 > /sys/bus/fcoe/devices/ctlr_%u/enabled" % portindex)
+        
+    def enablesysfs(self, portindex):
+        self.host.execdom0("echo 1 > /sys/bus/fcoe/devices/ctlr_%u/enabled" % portindex)
+        
+    def run(self,arglist=None):
+        _TC8159.run(self, arglist)
+        self.host = self.getDefaultHost()
+        
+        dev = self.guest.createDisk(sizebytes=5368709120, sruuid=self.sr.uuid, returnDevice=True) # 5GB
+        xenrt.sleep(5)
+        
+        # Launch a periodic read/write script using the new disk
+        self.guest.execguest("%s/remote/readwrite.py /dev/%s > /tmp/rw.log "
+                             "2>&1 < /dev/null &" %
+                             (xenrt.TEC().lookup("REMOTE_SCRIPTDIR"), dev))
+
+        xenrt.sleep(20)    
+        self.checkGuest()
+                
+        self.disablesysfs(self.FAILURE_PATH)
+        self.checkGuest()
+
+        self.enablesysfs(self.FAILURE_PATH)
+        self.checkGuest()     
+
 
 class TCCheckGuestOperations(_PathFailOver):
 

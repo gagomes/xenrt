@@ -80,7 +80,7 @@ DEFINE_REQUESTS
         # Configure the vServer on 43.54.30.247 and bind it to the true servers
         self.nscli(vpx_ns, "add serviceGroup s1 HTTP -maxClient 0 -maxReq 0 -cip DISABLED -usip NO -useproxyport YES -cltTimeout 180 -svrTimeout 360 -CKA NO -TCPB NO -CMP NO")
         self.nscli(vpx_ns, "enable ns feature LB")
-        self.nscli(vpx_ns, "add lb vserver v1 HTTP 43.54.30.247 80 -persistenceType NONE -lbMethod ROUNDROBIN -cltTimeout 18")
+        self.nscli(vpx_ns, "add lb vserver v1 %s 43.54.30.247 80 -persistenceType NONE -lbMethod ROUNDROBIN -cltTimeout 18" % self.dutProtocolVServer)
         self.nscli(vpx_ns, "bind lb vserver v1 s1")
         for i in range(2, self.servers+1):
             self.nscli(vpx_ns, "bind serviceGroup s1 43.54.31.%d 80" % (i))
@@ -91,8 +91,9 @@ DEFINE_REQUESTS
         return vpx_ns
 
     def sampleCounters(self, vpx, ctrs, filename):
-        stats = {ctr:xenrt.getURLContent("http://nsroot:nsroot@%s/nitro/v1/stat/%s" % (vpx.mainip, ctr)) for ctr in ctrs}
-        self.log(filename, json.dumps(stats))
+        nitroStats = {ctr:xenrt.getURLContent("http://nsroot:nsroot@%s/nitro/v1/stat/%s" % (vpx.mainip, ctr)) for ctr in ctrs["nitro"]}
+        nsconmsgStats = {ctr:"TODO" for ctr in ctrs["nsconmsg"]}
+        self.log(filename, json.dumps({"nitro":nitroStats,"nsconmsg":nsconmsgStats}))
 
     def createWorkloadFile(self, vpx_ns):
         if self.workloadFileName not in self.WORKLOADS:
@@ -116,10 +117,12 @@ DEFINE_REQUESTS
     def showHttpServerClient(self, vpx_ns):
         self.nscli(vpx_ns, "shell /var/BW/nscsconfig -d allvcs")
         self.nscli(vpx_ns, "shell /var/BW/nscsconfig -d allurls")
+        self.nscli(vpx_ns, "shell /var/BW/conntest -d validserver")
 
     def removeHttpServerClient(self, vpx_ns):
         self.nscli(vpx_ns, "shell /var/BW/nscsconfig -s client=%d -yE removeserver" % (self.client_id))
         self.nscli(vpx_ns, "shell /var/BW/nscsconfig -s server=%d -yE removeserver" % (self.server_id))
+        self.nscli(vpx_ns, "conntest -s %d -yE stopall" % (self.server_id))
 
 #### Testcase core methods ####
     def parseArgs(self, arglist):
@@ -141,6 +144,7 @@ DEFINE_REQUESTS
         self.workloadFileName = None
         self.workload = None
         self.remoteWLDir = "/var/BW/WL"
+        self.dutProtocolVServer = "HTTP"
         # Identifiers used by nscsconfig
         self.server_id = 0 # higher numbers don't seem to result in a running server
         self.client_id = 1
@@ -172,7 +176,7 @@ class TCHttp100KResp(_BlackWidow):
         _BlackWidow.prepare(self, arglist=[])
 
         self.workloadFileName = "100KB.wl"
-        self.statsToCollect = ["protocoltcp"]
+        self.statsToCollect = { "nitro": ["protocoltcp"] }
 
     def startWorkload(self):
         step("startWorkload: create workload file")
@@ -210,6 +214,7 @@ class TCHttp100KResp(_BlackWidow):
         self.removeHttpServerClient(self.ns_bw)
 
 class TCHttp1BResp(TCHttp100KResp):
+    """HTTP End-to-end req/sec"""
     TEST = "1B_Resp"
 
     def prepare(self, arglist=[]):
@@ -220,7 +225,25 @@ class TCHttp1BResp(TCHttp100KResp):
         self.httpClientParallelconn = libperf.getArgument(arglist, "httpclientparallelconn", int, 200)
 
         self.workloadFileName = "1only.wl"
-        self.statsToCollect = ["protocolhttp"]
+        self.statsToCollect = { "nitro": ["protocolhttp"], "nsconmsg": ["http_tot_Req"] }
 
     def createHttpClients(self, vpx_ns):
         self.nscli(vpx_ns, "shell /var/BW/nscsconfig -s client=%d -s percentpers=0 -s finstop=0 -w %s -s reqperconn=1 -s cltserverip=43.54.30.247 -s threads=%d -s parallelconn=%d -ye start" % (self.client_id, self.workload, self.httpClientThreads, self.httpClientParallelconn))
+
+class TCTcpVipCps(TCHttp100KResp):
+    """TCP Conn/sec (TCP VIP)"""
+    TEST = "TCP_VIP_CPS"
+
+    def prepare(self, arglist=[]):
+        _BlackWidow.prepare(self, arglist=[])
+
+        # Overwritting defaults for threads and parallelconn
+        self.httpClientThreads = libperf.getArgument(arglist, "httpclientthread", int, 200)
+        self.httpClientParallelconn = libperf.getArgument(arglist, "httpclientparallelconn", int, 200)
+
+        self.workloadFileName = "1only.wl" # Any workload file will do.
+        self.dutProtocolVServer = "TCP"
+        self.statsToCollect = { "nitro": ["protocoltcp"], "nsconmsg": ["tcp_tot_ClientOpen"] }
+
+    def createHttpClients(self, vpx_ns):
+        self.nscli(vpx_ns, "shell /var/BW/conntest -s %d -p serverip=43.54.30.247 -p parallelconn=%d  -p serverport=80 -p holdconn=0 -y -e conntest" % (self.client_id, self.httpClientParallelconn))

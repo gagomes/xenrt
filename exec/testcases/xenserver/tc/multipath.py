@@ -4970,17 +4970,7 @@ class _PathFailOver(TCValidateFCOEMultipathPathCount):
 
         xenrt.sleep(20)    
         self.checkGuest()
-        
-        if self.FAILURE_PATH == 0:
-            
-            vifs = self.guest.getVIFs()
-            for vif in vifs:
-                self.guest.unplugVIF(vif)
-                self.guest.removeVIF(vif)
-            vif = self.guest.createVIF(eth="eth1",bridge=self.host.getManagementBridge(),plug=True)
-            self.guest.reboot()
-            
-
+                
         self.disableEthPort(self.FAILURE_PATH)
         self.checkGuest()
 
@@ -4990,46 +4980,13 @@ class _PathFailOver(TCValidateFCOEMultipathPathCount):
 class TCFCOESecondaryPathFailover(_PathFailOver):
     FAILURE_PATH = 1
 
-class TCFCOEPrimaryPathFailover(_PathFailOver):
-    FAILURE_PATH = 0
-
-    def run(self,arglist=None):
-        self.host = self.getDefaultHost()
-        netconfig = """<NETWORK>
-  <PHYSICAL network="NPRI">
-    <NIC/>   
-    <MANAGEMENT/>
-  </PHYSICAL>    
-  <PHYSICAL network="NPRI">
-    <NIC/>
-    <STORAGE/>
-  </PHYSICAL>
-</NETWORK>"""
-
-
-        self.host.createNetworkTopology(netconfig)
-        pif = self.host.parseListForUUID("pif-list", "device", "eth1")
-        newIP = self.host.minimalList("pif-param-get",args="uuid=%s param-name=IP" % (pif))[0]
-        self.host.execcmd("xe host-management-reconfigure pif-uuid=%s" % pif) 
-        xenrt.sleep(120)
-        self.host.setIP(newIP)
-        _PathFailOver.run(self,arglist)
 
 class TCCheckGuestOperations(TCValidateFCOEMultipathPathCount):
 
     def run(self,arglist=None):
         _TC8159.run(self, arglist)
         self.host = self.getDefaultHost()
-        netconfig = """<NETWORK>
-  <PHYSICAL network="NPRI">
-    <NIC/>   
-    <MANAGEMENT/>
-  </PHYSICAL>    
-  <PHYSICAL network="NPRI">
-    <NIC/>
-    <STORAGE/>
-  </PHYSICAL>
-</NETWORK>"""
+        
 
         dev = self.guest.createDisk(sizebytes=5368709120, sruuid=self.sr.uuid, returnDevice=True) # 5GB
         xenrt.sleep(5)
@@ -5057,26 +5014,7 @@ class TCCheckGuestOperations(TCValidateFCOEMultipathPathCount):
         self.guest.resume()
         self.checkGuest()
 
-        self.host.createNetworkTopology(netconfig)
-        pif = host.parseListForUUID("pif-list", "device", "eth1")
-        newIP = self.host.minimalList("pif-param-get",args="uuid=%s param-name=IP" % (pif))[0]
-        self.host.execcmd("xe host-management-reconfigure pif-uuid=%s" % pif) 
-        xenrt.sleep(120)
-        self.host.setIP(newIP)
         
-
-        self.disableEthPort(0)
-        self.checkGuest()
-        self.guest.suspend()
-        self.guest.resume()
-        self.checkGuest()
-        
-        self.enableEthPort(0)
-        self.checkGuest()
-        self.guest.suspend()
-        self.guest.resume()
-        self.checkGuest()
-
 class TCCheckSROperations(TCValidateFCOEMultipathPathCount):
     
     def checkThenDestroySR(self):
@@ -5094,16 +5032,7 @@ class TCCheckSROperations(TCValidateFCOEMultipathPathCount):
     def run(self, arglist=None):
         _TC8159.run(self, arglist=None)
         self.host = self.getDefaultHost()
-        netconfig = """<NETWORK>
-  <PHYSICAL network="NPRI">
-    <NIC/>   
-    <MANAGEMENT/>
-  </PHYSICAL>    
-  <PHYSICAL network="NPRI">
-    <NIC/>
-    <STORAGE/>
-  </PHYSICAL>
-</NETWORK>"""
+        
         xenrt.sleep(20)
         self.guest.shutdown()
         xenrt.sleep(20)
@@ -5125,18 +5054,4 @@ class TCCheckSROperations(TCValidateFCOEMultipathPathCount):
         self.createSR()
         self.checkThenDestroySR()
 
-        self.host.createNetworkTopology(netconfig)
-        pif = host.parseListForUUID("pif-list", "device", "eth1")
-        newIP = self.host.minimalList("pif-param-get",args="uuid=%s param-name=IP" % (pif))[0]
-        self.host.execcmd("xe host-management-reconfigure pif-uuid=%s" % pif) 
-        xenrt.sleep(120)
-        self.host.setIP(newIP)
         
-        
-        self.disableFCPort(0)
-        self.createSR()
-        self.checkThenDestroySR()
-
-        self.enableFCPort(0)
-        self.createSR()
-        self.checkThenDestroySR()

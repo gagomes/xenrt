@@ -5005,9 +5005,11 @@ class TCFCOEPrimaryPathFailover(_PathFailOver):
         self.checkGuest()
                 
         self.disablesysfs(self.FAILURE_PATH)
+        xenrt.sleep(5)
         self.checkGuest()
 
         self.enablesysfs(self.FAILURE_PATH)
+        xenrt.sleep(5)
         self.checkGuest()     
 
 

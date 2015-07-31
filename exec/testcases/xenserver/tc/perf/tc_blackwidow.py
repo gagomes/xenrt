@@ -122,7 +122,7 @@ DEFINE_REQUESTS
     def removeHttpServerClient(self, vpx_ns):
         self.nscli(vpx_ns, "shell /var/BW/nscsconfig -s client=%d -yE removeserver" % (self.client_id))
         self.nscli(vpx_ns, "shell /var/BW/nscsconfig -s server=%d -yE removeserver" % (self.server_id))
-        self.nscli(vpx_ns, "conntest -s %d -yE stopall" % (self.server_id))
+        self.nscli(vpx_ns, "shell /var/BW/conntest -s %d -yE stopall" % (self.server_id))
 
 #### Testcase core methods ####
     def parseArgs(self, arglist):

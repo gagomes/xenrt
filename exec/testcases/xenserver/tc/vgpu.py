@@ -3594,6 +3594,7 @@ class TCSwitchIntelGPUModes(IntelBase):
                 vm.setState("UP")
                 raise xenrt.XRTFailure(error)
             except:
+                # Need to check if the correct error is raised.
                 pass
 
         for distro in self.REQUIRED_DISTROS:
@@ -3623,6 +3624,7 @@ class TCSwitchIntelGPUModes(IntelBase):
             # shutdown passthrough vm, and try to start vgpu vm (should fail).
             passVM.setState("DOWN")
 
+            # Currently a bug, so this may start the VM regardless if the environment is available on the host.
             __tryStartVM(vgpuVM, "Was able to start vgpu vm, when in gpu passthrough config mode.")
 
             # unblock dom0 access again, reboot host.
@@ -3634,6 +3636,7 @@ class TCSwitchIntelGPUModes(IntelBase):
             # shutdown vgpu vm, and try to start gpu passthrough vm (should fail.)
             vgpuVM.setState("DOWN")
 
+            # Currently a bug, so this may start the VM regardless if the environment is available on the host.
             __tryStartVM(passVM, "Was able to start passthrough vm, when in vgpu config mode.")
 
 

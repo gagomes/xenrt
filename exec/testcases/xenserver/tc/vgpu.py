@@ -1665,7 +1665,7 @@ class VGPUAllocationModeBase(VGPUOwnedVMsTest):
 
         return guest
 
-    def __checkError(self, exception, expected, specificError=False):
+    def checkError(self, exception, expected, specificError=False):
         """
         Check if the exception raised is the failure you expect.
         
@@ -3435,7 +3435,7 @@ class TCIntelSetupNegative(IntelBase):
             self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
             raise xenrt.XRTFailure(error)
         except Exception as e:
-            self.__checkError(e, error, specificError=True)
+            self.checkError(e, error, specificError=True)
         finally:
             self.typeOfvGPU.unblockDom0Access(self.host)
 

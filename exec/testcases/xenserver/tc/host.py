@@ -23,11 +23,12 @@ class VersionChecks(xenrt.TestCase):
         self.__pass = False
         self.__count = 0
 
-    def compare(self, conRet, compareTo, file):
+    def compare(self, conRet, compareTo, file,host):
         if conRet == compareTo:
             log(file + " version: " + conRet + " is correct")
         else:
             log("version details wrong(%s) in %s" % (conRet, file))
+            host.execdom0("cat %s" % file)
             self.__pass = False
             self.__count += 1
 
@@ -40,23 +41,23 @@ class VersionChecks(xenrt.TestCase):
 
         redHatVer = host.execdom0("cat /etc/redhat-release").rstrip('\n')
         redHatVer = redHatVer[18:18+len(version)]
-        self.compare(redHatVer, version,"/etc/redhat-release")
+        self.compare(redHatVer, version,"/etc/redhat-release",host)
 
         consoleVer = host.execdom0("grep \"Citrix XenServer Host\" /etc/issue").rstrip('\n')
         consoleVer = consoleVer[22:]
-        self.compare(consoleVer,revision, "/etc/issue and on console")
+        self.compare(consoleVer,revision, "/etc/issue and on console",host)
 
         readMeVer = host.execdom0("grep -o -P \"\d\.\d+\.\d+\" /Read_Me_First.html").rstrip('\n').split()
         for r in readMeVer:
-            self.compare(r,version, "/ReadMeFirst.html")
+            self.compare(r,version, "/ReadMeFirst.html",host)
 
         citrixIndexVer = host.execdom0("grep -o -P \"\d\.\d+\.\d+\" /opt/xensource/www/Citrix-index.html").rstrip('\n').split()
-        self.compare(citrixIndexVer[0],version, "/opt/xensource/www/Citrix-index.html")
-        self.compare(citrixIndexVer[1],revision, "/opt/xensource/www/Citrix-index.html")
+        self.compare(citrixIndexVer[0],version, "/opt/xensource/www/Citrix-index.html",host)
+        self.compare(citrixIndexVer[1],version, "/opt/xensource/www/Citrix-index.html",host)
 
         indexVer = host.execdom0("grep -o -P \"\d\.\d+\.\d+\" /opt/xensource/www/index.html").rstrip('\n').split()
-        self.compare(indexVer[0],version, "/opt/xensource/www/index.html")
-        self.compare(indexVer[1],revision, "/opt/xensource/www/index.html")
+        self.compare(indexVer[0],version, "/opt/xensource/www/index.html",host)
+        self.compare(indexVer[1],version, "/opt/xensource/www/index.html",host)
 
         if not self.__pass:
             raise xenrt.XRTFailure("%i incorrect entries logged above" % self.__count)

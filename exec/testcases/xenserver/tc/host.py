@@ -49,7 +49,7 @@ class VersionChecks(xenrt.TestCase):
 
         readMeVer = host.execdom0("grep -o -P \"\d\.\d+\.\d+\" /Read_Me_First.html").rstrip('\n').split()
         for r in readMeVer:
-            self.compare(r,version, "/ReadMeFirst.html",host)
+            self.compare(r,version, "/Read_Me_First.html",host)
 
         citrixIndexVer = host.execdom0("grep -o -P \"\d\.\d+\.\d+\" /opt/xensource/www/Citrix-index.html").rstrip('\n').split()
         self.compare(citrixIndexVer[0],version, "/opt/xensource/www/Citrix-index.html",host)

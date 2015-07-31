@@ -5047,11 +5047,11 @@ class TCCheckSROperations(TCValidateFCOEMultipathPathCount):
         self.checkThenDestroySR()
         
         self.disableEthPort(1)
-        self.createSR()
+        self.createSR(self.host)
         self.checkThenDestroySR()
 
         self.enableEthPort(1)
-        self.createSR()
+        self.createSR(self.host)
         self.checkThenDestroySR()
 
         

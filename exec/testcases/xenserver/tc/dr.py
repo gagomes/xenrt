@@ -182,12 +182,12 @@ def installLinuxVM(site, stationary_vm=False, sr_uuid=None):
     sr_uuid = chooseSRUuid(site, stationary_vm, sr_uuid, '10GiB')
     guest_name = randomGuestName()
     if xenrt.TEC().lookup("USE_DEBIAN50", False, boolean=True):
-        debian = "debian50"
+        distro = "debian50"
     else:
-        debian = "debian60"
-    guest = host.createBasicGuest(debian, name=guest_name, sr=sr_uuid)
+        distro = "generic-linux"
+    guest = host.createBasicGuest(distro, name=guest_name, sr=sr_uuid)
     guest.reboot()
-    return (guest, 'linux', sr_uuid, debian)
+    return (guest, 'linux', sr_uuid, distro)
 
 def installWindowsVM(site, stationary_vm=False, sr_uuid=None):
 

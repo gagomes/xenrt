@@ -17,13 +17,12 @@ class _TC6460(xenrt.TestCase):
     ARCH = None
 
     def run(self, arglist):
-
+        # Get a host to install on
+        host = self.getDefaultHost()
         distro = host.lookup(self.DISTRO)
         arch = self.ARCH
 
         repository = xenrt.getLinuxRepo(distro, arch, "HTTP")
-        # Get a host to install on
-        host = self.getDefaultHost()
 
         # Choose a template
         template = host.chooseTemplate("TEMPLATE_NAME_UNSUPPORTED_HVM")

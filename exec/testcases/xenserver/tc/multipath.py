@@ -4981,7 +4981,7 @@ class TCFCOESecondaryPathFailover(_PathFailOver):
     FAILURE_PATH = 1
 
 
-class TCCheckGuestOperations(TCValidateFCOEMultipathPathCount):
+class TCCheckGuestOperations(_PathFailOver):
 
     def run(self,arglist=None):
         _TC8159.run(self, arglist)

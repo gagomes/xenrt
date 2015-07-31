@@ -1665,6 +1665,21 @@ class VGPUAllocationModeBase(VGPUOwnedVMsTest):
 
         return guest
 
+    def __checkError(self, exception, expected, specificError=False):
+        """
+        Check if the exception raised is the failure you expect.
+        
+        @specificError: allows you to raise an exception that you personally raised through a try block, when you don't know the expected error.
+        Shouldn't be used unless you don't know what the error that should be raised from xs is yet..
+        """
+        log("Error found: %s, checking if it is expected....." % str(exception))
+        
+        if re.search(expected, str(exception)) and specificError:
+            xenrt.XRTFailure("Valid error: %s" % str(exception))
+
+        log("Error found matches expectations")
+        return
+
     def preparePool(self):
 
         # if POOL is None, it means it uses existing set-up.
@@ -3415,11 +3430,12 @@ class TCIntelSetupNegative(IntelBase):
         self.typeOfvGPU.unblockDom0Access(self.host)
         self.typeOfvGPU.blockDom0Access(self.host, reboot=False)
 
+        error = "Can attach Intel GPU to vm, while Host not rebooted after blocking Dom0 Access."
         try:
             self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
-            raise xenrt.XRTFailure("Can attach Intel GPU to vm, while Host not rebooted after blocking Dom0 Access.")
-        except:
-            pass
+            raise xenrt.XRTFailure(error)
+        except Exception as e:
+            self.__checkError(e, error, specificError=True)
         finally:
             self.typeOfvGPU.unblockDom0Access(self.host)
 

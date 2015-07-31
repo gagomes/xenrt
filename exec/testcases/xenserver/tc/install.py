@@ -761,10 +761,9 @@ class TCUCSISCSIMultipathScenarios(TCISCSIMultipathScenarios):
         self._server = NaServer.NaServer(ip, 1, 0)
         self._server.set_admin_user(username, password)
 
-        self.paths = self.countActivePaths()
-        xenrt.TEC().logverbose("Number of active paths to boot LUN = %d" % self.paths)
-        if self.countActivePaths() < 2:
-            raise xenrt.XRTError("Host does not have >= 2 paths to boot LUN")
+        xenrt.TEC().logverbose("Number of active paths to boot LUN = %d" % self.countActivePaths())
+        if self.countActivePaths() != 2:
+            raise xenrt.XRTError("Host does not have 2 paths to boot LUN")
 
     def controlPath(self, pathindex, state):
         ifname = self.host.lookup(["UCSISCSI", "VLAN%u" % (pathindex + 1), "INTERFACE"], None)
@@ -827,17 +826,17 @@ class TCUCSISCSIMultipathFailOnBoot(TCUCSISCSIMultipathScenarios):
         self.failPath(self.PATH_INDEX)
         # Check the host is healthy
         self.checkHost()
-        # Check it only has one less path
-        self.waitForPathCount(self.paths - 1)
+        # Check it only has one path
+        self.waitForPathCount(1)
         # Reboot the host
         self.host.reboot(timeout=3600)
-        # Check one less path is present
-        self.waitForPathCount(self.paths - 1)
+        # Check one path is present
+        self.waitForPathCount(1)
         # Recover the path and reboot (we don't expect it to come back after boot)
         self.recoverPath(self.PATH_INDEX)
         self.host.reboot()
-        # And check we now have the correct number of paths
-        self.waitForPathCount(self.paths)
+        # And check we now have 2 paths
+        self.waitForPathCount(2)
 
 class TC27174(TCUCSISCSIMultipathFailOnBoot):
     """Bring down the first path at boot on multipathed UCS iSCSI booted machine"""
@@ -854,9 +853,9 @@ class TC27176(TCUCSISCSIMultipathScenarios):
             path = random.randint(0,1)
             self.failPath(path)
             self.checkHost()
-            self.waitForPathCount(self.paths - 1)
+            self.waitForPathCount(1)
             self.checkHost()
             self.recoverPath(path)
             self.checkHost()
-            self.waitForPathCount(self.paths)
+            self.waitForPathCount(2)
             self.checkHost()

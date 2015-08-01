@@ -130,8 +130,6 @@ DEFINE_REQUESTS
         self.snips   = libperf.getArgument(arglist, "snips",   int, 50)  # number of NetScaler clients on the DUT
         self.servers = libperf.getArgument(arglist, "servers", int, 251) # number of HTTP servers
         self.clients = libperf.getArgument(arglist, "clients", int, 100) # number of HTTP servers
-        self.httpClientThreads = libperf.getArgument(arglist, "httpclientthread", int, 500) # number of HTTP client threads
-        self.httpClientParallelconn = libperf.getArgument(arglist, "httpclientparallelconn", int, 500) # number of HTTP client parallel connections
 
         bw_name  = libperf.getArgument(arglist, "bw",  str, "blackwidow") # name of the VPX to use for BlackWidow
         dut_name = libperf.getArgument(arglist, "dut", str, "dut")        # name of the VPX to use as the device-under-test
@@ -173,6 +171,9 @@ class TCHttp100KResp(_BlackWidow):
 
     def prepare(self, arglist=[]):
         _BlackWidow.prepare(self, arglist=[])
+
+        self.httpClientThreads = libperf.getArgument(arglist, "httpclientthread", int, 500) # number of HTTP client threads
+        self.httpClientParallelconn = libperf.getArgument(arglist, "httpclientparallelconn", int, 500) # number of HTTP client parallel connections
 
         self.workloadFileName = "100KB.wl"
         self.statsToCollect = ["protocoltcp"]
@@ -219,7 +220,6 @@ class TCHttp1BResp(TCHttp100KResp):
     def prepare(self, arglist=[]):
         _BlackWidow.prepare(self, arglist=[])
 
-        # Overwritting defaults for threads and parallelconn
         self.httpClientThreads = libperf.getArgument(arglist, "httpclientthread", int, 200)
         self.httpClientParallelconn = libperf.getArgument(arglist, "httpclientparallelconn", int, 200)
 
@@ -236,8 +236,6 @@ class TCTcpVipCps(TCHttp100KResp):
     def prepare(self, arglist=[]):
         _BlackWidow.prepare(self, arglist=[])
 
-        # Overwritting defaults for threads and parallelconn
-        self.httpClientThreads = libperf.getArgument(arglist, "httpclientthread", int, 200)
         self.httpClientParallelconn = libperf.getArgument(arglist, "httpclientparallelconn", int, 200)
 
         self.workloadFileName = "1only.wl" # Any workload file will do.

@@ -5294,7 +5294,8 @@ class TCSwapPartition(xenrt.TestCase):
             newSwapUsed= float(self.host.execdom0("free -m | grep Swap | awk '{print $3}'"))
             if newSwapUsed > swapUsed:
                 break
-        self.host.execdom0("pkill memEater_x64")
+        try: self.host.execdom0("pkill memEater_x64")
+        except: pass
 
         if newSwapUsed > swapUsed:
             log("SWAP is in use as expected. SWAP memory in use = %s" % (newSwapUsed))

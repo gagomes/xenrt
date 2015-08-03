@@ -1675,7 +1675,7 @@ class VGPUAllocationModeBase(VGPUOwnedVMsTest):
         log("Error found: %s, checking if it is expected....." % str(exception))
         
         if re.search(expected, str(exception)) and specificError:
-            xenrt.XRTFailure("Valid error: %s" % str(exception))
+            raise xenrt.XRTFailure("Valid error: %s" % str(exception))
 
         log("Error found matches expectations")
         return

@@ -10,58 +10,40 @@
 
 #import socket, re, string, time, traceback, sys, random, copy, threading
 import xenrt, xenrt.lib.xenserver
-import time, calendar, sys, random, re
+import time, calendar, sys, random, re, string
 import xml.dom.minidom
+from xml.dom.minidom import parseString
 
 
 def getSCSIID(host, iscsi_params):
-    
-    args = ['name-label=test_sr_01',
-            'shared=true',
-            'type=lvmoiscsi',
-            'device-config:target=%(ip)s' % iscsi_params,
-            'device-config:targetIQN=%(iscsi_iqn)s' % iscsi_params,
-            'device-config:chapuser=%(username)s' % iscsi_params,
-            'device-config:chappassword=%(password)s' % iscsi_params]
-    
     cli = host.getCLIInstance()
-    out=[]
-    for i in range(3):
+    args = []
+    args.append("type='lvmoiscsi'")
+    args.append("device-config:target=%(ip)s" % (iscsi_params))
+    args.append("device-config:targetIQN=%(iscsi_iqn)s" % (iscsi_params))
+    args.append("device-config:chapuser=%(username)s" % (iscsi_params))
+    args.append("device-config:chappassword=%(password)s" % (iscsi_params))
+  
+    #sr-probe always return with an exception
+    startTime = xenrt.util.timenow()
+    while xenrt.util.timenow() - startTime < 900:
         try:
-            uuid = cli.execute('sr-create',' '.join(args), strip=True)
-            xenrt.TEC().warning("SR was created without a SCSI ID")
-            cli.execute("sr-forget", "uuid=%s" % (uuid))
-        except xenrt.XRTFailure, e:
-            # If this was a CLI timeout then raise that
-            if "timed out" in e.reason:
-                raise e.__class__, e, sys.exc_info()[2]
-            else:
-                res = e.data
+            tempStr = cli.execute("sr-probe",string.join(args))
+        except Exception, e:
+            if "SR_BACKEND_FAILURE_141" in str(e.data):
+                xenrt.TEC().logverbose("iSCSI service on target not reachable...trying again")
+                xenrt.sleep(20)
+                continue
+            tempStr = str(e.data)
+            tempStr = '\n'.join(tempStr.split('\n')[2:])
 
-        out = res.split('<?')
-        if len(out) != 2:
-            xenrt.sleep(30)
-            xenrt.TEC().logverbose("sr-create didn't create xml output...Retrying...")
-        else:
-            break;
-            
-    if len(out) != 2:
-        raise xenrt.XRTFailure("sr-create didn't create xml output (need this for SCSIid)")
-        
-    xml_response = '<?' + out[1]
-    dom = xml.dom.minidom.parseString(xml_response)
-    luns = dom.getElementsByTagName("LUN")
-    
-    if len(luns) != 1:
-        raise xenrt.XRTError('We were expecting only one LUN')
-
-
-    ids = luns[0].getElementsByTagName("SCSIid")
-    if len(ids) == 0:
-        raise xenrt.XRTFailure("Couldn't find SCSIid in XML output")
-    
-    return ids[0].childNodes[0].data.strip()
-
+        temp = parseString(tempStr)
+        ids = temp.getElementsByTagName('SCSIid')
+        for id in ids:
+            for node in id.childNodes:
+                scsiId = (node.nodeValue).strip()
+        return scsiId
+    raise xenrt.XRTFailure("Unable to get iSCSIid")
 
 def createSROnHost(host, iscsi_params, sr_name):
     """Returns the uuid of the newly created SR."""
@@ -1584,8 +1566,8 @@ class DRUtils(object):
                     g['guest'].installTools()
         for g in vms:
             g['guest'].checkHealth()
-	
-		
+
+
 class _DRBase(xenrt.TestCase):
 
     UPGRADE_POOL = False

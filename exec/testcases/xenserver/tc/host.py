@@ -5288,29 +5288,21 @@ class TCSwapPartition(xenrt.TestCase):
         swapUsed= float(self.host.execdom0("free -m | grep Swap | awk '{print $3}'"))
         
         step("Eat up memory by running a script")
-        script = xenrt.TEC().getFile("http://files.uk.xensource.com/usr/groups/xenrt/peenu/mem")
-        sftp = self.host.sftpClient()
-        try:
-            xenrt.TEC().logverbose('About to copy "%s to "%s" on host.' \
-                                        % (script, "/root/memEater_x64"))
-            sftp.copyTo(script, "/root/memEater_x64")
-        finally:
-            sftp.close()
-        #self.host.execdom0("cp -f %s/utils/memEater_x64 /root/; chmod +x /root/memEater_x64" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"), level=xenrt.RC_OK)
+        self.host.execdom0("cp -f %s/utils/memEater_x64 /root/; chmod +x /root/memEater_x64" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"), level=xenrt.RC_OK)
         self.host.execdom0("/root/memEater_x64", getreply = False)
         step("Check if swap is in use")
         startTime = xenrt.util.timenow()
-        while xenrt.util.timenow() - startTime < 300:
-            if int(self.host.execdom0("cat /root/swap.txt")) > swapUsed:
-                try: self.host.execdom0("pkill memEater_x64")
-                except: pass
+        while xenrt.util.timenow() - startTime < 900:
+            newSwapUsed= float(self.host.execdom0("free -m | grep Swap | awk '{print $3}'"))
+            if newSwapUsed > swapUsed:
                 break
+        try: self.host.execdom0("pkill memEater_x64")
+        except: pass
 
-        (swapSize,newSwapUsed)= [float(i) for i in self.host.execdom0("free -m | grep Swap | awk '{print $2,$3}'").split(' ')]
         if newSwapUsed > swapUsed:
-            log("SWAP is in use as expected. SWAP size = %s, SWAP memory in use = %s" % (swapSize,newSwapUsed))
+            log("SWAP is in use as expected. SWAP memory in use = %s" % (newSwapUsed))
         else:
-            raise xenrt.XRTFailure("SWAP partition is not in use. SWAP size = %s, SWAP memory in use = %s" % (swapSize,newSwapUsed))
+            raise xenrt.XRTFailure("SWAP partition is not in use. SWAP memory in use = %s" % (newSwapUsed))
         
 
 

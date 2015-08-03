@@ -5273,8 +5273,6 @@ class TCDom0PartitionClean(xenrt.TestCase):
             log("Found expected Dom0 partitions on XS clean installation: %s" % partitions)
         else:
             raise xenrt.XRTFailure("Found unexpected partitions on XS clean install. Expected: %s Found: %s" % (partitions, self.host.getDom0Partitions()))
-        
-
 
 class TCSwapPartition(xenrt.TestCase):
     #TC-27021
@@ -5296,14 +5294,9 @@ class TCSwapPartition(xenrt.TestCase):
             newSwapUsed= float(self.host.execdom0("free -m | grep Swap | awk '{print $3}'"))
             if newSwapUsed > swapUsed:
                 break
-        try: self.host.execdom0("pkill memEater_x64")
-        except: pass
+        self.host.execdom0("pkill memEater_x64")
 
         if newSwapUsed > swapUsed:
             log("SWAP is in use as expected. SWAP memory in use = %s" % (newSwapUsed))
         else:
             raise xenrt.XRTFailure("SWAP partition is not in use. SWAP memory in use = %s" % (newSwapUsed))
-        
-
-
-

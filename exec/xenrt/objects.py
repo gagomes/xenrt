@@ -7106,7 +7106,7 @@ class GenericGuest(GenericPlace):
                                                           other.getName(),
                                                           str(mac1)))
 
-    def checkFailuresinConsoleLogs(self):
+    def checkFailuresinConsoleLogs(self,domid=None):
         """
         Checks console logs for known install failures and raise error if found
         if none of the errors matches, raise error with last log line
@@ -7125,14 +7125,12 @@ class GenericGuest(GenericPlace):
         "Failure trying to run: chroot /target dpkg.* (.*.deb)" : \
                                      "Failure trying to run: chroot /target dpkg for {0}",
         }
-        try:
-            data = self.host.guestConsoleLogTail(self.getDomid())
-            data = re.sub(r"\033\[[\d]*;?[\d]*[a-zA-Z]","",data)
-            lines = re.findall(r"((?:[\w\d\./\(\)]+ ){3,20})", data)
-        except:
-            raise
-        if lines and len(lines) > 0:
-          for error in error_lists.keys():
+        domid = domid or self.getDomid()  
+        data = self.host.guestConsoleLogTail(domid)
+        data = re.sub(r"\033\[[\d]*;?[\d]*[a-zA-Z]","",data)
+        lines = re.findall(r"((?:[\w\d\./\(\)]+ ){3,20})", data)
+        if lines:
+          for error in error_lists:
             for line in lines:
                 mo=re.search(error, data,re.DOTALL|re.MULTILINE)
                 if mo:
@@ -7140,8 +7138,7 @@ class GenericGuest(GenericPlace):
                     raise xenrt.XRTFailure("Install failed:%s" % error_lists[error].format(*inputs))
 
             lastline = lines[-1].strip()
-            if lastline:
-                raise xenrt.XRTFailure("Vendor install timed out. "
+            raise xenrt.XRTFailure("Vendor install timed out. "
                                            "Last log line was %s" % (lastline))
 
     def __copy__(self):
@@ -8626,6 +8623,9 @@ class GenericGuest(GenericPlace):
                              (self.name))
         self.lifecycleOperation("vm-start")
 
+        #get current DomId
+        domid = self.getDomid()
+
         # RHEL 6.3 derivatives are fussy about hardware, but don't support the kickstart unsupported_harware command
         # We'll see if the hardware unsupported error comes up, and send a CRLF if it does
 
@@ -8646,7 +8646,7 @@ class GenericGuest(GenericPlace):
         except xenrt.XRTFailure, e:
             self.checkHealth(noreachcheck=True)
             # Check for CA-18131-like symptom
-            self.checkFailuresinConsoleLogs()
+            self.checkFailuresinConsoleLogs(domid=domid)
 
         if os.path.exists("%s/rpmupgrade.log" % (nfsdir.path())):
             xenrt.TEC().copyToLogDir("%s/rpmupgrade.log" % (nfsdir.path()))
@@ -8890,6 +8890,8 @@ class GenericGuest(GenericPlace):
         # Start the install
         self.lifecycleOperation("vm-start")
 
+        # Get the current domid
+        domid = self.getDomid()
         # Get the guest address during installation
         if self.reservedIP:
             self.mainip = self.reservedIP
@@ -8908,7 +8910,7 @@ class GenericGuest(GenericPlace):
         except xenrt.XRTFailure, e:
             if "Timed out" in e.reason:
                 self.checkHealth(noreachcheck=True)
-                self.checkFailuresinConsoleLogs()
+                self.checkFailuresinConsoleLogs(domid=domid)
             raise
 
         if self.host.productType == "kvm":

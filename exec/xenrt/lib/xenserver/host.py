@@ -633,6 +633,9 @@ class Host(xenrt.GenericHost):
         
         self.installationCookie = "%012x" % xenrt.random.randint(0,0xffffffffffff)
 
+    def getUptime(self):
+        return float(self.execdom0("cat /proc/uptime").split()[0])
+
     def rebuildInitrd(self):
         """
         Rebuild the initrd of the host in-place

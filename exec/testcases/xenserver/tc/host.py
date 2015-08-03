@@ -5288,7 +5288,15 @@ class TCSwapPartition(xenrt.TestCase):
         swapUsed= float(self.host.execdom0("free -m | grep Swap | awk '{print $3}'"))
         
         step("Eat up memory by running a script")
-        self.host.execdom0("cp -f %s/utils/memEater_x64 /root/; chmod +x /root/memEater_x64" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"), level=xenrt.RC_OK)
+        script = xenrt.TEC().getFile("http://files.uk.xensource.com/usr/groups/xenrt/peenu/mem")
+        sftp = self.host.sftpClient()
+        try:
+            xenrt.TEC().logverbose('About to copy "%s to "%s" on host.' \
+                                        % (script, "/root/memEater_x64"))
+            sftp.copyTo(script, "/root/memEater_x64")
+        finally:
+            sftp.close()
+        #self.host.execdom0("cp -f %s/utils/memEater_x64 /root/; chmod +x /root/memEater_x64" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"), level=xenrt.RC_OK)
         self.host.execdom0("/root/memEater_x64", getreply = False)
         step("Check if swap is in use")
         startTime = xenrt.util.timenow()

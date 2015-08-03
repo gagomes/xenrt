@@ -33,7 +33,7 @@ class LicenseManager(object):
             return
 
         tmp,currentLicinuse = v6.getLicenseInUse(License.getLicenseName())
-
+        log("tmp: %s currentlicinuse: %s sockets: %s LicenseinUse: %s "%(tmp,currentlicinuse,hostOrPool.getNoOfSockets(),LicenseinUse))
         if reset:
             if LicenseinUse != currentLicinuse:
                 raise xenrt.XRTFailure("Not all the Licenses are not returned to License server, current Licenses in use %d" % (currentLicinuse))

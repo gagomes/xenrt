@@ -7125,17 +7125,18 @@ class GenericGuest(GenericPlace):
         "Failure trying to run: chroot /target dpkg.* (.*.deb)" : \
                                      "Failure trying to run: chroot /target dpkg for {0}",
         }
+        step("looking in console logs now")
         domid = domid or self.getDomid()  
         data = self.host.guestConsoleLogTail(domid)
         data = re.sub(r"\033\[[\d]*;?[\d]*[a-zA-Z]","",data)
         lines = re.findall(r"((?:[\w\d\./\(\)]+ ){3,20})", data)
         if lines:
-          for error in error_lists:
-            for line in lines:
-                mo=re.search(error, data,re.DOTALL|re.MULTILINE)
-                if mo:
-                    inputs=mo.groups()
-                    raise xenrt.XRTFailure("Install failed:%s" % error_lists[error].format(*inputs))
+            for error in error_lists:
+                for line in lines:
+                    mo=re.search(error, data,re.DOTALL|re.MULTILINE)
+                    if mo:
+                        inputs=mo.groups()
+                        raise xenrt.XRTFailure("Install failed:%s" % error_lists[error].format(*inputs))
 
             lastline = lines[-1].strip()
             raise xenrt.XRTFailure("Vendor install timed out. "

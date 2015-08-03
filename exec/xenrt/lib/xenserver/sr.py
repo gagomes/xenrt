@@ -860,7 +860,7 @@ class SMAPIv3SharedStorageRepository(NFSStorageRepository):
         self.getServerAndPath(server, path)
         dconf = {}
         smconf = {}
-        dconf["uri"] = "nfs://%s/%s" % (self.server, self.path)
+        dconf["uri"] = "nfs://%s%s" % (self.server, self.path)
         self._create("rawnfs",
                      dconf,
                      physical_size=physical_size,
@@ -878,7 +878,7 @@ class SMAPIv3SharedStorageRepository(NFSStorageRepository):
             self.checkOnHost(self.host)
 
     def checkOnHost(self, host):
-        path = "/var/run/sr-mount/nfs/%s/%s" % (self.server, self.path)
+        path = "/var/run/sr-mount/nfs/%s%s" % (self.server, self.path)
         try:
             host.execdom0("test -d %s" % path)
         except:

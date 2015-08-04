@@ -1079,6 +1079,9 @@ Abort this testcase with: xenrt interact %s -n '%s'
             os.makedirs(d)
         if place.windows:
             xenrt.TEC().logverbose("Getting Windows logs for guest %s" % str(place))
+            if not place.xmlrpcIsAlive():
+                xenrt.TEC().logverbose("Guest %s isn't reachable: not getting logs" % str(place))
+                return
             paths = []
             paths.extend(STANDARD_LOGS_WINDOWS)
             if place.extraLogsToFetch:

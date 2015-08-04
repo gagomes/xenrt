@@ -5273,8 +5273,6 @@ class TCDom0PartitionClean(xenrt.TestCase):
             log("Found expected Dom0 partitions on XS clean installation: %s" % partitions)
         else:
             raise xenrt.XRTFailure("Found unexpected partitions on XS clean install. Expected: %s Found: %s" % (partitions, self.host.getDom0Partitions()))
-        
-
 
 class TCSwapPartition(xenrt.TestCase):
     #TC-27021
@@ -5288,15 +5286,18 @@ class TCSwapPartition(xenrt.TestCase):
         swapUsed= float(self.host.execdom0("free -m | grep Swap | awk '{print $3}'"))
         
         step("Eat up memory by running a script")
-        self.host.execdom0("cp -f %s/utils/memEater_x64 /root/; chmod +x /root/memEater_x64; /root/memEater_x64" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"), level=xenrt.RC_OK)
-        
+        self.host.execdom0("cp -f %s/utils/memEater_x64 /root/; chmod +x /root/memEater_x64" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"), level=xenrt.RC_OK)
+        self.host.execdom0("/root/memEater_x64", getreply = False)
         step("Check if swap is in use")
-        (swapSize,newSwapUsed)= [float(i) for i in self.host.execdom0("free -m | grep Swap | awk '{print $2,$3}'").split(' ')]
+        startTime = xenrt.util.timenow()
+        while xenrt.util.timenow() - startTime < 900:
+            newSwapUsed= float(self.host.execdom0("free -m | grep Swap | awk '{print $3}'"))
+            if newSwapUsed > swapUsed:
+                break
+        try: self.host.execdom0("pkill memEater_x64")
+        except: pass
+
         if newSwapUsed > swapUsed:
-            log("SWAP is in use as expected. SWAP size = %s, SWAP memory in use = %s" % (swapSize,newSwapUsed))
+            log("SWAP is in use as expected. SWAP memory in use = %s" % (newSwapUsed))
         else:
-            raise xenrt.XRTFailure("SWAP partition is not in use. SWAP size = %s, SWAP memory in use = %s" % (swapSize,newSwapUsed))
-        
-
-
-
+            raise xenrt.XRTFailure("SWAP partition is not in use. SWAP memory in use = %s" % (newSwapUsed))

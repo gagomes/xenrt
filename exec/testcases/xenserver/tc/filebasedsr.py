@@ -67,7 +67,7 @@ class TCFileBasedSRProperty(xenrt.TestCase):
             if "uri" not in dconf:
                 raise xenrt.XRTError("PBD(%s) of BTRFS SR (%s) does not have uri in device config." % \
                     (pbds[0].uuid, self.xsr.uuid))
-            self.srPath = "run/sr-mount" + dconf["uri"][len("file://"):]
+            self.srPath = "/run/sr-mount" + dconf["uri"][len("file://"):]
         elif srtype == "rawnfs" or srtype == "smapiv3shared":
             pbds = self.xsr.PBD()
             dconf = pbds[0].deviceConfig()
@@ -97,11 +97,23 @@ class TCFileBasedSRProperty(xenrt.TestCase):
         # This isn't perfect as multiple VDI can have same name.
         # Additional vdi with same name will have suffix of '.(number)'.
         if not sizestr:
-            name = self.host.genParamGet("vdi", vdi, "name-label")
+            name = self.host.genParamGet("vdi", vdi, "name-label").replace(" ", "_")
             try:
-                sizestr = self.host.execdom0("ls -l %s | grep %s$" % (self.srPath, name)).split()[4]
+                sizestr = self.host.execdom0("ls -l %s | grep '%s$'" % (self.srPath, name)).split()[4]
             except:
-                raise xenrt.XRTError("Cannot find VDI information from local mount.")
+                log("Failed to find VDI with name-label (%s)." % name)
+
+        if not sizestr:
+            vhdlist = self.host.execdom0("ls %s/*.json | cat" % self.srPath).splitlines()
+            log("Found following VHD files: %s" % str(vhdlist))
+            for vhdinfo in vhdlist:
+                info = eval(self.host.execdom0("cat %s" % (vhdinfo)))
+                if "name" in info and info["name"] == name:
+                    sizestr = self.host.execdom0("ls -l %s" % vhdinfo.replace(".json", "")).split()[4]
+                    break
+
+        if not sizestr:
+            raise xenrt.XRTError("Cannot find VDI information from local mount.")
 
         return int(sizestr)
 
@@ -176,14 +188,14 @@ class TCFileBasedSRProperty(xenrt.TestCase):
 
         self.__verifyBasicProperties(False)
 
-        log("Verifying physical utilisation is increased less than 100 KiB")
+        log("Verifying physical utilisation is increased less than 200 KiB")
         physicalUtil = self.xsr.getIntParam("physical-utilisation")
-        if physicalUtil - before > 100 * xenrt.KILO:
-            raise xenrt.XRTFailure("Physical utilisazion is increased more 100KiB after empty VDI is creaed.")
+        if physicalUtil - before > 200 * xenrt.KILO:
+            raise xenrt.XRTFailure("Physical utilisazion is increased more than 200KiB after empty VDI is creaed.")
 
-        log("Verifying size of empty VDI is less than 100 KiB")
-        if self.getRawVDISize(self.vdi) > 100 * xenrt.KILO:
-            raise xenrt.XRTFailure("Empty VDI size is bigger than 100KiB")
+        log("Verifying size of empty VDI is less than 200 KiB")
+        if self.getRawVDISize(self.vdi) > 200 * xenrt.KILO:
+            raise xenrt.XRTFailure("Empty VDI size is bigger than 200KiB")
 
     def verifyAfterVDIFilled(self):
 

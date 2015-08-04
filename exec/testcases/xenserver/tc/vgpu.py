@@ -1665,21 +1665,6 @@ class VGPUAllocationModeBase(VGPUOwnedVMsTest):
 
         return guest
 
-    def checkError(self, exception, expected, specificError=False):
-        """
-        Check if the exception raised is the failure you expect.
-        
-        @specificError: allows you to raise an exception that you personally raised through a try block, when you don't know the expected error.
-        Shouldn't be used unless you don't know what the error that should be raised from xs is yet..
-        """
-        log("Error found: %s, checking if it is expected....." % str(exception))
-        
-        if re.search(expected, str(exception)) and specificError:
-            raise xenrt.XRTFailure("Valid error: %s" % str(exception))
-
-        log("Error found matches expectations")
-        return
-
     def preparePool(self):
 
         # if POOL is None, it means it uses existing set-up.
@@ -2830,17 +2815,19 @@ class TCAssignK2vGPUToVMhasGotvGPU(TCBasicVerifOfAllK2config):
         error = "vGPU creation is successful"
         try:
             g.createvGPU(groupUUID, typeUUID)
+        except:
+            pass
+        else:
             raise xenrt.XRTFailure(error)
-        except Exception as e:
-            self.checkError(e, error, specificError=True)
 
         g.setState("DOWN")
 
         try:
             g.createvGPU(groupUUID, typeUUID)
+        except:
+            pass
+        else:
             raise xenrt.XRTFailure(error)
-        except Exception as e:
-            self.checkError(e, error, specificError=True)
 
         g.destroyvGPU()
 
@@ -2886,23 +2873,26 @@ class TCOpsonK2vGPUToVMhasGotvGPU(TCBasicVerifOfAllK2config):
         error = "Checkpoint is successful on a vGPU capable VM"
         try:
             g.checkpoint()
+        except:
+            pass
+        else:
             raise xenrt.XRTFailure(error)
-        except Exception as e:
-            self.checkError(e, error, specificError=True)
 
         error = "VM suspend is successful on a vGPU capable VM"
         try:
             g.suspend()
+        except:
+            pass
+        else:
             raise xenrt.XRTFailure(error)
-        except Exception as e:
-            self.checkError(e, error, specificError=True)
 
         error = "VM Live Migration is successful on a vGPU capable VM"
         try:
             g.migrateVM(host=host,live="true")
+        except:
+            pass
+        else:
             raise xenrt.XRTFailure(error)
-        except Exception as e:
-            self.checkError(e, error, specificError=True)
 
         error = "VM's live vdi migration is successful on a vGPU capable VM"
         try:
@@ -2910,9 +2900,10 @@ class TCOpsonK2vGPUToVMhasGotvGPU(TCBasicVerifOfAllK2config):
             vdi = host.minimalList("vdi-list", args="vbd-uuids=%s " % vbd[0])
             dest_sr=host.getSRs(type="nfs")[0]
             host.migrateVDI(vdi[0], dest_sr)
+        except:
+            pass
+        else:
             raise xenrt.XRTFailure(error)
-        except Exception as e:
-            self.checkError(e, error, specificError=True)
 
         g.setState("DOWN")
         log("Uninstalling guest %s" % str(g))
@@ -3438,9 +3429,10 @@ class TCIntelSetupNegative(IntelBase):
         error = "Can attach Intel GPU to vm, while Host not rebooted after blocking Dom0 Access."
         try:
             self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
+        except:
+            pass
+        else:
             raise xenrt.XRTFailure(error)
-        except Exception as e:
-            self.checkError(e, error, specificError=True)
         finally:
             self.typeOfvGPU.unblockDom0Access(self.host)
 
@@ -3467,9 +3459,10 @@ class TCIntelGPUSnapshotNegative(IntelBase):
         error = "Able to revert to Intel GPU Passthrough enabled snapshot, after unblocking Dom0 Access to Host."
         try:
             vm.setState("UP")
+        except:
+            pass
+        else:
             raise xenrt.XRTFailure(error)
-        except Exception as e:
-            self.checkError(e, error, specificError=True)
         finally:
             # Return to blocked state for rest of distros.
             self.typeOfvGPU.blockDom0Access(self.host)

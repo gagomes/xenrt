@@ -2871,22 +2871,22 @@ class TCOpsonK2vGPUToVMhasGotvGPU(TCBasicVerifOfAllK2config):
 
         try:
             g.checkpoint()
-        except:
-            pass
+        except xenrt.XRTException as e:
+            log("Caught exception as expected: %s" % e)
         else:
             raise xenrt.XRTFailure("Checkpoint is successful on a vGPU capable VM")
 
         try:
             g.suspend()
-        except:
-            pass
+        except xenrt.XRTException as e:
+            log("Caught exception as expected: %s" % e)
         else:
             raise xenrt.XRTFailure("VM suspend is successful on a vGPU capable VM")
 
         try:
             g.migrateVM(host=host,live="true")
-        except:
-            pass
+        except xenrt.XRTException as e:
+            log("Caught exception as expected: %s" % e)
         else:
             raise xenrt.XRTFailure("VM Live Migration is successful on a vGPU capable VM")
 
@@ -2895,8 +2895,8 @@ class TCOpsonK2vGPUToVMhasGotvGPU(TCBasicVerifOfAllK2config):
             vdi = host.minimalList("vdi-list", args="vbd-uuids=%s " % vbd[0])
             dest_sr=host.getSRs(type="nfs")[0]
             host.migrateVDI(vdi[0], dest_sr)
-        except:
-            pass
+        except xenrt.XRTException as e:
+            log("Caught exception as expected: %s" % e)
         else:
             raise xenrt.XRTFailure("VM's live vdi migration is successful on a vGPU capable VM")
 
@@ -3423,8 +3423,8 @@ class TCIntelSetupNegative(IntelBase):
 
         try:
             self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
-        except:
-            pass
+        except xenrt.XRTException as e:
+            log("Caught exception as expected: %s" % e)
         else:
             raise xenrt.XRTFailure("Can attach Intel GPU to vm, while Host not rebooted after blocking Dom0 Access.")
         finally:
@@ -3452,8 +3452,8 @@ class TCIntelGPUSnapshotNegative(IntelBase):
         # VM should fail to start.
         try:
             vm.setState("UP")
-        except:
-            pass
+        except xenrt.XRTException as e:
+            log("Caught exception as expected: %s" % e)
         else:
             raise xenrt.XRTFailure("Able to revert to Intel GPU Passthrough enabled snapshot, after unblocking Dom0 Access to Host.")
         finally:

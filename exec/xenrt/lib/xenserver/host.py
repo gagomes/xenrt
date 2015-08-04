@@ -11766,6 +11766,7 @@ class DundeeHost(CreedenceHost):
 
         # check there are no failed first boot scripts
         self._checkForFailedFirstBootScripts()
+        self.execdom0("chmod +x /etc/rc.d/rc.local")
         
     def _checkForFailedFirstBootScripts(self):
         for f in self.execdom0("(cd /etc/firstboot.d/state && ls)").strip().splitlines():

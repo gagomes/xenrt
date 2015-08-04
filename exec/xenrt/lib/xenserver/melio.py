@@ -53,7 +53,14 @@ class MelioHost(object):
         self.host.execdom0("iscsiadm -m discovery -t st -p %s" % self.lun.getServer())
         self.host.execdom0('iscsiadm -m node --targetname "%s" --portal "%s:3260" --login' % (self.lun.getTargetName(), self.lun.getServer()))
 
+    @property
+    def device(self):
+        return "/dev/disk/by-id/scsi-%s" % self.lun.getID()
+
     def setupMelioDisk(self):
-        disk = "/dev/disk/by-id/scsi-%s" % self.lun.getID()
-        self.host.execdom0("/usr/sbin/wd_format warm_fs mount_1234 %s" % disk)
-        self.host.execdom0("mount -t warm_fs %s /mnt" % disk)
+        self.host.execdom0("/usr/sbin/wd_format warm_fs mount_1234 %s" % self.device)
+
+    def mount(self, mountpoint):
+        self.host.execdom0("mount -t warm_fs %s %s" % (self.device, mountpoint))
+    
+

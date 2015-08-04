@@ -1,0 +1,27 @@
+<xenrt>
+
+  <!-- MNR TC-8457 vdi-copy Testing -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="lvmoiscsi" name="iscsisr"/>
+      <storage type="nfs" name="nfssr"/>
+      <storage type="smapiv3shared" name="rawnfssr" default="yes" />
+      <host id="0" />
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="vdicopy">
+      <testcase id="xenserver.tc.storage.TC27177"/>
+      <testcase id="xenserver.tc.storage.TC27178"/>
+      <testcase id="xenserver.tc.storage.TC27179"/>
+      <testcase id="xenserver.tc.storage.TC27180"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

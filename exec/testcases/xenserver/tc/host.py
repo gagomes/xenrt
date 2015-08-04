@@ -23,11 +23,12 @@ class VersionChecks(xenrt.TestCase):
         self.__pass = False
         self.__count = 0
 
-    def compare(self, conRet, compareTo, file):
+    def compare(self, conRet, compareTo, file,host):
         if conRet == compareTo:
             log(file + " version: " + conRet + " is correct")
         else:
             log("version details wrong(%s) in %s" % (conRet, file))
+            host.execdom0("cat %s" % file)
             self.__pass = False
             self.__count += 1
 
@@ -40,23 +41,23 @@ class VersionChecks(xenrt.TestCase):
 
         redHatVer = host.execdom0("cat /etc/redhat-release").rstrip('\n')
         redHatVer = redHatVer[18:18+len(version)]
-        self.compare(redHatVer, version,"/etc/redhat-release")
+        self.compare(redHatVer, version,"/etc/redhat-release",host)
 
         consoleVer = host.execdom0("grep \"Citrix XenServer Host\" /etc/issue").rstrip('\n')
         consoleVer = consoleVer[22:]
-        self.compare(consoleVer,revision, "/etc/issue and on console")
+        self.compare(consoleVer,revision, "/etc/issue and on console",host)
 
         readMeVer = host.execdom0("grep -o -P \"\d\.\d+\.\d+\" /Read_Me_First.html").rstrip('\n').split()
         for r in readMeVer:
-            self.compare(r,version, "/ReadMeFirst.html")
+            self.compare(r,version, "/Read_Me_First.html",host)
 
         citrixIndexVer = host.execdom0("grep -o -P \"\d\.\d+\.\d+\" /opt/xensource/www/Citrix-index.html").rstrip('\n').split()
-        self.compare(citrixIndexVer[0],version, "/opt/xensource/www/Citrix-index.html")
-        self.compare(citrixIndexVer[1],revision, "/opt/xensource/www/Citrix-index.html")
+        self.compare(citrixIndexVer[0],version, "/opt/xensource/www/Citrix-index.html",host)
+        self.compare(citrixIndexVer[1],version, "/opt/xensource/www/Citrix-index.html",host)
 
         indexVer = host.execdom0("grep -o -P \"\d\.\d+\.\d+\" /opt/xensource/www/index.html").rstrip('\n').split()
-        self.compare(indexVer[0],version, "/opt/xensource/www/index.html")
-        self.compare(indexVer[1],revision, "/opt/xensource/www/index.html")
+        self.compare(indexVer[0],version, "/opt/xensource/www/index.html",host)
+        self.compare(indexVer[1],version, "/opt/xensource/www/index.html",host)
 
         if not self.__pass:
             raise xenrt.XRTFailure("%i incorrect entries logged above" % self.__count)
@@ -5273,8 +5274,6 @@ class TCDom0PartitionClean(xenrt.TestCase):
             log("Found expected Dom0 partitions on XS clean installation: %s" % partitions)
         else:
             raise xenrt.XRTFailure("Found unexpected partitions on XS clean install. Expected: %s Found: %s" % (partitions, self.host.getDom0Partitions()))
-        
-
 
 class TCSwapPartition(xenrt.TestCase):
     #TC-27021
@@ -5288,15 +5287,18 @@ class TCSwapPartition(xenrt.TestCase):
         swapUsed= float(self.host.execdom0("free -m | grep Swap | awk '{print $3}'"))
         
         step("Eat up memory by running a script")
-        self.host.execdom0("cp -f %s/utils/memEater_x64 /root/; chmod +x /root/memEater_x64; /root/memEater_x64" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"), level=xenrt.RC_OK)
-        
+        self.host.execdom0("cp -f %s/utils/memEater_x64 /root/; chmod +x /root/memEater_x64" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"), level=xenrt.RC_OK)
+        self.host.execdom0("/root/memEater_x64", getreply = False)
         step("Check if swap is in use")
-        (swapSize,newSwapUsed)= [float(i) for i in self.host.execdom0("free -m | grep Swap | awk '{print $2,$3}'").split(' ')]
+        startTime = xenrt.util.timenow()
+        while xenrt.util.timenow() - startTime < 900:
+            newSwapUsed= float(self.host.execdom0("free -m | grep Swap | awk '{print $3}'"))
+            if newSwapUsed > swapUsed:
+                break
+        try: self.host.execdom0("pkill memEater_x64")
+        except: pass
+
         if newSwapUsed > swapUsed:
-            log("SWAP is in use as expected. SWAP size = %s, SWAP memory in use = %s" % (swapSize,newSwapUsed))
+            log("SWAP is in use as expected. SWAP memory in use = %s" % (newSwapUsed))
         else:
-            raise xenrt.XRTFailure("SWAP partition is not in use. SWAP size = %s, SWAP memory in use = %s" % (swapSize,newSwapUsed))
-        
-
-
-
+            raise xenrt.XRTFailure("SWAP partition is not in use. SWAP memory in use = %s" % (newSwapUsed))

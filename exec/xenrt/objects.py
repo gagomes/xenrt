@@ -4887,6 +4887,9 @@ class GenericHost(GenericPlace):
 
     TCPDUMP = "tcpdump"
 
+    def getUptime(self):
+        return 0
+
     def arpwatch(self, iface, mac, timeout=600, level=xenrt.RC_FAIL):
         """Monitor an interface (or bridge) for an ARP reply"""
 
@@ -4895,15 +4898,16 @@ class GenericHost(GenericPlace):
         deadline = xenrt.util.timenow() + timeout
 
         if xenrt.TEC().lookup("XENRT_DHCPD", False, boolean=True):
+            uptime = self.getUptime()
             while True:
                 ip = self.checkLeases(mac)
                 if ip:
                     return ip
+                if self.getUptime() < uptime:
+                    self.checkHealth()
                 xenrt.sleep(20)
                 if xenrt.util.timenow() > deadline:
                     xenrt.XRT("Timed out monitoring for guest DHCP lease", level, data=mac)
-
-            
 
         myres = []
         myres.append(re.compile(r"(?P<ip>[0-9.]+) is-at (?P<mac>[0-9a-f:]+)"))

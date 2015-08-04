@@ -50,6 +50,8 @@ class TCFileBasedSRProperty(xenrt.TestCase):
         self.host = self.getDefaultHost()
         if "sr" in args and args["sr"]:
             self.xsr = self.getSRObjByName(args["sr"])
+        elif self.tcsku:
+            self.xsr = self.getSRObjByUuid(self.host.getSRs(self.tcsku)[0])
         else:
             self.xsr = self.getSRObjByUuid(self.host.getLocalSR())
 
@@ -65,7 +67,14 @@ class TCFileBasedSRProperty(xenrt.TestCase):
             if "uri" not in dconf:
                 raise xenrt.XRTError("PBD(%s) of BTRFS SR (%s) does not have uri in device config." % \
                     (pbds[0].uuid, self.xsr.uuid))
-            self.srPath = dconf["uri"][len("file://"):]
+            self.srPath = "run/sr-mount" + dconf["uri"][len("file://"):]
+        elif srtype == "rawnfs" or srtype == "smapiv3shared":
+            pbds = self.xsr.PBD()
+            dconf = pbds[0].deviceConfig()
+            if "uri" not in dconf:
+                raise xenrt.XRTError("PBD(%s) of RAWNFS SR (%s) does not have uri in device config." % \
+                    (pbds[0].uuid, self.xsr.uuid))
+            self.srPath = "/run/sr-mount/nfs/" + dconf["uri"][len("nfs://"):]
         else:
             raise xenrt.XRTError("Unexpected sr type: %s" % srtype)
 
@@ -76,7 +85,25 @@ class TCFileBasedSRProperty(xenrt.TestCase):
         @return: size of VDI
         """
 
-        return int(self.host.execdom0("ls -l %s | grep %s" % (self.srPath, vdi)).split()[4])
+        sizestr = None
+        
+        # Try obtain VDI size info from local mount path by uuid.
+        try:
+            sizestr = self.host.execdom0("ls -l %s | grep %s" % (self.srPath, vdi)).split()[4]
+        except:
+            log("Failed to find VDI with uuid(%s)." % vdi)
+
+        # If failed with uuid try with name.
+        # This isn't perfect as multiple VDI can have same name.
+        # Additional vdi with same name will have suffix of '.(number)'.
+        if not sizestr:
+            name = self.host.genParamGet("vdi", vdi, "name-label")
+            try:
+                sizestr = self.host.execdom0("ls -l %s | grep %s$" % (self.srPath, name)).split()[4]
+            except:
+                raise xenrt.XRTError("Cannot find VDI information from local mount.")
+
+        return int(sizestr)
 
     def getRawProperties(self):
         """
@@ -204,13 +231,17 @@ class TCFileBasedSRProperty(xenrt.TestCase):
         super(TCFileBasedSRProperty, self).postRun()
 
 
-class TCBTRFSSROperation(xenrt.TestCase):
+class TCFileBasedSROperation(xenrt.TestCase):
 
     def prepare(self, arglist=[]):
         args = self.parseArgsKeyValue(arglist)
 
+        srtype = "btrfs"
+        if self.tcsku:
+            srtype = self.tcsku
+
         self.host = self.getDefaultHost()
-        sruuid = self.host.getLocalSR()
+        sruuid = self.host.getSRs(srtype)[0]
         self.sr = xenrt.lib.xenserver.getStorageRepositoryClass(self.host, sruuid).fromExistingSR(self.host, sruuid)
 
     def run(self, arglist=None):

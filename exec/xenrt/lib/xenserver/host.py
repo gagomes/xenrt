@@ -633,6 +633,9 @@ class Host(xenrt.GenericHost):
         
         self.installationCookie = "%012x" % xenrt.random.randint(0,0xffffffffffff)
 
+    def getUptime(self):
+        return float(self.execdom0("cat /proc/uptime").split()[0])
+
     def rebuildInitrd(self):
         """
         Rebuild the initrd of the host in-place
@@ -3414,6 +3417,15 @@ fi
         usage = self.getXentopData()
         cpuUsage = usage["0"]["CPU(%)"]
         return float(cpuUsage)
+
+    def dom0CPUUsageOverTime(self,secs):
+        deadline = xenrt.util.timenow() + secs
+        count = 0
+        cpuUsageTotal = 0
+        while xenrt.util.timenow() < deadline:
+            count += 1
+            cpuUsageTotal += self.dom0CPUUsage()
+        return float(cpuUsageTotal) / float(count)
 
     def getXentopData(self):
         data = self.execdom0("xentop -f -b -i 2").strip()

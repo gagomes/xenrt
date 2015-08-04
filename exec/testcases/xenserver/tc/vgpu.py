@@ -2812,13 +2812,12 @@ class TCAssignK2vGPUToVMhasGotvGPU(TCBasicVerifOfAllK2config):
         typeUUID = host.getSupportedVGPUTypes()[actualConfig]
         groupUUID = self.vGPUCreator[config].groupUUID()
 
-        error = "vGPU creation is successful"
         try:
             g.createvGPU(groupUUID, typeUUID)
         except:
             pass
         else:
-            raise xenrt.XRTFailure(error)
+            raise xenrt.XRTFailure("vGPU creation is successful")
 
         g.setState("DOWN")
 
@@ -2827,7 +2826,7 @@ class TCAssignK2vGPUToVMhasGotvGPU(TCBasicVerifOfAllK2config):
         except:
             pass
         else:
-            raise xenrt.XRTFailure(error)
+            raise xenrt.XRTFailure("vGPU creation is successful")
 
         g.destroyvGPU()
 
@@ -2870,31 +2869,27 @@ class TCOpsonK2vGPUToVMhasGotvGPU(TCBasicVerifOfAllK2config):
         g.setState("UP")
         self.typeOfvGPU.assertvGPURunningInVM(g,expVGPUType)
 
-        error = "Checkpoint is successful on a vGPU capable VM"
         try:
             g.checkpoint()
         except:
             pass
         else:
-            raise xenrt.XRTFailure(error)
+            raise xenrt.XRTFailure("Checkpoint is successful on a vGPU capable VM")
 
-        error = "VM suspend is successful on a vGPU capable VM"
         try:
             g.suspend()
         except:
             pass
         else:
-            raise xenrt.XRTFailure(error)
+            raise xenrt.XRTFailure("VM suspend is successful on a vGPU capable VM")
 
-        error = "VM Live Migration is successful on a vGPU capable VM"
         try:
             g.migrateVM(host=host,live="true")
         except:
             pass
         else:
-            raise xenrt.XRTFailure(error)
+            raise xenrt.XRTFailure("VM Live Migration is successful on a vGPU capable VM")
 
-        error = "VM's live vdi migration is successful on a vGPU capable VM"
         try:
             vbd = host.minimalList("vbd-list", args="vm-uuid=%s type=Disk" % g.getUUID())        
             vdi = host.minimalList("vdi-list", args="vbd-uuids=%s " % vbd[0])
@@ -2903,7 +2898,7 @@ class TCOpsonK2vGPUToVMhasGotvGPU(TCBasicVerifOfAllK2config):
         except:
             pass
         else:
-            raise xenrt.XRTFailure(error)
+            raise xenrt.XRTFailure("VM's live vdi migration is successful on a vGPU capable VM")
 
         g.setState("DOWN")
         log("Uninstalling guest %s" % str(g))
@@ -3426,13 +3421,12 @@ class TCIntelSetupNegative(IntelBase):
         self.typeOfvGPU.unblockDom0Access(self.host)
         self.typeOfvGPU.blockDom0Access(self.host, reboot=False)
 
-        error = "Can attach Intel GPU to vm, while Host not rebooted after blocking Dom0 Access."
         try:
             self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
         except:
             pass
         else:
-            raise xenrt.XRTFailure(error)
+            raise xenrt.XRTFailure("Can attach Intel GPU to vm, while Host not rebooted after blocking Dom0 Access.")
         finally:
             self.typeOfvGPU.unblockDom0Access(self.host)
 
@@ -3456,13 +3450,12 @@ class TCIntelGPUSnapshotNegative(IntelBase):
         vm.revert(withGPUSnapshot)
 
         # VM should fail to start.
-        error = "Able to revert to Intel GPU Passthrough enabled snapshot, after unblocking Dom0 Access to Host."
         try:
             vm.setState("UP")
         except:
             pass
         else:
-            raise xenrt.XRTFailure(error)
+            raise xenrt.XRTFailure("Able to revert to Intel GPU Passthrough enabled snapshot, after unblocking Dom0 Access to Host.")
         finally:
             # Return to blocked state for rest of distros.
             self.typeOfvGPU.blockDom0Access(self.host)

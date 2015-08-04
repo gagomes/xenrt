@@ -59,12 +59,12 @@ class _TC6460(xenrt.TestCase):
         guest.shutdown()
         
 class TC6460(_TC6460):
-    """Install a RHEL5.2 32 bit VM using HVM."""
+    """Install a RHEL5.X 32 bit VM using HVM."""
     DISTRO = "LATEST_rhel5"
     ARCH = "x86-32"
 
 class TC6461(_TC6460):
-    """Install a RHEL5.2 64 bit VM using HVM."""
+    """Install a RHEL5.X 64 bit VM using HVM."""
     DISTRO = "LATEST_rhel5"
     ARCH = "x86-64"
 

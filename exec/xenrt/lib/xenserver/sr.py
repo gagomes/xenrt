@@ -878,7 +878,7 @@ class SMAPIv3SharedStorageRepository(NFSStorageRepository):
             self.checkOnHost(self.host)
 
     def checkOnHost(self, host):
-        path = "/var/run/sr-mount/nfs/%s%s" % (self.server, self.path)
+        path = "/run/sr-mount/nfs/%s%s" % (self.server, self.path)
         try:
             host.execdom0("test -d %s" % path)
         except:

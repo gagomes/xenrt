@@ -22,12 +22,13 @@ class MelioHost(object):
         self.lun = None
 
     def setup(self):
-        if self.host.execdom0("lsmod | grep warm_drive", retval="code") != 0:
-            self.installMelio()
+        self.installMelio()
         self.setupISCSITarget()
         self.setupMelioDisk()
 
-    def installMelio(self):
+    def installMelio(self, reinstall=False):
+        if self.host.execdom0("lsmod | grep warm_drive", retval="code") == 0 and not reinstall:
+            return
         self.host.execdom0("yum install -y boost boost-atomic boost-thread boost-filesystem")
         f = xenrt.TEC().getFile(xenrt.TEC().lookup("MELIO_RPM"))
         d = xenrt.WebDirectory()

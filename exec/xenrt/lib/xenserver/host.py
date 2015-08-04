@@ -11751,7 +11751,12 @@ class DundeeHost(CreedenceHost):
         self.registerJobTest(xenrt.lib.xenserver.jobtests.JTDeadLetter)
 
         self.installer = None
+        self.melio = None
 
+    def populateSubclass(self, x):
+        CreedenceHost.populateSubclass(self, x)
+        x.melio = self.melio
+    
     def isCentOS7Dom0(self):
         return True
 
@@ -11767,6 +11772,8 @@ class DundeeHost(CreedenceHost):
         # check there are no failed first boot scripts
         self._checkForFailedFirstBootScripts()
         self.execdom0("chmod +x /etc/rc.d/rc.local")
+        if xenrt.TEC().lookup("INSTALL_MELIO", False, boolean=True):
+            self.installMelio()
         
     def _checkForFailedFirstBootScripts(self):
         for f in self.execdom0("(cd /etc/firstboot.d/state && ls)").strip().splitlines():
@@ -11964,6 +11971,10 @@ class DundeeHost(CreedenceHost):
             self.execdom0('xe pif-set-primary-address-type primary_address_type=ipv6 uuid=%s' % pif)
             self.execdom0('xe host-management-reconfigure pif-uuid=%s' % pif)
             self.waitForSSH(300, "%s host-management-reconfigure (IPv6)" % self.getName())
+
+    def installMelio(self):
+        self.melio = xenrt.lib.xenserver.MelioHost(self)
+        self.melio.installMelio()
 
 #############################################################################
 

@@ -307,6 +307,7 @@ class TC27205(_HASmoketest):
 
 class TC7829(xenrt.TestCase):
     """Basic HA Sanity Test"""
+    SR_TYPE = "iscsi"
 
     def __init__(self, tcid=None):
         self.pool = None
@@ -317,18 +318,26 @@ class TC7829(xenrt.TestCase):
             self.pool = self.getPool(arglist[0])
         else:            
             self.pool = self.getDefaultPool()
-        # Set up the iscsi guest
-        host = self.pool.master
-        guest = host.createGenericLinuxGuest(allowUpdateKernel=False)
-        self.getLogsFrom(guest)
-        iqn = guest.installLinuxISCSITarget()
-        guest.createISCSITargetLun(0, 1024)
 
-        # Set up the iSCSI SR
-        sr = xenrt.lib.xenserver.ISCSIStorageRepository(host,"test-iscsi")
-        lun = xenrt.ISCSILunSpecified("xenrt-test/%s/%s" %
-                                      (iqn, guest.getIP()))
-        sr.create(lun,subtype="lvm",findSCSIID=True)
+        if self.SR_TYPE == "iscsi":
+            # Set up the iscsi guest
+            host = self.pool.master
+            guest = host.createGenericLinuxGuest(allowUpdateKernel=False)
+            self.getLogsFrom(guest)
+            iqn = guest.installLinuxISCSITarget()
+            guest.createISCSITargetLun(0, 1024)
+
+            # Set up the iSCSI SR
+            sr = xenrt.lib.xenserver.ISCSIStorageRepository(host,"test-iscsi")
+            lun = xenrt.ISCSILunSpecified("xenrt-test/%s/%s" %
+                                          (iqn, guest.getIP()))
+            sr.create(lun,subtype="lvm",findSCSIID=True)
+        elif self.SR_TYPE == "rawnfs":
+            sr = xenrt.lib.xenserver.SMAPIv3SharedStorageRepository(host, "test-rawnfs")
+            sr.create(None, None)
+        else:
+            raise xenrt.XRTError("Unknown SR type %s" % self.SR_TYPE)
+            
 
     def run(self, arglist=None):
         # Enable HA
@@ -341,6 +350,10 @@ class TC7829(xenrt.TestCase):
         # Wait for > timeouts then check
         self.pool.sleepHA("W",multiply=3)
         self.pool.checkHA()
+
+class TCHASanityRawNFS(TC7829):
+    """Basic HA Sanity Test using rawnfs SR"""
+    SR_TYPE = "rawnfs"
 
 class _RFInstall(xenrt.XRTThread):
 

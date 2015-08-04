@@ -300,6 +300,11 @@ class TC9169(_HASmoketest):
         # Perform the smoketest
         _HASmoketest.run(self, arglist)
 
+class TC27205(_HASmoketest):
+    """Verify HA operation on a pool of 4 hosts using SMAPIv3 NFS for HA and VMs"""
+    NUMHOSTS = 4
+    STATEFILE_SR = "rawnfs"
+
 class TC7829(xenrt.TestCase):
     """Basic HA Sanity Test"""
 

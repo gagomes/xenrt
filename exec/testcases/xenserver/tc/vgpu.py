@@ -4662,14 +4662,14 @@ class TCLinuxStress(FunctionalBase):
         total = len(self.stressguests)
         wlm = WorkloadManager(self.stressguests)
         wlm.start()
-        start = time.time()
+        start = xenrt.timenow()
 
         running = wlm.check()
         if running != total:
             raise xenrt.XRTFailure("Failed to run %d workloads. (%d expected to run)" %
                 ((total - running), total))
 
-        while time.time() - start < self.duration:
+        while xenrt.timenow() - start < self.duration:
             xenrt.sleep(60 * 60)
             running = wlm.check()
             xenrt.TEC().logverbose("%d / %d guests are running workloads" % (running, total))

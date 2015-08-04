@@ -36,6 +36,9 @@ class MelioHost(object):
         self.host.execdom0("chkconfig warm-drived off")
         self.host.execdom0("echo 'modprobe warm_drive' >> /etc/rc.local")
         self.host.execdom0("echo 'service warm-drived start' >> /etc/rc.local")
+        if self.host.execdom0("test -e /lib/systemd/system/warm-drive-webserverd.service", retval="code") == 0:
+            self.host.execdom0("chkconfig warm-drive-webserverd off")
+            self.host.execdom0("echo 'service warm-drive-webserverd start' >> /etc/rc.local")
         self.host.reboot()
 
     def setupISCSITarget(self):

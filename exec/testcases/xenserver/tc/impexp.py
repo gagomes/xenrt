@@ -697,7 +697,7 @@ class TC12563(_ImpExpBase):
 
 class TC6837(_ImpExpBase):
     """Import/Export test of SLES 10 SP1 guest"""
-    DISTRO="sles101"
+    DISTRO="sles102"
 
 class TC12568(_ImpExpBase):
     """Import/Export test of SLES 11 SP1 guest"""

@@ -1,0 +1,17 @@
+<xenrt>
+  <variables>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+  </variables>
+  <prepare>
+    <host id="0">
+      <storage type="smapiv3shared" name="rawnfssr" default="true" />
+    </host>
+  </prepare>
+
+  <testsequence>
+    <testcase id="xenserver.tc.filebasedsr.TCFileBasedSROperation" tc="TC-27202" sku="rawnfs">
+      <arg>sr=rawnfssr</arg>
+    </testcase>
+  </testsequence>
+</xenrt>

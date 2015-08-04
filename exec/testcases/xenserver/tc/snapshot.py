@@ -208,6 +208,13 @@ class TC27102(_TC7802):
     SRTYPE = "btrfs"
 
 
+class TC27194(_TC7802):
+    """Repeated VDI snapshot/destroy under I/O load."""
+
+    ITERATIONS = 29
+    SRTYPE = "rawnfs"
+
+
 class TC7966(_TC7802):
     """Repeated LVM VDI snapshot/destroy under I/O load."""
 
@@ -256,6 +263,13 @@ class TC27101(_TC7801):
 
     ITERATIONS = 29
     SRTYPE = "btrfs"
+
+
+class TC27193(_TC7801):
+    """Repeated VDI snapshot under I/O load followed by repeated destroy."""
+
+    ITERATIONS = 29
+    SRTYPE = "rawnfs"
 
 
 class TC7965(_TC7801):
@@ -375,6 +389,13 @@ class TC27100(_TC7800):
     SRTYPE = "btrfs"
 
 
+class TC27192(_TC7800):
+    """Multiple VDI snapshots of the same original."""
+
+    ITERATIONS = 29
+    SRTYPE = "rawnfs"
+
+
 class TC7964(_TC7800):
     """Multiple LVM VDI snapshots of the same original."""
 
@@ -468,6 +489,12 @@ class TC27099(TC7799):
     SRTYPE = "btrfs"
 
 
+class TC27191(TC7799):
+    """SMAPIV3 Snapshot of a snapshot."""
+
+    SRTYPE = "rawnfs"
+
+
 class TC7973(TC7799):
     """NetApp Snapshot of a snapshot."""
 
@@ -537,6 +564,12 @@ class TC27098(TC7798):
     SRTYPE = "btrfs"
 
 
+class TC27190(TC7798):
+    """Deleting the original shouldn't affect the SMAPIV3 snapshot VDI."""
+
+    SRTYPE = "rawnfs"
+
+
 class TC7972(TC7798):
     """Deleting the original shouldn't affect the NetApp snapshot VDI."""
 
@@ -603,6 +636,12 @@ class TC27097(TC7797):
     """Deleting a SMAPIV3 snapshot shouldn't affect the original VDI."""
 
     SRTYPE = "btrfs"
+
+
+class TC27189(TC7797):
+    """Deleting a SMAPIV3 snapshot shouldn't affect the original VDI."""
+
+    SRTYPE = "rawnfs"
 
 
 class TC7971(TC7797):
@@ -690,6 +729,12 @@ class TC27096(TC7796):
     """SMAPIV3 snapshot of a plugged VDI."""
 
     SRTYPE = "btrfs"
+
+
+class TC27188(TC7796):
+    """SMAPIV3 snapshot of a plugged VDI."""
+
+    SRTYPE = "rawnfs"
 
 
 class TC7970(TC7796):
@@ -781,6 +826,12 @@ class TC27095(TC7795):
     SRTYPE = "btrfs"
 
 
+class TC27187(TC7795):
+    """SMAPIV3 VDI snapshot creation and operation."""
+
+    SRTYPE = "rawnfs"
+
+
 class TC7969(TC7795):
     """NetApp VDI snapshot creation and operation."""
 
@@ -846,6 +897,11 @@ class TC27094(TC7794):
     """SMAPIV3 VDI Snapshot of an unplugged VDI."""
 
     SRTYPE = "btrfs"
+
+class TC27186(TC7794):
+    """SMAPIV3 VDI Snapshot of an unplugged VDI."""
+
+    SRTYPE = "rawnfs"
 
 class TC7968(TC7794):
     """NetApp VDI Snapshot of an unplugged VDI."""
@@ -1193,6 +1249,11 @@ class TC27103(_VMSnapshotPerSR):
     """VM snapshot operation on local VHD"""
 
     SRTYPE = "btrfs"
+
+class TC27195(_VMSnapshotPerSR):
+    """VM snapshot operation on local VHD"""
+
+    SRTYPE = "rawnfs"
 
 class TC7860(_VMSnapshotPerSR):
     """VM snapshot operation on local LVM"""

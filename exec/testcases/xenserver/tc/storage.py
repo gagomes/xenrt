@@ -2059,6 +2059,26 @@ class TC27111(_VDICopy):
     FROM_TYPE = "btrfs"
     TO_TYPE = "nfs"
 
+class TC27177(_VDICopy):
+    """Verify vdi-copy between an lvmoiscsi SR and a local smapiv3 SR"""
+    FROM_TYPE = "lvmoiscsi"
+    TO_TYPE = "rawnfs"
+
+class TC27178(_VDICopy):
+    """Verify vdi-copy between an nfs SR and a local smapiv3 SR"""
+    FROM_TYPE = "nfs"
+    TO_TYPE = "rawnfs"
+
+class TC27179(_VDICopy):
+    """Verify vdi-copy between a local smapiv3 SR and a lvmoiscsi SR"""
+    FROM_TYPE = "rawnfs"
+    TO_TYPE = "lvmoiscsi"
+
+class TC27180(_VDICopy):
+    """Verify vdi-copy between a local smapiv3 SR and a nfs SR"""
+    FROM_TYPE = "rawnfs"
+    TO_TYPE = "nfs"
+
 
 #############################################################################
 # VDI resize testcases
@@ -2461,7 +2481,7 @@ class TC27089(_TCResizeShrink):
     """Attempting to shrink a VHDoEXT VDI should fail with a suitable error."""
 
     SRTYPE = "btrfs"
-    
+
 class TC27090(_TCResizeGrow):
     """Grow a VHDoEXT VDI of a round size by 1 byte."""
 
@@ -2476,6 +2496,29 @@ class TC27092(_TCResizeDataCheck):
     """Data integrity of resized VHDoEXT VDI."""
 
     SRTYPE = "btrfs"
+    FORCEOFFLINE = True
+
+
+# RAWNFS resize
+class TC27181(_TCResizeShrink):
+    """Attempting to shrink a VHDoEXT VDI should fail with a suitable error."""
+
+    SRTYPE = "rawnfs"
+
+class TC27182(_TCResizeGrow):
+    """Grow a VHDoEXT VDI of a round size by 1 byte."""
+
+    SRTYPE = "rawnfs"
+    
+class TC27183(_TCResizeGrow2):
+    """Grow a VHDoEXT VDI twice in large chunks."""
+
+    SRTYPE = "rawnfs"
+
+class TC27184(_TCResizeDataCheck):
+    """Data integrity of resized VHDoEXT VDI."""
+
+    SRTYPE = "rawnfs"
     FORCEOFFLINE = True
 
 
@@ -3571,6 +3614,12 @@ class TC27093(TC10671):
     """A freshly created VDI should contain entirely zero data (file based VHD)"""
 
     SRTYPE = "btrfs"
+
+
+class TC27185(TC10671):
+    """A freshly created VDI should contain entirely zero data (file based VHD)"""
+
+    SRTYPE = "rawnfs"
 
 
 class TC10673(TC10671):

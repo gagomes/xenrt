@@ -1,0 +1,39 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host id="0">
+      <storage type="smapiv3shared" name="rawnfssr" default="true" />
+      <vm name="GoldVM">
+        <distro>win7sp1-x86</distro>
+        <postinstall action="installDrivers"/>
+        <postinstall action="preCloneTailor"/>
+        <postinstall action="xenDesktopTailor"/>
+        <postinstall action="shutdown"/>
+        <postinstall action="removeCD"/>
+        <network device="0" />
+        <network device="1" />
+        <vcpus>2</vcpus>
+        <memory>1024</memory>
+        <storage>rawnfssr</storage>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="VDISanity">
+      <testcase id="xenserver.tc.cache.TCVDISanityResetVDI" name="TC19031" tc="TC-19031" sku="rawnfs" />
+      <testcase id="xenserver.tc.cache.TCVDISanityPersistVDI" name="TC19032" tc="TC-19032" sku="rawnfs" />
+      <testcase id="xenserver.tc.cache.TCVDISanityMixedVDI" name="TC19033" tc="TC-19033" sku="rawnfs" />
+    </serial>
+    <serial group="DiskOperation">
+      <testcase id="xenserver.tc.cache.TCDiskOperationResetVDI" name="TC19034" tc="TC-19034" sku="rawnfs" />
+      <testcase id="xenserver.tc.cache.TCDiskOperationPersistVDI" name="TC19035" tc="TC-19035" sku="rawnfs" />
+      <testcase id="xenserver.tc.cache.TCDiskOperationMixedVDI" name="TC19036" tc="TC-19036" sku="rawnfs" />
+    </serial>
+  </testsequence>
+</xenrt>

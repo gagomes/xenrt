@@ -22,8 +22,8 @@ class MelioHost(object):
         self.lun = None
 
     def setup(self):
-        self.setupISCSITarget()
         self.installMelio()
+        self.setupISCSITarget()
         self.setupMelioDisk()
 
     def installMelio(self):

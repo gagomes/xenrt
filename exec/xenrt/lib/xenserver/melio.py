@@ -27,13 +27,16 @@ class MelioHost(object):
         self.setupMelioDisk()
 
     def installMelio(self):
-        self.host.execdom0("yum install -y boost")
+        self.host.execdom0("yum install -y boost boost-atomic boost-thread boost-filesystem")
         f = xenrt.TEC().getFile(xenrt.TEC().lookup("MELIO_RPM"))
         d = xenrt.WebDirectory()
         d.copyIn(f)
         self.host.execdom0("wget -O /root/melio.rpm %s" % d.getURL(os.path.basename(f)))
         self.host.execdom0("rpm -U --replacepkgs /root/melio.rpm")
-        self.host.execdom0("modprobe warm_drive")
+        self.host.execdom0("chkconfig warm-drived off")
+        self.host.execdom0("echo 'modprobe warm_drive' >> /etc/rc.local")
+        self.host.execdom0("echo 'service warm-drived start' >> /etc/rc.local")
+        self.host.reboot()
 
     def setupISCSITarget(self):
         self.lun = xenrt.ISCSIVMLun(targetType="LIO", sizeMB=100*xenrt.KILO)

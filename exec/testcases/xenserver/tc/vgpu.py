@@ -2814,8 +2814,8 @@ class TCAssignK2vGPUToVMhasGotvGPU(TCBasicVerifOfAllK2config):
 
         try:
             g.createvGPU(groupUUID, typeUUID)
-        except:
-            pass
+        except xenrt.XRTFailure as e:
+            log("Caught exception as expected: %s" % e)
         else:
             raise xenrt.XRTFailure("vGPU creation is successful")
 
@@ -2823,8 +2823,8 @@ class TCAssignK2vGPUToVMhasGotvGPU(TCBasicVerifOfAllK2config):
 
         try:
             g.createvGPU(groupUUID, typeUUID)
-        except:
-            pass
+        except xenrt.XRTFailure as e:
+            log("Caught exception as expected: %s" % e)
         else:
             raise xenrt.XRTFailure("vGPU creation is successful")
 

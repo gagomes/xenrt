@@ -171,7 +171,7 @@
     </parallel>
 
     <!-- Perform a basic HA sanity test -->
-    <testcase id="xenserver.tc.ha.TCHASanityRawNFS" group="HATests">
+    <testcase id="xenserver.tc.ha.TCHASanityDefaultSR" group="HATests" tc="TC-27206">
       <arg>mypool</arg>
     </testcase>
     <testcase id="xenserver.install.TCVerifyLicenseList" tc="TC-17899"/>

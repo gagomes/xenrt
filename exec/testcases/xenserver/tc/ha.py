@@ -307,7 +307,7 @@ class TC27205(_HASmoketest):
 
 class TC7829(xenrt.TestCase):
     """Basic HA Sanity Test"""
-    SR_TYPE = "iscsi"
+    USE_ISCSI = True
 
     def __init__(self, tcid=None):
         self.pool = None
@@ -319,7 +319,7 @@ class TC7829(xenrt.TestCase):
         else:            
             self.pool = self.getDefaultPool()
 
-        if self.SR_TYPE == "iscsi":
+        if USE_ISCSI:
             # Set up the iscsi guest
             host = self.pool.master
             guest = host.createGenericLinuxGuest(allowUpdateKernel=False)
@@ -332,12 +332,6 @@ class TC7829(xenrt.TestCase):
             lun = xenrt.ISCSILunSpecified("xenrt-test/%s/%s" %
                                           (iqn, guest.getIP()))
             sr.create(lun,subtype="lvm",findSCSIID=True)
-        elif self.SR_TYPE == "rawnfs":
-            sr = xenrt.lib.xenserver.SMAPIv3SharedStorageRepository(host, "test-rawnfs")
-            sr.create(None, None)
-        else:
-            raise xenrt.XRTError("Unknown SR type %s" % self.SR_TYPE)
-            
 
     def run(self, arglist=None):
         # Enable HA
@@ -351,9 +345,9 @@ class TC7829(xenrt.TestCase):
         self.pool.sleepHA("W",multiply=3)
         self.pool.checkHA()
 
-class TCHASanityRawNFS(TC7829):
-    """Basic HA Sanity Test using rawnfs SR"""
-    SR_TYPE = "rawnfs"
+class TCHASanityDefaultSR(TC7829):
+    """Basic HA Sanity Test using default SR"""
+    USE_ISCSI = False
 
 class _RFInstall(xenrt.XRTThread):
 

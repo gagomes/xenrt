@@ -10,7 +10,12 @@
 
 import xml.dom.minidom, re, string, copy, time, os, random 
 import xenrt, xenrt.lib.xenserver
-import NaServer
+
+try:
+    import NaServer
+except ImportError:
+    # The NetApp SDK is not always available so ignore import errors.
+    pass
 
 class _HostInstall(xenrt.TestCase):
 

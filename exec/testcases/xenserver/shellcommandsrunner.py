@@ -6,11 +6,11 @@ class Command(object):
     A command (or commands) informtion data structure.
     """
     def __init__(self, json):
-        self.command = json["command"]
-        self.raiseIfError = ('raiseIfError' in json and json['raiseIfError']) or True
-        self.resultSource = ('resultSource' in json and json['resultSource']) or 'RETURN_CODE'
-        self.nextAction = ('nextAction' in json and json['nextAction']) or None
-        self.timeout = ('timeout' in json and json['timeout']) or 60
+        self.command = json['command']
+        self.raiseIfError = json.get('raiseIfError', True)
+        self.resultSource = json.get('resultSource', 'RETURN_CODE')
+        self.nextAction = json.get('nextAction', None)
+        self.timeout = json.get('timeout', 60)
         self.returnCode = None
         self.stdout = ''
         self.stderr = ''

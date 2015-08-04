@@ -9490,10 +9490,10 @@ class BostonHost(MNRHost):
         out = self.execdom0("echo -e -n '%s' | %s/consolewrite.py %s %u %u " % (str,xenrt.TEC().lookup("REMOTE_SCRIPTDIR"),domid,retlines,cuthdlines))
         return out
 
-    def reboot(self,sleeptime=300,forced=False,timeout=600):
+    def reboot(self,sleeptime=120,forced=False,timeout=600):
         """Reboot the host and verify it boots"""
-        Host.reboot(self,forced=forced,timeout=timeout)
-        self.postBoot(sleeptime=sleeptime)
+        Host.reboot(self,forced=forced,timeout=timeout, sleeptime=sleeptime)
+        self.waitForXapiStartup()
 
     def createNetwork(self, name="XenRT bridge"):
         cli = self.getCLIInstance()

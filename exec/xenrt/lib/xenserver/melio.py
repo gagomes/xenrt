@@ -22,7 +22,8 @@ class MelioHost(object):
         self.lun = None
 
     def setup(self):
-        self.installMelio()
+        if self.host.execdom0("lsmod | grep warm_drive", retval="code") != 0:
+            self.installMelio()
         self.setupISCSITarget()
         self.setupMelioDisk()
 
@@ -33,12 +34,17 @@ class MelioHost(object):
         d.copyIn(f)
         self.host.execdom0("wget -O /root/melio.rpm %s" % d.getURL(os.path.basename(f)))
         self.host.execdom0("rpm -U --replacepkgs /root/melio.rpm")
+
+        # Workaround for now - load the melio stuff after boot
+
+        self.host.execdom0("sed -i /warm_drive/d /etc/rc.d/rc.local")
+        self.host.execdom0("sed -i /warm-drive/d /etc/rc.d/rc.local")
+        self.host.execdom0("echo 'modprobe warm_drive' >> /etc/rc.d/rc.local")
         self.host.execdom0("chkconfig warm-drived off")
-        self.host.execdom0("echo 'modprobe warm_drive' >> /etc/rc.local")
-        self.host.execdom0("echo 'service warm-drived start' >> /etc/rc.local")
+        self.host.execdom0("echo 'service warm-drived start' >> /etc/rc.d/rc.local")
         if self.host.execdom0("test -e /lib/systemd/system/warm-drive-webserverd.service", retval="code") == 0:
             self.host.execdom0("chkconfig warm-drive-webserverd off")
-            self.host.execdom0("echo 'service warm-drive-webserverd start' >> /etc/rc.local")
+            self.host.execdom0("echo 'service warm-drive-webserverd start' >> /etc/rc.d/rc.local")
         self.host.reboot()
 
     def setupISCSITarget(self):

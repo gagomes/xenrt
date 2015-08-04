@@ -7,7 +7,7 @@
 
   <prepare>
     <pool id="0">
-      <storage type="rawnfs" name="rawnfssr" default="true"/>
+      <storage type="smapiv3shared" name="rawnfssr" default="true"/>
       <host id="0"/>
       <host id="1"/>
       <host id="2"/>

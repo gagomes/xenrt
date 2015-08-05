@@ -319,7 +319,7 @@ class TC7829(xenrt.TestCase):
         else:            
             self.pool = self.getDefaultPool()
 
-        if USE_ISCSI:
+        if self.USE_ISCSI:
             # Set up the iscsi guest
             host = self.pool.master
             guest = host.createGenericLinuxGuest(allowUpdateKernel=False)

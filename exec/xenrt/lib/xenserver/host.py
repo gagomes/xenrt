@@ -9490,10 +9490,10 @@ class BostonHost(MNRHost):
         out = self.execdom0("echo -e -n '%s' | %s/consolewrite.py %s %u %u " % (str,xenrt.TEC().lookup("REMOTE_SCRIPTDIR"),domid,retlines,cuthdlines))
         return out
 
-    def reboot(self,sleeptime=300,forced=False,timeout=600):
+    def reboot(self,sleeptime=120,forced=False,timeout=600):
         """Reboot the host and verify it boots"""
-        Host.reboot(self,forced=forced,timeout=timeout)
-        self.postBoot(sleeptime=sleeptime)
+        Host.reboot(self,forced=forced,timeout=timeout, sleeptime=sleeptime)
+        self.waitForXapiStartup()
 
     def createNetwork(self, name="XenRT bridge"):
         cli = self.getCLIInstance()
@@ -11751,7 +11751,12 @@ class DundeeHost(CreedenceHost):
         self.registerJobTest(xenrt.lib.xenserver.jobtests.JTDeadLetter)
 
         self.installer = None
+        self.melioHelper = None
 
+    def populateSubclass(self, x):
+        CreedenceHost.populateSubclass(self, x)
+        x.melioHelper = self.melioHelper
+    
     def isCentOS7Dom0(self):
         return True
 
@@ -11766,6 +11771,9 @@ class DundeeHost(CreedenceHost):
 
         # check there are no failed first boot scripts
         self._checkForFailedFirstBootScripts()
+        self.execdom0("chmod +x /etc/rc.d/rc.local")
+        if xenrt.TEC().lookup("INSTALL_MELIO", False, boolean=True):
+            self.installMelio()
         
     def _checkForFailedFirstBootScripts(self):
         for f in self.execdom0("(cd /etc/firstboot.d/state && ls)").strip().splitlines():
@@ -11963,6 +11971,10 @@ class DundeeHost(CreedenceHost):
             self.execdom0('xe pif-set-primary-address-type primary_address_type=ipv6 uuid=%s' % pif)
             self.execdom0('xe host-management-reconfigure pif-uuid=%s' % pif)
             self.waitForSSH(300, "%s host-management-reconfigure (IPv6)" % self.getName())
+
+    def installMelio(self):
+        self.melioHelper = xenrt.lib.xenserver.MelioHelper(self)
+        self.melioHelper.installMelio()
 
 #############################################################################
 

@@ -47,6 +47,14 @@ class MelioHelper(object):
             self.host.execdom0("chkconfig warm-drive-webserverd off")
             self.host.execdom0("echo 'service warm-drive-webserverd start' >> /etc/rc.d/rc.local")
         self.host.reboot()
+        self.checkXapiResponsive()
+
+    def checkXapiResponsive(self):
+        for i in xrange(20):
+            start = xenrt.timenow()
+            self.host.getCLIInstance().execute("vm-list")
+            if xenrt.timenow() - start > 10:
+                raise xenrt.XRTError("vm-list took > 10 seconds after installing melio")
 
     def setupISCSITarget(self):
         self.lun = xenrt.ISCSIVMLun(targetType="LIO", sizeMB=100*xenrt.KILO)

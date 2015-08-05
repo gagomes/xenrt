@@ -3895,7 +3895,7 @@ class _HardwareMultipath(xenrt.TestCase):
             raise xenrt.XRTFailure("Expecting different SCSI ID for SR.")
 
         self.guest = self.hostWithMultiplePaths.createGenericLinuxGuest()
-        dev = self.guest.createDisk(sizebytes=5368709120, sruuid=self.sr.uuid, returnDevice=True) # 5GB
+        dev = self.guest.createDisk(sizebytes=5*xenrt.GIGA, sruuid=self.sr.uuid, returnDevice=True) # 5GB
         time.sleep(5)
         
         # Launch a periodic read/write script using the new disk

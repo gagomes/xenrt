@@ -878,14 +878,14 @@ class SMAPIv3SharedStorageRepository(NFSStorageRepository):
             self.checkOnHost(self.host)
 
     def checkOnHost(self, host):
-        path = "/var/run/sr-mount/nfs/%s%s" % (self.server, self.path)
+        path = "/run/sr-mount/nfs/%s%s" % (self.server, self.path)
         try:
             host.execdom0("test -d %s" % path)
         except:
             raise xenrt.XRTFailure("SR mountpoint %s does not exist" % path)
         nfs = string.split(host.execdom0("mount | grep \""
                                           "%s\"" % path))[0]
-        shouldbe = "%s:%s/%s" % (self.server, self.path, self.uuid)
+        shouldbe = "%s:%s" % (self.server, self.path)
         if nfs != shouldbe:
             raise xenrt.XRTFailure("Mounted path '%s' is not '%s'" %
                                    (nfs, shouldbe))

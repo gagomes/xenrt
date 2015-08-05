@@ -300,8 +300,14 @@ class TC9169(_HASmoketest):
         # Perform the smoketest
         _HASmoketest.run(self, arglist)
 
+class TC27205(_HASmoketest):
+    """Verify HA operation on a pool of 4 hosts using SMAPIv3 NFS for HA and VMs"""
+    NUMHOSTS = 4
+    STATEFILE_SR = "rawnfs"
+
 class TC7829(xenrt.TestCase):
     """Basic HA Sanity Test"""
+    USE_ISCSI = True
 
     def __init__(self, tcid=None):
         self.pool = None
@@ -312,18 +318,20 @@ class TC7829(xenrt.TestCase):
             self.pool = self.getPool(arglist[0])
         else:            
             self.pool = self.getDefaultPool()
-        # Set up the iscsi guest
-        host = self.pool.master
-        guest = host.createGenericLinuxGuest(allowUpdateKernel=False)
-        self.getLogsFrom(guest)
-        iqn = guest.installLinuxISCSITarget()
-        guest.createISCSITargetLun(0, 1024)
 
-        # Set up the iSCSI SR
-        sr = xenrt.lib.xenserver.ISCSIStorageRepository(host,"test-iscsi")
-        lun = xenrt.ISCSILunSpecified("xenrt-test/%s/%s" %
-                                      (iqn, guest.getIP()))
-        sr.create(lun,subtype="lvm",findSCSIID=True)
+        if self.USE_ISCSI:
+            # Set up the iscsi guest
+            host = self.pool.master
+            guest = host.createGenericLinuxGuest(allowUpdateKernel=False)
+            self.getLogsFrom(guest)
+            iqn = guest.installLinuxISCSITarget()
+            guest.createISCSITargetLun(0, 1024)
+
+            # Set up the iSCSI SR
+            sr = xenrt.lib.xenserver.ISCSIStorageRepository(host,"test-iscsi")
+            lun = xenrt.ISCSILunSpecified("xenrt-test/%s/%s" %
+                                          (iqn, guest.getIP()))
+            sr.create(lun,subtype="lvm",findSCSIID=True)
 
     def run(self, arglist=None):
         # Enable HA
@@ -336,6 +344,10 @@ class TC7829(xenrt.TestCase):
         # Wait for > timeouts then check
         self.pool.sleepHA("W",multiply=3)
         self.pool.checkHA()
+
+class TCHASanityDefaultSR(TC7829):
+    """Basic HA Sanity Test using default SR"""
+    USE_ISCSI = False
 
 class _RFInstall(xenrt.XRTThread):
 

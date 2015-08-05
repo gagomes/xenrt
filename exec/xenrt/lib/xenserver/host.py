@@ -13813,6 +13813,10 @@ class CreedencePool(ClearwaterPool):
 
 class DundeePool(CreedencePool):
 
+    def __init__(self, master):
+        CreedencePool.__init__(self, master)
+        self.haSRTypes = ["lvmoiscsi", "lvmohba", "nfs", "rawnfs"]
+
     def hostFactory(self):
         return xenrt.lib.xenserver.DundeeHost
 

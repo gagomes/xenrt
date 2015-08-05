@@ -1,5 +1,5 @@
 import xenrt
-from xenrt import log, step
+from xenrt import log, step, warning
 
 class TCFileBasedSRProperty(xenrt.TestCase):
     """
@@ -82,40 +82,32 @@ class TCFileBasedSRProperty(xenrt.TestCase):
         """
         Find size of VDI and return it.
 
+        @param: vdi: UUID of VDI to check.
+
         @return: size of VDI
         """
 
-        sizestr = None
-        
-        # Try obtain VDI size info from local mount path by uuid.
         try:
-            sizestr = self.host.execdom0("ls -l %s | grep %s" % (self.srPath, vdi)).split()[4]
+            filename = self.host.genParamGet("vdi", vdi, "location")
         except:
-            log("Failed to find VDI with uuid(%s)." % vdi)
+            warning("VDI %s does not have location property" % vdi)
+            filename = vdi
 
-        # If failed with uuid try with name.
-        # This isn't perfect as multiple VDI can have same name.
-        # Additional vdi with same name will have suffix of '.(number)'.
-        if not sizestr:
-            name = self.host.genParamGet("vdi", vdi, "name-label").replace(" ", "_")
-            try:
-                sizestr = self.host.execdom0("ls -l %s | grep '%s$'" % (self.srPath, name)).split()[4]
-            except:
-                log("Failed to find VDI with name-label (%s)." % name)
+        info = None
+        try:
+            info = eval(self.host.execdom0("cat %s/%s.json" % (self.srPath, filename)))
+        except:
+            warning("VDI %s does not have valid json file." % vdi)
 
-        if not sizestr:
-            vhdlist = self.host.execdom0("ls %s/*.json | cat" % self.srPath).splitlines()
-            log("Found following VHD files: %s" % str(vhdlist))
-            for vhdinfo in vhdlist:
-                info = eval(self.host.execdom0("cat %s" % (vhdinfo)))
-                if "name" in info and info["name"] == name:
-                    sizestr = self.host.execdom0("ls -l %s" % vhdinfo.replace(".json", "")).split()[4]
-                    break
+        if info:
+            log("VDI %s INFO: %s" % (vdi, str(info)))
+            if "uuid" in info:
+                if info["uuid"] != vdi:
+                    raise xenrt.XRTError("JSON file of VDI %s includes wrong UUID info.")
+            else:
+                warning("JSON file of VDI %s does not have UUID field. Skipping sanity check." % vdi)
 
-        if not sizestr:
-            raise xenrt.XRTError("Cannot find VDI information from local mount.")
-
-        return int(sizestr)
+        return int(self.host.execdom0("ls -l %s/%s" % (self.srPath, filename)).split()[4])
 
     def getRawProperties(self):
         """

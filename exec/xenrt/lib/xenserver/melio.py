@@ -12,11 +12,11 @@ import xenrt
 import os.path
 
 __all__ = [
-    "MelioHost"
+    "MelioHelper"
 ]
            
 
-class MelioHost(object):
+class MelioHelper(object):
     def __init__(self, host):
         self.host = host
         self.lun = None

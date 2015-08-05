@@ -11751,11 +11751,11 @@ class DundeeHost(CreedenceHost):
         self.registerJobTest(xenrt.lib.xenserver.jobtests.JTDeadLetter)
 
         self.installer = None
-        self.melio = None
+        self.melioHelper = None
 
     def populateSubclass(self, x):
         CreedenceHost.populateSubclass(self, x)
-        x.melio = self.melio
+        x.melioHelper = self.melioHelper
     
     def isCentOS7Dom0(self):
         return True
@@ -11973,8 +11973,8 @@ class DundeeHost(CreedenceHost):
             self.waitForSSH(300, "%s host-management-reconfigure (IPv6)" % self.getName())
 
     def installMelio(self):
-        self.melio = xenrt.lib.xenserver.MelioHost(self)
-        self.melio.installMelio()
+        self.melioHelper = xenrt.lib.xenserver.MelioHelper(self)
+        self.melioHelper.installMelio()
 
 #############################################################################
 

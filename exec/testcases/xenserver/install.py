@@ -295,8 +295,10 @@ class TCXenServerInstall(xenrt.TestCase):
                 multipathing = host.lookup("USE_MULTIPATH",
                                            None,
                                            boolean=True)
+                thinprov = host.lookup("THIN_LVHD", False, boolean=True)
                 sr = xenrt.lib.xenserver.ISCSIStorageRepository(host,
-                                                                "xenrtiscsi")
+                                                                "xenrtiscsi",
+                                                                thinprov)
                 sr.create(lunobj, subtype=subtype, multipathing=multipathing)
                 sr.check()
                 host.addSR(sr, default=True)

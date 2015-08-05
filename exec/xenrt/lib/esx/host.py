@@ -235,6 +235,8 @@ class ESXHost(xenrt.lib.libvirt.Host):
 
             return assumedid
 
+        if not nics:
+            raise xenrt.XRTError("Could not find interface matching friendlyname %s" % (friendlyname))
         return 0 if nics[0] == "0" else nicToAssumedId(nics[0])
 
     def getNIC(self, assumedid):

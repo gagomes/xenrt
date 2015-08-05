@@ -208,7 +208,7 @@ def readMachineFromRackTables(machine,kvm=False,xrtMachine=None):
                 availablePorts.extend(sorted([p for p in cports if (p[2] or ignoreMissingMACs) and p[3] and p[4] and p[0].startswith("e")], key=lambda x: re.sub(r"(\D)(\d)$",r"\g<1>0\g<2>",x[0])))
         for p in availablePorts:
             netport = getNetPortNameForPort(p)
-            nicinfo = p[3].split("/")
+            nicinfo = p[3].split(" - ")[0].split("/")
             network = nicinfo[0]
             if network.endswith("x"):
                 continue

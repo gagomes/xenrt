@@ -4446,6 +4446,20 @@ exit /B 1
         else:
             raise xenrt.XRTFailure("cannot find auto-update-driver path in the xenstore")
 
+    def xenDesktopTailor(self):
+
+        xenrt.GenericGuest.xenDesktopTailor(self)
+
+        self.shutdown()
+        self.paramSet("platform:usb", "false")
+        self.paramSet("platform:hvm_serial", "none")
+        self.paramSet("platform:nousb", "true")
+        self.paramSet("platform:monitor", "null")
+        self.paramSet("platform:parallel", "none")
+        self.start()
+
+
+
 #############################################################################
 
 def parseSequenceVIFs(guest, host, vifs):

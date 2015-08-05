@@ -32,6 +32,7 @@ class Util(object):
             except Exception, e:
                 if i<times-1:
                     xenrt.TEC().logverbose("tryupto: exception %s" % e)
+                    xenrt.TEC().logverbose(traceback.format_exc())
                     pass
                 else: # re-raise the exception if the last attempt doesn't succeed
                     raise
@@ -890,19 +891,19 @@ class Experiment(TestSpace):
                     #this coord failed.
                     #log this but continue
                     #print traceback.print_exc()
-                    traceback.print_exc(file=sys.stdout)
+                    xenrt.TEC().logverbose(traceback.format_exc())
                     raise e
                 except xenrt.XRTError, e:
                     xenrt.TEC().logverbose("Experiment.do_%s(%s):%s" % (d,p2,e))
                     #xenrt raised an error
                     #continue???
                     #print traceback.print_exc()
-                    traceback.print_exc(file=sys.stdout)
+                    xenrt.TEC().logverbose(traceback.format_exc())
                     raise e
                 except Exception, e: #ignore everything else
                     xenrt.TEC().logverbose("EXC: Experiment.do_%s(%s):%s" % (d,p2,e))
                     #print traceback.print_exc()
-                    traceback.print_exc(file=sys.stdout)
+                    xenrt.TEC().logverbose(traceback.format_exc())
                     raise e
 
         for i in range(len(points)):
@@ -1812,35 +1813,36 @@ class Experiment_vmrun(Experiment):
 
 
             host.defaultsr = name_defaultsr # hack: because esx doesn't have a pool class to set up the defaultsr when creating the host via sequence above with 'default' option in <storage>
-            pool = self.tc.getDefaultPool()
-            sr_uuid = host.parseListForUUID("sr-list", "name-label", name_defaultsr)
-            xenrt.TEC().logverbose("pool=%s, name_defaultsr='%s', sr_uuid='%s'" % (pool, name_defaultsr, sr_uuid))
-            if sr_uuid:
-                if pool:
-                    pool.setPoolParam("default-SR", sr_uuid)
-                else:
-                    pool_uuid = host.minimalList("pool-list")[0]
-                    host.genParamSet("pool", pool_uuid, "default-SR", sr_uuid)
+            if isinstance(host, xenrt.lib.xenserver.Host):
+                pool = self.tc.getDefaultPool()
+                sr_uuid = host.parseListForUUID("sr-list", "name-label", name_defaultsr)
+                xenrt.TEC().logverbose("pool=%s, name_defaultsr='%s', sr_uuid='%s'" % (pool, name_defaultsr, sr_uuid))
+                if sr_uuid:
+                    if pool:
+                        pool.setPoolParam("default-SR", sr_uuid)
+                    else:
+                        pool_uuid = host.minimalList("pool-list")[0]
+                        host.genParamSet("pool", pool_uuid, "default-SR", sr_uuid)
 
-            set_dom0disksched(host,self.dom0disksched) 
-            patch_qemu_wrapper(host,self.qemuparams)
+                set_dom0disksched(host,self.dom0disksched) 
+                patch_qemu_wrapper(host,self.qemuparams)
 
-            # If given a defaultsr like ext:/dev/sdb, create and ext SR on
-            # /dev/sdb and make it the default SR
-            if self.defaultsr.startswith("ext:"):
-                device = self.defaultsr[4:]
+                # If given a defaultsr like ext:/dev/sdb, create and ext SR on
+                # /dev/sdb and make it the default SR
+                if self.defaultsr.startswith("ext:"):
+                    device = self.defaultsr[4:]
 
-                # Remove any existing SRs on the device
-                uuids = host.minimalList("pbd-list",
-                                         args="params=sr-uuid "
-                                              "device-config:device=%s" % device)
-                for uuid in uuids:
-                    host.forgetSR(uuids[0])
+                    # Remove any existing SRs on the device
+                    uuids = host.minimalList("pbd-list",
+                                             args="params=sr-uuid "
+                                                  "device-config:device=%s" % device)
+                    for uuid in uuids:
+                        host.forgetSR(uuids[0])
 
-                diskname = host.execdom0("basename `readlink -f %s`" % device).strip()
-                sr = xenrt.lib.xenserver.EXTStorageRepository(host, 'SR-%s' % diskname)
-                sr.create(device)
-                host.pool.setPoolParam("default-SR", sr.uuid)
+                    diskname = host.execdom0("basename `readlink -f %s`" % device).strip()
+                    sr = xenrt.lib.xenserver.EXTStorageRepository(host, 'SR-%s' % diskname)
+                    sr.create(device)
+                    host.pool.setPoolParam("default-SR", sr.uuid)
 
             # 1. reinstall pool with $value version of xenserver
             # for each h in self.hosts: self.pool.install_host(...)
@@ -2358,15 +2360,17 @@ MachinePassword=%s
             return
 
         def install_guests_in_a_host(g0):
-            cli = g0.host.getCLIInstance()
-            s = cli.execute("pif-list", "params=network-uuid,VLAN")
-            xenrt.TEC().logverbose("pif-list=%s" % (s,))
-            all_network_uuids = map(lambda kv:(kv[0].split(":")[1].strip(),kv[1].split(":")[1].strip()), filter(lambda el:len(el)>1, map(lambda vs:vs.split("\n"),s.split("\n\n\n"))))
-            xenrt.TEC().logverbose("all_network_uuids=%s" % (all_network_uuids,))
+            if self.vlans > 0:
+                # xenserver-specific vlan code
+                cli = g0.host.getCLIInstance()
+                s = cli.execute("pif-list", "params=network-uuid,VLAN")
+                xenrt.TEC().logverbose("pif-list=%s" % (s,))
+                all_network_uuids = map(lambda kv:(kv[0].split(":")[1].strip(),kv[1].split(":")[1].strip()), filter(lambda el:len(el)>1, map(lambda vs:vs.split("\n"),s.split("\n\n\n"))))
+                xenrt.TEC().logverbose("all_network_uuids=%s" % (all_network_uuids,))
 
-            # only those network uuids with a vlan
-            network_uuids = map(lambda (v,n):n, filter(lambda (vlan,network_uuid): vlan<>"-1", all_network_uuids))
-            xenrt.TEC().logverbose("network_uuids with vlan=%s" % (network_uuids,))
+                # only those network uuids with a vlan
+                network_uuids = map(lambda (v,n):n, filter(lambda (vlan,network_uuid): vlan<>"-1", all_network_uuids))
+                xenrt.TEC().logverbose("network_uuids with vlan=%s" % (network_uuids,))
 
             # We'll do the installation on default SR
             for i in self.getDimensions()['VMS']:

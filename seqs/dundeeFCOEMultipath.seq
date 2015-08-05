@@ -11,7 +11,7 @@
   </prepare>
 
   <testsequence>
-    <serial>
+    <serial group="FCOE Multipath">
       <testcase id="xenserver.tc.multipath.TCVerifyMultipathSetup" tc="TC-27143"/>
       <testcase id="xenserver.tc.multipath.TCValidateFCOEMultipathPathCount" tc="TC-27144"/>
       <testcase id="xenserver.tc.multipath.TCFCOESecondaryPathFailover" tc="TC-27167"/>

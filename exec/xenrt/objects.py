@@ -7127,13 +7127,13 @@ class GenericGuest(GenericPlace):
         }
         step("looking in console logs now")
         domid = domid or self.getDomid()  
-        data = self.host.guestConsoleLogTail(domid)
+        data = self.host.guestConsoleLogTail(domid,lines=200)
         data = re.sub(r"\033\[[\d]*;?[\d]*[a-zA-Z]","",data)
         lines = re.findall(r"((?:[\w\d\./\(\)]+ ){3,20})", data)
         if lines:
             for error in error_lists:
                 for line in lines:
-                    mo=re.search(error, data,re.DOTALL|re.MULTILINE)
+                    mo=re.search(error, line,re.DOTALL|re.MULTILINE)
                     if mo:
                         inputs=mo.groups()
                         raise xenrt.XRTFailure("Install failed:%s" % error_lists[error].format(*inputs))
@@ -7141,6 +7141,8 @@ class GenericGuest(GenericPlace):
             lastline = lines[-1].strip()
             raise xenrt.XRTFailure("Vendor install timed out. "
                                            "Last log line was %s" % (lastline))
+        else:
+            log("NO LINES WERE FOUND")
 
     def __copy__(self):
         cp = self.__class__(self.name)
@@ -8648,6 +8650,7 @@ class GenericGuest(GenericPlace):
             self.checkHealth(noreachcheck=True)
             # Check for CA-18131-like symptom
             self.checkFailuresinConsoleLogs(domid=domid)
+            raise
 
         if os.path.exists("%s/rpmupgrade.log" % (nfsdir.path())):
             xenrt.TEC().copyToLogDir("%s/rpmupgrade.log" % (nfsdir.path()))

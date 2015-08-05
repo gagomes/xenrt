@@ -101,11 +101,12 @@ class MarvinApi(object):
             self.logger.addHandler(stream)
 
         self.mgtSvrDetails = configGenerator.managementServer()
-        self.mgtSvrDetails.mgtSvrIp = mgtSvr.place.getIP()
+        self.mgtSvrDetails.mgtSvrIp = mgtSvr.ip
+        self.mgtSvrDetails.mgtSvrVmIp = mgtSvr.primaryManagementServer.getIP()
         self.mgtSvrDetails.user = self.MS_USERNAME
         self.mgtSvrDetails.passwd = self.MS_PASSWORD
         self.dbDetails = configGenerator.dbServer()
-        self.dbDetails.dbSvr = mgtSvr.place.getIP()
+        self.dbDetails.dbSvr = mgtSvr.dbServer.getIP()
 
         self.__apiClient = self.__testClient.getApiClient()
         self.__userApiClientObj = None
@@ -127,7 +128,7 @@ class MarvinApi(object):
 
             if 'mgtSvr' in testCliArgs:
                 # This is 3.x Marvin
-                self.__testClientObj = testCliCls(mgtSvr=self.mgtSvr.place.getIP(), logging=self.logger)
+                self.__testClientObj = testCliCls(mgtSvr=self.mgtSvr.ip, logging=self.logger)
             elif 'mgmtDetails' in testCliArgs:
                 # This is 4.2 / 4.3 Marvin
                 self.__testClientObj = testCliCls(mgmtDetails=self.mgtSvrDetails, dbSvrDetails=None, logger=self.logger)
@@ -153,7 +154,7 @@ class MarvinApi(object):
         return params
 
     def marvinDeployerFactory(self):
-        return MarvinDeployer(self.mgtSvrDetails.mgtSvrIp, self.logger, "root", self.mgtSvr.place.password, self.__testClient)
+        return MarvinDeployer(self.mgtSvrDetails.mgtSvrVmIp, self.logger, "root", self.mgtSvr.primaryManagementServer.password, self.__testClient)
 
     def getCloudGlobalConfig(self, name):
         configSetting = self.cloudApi.listConfigurations(name=name)
@@ -257,11 +258,11 @@ class MarvinApi(object):
         xenrt.TEC().logverbose('Using System Templates: %s' % (templates))
         webdir = xenrt.WebDirectory()
         if provider == 'NFS':
-            self.mgtSvr.place.execcmd('mount -t nfs -o nfsvers=3 %s /media' % (storagePath))
+            self.mgtSvr.primaryManagementServer.execcmd('mount -t nfs -o nfsvers=3 %s /media' % (storagePath))
         elif provider == 'SMB':
             ad = xenrt.getADConfig()
-            self.mgtSvr.place.execcmd('mount -t cifs %s /media -o user=%s,password=%s,domain=%s' % (storagePath, ad.adminUser, ad.adminPassword, ad.domainName))
-        installSysTmpltLoc = self.mgtSvr.place.execcmd('find / -name *install-sys-tmplt -ignore_readdir_race 2> /dev/null || true').strip()
+            self.mgtSvr.primaryManagementServer.execcmd('mount -t cifs %s /media -o user=%s,password=%s,domain=%s' % (storagePath, ad.adminUser, ad.adminPassword, ad.domainName))
+        installSysTmpltLoc = self.mgtSvr.primaryManagementServer.execcmd('find / -name *install-sys-tmplt -ignore_readdir_race 2> /dev/null || true').strip()
         for hv in templates:
             templateFile = xenrt.TEC().getFile(templates[hv])
             xenrt.TEC().logverbose("Using %s system VM template %s (md5sum: %s)" % (hv, templates[hv], xenrt.command("md5sum %s" % templateFile)))
@@ -277,10 +278,10 @@ class MarvinApi(object):
             templateUrl = webdir.getURL(os.path.basename(templateFile))
 
             if provider in ('NFS', 'SMB'):
-                self.mgtSvr.place.execcmd('%s -m /media -u %s -h %s -F' % (installSysTmpltLoc, templateUrl, hv), timeout=60*60)
+                self.mgtSvr.primaryManagementServer.execcmd('%s -m /media -u %s -h %s -F' % (installSysTmpltLoc, templateUrl, hv), timeout=60*60)
 
         if provider in ('NFS', 'SMB'):
-            self.mgtSvr.place.execcmd('umount /media')
+            self.mgtSvr.primaryManagementServer.execcmd('umount /media')
         webdir.remove()
 
 
@@ -292,7 +293,7 @@ class TCMarvinTestRunner(xenrt.TestCase):
     def generateMarvinTestConfig(self):
         self.marvinCfg = {}
         self.marvinCfg['dbSvr'] = {}
-        self.marvinCfg['dbSvr']['dbSvr'] = self.marvinApi.mgtSvrDetails.mgtSvrIp
+        self.marvinCfg['dbSvr']['dbSvr'] = self.marvinApi.mgtSvrDetails.dbSvr
         self.marvinCfg['dbSvr']['passwd'] = 'cloud'
         self.marvinCfg['dbSvr']['db'] = 'cloud'
         self.marvinCfg['dbSvr']['port'] = 3306

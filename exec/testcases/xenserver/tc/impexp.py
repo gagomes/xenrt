@@ -728,8 +728,8 @@ class TC19935(_ImpExpBase):
     CLIDISTRO="rhel63"
 
 class TC9040(_ImpExpBase):
-    """Import/Export test using CLI on SLES 11"""
-    CLIDISTRO="sles11"
+    """Import/Export test using CLI on SLES 11 SP2"""
+    CLIDISTRO="sles112"
 
 class TC12565(_ImpExpBase):
     """Import/Export test using CLI on SLES 11 SP1"""

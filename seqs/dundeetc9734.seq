@@ -14,11 +14,6 @@
 
   <prepare>
     <host>
-      <vm name="ws08sp2-x86">
-        <distro>ws08sp2-x86</distro>
-        <network device="0"/>
-        <postinstall action="installDrivers"/>
-      </vm>
       <vm name="ws08r2-x64">
         <distro>ws08r2-x64</distro>
         <network device="0"/>
@@ -43,10 +38,6 @@
       </testcase>
       <testcase id="xenserver.guest.TCMixops" group="rhel5x">
         <arg>guest=rhel5x</arg>
-        <arg>duration=${MIXHOURS}</arg>
-      </testcase>
-      <testcase id="xenserver.guest.TCMixops" group="ws08sp2-x86">
-        <arg>guest=ws08sp2-x86</arg>
         <arg>duration=${MIXHOURS}</arg>
       </testcase>
       <testcase id="xenserver.guest.TCMixops" group="ws08r2-x64">

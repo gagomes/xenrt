@@ -130,18 +130,18 @@
           <testcase id="guestops.srm.TCSuspendResume" tc="TC-9645" sku="${FROM_PRODUCT_VERSION}">
             <arg>guest=ws08sp2-x64</arg>
             <arg>workloads</arg>
-            <arg>loops=5</arg>
+            <arg>loops=2</arg>
           </testcase>
           <testcase id="guestops.srm.TCMigrate" tc="TC-9646" sku="${FROM_PRODUCT_VERSION}">
             <arg>guest=ws08sp2-x64</arg>
             <arg>workloads</arg>
-            <arg>loops=5</arg>
+            <arg>loops=2</arg>
           </testcase>
           <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-9647" sku="${FROM_PRODUCT_VERSION}">
             <arg>guest=ws08sp2-x64</arg>
             <arg>live</arg>
             <arg>workloads</arg>
-            <arg>loops=5</arg>
+            <arg>loops=2</arg>
           </testcase>
           <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-9649" sku="${FROM_PRODUCT_VERSION}">
             <arg>N/A</arg>

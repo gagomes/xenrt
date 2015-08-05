@@ -49,13 +49,13 @@
         <network device="0"/>
         <postinstall action="installDrivers"/>
       </vm>
-      <!--<vm name="win10-x86">
+      <vm name="win10-x86">
         <distro>win10-x86</distro>
         <memory>1024</memory>
         <vcpus>1</vcpus>
         <network device="0"/>
         <postinstall action="installDrivers"/>
-      </vm>-->
+      </vm>
     <storage type="nfs" name="nfs1" default="true" />
     </host>    
   </prepare>
@@ -182,7 +182,7 @@
           <arg>guest=win81-x64</arg>
         </testcase>
       </serial>
-      <!--<serial group="win10-x86">
+      <serial group="win10-x86">
         <testcase id="xenserver.tc.guest.WMIPowerShell" tc="TC-26427">
           <arg>guest=win10-x86</arg>
         </testcase>
@@ -201,7 +201,7 @@
         <testcase id="xenserver.tc.guest.WMICheckXenStoreWrite" tc="TC-26432">
           <arg>guest=win10-x86</arg>
         </testcase>
-      </serial>-->
+      </serial>
 
     </parallel>
   </testsequence>

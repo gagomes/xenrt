@@ -32,6 +32,7 @@ class LicenseBase(xenrt.TestCase, object):
         self.systemObj = None
         self.v6 = None
         self.addLicenseFile = False 
+        self.skipVerify = False
 
     def prepare(self,arglist):
 
@@ -77,6 +78,8 @@ class LicenseBase(xenrt.TestCase, object):
                 self.graceExpected = True
             if arg.startswith('addlicfiles'):
                 self.addLicenseFile = True
+            if arg.startswith('skipVerify'):
+                self.skipVerify = True
 
     def checkGrace(self,host):
 
@@ -198,7 +201,8 @@ class TCUpgrade(LicenseBase):
             self.licenseManager.applyLicense(v6,self.systemObj,license,licenseinUse)
 
         if self.addLicenseFile or self.oldLicenseServerName:
-            self.licenseManager.verifyLicenseServer(license,v6,licenseinUse, self.systemObj)
+            if not self.skipVerify:
+                self.licenseManager.verifyLicenseServer(license,v6,licenseinUse, self.systemObj)
             self.featureFlagValidation(license)
         else:
             for host in hosts:

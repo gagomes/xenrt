@@ -1976,6 +1976,16 @@ class TC9415(_VDICopy):
     FROM_TYPE = "lvm"
     TO_TYPE = "cslg"
 
+class TC27155(_VDICopy):
+    """Verify vdi-copy between an a NFS SR with no sub directory and lvmoiscsi SR"""
+    FROM_TYPE = "nfs"
+    TO_TYPE = "lvmoiscsi"
+
+class TC27156(_VDICopy):
+    """Verify vdi-copy between an ext SR and a lvmoiscsi SR"""
+    FROM_TYPE = "ext"
+    TO_TYPE = "lvmoiscsi"
+
 # NFS SR with no sub directory tests
 class TC20953(_VDICopy):
     """Verify vdi-copy between an lvmoiscsi SR and a NFS SR with no sub directory"""
@@ -2047,6 +2057,26 @@ class TC27110(_VDICopy):
 class TC27111(_VDICopy):
     """Verify vdi-copy between a local smapiv3 SR and a nfs SR"""
     FROM_TYPE = "btrfs"
+    TO_TYPE = "nfs"
+
+class TC27177(_VDICopy):
+    """Verify vdi-copy between an lvmoiscsi SR and a local smapiv3 SR"""
+    FROM_TYPE = "lvmoiscsi"
+    TO_TYPE = "rawnfs"
+
+class TC27178(_VDICopy):
+    """Verify vdi-copy between an nfs SR and a local smapiv3 SR"""
+    FROM_TYPE = "nfs"
+    TO_TYPE = "rawnfs"
+
+class TC27179(_VDICopy):
+    """Verify vdi-copy between a local smapiv3 SR and a lvmoiscsi SR"""
+    FROM_TYPE = "rawnfs"
+    TO_TYPE = "lvmoiscsi"
+
+class TC27180(_VDICopy):
+    """Verify vdi-copy between a local smapiv3 SR and a nfs SR"""
+    FROM_TYPE = "rawnfs"
     TO_TYPE = "nfs"
 
 
@@ -2368,17 +2398,27 @@ class TC8475(_TCResizeShrink):
     """Attempting to shrink a LVM VDI should fail with a suitable error."""
 
     SRTYPE = "lvm"
-    
+
+class TC27158(_TCResizeShrink):
+    """Attempting to shrink a LVM VDI should fail with a suitable error."""
+
+    SRTYPE = "lvmoiscsi"
+
 class TC8476(_TCResizeGrow):
     """Grow a LVM VDI of a round size by 1 byte."""
 
     SRTYPE = "lvm"
-    
+
 class TC8477(_TCResizeGrow2):
     """Grow a LVM VDI twice in large chunks."""
 
     SRTYPE = "lvm"
-    
+
+class TC27159(_TCResizeGrow2):
+    """Grow a LVM VDI twice in large chunks."""
+
+    SRTYPE = "lvmoiscsi"
+
 class TC8478(_TCResizeOnline):
     """Resize a LVM VDI attached to a running VM."""
 
@@ -2389,7 +2429,13 @@ class TC8479(_TCResizeDataCheck):
 
     SRTYPE = "lvm"
     FORCEOFFLINE = True
-    
+
+class TC27160(_TCResizeDataCheck):
+    """Data integrity of resized LVM VDI."""
+
+    SRTYPE = "lvmoiscsi"
+    FORCEOFFLINE = True
+
 class TC8481(_TCResizeDataCheck):
     """Data integrity of resized LVM raw VDI."""
 
@@ -2435,7 +2481,7 @@ class TC27089(_TCResizeShrink):
     """Attempting to shrink a VHDoEXT VDI should fail with a suitable error."""
 
     SRTYPE = "btrfs"
-    
+
 class TC27090(_TCResizeGrow):
     """Grow a VHDoEXT VDI of a round size by 1 byte."""
 
@@ -2450,6 +2496,29 @@ class TC27092(_TCResizeDataCheck):
     """Data integrity of resized VHDoEXT VDI."""
 
     SRTYPE = "btrfs"
+    FORCEOFFLINE = True
+
+
+# RAWNFS resize
+class TC27181(_TCResizeShrink):
+    """Attempting to shrink a VHDoEXT VDI should fail with a suitable error."""
+
+    SRTYPE = "rawnfs"
+
+class TC27182(_TCResizeGrow):
+    """Grow a VHDoEXT VDI of a round size by 1 byte."""
+
+    SRTYPE = "rawnfs"
+    
+class TC27183(_TCResizeGrow2):
+    """Grow a VHDoEXT VDI twice in large chunks."""
+
+    SRTYPE = "rawnfs"
+
+class TC27184(_TCResizeDataCheck):
+    """Data integrity of resized VHDoEXT VDI."""
+
+    SRTYPE = "rawnfs"
     FORCEOFFLINE = True
 
 
@@ -2768,6 +2837,11 @@ class TC8515(_TCVDICreateRoundup):
     """VDI create of a odd size LVM VDI should round up to the next allocation unit"""
 
     SRTYPE = "lvm"
+
+class TC27157(_TCVDICreateRoundup):
+    """VDI create of a odd size LVM VDI should round up to the next allocation unit"""
+
+    SRTYPE = "lvmoiscsi"
 
 class TC8520(_TCVDICreateRoundup):
     """VDI create of a odd size VHDoEXT VDI should round up to the next allocation unit"""
@@ -3559,6 +3633,12 @@ class TC27093(TC10671):
     """A freshly created VDI should contain entirely zero data (file based VHD)"""
 
     SRTYPE = "btrfs"
+
+
+class TC27185(TC10671):
+    """A freshly created VDI should contain entirely zero data (file based VHD)"""
+
+    SRTYPE = "rawnfs"
 
 
 class TC10673(TC10671):

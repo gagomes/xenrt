@@ -9,5 +9,6 @@
     <serial group="hfx1004">
       <testcase id="xenserver.tc.network.TC2VlansPerBridge" tc="TC-20912"/>
     </serial>
+    <testcase id="testcases.xenserver.tc.vmlifecycle.TCGuestCoreDump" tc="TC-27146" />
   </testsequence>
 </xenrt>

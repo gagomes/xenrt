@@ -633,6 +633,9 @@ class Host(xenrt.GenericHost):
         
         self.installationCookie = "%012x" % xenrt.random.randint(0,0xffffffffffff)
 
+    def getUptime(self):
+        return float(self.execdom0("cat /proc/uptime").split()[0])
+
     def rebuildInitrd(self):
         """
         Rebuild the initrd of the host in-place
@@ -3414,6 +3417,15 @@ fi
         usage = self.getXentopData()
         cpuUsage = usage["0"]["CPU(%)"]
         return float(cpuUsage)
+
+    def dom0CPUUsageOverTime(self,secs):
+        deadline = xenrt.util.timenow() + secs
+        count = 0
+        cpuUsageTotal = 0
+        while xenrt.util.timenow() < deadline:
+            count += 1
+            cpuUsageTotal += self.dom0CPUUsage()
+        return float(cpuUsageTotal) / float(count)
 
     def getXentopData(self):
         data = self.execdom0("xentop -f -b -i 2").strip()
@@ -7136,6 +7148,7 @@ fi
         sr = self.genParamGet("vdi", vdiuuid, "sr-uuid")
         srtype = self.genParamGet("sr", sr, "type")
         host = self.getSRMaster(sr)
+        host.execdom0("xe sr-scan uuid=%s" % sr)
         foundsize = 0
         if srtype in ["ext", "nfs"]:
             path = "/var/run/sr-mount/%s/%s.vhd" % (sr, vdiuuid)
@@ -7377,6 +7390,12 @@ logger "Stopping xentrace loop, host has less than 512M disk space free"
             else:
                 xenrt.TEC().logverbose("Not enabling multiple vCPUs as there are already %u" % (pcount))
 
+        if xenrt.TEC().lookup("ENABLE_MULTICAST", False, boolean=True):
+            if isinstance(self, xenrt.lib.xenserver.DundeeHost):
+                self.execdom0("sed -i '/multicast off/d' /usr/libexec/xenopsd/vif-real")
+            else:
+                self.execdom0("sed -i '/multicast off/d' /etc/xensource/scripts/vif")
+
     def postUpgrade(self):
         """Perform any product-specific post upgrade actions."""
 
@@ -7502,7 +7521,7 @@ logger "Stopping xentrace loop, host has less than 512M disk space free"
                 pass
             else:
                 raise
-        xenrt.sleep(5) # give the server a few seconds to update resolv.conf
+        xenrt.sleep(60) # give the server a few seconds to update resolv.conf
 
     def setIPAddressOnSecondaryInterface(self, assumedid):
         """Enable a DHCP IP address on a non-management dom0 network

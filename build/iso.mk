@@ -28,13 +28,3 @@ $(IMAGEDIR)/%.iso:
 	$(SUDO) $(MKISO) $(WINDOWS_ISOS_INPUTS)/$(notdir $@) \
 			 $(call STRIP,$@) \
 			 $@ NOSFU=ALL
-
-.PHONY: $(WEBROOT)/wininstall/netinstall/%
-$(WEBROOT)/wininstall/netinstall/%:
-	$(info Building $@...)
-	$(SUDO) $(ROOT)/$(XENRT)/scripts/buildwinnetinstall.sh $@
-	$(SUDO) mkdir $@/winpe
-	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/wimboot/boot.ipxe $@/winpe/
-	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/wimboot/diskpart.txt $@/
-	$(SUDO) cp $(TEST_INPUTS)/wimboot-1.0.5/wimboot $@/winpe
-	$(SUDO) chown -R $(USERID):$(GROUPID) $@

@@ -42,6 +42,7 @@ __all__ = ["getStorageRepositoryClass",
            "NetAppTarget",
            "EQLTarget",
            "SMAPIv3LocalStorageRepository",
+           "SMAPIv3SharedStorageRepository",
             ]
 
 
@@ -58,6 +59,12 @@ def getStorageRepositoryClass(host, sruuid):
         return HBAStorageRepository
     if srtype == "nfs":
         return NFSStorageRepository
+    if srtype == "ext":
+        return EXTStorageRepository
+    if srtype == "btrfs" or srtype == "smapiv3local":
+        return SMAPIv3LocalStorageRepository
+    if srtype == "rawnfs" or srtype == "smapiv3shared":
+        return SMAPIv3SharedStorageRepository
 
     raise xenrt.XRTError("%s SR type class getter is not implemented." % srtype)
 
@@ -692,7 +699,7 @@ class NFSStorageRepository(StorageRepository):
 
     SHARED = True
 
-    def create(self, server=None, path=None, physical_size=0, content_type="", nosubdir=False):
+    def getServerAndPath(self, server, path):
         if not (server or path):
             if xenrt.TEC().lookup("FORCE_NFSSR_ON_CTRL", False, boolean=True):
                 # Create an SR using an NFS export from the XenRT controller.
@@ -707,13 +714,16 @@ class NFSStorageRepository(StorageRepository):
                 r = re.search(r"([0-9\.]+):(\S+)", nfs)
                 server = r.group(1)
                 path = r.group(2)
-
         self.server = server
         self.path = path
+
+
+    def create(self, server=None, path=None, physical_size=0, content_type="", nosubdir=False):
+        self.getServerAndPath(server, path)
         dconf = {}
         smconf = {}
-        dconf["server"] = server
-        dconf["serverpath"] = path
+        dconf["server"] = self.server
+        dconf["serverpath"] = self.path
         if nosubdir:
             smconf["nosubdir"] = "true"
         self._create("nfs",
@@ -843,6 +853,43 @@ class NFSv4StorageRepository(NFSStorageRepository):
 
 class NFSv4ISOStorageRepository(NFSISOStorageRepository):
     EXTRA_DCONF = {'nfsversion': '4'}
+
+
+class SMAPIv3SharedStorageRepository(NFSStorageRepository):
+
+    def create(self, server=None, path=None, physical_size=0, content_type=""):
+        self.getServerAndPath(server, path)
+        dconf = {}
+        smconf = {}
+        dconf["uri"] = "nfs://%s%s" % (self.server, self.path)
+        self._create("rawnfs",
+                     dconf,
+                     physical_size=physical_size,
+                     content_type=content_type,
+                     smconf=smconf)
+
+    def check(self):
+        StorageRepository.checkCommon(self, "rawnfs")
+        #cli = self.host.getCLIInstance()
+        if self.host.pool:
+            self.checkOnHost(self.host.pool.master)
+            for slave in self.host.pool.slaves.values():
+                self.checkOnHost(slave)
+        else:
+            self.checkOnHost(self.host)
+
+    def checkOnHost(self, host):
+        path = "/var/run/sr-mount/nfs/%s%s" % (self.server, self.path)
+        try:
+            host.execdom0("test -d %s" % path)
+        except:
+            raise xenrt.XRTFailure("SR mountpoint %s does not exist" % path)
+        nfs = string.split(host.execdom0("mount | grep \""
+                                          "%s\"" % path))[0]
+        shouldbe = "%s:%s/%s" % (self.server, self.path, self.uuid)
+        if nfs != shouldbe:
+            raise xenrt.XRTFailure("Mounted path '%s' is not '%s'" %
+                                   (nfs, shouldbe))
 
 
 class SMBStorageRepository(StorageRepository):

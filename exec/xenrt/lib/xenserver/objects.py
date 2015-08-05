@@ -106,7 +106,7 @@ class XapiObject(object):
             return params
 
         for p in listParams:
-            pair = p.split(keyDelimiter)
+            pair = p.split(keyDelimiter, 1)
             params[pair[0].strip()]=pair[1].strip()
         return params
 

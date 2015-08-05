@@ -30,7 +30,7 @@ time.strptime('2014-06-12','%Y-%m-%d')
 __all__ = ["GenericPlace", "GenericHost", "NetPeerHost", "GenericGuest", "productLib",
            "RunOnLocation", "ActiveDirectoryServer", "PAMServer", "CVSMServer",
            "WlbApplianceServer", "DemoLinuxVM", "ConversionApplianceServer","EventObserver",
-           "XenMobileApplianceServer"]
+           "XenMobileApplianceServer", "_WinPEBase"]
 
 class MyHTTPConnection(httplib.HTTPConnection):
     XENRT_SOCKET_TIMEOUT = 600
@@ -583,6 +583,7 @@ class GenericPlace(object):
     def xmlrpcUpdate(self):
         """Update the test execution daemon to the latest version"""
         xenrt.TEC().logverbose("Updating XML-RPC daemon on %s" % (self.getIP()))
+        self.xmlrpcExec("attrib -r c:\\execdaemon.py")
         f = file("%s/utils/execdaemon.py" %
                  (xenrt.TEC().lookup("LOCAL_SCRIPTDIR")), "r")
         data = f.read()
@@ -2331,14 +2332,6 @@ Add-WindowsFeature as-net-framework"""
             self.reboot()
         else:
             xenrt.TEC().logverbose('.NET %s version already installed' % (currentDotNet45Version))
-
-    def installCloudPlatformManagementServer(self):
-        manSvr = xenrt.lib.cloud.ManagementServer(self)
-        manSvr.installCloudPlatformManagementServer()
-
-    def installCloudStackManagementServer(self):
-        manSvr = xenrt.lib.cloud.ManagementServer(self)
-        manSvr.installCloudStackManagementServer()
 
     def installCloudManagementServer(self):
         manSvr = xenrt.lib.cloud.ManagementServer(self)
@@ -4371,6 +4364,16 @@ Loop While not oex3.Stdout.atEndOfStream"""%(applicationEventLogger,systemEventL
                            "SZ",
                             name)
             self.reboot()
+        else:
+            self.execcmd("hostname %s" % name)
+            if self.execcmd('test -e /etc/hostname', retval="code") == 0:
+                self.execcmd("echo %s > /etc/hostname" % name)
+            elif self.execcmd('test -e /etc/sysconfig/network', retval="code") == 0:
+                self.execcmd("sed -i '/HOSTNAME/d' /etc/sysconfig/network")
+                self.execcmd("echo 'HOSTNAME=%s' >> /etc/sysconfig/network" % name)
+            self.execcmd("echo '%s    %s' >> /etc/hosts" % (self.getIP(), name))
+                
+            
 
     def sysPrepOOBE(self):
         if not self.windows:
@@ -4417,6 +4420,27 @@ Loop While not oex3.Stdout.atEndOfStream"""%(applicationEventLogger,systemEventL
             timeout = 600
         self.waitForSSH(timeout)
         self.tailor()
+
+    def installWindowsMelio(self, renameHost=False):
+        if renameHost:
+            self.rename("%s-%s" % (self.name, xenrt.GEC().jobid() or "nojob"))
+        self.xmlrpcFetchFile("%s/melio/sanbolic.cer" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"), "c:\\sanbolic.cer")
+        self.xmlrpcSendFile("%s/distutils/certmgr.exe" % xenrt.TEC().lookup("LOCAL_SCRIPTDIR"), "c:\\certmgr.exe")
+        self.xmlrpcExec("c:\\certmgr.exe /add c:\\sanbolic.cer /c /s /r localmachine trustedpublisher")
+        self.xmlrpcFetchFile("%s/melio/%s" % (xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"), xenrt.TEC().lookup("MELIO_PATH")), "c:\\warm-drive.exe")
+        self.xmlrpcExec("c:\\warm-drive.exe /SILENT")
+        self.disableFirewall()
+
+    def getWindowsMelioConfig(self):
+        return json.loads(unicode(self.xmlrpcReadFile("c:\\program files\\citrix\\warm-drive\\warm-drive.json"), "utf-16"))
+
+    def writeWindowsMelioConfig(self, config):
+        d = xenrt.TempDirectory()  
+        with open("%s/warm-drive.json" % d.path(), "w") as f:
+            f.write(json.dumps(config, indent=2).replace("\n", "\r\n").encode("utf-16"))
+        self.xmlrpcSendFile("%s/warm-drive.json" % d.path(), "c:\\program files\\citrix\\warm-drive\\warm-drive.json")
+        d.remove()
+        self.reboot()
 
 class RunOnLocation(GenericPlace):
     def __init__(self, address):
@@ -4863,6 +4887,9 @@ class GenericHost(GenericPlace):
 
     TCPDUMP = "tcpdump"
 
+    def getUptime(self):
+        return 0
+
     def arpwatch(self, iface, mac, timeout=600, level=xenrt.RC_FAIL):
         """Monitor an interface (or bridge) for an ARP reply"""
 
@@ -4871,15 +4898,16 @@ class GenericHost(GenericPlace):
         deadline = xenrt.util.timenow() + timeout
 
         if xenrt.TEC().lookup("XENRT_DHCPD", False, boolean=True):
+            uptime = self.getUptime()
             while True:
                 ip = self.checkLeases(mac)
                 if ip:
                     return ip
+                if self.getUptime() < uptime:
+                    self.checkHealth()
                 xenrt.sleep(20)
                 if xenrt.util.timenow() > deadline:
                     xenrt.XRT("Timed out monitoring for guest DHCP lease", level, data=mac)
-
-            
 
         myres = []
         myres.append(re.compile(r"(?P<ip>[0-9.]+) is-at (?P<mac>[0-9a-f:]+)"))
@@ -6031,10 +6059,25 @@ exit 0
         pxe1.setDefault("ipxe")
         pxe1.writeOut(self.machine)
 
+        webdir = xenrt.WebDirectory()
+        with open(os.path.join(webdir.path(), "cloudconfig.yaml"), "w") as f:
+            f.write("""#cloud-config
+
+users:
+  - name: root
+    passwd: $1$IpG/0K10$FRR072xrFnouDDxWEG/Br1
+write_files:
+  - path: /xenrt
+    permissions: 0644
+    owner: root
+    content: |
+        xenrt
+""")
+
         coreos = pxe2.addEntry("coreos", boot="linux")
         basepath = xenrt.getLinuxRepo("coreos-stable", "x86-64", "HTTP")
         coreos.linuxSetKernel("%s/amd64-usr/current/coreos_production_pxe.vmlinuz" % basepath, abspath=True)
-        coreos.linuxArgsKernelAdd("initrd=%s/amd64-usr/current/coreos_production_pxe_image.cpio.gz cloud-config-url=%s/cloudconfig.yaml" % (basepath, basepath))
+        coreos.linuxArgsKernelAdd("initrd=%s/amd64-usr/current/coreos_production_pxe_image.cpio.gz cloud-config-url=%s" % (basepath, webdir.getURL("cloudconfig.yaml")))
     
         pxe2.setDefault("coreos")
         filename = pxe2.writeOut(self.machine, suffix="_ipxe")
@@ -6991,6 +7034,7 @@ class GenericGuest(GenericPlace):
         self.instance = None
         self.isTemplate = False
         self.imported = False
+        self.sriovvifs = []
         xenrt.TEC().logverbose("Creating %s instance." % (self.__class__.__name__))
 
     def populateSubclass(self, x):
@@ -7008,6 +7052,7 @@ class GenericGuest(GenericPlace):
         x.instance = self.instance
         x.isTemplate = self.isTemplate
         x.imported = self.imported
+        x.sriovvifs = self.sriovvifs
 
     def getDeploymentRecord(self):
         if self.isTemplate:
@@ -10172,12 +10217,11 @@ while True:
         pass
 
     def setupNetscalerVPX(self, installNSTools=False):
-        netscaler = xenrt.lib.netscaler.NetScaler.setupNetScalerVpx(self, useVIFs=True)
+        netscaler = xenrt.lib.netscaler.NetScaler.setupNetScalerVpx(self, useExistingVIFs=True, license=xenrt.lib.netscaler.NetScaler.getLicenseFileFromXenRT())
         xenrt.GEC().registry.objPut("netscaler", self.name, netscaler)
-        netscaler.applyLicense(netscaler.getLicenseFileFromXenRT())
         if installNSTools:
             netscaler.installNSTools()
-        netscaler.checkFeatures("Test results after applying license:")
+        netscaler.checkFeatures("Test results after setting up:")
 
 class EventObserver(xenrt.XRTThread):
 
@@ -12903,3 +12947,37 @@ class VifOffloadSettings(object):
             # This isn't available for all Windows/XenServer versions.
             return -1
 
+class _WinPEBase(object):
+    def __init__(self):
+        self._xmlrpc = None
+        self._xmlrpcInit = False
+        self.ip = None
+
+    @property
+    def xmlrpc(self):
+        if not self._xmlrpcInit:
+            if not self.ip:
+                raise xenrt.XRTError("IP not known")
+            self._xmlrpc = xmlrpclib.ServerProxy("http://%s:8080" % self.ip)
+            self._xmlrpcInit = True
+        return self._xmlrpc
+
+    def boot(self):
+        raise xenrt.XRTError("Not implemented")
+
+    def waitForBoot(self):
+        deadline = xenrt.util.timenow() + 1800
+        while True:
+            try:
+                if self.xmlrpc.file_exists("x:\\execdaemonwinpe.py") and not self.xmlrpc.file_exists("x:\\waiting.stamp"):
+                    break
+            except Exception, e:
+                xenrt.TEC().logverbose("Exception: %s" % str(e))
+            if xenrt.util.timenow() > deadline:
+                raise xenrt.XRTError("Timed out waiting for WinPE boot")
+            xenrt.sleep(15)
+
+    def reboot(self):
+        self.xmlrpc.write_file("x:\\waiting.stamp", "")
+        self.xmlrpc.start_shell("wpeutil reboot")
+        self.waitForBoot()

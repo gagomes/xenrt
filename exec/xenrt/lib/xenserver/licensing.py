@@ -1,6 +1,7 @@
 import xenrt
 from xenrt.enum import XenServerLicenseSKU
 from abc import ABCMeta, abstractmethod
+from xenrt.lazylog import log
 
 __all__ = ["DundeeLicense", "CreedenceLicense", "TampaLicense", "ClearwaterLicense", "XenServerLicenseFactory", "LicenseManager"]
 

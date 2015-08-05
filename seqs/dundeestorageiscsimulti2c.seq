@@ -1,6 +1,6 @@
 <xenrt>
 
-  <!-- 2 host iSCSI Multipath tests a -->
+  <!-- 2 host iSCSI Multipath tests c -->
 
   <prepare>
     <pool id="0">

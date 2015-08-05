@@ -924,7 +924,7 @@ class _TCminiStressXenMotion(_TCXenMotionNonLocal):
     MEMORY = 1024
     VCPUS = 2
     VARCH = "VMXHAP"
-    LOOPITERS = 100 
+    LOOPITERS = 50 
 
 class TCwin2k8x86(_TCminiStressXenMotion):
     """Inter-host XenMotions of a multi-vCPU Windows Server 2008 32 bit VM on EPT"""

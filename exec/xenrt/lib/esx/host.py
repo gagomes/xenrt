@@ -235,7 +235,7 @@ class ESXHost(xenrt.lib.libvirt.Host):
 
             return assumedid
 
-        return 0 if int(nics[0]) == 0 else nicToAssumedId(nics[0])
+        return 0 if nics[0] == "0" else nicToAssumedId(nics[0])
 
     def getNIC(self, assumedid):
         """ Return the product enumeration name (e.g. "vmnic0") for the

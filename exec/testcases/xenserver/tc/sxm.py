@@ -47,7 +47,7 @@ class LiveMigrate(xenrt.TestCase):
         else:
             self.test_config['shared_SRs'] = {}
 
-        interesting_sr_types = set(['ext','lvm','lvmohba','lvmoiscsi','nfs'])
+        interesting_sr_types = set(['ext','lvm','lvmohba','lvmoiscsi','nfs','lvmofcoe'])
         shared_SR_types = interesting_sr_types - set(['ext', 'lvm'])
         sr_uuids = host.getSRs()
         sr_types = [host.getSRParam(uuid=sr_uuid, param='type') for sr_uuid in sr_uuids]

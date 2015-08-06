@@ -22,9 +22,11 @@
     <testcase id="xenserver.tc.vhd.TC10582" sku="thin" />
     <testcase id="xenserver.tc.vhd.TC10583" sku="thin" />
     <testcase id="xenserver.tc.vhd.TC10585" sku="thin" />
+    <!-- Removing Raw VDI tests as per CP-12397.
     <testcase id="xenserver.tc.vhd.TC10586" sku="thin" />
     <testcase id="xenserver.tc.vhd.TC10587" sku="thin" />
     <testcase id="xenserver.tc.vhd.TC10588" sku="thin" />
+    -->
   </testsequence>
 
 </xenrt>

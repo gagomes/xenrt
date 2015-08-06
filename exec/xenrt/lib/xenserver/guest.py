@@ -978,7 +978,7 @@ users:
                     #Sometimes VM reboots during tailoring
                     #so wait for 60 secs for VM to be back
                     self.mainip = self.host.arpwatch(bridge, mac, timeout=120)
-                    self.waitForssh(timeout=30)
+                    self.waitForssh(timeout=60)
                     xenrt.TEC().warning("VM has been rebooted")
                     raise
                     

@@ -7120,12 +7120,12 @@ class GenericGuest(GenericPlace):
         "The file (.*.rpm) cannot be opened.": '{0} is corrupted',
         "kernel BUG at (.*)" : "kernel BUG at {0}",
         "rcu_sched detected stalls on cpus/tasks": "rcu_sched detected stalls on cpus/tasks",
-        "BUG: unable to handle kernel paging request at virtual address [\d]+" : \
+        "BUG: unable to handle kernel paging request at virtual address [\d]+":\
                                      "BUG: unable to handle kernel paging request at virtual address",
         "Failure trying to run: chroot /target dpkg.* (.*.deb)" : \
                                      "Failure trying to run: chroot /target dpkg for {0}",
         }
-        step("looking in console logs now")
+        log("looking in console logs for errors")
         domid = domid or self.getDomid()  
         data = self.host.guestConsoleLogTail(domid,lines=200)
         data = re.sub(r"\033\[[\d]*;?[\d]*[a-zA-Z]","",data)
@@ -7141,8 +7141,6 @@ class GenericGuest(GenericPlace):
             if lastline:
                 raise xenrt.XRTFailure("Vendor install timed out. " 
                                            "Last log line was %s" % (lastline))
-        else:
-            log("NO LINES WERE FOUND")
 
     def __copy__(self):
         cp = self.__class__(self.name)
@@ -8639,9 +8637,9 @@ class GenericGuest(GenericPlace):
 
         # Monitor for installation complete
         if xenrt.TEC().lookup("EXTRA_TIME", False, boolean=True):
-            installtime = 1800
+            installtime = 7200
         else:
-            installtime = 1800
+            installtime = 3600
         try:
             xenrt.waitForFile("%s/.xenrtsuccess" % (nfsdir.path()),
                               installtime,

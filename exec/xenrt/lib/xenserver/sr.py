@@ -198,7 +198,7 @@ class StorageRepository(object):
 
         if not srtype:
             srtype = self.srtype
-        if srtype in ["lvm", "lvmoiscsi", "lvmohba"]:
+        if srtype in ["lvmoiscsi", "lvmohba"]:
             return True
         return False
 
@@ -217,6 +217,8 @@ class StorageRepository(object):
             args.append("shared=true")
         args.extend(["device-config:%s=\"%s\"" % (x, y)
                      for x,y in actualDeviceConfiguration.items()])
+        if not self.__thinProv:
+            self.__thinProv = xenrt.TEC().lookup("FORCE_THIN_LVHD", False, boolean=True)
         if self.__thinProv:
             if self.__isEligibleThinProvisioning(srtype):
                 smconf["allocation"] = "dynamic"

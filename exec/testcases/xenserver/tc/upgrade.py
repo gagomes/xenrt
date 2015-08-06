@@ -2341,7 +2341,7 @@ class TC12548(_TCCrossVersionImport):
 class TC12545(_TCCrossVersionImport):
     """Import of VMs exported from XenServer 5.6 GA (MNR)"""
 
-    DISTROS = ["LATEST_rhel5", "LATEST_rhel4"]
+    DISTROS = ["rhel5x", "rhel4x"]
 
 class TC17440(_TCCrossVersionImport):
     """Import of VMs exported from XenServer 6.0 GA (Boston)"""

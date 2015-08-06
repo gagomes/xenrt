@@ -8639,9 +8639,9 @@ class GenericGuest(GenericPlace):
 
         # Monitor for installation complete
         if xenrt.TEC().lookup("EXTRA_TIME", False, boolean=True):
-            installtime = 7200
+            installtime = 1800
         else:
-            installtime = 3600
+            installtime = 1800
         try:
             xenrt.waitForFile("%s/.xenrtsuccess" % (nfsdir.path()),
                               installtime,

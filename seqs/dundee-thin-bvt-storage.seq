@@ -12,7 +12,7 @@
   <prepare>
     <pool>
       <storage type="lvmoiscsi" name="iscsisr" options="thin"/>
-      <storage type="nfs" name="nfssr_nosubdir" options="nosubdir"/>
+      <storage type="nfs" name="nfssr"/>
       <host/>
     </pool>
   </prepare>

@@ -7132,14 +7132,14 @@ class GenericGuest(GenericPlace):
         lines = re.findall(r"((?:[\w\d\./\(\)]+ ){3,20})", data)
         if lines:
             for error in error_lists:
-                for line in lines:
-                    mo=re.search(error, line,re.DOTALL|re.MULTILINE)
-                    if mo:
-                        inputs=mo.groups()
-                        raise xenrt.XRTFailure("Install failed:%s" % error_lists[error].format(*inputs))
+                mo=re.search(error, data,re.DOTALL|re.MULTILINE)
+                if mo:
+                    inputs=mo.groups()
+                    raise xenrt.XRTFailure("Install failed:%s" % error_lists[error].format(*inputs))
 
             lastline = lines[-1].strip()
-            raise xenrt.XRTFailure("Vendor install timed out. "
+            if lastline:
+                raise xenrt.XRTFailure("Vendor install timed out. " 
                                            "Last log line was %s" % (lastline))
         else:
             log("NO LINES WERE FOUND")

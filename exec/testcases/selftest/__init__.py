@@ -253,16 +253,15 @@ class TCMachineCheck(xenrt.TestCase):
 
             # Validate it has the expected config
             try:
-                expectedIp, expectedNetmask, expectedGateway = self.host.getNICAllocatedIPAddress(assumedId)
-                xenrt.TEC().logverbose("For NIC %u expecting %s/%s (GW %s)" % (assumedId, expectedIp, expectedNetmask, expectedGateway))
+                expectedIp, expectedNetmask, _ = self.host.getNICAllocatedIPAddress(assumedId)
+                xenrt.TEC().logverbose("For NIC %u expecting %s/%s" % (assumedId, expectedIp, expectedNetmask))
             except xenrt.XRTError:
                 xenrt.TEC().warning("NIC %u has no assigned IP" % assumedId)
                 expectedIp = None
                 missingIPConfigs.append(str(assumedId))
             actualIp = self.host.genParamGet("pif", pif, "IP")
             actualNetmask = self.host.genParamGet("pif", pif, "netmask")
-            actualGateway = self.host.genParamGet("pif", pif, "gateway")
-            xenrt.TEC().logverbose("Found %s/%s (GW %s)" % (actualIp, actualNetmask, actualGateway))
+            xenrt.TEC().logverbose("Found %s/%s" % (actualIp, actualNetmask))
             failures = []
             if expectedIp is None:
                 # Determine if IP is in the expected subnet
@@ -275,7 +274,6 @@ class TCMachineCheck(xenrt.TestCase):
                 confKey = ["NETWORK_CONFIG"] + nwMaps[nw].split("/")
                 expectedSubnet = self.host.lookup(confKey + ["SUBNET"])
                 expectedNetmask = self.host.lookup(confKey + ["SUBNETMASK"])
-                expectedGateway = self.host.lookup(confKey + ["GATEWAY"])
                 if not isAddressInSubnet(actualIp, expectedSubnet, expectedNetmask):
                     failures.append("IP not in correct subnet")
             else:
@@ -284,8 +282,6 @@ class TCMachineCheck(xenrt.TestCase):
 
             if actualNetmask != expectedNetmask:
                 failures.append("Netmask not as expected")
-            if actualGateway != expectedGateway:
-                failures.append("Gateway not as expected")
             if len(failures) > 0:
                 raise xenrt.XRTFailure("Incorrect DHCP response for NIC %u: %s" % (assumedId, ", ".join(failures)))
             cli.execute("pif-reconfigure-ip", "uuid=%s mode=none" % pif)

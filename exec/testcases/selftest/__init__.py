@@ -147,7 +147,12 @@ class TCMachineCheck(xenrt.TestCase):
     def run(self, arglist):
         self.host = self.getDefaultHost()
 
-        for t in [("Power", "IPMI"), ("Power", "PDU"), ("Network", "Ports"), ("Network", "DHCP")]:
+        if arglist:
+            tests = map(lambda t: t.split("/", 1), arglist)
+        else:
+            tests = [("Power", "IPMI"), ("Power", "PDU"), ("Network", "Ports"), ("Network", "DHCP")]
+
+        for t in tests:
             self.runSubcase("test%s%s" % (t[0],t[1]), (), t[0], t[1])
             self.host.waitForSSH(600, desc="Boot after %s/%s test" % (t[0],t[1]))
 

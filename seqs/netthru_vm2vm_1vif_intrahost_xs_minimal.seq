@@ -8,8 +8,11 @@
   <prepare>
       <host id="0">
         <NETWORK>
+          <!--<PHYSICAL network="NPRI" jumbo="yes" speed="10G" name="NET_A"> -->
           <PHYSICAL network="NPRI" jumbo="yes" name="NET_A"> <!-- intrahost doesn't use the 10gb nic, so run with any nic -->
             <NIC/>
+            <!--<VMS/>  #unnecessary because we are using bridge directly in the VMs -->
+            <MANAGEMENT/>
           </PHYSICAL>
         </NETWORK>
         <vm name="debian60-0-1v">

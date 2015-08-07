@@ -35,7 +35,7 @@
   <testsequence>
     <serial group="FuncTRIMThinHBA">
 
-      <testcase id="xenserver.tc.lunspace.TrimFuncNetAppThinFC" tc="TC-27211">
+      <testcase id="xenserver.tc.thinlvhd.TrimFuncNetAppThinFC" tc="TC-27211">
         <arg>vmscount=${VMSCOUNT}</arg>
         <arg>distro=${DISTRO}</arg>
         <arg>arch=${ARCH}</arg>

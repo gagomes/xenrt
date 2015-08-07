@@ -22,5 +22,6 @@
     <serial group="hfx1168">
       <testcase id="xenserver.tc.guest.TCMemoryDumpBootDriverFlag" tc="TC-23777"/>
     </serial>
+    <testcase id="testcases.xenserver.tc.vmlifecycle.TCGuestCoreDump" tc="TC-27146" />
   </testsequence>
 </xenrt>

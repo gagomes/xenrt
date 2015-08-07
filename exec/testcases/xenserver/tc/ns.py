@@ -812,10 +812,9 @@ class TC12710(xenrt.TestCase):
 
 class NSBVT(xenrt.TestCase):
 
-    CLIENT_VLAN = "VR08"
-    SERVER_VLAN = "VR07"
+    CLIENT_VLAN = "CLIENT_VLAN"
+    SERVER_VLAN = "SERVER_VLAN"
     XVA_DIR = "ns_xvas"
-
     ATS_PASSWORD = "freebsd"
 
     # Client VMs should reside on Client VLAN 

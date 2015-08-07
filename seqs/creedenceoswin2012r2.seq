@@ -41,18 +41,15 @@
           </testcase>
           <testcase id="guestops.srm.TCSuspendResume" tc="TC-19969">
             <arg>guest=ws12r2-x64</arg>
-            <arg>workloads</arg>
             <arg>loops=20</arg>
           </testcase>
           <testcase id="guestops.srm.TCMigrate" tc="TC-19970">
             <arg>guest=ws12r2-x64</arg>
-            <arg>workloads</arg>
             <arg>loops=10</arg>
           </testcase>
           <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-19971">
             <arg>guest=ws12r2-x64</arg>
             <arg>live</arg>
-            <arg>workloads</arg>
             <arg>loops=20</arg>
           </testcase>
           <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-19973">
@@ -101,18 +98,15 @@
           </testcase>
           <testcase id="guestops.srm.TCSuspendResume" tc="TC-19981">
             <arg>guest=ws12r2core-x64</arg>
-            <arg>workloads</arg>
             <arg>loops=20</arg>
           </testcase>
           <testcase id="guestops.srm.TCMigrate" tc="TC-19982">
             <arg>guest=ws12r2core-x64</arg>
-            <arg>workloads</arg>
             <arg>loops=10</arg>
           </testcase>
           <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-19983">
             <arg>guest=ws12r2core-x64</arg>
             <arg>live</arg>
-            <arg>workloads</arg>
             <arg>loops=20</arg>
           </testcase>
           <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-19985">

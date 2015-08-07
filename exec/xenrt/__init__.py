@@ -1367,10 +1367,12 @@ Abort this testcase with: xenrt interact %s -n '%s'
                     place.thingsWeHaveReported.append(cdr)
                     self.tec.warning("Crash dump %s found" % (cd))
                     try:
-                        cdd = "%s/crash-%s" % (d, cd)
-                        if not os.path.exists(cdd):
-                            os.mkdir(cdd)
-                        sftp.copyTreeFrom("/var/crash/%s" % (cd), cdd)
+                        size = place.execcmd("du -hs /var/crash/%s | awk '{print $1}'" % cd).strip()
+                        if size[-1] in ("K", "M"):
+                            cdd = "%s/crash-%s" % (d, cd)
+                            if not os.path.exists(cdd):
+                                os.mkdir(cdd)
+                            sftp.copyTreeFrom("/var/crash/%s" % (cd), cdd)
                     except:
                         pass
                     # File a ticket for the crashdump
@@ -1905,6 +1907,26 @@ rm -f %s
                 else:
                     kv[aa[0]] = aa[1]
         return kv
+
+    def checkArgsKeyValue(self, args, key, value, raiseIfFalse=False):
+        """Check Key exists and same as value."""
+
+        if type(args) is list:
+            argsdict = self.parseArgsKeyValue(args)
+        elif type(args) is dict:
+            argsdict = args
+        else:
+            if raiseIfFalse:
+                raise xenrt.XRTError("Given args is not a list or a dict." % str(args))
+            return False
+
+        if key in argsdict and argsdict[key] == value:
+            return True
+
+        if raiseIfFalse:
+            raise xenrt.XRTError("Cannot find key from args or value does not match. (args = %s, key = %s, value = %s" % (argsdict, key, value))
+
+        return False
 
     def ticketAttachments(self):
         return []

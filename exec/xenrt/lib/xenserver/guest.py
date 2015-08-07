@@ -245,6 +245,26 @@ class Guest(xenrt.GenericGuest):
                 pass
         else:
             xenrt.TEC().logverbose("Guest %s not up to check for daemon" % self.name)
+        
+        if not self.arch:
+            if self.getState() == "UP":
+                if not self.windows:
+                    try:
+                        if self.execguest("uname -i").strip() == "x86_64":
+                            self.arch = "x86-64"
+                        else:
+                            self.arch = "x86-32"
+                    except Exception, e:
+                        xenrt.TEC().logverbose("Could not determine architecture - %s" % str(e))
+                else:
+                    try:
+                        if self.xmlrpcGetArch() == "amd64":
+                            self.arch = "x86-64"
+                        else:
+                            self.arch = "x86-32"
+                    except:
+                        xenrt.TEC().logverbose("Could not determine architecture")
+
 
     def wouldBootHVM(self):
         return (self.paramGet("HVM-boot-policy") == "BIOS order")
@@ -342,9 +362,12 @@ class Guest(xenrt.GenericGuest):
                                      "(arch %s)" % (distro, arch))
 
         self.isoname = isoname
-        if self.memory and self.isoname and ([i for i in ["win81","ws12r2"] if i in self.isoname]) and \
-                not isinstance(self, xenrt.lib.xenserver.guest.CreedenceGuest):
-            rootdisk = max(32768, 20480 + self.memory)
+        if self.memory and self.isoname and ([i for i in ["win81","ws12r2"] if i in self.isoname]):
+            if rootdisk == self.DEFAULT:
+                rootdisk = max(32768, 20480 + self.memory)
+            else:
+                rootdisk = max(32768, 20480 + self.memory, rootdisk)
+            xenrt.TEC().logverbose("Increasing root disk to %d" % rootdisk)
 
         if distro:
             self.distro = distro
@@ -662,12 +685,47 @@ users:
 
     def installWindows(self, isoname):
         """Install Windows into a VM"""
-        self.changeCD(isoname)
+        if xenrt.TEC().lookup("WINPE_GUEST_INSTALL", False, boolean=True):
+            winpe = WinPE(self, "amd64" if isoname.endswith("-x64.iso") else "x86")
+            winpe.boot()
+            self.changeCD("xs-tools.iso")
+            xenrt.TEC().logverbose("WinPE booted, mounting shares")
+            customIso = xenrt.TEC().lookup("CUSTOM_WINDOWS_ISO", None)
+            tailorMount = xenrt.mountStaticISO(isoname[:-4])
+            if customIso:
+                isoMount = xenrt.mountStaticISO(isoname[:-4], filename=customIso)
+            else:
+                isoMount = tailorMount
+            nfsdir = xenrt.NFSDirectory()
+            xenrt.command("ln -sfT %s %s/iso" % (isoMount, nfsdir.path()))
 
-        # Start the VM to install from CD
-        xenrt.TEC().progress("Starting VM %s for unattended install" % self.name)
+            os.makedirs("%s/custom" % nfsdir.path())
+            customUnattend = xenrt.TEC().lookup("CUSTOM_UNATTEND_FILE", None)
+            if customUnattend:
+                xenrt.GEC().filemanager.getSingleFile(customUnattend, "%s/custom/Autounattend.xml" % nfsdir.path())
+            else:
+                shutil.copy("%s/Autounattend.xml" % tailorMount, "%s/custom/Autounattend.xml" % nfsdir.path())
 
-        self.lifecycleOperation("vm-start")
+                xenrt.command("""sed -i "s#<CommandLine>.*</CommandLine>#<CommandLine>c:\\\\\\\\install\\\\\\\\runonce.cmd</CommandLine>#" %s/custom/Autounattend.xml""" % nfsdir.path())
+            
+            shutil.copytree("%s/$OEM$" % tailorMount, "%s/custom/oem" % nfsdir.path())
+            xenrt.command("chmod u+w %s/custom/oem/\\$1/install" % nfsdir.path())
+
+            with open("%s/custom/oem/$1/install/runonce.cmd" % nfsdir.path(), "w") as f:
+                f.write("%systemdrive%\install\python\python.cmd\r\n")
+                f.write("EXIT\r\n")
+            winpe.xmlrpc.exec_shell("net use y: %s\\iso" % nfsdir.getCIFSPath()) 
+            winpe.xmlrpc.exec_shell("net use z: %s\\custom" % nfsdir.getCIFSPath()) 
+            xenrt.TEC().logverbose("Starting installer")
+            # Mount the install share and start the installer
+            winpe.xmlrpc.start_shell("y:\\setup.exe /unattend:z:\\autounattend.xml /m:z:\\oem")
+        else:
+            self.changeCD(isoname)
+
+            # Start the VM to install from CD
+            xenrt.TEC().progress("Starting VM %s for unattended install" % self.name)
+
+            self.lifecycleOperation("vm-start")
 
         # Monitor ARP to see what IP address it gets assigned and try
         # to SSH to the guest on that address
@@ -3475,7 +3533,7 @@ exit /B 1
                         reason = "Windows STOP error [%s] in [%s]" % (code, driver)
                 elif xenrt.TEC().lookup("PAUSE_ON_BSOD", False, boolean=True):
                         xenrt.TEC().tc.pause("BSOD Detected - pausing")
-                xenrt.TEC().comment(reason)
+                xenrt.TEC().comment(reason + " on domid " + str(domid) + " on host " + self.getHost().getName())
                 raise xenrt.XRTFailure(reason)
 
     def checkHealth(self, unreachable=False, noreachcheck=False, desc=""):
@@ -4418,11 +4476,11 @@ def parseSequenceVIFs(guest, host, vifs):
 def parseSequenceSRIOVVIFs(guest, host, vifs):
     update = []
     for v in vifs:
-        physdev, ip = v
+        netname, ip = v
 
-        # Convert physdev into a physical device name on the host (e.g. 'eth0')
-        xenrt.TEC().logverbose("Converting physdev='%s' into physical device name..." % (physdev))
-        if not physdev:
+        # Convert netname into a physical device name on the host (e.g. 'eth0')
+        xenrt.TEC().logverbose("Converting netname='%s' into physical device name..." % (netname))
+        if not netname:
             physdev = host.getPrimaryBridge()
             # we assume the host already has SRIOV enabled
             iovirt = xenrt.lib.xenserver.IOvirt(host)
@@ -4432,7 +4490,6 @@ def parseSequenceSRIOVVIFs(guest, host, vifs):
             physdev = eth_devs[0]
             xenrt.TEC().logverbose("Available physical devices are %s; using %s" % (eth_devs, physdev))
         else:
-            netname = physdev
             netuuid = host.getNetworkUUID(netname)
             if not netuuid:
                 raise xenrt.XRTError("Could not find physical device on network '%s'" % (netname))
@@ -4446,7 +4503,7 @@ def parseSequenceSRIOVVIFs(guest, host, vifs):
             physdev = host.genParamGet("pif", pifuuid, "device")
             xenrt.TEC().logverbose("Physical device on network %s is %s" % (netname, physdev))
 
-        update.append([physdev, ip])
+        update.append([physdev, netname, ip])
     return update
 
 def setupSRIOVVIFs(guest, host, sriovvifs):
@@ -4458,7 +4515,7 @@ def setupSRIOVVIFs(guest, host, sriovvifs):
         eth_devs = iovirt.getSRIOVEthDevices()
         xenrt.TEC().logverbose("Available physical devices are %s" % (eth_devs))
 
-        for (physdev, ip) in sriovvifs:
+        for (physdev, netname, ip) in sriovvifs:
             # Check whether it's in the list of devices
             if not (physdev in eth_devs):
                 raise xenrt.XRTError("Physical device %s not in list of available SR-IOV devices %s" % (physdev, eth_devs))
@@ -4519,6 +4576,7 @@ def createVMFromFile(host,
     guest.reparseVIFs()
     guest.vifs.sort()
 
+    guest.sriovvifs = sriovvifs
     setupSRIOVVIFs(guest, host, sriovvifs)
 
     if bootparams:
@@ -5846,8 +5904,6 @@ class TampaGuest(BostonGuest):
         if timer:
             timer.startMeasurement()
 
-        tcpDumps = self.startLiveMigrateTcpDump(host, remote_host, live)
-
         try:
             cmd = "vm-migrate uuid=%s" % self.getUUID()
             if remote_user is None:
@@ -5902,8 +5958,6 @@ class TampaGuest(BostonGuest):
                         raise e
                     raise f
             raise e
-        finally:
-            self.stopLiveMigrateTcpDump(host, remote_host, tcpDumps)
 
         if timer:
             timer.stopMeasurement()
@@ -5922,52 +5976,6 @@ class TampaGuest(BostonGuest):
                 self.waitForSSH(boottime, desc="Guest migrate SSH check")
             else:
                 self.waitForDaemon(boottime, desc="Guest migrate XML-RPC check")
-
-    def startLiveMigrateTcpDump(self, host, remoteHost, live):
-        tcpDumps = {}
-
-        if not host:
-            host = remoteHost
-
-        if host and host.getMyHostUUID() != self.host.getMyHostUUID() and live == "true":
-            try:
-                bridges = []
-                devices = []
-
-                for vif in self.getVIFs().values():
-                    bridges.append(vif[2])
-
-                for bridge in bridges:
-                    devices.append(bridge)
-
-                    pifs = host.parseListForOtherParam("network-list", "bridge", bridge, "PIF-uuids").split("; ")
-
-                    for pif in pifs:
-                        if host.genParamGet("pif", pif, "host-uuid") == host.getMyHostUUID():
-                            devices.append(host.genParamGet("pif", pif, "device"))
-
-                for device in devices:
-                    xenrt.TEC().logverbose("Starting TCP dump on destination host to monitor traffic on " + device)
-                    f = "/tmp/%s_%s" % (device, xenrt.randomGuestName())
-                    pid = host.execdom0("tcpdump -i %s -net arp or icmp6 &> %s & echo $!" % (device, f)).strip()
-                    tcpDumps[pid] = f
-
-            except Exception, ex:
-                xenrt.TEC().logverbose("Exception running startLiveMigrateTcpDump: " + str(ex))
-
-        return tcpDumps
-
-    def stopLiveMigrateTcpDump(self, host, remoteHost, tcpDumps):
-
-        if not host:
-            host = remoteHost
-
-        if host:
-            for pid in tcpDumps:
-                try:
-                    host.execdom0("kill %s; cat %s; rm -f %s" % (pid, tcpDumps[pid], tcpDumps[pid]))
-                except:
-                    pass
 
     def setHostnameViaXenstore(self):
         """
@@ -6707,3 +6715,32 @@ def shutdownMulti(guestlist, timeout=None, clitimeout=7200, timer=None):
         xenrt.sleep(15)
 
     xenrt.TEC().logverbose("Shutdown %u guests" % (len(guestlist)))
+
+class WinPE(xenrt._WinPEBase):
+    def __init__(self, guest, arch):
+        super(WinPE, self).__init__()
+        self.guest = guest
+        self.arch = arch
+
+    def boot(self):
+        self.guest.changeCD("winpe-%s.iso" % self.arch)
+        # Start the VM to install from CD
+        xenrt.TEC().progress("Starting VM %s for WinPE" % self.guest.name)
+
+        self.guest.lifecycleOperation("vm-start")
+
+        # Monitor ARP to see what IP address it gets assigned and try
+        # to SSH to the guest on that address
+        vifname, bridge, mac, c = self.guest.vifs[0]
+
+        if self.guest.reservedIP:
+            self.ip = self.guest.reservedIP
+        else:
+            arptime = 10800
+            self.ip = self.guest.getHost().arpwatch(bridge, mac, timeout=arptime)
+
+        if not self.ip:
+            raise xenrt.XRTFailure("Did not find an IP address")
+
+        xenrt.TEC().progress("Found WinPE IP address %s" % (self.ip))
+        self.waitForBoot()

@@ -33,7 +33,7 @@ class SystemVM(object):
             xenrt.TEC().logverbose('Command: %s returned: %s' % (command, rData))
             return rData
         else:
-            raise XRTError('System VM command execution not supported for non-XS hypervisors')
+            raise xenrt.XRTError('System VM command execution not supported for non-XS hypervisors')
 
     def waitForReady(self, timeout=600, pollPeriod=20):
         """This method check the CP host state, CP System VM state and checks that the agent is running"""
@@ -489,7 +489,7 @@ class _TCManServerResiliencyBase(_TCCloudResiliencyBase):
 class TCManServerVMReboot(_TCManServerResiliencyBase):
     
     def outage(self):
-        msvm = self.cloud.mgtsvr.place
+        msvm = self.cloud.mgtsvr.primaryManagementServer
         msvm.reboot()
 
     def recover(self):
@@ -499,7 +499,7 @@ class TCManServerVMReboot(_TCManServerResiliencyBase):
 class TCManServerRestart(_TCManServerResiliencyBase):
     
     def outage(self):
-        msvm = self.cloud.mgtsvr.place
+        msvm = self.cloud.mgtsvr.primaryManagementServer
         msvm.execcmd("service cloudstack-management restart")
 
     def recover(self):
@@ -509,9 +509,9 @@ class TCManServerRestart(_TCManServerResiliencyBase):
 class TCDBRestart(_TCManServerResiliencyBase):
     
     def outage(self):
-        msvm = self.cloud.mgtsvr.place
+        dbvm = self.cloud.mgtsvr.dbServer
         db = self.cloud.mgtsvr.db
-        msvm.execcmd("service %s restart" % db)
+        dbvm.execcmd("service %s restart" % db)
 
     def recover(self):
         self.waitForCCP()
@@ -520,11 +520,11 @@ class TCDBRestart(_TCManServerResiliencyBase):
 class TCDBOutage(_TCManServerResiliencyBase):
     
     def outage(self):
-        msvm = self.cloud.mgtsvr.place
+        dbvm = self.cloud.mgtsvr.dbServer
         db = self.cloud.mgtsvr.db
-        msvm.execcmd("service %s stop" % db)
+        dbvm.execcmd("service %s stop" % db)
         xenrt.sleep(120)
-        msvm.execcmd("service %s start" % db)
+        dbvm.execcmd("service %s start" % db)
 
     def recover(self):
         self.waitForCCP()
@@ -532,16 +532,17 @@ class TCDBOutage(_TCManServerResiliencyBase):
 class TCManServerStartAfterDB(_TCManServerResiliencyBase):
     
     def outage(self):
-        msvm = self.cloud.mgtsvr.place
+        msvm = self.cloud.mgtsvr.primaryManagementServer
+        dbvm = self.cloud.mgtsvr.dbServer
         db = self.cloud.mgtsvr.db
-        msvm.execcmd("service %s stop" % db)
+        dbvm.execcmd("service %s stop" % db)
         msvm.execcmd("service cloudstack-management stop")
         
         msvm.execcmd("service cloudstack-management start")
         
         xenrt.sleep(120)
 
-        msvm.execcmd("service %s start" % db)
+        dbvm.execcmd("service %s start" % db)
 
     def recover(self):
         self.waitForCCP()

@@ -9,7 +9,7 @@
   <prepare>
     <pool id="0">
       <storage type="nfs" name="nfs_sourceSR"/>
-      <storage type="lvmoiscsi" name="lvmoiscsi_sourceSR" options="initiatorcount=2"/>
+      <storage type="lvmoiscsi" name="lvmoiscsi_sourceSR" size="200" vmhost="0" options="ietvm" />
       <storage type="fcoe" name="lvmofcoe_sourceSR" options="LUN0"/>
       <storage type="fcoe" name="lvmofcoe_targetSR" options="LUN1"/>
       <host id="0" installsr="ext" />

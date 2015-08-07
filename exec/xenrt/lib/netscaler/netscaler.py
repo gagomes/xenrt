@@ -12,7 +12,7 @@ class NetScaler(object):
     """Class that provides an interface for creating, controlling and observing a NetScaler VPX"""
 
     @classmethod
-    def setupNetScalerVpx(cls, vpx, useVIFs=False, networks=["NPRI"]):
+    def setupNetScalerVpx(cls, vpx, useExistingVIFs=False, networks=["NPRI"], license=None):
         """Takes a VM name (present in the registry) and returns a NetScaler object"""
         if isinstance(vpx, basestring):
             vpxGuest = xenrt.TEC().registry.guestGet(vpx)
@@ -40,25 +40,33 @@ class NetScaler(object):
             if vpxGuest.getState() == 'UP':
                 vpxGuest.shutdown()
 
-            if not useVIFs:
+            if not useExistingVIFs:
                 # Configure the VIFs
                 vpxGuest.removeAllVIFs()
                 for n in networks:
+                    # createVIF() method still lacks support for NSEC on non-xenserver hypervisors
                     vpxGuest.createVIF(bridge=n)
             else:
-                if isinstance(vpxGuest, xenrt.lib.xenserver.Guest):
-                    networks = [vpxGuest.getNetworkNameForVIF(x[0]) for x in vpxGuest.vifs]
-                else:
-                    warning("Unimplemented Section: Unable to determine xenrt network type for guest vifs. Continuing with 'NPRI'")
+                networks = [host.getNICNetworkName(host.getAssumedId(x[1])) for x in vpxGuest.vifs]
+
+            networks_sriov = [x[1] for x in vpxGuest.sriovvifs]
 
             mgmtNet = networks[0]
             cls.configureVpxNetworkToVmParams(vpxGuest, mgmtNet)
             vpxGuest.lifecycleOperation('vm-start')
+
             # Wait / Check for SSH connectivity
             vpxGuest.waitForSSH(timeout=300, username='nsroot', cmd='shell')
             vpx = cls(vpxGuest, mgmtNet)
             vpx.checkFeatures("On fresh install:")
-            vpx.setup(networks)
+
+            # Apply license
+            if license:
+                vpx.applyLicense(license)
+                vpx.checkFeatures("Test results after applying license:")
+
+            # Setup networking
+            vpx.setup(networks, networks_sriov)
         if _removeHostFromVCenter:
             host.removeFromVCenter()
         return vpx
@@ -111,14 +119,19 @@ class NetScaler(object):
         self.__mgmtNet = mgmtNet
         xenrt.TEC().logverbose('NetScaler VPX Version: %s' % (self.version))
 
-    def setup(self, networks):
+    def setup(self, networks, networks_sriov):
         i = 1
         ipSpec = self.__vpxGuest.getIPSpec()
         for n in networks[1:]:
             i += 1
             xenrt.TEC().logverbose("Creating VLAN %d for network %s" % (i, n))
-            self.__netScalerCliCommand("add vlan %d" % i)
-            self.__netScalerCliCommand("bind vlan %d -ifnum 1/%d" % (i, i))
+
+            # Find out the name NetScaler has given to the interface
+            lines = self.cli("show interfaces")
+            iface = next(line.split('\t')[1].split(' ')[1] for line in lines if line.startswith("%d)" % (i)))
+
+            self.cli("add vlan %d" % i)
+            self.cli("bind vlan %d -ifnum %s" % (i, iface))
             dev, ip, masklen = [x for x in ipSpec if x[0] == "eth%d" % (i-1)][0]
             if ip:
                 self.__subnetips[n] = ip
@@ -130,13 +143,32 @@ class NetScaler(object):
                     # Must be a private VLAN with no static IP defined
                     continue
                 self.__subnetips[n] = xenrt.StaticIP4Addr(network=n).getAddr()
-            self.__netScalerCliCommand('add ip %s %s' % (self.__subnetips[n], subnet))
-            self.__netScalerCliCommand('bind vlan %d -IPAddress %s %s' % (i, self.__subnetips[n], subnet))
+            self.cli('add ip %s %s' % (self.__subnetips[n], subnet))
+            self.cli('bind vlan %d -IPAddress %s %s' % (i, self.__subnetips[n], subnet))
         self.__subnetips[networks[0]] = xenrt.StaticIP4Addr(network=networks[0]).getAddr()
-        self.__netScalerCliCommand('add ip %s %s' % (self.__subnetips[networks[0]], xenrt.getNetworkParam(networks[0], "SUBNETMASK")))
-        self.__netScalerCliCommand('save ns config')
+        self.cli('add ip %s %s' % (self.__subnetips[networks[0]], xenrt.getNetworkParam(networks[0], "SUBNETMASK")))
 
-    def __netScalerCliCommand(self, command):
+        for n in networks_sriov:
+            i += 1
+            xenrt.TEC().logverbose("Creating VLAN %d for SR-IOV VIF on network %s" % (i, n))
+
+            # Find out the name NetScaler has given to the interface
+            lines = self.cli("show interfaces")
+            iface = next(line.split('\t')[1].split(' ')[1] for line in lines if line.startswith("%d)" % (i)))
+
+            # If this network is a VLAN, get the physical VLAN id
+            (vlan_id, subnet, netmask) = self.__vpxGuest.host.getVLAN(n) # TODO If it's not a VLAN, just do something like the above
+            xenrt.TEC().logverbose("We want a tagged VLAN with id %d" % (vlan_id))
+
+            # Tag traffic on this interface with the VLAN tag
+            self.cli("set interface %s -tagall OFF" % (iface))
+            self.cli("add vlan %d" % (vlan_id))
+            self.cli("bind vlan %d -ifnum %s" % (vlan_id, iface))
+            self.cli("set interface %s -tagall ON" % (iface)) # This is necessary to make it work, and it must be done after the 'bind vlan' command.
+
+        self.cli('save ns config')
+
+    def cli(self, command):
         """Helper method for creating specific NetScaler CLI command methods"""
         xenrt.xrtAssert(self.__vpxGuest.getState() == 'UP', 'NetScaler CLI Commands can only be executed on a running VPX')
         data = self.__vpxGuest.execguest(command, username='nsroot', password='nsroot')
@@ -147,15 +179,15 @@ class NetScaler(object):
     def installNSTools(self):
         nstools = xenrt.TEC().lookup('NS_TOOLS_PATH')
         toolsfile = nstools.split("/")[-1]
-        self.__netScalerCliCommand("shell mkdir -p /var/BW")
+        self.cli("shell mkdir -p /var/BW")
         self.__vpxGuest.sftpClient(username='nsroot').copyTo( xenrt.TEC().getFile(nstools),"/var/BW/%s" % (toolsfile))
-        self.__netScalerCliCommand("shell cd /var/BW && tar xvfz %s" % toolsfile)
-        self.__netScalerCliCommand("shell /var/BW/nscsconfig --help || true")
+        self.cli("shell cd /var/BW && tar xvfz %s" % toolsfile)
+        self.cli("shell /var/BW/nscsconfig --help || true")
 
     @property
     def version(self):
         if not self.__version:
-            self.__version = self.__netScalerCliCommand('show ns version')
+            self.__version = self.cli('show ns version')
         return self.__version
 
     def reboot(self):
@@ -168,6 +200,7 @@ class NetScaler(object):
             xenrt.sleep(60)
             self.__vpxGuest.waitForSSH(timeout=120, username='nsroot', cmd='shell')
 
+    @classmethod
     def getLicenseFileFromXenRT(self):
         # TODO - Allow for different licenses to be specified
         vpxLicneseFileName = 'CNS_V3000_SERVER_PLT_Retail.lic'
@@ -199,7 +232,7 @@ class NetScaler(object):
         if not feature:
             # Use LB as default
             feature = 'Load Balancing'
-        licData = filter(lambda x:x.startswith(feature), self.__netScalerCliCommand('show ns license'))
+        licData = filter(lambda x:x.startswith(feature), self.cli('show ns license'))
         xenrt.xrtAssert(len(licData) == 1, 'There is an entry for the specified feature in the NS license data')
         licensed = licData[0].split(':')[1].strip() == 'YES'
         xenrt.TEC().logverbose('NetScaler feature: %s license state = %s' % (feature, licensed))
@@ -208,7 +241,7 @@ class NetScaler(object):
     @property
     def managementIp(self):
         if not self.__managementIp:
-            mgmtIpData = filter(lambda x:'NetScaler IP' in x, self.__netScalerCliCommand('show ns ip'))
+            mgmtIpData = filter(lambda x:'NetScaler IP' in x, self.cli('show ns ip'))
             xenrt.xrtAssert(len(mgmtIpData) == 1, 'The NetScaler only has one management interface defined')
             managementIp = re.search('(\d{1,3}\.){3}\d{1,3}', mgmtIpData[0]).group(0)
             xenrt.xrtAssert(managementIp == self.__vpxGuest.mainip, 'The IP address of the guest matches the reported Netscaler management IP address')
@@ -221,30 +254,30 @@ class NetScaler(object):
         return self.__subnetips[network]
 
     def disableL3(self):
-        self.__netScalerCliCommand("disable ns mode L3")
-        self.__netScalerCliCommand('save ns config')
+        self.cli("disable ns mode L3")
+        self.cli('save ns config')
 
     def setupOutboundNAT(self, privateNetwork, publicNetwork):
-        self.__netScalerCliCommand("set rnat %s %s -natIP %s" % (
+        self.cli("set rnat %s %s -natIP %s" % (
                     xenrt.getNetworkParam(privateNetwork, "SUBNET"),
                     xenrt.getNetworkParam(privateNetwork, "SUBNETMASK"),
                     self.subnetIp(network=publicNetwork)))
-        self.__netScalerCliCommand('save ns config')
+        self.cli('save ns config')
 
     def checkModNum(self):
         #returns the model number
-        modData = filter(lambda x:x.startswith('Model Number ID'), self.__netScalerCliCommand('show ns license'))
+        modData = filter(lambda x:x.startswith('Model Number ID'), self.cli('show ns license'))
         modNum = modData[0].split(':')[1].strip()
         return modNum
 
     def checkCPU(self):
         #writes the number of PEs to log file
-        pe = max(map(lambda x: x.split()[0],filter(lambda x: re.match('^\d',x),self.__netScalerCliCommand('stat cpus'))))
+        pe = max(map(lambda x: x.split()[0],filter(lambda x: re.match('^\d',x),self.cli('stat cpus'))))
         return pe
         
     def licenseTest(self):
         #checks features before before applying license
-        featNo = filter(lambda x: len(x.split(':')) > 1 and x.split(':')[1].strip()=="YES",self.__netScalerCliCommand('show ns license'))
+        featNo = filter(lambda x: len(x.split(':')) > 1 and x.split(':')[1].strip()=="YES",self.cli('show ns license'))
         if len(featNo) != 1 or featNo[0].split(':')[0].strip()=="SSL offloading":
             xenrt.TEC().logverbose('License test failed')
         else:
@@ -257,6 +290,6 @@ class NetScaler(object):
         xenrt.TEC().logverbose('The management IP of the provisioned VPX is %s' % (self.managementIp))
         xenrt.TEC().logverbose('The model number ID of the provisioned VPX is %s' % (self.checkModNum()))
         xenrt.TEC().logverbose('The Number of PEs of the provisioned VPX: %s' % (self.checkCPU()))
-        xenrt.TEC().logverbose('The build version in ns.conf is: %s' % (self.__netScalerCliCommand("shell head -1 /flash/nsconfig/ns.conf")))
-        xenrt.TEC().logverbose('The show run output in ns.conf is : %s ' % (self.__netScalerCliCommand('sh run')[0]))
+        xenrt.TEC().logverbose('The build version in ns.conf is: %s' % (self.cli("shell head -1 /flash/nsconfig/ns.conf")))
+        xenrt.TEC().logverbose('The show run output in ns.conf is : %s ' % (self.cli('sh run')[0]))
         self.licenseTest()

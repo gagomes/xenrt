@@ -154,10 +154,10 @@ description["ws12r2u0core-x64"] = "Windows Server 2012 R2 SERVERDATACENTERCORE"
 description["ws12r2u1-x64"] = "Windows Server 2012 R2 SERVERDATACENTER"
 description["ws12r2u1core-x64"] = "Windows Server 2012 R2 SERVERDATACENTERCORE"
 description["hvs12r2-x64"] = "Hyper-V Server 2012 R2 SERVERHYPERCORE"
-description["win10-x86"] = "Windows 10 Enterprise Technical Preview"
-description["win10-x64"] = "Windows 10 Enterprise Technical Preview"
-description["ws10-x64"] = "Windows Server 2012 R2 SERVERDATACENTER"
-description["ws10core-x64"] = "Windows Server 2012 R2 SERVERDATACENTERCORE"
+description["win10-x86"] = "Windows 10 Enterprise"
+description["win10-x64"] = "Windows 10 Enterprise"
+description["ws16-x64"] = "Windows Server 2012 R2 SERVERDATACENTER"
+description["ws16core-x64"] = "Windows Server 2012 R2 SERVERDATACENTERCORE"
 
 # Parse arguments.
 try:

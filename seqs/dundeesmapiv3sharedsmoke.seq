@@ -1,0 +1,19 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0">
+      <storage type="smapiv3shared" name="rawnfssr" default="true" />
+    </host>
+  </prepare>
+
+    <testsequence>
+      <parallel group="VMSmoke" workers="2">
+        <testcase id="xenserver.tc.smoketest.TCSmokeTestTemplateDefaults" name="TC-27203" sku="debian70_x86-32" tc="TC-27203" />
+        <testcase id="xenserver.tc.smoketest.TCSmokeTestTemplateDefaults" name="TC-27204" sku="ws12r2-x64" tc="TC-27204" />
+      </parallel>
+    </testsequence>
+</xenrt>

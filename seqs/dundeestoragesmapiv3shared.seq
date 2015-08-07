@@ -1,0 +1,52 @@
+<xenrt>
+
+  <!-- VHD storage tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <FINALLY_UNINSTALL>yes</FINALLY_UNINSTALL>
+  </variables>
+
+  <prepare>
+    <host id="0">
+      <storage type="smapiv3shared" name="rawnfssr" default="yes" />
+    </host>
+  </prepare>
+
+  <testsequence group="RAWNFS">
+    <serial group="VDIResize">
+      <testcase id="xenserver.tc.storage.TC27181" prio="3"/>
+      <testcase id="xenserver.tc.storage.TC27182" prio="3"/>
+      <testcase id="xenserver.tc.storage.TC27183" prio="3"/>
+      <testcase id="xenserver.tc.storage.TC27184" prio="3"/>
+    </serial>
+    <serial group="VDICreate">
+      <testcase id="xenserver.tc.storage.TC27185" prio="3" sku="rawnfs" />
+    </serial>
+    <serial group="VDISnap">
+      <testcase id="xenserver.tc.snapshot.TC27186" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC27187" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC27188" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC27189" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC27190" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC27191" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC27192" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC27193" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC27194" prio="3"/>
+    </serial>
+    <serial group="VMSnap">
+      <testcase id="xenserver.tc.snapshot.TC27195" prio="3"/>
+    </serial>
+
+    <testcase id="xenserver.cli.TCQuicktest" tc="TC-27196"/>
+    <testcase id="xenserver.tc.storage.TCDuplicateVdiName" tc="TC-27197" sku="rawnfs" />
+    <testcase id="xenserver.tc.storage.TCVdiSpaceInName" tc="TC-27198" sku="rawnfs" />
+    <testcase id="xenserver.storage.TCVDICopy" tc="TC-27199" prio="3">
+      <arg>srtype=rawnfs</arg>
+    </testcase>
+    <testcase id="xenserver.storage.TCVDIClone" tc="TC-27200" prio="3">
+      <arg>srtype=rawnfs</arg>
+    </testcase>
+  </testsequence>
+
+</xenrt>

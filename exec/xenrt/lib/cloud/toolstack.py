@@ -45,7 +45,7 @@ class CloudStack(object):
 
     @property
     def name(self):
-        return "CS-%s" % self.mgtsvr.place.mainip
+        return "CS-%s" % self.mgtsvr.ip
 
     @property
     def cloudApi(self):
@@ -598,7 +598,7 @@ class CloudStack(object):
         keys={"cmd": "access",
               "vm": instance.toolstackId}
         keys = self.marvin.signCommand(keys)
-        frameset = urllib.urlopen("http://%s:8080/client/console?%s" % (self.mgtsvr.place.getIP(), urllib.urlencode(keys))).read()
+        frameset = urllib.urlopen("http://%s:8080/client/console?%s" % (self.mgtsvr.ip, urllib.urlencode(keys))).read()
         frameurl = re.search("src=\"(.*?)\"", frameset).group(1)
 
         xenrt.TEC().logverbose("Calculated %s as URL of frame" % frameurl)
@@ -626,7 +626,7 @@ class CloudStack(object):
         return imglocation
 
     def getLogs(self, path):
-        sftp = self.mgtsvr.place.sftpClient()
+        sftp = self.mgtsvr.primaryManagementServer.sftpClient()
         sftp.copyLogsFrom(["/var/log/cloudstack"], path)
         if xenrt.TEC() == xenrt.GEC().anontec or xenrt.TEC().lookup("ALWAYS_DUMP_CS_DB", False, boolean=True):
             # CP-9393 We're the anonymous TEC, which means we are collecting job

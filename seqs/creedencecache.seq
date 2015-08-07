@@ -31,15 +31,23 @@
       <testcase id="xenserver.tc.cache.TC11867"/>
       <testcase id="xenserver.tc.cache.TC11868"/>
       <testcase id="xenserver.tc.cache.TC11871"/>
+      <!--
+      Cache performance test blocks running sequence throughly.
+      Under fix.
       <testcase id="xenserver.tc.cache.TC12005"/>
       <testcase id="xenserver.tc.cache.TC12006"/>
+      -->
       <testcase id="xenserver.tc.cache.TC12008"/>
       <testcase id="xenserver.tc.cache.TC12010"/>
       <testcase id="xenserver.tc.cache.TC11902"/>
       <testcase id="xenserver.tc.cache.TC12174"/>
       <testcase id="xenserver.tc.cache.TC12175"/>
+      <!--
+      Cache performance test blocks running sequence throughly.
+      Under fix.
       <testcase id="xenserver.tc.cache.TC21544"/>
       <testcase id="xenserver.tc.cache.TC21545"/>
+      -->
     </serial>
   </testsequence>
 

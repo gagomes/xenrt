@@ -1744,8 +1744,7 @@ class TC8411(_PoolAuthentication):
         try:
             self.pool.disableAuthentication(self.authserver)
         except xenrt.XRTFailure, e:
-            if not re.search("failed to disable the external "
-                             "authentication of at least one host", e.data):
+            if not ("The pool failed to disable the external authentication of at least one host" in e.data):
                 raise
         else:
             raise xenrt.XRTFailure("Disabling authentication of missing host succeeded.")
@@ -1755,8 +1754,8 @@ class TC8411(_PoolAuthentication):
         except xenrt.XRTFailure, e:
             if not re.search("External authentication in this pool is already enabled", e.data):
                 raise
-        else:
-            raise xenrt.XRTFailure("Heterogenous authentication config wasn't detected.")
+            else:
+                raise xenrt.XRTFailure("Heterogenous authentication config wasn't detected.")
         slave.disableAuthentication(self.authserver) 
         self.pool.enableAuthentication(self.authserver)
 
@@ -3245,7 +3244,7 @@ class VMSecurityFacade(object):
         return float(self._VM.asXapiObject().cpuUsage['0'])*100
 
     def getHostCPUUsage(self):
-        return self._VM.host.dom0CPUUsage()
+        return self._VM.host.dom0CPUUsageOverTime(60)
 
     def shutdown(self):
         self._VM.shutdown()
@@ -3385,8 +3384,16 @@ class TCHackersChoiceIPv6FloodRouter(xenrt.TestCase):
         #--------------------------
         step("Check Health of all victim vms")
         #--------------------------
+        deadVictims = 0
         for victim in victims:
-            victim.healthStatus()
+            try:
+                victim.healthStatus()
+            except:
+                log("problem checking %s healthStatus" % victim.getName())
+                deadVictims += 1
+
+        if deadVictims > 1:
+            raise xenrt.XRTFailure("%d victims failed to recover from attack" % deadVictims)
 
 
 class TCBadPackets(xenrt.TestCase):

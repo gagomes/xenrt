@@ -13,30 +13,47 @@ except ImportError:
 __all__ = ["ManagementServer"]
 
 class ManagementServer(object):
-    def __init__(self, place):
-        self.place = place
-        self.place.addExtraLogFile("/var/log/cloudstack")
+    def __init__(self, place, dbServer=None, simDbServer=None, additionalManagementServers=None, netscalerVM=None):
+        self.primaryManagementServer = place
+        self._dbServer = dbServer
+        self._simDbServer = simDbServer
+        self.additionalManagementServers = additionalManagementServers or []
+        self.primaryManagementServer.addExtraLogFile("/var/log/cloudstack")
+        self.readyManagementServers = [self.primaryManagementServer]
         self.__isCCP = None
         self.__version = None
         self.__db = None
+        self.netscalerVM = netscalerVM
+        self.netscaler = None
+        self.nsvip = None
         if self.version in ['3.0.7']:
             self.cmdPrefix = 'cloud'
         else:
             self.cmdPrefix = 'cloudstack'
 
     def getLogs(self, destDir):
-        sftp = self.place.sftpClient()
-        manSvrLogsLoc = self.place.execcmd('find /var/log -type d -name management | grep %s' % (self.cmdPrefix)).strip()
+        sftp = self.primaryManagementServer.sftpClient()
+        manSvrLogsLoc = self.primaryManagementServer.execcmd('find /var/log -type d -name management | grep %s' % (self.cmdPrefix)).strip()
         sftp.copyTreeFrom(os.path.dirname(manSvrLogsLoc), destDir)
         sftp.close()
 
+    @property
+    def allManagementServers(self):
+        ret = [self.primaryManagementServer]
+        ret.extend(self.additionalManagementServers)
+        return ret
+
+    @property
+    def ip(self):
+        return self.nsvip or self.primaryManagementServer.getIP()
+
     def getDatabaseDump(self, destDir):
-        path = self.place.execcmd("mktemp").strip()
-        self.place.execcmd("mysqldump -u cloud --password=cloud --skip-opt cloud > %s" % path)
-        sftp = self.place.sftpClient()
+        path = self.primaryManagementServer.execcmd("mktemp").strip()
+        self.primaryManagementServer.execcmd("mysqldump -u cloud --password=cloud --skip-opt cloud > %s" % path)
+        sftp = self.primaryManagementServer.sftpClient()
         sftp.copyFrom(path, os.path.join(destDir, "cloud.sql"))
         sftp.close()
-        self.place.execcmd("rm -f %s" % path)
+        self.primaryManagementServer.execcmd("rm -f %s" % path)
 
     def lookup(self, key, default=None):
         """Perform a version based lookup on cloud config data"""
@@ -61,24 +78,26 @@ class ManagementServer(object):
                 # Check the management server ports are reachable
                 port = 8080
                 try:
-                    urllib.urlopen('http://%s:%s' % (self.place.getIP(), port))
+                    for m in self.readyManagementServers:
+                        urllib.urlopen('http://%s:%s' % (m.getIP(), port))
                 except IOError, ioErr:
-                    xenrt.TEC().logverbose('Attempt to reach Management Server [%s] on Port: %d failed with error: %s' % (self.place.getIP(), port, ioErr.strerror))
+                    xenrt.TEC().logverbose('Attempt to reach Management Server [%s] on Port: %d failed with error: %s' % (m.getIP(), port, ioErr.strerror))
                     xenrt.sleep(60)
                     continue
 
                 port = 8096
                 try:
-                    urllib.urlopen('http://%s:%s' % (self.place.getIP(), port))
+                    for m in self.readyManagementServers:
+                        urllib.urlopen('http://%s:%s' % (m.getIP(), port))
                     managementServerOk = True
                     break
                 except IOError, ioErr:
-                    xenrt.TEC().logverbose('Attempt to reach Management Server [%s] on Port: %d failed with error: %s' % (self.place.getIP(), port, ioErr.strerror))
+                    xenrt.TEC().logverbose('Attempt to reach Management Server [%s] on Port: %d failed with error: %s' % (m.getIP(), port, ioErr.strerror))
                     xenrt.sleep(60)
 
             if not managementServerOk and rebootChecks < maxReboots:
                 xenrt.TEC().logverbose('Restarting Management Server: Attempt: %d of %d' % (rebootChecks+1, maxReboots))
-                self.place.execcmd('mysql -u cloud --password=cloud --execute="UPDATE cloud.configuration SET value=8096 WHERE name=\'integration.api.port\'"')
+                self.primaryManagementServer.execcmd('mysql -u cloud --password=cloud -h %s --execute="UPDATE cloud.configuration SET value=8096 WHERE name=\'integration.api.port\'"' % self.dbServer.getIP())
                 self.restart(checkHealth=False, startStop=(rebootChecks > 0))
             rebootChecks += 1
 
@@ -92,7 +111,8 @@ class ManagementServer(object):
 
     def restart(self, checkHealth=True, startStop=False):
         if not startStop:
-            self.place.execcmd('service %s-management restart' % (self.cmdPrefix))
+            for m in self.readyManagementServers:
+                m.execcmd('service %s-management restart' % (self.cmdPrefix))
         else:
             self.stop()
             xenrt.sleep(120)
@@ -102,62 +122,121 @@ class ManagementServer(object):
             self.checkManagementServerHealth()
 
     def stop(self):
-        self.place.execcmd('service %s-management stop' % (self.cmdPrefix))
+        for m in self.readyManagementServers:
+            m.execcmd('service %s-management stop' % (self.cmdPrefix))
 
     def start(self):
-        self.place.execcmd('service %s-management start' % (self.cmdPrefix))
+        for m in self.readyManagementServers:
+            m.execcmd('service %s-management start' % (self.cmdPrefix))
 
 
     def getCCPInputs(self):
-        return xenrt.getCCPInputs(self.place.distro)
+        return xenrt.getCCPInputs(self.primaryManagementServer.distro)
+
+    @property
+    def dbServer(self):
+        return self._dbServer or self.primaryManagementServer
+
+    @property
+    def simDbServer(self):
+        return self._simDbServer or self._dbServer or self.primaryManagementServer
+
+    def setupAdditionalManagementServers(self):
+        for m in self.additionalManagementServers:
+            setupDbLoc = m.execcmd('find /usr/bin -name %s-setup-databases' % (self.cmdPrefix)).strip()
+            m.execcmd('%s cloud:cloud@%s' % (setupDbLoc, self.dbServer.getIP()))
+        
+        for m in self.additionalManagementServers:
+            m.execcmd('iptables -I INPUT -p tcp --dport 8096 -j ACCEPT')
+            setupMsLoc = m.execcmd('find /usr/bin -name %s-setup-management' % (self.cmdPrefix)).strip()
+            m.execcmd(setupMsLoc)
+       
+        if xenrt.TEC().lookup("USE_CCP_SIMULATOR", False, boolean=True) or self._simDbServer:
+            # For some reason the cloud user doesn't seem to have access to the simulator DB
+            [x.execcmd("""sed -i s/db.simulator.username=cloud/db.simulator.username=root/ /usr/share/cloudstack-management/conf/db.properties""") for x in self.additionalManagementServers]
+            [x.execcmd("""sed -i s/db.simulator.password=cloud/db.simulator.password=xensource/ /usr/share/cloudstack-management/conf/db.properties""") for x in self.additionalManagementServers]
+            if self.simDbServer != self.primaryManagementServer or self.additionalManagementServers:
+                [x.execcmd("""sed -i s/db.simulator.host=localhost/db.simulator.host=%s/ /usr/share/cloudstack-management/conf/db.properties""" % self.simDbServer.getIP()) for x in self.additionalManagementServers]
+                
+        self.readyManagementServers.extend(self.additionalManagementServers)
+
+        self.restart(checkHealth=False)
+        self.checkManagementServerHealth(timeout=300)
 
     def setupManagementServerDatabase(self):
-        if self.place.distro.startswith("rhel6") or self.place.distro.startswith("centos6"):
-            # Configure SELinux
-            self.place.execcmd("sed -i 's/SELINUX=enforcing/SELINUX=permissive/' /etc/selinux/config")
-            self.place.execcmd('setenforce Permissive')
-            self.place.execcmd('yum -y install mysql-server mysql')
-        elif self.place.distro.startswith("rhel7") or self.place.distro.startswith("centos7"):
+        for m in self.allManagementServers:
+            if m.distro.startswith("rhel6") or m.distro.startswith("centos6"):
+                # Configure SELinux
+                m.execcmd("sed -i 's/SELINUX=enforcing/SELINUX=permissive/' /etc/selinux/config")
+                m.execcmd('setenforce Permissive')
+
+        self.installMySql(self.dbServer)
+        [self.installMySql(x, server=False) for x in self.allManagementServers]
+
+        if self.primaryManagementServer == self.dbServer and not self.additionalManagementServers:
+            host = "localhost"
+        else:
+            host = self.dbServer.getIP()
+        setupDbLoc = self.primaryManagementServer.execcmd('find /usr/bin -name %s-setup-databases' % (self.cmdPrefix)).strip()
+        self.primaryManagementServer.execcmd('%s cloud:cloud@%s --deploy-as=root:xensource' % (setupDbLoc, host))
+        if xenrt.TEC().lookup("USE_CCP_SIMULATOR", False, boolean=True) or self._simDbServer:
+            self.tailorForSimulator()
+
+    def installMySql(self, dbServer, server=True):
+        if dbServer.special.get('mysql_server_installed'):
+            return
+        db = "mysqld"
+        if server:
+            mysqlPackages = "mysql-server mysql"
+            mariaPackages = "mariabdb-server mariadb"
+        else:
+            mysqlPackages = "mysql"
+            mariaPackages = "mariadb"
+        if dbServer.distro.startswith("rhel6") or dbServer.distro.startswith("centos6"):
+                dbServer.execcmd('yum -y install %s' % mysqlPackages)
+        elif dbServer.distro.startswith("rhel7") or dbServer.distro.startswith("centos7"):
             if xenrt.TEC().lookup("CLOUDSTACK_MARIADB", False, boolean=True):
-                self.place.execcmd('yum -y install mariadb-server mariadb')
+                dbServer.execcmd('yum -y install %s' % mariaPackages)
+                db = "mariadb"
             else:
                 # Add a proxy if we know about one
                 proxy = xenrt.TEC().lookup("HTTP_PROXY", None)
                 if proxy:
-                    self.place.execcmd("sed -i '/proxy/d' /etc/yum.conf")
-                    self.place.execcmd("echo 'proxy=http://%s' >> /etc/yum.conf" % proxy)
-                self.place.execcmd("wget -O mysql-repo.rpm %s/rpms/mysql-community-release-el7-5.noarch.rpm" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"))
-                self.place.execcmd("yum install -y mysql-repo.rpm")
-                if xenrt.TEC().lookup("WORKAROUND_CS30447", True, boolean=True):
+                    dbServer.execcmd("sed -i '/proxy/d' /etc/yum.conf")
+                    dbServer.execcmd("echo 'proxy=http://%s' >> /etc/yum.conf" % proxy)
+                dbServer.execcmd("wget -O mysql-repo.rpm %s/rpms/mysql-community-release-el7-5.noarch.rpm" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"))
+                dbServer.execcmd("yum install -y mysql-repo.rpm")
+                if server and xenrt.TEC().lookup("WORKAROUND_CS30447", True, boolean=True):
                     xenrt.TEC().warning("Using workaround for CS-30447")
-                    self.place.execcmd("yum -y install mysql-community-server-5.6.21")
+                    dbServer.execcmd("yum -y install mysql-community-server-5.6.21")
                 else:
-                    self.place.execcmd('yum -y install mysql-server mysql')
-        self.place.execcmd('service %s restart' % self.db)
-        self.place.execcmd('chkconfig %s on' % self.db)
+                    dbServer.execcmd('yum -y install %s' % mysqlPackages)
+        if server:
+            dbServer.execcmd('service %s restart' % db)
+            dbServer.execcmd('chkconfig %s on' % db)
 
-        self.place.execcmd('mysql -u root --execute="GRANT ALL PRIVILEGES ON *.* TO \'root\'@\'%\' WITH GRANT OPTION"')
-        self.place.execcmd('iptables -I INPUT -p tcp --dport 3306 -j ACCEPT')
-        self.place.execcmd('mysqladmin -u root password xensource')
-        self.place.execcmd('service %s restart' % self.db)
-
-        setupDbLoc = self.place.execcmd('find /usr/bin -name %s-setup-databases' % (self.cmdPrefix)).strip()
-        self.place.execcmd('%s cloud:cloud@localhost --deploy-as=root:xensource' % (setupDbLoc))
-        
-        if xenrt.TEC().lookup("USE_CCP_SIMULATOR", False, boolean=True):
-            self.tailorForSimulator()
+            dbServer.execcmd('mysql -u root --execute="GRANT ALL PRIVILEGES ON *.* TO \'root\'@\'%\' IDENTIFIED BY \'xensource\' WITH GRANT OPTION"')
+            dbServer.execcmd('iptables -I INPUT -p tcp --dport 3306 -j ACCEPT')
+            dbServer.execcmd('mysqladmin -u root password xensource')
+            dbServer.execcmd("sed -i /skip-name-resolve/d /etc/my.cnf")
+            dbServer.execcmd("sed -i s/\\\\[mysqld\\\\]/[mysqld]\\\\nskip-name-resolve/ /etc/my.cnf")
+            dbServer.execcmd('service %s restart' % db)
+            dbServer.special['mysql_server_installed'] = True
 
     def setupManagementServer(self):
-        self.place.execcmd('iptables -I INPUT -p tcp --dport 8096 -j ACCEPT')
-        setupMsLoc = self.place.execcmd('find /usr/bin -name %s-setup-management' % (self.cmdPrefix)).strip()
-        self.place.execcmd(setupMsLoc)
+        self.primaryManagementServer.execcmd('iptables -I INPUT -p tcp --dport 8096 -j ACCEPT')
+        setupMsLoc = self.primaryManagementServer.execcmd('find /usr/bin -name %s-setup-management' % (self.cmdPrefix)).strip()
+        self.primaryManagementServer.execcmd(setupMsLoc)
 
-        self.place.execcmd('mysql -u cloud --password=cloud --execute="UPDATE cloud.configuration SET value=8096 WHERE name=\'integration.api.port\'"')
+        self.primaryManagementServer.execcmd('mysql -u cloud --password=cloud -h %s --execute="UPDATE cloud.configuration SET value=8096 WHERE name=\'integration.api.port\'"' % self.dbServer.getIP())
 
-        if xenrt.TEC().lookup("USE_CCP_SIMULATOR", False, boolean=True):
+        if xenrt.TEC().lookup("USE_CCP_SIMULATOR", False, boolean=True) or self._simDbServer:
             # For some reason the cloud user doesn't seem to have access to the simulator DB
-            self.place.execcmd("""sed -i s/db.simulator.username=cloud/db.simulator.username=root/ /usr/share/cloudstack-management/conf/db.properties""")
-            self.place.execcmd("""sed -i s/db.simulator.password=cloud/db.simulator.password=xensource/ /usr/share/cloudstack-management/conf/db.properties""")
+            self.primaryManagementServer.execcmd("""sed -i s/db.simulator.username=cloud/db.simulator.username=root/ /usr/share/cloudstack-management/conf/db.properties""")
+            self.primaryManagementServer.execcmd("""sed -i s/db.simulator.password=cloud/db.simulator.password=xensource/ /usr/share/cloudstack-management/conf/db.properties""")
+            if self.simDbServer != self.primaryManagementServer or self.additionalManagementServers:
+                self.primaryManagementServer.execcmd("""sed -i s/db.simulator.host=localhost/db.simulator.host=%s/ /usr/share/cloudstack-management/conf/db.properties""" % self.simDbServer.getIP())
+                
         self.restart(checkHealth=False)
         self.checkManagementServerHealth(timeout=300)
 
@@ -186,7 +265,7 @@ class ManagementServer(object):
                     "%s/cloudTemplates/centos55-httpd-64bit.qcow2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP")
 
         for t in templateSubsts.keys():
-            self.place.execcmd("""mysql -u cloud --password=cloud --execute="UPDATE cloud.vm_template SET url='%s' WHERE url='%s'" """ % (templateSubsts[t], t))
+            self.primaryManagementServer.execcmd("""mysql -u cloud --password=cloud -h %s --execute="UPDATE cloud.vm_template SET url='%s' WHERE url='%s'" """ % (self.dbServer.getIP(), templateSubsts[t], t))
 
         self.restart()
 
@@ -194,17 +273,19 @@ class ManagementServer(object):
 
         internalMask = IPy.IP("%s/%s" % (xenrt.getNetworkParam("NPRI", "SUBNET"), xenrt.getNetworkParam("NPRI", "SUBNETMASK")))
 
-        if xenrt.TEC().lookup("USE_CCP_SIMULATOR", False, boolean=True):
-            self.place.execcmd('mysql -u root --password=xensource < /usr/share/cloudstack-management/setup/hypervisor_capabilities.simulator.sql')
-            self.place.execcmd('mysql -u root --password=xensource < /usr/share/cloudstack-management/setup/templates.simulator.sql')
+        if xenrt.TEC().lookup("USE_CCP_SIMULATOR", False, boolean=True) or self._simDbServer:
+            self.primaryManagementServer.execcmd('mysql -u root --password=xensource -h %s < /usr/share/cloudstack-management/setup/hypervisor_capabilities.simulator.sql' % self.dbServer.getIP())
+            self.primaryManagementServer.execcmd('mysql -u root --password=xensource -h %s < /usr/share/cloudstack-management/setup/templates.simulator.sql' % self.dbServer.getIP())
         marvinApi.setCloudGlobalConfig("secstorage.allowed.internal.sites", internalMask.strNormal())
         if not xenrt.TEC().lookup("MARVIN_SETUP", False, boolean=True):
             marvinApi.setCloudGlobalConfig("use.external.dns", "true")
         endpoint_url = "http://%s:8096/client/api" % marvinApi.mgtSvrDetails.mgtSvrIp
+        if self.additionalManagementServers:
+            marvinApi.setCloudGlobalConfig("agent.lb.enabled", "true")
         marvinApi.setCloudGlobalConfig("endpointe.url", endpoint_url)
         marvinApi.setCloudGlobalConfig("check.pod.cidrs", "false", restartManagementServer=True)
-        xenrt.GEC().dbconnect.jobUpdate("CLOUD_MGMT_SVR_IP", self.place.getIP())
-        xenrt.TEC().registry.toolstackPut("cloud", xenrt.lib.cloud.CloudStack(place=self.place))
+        xenrt.GEC().dbconnect.jobUpdate("CLOUD_MGMT_SVR_IP", self.primaryManagementServer.getIP())
+        xenrt.TEC().registry.toolstackPut("cloud", xenrt.lib.cloud.CloudStack(place=self.primaryManagementServer))
         # Create one secondary storage, to speed up deployment.
         # Additional locations will need to be created during deployment
         hvlist = xenrt.TEC().lookup("CLOUD_REQ_SYS_TMPLS", None)
@@ -217,118 +298,110 @@ class ManagementServer(object):
             storagePath = secondaryStorage.getMount()
             url = 'nfs://%s' % (secondaryStorage.getMount().replace(':',''))
             marvinApi.copySystemTemplatesToSecondaryStorage(storagePath, "NFS")
-            self.place.special['initialNFSSecStorageUrl'] = url
+            self.primaryManagementServer.special['initialNFSSecStorageUrl'] = url
         elif "hyperv" in hvlist:
             if xenrt.TEC().lookup("EXTERNAL_SMB", False, boolean=True):
                 secondaryStorage = xenrt.ExternalSMBShare()
                 storagePath = secondaryStorage.getMount()
                 url = 'cifs://%s' % (secondaryStorage.getMount().replace(':',''))
                 marvinApi.copySystemTemplatesToSecondaryStorage(storagePath, "SMB")
-                self.place.special['initialSMBSecStorageUrl'] = url
+                self.primaryManagementServer.special['initialSMBSecStorageUrl'] = url
 
         if xenrt.TEC().lookup("CCP_CODE_COVERAGE", False, boolean=True):
             xenrt.TEC().logverbose("Enabling code coverage collection...")
-            if self.place.execcmd("ls %s/setup_codecoverage.sh" % self.installDir, retval="code") != 0:
-                raise xenrt.XRTError("CCP_CODE_COVERAGE set but setup_codecoverage.sh not found in build")
-            self.place.execcmd("cd %s && ./setup_codecoverage.sh" % self.installDir)
+            for m in self.allManagementServers:
+                if m.execcmd("ls %s/setup_codecoverage.sh" % self.installDir, retval="code") != 0:
+                    raise xenrt.XRTError("CCP_CODE_COVERAGE set but setup_codecoverage.sh not found in build")
+                m.execcmd("cd %s && ./setup_codecoverage.sh" % self.installDir)
             self.restart()
             xenrt.TEC().logverbose("...done")
 
         commit = None
         try:
-            commit = self.place.execcmd("cloudstack-sccs").strip()
+            commit = self.primaryManagementServer.execcmd("cloudstack-sccs").strip()
             xenrt.TEC().logverbose("Management server was built from commit %s" % commit)
         except:
             xenrt.TEC().warning("Error when trying to identify management server version")
         if commit:
-            expectedCommit = xenrt.getCCPCommit(self.place.distro)
+            expectedCommit = xenrt.getCCPCommit(self.primaryManagementServer.distro)
             if expectedCommit and commit != expectedCommit:
                 raise xenrt.XRTError("Management server commit %s does not match expected commit %s" % (commit, expectedCommit))
 
     def installApacheProxy(self):
-        self.place.execcmd("yum -y install httpd")
-        self.place.execcmd("echo ProxyPass /client http://127.0.0.1:8080/client > /etc/httpd/conf.d/cloudstack.conf")
-        self.place.execcmd("echo ProxyPassReverse /client http://127.0.0.1:8080/client >> /etc/httpd/conf.d/cloudstack.conf")
-        self.place.execcmd("echo RedirectMatch ^/$ /client >> /etc/httpd/conf.d/cloudstack.conf")
-        self.place.execcmd("chkconfig httpd on")
-        self.place.execcmd("service httpd restart")
-        if self.place.distro == "rhel7" or self.place.distro == "centos7":
-            self.place.execcmd('iptables -I INPUT -p tcp --dport 80 -j ACCEPT')
+        for m in self.allManagementServers:
+            m.execcmd("yum -y install httpd")
+            m.execcmd("echo ProxyPass /client http://127.0.0.1:8080/client > /etc/httpd/conf.d/cloudstack.conf")
+            m.execcmd("echo ProxyPassReverse /client http://127.0.0.1:8080/client >> /etc/httpd/conf.d/cloudstack.conf")
+            m.execcmd("echo RedirectMatch ^/$ /client >> /etc/httpd/conf.d/cloudstack.conf")
+            m.execcmd("chkconfig httpd on")
+            m.execcmd("service httpd restart")
+            if m.distro == "rhel7" or m.distro == "centos7":
+                m.execcmd('iptables -I INPUT -p tcp --dport 80 -j ACCEPT')
 
     def checkJavaVersion(self):
-        if self.place.distro.startswith("rhel6") or self.place.distro.startswith("centos6"):
-            if self.version in ['4.4', '4.5', '4.5.1', '4.6.0']:
-                # Check if Java 1.7.0 is installed
-                self.place.execcmd('yum -y install java-1.7.0-openjdk')
-                if not '1.7.0' in self.place.execcmd('java -version').strip():
-                    javaDir = self.place.execcmd('update-alternatives --display java | grep "^/usr/lib.*1.7.0"').strip()
-                    self.place.execcmd('update-alternatives --set java %s' % (javaDir.split()[0]))
+        for m in self.allManagementServers:
+            if m.distro.startswith("rhel6") or m.distro.startswith("centos6"):
+                if self.version in ['4.4', '4.5', '4.5.1', '4.6.0']:
+                    # Check if Java 1.7.0 is installed
+                    m.execcmd('yum -y install java-1.7.0-openjdk')
+                    if not '1.7.0' in m.execcmd('java -version').strip():
+                        javaDir = m.execcmd('update-alternatives --display java | grep "^/usr/lib.*1.7.0"').strip()
+                        m.execcmd('update-alternatives --set java %s' % (javaDir.split()[0]))
 
-                if not '1.7.0' in self.place.execcmd('java -version').strip():
-                    raise xenrt.XRTError('Failed to install and select Java 1.7')
+                    if not '1.7.0' in m.execcmd('java -version').strip():
+                        raise xenrt.XRTError('Failed to install and select Java 1.7')
 
     def installCloudPlatformManagementServer(self):
-        self.__isCCP = True
-        if self.place.arch != 'x86-64':
-            raise xenrt.XRTError('Cloud Management Server requires a 64-bit guest')
+        for m in self.allManagementServers:
+            self.__isCCP = True
+            if m.arch != 'x86-64':
+                raise xenrt.XRTError('Cloud Management Server requires a 64-bit guest')
 
-        manSvrInputDir = self.getCCPInputs()
-        if not manSvrInputDir:
-            raise xenrt.XRTError('Location of management server build not specified')
+            manSvrInputDir = self.getCCPInputs()
+            if not manSvrInputDir:
+                raise xenrt.XRTError('Location of management server build not specified')
 
-        manSvrFile = xenrt.TEC().getFile(manSvrInputDir)
-        if manSvrFile is None:
-            raise xenrt.XRTError("Couldn't find CCP build")
-        webdir = xenrt.WebDirectory()
-        webdir.copyIn(manSvrFile)
-        manSvrUrl = webdir.getURL(os.path.basename(manSvrFile))
-
-        self.place.execcmd('wget %s -O cp.tar.gz' % (manSvrUrl))
-        webdir.remove()
-
-        if self.place.distro == "rhel7" or self.place.distro == "centos7":
-            fname = "ws-commons-util-1.0.1-29.el7.noarch.rpm"
-            wscommons = xenrt.TEC().getFile("/usr/groups/xenrt/cloud/rpms/%s" % fname)
+            manSvrFile = xenrt.TEC().getFile(manSvrInputDir)
+            if manSvrFile is None:
+                raise xenrt.XRTError("Couldn't find CCP build")
             webdir = xenrt.WebDirectory()
-            webdir.copyIn(wscommons)
-            wscommonsurl = webdir.getURL(fname)
-            self.place.execcmd("wget %s -O /root/%s" % (wscommonsurl, fname))
-            self.place.execcmd("yum install -y /root/%s" % fname)
+            webdir.copyIn(manSvrFile)
+            manSvrUrl = webdir.getURL(os.path.basename(manSvrFile))
+
+            m.execcmd('wget %s -O cp.tar.gz' % (manSvrUrl))
             webdir.remove()
 
-        self.place.execcmd('mkdir cloudplatform')
-        self.place.execcmd('tar -zxvf cp.tar.gz -C /root/cloudplatform')
-        self.installDir = os.path.dirname(self.place.execcmd('find cloudplatform/ -type f -name install.sh'))
-        self.place.execcmd('cd %s && ./install.sh -m' % (self.installDir), timeout=600)
+            if m.distro == "rhel7" or m.distro == "centos7":
+                fname = "ws-commons-util-1.0.1-29.el7.noarch.rpm"
+                wscommons = xenrt.TEC().getFile("/usr/groups/xenrt/cloud/rpms/%s" % fname)
+                webdir = xenrt.WebDirectory()
+                webdir.copyIn(wscommons)
+                wscommonsurl = webdir.getURL(fname)
+                m.execcmd("wget %s -O /root/%s" % (wscommonsurl, fname))
+                m.execcmd("yum install -y /root/%s" % fname)
+                webdir.remove()
 
-        self.installCifs()
-        self.checkJavaVersion()
-        self.setupManagementServerDatabase()
-        self.setupManagementServer()
-        self.installApacheProxy()
-        self.saveFirewall()
+            m.execcmd('mkdir cloudplatform')
+            m.execcmd('tar -zxvf cp.tar.gz -C /root/cloudplatform')
+            self.installDir = os.path.dirname(m.execcmd('find cloudplatform/ -type f -name install.sh'))
+            m.execcmd('cd %s && ./install.sh -m' % (self.installDir), timeout=600)
+
 
     def installCloudStackManagementServer(self):
         self.__isCCP = False
-        placeArtifactDir = xenrt.lib.cloud.getACSArtifacts(self.place,
-                                                           ["cloudstack-management-",
-                                                            "cloudstack-common-",
-                                                            "cloudstack-awsapi-"])
+        for m in self.allManagementServers:
+            placeArtifactDir = xenrt.lib.cloud.getACSArtifacts(m,
+                                                               ["cloudstack-management-",
+                                                                "cloudstack-common-",
+                                                                "cloudstack-awsapi-"])
 
-        self.place.execcmd('yum -y install %s' % (os.path.join(placeArtifactDir, '*')), timeout=600)
-
-        self.installCifs()
-        self.checkJavaVersion()
-        self.setupManagementServerDatabase()
-        self.setupManagementServer()
-        self.installApacheProxy()
-        self.saveFirewall()
+            m.execcmd('yum -y install %s' % (os.path.join(placeArtifactDir, '*')), timeout=600)
 
     def saveFirewall(self):
-        self.place.execcmd("service iptables save")
+        [x.execcmd("service iptables save") for x in self.allManagementServers]
 
     def installCifs(self):
-        self.place.execcmd("yum install -y samba-client samba-common cifs-utils")
+        [x.execcmd("yum install -y samba-client samba-common cifs-utils") for x in self.allManagementServers]
 
     @property
     def version(self):
@@ -344,7 +417,7 @@ class ManagementServer(object):
             dbVersionMatches = []
             installVersionMatches = []
             try:
-                dbVersion = self.place.execcmd('mysql -u cloud --password=cloud -s -N --execute="SELECT version from cloud.version ORDER BY id DESC LIMIT 1"').strip()
+                dbVersion = self.primaryManagementServer.execcmd('mysql -u cloud --password=cloud -h %s -s -N --execute="SELECT version from cloud.version ORDER BY id DESC LIMIT 1"' % self.dbServer.getIP()).strip()
                 xenrt.TEC().logverbose('Found MS version %s from database' % (dbVersion))
                 dbVersionMatches = filter(lambda x:x in dbVersion, versionKeys)
             except Exception, e:
@@ -392,15 +465,16 @@ class ManagementServer(object):
             self.__db = 'mysqld'
 
             if xenrt.TEC().lookup("CLOUDSTACK_MARIADB", False, boolean=True):
-                if self.place.distro.startswith("rhel7") or self.place.distro.startswith("centos7"):
+                if self.dbServer.distro.startswith("rhel7") or self.dbServer.distro.startswith("centos7"):
                     self.__db = "mariadb"
                 else:
                     xenrt.XRTError('Maria DB only support in RHEL / CentOS 7')
         return self.__db
 
     def tailorForSimulator(self):
-        self.place.execcmd('mysql -u root --password=xensource < /usr/share/cloudstack-management/setup/create-database-simulator.sql')
-        self.place.execcmd('mysql -u root --password=xensource < /usr/share/cloudstack-management/setup/create-schema-simulator.sql')
+        self.installMySql(self.simDbServer)
+        self.primaryManagementServer.execcmd('mysql -u root --password=xensource -h %s < /usr/share/cloudstack-management/setup/create-database-simulator.sql' % self.simDbServer.getIP())
+        self.primaryManagementServer.execcmd('mysql -u root --password=xensource -h %s < /usr/share/cloudstack-management/setup/create-schema-simulator.sql' % self.simDbServer.getIP())
 
     def preManagementServerInstall(self):
         # Check correct Java version is installed (installs correct version if required)
@@ -408,10 +482,12 @@ class ManagementServer(object):
 
     def postManagementServerInstall(self):
         if not self.isCCP and self.version in ['4.4', '4.5']:
-            self.place.execcmd('wget http://download.cloud.com.s3.amazonaws.com/tools/vhd-util -P /usr/share/cloudstack-common/scripts/vm/hypervisor/xenserver/')
-            self.place.execcmd('chmod 755 /usr/share/cloudstack-common/scripts/vm/hypervisor/xenserver/vhd-util')
+            for m in self.allManagementServers:
+                m.execcmd('wget http://download.cloud.com.s3.amazonaws.com/tools/vhd-util -P /usr/share/cloudstack-common/scripts/vm/hypervisor/xenserver/')
+                m.execcmd('chmod 755 /usr/share/cloudstack-common/scripts/vm/hypervisor/xenserver/vhd-util')
 
     def installCloudManagementServer(self):
+        [x.rename(x.getName()) for x in self.allManagementServers]
         self.preManagementServerInstall()
 
         if self.getCCPInputs():
@@ -421,4 +497,45 @@ class ManagementServer(object):
         else:
             raise xenrt.XRTError("Didn't find one of CLOUDINPUTDIR, ACS_BRANCH, CLOUDRPMTAR or ACS_BUILD variables")
 
+        self.installCifs()
+        self.checkJavaVersion()
+        self.setupManagementServerDatabase()
+        self.setupManagementServer()
+        self.setupAdditionalManagementServers()
+        self.installApacheProxy()
+        self.saveFirewall()
         self.postManagementServerInstall()
+        self.setupNetscaler()
+
+    def setupNetscaler(self):
+        if self.netscalerVM:
+            self.netscaler = xenrt.lib.netscaler.NetScaler.setupNetScalerVpx(self.netscalerVM, license=xenrt.lib.netscaler.NetScaler.getLicenseFileFromXenRT())
+
+            vip = xenrt.StaticIP4Addr()
+            subnet = xenrt.getNetworkParam("NPRI", "SUBNETMASK") 
+            self.netscaler.cli("add ns ip %s %s -type VIP"  % (vip.addr, subnet))
+            self.netscaler.cli("enable ns feature LB")
+            self.netscaler.cli("enable ns feature RESPONDER")
+
+            self.netscaler.cli("add lb vserver MS-80 HTTP %s 80 -persistenceType SOURCEIP -cltTimeout 180" % vip.addr)
+            self.netscaler.cli("add lb vserver MS-8080 HTTP %s 8080 -persistenceType SOURCEIP -cltTimeout 180" % vip.addr)
+            self.netscaler.cli("add lb vserver MS-8096 HTTP %s 8096 -persistenceType NONE -cltTimeout 180" % vip.addr)
+            self.netscaler.cli("add lb vserver MS-8250 TCP %s 8250 -persistenceType SOURCEIP -cltTimeout 180" % vip.addr)
+
+            self.netscaler.cli('add responder action redirect_to_client redirect "\\"/client/\\""')
+            self.netscaler.cli('add responder policy redirect_from_root "HTTP.REQ.URL.EQ(\\"/\\")" redirect_to_client')
+            self.netscaler.cli('bind lb vserver MS-80 -policyName redirect_from_root -priority 100 -gotoPriorityExpression END -type REQUEST')
+
+
+            for m in self.allManagementServers:
+                self.netscaler.cli("add server %s %s" % (m.getName(), m.getIP()))
+                self.netscaler.cli("add service %s-8080 %s HTTP 8080 -gslb NONE -maxClient 0 -maxReq 0 -cip DISABLED -usip NO -useproxyport YES -sp OFF -cltTimeout 180 -svrTimeout 360 -CKA NO -TCPB NO -CMP NO" % (m.getName(), m.getName()))
+                self.netscaler.cli("bind lb vserver MS-80 %s-8080" % m.getName())
+                self.netscaler.cli("bind lb vserver MS-8080 %s-8080" % m.getName())
+
+                self.netscaler.cli("add service %s-8096 %s HTTP 8096 -gslb NONE -maxClient 0 -maxReq 0 -cip DISABLED -usip NO -useproxyport YES -sp OFF -cltTimeout 180 -svrTimeout 360 -CKA NO -TCPB NO -CMP NO" % (m.getName(), m.getName()))
+                self.netscaler.cli("bind lb vserver MS-8096 %s-8096" % m.getName())
+                self.netscaler.cli("add service %s-8250 %s TCP 8250 -gslb NONE -maxClient 0 -maxReq 0 -cip DISABLED -usip NO -useproxyport YES -sp OFF -cltTimeout 9000 -svrTimeout 9000 -CKA NO -TCPB NO -CMP NO" % (m.getName(), m.getName()))
+                self.netscaler.cli("bind lb vserver MS-8250 %s-8250" % m.getName())
+            self.netscaler.cli("save ns config")
+            self.nsvip = vip.addr

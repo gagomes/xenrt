@@ -6,46 +6,49 @@
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
     <FINALLY_UNINSTALL>yes</FINALLY_UNINSTALL>
     <OPTION_BLOCK_ON_SKIP>yes</OPTION_BLOCK_ON_SKIP>
-    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
   </variables>
 
   <prepare>
-    <host/>
+    <pool>
+      <storage type="lvmoiscsi" name="iscsisr" options="thin"/>
+      <storage type="nfs" name="nfssr_nosubdir" options="nosubdir"/>
+      <host/>
+    </pool>
   </prepare>
 
   <testsequence group="BasicSRTests">
 
     <serial group="VDICreate">
-      <testcase id="xenserver.tc.storage.TC8515" prio="3"/>
-      <testcase id="xenserver.tc.storage.TC10671" prio="3"/>
+      <testcase id="xenserver.tc.storage.TC27157" prio="3" sku="thin" />
     </serial>
 
     <serial group="VDIResize">
-      <testcase id="xenserver.tc.storage.TC8475" prio="3"/>
-      <testcase id="xenserver.tc.storage.TC8477" prio="3"/>
-      <testcase id="xenserver.tc.storage.TC8479" prio="3"/>
-      <testcase id="xenserver.tc.storage.TC8481" prio="3"/>
+      <testcase id="xenserver.tc.storage.TC27158" prio="3" sku="thin" />
+      <testcase id="xenserver.tc.storage.TC27159" prio="3" sku="thin" />
+      <testcase id="xenserver.tc.storage.TC27160" prio="3" sku="thin" />
     </serial>
 
     <serial group="VDISnap">
-      <testcase id="xenserver.tc.snapshot.TC7958" prio="3"/>
-      <testcase id="xenserver.tc.snapshot.TC7959" prio="3"/>
-      <testcase id="xenserver.tc.snapshot.TC7960" prio="3"/>
-      <testcase id="xenserver.tc.snapshot.TC7961" prio="3"/>
-      <testcase id="xenserver.tc.snapshot.TC7962" prio="3"/>
-      <testcase id="xenserver.tc.snapshot.TC7963" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC27161" prio="3" sku="thin" />
+      <testcase id="xenserver.tc.snapshot.TC27162" prio="3" sku="thin" />
+      <testcase id="xenserver.tc.snapshot.TC27163" prio="3" sku="thin" />
+      <testcase id="xenserver.tc.snapshot.TC27164" prio="3" sku="thin" />
+      <testcase id="xenserver.tc.snapshot.TC27165" prio="3" sku="thin" />
+      <testcase id="xenserver.tc.snapshot.TC27166" prio="3" sku="thin" />
     </serial>
 
-    <serial group="VDIClone">
-      <testcase id="xenserver.tc.vhd.TC8763" prio="3"/>
+    <serial group="VDICopy">
+      <testcase id="xenserver.tc.storage.TC20953" prio="3" sku="thin"/>
+      <testcase id="xenserver.tc.storage.TC27155" prio="3" sku="thin"/>
+      <testcase id="xenserver.tc.storage.TC27156" prio="3" sku="thin"/>
     </serial>
 
     <serial group="iSCSITests">
-      <testcase id="xenserver.tc.storage.TC7366" prio="3"/>
-      <testcase id="xenserver.tc.storage.TC7367" prio="3"/>
-      <testcase id="xenserver.tc.storage.TC27042" prio="3"/>
-      <testcase id="xenserver.tc.storage.TC27043" prio="3"/>
+      <testcase id="xenserver.tc.storage.TC27042" prio="3" sku="thin" />
+      <testcase id="xenserver.tc.storage.TC27043" prio="3" sku="thin" />
     </serial>
+
   </testsequence>
 
 </xenrt>

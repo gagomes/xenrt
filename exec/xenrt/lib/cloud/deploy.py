@@ -339,8 +339,8 @@ class DeployerPlugin(object):
                 hostObjects = [hostObject]
             for h in hostObjects:
                 try:
-                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSIP", self.marvin.mgtSvr.place.getIP()])
-                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSGUEST", "%s/%s" % (self.marvin.mgtSvr.place.getHost().getName(), self.marvin.mgtSvr.place.getName())])
+                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSIP", self.marvin.mgtSvr.ip])
+                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSGUEST", "%s/%s" % (self.marvin.mgtSvr.primaryManagementServer.getHost().getName(), self.marvin.mgtSvr.primaryManagementServer.getName())])
                 except Exception, e:
                     xenrt.TEC().logverbose("Warning - could not update machine info - %s" % str(e))
 
@@ -352,8 +352,8 @@ class DeployerPlugin(object):
                 h.tailorForCloudStack(self.marvin.mgtSvr.isCCP, isBasic = ref.get("XRT_NetworkType", "Basic").lower() == "basic")
 
                 try:
-                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSIP", self.marvin.mgtSvr.place.getIP()])
-                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSGUEST", "%s/%s" % (self.marvin.mgtSvr.place.getHost().getName(), self.marvin.mgtSvr.place.getName())])
+                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSIP", self.marvin.mgtSvr.ip])
+                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSGUEST", "%s/%s" % (self.marvin.mgtSvr.primaryManagementServer.getHost().getName(), self.marvin.mgtSvr.primaryManagementServer.getName())])
                 except Exception, e:
                     xenrt.TEC().logverbose("Warning - could not update machine info - %s" % str(e))
 
@@ -365,8 +365,8 @@ class DeployerPlugin(object):
                 h.tailorForCloudStack(self.marvin.mgtSvr.isCCP, isLXC=True, isBasic = ref.get("XRT_NetworkType", "Basic").lower() == "basic")
 
                 try:
-                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSIP", self.marvin.mgtSvr.place.getIP()])
-                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSGUEST", "%s/%s" % (self.marvin.mgtSvr.place.getHost().getName(), self.marvin.mgtSvr.place.getName())])
+                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSIP", self.marvin.mgtSvr.ip])
+                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSGUEST", "%s/%s" % (self.marvin.mgtSvr.primaryManagementServer.getHost().getName(), self.marvin.mgtSvr.primaryManagementServer.getName())])
                 except Exception, e:
                     xenrt.TEC().logverbose("Warning - could not update machine info - %s" % str(e))
 
@@ -380,8 +380,8 @@ class DeployerPlugin(object):
                 h.tailorForCloudStack(self.hyperVMsi)
 
                 try:
-                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSIP", self.marvin.mgtSvr.place.getIP()])
-                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSGUEST", "%s/%s" % (self.marvin.mgtSvr.place.getHost().getName(), self.marvin.mgtSvr.place.getName())])
+                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSIP", self.marvin.mgtSvr.ip])
+                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSGUEST", "%s/%s" % (self.marvin.mgtSvr.primaryManagementServer.getHost().getName(), self.marvin.mgtSvr.primaryManagementServer.getName())])
                 except Exception, e:
                     xenrt.TEC().logverbose("Warning - could not update machine info - %s" % str(e))
 
@@ -397,8 +397,8 @@ class DeployerPlugin(object):
                 h = xenrt.TEC().registry.hostGet('RESOURCE_HOST_%d' % (int(hostId)))
 
                 try:
-                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSIP", self.marvin.mgtSvr.place.getIP()])
-                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSGUEST", "%s/%s" % (self.marvin.mgtSvr.place.getHost().getName(), self.marvin.mgtSvr.place.getName())])
+                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSIP", self.marvin.mgtSvr.ip])
+                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSGUEST", "%s/%s" % (self.marvin.mgtSvr.primaryManagementServer.getHost().getName(), self.marvin.mgtSvr.primaryManagementServer.getName())])
                 except Exception, e:
                     xenrt.TEC().logverbose("Warning - could not update machine info - %s" % str(e))
 
@@ -460,16 +460,16 @@ def doDeploy(cloudSpec, manSvr=None):
         else:
             raise xenrt.XRTError('No management server specified') 
 
-    xenrt.TEC().comment('Using Management Server: %s' % (manSvr.place.getIP()))
+    xenrt.TEC().comment('Using Management Server: %s' % (manSvr.ip))
     marvin = xenrt.lib.cloud.MarvinApi(manSvr)
 
     deployerPlugin = DeployerPlugin(marvin)
-    if manSvr.place.special.has_key('initialNFSSecStorageUrl') and manSvr.place.special['initialNFSSecStorageUrl']:
-        deployerPlugin.initialNFSSecStorageUrl = manSvr.place.special['initialNFSSecStorageUrl']
-        manSvr.place.special['initialNFSSecStorageUrl'] = None
-    if manSvr.place.special.has_key('initialSMBSecStorageUrl') and manSvr.place.special['initialSMBSecStorageUrl']:
-        deployerPlugin.initialSMBSecStorageUrl = manSvr.place.special['initialSMBSecStorageUrl']
-        manSvr.place.special['initialSMBSecStorageUrl'] = None
+    if manSvr.primaryManagementServer.special.has_key('initialNFSSecStorageUrl') and manSvr.primaryManagementServer.special['initialNFSSecStorageUrl']:
+        deployerPlugin.initialNFSSecStorageUrl = manSvr.primaryManagementServer.special['initialNFSSecStorageUrl']
+        manSvr.primaryManagementServer.special['initialNFSSecStorageUrl'] = None
+    if manSvr.primaryManagementServer.special.has_key('initialSMBSecStorageUrl') and manSvr.primaryManagementServer.special['initialSMBSecStorageUrl']:
+        deployerPlugin.initialSMBSecStorageUrl = manSvr.primaryManagementServer.special['initialSMBSecStorageUrl']
+        manSvr.primaryManagementServer.special['initialSMBSecStorageUrl'] = None
     marvinCfg = marvin.marvinDeployerFactory()
     marvinCfg.generateMarvinConfig(cloudSpec, deployerPlugin)
 

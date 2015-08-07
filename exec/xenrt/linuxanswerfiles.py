@@ -42,6 +42,9 @@ class RHELKickStartFile(object):
         self.arch=arch
         self.distro = distro
         self.repository = repository
+        # Workaround fedora server not having an "development-tools" group
+        if self.distro.startswith("fedora"):
+            self.repository = self.repository.replace("Server", "Everything")
         self.method = method
         self.installOn = installOn
         self.bootDiskFS = bootDiskFS

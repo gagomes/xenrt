@@ -233,8 +233,7 @@ class ManagementServer(object):
             # For some reason the cloud user doesn't seem to have access to the simulator DB
             self.primaryManagementServer.execcmd("""sed -i s/db.simulator.username=cloud/db.simulator.username=root/ /usr/share/cloudstack-management/conf/db.properties""")
             self.primaryManagementServer.execcmd("""sed -i s/db.simulator.password=cloud/db.simulator.password=xensource/ /usr/share/cloudstack-management/conf/db.properties""")
-            if self.simDbServer != self.primaryManagementServer or self.additionalManagementServers:
-                self.primaryManagementServer.execcmd("""sed -i s/db.simulator.host=localhost/db.simulator.host=%s/ /usr/share/cloudstack-management/conf/db.properties""" % self.simDbServer.getIP())
+            self.primaryManagementServer.execcmd("""sed -i s/db.simulator.host=localhost/db.simulator.host=%s/ /usr/share/cloudstack-management/conf/db.properties""" % self.simDbServer.getIP())
                 
         self.restart(checkHealth=False)
         self.checkManagementServerHealth(timeout=300)

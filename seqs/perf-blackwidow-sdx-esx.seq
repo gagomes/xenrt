@@ -4,8 +4,7 @@
   <default name="NS_TOOLS_PATH" value="/usr/groups/xenrt/ns-tools-10.5-52.11.nc.tgz" />
   <default name="BW_NAME" value="blackwidow" />
   <default name="DUT_NAME" value="dut" />
-  <default name="BW_TESTCASE" value="Please Override this value with a testcase class" />
-  <!-- "TCHttp100KResp" | "TCHttp1BResp" | "TCTcpVipCps" -->
+  <default name="BW_TESTCASE" value="TCHttp100KResp" />
 
   <variables>
     <OPTION_KEEP_SETUP>yes</OPTION_KEEP_SETUP>

@@ -5,8 +5,7 @@
   <default name="NS_NSVPX_XVA" value="/usr/groups/xenrt/NSVPX-XEN-10.5-52.11_nc.xva" />
   <default name="BW_NAME" value="blackwidow" />
   <default name="DUT_NAME" value="dut" />
-  <default name="BW_TESTCASE" value="Please Override this value with a testcase class" />
-  <!-- "TCHttp100KResp" | "TCHttp1BResp" | "TCTcpVipCps" -->
+  <default name="BW_TESTCASE" value="TCHttp100KResp" />
 
   <variables>
     <OPTION_KEEP_SETUP>yes</OPTION_KEEP_SETUP>

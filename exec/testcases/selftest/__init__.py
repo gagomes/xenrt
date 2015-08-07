@@ -241,20 +241,42 @@ class TCMachineCheck(xenrt.TestCase):
         # Primary NIC is implicitly verified, so we only test secondary NICs here
         nics = self.host.listSecondaryNICs()
         cli = self.host.getCLIInstance()
+        missingIPConfigs = []
         for assumedId in nics:
             pif = self.host.getNICPIF(assumedId)
             cli.execute("pif-reconfigure-ip", "uuid=%s mode=dhcp" % pif)
 
             # Validate it has the expected config
-            expectedIp, expectedNetmask, expectedGateway = self.host.getNICAllocatedIPAddress(assumedId)
-            xenrt.TEC().logverbose("For NIC %u expecting %s/%s (GW %s)" % (assumedId, expectedIp, expectedNetmask, expectedGateway))
+            try:
+                expectedIp, expectedNetmask, expectedGateway = self.host.getNICAllocatedIPAddress(assumedId)
+                xenrt.TEC().logverbose("For NIC %u expecting %s/%s (GW %s)" % (assumedId, expectedIp, expectedNetmask, expectedGateway))
+            except xenrt.XRTError:
+                xenrt.TEC().warning("NIC %u has no assigned IP" % assumedId)
+                expectedIp = None
+                missingIPConfigs.append(str(assumedId))
             actualIp = self.host.genParamGet("pif", pif, "IP")
             actualNetmask = self.host.genParamGet("pif", pif, "netmask")
             actualGateway = self.host.genParamGet("pif", pif, "gateway")
             xenrt.TEC().logverbose("Found %s/%s (GW %s)" % (actualIp, actualNetmask, actualGateway))
             failures = []
-            if actualIp != expectedIp:
-                failures.append("IP not as expected")
+            if expectedIp is None:
+                # Determine if IP is in the expected subnet
+                nw = self.host.lookup(["NICS", "NIC%u" % (assumedId), "NETWORK"], None)
+                if not nw:
+                    raise xenrt.XRTError("NETWORK not specified for NIC %u" % assumedId)
+                nwMaps = {"NPRI": "DEFAULT", "NSEC": "SECONDARY", "IPRI": "VLANS/IPRI"}
+                if not nw in nwMaps.keys():
+                    raise xenrt.XRTError("Unknown NETWORK %s" % nw)
+                confKey = ["NETWORK_CONFIG"] + nwMaps[nw].split("/")
+                expectedSubnet = self.host.lookup(confKey + ["SUBNET"])
+                expectedNetmask = self.host.lookup(confKey + ["SUBNETMASK"])
+                expectedGateway = self.host.lookup(confKey + ["GATEWAY"])
+                if not isAddressInSubnet(actualIp, expectedSubnet, expectedNetmask):
+                    failures.append("IP not in correct subnet")
+            else:
+                if actualIp != expectedIp:
+                    failures.append("IP not as expected")
+
             if actualNetmask != expectedNetmask:
                 failures.append("Netmask not as expected")
             if actualGateway != expectedGateway:
@@ -262,4 +284,7 @@ class TCMachineCheck(xenrt.TestCase):
             if len(failures) > 0:
                 raise xenrt.XRTFailure("Incorrect DHCP response for NIC %u: %s" % (assumedId, ", ".join(failures)))
             cli.execute("pif-reconfigure-ip", "uuid=%s mode=none" % pif)
+
+        if len(missingIPConfigs) > 0:
+            raise xenrt.XRTPartial("Missing IP configs for NICs %s" % (",".join(missingIPConfigs)))
 

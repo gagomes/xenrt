@@ -195,6 +195,9 @@ class XRTSkip(XRTException):
     """Test skip (use only in subcases)."""
     pass
 
+class XRTPartial(XRTException):
+    """Test partial pass (use only in subcases)."""
+
 class XRTFailure(XRTException):
     """Test failure."""
     pass
@@ -855,6 +858,10 @@ logdata call.
             self.tec.logverbose("%s/%s %s" % (scgroup, sctest, str(e)),
                                 pref='REASON')
             reply = RESULT_SKIPPED
+        except XRTPartial, e:
+            self.testcaseResult(scgroup, sctest, RESULT_PARTIAL, str(e))
+            self.tec.logverbose("%s/%s %s" % (scgroup, sctest, str(e)),
+                                pref='REASON')
         except Exception, e:
             sys.stderr.write(str(e).rstrip()+'\n')
             self.tec.logverbose(traceback.format_exc())

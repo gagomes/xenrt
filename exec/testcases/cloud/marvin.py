@@ -150,8 +150,8 @@ class TCRemoteNoseSetup(_TCRemoteNoseBase):
             testData['hypervisor'] = self.args['hypervisor']
             testData['small']['hypervisor'] = self.args['hypervisor']
             #testData['medium']['hypervisor'] = self.args['hypervisor']
-            testData['server']['hypervisor'] = self.args['hypervisor']
-            testData['server_without_disk']['hypervisor'] = self.args['hypervisor']
+            #testData['server']['hypervisor'] = self.args['hypervisor']
+            #testData['server_without_disk']['hypervisor'] = self.args['hypervisor']
             testData['host_password'] = xenrt.TEC().lookup("ROOT_PASSWORD")
             testData['configurableData']['host']['password'] = xenrt.TEC().lookup("ROOT_PASSWORD")
             # ISO replacements

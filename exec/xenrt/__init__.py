@@ -862,6 +862,7 @@ logdata call.
             self.testcaseResult(scgroup, sctest, RESULT_PARTIAL, str(e))
             self.tec.logverbose("%s/%s %s" % (scgroup, sctest, str(e)),
                                 pref='REASON')
+            reply = RESULT_PARTIAL
         except Exception, e:
             sys.stderr.write(str(e).rstrip()+'\n')
             self.tec.logverbose(traceback.format_exc())

@@ -1162,6 +1162,19 @@ class Host(xenrt.GenericHost):
         if xenrt.TEC().lookup("CC_ENABLE_SSH", False, boolean=True):
             otherconfigs = otherconfigs + "<service name=\"sshd\" state=\"enabled\"/>\n"
 
+        driver_source = xenrt.TEC().lookup("DRIVER_SOURCE", None)
+        if driver_source:
+            driver_source_type = ""
+            if driver_source.startswith("http"):
+                driver_source_type = "url"
+            elif ":/" in driver_source:
+                driver_source_type = "nfs"
+            else:
+                driver_source_type = "local"
+
+            otherconfigs = otherconfigs + ("<driver-source type=\"%s\">%s</driver-source>\n" % \
+                                            (driver_source_type, driver_source))
+
         anstext = """<?xml version="1.0"?>
 <installation%s>
 %s

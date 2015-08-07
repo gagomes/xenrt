@@ -148,7 +148,7 @@ class TCMachineCheck(xenrt.TestCase):
         self.host = self.getDefaultHost()
 
         for t in [("Power", "IPMI"), ("Power", "PDU")]:
-            self.runSubcase("test_%s_%s" % (t[0],t[1]), (), t[0], t[1])
+            self.runSubcase("test%s%s" % (t[0],t[1]), (), t[0], t[1])
             self.host.waitForSSH(600, desc="Boot after %s/%s test" % (t[0],t[1]))
 
     def _testPowerctl(self, powerctl):
@@ -165,7 +165,7 @@ class TCMachineCheck(xenrt.TestCase):
             powerctl.on()
             lock.release()
 
-    def test_Power_IPMI(self):
+    def testPowerIPMI(self):
         powerctl = self.host.machine.powerctl
         if isinstance(powerctl, xenrt.powerctl.IPMIWithPDUFallback):
             powerctl = powerctl.ipmi
@@ -176,7 +176,7 @@ class TCMachineCheck(xenrt.TestCase):
 
         self._testPowerctl(powerctl)
 
-    def test_Power_PDU(self):
+    def testPowerPDU(self):
         lock = xenrt.resources.CentralResource(timeout=1200)
         powerctl = self.host.machine.powerctl
         if isinstance(powerctl, xenrt.powerctl.IPMIWithPDUFallback):

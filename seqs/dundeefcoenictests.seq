@@ -1,0 +1,20 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0">
+       <storage type="fcoe" name="FCOESR"/>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="NetworkTests">
+      <testcase id="xenserver.tc.network.TCFCOEVmVlan" tc="TC-27150"/>
+      <testcase id="xenserver.tc.network.TCFCOEMngR" tc="TC-27151"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

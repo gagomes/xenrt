@@ -2650,11 +2650,6 @@ class TCCIFSVDIResizeDataCheck(_TCResizeDataCheck):
     SRTYPE = "cifs"
     FORCEOFFLINE = True
 
-class TCFCOEVDIResizeShrink(_TCResizeShrink):
-    """Attempting to shrink a FCoE VDI should fail with a suitable error."""
-
-    SRTYPE = "lvmofcoe"
-
 class TCFCOEVDIResizeGrowSmall(_TCResizeGrow):
     """Grow a FCoE VDI of a round size by 1 byte."""
 
@@ -5064,10 +5059,16 @@ class TCFCOESRLifecycle(xenrt.TestCase):
         
 class TCFCOEGuestLifeCycle(xenrt.TestCase):
     """Guest Lifecycle operations on FCoE SR."""
-
+    
+    SRTYPE = "lvmofcoe"
+    
     def prepare(self, arglist):
-
+        
         self.host = self.getDefaultHost() 
+        srs = self.host.minimalList("sr-list", args="type=%s" %(self.SRTYPE))
+        if not srs:
+            raise xenrt.XRTFailure("Unable to find a LVMoFCoE SR configured on host %s" % self.host)
+
         self.guests = [self.host.getGuest(g) for g in self.host.listGuests()]
         
     def run(self, arglist):
@@ -5085,10 +5086,10 @@ class TCFCOEGuestLifeCycle(xenrt.TestCase):
             guest.resume()
 
             snapuuid = guest.snapshot()
-            self.removeTemplate(self.host, snapuuid)
+            self.host.removeTemplate(snapuuid)
             
             checkpointuuid = guest.checkpoint()
-            self.removeTemplate(self.host, checkpointuuid)
+            self.host.removeTemplate(checkpointuuid)
             
             if guest.getState() == "UP":
                 guest.shutdown()
@@ -5101,9 +5102,17 @@ class TCFCOEGuestLifeCycle(xenrt.TestCase):
 class TCFCOEVerifySRProbe(xenrt.TestCase):
     """Verify FCoE SR Probe operation output has Ethernet information."""
 
+    SRTYPE = "lvmofcoe"
+
     def prepare(self, arglist):
 
         self.host = self.getDefaultHost() 
+        sr = self.host.minimalList("sr-list", args="type=%s" %(self.SRTYPE))
+        
+        if sr:
+            xsr = next((s for s in self.host.asXapiObject().SR() if s.srType() == self.SRTYPE), None)
+            self.sr = xenrt.lib.xenserver.FCOEStorageRepository.fromExistingSR(self.host, xsr.uuid)
+            self.sr.forget()
         
     def run(self, arglist):
 
@@ -5111,7 +5120,7 @@ class TCFCOEVerifySRProbe(xenrt.TestCase):
         failProbe = False
         
         args = []
-        args.append("type=lvmofcoe")
+        args.append("type=%s" %(self.SRTYPE))
         
         try:
             cli.execute("sr-probe", string.join(args))
@@ -5143,12 +5152,39 @@ class TCFCOEVerifySRProbe(xenrt.TestCase):
                 eth = eths[0].childNodes[0].data.strip()
                 log("Found ethernet information %s for lun %s " %(eth , lun))
                 found = True
-                break
 
-        if not found:
-            raise xenrt.XRTFailure("Couldn't find lun in XML output")
+                if not found:
+                    raise xenrt.XRTFailure("Couldn't find lun in XML output")
 
-        if failProbe:
-            raise xenrt.XRTFailure("sr-probe unexpectedly returned "
-                                   "successfully when attempting to "
-                                   "find Ethernet information for the luns")
+                if failProbe:
+                    raise xenrt.XRTFailure("sr-probe unexpectedly returned "
+                                           "successfully when attempting to "
+                                           "find Ethernet information for the luns")
+
+class TCFCOEAfterUpgrade(xenrt.TestCase):
+    """Verify FCOE SR after upgrade to Dundee"""
+    
+    SRTYPE = "lvmofcoe"
+    
+    def prepare(self, arglist=None):
+        old = xenrt.TEC().lookup("OLD_PRODUCT_VERSION")
+        oldversion = xenrt.TEC().lookup("OLD_PRODUCT_INPUTDIR")
+        
+        self.host = xenrt.lib.xenserver.createHost(id=0,
+                                                   version=oldversion,
+                                                   productVersion=old,
+                                                   withisos=True)
+        # Upgrade the host
+        self.host.upgrade()
+    
+    def run(self,arglist):
+        
+        self.fcLun = self.host.lookup("SR_FCHBA", "LUN0")
+        self.fcSRScsiid = self.host.lookup(["FC", self.fcLun, "SCSIID"], None)
+        self.fcSR = xenrt.lib.xenserver.FCOEStorageRepository(self.host, "FCOESR")
+        self.fcSR.create(self.fcSRScsiid)
+        self.host.addSR(self.fcSR, default=True)
+        
+        srs = self.host.minimalList("sr-list", args="type=%s" %(self.SRTYPE))
+        if not srs:
+            raise xenrt.XRTFailure("FCOE SR Creation failed after host upgrade on %s" % self.host)

@@ -262,6 +262,7 @@ class TC19175(xenrt.TestCase):
     MAXVARLOGSIZE = 500
     MAXLIVELOGSSIZE = 36
     MINLIVELOGSSIZE = 12
+    LIVELOGSIZEVARIANCE = 3
     MAXTIMEPERIOD = 60
     TIMEOUT = 1500
     
@@ -363,7 +364,11 @@ class TC19175(xenrt.TestCase):
                         flag = 1
                         break
                     if xenrt.timenow() > deadlineOneMinute:
-                        raise xenrt.XRTFailure("Total size of live log files %sMB are not rotated to bring the total down to 12MB or less beyond minute" %(liveLogSize))
+                        #Added below check to fix issue CA-165532
+                        if (liveLogSize - self.MINLIVELOGSSIZE) <= self.LIVELOGSIZEVARIANCE:
+                            flag = 1
+                            break
+                        raise xenrt.XRTFailure("Total size of live log files %sMB are not rotated to bring the total down to 12MB Plus varience %sMB or less beyond minute" %(liveLogSize, self.LIVELOGSIZEVARIANCE))
                 if flag:
                     break
             xenrt.TEC().logverbose("Size of live log files %sMB is still below maximum limit %sMB " %(liveLogSize ,self.MAXLIVELOGSSIZE))

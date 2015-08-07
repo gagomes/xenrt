@@ -5099,21 +5099,23 @@ class TCAllPBDsPlugged(xenrt.TestCase):
                 if host.genParamGet("pbd", pbd, "currently-attached") != "true":
                     raise xenrt.XRTFailure("Not all PBDs were attached after pool join")
 
-class TCFCOESRLifecycle(xenrt.TestCase):
-    """FCOE SR Lifecycle operations"""
+class FCOELifecycleBase(xenrt.TestCase):
 
     SRTYPE = "lvmofcoe"
-        
-    def prepare(self, arglist):
-        """ """
-        self.args = self.parseArgsKeyValue(arglist)
-        self.host = self.getDefaultHost()
 
+    def prepare(self, arglist):
+        
+        self.host = self.getDefaultHost()
+        self.srs = self.host.getSRs(type = self.SRTYPE)
+        
+class TCFCOESRLifecycle(FCOELifecycleBase):
+    """FCOE SR Lifecycle operations"""
+
+    def run(self, arglist):
+ 
         xsr = next((s for s in self.host.asXapiObject().SR() if s.srType() == self.SRTYPE), None)
         self.sr = xenrt.lib.xenserver.FCOEStorageRepository.fromExistingSR(self.host, xsr.uuid)
         
-    def run(self, arglist):
- 
         self.vdiuuid = self.host.getCLIInstance().execute("vdi-create", \
                     "sr-uuid=%s virtual-size=1024 name-label=XenRTTest type=user" % self.sr.uuid, strip=True)
         originalVdiSize = self.host.genParamGet("vdi", self.vdiuuid, "virtual-size")
@@ -5137,65 +5139,81 @@ class TCFCOESRLifecycle(xenrt.TestCase):
         self.sr.check()
         self.host.getCLIInstance().execute("vdi-destroy", "uuid=%s" % (self.vdiuuid))
         
-class TCFCOEGuestLifeCycle(xenrt.TestCase):
+class TCFCOEGuestLifeCycle(FCOELifecycleBase):
     """Guest Lifecycle operations on FCoE SR."""
-    
-    SRTYPE = "lvmofcoe"
-    
-    def prepare(self, arglist):
-        
-        self.host = self.getDefaultHost() 
-        srs = self.host.minimalList("sr-list", args="type=%s" %(self.SRTYPE))
-        if not srs:
+
+    def run(self, arglist):
+
+        if not self.srs:
             raise xenrt.XRTFailure("Unable to find a LVMoFCoE SR configured on host %s" % self.host)
 
         self.guests = [self.host.getGuest(g) for g in self.host.listGuests()]
-        
-    def run(self, arglist):
 
         for guest in self.guests:
+            if self.runSubcase("lifecycle", guest, "VM", "Lifecycle") != \
+                    xenrt.RESULT_PASS:
+                return
+            if self.runSubcase("suspendresume", guest, "VM", "SuspendResume") != \
+                    xenrt.RESULT_PASS:
+                return
+            if self.runSubcase("snapshot", guest, "VM", "Snapshot") != \
+                    xenrt.RESULT_PASS:
+                return
+            if self.runSubcase("clone", guest, "VM", "Clone") != \
+                    xenrt.RESULT_PASS:
+                return
+            if self.runSubcase("shutdown", guest, "VM", "Shutdown") != \
+                    xenrt.RESULT_PASS:
+                return
+            if self.runSubcase("uninstall", guest, "VM", "Uninstall") != \
+                    xenrt.RESULT_PASS:
+                return
 
-            if guest.getState() == "DOWN":
-                log("Starting guest before commencing lifecycle ops.")
-                guest.start()
+    def lifecycle(self, guest):
+        # Perform some lifecycle operations
+        guest.reboot()
+        guest.shutdown()
+        guest.start()
+        guest.check()
 
+    def suspendresume(self, guest):
+        guest.suspend()
+        guest.resume()
+        guest.check()
+        guest.suspend()
+        guest.resume()
+        guest.check()
+
+    def snapshot(self, guest):
+        snapuuid = guest.snapshot()
+        guest.getHost().removeTemplate(snapuuid)
+        
+        checkpointuuid = guest.checkpoint()
+        guest.getHost().removeTemplate(checkpointuuid)
+        
+    def clone(self, guest):
+        if guest.getState() == "UP":
             guest.shutdown()
-            guest.start()
-            guest.reboot()
-            guest.suspend()
-            guest.resume()
 
-            snapuuid = guest.snapshot()
-            self.host.removeTemplate(snapuuid)
+        clone = guest.cloneVM()
+        clone.uninstall()
             
-            checkpointuuid = guest.checkpoint()
-            self.host.removeTemplate(checkpointuuid)
-            
-            if guest.getState() == "UP":
-                guest.shutdown()
-                
-            clone = guest.cloneVM()
-            
-            clone.uninstall()
-            guest.uninstall()
+    def shutdown(self, guest):
+        guest.shutdown()
 
-class TCFCOEVerifySRProbe(xenrt.TestCase):
+    def uninstall(self, guest):
+        guest.uninstall()
+
+class TCFCOEVerifySRProbe(FCOELifecycleBase):
     """Verify FCoE SR Probe operation output has Ethernet information."""
 
-    SRTYPE = "lvmofcoe"
+    def run(self, arglist):
 
-    def prepare(self, arglist):
-
-        self.host = self.getDefaultHost() 
-        sr = self.host.minimalList("sr-list", args="type=%s" %(self.SRTYPE))
-        
-        if sr:
+        if self.srs:
             xsr = next((s for s in self.host.asXapiObject().SR() if s.srType() == self.SRTYPE), None)
             self.sr = xenrt.lib.xenserver.FCOEStorageRepository.fromExistingSR(self.host, xsr.uuid)
             self.sr.forget()
-        
-    def run(self, arglist):
-
+            
         cli = self.host.getCLIInstance()
         failProbe = False
         
@@ -5241,11 +5259,9 @@ class TCFCOEVerifySRProbe(xenrt.TestCase):
                                            "successfully when attempting to "
                                            "find Ethernet information for the luns")
 
-class TCFCOEAfterUpgrade(xenrt.TestCase):
+class TCFCOEAfterUpgrade(FCOELifecycleBase):
     """Verify FCOE SR after upgrade to Dundee"""
-    
-    SRTYPE = "lvmofcoe"
-    
+
     def prepare(self, arglist=None):
         old = xenrt.TEC().lookup("OLD_PRODUCT_VERSION")
         oldversion = xenrt.TEC().lookup("OLD_PRODUCT_INPUTDIR")
@@ -5265,6 +5281,7 @@ class TCFCOEAfterUpgrade(xenrt.TestCase):
         self.fcSR.create(self.fcSRScsiid)
         self.host.addSR(self.fcSR, default=True)
         
-        srs = self.host.minimalList("sr-list", args="type=%s" %(self.SRTYPE))
-        if not srs:
+        self.srs = self.host.getSRs(type = self.SRTYPE)
+        
+        if not self.srs:
             raise xenrt.XRTFailure("FCOE SR Creation failed after host upgrade on %s" % self.host)

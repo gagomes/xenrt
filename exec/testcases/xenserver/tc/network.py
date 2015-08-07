@@ -2618,20 +2618,36 @@ class TCQoSNetwork(xenrt.TestCase):
             g.poll("DOWN", 120, level=xenrt.RC_ERROR)
             g.uninstall()
 
-class TCFCOEVmVlan(xenrt.TestCase):
-    """VLAN operations on FCoE SR."""
-    
+class FCOENetworkBase(xenrt.TestCase):
+
     SRTYPE = "lvmofcoe"
     
     def prepare(self, arglist):
 
         self.host = self.getDefaultHost() 
-        self.vlansToRemove = []
         self.sruuid = self.host.minimalList("sr-list", args="type=%s" %(self.SRTYPE))[0]
-        
+
+    def writePattern(self):
+
+        self.execguest("dd if=/dev/urandom of=/file1 count=1000000 conv=notrunc oflag=direct",timeout=3600)
+        md5checksum = self.execguest("md5sum /file1").split()[0]
+        xenrt.log("md5sum is %s" % md5checksum)
+        return md5checksum
+
+    def readPattern(self):
+
+        self.execguest("dd if=/file1 of=/file1copy conv=notrunc oflag=direct",timeout=7200)
+        md5checksum = self.execguest("md5sum /file1copy").split()[0]
+        xenrt.log("md5sum is %s" % md5checksum)
+        return md5checksum
+
+class TCFCOEVmVlan(FCOENetworkBase):
+    """VLAN operations on FCoE SR."""
+
     def run(self, arglist):
 
-        step("Get available VLANs")
+        self.vlansToRemove = []
+        step("Get available VLANs on the host")
         vlans = self.host.availableVLANs()
         if len(vlans) == 0:
             xenrt.TEC().skip("No VLANs defined for host")
@@ -2666,12 +2682,9 @@ class TCFCOEVmVlan(xenrt.TestCase):
 
         if xenrt.TEC().lookup("OPTION_SKIP_VLAN_CLEANUP", False, boolean=True):
             return
-        
-        step("Write some random data to disk and check md5sum of the file")
-        g.execguest("dd if=/dev/urandom of=/file1 count=1000000 conv=notrunc oflag=direct",timeout=3600)
-        md5checksumbefore = g.execguest("md5sum /file1").split()[0]
-        xenrt.log("md5sum of original file is %s" % md5checksumbefore)
 
+        md5checksumbefore = g.writePattern()
+        
         step("Shutdown VM ")
         g.shutdown()
         
@@ -2687,26 +2700,18 @@ class TCFCOEVmVlan(xenrt.TestCase):
         
         step("Start VM and copy the file over new interface and verify the md5sum")
         g.start()
-        g.execguest("dd if=/file1 of=/file1copy conv=notrunc oflag=direct",timeout=7200)
-        md5checksumafter = g.execguest("md5sum /file1copy").split()[0]
-        xenrt.log("md5sum of copied file is %s" % md5checksumafter)
+        md5checksumafter = g.readPattern()
         
         if md5checksumbefore == md5checksumafter:
-            xenrt.log(" md5sum matched ")
+            xenrt.log(" md5sum of the original file matched with the file copied over the new interface")
         else:
-            raise xenrt.XRTFailure("md5sum match failed")
+            raise xenrt.XRTFailure("md5sum of the original file doesn't match with the file copied over the new interface")
             
         g.uninstall()
         
-class TCFCOEMngR(xenrt.TestCase):
+class TCFCOEMngR(FCOENetworkBase):
     """Change management interface with host-management-reconfigure."""
-    
-    SRTYPE = "lvmofcoe"
-    
-    def prepare(self, arglist):
-        self.host = self.getDefaultHost()
-        self.sruuid = self.host.minimalList("sr-list", args="type=%s" %(self.SRTYPE))[0]
-        
+
     def run(self, arglist):
 
         step("Check for default NIC")
@@ -2741,8 +2746,9 @@ class TCFCOEMngR(xenrt.TestCase):
             cli.execute("host-management-reconfigure pif-uuid=%s" % (nmiuuid))
         except:
             # This will always return an error.
+            xenrt.TEC().logverbose("Exception expected on Host management reconfigure")
             pass
-        time.sleep(120)
+        xenrt.sleep(120)
 
         xenrt.TEC().logverbose("Finding IP address of new management "
                                "interface...")
@@ -2778,13 +2784,9 @@ class TCFCOEMngR(xenrt.TestCase):
         g.check()
         g.checkHealth()
         
-        step("")
-        g.execguest("dd if=/dev/urandom of=/file1 count=1000000 conv=notrunc oflag=direct",timeout=3600)
-        md5checksumbefore = g.execguest("md5sum /file1").split()[0]
-        xenrt.log("md5sum of original file is %s" % md5checksumbefore)
-
-        step("Change back to the old management interface")
+        md5checksumbefore = g.writePattern()
         
+        step("Change back to the old management interface")
         xenrt.TEC().logverbose("Changing management interface back from "
                                "%s to %s." % (nmi, default))
         cli.execute("pif-reconfigure-ip uuid=%s mode=dhcp" % (defaultuuid))
@@ -2793,8 +2795,9 @@ class TCFCOEMngR(xenrt.TestCase):
                         (defaultuuid))
         except:
             # This will always return an error.
+            xenrt.TEC().logverbose("Exception expected on Host management reconfigure")
             pass
-        time.sleep(120)
+        xenrt.sleep(120)
 
         xenrt.TEC().logverbose("Return to using old IP.")
         self.host.machine.ipaddr = oldip
@@ -2824,15 +2827,11 @@ class TCFCOEMngR(xenrt.TestCase):
                                    "management interface (with IP removed) "
                                    "from the other interface.")
 
-        g.execguest("dd if=/file1 of=/file1copy conv=notrunc oflag=direct",timeout=7200)
-        md5checksumafter = g.execguest("md5sum /file1copy").split()[0]
-        xenrt.log("md5sum of copied file is %s" % md5checksumafter)
-
+        md5checksumafter = g.readPattern()
+        
         if md5checksumbefore == md5checksumafter:
-            xenrt.log(" md5sum matched ")
+            xenrt.log(" md5sum of the original file matched with the file copied over the new interface")
         else:
-            raise xenrt.XRTFailure("md5sum match failed")
+            raise xenrt.XRTFailure("md5sum of the original file doesn't match with the file copied over the new interface")
             
-        step("Uninstall the VM")
-        g.shutdown()
         g.uninstall()

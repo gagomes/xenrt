@@ -134,14 +134,14 @@ class TCRemoteNoseSetup(_TCRemoteNoseBase):
                 testData['configurableData']['netscaler']['numretries'] = '2'
             if self.args['hypervisor'].lower() == "hyperv":
                 testData['service_offering']['memory'] = 512
-                testData['service_offerings']['memory'] = 512
+                #testData['service_offerings']['memory'] = 512
                 testData['service_offerings']['tiny']['memory'] = 512
                 testData['service_offerings']['small']['memory'] = 512
                 testData['service_offerings']['medium']['memory'] = 512
                 testData['service_offerings']['big']['memory'] = 512
 
                 testData['service_offering']['cpuspeed'] = 500
-                testData['service_offerings']['cpuspeed'] = 500
+                #testData['service_offerings']['cpuspeed'] = 500
                 testData['service_offerings']['tiny']['cpuspeed'] = 500
                 testData['service_offerings']['small']['cpuspeed'] = 500
                 testData['service_offerings']['medium']['cpuspeed'] = 500
@@ -149,7 +149,7 @@ class TCRemoteNoseSetup(_TCRemoteNoseBase):
 
             testData['hypervisor'] = self.args['hypervisor']
             testData['small']['hypervisor'] = self.args['hypervisor']
-            testData['medium']['hypervisor'] = self.args['hypervisor']
+            #testData['medium']['hypervisor'] = self.args['hypervisor']
             testData['server']['hypervisor'] = self.args['hypervisor']
             testData['server_without_disk']['hypervisor'] = self.args['hypervisor']
             testData['host_password'] = xenrt.TEC().lookup("ROOT_PASSWORD")

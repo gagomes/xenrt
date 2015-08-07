@@ -5068,6 +5068,7 @@ class TCCheckSROperations(_PathFailOver):
         self.sr.forget()
         self.sr.introduce()
         self.sr.check()
+        self.sr = None
         
         self.sr.destroy()
         

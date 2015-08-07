@@ -140,4 +140,51 @@ class TCNICCheck(xenrt.TestCase):
                                 (id, vlan, subnet, netmask),
                                 "NIC%u" % (id),
                                 "VLAN%u" % (vlan))
+
+class TCMachineCheck(xenrt.TestCase):
+    """Verify machine connectivity - tests power, network, FC, serial"""
+
+    def run(self, arglist):
+        self.host = self.getDefaultHost()
+
+        for t in [("Power", "IPMI"), ("Power", "PDU")]:
+            self.runSubcase("test_%s_%s" % (t[0],t[1]), (), t[0], t[1])
+            self.host.waitForSSH(600, desc="Boot after %s/%s test" % (t[0],t[1]))
+
+    def _testPowerctl(self, powerctl):
+        lock = xenrt.resources.CentralResource(timeout=1200)
+        lock.acquire("MC_POWER")
+        try:
+            if not self.host.checkAlive():
+                raise xenrt.XRTError("Host not reachable prior to powering down via IPMI")
+            powerctl.off()
+            xenrt.sleep(10)
+            if self.host.checkAlive():
+                raise xenrt.XRTFailure("Host reachable after powering down via IPMI")
+        finally:
+            powerctl.on()
+            lock.release()
+
+    def test_Power_IPMI(self):
+        powerctl = self.host.machine.powerctl
+        if isinstance(powerctl, xenrt.powerctl.IPMIWithPDUFallback):
+            powerctl = powerctl.ipmi
         
+        if not isinstance(powerctl, xenrt.powerctl.IPMI):
+            xenrt.TEC().skip("No IPMI support found")
+            return
+
+        self._testPowerctl(powerctl)
+
+    def test_Power_PDU(self):
+        lock = xenrt.resources.CentralResource(timeout=1200)
+        powerctl = self.host.machine.powerctl
+        if isinstance(powerctl, xenrt.powerctl.IPMIWithPDUFallback):
+            powerctl = powerctl.pdu
+        
+        if not isinstance(powerctl, xenrt.powerctl.PDU):
+            xenrt.TEC().skip("No PDU support found")
+            return
+
+        self._testPowerctl(powerctl)
+

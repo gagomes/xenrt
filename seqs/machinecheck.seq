@@ -1,0 +1,16 @@
+<xenrt>
+
+  <!-- Harness/infrastructure self test for an individual machine -->
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <serial group="%RESOURCE_HOST_0%">
+      <testcase id="selftest.TCMachineCheck"/>
+    </serial>
+  </testsequence>
+
+</xenrt>
+

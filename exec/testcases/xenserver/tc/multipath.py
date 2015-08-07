@@ -1589,7 +1589,7 @@ class _TC8159(xenrt.TestCase):
         ids = host.execdom0("ls /dev/disk/by-id").strip().split("\n")
 
         # Create a VM on the SR
-        g = host.createBasicGuest(distro='LATEST_rhel5',sr=sr.uuid)
+        g = host.createBasicGuest(distro='rhel5x',sr=sr.uuid)
         self.guest = g
         self.uninstallOnCleanup(g)        
         expectedDiskCount = len(self.guest.listVBDUUIDs("Disk"))

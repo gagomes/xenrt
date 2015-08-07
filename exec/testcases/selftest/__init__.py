@@ -201,8 +201,8 @@ class TCMachineCheck(xenrt.TestCase):
     def testNetworkPorts(self):
         """Verify each NIC is connected to the correct switch port"""
         nics = self.host.listSecondaryNICs()
-        nicMacs = {assumedId: self._lookupMac(assumedId) for assumedId in nics}
-        nicDevs = {assumedId: self.host.getSecondaryNIC(assumedId) for assumedId in nics} # getSecondaryNIC checks the MAC is on the PIF implicitly
+        nicMacs = dict([(assumedId, self._lookupMac(assumedId)) for assumedId in nics])
+        nicDevs = dict([(assumedId, self.host.getSecondaryNIC(assumedId)) for assumedId in nics]) # getSecondaryNIC checks the MAC is on the PIF implicitly
 
         lock = xenrt.resources.CentralResource(timeout=1200)
         powerLock = xenrt.resources.CentralResource(timeout=1200)

@@ -274,7 +274,7 @@ class TCMachineCheck(xenrt.TestCase):
                 confKey = ["NETWORK_CONFIG"] + nwMaps[nw].split("/")
                 expectedSubnet = self.host.lookup(confKey + ["SUBNET"])
                 expectedNetmask = self.host.lookup(confKey + ["SUBNETMASK"])
-                if not isAddressInSubnet(actualIp, expectedSubnet, expectedNetmask):
+                if not xenrt.util.isAddressInSubnet(actualIp, expectedSubnet, expectedNetmask):
                     failures.append("IP not in correct subnet")
             else:
                 if actualIp != expectedIp:

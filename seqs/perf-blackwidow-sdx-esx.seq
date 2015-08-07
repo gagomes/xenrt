@@ -4,6 +4,8 @@
   <default name="NS_TOOLS_PATH" value="/usr/groups/xenrt/ns-tools-10.5-52.11.nc.tgz" />
   <default name="BW_NAME" value="blackwidow" />
   <default name="DUT_NAME" value="dut" />
+  <default name="BW_TESTCASE" value="Please Override this value with a testcase class" />
+  <!-- "TCHttp100KResp" | "TCHttp1BResp" | "TCTcpVipCps" -->
 
   <variables>
     <OPTION_KEEP_SETUP>yes</OPTION_KEEP_SETUP>
@@ -12,7 +14,7 @@
   </variables>
 
   <scheduler>
-    <resources>memory&gt;=8G</resources>
+    <resources>memory&gt;=8/NPRI&gt;=1/NSEC&gt;=1/NPRI10G&gt;=1</resources>
     <param>MACHINES_REQUIRED=2</param>
     <flags>privvlan,vcenter</flags>
   </scheduler>
@@ -62,10 +64,12 @@
   </prepare>
 
   <testsequence>
-    <testcase id="xenserver.tc.perf.tc_blackwidow.TCBlackWidow">
-      <arg>bw=${BW_NAME}</arg>
-      <arg>dut=${DUT_NAME}</arg>
-    </testcase>
+    <serial group="NS Black Widow Perf Test">
+      <testcase id="xenserver.tc.perf.tc_blackwidow.${BW_TESTCASE}">
+        <arg>bw=${BW_NAME}</arg>
+        <arg>dut=${DUT_NAME}</arg>
+      </testcase>
+    </serial>
   </testsequence>
 
 </xenrt>

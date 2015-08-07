@@ -171,7 +171,7 @@ class TCMachineCheck(xenrt.TestCase):
             powerctl = powerctl.ipmi
         
         if not isinstance(powerctl, xenrt.powerctl.IPMI):
-            xenrt.TEC().skip("No IPMI support found")
+            raise xenrt.XRTSkip("No IPMI support found")
             return
 
         self._testPowerctl(powerctl)
@@ -183,7 +183,7 @@ class TCMachineCheck(xenrt.TestCase):
             powerctl = powerctl.pdu
         
         if not isinstance(powerctl, xenrt.powerctl.PDU):
-            xenrt.TEC().skip("No PDU support found")
+            raise xenrt.XRTSkip("No PDU support found")
             return
 
         self._testPowerctl(powerctl)

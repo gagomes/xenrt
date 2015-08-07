@@ -203,6 +203,12 @@ class TCMachineCheck(xenrt.TestCase):
     def _checkNIC(self, dev):
         return self.host.execdom0("cat /sys/class/net/%s/carrier" % (dev)).strip() == "1"
 
+    def _checkNICLink(self, dev):
+        speed = int(self.host.execdom0("cat /sys/class/net/%s/speed" % (dev)).strip())
+        duplex = self.host.execdom0("cat /sys/class/net/%s/duplex" % (dev)).strip()
+        if speed < 1000 or duplex != "full":
+            raise xenrt.XRTFailure("%s reports %s/%s, expecting at least 1000/full" % (speed, duplex))
+
     def testNetworkPorts(self):
         """Verify each NIC is connected to the correct switch port"""
         nics = self.host.listSecondaryNICs()
@@ -221,6 +227,8 @@ class TCMachineCheck(xenrt.TestCase):
                 # Check link state before
                 if not self._checkNIC(dev):
                     raise xenrt.XRTFailure("Link for NIC %u (%s / %s) down before bringing port down" % (assumedId, mac, dev))
+                # Check link speed / duplex
+                self._checkNICLink(dev)
                 self.host.disableNetPort(mac)
                 xenrt.sleep(20)
                 if self._checkNIC(dev):

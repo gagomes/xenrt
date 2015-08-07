@@ -11,7 +11,7 @@ import re, string
 import xenrt, xenrt.lib.xenserver
 from xenrt.lazylog import step, log
 from testcases.xenserver.tc.cache import _ResetOnBootBase
-
+from testcases.xenserver.tc.lunspace import TrimFuncNetAppFC, TrimFuncNetAppISCSI
 
 class _ThinLVHDBase(xenrt.TestCase):
     """Base class of thinprovisioning TCS.
@@ -535,3 +535,14 @@ class TCThinAllocation(TCThinAllocationDefault):
         for SRinitial, SRquantum in map(None, self.SRinitial, self.SRQuantum):
             self.testingThinAllocation(True, SRinitial, SRquantum )
 
+class TrimFuncNetAppThinISCSI(TrimFuncNetAppISCSI):
+    """Test the XenServer TRIM feature on a thin provisioned iSCSI SR using NetApp array"""
+
+    THINPROVISION = True
+    SRNAME = "lvmoiscsi-thin"
+
+class TrimFuncNetAppThinFC(TrimFuncNetAppFC):
+    """Test the XenServer TRIM feature on a thin provisioned Fibre Channel SR using NetApp array"""
+
+    THINPROVISION = True
+    SRNAME = "lvmohba-thin"

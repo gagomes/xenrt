@@ -147,7 +147,7 @@ class TCMachineCheck(xenrt.TestCase):
     def run(self, arglist):
         self.host = self.getDefaultHost()
 
-        for t in [("Power", "IPMI"), ("Power", "PDU")]:
+        for t in [("Power", "IPMI"), ("Power", "PDU"), ("Network", "Ports"), ("Network", "DHCP")]:
             self.runSubcase("test%s%s" % (t[0],t[1]), (), t[0], t[1])
             self.host.waitForSSH(600, desc="Boot after %s/%s test" % (t[0],t[1]))
 
@@ -166,6 +166,7 @@ class TCMachineCheck(xenrt.TestCase):
             lock.release()
 
     def testPowerIPMI(self):
+        """Verify the host IPMI is functional"""
         powerctl = self.host.machine.powerctl
         if isinstance(powerctl, xenrt.powerctl.IPMIWithPDUFallback):
             powerctl = powerctl.ipmi
@@ -177,7 +178,7 @@ class TCMachineCheck(xenrt.TestCase):
         self._testPowerctl(powerctl)
 
     def testPowerPDU(self):
-        lock = xenrt.resources.CentralResource(timeout=1200)
+        """Verify the host is on the correct PDU port (either as primary or fallback)"""
         powerctl = self.host.machine.powerctl
         if isinstance(powerctl, xenrt.powerctl.IPMIWithPDUFallback):
             powerctl = powerctl.pdu
@@ -187,4 +188,78 @@ class TCMachineCheck(xenrt.TestCase):
             return
 
         self._testPowerctl(powerctl)
+
+    def _lookupMac(self, assumedId):
+        mac = self.host.lookup(["NICS", "NIC%u" % (assumedId), "MAC_ADDRESS"], None)
+        if not mac:
+            raise xenrt.XRTError("MAC not specified for NIC%u" % (assumedId))
+        return xenrt.util.normaliseMAC(mac)
+
+    def _checkNIC(self, dev):
+        return self.host.execdom0("cat /sys/class/net/%s/carrier" % (dev)).strip() == "1"
+
+    def testNetworkPorts(self):
+        """Verify each NIC is connected to the correct switch port"""
+        nics = self.host.listSecondaryNICs()
+        nicMacs = {assumedId: self._lookupMac(assumedId) for assumedId in nics}
+        nicDevs = {assumedId: self.host.getSecondaryNIC(assumedId) for assumedId in nics} # getSecondaryNIC checks the MAC is on the PIF implicitly
+
+        lock = xenrt.resources.CentralResource(timeout=1200)
+        powerLock = xenrt.resources.CentralResource(timeout=1200)
+        lock.acquire("MC_NETWORK")
+        try:
+            self.host.enableAllNetPorts()
+            xenrt.sleep(30)
+            for assumedId in nics:
+                mac = nicMacs[assumedId]
+                dev = nicDevs[assumedId]
+                # Check link state before
+                if not self._checkNIC(dev):
+                    raise xenrt.XRTFailure("Link for NIC %u (%s / %s) down before bringing port down" % (assumedId, mac, dev))
+                self.host.disableNetPort(mac)
+                xenrt.sleep(20)
+                if self._checkNIC(dev):
+                    raise xenrt.XRTFailure("Link for NIC %u (%s / %s) up after bringing port down" % (assumedId, mac, dev))
+
+            # Now check the primary NIC
+            powerLock.acquire("MC_POWER") # We have to take this one as well to avoid confusion with a power test
+            try:
+                if not self.host.checkAlive():
+                    raise xenrt.XRTError("Host not reachable prior to disabling primary NIC")
+                self.host.disableNetPort(xenrt.normaliseMAC(self.host.lookup("MAC_ADDRESS")))
+                xenrt.sleep(20)
+                if self.host.checkAlive():
+                    raise xenrt.XRTFailure("Host reachable after disabling primary NIC")
+            finally:
+                powerLock.release()
+        finally:
+            self.host.enableAllNetPorts()
+            lock.release()
+
+    def testNetworkDHCP(self):
+        """Verify the host gets the correct DHCP address on each NIC"""
+        # Primary NIC is implicitly verified, so we only test secondary NICs here
+        nics = self.host.listSecondaryNICs()
+        cli = self.host.getCLIInstance()
+        for assumedId in nics:
+            pif = self.host.getNICPIF(assumedId)
+            cli.execute("pif-reconfigure-ip", "uuid=%s mode=dhcp" % pif)
+
+            # Validate it has the expected config
+            expectedIp, expectedNetmask, expectedGateway = self.host.getNICAllocatedIPAddress(assumedId)
+            xenrt.TEC().logverbose("For NIC %u expecting %s/%s (GW %s)" % (assumedId, expectedIp, expectedNetmask, expectedGateway))
+            actualIp = self.host.genParamGet("pif", pif, "IP")
+            actualNetmask = self.host.genParamGet("pif", pif, "netmask")
+            actualGateway = self.host.genParamGet("pif", pif, "gateway")
+            xenrt.TEC().logverbose("Found %s/%s (GW %s)" % (actualIp, actualNetmask, actualGateway))
+            failures = []
+            if actualIp != expectedIp:
+                failures.append("IP not as expected")
+            if actualNetmask != expectedNetmask:
+                failures.append("Netmask not as expected")
+            if actualGateway != expectedGateway:
+                failures.append("Gateway not as expected")
+            if len(failures) > 0:
+                raise xenrt.XRTFailure("Incorrect DHCP response for NIC %u: %s" % (assumedId, ", ".join(failures)))
+            cli.execute("pif-reconfigure-ip", "uuid=%s mode=none" % pif)
 

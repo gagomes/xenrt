@@ -5062,7 +5062,7 @@ class TCCheckGuestOperations(_PathFailOver):
         self.guestMethods()
 
         
-class TCCheckSROperations(TCValidateFCOEMultipathPathCount):
+class TCCheckSROperations(_PathFailOver):
     
     def checkThenDestroySR(self):
         self.sr.forget()

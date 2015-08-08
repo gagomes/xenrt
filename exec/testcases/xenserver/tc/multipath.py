@@ -5068,12 +5068,7 @@ class TCCheckSROperations(_PathFailOver):
         self.sr.forget()
         self.sr.introduce()
         self.sr.check()
-        
-        pbdid = self.host.parseListForUUID("pbd-list", "sr-uuid", self.sr.uuid)
-        cli = self.host.getCLIInstance()
-        cli.execute("pbd-unplug", "uuid=%s" % pbdid)
-        cli.execute("sr-destroy", "uuid=%s" % self.sr.uuid)
-        self.sr = None
+        self.sr.destroy()
         
     
     def run(self, arglist=None):
@@ -5092,11 +5087,11 @@ class TCCheckSROperations(_PathFailOver):
         self.checkThenDestroySR()
         
         self.disableEthPort(1)
-        self.createSR(self.host)
+        self.sr = self.createSR(self.host)
         self.checkThenDestroySR()
 
         self.enableEthPort(1)
-        self.createSR(self.host)
+        self.sr = self.createSR(self.host)
         self.checkThenDestroySR()
 
         

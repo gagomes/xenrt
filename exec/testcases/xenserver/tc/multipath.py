@@ -5070,9 +5070,9 @@ class TCCheckSROperations(_PathFailOver):
         self.sr.check()
         
         pbdid = self.hostWithMultiplePaths.parseListForUUID("pbd-list", "sr-uuid", self.sr.uuid)
-        cli = self.hostWithMultiplePaths.getCLIInstance()
+        cli = self.host.getCLIInstance()
         cli.execute("pbd-unplug", "uuid=%s" % pbdid)
-        cli.execute("sr-destroy", "uuid=%s" % self.sr.uuid)        
+        cli.execute("sr-destroy", "uuid=%s" % self.sr.uuid)
         self.sr = None
         
     

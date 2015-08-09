@@ -14350,6 +14350,7 @@ class TransferVM(object):
                transfer_mode,               # http or bits or iscsi               
                read_only=False,                 
                use_ssl=False,               # only valid for http and bits
+               ssl_version="TLSv1.2",       # enforce TLSv1.2, allow legacy SSL
                timeout_minutes=None,        # auto unexposed xxx minutes
                                             # after last TCP connection
                network_uuid=None,           # network uuid or default
@@ -14369,6 +14370,8 @@ class TransferVM(object):
         args.append("transfer_mode=%s" % transfer_mode)
         args.append("read_only=%s" % read_only)
         args.append("use_ssl=%s" % use_ssl)
+        if ssl_version != "TLSv1.2":
+            args.append("ssl_version=%s" % ssl_version)
         if not network_mac:
             network_mac=xenrt.randomMAC()
         if timeout_minutes:

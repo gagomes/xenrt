@@ -37,7 +37,9 @@
     <serial group="Prov">
       <testcase id="xenserver.tc.vhd.TC8648"/>
       <testcase id="xenserver.tc.vhd.TC8651"/>
+      <!-- Raw VDI is not supported from Creedence any more.
       <testcase id="xenserver.tc.vhd.TC8656"/>
+      -->
       <testcase id="xenserver.tc.vhd.TC8657"/>
       <testcase id="xenserver.tc.vhd.TC8660"/>
       <testcase id="xenserver.tc.vhd.TC8661"/>

@@ -206,6 +206,7 @@ class TCMachineCheck(xenrt.TestCase):
     def _checkNICLink(self, dev):
         speed = int(self.host.execdom0("cat /sys/class/net/%s/speed" % (dev)).strip())
         duplex = self.host.execdom0("cat /sys/class/net/%s/duplex" % (dev)).strip()
+        xenrt.TEC().logverbose("%s is %s/%s" % (dev, speed, duplex))
         if speed < 1000 or duplex != "full":
             raise xenrt.XRTFailure("%s reports %s/%s, expecting at least 1000/full" % (speed, duplex))
 

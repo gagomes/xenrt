@@ -1,0 +1,35 @@
+<xenrt>
+
+  <!-- ThinLVHD vdi-copy in the pool Testing -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="lvmoiscsi" name="iscsisr" options="thin" />
+      <storage type="nfs" name="nfssr" />
+      <host id="0" />
+      <host id="1" />
+      <host id="2" />
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <parallel>
+      <serial group="master2slave">
+        <testcase id="xenserver.tc.storage.TC27217" sku="thin" />
+        <testcase id="xenserver.tc.storage.TC27219" sku="thin" />
+        <testcase id="xenserver.tc.storage.TC27221" sku="thin" />
+      </serial>
+      <serial group="slave2slave">
+        <testcase id="xenserver.tc.storage.TC27218" sku="thin" />
+        <testcase id="xenserver.tc.storage.TC27220" sku="thin" />
+        <testcase id="xenserver.tc.storage.TC27222" sku="thin" />
+      </serial>
+    </parallel>
+  </testsequence>
+
+</xenrt>

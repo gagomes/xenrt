@@ -1999,13 +1999,66 @@ class TC27156(_VDICopy):
     FORCE_FILL_VDI = True
     VDI_SIZE = 20 * xenrt.GIGA
 
-# NFS SR with no sub directory tests
 class TC20953(_VDICopy):
-    """Verify vdi-copy between an lvmoiscsi SR and a NFS SR with no sub directory"""
+    """Verify vdi-copy between an lvmoiscsi SR and a NFS SR"""
     FROM_TYPE = "lvmoiscsi"
     TO_TYPE = "nfs"
     FORCE_FILL_VDI = True
     VDI_SIZE = 20 * xenrt.GIGA
+
+class TC27219(_VDICopy):
+    """Verify vdi-copy between an a NFS SR on master and lvmoiscsi SR on slave"""
+    FROM_TYPE = "nfs"
+    TO_TYPE = "lvmoiscsi"
+    FORCE_FILL_VDI = True
+    VDI_SIZE = 20 * xenrt.GIGA
+    HOST_TYPE = "mastertoslave"
+    SAME_HOSTS  = False
+
+class TC27217(_VDICopy):
+    """Verify vdi-copy between an ext SR on master and a lvmoiscsi SR on slave"""
+    FROM_TYPE = "ext"
+    TO_TYPE = "lvmoiscsi"
+    FORCE_FILL_VDI = True
+    VDI_SIZE = 20 * xenrt.GIGA
+    HOST_TYPE = "mastertoslave"
+    SAME_HOSTS  = False
+
+class TC27221(_VDICopy):
+    """Verify vdi-copy between an lvmoiscsi SR on master and a NFS SR on slave"""
+    FROM_TYPE = "lvmoiscsi"
+    TO_TYPE = "nfs"
+    FORCE_FILL_VDI = True
+    VDI_SIZE = 20 * xenrt.GIGA
+    HOST_TYPE = "mastertoslave"
+    SAME_HOSTS  = False
+
+class TC27220(_VDICopy):
+    """Verify vdi-copy between an a NFS SR on slave and lvmoiscsi SR on slave"""
+    FROM_TYPE = "nfs"
+    TO_TYPE = "lvmoiscsi"
+    FORCE_FILL_VDI = True
+    VDI_SIZE = 20 * xenrt.GIGA
+    HOST_TYPE = "slavetoslave"
+    SAME_HOSTS  = False
+
+class TC27218(_VDICopy):
+    """Verify vdi-copy between an ext SR on lsave and a lvmoiscsi SR on slave"""
+    FROM_TYPE = "ext"
+    TO_TYPE = "lvmoiscsi"
+    FORCE_FILL_VDI = True
+    VDI_SIZE = 20 * xenrt.GIGA
+    HOST_TYPE = "slavetoslave"
+    SAME_HOSTS  = False
+
+class TC27222(_VDICopy):
+    """Verify vdi-copy between an lvmoiscsi SR on slave and a NFS SR on slave"""
+    FROM_TYPE = "lvmoiscsi"
+    TO_TYPE = "nfs"
+    FORCE_FILL_VDI = True
+    VDI_SIZE = 20 * xenrt.GIGA
+    HOST_TYPE = "slavetoslave"
+    SAME_HOSTS  = False
 
 class TC20954(_VDICopy):
     """Verify vdi-copy between an ext SR and a NFS SR with no sub directory"""

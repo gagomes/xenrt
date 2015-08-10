@@ -12,6 +12,7 @@
         <arg>Network/Ports</arg>
         <arg>Network/DHCP</arg>
         <arg>Console/Serial</arg>
+        <arg>FC/HBA</arg>
       </testcase>
     </serial>
   </testsequence>

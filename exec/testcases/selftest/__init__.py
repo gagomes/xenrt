@@ -150,7 +150,7 @@ class TCMachineCheck(xenrt.TestCase):
         if arglist:
             tests = map(lambda t: t.split("/", 1), arglist)
         else:
-            tests = [("Power", "IPMI"), ("Power", "PDU"), ("Network", "Ports"), ("Network", "DHCP"), ("Console", "Serial")]
+            tests = [("Power", "IPMI"), ("Power", "PDU"), ("Network", "Ports"), ("Network", "DHCP"), ("Console", "Serial"), ("FC", "HBA")]
 
         for t in tests:
             self.runSubcase("test%s%s" % (t[0],t[1]), (), t[0], t[1])
@@ -314,4 +314,46 @@ class TCMachineCheck(xenrt.TestCase):
             xenrt.TEC().logverbose(serlog)
             xenrt.TEC().logverbose("...done")
             raise xenrt.XRTFailure("Cannot find string in console log - serial console non functional")
+
+    def testFCHBA(self):
+        """Verify FC HBAs are connected correctly"""
+
+        # Do we have any HBAs we can control?
+        fc = self.host.lookup("FC", {})
+        hbas = []
+        for k in fc:
+            m = re.match("CMD_HBA(\d)_ENABLE", k)
+            if m:
+                hbas.append(int(m.group(1)))
+
+        if len(hbas) == 0:
+            raise xenrt.XRTSkip("No HBAs found with port control commands")
+
+        # Map HBAs to device in sysfs (we assume they are in the same order - this may not be sufficient)
+        sysfs_devices = self.host.execdom0("ls /sys/class/fc_host").splitlines()
+        sysfs_devices.sort()
+        if len(hbas) != len(sysfs_devices):
+            raise xenrt.XRTError("Found inconsistent number of HBAs vs sysfs devices", data="%d HBAs, %d sysfs devices" % (len(hbas), len(sysfs_devices)))
+        lock = xenrt.resources.CentralResource(timeout=1200)
+        lock.acquire("MC_FC")
+        try:
+            for i in range(len(hbas)):
+                sysfs_device = sysfs_devices[i]
+                hba = hbas[i]
+
+                # Check it's online first
+                if self.host.execdom0("cat /sys/class/fc_host/%s/port_state" % sysfs_device).strip() != "Online":
+                    raise xenrt.XRTFailure("HBA%d port down before bringing it down")
+                # Drop it
+                self.host.disableFCPort(hba)
+                xenrt.sleep(20)
+                if self.host.execdom0("cat /sys/class/fc_host/%s/port_state" % sysfs_device).strip() != "Linkdown":
+                    raise xenrt.XRTFailure("HBA%d not showing down after disabling port")
+                # Re-enable so if we're booted from multipath SAN we don't end up dropping both paths
+                self.host.enableFCPort(hba)
+                xenrt.sleep(20)
+        finally:
+            self.host.enableAllFCPorts()
+            lock.release()
+
 

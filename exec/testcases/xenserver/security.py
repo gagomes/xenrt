@@ -574,6 +574,8 @@ class TCXSA112(_TCXSA):
         elif "Test failed: Expected to find poisoned value" in serlog:
             raise xenrt.XRTFailure("XSA-112 not fixed.Found 'Test failed: Expected to find poisoned value' in logs")
         else:
+            #Workaround for CA-159772: Sometimes host serial log is not available for a machine
+            #Raise a warning in that case.
             if len(serlog.splitlines())==1 and ("not found" in serlog or "Enter `^Ec?' for help" in serlog):
                 xenrt.TEC().warning("Serial log not found")
             else:

@@ -8,7 +8,7 @@
 # conditions as licensed by Citrix Systems, Inc. All other rights reserved.
 #
 
-import sys, re, string, os.path, urllib, traceback, time, xml.dom.minidom
+import sys, re, string, os.path, urllib, traceback, time, xml.dom.minidom, uuid
 import xenrt, xenrt.lib.xenserver
 
 class TCNICCheck(xenrt.TestCase):
@@ -150,7 +150,7 @@ class TCMachineCheck(xenrt.TestCase):
         if arglist:
             tests = map(lambda t: t.split("/", 1), arglist)
         else:
-            tests = [("Power", "IPMI"), ("Power", "PDU"), ("Network", "Ports"), ("Network", "DHCP")]
+            tests = [("Power", "IPMI"), ("Power", "PDU"), ("Network", "Ports"), ("Network", "DHCP"), ("Console", "Serial")]
 
         for t in tests:
             self.runSubcase("test%s%s" % (t[0],t[1]), (), t[0], t[1])
@@ -298,4 +298,19 @@ class TCMachineCheck(xenrt.TestCase):
 
         if len(missingIPConfigs) > 0:
             raise xenrt.XRTPartial("Missing IP configs for NICs %s" % (",".join(missingIPConfigs)))
+
+    def testConsoleSerial(self):
+        """Verify we have serial console"""
+        randomString = str(uuid.uuid4())
+        self.host.execdom0("echo %s > /dev/console" % randomString)
+        xenrt.sleep(10)
+
+        serlog = string.join(self.host.machine.getConsoleLogHistory()[-20:], "\n")
+        if randomString in serlog:
+            xenrt.TEC().logverbose("Found string in console log - serial console functional")
+        else:
+            xenrt.TEC().logverbose("Serial log output...")
+            xenrt.TEC().logverbose(serlog)
+            xenrt.TEC().logverbose("...done")
+            raise xenrt.XRTFailure("Cannot find string in console log - serial console non functional")
 

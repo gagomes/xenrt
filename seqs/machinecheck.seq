@@ -11,6 +11,7 @@
       <testcase id="selftest.TCMachineCheck">
         <arg>Network/Ports</arg>
         <arg>Network/DHCP</arg>
+        <arg>Console/Serial</arg>
       </testcase>
     </serial>
   </testsequence>

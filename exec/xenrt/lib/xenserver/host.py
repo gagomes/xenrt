@@ -2363,7 +2363,7 @@ fi
         if xenrt.TEC().lookup("INSTALL_RPU_HOTFIX", False, boolean=True):
             rpuPatch = xenrt.TEC().lookup(["VERSION_CONFIG",self.productVersion,"INTERNAL_RPU_HOTFIX"])
             if rpuPatch:
-                patches.extend([rpuPatch])
+                patches.extend([xenrt.TEC().lookup("INPUTDIR") + "/xe-phase-1/%s" % rpuPatch])
 
         # Apply all the patches we found
         for patch in [x for x in patches if x != "None"]:

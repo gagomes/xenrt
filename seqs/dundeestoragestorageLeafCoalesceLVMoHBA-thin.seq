@@ -25,12 +25,14 @@
     <testcase id="xenserver.tc.vhd.TC10591" sku="thin"/>
     <testcase id="xenserver.tc.vhd.TC10592" sku="thin"/>
     <testcase id="xenserver.tc.vhd.TC10593" sku="thin"/>
+    <!-- RawVDI is not supported on Dundee.
     <testcase id="xenserver.tc.vhd.TC10594" sku="thin"/>
     <testcase id="xenserver.tc.vhd.TC10595" sku="thin"/>
     <testcase id="xenserver.tc.vhd.TC10596" sku="thin"/>
     <testcase id="xenserver.tc.vhd.TC10597" sku="thin"/>
     <testcase id="xenserver.tc.vhd.TC10598" sku="thin"/>
     <testcase id="xenserver.tc.vhd.TC10599" sku="thin"/>
+    -->
   </testsequence>
 
 </xenrt>

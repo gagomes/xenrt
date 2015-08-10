@@ -208,13 +208,15 @@ class TCMachineCheck(xenrt.TestCase):
         duplex = self.host.execdom0("cat /sys/class/net/%s/duplex" % (dev)).strip()
         xenrt.TEC().logverbose("%s is %s/%s" % (dev, speed, duplex))
         if speed < 1000 or duplex != "full":
-            raise xenrt.XRTFailure("%s reports %s/%s, expecting at least 1000/full" % (speed, duplex))
+            return "%s reports %s/%s, expecting at least 1000/full" % (speed, duplex)
 
     def testNetworkPorts(self):
         """Verify each NIC is connected to the correct switch port"""
         nics = self.host.listSecondaryNICs()
         nicMacs = dict([(assumedId, self._lookupMac(assumedId)) for assumedId in nics])
         nicDevs = dict([(assumedId, self.host.getSecondaryNIC(assumedId)) for assumedId in nics]) # getSecondaryNIC checks the MAC is on the PIF implicitly
+
+        failures = []
 
         lock = xenrt.resources.CentralResource(timeout=1200)
         powerLock = xenrt.resources.CentralResource(timeout=1200)
@@ -227,13 +229,19 @@ class TCMachineCheck(xenrt.TestCase):
                 dev = nicDevs[assumedId]
                 # Check link state before
                 if not self._checkNIC(dev):
-                    raise xenrt.XRTFailure("Link for NIC %u (%s / %s) down before bringing port down" % (assumedId, mac, dev))
+                    failures.append("Link for NIC %u (%s / %s) down before bringing port down" % (assumedId, mac, dev))
+                    continue
                 # Check link speed / duplex
-                self._checkNICLink(dev)
+                link = self._checkNICLink(dev)
+                if link:
+                    falures.append(link)
+                    
                 self.host.disableNetPort(mac)
                 xenrt.sleep(20)
                 if self._checkNIC(dev):
-                    raise xenrt.XRTFailure("Link for NIC %u (%s / %s) up after bringing port down" % (assumedId, mac, dev))
+                    failures.append("Link for NIC %u (%s / %s) up after bringing port down" % (assumedId, mac, dev))
+                    self.host.enableNetPort(mac) # Re-enable it in case it's a different port on this host
+                    xnert.sleep(20)
 
             # Now check the primary NIC
             powerLock.acquire("MC_POWER") # We have to take this one as well to avoid confusion with a power test
@@ -243,12 +251,17 @@ class TCMachineCheck(xenrt.TestCase):
                 self.host.disableNetPort(xenrt.normaliseMAC(self.host.lookup("MAC_ADDRESS")))
                 xenrt.sleep(20)
                 if self.host.checkAlive():
-                    raise xenrt.XRTFailure("Host reachable after disabling primary NIC")
+                    failures.append("Host reachable after disabling primary NIC")
             finally:
                 powerLock.release()
         finally:
             self.host.enableAllNetPorts()
             lock.release()
+
+        if len(failures) > 0:
+            for f in failures:
+                xenrt.TEC().logverbose(f)
+            raise xenrt.XRTFailure("Network port failures detected")
 
     def testNetworkDHCP(self):
         """Verify the host gets the correct DHCP address on each NIC"""
@@ -256,6 +269,7 @@ class TCMachineCheck(xenrt.TestCase):
         nics = self.host.listSecondaryNICs()
         cli = self.host.getCLIInstance()
         missingIPConfigs = []
+        overallFailures = []
         for assumedId in nics:
             pif = self.host.getNICPIF(assumedId)
             cli.execute("pif-reconfigure-ip", "uuid=%s mode=dhcp" % pif)
@@ -294,8 +308,13 @@ class TCMachineCheck(xenrt.TestCase):
             if actualNetmask != expectedNetmask:
                 failures.append("Netmask not as expected")
             if len(failures) > 0:
-                raise xenrt.XRTFailure("Incorrect DHCP response for NIC %u: %s" % (assumedId, ", ".join(failures)))
+                overallFailures.append("Incorrect DHCP response for NIC %u: %s" % (assumedId, ", ".join(failures)))
             cli.execute("pif-reconfigure-ip", "uuid=%s mode=none" % pif)
+
+        if len(overallFailures) > 0:
+            for f in overallFailures:
+                xenrt.TEC().logverbose(f)
+            raise xenrt.XRTFailures("Network DHCP failures detected")
 
         if len(missingIPConfigs) > 0:
             raise xenrt.XRTPartial("Missing IP configs for NICs %s" % (",".join(missingIPConfigs)))

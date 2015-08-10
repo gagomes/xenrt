@@ -1740,9 +1740,11 @@ class _VDICopy(xenrt.TestCase):
 
     FROM_TYPE = None
     TO_TYPE = None
-    SAME_HOSTS = True   
-    HOST_TYPE = None 
+    SAME_HOSTS = True
+    HOST_TYPE = None
     FIND_SR_BY_NAME = False
+    VDI_SIZE = 100 * xenrt.MEGA
+    FORCE_FILL_VDI = False
 
     def prepare(self, arglist):
 
@@ -1803,7 +1805,7 @@ class _VDICopy(xenrt.TestCase):
         args.append("name-label=\"XenRT Test %s-%s\"" %
                     (self.FROM_TYPE, self.TO_TYPE))
         args.append("type=user")
-        args.append("virtual-size=%d" % (100 * xenrt.MEGA)) # 100Mib
+        args.append("virtual-size=%d" % (self.VDI_SIZE))
         self.vdi = cli.execute("vdi-create", string.join(args)).strip()
         self.vdisToDestroy.append(self.vdi)
         self.copies["original"] = self.vdi
@@ -1821,6 +1823,13 @@ class _VDICopy(xenrt.TestCase):
         self.srcHost.execdom0("chmod u+x /tmp/mkfs.sh")
         self.srcHost.execdom0("/opt/xensource/debug/with-vdi %s /tmp/mkfs.sh" %
                            (self.vdi))
+
+        # Writing data into it; This is required on thin-lvhd as it always return true and
+        # only be empty in next step due to initial allocation size.
+        if self.FORCE_FILL_VDI:
+            self.srcHost.execdom0("echo '/bin/dd if=/dev/urandom of=/dev/${DEVICE} bs=4096 count=%d conv=notrunc' > /tmp/dd.sh" % (self.vdi_size / 4096))
+            self.srcHost.execdom0("chmod u+x /tmp/dd.sh")
+            self.srcHost.execdom0("/opt/xensource/debug/with-vdi %s /tmp/mkfs.sh" %(self.vdi))
 
         # Checksum the entire VDI
         script = 'if [ -z "$1" ]; then md5sum "/dev/${DEVICE}"; else dd if="/dev/${DEVICE}" bs="$1" count="$2" 2>/dev/null | md5sum; fi'
@@ -1980,23 +1989,29 @@ class TC27155(_VDICopy):
     """Verify vdi-copy between an a NFS SR with no sub directory and lvmoiscsi SR"""
     FROM_TYPE = "nfs"
     TO_TYPE = "lvmoiscsi"
+    FORCE_FILL_VDI = True
+    VDI_SIZE = 20 * xenrt.GIGA
 
 class TC27156(_VDICopy):
     """Verify vdi-copy between an ext SR and a lvmoiscsi SR"""
     FROM_TYPE = "ext"
     TO_TYPE = "lvmoiscsi"
+    FORCE_FILL_VDI = True
+    VDI_SIZE = 20 * xenrt.GIGA
 
 # NFS SR with no sub directory tests
 class TC20953(_VDICopy):
     """Verify vdi-copy between an lvmoiscsi SR and a NFS SR with no sub directory"""
     FROM_TYPE = "lvmoiscsi"
     TO_TYPE = "nfs"
-    
+    FORCE_FILL_VDI = True
+    VDI_SIZE = 20 * xenrt.GIGA
+
 class TC20954(_VDICopy):
     """Verify vdi-copy between an ext SR and a NFS SR with no sub directory"""
     FROM_TYPE = "ext"
     TO_TYPE = "nfs"
-    
+
 class TC20955(_VDICopy):
     """Verify vdi-copy between an NFS SR with no sub directory and a netapp SR"""            
     FROM_TYPE = "nfs"

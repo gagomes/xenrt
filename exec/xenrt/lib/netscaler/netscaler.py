@@ -283,7 +283,9 @@ class NetScaler(object):
         else:
             xenrt.TEC().logverbose('License test passed')
 
-        
+    def getGuest(self):
+        return self.__vpxGuest
+
     def checkFeatures(self, msg):
         xenrt.TEC().logverbose(msg)
         xenrt.TEC().logverbose('The version of the provisioned VPX is %s' % (self.version))

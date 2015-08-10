@@ -9,7 +9,7 @@
 #
 
 import time, fnmatch, sys, os.path, time, os, popen2, random, string, socket, threading
-import signal, select, traceback, smtplib, math, re, urllib2, xml.dom.minidom
+import signal, select, traceback, smtplib, math, re, urllib, urllib2, xml.dom.minidom
 import calendar, types, fcntl, resource, requests
 import xenrt, xenrt.ssh
 import IPy
@@ -93,7 +93,8 @@ __all__ = ["timenow",
            "is32BitPV",
            "checkXMLDomSubset",
            "getUpdateDistro",
-           "getLinuxRepo"
+           "getLinuxRepo",
+           "getURLContent"
            ]
 
 def sleep(secs, log=True):
@@ -1622,3 +1623,9 @@ def getLinuxRepo(distro, arch, method, default=xenrt.XRTError):
                 raise
             else:
                 return default
+
+def getURLContent(url):
+    sock = urllib.URLopener().open(url)
+    resp = sock.read()
+    sock.close()
+    return resp

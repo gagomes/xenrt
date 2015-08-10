@@ -63,7 +63,7 @@ class XenRTUIPage(XenRTPage):
    </li>
    <li class='has-sub'><a href='#'><span>XenRTCenter</span></a>
      <ul>
-         <li><a href='http://qa-01.xenrt.citrite.net/XRTCINSTALL/StartXenRTCenter.exe' target="_blank"><span>Download</span></a></li>
+         <li><a href='http://xenrt.citrite.net/xenrtcenter/StartXenRTCenter.exe' target="_blank"><span>Download</span></a></li>
          <li><a href='https://info.citrite.net/display/CPGQA/XenRTCenter' target="_blank"><span>Documentation</span></a></li>
      </ul>
    </li>

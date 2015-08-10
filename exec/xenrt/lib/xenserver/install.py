@@ -223,7 +223,7 @@ class DundeeInstaller(object):
 
         cmds = []
         if dom0mem:
-            cmds.append(setXen("dom0_mem=%s" % dom0mem))
+            cmds.append(setXen("dom0_mem=%sM" % dom0mem))
         if xenrt.TEC().lookup("OPTION_DEBUG", False, boolean=True):
             cmds.append(setDom0("print-fatal-signals=2"))
             cmds.append(setXen("loglvl=all guest_loglvl=all"))

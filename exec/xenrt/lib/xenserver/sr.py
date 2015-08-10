@@ -198,7 +198,7 @@ class StorageRepository(object):
 
         if not srtype:
             srtype = self.srtype
-        if srtype in ["lvm", "lvmoiscsi", "lvmohba"]:
+        if srtype in ["lvmoiscsi", "lvmohba"]:
             return True
         return False
 
@@ -217,6 +217,8 @@ class StorageRepository(object):
             args.append("shared=true")
         args.extend(["device-config:%s=\"%s\"" % (x, y)
                      for x,y in actualDeviceConfiguration.items()])
+        if not self.__thinProv:
+            self.__thinProv = xenrt.TEC().lookup("FORCE_THIN_LVHD", False, boolean=True)
         if self.__thinProv:
             if self.__isEligibleThinProvisioning(srtype):
                 smconf["allocation"] = "dynamic"
@@ -878,14 +880,14 @@ class SMAPIv3SharedStorageRepository(NFSStorageRepository):
             self.checkOnHost(self.host)
 
     def checkOnHost(self, host):
-        path = "/var/run/sr-mount/nfs/%s%s" % (self.server, self.path)
+        path = "/run/sr-mount/nfs/%s%s" % (self.server, self.path)
         try:
             host.execdom0("test -d %s" % path)
         except:
             raise xenrt.XRTFailure("SR mountpoint %s does not exist" % path)
         nfs = string.split(host.execdom0("mount | grep \""
                                           "%s\"" % path))[0]
-        shouldbe = "%s:%s/%s" % (self.server, self.path, self.uuid)
+        shouldbe = "%s:%s" % (self.server, self.path)
         if nfs != shouldbe:
             raise xenrt.XRTFailure("Mounted path '%s' is not '%s'" %
                                    (nfs, shouldbe))

@@ -256,6 +256,11 @@ class TCXenServerInstall(xenrt.TestCase):
                 sr.create(r.group(1), r.group(2))
                 sr.check()
                 host.addSR(sr, default=True)
+            elif host.lookup("SR_RAWNFS", False, boolean=True):
+                sr = xenrt.lib.xenserver.SMAPIv3SharedStorageRepository(host, "xenrtnfs")
+                sr.create(None, None)
+                sr.check()
+                host.addSR(sr, default=True)
 
             # Optionally use an ISCSI_LUN for storage
             lunobj = None
@@ -290,8 +295,10 @@ class TCXenServerInstall(xenrt.TestCase):
                 multipathing = host.lookup("USE_MULTIPATH",
                                            None,
                                            boolean=True)
+                thinprov = host.lookup("THIN_LVHD", False, boolean=True)
                 sr = xenrt.lib.xenserver.ISCSIStorageRepository(host,
-                                                                "xenrtiscsi")
+                                                                "xenrtiscsi",
+                                                                thinprov)
                 sr.create(lunobj, subtype=subtype, multipathing=multipathing)
                 sr.check()
                 host.addSR(sr, default=True)

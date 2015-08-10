@@ -10189,13 +10189,6 @@ while True:
                 self.xmlrpcExec("C:\\Windows\\Microsoft.NET\\Framework\\v2.0.50727\\ngen.exe executeQueuedItems")
             except:
                 pass
-        self.shutdown()
-        self.paramSet("platform:usb", "false")
-        self.paramSet("platform:hvm_serial", "none")
-        self.paramSet("platform:nousb", "true")
-        self.paramSet("platform:monitor", "null")
-        self.paramSet("platform:parallel", "none")
-        self.start()
 
     def checkRPMInstalled(self, rpm):
         """

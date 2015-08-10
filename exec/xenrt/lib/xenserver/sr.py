@@ -1098,7 +1098,11 @@ class ISCSIStorageRepository(StorageRepository):
         if lun.getLunID() != None:
             dconf["LUNid"] = lun.getLunID()
         if lun.getID():
-            dconf["SCSIid"] = lun.getID()
+            if type(lun.getID()) == type(1):
+                strscsi = string.join(["%02x" % ord(x) for x in "%08x" % lun.getID()], "")
+                dconf["SCSIid"] = "14945540000000000%s0000000000000000" % strscsi
+            else:
+                dconf["SCSIid"] = lun.getID()
         chap = lun.getCHAP()
         if chap:
             u, p = chap
@@ -1115,6 +1119,7 @@ class ISCSIStorageRepository(StorageRepository):
             dconf["multihomed"] = "true"
         elif type(multipathing) == type(False):
             dconf["multihomed"] = "false"
+
         self._create("%soiscsi" % (subtype),
                      dconf,
                      physical_size=physical_size,

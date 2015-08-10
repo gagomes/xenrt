@@ -285,7 +285,8 @@ class TCMachineCheck(xenrt.TestCase):
             actualIp = self.host.genParamGet("pif", pif, "IP")
             actualNetmask = self.host.genParamGet("pif", pif, "netmask")
             if actualIp == "" or actualNetmask == "":
-                raise xenrt.XRTFailure("No IP received on NIC %u" % assumedId)
+                overallFailures.append("No IP received on NIC %u" % assumedId)
+                continue
             xenrt.TEC().logverbose("Found %s/%s" % (actualIp, actualNetmask))
             failures = []
             if expectedIp is None:

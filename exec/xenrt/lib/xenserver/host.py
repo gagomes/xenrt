@@ -7538,9 +7538,12 @@ logger "Stopping xentrace loop, host has less than 512M disk space free"
         # Find the PIF UUID and set the IP details
         pifuuid = self.getPIFUUID(eth)
         return self.enableIPOnPIF(pifuuid)
+
+    def getHAPath(self):
+        return "/opt/xensource/xha"
         
     def useHAFISTPoint(self, point, enable=True):
-        cmd = "PATH=$PATH:/opt/xensource/xha /opt/xensource/xha/calldaemon fist"
+        cmd = "PATH=$PATH:%s %s/calldaemon fist" % (self.getHAPath(), self.getHAPath())
         if enable:
             cmd += " enable "
         else:
@@ -7659,9 +7662,9 @@ logger "Stopping xentrace loop, host has less than 512M disk space free"
 set -x
 
 # Disable HA if it's running
-/opt/xensource/xha/ha_set_pool_state invalid || true
-/opt/xensource/xha/ha_disarm_fencing || true
-/opt/xensource/xha/ha_stop_daemon || true
+%s/ha_set_pool_state invalid || true
+%s/ha_disarm_fencing || true
+%s/ha_stop_daemon || true
 
 # Just in case hypervisor watchdogs are left behind
 /opt/xensource/debug/xenops watchdog -slot 1 -timeout 0
@@ -7673,7 +7676,7 @@ rm -rf /etc/xensource/static-vdis || true
 mkdir -p /etc/xensource/static-vdis
 rm -f /etc/xensource/xhad.conf || true
 
-"""
+""" % (self.getHAPath(), self.getHAPath(), self.getHAPath())
         tmpfile = xenrt.TEC().tempFile()
         f = file(tmpfile, "w")
         f.write(script)
@@ -7683,8 +7686,8 @@ rm -f /etc/xensource/xhad.conf || true
         sftp.close()
 
         self.execdom0("chmod a+x /tmp/xenrt_ha_reset.sh")
-        self.execdom0("PATH=$PATH:/opt/xensource/xha "
-                      "/tmp/xenrt_ha_reset.sh",
+        self.execdom0("PATH=$PATH:%s "
+                      "/tmp/xenrt_ha_reset.sh" % (self.getHAPath()),
                       level=xenrt.RC_OK,
                       getreply=False)
 
@@ -11752,6 +11755,7 @@ class DundeeHost(CreedenceHost):
 
         self.installer = None
         self.melioHelper = None
+        self.haPath = None
 
     def populateSubclass(self, x):
         CreedenceHost.populateSubclass(self, x)
@@ -11975,6 +11979,15 @@ class DundeeHost(CreedenceHost):
     def installMelio(self):
         self.melioHelper = xenrt.lib.xenserver.MelioHelper(self)
         self.melioHelper.installMelio()
+
+    def getHAPath(self):
+        if self.haPath:
+            return self.haPath
+        if self.execdom0("ls /usr/libexec/xapi/cluster-stack/xhad", retval="code") == 0:
+            self.haPath = "/usr/libexec/xapi/cluster-stack/xhad"
+        else:
+            self.haPath = "/opt/xensource/xha"
+        return self.haPath
 
 #############################################################################
 
@@ -12677,7 +12690,7 @@ class Pool(object):
 
     def configureSSL(self, enableVerification=True):
         raise xenrt.XRTError("SSL can only be configured on an MNR pool or above")
-        
+
     def enableHA(self, params={}, srs=[], check=True):
         """Enables High Availability on the pool""" 
         if len(srs) == 0:
@@ -12773,8 +12786,8 @@ class Pool(object):
             host = self.master
         liveset = []
 
-        xli = host.execdom0("PATH=$PATH:/opt/xensource/xha "
-                            "/opt/xensource/xha/ha_query_liveset").strip()
+        xli = host.execdom0("PATH=$PATH:%s "
+                            "%s/ha_query_liveset" % (host.getHAPath(), host.getHAPath()).strip()
         dom = xml.dom.minidom.parseString(xli)
         hli = dom.getElementsByTagName("ha_liveset_info")[0]
         for n in hli.childNodes:
@@ -12800,8 +12813,8 @@ class Pool(object):
         # XXX Hard coded config file location
         dict = {'hosts':{}}
         try:
-            data = host.execdom0("/opt/xensource/xha/dumpstatefile "
-                                 "/etc/xensource/xhad.conf")
+            data = host.execdom0("%s/dumpstatefile "
+                                 "/etc/xensource/xhad.conf" % (host.getHAPath()))
             lines = data.split("\n")
             for line in lines:
                 line = line.strip()

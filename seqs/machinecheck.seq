@@ -8,12 +8,7 @@
 
   <testsequence>
     <serial group="%RESOURCE_HOST_0%">
-      <testcase id="selftest.TCMachineCheck">
-        <arg>Network/Ports</arg>
-        <arg>Network/DHCP</arg>
-        <arg>Console/Serial</arg>
-        <arg>FC/HBA</arg>
-      </testcase>
+      <testcase id="selftest.TCMachineCheck" />
     </serial>
   </testsequence>
 

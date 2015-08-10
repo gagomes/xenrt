@@ -379,10 +379,10 @@ class TCMachineCheck(xenrt.TestCase):
                     raise xenrt.XRTFailure("No change in online HBA count after bringing path down")
                 # Re-enable so if we're booted from multipath SAN we don't end up dropping both paths
                 self.host.enableFCPort(hba)
+                xenrt.sleep(20)
                 online, _ = self._getHBACounts()
                 if online != total:
                     raise xenrt.XRTFailure("Link not recovered after bringing path back up")
-                xenrt.sleep(20)
         finally:
             self.host.enableAllFCPorts()
             lock.release()

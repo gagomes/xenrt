@@ -12787,7 +12787,7 @@ class Pool(object):
         liveset = []
 
         xli = host.execdom0("PATH=$PATH:%s "
-                            "%s/ha_query_liveset" % (host.getHAPath(), host.getHAPath()).strip()
+                            "%s/ha_query_liveset" % (host.getHAPath(), host.getHAPath())).strip()
         dom = xml.dom.minidom.parseString(xli)
         hli = dom.getElementsByTagName("ha_liveset_info")[0]
         for n in hli.childNodes:

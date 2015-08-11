@@ -8,7 +8,7 @@
 # conditions as licensed by Citrix Systems, Inc. All other rights reserved.
 #
 
-import sys, re, string, os.path, urllib, traceback, time, shutil, stat, os
+import sys, re, string, os.path, urllib, traceback, time, shutil, stat, os, IPy
 import xenrt
 from xenrt.lazylog import step, comment, log, warning
 

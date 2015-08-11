@@ -577,7 +577,7 @@ class TCXSA112(_TCXSA):
             #Workaround for CA-159772: Sometimes host serial log is not available for a machine
             #Raise a warning in that case.
             if len(serlog.splitlines())==1 and ("not found" in serlog or "Enter `^Ec?' for help" in serlog):
-                xenrt.TEC().warning("Serial log not found")
+                xenrt.TEC().skip("Skipping because host serial log not found")
             else:
                 raise xenrt.XRTFailure("Unexpected output in serial logs")
     

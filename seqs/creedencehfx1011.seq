@@ -1,0 +1,23 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <PREPARE_WORKERS>5</PREPARE_WORKERS>
+  </variables>
+  <prepare>
+    <host id="0">
+      <bridge name="internal" />
+      <vm name="victim1">
+        <distro>win7-x64</distro>
+        <memory>2048</memory>
+        <postinstall action="disableFirewall" />
+        <postinstall action="installLegacyDrivers" />
+        <network device="0" />
+        <network device="1" bridge="internal" />
+        <disk device="0" size="24" />
+      </vm>
+    </host>
+  </prepare>
+  <testsequence>
+    <testcase id="testcases.xenserver.tc.guest.TCMulticastTraffic" tc="TC-20902" />
+  </testsequence>
+</xenrt>

@@ -3974,6 +3974,9 @@ class Config(object):
         # Seedy- xapi, xen-device-model. Rolls up XS62E014,XS62E017,XS62ESP1002,XS62ESP1004,XS62ESP1006,XS62ESP1007,XS62ESP1008,XS62ESP1011,XS62ESP1013,XS62ESP1015,XS62ESP1016,XS62ESP1019,XS62ESP1021,XS62ESP1022,XS62ESP1025,XS62ESP1026,XS62ESP1027
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1030"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1030/103335/hotfix-XS62ESP1030/XS62ESP1030.xsupdate"
         
+        # Butterfree- SM, vGPU, Xen, Xapi. Rolls up XS62E014, XS62E017, XS62ESP1002, XS62ESP1004, XS62ESP1006, XS62ESP1007, XS62ESP1008, XS62ESP1011, XS62ESP1013, XS62ESP1015, XS62ESP1016, XS62ESP1019, XS62ESP1021, XS62ESP1022, XS62ESP1025, XS62ESP1026, XS62ESP1027, XS62ESP1029, XS62ESP1030
+        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1031"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1031/103504/hotfix-XS62ESP1031/XS62ESP1031.xsupdate"
+        
         #Creedence hotfixes
         # Gloss: XenCenter, Rolls up nothing
         self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E001"] = "/usr/groups/release/XenServer-6.x/XS-6.5/hotfixes/XS65E001/91026/hotfix-XS65E001/XS65E001.xsupdate"
@@ -4185,16 +4188,14 @@ class Config(object):
             self.config["CARBON_PATCHES_CLEARWATER"]["HF12"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E012"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF15"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E015"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF16"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E016"]
-            self.config["CARBON_PATCHES_CLEARWATER"]["HF17"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E017"]
         elif branch == "SP1":
             self.config["CARBON_PATCHES_CLEARWATER"]["HF00"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1"]
-            self.config["CARBON_PATCHES_CLEARWATER"]["HF04"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1004"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF14"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1014"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF17"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1017"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF24"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1024"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF28"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1028"]
-            self.config["CARBON_PATCHES_CLEARWATER"]["HF30"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1030"]
-             
+            self.config["CARBON_PATCHES_CLEARWATER"]["HF31"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1031"]
+            
         if not self.config.has_key("CARBON_PATCHES_CREEDENCE"):
             self.config["CARBON_PATCHES_CREEDENCE"] = {}
 

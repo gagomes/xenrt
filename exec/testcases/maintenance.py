@@ -427,3 +427,27 @@ class TCUnsupFlags(xenrt.TestCase):
         if self.updateMachineWithAutoFlaggerTag:
             comment("Updating Autoflagger tag for Machine '%s': '%s'" % (self.machineName, self.updateMachineWithAutoFlaggerTag))
             xenrt.APIFactory().update_machine(self.machineName, params={'AUTOFLAGGERTAG':self.updateMachineWithAutoFlaggerTag})
+
+class IPMISetup(xenrt.TestCase):
+    def run(self, arglist=[]):
+        h = self.getDefaultHost()
+
+        defaultDevice = h.execdom0("ip route show | grep default | awk '{print $5}'").strip()
+        gw = h.execdom0("ip route show | grep default | awk '{print $3}'").strip()
+        subnet = IPy.IP(h.execdom0("ip route show | grep -v default | grep ' %s ' | awk '{print $1}'" % defaultDevice).strip())
+
+        if not IPy.IP(h.lookup("BMC_ADDRESS")) in subnet:
+            raise xenrt.XRTError("BMC Address not on management network")
+
+
+        if xenrt.TEC().lookup("DELL_SERIAL_PORT_SWAP", False, boolean=True):
+            h.execdom0("wget -q -O - http://linux.dell.com/repo/hardware/Linux_Repository_15.07.00/bootstrap.cgi | bash")
+            h.execdom0("yum install -y syscfg")
+            h.execdom0("/opt/dell/toolkit/bin/syscfg --serialportaddrsel=alternate")
+        h.execdom0("ipmitool -I open lan set 1 ipsrc static")
+        h.execdom0("ipmitool -I open lan set 1 ipaddr %s" % h.lookup("BMC_ADDRESS"))
+        h.execdom0("ipmitool -I open lan set 1 netmask %s" % subnet.netmask().strNormal())
+        h.execdom0("ipmitool -I open lan set 1 defgw ipaddr %s" % gw)
+        h.execdom0("ipmitool -I open lan set 1 access on")
+        h.execdom0("ipmitool -I open lan set 1 user")
+        h.execdom0("ipmitool -I open delloem lcd set mode userdefined %s" % h.getName())

@@ -1,0 +1,137 @@
+<xenrt>
+
+  <!-- Sequence to test the various storage xen migration tests on thin provisoned srs. -->
+  <default name="ITERATIONS" value="2" />
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <!-- <pool id="0" name="SXMPool"> -->
+    <pool id="0">
+      <storage type="nfs" name="nfs_sourceSR" />
+      <storage type="nfs" name="nfs_targetSR" />
+      <storage type="lvmoiscsi" name="lvmoiscsi_sourceSR" options="thin" />
+      <storage type="lvmoiscsi" name="lvmoiscsi_targetSR" options="thin" />
+      <host id="0" installsr="ext" />
+      <host id="1" installsr="lvm" />
+    </pool>
+  </prepare>
+
+  <testsequence>
+
+    <serial group="IntraPoolSXM">
+      <!-- intra-pool sxm migration from sr-type ext to lvmoiscsi. -->
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16863" tc="TC-16863" sku="thin">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvmoiscsi</arg>
+        <arg>iterations=${ITERATIONS}</arg>
+      </testcase>
+
+      <!-- intra-pool sxm migration from sr-type lvm to lvmoiscsi. -->
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16868" tc="TC-16868" sku="thin">
+        <arg>src_SR=lvm</arg>
+        <arg>dest_SR=lvmoiscsi</arg>
+        <arg>iterations=${ITERATIONS}</arg>
+      </testcase>
+
+      <!-- intra-pool sxm migration from sr-type nfs to lvmoiscsi. -->
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16873" tc="TC-16873" sku="thin">
+        <arg>src_SR=nfs</arg>
+        <arg>dest_SR=lvmoiscsi</arg>
+        <arg>iterations=${ITERATIONS}</arg>
+      </testcase>
+
+      <!-- intra-pool sxm migration from sr-type lvmoiscsi to ext, lvm, nfs, lvmoiscsi respectively. -->
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16875" tc="TC-16875" sku="thin">
+        <arg>src_SR=lvmoiscsi</arg>
+        <arg>dest_SR=ext</arg>
+        <arg>iterations=${ITERATIONS}</arg>
+      </testcase>
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16876" tc="TC-16876" sku="thin">
+        <arg>src_SR=lvmoiscsi</arg>
+        <arg>dest_SR=lvm</arg>
+        <arg>iterations=${ITERATIONS}</arg>
+      </testcase>
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16877" tc="TC-16877" sku="thin">
+        <arg>src_SR=lvmoiscsi</arg>
+        <arg>dest_SR=nfs</arg>
+        <arg>iterations=${ITERATIONS}</arg>
+      </testcase>
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16878" tc="TC-16878" sku="thin">
+        <arg>src_SR=lvmoiscsi</arg>
+        <arg>dest_SR=lvmoiscsi</arg>
+        <arg>iterations=${ITERATIONS}</arg>
+      </testcase>
+    </serial>
+
+    <serial group="LiveVDISXM">
+      <!-- live vdi migration from sr-type ext to lvmoiscsi. -->
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16913" tc="TC-16913" sku="thin">
+        <arg>test=LiveVDI</arg>
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvmoiscsi</arg>
+        <arg>iterations=${ITERATIONS}</arg>
+      </testcase>
+
+      <!-- live vdi migration from sr-type lvm to lvmoiscsi. -->
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16918" tc="TC-16918" sku="thin">
+        <arg>test=LiveVDI</arg>
+        <arg>src_SR=lvm</arg>
+        <arg>dest_SR=lvmoiscsi</arg>
+        <arg>iterations=${ITERATIONS}</arg>
+      </testcase>
+
+      <!-- live vdi migration from sr-type nfs to lvmoiscsi. -->
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16923" tc="TC-16923" sku="thin">
+        <arg>test=LiveVDI</arg>
+        <arg>src_SR=nfs</arg>
+        <arg>dest_SR=lvmoiscsi</arg>
+        <arg>iterations=${ITERATIONS}</arg>
+      </testcase>
+
+      <!-- live vdi migration from sr-type lvmoiscsi to ext, lvm, nfs, lvmoiscsi respectively. -->
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16925" tc="TC-16925" sku="thin">
+        <arg>test=LiveVDI</arg>
+        <arg>src_SR=lvmoiscsi</arg>
+        <arg>dest_SR=ext</arg>
+        <arg>iterations=${ITERATIONS}</arg>
+      </testcase>
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16926" tc="TC-16926" sku="thin">
+        <arg>test=LiveVDI</arg>
+        <arg>src_SR=lvmoiscsi</arg>
+        <arg>dest_SR=lvm</arg>
+        <arg>iterations=${ITERATIONS}</arg>
+      </testcase>
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16927" tc="TC-16927" sku="thin">
+        <arg>test=LiveVDI</arg>
+        <arg>src_SR=lvmoiscsi</arg>
+        <arg>dest_SR=nfs</arg>
+        <arg>iterations=${ITERATIONS}</arg>
+      </testcase>
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16928" tc="TC-16928" sku="thin">
+        <arg>test=LiveVDI</arg>
+        <arg>src_SR=lvmoiscsi</arg>
+        <arg>dest_SR=lvmoiscsi</arg>
+        <arg>iterations=${ITERATIONS}</arg>
+      </testcase>
+    </serial>
+
+    <!-- Concurrent VMs liveVDI migrate -->
+    <serial group="ConcurrentVMsLiveVDI">
+      <testcase id="xenserver.tc.sxm.ConcurrentVMMigrate1" name="TC17348" tc="TC-17348" sku="thin">
+        <arg>src_SR=nfs</arg>
+        <arg>dest_SR=lvmoiscsi</arg>
+        <arg>test=LiveVDI</arg>
+      </testcase>
+      <testcase id="xenserver.tc.sxm.ConcurrentVMMigrate2" name="TC17349" tc="TC-17349" sku="thin">
+        <arg>src_SR=lvmoiscsi</arg>
+        <arg>dest_SR=nfs</arg>
+        <arg>test=LiveVDI</arg>
+      </testcase>
+    </serial>
+
+  </testsequence>
+
+</xenrt>

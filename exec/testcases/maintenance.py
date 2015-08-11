@@ -449,5 +449,8 @@ class IPMISetup(xenrt.TestCase):
         h.execdom0("ipmitool -I open lan set 1 netmask %s" % subnet.netmask().strNormal())
         h.execdom0("ipmitool -I open lan set 1 defgw ipaddr %s" % gw)
         h.execdom0("ipmitool -I open lan set 1 access on")
-        h.execdom0("ipmitool -I open lan set 1 user")
+        try:
+            h.execdom0("ipmitool -I open lan set 1 user")
+        except:
+            xenrt.TEC().logverbose("Warning: could not enable default user for IPMI")
         h.execdom0("ipmitool -I open delloem lcd set mode userdefined %s" % h.getName())

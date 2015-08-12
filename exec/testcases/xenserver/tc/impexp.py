@@ -41,6 +41,10 @@ class _ImpExpBase(xenrt.TestCase):
         self.importsr = None
         xenrt.TestCase.__init__(self, tcid)
 
+    def prepare(self, arglist):
+        args = self.parseArgsKeyValue(arglist)
+        self.SRTYPE = args.get("srtype", self.SRTYPE)
+
     def preExportHook(self, guest):
         pass
 
@@ -393,6 +397,9 @@ class _PoolImpExp(_ImpExpBase):
 
     EXPORTFROMSLAVE = True
     IMPORTTOSLAVE = True 
+
+    def prepare(self, arglist):
+        _ImpExpBase.prepare(self, arglist)
 
     def run(self,arglist):
         self.pool = self.getDefaultPool()

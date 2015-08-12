@@ -600,6 +600,7 @@ class CentralResource(object):
 class CentralLock(CentralResource):
     """Implementation of a central lock"""
     def __init__(self, id, timeout=3600, acquire=True):
+        self.id = id
         CentralResource.__init__(self)
         if acquire:
             self.acquire()
@@ -608,7 +609,7 @@ class CentralLock(CentralResource):
         startlooking = xenrt.util.timenow()
         while True:
             try:
-                CentralResource.acquire(self, id, shared=False)
+                CentralResource.acquire(self, self.id, shared=False)
                 break
             except xenrt.XRTError:
                 pass 

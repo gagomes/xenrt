@@ -27,19 +27,39 @@ class MelioHelper(object):
         self.setupISCSITarget()
         self.setupMelioDisk()
 
-    def installMelio(self, reinstall=False):
-        if self.host.execdom0("lsmod | grep warm_drive", retval="code") == 0 and not reinstall:
-            return
-        self.host.execdom0("yum install -y boost boost-atomic boost-thread boost-filesystem")
-        specFile = xenrt.TEC().lookup("MELIO_RPM_SPEC", None)
-        if specFile:
-            spec = requests.get(xenrt.filemanager.FileNameResolver(specFile).url).json()
-            f = xenrt.TEC().getFile(spec['melio_rpm'])
+    def getRpmToDom0(self, var, specVar, dest):
+        rpm = xenrt.TEC().lookup(var, None)
+        if not rpm:
+            return False
+        if rpm.endswith(".rpm"):
+            f = xenrt.TEC().getFile(rpm)
         else:
-            f = xenrt.TEC().getFile(xenrt.TEC().lookup("MELIO_RPM"))
+            spec = requests.get(xenrt.filemanager.FileNameResolver(rpm).url).json()
+            f = xenrt.TEC().getFile(spec[specVar])
+        if not f:
+            return False
         d = xenrt.WebDirectory()
         d.copyIn(f)
-        self.host.execdom0("wget -O /root/melio.rpm %s" % d.getURL(os.path.basename(f)))
+        self.host.execdom0("wget -O %s %s" % (dest, d.getURL(os.path.basename(f))))
+        return True
+
+    def installMelio(self, reinstall=False):
+            
+        if self.host.execdom0("lsmod | grep warm_drive", retval="code") == 0 and not reinstall:
+            return
+        d = xenrt.WebDirectory()
+        if xenrt.TEC().lookup("PATCH_SMAPI_RPMS", False, boolean=True):
+            self.host.execdom0("mkdir -p /root/smapi_rpms")
+            rpms = ['xapi-core-*.rpm', 'xapi-storage-script-*.rpm', 'xenopsd-0*.rpm', 'xenopsd-xc-*.rpm', 'xenopsd-xenlight-*.rpm']
+            for r in rpms:
+                f = xenrt.TEC().getFile("/usr/groups/xen/carbon/trunk-btrfs-3/latest/binary-packages/RPMS/domain0/RPMS/x86_64/%s" % r)
+                d.copyIn(f)
+                self.host.execdom0("wget -O /root/smapi_rpms/%s %s" % (os.path.basename(f), d.getURL(os.path.basename(f))))
+            self.host.execdom0("rpm -Uv --force /root/smapi_rpms/*.rpm")
+            self.host.resetToFreshInstall(setupISOs=True)
+        self.host.execdom0("yum install -y boost boost-atomic boost-thread boost-filesystem")
+        if not self.getRpmToDom0("MELIO_RPM", "melio_rpm", "/root/melio.rpm"):
+            raise xenrt.XRTError("MELIO_RPM not found")
         self.host.execdom0("rpm -U --replacepkgs /root/melio.rpm")
 
         # Workaround for now - load the melio stuff after boot
@@ -54,6 +74,10 @@ class MelioHelper(object):
             self.host.execdom0("echo 'service warm-drive-webserverd start' >> /etc/rc.d/rc.local")
         self.host.reboot()
         self.checkXapiResponsive()
+        if self.getRpmToDom0("FFS_RPM", "ffs_rpm", "/root/ffs.rpm"):
+            # RPM workaround for now
+            self.host.execdom0("rm -rf /usr/libexec/xapi-storage-script/datapath/raw+file*")
+            self.host.execdom0("rpm -U --replacepkgs /root/ffs.rpm")
 
     def checkXapiResponsive(self):
         for i in xrange(20):

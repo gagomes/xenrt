@@ -206,6 +206,7 @@ class PythonBindings(XenRTAPIv2Swagger):
         
         self.scheme = swagger['schemes'][0]
         self.base = swagger['basePath']
+        self.uibase = swagger['uiPath']
         self.host = swagger['host']
         self.masterhost = swagger['masterhost']
 
@@ -255,6 +256,7 @@ class XenRT(object):
             masterserver = self._getXenRTMasterServer() or "%s"
         self.base = "%s://%%s%s" %% server
         self.masterbase = "%s://%%s%s" %% masterserver
+        self.uibase = "%s://%%s%s" %% server
 
         self.customHeaders = {}
         if apikey:
@@ -333,7 +335,7 @@ class XenRT(object):
                                         traceback)
         response.raise_for_status()
 
-""" % (self.host, self.masterhost, self.scheme, self.base, self.scheme, self.base)
+""" % (self.host, self.masterhost, self.scheme, self.base, self.scheme, self.base, self.scheme, self.uibase)
         for func in self.funcs:
             ret += "%s\n" % func.methodSignature
             ret += "%s\n" % func.description

@@ -336,6 +336,12 @@ class XenRT(object):
         response.raise_for_status()
 
     def generate_junit_output_for_job(self, id):
+        \"\"\"
+        Generate JUnit compatible output for a job. Useful for sending to Jenkins
+
+        Parameters:  
+        `id`: Job ID to generate output for  
+        \"\"\"
 
         errored=0
         failed=0
@@ -352,7 +358,7 @@ class XenRT(object):
             for l in r['log']:
                 if l['type'] == "reason":
                     message = l['log'].replace('"', '')
-            urltext = "Logs available at %%s/logs?detailid=%%d" % (self.uibase, r['detailid'])
+            urltext = "Logs available at %%s/logs?detailid=%%d" %% (self.uibase, r['detailid'])
             if r['result'].startswith("pass") or r['result'].startswith("partial"):
                 passed += 1
                 details = ""
@@ -361,16 +367,16 @@ class XenRT(object):
                 details = \"\"\"    <failure message="%%s">
           %%s
         </failure>
-    \"\"\" % (message, urltext)
+    \"\"\" %% (message, urltext)
             elif r['result'].startswith("error") or r['result'].startswith("timeout") or r['result'].startswith("unknown"):
                 errored += 1
                 details = \"\"\"    <error message="%%s">
           %%s
         </error>
-    \"\"\" % (message, urltext)
+    \"\"\" %% (message, urltext)
             elif r['result'].startswith("skipped") or r['result'].startswith("blocked"):
                 skipped += 1
-                details = "    <skipped />\n"
+                details = "    <skipped />\\n"
             else:
                 continue
 
@@ -382,9 +388,9 @@ class XenRT(object):
             tcs += \"\"\"
       <testcase name="%%s" classname="%%s.%%s" time="%%s">
     %%s  </testcase>
-    \"\"\" % (r['test'], jobdesc, r['phase'], time, details)
+    \"\"\" %% (r['test'], jobdesc, r['phase'], time, details)
 
-        out = \"\"\"<testsuite name="xenrt" tests="%%d" skip="%%d" failures="%%d" errors="%%d">%%s</testsuite>\"\"\" % (
+        out = \"\"\"<testsuite name="xenrt" tests="%%d" skip="%%d" failures="%%d" errors="%%d">%%s</testsuite>\"\"\" %% (
             errored + failed + skipped + passed,
             skipped,
             failed,
@@ -393,13 +399,13 @@ class XenRT(object):
 
         return out
 
-    \"\"\" % (self.host, self.masterhost, self.scheme, self.base, self.scheme, self.base, self.scheme, self.uibase)
-            for func in self.funcs:
-                ret += "%s\n" % func.methodSignature
-                ret += "%s\n" % func.description
-                ret += "%s\n" % func.methodContent
-                ret += "\n\n"
-        
-            return ret
+""" % (self.host, self.masterhost, self.scheme, self.base, self.scheme, self.base, self.scheme, self.uibase)
+        for func in self.funcs:
+            ret += "%s\n" % func.methodSignature
+            ret += "%s\n" % func.description
+            ret += "%s\n" % func.methodContent
+            ret += "\n\n"
+    
+        return ret
 
-    PageFactory(PythonBindings, "bindings/__init__.py", reqType="GET", contentType="text/plain")
+PageFactory(PythonBindings, "bindings/__init__.py", reqType="GET", contentType="text/plain")

@@ -50,7 +50,7 @@ class MelioHelper(object):
         d = xenrt.WebDirectory()
         if xenrt.TEC().lookup("PATCH_SMAPI_RPMS", False, boolean=True):
             self.host.execdom0("mkdir -p /root/smapi_rpms")
-            rpms = ['xapi-core-*.rpm', 'xapi-storage-script-*.rpm', 'xenopsd-0*.rpm', 'xenopsd-xc-*.rpm', 'xenopsd-xenlight-*.rpm']
+            rpms = ['xapi-core-*.rpm', 'xapi-storage-script-*.rpm', 'xenopsd-0*.rpm', 'xenopsd-xc-*.rpm', 'xenopsd-xenlight-*.rpm', 'xapi-storage-0*.rpm']
             for r in rpms:
                 f = xenrt.TEC().getFile("/usr/groups/xen/carbon/trunk-btrfs-3/latest/binary-packages/RPMS/domain0/RPMS/x86_64/%s" % r)
                 d.copyIn(f)

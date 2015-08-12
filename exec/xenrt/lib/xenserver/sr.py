@@ -430,6 +430,12 @@ class SMAPIv3LocalStorageRepository(StorageRepository):
             path = "/dev/%s%d" % (device, partition)
         self._create("btrfs", {"uri":"file://%s" % path}, physical_size, content_type, smconf)
 
+class MelioStorageRepository(StorageRepository):
+    SHARED = False
+    CLEANUP = "destroy"
+    
+    def create(self, path, physical_size=0, content_type="", smconf={}):
+        self._create("melio", {"uri":"file://%s" % path}, physical_size, content_type, smconf)
 
 class IntegratedCVSMStorageRepository(StorageRepository):
     SHARED = True

@@ -46,6 +46,7 @@ __all__ = ["WebDirectory",
            "StaticIP4Addr",
            "StaticIP6Addr",
            "CentralResource",
+           "CentralLock",
            "SharedHost",
            "PrivateVLAN",
            "ProductLicense",
@@ -595,6 +596,27 @@ class CentralResource(object):
 
     def callback(self):
         self.release(atExit=True)
+
+class CentralLock(CentralResource):
+    """Implementation of a central lock"""
+    def __init__(self, id, timeout=3600, acquire=True):
+        CentralLock.__init__(self)
+        if acquire:
+            self.acquire()
+
+    def acquire(self):
+        startlooking = xenrt.util.timenow()
+        while True:
+            try:
+                CentralResource.acquire(self, id, shared=False)
+                break
+            except xenrt.XRTError:
+                pass 
+            if xenrt.util.timenow() > (startlooking + timeout):
+                xenrt.TEC().logverbose("Timed out waiting for lock after %d seconds" % timeout)
+                self.logList()
+                raise xenrt.XRTError("Timed out waiting for lock")
+            xenrt.sleep(30)
 
 class ManagedStorageResource(CentralResource):
     """Resources that can be used as CVSM targets should inherit this class."""

@@ -157,8 +157,7 @@ class TCMachineCheck(xenrt.TestCase):
             self.host.waitForEnabled(600, desc="Boot after %s/%s test" % (t[0],t[1]))
 
     def _testPowerctl(self, powerctl):
-        lock = xenrt.resources.CentralResource(timeout=1200)
-        lock.acquire("MC_POWER")
+        lock = xenrt.resources.CentralLock("MC_POWER", timeout=1200)
         try:
             if not self.host.checkAlive():
                 raise xenrt.XRTError("Host not reachable prior to powering down via IPMI")
@@ -218,9 +217,8 @@ class TCMachineCheck(xenrt.TestCase):
 
         failures = []
 
-        lock = xenrt.resources.CentralResource(timeout=1200)
-        powerLock = xenrt.resources.CentralResource(timeout=1200)
-        lock.acquire("MC_NETWORK")
+        lock = xenrt.resources.CentralLock("MC_NETWORK", timeout=1200)
+        powerLock = xenrt.resources.CentralLock("MC_POWER", timeout=1200, acquire=False)
         try:
             self.host.enableAllNetPorts()
             xenrt.sleep(30)
@@ -244,7 +242,7 @@ class TCMachineCheck(xenrt.TestCase):
                     xnert.sleep(20)
 
             # Now check the primary NIC
-            powerLock.acquire("MC_POWER") # We have to take this one as well to avoid confusion with a power test
+            powerLock.acquire() # We have to take this one as well to avoid confusion with a power test
             try:
                 if not self.host.checkAlive():
                     raise xenrt.XRTError("Host not reachable prior to disabling primary NIC")
@@ -366,8 +364,7 @@ class TCMachineCheck(xenrt.TestCase):
         if online != total:
             raise xenrt.XRTFailure("Only found %d/%d HBAs online prior to test" % (online, total))
 
-        lock = xenrt.resources.CentralResource(timeout=1200)
-        lock.acquire("MC_FC")
+        lock = xenrt.resources.CentralLock("MC_FC", timeout=1200)
         try:
             for i in range(len(hbas)):
                 hba = hbas[i]

@@ -1294,6 +1294,7 @@ class PrepareNode(object):
                 for s in self.srs:
                     host = xenrt.TEC().registry.hostGet(s["host"]) 
                     if s["type"] == "lvmoiscsi":
+                        smconf = {}
                         thinProv = False
                         options = []
                         if s["options"]:
@@ -1309,7 +1310,6 @@ class PrepareNode(object):
                                     thin_quan = opt[len("thin_quan:"):]
                             thin_init = xenrt.TEC().lookup("THIN_INITIAL_ALLOCATION", thin_init)
                             thin_quan = xenrt.TEC().lookup("THIN_ALLOCATION_QUANTUM", thin_quan)
-                            smconf = {}
                             if thin_init:
                                 smconf["initial_allocation"] = thin_init
                             if thin_quan:
@@ -1457,6 +1457,7 @@ class PrepareNode(object):
                         sr.create(eql, options=options, multipathing=mp)
                     elif s["type"] == "fc":
                         thinProv = False
+                        smconf = {}
                         if s.has_key("options") and s["options"]:
                             options = s["options"].split(",")
                         if "thin" in options:
@@ -1470,7 +1471,6 @@ class PrepareNode(object):
                                     thin_quan = opt[len("thin_quan:"):]
                             thin_init = xenrt.TEC().lookup("THIN_INITIAL_ALLOCATION", thin_init)
                             thin_quan = xenrt.TEC().lookup("THIN_ALLOCATION_QUANTUM", thin_quan)
-                            smconf = {}
                             if thin_init:
                                 smconf["initial_allocation"] = thin_init
                             if thin_quan:

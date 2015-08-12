@@ -2,7 +2,6 @@
 <xenrt>
 
   <!-- Sequence to test the various storage xen migration test cases. -->
-  <default name="ITERATIONS" value="1"/>
 
   <variables>
     <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
@@ -25,11 +24,6 @@
   <testsequence>
     <serial group="VDICorruptDurSXM">
       <testcase id="xenserver.tc.sxm.VDICorruptionDurSXM" name="TC27152" tc="TC-27152">
-      </testcase>
-      <testcase id="xenserver.tc.sxm.VDICorruptionDurSXM" name="TC27153" tc="TC-27153">
-        <arg>test=intra-pool</arg>
-        <arg>src_host=RESOURCE_HOST_0</arg>
-        <arg>dest_host=RESOURCE_HOST_1</arg>
       </testcase>
       <testcase id="xenserver.tc.sxm.VDICorruptionDurLiveVDI" name="TC27154" tc="TC-27154">
         <arg>test=LiveVDI</arg>

@@ -2881,7 +2881,7 @@ class VDICorruptionDurSXM(LiveMigrate):
         for t in self.vdiThreads :
             t.join(7200)
             if t.is_alive():
-                xenrt.TEC().warning("%s copy Operation Timed out" %t)
+                raise xenrt.XRTException("%s copy Operation Timed out" %t)
             else:
                 xenrt.TEC().logverbose("%s copy Operation Completed" %t)
 

@@ -5162,9 +5162,6 @@ class TCFCOEGuestLifeCycle(FCOELifecycleBase):
             if self.runSubcase("clone", guest, "VM", "Clone") != \
                     xenrt.RESULT_PASS:
                 return
-            if self.runSubcase("shutdown", guest, "VM", "Shutdown") != \
-                    xenrt.RESULT_PASS:
-                return
             if self.runSubcase("uninstall", guest, "VM", "Uninstall") != \
                     xenrt.RESULT_PASS:
                 return
@@ -5197,9 +5194,6 @@ class TCFCOEGuestLifeCycle(FCOELifecycleBase):
 
         clone = guest.cloneVM()
         clone.uninstall()
-            
-    def shutdown(self, guest):
-        guest.shutdown()
 
     def uninstall(self, guest):
         guest.uninstall()

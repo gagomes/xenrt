@@ -1295,8 +1295,25 @@ class PrepareNode(object):
                     host = xenrt.TEC().registry.hostGet(s["host"]) 
                     if s["type"] == "lvmoiscsi":
                         thinProv = False
-                        if s["options"] and "thin" in s["options"].split(","):
+                        options = []
+                        if s["options"]:
+                            options = s["options"].split(",")
+                        if "thin" in options:
                             thinProv = True
+                            thin_init = None
+                            thin_quan = None
+                            for opt in options:
+                                if opt.startswith("thin_init:"):
+                                    thin_init = opt[len("thin_init:"):]
+                                if opt.startswith("thin_quan:"):
+                                    thin_quan = opt[len("thin_quan:"):]
+                            thin_init = xenrt.TEC().lookup("THIN_INITIAL_ALLOCATION", thin_init)
+                            thin_quan = xenrt.TEC().lookup("THIN_ALLOCATION_QUANTUM", thin_quan)
+                            smconf = {}
+                            if thin_init:
+                                smconf["initial_allocation"] = thin_init
+                            if thin_quan:
+                                smconf["allocation_quantum"] = thin_quan
                         if host.lookup("USE_MULTIPATH", False, boolean=True):
                             mp = True
                         else:
@@ -1325,7 +1342,7 @@ class PrepareNode(object):
                                     m = re.match("initiatorcount=(\d+)", o)
                                     if m:
                                         initiatorcount = int(m.group(1))
-                            sr.create(subtype="lvm", multipathing=mp, jumbo=jumbo, mpp_rdac=mpp_rdac, initiatorcount = initiatorcount)
+                            sr.create(subtype="lvm", multipathing=mp, jumbo=jumbo, mpp_rdac=mpp_rdac, initiatorcount=initiatorcount, smconf=smconf)
                     elif s["type"] == "extoscsi":
                         sr = xenrt.productLib(host=host).ISCSIStorageRepository(host, s["name"])
                         if s["options"] and "jumbo" in s["options"].split(","):
@@ -1440,8 +1457,24 @@ class PrepareNode(object):
                         sr.create(eql, options=options, multipathing=mp)
                     elif s["type"] == "fc":
                         thinProv = False
-                        if s.has_key("options") and s["options"] and "thin" in s["options"].split(","):
+                        if s.has_key("options") and s["options"]:
+                            options = s["options"].split(",")
+                        if "thin" in options:
                             thinProv = True
+                            thin_init = None
+                            thin_quan = None
+                            for opt in options:
+                                if opt.startswith("thin_init:"):
+                                    thin_init = opt[len("thin_init:"):]
+                                if opt.startswith("thin_quan:"):
+                                    thin_quan = opt[len("thin_quan:"):]
+                            thin_init = xenrt.TEC().lookup("THIN_INITIAL_ALLOCATION", thin_init)
+                            thin_quan = xenrt.TEC().lookup("THIN_ALLOCATION_QUANTUM", thin_quan)
+                            smconf = {}
+                            if thin_init:
+                                smconf["initial_allocation"] = thin_init
+                            if thin_quan:
+                                smconf["allocation_quantum"] = thin_quan
                         sr = xenrt.productLib(host=host).FCStorageRepository(host, s["name"], thinProv)
                         if host.lookup("USE_MULTIPATH", False, boolean=True):
                             mp = True
@@ -1458,7 +1491,7 @@ class PrepareNode(object):
                                 fcsr = "LUN0"
 
                         scsiid = host.lookup(["FC", fcsr, "SCSIID"], None)
-                        sr.create(scsiid, multipathing=mp)
+                        sr.create(scsiid, multipathing=mp, smconf=smconf)
                     elif s["type"] == "cvsmnetapp":
                         minsize = int(host.lookup("SR_NETAPP_MINSIZE", 40))
                         maxsize = int(host.lookup("SR_NETAPP_MAXSIZE", 1000000))

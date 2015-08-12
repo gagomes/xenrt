@@ -161,11 +161,11 @@ class TCMachineCheck(xenrt.TestCase):
         lock.acquire("MC_POWER")
         try:
             if not self.host.checkAlive():
-                raise xenrt.XRTError("Host not reachable prior to powering down via IPMI")
+                raise xenrt.XRTError("Host not reachable prior to powering down")
             powerctl.off()
             xenrt.sleep(10)
             if self.host.checkAlive():
-                raise xenrt.XRTFailure("Host reachable after powering down via IPMI")
+                raise xenrt.XRTFailure("Host reachable after powering down")
         finally:
             powerctl.on()
             lock.release()

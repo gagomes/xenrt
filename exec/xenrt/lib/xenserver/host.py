@@ -3600,7 +3600,7 @@ fi
 
     def genParamsGet(self, ptype, uuid, param):
         ps = self.genParamGet(ptype, uuid, param)
-        return dict(map(lambda x:x.split(": "), ps.split("; ")))
+        return dict(map(lambda x:x.split(": ", 1), ps.split("; ")))
 
     def genParamSet(self, ptype, uuid, param, value, pkey=None):
         c = self.getCLIInstance()

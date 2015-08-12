@@ -335,13 +335,71 @@ class XenRT(object):
                                         traceback)
         response.raise_for_status()
 
-""" % (self.host, self.masterhost, self.scheme, self.base, self.scheme, self.base, self.scheme, self.uibase)
-        for func in self.funcs:
-            ret += "%s\n" % func.methodSignature
-            ret += "%s\n" % func.description
-            ret += "%s\n" % func.methodContent
-            ret += "\n\n"
-    
-        return ret
+    def generate_junit_output_for_job(self, id):
 
-PageFactory(PythonBindings, "bindings/__init__.py", reqType="GET", contentType="text/plain")
+        errored=0
+        failed=0
+        skipped=0
+        passed=0
+
+        job = self.get_job(id, logitems=True)
+
+        tcs = ""
+        jobdesc = job['description'].split("&")[0]
+
+        for r in job['results'].values():
+            message = ""
+            for l in r['log']:
+                if l['type'] == "reason":
+                    message = l['log'].replace('"', '')
+            urltext = "Logs available at %%s/logs?detailid=%%d" % (self.uibase, r['detailid'])
+            if r['result'].startswith("pass") or r['result'].startswith("partial"):
+                passed += 1
+                details = ""
+            elif r['result'].startswith("fail"):
+                failed += 1
+                details = \"\"\"    <failure message="%%s">
+          %%s
+        </failure>
+    \"\"\" % (message, urltext)
+            elif r['result'].startswith("error") or r['result'].startswith("timeout") or r['result'].startswith("unknown"):
+                errored += 1
+                details = \"\"\"    <error message="%%s">
+          %%s
+        </error>
+    \"\"\" % (message, urltext)
+            elif r['result'].startswith("skipped") or r['result'].startswith("blocked"):
+                skipped += 1
+                details = "    <skipped />\n"
+            else:
+                continue
+
+            time = 0
+
+            if r['log']:
+                time = max([x['ts'] for x in r['log']]) - min([x['ts'] for x in r['log']])
+
+            tcs += \"\"\"
+      <testcase name="%%s" classname="%%s.%%s" time="%%s">
+    %%s  </testcase>
+    \"\"\" % (r['test'], jobdesc, r['phase'], time, details)
+
+        out = \"\"\"<testsuite name="xenrt" tests="%%d" skip="%%d" failures="%%d" errors="%%d">%%s</testsuite>\"\"\" % (
+            errored + failed + skipped + passed,
+            skipped,
+            failed,
+            errored,
+            tcs)
+
+        return out
+
+    \"\"\" % (self.host, self.masterhost, self.scheme, self.base, self.scheme, self.base, self.scheme, self.uibase)
+            for func in self.funcs:
+                ret += "%s\n" % func.methodSignature
+                ret += "%s\n" % func.description
+                ret += "%s\n" % func.methodContent
+                ret += "\n\n"
+        
+            return ret
+
+    PageFactory(PythonBindings, "bindings/__init__.py", reqType="GET", contentType="text/plain")

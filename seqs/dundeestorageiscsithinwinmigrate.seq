@@ -1,6 +1,6 @@
 <xenrt>
 
-  <!-- OS functional test sequence using thin provisioned iscsi sr -->
+  <!-- XenMotion test sequence using thin provisioned iscsi sr -->
 
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
@@ -8,6 +8,7 @@
 
   <default name="PARALLEL" value="2" />
   <default name="MIGRATEPAR" value="1" />
+  <default name="DISTROS" value="win7sp1-x86" />
 
   <semaphores>
     <TCMigrate count="${MIGRATEPAR}" />
@@ -16,50 +17,31 @@
   <prepare>
     <pool>
       <storage type="lvmoiscsi" name="lvmoiscsisr" default="true" options="thin" />
-      <allhosts/>
+      <allhosts />
     </pool>
   </prepare>
 
   <testsequence>
     <parallel workers="${PARALLEL}">
-      <for iter="D" values="%DISTROS%"> 
+      <for iter="D" values="${DISTROS}">
         <serial group="${D}">
-          <testcase id="xenserver.guest.TCXenServerVendorInstall" name="VMInstall" sku="thin-${D}" tc="TC-26917">
+          <testcase id="xenserver.guest.TCXenServerVendorInstall">
             <arg>RESOURCE_HOST_0</arg>
             <arg>guest=${D}</arg>
             <arg>distro=${D}</arg>
           </testcase>
           <serial guest="${D}">
-            <testcase id="guestops.drivers.TCDriverInstall" sku="thin-${D}" tc="TC-26918">
+            <testcase id="guestops.drivers.TCDriverInstall">
               <arg>guest=${D}</arg>
             </testcase>
-            <testcase id="guestops.basic.TCStartStop" sku="thin-${D}" tc="TC-26919">
-              <arg>guest=${D}</arg>
-              <arg>loops=20</arg>
-            </testcase>
-            <testcase id="guestops.basic.TCReboot" sku="thin-${D}" tc="TC-26920">
-              <arg>guest=${D}</arg>
-              <arg>loops=20</arg>
-            </testcase>
-            <testcase id="guestops.srm.TCSuspendResume" sku="thin-${D}" tc="TC-26921">
-              <arg>guest=${D}</arg>
-              <arg>loops=20</arg>
-            </testcase>
-            <testcase id="guestops.srm.TCMigrate" sku="thin-${D}" tc="TC-26922">
+            <testcase id="guestops.srm.TCMigrate" sku="thiniscsi-${D}" tc="TC-27231">
               <arg>guest=${D}</arg>
               <arg>loops=10</arg>
             </testcase>
-            <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" sku="thin-${D}" tc="TC-26923">
+            <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" sku="thiniscsi-${D}" tc="TC-27232">
               <arg>guest=${D}</arg>
               <arg>live</arg>
               <arg>loops=20</arg>
-            </testcase>
-            <testcase id="xenserver.storage.TCMultipleVDI" sku="thin-${D}" tc="TC-26924">
-              <arg>N/A</arg>
-              <arg>guest=${D}</arg>
-              <arg>noshutdown</arg>
-              <arg>initial=4</arg>
-              <arg>max=7</arg>
             </testcase>
             <finally>
               <testcase id="guestops.basic.TCShutdown">

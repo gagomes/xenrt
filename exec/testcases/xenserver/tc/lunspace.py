@@ -340,6 +340,8 @@ class VerifyTrimTrigger(xenrt.TestCase):
         if self.SR_TYPE in self.TRIM_SUPPORTED_SR:
             if (result == 'True'):
                 xenrt.TEC().logverbose("Enabling TRIM on %s SR is successful" % self.SR_TYPE)
+            elif re.search('Operation not supported', result):
+                raise xenrt.XRTFailure("Xenserver reports TRIM is not supported")
             else:
                 xenrt.TEC().logverbose("Error: %s" % result)
                 raise xenrt.XRTFailure("TRIM trigger failed on supported SR %s with unknown trim exceptions" % 

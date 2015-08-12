@@ -1999,13 +1999,66 @@ class TC27156(_VDICopy):
     FORCE_FILL_VDI = True
     VDI_SIZE = 20 * xenrt.GIGA
 
-# NFS SR with no sub directory tests
 class TC20953(_VDICopy):
-    """Verify vdi-copy between an lvmoiscsi SR and a NFS SR with no sub directory"""
+    """Verify vdi-copy between an lvmoiscsi SR and a NFS SR"""
     FROM_TYPE = "lvmoiscsi"
     TO_TYPE = "nfs"
     FORCE_FILL_VDI = True
     VDI_SIZE = 20 * xenrt.GIGA
+
+class TC27219(_VDICopy):
+    """Verify vdi-copy between an a NFS SR on master and lvmoiscsi SR on slave"""
+    FROM_TYPE = "nfs"
+    TO_TYPE = "lvmoiscsi"
+    FORCE_FILL_VDI = True
+    VDI_SIZE = 20 * xenrt.GIGA
+    HOST_TYPE = "mastertoslave"
+    SAME_HOSTS  = False
+
+class TC27217(_VDICopy):
+    """Verify vdi-copy between an ext SR on master and a lvmoiscsi SR on slave"""
+    FROM_TYPE = "ext"
+    TO_TYPE = "lvmoiscsi"
+    FORCE_FILL_VDI = True
+    VDI_SIZE = 20 * xenrt.GIGA
+    HOST_TYPE = "mastertoslave"
+    SAME_HOSTS  = False
+
+class TC27221(_VDICopy):
+    """Verify vdi-copy between an lvmoiscsi SR on master and a NFS SR on slave"""
+    FROM_TYPE = "lvmoiscsi"
+    TO_TYPE = "nfs"
+    FORCE_FILL_VDI = True
+    VDI_SIZE = 20 * xenrt.GIGA
+    HOST_TYPE = "mastertoslave"
+    SAME_HOSTS  = False
+
+class TC27220(_VDICopy):
+    """Verify vdi-copy between an a NFS SR on slave and lvmoiscsi SR on slave"""
+    FROM_TYPE = "nfs"
+    TO_TYPE = "lvmoiscsi"
+    FORCE_FILL_VDI = True
+    VDI_SIZE = 20 * xenrt.GIGA
+    HOST_TYPE = "slavetoslave"
+    SAME_HOSTS  = False
+
+class TC27218(_VDICopy):
+    """Verify vdi-copy between an ext SR on lsave and a lvmoiscsi SR on slave"""
+    FROM_TYPE = "ext"
+    TO_TYPE = "lvmoiscsi"
+    FORCE_FILL_VDI = True
+    VDI_SIZE = 20 * xenrt.GIGA
+    HOST_TYPE = "slavetoslave"
+    SAME_HOSTS  = False
+
+class TC27222(_VDICopy):
+    """Verify vdi-copy between an lvmoiscsi SR on slave and a NFS SR on slave"""
+    FROM_TYPE = "lvmoiscsi"
+    TO_TYPE = "nfs"
+    FORCE_FILL_VDI = True
+    VDI_SIZE = 20 * xenrt.GIGA
+    HOST_TYPE = "slavetoslave"
+    SAME_HOSTS  = False
 
 class TC20954(_VDICopy):
     """Verify vdi-copy between an ext SR and a NFS SR with no sub directory"""
@@ -5089,3 +5142,42 @@ class TCAllPBDsPlugged(xenrt.TestCase):
             for pbd in host.minimalList("pbd-list"):
                 if host.genParamGet("pbd", pbd, "currently-attached") != "true":
                     raise xenrt.XRTFailure("Not all PBDs were attached after pool join")
+
+
+class TCSRConfigConsistency(xenrt.TestCase):
+    """Check PBD has same sm-config after plug/unplug"""
+
+    SR_TYPE = "lvmoiscsi"
+
+    def run(self, arglist=[]):
+        args = self.parseArgsKeyValue(arglist)
+        host = self.getDefaultHost()
+        sr = host.getSRs(args.get("srtype", self.SR_TYPE))[0]
+
+        step("Obtain current sm config")
+        smBefore = host.genParamsGet("sr", sr, "sm-config")
+
+        step("PBD unplug/plug")
+        cli = host.getCLIInstance()
+        pbds = host.minimalList("pbd-list", args="sr-uuid=%s" % sr)
+        for pbd in pbds:
+            cli.execute("pbd-unplug", "uuid=%s" % pbd)
+        xenrt.sleep(5)
+        for pbd in pbds:
+            cli.execute("pbd-plug", "uuid=%s" % pbd)
+
+        step("Compare sm config after unplug/plug")
+        smAfter = host.genParamsGet("sr", sr, "sm-config")
+
+        log("sm-config before pbd-unplug: %s" % smBefore)
+        log("sm-config after pbd-plug: %s" % smAfter)
+
+        if len(smBefore) != len(smAfter):
+            raise xenrt.XRTFailure("sm-configs before and after pbd unplug/plug are different.")
+
+        for key in smBefore:
+            if key not in smAfter:
+                xenrt.XRTFailure("%s key was in sm-config before pbd plug/unplug")
+            if smBefore[key] != smAfter[key]:
+                xenrt.XRTFailure("%s key mismatched. before: %s, after: %s" % (key, smBefore[key], smAfter[key]))
+

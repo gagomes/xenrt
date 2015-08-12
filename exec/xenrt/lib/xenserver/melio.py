@@ -10,6 +10,7 @@
 
 import xenrt
 import os.path
+import requests
 
 __all__ = [
     "MelioHelper"
@@ -30,7 +31,12 @@ class MelioHelper(object):
         if self.host.execdom0("lsmod | grep warm_drive", retval="code") == 0 and not reinstall:
             return
         self.host.execdom0("yum install -y boost boost-atomic boost-thread boost-filesystem")
-        f = xenrt.TEC().getFile(xenrt.TEC().lookup("MELIO_RPM"))
+        specFile = xenrt.TEC().lookup("MELIO_RPM_SPEC", None)
+        if specFile:
+            spec = requests.get(xenrt.filemanager.FileNameResolver(specFile).url).json()
+            f = xenrt.TEC().getFile(spec['melio_rpm'])
+        else:
+            f = xenrt.TEC().getFile(xenrt.TEC().lookup("MELIO_RPM"))
         d = xenrt.WebDirectory()
         d.copyIn(f)
         self.host.execdom0("wget -O /root/melio.rpm %s" % d.getURL(os.path.basename(f)))

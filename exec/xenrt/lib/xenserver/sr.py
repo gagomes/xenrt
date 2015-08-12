@@ -958,7 +958,8 @@ class ISCSIStorageRepository(StorageRepository):
                jumbo=False,
                mpp_rdac=False,
                lungroup=None,
-               initiatorcount=None):
+               initiatorcount=None,
+               smconf={}):
         """Create the iSCSI SR on the host
 
         @param multipathing: If set to C{True}, use multipathing on this SR, and
@@ -1098,7 +1099,11 @@ class ISCSIStorageRepository(StorageRepository):
         if lun.getLunID() != None:
             dconf["LUNid"] = lun.getLunID()
         if lun.getID():
-            dconf["SCSIid"] = lun.getID()
+            if type(lun.getID()) == type(1):
+                strscsi = string.join(["%02x" % ord(x) for x in "%08x" % lun.getID()], "")
+                dconf["SCSIid"] = "14945540000000000%s0000000000000000" % strscsi
+            else:
+                dconf["SCSIid"] = lun.getID()
         chap = lun.getCHAP()
         if chap:
             u, p = chap
@@ -1115,10 +1120,12 @@ class ISCSIStorageRepository(StorageRepository):
             dconf["multihomed"] = "true"
         elif type(multipathing) == type(False):
             dconf["multihomed"] = "false"
+
         self._create("%soiscsi" % (subtype),
                      dconf,
                      physical_size=physical_size,
-                     content_type=content_type)
+                     content_type=content_type,
+                     smconf=smconf)
 
     def check(self):
         StorageRepository.checkCommon(self, "%soiscsi" % (self.subtype))
@@ -1227,7 +1234,8 @@ class HBAStorageRepository(StorageRepository):
                scsiid,
                physical_size="0",
                content_type="",
-               multipathing=False):
+               multipathing=False,
+               smconf={}):
         self.multipathing = multipathing
         if multipathing:
             device = "/dev/mapper/%s" % (scsiid)
@@ -1252,7 +1260,8 @@ class HBAStorageRepository(StorageRepository):
         self._create("lvmohba",
                      dconf,
                      physical_size=physical_size,
-                     content_type=content_type)
+                     content_type=content_type,
+                     smconf=smconf)
 
     def check(self):
         StorageRepository.checkCommon(self, "lvmohba")

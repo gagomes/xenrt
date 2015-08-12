@@ -1295,8 +1295,25 @@ class PrepareNode(object):
                     host = xenrt.TEC().registry.hostGet(s["host"]) 
                     if s["type"] == "lvmoiscsi":
                         thinProv = False
-                        if s["options"] and "thin" in s["options"].split(","):
+                        options = []
+                        if s["options"]:
+                            options = s["options"].split(",")
+                        if "thin" in options:
                             thinProv = True
+                            thin_init = None
+                            thin_quan = None
+                            for opt in options:
+                                if opt.startswith("thin_init:"):
+                                    thin_init = opt[len("thin_init:"):]
+                                if opt.startswith("thin_quan:"):
+                                    thin_quan = opt[len("thin_quan:"):]
+                            thin_init = xenrt.TEC().lookup("THIN_INITIAL_ALLOCATION", thin_init)
+                            thin_quan = xenrt.TEC().lookup("THIN_ALLOCATION_QUANTUM", thin_quan)
+                            smconf = {}
+                            if thin_init:
+                                smconf["initial_allocation"] = thin_init
+                            if thin_quan:
+                                smconf["allocation_quantum"] = thin_quan
                         if host.lookup("USE_MULTIPATH", False, boolean=True):
                             mp = True
                         else:
@@ -1325,7 +1342,7 @@ class PrepareNode(object):
                                     m = re.match("initiatorcount=(\d+)", o)
                                     if m:
                                         initiatorcount = int(m.group(1))
-                            sr.create(subtype="lvm", multipathing=mp, jumbo=jumbo, mpp_rdac=mpp_rdac, initiatorcount = initiatorcount)
+                            sr.create(subtype="lvm", multipathing=mp, jumbo=jumbo, mpp_rdac=mpp_rdac, initiatorcount=initiatorcount, smconf=smconf)
                     elif s["type"] == "extoscsi":
                         sr = xenrt.productLib(host=host).ISCSIStorageRepository(host, s["name"])
                         if s["options"] and "jumbo" in s["options"].split(","):
@@ -1440,8 +1457,24 @@ class PrepareNode(object):
                         sr.create(eql, options=options, multipathing=mp)
                     elif s["type"] == "fc":
                         thinProv = False
-                        if s.has_key("options") and s["options"] and "thin" in s["options"].split(","):
+                        if s.has_key("options") and s["options"]:
+                            options = s["options"].split(",")
+                        if "thin" in options:
                             thinProv = True
+                            thin_init = None
+                            thin_quan = None
+                            for opt in options:
+                                if opt.startswith("thin_init:"):
+                                    thin_init = opt[len("thin_init:"):]
+                                if opt.startswith("thin_quan:"):
+                                    thin_quan = opt[len("thin_quan:"):]
+                            thin_init = xenrt.TEC().lookup("THIN_INITIAL_ALLOCATION", thin_init)
+                            thin_quan = xenrt.TEC().lookup("THIN_ALLOCATION_QUANTUM", thin_quan)
+                            smconf = {}
+                            if thin_init:
+                                smconf["initial_allocation"] = thin_init
+                            if thin_quan:
+                                smconf["allocation_quantum"] = thin_quan
                         sr = xenrt.productLib(host=host).FCStorageRepository(host, s["name"], thinProv)
                         if host.lookup("USE_MULTIPATH", False, boolean=True):
                             mp = True
@@ -1458,7 +1491,7 @@ class PrepareNode(object):
                                 fcsr = "LUN0"
 
                         scsiid = host.lookup(["FC", fcsr, "SCSIID"], None)
-                        sr.create(scsiid, multipathing=mp)
+                        sr.create(scsiid, multipathing=mp, smconf=smconf)
                     elif s["type"] == "cvsmnetapp":
                         minsize = int(host.lookup("SR_NETAPP_MINSIZE", 40))
                         maxsize = int(host.lookup("SR_NETAPP_MAXSIZE", 1000000))
@@ -1889,99 +1922,111 @@ class HostInstallWorker(_InstallWorker):
         hostname = xenrt.TEC().lookup("RESOURCE_HOST_%s" % work.get("id", "0"))
 
         logid = xenrt.GEC().dbconnect.jobLogItem("Installing host %s of type %s" % (hostname, specProductType))
-
-        if specProductType == "xenserver":
-            if versionPath and not specProductVersion and not specVersion:
-                # Install the specified sequence of versions and upgrades/updates
-                if work.has_key("version"):
-                    del work["version"]
-                if work.has_key("productVersion"):
-                    del work["productVersion"]
-                if work.has_key("productType"):
-                    del work["productType"]
-                work["versionPath"] = versionPath
-                xenrt.TEC().logverbose("Installing using version path %s" %
-                                       (versionPath))
-                host = xenrt.lib.xenserver.host.createHostViaVersionPath(**work)
-            elif initialVersion and not specProductVersion and not specVersion:
-                # Install this version and upgrade afterwards
-                inputdir = xenrt.TEC().lookup("PRODUCT_INPUTDIR_%s" %
-                                              (initialVersion.upper()), None)
-                if not inputdir:
-                    inputdir = xenrt.TEC().lookup("PIDIR_%s" %
+        try:
+            if specProductType == "xenserver":
+                if versionPath and not specProductVersion and not specVersion:
+                    # Install the specified sequence of versions and upgrades/updates
+                    if work.has_key("version"):
+                        del work["version"]
+                    if work.has_key("productVersion"):
+                        del work["productVersion"]
+                    if work.has_key("productType"):
+                        del work["productType"]
+                    work["versionPath"] = versionPath
+                    xenrt.TEC().logverbose("Installing using version path %s" %
+                                           (versionPath))
+                    host = xenrt.lib.xenserver.host.createHostViaVersionPath(**work)
+                elif initialVersion and not specProductVersion and not specVersion:
+                    # Install this version and upgrade afterwards
+                    inputdir = xenrt.TEC().lookup("PRODUCT_INPUTDIR_%s" %
                                                   (initialVersion.upper()), None)
-                if not inputdir:
-                    raise xenrt.XRTError("No product input directory set for %s" %
-                                         (initialVersion))
-                work["version"] = inputdir
-                work["productVersion"] = initialVersion
-                xenrt.TEC().logverbose("Installing using initial version %s" %
-                                       (initialVersion))
-                license = None
-                if work.has_key("license"):
-                    license = work["license"]
-                    del work["license"]
-                    xenrt.TEC().logverbose("Ignoring license information for previous version install")
-                host = xenrt.lib.xenserver.host.createHost(**work)
-                xenrt.TEC().setInputDir(None)
-                xenrt.TEC().logverbose("Upgrading to current version")
-                host = host.upgrade()
-                if license:
-                    xenrt.TEC().logverbose("Licensing upgraded host...")
-                    if type(license) == type(""):
-                        host.license(sku=license)
-                    else:
-                        host.license()
+                    if not inputdir:
+                        inputdir = xenrt.TEC().lookup("PIDIR_%s" %
+                                                      (initialVersion.upper()), None)
+                    if not inputdir:
+                        raise xenrt.XRTError("No product input directory set for %s" %
+                                             (initialVersion))
+                    work["version"] = inputdir
+                    work["productVersion"] = initialVersion
+                    xenrt.TEC().logverbose("Installing using initial version %s" %
+                                           (initialVersion))
+                    license = None
+                    if work.has_key("license"):
+                        license = work["license"]
+                        del work["license"]
+                        xenrt.TEC().logverbose("Ignoring license information for previous version install")
+                    host = xenrt.lib.xenserver.host.createHost(**work)
+                    xenrt.TEC().setInputDir(None)
+                    xenrt.TEC().logverbose("Upgrading to current version")
+                    host = host.upgrade()
+                    if license:
+                        xenrt.TEC().logverbose("Licensing upgraded host...")
+                        if type(license) == type(""):
+                            host.license(sku=license)
+                        else:
+                            host.license()
+                else:
+                    # Normal install of the default or host-specified version
+                    xenrt.TEC().setInputDir(None)
+                    host = xenrt.lib.xenserver.host.createHost(**work)
+            elif specProductType == "nativelinux":
+                if specProductType is None:
+                    raise xenrt.XRTError("We require a ProductVersion specifying the native Linux host type.")
+                work["noisos"] = True
+                host = xenrt.lib.native.createHost(**work)
+            elif specProductType == "nativewindows":
+                if specProductType is None:
+                    raise xenrt.XRTError("We require a ProductVersion specifying the native Windows host type.")
+                work["noisos"] = True
+                host = xenrt.lib.nativewindows.createHost(**work)
+            elif specProductType == "kvm":
+                work["productVersion"] = specProductVersion or xenrt.TEC().lookup("PRODUCT_VERSION", None)
+                host = xenrt.lib.kvm.createHost(**work)
+            elif specProductType == "esx":
+                # Ideally, we would have set the PRODUCT_VERSION in handleHostNode, but for XenServer we rely on work["productVersion"] remaining None even when PRODUCT_VERSION being set
+                work["productVersion"] = specProductVersion or xenrt.TEC().lookup("PRODUCT_VERSION", None)
+                host = xenrt.lib.esx.createHost(**work)
+            elif specProductType == "hyperv":
+                work["noisos"] = True
+                host = xenrt.lib.hyperv.createHost(**work)
+            elif specProductType == "oss":
+                work["noisos"] = True
+                host = xenrt.lib.oss.createHost(**work)
             else:
-                # Normal install of the default or host-specified version
-                xenrt.TEC().setInputDir(None)
-                host = xenrt.lib.xenserver.host.createHost(**work)
-        elif specProductType == "nativelinux":
-            if specProductType is None:
-                raise xenrt.XRTError("We require a ProductVersion specifying the native Linux host type.")
-            work["noisos"] = True
-            host = xenrt.lib.native.createHost(**work)
-        elif specProductType == "nativewindows":
-            if specProductType is None:
-                raise xenrt.XRTError("We require a ProductVersion specifying the native Windows host type.")
-            work["noisos"] = True
-            host = xenrt.lib.nativewindows.createHost(**work)
-        elif specProductType == "kvm":
-            work["productVersion"] = specProductVersion or xenrt.TEC().lookup("PRODUCT_VERSION", None)
-            host = xenrt.lib.kvm.createHost(**work)
-        elif specProductType == "esx":
-            # Ideally, we would have set the PRODUCT_VERSION in handleHostNode, but for XenServer we rely on work["productVersion"] remaining None even when PRODUCT_VERSION being set
-            work["productVersion"] = specProductVersion or xenrt.TEC().lookup("PRODUCT_VERSION", None)
-            host = xenrt.lib.esx.createHost(**work)
-        elif specProductType == "hyperv":
-            work["noisos"] = True
-            host = xenrt.lib.hyperv.createHost(**work)
-        elif specProductType == "oss":
-            work["noisos"] = True
-            host = xenrt.lib.oss.createHost(**work)
-        else:
-            raise xenrt.XRTError("Unknown productType: %s" % (specProductType))
+                raise xenrt.XRTError("Unknown productType: %s" % (specProductType))
 
-        if defaultHost:
-            xenrt.TEC().registry.hostPut("RESOURCE_HOST_DEFAULT", host)
-        xenrt.GEC().dbconnect.jobLogItem("Installed host %s" % (hostname), linked=logid, completes=True)
+            if defaultHost:
+                xenrt.TEC().registry.hostPut("RESOURCE_HOST_DEFAULT", host)
+            xenrt.GEC().dbconnect.jobLogItem("Installed host %s" % (hostname), linked=logid, completes=True)
+        except Exception, e:
+            xenrt.GEC().dbconnect.jobLogItem("Failed to install host %s - %s" % (hostname, str(e)), linked=logid, completes=True, iserror=True)
+            raise
+            
 
 class GuestInstallWorker(_InstallWorker):
     """Worker thread for parallel guest installs"""
     def doWork(self, work):
         if work.has_key("filename"):
             logid = xenrt.GEC().dbconnect.jobLogItem("Importing VM from %s" % (work['filename']))
-            xenrt.productLib(hostname=work["host"]).guest.createVMFromFile(**work)
-            xenrt.GEC().dbconnect.jobLogItem("Completed import VM from %s" % (work['filename']), completes=True, linked=logid)
+            try:
+                xenrt.productLib(hostname=work["host"]).guest.createVMFromFile(**work)
+                xenrt.GEC().dbconnect.jobLogItem("Completed import VM from %s" % (work['filename']), completes=True, linked=logid)
+            except Exception, e:
+                xenrt.GEC().dbconnect.jobLogItem("Failed to import VM from %s (%s)" % (work['filename'], str(e)), completes=True, linked=logid, iserror=True)
+                raise
         else:
             logid = xenrt.GEC().dbconnect.jobLogItem("Installing VM of type %s" % (work.get("distro", "unknown")))
-            if xenrt.TEC().lookup("DEFAULT_VIFS", False, boolean=True) and (not "vifs" in work or not work['vifs']):
-                host = work["host"]
-                if not isinstance(host, xenrt.GenericHost):
-                    host = xenrt.TEC().registry.hostGet(host)
-                work['vifs'] = host.guestFactory().DEFAULT
-            xenrt.productLib(hostname=work["host"]).guest.createVM(**work)
-            xenrt.GEC().dbconnect.jobLogItem("Installed VM of type %s" % (work.get("distro", "unknown")), completes=True, linked=logid)
+            try:
+                if xenrt.TEC().lookup("DEFAULT_VIFS", False, boolean=True) and (not "vifs" in work or not work['vifs']):
+                    host = work["host"]
+                    if not isinstance(host, xenrt.GenericHost):
+                        host = xenrt.TEC().registry.hostGet(host)
+                    work['vifs'] = host.guestFactory().DEFAULT
+                xenrt.productLib(hostname=work["host"]).guest.createVM(**work)
+                xenrt.GEC().dbconnect.jobLogItem("Installed VM of type %s" % (work.get("distro", "unknown")), completes=True, linked=logid)
+            except Exception, e:
+                xenrt.GEC().dbconnect.jobLogItem("Failed to install VM of type %s (%s)" % (work.get("distro", "unknown"), str(e)), completes=True, linked=logid, iserror=True)
+                raise
 
 class SlaveManagementWorker(_InstallWorker):
     """Worker thread for parallel slave management interface reconfigures"""

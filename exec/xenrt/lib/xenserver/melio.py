@@ -118,4 +118,8 @@ class MelioHelper(object):
         for host in self.hosts:
             host.execdom0("mount -t warm_fs %s %s" % (self.device, mountpoint))
     
-
+    def createSR(self, name="Melio"):
+        master = self.hosts[0].pool.master if self.hosts[0].pool else self.hosts[0]
+        sr = xenrt.lib.xenserver.MelioStorageRepository(master, name)
+        sr.create(self)
+        return sr

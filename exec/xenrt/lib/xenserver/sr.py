@@ -42,6 +42,7 @@ __all__ = ["getStorageRepositoryClass",
            "EQLTarget",
            "SMAPIv3LocalStorageRepository",
            "SMAPIv3SharedStorageRepository",
+           "MelioStorageRepository"
             ]
 
 
@@ -431,11 +432,12 @@ class SMAPIv3LocalStorageRepository(StorageRepository):
         self._create("btrfs", {"uri":"file://%s" % path}, physical_size, content_type, smconf)
 
 class MelioStorageRepository(StorageRepository):
-    SHARED = False
+    SHARED = True
     CLEANUP = "destroy"
     
-    def create(self, path, physical_size=0, content_type="", smconf={}):
-        self._create("melio", {"uri":"file://%s" % path}, physical_size, content_type, smconf)
+    def create(self, melio, physical_size=0, content_type="", smconf={}):
+        self.melio = melio
+        self._create("melio", {"uri":"file://%s" % self.melio.device}, physical_size, content_type, smconf)
 
 class IntegratedCVSMStorageRepository(StorageRepository):
     SHARED = True

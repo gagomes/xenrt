@@ -20,6 +20,7 @@ __all__ = [
 class MelioHelper(object):
     def __init__(self, hosts, iscsiHost=None):
         self.hosts = hosts
+        [x.melioHelper = self for x in self.hosts]
         self.lun = None
         self._iscsiHost = iscsiHost
 

@@ -11994,8 +11994,7 @@ class DundeeHost(CreedenceHost):
             self.waitForSSH(300, "%s host-management-reconfigure (IPv6)" % self.getName())
 
     def installMelio(self):
-        self.melioHelper = xenrt.lib.xenserver.MelioHelper(self)
-        self.melioHelper.installMelio()
+        xenrt.lib.xenserver.MelioHelper([self]).installMelio()
 
     def getHAPath(self):
         if self.haPath:

@@ -11577,6 +11577,10 @@ done
         if xenrt.TEC().lookup("INSTALL_VGPU_DRIVER", False, boolean=True):
             self.installNVIDIAHostDrivers()
 
+    def resetToFreshInstall(self, setupISOs=False):
+        self.installationCookie = self.execdom0("cat /root/xenrt-installation-cookie").strip()
+        TampaHost.resetToFreshInstall(self, setupISOs)
+
     def startVifDebug(self, domid):
         try:
             self.execdom0("killall -9 debugfs")

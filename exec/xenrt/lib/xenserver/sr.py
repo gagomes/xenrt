@@ -964,7 +964,8 @@ class ISCSIStorageRepository(StorageRepository):
                jumbo=False,
                mpp_rdac=False,
                lungroup=None,
-               initiatorcount=None):
+               initiatorcount=None,
+               smconf={}):
         """Create the iSCSI SR on the host
 
         @param multipathing: If set to C{True}, use multipathing on this SR, and
@@ -1129,7 +1130,8 @@ class ISCSIStorageRepository(StorageRepository):
         self._create("%soiscsi" % (subtype),
                      dconf,
                      physical_size=physical_size,
-                     content_type=content_type)
+                     content_type=content_type,
+                     smconf=smconf)
 
     def check(self):
         StorageRepository.checkCommon(self, "%soiscsi" % (self.subtype))
@@ -1238,7 +1240,8 @@ class HBAStorageRepository(StorageRepository):
                scsiid,
                physical_size="0",
                content_type="",
-               multipathing=False):
+               multipathing=False,
+               smconf={}):
         self.multipathing = multipathing
         if multipathing:
             device = "/dev/mapper/%s" % (scsiid)
@@ -1263,7 +1266,8 @@ class HBAStorageRepository(StorageRepository):
         self._create("lvmohba",
                      dconf,
                      physical_size=physical_size,
-                     content_type=content_type)
+                     content_type=content_type,
+                     smconf=smconf)
 
     def check(self):
         StorageRepository.checkCommon(self, "lvmohba")

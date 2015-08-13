@@ -6219,6 +6219,30 @@ class DundeeGuest(CreedenceGuest):
                 xenrt.GEC().dbconnect.jobUpdate("RND_PV_DRIVERS_LIST_VALUE",randomPvDriversList)
                 return randomPvDriversList
 
+    def installTestCerts(self):
+
+
+        xenrt.TEC().logverbose("installing TestCertificates")
+        testCertsDir = xenrt.TEC().tempDir()
+        path = self.xmlrpcTempDir()
+        zipfile = "%s/keys/citrix/testsign.zip" % (xenrt.TEC().lookup("XENRT_CONF"))
+        if not os.path.exists(zipfile):
+            raise xenrt.XRTError("Cannot find testsign zip file")
+ 
+        xenrt.util.command("unzip -d %s %s" % (testCertsDir, zipfile))
+        files = xenrt.util.command("ls %s" % (testCertsDir), retval="string").strip()
+        files = files.split("\n")
+        for f in files:
+            self.xmlrpcSendFile("%s/%s" % (testCertsDir,f),"%s\%s" % (path,f))
+       
+        self.xmlrpcExec("bcdedit.exe -set TESTSIGNING ON")
+        for f in files:
+           self.xmlrpcExec("certutil.exe -addstore -f 'Root' %s\%s" % (path,f))
+           self.xmlrpcExec("certutil.exe -addstore -f 'TrustedPublisher' %s\%s" % (path,f))  
+
+        self.reboot()
+        xenrt.TEC().logverbose("Testcertificates installed")
+
     def installDrivers(self, source=None, extrareboot=False, useLegacy=False, useHostTimeUTC=False, expectUpToDate=True, ejectISO=True, installFullWindowsGuestAgent=True, useDotNet=True, pvPkgSrc = None):
         """
         Install PV Tools on Windows Guest
@@ -6241,6 +6265,9 @@ class DundeeGuest(CreedenceGuest):
 
         if pvDriverSource == "Random":
             pvDriverSource = self.setRandomPvDriverSource()
+
+        if not xenrt.TEC().lookup("DONT_INSTALL_TEST_CERTS", False, boolean=True):
+            self.installTestCerts()
 
         # If source is "ToolsISO" then install from xs tools
         if pvDriverSource == "ToolsISO" or pvDriverSource == None or useLegacy == True or xenrt.TEC().lookup("USE_LEGACY_DRIVERS", False, boolean=True) or self.usesLegacyDrivers():

@@ -181,8 +181,8 @@ class PowerShell30(WindowsPackage):
     def _packageInstalled(self):
         return self._os.getPowershellVersion() >= 3.0
     
-    def _ensureDotNetPackageInstalled(self):
-        self._os.ensurePackageInstalled(".NET 4", doDelayedReboot=False)
+    def _installDotNetPackage(self):
+        self._os.installDotNet4()
         
     def _getExecutableForGivenArchitecture(self):
         if self._os.getArch() == "amd64":
@@ -202,7 +202,7 @@ class PowerShell30(WindowsPackage):
             raise xenrt.XRTError("%s installer is not \
                 available for Windows version %s" % (self.NAME,self._os.xmlrpcWindowsVersion()))
             
-        self._ensureDotNetPackageInstalled()   
+        self._installDotNetPackage()   
         exe = self._getExecutableForGivenArchitecture()
         
         t = self._os.tempDir()
@@ -217,8 +217,8 @@ class PowerShell40(PowerShell30):
     def _packageInstalled(self):
         return self._os.getPowershellVersion() >= 4.0
     
-    def _ensureDontNetPackageInstalled(self):
-        self._os.ensurePackageInstalled(".NET 4.5.1.", doDelayedReboot=False)
+    def _installDotNetPackage(self):
+        self._os.installDotNet451()
         
     def _getExecutableForGivenArchitecture(self):
         if self._os.getArch() == "amd64":

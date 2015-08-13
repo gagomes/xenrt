@@ -20,7 +20,8 @@ __all__ = [
 class MelioHelper(object):
     def __init__(self, hosts, iscsiHost=None):
         self.hosts = hosts
-        [x.melioHelper = self for x in self.hosts]
+        for host in self.hosts:
+            host.melioHelper = self
         self.lun = None
         self._iscsiHost = iscsiHost
 
@@ -119,6 +120,11 @@ class MelioHelper(object):
         for host in self.hosts:
             host.execdom0("mount -t warm_fs %s %s" % (self.device, mountpoint))
     
+    def checkMount(self, mountpoint):
+        for host in self.hosts:
+            if not "on %s type warm_fs" in host.execdom0("mount"):
+                raise xenrt.XRTError("warm_fs not mounted on %s" % host.getName())
+
     def createSR(self, name="Melio"):
         master = self.hosts[0].pool.master if self.hosts[0].pool else self.hosts[0]
         sr = xenrt.lib.xenserver.MelioStorageRepository(master, name)

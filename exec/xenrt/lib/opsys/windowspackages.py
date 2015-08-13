@@ -200,7 +200,7 @@ class PowerShell30(WindowsPackage):
             
         if self._os.xmlrpcWindowsVersion() != "6.1":
             raise xenrt.XRTError("%s installer is not \
-                available for Windows version %s" % (self.NAME,self._os.windowsVersion()))
+                available for Windows version %s" % (self.NAME,self._os.xmlrpcWindowsVersion()))
             
         self._ensureDotNetPackageInstalled()   
         exe = self._getExecutableForGivenArchitecture()

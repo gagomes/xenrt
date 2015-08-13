@@ -581,11 +581,11 @@ class _PowerShellSnapTest(xenrt.TestCase):
         self.getLogsFrom(self.guest)
         
         if xenrt.TEC().lookup("POWERSHELL_VERSION") == "4.0":
-            self.installObject = PowerShell40()
-            self.installObject._installPackage()
+            installObject = PowerShell40(self.guest)
+            installObject._installPackage()
         elif xenrt.TEC().lookup("POWERSHELL_VERSION") == "3.0":
-            self.installObject = PowerShell40()
-            self.installObject._installPackage()
+            installObject = PowerShell30(self.guest)
+            installObject._installPackage()
             
         self.guest.waitforxmlrpc(600)
         self.guest.installPowerShellSnapIn(snapInDirName=self.SNAPIN_DIR_NAME)

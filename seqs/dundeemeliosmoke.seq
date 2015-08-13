@@ -8,7 +8,8 @@
   </variables>
 
   <prepare>
-    <host />
+    <host id="0" />
+    <host id="1" />
   </prepare>
 
     <testsequence>

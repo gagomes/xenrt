@@ -398,9 +398,6 @@ class _PoolImpExp(_ImpExpBase):
     EXPORTFROMSLAVE = True
     IMPORTTOSLAVE = True 
 
-    def prepare(self, arglist):
-        _ImpExpBase.prepare(self, arglist)
-
     def run(self,arglist):
         self.pool = self.getDefaultPool()
 

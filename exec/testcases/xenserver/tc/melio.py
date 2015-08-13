@@ -1,6 +1,6 @@
 import xenrt
 
-class TC27207(xenrt.TestCase):
+class TCMelioSmoke(xenrt.TestCase):
     """Very basic smoke test of MelioFS on XenServer"""
     def run(self, arglist):
         host = self.getHost("RESOURCE_HOST_0")

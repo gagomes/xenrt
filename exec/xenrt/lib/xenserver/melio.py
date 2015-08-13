@@ -28,7 +28,10 @@ class MelioHelper(object):
         return self._iscsiHost or self.hosts[0]
 
     def setup(self):
-        self.installMelio()
+        tasks = [xenrt.PTask(self.installMelio)]
+        if self.iscsiHost not in self.hosts:
+            tasks.append(xenrt.PTask(self.createLun))
+        xenrt.pfarm(tasks)
         self.setupISCSITarget()
         self.setupMelioDisk()
 
@@ -94,8 +97,12 @@ class MelioHelper(object):
             if xenrt.timenow() - start > 10:
                 raise xenrt.XRTError("vm-list took > 10 seconds after installing melio")
 
+    def createLun(self):
+        if not self.lun:
+            self.lun = xenrt.ISCSIVMLun(targetType="LIO", sizeMB=100*xenrt.KILO, host=self.iscsiHost)
+
     def setupISCSITarget(self):
-        self.lun = xenrt.ISCSIVMLun(targetType="LIO", sizeMB=100*xenrt.KILO, host=self.iscsiHost)
+        self.createLun()
         for host in self.hosts:
             host.execdom0("iscsiadm -m discovery -t st -p %s" % self.lun.getServer())
             host.execdom0('iscsiadm -m node --targetname "%s" --portal "%s:3260" --login' % (self.lun.getTargetName(), self.lun.getServer()))

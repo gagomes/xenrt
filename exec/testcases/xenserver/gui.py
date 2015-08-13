@@ -14,6 +14,7 @@ import xenrt.lib.xenserver.cli
 import xenrt.lib.xenserver
 from xenrt.lazylog import log, step
 from abc import ABCMeta, abstractmethod, abstractproperty
+from xenrt.lib.opsys.windowspackages import PowerShell40
 
 
 class TCGUIJUnit(xenrt.TestCase):
@@ -578,7 +579,14 @@ class _PowerShellSnapTest(xenrt.TestCase):
         self.guest = self.host.createGenericWindowsGuest(distro=self.DISTRO)
         self.uninstallOnCleanup(self.guest)
         self.getLogsFrom(self.guest)
-        self.guest.installPowerShell20()
+        
+        if xenrt.TEC().lookup("POWERSHELL_VERSION") == 4.0:
+            self.installObject = PowerShell40()
+            self.installObject._installPackage()
+        elif xenrt.TEC().lookup("POWERSHELL_VERSION") == 3.0:
+            self.installObject = PowerShell40()
+            self.installObject._installPackage()
+            
         self.guest.waitforxmlrpc(600)
         self.guest.installPowerShellSnapIn(snapInDirName=self.SNAPIN_DIR_NAME)
         self.guest.enablePowerShellUnrestricted()

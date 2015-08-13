@@ -180,19 +180,54 @@ class PowerShell30(WindowsPackage):
     
     def _packageInstalled(self):
         return self._os.getPowershellVersion() >= 3.0
+    
+    def _ensureDotNetPackageInstalled(self):
+        self._os.ensurePackageInstalled(".NET 4", doDelayedReboot=False)
+        
+    def _getExecutableForGivenArchitecture(self):
+        if self._os.getArch() == "amd64":
+            return "Windows6.1-KB2506143-x64.msu"
+        return "Windows6.1-KB2506143-x86.msu"
+    
+    @property
+    def _packageName(self):
+        return "powershell30"
 
     def _installPackage(self):
-        if self._os.windowsVersion() == "6.1":
-            self._os.ensurePackageInstalled(".NET 4", doDelayedReboot=False)
-            if self._os.getArch() == "amd64":
-                exe = "Windows6.1-KB2506143-x64.msu"
-            else:
-                exe = "Windows6.1-KB2506143-x86.msu"
-        else:
-            raise xenrt.XRTError("PowerShell 3.0 installer is not \
-            available for Windows version %s" % self._os.windowsVersion())
+        if self._packageInstalled():
+            xenrt.TEC().logverbose("%s or above installed." % self.NAME)
+            return
+            
+        if self._os.windowsVersion() != "6.1":
+            raise xenrt.XRTError("%s installer is not \
+                available for Windows version %s" % (self.NAME,self._os.windowsVersion()))
+            
+        self._ensureDotNetPackageInstalled()   
+        exe = self._getExecutableForGivenArchitecture()
+        
         t = self._os.tempDir()
-        self._os.unpackTarball("%s/powershell30.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), t)
-        self._os.execCmd("%s\\powershell30\\%s /quiet /norestart" % (t, exe), returnerror=False, timeout=600)
+        self._os.unpackTarball("%s/%s.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE"),self._packageName), t)
+        self._os.execCmd("%s\\%s\\%s /quiet /norestart" % (t, self._packageName,exe), returnerror=False, timeout=600)
 
 RegisterWindowsPackage(PowerShell30)
+
+class PowerShell40(PowerShell30):
+    NAME = "PowerShell 4.0"
+    
+    def _packageInstalled(self):
+        return self._os.getPowershellVersion() >= 4.0
+    
+    def _ensureDontNetPackageInstalled(self):
+        self._os.ensurePackageInstalled(".NET 4.5.1.", doDelayedReboot=False)
+        
+    def _getExecutableForGivenArchitecture(self):
+        if self._os.getArch() == "amd64":
+            return "Windows6.1-KB2819745-x64-MultiPkg.msu"
+        return "Windows6.1-KB2819745-x86-MultiPkg.msu"
+        
+    @property    
+    def _packageName(self):
+        return "powershell40"
+    
+
+RegisterWindowsPackage(PowerShell40)

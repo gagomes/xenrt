@@ -122,7 +122,7 @@ class MelioHelper(object):
     
     def checkMount(self, mountpoint):
         for host in self.hosts:
-            if not "on %s type warm_fs" in host.execdom0("mount"):
+            if not "on %s type warm_fs" % mountpoint in host.execdom0("mount"):
                 raise xenrt.XRTError("warm_fs not mounted on %s" % host.getName())
 
     def createSR(self, name="Melio"):

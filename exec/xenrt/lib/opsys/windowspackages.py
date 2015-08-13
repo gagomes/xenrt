@@ -198,7 +198,7 @@ class PowerShell30(WindowsPackage):
             xenrt.TEC().logverbose("%s or above installed." % self.NAME)
             return
             
-        if self._os.windowsVersion() != "6.1":
+        if self._os.xmlrpcWindowsVersion() != "6.1":
             raise xenrt.XRTError("%s installer is not \
                 available for Windows version %s" % (self.NAME,self._os.windowsVersion()))
             

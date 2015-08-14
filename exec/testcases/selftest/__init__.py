@@ -162,7 +162,7 @@ class TCMachineCheck(xenrt.TestCase):
             if not self.host.checkAlive():
                 raise xenrt.XRTError("Host not reachable prior to powering down")
             powerctl.off()
-            xenrt.sleep(10)
+            xenrt.sleep(20)
             if self.host.checkAlive():
                 raise xenrt.XRTFailure("Host reachable after powering down")
         finally:

@@ -6221,6 +6221,10 @@ class DundeeGuest(CreedenceGuest):
 
     def installTestCerts(self):
 
+        skipDistros = ["w2k3", "winxp"]
+        if filter(lambda x: self.distro.startswith(x), skipDistros):
+            xenrt.TEC().warning("Skipping the installation of TestCertificates")
+            return
 
         xenrt.TEC().logverbose("installing TestCertificates")
         testCertsDir = xenrt.TEC().tempDir()

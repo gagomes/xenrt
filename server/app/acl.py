@@ -121,10 +121,10 @@ class ACLHelper(object):
 
     def _get_user_for_machine(self, status, leaseuser, jobuser, jobpreemptable, leasepreemptable, preemptableUse=False):
         # Machine is considered in use if there's either a non-preemptable job running or a non-preemptable lease
-        if status in ["scheduled", "slaved", "running"] and ((jobpreemptable and preemptableUse) or not (jobpreemptable or preemptableUse)):
-            return jobuser.lower()
-        elif leaseuser is not None and ((leasepreemptable and preemptableUse) or not (leasepreemptable or preemptableUse)):
+        if leaseuser is not None and ((leasepreemptable and preemptableUse) or not (leasepreemptable or preemptableUse)):
             return leaseuser.lower()
+        elif status in ["scheduled", "slaved", "running"] and ((jobpreemptable and preemptableUse) or not (jobpreemptable or preemptableUse)):
+            return jobuser.lower()
         else:
             return None
 

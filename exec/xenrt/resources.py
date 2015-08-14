@@ -1550,11 +1550,14 @@ class SpecifiedSMBShare(object):
 class ISCSIVMLun(ISCSILun):
     """ A tempory LUN in a VM """
     
-    def __init__(self,hostIndex=None,sizeMB=None, totalSizeMB=None, guestName="xenrt-iscsi-target", bridges=None, targetType=None):
-        if not hostIndex:
-            self.host = xenrt.TEC().registry.hostGet("RESOURCE_HOST_0")
+    def __init__(self,hostIndex=None,sizeMB=None, totalSizeMB=None, guestName="xenrt-iscsi-target", bridges=None, targetType=None, host=None):
+        if host:
+            self.host=host
         else:
-            self.host = xenrt.TEC().registry.hostGet("RESOURCE_HOST_%s" % hostIndex)
+            if not hostIndex:
+                self.host = xenrt.TEC().registry.hostGet("RESOURCE_HOST_0")
+            else:
+                self.host = xenrt.TEC().registry.hostGet("RESOURCE_HOST_%s" % hostIndex)
         if not sizeMB:
             sizeMB = 50*xenrt.KILO
         self.guestName = guestName

@@ -5142,3 +5142,42 @@ class TCAllPBDsPlugged(xenrt.TestCase):
             for pbd in host.minimalList("pbd-list"):
                 if host.genParamGet("pbd", pbd, "currently-attached") != "true":
                     raise xenrt.XRTFailure("Not all PBDs were attached after pool join")
+
+
+class TCSRConfigConsistency(xenrt.TestCase):
+    """Check PBD has same sm-config after plug/unplug"""
+
+    SR_TYPE = "lvmoiscsi"
+
+    def run(self, arglist=[]):
+        args = self.parseArgsKeyValue(arglist)
+        host = self.getDefaultHost()
+        sr = host.getSRs(args.get("srtype", self.SR_TYPE))[0]
+
+        step("Obtain current sm config")
+        smBefore = host.genParamsGet("sr", sr, "sm-config")
+
+        step("PBD unplug/plug")
+        cli = host.getCLIInstance()
+        pbds = host.minimalList("pbd-list", args="sr-uuid=%s" % sr)
+        for pbd in pbds:
+            cli.execute("pbd-unplug", "uuid=%s" % pbd)
+        xenrt.sleep(5)
+        for pbd in pbds:
+            cli.execute("pbd-plug", "uuid=%s" % pbd)
+
+        step("Compare sm config after unplug/plug")
+        smAfter = host.genParamsGet("sr", sr, "sm-config")
+
+        log("sm-config before pbd-unplug: %s" % smBefore)
+        log("sm-config after pbd-plug: %s" % smAfter)
+
+        if len(smBefore) != len(smAfter):
+            raise xenrt.XRTFailure("sm-configs before and after pbd unplug/plug are different.")
+
+        for key in smBefore:
+            if key not in smAfter:
+                xenrt.XRTFailure("%s key was in sm-config before pbd plug/unplug")
+            if smBefore[key] != smAfter[key]:
+                xenrt.XRTFailure("%s key mismatched. before: %s, after: %s" % (key, smBefore[key], smAfter[key]))
+

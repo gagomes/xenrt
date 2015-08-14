@@ -42,6 +42,7 @@ __all__ = ["getStorageRepositoryClass",
            "EQLTarget",
            "SMAPIv3LocalStorageRepository",
            "SMAPIv3SharedStorageRepository",
+           "MelioStorageRepository"
             ]
 
 
@@ -430,6 +431,13 @@ class SMAPIv3LocalStorageRepository(StorageRepository):
             path = "/dev/%s%d" % (device, partition)
         self._create("btrfs", {"uri":"file://%s" % path}, physical_size, content_type, smconf)
 
+class MelioStorageRepository(StorageRepository):
+    SHARED = True
+    CLEANUP = "destroy"
+    
+    def create(self, melio, physical_size=0, content_type="", smconf={}):
+        self.melio = melio
+        self._create("melio", {"uri":"file://%s" % self.melio.device}, physical_size, content_type, smconf)
 
 class IntegratedCVSMStorageRepository(StorageRepository):
     SHARED = True
@@ -958,7 +966,8 @@ class ISCSIStorageRepository(StorageRepository):
                jumbo=False,
                mpp_rdac=False,
                lungroup=None,
-               initiatorcount=None):
+               initiatorcount=None,
+               smconf={}):
         """Create the iSCSI SR on the host
 
         @param multipathing: If set to C{True}, use multipathing on this SR, and
@@ -1123,7 +1132,8 @@ class ISCSIStorageRepository(StorageRepository):
         self._create("%soiscsi" % (subtype),
                      dconf,
                      physical_size=physical_size,
-                     content_type=content_type)
+                     content_type=content_type,
+                     smconf=smconf)
 
     def check(self):
         StorageRepository.checkCommon(self, "%soiscsi" % (self.subtype))
@@ -1232,7 +1242,8 @@ class HBAStorageRepository(StorageRepository):
                scsiid,
                physical_size="0",
                content_type="",
-               multipathing=False):
+               multipathing=False,
+               smconf={}):
         self.multipathing = multipathing
         if multipathing:
             device = "/dev/mapper/%s" % (scsiid)
@@ -1257,7 +1268,8 @@ class HBAStorageRepository(StorageRepository):
         self._create("lvmohba",
                      dconf,
                      physical_size=physical_size,
-                     content_type=content_type)
+                     content_type=content_type,
+                     smconf=smconf)
 
     def check(self):
         StorageRepository.checkCommon(self, "lvmohba")

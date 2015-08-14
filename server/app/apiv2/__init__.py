@@ -49,6 +49,7 @@ class XenRTAPIv2Swagger(XenRTPage):
 <a href="/xenrtapi.tar.gz">Download python bindings/CLI (install with pip)</a>"""
             },
             "basePath": "%s/api/v2" % u.path.rstrip("/"),
+            "uiPath": "%s/ui" % u.path.rstrip("/"),
             "host": u.netloc,
             "masterhost": config.master_server,
             "schemes": [u.scheme],

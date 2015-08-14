@@ -185,7 +185,7 @@ class PowerShell30(WindowsPackage):
         self._os.installDotNet4()
         
     def _getExecutableForGivenArchitecture(self):
-        if self._os.getArch() == "amd64":
+        if self._os.xmlrpcGetArch() == "amd64":
             return "Windows6.1-KB2506143-x64.msu"
         return "Windows6.1-KB2506143-x86.msu"
     
@@ -205,10 +205,11 @@ class PowerShell30(WindowsPackage):
         self._installDotNetPackage()   
         exe = self._getExecutableForGivenArchitecture()
         
-        t = self._os.tempDir()
-        self._os.unpackTarball("%s/%s.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE"),self._packageName), t)
-        self._os.execCmd("%s\\%s\\%s /quiet /norestart" % (t, self._packageName,exe), returnerror=False, timeout=600)
-
+        t = self._os.xmlrpcTempDir()
+        self._os.xmlrpcUnpackTarball("%s/%s.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE"),self._packageName), t)
+        self._os.xmlrpcExec("%s\\%s\\%s /quiet /norestart" % (t, self._packageName,exe), returnerror=False, timeout=600)
+        self._os.reboot()
+        
 RegisterWindowsPackage(PowerShell30)
 
 class PowerShell40(PowerShell30):
@@ -221,7 +222,7 @@ class PowerShell40(PowerShell30):
         self._os.installDotNet451()
         
     def _getExecutableForGivenArchitecture(self):
-        if self._os.getArch() == "amd64":
+        if self._os.xmlrpcGetArch() == "amd64":
             return "Windows6.1-KB2819745-x64-MultiPkg.msu"
         return "Windows6.1-KB2819745-x86-MultiPkg.msu"
         

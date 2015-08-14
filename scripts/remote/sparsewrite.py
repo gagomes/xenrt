@@ -22,4 +22,21 @@ print "Closing file"
 os.close(fd)
 print "Closed file"
 print os.stat("%s/%s" % (path, fn))
+
+fd = os.open("%s/%s" % (path, fn), os.O_RDONLY)
+
+for i in range(iterations):
+    print "Iteration %d" % i
+    print "Seeking"
+    starttime = time.time()
+    os.lseek(fd, 1000000+i*iterations, os.SEEK_SET)
+    print "Reading"
+    c = os.read(fd, 1)
+    if c != "\000":
+        raise Exception("Read byte was not as expected")
+    if time.time() - starttime > 1:
+        raise Exception("Seek+write took %.02f seconds" % (time.time() - starttime))
+print "Closing file"
+os.close(fd)
+print "Deleting file"
 os.unlink("%s/%s" % (path, fn))

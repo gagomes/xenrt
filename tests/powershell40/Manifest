@@ -1,0 +1,8 @@
+cription Microsoft PowerShell 4.0
+# Status: downloadable
+# Obtaining:
+# Available from http://www.microsoft.com/
+
+84497bdd99690c50a8e67db19b0aa2ad  ./Windows6.1-KB2819745-x64-MultiPkg.msu
+680a8b76da952df2308335ed128e2bbe  ./Windows6.1-KB2819745-x86-MultiPkg.msu
+

@@ -122,8 +122,8 @@ class TC9352(_HostInstall):
             minornumber = int(deviceinfo.strip().split()[5])
             dvendor = self.getVendorFromDM("dm-%d" % minornumber)
         else:
-            raise xenrt.XRTException("Unkown device mapping mode",
-                                     data = deviceinfo)
+            raise xenrt.XRTError("Unkown device mapping mode",
+                                 data = deviceinfo)
         if not dvendor in ["DGC", "NETAPP"]:
             raise xenrt.XRTError("Installation primary disk is not a SAN LUN",
                                  "%s -> %s is '%s'" %

@@ -820,7 +820,7 @@ $connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
             if diskid in offline:
                 offline = [ diskid ]
             else:
-                raise xenrt.XRTException("disk %d is already online" % diskid)
+                raise xenrt.XRTError("disk %d is already online" % diskid)
         for o in offline:
             self.writeFile("c:\\online.txt",
                                  "select disk %s\n"

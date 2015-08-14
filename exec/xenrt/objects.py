@@ -1162,7 +1162,7 @@ class GenericPlace(object):
             if diskid in offline:
                 offline = [ diskid ]
             else:
-                raise xenrt.XRTException("disk %d is already online" % diskid)
+                raise xenrt.XRTError("disk %d is already online" % diskid)
         for o in offline:
             return self.xmlrpcDiskpartCommand("select disk %s\n"
                                  "attributes disk clear readonly\n"
@@ -4194,7 +4194,7 @@ Loop While not oex3.Stdout.atEndOfStream"""%(applicationEventLogger,systemEventL
                 if not running: self.xmlrpcExec('sc start w32time')
                 self.xmlrpcExec('w32tm /resync /rediscover')
                 if abs(xenrt.timenow() - self.xmlrpcGetTime()) > 30.0:
-                    raise xenrt.XRTException("Clock difference is greater "
+                    raise xenrt.XRTError("Clock difference is greater "
                                              "than 30 seconds after sync.")
             else:
                 # This won't raise an error even if w32time doesn't exists
@@ -4218,11 +4218,11 @@ Loop While not oex3.Stdout.atEndOfStream"""%(applicationEventLogger,systemEventL
                     # else:
                     #     self.execcmd("ntpd -q -gx")
                 else:
-                    raise xenrt.XRTException("No ntpd, clock can not be set "
-                                             "to sync status")
+                    raise xenrt.XRTError("No ntpd, clock can not be set "
+                                         "to sync status")
                 # if abs(xenrt.timenow() - self.getTime()) > 30.0:
-                #     raise xenrt.XRTException("Clock difference is greater "
-                #                              "than 30 seconds after sync.")
+                #     raise xenrt.XRTError("Clock difference is greater "
+                #                          "than 30 seconds after sync.")
             else:
                 if ntp_run:self.execcmd("/etc/init.d/ntpd stop")
         xenrt.TEC().logverbose("Clock is set to %s status"

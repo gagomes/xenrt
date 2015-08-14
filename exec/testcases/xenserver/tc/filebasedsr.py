@@ -107,7 +107,12 @@ class TCFileBasedSRProperty(xenrt.TestCase):
             else:
                 warning("JSON file of VDI %s does not have UUID field. Skipping sanity check." % vdi)
 
-        return int(self.host.execdom0("ls -l %s/%s" % (self.srPath, filename)).split()[4])
+        try:
+            lsstr = self.host.execdom0("ls -l %s/%s" % (self.srPath, filename))
+        except:
+            lsstr = self.host.execdom0("ls -l %s/%s.vhd" % (self.srPath, filename))
+
+        return int(lsstr.split()[4])
 
     def getRawProperties(self):
         """

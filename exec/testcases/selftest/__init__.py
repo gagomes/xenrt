@@ -154,7 +154,7 @@ class TCMachineCheck(xenrt.TestCase):
 
         for t in tests:
             self.runSubcase("test%s%s" % (t[0],t[1]), (), t[0], t[1])
-            self.host.waitForEnabled(600, desc="Boot after %s/%s test" % (t[0],t[1]))
+            self.host.waitForEnabled(1800, desc="Boot after %s/%s test" % (t[0],t[1]))
 
     def _testPowerctl(self, powerctl):
         lock = xenrt.resources.CentralLock("MC_POWER", timeout=3600)
@@ -167,6 +167,7 @@ class TCMachineCheck(xenrt.TestCase):
                 raise xenrt.XRTFailure("Host reachable after powering down")
         finally:
             powerctl.on()
+            xenrt.sleep(60)
             lock.release()
 
     def testPowerIPMI(self):

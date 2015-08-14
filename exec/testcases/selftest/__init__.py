@@ -207,7 +207,7 @@ class TCMachineCheck(xenrt.TestCase):
         duplex = self.host.execdom0("cat /sys/class/net/%s/duplex" % (dev)).strip()
         xenrt.TEC().logverbose("%s is %s/%s" % (dev, speed, duplex))
         if speed < 1000 or duplex != "full":
-            return "%s reports %s/%s, expecting at least 1000/full" % (speed, duplex)
+            return "%s reports %s/%s, expecting at least 1000/full" % (dev, speed, duplex)
 
     def testNetworkPorts(self):
         """Verify each NIC is connected to the correct switch port"""

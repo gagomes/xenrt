@@ -313,7 +313,7 @@ class TCMachineCheck(xenrt.TestCase):
         if len(overallFailures) > 0:
             for f in overallFailures:
                 xenrt.TEC().logverbose(f)
-            raise xenrt.XRTFailures("Network DHCP failures detected")
+            raise xenrt.XRTFailure("Network DHCP failures detected")
 
         if len(missingIPConfigs) > 0:
             raise xenrt.XRTPartial("Missing IP configs for NICs %s" % (",".join(missingIPConfigs)))

@@ -157,7 +157,7 @@ class TCMachineCheck(xenrt.TestCase):
             self.host.waitForEnabled(600, desc="Boot after %s/%s test" % (t[0],t[1]))
 
     def _testPowerctl(self, powerctl):
-        lock = xenrt.resources.CentralLock("MC_POWER", timeout=1200)
+        lock = xenrt.resources.CentralLock("MC_POWER", timeout=3600)
         try:
             if not self.host.checkAlive():
                 raise xenrt.XRTError("Host not reachable prior to powering down")
@@ -217,8 +217,8 @@ class TCMachineCheck(xenrt.TestCase):
 
         failures = []
 
-        lock = xenrt.resources.CentralLock("MC_NETWORK", timeout=1200)
-        powerLock = xenrt.resources.CentralLock("MC_POWER", timeout=1200, acquire=False)
+        lock = xenrt.resources.CentralLock("MC_NETWORK", timeout=3600)
+        powerLock = xenrt.resources.CentralLock("MC_POWER", timeout=3600, acquire=False)
         try:
             self.host.enableAllNetPorts()
             xenrt.sleep(30)

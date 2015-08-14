@@ -1296,24 +1296,23 @@ class PrepareNode(object):
                     if s["type"] == "lvmoiscsi":
                         smconf = {}
                         thinProv = False
-                        options = []
                         if s["options"]:
                             options = s["options"].split(",")
-                        if "thin" in options:
-                            thinProv = True
-                            thin_init = None
-                            thin_quan = None
-                            for opt in options:
-                                if opt.startswith("thin_init:"):
-                                    thin_init = opt[len("thin_init:"):]
-                                if opt.startswith("thin_quan:"):
-                                    thin_quan = opt[len("thin_quan:"):]
-                            thin_init = xenrt.TEC().lookup("THIN_INITIAL_ALLOCATION", thin_init)
-                            thin_quan = xenrt.TEC().lookup("THIN_ALLOCATION_QUANTUM", thin_quan)
-                            if thin_init:
-                                smconf["initial_allocation"] = thin_init
-                            if thin_quan:
-                                smconf["allocation_quantum"] = thin_quan
+                            if "thin" in options:
+                                thinProv = True
+                                thin_init = None
+                                thin_quan = None
+                                for opt in options:
+                                    if opt.startswith("thin_init:"):
+                                        thin_init = opt[len("thin_init:"):]
+                                    if opt.startswith("thin_quan:"):
+                                        thin_quan = opt[len("thin_quan:"):]
+                                thin_init = xenrt.TEC().lookup("THIN_INITIAL_ALLOCATION", thin_init)
+                                thin_quan = xenrt.TEC().lookup("THIN_ALLOCATION_QUANTUM", thin_quan)
+                                if thin_init:
+                                    smconf["initial_allocation"] = thin_init
+                                if thin_quan:
+                                    smconf["allocation_quantum"] = thin_quan
                         if host.lookup("USE_MULTIPATH", False, boolean=True):
                             mp = True
                         else:
@@ -1460,21 +1459,21 @@ class PrepareNode(object):
                         smconf = {}
                         if s.has_key("options") and s["options"]:
                             options = s["options"].split(",")
-                        if "thin" in options:
-                            thinProv = True
-                            thin_init = None
-                            thin_quan = None
-                            for opt in options:
-                                if opt.startswith("thin_init:"):
-                                    thin_init = opt[len("thin_init:"):]
-                                if opt.startswith("thin_quan:"):
-                                    thin_quan = opt[len("thin_quan:"):]
-                            thin_init = xenrt.TEC().lookup("THIN_INITIAL_ALLOCATION", thin_init)
-                            thin_quan = xenrt.TEC().lookup("THIN_ALLOCATION_QUANTUM", thin_quan)
-                            if thin_init:
-                                smconf["initial_allocation"] = thin_init
-                            if thin_quan:
-                                smconf["allocation_quantum"] = thin_quan
+                            if "thin" in options:
+                                thinProv = True
+                                thin_init = None
+                                thin_quan = None
+                                for opt in options:
+                                    if opt.startswith("thin_init:"):
+                                        thin_init = opt[len("thin_init:"):]
+                                    if opt.startswith("thin_quan:"):
+                                        thin_quan = opt[len("thin_quan:"):]
+                                thin_init = xenrt.TEC().lookup("THIN_INITIAL_ALLOCATION", thin_init)
+                                thin_quan = xenrt.TEC().lookup("THIN_ALLOCATION_QUANTUM", thin_quan)
+                                if thin_init:
+                                    smconf["initial_allocation"] = thin_init
+                                if thin_quan:
+                                    smconf["allocation_quantum"] = thin_quan
                         sr = xenrt.productLib(host=host).FCStorageRepository(host, s["name"], thinProv)
                         if host.lookup("USE_MULTIPATH", False, boolean=True):
                             mp = True

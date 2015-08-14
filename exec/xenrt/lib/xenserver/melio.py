@@ -29,8 +29,8 @@ class MelioHelper(object):
     def iscsiHost(self):
         return self._iscsiHost or self.hosts[0]
 
-    def setup(self):
-        tasks = [xenrt.PTask(self.installMelio)]
+    def setup(self, reinstall=False):
+        tasks = [xenrt.PTask(self.installMelio, reinstall=reinstall)]
         if self.iscsiHost not in self.hosts:
             tasks.append(xenrt.PTask(self.createLun))
         xenrt.pfarm(tasks)

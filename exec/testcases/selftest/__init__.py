@@ -239,7 +239,7 @@ class TCMachineCheck(xenrt.TestCase):
                 if self._checkNIC(dev):
                     failures.append("Link for NIC %u (%s / %s) up after bringing port down" % (assumedId, mac, dev))
                     self.host.enableNetPort(mac) # Re-enable it in case it's a different port on this host
-                    xnert.sleep(20)
+                    xenrt.sleep(20)
 
             # Now check the primary NIC
             powerLock.acquire() # We have to take this one as well to avoid confusion with a power test

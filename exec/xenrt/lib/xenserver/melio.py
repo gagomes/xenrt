@@ -11,6 +11,7 @@
 import xenrt
 import os.path
 import requests
+import sys
 
 __all__ = [
     "MelioHelper"
@@ -24,6 +25,13 @@ class MelioHelper(object):
             host.melioHelper = self
         self.lun = None
         self._iscsiHost = iscsiHost
+        if not xenrt.TEC().lookup("MELIO_PYTHON_LOCAL_PATH", None):
+            d = xenrt.TempDirectory()
+            xenrt.util.command("cd %s && git clone %s melio-python" % (d.path(), xenrt.TEC().lookup("MELIO_PYTHON_REPO", "https://gitlab.citrite.net/xs-melio/python-melio-linux.git")))
+            xenrt.util.command("cd %s/melio-python && git checkout %s" % (d.path(), xenrt.TEC().lookup("MELIO_PYTHON_BRANCH", "master")))
+            xenrt.GEC().config.setVariable("MELIO_PYTHON_LOCAL_PATH", "%s/melio-python" % d.path())
+            sys.path.append("%s/melio-python/lib" % d.path())
+            import sanbolic
 
     @property
     def iscsiHost(self):

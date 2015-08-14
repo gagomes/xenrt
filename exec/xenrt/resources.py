@@ -613,8 +613,8 @@ class CentralLock(CentralResource):
                 break
             except xenrt.XRTError:
                 pass 
-            if xenrt.util.timenow() > (startlooking + timeout):
-                xenrt.TEC().logverbose("Timed out waiting for lock after %d seconds" % timeout)
+            if xenrt.util.timenow() > (startlooking + self.timeout):
+                xenrt.TEC().logverbose("Timed out waiting for lock after %d seconds" % self.timeout)
                 self.logList()
                 raise xenrt.XRTError("Timed out waiting for lock")
             xenrt.sleep(30)

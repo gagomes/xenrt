@@ -572,7 +572,9 @@ class _PowerShellSnapTest(xenrt.TestCase):
     __POWERSHELL_EXE = "C:\\Windows\\system32\\WindowsPowerShell\\v1.0\\powershell.exe"
     __MSI_PATH_64 = "c:\\progra~2\\citrix\\xenserverpssnapin"
     __MSI_PATH_32 = "c:\\progra~1\\citrix\\xenserverpssnapin"
-
+    POWERSHELL_VERSION = "2.0"
+    
+            
     def prepare(self, arglist):
         self.nfs = None
         self.host = self.getDefaultHost()
@@ -580,12 +582,11 @@ class _PowerShellSnapTest(xenrt.TestCase):
         self.uninstallOnCleanup(self.guest)
         self.getLogsFrom(self.guest)
         
-        if xenrt.TEC().lookup("POWERSHELL_VERSION") == "4.0":
-            installObject = PowerShell40(self.guest)
-            installObject._installPackage()
-        elif xenrt.TEC().lookup("POWERSHELL_VERSION") == "3.0":
-            installObject = PowerShell30(self.guest)
-            installObject._installPackage()
+        if self.POWERSHELL_VERSION == 4.0:
+            self.installObject = PowerShell40(self.guest)
+            self.installObject._installPackage()
+        else:
+            self.guest.installPowerShell20()
             
         self.guest.waitforxmlrpc(600)
         self.guest.installPowerShellSnapIn(snapInDirName=self.SNAPIN_DIR_NAME)
@@ -766,20 +767,22 @@ class TC19252(_PowerShellSnapTest):
     """PowerShell Snap-In test on Windows Server 2012 64 bit"""
 
     DISTRO = "ws12-x64"
-
-
+    
+    
 class TC19253(_PowerShellSnapTest):
     """PowerShell Snap-In test on Windows 7 32 bit"""
 
     DISTRO = "win7sp1-x86"
-
-
+    POWERSHELL_VERSION = "4.0"
+    
+    
 class TC19254(_PowerShellSnapTest):
     """PowerShell Snap-In test on Windows 7 64 bit"""
 
     DISTRO = "win7sp1-x64"
-
-
+    POWERSHELL_VERSION = "4.0"
+    
+    
 class TC19255(_PowerShellSnapTest):
     """PowerShell Snap-In test on Windows 8 32 bit"""
 

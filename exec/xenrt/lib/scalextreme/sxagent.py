@@ -121,7 +121,7 @@ class SXAgent(object):
         """Set this agent VM as gateway to XenServer"""
 
         if self.nodeId == None:
-            raise xenrt.XRTException("Node Id is not set. Is agent installed properly?")
+            raise xenrt.XRTError("Node Id is not set. Is agent installed properly?")
 
         r = self.apiHandler.execute(method="PUT", category="nodes", sid=str(self.nodeId), command="setasgateway")
 
@@ -134,7 +134,7 @@ class SXAgent(object):
         """Create environment with existing agent and XenServer"""
 
         if self.nodeId == None:
-            raise xenrt.XRTException("Node Id is not set. Is agent installed properly?")
+            raise xenrt.XRTError("Node Id is not set. Is agent installed properly?")
 
         if not host:
             host = self.agentVM.host

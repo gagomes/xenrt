@@ -977,7 +977,7 @@ class TC12157(xenrt.TestCase):
                 break
         
         if not self.drvnet:
-            raise xenrt.XRTException("Didn't not find the network name of PV by searching its name")
+            raise xenrt.XRTError("Didn't not find the network name of PV by searching its name")
         
     def runCase(self, confs):
         extrareboot = False

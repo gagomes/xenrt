@@ -5243,7 +5243,7 @@ class MNRGuest(Guest):
         myhost = self.getHost()
         remote = on and myhost != on
         if remote and not (myhost.pool and on in myhost.pool.getHosts()):
-            raise xenrt.XRTException("Couldn't move to a host not in current pool")
+            raise xenrt.XRTError("Couldn't move to a host not in current pool")
         # The most "direct" choice should be put in the first place
         # The most "safe" choice should be put in the last place (e.g. for HVM)
         choice = choice or 'direct'
@@ -5336,7 +5336,7 @@ class MNRGuest(Guest):
     def setNetworkViaXenstore(self, group, name, type, data, area=None, vif='eth0'):
         """ You'll need to restart the VM to make it effective."""
         if not (self.windows and self.enlightenedDrivers):
-            raise xenrt.XRTException("setNetworkViaXenstore only works on "
+            raise xenrt.XRTError("setNetworkViaXenstore only works on "
                                      "Windows with PV drivers.")
         mac,ip,vb = self.getVIF(vif)
         macp = mac.replace(':', '_').upper()
@@ -6026,7 +6026,7 @@ class ClearwaterGuest(TampaGuest):
     #Method to retreive VM Generation token id for Windows VM
 
         if float(self.xmlrpcWindowsVersion()) < 6.2:
-            raise xenrt.XRTException("VM gen id is not supported in this windows version")
+            raise xenrt.XRTError("VM gen id is not supported in this windows version")
 
         if self.xmlrpcGetArch() == "x86": 
             vmgenexe = "vmgenid32.exe"

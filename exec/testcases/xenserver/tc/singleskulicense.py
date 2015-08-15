@@ -242,12 +242,12 @@ class SingleSkuBase(xenrt.TestCase):
                 if anyhosts :
                     return pool_hotfix_status
                 else :
-                    raise xenrt.XRTException("Hotfix application is Restricted for pool but for all of its member hosts its Allowed")
+                    raise xenrt.XRTFailure("Hotfix application is Restricted for pool but for all of its member hosts its Allowed")
             else :
                 if not allhosts :
                     return pool_hotfix_status
                 else :
-                    raise xenrt.XRTException("Hotfix application is Allowed for pool but not for all of its member hosts ")
+                    raise xenrt.XRTFailure("Hotfix application is Allowed for pool but not for all of its member hosts ")
         
     def hotfixStatusHost(self , host):
     

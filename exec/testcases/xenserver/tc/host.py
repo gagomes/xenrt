@@ -1426,7 +1426,7 @@ class _TCHideFromXenCenter(xenrt.TestCase):
             self.host.logoutAPISession(session)
 
     def doAction(self):
-        raise xenrt.XRTException("Not implemented") 
+        raise xenrt.XRTError("Not implemented") 
 
 
 class TC8813(_TCHideFromXenCenter):
@@ -3317,7 +3317,7 @@ class _CPUID(xenrt.TestCase):
 
     def getDomCPUFlags(self, dom):
         if dom.windows:
-            raise xenrt.XRTException("Not implemented")
+            raise xenrt.XRTError("Not implemented")
         domcpuinfo = xenrt.parseLayeredConfig(
             dom.execcmd("cat /proc/cpuinfo").split('\n\n', 1)[0],
             { 'sep':'\n', 'sub': {'sep': ':', 'next': lambda _: None}, 'post':dict }
@@ -3594,7 +3594,7 @@ class _TCHeterogeneousPool(_CPUID):
                     slave.reboot()
                     return self.tryJoin(pool, slave, setfeature=False)
             else:
-                raise xenrt.XRTException("Hetrogeneous hosts can pool join")
+                raise xenrt.XRTFailure("Hetrogeneous hosts can pool join")
 
     def pairInterOp(self, left, right):
         

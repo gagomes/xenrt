@@ -2376,7 +2376,7 @@ fi
         if xenrt.TEC().lookup("INSTALL_RPU_HOTFIX", False, boolean=True):
             rpuPatch = xenrt.TEC().lookup(["VERSION_CONFIG",self.productVersion,"INTERNAL_RPU_HOTFIX"])
             if rpuPatch:
-                patches.extend([rpuPatch])
+                patches.extend([xenrt.TEC().lookup("INPUTDIR") + "/xe-phase-1/%s" % rpuPatch])
 
         # Apply all the patches we found
         for patch in [x for x in patches if x != "None"]:
@@ -2508,9 +2508,9 @@ fi
                     elif u.endswith(".tgz") or u.endswith(".tar.gz"): options = "xvzf"
                     elif u.endswith(".tbz") or u.endswith(".tar.bz2"): options = "xvjf"
                     else:
-                        raise xenrt.XRTException("CUSTOM_UPDATES %s doesn't look like a rpm or a "
-                                                 "(maybe compressed) tarball. Suffix must be one of "
-                                                 "tar/tar.gz/tgz/tar.bz2/tbz." % os.path.basename(u))
+                        raise xenrt.XRTError("CUSTOM_UPDATES %s doesn't look like a rpm or a "
+                                             "(maybe compressed) tarball. Suffix must be one of "
+                                             "tar/tar.gz/tgz/tar.bz2/tbz." % os.path.basename(u))
                     self.execdom0("cd / && tar %s %s -C / --backup=simple --suffix=.orig"
                                   % (options, u))
             # An extra xapi restart is sometimes wanted before host reboot
@@ -9380,8 +9380,8 @@ class MNRHost(Host):
         if ncpuinfo['features_after_reboot'] == features:
             xenrt.TEC().logverbose("features after reboot is set correctly")
         else:
-            raise xenrt.XRTException("features after reboot is set wrong",
-                                     data = features)
+            raise xenrt.XRTFailure("features after reboot is set wrong",
+                                   data = features)
         extlinux = self.execdom0('cat /boot/extlinux.conf')
         if (ncpuinfo['features_after_reboot'] != ncpuinfo['physical_features']):
             # We should set some CPU features in Xen
@@ -9407,8 +9407,8 @@ class MNRHost(Host):
            == ncpuinfo['features_after_reboot']:
             xenrt.TEC().logverbose("features reset correctly")
         else:
-            raise xenrt.XRTException("features reset wrongly",
-                                     data = (cpuinfo, ncpuinfo))
+            raise xenrt.XRTFailure("features reset wrongly",
+                                   data = (cpuinfo, ncpuinfo))
         extlinux = self.execdom0('cat /boot/extlinux.conf')
         masks = re.findall('cpuid_mask', extlinux)
         allowedmasks = re.findall('cpuid_mask_xsave_eax=0', extlinux)
@@ -14396,8 +14396,8 @@ class TransferVM(object):
         elif vdi_uuid:
             args.append("vdi_uuid=" + vdi_uuid)
         else:
-            raise xenrt.XRTException("unexpose expects at least one of "
-                                     "record_handle or vdi_uuid as arguments")
+            raise xenrt.XRTError("unexpose expects at least one of "
+                                 "record_handle or vdi_uuid as arguments")
         args = map(lambda arg: "args:"+arg, args)        
         args.insert(0, "fn=" + fn)
         cli = self.host.getCLIInstance()
@@ -14413,8 +14413,8 @@ class TransferVM(object):
         elif vdi_uuid:
             args.append("vdi_uuid=" + vdi_uuid)
         else:
-            raise xenrt.XRTException("get_record expects at least onf of "
-                                     "record_handle or vdi_uuid as arguments")
+            raise xenrt.XRTError("get_record expects at least onf of "
+                                 "record_handle or vdi_uuid as arguments")
         args = map(lambda arg: "args:"+arg, args)        
         args.insert(0, "fn=" + fn)
         cli = self.host.getCLIInstance()
@@ -14429,7 +14429,7 @@ class TransferVM(object):
         cli = self.host.getCLIInstance()
         res = cli.execute(self.command, "fn=" + fn, strip=True)
         if res <> "OK":
-            raise xenrt.XRTException("cleanup failed with feedback: %s" % res)
+            raise xenrt.XRTFailure("cleanup failed with feedback: %s" % res)
 
     def getBitmaps(self,vdi_uuid=None):
      
@@ -14438,7 +14438,7 @@ class TransferVM(object):
         if vdi_uuid:
             args.append("leaf_vdi_uuids=" + str(vdi_uuid))
         else:
-            raise xenrt.XRTException("get_bitmaps expects vdi_uuid as arguments")
+            raise xenrt.XRTError("get_bitmaps expects vdi_uuid as arguments")
         args = map(lambda arg: "args:"+arg,args)
         args.insert(0, "fn=" + fn)
         cli = self.host.getCLIInstance()

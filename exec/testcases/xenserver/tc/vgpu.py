@@ -4324,7 +4324,7 @@ class TCGPUGroupMisc(VGPUGroupTestBase):
         if typeuuid in supportedTypes:
             self.host.genParamSet('pgpu', pgpu, 'enabled-VGPU-types', typeuuid)
         else:
-            raise xenrt.XRTException("pgpu %s does not support %s (%s) configuration." % (pgpu, self.getConfigurationName(conf), typeuuid))
+            raise xenrt.XRTError("pgpu %s does not support %s (%s) configuration." % (pgpu, self.getConfigurationName(conf), typeuuid))
 
     def run(self, arglist):
         self.gpuGroupManager = ggman = GPUGroupManager(self.host)

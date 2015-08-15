@@ -121,10 +121,10 @@ class ACLHelper(object):
 
     def _get_user_for_machine(self, status, leaseuser, jobuser, jobpreemptable, leasepreemptable, preemptableUse=False):
         # Machine is considered in use if there's either a non-preemptable job running or a non-preemptable lease
-        if status in ["scheduled", "slaved", "running"] and ((jobpreemptable and preemptableUse) or not (jobpreemptable or preemptableUse)):
-            return jobuser.lower()
-        elif leaseuser is not None and ((leasepreemptable and preemptableUse) or not (leasepreemptable or preemptableUse)):
+        if leaseuser is not None and ((leasepreemptable and preemptableUse) or not (leasepreemptable or preemptableUse)):
             return leaseuser.lower()
+        elif status in ["scheduled", "slaved", "running"] and ((jobpreemptable and preemptableUse) or not (jobpreemptable or preemptableUse)):
+            return jobuser.lower()
         else:
             return None
 
@@ -214,10 +214,15 @@ class ACLHelper(object):
                     # The machine is already in use by the user, so we don't need to double count it
                     extraMachines.remove(m)
 
+        skipQuantityChecks = False
         if len(extraMachines) == 0:
             # All machines the user is asking for are already theirs, so no need
-            # to check the rest of the ACL
-            return True, None
+            # to check the rest of the ACL, unless this is a lease when we need
+            # to verify they are within their allowed time
+            if leaseHours:
+                skipQuantityChecks = True
+            else:
+                return True, None
 
         usercount += len(extraMachines)
         userpercent = int(math.ceil((usercount * 100.0) / len(aclMachines)))
@@ -240,10 +245,11 @@ class ACLHelper(object):
                             # TODO improve error message here to use a term other than preemptable
                             return False, "ACL does now allow preemptable use for this user"
                     # Our user - check their usage
-                    if e.userlimit is not None and usercount > e.userlimit:
-                        return False, "%s limited to %d machines" % (e.userid, e.userlimit)
-                    if e.userpercent is not None and userpercent > e.userpercent:
-                        return False, "%s limited to %d%% of machines" % (e.userid, e.userpercent)
+                    if not skipQuantityChecks:
+                        if e.userlimit is not None and usercount > e.userlimit:
+                            return False, "%s limited to %d machines" % (e.userid, e.userlimit)
+                        if e.userpercent is not None and userpercent > e.userpercent:
+                            return False, "%s limited to %d%% of machines" % (e.userid, e.userpercent)
                     if e.maxleasehours is not None and leaseHours and leaseHours > e.maxleasehours:
                         return False, "Maximum lease time allowed for %s is %d hours" % (e.userid, e.maxleasehours)
 
@@ -269,16 +275,17 @@ class ACLHelper(object):
                     grouppercent = int(math.ceil((groupcount * 100.0) / len(aclMachines)))
 
                     groupname = e.entryType == 'default' and "default" or e.userid
-                    if e.grouplimit is not None and groupcount > e.grouplimit:
-                        return False, "%s limited to %d machines" % (groupname, e.grouplimit)
-                    if e.grouppercent is not None and grouppercent > e.grouppercent:
-                        return False, "%s limited to %d%% of machines" % (groupname, e.grouppercent)
+                    if not skipQuantityChecks:
+                        if e.grouplimit is not None and groupcount > e.grouplimit:
+                            return False, "%s limited to %d machines" % (groupname, e.grouplimit)
+                        if e.grouppercent is not None and grouppercent > e.grouppercent:
+                            return False, "%s limited to %d%% of machines" % (groupname, e.grouppercent)
 
-                    # Check the user limits as well
-                    if e.userlimit is not None and usercount > e.userlimit:
-                        return False, "Members of %s limited to %d machines" % (groupname, e.userlimit)
-                    if e.userpercent is not None and userpercent > e.userpercent:
-                        return False, "Members of %s limited to %d%% of machines" % (groupname, e.userpercent)
+                        # Check the user limits as well
+                        if e.userlimit is not None and usercount > e.userlimit:
+                            return False, "Members of %s limited to %d machines" % (groupname, e.userlimit)
+                        if e.userpercent is not None and userpercent > e.userpercent:
+                            return False, "Members of %s limited to %d%% of machines" % (groupname, e.userpercent)
 
                     # Check lease restrictions
                     if e.maxleasehours is not None and leaseHours and leaseHours > e.maxleasehours:

@@ -767,6 +767,7 @@ class TC19252(_PowerShellSnapTest):
     """PowerShell Snap-In test on Windows Server 2012 64 bit"""
 
     DISTRO = "ws12-x64"
+    POWERSHELL_VERSION = "4.0"
     
     
 class TC19253(_PowerShellSnapTest):

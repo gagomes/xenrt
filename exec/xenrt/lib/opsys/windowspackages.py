@@ -198,7 +198,7 @@ class PowerShell30(WindowsPackage):
             xenrt.TEC().logverbose("%s or above installed." % self.NAME)
             return
             
-        if self._os.xmlrpcWindowsVersion() != "6.1":
+        if self._os.xmlrpcWindowsVersion() != "6.1" and self._os.xmlrpcWindowsVersion() != "6.2":
             raise xenrt.XRTError("%s installer is not \
                 available for Windows version %s" % (self.NAME,self._os.xmlrpcWindowsVersion()))
             
@@ -222,6 +222,8 @@ class PowerShell40(PowerShell30):
         self._os.installDotNet451()
         
     def _getExecutableForGivenArchitecture(self):
+        if self._os.xmlrpcWindowsVersion() == "6.2":
+            return "Windows8-RT-KB2799888-x64.msu"
         if self._os.xmlrpcGetArch() == "amd64":
             return "Windows6.1-KB2819745-x64-MultiPkg.msu"
         return "Windows6.1-KB2819745-x86-MultiPkg.msu"

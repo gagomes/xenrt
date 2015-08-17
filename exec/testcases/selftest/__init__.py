@@ -233,7 +233,7 @@ class TCMachineCheck(xenrt.TestCase):
                 # Check link speed / duplex
                 link = self._checkNICLink(dev)
                 if link:
-                    falures.append(link)
+                    failures.append(link)
                     
                 self.host.disableNetPort(mac)
                 xenrt.sleep(20)

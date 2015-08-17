@@ -139,8 +139,8 @@ class MelioHelper(object):
             diskToManage = [x for x in melioClient.get_all()['unmanaged_disk'] if x['system_name'] == disk][0]
             melioClient.manage_disk(diskToManage['system_name'])
             managedDisks = melioClient.get_all()['managed_disk']
-            guid = [x for x in managedDisks.keys() if managedDisks[x]['system_name'] == disk][0].lstrip("_")
-            xenrt.TEC().logverbose(melioClient.create_volume(guid, managedDisks[guid]['free_space']))
+            guid = [x for x in managedDisks.keys() if managedDisks[x]['system_name'] == disk][0]
+            xenrt.TEC().logverbose(melioClient.create_volume(guid.lstrip("_"), managedDisks[guid]['free_space']))
 
     def setupMelioDisk(self):
         self.hosts[0].execdom0("/usr/sbin/wd_format warm_fs mount_1234 %s" % self.device)

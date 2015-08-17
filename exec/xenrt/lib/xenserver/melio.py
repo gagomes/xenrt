@@ -135,7 +135,7 @@ class MelioHelper(object):
 
     def setupMelioDiskWS(self):
         disk = self.hosts[0].execdom0("realpath %s" % self.device).strip()[5:]
-        with self.getMelioClient(self.hosts[0]) as melioClient:
+        with self.getMelioClient(self.hosts[0], verbose_debugging=True) as melioClient:
             diskToManage = [x for x in melioClient.get_all()['unmanaged_disk'] if x['system_name'] == disk][0]
             melioClient.manage_disk(diskToManage['system_name'])
             managedDisks = melioClient.get_all()['managed_disk']

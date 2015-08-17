@@ -587,7 +587,8 @@ class _PowerShellSnapTest(xenrt.TestCase):
             self.installObject._installPackage()
         else:
             self.guest.installPowerShell20()
-            
+        
+        self.guest.installDotNet451()
         self.guest.waitforxmlrpc(600)
         self.guest.installPowerShellSnapIn(snapInDirName=self.SNAPIN_DIR_NAME)
         self.guest.enablePowerShellUnrestricted()

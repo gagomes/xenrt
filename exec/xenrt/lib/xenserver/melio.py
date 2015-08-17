@@ -32,11 +32,14 @@ class MelioHelper(object):
             xenrt.GEC().config.setVariable("MELIO_PYTHON_LOCAL_PATH", "%s/melio-python" % d.path())
             sys.path.append("%s/melio-python/lib" % d.path())
         import sanbolic
-        self.MelioClient = sanbolic.Client
+        self._MelioClient = sanbolic.Client
         
     @property
     def iscsiHost(self):
         return self._iscsiHost or self.hosts[0]
+
+    def getMelioClient(self, host):
+        return self._MelioClient("%s:8080" % host.getIP())
 
     def setup(self, reinstall=False, formatDisk=True):
         tasks = [xenrt.PTask(self.installMelio, reinstall=reinstall)]

@@ -582,7 +582,7 @@ class _PowerShellSnapTest(xenrt.TestCase):
         self.uninstallOnCleanup(self.guest)
         self.getLogsFrom(self.guest)
         
-        if self.POWERSHELL_VERSION == 4.0:
+        if self.POWERSHELL_VERSION == "4.0":
             self.installObject = PowerShell40(self.guest)
             self.installObject._installPackage()
         else:

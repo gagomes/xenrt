@@ -28,7 +28,7 @@ class SXAgent(object):
         # Rest API returns a url that requires authentication.
         # Using url from web interface.
         # Todo: Check with SX whether this is expected.
-        return url.replace("https://manage.citrix.com/store", "https://manage-mon.citrix.com")
+        return url.replace("https://lifecycle.cloud.com/store", "https://manage-mon.citrix.com")
 
     def __executeOnAgent(self, command):
         """Execute a command on agent Linux VM via SSH"""

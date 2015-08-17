@@ -142,7 +142,7 @@ class MelioHelper(object):
             while True:
                 managedDisks = melioClient.get_all()['managed_disk']
                 guid = [x for x in managedDisks.keys() if managedDisks[x]['system_name'] == disk][0]
-                if int(managedDisks[guid]['state'] == 2:
+                if int(managedDisks[guid]['state']) == 2:
                     break
                 if xenrt.timenow() > deadline:
                     raise xenrt.XRTError("Timed out waiting for disk to get to state 2")

@@ -1,6 +1,6 @@
 <xenrt>
   <variables>
-    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
     <PREPARE_WORKERS>5</PREPARE_WORKERS>
   </variables>
   <prepare>
@@ -11,7 +11,6 @@
         <memory>2048</memory>
         <postinstall action="disableFirewall" />
         <postinstall action="installLegacyDrivers" />
-        <!-- ####LEGACY DRIVERS### -->
         <network device="0" />
         <network device="1" bridge="internal" />
         <disk device="0" size="24" />

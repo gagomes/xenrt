@@ -57,6 +57,7 @@
     <testcase id="xenserver.tc.security.TC10557" prio="3"/>
     <testcase id="xenserver.tc.storage.TC10615" prio="3"/>
     <testcase id="xenserver.install.TCVerifyDom0DriverVersions" tc="TC-15392"/>
+    <testcase id="testcases.xenserver.tc.guest.TC20910" name="TC20910" tc="TC-20910"/>
     <serial>
       <finally>
         <testcase id="guestops.basic.TCShutdown">

@@ -38,13 +38,14 @@ class MelioHelper(object):
     def iscsiHost(self):
         return self._iscsiHost or self.hosts[0]
 
-    def setup(self, reinstall=False):
+    def setup(self, reinstall=False, formatDisk=True):
         tasks = [xenrt.PTask(self.installMelio, reinstall=reinstall)]
         if self.iscsiHost not in self.hosts:
             tasks.append(xenrt.PTask(self.createLun))
         xenrt.pfarm(tasks)
         self.setupISCSITarget()
-        self.setupMelioDisk()
+        if formatDisk:
+            self.setupMelioDisk()
 
     def getRpmToDom0(self, host, var, specVar, dest):
         rpm = xenrt.TEC().lookup(var, None)

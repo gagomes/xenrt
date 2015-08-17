@@ -8699,7 +8699,11 @@ class MNRHost(Host):
                 args.append("license-server-address=%s" % (v6server.getAddress()))
                 args.append("license-server-port=%s" % (v6server.getPort()))
             else:
-                (addr, port) = xenrt.TEC().lookup("DEFAULT_CITRIX_LICENSE_SERVER").split(":")
+                if host.special.has_key('v6earlyrelease') and host.special['v6earlyrelease']:
+                    (addr, port) = xenrt.TEC().lookup("DEFAULT_CITRIX_PREVIEW_LICENSE_SERVER").split(":")
+                else:
+                    (addr, port) = xenrt.TEC().lookup("DEFAULT_CITRIX_LICENSE_SERVER").split(":")
+
                 args.append("license-server-address=%s" % (addr))
                 args.append("license-server-port=%s" % (port))
             if applyEdition:
@@ -11673,7 +11677,10 @@ class CreedenceHost(ClearwaterHost):
             args.append("license-server-address=%s" % (v6server.getAddress()))
             args.append("license-server-port=%s" % (v6server.getPort()))
         else:
-            (addr, port) = xenrt.TEC().lookup("DEFAULT_CITRIX_LICENSE_SERVER").split(":")
+            if host.special.has_key('v6earlyrelease') and host.special['v6earlyrelease']:
+                (addr, port) = xenrt.TEC().lookup("DEFAULT_CITRIX_PREVIEW_LICENSE_SERVER").split(":")
+            else:
+                (addr, port) = xenrt.TEC().lookup("DEFAULT_CITRIX_LICENSE_SERVER").split(":")
             args.append("license-server-address=%s" % (addr))
             args.append("license-server-port=%s" % (port))
 
@@ -13820,7 +13827,10 @@ class CreedencePool(ClearwaterPool):
             args.append("license-server-address=%s" % (v6server.getAddress()))
             args.append("license-server-port=%s" % (v6server.getPort()))
         else:
-            (addr, port) = xenrt.TEC().lookup("DEFAULT_CITRIX_LICENSE_SERVER").split(":")
+            if host.special.has_key('v6earlyrelease') and host.special['v6earlyrelease']:
+                (addr, port) = xenrt.TEC().lookup("DEFAULT_CITRIX_PREVIEW_LICENSE_SERVER").split(":")
+            else:
+                (addr, port) = xenrt.TEC().lookup("DEFAULT_CITRIX_LICENSE_SERVER").split(":")
             args.append("license-server-address=%s" % (addr))
             args.append("license-server-port=%s" % (port))
 

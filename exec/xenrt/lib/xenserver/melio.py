@@ -118,20 +118,36 @@ class MelioHelper(object):
 
     def setupISCSITarget(self):
         self.createLun()
+        self.scsiid = self.lun.getID()
         for host in self.hosts:
             host.execdom0("iscsiadm -m discovery -t st -p %s" % self.lun.getServer())
             host.execdom0('iscsiadm -m node --targetname "%s" --portal "%s:3260" --login' % (self.lun.getTargetName(), self.lun.getServer()))
 
     @property
     def device(self):
-        return "/dev/disk/by-id/scsi-%s" % self.lun.getID()
+        return "/dev/disk/by-id/scsi-%s" % self.scsiid
+
+    def saneDevice(self, host):
+        try:
+            return host.execdom0("ls /dev/sane*").splitlines()[-1]
+        except:
+            return self.device
+
+    def setupMelioDiskWS(self):
+        disk = self.hosts[0].execdom0("realpath %s" % self.device)[5:]
+        with self.getMelioClient(self.hosts[0]) as melioClient:
+            diskToManage = [x for x in melioClient.get_all()['unmanaged_disk'] if x['system_name'] == disk][0]
+            melioClient.manage_disk(diskToManage['system_name'])
+            managedDisks = melioClient.get_all()['managed_disk']
+            guid = [x for x in managedDisks.keys() if managedDisks[x]['system_name'] == disk][0]
+            xenrt.TEC().logverbose(melioClient.create_volume(guid, managedDisks[guid]['free_space']))
 
     def setupMelioDisk(self):
         self.hosts[0].execdom0("/usr/sbin/wd_format warm_fs mount_1234 %s" % self.device)
 
     def mount(self, mountpoint):
         for host in self.hosts:
-            host.execdom0("mount -t warm_fs %s %s" % (self.device, mountpoint))
+            host.execdom0("mount -t warm_fs %s %s" % (self.saneDevice(host), mountpoint))
     
     def checkMount(self, mountpoint):
         for host in self.hosts:

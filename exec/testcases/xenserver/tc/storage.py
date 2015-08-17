@@ -5112,12 +5112,9 @@ class TCFCOESRLifecycle(FCOELifecycleBase):
     """FCOE SR Lifecycle operations"""
 
     def run(self, arglist):
- 
-        xsr = next((s for s in self.host.asXapiObject().SR() if s.srType() == self.SRTYPE), None)
-        self.sr = xenrt.lib.xenserver.FCOEStorageRepository.fromExistingSR(self.host, xsr.uuid)
-        
-        self.vdiuuid = self.host.getCLIInstance().execute("vdi-create", \
-                    "sr-uuid=%s virtual-size=1024 name-label=XenRTTest type=user" % self.sr.uuid, strip=True)
+
+        self.sr = xenrt.lib.xenserver.FCOEStorageRepository.fromExistingSR(self.host, self.srs[0])
+        self.vdiuuid = self.host.createVDI( size =1024, sruuid=self.sr.uuid, name="XenRTTest" )
         originalVdiSize = self.host.genParamGet("vdi", self.vdiuuid, "virtual-size")
         self.sr.forget()
         
@@ -5137,7 +5134,7 @@ class TCFCOESRLifecycle(FCOELifecycleBase):
                                 (originalVdiSize, newVdiSize))
 
         self.sr.check()
-        self.host.getCLIInstance().execute("vdi-destroy", "uuid=%s" % (self.vdiuuid))
+        sef.host.destroyVDI(self.vdiuuid)
         
 class TCFCOEGuestLifeCycle(FCOELifecycleBase):
     """Guest Lifecycle operations on FCoE SR."""
@@ -5204,8 +5201,7 @@ class TCFCOEVerifySRProbe(FCOELifecycleBase):
     def run(self, arglist):
 
         if self.srs:
-            xsr = next((s for s in self.host.asXapiObject().SR() if s.srType() == self.SRTYPE), None)
-            self.sr = xenrt.lib.xenserver.FCOEStorageRepository.fromExistingSR(self.host, xsr.uuid)
+            self.sr = xenrt.lib.xenserver.FCOEStorageRepository.fromExistingSR(self.host, self.srs[0])
             self.sr.forget()
             
         cli = self.host.getCLIInstance()

@@ -356,7 +356,7 @@ class TCXenServerInstall(xenrt.TestCase):
                                            False,
                                            boolean=True)
                 if not scsiid:
-                    raise xenrt.XRTError("No FC SCSIID found")
+                    raise xenrt.XRTError("No FCOE SCSIID found")
                 sr = xenrt.lib.xenserver.FCOEStorageRepository(host, "xenrtfcoe")
                 sr.create(scsiid, multipathing=multipathing)
                 sr.check()

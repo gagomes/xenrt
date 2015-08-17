@@ -2625,7 +2625,7 @@ class FCOENetworkBase(xenrt.TestCase):
     def prepare(self, arglist):
 
         self.host = self.getDefaultHost() 
-        self.sruuid = self.host.minimalList("sr-list", args="type=%s" %(self.SRTYPE))[0]
+        self.sruuid = self.host.getSRs(type = self.SRTYPE)[0]
 
     def writePattern(self):
 
@@ -2664,7 +2664,8 @@ class TCFCOEVmVlan(FCOENetworkBase):
         step("Install a VM using the VLAN network")
         bridgename = self.host.genParamGet("network", vbridge, "bridge")
         g = self.host.createGenericLinuxGuest(bridge=bridgename, sr=self.sruuid)
-
+        self.uninstallOnCleanup(g)
+        
         step("Check the VM")
         g.check()
         g.checkHealth()
@@ -2706,9 +2707,7 @@ class TCFCOEVmVlan(FCOENetworkBase):
             xenrt.log(" md5sum of the original file matched with the file copied over the new interface")
         else:
             raise xenrt.XRTFailure("md5sum of the original file doesn't match with the file copied over the new interface")
-            
-        g.uninstall()
-        
+
 class TCFCOEMngR(FCOENetworkBase):
     """Change management interface with host-management-reconfigure."""
 
@@ -2721,7 +2720,7 @@ class TCFCOEMngR(FCOENetworkBase):
                                             "device",
                                             default).strip()
                                             
-        step("Get list of secongary NICs")
+        step("Get list of secondary NICs")
         
         nics = self.host.listSecondaryNICs()
         if len(nics) == 0:
@@ -2779,7 +2778,8 @@ class TCFCOEMngR(FCOENetworkBase):
                                    "management interface.")
 
         g = self.host.createGenericLinuxGuest(sr=self.sruuid)
-
+        self.uninstallOnCleanup(g)
+        
         step("Check the VM")
         g.check()
         g.checkHealth()
@@ -2833,5 +2833,3 @@ class TCFCOEMngR(FCOENetworkBase):
             xenrt.log(" md5sum of the original file matched with the file copied over the new interface")
         else:
             raise xenrt.XRTFailure("md5sum of the original file doesn't match with the file copied over the new interface")
-            
-        g.uninstall()

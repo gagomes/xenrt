@@ -4963,7 +4963,7 @@ class _PathFailOver(TCValidateFCOEMultipathPathCount):
 
         try:
             first = int(float(self.guest.execguest("tail -n 1 /tmp/rw.log").strip()))
-            time.sleep(30)
+            xenrt.sleep(30)
             next = int(float(self.guest.execguest("tail -n 1 /tmp/rw.log").strip()))
             if next == first:
                 raise xenrt.XRTFailure("Periodic read/write script has not "
@@ -4976,7 +4976,7 @@ class _PathFailOver(TCValidateFCOEMultipathPathCount):
     def run(self, arglist=None):
         _TC8159.run(self, arglist)
         self.host = self.getDefaultHost()
-        dev = self.guest.createDisk(sizebytes=5368709120, sruuid=self.sr.uuid, returnDevice=True) # 5GB
+        dev = self.guest.createDisk(sizebytes=5*xenrt.GIGA, sruuid=self.sr.uuid, returnDevice=True) # 5GB
         xenrt.sleep(5)
         
         # Launch a periodic read/write script using the new disk
@@ -5009,7 +5009,7 @@ class TCFCOEPrimaryPathFailover(_PathFailOver):
         _TC8159.run(self, arglist)
         self.host = self.getDefaultHost()
         
-        dev = self.guest.createDisk(sizebytes=5368709120, sruuid=self.sr.uuid, returnDevice=True) # 5GB
+        dev = self.guest.createDisk(sizebytes=5*xenrt.GIGA, sruuid=self.sr.uuid, returnDevice=True) # 5GB
                 
         # Launch a periodic read/write script using the new disk
         self.guest.execguest("%s/remote/readwrite.py /dev/%s > /tmp/rw.log "
@@ -5093,5 +5093,3 @@ class TCCheckSROperations(_PathFailOver):
         self.enableEthPort(1)
         self.sr = self.createSR(self.host)
         self.checkThenDestroySR()
-
-        

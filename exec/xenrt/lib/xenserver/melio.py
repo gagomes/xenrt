@@ -128,12 +128,9 @@ class MelioHelper(object):
         return "/dev/disk/by-id/scsi-%s" % self.scsiid
 
     def saneDevice(self, host):
-        try:
-            return host.execdom0("ls /dev/sane*").splitlines()[-1]
-        except:
-            return self.device
+        return host.execdom0("ls /dev/sane*").splitlines()[-1]
 
-    def setupMelioDiskWS(self):
+    def setupMelioDisk(self):
         disk = self.hosts[0].execdom0("realpath %s" % self.device).strip()[5:]
         with self.getMelioClient(self.hosts[0]) as melioClient:
             diskToManage = [x for x in melioClient.get_all()['unmanaged_disk'] if x['system_name'] == disk][0]
@@ -148,9 +145,6 @@ class MelioHelper(object):
                     raise xenrt.XRTError("Timed out waiting for disk to get to state 2")
                 xenrt.sleep(10)
             xenrt.TEC().logverbose(melioClient.create_volume(guid.lstrip("_"), managedDisks[guid]['free_space']))
-
-    def setupMelioDisk(self):
-        self.hosts[0].execdom0("/usr/sbin/wd_format warm_fs mount_1234 %s" % self.device)
 
     def mount(self, mountpoint):
         for host in self.hosts:

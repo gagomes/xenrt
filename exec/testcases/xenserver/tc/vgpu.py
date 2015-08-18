@@ -3622,11 +3622,11 @@ class TCSwitchIntelGPUModes(IntelBase):
             # setup gpu passthrough on the second vm, drivers + verify.
             __prepareVM(passVM, passConfig)
 
-            # shutdown passthrough vm, and try to start vgpu vm (should fail).
+            # shutdown passthrough vm
             passVM.setState("DOWN")
 
-            # Currently a bug, so this may start the VM regardless if the environment is available on the host.
-            __tryStartVM(vgpuVM, "Was able to start vgpu vm, when in gpu passthrough config mode.")
+            # try to start vgpu vm (should fail).
+            __tryStartVM(vgpuVM, "Was able to start vgpu vm when in gpu passthrough config mode.")
 
             # unblock dom0 access again, reboot host.
             self.typeOfvGPU.unblockDom0Access(self.host)
@@ -3634,10 +3634,10 @@ class TCSwitchIntelGPUModes(IntelBase):
             # start vgpu vm (should work fine).
             vgpuVM.setState("UP")
 
-            # shutdown vgpu vm, and try to start gpu passthrough vm (should fail.)
+            # shutdown vgpu vm
             vgpuVM.setState("DOWN")
 
-            # Currently a bug, so this may start the VM regardless if the environment is available on the host.
+            # try to start gpu passthrough vm (should fail.)
             __tryStartVM(passVM, "Was able to start passthrough vm, when in vgpu config mode.")
 
 

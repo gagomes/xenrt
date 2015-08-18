@@ -34,6 +34,7 @@ __all__ = ["getStorageRepositoryClass",
            "ISOStorageRepository",
            "CIFSISOStorageRepository",
            "FCStorageRepository",
+           "FCOEStorageRepository",
            "SharedSASStorageRepository",
            "ISCSIHBAStorageRepository",
            "ISCSILun",
@@ -1279,7 +1280,51 @@ class HBAStorageRepository(StorageRepository):
         if self.multipathing:
             slave.enableMultipathing()
 
+class FCOEStorageRepository(StorageRepository):
+    """Models a fiber channel or iSCSI via HBA SR"""
 
+    CLEANUP = "destroy"
+    SHARED = True
+
+    def create(self,
+               scsiid,
+               physical_size="0",
+               content_type="",
+               multipathing=False):
+        self.multipathing = multipathing
+        if multipathing:
+            device = "/dev/mapper/%s" % (scsiid)
+            prepdevice = "/dev/disk/by-id/scsi-%s" % (scsiid)
+            self.host.enableMultipathing()
+        else:
+            device = "/dev/disk/by-id/scsi-%s" % (scsiid)
+            prepdevice = device
+        try:
+            blockdevice = self.host.execdom0("readlink -f %s" % prepdevice).strip()
+            if len(blockdevice.split('/')) !=3:
+                raise xenrt.XRTFailure("The block device %s is not detected by the host." % scsiid)
+
+            self.host.execdom0("test -x /opt/xensource/bin/diskprep && /opt/xensource/bin/diskprep -f %s || dd if=/dev/zero of=%s bs=4096 count=10" % (blockdevice, blockdevice))
+
+        except:
+            xenrt.TEC().warning("Error erasing disk on %s" % (scsiid))
+        
+        dconf = {}
+        dconf["device"] = device
+        dconf["SCSIid"] = scsiid
+        self._create("lvmofcoe",
+                     dconf,
+                     physical_size=physical_size,
+                     content_type=content_type)
+
+    def check(self):
+        StorageRepository.checkCommon(self, "lvmofcoe")
+        # TODO check multipathing config
+
+    def prepareSlave(self, master, slave, special=None):
+        if self.multipathing:
+            slave.enableMultipathing()
+            
 class FCStorageRepository(HBAStorageRepository):
     pass
 

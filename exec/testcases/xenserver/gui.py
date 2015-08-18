@@ -14,7 +14,7 @@ import xenrt.lib.xenserver.cli
 import xenrt.lib.xenserver
 from xenrt.lazylog import log, step
 from abc import ABCMeta, abstractmethod, abstractproperty
-from xenrt.lib.opsys.windowspackages import PowerShell40
+from xenrt.lib.opsys.windowspackages import PowerShell40, PowerShell20
 
 
 class TCGUIJUnit(xenrt.TestCase):

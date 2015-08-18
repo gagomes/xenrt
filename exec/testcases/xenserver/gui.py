@@ -586,7 +586,8 @@ class _PowerShellSnapTest(xenrt.TestCase):
             self.installObject = PowerShell40(self.guest)
             self.installObject._installPackage()
         else:
-            self.guest.installPowerShell20()
+            self.installObject = PowerShell20(self.guest)
+            self.installObject._installPackage()
         
         self.guest.waitforxmlrpc(600)
         self.guest.installPowerShellSnapIn(snapInDirName=self.SNAPIN_DIR_NAME)

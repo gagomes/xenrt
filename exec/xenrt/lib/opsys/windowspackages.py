@@ -174,6 +174,53 @@ class WindowsInstaller(WindowsPackage):
 
 RegisterWindowsPackage(WindowsInstaller)
 
+class PowerShell20(WindowsPackage):
+    NAME = "PowerShell 2.0"
+    REQUIRE_REBOOT = True
+    
+    def _packageInstalled(self):
+        return self._os.getPowershellVersion() >= 2.0
+    
+    def _installDotNetPackage(self):
+        self._os.installDotNet2()
+        
+    def _getExecutableForGivenArchitecture(self):
+        if self.xmlrpcWindowsVersion() == "6.0":
+            if self.xmlrpcGetArch() == "amd64":
+                return "Windows6.0-KB968930-x64.msu"
+            return "Windows6.0-KB968930-x86.msu"
+            
+        if self.xmlrpcWindowsVersion() == "5.2":
+            if self.xmlrpcGetArch() == "amd64":
+                return "WindowsServer2003-KB968930-x64-ENG.exe"
+            return "WindowsServer2003-KB968930-x86-ENG.exe"
+            
+        return "WindowsXP-KB968930-x86-ENG.exe"
+    
+    @property
+    def _packageName(self):
+        return "powershell20"
+
+    def _installPackage(self):
+        if self._packageInstalled():
+            xenrt.TEC().logverbose("%s or above installed." % self.NAME)
+            return
+        Versions = ["5.1","5.2","6.0"]
+            
+        if self._os.xmlrpcWindowsVersion() not in Versions:
+            raise xenrt.XRTError("%s installer is not \
+                available for Windows version %s" % (self.NAME,self._os.xmlrpcWindowsVersion()))
+            
+        self._installDotNetPackage()   
+        exe = self._getExecutableForGivenArchitecture()
+        
+        t = self._os.xmlrpcTempDir()
+        self._os.xmlrpcUnpackTarball("%s/%s.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE"),self._packageName), t)
+        self._os.xmlrpcExec("%s\\%s\\%s /quiet /norestart" % (t, self._packageName,exe), returnerror=False, timeout=600)
+        self._os.reboot()
+        
+RegisterWindowsPackage(PowerShell20)
+
 class PowerShell30(WindowsPackage):
     NAME = "PowerShell 3.0"
     REQUIRE_REBOOT = True

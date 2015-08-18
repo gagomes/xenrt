@@ -185,12 +185,12 @@ class PowerShell20(WindowsPackage):
         self._os.installDotNet2()
         
     def _getExecutableForGivenArchitecture(self):
-        if self.xmlrpcWindowsVersion() == "6.0":
-            if self.xmlrpcGetArch() == "amd64":
+        if self._os.xmlrpcWindowsVersion() == "6.0":
+            if self._os.xmlrpcGetArch() == "amd64":
                 return "Windows6.0-KB968930-x64.msu"
             return "Windows6.0-KB968930-x86.msu"
             
-        if self.xmlrpcWindowsVersion() == "5.2":
+        if self._os.xmlrpcWindowsVersion() == "5.2":
             if self.xmlrpcGetArch() == "amd64":
                 return "WindowsServer2003-KB968930-x64-ENG.exe"
             return "WindowsServer2003-KB968930-x86-ENG.exe"

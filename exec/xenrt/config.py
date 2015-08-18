@@ -2881,7 +2881,7 @@ class Config(object):
             'sl511_x86-32', 'sl511_x86-64', 'sl5u_x86-32', 'sl5u_x86-64', 'sl66_x86-32', 'sl66_x86-64',
             'sl6u_x86-32', 'sl6u_x86-64', 'sl71_x86-64', 'sl7u_x86-64',
             'sles104_x86-32', 'sles104_x86-64', 'ws12core-x64', 'ws12r2core-x64']
-        self.config["GUEST_TESTS"]["Dundee"]["Tertiary"] = ['centos45_x86-32', 'centos46_x86-32', 'centos47_x86-32', 'centos48_x86-32',
+        self.config["GUEST_TESTS"]["Dundee"]["Tertiary"] = ['centos48_x86-32',
             'centos510_x86-32', 'centos510_x86-64', 'centos51_x86-32', 'centos51_x86-64', 'centos52_x86-32', 'centos52_x86-64',
             'centos53_x86-32', 'centos53_x86-64', 'centos54_x86-32', 'centos54_x86-64', 'centos55_x86-32', 'centos55_x86-64',
             'centos56_x86-32', 'centos56_x86-64', 'centos57_x86-32', 'centos57_x86-64', 'centos58_x86-32', 'centos58_x86-64',
@@ -2890,7 +2890,7 @@ class Config(object):
             'oel510_x86-32', 'oel510_x86-64', 'oel53_x86-32', 'oel53_x86-64', 'oel54_x86-32', 'oel54_x86-64', 'oel55_x86-32', 'oel55_x86-64',
             'oel56_x86-32', 'oel56_x86-64', 'oel57_x86-32', 'oel57_x86-64', 'oel58_x86-32', 'oel58_x86-64', 'oel59_x86-32', 'oel59_x86-64',
             'oel63_x86-32', 'oel63_x86-64', 'oel64_x86-32', 'oel64_x86-64', 'oel65_x86-32', 'oel65_x86-64', 'oel7_x86-64',
-            'rhel45_x86-32', 'rhel46_x86-32', 'rhel47_x86-32', 'rhel510_x86-32', 'rhel510_x86-64', 'rhel51_x86-32', 'rhel51_x86-64',
+            'rhel510_x86-32', 'rhel510_x86-64', 'rhel51_x86-32', 'rhel51_x86-64',
             'rhel52_x86-32', 'rhel52_x86-64', 'rhel53_x86-32', 'rhel53_x86-64', 'rhel54_x86-32', 'rhel54_x86-64', 'rhel55_x86-32', 'rhel55_x86-64',
             'rhel56_x86-32', 'rhel56_x86-64', 'rhel57_x86-32', 'rhel57_x86-64', 'rhel58_x86-32', 'rhel58_x86-64', 'rhel59_x86-32', 'rhel59_x86-64',
             'rhel63_x86-32', 'rhel64_x86-32', 'rhel64_x86-64', 'rhel65_x86-32', 'rhel65_x86-64', 'rhel7_x86-64',

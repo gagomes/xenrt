@@ -24,6 +24,8 @@ class MelioHelper(object):
         for host in self.hosts:
             host.melioHelper = self
         self.lun = None
+        self._scsiid = None
+        self._saneDevice = None
         self._iscsiHost = iscsiHost
         if not xenrt.TEC().lookup("MELIO_PYTHON_LOCAL_PATH", None):
             d = xenrt.TempDirectory()
@@ -118,17 +120,18 @@ class MelioHelper(object):
 
     def setupISCSITarget(self):
         self.createLun()
-        self.scsiid = self.lun.getID()
+        self._scsiid = self.lun.getID()
         for host in self.hosts:
             host.execdom0("iscsiadm -m discovery -t st -p %s" % self.lun.getServer())
             host.execdom0('iscsiadm -m node --targetname "%s" --portal "%s:3260" --login' % (self.lun.getTargetName(), self.lun.getServer()))
 
     @property
     def device(self):
-        return "/dev/disk/by-id/scsi-%s" % self.scsiid
+        return "/dev/disk/by-id/scsi-%s" % self._scsiid
 
+    @property
     def saneDevice(self, host):
-        return host.execdom0("ls /dev/sane*").splitlines()[-1]
+        return "/dev/%s" % self._saneDevice
 
     def setupMelioDisk(self):
         disk = self.hosts[0].execdom0("realpath %s" % self.device).strip()[5:]
@@ -152,11 +155,17 @@ class MelioHelper(object):
                 if xenrt.timenow() > deadline:
                     raise xenrt.XRTError("Timed out waiting for disk to get to state 2")
                 xenrt.sleep(10)
-            xenrt.TEC().logverbose(melioClient.create_volume(guid.lstrip("_"), managedDisks[guid]['free_space']))
+            guid = melioClient.create_volume(guid.lstrip("_"), managedDisks[guid]['free_space']))
+            exportedDevice = melioClient.get_all()['exported_device']
+            if guid in exportedDevice.keys():
+                self._saneDevice = exportedDevice[guid]['system_name']
+            else:
+                self._saneDevice = exportedDevice["_%s" % guid]['system_name']
+
 
     def mount(self, mountpoint):
         for host in self.hosts:
-            host.execdom0("mount -t warm_fs %s %s" % (self.saneDevice(host), mountpoint))
+            host.execdom0("mount -t warm_fs %s %s" % (self.saneDevice, mountpoint))
     
     def checkMount(self, mountpoint):
         for host in self.hosts:

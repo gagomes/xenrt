@@ -1,12 +1,13 @@
 import MySQLdb,IPy
 
 class RackTables:
-    def __init__(self, host, db, user, password=None):
+    def __init__(self, host, db, user, password=None, version=1):
         # Need to supply DB Host, DB name, and username/password that can read the DB from where this is run
         if password:
             self.db = MySQLdb.connect(host=host, db=db, user=user, passwd=password)
         else:
             self.db = MySQLdb.connect(host=host, db=db, user=user)
+        self.version = version
 
     def _execSQL(self, sql):
         cur = self.db.cursor()
@@ -85,21 +86,38 @@ class RackTablesObject:
         # (local port name, local port type, local port MAC, local port label, remote object, remote port name)
         ret = []
         pids = []
-        queries = ["""SELECT p.id,p.name,d.dict_value,p.l2address,ob.id,ob.name,pb.name,p.label
-                        FROM Port p
-                            INNER JOIN Dictionary d ON d.dict_key=p.type
-                            INNER JOIN Link l ON (l.porta=p.id)
-                            INNER JOIN Port pb ON (l.portb = pb.id)
-                            INNER JOIN RackObject ob ON (pb.object_id=ob.id)
-                        WHERE p.object_id=%d;""",
-                   """SELECT p.id,p.name,d.dict_value,p.l2address,ob.id,ob.name,pb.name,p.label
-                        FROM Port p
-                            INNER JOIN Dictionary d ON d.dict_key=p.type
-                            INNER JOIN Link l ON (l.portb=p.id)
-                            INNER JOIN Port pb ON (l.porta = pb.id)
-                            INNER JOIN RackObject ob ON (pb.object_id=ob.id)
-                        WHERE p.object_id=%d;"""]
-                    
+        if self.parent.version == 1:
+            queries = ["""SELECT p.id,p.name,d.dict_value,p.l2address,ob.id,ob.name,pb.name,p.label
+                            FROM Port p
+                                INNER JOIN Dictionary d ON d.dict_key=p.type
+                                INNER JOIN Link l ON (l.porta=p.id)
+                                INNER JOIN Port pb ON (l.portb = pb.id)
+                                INNER JOIN RackObject ob ON (pb.object_id=ob.id)
+                            WHERE p.object_id=%d;""",
+                       """SELECT p.id,p.name,d.dict_value,p.l2address,ob.id,ob.name,pb.name,p.label
+                            FROM Port p
+                                INNER JOIN Dictionary d ON d.dict_key=p.type
+                                INNER JOIN Link l ON (l.portb=p.id)
+                                INNER JOIN Port pb ON (l.porta = pb.id)
+                                INNER JOIN RackObject ob ON (pb.object_id=ob.id)
+                            WHERE p.object_id=%d;"""]
+        elif self.parent.version == 2:
+            queries = ["""SELECT p.id,p.name,d.oif_name,p.l2address,ob.id,ob.name,pb.name,p.label
+                            FROM Port p
+                                INNER JOIN PortOuterInterface d ON d.id=p.type
+                                INNER JOIN Link l ON (l.porta=p.id)
+                                INNER JOIN Port pb ON (l.portb = pb.id)
+                                INNER JOIN RackObject ob ON (pb.object_id=ob.id)
+                            WHERE p.object_id=%d;""",
+                       """SELECT p.id,p.name,d.oif_name,p.l2address,ob.id,ob.name,pb.name,p.label
+                            FROM Port p
+                                INNER JOIN PortOuterInterface d ON d.id=p.type
+                                INNER JOIN Link l ON (l.portb=p.id)
+                                INNER JOIN Port pb ON (l.porta = pb.id)
+                                INNER JOIN RackObject ob ON (pb.object_id=ob.id)
+                            WHERE p.object_id=%d;"""]
+                        
+                        
         for q in queries:
             res = self.parent._execSQL(q % self.objid)
             for r in res:

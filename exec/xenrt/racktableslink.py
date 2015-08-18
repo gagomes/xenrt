@@ -18,7 +18,8 @@ def getRackTablesInstance():
         rtUser = xenrt.GEC().config.lookup("RACKTABLES_DB_USER", None)
         rtDB = xenrt.GEC().config.lookup("RACKTABLES_DB_NAME", None)
         rtPassword = xenrt.GEC().config.lookup("RACKTABLES_DB_PASSWORD", None)
-        _rackTablesInstance = RackTables(rtHost, rtDB, rtUser, rtPassword)
+        rtVersion = int(xenrt.GEC().config.lookup("RACKTABLES_DB_VERSION", "1"))
+        _rackTablesInstance = RackTables(rtHost, rtDB, rtUser, rtPassword, rtVersion)
     return _rackTablesInstance
 
 def closeRackTablesInstance():

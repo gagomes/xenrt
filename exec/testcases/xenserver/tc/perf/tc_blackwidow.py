@@ -30,8 +30,12 @@ DEFINE_REQUESTS
     def configureVPX(self, vpx):
         vpx.password = 'nsroot'
 
-    def nscli(self, vpx, cmd):
-        return vpx.cli(cmd)
+    def nscli(self, vpx_ns, cmds):
+        output = []
+        for cmd in cmds.strip().split("\n"):
+            if cmd.strip():
+                output.append(vpx_ns.cli(cmd))
+        return output[0] if len(output)==1 else output
 
     def setupBlackWidow(self, vpx):
         xenrt.TEC().logverbose("setting up %s as blackwidow..." % (vpx))
@@ -244,3 +248,83 @@ class TCTcpVipCps(TCHttp100KResp):
 
     def createHttpClients(self, vpx_ns):
         self.nscli(vpx_ns, "shell /var/BW/conntest -s %d -p serverip=43.54.30.247 -p parallelconn=%d  -p serverport=80 -p holdconn=0 -y -e conntest" % (self.client_id, self.httpClientParallelconn))
+
+class TCSslEncThroughput(TCHttp100KResp):
+    TEST = "SSL Encrypted Throughput"
+
+    def __init__(self):
+        _BlackWidow.__init__(self, self.TEST)
+
+    def setupBlackWidow(self, vpx):
+        xenrt.TEC().logverbose("setting up %s as blackwidow..." % (vpx))
+        self.configureVPX(vpx)
+        vpx_ns = xenrt.lib.netscaler.NetScaler(vpx, None)
+
+        # Remove existing SNIP, if any
+        snipLines = self.nscli(vpx_ns, "show ns ip | grep SNIP")
+        for snipLine in snipLines:
+            existingSNIP = snipLine.split('\t')[1].split(' ')[0]
+            self.nscli(vpx_ns, "rm ns ip %s" % (existingSNIP))
+
+        self.nscli(vpx_ns, """add servicegroup Loopback TCP
+bind servicegroup Loopback 43.54.35.2 80
+enable feature lb
+add lb vserver v1 SSL_TCP 43.54.31.1 443
+bind lb vserver v1 Loopback""")
+
+        self.nscli(vpx_ns, "add ip 43.54.180.10 255.255.0.0")
+        self.nscli(vpx_ns, 'save ns config')
+        return vpx_ns
+
+    def setupDUT(self, vpx):
+        xenrt.TEC().logverbose("setting up %s as DUT..." % (vpx))
+        self.configureVPX(vpx)
+        vpx_ns = xenrt.lib.netscaler.NetScaler(vpx, None)
+
+        # Extract the files from the following ssl.tar.gz into /nsconfig/ssl on the DUT
+        sslTarFileUrl = xenrt.TEC().lookup('NS_BW_TEST_SSL_TAR',"http://files.uk.xensource.com/usr/groups/xenrt/ns_bw_testing/ssl.tar.gz")
+        sslTarFile = "/nsconfig/ssl/ssl.tar.gz"
+        dut.sftpClient(username="nsroot").copyTo(xenrt.TEC().getFile(sslTarFileUrl),"/nsconfig/ssl.tar.gz")
+        ns_dut.cli("shell tar -xvf %s -C /nsconfig/ssl" % sslTarFile)
+
+        # Remove existing SNIP, if any
+        snipLines = self.nscli(vpx_ns, "show ns ip | grep SNIP")
+        for snipLine in snipLines:
+            existingSNIP = snipLine.split('\t')[1].split(' ')[0]
+            self.nscli(vpx_ns, "rm ns ip %s" % (existingSNIP))
+
+        self.nscli(vpx_ns, """
+enable feature LB SSL ipv6pt
+DISABLE FEATURE WL SP
+DISABLE MODE EDGE L3 PMTU
+enable ns mode MBF USNIP FR
+set audit syslogparam -loglevel NONE
+set dns parameter -nameLookupPriority DNS -cacheRecords NO
+add ssl certkey c1 -cert server_cert.pem -key server_key.pem
+add ssl certKey c2 -cert Cert2048 -key Key2048bit
+set tcpparam -SACK DISABLED -WS DISABLED -ackOnPush DISABLED""")
+
+        # Add SNIPs (the origin IP for requests travelling from NS to webserver)
+        self.nscli(vpx_ns, "\n".join(["add ip 43.54.30.%d 255.255.0.0 -ty SNIP -mg en"%i for i in range(1,self.snips+1)]))
+
+        # Make 43.* traffic go down the second interface
+        self.nscli(vpx_ns, """bind vlan 2 -IPAddress 43.54.30.1 255.255.0.0
+enable feat SSL LB""")
+
+        # Configure the vServers and bind it to the true servers
+        for i in range(1,9):
+            self.nscli(vpx_ns, "add lb vserver v%d SSL 43.54.30.%d 443 -lbmethod ROUNDROBIN"%(i,246+i) )
+            self.nscli(vpx_ns, """
+bind ssl vserver v%d -certkey c2
+set ssl vserver v%d -sessReuse ENABLED
+add service s%d 43.54.3%d.254 HTTP 80
+bind lb vser v%d s%d""" % tuple([i]*5) )
+
+        self.nscli(vpx_ns, 'save ns config')
+        return vpx_ns
+
+    def createHttpServers(self, vpx_ns):
+        self.nscli(vpx_ns, "shell /var/BW/nscsconfig -s server=%d -s serverip=43.54.35.2 -s serverip_range=253 -s ka=100 -s contentlen=70 -s chunked=30 -w %s -ye httpsvr" % (self.server_id, self.workload))
+
+    def createHttpClients(self, vpx_ns):
+        self.nscli(vpx_ns, "shell /var/BW/nscsconfig -s client=%d -s cltserverport=443 -s ssl=1 -s ssl_sess_reuse_disable=0 -s ssl_dont_parse_server_cert=1 -s ssl_client_hello_version=2  -s percentpers=100 -w /var/BW/WL/100KB.wl -s cltserverip=43.54.30.251 -s threads=%d -s parallelconn=%d -ye start" % (self.client_id, self.workload, self.httpClientThreads, self.httpClientParallelconn))

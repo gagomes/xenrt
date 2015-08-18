@@ -155,7 +155,7 @@ class MelioHelper(object):
                 if xenrt.timenow() > deadline:
                     raise xenrt.XRTError("Timed out waiting for disk to get to state 2")
                 xenrt.sleep(10)
-            guid = melioClient.create_volume(guid.lstrip("_"), managedDisks[guid]['free_space']))
+            guid = melioClient.create_volume(guid.lstrip("_"), managedDisks[guid]['free_space'])
             exportedDevice = melioClient.get_all()['exported_device']
             if guid in exportedDevice.keys():
                 self._saneDevice = exportedDevice[guid]['system_name']

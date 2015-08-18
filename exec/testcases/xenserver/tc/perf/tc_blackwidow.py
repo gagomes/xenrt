@@ -284,8 +284,8 @@ bind lb vserver v1 Loopback""")
         # Extract the files from the following ssl.tar.gz into /nsconfig/ssl on the DUT
         sslTarFileUrl = xenrt.TEC().lookup('NS_BW_TEST_SSL_TAR',"http://files.uk.xensource.com/usr/groups/xenrt/ns_bw_testing/ssl.tar.gz")
         sslTarFile = "/nsconfig/ssl/ssl.tar.gz"
-        dut.sftpClient(username="nsroot").copyTo(xenrt.TEC().getFile(sslTarFileUrl),"/nsconfig/ssl.tar.gz")
-        ns_dut.cli("shell tar -xvf %s -C /nsconfig/ssl" % sslTarFile)
+        vpx_ns.getGuest().sftpClient(username="nsroot").copyTo(xenrt.TEC().getFile(sslTarFileUrl),"/nsconfig/ssl.tar.gz")
+        vpx_ns.cli("shell tar -xvf %s -C /nsconfig/ssl" % sslTarFile)
 
         # Remove existing SNIP, if any
         snipLines = self.nscli(vpx_ns, "show ns ip | grep SNIP")
@@ -318,7 +318,7 @@ enable feat SSL LB""")
 bind ssl vserver v%d -certkey c2
 set ssl vserver v%d -sessReuse ENABLED
 add service s%d 43.54.3%d.254 HTTP 80
-bind lb vser v%d s%d""" % tuple([i]*5) )
+bind lb vser v%d s%d""" % tuple([i]*6) )
 
         self.nscli(vpx_ns, 'save ns config')
         return vpx_ns
@@ -327,4 +327,4 @@ bind lb vser v%d s%d""" % tuple([i]*5) )
         self.nscli(vpx_ns, "shell /var/BW/nscsconfig -s server=%d -s serverip=43.54.35.2 -s serverip_range=253 -s ka=100 -s contentlen=70 -s chunked=30 -w %s -ye httpsvr" % (self.server_id, self.workload))
 
     def createHttpClients(self, vpx_ns):
-        self.nscli(vpx_ns, "shell /var/BW/nscsconfig -s client=%d -s cltserverport=443 -s ssl=1 -s ssl_sess_reuse_disable=0 -s ssl_dont_parse_server_cert=1 -s ssl_client_hello_version=2  -s percentpers=100 -w /var/BW/WL/100KB.wl -s cltserverip=43.54.30.251 -s threads=%d -s parallelconn=%d -ye start" % (self.client_id, self.workload, self.httpClientThreads, self.httpClientParallelconn))
+        self.nscli(vpx_ns, "shell /var/BW/nscsconfig -s client=%d -s cltserverport=443 -s ssl=1 -s ssl_sess_reuse_disable=0 -s ssl_dont_parse_server_cert=1 -s ssl_client_hello_version=2  -s percentpers=100 -w %s -s cltserverip=43.54.30.251 -s threads=%d -s parallelconn=%d -ye start" % (self.client_id, self.workload, self.httpClientThreads, self.httpClientParallelconn))

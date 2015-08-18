@@ -191,7 +191,7 @@ class PowerShell20(WindowsPackage):
             return "Windows6.0-KB968930-x86.msu"
             
         if self._os.xmlrpcWindowsVersion() == "5.2":
-            if self.xmlrpcGetArch() == "amd64":
+            if self._os.xmlrpcGetArch() == "amd64":
                 return "WindowsServer2003-KB968930-x64-ENG.exe"
             return "WindowsServer2003-KB968930-x86-ENG.exe"
             

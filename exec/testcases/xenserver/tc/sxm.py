@@ -1161,7 +1161,7 @@ class LiveMigrate(xenrt.TestCase):
 
         # Number of VDIs on destination host
         test_status.extend(self.checkNumOfVDIs(guest))
-        
+
         xenrt.TEC().logverbose("Guest health check finished")
         if len(test_status) > 0:
             xenrt.TEC().logverbose("Following errors found while verifying guest health after sxm")
@@ -1372,12 +1372,12 @@ class LiveMigrate(xenrt.TestCase):
                 if (results[vmName]['taskResult'] == 'error' or results[vmName]['taskResult'] == 'failure'):
                     if self.test_config['cancel_migration'] or self.test_config['negative_test']:
                         xenrt.TEC().logverbose("INFO_SXM:Migration seems to be errored/failed which is expected due to negative scenario ;now checking guest health postsxm")
-                        test_status = self.checkGuest(obs.vm)                                             
+                        test_status = self.checkGuest(obs.vm)
                     else:
                         pass # we skip the guest checks
                 else: # In case of a successful migration, we should do checkGuest
                     xenrt.TEC().logverbose("INFO_SXM:Migration seems to be successful ;now checking guest health postsxm")
-                    test_status = self.checkGuest(obs.vm)                    
+                    test_status = self.checkGuest(obs.vm)
                     
                 if not self.test_config['win_crash']:
                     if vmconfig.has_key('nodrivers') and vmconfig['nodrivers']:
@@ -2791,6 +2791,7 @@ class VMRevertedToSnapshot(LiveMigrate):
         self.vm_config[vm.getName()]['VIF_NW_map'] = vif_nw_map
 
 
+
 class UserTemplateStorageMigration(LiveMigrate):
     """Intra Pool Storage Migration when the VM is an halted state"""
 
@@ -2827,3 +2828,103 @@ class SystemTemplateStorageMigration(UserTemplateStorageMigration):
             guest = vm['obj']
             guest.paramSet("other-config:default_template", "false")
         UserTemplateStorageMigration.postHook(self)
+
+
+class VDICorruptionDurSXM(LiveMigrate):
+
+    def setTestParameters(self):
+        self.test_config['test_VMs'] = ['lin01']
+        self.test_config['lin01'] = { 'VDI_src_SR_types' : ['ext', 'nfs','lvmoiscsi'],
+                                      'VDI_dest_SR_types' : ['nfs', 'lvmoiscsi','lvm']}
+
+        if 'test' in self.args:
+            self.test_config['type_of_migration'] = self.args['test']
+            
+        #Skip the snapshotvdi check as per the comments in CA-87710 ,hence set the flag true
+        self.test_config['ignore_snapshotvdi_check'] = True
+
+    def preHook(self):
+
+        LiveMigrate.preHook(self)
+        vm = self.guests[0]
+
+        #Create a 256MB file with random contents and note its md5sum
+        vm.execguest("dd if=/dev/urandom of=/file1 count=512000 conv=notrunc oflag=direct",timeout=7200)
+        self.md5sum_pre=vm.execguest("md5sum /file1").split()[0]
+
+        #Sort the devices so the root disk xvda is the first element in the list
+        self.devices=sorted(vm.getHost().minimalList("vbd-list","device","vm-uuid=%s type=Disk" %(vm.getUUID())))
+        xenrt.TEC().logverbose("The devices associated with various vdis are %s"%self.devices)
+        vm.execguest("mkdir /test-%s"%self.devices[0])
+
+        #Format and mount the various vdis in folders
+        for vdi in self.devices[1:] :
+            vm.execguest("mkdir /test-%s;mkfs.ext4 /dev/%s;mount /dev/%s /test-%s"%(vdi,vdi,vdi,vdi))
+
+        #Initiate copying of original file in all the vdis attached to the vm simultaneously
+        self.vdiThreads = xenrt.pfarm([xenrt.PTask(self.writeDataToMulVDIs,vm,vdi) for vdi in self.devices],interval=5,wait = False,exception= True)
+        xenrt.TEC().logverbose("Various Task Threads are %s"%self.vdiThreads)
+        xenrt.TEC().logverbose("Thus we have %s parallel vdi write operations going on and now we will trigger SXM simultaneously" %len(self.devices))
+
+    def writeDataToMulVDIs(self,vm,vdi):
+        #Private Method to copy file into various vdis
+        startTime=xenrt.timenow()
+        xenrt.TEC().logverbose("Started writing vdi %s timestamp:%s" %(vdi,startTime))
+        vm.execguest("dd if=/file1 of=/test-%s/file1copy-%s conv=notrunc oflag=direct"%(vdi,vdi),timeout=7200)
+        finishTime=xenrt.timenow()
+        xenrt.TEC().logverbose("Finished writing vdi %s timestamp:%s" %(vdi,finishTime))
+        xenrt.TEC().logverbose("Total duration of writing vdi %s to vdis :%s" %(vdi,finishTime-startTime))
+
+    def hook(self):
+        vm = self.guests[0]
+        xenrt.TEC().logverbose("SXM would be going on currently;We will wait for for all the copy operations to complete")
+        for t in self.vdiThreads :
+            t.join(7200)
+            if t.is_alive():
+                raise xenrt.XRTError("%s copy Operation Timed out" %t)
+            else:
+                xenrt.TEC().logverbose("%s copy Operation Completed" %t)
+
+    def postHook(self):
+        test_status = []
+        vm = self.guests[0]
+
+        if not self.test_config.has_key('test_status'):
+            self.test_config['test_status'] = {vm.getName() : test_status}
+        elif self.test_config['test_status'].has_key(vm.getName()):
+            test_status = self.test_config['test_status'][vm.getName()]
+        else:
+            self.test_config['test_status'][vm.getName()] = test_status
+
+        xenrt.TEC().logverbose("Prior to Guest Health Check .Verfiy whether the file is not corrupted during migration")
+        #Create a dict for various vdi copies and the md5sum of the copied files
+        self.md5sum_now={vdi :vm.execguest("md5sum /test-%s/file1copy-%s"%(vdi,vdi)).split()[0] for vdi in self.devices}
+        xenrt.TEC().logverbose("md5sum of copied file is %s" %self.md5sum_now)
+        for items in self.md5sum_now:
+            if self.md5sum_pre == self.md5sum_now[items]:
+                xenrt.TEC().logverbose("md5sum matched.No VDI Corruption observed during SXM for vdi %s" %items)
+            else:
+                errMsg="md5sum %s of original file file1 didnt match with the md5sum %s of \
+                copied file file1copy-%s .VDI corruption detected"%(self.md5sum_pre,self.md5sum_now[items],items)
+                xenrt.TEC().warning(errMsg)
+                #Append to the test_status so the error is raised at the end of Post SXM checks
+                test_status.append(errMsg)
+        LiveMigrate.postHook(self)
+
+
+class VDICorruptionDurLiveVDI(VDICorruptionDurSXM):
+
+    def setTestParameters(self):
+        self.test_config['test_VMs'] = ['lin01']
+        self.test_config['lin01'] = { 'VDI_src_SR_types' : ['ext'],
+                                      'VDI_dest_SR_types' : ['nfs']}
+
+        if "test" in self.args:
+            self.test_config['type_of_migration'] = self.args['test']
+            
+        #Skip the snapshotvdi check as per the comments in CA-87710 ,hence set the flag true
+        self.test_config['ignore_snapshotvdi_check'] = True
+
+
+
+

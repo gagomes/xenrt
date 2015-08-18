@@ -202,16 +202,16 @@ class _TransferVM(xenrt.TestCase):
                                     "will retry to see.")
                 tool_vm.xmlrpcExec("%s /resume %s" % (bitsadmin, jobname))                
             elif info['state'] in ["ERROR", "CANCELED"]:
-                raise xenrt.XRTException("The transmition failed with status: "
-                                         "%s." % info['state'])
+                raise xenrt.XRTFailure("The transmition failed with status: "
+                                       "%s." % info['state'])
             else:
-                raise xenrt.XRTException("Unknown tranferring status: %s"
-                                         % info['state'])
+                raise xenrt.XRTError("Unknown tranferring status: %s"
+                                     % info['state'])
             
         if transfer <> "download" or tool_vm.xmlrpcFileExists(filename):
             return filename
         else:
-            raise xenrt.XRTException("%s is not found in the VM" % filename)
+            raise xenrt.XRTError("%s is not found in the VM" % filename)
 
 
     def bitsGetVDI(self, tool_vm, rec):

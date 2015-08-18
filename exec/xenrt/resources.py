@@ -46,6 +46,7 @@ __all__ = ["WebDirectory",
            "StaticIP4Addr",
            "StaticIP6Addr",
            "CentralResource",
+           "CentralLock",
            "SharedHost",
            "PrivateVLAN",
            "ProductLicense",
@@ -595,6 +596,28 @@ class CentralResource(object):
 
     def callback(self):
         self.release(atExit=True)
+
+class CentralLock(CentralResource):
+    """Implementation of a central lock"""
+    def __init__(self, id, timeout=3600, acquire=True):
+        self.id = id
+        CentralResource.__init__(self, timeout=timeout)
+        if acquire:
+            self.acquire()
+
+    def acquire(self):
+        startlooking = xenrt.util.timenow()
+        while True:
+            try:
+                CentralResource.acquire(self, self.id, shared=False)
+                break
+            except xenrt.XRTError:
+                pass 
+            if xenrt.util.timenow() > (startlooking + self.timeout):
+                xenrt.TEC().logverbose("Timed out waiting for lock after %d seconds" % self.timeout)
+                self.logList()
+                raise xenrt.XRTError("Timed out waiting for lock")
+            xenrt.sleep(30)
 
 class ManagedStorageResource(CentralResource):
     """Resources that can be used as CVSM targets should inherit this class."""
@@ -1550,11 +1573,14 @@ class SpecifiedSMBShare(object):
 class ISCSIVMLun(ISCSILun):
     """ A tempory LUN in a VM """
     
-    def __init__(self,hostIndex=None,sizeMB=None, totalSizeMB=None, guestName="xenrt-iscsi-target", bridges=None, targetType=None):
-        if not hostIndex:
-            self.host = xenrt.TEC().registry.hostGet("RESOURCE_HOST_0")
+    def __init__(self,hostIndex=None,sizeMB=None, totalSizeMB=None, guestName="xenrt-iscsi-target", bridges=None, targetType=None, host=None):
+        if host:
+            self.host=host
         else:
-            self.host = xenrt.TEC().registry.hostGet("RESOURCE_HOST_%s" % hostIndex)
+            if not hostIndex:
+                self.host = xenrt.TEC().registry.hostGet("RESOURCE_HOST_0")
+            else:
+                self.host = xenrt.TEC().registry.hostGet("RESOURCE_HOST_%s" % hostIndex)
         if not sizeMB:
             sizeMB = 50*xenrt.KILO
         self.guestName = guestName
@@ -1567,7 +1593,6 @@ class ISCSIVMLun(ISCSILun):
             self._existingISCSIVM(sizeMB)
             
 
-        self.scsiid = None
         self.outgoingChap = None
         self.chap = None
         self.initiatornamebase = None
@@ -1577,7 +1602,7 @@ class ISCSIVMLun(ISCSILun):
         self.server = self.guest.mainip
         self.secAddrs = {}
         # Add a LUN to this VM
-        self.guest.createISCSITargetLun(self.lunid, int(sizeMB), dir="/iscsi/", thickProvision=False)
+        self.scsiid = self.guest.createISCSITargetLun(self.lunid, int(sizeMB), dir="/iscsi/", thickProvision=False)
 
     def _existingISCSIVM(self, sizeMB):
         # Check whether we gave this VM space for all the LUNs upfront. If we didn't, we need to shut it down and resize the VDI

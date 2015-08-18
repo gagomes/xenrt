@@ -1,6 +1,7 @@
 import xenrt
 from xenrt.enum import XenServerLicenseSKU
 from abc import ABCMeta, abstractmethod
+from xenrt.lazylog import log
 
 __all__ = ["DundeeLicense", "CreedenceLicense", "TampaLicense", "ClearwaterLicense", "XenServerLicenseFactory", "LicenseManager"]
 
@@ -33,7 +34,7 @@ class LicenseManager(object):
             return
 
         tmp,currentLicinuse = v6.getLicenseInUse(License.getLicenseName())
-        log("tmp: %s currentlicinuse: %s sockets: %s LicenseinUse: %s "%(tmp,currentlicinuse,hostOrPool.getNoOfSockets(),LicenseinUse))
+        log("tmp: %s currentlicinuse: %s sockets: %s LicenseinUse: %s "%(tmp,currentLicinuse,hostOrPool.getNoOfSockets(),LicenseinUse))
         if reset:
             if LicenseinUse != currentLicinuse:
                 raise xenrt.XRTFailure("Not all the Licenses are not returned to License server, current Licenses in use %d" % (currentLicinuse))

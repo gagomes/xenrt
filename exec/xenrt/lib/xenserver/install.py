@@ -223,7 +223,7 @@ class DundeeInstaller(object):
 
         cmds = []
         if dom0mem:
-            cmds.append(setXen("dom0_mem=%s" % dom0mem))
+            cmds.append(setXen("dom0_mem=%sM" % dom0mem))
         if xenrt.TEC().lookup("OPTION_DEBUG", False, boolean=True):
             cmds.append(setDom0("print-fatal-signals=2"))
             cmds.append(setXen("loglvl=all guest_loglvl=all"))
@@ -1016,6 +1016,19 @@ sleep 30
 
         if xenrt.TEC().lookup("CC_ENABLE_SSH", False, boolean=True):
             otherconfigs = otherconfigs + "<service name=\"sshd\" state=\"enabled\"/>\n"
+
+        driverDisk = xenrt.TEC().lookup("DRIVER_DISK", None)
+        if driverDisk:
+            driverWebDir = xenrt.WebDirectory()
+            xenrt.TEC().logverbose("Using driver disk %s" % driverDisk)
+            cd = xenrt.TEC().getFile(driverDisk)
+            if not cd:
+                raise xenrt.XRTError("Cannot find driver disk %s" % driverDisk)
+            driverMount = xenrt.MountISO(cd)
+            driverMountPoint = driverMount.getMount()
+            driverWebDir.copyIn("%s/*" % driverMountPoint)
+            otherconfigs += ("<driver-source type=\"url\">%s</driver-source>\n" % \
+                             (driverWebDir.getURL("")))
 
         anstext = """<?xml version="1.0"?>
 <installation%s>

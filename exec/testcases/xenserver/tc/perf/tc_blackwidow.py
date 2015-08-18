@@ -1,39 +1,41 @@
 import xenrt, libperf
-import os
-import time
-import urllib
+import os, time, json
+from xenrt.lazylog import step, comment, log, warning
 
-# Install BlackWidow in a running NetScaler VPX VM
-class TCBlackWidow(libperf.PerfTestCase):
-    def __init__(self):
-        libperf.PerfTestCase.__init__(self, "TCBlackWidow")
+class _BlackWidow(libperf.PerfTestCase):
 
-    def parseArgs(self, arglist):
-        libperf.PerfTestCase.parseArgs(self, arglist)
+    TEST = None
+    WORKLOADS = {
+        "100KB.wl" : r"""DEFINE_CLASSES
+        BULK:   100
+ 
+DEFINE_REQUESTS
+ 
+        BULK:
+                GET /wb30tree/100000_1.txt
+ 
+""",
+        "1only.wl": r"""DEFINE_CLASSES
+        BULK:   100
+ 
+DEFINE_REQUESTS
+ 
+        BULK:
+                GET /wb30tree/100_1.txt
+ 
+"""
+    }
 
-        bw_name  = libperf.getArgument(arglist, "bw",  str, "blackwidow") # name of the VPX to use for BlackWidow
-        dut_name = libperf.getArgument(arglist, "dut", str, "dut")        # name of the VPX to use as the device-under-test
-
-        self.runtime = libperf.getArgument(arglist, "runtime", int, 120) # duration over which to run the throughput test
-        self.snips   = libperf.getArgument(arglist, "snips",   int, 50)  # number of NetScaler clients on the DUT
-        self.servers = libperf.getArgument(arglist, "servers", int, 251) # number of HTTP servers
-        self.clients = libperf.getArgument(arglist, "clients", int, 100) # number of HTTP servers
-
-        self.vpx_bw  = xenrt.GEC().registry.guestGet(bw_name)
-        self.vpx_dut = xenrt.GEC().registry.guestGet(dut_name)
-
-        self.configureVPX(self.vpx_bw)
-        self.configureVPX(self.vpx_dut)
-
-        # Identifiers used by nscsconfig
-        self.server_id = 0 # higher numbers don't seem to result in a running server
-        self.client_id = 1
-
+#### Black widow functional methods ####
     def configureVPX(self, vpx):
         vpx.password = 'nsroot'
 
+    def nscli(self, vpx, cmd):
+        return vpx.cli(cmd)
+
     def setupBlackWidow(self, vpx):
         xenrt.TEC().logverbose("setting up %s as blackwidow..." % (vpx))
+        self.configureVPX(vpx)
         vpx_ns = xenrt.lib.netscaler.NetScaler(vpx, None)
 
         # Remove existing SNIP, if any
@@ -53,11 +55,12 @@ class TCBlackWidow(libperf.PerfTestCase):
 
         # Make 43.* traffic go down the right interface
         self.nscli(vpx_ns, "bind vlan %s -IPAddress 43.54.181.2 255.255.0.0" % (vlan_idx))
-
         self.nscli(vpx_ns, 'save ns config')
+        return vpx_ns
 
     def setupDUT(self, vpx):
         xenrt.TEC().logverbose("setting up %s as DUT..." % (vpx))
+        self.configureVPX(vpx)
         vpx_ns = xenrt.lib.netscaler.NetScaler(vpx, None)
 
         # Remove existing SNIP, if any
@@ -77,95 +80,125 @@ class TCBlackWidow(libperf.PerfTestCase):
         # Configure the vServer on 43.54.30.247 and bind it to the true servers
         self.nscli(vpx_ns, "add serviceGroup s1 HTTP -maxClient 0 -maxReq 0 -cip DISABLED -usip NO -useproxyport YES -cltTimeout 180 -svrTimeout 360 -CKA NO -TCPB NO -CMP NO")
         self.nscli(vpx_ns, "enable ns feature LB")
-        self.nscli(vpx_ns, "add lb vserver v1 HTTP 43.54.30.247 80 -persistenceType NONE -lbMethod ROUNDROBIN -cltTimeout 18")
+        self.nscli(vpx_ns, "add lb vserver v1 %s 43.54.30.247 80 -persistenceType NONE -lbMethod ROUNDROBIN -cltTimeout 18" % self.dutProtocolVServer)
         self.nscli(vpx_ns, "bind lb vserver v1 s1")
         for i in range(2, self.servers+1):
             self.nscli(vpx_ns, "bind serviceGroup s1 43.54.31.%d 80" % (i))
 
         # Make 43.* traffic go down the second interface
         self.nscli(vpx_ns, "bind vlan 2 -IPAddress 43.54.30.1 255.255.0.0")
-
         self.nscli(vpx_ns, 'save ns config')
+        return vpx_ns
 
-    def nscli(self, vpx, cmd):
-        return vpx.cli(cmd)
+    def sampleCounters(self, vpx, ctrs, filename):
+        stats = {ctr:xenrt.getURLContent("http://nsroot:nsroot@%s/nitro/v1/stat/%s" % (vpx.mainip, ctr)) for ctr in ctrs}
+        self.log(filename, json.dumps(stats))
 
-    def workloadFile(self):
-        return """DEFINE_CLASSES
-        BULK:   100
- 
-DEFINE_REQUESTS
- 
-        BULK:
-                GET /wb30tree/100000_1.txt
- 
-"""
+    def createWorkloadFile(self, vpx_ns):
+        if self.workloadFileName not in self.WORKLOADS:
+            raise xenrt.XRTError("Workload data not found for %s" % self.workloadFileName)
 
-    def startBlackWidow(self, vpx):
-        xenrt.TEC().logverbose("running blackwidow in %s..." % (vpx))
-        vpx_ns = xenrt.lib.netscaler.NetScaler(vpx, None)
+        tmpFile = xenrt.TEC().tempDir() + "/" + self.workloadFileName
+        with open(tmpFile, 'w') as f:
+            f.write(self.WORKLOADS[self.workloadFileName])
 
-        workloadFilename = "100KB.wl"
+        wlFile = "%s/%s" % (self.remoteWLDir, self.workloadFileName)
+        self.nscli(vpx_ns, "shell mkdir -p %s" % self.remoteWLDir)
+        vpx_ns.getGuest().sftpClient(username='nsroot').copyTo(tmpFile, wlFile)
+        self.workload = wlFile
 
-        # Create workload file
-        dir = xenrt.TEC().tempDir()
-        wlFile = dir + "/" + workloadFilename
-        f = open(wlFile, "w")
-        f.write(self.workloadFile())
-        f.close()
+    def createHttpServers(self, vpx_ns):
+        self.nscli(vpx_ns, "shell /var/BW/nscsconfig -s server=%d -s serverip=43.54.31.2 -w %s -s ka=100 -s contentlen=100 -s chunked=0 -ye httpsvr" % (self.server_id, self.workload))
 
-        remoteWLDir = "/var/BW/WL"
-        fullpath = "%s/%s" % (remoteWLDir, workloadFilename)
-        self.nscli(vpx_ns, "shell mkdir -p %s" % remoteWLDir)
-        vpx.sftpClient(username='nsroot').copyTo(wlFile, fullpath)
+    def createHttpClients(self, vpx_ns):
+        self.nscli(vpx_ns, "shell /var/BW/nscsconfig -s client=%d -s percentpers=100 -w %s -s cltserverip=43.54.30.247 -s threads=%d -s parallelconn=%d -ye start" % (self.client_id, self.workload, self.httpClientThreads, self.httpClientParallelconn))
 
-        # Create the HTTP server(s?)
-        self.nscli(vpx_ns, "shell /var/BW/nscsconfig -s server=%d -s serverip=43.54.31.2 -w %s -s ka=100 -s contentlen=100 -s chunked=0 -ye httpsvr" % (self.server_id, fullpath))
-
-        # Create the HTTP clients
-        self.nscli(vpx_ns, "shell /var/BW/nscsconfig -s client=%d -s percentpers=100 -w %s -s cltserverip=43.54.30.247 -s threads=500 -s parallelconn=500 -ye start" % (self.client_id, fullpath))
-
-    def stopBlackWidow(self, vpx):
-        xenrt.TEC().logverbose("stopping blackwidow in %s..." % (vpx))
-        vpx_ns = xenrt.lib.netscaler.NetScaler(vpx, None)
-
-        # Show all running clients and servers
+    def showHttpServerClient(self, vpx_ns):
         self.nscli(vpx_ns, "shell /var/BW/nscsconfig -d allvcs")
         self.nscli(vpx_ns, "shell /var/BW/nscsconfig -d allurls")
+        self.nscli(vpx_ns, "shell /var/BW/conntest -d validserver")
 
-        # Stop the client and the server
+    def removeHttpServerClient(self, vpx_ns):
         self.nscli(vpx_ns, "shell /var/BW/nscsconfig -s client=%d -yE removeserver" % (self.client_id))
         self.nscli(vpx_ns, "shell /var/BW/nscsconfig -s server=%d -yE removeserver" % (self.server_id))
+        self.nscli(vpx_ns, "shell /var/BW/conntest -s %d -yE stopall" % (self.server_id))
 
-    def prepare(self, arglist=[]):
-        self.basicPrepare(arglist)
+#### Testcase core methods ####
+    def parseArgs(self, arglist):
+        # Performance Test Metrics
+        self.runtime = libperf.getArgument(arglist, "runtime", int, 120) # duration over which to run the throughput test
+        self.snips   = libperf.getArgument(arglist, "snips",   int, 50)  # number of NetScaler clients on the DUT
+        self.servers = libperf.getArgument(arglist, "servers", int, 251) # number of HTTP servers
+        self.clients = libperf.getArgument(arglist, "clients", int, 100) # number of HTTP servers
 
-        self.setupBlackWidow(self.vpx_bw)
-        self.setupDUT(self.vpx_dut)
+        bw_name  = libperf.getArgument(arglist, "bw",  str, "blackwidow") # name of the VPX to use for BlackWidow
+        dut_name = libperf.getArgument(arglist, "dut", str, "dut")        # name of the VPX to use as the device-under-test
+        self.guest_bw  = xenrt.GEC().registry.guestGet(bw_name)
+        self.guest_dut = xenrt.GEC().registry.guestGet(dut_name)
 
-    def getURL(self, url):
-        sock = urllib.URLopener().open(url)
-        resp = sock.read()
-        sock.close()
-        return resp
+    def prepare(self, arglist):
+        self.parseArgs(arglist)
+        self.workloadFileName = None
+        self.workload = None
+        self.remoteWLDir = "/var/BW/WL"
+        self.dutProtocolVServer = "HTTP"
+        # Identifiers used by nscsconfig
+        self.server_id = 0 # higher numbers don't seem to result in a running server
+        self.client_id = 1
 
-    def sampleCounters(self, vpx, ctr, filename):
-        stats = self.getURL("http://nsroot:nsroot@%s/nitro/v1/stat/%s" % (vpx.mainip, ctr))
-        self.log(filename, stats)
+        self.ns_bw  = self.setupBlackWidow(self.guest_bw)
+        self.ns_dut = self.setupDUT(self.guest_dut)
+
+    def startWorkload(self):
+        pass
+
+    def runTest(self):
+        raise xenrt.XRTError("Unimplemented")
+
+    def stopWorkload(self):
+        pass
 
     def run(self, arglist=[]):
-        self.startBlackWidow(self.vpx_bw)
+        self.startWorkload()
+        self.runTest()
+        self.stopWorkload()
+
+class TCHttp100KResp(_BlackWidow):
+    TEST = "100K_resp"
+
+    def __init__(self):
+        _BlackWidow.__init__(self, self.TEST)
+
+    def prepare(self, arglist=[]):
+        _BlackWidow.prepare(self, arglist=[])
+
+        self.httpClientThreads = libperf.getArgument(arglist, "httpclientthread", int, 500) # number of HTTP client threads
+        self.httpClientParallelconn = libperf.getArgument(arglist, "httpclientparallelconn", int, 500) # number of HTTP client parallel connections
+
+        self.workloadFileName = "100KB.wl"
+        self.statsToCollect = ["protocoltcp"]
+
+    def startWorkload(self):
+        step("startWorkload: create workload file")
+        self.createWorkloadFile(self.ns_bw)
+
+        step("startWorkload: create HTTP server(s?)")
+        self.createHttpServers(self.ns_bw)
+
+        step("startWorkload: create HTTP clients")
+        self.createHttpClients(self.ns_bw)
 
         # Wait for the workload to get going
         xenrt.sleep(60)
 
+    def runTest(self):
         now = time.time()
         finish = now + self.runtime
         i = 0
 
-        # While BW is running, sample the TCP counters on the DUT regularly
+        step("runTest: sample the TCP counters on the DUT every 5 seconds")
         while now < finish:
-            self.sampleCounters(self.vpx_dut, "protocoltcp", "tcp.%d.ctr" % (i))
+            self.sampleCounters(self.guest_dut, self.statsToCollect, "tcp.%d.ctr" % (i))
             self.log("sampletimes", "%d %f" % (i, now))
 
             # The counters only seem to be updated every ~5 seconds, so don't sample more often than that
@@ -173,4 +206,41 @@ DEFINE_REQUESTS
             i = i + 1
             now = time.time()
 
-        self.stopBlackWidow(self.vpx_bw)
+    def stopWorkload(self):
+        step("stopWorkload: show all running clients and servers")
+        self.showHttpServerClient(self.ns_bw)
+
+        step("stopWorkload: Stop the client and the server")
+        self.removeHttpServerClient(self.ns_bw)
+
+class TCHttp1BResp(TCHttp100KResp):
+    """HTTP End-to-end req/sec"""
+    TEST = "1B_Resp"
+
+    def prepare(self, arglist=[]):
+        _BlackWidow.prepare(self, arglist=[])
+
+        self.httpClientThreads = libperf.getArgument(arglist, "httpclientthread", int, 200)
+        self.httpClientParallelconn = libperf.getArgument(arglist, "httpclientparallelconn", int, 200)
+
+        self.workloadFileName = "1only.wl"
+        self.statsToCollect = ["protocolhttp"]
+
+    def createHttpClients(self, vpx_ns):
+        self.nscli(vpx_ns, "shell /var/BW/nscsconfig -s client=%d -s percentpers=0 -s finstop=0 -w %s -s reqperconn=1 -s cltserverip=43.54.30.247 -s threads=%d -s parallelconn=%d -ye start" % (self.client_id, self.workload, self.httpClientThreads, self.httpClientParallelconn))
+
+class TCTcpVipCps(TCHttp100KResp):
+    """TCP Conn/sec (TCP VIP)"""
+    TEST = "TCP_VIP_CPS"
+
+    def prepare(self, arglist=[]):
+        _BlackWidow.prepare(self, arglist=[])
+
+        self.httpClientParallelconn = libperf.getArgument(arglist, "httpclientparallelconn", int, 200)
+
+        self.workloadFileName = "1only.wl" # Any workload file will do.
+        self.dutProtocolVServer = "TCP"
+        self.statsToCollect = ["protocoltcp"]
+
+    def createHttpClients(self, vpx_ns):
+        self.nscli(vpx_ns, "shell /var/BW/conntest -s %d -p serverip=43.54.30.247 -p parallelconn=%d  -p serverport=80 -p holdconn=0 -y -e conntest" % (self.client_id, self.httpClientParallelconn))

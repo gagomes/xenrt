@@ -43,6 +43,7 @@ __all__ = ["getStorageRepositoryClass",
            "EQLTarget",
            "SMAPIv3LocalStorageRepository",
            "SMAPIv3SharedStorageRepository",
+           "MelioStorageRepository"
             ]
 
 
@@ -199,7 +200,7 @@ class StorageRepository(object):
 
         if not srtype:
             srtype = self.srtype
-        if srtype in ["lvm", "lvmoiscsi", "lvmohba"]:
+        if srtype in ["lvmoiscsi", "lvmohba"]:
             return True
         return False
 
@@ -218,6 +219,8 @@ class StorageRepository(object):
             args.append("shared=true")
         args.extend(["device-config:%s=\"%s\"" % (x, y)
                      for x,y in actualDeviceConfiguration.items()])
+        if not self.__thinProv:
+            self.__thinProv = xenrt.TEC().lookup("FORCE_THIN_LVHD", False, boolean=True)
         if self.__thinProv:
             if self.__isEligibleThinProvisioning(srtype):
                 smconf["allocation"] = "dynamic"
@@ -429,6 +432,13 @@ class SMAPIv3LocalStorageRepository(StorageRepository):
             path = "/dev/%s%d" % (device, partition)
         self._create("btrfs", {"uri":"file://%s" % path}, physical_size, content_type, smconf)
 
+class MelioStorageRepository(StorageRepository):
+    SHARED = True
+    CLEANUP = "destroy"
+    
+    def create(self, melio, physical_size=0, content_type="", smconf={}):
+        self.melio = melio
+        self._create("melio", {"uri":"file://%s" % self.melio.device}, physical_size, content_type, smconf)
 
 class IntegratedCVSMStorageRepository(StorageRepository):
     SHARED = True
@@ -879,14 +889,14 @@ class SMAPIv3SharedStorageRepository(NFSStorageRepository):
             self.checkOnHost(self.host)
 
     def checkOnHost(self, host):
-        path = "/var/run/sr-mount/nfs/%s%s" % (self.server, self.path)
+        path = "/run/sr-mount/nfs/%s%s" % (self.server, self.path)
         try:
             host.execdom0("test -d %s" % path)
         except:
             raise xenrt.XRTFailure("SR mountpoint %s does not exist" % path)
         nfs = string.split(host.execdom0("mount | grep \""
                                           "%s\"" % path))[0]
-        shouldbe = "%s:%s/%s" % (self.server, self.path, self.uuid)
+        shouldbe = "%s:%s" % (self.server, self.path)
         if nfs != shouldbe:
             raise xenrt.XRTFailure("Mounted path '%s' is not '%s'" %
                                    (nfs, shouldbe))
@@ -957,7 +967,8 @@ class ISCSIStorageRepository(StorageRepository):
                jumbo=False,
                mpp_rdac=False,
                lungroup=None,
-               initiatorcount=None):
+               initiatorcount=None,
+               smconf={}):
         """Create the iSCSI SR on the host
 
         @param multipathing: If set to C{True}, use multipathing on this SR, and
@@ -1097,7 +1108,11 @@ class ISCSIStorageRepository(StorageRepository):
         if lun.getLunID() != None:
             dconf["LUNid"] = lun.getLunID()
         if lun.getID():
-            dconf["SCSIid"] = lun.getID()
+            if type(lun.getID()) == type(1):
+                strscsi = string.join(["%02x" % ord(x) for x in "%08x" % lun.getID()], "")
+                dconf["SCSIid"] = "14945540000000000%s0000000000000000" % strscsi
+            else:
+                dconf["SCSIid"] = lun.getID()
         chap = lun.getCHAP()
         if chap:
             u, p = chap
@@ -1114,10 +1129,12 @@ class ISCSIStorageRepository(StorageRepository):
             dconf["multihomed"] = "true"
         elif type(multipathing) == type(False):
             dconf["multihomed"] = "false"
+
         self._create("%soiscsi" % (subtype),
                      dconf,
                      physical_size=physical_size,
-                     content_type=content_type)
+                     content_type=content_type,
+                     smconf=smconf)
 
     def check(self):
         StorageRepository.checkCommon(self, "%soiscsi" % (self.subtype))
@@ -1226,7 +1243,8 @@ class HBAStorageRepository(StorageRepository):
                scsiid,
                physical_size="0",
                content_type="",
-               multipathing=False):
+               multipathing=False,
+               smconf={}):
         self.multipathing = multipathing
         if multipathing:
             device = "/dev/mapper/%s" % (scsiid)
@@ -1251,7 +1269,8 @@ class HBAStorageRepository(StorageRepository):
         self._create("lvmohba",
                      dconf,
                      physical_size=physical_size,
-                     content_type=content_type)
+                     content_type=content_type,
+                     smconf=smconf)
 
     def check(self):
         StorageRepository.checkCommon(self, "lvmohba")

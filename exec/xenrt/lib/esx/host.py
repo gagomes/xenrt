@@ -12,7 +12,8 @@ import csv, os, re, string, StringIO, random, uuid
 import xenrt
 
 __all__ = ["createHost",
-           "ESXHost"]
+           "ESXHost",
+           "poolFactory"]
 
 def createHost(id=0,
                version=None,
@@ -108,6 +109,9 @@ def createHost(id=0,
 
     return host
 
+def poolFactory(mastertype):
+    return xenrt.lib.esx.pool.ESXPool
+
 class ESXHost(xenrt.lib.libvirt.Host):
 
     LIBVIRT_REMOTE_DAEMON = False
@@ -150,6 +154,11 @@ class ESXHost(xenrt.lib.libvirt.Host):
 
     def getSRPathFromName(self, srname):
         return "[%s]" % (srname)
+
+    def parseListForUUID(self, command, param, value, args=""):
+        """Parse the output of a vm-list etc, to get the UUID where the
+        specified parameter is the specified value"""
+        return self.parseListForOtherParam(command, param, value, "uuid", args)
 
     def parseListForOtherParam(self,
                                command,
@@ -235,7 +244,9 @@ class ESXHost(xenrt.lib.libvirt.Host):
 
             return assumedid
 
-        return 0 if int(nics[0]) == 0 else nicToAssumedId(nics[0])
+        if not len(nics)>0:
+            raise xenrt.XRTError("Could not find interface matching friendlyname %s" % (friendlyname))
+        return 0 if nics[0] == "0" else nicToAssumedId(nics[0])
 
     def getNIC(self, assumedid):
         """ Return the product enumeration name (e.g. "vmnic0") for the

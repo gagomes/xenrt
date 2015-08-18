@@ -1,5 +1,5 @@
 import xenrt
-from xenrt import log, step
+from xenrt import log, step, warning
 
 class TCFileBasedSRProperty(xenrt.TestCase):
     """
@@ -67,7 +67,7 @@ class TCFileBasedSRProperty(xenrt.TestCase):
             if "uri" not in dconf:
                 raise xenrt.XRTError("PBD(%s) of BTRFS SR (%s) does not have uri in device config." % \
                     (pbds[0].uuid, self.xsr.uuid))
-            self.srPath = "run/sr-mount" + dconf["uri"][len("file://"):]
+            self.srPath = "/run/sr-mount" + dconf["uri"][len("file://"):]
         elif srtype == "rawnfs" or srtype == "smapiv3shared":
             pbds = self.xsr.PBD()
             dconf = pbds[0].deviceConfig()
@@ -82,28 +82,37 @@ class TCFileBasedSRProperty(xenrt.TestCase):
         """
         Find size of VDI and return it.
 
+        @param: vdi: UUID of VDI to check.
+
         @return: size of VDI
         """
 
-        sizestr = None
-        
-        # Try obtain VDI size info from local mount path by uuid.
         try:
-            sizestr = self.host.execdom0("ls -l %s | grep %s" % (self.srPath, vdi)).split()[4]
+            filename = self.host.genParamGet("vdi", vdi, "location")
         except:
-            log("Failed to find VDI with uuid(%s)." % vdi)
+            warning("VDI %s does not have location property" % vdi)
+            filename = vdi
 
-        # If failed with uuid try with name.
-        # This isn't perfect as multiple VDI can have same name.
-        # Additional vdi with same name will have suffix of '.(number)'.
-        if not sizestr:
-            name = self.host.genParamGet("vdi", vdi, "name-label")
-            try:
-                sizestr = self.host.execdom0("ls -l %s | grep %s$" % (self.srPath, name)).split()[4]
-            except:
-                raise xenrt.XRTError("Cannot find VDI information from local mount.")
+        info = None
+        try:
+            info = eval(self.host.execdom0("cat %s/%s.json" % (self.srPath, filename)))
+        except:
+            warning("VDI %s does not have valid json file." % vdi)
 
-        return int(sizestr)
+        if info:
+            log("VDI %s INFO: %s" % (vdi, str(info)))
+            if "uuid" in info:
+                if info["uuid"] != vdi:
+                    raise xenrt.XRTError("JSON file of VDI %s includes wrong UUID info.")
+            else:
+                warning("JSON file of VDI %s does not have UUID field. Skipping sanity check." % vdi)
+
+        try:
+            lsstr = self.host.execdom0("ls -l %s/%s" % (self.srPath, filename))
+        except:
+            lsstr = self.host.execdom0("ls -l %s/%s.vhd" % (self.srPath, filename))
+
+        return int(lsstr.split()[4])
 
     def getRawProperties(self):
         """
@@ -176,14 +185,14 @@ class TCFileBasedSRProperty(xenrt.TestCase):
 
         self.__verifyBasicProperties(False)
 
-        log("Verifying physical utilisation is increased less than 100 KiB")
+        log("Verifying physical utilisation is increased less than 200 KiB")
         physicalUtil = self.xsr.getIntParam("physical-utilisation")
-        if physicalUtil - before > 100 * xenrt.KILO:
-            raise xenrt.XRTFailure("Physical utilisazion is increased more 100KiB after empty VDI is creaed.")
+        if physicalUtil - before > 200 * xenrt.KILO:
+            raise xenrt.XRTFailure("Physical utilisazion is increased more than 200KiB after empty VDI is creaed.")
 
-        log("Verifying size of empty VDI is less than 100 KiB")
-        if self.getRawVDISize(self.vdi) > 100 * xenrt.KILO:
-            raise xenrt.XRTFailure("Empty VDI size is bigger than 100KiB")
+        log("Verifying size of empty VDI is less than 200 KiB")
+        if self.getRawVDISize(self.vdi) > 200 * xenrt.KILO:
+            raise xenrt.XRTFailure("Empty VDI size is bigger than 200KiB")
 
     def verifyAfterVDIFilled(self):
 

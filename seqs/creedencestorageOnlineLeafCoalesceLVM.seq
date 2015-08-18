@@ -23,6 +23,7 @@
     <testcase id="xenserver.tc.vhd.TC12018"/>
     <testcase id="xenserver.tc.vhd.TC12019"/>
     <testcase id="xenserver.tc.vhd.TC12020"/>
+    <!-- Removing Raw VDI tests as per CP-12397.
     <testcase id="xenserver.tc.vhd.TC12057"/>
     <testcase id="xenserver.tc.vhd.TC12022"/>
     <testcase id="xenserver.tc.vhd.TC12023"/>
@@ -32,8 +33,9 @@
     <testcase id="xenserver.tc.vhd.TC12027"/>
     <testcase id="xenserver.tc.vhd.TC12028"/>
     <testcase id="xenserver.tc.vhd.TC12029"/>
-    <testcase id="xenserver.tc.vhd.TC12030"/>
     <testcase id="xenserver.tc.vhd.TC12031"/>
+    -->
+    <testcase id="xenserver.tc.vhd.TC12030"/>
 
   </testsequence>
 

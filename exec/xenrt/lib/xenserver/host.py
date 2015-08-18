@@ -1162,6 +1162,19 @@ class Host(xenrt.GenericHost):
         if xenrt.TEC().lookup("CC_ENABLE_SSH", False, boolean=True):
             otherconfigs = otherconfigs + "<service name=\"sshd\" state=\"enabled\"/>\n"
 
+        driverDisk = xenrt.TEC().lookup("DRIVER_DISK", None)
+        if driverDisk:
+            driverWebDir = xenrt.WebDirectory() 
+            xenrt.TEC().logverbose("Using driver disk %s" % driverDisk)
+            cd = xenrt.TEC().getFile(driverDisk)
+            if not cd:
+                raise xenrt.XRTError("Cannot find driver disk %s" % driverDisk)
+            driverMount = xenrt.MountISO(cd)
+            driverMountPoint = driverMount.getMount()
+            driverWebDir.copyIn("%s/*" % driverMountPoint)
+            otherconfigs += ("<driver-source type=\"url\">%s</driver-source>\n" % \
+                             (driverWebDir.getURL("")))
+
         anstext = """<?xml version="1.0"?>
 <installation%s>
 %s
@@ -2363,7 +2376,7 @@ fi
         if xenrt.TEC().lookup("INSTALL_RPU_HOTFIX", False, boolean=True):
             rpuPatch = xenrt.TEC().lookup(["VERSION_CONFIG",self.productVersion,"INTERNAL_RPU_HOTFIX"])
             if rpuPatch:
-                patches.extend([rpuPatch])
+                patches.extend([xenrt.TEC().lookup("INPUTDIR") + "/xe-phase-1/%s" % rpuPatch])
 
         # Apply all the patches we found
         for patch in [x for x in patches if x != "None"]:
@@ -2495,9 +2508,9 @@ fi
                     elif u.endswith(".tgz") or u.endswith(".tar.gz"): options = "xvzf"
                     elif u.endswith(".tbz") or u.endswith(".tar.bz2"): options = "xvjf"
                     else:
-                        raise xenrt.XRTException("CUSTOM_UPDATES %s doesn't look like a rpm or a "
-                                                 "(maybe compressed) tarball. Suffix must be one of "
-                                                 "tar/tar.gz/tgz/tar.bz2/tbz." % os.path.basename(u))
+                        raise xenrt.XRTError("CUSTOM_UPDATES %s doesn't look like a rpm or a "
+                                             "(maybe compressed) tarball. Suffix must be one of "
+                                             "tar/tar.gz/tgz/tar.bz2/tbz." % os.path.basename(u))
                     self.execdom0("cd / && tar %s %s -C / --backup=simple --suffix=.orig"
                                   % (options, u))
             # An extra xapi restart is sometimes wanted before host reboot
@@ -3587,7 +3600,7 @@ fi
 
     def genParamsGet(self, ptype, uuid, param):
         ps = self.genParamGet(ptype, uuid, param)
-        return dict(map(lambda x:x.split(": "), ps.split("; ")))
+        return dict(map(lambda x:x.split(": ", 1), ps.split("; ")))
 
     def genParamSet(self, ptype, uuid, param, value, pkey=None):
         c = self.getCLIInstance()
@@ -7538,9 +7551,12 @@ logger "Stopping xentrace loop, host has less than 512M disk space free"
         # Find the PIF UUID and set the IP details
         pifuuid = self.getPIFUUID(eth)
         return self.enableIPOnPIF(pifuuid)
+
+    def getHAPath(self):
+        return "/opt/xensource/xha"
         
     def useHAFISTPoint(self, point, enable=True):
-        cmd = "PATH=$PATH:/opt/xensource/xha /opt/xensource/xha/calldaemon fist"
+        cmd = "PATH=$PATH:%s %s/calldaemon fist" % (self.getHAPath(), self.getHAPath())
         if enable:
             cmd += " enable "
         else:
@@ -7659,9 +7675,9 @@ logger "Stopping xentrace loop, host has less than 512M disk space free"
 set -x
 
 # Disable HA if it's running
-/opt/xensource/xha/ha_set_pool_state invalid || true
-/opt/xensource/xha/ha_disarm_fencing || true
-/opt/xensource/xha/ha_stop_daemon || true
+%s/ha_set_pool_state invalid || true
+%s/ha_disarm_fencing || true
+%s/ha_stop_daemon || true
 
 # Just in case hypervisor watchdogs are left behind
 /opt/xensource/debug/xenops watchdog -slot 1 -timeout 0
@@ -7673,7 +7689,7 @@ rm -rf /etc/xensource/static-vdis || true
 mkdir -p /etc/xensource/static-vdis
 rm -f /etc/xensource/xhad.conf || true
 
-"""
+""" % (self.getHAPath(), self.getHAPath(), self.getHAPath())
         tmpfile = xenrt.TEC().tempFile()
         f = file(tmpfile, "w")
         f.write(script)
@@ -7683,8 +7699,8 @@ rm -f /etc/xensource/xhad.conf || true
         sftp.close()
 
         self.execdom0("chmod a+x /tmp/xenrt_ha_reset.sh")
-        self.execdom0("PATH=$PATH:/opt/xensource/xha "
-                      "/tmp/xenrt_ha_reset.sh",
+        self.execdom0("PATH=$PATH:%s "
+                      "/tmp/xenrt_ha_reset.sh" % (self.getHAPath()),
                       level=xenrt.RC_OK,
                       getreply=False)
 
@@ -8683,7 +8699,11 @@ class MNRHost(Host):
                 args.append("license-server-address=%s" % (v6server.getAddress()))
                 args.append("license-server-port=%s" % (v6server.getPort()))
             else:
-                (addr, port) = xenrt.TEC().lookup("DEFAULT_CITRIX_LICENSE_SERVER").split(":")
+                if self.special.has_key('v6earlyrelease') and self.special['v6earlyrelease']:
+                    (addr, port) = xenrt.TEC().lookup("DEFAULT_CITRIX_PREVIEW_LICENSE_SERVER").split(":")
+                else:
+                    (addr, port) = xenrt.TEC().lookup("DEFAULT_CITRIX_LICENSE_SERVER").split(":")
+
                 args.append("license-server-address=%s" % (addr))
                 args.append("license-server-port=%s" % (port))
             if applyEdition:
@@ -9364,8 +9384,8 @@ class MNRHost(Host):
         if ncpuinfo['features_after_reboot'] == features:
             xenrt.TEC().logverbose("features after reboot is set correctly")
         else:
-            raise xenrt.XRTException("features after reboot is set wrong",
-                                     data = features)
+            raise xenrt.XRTFailure("features after reboot is set wrong",
+                                   data = features)
         extlinux = self.execdom0('cat /boot/extlinux.conf')
         if (ncpuinfo['features_after_reboot'] != ncpuinfo['physical_features']):
             # We should set some CPU features in Xen
@@ -9391,8 +9411,8 @@ class MNRHost(Host):
            == ncpuinfo['features_after_reboot']:
             xenrt.TEC().logverbose("features reset correctly")
         else:
-            raise xenrt.XRTException("features reset wrongly",
-                                     data = (cpuinfo, ncpuinfo))
+            raise xenrt.XRTFailure("features reset wrongly",
+                                   data = (cpuinfo, ncpuinfo))
         extlinux = self.execdom0('cat /boot/extlinux.conf')
         masks = re.findall('cpuid_mask', extlinux)
         allowedmasks = re.findall('cpuid_mask_xsave_eax=0', extlinux)
@@ -9490,10 +9510,10 @@ class BostonHost(MNRHost):
         out = self.execdom0("echo -e -n '%s' | %s/consolewrite.py %s %u %u " % (str,xenrt.TEC().lookup("REMOTE_SCRIPTDIR"),domid,retlines,cuthdlines))
         return out
 
-    def reboot(self,sleeptime=300,forced=False,timeout=600):
+    def reboot(self,sleeptime=120,forced=False,timeout=600):
         """Reboot the host and verify it boots"""
-        Host.reboot(self,forced=forced,timeout=timeout)
-        self.postBoot(sleeptime=sleeptime)
+        Host.reboot(self,forced=forced,timeout=timeout, sleeptime=sleeptime)
+        self.waitForXapiStartup()
 
     def createNetwork(self, name="XenRT bridge"):
         cli = self.getCLIInstance()
@@ -11561,6 +11581,10 @@ done
         if xenrt.TEC().lookup("INSTALL_VGPU_DRIVER", False, boolean=True):
             self.installNVIDIAHostDrivers()
 
+    def resetToFreshInstall(self, setupISOs=False):
+        self.installationCookie = self.execdom0("cat /root/xenrt-installation-cookie").strip()
+        TampaHost.resetToFreshInstall(self, setupISOs)
+
     def startVifDebug(self, domid):
         try:
             self.execdom0("killall -9 debugfs")
@@ -11653,7 +11677,10 @@ class CreedenceHost(ClearwaterHost):
             args.append("license-server-address=%s" % (v6server.getAddress()))
             args.append("license-server-port=%s" % (v6server.getPort()))
         else:
-            (addr, port) = xenrt.TEC().lookup("DEFAULT_CITRIX_LICENSE_SERVER").split(":")
+            if self.special.has_key('v6earlyrelease') and self.special['v6earlyrelease']:
+                (addr, port) = xenrt.TEC().lookup("DEFAULT_CITRIX_PREVIEW_LICENSE_SERVER").split(":")
+            else:
+                (addr, port) = xenrt.TEC().lookup("DEFAULT_CITRIX_LICENSE_SERVER").split(":")
             args.append("license-server-address=%s" % (addr))
             args.append("license-server-port=%s" % (port))
 
@@ -11751,7 +11778,13 @@ class DundeeHost(CreedenceHost):
         self.registerJobTest(xenrt.lib.xenserver.jobtests.JTDeadLetter)
 
         self.installer = None
+        self.melioHelper = None
+        self.haPath = None
 
+    def populateSubclass(self, x):
+        CreedenceHost.populateSubclass(self, x)
+        x.melioHelper = self.melioHelper
+    
     def isCentOS7Dom0(self):
         return True
 
@@ -11766,6 +11799,9 @@ class DundeeHost(CreedenceHost):
 
         # check there are no failed first boot scripts
         self._checkForFailedFirstBootScripts()
+        self.execdom0("chmod +x /etc/rc.d/rc.local")
+        if xenrt.TEC().lookup("INSTALL_MELIO", False, boolean=True):
+            self.installMelio()
         
     def _checkForFailedFirstBootScripts(self):
         for f in self.execdom0("(cd /etc/firstboot.d/state && ls)").strip().splitlines():
@@ -11963,6 +11999,18 @@ class DundeeHost(CreedenceHost):
             self.execdom0('xe pif-set-primary-address-type primary_address_type=ipv6 uuid=%s' % pif)
             self.execdom0('xe host-management-reconfigure pif-uuid=%s' % pif)
             self.waitForSSH(300, "%s host-management-reconfigure (IPv6)" % self.getName())
+
+    def installMelio(self):
+        xenrt.lib.xenserver.MelioHelper([self]).installMelio()
+
+    def getHAPath(self):
+        if self.haPath:
+            return self.haPath
+        if self.execdom0("ls /usr/libexec/xapi/cluster-stack/xhad", retval="code") == 0:
+            self.haPath = "/usr/libexec/xapi/cluster-stack/xhad"
+        else:
+            self.haPath = "/opt/xensource/xha"
+        return self.haPath
 
 #############################################################################
 
@@ -12665,7 +12713,7 @@ class Pool(object):
 
     def configureSSL(self, enableVerification=True):
         raise xenrt.XRTError("SSL can only be configured on an MNR pool or above")
-        
+
     def enableHA(self, params={}, srs=[], check=True):
         """Enables High Availability on the pool""" 
         if len(srs) == 0:
@@ -12761,8 +12809,8 @@ class Pool(object):
             host = self.master
         liveset = []
 
-        xli = host.execdom0("PATH=$PATH:/opt/xensource/xha "
-                            "/opt/xensource/xha/ha_query_liveset").strip()
+        xli = host.execdom0("PATH=$PATH:%s "
+                            "%s/ha_query_liveset" % (host.getHAPath(), host.getHAPath())).strip()
         dom = xml.dom.minidom.parseString(xli)
         hli = dom.getElementsByTagName("ha_liveset_info")[0]
         for n in hli.childNodes:
@@ -12788,8 +12836,8 @@ class Pool(object):
         # XXX Hard coded config file location
         dict = {'hosts':{}}
         try:
-            data = host.execdom0("/opt/xensource/xha/dumpstatefile "
-                                 "/etc/xensource/xhad.conf")
+            data = host.execdom0("%s/dumpstatefile "
+                                 "/etc/xensource/xhad.conf" % (host.getHAPath()))
             lines = data.split("\n")
             for line in lines:
                 line = line.strip()
@@ -13779,7 +13827,10 @@ class CreedencePool(ClearwaterPool):
             args.append("license-server-address=%s" % (v6server.getAddress()))
             args.append("license-server-port=%s" % (v6server.getPort()))
         else:
-            (addr, port) = xenrt.TEC().lookup("DEFAULT_CITRIX_LICENSE_SERVER").split(":")
+            if self.special.has_key('v6earlyrelease') and self.special['v6earlyrelease']:
+                (addr, port) = xenrt.TEC().lookup("DEFAULT_CITRIX_PREVIEW_LICENSE_SERVER").split(":")
+            else:
+                (addr, port) = xenrt.TEC().lookup("DEFAULT_CITRIX_LICENSE_SERVER").split(":")
             args.append("license-server-address=%s" % (addr))
             args.append("license-server-port=%s" % (port))
 
@@ -13800,6 +13851,10 @@ class CreedencePool(ClearwaterPool):
 #############################################################################
 
 class DundeePool(CreedencePool):
+
+    def __init__(self, master):
+        CreedencePool.__init__(self, master)
+        self.haSRTypes = ["lvmoiscsi", "lvmohba", "nfs", "rawnfs"]
 
     def hostFactory(self):
         return xenrt.lib.xenserver.DundeeHost
@@ -14351,8 +14406,8 @@ class TransferVM(object):
         elif vdi_uuid:
             args.append("vdi_uuid=" + vdi_uuid)
         else:
-            raise xenrt.XRTException("unexpose expects at least one of "
-                                     "record_handle or vdi_uuid as arguments")
+            raise xenrt.XRTError("unexpose expects at least one of "
+                                 "record_handle or vdi_uuid as arguments")
         args = map(lambda arg: "args:"+arg, args)        
         args.insert(0, "fn=" + fn)
         cli = self.host.getCLIInstance()
@@ -14368,8 +14423,8 @@ class TransferVM(object):
         elif vdi_uuid:
             args.append("vdi_uuid=" + vdi_uuid)
         else:
-            raise xenrt.XRTException("get_record expects at least onf of "
-                                     "record_handle or vdi_uuid as arguments")
+            raise xenrt.XRTError("get_record expects at least onf of "
+                                 "record_handle or vdi_uuid as arguments")
         args = map(lambda arg: "args:"+arg, args)        
         args.insert(0, "fn=" + fn)
         cli = self.host.getCLIInstance()
@@ -14384,7 +14439,7 @@ class TransferVM(object):
         cli = self.host.getCLIInstance()
         res = cli.execute(self.command, "fn=" + fn, strip=True)
         if res <> "OK":
-            raise xenrt.XRTException("cleanup failed with feedback: %s" % res)
+            raise xenrt.XRTFailure("cleanup failed with feedback: %s" % res)
 
     def getBitmaps(self,vdi_uuid=None):
      
@@ -14393,7 +14448,7 @@ class TransferVM(object):
         if vdi_uuid:
             args.append("leaf_vdi_uuids=" + str(vdi_uuid))
         else:
-            raise xenrt.XRTException("get_bitmaps expects vdi_uuid as arguments")
+            raise xenrt.XRTError("get_bitmaps expects vdi_uuid as arguments")
         args = map(lambda arg: "args:"+arg,args)
         args.insert(0, "fn=" + fn)
         cli = self.host.getCLIInstance()

@@ -195,6 +195,9 @@ class XRTSkip(XRTException):
     """Test skip (use only in subcases)."""
     pass
 
+class XRTPartial(XRTException):
+    """Test partial pass (use only in subcases)."""
+
 class XRTFailure(XRTException):
     """Test failure."""
     pass
@@ -855,6 +858,11 @@ logdata call.
             self.tec.logverbose("%s/%s %s" % (scgroup, sctest, str(e)),
                                 pref='REASON')
             reply = RESULT_SKIPPED
+        except XRTPartial, e:
+            self.testcaseResult(scgroup, sctest, RESULT_PARTIAL, str(e))
+            self.tec.logverbose("%s/%s %s" % (scgroup, sctest, str(e)),
+                                pref='REASON')
+            reply = RESULT_PARTIAL
         except Exception, e:
             sys.stderr.write(str(e).rstrip()+'\n')
             self.tec.logverbose(traceback.format_exc())
@@ -1079,6 +1087,9 @@ Abort this testcase with: xenrt interact %s -n '%s'
             os.makedirs(d)
         if place.windows:
             xenrt.TEC().logverbose("Getting Windows logs for guest %s" % str(place))
+            if not place.xmlrpcIsAlive():
+                xenrt.TEC().logverbose("Guest %s isn't reachable: not getting logs" % str(place))
+                return
             paths = []
             paths.extend(STANDARD_LOGS_WINDOWS)
             if place.extraLogsToFetch:

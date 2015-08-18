@@ -4446,6 +4446,20 @@ exit /B 1
         else:
             raise xenrt.XRTFailure("cannot find auto-update-driver path in the xenstore")
 
+    def xenDesktopTailor(self):
+
+        xenrt.GenericGuest.xenDesktopTailor(self)
+
+        self.shutdown()
+        self.paramSet("platform:usb", "false")
+        self.paramSet("platform:hvm_serial", "none")
+        self.paramSet("platform:nousb", "true")
+        self.paramSet("platform:monitor", "null")
+        self.paramSet("platform:parallel", "none")
+        self.start()
+
+
+
 #############################################################################
 
 def parseSequenceVIFs(guest, host, vifs):
@@ -5229,7 +5243,7 @@ class MNRGuest(Guest):
         myhost = self.getHost()
         remote = on and myhost != on
         if remote and not (myhost.pool and on in myhost.pool.getHosts()):
-            raise xenrt.XRTException("Couldn't move to a host not in current pool")
+            raise xenrt.XRTError("Couldn't move to a host not in current pool")
         # The most "direct" choice should be put in the first place
         # The most "safe" choice should be put in the last place (e.g. for HVM)
         choice = choice or 'direct'
@@ -5322,7 +5336,7 @@ class MNRGuest(Guest):
     def setNetworkViaXenstore(self, group, name, type, data, area=None, vif='eth0'):
         """ You'll need to restart the VM to make it effective."""
         if not (self.windows and self.enlightenedDrivers):
-            raise xenrt.XRTException("setNetworkViaXenstore only works on "
+            raise xenrt.XRTError("setNetworkViaXenstore only works on "
                                      "Windows with PV drivers.")
         mac,ip,vb = self.getVIF(vif)
         macp = mac.replace(':', '_').upper()
@@ -6012,7 +6026,7 @@ class ClearwaterGuest(TampaGuest):
     #Method to retreive VM Generation token id for Windows VM
 
         if float(self.xmlrpcWindowsVersion()) < 6.2:
-            raise xenrt.XRTException("VM gen id is not supported in this windows version")
+            raise xenrt.XRTError("VM gen id is not supported in this windows version")
 
         if self.xmlrpcGetArch() == "x86": 
             vmgenexe = "vmgenid32.exe"
@@ -6205,6 +6219,33 @@ class DundeeGuest(CreedenceGuest):
                 xenrt.GEC().dbconnect.jobUpdate("RND_PV_DRIVERS_LIST_VALUE",randomPvDriversList)
                 return randomPvDriversList
 
+    def installTestCerts(self):
+
+        if self.usesLegacyDrivers():
+            xenrt.TEC().warning("Skipping the installation of TestCertificates")
+            return
+
+        xenrt.TEC().logverbose("installing TestCertificates")
+        testCertsDir = xenrt.TEC().tempDir()
+        path = self.xmlrpcTempDir()
+        zipfile = "%s/keys/citrix/testsign.zip" % (xenrt.TEC().lookup("XENRT_CONF"))
+        if not os.path.exists(zipfile):
+            raise xenrt.XRTError("Cannot find testsign zip file")
+ 
+        xenrt.util.command("unzip -d %s %s" % (testCertsDir, zipfile))
+        files = xenrt.util.command("ls %s" % (testCertsDir), retval="string").strip()
+        files = files.split("\n")
+        for f in files:
+            self.xmlrpcSendFile("%s/%s" % (testCertsDir,f),"%s\%s" % (path,f))
+       
+        self.xmlrpcExec("bcdedit.exe -set TESTSIGNING ON")
+        for f in files:
+           self.xmlrpcExec("certutil.exe -addstore -f 'Root' %s\%s" % (path,f))
+           self.xmlrpcExec("certutil.exe -addstore -f 'TrustedPublisher' %s\%s" % (path,f))  
+
+        self.reboot()
+        xenrt.TEC().logverbose("Testcertificates installed")
+
     def installDrivers(self, source=None, extrareboot=False, useLegacy=False, useHostTimeUTC=False, expectUpToDate=True, ejectISO=True, installFullWindowsGuestAgent=True, useDotNet=True, pvPkgSrc = None):
         """
         Install PV Tools on Windows Guest
@@ -6227,6 +6268,9 @@ class DundeeGuest(CreedenceGuest):
 
         if pvDriverSource == "Random":
             pvDriverSource = self.setRandomPvDriverSource()
+
+        if not xenrt.TEC().lookup("DONT_INSTALL_TEST_CERTS", False, boolean=True):
+            self.installTestCerts()
 
         # If source is "ToolsISO" then install from xs tools
         if pvDriverSource == "ToolsISO" or pvDriverSource == None or useLegacy == True or xenrt.TEC().lookup("USE_LEGACY_DRIVERS", False, boolean=True) or self.usesLegacyDrivers():

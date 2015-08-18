@@ -78,106 +78,180 @@ class TC21547(xenrt.TestCase):
         self.host.destroySR(self.fcSR.uuid)
         self.netAppFiler.release()
 
-class NetappFCTrimSupport(xenrt.TestCase):
-    """ Defines the base class for XenServer TRIM Support On NetApp FC lun"""
-    
+class NetappTrimSupportBase(xenrt.TestCase):
+    """Defines a base class for testing TRIM Support on NetApp array"""
+
+    PROTOCOL=None
+    THINPROVISION = False
+    SRTYPE = None
+
     def __init__(self, tcid=None):
         xenrt.TestCase.__init__(self, tcid)
         self.host = None
+        self.sr = None
         self.sruuid = None
         self.cli = None
         self.netAppFiler = None
         self.lun = None
-        self.lunsize = 60
-    
+
+    def parseArgs(self, arglist=[]):
+        """Parse the test arguments"""
+
+        args          = self.parseArgsKeyValue(arglist)
+
+        self.distro   = str(args.get("distro", "debian80"))
+        self.arch     = str(args.get("arch", "x86-64"))
+
+        self.vmsCount = int(args.get("vmscount", "5"))
+        self.lunsize  = int(args.get("lunsize", "60"))
+
     def prepare(self, arglist=[]):
-        # Lock storage resource and access storage manager library functions.
-        step("Creating netapp filer instance")
-        self.netAppFiler = xenrt.StorageArrayFactory().getStorageArray(xenrt.StorageArrayVendor.NetApp,
-                                                                       xenrt.StorageArrayType.FibreChannel)
+
+        self.parseArgs(arglist) # parse arg lists.
+
         self.host = self.getDefaultHost()
         self.cli = self.host.getCLIInstance()
-        self.host.scanFibreChannelBus()
-        step("Enable Multipathing on Host")
+
         self.host.enableMultipathing()
         self.getLogsFrom(self.host)
-        
-        # Setup initial storage configuration.
-        step("Provisioning single lun of size %s" % self.lunsize)
-        self.netAppFiler.provisionLuns(1, self.lunsize, self._createInitiators())
-        self.lun = self.netAppFiler.getLuns()[0]
-        sr = xenrt.lib.xenserver.FCStorageRepository(self.host, "lvmoHBASR")
-        step("Attaching lun to the host")
-        sr.create(self.lun.getId())
-        self.sruuid = sr.uuid
-        log("TRIM will be tested on SR with uuid %s" % self.sruuid)
-        
-    def _createInitiators(self):
-        return {self.host : self.host.getFCWWPNInfo()}
-    
-    def destroySR(self):
-        step("Destroying lvmoHBA SR on host")
-        self.host.destroySR(self.sruuid)
-        # Releasing the fibre channel storage array
-        self.netAppFiler.release()
-    
-class TrimFunctionalTestHBA(NetappFCTrimSupport):
-    """ Verify available size on lvmohba lun is updated when VDIs on lun are deleted """
 
-    def run(self, arglist=[]):
-        
+    def configureNetAppLUN(self):
+        """Configure NetApp array to obtain a LUN"""
+
+        # Lock storage resource and access storage manager library functions.
+        self.netAppFiler = xenrt.StorageArrayFactory().getStorageArray(xenrt.StorageArrayVendor.NetApp,
+                                                                                            self.PROTOCOL)
+
+        # Mapp the initiators and obtain a LUN.
+        step("Provisioning single lun of size %s" % self.lunsize)
+        self.netAppFiler.provisionLuns(1, self.lunsize, self.getInitiators())
+        return self.netAppFiler.getLuns()[0]
+
+    def createSR(self): 
+        raise xenrt.XRTError("Not implemented in base class")
+
+    def getInitiators(self): 
+        raise xenrt.XRTError("Not implemented in base class")
+
+    def callTrimOnSR(self):
+        """Testing TRIM functionality on a storage repository"""
+
         spaceUsedByGuests = {}
         spaceFreedByGuests = {}
-        delta = 2 # Keep delta as 2% space on lun which is not freed after deleting a VM
+        delta = 2 # Keep delta as 2% space on NetApp lun which is not freed after deleting a VM.
                   # Workaround for CA-139518
         
-        # Creating 1 windows and 4 linux guests on Hardware HBA SR
-        for i in range(5):
-            xenrt.sleep(60)
-            step("Creating Guest %s on Hardware HBA Storage Repository" % i)
+        # Creating few linux guests.
+        for i in range(1,self.vmsCount+1):
+            step("Creating Guest %s on SR : %s" % (i, self.SRTYPE))
             initialUsedSpace = self.lun.sizeUsed()
-            if i == 0:
-                guest = self.host.createGenericWindowsGuest(name="Windows Guest %s" % i,sr=self.sruuid)
-            else:
-                guest = self.host.createGenericLinuxGuest(name="Linux Guest %s" % i,sr=self.sruuid)
-            guest.shutdown()
+
+            try:
+                vmName = "vm%02d" % i
+                guest = self.goldenVM.copyVM(vmName, sruuid=self.sruuid) # much quicker than installing another one.
+            except Exception, e: 
+                raise xenrt.XRTFailure("Cloning vm: %s on %s SR failed with error: %s" %
+                                                                    (vmName, self.SRTYPE, str(e)))
             xenrt.sleep(120)
             usedSpaceAfter = self.lun.sizeUsed()
             diff = usedSpaceAfter - initialUsedSpace
             spaceUsedByGuests.update({guest:[initialUsedSpace,usedSpaceAfter,diff]})
-            log("Space used in bytes: Before creating guest %s, After creating guest %s, Difference %s" %
-                                                                        (initialUsedSpace,usedSpaceAfter,diff))
-        
+            log("TRIM on %s SR: Space used in bytes: Before creating guest %s, After creating guest %s, Difference %s" %
+                                                                        (self.SRTYPE, initialUsedSpace,usedSpaceAfter,diff))
+
         # Deleting Guests
         for guest in spaceUsedByGuests.keys():
-            xenrt.sleep(60)
-            step("Uninstalling Guest %s" % guest.getName())
+            step("Uninstalling Guest %s from %s SR" % (guest.getName(), self.SRTYPE))
             initialUsedSpace = self.lun.sizeUsed()
             guest.uninstall()
-            step("Triggering TRIM on Hardware HBA SR")
+            step("Triggering TRIM on %s SR" % self.SRTYPE)
             self.cli.execute("host-call-plugin host-uuid=%s plugin=trim fn=do_trim args:sr_uuid=%s" %
                                                                     (self.host.getMyHostUUID(),self.sruuid))
             xenrt.sleep(240)
             usedSpaceAfter = self.lun.sizeUsed()
             diff = initialUsedSpace - usedSpaceAfter
             spaceFreedByGuests.update({guest:[initialUsedSpace,usedSpaceAfter,diff]})
-            log("Space freed in bytes: Before deleting guest %s, After deleting guest %s, Difference %s" %
-                                                                        (initialUsedSpace,usedSpaceAfter,diff))
-        
-        # Check the space is freed on LUN
-        step("Check the space used while creating and deleting guest on lun")
+            log("TRIM on %s SR: Space freed in bytes: Before deleting guest %s, After deleting guest %s, Difference %s" %
+                                                                            (self.SRTYPE, initialUsedSpace,usedSpaceAfter,diff))
+
+        # Check the space is freed on the storage repository.
+        step("Check the space used while creating and deleting guest on %s SR." % self.SRTYPE)
         for guest in spaceUsedByGuests.keys():
+            step("Guest under consideration %s" % guest.getName())
             if not ((spaceUsedByGuests[guest][2] - spaceFreedByGuests[guest][2]) < ((delta * spaceUsedByGuests[guest][2]) / 100)):
                 log("Print in Format : {guestInstance : [spaceUsedBeforeGuestCreation, spaceUsedAfterGuestCreation, Difference]}")
                 log("%s" % str(spaceUsedByGuests))
                 log("Print in Format : {guestInstance : [spaceUsedBeforeGuestDeletion, spaceUsedAfterGuestDeletion, Difference]}")
                 log("%s" % str(spaceFreedByGuests))
-                log("TRIM failed : %s bytes is not freed on lun after deleting guest" % str(spaceUsedByGuests[guest][2] - spaceFreedByGuests[guest][2]))
-                raise xenrt.XRTFailure("TRIM failed : bytes not freed on lun after deleting guest")
+                log("%s bytes is not freed on lun after deleting guest %s" % 
+                    (str(spaceUsedByGuests[guest][2] - spaceFreedByGuests[guest][2]),guest.getName()))
+                raise xenrt.XRTFailure("TRIM on %s SR failed : Space not freed on lun after deleting the guests" % self.SRTYPE)
+
+    def getBaseImage(self):
+        """Retrieves the golden image for the test"""
+
+        # Check if there any golden image.
+        existingGuests = self.host.listGuests() 
+        if existingGuests: 
+            vm = map(lambda x:self.host.getGuest(x), existingGuests) 
+        else:
+            raise xenrt.XRTFailure("No base images are found.")
+        return vm[0] # if so, pick the first one available.
+
+    def run(self, arglist=[]):
+
+        # Retrieve the golden image.
+        self.goldenVM = self.getBaseImage()
+
+        if self.goldenVM.getState() == 'UP': # Make sure the guest is down.
+            self.goldenVM.shutdown()
+
+        # Configure NetApp and obtain the LUN.
+        self.lun = self.configureNetAppLUN()
+
+        # Create a SR and regard as default SR.
+        self.sr = self.createSR()
+        self.sruuid = self.sr.uuid
+        pooluuid = self.host.minimalList("pool-list")[0] 
+        self.host.genParamSet("pool", pooluuid, "default-SR", self.sruuid)
+
+        # Test the trim functionality.
+        self.callTrimOnSR()
 
     def postRun(self, arglist=[]):
-        # Destroy the lvmoHBA SR on the pool.
-        self.destroySR()
+        # Destroy the configured SR.
+        self.host.destroySR(self.sruuid)
+        self.netAppFiler.release()
+
+class TrimFuncNetAppISCSI(NetappTrimSupportBase):
+    """Test the XenServer TRIM feature on iSCSI SR using NetApp array"""
+
+    PROTOCOL = xenrt.StorageArrayType.iSCSI
+    SRTYPE = "lvmoiscsi"
+    SRNAME = "lvmoiscsi-thick"
+
+    def getInitiators(self):
+        return {self.host : {'iqn': self.host.getIQN()}}
+
+    def createSR(self):
+        sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.host, self.SRNAME, thin_prov=self.THINPROVISION)
+        sr.create(self.lun.getISCSILunObj(), noiqnset=True, subtype="lvm")
+        return sr
+
+class TrimFuncNetAppFC(NetappTrimSupportBase):
+    """Test the XenServer TRIM feature on Fibre Channel SR using NetApp array"""
+
+    PROTOCOL = xenrt.StorageArrayType.FibreChannel
+    SRTYPE = "lvmohba"
+    SRNAME = "lvmohba-thick"
+
+    def getInitiators(self):
+        return {self.host : self.host.getFCWWPNInfo()}
+
+    def createSR(self):
+        sr = xenrt.lib.xenserver.FCStorageRepository(self.host, self.SRNAME, thin_prov=self.THINPROVISION)
+        sr.create(self.lun.getId())
+        return sr
 
 class TrimFunctionalTestSSD(xenrt.TestCase):
     """Verify trim support on a local SR created using solid state disk"""
@@ -266,6 +340,8 @@ class VerifyTrimTrigger(xenrt.TestCase):
         if self.SR_TYPE in self.TRIM_SUPPORTED_SR:
             if (result == 'True'):
                 xenrt.TEC().logverbose("Enabling TRIM on %s SR is successful" % self.SR_TYPE)
+            elif re.search('Operation not supported', result):
+                raise xenrt.XRTFailure("Xenserver reports TRIM is not supported")
             else:
                 xenrt.TEC().logverbose("Error: %s" % result)
                 raise xenrt.XRTFailure("TRIM trigger failed on supported SR %s with unknown trim exceptions" % 

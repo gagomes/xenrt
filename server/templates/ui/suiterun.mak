@@ -19,8 +19,8 @@ $(function() {
             "version": $("#version").val(),
             "rerun": $("#rerun").is(":checked"),
             "rerunall": $("#rerunall").is(":checked"),
-            "rerunifneeded": $("#rerunifneeded").is(":checked")
-            "devrun": $("#devrun").is(":checked"),
+            "rerunifneeded": $("#rerunifneeded").is(":checked"),
+            "devrun": $("#devrun").is(":checked")
         };
         
         if ($("#seqs").val() != "") {

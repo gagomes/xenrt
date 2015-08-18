@@ -1,0 +1,23 @@
+<xenrt>
+
+  <!-- 2 host iSCSI Multipath tests c -->
+
+  <prepare>
+    <pool id="0">
+      <host id="0"/>
+    </pool>
+    <pool id="1">
+      <host id="1"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="TC-8136">
+      <testcase id="xenserver.tc.multipath.TC8133"/>
+      <testcase id="xenserver.tc.multipath.TC8134"/>
+      <testcase id="xenserver.tc.multipath.TC8137"/>
+      <testcase id="xenserver.tc.multipath.TC8138"/>
+      <testcase id="xenserver.tc.multipath.TC8139"/>
+    </serial>
+  </testsequence>
+</xenrt>

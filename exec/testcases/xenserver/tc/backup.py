@@ -398,7 +398,7 @@ class _VMPPTest(xenrt.TestCase):
             if pool.dummy.getState() != 'DOWN': pool.dummy.shutdown(force=True)
             vm = copy and pool.dummy.cloneVM(name=name) or pool.dummy
         else:
-            raise xenrt.XRTException("Wrong VM type specified")
+            raise xenrt.XRTError("Wrong VM type specified")
         if copy:
             if not name:
                 vm.setName(self.createName(vm.getName()))
@@ -607,8 +607,8 @@ class _VMPPTest(xenrt.TestCase):
                                       'archive-target-config:password',
                                       cifs['rpass'])
                 else:
-                    raise xenrt.XRTException("Unkown archive target type "
-                                             "in config: %s" % v['atype'])
+                    raise xenrt.XRTError("Unkown archive target type "
+                                         "in config: %s" % v['atype'])
                 
             if v.has_key('afreq'):
                 pool.setVMPPParam(vmpp, 'archive-frequency', v['afreq'])
@@ -687,11 +687,11 @@ class _VMPPTest(xenrt.TestCase):
                             and last_backup < clock_now \
                             and last_archive < clock_now
                 if not as_expect:
-                    raise xenrt.XRTException("Current protection running "
-                                             "status or last protection "
-                                             "running time is out of "
-                                             "expectation.",
-                                             data = vmpp)
+                    raise xenrt.XRTFailure("Current protection running "
+                                           "status or last protection "
+                                           "running time is out of "
+                                           "expectation.",
+                                           data = vmpp)
             event_start = xenrt.timenow()
             
             for vmpp in events:
@@ -778,8 +778,8 @@ class _VMPPTest(xenrt.TestCase):
                     elif ptype == 'archive':
                         exp_msg = "VMPP_ARCHIVE_SUCCEEDED"
                     else:
-                        raise xenrt.XRTException("No such protection type: %s"
-                                                 % ptype)
+                        raise xenrt.XRTError("No such protection type: %s"
+                                             % ptype)
                     if exp_msg not in new_msgs:
                         raise xenrt.XRTFailure("Failed to find expected "
                                                "message.", data=new_alerts)

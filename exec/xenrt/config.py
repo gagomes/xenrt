@@ -680,7 +680,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Boston"]["LATEST_rhel5"] = "rhel56"
         self.config["VERSION_CONFIG"]["Boston"]["LATEST_rhel6"] = "rhel6"
         self.config["VERSION_CONFIG"]["Boston"]["DOM0_PARTITIONS"] = {1:4*xenrt.GIGA, 2:4*xenrt.GIGA, 3:"*"}
-        self.config["VERSION_CONFIG"]["Boston"]["INTERNAL_RPU_HOTFIX"] = "/usr/groups/build/clearwater-sp1-lcm/hotfix-XS62E006-latest/hotfix-XS62E006/XS62E006.xsupdate"
+        self.config["VERSION_CONFIG"]["Boston"]["INTERNAL_RPU_HOTFIX"] = "XS62E006.xsupdate"
 
         # XCP Derived from Boston Release
         self.config["VERSION_CONFIG"]["BostonXCP"] = self.config["VERSION_CONFIG"]["Boston"]
@@ -867,7 +867,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Tampa"]["IDLE_VMs_DOM0_CPU_Utilize"] = "260"
         # XenServer dom0 partitions
         self.config["VERSION_CONFIG"]["Tampa"]["DOM0_PARTITIONS"] = {1:4*xenrt.GIGA, 2:4*xenrt.GIGA, 3:"*"}
-        self.config["VERSION_CONFIG"]["Tampa"]["INTERNAL_RPU_HOTFIX"] = "/usr/groups/build/clearwater-sp1-lcm/hotfix-XS62E006-latest/hotfix-XS62E006/XS62E006.xsupdate"
+        self.config["VERSION_CONFIG"]["Tampa"]["INTERNAL_RPU_HOTFIX"] = "XS62E006.xsupdate"
         
         # CHECKME: Need to fix this (Tallahassee is rolled into Tampa)
         self.config["VERSION_CONFIG"]["Tampa"]["MAX_VDIS_PER_VM"] = "15"
@@ -1193,7 +1193,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Creedence"]["LATEST_sl7"] = "sl71"
         # XenServer dom0 partitions
         self.config["VERSION_CONFIG"]["Creedence"]["DOM0_PARTITIONS"] = {1:4*xenrt.GIGA, 2:4*xenrt.GIGA, 3:"*"}
-        self.config["VERSION_CONFIG"]["Creedence"]["INTERNAL_RPU_HOTFIX"] = "/usr/groups/build/cream-lcm/hfx-RPU-latest/hotfix-XS65ESP1006/XS65ESP1006.xsupdate"
+        self.config["VERSION_CONFIG"]["Creedence"]["INTERNAL_RPU_HOTFIX"] = "XS65ESP1006.xsupdate"
         # Cream
         self.config["VERSION_CONFIG"]["Cream"] = copy.deepcopy(self.config["VERSION_CONFIG"]["Creedence"])
         self.config["VERSION_CONFIG"]["Cream"]["LATEST_rhel4"] = "rhel48"
@@ -1203,7 +1203,6 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Cream"]["TEMPLATE_NAME_RHEL_d66_64"] = "Red Hat Enterprise Linux 6 (64-bit),Red Hat Enterprise Linux 6 x64,Red Hat Enterprise Linux 6.0 (64-bit)"
         self.config["VERSION_CONFIG"]["Cream"]["TEMPLATE_NAME_RHEL_w66_64"] = "Red Hat Enterprise Linux 6 (64-bit),Red Hat Enterprise Linux 6 x64,Red Hat Enterprise Linux 6.0 (64-bit)"
         self.config["VERSION_CONFIG"]["Cream"]["TEMPLATE_NAME_SLED_113_64"] = "SUSE Linux Enterprise Desktop 11 SP3 (64-bit),SUSE Linux Enterprise Server 11 SP3 x64"
-        self.config["VERSION_CONFIG"]["Cream"]["INTERNAL_RPU_HOTFIX"] = "/usr/groups/build/cream-lcm/hfx-RPU-latest/hotfix-XS65ESP1006/XS65ESP1006.xsupdate"
 
         # Dundee
         self.config["VERSION_CONFIG"]["Dundee"] = copy.deepcopy(self.config["VERSION_CONFIG"]["Cream"])
@@ -3974,6 +3973,9 @@ class Config(object):
         # Seedy- xapi, xen-device-model. Rolls up XS62E014,XS62E017,XS62ESP1002,XS62ESP1004,XS62ESP1006,XS62ESP1007,XS62ESP1008,XS62ESP1011,XS62ESP1013,XS62ESP1015,XS62ESP1016,XS62ESP1019,XS62ESP1021,XS62ESP1022,XS62ESP1025,XS62ESP1026,XS62ESP1027
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1030"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1030/103335/hotfix-XS62ESP1030/XS62ESP1030.xsupdate"
         
+        # Butterfree- SM, vGPU, Xen, Xapi. Rolls up XS62E014, XS62E017, XS62ESP1002, XS62ESP1004, XS62ESP1006, XS62ESP1007, XS62ESP1008, XS62ESP1011, XS62ESP1013, XS62ESP1015, XS62ESP1016, XS62ESP1019, XS62ESP1021, XS62ESP1022, XS62ESP1025, XS62ESP1026, XS62ESP1027, XS62ESP1029, XS62ESP1030
+        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1031"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1031/103504/hotfix-XS62ESP1031/XS62ESP1031.xsupdate"
+        
         #Creedence hotfixes
         # Gloss: XenCenter, Rolls up nothing
         self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E001"] = "/usr/groups/release/XenServer-6.x/XS-6.5/hotfixes/XS65E001/91026/hotfix-XS65E001/XS65E001.xsupdate"
@@ -4188,13 +4190,12 @@ class Config(object):
             self.config["CARBON_PATCHES_CLEARWATER"]["HF17"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E017"]
         elif branch == "SP1":
             self.config["CARBON_PATCHES_CLEARWATER"]["HF00"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1"]
-            self.config["CARBON_PATCHES_CLEARWATER"]["HF04"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1004"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF14"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1014"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF17"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1017"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF24"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1024"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF28"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1028"]
-            self.config["CARBON_PATCHES_CLEARWATER"]["HF30"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1030"]
-             
+            self.config["CARBON_PATCHES_CLEARWATER"]["HF31"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1031"]
+            
         if not self.config.has_key("CARBON_PATCHES_CREEDENCE"):
             self.config["CARBON_PATCHES_CREEDENCE"] = {}
 

@@ -359,8 +359,10 @@ class TCMachineCheck(xenrt.TestCase):
         # Check we've got the expected number of online devices at this point
         online, total = self._getHBACounts()
 
-        if total != len(hbas):
-            raise xenrt.XRTError("Found inconsistent number of HBAs vs sysfs devices", data="%d HBAs, %d sysfs devices" % (len(hbas), total))
+        if total < len(hbas):
+            raise xenrt.XRTError("Found insufficient sysfs devices", data="%d HBAs, %d sysfs devices" % (len(hbas), total))
+
+        total = len(hbas) # Ignore extra HBAs that may not be connected etc
 
         if online != total:
             raise xenrt.XRTFailure("Only found %d/%d HBAs online prior to test" % (online, total))

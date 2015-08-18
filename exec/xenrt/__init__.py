@@ -2176,7 +2176,12 @@ logdata call."""
             reply.append(("comment", i))
         for i in self.tc.results.appresults:
             reply.append(("data", i))
+        warningCount = 0
         for i in self.tc.results.warnings:
+            warningCount += 1
+            if warningCount > 20:
+                reply.append(("warning", "%d more warnings supressed" % (len(self.tc.results.warnings) - 20)))
+                break
             reply.append(("warning", i))
         for i in self.tc.results.perfdata:
             p, v, u = i

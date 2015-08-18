@@ -4252,13 +4252,34 @@ class _Dom0Xpinning(xenrt.TestCase):
 
     def adviseDom0vCPUPinningStatus(self, host):
         # Matrix of (Host CPUs, Dom0 vCPUs, Pinning Status) as given in EA-1205
+        
         dom0vCPUMatrix = [([1],1,False),
-                          ([2],2,False),
-                          ([3],3,False),
-                          (range(4,24),4,False),
-                          (range(24,32),6,False),
-                          (range(32,48),8,False),
-                          (range(48,1000),8,True)]
+                  ([2],2,False),
+                  ([3],3,False),
+                  (range(4,24),4,False),
+                  (range(24,32),6,False),
+                  (range(32,48),8,False),
+                  (range(48,1000),8,True)]
+
+        if isinstance(host, xenrt.lib.xenserver.DundeeHost):
+            # CAR-2003
+            dom0vCPUMatrix = [([1],1,False),
+                              ([2],2,False),
+                              ([3],3,False),
+                              ([4],4,False),
+                              ([5],5,False),
+                              ([6],6,False),
+                              ([7],7,False),
+                              ([8],8,False),
+                              ([9],9,False),
+                              ([10],10,False),
+                              ([11],11,False),
+                              ([12],12,False),
+                              ([13],13,False),
+                              ([14],14,False),
+                              ([15],15,False),
+                              (range(16,1000),16,False)]
+
         hostCPUCount = host.getCPUCores()
         #Default setting on most XenRT host configurations
         vcpuSetting = {'vcpus':4,'pinning':False}

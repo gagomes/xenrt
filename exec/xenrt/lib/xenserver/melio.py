@@ -133,7 +133,15 @@ class MelioHelper(object):
     def setupMelioDisk(self):
         disk = self.hosts[0].execdom0("realpath %s" % self.device).strip()[5:]
         with self.getMelioClient(self.hosts[0]) as melioClient:
-            diskToManage = [x for x in melioClient.get_all()['unmanaged_disk'] if x['system_name'] == disk][0]
+            deadline = xenrt.timenow() + 600
+            while True:
+                disksToManage = [x for x in melioClient.get_all()['unmanaged_disk'] if x['system_name'] == disk]
+                if disksToManage:
+                    diskToManage = disksToManage[0]
+                    break
+                if xenrt.timenow() > deadline:
+                    raise xenrt.XRTError("Timed out waiting for disk to appear")
+                xenrt.sleep(10)
             melioClient.manage_disk(diskToManage['system_name'])
             deadline = xenrt.timenow() + 600
             while True:

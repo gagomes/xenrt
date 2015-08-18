@@ -42,6 +42,7 @@ class TCXenServerInstall(xenrt.TestCase):
         netapp = False
         eql = False
         fcsr = None
+        fcoesr = None
         sassr = None
         iscsihbasr = None
         bootloader = xenrt.TEC().lookup("HOST_BOOTLOADER", None)

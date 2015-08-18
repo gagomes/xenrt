@@ -156,11 +156,19 @@ class MelioHelper(object):
                     raise xenrt.XRTError("Timed out waiting for disk to get to state 2")
                 xenrt.sleep(10)
             guid = melioClient.create_volume(guid.lstrip("_"), managedDisks[guid]['free_space'])
-            exportedDevice = melioClient.get_all()['exported_device']
-            if guid in exportedDevice.keys():
-                self._saneDevice = exportedDevice[guid]['system_name']
-            else:
-                self._saneDevice = exportedDevice["_%s" % guid]['system_name']
+            deadline = xenrt.timenow() + 600
+            while True:
+                exportedDevice = melioClient.get_all()['exported_device']
+                if isinstance(exportedDevice, dict):
+                    if guid in exportedDevice.keys():
+                        self._saneDevice = exportedDevice[guid]['system_name']
+                        break
+                    else:
+                        self._saneDevice = exportedDevice["_%s" % guid]['system_name']
+                        break
+                if xenrt.timenow() > deadline:
+                    raise xenrt.XRTError("Timed out waiting for device to appear")
+                xenrt.sleep(10)
 
 
     def mount(self, mountpoint):

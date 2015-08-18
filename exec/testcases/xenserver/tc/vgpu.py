@@ -3592,10 +3592,11 @@ class TCSwitchIntelGPUModes(IntelBase):
         def __tryStartVM(vm, error):
             try:         
                 vm.setState("UP")
+            except xenrt.XRTException as e:
+                log("Caught expected exception: %s" % e)
+            else:
                 raise xenrt.XRTFailure(error)
-            except:
-                # Need to check if the correct error is raised.
-                pass
+
 
         for distro in self.REQUIRED_DISTROS:
             osType = self.getOSType(distro)

@@ -7106,7 +7106,7 @@ class GenericGuest(GenericPlace):
                                                           other.getName(),
                                                           str(mac1)))
 
-    def checkFailuresinConsoleLogs(self,domid=None):
+    def checkFailuresinConsoleLogs(self,domid):
         """
         Checks console logs for known install failures and raise error if found
         if none of the errors matches, raise error with last log line
@@ -7126,7 +7126,6 @@ class GenericGuest(GenericPlace):
                                      "Failure trying to run: chroot /target dpkg for {0}",
         }
         log("looking in console logs for errors")
-        domid = domid or self.getDomid()  
         data = self.host.guestConsoleLogTail(domid,lines=200)
         data = re.sub(r"\033\[[\d]*;?[\d]*[a-zA-Z]","",data)
         lines = re.findall(r"((?:[\w\d\./\(\)]+ ){3,20})", data)

@@ -283,8 +283,8 @@ bind lb vserver v1 Loopback""")
 
         # Extract the files from the following ssl.tar.gz into /nsconfig/ssl on the DUT
         sslTarFileUrl = xenrt.TEC().lookup('NS_BW_TEST_SSL_TAR',"http://files.uk.xensource.com/usr/groups/xenrt/ns_bw_testing/ssl.tar.gz")
-        sslTarFile = "/nsconfig/ssl/ssl.tar.gz"
-        vpx_ns.getGuest().sftpClient(username="nsroot").copyTo(xenrt.TEC().getFile(sslTarFileUrl),"/nsconfig/ssl.tar.gz")
+        sslTarFile = "/nsconfig/ssl.tar.gz"
+        vpx_ns.getGuest().sftpClient(username="nsroot").copyTo(xenrt.TEC().getFile(sslTarFileUrl),sslTarFile)
         vpx_ns.cli("shell tar -xvf %s -C /nsconfig/ssl" % sslTarFile)
 
         # Remove existing SNIP, if any

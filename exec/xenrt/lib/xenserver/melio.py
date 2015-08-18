@@ -185,3 +185,11 @@ class MelioHelper(object):
         sr = xenrt.lib.xenserver.MelioStorageRepository(master, name)
         sr.create(self)
         return sr
+
+    def configureClusterFirewall(self):
+        for applyHost in self.hosts:
+            for ruleHost in self.hosts:
+                if applyHost == ruleHost:
+                    continue
+                applyHost.execdom0("iptables -I RH-Firewall-1-INPUT -s %s -p udp --dport 8777 -j ACCEPT" % ruleHost.getIP())
+            applyHost.execdom0("service iptables save")

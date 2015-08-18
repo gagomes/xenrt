@@ -130,7 +130,7 @@ class MelioHelper(object):
         return "/dev/disk/by-id/scsi-%s" % self._scsiid
 
     @property
-    def saneDevice(self, host):
+    def saneDevice(self):
         return "/dev/%s" % self._saneDevice
 
     def setupMelioDisk(self):

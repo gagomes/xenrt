@@ -119,6 +119,28 @@ class DotNet4(WindowsPackage):
 
 RegisterWindowsPackage(DotNet4)
 
+class DotNet451(WindowsPackage):
+    NAME = ".NET 4.5.1"
+    REQUIRE_REBOOT = True
+    REQUIRE_IMMEDIATE_REBOOT = True
+    
+    def _installPackage(self):
+        self._os.createDir("c:\\dotnet451logs")
+        self._os.unpackTarball("%s/dotnet451.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), "c:\\", patient=True)
+        self._os.execCmd("c:\\dotnet451\\NDP451-KB2858728-x86-x64-AllOS-ENU.exe /q /norestart /log c:\\dotnet451logs\\dotnet451log", timeout=3600, returnerror=False)
+    
+    def _packageInstalled(self):
+        val = 0
+        try:
+            rawVersion = self.winRegLookup('HKLM', 'SOFTWARE\\Microsoft\\NET Framework Setup\\NDP\\v4\\Full', 'Release', healthCheckOnFailure=False)
+            if rawVersion == 378675 or rawVersion == 378758:
+                val = 1
+        except: val = 0
+        
+        return val
+        
+RegisterWindowsPackage(DotNet451)
+
 class DotNet2(WindowsPackage):
     NAME = ".NET 2"
     REQUIRE_REBOOT = True
@@ -182,7 +204,7 @@ class PowerShell20(WindowsPackage):
         return self._os.getPowershellVersion() >= 2.0
     
     def _installDotNetPackage(self):
-        self._os.installDotNet2()
+        self._os.ensurePackageInstalled(".NET 2", doDelayedReboot=False)
         
     def _getExecutableForGivenArchitecture(self):
         if self._os.windowsVersion() == "6.0":
@@ -207,7 +229,7 @@ class PowerShell20(WindowsPackage):
             return
         versions = ["5.1","5.2","6.0"]
             
-        if self._os.windowsVersion() not in Versions:
+        if self._os.windowsVersion() not in versions:
             raise xenrt.XRTError("%s installer is not \
                 available for Windows version %s" % (self.NAME,self._os.windowsVersion()))
             
@@ -229,7 +251,7 @@ class PowerShell30(WindowsPackage):
         return self._os.getPowershellVersion() >= 3.0
     
     def _installDotNetPackage(self):
-        self._os.installDotNet4()
+        self._os.ensurePackageInstalled(".NET 4", doDelayedReboot=False)
         
     def _getExecutableForGivenArchitecture(self):
         if self._os.getArch() == "amd64":
@@ -266,7 +288,7 @@ class PowerShell40(PowerShell30):
         return self._os.getPowershellVersion() >= 4.0
     
     def _installDotNetPackage(self):
-        self._os.installDotNet451()
+        self._os.ensurePackageInstalled(".NET 4.5.1", doDelayedReboot=False)
         
     def _getExecutableForGivenArchitecture(self):
         if self._os.windowsVersion() == "6.2":

@@ -69,6 +69,7 @@ class MelioHelper(object):
         return True
 
     def installMelio(self, reinstall=False):
+        self.configureClusterFirewall()
         tasks = [xenrt.PTask(self.installMelioOnHost, x, reinstall) for x in self.hosts]
         xenrt.pfarm(tasks)
     
@@ -185,3 +186,29 @@ class MelioHelper(object):
                     continue
                 applyHost.execdom0("iptables -I RH-Firewall-1-INPUT -s %s -p udp --dport 8777 -j ACCEPT" % ruleHost.getIP())
             applyHost.execdom0("service iptables save")
+
+    def checkCluster(self):
+        if len(self.hosts) == 1:
+            return
+        deadline = xenrt.timenow() + 600
+        while True:
+            ready = True
+            for checkHost in self.hosts:
+                with self.getMelioClient(checkHost) as melioClient:
+                    servers = melioClient.get_all()['network_session']
+                    if not isinstance(servers, dict):
+                        ready = False
+                    else:
+                        for expectedHost in self.hosts:
+                            if expectedHost == checkHost:
+                                continue
+                            if not expectedHost.getName() in [x['computer_name'] for x in servers.values()]:
+                                ready = False
+                                break
+                if not ready:
+                    break
+            if ready:
+                break
+            if xenrt.timenow() > deadline:
+                raise xenrt.XRTError("Timed out waiting for all of the cluster to appear")
+            xenrt.sleep(20)

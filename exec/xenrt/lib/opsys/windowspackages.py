@@ -205,7 +205,7 @@ class PowerShell20(WindowsPackage):
         if self._packageInstalled():
             xenrt.TEC().logverbose("%s or above installed." % self.NAME)
             return
-        Versions = ["5.1","5.2","6.0"]
+        versions = ["5.1","5.2","6.0"]
             
         if self._os.xmlrpcWindowsVersion() not in Versions:
             raise xenrt.XRTError("%s installer is not \

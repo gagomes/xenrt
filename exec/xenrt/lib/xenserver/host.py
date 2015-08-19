@@ -230,7 +230,7 @@ def createHost(id=0,
     gateway6 = None
     interfaces = []
 
-    if host.lookup("WORKAROUND_CA105789", False, boolean=True):
+    if host.lookup("HOST_STATIC_IP", False, boolean=True):
         dhcp = False
 
     if noipv4:
@@ -13827,7 +13827,7 @@ class CreedencePool(ClearwaterPool):
             args.append("license-server-address=%s" % (v6server.getAddress()))
             args.append("license-server-port=%s" % (v6server.getPort()))
         else:
-            if self.special.has_key('v6earlyrelease') and self.special['v6earlyrelease']:
+            if self.master.special.has_key('v6earlyrelease') and self.master.special['v6earlyrelease']:
                 (addr, port) = xenrt.TEC().lookup("DEFAULT_CITRIX_PREVIEW_LICENSE_SERVER").split(":")
             else:
                 (addr, port) = xenrt.TEC().lookup("DEFAULT_CITRIX_LICENSE_SERVER").split(":")

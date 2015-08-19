@@ -15,6 +15,7 @@
           <memory>2048</memory>
           <vcpus>2</vcpus>
           <postinstall action="installDrivers" />
+          <postinstall action="preCloneTailor"/>
           <network device="0" />
           <disk device="0" size="24" />
         </vm>

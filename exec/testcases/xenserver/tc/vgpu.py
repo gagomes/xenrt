@@ -3548,12 +3548,16 @@ class TCPoolIntelBootstorm(IntelBase):
 
             self.typeOfvGPU.blockDom0Access(passHost)
 
-            # Creating a GPU Passthrough vm.
+            # Creating a GPU Passthrough vm. Let the guest network settle before attatching gpu.
             passVM = masterVM.cloneVM()
+            passVM.setState("UP")
+            xenrt.sleep(30)
             __prepareVM(passVM, passConfig)
 
-            # Creating a vGPU vm.
+            # Creating a vGPU vm. Let the guest network settle before attatching gpu.
             vgpuVM = masterVM.cloneVM()
+            vgpuVM.setState("UP")
+            xenrt.sleep(30)
             __prepareVM(vgpuVM, vgpuConfig)
 
             # Shutdown all       

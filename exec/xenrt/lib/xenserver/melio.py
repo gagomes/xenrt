@@ -84,6 +84,8 @@ class MelioHelper(object):
 
         host.execdom0("sed -i /warm_drive/d /etc/rc.d/rc.local")
         host.execdom0("sed -i /warm-drive/d /etc/rc.d/rc.local")
+        host.execdom0("sed -i /ping/d /etc/rc.d/rc.local")
+        host.execdom0("echo 'ping -c 30 -i 0.1 -W 2 %s' >> /etc/rc.d/rc.local" % xenrt.TEC().lookup("XENRT_SERVER_ADDRESS"))
         host.execdom0("echo 'modprobe warm_drive' >> /etc/rc.d/rc.local")
         host.execdom0("chkconfig warm-drived off")
         host.execdom0("echo 'service warm-drived start' >> /etc/rc.d/rc.local")

@@ -27,6 +27,7 @@ class MelioHelper(object):
         self._scsiid = None
         self._saneDevice = None
         self._iscsiHost = iscsiHost
+        # Get a checkout of the Melio Python library
         if not xenrt.TEC().lookup("MELIO_PYTHON_LOCAL_PATH", None):
             d = xenrt.TempDirectory()
             xenrt.util.command("cd %s && git clone %s melio-python" % (d.path(), xenrt.TEC().lookup("MELIO_PYTHON_REPO", "https://gitlab.citrite.net/xs-melio/python-melio-linux.git")))
@@ -41,9 +42,11 @@ class MelioHelper(object):
         return self._iscsiHost or self.hosts[0]
 
     def getMelioClient(self, host):
+        # Get an instance of the websockets library to the Melio UI
         return self._MelioClient("%s:8080" % host.getIP(), verbose_debugging=True)
 
     def setup(self, reinstall=False, formatDisk=True):
+        # Do a full setup of the melio tools
         tasks = [xenrt.PTask(self.installMelio, reinstall=reinstall)]
         if self.iscsiHost not in self.hosts:
             tasks.append(xenrt.PTask(self.createLun))
@@ -53,6 +56,7 @@ class MelioHelper(object):
             self.setupMelioDisk()
 
     def getRpmToDom0(self, host, var, specVar, dest):
+        # Get an RPM to dom0 from a URL
         rpm = xenrt.TEC().lookup(var, None)
         if not rpm:
             return False
@@ -69,11 +73,14 @@ class MelioHelper(object):
         return True
 
     def installMelio(self, reinstall=False):
+        # Install melio on the cluster (do each host in parallel)
         self.configureClusterFirewall()
         tasks = [xenrt.PTask(self.installMelioOnHost, x, reinstall) for x in self.hosts]
         xenrt.pfarm(tasks)
+        self.checkCluster()
     
     def installMelioOnHost(self, host, reinstall=False):
+        # Install the Melio software on a single host
         if host.execdom0("lsmod | grep warm_drive", retval="code") == 0 and not reinstall:
             return
         host.execdom0("yum install -y boost boost-atomic boost-thread boost-filesystem")
@@ -101,6 +108,7 @@ class MelioHelper(object):
             host.execdom0("rpm -U --replacepkgs /root/ffs.rpm")
 
     def checkXapiResponsive(self, host):
+        # Check that xapi is responsive on the specified host
         for i in xrange(20):
             start = xenrt.timenow()
             host.getCLIInstance().execute("vm-list")
@@ -112,6 +120,7 @@ class MelioHelper(object):
             self.lun = xenrt.ISCSIVMLun(targetType="LIO", sizeMB=100*xenrt.KILO, host=self.iscsiHost)
 
     def setupISCSITarget(self):
+        # Setup an LIO iscsi target
         self.createLun()
         self._scsiid = self.lun.getID()
         for host in self.hosts:
@@ -127,6 +136,7 @@ class MelioHelper(object):
         return "/dev/%s" % self._saneDevice
 
     def setupMelioDisk(self):
+        # Setup a melio disk on the scsi device
         disk = self.hosts[0].execdom0("realpath %s" % self.device).strip()[5:]
         with self.getMelioClient(self.hosts[0]) as melioClient:
             deadline = xenrt.timenow() + 600
@@ -165,21 +175,25 @@ class MelioHelper(object):
 
 
     def mount(self, mountpoint):
+        # Mount the melio device on every host in the cluster at the specified mountpoint
         for host in self.hosts:
             host.execdom0("mount -t warm_fs %s %s" % (self.saneDevice, mountpoint))
     
     def checkMount(self, mountpoint):
+        # Check that melioFS is mounted at the specified mountpoint on every host in the cluster
         for host in self.hosts:
             if not "on %s type warm_fs" % mountpoint in host.execdom0("mount"):
                 raise xenrt.XRTError("warm_fs not mounted on %s" % host.getName())
 
     def createSR(self, name="Melio"):
+        # Create the melio SR
         master = self.hosts[0].pool.master if self.hosts[0].pool else self.hosts[0]
         sr = xenrt.lib.xenserver.MelioStorageRepository(master, name)
         sr.create(self)
         return sr
 
     def configureClusterFirewall(self):
+        # Configure every host to be able to see every other host
         for applyHost in self.hosts:
             for ruleHost in self.hosts:
                 if applyHost == ruleHost:
@@ -188,6 +202,7 @@ class MelioHelper(object):
             applyHost.execdom0("service iptables save")
 
     def checkCluster(self):
+        # Check every host can see every other host in the cluster
         if len(self.hosts) == 1:
             return
         deadline = xenrt.timenow() + 600
@@ -195,20 +210,27 @@ class MelioHelper(object):
             ready = True
             for checkHost in self.hosts:
                 with self.getMelioClient(checkHost) as melioClient:
+                    # See which other servers we're connected to
                     servers = melioClient.get_all()['network_session']
-                    if not isinstance(servers, dict):
-                        ready = False
-                    else:
-                        for expectedHost in self.hosts:
-                            if expectedHost == checkHost:
-                                continue
-                            if not expectedHost.getName() in [x['computer_name'] for x in servers.values()]:
-                                ready = False
-                                break
+                # We don't always get a dictionary back if it's empty
+                if not isinstance(servers, dict):
+                    ready = False
+                else:
+                    # Check we're connected to every other host (except ourselves)
+                    for expectedHost in self.hosts:
+                        if expectedHost == checkHost:
+                            continue
+                        if not expectedHost.getName() in [x['computer_name'] for x in servers.values()]:
+                            ready = False
+                            # No point in continuing
+                            break
                 if not ready:
+                    # No point in continuing
                     break
             if ready:
+                # All done
                 break
             if xenrt.timenow() > deadline:
                 raise xenrt.XRTError("Timed out waiting for all of the cluster to appear")
+            # Sleep for 20 seconds before trying again
             xenrt.sleep(20)

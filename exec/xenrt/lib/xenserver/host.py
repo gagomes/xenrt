@@ -230,7 +230,7 @@ def createHost(id=0,
     gateway6 = None
     interfaces = []
 
-    if host.lookup("WORKAROUND_CA105789", False, boolean=True):
+    if host.lookup("HOST_STATIC_IP", False, boolean=True):
         dhcp = False
 
     if noipv4:

@@ -185,13 +185,13 @@ class PowerShell20(WindowsPackage):
         self._os.installDotNet2()
         
     def _getExecutableForGivenArchitecture(self):
-        if self._os.xmlrpcWindowsVersion() == "6.0":
-            if self._os.xmlrpcGetArch() == "amd64":
+        if self._os.windowsVersion() == "6.0":
+            if self._os.getArch() == "amd64":
                 return "Windows6.0-KB968930-x64.msu"
             return "Windows6.0-KB968930-x86.msu"
             
-        if self._os.xmlrpcWindowsVersion() == "5.2":
-            if self._os.xmlrpcGetArch() == "amd64":
+        if self._os.windowsVersion() == "5.2":
+            if self._os.getArch() == "amd64":
                 return "WindowsServer2003-KB968930-x64-ENG.exe"
             return "WindowsServer2003-KB968930-x86-ENG.exe"
             
@@ -207,16 +207,16 @@ class PowerShell20(WindowsPackage):
             return
         versions = ["5.1","5.2","6.0"]
             
-        if self._os.xmlrpcWindowsVersion() not in Versions:
+        if self._os.windowsVersion() not in Versions:
             raise xenrt.XRTError("%s installer is not \
-                available for Windows version %s" % (self.NAME,self._os.xmlrpcWindowsVersion()))
+                available for Windows version %s" % (self.NAME,self._os.windowsVersion()))
             
         self._installDotNetPackage()   
         exe = self._getExecutableForGivenArchitecture()
         
-        t = self._os.xmlrpcTempDir()
-        self._os.xmlrpcUnpackTarball("%s/%s.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE"),self._packageName), t)
-        self._os.xmlrpcExec("%s\\%s\\%s /quiet /norestart" % (t, self._packageName,exe), returnerror=False, timeout=600)
+        t = self._os.tempDir()
+        self._os.unpackTarball("%s/%s.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE"),self._packageName), t)
+        self._os.execCmd("%s\\%s\\%s /quiet /norestart" % (t, self._packageName,exe), returnerror=False, timeout=600)
         self._os.reboot()
         
 RegisterWindowsPackage(PowerShell20)
@@ -232,7 +232,7 @@ class PowerShell30(WindowsPackage):
         self._os.installDotNet4()
         
     def _getExecutableForGivenArchitecture(self):
-        if self._os.xmlrpcGetArch() == "amd64":
+        if self._os.getArch() == "amd64":
             return "Windows6.1-KB2506143-x64.msu"
         return "Windows6.1-KB2506143-x86.msu"
     
@@ -245,16 +245,16 @@ class PowerShell30(WindowsPackage):
             xenrt.TEC().logverbose("%s or above installed." % self.NAME)
             return
             
-        if self._os.xmlrpcWindowsVersion() != "6.1" and self._os.xmlrpcWindowsVersion() != "6.2":
+        if self._os.windowsVersion() != "6.1" and self._os.windowsVersion() != "6.2":
             raise xenrt.XRTError("%s installer is not \
                 available for Windows version %s" % (self.NAME,self._os.xmlrpcWindowsVersion()))
             
         self._installDotNetPackage()   
         exe = self._getExecutableForGivenArchitecture()
         
-        t = self._os.xmlrpcTempDir()
-        self._os.xmlrpcUnpackTarball("%s/%s.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE"),self._packageName), t)
-        self._os.xmlrpcExec("%s\\%s\\%s /quiet /norestart" % (t, self._packageName,exe), returnerror=False, timeout=600)
+        t = self._os.tempDir()
+        self._os.unpackTarball("%s/%s.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE"),self._packageName), t)
+        self._os.execCmd("%s\\%s\\%s /quiet /norestart" % (t, self._packageName,exe), returnerror=False, timeout=600)
         self._os.reboot()
         
 RegisterWindowsPackage(PowerShell30)
@@ -269,9 +269,9 @@ class PowerShell40(PowerShell30):
         self._os.installDotNet451()
         
     def _getExecutableForGivenArchitecture(self):
-        if self._os.xmlrpcWindowsVersion() == "6.2":
+        if self._os.windowsVersion() == "6.2":
             return "Windows8-RT-KB2799888-x64.msu"
-        if self._os.xmlrpcGetArch() == "amd64":
+        if self._os.getArch() == "amd64":
             return "Windows6.1-KB2819745-x64-MultiPkg.msu"
         return "Windows6.1-KB2819745-x86-MultiPkg.msu"
         

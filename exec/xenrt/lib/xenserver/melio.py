@@ -75,16 +75,6 @@ class MelioHelper(object):
     def installMelioOnHost(self, host, reinstall=False):
         if host.execdom0("lsmod | grep warm_drive", retval="code") == 0 and not reinstall:
             return
-        d = xenrt.WebDirectory()
-        if xenrt.TEC().lookup("PATCH_SMAPI_RPMS", False, boolean=True):
-            host.execdom0("mkdir -p /root/smapi_rpms")
-            rpms = ['xapi-core-*.rpm', 'xapi-storage-script-*.rpm', 'xenopsd-0*.rpm', 'xenopsd-xc-*.rpm', 'xenopsd-xenlight-*.rpm', 'xapi-storage-0*.rpm']
-            for r in rpms:
-                f = xenrt.TEC().getFile("/usr/groups/xen/carbon/trunk-btrfs-3/latest/binary-packages/RPMS/domain0/RPMS/x86_64/%s" % r)
-                d.copyIn(f)
-                host.execdom0("wget -O /root/smapi_rpms/%s %s" % (os.path.basename(f), d.getURL(os.path.basename(f))))
-            host.execdom0("rpm -Uv --force /root/smapi_rpms/*.rpm")
-            host.resetToFreshInstall(setupISOs=True)
         host.execdom0("yum install -y boost boost-atomic boost-thread boost-filesystem")
         if not self.getRpmToDom0(host, "MELIO_RPM", "melio_rpm", "/root/melio.rpm"):
             raise xenrt.XRTError("MELIO_RPM not found")

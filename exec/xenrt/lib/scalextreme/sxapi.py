@@ -6,7 +6,7 @@ __all__ = [ "SXAPI" ]
 class SXAPI(object):
     """ScaleXtreme Rest API handler class"""
 
-    def __init__(self, apikey, credential, server="https://manage.citrix.com", version="v0"):
+    def __init__(self, apikey, credential, server="https://lifecycle.cloud.com", version="v0"):
         """Constructor.
         SXAPI always gets authenticated and stores access key.
         """

@@ -6,7 +6,7 @@
 
 import xenrt
 
-__all__ = ["PowerState", "LifecycleOperation", "HypervisorType", "IsoRepository", "InstallMethod", "XenServerLicenseSKU"]
+__all__ = ["PowerState", "LifecycleOperation", "HypervisorType", "IsoRepository", "InstallMethod", "XenServerLicenseSKU","WindowsVersions"]
 
 # All known Windows distros
 windowsdistros = [('w2k3eesp2pae','Windows Server Enterprise Edition SP2 with PAE Enabled'),

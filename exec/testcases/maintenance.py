@@ -99,7 +99,7 @@ class _TCSyncDir(xenrt.TestCase):
             rsynccmd = self.rsynccmdstem + masterpath + "/ " + \
                        mountpoint + "/"
             xenrt.TEC().logverbose(rsynccmd)
-            xenrt.command(rsynccmd, timeout=360000)
+            xenrt.sudo(rsynccmd, timeout=360000)
         finally:
             try:
                 if mount:

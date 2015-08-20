@@ -374,6 +374,12 @@ class XenRT(object):
           %%s
         </error>
     \"\"\" %% (message, urltext)
+            elif r['result'].startswith("blocked"):
+                errored += 1
+                details = \"\"\"    <error message="Blocked by previous test">
+          %%s
+        </error>
+    \"\"\" %% (urltext)
             elif r['result'].startswith("skipped") or r['result'].startswith("blocked"):
                 skipped += 1
                 details = "    <skipped />\\n"

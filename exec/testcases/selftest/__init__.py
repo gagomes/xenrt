@@ -293,7 +293,7 @@ class TCMachineCheck(xenrt.TestCase):
                 nw = self.host.lookup(["NICS", "NIC%u" % (assumedId), "NETWORK"], None)
                 if not nw:
                     raise xenrt.XRTError("NETWORK not specified for NIC %u" % assumedId)
-                nwMaps = {"NPRI": "DEFAULT", "NSEC": "SECONDARY", "IPRI": "VLANS/IPRI"}
+                nwMaps = {"NPRI": "DEFAULT", "NSEC": "SECONDARY", "IPRI": "VLANS/IPRI", "ISEC": "VLANS/ISEC"}
                 if not nw in nwMaps.keys():
                     raise xenrt.XRTError("Unknown NETWORK %s" % nw)
                 confKey = ["NETWORK_CONFIG"] + nwMaps[nw].split("/")

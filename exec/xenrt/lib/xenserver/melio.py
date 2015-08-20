@@ -43,7 +43,7 @@ class MelioHelper(object):
 
     def getMelioClient(self, host):
         # Get an instance of the websockets library to the Melio UI
-        return self._MelioClient("%s:8080" % host.getIP(), verbose_debugging=True)
+        return self._MelioClient("%s:8080" % host.getIP(), verbose_debugging=True, request_timeout=300)
 
     def setup(self, reinstall=False, formatDisk=True):
         # Do a full setup of the melio tools

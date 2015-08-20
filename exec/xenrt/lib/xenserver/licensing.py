@@ -282,7 +282,7 @@ class XenServerLicenseFactory(object):
         if lver == self.__CLR:
             return ClearwaterLicense(XenServerLicenseSKU.PerSocket)
         if lver == self.__CRE or lver == self.__CRM or lver == self.__DUN:
-            return CreedenceLicense(XenServerLicenseSKU.PerUserEnterprise)
+            return CreedenceLicense(XenServerLicenseSKU.PerSocketEnterprise)
  
     def maxLicenseSkuPool(self,xspool):
         self.maxLicenseSkuHost(xspool.master)

@@ -438,7 +438,7 @@ class MelioStorageRepository(StorageRepository):
     
     def create(self, melio, physical_size=0, content_type="", smconf={}):
         self.melio = melio
-        self._create("melio", {"uri":"file://%s" % self.melio.device}, physical_size, content_type, smconf)
+        self._create("melio", {"uri":"file://%s" % self.melio.saneDevice}, physical_size, content_type, smconf)
 
 class IntegratedCVSMStorageRepository(StorageRepository):
     SHARED = True

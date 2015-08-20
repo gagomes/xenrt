@@ -39,7 +39,7 @@ class MelioHelper(object):
         return self._iscsiHost or self.hosts[0]
 
     def getMelioClient(self, host):
-        return self._MelioClient("%s:8080" % host.getIP(), verbose_debugging=True)
+        return self._MelioClient("%s:8080" % host.getIP(), verbose_debugging=True, request_timeout=300)
 
     def setup(self, reinstall=False, formatDisk=True):
         tasks = [xenrt.PTask(self.installMelio, reinstall=reinstall)]

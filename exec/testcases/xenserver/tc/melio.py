@@ -30,7 +30,7 @@ class TCDDIntegrity(xenrt.TestCase):
             host.execdom0("rm -f /mnt/testdd*")
             host.execdom0("dd if=/dev/urandom of=/mnt/testdd1 oflag=direct count=100 bs=1M")
             host.execdom0("dd if=/mnt/testdd1 of=/mnt/testdd2 iflag=direct oflag=direct bs=1M")
-            md5sum1 = host.execdom0("md5sum /mnt/testdd1").strip()
-            md5sum2 = host.execdom0("md5sum /mnt/testdd2").strip()
+            md5sum1 = host.execdom0("md5sum /mnt/testdd1 | awk '{print $1}'").strip()
+            md5sum2 = host.execdom0("md5sum /mnt/testdd2 | awk '{print $1}'").strip()
             if md5sum1 != md5sum2:
                 raise xenrt.XRTFailure("md5sums did not match")

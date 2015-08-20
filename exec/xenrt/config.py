@@ -2778,8 +2778,8 @@ class Config(object):
 
         self.config["GUEST_TESTS"]["Clearwater"] = {}
         self.config["GUEST_TESTS"]["Clearwater"]["Primary"] = ['centos57_x86-32','centos57_x86-64','centos61_x86-32',
-         'centos61_x86-64','centos62_x86-32','centos62_x86-64','debian60_x86-32','debian60_x86-64','oel510_x86-32',
-         'oel510_x86-64','oel65_x86-32','oel65_x86-64','rhel48_x86-32','rhel57_x86-32','rhel57_x86-64','rhel61_x86-32',
+         'centos61_x86-64','centos62_x86-32','centos62_x86-64','debian60_x86-32','debian60_x86-64',
+         'oel65_x86-32','oel65_x86-64','rhel48_x86-32','rhel57_x86-32','rhel57_x86-64','rhel61_x86-32',
          'rhel61_x86-64','rhel62_x86-32','rhel62_x86-64','sles104_x86-32','sles104_x86-64','sles111_x86-32',
          'sles111_x86-64','ubuntu1004_x86-32','ubuntu1004_x86-64','ubuntu1204_x86-32','ubuntu1204_x86-64','vistaeesp2',
          'w2k3eesp2','w2k3eesp2-x64','win7sp1-x64','win7sp1-x86','win8-x64','win8-x86','win81-x64','win81-x86','winxpsp3',

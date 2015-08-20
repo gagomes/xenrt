@@ -207,12 +207,12 @@ class PowerShell20(WindowsPackage):
         self._os.ensurePackageInstalled(".NET 2", doDelayedReboot=False)
         
     def _getExecutableForGivenArchitecture(self):
-        if self._os.windowsVersion() == "6.0":
+        if self._os.windowsVersion() == xenrt.WindowsVersions.winVer60:
             if self._os.getArch() == "amd64":
                 return "Windows6.0-KB968930-x64.msu"
             return "Windows6.0-KB968930-x86.msu"
             
-        if self._os.windowsVersion() == "5.2":
+        if self._os.windowsVersion() == xenrt.WindowsVersions.winVer52:
             if self._os.getArch() == "amd64":
                 return "WindowsServer2003-KB968930-x64-ENG.exe"
             return "WindowsServer2003-KB968930-x86-ENG.exe"
@@ -227,7 +227,7 @@ class PowerShell20(WindowsPackage):
         if self._packageInstalled():
             xenrt.TEC().logverbose("%s or above installed." % self.NAME)
             return
-        versions = ["5.1","5.2","6.0"]
+        versions = [xenrt.WindowsVersions.winVer51,xenrt.WindowsVersions.winVer52,xenrt.WindowsVersions.winVer60]
             
         if self._os.windowsVersion() not in versions:
             raise xenrt.XRTError("%s installer is not \
@@ -267,7 +267,7 @@ class PowerShell30(WindowsPackage):
             xenrt.TEC().logverbose("%s or above installed." % self.NAME)
             return
             
-        if self._os.windowsVersion() != "6.1" and self._os.windowsVersion() != "6.2":
+        if self._os.windowsVersion() != xenrt.WindowsVersions.winVer61 and self._os.windowsVersion() != xenrt.WindowsVersions.winVer62:
             raise xenrt.XRTError("%s installer is not \
                 available for Windows version %s" % (self.NAME,self._os.xmlrpcWindowsVersion()))
             
@@ -291,7 +291,7 @@ class PowerShell40(PowerShell30):
         self._os.ensurePackageInstalled(".NET 4.5.1", doDelayedReboot=False)
         
     def _getExecutableForGivenArchitecture(self):
-        if self._os.windowsVersion() == "6.2":
+        if self._os.windowsVersion() == xenrt.WindowsVersions.winVer62:
             return "Windows8-RT-KB2799888-x64.msu"
         if self._os.getArch() == "amd64":
             return "Windows6.1-KB2819745-x64-MultiPkg.msu"

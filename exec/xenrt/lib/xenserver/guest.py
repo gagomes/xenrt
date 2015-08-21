@@ -971,17 +971,9 @@ users:
             if not self.tailored:
                 # Tailor the VM for future test use
                 xenrt.TEC().progress("Tailoring the VM for test use")
-                try:
-                    self.tailor()
-                    self.tailored = True
-                except:
-                    #Sometimes VM reboots during tailoring
-                    #so wait for 60 secs for VM to be back
-                    self.mainip = self.host.arpwatch(bridge, mac, timeout=120)
-                    self.waitForssh(timeout=60)
-                    xenrt.TEC().warning("VM has been rebooted")
-                    raise
-                    
+                self.tailor()
+                self.tailored = True
+
     def unenlightenedShutdown(self):
         if self.windows:
             self.xmlrpcShutdown()

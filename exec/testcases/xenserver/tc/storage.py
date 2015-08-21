@@ -5381,3 +5381,52 @@ class TCFCOEAfterUpgrade(FCOELifecycleBase):
         if not self.srs:
             raise xenrt.XRTFailure("FCOE SR Creation failed after host upgrade on %s" % self.host)
 
+class TCFCOEBlacklist(xenrt.TestCase):
+
+    BLACKLIST_FILE = "/etc/sysconfig/fcoe-blacklist"
+    
+    def prepare(self,arglist=None):
+        self.host = self.getDefaultHost()
+        fcoesr = self.host.lookup("SR_FC", "yes")
+        if fcoesr == "yes":
+            fcoesr = "LUN0"
+        self.scsiid = host.lookup(["FC", fcoesr, "SCSIID"], None)
+        self.sr = xenrt.lib.xenserver.FCOEStorageRepository(host, "fcoe")
+        self.sr.create(self.scsiid,multipathing=True)
+        
+        
+    def isNicFCOECapable(self,pif):
+        var = self.host.execdom0("dcbtool gc %s app:0" % pif)
+        v = re.search(r'Enable:\s+(\w+)',var)
+        if str(v.group(1)) == "true":
+            return True
+        return False
+    
+    def blacklistNIC(self,pif):
+        var = self.host.execdom0("ethtool -i %s" % pif)
+        v = re.search(r'driver:\s+(\w+)\s+version:\s+(\S+)',var)
+        self.host.execdom0("echo %s:%s >> %s" %(v.group(1),v.group(2),self.BLACKLIST_FILE))
+        self.host.reboot()
+    
+    def checkBlacklistedNIC(self,pif):
+        pifuuid = self.host.execdom0("xe pif-list params=uuid device=%s minimal=true" % pif).strip()
+        val = self.host.execdom0("xe pif-param-get param-name=capabilities uuid=%s" % pifuuid).strip()
+        if val == "fcoe":
+            raise xenrt.XRTFailure("Blacklisted %s is showing up as FCOE capable" % pif)
+        else:
+            xenrt.TEC.logverbose("Blacklisted %s is not showing up as FCOE capable ")
+
+    def run(self,arglist=None):
+        self.pifs = host.execdom0('xe pif-list params=device minimal=true')[:-1].split(",")
+        for pif in self.pifs:
+            if self.isNicFCOECapable(pif):
+                self.blacklistNIC(pif)
+                self.checkBlacklistedNIC(pif)
+            else:
+                xenrt.XRTError("%s is not FCOE capable" % pif)
+
+    def postRun(self):
+        xenrt.TEC.log("Removing the FCOE blacklist file")
+        self.host.execdom0("rm -f %s" %self.BLACKLIST_FILE)
+        if self.sr:
+            self.sr.remove()

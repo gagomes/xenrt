@@ -444,13 +444,20 @@ class IPMISetup(xenrt.TestCase):
             h.execdom0("yum install -y syscfg")
             if xenrt.TEC().lookup("DELL_SERIAL_PORT_SWAP", False, boolean=True):
                 h.execdom0("/opt/dell/toolkit/bin/syscfg --serialportaddrsel=alternate")
-        h.execdom0("ipmitool -I open lan set 1 ipsrc static")
-        h.execdom0("ipmitool -I open lan set 1 ipaddr %s" % h.lookup("BMC_ADDRESS"))
-        h.execdom0("ipmitool -I open lan set 1 netmask %s" % subnet.netmask().strNormal())
-        h.execdom0("ipmitool -I open lan set 1 defgw ipaddr %s" % gw)
-        h.execdom0("ipmitool -I open lan set 1 access on")
-        try:
-            h.execdom0("ipmitool -I open lan set 1 user")
-        except:
-            xenrt.TEC().logverbose("Warning: could not enable default user for IPMI")
-        h.execdom0("ipmitool -I open delloem lcd set mode userdefined %s" % h.getName())
+            if "--acpower " in h.execdom0("/opt/dell/toolkit/bin/syscfg"):
+                h.execdom0("/opt/dell/toolkit/bin/syscfg --acpower on")
+            if "--f1f2promptonerror " in h.execdom0("/opt/dell/toolkit/bin/syscfg"):
+                h.execdom0("/opt/dell/toolkit/bin/syscfg --f1f2promptonerror disable")
+            if "--sriov " in h.execdom0("/opt/dell/toolkit/bin/syscfg"):
+                h.execdom0("/opt/dell/toolkit/bin/syscfg --sriov enable")
+        if xenrt.TEC().lookup("BMC_ADDRESS", None):
+            h.execdom0("ipmitool -I open lan set 1 ipsrc static")
+            h.execdom0("ipmitool -I open lan set 1 ipaddr %s" % h.lookup("BMC_ADDRESS"))
+            h.execdom0("ipmitool -I open lan set 1 netmask %s" % subnet.netmask().strNormal())
+            h.execdom0("ipmitool -I open lan set 1 defgw ipaddr %s" % gw)
+            h.execdom0("ipmitool -I open lan set 1 access on")
+            try:
+                h.execdom0("ipmitool -I open lan set 1 user")
+            except:
+                xenrt.TEC().logverbose("Warning: could not enable default user for IPMI")
+            h.execdom0("ipmitool -I open delloem lcd set mode userdefined %s" % h.getName())

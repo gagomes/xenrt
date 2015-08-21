@@ -1595,7 +1595,8 @@ class XenRTInteract(XenRTCommand):
             if not "XMLRPC" in job['params']:
                 raise Exception("Job has no XMLRPC variable\n")
             hostport = job['params']["XMLRPC"]
-        s = xmlrpclib.Server("http://%s" % (hostport))
+        (host, port) = hostport.split(":")
+        s = xmlrpclib.Server("http://%s/xmlrpc/%s" % (host,port))
         shell = False
         logger = False
         stack = False

@@ -445,11 +445,11 @@ class IPMISetup(xenrt.TestCase):
             if xenrt.TEC().lookup("DELL_SERIAL_PORT_SWAP", False, boolean=True):
                 h.execdom0("/opt/dell/toolkit/bin/syscfg --serialportaddrsel=alternate")
             if "--acpower " in h.execdom0("/opt/dell/toolkit/bin/syscfg"):
-                h.execdom0("/opt/dell/toolkit/bin/syscfg --acpower on")
+                h.execdom0("/opt/dell/toolkit/bin/syscfg --acpower=on")
             if "--f1f2promptonerror " in h.execdom0("/opt/dell/toolkit/bin/syscfg"):
-                h.execdom0("/opt/dell/toolkit/bin/syscfg --f1f2promptonerror disable")
+                h.execdom0("/opt/dell/toolkit/bin/syscfg --f1f2promptonerror=disable")
             if "--sriov " in h.execdom0("/opt/dell/toolkit/bin/syscfg"):
-                h.execdom0("/opt/dell/toolkit/bin/syscfg --sriov enable")
+                h.execdom0("/opt/dell/toolkit/bin/syscfg --sriov=enable")
         if xenrt.TEC().lookup("BMC_ADDRESS", None):
             h.execdom0("ipmitool -I open lan set 1 ipsrc static")
             h.execdom0("ipmitool -I open lan set 1 ipaddr %s" % h.lookup("BMC_ADDRESS"))

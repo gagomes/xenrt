@@ -113,6 +113,6 @@ class WindowsVersions(Enum):
     ws2003AndR2 = "5.2"
     ws2008 = "6.0"
     win7 = "6.1"
-    win8AndWs2012 = "6.2"
+    win8AndWS2012 = "6.2"
     
     

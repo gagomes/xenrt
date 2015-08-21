@@ -176,6 +176,15 @@ class NetScaler(object):
         xenrt.TEC().logverbose('NetScaler Command [%s] - Returned: %s' % (command, '\n'.join(data)))
         return data
 
+    def multiCli(self, cmds):
+        [self.cli(cmd) for cmd in cmds.strip().split("\n") if cmd.strip()]
+
+    def removeExistingSNIP(self):
+        snipLines = self.cli("show ns ip | grep SNIP")
+        for snipLine in snipLines:
+            existingSNIP = snipLine.split('\t')[1].split(' ')[0]
+            self.cli("rm ns ip %s" % (existingSNIP))
+
     def installNSTools(self):
         nstools = xenrt.TEC().lookup('NS_TOOLS_PATH')
         toolsfile = nstools.split("/")[-1]

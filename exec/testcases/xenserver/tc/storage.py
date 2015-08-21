@@ -5414,7 +5414,7 @@ class TCFCOEBlacklist(xenrt.TestCase):
         if val == "fcoe":
             raise xenrt.XRTFailure("Blacklisted %s is showing up as FCOE capable" % pif)
         else:
-            xenrt.TEC.logverbose("Blacklisted %s is not showing up as FCOE capable ")
+            xenrt.TEC().logverbose("Blacklisted %s is not showing up as FCOE capable ")
 
     def run(self,arglist=None):
         self.pifs = self.host.execdom0('xe pif-list params=device minimal=true')[:-1].split(",")

@@ -5391,7 +5391,7 @@ class TCFCOEBlacklist(xenrt.TestCase):
         if fcoesr == "yes":
             fcoesr = "LUN0"
         self.scsiid = self.host.lookup(["FC", fcoesr, "SCSIID"], None)
-        self.sr = xenrt.lib.xenserver.FCOEStorageRepository(host, "fcoe")
+        self.sr = xenrt.lib.xenserver.FCOEStorageRepository(self.host, "fcoe")
         self.sr.create(self.scsiid,multipathing=True)
         
         

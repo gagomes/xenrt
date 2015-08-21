@@ -440,16 +440,29 @@ class IPMISetup(xenrt.TestCase):
             raise xenrt.XRTError("BMC Address not on management network")
 
         if xenrt.TEC().lookup("DELL", False, boolean=True):
-            h.execdom0("wget -q -O - http://linux.dell.com/repo/hardware/Linux_Repository_15.07.00/bootstrap.cgi | bash")
-            h.execdom0("yum install -y syscfg")
+            if h.execdom0("test -e /opt/dell/toolkit/bin/syscfg", retval="code"):
+                h.execdom0("wget -q -O - http://linux.dell.com/repo/hardware/Linux_Repository_15.07.00/bootstrap.cgi | bash")
+                h.execdom0("yum install -y syscfg")
             if xenrt.TEC().lookup("DELL_SERIAL_PORT_SWAP", False, boolean=True):
-                h.execdom0("/opt/dell/toolkit/bin/syscfg --serialportaddrsel=alternate")
+                try:
+                    h.execdom0("/opt/dell/toolkit/bin/syscfg --serialportaddrsel=alternate")
+                except:
+                    xenrt.TEC().warning("Failed to change serial port config")
             if "--acpower " in h.execdom0("/opt/dell/toolkit/bin/syscfg"):
-                h.execdom0("/opt/dell/toolkit/bin/syscfg --acpower=on")
+                try:
+                    h.execdom0("/opt/dell/toolkit/bin/syscfg --acpower=on")
+                except:
+                    xenrt.TEC().warning("Failed to change AC power config")
             if "--f1f2promptonerror " in h.execdom0("/opt/dell/toolkit/bin/syscfg"):
-                h.execdom0("/opt/dell/toolkit/bin/syscfg --f1f2promptonerror=disable")
+                try:
+                    h.execdom0("/opt/dell/toolkit/bin/syscfg --f1f2promptonerror=disable")
+                except:
+                    xenrt.TEC().warning("Failed to change F1/F2 prompt config")
             if "--sriov " in h.execdom0("/opt/dell/toolkit/bin/syscfg"):
-                h.execdom0("/opt/dell/toolkit/bin/syscfg --sriov=enable")
+                try:
+                    h.execdom0("/opt/dell/toolkit/bin/syscfg --sriov=enable")
+                except:
+                    xenrt.TEC().warning("Failed to enable SRIOV")
         if xenrt.TEC().lookup("BMC_ADDRESS", None):
             h.execdom0("ipmitool -I open lan set 1 ipsrc static")
             h.execdom0("ipmitool -I open lan set 1 ipaddr %s" % h.lookup("BMC_ADDRESS"))

@@ -443,6 +443,7 @@ class IPMISetup(xenrt.TestCase):
             if h.execdom0("test -e /opt/dell/toolkit/bin/syscfg", retval="code"):
                 h.execdom0("wget -q -O - http://linux.dell.com/repo/hardware/Linux_Repository_15.07.00/bootstrap.cgi | bash")
                 h.execdom0("yum install -y syscfg")
+                h.reboot()
             if xenrt.TEC().lookup("DELL_SERIAL_PORT_SWAP", False, boolean=True):
                 try:
                     h.execdom0("/opt/dell/toolkit/bin/syscfg --serialportaddrsel=alternate")

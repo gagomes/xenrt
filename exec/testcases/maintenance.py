@@ -439,18 +439,39 @@ class IPMISetup(xenrt.TestCase):
         if not IPy.IP(h.lookup("BMC_ADDRESS")) in subnet:
             raise xenrt.XRTError("BMC Address not on management network")
 
-
-        if xenrt.TEC().lookup("DELL_SERIAL_PORT_SWAP", False, boolean=True):
-            h.execdom0("wget -q -O - http://linux.dell.com/repo/hardware/Linux_Repository_15.07.00/bootstrap.cgi | bash")
-            h.execdom0("yum install -y syscfg")
-            h.execdom0("/opt/dell/toolkit/bin/syscfg --serialportaddrsel=alternate")
-        h.execdom0("ipmitool -I open lan set 1 ipsrc static")
-        h.execdom0("ipmitool -I open lan set 1 ipaddr %s" % h.lookup("BMC_ADDRESS"))
-        h.execdom0("ipmitool -I open lan set 1 netmask %s" % subnet.netmask().strNormal())
-        h.execdom0("ipmitool -I open lan set 1 defgw ipaddr %s" % gw)
-        h.execdom0("ipmitool -I open lan set 1 access on")
-        try:
-            h.execdom0("ipmitool -I open lan set 1 user")
-        except:
-            xenrt.TEC().logverbose("Warning: could not enable default user for IPMI")
-        h.execdom0("ipmitool -I open delloem lcd set mode userdefined %s" % h.getName())
+        if xenrt.TEC().lookup("DELL", False, boolean=True):
+            if h.execdom0("test -e /opt/dell/toolkit/bin/syscfg", retval="code"):
+                h.execdom0("wget -q -O - http://linux.dell.com/repo/hardware/Linux_Repository_15.07.00/bootstrap.cgi | bash")
+                h.execdom0("yum install -y syscfg")
+                h.reboot()
+            if xenrt.TEC().lookup("DELL_SERIAL_PORT_SWAP", False, boolean=True):
+                try:
+                    h.execdom0("/opt/dell/toolkit/bin/syscfg --serialportaddrsel=alternate")
+                except:
+                    xenrt.TEC().warning("Failed to change serial port config")
+            if "--acpower " in h.execdom0("/opt/dell/toolkit/bin/syscfg"):
+                try:
+                    h.execdom0("/opt/dell/toolkit/bin/syscfg --acpower=on")
+                except:
+                    xenrt.TEC().warning("Failed to change AC power config")
+            if "--f1f2promptonerror " in h.execdom0("/opt/dell/toolkit/bin/syscfg"):
+                try:
+                    h.execdom0("/opt/dell/toolkit/bin/syscfg --f1f2promptonerror=disable")
+                except:
+                    xenrt.TEC().warning("Failed to change F1/F2 prompt config")
+            if "--sriov " in h.execdom0("/opt/dell/toolkit/bin/syscfg"):
+                try:
+                    h.execdom0("/opt/dell/toolkit/bin/syscfg --sriov=enable")
+                except:
+                    xenrt.TEC().warning("Failed to enable SRIOV")
+        if xenrt.TEC().lookup("BMC_ADDRESS", None):
+            h.execdom0("ipmitool -I open lan set 1 ipsrc static")
+            h.execdom0("ipmitool -I open lan set 1 ipaddr %s" % h.lookup("BMC_ADDRESS"))
+            h.execdom0("ipmitool -I open lan set 1 netmask %s" % subnet.netmask().strNormal())
+            h.execdom0("ipmitool -I open lan set 1 defgw ipaddr %s" % gw)
+            h.execdom0("ipmitool -I open lan set 1 access on")
+            try:
+                h.execdom0("ipmitool -I open lan set 1 user")
+            except:
+                xenrt.TEC().logverbose("Warning: could not enable default user for IPMI")
+            h.execdom0("ipmitool -I open delloem lcd set mode userdefined %s" % h.getName())

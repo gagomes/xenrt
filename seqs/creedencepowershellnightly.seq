@@ -4,6 +4,7 @@
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <POWERSHELL_VERSION>PowerShell 2.0</POWERSHELL_VERSION>
     <DOTNETVERSION>3.5</DOTNETVERSION>
   </variables>
 

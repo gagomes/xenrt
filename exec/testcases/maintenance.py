@@ -439,11 +439,11 @@ class IPMISetup(xenrt.TestCase):
         if not IPy.IP(h.lookup("BMC_ADDRESS")) in subnet:
             raise xenrt.XRTError("BMC Address not on management network")
 
-
-        if xenrt.TEC().lookup("DELL_SERIAL_PORT_SWAP", False, boolean=True):
+        if xenrt.TEC().lookup("DELL", False, boolean=True):
             h.execdom0("wget -q -O - http://linux.dell.com/repo/hardware/Linux_Repository_15.07.00/bootstrap.cgi | bash")
             h.execdom0("yum install -y syscfg")
-            h.execdom0("/opt/dell/toolkit/bin/syscfg --serialportaddrsel=alternate")
+            if xenrt.TEC().lookup("DELL_SERIAL_PORT_SWAP", False, boolean=True):
+                h.execdom0("/opt/dell/toolkit/bin/syscfg --serialportaddrsel=alternate")
         h.execdom0("ipmitool -I open lan set 1 ipsrc static")
         h.execdom0("ipmitool -I open lan set 1 ipaddr %s" % h.lookup("BMC_ADDRESS"))
         h.execdom0("ipmitool -I open lan set 1 netmask %s" % subnet.netmask().strNormal())

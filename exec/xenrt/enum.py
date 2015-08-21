@@ -109,10 +109,10 @@ class XenServerLicenseSKU(Enum):
     XSAdvance = "Advance"    #Tampa version
 
 class WindowsVersions(Enum):
-    winVer51 = "5.1"
-    winVer52 = "5.2"
-    winVer60 = "6.0"
-    winVer61 = "6.1"
-    winVer62 = "6.2"
+    winXP = "5.1"
+    ws2003AndR2 = "5.2"
+    ws2008 = "6.0"
+    win7 = "6.1"
+    win8AndWs2012 = "6.2"
     
     

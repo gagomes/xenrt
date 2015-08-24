@@ -864,3 +864,76 @@ class TC27176(TCUCSISCSIMultipathScenarios):
             self.checkHost()
             self.waitForPathCount(2)
             self.checkHost()
+
+class TC27246(xenrt.TestCase):
+    """Install to a server with a multipathed iSCSI boot disk on a Powervault"""
+
+    def override(self, key, value):
+        resource_host = "RESOURCE_HOST_0"
+        machine = xenrt.TEC().lookup(resource_host, resource_host)
+        xenrt.TEC().config.setVariable(["HOST_CONFIGS", machine, key], value)
+
+    @staticmethod
+    def productVersionFromInputDir(inputDir):
+        fn = xenrt.TEC().getFile("%s/xe-phase-1/globals" % inputDir, "%s/globals" % inputDir)
+        if fn:
+            for line in open(fn).xreadlines():
+                match = re.match('^PRODUCT_VERSION="(.+)"', line)
+                if match:
+                    hosttype = xenrt.TEC().lookup(["PRODUCT_CODENAMES", match.group(1)], None)
+                    if hosttype:
+                        return hosttype
+        return xenrt.TEC().lookup("PRODUCT_VERSION", None)
+
+    def lookup(self, key):
+        resource_host = "RESOURCE_HOST_0"
+        machine = xenrt.TEC().lookup(resource_host, resource_host)
+        m = xenrt.PhysicalHost(xenrt.TEC().lookup(machine, machine))
+        hosttype = self.productVersionFromInputDir(xenrt.TEC().getInputDir())
+        host = xenrt.lib.xenserver.hostFactory(hosttype)(m,
+                                                     productVersion=hosttype)
+        return host.lookup(key, None)
+
+    def run(self, arglist):
+        carbon_disks = self.lookup(["UCSISCSI", "CARBON_DISKS"])
+        guest_disks = self.lookup(["UCSISCSI", "GUEST_DISKS"])
+        self.override("OPTION_CARBON_DISKS", carbon_disks)
+        self.override("OPTION_GUEST_DISKS", guest_disks)
+        self.override("LOCAL_SR_POST_INSTALL", "no")
+        self.override("DOM0_EXTRA_ARGS", "use_ibft")
+        self.host = xenrt.lib.xenserver.createHost(id=0, installnetwork="NSEC")
+
+class TC27247(xenrt.TestCase):
+    """Create an iSCSI SR on iSCSI booted machine, where the SR target is on a
+    different storage IP and the same subnet as the boot disk."""
+
+    def prepare(self, arglist):
+        self.host = self.getHost("RESOURCE_HOST_0")
+        self.iscsiHost = self.getHost("RESOURCE_HOST_1")
+
+    def run(self, arglist):
+        self.bootLun = xenrt.resources.ISCSIVMLun(hostIndex=1, sizeMB=50000)
+        iscsiSR = xenrt.lib.xenserver.ISCSIStorageRepository(self.host, "iscsi-sr")
+        iscsiSR.create(self.bootLun, subtype="lvm", noiqnset=True, findSCSIID=True)
+
+class TC27248(xenrt.TestCase):
+    """Create NFS SR on iSCSI booted machine, where the SR target is on a
+    different storage IP and the same subnet as the boot disk."""
+
+    def prepare(self, arglist):
+        self.host = self.getHost("RESOURCE_HOST_0")
+        self.nfsHost = self.getHost("RESOURCE_HOST_1")
+
+    def run(self, arglist):
+        self.nfsHost.execcmd("service nfs start")
+        self.nfsHost.execcmd("iptables -F")
+
+        # Create a dir and export the shared directory.
+        self.nfsHost.execcmd("mkdir /nfsShare")
+        self.nfsHost.execcmd("echo '/nfsShare *(sync,rw,no_root_squash,no_subtree_check)'"
+                        " > /etc/exports")
+        self.nfsHost.execcmd("exportfs -a")
+
+        # Create the nfs SR on the host.
+        nfsSR = xenrt.lib.xenserver.NFSStorageRepository(self.host, "nfs-sr")
+        nfsSR.create(self.nfsHost.getIP(),"/nfsShare")

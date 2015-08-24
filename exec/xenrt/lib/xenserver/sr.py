@@ -135,6 +135,9 @@ class StorageRepository(object):
             alloc = self.host.genParamGet("sr", self.uuid, "sm-config", "allocation")
             if alloc == self.THIN_PROV_KEYWORD:
                 return True
+            # For compatibility to old version.
+            if alloc == "dynamic":
+                return True
 
         except:
             # sm-config may not have 'allocation' key.
@@ -223,7 +226,10 @@ class StorageRepository(object):
             self.__thinProv = xenrt.TEC().lookup("FORCE_THIN_LVHD", False, boolean=True)
         if self.__thinProv:
             if self.__isEligibleThinProvisioning(srtype):
-                smconf["allocation"] = self.THIN_PROV_KEYWORD
+                if xenrt.TEC().lookup("USE_DYNAMIC_KEYWORD", False, boolean=True):
+                    smconf["allocation"] = "dynamic"
+                else:
+                    smconf["allocation"] = self.THIN_PROV_KEYWORD
             else:
                 xenrt.warning("SR: %s is marked as thin provisioning but %s does not support it. Ignoring..." % (self.name, srtype))
         args.extend(["sm-config:%s=\"%s\"" % (x, y)

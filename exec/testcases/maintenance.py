@@ -510,11 +510,13 @@ class BiosSetup(xenrt.TestCase):
             gw = h.execdom0("ip route show | grep default | awk '{print $3}'").strip()
             subnet = IPy.IP(h.execdom0("ip route show | grep -v default | grep ' %s ' | awk '{print $1}'" % defaultDevice).strip())
 
-            if not IPy.IP(h.lookup("BMC_ADDRESS")) in subnet:
+            bmcaddr = xenrt.getHostAddress(h.lookup("BMC_ADDRESS"))
+
+            if not IPy.IP(bmcaddr) in subnet:
                 raise xenrt.XRTError("BMC Address not on management network")
 
             h.execdom0("ipmitool -I open lan set 1 ipsrc static")
-            h.execdom0("ipmitool -I open lan set 1 ipaddr %s" % h.lookup("BMC_ADDRESS"))
+            h.execdom0("ipmitool -I open lan set 1 ipaddr %s" % bmcaddr)
             h.execdom0("ipmitool -I open lan set 1 netmask %s" % subnet.netmask().strNormal())
             h.execdom0("ipmitool -I open lan set 1 defgw ipaddr %s" % gw)
             h.execdom0("ipmitool -I open lan set 1 access on")

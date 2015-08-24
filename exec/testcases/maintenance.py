@@ -442,27 +442,22 @@ class BiosSetup(xenrt.TestCase):
                     h.execdom0("/opt/dell/toolkit/bin/syscfg --serialportaddrsel=alternate")
                 except:
                     xenrt.TEC().warning("Failed to change serial port config")
-            if "--acpower " in h.execdom0("/opt/dell/toolkit/bin/syscfg"):
+            if "--acpower" in h.execdom0("/opt/dell/toolkit/bin/syscfg"):
                 try:
                     h.execdom0("/opt/dell/toolkit/bin/syscfg --acpower=on")
                 except:
                     xenrt.TEC().warning("Failed to change AC power config")
-            if "--f1f2promptonerror " in h.execdom0("/opt/dell/toolkit/bin/syscfg"):
+            if "--f1f2promptonerror" in h.execdom0("/opt/dell/toolkit/bin/syscfg"):
                 try:
                     h.execdom0("/opt/dell/toolkit/bin/syscfg --f1f2promptonerror=disable")
                 except:
                     xenrt.TEC().warning("Failed to change F1/F2 prompt config")
-            if "--sriov " in h.execdom0("/opt/dell/toolkit/bin/syscfg"):
+            if "--sriov" in h.execdom0("/opt/dell/toolkit/bin/syscfg"):
                 try:
                     h.execdom0("/opt/dell/toolkit/bin/syscfg --sriov=enable")
                 except:
                     xenrt.TEC().warning("Failed to enable SRIOV")
-            if "--sriov " in h.execdom0("/opt/dell/toolkit/bin/syscfg"):
-                try:
-                    h.execdom0("/opt/dell/toolkit/bin/syscfg --sriov=enable")
-                except:
-                    xenrt.TEC().warning("Failed to enable SRIOV")
-            if "--inteltxt " in h.execdom0("/opt/dell/toolkit/bin/syscfg"):
+            if "--inteltxt" in h.execdom0("/opt/dell/toolkit/bin/syscfg"):
                 try:
                     h.execdom0("/opt/dell/toolkit/bin/syscfg --inteltxt=enable")
                 except:
@@ -475,12 +470,32 @@ class BiosSetup(xenrt.TestCase):
                     h.execdom0("/opt/dell/toolkit/bin/syscfg tpm --tpmactivation=enabled")
                 except:
                     xenrt.TEC().warning("Failed to activate TPM")
-            if "--asset " in h.execdom0("/opt/dell/toolkit/bin/syscfg") and xenrt.TEC().lookup("ASSET_TAG", None):
+            if h.lookup("ASSET_TAG", None) and "--asset" in h.execdom0("/opt/dell/toolkit/bin/syscfg") and xenrt.TEC().lookup("ASSET_TAG", None):
                 try:
-                    h.execdom0("/opt/dell/toolkit/bin/syscfg --asset=%s" % (xenrt.TEC().lookup("ASSET_TAG")))
+                    h.execdom0("/opt/dell/toolkit/bin/syscfg --asset=%s" % (h.lookup("ASSET_TAG")))
                 except:
                     xenrt.TEC().warning("Failed to enable TXT")
-        if xenrt.TEC().lookup("BMC_ADDRESS", None):
+            if "--virtualization" in h.execdom0("/opt/dell/toolkit/bin/syscfg"):
+                try:
+                    h.execdom0("/opt/dell/toolkit/bin/syscfg --virtualization=enable")
+                except:
+                    xenrt.TEC().warning("Failed to enable TXT")
+            if "--memtest" in h.execdom0("/opt/dell/toolkit/bin/syscfg"):
+                try:
+                    h.execdom0("/opt/dell/toolkit/bin/syscfg --memtest=disable")
+                except:
+                    xenrt.TEC().warning("Failed to disable memtest")
+            if "--conred" in h.execdom0("/opt/dell/toolkit/bin/syscfg"):
+                if h.lookup("SERIAL_CONSOLE_PORT") == "1":
+                    red = "serial2"
+                else:
+                    red = "serial1"
+                try:
+                    h.execdom0("/opt/dell/toolkit/bin/syscfg --conred=%s" % red)
+                except:
+                    xenrt.TEC().warning("Failed to enable TXT")
+                
+        if h.lookup("BMC_ADDRESS", None):
             defaultDevice = h.execdom0("ip route show | grep default | awk '{print $5}'").strip()
             gw = h.execdom0("ip route show | grep default | awk '{print $3}'").strip()
             subnet = IPy.IP(h.execdom0("ip route show | grep -v default | grep ' %s ' | awk '{print $1}'" % defaultDevice).strip())

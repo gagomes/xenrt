@@ -2381,20 +2381,18 @@ fi
         #remove duplicate entries for same hotfix, if there are any
         if patches and xenrt.TEC().lookup("CHECK_DUPLICATE_HOTFIX", False, boolean=True):
             uniquePatches = []
-            reg = re.compile('(.*/)([RTM-]*[0-9]*/.*)')
+            reg = re.compile('(.*/)([RTM-]*[0-9]*/(.*))')
             for patch in patches:
                 match = reg.search(patch)
-                if all(match.group(2) not in i for i in uniquePatches):
+                patchExists = False
+                for uniquePatch in uniquePatches:
+                    if match.group(2) in uniquePatch:
+                        break
+                    if match.group(3) in uniquePatch:
+                        raise xenrt.XRTFailure("You are trying to install two builds of same hotfix:%s" % (match.group(3)))
+                if match.group(2) not in uniquePatch:
                     uniquePatches.append(patch)
             patches = uniquePatches
-            #check if there are multiple builds of same hotfix
-            uniquePatches = []
-            reg = re.compile('(.*/[RTM-]*[0-9]*/)(.*)')
-            for patch in patches:
-                match = reg.search(patch)
-                if not all(match.group(2) not in i for i in uniquePatches):
-                    raise xenrt.XRTFailure("You are trying to install two builds of same hotfix:%s" % (patch))
-                uniquePatches.append(patch)
 
         # Apply all the patches we found
         for patch in [x for x in patches if x != "None"]:

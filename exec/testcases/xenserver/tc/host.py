@@ -4822,8 +4822,7 @@ class TCDriverDisk(xenrt.TestCase):
         remoteDir = "/tmp/"
         driverDiskPath = xenrt.TEC().lookup("DRIVER_PATH")
         # Get ISO name from path
-        from os.path import basename
-        ddFile = basename(driverDiskPath)
+        ddFile = os.path.basename(driverDiskPath)
         ddFilePath = "%s/%s" % (remoteDir, ddFile)
 
         sftp = self.host.sftpClient()
@@ -4833,20 +4832,21 @@ class TCDriverDisk(xenrt.TestCase):
             sftp.copyTo(xenrt.TEC().getFile(driverDiskPath), ddFilePath)
         finally:
             sftp.close()
-        
-        if "zip" in driverDiskPath:
+
+        res = self.host.execdom0('if [ -e %s ]; then echo "found"; fi' % ddFilePath)
+        xenrt.TEC().logverbose('Result: "%s"' % res)
+        if res.strip() != "found":
+            raise xenrt.XRTFailure("Failed to copy '%s' to '%s' on host." % (driverDiskPath, ddFilePath))
+
+        if ".zip" in driverDiskPath:
             mountpoint = "/tmp/dd_directory"
             self.host.execdom0("unzip %s -d %s" % (ddFilePath, mountpoint))
             self.isoPath = self.host.execdom0("find %s -name *iso" % (mountpoint)).strip()
-            self.iso = basename(self.isoPath)
+            self.iso = os.path.basename(self.isoPath)
         else:
             self.isoPath = ddFilePath
-            self.iso = basename(driverDiskPath)
+            self.iso = os.path.basename(driverDiskPath)
 
-        res = self.host.execdom0('if [ -e %s ]; then echo "found"; fi' % self.isoPath)
-        xenrt.TEC().logverbose('Result: "%s"' % res)
-        if res.strip() != "found":
-            raise xenrt.XRTFailure("Failed to copy '%s' to '%s' on host." % (driverDiskPath, self.isoPath))
 
     def testDriverInstallation(self):
         """

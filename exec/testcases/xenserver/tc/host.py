@@ -4809,7 +4809,7 @@ class TCDriverDisk(xenrt.TestCase):
         self.host = self.getHost("RESOURCE_HOST_0")
         hotfix = xenrt.TEC().lookup("HOTFIX", None)
 
-        # Install hotfixes on host if required. Otherwise test with GA.
+        step("Install hotfixes on host if required. Otherwise test with GA")
         if hotfix:
             productVersion = xenrt.TEC().lookup("PRODUCT_VERSION")
             hotfixes = self.buildHotfixList(hotfix)
@@ -4818,15 +4818,9 @@ class TCDriverDisk(xenrt.TestCase):
 
         return
 
-    def testDriverInstallation(self):
-        """
-        * Install the driver disk using the disks 'install.sh' scripts.
-        * Check RPM list updates.
-        * Check module dependency table has been updated.
-        * Attempt a load of the driver.
-        """
+    def fetchDriverDisk(self):
         remoteDir = "/tmp/"
-        driverDiskPath = xenrt.TEC().lookup("DRIVER_DISK")
+        driverDiskPath = xenrt.TEC().lookup("DRIVER_PATH")
         # Get ISO name from path
         from os.path import basename
         ddFile = basename(driverDiskPath)
@@ -4843,40 +4837,51 @@ class TCDriverDisk(xenrt.TestCase):
         if "zip" in driverDiskPath:
             mountpoint = "/tmp/dd_directory"
             self.host.execdom0("unzip %s -d %s" % (ddFilePath, mountpoint))
-            isoPath = self.host.execdom0("find %s -name *iso" % (mountpoint)).strip()
-            iso = basename(isoPath)
+            self.isoPath = self.host.execdom0("find %s -name *iso" % (mountpoint)).strip()
+            self.iso = basename(self.isoPath)
         else:
-            isoPath = ddFilePath
-            iso = basename(driverDiskPath)
+            self.isoPath = ddFilePath
+            self.iso = basename(driverDiskPath)
 
-        res = self.host.execdom0('if [ -e %s ]; then echo "found"; fi' % isoPath)
+        res = self.host.execdom0('if [ -e %s ]; then echo "found"; fi' % self.isoPath)
         xenrt.TEC().logverbose('Result: "%s"' % res)
         if res.strip() != "found":
-            raise xenrt.XRTFailure("Failed to copy '%s' to '%s' on host." % (driverDiskPath, isoPath))
-           
-        # mount driver disk
-        mntDir = "/mnt/%s" % (iso.replace('.',''))
-        tmpDir = "/tmp/%s" % (iso.replace('.',''))
+            raise xenrt.XRTFailure("Failed to copy '%s' to '%s' on host." % (driverDiskPath, self.isoPath))
+
+    def testDriverInstallation(self):
+        """
+        * Install the driver disk using the disks 'install.sh' scripts.
+        * Check RPM list updates.
+        * Check module dependency table has been updated.
+        * Attempt a load of the driver.
+        """
+
+        step("Fetch driver disk iso")
+        self.fetchDriverDisk()
+
+        step("mount driver disk")
+        mntDir = "/mnt/%s" % (self.iso.replace('.',''))
+        tmpDir = "/tmp/%s" % (self.iso.replace('.',''))
 
         self.host.execdom0("mkdir %s" % mntDir)
-        self.host.execdom0("mount -o loop %s %s" % (isoPath, mntDir))
+        self.host.execdom0("mount -o loop %s %s" % (self.isoPath, mntDir))
             
-        # create a location to copy contents of driver disk to.
+        step("Create a location to copy contents of driver disk to")
         # we do this as we need read-write access to hack the install.sh script
         self.host.execdom0("mkdir %s" % tmpDir)
             
         # copy driver disk contents to /tmp/{i}
         self.host.execdom0("cp -R %s/* %s/" % (mntDir, tmpDir))
 
-        # unmount driver disk
+        step("Unmount driver disk")
         self.host.execdom0("cd / && umount %s && rmdir %s" % (mntDir, mntDir))
             
-        # hack driver disk scripts so doesn't ask to confirm
+        step("Hack driver disk scripts so doesn't ask to confirm")
         self.host.execdom0("sed -i 's/if \[ -d \$installed_repos_dir\/$identifier \]/if \[ 0 -eq 1 \]/' %s/install.sh" % tmpDir)
         self.host.execdom0('sed -i "s/print msg/return/" %s/install.sh || true' % tmpDir)
             
         # list rpms in driver disk
-        xenrt.TEC().logverbose("Listing RPMs in driver disk")
+        step("Listing RPMs in driver disk")
         driverDiskRpms = self.host.execdom0('cd / && find %s | grep ".rpm$"' % tmpDir).strip().splitlines()
             
         # dictionary of kernel objects for cross referencing against installed ones after driver disk has been installed
@@ -4884,7 +4889,7 @@ class TCDriverDisk(xenrt.TestCase):
         kokdump = []
             
         # manually unpack all rpms to get driver names and versions
-        xenrt.TEC().logverbose("Unpacking all RPMs in driver disk so can get version numbers")
+        step("Unpacking all RPMs in driver disk to get version numbers")
         for j in range(len(driverDiskRpms)):
             self.host.execdom0("mkdir %s/%d" % (tmpDir, j))
             self.host.execdom0("cd %s/%d && rpm2cpio %s | cpio -idmv" % (tmpDir, j, driverDiskRpms[j]))
@@ -4899,34 +4904,36 @@ class TCDriverDisk(xenrt.TestCase):
         # list all rpms before installing driver disk
         rpmsBefore = self.host.execdom0("rpm -qa|sort").splitlines()
         
-        # install driver disk
-        self.host.execdom0("cd %s && ./install.sh" % tmpDir)
+        step("Install driver disk")
+        if xenrt.TEC().lookup("INSTALL_SUPP_PACK", False, boolean=True):
+            self.host.execdom0("xe-install-supplemental-pack %s" % self.isoPath)
+        else:
+            self.host.execdom0("cd %s && ./install.sh" % tmpDir)
             
-        # ensure the module dependency table has been updated correctly
+        step("Ensure the module dependency table has been updated correctly")
         for ko in kos:
             if len(self.host.execdom0("modinfo %s | grep `uname -r`" % ko).strip().splitlines()) == 0:
                 raise xenrt.XRTFailure("Could not find kernel version in driver modinfo for %s" % ko)
                     
             if kos[ko] != self.host.execdom0('modinfo %s | grep "^srcversion:"' % ko):
                 raise xenrt.XRTFailure("driver modinfo shows incorrect version. It should be \"%s\"." % kos[ko])
-                
-            # Use modprobe to force the driver to load. Check for warnings/errors:
+
+            version = self.host.execdom0("modinfo %s | grep -e '^version:' | awk '{print $2}'" % ko).strip()
+            log("Driver version: %s" % (version))
+
+            log("Use modprobe to force the driver to load. Check for warnings/errors")
             stdout = self.host.execdom0('modprobe %s' % ko)
             xenrt.TEC().logverbose("modprobe output: '%s'" % stdout)
             if stdout.strip() != "":
                 raise xenrt.XRTFailure("Loading kernel module %s may have failed, see stout: '%s'" % (ko, stdout))
-                
-            version = self.host.execdom0("modinfo %s | grep -e '^version:' | awk '{print $2}'" % ko).strip()
-            xenrt.TEC().logverbose("Driver version: %s" % (version))
-                
-        #check if kdump  is built
-        xenrt.TEC().logverbose("Check if kdump is built")
+
+        step("Check if kdump  is built")
         for ko in kokdump:
             if "kdump" not in self.host.execdom0("modinfo %s | grep vermagic" % (ko)):
-                raise xenrt.XRTFailure("module was not built against the kdump kernel for %s" % ko)
+                raise xenrt.XRTFailure("Module was not built against the kdump kernel for %s" % ko)
 
     def run(self, arglist):
-        driverDisk = xenrt.TEC().lookup("DRIVER_DISK")
+        driverDisk = xenrt.TEC().lookup("DRIVER_PATH")
         xenrt.TEC().comment("Driver Disk supplied for testing: %s" % driverDisk)
 
         if self.runSubcase("testDriverInstallation", (), "DriverDisk", "Installation"):

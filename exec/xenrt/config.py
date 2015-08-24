@@ -1924,7 +1924,8 @@ class Config(object):
         self.config["PRODUCT_CODENAMES"]["6.6.81"] = "Dundee"
         self.config["PRODUCT_CODENAMES"]["6.6.82"] = "Dundee"
         self.config["PRODUCT_CODENAMES"]["6.6.83"] = "Dundee"
-        
+        self.config["PRODUCT_CODENAMES"]["6.6.90"] = "Dundee"
+
         self.config["PRODUCT_CODENAMES"]["6.4.90"] = "Creedence"
         self.config["PRODUCT_CODENAMES"]["6.4.91"] = "Creedence"
         self.config["PRODUCT_CODENAMES"]["6.4.92"] = "Creedence"

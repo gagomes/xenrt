@@ -431,6 +431,10 @@ class TCUnsupFlags(xenrt.TestCase):
 class BiosSetup(xenrt.TestCase):
     def run(self, arglist=[]):
         h = self.getDefaultHost()
+        if not h:
+            m = xenrt.PhysicalHost(xenrt.TEC().lookup("RESOURCE_HOST_0")
+            h = xenrt.GenericHost(m)
+            h.findPassword()
 
         if "Dell" in h.execdom0("dmidecode -t 1"):
             if h.execdom0("test -e /opt/dell/toolkit/bin/syscfg", retval="code"):

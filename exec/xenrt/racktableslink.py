@@ -129,19 +129,20 @@ def readMachineFromRackTables(machine,kvm=False,xrtMachine=None):
     # 3. If we don't have IPMI, use PDU
     if not xenrt.GEC().config.lookupHost(machine, "POWER_CONTROL", None):
         if xenrt.GEC().config.lookupHost(machine, "BMC_ADDRESS", None):
-            ipmiAddress = bmcips[0]
+            ipmiAddress = xenrt.GEC().config.lookupHost(machine, "BMC_ADDRESS")
             ipmiInterface = o.getAttribute("IPMI Interface")
             if not ipmiInterface:
                 ipmiInterface = "lanplus"
             if xenrt.GEC().config.lookupHost(machine, "IPMI_USERNAME", None) and xenrt.GEC().config.lookupHost(machine, "IPMI_PASSWORD", None):
                 ipmi = True
             xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "IPMI_INTERFACE"], ipmiInterface)
-            intf = ipDict[ipmiAddress]
-            ipmiPorts = [p for p in ports if p[0] == intf]
-            if len(ipmiPorts) > 0:
-                ipmiMAC = ipmiPorts[0][2]
-                if ipmiMAC:
-                    xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "BMC_MAC"], ipmiMAC)
+            intf = ipDict.get(xenrt.GEC().config.lookupHost(machine, "BMC_ADDRESS"))
+            if intf:
+                ipmiPorts = [p for p in ports if p[0] == intf]
+                if len(ipmiPorts) > 0:
+                    ipmiMAC = ipmiPorts[0][2]
+                    if ipmiMAC:
+                        xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "BMC_MAC"], ipmiMAC)
         powerports = [p for p in ports if (p[1] == "AC-in" and p[4])]
         i = 0
         for p in powerports:

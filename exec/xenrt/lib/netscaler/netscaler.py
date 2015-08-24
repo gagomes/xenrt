@@ -181,7 +181,7 @@ class NetScaler(object):
 
     def removeExistingSNIP(self):
         snipLines = self.cli("show ns ip | grep SNIP")
-        for ip in re.findall( r'[0-9]+(?:\.[0-9]+){3}', snipLines):
+        for ip in re.findall( r'[0-9]+(?:\.[0-9]+){3}', "".join(snipLines)):
             self.cli("rm ns ip %s" % (ip))
 
     def extractTarToDir(self, sourceTarFile, destDir, username="nsroot"):

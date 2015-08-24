@@ -432,7 +432,7 @@ class BiosSetup(xenrt.TestCase):
     def run(self, arglist=[]):
         h = self.getDefaultHost()
         if not h:
-            m = xenrt.PhysicalHost(xenrt.TEC().lookup("RESOURCE_HOST_0")
+            m = xenrt.PhysicalHost(xenrt.TEC().lookup("RESOURCE_HOST_0"))
             h = xenrt.GenericHost(m)
             h.findPassword()
 

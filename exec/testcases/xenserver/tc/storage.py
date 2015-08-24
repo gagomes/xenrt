@@ -5423,7 +5423,7 @@ class TCFCOEBlacklist(xenrt.TestCase):
                 self.blacklistNIC(pif)
                 self.checkBlacklistedNIC(pif)
             else:
-                xenrt.XRTError("%s is not FCOE capable" % pif)
+                xenrt.TEC().logverbose("%s is not FCOE capable" % pif)
 
     def postRun(self):
         xenrt.TEC.log("Removing the FCOE blacklist file")

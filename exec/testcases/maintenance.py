@@ -441,6 +441,7 @@ class BiosSetup(xenrt.TestCase):
                 h.execdom0("wget -q -O - http://linux.dell.com/repo/hardware/Linux_Repository_15.07.00/bootstrap.cgi | bash")
                 h.execdom0("yum install -y syscfg")
                 h.reboot()
+            syscfg = h.execdom0("/opt/dell/toolkit/bin/syscfg")
             if xenrt.TEC().lookup("DELL_SERIAL_PORT_SWAP", False, boolean=True):
                 try:
                     h.execdom0("/opt/dell/toolkit/bin/syscfg --serialportaddrsel=alternate")
@@ -451,22 +452,22 @@ class BiosSetup(xenrt.TestCase):
                     h.execdom0("/opt/dell/toolkit/bin/syscfg --serialportaddrsel=default")
                 except:
                     xenrt.TEC().warning("Failed to change serial port config")
-            if "--acpower" in h.execdom0("/opt/dell/toolkit/bin/syscfg"):
+            if "--acpower" in syscfg:
                 try:
                     h.execdom0("/opt/dell/toolkit/bin/syscfg --acpower=on")
                 except:
                     xenrt.TEC().warning("Failed to change AC power config")
-            if "--f1f2promptonerror" in h.execdom0("/opt/dell/toolkit/bin/syscfg"):
+            if "--f1f2promptonerror" in syscfg:
                 try:
                     h.execdom0("/opt/dell/toolkit/bin/syscfg --f1f2promptonerror=disable")
                 except:
                     xenrt.TEC().warning("Failed to change F1/F2 prompt config")
-            if "--sriov" in h.execdom0("/opt/dell/toolkit/bin/syscfg"):
+            if "--sriov" in syscfg:
                 try:
                     h.execdom0("/opt/dell/toolkit/bin/syscfg --sriov=enable")
                 except:
                     xenrt.TEC().warning("Failed to enable SRIOV")
-            if "--inteltxt" in h.execdom0("/opt/dell/toolkit/bin/syscfg"):
+            if "--inteltxt" in syscfg:
                 try:
                     h.execdom0("/opt/dell/toolkit/bin/syscfg --inteltxt=enable")
                 except:
@@ -479,22 +480,22 @@ class BiosSetup(xenrt.TestCase):
                     h.execdom0("/opt/dell/toolkit/bin/syscfg tpm --tpmactivation=enabled")
                 except:
                     xenrt.TEC().warning("Failed to activate TPM")
-            if h.lookup("ASSET_TAG", None) and "--asset" in h.execdom0("/opt/dell/toolkit/bin/syscfg") and xenrt.TEC().lookup("ASSET_TAG", None):
+            if h.lookup("ASSET_TAG", None) and "--asset" in syscfg:
                 try:
                     h.execdom0("/opt/dell/toolkit/bin/syscfg --asset=%s" % (h.lookup("ASSET_TAG")))
                 except:
                     xenrt.TEC().warning("Failed to enable TXT")
-            if "--virtualization" in h.execdom0("/opt/dell/toolkit/bin/syscfg"):
+            if "--virtualization" in syscfg:
                 try:
                     h.execdom0("/opt/dell/toolkit/bin/syscfg --virtualization=enable")
                 except:
                     xenrt.TEC().warning("Failed to enable TXT")
-            if "--memtest" in h.execdom0("/opt/dell/toolkit/bin/syscfg"):
+            if "--memtest" in syscfg:
                 try:
                     h.execdom0("/opt/dell/toolkit/bin/syscfg --memtest=disable")
                 except:
                     xenrt.TEC().warning("Failed to disable memtest")
-            if "--conred" in h.execdom0("/opt/dell/toolkit/bin/syscfg"):
+            if "--conred" in syscfg:
                 if h.lookup("SERIAL_CONSOLE_PORT") == "1":
                     red = "serial2"
                 else:

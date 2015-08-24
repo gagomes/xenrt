@@ -452,6 +452,15 @@ class BiosSetup(xenrt.TestCase):
                     h.execdom0("/opt/dell/toolkit/bin/syscfg --serialportaddrsel=default")
                 except:
                     xenrt.TEC().warning("Failed to change serial port config")
+            if "--serialcomm" in syscfg:
+                if h.lookup("SERIAL_CONSOLE_PORT", None) == "1":
+                    serial = "com2cr"
+                else:
+                    serial = "com1cr"
+                try:
+                    h.execdom0("/opt/dell/toolkit/bin/syscfg --serialcomm=%s" % serial)
+                except:
+                    xenrt.TEC().warning("Failed to configure serial output")
             if "--acpower" in syscfg:
                 try:
                     h.execdom0("/opt/dell/toolkit/bin/syscfg --acpower=on")
@@ -495,15 +504,6 @@ class BiosSetup(xenrt.TestCase):
                     h.execdom0("/opt/dell/toolkit/bin/syscfg --memtest=disable")
                 except:
                     xenrt.TEC().warning("Failed to disable memtest")
-            if "--conred" in syscfg:
-                if h.lookup("SERIAL_CONSOLE_PORT") == "1":
-                    red = "serial2"
-                else:
-                    red = "serial1"
-                try:
-                    h.execdom0("/opt/dell/toolkit/bin/syscfg --conred=%s" % red)
-                except:
-                    xenrt.TEC().warning("Failed to enable TXT")
                 
         if h.lookup("BMC_ADDRESS", None):
             defaultDevice = h.execdom0("ip route show | grep default | awk '{print $5}'").strip()

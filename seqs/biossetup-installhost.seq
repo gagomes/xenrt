@@ -1,0 +1,14 @@
+<xenrt>
+
+  <variables>
+    <INPUTDIR>/usr/groups/release/XenServer-6.x/XS-6.6/internal/PRE-1-103848</INPUTDIR>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <testcase id="maintenance.BiosSetup" />
+  </testsequence>
+</xenrt>

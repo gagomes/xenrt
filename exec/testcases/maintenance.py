@@ -446,6 +446,11 @@ class BiosSetup(xenrt.TestCase):
                     h.execdom0("/opt/dell/toolkit/bin/syscfg --serialportaddrsel=alternate")
                 except:
                     xenrt.TEC().warning("Failed to change serial port config")
+            elif xenrt.TEC().lookup("DELL_SERIAL_PORT_DEFAULT", False, boolean=True):
+                try:
+                    h.execdom0("/opt/dell/toolkit/bin/syscfg --serialportaddrsel=default")
+                except:
+                    xenrt.TEC().warning("Failed to change serial port config")
             if "--acpower" in h.execdom0("/opt/dell/toolkit/bin/syscfg"):
                 try:
                     h.execdom0("/opt/dell/toolkit/bin/syscfg --acpower=on")

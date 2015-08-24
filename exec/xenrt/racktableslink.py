@@ -93,6 +93,27 @@ def readMachineFromRackTables(machine,kvm=False,xrtMachine=None):
     if len(bmcips) > 0 and not xenrt.GEC().config.lookupHost(machine, "BMC_ADDRESS", None):
         xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "BMC_ADDRESS"], bmcips[0])
 
+    if not xenrt.GEC().config.lookupHost(machine, "BMC_ADDRESS", None):
+        bmcaddr = None
+        for i in ("ilo", "idrac", "bmc"):
+            for j in ("MACHINE_DOMAIN", "INFRASTRUCTURE_DOMAIN"):
+                if not xenrt.GEC().config.lookup(j, None):
+                    continue
+                addr = "%s.%s" % (machine, xenrt.GEC().config.lookup(j))
+                try:
+                    xenrt.getHostAddress(addr)
+                except:
+                    pass
+                else:
+                    bmcaddr = addr
+                    break
+        if bmcaddr:
+            xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "BMC_ADDRESS"], bmcaddr)
+            if not xenrt.GEC().config.lookupHost(machine, "IPMI_USERNAME", None) and not xenrt.GEC().config.lookupHost(machine, "IPMI_PASSWORD", None):
+                if "Dell" in o.getAttribute("HW type"):
+                    xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "IPMI_USERNAME"], "root")
+                    xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "IPMI_PASSWORD"], "calvin")
+
     if xenrt.TEC().lookupHost(machine, "BMC_ADDRESS", None):
         bmcweb = o.getAttribute("BMC Web UI") == "Yes"
         bmckvm = o.getAttribute("BMC KVM") == "Yes"

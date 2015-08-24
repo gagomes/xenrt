@@ -428,16 +428,9 @@ class TCUnsupFlags(xenrt.TestCase):
             comment("Updating Autoflagger tag for Machine '%s': '%s'" % (self.machineName, self.updateMachineWithAutoFlaggerTag))
             xenrt.APIFactory().update_machine(self.machineName, params={'AUTOFLAGGERTAG':self.updateMachineWithAutoFlaggerTag})
 
-class IPMISetup(xenrt.TestCase):
+class BiosSetup(xenrt.TestCase):
     def run(self, arglist=[]):
         h = self.getDefaultHost()
-
-        defaultDevice = h.execdom0("ip route show | grep default | awk '{print $5}'").strip()
-        gw = h.execdom0("ip route show | grep default | awk '{print $3}'").strip()
-        subnet = IPy.IP(h.execdom0("ip route show | grep -v default | grep ' %s ' | awk '{print $1}'" % defaultDevice).strip())
-
-        if not IPy.IP(h.lookup("BMC_ADDRESS")) in subnet:
-            raise xenrt.XRTError("BMC Address not on management network")
 
         if xenrt.TEC().lookup("DELL", False, boolean=True):
             if h.execdom0("test -e /opt/dell/toolkit/bin/syscfg", retval="code"):
@@ -464,7 +457,37 @@ class IPMISetup(xenrt.TestCase):
                     h.execdom0("/opt/dell/toolkit/bin/syscfg --sriov=enable")
                 except:
                     xenrt.TEC().warning("Failed to enable SRIOV")
+            if "--sriov " in h.execdom0("/opt/dell/toolkit/bin/syscfg"):
+                try:
+                    h.execdom0("/opt/dell/toolkit/bin/syscfg --sriov=enable")
+                except:
+                    xenrt.TEC().warning("Failed to enable SRIOV")
+            if "--inteltxt " in h.execdom0("/opt/dell/toolkit/bin/syscfg"):
+                try:
+                    h.execdom0("/opt/dell/toolkit/bin/syscfg --inteltxt=enable")
+                except:
+                    xenrt.TEC().warning("Failed to enable TXT")
+                try:
+                    h.execdom0("/opt/dell/toolkit/bin/syscfg tpm --tpmsecurity=onwithpbm")
+                except:
+                    xenrt.TEC().warning("Failed to enable TPM security")
+                try:
+                    h.execdom0("/opt/dell/toolkit/bin/syscfg tpm --tpmactivation=enabled")
+                except:
+                    xenrt.TEC().warning("Failed to activate TPM")
+            if "--asset " in h.execdom0("/opt/dell/toolkit/bin/syscfg") and xenrt.TEC().lookup("ASSET_TAG", None):
+                try:
+                    h.execdom0("/opt/dell/toolkit/bin/syscfg --asset=%s" % (xenrt.TEC().lookup("ASSET_TAG")))
+                except:
+                    xenrt.TEC().warning("Failed to enable TXT")
         if xenrt.TEC().lookup("BMC_ADDRESS", None):
+            defaultDevice = h.execdom0("ip route show | grep default | awk '{print $5}'").strip()
+            gw = h.execdom0("ip route show | grep default | awk '{print $3}'").strip()
+            subnet = IPy.IP(h.execdom0("ip route show | grep -v default | grep ' %s ' | awk '{print $1}'" % defaultDevice).strip())
+
+            if not IPy.IP(h.lookup("BMC_ADDRESS")) in subnet:
+                raise xenrt.XRTError("BMC Address not on management network")
+
             h.execdom0("ipmitool -I open lan set 1 ipsrc static")
             h.execdom0("ipmitool -I open lan set 1 ipaddr %s" % h.lookup("BMC_ADDRESS"))
             h.execdom0("ipmitool -I open lan set 1 netmask %s" % subnet.netmask().strNormal())

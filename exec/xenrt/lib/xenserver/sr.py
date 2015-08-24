@@ -223,7 +223,7 @@ class StorageRepository(object):
             self.__thinProv = xenrt.TEC().lookup("FORCE_THIN_LVHD", False, boolean=True)
         if self.__thinProv:
             if self.__isEligibleThinProvisioning(srtype):
-                smconf["allocation"] = "dynamic"
+                smconf["allocation"] = self.THIN_PROV_KEYWORD
             else:
                 xenrt.warning("SR: %s is marked as thin provisioning but %s does not support it. Ignoring..." % (self.name, srtype))
         args.extend(["sm-config:%s=\"%s\"" % (x, y)
@@ -954,7 +954,7 @@ class ISCSIStorageRepository(StorageRepository):
 
     CLEANUP = "destroy"
     SHARED = True
-    THIN_PROV_KEYWORD = "dynamic"
+    THIN_PROV_KEYWORD = "xlvhd"
 
     def create(self,
                lun=None,
@@ -1237,7 +1237,7 @@ class HBAStorageRepository(StorageRepository):
 
     CLEANUP = "destroy"
     SHARED = True
-    THIN_PROV_KEYWORD = "dynamic"
+    THIN_PROV_KEYWORD = "xlvhd"
 
     def create(self,
                scsiid,

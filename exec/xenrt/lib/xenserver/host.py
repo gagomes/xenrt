@@ -2381,6 +2381,7 @@ fi
         #remove duplicate entries for same hotfix, if there are any
         if patches and xenrt.TEC().lookup("CHECK_DUPLICATE_HOTFIX", False, boolean=True):
             uniquePatches = []
+            uniquePatch = ""
             reg = re.compile('(.*/)([RTM-]*[0-9]*/(.*))')
             for patch in patches:
                 match = reg.search(patch)

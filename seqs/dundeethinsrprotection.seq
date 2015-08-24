@@ -1,0 +1,21 @@
+<xenrt>
+  <default name="VMONLOCALSR" value="True" />
+
+  <variables>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+  </variables>
+  <prepare>
+    <pool id="0">
+      <storage type="lvmoiscsi" name="lvmoiscsisr" default="true" options="thin" />
+      <host id="0" />
+      <host id="1" />
+      <host id="2" />
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <testcase id="testcases.xenserver.tc.thinlvhd.TCThinLVHDSRProtection" tc="TC-27227" name="ThinLvhd">
+      <arg>vmonlocalsr=${VMONLOCALSR}</arg>
+    </testcase>
+  </testsequence>
+</xenrt>

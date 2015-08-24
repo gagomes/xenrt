@@ -546,3 +546,157 @@ class TrimFuncNetAppThinFC(TrimFuncNetAppFC):
 
     THINPROVISION = True
     SRNAME = "lvmohba-thin"
+    
+class TCThinLVHDSRProtection(_ThinLVHDBase):
+    """ Verify protection when master is down. """
+
+    DEFAULTVDISIZE = 10*xenrt.GIGA
+
+    def checkVdiWrite(self, guest, device = None, size=xenrt.GIGA):
+        try:
+            self.fillDisk(guest, size=size, targetDir=device)
+        except Exception, e:
+                log("Not able to write in to device %s on the guest %s : failed with exception %s: " % (device, guest, str(e)))
+                return False
+        return True
+
+    def prepare(self, arglist):
+        args  = self.parseArgsKeyValue(arglist)
+        self.pool = self.getDefaultPool()
+        self.master = self.pool.master
+        self.slave = self.pool.getSlaves()[0]
+        self.backupMaster = self.pool.getSlaves()[1]
+        self.sruuid = self.pool.getPoolParam("default-SR")
+        self.vdisize = int(args.get("vdisize", self.DEFAULTVDISIZE))
+        vmonlocalsr = bool(args.get("vmonlocalsr", False))
+        if vmonlocalsr:
+            localsruuid = self.slave.getLocalSR()
+            self.guest = self.slave.createBasicGuest("generic-linux", sr=localsruuid)
+        else:
+            self.guest = self.slave.createBasicGuest("generic-linux", sr=self.sruuid)
+
+    def run(self, arglist):
+        step("Creating a virtual disk and attaching to VM...")
+        device = self.guest.createDisk(sizebytes=self.vdisize, returnDevice=True)
+        step("Shutting down the pool master ...")
+        self.master.machine.powerctl.off()
+        xenrt.sleep(180)
+        step("Verify that we can write minimum 1GiB of data onto the guest when pool master is down") 
+        if not self.checkVdiWrite(self.guest, device):
+            raise xenrt.XRTFailure("Not able to write minimum 1 GiB of data onto the guest %s when the pool master is down" % (self.guest))
+        step("Verify that we not able to write more than 3GiB of data onto the guest when the pool master is down")
+        if self.checkVdiWrite(self.guest, device, size=3*xenrt.GIGA):
+            raise xenrt.XRTFailure("Able to write more than 3 GiB of data onto the guest %s when the pool master is down" % (self.guest))
+        step("Bringing the pool master Up again...")
+        self.master.machine.powerctl.on() 
+        # Wait for it to boot up
+        self.master.waitForSSH(900)
+        step("Verify that we can write more than 3 GiB of data onto the guest %s when the pool master is up" % (self.guest))
+        if not self.checkVdiWrite(self.guest, device, size=3*xenrt.GIGA):
+            raise xenrt.XRTFailure("Not able to write more than 3 GiB of data onto the guest %s when the pool master is up" % (self.guest))
+        step("Eject the master from the pool ...")
+        self.master.machine.powerctl.off()
+        xenrt.sleep(15)
+        self.pool.setMaster(self.backupMaster)
+        self.pool.recoverSlaves()
+        self.pool.eject(self.master)
+        step("Verify that we can write more than 3 GiB of data onto the guest %s with the new pool master" % (self.guest))
+        if not self.checkVdiWrite(self.guest, device, size=3*xenrt.GIGA):
+            raise xenrt.XRTFailure("Not able to write more than 3 GiB onto the guest %s after ejecting the pool master" % (self.DEFAULTMAXDATA, self.guest))
+
+    def postRun(self):
+        self.master.machine.powerctl.on() 
+        # Wait for it to boot up
+        self.master.waitForSSH(900)
+
+class TCThinLVHDVmOpsSpace(_ThinLVHDBase):
+    """verify suspended/snapshot VDIs take space properly"""
+
+    DEFAULTSRTYPE = "lvmoiscsi"
+    GUESTMEMORY = 8192 # in MiB
+
+    def checkVDIPhysicalSize(self, vdiuuid, expectedVdiSize):
+        vdiPhysicalSize = self.getPhysicalVDISize(vdiuuid)
+        if vdiPhysicalSize < expectedVdiSize:
+            raise xenrt.XRTFailure("VDI Physical size not as expected. Expected at least %s bytes but found %s bytes" %
+                                  (expectedVdiSize, vdiPhysicalSize))
+
+    def checkSRPhysicalUtil(self, expectedphysicalUtil):
+        step("Checking the SR physical utilization. Expected SR physical utilization is %s bytes..." % (expectedphysicalUtil))
+        srPhysicalUtil = self.getPhysicalUtilisation(self.sr)
+        if srPhysicalUtil < expectedphysicalUtil:
+            raise xenrt.XRTFailure("SR physical utilization not as expected. Expected at least %s bytes but found %s bytes" %
+                                  (expectedphysicalUtil, srPhysicalUtil))
+
+    def checkSRPhysicalUtil2(self, expectedphysicalUtil):
+        step("Checking the SR physical utilization. Expected SR physical utilization is %s bytes..." % (expectedphysicalUtil))
+        srPhysicalUtil = self.getPhysicalUtilisation(self.sr)
+        if srPhysicalUtil > expectedphysicalUtil:
+            raise xenrt.XRTFailure("SR physical utilization not as expected. Expected at max %s bytes but found %s bytes" %
+                                  (expectedphysicalUtil, srPhysicalUtil))
+
+    def performVmOps(self):
+        """ This function check's that checkpoint/suspend operation on thin-provisioned SR works as expected"""
+
+        self.phyUtilBeforeCheckpoint = self.getPhysicalUtilisation(self.sr) + self.guestMemory
+        step("Taking the vm checkpoint...")
+        self.checkuuid = self.guest.checkpoint()
+        # Sleep required since checkpoint takes some time to settle and then to update the storage fields.
+        xenrt.sleep(300)
+        vdiUuid = self.host.execdom0("xe vm-param-get uuid=%s param-name=suspend-VDI-uuid " % self.checkuuid).strip()
+        step("check SR Physical utilization...")
+        self.checkSRPhysicalUtil(self.phyUtilBeforeCheckpoint)
+        step("Test that VDI created after checkpoint is thick provisioned by checking the size...")
+        self.checkVDIPhysicalSize(vdiUuid, self.guestMemory)
+
+        expectedphysicalUtil = self.getPhysicalUtilisation(self.sr) + self.guestMemory
+        step("Suspending the VM...")
+        self.guest.suspend()
+        suspendVdiUuid = self.guest.paramGet("suspend-VDI-uuid")
+        step("check SR Physical utilization...")
+        self.checkSRPhysicalUtil(expectedphysicalUtil)
+        step("Test that VDI created after suspend is thick provisioned by measuring the size...")
+        self.checkVDIPhysicalSize(suspendVdiUuid, self.guestMemory) 
+
+    def revertVmOps(self):
+        """This function check's that resume/revert on thin-provision SR works as expected"""
+        if self.guest.getState() == "SUSPENDED":
+            expectedphysicalUtil = self.getPhysicalUtilisation(self.sr) - self.guestMemory
+            step("Resuming the VM...")
+            self.guest.resume()
+            self.guest.check()
+            self.checkSRPhysicalUtil2(expectedphysicalUtil)
+        data = self.host.execdom0("xe snapshot-list uuid=%s" % (self.checkuuid))
+        if data:
+            step("Reverting the checkpoint...")
+            self.guest.revert(self.checkuuid)
+            self.guest.check()
+            self.checkSRPhysicalUtil2(self.phyUtilBeforeCheckpoint)
+
+    def prepare(self, arglist=[]):
+        args = self.parseArgsKeyValue(arglist)
+        self.host = self.getDefaultHost()
+        self.srtype = args.get("srtype", self.DEFAULTSRTYPE)
+        self.guestMemory = int(args.get("guestmemory", self.GUESTMEMORY))
+        self.sr = self.getThinProvisioningSRs()[0]
+        if not self.sr:
+            step("Creating thin provisioned SR of type %s" %(self.srtype))
+            self.sr = self.createThinSR(host=self.host, size=200, srtype=self.srtype)
+        if "guest" in args:
+            self.guest = self.getGuest(args["guest"]) 
+            self.guest.setState("UP")
+        else:
+            self.guestMemory = int(args.get("guestmemory", self.GUESTMEMORY))
+            self.guest = self.host.createBasicGuest("generic-linux", sr=self.sr.uuid, memory=self.guestMemory)
+        step("setting up the SR %s as a default SR of the host" % (self.srtype))
+        self.host.addSR(self.sr, default=True)
+        self.guestMemory = self.guestMemory * xenrt.MEGA
+        step("Guest memory reported %s bytes" % (self.guestMemory))
+
+    def run(self, arglist=[]):
+
+        # Test that snapshot/suspend works as expected on thin-provisioned SR.
+        if self.runSubcase("performVmOps", (), "vmops-snapshot/suspend", "Guest Memory=%s bytes"\
+                            %(self.guestMemory))== xenrt.RESULT_PASS:
+            # Test that resume/revert works as expected on thin-provisioned SR
+            self.runSubcase("revertVmOps", (), "vmops-resume/revert", "Guest Memory=%s bytes" %(self.guestMemory))

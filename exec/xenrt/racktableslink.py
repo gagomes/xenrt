@@ -128,12 +128,12 @@ def readMachineFromRackTables(machine,kvm=False,xrtMachine=None):
     # 2. Use IPMI if we have IPMI IP, username and password (with fallback to PDU if we have PDU info)
     # 3. If we don't have IPMI, use PDU
     if not xenrt.GEC().config.lookupHost(machine, "POWER_CONTROL", None):
-        if len(bmcips) > 0:
+        if xenrt.GEC().config.lookupHost(machine, "BMC_ADDRESS", None):
             ipmiAddress = bmcips[0]
             ipmiInterface = o.getAttribute("IPMI Interface")
             if not ipmiInterface:
                 ipmiInterface = "lanplus"
-            if ipmiUser and ipmiPassword:
+            if xenrt.GEC().config.lookupHost(machine, "IPMI_USERNAME", None) and xenrt.GEC().config.lookupHost(machine, "IPMI_PASSWORD", None):
                 ipmi = True
             xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "IPMI_INTERFACE"], ipmiInterface)
             intf = ipDict[ipmiAddress]

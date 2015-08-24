@@ -897,7 +897,7 @@ class TC9284(xenrt.TestCase):
             if "VM didn't acknowledge the need to shutdown" in str(e) or "Failed_to_acknowledge_shutdown_request" in str(e):
                 xenrt.TEC().logverbose("Migration failed as expected")
                 try:
-                    self.guest.poll("DOWN")
+                    self.guest.poll("DOWN", level=xenrt.RC_OK)
                     self.guest.start()
                     time.sleep(30)
                 except:

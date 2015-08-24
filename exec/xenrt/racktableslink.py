@@ -99,7 +99,7 @@ def readMachineFromRackTables(machine,kvm=False,xrtMachine=None):
             for j in ("MACHINE_DOMAIN", "INFRASTRUCTURE_DOMAIN"):
                 if not xenrt.GEC().config.lookup(j, None):
                     continue
-                addr = "%s.%s" % (machine, xenrt.GEC().config.lookup(j))
+                addr = "%s-%s.%s" % (machine, i, xenrt.GEC().config.lookup(j))
                 try:
                     xenrt.getHostAddress(addr)
                 except:
@@ -110,7 +110,7 @@ def readMachineFromRackTables(machine,kvm=False,xrtMachine=None):
         if bmcaddr:
             xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "BMC_ADDRESS"], bmcaddr)
             if not xenrt.GEC().config.lookupHost(machine, "IPMI_USERNAME", None) and not xenrt.GEC().config.lookupHost(machine, "IPMI_PASSWORD", None):
-                if "Dell" in o.getAttribute("HW type"):
+                if "Dell" in (o.getAttribute("HW type") or ""):
                     xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "IPMI_USERNAME"], "root")
                     xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "IPMI_PASSWORD"], "calvin")
 

@@ -272,10 +272,7 @@ class _Hotfix(xenrt.TestCase):
             remotefn = "/tmp/XSUPDATE"
             sftp = self.host.sftpClient()
             hotfix = xenrt.TEC().lookup("THIS_HOTFIX")
-            
-            if "XS62ESP1" in hotfix:
-                return
-            
+ 
             try:
                 sftp.copyTo(xenrt.TEC().getFile(hotfix), remotefn)
             finally:

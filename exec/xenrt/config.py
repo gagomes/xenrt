@@ -4252,10 +4252,16 @@ class Config(object):
             if type(conf[key]) == type(""):
                 s = re.sub(r"\$\{(\w+)\}", self.lookupHelper, conf[key])
                 value = string.replace(s, "'", "\\'")
-                fd.write("%s='%s'\n" % (string.join(pref + [key], "."), value))
+                fd.write("%s='%s'\n" % (string.join(pref + [str(key)], "."), value))
+            elif type(conf[key]) == int or type(conf[key]) == float:
+                print "int/float %s" % (str(conf[key]))
+                fd.write("%s=%s\n" % (string.join(pref + [str(key)], "."), str(conf[key])))
             elif type(conf[key]) == list:
-                fd.write("%s=%s\n" % (string.join(pref + [key], "."), str(conf[key]))) 
+                fd.write("%s=%s\n" % (string.join(pref + [str(key)], "."), str(conf[key])))
+            elif conf[key] is None:
+                fd.write("%s=None\n" % (string.join(pref + [str(key)], ".")))
             else:
+                print "Recursing %s" % (conf[key])
                 self.writeOut(fd, conf[key], pref + [key])
 
     def setVariable(self, key, value):

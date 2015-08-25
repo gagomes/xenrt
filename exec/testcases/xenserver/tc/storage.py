@@ -5395,7 +5395,7 @@ class TCFCOEBlacklist(xenrt.TestCase):
         self.sr.create(self.scsiid,multipathing=True)
         
         
-    def isNicFCOECapable(self,pif):
+    def isNICFCOECapable(self,pif):
         var = self.host.execdom0("dcbtool gc %s app:0" % pif)
         v = re.search(r'Enable:\s+(\w+)',var)
         if v:
@@ -5425,14 +5425,15 @@ class TCFCOEBlacklist(xenrt.TestCase):
     def run(self,arglist=None):
         self.pifs = self.host.execdom0('xe pif-list params=device minimal=true')[:-1].split(",")
         for pif in self.pifs:
-            if self.isNicFCOECapable(pif):
+            if self.isNICFCOECapable(pif):
                 self.blacklistNIC(pif)
                 self.checkBlacklistedNIC(pif)
             else:
                 xenrt.TEC().logverbose("%s is not FCOE capable" % pif)
 
     def postRun(self):
-        xenrt.TEC.log("Removing the FCOE blacklist file")
-        self.host.execdom0("rm -f %s" %self.BLACKLIST_FILE)
+        if os.path.exists(self.BLACKLIST_FILE):
+            xenrt.TEC.log("Removing the FCOE blacklist file")
+            self.host.execdom0("rm -f %s" %self.BLACKLIST_FILE)
         if self.sr:
             self.sr.remove()

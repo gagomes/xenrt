@@ -34,3 +34,24 @@ class TCDDIntegrity(xenrt.TestCase):
             md5sum2 = host.execdom0("md5sum /mnt/testdd2 | awk '{print $1}'").strip()
             if md5sum1 != md5sum2:
                 raise xenrt.XRTFailure("md5sums did not match")
+
+class TCMelioSRSetup(xenrt.TestCase):
+    """Setup Melio SR"""
+    def run(self, arglist):
+        host = self.getHost("RESOURCE_HOST_0")
+        iscsiHost = self.getHost("RESOURCE_HOST_1")
+        if not xenrt.TEC().lookup("FFS_RPM", None):
+            raise xenrt.XRTError("FFS_RPM not specified")
+
+        melioHelper = xenrt.lib.xenserver.MelioHelper([host], iscsiHost=iscsiHost)
+        melioHelper.setup()
+
+        melioHelper.createSR(name="Melio")
+
+class TCMelioVM(xenrt.TestCase):
+    """Create VM on melio SR"""
+    def run(self, arglist):
+        (distro, arch) = xenrt.getDistroAndArch(self.sku)
+        host = self.getHost("RESOURCE_HOST_0")
+        g = host.createBasicGuest(distro=distro, arch=arch) 
+        g.uninstall()

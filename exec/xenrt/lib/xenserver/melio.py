@@ -190,6 +190,7 @@ class MelioHelper(object):
         master = self.hosts[0].pool.master if self.hosts[0].pool else self.hosts[0]
         sr = xenrt.lib.xenserver.MelioStorageRepository(master, name)
         sr.create(self)
+        sr.check()
         return sr
 
     def configureClusterFirewall(self):

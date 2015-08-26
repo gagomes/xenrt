@@ -994,7 +994,7 @@ class LockMachineResource(_MachineBase):
         "required": ["resource_type"]
     }}
     OPERATION_ID="lock_machine_resource"
-    PARAM_ORDER=['name', 'type', 'args']
+    PARAM_ORDER=['name', 'resource_type', 'args']
     SUMMARY = "List resources locked by a machine"
 
     def render(self):

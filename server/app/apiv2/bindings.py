@@ -350,6 +350,9 @@ class XenRT(object):
 
         job = self.get_job(id, logitems=True)
 
+        if not job['result']:
+            raise Exception("Job has not completed, could not produce JUnit output")
+
         tcs = ""
         jobdesc = job['description'].split("&")[0]
 

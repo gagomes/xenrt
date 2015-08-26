@@ -51,7 +51,7 @@ class TCMelioSRSetup(xenrt.TestCase):
 class TCMelioVM(xenrt.TestCase):
     """Create VM on melio SR"""
     def run(self, arglist):
-        (distro, arch) = xenrt.getDistroAndArch(self.sku)
+        (distro, arch) = xenrt.getDistroAndArch(self.tcsku)
         host = self.getHost("RESOURCE_HOST_0")
         g = host.createBasicGuest(distro=distro, arch=arch) 
         g.uninstall()

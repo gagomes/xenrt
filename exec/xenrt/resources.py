@@ -71,8 +71,7 @@ def getResourceInteractive(resType, argv):
         return {"start": vlans[0].getID(), "end": vlans[-1].getID()}
     elif resType == "ROUTEDVLAN":
         vlan = PrivateRoutedVLAN()
-        (subnet, mask, gateway) = vlan.getNetworkConfigConfig()
-        return {"id": vlan.getID(), "subnet": subnet, "netmask": mask, "gateway": gateway}
+        return vlan.getNetworkConfig()
 
 @xenrt.irregularName
 def DhcpXmlRpc():
@@ -3159,12 +3158,16 @@ class PrivateRoutedVLAN(PrivateVLAN):
         vrange = xenrt.TEC().lookup(["NETWORK_CONFIG", "PRIVATE_ROUTED_VLANS"])
         return [int(re.match("[A-Za-z]*(\d+)$", x).group(1)) for x in vrange.keys()]
 
-    def getNetworkConfig(self):
+    @classmethod
+    def getNetworkConfigForVLAN(cls, vlan):
         cfg = xenrt.TEC().lookup(["NETWORK_CONFIG", "PRIVATE_ROUTED_VLANS"])
-        key = [x for x in cfg.keys() if re.match("[A-Za-z]*%s$" % self.id, x)][0]
+        key = [x for x in cfg.keys() if re.match("[A-Za-z]*%d$" % int(vlan), x)][0]
         (net, gateway) = cfg[key].split(",")
         i = IPy.IP(net) 
-        return (i.net().strNormal(), i.netmask().strNormal(), gateway)
+        return {"id": int(vlan), "subnet": i.net().strNormal(), "netmask": i.netmask().strNormal(), "gateway": gateway}
+
+    def getNetworkConfig(self):
+        return self.__class__.getNetworkConfigForVLAN(self.id)
 
 class _StaticIPAddr(_NetworkResourceFromRange):
 

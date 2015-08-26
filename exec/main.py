@@ -2260,6 +2260,8 @@ if listresources:
             except:
                 pass
             ret[k].sort()
+        if k == "ROUTEDVLAN":
+            ret[k] = dict([(x, xenrt.PrivateRoutedVLAN.getNetworkConfigForVLAN(x)) for x in ret[k]]) 
 
     print json.dumps(ret)
 

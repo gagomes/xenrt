@@ -4865,7 +4865,7 @@ def createVM(host,
                     maxsockets = xenrt.TEC().lookup(["GUEST_LIMITATIONS", distro, "MAXSOCKETS"], None)
                     if maxsockets and int(maxsockets) < vcpus:
                         if isinstance(host, xenrt.lib.xenserver.host.CreedenceHost):
-                            g.setCoresPerSocket(cpus / int(maxsockets))
+                            g.setCoresPerSocket(vcpus / int(maxsockets))
                         else:
                             vcpus = maxsockets
             g.setVCPUs(vcpus)

@@ -4836,7 +4836,7 @@ class TCDriverDisk(xenrt.TestCase):
         res = self.host.execdom0('if [ -e %s ]; then echo "found"; fi' % ddFilePath)
         xenrt.TEC().logverbose('Result: "%s"' % res)
         if res.strip() != "found":
-            raise xenrt.XRTFailure("Failed to copy '%s' to '%s' on host." % (driverDiskPath, ddFilePath))
+            raise xenrt.XRTError("Failed to copy '%s' to '%s' on host." % (driverDiskPath, ddFilePath))
 
         if ".zip" in driverDiskPath:
             mountpoint = "/tmp/dd_directory"
@@ -4850,7 +4850,9 @@ class TCDriverDisk(xenrt.TestCase):
 
     def testDriverInstallation(self):
         """
-        * Install the driver disk using the disks 'install.sh' scripts.
+        * Install the driver disk using
+          'install.sh' scripts if variable INSTALL_SUPP_PACK=False (default)
+           xe-install-supplemental-pack if variable INSTALL_SUPP_PACK=True.
         * Check RPM list updates.
         * Check module dependency table has been updated.
         * Attempt a load of the driver.

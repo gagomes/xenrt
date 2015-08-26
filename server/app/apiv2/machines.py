@@ -901,6 +901,118 @@ class PowerMachine(_MachineBase):
             raise XenRTAPIError(HTTPInternalServerError, r.text)
         return {"output": r.text.strip()}
 
+class GetMachineResources(_MachineBase):
+    REQTYPE="GET"
+    WRITE = False
+    PATH = "/machine/{name}/resources"
+    TAGS = ["machines"]
+    PARAMS = [
+        {'name': 'name',
+         'in': 'path',
+         'required': True,
+         'description': 'Machine to list resources for',
+         'type': 'string'}
+    ]
+    RESPONSES = { "200": {"description": "Successful response"}}
+    OPERATION_ID="get_machine_resources"
+    PARAM_ORDER=['name']
+    SUMMARY = "List resources locked by a machine"
+
+    def render(self):
+        machine = self.getMachines(limit=1, machines=[self.request.matchdict['name']], exceptionIfEmpty=True)[self.request.matchdict['name']]
+        reqdict = {"machine": machine['name']}
+        r = requests.get("http://%s/xenrt/api/controller/listresources" % machine['ctrladdr'], params=reqdict)
+        r.raise_for_status()
+        if r.text.startswith("ERROR"):
+            raise XenRTAPIError(HTTPInternalServerError, r.text)
+        return r.json()
+
+class ReleaseMachineResource(_MachineBase):
+    REQTYPE="DELETE"
+    WRITE = False
+    PATH = "/machine/{name}/resources/{resource}"
+    TAGS = ["machines"]
+    PARAMS = [
+        {'name': 'name',
+         'in': 'path',
+         'required': True,
+         'description': 'Machine to release resource from',
+         'type': 'string'},
+        {'name': 'resource',
+         'in': 'path',
+         'required': True,
+         'description': 'Resource to release',
+         'type': 'string'}
+    ]
+    RESPONSES = { "200": {"description": "Successful response"}}
+    OPERATION_ID="release_machine_resource"
+    PARAM_ORDER=['name', 'resource']
+    SUMMARY = "Release a resource locked by a machine"
+
+    def render(self):
+        machine = self.getMachines(limit=1, machines=[self.request.matchdict['name']], exceptionIfEmpty=True)[self.request.matchdict['name']]
+        reqdict = {"resource": [self.request.matchdict['resource']]}
+        r = requests.get("http://%s/xenrt/api/controller/releaseresources" % machine['ctrladdr'], params=reqdict)
+        r.raise_for_status()
+        if r.text.startswith("ERROR"):
+            raise XenRTAPIError(HTTPInternalServerError, r.text)
+        return {"output": r.text.strip()}
+
+class LockMachineResource(_MachineBase):
+    REQTYPE="POST"
+    WRITE = False
+    PATH = "/machine/{name}/resources"
+    TAGS = ["machines"]
+    PARAMS = [
+        {'name': 'name',
+         'in': 'path',
+         'required': True,
+         'description': 'Machine to lock resources for',
+         'type': 'string'},
+        {'name': 'body',
+         'in': 'body',
+         'required': True,
+         'description': 'Details of the power operation',
+         'schema': { "$ref": "#/definitions/lockmachineresources" }
+        }
+    ]
+    RESPONSES = { "200": {"description": "Successful response"}}
+    DEFINITIONS = {"lockmachineresources": {
+        "title": "Lock Machine Resources",
+        "type": "object",
+        "properties": {
+            "resource_type": {
+                "type": "string",
+                "description": "Type of resource to lock"
+            },
+            "args": {
+                "type": "array",
+                "description": "Optional args for this resource",
+                "items": {"type": "string"}
+            }
+        },
+        "required": ["resource_type"]
+    }}
+    OPERATION_ID="lock_machine_resource"
+    PARAM_ORDER=['name', 'type', 'args']
+    SUMMARY = "List resources locked by a machine"
+
+    def render(self):
+        try:
+            j = json.loads(self.request.body)
+            jsonschema.validate(j, self.DEFINITIONS['lockmachineresources'])
+        except Exception, e:
+            raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
+        machine = self.getMachines(limit=1, machines=[self.request.matchdict['name']], exceptionIfEmpty=True)[self.request.matchdict['name']]
+        reqdict = {"machine": machine['name'], "type": j['resource_type']}
+        if j['args']:
+            reqdict['args'] = " ".join(j['args'])
+        r = requests.get("http://%s/xenrt/api/controller/getresource" % machine['ctrladdr'], params=reqdict)
+        r.raise_for_status()
+        if r.json()['result'] != ("OK"):
+            raise XenRTAPIError(HTTPInternalServerError, r.text)
+        return r.json()
+
 class PowerMachineStatus(_MachineBase):
     REQTYPE="GET"
     WRITE = True
@@ -972,3 +1084,6 @@ RegisterAPI(NewMachine)
 RegisterAPI(RemoveMachine)
 RegisterAPI(PowerMachine)
 RegisterAPI(PowerMachineStatus)
+RegisterAPI(GetMachineResources)
+RegisterAPI(ReleaseMachineResource)
+RegisterAPI(LockMachineResource)

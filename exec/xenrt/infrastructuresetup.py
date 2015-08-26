@@ -984,6 +984,7 @@ def portConfig(config,switch,port,network):
         allvlannames if x not in ("NPRI", "NSEC", "IPRI", "ISEC") and x in config.lookup(["NETWORK_CONFIG","VLANS"], {}).keys()
         ]
     privvlans = config.lookup(["NETWORK_CONFIG", "PRIVATEVLANS"], None)
+    vlanstoadd.extend([re.match("[A-Za-z]*(\d+)", x).group(1) for x in config.lookup(["NETWORK_CONFIG", "PRIVATE_ROUTED_VLANS"], {}).keys()])
     if privvlans:
         (privvlanstart, privvlanend) = [int(x) for x in privvlans.split("-")]
     vlanstoremove = [x for x in allvlans if x != nativevlan and x not in vlanstoadd]

@@ -49,6 +49,7 @@ __all__ = ["WebDirectory",
            "CentralLock",
            "SharedHost",
            "PrivateVLAN",
+           "PrivateRoutedVLAN",
            "ProductLicense",
            "GlobalResource",
            "getResourceInteractive"]
@@ -68,6 +69,10 @@ def getResourceInteractive(resType, argv):
         size = int(argv[0])
         vlans = PrivateVLAN.getVLANRange(size, wait=False)
         return {"start": vlans[0].getID(), "end": vlans[-1].getID()}
+    elif resType == "ROUTEDVLAN":
+        vlan = PrivateRoutedVLAN()
+        (subnet, mask, gateway) = vlan.getNetworkConfigConfig()
+        return {"id": vlan.getID(), "subnet": subnet, "netmask": mask, "gateway": gateway}
 
 @xenrt.irregularName
 def DhcpXmlRpc():
@@ -3145,7 +3150,21 @@ class PrivateVLAN(_NetworkResourceFromRange):
 
     def getID(self):
         return self.id
-    
+
+class PrivateRoutedVLAN(PrivateVLAN):
+    LOCKID = "ROUTEDVLAN"
+
+    @classmethod
+    def _getAllVLANsInRange(cls):
+        vrange = xenrt.TEC().lookup(["NETWORK_CONFIG", "PRIVATE_ROUTED_VLANS"])
+        return [int(re.match("[A-Za-z]*(\d+)$", x).group(1)) for x in vrange.keys()]
+
+    def getNetworkConfig(self):
+        cfg = xenrt.TEC().lookup(["NETWORK_CONFIG", "PRIVATE_ROUTED_VLANS"])
+        key = [x for x in cfg.keys() if re.match("[A-Za-z]*%s$" % self.id, x)][0]
+        (net, gateway) = cfg[key].split(",")
+        i = IPy.IP(net) 
+        return (i.net().strNormal(), i.netmask().strNormal(), gateway)
 
 class _StaticIPAddr(_NetworkResourceFromRange):
 

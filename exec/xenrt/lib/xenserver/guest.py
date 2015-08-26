@@ -2688,7 +2688,7 @@ exit /B 1
         maxCoresPerSocket = cpuCoresOnHost / socketsOnHost
         maxDistroSockets = xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.distro, "MAXSOCKETS"], None)
 
-        xenrt.TEC().logverbose("cpuCoresonHost: %s, socketsonHost: %s, maxCoresPerSocket: %s" % (cpuCoresOnHost, socketsOnHost, maxCoresPerSocket))
+        xenrt.TEC().logverbose("cpuCoresonHost: %s, socketsonHost: %s, maxCoresPerSocket: %s, maxDistroSockets: %s" % (cpuCoresOnHost, socketsOnHost, maxCoresPerSocket, maxDistroSockets))
 
         if vcpus != None:
             # This gives us all the factors of the vcpus specified
@@ -2701,7 +2701,7 @@ exit /B 1
 
             if maxDistroSockets:
                 # This eliminates the factors that would exceed the distro's max sockets
-                validCoresPerSocket = [x for x in validCoresPerSocket if vcpus / x <= maxDistroSockets]
+                validCoresPerSocket = [x for x in validCoresPerSocket if vcpus / x <= int(maxDistroSockets)]
                 xenrt.TEC().logverbose("validCoresPerSocket after distro MAXSOCKETS taken into account is %s" % validCoresPerSocket)
 
             # Then choose a value from here

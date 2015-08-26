@@ -5399,21 +5399,15 @@ class TCFCOEBlacklist(xenrt.TestCase):
         var = self.host.execdom0("dcbtool gc %s app:0" % pif)
         v = re.search(r'Enable:\s+(\w+)',var)
         if v:
-            if str(v.group(1)) == "true":
-                return True
-            return False
+            return str(v.group(1)) == "true"
         else:
             xenrt.XRTError("Unable to parse dcbtool output")
     
     def blacklistNIC(self,pif):
-        var = self.host.execdom0("ethtool -i %s" % pif)
-        v = re.search(r'driver:\s+(\w+)\s+version:\s+(\S+)',var)
-        if v:
-            self.host.execdom0("echo %s:%s >> %s" %(v.group(1),v.group(2),self.BLACKLIST_FILE))
-            self.host.reboot()
-        else:
-            xenrt.XRTError("Unable to parse ethtool -i output")
-    
+        driver = self.host.execdom0("readlink /sys/class/net/%s/device/driver/module" % pif).strip().split("/")[-1]
+        version = self.host.execdom0("cat /sys/class/net/%s/device/driver/module/version" % pif).strip()
+        self.host.execdom0("echo %s:%s >> %s" %(driver,version,self.BLACKLIST_FILE))
+                
     def checkBlacklistedNIC(self,pif):
         pifuuid = self.host.execdom0("xe pif-list params=uuid device=%s minimal=true" % pif).strip()
         val = self.host.execdom0("xe pif-param-get param-name=capabilities uuid=%s" % pifuuid).strip()
@@ -5424,16 +5418,23 @@ class TCFCOEBlacklist(xenrt.TestCase):
 
     def run(self,arglist=None):
         self.pifs = self.host.execdom0('xe pif-list params=device minimal=true')[:-1].split(",")
+        fcoeCapablePifs = []
+        
         for pif in self.pifs:
             if self.isNICFCOECapable(pif):
                 self.blacklistNIC(pif)
-                self.checkBlacklistedNIC(pif)
+                fcoeCapablePifs.append(pif)
             else:
                 xenrt.TEC().logverbose("%s is not FCOE capable" % pif)
+        
+        if fcoeCapablePifs:
+            self.host.reboot()
+            for pif in fcoeCapablePifs:
+                self.checkBlacklistedNIC(pif)
+        
 
     def postRun(self):
-        if os.path.exists(self.BLACKLIST_FILE):
-            xenrt.TEC.log("Removing the FCOE blacklist file")
-            self.host.execdom0("rm -f %s" %self.BLACKLIST_FILE)
+        xenrt.TEC.log("Removing the FCOE blacklist file")
+        self.host.execdom0("rm -f %s || true" % self.BLACKLIST_FILE)
         if self.sr:
             self.sr.remove()

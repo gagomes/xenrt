@@ -4858,6 +4858,16 @@ def createVM(host,
         if memory:
             g.setMemory(memory)
         if vcpus:
+            if vcpus == "MAX":
+                vcpus = g.getMaxSupportedVCPUCount()
+                # Check if we need to do cores per socket
+                if distro in xenrt.TEC().lookup(["GUEST_LIMITATIONS"]):
+                    maxsockets = xenrt.TEC().lookup(["GUEST_LIMITATIONS", distro, "MAXSOCKETS"], None)
+                    if maxsockets and int(maxsockets) < vcpus:
+                        if isinstance(host, xenrt.lib.xenserver.host.CreedenceHost):
+                            g.setCoresPerSocket(cpus / int(maxsockets))
+                        else:
+                            vcpus = maxsockets
             g.setVCPUs(vcpus)
         elif xenrt.TEC().lookup("RND_VCPUS", default=False, boolean=True):
             g.setRandomVcpus()

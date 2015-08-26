@@ -2381,23 +2381,6 @@ fi
             if rpuPatch:
                 patches.extend([xenrt.TEC().lookup("INPUTDIR") + "/xe-phase-1/%s" % rpuPatch])
 
-        #remove duplicate entries for same hotfix, if there are any
-        if patches and xenrt.TEC().lookup("CHECK_DUPLICATE_HOTFIX", False, boolean=True):
-            uniquePatches = []
-            uniquePatch = ""
-            reg = re.compile('(.*/)([RTM-]*[0-9]*/(.*))')
-            for patch in patches:
-                match = reg.search(patch)
-                patchExists = False
-                for uniquePatch in uniquePatches:
-                    if match.group(2) in uniquePatch:
-                        break
-                    if match.group(3) in uniquePatch:
-                        raise xenrt.XRTFailure("You are trying to install two builds of same hotfix:%s" % (match.group(3)))
-                if match.group(2) not in uniquePatch:
-                    uniquePatches.append(patch)
-            patches = uniquePatches
-
         # Apply all the patches we found
         for patch in [x for x in patches if x != "None"]:
             patchFile = xenrt.TEC().getFile(patch)

@@ -16,8 +16,8 @@
       <serial group="Setup">
         <testcase id="xenserver.tc.melio.TCMelioSRSetup" blocker="yes" />
       </serial>
-      <parallel group="VM" workers=2>
+      <parallel group="VM" workers="2">
         <testcase id="xenserver.tc.melio.TCMelioVM" name="debian80_x86-32" sku="debian80_x86-32" />
-      <serial group="Setup">
+      </parallel>
     </testsequence>
 </xenrt>

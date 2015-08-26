@@ -4191,10 +4191,18 @@ class Config(object):
         """Read config from an XML file."""
         self.parseConfig(filename, path=path)
 
+    def __dictMerge(self, a, b):
+        """Recursively merge dictionaries and b"""
+        for k, v in b.iteritems():
+            if k in a and isinstance(a[k], dict):
+                self.__dictMerge(a[k], v)
+            else:
+                a[k] = v
+
     def readFromJSONFile(self, filename):
         """Read config from a JSON file."""
         with open(filename, 'r') as jf:
-            self.config.update(yaml.load(jf.read()))
+            self.__dictMerge(self.config, yaml.load(jf.read()))
 
     def writeOut(self, fd, conf=None, pref=[]):
         """Write the config out to a file descriptor"""

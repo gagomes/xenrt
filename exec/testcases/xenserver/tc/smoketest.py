@@ -335,28 +335,7 @@ class TCSmokeTestMaxvCPUs(_TCSmokeTest):
 
     def getGuestParams(self):
         self.memory = self.getTemplateParams().defaultMemory * 2
-
-        hostMaxVCPUs = int(self.host.lookup("MAX_VM_VCPUS"))
-
-        glimits = self.getGuestLimits()
-        
-        if self.arch == "x86-32":
-            guestMaxVCPUs = glimits.get('MAX_VM_VCPUS')
-        else:
-            guestMaxVCPUs = glimits.get("MAX_VM_VCPUS64", glimits.get("MAX_VM_CPUS"))
-
-        if guestMaxVCPUs:
-            guestMaxVCPUs = int(guestMaxVCPUs)
-            self.vcpus = min(guestMaxVCPUs, hostMaxVCPUs)
-        else:
-            self.vcpus = hostMaxVCPUs
-
-        if glimits.get("MAXSOCKETS") and int(glimits["MAXSOCKETS"]) < self.vcpus:
-            if isinstance(self.host, xenrt.lib.xenserver.host.CreedenceHost):
-                self.cps = self.vcpus/int(glimits["MAXSOCKETS"])
-            else:
-                # Can only do max sockets
-                self.vcpus = int(glimits["MAXSOCKETS"])
+        self.vcpus = "MAX"
 
 class TCSmokeTestMinConfig(_TCSmokeTest):
     # Min vCPUS + memory

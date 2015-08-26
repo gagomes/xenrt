@@ -104,7 +104,7 @@ class _ThinLVHDBase(xenrt.TestCase):
         host.execdom0("xe sr-scan uuid=%s" % xsr.uuid)
         return xsr.getIntParam("physical-utilisation")
 
-    def fillDisk(self, guest, targetDir=None, size=512*1024*1024*1024):
+    def fillDisk(self, guest, targetDir=None, size=512*xenrt.MEGA, source="/dev/zero"):
         """Fill target disk by creating an empty file with
         given size on the given directory.
 
@@ -128,7 +128,8 @@ class _ThinLVHDBase(xenrt.TestCase):
             if not targetDir:
                 targetDir = guest.execguest("mktemp")
 
-            guest.execguest("dd if=/dev/urandom of=%s bs=4096 count=%d conv=notrunc" % (targetDir, size/4096))
+            timeout = 900 + ((size / xenrt.GIGA) * 300) # 15 mins + 5 mins per GIGA
+            guest.execguest("dd if=%s of=%s bs=1M count=%d conv=notrunc" % (source, targetDir, size/xenrt.MEGA), timeout=timeout)
 
     def isThinProvisioning(self, sr):
         """Return whether given SR is thin provision'ed or not
@@ -602,7 +603,7 @@ class TCThinLVHDSRProtection(_ThinLVHDBase):
         self.pool.eject(self.master)
         step("Verify that we can write more than 3 GiB of data onto the guest %s with the new pool master" % (self.guest))
         if not self.checkVdiWrite(self.guest, device, size=3*xenrt.GIGA):
-            raise xenrt.XRTFailure("Not able to write more than 3 GiB onto the guest %s after ejecting the pool master" % (self.DEFAULTMAXDATA, self.guest))
+            raise xenrt.XRTFailure("Not able to write more than 3 GiB onto the guest %s after ejecting the pool master" % (self.DEFAULTMAXDATA))
 
     def postRun(self):
         self.master.machine.powerctl.on() 

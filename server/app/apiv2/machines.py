@@ -903,7 +903,7 @@ class PowerMachine(_MachineBase):
 
 class GetMachineResources(_MachineBase):
     REQTYPE="GET"
-    WRITE = True
+    WRITE = False
     PATH = "/machine/{name}/resources"
     TAGS = ["machines"]
     PARAMS = [
@@ -929,7 +929,7 @@ class GetMachineResources(_MachineBase):
 
 class ReleaseMachineResource(_MachineBase):
     REQTYPE="DELETE"
-    WRITE = True
+    WRITE = False
     PATH = "/machine/{name}/resources/{resource}"
     TAGS = ["machines"]
     PARAMS = [
@@ -960,7 +960,7 @@ class ReleaseMachineResource(_MachineBase):
 
 class LockMachineResource(_MachineBase):
     REQTYPE="POST"
-    WRITE = True
+    WRITE = False
     PATH = "/machine/{name}/resources"
     TAGS = ["machines"]
     PARAMS = [
@@ -977,24 +977,25 @@ class LockMachineResource(_MachineBase):
         }
     ]
     RESPONSES = { "200": {"description": "Successful response"}}
-    OPERATION_ID="lock_machine_resource"
-    PARAM_ORDER=['name', 'type', 'args']
-    SUMMARY = "List resources locked by a machine"
     DEFINITIONS = {"lockmachineresources": {
         "title": "Lock Machine Resources",
         "type": "object",
         "properties": {
-            "type": {
+            "resource_type": {
                 "type": "string",
                 "description": "Type of resource to lock"
             },
             "args": {
                 "type": "array",
-                "description": "Optional args for this resource"
+                "description": "Optional args for this resource",
+                "items": {"type": "string"}
             }
         },
-        "required": ["type"]
+        "required": ["resource_type"]
     }}
+    OPERATION_ID="lock_machine_resource"
+    PARAM_ORDER=['name', 'type', 'args']
+    SUMMARY = "List resources locked by a machine"
 
     def render(self):
         try:
@@ -1003,7 +1004,7 @@ class LockMachineResource(_MachineBase):
         except Exception, e:
             raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
         machine = self.getMachines(limit=1, machines=[self.request.matchdict['name']], exceptionIfEmpty=True)[self.request.matchdict['name']]
-        reqdict = {"machine": machine['name'], "type": j['type']}
+        reqdict = {"machine": machine['name'], "type": j['resource_type']}
         if j['args']:
             reqdict['args'] = " ".join(j['args'])
         r = requests.get("http://%s/xenrt/api/controller/getresource" % machine['ctrladdr'], params=reqdict)

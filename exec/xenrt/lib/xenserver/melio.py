@@ -106,6 +106,7 @@ class MelioHelper(object):
             # RPM workaround for now
             host.execdom0("rm -rf /usr/libexec/xapi-storage-script/datapath/raw+file*")
             host.execdom0("rpm -U --replacepkgs /root/ffs.rpm")
+            host.execdom0("service xapi-storage-script restart")
 
     def checkXapiResponsive(self, host):
         # Check that xapi is responsive on the specified host

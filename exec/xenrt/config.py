@@ -4191,10 +4191,20 @@ class Config(object):
         """Read config from an XML file."""
         self.parseConfig(filename, path=path)
 
+    def __dictMerge(self, a, b):
+        """Recursively merge dictionaries and b"""
+        result = copy.deepcopy(a)
+        for k, v in b.iteritems():
+            if k in result and isinstance(result[k], dict):
+                    result[k] = self.__dictMerge(result[k], v)
+            else:
+                result[k] = copy.deepcopy(v)
+        return result
+
     def readFromJSONFile(self, filename):
         """Read config from a JSON file."""
         with open(filename, 'r') as jf:
-            self.config.update(yaml.load(jf.read()))
+            self.config = self.__dictMerge(self.config, yaml.load(jf.read()))
 
     def writeOut(self, fd, conf=None, pref=[]):
         """Write the config out to a file descriptor"""

@@ -4193,18 +4193,16 @@ class Config(object):
 
     def __dictMerge(self, a, b):
         """Recursively merge dictionaries and b"""
-        result = copy.deepcopy(a)
         for k, v in b.iteritems():
-            if k in result and isinstance(result[k], dict):
-                    result[k] = self.__dictMerge(result[k], v)
+            if k in a and isinstance(a[k], dict):
+                self.__dictMerge(a[k], v)
             else:
-                result[k] = copy.deepcopy(v)
-        return result
+                a[k] = v
 
     def readFromJSONFile(self, filename):
         """Read config from a JSON file."""
         with open(filename, 'r') as jf:
-            self.config = self.__dictMerge(self.config, yaml.load(jf.read()))
+            self.__dictMerge(self.config, yaml.load(jf.read()))
 
     def writeOut(self, fd, conf=None, pref=[]):
         """Write the config out to a file descriptor"""

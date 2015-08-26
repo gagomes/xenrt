@@ -901,12 +901,12 @@ class PowerMachine(_MachineBase):
             raise XenRTAPIError(HTTPInternalServerError, r.text)
         return {"output": r.text.strip()}
 
-class GetMachineResources(_MachinesBase):
+class GetMachineResources(_MachineBase):
     REQTYPE="GET"
     WRITE = True
     PATH = "/machine/{name}/resources"
     TAGS = ["machines"]
-    PARAMS [
+    PARAMS = [
         {'name': 'name',
          'in': 'path',
          'required': True,
@@ -927,12 +927,12 @@ class GetMachineResources(_MachinesBase):
             raise XenRTAPIError(HTTPInternalServerError, r.text)
         return r.json()
 
-class ReleaseMachineResource(_MachinesBase):
+class ReleaseMachineResource(_MachineBase):
     REQTYPE="DELETE"
     WRITE = True
     PATH = "/machine/{name}/resources/{resource}"
     TAGS = ["machines"]
-    PARAMS [
+    PARAMS = [
         {'name': 'name',
          'in': 'path',
          'required': True,
@@ -958,12 +958,12 @@ class ReleaseMachineResource(_MachinesBase):
             raise XenRTAPIError(HTTPInternalServerError, r.text)
         return {"output": r.text.strip()}
 
-class LockMachineResource(_MachinesBase):
+class LockMachineResource(_MachineBase):
     REQTYPE="POST"
     WRITE = True
     PATH = "/machine/{name}/resources"
     TAGS = ["machines"]
-    PARAMS [
+    PARAMS = [
         {'name': 'name',
          'in': 'path',
          'required': True,

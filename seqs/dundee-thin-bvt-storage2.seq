@@ -1,0 +1,21 @@
+<xenrt>
+
+<!-- Basic storage operations tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <FINALLY_UNINSTALL>yes</FINALLY_UNINSTALL>
+    <OPTION_BLOCK_ON_SKIP>yes</OPTION_BLOCK_ON_SKIP>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence group="BasicSRTests">
+    <testcase id="xenserver.tc.storage.TC27042" prio="3" sku="thin" />
+    <testcase id="xenserver.tc.storage.TC27043" prio="3" sku="thin" />
+  </testsequence>
+
+</xenrt>

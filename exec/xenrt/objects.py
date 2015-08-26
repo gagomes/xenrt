@@ -9910,17 +9910,18 @@ while True:
         urlprefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
         url = "%s/gpuDriver/PVHVM/%s" % (urlprefix, drivername)
         installfile = xenrt.TEC().getFile(url)
+        installName = "nvidialinuxdriver.run"
         if not installfile:
             raise xenrt.XRTError("Failed to fetch PVHVM GPU NVidia driver.")
         sftp = self.sftpClient()
-        sftp.copyTo(installfile, "/%s" % (os.path.basename(installfile)))
+        sftp.copyTo(installfile, "/%s" % (os.path.basename(installName)))
         sftp.close()
 
         #Call guest methods to install drivers
         if self.distro.startswith("ubuntu"):
-            self.installUbuntuGpuDrivers(drivername)
+            self.installUbuntuGpuDrivers(installName)
         else :
-            self.installRhelGpuDrivers(drivername)
+            self.installRhelGpuDrivers(installName)
 
     def installUbuntuGpuDrivers(self ,drivername):
         self.execcmd("echo 'blacklist nouveau' >> /etc/modprobe.d/blacklist.conf ")

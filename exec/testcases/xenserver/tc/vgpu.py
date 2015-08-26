@@ -390,11 +390,9 @@ class VGPUTest(object):
         guest.installPVHVMNvidiaGpuDrivers()
 
     def installIntelWindowsDrivers(self,guest,vgputype):
-        #workaround, TBR
-        try:
-            guest.installIntelGPUDriver()
-        except:
-            pass
+        # This call was wrapped in a try, excpet block as a workaround.
+        # Was hiding a real issue, but there might be other valid scenarios where this breaks something.
+        guest.installIntelGPUDriver()
 
     def assertvGPURunningInLinuxVM(self, vm, vGPUType, card):
         if not vm.isGPUBeingUtilized(card):

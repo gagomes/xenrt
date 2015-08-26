@@ -8,7 +8,7 @@
 # conditions as licensed by XenSource, Inc. All other rights reserved.
 #
 
-import sys, string, xml.dom.minidom, re, os.path, os, copy
+import sys, string, xml.dom.minidom, re, os.path, os, copy, yaml
 import xenrt
 
 __all__ = ["Config"]
@@ -1882,61 +1882,10 @@ class Config(object):
         self.config["GUEST_NO_HOTPLUG_CPU"] = "w2k3eesp2pae,w2k3se,w2k3sesp1,w2k3ser2,w2k3sesp2,w2k3sesp2-x64,w2k3ee,w2k3eesp1,w2k3eer2,w2k3eesp2,w2k3eesp2-x64,w2kassp4,winxpsp2,ubuntu1004,sles111"
         self.config["GUEST_NO_HOTUNPLUG_CPU"] = "w2k3eesp2pae,w2k3se,w2k3sesp1,w2k3ser2,w2k3sesp2,w2k3sesp2-x64,w2k3ee,w2k3eesp1,w2k3eer2,w2k3eesp2,w2k3eesp2-x64,w2kassp4,winxpsp2,ubuntu1004,sles111"
         
-        # Mapping of product major and minor versions to codenames
-        self.config["PRODUCT_CODENAMES"] = {}
-        self.config["PRODUCT_CODENAMES"]["4.0.1"] = "Rio"
-        self.config["PRODUCT_CODENAMES"]["4.1.0"] = "Rio"
-        self.config["PRODUCT_CODENAMES"]["5.0.0"] = "Orlando"
-        self.config["PRODUCT_CODENAMES"]["5.5.0"] = "George"
-        self.config["PRODUCT_CODENAMES"]["5.5.0-Update2"] = "George"
-        self.config["PRODUCT_CODENAMES"]["5.6.0"] = "MNR"
-        self.config["PRODUCT_CODENAMES"]["5.6.100"] = "Cowley"
-        self.config["PRODUCT_CODENAMES"]["5.9.950"] = "Boston"
-        self.config["PRODUCT_CODENAMES"]["6.0.0"] = "Boston"
-        self.config["PRODUCT_CODENAMES"]["6.0.2"] = "Sanibel"
-        self.config["PRODUCT_CODENAMES"]["6.0.50"] = "Tampa"
-        self.config["PRODUCT_CODENAMES"]["6.0.900"] = "Tampa"
-        self.config["PRODUCT_CODENAMES"]["6.0.901"] = "Tampa"
-        self.config["PRODUCT_CODENAMES"]["6.0.902"] = "Tampa"
-        self.config["PRODUCT_CODENAMES"]["6.0.903"] = "Tampa"
-        self.config["PRODUCT_CODENAMES"]["6.0.904"] = "Tampa"
-        self.config["PRODUCT_CODENAMES"]["6.1.0"] = "Tampa"
-        self.config["PRODUCT_CODENAMES"]["6.1.1"] = "Tallahassee"
-        self.config["PRODUCT_CODENAMES"]["6.1.81"] = "Clearwater"
-        self.config["PRODUCT_CODENAMES"]["6.1.82"] = "Clearwater"
-        self.config["PRODUCT_CODENAMES"]["6.1.83"] = "Clearwater"
-        self.config["PRODUCT_CODENAMES"]["6.1.84"] = "Clearwater"
-        self.config["PRODUCT_CODENAMES"]["6.1.85"] = "Clearwater"
-        self.config["PRODUCT_CODENAMES"]["6.1.86"] = "Clearwater"
-        self.config["PRODUCT_CODENAMES"]["6.1.87"] = "Clearwater"
-        self.config["PRODUCT_CODENAMES"]["6.1.88"] = "Clearwater"
-        self.config["PRODUCT_CODENAMES"]["6.1.89"] = "Clearwater"
-        self.config["PRODUCT_CODENAMES"]["6.1.90"] = "Clearwater"
-        self.config["PRODUCT_CODENAMES"]["6.1.2"] = "Clearwater"
-        self.config["PRODUCT_CODENAMES"]["6.2"] = "Clearwater"
-        self.config["PRODUCT_CODENAMES"]["6.2.0"] = "Clearwater"
-        self.config["PRODUCT_CODENAMES"]["6.1"] = "Tampa"
-
-        self.config["PRODUCT_CODENAMES"]["6.1.50"] = "Dundee"
-        self.config["PRODUCT_CODENAMES"]["6.2.50"] = "Dundee"
-        self.config["PRODUCT_CODENAMES"]["6.6.0"] = "Dundee"
-        self.config["PRODUCT_CODENAMES"]["6.6.80"] = "Dundee"
-        self.config["PRODUCT_CODENAMES"]["6.6.81"] = "Dundee"
-        self.config["PRODUCT_CODENAMES"]["6.6.82"] = "Dundee"
-        self.config["PRODUCT_CODENAMES"]["6.6.83"] = "Dundee"
-        self.config["PRODUCT_CODENAMES"]["6.6.90"] = "Dundee"
-
-        self.config["PRODUCT_CODENAMES"]["6.4.90"] = "Creedence"
-        self.config["PRODUCT_CODENAMES"]["6.4.91"] = "Creedence"
-        self.config["PRODUCT_CODENAMES"]["6.4.92"] = "Creedence"
-        self.config["PRODUCT_CODENAMES"]["6.4.93"] = "Creedence"
-        self.config["PRODUCT_CODENAMES"]["6.4.94"] = "Creedence"
-        self.config["PRODUCT_CODENAMES"]["6.4.95"] = "Creedence"
-        self.config["PRODUCT_CODENAMES"]["6.4.96"] = "Creedence"
-        self.config["PRODUCT_CODENAMES"]["6.4.97"] = "Creedence"
-        self.config["PRODUCT_CODENAMES"]["6.4.98"] = "Creedence"
-        self.config["PRODUCT_CODENAMES"]["6.4.99"] = "Creedence"
-        self.config["PRODUCT_CODENAMES"]["6.5.0"] = "Creedence"
+        # PRODUCT_CODENAMES contains a mapping of product major and minor
+        # versions to codenames. It is now loaded from
+        # data/config/PRODUCT_CODENAMES.json rather than being defined in
+        # config.py to allow other tools to use the data
 
         # Platform releases
         self.config["PLATFORM_CODENAMES"] = {}
@@ -4242,6 +4191,11 @@ class Config(object):
         """Read config from an XML file."""
         self.parseConfig(filename, path=path)
 
+    def readFromJSONFile(self, filename):
+        """Read config from a JSON file."""
+        with open(filename, 'r') as jf:
+            self.config.update(yaml.load(jf.read()))
+
     def writeOut(self, fd, conf=None, pref=[]):
         """Write the config out to a file descriptor"""
         if conf == None:
@@ -4254,15 +4208,15 @@ class Config(object):
                 value = string.replace(s, "'", "\\'")
                 fd.write("%s='%s'\n" % (string.join(pref + [str(key)], "."), value))
             elif type(conf[key]) == int or type(conf[key]) == float:
-                print "int/float %s" % (str(conf[key]))
                 fd.write("%s=%s\n" % (string.join(pref + [str(key)], "."), str(conf[key])))
             elif type(conf[key]) == list:
                 fd.write("%s=%s\n" % (string.join(pref + [str(key)], "."), str(conf[key])))
             elif conf[key] is None:
                 fd.write("%s=None\n" % (string.join(pref + [str(key)], ".")))
-            else:
-                print "Recursing %s" % (conf[key])
+            elif type(conf[key]) == dict:
                 self.writeOut(fd, conf[key], pref + [key])
+            else:
+                raise xenrt.XRTError("Unknown type %s" % str(type(conf[key])))
 
     def setVariable(self, key, value):
         """Write a variable to the config"""

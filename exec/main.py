@@ -890,6 +890,10 @@ config = xenrt.Config()
 if aux and not shelllogging:
     config.nologging = True
 
+# Read in JSON config data
+for cf in glob.glob("%s/data/config/*.json" % (localxenrt.SHAREDIR)):
+    config.readFromJSONFile(cf)
+
 def readConfigDir(directory):
     global config
     for cf in glob.glob("%s/*.xml" % (directory)):

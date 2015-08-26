@@ -5059,6 +5059,8 @@ class TC26974(xenrt.TestCase):
     def run(self, arglist):
 
         self.host = self.host.upgrade()
+        #Applying license to the host
+        self.host.license(edition="enterprise-per-socket")
         share = xenrt.VMSMBShare()
         sr = xenrt.productLib(host=self.host).SMBStorageRepository(self.host, "CIFS-SR")
         sr.create(share)

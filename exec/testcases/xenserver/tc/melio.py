@@ -53,5 +53,5 @@ class TCMelioVM(xenrt.TestCase):
     def run(self, arglist):
         (distro, arch) = xenrt.getDistroAndArch(self.tcsku)
         host = self.getHost("RESOURCE_HOST_0")
-        g = host.createBasicGuest(distro=distro, arch=arch) 
+        g = host.createBasicGuest(distro=distro, arch=arch, sr="Melio") 
         g.uninstall()

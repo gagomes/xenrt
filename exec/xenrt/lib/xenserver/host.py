@@ -11822,7 +11822,7 @@ class DundeeHost(CreedenceHost):
         return self.execdom0("%s -g --device /dev/%s" % (self.scsiIdPath(), device)).strip()
             
     def getAlternativesDir(self):
-        return "/usr/lib/xcp/alternatives"
+        return "/usr/lib/xapi/alternatives"
         
     def getXenGuestLocation(self):
         return self._findXenBinary("xenguest")

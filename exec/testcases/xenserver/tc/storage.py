@@ -1827,9 +1827,9 @@ class _VDICopy(xenrt.TestCase):
         # Writing data into it; This is required on thin-lvhd as it always return true and
         # only be empty in next step due to initial allocation size.
         if self.FORCE_FILL_VDI:
-            self.srcHost.execdom0("echo '/bin/dd if=/dev/urandom of=/dev/${DEVICE} bs=4096 count=%d conv=notrunc' > /tmp/dd.sh" % (self.vdi_size / 4096))
+            self.srcHost.execdom0("echo '/bin/dd if=/dev/zero of=/dev/${DEVICE} bs=4096 count=%d conv=notrunc' > /tmp/dd.sh" % (self.vdi_size / 4096))
             self.srcHost.execdom0("chmod u+x /tmp/dd.sh")
-            self.srcHost.execdom0("/opt/xensource/debug/with-vdi %s /tmp/mkfs.sh" %(self.vdi))
+            self.srcHost.execdom0("/opt/xensource/debug/with-vdi %s /tmp/dd.sh" %(self.vdi))
 
         # Checksum the entire VDI
         script = 'if [ -z "$1" ]; then md5sum "/dev/${DEVICE}"; else dd if="/dev/${DEVICE}" bs="$1" count="$2" 2>/dev/null | md5sum; fi'
@@ -5241,7 +5241,7 @@ class TCFCOESRLifecycle(FCOELifecycleBase):
                                 (originalVdiSize, newVdiSize))
 
         self.sr.check()
-        sef.host.destroyVDI(self.vdiuuid)
+        self.host.destroyVDI(self.vdiuuid)
         
 class TCFCOEGuestLifeCycle(FCOELifecycleBase):
     """Guest Lifecycle operations on FCoE SR."""

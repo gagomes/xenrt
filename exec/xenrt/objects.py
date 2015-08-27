@@ -19,7 +19,7 @@ import IPy
 import XenAPI
 import ssl
 import xml.etree.ElementTree as ET
-from xenrt.lazylog import log, warning
+from xenrt.lazylog import log, warning, step
 from xenrt.linuxanswerfiles import *
 
 #Dummy import of _strptime module
@@ -4782,8 +4782,7 @@ class GenericHost(GenericPlace):
             self.execdom0("[ -d /proc/%u ]" % (pid))
             pcpu = float(self.execdom0("ps -p %u -o pcpu --no-headers" % (pid)).strip())
         return pcpu
-
-
+        
     def checkHealth(self, unreachable=False, noreachcheck=False, desc=""):
         """Make sure the dom0 is in good shape."""
         if unreachable:
@@ -7152,6 +7151,41 @@ class GenericGuest(GenericPlace):
                                                           other.getName(),
                                                           str(mac1)))
 
+    def checkFailuresinConsoleLogs(self,domid):
+        """
+        Checks console logs for known install failures and raise error if found
+        if none of the errors matches, raise error with last log line
+        """
+        
+        #error_list is a dictionary with key is regular expression for expected error
+        #value is the error message that will be displayed
+        #In case this error lists becomes too long, it will be good to move it to a file.
+        error_lists={
+        "EIP is at cpuid4_cache_lookup":"EIP is at cpuid4_cache_lookup",
+        "The file (.*.rpm) cannot be opened.": '{0} is corrupted',
+        "kernel BUG at (.*)" : "kernel BUG at {0}",
+        "rcu_sched detected stalls on cpus/tasks": "rcu_sched detected stalls on cpus/tasks",
+        "BUG: unable to handle kernel paging request at virtual address [\d]+":\
+                                     "BUG: unable to handle kernel paging request at virtual address",
+        "Failure trying to run: chroot /target dpkg.* (.*.deb)" : \
+                                     "Failure trying to run: chroot /target dpkg for {0}",
+        }
+        log("looking in console logs for errors")
+        data = self.host.guestConsoleLogTail(domid,lines=200)
+        data = re.sub(r"\033\[[\d]*;?[\d]*[a-zA-Z]","",data)
+        lines = re.findall(r"((?:[\w\d\./\(\)]+ ){3,20})", data)
+        if lines:
+            for error in error_lists:
+                mo=re.search(error, data,re.DOTALL|re.MULTILINE)
+                if mo:
+                    inputs=mo.groups()
+                    raise xenrt.XRTFailure("Install failed:%s" % error_lists[error].format(*inputs))
+
+            lastline = lines[-1].strip()
+            if lastline:
+                raise xenrt.XRTFailure("Vendor install timed out. " 
+                                           "Last log line was %s" % (lastline))
+
     def __copy__(self):
         cp = self.__class__(self.name)
         cp.__dict__.update(self.__dict__)
@@ -8634,6 +8668,9 @@ class GenericGuest(GenericPlace):
                              (self.name))
         self.lifecycleOperation("vm-start")
 
+        #get current DomId
+        domid = self.getDomid()
+
         # RHEL 6.3 derivatives are fussy about hardware, but don't support the kickstart unsupported_harware command
         # We'll see if the hardware unsupported error comes up, and send a CRLF if it does
 
@@ -8654,17 +8691,9 @@ class GenericGuest(GenericPlace):
         except xenrt.XRTFailure, e:
             self.checkHealth(noreachcheck=True)
             # Check for CA-18131-like symptom
-            try:
-                data = self.host.guestConsoleLogTail(self.getDomid())
-                data = re.sub(r"\033\[\d+\;\d+H", "", data)
-                lines = re.findall(r"((?:[\w\d\./\(\)]+ ){3,20})", data)
-            except:
-                raise
-            if lines and len(lines) > 0:
-                lastline = lines[-1].strip()
-                if lastline:
-                    raise xenrt.XRTFailure("Vendor install timed out. "
-                                           "Last log line was %s" % (lastline))
+            self.checkFailuresinConsoleLogs(domid=domid)
+            raise
+
         if os.path.exists("%s/rpmupgrade.log" % (nfsdir.path())):
             xenrt.TEC().copyToLogDir("%s/rpmupgrade.log" % (nfsdir.path()))
         if pxe:
@@ -8903,10 +8932,12 @@ class GenericGuest(GenericPlace):
 
         if not start:
             return
-
+        step("Starting the guest for automated install")
         # Start the install
         self.lifecycleOperation("vm-start")
 
+        # Get the current domid
+        domid = self.getDomid()
         # Get the guest address during installation
         if self.reservedIP:
             self.mainip = self.reservedIP
@@ -8925,6 +8956,7 @@ class GenericGuest(GenericPlace):
         except xenrt.XRTFailure, e:
             if "Timed out" in e.reason:
                 self.checkHealth(noreachcheck=True)
+                self.checkFailuresinConsoleLogs(domid=domid)
             raise
 
         if self.host.productType == "kvm":

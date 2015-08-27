@@ -17,17 +17,27 @@ class _ThinLVHDBase(xenrt.TestCase):
     """Base class of thinprovisioning TCS.
     All TC specific utilities should be implemented in this class."""
 
-    QUANTUM_RATIO = 0.2
-
     def prepare(self, arglist=[]):
         host = self.getDefaultHost()
         self.sr = self.getThinProvisioningSRs()
         #self.setDefaultThinProv()
 
-    #def setDefaultThinProv(self):
-        #"""Set default provisining rate to QUANTUM_RATIO"""
-        #for sr in self.sr:
-            #sr.setDefaultVDIAllocation(self.QUANTUM_RATIO)
+    def __buildsmconfig(self, initialAlloc=None, quantumAlloc=None):
+        """Create and return sm-config dict with given parameters.
+
+        @param initialAlloc: Initial allocation
+        @param quantumAlloc: Quantum allocation
+
+        @return Dict of sm-config
+        """
+
+        smconf = {}
+        if initialAlloc:
+            smconf["initial_allocation"] = str(initialAlloc)
+        if quantumAlloc:
+            smconf["allocation_quantum"] = str(quantumAlloc)
+
+        return smconf
 
     def createThinSR(self, host=None, name=None, srtype="lvmoiscsi", ietvm=False, size=0, initialAlloc=None, quantumAlloc=None):
         """Creates a SR with given parameters.
@@ -46,16 +56,17 @@ class _ThinLVHDBase(xenrt.TestCase):
         if not name or len(name) == 0:
             name = srtype + "sr"
 
+        smconf = self.__buildsmconfig(initialAlloc, quantumAlloc)
         if srtype=="lvmoiscsi":
             lun = xenrt.ISCSITemporaryLun(300)
-            sr = xenrt.lib.xenserver.ISCSIStorageRepository(host, name, True, initialAlloc, quantumAlloc)
-            sr.create(lun, subtype="lvm", physical_size=size, findSCSIID=True, noiqnset=True)
+            sr = xenrt.lib.xenserver.ISCSIStorageRepository(host, name, True)
+            sr.create(lun, subtype="lvm", physical_size=size, findSCSIID=True, noiqnset=True, smconf=smconf)
 
         elif srtype=="lvmohba":
             fcLun = host.lookup("SR_FCHBA", "LUN0")
             fcSRScsiid = host.lookup(["FC", fcLun, "SCSIID"], None)
-            sr = xenrt.lib.xenserver.FCStorageRepository(host,  name, True, initialAlloc, quantumAlloc)
-            sr.create(fcSRScsiid, physical_size=size)
+            sr = xenrt.lib.xenserver.FCStorageRepository(host,  name, True)
+            sr.create(fcSRScsiid, physical_size=size, smconf=smconf)
 
         else:
             raise xenrt.XRTException("Cannot create Thin-LVHD SR with given srtype %s." % srtype)

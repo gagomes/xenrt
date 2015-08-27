@@ -80,7 +80,7 @@ class StorageRepository(object):
     EXTRA_DCONF = {}
     THIN_PROV_KEYWORD = "thin"
 
-    def __init__(self, host, name, thin_prov=False, initialAlloc=None, quantumAlloc=None):
+    def __init__(self, host, name, thin_prov=False):
         self.host = host
         self.name = name
         self.uuid = None
@@ -94,8 +94,6 @@ class StorageRepository(object):
         self.dconf = None
         self.content_type = ""
         self.smconf = {}
-        self.initialAlloc = initialAlloc
-        self.quantumAlloc = quantumAlloc
 
     @classmethod
     def fromExistingSR(cls, host, sruuid):
@@ -232,10 +230,6 @@ class StorageRepository(object):
                     smconf["allocation"] = "dynamic"
                 else:
                     smconf["allocation"] = self.THIN_PROV_KEYWORD
-                if self.initialAlloc:
-                    smconf["initial_allocation"] = str(self.initialAlloc)
-                if self.quantumAlloc:
-                    smconf["allocation_quantum"] = str(self.quantumAlloc)
             else:
                 xenrt.warning("SR: %s is marked as thin provisioning but %s does not support it. Ignoring..." % (self.name, srtype))
         args.extend(["sm-config:%s=\"%s\"" % (x, y)

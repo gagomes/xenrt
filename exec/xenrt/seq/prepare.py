@@ -1321,11 +1321,11 @@ class PrepareNode(object):
                         if s["options"] and "iet" in s["options"].split(","):
                             # Create the SR using an IET LUN from the controller
                             lun = xenrt.ISCSITemporaryLun(300)
-                            sr.create(lun, subtype="lvm", multipathing=mp, noiqnset=True, findSCSIID=True)
+                            sr.create(lun, subtype="lvm", multipathing=mp, noiqnset=True, findSCSIID=True, smconf=smconf)
                         elif s["options"] and "ietvm" in s["options"].split(","):
                             # Create the SR using an IET LUN from the controller
                             lun = xenrt.ISCSIVMLun(s["vmhost"],int(s["size"])*xenrt.KILO)
-                            sr.create(lun, subtype="lvm", multipathing=mp, noiqnset=True, findSCSIID=True)
+                            sr.create(lun, subtype="lvm", multipathing=mp, noiqnset=True, findSCSIID=True, smconf=smconf)
                         else:
                             if s["options"] and "jumbo" in s["options"].split(","):
                                 jumbo = True

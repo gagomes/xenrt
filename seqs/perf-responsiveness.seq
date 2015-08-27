@@ -1,0 +1,16 @@
+  <xenrt>
+    <variables>
+      <PREPARE_WORKERS>1</PREPARE_WORKERS>
+      <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+      <OPTION_DEFAULT_SR>true</OPTION_DEFAULT_SR>
+    </variables>
+
+    <prepare>
+      <host/>
+    </prepare>
+
+    <testsequence>
+      <testcase id="xenserver.tc.perf.tc_responsiveness.TCResponsiveness" host="RESOURCE_HOST_0">
+      </testcase>
+    </testsequence>
+  </xenrt>

@@ -34,6 +34,8 @@ class MelioHelper(object):
             xenrt.util.command("cd %s/melio-python && git checkout %s" % (d.path(), xenrt.TEC().lookup("MELIO_PYTHON_BRANCH", "master")))
             xenrt.GEC().config.setVariable("MELIO_PYTHON_LOCAL_PATH", "%s/melio-python" % d.path())
             sys.path.append("%s/melio-python/lib" % d.path())
+        xenrt.setupLogging("sanbolic")
+
         import sanbolic
         self._MelioClient = sanbolic.Client
         
@@ -43,7 +45,7 @@ class MelioHelper(object):
 
     def getMelioClient(self, host):
         # Get an instance of the websockets library to the Melio UI
-        return self._MelioClient("%s:8080" % host.getIP(), verbose_debugging=True, request_timeout=300)
+        return self._MelioClient("%s:8080" % host.getIP(), request_timeout=300)
 
     def setup(self, reinstall=False, formatDisk=True):
         # Do a full setup of the melio tools

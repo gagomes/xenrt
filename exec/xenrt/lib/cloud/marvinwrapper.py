@@ -17,13 +17,6 @@ except ImportError:
 
 __all__ = ["MarvinApi"]
 
-class XenRTLogStream(object):
-    def write(self, data):
-        xenrt.TEC().logverbose(data.rstrip())
-
-    def flush(self):
-        pass
-
 class CloudApi(object):
     def __init__(self, apiClient):
         self.__apiClient = apiClient
@@ -89,7 +82,7 @@ class MarvinApi(object):
     def __init__(self, mgtSvr):
         self.__testClientObj = None
         self.mgtSvr = mgtSvr
-        self.xenrtStream = XenRTLogStream()
+        self.xenrtStream = xenrt.XenRTLogStream()
         logFormat = logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s")
         self.logger = logging.getLogger(self.MARVIN_LOGGER)
         if len(self.logger.handlers) == 0:

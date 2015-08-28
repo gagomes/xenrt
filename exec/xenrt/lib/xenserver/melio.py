@@ -80,7 +80,8 @@ class MelioHelper(object):
         tasks = [xenrt.PTask(self.installMelioOnHost, x, reinstall) for x in self.hosts]
         xenrt.pfarm(tasks)
         self.checkCluster()
-    
+   
+
     def installMelioOnHost(self, host, reinstall=False):
         # Install the Melio software on a single host
         if host.execdom0("lsmod | grep warm_drive", retval="code") == 0 and not reinstall:
@@ -140,6 +141,27 @@ class MelioHelper(object):
     def saneDevice(self):
         return "/dev/%s" % self._saneDevice
 
+    def rebootAndWait(self. host, guid):
+        host.reboot()
+        host.execdom0("service iscsi restart")
+        self.waitForMelioDeviceOnHost(host, guid)
+    
+    def waitForMelioDeviceOnHost(self, host, guid):
+        with self.getMelioClient(host) as melioClient:
+            deadline = xenrt.timenow() + 600
+            while True:
+                exportedDevice = melioClient.get_all()['exported_device']
+                if isinstance(exportedDevice, dict):
+                    if guid in exportedDevice.keys():
+                        self._saneDevice = exportedDevice[guid]['system_name']
+                        break
+                    else:
+                        self._saneDevice = exportedDevice["_%s" % guid]['system_name']
+                        break
+                if xenrt.timenow() > deadline:
+                    raise xenrt.XRTError("Timed out waiting for device to appear")
+                xenrt.sleep(10)
+
     def setupMelioDisk(self):
         # Setup a melio disk on the scsi device
         disk = self.hosts[0].execdom0("realpath %s" % self.device).strip()[5:]
@@ -177,6 +199,8 @@ class MelioHelper(object):
                 if xenrt.timenow() > deadline:
                     raise xenrt.XRTError("Timed out waiting for device to appear")
                 xenrt.sleep(10)
+        tasks = [xenrt.PTask(self.rebootAndWait, x, guid) for x in self.hosts[1:]]
+        xenrt.pfarm(tasks)
 
 
     def mount(self, mountpoint):

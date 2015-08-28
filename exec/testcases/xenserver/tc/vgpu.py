@@ -3414,6 +3414,35 @@ class IntelBase(FunctionalBase):
                 vm = self.masterVMs[osType]
                 self.insideRun(vm, config)
 
+class TCIntelvGPUAllocationMode(IntelBase):
+    """
+    Breadth First Allocation Mode
+    """
+
+    def insideRun(self, vm, config):
+
+        pgpuUuid = []
+        host=self.getDefaultHost()
+
+        self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
+        self.typeOfvGPU.installGuestDrivers(vm,self.getConfigurationName((config)))
+        self.typeOfvGPU.assertvGPURunningInVM(vm,self.getConfigurationName((config)))
+
+        vm.setState("DOWN")
+        log("Cloning VM from Master VM")
+        vm1 = vm.cloneVM()
+        vm2 = vm.cloneVM()
+
+        self.setDistributionMode(VGPUDistribution.BreadthFirst)
+        for vms in [vm1,vm2]:
+            vms.start(specifyOn=False)
+            pgpuUuid.append(host.genParamGet("vgpu",self.host.parseListForUUID("vgpu-list","vm-uuid",vms.uuid),"resident-on"))
+
+        if pgpuUuid[0]!=pgpuUuid[1]:
+            xenrt.TEC().logverbose ("VMs have been started on different hosts! Allocation mode is Breadth First")
+        else:
+            raise xenrt.XRTError("Allocation is not breadth first as VMs are started on the same host")
+
 class TCIntelSetupNegative(IntelBase):
     """
     Passthrough GPU to win VM without rebooting host after block.

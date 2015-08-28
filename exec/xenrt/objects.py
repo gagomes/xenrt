@@ -8947,7 +8947,9 @@ class GenericGuest(GenericPlace):
             raise xenrt.XRTFailure("Did not find an IP address")
 
         # Wait for the VM to power down - this means the install has finished
-        if xenrt.TEC().lookup("EXTRA_TIME", False, boolean=True):
+        if xenrt.TEC().lookup("DEBIAN_INSTALL_TIMEOUT", None):
+            installtime = int(xenrt.TEC().lookup("DEBIAN_INSTALL_TIMEOUT"))
+        elif xenrt.TEC().lookup("EXTRA_TIME", False, boolean=True):
             installtime = 10800
         else:
             installtime = 5400

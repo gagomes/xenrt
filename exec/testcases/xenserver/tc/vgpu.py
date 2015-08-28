@@ -3589,7 +3589,7 @@ class TCSwitchIntelGPUModes(IntelBase):
         for distro in self.REQUIRED_DISTROS:
             osType = self.getOSType(distro)
             masterVM = self.masterVMs[osType]
-         
+
             if not len(self.VGPU_CONFIG) == 2:
                 raise xenrt.XRTError("Need a config length of 2 for TCSwitchIntelGPUModes.")
 
@@ -3634,7 +3634,7 @@ class TCSwitchIntelGPUModes(IntelBase):
         self.typeOfvGPU.assertvGPURunningInVM(vm, self.getConfigurationName(config))
 
     def tryStartVM(self, vm, error):
-        try:         
+        try:
             vm.setState("UP")
         except xenrt.XRTException as e:
             log("Caught expected exception: %s" % e)

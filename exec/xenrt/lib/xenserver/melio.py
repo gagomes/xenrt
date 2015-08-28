@@ -190,7 +190,7 @@ class MelioHelper(object):
     def mount(self, mountpoint):
         # Mount the melio device on every host in the cluster at the specified mountpoint
         for host in self.hosts:
-            host.execdom0("mount -t warm_fs %s /dev/%s" % (self.getSanDeviceForHost(host), mountpoint))
+            host.execdom0("mount -t warm_fs /dev/%s %s" % (self.getSanDeviceForHost(host), mountpoint))
     
     def checkMount(self, mountpoint):
         # Check that melioFS is mounted at the specified mountpoint on every host in the cluster

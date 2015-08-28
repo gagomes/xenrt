@@ -9544,6 +9544,9 @@ class GenericGuest(GenericPlace):
         if not currentVersion:
             raise xenrt.XRTError("The current Intel Iris and HD Graphics Driver version is not described")
 
+        # Workaround, VM unrespnsive for a short time after booting to getArch()
+        xenrt.sleep(60)
+
         tarBall = "intelgpudriver.tgz"
         if self.xmlrpcGetArch() == "amd64":
             fileName = "win64_%s.exe" % currentVersion

@@ -391,11 +391,9 @@ class VGPUTest(object):
         guest.installPVHVMNvidiaGpuDrivers()
 
     def installIntelWindowsDrivers(self,guest,vgputype):
-        #workaround, TBR
-        try:
-            guest.installIntelGPUDriver()
-        except:
-            pass
+        # This call was wrapped in a try, excpet block as a workaround.
+        # Was hiding a real issue, but there might be other valid scenarios where this breaks something.
+        guest.installIntelGPUDriver()
 
     def assertvGPURunningInLinuxVM(self, vm, vGPUType, card):
         if not vm.isGPUBeingUtilized(card):
@@ -3545,6 +3543,141 @@ class TCPoolIntelGPU(IntelBase):
             vm1.start(specifyOn=False)
             xenrt.sleep(10)
             vm2.start(specifyOn=False)
+
+class TCPoolIntelBootstorm(IntelBase):
+
+    def prepare(self, arglist):
+        super(TCPoolIntelBootstorm, self).prepare(arglist)
+        self.hosts = self.getDefaultPool().getHosts()   
+
+    def run(self, arglist):
+
+        for distro in self.REQUIRED_DISTROS:
+            osType = self.getOSType(distro)
+            masterVM = self.masterVMs[osType]
+            masterVM.setState("DOWN")
+
+            if not len(self.VGPU_CONFIG) == 2:
+                raise xenrt.XRTError("Need a config length of 2 for mixed vgpu/passthrough bootstorm.")
+
+            (passConfig, vgpuConfig) = self.VGPU_CONFIG
+
+            # Assuming both hosts have the same capabilities, don't care which one we choose for each type.
+            passHost = self.hosts[0]
+            vgpuHost = self.hosts[1]
+
+            self.typeOfvGPU.blockDom0Access(passHost)
+
+            # Creating a GPU Passthrough vm. Let the guest network settle before attatching gpu.
+            passVM = masterVM.cloneVM()
+            passVM.setState("UP")
+            xenrt.sleep(30)
+            self.prepareVM(passVM, passConfig)
+
+            # Creating a vGPU vm. Let the guest network settle before attatching gpu.
+            vgpuVM = masterVM.cloneVM()
+            vgpuVM.setState("UP")
+            xenrt.sleep(30)
+            self.prepareVM(vgpuVM, vgpuConfig)
+
+            # Shutdown all       
+            for vm in (vgpuVM, passVM):
+                vm.setState("DOWN")
+
+            # Start all VMs in parallel. Should start on their respective hosts.
+            pt = [xenrt.PTask(self.bootstormStartVM, vm) for vm in (passVM, vgpuVM)]
+            xenrt.pfarm(pt)
+
+            # Wait for the VMs to be up in parallel.
+            pt = [xenrt.PTask(vm.poll, "UP") for vm in (passVM, vgpuVM)]
+            xenrt.pfarm(pt)
+
+            self.typeOfvGPU.assertvGPURunningInVM(passVM, self.getConfigurationName(passConfig))
+            self.typeOfvGPU.assertvGPURunningInVM(vgpuVM, self.getConfigurationName(vgpuConfig))
+
+    def attachvGPU(self, vgpucreator, vm, groupuuid=None):
+        """ 
+        Very awkward scenario with multiple hosts and vgpu config.
+        Can't use the usual lib code, as involves some weird flow which forces VMs started on specific host.
+        """
+        vm.setState("DOWN")
+        vgpucreator.createOnGuest(vm, groupuuid)
+        # Doesn't enforce starting guest on default host.
+        self.bootstormStartVM(vm)
+
+    def prepareVM(self, vm, config):
+        # Using our own wrapper to attach vGPU.
+        self.attachvGPU(self.vGPUCreator[config], vm)
+        self.typeOfvGPU.installGuestDrivers(vm, self.getConfigurationName(config))
+        self.typeOfvGPU.assertvGPURunningInVM(vm, self.getConfigurationName(config))
+
+    def bootstormStartVM(self, vm):
+        try:
+            name = vm.getName()
+            name = name.replace(" ", "\ ")
+            cmd = "xe vm-start vm=%s" % name
+            self.runAsync(self.host, cmd, timeout=3600, ignoreSSHErrors=False)
+        except Exception, e:
+            raise xenrt.XRTFailure("Failed to start vm %s - %s" % (vm.getName(), str(e)))
+
+class TCSwitchIntelGPUModes(IntelBase):
+
+    def run(self, arglist):
+
+        for distro in self.REQUIRED_DISTROS:
+            osType = self.getOSType(distro)
+            masterVM = self.masterVMs[osType]
+
+            if not len(self.VGPU_CONFIG) == 2:
+                raise xenrt.XRTError("Need a config length of 2 for TCSwitchIntelGPUModes.")
+
+            (passConfig, vgpuConfig) = self.VGPU_CONFIG
+
+            # create two VMs from master.
+            masterVM.setState("DOWN")
+            passVM = masterVM.cloneVM()
+            vgpuVM = masterVM.cloneVM()
+
+            # setup vgpu on first vm, drivers + verify working etc.
+            self.prepareVM(vgpuVM, vgpuConfig)
+
+            # shutdown vgpu vm, block dom0 access and reboot host.
+            vgpuVM.setState("DOWN")
+            self.typeOfvGPU.blockDom0Access(self.host)
+
+            # setup gpu passthrough on the second vm, drivers + verify.
+            self.prepareVM(passVM, passConfig)
+
+            # shutdown passthrough vm
+            passVM.setState("DOWN")
+
+            # try to start vgpu vm (should fail).
+            self.tryStartVM(vgpuVM, "Was able to start vgpu vm when in gpu passthrough config mode.")
+
+            # unblock dom0 access again, reboot host.
+            self.typeOfvGPU.unblockDom0Access(self.host)
+
+            # start vgpu vm (should work fine).
+            vgpuVM.setState("UP")
+
+            # shutdown vgpu vm
+            vgpuVM.setState("DOWN")
+
+            # try to start gpu passthrough vm (should fail.)
+            self.tryStartVM(passVM, "Was able to start passthrough vm, when in vgpu config mode.")
+
+    def prepareVM(self, vm, config):
+        self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
+        self.typeOfvGPU.installGuestDrivers(vm, self.getConfigurationName(config))
+        self.typeOfvGPU.assertvGPURunningInVM(vm, self.getConfigurationName(config))
+
+    def tryStartVM(self, vm, error):
+        try:
+            vm.setState("UP")
+        except xenrt.XRTException as e:
+            log("Caught expected exception: %s" % e)
+        else:
+            raise xenrt.XRTFailure(error)
 
 class TCAlloModeK200NFS(VGPUAllocationModeBase):
 

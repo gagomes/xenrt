@@ -8,6 +8,7 @@
   <default name="EDISKS" value="1" />
 
   <default name="SRTYPE" value="lvmoiscsi" />
+  <default name="SRSIZE" value="100" /> <!-- in GiB -->
   <default name="THINPROV" value="True" />
 
   <default name="NUMVMS" value="5" />
@@ -38,6 +39,7 @@
       <arg>numvms=${NUMVMS}</arg>
       <arg>bufsize=${BUFFSIZE}</arg>
       <arg>groupsize=${GROUPSIZE}</arg>
+      <arg>srsize=${SRSIZE}</arg>
     </testcase>
   </testsequence>
 </xenrt>

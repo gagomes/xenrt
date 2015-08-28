@@ -11,47 +11,76 @@
 import xenrt, string, threading, time
 from xenrt.lib.xenserver import ISCSIStorageRepository, NFSStorageRepository
 from testcases.xenserver.tc.scalability import _TimedTestCase
-from xenrt.lazylog import step, log
+from xenrt.lazylog import step, log, warning
 
 class ThinLVHDPerfBase(xenrt.TestCase):
 
-    def __init__(self, tcid=None):
-        xenrt.TestCase.__init__(self, tcid=tcid)
+    # "var name" : [<default value>(mandatory), <name in arg list>, <name in TEC>]
+    ENV_VARS = {"vms": [20, "numvms", "VMCOUNT"],
+            "distro": ["debian60", "distro", "DISTRO"],
+            "arch": ["x86-64", "arch", "ARCH"],
+            "srtype": ["lvmoiscsi", "srtype", "SRTYPE"],
+            "srsize": ["100", "srsize", "SRSIZE"],
+            "thinprov": [False, "thinprov", "THINPROV"],
+            "goldvm": ["vm00", "goldvm"],
+    }
 
-        self.vms = 0
-        self.srtype = None
-        self.distro = None
-        self.thinprov = None
+    def __setValue(self, varname, default, argname=None, tecname=None):
+        """A utility function to initialise memeber variables."""
 
-    def parseArgs(self, arglist):
-        """Parse the sequence arguments"""
+        # Setting with default value
+        var = default
 
-        self.args = self.parseArgsKeyValue(arglist)
+        # Reading from sequence arguments
+        if argname:
+            var = self.args.get(argname, var)
 
-        self.vms = int(self.args.get("numvms", "20"))
-        self.distro = str(self.args.get("distro", "debian60"))
-        self.arch = str(self.args.get("arch", "x86-64"))
+        # Reading from TEC (including command line arguments)
+        if tecname:
+            var = xenrt.TEC().lookup(tecname, var)
 
-        self.srtype = str(self.args.get("srtype", "lvmoiscsi"))
-        self.thinprov = str(self.args.get("thinprov", False))
+        # Check type and cast to right type
+        if type(default) == bool:
+            if var.strip().lower() in ["yes", "true"]:
+                var = True
+            else:
+                var = False
+        elif type(default) == int:
+            var = int(var)
 
-        self.goldenVMName = str(self.args.get("goldvm", "vm00"))
+        # Assign value to local attribute
+        setattr(self, varname, var)
+        
+    def setTestEnv(self, printOut=True):
+        """A utility function to read env data."""
 
-    def parseEnvArgs(self):
-        """Parse the enviroment variables"""
+        for var in self.ENV_VARS:
+            self.__setValue(var, *self.ENV_VARS[var])
 
-        # Environment arguments supplied from the CLI using -D option takes the preference.
-        self.vms = int (xenrt.TEC().lookup("VMCOUNT", self.vms))
-        self.srtype = xenrt.TEC().lookup("SRTYPE", self.srtype)
-        self.distro = xenrt.TEC().lookup("DISTRO", self.distro)
-        self.thinprov = xenrt.TEC().lookup("THINPROV", self.thinprov)
+        if printOut:
+            log("=======================")
+            for var in self.ENV_VARS:
+                log("%s: %s" % (var, getattr(self, var)))
+            log("=======================")
 
-    def createSR(self):
+    def setDefaultSR(self, sr):
+        """Set given SR to default"""
+
+        host = self.getDefaultHost()
+        pool = host.minimalList("pool-list")[0]
+        host.genParamSet("pool", pool, "default-SR", sr.uuid)
+        host.genParamSet("pool", pool, "crash-dump-SR", sr.uuid)
+        host.genParamSet("pool", pool, "suspend-image-SR", sr.uuid)
+
+
+    def createSR(self, srsize=100, default=False):
         """Create a SR with given parameters"""
 
         if self.srtype=="lvmoiscsi":
+            size = srsize * xenrt.KILO # converting size to MiB
+            lun = xenrt.ISCSITemporaryLun(size)
             sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.host, "lvmoiscsi", thin_prov=self.thinprov)
-            sr.create(subtype="lvm")
+            sr.create(lun, subtype="lvm", physical_size=size, findSCSIID=True, noiqnset=True)
         elif self.srtype=="lvmohba":
             fcLun = self.host.lookup("SR_FCHBA", "LUN0")
             fcSRScsiid = self.host.lookup(["FC", fcLun, "SCSIID"], None)
@@ -62,25 +91,38 @@ class ThinLVHDPerfBase(xenrt.TestCase):
             sr.create()
         else:
             raise xenrt.XRTError("SR Type: %s not defined" % self.srtype)
+
+        if default:
+            self.setDefaultSR(sr)
+
         return sr
 
     def prepare(self, arglist=None):
 
-        # Parse the sequence arguments
-        self.parseArgs(arglist)
-
-        # Obtain the env arguments, if any to take precedence.
-        self.parseEnvArgs()
+        self.args = self.parseArgsKeyValue(arglist)
+        self.setTestEnv()
 
         # Obtain the pool object to retrieve its hosts.
         self.pool = self.getDefaultPool()
-        if self.pool is None:
+        if not self.pool:
             self.host = self.getDefaultHost()
         else:
             self.host = self.pool.master
 
 class TCIOLatency(ThinLVHDPerfBase):
     """Test case to measure the IO latency on a storage repository"""
+
+    ENV_VARS = {"vms": [20, "numvms", "VMCOUNT"],
+            "distro": ["debian60", "distro", "DISTRO"],
+            "arch": ["x86-64", "arch", "ARCH"],
+            "srsize": ["100", "srsize", "SRSIZE"],
+            "srtype": ["lvmoiscsi", "srtype", "SRTYPE"],
+            "thinprov": [False, "thinprov", "THINPROV"],
+            "goldvm": ["vm00", "goldvm"],
+            "edisks": [1, "edisks"],
+            "bufsize": [512, "bufsize"],
+            "groupsize": [1, "groupsize"],
+    }
 
     def __init__(self):
         ThinLVHDPerfBase.__init__(self, "TCIOLatency")
@@ -89,39 +131,13 @@ class TCIOLatency(ThinLVHDPerfBase):
         self.edisk = ( None, 2, False )  # definition of an extra disk of 2GiB.
         self.diskprefix = None  # can be "hd" for KVM or "xvd" for Xen
 
-    def parseArgs(self, arglist):
-        """Parse the sequence arguments"""
-
-        # Parse generic arguments
-        ThinLVHDPerfBase.parseArgs(self, arglist)
-
-        self.edisks = int(self.args.get("edisks", "1"))
-
-        self.bufsize = int(self.args.get("bufsize", "512"))
-        self.groupsize = int(self.args.get("groupsize", "1"))
-
-    def parseEnvArgs(self):
-        """Parse the enviroment variables"""
-
-        # Parse environment variables.
-        ThinLVHDPerfBase.parseEnvArgs(self)
-
-        # Add more env vars, if required.
-
-    def prepare(self, arglist=None):
+    def prepare(self, arglist=[]):
 
         # Call the base prepare.
-        ThinLVHDPerfBase.prepare(self, arglist)
+        super(TCIOLatency, self).prepare(arglist)
 
         # Create the SR.
-        sr = self.createSR()
-
-        # Set the SR as pool default SR.
-        if self.pool:
-            self.pool.setPoolParam("default-SR", sr.uuid)
-        else:
-            pooluuid = self.host.minimalList("pool-list")[0]
-            self.host.genParamSet("pool", pooluuid, "default-SR", sr.uuid)
+        sr = self.createSR(default=True)
 
         # Populate the number of extra disks.
         extraDisks = []
@@ -137,7 +153,7 @@ class TCIOLatency(ThinLVHDPerfBase):
             xenrt.TEC().progress("Installing VM zero")
             self.goldenVM = xenrt.productLib(host=self.host).guest.createVM(\
                             host=self.host,
-                            guestname=self.goldenVMName,
+                            guestname=self.goldvm,
                             distro=self.distro,
                             arch=self.arch,
                             vifs=xenrt.productLib(host=self.host).Guest.DEFAULT,
@@ -160,7 +176,7 @@ class TCIOLatency(ThinLVHDPerfBase):
         args.append("-b %d" % (self.bufsize)) # read/write every buffer of size.
         args.append("-g %d" % (self.groupsize)) # group the number of read/write operations.
         args.append("-o %s.log" % (guest.getName())) # place the perf metrics on the guest.
-        args.append("> /root/output.log 2>&1") # display options.
+        #args.append("> /root/output.log 2>&1") # display options.
         results = guest.execguest("/root/perf-latency/diskprofiler/dprofiler %s" %
                                                         (string.join(args)), timeout=7200)
 
@@ -222,15 +238,17 @@ class TCIOLatency(ThinLVHDPerfBase):
             raise xenrt.XRTFailure("One or many guests failed to start.")
 
         # Now collect iolatency metrics for every cloned guests parallely.
-        errors = []
-        try:
-            xenrt.pfarm([xenrt.PTask(self.collectMetrics, clone) for clone in self.clones])
-        except Exception, e:
-            errors.append(str(e))
+        results = xenrt.pfarm([xenrt.PTask(self.collectMetrics, clone) for clone in self.clones], exception=False)
+        log("Threads returned: %s" % results)
 
-        if len(errors) > 1:
-            xenrt.TEC().logverbose("Parallel collection of iolatency metrics failed with error messages %s" % errors)
-            raise xenrt.XRTFailure("Failed to collect iolatency metrics parallely.")
+        exceptions = 0
+        for result in results:
+            if result:
+                exceptions += 1
+                warning("Found exception: %s" % result)
+
+        if exceptions:
+            raise xenrt.XRTFailure("Failed to run %d / %d io latency tests." % (exceptions, len(results)))
 
     def postRun(self, arglist=None):
         # Removing all cloned VMs after the test run.
@@ -256,9 +274,6 @@ class TCThinVDIscalability(_TimedTestCase):
     DEFAULTSROPTIONS = "thin"
     DEFAULTOUTPUTFILE = "thinsrscaletiming.log"
 
-    def __init__(self, tcid=None):
-        super(TCThinVDIscalability,self).__init__(self, tcid)
-
     def createSR(self, host=None, sroptions="thin"):
         if not host:
             host = self.getDefaultHost()
@@ -270,7 +285,7 @@ class TCThinVDIscalability(_TimedTestCase):
             fcLun = self.host.lookup("SR_FCHBA", "LUN0")
             fcSRScsiid = self.host.lookup(["FC", fcLun, "SCSIID"], None)
             sr = xenrt.lib.xenserver.FCStorageRepository(self.host, "lvmohba", thin_prov=thinProv) 
-            sr.create(fcSRScsiid, physical_size=size)
+            sr.create(fcSRScsiid)
         elif self.srtype == "nfs":
             sr = NFSStorageRepository(self.host, "nfssr")
             sr.create()
@@ -282,27 +297,55 @@ class TCThinVDIscalability(_TimedTestCase):
         return sr
 
     def cloneVMSerial(self):
-        count = 1
-        while count <= self.numvms:
+        count = 0
+        while count < self.numvms:
             try:
                 log("Cloning the guest ...")
                 self.addTiming("TIME_VM_CLONE_START_%s:%.6f" % (self.distro, xenrt.util.timenow(float=True)))
-                guest = self.guest.cloneVM()
+                guest = self.cloneVM(self.guest)
                 self.addTiming("TIME_VM_CLONE_COMPLETE_%s:%.6f" % (self.distro, xenrt.util.timenow(float=True)))
                 self.cloneGuests.append(guest)
             except Exception as e:
                 xenrt.TEC().warning("Cloning the VM '%s' of uuid '%s' failed with exception '%s': " % (self.guest, self.guest.getUUID(), str(e)))
+                self.addTiming("TIME_VM_CLONE_COMPLETE_%s:%.6f (FAILED)" % (self.distro, xenrt.util.timenow(float=True)))
             count = count + 1
 
     def destoryVMSerial(self):
+        xenrt.TEC().logverbose("Uninstalling %d VMs." % len(self.cloneGuests))
         try :
             for guest in self.cloneGuests:
                 log("Destorying the guest ...")
                 self.addTiming("TIME_VM_DESTROY_START_%s:%.3f" % (self.distro, xenrt.util.timenow(float=True)))
-                guest.uninstall()
+                self.uninstallVM(guest)
                 self.addTiming("TIME_VM_DESTROY_COMPLETE_%s:%.3f" % (self.distro, xenrt.util.timenow(float=True)))
         except Exception as e:
             xenrt.TEC().warning("Destroying the VM '%s' of uuid '%s' failed with exception '%s': " % (self.guest, self.guest.getUUID(), str(e)))
+
+    def __rawXSCloneVM(self, guest):
+        """Clone VM with raw commands.
+
+        @param guest: guest object to clone.
+
+        @return: output from cli execution. "" if it succeeds.
+        """
+        # minimize xenrt lib call to avoid impact from xenrt/python delay
+        return self.cli.execute("vm-clone", args="uuid=%s new-name-label=clone" % self.guest.getUUID())
+
+    def __rawXSUninstallVM(self, guest):
+        """Destroy VM with raw commands.
+        
+        @param guest: string of guest uuid to uninstall
+
+        @return: output from cli execution. "" if it succeeds.
+        """
+        # minimize xenrt lib call to avoid impact from xenrt/python delay
+        return self.cli.execute("vm-destroy", args="uuid=%s" % guest)
+
+    def __noneXSCloneVM(self, guest):
+        return guest.cloneVM()
+
+    def __noneXSIninstallVM(self, guest):
+        return guest.uninstall()
 
     def configParams(self):
         self.numvms = int (xenrt.TEC().lookup("NUMVMS", self.numvms))
@@ -321,6 +364,13 @@ class TCThinVDIscalability(_TimedTestCase):
         self.sroptions = args.get("sroptions", self.DEFAULTSROPTIONS)
         self.outputfile =  args.get("outputfile", self.DEFAULTOUTPUTFILE)
         self.configParams()
+        if isinstance(self.host, xenrt.lib.xenserver.Host):
+            self.cloneVM = self.__rawXSCloneVM
+            self.uninstallVM = self.__rawXSUninstallVM
+            self.cli = self.host.getCLIInstance()
+        else:
+            self.cloneVM = self.__noneXSCloneVM
+            self.uninstallVM = self.__noneUninstallVM
 
     def run(self, arglist=None):
         step("Trying to create SR of type %s" % (self.srtype))

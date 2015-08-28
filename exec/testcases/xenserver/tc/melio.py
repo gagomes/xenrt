@@ -1,14 +1,31 @@
 import xenrt
 
-class TCMelioSmoke(xenrt.TestCase):
+class TCMelioSetup(xenrt.TestCase):
+    def setupMelio(self, sharedISCSI=True):
+        allHosts = []
+        i = 0
+        while True:
+            h = self.getHost("RESOURCE_HOST_%d" % i)
+            if not i:
+                break
+            allHosts.append(h)
+            i+=1
+        if sharedISCSI:
+            melioHelper = xenrt.lib.xenserver.MelioHelper(allHosts[0:-1], iscsiHost=allHosts[-1])
+        else:
+            melioHelper = xenrt.lib.xenserver.MelioHelper(allHosts)
+        melioHelper.setup()
+        return melioHelper
+    
+    def run(self, arglist):
+        self.setupMelio(sharedISCSI=True)
+
+class TCMelioSmoke(TCMelioSetup):
     """Very basic smoke test of MelioFS on XenServer"""
     def run(self, arglist):
-        host = self.getHost("RESOURCE_HOST_0")
-        iscsiHost = self.getHost("RESOURCE_HOST_1")
-
-        melioHelper = xenrt.lib.xenserver.MelioHelper([host], iscsiHost=iscsiHost)
-        melioHelper.setup()
+        melioHelper = self.setupMelio(sharedISCSI=True)
         melioHelper.mount("/mnt")
+        host = self.getHost("RESOURCE_HOST_0")
         host.execdom0("echo 'Testing' > /mnt/testing")
         if host.execdom0("cat /mnt/testing").strip() != "Testing":
             raise xenrt.XRTFailure("File read did not match write")
@@ -35,16 +52,13 @@ class TCDDIntegrity(xenrt.TestCase):
             if md5sum1 != md5sum2:
                 raise xenrt.XRTFailure("md5sums did not match")
 
-class TCMelioSRSetup(xenrt.TestCase):
+class TCMelioSRSetup(TCMelioSetup):
     """Setup Melio SR"""
     def run(self, arglist):
-        host = self.getHost("RESOURCE_HOST_0")
-        iscsiHost = self.getHost("RESOURCE_HOST_1")
         if not xenrt.TEC().lookup("FFS_RPM", None):
             raise xenrt.XRTError("FFS_RPM not specified")
 
-        melioHelper = xenrt.lib.xenserver.MelioHelper([host], iscsiHost=iscsiHost)
-        melioHelper.setup()
+        melioHelper = self.setupMelio(sharedISCSI=True)
 
         melioHelper.createSR(name="Melio")
 

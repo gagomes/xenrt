@@ -5,21 +5,16 @@
     <OPTION_NO_DISK_CLAIM>yes</OPTION_NO_DISK_CLAIM>
     <WORKAROUND_CA174211>yes</WORKAROUND_CA174211>
     <OPTION_DOM0_MEM>4096</OPTION_DOM0_MEM>
-    <DEBIAN_INSTALL_TIMEOUT>1800</DEBIAN_INSTALL_TIMEOUT>
     <HOST_STATIC_IP>yes</HOST_STATIC_IP>
   </variables>
 
   <prepare>
-    <host id="0" />
-    <host id="1" />
+    <allhosts />
   </prepare>
 
     <testsequence>
-      <serial group="Setup">
-        <testcase id="xenserver.tc.melio.TCMelioSRSetup" blocker="yes" />
+      <serial group="Melio">
+        <testcase id="xenserver.tc.melio.TCMelioSetup" />
       </serial>
-      <parallel group="VM" workers="2">
-        <testcase id="xenserver.tc.melio.TCMelioVM" name="debian80_x86-32" sku="debian80_x86-32" />
-      </parallel>
     </testsequence>
 </xenrt>

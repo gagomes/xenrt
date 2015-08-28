@@ -3586,20 +3586,6 @@ class TCSwitchIntelGPUModes(IntelBase):
 
     def run(self, arglist):
 
-        def __prepareVM(vm, config):
-            self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
-            self.typeOfvGPU.installGuestDrivers(vm, self.getConfigurationName(config))
-            self.typeOfvGPU.assertvGPURunningInVM(vm, self.getConfigurationName(config))
-
-        def __tryStartVM(vm, error):
-            try:         
-                vm.setState("UP")
-            except xenrt.XRTException as e:
-                log("Caught expected exception: %s" % e)
-            else:
-                raise xenrt.XRTFailure(error)
-
-
         for distro in self.REQUIRED_DISTROS:
             osType = self.getOSType(distro)
             masterVM = self.masterVMs[osType]
@@ -3615,20 +3601,20 @@ class TCSwitchIntelGPUModes(IntelBase):
             vgpuVM = masterVM.cloneVM()
 
             # setup vgpu on first vm, drivers + verify working etc.
-            __prepareVM(vgpuVM, vgpuConfig)
+            self.prepareVM(vgpuVM, vgpuConfig)
 
             # shutdown vgpu vm, block dom0 access and reboot host.
             vgpuVM.setState("DOWN")
             self.typeOfvGPU.blockDom0Access(self.host)
 
             # setup gpu passthrough on the second vm, drivers + verify.
-            __prepareVM(passVM, passConfig)
+            self.prepareVM(passVM, passConfig)
 
             # shutdown passthrough vm
             passVM.setState("DOWN")
 
             # try to start vgpu vm (should fail).
-            __tryStartVM(vgpuVM, "Was able to start vgpu vm when in gpu passthrough config mode.")
+            self.tryStartVM(vgpuVM, "Was able to start vgpu vm when in gpu passthrough config mode.")
 
             # unblock dom0 access again, reboot host.
             self.typeOfvGPU.unblockDom0Access(self.host)
@@ -3640,8 +3626,20 @@ class TCSwitchIntelGPUModes(IntelBase):
             vgpuVM.setState("DOWN")
 
             # try to start gpu passthrough vm (should fail.)
-            __tryStartVM(passVM, "Was able to start passthrough vm, when in vgpu config mode.")
+            self.tryStartVM(passVM, "Was able to start passthrough vm, when in vgpu config mode.")
 
+    def prepareVM(self, vm, config):
+        self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
+        self.typeOfvGPU.installGuestDrivers(vm, self.getConfigurationName(config))
+        self.typeOfvGPU.assertvGPURunningInVM(vm, self.getConfigurationName(config))
+
+    def tryStartVM(self, vm, error):
+        try:         
+            vm.setState("UP")
+        except xenrt.XRTException as e:
+            log("Caught expected exception: %s" % e)
+        else:
+            raise xenrt.XRTFailure(error)
 
 class TCAlloModeK200NFS(VGPUAllocationModeBase):
 

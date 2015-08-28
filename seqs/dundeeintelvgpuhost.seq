@@ -87,6 +87,13 @@
         <arg>blockdom0access=false</arg>
         <arg>vgpuconfig=13</arg>
       </testcase>
+
+      <testcase id="testcases.xenserver.tc.vgpu.TCvGPUBalloon" name="TC-27116" tc="TC-27116" sku="IntelvGPU">
+        <arg>distro=1</arg>
+        <arg>typeofvgpu=intelwinvgpu</arg>
+        <arg>blockdom0access=false</arg>
+        <arg>vgpuconfig=13</arg>
+      </testcase>
     
     </serial>
   </testsequence>

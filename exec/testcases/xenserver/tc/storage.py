@@ -5223,7 +5223,7 @@ class TCFCOESRLifecycle(FCOELifecycleBase):
     def run(self, arglist):
 
         self.sr = xenrt.lib.xenserver.FCOEStorageRepository.fromExistingSR(self.host, self.srs[0])
-        self.vdiuuid = self.host.createVDI( size =1024, sruuid=self.sr.uuid, name="XenRTTest" )
+        self.vdiuuid = self.host.createVDI(sizebytes=1024, sruuid=self.sr.uuid, name="XenRTTest" )
         originalVdiSize = self.host.genParamGet("vdi", self.vdiuuid, "virtual-size")
         self.sr.forget()
         

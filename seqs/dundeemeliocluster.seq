@@ -1,0 +1,23 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <OPTION_NO_DISK_CLAIM>yes</OPTION_NO_DISK_CLAIM>
+    <WORKAROUND_CA174211>yes</WORKAROUND_CA174211>
+    <OPTION_DOM0_MEM>4096</OPTION_DOM0_MEM>
+    <HOST_STATIC_IP>yes</HOST_STATIC_IP>
+  </variables>
+
+  <prepare>
+    <host id="0" />
+    <host id="1" />
+    <host id="2" />
+  </prepare>
+
+    <testsequence>
+      <serial group="MelioCluster">
+        <testcase id="xenserver.tc.melio.TCMelioSmoke" tc="TC-27207" blocker="yes" />
+        <testcase id="xenserver.tc.melio.TCDDIntegrity" tc="TC-27237" />
+      </serial>
+    </testsequence>
+</xenrt>

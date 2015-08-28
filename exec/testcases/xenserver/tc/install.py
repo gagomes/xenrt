@@ -937,3 +937,128 @@ class TC27248(xenrt.TestCase):
         # Create the nfs SR on the host.
         nfsSR = xenrt.lib.xenserver.NFSStorageRepository(self.host, "nfs-sr")
         nfsSR.create(self.nfsHost.getIP(),"/nfsShare")
+
+class TC27298(xenrt.TestCase):
+    """Install to a server with a iSCSI boot disk on a SAN using iPXE."""
+
+    @staticmethod
+    def productVersionFromInputDir(inputDir):
+        fn = xenrt.TEC().getFile("%s/xe-phase-1/globals" % inputDir, "%s/globals" % inputDir)
+        if fn:
+            for line in open(fn).xreadlines():
+                match = re.match('^PRODUCT_VERSION="(.+)"', line)
+                if match:
+                    hosttype = xenrt.TEC().lookup(["PRODUCT_CODENAMES", match.group(1)], None)
+                    if hosttype:
+                        return hosttype
+        return xenrt.TEC().lookup("PRODUCT_VERSION", None)
+
+    def lookup(self, key):
+        resource_host = "RESOURCE_HOST_0"
+        machine = xenrt.TEC().lookup(resource_host, resource_host)
+        m = xenrt.PhysicalHost(xenrt.TEC().lookup(machine, machine))
+        hosttype = self.productVersionFromInputDir(xenrt.TEC().getInputDir())
+        host = xenrt.lib.xenserver.hostFactory(hosttype)(m,
+                                                     productVersion=hosttype)
+        return host.lookup(key, None)
+
+    def prepare(self, arglist):
+        initiator_name = self.lookup(["EQLISCSI", "INITIATOR_NAME"])
+        target_address = self.lookup(["EQLISCSI", "BOOTLUN", "TARGET_ADDRESS"])
+        target_name = self.lookup(["EQLISCSI", "BOOTLUN", "TARGET_NAME"])
+        self.bootLun = xenrt.ISCSILunSpecified("%s/%s/%s" % (initiator_name, target_name, target_address))
+        self.bootLun.scsiid = self.lookup(["EQLISCSI", "BOOTLUN", "SCSIID"])
+
+    def run(self, arglist):
+        self.host = xenrt.lib.xenserver.createHost(id=0, iScsiBootLun=self.bootLun, iScsiBootNets=["NPRI"], installnetwork="NSEC")
+
+class TC27299(xenrt.TestCase):
+    """Create iSCSI SR on iSCSI booted machine, where the SR target is on same storage IP as the boot disk target"""
+
+    def prepare(self, arglist):
+        # Obtain the iSCSI booted machine.
+        self.host = self.getHost("RESOURCE_HOST_0")
+
+        initiator_name = self.host.lookup(["EQLISCSI", "INITIATOR_NAME"], None)
+        target_address = self.host.lookup(["EQLISCSI", "SRLUN", "TARGET_ADDRESS"], None)
+        target_name = self.host.lookup(["EQLISCSI", "SRLUN", "TARGET_NAME"], None)
+        self.lun = xenrt.ISCSILunSpecified("%s/%s/%s" % (initiator_name, target_name, target_address))
+        self.lun.scsiid = self.host.lookup(["EQLISCSI", "SRLUN", "SCSIID"], None)
+
+    def run(self, arglist):
+        # Create iSCSI SR.
+        iscsiSR = xenrt.lib.xenserver.ISCSIStorageRepository(self.host,
+                                                "iscsi-sr-on-same-storage-as-boot-disk")
+        iscsiSR.create(self.lun, subtype="lvm", multipathing=False, noiqnset=True)
+
+class TC27300(xenrt.TestCase):
+    """Create iSCSI SR on iSCSI booted machine, where the SR target is on a different storage IP and the same subnet as the boot disk target"""
+
+    def prepare(self, arglist):
+        # Obtain the iSCSI booted machine.
+        self.host = self.getHost("RESOURCE_HOST_0")
+
+    def run(self, arglist):
+        # Create a controller LUN and connect to it
+        lun = xenrt.ISCSITemporaryLun(100)
+        iscsiSR = xenrt.lib.xenserver.ISCSIStorageRepository(self.host,
+                                            "iscsi-sr-on-different-storage-same-subnet-as-boot-disk")
+        iscsiSR.create(lun, subtype="lvm", findSCSIID=True, multipathing=False, noiqnset=True)
+
+class TC27301(xenrt.TestCase):
+    """Create iSCSI SR on iSCSI booted machine, where the SR target is on a different storage IP and subnet as the boot disk target"""
+
+    def prepare(self, arglist):
+        self.host = self.getHost("RESOURCE_HOST_0")
+        self.iscsiHost = self.getHost("RESOURCE_HOST_1")
+
+    def run(self, arglist):
+        # Create an IP address on IPRI
+        self.host.createNetworkTopology("""
+            <NETWORK>
+                <PHYSICAL network="NSEC">
+                    <NIC />
+                    <VLAN network="IPRI">
+                        <STORAGE />
+                    </VLAN>
+                    <MANAGEMENT />
+                </PHYSICAL>
+            </NETWORK>
+        """)
+
+        vlan = self.host.getVLAN("IPRI")[0]
+        nic = self.iscsiHost.getDefaultInterface()
+        vbridge = self.iscsiHost.createNetwork()
+        pifuuid = self.iscsiHost.createVLAN(vlan, vbridge, nic)
+        ip = self.iscsiHost.enableIPOnPIF(pifuuid)
+        xenrt.TEC().registry.resourcePut("VLANIP", ip)
+
+        self.bootLun = xenrt.resources.ISCSIVMLun(hostIndex=1, sizeMB=50000, bridges=[vbridge])
+
+        # Creating multipathed iSCSI SR.
+        iscsiSR = xenrt.lib.xenserver.ISCSIStorageRepository(self.host,
+                                                "iscsi-sr-on-different-storage-different-subnet-as-boot-disk")
+        iscsiSR.create(self.bootLun, subtype="lvm", noiqnset=True, findSCSIID=True)
+
+class TC27302(xenrt.TestCase):
+    """Create NFS SR on iSCSI booted machine, where the SR target is on a
+    different storage IP and a different subnet as the boot disk."""
+
+    def prepare(self, arglist):
+        self.host = self.getHost("RESOURCE_HOST_0")
+        self.nfsHost = self.getHost("RESOURCE_HOST_1")
+
+    def run(self, arglist):
+        self.nfsHost.execcmd("service nfs start")
+        self.nfsHost.execcmd("iptables -F")
+
+        # Create a dir and export the shared directory.
+        self.nfsHost.execcmd("mkdir /nfsShare")
+        self.nfsHost.execcmd("echo '/nfsShare *(sync,rw,no_root_squash,no_subtree_check)'"
+                        " > /etc/exports")
+        self.nfsHost.execcmd("exportfs -a")
+
+        # Create the nfs SR on the host.
+        nfsSR = xenrt.lib.xenserver.NFSStorageRepository(self.host, "nfs-sr")
+        ip = xenrt.TEC().registry.resourceGet("VLANIP")
+        nfsSR.create(ip, "/nfsShare")

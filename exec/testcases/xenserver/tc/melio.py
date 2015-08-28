@@ -6,7 +6,7 @@ class TCMelioSetup(xenrt.TestCase):
         i = 0
         while True:
             h = self.getHost("RESOURCE_HOST_%d" % i)
-            if not i:
+            if not h:
                 break
             allHosts.append(h)
             i+=1

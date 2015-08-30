@@ -4,7 +4,7 @@
 
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
-    <DISTROS>debian70_x86-64,oel511_x86-64,oel66_x86-64,sles113_x86-64,ubuntu1204_x86-64</DISTROS>
+    <DISTROS>debian70_x86-32,oel511_x86-32,oel66_x86-32,sles113_x86-32,ubuntu1204_x86-32 </DISTROS>
   </variables>
 
   <prepare>
@@ -15,7 +15,7 @@
     <testcase id="xenserver.tc.balloon.TCVmInstallation" blocker="yes"/>
     <parallel group="LinuxBalloonMaxRange" workers="1">
       <for iter="D" values="%DISTROS%"> 
-        <testcase id="xenserver.tc.balloon.TCLinuxMaxRange" name="${D}" sku="${D}" tc="TC-9325">
+        <testcase id="xenserver.tc.balloon.TCLinuxMaxRangeLowMemory" name="${D}" sku="${D}" tc="TC-9325">
         <arg>DISTRO=${D}</arg>
         </testcase>
       </for>

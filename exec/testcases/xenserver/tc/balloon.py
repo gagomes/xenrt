@@ -133,7 +133,7 @@ class _BalloonPerfBase(xenrt.TestCase):
                                    data="Calculated index %s GiB/Ghz/s" % (index))
     
     def parseArgs(self, arglist):
-        if arglist and len(arglist) > 0:
+        if arglist:
             for arg in arglist:
                 l = string.split(arg, "=", 1)
                 if l[0] == "DISTRO":
@@ -172,7 +172,10 @@ class _BalloonSmoketest(_BalloonPerfBase):
     SET_PAE = True
     HOST = "RESOURCE_HOST_0"
     HAP = None
-    LOW_MEMORY = 750
+    MEMORY_STEP = 750
+    BALLOON_UP_INITIAL_ALLOC = True
+    LOW_MEMORY_CONSTRAINT = False
+    HVM_PV_CONTRAINT = False
 
     def prepare(self, arglist=None):
         # Get the host
@@ -235,6 +238,12 @@ class _BalloonSmoketest(_BalloonPerfBase):
             if self.maxSupported > capto:
                 xenrt.TEC().warning("Capping test at %uMiB..." % (capto))
                 self.maxSupported = capto
+
+        # Check if guest has LOW memory constraint
+        if not self.WINDOWS and self.LOW_MEMORY_CONSTRAINT:
+            lowMemory = int(self.guest.execguest("free -l | grep Low | awk '{print $2}'").strip()) / xenrt.KILO
+            self.maxSupported = lowMemory * 10
+            xenrt.TEC().logverbose("Due to low memory constraint, Capping maximum memory to %s" % (self.maxSupported))
 
         step("Look up the dynamic range multiplier")
         if self.WINDOWS:
@@ -336,50 +345,68 @@ class _BalloonSmoketest(_BalloonPerfBase):
             
 
     def runCaseInner(self, minMem, maxMem, doLifecycleOps):
+        if HVM_PV_CONTRAINT:
+            self.testMaxRange(minMem, maxMem-10, maxMem, doLifecycleOps)
+        else:
+            self.testMaxRange(minMem, maxMem, maxMem, doLifecycleOps)
+
+
+    def testMaxRange(self, minMem, maxMem, smaxMem):
         try:
-            step("Set dynamic-min=dynamic-max=min, static-max=max")
-            self.guest.setMemoryProperties(None, minMem, minMem, maxMem)
+            if BALLOON_UP_INITIAL_ALLOC:
+                step("Set dynamic-min=dynamic-max=min, static-max=max")
+                self.guest.setMemoryProperties(None, minMem, minMem, smaxMem)
 
-            self.guest.start()
-            self.guest.checkMemory(inGuest=True)
-            self.status = "booted"
+                self.guest.start()
+                self.guest.checkMemory(inGuest=True)
+                self.status = "booted"
 
-            step("Check the target has been met correctly")
-            self.guest.waitForTarget(120, desc="Not at target after boot")
-            
-            #These changes are added for EXT-119
-            step("Check by what how much value can we balloon up/down the VM")
-            stepSize = min((maxMem-minMem),9*self.LOW_MEMORY)
-            log("Step size = %d" % stepSize)
+                step("Check the target has been met correctly")
+                self.guest.waitForTarget(120, desc="Memory target is not met after boot")
+                
+                #These changes are added for EXT-119
+                step("Check by what how much value can we balloon up/down the VM")
+                stepSize = min((maxMem-minMem),9*self.MEMORY_STEP)
+                log("Step size = %d" % stepSize)
 
-            step("Verify VM can balloon up to smax")
-            memStep = minMem
-            while memStep+stepSize < maxMem:
-                memStep = memStep + stepSize
-                self.guest.setDynamicMemRange(memStep, memStep)
+                step("Verify VM can balloon up to smax")
+                memStep = minMem
+                while memStep+stepSize < maxMem:
+                    memStep = memStep + stepSize
+                    self.guest.setDynamicMemRange(memStep, memStep)
+                    self.guest.waitForTarget(800)
+                    time.sleep(10)
+                    self.guest.checkMemory(inGuest=True)
+                self.guest.setDynamicMemRange(maxMem, maxMem)
+
                 self.guest.waitForTarget(800)
                 time.sleep(10)
                 self.guest.checkMemory(inGuest=True)
-            self.guest.setDynamicMemRange(maxMem, maxMem)
 
-            self.guest.waitForTarget(800)
-            time.sleep(10)
-            self.guest.checkMemory(inGuest=True)
+                step("Verify it can balloon down to min")
+                memStep = maxMem
+                xenrt.TEC().logverbose(memStep)
+                while memStep-stepSize > minMem:
+                    memStep = memStep - stepSize
+                    self.guest.setDynamicMemRange(memStep, memStep)
+                    self.guest.waitForTarget(800)
+                    time.sleep(10)
+                    self.guest.checkMemory(inGuest=True)
+                self.guest.setDynamicMemRange(minMem, minMem)
 
-            step("Verify it can balloon down to min")
-            memStep = maxMem
-            xenrt.TEC().logverbose(memStep)
-            while memStep-stepSize > minMem:
-                memStep = memStep - stepSize
-                self.guest.setDynamicMemRange(memStep, memStep)
                 self.guest.waitForTarget(800)
                 time.sleep(10)
                 self.guest.checkMemory(inGuest=True)
-            self.guest.setDynamicMemRange(minMem, minMem)
+            else:
+                step("Set dynamic-min=min, dynamic-max=static-max=max")
+                self.guest.setMemoryProperties(None, minMem, maxMem, smaxMem)
+                
+                self.guest.start()
+                self.guest.checkMemory(inGuest=True)
+                self.status = "booted"
 
-            self.guest.waitForTarget(800)
-            time.sleep(10)
-            self.guest.checkMemory(inGuest=True)
+                step("Check the target has been met correctly")
+                self.guest.waitForTarget(120, desc="Memory target is not met after boot")
 
             # Are we meant to do lifecycle ops
             if self.DO_LIFECYCLE_OPS and doLifecycleOps:
@@ -434,7 +461,6 @@ class _BalloonSmoketest(_BalloonPerfBase):
                     raise
             else:
                 raise
-               
 
     def lifecycleOps(self, min):
         step("Perform Lifecycle operations on the VM")
@@ -521,7 +547,22 @@ class _LinuxMaxRangeBase(_MaxRangeBase):
 class TCLinuxMaxRange(_LinuxMaxRangeBase):
     """Linux VM operations with maximum dynamic range"""
     pass
-    
+
+class TCLinuxMaxRangeEarlyPVOPS(_LinuxMaxRangeBase):
+    """Early pvops Linux operations with maximum dynamic range"""
+    #guests could not balloon above the initial allocation
+    BALLOON_UP_INITIAL_ALLOC = False
+
+class TCLinuxMaxRangeLowMemory(_LinuxMaxRangeBase):
+    """32-bit pvop guests operations with maximum dynamic range"""
+    #guests cannot balloon up to more than 10x the amount of low memory 
+    LOW_MEMORY_CONSTRAINT = True
+
+class TCLinuxMaxRangeHVMPV(_LinuxMaxRangeBase):
+    """HVM-PV guests operations with maximum dynamic range"""
+    #Reachable target for HVM Linux guests is less than static-max by amount of ~9MiB
+    #video memory (8MiB) + amount of memory reserved by Linux (about 4 + 8 + 384 KiB)
+    HVM_PV_CONTRAINT = True
 #
 # Windows VM Balloon Driver Max range tests
 #

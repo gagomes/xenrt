@@ -240,6 +240,8 @@ class _BalloonSmoketest(_BalloonPerfBase):
                 self.maxSupported = capto
 
         # Check if guest has LOW memory constraint
+        if not self.WINDOWS and self.ARCH=="x86-32":
+            self.LOW_MEMORY_CONSTRAINT = True
         if not self.WINDOWS and self.LOW_MEMORY_CONSTRAINT:
             lowMemory = int(self.guest.execguest("free -l | grep Low | awk '{print $2}'").strip()) / xenrt.KILO
             self.maxSupported = lowMemory * 10

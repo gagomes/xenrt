@@ -175,7 +175,7 @@ class _BalloonSmoketest(_BalloonPerfBase):
     MEMORY_STEP = 750
     BALLOON_UP_INITIAL_ALLOC = True
     LOW_MEMORY_CONSTRAINT = False
-    HVM_PV_CONTRAINT = False
+    HVM_PV_CONSTRAINT = False
 
     def prepare(self, arglist=None):
         # Get the host
@@ -346,7 +346,7 @@ class _BalloonSmoketest(_BalloonPerfBase):
             
 
     def runCaseInner(self, minMem, maxMem, doLifecycleOps):
-        if HVM_PV_CONTRAINT:
+        if self.HVM_PV_CONSTRAINT:
             self.testMaxRange(minMem, maxMem-10, maxMem, doLifecycleOps)
         else:
             self.testMaxRange(minMem, maxMem, maxMem, doLifecycleOps)
@@ -563,7 +563,7 @@ class TCLinuxMaxRangeHVMPV(_LinuxMaxRangeBase):
     """HVM-PV guests operations with maximum dynamic range"""
     #Reachable target for HVM Linux guests is less than static-max by amount of ~9MiB
     #video memory (8MiB) + amount of memory reserved by Linux (about 4 + 8 + 384 KiB)
-    HVM_PV_CONTRAINT = True
+    HVM_PV_CONSTRAINT = True
 #
 # Windows VM Balloon Driver Max range tests
 #

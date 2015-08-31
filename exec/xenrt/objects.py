@@ -10792,7 +10792,12 @@ $group.setInfo()
                     return subject
 
     def _addSubject(self, entity, subjectname):
-        container = u"CN=Users,DC=%s,DC=%s" % tuple(self.domainname.split("."))
+        try:
+            a, b = self.domainname.split(".")
+        except Exception, e:
+            container = u"CN=Users,DC=%s" % (self.domainname)
+        else:
+            container = u"CN=Users,DC=%s,DC=%s" % (tuple(self.domainname.split(".")))
         dn = u"CN=%s,%s" % (subjectname, container)
         subject = entity(self, dn)
         script = u"""
@@ -10858,7 +10863,27 @@ $subject.psbase.DeleteTree()
         except: pass
         try: self.place.xmlrpcRemoveFile("c:\\groups.txt")
         except: pass
-        script = u"""
+        try:
+            a, b = self.domainname.split(".")
+        except Exception, e:
+            script = u"""
+function children {
+  param($entity)
+  foreach ($child in $entity.psbase.get_children()) {
+    if ($child.objectClass -eq "user") {
+      write ">>" $child.distinguishedName $child.memberOf >> c:\\users.txt
+    }
+    if ($child.objectClass -eq "group") {
+      write ">>" $child.distinguishedName $child.memberOf >> c:\\groups.txt
+    }
+    children($child)
+  }
+}
+$domain = [ADSI]"LDAP://DC=%s"
+children($domain)
+""" % (self.domainname)
+        else:
+            script = u"""
 function children {
   param($entity)
   foreach ($child in $entity.psbase.get_children()) {

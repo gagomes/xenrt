@@ -210,7 +210,6 @@ class _BalloonSmoketest(_BalloonPerfBase):
         step("Install Workloads")
         if len(self.WORKLOADS) > 0:
             self.guest.installWorkloads(self.WORKLOADS)
-        self.guest.shutdown()
 
         step("Find the min and max supported memory for this distro")
         minmem = self.host.lookup("MIN_VM_MEMORY")
@@ -240,8 +239,6 @@ class _BalloonSmoketest(_BalloonPerfBase):
                 self.maxSupported = capto
 
         # Check if guest has LOW memory constraint
-        if not self.WINDOWS and self.ARCH=="x86-32":
-            self.LOW_MEMORY_CONSTRAINT = True
         if not self.WINDOWS and self.LOW_MEMORY_CONSTRAINT:
             lowMemory = int(self.guest.execguest("free -l | grep Low | awk '{print $2}'").strip()) / xenrt.KILO
             self.maxSupported = lowMemory * 10
@@ -255,6 +252,8 @@ class _BalloonSmoketest(_BalloonPerfBase):
         self.dmcPercent = int(self.host.lookup("DMC_%s_PERCENT" % (lookup)))
         self.dmcPercent = int(xenrt.TEC().lookup("DMC_%s_PERCENT" % (lookup), self.dmcPercent))
         log("Dynamic Range Multiplies = %s" % (self.dmcPercent))
+
+        self.guest.shutdown()
 
     def run(self, arglist=None):
         # VMs have a limitation on the range they can balloon over

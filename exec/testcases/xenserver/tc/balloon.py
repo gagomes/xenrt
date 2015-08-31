@@ -352,7 +352,7 @@ class _BalloonSmoketest(_BalloonPerfBase):
             self.testMaxRange(minMem, maxMem, maxMem, doLifecycleOps)
 
 
-    def testMaxRange(self, minMem, maxMem, smaxMem):
+    def testMaxRange(self, minMem, maxMem, smaxMem, doLifecycleOps):
         try:
             if BALLOON_UP_INITIAL_ALLOC:
                 step("Set dynamic-min=dynamic-max=min, static-max=max")

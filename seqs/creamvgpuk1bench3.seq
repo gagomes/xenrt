@@ -1,0 +1,212 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host>
+      <vm name="win10">
+        <distro>win10-x86</distro>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+      <vm name="win10x64">
+        <distro>win10-x64</distro>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="Win10-x86-BenchInst">
+      <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmarkInstall">
+        <arg>guest=win10</arg>
+        <arg>benchmark=UnigineTropics</arg>
+        <arg>benchmark=WindowsExperienceIndex</arg>
+        <arg>benchmark=Redway3DTurbine</arg>
+      </testcase>
+    </serial>
+    <serial group="Win10-x64-BenchInst">
+      <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmarkInstall">
+        <arg>guest=win10x64</arg>
+        <arg>benchmark=UnigineTropics</arg>
+        <arg>benchmark=WindowsExperienceIndex</arg>
+        <arg>benchmark=Redway3DTurbine</arg>
+      </testcase>
+    </serial>
+    <serial group="Win10-x86-K140">
+      <testcase id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
+        <arg>guest=win10</arg>
+        <arg>vgpuconfig=K140</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+        <arg>blockdom0access=false</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
+        <arg>guest=win10</arg>
+        <arg>vgpuconfig=K140</arg>
+        <arg>benchmark=UnigineTropics</arg>
+        <arg>benchmark=WindowsExperienceIndex</arg>
+        <arg>benchmark=Redway3DTurbine</arg>
+      </testcase>
+      <testcase id="guestops.basic.TCShutdown">
+        <arg>guest=win10</arg>
+      </testcase>
+    </serial>
+    <serial group="Win10-x86-K140Scale">
+      <testcase id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
+        <arg>guest=win10</arg>
+        <arg>vgpuconfig=K140</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+        <arg>blockdom0access=false</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.vgpu.TCVGPUCloneVM">
+        <arg>guest=win10</arg>
+        <arg>vgpuconfig=K140</arg>
+        <arg>clones=4</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
+        <arg>guest=win10</arg>
+        <arg>clones=4</arg>
+        <arg>vgpuconfig=K140</arg>
+        <arg>benchmark=UnigineTropics</arg>
+        <arg>benchmark=WindowsExperienceIndex</arg>
+        <arg>benchmark=Redway3DTurbine</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.vgpu.TCVGPUDeleteClones">
+        <arg>guest=win10</arg>
+        <arg>clones=4</arg>
+      </testcase>
+    </serial>
+    <serial group="Win10-x64-K140">
+      <testcase id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
+        <arg>guest=win10x64</arg>
+        <arg>vgpuconfig=K140</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+        <arg>blockdom0access=false</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
+        <arg>guest=win10x64</arg>
+        <arg>vgpuconfig=K140</arg>
+        <arg>benchmark=UnigineTropics</arg>
+        <arg>benchmark=WindowsExperienceIndex</arg>
+        <arg>benchmark=Redway3DTurbine</arg>
+      </testcase>
+      <testcase id="guestops.basic.TCShutdown">
+        <arg>guest=win10x64</arg>
+      </testcase>
+     </serial> 
+    <serial group="Win10-x86-K100">
+      <testcase id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
+        <arg>guest=win10</arg>
+        <arg>vgpuconfig=K100</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+        <arg>blockdom0access=false</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
+        <arg>guest=win10</arg>
+        <arg>vgpuconfig=K100</arg>
+        <arg>benchmark=UnigineTropics</arg>
+        <arg>benchmark=WindowsExperienceIndex</arg>
+        <arg>benchmark=Redway3DTurbine</arg>
+      </testcase>
+      <testcase id="guestops.basic.TCShutdown">
+        <arg>guest=win10</arg>
+      </testcase>
+    </serial>
+    <serial group="Win10-x86-K100Scale">
+      <testcase id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
+        <arg>guest=win10</arg>
+        <arg>vgpuconfig=K100</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+        <arg>blockdom0access=false</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.vgpu.TCVGPUCloneVM">
+        <arg>guest=win10</arg>
+        <arg>vgpuconfig=K100</arg>
+        <arg>clones=8</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
+        <arg>guest=win10</arg>
+        <arg>clones=8</arg>
+        <arg>vgpuconfig=K100</arg>
+        <arg>benchmark=UnigineTropics</arg>
+        <arg>benchmark=WindowsExperienceIndex</arg>
+        <arg>benchmark=Redway3DTurbine</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.vgpu.TCVGPUDeleteClones">
+        <arg>guest=win10</arg>
+        <arg>clones=8</arg>
+      </testcase>
+    </serial>
+
+    <serial group="Win10-x86-K120">
+      <testcase id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
+        <arg>guest=win10</arg>
+        <arg>vgpuconfig=K120</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+        <arg>blockdom0access=false</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
+        <arg>guest=win10</arg>
+        <arg>vgpuconfig=K120</arg>
+        <arg>benchmark=UnigineTropics</arg>
+        <arg>benchmark=WindowsExperienceIndex</arg>
+        <arg>benchmark=Redway3DTurbine</arg>
+      </testcase>
+      <testcase id="guestops.basic.TCShutdown">
+        <arg>guest=win10</arg>
+      </testcase>
+    </serial>
+    <serial group="Win10-x86-K120Scale">
+      <testcase id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
+        <arg>guest=win10</arg>
+        <arg>vgpuconfig=K120</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+        <arg>blockdom0access=false</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.vgpu.TCVGPUCloneVM">
+        <arg>guest=win10</arg>
+        <arg>vgpuconfig=K120</arg>
+        <arg>clones=8</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
+        <arg>guest=win10</arg>
+        <arg>clones=8</arg>
+        <arg>vgpuconfig=K120</arg>
+        <arg>benchmark=UnigineTropics</arg>
+        <arg>benchmark=WindowsExperienceIndex</arg>
+        <arg>benchmark=Redway3DTurbine</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.vgpu.TCVGPUDeleteClones">
+        <arg>guest=win10</arg>
+        <arg>clones=8</arg>
+      </testcase>
+    </serial>
+
+
+    <serial group="Win10-x86-K1PT">
+      <testcase id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
+        <arg>guest=win10</arg>
+        <arg>vgpuconfig=K1passthrough</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+        <arg>blockdom0access=false</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
+        <arg>guest=win10</arg>
+        <arg>vgpuconfig=K1passthrough</arg>
+        <arg>benchmark=UnigineTropics</arg>
+        <arg>benchmark=WindowsExperienceIndex</arg>
+        <arg>benchmark=Redway3DTurbine</arg>
+      </testcase>
+      <testcase id="guestops.basic.TCShutdown">
+        <arg>guest=win10</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+
+</xenrt>

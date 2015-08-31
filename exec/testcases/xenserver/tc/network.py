@@ -2618,3 +2618,218 @@ class TCQoSNetwork(xenrt.TestCase):
             g.poll("DOWN", 120, level=xenrt.RC_ERROR)
             g.uninstall()
 
+class FCOENetworkBase(xenrt.TestCase):
+
+    SRTYPE = "lvmofcoe"
+    
+    def prepare(self, arglist):
+
+        self.host = self.getDefaultHost() 
+        self.sruuid = self.host.getSRs(type = self.SRTYPE)[0]
+
+    def writePattern(self):
+
+        self.execguest("dd if=/dev/urandom of=/file1 count=1000000 conv=notrunc oflag=direct",timeout=3600)
+        md5checksum = self.execguest("md5sum /file1").split()[0]
+        xenrt.log("md5sum is %s" % md5checksum)
+        return md5checksum
+
+    def readPattern(self):
+
+        self.execguest("dd if=/file1 of=/file1copy conv=notrunc oflag=direct",timeout=7200)
+        md5checksum = self.execguest("md5sum /file1copy").split()[0]
+        xenrt.log("md5sum is %s" % md5checksum)
+        return md5checksum
+
+class TCFCOEVmVlan(FCOENetworkBase):
+    """VLAN operations on FCoE SR."""
+
+    def run(self, arglist):
+
+        self.vlansToRemove = []
+        step("Get available VLANs on the host")
+        vlans = self.host.availableVLANs()
+        if len(vlans) == 0:
+            xenrt.TEC().skip("No VLANs defined for host")
+            return
+        vlan, subnet, netmask = vlans[0]
+
+        step("Create a VLAN network on the primary interface")
+        nic = self.host.getDefaultInterface()
+        vbridge = self.host.createNetwork()
+        self.host.createVLAN(vlan, vbridge, nic) 
+        self.vlansToRemove.append(vlan)
+        self.host.checkVLAN(vlan, nic)
+
+        step("Install a VM using the VLAN network")
+        bridgename = self.host.genParamGet("network", vbridge, "bridge")
+        g = self.host.createGenericLinuxGuest(bridge=bridgename, sr=self.sruuid)
+        self.uninstallOnCleanup(g)
+        
+        step("Check the VM")
+        g.check()
+        g.checkHealth()
+        
+        if subnet and netmask:
+            ip = g.getIP()
+            if xenrt.isAddressInSubnet(ip, subnet, netmask):
+                xenrt.TEC().comment("%s is in %s/%s" % (ip, subnet, netmask))
+            else:
+                xenrt.TEC().comment("%s is not in %s/%s" %
+                                    (ip, subnet, netmask))
+                raise xenrt.XRTFailure("VM IP address not from VLAN subnet")
+        else:
+            xenrt.TEC().comment("Skipping guest IP check")
+
+        if xenrt.TEC().lookup("OPTION_SKIP_VLAN_CLEANUP", False, boolean=True):
+            return
+
+        md5checksumbefore = g.writePattern()
+        
+        step("Shutdown VM ")
+        g.shutdown()
+        
+        step("Remove the VLAN interface")
+        self.host.removeVLAN(vlan)
+        self.vlansToRemove.remove(vlan)
+        
+        vifs = g.getVIFs()
+        for vif in vifs:
+            g.removeVIF(vif)
+        
+        g.createVIF(bridge=self.host.getPrimaryBridge())
+        
+        step("Start VM and copy the file over new interface and verify the md5sum")
+        g.start()
+        md5checksumafter = g.readPattern()
+        
+        if md5checksumbefore == md5checksumafter:
+            xenrt.log(" md5sum of the original file matched with the file copied over the new interface")
+        else:
+            raise xenrt.XRTFailure("md5sum of the original file doesn't match with the file copied over the new interface")
+
+class TCFCOEMngR(FCOENetworkBase):
+    """Change management interface with host-management-reconfigure."""
+
+    def run(self, arglist):
+
+        step("Check for default NIC")
+        default = self.host.getDefaultInterface()
+        xenrt.TEC().logverbose("Default NIC for host is %s." % (default))   
+        defaultuuid = self.host.parseListForUUID("pif-list",
+                                            "device",
+                                            default).strip()
+                                            
+        step("Get list of secondary NICs")
+        
+        nics = self.host.listSecondaryNICs()
+        if len(nics) == 0:
+            raise xenrt.XRTError("Test must be run on a host with at "
+                                 "least 2 NICs.")
+
+        nmi = self.host.getSecondaryNIC(nics[0])
+        xenrt.TEC().logverbose("Using new management interface %s." % (nmi)) 
+
+        step("Setting secondary NIC's mode to DHCP")
+        
+        xenrt.TEC().logverbose("Setting %s mode to DHCP." % (nmi))
+        nmiuuid = self.host.parseListForUUID("pif-list", "device", nmi).strip()
+        cli = self.host.getCLIInstance()
+        cli.execute("pif-reconfigure-ip uuid=%s mode=dhcp" % (nmiuuid))
+
+        step("Changing management interface to secondary NIC")
+        
+        xenrt.TEC().logverbose("Changing management interface from %s to %s." %
+                               (default, nmi))
+        try:
+            cli.execute("host-management-reconfigure pif-uuid=%s" % (nmiuuid))
+        except:
+            # This will always return an error.
+            xenrt.TEC().logverbose("Exception expected on Host management reconfigure")
+            pass
+        xenrt.sleep(120)
+
+        xenrt.TEC().logverbose("Finding IP address of new management "
+                               "interface...")
+        data = self.host.execdom0("ifconfig xenbr%s" % (nmi[-1]))
+        nip = re.search(".*inet (addr:)?(?P<ip>[0-9\.]+)", data).group("ip")
+        xenrt.TEC().logverbose("Interface %s appears to have IP %s." %
+                               (nmi, nip))
+
+        xenrt.TEC().logverbose("Start using new IP address.")
+        oldip = self.host.machine.ipaddr
+        self.host.machine.ipaddr = nip
+
+        step(" Remove IP configuration from the previous management interface")
+        
+        cli.execute("pif-reconfigure-ip uuid=%s mode=None" % (defaultuuid))
+        data = self.host.execdom0("ifconfig xenbr%s" % (default[-1]))
+        r = re.search(".*inet (addr:)?(?P<ip>[0-9\.]+)", data)
+        if r:
+            raise xenrt.XRTFailure("Old management interface still has IP "
+                                   "address")
+
+        step("Check the agent responds to an off-host CLI command")
+        
+        try:
+            cli.execute("vm-list")
+        except:
+            raise xenrt.XRTFailure("Failed to run CLI command over new "
+                                   "management interface.")
+
+        g = self.host.createGenericLinuxGuest(sr=self.sruuid)
+        self.uninstallOnCleanup(g)
+        
+        step("Check the VM")
+        g.check()
+        g.checkHealth()
+        
+        md5checksumbefore = g.writePattern()
+        
+        step("Change back to the old management interface")
+        xenrt.TEC().logverbose("Changing management interface back from "
+                               "%s to %s." % (nmi, default))
+        cli.execute("pif-reconfigure-ip uuid=%s mode=dhcp" % (defaultuuid))
+        try:
+            cli.execute("host-management-reconfigure pif-uuid=%s" %
+                        (defaultuuid))
+        except:
+            # This will always return an error.
+            xenrt.TEC().logverbose("Exception expected on Host management reconfigure")
+            pass
+        xenrt.sleep(120)
+
+        xenrt.TEC().logverbose("Return to using old IP.")
+        self.host.machine.ipaddr = oldip
+
+        step("Check the agent still responds to an off-host CLI command")
+        
+        try:
+            cli.execute("vm-list")
+        except:
+            raise xenrt.XRTFailure("Failed to run CLI command over old "
+                                   "management interface.")
+
+        step("Remove IP configuration from the previous management interface")
+        
+        cli.execute("pif-reconfigure-ip uuid=%s mode=None" % (nmiuuid))
+        data = self.host.execdom0("ifconfig xenbr%s" % (nmi[-1]))
+        r = re.search(".*inet (addr:)?(?P<ip>[0-9\.]+)", data)
+        if r:
+            raise xenrt.XRTFailure("Previous management interface still has "
+                                   "IP address")
+
+        step("Check agent operation again")
+        try:
+            cli.execute("vm-list")
+        except:
+            raise xenrt.XRTFailure("Failed to run CLI command over old "
+                                   "management interface (with IP removed) "
+                                   "from the other interface.")
+
+        md5checksumafter = g.readPattern()
+        
+        if md5checksumbefore == md5checksumafter:
+            xenrt.log(" md5sum of the original file matched with the file copied over the new interface")
+        else:
+            raise xenrt.XRTFailure("md5sum of the original file doesn't match with the file copied over the new interface")

@@ -162,6 +162,8 @@ class StartSuite(_SuiteStartBase):
             f.write("%s\n" % self.getUser().userid)
         command += " > %s/run.out 2>&1" % wdir
         command += "; echo $? > %s/exitcode" % wdir
+        with open("%s/command2" % wdir, "w") as f:
+            f.write("%s\n" % command)
         pid = subprocess.Popen(command, shell=True).pid
         with open("%s/pid" % wdir, "w") as f:
             f.write("%d\n" % pid)

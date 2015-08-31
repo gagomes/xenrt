@@ -28,7 +28,7 @@ class SXAgent(object):
         # Rest API returns a url that requires authentication.
         # Using url from web interface.
         # Todo: Check with SX whether this is expected.
-        return url.replace("https://manage.citrix.com/store", "https://manage-mon.citrix.com")
+        return url.replace("https://lifecycle.cloud.com/store", "https://manage-mon.citrix.com")
 
     def __executeOnAgent(self, command):
         """Execute a command on agent Linux VM via SSH"""
@@ -121,7 +121,7 @@ class SXAgent(object):
         """Set this agent VM as gateway to XenServer"""
 
         if self.nodeId == None:
-            raise xenrt.XRTException("Node Id is not set. Is agent installed properly?")
+            raise xenrt.XRTError("Node Id is not set. Is agent installed properly?")
 
         r = self.apiHandler.execute(method="PUT", category="nodes", sid=str(self.nodeId), command="setasgateway")
 
@@ -134,7 +134,7 @@ class SXAgent(object):
         """Create environment with existing agent and XenServer"""
 
         if self.nodeId == None:
-            raise xenrt.XRTException("Node Id is not set. Is agent installed properly?")
+            raise xenrt.XRTError("Node Id is not set. Is agent installed properly?")
 
         if not host:
             host = self.agentVM.host

@@ -85,7 +85,8 @@ class RackTablesObject:
         # (local port name, local port type, local port MAC, local port label, remote object, remote port name)
         ret = []
         pids = []
-        queries = ["""SELECT p.id,p.name,d.dict_value,p.l2address,ob.id,ob.name,pb.name,p.label
+        # Newer versions of racktables have a different table name for port types
+        queries1 = ["""SELECT p.id,p.name,d.dict_value,p.l2address,ob.id,ob.name,pb.name,p.label
                         FROM Port p
                             INNER JOIN Dictionary d ON d.dict_key=p.type
                             INNER JOIN Link l ON (l.porta=p.id)
@@ -99,9 +100,27 @@ class RackTablesObject:
                             INNER JOIN Port pb ON (l.porta = pb.id)
                             INNER JOIN RackObject ob ON (pb.object_id=ob.id)
                         WHERE p.object_id=%d;"""]
-                    
-        for q in queries:
-            res = self.parent._execSQL(q % self.objid)
+        queries2 = ["""SELECT p.id,p.name,d.oif_name,p.l2address,ob.id,ob.name,pb.name,p.label
+                        FROM Port p
+                            INNER JOIN PortOuterInterface d ON d.id=p.type
+                            INNER JOIN Link l ON (l.porta=p.id)
+                            INNER JOIN Port pb ON (l.portb = pb.id)
+                            INNER JOIN RackObject ob ON (pb.object_id=ob.id)
+                        WHERE p.object_id=%d;""",
+                   """SELECT p.id,p.name,d.oif_name,p.l2address,ob.id,ob.name,pb.name,p.label
+                        FROM Port p
+                            INNER JOIN PortOuterInterface d ON d.id=p.type
+                            INNER JOIN Link l ON (l.portb=p.id)
+                            INNER JOIN Port pb ON (l.porta = pb.id)
+                            INNER JOIN RackObject ob ON (pb.object_id=ob.id)
+                        WHERE p.object_id=%d;"""]
+                        
+                        
+        for q in range(len(queries1)):
+            try:
+                res = self.parent._execSQL(queries2[q] % self.objid)
+            except:
+                res = self.parent._execSQL(queries1[q] % self.objid)
             for r in res:
                 pids.append(r[0])
                 ret.append((r[1], r[2], self._renderMAC(r[3]),r[7],RackTablesObject(self.parent, r[4], r[5]), r[6]))

@@ -21,7 +21,7 @@
 
   <xs:simpleType name="storageType">
     <xs:restriction base="xs:string">
-      <xs:pattern value="nfs|lvmoiscsi|fc|eql|netapp|icvsmeql|icvsmnetapp|icvsmfc|icvsmsmisiscsi|icvsmsmisfc|cvsmnetapp|cvsmeql|cvsmsmisiscsi|cvsmfc|cvsmsmisfc|smb|smapiv3local|smapiv3shared"/>
+      <xs:pattern value="nfs|lvmoiscsi|fc|eql|netapp|icvsmeql|icvsmnetapp|icvsmfc|icvsmsmisiscsi|icvsmsmisfc|cvsmnetapp|cvsmeql|cvsmsmisiscsi|cvsmfc|cvsmsmisfc|smb|smapiv3local|smapiv3shared|fcoe"/>
     </xs:restriction>
   </xs:simpleType>
 

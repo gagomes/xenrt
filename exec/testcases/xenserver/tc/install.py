@@ -19,6 +19,7 @@ class _HostInstall(xenrt.TestCase):
 
     def hostInstall(self):
         self.host = xenrt.lib.xenserver.createHost(id=0)
+        self.getLogsFrom(self.host)
         self.host.check()
         self.host.enableAllFCPorts()
 
@@ -122,8 +123,8 @@ class TC9352(_HostInstall):
             minornumber = int(deviceinfo.strip().split()[5])
             dvendor = self.getVendorFromDM("dm-%d" % minornumber)
         else:
-            raise xenrt.XRTException("Unkown device mapping mode",
-                                     data = deviceinfo)
+            raise xenrt.XRTError("Unkown device mapping mode",
+                                 data = deviceinfo)
         if not dvendor in ["DGC", "NETAPP"]:
             raise xenrt.XRTError("Installation primary disk is not a SAN LUN",
                                  "%s -> %s is '%s'" %
@@ -514,6 +515,7 @@ class TCISCSIBoot(xenrt.TestCase): # TC20845
 
     def run(self, arglist):
         self.host = xenrt.lib.xenserver.createHost(id=0, iScsiBootLun=self.bootLun, iScsiBootNets=["NSEC"])
+        self.getLogsFrom(self.host)
 
 class TCISCSIMultipathBoot(xenrt.TestCase): #TC20851
     """Install to a server with a multipathed iSCSI boot disk on a SAN via Native Linux"""
@@ -538,6 +540,7 @@ class TCISCSIMultipathBoot(xenrt.TestCase): #TC20851
 
     def run(self, arglist):
         self.host = xenrt.lib.xenserver.createHost(id=0, iScsiBootLun=self.bootLun, iScsiBootNets=["NSEC", "IPRI"])
+        self.getLogsFrom(self.host)
 
 class TC20846(xenrt.TestCase):
     """Create iSCSI SR on iSCSI booted machine, where the SR target is on same storage IP as the boot disk target"""

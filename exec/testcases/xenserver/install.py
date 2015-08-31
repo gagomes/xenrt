@@ -42,6 +42,7 @@ class TCXenServerInstall(xenrt.TestCase):
         netapp = False
         eql = False
         fcsr = None
+        fcoesr = None
         sassr = None
         iscsihbasr = None
         bootloader = xenrt.TEC().lookup("HOST_BOOTLOADER", None)
@@ -91,6 +92,8 @@ class TCXenServerInstall(xenrt.TestCase):
                     noprepare = True
                 elif l[0] == "fc" or l[0] == "FC":
                     fcsr = "yes"
+                elif l[0] == "fcoe" or l[0] == "FCOE":
+                    fcoesr = "yes"
                 elif l[0] == "sas" or l[0] == "SAS":
                     sassr = "yes"
                 elif l[0] == "iscsihba" or l[0] == "ISCSIHBA":
@@ -351,7 +354,22 @@ class TCXenServerInstall(xenrt.TestCase):
                 sr.create(scsiid, multipathing=multipathing)
                 sr.check()
                 host.addSR(sr, default=True)
-
+            if not fcoesr:
+                fcoesr = host.lookup("SR_FCOE", None)
+            if fcoesr:
+                if fcoesr == "yes":
+                    fcoesr = "LUN0"
+                scsiid = host.lookup(["FC", fcoesr, "SCSIID"], None)
+                multipathing = host.lookup("USE_MULTIPATH",
+                                           False,
+                                           boolean=True)
+                if not scsiid:
+                    raise xenrt.XRTError("No FCOE SCSIID found")
+                sr = xenrt.lib.xenserver.FCOEStorageRepository(host, "xenrtfcoe")
+                sr.create(scsiid, multipathing=multipathing)
+                sr.check()
+                host.addSR(sr, default=True)
+                
             if not sassr:
                 sassr = host.lookup("SR_SAS", None)
             if sassr:

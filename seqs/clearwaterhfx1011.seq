@@ -5,14 +5,15 @@
   </variables>
   <prepare>
     <host id="0">
-      <bridge name="internal"/>
+      <bridge name="internal" />
       <vm name="victim1">
         <distro>win7-x64</distro>
         <memory>2048</memory>
         <postinstall action="disableFirewall" />
-        <postinstall action="installLegacyDrivers" /> <!-- ####LEGACY DRIVERS### -->
+        <postinstall action="installLegacyDrivers" />
+        <!-- ####LEGACY DRIVERS### -->
         <network device="0" />
-        <network device="1" bridge="internal"/>
+        <network device="1" bridge="internal" />
         <disk device="0" size="24" />
       </vm>
     </host>

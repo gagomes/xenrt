@@ -3809,14 +3809,14 @@ class TC11218(xenrt.TestCase):
     def transition(self, edition_from, edition_to):
         licinfo = self.host.getLicenseDetails()
         if licinfo['edition'] != edition_from:
-            raise xenrt.XRTException("Expected pre-edition %s, got %s"
-                                     % (edition_from, licinfo['edition']))
+            raise xenrt.XRTError("Expected pre-edition %s, got %s"
+                                 % (edition_from, licinfo['edition']))
         self.host.license(edition=edition_to,
                           v6server=self.v6)
         licinfo = self.host.getLicenseDetails()
         if licinfo['edition'] != edition_to:
-            raise xenrt.XRTException("Expected post-edition %s, got %s"
-                                     % (edition_to, licinfo['edition']))
+            raise xenrt.XRTFailure("Expected post-edition %s, got %s"
+                                   % (edition_to, licinfo['edition']))
         xenrt.TEC().logverbose("Transition from %s edition to %s edition "
                               "succeeded." % (edition_from, edition_to))
 

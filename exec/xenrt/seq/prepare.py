@@ -1294,26 +1294,25 @@ class PrepareNode(object):
                 for s in self.srs:
                     host = xenrt.TEC().registry.hostGet(s["host"]) 
                     if s["type"] == "lvmoiscsi":
+                        smconf = {}
                         thinProv = False
-                        options = []
                         if s["options"]:
                             options = s["options"].split(",")
-                        if "thin" in options:
-                            thinProv = True
-                            thin_init = None
-                            thin_quan = None
-                            for opt in options:
-                                if opt.startswith("thin_init:"):
-                                    thin_init = opt[len("thin_init:"):]
-                                if opt.startswith("thin_quan:"):
-                                    thin_quan = opt[len("thin_quan:"):]
-                            thin_init = xenrt.TEC().lookup("THIN_INITIAL_ALLOCATION", thin_init)
-                            thin_quan = xenrt.TEC().lookup("THIN_ALLOCATION_QUANTUM", thin_quan)
-                            smconf = {}
-                            if thin_init:
-                                smconf["initial_allocation"] = thin_init
-                            if thin_quan:
-                                smconf["allocation_quantum"] = thin_quan
+                            if "thin" in options:
+                                thinProv = True
+                                thin_init = None
+                                thin_quan = None
+                                for opt in options:
+                                    if opt.startswith("thin_init:"):
+                                        thin_init = opt[len("thin_init:"):]
+                                    if opt.startswith("thin_quan:"):
+                                        thin_quan = opt[len("thin_quan:"):]
+                                thin_init = xenrt.TEC().lookup("THIN_INITIAL_ALLOCATION", thin_init)
+                                thin_quan = xenrt.TEC().lookup("THIN_ALLOCATION_QUANTUM", thin_quan)
+                                if thin_init:
+                                    smconf["initial_allocation"] = thin_init
+                                if thin_quan:
+                                    smconf["allocation_quantum"] = thin_quan
                         if host.lookup("USE_MULTIPATH", False, boolean=True):
                             mp = True
                         else:
@@ -1457,24 +1456,24 @@ class PrepareNode(object):
                         sr.create(eql, options=options, multipathing=mp)
                     elif s["type"] == "fc":
                         thinProv = False
+                        smconf = {}
                         if s.has_key("options") and s["options"]:
                             options = s["options"].split(",")
-                        if "thin" in options:
-                            thinProv = True
-                            thin_init = None
-                            thin_quan = None
-                            for opt in options:
-                                if opt.startswith("thin_init:"):
-                                    thin_init = opt[len("thin_init:"):]
-                                if opt.startswith("thin_quan:"):
-                                    thin_quan = opt[len("thin_quan:"):]
-                            thin_init = xenrt.TEC().lookup("THIN_INITIAL_ALLOCATION", thin_init)
-                            thin_quan = xenrt.TEC().lookup("THIN_ALLOCATION_QUANTUM", thin_quan)
-                            smconf = {}
-                            if thin_init:
-                                smconf["initial_allocation"] = thin_init
-                            if thin_quan:
-                                smconf["allocation_quantum"] = thin_quan
+                            if "thin" in options:
+                                thinProv = True
+                                thin_init = None
+                                thin_quan = None
+                                for opt in options:
+                                    if opt.startswith("thin_init:"):
+                                        thin_init = opt[len("thin_init:"):]
+                                    if opt.startswith("thin_quan:"):
+                                        thin_quan = opt[len("thin_quan:"):]
+                                thin_init = xenrt.TEC().lookup("THIN_INITIAL_ALLOCATION", thin_init)
+                                thin_quan = xenrt.TEC().lookup("THIN_ALLOCATION_QUANTUM", thin_quan)
+                                if thin_init:
+                                    smconf["initial_allocation"] = thin_init
+                                if thin_quan:
+                                    smconf["allocation_quantum"] = thin_quan
                         sr = xenrt.productLib(host=host).FCStorageRepository(host, s["name"], thinProv)
                         if host.lookup("USE_MULTIPATH", False, boolean=True):
                             mp = True
@@ -1648,6 +1647,27 @@ class PrepareNode(object):
                         sr = xenrt.productLib(host=host).SMAPIv3LocalStorageRepository(host, s['name'])
                         device = s['options'] or None
                         sr.create(device, content_type="user")
+                    elif s["type"] == "fcoe":
+                        thinProv = False
+                        if s.has_key("options") and s["options"] and "thin" in s["options"].split(","):
+                            thinProv = True
+                        sr = xenrt.productLib(host=host).FCOEStorageRepository(host, s["name"], thinProv)
+                        if host.lookup("USE_MULTIPATH", False, boolean=True):
+                            mp = True
+                        else:
+                            mp = None
+                        fcoesr = None
+                        if s.has_key("options") and s["options"]:
+                            for opt in s["options"].split(","):
+                                if opt != "thin":
+                                    fcoesr = opt
+                        if not fcoesr:
+                            fcoesr = host.lookup("SR_FC", "yes")
+                            if fcoesr == "yes":
+                                fcoesr = "LUN0"
+
+                        scsiid = host.lookup(["FC", fcoesr, "SCSIID"], None)
+                        sr.create(scsiid, multipathing=mp)
                     elif s['type'] == "smapiv3shared" or s['type'] == "rawnfs":
                         if s["network"]:
                             network = s["network"]

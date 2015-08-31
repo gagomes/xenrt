@@ -46,8 +46,10 @@ __all__ = ["WebDirectory",
            "StaticIP4Addr",
            "StaticIP6Addr",
            "CentralResource",
+           "CentralLock",
            "SharedHost",
            "PrivateVLAN",
+           "PrivateRoutedVLAN",
            "ProductLicense",
            "GlobalResource",
            "getResourceInteractive"]
@@ -67,6 +69,9 @@ def getResourceInteractive(resType, argv):
         size = int(argv[0])
         vlans = PrivateVLAN.getVLANRange(size, wait=False)
         return {"start": vlans[0].getID(), "end": vlans[-1].getID()}
+    elif resType == "ROUTEDVLAN":
+        vlan = PrivateRoutedVLAN()
+        return vlan.getNetworkConfig()
 
 @xenrt.irregularName
 def DhcpXmlRpc():
@@ -595,6 +600,28 @@ class CentralResource(object):
 
     def callback(self):
         self.release(atExit=True)
+
+class CentralLock(CentralResource):
+    """Implementation of a central lock"""
+    def __init__(self, id, timeout=3600, acquire=True):
+        self.id = id
+        CentralResource.__init__(self, timeout=timeout)
+        if acquire:
+            self.acquire()
+
+    def acquire(self):
+        startlooking = xenrt.util.timenow()
+        while True:
+            try:
+                CentralResource.acquire(self, self.id, shared=False)
+                break
+            except xenrt.XRTError:
+                pass 
+            if xenrt.util.timenow() > (startlooking + self.timeout):
+                xenrt.TEC().logverbose("Timed out waiting for lock after %d seconds" % self.timeout)
+                self.logList()
+                raise xenrt.XRTError("Timed out waiting for lock")
+            xenrt.sleep(30)
 
 class ManagedStorageResource(CentralResource):
     """Resources that can be used as CVSM targets should inherit this class."""
@@ -1550,11 +1577,14 @@ class SpecifiedSMBShare(object):
 class ISCSIVMLun(ISCSILun):
     """ A tempory LUN in a VM """
     
-    def __init__(self,hostIndex=None,sizeMB=None, totalSizeMB=None, guestName="xenrt-iscsi-target", bridges=None, targetType=None):
-        if not hostIndex:
-            self.host = xenrt.TEC().registry.hostGet("RESOURCE_HOST_0")
+    def __init__(self,hostIndex=None,sizeMB=None, totalSizeMB=None, guestName="xenrt-iscsi-target", bridges=None, targetType=None, host=None):
+        if host:
+            self.host=host
         else:
-            self.host = xenrt.TEC().registry.hostGet("RESOURCE_HOST_%s" % hostIndex)
+            if not hostIndex:
+                self.host = xenrt.TEC().registry.hostGet("RESOURCE_HOST_0")
+            else:
+                self.host = xenrt.TEC().registry.hostGet("RESOURCE_HOST_%s" % hostIndex)
         if not sizeMB:
             sizeMB = 50*xenrt.KILO
         self.guestName = guestName
@@ -3119,7 +3149,25 @@ class PrivateVLAN(_NetworkResourceFromRange):
 
     def getID(self):
         return self.id
-    
+
+class PrivateRoutedVLAN(PrivateVLAN):
+    LOCKID = "ROUTEDVLAN"
+
+    @classmethod
+    def _getAllVLANsInRange(cls):
+        vrange = xenrt.TEC().lookup(["NETWORK_CONFIG", "PRIVATE_ROUTED_VLANS"])
+        return [int(re.match("[A-Za-z]*(\d+)$", x).group(1)) for x in vrange.keys()]
+
+    @classmethod
+    def getNetworkConfigForVLAN(cls, vlan):
+        cfg = xenrt.TEC().lookup(["NETWORK_CONFIG", "PRIVATE_ROUTED_VLANS"])
+        key = [x for x in cfg.keys() if re.match("[A-Za-z]*%d$" % int(vlan), x)][0]
+        (net, gateway) = cfg[key].split(",")
+        i = IPy.IP(net) 
+        return {"id": int(vlan), "subnet": i.net().strNormal(), "netmask": i.netmask().strNormal(), "gateway": gateway}
+
+    def getNetworkConfig(self):
+        return self.__class__.getNetworkConfigForVLAN(self.id)
 
 class _StaticIPAddr(_NetworkResourceFromRange):
 

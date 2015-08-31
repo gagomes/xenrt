@@ -1589,7 +1589,7 @@ class _TC8159(xenrt.TestCase):
         ids = host.execdom0("ls /dev/disk/by-id").strip().split("\n")
 
         # Create a VM on the SR
-        g = host.createGenericLinuxGuest(sr=sr.uuid)
+        g = host.createBasicGuest(distro='rhel5x',sr=sr.uuid)
         self.guest = g
         self.uninstallOnCleanup(g)        
         expectedDiskCount = len(self.guest.listVBDUUIDs("Disk"))
@@ -3921,7 +3921,7 @@ class _HardwareMultipath(xenrt.TestCase):
             raise xenrt.XRTFailure("Expecting different SCSI ID for SR.")
 
         self.guest = self.hostWithMultiplePaths.createGenericLinuxGuest()
-        dev = self.guest.createDisk(sizebytes=5368709120, sruuid=self.sr.uuid, returnDevice=True) # 5GB
+        dev = self.guest.createDisk(sizebytes=5*xenrt.GIGA, sruuid=self.sr.uuid, returnDevice=True) # 5GB
         time.sleep(5)
         
         # Launch a periodic read/write script using the new disk
@@ -3969,7 +3969,7 @@ class _HardwareMultipath(xenrt.TestCase):
 
         try:
             first = int(float(self.guest.execguest("tail -n 1 /tmp/rw.log").strip()))
-            time.sleep(30)
+            xenrt.sleep(30)
             next = int(float(self.guest.execguest("tail -n 1 /tmp/rw.log").strip()))
             if next == first:
                 raise xenrt.XRTFailure("Periodic read/write script has not "
@@ -4882,3 +4882,214 @@ class TCValidatePathCount(_TC8159):
     def postRun(self):
         self.getDefaultHost().enableFCPort(1)
         _TC8159.postRun(self)
+
+class TCVerifyMultipathSetup(_TC8159):
+    """Multipathing setup and SR creation using FCOE (lvmofcoe) SR"""
+    PATHS = 2 # 2 paths
+    MORE_PATHS_OK = True
+    
+    def createSR(self, host):
+        fcoesr = host.lookup("SR_FC", "yes")
+        if fcoesr == "yes":
+            fcoesr = "LUN0"
+        self.scsiid = host.lookup(["FC", fcoesr, "SCSIID"], None)
+        sr = xenrt.lib.xenserver.FCOEStorageRepository(host, "fcoe")
+        sr.create(self.scsiid,multipathing=True)
+        return sr
+        
+class TCValidateFCOEMultipathPathCount(TCVerifyMultipathSetup):
+    """Validate active/total paths of FCOE multipath SR after dropping paths"""
+    PATHS = 2 # 2 paths
+    MORE_PATHS_OK = True
+    
+    
+    def disableEthPort(self, pathindex):
+        
+        xenrt.TEC().logverbose("Failing the path %d" % pathindex)
+        
+        mac = self.host.getNICMACAddress(pathindex)
+        self.host.disableNetPort(mac)
+
+    def enableEthPort(self, pathindex):
+              
+        xenrt.TEC().logverbose("Recovering the the path %d" % pathindex)
+        
+        mac = self.host.getNICMACAddress(pathindex)
+        self.host.enableNetPort(mac)
+        
+    def run(self, arglist=None):
+        _TC8159.run(self, arglist)
+        self.host = self.getDefaultHost()
+                
+                
+        totalPaths = len(self.host.getMultipathInfo()[self.scsiid])
+        activePaths = len(self.host.getMultipathInfo(onlyActive=True)[self.scsiid])
+        expectedPaths = [activePaths-4, totalPaths] # -4 because, the number of paths depends on the physical configuration.
+        
+        
+        step("Drop one path by disabling port")
+        self.disableEthPort(1)
+        xenrt.sleep(60)
+        
+        step("Verify active and  total paths")
+        pbd = self.host.parseListForUUID("pbd-list",
+                                        "sr-uuid",
+                                        self.sr.uuid,
+                                        "host-uuid=%s" % (self.host.getMyHostUUID()))
+        actualPaths = self.host.getMultipathCounts(pbd, self.scsiid)
+        if expectedPaths != actualPaths:
+            raise xenrt.XRTFailure("Multipaths not as expected: Expected:"
+                                   "%d of %d paths active, Actual; %d of %d paths active" %
+                                   (expectedPaths[0], expectedPaths[1], actualPaths[0], actualPaths[1]))
+        else:
+            xenrt.TEC().logverbose("Multipaths as expected: %d of %d active" % (actualPaths[0], actualPaths[1]))
+            
+        
+
+    def postRun(self):
+        self.enableEthPort(1)
+        _TC8159.postRun(self)
+
+class _PathFailOver(TCValidateFCOEMultipathPathCount):
+    FAILURE_PATH = 1
+    
+    def checkGuestReadWrite(self):
+        # Check the periodic read/write script is still running on the VM
+        rc = self.guest.execguest("pidof python",retval="code")
+        if rc > 0:
+            # Get the log
+            self.guest.execguest("cat /tmp/rw.log || true")
+            raise xenrt.XRTFailure("Periodic read/write script failed")
+
+        try:
+            first = int(float(self.guest.execguest("tail -n 1 /tmp/rw.log").strip()))
+            xenrt.sleep(30)
+            next = int(float(self.guest.execguest("tail -n 1 /tmp/rw.log").strip()))
+            if next == first:
+                raise xenrt.XRTFailure("Periodic read/write script has not "
+                                       "completed a loop in 30 seconds")
+        except Exception, e:
+            traceback.print_exc(file=sys.stderr)
+            raise xenrt.XRTError("Exception checking read/write script progress",
+                                 data=str(e))
+        
+    def run(self, arglist=None):
+        _TC8159.run(self, arglist)
+        self.host = self.getDefaultHost()
+        dev = self.guest.createDisk(sizebytes=5*xenrt.GIGA, sruuid=self.sr.uuid, returnDevice=True) # 5GB
+        xenrt.sleep(5)
+        
+        # Launch a periodic read/write script using the new disk
+        self.guest.execguest("%s/remote/readwrite.py /dev/%s > /tmp/rw.log "
+                             "2>&1 < /dev/null &" %
+                             (xenrt.TEC().lookup("REMOTE_SCRIPTDIR"), dev))
+
+        xenrt.sleep(20)    
+        self.checkGuestReadWrite()
+                
+        self.disableEthPort(self.FAILURE_PATH)
+        self.checkGuestReadWrite()
+
+        self.enableEthPort(self.FAILURE_PATH)
+        self.checkGuestReadWrite()
+
+class TCFCOESecondaryPathFailover(_PathFailOver):
+    FAILURE_PATH = 1
+
+class TCFCOEPrimaryPathFailover(_PathFailOver):
+    FAILURE_PATH = 0
+    
+    def disablesysfs(self, portindex):
+        self.host.execdom0("echo 0 > /sys/bus/fcoe/devices/ctlr_%u/enabled" % portindex)
+        
+    def enablesysfs(self, portindex):
+        self.host.execdom0("echo 1 > /sys/bus/fcoe/devices/ctlr_%u/enabled" % portindex)
+        
+    def run(self,arglist=None):
+        _TC8159.run(self, arglist)
+        self.host = self.getDefaultHost()
+        
+        dev = self.guest.createDisk(sizebytes=5*xenrt.GIGA, sruuid=self.sr.uuid, returnDevice=True) # 5GB
+                
+        # Launch a periodic read/write script using the new disk
+        self.guest.execguest("%s/remote/readwrite.py /dev/%s > /tmp/rw.log "
+                             "2>&1 < /dev/null &" %
+                             (xenrt.TEC().lookup("REMOTE_SCRIPTDIR"), dev))
+
+        xenrt.sleep(20)    
+        self.checkGuestReadWrite()
+                
+        self.disablesysfs(self.FAILURE_PATH)
+        xenrt.sleep(5)
+        self.checkGuestReadWrite()
+
+        self.enablesysfs(self.FAILURE_PATH)
+        xenrt.sleep(5)
+        self.checkGuestReadWrite()     
+
+
+class TCCheckGuestOperations(_PathFailOver):
+
+
+    def guestMethods(self):
+        self.checkGuestReadWrite()
+        self.guest.suspend()
+        self.guest.resume()
+        self.checkGuestReadWrite()
+
+    def run(self,arglist=None):
+        _TC8159.run(self, arglist)
+        self.host = self.getDefaultHost()
+        
+
+        dev = self.guest.createDisk(sizebytes=5*xenrt.GIGA, sruuid=self.sr.uuid, returnDevice=True) # 5GB
+        
+        # Launch a periodic read/write script using the new disk
+        self.guest.execguest("%s/remote/readwrite.py /dev/%s > /tmp/rw.log "
+                             "2>&1 < /dev/null &" %
+                             (xenrt.TEC().lookup("REMOTE_SCRIPTDIR"), dev))
+
+        xenrt.sleep(20)
+            
+        self.guest.suspend()
+        self.guest.resume()
+        self.checkGuestReadWrite()
+
+        self.disableEthPort(1)
+        self.guestMethods()
+        
+        self.enableEthPort(1)
+        self.guestMethods()
+
+        
+class TCCheckSROperations(_PathFailOver):
+    
+    def checkThenDestroySR(self):
+        self.sr.forget()
+        self.sr.introduce()
+        self.sr.check()
+        self.sr.destroy()
+        
+    
+    def run(self, arglist=None):
+        _TC8159.run(self, arglist=None)
+        self.host = self.getDefaultHost()
+        
+        self.guest.shutdown()
+        self.guest.lifecycleOperation("vm-destroy", force=True)
+        
+        
+        cli = self.host.getCLIInstance()
+        vdis = self.host.minimalList("vdi-list", args="sr-uuid=%s" % self.sr.uuid)
+        for vdi in vdis:
+            cli.execute("vdi-destroy", "uuid=%s" % vdi)
+
+        self.checkThenDestroySR()
+        
+        self.disableEthPort(1)
+        self.sr = self.createSR(self.host)
+        self.checkThenDestroySR()
+
+        self.enableEthPort(1)
+        self.sr = self.createSR(self.host)
+        self.checkThenDestroySR()

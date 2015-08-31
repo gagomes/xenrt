@@ -2669,7 +2669,7 @@ exit /B 1
                     xenrt.TEC().warning("DB vcpus value is greater than maxVcpusSupported!")
                 self.setVCPUs(dbVal)
             else:
-                xenrt.TEC().logverbose("Randomly choosen vcpus is %d" % randomVcpus)
+                xenrt.TEC().logverbose("Randomly chosen vcpus is %d" % randomVcpus)
                 self.setVCPUs(randomVcpus)
                 xenrt.GEC().config.setVariable("RND_VCPUS_VAL",str(randomVcpus))
                 xenrt.GEC().dbconnect.jobUpdate("RND_VCPUS_VAL",str(randomVcpus))
@@ -2686,7 +2686,9 @@ exit /B 1
         cpuCoresOnHost = host.getCPUCores()
         socketsOnHost  = host.getNoOfSockets()
         maxCoresPerSocket = cpuCoresOnHost / socketsOnHost
-        xenrt.TEC().logverbose("cpuCoresonHost: %s, socketsonHost: %s, maxCoresPerSocket: %s" % (cpuCoresOnHost, socketsOnHost, maxCoresPerSocket))
+        maxDistroSockets = xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.distro, "MAXSOCKETS"], None)
+
+        xenrt.TEC().logverbose("cpuCoresonHost: %s, socketsonHost: %s, maxCoresPerSocket: %s, maxDistroSockets: %s" % (cpuCoresOnHost, socketsOnHost, maxCoresPerSocket, maxDistroSockets))
 
         if vcpus != None:
             # This gives us all the factors of the vcpus specified
@@ -2697,6 +2699,11 @@ exit /B 1
             validCoresPerSocket = [x for x in possibleCoresPerSocket if x <= maxCoresPerSocket]
             xenrt.TEC().logverbose("validCoresPerSocket is %s" % validCoresPerSocket)
 
+            if maxDistroSockets:
+                # This eliminates the factors that would exceed the distro's max sockets
+                validCoresPerSocket = [x for x in validCoresPerSocket if vcpus / x <= int(maxDistroSockets)]
+                xenrt.TEC().logverbose("validCoresPerSocket after distro MAXSOCKETS taken into account is %s" % validCoresPerSocket)
+
             # Then choose a value from here
             coresPerSocket = random.choice(validCoresPerSocket)
 
@@ -2704,7 +2711,7 @@ exit /B 1
                 dbVal = int(xenrt.TEC().lookup("RND_CORES_PER_SOCKET_VAL", "0"))
 
                 if dbVal in validCoresPerSocket:
-                    xenrt.TEC().logverbose("Using Randomly choosen cores-per-socket from DB: %d" % dbVal)
+                    xenrt.TEC().logverbose("Using Randomly chosen cores-per-socket from DB: %d" % dbVal)
                     self.setCoresPerSocket(dbVal)
                 else:
                     xenrt.TEC().logverbose("Randomly choosen cores-per-socket is %s" % coresPerSocket)
@@ -4858,6 +4865,17 @@ def createVM(host,
         if memory:
             g.setMemory(memory)
         if vcpus:
+            if vcpus == "MAX":
+                vcpus = g.getMaxSupportedVCPUCount()
+                # Check if we need to do cores per socket (only if we have a MAXSOCKETS defined and are not using RND_CORES_PER_SOCKET
+                # as that will take MAXSOCKETS into account anyway)
+                if distro in xenrt.TEC().lookup(["GUEST_LIMITATIONS"]) and not xenrt.TEC().lookup("RND_CORES_PER_SOCKET", False, boolean=True):
+                    maxsockets = xenrt.TEC().lookup(["GUEST_LIMITATIONS", distro, "MAXSOCKETS"], None)
+                    if maxsockets and int(maxsockets) < vcpus:
+                        if isinstance(host, xenrt.lib.xenserver.host.CreedenceHost):
+                            g.setCoresPerSocket(vcpus / int(maxsockets))
+                        else:
+                            vcpus = maxsockets
             g.setVCPUs(vcpus)
         elif xenrt.TEC().lookup("RND_VCPUS", default=False, boolean=True):
             g.setRandomVcpus()
@@ -5243,7 +5261,7 @@ class MNRGuest(Guest):
         myhost = self.getHost()
         remote = on and myhost != on
         if remote and not (myhost.pool and on in myhost.pool.getHosts()):
-            raise xenrt.XRTException("Couldn't move to a host not in current pool")
+            raise xenrt.XRTError("Couldn't move to a host not in current pool")
         # The most "direct" choice should be put in the first place
         # The most "safe" choice should be put in the last place (e.g. for HVM)
         choice = choice or 'direct'
@@ -5336,7 +5354,7 @@ class MNRGuest(Guest):
     def setNetworkViaXenstore(self, group, name, type, data, area=None, vif='eth0'):
         """ You'll need to restart the VM to make it effective."""
         if not (self.windows and self.enlightenedDrivers):
-            raise xenrt.XRTException("setNetworkViaXenstore only works on "
+            raise xenrt.XRTError("setNetworkViaXenstore only works on "
                                      "Windows with PV drivers.")
         mac,ip,vb = self.getVIF(vif)
         macp = mac.replace(':', '_').upper()
@@ -6026,7 +6044,7 @@ class ClearwaterGuest(TampaGuest):
     #Method to retreive VM Generation token id for Windows VM
 
         if float(self.xmlrpcWindowsVersion()) < 6.2:
-            raise xenrt.XRTException("VM gen id is not supported in this windows version")
+            raise xenrt.XRTError("VM gen id is not supported in this windows version")
 
         if self.xmlrpcGetArch() == "x86": 
             vmgenexe = "vmgenid32.exe"
@@ -6219,6 +6237,33 @@ class DundeeGuest(CreedenceGuest):
                 xenrt.GEC().dbconnect.jobUpdate("RND_PV_DRIVERS_LIST_VALUE",randomPvDriversList)
                 return randomPvDriversList
 
+    def installTestCerts(self):
+
+        if self.usesLegacyDrivers():
+            xenrt.TEC().warning("Skipping the installation of TestCertificates")
+            return
+
+        xenrt.TEC().logverbose("installing TestCertificates")
+        testCertsDir = xenrt.TEC().tempDir()
+        path = self.xmlrpcTempDir()
+        zipfile = "%s/keys/citrix/testsign.zip" % (xenrt.TEC().lookup("XENRT_CONF"))
+        if not os.path.exists(zipfile):
+            raise xenrt.XRTError("Cannot find testsign zip file")
+ 
+        xenrt.util.command("unzip -d %s %s" % (testCertsDir, zipfile))
+        files = xenrt.util.command("ls %s" % (testCertsDir), retval="string").strip()
+        files = files.split("\n")
+        for f in files:
+            self.xmlrpcSendFile("%s/%s" % (testCertsDir,f),"%s\%s" % (path,f))
+       
+        self.xmlrpcExec("bcdedit.exe -set TESTSIGNING ON")
+        for f in files:
+           self.xmlrpcExec("certutil.exe -addstore -f 'Root' %s\%s" % (path,f))
+           self.xmlrpcExec("certutil.exe -addstore -f 'TrustedPublisher' %s\%s" % (path,f))  
+
+        self.reboot()
+        xenrt.TEC().logverbose("Testcertificates installed")
+
     def installDrivers(self, source=None, extrareboot=False, useLegacy=False, useHostTimeUTC=False, expectUpToDate=True, ejectISO=True, installFullWindowsGuestAgent=True, useDotNet=True, pvPkgSrc = None):
         """
         Install PV Tools on Windows Guest
@@ -6241,6 +6286,9 @@ class DundeeGuest(CreedenceGuest):
 
         if pvDriverSource == "Random":
             pvDriverSource = self.setRandomPvDriverSource()
+
+        if not xenrt.TEC().lookup("DONT_INSTALL_TEST_CERTS", False, boolean=True):
+            self.installTestCerts()
 
         # If source is "ToolsISO" then install from xs tools
         if pvDriverSource == "ToolsISO" or pvDriverSource == None or useLegacy == True or xenrt.TEC().lookup("USE_LEGACY_DRIVERS", False, boolean=True) or self.usesLegacyDrivers():

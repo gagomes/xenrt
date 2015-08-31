@@ -34,6 +34,7 @@ __all__ = ["getStorageRepositoryClass",
            "ISOStorageRepository",
            "CIFSISOStorageRepository",
            "FCStorageRepository",
+           "FCOEStorageRepository",
            "SharedSASStorageRepository",
            "ISCSIHBAStorageRepository",
            "ISCSILun",
@@ -42,6 +43,7 @@ __all__ = ["getStorageRepositoryClass",
            "EQLTarget",
            "SMAPIv3LocalStorageRepository",
            "SMAPIv3SharedStorageRepository",
+           "MelioStorageRepository"
             ]
 
 
@@ -133,6 +135,9 @@ class StorageRepository(object):
             alloc = self.host.genParamGet("sr", self.uuid, "sm-config", "allocation")
             if alloc == self.THIN_PROV_KEYWORD:
                 return True
+            # For compatibility to old version.
+            if alloc == "dynamic":
+                return True
 
         except:
             # sm-config may not have 'allocation' key.
@@ -221,7 +226,10 @@ class StorageRepository(object):
             self.__thinProv = xenrt.TEC().lookup("FORCE_THIN_LVHD", False, boolean=True)
         if self.__thinProv:
             if self.__isEligibleThinProvisioning(srtype):
-                smconf["allocation"] = "dynamic"
+                if xenrt.TEC().lookup("USE_DYNAMIC_KEYWORD", False, boolean=True):
+                    smconf["allocation"] = "dynamic"
+                else:
+                    smconf["allocation"] = self.THIN_PROV_KEYWORD
             else:
                 xenrt.warning("SR: %s is marked as thin provisioning but %s does not support it. Ignoring..." % (self.name, srtype))
         args.extend(["sm-config:%s=\"%s\"" % (x, y)
@@ -430,6 +438,13 @@ class SMAPIv3LocalStorageRepository(StorageRepository):
             path = "/dev/%s%d" % (device, partition)
         self._create("btrfs", {"uri":"file://%s" % path}, physical_size, content_type, smconf)
 
+class MelioStorageRepository(StorageRepository):
+    SHARED = True
+    CLEANUP = "destroy"
+    
+    def create(self, melio, physical_size=0, content_type="", smconf={}):
+        self.melio = melio
+        self._create("melio", {"uri":"file://%s" % self.melio.getSanDeviceForHost(self.melio.hosts[0])}, physical_size, content_type, smconf)
 
 class IntegratedCVSMStorageRepository(StorageRepository):
     SHARED = True
@@ -945,7 +960,7 @@ class ISCSIStorageRepository(StorageRepository):
 
     CLEANUP = "destroy"
     SHARED = True
-    THIN_PROV_KEYWORD = "dynamic"
+    THIN_PROV_KEYWORD = "xlvhd"
 
     def create(self,
                lun=None,
@@ -1228,7 +1243,7 @@ class HBAStorageRepository(StorageRepository):
 
     CLEANUP = "destroy"
     SHARED = True
-    THIN_PROV_KEYWORD = "dynamic"
+    THIN_PROV_KEYWORD = "xlvhd"
 
     def create(self,
                scsiid,
@@ -1271,7 +1286,51 @@ class HBAStorageRepository(StorageRepository):
         if self.multipathing:
             slave.enableMultipathing()
 
+class FCOEStorageRepository(StorageRepository):
+    """Models a fiber channel or iSCSI via HBA SR"""
 
+    CLEANUP = "destroy"
+    SHARED = True
+
+    def create(self,
+               scsiid,
+               physical_size="0",
+               content_type="",
+               multipathing=False):
+        self.multipathing = multipathing
+        if multipathing:
+            device = "/dev/mapper/%s" % (scsiid)
+            prepdevice = "/dev/disk/by-id/scsi-%s" % (scsiid)
+            self.host.enableMultipathing()
+        else:
+            device = "/dev/disk/by-id/scsi-%s" % (scsiid)
+            prepdevice = device
+        try:
+            blockdevice = self.host.execdom0("readlink -f %s" % prepdevice).strip()
+            if len(blockdevice.split('/')) !=3:
+                raise xenrt.XRTFailure("The block device %s is not detected by the host." % scsiid)
+
+            self.host.execdom0("test -x /opt/xensource/bin/diskprep && /opt/xensource/bin/diskprep -f %s || dd if=/dev/zero of=%s bs=4096 count=10" % (blockdevice, blockdevice))
+
+        except:
+            xenrt.TEC().warning("Error erasing disk on %s" % (scsiid))
+        
+        dconf = {}
+        dconf["device"] = device
+        dconf["SCSIid"] = scsiid
+        self._create("lvmofcoe",
+                     dconf,
+                     physical_size=physical_size,
+                     content_type=content_type)
+
+    def check(self):
+        StorageRepository.checkCommon(self, "lvmofcoe")
+        # TODO check multipathing config
+
+    def prepareSlave(self, master, slave, special=None):
+        if self.multipathing:
+            slave.enableMultipathing()
+            
 class FCStorageRepository(HBAStorageRepository):
     pass
 

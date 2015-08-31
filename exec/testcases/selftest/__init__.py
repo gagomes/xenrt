@@ -150,24 +150,24 @@ class TCMachineCheck(xenrt.TestCase):
         if arglist:
             tests = map(lambda t: t.split("/", 1), arglist)
         else:
-            tests = [("Power", "IPMI"), ("Power", "PDU"), ("Network", "Ports"), ("Network", "DHCP"), ("Console", "Serial"), ("FC", "HBA")]
+            tests = [("Console", "Serial"), ("Power", "IPMI"), ("Power", "PDU"), ("Network", "Ports"), ("Network", "DHCP"), ("FC", "HBA")]
 
         for t in tests:
             self.runSubcase("test%s%s" % (t[0],t[1]), (), t[0], t[1])
-            self.host.waitForEnabled(600, desc="Boot after %s/%s test" % (t[0],t[1]))
+            self.host.waitForEnabled(1800, desc="Boot after %s/%s test" % (t[0],t[1]))
 
     def _testPowerctl(self, powerctl):
-        lock = xenrt.resources.CentralResource(timeout=1200)
-        lock.acquire("MC_POWER")
+        lock = xenrt.resources.CentralLock("MC_POWER", timeout=3600)
         try:
             if not self.host.checkAlive():
                 raise xenrt.XRTError("Host not reachable prior to powering down")
             powerctl.off()
-            xenrt.sleep(10)
+            xenrt.sleep(20)
             if self.host.checkAlive():
                 raise xenrt.XRTFailure("Host reachable after powering down")
         finally:
             powerctl.on()
+            xenrt.sleep(60)
             lock.release()
 
     def testPowerIPMI(self):
@@ -208,7 +208,7 @@ class TCMachineCheck(xenrt.TestCase):
         duplex = self.host.execdom0("cat /sys/class/net/%s/duplex" % (dev)).strip()
         xenrt.TEC().logverbose("%s is %s/%s" % (dev, speed, duplex))
         if speed < 1000 or duplex != "full":
-            return "%s reports %s/%s, expecting at least 1000/full" % (speed, duplex)
+            return "%s reports %s/%s, expecting at least 1000/full" % (dev, speed, duplex)
 
     def testNetworkPorts(self):
         """Verify each NIC is connected to the correct switch port"""
@@ -218,9 +218,8 @@ class TCMachineCheck(xenrt.TestCase):
 
         failures = []
 
-        lock = xenrt.resources.CentralResource(timeout=1200)
-        powerLock = xenrt.resources.CentralResource(timeout=1200)
-        lock.acquire("MC_NETWORK")
+        lock = xenrt.resources.CentralLock("MC_NETWORK", timeout=3600)
+        powerLock = xenrt.resources.CentralLock("MC_POWER", timeout=3600, acquire=False)
         try:
             self.host.enableAllNetPorts()
             xenrt.sleep(30)
@@ -234,17 +233,17 @@ class TCMachineCheck(xenrt.TestCase):
                 # Check link speed / duplex
                 link = self._checkNICLink(dev)
                 if link:
-                    falures.append(link)
+                    failures.append(link)
                     
                 self.host.disableNetPort(mac)
                 xenrt.sleep(20)
                 if self._checkNIC(dev):
                     failures.append("Link for NIC %u (%s / %s) up after bringing port down" % (assumedId, mac, dev))
                     self.host.enableNetPort(mac) # Re-enable it in case it's a different port on this host
-                    xnert.sleep(20)
+                    xenrt.sleep(20)
 
             # Now check the primary NIC
-            powerLock.acquire("MC_POWER") # We have to take this one as well to avoid confusion with a power test
+            powerLock.acquire() # We have to take this one as well to avoid confusion with a power test
             try:
                 if not self.host.checkAlive():
                     raise xenrt.XRTError("Host not reachable prior to disabling primary NIC")
@@ -294,7 +293,7 @@ class TCMachineCheck(xenrt.TestCase):
                 nw = self.host.lookup(["NICS", "NIC%u" % (assumedId), "NETWORK"], None)
                 if not nw:
                     raise xenrt.XRTError("NETWORK not specified for NIC %u" % assumedId)
-                nwMaps = {"NPRI": "DEFAULT", "NSEC": "SECONDARY", "IPRI": "VLANS/IPRI"}
+                nwMaps = {"NPRI": "DEFAULT", "NSEC": "SECONDARY", "IPRI": "VLANS/IPRI", "ISEC": "VLANS/ISEC"}
                 if not nw in nwMaps.keys():
                     raise xenrt.XRTError("Unknown NETWORK %s" % nw)
                 confKey = ["NETWORK_CONFIG"] + nwMaps[nw].split("/")
@@ -315,7 +314,7 @@ class TCMachineCheck(xenrt.TestCase):
         if len(overallFailures) > 0:
             for f in overallFailures:
                 xenrt.TEC().logverbose(f)
-            raise xenrt.XRTFailures("Network DHCP failures detected")
+            raise xenrt.XRTFailure("Network DHCP failures detected")
 
         if len(missingIPConfigs) > 0:
             raise xenrt.XRTPartial("Missing IP configs for NICs %s" % (",".join(missingIPConfigs)))
@@ -360,14 +359,15 @@ class TCMachineCheck(xenrt.TestCase):
         # Check we've got the expected number of online devices at this point
         online, total = self._getHBACounts()
 
-        if total != len(hbas):
-            raise xenrt.XRTError("Found inconsistent number of HBAs vs sysfs devices", data="%d HBAs, %d sysfs devices" % (len(hbas), total))
+        if total < len(hbas):
+            raise xenrt.XRTError("Found insufficient sysfs devices", data="%d HBAs, %d sysfs devices" % (len(hbas), total))
+
+        total = len(hbas) # Ignore extra HBAs that may not be connected etc
 
         if online != total:
             raise xenrt.XRTFailure("Only found %d/%d HBAs online prior to test" % (online, total))
 
-        lock = xenrt.resources.CentralResource(timeout=1200)
-        lock.acquire("MC_FC")
+        lock = xenrt.resources.CentralLock("MC_FC", timeout=1200)
         try:
             for i in range(len(hbas)):
                 hba = hbas[i]

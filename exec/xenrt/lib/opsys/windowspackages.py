@@ -119,6 +119,28 @@ class DotNet4(WindowsPackage):
 
 RegisterWindowsPackage(DotNet4)
 
+class DotNet451(WindowsPackage):
+    NAME = ".NET 4.5.1"
+    REQUIRE_REBOOT = True
+    REQUIRE_IMMEDIATE_REBOOT = True
+    
+    def _installPackage(self):
+        self._os.createDir("c:\\dotnet451logs")
+        self._os.unpackTarball("%s/dotnet451.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), "c:\\", patient=True)
+        self._os.execCmd("c:\\dotnet451\\NDP451-KB2858728-x86-x64-AllOS-ENU.exe /q /norestart /log c:\\dotnet451logs\\dotnet451log", timeout=3600, returnerror=False)
+    
+    def _packageInstalled(self):
+        val = 0
+        try:
+            rawVersion = self.winRegLookup('HKLM', 'SOFTWARE\\Microsoft\\NET Framework Setup\\NDP\\v4\\Full', 'Release', healthCheckOnFailure=False)
+            if rawVersion == 378675 or rawVersion == 378758:
+                val = 1
+        except: val = 0
+        
+        return val
+        
+RegisterWindowsPackage(DotNet451)
+
 class DotNet2(WindowsPackage):
     NAME = ".NET 2"
     REQUIRE_REBOOT = True
@@ -174,25 +196,110 @@ class WindowsInstaller(WindowsPackage):
 
 RegisterWindowsPackage(WindowsInstaller)
 
+class PowerShell20(WindowsPackage):
+    NAME = "PowerShell 2.0"
+    REQUIRE_REBOOT = True
+    
+    def _packageInstalled(self):
+        return self._os.getPowershellVersion() >= 2.0
+    
+    def _installDotNetPackage(self):
+        self._os.ensurePackageInstalled(".NET 2", doDelayedReboot=False)
+        
+    def _getExecutableForGivenArchitecture(self):
+        if self._os.windowsVersion() == xenrt.WindowsVersions.ws2008:
+            if self._os.getArch() == "amd64":
+                return "Windows6.0-KB968930-x64.msu"
+            return "Windows6.0-KB968930-x86.msu"
+            
+        if self._os.windowsVersion() == xenrt.WindowsVersions.ws2003AndR2:
+            if self._os.getArch() == "amd64":
+                return "WindowsServer2003-KB968930-x64-ENG.exe"
+            return "WindowsServer2003-KB968930-x86-ENG.exe"
+            
+        return "WindowsXP-KB968930-x86-ENG.exe"
+    
+    @property
+    def _packageName(self):
+        return "powershell20"
+
+    def _installPackage(self):
+        if self._packageInstalled():
+            xenrt.TEC().logverbose("%s or above installed." % self.NAME)
+            return
+        versions = [xenrt.WindowsVersions.winXP,xenrt.WindowsVersions.ws2003AndR2,xenrt.WindowsVersions.ws2008]
+            
+        if self._os.windowsVersion() not in versions:
+            raise xenrt.XRTError("%s installer is not \
+                available for Windows version %s" % (self.NAME,self._os.windowsVersion()))
+            
+        self._installDotNetPackage()   
+        exe = self._getExecutableForGivenArchitecture()
+        
+        t = self._os.tempDir()
+        self._os.unpackTarball("%s/%s.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE"),self._packageName), t)
+        self._os.execCmd("%s\\%s\\%s /quiet /norestart" % (t, self._packageName,exe), returnerror=False, timeout=600)
+        self._os.reboot()
+        
+RegisterWindowsPackage(PowerShell20)
+
 class PowerShell30(WindowsPackage):
     NAME = "PowerShell 3.0"
     REQUIRE_REBOOT = True
     
     def _packageInstalled(self):
         return self._os.getPowershellVersion() >= 3.0
+    
+    def _installDotNetPackage(self):
+        self._os.ensurePackageInstalled(".NET 4", doDelayedReboot=False)
+        
+    def _getExecutableForGivenArchitecture(self):
+        if self._os.getArch() == "amd64":
+            return "Windows6.1-KB2506143-x64.msu"
+        return "Windows6.1-KB2506143-x86.msu"
+    
+    @property
+    def _packageName(self):
+        return "powershell30"
 
     def _installPackage(self):
-        if self._os.windowsVersion() == "6.1":
-            self._os.ensurePackageInstalled(".NET 4", doDelayedReboot=False)
-            if self._os.getArch() == "amd64":
-                exe = "Windows6.1-KB2506143-x64.msu"
-            else:
-                exe = "Windows6.1-KB2506143-x86.msu"
-        else:
-            raise xenrt.XRTError("PowerShell 3.0 installer is not \
-            available for Windows version %s" % self._os.windowsVersion())
+        if self._packageInstalled():
+            xenrt.TEC().logverbose("%s or above installed." % self.NAME)
+            return
+            
+        if self._os.windowsVersion() != xenrt.WindowsVersions.win7 and self._os.windowsVersion() != xenrt.WindowsVersions.win8AndWS2012:
+            raise xenrt.XRTError("%s installer is not \
+                available for Windows version %s" % (self.NAME,self._os.xmlrpcWindowsVersion()))
+            
+        self._installDotNetPackage()   
+        exe = self._getExecutableForGivenArchitecture()
+        
         t = self._os.tempDir()
-        self._os.unpackTarball("%s/powershell30.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), t)
-        self._os.execCmd("%s\\powershell30\\%s /quiet /norestart" % (t, exe), returnerror=False, timeout=600)
-
+        self._os.unpackTarball("%s/%s.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE"),self._packageName), t)
+        self._os.execCmd("%s\\%s\\%s /quiet /norestart" % (t, self._packageName,exe), returnerror=False, timeout=600)
+        self._os.reboot()
+        
 RegisterWindowsPackage(PowerShell30)
+
+class PowerShell40(PowerShell30):
+    NAME = "PowerShell 4.0"
+    
+    def _packageInstalled(self):
+        return self._os.getPowershellVersion() >= 4.0
+    
+    def _installDotNetPackage(self):
+        self._os.ensurePackageInstalled(".NET 4.5.1", doDelayedReboot=False)
+        
+    def _getExecutableForGivenArchitecture(self):
+        if self._os.windowsVersion() == xenrt.WindowsVersions.win8AndWS2012:
+            return "Windows8-RT-KB2799888-x64.msu"
+        if self._os.getArch() == "amd64":
+            return "Windows6.1-KB2819745-x64-MultiPkg.msu"
+        return "Windows6.1-KB2819745-x86-MultiPkg.msu"
+        
+    @property    
+    def _packageName(self):
+        return "powershell40"
+    
+
+RegisterWindowsPackage(PowerShell40)

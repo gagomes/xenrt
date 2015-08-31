@@ -350,6 +350,9 @@ class XenRT(object):
 
         job = self.get_job(id, logitems=True)
 
+        if not job['result']:
+            raise Exception("Job has not completed, could not produce JUnit output")
+
         tcs = ""
         jobdesc = job['description'].split("&")[0]
 
@@ -374,6 +377,12 @@ class XenRT(object):
           %%s
         </error>
     \"\"\" %% (message, urltext)
+            elif r['result'].startswith("blocked"):
+                errored += 1
+                details = \"\"\"    <error message="Blocked by previous test">
+          %%s
+        </error>
+    \"\"\" %% (urltext)
             elif r['result'].startswith("skipped") or r['result'].startswith("blocked"):
                 skipped += 1
                 details = "    <skipped />\\n"

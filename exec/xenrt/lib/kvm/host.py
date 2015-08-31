@@ -283,7 +283,7 @@ class KVMHost(xenrt.lib.libvirt.Host):
                     mode = mgmt
                     if mode == "static":
                         newip, netmask, gateway = self.getNICAllocatedIPAddress(eth)
-                        xenrt.TEC().logverbose("XenRT static configuration for host %s: ip=%s, netmask=%s, gateway=%s" % (self, ip, netmask, gateway))
+                        xenrt.TEC().logverbose("XenRT static configuration for host %s: ip=%s, netmask=%s, gateway=%s" % (self, newip, netmask, gateway))
                         #TODO: set also BOOTPROTO,IPADDR,NETMASK in network-scripts/ifcfg-eth
                         self.execcmd("ifconfig %s %s netmask %s" % (pri_bridge, newip, netmask))
 

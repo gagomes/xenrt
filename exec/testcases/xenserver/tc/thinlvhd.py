@@ -276,23 +276,32 @@ class ResetOnBootThinSRSpace(_ThinLVHDBase):
         self.guest = self.goldVM.copyVM(sruuid = self.srs[0].uuid)
         self.uninstallOnCleanup(self.guest)
 
+    def getDigest(self, device="/dev/xvda"):
+        digest = self.guest.execguest("md5sum %s" % device).splite()[0]
+        return digest
+
     def run(self, arglist=None):
+
+        step("Create a VDI and add it to guest.")
+        vdi = self.host.createVDI(sizebytes=xenrt.GIGA, sruuid=self.srs[0].uuid)
+        device = self.guest.createDisk(vdiuuid=vdi, returnDevice=True)
 
         step("Set VDI to reset on boot.")
         self.guest.setState("DOWN")
-        for xvdi in self.guest.asXapiObject().VDI():
-            self.host.genParamSet("vdi", xvdi.uuid, "on-boot", "reset")
+        self.host.genParamSet("vdi", vdi, "on-boot", "reset")
 
         srSizeBefore = self.getPhysicalUtilisation(self.srs[0])
-        xenrt.TEC().logverbose("Physical SR space allocated for the VDIs before writing: %d" % (srSizeBefore))
+        digestBefore = self.getDigest("/dev/%s" % device)
+        log("Physical SR space allocated for the VDIs before writing: %d" % (srSizeBefore))
+        log("MD5 digest before writing into VDI: %s" % (digestBefore))
 
         step("Writing some data onto VDI")
         self.guest.setState("UP")
-        self.fillDisk(self.guest, size=2*xenrt.GIGA)
+        self.fillDisk(self.guest, targetDir="/dev/%s" % device)
 
         step("Test trying to check SR physical space allocated for the VDI(s)")
         srSizeAfter = self.getPhysicalUtilisation(self.srs[0])
-        xenrt.TEC().logverbose("Physical SR space allocated for the VDIs after writing: %d" % (srSizeAfter))
+        log("Physical SR space allocated for the VDIs after writing: %d" % (srSizeAfter))
 
         # Now shutdown the guest
         step("Rebooting VM to release leaf of VDI") 
@@ -300,7 +309,14 @@ class ResetOnBootThinSRSpace(_ThinLVHDBase):
 
         step("Test trying to check the SR physical space allocated for the VDI after reset-on-boot VM shutdown")
         srSizeFinal = self.getPhysicalUtilisation(self.srs[0])
-        xenrt.TEC().logverbose("Physical SR space allocated for the VDI after the VM shutdown: %d" % (srSizeFinal))
+        digestFinal = self.getDigest("/dev/%s" % device)
+        log("Physical SR space allocated for the VDI after the VM rebooted: %d" % (srSizeFinal))
+        log("MD5 digest after rebooting VM: %s" % (digestFinal))
+
+
+        # Check digest.
+        if digestBefore != digestFinal:
+            raise xenrt.XRTFailure("on-boot=reset VDI has not reset after VM reboot.")
 
         # We expect VM should release the space when it shutdown and VDI on boot set to 'reset'
         if srSizeBefore >= srSizeAfter:

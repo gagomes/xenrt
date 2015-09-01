@@ -12,16 +12,16 @@ class LoginVSI(object):
         self.version = version
         self.shareFolderName = shareFolderName
         self.shareFolderPath =r"c:\%s" % self.shareFolderName
-        self.shareFolderNetworkPath = ""
+        self.shareFolderNetworkPath = r"\\%s\%s" % (self.dataServerGuest.getIP(), self.shareFolderName)
+        self.vsishareDrive = "S"
+        self.vsisharePath = "%s:\\" % self.vsishareDrive
 
         self.initdistfileVars()
 
     def initdistfileVars(self):
-        self.config = {
-            "distfileDrive" : "Z",
-            "officeSetup" : "officeSetup\off2k7\setup.exe",
-            "officeSetupConfig" : "officeSetup\config.xml"
-            }
+        self.config = { "distfileDrive"     : "Z",
+                        "officeSetup"       : "officeSetup\off2k7\setup.exe",
+                        "officeSetupConfig" : "officeSetup\config.xml"  }
 
         if self.version=="4.1.3":
             self.config.update({"distfileLocation" : r"\\%s\share\vol\xenrtdata\distfiles\performance\vsi413\xenrtFiles"% xenrt.TEC().lookup("XENRT_SERVER_ADDRESS")})
@@ -45,9 +45,8 @@ class LoginVSI(object):
         # TODO
         pass
 
-    def _mapVSIShareOnTarget(self, guest):
-        # TODO
-        pass
+    def _mapVSIShareToDrive(self, guest):
+        guest.xmlrpcMapDrive(self.shareFolderNetworkPath, self.vsishareDrive)
 
     def _installTarget(self, guest):
         # TODO
@@ -63,7 +62,7 @@ class LoginVSI(object):
         if self.dataServerGuest != self.targetGuest:
             self._mapLoginVSIdistfiles(self.targetGuest)
             self._installOffice(self.targetGuest)
-            self._mapVSIShareOnTarget(self.targetGuest)
+        self._mapVSIShareToDrive(self.targetGuest)
         self._installTarget(self.targetGuest)
 
     def installLoginVSI(self):

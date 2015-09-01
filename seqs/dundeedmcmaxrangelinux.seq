@@ -4,7 +4,6 @@
 
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
-    <DISTROS>debian70_x86-64,oel511_x86-64,oel66_x86-64,sles113_x86-64,ubuntu1204_x86-64</DISTROS>
   </variables>
 
   <prepare>

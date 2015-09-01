@@ -464,10 +464,12 @@ class _BalloonSmoketest(_BalloonPerfBase):
             memStep = memStep + stepSize
             self.guest.setDynamicMemRange(memStep, memStep)
             self.guest.waitForTarget(800)
+            xenrt.sleep(30)
             self.guest.checkMemory(inGuest=True)
         self.guest.setDynamicMemRange(maxMem, maxMem)
 
         self.guest.waitForTarget(800)
+        xenrt.sleep(30)
         self.guest.checkMemory(inGuest=True)
 
         step("Verify it can balloon down to min")
@@ -477,10 +479,12 @@ class _BalloonSmoketest(_BalloonPerfBase):
             memStep = memStep - stepSize
             self.guest.setDynamicMemRange(memStep, memStep)
             self.guest.waitForTarget(800)
+            xenrt.sleep(30)
             self.guest.checkMemory(inGuest=True)
         self.guest.setDynamicMemRange(minMem, minMem)
 
         self.guest.waitForTarget(800)
+        xenrt.sleep(30)
         self.guest.checkMemory(inGuest=True)
 
     def lifecycleOps(self, min):

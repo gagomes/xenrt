@@ -244,12 +244,13 @@ class PowerShell20(WindowsPackage):
 RegisterWindowsPackage(PowerShell20)
 
 class PowerShell30(WindowsPackage):
+    ''' Powershell System REquirements https://technet.microsoft.com/en-us/library/hh847769.aspx'''
     NAME = "PowerShell 3.0"
     REQUIRE_REBOOT = True
-    
+
     def _packageInstalled(self):
         return self._os.getPowershellVersion() >= 3.0
-    
+
     def _installDotNetPackage(self):
         self._os.ensurePackageInstalled(".NET 4", doDelayedReboot=False)
         
@@ -257,7 +258,7 @@ class PowerShell30(WindowsPackage):
         if self._os.getArch() == "amd64":
             return "Windows6.1-KB2506143-x64.msu"
         return "Windows6.1-KB2506143-x86.msu"
-    
+
     @property
     def _packageName(self):
         return "powershell30"
@@ -266,11 +267,7 @@ class PowerShell30(WindowsPackage):
         if self._packageInstalled():
             xenrt.TEC().logverbose("%s or above installed." % self.NAME)
             return
-            
-        if self._os.windowsVersion() != xenrt.WindowsVersions.win7 and self._os.windowsVersion() != xenrt.WindowsVersions.win8AndWS2012:
-            raise xenrt.XRTError("%s installer is not \
-                available for Windows version %s" % (self.NAME,self._os.xmlrpcWindowsVersion()))
-            
+
         self._installDotNetPackage()   
         exe = self._getExecutableForGivenArchitecture()
         
@@ -282,8 +279,9 @@ class PowerShell30(WindowsPackage):
 RegisterWindowsPackage(PowerShell30)
 
 class PowerShell40(PowerShell30):
+    ''' Powershell System REquirements https://technet.microsoft.com/en-us/library/hh847769.aspx'''
     NAME = "PowerShell 4.0"
-    
+
     def _packageInstalled(self):
         return self._os.getPowershellVersion() >= 4.0
     
@@ -296,8 +294,8 @@ class PowerShell40(PowerShell30):
         if self._os.getArch() == "amd64":
             return "Windows6.1-KB2819745-x64-MultiPkg.msu"
         return "Windows6.1-KB2819745-x86-MultiPkg.msu"
-        
-    @property    
+
+    @property
     def _packageName(self):
         return "powershell40"
     

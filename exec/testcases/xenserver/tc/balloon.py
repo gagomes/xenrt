@@ -200,6 +200,7 @@ class _BalloonSmoketest(_BalloonPerfBase):
         if len(self.WORKLOADS) > 0:
             self.guest.installWorkloads(self.WORKLOADS)
 
+        step("Get minimum and maximum memory for the guest")
         if not self.WINDOWS:
             self.setLinuxContraints()
         self.findMinMaxMemory()
@@ -232,12 +233,14 @@ class _BalloonSmoketest(_BalloonPerfBase):
     def setLinuxContraints(self):
         # All Linux distros behave differently on memory balloon up.
         # Check the type and accordingly set the class variables
-        if self.DISTRO in config.lookup(["VERSION_CONFIG", release, "EARLY_PV_LINUX"], "").split(","):
-            # Early PV guests cannot balloon up from there initial memory allocation
+        if self.DISTRO in xenrt.TEC().lookup(["VERSION_CONFIG",xenrt.TEC().lookup("PRODUCT_VERSION"), "EARLY_PV_LINUX"], "").split(","):
+            log("This is a early PV guest and it cannot balloon up beyond initial memory allocation")
             self.BALLOON_UP_INITIAL_ALLOC = False
-        elif self.DISTRO in config.lookup(["VERSION_CONFIG", release, "HVM_LINUX"], "").split(","):
+        elif self.DISTRO in xenrt.TEC().lookup(["VERSION_CONFIG",xenrt.TEC().lookup("PRODUCT_VERSION"), "HVM_LINUX"], "").split(","):
+            log("This is a early HVM PV guest and we need to consider the constraint for 10 MB video memory")
             self.HVM_PV_CONSTRAINT = True
         elif self.ARCH == "x86-32":
+            log("This is a 32-bit PV guest and it cannot balloon up beyond 10 X Low memory")
             self.LOW_MEMORY_CONSTRAINT = True
 
     def findMinMaxMemory(self):
@@ -434,6 +437,7 @@ class _BalloonSmoketest(_BalloonPerfBase):
                         self.guest.shutdown(force=True)
                     except:
                         pass
+                    raise
                 else:
                     raise
             else:

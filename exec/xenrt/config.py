@@ -679,6 +679,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Boston"]["LATEST_rhel4"] = "rhel48"
         self.config["VERSION_CONFIG"]["Boston"]["LATEST_rhel5"] = "rhel56"
         self.config["VERSION_CONFIG"]["Boston"]["LATEST_rhel6"] = "rhel6"
+        self.config["VERSION_CONFIG"]["Boston"]["EARLY_PV_LINUX"] = "debian60"
         self.config["VERSION_CONFIG"]["Boston"]["DOM0_PARTITIONS"] = {1:4*xenrt.GIGA, 2:4*xenrt.GIGA, 3:"*"}
         self.config["VERSION_CONFIG"]["Boston"]["INTERNAL_RPU_HOTFIX"] = "XS62E006.xsupdate"
 
@@ -862,6 +863,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Tampa"]["GENERIC_LINUX_OS_64"] = "centos57"
         self.config["VERSION_CONFIG"]["Tampa"]["TILE_WIN_DISTRO"] = "ws08sp2-x86"
         self.config["VERSION_CONFIG"]["Tampa"]["TILE_LINUX_DISTRO"] = "centos57"
+        self.config["VERSION_CONFIG"]["Tampa"]["EARLY_PV_LINUX"] = "debian60"
         self.config["VERSION_CONFIG"]["Tampa"]["EXPECTED_CRASHDUMP_FILES"] = "xen-crashdump-analyser.log,xen.log,dom0.log"
         self.config["VERSION_CONFIG"]["Tampa"]["V6_DBV"] = "2010.0521"
         self.config["VERSION_CONFIG"]["Tampa"]["IDLE_VMs_DOM0_CPU_Utilize"] = "260"
@@ -1191,6 +1193,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Creedence"]["LATEST_sl5"] = "sl511"
         self.config["VERSION_CONFIG"]["Creedence"]["LATEST_sl6"] = "sl66"
         self.config["VERSION_CONFIG"]["Creedence"]["LATEST_sl7"] = "sl71"
+        self.config["VERSION_CONFIG"]["Creedence"]["EARLY_PV_LINUX"] = "debian60,rhel66,rhel511"
         # XenServer dom0 partitions
         self.config["VERSION_CONFIG"]["Creedence"]["DOM0_PARTITIONS"] = {1:4*xenrt.GIGA, 2:4*xenrt.GIGA, 3:"*"}
         self.config["VERSION_CONFIG"]["Creedence"]["INTERNAL_RPU_HOTFIX"] = "XS65ESP1006.xsupdate"
@@ -1200,6 +1203,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Cream"]["LATEST_rhel5"] = "rhel511"
         self.config["VERSION_CONFIG"]["Cream"]["LATEST_rhel6"] = "rhel66"
         self.config["VERSION_CONFIG"]["Cream"]["LATEST_rhel7"] = "rhel71"
+        self.config["VERSION_CONFIG"]["Cream"]["EARLY_PV_LINUX"] = "debian60,rhel511,rhel66,centos511,centos66,sl511,sl66"
         self.config["VERSION_CONFIG"]["Cream"]["TEMPLATE_NAME_RHEL_d66_64"] = "Red Hat Enterprise Linux 6 (64-bit),Red Hat Enterprise Linux 6 x64,Red Hat Enterprise Linux 6.0 (64-bit)"
         self.config["VERSION_CONFIG"]["Cream"]["TEMPLATE_NAME_RHEL_w66_64"] = "Red Hat Enterprise Linux 6 (64-bit),Red Hat Enterprise Linux 6 x64,Red Hat Enterprise Linux 6.0 (64-bit)"
         self.config["VERSION_CONFIG"]["Cream"]["TEMPLATE_NAME_SLED_113_64"] = "SUSE Linux Enterprise Desktop 11 SP3 (64-bit),SUSE Linux Enterprise Server 11 SP3 x64"
@@ -2560,7 +2564,7 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["debian70"]["MAX_VM_VCPUS64"] = "32"
         self.config["GUEST_LIMITATIONS"]["debian80"] = {}
         self.config["GUEST_LIMITATIONS"]["debian80"]["MINMEMORY"] = "512"
-        self.config["GUEST_LIMITATIONS"]["debian80"]["STATICMINMEMORY"] = "512"
+        self.config["GUEST_LIMITATIONS"]["debian80"]["STATICMINMEMORY"] = "128"
         self.config["GUEST_LIMITATIONS"]["debian80"]["MAXMEMORY"] = "65536"
         self.config["GUEST_LIMITATIONS"]["debian80"]["MAXMEMORY64"] = "131072"
         self.config["GUEST_LIMITATIONS"]["debian80"]["MAX_VM_VCPUS"] = "32"

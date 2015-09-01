@@ -183,18 +183,7 @@ class _BalloonSmoketest(_BalloonPerfBase):
         self.parseArgs(arglist)
         
         if self.HAP:
-            # Check this is the right sort of host
-            # XXX: At the moment we can only check if it's Intel or AMD - we
-            # need a way to check if its EPT or NPT!
-            if not self.HAP in ["NPT", "EPT"]:
-                raise xenrt.XRTError("Unknown HAP type %s" % (self.HAP))
-
-            if self.HAP == "NPT" and not self.host.isSvmHardware():
-                raise xenrt.XRTError("Attempting to test NPT but not running on"
-                                     " AMD hardware")
-            elif self.HAP == "EPT" and not self.host.isVmxHardware():
-                raise xenrt.XRTError("Attempting to test EPT but not running on"
-                                     " Intel hardware")
+            self.checkHAP()
 
         step("Sleeping to let host memory free settle...")
         time.sleep(30)
@@ -211,6 +200,47 @@ class _BalloonSmoketest(_BalloonPerfBase):
         if len(self.WORKLOADS) > 0:
             self.guest.installWorkloads(self.WORKLOADS)
 
+        if not self.WINDOWS:
+            self.setLinuxContraints()
+        self.findMinMaxMemory()
+
+        step("Look up the dynamic range multiplier")
+        if self.WINDOWS:
+            lookup = "WIN"
+        else:
+            lookup = "LINUX"
+        self.dmcPercent = int(self.host.lookup("DMC_%s_PERCENT" % (lookup)))
+        self.dmcPercent = int(xenrt.TEC().lookup("DMC_%s_PERCENT" % (lookup), self.dmcPercent))
+        log("Dynamic Range Multiplies = %s" % (self.dmcPercent))
+
+        self.guest.shutdown()
+
+    def checkHAP(self):
+        # Check this is the right sort of host
+        # XXX: At the moment we can only check if it's Intel or AMD - we
+        # need a way to check if its EPT or NPT!
+        if not self.HAP in ["NPT", "EPT"]:
+            raise xenrt.XRTError("Unknown HAP type %s" % (self.HAP))
+
+        if self.HAP == "NPT" and not self.host.isSvmHardware():
+            raise xenrt.XRTError("Attempting to test NPT but not running on"
+                                     " AMD hardware")
+        elif self.HAP == "EPT" and not self.host.isVmxHardware():
+            raise xenrt.XRTError("Attempting to test EPT but not running on"
+                                     " Intel hardware")
+
+    def setLinuxContraints(self):
+        # All Linux distros behave differently on memory balloon up.
+        # Check the type and accordingly set the class variables
+        if self.DISTRO in config.lookup(["VERSION_CONFIG", release, "EARLY_PV_LINUX"], "").split(","):
+            # Early PV guests cannot balloon up from there initial memory allocation
+            self.BALLOON_UP_INITIAL_ALLOC = False
+        elif self.DISTRO in config.lookup(["VERSION_CONFIG", release, "HVM_LINUX"], "").split(","):
+            self.HVM_PV_CONSTRAINT = True
+        elif self.ARCH == "x86-32":
+            self.LOW_MEMORY_CONSTRAINT = True
+
+    def findMinMaxMemory(self):
         step("Find the min and max supported memory for this distro")
         minmem = self.host.lookup("MIN_VM_MEMORY")
         minmem = int(xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.DISTRO, "MINMEMORY"], minmem))
@@ -218,6 +248,7 @@ class _BalloonSmoketest(_BalloonPerfBase):
         self.minStaticSupported = int(xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.DISTRO, "STATICMINMEMORY"], self.minSupported))
         max = self.host.lookup("MAX_VM_MEMORY")
         self.maxSupported = int(xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.DISTRO, "MAXMEMORY"], max))
+
         if not self.SET_PAE and self.maxSupported > 4096:
             self.maxSupported = 4096
 
@@ -239,21 +270,28 @@ class _BalloonSmoketest(_BalloonPerfBase):
                 self.maxSupported = capto
 
         # Check if guest has LOW memory constraint
+        # 32-bit pv-ops guests cannot balloon up to more than 10x the amount of low memory 
         if not self.WINDOWS and self.LOW_MEMORY_CONSTRAINT:
             lowMemory = int(self.guest.execguest("free -l | grep Low | awk '{print $2}'").strip()) / xenrt.KILO
             self.maxSupported = lowMemory * 10
             xenrt.TEC().logverbose("Due to low memory constraint, Capping maximum memory to %s" % (self.maxSupported))
 
-        step("Look up the dynamic range multiplier")
-        if self.WINDOWS:
-            lookup = "WIN"
-        else:
-            lookup = "LINUX"
-        self.dmcPercent = int(self.host.lookup("DMC_%s_PERCENT" % (lookup)))
-        self.dmcPercent = int(xenrt.TEC().lookup("DMC_%s_PERCENT" % (lookup), self.dmcPercent))
-        log("Dynamic Range Multiplies = %s" % (self.dmcPercent))
+    def preLogs(self):
+        # If it's shutdown, start it so we try and collect logs
+        if self.guest and self.guest.getState() == "DOWN":
+            xenrt.TEC().logverbose("Attempting to start guest for log collection")
+            try:
+                self.guest.start()
+            except:
+                pass
 
-        self.guest.shutdown()
+    def checkStaticMin(self):
+        smin = int(self.guest.paramGet("memory-static-min")) / xenrt.MEGA
+        if smin != self.minStaticSupported:
+            raise xenrt.XRTFailure("memory-static-min does not equal minimum supported RAM",
+                                   data="Expecting %dMiB, found %dMiB" % (self.minStaticSupported, smin))
+        else:
+            log("memory-static-min is equal to minimum supported RAM = %d" % (smin))
 
     def run(self, arglist=None):
         # VMs have a limitation on the range they can balloon over
@@ -290,24 +328,6 @@ class _BalloonSmoketest(_BalloonPerfBase):
 
         step("Verify that static-min is equal to the min supported RAM")
         self.runSubcase("checkStaticMin", (), "Verify", "StaticMin")
-
-    def preLogs(self):
-        # If it's shutdown, start it so we try and collect logs
-        if self.guest and self.guest.getState() == "DOWN":
-            xenrt.TEC().logverbose("Attempting to start guest for log collection")
-            try:
-                self.guest.start()
-            except:
-                pass
-
-    def checkStaticMin(self):
-        smin = int(self.guest.paramGet("memory-static-min")) / xenrt.MEGA
-        if smin != self.minStaticSupported:
-            raise xenrt.XRTFailure("memory-static-min does not equal minimum supported RAM",
-                                   data="Expecting %dMiB, found %dMiB" % (self.minStaticSupported, smin))
-        else:
-            log("memory-static-min is equal to minimum supported RAM = %d" % (smin))
-
 
     def runCase(self, min, max, type):
         success = 0
@@ -346,61 +366,17 @@ class _BalloonSmoketest(_BalloonPerfBase):
             
 
     def runCaseInner(self, minMem, maxMem, doLifecycleOps):
-        if self.HVM_PV_CONSTRAINT:
-            self.testMaxRange(minMem, maxMem-10, maxMem, doLifecycleOps)
-        else:
-            self.testMaxRange(minMem, maxMem, maxMem, doLifecycleOps)
-
-
-    def testMaxRange(self, minMem, maxMem, smaxMem, doLifecycleOps):
         try:
             if self.BALLOON_UP_INITIAL_ALLOC:
-                step("Set dynamic-min=dynamic-max=min, static-max=max")
-                self.guest.setMemoryProperties(None, minMem, minMem, smaxMem)
-
-                self.guest.start()
-                self.guest.checkMemory(inGuest=True)
-                self.status = "booted"
-
-                step("Check the target has been met correctly")
-                self.guest.waitForTarget(120, desc="Memory target is not met after boot")
-                
-                #These changes are added for EXT-119
-                step("Check by what how much value can we balloon up/down the VM")
-                stepSize = min((maxMem-minMem),9*self.MEMORY_STEP)
-                log("Step size = %d" % stepSize)
-
-                step("Verify VM can balloon up to smax")
-                memStep = minMem
-                while memStep+stepSize < maxMem:
-                    memStep = memStep + stepSize
-                    self.guest.setDynamicMemRange(memStep, memStep)
-                    self.guest.waitForTarget(800)
-                    time.sleep(10)
-                    self.guest.checkMemory(inGuest=True)
-                self.guest.setDynamicMemRange(maxMem, maxMem)
-
-                self.guest.waitForTarget(800)
-                time.sleep(10)
-                self.guest.checkMemory(inGuest=True)
-
-                step("Verify it can balloon down to min")
-                memStep = maxMem
-                xenrt.TEC().logverbose(memStep)
-                while memStep-stepSize > minMem:
-                    memStep = memStep - stepSize
-                    self.guest.setDynamicMemRange(memStep, memStep)
-                    self.guest.waitForTarget(800)
-                    time.sleep(10)
-                    self.guest.checkMemory(inGuest=True)
-                self.guest.setDynamicMemRange(minMem, minMem)
-
-                self.guest.waitForTarget(800)
-                time.sleep(10)
-                self.guest.checkMemory(inGuest=True)
+                #Guests can balloon up from inital memory allocation
+                if self.HVM_PV_CONSTRAINT:
+                    self.testMaxRange(minMem, maxMem-10, maxMem)
+                else:
+                    self.testMaxRange(minMem, maxMem, maxMem)
             else:
+                #Guests cannot balloon up from inital memory allocation(early PV guests)
                 step("Set dynamic-min=min, dynamic-max=static-max=max")
-                self.guest.setMemoryProperties(None, minMem, maxMem, smaxMem)
+                self.guest.setMemoryProperties(None, minMem, maxMem, maxMem)
                 
                 self.guest.start()
                 self.guest.checkMemory(inGuest=True)
@@ -462,6 +438,46 @@ class _BalloonSmoketest(_BalloonPerfBase):
                     raise
             else:
                 raise
+
+    def testMaxRange(self, minMem, maxMem, smaxMem):
+        step("Set dynamic-min=dynamic-max=min, static-max=max")
+        self.guest.setMemoryProperties(None, minMem, minMem, smaxMem)
+
+        self.guest.start()
+        self.guest.checkMemory(inGuest=True)
+        self.status = "booted"
+
+        step("Check the target has been met correctly")
+        self.guest.waitForTarget(120, desc="Memory target is not met after boot")
+                
+        step("Check by how much value can we balloon up/down the VM")
+        stepSize = min((maxMem-minMem),9*self.MEMORY_STEP)
+        log("Step size = %d" % stepSize)
+
+        step("Verify VM can balloon up to max memory")
+        memStep = minMem
+        while memStep+stepSize < maxMem:
+            memStep = memStep + stepSize
+            self.guest.setDynamicMemRange(memStep, memStep)
+            self.guest.waitForTarget(800)
+            self.guest.checkMemory(inGuest=True)
+        self.guest.setDynamicMemRange(maxMem, maxMem)
+
+        self.guest.waitForTarget(800)
+        self.guest.checkMemory(inGuest=True)
+
+        step("Verify it can balloon down to min")
+        memStep = maxMem
+        xenrt.TEC().logverbose(memStep)
+        while memStep-stepSize > minMem:
+            memStep = memStep - stepSize
+            self.guest.setDynamicMemRange(memStep, memStep)
+            self.guest.waitForTarget(800)
+            self.guest.checkMemory(inGuest=True)
+        self.guest.setDynamicMemRange(minMem, minMem)
+
+        self.guest.waitForTarget(800)
+        self.guest.checkMemory(inGuest=True)
 
     def lifecycleOps(self, min):
         step("Perform Lifecycle operations on the VM")

@@ -36,8 +36,8 @@ class LoginVSI(object):
         guest.xmlrpcMapDrive(self.config["distfileLocation"], self.config["distfileDrive"])
 
     def _installOffice(self, guest):
-        setupFile = "%s:\%s" % (self.config["distfileDrive"], self.config["officeSetup"])
-        configFile = "%s:\%s" % (self.config["distfileDrive"], self.config["officeSetupConfig"])
+        setupFile = r"%s:\%s" % (self.config["distfileDrive"], self.config["officeSetup"])
+        configFile = r"%s:\%s" % (self.config["distfileDrive"], self.config["officeSetupConfig"])
         guest.installDotNet35()
         guest.xmlrpcExec(r"start /w %s /config %s" % (setupFile, configFile), timeout=1200)
 
@@ -47,7 +47,9 @@ class LoginVSI(object):
         guest.xmlrpcExec(r"icacls %s /grant:r Everyone:(OI)(CI)F /T /C " % (self.shareFolderPath))
 
     def _installDataServer(self, guest):
-        guest.xmlrpcExec(r"%s x -o%s -y -bd %s" % (self.config["7zipExe"], self.shareFolderPath, self.config["dataserverZipFile"]))
+        zipexe = r"%s:\%s" % (self.config["distfileDrive"], self.config["7zipExe"])
+        zipfile = "r%s:\%s" % (self.config["distfileDrive"], self.config["dataserverZipFile"])
+        guest.xmlrpcExec(r"%s x -o%s -y -bd %s" % (zipexe, self.shareFolderPath, zipfile))
         # TODO - configure ini files.
 
     def _mapVSIShareToDrive(self, guest):
@@ -61,7 +63,8 @@ class LoginVSI(object):
 
     def _installTarget(self, guest):
         guest.xmlrpcExec(r'setx vsishare "%s"' % (self.vsisharePath))
-        guest.xmlrpcExec(r'%s 1 1 1 1 1 "LoginVSI"' % self.config["targetSetup"])
+        targetcmd = r"%s:\%s" % (self.config["distfileDrive"], self.config["targetSetup"])
+        guest.xmlrpcExec(r'%s 1 1 1 1 1 "LoginVSI"' % targetcmd)
 
     def setupDataServer(self):
         self._mapLoginVSIdistfiles(self.dataServerGuest)

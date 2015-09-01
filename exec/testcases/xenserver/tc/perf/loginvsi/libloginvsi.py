@@ -23,7 +23,7 @@ class LoginVSI(object):
                         "officeSetup"       : r"officeSetup\off2k7\setup.exe",
                         "officeSetupConfig" : r"officeSetup\config.xml",
                         "dataserverZipFile" : r"dataserver\vsishareFiles.zip",
-                        "7zipExe"           : r"7-Zip\7z.exe",
+                        "7zipExe"           : r"7z1506-extra\7za.exe",
                         "targetSetup"       : r"target\lib\VSITarget.cmd"
                         }
 
@@ -64,7 +64,7 @@ class LoginVSI(object):
     def _installTarget(self, guest):
         guest.xmlrpcExec(r'setx vsishare "%s"' % (self.vsisharePath))
         targetcmd = r"%s:\%s" % (self.config["distfileDrive"], self.config["targetSetup"])
-        guest.xmlrpcExec(r'%s 1 1 1 1 1 "LoginVSI"' % targetcmd)
+        guest.xmlrpcExec(r'%s 1 1 1 1 1 "LoginVSI"' % targetcmd, level=xenrt.RC_OK) # targetcmd throws error even if all tasks are done.
 
     def setupDataServer(self):
         self._mapLoginVSIdistfiles(self.dataServerGuest)

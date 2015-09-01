@@ -31,6 +31,7 @@
       <testcase id="testcases.xenserver.tc.rbacapi.TC9826"/>        
       <testcase id="testcases.xenserver.tc.rbacapi.TC9827"/>        
       <testcase id="testcases.xenserver.tc.rbacapi.TC9828"/>        
+      <testcase id="testcases.xenserver.tc.rbaccli.TC14902" />      
     </serial>
   </testsequence>
 

@@ -36,7 +36,6 @@
         <arg>input=DEFAULT</arg>
         <arg>suspendDuringUpgrade</arg>
       </testcase>
-      <testcase id="testcases.xenserver.tc.rbaccli.TC14902" />
       <testcase id="testcases.xenserver.tc.rbacapi.TC10214" />
       <testcase id="testcases.xenserver.tc.rbacapi.TC10215" />
       <testcase id="testcases.xenserver.tc.rbacapi.TC10216" />

@@ -20,11 +20,11 @@ class LoginVSI(object):
 
     def initdistfileVars(self):
         self.config = { "distfileDrive"     : "Z",
-                        "officeSetup"       : "officeSetup\off2k7\setup.exe",
-                        "officeSetupConfig" : "officeSetup\config.xml",
-                        "dataserverZipFile" : "dataserver\vsishareFiles.zip",
-                        "7zipExe"           : "7-Zip\7z.exe",
-                        "targetSetup"       : "target\lib\VSITarget.cmd"
+                        "officeSetup"       : r"officeSetup\off2k7\setup.exe",
+                        "officeSetupConfig" : r"officeSetup\config.xml",
+                        "dataserverZipFile" : r"dataserver\vsishareFiles.zip",
+                        "7zipExe"           : r"7-Zip\7z.exe",
+                        "targetSetup"       : r"target\lib\VSITarget.cmd"
                         }
 
         if self.version=="4.1.3":
@@ -38,10 +38,11 @@ class LoginVSI(object):
     def _installOffice(self, guest):
         setupFile = "%s:\%s" % (self.config["distfileDrive"], self.config["officeSetup"])
         configFile = "%s:\%s" % (self.config["distfileDrive"], self.config["officeSetupConfig"])
+        guest.installDotNet35()
         guest.xmlrpcExec(r"start /w %s /config %s" % (setupFile, configFile), timeout=1200)
 
     def _installVSIShare(self, guest):
-        guest.xmlrpcExec(r"mkdir c:\%s" % self.shareFolderName)
+        guest.xmlrpcExec(r"if not exist %s mkdir %s" % (self.shareFolderPath, self.shareFolderPath))
         guest.xmlrpcExec(r"net share %s=%s" % (self.shareFolderName,self.shareFolderPath))
         guest.xmlrpcExec(r"icacls %s /grant:r Everyone:(OI)(CI)F /T /C " % (self.shareFolderPath))
 

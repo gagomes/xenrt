@@ -48,7 +48,7 @@ class LoginVSI(object):
 
     def _installDataServer(self, guest):
         zipexe = r"%s:\%s" % (self.config["distfileDrive"], self.config["7zipExe"])
-        zipfile = "r%s:\%s" % (self.config["distfileDrive"], self.config["dataserverZipFile"])
+        zipfile = r"%s:\%s" % (self.config["distfileDrive"], self.config["dataserverZipFile"])
         guest.xmlrpcExec(r"%s x -o%s -y -bd %s" % (zipexe, self.shareFolderPath, zipfile))
         # TODO - configure ini files.
 

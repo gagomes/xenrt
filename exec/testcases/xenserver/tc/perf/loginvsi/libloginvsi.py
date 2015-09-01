@@ -56,7 +56,7 @@ class LoginVSI(object):
         guest.xmlrpcExec(r"subst h: /D", level=xenrt.RC_OK)
         guest.xmlrpcExec(r"subst h: %Temp%")
         guest.xmlrpcExec(r"subst g: /D", level=xenrt.RC_OK)
-        guest.xmlrpcExec(r"subst g: %s\_VSI_Content" %(vsi.vsisharePath))
+        guest.xmlrpcExec(r"subst g: %s\_VSI_Content" %(self.vsisharePath))
 
     def _installTarget(self, guest):
         guest.xmlrpcExec(r'setx vsishare "%s"' % (self.vsisharePath))
@@ -74,7 +74,7 @@ class LoginVSI(object):
             self._installOffice(self.targetGuest)
         self._mapVSIShareToDrive(self.targetGuest)
         self._installTarget(self.targetGuest)
-        self._createSubstPaths(guest)
+        self._createSubstPaths(self.targetGuest)
 
     def installLoginVSI(self):
         self.setupDataServer()

@@ -2,7 +2,7 @@ import xenrt, libperf
 import os, time, json
 from xenrt.lazylog import step, comment, log, warning
 
-class BlackWidowPerfromanceTestCase(libperf.PerfTestCase):
+class BlackWidowPerformanceTestCase(libperf.PerfTestCase):
 
     TEST = None
     WORKLOADS = {
@@ -105,7 +105,7 @@ DEFINE_REQUESTS
 
 #### Testcase core methods ####
     def __init__(self):
-        libperf.PerfTestCase.__init__(self, self.TEST)
+        super(BlackWidowPerformanceTestCase, self).__init__(self.TEST)
 
     def parseArgs(self, arglist):
         # Performance Test Metrics
@@ -153,11 +153,11 @@ DEFINE_REQUESTS
         self.runTest()
         self.stopWorkload()
 
-class TCHttp100KResp(BlackWidowPerfromanceTestCase):
+class TCHttp100KResp(BlackWidowPerformanceTestCase):
     TEST = "100K_resp"
 
     def prepare(self, arglist=[]):
-        BlackWidowPerfromanceTestCase.prepare(self, arglist=[])
+        super(TCHttp100KResp, self).prepare(arglist=[])
 
         self.httpClientThreads = libperf.getArgument(arglist, "httpclientthread", int, 500) # number of HTTP client threads
         self.httpClientParallelconn = libperf.getArgument(arglist, "httpclientparallelconn", int, 500) # number of HTTP client parallel connections
@@ -205,7 +205,7 @@ class TCHttp1BResp(TCHttp100KResp):
     TEST = "1B_Resp"
 
     def prepare(self, arglist=[]):
-        BlackWidowPerfromanceTestCase.prepare(self, arglist=[])
+        super(TCHttp1BResp, self).prepare(arglist=[])
 
         self.httpClientThreads = libperf.getArgument(arglist, "httpclientthread", int, 200)
         self.httpClientParallelconn = libperf.getArgument(arglist, "httpclientparallelconn", int, 200)
@@ -221,7 +221,7 @@ class TCTcpVipCps(TCHttp100KResp):
     TEST = "TCP_VIP_CPS"
 
     def prepare(self, arglist=[]):
-        BlackWidowPerfromanceTestCase.prepare(self, arglist=[])
+        super(TCTcpVipCps, self).prepare(arglist=[])
 
         self.httpClientParallelconn = libperf.getArgument(arglist, "httpclientparallelconn", int, 200)
 

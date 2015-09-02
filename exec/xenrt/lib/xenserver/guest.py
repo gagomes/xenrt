@@ -2669,7 +2669,7 @@ exit /B 1
                     xenrt.TEC().warning("DB vcpus value is greater than maxVcpusSupported!")
                 self.setVCPUs(dbVal)
             else:
-                xenrt.TEC().logverbose("Randomly choosen vcpus is %d" % randomVcpus)
+                xenrt.TEC().logverbose("Randomly chosen vcpus is %d" % randomVcpus)
                 self.setVCPUs(randomVcpus)
                 xenrt.GEC().config.setVariable("RND_VCPUS_VAL",str(randomVcpus))
                 xenrt.GEC().dbconnect.jobUpdate("RND_VCPUS_VAL",str(randomVcpus))
@@ -2686,7 +2686,9 @@ exit /B 1
         cpuCoresOnHost = host.getCPUCores()
         socketsOnHost  = host.getNoOfSockets()
         maxCoresPerSocket = cpuCoresOnHost / socketsOnHost
-        xenrt.TEC().logverbose("cpuCoresonHost: %s, socketsonHost: %s, maxCoresPerSocket: %s" % (cpuCoresOnHost, socketsOnHost, maxCoresPerSocket))
+        maxDistroSockets = xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.distro, "MAXSOCKETS"], None)
+
+        xenrt.TEC().logverbose("cpuCoresonHost: %s, socketsonHost: %s, maxCoresPerSocket: %s, maxDistroSockets: %s" % (cpuCoresOnHost, socketsOnHost, maxCoresPerSocket, maxDistroSockets))
 
         if vcpus != None:
             # This gives us all the factors of the vcpus specified
@@ -2697,6 +2699,11 @@ exit /B 1
             validCoresPerSocket = [x for x in possibleCoresPerSocket if x <= maxCoresPerSocket]
             xenrt.TEC().logverbose("validCoresPerSocket is %s" % validCoresPerSocket)
 
+            if maxDistroSockets:
+                # This eliminates the factors that would exceed the distro's max sockets
+                validCoresPerSocket = [x for x in validCoresPerSocket if vcpus / x <= int(maxDistroSockets)]
+                xenrt.TEC().logverbose("validCoresPerSocket after distro MAXSOCKETS taken into account is %s" % validCoresPerSocket)
+
             # Then choose a value from here
             coresPerSocket = random.choice(validCoresPerSocket)
 
@@ -2704,7 +2711,7 @@ exit /B 1
                 dbVal = int(xenrt.TEC().lookup("RND_CORES_PER_SOCKET_VAL", "0"))
 
                 if dbVal in validCoresPerSocket:
-                    xenrt.TEC().logverbose("Using Randomly choosen cores-per-socket from DB: %d" % dbVal)
+                    xenrt.TEC().logverbose("Using Randomly chosen cores-per-socket from DB: %d" % dbVal)
                     self.setCoresPerSocket(dbVal)
                 else:
                     xenrt.TEC().logverbose("Randomly choosen cores-per-socket is %s" % coresPerSocket)
@@ -4858,6 +4865,17 @@ def createVM(host,
         if memory:
             g.setMemory(memory)
         if vcpus:
+            if vcpus == "MAX":
+                vcpus = g.getMaxSupportedVCPUCount()
+                # Check if we need to do cores per socket (only if we have a MAXSOCKETS defined and are not using RND_CORES_PER_SOCKET
+                # as that will take MAXSOCKETS into account anyway)
+                if distro in xenrt.TEC().lookup(["GUEST_LIMITATIONS"]) and not xenrt.TEC().lookup("RND_CORES_PER_SOCKET", False, boolean=True):
+                    maxsockets = xenrt.TEC().lookup(["GUEST_LIMITATIONS", distro, "MAXSOCKETS"], None)
+                    if maxsockets and int(maxsockets) < vcpus:
+                        if isinstance(host, xenrt.lib.xenserver.host.CreedenceHost):
+                            g.setCoresPerSocket(vcpus / int(maxsockets))
+                        else:
+                            vcpus = maxsockets
             g.setVCPUs(vcpus)
         elif xenrt.TEC().lookup("RND_VCPUS", default=False, boolean=True):
             g.setRandomVcpus()

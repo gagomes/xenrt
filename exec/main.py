@@ -890,6 +890,10 @@ config = xenrt.Config()
 if aux and not shelllogging:
     config.nologging = True
 
+# Read in JSON config data
+for cf in glob.glob("%s/data/config/*.json" % (localxenrt.SHAREDIR)):
+    config.readFromJSONFile(cf)
+
 def readConfigDir(directory):
     global config
     for cf in glob.glob("%s/*.xml" % (directory)):
@@ -1861,7 +1865,7 @@ if cleanuplocks:
                                 pass
 
                             os.rmdir(path)
-                        if lock[0].startswith("VLAN") or lock[0].startswith("IP4ADDR") or lock[0].startswith("IP6ADDR") or lock[0].startswith("EXT-IP4ADDR"):
+                        if lock[0].startswith("VLAN") or lock[0].startswith("ROUTEDVLAN") or lock[0].startswith("IP4ADDR") or lock[0].startswith("IP6ADDR") or lock[0].startswith("EXT-IP4ADDR"):
                             jobsForMachinePowerOff.append(lock[2]['jobid']) 
                         if lock[0].startswith("GLOBAL"):
                             jobsForGlobalRelease.append(lock[2]['jobid'])
@@ -2260,6 +2264,8 @@ if listresources:
             except:
                 pass
             ret[k].sort()
+        if k == "ROUTEDVLAN":
+            ret[k] = dict([(x, xenrt.PrivateRoutedVLAN.getNetworkConfigForVLAN(x)) for x in ret[k]]) 
 
     print json.dumps(ret)
 

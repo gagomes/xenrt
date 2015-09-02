@@ -8,7 +8,7 @@
 # conditions as licensed by XenSource, Inc. All other rights reserved.
 #
 
-import sys, string, xml.dom.minidom, re, os.path, os, copy
+import sys, string, xml.dom.minidom, re, os.path, os, copy, yaml
 import xenrt
 
 __all__ = ["Config"]
@@ -965,8 +965,8 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_DEBIAN_70"] = "Debian Wheezy 7.0 (32-bit),Debian Wheezy 7.0,Debian Wheezy 7.0 (32-bit),Debian Wheezy 7.0"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_DEBIAN_70_64"] = "Debian Wheezy 7.0 (64-bit),Debian Wheezy 7.0,Debian Wheezy 7.0 (64-bit),Debian Wheezy 7.0"
         # TODO Update these to Debian Jessie templates when they exist
-        self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_DEBIAN_80"] = "Ubuntu Trusty Tahr 14.04,Ubuntu Trusty Tahr 14.04 (32-bit)"
-        self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_DEBIAN_80_64"] = "Ubuntu Trusty Tahr 14.04,Ubuntu Trusty Tahr 14.04 (64-bit)"
+        self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_DEBIAN_80"] = "Debian Jessie 8.0,Ubuntu Trusty Tahr 14.04,Ubuntu Trusty Tahr 14.04 (32-bit)"
+        self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_DEBIAN_80_64"] = "Debian Jessie 8.0,Ubuntu Trusty Tahr 14.04,Ubuntu Trusty Tahr 14.04 (64-bit)"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_DEBIAN_TESTING"] = "Ubuntu Trusty Tahr 14.04,Ubuntu Trusty Tahr 14.04 (32-bit)"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_DEBIAN_TESTING_64"] = "Ubuntu Trusty Tahr 14.04,Ubuntu Trusty Tahr 14.04 (64-bit)"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_RHEL_45"] = "Red Hat Enterprise Linux 4.5 (32-bit),Red Hat Enterprise Linux 4.5"
@@ -1211,6 +1211,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Dundee"]["MAX_VDIS_PER_SR_cifs"] = "600"
         self.config["VERSION_CONFIG"]["Dundee"]["MAX_ATTACHED_VDIS_PER_SR_cifs"] = "600"
         self.config["VERSION_CONFIG"]["Dundee"]["TEMPLATE_NAME_SLES_114_64"] = "SUSE Linux Enterprise Server 11 SP3 (64-bit),SUSE Linux Enterprise Server 11 SP3 x64"
+        self.config["VERSION_CONFIG"]["Dundee"]["TEMPLATE_NAME_SLED_12_64"] = "SUSE Linux Enterprise Desktop 12 (64-bit)"
         self.config["VERSION_CONFIG"]["Dundee"]["MAX_VBDS_PER_HOST"] = "4096"
 
         # XenServer dom0 partitions
@@ -1818,10 +1819,10 @@ class Config(object):
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["centos7_x86-64"] = "CentOS 7"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["oel7_x86-64"] = "Oracle Linux 7"
         
-        self.config["CLOUD_CONFIG"]["4.3"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvm64template-2014-04-10-master-xen.vhd.bz2"
-        self.config["CLOUD_CONFIG"]["4.3"]["SYSTEM_TEMPLATES"]["kvm"] = "/usr/groups/xenrt/cloud/systemvm64template-2014-04-10-master-kvm.qcow2.bz2"
-        self.config["CLOUD_CONFIG"]["4.3"]["SYSTEM_TEMPLATES"]["hyperv"] = "/usr/groups/xenrt/cloud/systemvm64template-2013-12-23-hyperv.vhd.bz2"
-        self.config["CLOUD_CONFIG"]["4.3"]["SYSTEM_TEMPLATES"]["vmware"] = "/usr/groups/xenrt/cloud/systemvm64template-2014-02-13-master-vmware.ova"
+        self.config["CLOUD_CONFIG"]["4.3"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-08-20-4.3-xen.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["4.3"]["SYSTEM_TEMPLATES"]["kvm"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-08-20-4.3-kvm.qcow2.bz2"
+        self.config["CLOUD_CONFIG"]["4.3"]["SYSTEM_TEMPLATES"]["hyperv"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-08-20-4.3-hyperv.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["4.3"]["SYSTEM_TEMPLATES"]["vmware"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-08-20-4.3-vmware.ova"
 
         self.config["CLOUD_CONFIG"]["4.4"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.3"])
         self.config["CLOUD_CONFIG"]["4.4"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvm64template-master-xen.vhd.bz2"
@@ -1882,60 +1883,10 @@ class Config(object):
         self.config["GUEST_NO_HOTPLUG_CPU"] = "w2k3eesp2pae,w2k3se,w2k3sesp1,w2k3ser2,w2k3sesp2,w2k3sesp2-x64,w2k3ee,w2k3eesp1,w2k3eer2,w2k3eesp2,w2k3eesp2-x64,w2kassp4,winxpsp2,ubuntu1004,sles111"
         self.config["GUEST_NO_HOTUNPLUG_CPU"] = "w2k3eesp2pae,w2k3se,w2k3sesp1,w2k3ser2,w2k3sesp2,w2k3sesp2-x64,w2k3ee,w2k3eesp1,w2k3eer2,w2k3eesp2,w2k3eesp2-x64,w2kassp4,winxpsp2,ubuntu1004,sles111"
         
-        # Mapping of product major and minor versions to codenames
-        self.config["PRODUCT_CODENAMES"] = {}
-        self.config["PRODUCT_CODENAMES"]["4.0.1"] = "Rio"
-        self.config["PRODUCT_CODENAMES"]["4.1.0"] = "Rio"
-        self.config["PRODUCT_CODENAMES"]["5.0.0"] = "Orlando"
-        self.config["PRODUCT_CODENAMES"]["5.5.0"] = "George"
-        self.config["PRODUCT_CODENAMES"]["5.5.0-Update2"] = "George"
-        self.config["PRODUCT_CODENAMES"]["5.6.0"] = "MNR"
-        self.config["PRODUCT_CODENAMES"]["5.6.100"] = "Cowley"
-        self.config["PRODUCT_CODENAMES"]["5.9.950"] = "Boston"
-        self.config["PRODUCT_CODENAMES"]["6.0.0"] = "Boston"
-        self.config["PRODUCT_CODENAMES"]["6.0.2"] = "Sanibel"
-        self.config["PRODUCT_CODENAMES"]["6.0.50"] = "Tampa"
-        self.config["PRODUCT_CODENAMES"]["6.0.900"] = "Tampa"
-        self.config["PRODUCT_CODENAMES"]["6.0.901"] = "Tampa"
-        self.config["PRODUCT_CODENAMES"]["6.0.902"] = "Tampa"
-        self.config["PRODUCT_CODENAMES"]["6.0.903"] = "Tampa"
-        self.config["PRODUCT_CODENAMES"]["6.0.904"] = "Tampa"
-        self.config["PRODUCT_CODENAMES"]["6.1.0"] = "Tampa"
-        self.config["PRODUCT_CODENAMES"]["6.1.1"] = "Tallahassee"
-        self.config["PRODUCT_CODENAMES"]["6.1.81"] = "Clearwater"
-        self.config["PRODUCT_CODENAMES"]["6.1.82"] = "Clearwater"
-        self.config["PRODUCT_CODENAMES"]["6.1.83"] = "Clearwater"
-        self.config["PRODUCT_CODENAMES"]["6.1.84"] = "Clearwater"
-        self.config["PRODUCT_CODENAMES"]["6.1.85"] = "Clearwater"
-        self.config["PRODUCT_CODENAMES"]["6.1.86"] = "Clearwater"
-        self.config["PRODUCT_CODENAMES"]["6.1.87"] = "Clearwater"
-        self.config["PRODUCT_CODENAMES"]["6.1.88"] = "Clearwater"
-        self.config["PRODUCT_CODENAMES"]["6.1.89"] = "Clearwater"
-        self.config["PRODUCT_CODENAMES"]["6.1.90"] = "Clearwater"
-        self.config["PRODUCT_CODENAMES"]["6.1.2"] = "Clearwater"
-        self.config["PRODUCT_CODENAMES"]["6.2"] = "Clearwater"
-        self.config["PRODUCT_CODENAMES"]["6.2.0"] = "Clearwater"
-        self.config["PRODUCT_CODENAMES"]["6.1"] = "Tampa"
-
-        self.config["PRODUCT_CODENAMES"]["6.1.50"] = "Dundee"
-        self.config["PRODUCT_CODENAMES"]["6.2.50"] = "Dundee"
-        self.config["PRODUCT_CODENAMES"]["6.6.0"] = "Dundee"
-        self.config["PRODUCT_CODENAMES"]["6.6.80"] = "Dundee"
-        self.config["PRODUCT_CODENAMES"]["6.6.81"] = "Dundee"
-        self.config["PRODUCT_CODENAMES"]["6.6.82"] = "Dundee"
-        self.config["PRODUCT_CODENAMES"]["6.6.83"] = "Dundee"
-        
-        self.config["PRODUCT_CODENAMES"]["6.4.90"] = "Creedence"
-        self.config["PRODUCT_CODENAMES"]["6.4.91"] = "Creedence"
-        self.config["PRODUCT_CODENAMES"]["6.4.92"] = "Creedence"
-        self.config["PRODUCT_CODENAMES"]["6.4.93"] = "Creedence"
-        self.config["PRODUCT_CODENAMES"]["6.4.94"] = "Creedence"
-        self.config["PRODUCT_CODENAMES"]["6.4.95"] = "Creedence"
-        self.config["PRODUCT_CODENAMES"]["6.4.96"] = "Creedence"
-        self.config["PRODUCT_CODENAMES"]["6.4.97"] = "Creedence"
-        self.config["PRODUCT_CODENAMES"]["6.4.98"] = "Creedence"
-        self.config["PRODUCT_CODENAMES"]["6.4.99"] = "Creedence"
-        self.config["PRODUCT_CODENAMES"]["6.5.0"] = "Creedence"
+        # PRODUCT_CODENAMES contains a mapping of product major and minor
+        # versions to codenames. It is now loaded from
+        # data/config/PRODUCT_CODENAMES.json rather than being defined in
+        # config.py to allow other tools to use the data
 
         # Platform releases
         self.config["PLATFORM_CODENAMES"] = {}
@@ -2054,22 +2005,22 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["ws08-x86"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["ws08-x86"]["MAXMEMORY"] = "65536"
         self.config["GUEST_LIMITATIONS"]["ws08-x86"]["MAXSOCKETS"] = "8"
-        self.config["GUEST_LIMITATIONS"]["ws08-x86"]["MAX_VM_VCPUS"] = "8"
+        self.config["GUEST_LIMITATIONS"]["ws08-x86"]["MAX_VM_VCPUS"] = "16"
         self.config["GUEST_LIMITATIONS"]["ws08-x64"] = {}
         self.config["GUEST_LIMITATIONS"]["ws08-x64"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["ws08-x64"]["MAXMEMORY"] = "1048576"
         self.config["GUEST_LIMITATIONS"]["ws08-x64"]["MAXSOCKETS"] = "8"
-        self.config["GUEST_LIMITATIONS"]["ws08-x64"]["MAX_VM_VCPUS"] = "8"
+        self.config["GUEST_LIMITATIONS"]["ws08-x64"]["MAX_VM_VCPUS"] = "16"
         self.config["GUEST_LIMITATIONS"]["ws08sp2-x86"] = {}
         self.config["GUEST_LIMITATIONS"]["ws08sp2-x86"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["ws08sp2-x86"]["MAXMEMORY"] = "65536"
         self.config["GUEST_LIMITATIONS"]["ws08sp2-x86"]["MAXSOCKETS"] = "8"
-        self.config["GUEST_LIMITATIONS"]["ws08sp2-x86"]["MAX_VM_VCPUS"] = "8"
+        self.config["GUEST_LIMITATIONS"]["ws08sp2-x86"]["MAX_VM_VCPUS"] = "16"
         self.config["GUEST_LIMITATIONS"]["ws08sp2-x64"] = {}
         self.config["GUEST_LIMITATIONS"]["ws08sp2-x64"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["ws08sp2-x64"]["MAXMEMORY"] = "1048576"
         self.config["GUEST_LIMITATIONS"]["ws08sp2-x64"]["MAXSOCKETS"] = "8"
-        self.config["GUEST_LIMITATIONS"]["ws08sp2-x64"]["MAX_VM_VCPUS"] = "8"
+        self.config["GUEST_LIMITATIONS"]["ws08sp2-x64"]["MAX_VM_VCPUS"] = "16"
         self.config["GUEST_LIMITATIONS"]["ws08dc-x86"] = {}
         self.config["GUEST_LIMITATIONS"]["ws08dc-x86"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["ws08dc-x86"]["MAXMEMORY"] = "65536"
@@ -2094,12 +2045,12 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["ws08r2-x64"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["ws08r2-x64"]["MAXMEMORY"] = "2097152"
         self.config["GUEST_LIMITATIONS"]["ws08r2-x64"]["MAXSOCKETS"] = "8"
-        self.config["GUEST_LIMITATIONS"]["ws08r2-x64"]["MAX_VM_VCPUS"] = "8"
+        self.config["GUEST_LIMITATIONS"]["ws08r2-x64"]["MAX_VM_VCPUS"] = "16"
         self.config["GUEST_LIMITATIONS"]["ws08r2sp1-x64"] = {}
         self.config["GUEST_LIMITATIONS"]["ws08r2sp1-x64"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["ws08r2sp1-x64"]["MAXMEMORY"] = "2097152"
         self.config["GUEST_LIMITATIONS"]["ws08r2sp1-x64"]["MAXSOCKETS"] = "8"
-        self.config["GUEST_LIMITATIONS"]["ws08r2sp1-x64"]["MAX_VM_VCPUS"] = "8"
+        self.config["GUEST_LIMITATIONS"]["ws08r2sp1-x64"]["MAX_VM_VCPUS"] = "16"
         self.config["GUEST_LIMITATIONS"]["ws08r2dcsp1-x64"] = {}
         self.config["GUEST_LIMITATIONS"]["ws08r2dcsp1-x64"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["ws08r2dcsp1-x64"]["MAXMEMORY"] = "2097152"
@@ -2109,52 +2060,52 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["win7-x86"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["win7-x86"]["MAXMEMORY"] = "4096"
         self.config["GUEST_LIMITATIONS"]["win7-x86"]["MAXSOCKETS"] = "2"
-        self.config["GUEST_LIMITATIONS"]["win7-x86"]["MAX_VM_VCPUS"] = "2"
+        self.config["GUEST_LIMITATIONS"]["win7-x86"]["MAX_VM_VCPUS"] = "16"
         self.config["GUEST_LIMITATIONS"]["win7-x64"] = {}
         self.config["GUEST_LIMITATIONS"]["win7-x64"]["MINMEMORY"] = "2048"
         self.config["GUEST_LIMITATIONS"]["win7-x64"]["MAXMEMORY"] = "196608"
         self.config["GUEST_LIMITATIONS"]["win7-x64"]["MAXSOCKETS"] = "2"
-        self.config["GUEST_LIMITATIONS"]["win7-x64"]["MAX_VM_VCPUS"] = "2"
+        self.config["GUEST_LIMITATIONS"]["win7-x64"]["MAX_VM_VCPUS"] = "16"
         self.config["GUEST_LIMITATIONS"]["win7sp1-x86"] = {}
         self.config["GUEST_LIMITATIONS"]["win7sp1-x86"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["win7sp1-x86"]["MAXMEMORY"] = "4096"
         self.config["GUEST_LIMITATIONS"]["win7sp1-x86"]["MAXSOCKETS"] = "2"
-        self.config["GUEST_LIMITATIONS"]["win7sp1-x86"]["MAX_VM_VCPUS"] = "2"
+        self.config["GUEST_LIMITATIONS"]["win7sp1-x86"]["MAX_VM_VCPUS"] = "16"
         self.config["GUEST_LIMITATIONS"]["win7sp1-x64"] = {}
         self.config["GUEST_LIMITATIONS"]["win7sp1-x64"]["MINMEMORY"] = "2048"
         self.config["GUEST_LIMITATIONS"]["win7sp1-x64"]["MAXMEMORY"] = "196608"
         self.config["GUEST_LIMITATIONS"]["win7sp1-x64"]["MAXSOCKETS"] = "2"
-        self.config["GUEST_LIMITATIONS"]["win7sp1-x64"]["MAX_VM_VCPUS"] = "2"
+        self.config["GUEST_LIMITATIONS"]["win7sp1-x64"]["MAX_VM_VCPUS"] = "16"
         self.config["GUEST_LIMITATIONS"]["win8-x86"] = {}
         self.config["GUEST_LIMITATIONS"]["win8-x86"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["win8-x86"]["MAXMEMORY"] = "131072"
         self.config["GUEST_LIMITATIONS"]["win8-x86"]["MAXSOCKETS"] = "2"
-        self.config["GUEST_LIMITATIONS"]["win8-x86"]["MAX_VM_VCPUS"] = "2"
+        self.config["GUEST_LIMITATIONS"]["win8-x86"]["MAX_VM_VCPUS"] = "16"
         self.config["GUEST_LIMITATIONS"]["win8-x64"] = {}
         self.config["GUEST_LIMITATIONS"]["win8-x64"]["MINMEMORY"] = "2048"
         self.config["GUEST_LIMITATIONS"]["win8-x64"]["MAXMEMORY"] = "131072"
         self.config["GUEST_LIMITATIONS"]["win8-x64"]["MAXSOCKETS"] = "2"
-        self.config["GUEST_LIMITATIONS"]["win8-x64"]["MAX_VM_VCPUS"] = "2"
+        self.config["GUEST_LIMITATIONS"]["win8-x64"]["MAX_VM_VCPUS"] = "16"
         self.config["GUEST_LIMITATIONS"]["win10-x86"] = {}
         self.config["GUEST_LIMITATIONS"]["win10-x86"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["win10-x86"]["MAXMEMORY"] = "131072"
         self.config["GUEST_LIMITATIONS"]["win10-x86"]["MAXSOCKETS"] = "2"
-        self.config["GUEST_LIMITATIONS"]["win10-x86"]["MAX_VM_VCPUS"] = "2"
+        self.config["GUEST_LIMITATIONS"]["win10-x86"]["MAX_VM_VCPUS"] = "16"
         self.config["GUEST_LIMITATIONS"]["win10-x64"] = {}
         self.config["GUEST_LIMITATIONS"]["win10-x64"]["MINMEMORY"] = "2048"
         self.config["GUEST_LIMITATIONS"]["win10-x64"]["MAXMEMORY"] = "131072"
         self.config["GUEST_LIMITATIONS"]["win10-x64"]["MAXSOCKETS"] = "2"
-        self.config["GUEST_LIMITATIONS"]["win10-x64"]["MAX_VM_VCPUS"] = "2"
+        self.config["GUEST_LIMITATIONS"]["win10-x64"]["MAX_VM_VCPUS"] = "16"
         self.config["GUEST_LIMITATIONS"]["win81-x86"] = {}
         self.config["GUEST_LIMITATIONS"]["win81-x86"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["win81-x86"]["MAXMEMORY"] = "131072"
         self.config["GUEST_LIMITATIONS"]["win81-x86"]["MAXSOCKETS"] = "2"
-        self.config["GUEST_LIMITATIONS"]["win81-x86"]["MAX_VM_VCPUS"] = "2"
+        self.config["GUEST_LIMITATIONS"]["win81-x86"]["MAX_VM_VCPUS"] = "16"
         self.config["GUEST_LIMITATIONS"]["win81-x64"] = {}
         self.config["GUEST_LIMITATIONS"]["win81-x64"]["MINMEMORY"] = "2048"
         self.config["GUEST_LIMITATIONS"]["win81-x64"]["MAXMEMORY"] = "131072"
         self.config["GUEST_LIMITATIONS"]["win81-x64"]["MAXSOCKETS"] = "2"
-        self.config["GUEST_LIMITATIONS"]["win81-x64"]["MAX_VM_VCPUS"] = "2"
+        self.config["GUEST_LIMITATIONS"]["win81-x64"]["MAX_VM_VCPUS"] = "16"
         self.config["GUEST_LIMITATIONS"]["ws12-x64"] = {}
         self.config["GUEST_LIMITATIONS"]["ws12-x64"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["ws12-x64"]["MAXMEMORY"] = "524288"
@@ -4241,6 +4192,19 @@ class Config(object):
         """Read config from an XML file."""
         self.parseConfig(filename, path=path)
 
+    def __dictMerge(self, a, b):
+        """Recursively merge dictionaries and b"""
+        for k, v in b.iteritems():
+            if k in a and isinstance(a[k], dict):
+                self.__dictMerge(a[k], v)
+            else:
+                a[k] = v
+
+    def readFromJSONFile(self, filename):
+        """Read config from a JSON file."""
+        with open(filename, 'r') as jf:
+            self.__dictMerge(self.config, yaml.load(jf.read()))
+
     def writeOut(self, fd, conf=None, pref=[]):
         """Write the config out to a file descriptor"""
         if conf == None:
@@ -4251,11 +4215,17 @@ class Config(object):
             if type(conf[key]) == type(""):
                 s = re.sub(r"\$\{(\w+)\}", self.lookupHelper, conf[key])
                 value = string.replace(s, "'", "\\'")
-                fd.write("%s='%s'\n" % (string.join(pref + [key], "."), value))
+                fd.write("%s='%s'\n" % (string.join(pref + [str(key)], "."), value))
+            elif type(conf[key]) == int or type(conf[key]) == float:
+                fd.write("%s=%s\n" % (string.join(pref + [str(key)], "."), str(conf[key])))
             elif type(conf[key]) == list:
-                fd.write("%s=%s\n" % (string.join(pref + [key], "."), str(conf[key]))) 
-            else:
+                fd.write("%s=%s\n" % (string.join(pref + [str(key)], "."), str(conf[key])))
+            elif conf[key] is None:
+                fd.write("%s=None\n" % (string.join(pref + [str(key)], ".")))
+            elif type(conf[key]) == dict:
                 self.writeOut(fd, conf[key], pref + [key])
+            else:
+                raise xenrt.XRTError("Unknown type %s" % str(type(conf[key])))
 
     def setVariable(self, key, value):
         """Write a variable to the config"""

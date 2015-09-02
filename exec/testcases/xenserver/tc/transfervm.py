@@ -2394,6 +2394,9 @@ class IscsiTest(VhdFunctions):
         tmpDir = xenrt.TEC().tempDir()       
         filename = "%s/tvmiscsi.conf" % (tmpDir)
         config = u"""
+fips = no
+sslVersion = TLSv1.2
+
 [localhost-stunnel]
 accept = 127.0.0.1:%d
 connect = %s:%d

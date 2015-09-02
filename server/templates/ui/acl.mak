@@ -79,18 +79,18 @@ $(function() {
         }
 
         var userLimitsDiv = $( "<div class=\"aclentry-userlimits\" />" );
-        userLimitsDiv.append("User limit: <input type=\"text\" id=\"userlimit\" value=\"" + (entry.userlimit ? entry.userlimit : "") + "\" /><br />");
-        userLimitsDiv.append("User percentage: <input type=\"text\" id=\"userpercent\" value=\"" + (entry.userpercent ? entry.userpercent : "") + "\" /><br />");
+        userLimitsDiv.append("User limit: <input type=\"text\" id=\"userlimit\" value=\"" + (entry.userlimit != null ? entry.userlimit : "") + "\" /><br />");
+        userLimitsDiv.append("User percentage: <input type=\"text\" id=\"userpercent\" value=\"" + (entry.userpercent != null ? entry.userpercent : "") + "\" /><br />");
         aclContent.append(userLimitsDiv);
 
         if (entry.type != "user") {
             var groupLimitsDiv = $( "<div class=\"aclentry-grouplimits\" />" );
-            groupLimitsDiv.append("Group limit: <input type=\"text\" id=\"grouplimit\" value=\"" + (entry.grouplimit ? entry.grouplimit : "") + "\" /><br />");
-            groupLimitsDiv.append("Group percentage: <input type=\"text\" id=\"grouppercent\" value=\"" + (entry.grouppercent ? entry.grouppercent : "") + "\" /><br />");
+            groupLimitsDiv.append("Group limit: <input type=\"text\" id=\"grouplimit\" value=\"" + (entry.grouplimit != null ? entry.grouplimit : "") + "\" /><br />");
+            groupLimitsDiv.append("Group percentage: <input type=\"text\" id=\"grouppercent\" value=\"" + (entry.grouppercent != null ? entry.grouppercent : "") + "\" /><br />");
             aclContent.append(groupLimitsDiv);
         }             
 
-        aclContent.append("Maximum lease hours: <input type=\"text\" id=\"maxlease\" value=\"" + (entry.maxleasehours ? entry.maxleasehours : "") + "\" /><br />");
+        aclContent.append("Maximum lease hours: <input type=\"text\" id=\"maxlease\" value=\"" + (entry.maxleasehours != null ? entry.maxleasehours : "") + "\" /><br />");
 
         aclContent.append("Allow preemptable use: <input type=\"checkbox\" id=\"preemptableuse\" " + (entry.preemptableuse ? "checked" : "") + " />");
 

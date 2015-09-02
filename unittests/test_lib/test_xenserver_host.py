@@ -8,6 +8,7 @@ class TestCoresPerSocket(XenRTUnitTestCase):
         self.__setVCPUs = Mock()
         self.__sockets = Mock()
         self.__win = PropertyMock(return_value=True)
+        self.__rndCoresPerSocket = None
 
     def __setMocksOnHost(self, host):
         host.getCPUCores = Mock(return_value=8)
@@ -20,6 +21,11 @@ class TestCoresPerSocket(XenRTUnitTestCase):
         guest.setCoresPerSocket = self.__sockets
         guest.windows = self.__win
         return guest
+
+    def cps_db_lookup(self, param, default=None, boolean=False):
+        if param == "RND_CORES_PER_SOCKET_VAL":
+            return self.__rndCoresPerSocket
+        return default
 
     @patch("xenrt.TEC")
     @patch("random.choice")
@@ -36,7 +42,8 @@ class TestCoresPerSocket(XenRTUnitTestCase):
     def testClearWaterGetsRandomCores(self, tec, gec, rand):
         """Clearwater hosts do get random called when setting sockets"""
         host = self.__setMocksOnHost(xenrt.lib.xenserver.host.ClearwaterHost(None, None))
-        tec.return_value.lookup = Mock(return_value=0)
+        self.__rndCoresPerSocket = 0
+        tec.return_value.lookup.side_effect = self.cps_db_lookup
         guest = self.__setMocksOnGuest(xenrt.lib.xenserver.guest.TampaGuest("Guest"))
         guest.setRandomCoresPerSocket(host, 23)
         self.assertTrue(rand.called)
@@ -46,7 +53,8 @@ class TestCoresPerSocket(XenRTUnitTestCase):
     def testClearwaterGetsSocketsSet(self, tec, gec):
         """For a CLR host the number of sockets should be set"""
         host = self.__setMocksOnHost(xenrt.lib.xenserver.host.ClearwaterHost(None, None))
-        tec.return_value.lookup = Mock(return_value=0)
+        self.__rndCoresPerSocket = 0
+        tec.return_value.lookup.side_effect = self.cps_db_lookup
         guest = self.__setMocksOnGuest(xenrt.lib.xenserver.guest.TampaGuest("Guest"))
         guest.setRandomCoresPerSocket(host, 23)
         self.assertTrue(self.__sockets.called)
@@ -57,7 +65,8 @@ class TestCoresPerSocket(XenRTUnitTestCase):
         """For a CLR host the number of sockets should be set if the
         cores per socket value has been pulled from the database"""
         host = self.__setMocksOnHost(xenrt.lib.xenserver.host.ClearwaterHost(None, None))
-        tec.return_value.lookup = Mock(return_value=4)
+        self.__rndCoresPerSocket = 4
+        tec.return_value.lookup.side_effect = self.cps_db_lookup
         guest = self.__setMocksOnGuest(xenrt.lib.xenserver.guest.TampaGuest("Guest"))
         guest.setRandomCoresPerSocket(host, 23)
         self.assertTrue(self.__sockets.called)
@@ -67,7 +76,8 @@ class TestCoresPerSocket(XenRTUnitTestCase):
     def testTampaDoesntGetSocketsSet(self, tec, gec):
         """For TAM hosts expect the number of sockets not to be set"""
         host = self.__setMocksOnHost(xenrt.lib.xenserver.host.TampaHost(None, None))
-        tec.return_value.lookup = Mock(return_value=0)
+        self.__rndCoresPerSocket = 0
+        tec.return_value.lookup.side_effect = self.cps_db_lookup
         guest = self.__setMocksOnGuest(xenrt.lib.xenserver.guest.TampaGuest("Guest"))
         guest.setRandomCoresPerSocket(host, 23)
         self.assertFalse(self.__sockets.called)

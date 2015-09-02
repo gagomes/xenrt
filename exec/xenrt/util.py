@@ -14,6 +14,7 @@ import calendar, types, fcntl, resource, requests
 import xenrt, xenrt.ssh
 import IPy
 import xml.sax.saxutils
+import logging
 from collections import namedtuple
 
 # Symbols we want to export from the package.
@@ -40,6 +41,8 @@ __all__ = ["timenow",
            "prefLenToMask",
            "formSubnet",
            "median",
+           "XenRTLogStream",
+           "setupLogging",
            "Timer",
            "randomSuffix",
            "randomGuestName",
@@ -311,6 +314,24 @@ def stddev(list):
     s = sum(list)
     ssq = sum(map(lambda x:x*x, list))
     return math.sqrt(ssq / n - (s / n) ** 2)
+
+def setupLogging(name, level=logging.DEBUG):
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+    stream = logging.StreamHandler(stream = XenRTLogStream())
+    stream.setLevel(level)
+    logFormat = logging.Formatter("%(name)s: %(levelname)s - %(message)s")
+    stream.setFormatter(logFormat)
+    logger.addHandler(stream)
+    
+
+class XenRTLogStream(object):
+    def write(self, data):
+        xenrt.TEC().logverbose(data.rstrip())
+
+    def flush(self):
+        pass
+
 
 class Timer(object):
 

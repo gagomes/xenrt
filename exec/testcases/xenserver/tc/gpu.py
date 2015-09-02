@@ -988,6 +988,3 @@ class TC20904(xenrt.TestCase):
             raise xenrt.XRTFailure("Supported type of pgpu: %s is not Null" %pci_obj[0])
         else :
             xenrt.TEC().logverbose("Supported type of pgpu: %s is Null as expected" %pci_obj[0])
-
-        
-

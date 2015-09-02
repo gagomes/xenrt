@@ -25,7 +25,7 @@ class MelioHelper(object):
             host.melioHelper = self
         self.lun = None
         self._scsiid = None
-        self._saneDevice = None
+        self.guid = None
         self._iscsiHost = iscsiHost
         # Get a checkout of the Melio Python library
         if not xenrt.TEC().lookup("MELIO_PYTHON_LOCAL_PATH", None):
@@ -34,6 +34,8 @@ class MelioHelper(object):
             xenrt.util.command("cd %s/melio-python && git checkout %s" % (d.path(), xenrt.TEC().lookup("MELIO_PYTHON_BRANCH", "master")))
             xenrt.GEC().config.setVariable("MELIO_PYTHON_LOCAL_PATH", "%s/melio-python" % d.path())
             sys.path.append("%s/melio-python/lib" % d.path())
+        xenrt.setupLogging("sanbolic")
+
         import sanbolic
         self._MelioClient = sanbolic.Client
         
@@ -43,7 +45,7 @@ class MelioHelper(object):
 
     def getMelioClient(self, host):
         # Get an instance of the websockets library to the Melio UI
-        return self._MelioClient("%s:8080" % host.getIP(), verbose_debugging=True, request_timeout=300)
+        return self._MelioClient("%s:8080" % host.getIP(), request_timeout=300)
 
     def setup(self, reinstall=False, formatDisk=True):
         # Do a full setup of the melio tools
@@ -78,7 +80,8 @@ class MelioHelper(object):
         tasks = [xenrt.PTask(self.installMelioOnHost, x, reinstall) for x in self.hosts]
         xenrt.pfarm(tasks)
         self.checkCluster()
-    
+   
+
     def installMelioOnHost(self, host, reinstall=False):
         # Install the Melio software on a single host
         if host.execdom0("lsmod | grep warm_drive", retval="code") == 0 and not reinstall:
@@ -106,6 +109,9 @@ class MelioHelper(object):
             # RPM workaround for now
             host.execdom0("rm -rf /usr/libexec/xapi-storage-script/datapath/raw+file*")
             host.execdom0("rpm -U --replacepkgs /root/ffs.rpm")
+            # Workaround CA-180826
+            # host.execdom0("""sed -i 's#urlparse.urlparse(sr)#urlparse.urlparse(sr.replace("file:///dev", "file:///run/sr-mount/dev") if check else sr)#' /usr/libexec/xapi-storage-script/volume/org.xen.xapi.storage.melio/common.py""")
+            host.execdom0("service xapi-storage-script restart")
 
     def checkXapiResponsive(self, host):
         # Check that xapi is responsive on the specified host
@@ -131,9 +137,27 @@ class MelioHelper(object):
     def device(self):
         return "/dev/disk/by-id/scsi-%s" % self._scsiid
 
-    @property
-    def saneDevice(self):
-        return "/dev/%s" % self._saneDevice
+    def rebootAndWait(self, host):
+        host.reboot()
+        host.execdom0("service iscsi restart")
+        self.getSanDeviceForHost(host)
+    
+    def getSanDeviceForHost(self, host):
+        with self.getMelioClient(host) as melioClient:
+            deadline = xenrt.timenow() + 600
+            while True:
+                exportedDevice = melioClient.get_all()['exported_device']
+                if isinstance(exportedDevice, dict):
+                    if self.guid in exportedDevice.keys():
+                        sanDevice = exportedDevice[self.guid]['system_name']
+                        break
+                    elif "_%s" % self.guid in exportedDevice.keys():
+                        sanDevice = exportedDevice["_%s" % self.guid]['system_name']
+                        break
+                if xenrt.timenow() > deadline:
+                    raise xenrt.XRTError("Timed out waiting for device to appear")
+                xenrt.sleep(10)
+        return sanDevice
 
     def setupMelioDisk(self):
         # Setup a melio disk on the scsi device
@@ -158,26 +182,15 @@ class MelioHelper(object):
                 if xenrt.timenow() > deadline:
                     raise xenrt.XRTError("Timed out waiting for disk to get to state 2")
                 xenrt.sleep(10)
-            guid = melioClient.create_volume(guid.lstrip("_"), managedDisks[guid]['free_space'])
-            deadline = xenrt.timenow() + 600
-            while True:
-                exportedDevice = melioClient.get_all()['exported_device']
-                if isinstance(exportedDevice, dict):
-                    if guid in exportedDevice.keys():
-                        self._saneDevice = exportedDevice[guid]['system_name']
-                        break
-                    else:
-                        self._saneDevice = exportedDevice["_%s" % guid]['system_name']
-                        break
-                if xenrt.timenow() > deadline:
-                    raise xenrt.XRTError("Timed out waiting for device to appear")
-                xenrt.sleep(10)
-
+            self.guid = melioClient.create_volume(guid.lstrip("_"), managedDisks[guid]['free_space'])
+        self.getSanDeviceForHost(self.hosts[0])
+        tasks = [xenrt.PTask(self.rebootAndWait, x) for x in self.hosts[1:]]
+        xenrt.pfarm(tasks)
 
     def mount(self, mountpoint):
         # Mount the melio device on every host in the cluster at the specified mountpoint
         for host in self.hosts:
-            host.execdom0("mount -t warm_fs %s %s" % (self.saneDevice, mountpoint))
+            host.execdom0("mount -t warm_fs /dev/%s %s" % (self.getSanDeviceForHost(host), mountpoint))
     
     def checkMount(self, mountpoint):
         # Check that melioFS is mounted at the specified mountpoint on every host in the cluster
@@ -190,6 +203,7 @@ class MelioHelper(object):
         master = self.hosts[0].pool.master if self.hosts[0].pool else self.hosts[0]
         sr = xenrt.lib.xenserver.MelioStorageRepository(master, name)
         sr.create(self)
+        sr.check()
         return sr
 
     def configureClusterFirewall(self):

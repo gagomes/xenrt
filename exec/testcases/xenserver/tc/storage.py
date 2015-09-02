@@ -1827,9 +1827,11 @@ class _VDICopy(xenrt.TestCase):
         # Writing data into it; This is required on thin-lvhd as it always return true and
         # only be empty in next step due to initial allocation size.
         if self.FORCE_FILL_VDI:
-            self.srcHost.execdom0("echo '/bin/dd if=/dev/urandom of=/dev/${DEVICE} bs=4096 count=%d conv=notrunc' > /tmp/dd.sh" % (self.vdi_size / 4096))
+            cmd = "%s/remote/patterns.py /dev/\\${DEVICE} %d write 3" % \
+                (xenrt.TEC().lookup("REMOTE_SCRIPTDIR"), self.vdi_size)
+            self.srcHost.execdom0("echo '%s' > /tmp/dd.sh" % cmd)
             self.srcHost.execdom0("chmod u+x /tmp/dd.sh")
-            self.srcHost.execdom0("/opt/xensource/debug/with-vdi %s /tmp/mkfs.sh" %(self.vdi))
+            self.srcHost.execdom0("/opt/xensource/debug/with-vdi %s /tmp/dd.sh" % (self.vdi), timeout=900)
 
         # Checksum the entire VDI
         script = 'if [ -z "$1" ]; then md5sum "/dev/${DEVICE}"; else dd if="/dev/${DEVICE}" bs="$1" count="$2" 2>/dev/null | md5sum; fi'
@@ -5059,6 +5061,8 @@ class TC26974(xenrt.TestCase):
     def run(self, arglist):
 
         self.host = self.host.upgrade()
+        #Applying license to the host
+        self.host.license(edition="enterprise-per-socket")
         share = xenrt.VMSMBShare()
         sr = xenrt.productLib(host=self.host).SMBStorageRepository(self.host, "CIFS-SR")
         sr.create(share)
@@ -5219,7 +5223,7 @@ class TCFCOESRLifecycle(FCOELifecycleBase):
     def run(self, arglist):
 
         self.sr = xenrt.lib.xenserver.FCOEStorageRepository.fromExistingSR(self.host, self.srs[0])
-        self.vdiuuid = self.host.createVDI( size =1024, sruuid=self.sr.uuid, name="XenRTTest" )
+        self.vdiuuid = self.host.createVDI(sizebytes=1024, sruuid=self.sr.uuid, name="XenRTTest" )
         originalVdiSize = self.host.genParamGet("vdi", self.vdiuuid, "virtual-size")
         self.sr.forget()
         
@@ -5239,7 +5243,7 @@ class TCFCOESRLifecycle(FCOELifecycleBase):
                                 (originalVdiSize, newVdiSize))
 
         self.sr.check()
-        sef.host.destroyVDI(self.vdiuuid)
+        self.host.destroyVDI(self.vdiuuid)
         
 class TCFCOEGuestLifeCycle(FCOELifecycleBase):
     """Guest Lifecycle operations on FCoE SR."""
@@ -5381,3 +5385,60 @@ class TCFCOEAfterUpgrade(FCOELifecycleBase):
         if not self.srs:
             raise xenrt.XRTFailure("FCOE SR Creation failed after host upgrade on %s" % self.host)
 
+class TCFCOEBlacklist(xenrt.TestCase):
+
+    BLACKLIST_FILE = "/etc/sysconfig/fcoe-blacklist"
+    
+    def prepare(self,arglist=None):
+        self.host = self.getDefaultHost()
+        fcoesr = self.host.lookup("SR_FC", "yes")
+        if fcoesr == "yes":
+            fcoesr = "LUN0"
+        self.scsiid = self.host.lookup(["FC", fcoesr, "SCSIID"], None)
+        self.sr = xenrt.lib.xenserver.FCOEStorageRepository(self.host, "fcoe")
+        self.sr.create(self.scsiid,multipathing=True)
+        
+        
+    def isNICFCOECapable(self,pif):
+        var = self.host.execdom0("dcbtool gc %s app:0" % pif)
+        v = re.search(r'Enable:\s+(\w+)',var)
+        if v:
+            return str(v.group(1)) == "true"
+        else:
+            xenrt.XRTError("Unable to parse dcbtool output")
+    
+    def blacklistNIC(self,pif):
+        driver = self.host.execdom0("readlink /sys/class/net/%s/device/driver/module" % pif).strip().split("/")[-1]
+        version = self.host.execdom0("cat /sys/class/net/%s/device/driver/module/version" % pif).strip()
+        self.host.execdom0("echo %s:%s >> %s" %(driver,version,self.BLACKLIST_FILE))
+                
+    def checkBlacklistedNIC(self,pif):
+        pifuuid = self.host.execdom0("xe pif-list params=uuid device=%s minimal=true" % pif).strip()
+        val = self.host.execdom0("xe pif-param-get param-name=capabilities uuid=%s" % pifuuid).strip()
+        if val == "fcoe":
+            raise xenrt.XRTFailure("Blacklisted %s is showing up as FCOE capable" % pif)
+        else:
+            xenrt.TEC().logverbose("Blacklisted %s is not showing up as FCOE capable" % pif)
+
+    def run(self,arglist=None):
+        self.pifs = self.host.execdom0('xe pif-list params=device minimal=true')[:-1].split(",")
+        fcoeCapablePifs = []
+        
+        for pif in self.pifs:
+            if self.isNICFCOECapable(pif):
+                self.blacklistNIC(pif)
+                fcoeCapablePifs.append(pif)
+            else:
+                xenrt.TEC().logverbose("%s is not FCOE capable" % pif)
+        
+        if fcoeCapablePifs:
+            self.host.reboot()
+            for pif in fcoeCapablePifs:
+                self.checkBlacklistedNIC(pif)
+        
+
+    def postRun(self):
+        xenrt.TEC.log("Removing the FCOE blacklist file")
+        self.host.execdom0("rm -f %s || true" % self.BLACKLIST_FILE)
+        if self.sr:
+            self.sr.remove()

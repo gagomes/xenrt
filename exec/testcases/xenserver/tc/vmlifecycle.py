@@ -172,7 +172,7 @@ class _ClockSkewBase(xenrt.TestCase):
 class TC8004(_ClockSkewBase):
 
     def setup(self):
-        self.distro = "w2k3eesp2"
+        self.distro = "win7sp1-x86"
         self.guest = xenrt.lib.xenserver.guest.createVM(self.host,
                                                         xenrt.randomGuestName(),
                                                         distro=self.distro,

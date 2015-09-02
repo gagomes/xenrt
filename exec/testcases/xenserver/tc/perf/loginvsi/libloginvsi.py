@@ -58,6 +58,7 @@ class LoginVSI(object):
 
     def _mapVSIShareToDrive(self, guest):
         guest.xmlrpcMapDrive(self.shareFolderNetworkPath, self.vsishareDrive)
+        guest.xmlrpcExec(r"icacls %s /grant:r Administrators:(OI)(CI)F /T /C " % (self.vsisharePath))
 
     def _createSubstPaths(self, guest):
         guest.xmlrpcExec(r"subst h: /D", level=xenrt.RC_OK)
@@ -69,6 +70,8 @@ class LoginVSI(object):
         guest.xmlrpcExec(r'setx vsishare "%s"' % (self.vsisharePath))
         targetcmd = r"%s:\%s" % (self.config["distfileDrive"], self.config["targetSetup"])
         guest.xmlrpcExec(r'%s 1 1 1 1 1 "LoginVSI"' % targetcmd, level=xenrt.RC_OK) # targetcmd throws error even if all tasks are done.
+        guest.xmlrpcExec(r'regedit /s %s\_VSI_Binaries\Target\IE8_RunOnce.reg' % (self.vsisharePath))
+        guest.xmlrpcExec(r'regedit /s %s\_VSI_Binaries\Target\Office12.reg' % (self.vsisharePath))
 
     def _tailorToRunOnGuestBoot(self, guest):
         startupPath = r"%appdata%\Microsoft\Windows\Start Menu\Programs\Startup\LoginVSI.bat"

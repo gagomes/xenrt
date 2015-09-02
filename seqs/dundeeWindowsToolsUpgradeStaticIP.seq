@@ -13,7 +13,7 @@
   </variables>
 
   <prepare>
-    <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}">
+    <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}" license="platinum">
       <vm name="ws08r2sp1-x64">
         <distro>ws08r2sp1-x64</distro>
         <memory>${GUESTMEMORY}</memory>

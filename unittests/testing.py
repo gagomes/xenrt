@@ -9,6 +9,7 @@ from nose.plugins.skip import SkipTest
 from functools import wraps
 import types
 from zope.interface import classImplements
+import xenrt
 
 """
 Helper methods
@@ -70,6 +71,13 @@ def _createInterfaceMock(interfaces):
 """
 Unittest abstraction for XenRT
 """
+
+
+class FakeException(Exception):
+    def __init__(self, msg):
+        self.constructed = True
+
+
 class XenRTBaseTestCase(unittest.TestCase):
     """
     Abstraction of the unittest.TestCase class to add any additional functionality
@@ -127,6 +135,14 @@ class XenRTBaseTestCase(unittest.TestCase):
         @type functionPointer: lambda
         """
         [functionPointer(data) for data in listOfData]
+
+    def assertXRTFailure(self, command, *args):
+        xenrt.XRTFailure = FakeException
+        try:
+            command(*args)
+            self.fail("Command succeeded")
+        except FakeException, e:
+            self.assertTrue(e.constructed)
 
 
 """

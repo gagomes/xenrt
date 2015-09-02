@@ -2372,6 +2372,9 @@ fi
             cvpatches = string.split(cvpatches[0], ",")
         patches.extend(cvpatches)
 
+        if patches and xenrt.TEC().lookup("CHECK_DUPLICATE_HOTFIX", False, boolean=True):
+            patches = self.getUniquePatches(patches)
+
         #Install internal RPU hotfix, if any
         if xenrt.TEC().lookup("INSTALL_RPU_HOTFIX", False, boolean=True):
             rpuPatch = xenrt.TEC().lookup(["VERSION_CONFIG",self.productVersion,"INTERNAL_RPU_HOTFIX"])
@@ -3815,6 +3818,26 @@ fi
         cli = self.getCLIInstance()
         cli.execute("patch-destroy",
                     "uuid=%s" % (uuid))
+
+    def getUniquePatches(self, patches):
+        """Remove duplicate entries in the given patches list
+        @param patches: list of patches
+        @return: list of unique patches
+        """
+        uniquePatches = {}
+        finalListOfPatches = []
+        hotfixParserReg = re.compile('/(?P<hotfixBuild>[A-Z-]*[0-9]+)/(?P<hotfixName>.*)')
+        for patch in patches:
+            m = hotfixParserReg.search(patch)
+            # if patch is "/usr/RTM-77323/XS62ESP1/XS62ESP1.xsupdate"
+            #     m.group('hotfixBuild') = 'RTM-77323'
+            #     m.group('hotfixName') = 'XS62ESP1/XS62ESP1.xsupdate'
+            if m.group('hotfixName') not in uniquePatches:
+                finalListOfPatches.append(patch)
+                uniquePatches[m.group('hotfixName')] = m.group('hotfixBuild')
+            elif uniquePatches[m.group('hotfixName')] != m.group('hotfixBuild'):
+                raise xenrt.XRTFailure("Trying to install two builds of same hotfix:%s" % (m.group('hotfixName')))
+        return finalListOfPatches
 
     def uploadBugReport(self):
         xenrt.TEC().logverbose("Uploading bugreport.")

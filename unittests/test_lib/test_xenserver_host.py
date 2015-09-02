@@ -203,3 +203,34 @@ class TestHostLicenseBehaviourForClearwater(TestHostLicenseBehaviourForCreedence
 
     def _getHost(self):
         return xenrt.lib.xenserver.host.ClearwaterHost(None, None)
+
+
+class TestUniquePatchParsing(XenRTUnitTestCase):
+
+    @patch("xenrt.TEC")
+    def testSamePatchMultipleTimes(self, tec):
+
+        host = xenrt.lib.xenserver.host.DundeeHost(None, None)
+        patchList = ["/usr/RTM-77323/XS62ESP1/XS62ESP1.xsupdate",
+                     "/usr/RTM-77323/XS62ESP1/XS62ESP1.xsupdate"]
+        self.assertEquals(["/usr/RTM-77323/XS62ESP1/XS62ESP1.xsupdate"], host.getUniquePatches(patchList))
+
+    @patch("xenrt.TEC")
+    def testSamePatchDifferentBuildsFails(self, tec):
+        host = xenrt.lib.xenserver.host.DundeeHost(None, None)
+        patchList = ["/usr/RTM-77323/XS62ESP1/XS62ESP1.xsupdate",
+                     "/usr/RTM-77324/XS62ESP1/XS62ESP1.xsupdate"]
+        self.assertXRTFailure(host.getUniquePatches, patchList)
+
+    @patch("xenrt.TEC")
+    def testMultiplePatchesMultipleTimes(self, tec):
+        host = xenrt.lib.xenserver.host.DundeeHost(None, None)
+        patchList = ["/usr/RTM-77323/XS62ESP1/XS62ESP1.xsupdate",
+                     "/usr/RTM-77323/XS62ESP1/XS62ESP2.xsupdate",
+                     "/usr/RTM-77324/XS62ESP1/XS62ESP3.xsupdate",
+                     "/usr/RTM-77323/XS62ESP1/XS62ESP1.xsupdate"]
+
+        expected = ["/usr/RTM-77323/XS62ESP1/XS62ESP1.xsupdate",
+                    "/usr/RTM-77323/XS62ESP1/XS62ESP2.xsupdate",
+                    "/usr/RTM-77324/XS62ESP1/XS62ESP3.xsupdate"]
+        self.assertEquals(expected, host.getUniquePatches(patchList))

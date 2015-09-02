@@ -18,6 +18,7 @@ def read_file(path):
 
 
 def load_xenrt(xenrt_root):
+    sys.path.insert(1, os.path.join(xenrt_root, 'server'))
     sys.path.append(os.path.join(xenrt_root, 'exec'))
     sys.path.append(os.path.join(xenrt_root, 'lib'))
     xenrt_in_path = os.path.join(xenrt_root, 'control', 'xenrt.in')

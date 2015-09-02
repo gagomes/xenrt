@@ -492,14 +492,14 @@ class _HATest(xenrt.TestCase):
                 self.sr = sr
                 sr.create(scsiid)
                 pool.addSRToPool(sr)
-            elif self.SF_STORAGE != "fc" or iscsiLun:                
+            elif self.SF_STORAGE != "fc" or iscsiLun:
                 # Use ISCSI
                 sr = xenrt.lib.xenserver.ISCSIStorageRepository(master, "iscsi")
                 self.sr = sr
                 if iscsiLun:
-                    sr.create(lun=iscsiLun,subtype="lvm",findSCSIID=True)
+                    sr.create(lun=iscsiLun, subtype="lvm", findSCSIID=True, thin_prov=(self.tcsku=="thin"))
                 else:
-                    sr.create(subtype="lvm")
+                    sr.create(subtype="lvm", thin_prov=(self.tcsku=="thin"))
                 pool.addSRToPool(sr)
             else:
                 # Asked for FC but unable to do it
@@ -1218,6 +1218,7 @@ class TC8125(_HATest):
         # Any other outcome probably indicates not enough time was left
         raise xenrt.XRTError("Test inconclusive, probably not enough time left "
                              "for guest shutdown")
+
 
 # Pool Startup and Shutdown TCs
 
@@ -4720,10 +4721,10 @@ class _HASnapshotTest(_HATest):
         
 class TC14984(_HASnapshotTest):
     SF_STORAGE = "iscsi"
-    
+
 class TC14985(_HASnapshotTest):
     SF_STORAGE = "nfs"
-    
+
 class TC26903(_HASnapshotTest):
     SF_STORAGE = "nfs4"
 

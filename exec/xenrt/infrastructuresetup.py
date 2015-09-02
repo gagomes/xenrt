@@ -694,6 +694,9 @@ default slave {
                 elif consoletype == "ssh":
                     extra = ""
                     if not entries[i].has_key("CONSOLE_SSH_ADDRESS"):
+                        if not entries[i].has_key("BMC_ADDRESS"):
+                            xenrt.TEC().warning("No CONSOLE_SSH_ADDRESS or BMC_ADDRESS for %s" % (consolename))
+                            continue
                         entries[i]["CONSOLE_SSH_ADDRESS"] = entries[i]["BMC_ADDRESS"]
                     if not entries[i].has_key("CONSOLE_SSH_USERNAME"):
                         entries[i]["CONSOLE_SSH_USERNAME"] = entries[i]["IPMI_USERNAME"]
@@ -984,6 +987,7 @@ def portConfig(config,switch,port,network):
         allvlannames if x not in ("NPRI", "NSEC", "IPRI", "ISEC") and x in config.lookup(["NETWORK_CONFIG","VLANS"], {}).keys()
         ]
     privvlans = config.lookup(["NETWORK_CONFIG", "PRIVATEVLANS"], None)
+    vlanstoadd.extend([re.match("[A-Za-z]*(\d+)", x).group(1) for x in config.lookup(["NETWORK_CONFIG", "PRIVATE_ROUTED_VLANS"], {}).keys()])
     if privvlans:
         (privvlanstart, privvlanend) = [int(x) for x in privvlans.split("-")]
     vlanstoremove = [x for x in allvlans if x != nativevlan and x not in vlanstoadd]

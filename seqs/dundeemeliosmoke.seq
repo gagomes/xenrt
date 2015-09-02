@@ -5,6 +5,7 @@
     <OPTION_NO_DISK_CLAIM>yes</OPTION_NO_DISK_CLAIM>
     <WORKAROUND_CA174211>yes</WORKAROUND_CA174211>
     <OPTION_DOM0_MEM>4096</OPTION_DOM0_MEM>
+    <HOST_STATIC_IP>yes</HOST_STATIC_IP>
   </variables>
 
   <prepare>
@@ -16,6 +17,7 @@
       <serial group="Melio">
         <testcase id="xenserver.tc.melio.TCMelioSmoke" tc="TC-27207" blocker="yes" />
         <testcase id="xenserver.tc.melio.TCSparseWrite" tc="TC-27236" />
+        <testcase id="xenserver.tc.melio.TCDDIntegrity" tc="TC-27237" />
       </serial>
     </testsequence>
 </xenrt>

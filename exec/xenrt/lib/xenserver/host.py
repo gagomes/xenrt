@@ -230,7 +230,7 @@ def createHost(id=0,
     gateway6 = None
     interfaces = []
 
-    if host.lookup("WORKAROUND_CA105789", False, boolean=True):
+    if host.lookup("HOST_STATIC_IP", False, boolean=True):
         dhcp = False
 
     if noipv4:
@@ -11822,7 +11822,7 @@ class DundeeHost(CreedenceHost):
         return self.execdom0("%s -g --device /dev/%s" % (self.scsiIdPath(), device)).strip()
             
     def getAlternativesDir(self):
-        return "/usr/lib/xcp/alternatives"
+        return "/usr/lib/xapi/alternatives"
         
     def getXenGuestLocation(self):
         return self._findXenBinary("xenguest")
@@ -13827,7 +13827,7 @@ class CreedencePool(ClearwaterPool):
             args.append("license-server-address=%s" % (v6server.getAddress()))
             args.append("license-server-port=%s" % (v6server.getPort()))
         else:
-            if self.special.has_key('v6earlyrelease') and self.special['v6earlyrelease']:
+            if self.master.special.has_key('v6earlyrelease') and self.master.special['v6earlyrelease']:
                 (addr, port) = xenrt.TEC().lookup("DEFAULT_CITRIX_PREVIEW_LICENSE_SERVER").split(":")
             else:
                 (addr, port) = xenrt.TEC().lookup("DEFAULT_CITRIX_LICENSE_SERVER").split(":")
@@ -14350,6 +14350,7 @@ class TransferVM(object):
                transfer_mode,               # http or bits or iscsi               
                read_only=False,                 
                use_ssl=False,               # only valid for http and bits
+               ssl_version="TLSv1.2",       # enforce TLSv1.2, allow legacy SSL
                timeout_minutes=None,        # auto unexposed xxx minutes
                                             # after last TCP connection
                network_uuid=None,           # network uuid or default
@@ -14369,6 +14370,8 @@ class TransferVM(object):
         args.append("transfer_mode=%s" % transfer_mode)
         args.append("read_only=%s" % read_only)
         args.append("use_ssl=%s" % use_ssl)
+        if ssl_version != "TLSv1.2":
+            args.append("ssl_version=%s" % ssl_version)
         if not network_mac:
             network_mac=xenrt.randomMAC()
         if timeout_minutes:

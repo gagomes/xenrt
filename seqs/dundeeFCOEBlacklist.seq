@@ -1,0 +1,19 @@
+<xenrt>
+
+  <!-- FCOE Blacklisting test -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <allhosts/>
+  </prepare>
+
+  <testsequence>
+    <serial group="FCOE Blacklist">
+      <testcase id="xenserver.tc.storage.TCFCOEBlacklist" tc="TC-27244"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

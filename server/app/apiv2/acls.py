@@ -134,7 +134,7 @@ class _AclBase(XenRTAPIv2Page):
         fields = ["aclid", "prio", "type", "userid", "preemptableuse"]
         values = [aclid, entry['prio'], entry['type'], entry['userid'], entry.get('preemptableuse', False)]
         for f in ['grouplimit', 'grouppercent', 'userlimit', 'userpercent', 'maxleasehours']:
-            if entry.has_key(f) and entry[f]:
+            if entry.has_key(f) and entry[f] is not None:
                 fields.append(f)
                 values.append(entry[f])
 

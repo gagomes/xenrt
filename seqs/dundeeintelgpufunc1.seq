@@ -73,11 +73,13 @@
         <arg>vgpuconfig=12</arg>
       </testcase>
 
+<!--
       <testcase id="testcases.xenserver.tc.vgpu.TCIntelGPUSnapshotNegative" name="TC-26945" tc="TC-26945" sku="haswell">
         <arg>distro=5</arg>
         <arg>typeofvgpu=intelwinvgpu</arg>
         <arg>vgpuconfig=12</arg>
       </testcase>
+-->
 
       <testcase id="testcases.xenserver.tc.vgpu.TCIntelGPUReuse" name="TC-26946" tc="TC-26946" sku="haswell">
         <arg>distro=1</arg>
@@ -85,11 +87,13 @@
         <arg>vgpuconfig=12</arg>
       </testcase>
 
+<!--
       <testcase id="testcases.xenserver.tc.vgpu.TCIntelSetupNegative" name="TC-26947" tc="TC-26947" sku="haswell">
         <arg>distro=1</arg>
         <arg>typeofvgpu=intelwinvgpu</arg>
         <arg>vgpuconfig=12</arg>
       </testcase>
+-->
 
       <testcase id="testcases.xenserver.tc.vgpu.TCvGPUBalloon" name="TC-26978" tc="TC-26978" sku="haswell">
         <arg>distro=1</arg>

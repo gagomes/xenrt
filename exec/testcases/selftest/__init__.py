@@ -150,7 +150,7 @@ class TCMachineCheck(xenrt.TestCase):
         if arglist:
             tests = map(lambda t: t.split("/", 1), arglist)
         else:
-            tests = [("Power", "IPMI"), ("Power", "PDU"), ("Network", "Ports"), ("Network", "DHCP"), ("Console", "Serial"), ("FC", "HBA")]
+            tests = [("Console", "Serial"), ("Power", "IPMI"), ("Power", "PDU"), ("Network", "Ports"), ("Network", "DHCP"), ("FC", "HBA")]
 
         for t in tests:
             self.runSubcase("test%s%s" % (t[0],t[1]), (), t[0], t[1])
@@ -293,7 +293,7 @@ class TCMachineCheck(xenrt.TestCase):
                 nw = self.host.lookup(["NICS", "NIC%u" % (assumedId), "NETWORK"], None)
                 if not nw:
                     raise xenrt.XRTError("NETWORK not specified for NIC %u" % assumedId)
-                nwMaps = {"NPRI": "DEFAULT", "NSEC": "SECONDARY", "IPRI": "VLANS/IPRI"}
+                nwMaps = {"NPRI": "DEFAULT", "NSEC": "SECONDARY", "IPRI": "VLANS/IPRI", "ISEC": "VLANS/ISEC"}
                 if not nw in nwMaps.keys():
                     raise xenrt.XRTError("Unknown NETWORK %s" % nw)
                 confKey = ["NETWORK_CONFIG"] + nwMaps[nw].split("/")

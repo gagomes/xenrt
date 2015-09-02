@@ -135,6 +135,9 @@ class StorageRepository(object):
             alloc = self.host.genParamGet("sr", self.uuid, "sm-config", "allocation")
             if alloc == self.THIN_PROV_KEYWORD:
                 return True
+            # For compatibility to old version.
+            if alloc == "dynamic":
+                return True
 
         except:
             # sm-config may not have 'allocation' key.
@@ -223,7 +226,10 @@ class StorageRepository(object):
             self.__thinProv = xenrt.TEC().lookup("FORCE_THIN_LVHD", False, boolean=True)
         if self.__thinProv:
             if self.__isEligibleThinProvisioning(srtype):
-                smconf["allocation"] = "dynamic"
+                if xenrt.TEC().lookup("USE_DYNAMIC_KEYWORD", False, boolean=True):
+                    smconf["allocation"] = "dynamic"
+                else:
+                    smconf["allocation"] = self.THIN_PROV_KEYWORD
             else:
                 xenrt.warning("SR: %s is marked as thin provisioning but %s does not support it. Ignoring..." % (self.name, srtype))
         args.extend(["sm-config:%s=\"%s\"" % (x, y)
@@ -438,7 +444,7 @@ class MelioStorageRepository(StorageRepository):
     
     def create(self, melio, physical_size=0, content_type="", smconf={}):
         self.melio = melio
-        self._create("melio", {"uri":"file://%s" % self.melio.device}, physical_size, content_type, smconf)
+        self._create("melio", {"uri":"file://%s" % self.melio.getSanDeviceForHost(self.melio.hosts[0])}, physical_size, content_type, smconf)
 
 class IntegratedCVSMStorageRepository(StorageRepository):
     SHARED = True
@@ -954,7 +960,7 @@ class ISCSIStorageRepository(StorageRepository):
 
     CLEANUP = "destroy"
     SHARED = True
-    THIN_PROV_KEYWORD = "dynamic"
+    THIN_PROV_KEYWORD = "xlvhd"
 
     def create(self,
                lun=None,
@@ -1237,7 +1243,7 @@ class HBAStorageRepository(StorageRepository):
 
     CLEANUP = "destroy"
     SHARED = True
-    THIN_PROV_KEYWORD = "dynamic"
+    THIN_PROV_KEYWORD = "xlvhd"
 
     def create(self,
                scsiid,

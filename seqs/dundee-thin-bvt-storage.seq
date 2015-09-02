@@ -46,11 +46,6 @@
 
     <testcase id="xenserver.tc.storage.TCSRConfigConsistency" tc="TC-27226" prio="3" sku="thin"/>
 
-    <serial group="iSCSITests">
-      <testcase id="xenserver.tc.storage.TC27042" prio="3" sku="thin" />
-      <testcase id="xenserver.tc.storage.TC27043" prio="3" sku="thin" />
-    </serial>
-
   </testsequence>
 
 </xenrt>

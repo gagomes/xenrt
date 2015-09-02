@@ -157,6 +157,8 @@ class MelioHelper(object):
                 if xenrt.timenow() > deadline:
                     raise xenrt.XRTError("Timed out waiting for device to appear")
                 xenrt.sleep(10)
+        if not '/dev/' in sanDevice:
+            sanDevice = '/dev/' + sanDevice
         return sanDevice
 
     def setupMelioDisk(self):

@@ -68,7 +68,7 @@ class LoginVSI(object):
     def _installTarget(self, guest):
         guest.xmlrpcExec(r'setx vsishare "%s"' % (self.vsisharePath))
         targetcmd = r"%s:\%s" % (self.config["distfileDrive"], self.config["targetSetup"])
-        guest.xmlrpcExec(r'%s 1 1 1 1 1 "LoginVSI"' % targetcmd)
+        guest.xmlrpcExec(r'%s 1 1 1 1 1 "LoginVSI"' % targetcmd, level=xenrt.RC_OK) # targetcmd throws error even if all tasks are done.
 
     def _tailorToRunOnGuestBoot(self, guest):
         startupPath = r"%appdata%\Microsoft\Windows\Start Menu\Programs\Startup\LoginVSI.bat"

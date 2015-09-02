@@ -6,11 +6,13 @@ __all__ = ["LoginVSI"]
 class LoginVSI(object):
     """Class that provides an interface for creating, controlling and observing a LoginVSI instance inside a VM"""
 
-    def __init__(self, dataServerGuest, targetGuest, version="4.1.3", shareFolderName = "VSIShare"):
+    def __init__(self, dataServerGuest, targetGuest, version="4.1.3", shareFolderName = "VSIShare", tailoredToRunOnGuestLogon = True):
         self.dataServerGuest = dataServerGuest
         self.targetGuest = targetGuest
         self.version = version
         self.shareFolderName = shareFolderName
+        self.tailoredToRunOnGuestLogon = tailoredToRunOnGuestLogon
+
         self.shareFolderPath =r"c:\%s" % self.shareFolderName
         self.shareFolderNetworkPath = r"\\%s\%s" % (self.dataServerGuest.getIP(), self.shareFolderName)
         self.vsishareDrive = "S"
@@ -23,6 +25,7 @@ class LoginVSI(object):
                         "officeSetup"       : r"officeSetup\off2k7\setup.exe",
                         "officeSetupConfig" : r"officeSetup\config.xml",
                         "dataserverZipFile" : r"dataserver\vsishareFiles.zip",
+                        "dataserverZipPatch": r"dataserver\vsisharePatch_SingleVM.zip",
                         "7zipExe"           : r"7z1506-extra\7za.exe",
                         "targetSetup"       : r"target\lib\VSITarget.cmd"
                         }
@@ -36,8 +39,8 @@ class LoginVSI(object):
         guest.xmlrpcMapDrive(self.config["distfileLocation"], self.config["distfileDrive"])
 
     def _installOffice(self, guest):
-        setupFile = r"%s:\%s" % (self.config["distfileDrive"], self.config["officeSetup"])
-        configFile = r"%s:\%s" % (self.config["distfileDrive"], self.config["officeSetupConfig"])
+        setupFile   = r"%s:\%s" % (self.config["distfileDrive"], self.config["officeSetup"])
+        configFile  = r"%s:\%s" % (self.config["distfileDrive"], self.config["officeSetupConfig"])
         guest.installDotNet35()
         guest.xmlrpcExec(r"start /w %s /config %s" % (setupFile, configFile), timeout=1200)
 
@@ -47,10 +50,11 @@ class LoginVSI(object):
         guest.xmlrpcExec(r"icacls %s /grant:r Everyone:(OI)(CI)F /T /C " % (self.shareFolderPath))
 
     def _installDataServer(self, guest):
-        zipexe = r"%s:\%s" % (self.config["distfileDrive"], self.config["7zipExe"])
+        zipexe  = r"%s:\%s" % (self.config["distfileDrive"], self.config["7zipExe"])
         zipfile = r"%s:\%s" % (self.config["distfileDrive"], self.config["dataserverZipFile"])
-        guest.xmlrpcExec(r"%s x -o%s -y -bd %s" % (zipexe, self.shareFolderPath, zipfile))
-        # TODO - configure ini files.
+        zipPatch= r"%s:\%s" % (self.config["distfileDrive"], self.config["dataserverZipPatch"])
+        guest.xmlrpcExec(r"%s x -o%s -y -bd %s" % (zipexe, self.shareFolderPath, zipfile ))
+        guest.xmlrpcExec(r"%s x -o%s -y -bd %s" % (zipexe, self.shareFolderPath, zipPatch))
 
     def _mapVSIShareToDrive(self, guest):
         guest.xmlrpcMapDrive(self.shareFolderNetworkPath, self.vsishareDrive)
@@ -66,6 +70,12 @@ class LoginVSI(object):
         targetcmd = r"%s:\%s" % (self.config["distfileDrive"], self.config["targetSetup"])
         guest.xmlrpcExec(r'%s 1 1 1 1 1 "LoginVSI"' % targetcmd, level=xenrt.RC_OK) # targetcmd throws error even if all tasks are done.
 
+    def _tailorToRunOnGuestBoot(self, guest):
+        startupPath = r"%appdata%\Microsoft\Windows\Start Menu\Programs\Startup\LoginVSI.bat"
+        guest.xmlrpcExec(r'echo subst h: %s > "%s" ' % ("%Temp%", startupPath))
+        guest.xmlrpcExec(r'echo subst g: %s\_VSI_Content >> "%s" ' % (self.vsisharePath, startupPath))
+        guest.xmlrpcExec(r'echo %s\_VSI_Binaries\Target\Logon.cmd >> "%s" ' % (self.vsisharePath, startupPath))
+
     def setupDataServer(self):
         self._mapLoginVSIdistfiles(self.dataServerGuest)
         self._installOffice(self.dataServerGuest)
@@ -79,6 +89,8 @@ class LoginVSI(object):
         self._mapVSIShareToDrive(self.targetGuest)
         self._installTarget(self.targetGuest)
         self._createSubstPaths(self.targetGuest)
+        if self.tailoredToRunOnGuestLogon:
+            self._tailorToRunOnGuestBoot(self.targetGuest)
 
     def installLoginVSI(self):
         self.setupDataServer()

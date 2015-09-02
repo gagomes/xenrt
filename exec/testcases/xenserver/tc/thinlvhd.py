@@ -10,8 +10,7 @@
 import re, string
 import xenrt, xenrt.lib.xenserver
 from xenrt.lazylog import step, log
-from testcases.xenserver.tc.cache import _ResetOnBootBase
-from testcases.xenserver.tc.lunspace import TrimFuncNetAppFC, TrimFuncNetAppISCSI
+import testcases.xenserver.tc.lunspace
 
 class _ThinLVHDBase(xenrt.TestCase):
     """Base class of thinprovisioning TCS.
@@ -20,7 +19,6 @@ class _ThinLVHDBase(xenrt.TestCase):
     def prepare(self, arglist=[]):
         host = self.getDefaultHost()
         self.sr = self.getThinProvisioningSRs()
-        #self.setDefaultThinProv()
 
     def __buildsmconfig(self, initialAlloc=None, quantumAlloc=None):
         """Create and return sm-config dict with given parameters.
@@ -58,7 +56,14 @@ class _ThinLVHDBase(xenrt.TestCase):
 
         smconf = self.__buildsmconfig(initialAlloc, quantumAlloc)
         if srtype=="lvmoiscsi":
-            lun = xenrt.ISCSITemporaryLun(300)
+            if size:
+                size /= xenrt.MEGA
+            else:
+                size = 100 * xenrt.KILO # 100 GiB
+            if ietvm:
+                lun = xenrt.ISCSIVMLun(sizeMB=size)
+            else:
+                lun = xenrt.ISCSITemporaryLun(size)
             sr = xenrt.lib.xenserver.ISCSIStorageRepository(host, name, True)
             sr.create(lun, subtype="lvm", physical_size=size, findSCSIID=True, noiqnset=True, smconf=smconf)
 
@@ -97,7 +102,7 @@ class _ThinLVHDBase(xenrt.TestCase):
             try:
                 srs.append(xenrt.lib.xenserver.getStorageRepositoryClass(host, sr.uuid).fromExistingSR(host, sr.uuid))
             except:
-                log("%s type does not support thin-lvhd." % (sr.srType(),))
+                log("%s type is not supported in SR instantiation." % (sr.srType(),))
 
         return [sr for sr in srs if sr.thinProvisioning]
 
@@ -108,12 +113,13 @@ class _ThinLVHDBase(xenrt.TestCase):
         if not host:
             host = self.getDefaultHost()
 
-        xsr = next((s for s in host.asXapiObject().SR() if s.uuid == sr.uuid), None)
-        if not xsr:
-            raise xenrt.XRTError("Cannot find given SR: %s" % (sr.uuid,))
+        if not isinstance(sr, xenrt.lib.xenserver.StorageRepository):
+            # if it is not SR object, then assumes it is sr uuid string.
+            sr = xenrt.lib.xenserver.getStorageRepositoryClass(host, sr).fromExistingSR(host, sr)
 
-        host.execdom0("xe sr-scan uuid=%s" % xsr.uuid)
-        return xsr.getIntParam("physical-utilisation")
+        sr.scan()
+
+        return int(sr.paramGet("physical-utilisation"))
 
     def fillDisk(self, guest, targetDir=None, size=512*xenrt.MEGA, source="/dev/zero"):
         """Fill target disk by creating an empty file with
@@ -155,22 +161,6 @@ class _ThinLVHDBase(xenrt.TestCase):
 
         return sr.thinProvisioning
         
-    def changeSRsmconfig(self, SRinitial, SRquantum):
-        """Change the initial/quantum to given value
-
-        @param SRinitial : initial_allocation of the SR
-        @param SRquantum : allocation_quantum of the SR
-
-        @return : None
-        """
-        smconfig = {}
-        if SRinitial:
-            smconfig["initial_allocation"] = SRinitial
-        if SRquantum:
-            smconfig["allocation_quantum"] = SRquantum
-        
-        # TODO awaiting Dev: API is not ready yet to change the SR smconfig.
-        pass
 
     def getPhysicalVDISize(self, vdiuuid, host=None ):
         if not host:
@@ -248,13 +238,13 @@ class ThinNFSStorageRepository(xenrt.lib.xenserver.NFSStorageRepository):
         smconf = {}
         dconf["server"] = server
         dconf["serverpath"] = path
-        smconf["allocation"]="dynamic"
+        smconf["allocation"]="xlvhd"
         self._create("nfs", dconf, smconf=smconf)
 
 class ThinLVMStorageRepository(xenrt.lib.xenserver.LVMStorageRepository):
 
     def getDevice(self, host):
-        data = host.execdom0("cat /etc/firstboot.d/data/default-storage.conf " "| cat")
+        data = host.execdom0("cat /etc/firstboot.d/data/default-storage.conf")
         r = re.search(r"PARTITIONS=['\"]*([^'\"\s]+)", data)
         if r:
             device = r.group(1)
@@ -270,7 +260,7 @@ class ThinLVMStorageRepository(xenrt.lib.xenserver.LVMStorageRepository):
         host.forgetSR(sr)
         device=self.getDevice(host)
         smconf = {}
-        smconf["allocation"]="dynamic"
+        smconf["allocation"]="xlvhd"
         self._create("lvm",  {"device":device}, smconf=smconf)
 
 class ResetOnBootThinSRSpace(_ThinLVHDBase):
@@ -454,16 +444,12 @@ class TCThinAllocationDefault(_ThinLVHDBase):
         # Check that initial allocation is as expected
         expectedSize = self.sizebytes * ( float(initial) if initial else self.DEFAULTINITIAL)
 
-        # TODO awaiting Dev: compare the actual physical size of VDI with the expectedSize ( No API yet )
-
         # Check that quantum allocation is as expected
         vdiSize = self.getPhysicalVDISize(vdiuuid, self.host)
         expectedSize = vdiSize + self.sizebytes * ( float(quantum) if quantum else self.DEFAULTQUANTUM)
 
         vbduuid = self.host.genParamGet("vdi", vdiuuid, "vbd-uuids")
         self.fillDisk(self.guest, targetDir = "/dev/%s" %(self.host.genParamGet("vbd", vbduuid, "device")), size = expectedSize - vdiSize)
-
-        # TODO awaiting Dev: compare the actual physical size of VDI with the expectedSize ( No API yet)
 
     def doTest(self, SRinitial, SRquantum):
         """Decides the VDI initial/quantum and initiate the VDI check
@@ -529,10 +515,7 @@ class TCThinAllocationDefault(_ThinLVHDBase):
 
 class TCThinAllocation(TCThinAllocationDefault):
 
-    def testingThinAllocation(self, changeSmconfig = False, SRinitial = None, SRquantum = None):
-
-        if changeSmconfig:
-            self.changeSRsmconfig(SRinitial, SRquantum)
+    def testingThinAllocation(self, SRinitial = None, SRquantum = None):
 
         self.doTest(SRinitial, SRquantum)
 
@@ -545,15 +528,15 @@ class TCThinAllocation(TCThinAllocationDefault):
 
         # Test that we can change the default SR config with the custom value 
         for SRinitial, SRquantum in map(None, self.SRinitial, self.SRQuantum):
-            self.testingThinAllocation(True, SRinitial, SRquantum )
+            self.testingThinAllocation(SRinitial, SRquantum )
 
-class TrimFuncNetAppThinISCSI(TrimFuncNetAppISCSI):
+class TrimFuncNetAppThinISCSI(testcases.xenserver.tc.lunspace.TrimFuncNetAppISCSI):
     """Test the XenServer TRIM feature on a thin provisioned iSCSI SR using NetApp array"""
 
     THINPROVISION = True
     SRNAME = "lvmoiscsi-thin"
 
-class TrimFuncNetAppThinFC(TrimFuncNetAppFC):
+class TrimFuncNetAppThinFC(testcases.xenserver.tc.lunspace.TrimFuncNetAppFC):
     """Test the XenServer TRIM feature on a thin provisioned Fibre Channel SR using NetApp array"""
 
     THINPROVISION = True
@@ -614,7 +597,7 @@ class TCThinLVHDSRProtection(_ThinLVHDBase):
         self.pool.eject(self.master)
         step("Verify that we can write more than 3 GiB of data onto the guest %s with the new pool master" % (self.guest))
         if not self.checkVdiWrite(self.guest, device, size=3*xenrt.GIGA):
-            raise xenrt.XRTFailure("Not able to write more than 3 GiB onto the guest %s after ejecting the pool master" % (self.DEFAULTMAXDATA))
+            raise xenrt.XRTFailure("Not able to write more than 3 GiB onto the guest %s after elect a new pool master" % (self.DEFAULTMAXDATA))
 
     def postRun(self):
         self.master.machine.powerctl.on() 
@@ -653,9 +636,7 @@ class TCThinLVHDVmOpsSpace(_ThinLVHDBase):
         self.phyUtilBeforeCheckpoint = self.getPhysicalUtilisation(self.sr) + self.guestMemory
         step("Taking the vm checkpoint...")
         self.checkuuid = self.guest.checkpoint()
-        # Sleep required since checkpoint takes some time to settle and then to update the storage fields.
-        xenrt.sleep(300)
-        vdiUuid = self.host.execdom0("xe vm-param-get uuid=%s param-name=suspend-VDI-uuid " % self.checkuuid).strip()
+        vdiUuid = self.host.genParamGet("vm", self.checkuuid, "suspend-VDI-uuid")
         step("check SR Physical utilization...")
         self.checkSRPhysicalUtil(self.phyUtilBeforeCheckpoint)
         step("Test that VDI created after checkpoint is thick provisioned by checking the size...")
@@ -678,8 +659,7 @@ class TCThinLVHDVmOpsSpace(_ThinLVHDBase):
             self.guest.resume()
             self.guest.check()
             self.checkSRPhysicalUtil2(expectedphysicalUtil)
-        data = self.host.execdom0("xe snapshot-list uuid=%s" % (self.checkuuid))
-        if data:
+        if self.checkuuid:
             step("Reverting the checkpoint...")
             self.guest.revert(self.checkuuid)
             self.guest.check()
@@ -690,20 +670,23 @@ class TCThinLVHDVmOpsSpace(_ThinLVHDBase):
         self.host = self.getDefaultHost()
         self.srtype = args.get("srtype", self.DEFAULTSRTYPE)
         self.guestMemory = int(args.get("guestmemory", self.GUESTMEMORY))
-        self.sr = self.getThinProvisioningSRs()[0]
-        if not self.sr:
+        self.checkuuid = None
+        srs = self.getThinProvisioningSRs()
+        if not srs:
             step("Creating thin provisioned SR of type %s" %(self.srtype))
             self.sr = self.createThinSR(host=self.host, size=200, srtype=self.srtype)
+        else:
+            self.sr = srs[0]
         if "guest" in args:
             self.guest = self.getGuest(args["guest"]) 
             self.guest.setState("UP")
         else:
             self.guestMemory = int(args.get("guestmemory", self.GUESTMEMORY))
             self.guest = self.host.createBasicGuest("generic-linux", sr=self.sr.uuid, memory=self.guestMemory)
-        step("setting up the SR %s as a default SR of the host" % (self.srtype))
+        log("setting up the SR %s as a default SR of the host" % (self.srtype))
         self.host.addSR(self.sr, default=True)
         self.guestMemory = self.guestMemory * xenrt.MEGA
-        step("Guest memory reported %s bytes" % (self.guestMemory))
+        log("Guest memory reported %s bytes" % (self.guestMemory))
 
     def run(self, arglist=[]):
 
@@ -711,4 +694,4 @@ class TCThinLVHDVmOpsSpace(_ThinLVHDBase):
         if self.runSubcase("performVmOps", (), "vmops-snapshot/suspend", "Guest Memory=%s bytes"\
                             %(self.guestMemory))== xenrt.RESULT_PASS:
             # Test that resume/revert works as expected on thin-provisioned SR
-            self.runSubcase("revertVmOps", (), "vmops-resume/revert", "Guest Memory=%s bytes" %(self.guestMemory))
+            self.runSubcase("revertVmOps", (), "vmops-resume/revert", "Guest Memory=%s bytes" % (self.guestMemory))

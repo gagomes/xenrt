@@ -8488,6 +8488,12 @@ rm -f /etc/xensource/xhad.conf || true
             log("/var/preserve/safe2upgrade file is created as expected")
         return True if expectedOutput == "true" else False
 
+    def isHostLicensed(self):
+
+        factory = XenServerLicenseFactory()
+        noLicense = factory.noLicense()
+        return (not (self.paramGet("edition") == noLicense.getEdition()))
+
 #############################################################################
 
 class MNRHost(Host):

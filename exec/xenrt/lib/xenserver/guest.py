@@ -102,6 +102,10 @@ class Guest(xenrt.GenericGuest):
         self.memory = None # Default to template memory.
         self.vcpus = None # Default to template vcpus.
 
+    def _checkPVAddonsInstalled(self):
+        """This is require by waitForAgent to check for host license from Dundee onwards """
+        return False
+
     def populateSubclass(self, x):
         xenrt.GenericGuest.populateSubclass(self, x)
         x.template = self.template
@@ -4979,11 +4983,6 @@ def createVM(host,
         g.installPackages(packages)
 
     return g
-
-    def _checkPVAddonsInstalled(self):
-        """This is require by waitForAgent to check for host license from Dundee onwards """
-        return False
-
 
 #############################################################################
 

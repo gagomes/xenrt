@@ -4507,12 +4507,6 @@ class GenericHost(GenericPlace):
         if x.machine:
             x.machine.setHost(x)
   
-    def isHostLicensed(self):
-
-        factory = XenServerLicenseFactory()
-        noLicense = factory.noLicense()
-        return (not (self.paramGet("edition") == noLicense.getEdition()))
-
     def getDeploymentRecord(self):
         ret = {"access": {"hostname": self.getName(),
                           "ipaddress": self.getIP()},

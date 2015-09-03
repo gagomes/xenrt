@@ -1545,7 +1545,7 @@ exit /B 1
             except:
                 pass
 
-            if self._checkForLicenseRequired() and not self.host.isHostLicensed():
+            if self._checkPVAddonsInstalled() and not self.host.isHostLicensed():
                 pvValue = "1"
  
             else:
@@ -4980,8 +4980,8 @@ def createVM(host,
 
     return g
 
-    def _checkForLicenseRequired(self):
-        """This is require by waitagent to check for host license from Dundee onwards """
+    def _checkPVAddonsInstalled(self):
+        """This is require by waitForAgent to check for host license from Dundee onwards """
         return False
 
 
@@ -6524,8 +6524,8 @@ class DundeeGuest(CreedenceGuest):
         return self.paramGet("auto-update-drivers")
 
 
-    def _checkForLicenseRequired(self):
-        """This is require by waitagent to check for host license from Dundee onwards """
+    def _checkPVAddonsInstalled(self):
+        """This is require by waitForAgent to check for host license from Dundee onwards """
         return True
  
 class StorageMotionObserver(xenrt.EventObserver):

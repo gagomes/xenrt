@@ -28,14 +28,14 @@
 
   <testsequence>
     <serial group="VDISanity">
-      <testcase id="xenserver.tc.cache.TCVDISanityResetVDI" name="TC19031" tc="TC-19031" />
-      <testcase id="xenserver.tc.cache.TCVDISanityPersistVDI" name="TC19032" tc="TC-19032" />
-      <testcase id="xenserver.tc.cache.TCVDISanityMixedVDI" name="TC19033" tc="TC-19033" />
+      <testcase id="xenserver.tc.cache.TCVDISanityResetVDI" name="TC19031" tc="TC-19031" sku="thin"/>
+      <testcase id="xenserver.tc.cache.TCVDISanityPersistVDI" name="TC19032" tc="TC-19032" sku="thin"/>
+      <testcase id="xenserver.tc.cache.TCVDISanityMixedVDI" name="TC19033" tc="TC-19033" sku="thin"/>
     </serial>
     <serial group="DiskOperation">
-      <testcase id="xenserver.tc.cache.TCDiskOperationResetVDI" name="TC19034" tc="TC-19034" />
-      <testcase id="xenserver.tc.cache.TCDiskOperationPersistVDI" name="TC19035" tc="TC-19035" />
-      <testcase id="xenserver.tc.cache.TCDiskOperationMixedVDI" name="TC19036" tc="TC-19036" />
+      <testcase id="xenserver.tc.cache.TCDiskOperationResetVDI" name="TC19034" tc="TC-19034" sku="thin"/>
+      <testcase id="xenserver.tc.cache.TCDiskOperationPersistVDI" name="TC19035" tc="TC-19035" sku="thin"/>
+      <testcase id="xenserver.tc.cache.TCDiskOperationMixedVDI" name="TC19036" tc="TC-19036" sku="thin"/>
     </serial>
   </testsequence>
 </xenrt>

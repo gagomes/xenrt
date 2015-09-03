@@ -21,6 +21,7 @@ __all__ = ["Guest",
            "BostonGuest",
            "TampaGuest",
            "ClearwaterGuest",
+           "DundeeGuest",
            "startMulti",
            "shutdownMulti",
            "getTemplate"]
@@ -1543,10 +1544,15 @@ exit /B 1
             except:
                 pass
 
-            try:
-                pvValue = self.host.xenstoreRead("/local/domain/%d/attr/PVAddons/Installed" % domid)
-            except:
-                pass
+            if self.checkForLicenseRequired():
+                if not self.host.isHostLicensed():
+                    pvValue == "1"
+ 
+            if not pvValue:
+                try:
+                    pvValue = self.host.xenstoreRead("/local/domain/%d/attr/PVAddons/Installed" % domid)     
+                except:
+                    pass
 
             if pvValue == "1" and (defaultValue or otherValue):
                 xenrt.TEC().logverbose("Found PV driver evidence")
@@ -6126,6 +6132,12 @@ class ClearwaterGuest(TampaGuest):
         if self.host.execdom0("xe vm-param-add uuid=%s param-name=platform vgpu_vnc_enabled=%s" % (self.uuid, option), retval="code") != 0:
             args = ["uuid=%s" % self.uuid, "platform:vgpu_vnc_enabled=%s" % option]
             self.getCLIInstance().execute("vm-param-set", string.join(args))
+
+class DundeeGuest(ClearwaterGuest):
+
+    def checkForLicenseRequired(self):
+
+        return True
 
 ##############################################################################
 

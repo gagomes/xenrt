@@ -488,18 +488,18 @@ class _HATest(xenrt.TestCase):
                 pool.addSRToPool(sr)
             elif (scsiid and self.SF_STORAGE != "iscsi" and not iscsiLun):
                 # Use FC
-                sr = xenrt.lib.xenserver.FCStorageRepository(master, "fc")
+                sr = xenrt.lib.xenserver.FCStorageRepository(master, "fc", thin_prov=(self.tcsku=="thin"))
                 self.sr = sr
                 sr.create(scsiid)
                 pool.addSRToPool(sr)
             elif self.SF_STORAGE != "fc" or iscsiLun:
                 # Use ISCSI
-                sr = xenrt.lib.xenserver.ISCSIStorageRepository(master, "iscsi")
+                sr = xenrt.lib.xenserver.ISCSIStorageRepository(master, "iscsi", thin_prov=(self.tcsku=="thin"))
                 self.sr = sr
                 if iscsiLun:
-                    sr.create(lun=iscsiLun, subtype="lvm", findSCSIID=True, thin_prov=(self.tcsku=="thin"))
+                    sr.create(lun=iscsiLun, subtype="lvm", findSCSIID=True)
                 else:
-                    sr.create(subtype="lvm", thin_prov=(self.tcsku=="thin"))
+                    sr.create(subtype="lvm")
                 pool.addSRToPool(sr)
             else:
                 # Asked for FC but unable to do it

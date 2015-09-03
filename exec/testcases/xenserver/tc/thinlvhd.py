@@ -291,13 +291,13 @@ class ResetOnBootThinSRSpace(_ThinLVHDBase):
         self.host.genParamSet("vdi", vdi, "on-boot", "reset")
 
         srSizeBefore = self.getPhysicalUtilisation(self.srs[0])
+        self.guest.setState("UP")
         digestBefore = self.getDigest("/dev/%s" % device)
         log("Physical SR space allocated for the VDIs before writing: %d" % (srSizeBefore))
         log("MD5 digest before writing into VDI: %s" % (digestBefore))
 
         step("Writing some data onto VDI")
-        self.guest.setState("UP")
-        self.fillDisk(self.guest, targetDir="/dev/%s" % device)
+        self.fillDisk(self.guest, targetDir="/dev/%s" % device, size=xenrt.GIGA)
 
         step("Test trying to check SR physical space allocated for the VDI(s)")
         srSizeAfter = self.getPhysicalUtilisation(self.srs[0])

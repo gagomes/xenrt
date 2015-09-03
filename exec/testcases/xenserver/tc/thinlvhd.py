@@ -273,7 +273,7 @@ class ResetOnBootThinSRSpace(_ThinLVHDBase):
         if not self.srs:
             raise xenrt.XRTError("No thin provisioning SR is found.")
 
-        self.guest = self.goldVM.copyVM(sruuid = self.srs[0].uuid)
+        self.guest = self.goldVM.cloneVM()
         self.uninstallOnCleanup(self.guest)
 
     def run(self, arglist=None):

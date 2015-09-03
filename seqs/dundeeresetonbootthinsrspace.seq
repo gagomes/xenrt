@@ -1,0 +1,25 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0">
+    <storage type="lvmoiscsi" name="lvmoiscsisr" default="true" options="ietvm,thin" size="50"/>
+    <vm name="GoldVM">
+      <distro>debian60</distro>
+      <postinstall action="preCloneTailor"/>
+      <postinstall action="shutdown"/>
+      <network device="0" />
+      <vcpus>2</vcpus>
+      <memory>1024</memory>
+      <storage>lvmoiscsisr</storage>
+    </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <testcase id="xenserver.tc.thinlvhd.ResetOnBootThinSRSpace" name="ResetOnBootThinSRSpace" tc="TC-27033" />
+  </testsequence>
+</xenrt>

@@ -34,10 +34,10 @@ class TC21547(xenrt.TestCase):
        
         self.lun = self.netAppFiler.getLuns()[0]
         step("The lun is %s" %self.lun)
-        self.fcSR = xenrt.lib.xenserver.FCStorageRepository(self.host,"lvmoHBASR")
+        self.fcSR = xenrt.lib.xenserver.FCStorageRepository(self.host,"lvmoHBASR", thin_prov=(self.tcsku=="thin"))
         self.fcSR.create(self.lun.getId())
         
-    def run(self, arglist=[]):        
+    def run(self, arglist=[]):
 
         self.guests =[]
         self.guests.append(self.host.createBasicGuest(name="ws08r2-x64",distro="ws08r2-x64",sr=self.fcSR.uuid))

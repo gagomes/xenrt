@@ -93,7 +93,7 @@ class StorageRepository(object):
         self.srtype = None
         self.dconf = None
         self.content_type = ""
-        self.smconf = None
+        self.smconf = {}
 
     @classmethod
     def fromExistingSR(cls, host, sruuid):

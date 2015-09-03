@@ -1,0 +1,41 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="lvmoiscsi" name="lvmoiscsisr" default="true" options="ietvm,thin" size="120"/>
+      <host id="0"/>
+      <host id="1"/>
+      <vm name="GoldVM">
+        <distro>win7sp1-x86</distro>
+        <postinstall action="installDrivers"/>
+        <postinstall action="preCloneTailor"/>
+        <postinstall action="xenDesktopTailor"/>
+        <postinstall action="shutdown"/>
+        <postinstall action="removeCD"/>
+        <network device="0" />
+        <network device="1" />
+        <vcpus>2</vcpus>
+        <memory>1024</memory>
+        <storage>lvmoiscsisr</storage>
+      </vm>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="VDISanity">
+      <testcase id="xenserver.tc.cache.TCVDISanityResetVDI" name="TC19031" tc="TC-19031" />
+      <testcase id="xenserver.tc.cache.TCVDISanityPersistVDI" name="TC19032" tc="TC-19032" />
+      <testcase id="xenserver.tc.cache.TCVDISanityMixedVDI" name="TC19033" tc="TC-19033" />
+    </serial>
+    <serial group="DiskOperation">
+      <testcase id="xenserver.tc.cache.TCDiskOperationResetVDI" name="TC19034" tc="TC-19034" />
+      <testcase id="xenserver.tc.cache.TCDiskOperationPersistVDI" name="TC19035" tc="TC-19035" />
+      <testcase id="xenserver.tc.cache.TCDiskOperationMixedVDI" name="TC19036" tc="TC-19036" />
+    </serial>
+  </testsequence>
+</xenrt>

@@ -8,9 +8,9 @@
   <default name="HOSTPAIRS" value="(0,1),(1,2),(2,3),(3,0)" />
   <default name="GUESTDISTRO" value="rhel511" />
   <default name="GUESTARCH" value="x86-32" />
-  <default name="POOLSTRESSSNAP" value="20" />
+  <default name="POOLSTRESSSNAP" value="10" />
   <default name="DURATION" value="NA" />
-  <default name="ITERATIONS" value="450" />
+  <default name="ITERATIONS" value="135" />
 
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>

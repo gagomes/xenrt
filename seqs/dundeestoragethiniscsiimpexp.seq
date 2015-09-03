@@ -1,0 +1,28 @@
+<xenrt>
+
+  <!-- Export/Import tests using thin provisioned iscsi sr -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <FINALLY_UNINSTALL>yes</FINALLY_UNINSTALL>
+  </variables>
+
+  <prepare>
+    <host>
+      <storage type="lvmoiscsi" name="thinlvmoiscsisr" default="true" options="thin" />
+    </host>
+  </prepare>
+
+  <testsequence group="ImpExpISCSI">
+    <testcase id="xenserver.tc.impexp.TC9175" name="TC27233" tc="TC-27233" sku="thin">
+      <arg>srtype=lvmoiscsi</arg>
+    </testcase>
+    <testcase id="xenserver.tc.impexp.TC9978" name="TC27234" tc="TC-27234" sku="thin">
+      <arg>srtype=lvmoiscsi</arg>
+    </testcase>
+    <testcase id="xenserver.tc.impexp.TC19935" name="TC27235" tc="TC-27235" sku="thin">
+      <arg>srtype=lvmoiscsi</arg>
+    </testcase>
+  </testsequence>
+
+</xenrt>

@@ -1,0 +1,35 @@
+<xenrt>
+
+  <!-- Test seqs to verify suspended/snapshot VDIs take space properly with thin provisioning -->
+
+  <default name="GOLDVMNAME" value="goldvm" />
+  <default name="DISTRO" value="debian70" />
+  <default name="SRTYPE" value="lvmoiscsi" />
+  <default name="GUESTMEMORY" value="8192" />
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0">
+      <storage type="lvmoiscsi" name="lvmoiscsisr" default="true" options="thin" />
+      <vm name="${GOLDVMNAME}">
+        <distro>${DISTRO}</distro>
+        <memory>8192</memory>
+        <vcpus>4</vcpus>
+        <network device="0" />
+        <storage>lvmoiscsisr</storage>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <testcase id="xenserver.tc.thinlvhd.TCThinLVHDVmOpsSpace" tc="TC-27224" name="ThinLvhdVMOps">
+      <arg>guest=${GOLDVMNAME}</arg>
+      <arg>srtype=${SRTYPE}</arg>
+      <arg>guestmemory=${GUESTMEMORY}</arg>
+    </testcase>
+  </testsequence>
+
+</xenrt>

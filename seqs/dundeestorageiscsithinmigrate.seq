@@ -1,0 +1,57 @@
+<xenrt>
+
+  <!-- XenMotion test sequence using thin provisioned iscsi sr -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <default name="PARALLEL" value="2" />
+  <default name="MIGRATEPAR" value="1" />
+  <default name="DISTROS" value="win7sp1-x86,rhel511_x86-32" />
+
+  <semaphores>
+    <TCMigrate count="${MIGRATEPAR}" />
+  </semaphores>
+
+  <prepare>
+    <pool>
+      <storage type="lvmoiscsi" name="lvmoiscsisr" default="true" options="thin" />
+      <allhosts />
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <parallel workers="${PARALLEL}">
+      <for iter="D" values="${DISTROS}">
+        <serial group="${D}">
+          <testcase id="xenserver.guest.TCXenServerVendorInstall">
+            <arg>RESOURCE_HOST_0</arg>
+            <arg>guest=${D}</arg>
+            <arg>distro=${D}</arg>
+          </testcase>
+          <serial guest="${D}">
+            <testcase id="guestops.drivers.TCDriverInstall">
+              <arg>guest=${D}</arg>
+            </testcase>
+            <testcase id="guestops.srm.TCMigrate" sku="thiniscsi-${D}" tc="TC-27231">
+              <arg>guest=${D}</arg>
+              <arg>loops=10</arg>
+            </testcase>
+            <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" sku="thiniscsi-${D}" tc="TC-27232">
+              <arg>guest=${D}</arg>
+              <arg>live</arg>
+              <arg>loops=20</arg>
+            </testcase>
+            <finally>
+              <testcase id="guestops.basic.TCShutdown">
+                <arg>guest=${D}</arg>
+                <arg>finally</arg>
+              </testcase>
+            </finally>
+          </serial>
+        </serial>
+      </for>
+    </parallel>
+  </testsequence>
+</xenrt>

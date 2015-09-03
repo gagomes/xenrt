@@ -21,6 +21,7 @@ __all__ = ["Guest",
            "BostonGuest",
            "TampaGuest",
            "ClearwaterGuest",
+           "CreedenceGuest",
            "DundeeGuest",
            "startMulti",
            "shutdownMulti",
@@ -1544,11 +1545,10 @@ exit /B 1
             except:
                 pass
 
-            if self.checkForLicenseRequired():
-                if not self.host.isHostLicensed():
-                    pvValue == "1"
+            if self._checkForLicenseRequired() and not self.host.isHostLicensed():
+                pvValue = "1"
  
-            if not pvValue:
+            else:
                 try:
                     pvValue = self.host.xenstoreRead("/local/domain/%d/attr/PVAddons/Installed" % domid)     
                 except:
@@ -4980,6 +4980,11 @@ def createVM(host,
 
     return g
 
+    def _checkForLicenseRequired(self):
+        """This is require by waitagent to check for host license from Dundee onwards """
+        return False
+
+
 #############################################################################
 
 
@@ -6133,12 +6138,6 @@ class ClearwaterGuest(TampaGuest):
             args = ["uuid=%s" % self.uuid, "platform:vgpu_vnc_enabled=%s" % option]
             self.getCLIInstance().execute("vm-param-set", string.join(args))
 
-class DundeeGuest(ClearwaterGuest):
-
-    def checkForLicenseRequired(self):
-
-        return True
-
 ##############################################################################
 
 class CreedenceGuest(ClearwaterGuest):
@@ -6523,7 +6522,12 @@ class DundeeGuest(CreedenceGuest):
         """ Check whether the windows pv updates is enabled on the host"""
         
         return self.paramGet("auto-update-drivers")
-    
+
+
+    def _checkForLicenseRequired(self):
+        """This is require by waitagent to check for host license from Dundee onwards """
+        return True
+ 
 class StorageMotionObserver(xenrt.EventObserver):
 
     def startObservingSXMMigrate(self,vm,destHost,destSession):

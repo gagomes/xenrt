@@ -10260,10 +10260,6 @@ while True:
             netscaler.installNSTools()
         netscaler.checkFeatures("Test results after setting up:")
 
-    def checkForLicenseRequired(self):
-
-        return False
-
 class EventObserver(xenrt.XRTThread):
 
     def __init__(self,host,session,eventClass,taskRef,timeout):

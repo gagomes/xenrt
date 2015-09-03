@@ -4008,8 +4008,8 @@ class Config(object):
         self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1009"] = "/usr/groups/release/XenServer-6.x/XS-6.5-SP1/hotfixes/XS65ESP1009/103748/hotfix-XS65ESP1009/XS65ESP1009.xsupdate"
 
         # Dec: xen-tools fixes and windows10 support. rolls up  XS65ESP1003
-        self.config["HOTFIXES"]["Creedence"]["SP1"][" XS65ESP1010"] = "/usr/groups/release/XenServer-6.x/XS-6.5-SP1/hotfixes/XS65ESP1010/104245/hotfix-XS65ESP1010/XS65ESP1010.xsupdate"
-        self.config["TOOLS_HOTFIXES"]["Creedence"]["SP1"].append(" XS65ESP1010")
+        self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1010"] = "/usr/groups/release/XenServer-6.x/XS-6.5-SP1/hotfixes/XS65ESP1010/104245/hotfix-XS65ESP1010/XS65ESP1010.xsupdate"
+        self.config["TOOLS_HOTFIXES"]["Creedence"]["SP1"].append("XS65ESP1010")
         return
 
     def setSecondaryVariables(self):

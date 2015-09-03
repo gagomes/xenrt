@@ -4506,6 +4506,12 @@ class GenericHost(GenericPlace):
         x.containerHost = self.containerHost
         if x.machine:
             x.machine.setHost(x)
+  
+    def isHostLicensed(self):
+
+        factory = XenServerLicenseFactory()
+        noLicense = factory.noLicense()
+        return (not (self.paramGet("edition") == noLicense.getEdition()))
 
     def getDeploymentRecord(self):
         ret = {"access": {"hostname": self.getName(),
@@ -10253,6 +10259,10 @@ while True:
         if installNSTools:
             netscaler.installNSTools()
         netscaler.checkFeatures("Test results after setting up:")
+
+    def checkForLicenseRequired(self):
+
+        return False
 
 class EventObserver(xenrt.XRTThread):
 

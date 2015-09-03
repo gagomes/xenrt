@@ -3989,6 +3989,10 @@ class Config(object):
         # Floppy: xen-device-model. Rolls up XS65E006, XS65E007.
         self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1002"] = "/usr/groups/release/XenServer-6.x/XS-6.5-SP1/hotfixes/XS65ESP1002/101510/hotfix-XS65ESP1002/XS65ESP1002.xsupdate"
 
+        # Take1: xen-tools fixes.
+        self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1003"] = "/usr/groups/release/XenServer-6.x/XS-6.5-SP1/hotfixes/XS65ESP1003/101805/hotfix-XS65ESP1003/XS65ESP1003.xsupdate"
+        self.config["TOOLS_HOTFIXES"]["Creedence"]["SP1"].append("XS65ESP1003")
+
         # Dec: xen-tools fixes and windows10 support. rolls up  XS65ESP1003
         self.config["HOTFIXES"]["Creedence"]["SP1"][" XS65ESP1010"] = "/usr/groups/release/XenServer-6.x/XS-6.5-SP1/hotfixes/XS65ESP1010/104245/hotfix-XS65ESP1010/XS65ESP1010.xsupdate"
         self.config["TOOLS_HOTFIXES"]["Creedence"]["SP1"].append(" XS65ESP1010")

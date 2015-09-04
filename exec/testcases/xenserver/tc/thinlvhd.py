@@ -17,7 +17,7 @@ class _ThinLVHDBase(xenrt.TestCase):
     All TC specific utilities should be implemented in this class."""
 
     def prepare(self, arglist=[]):
-        host = self.getDefaultHost()
+        self.host = self.getDefaultHost()
         self.sr = self.getThinProvisioningSRs()
 
     def __buildsmconfig(self, initialAlloc=None, quantumAlloc=None):

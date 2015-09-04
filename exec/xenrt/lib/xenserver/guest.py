@@ -1549,7 +1549,7 @@ exit /B 1
             except:
                 pass
 
-            if self._checkPVAddonsInstalled() and not self.host.isHostLicensed():
+            if self._checkPVAddonsInstalled():
                 pvValue = "1"
  
             else:

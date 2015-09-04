@@ -83,28 +83,28 @@
   </prepare>
 
   <testsequence>
-    <testcase id="xenserver.tc.scalability.TCXenDesktopCloneVMs" tc="TC-18701">
+    <testcase id="xenserver.tc.scalability.TCXenDesktopCloneVMs" tc="TC-18701" sku="full">
       <arg>vmsperhost=${VMSPERHOST}</arg>
       <arg>threads=${THREADS}</arg>
     </testcase>
-    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopStart" tc="TC-18703">
+    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopStart" tc="TC-18703" sku="full">
       <arg>threads=${THREADS}</arg>
     </testcase>
-    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopReboot" tc="TC-18705">
+    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopReboot" tc="TC-18705" sku="full">
       <arg>threads=${THREADS}</arg>
       <arg>iterations=2</arg>
     </testcase>
-    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopShutdown" tc="TC-18707">
+    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopShutdown" tc="TC-18707" sku="full">
       <arg>threads=${THREADS}</arg>
     </testcase>
-    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopStart" name="Start2" tc="TC-18709">
+    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopStart" name="Start2" tc="TC-18709" sku="full">
       <arg>threads=${THREADS}</arg>
     </testcase>
-    <testcase id="xenserver.tc.scalability.TCStbltyMasterReboot" tc="TC-18808" />
-    <testcase id="xenserver.tc.scalability.TCStbltySlaveReboot" tc="TC-18817" />
-    <testcase id="xenserver.tc.scalability.TCStbltySRReboot" tc="TC-18789" />
-    <testcase id="xenserver.tc.scalability.TCStbltyAllReboot" tc="TC-18818" />
-    <testcase id="xenserver.tc.scalability.TCStbltyMSlaveReboot" tc="TC-21462">
+    <testcase id="xenserver.tc.scalability.TCStbltyMasterReboot" tc="TC-18808"  sku="full"/>
+    <testcase id="xenserver.tc.scalability.TCStbltySlaveReboot" tc="TC-18817"  sku="full"/>
+    <testcase id="xenserver.tc.scalability.TCStbltySRReboot" tc="TC-18789"  sku="full"/>
+    <testcase id="xenserver.tc.scalability.TCStbltyAllReboot" tc="TC-18818"  sku="full"/>
+    <testcase id="xenserver.tc.scalability.TCStbltyMSlaveReboot" tc="TC-21462" sku="full">
         <arg>numberOfSlavesToReboot=${NUMBEROFSLAVESTOREBOOT}</arg>
     </testcase>
   </testsequence>

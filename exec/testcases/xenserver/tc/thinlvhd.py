@@ -719,123 +719,110 @@ class TCThinLVHDVmOpsSpace(_ThinLVHDBase):
 class TCConcurrentAccess(_ThinLVHDBase):
     """Concurrent access to the shared thin storage from multiple hosts in a pool of hosts"""
 
+    def attachDisks(self, readOnly=False):
+        """Attach VDIs onto each guests."""
+        for guest in self.guests:
+            self.guests[guest]['device'] = guest.createDisk(vdiuuid=self.guests[guest]["vdi"],
+                    returnDevice=True, mode="RO" if readOnly else "RW")
+
+    def detachDisks(self):
+        """Destroy all VBDs"""
+        cli = self.host.getCLIInstance()
+        for guest in self.guests:
+            vbd = self.host.minimalList("vbd-list", None, "vdi-uuid=%s" % self.guests[guest]["vdi"])[0]
+            cli.execute("vbd-unplug", "uuid=%s" % (vbd))
+            cli.execute("vbd-destroy", "uuid=%s" % (vbd))
+
+    def readDisk(self, guest, device):
+        """Attach VDI as RO and try read."""
+
+        guest.execguest("dd if=/dev/%s of=/dev/null bs=1M" % device, retval="code")
+
+    def writeDisk(self, guest, device, size):
+        """Fill disk with"""
+
+        guest.execguest("dd if=/dev/zero of=/dev/%s bs=1M count=%d" % (device, size * xenrt.KILO), retval="code")
+        # size in GiB, count * bs = size. KILO = GIGA / MEGA
+        
+    def testConcurrentAccess(self, read=False):
+        """Subcase testing concurrent access to multiple read-only VDIs from multiple hosts in a single pool."""
+
+        step("Attach all VIDs onto guests %s" % "read only" if read else "")
+        self.attachDisks(readOnly=read)
+
+
+        step("%s disk concurrently" % "read from" if read else "write")
+        tasks = []
+        for guest in self.guests:
+            if read:
+                tasks.append(xenrt.PTask(self.readDisk, guest, self.guests[guest]["device"]))
+            else:
+                tasks.append(xenrt.PTask(self.writeDisk, guest, self.guests[guest]["device"], self.vdisize))
+                
+        results = xenrt.pfarm(tasks, exception=False)
+
+        failed = 0
+        for res in results:
+            if not res:
+                warning("Found exception: %s" % res)
+            failed += 1
+
+        step("Detaching all VDIs")
+        self.detachDisks()
+
+        if failed:
+            raise xenrt.XRTFailure("%d / %d %s task(s) failed." %
+                    (failed, self.vdicount, "reading" if read else "writing"))
+
     def prepare(self, arglist=[]):
 
-        args = self.parseArgsKeyValue(arglist)
-        self.numberOfVms = int(args.get("numberofclones", "2"))
+        log("Obtaining test environment.")
+        self.pool = self.getDefaultPool()
+        self.host = self.pool.master
+        if not self.pool:
+            raise xenrt.XRTError("This test requires a pool.")
+        self.hosts = self.pool.getHosts()
+        hostcount = len(self.hosts)
 
-        self.guests = []
-        self.baseVMs = []
-        self.host = self.getDefaultHost()
-        self.hosts = self.getAllHosts()
-        existingGuests = self.host.listGuests()
+        log("Searching for target thin LVHD.")
         self.srs = self.getThinProvisioningSRs()
-
-        if existingGuests:
-            self.baseVMs = map(lambda x:self.host.getGuest(x), existingGuests)
-        else:
-            raise xenrt.XRTError("No base images are found.")
-
         if not self.srs:
             raise xenrt.XRTError("No thin provisioning SR found.")
         self.sr = self.srs[0]
+        log("Found SR: %s (%s)" % (self.sr.uuid, self.sr.srtype))
 
-    def _createClonedVMs(self, numberOfVms, baseVM):
-        """Clone the number of guests from the base image"""
+        log("Read env vars")
+        args = self.parseArgsKeyValue(arglist)
+        self.vdicount = int(args.get("vdicount", hostcount))
+        self.vdisize = int(args.get("vdisize", "2")) # in GiB
+        log("Using %d vdis, %d GiB each for %d hosts" % (self.vdicount, self.vdisize, hostcount))
 
-        pClones = map(lambda x:xenrt.PTask(baseVM.cloneVM, name='%s-%d' %
-                                        (baseVM.name, x)), range(numberOfVms))
-        clones = xenrt.pfarm(pClones)
+        log("Creating %d VMs" % self.vdicount)
+        master = self.getGuest("lingold")
+        if not master:
+            raise xenrt.XRTError("Failed to obtain master guest lingold")
+        master.setState("DOWN")
+        self.guests = {}
+        for i in xrange(self.vdicount):
+            guest = master.cloneVM(name="testvm_%d" % i)
+            guest.setHost(self.hosts[i % hostcount])
+            guest.setState("UP")
+            vdi = self.host.createVDI(self.vdisize * xenrt.GIGA, name="testdisk_%d" % i)
+            self.uninstallOnCleanup(guest)
 
-        # Distribute the guests evenly on available hosts.
-        hostIndex = numberOfVms / len(self.hosts)
-        lambda x: clones[x].setHost(self.hosts[x/hostIndex]), range(numberOfVms)
-
-        for clone in clones:
-            clone.tailored = True
-            clone.start()
-        return clones
-
-    def _lifecycleOperations(self, guest):
-        """Perform lifecycle operations on a guest"""
-
-        guest.reboot()
-        guest.waitForAgent(180)
-        guest.shutdown()
-        guest.start()
-        guest.waitForAgent(180)
-        guest.suspend()
-        guest.resume()
-
-    def _attachAndReadDisk(self, guest, vdiuuid):
-        """Attaching a read-only disk to a guest"""
-
-        # Attach the disk in read-only mode.
-        userDevice = guest.createDisk(vdiuuid=vdiuuid, mode="RO")
-
-        # Mount and read the content from the read-only disk.
-        guest.execguest("mount /dev/%s /mnt" % (userDevice))
-        guest.execguest("dd if=/mnt/delete_me of=/dev/null")
-
-    def writeDisk(self, vdiuuid):
-        """Fill the disk with some data"""
-
-        # Attach the disk to dom0.
-        cli = self.host.getCLIInstance()
-        vmuuid = self.host.getMyDomain0UUID()
-        vbduuid = cli.execute("vbd-create vm-uuid=%s vdi-uuid=%s device=autodetect" %
-                                                            (vmuuid, vdiuuid), strip=True)
-        cli.execute("vbd-plug uuid=%s" % (vbduuid))
-        xenrt.sleep(10)
-
-        # Write some data onto the disk.
-        device = self.host.minimalList("vbd-list uuid=%s params=device" % vbduuid)[0]
-        self.host.execdom0("mkfs.ext3 /dev/%s" % device)
-        self.host.execdom0("mount /dev/%s /media" % device)
-        size=1024*1024*1024 # Creating 1 GB file.
-        self.host.execdom0("dd if=/dev/zero of=/media/delete_me bs=4096 count=%d conv=notrunc" % (size/4096))
-        self.host.execdom0("umount /media")
-
-        # Dettach the disk from dom0.
-        cli.execute("vbd-unplug uuid=%s" % (vbduuid))
+            self.guests[guest] = {'vdi': vdi}
 
     def run(self, arglist):
 
-        xenrt.TEC().logverbose("Clone %s number of guests from base image(s)." %
-                                                    (self.numberOfVms * self.baseVMs))
+        self.runSubcase("testConcurrentAccess", (), "writing", "RW")
+        self.runSubcase("testConcurrentAccess", (True), "reading", "RO")
 
-        for baseVM in self.baseVMs:
-            # Make sure the guest is down.
-            baseVM.setState("DOWN")
-            self.guests += self._createClonedVMs(self.numberOfVms, baseVM)
+    def postRun(self):
 
-        xenrt.TEC().logverbose("Creating a disk to be attached to every guest in read-only mode.")
+        cli = self.host.getCLIInstance()
+        for guest in self.guests:
+            try:
+                cli.execute("vdi-destroy", "uuid=%s" % self.guests[guest]["vdi"])
+            except:
+                pass
 
-        diskAttachErrors = []
-        vdiuuid = self.host.createVDI(2 * xenrt.GIGA) # 2GB disk.
-
-        xenrt.TEC().logverbose("Write some data to the disk so that it can be read later by every guests")
-        self.writeDisk(vdiuuid)
-
-        xenrt.TEC().logverbose("Attaching a read-only disk to every guests")
-
-        try:
-            xenrt.pfarm([xenrt.PTask(self._attachAndReadDisk, guest, vdiuuid) for guest in self.guests])
-        except Exception, e:
-            diskAttachErrors.append(str(e))
-
-        if len(diskAttachErrors) > 1:
-            xenrt.TEC().logverbose("Attaching a read-only disk to every guests in parallel failed %s" % diskAttachErrors)
-            raise xenrt.XRTError("Attaching a read-only disk to every guests in parallel on a thin provisioned SR failed.")
-
-        xenrt.TEC().logverbose("Perform guests lifecycle operations in parellel")
-
-        errors = []
-        try:
-            xenrt.pfarm([xenrt.PTask(self._lifecycleOperations, guest) for guest in self.guests])
-        except Exception, e:
-            errors.append(str(e))
-
-        if len(errors) > 1:
-            xenrt.TEC().logverbose("Guests lifecycle operations in parallel failed %s" % errors)
-            raise xenrt.XRTError("Guests lifecycle operations in parallel on a thin provisioned SR failed.")

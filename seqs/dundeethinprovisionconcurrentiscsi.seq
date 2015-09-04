@@ -4,7 +4,7 @@
 
   <prepare>
     <pool>
-      <storage type="fc" name="fcsr" default="true" options="thin" />
+      <storage type="lvmoiscsi" name="iscsisr" default="true" options="thin" />
       <host id="0">
         <vm name="lingold">
           <distro>rhel6x</distro>

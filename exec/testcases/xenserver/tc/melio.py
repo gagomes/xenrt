@@ -66,7 +66,7 @@ class TCBlockSizes(xenrt.TestCase):
 
     def _testDD(self, blockSize):
         try:
-            self.host.execdom0("dd if=/dev/zero of=/mnt/bs%d bs=%d count=1 oflag=direct" % (blockSize, blockSize)
+            self.host.execdom0("dd if=/dev/zero of=/mnt/bs%d bs=%d count=1 oflag=direct" % (blockSize, blockSize))
         except:
             raise xenrt.XRTFailure("Unable to write to Melio volume using block size of %d" % blockSize)
 

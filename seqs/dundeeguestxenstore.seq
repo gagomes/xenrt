@@ -3,9 +3,6 @@
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
   </variables>
-  <scheduler>
-    <resources>memory&gt;=16G/disk1&gt;=150G</resources>
-  </scheduler>
   <prepare>
     <pool>
       <host id="0">

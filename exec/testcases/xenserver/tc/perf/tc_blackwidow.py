@@ -317,7 +317,7 @@ class TCSslTps1024(TCSslEncThroughput):
         self.statsToCollect = ["ssl"]
 
     def createHttpClients(self, vpx_ns):
-        vpx_ns.cli("shell /var/BW/nscsconfig -s client=%d -s cltserverport=443 -s ssl=1 -s ssl_sess_reuse_disable=1 -s ssl_dont_parse_server_cert=1 -s ssl_client_hello_version=1 -s reqperconn=1 -s percentpers=0 -w %s -s cltserverip=43.54.30.251 -s threads=%d -s parallelconn=%d -s finstop=0 -ye start" % (self.client_id, self.workload, self.httpClientThreads, self.httpClientParallelconn))
+        vpx_ns.cli("shell /var/BW/nscsconfig -s client=%d -s cltserverport=443 -s ssl=1 -s ssl_sess_reuse_disable=1 -s ssl_dont_parse_server_cert=1 -s ssl_client_hello_version=1 -s reqperconn=1 -s percentpers=0 -w %s -s cltserverip=43.54.30.247 -s threads=%d -s parallelconn=%d -s finstop=0 -ye start" % (self.client_id, self.workload, self.httpClientThreads, self.httpClientParallelconn))
 
 class TCSslTps2K(TCSslTps1024):
     TEST = "SSL TPS 2048bit Key"

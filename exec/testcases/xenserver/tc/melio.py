@@ -55,6 +55,21 @@ class TCDDIntegrity(xenrt.TestCase):
             if md5sum1 != md5sum2:
                 raise xenrt.XRTFailure("md5sums did not match")
 
+class TCBlockSizes(xenrt.TestCase):
+    """Test writes at core block sizes"""
+
+    def run(self, arglist):
+        self.host = self.getDefaultHost()
+        self.host.melioHelper.checkMount("/mnt")
+        for i in [512, 1024, 2048, 4096]:
+            self.runSubcase("_testDD", (i), "BlockSize", str(i))
+
+    def _testDD(self, blockSize):
+        try:
+            self.host.execdom0("dd if=/dev/zero of=/mnt/bs%d bs=%d count=1 oflag=direct" % (blockSize, blockSize)
+        except:
+            raise xenrt.XRTFailure("Unable to write to Melio volume using block size of %d" % blockSize)
+
 class TCMelioSRSetup(TCMelioSetup):
     """Setup Melio SR"""
     def run(self, arglist):

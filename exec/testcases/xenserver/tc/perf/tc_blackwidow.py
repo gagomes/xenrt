@@ -261,9 +261,9 @@ class TCSslEncThroughput(TCHttp100KResp):
                             set dns parameter -nameLookupPriority DNS -cacheRecords NO
                             add ssl certkey c1 -cert server_cert.pem -key server_key.pem
                             add ssl certKey c2 -cert Cert2048 -key Key2048bit
-                            add ssl certKey c3 -cert cert_4096.pem -key key_4096.key
                             set tcpparam -SACK DISABLED -WS DISABLED -ackOnPush DISABLED
                         """)
+        vpx_ns.cli('add ssl certKey c3 -cert cert_4096.pem -key key_4096.key', level=xenrt.RC_OK)
 
         # Add SNIPs (the origin IP for requests travelling from NS to webserver)
         vpx_ns.multiCli("\n".join(["add ip 43.54.30.%d 255.255.0.0 -ty SNIP -mg en"%i for i in range(1,self.snips+1)]))
@@ -304,11 +304,10 @@ class TCSslTps1024(TCSslEncThroughput):
     def setupDUT(self, vpx_ns):
         super(TCSslTps1024, self).setupDUT(vpx_ns)
 
-        vpx_ns.multiCli(""" set ssl vserver v[1-8] -sessReuse DISABLED
-                            bind ssl vserver v[1-8] -certkey %s
-                            bind ssl cipher v[1-8] ORD SSL3-RC4-MD5
-                            save ns config
-                        """ % self.CERT)
+        vpx_ns.cli("set ssl vserver v[1-8] -sessReuse DISABLED")
+        vpx_ns.cli("bind ssl vserver v[1-8] -certkey %s"% self.CERT, level=xenrt.RC_OK)
+        vpx_ns.cli("bind ssl cipher v[1-8] ORD SSL3-RC4-MD5", level=xenrt.RC_OK)
+        vpx_ns.cli('save ns config')
 
     def prepare(self, arglist=[]):
         super(TCSslTps1024, self).prepare(arglist=[])

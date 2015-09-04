@@ -9,7 +9,7 @@
 
 import re, string
 import xenrt, xenrt.lib.xenserver
-from xenrt.lazylog import step, log
+from xenrt.lazylog import step, log, warning
 import testcases.xenserver.tc.lunspace
 
 class _ThinLVHDBase(xenrt.TestCase):
@@ -277,12 +277,13 @@ class ResetOnBootThinSRSpace(_ThinLVHDBase):
         self.uninstallOnCleanup(self.guest)
 
     def getDigest(self, device="/dev/xvda"):
-        digest = self.guest.execguest("md5sum %s" % device).splite()[0]
+        digest = self.guest.execguest("md5sum %s" % device).split()[0]
         return digest
 
     def run(self, arglist=None):
 
         step("Create a VDI and add it to guest.")
+        self.guest.setState("UP")
         vdi = self.host.createVDI(sizebytes=xenrt.GIGA, sruuid=self.srs[0].uuid)
         device = self.guest.createDisk(vdiuuid=vdi, returnDevice=True)
 
@@ -290,16 +291,18 @@ class ResetOnBootThinSRSpace(_ThinLVHDBase):
         self.guest.setState("DOWN")
         self.host.genParamSet("vdi", vdi, "on-boot", "reset")
 
-        srSizeBefore = self.getPhysicalUtilisation(self.srs[0])
         self.guest.setState("UP")
-        digestBefore = self.getDigest("/dev/%s" % device)
+        xenrt.sleep(60)
+        srSizeBefore = self.getPhysicalUtilisation(self.srs[0])
         log("Physical SR space allocated for the VDIs before writing: %d" % (srSizeBefore))
+        digestBefore = self.getDigest("/dev/%s" % device)
         log("MD5 digest before writing into VDI: %s" % (digestBefore))
 
         step("Writing some data onto VDI")
         self.fillDisk(self.guest, targetDir="/dev/%s" % device, size=xenrt.GIGA)
 
         step("Test trying to check SR physical space allocated for the VDI(s)")
+        xenrt.sleep(60)
         srSizeAfter = self.getPhysicalUtilisation(self.srs[0])
         log("Physical SR space allocated for the VDIs after writing: %d" % (srSizeAfter))
 
@@ -308,6 +311,7 @@ class ResetOnBootThinSRSpace(_ThinLVHDBase):
         self.guest.reboot()
 
         step("Test trying to check the SR physical space allocated for the VDI after reset-on-boot VM shutdown")
+        xenrt.sleep(60)
         srSizeFinal = self.getPhysicalUtilisation(self.srs[0])
         digestFinal = self.getDigest("/dev/%s" % device)
         log("Physical SR space allocated for the VDI after the VM rebooted: %d" % (srSizeFinal))

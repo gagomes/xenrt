@@ -4006,6 +4006,10 @@ class Config(object):
 
         # Philby: xen-device-model. Rolls up XS65E009, XS65E010, XS65E013, XS65E014, XS65ESP1002, XS65ESP1004, XS65ESP1008.
         self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1009"] = "/usr/groups/release/XenServer-6.x/XS-6.5-SP1/hotfixes/XS65ESP1009/103748/hotfix-XS65ESP1009/XS65ESP1009.xsupdate"
+
+        # Dec: xen-tools fixes and windows10 support. rolls up  XS65ESP1003
+        self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1010"] = "/usr/groups/release/XenServer-6.x/XS-6.5-SP1/hotfixes/XS65ESP1010/104245/hotfix-XS65ESP1010/XS65ESP1010.xsupdate"
+        self.config["TOOLS_HOTFIXES"]["Creedence"]["SP1"].append("XS65ESP1010")
         return
 
     def setSecondaryVariables(self):
@@ -4184,9 +4188,9 @@ class Config(object):
             self.config["CARBON_PATCHES_CREEDENCE"]["HF14"] = self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E014"]
         elif branch == "SP1":
             self.config["CARBON_PATCHES_CREEDENCE"]["HF00"] = self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1"]
-            self.config["CARBON_PATCHES_CREEDENCE"]["HF03"] = self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1003"]
             self.config["CARBON_PATCHES_CREEDENCE"]["HF05"] = self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1005"]
             self.config["CARBON_PATCHES_CREEDENCE"]["HF09"] = self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1009"]
+            self.config["CARBON_PATCHES_CREEDENCE"]["HF10"] = self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1010"]
             
     def readFromFile(self, filename, path=None):
         """Read config from an XML file."""

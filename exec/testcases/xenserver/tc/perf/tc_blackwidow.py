@@ -117,7 +117,7 @@ DEFINE_REQUESTS
         self.clients = libperf.getArgument(arglist, "clients", int, 100) # number of HTTP clients
 
         clientThreads = libperf.getArgument(arglist, "clientthreads", str, str(self.httpClientThreads)).split(",") # various client threads value
-        clientParallelconn = libperf.getArgument(arglist, "clientparallelconn", str, str(self.httpClientParallelconn) if self.httpClientParallelconn else clientThreads).split(",") # same as clientThreads if not set explicitly
+        clientParallelconn = libperf.getArgument(arglist, "clientparallelconn", str, str(self.httpClientParallelconn) if self.httpClientParallelconn else str(self.httpClientThreads)).split(",") # same as clientThreads if not set explicitly
         if len(clientThreads) != len(clientParallelconn):
             warning("number of values for threads and parallelconn mismatch, discarding parallelconn values and using threads as parallelconn.")
             clientParallelconn = clientThreads

@@ -172,11 +172,11 @@ class NetScaler(object):
         """Helper method for creating specific NetScaler CLI command methods"""
         xenrt.xrtAssert(self.__vpxGuest.getState() == 'UP', 'NetScaler CLI Commands can only be executed on a running VPX')
         data = self.__vpxGuest.execguest(command, username='nsroot', password='nsroot', level=level)
-        if type(data) == type(""):
-            data = map(lambda x:x.strip(), filter(lambda x:not x.startswith(' Done'), data.splitlines()))
-            xenrt.TEC().logverbose('NetScaler Command [%s] - Returned: %s' % (command, '\n'.join(data)))
-            return data
-        return
+        if type(data) == type(1):
+            return
+        data = map(lambda x:x.strip(), filter(lambda x:not x.startswith(' Done'), data.splitlines()))
+        xenrt.TEC().logverbose('NetScaler Command [%s] - Returned: %s' % (command, '\n'.join(data)))
+        return data
 
     def multiCli(self, cmds):
         [self.cli(cmd.strip()) for cmd in cmds.strip().split("\n") if cmd.strip()]

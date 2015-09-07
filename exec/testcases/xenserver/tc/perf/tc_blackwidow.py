@@ -107,16 +107,21 @@ DEFINE_REQUESTS
     def __init__(self):
         super(BlackWidowPerformanceTestCase, self).__init__(self.TEST)
         self.httpClientThreads = 500
-        self.httpClientParallelconn = 500
+        self.httpClientParallelconn = 0
 
     def parseArgs(self, arglist):
         # Performance Test Metrics
         self.runtime = libperf.getArgument(arglist, "runtime", int, 120) # duration over which to run the throughput test
         self.snips   = libperf.getArgument(arglist, "snips",   int, 50)  # number of NetScaler clients on the DUT
         self.servers = libperf.getArgument(arglist, "servers", int, 251) # number of HTTP servers
-        self.clients = libperf.getArgument(arglist, "clients", int, 100) # number of HTTP servers
-        self.httpClientThreads = libperf.getArgument(arglist, "httpclientthread", int, self.httpClientThreads) # number of HTTP client threads
-        self.httpClientParallelconn = libperf.getArgument(arglist, "httpclientparallelconn", int, self.httpClientParallelconn) # number of HTTP client parallel connections
+        self.clients = libperf.getArgument(arglist, "clients", int, 100) # number of HTTP clients
+
+        clientThreads = libperf.getArgument(arglist, "clientthreads", str, str(self.httpClientThreads)).split(",") # various client threads value
+        clientParallelconn = libperf.getArgument(arglist, "clientparallelconn", str, str(self.httpClientParallelconn) if self.httpClientParallelconn else clientThreads).split(",") # same as clientThreads if not set explicitly
+        if len(clientThreads) != len(clientParallelconn):
+            warning("number of values for threads and parallelconn mismatch, discarding parallelconn values and using threads as parallelconn.")
+            clientParallelconn = clientThreads
+        self.clientTnP = zip(clientThreads, clientParallelconn)
 
         bw_name  = libperf.getArgument(arglist, "bw",  str, "blackwidow") # name of the VPX to use for BlackWidow
         dut_name = libperf.getArgument(arglist, "dut", str, "dut")        # name of the VPX to use as the device-under-test
@@ -153,9 +158,16 @@ DEFINE_REQUESTS
         pass
 
     def run(self, arglist=[]):
-        self.startWorkload()
-        self.runTest()
-        self.stopWorkload()
+        for t,p in self.clientTnP:
+            step("Test segment started")
+            self.httpClientThreads=int(t)
+            self.httpClientParallelconn=int(p)
+            step("TEST: updated Client Threads = %d,Parallelconn = %d" % (self.httpClientThreads, self.httpClientParallelconn))
+
+            self.startWorkload()
+            self.runTest()
+            self.stopWorkload()
+            step("Test segment finished")
 
 class TCHttp100KResp(BlackWidowPerformanceTestCase):
     TEST = "100K_resp"
@@ -208,7 +220,6 @@ class TCHttp1BResp(TCHttp100KResp):
     def __init__(self):
         super(TCHttp1BResp, self).__init__(self.TEST)
         self.httpClientThreads = 200
-        self.httpClientParallelconn = 200
 
     def prepare(self, arglist=[]):
         super(TCHttp1BResp, self).prepare(arglist=[])

@@ -573,21 +573,6 @@ class TCLinuxMaxRange(_LinuxMaxRangeBase):
     """Linux VM operations with maximum dynamic range"""
     pass
 
-class TCLinuxMaxRangeEarlyPVOPS(_LinuxMaxRangeBase):
-    """Early pvops Linux operations with maximum dynamic range"""
-    #guests could not balloon above the initial allocation
-    BALLOON_UP_INITIAL_ALLOC = False
-
-class TCLinuxMaxRangeLowMemory(_LinuxMaxRangeBase):
-    """32-bit pvop guests operations with maximum dynamic range"""
-    #guests cannot balloon up to more than 10x the amount of low memory 
-    LOW_MEMORY_CONSTRAINT = True
-
-class TCLinuxMaxRangeHVMPV(_LinuxMaxRangeBase):
-    """HVM-PV guests operations with maximum dynamic range"""
-    #Reachable target for HVM Linux guests is less than static-max by amount of ~9MiB
-    #video memory (8MiB) + amount of memory reserved by Linux (about 4 + 8 + 384 KiB)
-    HVM_PV_CONSTRAINT = True
 #
 # Windows VM Balloon Driver Max range tests
 #
@@ -1976,15 +1961,15 @@ class TC9354(xenrt.TestCase):
 
 class _BalloonBootTime(xenrt.TestCase):
     """Verify the extra time for booting a ballooned down VM is minimal"""
-    VMNAME = "winxpsp3"
+    DISTRO = "winxpsp3"
     USEMEM = 512
     ALLOWED_INCREASE = 20
 
     def prepare(self, arglist=None):
         self.host = self.getDefaultHost()
-        self.guest = self.getGuest(self.VMNAME)
+        self.guest = self.getGuest(self.DISTRO)
         if not self.guest:
-            raise xenrt.XRTError("Could not find guest %s in  registry." % (self.VMNAME))
+            raise xenrt.XRTError("Could not find guest %s in  registry." % (self.DISTRO))
         self.guest.shutdown()
 
     def run(self, arglist=None):
@@ -2034,41 +2019,41 @@ class _BalloonBootTime(xenrt.TestCase):
 
 class TC9527(_BalloonBootTime):
     """Verify the extra time for booting a ballooned down Windows XP sp3 VM is minimal"""
-    VMNAME = "winxpsp3"
+    DISTRO = "winxpsp3"
     USEMEM = 512
 
 class TC9528(_BalloonBootTime):
     """Verify the extra time for booting a ballooned down Windows 7 x86 VM is minimal"""
-    VMNAME = "win7-x86"
+    DISTRO = "win7-x86"
     USEMEM = 1024
 
 class TC9529(_BalloonBootTime):
     """Verify the extra time for booting a ballooned down Windows 7 x64 VM is minimal"""
-    VMNAME = "win7-x64"
+    DISTRO = "win7-x64"
     USEMEM = 2048
 
 class TC12600(_BalloonBootTime):
     """Verify the extra time for booting a ballooned down Windows 7 SP1 x86 VM is minimal"""
-    VMNAME = "win7sp1-x86"
+    DISTRO = "win7sp1-x86"
     USEMEM = 2048
     #increasing extra time allowed to boot with DMC to 40 sec. CA-37461, CA-33630
     ALLOWED_INCREASE = 40
 
 class TC12601(_BalloonBootTime):
     """Verify the extra time for booting a ballooned down Windows 7 SP1 x64 VM is minimal"""
-    VMNAME = "win7sp1-x64"
+    DISTRO = "win7sp1-x64"
     USEMEM = 2048
     ALLOWED_INCREASE = 60
 
 class TC26440(_BalloonBootTime):
     """Verify the extra time for booting a ballooned down Windows 10 x86 VM is minimal"""
-    VMNAME = "win10-x86"
+    DISTRO = "win10-x86"
     USEMEM = 2048
     ALLOWED_INCREASE = 60
 
 class TC26441(_BalloonBootTime):
     """Verify the extra time for booting a ballooned down Windows 10 x64 VM is minimal"""
-    VMNAME = "win10-x64"
+    DISTRO = "win10-x64"
     USEMEM = 2048
     ALLOWED_INCREASE = 60
 

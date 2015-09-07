@@ -23,7 +23,7 @@
   </prepare>
   <testsequence>
     <serial group="IntelvGPU">
-      <testcase id="testcases.xenserver.tc.vgpu.TCIntelvGPUAllocationMode" name="TC-27115" tc="TC-27115">
+      <testcase id="testcases.xenserver.tc.vgpu.TCIntelvGPUAllocationMode" name="TC-27115" tc="TC-27115" sku="gvtghaswell">
         <arg>distro=0</arg>
         <arg>typeofvgpu=intelwinvgpu</arg>
         <arg>blockdom0access=false</arg>

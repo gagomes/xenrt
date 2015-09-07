@@ -1,0 +1,49 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+    <PREPARE_WORKERS>1</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool>
+      <host id="0" license="enterprise-per-socket" >
+        <vm name="masterwin7sp1-x64">
+          <distro>win7sp1-x64</distro>
+          <arch>x86-64</arch>
+          <memory>2048</memory>
+          <vcpus>2</vcpus>
+          <postinstall action="installDrivers" />
+          <postinstall action="preCloneTailor"/>
+          <network device="0" />
+          <disk device="0" size="24" />
+        </vm>
+      </host>
+      <host id="1" installsr="ext" license="enterprise-per-socket"/>
+      <storage type="nfs" name="nfssr" default="true"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="IntelvGPU">
+
+      <testcase id="testcases.xenserver.tc.vgpu.TCPoolIntelBootstorm" sku="gvtghaswell">
+        <arg>distro=1</arg>
+        <arg>typeofvgpu=intelwinvgpu</arg>
+        <arg>blockdom0access=false</arg>
+        <arg>vgpuconfig=12,13</arg>
+      </testcase>
+
+      <testcase id="testcases.xenserver.tc.vgpu.TCSwitchIntelGPUModes" sku="gvtghaswell">
+        <arg>distro=1</arg>
+        <arg>typeofvgpu=intelwinvgpu</arg>
+        <arg>blockdom0access=false</arg>
+        <arg>vgpuconfig=12,13</arg>
+      </testcase>
+
+    </serial>
+  </testsequence>
+
+
+</xenrt>

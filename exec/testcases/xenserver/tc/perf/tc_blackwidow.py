@@ -313,6 +313,12 @@ class TCSslTps1024(TCSslEncThroughput):
                         """)
 
     def setupDUT(self, vpx_ns):
+        vpx_ns.getGuest().shutdown()
+        vpx_ns.getGuest().cpuset(6)
+        vpx_ns.getGuest().memset(4096)
+        vpx_ns.getGuest().lifecycleOperation('vm-start')
+        vpx_ns.getGuest().waitForSSH(timeout=300, username='nsroot', cmd='shell')
+
         super(TCSslTps1024, self).setupDUT(vpx_ns)
 
         vpx_ns.cli("set ssl vserver v[1-8] -sessReuse DISABLED")

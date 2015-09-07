@@ -18,7 +18,7 @@ class _ThinLVHDBase(xenrt.TestCase):
 
     def prepare(self, arglist=[]):
         self.host = self.getDefaultHost()
-        self.sr = self.getThinProvisioningSRs()
+        self.srs = self.getThinProvisioningSRs()
 
     def __buildsmconfig(self, initialAlloc=None, quantumAlloc=None):
         """Create and return sm-config dict with given parameters.
@@ -36,6 +36,50 @@ class _ThinLVHDBase(xenrt.TestCase):
             smconf["allocation_quantum"] = str(quantumAlloc)
 
         return smconf
+
+    def __getsmconfig(self, sr=None):
+        """Return smconfig object of given sr
+
+        @param sr: sr object. If not given use default sr.
+
+        @return Dict of sm-config
+        """
+
+        host = self.host
+        if not host:
+            host = self.getDefaultHost()
+
+        if not sr:
+            sr = self.getDefaultSR()
+
+        if not isinstance(sr, xenrt.lib.xenserver.StorageRepository):
+            # if it is not SR object, then assumes it is sr uuid string.
+            sr = xenrt.lib.xenserver.getStorageRepositoryClass(host, sr).fromExistingSR(host, sr)
+
+        smconf = {}
+        for item in sr.smconfig.split(";"):
+            key, val = item.split(":", 1)
+            smconf[key.strip()] = val.strip()
+
+        return smconf
+
+    def getInitialAllocation(self, sr=None):
+        """Return initial allocation of SR"""
+
+        smconf = self.__getsmconfig(sr)
+        if "initial_allocation" in smconf:
+            return int(smconf["initial_allocation"])
+
+        return None
+
+    def getAllocationQuantum(self, sr=None):
+        """Return allocation quantum of SR"""
+
+        smconf = self.__getsmconfig(sr)
+        if "allocation_quantum" in smconf:
+            return int(smconf["allocation_quantum"])
+
+        return None
 
     def createThinSR(self, host=None, name=None, srtype="lvmoiscsi", ietvm=False, size=0, initialAlloc=None, quantumAlloc=None):
         """Creates a SR with given parameters.
@@ -106,8 +150,8 @@ class _ThinLVHDBase(xenrt.TestCase):
 
         return [sr for sr in srs if sr.thinProvisioning]
 
-    def getPhysicalUtilisation(self, sr):
-        """Return physical size of sr."""
+    def __getSRObj(self, sr):
+        """Return SR instance if it is uuid"""
 
         host = self.host
         if not host:
@@ -119,7 +163,17 @@ class _ThinLVHDBase(xenrt.TestCase):
 
         sr.scan()
 
-        return int(sr.paramGet("physical-utilisation"))
+        return sr
+
+    def getPhysicalUtilisation(self, sr):
+        """Return physical utilisation of sr."""
+
+        return int(self.__getSRObj(sr).paramGet("physical-utilisation"))
+
+    def getPhysicalSize(self, sr):
+        """Return physical size of sr"""
+
+        return int(self.__getSRObj(sr).paramGet("physical-size"))
 
     def fillDisk(self, guest, targetDir=None, size=512*xenrt.MEGA, source="/dev/zero"):
         """Fill target disk by creating an empty file with
@@ -160,7 +214,6 @@ class _ThinLVHDBase(xenrt.TestCase):
             sr = xenrt.lib.xenserver.getStorageRepositoryClass(self, sr).fromExistingSR(self, sr)
 
         return sr.thinProvisioning
-        
 
     def getPhysicalVDISize(self, vdiuuid, host=None ):
         if not host:
@@ -336,7 +389,7 @@ class TCThinProvisioned(_ThinLVHDBase):
     def prepare(self, arglist=[]):
 
         super(TCThinProvisioned, self).prepare(arglist)
-        if not self.sr:
+        if not self.srs:
             raise xenrt.XRTError("No thin provisioning SR found.")
 
     def runCase(self, sr, vms):
@@ -374,7 +427,7 @@ class TCThinProvisioned(_ThinLVHDBase):
         if "vms" in args:
             vms = args["vms"]
 
-        for sr in self.sr:
+        for sr in self.srs:
             self.runSubcase("runCase", (sr, vms), sr.name, "Check %d VDIs" % vms)
 
 
@@ -385,7 +438,7 @@ class TCSRIncrement(_ThinLVHDBase):
 
         super(TCSRIncrement, self).prepare(arglist)
 
-        if not self.sr:
+        if not self.srs:
             raise xenrt.XRTError("No thin provisioning SR found.")
 
     def runCase(self, sr):
@@ -409,7 +462,7 @@ class TCSRIncrement(_ThinLVHDBase):
 
     def run(self, arglist=[]):
 
-        for sr in self.sr:
+        for sr in self.srs:
             self.runSubcase("runCase", (sr,), sr.name, "Check %s" % sr.name)
 
 class TCThinAllocationDefault(_ThinLVHDBase):
@@ -825,4 +878,301 @@ class TCConcurrentAccess(_ThinLVHDBase):
                 cli.execute("vdi-destroy", "uuid=%s" % self.guests[guest]["vdi"])
             except:
                 pass
+
+
+class XRTSRUpgradeFail(xenrt.XRTError):
+    """An error class to handle lvhd-enable-thin-provisioning cli command error."""
+    pass
+
+
+class TCSRUpgrade(_ThinLVHDBase):
+    """Test the SR upgrade process from thick provisioned to thin provisioned"""
+
+    OUTPUT_PATH = "/tmp/srupgradeoutput"
+    UPGRADE_TIMEOUT = "5" # in minutes.
+
+    def getDigest(self, guest, device="/dev/xvdb"):
+        """Return md5 string"""
+
+        return guest.execguest("md5sum %s" % device).split()[0]
+        
+    def runSRUpgrade(self, sruuid, initialAlloc=None, quantumAlloc=None, async=False):
+        """Invoke SR upgrade"""
+
+        args = []
+        args.append("sr-uuid=%s" % (sruuid))
+        if initialAlloc:
+            args.append("initial_allocation=%s" % (initialAlloc))
+        if quantumAlloc:
+            args.append("quantum_allocation=%s" % (quantumAlloc))
+
+        cmd = "lvhd-enable-thin-provisioning %s > %s 2>&1" % (" ".join(args), self.OUTPUT_PATH)
+
+        if async:
+            cmd += " < /dev/null &"
+
+        cli = self.host.getCLIInstance()
+        ret = cli.execute(cmd, retval="code")
+
+        if async:
+            return ret
+
+        output = self.grabSRUpgradeOutput()
+        if ret:
+            raise XRTSRUpgradeFail("SR upgrade command returned error: %s" % output)
+
+        return output
+
+    def grabSRUpgradeOutput(self):
+        """obtain output of SR upgrade."""
+        d = "%s/srupgrade-output" % (xenrt.TEC().getLogdir())
+        try:
+            sftp = self.host.sftpClient()
+            sftp.copyFrom(self.OUTPUT_PATH, d)
+        except Exception, e:
+            warning("Failed to obtain output: %s" % self.OUTPUT_PATH)
+            return ""
+        with open(d, "r") as out:
+            return out.read()
+
+    def checkSRUpgradeProcess(self):
+        """Check whether SR upgrad process is running"""
+
+        return not self.host.execdom0("ps -efl | grep '[l]vhd-enable-thin-provisioning'", retval="code")
+
+    def getSRObjByType(self, srtype):
+        """Search SRs by sr type"""
+
+        host = self.host
+        if not host:
+            host = self.getDefaultHost()
+
+        xsrs = [sr for sr in host.asXapiObject().SR(False) if sr.srType() == srtype]
+        if not xsrs:
+            raise xenrt.XRTError("Cannot find %s type SR." % srtype)
+
+        for xsr in xsrs:
+            sr = xenrt.lib.xenserver.getStorageRepositoryClass(host, xsr.uuid).fromExistingSR(host, xsr.uuid)
+            if not sr.thinProvisioning:
+                return sr
+
+        raise xenrt.XRTError("All found SRs of %s type are already thin provisioned." % srtype)
+
+    def prepare(self, arglist=[]):
+
+        step("Setting up testing env before SR upgrade.")
+        args = self.parseArgsKeyValue(arglist)
+
+        self.host = self.getDefaultHost()
+        self.upgradetimeout = int(args.get("srupgradetime", self.UPGRADE_TIMEOUT)) # in minutes.
+
+        srtype = args.get("srtype", "lvmoiscsi")
+        self.sr = self.getSRObjByType(srtype)
+        log("Found none thin provisioning %s SR: %s" % (srtype, self.sr.uuid))
+
+        log("Setting up master guest.")
+        baseimage = args.get("baseimagename", None)
+        self.master = self.getGuest(baseimage)
+        if not self.master:
+            raise xenrt.XRTError("Could not find the base image %s." % baseimage)
+
+        self.guests = {}
+        self.guests[self.master] = {}
+
+        log("Creating an additional disk of size 2GiB and attach to VM")
+        vdiuuid = self.host.createVDI(2 * xenrt.GIGA, name="extra-disk")
+        userDevice = self.master.createDisk(vdiuuid=vdiuuid, returnDevice=True)
+        self.guests[self.master]["device"] = userDevice
+
+        step("Recording the extra disk checksum of the master VM before the snapshot")
+        self.guests[self.master]["initial"] = self.getDigest(self.master, "/dev/" + userDevice)
+
+        step("Take a snapshot of master VM")
+        self.guests[self.master]["snapshot"] = self.master.snapshot()
+
+        step("Writing a GiB of random data to the additional disk")
+        self.fillDisk(self.master, targetDir="/dev/" + userDevice, size=xenrt.GIGA, source="/dev/urandom")
+        self.guests[self.master]["afterWriting"] = self.getDigest(self.master, "/dev/" + userDevice)
+
+        step("Shutting down master VM")
+        self.master.shutdown()
+        step("Cloning the master VM")
+        self.clonedVM = self.master.cloneVM(name="cloned")
+        step("Again copying the master VM")
+        self.copiedVM = self.master.copyVM(name="copied")
+
+        self.guests[self.clonedVM] = {"device": userDevice}
+        self.guests[self.copiedVM] = {"device": userDevice}
+
+        step("Distribute guests and starting VMs.")
+        pool = self.getDefaultPool()
+        if pool:
+            self.master.setHost(pool.master)
+            self.clonedVM.setHost(pool.getSlaves()[0])
+            self.copiedVM.setHost(pool.getSlaves()[-1])
+        for guest in self.guests:
+            guest.start()
+
+        step("Writing additional 1GiB of random data to extra disk of the cloned VM")
+        self.fillDisk(self.clonedVM, targetDir="/dev/" + userDevice, size=2*xenrt.GIGA, source="/dev/urandom")
+        self.guests[self.clonedVM]["afterWriting"] = self.getDigest(self.clonedVM, "/dev/" + userDevice)
+
+        step("Writing additional 1GiB of random data to extra disk of the copied VM")
+        self.fillDisk(self.copiedVM, targetDir="/dev/" + userDevice, size=2*xenrt.GIGA, source="/dev/urandom")
+        self.guests[self.copiedVM]["afterWriting"] = self.getDigest(self.copiedVM, "/dev/" + userDevice)
+
+        step("Shutting down the cloned VM")
+        self.clonedVM.shutdown()
+        step("Set reset-on-boot additional disk of the cloned VM")
+        self.resetOnBootVDI = self.host.minimalList("vbd-list", args="vm-uuid=%s userdevice=1" % 
+                                                self.clonedVM.getUUID(), params="vdi-uuid")[0]
+        self.host.genParamSet("vdi", self.resetOnBootVDI, "on-boot", "reset")
+        step("Starting cloned VM")
+        self.clonedVM.start()
+
+        step("Suspending the master VM")
+        self.master.suspend()
+
+        log("Give some time to settle down all SR changes.")
+        xenrt.sleep(60)
+
+    def rollBackTest(self):
+        
+        cli = self.host.getCLIInstance()
+
+        step("Creating a VDI of remaining size of SR")
+        pSize = self.getPhysicalSize(self.sr)
+        left = pSize - self.getPhysicalUtilisation(self.sr)
+        block = 32 * xenrt.MEGA # VDI will be create by size of block
+        left =  left / block * block - block # VHD will require size of block for metadata and header
+        vdiuuid = self.host.createVDI(left, name="remaining-disk")
+
+        step("Verifying free space of SR is smaller than 0.5% * num of host of SR size or 1GiB, whichever smaller")
+        left = pSize - self.getPhysicalUtilisation(self.sr)
+        if left > min(0.05 * pSize * len(self.getAllHosts()), xenrt.GIGA): # Assumes all hosts are in the same pool.
+            cli.execute("vdi-destroy", "uuid=%s" % (vdiuuid))
+            raise xenrt.XRTError("Failed to create failover case.")
+
+        step("Trying SR upgrade.")
+        try:
+            self.runSRUpgrade(self.sr.uuid)
+        except XRTSRUpgradeFail as e:
+            log("SR upgrade failed as expected. output: %s" % e)
+        else:
+            raise xenrt.XRTFailure("SR upgrade succeded with small free space. sr size: %d, sr free space: %d" %
+                    (pSize, left))
+        finally:
+            cli.execute("vdi-destroy", "uuid=%s" % (vdiuuid))
+
+        step("Checking roll-backed properly.")
+        self.host.check()
+        for guest in [self.clonedVM, self.copiedVM]: # master is suspended hence not checkable.
+            if self.guests[guest]["afterWriting"] != self.getDigest(guest, "/dev/" + self.guests[guest]["device"]):
+                raise xenrt.XRTFailure("%s of %s is not rolled back properly" % (self.guests[guest]["device"], guest.getName()))
+        
+    def srUpgradeTest(self):
+
+        cli = self.host.getCLIInstance()
+
+        step("Starting to upgrade the SR to thin provisioned SR")
+        self.runSRUpgrade(self.sr.uuid, async=True)
+        starttime = xenrt.timenow()
+
+        if not self.checkSRUpgradeProcess():
+            raise xenrt.XRTFailure("SR Upgrade failed to run.")
+
+        xenrt.TEC().logverbose("The operations will be progressing parellely."
+                                    "We will wait for for all the operations to complete")
+
+        step("Running IO ops")
+        pDirTasks = [xenrt.PTask(self.copiedVM.execguest, "dd if=/dev/zero of=/tmp/delete_me bs=1M count=10", retval="code"), # ---> this should succeed.
+                  xenrt.PTask(self.clonedVM.execguest, "dd if=/dev/zero of=/tmp/delete_me bs=1M count=10", retval="code"), # ---> this should succeed.
+                  xenrt.PTask(self.copiedVM.execguest, "ls / && ls /home", retval="code"), # ---> this should succeed.
+                  xenrt.PTask(self.clonedVM.execguest, "ls / && ls /home", retval="code")] # ---> this should succeed.
+        ioresults = xenrt.pfarm(pDirTasks, exception=False)
+        log("IO ops results: %s" % ioresults)
+
+        step("Running VM ops")
+        pOpTasks = [xenrt.PTask(self.copiedVM.reboot), # ---> this should succeed.
+                    xenrt.PTask(self.clonedVM.snapshot)] # ---> this should fail.
+        opsresults = xenrt.pfarm(pOpTasks, exception=False)
+        log("VM ops results: %s" % opsresults)
+
+        failed = 0
+        for result in ioresults + opsresults:
+            if result:
+                failed += 1
+        if failed < 1:
+            raise xenrt.XRTFailure("Task(s) should fail succeeded.")
+        if failed > 1:
+            raise xenrt.XRTFailure("Task(s) should succeed failed.")
+            
+        step("Wait until SR upgrade finishes.")
+        while xenrt.timenow() - starttime < self.upgradetimeout * 60:
+            if not self.checkSRUpgradeProcess():
+                break
+            xenrt.sleep(30, log=False)
+        else:
+            raise xenrt.XRTFailure("SR upgrade took more than %d minutes." % self.srupgradetimeout)
+
+        step("Checking if the SR upgrade is succeeded as expected")
+        output = self.grabSRUpgradeOutput()
+        log("SR upgrade output: %s" % output)
+        if "error" in output.lower() or "exception" in output.lower():
+            raise xenrt.XRTFailure("Error(s) found from SR upgrade output.")
+
+        # After upgrade is done, check status of SR.
+        step("Checking Status of host and SR")
+        self.host.check()
+        if not self.isThinProvisioning(self.sr):
+            raise xenrt.XRTFailure("The SR %s is not upgraded to thin provisioned" % (self.sr.srtype))
+
+        step("Checking the physical size of all converted VDI after SR upgrade.")
+        for guest in self.guests:
+            vdi = self.host.minimalList("vbd-list", args="vm-uuid=%s userdevice=1" % 
+                    guest.getUUID(), params="vdi-uuid")[0]
+            if self.getPhysicalVDISize(vdi, self.host) <= 2 * xenrt.GIGA:
+                raise xenrt.XRTFailure("VDI has been shrinked after SR upgrade.")
+
+        step("Resuming suspended VM")
+        self.master.resume()
+
+        step("Checking content of VDIs not changed.")
+        for guest in self.guests:
+            if self.guests[guest]["afterWriting"] != self.getDigest(guest, "/dev/" + self.guests[guest]["device"]):
+                raise xenrt.XRTFailure("%s of %s is changed after SR upgrade." % (self.guests[guest]["device"], guest.getName()))
+
+        step("Checking reset-on-boot is set as expected on cloned VM. Only cloned VM extra disk should be reset")
+        if self.host.genParamGet("vdi", self.resetOnBootVDI, "on-boot") != "reset":
+            raise xenrt.XRTFailure("Reset-on-boot param is changed after the SR upgrade.")
+
+        step("Reverting the master snapshot")
+        cli.execute("snapshot-revert snapshot-uuid=%s" % self.guests[self.master]["snapshot"])
+
+        step("Checking contents of VDI is reverted properly.")
+        if self.guests[self.master]["initial"] != self.getDigest(guest, "/dev/" + self.guests[self.master]["device"]):
+            raise xenrt.XRTFailure("Contents of snapshot is changed after SR upgrade.")
+
+        step("Creating a new VDI and check its initial allocation")
+        vdi = self.host.createVDI(xenrt.GIGA)
+        # Newly created VDI should have allocated as initial allocation 
+        # Allow 5% margin and 50MiB if initial allocation is 0 (or clese to 0)
+        initial = self.getInitialAllocation(self.sr)
+        quantum = self.getAllocationQuantum(self.sr)
+        allocated = self.getPhysicalVDISize(vdi)
+        if allocated > max(initial * 1.05, 50 * xenrt.MEGA):
+            raise xenrt.XRTFailure("Newly created VDI is allocated more than initial allocation."
+                    "Expected: %d, allocated: %d" % (initial, allocated))
+        device = self.master.createDisk(vdiuuid=vdi, returnDevice=True)
+        expected = initial + quantum * 10
+        self.fillDisk(self.master, targetDir="/dev/" + device, size=expected)
+        allocated = self.getPhysicalVDISize(vdi)
+        if allocated < expected or allocated > expected * 1.05:
+            raise xenrt.XRTFailure("Size of VDI is not increased as expected. Expected: %d, Allocated: %d" %
+                    (expected, allocated))
+            
+    def run(self, arglist=[]):
+
+        self.runSubcase("rollBackTest", (), "SRUpgrade", "roll back")
+        self.runSubcase("srUpgradeTest", (), "SRUpgrade", "SR upgrade")
 

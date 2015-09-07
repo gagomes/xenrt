@@ -398,6 +398,7 @@ class TestCase(object):
         self.xentoplogger = None
         self._fhsToClose = []
         self._initDone = True
+        self.rageTimings = []
         return
 
     #########################################################################
@@ -735,6 +736,13 @@ logdata call.
                 self.preLogs()
         except:
             pass
+        
+        if self.rageTimings:
+            filename = "%s/rage-timings.log" % (xenrt.TEC().getLogdir())
+            f = file(filename, "w")
+            f.write("\n".join(self.timings))
+            f.close()
+        
         if self.getResult(code=True) != RESULT_SKIPPED:
             try:
                 xenrt.TEC().logdelimit("log retrieval")

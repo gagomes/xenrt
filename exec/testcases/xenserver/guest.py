@@ -2203,7 +2203,9 @@ class TCLifeCycleLoop(xenrt.TestCase):
                                        (iteration, op))
                 if self.dosnap and (iteration % self.dosnap) == 0:
                     snapuuid = self.guest.snapshot()
+                self.rageTimings.append("TIME_VM_%s_START_%s:%.3f" % (op.upper(), self.guest.getName(), xenrt.util.timenow(float=True)))
                 eval("self.do%s()" % (op))
+                self.rageTimings.append("TIME_VM_%s_FINISH_%s:%.3f" % (op.upper(), self.guest.getName(), xenrt.util.timenow(float=True)))
                 if self.dosnap and (iteration % self.dosnap) == 0:
                     self.guest.host.removeTemplate(snapuuid)
                 iteration = iteration + 1

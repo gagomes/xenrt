@@ -11191,7 +11191,11 @@ class ClearwaterHost(TampaHost):
             pinningPolicy = self.DOM0_VCPU_PINNED 
         else:
             pinningPolicy = self.DOM0_VCPU_NOT_PINNED
-        self.execdom0('%s set %s %s' % (self._findXenBinary('host-cpu-tune'), numberOfvCPUs, pinningPolicy))
+        ret = self.execdom0('%s set %s %s' % (self._findXenBinary('host-cpu-tune'), numberOfvCPUs, pinningPolicy))
+        
+        if "ERROR" in ret:
+            raise xenrt.XRTFailure(ret)
+        
         self.reboot()
 
     def getDom0PinningPolicy(self):

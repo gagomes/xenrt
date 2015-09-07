@@ -314,8 +314,8 @@ class TCSslTps1024(TCSslEncThroughput):
 
     def setupDUT(self, vpx_ns):
         vpx_ns.getGuest().shutdown()
-        vpx_ns.getGuest().cpuset(6)
-        vpx_ns.getGuest().memset(4096)
+        vpx_ns.getGuest().cpuset(4)
+        vpx_ns.getGuest().memset(8192)
         vpx_ns.getGuest().lifecycleOperation('vm-start')
         vpx_ns.getGuest().waitForSSH(timeout=300, username='nsroot', cmd='shell')
 

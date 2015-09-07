@@ -28,14 +28,14 @@
   <testsequence>
     <serial group="IntelvGPU">
 
-      <testcase id="testcases.xenserver.tc.vgpu.TCPoolIntelBootstorm" sku="haswell">
+      <testcase id="testcases.xenserver.tc.vgpu.TCPoolIntelBootstorm" sku="gvtghaswell">
         <arg>distro=1</arg>
         <arg>typeofvgpu=intelwinvgpu</arg>
         <arg>blockdom0access=false</arg>
         <arg>vgpuconfig=12,13</arg>
       </testcase>
 
-      <testcase id="testcases.xenserver.tc.vgpu.TCSwitchIntelGPUModes" sku="haswell">
+      <testcase id="testcases.xenserver.tc.vgpu.TCSwitchIntelGPUModes" sku="gvtghaswell">
         <arg>distro=1</arg>
         <arg>typeofvgpu=intelwinvgpu</arg>
         <arg>blockdom0access=false</arg>

@@ -412,7 +412,6 @@ class TCSRIncrement(_ThinLVHDBase):
         for sr in self.sr:
             self.runSubcase("runCase", (sr,), sr.name, "Check %s" % sr.name)
 
-
 class TCThinAllocationDefault(_ThinLVHDBase):
     """Verify the initial/quantum allocation works for SR and VDI ."""
 
@@ -715,3 +714,115 @@ class TCThinLVHDVmOpsSpace(_ThinLVHDBase):
                             %(self.guestMemory))== xenrt.RESULT_PASS:
             # Test that resume/revert works as expected on thin-provisioned SR
             self.runSubcase("revertVmOps", (), "vmops-resume/revert", "Guest Memory=%s bytes" % (self.guestMemory))
+
+
+class TCConcurrentAccess(_ThinLVHDBase):
+    """Concurrent access to the shared thin storage from multiple hosts in a pool of hosts"""
+
+    def attachDisks(self, readOnly=False):
+        """Attach VDIs onto each guests."""
+        for guest in self.guests:
+            self.guests[guest]['device'] = guest.createDisk(vdiuuid=self.guests[guest]["vdi"],
+                    returnDevice=True, mode="RO" if readOnly else "RW")
+
+    def detachDisks(self):
+        """Destroy all VBDs"""
+        cli = self.host.getCLIInstance()
+        for guest in self.guests:
+            vbd = self.host.minimalList("vbd-list", None, "vdi-uuid=%s" % self.guests[guest]["vdi"])[0]
+            cli.execute("vbd-unplug", "uuid=%s" % (vbd))
+            cli.execute("vbd-destroy", "uuid=%s" % (vbd))
+
+    def readDisk(self, guest, device):
+        """Attach VDI as RO and try read."""
+
+        guest.execguest("dd if=/dev/%s of=/dev/null bs=1M" % device, retval="code")
+
+    def writeDisk(self, guest, device, size):
+        """Fill disk with"""
+
+        guest.execguest("dd if=/dev/zero of=/dev/%s bs=1M count=%d" % (device, size * xenrt.KILO), retval="code")
+        # size in GiB, count * bs = size. KILO = GIGA / MEGA
+        
+    def testConcurrentAccess(self, read=False):
+        """Subcase testing concurrent access to multiple read-only VDIs from multiple hosts in a single pool."""
+
+        step("Attach all VIDs onto guests %s" % "read only" if read else "")
+        self.attachDisks(readOnly=read)
+
+
+        step("%s disk concurrently" % "read from" if read else "write")
+        tasks = []
+        for guest in self.guests:
+            if read:
+                tasks.append(xenrt.PTask(self.readDisk, guest, self.guests[guest]["device"]))
+            else:
+                tasks.append(xenrt.PTask(self.writeDisk, guest, self.guests[guest]["device"], self.vdisize))
+                
+        results = xenrt.pfarm(tasks, exception=False)
+
+        failed = 0
+        for res in results:
+            if not res:
+                warning("Found exception: %s" % res)
+            failed += 1
+
+        step("Detaching all VDIs")
+        self.detachDisks()
+
+        if failed:
+            raise xenrt.XRTFailure("%d / %d %s task(s) failed." %
+                    (failed, self.vdicount, "reading" if read else "writing"))
+
+    def prepare(self, arglist=[]):
+
+        log("Obtaining test environment.")
+        self.pool = self.getDefaultPool()
+        self.host = self.pool.master
+        if not self.pool:
+            raise xenrt.XRTError("This test requires a pool.")
+        self.hosts = self.pool.getHosts()
+        hostcount = len(self.hosts)
+
+        log("Searching for target thin LVHD.")
+        self.srs = self.getThinProvisioningSRs()
+        if not self.srs:
+            raise xenrt.XRTError("No thin provisioning SR found.")
+        self.sr = self.srs[0]
+        log("Found SR: %s (%s)" % (self.sr.uuid, self.sr.srtype))
+
+        log("Read env vars")
+        args = self.parseArgsKeyValue(arglist)
+        self.vdicount = int(args.get("vdicount", hostcount))
+        self.vdisize = int(args.get("vdisize", "2")) # in GiB
+        log("Using %d vdis, %d GiB each for %d hosts" % (self.vdicount, self.vdisize, hostcount))
+
+        log("Creating %d VMs" % self.vdicount)
+        master = self.getGuest("lingold")
+        if not master:
+            raise xenrt.XRTError("Failed to obtain master guest lingold")
+        master.setState("DOWN")
+        self.guests = {}
+        for i in xrange(self.vdicount):
+            guest = master.cloneVM(name="testvm_%d" % i)
+            guest.setHost(self.hosts[i % hostcount])
+            guest.setState("UP")
+            vdi = self.host.createVDI(self.vdisize * xenrt.GIGA, name="testdisk_%d" % i)
+            self.uninstallOnCleanup(guest)
+
+            self.guests[guest] = {'vdi': vdi}
+
+    def run(self, arglist):
+
+        self.runSubcase("testConcurrentAccess", (), "writing", "RW")
+        self.runSubcase("testConcurrentAccess", (True), "reading", "RO")
+
+    def postRun(self):
+
+        cli = self.host.getCLIInstance()
+        for guest in self.guests:
+            try:
+                cli.execute("vdi-destroy", "uuid=%s" % self.guests[guest]["vdi"])
+            except:
+                pass
+

@@ -1156,6 +1156,8 @@ class ISCSILun(_ISCSILunBase):
             if len(servers) == 0:
                 raise xenrt.XRTError("No ISCSI_LUNS defined")
             names = self.filterLuns("ISCSI_LUNS",servers,minsize, ttype, hwtype, maxsize, jumbo, mpprdac, params)
+            # Sort the list of LUNs in order of size (so we find the smallest available)
+            names.sort(key=lambda n: int(xenrt.TEC().lookup(["ISCSI_LUNS", n, "SIZE"], 0)))
             CentralResource.__init__(self, held=False)
             name = None
             startlooking = xenrt.util.timenow()

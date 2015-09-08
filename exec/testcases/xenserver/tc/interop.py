@@ -1126,12 +1126,12 @@ class TCInstallOpenStack(xenrt.TestCase):
             try:
                 self.devstack.execguest(
                     "grep -q 'stack.sh completed in' "
-                    "/tmp/devstack/log/stack.log", username="stack")
+                    "/opt/stack/devstack_logs/stack.log.summary", username="stack")
             except:
                 continue
             break
         self.devstack.execguest(
-            "test -e /var/run/devstack.succeeded", username="stack")
+            "test -e /opt/stack/runsh.succeeded", username="stack")
 
 
 class TCOpenStackExercise(xenrt.TestCase):

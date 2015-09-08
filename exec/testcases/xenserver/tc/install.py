@@ -903,6 +903,10 @@ class TC27246(xenrt.TestCase):
         self.override("DOM0_EXTRA_ARGS", "use_ibft")
         self.host = xenrt.lib.xenserver.createHost(id=0, installnetwork="NSEC")
 
+        scsiid = string.split(carbon_disks, "scsi-")[1]
+        if len(self.host.getMultipathInfo(onlyActive=True)[scsiid]) != 2:
+            raise xenrt.XRTError("Host does not have 2 paths to boot LUN")
+
 class TC27247(xenrt.TestCase):
     """Create an iSCSI SR on iSCSI booted machine, where the SR target is on a
     different storage IP and the same subnet as the boot disk."""

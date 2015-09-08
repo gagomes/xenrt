@@ -215,7 +215,7 @@ class StartSuiteStatus(XenRTAPIv2Page):
                         jobs[m.group(1)] = int(m.group(2))
                     m = re.search("^INCLUDED SUITE (\d+)", l)
                     if m:
-                        includesuiteruns.append(int(m.group(1)))
+                        includedsuiteruns.append(int(m.group(1)))
                     else:
                         m = re.search("^SUITE (\d+)", l)
                         if m:

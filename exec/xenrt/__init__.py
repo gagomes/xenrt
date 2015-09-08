@@ -740,7 +740,7 @@ logdata call.
         if self.rageTimings:
             filename = "%s/rage-timings.log" % (xenrt.TEC().getLogdir())
             f = file(filename, "w")
-            f.write("\n".join(self.timings))
+            f.write("\n".join(self.rageTimings))
             f.close()
         
         if self.getResult(code=True) != RESULT_SKIPPED:

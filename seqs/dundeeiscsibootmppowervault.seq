@@ -1,6 +1,6 @@
 <xenrt>
 
-  <!-- Multipathed iSCSI Boot From SAN Powervault testcases -->
+  <!-- Multipathed iSCSI Boot From SAN testcases for Dell Powervault -->
 
   <prepare>
     <host id="1" />
@@ -8,7 +8,7 @@
 
   <testsequence>
     <serial group="iSCSIBootMPPowervault">
-      <testcase id="testcases.xenserver.tc.install.TC27246" />
+      <testcase id="testcases.xenserver.tc.install.TC27246" blocker="yes" />
       <testcase id="xenserver.tc.smoketest.TCSmokeTestTemplateDefaults" name="debian80_x86-64" sku="debian80_x86-64" />
       <testcase id="testcases.xenserver.tc.install.TC27247" />
       <testcase id="testcases.xenserver.tc.install.TC27248" />

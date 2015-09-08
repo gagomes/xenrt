@@ -1,6 +1,6 @@
 <xenrt>
 
-  <!-- iSCSI Boot From SAN testcases -->
+  <!-- iSCSI Boot From SAN testcases for Dell Equallogic -->
 
   <prepare>
     <host id="1" />

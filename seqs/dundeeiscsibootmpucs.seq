@@ -1,6 +1,6 @@
 <xenrt>
 
-  <!-- Multipathed UCS iSCSI Boot From SAN testcases -->
+  <!-- Multipathed iSCSI Boot From SAN testcases for UCS using a NetApp -->
 
   <prepare>
     <host id="0" />

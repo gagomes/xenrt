@@ -77,6 +77,7 @@ class LoginVSI(object):
         startupPath = r"%appdata%\Microsoft\Windows\Start Menu\Programs\Startup\LoginVSI.bat"
         guest.xmlrpcExec(r'echo subst h: %s > "%s" ' % ("%Temp%", startupPath))
         guest.xmlrpcExec(r'echo subst g: %s\_VSI_Content >> "%s" ' % (self.vsisharePath, startupPath))
+        guest.xmlrpcExec(r'echo ping 127.0.0.1 -n 10 >> "%s" ' % (startupPath))
         guest.xmlrpcExec(r'echo %s\_VSI_Binaries\Target\Logon.cmd >> "%s" ' % (self.vsisharePath, startupPath))
 
     def setupDataServer(self):

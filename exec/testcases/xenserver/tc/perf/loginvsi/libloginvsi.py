@@ -46,7 +46,7 @@ class LoginVSI(object):
 
     def _installVSIShare(self, guest):
         guest.xmlrpcExec(r"if not exist %s mkdir %s" % (self.shareFolderPath, self.shareFolderPath))
-        guest.xmlrpcExec(r"net share %s=%s" % (self.shareFolderName,self.shareFolderPath))
+        guest.xmlrpcExec(r"net share %s=%s /GRANT:Everyone,Full" % (self.shareFolderName,self.shareFolderPath))
         guest.xmlrpcExec(r"icacls %s /grant:r Everyone:(OI)(CI)F /T /C " % (self.shareFolderPath))
 
     def _installDataServer(self, guest):
@@ -57,7 +57,7 @@ class LoginVSI(object):
         guest.xmlrpcExec(r"%s x -o%s -y -bd %s" % (zipexe, self.shareFolderPath, zipPatch))
 
     def _mapVSIShareToDrive(self, guest):
-        guest.xmlrpcMapDrive(self.shareFolderNetworkPath, self.vsishareDrive, fullAccess=True)
+        guest.xmlrpcMapDrive(self.shareFolderNetworkPath, self.vsishareDrive)
         guest.xmlrpcExec(r"icacls %s /grant:r Administrators:(OI)(CI)F /T /C " % (self.vsisharePath))
 
     def _createSubstPaths(self, guest):

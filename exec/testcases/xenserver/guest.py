@@ -1131,6 +1131,8 @@ class TCClone(xenrt.TestCase):
         chain = False
         leaveup = False
         suspended = False
+        noPreCloneTailor = False
+        host = None
 
         for arg in arglist[0:]:
             l = string.split(arg, "=", 1)
@@ -1150,6 +1152,10 @@ class TCClone(xenrt.TestCase):
                 leaveup = True       
             elif l[0] == "suspended":
                 suspended = True
+            elif l[0] == "host":
+                host = xenrt.TEC().registry.hostGet(l[1])
+            elif l[0] == "noPreCloneTailor":
+                noPreCloneTailor = True
             elif l[0] == "config":
                 matching = xenrt.TEC().registry.guestLookup(\
                             **xenrt.util.parseXMLConfigString(l[1]))
@@ -1170,11 +1176,13 @@ class TCClone(xenrt.TestCase):
         # Some guests need to be prepared before we clone
         if distro:
             g.distro = distro
-        if g.getState() != "UP":
-            xenrt.TEC().logverbose("Starting guest %s before commencing "
-                                   "pre-clone tailor." % (g.name))
-            g.start()
-        g.preCloneTailor()
+        
+        if not noPreCloneTailor:
+            if g.getState() != "UP":
+                xenrt.TEC().logverbose("Starting guest %s before commencing "
+                                       "pre-clone tailor." % (g.name))
+                g.start()
+            g.preCloneTailor()
 
         if suspended:
             xenrt.TEC().comment("Suspending guest %s before commencing "
@@ -1217,6 +1225,9 @@ class TCClone(xenrt.TestCase):
                         c = previous.cloneVM("%s%u" % (newname, i),timer=ct)
                 else:
                     c = previous.cloneVM(timer=ct)
+                
+                if host:
+                    c.setHost(host)
                 if remove:
                     self.guestsToClean.append(c)
                 if allvhd:
@@ -1250,12 +1261,13 @@ class TCClone(xenrt.TestCase):
                 xenrt.TEC().value("CLONE_AVG", ct.mean())
                 xenrt.TEC().value("CLONE_DEV", ct.stddev())
 
-        if g.getState() == "SUSPENDED":
-            g.resume()
-        else:
-            g.start()
-        g.check()
-        g.shutdown()
+        if not noPreCloneTailor:
+            if g.getState() == "SUSPENDED":
+                g.resume()
+            else:
+                g.start()
+            g.check()
+            g.shutdown()
 
     def postRun(self):
         for g in self.guestsToClean:

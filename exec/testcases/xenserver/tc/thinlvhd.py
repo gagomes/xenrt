@@ -37,10 +37,10 @@ class _ThinLVHDBase(xenrt.TestCase):
 
         return smconf
 
-    def __getsmconfig(self, sr=None):
-        """Return smconfig object of given sr
+    def __getsmconfig(self, obj=None):
+        """Return smconfig object of given object
 
-        @param sr: sr object. If not given use default sr.
+        @param obj: sr object, sr uuid string or vdi uuid string. If not given use default sr.
 
         @return Dict of sm-config
         """
@@ -48,34 +48,43 @@ class _ThinLVHDBase(xenrt.TestCase):
         host = self.host
         if not host:
             host = self.getDefaultHost()
+        cli = host.getCLIInstance()
 
-        if not sr:
-            sr = self.getDefaultSR()
+        if not obj:
+            obj = self.getDefaultSR()
 
-        if not isinstance(sr, xenrt.lib.xenserver.StorageRepository):
-            # if it is not SR object, then assumes it is sr uuid string.
-            sr = xenrt.lib.xenserver.getStorageRepositoryClass(host, sr).fromExistingSR(host, sr)
+        if not isinstance(obj, xenrt.lib.xenserver.StorageRepository):
+            if obj in host.minimalList("vdi-list"):
+                smconfigstr = host.genParamGet("vdi", obj, "sm-config")
+            elif obj in host.minimalList("sr-list"):
+                # if it is not SR object, then assumes it is sr uuid string.
+                sr = xenrt.lib.xenserver.getStorageRepositoryClass(host, obj).fromExistingSR(host, obj)
+                smconfigstr = sr.smconfig
+            else:
+                raise xenrt.XRTError("Only VDI or SR has sm-config option.")
+        else:
+            smconfigstr = obj.smconfig
 
         smconf = {}
-        for item in sr.smconfig.split(";"):
+        for item in smconfigstr.split(";"):
             key, val = item.split(":", 1)
             smconf[key.strip()] = val.strip()
 
         return smconf
 
-    def getInitialAllocation(self, sr=None):
-        """Return initial allocation of SR"""
+    def getInitialAllocation(self, obj=None):
+        """Return initial allocation of SR or VDI"""
 
-        smconf = self.__getsmconfig(sr)
+        smconf = self.__getsmconfig(obj)
         if "initial_allocation" in smconf:
             return int(smconf["initial_allocation"])
 
         return None
 
-    def getAllocationQuantum(self, sr=None):
-        """Return allocation quantum of SR"""
+    def getAllocationQuantum(self, obj=None):
+        """Return allocation quantum of SR or VDI"""
 
-        smconf = self.__getsmconfig(sr)
+        smconf = self.__getsmconfig(obj)
         if "allocation_quantum" in smconf:
             return int(smconf["allocation_quantum"])
 
@@ -682,11 +691,20 @@ class TCThinLVHDVmOpsSpace(_ThinLVHDBase):
     DEFAULTSRTYPE = "lvmoiscsi"
     GUESTMEMORY = 8192 # in MiB
 
-    def checkVDIPhysicalSize(self, vdiuuid, expectedVdiSize):
-        vdiPhysicalSize = self.getPhysicalVDISize(vdiuuid)
-        if vdiPhysicalSize < expectedVdiSize:
-            raise xenrt.XRTFailure("VDI Physical size not as expected. Expected at least %s bytes but found %s bytes" %
-                                  (expectedVdiSize, vdiPhysicalSize))
+    def checkVDIInitialAlloc(self, vdiuuid, expectedVdiSize):
+        initialalloc = self.getInitialAllocation(vdiuuid)
+        if initialalloc < expectedVdiSize:
+            raise xenrt.XRTFailure("VDI initial allocation is not as expected. (Expected >= %s, found: %s)" %
+                    (expectedVdiSize, initialalloc))
+
+    # TODO: This needs to be checked while checkpoint/suspend is on going.
+    # After task is done, they are inflated any way.
+    #def checkVDIPhysicalSize(self, vdiuuid, expectedVdiSize):
+    #    vdiPhysicalSize = self.getPhysicalVDISize(vdiuuid)
+    #    if vdiPhysicalSize < expectedVdiSize:
+    #        raise xenrt.XRTFailure("VDI Physical size not as expected. Expected at least %s bytes but found %s bytes" %
+    #                              (expectedVdiSize, vdiPhysicalSize))
+
 
     def checkSRPhysicalUtil(self, expectedphysicalUtil):
         step("Checking the SR physical utilization. Expected SR physical utilization is %s bytes..." % (expectedphysicalUtil))
@@ -711,8 +729,11 @@ class TCThinLVHDVmOpsSpace(_ThinLVHDBase):
         vdiUuid = self.host.genParamGet("vm", self.checkuuid, "suspend-VDI-uuid")
         step("check SR Physical utilization...")
         self.checkSRPhysicalUtil(self.phyUtilBeforeCheckpoint)
-        step("Test that VDI created after checkpoint is thick provisioned by checking the size...")
-        self.checkVDIPhysicalSize(vdiUuid, self.guestMemory)
+        # TODO: This needs to be checked while checkpoint is on going.
+        #step("Test that VDI created after checkpoint is thick provisioned by checking the size...")
+        #self.checkVDIPhysicalSize(vdiUuid, self.guestMemory)
+        step("Check initial allocation of suspended VDI. This should be bigger than guest memory size.")
+        self.checkVDIInitialAlloc(vdiUuid, self.guestMemory)
 
         expectedphysicalUtil = self.getPhysicalUtilisation(self.sr) + self.guestMemory
         step("Suspending the VM...")
@@ -720,8 +741,11 @@ class TCThinLVHDVmOpsSpace(_ThinLVHDBase):
         suspendVdiUuid = self.guest.paramGet("suspend-VDI-uuid")
         step("check SR Physical utilization...")
         self.checkSRPhysicalUtil(expectedphysicalUtil)
-        step("Test that VDI created after suspend is thick provisioned by measuring the size...")
-        self.checkVDIPhysicalSize(suspendVdiUuid, self.guestMemory) 
+        # TODO: This needs to be checked while suspend is on going.
+        #step("Test that VDI created after suspend is thick provisioned by measuring the size...")
+        #self.checkVDIPhysicalSize(suspendVdiUuid, self.guestMemory) 
+        step("Check initial allocation of suspended VDI. This should be bigger than guest memory size.")
+        self.checkVDIInitialAlloc(suspendVdiUuid, self.guestMemory)
 
     def revertVmOps(self):
         """This function check's that resume/revert on thin-provision SR works as expected"""

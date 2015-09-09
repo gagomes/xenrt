@@ -816,9 +816,9 @@ class TCConcurrentAccess(_ThinLVHDBase):
 
         failed = 0
         for res in results:
-            if not res and res != "None":
+            if not res and res != "0":
                 warning("Found exception: %s" % res)
-            failed += 1
+                failed += 1
 
         step("Detaching all VDIs")
         self.detachDisks()

@@ -108,7 +108,6 @@ STANDARD_LOGS_WINDOWS = ["c:\\Program Files\\Citrix\\XenTools\\install.log",
                          "c:\\uninst.bat",
                          "c:\\dotnet40logs",
                          "C:\\Windows\\Logs\\DISM\\dism.log",
-                         "c:\\Windows\\Logs\\bluewaterUpdateInstallLogs.txt",
                          "c:\\cloudagent-install.log"]
 
 STANDARD_LOGS_WINDOWS_NON_PASS = []

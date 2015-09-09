@@ -1898,10 +1898,6 @@ exit /B 1
         if ni:
             self.paramSet("PV-args", "noninteractive")
 
-        if self.distro and ("win81" in self.distro  or "ws12r2" in self.distro):
-            xenrt.TEC().logverbose("Disabling USB as this is Windows Blue...will re-enable after the bluewater update has been installed in xmlrpcTailor")
-            self.paramSet("platform:usb", "false")
-
         if xenrt.TEC().lookup("DISABLE_USB", False, boolean=True):
             self.paramSet("platform:usb", "false")
 

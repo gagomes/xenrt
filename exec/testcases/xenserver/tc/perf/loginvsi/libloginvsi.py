@@ -57,7 +57,7 @@ class LoginVSI(object):
         guest.xmlrpcExec(r"%s x -o%s -y -bd %s" % (zipexe, self.shareFolderPath, zipPatch))
 
     def _mapVSIShareToDrive(self, guest):
-        guest.xmlrpcMapDrive(self.shareFolderNetworkPath, self.vsishareDrive)
+        guest.xmlrpcMapDrive(self.shareFolderNetworkPath, self.vsishareDrive, fullAccess=True)
         guest.xmlrpcExec(r"icacls %s /grant:r Administrators:(OI)(CI)F /T /C " % (self.vsisharePath))
 
     def _createSubstPaths(self, guest):

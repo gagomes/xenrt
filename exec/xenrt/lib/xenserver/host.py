@@ -5707,10 +5707,19 @@ fi
             self.execdom0("rm -rf %s" % location)
 
     def destroySR(self,uuid):
-        cli = self.getCLIInstance()
+
+        # Populate all PBDs, slave first.
+        if self.pool:
+            cli = self.pool.master.getCLIInstance()
+            pbds = []
+            # getHosts() put master at the last.
+            for slave in self.pool.getHosts():
+                pbds.extend(self.pool.master.minimalList("pbd-list",args="sr-uuid=%s host-uuid=%s" % (uuid, slave.uuid)))
+        else:
+            cli = self.getCLIInstance()
+            pbds = self.minimalList("pbd-list",args="sr-uuid=%s" % (uuid))
 
         # Unplug the PBDs
-        pbds = self.minimalList("pbd-list",args="sr-uuid=%s" % (uuid))
         for pbd in pbds:
             cli.execute("pbd-unplug","uuid=%s" % (pbd))
 

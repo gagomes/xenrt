@@ -31,32 +31,32 @@ class AclTests(XenRTUnitTestCase):
         # Parent
         self.acl._check_acl = Mock(return_value=(True,None))
         self.assertTupleTrue(self.acl.check_acl(1, "userid", 5, None), "check_acl returned incorrect result")
-        self.acl._check_acl.assert_called_once_with(parentAcl, "userid", 5, None, False)
+        self.acl._check_acl.assert_called_once_with(parentAcl, "userid", 5, None, False, False)
 
         self.acl._check_acl.reset_mock()
         self.acl._check_acl.return_value = (False, "Test")
         self.assertTupleFalse(self.acl.check_acl(1, "userid", 5, None), "check_acl returned incorrect result")
-        self.acl._check_acl.assert_called_once_with(parentAcl, "userid", 5, None, False)
+        self.acl._check_acl.assert_called_once_with(parentAcl, "userid", 5, None, False, False)
 
         # Child (both true)
         self.acl._check_acl.reset_mock()
         self.acl._check_acl.return_value = (True, None)
         self.assertTupleTrue(self.acl.check_acl(2, "userid", 5, None), "check_acl returned incorrect result")
-        self.acl._check_acl.assert_any_call(parentAcl, "userid", 5, None, False)
-        self.acl._check_acl.assert_any_call(childAcl, "userid", 5, None, False)
+        self.acl._check_acl.assert_any_call(parentAcl, "userid", 5, None, False, False)
+        self.acl._check_acl.assert_any_call(childAcl, "userid", 5, None, False, False)
         self.assertEqual(self.acl._check_acl.call_count, 2)
 
         # Child (child false)
         self.acl._check_acl.reset_mock()
         self.acl._check_acl.return_value = (False, "Test")
         self.assertTupleFalse(self.acl.check_acl(2, "userid", 5, None), "check_acl returned incorrect result")
-        self.acl._check_acl.assert_called_once_with(childAcl, "userid", 5, None, False)
+        self.acl._check_acl.assert_called_once_with(childAcl, "userid", 5, None, False, False)
 
         # Child (parent false)
-        self.acl._check_acl = Mock(side_effect = lambda acl,userid,num,lease,preemptable: (acl.aclid == 2, None))
+        self.acl._check_acl = Mock(side_effect = lambda acl,userid,num,lease,preemptable,ignoreCounts: (acl.aclid == 2, None))
         self.assertTupleFalse(self.acl.check_acl(2, "userid", 5, None, False), "check_acl returned incorrect result")
-        self.acl._check_acl.assert_any_call(parentAcl, "userid", 5, None, False)
-        self.acl._check_acl.assert_any_call(childAcl, "userid", 5, None, False)
+        self.acl._check_acl.assert_any_call(parentAcl, "userid", 5, None, False, False)
+        self.acl._check_acl.assert_any_call(childAcl, "userid", 5, None, False, False)
         self.assertEqual(self.acl._check_acl.call_count, 2)
 
     def _setupAclReturns(self):
@@ -84,6 +84,36 @@ class AclTests(XenRTUnitTestCase):
         self.assertTupleTrue(self.acl._check_acl(acl, "user1", ['dummy'] * 4))
         # Over limit
         self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy'] * 5))
+
+    def test_ignore_counts(self):
+        acl = self._setupAclReturns()
+        acl.entries = [app.acl.ACLEntry(0, "user","user1",None,None,5,None,None,False)]
+        # Over limit, ignore counts
+        self.assertTupleTrue(self.acl._check_acl(acl, "user1", ['dummy'] * 5, ignoreCounts=True))
+        # Over limit, don't ignore counts
+        self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy'] * 5))
+
+    def test_user_limit_zero_ignore_counts(self):
+        acl = self._setupAclReturns()
+        acl.entries = [app.acl.ACLEntry(0, "user","user1",None,None,0,None,None,False)]
+        self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy'], ignoreCounts=True))
+        acl.entries = [app.acl.ACLEntry(0, "user","user1",None,None,None,0,None,False)]
+        self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy'], ignoreCounts=True))
+
+    def test_user_limit_zero(self):
+        acl = self._setupAclReturns()
+        acl.entries = [app.acl.ACLEntry(0, "user","user1",None,None,0,None,None,False)]
+        self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy']))
+        acl.entries = [app.acl.ACLEntry(0, "user","user1",None,None,None,0,None,False)]
+        self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy']))
+
+    def test_user_not_in_acl(self):
+        acl = self._setupAclReturns()
+        acl.entries = [app.acl.ACLEntry(0, "user","user1",None,None,5,None,None,False)]
+        # User in ACL
+        self.assertTupleTrue(self.acl._check_acl(acl, "user1", ['dummy']))
+        # User not in ACL
+        self.assertTupleFalse(self.acl._check_acl(acl, "user2", ['dummy']))
 
     def test_user_limit_disallow_preempt(self):
         acl = self._setupAclReturns()
@@ -130,6 +160,28 @@ class AclTests(XenRTUnitTestCase):
         self.assertTupleTrue(self.acl._check_acl(acl, "user1", ['dummy'] * 3))
         # Over limit
         self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy'] * 4))
+
+    def test_group_limit_zero(self):
+        acl = self._setupAclReturns()
+        acl.entries = [app.acl.ACLEntry(0, "group","group1",0,None,None,None,None,False)]
+        self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy']))
+        acl.entries = [app.acl.ACLEntry(0, "group","group1",None,0,None,None,None,False)]
+        self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy']))
+        acl.entries = [app.acl.ACLEntry(0, "group","group1",None,None,0,None,None,False)]
+        self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy']))
+        acl.entries = [app.acl.ACLEntry(0, "group","group1",None,None,None,0,None,False)]
+        self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy']))
+
+    def test_group_limit_zero_ignore_counts(self):
+        acl = self._setupAclReturns()
+        acl.entries = [app.acl.ACLEntry(0, "group","group1",0,None,None,None,None,False)]
+        self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy'], ignoreCounts=True))
+        acl.entries = [app.acl.ACLEntry(0, "group","group1",None,0,None,None,None,False)]
+        self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy'], ignoreCounts=True))
+        acl.entries = [app.acl.ACLEntry(0, "group","group1",None,None,0,None,None,False)]
+        self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy'], ignoreCounts=True))
+        acl.entries = [app.acl.ACLEntry(0, "group","group1",None,None,None,0,None,False)]
+        self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy'], ignoreCounts=True))
 
     def test_group_limit_disallow_preempt(self):
         acl = self._setupAclReturns()
@@ -250,6 +302,28 @@ class AclTests(XenRTUnitTestCase):
         self.assertTupleTrue(self.acl._check_acl(acl, "user3", ['dummy'] * 2))
         # Over limit
         self.assertTupleFalse(self.acl._check_acl(acl, "user3", ['dummy'] * 3))
+
+    def test_default_limit_zero(self):
+        acl = self._setupAclReturns()
+        acl.entries = [app.acl.ACLEntry(0, "default","",0,None,None,None,None,False)]
+        self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy']))
+        acl.entries = [app.acl.ACLEntry(0, "default","",None,0,None,None,None,False)]
+        self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy']))
+        acl.entries = [app.acl.ACLEntry(0, "default","",None,None,0,None,None,False)]
+        self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy']))
+        acl.entries = [app.acl.ACLEntry(0, "default","",None,None,None,0,None,False)]
+        self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy']))
+
+    def test_default_limit_zero_ignore_counts(self):
+        acl = self._setupAclReturns()
+        acl.entries = [app.acl.ACLEntry(0, "default","",0,None,None,None,None,False)]
+        self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy'], ignoreCounts=True))
+        acl.entries = [app.acl.ACLEntry(0, "default","",None,0,None,None,None,False)]
+        self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy'], ignoreCounts=True))
+        acl.entries = [app.acl.ACLEntry(0, "default","",None,None,0,None,None,False)]
+        self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy'], ignoreCounts=True))
+        acl.entries = [app.acl.ACLEntry(0, "default","",None,None,None,0,None,False)]
+        self.assertTupleFalse(self.acl._check_acl(acl, "user1", ['dummy'], ignoreCounts=True))
 
     # Lease time limit
 

@@ -192,16 +192,16 @@ class ACLHelper(object):
             e.usermachines = userMachines
         return acl
 
-    def check_acl(self, aclid, userid, machines, leaseHours=None, ignoreParent=False, preemptable=False):
+    def check_acl(self, aclid, userid, machines, leaseHours=None, ignoreParent=False, preemptable=False, ignoreCounts=False):
         """Returns a tuple (allowed, reason_if_false) if the given user can have machines under this acl"""
         acl = self.get_acl(aclid)
-        result, reason = self._check_acl(acl, userid.lower(), machines, leaseHours, preemptable)
+        result, reason = self._check_acl(acl, userid.lower(), machines, leaseHours, preemptable, ignoreCounts)
         if result and acl.parent and not ignoreParent:
             # We have to check the parent ACL as well
-            return self._check_acl(self.get_acl(acl.parent), userid.lower(), machines, leaseHours, preemptable)
+            return self._check_acl(self.get_acl(acl.parent), userid.lower(), machines, leaseHours, preemptable, ignoreCounts)
         return result, reason 
 
-    def _check_acl(self, acl, userid, machines, leaseHours=None, preemptable=False):
+    def _check_acl(self, acl, userid, machines, leaseHours=None, preemptable=False, ignoreCounts=False):
         """Returns True if the given user can have machines under this acl"""
         aclMachines = copy.copy(acl.machines)
         extraMachines = copy.copy(machines)
@@ -214,7 +214,7 @@ class ACLHelper(object):
                     # The machine is already in use by the user, so we don't need to double count it
                     extraMachines.remove(m)
 
-        skipQuantityChecks = False
+        skipQuantityChecks = ignoreCounts
         if len(extraMachines) == 0:
             # All machines the user is asking for are already theirs, so no need
             # to check the rest of the ACL, unless this is a lease when we need
@@ -245,7 +245,7 @@ class ACLHelper(object):
                             # TODO improve error message here to use a term other than preemptable
                             return False, "ACL does now allow preemptable use for this user"
                     # Our user - check their usage
-                    if not skipQuantityChecks:
+                    if not skipQuantityChecks or e.userlimit == 0 or e.userpercent == 0:
                         if e.userlimit is not None and usercount > e.userlimit:
                             return False, "%s limited to %d machines" % (e.userid, e.userlimit)
                         if e.userpercent is not None and userpercent > e.userpercent:
@@ -275,7 +275,7 @@ class ACLHelper(object):
                     grouppercent = int(math.ceil((groupcount * 100.0) / len(aclMachines)))
 
                     groupname = e.entryType == 'default' and "default" or e.userid
-                    if not skipQuantityChecks:
+                    if not skipQuantityChecks or e.userlimit == 0 or e.userpercent == 0 or e.grouplimit == 0 or e.grouppercent == 0:
                         if e.grouplimit is not None and groupcount > e.grouplimit:
                             return False, "%s limited to %d machines" % (groupname, e.grouplimit)
                         if e.grouppercent is not None and grouppercent > e.grouppercent:
@@ -302,7 +302,7 @@ class ACLHelper(object):
             else:
                 raise Exception("Unknown entryType %s" % e.entryType)
 
-        return True, None
+        return False, "User is not listed in ACL"
 
     def _userids_for_group(self, group):
         if group in self._groupCache:

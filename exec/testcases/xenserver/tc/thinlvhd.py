@@ -789,12 +789,12 @@ class TCConcurrentAccess(_ThinLVHDBase):
     def readDisk(self, guest, device):
         """Attach VDI as RO and try read."""
 
-        guest.execguest("dd if=/dev/%s of=/dev/null bs=1M" % device, retval="code")
+        return guest.execguest("dd if=/dev/%s of=/dev/null bs=1M" % device, retval="code")
 
     def writeDisk(self, guest, device, size):
         """Fill disk with"""
 
-        guest.execguest("dd if=/dev/zero of=/dev/%s bs=1M count=%d" % (device, size * xenrt.KILO), retval="code")
+        return guest.execguest("dd if=/dev/zero of=/dev/%s bs=1M count=%d" % (device, size * xenrt.KILO), retval="code")
         # size in GiB, count * bs = size. KILO = GIGA / MEGA
         
     def testConcurrentAccess(self, read=False):
@@ -816,7 +816,7 @@ class TCConcurrentAccess(_ThinLVHDBase):
 
         failed = 0
         for res in results:
-            if not res:
+            if not res and res != "None":
                 warning("Found exception: %s" % res)
             failed += 1
 

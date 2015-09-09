@@ -816,7 +816,7 @@ class TCConcurrentAccess(_ThinLVHDBase):
 
         failed = 0
         for res in results:
-            if not res and res != "0":
+            if res and res != "0":
                 warning("Found exception: %s" % res)
                 failed += 1
 

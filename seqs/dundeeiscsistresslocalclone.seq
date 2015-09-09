@@ -1,5 +1,4 @@
 <xenrt>
-  <default name="GUESTVERSION" value="ws08sp2-x86" />
   <default name="PAIRSPERHOST" value="00,01,02,03,04,05,06,07,08,09,10,11,12,13,14,15,16,17,18,19,20,21,22,23" />
   <default name="HOSTPAIRS" value="(0,1),(1,0)" />
   <default name="POOLSTRESSSNAP" value="20" />
@@ -20,6 +19,9 @@
     <OPTION_CLONE_TEMPLATE>yes</OPTION_CLONE_TEMPLATE>
     <SR_ON_PRIMARY_DISK>no</SR_ON_PRIMARY_DISK>
     <LINUX_ISCSI_TARGET>LIO</LINUX_ISCSI_TARGET>
+    <NO_TC_HOST_SERIAL_LOGS>yes</NO_TC_HOST_SERIAL_LOGS>
+    <NO_LOGS_ON_PASS>yes</NO_LOGS_ON_PASS>
+    
   </variables>
 
   <prepare>

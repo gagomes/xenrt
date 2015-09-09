@@ -4,6 +4,7 @@
 
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <OPTION_DOM0_MEM>8192M,max:8192M</OPTION_DOM0_MEM>
   </variables>
 
   <prepare>

@@ -2,7 +2,6 @@
 
   <!-- Feature operation after upgrade test: Active Directory -->
 
-
   <variables>
     <PREPARE_WORKERS>3</PREPARE_WORKERS>
     <CLEAR_EVENT_LOGS_ON_FETCH>true</CLEAR_EVENT_LOGS_ON_FETCH>
@@ -14,16 +13,16 @@
 
   <prepare>
     <pool>
-      <host id="0" productVersion="Clearwater"/>
-      <host id="1" productVersion="Clearwater"/>
+      <host id="0" productVersion="Clearwater" />
+      <host id="1" productVersion="Clearwater" />
     </pool>
     <host id="2" productVersion="Clearwater">
       <vm name="AUTHSERVER">
         <distro>ws08-x86</distro>
-        <network device="0"/>
-        <postinstall action="installDrivers"/>
-        <postinstall action="installPowerShell"/>
-        <postinstall action="enablePowerShellUnrestricted"/>
+        <network device="0" />
+        <postinstall action="installDrivers" />
+        <postinstall action="installPowerShell" />
+        <postinstall action="enablePowerShellUnrestricted" />
       </vm>
     </host>
   </prepare>
@@ -31,6 +30,8 @@
   <testsequence>
     <testcase id="xenserver.tc.upgrade.ADUpgradeAuthentication" tc="TC-27040" name="ADUpAuthentication" />
     <testcase id="xenserver.tc.security.ADPBISDirectoryCheck" tc="TC-27048" name="PBISDirectoriesVerification" />
+    <testcase id="xenserver.tc.upgrade.TC10718" tc="TC-10718" name="UpgradeWithADenabled" />
+    <testcase id="xenserver.tc.upgrade.TC12611" tc="TC-12611" name="UpgradeWithRBAC" />
   </testsequence>
 
 </xenrt>

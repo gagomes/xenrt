@@ -12,6 +12,7 @@ import xenrt
 import os.path
 import requests
 import sys
+import json
 
 __all__ = [
     "MelioHelper"
@@ -165,7 +166,13 @@ class MelioHelper(object):
         with self.getMelioClient(self.hosts[0]) as melioClient:
             deadline = xenrt.timenow() + 600
             while True:
-                disksToManage = [x for x in melioClient.get_all()['unmanaged_disk'] if x['system_name'] == disk]
+                data = melioClient.get_all()
+                unmanaged = data.get('unmanaged_disk')
+                xenrt.TEC().logverbose("Unmanaged disks: %s" % json.dumps(unmanaged, indent=2))
+                if unmanaged:
+                    disksToManage = [x for x in unmanaged if x['system_name'] == disk]
+                else:
+                    disksToManage = []
                 if disksToManage:
                     diskToManage = disksToManage[0]
                     break

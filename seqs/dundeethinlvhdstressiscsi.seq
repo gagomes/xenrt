@@ -4,7 +4,8 @@
   <default name="GUESTVERSION" value="ws08sp2-x86" />
   <default name="GUESTDISK" value="16384" />
   <default name="GUESTDISKLIN" value="5120" />
-  <default name="PAIRSPERHOST" value="A,B,C" />
+  <!--<default name="PAIRSPERHOST" value="A,B,C" />-->
+  <default name="PAIRSPERHOST" value="A" /> <!-- so it fits in the 100GB LUN -->
   <default name="HOSTPAIRS" value="(0,1),(1,2),(2,3),(3,0)" />
   <default name="GUESTDISTRO" value="rhel511" />
   <default name="GUESTARCH" value="x86-32" />

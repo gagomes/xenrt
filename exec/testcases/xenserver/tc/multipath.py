@@ -23,6 +23,7 @@ class _SoftwareMultipath(xenrt.TestCase):
     EXTRA_INTFS = 0     # Number of extra (private) interfaces to create
     SETUPSECNIC = False # Whether to explicitly set up a secondary NIC
     DEFSCHED = None
+    SRSIZE = 1024 # in MiB
 
     def __init__(self, tcid=None):
         xenrt.TestCase.__init__(self, tcid)
@@ -32,6 +33,10 @@ class _SoftwareMultipath(xenrt.TestCase):
 
     def prepare(self, arglist=None):
         self.sruuids = []
+        # in thin LVHD, local allocator requires 1GiB per allocation,
+        # which happens multiple times per each host.
+        if self.tcsku == "thin":
+            self.SRSIZE = 4096 # in MiB
 
         # Set up a multihomed target VM on one host. Add a second interface
         # on the second logical network.
@@ -84,7 +89,7 @@ class _SoftwareMultipath(xenrt.TestCase):
         self.uninstallOnCleanup(self.targetguest)
         self.getLogsFrom(self.targetguest)
         self.targetiqn = self.targetguest.installLinuxISCSITarget()
-        self.targetguest.createISCSITargetLun(0, 1024)
+        self.targetguest.createISCSITargetLun(0, self.SRSIZE)
 
         # Clean up another host to use in the test
         self.host0 = self.getHost("RESOURCE_HOST_1")

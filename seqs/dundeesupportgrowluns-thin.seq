@@ -1,0 +1,16 @@
+<xenrt>
+
+  <!-- Lun Resize test on HBA SR using NetApp Storage Array -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>    
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <testcase id="testcases.xenserver.tc.lunspace.TC21547" sku="thin"/>
+  </testsequence>
+</xenrt>

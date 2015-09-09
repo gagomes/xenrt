@@ -93,7 +93,7 @@ class StorageRepository(object):
         self.srtype = None
         self.dconf = None
         self.content_type = ""
-        self.smconf = None
+        self.smconf = {}
 
     @classmethod
     def fromExistingSR(cls, host, sruuid):
@@ -444,7 +444,7 @@ class MelioStorageRepository(StorageRepository):
     
     def create(self, melio, physical_size=0, content_type="", smconf={}):
         self.melio = melio
-        self._create("melio", {"uri":"file://%s" % self.melio.getSanDeviceForHost(self.melio.hosts[0])}, physical_size, content_type, smconf)
+        self._create("melio", {"uri":"file:///dev/%s" % self.melio.getSanDeviceForHost(self.melio.hosts[0])}, physical_size, content_type, smconf)
 
 class IntegratedCVSMStorageRepository(StorageRepository):
     SHARED = True

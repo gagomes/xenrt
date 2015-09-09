@@ -176,6 +176,19 @@ class NetScaler(object):
         xenrt.TEC().logverbose('NetScaler Command [%s] - Returned: %s' % (command, '\n'.join(data)))
         return data
 
+    def multiCli(self, cmds):
+        [self.cli(cmd.strip()) for cmd in cmds.strip().split("\n") if cmd.strip()]
+
+    def removeExistingSNIP(self):
+        snipLines = self.cli("show ns ip | grep SNIP")
+        for ip in re.findall( r'[0-9]+(?:\.[0-9]+){3}', "".join(snipLines)):
+            self.cli("rm ns ip %s" % (ip))
+
+    def extractTarToDir(self, sourceTarFile, destDir, username="nsroot"):
+        tarFile = "/nsconfig/temp.tar.gz"
+        self.getGuest().sftpClient(username=username).copyTo(xenrt.TEC().getFile(sourceTarFile),tarFile)
+        self.cli("shell tar -xvf %s -C %s" % (tarFile,destDir))
+
     def installNSTools(self):
         nstools = xenrt.TEC().lookup('NS_TOOLS_PATH')
         toolsfile = nstools.split("/")[-1]

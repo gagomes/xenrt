@@ -1,0 +1,48 @@
+<xenrt>
+
+  <!-- Dundee TRIM Support on a thin provisioned NetApp FC lun -->
+
+  <default name="GOLDVMNAME" value="vm00" />
+  <default name="DISTRO" value="debian80" />
+  <default name="ARCH" value="x86-64" />
+
+  <default name="VMSCOUNT" value="10" />
+  <default name="LUNSIZE" value="100" />
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool>
+      <host id="0">
+        <vm name="${GOLDVMNAME}">
+          <distro>${DISTRO}</distro>
+          <arch>${ARCH}</arch>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+          <postinstall action="preCloneTailor" />
+        </vm>
+      </host>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="FuncTRIMThinHBA">
+
+      <testcase id="xenserver.tc.thinlvhd.TrimFuncNetAppThinFC" tc="TC-27211">
+        <arg>vmscount=${VMSCOUNT}</arg>
+        <arg>distro=${DISTRO}</arg>
+        <arg>arch=${ARCH}</arg>
+        <arg>lunsize=${LUNSIZE}</arg>
+      </testcase>
+
+    </serial>
+  </testsequence>
+
+</xenrt>

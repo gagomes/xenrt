@@ -629,7 +629,7 @@ sleep 30
         xenargs.append("watchdog")
         xenargs.append("com%s=%s,8n1" % (comport, serbaud))
         xenargs.append("console=com%s,vga" % (comport))
-        xenargs.append("dom0_mem=752M,max:752M")
+        xenargs.append("dom0_mem=1024M,max:1024M")
         xenargs.append("dom0_max_vcpus=2")
         xenargs.append("crashkernel=128M@32M")
         xenargs.append("cpuid_mask_xsave_eax=0")
@@ -744,7 +744,7 @@ sleep 30
         pxecfg.mbootArgsKernelAdd("watchdog")
         pxecfg.mbootArgsKernelAdd("com%s=%s,8n1" % (comport, serbaud))
         pxecfg.mbootArgsKernelAdd("console=com%s,vga" % (comport))
-        pxecfg.mbootArgsKernelAdd("dom0_mem=752M,max:752M")
+        pxecfg.mbootArgsKernelAdd("dom0_mem=1024M,max:1024M")
         pxecfg.mbootArgsKernelAdd("dom0_max_vcpus=2")
         if xen_extra_args:
             pxecfg.mbootArgsKernelAdd(xen_extra_args)

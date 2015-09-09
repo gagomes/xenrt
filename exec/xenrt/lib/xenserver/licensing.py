@@ -89,7 +89,7 @@ class License(object):
                                                                               self.getLicenseName())
 
 
-class TampaLicense(License):
+class BostonLicense(License):
 
     def getEdition(self):
         if self.sku == XenServerLicenseSKU.XSPlatinum:
@@ -119,6 +119,10 @@ class TampaLicense(License):
 
     def getLicenseName(self):
         return
+
+class TampaLicense(BostonLicense):
+    # For Tampa, it is assumed that it has same scheme as Boston
+    pass
 
 class ClearwaterLicense(License):
     
@@ -274,6 +278,9 @@ class XenServerLicenseFactory(object):
     def licenseForHost(self, xshost, sku):
         lver = self.__getHostAge(xshost)
         return self.license(lver, sku)
+
+    def noLicense(self):
+        return BostonLicense(XenServerLicenseSKU.Free)
 
     def maxLicenseSkuHost(self,xshost):
         lver = self.__getHostAge(xshost)

@@ -694,6 +694,9 @@ default slave {
                 elif consoletype == "ssh":
                     extra = ""
                     if not entries[i].has_key("CONSOLE_SSH_ADDRESS"):
+                        if not entries[i].has_key("BMC_ADDRESS"):
+                            xenrt.TEC().warning("No CONSOLE_SSH_ADDRESS or BMC_ADDRESS for %s" % (consolename))
+                            continue
                         entries[i]["CONSOLE_SSH_ADDRESS"] = entries[i]["BMC_ADDRESS"]
                     if not entries[i].has_key("CONSOLE_SSH_USERNAME"):
                         entries[i]["CONSOLE_SSH_USERNAME"] = entries[i]["IPMI_USERNAME"]

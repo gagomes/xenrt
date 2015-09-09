@@ -2,7 +2,7 @@ import xenrt, libperf
 import os, time, json
 from xenrt.lazylog import step, comment, log, warning
 
-class _BlackWidow(libperf.PerfTestCase):
+class BlackWidowPerformanceTestCase(libperf.PerfTestCase):
 
     TEST = None
     WORKLOADS = {
@@ -26,69 +26,49 @@ DEFINE_REQUESTS
 """
     }
 
-#### Black widow functional methods ####
-    def configureVPX(self, vpx):
-        vpx.password = 'nsroot'
+#### functional methods ####
+    def getVPX(self, guest, password='nsroot'):
+        guest.password = password
+        return xenrt.lib.netscaler.NetScaler(guest, None)
 
-    def nscli(self, vpx, cmd):
-        return vpx.cli(cmd)
-
-    def setupBlackWidow(self, vpx):
-        xenrt.TEC().logverbose("setting up %s as blackwidow..." % (vpx))
-        self.configureVPX(vpx)
-        vpx_ns = xenrt.lib.netscaler.NetScaler(vpx, None)
-
-        # Remove existing SNIP, if any
-        snipLines = self.nscli(vpx_ns, "show ns ip | grep SNIP")
-        for snipLine in snipLines:
-            existingSNIP = snipLine.split('\t')[1].split(' ')[0]
-            self.nscli(vpx_ns, "rm ns ip %s" % (existingSNIP))
-
+    def setupBlackWidow(self, vpx_ns):
         # Add HTTP client IPs
         for i in range(2, self.clients+1):
-            self.nscli(vpx_ns, "add ns ip 43.54.181.%d 255.255.0.0 -vServer DISABLED" % (i))
+            vpx_ns.cli("add ns ip 43.54.181.%d 255.255.0.0 -vServer DISABLED" % (i))
 
         # Find the ID of the second VLAN
         vlan_ord = 2
-        lines = self.nscli(vpx_ns, "show vlan")
+        lines = vpx_ns.cli("show vlan")
         vlan_idx = next(line.split('\t')[1].split(' ')[2] for line in lines if line.startswith("%d)" % (vlan_ord)))
 
         # Make 43.* traffic go down the right interface
-        self.nscli(vpx_ns, "bind vlan %s -IPAddress 43.54.181.2 255.255.0.0" % (vlan_idx))
-        self.nscli(vpx_ns, 'save ns config')
-        return vpx_ns
+        vpx_ns.cli("bind vlan %s -IPAddress 43.54.181.2 255.255.0.0" % (vlan_idx))
+        vpx_ns.cli('save ns config')
 
-    def setupDUT(self, vpx):
-        xenrt.TEC().logverbose("setting up %s as DUT..." % (vpx))
-        self.configureVPX(vpx)
-        vpx_ns = xenrt.lib.netscaler.NetScaler(vpx, None)
-
-        # Remove existing SNIP, if any
-        snipLines = self.nscli(vpx_ns, "show ns ip | grep SNIP")
-        for snipLine in snipLines:
-            existingSNIP = snipLine.split('\t')[1].split(' ')[0]
-            self.nscli(vpx_ns, "rm ns ip %s" % (existingSNIP))
-
+    def setupDUT(self, vpx_ns):
         # Add SNIPs (the origin IP for requests travelling from NS to webserver)
         for i in range(1, self.snips+1):
-            self.nscli(vpx_ns, "add ns ip 43.54.30.%d 255.255.0.0 -vServer DISABLED -mgmtAccess ENABLED" % (i))
+            vpx_ns.cli("add ns ip 43.54.30.%d 255.255.0.0 -vServer DISABLED -mgmtAccess ENABLED" % (i))
 
         # Add references to the HTTP server's IP addresses
         for i in range(2, self.servers+1):
-            self.nscli(vpx_ns, "add server 43.54.31.%d 43.54.31.%d" % (i, i))
+            vpx_ns.cli("add server 43.54.31.%d 43.54.31.%d" % (i, i))
 
         # Configure the vServer on 43.54.30.247 and bind it to the true servers
-        self.nscli(vpx_ns, "add serviceGroup s1 HTTP -maxClient 0 -maxReq 0 -cip DISABLED -usip NO -useproxyport YES -cltTimeout 180 -svrTimeout 360 -CKA NO -TCPB NO -CMP NO")
-        self.nscli(vpx_ns, "enable ns feature LB")
-        self.nscli(vpx_ns, "add lb vserver v1 %s 43.54.30.247 80 -persistenceType NONE -lbMethod ROUNDROBIN -cltTimeout 18" % self.dutProtocolVServer)
-        self.nscli(vpx_ns, "bind lb vserver v1 s1")
+        vpx_ns.cli("add serviceGroup s1 HTTP -maxClient 0 -maxReq 0 -cip DISABLED -usip NO -useproxyport YES -cltTimeout 180 -svrTimeout 360 -CKA NO -TCPB NO -CMP NO")
+        vpx_ns.cli("enable ns feature LB")
+        vpx_ns.cli("add lb vserver v1 %s 43.54.30.247 80 -persistenceType NONE -lbMethod ROUNDROBIN -cltTimeout 18" % self.dutProtocolVServer)
+        vpx_ns.cli("bind lb vserver v1 s1")
         for i in range(2, self.servers+1):
-            self.nscli(vpx_ns, "bind serviceGroup s1 43.54.31.%d 80" % (i))
+            vpx_ns.cli("bind serviceGroup s1 43.54.31.%d 80" % (i))
 
         # Make 43.* traffic go down the second interface
-        self.nscli(vpx_ns, "bind vlan 2 -IPAddress 43.54.30.1 255.255.0.0")
-        self.nscli(vpx_ns, 'save ns config')
-        return vpx_ns
+        vpx_ns.cli("bind vlan 2 -IPAddress 43.54.30.1 255.255.0.0")
+        vpx_ns.cli('save ns config')
+
+    def setupSslFromTar(self, vpx_ns):
+        sslTarFileUrl = xenrt.TEC().lookup('NS_BW_TEST_SSL_TAR',"http://files.uk.xensource.com/usr/groups/xenrt/ns_bw_testing/ssl.tar.gz")
+        vpx_ns.extractTarToDir(sslTarFileUrl, "/nsconfig/ssl")
 
     def sampleCounters(self, vpx, ctrs, filename):
         stats = {ctr:xenrt.getURLContent("http://nsroot:nsroot@%s/nitro/v1/stat/%s" % (vpx.mainip, ctr)) for ctr in ctrs}
@@ -103,27 +83,30 @@ DEFINE_REQUESTS
             f.write(self.WORKLOADS[self.workloadFileName])
 
         wlFile = "%s/%s" % (self.remoteWLDir, self.workloadFileName)
-        self.nscli(vpx_ns, "shell mkdir -p %s" % self.remoteWLDir)
+        vpx_ns.cli("shell mkdir -p %s" % self.remoteWLDir)
         vpx_ns.getGuest().sftpClient(username='nsroot').copyTo(tmpFile, wlFile)
         self.workload = wlFile
 
     def createHttpServers(self, vpx_ns):
-        self.nscli(vpx_ns, "shell /var/BW/nscsconfig -s server=%d -s serverip=43.54.31.2 -w %s -s ka=100 -s contentlen=100 -s chunked=0 -ye httpsvr" % (self.server_id, self.workload))
+        vpx_ns.cli("shell /var/BW/nscsconfig -s server=%d -s serverip=43.54.31.2 -w %s -s ka=100 -s contentlen=100 -s chunked=0 -ye httpsvr" % (self.server_id, self.workload))
 
     def createHttpClients(self, vpx_ns):
-        self.nscli(vpx_ns, "shell /var/BW/nscsconfig -s client=%d -s percentpers=100 -w %s -s cltserverip=43.54.30.247 -s threads=%d -s parallelconn=%d -ye start" % (self.client_id, self.workload, self.httpClientThreads, self.httpClientParallelconn))
+        vpx_ns.cli("shell /var/BW/nscsconfig -s client=%d -s percentpers=100 -w %s -s cltserverip=43.54.30.247 -s threads=%d -s parallelconn=%d -ye start" % (self.client_id, self.workload, self.httpClientThreads, self.httpClientParallelconn))
 
     def showHttpServerClient(self, vpx_ns):
-        self.nscli(vpx_ns, "shell /var/BW/nscsconfig -d allvcs")
-        self.nscli(vpx_ns, "shell /var/BW/nscsconfig -d allurls")
-        self.nscli(vpx_ns, "shell /var/BW/conntest -d validserver")
+        vpx_ns.cli("shell /var/BW/nscsconfig -d allvcs")
+        vpx_ns.cli("shell /var/BW/nscsconfig -d allurls")
+        vpx_ns.cli("shell /var/BW/conntest -d validserver")
 
     def removeHttpServerClient(self, vpx_ns):
-        self.nscli(vpx_ns, "shell /var/BW/nscsconfig -s client=%d -yE removeserver" % (self.client_id))
-        self.nscli(vpx_ns, "shell /var/BW/nscsconfig -s server=%d -yE removeserver" % (self.server_id))
-        self.nscli(vpx_ns, "shell /var/BW/conntest -s %d -yE stopall" % (self.server_id))
+        vpx_ns.cli("shell /var/BW/nscsconfig -s client=%d -yE removeserver" % (self.client_id))
+        vpx_ns.cli("shell /var/BW/nscsconfig -s server=%d -yE removeserver" % (self.server_id))
+        vpx_ns.cli("shell /var/BW/conntest -s %d -yE stopall" % (self.server_id))
 
 #### Testcase core methods ####
+    def __init__(self):
+        super(BlackWidowPerformanceTestCase, self).__init__(self.TEST)
+
     def parseArgs(self, arglist):
         # Performance Test Metrics
         self.runtime = libperf.getArgument(arglist, "runtime", int, 120) # duration over which to run the throughput test
@@ -146,8 +129,15 @@ DEFINE_REQUESTS
         self.server_id = 0 # higher numbers don't seem to result in a running server
         self.client_id = 1
 
-        self.ns_bw  = self.setupBlackWidow(self.guest_bw)
-        self.ns_dut = self.setupDUT(self.guest_dut)
+        xenrt.TEC().logverbose("setting up %s as blackwidow..." % (self.guest_bw))
+        self.ns_bw = self.getVPX(self.guest_bw)
+        self.ns_bw.removeExistingSNIP()
+        self.setupBlackWidow(self.ns_bw)
+
+        xenrt.TEC().logverbose("setting up %s as DUT..." % (self.guest_dut))
+        self.ns_dut = self.getVPX(self.guest_dut)
+        self.ns_dut.removeExistingSNIP()
+        self.setupDUT(self.ns_dut)
 
     def startWorkload(self):
         pass
@@ -163,14 +153,11 @@ DEFINE_REQUESTS
         self.runTest()
         self.stopWorkload()
 
-class TCHttp100KResp(_BlackWidow):
+class TCHttp100KResp(BlackWidowPerformanceTestCase):
     TEST = "100K_resp"
 
-    def __init__(self):
-        _BlackWidow.__init__(self, self.TEST)
-
     def prepare(self, arglist=[]):
-        _BlackWidow.prepare(self, arglist=[])
+        super(TCHttp100KResp, self).prepare(arglist=[])
 
         self.httpClientThreads = libperf.getArgument(arglist, "httpclientthread", int, 500) # number of HTTP client threads
         self.httpClientParallelconn = libperf.getArgument(arglist, "httpclientparallelconn", int, 500) # number of HTTP client parallel connections
@@ -218,7 +205,7 @@ class TCHttp1BResp(TCHttp100KResp):
     TEST = "1B_Resp"
 
     def prepare(self, arglist=[]):
-        _BlackWidow.prepare(self, arglist=[])
+        super(TCHttp1BResp, self).prepare(arglist=[])
 
         self.httpClientThreads = libperf.getArgument(arglist, "httpclientthread", int, 200)
         self.httpClientParallelconn = libperf.getArgument(arglist, "httpclientparallelconn", int, 200)
@@ -227,14 +214,14 @@ class TCHttp1BResp(TCHttp100KResp):
         self.statsToCollect = ["protocolhttp"]
 
     def createHttpClients(self, vpx_ns):
-        self.nscli(vpx_ns, "shell /var/BW/nscsconfig -s client=%d -s percentpers=0 -s finstop=0 -w %s -s reqperconn=1 -s cltserverip=43.54.30.247 -s threads=%d -s parallelconn=%d -ye start" % (self.client_id, self.workload, self.httpClientThreads, self.httpClientParallelconn))
+        vpx_ns.cli("shell /var/BW/nscsconfig -s client=%d -s percentpers=0 -s finstop=0 -w %s -s reqperconn=1 -s cltserverip=43.54.30.247 -s threads=%d -s parallelconn=%d -ye start" % (self.client_id, self.workload, self.httpClientThreads, self.httpClientParallelconn))
 
 class TCTcpVipCps(TCHttp100KResp):
     """TCP Conn/sec (TCP VIP)"""
     TEST = "TCP_VIP_CPS"
 
     def prepare(self, arglist=[]):
-        _BlackWidow.prepare(self, arglist=[])
+        super(TCTcpVipCps, self).prepare(arglist=[])
 
         self.httpClientParallelconn = libperf.getArgument(arglist, "httpclientparallelconn", int, 200)
 
@@ -243,4 +230,56 @@ class TCTcpVipCps(TCHttp100KResp):
         self.statsToCollect = ["protocoltcp"]
 
     def createHttpClients(self, vpx_ns):
-        self.nscli(vpx_ns, "shell /var/BW/conntest -s %d -p serverip=43.54.30.247 -p parallelconn=%d  -p serverport=80 -p holdconn=0 -y -e conntest" % (self.client_id, self.httpClientParallelconn))
+        vpx_ns.cli("shell /var/BW/conntest -s %d -p serverip=43.54.30.247 -p parallelconn=%d  -p serverport=80 -p holdconn=0 -y -e conntest" % (self.client_id, self.httpClientParallelconn))
+
+class TCSslEncThroughput(TCHttp100KResp):
+    TEST = "SSL Encrypted Throughput"
+
+    def setupBlackWidow(self, vpx_ns):
+        vpx_ns.multiCli(""" add servicegroup Loopback TCP
+                            bind servicegroup Loopback 43.54.35.2 80
+                            enable feature lb
+                            add lb vserver v1 SSL_TCP 43.54.31.1 443
+                            bind lb vserver v1 Loopback
+                        """)
+        vpx_ns.cli("add ip 43.54.180.10 255.255.0.0")
+        vpx_ns.cli('save ns config')
+
+    def setupDUT(self, vpx_ns):
+        self.setupSslFromTar(vpx_ns)
+
+        vpx_ns.multiCli(""" enable feature LB SSL ipv6pt
+                            DISABLE FEATURE WL SP
+                            DISABLE MODE EDGE L3 PMTU
+                            enable ns mode MBF USNIP FR
+                            set audit syslogparam -loglevel NONE
+                            set dns parameter -nameLookupPriority DNS -cacheRecords NO
+                            add ssl certkey c1 -cert server_cert.pem -key server_key.pem
+                            add ssl certKey c2 -cert Cert2048 -key Key2048bit
+                            set tcpparam -SACK DISABLED -WS DISABLED -ackOnPush DISABLED
+                        """)
+
+        # Add SNIPs (the origin IP for requests travelling from NS to webserver)
+        vpx_ns.multiCli("\n".join(["add ip 43.54.30.%d 255.255.0.0 -ty SNIP -mg en"%i for i in range(1,self.snips+1)]))
+
+        # Make 43.* traffic go down the second interface
+        vpx_ns.multiCli(""" bind vlan 2 -IPAddress 43.54.30.1 255.255.0.0
+                            enable feat SSL LB
+                        """)
+
+        # Configure the vServers and bind it to the true servers
+        for i in range(1,9):
+            vpx_ns.cli("add lb vserver v%d SSL 43.54.30.%d 443 -lbmethod ROUNDROBIN"%(i,246+i) )
+            vpx_ns.multiCli(""" bind ssl vserver v%d -certkey c2
+                                set ssl vserver v%d -sessReuse ENABLED
+                                add service s%d 43.54.3%d.254 HTTP 80
+                                bind lb vser v%d s%d
+                            """ % tuple([i]*6) )
+
+        vpx_ns.cli('save ns config')
+
+    def createHttpServers(self, vpx_ns):
+        vpx_ns.cli("shell /var/BW/nscsconfig -s server=%d -s serverip=43.54.35.2 -s serverip_range=253 -s ka=100 -s contentlen=70 -s chunked=30 -w %s -ye httpsvr" % (self.server_id, self.workload))
+
+    def createHttpClients(self, vpx_ns):
+        vpx_ns.cli("shell /var/BW/nscsconfig -s client=%d -s cltserverport=443 -s ssl=1 -s ssl_sess_reuse_disable=0 -s ssl_dont_parse_server_cert=1 -s ssl_client_hello_version=2  -s percentpers=100 -w %s -s cltserverip=43.54.30.251 -s threads=%d -s parallelconn=%d -ye start" % (self.client_id, self.workload, self.httpClientThreads, self.httpClientParallelconn))

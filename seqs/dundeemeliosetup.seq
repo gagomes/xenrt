@@ -8,6 +8,10 @@
     <HOST_STATIC_IP>yes</HOST_STATIC_IP>
   </variables>
 
+  <scheduler>
+    <resources>memory&gt;=16G</resources>
+  </scheduler>
+
   <prepare>
     <allhosts />
   </prepare>

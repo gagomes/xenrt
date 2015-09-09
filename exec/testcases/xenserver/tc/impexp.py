@@ -41,6 +41,10 @@ class _ImpExpBase(xenrt.TestCase):
         self.importsr = None
         xenrt.TestCase.__init__(self, tcid)
 
+    def prepare(self, arglist):
+        args = self.parseArgsKeyValue(arglist)
+        self.SRTYPE = args.get("srtype", self.SRTYPE)
+
     def preExportHook(self, guest):
         pass
 

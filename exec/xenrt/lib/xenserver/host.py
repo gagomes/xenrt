@@ -2372,6 +2372,9 @@ fi
             cvpatches = string.split(cvpatches[0], ",")
         patches.extend(cvpatches)
 
+        if patches and xenrt.TEC().lookup("CHECK_DUPLICATE_HOTFIX", False, boolean=True):
+            patches = self.getUniquePatches(patches)
+
         #Install internal RPU hotfix, if any
         if xenrt.TEC().lookup("INSTALL_RPU_HOTFIX", False, boolean=True):
             rpuPatch = xenrt.TEC().lookup(["VERSION_CONFIG",self.productVersion,"INTERNAL_RPU_HOTFIX"])
@@ -3815,6 +3818,26 @@ fi
         cli = self.getCLIInstance()
         cli.execute("patch-destroy",
                     "uuid=%s" % (uuid))
+
+    def getUniquePatches(self, patches):
+        """Remove duplicate entries in the given patches list
+        @param patches: list of patches
+        @return: list of unique patches
+        """
+        uniquePatches = {}
+        finalListOfPatches = []
+        hotfixParserReg = re.compile('/(?P<hotfixBuild>[A-Z-]*[0-9]+)/(?P<hotfixName>.*)')
+        for patch in patches:
+            m = hotfixParserReg.search(patch)
+            # if patch is "/usr/RTM-77323/XS62ESP1/XS62ESP1.xsupdate"
+            #     m.group('hotfixBuild') = 'RTM-77323'
+            #     m.group('hotfixName') = 'XS62ESP1/XS62ESP1.xsupdate'
+            if m.group('hotfixName') not in uniquePatches:
+                finalListOfPatches.append(patch)
+                uniquePatches[m.group('hotfixName')] = m.group('hotfixBuild')
+            elif uniquePatches[m.group('hotfixName')] != m.group('hotfixBuild'):
+                raise xenrt.XRTFailure("Trying to install two builds of same hotfix:%s" % (m.group('hotfixName')))
+        return finalListOfPatches
 
     def uploadBugReport(self):
         xenrt.TEC().logverbose("Uploading bugreport.")
@@ -8465,6 +8488,12 @@ rm -f /etc/xensource/xhad.conf || true
             log("/var/preserve/safe2upgrade file is created as expected")
         return True if expectedOutput == "true" else False
 
+    def isHostLicensed(self):
+
+        factory = XenServerLicenseFactory()
+        noLicense = factory.noLicense()
+        return (not (self.paramGet("edition") == noLicense.getEdition()))
+
 #############################################################################
 
 class MNRHost(Host):
@@ -11162,7 +11191,11 @@ class ClearwaterHost(TampaHost):
             pinningPolicy = self.DOM0_VCPU_PINNED 
         else:
             pinningPolicy = self.DOM0_VCPU_NOT_PINNED
-        self.execdom0('%s set %s %s' % (self._findXenBinary('host-cpu-tune'), numberOfvCPUs, pinningPolicy))
+        ret = self.execdom0('%s set %s %s' % (self._findXenBinary('host-cpu-tune'), numberOfvCPUs, pinningPolicy))
+        
+        if "ERROR" in ret:
+            raise xenrt.XRTFailure(ret)
+        
         self.reboot()
 
     def getDom0PinningPolicy(self):
@@ -14350,6 +14383,7 @@ class TransferVM(object):
                transfer_mode,               # http or bits or iscsi               
                read_only=False,                 
                use_ssl=False,               # only valid for http and bits
+               ssl_version="TLSv1.2",       # enforce TLSv1.2, allow legacy SSL
                timeout_minutes=None,        # auto unexposed xxx minutes
                                             # after last TCP connection
                network_uuid=None,           # network uuid or default
@@ -14369,6 +14403,8 @@ class TransferVM(object):
         args.append("transfer_mode=%s" % transfer_mode)
         args.append("read_only=%s" % read_only)
         args.append("use_ssl=%s" % use_ssl)
+        if ssl_version != "TLSv1.2":
+            args.append("ssl_version=%s" % ssl_version)
         if not network_mac:
             network_mac=xenrt.randomMAC()
         if timeout_minutes:

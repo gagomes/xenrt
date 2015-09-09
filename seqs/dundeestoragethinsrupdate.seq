@@ -1,0 +1,39 @@
+<xenrt>
+  <default name="GUESTMEMORY" value="2048" />
+  <default name="GUESTVCPUS" value="4" />
+  <default name="GUESTDISTRO" value="debian70" />
+  <default name="GUESTARCH" value="x86-64" />
+  <default name="GUESTNAME" value="master" />
+
+  <default name="SRTYPE" value="lvmoiscsi" />
+  <default name="SRUPGRADETIME" value="3" />
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <pool>
+      <allhosts />
+      <storage type="lvmoiscsi" name="lvmoiscsisr" default="true" size="50" options="ietvm" />
+      <vm name="${GUESTNAME}">
+        <distro>${GUESTDISTRO}</distro>
+        <memory>${GUESTMEMORY}</memory>
+        <vcpus>${GUESTVCPUS}</vcpus>
+        <arch>${GUESTARCH}</arch>
+        <disk device="0" size="8" />
+        <network device="0" />
+        <postinstall action="preCloneTailor" />
+      </vm>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <testcase id="xenserver.tc.thinlvhd.TCSRUpgrade" tc="TC-27242" name="SRUpgrade">
+      <arg>baseimagename=${GUESTNAME}</arg>
+      <arg>srtype=${SRTYPE}</arg>
+      <arg>srupgradetime=${SRUPGRADETIME}</arg>
+    </testcase>
+  </testsequence>
+</xenrt>

@@ -18,6 +18,7 @@
         <testcase id="xenserver.tc.melio.TCMelioSmoke" tc="TC-27207" blocker="yes" />
         <testcase id="xenserver.tc.melio.TCSparseWrite" tc="TC-27236" />
         <testcase id="xenserver.tc.melio.TCDDIntegrity" tc="TC-27237" />
+        <testcase id="xenserver.tc.melio.TCBlockSizes" tc="TC-27309" />
       </serial>
     </testsequence>
 </xenrt>

@@ -21,6 +21,8 @@ __all__ = ["Guest",
            "BostonGuest",
            "TampaGuest",
            "ClearwaterGuest",
+           "CreedenceGuest",
+           "DundeeGuest",
            "startMulti",
            "shutdownMulti",
            "getTemplate"]
@@ -99,6 +101,10 @@ class Guest(xenrt.GenericGuest):
         self.use_ipv6 = xenrt.TEC().lookup('USE_GUEST_IPV6', False, boolean=True)
         self.memory = None # Default to template memory.
         self.vcpus = None # Default to template vcpus.
+
+    def _checkPVAddonsInstalled(self):
+        """This is require by waitForAgent to check for host license from Dundee onwards """
+        return False
 
     def populateSubclass(self, x):
         xenrt.GenericGuest.populateSubclass(self, x)
@@ -1543,10 +1549,14 @@ exit /B 1
             except:
                 pass
 
-            try:
-                pvValue = self.host.xenstoreRead("/local/domain/%d/attr/PVAddons/Installed" % domid)
-            except:
-                pass
+            if self._checkPVAddonsInstalled():
+                pvValue = "1"
+ 
+            else:
+                try:
+                    pvValue = self.host.xenstoreRead("/local/domain/%d/attr/PVAddons/Installed" % domid)     
+                except:
+                    pass
 
             if pvValue == "1" and (defaultValue or otherValue):
                 xenrt.TEC().logverbose("Found PV driver evidence")
@@ -6511,7 +6521,12 @@ class DundeeGuest(CreedenceGuest):
         """ Check whether the windows pv updates is enabled on the host"""
         
         return self.paramGet("auto-update-drivers")
-    
+
+
+    def _checkPVAddonsInstalled(self):
+        """This is require by waitForAgent to check for host license from Dundee onwards """
+        return True
+ 
 class StorageMotionObserver(xenrt.EventObserver):
 
     def startObservingSXMMigrate(self,vm,destHost,destSession):

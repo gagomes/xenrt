@@ -398,6 +398,7 @@ class TestCase(object):
         self.xentoplogger = None
         self._fhsToClose = []
         self._initDone = True
+        self.rageTimings = []
         return
 
     #########################################################################
@@ -735,6 +736,13 @@ logdata call.
                 self.preLogs()
         except:
             pass
+        
+        if self.rageTimings:
+            filename = "%s/rage-timings.log" % (xenrt.TEC().getLogdir())
+            f = file(filename, "w")
+            f.write("\n".join(self.rageTimings))
+            f.close()
+        
         if self.getResult(code=True) != RESULT_SKIPPED:
             try:
                 xenrt.TEC().logdelimit("log retrieval")
@@ -975,6 +983,8 @@ Abort this testcase with: xenrt interact %s -n '%s'
             except Exception, e:
                 xenrt.TEC().warning("Unable to send pause email '%s' Exception: '%s'" % (subject, str(e)))
         ph = int(xenrt.TEC().lookup("PAUSE_HOURS", "24"))
+        if xenrt.TEC().lookup("PREEMPTABLE", False, boolean=True):
+            ph = min(ph, 6) # Limit preemptable jobs to a maximum pause time of 6 hours
         deadline = xenrt.util.timenow() + (ph * 60 * 60)
         reply = False
         while True:

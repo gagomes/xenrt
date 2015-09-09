@@ -71,6 +71,7 @@ class _TransferVM(xenrt.TestCase):
     SR_TYPE = "lvm"
     TR_MODE = "HTTP"
     USE_SSL = False
+    SSL_VERSION = "TLSv1.2"
 
     def prepare(self, arglist=[]):
 
@@ -285,12 +286,14 @@ class _TransferVM(xenrt.TestCase):
                 src_ref = self.src_host.transfer_vm.expose(src_vdi,
                                                            self.TR_MODE,
                                                            read_only=False,
-                                                           use_ssl=self.USE_SSL)
+                                                           use_ssl=self.USE_SSL,
+                                                           ssl_version=self.SSL_VERSION)
                 src_rec = self.src_host.transfer_vm.get_record(src_ref)
                 dst_ref = self.dst_host.transfer_vm.expose(dst_vdi,
                                                            self.TR_MODE,
                                                            read_only=False,
-                                                           use_ssl=self.USE_SSL)
+                                                           use_ssl=self.USE_SSL,
+                                                           ssl_version=self.SSL_VERSION)
                 dst_rec = self.dst_host.transfer_vm.get_record(dst_ref)
                 
                 vdi_file = self.get_vdi(self.tool_vm, src_rec)
@@ -411,53 +414,65 @@ class TC11455(_TransferVM):
     USE_SSL = True
     SR_TYPE = "lvmoiscsi"
 
+# Windows BitsAdmin Tool does not support TLSv1.2,
+# BitsAdmin tool (3.0 [7.0.6001]) which we use does not work well with stunnel SSLv3,
+# but works well with stunnel TLSv1.
+
 class TC11456(_TransferVM):
 
     TR_MODE = "BITS"
     USE_SSL = False
     SR_TYPE = "lvm"
+    SSL_VERSION = "TLSv1"
 
 class TC11457(_TransferVM):
 
     TR_MODE = "BITS"
     USE_SSL = False
     SR_TYPE = "nfs"
+    SSL_VERSION = "TLSv1"
 
 class TC11458(_TransferVM):
 
     TR_MODE = "BITS"
     USE_SSL = False
     SR_TYPE = "netapp"
+    SSL_VERSION = "TLSv1"
     
 class TC11459(_TransferVM):
 
     TR_MODE = "BITS"
     USE_SSL = False
     SR_TYPE = "lvmoiscsi"
+    SSL_VERSION = "TLSv1"
 
 class TC11460(_TransferVM):
 
     TR_MODE = "BITS"
     USE_SSL = True
     SR_TYPE = "lvm"
+    SSL_VERSION = "TLSv1"
 
 class TC11461(_TransferVM):
 
     TR_MODE = "BITS"
     USE_SSL = True
     SR_TYPE = "nfs"
+    SSL_VERSION = "TLSv1"
 
 class TC11462(_TransferVM):
 
     TR_MODE = "BITS"
     USE_SSL = True
     SR_TYPE = "netapp"
+    SSL_VERSION = "TLSv1"
 
 class TC11463(_TransferVM):
 
     TR_MODE = "BITS"
     USE_SSL = True
     SR_TYPE = "lvmoiscsi"
+    SSL_VERSION = "TLSv1"
 
 class TC11493(_TransferVM):
 

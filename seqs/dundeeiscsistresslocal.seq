@@ -1,0 +1,86 @@
+<xenrt>
+  <default name="GUESTMEMORY" value="512" />
+  <default name="GUESTVCPUS" value="2" />
+  <default name="GUESTVERSION" value="ws08sp2-x86" />
+  <default name="GUESTDISK" value="16384" />
+  <default name="GUESTDISKLIN" value="5120" />
+  <default name="PAIRSPERHOST" value="A,B,C,D,E,F" />
+  <default name="HOSTPAIRS" value="(0,1),(1,2),(2,3),(3,0)" />
+  <default name="GUESTDISTRO" value="rhel511" />
+  <default name="GUESTARCH" value="x86-32" />
+  <default name="POOLSTRESSSNAP" value="20" />
+  <default name="DURATION" value="NA" />
+  <default name="ITERATIONS" value="450" />
+  
+  <scheduler>
+    <pool>VMX,SVM</pool>
+    <param>SR_ISCSI=yes</param>
+    <param>SR_ISCSI_MINSIZE=470</param>
+    <param>MACHINES_REQUIRED=4</param>
+    <param>SITE=SVCL01</param>
+    <resources>memory&gt;=16G/cores&gt;=16/NPRI&gt;=2/NSEC&gt;=2</resources>
+    <flags>iscsi</flags>
+    <param>SHAREDRESOURCES=luns=1</param>
+  </scheduler>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <EXTRA_TIME>yes</EXTRA_TIME>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+    <OPTION_CLONE_TEMPLATE>yes</OPTION_CLONE_TEMPLATE>
+  </variables>
+
+  <prepare>
+    <pool>
+      <allhosts />
+      <storage type="lvmoiscsi" name="lvmoiscsisr" default="true" />
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <NIC />
+          <NIC />
+          <MANAGEMENT />
+        </PHYSICAL>
+        <PHYSICAL network="NSEC">
+          <NIC />
+          <NIC />
+          <VLAN network="VR08">
+            <VMS />
+          </VLAN>
+        </PHYSICAL>
+      </NETWORK>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <parallel>
+      <for iter="P,S" values="${HOSTPAIRS}">
+        <for iter="C" values="${PAIRSPERHOST}">
+          <serial group="iSCSI.LinuxGuest.${P}${C}">
+            <testcase id="xenserver.guest.TCXenServerVendorInstall" tc="TC-11007" name="Install.Lin${P}${C}" sku="Install.Lin${P}${C}">
+              <arg>RESOURCE_HOST_${P}</arg>
+              <arg>guest=rhguest${P}${C}</arg>
+              <arg>version=${GUESTDISTRO}</arg>
+              <arg>arch=${GUESTARCH}</arg>
+              <arg>memory=${GUESTMEMORY}</arg>
+              <arg>vcpus=${GUESTVCPUS}</arg>
+              <arg>disksize=${GUESTDISKLIN}</arg>
+            </testcase>
+            <testcase id="xenserver.guest.TCLifeCycleLoop" tc="TC-11007" name="LifeCycle.Lin${P}${C}" sku="LifeCycle.Lin${P}${C}">
+              <arg>guest=rhguest${P}${C}</arg>
+              <arg>duration=${DURATION}</arg>
+              <arg>iterations=${ITERATIONS}</arg>
+              <arg>snap=${POOLSTRESSSNAP}</arg>
+              <arg>peerhost=RESOURCE_HOST_${S}</arg>
+            </testcase>
+            <finally>
+              <testcase id="guestops.basic.TCShutdown">
+                <arg>guest=rhguest${P}${C}</arg>
+                <arg>again</arg>
+              </testcase>
+            </finally>
+          </serial>
+        </for>
+      </for>
+    </parallel>
+  </testsequence>
+</xenrt>

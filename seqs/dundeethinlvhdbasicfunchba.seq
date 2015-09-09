@@ -1,0 +1,19 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="fc" name="lvmohbasr" default="true" options="thin" size="50"/>
+      <host id="0"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <testcase id="xenserver.tc.thinlvhd.TCThinProvisioned" tc="TC-27308" name="BasicFuncInitial" />
+    <testcase id="xenserver.tc.thinlvhd.TCSRIncrement" tc="TC-27307" name="BasicFuncQuantum" />
+  </testsequence>
+</xenrt>

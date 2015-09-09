@@ -4510,7 +4510,7 @@ class GenericHost(GenericPlace):
         x.containerHost = self.containerHost
         if x.machine:
             x.machine.setHost(x)
-
+  
     def getDeploymentRecord(self):
         ret = {"access": {"hostname": self.getName(),
                           "ipaddress": self.getIP()},

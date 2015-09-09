@@ -13,6 +13,7 @@ import os.path
 import requests
 import sys
 import json
+import threading
 
 __all__ = [
     "MelioHelper"
@@ -28,6 +29,7 @@ class MelioHelper(object):
         self._scsiid = None
         self.guid = None
         self._iscsiHost = iscsiHost
+        self.logNames = []
         # Get a checkout of the Melio Python library
         if not xenrt.TEC().lookup("MELIO_PYTHON_LOCAL_PATH", None):
             d = xenrt.TempDirectory()
@@ -46,7 +48,11 @@ class MelioHelper(object):
 
     def getMelioClient(self, host):
         # Get an instance of the websockets library to the Melio UI
-        return self._MelioClient("%s:8080" % host.getIP(), request_timeout=300)
+        logName="sanbolic-%s" % threading.currentThread().getName()
+        if not logName in self.logNames:
+            xenrt.setupLogging(logName, forceThisTEC=True)
+            self.logNames.append(logName)
+        return self._MelioClient("%s:8080" % host.getIP(), request_timeout=300, log_name=logName)
 
     def setup(self, reinstall=False, formatDisk=True):
         # Do a full setup of the melio tools

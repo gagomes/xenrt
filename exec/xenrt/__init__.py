@@ -256,10 +256,13 @@ _anontec = None
 _tecs = {}
 _gec = None
 _threads = {} # Maps thread names to XRTThread objects where known
-def TEC():
+def TEC(threadName=None):
     """Returns the TestExecutionContext instance for the current thread."""
     global _tecs, _anontec
-    t = threading.currentThread().getName()
+    if not threadName:
+        t = threading.currentThread().getName()
+    else:
+        t = threadName
     if not _tecs.has_key(t):
         return _anontec
     return _tecs[t]

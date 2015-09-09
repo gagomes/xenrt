@@ -315,10 +315,16 @@ def stddev(list):
     ssq = sum(map(lambda x:x*x, list))
     return math.sqrt(ssq / n - (s / n) ** 2)
 
-def setupLogging(name, level=logging.DEBUG):
+def setupLogging(name, level=logging.DEBUG, forceThisTEC=False):
     logger = logging.getLogger(name)
+    for i in logger.handlers:
+        logger.removeHandler(i)
     logger.setLevel(level)
-    stream = logging.StreamHandler(stream = XenRTLogStream())
+    if forceThisTEC:
+        threadName = threading.currentThread().getName()
+    else:
+        threadName = None
+    stream = logging.StreamHandler(stream = XenRTLogStream(threadName=threadName))
     stream.setLevel(level)
     logFormat = logging.Formatter("%(name)s: %(levelname)s - %(message)s")
     stream.setFormatter(logFormat)
@@ -326,8 +332,11 @@ def setupLogging(name, level=logging.DEBUG):
     
 
 class XenRTLogStream(object):
+    def __init__(self, threadName=None):
+        self.threadName = threadName
+
     def write(self, data):
-        xenrt.TEC().logverbose(data.rstrip())
+        xenrt.TEC(threadName=self.threadName).logverbose(data.rstrip())
 
     def flush(self):
         pass

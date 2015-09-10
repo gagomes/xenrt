@@ -40,7 +40,9 @@ class _MachineBase(XenRTAPIv2Page):
                     offset=0,
                     pseudoHosts=False,
                     exceptionIfEmpty=False,
-                    search=None):
+                    search=None,
+                    include_forbidden=True,
+                    only_restricted=False):
         cur = self.getDB().cursor()
         params = []
         conditions = []
@@ -95,7 +97,7 @@ class _MachineBase(XenRTAPIv2Page):
             conditions.append("m.machine != ('_' || s.site)")
 
 
-        query = "SELECT m.machine, m.site, m.cluster, m.pool, m.status, m.resources, m.flags, m.comment, m.leaseto, m.leasereason, m.leasefrom, m.leasepolicy, s.flags, m.jobid, m.descr, m.aclid, s.ctrladdr, s.location, m.prio, m.mgroup, m.preemptablelease FROM tblmachines m INNER JOIN tblsites s ON m.site=s.site"
+        query = "SELECT m.machine, m.site, m.cluster, m.pool, m.status, m.resources, m.flags, m.comment, m.leaseto, m.leasereason, m.leasefrom, m.leasepolicy, s.flags, m.jobid, m.descr, m.aclid, s.ctrladdr, s.location, m.prio, m.mgroup, m.preemptablelease, j.userid FROM tblmachines m INNER JOIN tblsites s ON m.site=s.site LEFT OUTER JOIN tbljobs j ON m.jobid=j.jobid"
         if conditions:
             query += " WHERE %s" % " AND ".join(conditions)
 
@@ -103,10 +105,37 @@ class _MachineBase(XenRTAPIv2Page):
 
         ret = {}
 
+        aclForbiddenCache = {}
+        aclRestrictedCache = {}
+        getExtraData = []
+
         while True:
             rc = cur.fetchone()
             if not rc:
                 break
+            aclid = rc[15]
+            if not aclid:
+                forbidden = False
+                restricted = False
+            else:
+                if aclid in aclForbiddenCache.keys():
+                    forbidden = aclForbiddenCache[aclid]
+                else:
+                    forbidden = not self.getACLHelper().check_acl(aclid, self.getUser().userid, [None], ignoreCounts=True)[0]
+                    aclForbiddenCache[aclid] = forbidden
+                if aclid in aclRestrictedCache.keys():
+                    restricted = aclRestrictedCache[aclid]
+                else:
+                    restricted = self.getACLHelper().is_acl_restricted(aclid)
+                    aclRestrictedCache[aclid] = restricted
+            if forbidden and not include_forbidden:
+                continue
+            if not restricted and only_restricted:
+                continue
+            if not forbidden or self.getUser().admin:
+                getExtraData.append(rc[0].strip())
+
+
             machine = {
                 "name": rc[0].strip(),
                 "site": rc[1].strip(),
@@ -130,9 +159,18 @@ class _MachineBase(XenRTAPIv2Page):
                 "location": rc[17].strip() if rc[17] else None,
                 "prio": rc[18],
                 "preemptablelease": bool(rc[20]) if rc[7] else None,
-                "params": {}
+                "params": {},
+                "forbidden": forbidden,
+                "restricted": restricted
             }
             machine['leasecurrentuser'] = bool(machine['leaseuser'] and machine['leaseuser'] == self.getUser().userid)
+
+            if machine['rawstatus'] in ("running", "slaved", "scheduled"):
+                machine['jobuser'] = rc[21].strip() if rc[21] else None
+            else:
+                machine['jobuser'] = None
+
+            machine['jobcurrentuser'] = machine['jobuser'] == self.getUser().userid if machine['jobuser'] else None
 
             for r in rc[5].strip().split("/"):
                 if not "=" in r:
@@ -150,17 +188,18 @@ class _MachineBase(XenRTAPIv2Page):
                 raise XenRTAPIError(HTTPNotFound, "Machine not found")
 
             return ret
-        query = "SELECT machine, key, value FROM tblmachinedata WHERE %s" % self.generateInCondition("machine", ret.keys())
-        cur.execute(query, ret.keys())
+        if len(getExtraData) > 0:
+            query = "SELECT machine, key, value FROM tblmachinedata WHERE %s" % self.generateInCondition("machine", getExtraData)
+            cur.execute(query, getExtraData)
 
-        while True:
-            rc = cur.fetchone()
-            if not rc:
-                break
-            if rc[2] and rc[2].strip():
-                ret[rc[0].strip()]["params"][rc[1].strip()] = rc[2].strip()
-            if rc[1].strip() == "PROPS" and rc[2] and rc[2].strip():
-                ret[rc[0].strip()]['flags'].extend(rc[2].strip().split(","))
+            while True:
+                rc = cur.fetchone()
+                if not rc:
+                    break
+                if rc[2] and rc[2].strip():
+                    ret[rc[0].strip()]["params"][rc[1].strip()] = rc[2].strip()
+                if rc[1].strip() == "PROPS" and rc[2] and rc[2].strip():
+                    ret[rc[0].strip()]['flags'].extend(rc[2].strip().split(","))
 
         if search:
             try:
@@ -468,12 +507,28 @@ class ListMachines(_MachineBase):
           'items': {'type': 'string'},
           'name': 'group',
           'required': False,
-          'type': 'array'}
+          'type': 'array'},
+         {'description': "Include machines which are blocked by ACL",
+          'in': 'query',
+          'name': 'include_forbidden',
+          'required': False,
+          'default': False,
+          'type': 'boolean'},
+         {'description': "Only show machines which are not accessible to all users (i.e. do not have a default item in the ACL)",
+          'in': 'query',
+          'name': 'only_restricted',
+          'required': False,
+          'default': False,
+          'type': 'boolean'}
           ]
     RESPONSES = { "200": {"description": "Successful response"}}
     TAGS = ["machines"]
    
     def render(self):
+        if self.getUser().admin:
+            default_forbidden="true"
+        else:
+            default_forbidden="false"
         return self.getMachines(pools = self.getMultiParam("pool"),
                                 clusters = self.getMultiParam("cluster"),
                                 resources = self.getMultiParam("resource"),
@@ -487,7 +542,9 @@ class ListMachines(_MachineBase):
                                 pseudoHosts = self.request.params.get("pseudohosts") == "true",
                                 limit=int(self.request.params.get("limit", 0)),
                                 offset=int(self.request.params.get("offset", 0)),
-                                search=self.request.params.get("search"))
+                                search=self.request.params.get("search"),
+                                include_forbidden=self.request.params.get("include_forbidden", default_forbidden) == "true",
+                                only_restricted=self.request.params.get("only_restricted") == "true")
 
 class GetMachine(_MachineBase):
     PATH = "/machine/{name}"
@@ -874,21 +931,49 @@ class PowerMachine(_MachineBase):
             "bootdev": {
                 "type": "string",
                 "description": "IPMI boot device for the next boot"
+            },
+            "force": {
+                "type": "boolean",
+                "description": "Perform operation even if the machine is in use by someone else",
+                "default": False
+            },
+            "admin_override": {
+                "type": "boolean",
+                "description": "Override ACL (only available to admins)",
+                "default": False
             }
         },
         "required": ["operation"]
     }}
     OPERATION_ID = "power_machine"
-    PARAM_ORDER=["name", "operation", "bootdev"]
+    PARAM_ORDER=["name", "operation", "bootdev", "force", "admin_override"]
     SUMMARY = "Control the power on a machine"
 
     def render(self):
         machine = self.getMachines(limit=1, machines=[self.request.matchdict['name']], exceptionIfEmpty=True)[self.request.matchdict['name']]
+       
         try:
             j = json.loads(self.request.body)
             jsonschema.validate(j, self.DEFINITIONS['powermachine'])
         except Exception, e:
             raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
+        
+        adminoverride = j.get('admin_override', False)
+        force = j.get('force', False)
+
+        if adminoverride and not self.getUser(forceReal=True).admin:
+            raise XenRTAPIError(HTTPUnauthorized, "Only XenRT admins can use the admin_override functionality")
+
+        if not adminoverride:
+            if machine['forbidden']:
+                raise XenRTAPIError(HTTPUnauthorized, "You do not have access to this machine")
+        if not force:
+            if machine['leaseuser'] and not machine['leasecurrentuser']:
+                raise XenRTAPIError(HTTPUnauthorized, "This machine is leased to %s" % machine['leaseuser'])
+            if machine['jobuser'] and not machine['jobcurrentuser']:
+                raise XenRTAPIError(HTTPUnauthorized, "This machine is running a job for %s" % machine['jobuser'])
+
+
 
         reqdict = {"machine": machine['name'], "powerop": j['operation']}
 

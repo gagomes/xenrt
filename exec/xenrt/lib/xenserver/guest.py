@@ -800,7 +800,7 @@ users:
         xenrt.sleep(120)
         self.xmlrpcUpdate()
         self.xmlrpcShutdown()
-        self.poll("DOWN", timeout=360)
+        self.poll("DOWN", timeout=720)
 
     def insertToolsCD(self):
         isos = self.getHost().findISOs()
@@ -847,7 +847,7 @@ users:
 
     def start(self, reboot=False, skipsniff=False, specifyOn=True,\
               extratime=False, managenetwork=None, managebridge=None, 
-              forcedReboot = False):
+              forcedReboot=False, timer=None):
         # Start the VM
         if reboot:
             xenrt.TEC().progress("Rebooting guest VM %s" % (self.name))
@@ -871,7 +871,7 @@ users:
             xenrt.sleep(20)
         else:
             xenrt.TEC().progress("Starting guest VM %s" % (self.name))
-            self.lifecycleOperation("vm-start",specifyOn=specifyOn)
+            self.lifecycleOperation("vm-start",specifyOn=specifyOn,timer=timer)
 
         self.waitReadyAfterStart(skipsniff, extratime, managenetwork, managebridge)
 
@@ -1056,14 +1056,14 @@ users:
             self.execguest("(sleep 5 && /sbin/reboot) >/dev/null 2>&1 </dev/null &")
             xenrt.sleep(10)
 
-    def reboot(self, force=False, skipsniff=None):
+    def reboot(self, force=False, skipsniff=None, timer=None):
         if not force:
             self.waitForShutdownReady()
         # If this is a Linux guest without a guest agent we'll not sniff
         # if we already know the IP
         if skipsniff == None and self.builtInGuestAgent():
             skipsniff = True
-        self.start(reboot=True, forcedReboot=force, skipsniff=skipsniff)
+        self.start(reboot=True, forcedReboot=force, skipsniff=skipsniff, timer=timer)
 
     def suspend(self, newstate="SUSPENDED", timer=None, extraTimeout=0):
         if timer:

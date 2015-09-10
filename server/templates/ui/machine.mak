@@ -123,6 +123,46 @@ $(function() {
                         out += "<br>Reason: <input type=\"text\" id=\"reason\" class=\"ui-state-default ui-corner-all\">"
                         out += "<br><button id=\"leasebutton\" class=\"ui-state-default ui-corner-all\">Extend lease</button></div>"
                     }
+                    out += "</div>"
+                }
+                else if (data['leaseuser']) {
+                    var d = new Date(data['leaseto'] * 1000)
+                    $.ajaxSetup( { "async": false } );
+
+                    var user = data['leaseuser']
+                    $.getJSON("/xenrt/api/v2/ad", {"search": data['leaseuser']})
+                        .done(function(addata) {
+                            if (addata[0]['mail']) {
+                                user = addata[0]['cn'] + " (<a href=\"mailto:" + addata[0]['mail'] + "\">" + addata[0]['mail'] + "</a>)"
+                            }
+                            else {
+                                user = addata[0]['cn']
+                            }
+                        });
+
+                    out += "<div>Machine is leased to user " + user + " " + leaseUntilText(data['leaseto']) + leaseReasonText(data['leasereason']) + "</div>"
+                }
+                else if (data['forbidden']) {
+                    out += "<div>You do not have access to this machine</div>"
+                }
+                else{
+                    if (data['status'] == "running" && !data['jobcurrentuser']) {
+                        out += "<div><p><b>Warning - machine is running job <a href=\"/xenrt/ui/logs?jobs=" + data['jobid'] + "\" target=\"_blank\">" + data['jobid'] + "</a></b></p></div>"
+                    }
+                    else if (data['status'] == "broken") {
+                        out += "<div><p><b>Warning - machine is marked as broken: " + data['params']['BROKEN_INFO'] + "</b></p></div>"
+                    }
+                    out += "<div>Lease for: "
+                    out += "<input type=\"text\" id=\"duration\" class=\"ui-state-default ui-corner-all\">"
+                    out += " <select id=\"durationunit\" class=\"ui-state-default ui-corner-all\">"
+                    out += "<option value=\"hours\">Hours</option>"
+                    out += "<option value=\"days\">Days</option>"
+                    out += "<option value=\"forever\">Forever</option>"
+                    out += "</select>"
+                    out += "<br>Reason: <input type=\"text\" id=\"reason\" class=\"ui-state-default ui-corner-all\">"
+                    out += "<br><button id=\"leasebutton\" class=\"ui-state-default ui-corner-all\">Lease</button></div>"
+                }
+                if (data['leasecurrentuser'] || data['jobcurrentuser'] || (data['restricted'] && !data['leaseuser'] && !data['jobuser'] && !data['forbidden'])) {
                     out += "<h3>Power control</h3>"
                     out += "<div>Operation: <select class=\"ui-state-default ui-corner-all\" id=\"powerop\">"
                     out += "<option value=\"on\">Power on</option>"
@@ -139,42 +179,6 @@ $(function() {
                     out += "<div>Windows: <span style=\"font-family:monospace\">echo " + machine + " > %TEMP%\\xenrt-puttycmd & putty.exe -t cons@" + data['ctrladdr'] + " -pw console -m %TEMP%\\xenrt-puttycmd</span> (requires PuTTY on %PATH%)</div>";
                     out += getBMCKVM(data)
                     out += "</div>"
-                }
-                else {
-                    if (data['leaseuser']) {
-                        var d = new Date(data['leaseto'] * 1000)
-                        $.ajaxSetup( { "async": false } );
-
-                        var user = data['leaseuser']
-                        $.getJSON("/xenrt/api/v2/ad", {"search": data['leaseuser']})
-                            .done(function(addata) {
-                                if (addata[0]['mail']) {
-                                    user = addata[0]['cn'] + " (<a href=\"mailto:" + addata[0]['mail'] + "\">" + addata[0]['mail'] + "</a>)"
-                                }
-                                else {
-                                    user = addata[0]['cn']
-                                }
-                            });
-
-                        out += "<div>Machine is leased to user " + user + " " + leaseUntilText(data['leaseto']) + leaseReasonText(data['leasereason']) + "</div>"
-                    }
-                    else{
-                        if (data['status'] == "running") {
-                            out += "<div><p><b>Warning - machine is running job <a href=\"/xenrt/ui/logs?jobs=" + data['jobid'] + "\" target=\"_blank\">" + data['jobid'] + "</a></b></p></div>"
-                        }
-                        else if (data['status'] == "broken") {
-                            out += "<div><p><b>Warning - machine is marked as broken: " + data['params']['BROKEN_INFO'] + "</b></p></div>"
-                        }
-                        out += "<div>Lease for: "
-                        out += "<input type=\"text\" id=\"duration\" class=\"ui-state-default ui-corner-all\">"
-                        out += " <select id=\"durationunit\" class=\"ui-state-default ui-corner-all\">"
-                        out += "<option value=\"hours\">Hours</option>"
-                        out += "<option value=\"days\">Days</option>"
-                        out += "<option value=\"forever\">Forever</option>"
-                        out += "</select>"
-                        out += "<br>Reason: <input type=\"text\" id=\"reason\" class=\"ui-state-default ui-corner-all\">"
-                        out += "<br><button id=\"leasebutton\" class=\"ui-state-default ui-corner-all\">Lease</button></div>"
-                    }
                 }
                 $(out).appendTo("#machine");
                 setupHandlers()
@@ -199,7 +203,16 @@ $(function() {
                         out += "</pre>";
                         $("#output").empty();
                         $(out).appendTo("#output");
-                    }, "json");
+                    }, "json")
+                .fail(function(xhr, textStatus, errorThrown) {
+                    try {
+                        reason = $.parseJSON(xhr.responseText)['reason'];
+                        alert("Power control failed: " + reason);
+                    }
+                    catch(err) {
+                        alert("Power control failed: " + textStatus + " " + errorThrown); 
+                    }
+                });
             $( "#overlay" ).hide();
             $( "#loading" ).hide();
             $('#powerbutton').prop('disabled', false);

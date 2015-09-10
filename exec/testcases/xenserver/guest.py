@@ -2227,9 +2227,8 @@ class TCLifeCycleLoop(xenrt.TestCase):
                 iteration = iteration + 1
         finally:
             for timer, op in self.timers:
-                if timer.starttime and timer.measurements:
-                    self.rageTimings.append("TIME_VM_%s_START_%s:%.3f" % (op.upper(), self.guest.getName(), timer.starttime))
-                    self.rageTimings.append("TIME_VM_%s_FINISH_%s:%.3f" % (op.upper(), self.guest.getName(), timer.measurements[-1]))
+                if not timer.starttime and timer.measurements:
+                    self.rageTimings.append("TIME_VM_%s_DURATION_%s:%.3f" % (op.upper(), self.guest.getName(), timer.measurements[-1]))
             
             dur = xenrt.timenow() - starttime
             xenrt.TEC().comment("Total iterations: %u" % (iteration))

@@ -297,11 +297,7 @@ class _InstallXenCenter(xenrt.TestCase):
         
         # Install XenCenter
         self.guest.installCarbonWindowsGUI()
-        
-        # Check .NET3.5 framework is installed
-        if self.guest.winRegLookup('HKLM', 'SOFTWARE\\Microsoft\\NET Framework Setup\\NDP\\v3.5', 'Install', healthCheckOnFailure=False) != 1:
-            raise xenrt.XRTFailure(".NET framework is not installed")
-        
+
         # Check path to XenCenter
         guipath, guiexe = self.guest.findCarbonWindowsGUI()
         if not guipath or not guiexe:

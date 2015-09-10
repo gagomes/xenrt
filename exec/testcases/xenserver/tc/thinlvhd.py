@@ -97,7 +97,7 @@ class _ThinLVHDBase(xenrt.TestCase):
         @param name: name of sr.
         @param srtype: (sub)type of sr.
         @param ietvm: False by default. If it is True, a VM for sr will be created. (Not yet implemented yet)
-        @param size: physical size to pass to SR.create()
+        @param size: physical size in GiB to pass to SR.create()
 
         @return: created SR object
         """
@@ -110,7 +110,7 @@ class _ThinLVHDBase(xenrt.TestCase):
         smconf = self.__buildsmconfig(initialAlloc, quantumAlloc)
         if srtype=="lvmoiscsi":
             if size:
-                size /= xenrt.MEGA
+                size *= xenrt.KILO # size GiB
             else:
                 size = 100 * xenrt.KILO # 100 GiB
             if ietvm:

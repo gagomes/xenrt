@@ -1250,7 +1250,7 @@ class TCThinSRSpaceCheck(_ThinLVHDBase):
             self.guest = self.host.createBasicGuest("generic-linux", sr=self.sr.uuid)
         self.host.addSR(self.sr, default=True)
         # Get the Allocation from the SR. 
-        self.initialAlloc = self.sr.paramGet("sm-config", "initial_allocation")
+        self.initialAlloc = self.getInitialAllocation(self.sr)
         log("sr initial allocation is %d " % self.initialAlloc)
 
     def run(self, arglist):

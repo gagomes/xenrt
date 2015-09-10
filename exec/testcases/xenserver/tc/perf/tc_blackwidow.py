@@ -128,7 +128,7 @@ DEFINE_REQUESTS
         self.guest_bw  = xenrt.GEC().registry.guestGet(bw_name)
         self.guest_dut = xenrt.GEC().registry.guestGet(dut_name)
 
-    def prepare(self, arglist):
+    def prepare(self, arglist=[]):
         self.parseArgs(arglist)
         self.workloadFileName = None
         self.workload = None
@@ -173,7 +173,7 @@ class TCHttp100KResp(BlackWidowPerformanceTestCase):
     TEST = "100K_resp"
 
     def prepare(self, arglist=[]):
-        super(TCHttp100KResp, self).prepare(arglist=[])
+        super(TCHttp100KResp, self).prepare(arglist)
 
         self.workloadFileName = "100KB.wl"
         self.statsToCollect = ["protocoltcp"]
@@ -222,7 +222,7 @@ class TCHttp1BResp(TCHttp100KResp):
         self.httpClientThreads = 200
 
     def prepare(self, arglist=[]):
-        super(TCHttp1BResp, self).prepare(arglist=[])
+        super(TCHttp1BResp, self).prepare(arglist)
 
         self.workloadFileName = "1only.wl"
         self.statsToCollect = ["protocolhttp"]
@@ -239,7 +239,7 @@ class TCTcpVipCps(TCHttp100KResp):
         self.httpClientParallelconn = 200
 
     def prepare(self, arglist=[]):
-        super(TCTcpVipCps, self).prepare(arglist=[])
+        super(TCTcpVipCps, self).prepare(arglist)
 
         self.workloadFileName = "1only.wl" # Any workload file will do.
         self.dutProtocolVServer = "TCP"
@@ -327,7 +327,7 @@ class TCSslTps1024(TCSslEncThroughput):
         vpx_ns.cli('save ns config')
 
     def prepare(self, arglist=[]):
-        super(TCSslTps1024, self).prepare(arglist=[])
+        super(TCSslTps1024, self).prepare(arglist)
 
         self.workloadFileName = "1only.wl"
         self.statsToCollect = ["ssl"]

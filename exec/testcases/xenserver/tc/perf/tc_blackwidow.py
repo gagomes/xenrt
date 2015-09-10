@@ -198,7 +198,7 @@ class TCHttp100KResp(BlackWidowPerformanceTestCase):
 
         step("runTest: sample the TCP counters on the DUT every 5 seconds")
         while now < finish:
-            self.sampleCounters(self.guest_dut, self.statsToCollect, "tcp.%d.ctr" % (i))
+            self.sampleCounters(self.guest_dut, self.statsToCollect, "tcp_thd%d_pc%d.%d.ctr" % (self.httpClientThreads,self.httpClientParallelconn,i))
             self.log("sampletimes", "%d %f" % (i, now))
 
             # The counters only seem to be updated every ~5 seconds, so don't sample more often than that

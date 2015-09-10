@@ -1913,15 +1913,13 @@ class _XenRTControllerOperation(XenRTCommand):
         site = None
         self.overrideconsole = None
         try:
-            optlist, optx = getopt.getopt(args, 's:',['override-console=', 'bootdev='])
+            optlist, optx = getopt.getopt(args, 's:',['override-console='])
             for argpair in optlist:
                 (flag, value) = argpair
                 if flag == "-s":
                     site = value
                 elif flag == "--override-console":
                     self.overrideconsole = value
-                elif flag == "--bootdev":
-                    self.bootdev = value
                 else:
                     raise Exception("Unknown argument '%s'\n" % (flag))
         except getopt.GetoptError:
@@ -1978,30 +1976,39 @@ class XenRTMConfig(_XenRTControllerOperation):
         
 
 
-class XenRTPower(_XenRTControllerOperation):
+class XenRTPower(XenRTCommand):
 
     name = "power"
     summary = "Power control a machine"
     mandatory = "<machine> off|on|reboot|nmi"
+    usage = """
+    --bootdev <device>      IPMI boot device
+    --force                 Ignore lease/running state of machine
+    """
     group = "Machine"
 
     def run(self, args):
         if len(args) < 2:
             raise Exception("Invalid usage\n")
         machine = args[0]
-        self.bootdev = None
-        addr = self.getSiteDetailsForMachine(machine, args[2:])['ctrladdr']
-        if not addr:
-            raise Exception("Controller for machine %s not found\n" % machine)
+        operation = args[1]
         details = {}
-        if args[1] not in ["off", "on", "reboot", "nmi"]:
+        try:
+            optlist, optx = getopt.getopt(args[2:], 'a', ["force", "bootdev"])
+            for argpair in optlist:
+                (flag, value) = argpair
+                if flag == "--force":
+                    details['force'] = True
+                elif flag == "--bootdev":
+                    details['bootdev'] = value
+                elif flag == "-a":
+                    details['admin_override'] = True
+        except getopt.GetoptError:
+            raise Exception("Unknown argument\n")
+        if operation not in ["off", "on", "reboot", "nmi"]:
             raise Exception("Invalid power operation - must be one of off, on or reboot\n")
-        details["powerop"] = args[1]
-        details["machine"] = machine
-        if self.bootdev:
-            details['bootdev'] = self.bootdev
-        r = requests.get("http://%s/xenrt/api/controller/power" % addr, params=details)
-        self.printout(r.text)
+        result = self.xenrt.power_machine(machine, operation, **details)
+        self.printout("%s\n" % result['output'])
 
 class XenRTConsole(_XenRTControllerOperation):
     name = "console"

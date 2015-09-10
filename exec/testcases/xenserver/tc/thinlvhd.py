@@ -58,18 +58,17 @@ class _ThinLVHDBase(xenrt.TestCase):
             if obj in host.minimalList("vdi-list"):
                 smconfigstr = host.genParamGet("vdi", obj, "sm-config")
             elif obj in host.minimalList("sr-list"):
-                # if it is not SR object, then assumes it is sr uuid string.
-                sr = xenrt.lib.xenserver.getStorageRepositoryClass(host, obj).fromExistingSR(host, obj)
-                smconfigstr = sr.smconfig
+                smconfigstr = host.genParamGet("sr", obj, "sm-config")
             else:
-                raise xenrt.XRTError("Only VDI or SR has sm-config option.")
-        else:
-            smconfigstr = obj.smconfig
+                raise xenrt.XRTError("Only VDI or SR has sm-config param.")
 
-        smconf = {}
-        for item in smconfigstr.split(";"):
-            key, val = item.split(":", 1)
-            smconf[key.strip()] = val.strip()
+            smconf = {}
+            for item in smconfigstr.split(";"):
+                key, val = item.split(":", 1)
+                smconf[key.strip()] = val.strip()
+
+        else:
+            smconf = obj.smconf
 
         return smconf
 

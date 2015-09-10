@@ -1554,7 +1554,7 @@ class TCDom0FullPatchApply(xenrt.TestCase):
 
         host.execdom0("dd count=1 if=/dev/zero of=/root/filldisktmp bs=5M") 
         try:
-            host.execdom0("dd if=/dev/zero of=/root/filldisk bs=1M")
+            host.execdom0("dd if=/dev/zero of=/root/filldisk bs=1M", timeout=900)
         except:
             pass
         

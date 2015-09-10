@@ -1206,7 +1206,7 @@ class TCThinSRSpaceCheck(_ThinLVHDBase):
     DEFAULTVDISIZE = 10 # in GiB
     DEFAULTSRTYPE = "lvmoiscsi"
     
-    def __inRange(self, number, high, low):
+    def inRange(self, number, high, low):
         return low <= number <= high
 
     def checkVdiPhysicalSize(self, vdiuuid):
@@ -1216,7 +1216,7 @@ class TCThinSRSpaceCheck(_ThinLVHDBase):
         expectedVdiPhysicalSize = 0
         if self.initialAlloc:
             expectedVdiPhysicalSize = self.initialAlloc
-        if not self.__inRange(self.vdiPhysicalSize, max(int(expectedVdiPhysicalSize*1.05), 200*xenrt.MEGA),int(expectedVdiPhysicalSize*0.95)):
+        if not self.inRange(self.vdiPhysicalSize, max(int(expectedVdiPhysicalSize*1.05), 200*xenrt.MEGA),int(expectedVdiPhysicalSize*0.95)):
             raise xenrt.XRTFailure("VDI physical size not as expected. Expected %d bytes, found %d bytes" 
                                     % (expectedVdiPhysicalSize, self.vdiPhysicalSize))
         log("VDI physical size reported now %d bytes" %(self.vdiPhysicalSize))
@@ -1227,7 +1227,7 @@ class TCThinSRSpaceCheck(_ThinLVHDBase):
         
         expectedSrFreeSpace = srFreeSpace - size
         srFreeSpaceNow = self.getSrAvailableSpace(self.sr)
-        if not self.__inRange(srFreeSpaceNow, int(expectedSrFreeSpace * 1.05), int(expectedSrFreeSpace * 0.95)):
+        if not self.inRange(srFreeSpaceNow, int(expectedSrFreeSpace * 1.05), int(expectedSrFreeSpace * 0.95)):
             raise xenrt.XRTFailure("sr free space not as expected. Expected %d bytes, found %d bytes" %
                                   (expectedSrFreeSpace, srFreeSpaceNow))
         log("SR free space reported now %d bytes" %(srFreeSpaceNow))
@@ -1274,9 +1274,9 @@ class TCThinClonedVdiSpace(TCThinSRSpaceCheck):
     DEFAULTVDISIZE = 10 #in GiB
     DEFAULTSRTYPE = "lvmoiscsi"
     
-    def checkSrPhysicalutil(expectedSrPhyUtil):
+    def checkSrPhysicalutil(self, expectedSrPhyUtil):
         srPhyUtil = self.getPhysicalUtilisation(self.sr)
-        if not __inRange(srPhyUtil, int(expectedSrPhyUtil * 1.05), int(expectedSrPhyUtil * 0.95)):
+        if not self.inRange(srPhyUtil, int(expectedSrPhyUtil * 1.05), int(expectedSrPhyUtil * 0.95)):
             raise xenrt.XRTFailure("sr physical utilization not as expected. Expected %d bytes, found %d bytes" %
                                   (expectedSrPhyUtil, srPhyUtil))
 

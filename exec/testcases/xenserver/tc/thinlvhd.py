@@ -223,6 +223,14 @@ class _ThinLVHDBase(xenrt.TestCase):
             sr = xenrt.lib.xenserver.getStorageRepositoryClass(self, sr).fromExistingSR(self, sr)
 
         return sr.thinProvisioning
+        
+    def getSrAvailableSpace(self, sr):
+        """ Return available space of sr. """
+
+        srPhySize = self.getPhysicalSize(sr)
+        srPhyUtil = self.getPhysicalUtilisation(sr)
+
+        return srPhySize - srPhyUtil
 
     def getPhysicalVDISize(self, vdiuuid, host=None ):
         if not host:

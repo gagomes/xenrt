@@ -333,4 +333,13 @@ class ACLHelper(object):
             results.append(rc[0].strip())
         self._userGroupCache[userid] = results
         return results
+    
+    def is_acl_restricted(self, aclid):
+        acl = self.get_acl(aclid)
 
+        for e in acl.entries:
+            if e.entryType == "default":
+                if e.userlimit != 0 and e.userpercent != 0 and e.grouplimit != 0 and e.grouppercent != 0:
+                    return False
+
+        return True

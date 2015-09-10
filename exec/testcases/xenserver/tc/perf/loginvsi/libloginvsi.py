@@ -14,7 +14,7 @@ class LoginVSI(object):
         self.tailoredToRunOnGuestLogon = tailoredToRunOnGuestLogon
 
         self.shareFolderPath =r"c:\%s" % self.shareFolderName
-        self.shareFolderNetworkPath = r"\\%s\%s" % (self.dataServerGuest.getIP(), self.shareFolderName)
+        self.shareFolderNetworkPath = r"\\%s\%s" % ("127.0.0.1" if targetGuest==dataServerGuest else self.dataServerGuest.getIP(), self.shareFolderName)
         self.vsishareDrive = "S"
         self.vsisharePath = "%s:" % self.vsishareDrive
 
@@ -74,11 +74,14 @@ class LoginVSI(object):
         guest.xmlrpcExec(r'regedit /s %s\_VSI_Binaries\Target\Office12.reg' % (self.vsisharePath))
 
     def _tailorToRunOnGuestBoot(self, guest):
-        startupPath = r"%appdata%\Microsoft\Windows\Start Menu\Programs\Startup\LoginVSI.bat"
-        guest.xmlrpcExec(r'echo ping 127.0.0.1 -n 30 > "%s" ' % (startupPath))
-        guest.xmlrpcExec(r'echo subst h: %s >> "%s" ' % ('%%temp%%', startupPath))
-        guest.xmlrpcExec(r'echo subst g: %s\_VSI_Content >> "%s" ' % (self.vsisharePath, startupPath))
-        guest.xmlrpcExec(r'echo %s\_VSI_Binaries\Target\Logon.cmd >> "%s" ' % (self.vsisharePath, startupPath))
+        startupPath = r"C:\Users\Administrator\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\LoginVSI.bat"
+        startupCmdsList = [ r"net use %s: /Delete /y" % self.vsishareDrive ,
+                            r"net use %s: %s"% (self.vsishareDrive, self.shareFolderNetworkPath ),
+                            r"icacls %s /grant:r Administrators:(OI)(CI)F /T /C " % (self.vsisharePath),
+                            r'subst H: %TEMP%',
+                            r'subst G: %s\_VSI_Content' % (self.vsisharePath),
+                            r'%s\_VSI_Binaries\Target\Logon.cmd' % (self.vsisharePath)  ]
+        guest.xmlrpcCreateFile(startupPath, "\n".join(startupCmdsList))
 
     def setupDataServer(self):
         self._mapLoginVSIdistfiles(self.dataServerGuest)

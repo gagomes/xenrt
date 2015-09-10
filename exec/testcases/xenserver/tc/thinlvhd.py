@@ -45,8 +45,9 @@ class _ThinLVHDBase(xenrt.TestCase):
         @return Dict of sm-config
         """
 
-        host = self.host
-        if not host:
+        if hasattr(self, "host"):
+            host = self.host
+        else:
             host = self.getDefaultHost()
         cli = host.getCLIInstance()
 
@@ -133,8 +134,10 @@ class _ThinLVHDBase(xenrt.TestCase):
 
     def getDefaultSR(self):
         """Find default SR and return SR instance."""
-        host = self.host
-        if not host:
+
+        if hasattr(self, "host"):
+            host = self.host
+        else:
             host = self.getDefaultHost()
 
         sruuid = host.lookupDefaultSR()
@@ -146,8 +149,9 @@ class _ThinLVHDBase(xenrt.TestCase):
         @return: a list of thin provisioned SRs. [] if none exists.
         """
 
-        host = self.host
-        if not host:
+        if hasattr(self, "host"):
+            host = self.host
+        else:
             host = self.getDefaultHost()
 
         srs = []
@@ -162,8 +166,9 @@ class _ThinLVHDBase(xenrt.TestCase):
     def __getSRObj(self, sr):
         """Return SR instance if it is uuid"""
 
-        host = self.host
-        if not host:
+        if hasattr(self, "host"):
+            host = self.host
+        else:
             host = self.getDefaultHost()
 
         if not isinstance(sr, xenrt.lib.xenserver.StorageRepository):

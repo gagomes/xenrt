@@ -713,13 +713,6 @@ class TCThinLVHDVmOpsSpace(_ThinLVHDBase):
             raise xenrt.XRTFailure("SR physical utilization not as expected. Expected at least %s bytes but found %s bytes" %
                                   (expectedphysicalUtil, srPhysicalUtil))
 
-    def checkSRPhysicalUtil2(self, expectedphysicalUtil):
-        step("Checking the SR physical utilization. Expected SR physical utilization is %s bytes..." % (expectedphysicalUtil))
-        srPhysicalUtil = self.getPhysicalUtilisation(self.sr)
-        if srPhysicalUtil > expectedphysicalUtil:
-            raise xenrt.XRTFailure("SR physical utilization not as expected. Expected at max %s bytes but found %s bytes" %
-                                  (expectedphysicalUtil, srPhysicalUtil))
-
     def performVmOps(self):
         """ This function check's that checkpoint/suspend operation on thin-provisioned SR works as expected"""
 
@@ -754,12 +747,10 @@ class TCThinLVHDVmOpsSpace(_ThinLVHDBase):
             step("Resuming the VM...")
             self.guest.resume()
             self.guest.check()
-            self.checkSRPhysicalUtil2(expectedphysicalUtil)
         if self.checkuuid:
             step("Reverting the checkpoint...")
             self.guest.revert(self.checkuuid)
             self.guest.check()
-            self.checkSRPhysicalUtil2(self.phyUtilBeforeCheckpoint)
 
     def prepare(self, arglist=[]):
         args = self.parseArgsKeyValue(arglist)
@@ -789,6 +780,7 @@ class TCThinLVHDVmOpsSpace(_ThinLVHDBase):
         # Test that snapshot/suspend works as expected on thin-provisioned SR.
         if self.runSubcase("performVmOps", (), "vmops-snapshot/suspend", "Guest Memory=%s bytes"\
                             %(self.guestMemory))== xenrt.RESULT_PASS:
+            xenrt.sleep(120) # Gice some time to coalese leaves.
             # Test that resume/revert works as expected on thin-provisioned SR
             self.runSubcase("revertVmOps", (), "vmops-resume/revert", "Guest Memory=%s bytes" % (self.guestMemory))
 

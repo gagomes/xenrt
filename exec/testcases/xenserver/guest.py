@@ -2112,9 +2112,14 @@ class TCSafeBoot(xenrt.TestCase):
 class TCLifeCycleLoop(xenrt.TestCase):
     """Perform a series of lifecycle operations on one VM in a pool."""
 
+    def getTimer(self, op):
+        timer = xenrt.util.Timer(float=True)
+        self.timers.append((timer, op))
+        return timer
+    
     def doReboot(self):
         self.guest.host.listDomains()
-        self.guest.reboot()
+        self.guest.reboot(timer=self.getTimer("reboot"))
         self.guest.host.checkHealth()
         time.sleep(20)
         if not self.opcounts.has_key("reboot"):
@@ -2126,7 +2131,7 @@ class TCLifeCycleLoop(xenrt.TestCase):
         self.guest.shutdown()
         self.guest.host.checkHealth()
         self.guest.host.listDomains()
-        self.guest.start()
+        self.guest.start(timer=self.getTimer("start"))
         self.guest.host.checkHealth()
         time.sleep(20)
         if not self.opcounts.has_key("stopstart"):
@@ -2135,10 +2140,10 @@ class TCLifeCycleLoop(xenrt.TestCase):
         
     def doSuspendResume(self):
         self.guest.host.listDomains()
-        self.guest.suspend()
+        self.guest.suspend(timer=self.getTimer("suspend"))
         self.guest.host.checkHealth()
         self.guest.host.listDomains()
-        self.guest.resume()
+        self.guest.resume(timer=self.getTimer("resume"))
         self.guest.host.checkHealth()
         time.sleep(20)
         if not self.opcounts.has_key("suspendresume"):
@@ -2148,10 +2153,10 @@ class TCLifeCycleLoop(xenrt.TestCase):
     def doMigrate(self):
         h = self.guest.host
         self.guest.host.listDomains()
-        self.guest.migrateVM(self.peerhost, live="true")
+        self.guest.migrateVM(self.peerhost, live="true", timer=self.getTimer("migrate"))
         self.peerhost.checkHealth()
         self.peerhost.listDomains()
-        self.guest.migrateVM(h, live="true")
+        self.guest.migrateVM(h, live="true", timer=self.getTimer("migrate"))
         self.guest.host.checkHealth()
         time.sleep(20)
         if not self.opcounts.has_key("migrate"):
@@ -2166,6 +2171,7 @@ class TCLifeCycleLoop(xenrt.TestCase):
         self.duration = None
         self.dosnap = False
         self.opcounts = {}
+        self.timers = []
 
         for arg in arglist:
             l = string.split(arg, "=", 1)
@@ -2215,13 +2221,15 @@ class TCLifeCycleLoop(xenrt.TestCase):
                                        (iteration, op))
                 if self.dosnap and (iteration % self.dosnap) == 0:
                     snapuuid = self.guest.snapshot()
-                self.rageTimings.append("TIME_VM_%s_START_%s:%.3f" % (op.upper(), self.guest.getName(), xenrt.util.timenow(float=True)))
                 eval("self.do%s()" % (op))
-                self.rageTimings.append("TIME_VM_%s_FINISH_%s:%.3f" % (op.upper(), self.guest.getName(), xenrt.util.timenow(float=True)))
                 if self.dosnap and (iteration % self.dosnap) == 0:
                     self.guest.host.removeTemplate(snapuuid)
                 iteration = iteration + 1
         finally:
+            for timer, op in self.timers:
+                if not timer.starttime and timer.measurements:
+                    self.rageTimings.append("TIME_VM_%s_DURATION_%s:%.3f" % (op.upper(), self.guest.getName(), timer.measurements[-1]))
+            
             dur = xenrt.timenow() - starttime
             xenrt.TEC().comment("Total iterations: %u" % (iteration))
             xenrt.TEC().comment("Duration: %uh%02u" %

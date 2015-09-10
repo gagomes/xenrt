@@ -53,11 +53,9 @@
       <testcase id="xenserver.tc.multipath.TC9088" sku="thin">
         <arg>thin=yes</arg>
       </testcase>
-      <!-- This tests with HA enabled, which is not supported in thin-lvhd, yet.
       <testcase id="xenserver.tc.multipath.TC9084" sku="thin">
         <arg>thin=yes</arg>
       </testcase>
-      -->
     </serial>
     <serial>
       <finally>

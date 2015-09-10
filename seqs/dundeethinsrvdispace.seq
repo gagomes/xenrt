@@ -1,0 +1,39 @@
+<xenrt>
+
+  <default name="GOLDVMNAME" value="goldvm" />
+  <default name="DISTRO" value="generic-linux" />
+  <default name="SRTYPE" value="lvmoiscsi" />
+  <!-- VDISIZE should be in GiB -->
+  <default name="VDISIZE" value="10" />
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0">
+      <storage type="lvmoiscsi" name="lvmoiscsisr" default="true" options="thin" />
+      <vm name="${GOLDVMNAME}">
+        <distro>${DISTRO}</distro>
+        <memory>2048</memory>
+        <vcpus>4</vcpus>
+        <network device="0" />
+        <storage>lvmoiscsisr</storage>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <testcase id="xenserver.tc.thinlvhd.TCThinClonedVdiSpace" tc="TC-27251" name="TCThinClonedVdiSpace">
+      <arg>guest=${GOLDVMNAME}</arg>
+      <arg>srtype=${SRTYPE}</arg>
+      <arg>vdisize=${VDISIZE}</arg>
+    </testcase>
+    <testcase id="xenserver.tc.thinlvhd.TCThinSRSpaceCheck" tc="TC-27250" name="TCThinSRSpaceCheck">
+      <arg>guest=${GOLDVMNAME}</arg>
+      <arg>srtype=${SRTYPE}</arg>
+      <arg>vdisize=${VDISIZE}</arg>
+    </testcase>
+  </testsequence>
+
+</xenrt>

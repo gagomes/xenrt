@@ -223,6 +223,14 @@ class _ThinLVHDBase(xenrt.TestCase):
             sr = xenrt.lib.xenserver.getStorageRepositoryClass(self, sr).fromExistingSR(self, sr)
 
         return sr.thinProvisioning
+        
+    def getSrAvailableSpace(self, sr):
+        """ Return available space of sr. """
+
+        srPhySize = self.getPhysicalSize(sr)
+        srPhyUtil = self.getPhysicalUtilisation(sr)
+
+        return srPhySize - srPhyUtil
 
     def getPhysicalVDISize(self, vdiuuid, host=None ):
         if not host:
@@ -1192,3 +1200,103 @@ class TCSRUpgrade(_ThinLVHDBase):
         self.runSubcase("rollBackTest", (), "SRUpgrade", "roll back")
         self.runSubcase("srUpgradeTest", (), "SRUpgrade", "SR upgrade")
 
+class TCThinSRSpaceCheck(_ThinLVHDBase):
+    """ Verify the SR free space """
+
+    DEFAULTVDISIZE = 10 # in GiB
+    DEFAULTSRTYPE = "lvmoiscsi"
+    
+    def __inRange(self, number, high, low):
+        return low <= number <= high
+
+    def checkVdiPhysicalSize(self, vdiuuid):
+        """ Check the VDI physical size based on the SR initial allocation """        
+        log("cheking the vdi physical size...")
+        self.vdiPhysicalSize = self.getPhysicalVDISize(vdiuuid)
+        expectedVdiPhysicalSize = 0
+        if self.initialAlloc:
+            expectedVdiPhysicalSize = self.initialAlloc
+        if not self.__inRange(self.vdiPhysicalSize, max(int(expectedVdiPhysicalSize*1.05), 200*xenrt.MEGA),int(expectedVdiPhysicalSize*0.95)):
+            raise xenrt.XRTFailure("VDI physical size not as expected. Expected %d bytes, found %d bytes" 
+                                    % (expectedVdiPhysicalSize, self.vdiPhysicalSize))
+        log("VDI physical size reported now %d bytes" %(self.vdiPhysicalSize))
+
+    
+    def checkSrFreeSpace(self, srFreeSpace, size):
+        """ Check the SR free space available as expected """
+        
+        expectedSrFreeSpace = srFreeSpace - size
+        srFreeSpaceNow = self.getSrAvailableSpace(self.sr)
+        if not self.__inRange(srFreeSpaceNow, int(expectedSrFreeSpace * 1.05), int(expectedSrFreeSpace * 0.95)):
+            raise xenrt.XRTFailure("sr free space not as expected. Expected %d bytes, found %d bytes" %
+                                  (expectedSrFreeSpace, srFreeSpaceNow))
+        log("SR free space reported now %d bytes" %(srFreeSpaceNow))
+    
+    def prepare(self, arglist):
+        args = self.parseArgsKeyValue(arglist)
+        self.host = self.getDefaultHost()
+        self.srtype = args.get("srtype", self.DEFAULTSRTYPE)
+        self.vdisize = int(args.get("vdisize", self.DEFAULTVDISIZE)) * xenrt.GIGA
+        self.srs = self.getThinProvisioningSRs()
+        if self.srs:
+            self.sr = self.srs[0]
+        else:
+            step("Creating thin provisioned SR of type %s" %(self.srtype))
+            self.sr = self.createThinSR(host=self.host, size=50, srtype=self.srtype)
+        if "guest" in args:
+            self.guest = self.getGuest(args["guest"]) 
+            self.guest.setState("UP")
+        else:
+            self.guest = self.host.createBasicGuest("generic-linux", sr=self.sr.uuid)
+        self.host.addSR(self.sr, default=True)
+        # Get the Allocation from the SR. 
+        self.initialAlloc = self.sr.paramGet("sm-config", "initial_allocation")
+        log("sr initial allocation is %d " % self.initialAlloc)
+
+    def run(self, arglist):
+        srFreeSpace = self.getSrAvailableSpace(self.sr)
+        log("free space on the sr is %d bytes" % (srFreeSpace))
+        step("Creating a virtual disk and attaching to VM...")
+        vdiuuid = self.host.createVDI(sizebytes=self.vdisize, sruuid=self.sr.uuid)
+        device = self.guest.createDisk(vdiuuid=vdiuuid, returnDevice=True)
+        self.checkVdiPhysicalSize(vdiuuid)
+        step("checking the sr free space after VDI creation ...")
+        self.checkSrFreeSpace(srFreeSpace, self.vdiPhysicalSize)
+        srFreeSpace = self.getSrAvailableSpace(self.sr)
+        step("writing 2 GiB of data in to the VDI...")
+        self.fillDisk(guest=self.guest, size=2*xenrt.GIGA, targetDir="/dev/%s" % device)
+        step("checking the sr free space after VDI write ...")
+        self.checkSrFreeSpace(srFreeSpace, 2*xenrt.GIGA)
+
+class TCThinClonedVdiSpace(TCThinSRSpaceCheck):
+    """ Verify cloned VDI is fraction of Master."""
+    
+    DEFAULTVDISIZE = 10 #in GiB
+    DEFAULTSRTYPE = "lvmoiscsi"
+    
+    def checkSrPhysicalutil(expectedSrPhyUtil):
+        srPhyUtil = self.getPhysicalUtilisation(self.sr)
+        if not __inRange(srPhyUtil, int(expectedSrPhyUtil * 1.05), int(expectedSrPhyUtil * 0.95)):
+            raise xenrt.XRTFailure("sr physical utilization not as expected. Expected %d bytes, found %d bytes" %
+                                  (expectedSrPhyUtil, srPhyUtil))
+
+    def run(self, arglist): 
+        step("Creating a virtual disk and attaching to VM...")
+        device = self.guest.createDisk(sizebytes=self.vdisize, returnDevice=True)
+        step("writing 2 GiB of data in to the VDI...")
+        self.fillDisk(guest=self.guest, size=2*xenrt.GIGA, targetDir="/dev/%s" % device)
+        srPhyUtil = self.getPhysicalUtilisation(self.sr)
+        log("Current physical utilization of the SR reports : %d bytes" % (srPhyUtil))
+        self.guest.setState("DOWN")
+        step("Cloning the VM on to thin provisioned SR...")
+        cloneVM = self.guest.cloneVM(sruuid=self.sr.uuid)
+        vdiuuid = self.host.minimalList("vbd-list", "vdi-uuid", args = "vm-uuid=%s" % cloneVM.getUUID())
+        step("Checking the physical size of the cloned vdi...")
+        if vdiuuid:
+            self.checkVdiPhysicalSize(vdiuuid[0])
+        else:
+            raise xenrt.XRTFailure("No VDI found for the cloned VM %s" %(cloneVM))
+        step("Checking the sr physical utilization after the VM Clone...")
+        expectedSrPhyUtil = srPhyUtil + self.vdiPhysicalSize
+        self.checkSrPhysicalutil(expectedSrPhyUtil)
+  

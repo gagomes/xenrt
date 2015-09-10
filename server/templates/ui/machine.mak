@@ -146,7 +146,7 @@ $(function() {
                     out += "<div>You do not have access to this machine</div>"
                 }
                 else{
-                    if (data['status'] == "running" and not data['jobcurrentuser']) {
+                    if (data['status'] == "running" && !data['jobcurrentuser']) {
                         out += "<div><p><b>Warning - machine is running job <a href=\"/xenrt/ui/logs?jobs=" + data['jobid'] + "\" target=\"_blank\">" + data['jobid'] + "</a></b></p></div>"
                     }
                     else if (data['status'] == "broken") {
@@ -162,7 +162,7 @@ $(function() {
                     out += "<br>Reason: <input type=\"text\" id=\"reason\" class=\"ui-state-default ui-corner-all\">"
                     out += "<br><button id=\"leasebutton\" class=\"ui-state-default ui-corner-all\">Lease</button></div>"
                 }
-                if (data['leasecurrentuser'] or data['jobcurrentuser'] or (data['restricted'] and !data['leaseuser'] and !data['jobuser'])) {
+                if (data['leasecurrentuser'] || data['jobcurrentuser'] || (data['restricted'] && !data['leaseuser'] && !data['jobuser'] && !data['forbidden'])) {
                     out += "<h3>Power control</h3>"
                     out += "<div>Operation: <select class=\"ui-state-default ui-corner-all\" id=\"powerop\">"
                     out += "<option value=\"on\">Power on</option>"
@@ -203,7 +203,16 @@ $(function() {
                         out += "</pre>";
                         $("#output").empty();
                         $(out).appendTo("#output");
-                    }, "json");
+                    }, "json")
+                .fail(function(xhr, textStatus, errorThrown) {
+                    try {
+                        reason = $.parseJSON(xhr.responseText)['reason'];
+                        alert("Power control failed: " + reason);
+                    }
+                    catch(err) {
+                        alert("Power control failed: " + textStatus + " " + errorThrown); 
+                    }
+                });
             $( "#overlay" ).hide();
             $( "#loading" ).hide();
             $('#powerbutton').prop('disabled', false);

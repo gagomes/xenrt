@@ -97,7 +97,7 @@ class _MachineBase(XenRTAPIv2Page):
             conditions.append("m.machine != ('_' || s.site)")
 
 
-        query = "SELECT m.machine, m.site, m.cluster, m.pool, m.status, m.resources, m.flags, m.comment, m.leaseto, m.leasereason, m.leasefrom, m.leasepolicy, s.flags, m.jobid, m.descr, m.aclid, s.ctrladdr, s.location, m.prio, m.mgroup, m.preemptablelease FROM tblmachines m INNER JOIN tblsites s ON m.site=s.site"
+        query = "SELECT m.machine, m.site, m.cluster, m.pool, m.status, m.resources, m.flags, m.comment, m.leaseto, m.leasereason, m.leasefrom, m.leasepolicy, s.flags, m.jobid, m.descr, m.aclid, s.ctrladdr, s.location, m.prio, m.mgroup, m.preemptablelease, j.userid FROM tblmachines m INNER JOIN tblsites s ON m.site=s.site LEFT OUTER JOIN tbljobs j ON m.jobid=j.jobid"
         if conditions:
             query += " WHERE %s" % " AND ".join(conditions)
 
@@ -135,6 +135,7 @@ class _MachineBase(XenRTAPIv2Page):
             if not forbidden or self.getUser().admin:
                 getExtraData.append(rc[0].strip())
 
+
             machine = {
                 "name": rc[0].strip(),
                 "site": rc[1].strip(),
@@ -163,6 +164,13 @@ class _MachineBase(XenRTAPIv2Page):
                 "restricted": restricted
             }
             machine['leasecurrentuser'] = bool(machine['leaseuser'] and machine['leaseuser'] == self.getUser().userid)
+
+            if machine['rawstatus'] in ("running", "slaved", "scheduled"):
+                machine['jobuser'] = rc[21].strip() if rc[21] else None
+            else:
+                machine['jobuser'] = None
+
+            machine['jobcurrentuser'] = machine['jobuser'] == self.getUser().userid if machine['jobuser'] else None
 
             for r in rc[5].strip().split("/"):
                 if not "=" in r:
@@ -923,21 +931,42 @@ class PowerMachine(_MachineBase):
             "bootdev": {
                 "type": "string",
                 "description": "IPMI boot device for the next boot"
+            },
+            "admin_override": {
+                "type": "boolean",
+                "description": "Override ACL (only available to admins)",
+                "default": False
             }
         },
         "required": ["operation"]
     }}
     OPERATION_ID = "power_machine"
-    PARAM_ORDER=["name", "operation", "bootdev"]
+    PARAM_ORDER=["name", "operation", "bootdev", "admin_override"]
     SUMMARY = "Control the power on a machine"
 
     def render(self):
         machine = self.getMachines(limit=1, machines=[self.request.matchdict['name']], exceptionIfEmpty=True)[self.request.matchdict['name']]
+       
         try:
             j = json.loads(self.request.body)
             jsonschema.validate(j, self.DEFINITIONS['powermachine'])
         except Exception, e:
             raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
+        
+        adminoverride = j.get('admin_override', False)
+
+        if adminoverride and not self.getUser(forceReal=True).admin:
+            raise XenRTAPIError(HTTPUnauthorized, "Only XenRT admins can use the admin_override functionality")
+
+        if not adminoverride:
+            if machine['forbidden']:
+                raise XenRTAPIError(HTTPUnauthorized, "You do not have access to this machine")
+            if machine['leaseuser'] and not machine['leasecurrentuser']:
+                raise XenRTAPIError(HTTPUnauthorized, "This machine is leased to %s" % machine['leaseuser'])
+            if machine['jobuser'] and not machine['jobcurrentuser']:
+                raise XenRTAPIError(HTTPUnauthorized, "This machine is running a job for %s" % machine['jobuser'])
+
+
 
         reqdict = {"machine": machine['name'], "powerop": j['operation']}
 

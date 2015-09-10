@@ -932,6 +932,11 @@ class PowerMachine(_MachineBase):
                 "type": "string",
                 "description": "IPMI boot device for the next boot"
             },
+            "force": {
+                "type": "boolean",
+                "description": "Perform operation even if the machine is in use by someone else",
+                "default": False
+            },
             "admin_override": {
                 "type": "boolean",
                 "description": "Override ACL (only available to admins)",
@@ -941,7 +946,7 @@ class PowerMachine(_MachineBase):
         "required": ["operation"]
     }}
     OPERATION_ID = "power_machine"
-    PARAM_ORDER=["name", "operation", "bootdev", "admin_override"]
+    PARAM_ORDER=["name", "operation", "bootdev", "force", "admin_override"]
     SUMMARY = "Control the power on a machine"
 
     def render(self):
@@ -954,6 +959,7 @@ class PowerMachine(_MachineBase):
             raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
         
         adminoverride = j.get('admin_override', False)
+        force = j.get('force', False)
 
         if adminoverride and not self.getUser(forceReal=True).admin:
             raise XenRTAPIError(HTTPUnauthorized, "Only XenRT admins can use the admin_override functionality")
@@ -961,6 +967,7 @@ class PowerMachine(_MachineBase):
         if not adminoverride:
             if machine['forbidden']:
                 raise XenRTAPIError(HTTPUnauthorized, "You do not have access to this machine")
+        if not force:
             if machine['leaseuser'] and not machine['leasecurrentuser']:
                 raise XenRTAPIError(HTTPUnauthorized, "This machine is leased to %s" % machine['leaseuser'])
             if machine['jobuser'] and not machine['jobcurrentuser']:

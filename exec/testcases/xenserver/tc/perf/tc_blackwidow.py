@@ -106,7 +106,7 @@ DEFINE_REQUESTS
 #### Testcase core methods ####
     def __init__(self):
         super(BlackWidowPerformanceTestCase, self).__init__(self.TEST)
-        self.httpClientThreads = 500
+        self.httpClientThreads = 0
         self.httpClientParallelconn = 0
 
     def parseArgs(self, arglist):
@@ -116,11 +116,9 @@ DEFINE_REQUESTS
         self.servers = libperf.getArgument(arglist, "servers", int, 251) # number of HTTP servers
         self.clients = libperf.getArgument(arglist, "clients", int, 100) # number of HTTP clients
 
-        clientThreads = libperf.getArgument(arglist, "clientthreads", str, str(self.httpClientThreads)).split(",") # various client threads value
-        clientParallelconn = libperf.getArgument(arglist, "clientparallelconn", str, str(self.httpClientParallelconn) if self.httpClientParallelconn else str(self.httpClientThreads)).split(",") # same as clientThreads if not set explicitly
-        if len(clientThreads) != len(clientParallelconn):
-            warning("number of values for threads and parallelconn mismatch, discarding parallelconn values and using threads as parallelconn.")
-            clientParallelconn = clientThreads
+        clientThreads = libperf.getArgument(arglist, "clientthreads", str, "50,100,200,300,500").split(",") # various client threads value
+        clientParallelconn = libperf.getArgument(arglist, "clientparallelconn", str, "50,100,200,300,500").split(",")
+        clientParallelconn = libperf.getArgument(arglist, "clientparallelconn_optimised", str, clientParallelconn if len(clientThreads)==len(clientParallelconn)else clientThreads)
         self.clientTnP = zip(clientThreads, clientParallelconn)
 
         bw_name  = libperf.getArgument(arglist, "bw",  str, "blackwidow") # name of the VPX to use for BlackWidow
@@ -219,7 +217,6 @@ class TCHttp1BResp(TCHttp100KResp):
 
     def __init__(self):
         super(TCHttp1BResp, self).__init__(self.TEST)
-        self.httpClientThreads = 200
 
     def prepare(self, arglist=[]):
         super(TCHttp1BResp, self).prepare(arglist)
@@ -236,7 +233,6 @@ class TCTcpVipCps(TCHttp100KResp):
 
     def __init__(self):
         super(TCTcpVipCps, self).__init__(self.TEST)
-        self.httpClientParallelconn = 200
 
     def prepare(self, arglist=[]):
         super(TCTcpVipCps, self).prepare(arglist)

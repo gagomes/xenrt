@@ -1,6 +1,6 @@
 <xenrt>
 
-  <!-- snmp tests -->
+  <!-- snmp regression tests -->
 
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
@@ -22,11 +22,7 @@
   </prepare>
 
   <testsequence group="SNMP">
-    <testcase id="xenserver.tc.host.TC9989" prio="3"/>
-    <testcase id="xenserver.tc.host.TC9990" prio="3"/>
-    <testcase id="xenserver.tc.host.TC9991" prio="3"/>
-    <testcase id="xenserver.tc.host.TC9992" prio="3"/>
-    <testcase id="xenserver.tc.host.TC9993" prio="3"/>
+    <testcase id="xenserver.tc.host.TC9995" prio="3"/>
     <serial>
       <finally>
         <testcase id="guestops.basic.TCShutdown">

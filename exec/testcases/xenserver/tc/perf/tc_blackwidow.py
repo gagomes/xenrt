@@ -5,6 +5,8 @@ from xenrt.lazylog import step, comment, log, warning
 class BlackWidowPerformanceTestCase(libperf.PerfTestCase):
 
     TEST = None
+    IS_VALID_CLIENTTHREADS = True
+    IS_VALID_CLIENTPARALLELCONN = True
     WORKLOADS = {
         "100KB.wl" : r"""DEFINE_CLASSES
         BULK:   100
@@ -116,10 +118,14 @@ DEFINE_REQUESTS
         self.servers = libperf.getArgument(arglist, "servers", int, 251) # number of HTTP servers
         self.clients = libperf.getArgument(arglist, "clients", int, 100) # number of HTTP clients
 
-        clientThreads = libperf.getArgument(arglist, "clientthreads", str, "50,100,200,300,500").split(",") # various client threads value
-        clientParallelconn = libperf.getArgument(arglist, "clientparallelconn", str, "50,100,200,300,500").split(",")
-        clientParallelconn = libperf.getArgument(arglist, "clientparallelconn_optimised", str, clientParallelconn if len(clientThreads)==len(clientParallelconn)else clientThreads)
-        self.clientTnP = zip(clientThreads, clientParallelconn)
+        if self.IS_VALID_CLIENTTHREADS :
+            clientThreads = libperf.getArgument(arglist, "clientthreads", str, "50,100,200,300,500").split(",") # various client threads value
+        if self.IS_VALID_CLIENTPARALLELCONN:
+            clientParallelconn = libperf.getArgument(arglist, "clientparallelconn", str, "50,100,200,300,500").split(",") # various client parallelconn value
+            if self.IS_VALID_CLIENTTHREADS and len(clientThreads)!=len(clientParallelconn):
+                raise xenrt.XRTError("We expect number of values in args 'clientthreads' and 'clientparallelconn' to be same.")
+        if self.IS_VALID_CLIENTTHREADS or self.IS_VALID_CLIENTPARALLELCONN:
+            self.clientTnP = zip(clientThreads if self.IS_VALID_CLIENTTHREADS else clientParallelconn, clientParallelconn if self.IS_VALID_CLIENTPARALLELCONN else clientThreads)
 
         bw_name  = libperf.getArgument(arglist, "bw",  str, "blackwidow") # name of the VPX to use for BlackWidow
         dut_name = libperf.getArgument(arglist, "dut", str, "dut")        # name of the VPX to use as the device-under-test
@@ -156,16 +162,24 @@ DEFINE_REQUESTS
         pass
 
     def run(self, arglist=[]):
-        for t,p in self.clientTnP:
-            step("Test segment started")
-            self.httpClientThreads=int(t)
-            self.httpClientParallelconn=int(p)
-            step("TEST: updated Client Threads = %d,Parallelconn = %d" % (self.httpClientThreads, self.httpClientParallelconn))
+        if self.IS_VALID_CLIENTTHREADS or self.IS_VALID_CLIENTPARALLELCONN:
+            for t,p in self.clientTnP:
+                step("Test segment started")
+                if self.IS_VALID_CLIENTTHREADS:
+                    self.httpClientThreads=int(t)
+                    log("Test Parameter: httpClientThreads = %d" % (self.httpClientThreads))
+                if self.IS_VALID_CLIENTPARALLELCONN:
+                    self.httpClientParallelconn=int(p)
+                    log("Test Parameter: httpClientParallelconn = %d" % (self.httpClientParallelconn))
 
+                self.startWorkload()
+                self.runTest()
+                self.stopWorkload()
+                step("Test segment finished")
+        else:
             self.startWorkload()
             self.runTest()
             self.stopWorkload()
-            step("Test segment finished")
 
 class TCHttp100KResp(BlackWidowPerformanceTestCase):
     TEST = "100K_resp"
@@ -196,7 +210,8 @@ class TCHttp100KResp(BlackWidowPerformanceTestCase):
 
         step("runTest: sample the TCP counters on the DUT every 5 seconds")
         while now < finish:
-            self.sampleCounters(self.guest_dut, self.statsToCollect, "tcp_thd%d_pc%d.%d.ctr" % (self.httpClientThreads,self.httpClientParallelconn,i))
+            filename = "stat%s%s.%d.ctr" %(("_thd%d" % self.httpClientThreads) if self.IS_VALID_CLIENTTHREADS else "", ("_pc%d" % self.httpClientParallelconn) if self.IS_VALID_CLIENTPARALLELCONN else "", i )
+            self.sampleCounters(self.guest_dut, self.statsToCollect, filename)
             self.log("sampletimes", "%d %f" % (i, now))
 
             # The counters only seem to be updated every ~5 seconds, so don't sample more often than that
@@ -230,6 +245,7 @@ class TCHttp1BResp(TCHttp100KResp):
 class TCTcpVipCps(TCHttp100KResp):
     """TCP Conn/sec (TCP VIP)"""
     TEST = "TCP_VIP_CPS"
+    IS_VALID_CLIENTTHREADS = False
 
     def __init__(self):
         super(TCTcpVipCps, self).__init__(self.TEST)

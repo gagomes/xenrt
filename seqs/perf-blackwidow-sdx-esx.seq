@@ -4,6 +4,8 @@
   <default name="NS_TOOLS_PATH" value="/usr/groups/xenrt/ns-tools-10.5-52.11.nc.tgz" />
   <default name="BW_NAME" value="blackwidow" />
   <default name="DUT_NAME" value="dut" />
+  <default name="TC_CLIENT_THREADS" value="50,100,200,300,500" />
+  <default name="TC_CLIENT_PARALLELCONN" value="50,100,200,300,500" />
   <default name="BW_TESTCASE" value="TCHttp100KResp" />
 
   <variables>
@@ -67,6 +69,8 @@
       <testcase id="xenserver.tc.perf.tc_blackwidow.${BW_TESTCASE}">
         <arg>bw=${BW_NAME}</arg>
         <arg>dut=${DUT_NAME}</arg>
+        <arg>clientthreads=${TC_CLIENT_THREADS}</arg>
+        <arg>clientparallelconn=${TC_CLIENT_PARALLELCONN}</arg>
       </testcase>
     </serial>
   </testsequence>

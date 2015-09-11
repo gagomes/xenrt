@@ -5,6 +5,8 @@ from xenrt.lazylog import step, comment, log, warning
 class BlackWidowPerformanceTestCase(libperf.PerfTestCase):
 
     TEST = None
+    IS_VALID_CLIENTTHREADS = True
+    IS_VALID_CLIENTPARALLELCONN = True
     WORKLOADS = {
         "100KB.wl" : r"""DEFINE_CLASSES
         BULK:   100
@@ -106,20 +108,31 @@ DEFINE_REQUESTS
 #### Testcase core methods ####
     def __init__(self):
         super(BlackWidowPerformanceTestCase, self).__init__(self.TEST)
+        self.httpClientThreads = 0
+        self.httpClientParallelconn = 0
 
     def parseArgs(self, arglist):
         # Performance Test Metrics
         self.runtime = libperf.getArgument(arglist, "runtime", int, 120) # duration over which to run the throughput test
         self.snips   = libperf.getArgument(arglist, "snips",   int, 50)  # number of NetScaler clients on the DUT
         self.servers = libperf.getArgument(arglist, "servers", int, 251) # number of HTTP servers
-        self.clients = libperf.getArgument(arglist, "clients", int, 100) # number of HTTP servers
+        self.clients = libperf.getArgument(arglist, "clients", int, 100) # number of HTTP clients
+
+        if self.IS_VALID_CLIENTTHREADS :
+            clientThreads = libperf.getArgument(arglist, "clientthreads", str, "50,100,200,300,500").split(",") # various client threads value
+        if self.IS_VALID_CLIENTPARALLELCONN:
+            clientParallelconn = libperf.getArgument(arglist, "clientparallelconn", str, "50,100,200,300,500").split(",") # various client parallelconn value
+            if self.IS_VALID_CLIENTTHREADS and len(clientThreads)!=len(clientParallelconn):
+                raise xenrt.XRTError("We expect number of values in args 'clientthreads' and 'clientparallelconn' to be same.")
+        if self.IS_VALID_CLIENTTHREADS or self.IS_VALID_CLIENTPARALLELCONN:
+            self.clientTnP = zip(clientThreads if self.IS_VALID_CLIENTTHREADS else clientParallelconn, clientParallelconn if self.IS_VALID_CLIENTPARALLELCONN else clientThreads)
 
         bw_name  = libperf.getArgument(arglist, "bw",  str, "blackwidow") # name of the VPX to use for BlackWidow
         dut_name = libperf.getArgument(arglist, "dut", str, "dut")        # name of the VPX to use as the device-under-test
         self.guest_bw  = xenrt.GEC().registry.guestGet(bw_name)
         self.guest_dut = xenrt.GEC().registry.guestGet(dut_name)
 
-    def prepare(self, arglist):
+    def prepare(self, arglist=[]):
         self.parseArgs(arglist)
         self.workloadFileName = None
         self.workload = None
@@ -149,18 +162,30 @@ DEFINE_REQUESTS
         pass
 
     def run(self, arglist=[]):
-        self.startWorkload()
-        self.runTest()
-        self.stopWorkload()
+        if self.IS_VALID_CLIENTTHREADS or self.IS_VALID_CLIENTPARALLELCONN:
+            for t,p in self.clientTnP:
+                step("Test segment started")
+                if self.IS_VALID_CLIENTTHREADS:
+                    self.httpClientThreads=int(t)
+                    log("Test Parameter: httpClientThreads = %d" % (self.httpClientThreads))
+                if self.IS_VALID_CLIENTPARALLELCONN:
+                    self.httpClientParallelconn=int(p)
+                    log("Test Parameter: httpClientParallelconn = %d" % (self.httpClientParallelconn))
+
+                self.startWorkload()
+                self.runTest()
+                self.stopWorkload()
+                step("Test segment finished")
+        else:
+            self.startWorkload()
+            self.runTest()
+            self.stopWorkload()
 
 class TCHttp100KResp(BlackWidowPerformanceTestCase):
     TEST = "100K_resp"
 
     def prepare(self, arglist=[]):
-        super(TCHttp100KResp, self).prepare(arglist=[])
-
-        self.httpClientThreads = libperf.getArgument(arglist, "httpclientthread", int, 500) # number of HTTP client threads
-        self.httpClientParallelconn = libperf.getArgument(arglist, "httpclientparallelconn", int, 500) # number of HTTP client parallel connections
+        super(TCHttp100KResp, self).prepare(arglist)
 
         self.workloadFileName = "100KB.wl"
         self.statsToCollect = ["protocoltcp"]
@@ -185,7 +210,8 @@ class TCHttp100KResp(BlackWidowPerformanceTestCase):
 
         step("runTest: sample the TCP counters on the DUT every 5 seconds")
         while now < finish:
-            self.sampleCounters(self.guest_dut, self.statsToCollect, "tcp.%d.ctr" % (i))
+            filename = "stat%s%s.%d.ctr" %(("_thd%d" % self.httpClientThreads) if self.IS_VALID_CLIENTTHREADS else "", ("_pc%d" % self.httpClientParallelconn) if self.IS_VALID_CLIENTPARALLELCONN else "", i )
+            self.sampleCounters(self.guest_dut, self.statsToCollect, filename)
             self.log("sampletimes", "%d %f" % (i, now))
 
             # The counters only seem to be updated every ~5 seconds, so don't sample more often than that
@@ -204,11 +230,11 @@ class TCHttp1BResp(TCHttp100KResp):
     """HTTP End-to-end req/sec"""
     TEST = "1B_Resp"
 
-    def prepare(self, arglist=[]):
-        super(TCHttp1BResp, self).prepare(arglist=[])
+    def __init__(self):
+        super(TCHttp1BResp, self).__init__(self.TEST)
 
-        self.httpClientThreads = libperf.getArgument(arglist, "httpclientthread", int, 200)
-        self.httpClientParallelconn = libperf.getArgument(arglist, "httpclientparallelconn", int, 200)
+    def prepare(self, arglist=[]):
+        super(TCHttp1BResp, self).prepare(arglist)
 
         self.workloadFileName = "1only.wl"
         self.statsToCollect = ["protocolhttp"]
@@ -219,11 +245,13 @@ class TCHttp1BResp(TCHttp100KResp):
 class TCTcpVipCps(TCHttp100KResp):
     """TCP Conn/sec (TCP VIP)"""
     TEST = "TCP_VIP_CPS"
+    IS_VALID_CLIENTTHREADS = False
+
+    def __init__(self):
+        super(TCTcpVipCps, self).__init__(self.TEST)
 
     def prepare(self, arglist=[]):
-        super(TCTcpVipCps, self).prepare(arglist=[])
-
-        self.httpClientParallelconn = libperf.getArgument(arglist, "httpclientparallelconn", int, 200)
+        super(TCTcpVipCps, self).prepare(arglist)
 
         self.workloadFileName = "1only.wl" # Any workload file will do.
         self.dutProtocolVServer = "TCP"
@@ -258,6 +286,7 @@ class TCSslEncThroughput(TCHttp100KResp):
                             add ssl certKey c2 -cert Cert2048 -key Key2048bit
                             set tcpparam -SACK DISABLED -WS DISABLED -ackOnPush DISABLED
                         """)
+        vpx_ns.cli('add ssl certKey c3 -cert cert_4096.pem -key key_4096.key', level=xenrt.RC_OK)
 
         # Add SNIPs (the origin IP for requests travelling from NS to webserver)
         vpx_ns.multiCli("\n".join(["add ip 43.54.30.%d 255.255.0.0 -ty SNIP -mg en"%i for i in range(1,self.snips+1)]))
@@ -283,3 +312,45 @@ class TCSslEncThroughput(TCHttp100KResp):
 
     def createHttpClients(self, vpx_ns):
         vpx_ns.cli("shell /var/BW/nscsconfig -s client=%d -s cltserverport=443 -s ssl=1 -s ssl_sess_reuse_disable=0 -s ssl_dont_parse_server_cert=1 -s ssl_client_hello_version=2  -s percentpers=100 -w %s -s cltserverip=43.54.30.251 -s threads=%d -s parallelconn=%d -ye start" % (self.client_id, self.workload, self.httpClientThreads, self.httpClientParallelconn))
+
+class TCSslTps1024(TCSslEncThroughput):
+    TEST = "SSL TPS 1024bit Key"
+    CERT = "c1"
+
+    def setupBlackWidow(self, vpx_ns):
+        super(TCSslTps1024, self).setupBlackWidow(vpx_ns)
+
+        vpx_ns.multiCli(""" set ssl vserver v1 -sessReuse DISABLED
+                            save ns config
+                        """)
+
+    def setupDUT(self, vpx_ns):
+        vpx_ns.getGuest().shutdown()
+        vpx_ns.getGuest().cpuset(4)
+        vpx_ns.getGuest().memset(8192)
+        vpx_ns.getGuest().lifecycleOperation('vm-start')
+        vpx_ns.getGuest().waitForSSH(timeout=300, username='nsroot', cmd='shell')
+
+        super(TCSslTps1024, self).setupDUT(vpx_ns)
+
+        vpx_ns.cli("set ssl vserver v[1-8] -sessReuse DISABLED")
+        vpx_ns.cli("bind ssl vserver v[1-8] -certkey %s"% self.CERT, level=xenrt.RC_OK)
+        vpx_ns.cli("bind ssl cipher v[1-8] ORD SSL3-RC4-MD5", level=xenrt.RC_OK)
+        vpx_ns.cli('save ns config')
+
+    def prepare(self, arglist=[]):
+        super(TCSslTps1024, self).prepare(arglist)
+
+        self.workloadFileName = "1only.wl"
+        self.statsToCollect = ["ssl"]
+
+    def createHttpClients(self, vpx_ns):
+        vpx_ns.cli("shell /var/BW/nscsconfig -s client=%d -s cltserverport=443 -s ssl=1 -s ssl_sess_reuse_disable=1 -s ssl_dont_parse_server_cert=1 -s ssl_client_hello_version=1 -s reqperconn=1 -s percentpers=0 -w %s -s cltserverip=43.54.30.251 -s threads=%d -s parallelconn=%d -s finstop=0 -ye start" % (self.client_id, self.workload, self.httpClientThreads, self.httpClientParallelconn))
+
+class TCSslTps2K(TCSslTps1024):
+    TEST = "SSL TPS 2048bit Key"
+    CERT = "c2"
+
+class TCSslTps4K(TCSslTps1024):
+    TEST = "SSL TPS 4096bit Key"
+    CERT = "c3"

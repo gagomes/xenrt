@@ -98,52 +98,52 @@
     <serial>
 
       <!-- This has to run before any other tests. -->
-      <testcase id="xenserver.tc.remoteexec.TCEnabilityCheck">
+      <testcase id="xenserver.tc.remoteexec.TCEnabilityCheck" tc="TC-27323">
         <arg>masters=win7x86,win7x64,win81x86,win81x64,ws2008x86,ws2008x64,ws2012x64</arg>
       </testcase>
 
       <parallel workers="3">
         <!-- This takes around 2.5 hours to test VM ops blocked. -->
-        <testcase id="xenserver.tc.remoteexec.TCSingleCommand">
+        <testcase id="xenserver.tc.remoteexec.TCSingleCommand" tc="TC-27324">
         <arg>masters=win7x86,win7x64,win81x86,win81x64,ws2008x86,ws2008x64,ws2012x64</arg>
         </testcase>
 
         <!-- This also takes a long time to install 2 new VMs. -->
-        <testcase id="xenserver.tc.remoteexec.TCGuestCompat" />
+        <testcase id="xenserver.tc.remoteexec.TCGuestCompat" tc="TC-27325" />
 
         <serial>
-          <testcase id="xenserver.tc.remoteexec.TCBasicFunc">
+          <testcase id="xenserver.tc.remoteexec.TCBasicFunc" tc="TC-27326">
             <arg>masters=win7x86,win7x64,win81x86,win81x64,ws2008x86,ws2008x64,ws2012x64</arg>
           </testcase>
-          <testcase id="xenserver.tc.remoteexec.TCBasicFuncAPI">
+          <testcase id="xenserver.tc.remoteexec.TCBasicFuncAPI" tc="TC-27327">
             <arg>masters=win7x86,win7x64,win81x86,win81x64,ws2008x86,ws2008x64,ws2012x64</arg>
           </testcase>
-          <testcase id="xenserver.tc.remoteexec.TCBasicFuncAPIAsync">
+          <testcase id="xenserver.tc.remoteexec.TCBasicFuncAPIAsync" tc="TC-27328">
             <arg>masters=win7x86,win7x64,win81x86,win81x64,ws2008x86,ws2008x64,ws2012x64</arg>
           </testcase>
           <!-- This TC is failing due to dynamic scripts being created.
           New script that emulates CLM script does will be added later.
-          <testcase id="xenserver.tc.remoteexec.TCCLMCommand">
+          <testcase id="xenserver.tc.remoteexec.TCCLMCommand" tc="TC-27329">
             <arg>masters=win7x86,win81x86,ws2008x64,ws2012x64</arg>
           </testcase>-->
-          <testcase id="xenserver.tc.remoteexec.TCRateLimit">
+          <testcase id="xenserver.tc.remoteexec.TCRateLimit" tc="TC-27330">
             <arg>masters=win7x86,win7x64,win81x86,win81x64,ws2008x86,ws2008x64,ws2012x64</arg>
           </testcase>
-          <testcase id="xenserver.tc.remoteexec.TCCommandLength">
+          <testcase id="xenserver.tc.remoteexec.TCCommandLength" tc="TC-27331">
             <arg>masters=win7x86,win7x64,win81x86,win81x64,ws2008x86,ws2008x64,ws2012x64</arg>
           </testcase>
           <!-- This TC requires refactor after Guest Agent change.
-          <testcase id="xenserver.tc.remoteexec.TCGuestAgentMemory">
+          <testcase id="xenserver.tc.remoteexec.TCGuestAgentMemory" tc="TC-27332">
             <arg>masters=win7x86,win7x64,win81x86,win81x64,ws2008x86,ws2008x64,ws2012x64</arg>
           </testcase>
           -->
           <!-- This TC will fail. Dev need to change path of temp dir
           to system one.
-          <testcase id="xenserver.tc.remoteexec.TCTempFileClear">
+          <testcase id="xenserver.tc.remoteexec.TCTempFileClear" tc="TC-27333">
             <arg>masters=win7x86,win7x64,win81x86,win81x64,ws2008x86,ws2008x64,ws2012x64</arg>
           </testcase>
           -->
-          <testcase id="xenserver.tc.remoteexec.TCRBAC">
+          <testcase id="xenserver.tc.remoteexec.TCRBAC" tc="TC-27334">
             <arg>masters=win7x86,win7x64,win81x86,win81x64,ws2008x86,ws2008x64,ws2012x64</arg>
           </testcase>
         </serial>

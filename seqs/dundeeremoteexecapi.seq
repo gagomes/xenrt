@@ -132,14 +132,17 @@
           <testcase id="xenserver.tc.remoteexec.TCCommandLength">
             <arg>masters=win7x86,win7x64,win81x86,win81x64,ws2008x86,ws2008x64,ws2012x64</arg>
           </testcase>
+          <!-- This TC requires refactor after Guest Agent change.
           <testcase id="xenserver.tc.remoteexec.TCGuestAgentMemory">
             <arg>masters=win7x86,win7x64,win81x86,win81x64,ws2008x86,ws2008x64,ws2012x64</arg>
           </testcase>
+          -->
           <!-- This TC will fail. Dev need to change path of temp dir
           to system one.
           <testcase id="xenserver.tc.remoteexec.TCTempFileClear">
             <arg>masters=win7x86,win7x64,win81x86,win81x64,ws2008x86,ws2008x64,ws2012x64</arg>
-          </testcase>-->
+          </testcase>
+          -->
           <testcase id="xenserver.tc.remoteexec.TCRBAC">
             <arg>masters=win7x86,win7x64,win81x86,win81x64,ws2008x86,ws2008x64,ws2012x64</arg>
           </testcase>

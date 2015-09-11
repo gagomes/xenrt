@@ -89,6 +89,11 @@ class ThinLVHDPerfBase(xenrt.TestCase):
         elif self.srtype=="nfs":
             sr = xenrt.lib.xenserver.NFSStorageRepository(self.host, "nfssr")
             sr.create()
+        elif self.srttype =="lvmofcoe":
+            fcLun = self.host.lookup("SR_FCHBA", "LUN0")
+            fcSRScsiid = self.host.lookup(["FC", fcLun, "SCSIID"], None)
+            sr= xenrt.lib.xenserver.FCOEStorageRepository(self.host, "FCOESR")
+            sr.create(fcSRScsiid)
         else:
             raise xenrt.XRTError("SR Type: %s not defined" % self.srtype)
 
@@ -265,7 +270,7 @@ class TCIOLatency(ThinLVHDPerfBase):
             raise xenrt.XRTFailure("One or many guests failed to unisntall.")
 
 
-class TCThinVDIscalability(_TimedTestCase):
+class TCVDIscalability(_TimedTestCase):
     """ Measure the sequential VM clone and destory time"""
 
     DEFAULTNUMVMS = 100
@@ -291,6 +296,11 @@ class TCThinVDIscalability(_TimedTestCase):
             sr.create()
         elif self.srtype == "lvm":
             sr = host.getSRs(type="lvm")[0]
+        elif self.srtype=="lvmofcoe":
+           fcLun = self.host.lookup("SR_FCHBA", "LUN0")
+           fcSRScsiid = self.host.lookup(["FC", fcLun, "SCSIID"], None)
+           sr= xenrt.lib.xenserver.FCOEStorageRepository(self.host, "FCOESR")
+           sr.create(fcSRScsiid)
         else:
             raise xenrt.XRTError("We do not have provision in the test to create %s  SR." % self.srtype)
 

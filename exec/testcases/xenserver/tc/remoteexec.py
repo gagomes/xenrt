@@ -120,7 +120,7 @@ class TCRemoteCommandExecBase(xenrt.TestCase):
         log("Prepare APICall")
         session = self._getSession(guest, username, password)
         guestRef = self._getGuestRef(session, guest)
-        param = {"script": script, "username": "", "password": ""}
+        param = {"script": script, "username": self.GUEST_USER, "password": self.GUEST_PWD}
 
         log("Executing script...")
         ret = session.xenapi.VM.call_plugin(guestRef, self.PLUGIN, self.PLUGIN_FUNC, param)
@@ -176,9 +176,8 @@ class TCRemoteCommandExecBase(xenrt.TestCase):
         log("Prepare APICall")
         session = self._getSession(guest, username, password)
         guestRef = self._getGuestRef(session, guest)
-        param = {"script": script, "username": "", "password": ""}
         session = self._getSession(guest)
-        param = {"script": script, "username": "", "password": ""}
+        param = {"script": script, "username": self.GUEST_USER, "password": self.GUEST_PWD}
 
         log("Executing script...")
         task = session.xenapi.Async.VM.call_plugin(guestRef, self.PLUGIN, self.PLUGIN_FUNC, param)

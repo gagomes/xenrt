@@ -389,3 +389,13 @@ class TC19066(_InstallXenCenter):
     """XenCenter install verification on Windows 8 64bit guest"""
     DISTRO = "win8-x64"
     NAME = "Windows 8 64bit"
+    
+class TC27321(_InstallXenCenter):
+    """XenCenter install verification on Windows 10 32bit guest"""
+    DISTRO = "win10-x86"
+    NAME = "Windows 10 32bit"
+
+class TC27322(_InstallXenCenter):
+    """XenCenter install verification on Windows 10 64bit guest"""
+    DISTRO = "win10-x64"
+    NAME = "Windows 10 64bit"

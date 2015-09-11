@@ -230,9 +230,6 @@ class TCHttp1BResp(TCHttp100KResp):
     """HTTP End-to-end req/sec"""
     TEST = "1B_Resp"
 
-    def __init__(self):
-        super(TCHttp1BResp, self).__init__(self.TEST)
-
     def prepare(self, arglist=[]):
         super(TCHttp1BResp, self).prepare(arglist)
 
@@ -246,9 +243,6 @@ class TCTcpVipCps(TCHttp100KResp):
     """TCP Conn/sec (TCP VIP)"""
     TEST = "TCP_VIP_CPS"
     IS_VALID_CLIENTTHREADS = False
-
-    def __init__(self):
-        super(TCTcpVipCps, self).__init__(self.TEST)
 
     def prepare(self, arglist=[]):
         super(TCTcpVipCps, self).prepare(arglist)

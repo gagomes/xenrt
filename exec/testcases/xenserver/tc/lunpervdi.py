@@ -886,7 +886,7 @@ class TC20568(LunPerVDI):
         self.lvmohbaSRObject = [] # list of lvmoHBA SR objects
         for lun in self.netAppFiler.getLuns():
             fcName = ("lvmoHBASR%d" % counter)
-            fcSR = xenrt.lib.xenserver.FCStorageRepository(self.hosts[0], fcName)
+            fcSR = xenrt.lib.xenserver.FCStorageRepository(self.hosts[0], fcName, thin_prov=(self.tcsku=="thin"))
             self.lvmohbaSRObject.append(fcSR)
             fcSR.create(lun.getId())
             counter = counter + 1

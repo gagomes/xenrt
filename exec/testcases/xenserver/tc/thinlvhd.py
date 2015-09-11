@@ -762,7 +762,6 @@ class TCThinLVHDVmOpsSpace(_ThinLVHDBase):
         if self.checkuuid:
             step("Reverting the checkpoint...")
             self.guest.revert(self.checkuuid)
-            self.guest.check()
 
     def prepare(self, arglist=[]):
         args = self.parseArgsKeyValue(arglist)

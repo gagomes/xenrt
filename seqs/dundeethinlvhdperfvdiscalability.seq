@@ -4,7 +4,7 @@
 
   <default name="DISTRO" value="debian70" />
   <default name="SRTYPE" value="lvmoiscsi" />
-  <default name="THINPROV" value="True" />
+  <default name="SROPTIONS" value="thin" />
   <default name="NUMVMS" value="100" />
   <default name="SRSIZE" value="100" /> <!-- in GiB -->
   <default name="OUTPUTFILE" value="thinsrscaletiming.log" />
@@ -21,9 +21,9 @@
     <testcase id="xenserver.tc.perf.thinlvhdperf.TCVDIscalability" tc="TC-27141" name="TCThinVDIScalability">
       <arg>distro=${DISTRO}</arg>
       <arg>srtype=${SRTYPE}</arg>
-      <arg>THINPROV=${SROPTIONS}</arg>
       <arg>numvms=${NUMVMS}</arg>
       <arg>srsize=${SRSIZE}</arg>
+      <arg>sroptions=${SROPTIONS}</arg>
       <arg>outputfile=${OUTPUTFILE}</arg>
     </testcase>
   </testsequence>

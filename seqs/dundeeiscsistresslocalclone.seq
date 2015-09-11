@@ -13,16 +13,16 @@
   </scheduler>
 
   <variables>
-    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
     <EXTRA_TIME>yes</EXTRA_TIME>
     <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
     <OPTION_CLONE_TEMPLATE>yes</OPTION_CLONE_TEMPLATE>
     <SR_ON_PRIMARY_DISK>no</SR_ON_PRIMARY_DISK>
     <LINUX_ISCSI_TARGET>LIO</LINUX_ISCSI_TARGET>
-    <NO_TC_HOST_SERIAL_LOGS>yes</NO_TC_HOST_SERIAL_LOGS>
+    <!--<NO_TC_HOST_SERIAL_LOGS>yes</NO_TC_HOST_SERIAL_LOGS>-->
     <NO_LOGS_ON_PASS>yes</NO_LOGS_ON_PASS>
     <BUGTOOL_MODE_STRESS>yes</BUGTOOL_MODE_STRESS>
-  
+    <ENABLE_VM_CONSOLE_LOGS>no</ENABLE_VM_CONSOLE_LOGS>
+    <QUICKLOGS>yes</QUICKLOGS>
   </variables>
 
   <prepare>
@@ -49,7 +49,7 @@
       <for iter="P,S" values="${HOSTPAIRS}">
         <for iter="C" values="${PAIRSPERHOST}">
           <serial group="iSCSI.LinuxGuest.${P}${C}">
-            <testcase id="xenserver.guest.TCClone" tc="TC-11007" name="Install.Lin_${P}${C}" sku="Install.Lin_${P}${C}">
+            <testcase id="xenserver.guest.TCClone" tc="TC-11007" name="Install.Lin_${P}${C}" sku="BVT.Inst.Lin_${P}${C}">
               <arg>guest=gold</arg>
               <arg>newname=rhguest_${P}_${C}</arg>
               <arg>leaveup</arg>
@@ -57,7 +57,7 @@
               <arg>noPreCloneTailor</arg>
               <arg>host=RESOURCE_HOST_${P}</arg>
             </testcase>
-            <testcase id="xenserver.guest.TCLifeCycleLoop" tc="TC-11007" name="LifeCycle.Lin_${P}${C}" sku="LifeCycle.Lin_${P}${C}">
+            <testcase id="xenserver.guest.TCLifeCycleLoop" tc="TC-11007" name="LifeCycle.Lin_${P}${C}" sku="BVT.LCycle.Lin_${P}${C}">
               <arg>guest=rhguest_${P}_${C}</arg>
               <arg>duration=${DURATION}</arg>
               <arg>iterations=${ITERATIONS}</arg>

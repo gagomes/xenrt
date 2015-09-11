@@ -237,9 +237,36 @@ class _ThinLVHDBase(xenrt.TestCase):
         return srPhySize - srPhyUtil
 
     def getPhysicalVDISize(self, vdiuuid, host=None ):
+        """Return actual VHD file size of VDI
+
+        @param vdiuuid: VDI uuid string to check.
+        @param host: host to use. If not given default host will be used.
+
+        @return: size of VHD file in bytes.
+        """
+
         if not host:
             host = self.getDefaultHost()
         return host.getVDIPhysicalSizeAndType(vdiuuid)[0]
+
+    def getHostFreeSpace(self, host, sr=None):
+        """Return host free space that can allocate.
+
+        @param sruuid: VDI uuid string
+        @param host: host to query.
+
+        @return: allocation free space on given host in bytes.
+        """
+
+        if not sr:
+            host.lookupDefaultSR()
+        if isinstance(sr, xenrt.lib.xenserver.StorageRepository):
+            sr = sr.uuid
+
+        output = host.execdom0("xenvm lvs /dev/VG_XenStorage-%s --nosuffix | grep %s-free" % (sr, host.uuid))
+
+        return int(output.split()[-1])
+
 
 class ThinProvisionVerification(_ThinLVHDBase):
     """ Verify SW thin provisioning available only on LVHD """
@@ -638,14 +665,12 @@ class TrimFuncNetAppThinFC(testcases.xenserver.tc.lunspace.TrimFuncNetAppFC):
 class TCThinLVHDSRProtection(_ThinLVHDBase):
     """ Verify protection when master is down. """
 
-    DEFAULTVDISIZE = 10*xenrt.GIGA
-
     def checkVdiWrite(self, guest, device = None, size=xenrt.GIGA):
         try:
             self.fillDisk(guest, size=size, targetDir=device)
         except Exception, e:
-                log("Not able to write in to device %s on the guest %s : failed with exception %s: " % (device, guest, str(e)))
-                return False
+            log("Not able to write in to device %s on the guest %s : failed with exception %s: " % (device, guest, str(e)))
+            return False
         return True
 
     def prepare(self, arglist):
@@ -654,43 +679,58 @@ class TCThinLVHDSRProtection(_ThinLVHDBase):
         self.master = self.pool.master
         self.slave = self.pool.getSlaves()[0]
         self.backupMaster = self.pool.getSlaves()[1]
-        self.sruuid = self.pool.getPoolParam("default-SR")
-        self.vdisize = int(args.get("vdisize", self.DEFAULTVDISIZE))
+        self.sruuid = self.master.lookupDefaultSR()
         vmonlocalsr = bool(args.get("vmonlocalsr", False))
         if vmonlocalsr:
             localsruuid = self.slave.getLocalSR()
             self.guest = self.slave.createBasicGuest("generic-linux", sr=localsruuid)
         else:
             self.guest = self.slave.createBasicGuest("generic-linux", sr=self.sruuid)
+        self.uninstallOnCleanup(self.guest)
 
     def run(self, arglist):
         step("Creating a virtual disk and attaching to VM...")
-        device = self.guest.createDisk(sizebytes=self.vdisize, returnDevice=True)
+        initialalloc = self.getInitialAllocation(self.sruuid)
+        initial = self.getHostFreeSpace(self.slave, self.sruuid)
+        device = self.guest.createDisk(sizebytes=initial + xenrt.GIGA, returnDevice=True)
+        beforedown = self.getHostFreeSpace(self.slave, self.sruuid)
+        bytetowrite = (initialalloc + beforedown) / xenrt.MEGA * xenrt.MEGA
+
         step("Shutting down the pool master ...")
         self.master.machine.powerctl.off()
         xenrt.sleep(180)
-        step("Verify that we can write minimum 1GiB of data onto the guest when pool master is down") 
-        if not self.checkVdiWrite(self.guest, device):
-            raise xenrt.XRTFailure("Not able to write minimum 1 GiB of data onto the guest %s when the pool master is down" % (self.guest))
-        step("Verify that we not able to write more than 3GiB of data onto the guest when the pool master is down")
-        if self.checkVdiWrite(self.guest, device, size=3*xenrt.GIGA):
-            raise xenrt.XRTFailure("Able to write more than 3 GiB of data onto the guest %s when the pool master is down" % (self.guest))
+
+        step("Verify that host still allows writing upto host free space.")
+        if not self.checkVdiWrite(self.guest, device, bytetowrite):
+            raise xenrt.XRTFailure("Failed to fill host(%s) free space: %d" % (self.slave.uuid, beforedown))
+
+        step("Verify that writing over host free space is not allowed.")
+        if self.checkVdiWrite(self.guest, device, size = bytetowrite + 200 * xenrt.MEGA):
+            raise xenrt.XRTFailure("Host allows writing over host free space. host: %s, free space: %d" % (self.slave.uuid, initial))
+
         step("Bringing the pool master Up again...")
         self.master.machine.powerctl.on() 
         # Wait for it to boot up
         self.master.waitForSSH(900)
-        step("Verify that we can write more than 3 GiB of data onto the guest %s when the pool master is up" % (self.guest))
-        if not self.checkVdiWrite(self.guest, device, size=3*xenrt.GIGA):
-            raise xenrt.XRTFailure("Not able to write more than 3 GiB of data onto the guest %s when the pool master is up" % (self.guest))
+
+        step("Verify host free space is recovered.")
+        afterup = self.getHostFreeSpace(self.slave, self.sruuid)
+        device = self.guest.createDisk(sizebytes=afterup + xenrt.GIGA, returnDevice=True)
+        if not self.checkVdiWrite(self.guest, device, size=afterup + 200 * xenrt.MEGA):
+            raise xenrt.XRTFailure("Failed to write more than host free space. host: %s" % self.slave.uuid)
+
         step("Eject the master from the pool ...")
         self.master.machine.powerctl.off()
         xenrt.sleep(15)
         self.pool.setMaster(self.backupMaster)
         self.pool.recoverSlaves()
         self.pool.eject(self.master)
-        step("Verify that we can write more than 3 GiB of data onto the guest %s with the new pool master" % (self.guest))
-        if not self.checkVdiWrite(self.guest, device, size=3*xenrt.GIGA):
-            raise xenrt.XRTFailure("Not able to write more than 3 GiB onto the guest %s after elect a new pool master" % (self.DEFAULTMAXDATA))
+
+        step("Verify that after new master is elected, free space is acquired.")
+        afternewmaster = self.getHostFreeSpace(self.slave, self.sruuid)
+        device = self.guest.createDisk(sizebytes=afternewmaster + xenrt.GIGA, returnDevice=True)
+        if not self.checkVdiWrite(self.guest, device, size=afternewmaster + 200 * xenrt.MEGA):
+            raise xenrt.XRTFailure("Failed to write more than host free space. host: %s" % self.slave.uuid)
 
     def postRun(self):
         self.master.machine.powerctl.on() 

@@ -1599,7 +1599,9 @@ class Config(object):
         self.config["CLOUD_CONFIG"] = {}
         self.config["CLOUD_CONFIG"]["3.0.7"] = {}
         self.config["CLOUD_CONFIG"]["3.0.7"]["SYSTEM_TEMPLATES"] = {}
-        self.config["CLOUD_CONFIG"]["3.0.7"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/acton-systemvm-02062012.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvmtemplate-2015-08-20-3.0.7.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["SYSTEM_TEMPLATES"]["kvm"] = "/usr/groups/xenrt/cloud/systemvmtemplate-2015-08-20-3.0.7.qcow2.bz2"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["SYSTEM_TEMPLATES"]["vmware"] = "/usr/groups/xenrt/cloud/systemvmtemplate-2015-08-20-3.0.7.ova"
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"] = {}
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["winxpsp3"] = "Windows XP SP3 (32-bit)"
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["w2k3eesp2"] = "Windows Server 2003 Enterprise Edition(32-bit)"
@@ -1786,6 +1788,11 @@ class Config(object):
         self.config["CLOUD_CONFIG"]["4.2"]["SYSTEM_TEMPLATES"]["kvm"] = "/usr/groups/xenrt/cloud/systemvmtemplate64-2014-10-31-master-kvm.qcow2.bz2"
         self.config["CLOUD_CONFIG"]["4.2"]["SYSTEM_TEMPLATES"]["vmware"] = "/usr/groups/xenrt/cloud/systemvmtemplate64-2014-10-31-master-vmware.ova"
 
+        self.config["CLOUD_CONFIG"]["4.2.1"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.2"])
+        self.config["CLOUD_CONFIG"]["4.2.1"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvmtemplate64-2015-08-20-4.2.1-xen.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["4.2.1"]["SYSTEM_TEMPLATES"]["kvm"] = "/usr/groups/xenrt/cloud/systemvmtemplate64-2015-08-20-4.2.1-kvm.qcow2.bz2"
+        self.config["CLOUD_CONFIG"]["4.2.1"]["SYSTEM_TEMPLATES"]["vmware"] = "/usr/groups/xenrt/cloud/systemvmtemplate64-2015-08-20-4.2.1-vmware.ova"
+
         self.config["CLOUD_CONFIG"]["4.3"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.2"])
 
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["ubuntu1404_x86-32"] = "Ubuntu 14.04 (32-bit)"
@@ -1829,18 +1836,18 @@ class Config(object):
         self.config["CLOUD_CONFIG"]["4.4"]["SYSTEM_TEMPLATES"]["kvm"] = "/usr/groups/xenrt/cloud/systemvm64template-master-kvm.qcow2.bz2"
 
         self.config["CLOUD_CONFIG"]["4.5"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.4"])
-        self.config["CLOUD_CONFIG"]["4.5"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvm64template-2014-12-18-4.5.0.0-xen.vhd.bz2"
-        self.config["CLOUD_CONFIG"]["4.5"]["SYSTEM_TEMPLATES"]["kvm"] = "/usr/groups/xenrt/cloud/systemvm64template-2014-12-18-4.5.0.0-kvm.qcow2.bz2"
-        self.config["CLOUD_CONFIG"]["4.5"]["SYSTEM_TEMPLATES"]["hyperv"] = "/usr/groups/xenrt/cloud/systemvm64template-2014-12-18-4.5.0.0-hyperv.vhd.bz2"
-        self.config["CLOUD_CONFIG"]["4.5"]["SYSTEM_TEMPLATES"]["vmware"] = "/usr/groups/xenrt/cloud/systemvm64template-2014-12-18-4.5.0.0-vmware.ova"
+        self.config["CLOUD_CONFIG"]["4.5"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-08-20-4.5.0-xen.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["4.5"]["SYSTEM_TEMPLATES"]["kvm"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-08-20-4.5.0-kvm.qcow2.bz2"
+        self.config["CLOUD_CONFIG"]["4.5"]["SYSTEM_TEMPLATES"]["hyperv"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-08-20-4.5.0-hyperv.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["4.5"]["SYSTEM_TEMPLATES"]["vmware"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-08-20-4.5.0-vmware.ova"
         # LXC currently uses KVM for System VMs, so use the KVM template
         self.config["CLOUD_CONFIG"]["4.5"]["SYSTEM_TEMPLATES"]["lxc"] = self.config["CLOUD_CONFIG"]["4.5"]["SYSTEM_TEMPLATES"]["kvm"]
 
         self.config["CLOUD_CONFIG"]["4.5.1"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.5"])
-        self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-05-14-4.5.1-xen.vhd.bz2"
-        self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["kvm"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-05-14-4.5.1-kvm.qcow2.bz2"
-        self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["hyperv"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-05-14-4.5.1-hyperv.vhd.bz2"
-        self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["vmware"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-05-14-4.5.1-vmware.ova"
+        self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-08-20-4.5.1-xen.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["kvm"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-08-20-4.5.1-kvm.qcow2.bz2"
+        self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["hyperv"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-08-20-4.5.1-hyperv.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["vmware"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-08-20-4.5.1-vmware.ova"
         self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["lxc"] = self.config["CLOUD_CONFIG"]["4.5.1"]["SYSTEM_TEMPLATES"]["kvm"]
 
         self.config["CLOUD_CONFIG"]["4.6.0"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.5.1"])

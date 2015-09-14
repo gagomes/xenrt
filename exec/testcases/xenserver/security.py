@@ -554,10 +554,10 @@ class TCXSA112(_TCXSA):
     
     def prepare(self, arglist=None):
         _TCXSA.prepare(self, arglist)
-        #change log level
-        self.host.execdom0("sed -e 's/\(append .*xen\S*.gz\)/\\0 loglvl=all guest_loglvl=all/' /boot/extlinux.conf > tmp && mv tmp /boot/extlinux.conf -f")
+        #change log level for pre dundee hosts
+        if not isinstance(self.host, xenrt.lib.xenserver.DundeeHost):
+            self.host.execdom0("sed -e 's/\(append .*xen\S*.gz\)/\\0 loglvl=all guest_loglvl=all/' /boot/extlinux.conf > tmp && mv tmp /boot/extlinux.conf -f")
         self.host.reboot()
-        
         self.replaceHvmloader("/usr/groups/xenrt/xsa_test_files/test-hvm-xsa-112")
         
     def run(self, arglist=None):
@@ -583,6 +583,49 @@ class TCXSA112(_TCXSA):
     
     def postRun(self):
         self.host.execdom0("cp -f {0}.backup {0}".format(self.hvmloaderPath))
+
+class TCXSA121(_TCXSA):
+    """Test to verify XSA-121"""
+    # Jira TC-27310
+    HVM_LOADER = "/usr/groups/xenrt/xsa_test_files/test-hvm64-xsa-121"
+
+    def prepare(self, arglist=None):
+        _TCXSA.prepare(self, arglist)
+        self.vm = self.host.execdom0("xe vm-install new-name-label=vm template-name=\"Other install media\"").strip()
+        self.host.execdom0("xe vm-cd-add uuid=%s cd-name=\"win7-x86.iso\" device=3" % self.vm)
+        #Pin the guest to a specific pcpu
+        cpus = self.host.getCPUCores()
+        self.host.execdom0("xe vm-param-set uuid=%s VCPUs-params:mask=%s" % (self.vm, cpus-1))
+
+        self.replaceHvmloader(self.HVM_LOADER)
+
+    def run(self, arglist=None):
+        self.host.execdom0("xe vm-start uuid=%s" % self.vm, timeout=30)
+
+        self.checkHost()
+        serlog = string.join(self.host.machine.getConsoleLogHistory(), "\n")
+        xenrt.TEC().logverbose(serlog)
+
+        if "All done: No hypervisor stack leaked into guest" in serlog:
+            xenrt.TEC().logverbose("Expected output: Found 'All done: No hypervisor stack leaked into guest' in serial log")
+        elif "Test failed: Hypervisor stack leaked into guest" in serlog:
+            raise xenrt.XRTFailure("XSA not fixed.Found 'Test failed: Hypervisor stack leaked into guest' in logs")
+        else:
+            #Workaround for CA-159772: Sometimes host serial log is not available for a machine
+            #Raise an error in that case.
+            if "not found" in serlog or "Enter `^Ec?' for help" in serlog:
+                raise xenrt.XRTError("Host serial console is not functional")
+            else:
+                raise xenrt.XRTFailure("Unexpected output in serial logs")
+
+    def postRun(self):
+        self.host.execdom0("cp -f {0}.backup {0}".format(self.hvmloaderPath))
+
+class TCXSA122(TCXSA121):
+    """Test to verify XSA-122"""
+    # Jira TC-27311
+
+    HVM_LOADER =  "/usr/groups/xenrt/xsa_test_files/test-hvm64-xsa-122"
 
 class TCXSA133(_TCXSA):
     """Test to verify XSA-133"""

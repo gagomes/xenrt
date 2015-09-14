@@ -668,7 +668,11 @@ class SLESAutoyastFile(object):
         else:
             ay=self._generateNativeAY()
         return ay 
-         
+
+    def _package(self):        
+        if self.distro.startswith("sles12"):
+            return "<pattern>base</pattern>"
+        return ""
  
     def _generateNativeAY(self):
         if re.search(r"sles101",self.distro) or re.search(r"sles102",self.distro):
@@ -679,7 +683,7 @@ class SLESAutoyastFile(object):
     def _generateAY(self):
         if self.distro.startswith("sles11"):
             kf=self._generateSLES11x()
-        elif self.distro.startswith("sles12"):
+        elif re.search(r"^sle.12",self.distro):
             kf=self._generateSLES12()
         elif self.distro.startswith("sles94"):
             kf=self._generateSLES94()
@@ -1844,7 +1848,7 @@ sleep 120
       <pattern>32bit</pattern>
       <pattern>Basis-Devel</pattern>
       <pattern>Minimal</pattern>
-      <pattern>base</pattern>
+      %s
     </patterns>
   </software>
   <suse_register>
@@ -2218,6 +2222,7 @@ umount /tmp/xenrttmpmount
                  self.mainDisk,
                  self.ethDevice,
                  self.mainDisk,
+                 self._package(),
                  self._password(),
                  self._password(),
                  self.signalDir)

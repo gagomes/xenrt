@@ -12,6 +12,8 @@
   </prepare>
 
   <testsequence group="ImpExp">
+    <testcase id="xenserver.tc.impexp.TC27335" prio="3"/>
+    <testcase id="xenserver.tc.impexp.TC27336" prio="3"/>
     <testcase id="xenserver.tc.impexp.TC11203" prio="3"/>
     <testcase id="xenserver.tc.impexp.TC9175" prio="3"/>
     <testcase id="xenserver.tc.impexp.TC9978" prio="3"/>

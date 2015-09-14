@@ -671,6 +671,14 @@ class TC12562(_ImpExpBase):
     """Import/Export test of Windows Server 2008 R2 SP1 x64 guest"""
     DISTRO = "ws08r2sp1-x64"
     
+class TC27335(_ImpExpBase):
+    """Import/Export test of Windows 10 32-bit guest"""
+    DISTRO = "win10-x86"
+    
+class TC27336(_ImpExpBase):
+    """Import/Export test of Windows 10 64-bit guest"""
+    DISTRO = "win10-x64"
+    
 class TC6833(_ImpExpBase):
     """Import/Export test of Debian guest"""
     DISTRO = "debian60"

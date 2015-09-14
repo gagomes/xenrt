@@ -1915,13 +1915,14 @@ class Experiment_vmrun(Experiment):
                         out=host.execdom0("%s set %s" % (host._findXenBinary("host-cpu-tune"), tunevcpus))
                         xenrt.TEC().logverbose(out)
                     reboot=True 
-           
+
             for xenopsparam in self.xenopsparams: 
                 if "=" in xenopsparam:
                     xn=xenopsparam.split("=")
                     k=xn[0]
                     v=xn[1]
-                    host.execdom0("sed -i 's/^# \(%s\).*/\\1=%s/' /etc/xenopsd.conf" % (k,v))
+                    #replace k=v in xenopsd.conf and remove the comments if necessary
+                    host.execdom0("sed -i 's/^\(# \)*\(%s\).*/\\2=%s/' /etc/xenopsd.conf" % (k,v))
                     xenrt.TEC().logverbose(host.execdom0("cat /etc/xenopsd.conf"))
                     reboot=True
 

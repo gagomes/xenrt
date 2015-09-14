@@ -11,6 +11,7 @@
 import sys, string, os.path, xml.dom.minidom, re, time
 import xenrt
 from tc.cc import _CCSetup
+from xenrt.lazylog import step
 
 class TCOpenPorts(_CCSetup):
     LICENSE_SERVER_REQUIRED = False
@@ -591,18 +592,19 @@ class TCXSA121(_TCXSA):
 
     def prepare(self, arglist=None):
         _TCXSA.prepare(self, arglist)
-        self.vm = self.host.execdom0("xe vm-install new-name-label=vm template-name=\"Other install media\"").strip()
-        self.host.execdom0("xe vm-cd-add uuid=%s cd-name=\"win7-x86.iso\" device=3" % self.vm)
+        self.guest = self.host.createGenericEmptyGuest()
+        self.guest.insertToolsCD()
         #Pin the guest to a specific pcpu
         cpus = self.host.getCPUCores()
-        self.host.execdom0("xe vm-param-set uuid=%s VCPUs-params:mask=%s" % (self.vm, cpus-1))
+        self.guest.paramSet("VCPUs-params:mask", cpus-1)
 
         self.replaceHvmloader(self.HVM_LOADER)
 
     def run(self, arglist=None):
-        self.host.execdom0("xe vm-start uuid=%s" % self.vm, timeout=30)
+        self.guest.lifecycleOperation("vm-start", timeout=30)
 
         self.checkHost()
+        step("Print Serial Console Logs")
         serlog = string.join(self.host.machine.getConsoleLogHistory(), "\n")
         xenrt.TEC().logverbose(serlog)
 

@@ -11,6 +11,12 @@
 import xml.dom.minidom, re, string, copy, time, os, random 
 import xenrt, xenrt.lib.xenserver
 
+try:
+    import NaServer
+except ImportError:
+    # The NetApp SDK is not always available so ignore import errors.
+    pass
+
 class _HostInstall(xenrt.TestCase):
 
     ROOTDISK_MPATH_COUNT = 4
@@ -744,3 +750,319 @@ class TC20855(TCISCSIMultipathScenarios):
             self.checkHost()
             self.waitForPathCount(2)
             self.checkHost()
+
+
+class TCUCSISCSIMultipathScenarios(TCISCSIMultipathScenarios):
+    """Base class for UCS iSCSI multipathed boot scenarios"""
+
+    def prepare(self, arglist):
+        self.host = self.getHost("RESOURCE_HOST_0")
+        self.iscsiHost = self.getHost("RESOURCE_HOST_1")
+        self.scsiid = string.split(self.host.lookup("OPTION_CARBON_DISKS", None), "scsi-")[1]
+
+        ip = self.host.lookup(["UCSISCSI", "TARGET_ADDRESS"], None)
+        username = self.host.lookup(["UCSISCSI", "TARGET_USERNAME"], None)
+        password = self.host.lookup(["UCSISCSI", "TARGET_PASSWORD"], None)
+        self._server = NaServer.NaServer(ip, 1, 0)
+        self._server.set_admin_user(username, password)
+
+        xenrt.TEC().logverbose("Number of active paths to boot LUN = %d" % self.countActivePaths())
+        if self.countActivePaths() != 2:
+            raise xenrt.XRTError("Host does not have 2 paths to boot LUN")
+
+    def controlPath(self, pathindex, state):
+        ifname = self.host.lookup(["UCSISCSI", "VLAN%u" % (pathindex + 1), "INTERFACE"], None)
+        res = self._server.invoke("net-ifconfig-set", "interface-config-info", """
+<interface-name>%s</interface-name>
+<ipspace-name>default-ipspace</ipspace-name>
+<is-enabled>%s</is-enabled>
+""" % (ifname, state))
+        if res.results_errno() != 0:
+            raise Exception("Failed to control port: " + str(res.results_reason()))
+
+    def failPath(self, pathindex):
+        """Fail the iSCSI path based on path index"""
+
+        xenrt.TEC().logverbose("Failing the path %d" % pathindex)
+        self.controlPath(pathindex, "false")
+
+    def recoverPath(self, pathindex):
+        """Recover the iSCSI path based on path index"""
+
+        xenrt.TEC().logverbose("Recovering the the path %d" % pathindex)
+        self.controlPath(pathindex, "true")
+
+    def countActivePaths(self):
+        """Count the number of active paths"""
+
+        xenrt.TEC().logverbose("Coutning the number of paths on host ...")
+        return len(self.host.getMultipathInfo(onlyActive=True)[self.scsiid])
+
+    def postRun(self):
+        xenrt.TEC().logverbose("Ensuring paths are up after testcase")
+        self.recoverPath(0)
+        self.recoverPath(1)
+
+class TC27173(TCUCSISCSIMultipathScenarios):
+    """Create multipathed iSCSI SR on multipathed UCS iSCSI booted machine"""
+
+    def run(self, arglist):
+        bridges = []
+
+        for i in (1, 2):
+            vlan = int(self.host.lookup(["UCSISCSI", "VLAN%u" % i, "NUMBER"], None))
+            nic = self.iscsiHost.getDefaultInterface()
+            vbridge = self.iscsiHost.createNetwork()
+            bridges.append(vbridge)
+            pifuuid = self.iscsiHost.createVLAN(vlan, vbridge, nic)
+
+        self.bootLun = xenrt.resources.ISCSIVMLun(hostIndex=1, sizeMB=50000, bridges=bridges)
+
+        # Creating multipathed iSCSI SR.
+        iscsiSR = xenrt.lib.xenserver.ISCSIStorageRepository(self.host,
+                                                "multipathed-iscsi-sr")
+        iscsiSR.create(self.bootLun, subtype="lvm", multipathing=True, noiqnset=True, findSCSIID=True)
+
+class TCUCSISCSIMultipathFailOnBoot(TCUCSISCSIMultipathScenarios):
+    PATH_INDEX=None
+
+    def run(self, arglist):
+        # Fail the path
+        self.failPath(self.PATH_INDEX)
+        # Check the host is healthy
+        self.checkHost()
+        # Check it only has one path
+        self.waitForPathCount(1)
+        # Reboot the host
+        self.host.reboot(timeout=3600)
+        # Check one path is present
+        self.waitForPathCount(1)
+        # Recover the path and reboot (we don't expect it to come back after boot)
+        self.recoverPath(self.PATH_INDEX)
+        self.host.reboot()
+        # And check we now have 2 paths
+        self.waitForPathCount(2)
+
+class TC27174(TCUCSISCSIMultipathFailOnBoot):
+    """Bring down the first path at boot on multipathed UCS iSCSI booted machine"""
+    PATH_INDEX=0
+
+class TC27175(TCUCSISCSIMultipathFailOnBoot):
+    """Bring down the second path at boot on multipathed UCS iSCSI booted machine"""
+    PATH_INDEX=1
+
+class TC27176(TCUCSISCSIMultipathScenarios):
+    """Carry out failover of alternate paths on multipathed UCS iSCSI booted machine"""
+    def run(self, arglist):
+        for i in range(10):
+            path = random.randint(0,1)
+            self.failPath(path)
+            self.checkHost()
+            self.waitForPathCount(1)
+            self.checkHost()
+            self.recoverPath(path)
+            self.checkHost()
+            self.waitForPathCount(2)
+            self.checkHost()
+
+class TC27246(xenrt.TestCase):
+    """Install to a server with a multipathed iSCSI boot disk on a Powervault"""
+
+    def override(self, key, value):
+        resource_host = "RESOURCE_HOST_0"
+        machine = xenrt.TEC().lookup(resource_host, resource_host)
+        xenrt.TEC().config.setVariable(["HOST_CONFIGS", machine, key], value)
+
+    @staticmethod
+    def productVersionFromInputDir(inputDir):
+        fn = xenrt.TEC().getFile("%s/xe-phase-1/globals" % inputDir, "%s/globals" % inputDir)
+        if fn:
+            for line in open(fn).xreadlines():
+                match = re.match('^PRODUCT_VERSION="(.+)"', line)
+                if match:
+                    hosttype = xenrt.TEC().lookup(["PRODUCT_CODENAMES", match.group(1)], None)
+                    if hosttype:
+                        return hosttype
+        return xenrt.TEC().lookup("PRODUCT_VERSION", None)
+
+    def lookup(self, key):
+        resource_host = "RESOURCE_HOST_0"
+        machine = xenrt.TEC().lookup(resource_host, resource_host)
+        m = xenrt.PhysicalHost(xenrt.TEC().lookup(machine, machine))
+        hosttype = self.productVersionFromInputDir(xenrt.TEC().getInputDir())
+        host = xenrt.lib.xenserver.hostFactory(hosttype)(m,
+                                                     productVersion=hosttype)
+        return host.lookup(key, None)
+
+    def run(self, arglist):
+        carbon_disks = self.lookup(["UCSISCSI", "CARBON_DISKS"])
+        guest_disks = self.lookup(["UCSISCSI", "GUEST_DISKS"])
+        self.override("OPTION_CARBON_DISKS", carbon_disks)
+        self.override("OPTION_GUEST_DISKS", guest_disks)
+        self.override("LOCAL_SR_POST_INSTALL", "no")
+        self.override("DOM0_EXTRA_ARGS", "use_ibft")
+        self.host = xenrt.lib.xenserver.createHost(id=0, installnetwork="NSEC")
+
+        scsiid = string.split(carbon_disks, "scsi-")[1]
+        if len(self.host.getMultipathInfo(onlyActive=True)[scsiid]) != 2:
+            raise xenrt.XRTError("Host does not have 2 paths to boot LUN")
+
+class TC27247(xenrt.TestCase):
+    """Create an iSCSI SR on iSCSI booted machine, where the SR target is on a
+    different storage IP and the same subnet as the boot disk."""
+
+    def prepare(self, arglist):
+        self.host = self.getHost("RESOURCE_HOST_0")
+        self.iscsiHost = self.getHost("RESOURCE_HOST_1")
+
+    def run(self, arglist):
+        self.bootLun = xenrt.resources.ISCSIVMLun(hostIndex=1, sizeMB=50000)
+        iscsiSR = xenrt.lib.xenserver.ISCSIStorageRepository(self.host, "iscsi-sr")
+        iscsiSR.create(self.bootLun, subtype="lvm", noiqnset=True, findSCSIID=True)
+
+class TC27248(xenrt.TestCase):
+    """Create NFS SR on iSCSI booted machine, where the SR target is on a
+    different storage IP and the same subnet as the boot disk."""
+
+    def prepare(self, arglist):
+        self.host = self.getHost("RESOURCE_HOST_0")
+        self.nfsHost = self.getHost("RESOURCE_HOST_1")
+
+    def run(self, arglist):
+        self.nfsHost.execcmd("service nfs start")
+        self.nfsHost.execcmd("iptables -F")
+
+        # Create a dir and export the shared directory.
+        self.nfsHost.execcmd("mkdir /nfsShare")
+        self.nfsHost.execcmd("echo '/nfsShare *(sync,rw,no_root_squash,no_subtree_check)'"
+                        " > /etc/exports")
+        self.nfsHost.execcmd("exportfs -a")
+
+        # Create the nfs SR on the host.
+        nfsSR = xenrt.lib.xenserver.NFSStorageRepository(self.host, "nfs-sr")
+        nfsSR.create(self.nfsHost.getIP(),"/nfsShare")
+
+class TC27298(xenrt.TestCase):
+    """Install to a server with a iSCSI boot disk on a SAN using iPXE."""
+
+    @staticmethod
+    def productVersionFromInputDir(inputDir):
+        fn = xenrt.TEC().getFile("%s/xe-phase-1/globals" % inputDir, "%s/globals" % inputDir)
+        if fn:
+            for line in open(fn).xreadlines():
+                match = re.match('^PRODUCT_VERSION="(.+)"', line)
+                if match:
+                    hosttype = xenrt.TEC().lookup(["PRODUCT_CODENAMES", match.group(1)], None)
+                    if hosttype:
+                        return hosttype
+        return xenrt.TEC().lookup("PRODUCT_VERSION", None)
+
+    def lookup(self, key):
+        resource_host = "RESOURCE_HOST_0"
+        machine = xenrt.TEC().lookup(resource_host, resource_host)
+        m = xenrt.PhysicalHost(xenrt.TEC().lookup(machine, machine))
+        hosttype = self.productVersionFromInputDir(xenrt.TEC().getInputDir())
+        host = xenrt.lib.xenserver.hostFactory(hosttype)(m,
+                                                     productVersion=hosttype)
+        return host.lookup(key, None)
+
+    def prepare(self, arglist):
+        initiator_name = self.lookup(["EQLISCSI", "INITIATOR_NAME"])
+        target_address = self.lookup(["EQLISCSI", "BOOTLUN", "TARGET_ADDRESS"])
+        target_name = self.lookup(["EQLISCSI", "BOOTLUN", "TARGET_NAME"])
+        self.bootLun = xenrt.ISCSILunSpecified("%s/%s/%s" % (initiator_name, target_name, target_address))
+        self.bootLun.scsiid = self.lookup(["EQLISCSI", "BOOTLUN", "SCSIID"])
+
+    def run(self, arglist):
+        self.host = xenrt.lib.xenserver.createHost(id=0, iScsiBootLun=self.bootLun, iScsiBootNets=["NPRI"], installnetwork="NSEC")
+
+class TC27299(xenrt.TestCase):
+    """Create iSCSI SR on iSCSI booted machine, where the SR target is on same storage IP as the boot disk target"""
+
+    def prepare(self, arglist):
+        # Obtain the iSCSI booted machine.
+        self.host = self.getHost("RESOURCE_HOST_0")
+
+        initiator_name = self.host.lookup(["EQLISCSI", "INITIATOR_NAME"], None)
+        target_address = self.host.lookup(["EQLISCSI", "SRLUN", "TARGET_ADDRESS"], None)
+        target_name = self.host.lookup(["EQLISCSI", "SRLUN", "TARGET_NAME"], None)
+        self.lun = xenrt.ISCSILunSpecified("%s/%s/%s" % (initiator_name, target_name, target_address))
+        self.lun.scsiid = self.host.lookup(["EQLISCSI", "SRLUN", "SCSIID"], None)
+
+    def run(self, arglist):
+        # Create iSCSI SR.
+        iscsiSR = xenrt.lib.xenserver.ISCSIStorageRepository(self.host,
+                                                "iscsi-sr-on-same-storage-as-boot-disk")
+        iscsiSR.create(self.lun, subtype="lvm", multipathing=False, noiqnset=True)
+
+class TC27300(xenrt.TestCase):
+    """Create iSCSI SR on iSCSI booted machine, where the SR target is on a different storage IP and the same subnet as the boot disk target"""
+
+    def prepare(self, arglist):
+        # Obtain the iSCSI booted machine.
+        self.host = self.getHost("RESOURCE_HOST_0")
+
+    def run(self, arglist):
+        # Create a controller LUN and connect to it
+        lun = xenrt.ISCSITemporaryLun(100)
+        iscsiSR = xenrt.lib.xenserver.ISCSIStorageRepository(self.host,
+                                            "iscsi-sr-on-different-storage-same-subnet-as-boot-disk")
+        iscsiSR.create(lun, subtype="lvm", findSCSIID=True, multipathing=False, noiqnset=True)
+
+class TC27301(xenrt.TestCase):
+    """Create iSCSI SR on iSCSI booted machine, where the SR target is on a different storage IP and subnet as the boot disk target"""
+
+    def prepare(self, arglist):
+        self.host = self.getHost("RESOURCE_HOST_0")
+        self.iscsiHost = self.getHost("RESOURCE_HOST_1")
+
+    def run(self, arglist):
+        # Create an IP address on IPRI
+        self.host.createNetworkTopology("""
+            <NETWORK>
+                <PHYSICAL network="NSEC">
+                    <NIC />
+                    <VLAN network="IPRI">
+                        <STORAGE />
+                    </VLAN>
+                    <MANAGEMENT />
+                </PHYSICAL>
+            </NETWORK>
+        """)
+
+        vlan = self.host.getVLAN("IPRI")[0]
+        nic = self.iscsiHost.getDefaultInterface()
+        vbridge = self.iscsiHost.createNetwork()
+        pifuuid = self.iscsiHost.createVLAN(vlan, vbridge, nic)
+        ip = self.iscsiHost.enableIPOnPIF(pifuuid)
+        xenrt.TEC().registry.resourcePut("VLANIP", ip)
+
+        self.bootLun = xenrt.resources.ISCSIVMLun(hostIndex=1, sizeMB=50000, bridges=[vbridge])
+
+        # Creating multipathed iSCSI SR.
+        iscsiSR = xenrt.lib.xenserver.ISCSIStorageRepository(self.host,
+                                                "iscsi-sr-on-different-storage-different-subnet-as-boot-disk")
+        iscsiSR.create(self.bootLun, subtype="lvm", noiqnset=True, findSCSIID=True)
+
+class TC27302(xenrt.TestCase):
+    """Create NFS SR on iSCSI booted machine, where the SR target is on a
+    different storage IP and a different subnet as the boot disk."""
+
+    def prepare(self, arglist):
+        self.host = self.getHost("RESOURCE_HOST_0")
+        self.nfsHost = self.getHost("RESOURCE_HOST_1")
+
+    def run(self, arglist):
+        self.nfsHost.execcmd("service nfs start")
+        self.nfsHost.execcmd("iptables -F")
+
+        # Create a dir and export the shared directory.
+        self.nfsHost.execcmd("mkdir /nfsShare")
+        self.nfsHost.execcmd("echo '/nfsShare *(sync,rw,no_root_squash,no_subtree_check)'"
+                        " > /etc/exports")
+        self.nfsHost.execcmd("exportfs -a")
+
+        # Create the nfs SR on the host.
+        nfsSR = xenrt.lib.xenserver.NFSStorageRepository(self.host, "nfs-sr")
+        ip = xenrt.TEC().registry.resourceGet("VLANIP")
+        nfsSR.create(ip, "/nfsShare")

@@ -177,6 +177,7 @@ def createHost(id=0,
                vHostSR=None,
                vNetworks=None,
                iommu=False,
+               installnetwork=None,
                **kwargs):
 
     # noisos isn't used here, it is present in the arg list to
@@ -306,7 +307,8 @@ def createHost(id=0,
                           overlay=overlay,
                           installSRType=installSRType,
                           hostname=hostname,
-                          suppackcds=suppackcds)
+                          suppackcds=suppackcds,
+                          installnetwork=installnetwork)
 
     if license:
         if not defaultlicense:
@@ -635,6 +637,9 @@ class Host(xenrt.GenericHost):
 
     def getUptime(self):
         return float(self.execdom0("cat /proc/uptime").split()[0])
+
+    def getInstallNetwork(self):
+        return None
 
     def rebuildInitrd(self):
         """
@@ -2699,7 +2704,7 @@ fi
         if hostname:
             actual = self.execdom0("hostname")
             actual = string.strip(actual)
-            if hostname != actual:
+            if not re.match(r'%s(-NIC\d+)?$' % (hostname,), actual):
                 ok = 0
                 xenrt.TEC().reason("Actual hostname % differs from %s" %
                                    (actual, hostname))
@@ -7929,7 +7934,11 @@ rm -f /etc/xensource/xhad.conf || true
     def getDefaultInterface(self):
         """Return the enumeration ID for the configured default interface."""
         # First try a lookup based on the MAC address if known
-        mac = self.lookup("MAC_ADDRESS", None)
+        installnetwork = self.getInstallNetwork()
+        if installnetwork:
+            mac = self.getNICMACAddress(self.listSecondaryNICs(installnetwork)[0])
+        else:
+            mac = self.lookup("MAC_ADDRESS", None)
         if mac and not self.special.has_key('getDefaultInterface no PIF check'):
             try:
                 ifs = self.minimalList("pif-list",
@@ -11889,6 +11898,9 @@ class DundeeHost(CreedenceHost):
         else:
             ifs=CreedenceHost.getBridgeInterfaces(self, bridge)
         return ifs
+
+    def getInstallNetwork(self):
+        return self.installnetwork
         
     def snmpdIsEnabled(self):
         return "enabled" in self.execdom0("service snmpd status | cat")

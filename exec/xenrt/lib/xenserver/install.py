@@ -31,7 +31,8 @@ class DundeeInstaller(object):
                 async=False,
                 installSRType=None,
                 overlay=None,
-                suppackcds=None):
+                suppackcds=None,
+                installnetwork=None):
         
         xenrt.TEC().logverbose("DundeeInstaller.install")
 
@@ -88,6 +89,12 @@ class DundeeInstaller(object):
         self.getCD()
         
         self.host.password = self.host.lookup("ROOT_PASSWORD")
+
+        self.host.installnetwork = installnetwork
+        if installnetwork:
+            nicid = self.host.listSecondaryNICs(installnetwork)[0]
+            net = self.host.getNICAllocatedIPAddress(nicid)
+            self.host.setIP(net[0])
         
         workdir = xenrt.TEC().getWorkdir()
         
@@ -131,7 +138,8 @@ class DundeeInstaller(object):
                                                ntpserver,
                                                hostname,
                                                installSRType,
-                                               timezone)
+                                               timezone,
+                                               installnetwork)
         
         self.createPostInstallFiles(uefi=uefi)
         answerfileUrl = self.packdir.getURL(ansfile)
@@ -648,7 +656,10 @@ sleep 30
             dom0args.append(dom0_extra_args)
         if dom0_extra_args_user:
             dom0args.append(dom0_extra_args_user)
-        mac = self.host.lookup("MAC_ADDRESS", None)
+        if self.host.installnetwork:
+            mac = self.host.getNICMACAddress(self.host.listSecondaryNICs(self.host.installnetwork)[0])
+        else:
+            mac = self.host.lookup("MAC_ADDRESS", None)
         if mac:
             dom0args.append("answerfile_device=%s" % (mac))
         if self.host.lookup("FORCE_NIC_ORDER", False, boolean=True):
@@ -776,7 +787,10 @@ sleep 30
         pxecfg.mbootArgsModule1Add("net.ifnames=0")
         pxecfg.mbootArgsModule1Add("biosdevname=0")
 
-        mac = self.host.lookup("MAC_ADDRESS", None)
+        if self.host.installnetwork:
+            mac = self.host.getNICMACAddress(self.host.listSecondaryNICs(self.host.installnetwork)[0])
+        else:
+            mac = self.host.lookup("MAC_ADDRESS", None)
         if mac:
             pxecfg.mbootArgsModule1Add("answerfile_device=%s" % (mac))
         if self.host.lookup("FORCE_NIC_ORDER", False, boolean=True):
@@ -851,7 +865,8 @@ sleep 30
                                 ntpserver,
                                 hostname,
                                 installSRType,
-                                timezone):
+                                timezone,
+                                installnetwork):
         # Create the installer answerfile
         guestdiskconfig = ""
         interfaceconfig = ""
@@ -885,7 +900,10 @@ sleep 30
                 else:
                     # Otherwise use the configured default
                     if self.host.INSTALL_INTERFACE_SPEC == "MAC":
-                        mac = self.host.lookup("MAC_ADDRESS", None)
+                        if installnetwork:
+                            mac = self.host.getNICMACAddress(self.host.listSecondaryNICs(installnetwork)[0])
+                        else:
+                            mac = self.host.lookup("MAC_ADDRESS", None)
                     if not mac:
                         name = self.host.getDefaultInterface()
                 if mac:

@@ -1,0 +1,21 @@
+<xenrt>
+
+  <!-- iSCSI Boot From SAN testcases for Dell Equallogic -->
+
+  <prepare>
+    <host id="1" />
+  </prepare>
+
+  <testsequence>
+    <serial group="iSCSIBoot">
+
+      <testcase id="testcases.xenserver.tc.install.TC27298" blocker="yes" />
+      <testcase id="testcases.xenserver.tc.install.TC27299" />
+      <testcase id="testcases.xenserver.tc.install.TC27300" />
+      <testcase id="testcases.xenserver.tc.install.TC27301" />
+      <testcase id="testcases.xenserver.tc.install.TC20850" />
+      <testcase id="testcases.xenserver.tc.install.TC27302" />
+
+    </serial>
+  </testsequence>
+</xenrt>

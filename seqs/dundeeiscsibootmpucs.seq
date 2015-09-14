@@ -1,0 +1,23 @@
+<xenrt>
+
+  <!-- Multipathed iSCSI Boot From SAN testcases for UCS using a NetApp -->
+
+  <prepare>
+    <host id="0" />
+    <host id="1" />
+  </prepare>
+
+  <testsequence>
+    <serial group="UCSiSCSIBootMP">
+
+      <!-- Multipathed UCS iSCSI SR test -->
+      <testcase id="testcases.xenserver.tc.install.TC27173" />
+
+      <!-- Multipathed UCS failover/recovery tests -->
+      <testcase id="testcases.xenserver.tc.install.TC27174" />
+      <testcase id="testcases.xenserver.tc.install.TC27175" />
+      <testcase id="testcases.xenserver.tc.install.TC27176" />
+
+    </serial>
+  </testsequence>
+</xenrt>

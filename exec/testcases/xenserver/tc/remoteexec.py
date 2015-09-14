@@ -412,7 +412,7 @@ class TCBasicFunc(TCRemoteCommandExecBase):
         else:
             log = host.execdom0("grep \"VM.call_plugin: VM = '%s (%s)'; plugin = 'guest-agent-operation'; " \
                 "fn = 'run-script'\" /var/log/xensource.log" % (guest.getUUID(), guest.getName())).splitlines()[-1]
-            for tkn in log.split("arg:")[1:]:
+            for tkn in log.split("args:")[1:]:
                 tkn = tkn.strip()
                 key, val = tkn.split("=", 1)
                 args[key.strip()] = val.strip()

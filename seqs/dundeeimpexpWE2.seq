@@ -13,8 +13,6 @@
 
   <testsequence group="ImpExp">
     <testcase id="xenserver.tc.impexp.TC6838" prio="3"/>
-    <testcase id="xenserver.tc.impexp.TC6841" prio="3"/>
-    <testcase id="xenserver.tc.impexp.TC6842" prio="3"/>
   </testsequence>
 
 </xenrt>

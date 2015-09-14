@@ -53,6 +53,11 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
             if not is_power2:
                 raise ValueError("Multipage %s is not a power of 2" % (self.multipage))
 
+        # iodepth_batch* options: useful to keep I/O requests for longer from being dequeued,
+        # allowing more time for merges specially when multiqueue and/or multipage are used.
+        self.iodepth_batch          = libperf.getArgument(arglist, "iodepth_batch", int, None)
+        self.iodepth_batch_complete = libperf.getArgument(arglist, "iodepth_batch_complete", int, None)
+
         self.num_threads = libperf.getArgument(arglist, "num_threads", int, 1)
         self.vms_per_sr = libperf.getArgument(arglist, "vms_per_sr", int, 1)
         self.vbds_per_vm = libperf.getArgument(arglist, "vbds_per_vm", int, 1)
@@ -227,7 +232,15 @@ clean all
             if not self.sequential:
                 rw = "randread" if op == "r" else "randwrite"
 
-            return """/bin/bash :CONF:
+            extras = ""
+            if self.iodepth_batch:
+                extras += "--iodepth_batch=%s " % (self.iodepth_batch)
+            if self.iodepth_batch_complete:
+                extras += "--iodepth_batch_complete=%s " % (self.iodepth_batch_complete)
+            if self.zeros:
+                extras += "--zero_buffers "
+
+            cmd = """/bin/bash :CONF:
 #!/bin/bash
 
 for i in {b..%s}; do
@@ -253,9 +266,10 @@ for ((idx=0; idx<pididx; idx++)); do
 done
 """ % (chr(ord('a') + self.vbds_per_vm), self.num_threads, rw,
        self.queuedepth, blocksize, self.duration,
-       "--zero_buffers" if self.zeros else "", 6 if op == "r" else 47)
+       extras, 6 if op == "r" else 47)
+
         else:
-            return """/bin/bash :CONF:
+            cmd = """/bin/bash :CONF:
 #!/bin/bash
 
 for i in {b..%s}; do
@@ -270,6 +284,9 @@ for ((idx=0; idx<pididx; idx++)); do
 done
 """ % (chr(ord('a') + self.vbds_per_vm), "" if op == "r" else " -w",
        " -z" if self.zeros else "", blocksize, self.duration)
+
+        xenrt.TEC().logverbose("bash script for slave = %s" % (cmd,))
+        return cmd
 
     def runPhase(self, count, op):
         for blocksize in self.blocksizes:

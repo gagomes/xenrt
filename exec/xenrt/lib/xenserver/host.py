@@ -784,7 +784,8 @@ class Host(xenrt.GenericHost):
                 installSRType=None,
                 bootloader=None,
                 overlay=None,
-                suppackcds=None):    
+                suppackcds=None,
+                **kwargs):    
 
 
         extrapi = ""

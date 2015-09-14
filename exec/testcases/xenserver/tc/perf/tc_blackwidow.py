@@ -204,15 +204,27 @@ class TCHttp100KResp(BlackWidowPerformanceTestCase):
         xenrt.sleep(60)
 
     def runTest(self):
+        metadata_array = []
+        filename_array = []
+        if self.IS_VALID_CLIENTTHREADS:
+            metadata_array.append(str(self.httpClientThreads))
+            filename_array.append("thd%d" % self.httpClientThreads)
+        if self.IS_VALID_CLIENTPARALLELCONN:
+            metadata_array.append(str(self.httpClientParallelconn))
+            filename_array.append("pc%d" % self.httpClientParallelconn)
+
+        filename_stem = "_".join(filename_array)
+        self.log("metadata", "%s %s" % (filename_stem, " ".join(metadata_array)))
+
         now = time.time()
         finish = now + self.runtime
         i = 0
 
         step("runTest: sample the TCP counters on the DUT every 5 seconds")
         while now < finish:
-            filename = "stat%s%s.%d.ctr" %(("_thd%d" % self.httpClientThreads) if self.IS_VALID_CLIENTTHREADS else "", ("_pc%d" % self.httpClientParallelconn) if self.IS_VALID_CLIENTPARALLELCONN else "", i )
+            filename = "stats.%s.%d.ctr" % (filename_stem, i)
             self.sampleCounters(self.guest_dut, self.statsToCollect, filename)
-            self.log("sampletimes", "%d %f" % (i, now))
+            self.log("sampletimes.%s" % (filename_stem), "%d %f" % (i, now))
 
             # The counters only seem to be updated every ~5 seconds, so don't sample more often than that
             time.sleep(5)

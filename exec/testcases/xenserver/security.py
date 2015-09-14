@@ -592,15 +592,18 @@ class TCXSA121(_TCXSA):
 
     def prepare(self, arglist=None):
         _TCXSA.prepare(self, arglist)
+        step("Install HVM guest")
         self.guest = self.host.createGenericEmptyGuest()
         self.guest.insertToolsCD()
-        #Pin the guest to a specific pcpu
+        step("Pin the guest to a specific pcpu")
         cpus = self.host.getCPUCores()
         self.guest.paramSet("VCPUs-params:mask", cpus-1)
 
+        step("Replace HVM Loader")
         self.replaceHvmloader(self.HVM_LOADER)
 
     def run(self, arglist=None):
+        step("Start the guest")
         self.guest.lifecycleOperation("vm-start", timeout=30)
 
         self.checkHost()

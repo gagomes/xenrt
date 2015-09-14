@@ -1105,6 +1105,10 @@ class GenericPlace(object):
             self.checkHealth()
             raise
 
+    def xmlrpcMapDrive(self, networkLocation, driveLetter):
+        self.xmlrpcExec(r"net use %s: /Delete /y" % driveLetter, level=xenrt.RC_OK)
+        self.xmlrpcExec(r"net use %s: %s"% (driveLetter, networkLocation))
+
     def xmlrpcAssign(self, disk):
         xenrt.TEC().logverbose("Assign %s on %s" % (disk, self.getIP()))
         try:

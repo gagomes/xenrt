@@ -72,7 +72,7 @@ $(function() {
                 out += " - " + data[key]['status']
             }
 
-            out += " - <a href=\"/xenrt/ui/machine?" + escape(key) + "\">Manage</a>";
+            out += " - <a href=\"machine?" + escape(key) + "\">Manage</a>";
 
             out += "</div>";
         }

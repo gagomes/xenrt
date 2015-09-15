@@ -3,6 +3,8 @@ from app import XenRTPage
 import config
 
 class XenRTUIPage(XenRTPage):
+    MENU = True
+
     def loggedInAs(self):
         if self.getUser():
             return "Logged in as %s" % self.getUser().userid
@@ -35,7 +37,7 @@ class XenRTUIPage(XenRTPage):
 
         commonbody = ""
 
-        if self.request.params.get("menu") != "false":
+        if self.MENU and self.request.params.get("menu") != "false":
             commonbody += """
 <div id="overlay"></div>
 <div id="loading"></div>
@@ -84,8 +86,11 @@ class XenRTUIPage(XenRTPage):
 </div>
 <p>
 <div id="user"><div style="float:right">%s</div></div>
-</p>""" % self.loggedInAs()
+</p>""" % self.request.__dict__
         return {"commonhead": commonhead, "commonbody": commonbody, "userIsAdmin": self.getUser() and self.getUser().admin}
+
+class XenRTMinimalUIPage(XenRTUIPage):
+    MENU = False
 
 PageFactory(XenRTUIPage, "/ui", renderer="__main__:templates/ui/index.mak")
 PageFactory(XenRTUIPage, "/ui/", renderer="__main__:templates/ui/index.mak")
@@ -97,3 +102,14 @@ PageFactory(XenRTUIPage, "/ui/utilisation", renderer="__main__:templates/ui/util
 PageFactory(XenRTUIPage, "/ui/acls", renderer="__main__:templates/ui/acls.mak")
 PageFactory(XenRTUIPage, "/ui/acl", renderer="__main__:templates/ui/acl.mak")
 PageFactory(XenRTUIPage, "/ui/suiterun", renderer="__main__:templates/ui/suiterun.mak")
+
+PageFactory(XenRTMinimalUIPage, "/ui-minimal", renderer="__main__:templates/ui/index.mak")
+PageFactory(XenRTMinimalUIPage, "/ui-minimal/", renderer="__main__:templates/ui/index.mak")
+PageFactory(XenRTMinimalUIPage, "/ui-minimal/logs", renderer="__main__:templates/ui/logs.mak")
+PageFactory(XenRTMinimalUIPage, "/ui-minimal/apikey", renderer="__main__:templates/ui/apikey.mak")
+PageFactory(XenRTMinimalUIPage, "/ui-minimal/machines", renderer="__main__:templates/ui/machines.mak")
+PageFactory(XenRTMinimalUIPage, "/ui-minimal/machine", renderer="__main__:templates/ui/machine.mak")
+PageFactory(XenRTMinimalUIPage, "/ui-minimal/utilisation", renderer="__main__:templates/ui/utilisation.mak")
+PageFactory(XenRTMinimalUIPage, "/ui-minimal/acls", renderer="__main__:templates/ui/acls.mak")
+PageFactory(XenRTMinimalUIPage, "/ui-minimal/acl", renderer="__main__:templates/ui/acl.mak")
+PageFactory(XenRTMinimalUIPage, "/ui-minimal/suiterun", renderer="__main__:templates/ui/suiterun.mak")

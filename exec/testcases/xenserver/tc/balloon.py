@@ -233,7 +233,7 @@ class _BalloonSmoketest(_BalloonPerfBase):
     def setLinuxContraints(self):
         # All Linux distros behave differently on memory balloon up.
         # Check the type and accordingly set the class variables
-        if self.DISTRO in xenrt.TEC().lookup(["VERSION_CONFIG",xenrt.TEC().lookup("PRODUCT_VERSION"), "EARLY_PV_LINUX"], "").split(","):
+        if [d for d in self.host.lookup("EARLY_PV_LINUX", "").split(",") if re.match(d,self.DISTRO)]:
             log("This is a early PV guest and it cannot balloon up beyond initial memory allocation")
             self.BALLOON_UP_INITIAL_ALLOC = False
         elif [d for d in self.host.lookup("HVM_LINUX", "").split(",") if re.match(d,self.DISTRO)]:

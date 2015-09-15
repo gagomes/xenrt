@@ -5119,7 +5119,7 @@ class MNRGuest(Guest):
         self.dmcProperties["static-max"] = smax
         self.checkMemory()
 
-    def checkMemory(self, inGuest=False, allowTargetMismatch=False):
+    def checkMemory(self, inGuest=False, allowTargetMismatch=None):
         # Check values match what we expect
         for x in ["static-min", "static-max", "dynamic-min", "dynamic-max"]:
             if x in self.dmcProperties:
@@ -5173,6 +5173,8 @@ class MNRGuest(Guest):
             if guest_reported != expected:
                 # Is it within 1%
                 difference = abs(guest_reported - expected)
+                if allowTargetMismatch:
+                    difference = min(abs(difference - allowTargetMismatch), difference)
                 percentage = float(difference) / float(expected)
                 if percentage > 1:
                     xenrt.TEC().logverbose("Difference in expected memory "

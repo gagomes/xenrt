@@ -175,7 +175,7 @@ class _BalloonSmoketest(_BalloonPerfBase):
     MEMORY_STEP = 750
     BALLOON_UP_INITIAL_ALLOC = True
     LOW_MEMORY_CONSTRAINT = False
-    HVM_PV_CONSTRAINT = False
+    ALLOWED_TARGET_MISMATCH = 0
 
     def prepare(self, arglist=None):
         # Get the host
@@ -238,7 +238,7 @@ class _BalloonSmoketest(_BalloonPerfBase):
             self.BALLOON_UP_INITIAL_ALLOC = False
         elif [d for d in self.host.lookup("HVM_LINUX", "").split(",") if re.match(d,self.DISTRO)]:
             log("This is a early HVM PV guest and we need to consider the constraint for 10 MB video memory")
-            self.HVM_PV_CONSTRAINT = True
+            self.ALLOWED_TARGET_MISMATCH = 10
         elif self.ARCH == "x86-32":
             log("This is a 32-bit PV guest and it cannot balloon up beyond 10 X Low memory")
             self.LOW_MEMORY_CONSTRAINT = True
@@ -372,21 +372,17 @@ class _BalloonSmoketest(_BalloonPerfBase):
         try:
             if self.BALLOON_UP_INITIAL_ALLOC:
                 #Guests can balloon up from inital memory allocation
-                if self.HVM_PV_CONSTRAINT:
-                    self.testMaxRange(minMem, maxMem-10, maxMem)
-                else:
-                    self.testMaxRange(minMem, maxMem, maxMem)
+                self.testMaxRange(minMem, maxMem)
             else:
                 #Guests cannot balloon up from inital memory allocation(early PV guests)
                 step("Set dynamic-min=min, dynamic-max=static-max=max")
                 self.guest.setMemoryProperties(None, minMem, maxMem, maxMem)
                 
                 self.guest.start()
-                self.guest.checkMemory(inGuest=True)
                 self.status = "booted"
 
                 step("Check the target has been met correctly")
-                self.guest.waitForTarget(120, desc="Memory target is not met after boot")
+                self.waitForTarget(120)
 
             # Are we meant to do lifecycle ops
             if self.DO_LIFECYCLE_OPS and doLifecycleOps:
@@ -443,16 +439,15 @@ class _BalloonSmoketest(_BalloonPerfBase):
             else:
                 raise
 
-    def testMaxRange(self, minMem, maxMem, smaxMem):
+    def testMaxRange(self, minMem, maxMem):
         step("Set dynamic-min=dynamic-max=min, static-max=max")
-        self.guest.setMemoryProperties(None, minMem, minMem, smaxMem)
+        self.guest.setMemoryProperties(None, minMem, minMem, maxMem)
 
         self.guest.start()
-        self.guest.checkMemory(inGuest=True)
         self.status = "booted"
 
         step("Check the target has been met correctly")
-        self.guest.waitForTarget(120, desc="Memory target is not met after boot")
+        self.waitForTarget(120)
                 
         step("Check by how much value can we balloon up/down the VM")
         stepSize = min((maxMem-minMem),9*self.MEMORY_STEP)
@@ -463,14 +458,10 @@ class _BalloonSmoketest(_BalloonPerfBase):
         while memStep+stepSize < maxMem:
             memStep = memStep + stepSize
             self.guest.setDynamicMemRange(memStep, memStep)
-            self.guest.waitForTarget(800)
-            xenrt.sleep(30)
-            self.guest.checkMemory(inGuest=True)
+            self.waitForTarget(800)
         self.guest.setDynamicMemRange(maxMem, maxMem)
 
-        self.guest.waitForTarget(800)
-        xenrt.sleep(30)
-        self.guest.checkMemory(inGuest=True)
+        self.waitForTarget(800)
 
         step("Verify it can balloon down to min")
         memStep = maxMem
@@ -478,14 +469,19 @@ class _BalloonSmoketest(_BalloonPerfBase):
         while memStep-stepSize > minMem:
             memStep = memStep - stepSize
             self.guest.setDynamicMemRange(memStep, memStep)
-            self.guest.waitForTarget(800)
-            xenrt.sleep(30)
-            self.guest.checkMemory(inGuest=True)
+            self.waitForTarget(800)
         self.guest.setDynamicMemRange(minMem, minMem)
 
-        self.guest.waitForTarget(800)
+        self.waitForTarget(800)
+
+    def waitForTarget(self, timeout):
+        try:
+            self.guest.waitForTarget(timeout, desc="Memory target is not met")
+        except:
+            #If waitForTarget timeout/fails, ignore it and perform checkmemory
+            pass
         xenrt.sleep(30)
-        self.guest.checkMemory(inGuest=True)
+        self.guest.checkMemory(inGuest=True, allowTargetMismatch=self.ALLOWED_TARGET_MISMATCH)
 
     def lifecycleOps(self, min):
         step("Perform Lifecycle operations on the VM")

@@ -86,7 +86,7 @@ class XenRTUIPage(XenRTPage):
 </div>
 <p>
 <div id="user"><div style="float:right">%s</div></div>
-</p>""" % self.request.__dict__
+</p>""" % self.loggedInAs()
         return {"commonhead": commonhead, "commonbody": commonbody, "userIsAdmin": self.getUser() and self.getUser().admin}
 
 class XenRTMinimalUIPage(XenRTUIPage):

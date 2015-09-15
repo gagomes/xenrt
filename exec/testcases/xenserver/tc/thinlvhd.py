@@ -16,6 +16,10 @@ class _ThinLVHDBase(xenrt.TestCase):
     """Base class of thinprovisioning TCS.
     All TC specific utilities should be implemented in this class."""
 
+    # Margin factor of VDI size checking
+    VDI_MIN_MARGIN = 0.95
+    VDI_MAX_MARGIN = 1.05
+
     def prepare(self, arglist=[]):
         self.host = self.getDefaultHost()
         self.srs = self.getThinProvisioningSRs()
@@ -267,6 +271,54 @@ class _ThinLVHDBase(xenrt.TestCase):
 
         return int(output.split()[-1])
 
+    def verifyInitialAlloc(self, sr, vdi):
+        """Check given VDI is created as expected.
+        
+        @param vdi: VDI uuid to examine.
+        """
+
+        initial = self.getInitialAllocation(vdi)
+        if initial == None:
+            initial = self.getInitialAllocation(sr)
+
+        if initial == None:
+            return
+
+        vdisize = self.getPhysicalVDISize(vdi)
+        lowerboarder = initial * self.VDI_MIN_MARGIN
+        upperboarder = max(initial * self.VDI_MAX_MARGIN, 32 * xenrt.MEGA)
+        if not (lowerboarder <= vdisize <= upperboarder):
+            raise xenrt.XRTFailure("VDI size is not in the threshold. expected: %d <= vdi <= %d, vdisize: %d" %
+                    (lowerboarder, upperboarder, vdisize))
+
+    def createVDI(self, sr, sizebytes, name=None, initialAlloc=None, quantumAlloc=None, verifyInitial=False):
+        """Creating VDI on thinLVHD
+        
+        @param sr: SR instance or sr uuid string to create VDI
+        @param sizebytes: virtual-size of VDI to create
+        @param name: name of VDI
+        @param initialAlloc: initial_allocation smconfig option.
+        @param quantumAlloc: allocation_quantum smconfig option
+        
+        @return: UUID of created VDI
+        """
+
+        if hasattr(self, "host"):
+            host = self.host
+        else:
+            host = self.getDefaultHost()
+        
+        if not isinstance(sr, xenrt.lib.xenserver.StorageRepository):
+            sr = xenrt.lib.xenserver.getStorageRepositoryClass(host, sr).fromExistingSR(host, sr)
+
+        smconf = self.__buildsmconfig(initialAlloc, quantumAlloc)
+        vdiuuid = sr.createVDI(sizebytes, smconf, name)
+
+        if verifyInitial:
+            self.initialAllocVerification(vdiuuid)
+
+        return vdiuuid
+
 
 class ThinProvisionVerification(_ThinLVHDBase):
     """ Verify SW thin provisioning available only on LVHD """
@@ -385,7 +437,7 @@ class ResetOnBootThinSRSpace(_ThinLVHDBase):
 
         step("Create a VDI and add it to guest.")
         self.guest.setState("UP")
-        vdi = self.host.createVDI(sizebytes=xenrt.GIGA, sruuid=self.srs[0].uuid)
+        vdi = self.createVDI(sr=self.srs[0], sizebytes=xenrt.GIGA)
         device = self.guest.createDisk(vdiuuid=vdi, returnDevice=True)
 
         step("Set VDI to reset on boot.")
@@ -927,7 +979,7 @@ class TCConcurrentAccess(_ThinLVHDBase):
             guest = master.cloneVM(name="testvm_%d" % i)
             guest.setHost(self.hosts[i % hostcount])
             guest.setState("UP")
-            vdi = self.host.createVDI(self.vdisize * xenrt.GIGA, name="testdisk_%d" % i)
+            vdi = self.createVDI(self.sr, self.vdisize * xenrt.GIGA, name="testdisk_%d" % i)
             self.uninstallOnCleanup(guest)
 
             self.guests[guest] = {'vdi': vdi}

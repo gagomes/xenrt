@@ -3,7 +3,6 @@
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
     <PREPARE_WORKERS>2</PREPARE_WORKERS>
-    <DOTNETVERSION>3.5</DOTNETVERSION>
   </variables>
 
   <prepare>
@@ -19,6 +18,8 @@
       <testcase id="testcases.xenserver.tc.gui.TC19064"/>
       <testcase id="testcases.xenserver.tc.gui.TC19065"/>
       <testcase id="testcases.xenserver.tc.gui.TC19066"/>
+      <testcase id="testcases.xenserver.tc.gui.TC27321"/>
+      <testcase id="testcases.xenserver.tc.gui.TC27322"/>
     </serial>
   </testsequence>
 </xenrt>

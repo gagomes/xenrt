@@ -297,11 +297,7 @@ class _InstallXenCenter(xenrt.TestCase):
         
         # Install XenCenter
         self.guest.installCarbonWindowsGUI()
-        
-        # Check .NET3.5 framework is installed
-        if self.guest.winRegLookup('HKLM', 'SOFTWARE\\Microsoft\\NET Framework Setup\\NDP\\v3.5', 'Install', healthCheckOnFailure=False) != 1:
-            raise xenrt.XRTFailure(".NET framework is not installed")
-        
+
         # Check path to XenCenter
         guipath, guiexe = self.guest.findCarbonWindowsGUI()
         if not guipath or not guiexe:
@@ -393,3 +389,13 @@ class TC19066(_InstallXenCenter):
     """XenCenter install verification on Windows 8 64bit guest"""
     DISTRO = "win8-x64"
     NAME = "Windows 8 64bit"
+    
+class TC27321(_InstallXenCenter):
+    """XenCenter install verification on Windows 10 32bit guest"""
+    DISTRO = "win10-x86"
+    NAME = "Windows 10 32bit"
+
+class TC27322(_InstallXenCenter):
+    """XenCenter install verification on Windows 10 64bit guest"""
+    DISTRO = "win10-x64"
+    NAME = "Windows 10 64bit"

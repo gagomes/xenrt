@@ -12,13 +12,10 @@
   
   <testsequence>
     <serial group="XenCenter">
-      <testcase id="testcases.xenserver.tc.gui.TC19053"/>
-      <testcase id="testcases.xenserver.tc.gui.TC19054"/>
       <testcase id="testcases.xenserver.tc.gui.TC19055"/>
       <testcase id="testcases.xenserver.tc.gui.TC19056"/>
       <testcase id="testcases.xenserver.tc.gui.TC19057"/>
       <testcase id="testcases.xenserver.tc.gui.TC19058"/>
-      <testcase id="testcases.xenserver.tc.gui.TC19059"/>
     </serial>
   </testsequence>
 </xenrt>

@@ -393,9 +393,33 @@ class StorageRepository(object):
                                        name,
                                        body,
                                        priority)
-                                       
+
     def scan(self):
         self.host.getCLIInstance().execute("sr-scan", "uuid=%s" % self.uuid)
+
+    def createVDI(self, sizebytes, smconfig={}, name=None):
+        cli = self.host.getCLIInstance()
+        args = []
+        if name and type(name) == type(""):
+            name = name.strip()
+            if len(name) > 0:
+                args.append("name-label=\"%s\"" % (name))
+            else:
+                name = None
+        else:
+            name = None
+        if not name:
+            if xenrt.TEC().lookup("WORKAROUND_CA174211", False, boolean=True):
+                args.append("name-label=\"Created_by_XenRT\"")
+            else:
+                args.append("name-label=\"Created by XenRT\"")
+        args.append("sr-uuid=%s" % (self.uuid))
+        args.append("virtual-size=%s" % (sizebytes))
+        args.append("type=user")
+        for key in smconfig:
+            args.append("sm-config:%s=%s" % (key, smconfig[key]))
+
+        return cli.execute("vdi-create", string.join(args), strip=True)
 
 
 class EXTStorageRepository(StorageRepository):

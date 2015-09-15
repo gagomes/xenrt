@@ -11383,7 +11383,12 @@ done
         pxecfg.mbootArgsKernelAdd("watchdog")
         pxecfg.mbootArgsKernelAdd("com%s=%s,8n1" % (comport, serbaud))
         pxecfg.mbootArgsKernelAdd("console=com%s,tty" % (comport))
-        pxecfg.mbootArgsKernelAdd("dom0_mem=752M")
+        if isinstance(self, xenrt.lib.xenserver.DundeeHost):
+            pxecfg.mbootArgsKernelAdd("dom0_mem=1024M,max:1024M")
+        elif isinstance(self, xenrt.lib.xenserver.TampaHost):
+            pxecfg.mbootArgsKernelAdd("dom0_mem=752M,max:752M")
+        else:
+            pxecfg.mbootArgsKernelAdd("dom0_mem=752M")
         pxecfg.mbootArgsKernelAdd("dom0_max_vcpus=2")
         if xen_extra_args:
             pxecfg.mbootArgsKernelAdd(xen_extra_args)

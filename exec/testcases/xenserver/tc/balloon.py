@@ -236,7 +236,7 @@ class _BalloonSmoketest(_BalloonPerfBase):
         if self.DISTRO in xenrt.TEC().lookup(["VERSION_CONFIG",xenrt.TEC().lookup("PRODUCT_VERSION"), "EARLY_PV_LINUX"], "").split(","):
             log("This is a early PV guest and it cannot balloon up beyond initial memory allocation")
             self.BALLOON_UP_INITIAL_ALLOC = False
-        elif self.DISTRO in xenrt.TEC().lookup(["VERSION_CONFIG",xenrt.TEC().lookup("PRODUCT_VERSION"), "HVM_LINUX"], "").split(","):
+        elif [d for d in self.host.lookup("HVM_LINUX", "").split(",") if re.match(d,self.DISTRO)]:
             log("This is a early HVM PV guest and we need to consider the constraint for 10 MB video memory")
             self.HVM_PV_CONSTRAINT = True
         elif self.ARCH == "x86-32":

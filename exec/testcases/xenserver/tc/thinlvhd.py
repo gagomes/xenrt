@@ -719,7 +719,7 @@ class TCThinLVHDSRProtection(_ThinLVHDBase):
 
     def checkVdiWrite(self, guest, device = None, size=xenrt.GIGA):
         try:
-            self.fillDisk(guest, size=size, targetDir=device)
+            self.fillDisk(guest, size=size, targetDir="/dev/%s" % device)
         except Exception, e:
             log("Not able to write in to device %s on the guest %s : failed with exception %s: " % (device, guest, str(e)))
             return False

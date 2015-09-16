@@ -3720,6 +3720,9 @@ class Config(object):
         # Sally: xen, xen-device-model. Rolls up XS61E003, XS61E004, XS61E006, XS61E008, XS61E009, XS61E012, XS61E013, XS61E017, XS61E019, XS61E020,XS61E021, XS61E022, XS61E023, XS61E024, XS61E025, XS61E026, XS61E027, XS61E032, XS61E033, XS61E036, XS61E037, XS61E041, XS61E043, XS61E045, XS61E046, XS61E050, XS61E051,XS61E051,XS61E052,XS61E053
         self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E054"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E054/102106/hotfix-XS61E054/XS61E054.xsupdate"
       
+        # AbbeyWrap: Dom0 kernel. Rolls up XS61E014, XS61E018, XS61E028, XS61E030, XS61E035, XS61E039, XS61E042.
+        self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E055"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E055/103772/hotfix-XS61E055/XS61E055.xsupdate"
+      
         # Tardy: xen, xapi, xen-bugtool. Rolls up XS61E003, XS61E004, XS61E006, XS61E008, XS61E009, XS61E012, XS61E013, XS61E017, XS61E019, XS61E020,XS61E021, XS61E022, XS61E023, XS61E024, XS61E025, XS61E026, XS61E027, XS61E032, XS61E033, XS61E036, XS61E037, XS61E041, XS61E043, XS61E045, XS61E046, XS61E050, XS61E051, XS61E052, XS61E053, XS61E054
         self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E056"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E056/102720/hotfix-XS61E056/XS61E056.xsupdate"
         
@@ -4010,6 +4013,9 @@ class Config(object):
         # Dec: xen-tools fixes and windows10 support. rolls up  XS65ESP1003
         self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1010"] = "/usr/groups/release/XenServer-6.x/XS-6.5-SP1/hotfixes/XS65ESP1010/104245/hotfix-XS65ESP1010/XS65ESP1010.xsupdate"
         self.config["TOOLS_HOTFIXES"]["Creedence"]["SP1"].append("XS65ESP1010")
+        
+        # Pixie: xen. Rolls up XS65E009,XS65E010,XS65E013,XS65E014,XS65ESP1002,XS65ESP1004,XS65ESP1008, XS65ESP1009.
+        self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1011"] = "/usr/groups/release/XenServer-6.x/XS-6.5-SP1/hotfixes/XS65ESP1011/104305/hotfix-XS65ESP1011/XS65ESP1011.xsupdate"
         return
 
     def setSecondaryVariables(self):
@@ -4149,10 +4155,10 @@ class Config(object):
         self.config["CARBON_PATCHES_TAMPA"]["HF09"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E009"]
         self.config["CARBON_PATCHES_TAMPA"]["HF20"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E020"]
         self.config["CARBON_PATCHES_TAMPA"]["HF40"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E040"]
-        self.config["CARBON_PATCHES_TAMPA"]["HF42"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E042"]
         self.config["CARBON_PATCHES_TAMPA"]["HF44"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E044"]
         self.config["CARBON_PATCHES_TAMPA"]["HF47"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E047"]
         self.config["CARBON_PATCHES_TAMPA"]["HF48"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E048"]
+        self.config["CARBON_PATCHES_TAMPA"]["HF55"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E055"]
         self.config["CARBON_PATCHES_TAMPA"]["HF58"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E058"]
         
         if not self.config.has_key("CARBON_PATCHES_CLEARWATER"):
@@ -4185,12 +4191,11 @@ class Config(object):
             self.config["CARBON_PATCHES_CREEDENCE"]["HF05"] = self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E005"]
             self.config["CARBON_PATCHES_CREEDENCE"]["HF08"] = self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E008"]
             self.config["CARBON_PATCHES_CREEDENCE"]["HF11"] = self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E011"]
-            self.config["CARBON_PATCHES_CREEDENCE"]["HF14"] = self.config["HOTFIXES"]["Creedence"]["RTM"]["XS65E014"]
         elif branch == "SP1":
             self.config["CARBON_PATCHES_CREEDENCE"]["HF00"] = self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1"]
             self.config["CARBON_PATCHES_CREEDENCE"]["HF05"] = self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1005"]
-            self.config["CARBON_PATCHES_CREEDENCE"]["HF09"] = self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1009"]
             self.config["CARBON_PATCHES_CREEDENCE"]["HF10"] = self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1010"]
+            self.config["CARBON_PATCHES_CREEDENCE"]["HF11"] = self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1011"]
             
     def readFromFile(self, filename, path=None):
         """Read config from an XML file."""

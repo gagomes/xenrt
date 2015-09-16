@@ -605,13 +605,13 @@ class TCThinAllocationDefault(_ThinLVHDBase):
         
         smconfigInitial = self.getInitialAllocation(obj=obj)
         if initial and int(initial) != smconfigInitial:
-            raise xenrt.XRTFailure("initial_allocation is incorrect for the sr %s. Expected %s found %d " %(self.sr, initial, smconfigInitial ))
+            raise xenrt.XRTFailure("initial_allocation is incorrect for %s. Expected %s found %d " %(obj, initial, smconfigInitial ))
 
         smconfigQuantum = self.getAllocationQuantum(obj=obj)
         if quantum and int(quantum) != smconfigQuantum:
-            raise xenrt.XRTFailure("allocation_quantum is incorrect for the sr %s. Expected %s found %d " %(self.sr, quantum, smconfigQuantum))
+            raise xenrt.XRTFailure("allocation_quantum is incorrect for %s. Expected %s found %d " %(obj, quantum, smconfigQuantum))
     
-    def getExpectedAllocatoion(self, initial, quantum, vdiuuid):
+    def getExpectedAllocation(self, initial, quantum, vdiuuid):
         """ Calculate the expected allocation based on the initial/quantum allocation and vdi virtual size"""
         
         currentVdiSize = self.getPhysicalVDISize(vdiuuid, self.host)
@@ -643,7 +643,7 @@ class TCThinAllocationDefault(_ThinLVHDBase):
         log("Writting %d bytes of data on to the guest" % (self.requestedSize))
         self.fillDisk(self.guest, targetDir = "/dev/%s" %(self.host.genParamGet("vbd", vbduuid, "device")), size = self.requestedSize)
         
-        expected = self.getExpectedAllocatoion(initial, quantum, vdiuuid)
+        expected = self.getExpectedAllocation(initial, quantum, vdiuuid)
         
         final = self.getPhysicalVDISize(vdiuuid, self.host)
 

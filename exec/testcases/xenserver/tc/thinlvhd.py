@@ -1083,7 +1083,7 @@ class TCSRUpgrade(_ThinLVHDBase):
         args = self.parseArgsKeyValue(arglist)
 
         self.host = self.getDefaultHost()
-        self.upgradetimeout = int(args.get("srupgradetime", self.UPGRADE_TIMEOUT)) # in minutes.
+        self.srupgradetimeout = int(args.get("srupgradetime", self.UPGRADE_TIMEOUT)) # in minutes.
 
         srtype = args.get("srtype", "lvmoiscsi")
         self.sr = self.getSRObjByType(srtype)

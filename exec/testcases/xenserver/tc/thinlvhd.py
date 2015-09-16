@@ -746,7 +746,7 @@ class TCThinLVHDSRProtection(_ThinLVHDBase):
         initial = self.getHostFreeSpace(self.slave, self.sruuid)
         device = self.guest.createDisk(sizebytes=initial + xenrt.GIGA, returnDevice=True)
         beforedown = self.getHostFreeSpace(self.slave, self.sruuid)
-        bytetowrite = (initialalloc + beforedown) / xenrt.MEGA * xenrt.MEGA
+        bytetowrite = (initialalloc + beforedown) * 0.9
 
         step("Shutting down the pool master ...")
         self.master.machine.powerctl.off()

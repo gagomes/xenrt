@@ -379,6 +379,7 @@ class _BalloonSmoketest(_BalloonPerfBase):
                 self.guest.setMemoryProperties(None, minMem, maxMem, maxMem)
                 
                 self.guest.start()
+                self.guest.checkMemory(inGuest=True)
                 self.status = "booted"
 
                 step("Check the target has been met correctly")
@@ -444,6 +445,7 @@ class _BalloonSmoketest(_BalloonPerfBase):
         self.guest.setMemoryProperties(None, minMem, minMem, maxMem)
 
         self.guest.start()
+        self.guest.checkMemory(inGuest=True)
         self.status = "booted"
 
         step("Check the target has been met correctly")
@@ -458,10 +460,12 @@ class _BalloonSmoketest(_BalloonPerfBase):
         while memStep+stepSize < maxMem:
             memStep = memStep + stepSize
             self.guest.setDynamicMemRange(memStep, memStep)
-            self.waitForTarget(800)
+            self.waitForTarget(300)
+            self.guest.checkMemory(inGuest=True)
         self.guest.setDynamicMemRange(maxMem, maxMem)
 
-        self.waitForTarget(800)
+        self.waitForTarget(300)
+        self.guest.checkMemory(inGuest=True)
 
         step("Verify it can balloon down to min")
         memStep = maxMem
@@ -469,19 +473,25 @@ class _BalloonSmoketest(_BalloonPerfBase):
         while memStep-stepSize > minMem:
             memStep = memStep - stepSize
             self.guest.setDynamicMemRange(memStep, memStep)
-            self.waitForTarget(800)
+            self.waitForTarget(300)
+            self.guest.checkMemory(inGuest=True)
         self.guest.setDynamicMemRange(minMem, minMem)
 
-        self.waitForTarget(800)
+        self.waitForTarget(300)
+        self.guest.checkMemory(inGuest=True)
 
     def waitForTarget(self, timeout):
-        try:
-            self.guest.waitForTarget(timeout, desc="Memory target is not met")
-        except:
-            #If waitForTarget timeout/fails, ignore it and perform checkmemory
-            pass
-        xenrt.sleep(30)
-        self.guest.checkMemory(inGuest=True, allowTargetMismatch=self.ALLOWED_TARGET_MISMATCH)
+        startTime = xenrt.util.timenow()
+        while (xenrt.util.timenow() - startTime) < timeout:
+            target = self.guest.getMemoryTarget()
+            actual = self.guest.getMemoryActual()
+            difference = abs(target - actual)
+            difference = min(abs(difference - self.ALLOWED_TARGET_MISMATCH ), difference)
+            percentage = float(difference) / float(target)
+            if percentage <= 1:
+                return
+            xenrt.sleep(30)
+        raise xenrt.XRTFailure("Memory target not met. Target=%u. Actual=%u." % (target, actual))
 
     def lifecycleOps(self, min):
         step("Perform Lifecycle operations on the VM")

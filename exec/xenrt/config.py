@@ -2296,6 +2296,7 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["centos55"]["MAXMEMORY64"] = "16384"
         self.config["GUEST_LIMITATIONS"]["centos56"] = {}
         self.config["GUEST_LIMITATIONS"]["centos56"]["MINMEMORY"] = "512"
+        self.config["GUEST_LIMITATIONS"]["centos56"]["STATICMINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["centos56"]["MAXMEMORY"] = "16384"
         self.config["GUEST_LIMITATIONS"]["centos56"]["MAXMEMORY64"] = "16384"
         self.config["GUEST_LIMITATIONS"]["centos57"] = {}
@@ -2332,6 +2333,7 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["centos61"]["MAXMEMORY64"] = "32768"
         self.config["GUEST_LIMITATIONS"]["centos62"] = {}
         self.config["GUEST_LIMITATIONS"]["centos62"]["MINMEMORY"] = "1024"
+        self.config["GUEST_LIMITATIONS"]["centos62"]["STATICMINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["centos62"]["MAXMEMORY"] = "16384"
         self.config["GUEST_LIMITATIONS"]["centos62"]["MAXMEMORY64"] = "131072"
         self.config["GUEST_LIMITATIONS"]["centos63"] = {}
@@ -2344,6 +2346,7 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["centos64"]["MAXMEMORY64"] = "131072"
         self.config["GUEST_LIMITATIONS"]["centos65"] = {}
         self.config["GUEST_LIMITATIONS"]["centos65"]["MINMEMORY"] = "1024"
+        self.config["GUEST_LIMITATIONS"]["centos65"]["STATICMINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["centos65"]["MAXMEMORY"] = "16384"
         self.config["GUEST_LIMITATIONS"]["centos65"]["MAXMEMORY64"] = "131072"
         self.config["GUEST_LIMITATIONS"]["centos65"]["MAX_VM_VCPUS"] = "32"

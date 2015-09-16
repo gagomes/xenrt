@@ -622,13 +622,7 @@ class TCThinAllocationDefault(_ThinLVHDBase):
             # VDI takes little space to store the meta data - and hence it never be 0
             if initial == 0:
                 expected = self.VDIMINSIZE       
-
-        vdisize = int(self.host.genParamGet("vdi", vdiuuid, "virtual-size"))
-        
-        # we can not write more than virtual-size of vdi
-        if int(initial) == vdisize:
-            expected = initial
-        
+                
         return expected
         
     def checkQuantumAlloc(self, vdiuuid, initial = DEFAULTINITIAL, quantum = DEFAULTQUANTUM):

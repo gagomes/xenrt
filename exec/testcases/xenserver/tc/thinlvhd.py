@@ -571,8 +571,8 @@ class TCThinAllocationDefault(_ThinLVHDBase):
     DEFAULTINITIAL = 0
     DEFAULTQUANTUM = 16 * xenrt.MEGA
     WRITESIZE = xenrt.GIGA
-
     DEFAULTSRTYPE = "lvmoiscsi"
+    VDIMINSIZE = 10 * xenrt.MEGA
     
     def prepare(self, arglist=[]):
         args = self.parseArgsKeyValue(arglist)
@@ -597,7 +597,7 @@ class TCThinAllocationDefault(_ThinLVHDBase):
         cli.execute("vbd-destroy", "uuid=%s" % (vbduuid))
         cli.execute("vdi-destroy", "uuid=%s" % (vdiuuid))
     
-    def checkSmconfig(self, obj=None, initial=None, quantum=None):
+    def checkSmconfig(self, obj, initial, quantum):
         """Verify smconfig of sr/vdi have correct values
 
         @param obj: sr object, sr uuid string or vdi uuid string.
@@ -614,13 +614,15 @@ class TCThinAllocationDefault(_ThinLVHDBase):
     def getExpectedAllocation(self, initial, quantum, vdiuuid):
         """ Calculate the expected allocation based on the initial/quantum allocation and vdi virtual size"""
         
-        currentVdiSize = self.getPhysicalVDISize(vdiuuid, self.host)
         if self.requestedSize > initial:
             # expected vdi size depends on initial allocation of the vdi and subsequent allocated quantum up to requested size
             expected = initial + (self.requestedSize - initial) / quantum * quantum + (quantum if (self.requestedSize - initial) % quantum else 0)
         else:
-            expected = currentVdiSize
-        
+            expected = initial
+            # VDI takes little space to store the meta data - and hence it never be 0
+            if initial == 0:
+                expected = self.VDIMINSIZE       
+
         vdisize = int(self.host.genParamGet("vdi", vdiuuid, "virtual-size"))
         
         # we can not write more than virtual-size of vdi
@@ -631,7 +633,8 @@ class TCThinAllocationDefault(_ThinLVHDBase):
         
     def checkQuantumAlloc(self, vdiuuid, initial = DEFAULTINITIAL, quantum = DEFAULTQUANTUM):
         """ Check the quantum allocation for the new request happens correctly based on the quantum allocation
-
+        
+        @param vdiuuid: UUID of vdi to examine
         @param initial : initial allocation decided 
         @param quantum : quantum allocation decided
 
@@ -647,11 +650,12 @@ class TCThinAllocationDefault(_ThinLVHDBase):
         
         final = self.getPhysicalVDISize(vdiuuid, self.host)
 
-        if not (int(expected * self.VDI_MIN_MARGIN) <= final <= int(expected * self.VDI_MAX_MARGIN)):
-            raise xenrt.XRTFailure("VDI size is not as expected after the VDI write. Expected %d bytes, found %d bytes" %
-                                  (expected, final))
+        if not ((int(expected * self.VDI_MIN_MARGIN)) <= final <= int(expected * self.VDI_MAX_MARGIN)):
+            raise xenrt.XRTFailure("VDI size is not in expected range. (%d <= %d <= %d) after writing %d bytes." \
+                                  % (expected * self.VDI_MIN_MARGIN, final, expected * self.VDI_MAX_MARGIN, self.requestedSize))
         
-        log("VDI size reported as expected %s bytes . After writting %d bytes " %(final, self.requestedSize))
+        log("VDI size is in expected range. (%d <= %d <= %d) after writing %d bytes." \
+            % (expected * self.VDI_MIN_MARGIN, final, expected * self.VDI_MAX_MARGIN, self.requestedSize))
 
     def doTest(self, SRinitial, SRquantum):
         """Decides the VDI initial/quantum and initiate the VDI check

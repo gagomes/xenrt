@@ -1,0 +1,58 @@
+<xenrt>
+
+  <!-- Read Caching FCOE Tests -->
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <NETWORK_BACKEND>bridge</NETWORK_BACKEND>
+  </variables>
+
+  <prepare>
+    <host id="0" installsr="ext">
+      <vm name="doraemon">
+        <distro>generic-linux</distro>
+        <storage>fcoesr</storage>
+        <postinstall action="snapshot" />
+      </vm>
+      <storage type="fcoe" name="fcoesr"/>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="RCFCOE">
+      <!-- Verify both xapi and tap-ctl are set by licensing state and the values agree -->
+      <testcase id="testcases.xenserver.tc.readcaching.TCLicensingRCEnabled" tc="TC-23923" name="TC-23923.FCOEWithHotfix" sku="FCOEWithHotfixBridgeMode">
+        <arg>bothChecks=yes</arg>
+        <arg>vm=doraemon</arg>
+      </testcase>
+
+      <testcase id="testcases.xenserver.tc.readcaching.TCLicensingRCDisabled" tc="TC-23924" name="TC-23924.WithFCOE" sku="WithFCOEBridgeMode">
+        <arg>bothChecks=yes</arg>
+        <arg>vm=doraemon</arg>
+      </testcase>
+
+      <!-- Switch off RC with a low level hook and check it is off -->
+      <testcase id="testcases.xenserver.tc.readcaching.TCOdirectRCDisabled" tc="TC-23925" name="TC-23925.WithFCOE" sku="WithFCOEBridgeMode">
+        <arg>bothChecks=yes</arg>
+        <arg>vm=doraemon</arg>
+      </testcase>
+
+      <!-- The prepare should switch this back on so verify that again RC is back -->
+      <testcase id="testcases.xenserver.tc.readcaching.TCLicensingRCEnabled" tc="TC-23923" name="TC-23923.FCOELowLevelEnabled" sku="FCOELowLevelEnabledBridgeMode">
+        <arg>bothChecks=yes</arg>
+        <arg>vm=doraemon</arg>
+      </testcase>
+
+      <!-- Test a series of lifecycle ops to check RC is disabled -->
+      <testcase id="testcases.xenserver.tc.readcaching.TCRCForLifeCycleOps" tc="TC-23926" name="TC-23926.WithFCOE" sku="WithFCOEBridgeMode">
+        <arg>vm=doraemon</arg>
+      </testcase>
+
+      <!-- Test SR plug-unplug -->
+      <testcase id="testcases.xenserver.tc.readcaching.TCRCForSRPlug" tc="TC-23927" name="TC-23927.WithFCOE" sku="WithFCOEBridgeMode">
+        <arg>bothChecks=yes</arg>
+        <arg>vm=doraemon</arg>
+      </testcase>
+
+    </serial>
+  </testsequence>
+</xenrt>

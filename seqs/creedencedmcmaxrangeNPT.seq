@@ -1,6 +1,6 @@
 <xenrt>
 
-  <!-- memory balloon driver EPT max range stability tests -->
+  <!-- memory balloon driver NPT max range stability tests -->
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>

@@ -445,6 +445,7 @@ class _BalloonSmoketest(_BalloonPerfBase):
         self.guest.setMemoryProperties(None, minMem, minMem, maxMem)
 
         self.guest.start()
+        xenrt.sleep(30)
         self.guest.checkMemory(inGuest=True)
         self.status = "booted"
 

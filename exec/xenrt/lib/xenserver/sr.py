@@ -178,24 +178,32 @@ class StorageRepository(object):
         for pbd in pbds:
             cli.execute("pbd-plug", "uuid=%s" % (pbd))
 
+    def unplugPBDs(self):
+        """Unplug all PBDs associated with this SR."""
+        host = self.host
+        cli = host.getCLIInstance()
+        if host.pool:
+            host = host.pool.master
+            pbds = []
+            for slave in host.pool.slaves.values()():
+                pbds.extend(host.minimalList("pbd-list", args="sr-uuid=%s host-uuid=%s" % (self.uuid, slave.uuid)))
+            pbds.extend(host.minimalList("pbd-list", args="sr-uuid=%s host-uuid=%s" % (self.uuid, host.uuid)))
+        else:
+            pbds = [s.strip() for s in self.paramGet("PBDs").split(";")]
+
+        # Unplug the PBDs
+        for pbd in pbds:
+            cli.execute("pbd-unplug", "uuid=%s" % (pbd))
+
     def forget(self):
         """Forget this SR (but keep the details in this object)"""
-        pbdlist = self.paramGet("PBDs").split(";")
-        cli = self.host.getCLIInstance()
-        for pbd in pbdlist:
-            pbd = string.strip(pbd)
-            cli.execute("pbd-unplug", "uuid=%s" % (pbd)) 
-        cli.execute("sr-forget", "uuid=%s" % (self.uuid))
+        self.unplugPBDs()
+        self.host.getCLIInstance().execute("sr-forget", "uuid=%s" % (self.uuid))
 
     def destroy(self):
         """Destroy this SR (but keep the details in this object)"""
-        pbdlist = self.paramGet("PBDs").split(";")
-        cli = self.host.getCLIInstance()
-        for pbd in pbdlist:
-            pbd = string.strip(pbd)
-            if pbd:
-                cli.execute("pbd-unplug", "uuid=%s" % (pbd)) 
-        cli.execute("sr-destroy", "uuid=%s" % (self.uuid))
+        self.unplugPBDs()
+        self.host.getCLIInstance().execute("sr-destroy", "uuid=%s" % (self.uuid))
         self.isDestroyed = True
 
     def __isEligibleThinProvisioning(self, srtype=None):

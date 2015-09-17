@@ -877,7 +877,7 @@ class TCVGPUSetup(VGPUOwnedVMsTest):
 
         self.hostInstallParams = {}
         if self.args.has_key("blockdom0access"):
-            self.hostInstallParams['blockDom0'] = (self.args['blockdom0access'] == "false")
+            self.hostInstallParams['blockDom0'] = not (self.args['blockdom0access'] == "false")
 
     def run(self, arglist):
         self.guest.setState("DOWN")

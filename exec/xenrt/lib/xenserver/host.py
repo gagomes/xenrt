@@ -11032,6 +11032,25 @@ class TampaHost(BostonHost):
             xenrt.TEC().logverbose("The system device wwpn information are %s " % deviceDict)
         return deviceDict
 
+    def scanScsiBus(self, timeout=30):
+        """Scanning SCSI subsystem for new devices"""
+
+        # Scan the scsi subsystem for new devices.
+        self.execdom0("rescan-scsi-bus.sh > rescan-scsi-bus.dat 2>&1 < /dev/null &", retval="code")
+
+        # Wait for some time to complete the scanning of devices.
+        startTime = xenrt.util.timenow()
+        while True:
+            if (xenrt.util.timenow() - startTime) > timeout * 60:
+                raise xenrt.XRTFailure("Scanning SCSI subsystem for new devices took more than %u minutes" %
+                                                                                                        timeout)
+            if self.execdom0("ps -efl | grep [r]escan-scsi-bus.sh",retval="code") > 0:
+                xenrt.TEC().logverbose("Scanning SCSI subsystem for new devices took %u minutes" %
+                                                                ((xenrt.util.timenow() - startTime)/60))
+                break
+
+            xenrt.sleep(30) # 30 seconds.
+
     def scanFibreChannelBus(self):
         """Scans the fibre channel bus for luns."""
 

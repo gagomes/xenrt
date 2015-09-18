@@ -1389,6 +1389,17 @@ class VMLoad_loginvsi(VMLoad_loginvsi_nordp):
         #install vsilogin
         VMLoad_loginvsi_nordp.install(self, guest)
 
+class VMLoad_loginvsi41(VMLoad_loginvsi):
+    def __init__(self,experiment,params):
+        VMLoad_loginvsi_nordp.__init__(self,experiment,params)
+        self.experiment.measurement_loginvsi = globals()["Measurement_loginvsi41"](experiment)
+        xenrt.TEC().logverbose("created measurement_loginvsi41: %s" % self.experiment.measurement_loginvsi)
+
+    def install(self, guest):
+        #install vsilogin41
+        vsi = testcases.xenserver.tc.perf.loginvsi.libloginvsi.LoginVSI(guest, guest)
+        vsi.installLoginVSI()
+
 class VMLoad_loginvsi_rds(VMLoad_loginvsi):
     pyfile = os.path.expanduser("~/xenrt.git/exec/testcases/xenserver/tc/perf/loginvsi/installloginvsitargetrds.py")
     
@@ -2882,7 +2893,7 @@ class Experiment_vmrun_cron(Experiment_vmrun):
 
             #login vms manually when using 2-stage loginvsi
             xenrt.TEC().logverbose("DEBUG: vm_load_1.__class__.__name__ = %s" % self.vm_load_1.__class__.__name__)
-            if self.vm_load_1.__class__.__name__=="VMLoad_loginvsi": #is it a loginvsi load?
+            if "VMLoad_loginvsi" in self.vm_load_1.__class__.__name__: #is it a loginvsi load?
                 xenrt.TEC().logverbose("rdplogon: measurement_loginvsi: %s" % (self.measurement_loginvsi,))
                 if self.measurement_loginvsi:
                     self.measurement_loginvsi.rdplogon()

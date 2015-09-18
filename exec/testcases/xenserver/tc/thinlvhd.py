@@ -319,6 +319,19 @@ class _ThinLVHDBase(xenrt.TestCase):
 
         return vdiuuid
 
+    def preLogs(self):
+        """Called just after run() is done before postRun() executed."""
+
+        srs = self.getThinProvisioningSRs()
+        for sr in srs:
+            sr.scan()
+            host = sr.host
+            try:
+                host.execdom0("xenvm vgs /dev/VG_XenStorage-%s" % sr.uuid)
+                host.execdom0("xenvm lvs /dev/VG_XenStorage-%s" % sr.uuid)
+            except:
+                pass
+
 
 class ThinProvisionVerification(_ThinLVHDBase):
     """ Verify SW thin provisioning available only on LVHD """

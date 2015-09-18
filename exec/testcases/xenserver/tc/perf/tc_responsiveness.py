@@ -68,6 +68,7 @@ BN=$(echo $BUILD_NUMBER | sed 's/[A-Za-z]*//g')
 mount %s /mnt
 MNT_PATH=$(find /mnt/carbon/ -maxdepth 2 -name $BN)
 rpm -i --replacepkgs $MNT_PATH/binary-packages/RPMS/domain0/RPMS/x86_64/kernel-devel-* || true
+umount /mnt
 """ % (self.mount_path))
 
     def prepareWorkloadModule(self):

@@ -42,7 +42,7 @@ class LunPerVDIPerfBase(testcases.xenserver.tc.lunpervdi.LunPerVDI):
         self.hosts.sort()
 
         for host in self.hosts:
-            host.scanFibreChannelBus()
+            host.scanScsiBus()
             host.enableMultipathing()
             self.checkForStaticLuns(host)
 

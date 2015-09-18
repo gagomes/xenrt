@@ -66,7 +66,7 @@ class LunPerVDI(xenrt.TestCase):
         self.hosts.sort()
 
         for host in self.hosts:
-            host.scanFibreChannelBus()
+            host.scanScsiBus()
             host.enableMultipathing()
             
             # In Creedence, Borehamwood features are installed by default. However, it requires to enable it.

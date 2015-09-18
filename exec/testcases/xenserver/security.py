@@ -556,9 +556,11 @@ class TCXSA112(_TCXSA):
     def prepare(self, arglist=None):
         _TCXSA.prepare(self, arglist)
         #change log level for pre dundee hosts
-        if not isinstance(self.host, xenrt.lib.xenserver.DundeeHost):
+        if isinstance(self.host, xenrt.lib.xenserver.DundeeHost):
+            self.host.execdom0("/opt/xensource/libexec/xen-cmdline --set-xen loglvl=all guest_loglvl=all")
+        else:
             self.host.execdom0("sed -e 's/\(append .*xen\S*.gz\)/\\0 loglvl=all guest_loglvl=all/' /boot/extlinux.conf > tmp && mv tmp /boot/extlinux.conf -f")
-            self.host.reboot()
+        self.host.reboot()
         self.replaceHvmloader("/usr/groups/xenrt/xsa_test_files/test-hvm-xsa-112")
         
     def run(self, arglist=None):

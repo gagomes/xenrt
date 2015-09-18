@@ -1102,7 +1102,7 @@ class Measurement_loginvsi41(Measurement_loginvsi):
             # location of where to store this job's loginvsi results for this guest
             vsilog_dir="%s/%s" % (self.experiment.tc.tec.getLogdir(),guest.getName())
             os.mkdir(vsilog_dir)
-            script="(cd %s; smbget -d 9 -Rr 'smb://Administrator:xensource@%s/loginvsi/_VSI_Logfiles/$$$/Results')" % (vsilog_dir,guest.mainip)
+            script="(cd %s; smbget -d 9 -Rr 'smb://Administrator:xensource@%s/VSIShare/_VSI_Logfiles/test/Results')" % (vsilog_dir,guest.mainip)
             xenrt.TEC().logverbose(script)
             try:
                 import commands

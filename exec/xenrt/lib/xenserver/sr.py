@@ -185,7 +185,7 @@ class StorageRepository(object):
         if host.pool:
             host = host.pool.master
             pbds = []
-            for slave in host.pool.slaves.values()():
+            for slave in host.pool.slaves.values():
                 pbds.extend(host.minimalList("pbd-list", args="sr-uuid=%s host-uuid=%s" % (self.uuid, slave.uuid)))
             pbds.extend(host.minimalList("pbd-list", args="sr-uuid=%s host-uuid=%s" % (self.uuid, host.uuid)))
         else:

@@ -2483,7 +2483,7 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["sles114"]["MAX_VM_VCPUS"] = "32"
         self.config["GUEST_LIMITATIONS"]["sles114"]["MAX_VM_VCPUS64"] = "32"
         self.config["GUEST_LIMITATIONS"]["sled113"] = {}
-        self.config["GUEST_LIMITATIONS"]["sled113"]["MINMEMORY"] = "4096"
+        self.config["GUEST_LIMITATIONS"]["sled113"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["sled113"]["STATICMINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["sled113"]["MAXMEMORY"] = "16384"
         self.config["GUEST_LIMITATIONS"]["sled113"]["MAXMEMORY64"] = "524288"
@@ -2495,7 +2495,7 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["sles12"]["MAXMEMORY"] = "16384"
         self.config["GUEST_LIMITATIONS"]["sles12"]["MAXMEMORY64"] = "524288"
         self.config["GUEST_LIMITATIONS"]["sled12"] = {}
-        self.config["GUEST_LIMITATIONS"]["sled12"]["MINMEMORY"] = "4096"
+        self.config["GUEST_LIMITATIONS"]["sled12"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["sled12"]["STATICMINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["sled12"]["MAXMEMORY"] = "16384"
         self.config["GUEST_LIMITATIONS"]["sled12"]["MAXMEMORY64"] = "524288"

@@ -618,10 +618,8 @@ class TCThinAllocationDefault(_ThinLVHDBase):
             # expected vdi size depends on initial allocation of the vdi and subsequent allocated quantum up to requested size
             expected = initial + (self.requestedSize - initial) / quantum * quantum + (quantum if (self.requestedSize - initial) % quantum else 0)
         else:
-            expected = initial
             # VDI takes little space to store the meta data - and hence it never be 0
-            if initial == 0:
-                expected = self.VDIMINSIZE       
+            expected = initial if initial and initial > self.VDIMINSIZE else self.VDIMINSIZE
                 
         return expected
         
@@ -683,7 +681,7 @@ class TCThinAllocationDefault(_ThinLVHDBase):
                 raise xenrt.XRTFailure("VDI creation succeeded even with VDI allocation quantum smaller than sr allocation quantum value")
             
             #check we have correct values populated in vdi smconfig
-            self.checkSmconfig(vdiuuid, vdiinitial, vdiquantum)
+            #self.checkSmconfig(vdiuuid, vdiinitial, vdiquantum)
             
             # Check quantum allocation is as expected for the VDI
             self.checkQuantumAlloc(vdiuuid, int(vdiinitial), int(vdiquantum))

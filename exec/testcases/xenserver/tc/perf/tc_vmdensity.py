@@ -1090,6 +1090,45 @@ class Measurement_loginvsi(Measurement):
         xenrt.TEC().logverbose("waiting for last rdplogon thread to finish first loginvsi loop")
         time.sleep(600) #TODO: instead of waiting an ad-hoc time, smbget vm's share every minute or so and probe for the vsimax file
 
+class Measurement_loginvsi41(Measurement_loginvsi):
+    def start(self,coord):
+        pass
+    def stop(self,coord,guest):
+        pass
+    def finalize(self):
+        for vm in self.experiment.tc.VMS:
+            guest = self.experiment.guests[vm]
+            # location of where to store this job's loginvsi results for this guest
+            vsilog_dir="%s/%s" % (self.experiment.tc.tec.getLogdir(),guest.getName())
+            os.mkdir(vsilog_dir)
+            script="(cd %s; smbget -d 9 -Rr 'smb://Administrator:xensource@%s/loginvsi/_VSI_Logfiles/$$$/Results')" % (vsilog_dir,guest.mainip)
+            xenrt.TEC().logverbose(script)
+            try:
+                import commands
+                r=commands.getstatusoutput(script)
+                if r[0]==0: #ran cmd successfully
+                    xenrt.TEC().logverbose(r[1])
+                    for root, folders, files in os.walk(vsilog_dir): 
+                        for f in files:
+                            #add all fetched files to the xenrt log
+                            guest.addExtraLogFile(root+f)
+                else:
+                    xenrt.TEC().logverbose("error while executing smbget: %s" % (r,))
+            except Exception, e:
+                xenrt.TEC().logverbose("while smbgetting vsi logs: %s" % e)
+        killrdplogons="%s %s" % (
+            self.experiment.tc.getPathToDistFile(subdir="support-files/killpchildren.sh"),
+            os.getpid())
+        try:
+            import commands
+            r=commands.getstatusoutput(killrdplogons)
+            if r[0]==0: #ran cmd successfully
+                xenrt.TEC().logverbose(r[1])
+            else:
+                xenrt.TEC().logverbose("error while executing killpchildren: %s" % (r,))
+        except Exception, e:
+            xenrt.TEC().logverbose("during killpchildren: %s" % e)
+
 class Measurement_loginvsi_rds(Measurement_loginvsi):
 
     #def finalize(self):

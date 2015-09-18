@@ -601,14 +601,19 @@ class TCThinAllocationDefault(_ThinLVHDBase):
         """Verify smconfig of sr/vdi have correct values
 
         @param obj: sr object, sr uuid string or vdi uuid string.
+        
+        @initial : initial allocation of obj to be examine
+        
+        @quantum : allocation quantum of obj to be examine
         """
         
         smconfigInitial = self.getInitialAllocation(obj=obj)
-        if initial and int(initial) != smconfigInitial:
+            
+        if int(initial) != smconfigInitial:
             raise xenrt.XRTFailure("initial_allocation is incorrect for %s. Expected %s found %d " %(obj, initial, smconfigInitial ))
 
         smconfigQuantum = self.getAllocationQuantum(obj=obj)
-        if quantum and int(quantum) != smconfigQuantum:
+        if int(quantum) != smconfigQuantum:
             raise xenrt.XRTFailure("allocation_quantum is incorrect for %s. Expected %s found %d " %(obj, quantum, smconfigQuantum))
     
     def getExpectedAllocation(self, initial, quantum, vdiuuid):

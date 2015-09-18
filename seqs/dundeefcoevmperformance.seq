@@ -4,7 +4,6 @@
 
  <default name="DISTRO" value="debian70" />
  <default name="SRTYPE" value="lvmofcoe" />
- <default name="SROPTIONS" value="none" />
  <default name="NUMVMS" value="100" />
  <default name="OUTPUTFILE" value="srscaletiming.log" />
 
@@ -17,10 +16,9 @@
  </prepare>
 
  <testsequence>
-   <testcase id="xenserver.tc.perf.thinlvhdperf.TCVDIscalability" tc="TC-27141" name="TCFcoeVDIScalability">
+   <testcase id="xenserver.tc.perf.thinlvhdperf.TCVDIScalability" tc="TC-27141" name="TCFcoeVDIScalability">
      <arg>distro=${DISTRO}</arg>
      <arg>srtype=${SRTYPE}</arg>
-     <arg>sroptions=${SROPTIONS}</arg>
      <arg>numvms=${NUMVMS}</arg>
      <arg>outputfile=${OUTPUTFILE}</arg>
    </testcase>

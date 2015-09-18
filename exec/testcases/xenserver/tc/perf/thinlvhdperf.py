@@ -8,12 +8,11 @@
 # copyrighted material is governed by and subject to terms and
 # conditions as licensed by Citrix Systems, Inc. All other rights reserved.
 
-import xenrt, string, threading, time
-from xenrt.lib.xenserver import ISCSIStorageRepository, NFSStorageRepository
-from testcases.xenserver.tc.scalability import _TimedTestCase
+import xenrt
 from xenrt.lazylog import step, log, warning
+from testcases.xenserver.tc.perf.libperf import PerfTestCase
 
-class ThinLVHDPerfBase(xenrt.TestCase):
+class ThinLVHDPerfBase(PerfTestCase):
 
     # "var name" : [<default value>(mandatory), <name in arg list>, <name in TEC>]
     ENV_VARS = {"vms": [20, "numvms", "VMCOUNT"],
@@ -41,10 +40,11 @@ class ThinLVHDPerfBase(xenrt.TestCase):
 
         # Check type and cast to right type
         if type(default) == bool:
-            if var.strip().lower() in ["yes", "true"]:
-                var = True
-            else:
-                var = False
+            if type(var) != bool:
+                if var.strip().lower() in ["yes", "true"]:
+                    var = True
+                else:
+                    var = False
         elif type(default) == int:
             var = int(var)
 
@@ -62,16 +62,6 @@ class ThinLVHDPerfBase(xenrt.TestCase):
             for var in self.ENV_VARS:
                 log("%s: %s" % (var, getattr(self, var)))
             log("=======================")
-
-    def setDefaultSR(self, sr):
-        """Set given SR to default"""
-
-        host = self.getDefaultHost()
-        pool = host.minimalList("pool-list")[0]
-        host.genParamSet("pool", pool, "default-SR", sr.uuid)
-        host.genParamSet("pool", pool, "crash-dump-SR", sr.uuid)
-        host.genParamSet("pool", pool, "suspend-image-SR", sr.uuid)
-
 
     def createSR(self, srsize=100, default=False):
         """Create a SR with given parameters"""
@@ -95,10 +85,12 @@ class ThinLVHDPerfBase(xenrt.TestCase):
             sr= xenrt.lib.xenserver.FCOEStorageRepository(self.host, "FCOESR")
             sr.create(fcSRScsiid)
         else:
-            raise xenrt.XRTError("SR Type: %s not defined" % self.srtype)
+            raise xenrt.XRTError("SR Type: %s not supported in the test" % self.srtype)
 
         if default:
-            self.setDefaultSR(sr)
+            sr.setDefault()
+
+        self.createdSRs = []
 
         return sr
 
@@ -113,6 +105,12 @@ class ThinLVHDPerfBase(xenrt.TestCase):
             self.host = self.getDefaultHost()
         else:
             self.host = self.pool.master
+
+    def postRun(self, arglist=None):
+        if hasattr(self, "createdSRs"):
+            for sr in self.createdSRs:
+                sr.remove()
+
 
 class TCIOLatency(ThinLVHDPerfBase):
     """Test case to measure the IO latency on a storage repository"""
@@ -129,8 +127,8 @@ class TCIOLatency(ThinLVHDPerfBase):
             "groupsize": [1, "groupsize"],
     }
 
-    def __init__(self):
-        ThinLVHDPerfBase.__init__(self, "TCIOLatency")
+    def __init__(self, tcid=None):
+        super(TCIOLatency, self).__init__("TCIOLatency")
 
         self.clones = []
         self.edisk = ( None, 2, False )  # definition of an extra disk of 2GiB.
@@ -183,7 +181,7 @@ class TCIOLatency(ThinLVHDPerfBase):
         args.append("-o %s.log" % (guest.getName())) # place the perf metrics on the guest.
         #args.append("> /root/output.log 2>&1") # display options.
         results = guest.execguest("/root/perf-latency/diskprofiler/dprofiler %s" %
-                                                        (string.join(args)), timeout=7200)
+                                                        (" ".join(args)), timeout=7200)
 
         # write the metrics to a data file.
         f = open("%s/iolatency-%s.log" % (xenrt.TEC().getLogdir(), guest.getName()), "w")
@@ -203,10 +201,11 @@ class TCIOLatency(ThinLVHDPerfBase):
 
     def run(self, arglist=None):
 
-        # Copy disk profiler tool to golden image 'vm00'
-        self.goldenVM.execguest("cd /root && wget '%s/perf-latency.tgz'" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
-        self.goldenVM.execguest("cd /root && tar -xzf perf-latency.tgz")
-        self.goldenVM.execguest("cd /root/perf-latency/diskprofiler && gcc dprofiler.c -o dprofiler && chmod +x dprofiler")
+        # Install disk profiler tool to golden image 'vm00'
+        if self.goldenVM.execcmd('test -e /root/perf-latency/diskprofiler/dprofiler', retval='code') != 0:
+            self.goldenVM.execguest("cd /root && wget '%s/perf-latency.tgz'" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
+            self.goldenVM.execguest("cd /root && tar -xzf perf-latency.tgz")
+            self.goldenVM.execguest("cd /root/perf-latency/diskprofiler && gcc dprofiler.c -o dprofiler && chmod +x dprofiler")
 
         # Check, if installed correctly.
         if self.goldenVM.execcmd('test -e /root/perf-latency/diskprofiler/dprofiler', retval='code') != 0:
@@ -227,8 +226,7 @@ class TCIOLatency(ThinLVHDPerfBase):
                 errors.append(vmName + ":" + str(e))
 
         if len(errors) > 1:
-            xenrt.TEC().logverbose("Cloning one or many VMs failed with error messages %s" % errors)
-            raise xenrt.XRTFailure("Cloning one or many VMs failed.")
+            raise xenrt.XRTFailure("Cloning one or many VMs failed with error messages %s" % errors)
 
         errors = []
         for clone in self.clones:
@@ -269,130 +267,128 @@ class TCIOLatency(ThinLVHDPerfBase):
             xenrt.TEC().logverbose("One or many guests failed to uninstall with error messages %s" % errors)
             raise xenrt.XRTFailure("One or many guests failed to unisntall.")
 
+        super(TCIOLatency, self).postRun(arglist)
 
-class TCVDIscalability(_TimedTestCase):
-    """ Measure the sequential VM clone and destory time"""
 
-    DEFAULTNUMVMS = 100
-    DEFAULTSRTYPE = "lvmoiscsi"
-    DEFAULTDISTRO = "debian70"
-    DEFAULTSROPTIONS = "thin"
+class TCVDIScalability(ThinLVHDPerfBase):
+    """ Measure the sequential VM clone and destroy time"""
+
     DEFAULTOUTPUTFILE = "thinsrscaletiming.log"
+    SCRIPT_CLONE_PATH = "/tmp/vmclone.sh"
+    SCRIPT_UNINSTALL_PATH = "/tmp/vmuninstall.sh"
+    OUTPUT_PATH = "/tmp/result.txt"
 
-    def createSR(self, host=None, sroptions="thin"):
-        if not host:
-            host = self.getDefaultHost()
-        thinProv = True if sroptions is "thin" else False
-        if self.srtype=="lvmoiscsi":
-            sr = ISCSIStorageRepository(self.host, name="lvoiscsi", thin_prov=thinProv)
-            sr.create(subtype="lvm", findSCSIID=True, noiqnset=True)
-        elif self.srtype=="lvmohba":
-            fcLun = self.host.lookup("SR_FCHBA", "LUN0")
-            fcSRScsiid = self.host.lookup(["FC", fcLun, "SCSIID"], None)
-            sr = xenrt.lib.xenserver.FCStorageRepository(self.host, "lvmohba", thin_prov=thinProv) 
-            sr.create(fcSRScsiid)
-        elif self.srtype == "nfs":
-            sr = NFSStorageRepository(self.host, "nfssr")
-            sr.create()
-        elif self.srtype == "lvm":
-            sr = host.getSRs(type="lvm")[0]
-        elif self.srtype=="lvmofcoe":
-           fcLun = self.host.lookup("SR_FCHBA", "LUN0")
-           fcSRScsiid = self.host.lookup(["FC", fcLun, "SCSIID"], None)
-           sr= xenrt.lib.xenserver.FCOEStorageRepository(self.host, "FCOESR")
-           sr.create(fcSRScsiid)
-        else:
-            raise xenrt.XRTError("We do not have provision in the test to create %s  SR." % self.srtype)
+    ENV_VARS = {"numvms": [100, "numvms", "VMCOUNT"],
+            "distro": ["debian70", "distro", "DISTRO"],
+            "srtype": ["lvmoiscsi", "srtype", "SRTYPE"],
+            "srsize": ["100", "srsize", "SRSIZE"],
+            "thinprov": [False, "thinprov", "THINPROV"],
+            "outputfile": ["result_vdiscalability.txt", "outputfile", "OUTPUTFILE"],
+    }
 
-        return sr
+    def __init__(self):
+        super(TCVDIScalability, self).__init__("TCVDIScalability")
+        self.logs = []
 
-    def cloneVMSerial(self):
-        count = 0
-        while count < self.numvms:
+    def createLogFile(self):
+        filename = "%s/%s" % (xenrt.TEC().getLogdir(), self.outputfile)
+        f = file(filename, "w")
+        f.write("\n".join(self.logs))
+        f.close()
+
+    def __noneXSCloneVMSerial(self):
+        log("Cloning the %d guests" % self.numvms)
+        for i in xrange(self.numvms):
             try:
-                log("Cloning the guest ...")
-                self.addTiming("TIME_VM_CLONE_START_%s:%.6f" % (self.distro, xenrt.util.timenow(float=True)))
-                guest = self.cloneVM(self.guest)
-                self.addTiming("TIME_VM_CLONE_COMPLETE_%s:%.6f" % (self.distro, xenrt.util.timenow(float=True)))
+                before = xenrt.util.timenow(float=True)
+                guest = self.guest.cloneVM()
+                after = xenrt.util.timenow(float=True)
                 self.cloneGuests.append(guest)
+                message = "Cloned %s" % guest.getUUID()
             except Exception as e:
-                xenrt.TEC().warning("Cloning the VM '%s' of uuid '%s' failed with exception '%s': " % (self.guest, self.guest.getUUID(), str(e)))
-                self.addTiming("TIME_VM_CLONE_COMPLETE_%s:%.6f (FAILED)" % (self.distro, xenrt.util.timenow(float=True)))
-            count = count + 1
+                after = xenrt.util.timenow(float=True)
+                message = "Cloning the VM '%s' of uuid '%s' failed with exception '%s': " % (self.guest, self.guest.getUUID(), str(e))
+            finally:
+                logline = "%.6f %s" % ((after - before), message) 
+                self.logs.append(logline)
 
-    def destoryVMSerial(self):
-        xenrt.TEC().logverbose("Uninstalling %d VMs." % len(self.cloneGuests))
-        try :
-            for guest in self.cloneGuests:
-                log("Destorying the guest ...")
-                self.addTiming("TIME_VM_DESTROY_START_%s:%.3f" % (self.distro, xenrt.util.timenow(float=True)))
-                self.uninstallVM(guest)
-                self.addTiming("TIME_VM_DESTROY_COMPLETE_%s:%.3f" % (self.distro, xenrt.util.timenow(float=True)))
-        except Exception as e:
-            xenrt.TEC().warning("Destroying the VM '%s' of uuid '%s' failed with exception '%s': " % (self.guest, self.guest.getUUID(), str(e)))
+    def __noneXSUninstallVMSerial(self):
+        log("Uninstalling %d VMs." % len(self.cloneGuests))
+        for guest in self.cloneGuests:
+            try:
+                before = xenrt.util.timenow(float=True)
+                guest = self.guest.uninstall()
+                after = xenrt.util.timenow(float=True)
+                message = "Uninstalled %s" % guest.getUUID()
+            except Exception as e:
+                after = xenrt.util.timenow(float=True)
+                message = "Uninstalling '%s' of uuid '%s' failed with exception '%s': " % (guest, guest.getUUID(), str(e))
+            finally:
+                logline = "%.6f %s" % ((after - before), message) 
+                self.logs.append(logline)
 
-    def __rawXSCloneVM(self, guest):
-        """Clone VM with raw commands.
+    def __rawXSCloneVMSerial(self):
+        # Avoiding using lib code to overhead of xenrt/python
+        log("Cloning the %d guests" % self.numvms)
+        self.logs.append("Start cloning %d VMs" % self.numvms)
+        for i in xrange(self.numvms):
+            result = self.host.execdom0(self.SCRIPT_CLONE_PATH, retval="code")
+            output = self.host.execdom0("cat %s" % self.OUTPUT_PATH).splitlines()
+            if result:
+                logline = "%s Failed cloning with error: %s" % (output[-1], " ".join(output[:-1]))
+            else:
+                logline = "%s Cloned: %s" % (output[-1], output[0])
+                self.cloneGuests.append(output[0])
+            self.logs.append(logline)
 
-        @param guest: guest object to clone.
-
-        @return: output from cli execution. "" if it succeeds.
-        """
-        # minimize xenrt lib call to avoid impact from xenrt/python delay
-        return self.cli.execute("vm-clone", args="uuid=%s new-name-label=clone" % self.guest.getUUID())
-
-    def __rawXSUninstallVM(self, guest):
-        """Destroy VM with raw commands.
-        
-        @param guest: string of guest uuid to uninstall
-
-        @return: output from cli execution. "" if it succeeds.
-        """
-        # minimize xenrt lib call to avoid impact from xenrt/python delay
-        return self.cli.execute("vm-destroy", args="uuid=%s" % guest)
-
-    def __noneXSCloneVM(self, guest):
-        return guest.cloneVM()
-
-    def __noneXSIninstallVM(self, guest):
-        return guest.uninstall()
-
-    def configParams(self):
-        self.numvms = int (xenrt.TEC().lookup("NUMVMS", self.numvms))
-        self.srtype = xenrt.TEC().lookup("SRTYPE", self.srtype)
-        self.distro = xenrt.TEC().lookup("DISTRO", self.distro)
-        self.sroptions = bool(xenrt.TEC().lookup("SROPTIONS", self.sroptions))
-        self.outputfile = xenrt.TEC().lookup("OUTPUTFILE", self.outputfile)
-        self.cloneGuests = []
+    def __rawXSUninstallVMSerial(self):
+        log("Uninstalling %d VMs." % len(self.cloneGuests))
+        self.logs.append("Uninstalling %d VMs" % len(self.cloneGuests))
+        for guest in self.cloneGuests:
+            result = self.host.execdom0("%s %s" % (self.SCRIPT_UNINSTALL_PATH, guest), retval="code")
+            output = self.host.execdom0("cat %s" % self.OUTPUT_PATH).splitlines()
+            if result:
+                logline = "%s Failed uninstalling %s with error: %s" % (output[-1], guest, " ".join(output[:-1]))
+            else:
+                logline = "%s Cloned: %s" % (output[-1], output[0])
+            self.logs.append(logline)
 
     def prepare(self, arglist=None):
-        args  = self.parseArgsKeyValue(arglist)
+        super(TCVDIScalability, self).prepare(arglist)
         self.host = self.getDefaultHost()
-        self.numvms = int(args.get("numvms", self.DEFAULTNUMVMS))
-        self.srtype = args.get("srtype", self.DEFAULTSRTYPE)
-        self.distro = args.get("distro", self.DEFAULTDISTRO)
-        self.sroptions = args.get("sroptions", self.DEFAULTSROPTIONS)
-        self.outputfile =  args.get("outputfile", self.DEFAULTOUTPUTFILE)
-        self.configParams()
         if isinstance(self.host, xenrt.lib.xenserver.Host):
-            self.cloneVM = self.__rawXSCloneVM
-            self.uninstallVM = self.__rawXSUninstallVM
-            self.cli = self.host.getCLIInstance()
+            self.cloneVMSerial = self.__rawXSCloneVMSerial
+            self.destroyVMSerial = self.__rawXSUninstallVMSerial
         else:
-            self.cloneVM = self.__noneXSCloneVM
-            self.uninstallVM = self.__noneUninstallVM
+            self.cloneVMSerial = self.__noneXSCloneVMSerial
+            self.destroyVMSerial = self.__noneXSUninstallSerial
+        self.cloneGuests = []
 
     def run(self, arglist=None):
         step("Trying to create SR of type %s" % (self.srtype))
         sr = self.createSR()
+
         step("Installing the guest %s on the SR %s" % (self.distro, self.srtype))
         self.guest = self.host.createBasicGuest(distro=self.distro, sr=sr.uuid)
         self.uninstallOnCleanup(self.guest)
         self.guest.preCloneTailor()
         self.guest.setState("DOWN")
+
+        step("Preparing scripts and output")
+        self.output = []
+        if isinstance(self.host, xenrt.lib.xenserver.Host):
+            self.host.execdom0("echo 'TIMEFORMAT=%%6R; (time xe vm-clone uuid=%s new-name-label=clone) > %s 2>&1' > %s" %
+                    (self.guest.getUUID(), self.OUTPUT_PATH, self.SCRIPT_CLONE_PATH))
+            self.host.execdom0("chmod +x %s" % self.SCRIPT_CLONE_PATH)
+            self.host.execdom0("echo 'TIMEFORMAT=%%6R; (time xe vm-uninstall uuid=$1 --force) > %s 2>&1' > %s" %
+                    (self.OUTPUT_PATH, self.SCRIPT_UNINSTALL_PATH))
+            self.host.execdom0("chmod +x %s" % self.SCRIPT_UNINSTALL_PATH)
+
         step("Start cloning the guests sequentially...")
         self.cloneVMSerial()
-        step("Start Destroying the guests sequentially...")
-        self.destoryVMSerial()
-        self.preLogs(self.outputfile)
+
+        step("Start Uninstalling the guests sequentially...")
+        self.destroyVMSerial()
+
+        self.createLogFile()
 

@@ -166,7 +166,7 @@ class _ThinLVHDBase(xenrt.TestCase):
 
         return [sr for sr in srs if sr.thinProvisioning]
 
-    def __getSRObj(self, sr):
+    def __getSRObj(self, sr, scan=True):
         """Return SR instance if it is uuid"""
 
         if hasattr(self, "host"):
@@ -178,19 +178,20 @@ class _ThinLVHDBase(xenrt.TestCase):
             # if it is not SR object, then assumes it is sr uuid string.
             sr = xenrt.lib.xenserver.getStorageRepositoryClass(host, sr).fromExistingSR(host, sr)
 
-        sr.scan()
+        if scan:
+            sr.scan()
 
         return sr
 
-    def getPhysicalUtilisation(self, sr):
+    def getPhysicalUtilisation(self, sr, scan=True):
         """Return physical utilisation of sr."""
 
-        return int(self.__getSRObj(sr).paramGet("physical-utilisation"))
+        return int(self.__getSRObj(sr, scan).paramGet("physical-utilisation"))
 
-    def getPhysicalSize(self, sr):
+    def getPhysicalSize(self, sr, scan=True):
         """Return physical size of sr"""
 
-        return int(self.__getSRObj(sr).paramGet("physical-size"))
+        return int(self.__getSRObj(sr, scan).paramGet("physical-size"))
 
     def fillDisk(self, guest, targetDir=None, size=512*xenrt.MEGA, source="/dev/zero"):
         """Fill target disk by creating an empty file with
@@ -558,18 +559,36 @@ class TCSRIncrement(_ThinLVHDBase):
 
         log("Checking SR: %s..." % sr.name)
 
+        log("Creating Guest")
         guest = self.host.createGenericLinuxGuest(sr=sr.uuid)
         guest.setState("DOWN")
         guest.preCloneTailor()
         self.uninstallOnCleanup(guest)
- 
-        origsize = self.getPhysicalUtilisation(sr)
 
+        origsize = self.getPhysicalUtilisation(sr)
+        log("Original physical utilisation: %d" % origsize)
+
+        log("Writing into VDI/VM")
         self.fillDisk(guest, size = 2 * xenrt.GIGA) # filling 2 GB
 
-        aftersize = self.getPhysicalUtilisation(sr)
+        intersize = self.getPhysicalUtilisation(sr, scan=False)
+        log("Physical utilisation after writing: %d" % intersize)
+        xenrt.sleep(150)
 
-        if aftersize <= origsize:
+        aftersize = self.getPhysicalUtilisation(sr, scan=False)
+        log("Physical utilisation after 2 mins: %s" % aftersize)
+
+        finalsize = self.getPhysicalUtilisation(sr)
+        log("Physical utilisation after sr-scan: %s" % finalsize)
+
+        if intersize != finalsize:
+            # sr scan may happen before intersize. In this case skip this bits over.
+            if intersize <= aftersize:
+                raise xenrt.XRTFailure("SR physical utilisation has not updated after 2 mins.")
+            if aftersize != finalsize:
+                raise xenrt.XRTFailure("SR physical utilisation updated but different from sr-scan result.")
+
+        if finalsize <= origsize:
             raise xenrt.XRTFailure("SR size is not growing. (SR: %s, before: %d, after: %d)" %
                 (sr.uuid, origsize, aftersize))
 

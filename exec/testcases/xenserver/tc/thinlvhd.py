@@ -597,14 +597,14 @@ class TCThinAllocationDefault(_ThinLVHDBase):
         cli.execute("vbd-destroy", "uuid=%s" % (vbduuid))
         cli.execute("vdi-destroy", "uuid=%s" % (vdiuuid))
     
-    def checkSmconfig(self, obj, initial, quantum):
+    def checkSmconfig(self, obj, initial=DEFAULTINITIAL, quantum=DEFAULTQUANTUM):
         """Verify smconfig of sr/vdi have correct values
 
         @param obj: sr object, sr uuid string or vdi uuid string.
         
-        @initial : initial allocation of obj to be examine
+        @initial : initial allocation of obj to be examine if not given then SR default initial will be taken 
         
-        @quantum : allocation quantum of obj to be examine
+        @quantum : allocation quantum of obj to be examine if not given then SR default quantum will be taken
         """
         
         smconfigInitial = self.getInitialAllocation(obj=obj)

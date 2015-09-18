@@ -1,4 +1,4 @@
-import xenrt, sys
+import xenrt, sys, testcases
 import libperf
 import string, time, re, random, math
 import traceback

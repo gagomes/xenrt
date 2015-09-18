@@ -769,7 +769,7 @@ class TCThinLVHDSRProtection(_ThinLVHDBase):
 
     def checkVdiWrite(self, guest, device = None, size=xenrt.GIGA):
         try:
-            self.fillDisk(guest, size=size, targetDir=device)
+            self.fillDisk(guest, size=size, targetDir="/dev/%s" % device)
         except Exception, e:
             log("Not able to write in to device %s on the guest %s : failed with exception %s: " % (device, guest, str(e)))
             return False
@@ -796,7 +796,7 @@ class TCThinLVHDSRProtection(_ThinLVHDBase):
         initial = self.getHostFreeSpace(self.slave, self.sruuid)
         device = self.guest.createDisk(sizebytes=initial + xenrt.GIGA, returnDevice=True)
         beforedown = self.getHostFreeSpace(self.slave, self.sruuid)
-        bytetowrite = (initialalloc + beforedown) / xenrt.MEGA * xenrt.MEGA
+        bytetowrite = (initialalloc + beforedown) * 0.9
 
         step("Shutting down the pool master ...")
         self.master.machine.powerctl.off()
@@ -1133,7 +1133,7 @@ class TCSRUpgrade(_ThinLVHDBase):
         args = self.parseArgsKeyValue(arglist)
 
         self.host = self.getDefaultHost()
-        self.upgradetimeout = int(args.get("srupgradetime", self.UPGRADE_TIMEOUT)) # in minutes.
+        self.srupgradetimeout = int(args.get("srupgradetime", self.UPGRADE_TIMEOUT)) # in minutes.
 
         srtype = args.get("srtype", "lvmoiscsi")
         self.sr = self.getSRObjByType(srtype)

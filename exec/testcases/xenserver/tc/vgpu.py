@@ -876,10 +876,8 @@ class TCVGPUSetup(VGPUOwnedVMsTest):
             self.typeofvgpu = IntelWindowsvGPU()
 
         self.hostInstallParams = {}
-        if self.args['blockdom0access'] == "false":
-            self.hostInstallParams['blockDom0'] = False
-        else:
-            self.hostInstallParams['blockDom0'] = True
+        if self.args.has_key("blockdom0access"):
+            self.hostInstallParams['blockDom0'] = not (self.args['blockdom0access'] == "false")
 
     def run(self, arglist):
         self.guest.setState("DOWN")

@@ -93,7 +93,7 @@
         <arg>typeofvgpu=intelwinvgpu</arg>
         <arg>vgpuconfig=12</arg>
       </testcase>
--->
+
 
       <testcase id="testcases.xenserver.tc.vgpu.TCvGPUBalloon" name="TC-26978" tc="TC-26978" sku="haswell">
         <arg>distro=1</arg>
@@ -101,7 +101,7 @@
         <arg>vgpuconfig=12</arg>
         <arg>novgpu</arg>
       </testcase>
-
+-->
     </serial>
   </testsequence>
 

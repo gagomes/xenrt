@@ -1,0 +1,27 @@
+<?xml version="1.0" ?>
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>3</PREPARE_WORKERS>
+    <NETWORK_BACKEND>bridge</NETWORK_BACKEND>
+    <USE_MULTIPATH>yes</USE_MULTIPATH>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="fcoe" name="fcoesr" default="true"/>
+      <host id="0"/>
+      <host id="1"/>
+      <host id="2"/>
+      <host id="3"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="FCoEHABridge">
+      <testcase id="xenserver.tc.ha.TCFCOEHAOperation" tc="TC-27138" sku="BridgeMode"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

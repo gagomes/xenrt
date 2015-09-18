@@ -1,0 +1,78 @@
+<?xml version="1.0" ?>
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <NETWORK_BACKEND>bridge</NETWORK_BACKEND>
+    <USE_MULTIPATH>yes</USE_MULTIPATH>
+  </variables>
+
+  <prepare>
+    <pool id="0">
+      <storage type="nfs" name="nfs_sourceSR"/>
+      <storage type="lvmoiscsi" name="lvmoiscsi_sourceSR" size="200" vmhost="0" options="ietvm" />
+      <storage type="fcoe" name="lvmofcoe_sourceSR" options="LUN0"/>
+      <storage type="fcoe" name="lvmofcoe_targetSR" options="LUN1"/>
+      <host id="0" installsr="ext" />
+      <host id="1" installsr="lvm" />
+    </pool>
+    <pool id="1">
+      <storage type="fcoe" name="lvmofcoe_targetSR" options="LUN2"/>
+      <host id="2" />
+      <!-- We need to use 4 hosts in this test to stop another job trampling on the SR -->
+      <host id="3" />
+    </pool>
+  </prepare>
+
+  <testsequence>
+
+    <serial group="CrossPoolSXM">
+      <!-- cross-pool sxm migration from sr-type ext, lvm, nfs, lvmoiscsi, lvmofcoe to lvmofcoe respectively. -->
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16889" tc="TC-16889" sku="WithFCOEBridgeMode">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvmofcoe</arg>
+      </testcase>
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16894" tc="TC-16894" sku="WithFCOEBridgeMode">
+        <arg>src_SR=lvm</arg>
+        <arg>dest_SR=lvmofcoe</arg>
+      </testcase>
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16899" tc="TC-16899" sku="WithFCOEBridgeMode">
+        <arg>src_SR=nfs</arg>
+        <arg>dest_SR=lvmofcoe</arg>
+      </testcase>
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16904" tc="TC-16904" sku="WithFCOEBridgeMode">
+        <arg>src_SR=lvmoiscsi</arg>
+        <arg>dest_SR=lvmofcoe</arg>
+      </testcase>
+
+      <!-- cross-pool sxm migration from sr-type lvmofcoe to ext, lvm, nfs, lvmoiscsi, lvmofcoe respectively. -->
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16905" tc="TC-16905" sku="WithFCOEBridgeMode">
+        <arg>src_host=RESOURCE_HOST_1</arg>
+        <arg>dest_host=RESOURCE_HOST_0</arg>
+        <arg>src_SR=lvmofcoe</arg>
+        <arg>dest_SR=ext</arg>
+      </testcase>
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16906" tc="TC-16906" sku="WithFCOEBridgeMode">
+        <arg>src_SR=lvmofcoe</arg>
+        <arg>dest_SR=lvm</arg>
+      </testcase>
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16907" tc="TC-16907" sku="WithFCOEBridgeMode">
+        <arg>src_host=RESOURCE_HOST_1</arg>
+        <arg>dest_host=RESOURCE_HOST_0</arg>
+        <arg>src_SR=lvmofcoe</arg>
+        <arg>dest_SR=nfs</arg>
+      </testcase>
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16908" tc="TC-16908" sku="WithFCOEBridgeMode">
+        <arg>src_host=RESOURCE_HOST_1</arg>
+        <arg>dest_host=RESOURCE_HOST_0</arg>
+        <arg>src_SR=lvmofcoe</arg>
+        <arg>dest_SR=lvmoiscsi</arg>
+      </testcase>
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC16909" tc="TC-16909" sku="WithFCOEBridgeMode">
+        <arg>src_SR=lvmofcoe</arg>
+        <arg>dest_SR=lvmofcoe</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+
+</xenrt>

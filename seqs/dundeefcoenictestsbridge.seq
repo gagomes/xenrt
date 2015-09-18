@@ -1,0 +1,21 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <NETWORK_BACKEND>bridge</NETWORK_BACKEND>
+  </variables>
+
+  <prepare>
+    <host id="0">
+       <storage type="fcoe" name="FCOESR"/>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="NetworkTests">
+      <testcase id="xenserver.tc.network.TCFCOEVmVlan" tc="TC-27150" sku="BridgeMode"/>
+      <testcase id="xenserver.tc.network.TCFCOEMngR" tc="TC-27151" sku="BridgeMode"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

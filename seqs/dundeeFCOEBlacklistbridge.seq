@@ -1,0 +1,20 @@
+<xenrt>
+
+  <!-- FCOE Blacklisting test -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <NETWORK_BACKEND>bridge</NETWORK_BACKEND>
+  </variables>
+
+  <prepare>
+    <allhosts/>
+  </prepare>
+
+  <testsequence>
+    <serial group="FCOE Blacklist Bridge">
+      <testcase id="xenserver.tc.storage.TCFCOEBlacklist" tc="TC-27244" sku="BridgeMode"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

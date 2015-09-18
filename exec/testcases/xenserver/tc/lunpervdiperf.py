@@ -49,7 +49,7 @@ class LunPerVDIPerfBase(testcases.xenserver.tc.lunpervdi.LunPerVDI):
         # Setup initial storage configuration.
         self.netAppFiler.provisionLuns(self.NO_OF_VDIS, self.VDI_SIZE, self._createInitiators())
         map(lambda host : self._customiseXenServerTemplates(host), self.hosts)
-        map(lambda host : host.scanFibreChannelBus(), self.hosts)
+        map(lambda host : host.scanScsiBus(), self.hosts)
 
     def parseArgLists(self, arglist):
         """Obtains performance parameters from sequence file."""

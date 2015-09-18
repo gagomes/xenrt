@@ -1,4 +1,5 @@
-import xenrt, sys, testcases
+import xenrt, sys
+import testcases.xenserver.tc.perf.loginvsi.libloginvsi as libloginvsi
 import libperf
 import string, time, re, random, math
 import traceback
@@ -1436,7 +1437,7 @@ class VMLoad_loginvsi41(VMLoad_loginvsi):
 
     def install(self, guest):
         #install vsilogin41
-        vsi = testcases.xenserver.tc.perf.loginvsi.libloginvsi.LoginVSI(guest, guest)
+        vsi = libloginvsi.LoginVSI(guest, guest)
         vsi.installLoginVSI()
 
 class VMLoad_loginvsi_rds(VMLoad_loginvsi):

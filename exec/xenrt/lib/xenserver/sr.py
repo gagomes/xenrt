@@ -363,10 +363,8 @@ class StorageRepository(object):
                                        (vdi, self.uuid, str(e)))
         # Unplug all the PBDs.
         xenrt.TEC().logverbose("Unplugging PBDs")
-        pbdlist = self.paramGet("PBDs").split(";")
-        for pbd in pbdlist:
-            pbd = string.strip(pbd)
-            usecli.execute("pbd-unplug", "uuid=%s" % (pbd)) 
+        self.unplugPBDs()
+
         xenrt.TEC().logverbose("Calling sr-%s" % (self.CLEANUP))
         try:
             usecli.execute("sr-%s" % (self.CLEANUP), "uuid=%s" % (self.uuid))
@@ -376,10 +374,7 @@ class StorageRepository(object):
                                    (self.CLEANUP, self.uuid, str(e)))
             if self.CLEANUP != "forget":
                 xenrt.TEC().logverbose("Try to forget the SR instead...")
-                pbdlist = self.paramGet("PBDs").split(";")
-                for pbd in pbdlist:
-                    pbd = string.strip(pbd)
-                    usecli.execute("pbd-unplug", "uuid=%s" % (pbd)) 
+                self.unplugPBDs()
                 usecli.execute("sr-forget", "uuid=%s" % (self.uuid))
 
     def prepareSlave(self, master, slave, special=None):

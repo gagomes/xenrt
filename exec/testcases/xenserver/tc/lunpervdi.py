@@ -80,7 +80,7 @@ class LunPerVDI(xenrt.TestCase):
         # Setup initial storage configuration, 10 LUNs of size 10GB each.
         self.netAppFiler.provisionLuns(10, 10, self._createInitiators())
         map(lambda host : self._customiseXenServerTemplates(host), self.hosts)
-        map(lambda host : host.scanFibreChannelBus(), self.hosts)
+        map(lambda host : host.scanScsiBus(), self.hosts)
         
     def enableBorehamwood(self, host):
         """Enable Borehamwood pluggins on host"""
@@ -768,7 +768,7 @@ class TC18365(LunPerVDI):
 
     def run(self, arglist=[]):
         addedLuns = self.netAppFiler.provisionLuns(246, 1, self._createInitiators()) # + 10 default created in prepare()
-        map(lambda host : host.scanFibreChannelBus(), self.hosts)
+        map(lambda host : host.scanScsiBus(), self.hosts)
 
         timeNow = xenrt.util.timenow()
         self.createSR()
@@ -878,7 +878,7 @@ class TC20568(LunPerVDI):
 
     def run(self, arglist=[]):
         addedLuns = self.netAppFiler.provisionLuns(65, 1, self._createInitiators()) # + 10 default created in prepare()
-        map(lambda host : host.scanFibreChannelBus(), self.hosts)
+        map(lambda host : host.scanScsiBus(), self.hosts)
 
         # 2. Create lvmoHBA SRs on the master.
         counter = 0

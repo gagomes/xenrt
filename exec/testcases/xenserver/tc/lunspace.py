@@ -25,7 +25,7 @@ class TC21547(xenrt.TestCase):
                                                                         xenrt.StorageArrayType.FibreChannel)
                                                                         
         self.host = self.getDefaultHost()
-        self.host.scanFibreChannelBus()        
+        self.host.scanScsiBus()        
         self.host.enableMultipathing()
         self.getLogsFrom(self.host)        
         

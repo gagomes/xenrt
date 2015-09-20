@@ -6,6 +6,8 @@
 
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <VPX_OS_VERSION>CentOS7</VPX_OS_VERSION>
+    <VPX_DEFAULT_PASSWORD>citrix</VPX_DEFAULT_PASSWORD>
   </variables>
 
   <prepare>
@@ -23,10 +25,6 @@
   <testsequence>
     <serial group="SourceVerify">
       <testcase id="xenserver.install.TCDom0SourceCheck" name="TC17998" tc="TC-17998">
-        <arg>ignorerpmversion=${IGNORERMPVERSION}</arg>
-      </testcase>
-
-      <testcase id="xenserver.install.TCDLVMSourceCheck" name="TC17999" tc="TC-17999">
         <arg>ignorerpmversion=${IGNORERMPVERSION}</arg>
       </testcase>
 

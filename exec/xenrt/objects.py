@@ -29,8 +29,8 @@ time.strptime('2014-06-12','%Y-%m-%d')
 
 __all__ = ["GenericPlace", "GenericHost", "NetPeerHost", "GenericGuest", "productLib",
            "RunOnLocation", "ActiveDirectoryServer", "PAMServer", "CVSMServer",
-           "WlbApplianceServer", "DemoLinuxVM", "ConversionApplianceServer","EventObserver",
-           "XenMobileApplianceServer", "_WinPEBase"]
+           "WlbApplianceServer", "WlbApplianceServerHVM", "DemoLinuxVM", "ConversionApplianceServer",
+           "ConversionApplianceServerHVM", "EventObserver", "XenMobileApplianceServer", "_WinPEBase"]
 
 class MyHTTPConnection(httplib.HTTPConnection):
     XENRT_SOCKET_TIMEOUT = 600
@@ -11370,6 +11370,62 @@ class WlbApplianceServer(object):
         if out != "1":
             raise xenrt.XRTFailure("WLB appliance not listening on expected port 8012")
 
+class WlbApplianceServerHVM(object):
+    """An object to represent a new WLB Appliance Server, which is a CentOS 7 HVM guest"""
+
+    def __init__(self, place):
+        self.place = place
+        self.password = xenrt.TEC().lookup("VPX_DEFAULT_PASSWORD", "citrix") # by default vpx root's password
+        self.wlb_password = self.password
+        if self.place:
+            self.place.password = self.password
+        self.wlb_username = "wlbuser"
+        self.wlb_port = "8012" # default port
+
+    def doFirstbootUnattendedSetup(self):
+        # wlb_self_configure.sh [wlbusername] [wlbpassword] [pgsqluser] [pgsqlpassword] [hostname] [domainname]
+        command = "/etc/init.d/wlb_self_configure.sh %s %s %s %s %s %s" % (self.wlb_username, self.wlb_password, "postgres", "postgres", "wlbvm", "xenrt.local")
+        self.place.execguest(command)
+        xenrt.sleep(300)
+        self.place.lifecycleOperation("vm-reboot", force=True)
+        xenrt.sleep(300)
+
+    def doLogin(self):
+        pass
+
+    def installSSH(self):
+        pass
+
+    def doVerboseLogs(self):
+        if isinstance(self.place.host, xenrt.lib.xenserver.TampaHost):
+            #conf file is different in wlb Tampa onwards
+            self.place.execguest("sed -i \"s/\(AnalEngTrace\).*/\\1 = 1/\" /opt/citrix/wlb/wlb.conf")
+            xenrt.sleep(2)
+            self.place.execguest("sed -i \"s/\(DataCompactionTrace\).*/\\1 = 1/\" /opt/citrix/wlb/wlb.conf")
+            xenrt.sleep(2)
+            self.place.execguest("sed -i \"s/\(DataGroomingTrace\).*/\\1 = 1/\" /opt/citrix/wlb/wlb.conf")
+            xenrt.sleep(2)
+            self.place.execguest("sed -i \"s/\(ScoreHostTrace\).*/\\1 = 1/\" /opt/citrix/wlb/wlb.conf")
+            xenrt.sleep(2)
+            self.place.execguest("sed -i \"s/\(WlbWebServiceTrace\).*/\\1 = 1/\" /opt/citrix/wlb/wlb.conf")
+            xenrt.sleep(2)
+            self.place.execguest("echo \"VerboseTraceEnabled = 1\" >> /opt/citrix/wlb/wlb.conf")
+            xenrt.sleep(2)
+            if isinstance(self.place.host, xenrt.lib.xenserver.DundeeHost):
+                self.place.execguest("sed -i \"s/\(SoapDataTrace\).*/\\1 = 1/\" /opt/citrix/wlb/wlb.conf")
+                xenrt.sleep(2)
+        else:
+            self.place.execguest("sed \"s/AnalEngTrace>0/AnalEngTrace>1/\" < /opt/citrix/wlb/wlb.conf > /opt/citrix/wlb/wlb.conf.tmp && rm /opt/citrix/wlb/wlb.conf && mv /opt/citrix/wlb/wlb.conf.tmp /opt/citrix/wlb/wlb.conf")
+            xenrt.sleep(5)
+            self.place.execguest("sed \"s/WlbWebServiceTrace>0/WlbWebServiceTrace>1/\" < /opt/citrix/wlb/wlb.conf > /opt/citrix/wlb/wlb.conf.tmp && rm /opt/citrix/wlb/wlb.conf && mv /opt/citrix/wlb/wlb.conf.tmp /opt/citrix/wlb/wlb.conf")
+            xenrt.sleep(5)
+
+    def doSanityChecks(self):
+        # sanity checks after automated setup
+        # check if the wlb server is listening on the expected port
+        out = self.place.execguest("netstat -a | grep 8012 | wc -l").strip()
+        if out != "1":
+            raise xenrt.XRTFailure("WLB appliance not listening on expected port 8012")
 
 class V6LicenseServer(object):
     """An object to represent a V6 License Server"""
@@ -12776,6 +12832,53 @@ class ConversionApplianceServer(object):
         if mgmt == None:
             raise xenrt.XRTError("Failed to find a management interface (PIF).")
         return mgmt
+
+class ConversionApplianceServerHVM(object):
+    """An object to represent a new Conversion Appliance Server, which is a CentOS 7 HVM guest"""
+
+    def __init__(self, place):
+        self.place = place
+        self.password = xenrt.TEC().lookup("VPX_DEFAULT_PASSWORD", "citrix") # by default vpx root's password
+        if self.place:
+            self.place.password = self.password
+        self.conv_password = self.password
+        self.conv_username = "convuser"
+        self.conv_port = "8012" # default port
+
+    # To increase the Conversion VM uptime (in seconds) after being idle.
+    # The conversion VM automatically shuts down after 300 seconds,
+    #           if the conversion console is not connected to the VM.
+    def increaseConversionVMUptime(self, value):
+        xenrt.TEC().logverbose("ConversionVM::VPX Increasing default uptime from 300 seconds to %s seconds" % value)
+        #sed -i 's/\(AutoShutdownDelay" value="\)300/\13600/g' convsvc.exe.config
+        self.place.execguest("sed -i 's/\\(Delay\" value=\"\\)300/\\1%s/g' /opt/citrix/conversion/convsvc.exe.config" % value)
+        xenrt.sleep(5)
+        xenrt.TEC().logverbose("ConversionVM::VPX Restarting the Service")
+        # the first restart command will fail, not sure why ???
+        self.place.execguest("systemctl restart convsvcd.service; systemctl restart convsvcd.service")
+        xenrt.sleep(5)
+        xenrt.TEC().logverbose("ConversionVM::VPX Increase Uptime Completed")
+
+    def doFirstbootUnattendedSetup(self, timewait1=60, timewait2=240):
+        # xcm_self_configure.sh [hostname] [domainname]
+        command = "/etc/init.d/xcm_self_configure.sh %s %s" % ("conversionvm", "xenrt.local")
+        self.place.execguest(command)
+        xenrt.sleep(timewait1)
+        self.place.lifecycleOperation("vm-reboot", force=True)
+        xenrt.sleep(timewait2)
+
+    def doLogin(self):
+        pass
+
+    def doSanityChecks(self):
+        # sanity checks after automated setup
+        # check if the Conversion VPX is listening on the expected port
+        out = self.place.execguest("netstat -a | grep 443 | wc -l",1,cuthdlines=1).strip()
+        if out != "1":
+            raise xenrt.XRTFailure("Conversion appliance not listening on expected port 443")
+
+    def installSSH(self):
+        pass
 
 class VifOffloadSettings(object):
 

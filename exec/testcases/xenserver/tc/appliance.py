@@ -13,6 +13,7 @@ class _WlbApplianceVM(xenrt.TestCase):
 
         self.distro = "wlbapp"
         self.wlbserver_name = self.WLBSERVER_NAME
+        self.vpx_os_version = xenrt.TEC().lookup("VPX_OS_VERSION", "CentOS5")
         self.host = self.getDefaultHost()
         for arg in arglist:
             l = string.split(arg, "=", 1)
@@ -29,7 +30,10 @@ class _WlbApplianceVM(xenrt.TestCase):
         xenrt.TEC().registry.guestPut(self.WLBSERVER_NAME, g)
         g.host = self.host
         g.addExtraLogFile("/var/log/wlb/LogFile.log")
-        self.wlbserver = xenrt.WlbApplianceServer(g)
+        if self.vpx_os_version == "CentOS7":
+            self.wlbserver = xenrt.WlbApplianceServerHVM(g) # CentOS 7 VPX, HVM guest
+        else:
+            self.wlbserver = xenrt.WlbApplianceServer(g)
         g.importVM(self.host, xenrt.TEC().getFile("xe-phase-1/vpx-wlb.xva"))
         g.windows = False
         g.lifecycleOperation("vm-start",specifyOn=True)
@@ -39,6 +43,18 @@ class _WlbApplianceVM(xenrt.TestCase):
         # Wait VM to boot up
         time.sleep(300)
         self.getLogsFrom(g)
+
+        if self.vpx_os_version == "CentOS7":
+            # Wait guest utility to update ip address
+            for i in range(0, 5):
+                if g.getIPv4FromVMParam():
+                    xenrt.TEC().progress("Guest VPXWLB ip address is %s" % g.mainip)
+                    break
+                else:
+                    # rare case: dhcp does not get ipv4 address
+                    g.lifecycleOperation("vm-reboot",force=True)
+                    time.sleep(300)
+
         #self.uninstallOnCleanup(g)
         self.wlbserver.doFirstbootUnattendedSetup()
         self.wlbserver.doLogin()

@@ -285,6 +285,19 @@ class Guest(xenrt.GenericGuest):
                     return True
         return False
 
+    def getIPv4FromVMParam(self, ethN=0):
+        if self.mainip != None:
+            return True
+
+        networks = self.paramGet("networks")
+        for network in networks.split(";"):
+            if network.strip().startswith("%d/ip:" % ethN):
+                net, ipaddr = network.strip().split(":")
+                if not self.mainip:
+                    self.mainip = ipaddr.strip()
+                    return True
+        return False
+
     def install(self,
                 host,
                 start=True,

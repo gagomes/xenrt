@@ -38,6 +38,6 @@
 	
 	<testsequence>
 			<testcase id="xenserver.tc.guest.windows.windowsfeatures.dotnetagentlicensing.TempTest"/>
-	<testsequence>
+	</testsequence>
 	
 </xenrt>

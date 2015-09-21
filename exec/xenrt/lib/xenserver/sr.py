@@ -148,6 +148,35 @@ class StorageRepository(object):
     def create(self, physical_size=0, content_type="", smconf={}):
         raise xenrt.XRTError("Unimplemented")
 
+    def createPBDs(self, plug=True):
+        """Create and plug all PBDs associated with this SR
+
+        @param plug: Optional boolean value to indicate plugging created PBDs.
+
+        @return: list of created PBDS.
+        """
+        cli = self.host.getCLIInstance()
+        hosts = self.host.minimalList("host-list")
+        pool = self.host.minimalList("pool-list")[0]
+        master = self.host.genParamGet("pool", pool, "master")
+        pbds = []
+        for h in hosts:
+            args = []
+            args.append("host-uuid=%s" % (h))
+            args.append("sr-uuid=%s" % (self.uuid))
+            args.extend(["device-config:%s=\"%s\"" % (x, y)
+                         for x,y in self.dconf.items()])
+            pbd = cli.execute("pbd-create", string.join(args)).strip()
+            if h == master:
+                pbds.insert(0, pbd)
+            else:
+                pbds.append(pbd)
+        if plug:
+            for pbd in pbds:
+                cli.execute("pbd-plug", "uuid=%s" % (pbd))
+
+        return pbds
+        
     def introduce(self):
         """Re-introduce the SR - it must have been created with this object previously"""
         if not self.uuid:
@@ -165,18 +194,7 @@ class StorageRepository(object):
         if self.SHARED:
             args.append("shared=true")
         cli.execute("sr-introduce", string.join(args))
-        hosts = self.host.minimalList("host-list")
-        pbds = []
-        for h in hosts:
-            args = []
-            args.append("host-uuid=%s" % (h))
-            args.append("sr-uuid=%s" % (self.uuid))
-            args.extend(["device-config:%s=\"%s\"" % (x, y)
-                         for x,y in self.dconf.items()])
-            pbd = cli.execute("pbd-create", string.join(args)).strip()
-            pbds.append(pbd)
-        for pbd in pbds:
-            cli.execute("pbd-plug", "uuid=%s" % (pbd))
+        self.createPBDs()
 
     def unplugPBDs(self):
         """Unplug all PBDs associated with this SR."""
@@ -803,18 +821,7 @@ class NFSStorageRepository(StorageRepository):
             args.append("sm-config:nosubdir=true")
             
         cli.execute("sr-introduce", string.join(args))
-        hosts = self.host.minimalList("host-list")
-        pbds = []
-        for h in hosts:
-            args = []
-            args.append("host-uuid=%s" % (h))
-            args.append("sr-uuid=%s" % (self.uuid))
-            args.extend(["device-config:%s=\"%s\"" % (x, y)
-                         for x,y in self.dconf.items()])
-            pbd = cli.execute("pbd-create", string.join(args)).strip()
-            pbds.append(pbd)
-        for pbd in pbds:
-            cli.execute("pbd-plug", "uuid=%s" % (pbd))
+        self.createPBDs()
 
     def check(self):
         StorageRepository.checkCommon(self, "nfs")

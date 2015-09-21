@@ -4481,6 +4481,11 @@ fi
 
         return g
 
+    def setXenLogLevel(self):
+        """Set Xen Log Level to all"""
+        self.execdom0("sed -e 's/\(append .*xen\S*.gz\)/\\0 loglvl=all guest_loglvl=all/' /boot/extlinux.conf > tmp && mv tmp /boot/extlinux.conf -f")
+        self.reboot()
+
     #########################################################################
     # Network operations
     def getPIFUUID(self, device, requirePhysical=False):
@@ -12090,6 +12095,11 @@ class DundeeHost(CreedenceHost):
         else:
             self.haPath = "/opt/xensource/xha"
         return self.haPath
+
+    def setXenLogLevel(self):
+        """Set Xen Log Level to all"""
+        self.execdom0("/opt/xensource/libexec/xen-cmdline --set-xen loglvl=all guest_loglvl=all")
+        self.reboot()
 
 #############################################################################
 

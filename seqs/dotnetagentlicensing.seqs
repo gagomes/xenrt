@@ -11,28 +11,28 @@
 	
 	<prepare>
 		<host id="0" license="no" defaultlicense="no">
-		<vm name="WS2012">
-          <distro>ws12-x64</distro>
-          <arch>x86-64</arch>
-          <memory>2048</memory>
-          <vcpus>2</vcpus>
-          <postinstall action="installDrivers" />
-          <network device="0" />
-          <disk device="0" size="32" />
-        </vm>
+			<vm name="WS2012">
+			  <distro>ws12-x64</distro>
+			  <arch>x86-64</arch>
+			  <memory>2048</memory>
+			  <vcpus>2</vcpus>
+			  <postinstall action="installDrivers" />
+			  <network device="0" />
+			  <disk device="0" size="32" />
+			</vm>
 		</host>
 		<host id="1" license="no" defaultlicense="no">
-		<vm name="server">
-			<distro>ubuntu1404</distro>
-			<memory>1024</memory>
-			<vcpus>2</vcpus>
-			<network device="0">
-			<disk device="0" size="8" />
-		</vm>
-		<vm name="${LICENSESERVER}">
-			<file>%LICENSE_SERVER_XVA%</file>
-			<postinstall action="installV6LicenseServer"/>
-		</vm>
+			<vm name="server">
+				<distro>ubuntu1404</distro>
+				<memory>1024</memory>
+				<vcpus>2</vcpus>
+				<network device="0">
+				<disk device="0" size="8" />
+			</vm>
+			<vm name="${LICENSESERVER}">
+				<file>%LICENSE_SERVER_XVA%</file>
+				<postinstall action="installV6LicenseServer"/>
+			</vm>
 		</host>
 	</prepare>
 	

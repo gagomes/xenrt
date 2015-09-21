@@ -1,4 +1,6 @@
 import xenrt
+import re
+import datetime
 
 class SSFile(object):
     self.name = ""
@@ -31,25 +33,35 @@ class SimpleServer(object):
         self.guest = guest
 
     def isPinged(self, wait):
-        pass
+        xenrt.sleep(wait)
+        line = self.guest.execdom0("tail -n 1 logs/server.log")
+        timeStr = re.search('(\d\d:){2}\d\d',line)
+        logTime = (datetime.datetime.strptime(timeStr,'%H:%M:%S')+datetime.timedelta(seconds=wait)).time()
+        nowTime = datetime.datetime.now().time()
+        if logTime < nowTime:
+            return False
+        else:
+            return True
 
     def moveFile(self, ssFile):
-        pass
+        if ssFile.location == "store/":
+            self.guest.execDom("mv store/{0} {0}".format(ssFile.name))
+            ssFile.location = ""
+        else:
+            self.guest.execDom("mv {0} store/{0}".format(ssFile.name))
+            ssFile.location = "store/"
 
-    def addFile(self, ssFile):
-        pass
+    def addFile(self, ssFile, key):
+        self.ssFiles[key] = ssFile
 
-    def removeFile(self, ssFile):
-        pass
-
-    def addDir(self, ssFile):
-        pass
-
-    def removeDir(self, dir):
-        pass
+    def removeFile(self, key):
+        self.ssFiles.pop(key,None)
 
     def addRedirect(self, dirInit, dirRe):
         pass
 
     def removeRedirect(self, dir):
         pass
+
+    def getIP(self):
+        return self.guest.getIP()

@@ -37,7 +37,7 @@
     </prepare>
 
     <testsequence>
-        <testcase id="xenserver.tc.guest.windows.windowsfeatures.dotnetagentlicensing.TempTest"/>
+        <testcase id="testcases.xenserver.tc.guest.windows.windowsfeatures.dotnetagentlicensing.TempTest"/>
     </testsequence>
 
 </xenrt>

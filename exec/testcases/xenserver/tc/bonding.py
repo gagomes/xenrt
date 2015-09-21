@@ -2325,10 +2325,17 @@ class _BondBalance(_AggregateBondTest):
                 balanceratio = float(iftraffic1)/float(iftraffic0)
             else :
                 balanceratio = float(iftraffic0)/float(iftraffic1)            
-            if balanceratio >=0.75 and balanceratio <=1 :
-                xenrt.log("Load is BALANCED with ratio of %s " %balanceratio)
-            else :
-                raise xenrt.XRTFailure("Load is not balanced across nics . Balance ratio = %s .%s load = %s,%s load = %s"%(balanceratio,ifs[0],iftraffic0,ifs[1],iftraffic1))
+            
+            # If there exist a even number of hash distribution across the NICs then we expect traffic to be balanced at least for 6:4 accuracy
+            # otherwise we expect atlest 4:2 accuracy  
+            if info['slb'].values().count(info['slaves'][0]) % 2 == 0 and info['slb'].values().count(info['slaves'][1]) % 2 == 0:
+                if not (0.66 <= balanceratio <= 1.0):
+                    raise xenrt.XRTFailure("Load is not balanced across nics . Balance ratio = %s .%s load = %s,%s load = %s" \
+                                           %(balanceratio,ifs[0],iftraffic0,ifs[1],iftraffic1))
+            elif not (0.50 <= balanceratio <= 1.0):
+                    raise xenrt.XRTFailure("Load is not balanced across nics . Balance ratio = %s .%s load = %s,%s load = %s" \
+                                           %(balanceratio,ifs[0],iftraffic0,ifs[1],iftraffic1))
+            log("Load is BALANCED with ratio of %s " %balanceratio)
             
 
 class TC8310(_BondBalance):

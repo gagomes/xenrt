@@ -1092,57 +1092,42 @@ class XRTSRUpgradeFail(xenrt.XRTError):
 class TCSRUpgrade(_ThinLVHDBase):
     """Test the SR upgrade process from thick provisioned to thin provisioned"""
 
-    OUTPUT_PATH = "/tmp/srupgradeoutput"
-    UPGRADE_TIMEOUT = "5" # in minutes.
+    UPGRADE_TIMEOUT = "1" # in minutes.
+
+    DEFAULT_INITIAL = 0
+    DEFAULT_QUANTUM = 16 * xenrt.MEGA
 
     def getDigest(self, guest, device="/dev/xvdb"):
         """Return md5 string"""
 
         return guest.execguest("md5sum %s" % device).split()[0]
         
-    def runSRUpgrade(self, sruuid, initialAlloc=None, quantumAlloc=None, async=False):
+    def runSRUpgrade(self, sruuid, initialAlloc=None, quantumAlloc=None):
         """Invoke SR upgrade"""
 
         args = []
         args.append("sr-uuid=%s" % (sruuid))
-        if initialAlloc:
-            args.append("initial_allocation=%s" % (initialAlloc))
-        if quantumAlloc:
-            args.append("quantum_allocation=%s" % (quantumAlloc))
 
-        cmd = "lvhd-enable-thin-provisioning %s > %s 2>&1" % (" ".join(args), self.OUTPUT_PATH)
+        if not initialAlloc:
+            initialAlloc = self.DEFAULT_INITIAL
+        if not quantumAlloc:
+            quantumAlloc = self.DEFAULT_QUANTUM
+        args.append("initial-allocation=%s" % (initialAlloc))
+        args.append("allocation-quantum=%s" % (quantumAlloc))
 
-        if async:
-            cmd += " < /dev/null &"
+        cmd = "lvhd-enable-thin-provisioning"
 
         cli = self.host.getCLIInstance()
-        ret = cli.execute(cmd, retval="code")
-
-        if async:
-            return ret
-
-        output = self.grabSRUpgradeOutput()
-        if ret:
-            raise XRTSRUpgradeFail("SR upgrade command returned error: %s" % output)
-
-        return output
-
-    def grabSRUpgradeOutput(self):
-        """obtain output of SR upgrade."""
-        d = "%s/srupgrade-output" % (xenrt.TEC().getLogdir())
+        output = ""
         try:
-            sftp = self.host.sftpClient()
-            sftp.copyFrom(self.OUTPUT_PATH, d)
-        except Exception, e:
-            warning("Failed to obtain output: %s" % self.OUTPUT_PATH)
-            return ""
-        with open(d, "r") as out:
-            return out.read()
-
-    def checkSRUpgradeProcess(self):
-        """Check whether SR upgrad process is running"""
-
-        return not self.host.execdom0("ps -efl | grep '[l]vhd-enable-thin-provisioning'", retval="code")
+            output = cli.execute(cmd, args = " ".join(args), timeout=self.srupgradetimeout * 60, level=xenrt.RC_ERROR)
+        except xenrt.XRTError as e:
+            if e.message and "EnableThinProvisionException" in e.message:
+                raise XRTSRUpgradeFail(e.reason, e.data)
+            if e.data and "EnableThinProvisionException" in e.data:
+                raise XRTSRUpgradeFail(e.reason, e.data)
+            raise
+        return output
 
     def getSRObjByType(self, srtype):
         """Search SRs by sr type"""
@@ -1261,12 +1246,15 @@ class TCSRUpgrade(_ThinLVHDBase):
         try:
             self.runSRUpgrade(self.sr.uuid)
         except XRTSRUpgradeFail as e:
-            log("SR upgrade failed as expected. output: %s" % e)
+            log("SR upgrade failed as expected. output: %s %s" % (e.message, e.data))
         else:
             raise xenrt.XRTFailure("SR upgrade succeded with small free space. sr size: %d, sr free space: %d" %
                     (pSize, left))
         finally:
             cli.execute("vdi-destroy", "uuid=%s" % (vdiuuid))
+
+        if self.isThinProvisioning(self.sr):
+            raise xenrt.XRTFailure("The SR %s is not upgraded to thin provisioned" % (self.sr.srtype))
 
         step("Checking roll-backed properly.")
         self.host.check()
@@ -1274,53 +1262,50 @@ class TCSRUpgrade(_ThinLVHDBase):
             if self.guests[guest]["afterWriting"] != self.getDigest(guest, "/dev/" + self.guests[guest]["device"]):
                 raise xenrt.XRTFailure("%s of %s is not rolled back properly" % (self.guests[guest]["device"], guest.getName()))
         
+    # Following codes were planned to running during upgrade to confirm SR OPS during upgrade but 
+    # not possible as SR upgrade takes only a few seconds.
+    #def testsWhileUpgrading(self):
+
+        #if not self.checkSRUpgradeProcess():
+            #raise xenrt.XRTFailure("SR Upgrade failed to run.")
+
+        #xenrt.TEC().logverbose("The operations will be progressing parellely."
+                                    #"We will wait for for all the operations to complete")
+
+        #step("Running IO ops")
+        #pDirTasks = [xenrt.PTask(self.copiedVM.execguest, "dd if=/dev/zero of=/tmp/delete_me bs=1M count=10", retval="code"), # ---> this should succeed.
+                  #xenrt.PTask(self.clonedVM.execguest, "dd if=/dev/zero of=/tmp/delete_me bs=1M count=10", retval="code"), # ---> this should succeed.
+                  #xenrt.PTask(self.copiedVM.execguest, "ls / && ls /home", retval="code"), # ---> this should succeed.
+                  #xenrt.PTask(self.clonedVM.execguest, "ls / && ls /home", retval="code")] # ---> this should succeed.
+        #ioresults = xenrt.pfarm(pDirTasks, exception=False)
+        #log("IO ops results: %s" % ioresults)
+
+        #step("Running VM ops")
+        #pOpTasks = [xenrt.PTask(self.copiedVM.reboot), # ---> this should succeed.
+                    #xenrt.PTask(self.clonedVM.snapshot)] # ---> this should fail.
+        #opsresults = xenrt.pfarm(pOpTasks, exception=False)
+        #log("VM ops results: %s" % opsresults)
+
+        #failed = 0
+        #for result in ioresults + opsresults:
+            #if result:
+                #failed += 1
+        #if failed < 1:
+            #raise xenrt.XRTFailure("Task(s) should fail succeeded.")
+        #if failed > 1:
+            #raise xenrt.XRTFailure("Task(s) should succeed failed.")
+            
+
     def srUpgradeTest(self):
 
         cli = self.host.getCLIInstance()
 
         step("Starting to upgrade the SR to thin provisioned SR")
-        self.runSRUpgrade(self.sr.uuid, async=True)
-        starttime = xenrt.timenow()
+        output = self.runSRUpgrade(self.sr.uuid)
 
-        if not self.checkSRUpgradeProcess():
-            raise xenrt.XRTFailure("SR Upgrade failed to run.")
-
-        xenrt.TEC().logverbose("The operations will be progressing parellely."
-                                    "We will wait for for all the operations to complete")
-
-        step("Running IO ops")
-        pDirTasks = [xenrt.PTask(self.copiedVM.execguest, "dd if=/dev/zero of=/tmp/delete_me bs=1M count=10", retval="code"), # ---> this should succeed.
-                  xenrt.PTask(self.clonedVM.execguest, "dd if=/dev/zero of=/tmp/delete_me bs=1M count=10", retval="code"), # ---> this should succeed.
-                  xenrt.PTask(self.copiedVM.execguest, "ls / && ls /home", retval="code"), # ---> this should succeed.
-                  xenrt.PTask(self.clonedVM.execguest, "ls / && ls /home", retval="code")] # ---> this should succeed.
-        ioresults = xenrt.pfarm(pDirTasks, exception=False)
-        log("IO ops results: %s" % ioresults)
-
-        step("Running VM ops")
-        pOpTasks = [xenrt.PTask(self.copiedVM.reboot), # ---> this should succeed.
-                    xenrt.PTask(self.clonedVM.snapshot)] # ---> this should fail.
-        opsresults = xenrt.pfarm(pOpTasks, exception=False)
-        log("VM ops results: %s" % opsresults)
-
-        failed = 0
-        for result in ioresults + opsresults:
-            if result:
-                failed += 1
-        if failed < 1:
-            raise xenrt.XRTFailure("Task(s) should fail succeeded.")
-        if failed > 1:
-            raise xenrt.XRTFailure("Task(s) should succeed failed.")
-            
-        step("Wait until SR upgrade finishes.")
-        while xenrt.timenow() - starttime < self.upgradetimeout * 60:
-            if not self.checkSRUpgradeProcess():
-                break
-            xenrt.sleep(30, log=False)
-        else:
-            raise xenrt.XRTFailure("SR upgrade took more than %d minutes." % self.srupgradetimeout)
+        #self.testWhileUpgrading()
 
         step("Checking if the SR upgrade is succeeded as expected")
-        output = self.grabSRUpgradeOutput()
         log("SR upgrade output: %s" % output)
         if "error" in output.lower() or "exception" in output.lower():
             raise xenrt.XRTFailure("Error(s) found from SR upgrade output.")
@@ -1352,9 +1337,10 @@ class TCSRUpgrade(_ThinLVHDBase):
 
         step("Reverting the master snapshot")
         cli.execute("snapshot-revert snapshot-uuid=%s" % self.guests[self.master]["snapshot"])
+        self.master.setState("UP")
 
         step("Checking contents of VDI is reverted properly.")
-        if self.guests[self.master]["initial"] != self.getDigest(guest, "/dev/" + self.guests[self.master]["device"]):
+        if self.guests[self.master]["initial"] != self.getDigest(self.master, "/dev/" + self.guests[self.master]["device"]):
             raise xenrt.XRTFailure("Contents of snapshot is changed after SR upgrade.")
 
         step("Creating a new VDI and check its initial allocation")
@@ -1374,7 +1360,10 @@ class TCSRUpgrade(_ThinLVHDBase):
         if allocated < expected or allocated > expected * 1.05:
             raise xenrt.XRTFailure("Size of VDI is not increased as expected. Expected: %d, Allocated: %d" %
                     (expected, allocated))
-            
+
+        step("Destroying upgraded SR.")
+        self.sr.destroy()
+
     def run(self, arglist=[]):
 
         self.runSubcase("rollBackTest", (), "SRUpgrade", "roll back")

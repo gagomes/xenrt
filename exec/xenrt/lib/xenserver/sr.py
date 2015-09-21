@@ -424,6 +424,14 @@ class StorageRepository(object):
 
         return cli.execute("vdi-create", string.join(args), strip=True)
 
+    def setDefault(self):
+        """Set given SR to default"""
+
+        pool = self.host.minimalList("pool-list")[0]
+        self.host.genParamSet("pool", pool, "default-SR", self.uuid)
+        self.host.genParamSet("pool", pool, "crash-dump-SR", self.uuid)
+        self.host.genParamSet("pool", pool, "suspend-image-SR", self.uuid)
+
 
 class EXTStorageRepository(StorageRepository):
 

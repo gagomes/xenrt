@@ -1,0 +1,26 @@
+<xenrt>
+
+ <!-- VDI scalability tests for lvmofcoe sr -->
+
+ <default name="DISTRO" value="debian70" />
+ <default name="SRTYPE" value="lvmofcoe" />
+ <default name="NUMVMS" value="100" />
+ <default name="OUTPUTFILE" value="srscaletiming.log" />
+
+ <variables>
+   <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+ </variables>
+
+ <prepare>
+   <host id="0" />
+ </prepare>
+
+ <testsequence>
+   <testcase id="xenserver.tc.perf.thinlvhdperf.TCVDIScalability" tc="TC-27141" name="TCFcoeVDIScalability">
+     <arg>distro=${DISTRO}</arg>
+     <arg>srtype=${SRTYPE}</arg>
+     <arg>numvms=${NUMVMS}</arg>
+     <arg>outputfile=${OUTPUTFILE}</arg>
+   </testcase>
+ </testsequence>
+</xenrt>

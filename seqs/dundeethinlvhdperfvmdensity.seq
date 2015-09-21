@@ -1,0 +1,20 @@
+<xenrt>
+  <prepare>
+    <host>
+      <storage type="lvmoiscsi" name="lvmoiscsisr" default="true" options="thin" />
+    </host>
+  </prepare>
+
+  <testsequence>
+    <testcase id="xenserver.tc.perf.tc_vmdensity.TCVMDensity" host="RESOURCE_HOST_0">
+      <arg>DEFAULTSR=["lvmoiscsi"]</arg>
+      <arg>VMRAM=[2048]</arg>
+      <arg>RUNS=[1]</arg>
+      <arg>VMS=range(1,501)</arg>
+      <arg>EXPERIMENT="vmrun_cron"</arg>
+      <arg>VMCRON=["0:25:waitvmstart"]</arg>     <!-- xencenter startvm policy    -->
+      <arg>THRESHOLD=500.0</arg>                 <!-- x times initial measurement -->
+    </testcase>
+  </testsequence>
+</xenrt>
+

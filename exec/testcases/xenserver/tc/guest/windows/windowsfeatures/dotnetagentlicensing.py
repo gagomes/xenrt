@@ -3,6 +3,7 @@ from xenrt.lib.guest.windows.windowsfeatures.dotnetagent import *
 from xenrt.enum import XenServerLicenseSKU
 from xenrt.lib.xenserver.licensing import LicenseManager, XenServerLicenseFactory
 from xenrt.lib.xenserver.tools.simpleserver import *
+import xenrt.lazylog
 
 class DotNetAgentAdapter:
     self.licenseManager = None
@@ -52,5 +53,5 @@ class DotNetAgentAdapter:
             def run(self,arglist):
                 adapter = DotNetAgentAdapter(self.licenseServer)
                 server = adapter.setUpServer(self.getGuest("server"))
-                server.isPinged(100)
+                log(server.isPinged(100))
 

@@ -217,7 +217,7 @@ class _ThinLVHDBase(xenrt.TestCase):
                 targetDir = guest.execguest("mktemp")
 
             timeout = 900 + ((size / xenrt.GIGA) * 300) # 15 mins + 5 mins per GIGA
-            guest.execguest("dd if=%s of=%s bs=1M count=%d conv=notrunc" % (source, targetDir, size/xenrt.MEGA), timeout=timeout)
+            guest.execguest("dd if=%s of=%s bs=1M count=%d" % (source, targetDir, size/xenrt.MEGA), timeout=timeout)
 
     def isThinProvisioning(self, sr):
         """Return whether given SR is thin provision'ed or not

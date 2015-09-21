@@ -46,6 +46,14 @@ class XenCenterService(object):
 
 
 class HealthCheckService(XenCenterService):
+    def __init__(self,service,guest):
+        super(HealthCheckService, self).__init__(service,guest)
+        self.UPLOAD_TIMEINT_MINS = 5
+        self.tokenSecret="IdentityToken_secret"
+        self.diagnosticSecret="DiagnosticTokenSecret"
+        self.username="root"
+        self.password="xenroot"
+        self.secrets = [self.tokenSecret,self.diagnosticSecret,self.username,self.password]
 
     def startService(self):
         self.guest.xmlrpcExec("net start %s"%self.service)
@@ -57,13 +65,6 @@ class HealthCheckService(XenCenterService):
         xenrt.log("Default Installation while installing XenCenter")
 
     def initializeService(self,pool):
-        self.UPLOAD_TIMEINT_MINS = 5
-        self.tokenSecret="IdentityToken_secret"
-        self.diagnosticSecret="DaignosticTokenSecret"
-        self.username="root"
-        self.password="xenroot"
-
-        self.secrets = [self.tokenSecret,self.diagnosticSecret,self.username,self.password]
         xenrt.TEC().logverbose('Creating secret (%s)' % self.secrets)
 
         #Create Secrets

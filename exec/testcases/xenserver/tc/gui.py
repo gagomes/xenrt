@@ -410,7 +410,7 @@ class TC27322(_InstallXenCenter):
 class PhoneHome(xenrt.TestCase):
 
     def __init__(self):
-        xenrt.TestCase.__init__(self, "PhoneHome")
+        super(PhoneHome, self).__init__("PhoneHome")
         self.pool = self.getDefaultPool()
         self.hosts = self.pool.getHosts()
         self.guests = []
@@ -462,12 +462,16 @@ class PhoneHome(xenrt.TestCase):
         
         step("Now Attach the host to XenCenter")
         self.guest.attachXenCenterToHost(self.pool.master)
+        
+        self.triggerAndVerify(self.service)
 
-        triggerTime=self.service.triggerService(self.pool,self.options)
-        if self.service.verifyService(self.pool,triggerTime):
+    def triggerAndVerify(self,service):
+        triggerTime=service.triggerService(self.pool,self.options)
+        if service.verifyService(self.pool,triggerTime):
             xenrt.log("Service was successfully triggered")
         else :
             raise xenrt.XRTFailure("Service Trigger Failed")
+
 
     def postRun(self,arglist=None):
         self.service.deactivateService(self.pool)
@@ -487,14 +491,14 @@ class PhoneHomeFailedUpload(PhoneHome):
         self.guest.xmlrpcExec("Netsh advfirewall firewall add rule action=block remoteip=%s name=BlockCISAccess dir=out interface=any"%self.server.endpoint)
 
         triggerTime=self.service.triggerService(self.pool,self.options)
-        if not self.service.verifyService(self.pool,triggerTime):
+        if self.service.verifyService(self.pool,triggerTime):
+            raise xenrt.XRTFailure("Upload Successful inspite of blocking access to MockServer")
+        else:
             xenrt.log("Upload would have failed as expected.Lets check the trace of Failed Upload")
             if self.service.verifyServiceFailure(self.pool,triggerTime):
                 xenrt.log("Upload Failed at predictable timestamp as Expected")
             else:
                 raise xenrt.XRTFailure("Couldnt find the trace of Failed Upload")
-        else :
-            raise xenrt.XRTFailure("Upload Successful inspite of blocking access to MockServer")
 
         step("So upload failed. Now disable firewall so the failed upload goes through")
         self.guest.xmlrpcExec("Netsh advfirewall firewall delete rule name=BlockCISAccess ")
@@ -515,10 +519,10 @@ class VerifySingleUploadMulXC(PhoneHome):
         step("Modify CIS settings for every guest so HC service in all XC is targeting same Fake CIS Server")
         self.parseArgs(arglist)
 
-        for s in self.services:s.installService()
+        [s.installService() for s in self.services]
 
         step("Configure guest to use MockServer")
-        for g in self.guests:self.server.configureGuest(g)
+        [self.server.configureGuest(g) for g in self.guests]
 
         step("Restart XenCenter Guest service to pick MockServer Setiings")
         for s in self.services :
@@ -533,14 +537,13 @@ class VerifySingleUploadMulXC(PhoneHome):
         step("Attach XenCenter Host to every guest installed")
         for g in self.guests :g.attachXenCenterToHost(self.pool.master)
 
-        triggerTime=self.services[0].triggerService(self.pool,self.options)
-        if self.services[0].verifyService(self.pool,triggerTime):
-            xenrt.log("Service was successfully triggered")
-        else :
-            raise xenrt.XRTFailure("Service Trigger Failed")
+        self.triggerAndVerify(self.services[0])
 
         step("Now wait for some time and keep polling that we are not having another upload")
 
+        self.verifyNoMulUpload()
+
+    def verifyNoMulUpload(self):
         cli = self.pool.master.getCLIInstance()
         lastSucUploadTs=cli.execute("pool-param-get","uuid=%s param-name=\"%s\" param-key=\"%s\"" % (self.pool.getUUID(),"health-check-config","LastSuccessfulUpload"),strip=True)
         xenrt.log(lastSucUploadTs)
@@ -569,10 +572,10 @@ class VerifyMultipleUploads(PhoneHome):
 
         self.parseArgs(arglist)
 
-        for s in self.services :s.installService()
+        [s.installService() for s in self.services]
 
         step("Configure guest to use MockServer")
-        for g in self.guests:self.server.configureGuest(g)
+        [self.server.configureGuest(g) for g in self.guests]
 
         step("Restart XenCenter Guest service to pick MockServer Setiings")
         for s in self.services :
@@ -581,7 +584,7 @@ class VerifyMultipleUploads(PhoneHome):
 
     def run(self,arglist=None):
         step("Initialize and Enrol Phone Home for every pool")
-        for s in self.services:s.initializeService(self.pool)
+        [s.initializeService(self.pool) for s in self.services]
 
         xenrt.pfarm([xenrt.PTask(self.services[0].activateService,p) for p in self.pools],wait = True,exception= True)
 

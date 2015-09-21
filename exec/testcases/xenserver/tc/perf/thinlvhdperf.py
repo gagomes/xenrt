@@ -10,9 +10,9 @@
 
 import xenrt
 from xenrt.lazylog import step, log, warning
-from testcases.xenserver.tc.perf.libperf import PerfTestCase
+import testcases.xenserver.tc.perf.libperf
 
-class ThinLVHDPerfBase(PerfTestCase):
+class ThinLVHDPerfBase(testcases.xenserver.tc.perf.libperf.PerfTestCase):
 
     # "var name" : [<default value>(mandatory), <name in arg list>, <name in TEC>]
     ENV_VARS = {"vms": [20, "numvms", "VMCOUNT"],
@@ -60,7 +60,7 @@ class ThinLVHDPerfBase(PerfTestCase):
         if printOut:
             log("=======================")
             for var in self.ENV_VARS:
-                log("%s: %s" % (var, getattr(self, var)))
+                testcases.xenserver.tc.perf.libperf.logArg(var, getattr(self, var))
             log("=======================")
 
     def createSR(self, srsize=100, default=False):
@@ -337,7 +337,7 @@ class TCVDIScalability(ThinLVHDPerfBase):
             if result:
                 logline = "%s Failed cloning with error: %s" % (output[-1], " ".join(output[:-1]))
             else:
-                logline = "%s Cloned: %s" % (output[-1], output[0])
+                logline = "%s Cloned: %s" % (output[-1], " ".join(output[:-1]))
                 self.cloneGuests.append(output[0])
             self.logs.append(logline)
 
@@ -350,7 +350,7 @@ class TCVDIScalability(ThinLVHDPerfBase):
             if result:
                 logline = "%s Failed uninstalling %s with error: %s" % (output[-1], guest, " ".join(output[:-1]))
             else:
-                logline = "%s Cloned: %s" % (output[-1], output[0])
+                logline = "%s Uninstalled: %s" % (output[-1], " ".join(output[:-1]))
             self.logs.append(logline)
 
     def prepare(self, arglist=None):

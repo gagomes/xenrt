@@ -14,11 +14,12 @@
   <prepare>
     <pool>
       <storage type="nfs" name="nfssr" default="true"/>
-      <allhosts productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}"/>
+      <host id="0" installsr="lvm" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}"/>
+      <host id="1" installsr="ext" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}"/>
     </pool>
   </prepare>
 
   <testsequence>
-    <testcase group="Upgrade" id="xenserver.tc.upgrade.TC8765" blocker="yes" sku="Creedence"/>
+    <testcase group="Upgrade" id="xenserver.tc.upgrade.TC8765" blocker="yes" sku="CreedenceLVMEXT"/>
   </testsequence>
 </xenrt>

@@ -180,8 +180,8 @@ class _JobBase(_MachineBase):
                 if not rc:
                     break
                 if rc[5] and rc[5].strip() == "yes":
-                    logUrl = "%s://%s%s/api/files/v2/fileget/%d.test" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), rc[2])
-                    logIndexUrl = "%s://%s%s/api/files/v2/index/%d.test" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), rc[2])
+                    logUrl = "%s://%s%s/api/files/v2/fileget/%d.test" % (u.scheme, jobs[rc[0]]['params'].get("LOG_SERVER"), u.path.rstrip("/"), rc[2])
+                    logIndexUrl = "%s://%s%s/api/files/v2/index/%d.test" % (u.scheme, jobs[rc[0]]['params'].get("LOG_SERVER"), u.path.rstrip("/"), rc[2])
                 else:
                     logUrl = None
                     logIndexUrl = None
@@ -190,7 +190,7 @@ class _JobBase(_MachineBase):
                     "detailid": rc[2],
                     "test": rc[3].strip(),
                     "phase": rc[4].strip(),
-                    "logUploadUrl": "%s://%s%s/api/files/v2/test/%d/log" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), rc[2]),
+                    "logUploadUrl": "%s://%s%s/api/files/v2/test/%d/log" % (u.scheme, jobs[rc[0]]['params'].get("LOG_SERVER"), u.path.rstrip("/"), rc[2]),
                     "logUrl": logUrl,
                     "logIndexUrl": logIndexUrl,
                     "logUploaded": rc[5] and rc[5].strip() == "yes",

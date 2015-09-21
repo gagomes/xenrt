@@ -1,6 +1,6 @@
 <xenrt>
 
-	<!-- Tests for DotNet Agnet Licensed Features --!>
+	<!-- Tests for DotNet Agnet Licensed Features -->
 	<default name="LICENSESERVER" value ="LicenseServer" />
 	
 	<variables>

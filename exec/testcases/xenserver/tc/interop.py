@@ -1139,7 +1139,7 @@ class TCOpenStackExercise(xenrt.TestCase):
         devstack = self.getGuest("DevStackOSDomU")
         devstack.execguest(
             "cd /opt/stack/tempest "
-            "&& sudo pip install tox==1.6.1 "
+            "&& sudo -H pip install tox==1.6.1 "
             "&& tox -eall tempest.scenario.test_minimum_basic </dev/null",
             username="stack",
             timeout=14400

@@ -106,14 +106,14 @@ DEFINE_REQUESTS
         vpx_ns.cli("shell /var/BW/nscsconfig -s client=%d -s percentpers=100 -w %s -s cltserverip=43.54.30.247 -s threads=%d -s parallelconn=%d -ye start" % (self.client_id, self.workload, self.httpClientThreads, self.httpClientParallelconn))
 
     def showHttpServerClient(self, vpx_ns):
-        vpx_ns.cli("shell /var/BW/nscsconfig -d allvcs")
-        vpx_ns.cli("shell /var/BW/nscsconfig -d allurls")
-        vpx_ns.cli("shell /var/BW/conntest -d validserver")
+        vpx_ns.cli("shell /var/BW/nscsconfig -d allvcs", level=xenrt.RC_OK)
+        vpx_ns.cli("shell /var/BW/nscsconfig -d allurls", level=xenrt.RC_OK)
+        vpx_ns.cli("shell /var/BW/conntest -d validserver", level=xenrt.RC_OK)
 
     def removeHttpServerClient(self, vpx_ns):
-        vpx_ns.cli("shell /var/BW/nscsconfig -s client=%d -yE removeserver" % (self.client_id))
-        vpx_ns.cli("shell /var/BW/nscsconfig -s server=%d -yE removeserver" % (self.server_id))
-        vpx_ns.cli("shell /var/BW/conntest -s %d -yE stopall" % (self.server_id))
+        vpx_ns.cli("shell /var/BW/nscsconfig -s client=%d -yE removeserver" % (self.client_id), level=xenrt.RC_OK)
+        vpx_ns.cli("shell /var/BW/nscsconfig -s server=%d -yE removeserver" % (self.server_id), level=xenrt.RC_OK)
+        vpx_ns.cli("shell /var/BW/conntest -s %d -yE stopall" % (self.server_id), level=xenrt.RC_OK)
 
 #### Testcase core methods ####
     def __init__(self):
@@ -153,12 +153,12 @@ DEFINE_REQUESTS
         self.server_id = 0 # higher numbers don't seem to result in a running server
         self.client_id = 1
 
-        xenrt.TEC().logverbose("setting up %s as blackwidow..." % (self.guest_bw))
+        step("prepare: setting up %s as blackwidow..." % (self.guest_bw))
         self.ns_bw = self.getVPX(self.guest_bw)
         self.ns_bw.removeExistingSNIP()
         self.setupBlackWidow(self.ns_bw)
 
-        xenrt.TEC().logverbose("setting up %s as DUT..." % (self.guest_dut))
+        step("prepare: setting up %s as DUT..." % (self.guest_dut))
         self.ns_dut = self.getVPX(self.guest_dut)
         self.ns_dut.removeExistingSNIP()
         self.setupDUT(self.ns_dut)

@@ -4,10 +4,8 @@ import re
 import datetime
 
 class SSFile(object):
-    name = ""
-    location = ""
 
-    def __init__(name, location):
+    def __init__(self, name, location):
         self.setName(name)
         self.setLocation(location)
 
@@ -24,9 +22,6 @@ class SSFile(object):
         self.location = location
 
 class SimpleServer(object):
-    ssFiles = {}
-    port = ""
-    guest = None
 
     def __init__(self, port, ssFiles, guest):
         self.ssFiles = ssFiles
@@ -69,11 +64,8 @@ class SimpleServer(object):
         
 class DotNetAgent(object):
 
-    licensedFeatures = {}
-
-    def __init__():
-        licensedFeatures['VSS'] = VSS()
-        licensedFeatures['AutoUpdate'] = AutoUpdate()
+    def __init__(self):
+        self.licensedFeatures = {'VSS':VSS(),'AutoUpdate':AutoUpdate()}
 
     def restartAgent(self):
         pass
@@ -81,9 +73,9 @@ class DotNetAgent(object):
     def agentVersion(self):
         pass
 
-    def getLicensedFeature(feature):
+    def getLicensedFeature(self,feature):
         ''' current features are "VSS", "AutoUpdate ''' 
-        return LicensedFeature[feature]
+        return self.licensedFeatures[feature]
 
 class LicensedFeature(object):
     __metaclass__ = ABCMeta
@@ -98,7 +90,6 @@ class LicensedFeature(object):
 
 class ActorAbstract(LicensedFeature):
 
-    actor = None
 
     def __init__(self, actor):
         self.setActor(actor)

@@ -2,7 +2,7 @@ import xenrt
 from xenrt.lib.xenserver.dotnetagentlicensing import *
 from xenrt.enum import XenServerLicenseSKU
 from xenrt.lib.xenserver.licensing import LicenseManager, XenServerLicenseFactory
-import xenrt.lazylog
+from xenrt.lazylog import log
 
 class DotNetAgentAdapter(object):
 

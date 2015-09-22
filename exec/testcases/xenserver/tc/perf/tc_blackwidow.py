@@ -25,6 +25,16 @@ DEFINE_REQUESTS
         BULK:
                 GET /wb30tree/100_1.txt
  
+""",
+        "google.wl": r"""DEFINE_CLASSES
+
+        CLASS_GOOG.domain:     100
+
+DEFINE_REQUESTS
+
+        CLASS_GOOG.domain:
+                AREC www.google.com
+ 
 """
     }
 
@@ -110,6 +120,7 @@ DEFINE_REQUESTS
         super(BlackWidowPerformanceTestCase, self).__init__(self.TEST)
         self.httpClientThreads = 0
         self.httpClientParallelconn = 0
+        self.statsToCollect = []
 
     def parseArgs(self, arglist):
         # Performance Test Metrics
@@ -151,44 +162,6 @@ DEFINE_REQUESTS
         self.ns_dut = self.getVPX(self.guest_dut)
         self.ns_dut.removeExistingSNIP()
         self.setupDUT(self.ns_dut)
-
-    def startWorkload(self):
-        pass
-
-    def runTest(self):
-        raise xenrt.XRTError("Unimplemented")
-
-    def stopWorkload(self):
-        pass
-
-    def run(self, arglist=[]):
-        if self.IS_VALID_CLIENTTHREADS or self.IS_VALID_CLIENTPARALLELCONN:
-            for t,p in self.clientTnP:
-                step("Test segment started")
-                if self.IS_VALID_CLIENTTHREADS:
-                    self.httpClientThreads=int(t)
-                    log("Test Parameter: httpClientThreads = %d" % (self.httpClientThreads))
-                if self.IS_VALID_CLIENTPARALLELCONN:
-                    self.httpClientParallelconn=int(p)
-                    log("Test Parameter: httpClientParallelconn = %d" % (self.httpClientParallelconn))
-
-                self.startWorkload()
-                self.runTest()
-                self.stopWorkload()
-                step("Test segment finished")
-        else:
-            self.startWorkload()
-            self.runTest()
-            self.stopWorkload()
-
-class TCHttp100KResp(BlackWidowPerformanceTestCase):
-    TEST = "100K_resp"
-
-    def prepare(self, arglist=[]):
-        super(TCHttp100KResp, self).prepare(arglist)
-
-        self.workloadFileName = "100KB.wl"
-        self.statsToCollect = ["protocoltcp"]
 
     def startWorkload(self):
         step("startWorkload: create workload file")
@@ -238,7 +211,36 @@ class TCHttp100KResp(BlackWidowPerformanceTestCase):
         step("stopWorkload: Stop the client and the server")
         self.removeHttpServerClient(self.ns_bw)
 
-class TCHttp1BResp(TCHttp100KResp):
+    def run(self, arglist=[]):
+        if self.IS_VALID_CLIENTTHREADS or self.IS_VALID_CLIENTPARALLELCONN:
+            for t,p in self.clientTnP:
+                step("Test segment started")
+                if self.IS_VALID_CLIENTTHREADS:
+                    self.httpClientThreads=int(t)
+                    log("Test Parameter: httpClientThreads = %d" % (self.httpClientThreads))
+                if self.IS_VALID_CLIENTPARALLELCONN:
+                    self.httpClientParallelconn=int(p)
+                    log("Test Parameter: httpClientParallelconn = %d" % (self.httpClientParallelconn))
+
+                self.startWorkload()
+                self.runTest()
+                self.stopWorkload()
+                step("Test segment finished")
+        else:
+            self.startWorkload()
+            self.runTest()
+            self.stopWorkload()
+
+class TCHttp100KResp(BlackWidowPerformanceTestCase):
+    TEST = "100K_resp"
+
+    def prepare(self, arglist=[]):
+        super(TCHttp100KResp, self).prepare(arglist)
+
+        self.workloadFileName = "100KB.wl"
+        self.statsToCollect = ["protocoltcp"]
+
+class TCHttp1BResp(BlackWidowPerformanceTestCase):
     """HTTP End-to-end req/sec"""
     TEST = "1B_Resp"
 
@@ -251,7 +253,7 @@ class TCHttp1BResp(TCHttp100KResp):
     def createHttpClients(self, vpx_ns):
         vpx_ns.cli("shell /var/BW/nscsconfig -s client=%d -s percentpers=0 -s finstop=0 -w %s -s reqperconn=1 -s cltserverip=43.54.30.247 -s threads=%d -s parallelconn=%d -ye start" % (self.client_id, self.workload, self.httpClientThreads, self.httpClientParallelconn))
 
-class TCTcpVipCps(TCHttp100KResp):
+class TCTcpVipCps(BlackWidowPerformanceTestCase):
     """TCP Conn/sec (TCP VIP)"""
     TEST = "TCP_VIP_CPS"
     IS_VALID_CLIENTTHREADS = False
@@ -331,12 +333,6 @@ class TCSslTps1024(TCSslEncThroughput):
                         """)
 
     def setupDUT(self, vpx_ns):
-        vpx_ns.getGuest().shutdown()
-        vpx_ns.getGuest().cpuset(4)
-        vpx_ns.getGuest().memset(8192)
-        vpx_ns.getGuest().lifecycleOperation('vm-start')
-        vpx_ns.getGuest().waitForSSH(timeout=300, username='nsroot', cmd='shell')
-
         super(TCSslTps1024, self).setupDUT(vpx_ns)
 
         vpx_ns.cli("set ssl vserver v[1-8] -sessReuse DISABLED")
@@ -360,3 +356,44 @@ class TCSslTps2K(TCSslTps1024):
 class TCSslTps4K(TCSslTps1024):
     TEST = "SSL TPS 4096bit Key"
     CERT = "c3"
+
+class TCDnsReqPerSec(BlackWidowPerformanceTestCase):
+    TEST = "DNS Req/Sec"
+
+    def setupBlackWidow(self, vpx_ns):
+        #Add SNIPs
+        vpx_ns.cli('add ip 43.54.181.[2-%d] 255.255.0.0' % (self.clients))
+
+        # Find the ID of the second VLAN
+        vlan_ord = 2
+        lines = vpx_ns.cli("show vlan")
+        vlan_idx = next(line.split('\t')[1].split(' ')[2] for line in lines if line.startswith("%d)" % (vlan_ord)))
+
+        # Make 43.* traffic go down the right interface
+        vpx_ns.cli("bind vlan %s -IPAddress 43.54.181.2 255.255.0.0" % (vlan_idx))
+        vpx_ns.cli('save ns config')
+
+    def setupDUT(self, vpx_ns):
+        # Add SNIPs (the origin IP for requests travelling from NS to webserver)
+        vpx_ns.cli('add ip 43.54.30.[1-%d] 255.255.0.0' % (self.snips))
+        vpx_ns.cli('add service s1 43.54.30.252 adns 53' )
+
+        # Configure DNS service and save
+        vpx_ns.multiCli(""" add service s1 43.54.30.52 adns 53
+                            add addrec www.google.com 1.1.1.1 -ttl  1
+                            enable feature lb
+                            bind vlan 2 -IPAddress 43.54.30.1 255.255.0.0
+                            save ns config
+                        """)
+
+    def prepare(self, arglist=[]):
+        super(TCDnsReqPerSec, self).prepare(arglist)
+
+        self.workloadFileName = "google.wl"
+        self.statsToCollect = ["dns"]
+
+    def createHttpServers(self, vpx_ns):
+        pass
+
+    def createHttpClients(self, vpx_ns):
+        vpx_ns.cli("shell /var/BW/nscsconfig  -s dnsclient=%d -s reqperconn=1 -w %s -s cltserverip=43.54.30.252 -s cltserverport=53 -s threads=%d -s parallelconn=%d -s transtimeout=0.02 -ye start" % (self.client_id, self.workload, self.httpClientThreads, self.httpClientParallelconn))

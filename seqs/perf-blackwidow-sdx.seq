@@ -59,6 +59,8 @@
       </NETWORK>
       <vm name="${DUT_NAME}">
         <file>${NS_NSVPX_XVA}</file>
+        <memory>6144</memory>
+        <vcpus>3</vcpus>
         <network device="0" />
         <network device="1" bridge="CLIENT_VLAN" />
         <postinstall action="setupNetscalerVPX" />

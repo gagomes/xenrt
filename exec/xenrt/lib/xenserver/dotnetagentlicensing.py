@@ -30,7 +30,8 @@ class SimpleServer(object):
 
     def isPinged(self, wait):
         xenrt.sleep(wait)
-        line = self.guest.execdom0("tail -n 1 logs/server.log")
+        host = self.guest.host
+        line = host.execdom0("tail -n 1 logs/server.log")
         timeStr = re.search('(\d\d:){2}\d\d',line)
         logTime = (datetime.datetime.strptime(timeStr,'%H:%M:%S')+datetime.timedelta(seconds=wait)).time()
         nowTime = datetime.datetime.now().time()
@@ -40,11 +41,12 @@ class SimpleServer(object):
             return True
 
     def moveFile(self, ssFile):
+        host = self.guest.host
         if ssFile.location == "store/":
-            self.guest.execDom("mv store/{0} {0}".format(ssFile.name))
+            host.execDom0("mv store/{0} {0}".format(ssFile.name))
             ssFile.location = ""
         else:
-            self.guest.execDom("mv {0} store/{0}".format(ssFile.name))
+            host.execDom0("mv {0} store/{0}".format(ssFile.name))
             ssFile.location = "store/"
 
     def addFile(self, ssFile, key):
@@ -64,8 +66,9 @@ class SimpleServer(object):
         
 class DotNetAgent(object):
 
-    def __init__(self):
+    def __init__(self, guest):
         self.licensedFeatures = {'VSS':VSS(),'AutoUpdate':AutoUpdate()}
+        self.guest = guest
 
     def restartAgent(self):
         pass
@@ -106,8 +109,8 @@ class ActorAbstract(LicensedFeature):
     def disable(self):
         self.actor.disable()
 
-    def setURL(self):
-        self.actor.setURL()
+    def setURL(self,url):
+        self.actor.setURL(url)
 
     def defaultURL(self):
         self.actor.defaultURL()
@@ -131,7 +134,7 @@ class ActorImp(object):
         pass
 
     @abstractmethod
-    def setURL(self):
+    def setURL(self, url):
         pass
 
     @abstractmethod
@@ -148,16 +151,19 @@ class PoolAdmin(ActorImp):
         pass
 
     def enable(self):
-        pass
+        host = self.guest.host
+        host.execDom0("xe pool-param-set uuid=%s guest-agent-confg:auto_update_enabled=true"% host.getPool().getUUID())
 
     def disable(self):
         pass
 
-    def setURL(self):
-        pass
+    def setURL(self,url):
+        host = self.guest.host
+        host.execDom0("xe pool-param-set uuid=%s guest-agent-confg:auto_update_url=%s"%(host.getPool().getUUID(),url))
 
     def defaultURL(self):
-        pass
+        host = self.guest.host
+        host.execDom0("xe pool-param-set uuid=%s guest-agent-confg:auto_update_url=\"\""%host.getPool().getUUID())
 
     def checkKeyPresence(self):
         pass

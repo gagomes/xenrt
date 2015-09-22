@@ -1,5 +1,8 @@
 import config
 import base64, hashlib, random
+import jose.jws
+import jose.jwt
+import jwkest.jwk
 
 class User(object):
     def __init__(self, page, userid):
@@ -26,6 +29,25 @@ class User(object):
             user._team = rc[4].strip() if rc[4] else None
             return user
         return None
+
+    @classmethod
+    def fromJWT(cls, page, token):
+        try:
+            headers, claims, signing_input, sig = jose.jws._load(token)
+            if not claims['iss'] in config.trusted_jwt_iss.split(","):
+                raise Exception("JWT iss is not trusted")
+
+            keys = jwkest.jwk.KEYS()
+            keys.load_from_url("%s/.well-known/jwks" % claims['iss'])
+            key = keys.by_kid(headers['kid'])[0].get_key().exportKey()
+            claims = jose.jwt.decode(token, key, options={'verify_aud':False})
+            username = claims['domainuserid']
+        except Exception, e:
+            print str(e)
+            return None
+        else:
+            user = cls(page, username)
+            return user
 
     @property
     def valid(self):

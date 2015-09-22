@@ -10,6 +10,7 @@ class DotNetAgentAdapter(object):
         self.licenseManager = licenseManager()
         self.licenseFactory = XenServerLicenseFactory()
         self.v6 = licenseServer
+        self.v6.removeAllLicenses()
         self.licensedEdition = xenrt.TEC().lookup("LICENSED_EDITION")
         self.unlicensedEdition = xenrt.TEC().lookup("UNLICENSED_EDITION")
 
@@ -52,7 +53,7 @@ class DotNetAgentAdapter(object):
 class TempTest(xenrt.TestCase):
 
         def run(self,arglist):
-            adapter = DotNetAgentAdapter(self.licenseServer(xenrt.TEC().lookup("LICENSE_SERVER")))
+            adapter = DotNetAgentAdapter(self.getGuest(xenrt.TEC().lookup("LICENSE_SERVER")))
             server = adapter.setUpServer(self.getGuest("server"))
             log(server.isPinged(100))
             adapter.applyLicense(self.getDefaultPool())

@@ -1,4 +1,4 @@
-﻿import xenrt
+import xenrt
 from xenrt.lib.xenserver.dotnetagentlicensing import *
 from xenrt.enum import XenServerLicenseSKU
 from xenrt.lib.xenserver.licensing import LicenseManager, XenServerLicenseFactory
@@ -9,7 +9,7 @@ class DotNetAgentAdapter(object):
     def __init__(self,licenseServer):
         self.licenseManager = LicenseManager()
         self.licenseFactory = XenServerLicenseFactory()
-        self.v6 = licenseServer
+        self.v6 = licenseServer.getV6LicenseServer()
         self.v6.removeAllLicenses()
         self.licensedEdition = xenrt.TEC().lookup("LICENSED_EDITION")
         self.unlicensedEdition = xenrt.TEC().lookup("UNLICENSED_EDITION")

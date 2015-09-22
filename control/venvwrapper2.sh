@@ -73,8 +73,6 @@ source $venvpath/bin/activate
 # Copy the exec dir to the virtualenv, so we get better stack traces
 path=`dirname $1`
 
-cp -R $path $venvpath/exec
-
 cmd=`basename $1`
 
 shift

@@ -376,10 +376,9 @@ class TCDnsReqPerSec(BlackWidowPerformanceTestCase):
     def setupDUT(self, vpx_ns):
         # Add SNIPs (the origin IP for requests travelling from NS to webserver)
         vpx_ns.cli('add ip 43.54.30.[1-%d] 255.255.0.0' % (self.snips))
-        vpx_ns.cli('add service s1 43.54.30.252 adns 53' )
 
         # Configure DNS service and save
-        vpx_ns.multiCli(""" add service s1 43.54.30.52 adns 53
+        vpx_ns.multiCli(""" add service s1 43.54.30.252 adns 53
                             add addrec www.google.com 1.1.1.1 -ttl  1
                             enable feature lb
                             bind vlan 2 -IPAddress 43.54.30.1 255.255.0.0

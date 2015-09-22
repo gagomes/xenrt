@@ -163,6 +163,26 @@ DEFINE_REQUESTS
         self.ns_dut.removeExistingSNIP()
         self.setupDUT(self.ns_dut)
 
+    def run(self, arglist=[]):
+        if self.IS_VALID_CLIENTTHREADS or self.IS_VALID_CLIENTPARALLELCONN:
+            for t,p in self.clientTnP:
+                step("Test segment started")
+                if self.IS_VALID_CLIENTTHREADS:
+                    self.httpClientThreads=int(t)
+                    log("Test Parameter: httpClientThreads = %d" % (self.httpClientThreads))
+                if self.IS_VALID_CLIENTPARALLELCONN:
+                    self.httpClientParallelconn=int(p)
+                    log("Test Parameter: httpClientParallelconn = %d" % (self.httpClientParallelconn))
+
+                self.startWorkload()
+                self.runTest()
+                self.stopWorkload()
+                step("Test segment finished")
+        else:
+            self.startWorkload()
+            self.runTest()
+            self.stopWorkload()
+
     def startWorkload(self):
         step("startWorkload: create workload file")
         self.createWorkloadFile(self.ns_bw)
@@ -210,26 +230,6 @@ DEFINE_REQUESTS
 
         step("stopWorkload: Stop the client and the server")
         self.removeHttpServerClient(self.ns_bw)
-
-    def run(self, arglist=[]):
-        if self.IS_VALID_CLIENTTHREADS or self.IS_VALID_CLIENTPARALLELCONN:
-            for t,p in self.clientTnP:
-                step("Test segment started")
-                if self.IS_VALID_CLIENTTHREADS:
-                    self.httpClientThreads=int(t)
-                    log("Test Parameter: httpClientThreads = %d" % (self.httpClientThreads))
-                if self.IS_VALID_CLIENTPARALLELCONN:
-                    self.httpClientParallelconn=int(p)
-                    log("Test Parameter: httpClientParallelconn = %d" % (self.httpClientParallelconn))
-
-                self.startWorkload()
-                self.runTest()
-                self.stopWorkload()
-                step("Test segment finished")
-        else:
-            self.startWorkload()
-            self.runTest()
-            self.stopWorkload()
 
 class TCHttp100KResp(BlackWidowPerformanceTestCase):
     TEST = "100K_resp"

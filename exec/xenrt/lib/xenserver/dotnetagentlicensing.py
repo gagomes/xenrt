@@ -166,7 +166,11 @@ class PoolAdmin(ActorImp):
         host.execDom0("xe pool-param-set uuid=%s guest-agent-confg:auto_update_url=\"\""%host.getPool().getUUID())
 
     def checkKeyPresence(self):
-        pass
+        host = self.guest.host
+        if host.xenstoreExists("/guest_agent_features/Guest_agent_auto_update") == 1:
+            return True
+        else:
+            return False
 
 class VMUser(ActorImp):
 
@@ -194,10 +198,18 @@ class VSS(LicensedFeature):
         pass
 
     def isLicensed(self):
-        pass
+        host = self.guest.host
+        if host.xenstoreRead("/guest_agent_features/VSS/licensed") == 1:
+            return True
+        else:
+            return False
 
     def checkKeyPresence(self):
-        pass
+        host = self.guest.host
+        if host.xenstoreExists("/guest_agent_features/VSS") == 1:
+            return True
+        else:
+            return False
 
 class AutoUpdate(ActorAbstract):
 
@@ -208,7 +220,11 @@ class AutoUpdate(ActorAbstract):
         pass
 
     def isLicensed(self):
-        pass
+        host = self.guest.host
+        if host.xenstoreRead("/guest_agent_features/Guest_agent_auto_update/licensed") == 1:
+            return True
+        else:
+            return False
 
     def setUserVMUser(self):
         user = VMUser()

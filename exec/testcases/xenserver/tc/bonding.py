@@ -2326,7 +2326,7 @@ class _BondBalance(_AggregateBondTest):
             else :
                 balanceratio = float(iftraffic0)/float(iftraffic1)            
             
-            # If there exist a same number of sources across the NICs then we expect traffic to be balanced at least for 6:4 accuracy
+            # If there exist a same number of hashes across the NICs then we expect traffic to be balanced at least for 6:4 accuracy
             # otherwise we expect atlest 4:2 accuracy  
             if info['slb'].values().count(info['slaves'][0]) == info['slb'].values().count(info['slaves'][1]):
                 if not (0.66 <= balanceratio <= 1.0):

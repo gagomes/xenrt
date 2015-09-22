@@ -5,11 +5,11 @@ from xenrt.lib.xenserver.licensing import LicenseManager, XenServerLicenseFactor
 import xenrt.lazylog
 
 class DotNetAgentAdapter:
-    self.licenseManager = None
-    self.licenseFactory = None
-    self.v6 = None
-    self.licensedEdition = ""
-    self.unlicensedEdition = ""
+    licenseManager = None
+    licenseFactory = None
+    v6 = None
+    licensedEdition = ""
+    unlicensedEdition = ""
 
     def init(self,licenseServer):
         self.licenseManager = licenseManager()

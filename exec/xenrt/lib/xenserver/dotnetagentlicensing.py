@@ -4,8 +4,8 @@ import re
 import datetime
 
 class SSFile(object):
-    self.name = ""
-    self.location = ""
+    name = ""
+    location = ""
 
     def __init__(name, location):
         self.setName(name)
@@ -24,9 +24,9 @@ class SSFile(object):
         self.location = location
 
 class SimpleServer(object):
-    self.ssFiles = {}
-    self.port = ""
-    self.guest = None
+    ssFiles = {}
+    port = ""
+    guest = None
 
     def __init__(self, port, ssFiles, guest):
         self.ssFiles = ssFiles
@@ -69,7 +69,7 @@ class SimpleServer(object):
         
 class DotNetAgent(object):
 
-    self.licensedFeatures = {}
+    licensedFeatures = {}
 
     def __init__():
         licensedFeatures['VSS'] = VSS()
@@ -98,7 +98,7 @@ class LicensedFeature(object):
 
 class ActorAbstract(LicensedFeature):
 
-    self.actor = None
+    actor = None
 
     def __init__(self, actor):
         self.setActor(actor)

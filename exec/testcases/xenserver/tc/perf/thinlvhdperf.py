@@ -56,11 +56,12 @@ class ThinLVHDPerfBase(testcases.xenserver.tc.perf.libperf.PerfTestCase):
 
         for var in self.ENV_VARS:
             self.__setValue(var, *self.ENV_VARS[var])
+            testcases.xenserver.tc.perf.libperf.logArg(var, getattr(self, var))
 
         if printOut:
             log("=======================")
             for var in self.ENV_VARS:
-                testcases.xenserver.tc.perf.libperf.logArg(var, getattr(self, var))
+                log("%s: %s" % (var, getattr(self, var)))
             log("=======================")
 
     def createSR(self, srsize=100, default=False):

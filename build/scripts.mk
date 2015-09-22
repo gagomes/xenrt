@@ -17,10 +17,14 @@ PUPPETREPO ?= puppet-configs.git
 
 include build/tools.mk
 
-ifndef BUILDPREFIX
-EXECDIR = exec
+ifdef BUILDPREFIX
+EXECDIR = $(SHAREDIR)/$(BUILDPREFIX)-exec
 else
-EXECDIR = $(BUILDPREFIX)-exec
+ifdef BUILDDIR
+EXECDIR = $(BUILDDIR)
+else
+EXECDIR = $(SHAREDIR)/exec
+endif
 endif
 
 SRCDIRS		:= control scripts seqs lib data provision server xenrtdhcpd api_build
@@ -155,7 +159,7 @@ control/xenrt.py:
 
 $(EXECDIR)/xenrt/ctrl.py:
 	$(info Creating link to $@...)
-	ln -sf $(SHAREDIR)/control/xenrt $(SHAREDIR)/$@
+	ln -sf $(SHAREDIR)/control/xenrt $@
 
 control/xrt:
 	$(info Creating link to $@...)
@@ -254,10 +258,11 @@ endif
 .PHONY: exec
 exec: $(SCRIPTS)
 	$(info Installing files to $(EXECDIR))
+	mkdir -p $(EXECDIR)
 ifeq ($(CLEANSCRIPTS),yes)
-	rsync -axl --delete $(notdir $@)/* $(SHAREDIR)/$(EXECDIR)/
+	rsync -axl --delete $(notdir $@)/* $(EXECDIR)/
 else
-	rsync -axl $(notdir $@)/* $(SHAREDIR)/$(EXECDIR)/
+	rsync -axl $(notdir $@)/* $(EXECDIR)/
 endif
 
 .PHONY: $(SCRIPTS)

@@ -29,13 +29,25 @@ class XenRTPage(Page):
     def getUserFromAPIKey(self, apiKey):
         return app.user.User.fromApiKey(self, apiKey)
 
+    def getUserFromJWT(self, token):
+        user = app.user.User.fromJWT(self, token)
+        if user.valid:
+            self.request.response.set_cookie("apikey", self.user.apiKey)
+            return user
+        else:
+            return None
+
     def getUser(self, forceReal=False):
         if self._user.get(forceReal):
             return self._user[forceReal]
 
         lcheaders = dict([(k.lower(), v)  for (k,v) in self.request.headers.iteritems()])
         user = None
-        if "x-api-key" in lcheaders:
+        if "jwt" in self.request.GET:
+            user = self.getUserFromJWT(self.request.GET['jwt'])
+        if not user and "apikey" in self.request.cookies:
+            user = self.getUserFromAPIKey(self.request.cookies['apikey'])
+        if not user and "x-api-key" in lcheaders:
             user = self.getUserFromAPIKey(lcheaders['x-api-key'])
         if not user and "apikey" in self.request.GET:
             user = self.getUserFromAPIKey(self.request.GET['apikey'])

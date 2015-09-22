@@ -77,6 +77,8 @@ for cf in cfs:
                                     cfg['group_mapping'] = data
                                 elif name == "ADMIN_GROUP":
                                     cfg['admin_group'] = data
+                                elif name == "TRUSTED_JWT_ISS":
+                                    cfg['trusted_jwt_iss'] = data
                                 elif name == "SCHEDULE_LOG_DIR":
                                     cfg['schedule_log_dir'] = data
                                 elif name == "MASTER_SERVER":

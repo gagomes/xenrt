@@ -13,7 +13,7 @@ class DotNetAgentAdapter(object):
         self.licensedEdition = xenrt.TEC().lookup("LICENSED_EDITION")
         self.unlicensedEdition = xenrt.TEC().lookup("UNLICENSED_EDITION")
 
-    def applyLicense(self, hostOrPool, sku = self.licensedEdition):
+    def applyLicense(self, hostOrPool, sku = xenrt.TEC().lookup("LICENSED_EDITION")):
         license = self.licenseFactory.licenseForPool(hostOrPool, sku)
         licenseinUse = self.licenseManager.addLicensesToServer(v6,license)
         self.licenseManager.applyLicense(v6, hostOrPool, license, licenseinUse)

@@ -4,14 +4,9 @@ from xenrt.enum import XenServerLicenseSKU
 from xenrt.lib.xenserver.licensing import LicenseManager, XenServerLicenseFactory
 import xenrt.lazylog
 
-class DotNetAgentAdapter:
-    licenseManager = None
-    licenseFactory = None
-    v6 = None
-    licensedEdition = ""
-    unlicensedEdition = ""
+class DotNetAgentAdapter(object):
 
-    def init(self,licenseServer):
+    def __init__(self,licenseServer):
         self.licenseManager = licenseManager()
         self.licenseFactory = XenServerLicenseFactory()
         self.v6 = licenseServer(xenrt.TEC().lookup("LICENSE_SERVER"))

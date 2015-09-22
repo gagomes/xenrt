@@ -11,14 +11,16 @@
         <distro>ws12-x64</distro>
         <postinstall action="installDrivers"/>
         <network device="0" />
-        <vcpus>1</vcpus>
+        <vcpus>8</vcpus>
+        <corespersocket>8</corespersocket>
         <memory>1024</memory>
       </vm>
       <vm name="g2">
         <distro>ws12-x64</distro>
         <postinstall action="installDrivers"/>
         <network device="0" />
-        <vcpus>1</vcpus>
+        <vcpus>8</vcpus>
+        <corespersocket>8</corespersocket>
         <memory>1024</memory>
       </vm>
     </host>

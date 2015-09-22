@@ -30,8 +30,7 @@ class SimpleServer(object):
 
     def isPinged(self, wait):
         xenrt.sleep(wait)
-        host = self.guest.host
-        line = host.execdom0("tail -n 1 logs/server.log")
+        line = guest.execguest("tail -n 1 logs/server.log")
         timeStr = re.search('(\d\d:){2}\d\d',line)
         logTime = (datetime.datetime.strptime(timeStr,'%H:%M:%S')+datetime.timedelta(seconds=wait)).time()
         nowTime = datetime.datetime.now().time()
@@ -41,12 +40,11 @@ class SimpleServer(object):
             return True
 
     def moveFile(self, ssFile):
-        host = self.guest.host
         if ssFile.location == "store/":
-            host.execDom0("mv store/{0} {0}".format(ssFile.name))
+            guest.execguest("mv store/{0} {0}".format(ssFile.name))
             ssFile.location = ""
         else:
-            host.execDom0("mv {0} store/{0}".format(ssFile.name))
+            guest.execguest("mv {0} store/{0}".format(ssFile.name))
             ssFile.location = "store/"
 
     def addFile(self, ssFile, key):

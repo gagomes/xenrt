@@ -41,12 +41,11 @@ class DotNetAgentAdapter(object):
         pass
 
     def setUpServer(self,guest):
-        host = guest.host
-        host.execDom0("mkdir store")
-        host.execDom0("mkdir logs")
-        host.execDom0(" echo \"file contents\" > store/dotNetAgent.msi")  
+        guest.execguest("mkdir store")
+        guest.execguest("mkdir logs")
+        guest.execguest(" echo \"file contents\" > store/dotNetAgent.msi")  
         msi = {"dotNetAgent" : SSFile("dotNetAgent.msi","store/")}
-        host.execDom0("python -m SimpleHTTPServer 16000 > logs/server.log 2>&1")
+        guest.execguest("python -m SimpleHTTPServer 16000 > logs/server.log 2>&1")
         return SimpleServer("16000", msi, guest)
 
 

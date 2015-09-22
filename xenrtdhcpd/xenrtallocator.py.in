@@ -114,8 +114,10 @@ class XenRTDHCPAllocator(object):
         self._sql("SELECT addr FROM leases WHERE mac='%s' AND interface='%s' ORDER BY expiry DESC" % (mac.lower(), intf))
         r = self.cur.fetchone()
         if r:
+            _logger.info("Lease %s found for %s" % (r[0].split("#")[0].strip(), mac.lower()))
             return r[0].split("#")[0].strip()
         else:
+            _logger.info("No lease found for %s" % (mac.lower()))
             return None
 
     def _findHostName(self, addr):

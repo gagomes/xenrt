@@ -35,7 +35,7 @@ class JiraLink(object):
         self.TRACK_TAG = xenrt.TEC().lookup("JIRA_TRACK_TAG", None)
 
         self.XENRT_WEB = xenrt.TEC().lookup("JIRA_XENRT_WEB", 
-                              "http://xenrt.hq.xensource.com/control/queue.cgi")
+                              "https://xenrt.citrite.net/control/queue.cgi")
 
         self.TESTRUN_URL = xenrt.TEC().lookup("TESTRUN_URL", None)
         self.customFields = None

@@ -32,7 +32,6 @@ class XenRTPage(Page):
     def getUserFromJWT(self, token):
         user = app.user.User.fromJWT(self, token)
         if user and user.valid:
-            self.request.response.set_cookie("apikey", user.apiKey)
             return user
         else:
             return None
@@ -45,6 +44,10 @@ class XenRTPage(Page):
         user = None
         if "jwt" in self.request.GET:
             user = self.getUserFromJWT(self.request.GET['jwt'])
+            if user:
+                self.request.response.set_cookie("apikey", user.apiKey)
+        if not user and "x-jwt" in lcheaders:
+            user = self.getUserFromJWT(lcheaders['x-jwt'])
         if not user and "apikey" in self.request.cookies and self.request.cookies['apikey'] != "invalid":
             user = self.getUserFromAPIKey(self.request.cookies['apikey'])
             if not user:

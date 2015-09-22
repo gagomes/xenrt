@@ -1857,8 +1857,10 @@ class Config(object):
         self.config["CLOUD_CONFIG"]["4.6.0"]["SYSTEM_TEMPLATES"]["vmware"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-07-22-4.6.0-vmware.ova"
         self.config["CLOUD_CONFIG"]["4.6.0"]["SYSTEM_TEMPLATES"]["lxc"] = self.config["CLOUD_CONFIG"]["4.6.0"]["SYSTEM_TEMPLATES"]["kvm"]
 
+        self.config["CLOUD_CONFIG"]["4.7.0"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.6.0"])
+
         # Specify which version 'master' currently maps to
-        self.config["CLOUD_MASTER_MAP"] = "4.6.0"
+        self.config["CLOUD_MASTER_MAP"] = "4.7.0"
 
 
         self.config["GUEST_VIFS_centos41"] = "3"

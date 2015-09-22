@@ -2,7 +2,6 @@ import xenrt
 from xenrt.lib.xenserver.dotnetagentlicensing import *
 from xenrt.enum import XenServerLicenseSKU
 from xenrt.lib.xenserver.licensing import LicenseManager, XenServerLicenseFactory
-from xenrt.lazylog import log
 
 class DotNetAgentAdapter(object):
 
@@ -54,6 +53,6 @@ class TempTest(xenrt.TestCase):
         def run(self,arglist):
             adapter = DotNetAgentAdapter(self.getGuest(xenrt.TEC().lookup("LICENSE_SERVER")))
             server = adapter.setUpServer(self.getGuest("server"))
-            log(server.isPinged(100))
+            xenrt.TEC().logverbose(server.isPinged(100))
             adapter.applyLicense(self.getDefaultPool())
 

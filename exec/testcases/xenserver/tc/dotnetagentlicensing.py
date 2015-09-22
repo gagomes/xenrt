@@ -28,17 +28,24 @@ class DotNetAgentAdapter(object):
         pass
 
     def exportVM(self, vm):
-        pass
+        vm.setState("DOWN")
+        vmName = vm.getName()
+        tmp = xenrt.resources.TempDirectory()
+        path = "%s/%s" % (tmp.path(), vmName)
+        vm.exportVM(path)
+        vm.setState("DOWN")
+        vm.uninstall()
 
     def importVM(self,vm,host):
         pass
 
     def setUpServer(self,guest):
-        guest.getHost().execDom0("mkdir store")
-        guest.getHost().execDom0("mkdir logs")
-        guest.getHost().execDom0(" echo \"file contents\" > store/dotNetAgent.msi")  
+        host = guest.host
+        host.execDom0("mkdir store")
+        host.execDom0("mkdir logs")
+        host.execDom0(" echo \"file contents\" > store/dotNetAgent.msi")  
         msi = {"dotNetAgent" : SSFile("dotNetAgent.msi","store/")}
-        guest.getHost().execDom0("python -m SimpleHTTPServer 16000 > logs/server.log 2>&1")
+        host.execDom0("python -m SimpleHTTPServer 16000 > logs/server.log 2>&1")
         return SimpleServer("16000", msi, guest)
 
 

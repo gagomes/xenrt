@@ -42,10 +42,10 @@ class DotNetAgentAdapter(object):
         return SimpleServer("16000", msi, guest)
 
 
-    class TempTest(xenrt.TestCase):
+class TempTest(xenrt.TestCase):
 
-            def run(self,arglist):
-                adapter = DotNetAgentAdapter(self.licenseServer)
-                server = adapter.setUpServer(self.getGuest("server"))
-                log(server.isPinged(100))
+        def run(self,arglist):
+            adapter = DotNetAgentAdapter(self.licenseServer)
+            server = adapter.setUpServer(self.getGuest("server"))
+            log(server.isPinged(100))
 

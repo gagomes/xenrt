@@ -483,12 +483,12 @@ class PhoneHomeFailedUpload(PhoneHome):
         # Initialize Service settings on pool and Enrol pool for Service
         self.service.initializeService(self.pool)
         self.service.activateService(self.pool)
-        
+
         step("Now Attach the host to XenCenter")
         self.guest.attachXenCenterToHost(self.pool.master)
 
         step("Enable Firewall so that the upload fails")
-        self.guest.xmlrpcExec("Netsh advfirewall firewall add rule action=block remoteip=%s name=BlockCISAccess dir=out interface=any"%self.server.endpoint)
+        self.blockService(self.guest)
 
         triggerTime=self.service.triggerService(self.pool,self.options)
         if self.service.verifyService(self.pool,triggerTime):
@@ -501,13 +501,19 @@ class PhoneHomeFailedUpload(PhoneHome):
                 raise xenrt.XRTFailure("Couldnt find the trace of Failed Upload")
 
         step("So upload failed. Now disable firewall so the failed upload goes through")
-        self.guest.xmlrpcExec("Netsh advfirewall firewall delete rule name=BlockCISAccess ")
+        self.unblockService(self.guest)
+
 
         if self.service.verifyService(self.pool,triggerTime,timeout=2000):
             xenrt.log("Previous Upload attempt is finally successful")
         else :
             raise xenrt.XRTFailure("Previous Upload attempt is still pending")
 
+    def blockService(self,guest):
+        guest.xmlrpcExec("Netsh advfirewall firewall add rule action=block remoteip=%s name=BlockCISAccess dir=out interface=any"%self.server.endpoint)
+
+    def unblockService(self,guest):
+        guest.xmlrpcExec("Netsh advfirewall firewall delete rule name=BlockCISAccess")
 
 
 class VerifySingleUploadMulXC(PhoneHome):

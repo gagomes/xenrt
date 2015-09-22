@@ -53,7 +53,7 @@ class XenRTUIPage(XenRTPage):
      </ul>
    </li>
    <li><a href='/xenrt/ui/logs'><span>Browse logs</span></a></li>
-   <li><a href='http://%s/xenrt/ui/suiterun'><span>Run Suite</span></a></li>
+   <li><a href='https://%s/xenrt/ui/suiterun'><span>Run Suite</span></a></li>
    <li class='has-sub'><a href='#'><span>API</span></a>
       <ul>
          <li><a href='/xenrt/swagger' target="_blank"><span>API Documentation</span></a></li>
@@ -65,7 +65,7 @@ class XenRTUIPage(XenRTPage):
    </li>
    <li class='has-sub'><a href='#'><span>XenRTCenter</span></a>
      <ul>
-         <li><a href='http://xenrt.citrite.net/xenrtcenter/StartXenRTCenter.exe' target="_blank"><span>Download</span></a></li>
+         <li><a href='https://xenrt.citrite.net/xenrtcenter/StartXenRTCenter.exe' target="_blank"><span>Download</span></a></li>
          <li><a href='https://info.citrite.net/display/CPGQA/XenRTCenter' target="_blank"><span>Documentation</span></a></li>
      </ul>
    </li>

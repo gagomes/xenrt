@@ -10,10 +10,10 @@ import os.path, re, glob, random, time, datetime, getpass, ConfigParser
 import stat
 
 try:
-    import requests
     import xenrtapi
+    import requests
 except:
-    sys.path.append("@nfslibpath@")
+    sys.path.insert(0, "@nfslibpath@")
     import requests
     import xenrtapi
 

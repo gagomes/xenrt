@@ -31,8 +31,8 @@ class XenRTPage(Page):
 
     def getUserFromJWT(self, token):
         user = app.user.User.fromJWT(self, token)
-        if user.valid:
-            self.request.response.set_cookie("apikey", self.user.apiKey)
+        if user and user.valid:
+            self.request.response.set_cookie("apikey", user.apiKey)
             return user
         else:
             return None

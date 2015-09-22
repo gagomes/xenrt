@@ -7,7 +7,7 @@ import xenrt.lazylog
 class DotNetAgentAdapter(object):
 
     def __init__(self,licenseServer):
-        self.licenseManager = licenseManager()
+        self.licenseManager = LicenseManager()
         self.licenseFactory = XenServerLicenseFactory()
         self.v6 = licenseServer
         self.v6.removeAllLicenses()

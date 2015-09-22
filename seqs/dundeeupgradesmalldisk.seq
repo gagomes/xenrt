@@ -1,0 +1,17 @@
+<xenrt>
+
+  <!-- Single host upgrade test with safe partitioning on smaller disk size -->
+
+  <default name="OLD_PRODUCT_VERSION" value="Clearwater"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446"/>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_RPU_HOTFIX>True</INSTALL_RPU_HOTFIX>
+  </variables>
+
+  <testsequence>
+    <testcase group="Upgrade" id="xenserver.tc.upgrade.TCRpuPartSmallDisk" tc="TC-27344"/>
+  </testsequence>
+
+</xenrt>

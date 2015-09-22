@@ -8455,17 +8455,6 @@ rm -f /etc/xensource/xhad.conf || true
 
     def checkSafe2Upgrade(self):
         """Function to check if new partitions will be created on upgrade to dundee- CAR-1866"""
-        #This workaround is required because new plugins are yet to be added to released XS versions
-        if xenrt.TEC().lookup("WORKAROUND_CAR1866", default=False, boolean=True) and not isinstance(self, xenrt.lib.xenserver.DundeeHost):
-            step("Replace prepare_upgrade_plugin with the custom plugin")
-            plugin = xenrt.TEC().getFile("/usr/groups/xenrt/upgrade_plugins/%s_prepare_host_upgrade.py" % (xenrt.TEC().lookup("OLD_PRODUCT_VERSION")))
-            sftp = self.sftpClient()
-            try:
-                xenrt.TEC().logverbose('About to copy "%s to "%s" on host.' \
-                                        % (plugin, "/etc/xapi.d/plugins/prepare_host_upgrade.py"))
-                sftp.copyTo(plugin, "/etc/xapi.d/plugins/prepare_host_upgrade.py")
-            finally:
-                sftp.close()
 
         step("Call testSafe2Upgrade function and check if its output is as expected")
         sruuid = []
@@ -8478,9 +8467,14 @@ rm -f /etc/xensource/xhad.conf || true
             if localSrOnSda:
                 vdis = len(self.minimalList("vdi-list", args="sr-uuid=%s" % (sr)))
                 log("Number of VDIs on local stotage: %d" % vdis)
-                srsize = int(self.genParamGet("sr", sr, "physical-size"))/xenrt.GIGA
+                srsize = int(self.execdom0("blockdev --getsize64 %s" % self.getInventoryItem("PRIMARY_DISK")))/xenrt.GIGA
                 log("Size of disk: %dGiB" % srsize)
-                expectedOutput = "false" if (vdis > 0 or srsize < 38) and not isinstance(self, xenrt.lib.xenserver.DundeeHost) else "true"
+                if srsize < 46:
+                    expectedOutput = "not_enough_space"
+                elif (isinstance(self, xenrt.lib.xenserver.DundeeHost) and self.compareDom0Partitions(self.lookup("DOM0_PARTITIONS_OLD"))) or vdis > 0:
+                    expectedOutput = "false"
+                else:
+                    expectedOutput = "true"
         log("Plugin should return: %s" % expectedOutput)
 
         cli = self.getCLIInstance()

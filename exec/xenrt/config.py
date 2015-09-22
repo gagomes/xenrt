@@ -2091,7 +2091,7 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["win7sp1-x64"]["MAX_VM_VCPUS"] = "16"
         self.config["GUEST_LIMITATIONS"]["win8-x86"] = {}
         self.config["GUEST_LIMITATIONS"]["win8-x86"]["MINMEMORY"] = "1024"
-        self.config["GUEST_LIMITATIONS"]["win8-x86"]["MAXMEMORY"] = "131072"
+        self.config["GUEST_LIMITATIONS"]["win8-x86"]["MAXMEMORY"] = "4096"
         self.config["GUEST_LIMITATIONS"]["win8-x86"]["MAXSOCKETS"] = "2"
         self.config["GUEST_LIMITATIONS"]["win8-x86"]["MAX_VM_VCPUS"] = "16"
         self.config["GUEST_LIMITATIONS"]["win8-x64"] = {}
@@ -2101,7 +2101,7 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["win8-x64"]["MAX_VM_VCPUS"] = "16"
         self.config["GUEST_LIMITATIONS"]["win10-x86"] = {}
         self.config["GUEST_LIMITATIONS"]["win10-x86"]["MINMEMORY"] = "1024"
-        self.config["GUEST_LIMITATIONS"]["win10-x86"]["MAXMEMORY"] = "131072"
+        self.config["GUEST_LIMITATIONS"]["win10-x86"]["MAXMEMORY"] = "4096"
         self.config["GUEST_LIMITATIONS"]["win10-x86"]["MAXSOCKETS"] = "2"
         self.config["GUEST_LIMITATIONS"]["win10-x86"]["MAX_VM_VCPUS"] = "16"
         self.config["GUEST_LIMITATIONS"]["win10-x64"] = {}
@@ -2111,7 +2111,7 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["win10-x64"]["MAX_VM_VCPUS"] = "16"
         self.config["GUEST_LIMITATIONS"]["win81-x86"] = {}
         self.config["GUEST_LIMITATIONS"]["win81-x86"]["MINMEMORY"] = "1024"
-        self.config["GUEST_LIMITATIONS"]["win81-x86"]["MAXMEMORY"] = "131072"
+        self.config["GUEST_LIMITATIONS"]["win81-x86"]["MAXMEMORY"] = "4096"
         self.config["GUEST_LIMITATIONS"]["win81-x86"]["MAXSOCKETS"] = "2"
         self.config["GUEST_LIMITATIONS"]["win81-x86"]["MAX_VM_VCPUS"] = "16"
         self.config["GUEST_LIMITATIONS"]["win81-x64"] = {}

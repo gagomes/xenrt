@@ -15,8 +15,6 @@ _logger = logging.getLogger('dhcp')
 class XenRTDHCPAllocator(object):
     
     def __init__(self):
-        self.conn = None
-        self.cur = None
         self.lock = threading.RLock()
         self.dblock = threading.RLock()
         self.interfaceInfo = {}
@@ -71,18 +69,14 @@ class XenRTDHCPAllocator(object):
             intfcfg['reservations'][r.lower()] = addr
 
     def _sql(self, sql):
-        with self.dblock:
+        with psycopg2.connect("host='127.0.0.1' port=6432 dbname=bounced") as conn:
             _logger.info("Executing %s" % sql)
+            cur = conn.cursor()
+            cur.execute(sql)
             try:
-                self.cur.execute(sql)
+                return cur.fetchall()
             except:
-                _logger.info("Attempting reconnection to DB")
-                self.conn = psycopg2.connect("host='127.0.0.1' dbname='dhcp' user='dhcp' password='dhcp'")
-                self.cur = self.conn.cursor()
-                self.cur.execute(sql)
-                self.conn.commit()
-            else:
-                self.conn.commit()
+                return None
     
     def _setupDB(self, intf):
         start = self.config['interfaces'][intf]['start']
@@ -97,8 +91,8 @@ class XenRTDHCPAllocator(object):
 
         # 3. See what addresses we have in this range
 
-        self._sql("SELECT addr FROM leases WHERE interface='%s'" % intf)
-        existing = [x[0] for x in self.cur.fetchall()]
+        results = self._sql("SELECT addr FROM leases WHERE interface='%s'" % intf)
+        existing = [x[0] for x in results]
         # 4. Add any missing addresses
 
         alladdrs = [IPy.IP(x).strNormal() for x in range(IPy.IP(start).int(), IPy.IP(end).int()+1)]
@@ -115,9 +109,9 @@ class XenRTDHCPAllocator(object):
             return (None, None)
 
     def _findActiveLease(self, intf, mac):
-        self._sql("SELECT addr FROM leases WHERE mac='%s' AND interface='%s' ORDER BY expiry DESC" % (mac.lower(), intf))
-        r = self.cur.fetchone()
-        if r:
+        results = self._sql("SELECT addr FROM leases WHERE mac='%s' AND interface='%s' ORDER BY expiry DESC" % (mac.lower(), intf))
+        if results:
+            r = results[0]
             _logger.info("Lease %s found for %s" % (r[0].split("#")[0].strip(), mac.lower()))
             return r[0].split("#")[0].strip()
         else:
@@ -126,10 +120,9 @@ class XenRTDHCPAllocator(object):
 
     def _findHostName(self, addr):
         try:
-            self._sql("SELECT reservedname FROM leases WHERE addr='%s' AND reserved IS NOT NULL" % addr)
-            r = self.cur.fetchone()
+            r = self._sql("SELECT reservedname FROM leases WHERE addr='%s' AND reserved IS NOT NULL" % addr)
             if r:
-                return r[0]
+                return r[0][0]
             else:
                 return None
         except:
@@ -137,13 +130,12 @@ class XenRTDHCPAllocator(object):
 
     def _renewLease(self, intf, mac, ip):
         intfcfg = self.config['interfaces'][intf]
-        self._sql("SELECT addr FROM leases WHERE addr='%s' AND mac='%s' AND interface='%s'" % (ip, mac.lower(), intf))
-        r = self.cur.fetchone()
+        r = self._sql("SELECT addr FROM leases WHERE addr='%s' AND mac='%s' AND interface='%s'" % (ip, mac.lower(), intf))
         if not r:
             _logger.warn("Warning: could not find lease for %s" % mac.lower())
             raise Exception("Could not find lease")
         else:
-            self._sql("UPDATE leases SET expiry=%d WHERE addr='%s'" % (int(time.time() + intfcfg['trueleasetime']), r[0]))
+            self._sql("UPDATE leases SET expiry=%d WHERE addr='%s'" % (int(time.time() + intfcfg['trueleasetime']), r[0][0]))
 
     def _blacklistIp(self, ip):
         self._sql("UPDATE leases SET mac='INVALID',expiry=%d WHERE addr='%s'" % (int(time.time() + 24*3600), ip))
@@ -157,13 +149,12 @@ class XenRTDHCPAllocator(object):
             self.rejectedCSAddrs[mac] = time.time()
             return None
         intfcfg = self.config['interfaces'][intf]
-        self._sql("SELECT addr FROM leases WHERE interface='%s' AND reserved IS NULL AND (mac IS NULL OR expiry<%d) ORDER BY addr LIMIT 1" % (intf, int(time.time())))
-        r = self.cur.fetchone()
+        r = self._sql("SELECT addr FROM leases WHERE interface='%s' AND reserved IS NULL AND (mac IS NULL OR expiry<%d) ORDER BY addr LIMIT 1" % (intf, int(time.time())))
         if not r:
             return None
         else:
-            self._sql("UPDATE leases SET expiry=%d,mac='%s',leasestart=%d WHERE addr='%s'" % (int(time.time() + intfcfg['trueleasetime']), mac.lower(), int(time.time()), r[0]))
-            return r[0]
+            self._sql("UPDATE leases SET expiry=%d,mac='%s',leasestart=%d WHERE addr='%s'" % (int(time.time() + intfcfg['trueleasetime']), mac.lower(), int(time.time()), r[0][0]))
+            return r[0][0]
         
     def getResponse(self, intf, mac, packet):
         if packet.isDHCPDeclinePacket():
@@ -262,8 +253,7 @@ class XenRTDHCPAllocator(object):
 
     def reserveSingleAddress(self, intf, data, mac=None, name=None):
         with self.lock:
-            self._sql("SELECT addr FROM leases WHERE interface='%s' AND reserved IS NULL AND (mac IS NULL or expiry < %d) ORDER BY addr LIMIT 1;" % (intf, int(time.time()))) 
-            r = self.cur.fetchone()
+            r = self._sql("SELECT addr FROM leases WHERE interface='%s' AND reserved IS NULL AND (mac IS NULL or expiry < %d) ORDER BY addr LIMIT 1;" % (intf, int(time.time()))) 
             if not r:
                 raise Exception("No address available")
             if mac:
@@ -275,16 +265,15 @@ class XenRTDHCPAllocator(object):
             else:
                 namestr = "NULL"
             
-            self._sql("UPDATE leases SET reserved='%s',reservedname=%s,mac=%s,reservedtime=%d,leasestart=%d WHERE addr='%s'" % (data, namestr, macstr, int(time.time()), int(time.time()), r[0]))
+            self._sql("UPDATE leases SET reserved='%s',reservedname=%s,mac=%s,reservedtime=%d,leasestart=%d WHERE addr='%s'" % (data, namestr, macstr, int(time.time()), int(time.time()), r[0][0]))
 
-            return r[0]
+            return r[0][0]
         
 
     def reserveAddressRange(self, intf, size, data):
         with self.lock:
             res = []
-            self._sql("SELECT addr FROM leases WHERE interface='%s' AND reserved IS NULL AND (mac IS NULL or expiry < %d) ORDER BY addr" % (intf, int(time.time()))) 
-            rs = self.cur.fetchall()
+            rs = self._sql("SELECT addr FROM leases WHERE interface='%s' AND reserved IS NULL AND (mac IS NULL or expiry < %d) ORDER BY addr" % (intf, int(time.time()))) 
             ips = [IPy.IP(x[0]).int() for x in rs]
             start = None
             for i in xrange(len(ips)):
@@ -319,9 +308,8 @@ class XenRTDHCPAllocator(object):
 
     def listReservedAddresses(self):
         with self.lock:
-            self._sql("SELECT addr,reserved,reservedtime FROM LEASES WHERE reserved IS NOT NULL")
+            rs = self._sql("SELECT addr,reserved,reservedtime FROM LEASES WHERE reserved IS NOT NULL")
             res = [] 
-            rs = self.cur.fetchall()
         for r in rs:
             res.append((r[0], r[1], r[2]))
 
@@ -331,17 +319,16 @@ class XenRTDHCPAllocator(object):
         if str(mac).lower() in [x.lower() for x in self.config['global'].get("blockedmacs", [])]:
             return True
         with self.lock:
-            self._sql("SELECT mac from blocks WHERE mac='%s'" % mac)
-            if self.cur.fetchone():
+            r = self._sql("SELECT mac from blocks WHERE mac='%s'" % mac)
+            if r:
                 return True
             else:
                 return False
 
     def listBlockedMacs(self):
         with self.lock:
-            self._sql("SELECT mac,blockuser FROM blocks")
+            rs = self._sql("SELECT mac,blockuser FROM blocks")
             res = []
-            rs = self.cur.fetchall()
         for r in rs:
             res.append((r[0], r[1]))
 

@@ -59,8 +59,7 @@ DEFINE_REQUESTS
 
     def setupDUT(self, vpx_ns):
         # Add SNIPs (the origin IP for requests travelling from NS to webserver)
-        for i in range(1, self.snips+1):
-            vpx_ns.cli("add ns ip 43.54.30.%d 255.255.0.0 -vServer DISABLED -mgmtAccess ENABLED" % (i))
+        vpx_ns.cli("add ns ip 43.54.30.[1-%d] 255.255.0.0 -vServer DISABLED -mgmtAccess ENABLED" % (self.snips))
 
         # Add references to the HTTP server's IP addresses
         for i in range(2, self.servers+1):

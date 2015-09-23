@@ -451,30 +451,14 @@ class _BalloonSmoketest(_BalloonPerfBase):
 
         step("Check the target has been met correctly")
         self.waitForTarget(120)
-                
-        step("Check by how much value can we balloon up/down the VM")
-        stepSize = min((maxMem-minMem),9*self.MEMORY_STEP)
-        log("Step size = %d" % stepSize)
 
         step("Verify VM can balloon up to max memory")
-        memStep = minMem
-        while memStep+stepSize < maxMem:
-            memStep = memStep + stepSize
-            self.guest.setDynamicMemRange(memStep, memStep)
-            self.waitForTarget(300)
-            self.guest.checkMemory(inGuest=True)
         self.guest.setDynamicMemRange(maxMem, maxMem)
 
         self.waitForTarget(300)
         self.guest.checkMemory(inGuest=True)
 
         step("Verify it can balloon down to min")
-        memStep = maxMem
-        while memStep-stepSize > minMem:
-            memStep = memStep - stepSize
-            self.guest.setDynamicMemRange(memStep, memStep)
-            self.waitForTarget(300)
-            self.guest.checkMemory(inGuest=True)
         self.guest.setDynamicMemRange(minMem, minMem)
 
         self.waitForTarget(300)

@@ -3806,7 +3806,13 @@ class TCRpuOldPartSingle(_RpuNewPartitionsSingleHost):
 
     NEW_PARTITIONS = False
     NO_VMS = False
-    
+
+class TCRpuPartSmallDisk(_RpuNewPartitionsSingleHost):
+    """TC-27344 - Dom0 disk partitioning on single host upgrade with disk size < 46GB"""
+
+    NEW_PARTITIONS = False
+    NO_VMS = True
+
 class TCRpuPrimaryDisk(_RpuNewPartitionsSingleHost):
     """TC-27064 - Dom0 disk partitioning on single host upgrade with VMs on local storage(additional Local SR)"""
 

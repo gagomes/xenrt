@@ -31,7 +31,7 @@ class SimpleServer(object):
     def isPinged(self, wait):
         xenrt.sleep(wait)
         line = self.guest.execguest("tail -n 1 logs/server.log")
-        timeStr = re.search('(\d\d:){2}\d\d',line)
+        timeStr = re.search('(\d\d:){2}\d\d',line).group(0)
         logTime = (datetime.datetime.strptime(timeStr,'%H:%M:%S')+datetime.timedelta(seconds=wait)).time()
         nowTime = datetime.datetime.now().time()
         if logTime < nowTime:
@@ -167,10 +167,7 @@ class PoolAdmin(ActorImp):
 
     def checkKeyPresence(self):
         host = self.guest.host
-        if host.xenstoreExists("/guest_agent_features/Guest_agent_auto_update") == 1:
-            return True
-        else:
-            return False
+        return host.xenstoreExists("/guest_agent_features/Guest_agent_auto_update") == 1
 
 class VMUser(ActorImp):
 

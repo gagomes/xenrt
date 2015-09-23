@@ -18,6 +18,7 @@ class XenRTDHCPAllocator(object):
         self.conn = None
         self.cur = None
         self.lock = threading.RLock()
+        self.dblock = threading.RLock()
         self.interfaceInfo = {}
         with open("@sharedir@/xenrtdhcpd/xenrtdhcpd.cfg") as f:
             self.config = json.load(f)
@@ -70,15 +71,18 @@ class XenRTDHCPAllocator(object):
             intfcfg['reservations'][r.lower()] = addr
 
     def _sql(self, sql):
-        _logger.info("Executing %s" % sql)
-        try:
-            self.cur.execute(sql)
-        except:
-            _logger.info("Attempting reconnection to DB")
-            self.conn = psycopg2.connect("host='127.0.0.1' dbname='dhcp' user='dhcp' password='dhcp'")
-            self.cur = self.conn.cursor()
-            self.conn.autocommit=True
-            self.cur.execute(sql)
+        with self.dblock:
+            _logger.info("Executing %s" % sql)
+            try:
+                self.cur.execute(sql)
+            except:
+                _logger.info("Attempting reconnection to DB")
+                self.conn = psycopg2.connect("host='127.0.0.1' dbname='dhcp' user='dhcp' password='dhcp'")
+                self.cur = self.conn.cursor()
+                self.cur.execute(sql)
+                self.conn.commit()
+            else:
+                self.conn.commit()
     
     def _setupDB(self, intf):
         start = self.config['interfaces'][intf]['start']

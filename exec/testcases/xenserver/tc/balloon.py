@@ -470,7 +470,6 @@ class _BalloonSmoketest(_BalloonPerfBase):
 
         step("Verify it can balloon down to min")
         memStep = maxMem
-        xenrt.TEC().logverbose(memStep)
         while memStep-stepSize > minMem:
             memStep = memStep - stepSize
             self.guest.setDynamicMemRange(memStep, memStep)
@@ -486,11 +485,12 @@ class _BalloonSmoketest(_BalloonPerfBase):
         while (xenrt.util.timenow() - startTime) < timeout:
             target = self.guest.getMemoryTarget()
             actual = self.guest.getMemoryActual()
-            difference = abs(target - actual)
-            difference = min(abs(difference - self.ALLOWED_TARGET_MISMATCH ), difference)
-            percentage = float(difference) / float(target)
-            if percentage <= 1:
-                return
+            if target != 0:
+                difference = abs(target - actual)
+                difference = min(abs(difference - self.ALLOWED_TARGET_MISMATCH ), difference)
+                percentage = float(difference) / float(target)
+                if percentage <= 1:
+                    return
             xenrt.sleep(30)
         raise xenrt.XRTFailure("Memory target not met. Target=%u. Actual=%u." % (target, actual))
 

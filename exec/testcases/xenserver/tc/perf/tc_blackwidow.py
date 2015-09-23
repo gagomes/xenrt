@@ -7,6 +7,7 @@ class BlackWidowPerformanceTestCase(libperf.PerfTestCase):
     TEST = None
     IS_VALID_CLIENTTHREADS = True
     IS_VALID_CLIENTPARALLELCONN = True
+    BW_SETUP_CLIENT_IP_VSERVER_DISABLED = True
     WORKLOADS = {
         "100KB.wl" : r"""DEFINE_CLASSES
         BULK:   100
@@ -45,8 +46,7 @@ DEFINE_REQUESTS
 
     def setupBlackWidow(self, vpx_ns):
         # Add HTTP client IPs
-        for i in range(2, self.clients+1):
-            vpx_ns.cli("add ns ip 43.54.181.%d 255.255.0.0 -vServer DISABLED" % (i))
+        vpx_ns.cli('add ip 43.54.181.[2-%d] 255.255.0.0 %s' % (self.clients, "-vServer DISABLED" if self.BW_SETUP_CLIENT_IP_VSERVER_DISABLED else ""))
 
         # Find the ID of the second VLAN
         vlan_ord = 2
@@ -232,7 +232,7 @@ DEFINE_REQUESTS
         self.removeHttpServerClient(self.ns_bw)
 
 class TCHttp100KResp(BlackWidowPerformanceTestCase):
-    TEST = "100K_resp"
+    TEST = "HTTP Throughput"
 
     def prepare(self, arglist=[]):
         super(TCHttp100KResp, self).prepare(arglist)
@@ -241,8 +241,7 @@ class TCHttp100KResp(BlackWidowPerformanceTestCase):
         self.statsToCollect = ["protocoltcp"]
 
 class TCHttp1BResp(BlackWidowPerformanceTestCase):
-    """HTTP End-to-end req/sec"""
-    TEST = "1B_Resp"
+    TEST = "HTTP End-to-end req/sec"
 
     def prepare(self, arglist=[]):
         super(TCHttp1BResp, self).prepare(arglist)
@@ -254,8 +253,7 @@ class TCHttp1BResp(BlackWidowPerformanceTestCase):
         vpx_ns.cli("shell /var/BW/nscsconfig -s client=%d -s percentpers=0 -s finstop=0 -w %s -s reqperconn=1 -s cltserverip=43.54.30.247 -s threads=%d -s parallelconn=%d -ye start" % (self.client_id, self.workload, self.httpClientThreads, self.httpClientParallelconn))
 
 class TCTcpVipCps(BlackWidowPerformanceTestCase):
-    """TCP Conn/sec (TCP VIP)"""
-    TEST = "TCP_VIP_CPS"
+    TEST = "TCP VIP Conn/sec"
     IS_VALID_CLIENTTHREADS = False
 
     def prepare(self, arglist=[]):
@@ -359,19 +357,7 @@ class TCSslTps4K(TCSslTps1024):
 
 class TCDnsReqPerSec(BlackWidowPerformanceTestCase):
     TEST = "DNS Req/Sec"
-
-    def setupBlackWidow(self, vpx_ns):
-        #Add SNIPs
-        vpx_ns.cli('add ip 43.54.181.[2-%d] 255.255.0.0' % (self.clients))
-
-        # Find the ID of the second VLAN
-        vlan_ord = 2
-        lines = vpx_ns.cli("show vlan")
-        vlan_idx = next(line.split('\t')[1].split(' ')[2] for line in lines if line.startswith("%d)" % (vlan_ord)))
-
-        # Make 43.* traffic go down the right interface
-        vpx_ns.cli("bind vlan %s -IPAddress 43.54.181.2 255.255.0.0" % (vlan_idx))
-        vpx_ns.cli('save ns config')
+    BW_SETUP_CLIENT_IP_VSERVER_DISABLED = False
 
     def setupDUT(self, vpx_ns):
         # Add SNIPs (the origin IP for requests travelling from NS to webserver)

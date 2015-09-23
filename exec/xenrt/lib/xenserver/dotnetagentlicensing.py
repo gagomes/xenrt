@@ -32,6 +32,8 @@ class SimpleServer(object):
         xenrt.sleep(wait)
         line = self.guest.execguest("tail -n 1 logs/server.log")
         timeStr = re.search('(\d\d:){2}\d\d',line).group(0)
+        if not timeStr:
+            return False
         logTime = (datetime.datetime.strptime(timeStr,'%H:%M:%S')+datetime.timedelta(seconds=wait)).time()
         nowTime = datetime.datetime.now().time()
         if logTime < nowTime:
@@ -172,7 +174,8 @@ class PoolAdmin(ActorImp):
 class VMUser(ActorImp):
 
     def isActive(self):
-        pass
+         key = str(self.os.winRegLookup("HKLM","\\SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate"))
+         return key != "1"
 
     def enable(self):
         pass

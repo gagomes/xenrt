@@ -69,7 +69,7 @@ class XenRTDHCPAllocator(object):
             intfcfg['reservations'][r.lower()] = addr
 
     def _sql(self, sql):
-        with psycopg2.connect("host='127.0.0.1' port=6432 dbname=bounced") as conn:
+        with psycopg2.connect("host='127.0.0.1' port=6432 dbname=bounced user=xenrtd") as conn:
             _logger.info("Executing %s" % sql)
             cur = conn.cursor()
             cur.execute(sql)

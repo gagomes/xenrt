@@ -1,4 +1,4 @@
-import xenrt
+﻿import xenrt
 from xenrt.lib.xenserver.dotnetagentlicensing import *
 from xenrt.enum import XenServerLicenseSKU
 from xenrt.lib.xenserver.licensing import LicenseManager, XenServerLicenseFactory
@@ -40,8 +40,8 @@ class DotNetAgentAdapter(object):
         pass
 
     def setUpServer(self,guest):
-        guest.execguest("mkdir store")
-        guest.execguest("mkdir logs")
+        guest.execguest("mkdir -p store")
+        guest.execguest("mkdir -p logs")
         guest.execguest(" echo \"file contents\" > store/dotNetAgent.msi")  
         msi = {"dotNetAgent" : SSFile("dotNetAgent.msi","store/")}
         guest.execguest("python -m SimpleHTTPServer 16000 > logs/server.log 2>&1&")

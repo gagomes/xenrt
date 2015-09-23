@@ -15,8 +15,8 @@ class DotNetAgentAdapter(object):
 
     def applyLicense(self, hostOrPool, sku = xenrt.TEC().lookup("LICENSED_EDITION")):
         license = self.licenseFactory.licenseForPool(hostOrPool, sku)
-        licenseinUse = self.licenseManager.addLicensesToServer(v6,license)
-        self.licenseManager.applyLicense(v6, hostOrPool, license, licenseinUse)
+        licenseinUse = self.licenseManager.addLicensesToServer(self.v6,license)
+        self.licenseManager.applyLicense(self.v6, hostOrPool, license, licenseinUse)
 
     def releaseLicense(self, hostOrPool):
         self.applyLicensedHost(hostOrPool, self.unLicensedPool)

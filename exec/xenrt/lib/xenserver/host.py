@@ -8470,11 +8470,13 @@ rm -f /etc/xensource/xhad.conf || true
                 srsize = int(self.execdom0("blockdev --getsize64 %s" % self.getInventoryItem("PRIMARY_DISK")))/xenrt.GIGA
                 log("Size of disk: %dGiB" % srsize)
                 if srsize < 46:
+                    # Minimum supported primary disk size for new partitions is 46GB
                     expectedOutput = "not_enough_space"
                 elif (isinstance(self, xenrt.lib.xenserver.DundeeHost) and self.compareDom0Partitions(self.lookup("DOM0_PARTITIONS_OLD"))) or vdis > 0:
                     expectedOutput = "false"
                 else:
                     expectedOutput = "true"
+                break
         log("Plugin should return: %s" % expectedOutput)
 
         cli = self.getCLIInstance()

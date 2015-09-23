@@ -1213,6 +1213,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Dundee"]["TEMPLATE_NAME_SLES_114_64"] = "SUSE Linux Enterprise Server 11 SP3 (64-bit),SUSE Linux Enterprise Server 11 SP3 x64"
         self.config["VERSION_CONFIG"]["Dundee"]["TEMPLATE_NAME_SLED_12_64"] = "SUSE Linux Enterprise Desktop 12 (64-bit)"
         self.config["VERSION_CONFIG"]["Dundee"]["MAX_VBDS_PER_HOST"] = "4096"
+        self.config["VERSION_CONFIG"]["Dundee"]["MAX_VDIS_PER_VM"] = "255"
 
         # XenServer dom0 partitions
         self.config["VERSION_CONFIG"]["Dundee"]["DOM0_PARTITIONS"] = {1:18*xenrt.GIGA, 2:18*xenrt.GIGA, 3:"*", 4:512*xenrt.MEGA, 5:4*xenrt.GIGA, 6:1024*xenrt.MEGA}

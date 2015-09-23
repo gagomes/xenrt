@@ -67,9 +67,9 @@ class SimpleServer(object):
 class DotNetAgent(object):
 
     def __init__(self, guest):
-        self.licensedFeatures = {'VSS':VSS(),'AutoUpdate':AutoUpdate()}
         self.guest = guest
         self.os = self.guest.getInstance().os
+        self.licensedFeatures = {'VSS':VSS(self.guest,self.os),'AutoUpdate':AutoUpdate(self.guest,self.os)}
 
     def restartAgent(self):
         pass
@@ -89,14 +89,10 @@ class LicensedFeature(object):
         pass
 
     @abstractmethod
-    def checkKeyPresence(self):
+    def checkKeyPresent(self):
         pass
 
 class ActorAbstract(LicensedFeature):
-
-
-    def __init__(self, actor):
-        self.setActor(actor)
 
     def setActor(self,actor):
         self.actor = actor
@@ -116,8 +112,8 @@ class ActorAbstract(LicensedFeature):
     def defaultURL(self):
         self.actor.defaultURL()
 
-    def checkKeyPresence(self):
-        self.actor.checkKeyPresence()
+    def checkKeyPresent(self):
+        self.actor.checkKeyPresent()
 
 class ActorImp(object):
     __metaclass__ = ABCMeta
@@ -143,10 +139,14 @@ class ActorImp(object):
         pass
 
     @abstractmethod
-    def checkKeyPresence(self):
+    def checkKeyPresent(self):
         pass
 
 class PoolAdmin(ActorImp):
+
+    def __init__(self,guest,os):
+        self.guest = guest
+        self.os = os
 
     def isActive(self):
         pass
@@ -167,30 +167,39 @@ class PoolAdmin(ActorImp):
         host = self.guest.host
         host.execDom0("xe pool-param-set uuid=%s guest-agent-config:auto_update_url=\"\""%host.getPool().getUUID())
 
-    def checkKeyPresence(self):
+    def checkKeyPresent(self):
         host = self.guest.host
         return host.xenstoreExists("/guest_agent_features/Guest_agent_auto_update")
 
 class VMUser(ActorImp):
 
+    def __init__(self,guest,os):
+        self.guest = guest
+        self.os = os
+
     def isActive(self):
-         key = str(self.os.winRegLookup("HKLM","\\SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate"))
+         key = self.os.winRegLookup("HKLM","\\SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate")
          return key != "1"
 
     def enable(self):
-        pass
+        self.os.winRegAdd("HKLM","\\SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate","SZ","0")
 
     def disable(self):
-        pass
+        self.os.winRegAdd("HKLM","\\SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate","SZ","1")
 
-    def setURL(self):
-        pass
+    def setURL(self,url):
+        self.os.winRegAdd("HKLM","\\SOFTWARE\\Citrix\\XenTools","update_url","SZ","%s"%url)
 
     def defaultURL(self):
-        pass
+        self.os.winRegDel("HKLM","\\SOFTWARE\\Citrix\\XenTools","update_url")
 
-    def checkKeyPresence(self):
-        pass
+    def checkKeyPresent(self):
+        try:
+            key = self.os.winRegLookup("HKLM","\\SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate",healthCheckOnFailure=False)
+            if key:
+                return True
+        except:
+            return False
 
 class VSS(LicensedFeature):
 
@@ -204,7 +213,7 @@ class VSS(LicensedFeature):
         else:
             return False
 
-    def checkKeyPresence(self):
+    def checkKeyPresent(self):
         host = self.guest.host
         if host.xenstoreExists("/guest_agent_features/VSS") == 1:
             return True
@@ -213,10 +222,15 @@ class VSS(LicensedFeature):
 
 class AutoUpdate(ActorAbstract):
 
+    def __init__(self, guest, os):
+        self.guest = guest
+        self.os = os
+        self.setUserPoolAdmin()
+
     def checkDownloadedMSI(self):
         pass
 
-    def comapreMSIArch(self):
+    def compareMSIArch(self):
         pass
 
     def isLicensed(self):
@@ -227,9 +241,9 @@ class AutoUpdate(ActorAbstract):
             return False
 
     def setUserVMUser(self):
-        user = VMUser()
+        user = VMUser(self.guest,self.os)
         self.setActor(user)
 
-    def setUserPooAdmin(self):
-        user = PoolAdmin()
+    def setUserPoolAdmin(self):
+        user = PoolAdmin(self.guest,self.os)
         self.setActor(user)

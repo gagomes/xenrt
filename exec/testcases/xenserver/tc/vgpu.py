@@ -3380,9 +3380,22 @@ class MixedGPUBootstorm(BootstormBase):
             remainingCapacity = self.host.remainingGpuCapacity(installer.groupUUID(), installer.typeUUID())
             xenrt.TEC().logverbose("Space for vGPU: %s" % remainingCapacity)
 
-            self.__configureMasterAndPopulate(windowsMaster, config, remainingCapacity, installer, self.nvidWinvGPU)
+            winVGPUAlloc = int(remainingCapacity / 2)
+            linVGPUAlloc = remainingCapacity - winVGPUAlloc
+
+            if not self.SPLIT_VGPU:
+                winVGPUAlloc = remainingCapacity
+                linVGPUAlloc = 0
+
+            self.__configureMasterAndPopulate(windowsMaster, config, winVGPUAlloc, installer, self.nvidWinvGPU)
+
+            self.__configureMasterAndPopulate(linuxMaster, config, linVGPUAlloc, installer, self.nvidLinvGPU)
 
     def __configureMasterAndPopulate(self, master, config, allocation, installer, typeVgpu):
+
+        if allocation == 0:
+            return
+
         typeVgpu.attachvGPUToVM(installer, master)
         typeVgpu.installGuestDrivers(master, self.getConfigurationName(config))
         master.setState("DOWN")
@@ -3404,7 +3417,10 @@ class MixedGPUBootstorm(BootstormBase):
         self.WINDOWS_TYPE = int(args['windowstype'])
         self.PASSTHROUGH_ALLOCATION = float(args['passthroughalloc'])
         self.VGPU_TYPE = int(args['vgpualloctype'])
-
+        if "splitvgpuallocation" in args:
+            self.SPLIT_VGPU = (args['splitvgpuallocation'] == "true")
+        else:
+            self.SPLIT_VGPU = False
 
 class IntelBase(FunctionalBase):
 

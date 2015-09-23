@@ -30,7 +30,7 @@ class SimpleServer(object):
 
     def isPinged(self, wait):
         xenrt.sleep(wait)
-        line = guest.execguest("tail -n 1 logs/server.log")
+        line = self.guest.execguest("tail -n 1 logs/server.log")
         timeStr = re.search('(\d\d:){2}\d\d',line)
         logTime = (datetime.datetime.strptime(timeStr,'%H:%M:%S')+datetime.timedelta(seconds=wait)).time()
         nowTime = datetime.datetime.now().time()
@@ -67,6 +67,7 @@ class DotNetAgent(object):
     def __init__(self, guest):
         self.licensedFeatures = {'VSS':VSS(),'AutoUpdate':AutoUpdate()}
         self.guest = guest
+        self.os = self.guest.getInstance().os
 
     def restartAgent(self):
         pass
@@ -150,18 +151,19 @@ class PoolAdmin(ActorImp):
 
     def enable(self):
         host = self.guest.host
-        host.execDom0("xe pool-param-set uuid=%s guest-agent-confg:auto_update_enabled=true"% host.getPool().getUUID())
+        host.execDom0("xe pool-param-set uuid=%s guest-agent-config:auto_update_enabled=true"% host.getPool().getUUID())
 
     def disable(self):
-        pass
+        host = self.guest.host
+        host.execDom0("xe pool-param-set uuid=%s guest-agent-config:auto_update_enabled=false"% host.getPool().getUUID())
 
     def setURL(self,url):
         host = self.guest.host
-        host.execDom0("xe pool-param-set uuid=%s guest-agent-confg:auto_update_url=%s"%(host.getPool().getUUID(),url))
+        host.execDom0("xe pool-param-set uuid=%s guest-agent-config:auto_update_url=%s"%(host.getPool().getUUID(),url))
 
     def defaultURL(self):
         host = self.guest.host
-        host.execDom0("xe pool-param-set uuid=%s guest-agent-confg:auto_update_url=\"\""%host.getPool().getUUID())
+        host.execDom0("xe pool-param-set uuid=%s guest-agent-config:auto_update_url=\"\""%host.getPool().getUUID())
 
     def checkKeyPresence(self):
         host = self.guest.host

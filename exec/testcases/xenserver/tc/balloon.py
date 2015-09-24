@@ -172,7 +172,6 @@ class _BalloonSmoketest(_BalloonPerfBase):
     SET_PAE = True
     HOST = "RESOURCE_HOST_0"
     HAP = None
-    MEMORY_STEP = 750
     BALLOON_UP_INITIAL_ALLOC = True
     LOW_MEMORY_CONSTRAINT = False
     ALLOWED_TARGET_MISMATCH = 0

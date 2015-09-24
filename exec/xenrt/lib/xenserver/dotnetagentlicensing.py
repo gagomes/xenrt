@@ -35,7 +35,7 @@ class SimpleServer(object):
         timeRE = re.search('(\d\d:){2}\d\d',line)
         if not timeRE:
             return False
-        logTime = (datetime.datetime.strptime(timeStr.group(0),'%H:%M:%S')+datetime.timedelta(seconds=wait)).time()
+        logTime = (datetime.datetime.strptime(timeRE.group(0),'%H:%M:%S')+datetime.timedelta(seconds=wait)).time()
         nowTime = datetime.datetime.now().time()
         return logTime > nowTime
 

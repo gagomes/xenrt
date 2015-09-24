@@ -34,7 +34,7 @@ class SimpleServer(object):
         timeRE = re.search('(\d\d:){2}\d\d',line)
         if not timeRE:
             return False
-        logTime = (datetime.datetime.strptime(timeRE.group(0),'%H:%M:%S'))
+        logTime = (datetime.datetime.strptime(timeRE.group(0),'%H:%M:%S')).time()
         return logTime > startTime
 
     def moveFile(self, ssFile):

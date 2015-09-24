@@ -28,15 +28,14 @@ class SimpleServer(object):
         self.port = port
         self.guest = guest
 
-    def isPinged(self, wait):
+    def isPinged(self, startTime):
         xenrt.TEC().logverbose("Checking if Server with port:%s is pinged"%self.port)
         line = self.guest.execguest("tail -n 1 logs/server%s.log"%self.port)
         timeRE = re.search('(\d\d:){2}\d\d',line)
         if not timeRE:
             return False
-        logTime = (datetime.datetime.strptime(timeRE.group(0),'%H:%M:%S')+datetime.timedelta(seconds=wait)).time()
-        nowTime = datetime.datetime.now().time()
-        return logTime > nowTime
+        logTime = (datetime.datetime.strptime(timeRE.group(0),'%H:%M:%S'))
+        return logTime > startTime
 
     def moveFile(self, ssFile):
         if ssFile.location == "store/":

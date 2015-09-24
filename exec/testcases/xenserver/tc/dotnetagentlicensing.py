@@ -59,6 +59,7 @@ class DotNetAgentAdapter(object):
 class DotNetAgentTestCases(xenrt.TestCase):
 
     def __init__(self):
+        super(DotNetAgentTestCases, self).__init__()
         self.adapter = DotNetAgentAdapter(self.getGuest(xenrt.TEC().lookup("LICENSE_SERVER")))
 
     def postRun(self):
@@ -67,9 +68,9 @@ class DotNetAgentTestCases(xenrt.TestCase):
 
 class TempTest(DotNetAgentTestCases):
 
-        def run(self,arglist):
-            server = self.adapter.setUpServer(self.getGuest("server"),"16000")
-            xenrt.TEC().logverbose(server.isPinged(100))
-            # adapter.applyLicense(self.getDefaultPool())
+    def run(self,arglist):
+        server = self.adapter.setUpServer(self.getGuest("server"),"16000")
+        xenrt.TEC().logverbose(server.isPinged(100))
+        # adapter.applyLicense(self.getDefaultPool())
 
 

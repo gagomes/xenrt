@@ -63,7 +63,7 @@ class DotNetAgentTestCases(xenrt.TestCase):
         self.adapter = DotNetAgentAdapter(self.getGuest(xenrt.TEC().lookup("LICENSE_SERVER")))
 
     def postRun(self):
-        #self.adapter.cleanupLicense(self.getDefaultPool())
+        self.adapter.cleanupLicense(self.getDefaultPool())
         self.adapter.serverCleanup(self.getGuest("server"))
 
 class TempTest(DotNetAgentTestCases):

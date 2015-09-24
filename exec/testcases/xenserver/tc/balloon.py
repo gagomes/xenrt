@@ -445,6 +445,7 @@ class _BalloonSmoketest(_BalloonPerfBase):
         self.guest.setMemoryProperties(None, minMem, minMem, maxMem)
 
         self.guest.start()
+        log("Wait for few seconds for RRDs to settle")
         xenrt.sleep(30)
         self.guest.checkMemory(inGuest=True)
         self.status = "booted"
@@ -456,12 +457,15 @@ class _BalloonSmoketest(_BalloonPerfBase):
         self.guest.setDynamicMemRange(maxMem, maxMem)
 
         self.waitForTarget(300)
+        log("Wait for few seconds for RRDs to settle")
+        xenrt.sleep(30)
         self.guest.checkMemory(inGuest=True)
 
         step("Verify it can balloon down to min")
         self.guest.setDynamicMemRange(minMem, minMem)
 
         self.waitForTarget(300)
+        xenrt.sleep(30)
         self.guest.checkMemory(inGuest=True)
 
     def waitForTarget(self, timeout):

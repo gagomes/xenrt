@@ -1,4 +1,4 @@
-﻿from abc import ABCMeta, abstractmethod
+from abc import ABCMeta, abstractmethod
 import xenrt
 import re
 import datetime
@@ -158,23 +158,23 @@ class PoolAdmin(ActorImp):
 
     def enable(self):
         host = self.guest.host
-        host.execDom0("xe pool-param-set uuid=%s guest-agent-config:auto_update_enabled=true"% host.getPool().getUUID())
+        host.execdom0("xe pool-param-set uuid=%s guest-agent-config:auto_update_enabled=true"% host.getPool().getUUID())
 
     def disable(self):
         host = self.guest.host
-        host.execDom0("xe pool-param-set uuid=%s guest-agent-config:auto_update_enabled=false"% host.getPool().getUUID())
+        host.execdom0("xe pool-param-set uuid=%s guest-agent-config:auto_update_enabled=false"% host.getPool().getUUID())
 
     def remove(self):
         host = self.guest.host
-        host.execDom0("xe pool-param-remove uuid=%s param-name=guest-agent-config param-key=auto_update_enabled"%host.getPool().getUUID())
+        host.execdom0("xe pool-param-remove uuid=%s param-name=guest-agent-config param-key=auto_update_enabled"%host.getPool().getUUID())
 
     def setURL(self,url):
         host = self.guest.host
-        host.execDom0("xe pool-param-set uuid=%s guest-agent-config:auto_update_url=%s"%(host.getPool().getUUID(),url))
+        host.execdom0("xe pool-param-set uuid=%s guest-agent-config:auto_update_url=%s"%(host.getPool().getUUID(),url))
 
     def defaultURL(self):
         host = self.guest.host
-        host.execDom0("xe pool-param-remove uuid=%s param-name=guest-agent-config param-key=auto_update_url"%host.getPool().getUUID())
+        host.execdom0("xe pool-param-remove uuid=%s param-name=guest-agent-config param-key=auto_update_url"%host.getPool().getUUID())
 
     def checkKeyPresent(self):
         host = self.guest.host

@@ -42,8 +42,7 @@ class DotNetAgentAdapter(object):
     def importVM(self,vm,host):
         pass
 
-    def serverCleanup(self):
-        server = self.getGuest("server")
+    def serverCleanup(self,guest):
         guest.execguest("rm -rf store")
         guest.execguest("rm -rf logs")
         guest.reboot()
@@ -64,7 +63,7 @@ class DotNetAgentTestCases(xenrt.TestCase):
 
     def postRun(self):
         self.adapter.cleanupLicense(self.getDefaultPool())
-        self.adapter.serverCleanup()
+        self.adapter.serverCleanup(self.getGuest("server"))
 
 class TempTest(DotNetAgentTestCases):
 

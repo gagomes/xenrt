@@ -7,6 +7,7 @@ class BlackWidowPerformanceTestCase(libperf.PerfTestCase):
     TEST = None
     IS_VALID_CLIENTTHREADS = True
     IS_VALID_CLIENTPARALLELCONN = True
+    BW_SETUP_CLIENT_IP_VSERVER_DISABLED = True
     WORKLOADS = {
         "100KB.wl" : r"""DEFINE_CLASSES
         BULK:   100
@@ -25,6 +26,16 @@ DEFINE_REQUESTS
         BULK:
                 GET /wb30tree/100_1.txt
  
+""",
+        "google.wl": r"""DEFINE_CLASSES
+
+        CLASS_GOOG.domain:     100
+
+DEFINE_REQUESTS
+
+        CLASS_GOOG.domain:
+                AREC www.google.com
+ 
 """
     }
 
@@ -35,8 +46,7 @@ DEFINE_REQUESTS
 
     def setupBlackWidow(self, vpx_ns):
         # Add HTTP client IPs
-        for i in range(2, self.clients+1):
-            vpx_ns.cli("add ns ip 43.54.181.%d 255.255.0.0 -vServer DISABLED" % (i))
+        vpx_ns.cli('add ip 43.54.181.[2-%d] 255.255.0.0 %s' % (self.clients, "-vServer DISABLED" if self.BW_SETUP_CLIENT_IP_VSERVER_DISABLED else ""))
 
         # Find the ID of the second VLAN
         vlan_ord = 2
@@ -49,8 +59,7 @@ DEFINE_REQUESTS
 
     def setupDUT(self, vpx_ns):
         # Add SNIPs (the origin IP for requests travelling from NS to webserver)
-        for i in range(1, self.snips+1):
-            vpx_ns.cli("add ns ip 43.54.30.%d 255.255.0.0 -vServer DISABLED -mgmtAccess ENABLED" % (i))
+        vpx_ns.cli("add ns ip 43.54.30.[1-%d] 255.255.0.0 -vServer DISABLED -mgmtAccess ENABLED" % (self.snips))
 
         # Add references to the HTTP server's IP addresses
         for i in range(2, self.servers+1):
@@ -96,20 +105,21 @@ DEFINE_REQUESTS
         vpx_ns.cli("shell /var/BW/nscsconfig -s client=%d -s percentpers=100 -w %s -s cltserverip=43.54.30.247 -s threads=%d -s parallelconn=%d -ye start" % (self.client_id, self.workload, self.httpClientThreads, self.httpClientParallelconn))
 
     def showHttpServerClient(self, vpx_ns):
-        vpx_ns.cli("shell /var/BW/nscsconfig -d allvcs")
-        vpx_ns.cli("shell /var/BW/nscsconfig -d allurls")
-        vpx_ns.cli("shell /var/BW/conntest -d validserver")
+        vpx_ns.cli("shell /var/BW/nscsconfig -d allvcs", level=xenrt.RC_OK)
+        vpx_ns.cli("shell /var/BW/nscsconfig -d allurls", level=xenrt.RC_OK)
+        vpx_ns.cli("shell /var/BW/conntest -d validserver", level=xenrt.RC_OK)
 
     def removeHttpServerClient(self, vpx_ns):
-        vpx_ns.cli("shell /var/BW/nscsconfig -s client=%d -yE removeserver" % (self.client_id))
-        vpx_ns.cli("shell /var/BW/nscsconfig -s server=%d -yE removeserver" % (self.server_id))
-        vpx_ns.cli("shell /var/BW/conntest -s %d -yE stopall" % (self.server_id))
+        vpx_ns.cli("shell /var/BW/nscsconfig -s client=%d -yE removeserver" % (self.client_id), level=xenrt.RC_OK)
+        vpx_ns.cli("shell /var/BW/nscsconfig -s server=%d -yE removeserver" % (self.server_id), level=xenrt.RC_OK)
+        vpx_ns.cli("shell /var/BW/conntest -s %d -yE stopall" % (self.server_id), level=xenrt.RC_OK)
 
 #### Testcase core methods ####
     def __init__(self):
         super(BlackWidowPerformanceTestCase, self).__init__(self.TEST)
         self.httpClientThreads = 0
         self.httpClientParallelconn = 0
+        self.statsToCollect = []
 
     def parseArgs(self, arglist):
         # Performance Test Metrics
@@ -142,24 +152,15 @@ DEFINE_REQUESTS
         self.server_id = 0 # higher numbers don't seem to result in a running server
         self.client_id = 1
 
-        xenrt.TEC().logverbose("setting up %s as blackwidow..." % (self.guest_bw))
+        step("prepare: setting up %s as blackwidow..." % (self.guest_bw))
         self.ns_bw = self.getVPX(self.guest_bw)
         self.ns_bw.removeExistingSNIP()
         self.setupBlackWidow(self.ns_bw)
 
-        xenrt.TEC().logverbose("setting up %s as DUT..." % (self.guest_dut))
+        step("prepare: setting up %s as DUT..." % (self.guest_dut))
         self.ns_dut = self.getVPX(self.guest_dut)
         self.ns_dut.removeExistingSNIP()
         self.setupDUT(self.ns_dut)
-
-    def startWorkload(self):
-        pass
-
-    def runTest(self):
-        raise xenrt.XRTError("Unimplemented")
-
-    def stopWorkload(self):
-        pass
 
     def run(self, arglist=[]):
         if self.IS_VALID_CLIENTTHREADS or self.IS_VALID_CLIENTPARALLELCONN:
@@ -180,15 +181,6 @@ DEFINE_REQUESTS
             self.startWorkload()
             self.runTest()
             self.stopWorkload()
-
-class TCHttp100KResp(BlackWidowPerformanceTestCase):
-    TEST = "100K_resp"
-
-    def prepare(self, arglist=[]):
-        super(TCHttp100KResp, self).prepare(arglist)
-
-        self.workloadFileName = "100KB.wl"
-        self.statsToCollect = ["protocoltcp"]
 
     def startWorkload(self):
         step("startWorkload: create workload file")
@@ -238,9 +230,17 @@ class TCHttp100KResp(BlackWidowPerformanceTestCase):
         step("stopWorkload: Stop the client and the server")
         self.removeHttpServerClient(self.ns_bw)
 
-class TCHttp1BResp(TCHttp100KResp):
-    """HTTP End-to-end req/sec"""
-    TEST = "1B_Resp"
+class TCHttp100KResp(BlackWidowPerformanceTestCase):
+    TEST = "HTTP Throughput"
+
+    def prepare(self, arglist=[]):
+        super(TCHttp100KResp, self).prepare(arglist)
+
+        self.workloadFileName = "100KB.wl"
+        self.statsToCollect = ["protocoltcp"]
+
+class TCHttp1BResp(BlackWidowPerformanceTestCase):
+    TEST = "HTTP End-to-end req/sec"
 
     def prepare(self, arglist=[]):
         super(TCHttp1BResp, self).prepare(arglist)
@@ -251,9 +251,8 @@ class TCHttp1BResp(TCHttp100KResp):
     def createHttpClients(self, vpx_ns):
         vpx_ns.cli("shell /var/BW/nscsconfig -s client=%d -s percentpers=0 -s finstop=0 -w %s -s reqperconn=1 -s cltserverip=43.54.30.247 -s threads=%d -s parallelconn=%d -ye start" % (self.client_id, self.workload, self.httpClientThreads, self.httpClientParallelconn))
 
-class TCTcpVipCps(TCHttp100KResp):
-    """TCP Conn/sec (TCP VIP)"""
-    TEST = "TCP_VIP_CPS"
+class TCTcpVipCps(BlackWidowPerformanceTestCase):
+    TEST = "TCP VIP Conn/sec"
     IS_VALID_CLIENTTHREADS = False
 
     def prepare(self, arglist=[]):
@@ -331,12 +330,6 @@ class TCSslTps1024(TCSslEncThroughput):
                         """)
 
     def setupDUT(self, vpx_ns):
-        vpx_ns.getGuest().shutdown()
-        vpx_ns.getGuest().cpuset(4)
-        vpx_ns.getGuest().memset(8192)
-        vpx_ns.getGuest().lifecycleOperation('vm-start')
-        vpx_ns.getGuest().waitForSSH(timeout=300, username='nsroot', cmd='shell')
-
         super(TCSslTps1024, self).setupDUT(vpx_ns)
 
         vpx_ns.cli("set ssl vserver v[1-8] -sessReuse DISABLED")
@@ -360,3 +353,31 @@ class TCSslTps2K(TCSslTps1024):
 class TCSslTps4K(TCSslTps1024):
     TEST = "SSL TPS 4096bit Key"
     CERT = "c3"
+
+class TCDnsReqPerSec(BlackWidowPerformanceTestCase):
+    TEST = "DNS Req/Sec"
+    BW_SETUP_CLIENT_IP_VSERVER_DISABLED = False
+
+    def setupDUT(self, vpx_ns):
+        # Add SNIPs (the origin IP for requests travelling from NS to webserver)
+        vpx_ns.cli('add ip 43.54.30.[1-%d] 255.255.0.0' % (self.snips))
+
+        # Configure DNS service and save
+        vpx_ns.multiCli(""" add service s1 43.54.30.252 adns 53
+                            add addrec www.google.com 1.1.1.1 -ttl  1
+                            enable feature lb
+                            bind vlan 2 -IPAddress 43.54.30.1 255.255.0.0
+                            save ns config
+                        """)
+
+    def prepare(self, arglist=[]):
+        super(TCDnsReqPerSec, self).prepare(arglist)
+
+        self.workloadFileName = "google.wl"
+        self.statsToCollect = ["dns"]
+
+    def createHttpServers(self, vpx_ns):
+        pass
+
+    def createHttpClients(self, vpx_ns):
+        vpx_ns.cli("shell /var/BW/nscsconfig  -s dnsclient=%d -s reqperconn=1 -w %s -s cltserverip=43.54.30.252 -s cltserverport=53 -s threads=%d -s parallelconn=%d -s transtimeout=0.02 -ye start" % (self.client_id, self.workload, self.httpClientThreads, self.httpClientParallelconn))

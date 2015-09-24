@@ -2,6 +2,7 @@
 from xenrt.lib.xenserver.dotnetagentlicensing import *
 from xenrt.enum import XenServerLicenseSKU
 from xenrt.lib.xenserver.licensing import LicenseManager, XenServerLicenseFactory
+import datetime
 
 class DotNetAgentAdapter(object):
 
@@ -75,8 +76,9 @@ class TempTest(DotNetAgentTestCases):
         autoupdate.enable()
         autoupdate.setURL("http://10.81.29.132:16000")
         #self.getGuest("server").execguest("wget localhost:16000")
+        startTime = datetime.datetime.now().time()
         self.getGuest("WS2012").reboot()
         xenrt.sleep(200)
-        xenrt.TEC().logverbose("test 1: %s"%str(server.isPinged(200)))
+        xenrt.TEC().logverbose("test 1: %s"%str(server.isPinged(startTime)))
 
 

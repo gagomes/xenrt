@@ -62,18 +62,21 @@ class DotNetAgentTestCases(xenrt.TestCase):
         self.adapter = DotNetAgentAdapter(self.getGuest(xenrt.TEC().lookup("LICENSE_SERVER")))
 
     def postRun(self):
-        self.adapter.cleanupLicense(self.getDefaultPool())
+        #self.adapter.cleanupLicense(self.getDefaultPool())
         self.adapter.serverCleanup(self.getGuest("server"))
 
 class TempTest(DotNetAgentTestCases):
 
     def run(self,arglist):
         server = self.adapter.setUpServer(self.getGuest("server"),"16000")
-        xenrt.sleep(10)
-        self.getGuest("server").execguest("wget localhost:16000")
-        xenrt.sleep(110)
-        xenrt.TEC().logverbose("test 1: %s"%str(server.isPinged(100)))
-        xenrt.TEC().logverbose("test 2: %s"%str(server.isPinged(200)))
-        adapter.applyLicense(self.getDefaultPool())
+        self.adapter.applyLicense(self.getDefaultPool())
+        agent = DotNetAgent(self.getGuest("WS2012"))
+        autoupdate = agent.getLicensedFeature("AutoUpdate")
+        autoupdate.enable()
+        autoupdate.setURL("http://10.81.29.132:16000")
+        #self.getGuest("server").execguest("wget localhost:16000")
+        self.getGuest("WS2012").reboot()
+        xenrt.sleep(200)
+        xenrt.TEC().logverbose("test 1: %s"%str(server.isPinged(200)))
 
 

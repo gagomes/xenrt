@@ -75,7 +75,7 @@ class DotNetAgent(object):
         pass
 
     def getLicensedFeature(self,feature):
-        ''' current features are "VSS", "AutoUpdate ''' 
+        ''' current features are "VSS", "AutoUpdate" ''' 
         return self.licensedFeatures[feature]
 
 class LicensedFeature(object):

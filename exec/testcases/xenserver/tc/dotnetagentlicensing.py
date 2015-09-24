@@ -24,6 +24,9 @@ class DotNetAgentAdapter(object):
     def checkLicenseState(self,hostOrPool):
         hostOrPool.checkLicenseState(self.licensedEdition)
 
+    def cleanupLicense(self, hostOrPool):
+        self.licenseManager.releaseLicense(hostOrPool)
+
     def upgradeTools(self):
         pass
 
@@ -39,20 +42,34 @@ class DotNetAgentAdapter(object):
     def importVM(self,vm,host):
         pass
 
-    def setUpServer(self,guest):
+    def serverCleanup(self):
+        server = self.getGuest("server")
+        guest.execguest("rm -rf store")
+        guest.execguest("rm -rf logs")
+        guest.reboot()
+
+    def setUpServer(self,guest,port):
         guest.execguest("mkdir -p store")
         guest.execguest("mkdir -p logs")
         guest.execguest(" echo \"file contents\" > store/dotNetAgent.msi")  
         msi = {"dotNetAgent" : SSFile("dotNetAgent.msi","store/")}
-        guest.execguest("python -m SimpleHTTPServer 16000 > logs/server.log 2>&1&")
-        return SimpleServer("16000", msi, guest)
+        guest.execguest("python -m SimpleHTTPServer {0} > logs/server{0}.log 2>&1&".format(str(port)))
+        return SimpleServer(str(port), msi, guest)
 
+class DotNetAgentTestCases(xenrt.TestCase):
 
-class TempTest(xenrt.TestCase):
+    def __init__(self):
+        self.adapter = DotNetAgentAdapter(self.getGuest(xenrt.TEC().lookup("LICENSE_SERVER")))
+
+    def postRun(self):
+        self.adapter.cleanupLicense(self.getDefaultPool())
+        self.adapter.serverCleanup()
+
+class TempTest(DotNetAgentTestCases):
 
         def run(self,arglist):
-            adapter = DotNetAgentAdapter(self.getGuest(xenrt.TEC().lookup("LICENSE_SERVER")))
-            server = adapter.setUpServer(self.getGuest("server"))
+            server = adapter.setUpServer(self.getGuest("server"),"16000")
             xenrt.TEC().logverbose(server.isPinged(100))
-            adapter.applyLicense(self.getDefaultPool())
+            # adapter.applyLicense(self.getDefaultPool())
+
 

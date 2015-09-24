@@ -29,18 +29,15 @@ class SimpleServer(object):
         self.guest = guest
 
     def isPinged(self, wait):
-        xenrt.TEC().logverbose("Checking if Server is pinged")
+        xenrt.TEC().logverbose("Checking if Server with port:%s is pinged"%self.port)
         xenrt.sleep(wait)
-        line = self.guest.execguest("tail -n 1 logs/server.log")
+        line = self.guest.execguest("tail -n 1 logs/server%s.log"%self.port)
         timeRE = re.search('(\d\d:){2}\d\d',line)
         if not timeRE:
             return False
         logTime = (datetime.datetime.strptime(timeStr.group(0),'%H:%M:%S')+datetime.timedelta(seconds=wait)).time()
         nowTime = datetime.datetime.now().time()
-        if logTime < nowTime:
-            return False
-        else:
-            return True
+        return logTime > nowTime
 
     def moveFile(self, ssFile):
         if ssFile.location == "store/":
@@ -107,6 +104,9 @@ class ActorAbstract(LicensedFeature):
     def disable(self):
         self.actor.disable()
 
+    def remove(self):
+        self.actor.remove()
+
     def setURL(self,url):
         self.actor.setURL(url)
 
@@ -132,6 +132,10 @@ class ActorImp(object):
         pass
 
     @abstractmethod
+    def remove(self):
+        pass
+
+    @abstractmethod
     def setURL(self, url):
         pass
 
@@ -150,7 +154,8 @@ class PoolAdmin(ActorImp):
         self.os = os
 
     def isActive(self):
-        pass
+        host = self.guest.host
+        return host.xenstoreRead("/guest_agent_features/Guest_agent_auto_update/parameters/enabled") == "1"
 
     def enable(self):
         host = self.guest.host
@@ -160,17 +165,21 @@ class PoolAdmin(ActorImp):
         host = self.guest.host
         host.execDom0("xe pool-param-set uuid=%s guest-agent-config:auto_update_enabled=false"% host.getPool().getUUID())
 
+    def remove(self):
+        host = self.guest.host
+        host.execDom0("xe pool-param-remove uuid=%s param-name=guest-agent-config param-key=auto_update_enabled"%host.getPool().getUUID())
+
     def setURL(self,url):
         host = self.guest.host
         host.execDom0("xe pool-param-set uuid=%s guest-agent-config:auto_update_url=%s"%(host.getPool().getUUID(),url))
 
     def defaultURL(self):
         host = self.guest.host
-        host.execDom0("xe pool-param-set uuid=%s guest-agent-config:auto_update_url=\"\""%host.getPool().getUUID())
+        host.execDom0("xe pool-param-remove uuid=%s param-name=guest-agent-config param-key=auto_update_url"%host.getPool().getUUID())
 
     def checkKeyPresent(self):
         host = self.guest.host
-        return host.xenstoreExists("/guest_agent_features/Guest_agent_auto_update")
+        return host.xenstoreExists("/guest_agent_features/Guest_agent_auto_update/parameters/enabled")
 
 class VMUser(ActorImp):
 
@@ -179,14 +188,17 @@ class VMUser(ActorImp):
         self.os = os
 
     def isActive(self):
-         key = self.os.winRegLookup("HKLM","\\SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate")
-         return key != "1"
+            key = self.os.winRegLookup("HKLM","\\SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate")
+            return key != "1"
 
     def enable(self):
         self.os.winRegAdd("HKLM","\\SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate","SZ","0")
 
     def disable(self):
         self.os.winRegAdd("HKLM","\\SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate","SZ","1")
+
+    def remove(self):
+        self.os.winRegDel("HKLM","\\SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate")
 
     def setURL(self,url):
         self.os.winRegAdd("HKLM","\\SOFTWARE\\Citrix\\XenTools","update_url","SZ","%s"%url)
@@ -209,17 +221,11 @@ class VSS(LicensedFeature):
 
     def isLicensed(self):
         host = self.guest.host
-        if host.xenstoreRead("/guest_agent_features/VSS/licensed") == 1:
-            return True
-        else:
-            return False
+        return host.xenstoreRead("/guest_agent_features/VSS/licensed") == "1"
 
     def checkKeyPresent(self):
         host = self.guest.host
-        if host.xenstoreExists("/guest_agent_features/VSS") == 1:
-            return True
-        else:
-            return False
+        return host.xenstoreExists("/guest_agent_features/VSS")
 
 class AutoUpdate(ActorAbstract):
 
@@ -236,10 +242,7 @@ class AutoUpdate(ActorAbstract):
 
     def isLicensed(self):
         host = self.guest.host
-        if host.xenstoreRead("/guest_agent_features/Guest_agent_auto_update/licensed") == 1:
-            return True
-        else:
-            return False
+        return host.xenstoreRead("/guest_agent_features/Guest_agent_auto_update/licensed") == "1"
 
     def setUserVMUser(self):
         user = VMUser(self.guest,self.os)

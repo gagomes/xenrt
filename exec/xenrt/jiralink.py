@@ -995,7 +995,10 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
                     else:
                         tcsku = None
                     xenrt.TEC().logverbose("Replaying %s on SR %s" % (tc,sr))
-                    self.testrunRecordRun(sr,tc,result,ticket,detailid,tcsku)
+                    try:
+                        self.testrunRecordRun(sr,tc,result,ticket,detailid,tcsku)
+                    except: # Fix for buggy saved runs
+                        self.testrunRecordRun(sr,tc,result,ticket,None,detailid)
                 elif recordtype == "Subcase":
                     sr = fitem[1]
                     tc = fitem[2]
@@ -1025,13 +1028,13 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
         if tsr:
             if ticket:
                 if ticketIsFailure:
-                    self.recordRun(tsr,jiratc,"fail",ticket,tcsku)
+                    self.recordRun(tsr,jiratc,"fail",ticket,None,tcsku)
                 else:
-                    self.recordRun(tsr,jiratc,"error",ticket,tcsku)
+                    self.recordRun(tsr,jiratc,"error",ticket,None,tcsku)
             elif blocker:
-                self.recordRun(tsr,jiratc,"notrun",blockedticket,tcsku)
+                self.recordRun(tsr,jiratc,"notrun",blockedticket,None,tcsku)
             else:
-                self.recordRun(tsr,jiratc,"pass",None,tcsku)
+                self.recordRun(tsr,jiratc,"pass",None,None,tcsku)
 
     def fileTicket(self,result,track,summary,description,environment,seenagain,
                    assignee,hosts,jiratc,multipleSubcases=False):

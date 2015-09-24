@@ -69,7 +69,7 @@ class TempTest(DotNetAgentTestCases):
 
     def run(self,arglist):
         server = self.adapter.setUpServer(self.getGuest("server"),"16000")
-        self.adapter.applyLicense(self.getDefaultPool())
+        #self.adapter.applyLicense(self.getDefaultPool())
         agent = DotNetAgent(self.getGuest("WS2012"))
         autoupdate = agent.getLicensedFeature("AutoUpdate")
         autoupdate.enable()

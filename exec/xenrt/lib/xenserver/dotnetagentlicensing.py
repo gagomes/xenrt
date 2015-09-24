@@ -215,6 +215,10 @@ class VMUser(ActorImp):
 
 class VSS(LicensedFeature):
 
+    def __init__(self, guest, os):
+        self.guest = guest
+        self.os = os
+
     def isSnapshotPossible(self):
         pass
 

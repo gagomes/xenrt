@@ -69,7 +69,11 @@ class TempTest(DotNetAgentTestCases):
 
     def run(self,arglist):
         server = self.adapter.setUpServer(self.getGuest("server"),"16000")
-        xenrt.TEC().logverbose(server.isPinged(100))
-        # adapter.applyLicense(self.getDefaultPool())
+        xenrt.sleep(10)
+        self.getGuest("server").execguest("wget localhost:16000")
+        xenrt.sleep(110)
+        xenrt.TEC().logverbose("test 1: %s"%str(server.isPinged(100)))
+        xenrt.TEC().logverbose("test 2: %s"%str(server.isPinged(200)))
+        adapter.applyLicense(self.getDefaultPool())
 
 

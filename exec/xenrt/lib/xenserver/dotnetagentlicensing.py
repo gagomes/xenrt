@@ -30,7 +30,6 @@ class SimpleServer(object):
 
     def isPinged(self, wait):
         xenrt.TEC().logverbose("Checking if Server with port:%s is pinged"%self.port)
-        xenrt.sleep(wait)
         line = self.guest.execguest("tail -n 1 logs/server%s.log"%self.port)
         timeRE = re.search('(\d\d:){2}\d\d',line)
         if not timeRE:

@@ -1114,6 +1114,27 @@ class TCMakeTemplate(xenrt.TestCase):
         except:
             pass
 
+class TCDiskPattern(xenrt.TestCase):
+    """Write or check a deterministic pattern to a named VDI"""
+    def run(self, arglist=None):
+        for arg in arglist:
+            l = string.split(arg, "=", 1)
+            if l[0] == "guest":
+                guest = self.getGuest(l[1])
+            if l[0] == "parameter":
+                parameter = l[1]
+            if l[0] == "vdiindex":
+                uuid = guest.getAttachedVDIs()[int(l[1])]
+
+        size = long(guest.host.genParamGet("vdi", uuid, "virtual-size"))
+        cmd = "%s/remote/patterns.py /dev/$\{DEVICE\} %d %s" % (xenrt.TEC().lookup("REMOTE_SCRIPTDIR"), size, parameter)
+
+        f = "/tmp/" + xenrt.randomGuestName()
+        guest.host.execdom0('echo "%s" > %s' % (cmd, f))
+        guest.host.execdom0('chmod +x %s' % f)
+        guest.host.execdom0("/opt/xensource/debug/with-vdi %s %s || true" % (uuid, f))
+        guest.host.execdom0("/opt/xensource/debug/with-vdi %s %s" % (uuid, f))
+
 class TCClone(xenrt.TestCase):
 
     def __init__(self):

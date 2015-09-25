@@ -39,11 +39,11 @@ class SimpleServer(object):
 
     def moveFile(self, ssFile):
         if ssFile.location == "store/":
-            guest.execguest("mv store/{0} {0}".format(ssFile.name))
+            self.guest.execguest("mv store/{0} {0}".format(ssFile.name))
             ssFile.location = ""
         else:
-            guest.execguest("mv {0} store/{0}".format(ssFile.name))
-            ssFile.location = "store/"
+           self.guest.execguest("mv {0} store/{0}".format(ssFile.name))
+           ssFile.location = "store/"
 
     def addFile(self, ssFile, key):
         self.ssFiles[key] = ssFile
@@ -68,7 +68,7 @@ class DotNetAgent(object):
         self.licensedFeatures = {'VSS':VSS(self.guest,self.os),'AutoUpdate':AutoUpdate(self.guest,self.os)}
 
     def restartAgent(self):
-        pass
+        self.guest.execGuest("net stop \"XenSvc\" && net start \"XenSvc\"")
 
     def agentVersion(self):
         pass
@@ -187,13 +187,13 @@ class VMUser(ActorImp):
 
     def isActive(self):
             key = self.os.winRegLookup("HKLM","\\SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate")
-            return key != "1"
+            return key != 1
 
     def enable(self):
-        self.os.winRegAdd("HKLM","\\SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate","SZ","0")
+        self.os.winRegAdd("HKLM","\\SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate","DWORD",0)
 
     def disable(self):
-        self.os.winRegAdd("HKLM","\\SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate","SZ","1")
+        self.os.winRegAdd("HKLM","\\SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate","DWORD",1)
 
     def remove(self):
         self.os.winRegDel("HKLM","\\SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate")

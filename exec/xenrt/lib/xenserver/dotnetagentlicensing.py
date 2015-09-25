@@ -186,27 +186,27 @@ class VMUser(ActorImp):
         self.os = os
 
     def isActive(self):
-            key = self.os.winRegLookup("HKLM","\\SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate")
+            key = self.os.winRegLookup("HKLM","SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate")
             return key != 1
 
     def enable(self):
-        self.os.winRegAdd("HKLM","\\SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate","DWORD",0)
+        self.os.winRegAdd("HKLM","SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate","DWORD",0)
 
     def disable(self):
-        self.os.winRegAdd("HKLM","\\SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate","DWORD",1)
+        self.os.winRegAdd("HKLM","SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate","DWORD",1)
 
     def remove(self):
-        self.os.winRegDel("HKLM","\\SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate")
+        self.os.winRegDel("HKLM","SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate")
 
     def setURL(self,url):
-        self.os.winRegAdd("HKLM","\\SOFTWARE\\Citrix\\XenTools","update_url","SZ","%s"%url)
+        self.os.winRegAdd("HKLM","SOFTWARE\\Citrix\\XenTools","update_url","SZ","%s"%url)
 
     def defaultURL(self):
-        self.os.winRegDel("HKLM","\\SOFTWARE\\Citrix\\XenTools","update_url")
+        self.os.winRegDel("HKLM","SOFTWARE\\Citrix\\XenTools","update_url")
 
     def checkKeyPresent(self):
         try:
-            key = self.os.winRegLookup("HKLM","\\SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate",healthCheckOnFailure=False)
+            key = self.os.winRegLookup("HKLM","SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate",healthCheckOnFailure=False)
             if key:
                 return True
         except:

@@ -68,7 +68,7 @@ class DotNetAgent(object):
         self.licensedFeatures = {'VSS':VSS(self.guest,self.os),'AutoUpdate':AutoUpdate(self.guest,self.os)}
 
     def restartAgent(self):
-        self.guest.execguest("net stop \"XenSvc\" && net start \"XenSvc\"")
+        self.os.execCmd("net stop \"XenSvc\" && net start \"XenSvc\"")
 
     def agentVersion(self):
         pass

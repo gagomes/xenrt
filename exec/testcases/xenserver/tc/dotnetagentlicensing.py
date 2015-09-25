@@ -44,6 +44,14 @@ class DotNetAgentAdapter(object):
     def importVM(self,vm,host, path):
         vm.importVM(host,path,sr=host.getLocalSR())
 
+    def settingsCleanup(self,guest):
+        host = guest.host
+        os = guest.getInstance().os
+        host.execdom0("xe pool-param-remove uuid=%s param-name=guest-agent-config param-key=auto_update_enabled"%host.getPool().getUUID())
+        host.execdom0("xe pool-param-remove uuid=%s param-name=guest-agent-config param-key=auto_update_url"%host.getPool().getUUID())
+        os.winRegDel("HKLM","\\SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate")
+        os.winRegDel("HKLM","\\SOFTWARE\\Citrix\\XenTools","update_url")
+
     def serverCleanup(self,guest):
         guest.execguest("rm -rf store")
         guest.execguest("rm -rf logs")
@@ -66,6 +74,7 @@ class DotNetAgentTestCases(xenrt.TestCase):
     def postRun(self):
         self.adapter.cleanupLicense(self.getDefaultPool())
         self.adapter.serverCleanup(self.getGuest("server"))
+        self.adapter.settingsCleanup(self.getGuest("WS2012"))
 
 class TempTest(DotNetAgentTestCases):
 
@@ -74,6 +83,7 @@ class TempTest(DotNetAgentTestCases):
         self.adapter.applyLicense(self.getDefaultPool())
         agent = DotNetAgent(self.getGuest("WS2012"))
         autoupdate = agent.getLicensedFeature("AutoUpdate")
+        autoupdate.setUserVMUser()
         autoupdate.enable()
         autoupdate.setURL("http://10.81.29.132:16000")
         #self.getGuest("server").execguest("wget localhost:16000")

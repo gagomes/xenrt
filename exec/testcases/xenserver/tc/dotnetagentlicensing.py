@@ -39,9 +39,10 @@ class DotNetAgentAdapter(object):
         vm.exportVM(path)
         vm.setState("DOWN")
         vm.uninstall()
+        return path
 
-    def importVM(self,vm,host):
-        pass
+    def importVM(self,vm,host, path):
+        vm.importVM(host,path,sr=host.getLocalSR())
 
     def serverCleanup(self,guest):
         guest.execguest("rm -rf store")
@@ -77,7 +78,8 @@ class TempTest(DotNetAgentTestCases):
         autoupdate.setURL("http://10.81.29.132:16000")
         #self.getGuest("server").execguest("wget localhost:16000")
         startTime = datetime.datetime.now().time()
-        self.getGuest("WS2012").reboot()
+        #self.getGuest("WS2012").reboot()
+        agent.restartAgent()
         xenrt.sleep(200)
         xenrt.TEC().logverbose("test 1: %s"%str(server.isPinged(startTime)))
 

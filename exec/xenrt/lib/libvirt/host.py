@@ -320,7 +320,7 @@ class Host(xenrt.GenericHost):
                 template = self.chooseTemplate("TEMPLATE_NAME_RHEL_5")
                 xenrt.TEC().warning("Using a generic RedHat template: %s." % (template, ))
             else:
-                raise xenrt.XRTError(e.reason)
+                raise xenrt.XRTError(str(e))
 
         return template
 

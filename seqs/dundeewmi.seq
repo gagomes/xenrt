@@ -14,13 +14,6 @@
         <network device="0"/>
         <postinstall action="installDrivers"/>
       </vm>
-      <vm name="w2k3-x86">
-        <distro>w2k3eesp2</distro>
-        <memory>512</memory>
-        <vcpus>1</vcpus>
-        <network device="0"/>
-        <postinstall action="installDrivers"/>
-      </vm>
       <vm name="ws08-x86">
         <distro>ws08sp2-x86</distro>
         <memory>1024</memory>

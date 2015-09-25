@@ -13,7 +13,6 @@
   <default name="ITERATIONS" value="450" />
 
   <variables>
-    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
     <EXTRA_TIME>yes</EXTRA_TIME>
     <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
     <OPTION_CLONE_TEMPLATE>yes</OPTION_CLONE_TEMPLATE>

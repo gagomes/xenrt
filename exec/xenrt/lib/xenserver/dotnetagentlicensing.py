@@ -157,22 +157,27 @@ class PoolAdmin(ActorImp):
 
     def enable(self):
         host = self.guest.host
+        xenrt.TEC().logverbose("-----Enabling auto update via pool-----")
         host.execdom0("xe pool-param-set uuid=%s guest-agent-config:auto_update_enabled=true"% host.getPool().getUUID())
 
     def disable(self):
         host = self.guest.host
+        xenrt.TEC().logverbose("-----Disabling auto update via pool-----")
         host.execdom0("xe pool-param-set uuid=%s guest-agent-config:auto_update_enabled=false"% host.getPool().getUUID())
 
     def remove(self):
         host = self.guest.host
+        xenrt.TEC().logverbose("-----Removing pool enabled key-----")
         host.execdom0("xe pool-param-remove uuid=%s param-name=guest-agent-config param-key=auto_update_enabled"%host.getPool().getUUID())
 
     def setURL(self,url):
         host = self.guest.host
+        xenrt.TEC().logverbose("-----Setting pool URL to %s -----"%url)
         host.execdom0("xe pool-param-set uuid=%s guest-agent-config:auto_update_url=%s"%(host.getPool().getUUID(),url))
 
     def defaultURL(self):
         host = self.guest.host
+        xenrt.TEC().logverbose("-----Removing pool URL key-----")
         host.execdom0("xe pool-param-remove uuid=%s param-name=guest-agent-config param-key=auto_update_url"%host.getPool().getUUID())
 
     def checkKeyPresent(self):
@@ -190,18 +195,23 @@ class VMUser(ActorImp):
             return key != 1
 
     def enable(self):
+        xenrt.TEC().logverbose("-----Enabling auto update via VM-----")
         self.os.winRegAdd("HKLM","SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate","DWORD",0)
 
     def disable(self):
+        xenrt.TEC().logverbose("-----Disabling auto update via VM-----")
         self.os.winRegAdd("HKLM","SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate","DWORD",1)
 
     def remove(self):
+        xenrt.TEC().logverbose("-----Removing VM registry DisableAutoUpdate key-----")
         self.os.winRegDel("HKLM","SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate")
 
     def setURL(self,url):
+        xenrt.TEC().logverbose("-----Setting VM URL to %s -----"%url)
         self.os.winRegAdd("HKLM","SOFTWARE\\Citrix\\XenTools","update_url","SZ","%s"%url)
 
     def defaultURL(self):
+        xenrt.TEC().logverbose("-----Removing VM URL key-----")
         self.os.winRegDel("HKLM","SOFTWARE\\Citrix\\XenTools","update_url")
 
     def checkKeyPresent(self):

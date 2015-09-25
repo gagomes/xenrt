@@ -73,9 +73,10 @@ class DotNetAgentTestCases(xenrt.TestCase):
     def __init__(self):
         super(DotNetAgentTestCases, self).__init__()
         self.adapter = DotNetAgentAdapter(self.getGuest(xenrt.TEC().lookup("LICENSE_SERVER")))
+        self.agent = DotNetAgent(self.getGuest("WS2012"))
 
     def postRun(self):
-       # self.adapter.cleanupLicense(self.getDefaultPool())
+        self.adapter.cleanupLicense(self.getDefaultPool())
         self.adapter.serverCleanup(self.getGuest("server"))
         self.adapter.settingsCleanup(self.getGuest("WS2012"))
 
@@ -83,17 +84,46 @@ class TempTest(DotNetAgentTestCases):
 
     def run(self,arglist):
         server = self.adapter.setUpServer(self.getGuest("server"),"16000")
-        self.adapter.applyLicense(self.getDefaultPool())
-        agent = DotNetAgent(self.getGuest("WS2012"))
-        autoupdate = agent.getLicensedFeature("AutoUpdate")
+        #self.adapter.applyLicense(self.getDefaultPool())
+        autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         autoupdate.setUserVMUser()
         autoupdate.enable()
         autoupdate.setURL("http://10.81.29.132:16000")
-        #self.getGuest("server").execguest("wget localhost:16000")
         startTime = datetime.datetime.now().time()
-        #self.getGuest("WS2012").reboot()
         agent.restartAgent()
         xenrt.sleep(200)
-        xenrt.TEC().logverbose("test 1: %s"%str(server.isPinged(startTime)))
+        xenrt.TEC().logverbose("Server was pinged: %s"%str(server.isPinged(startTime)))
 
+class VMUserAutoUpdateToggle(DotNetAgentTestCases):
 
+    def run(self,arglist):
+        server = self.adapter.setUpServer(self.getGuest("server"),"16000")
+        self.adapter.applyLicense(self.getDefaultPool())
+        autoupdate = self.agent.getLicensedFeature("AutoUpdate")
+        autoupdate.setUserVMUser()
+        autoupdate.enable()
+        autoupdate.setURL("http://10.81.29.132:16000")
+        startTime = datetime.datetime.now().time()
+        self.agent.restartAgent()
+        xenrt.sleep(200)
+        pinged = server.isPinged(startTime)
+        xenrt.TEC().logverbose("Server was pinged: %s"%str(pinged))
+        if pinged:
+            raise xenrt.XRTFailure("Server was pinged when it shouldn't be")
+        autoupdate.enable()
+        startTime = datetime.datetime.now().time()
+        self.agent.restartAgent()
+        xenrt.sleep(200)
+        pinged = server.isPinged(startTime)
+        xenrt.TEC().logverbose("Server was pinged: %s"%str(pinged))
+        if not pinged:
+            raise xenrt.XRTFailure("Server was not pinged when it should be")
+        self.adapter.releaseLicense(self.getDefaultPool())
+        if autoupdate.isLicensed():
+            raise xenrt.XRTFailure("autoupdate is licensed when it shouldn't be")
+        time = datetime.datetime.now()
+        self.agent.restartAgent()
+        xenrt.sleep(200)
+        pinged = server.isPinged(startTime)
+        if pinged:
+            raise xenrt.XRTFailure("autoupdate tries to update when unlicensed")

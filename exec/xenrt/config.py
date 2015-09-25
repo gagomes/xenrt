@@ -884,7 +884,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Tampa"]["MAX_VLANS_PER_HOST_LINUX"] = "800"
         self.config["VERSION_CONFIG"]["Tampa"]["MAX_VLANS_PER_HOST_VSWITCH"] = "800"
         self.config["VERSION_CONFIG"]["Tampa"]["VIF_PER_VM"] = "2"
-        self.config["VERSION_CONFIG"]["Tampa"]["DEFAULT_RPU_LINUX_VERSION"] = "rhel62"
+        self.config["VERSION_CONFIG"]["Tampa"]["DEFAULT_RPU_LINUX_VERSION"] = "rhel57"
         self.config["VERSION_CONFIG"]["Tampa"]["LATEST_rhel4"] = "rhel48"
         self.config["VERSION_CONFIG"]["Tampa"]["LATEST_rhel5"] = "rhel58"
         self.config["VERSION_CONFIG"]["Tampa"]["LATEST_rhel6"] = "rhel62"

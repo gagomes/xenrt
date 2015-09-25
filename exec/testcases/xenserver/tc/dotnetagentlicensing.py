@@ -49,8 +49,8 @@ class DotNetAgentAdapter(object):
         os = guest.getInstance().os
         host.execdom0("xe pool-param-remove uuid=%s param-name=guest-agent-config param-key=auto_update_enabled"%host.getPool().getUUID())
         host.execdom0("xe pool-param-remove uuid=%s param-name=guest-agent-config param-key=auto_update_url"%host.getPool().getUUID())
-        os.winRegDel("HKLM","\\SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate")
-        os.winRegDel("HKLM","\\SOFTWARE\\Citrix\\XenTools","update_url")
+        os.winRegDel("HKLM","SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate")
+        os.winRegDel("HKLM","SOFTWARE\\Citrix\\XenTools","update_url")
 
     def serverCleanup(self,guest):
         guest.execguest("rm -rf store")

@@ -68,6 +68,8 @@ class LoginVSI(object):
 
     def _installTarget(self, guest):
         guest.xmlrpcExec(r'setx vsishare "%s"' % (self.vsisharePath))
+        guest.reboot()
+        self._mapVSIShareToDrive(self.targetGuest)
         targetcmd = r"%s:\%s" % (self.config["distfileDrive"], self.config["targetSetup"])
         guest.xmlrpcExec(r'%s 1 1 1 1 1 "LoginVSI"' % targetcmd, level=xenrt.RC_OK) # targetcmd throws error even if all tasks are done.
         guest.xmlrpcExec(r'regedit /s %s\_VSI_Binaries\Target\IE8_RunOnce.reg' % (self.vsisharePath))
@@ -93,7 +95,6 @@ class LoginVSI(object):
         if self.dataServerGuest != self.targetGuest:
             self._mapLoginVSIdistfiles(self.targetGuest)
             self._installOffice(self.targetGuest)
-        self._mapVSIShareToDrive(self.targetGuest)
         self._installTarget(self.targetGuest)
         self._createSubstPaths(self.targetGuest)
         if self.tailoredToRunOnGuestLogon:

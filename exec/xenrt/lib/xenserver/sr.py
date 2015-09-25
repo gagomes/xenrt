@@ -348,7 +348,7 @@ class StorageRepository(object):
     def remove(self):
         xenrt.TEC().logverbose("Finding VMs/VDIs in SR %s" % (self.uuid))
         usecli = self.host.getCLIInstance()
-        vdilist = self.paramGet("VDIs").split(";")
+        vdilist = self.paramGet("VDIs").strip().split(";")
         # Shutdown and remove all VMs on the SR.
         for vdi in vdilist:
             vdi = vdi.strip()
@@ -370,7 +370,7 @@ class StorageRepository(object):
                                            (vm, self.uuid, str(e)))
                     
         # Try to remove any left over VDIs
-        vdilist = self.paramGet("VDIs").split(";")
+        vdilist = self.paramGet("VDIs").strip().split(";")
         for vdi in vdilist:
             vdi = vdi.strip()
             try:

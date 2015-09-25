@@ -1,0 +1,62 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Cream</PRODUCT_VERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+  </variables>
+
+  <prepare>
+    <pool>
+      <host>
+        <vm name="win7x64">
+          <distro>win7sp1-x64</distro>
+          <network device="0"/>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <disk device="0" size="24" />
+          <postinstall action="installDrivers"/>
+          <postinstall action="preCloneTailor"/>
+          <storage>NFSSR</storage>
+        </vm>
+      </host>
+      <storage type="nfs" name="NFSSR" default="true"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="Win7-x64-BenchInst">
+      <testcase id="testcases.xenserver.tc.vgpu.TCGPUBenchmarkInstall">
+        <arg>guest=win7x64</arg>
+        <arg>benchmark=UnigineSanctuary</arg>
+        <arg>benchmark=UnigineTropics</arg>
+      </testcase>
+    </serial>
+    <serial group="Win7-x64-M600BScale">
+      <testcase id="testcases.xenserver.tc.vgpu.TCVGPUSetup" tc="TC-27350">
+        <arg>guest=win7x64</arg>
+        <arg>vgpuconfig=GRID M60-0B</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+        <arg>blockdom0access=false</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.vgpu.TCVGPUCloneVM" tc="TC-27294">
+        <arg>guest=win7x64</arg>
+        <arg>vgpuconfig=GRID M60-0B</arg>
+        <arg>clones=128</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.vgpu.TCGPUWorkload" tc="TC-27295">
+        <arg>guest=win7x64</arg>
+        <arg>vgpuconfig=GRID M60-0B</arg>
+        <arg>benchmark=UnigineTropics</arg>
+        <arg>clones=128</arg>
+        <arg>time=43200</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.vgpu.TCVGPUDeleteClones" tc="TC-27296">
+        <arg>guest=win7x64</arg>
+        <arg>clones=128</arg>
+      </testcase>
+    </serial>
+    
+  </testsequence>
+
+</xenrt>

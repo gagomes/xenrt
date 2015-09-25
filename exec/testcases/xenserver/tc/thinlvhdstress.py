@@ -129,7 +129,7 @@ class TCParallelWriting(xenrt.TestCase):
             guest.execguest("chmod u+x /tmp/cmd.sh")
             libsynexec.start_slave(guest, self.jobid)
 
-        libsynexec.start_master_in_dom0(self.host, "/tmp/cmd.sh", self.jobid, self.vdicount)
+        libsynexec.start_master_in_dom0(self.host, "/bin/bash /tmp/cmd.sh", self.jobid, self.vdicounti, self.timeout)
 
         results = {}
         for guest in self.guests:
@@ -154,7 +154,7 @@ class TCParallelWriting(xenrt.TestCase):
         else:
             failed = 0
             for guest in self.guests:
-                failed = guest.execguest("%s/remote/patterns.py /dev/%s %d write 3" % \
+                failed = guest.execguest("%s/remote/patterns.py /dev/%s %d read 3" % \
                     (xenrt.TEC().lookup("REMOTE_SCRIPTDIR"), guest.targetDevice, self.vdisize), retval="code")
             if failed > 0:
                 raise xenrt.XRTFailure("%d VDIs are corrupted." % failed)
@@ -167,7 +167,7 @@ class TCParallelWriting(xenrt.TestCase):
             log("Creating VDIs and attching to test guests.")
             for guest in self.guests:
                 guest.setState("UP")
-                guest.targetDevice = guest.createDisk(sizebytes = self.vdisize, returnDevice=True)
+                guest.targetDevice = guest.createDisk(sizebytes = self.vdisize, sruuid=self.sr, returnDevice=True)
         else:
             log("Creating VDIs")
             self.vdis = [self.host.createVDI(sizebytes = self.vdisize) for i in xrange(self.vdicount)]
@@ -183,6 +183,7 @@ class TCParallelWriting(xenrt.TestCase):
             for guest in self.guests:
                 guest.setState("DOWN")
                 guest.destroyAdditionalDisks()
+                guest.setState("UP")
         else:
             map(self.host.destroyVDI, self.vdis)
             self.vdis = []
@@ -225,38 +226,41 @@ class TCParallelWriting(xenrt.TestCase):
             log("Using VM: %s" % self.runOnGuest)
             log("================")
 
+    def prepareGuests(self, host):
+        """
+        Prepare given host for test env.
+        """
+
+        log("Creating new master guest on host %s." % host.getName())
+        localsr = host.getLocalSR()
+        master = host.createGenericLinuxGuest(sr = localsr)
+        self.uninstallOnCleanup(master)
+
+        master.setState("UP")
+        libsynexec.initialise_slave(master)
+        master.setState("DOWN")
+
+        counts = self.vdicount / len(host.pool.getHosts())
+        for i in xrange(counts):
+            guest = master.cloneVM()
+            self.uninstallOnCleanup(guest)
+            guest.setState("UP")
+            self.guests.append(guest)
+
     def prepare(self, arglist=[]):
 
         self.host = self.getDefaultHost()
+        self.pool = self.host.pool
+        if self.pool:
+            self.host = self.pool.master
+        self.sr = self.host.lookupDefaultSR()
+        self.timeout = 180 * 60 # timeout of 3 hours per iteration.
 
         self.__obtainTestVars(arglist, printAfterObtain = True)
 
         self.guests = []
         if self.runOnGuest:
-            log("Tests are using VM. Preparing master guest...")
-
-            self.master = None
-            goldvm = self.args.get("goldvm", None)
-            if goldvm:
-                try:
-                    self.master = self.getGuest(goldvm)
-                except:
-                    warning("%s is given for master VM, but cannot find one.")
-            if not self.master:
-                log("Creating new master guest.")
-                localsr = self.host.getLocalSR()
-                self.master = self.host.createGenericLinuxGuest(sr = localsr)
-
-            self.master.setState("UP")
-            libsynexec.initialise_slave(self.master)
-            self.master.setState("DOWN")
-
-            for i in xrange(self.vdicount):
-                guest = self.master.cloneVM()
-                self.uninstallOnCleanup(guest)
-                self.guests.append(guest)
-
-            log("Configure synexec on host.")
+            xenrt.pfarm([xenrt.PTask(self.prepareGuests, host) for host in self.pool.getHosts()])
             libsynexec.initialise_master_in_dom0(self.host)
         else:
             log("Test are running on the host.")
@@ -284,7 +288,7 @@ class TCParallelWriting(xenrt.TestCase):
                 log("Final physical utilisation: %d" % final)
                 expected = prev + (self.vdicount * self.vdisize)
                 if final < expected:
-                    if final < expected * 0.95:
+                    if final < expected:
                         raise xenrt.XRTFailure("After writing SR utilisation has not increased as expected." \
                             "Expected: >= %d Found: %d" % (expected, final))
                     else:

@@ -45,6 +45,7 @@ class DotNetAgentAdapter(object):
         vm.importVM(host,path,sr=host.getLocalSR())
 
     def settingsCleanup(self,guest):
+        xenrt.TEC().logverbose("-----Cleanup settings-----")
         host = guest.host
         os = guest.getInstance().os
         host.execdom0("xe pool-param-remove uuid=%s param-name=guest-agent-config param-key=auto_update_enabled"%host.getPool().getUUID())
@@ -53,11 +54,13 @@ class DotNetAgentAdapter(object):
         os.winRegDel("HKLM","SOFTWARE\\Citrix\\XenTools","update_url")
 
     def serverCleanup(self,guest):
+        xenrt.TEC().logverbose("----Server cleanup-----")
         guest.execguest("rm -rf store")
         guest.execguest("rm -rf logs")
         guest.reboot()
 
     def setUpServer(self,guest,port):
+        xenrt.TEC().logverbose("-----Setting up server-----")
         guest.execguest("mkdir -p store")
         guest.execguest("mkdir -p logs")
         guest.execguest(" echo \"file contents\" > store/dotNetAgent.msi")  
@@ -72,7 +75,7 @@ class DotNetAgentTestCases(xenrt.TestCase):
         self.adapter = DotNetAgentAdapter(self.getGuest(xenrt.TEC().lookup("LICENSE_SERVER")))
 
     def postRun(self):
-        self.adapter.cleanupLicense(self.getDefaultPool())
+       # self.adapter.cleanupLicense(self.getDefaultPool())
         self.adapter.serverCleanup(self.getGuest("server"))
         self.adapter.settingsCleanup(self.getGuest("WS2012"))
 

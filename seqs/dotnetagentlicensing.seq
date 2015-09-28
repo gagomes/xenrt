@@ -6,7 +6,7 @@
     <variables>
         <LICENSE_SERVER>${LICENSESERVER}</LICENSE_SERVER>
         <LICENSED_EDITION>PerSocketEnterprise</LICENSED_EDITION>
-        <UNLICENSED_EDITION>free</UNLICENSED_EDITION>
+        <UNLICENSED_EDITION>PerSocketStandard</UNLICENSED_EDITION>
     </variables>
 
     <prepare>

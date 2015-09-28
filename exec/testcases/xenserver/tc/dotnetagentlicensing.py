@@ -93,7 +93,7 @@ class TempTest(DotNetAgentTestCases):
 
 class PoolAutoUpdateToggle(DotNetAgentTestCases):
 
-    def __pingServers(self,agent1,shouldbe):
+    def __pingServer(self,agent1,server, shouldbe):
         startTime = datetime.datetime.now().time()
         self.agent.restartAgent()
         xenrt.sleep(200)
@@ -126,12 +126,12 @@ class PoolAutoUpdateToggle(DotNetAgentTestCases):
         autoupdate0.disable()
         autoupdate1.disable()
         autoupdate0.setURL("http://%s:16000"% server.getIP())
-        self.__pingServers(agent1,False)
+        self.__pingServer(agent1,False)
         autoupdate0.enable()
         autoupdate1.enable()
-        self.__pingServers(agent1,True)
+        self.__pingServer(agent1,server,True)
         self.adapter.releaseLicense(self.getDefaultPool())
-        self.__pingServers(agent1,False)
+        self.__pingServer(agent1,server,False)
 
 
 class VMAutoUpdateToggle(DotNetAgentTestCases):

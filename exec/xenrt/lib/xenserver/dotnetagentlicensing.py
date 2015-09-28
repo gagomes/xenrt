@@ -1,4 +1,4 @@
-from abc import ABCMeta, abstractmethod
+﻿from abc import ABCMeta, abstractmethod
 import xenrt
 import re
 import datetime
@@ -74,8 +74,11 @@ class DotNetAgent(object):
         pass
 
     def getLicensedFeature(self,feature):
-        ''' current features are "VSS", "AutoUpdate" ''' 
-        return self.licensedFeatures[feature]
+        '''VSS or AutoUpdate''' 
+        x = self.licensedFeatures[feature]
+        assert isinstance(x, VSS)
+        return x
+
 
 class LicensedFeature(object):
     __metaclass__ = ABCMeta
@@ -229,7 +232,17 @@ class VSS(LicensedFeature):
         self.os = os
 
     def isSnapshotPossible(self):
-        pass
+        self.guest.enableVSS()
+        try:
+            snapuuid = self.guest.snapshot(quiesced=True)
+            xenrt.TEC().logverbose("-----VSS Snapshot succeeded-----")
+            self.guest.removeSnapshot(snapuuid)
+            self.guest.disableVSS()
+            return True
+        except:
+            xenrt.TEC().logverbose("-----VSS Snapshot failed-----")
+            self.guest.disableVSS()
+            return False
 
     def isLicensed(self):
         host = self.guest.host

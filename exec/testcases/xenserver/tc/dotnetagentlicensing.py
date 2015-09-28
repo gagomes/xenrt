@@ -3,6 +3,7 @@ from xenrt.lib.xenserver.dotnetagentlicensing import *
 from xenrt.enum import XenServerLicenseSKU
 from xenrt.lib.xenserver.licensing import LicenseManager, XenServerLicenseFactory
 import datetime
+from xenrt.lib.xenserver.guest import guest
 
 class DotNetAgentAdapter(object):
 
@@ -27,9 +28,6 @@ class DotNetAgentAdapter(object):
 
     def cleanupLicense(self, hostOrPool):
         self.licenseManager.releaseLicense(hostOrPool)
-
-    def upgradeTools(self):
-        pass
 
     def exportVM(self, vm):
         vm.setState("DOWN")
@@ -84,7 +82,7 @@ class TempTest(DotNetAgentTestCases):
 
     def run(self,arglist):
         server = self.adapter.setUpServer(self.getGuest("server"),"16000")
-        #self.adapter.applyLicense(self.getDefaultPool())
+        self.adapter.applyLicense(self.getDefaultPool())
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         autoupdate.setUserVMUser()
         autoupdate.enable()
@@ -127,3 +125,14 @@ class VMUserAutoUpdateToggle(DotNetAgentTestCases):
         pinged = server.isPinged(startTime)
         if pinged:
             raise xenrt.XRTFailure("autoupdate tries to update when unlicensed")
+
+class VSSQuiescedSnapshotting(DotNetAgentTestCases):
+
+    def run(self, arglist):
+        #self.adapter.applyLicense(self.getDefaultPool())
+        vss = self.agent.getLicensedFeature("VSS")
+        if not vss.isSnapshotPossible():
+            raise xenrt.XRTFailure("snapshot failed in licensed pool")
+        self.adapter.releaseLicense(self.getDefaultPool())
+        if vss.isSnapshotPossible():
+            raise xenrt.XRTFailure("snapshot succeeded in unlicensed pool")

@@ -1,11 +1,7 @@
 <xenrt>
-  <default name="GUESTMEMORY" value="512" />
-  <default name="GUESTVCPUS" value="2" />
-  <default name="GUESTDISTRO" value="debian70" />
-  <default name="GUESTARCH" value="x86-64" />
-  <default name="GUESTMEMORY" value="512" />
   <default name="VDICOUNT" value="10" />
   <default name="VDISIZE" value="8" /> <!-- in GiB -->
+  <default name="ITERATION" value="1" />
 
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
@@ -16,41 +12,20 @@
     <pool>
       <allhosts />
       <storage type="lvmoiscsi" name="lvmoiscsisr" default="true" size="100" options="ietvm,thin" />
-      <vm name="master">
-        <distro>${GUESTDISTRO}</distro>
-        <memory>${GUESTMEMORY}</memory>
-        <vcpus>${GUESTVCPUS}</vcpus>
-        <arch>${GUESTARCH}</arch>
-        <network device="0" />
-        <postinstall action="installDrivers" />
-      </vm>
     </pool>
   </prepare>
 
   <testsequence>
     <testcase id="testcases.xenserver.tc.thinlvhdstress.TCParallelWriting" tc="TC-27238" name="SequentialWriting">
+      <arg>iteration=${iteration}</arg>
       <arg>vdicount=${VDICOUNT}</arg>
       <arg>vdisize=${VDISIZE}</arg> <!-- in GiB -->
     </testcase>
     <testcase id="testcases.xenserver.tc.thinlvhdstress.TCParallelWriting" tc="TC-27239" name="PatternWriting">
+      <arg>iteration=${iteration}</arg>
       <arg>vdicount=${VDICOUNT}</arg>
       <arg>vdisize=${VDISIZE}</arg> <!-- in GiB -->
       <arg>sequential=no</arg>
     </testcase>
-    <!-- In guest writing tests does same job with dom0 writing tests.
-    <testcase id="testcases.xenserver.tc.thinlvhdstress.TCParallelWriting" tc="TC-27240" name="InGuestSeqWriting">
-      <arg>goldvm=master</arg>
-      <arg>vms=yes</arg>
-      <arg>vdicount=${VDICOUNT}</arg>
-      <arg>vdisize=${VDISIZE}</arg>
-    </testcase>
-    <testcase id="testcases.xenserver.tc.thinlvhdstress.TCParallelWriting" tc="TC-27241" name="InGuestPtnWriting">
-      <arg>goldvm=master</arg>
-      <arg>vms=yes</arg>
-      <arg>vdicount=${VDICOUNT}</arg>
-      <arg>vdisize=${VDISIZE}</arg>
-      <arg>sequential=no</arg>
-    </testcase>
-    -->
   </testsequence>
 </xenrt>

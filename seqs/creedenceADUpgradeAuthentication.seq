@@ -13,23 +13,25 @@
 
   <prepare>
     <pool>
-      <host id="0" productVersion="Creedence"/>
-      <host id="1" productVersion="Creedence"/>
+      <host id="0" productVersion="Creedence" />
+      <host id="1" productVersion="Creedence" />
     </pool>
     <host id="2" productVersion="Creedence">
       <vm name="AUTHSERVER">
         <distro>ws08-x86</distro>
-        <network device="0"/>
-        <postinstall action="installDrivers"/>
-        <postinstall action="installPowerShell"/>
-        <postinstall action="enablePowerShellUnrestricted"/>
+        <network device="0" />
+        <postinstall action="installDrivers" />
+        <postinstall action="installPowerShell" />
+        <postinstall action="enablePowerShellUnrestricted" />
       </vm>
     </host>
   </prepare>
 
-  <testsequence>    
+  <testsequence>
     <testcase id="xenserver.tc.upgrade.ADUpgradeAuthentication" tc="TC-27039" name="ADUpAuthentication" />
     <testcase id="xenserver.tc.security.ADPBISDirectoryCheck" tc="TC-27048" name="PBISDirectoriesVerification" />
+    <testcase id="xenserver.tc.upgrade.TC10718" tc="TC-10718" name="UpgradeWithADenabled" />
+    <testcase id="xenserver.tc.upgrade.TC12611" tc="TC-12611" name="UpgradeWithRBAC" />
   </testsequence>
 
 </xenrt>

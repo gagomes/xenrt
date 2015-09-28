@@ -3401,18 +3401,8 @@ class TC10718(_FeatureOperationAfterUpgrade):
         if not authguest:
             raise xenrt.XRTError("Could not find %s VM" % (self.AUTHSERVER))
         self.authserver = authguest.getActiveDirectoryServer()
-
-        
-        for host in self.poolsToUpgrade[0].getHosts():
-            host.setDNSServer(self.authserver.place.getIP())
-
-        self.poolsToUpgrade[0].enableAuthentication(self.authserver, setDNS=False)
         self.authserver.createSubjectGraph(self.SUBJECTGRAPH)
-        self.poolsToUpgrade[0].allow(\
-            self.authserver.getSubject(name="TC10718userA"), "pool-admin")
-        self.poolsToUpgrade[0].allow(\
-            self.authserver.getSubject(name="TC10718group2"), "pool-admin")
-            
+
     def addExtraUsers(self):
         # Add extra user(s) to the subject-list
         for user in self.ADDREMOVEUSERS:
@@ -3480,37 +3470,25 @@ class TC10718(_FeatureOperationAfterUpgrade):
                                            "authenticate using SSH")
     
     def featureTest(self):
-        for host in self.poolsToUpgrade[0].getHosts():
-            host.setDNSServer(self.authserver.place.getIP())
-
-        self.addExtraUsers()
-
-        # Test CLI authentication
+        #Enable AD and add users
+        self.poolsToUpgrade[0].enableAuthentication(self.authserver, setDNS=True)
+        self.poolsToUpgrade[0].allow(self.authserver.getSubject(name="TC10718userA"), "pool-admin")
+        self.poolsToUpgrade[0].allow(self.authserver.getSubject(name="TC10718group2"), "pool-admin")
+        self.poolsToUpgrade[0].allow(self.authserver.getSubject(name="TC10718userD"), "pool-admin")
+        #Test CLI authentication
         self.cli = self.poolsToUpgrade[0].getCLIInstance()
         self.cliAuthentication(auth=True)
-        
         # Test SSH authentication
         self.sshAuthentication(auth=True)
-
-        # Remove the user(s) from the subject-list
-        for user in self.TESTUSERS + self.ADDREMOVEUSERS:
-            self.poolsToUpgrade[0].deny(self.authserver.getSubject(name=user))
-
+        #Remove AD users and disable
+        self.poolsToUpgrade[0].deny(self.authserver.getSubject(name="TC10718userA"))
+        self.poolsToUpgrade[0].deny(self.authserver.getSubject(name="TC10718group2"))
+        self.poolsToUpgrade[0].deny(self.authserver.getSubject(name="TC10718userD"))
+        self.poolsToUpgrade[0].disableAuthentication(self.authserver, disable=True)
         # Test removed user(s) cannot authenticate
         self.cliAuthentication(auth=False)
         self.sshAuthentication(auth=False)
 
-        # Disable and re-enable AD authentication
-        self.poolsToUpgrade[0].disableAuthentication(self.authserver,
-                                                     disable=True)
-        self.poolsToUpgrade[0].enableAuthentication(self.authserver)
-
-        # Check an auth
-        subject = self.authserver.getSubject(name=self.TESTUSERS[0])
-        cli.execute("vm-list",
-                    username=subject.name,
-                    password=subject.password)
-                    
 class ADUpgradeAuthentication(TC10718):
 
     def prepare(self, arglist):
@@ -3541,14 +3519,16 @@ class ADUpgradeAuthentication(TC10718):
 
         # Test SSH authentication
         self.sshAuthentication(auth=True)
-                    
-        self.poolsToUpgrade[0].disableAuthentication(self.authserver,
-                                                     disable=True)
-                                                     
+        #Remove Users and disable
+        self.poolsToUpgrade[0].deny(self.authserver.getSubject(name="TC10718userA"))
+        self.poolsToUpgrade[0].deny(self.authserver.getSubject(name="TC10718group2"))
+        self.poolsToUpgrade[0].deny(self.authserver.getSubject(name="TC10718userD"))
+        self.poolsToUpgrade[0].disableAuthentication(self.authserver, disable=True)
+
         # Test removed user(s) cannot authenticate
         self.cliAuthentication(auth=False)
-        self.sshAuthentication(auth=False) 
-    
+        self.sshAuthentication(auth=False)
+
     def run(self, arglist):
         # Perform the upgrade/update
         if self.runSubcase("featureOpUpgrade", (), "Do", "Upgrade") != \
@@ -3559,7 +3539,7 @@ class ADUpgradeAuthentication(TC10718):
         if self.runSubcase("featureTest", (), "Check", "After") != \
                xenrt.RESULT_PASS:
             return
-            
+
 class TC12611(TC10718):
     """Continued operation of RBAC following host/pool update/upgrade."""
 
@@ -3567,20 +3547,7 @@ class TC12611(TC10718):
                   xenrt.lib.xenserver.call.CLICall("pool-emergency-transition-to-master")]
 
     VALID = ["vm-list"]
-
-    def prepare(self, arglist=[]):
-        TC10718.prepare(self, arglist)
-        self.context = xenrt.lib.xenserver.context.Context(self.poolsToUpgrade[0])
-        self.poolsToUpgrade[0].deny(\
-            self.authserver.getSubject(name="TC10718userA"))
-        self.poolsToUpgrade[0].deny(\
-            self.authserver.getSubject(name="TC10718group2"))
-        self.poolsToUpgrade[0].allow(\
-            self.authserver.getSubject(name="TC10718userA"), "vm-operator")
-        self.poolsToUpgrade[0].allow(\
-            self.authserver.getSubject(name="TC10718group2"), "vm-operator")
-
-    def featureTest(self):
+    def verifyOperation(self):
         for op in self.OPERATIONS:
             op.context = self.context
             for user in self.TESTUSERS:
@@ -3593,6 +3560,20 @@ class TC12611(TC10718):
                 else:
                     if not op.operation in self.VALID:
                         raise xenrt.XRTFailure("Invalid operation suceeded.")
+
+    def prepare(self, arglist=[]):
+        TC10718.prepare(self, arglist)
+        self.context = xenrt.lib.xenserver.context.Context(self.poolsToUpgrade[0])
+
+    def featureTest(self):
+        self.poolsToUpgrade[0].enableAuthentication(self.authserver, setDNS=True)
+        self.poolsToUpgrade[0].allow(self.authserver.getSubject(name="TC10718userA"), "vm-operator")
+        self.poolsToUpgrade[0].allow(self.authserver.getSubject(name="TC10718group2"), "vm-operator")
+        self.verifyOperation()
+        self.poolsToUpgrade[0].deny(self.authserver.getSubject(name="TC10718userA"))
+        self.poolsToUpgrade[0].deny(self.authserver.getSubject(name="TC10718group2"))
+        self.poolsToUpgrade[0].disableAuthentication(self.authserver, disable=True)
+
 
 class TC10721(_FeatureOperationAfterUpgrade):
     """Continued operation of a host with a boot disk on a FC SAN via Emulex HBA following host/pool update/upgrade"""

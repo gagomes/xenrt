@@ -20,7 +20,7 @@ class DotNetAgentAdapter(object):
         self.licenseManager.applyLicense(self.v6, hostOrPool, license, licenseinUse)
 
     def releaseLicense(self, hostOrPool):
-        self.applyLicensedHost(hostOrPool, self.unLicensedPool)
+        self.applyLicense(hostOrPool, self.unLicensedPool)
 
     def checkLicenseState(self,hostOrPool):
         hostOrPool.checkLicenseState(self.licensedEdition)
@@ -85,11 +85,35 @@ class TempTest(DotNetAgentTestCases):
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         autoupdate.setUserVMUser()
         autoupdate.enable()
-        autoupdate.setURL("http://10.81.29.132:16000")
+        autoupdate.setURL("http://%s:16000"%server.getIP())
         startTime = datetime.datetime.now().time()
         agent.restartAgent()
         xenrt.sleep(200)
         xenrt.TEC().logverbose("Server was pinged: %s"%str(server.isPinged(startTime)))
+
+class poolAutoUpdateToggle(DotNetAgentTestCases):
+
+    def run(self, arglist):
+        server0 = self.adapter.setUpServer(self.getGuest("server"),"16000")
+        server1 = self.adapter.setUpServer(self.getGuest("server"),"16001")
+        agent1 = DotNetAgent(self.getGuest("WS2012(1)"))
+        self.adapter.applyLicense(self.getDefaultPool())
+        autoupdate0 = self.agent.getLicensedFeature("AutoUpdate")
+        autoupdate1 = agent1.getLicensedFeature("AutoUpdate")
+        autoupdate0.disable()
+        autoupdate1.disable()
+        autoupdate0.setURL("http://%s:16000"% server0.getIP())
+        autoupdate1.setURL("http://%s:16001"% server1.getIP())
+        startTime = datetime.datetime.now().time()
+        xenrt.sleep(200)
+        pinged0 = server.isPinged(startTime)
+        pinged1 = server.isPinged(startTime)
+        xenrt.TEC().logverbose("Server0 was pinged: %s"%str(pinged0))
+        xenrt.TEC().logverbose("Server1 was pinged: %s"%str(pinged1))
+        if pinged0:
+            raise xenrt.XRTFailure("Server0 was pinged when it shouldn't be")
+        if pinged1:
+            raise xenrt.XRTFailure("Server1 was pinged when it shouldn't be")
 
 class VMAutoUpdateToggle(DotNetAgentTestCases):
 

@@ -76,7 +76,10 @@ class DotNetAgent(object):
     def getLicensedFeature(self,feature):
         '''VSS or AutoUpdate''' 
         x = self.licensedFeatures[feature]
-        assert isinstance(x, VSS)
+        if feature == "VSS":
+            assert isinstance(x, VSS)
+        else:
+            assert isinstance(x, AutoUpdate)
         return x
 
 

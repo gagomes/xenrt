@@ -51,6 +51,7 @@
         <testcase id="testcases.xenserver.tc.dotnetagentlicensing.TempTest"/>
         <testcase id="testcases.xenserver.tc.dotnetagentlicensing.VMAutoUpdateToggle"/>
         <testcase id="testcases.xenserver.tc.dotnetagentlicensing.VSSQuiescedSnapshot"/>
+        <testcase id="testcases.xenserver.tc.dotnetagentlicensing.PoolAutoUpdateToggle"/>
     </testsequence>
 
 </xenrt>

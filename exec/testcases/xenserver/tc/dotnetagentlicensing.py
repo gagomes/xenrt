@@ -91,7 +91,7 @@ class TempTest(DotNetAgentTestCases):
         xenrt.sleep(200)
         xenrt.TEC().logverbose("Server was pinged: %s"%str(server.isPinged(startTime)))
 
-class poolAutoUpdateToggle(DotNetAgentTestCases):
+class PoolAutoUpdateToggle(DotNetAgentTestCases):
 
     def __pingServers(self,agent1,shouldbe):
         startTime = datetime.datetime.now().time()

@@ -126,7 +126,7 @@ class PoolAutoUpdateToggle(DotNetAgentTestCases):
         autoupdate0.disable()
         autoupdate1.disable()
         autoupdate0.setURL("http://%s:16000"% server.getIP())
-        self.__pingServer(agent1,False)
+        self.__pingServer(agent1,server,False)
         autoupdate0.enable()
         autoupdate1.enable()
         self.__pingServer(agent1,server,True)

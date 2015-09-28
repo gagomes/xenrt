@@ -21,7 +21,7 @@
                     <network device="0" />
                     <disk device="0" size="32" />
                 </vm>
-                <vm name="WS2012(1)")">
+                <vm name="WS2012(1)">
                     <distro>ws12-x64</distro>
                     <arch>x86-64</arch>
                     <memory>2048</memory>

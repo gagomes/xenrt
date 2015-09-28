@@ -904,7 +904,8 @@ class TC9284(xenrt.TestCase):
                 except:
                     #Start the VM if vm-reboot fails because VM went down before vm-reboot
                     self.guest.lifecycleOperation("vm-start")
-                
+            else:
+                raise
         finally:
             self.guest.makeCooperative(True)
             time.sleep(30)

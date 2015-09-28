@@ -7,6 +7,8 @@ from testcases.benchmarks import graphics
 from abc import ABCMeta, abstractmethod
 from testcases.xenserver.shellcommandsrunner import Runner
 
+"""This file needs to be refactored as part of CP-14275"""
+
 """
 Enums
 """
@@ -2050,9 +2052,8 @@ class NvidiaWindowsvGPU(DifferentGPU):
 class NvidiaLinuxvGPU(DifferentGPU):
 
     def installHostDrivers(self, allHosts, params=None):
-        xenrt.TEC().logverbose("Not implemented")
-        pass
-    
+        xenrt.TEC().logverbose("Not implemented as this is not needed by Linux vGPUs, BUT declared as abstract method in base class")
+            
     def installGuestDrivers(self, guest, vGPUType):
         VGPUTest().installNvidiaLinuxDrivers(guest, vGPUType)
 
@@ -2063,48 +2064,24 @@ class NvidiaLinuxvGPU(DifferentGPU):
         VGPUTest().assertvGPUNotRunningInLinuxVM(guest,vGPUType,"Nvidia")
 
     def runWorkload(self,vm):
-        xenrt.TEC().logverbose("Not implemented")
-        pass
-
+        xenrt.TEC().logverbose("Not implemented as this is not needed by Linux vGPUs, BUT declared as abstract method in base class")
+        
     def attachvGPUToVM(self, vgpucreator, vm, groupuuid=None):
         VGPUTest().attachvGPU(vgpucreator, vm, groupuuid)
 
     def blockDom0Access(self, host, reboot=True):
-        xenrt.TEC().logverbose("Not implemented")
-        pass
-
-    def unblockDom0Access(self, host):
-        xenrt.TEC().logverbose("Not implemented")
-        pass
+        xenrt.TEC().logverbose("Not implemented as this is not needed by Linux vGPUs, BUT declared as abstract method in base class")
         
-class NvidiaLinuxhvmvGPU(DifferentGPU):
+    def unblockDom0Access(self, host):
+        xenrt.TEC().logverbose("Not implemented as this is not needed by Linux vGPUs, BUT declared as abstract method in base class")
+        
+        
+class NvidiaLinuxhvmvGPU(NvidiaLinuxvGPU):
 
     def installHostDrivers(self, allHosts, params=None):
         VGPUTest().installNvidiaHostDrivers(allHosts)
 
-    def installGuestDrivers(self, guest, vGPUType):
-        VGPUTest().installNvidiaLinuxDrivers(guest, vGPUType)
-
-    def assertvGPURunningInVM(self, guest, vGPUType):
-        VGPUTest().assertvGPURunningInLinuxVM(guest,vGPUType,"Nvidia")
-
-    def assertvGPUNotRunningInVM(self, guest, vGPUType):
-        VGPUTest().assertvGPUNotRunningInLinuxVM(guest,vGPUType,"Nvidia")
-
-    def runWorkload(self,vm):
-        xenrt.TEC().logverbose("Not implemented")
-        pass
-
-    def attachvGPUToVM(self, vgpucreator, vm, groupuuid=None):
-        VGPUTest().attachvGPU(vgpucreator, vm, groupuuid)
-
-    def blockDom0Access(self, host, reboot=True):
-        xenrt.TEC().logverbose("Not implemented")
-        pass
-
-    def unblockDom0Access(self, host):
-        xenrt.TEC().logverbose("Not implemented")
-        pass
+    
 class IntelWindowsvGPU(DifferentGPU):
 
     def installHostDrivers(self, allHosts, params=[]):

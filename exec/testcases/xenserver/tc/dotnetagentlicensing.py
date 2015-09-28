@@ -3,7 +3,6 @@ from xenrt.lib.xenserver.dotnetagentlicensing import *
 from xenrt.enum import XenServerLicenseSKU
 from xenrt.lib.xenserver.licensing import LicenseManager, XenServerLicenseFactory
 import datetime
-from xenrt.lib.xenserver.guest import guest
 
 class DotNetAgentAdapter(object):
 

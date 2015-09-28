@@ -152,7 +152,7 @@ class VMAutoUpdateToggle(DotNetAgentTestCases):
 class VSSQuiescedSnapshot(DotNetAgentTestCases):
 
     def run(self, arglist):
-        #self.adapter.applyLicense(self.getDefaultPool())
+        self.adapter.applyLicense(self.getDefaultPool())
         vss = self.agent.getLicensedFeature("VSS")
         if not vss.isSnapshotPossible():
             raise xenrt.XRTFailure("snapshot failed in licensed pool")

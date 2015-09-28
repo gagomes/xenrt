@@ -1,0 +1,45 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <MOCKSERVER>CIS</MOCKSERVER>
+    <STATIC_MOCKSERVER>Yes</STATIC_MOCKSERVER>
+    <SERVICE>HealthCheck</SERVICE>
+  </variables>
+  <scheduler>
+    <resources>memory&gt;=20G/disk1&gt;=140G</resources>
+    <param>MACHINES_REQUIRED=2</param>
+  </scheduler>
+  <prepare>
+    <pool id="0">
+      <host id="0">
+        <vm name="Windows7_0">
+        <distro>win7sp1-x86</distro>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <postinstall action="installCarbonWindowsGUI" />
+        <postinstall action="installPowerShell" />
+        <network device="0" />
+        <disk device="0" size="24" />
+        </vm>
+      </host>
+      <host id="1">
+      </host>
+    </pool>
+  </prepare>
+  
+  <testsequence>
+    <serial group="PhoneHome">
+      <testcase id="testcases.xenserver.tc.gui.PhoneHome" name="ScheduledUpload" tc="TC-27273">
+        <arg>trigger_mechanism=SET_SCHEDULE</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.PhoneHome" name="UploadNow" tc="TC-27272">
+        <arg>trigger_mechanism=UPLOAD_NOW</arg>
+      </testcase>
+       <testcase id="testcases.xenserver.tc.gui.PhoneHomeFailedUpload" name="FailedUpload" tc="TC-27274">
+        <arg>trigger_mechanism=UPLOAD_NOW</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+  
+</xenrt>

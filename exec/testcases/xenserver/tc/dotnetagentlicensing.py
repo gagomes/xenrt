@@ -92,7 +92,7 @@ class TempTest(DotNetAgentTestCases):
         xenrt.sleep(200)
         xenrt.TEC().logverbose("Server was pinged: %s"%str(server.isPinged(startTime)))
 
-class VMUserAutoUpdateToggle(DotNetAgentTestCases):
+class VMAutoUpdateToggle(DotNetAgentTestCases):
 
     def run(self,arglist):
         server = self.adapter.setUpServer(self.getGuest("server"),"16000")
@@ -126,7 +126,7 @@ class VMUserAutoUpdateToggle(DotNetAgentTestCases):
         if pinged:
             raise xenrt.XRTFailure("autoupdate tries to update when unlicensed")
 
-class VSSQuiescedSnapshotting(DotNetAgentTestCases):
+class VSSQuiescedSnapshot(DotNetAgentTestCases):
 
     def run(self, arglist):
         #self.adapter.applyLicense(self.getDefaultPool())

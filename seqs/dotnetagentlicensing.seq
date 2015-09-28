@@ -40,8 +40,8 @@
 
     <testsequence>
         <testcase id="testcases.xenserver.tc.dotnetagentlicensing.TempTest"/>
-        <testcase id="testcases.xenserver.tc.dotnetagentlicensing.VMUserAutoUpdateToggle"/>
-        <testcase id="testcases.xenserver.tc.dotnetagentlicensing.VSSQuiescedSnapshotting"/>
+        <testcase id="testcases.xenserver.tc.dotnetagentlicensing.VMAutoUpdateToggle"/>
+        <testcase id="testcases.xenserver.tc.dotnetagentlicensing.VSSQuiescedSnapshot"/>
     </testsequence>
 
 </xenrt>

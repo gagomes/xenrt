@@ -285,19 +285,6 @@ class Guest(xenrt.GenericGuest):
                     return True
         return False
 
-    def getIPv4FromVMParam(self, ethN=0):
-        if self.mainip != None:
-            return True
-
-        networks = self.paramGet("networks")
-        for network in networks.split(";"):
-            if network.strip().startswith("%d/ip:" % ethN):
-                net, ipaddr = network.strip().split(":")
-                if not self.mainip:
-                    self.mainip = ipaddr.strip()
-                    return True
-        return False
-
     def install(self,
                 host,
                 start=True,
@@ -890,6 +877,10 @@ users:
 
     def waitReadyAfterStart(self, skipsniff=False, extratime=False,\
                             managenetwork=None, managebridge=None):
+        self.waitReadyAfterStart2(skipsniff, extratime, managenetwork, managebridge)
+
+    def waitReadyAfterStart2(self, skipsniff=False, extratime=False,\
+            managenetwork=None, managebridge=None, vifindex=0, sshcheck=True):
 
         # we should be able to wipe previous setting by giving
         # managenetwork/bridge = False arguments
@@ -921,7 +912,8 @@ users:
                 while 1:
                     tries = tries + 1
 
-                    vifname = vifs[0]
+                    # by default eth0 is major NIC, but ConversionManager is an exception, eth1
+                    vifname = vifs[vifindex]
                     try:
                         mac, ip, vbridge = self.getVIF(vifname)
                         if self.use_ipv6:
@@ -1007,20 +999,22 @@ users:
             else:
                 boottime = 900
                 agentTime = 180
+            # NOTE: Old CentOS5 VPX (e.g. WLB) does not install ssh by default.
             if not self.windows:
-                try:
-                    self.waitForSSH(boottime, desc="Guest boot")
+                if sshcheck:
+                    try:
+                        self.waitForSSH(boottime, desc="Guest boot")
 
-                    # sometimes SSH can be a little temperamental immediately after boot
-                    # a small sleep should help this.
-                    xenrt.sleep(10)
+                        # sometimes SSH can be a little temperamental immediately after boot
+                        # a small sleep should help this.
+                        xenrt.sleep(10)
 
-                except Exception, e:
-                    # Check the VM is still running
-                    if self.getState() != "UP":
-                        self.checkHealth(noreachcheck=True)
-                        raise xenrt.XRTFailure("VM no longer running while waiting for boot")
-                    raise
+                    except Exception, e:
+                        # Check the VM is still running
+                        if self.getState() != "UP":
+                            self.checkHealth(noreachcheck=True)
+                            raise xenrt.XRTFailure("VM no longer running while waiting for boot")
+                        raise
             else:
                 autologonRetryCount = 5
                 for i in range(autologonRetryCount):

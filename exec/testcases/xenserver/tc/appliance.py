@@ -36,24 +36,10 @@ class _WlbApplianceVM(xenrt.TestCase):
             self.wlbserver = xenrt.WlbApplianceServer(g)
         g.importVM(self.host, xenrt.TEC().getFile("xe-phase-1/vpx-wlb.xva"))
         g.windows = False
-        g.lifecycleOperation("vm-start",specifyOn=True)
-        # Wait for the VM to come up.
-        xenrt.TEC().progress("Waiting for the VM to enter the UP state")
-        g.poll("UP", pollperiod=5)
-        # Wait VM to boot up
-        time.sleep(300)
+        g.lifecycleOperation("vm-start", specifyOn=True)
+        # here we should support both old (CentOS5) and new (CentOS7) WLB, disable sshcheck
+        g.waitReadyAfterStart2(sshcheck=False)
         self.getLogsFrom(g)
-
-        if self.vpx_os_version == "CentOS7":
-            # Wait guest utility to update ip address
-            for i in range(0, 5):
-                if g.getIPv4FromVMParam():
-                    xenrt.TEC().progress("Guest VPXWLB ip address is %s" % g.mainip)
-                    break
-                else:
-                    # rare case: dhcp does not get ipv4 address
-                    g.lifecycleOperation("vm-reboot",force=True)
-                    time.sleep(300)
 
         #self.uninstallOnCleanup(g)
         self.wlbserver.doFirstbootUnattendedSetup()

@@ -11256,18 +11256,41 @@ class DemoLinuxVM(object):
         self.place.writeToConsole("yum -y install openssh-server\\n")
         xenrt.sleep(360)
 
-class WlbApplianceServer(object):
-    """An object to represent a WLB Appliance Server"""
+class WlbApplianceBase(object):
+    """Base WLB Appliance Class for PV WLB Appliance Server and HVM WLB Appliance Server"""
 
-    def __init__(self, place):
+    def __init__(self, place, password):
         self.place = place
-        self.password = xenrt.TEC().lookup("DEFAULT_PASSWORD")
+        self.password = password
         self.wlb_password = self.password
         if self.place:
             self.place.password = self.password
         self.wlb_username = "wlbuser"
         self.wlb_port = "8012" # default port
 
+    def doFirstbootUnattendedSetup(self):
+        pass
+        
+    def doLogin(self):
+        pass
+
+    def installSSH(self):
+        pass
+
+    def doVerboseLogs(self):
+        pass
+
+    def doSanityChecks(self):
+        pass
+
+
+class WlbApplianceServer(WlbApplianceBase):
+    """An object to represent a WLB Appliance Server"""
+
+    def __init__(self, place):
+        password = xenrt.TEC().lookup("DEFAULT_PASSWORD")
+        super(WlbApplianceServer, self).__init__(place, password)
+        
     def doFirstbootUnattendedSetup(self):
         # Send some suitable keystrokes to go through the initial setup
         # configuration during the appliance firstboot
@@ -11370,31 +11393,20 @@ class WlbApplianceServer(object):
         if out != "1":
             raise xenrt.XRTFailure("WLB appliance not listening on expected port 8012")
 
-class WlbApplianceServerHVM(object):
+class WlbApplianceServerHVM(WlbApplianceBase):
     """An object to represent a new WLB Appliance Server, which is a CentOS 7 HVM guest"""
 
     def __init__(self, place):
-        self.place = place
-        self.password = xenrt.TEC().lookup("VPX_DEFAULT_PASSWORD", "citrix") # by default vpx root's password
-        self.wlb_password = self.password
-        if self.place:
-            self.place.password = self.password
-        self.wlb_username = "wlbuser"
-        self.wlb_port = "8012" # default port
-
+        password = xenrt.TEC().lookup("VPX_DEFAULT_PASSWORD", "citrix") # by default vpx root's password
+        super(WlbApplianceServerHVM, self).__init__(place, password)
+        
     def doFirstbootUnattendedSetup(self):
         # wlb_self_configure.sh [wlbusername] [wlbpassword] [pgsqluser] [pgsqlpassword] [hostname] [domainname]
         command = "/etc/init.d/wlb_self_configure.sh %s %s %s %s %s %s" % (self.wlb_username, self.wlb_password, "postgres", "postgres", "wlbvm", "xenrt.local")
         self.place.execguest(command)
-        xenrt.sleep(300)
+        xenrt.sleep(60)
         self.place.lifecycleOperation("vm-reboot", force=True)
-        xenrt.sleep(300)
-
-    def doLogin(self):
-        pass
-
-    def installSSH(self):
-        pass
+        self.place.waitReadyAfterStart()
 
     def doVerboseLogs(self):
         if isinstance(self.place.host, xenrt.lib.xenserver.TampaHost):
@@ -12555,15 +12567,57 @@ class XenMobileApplianceServer(object):
         # Upgrade from previous release - default n
         self.guest.writeToConsole("%s\\n" % "")
 
-class ConversionApplianceServer(object):
-    """An object to represent a Conversion Appliance Server"""
+class ConversionApplianceBase(object):
+    """Base Conversion Appliance Class for PV Conversion Appliance Server and HVM Conversion Appliance Server"""
 
-    def __init__(self, place):
+    def __init__(self, place, password):
         self.place = place
-        self.password = xenrt.TEC().lookup("DEFAULT_PASSWORD")
+        self.password = password
+        if self.place:
+            self.place.password = self.password
         self.conv_password = self.password
         self.conv_username = "convuser"
         self.conv_port = "8012" # default port
+
+    def increaseConversionVMUptime(self, value):
+        pass
+
+    def doFirstbootUnattendedSetup(self):
+        pass
+
+    def doLogin(self):
+        pass
+
+    def getVpx(self, session):
+        pass
+
+    def createJob(self, session, vpx, xen_servicecred, vmware_serverinfo, vm, uuid, this_pif, host_ip):
+        pass
+
+    def getVMList(self, session, vpx, xen_servicecred, vmware_serverinfo):
+        pass
+
+    def unattendedSetup(self):
+        pass
+
+    def doSanityChecks(self):
+        pass
+
+    def installSSH(self):
+        pass
+
+    def updateXcmNetwork(self, session, vm_uuid, network_ref):
+        pass
+
+    def findHostMgmtPif(self, session):
+        pass
+
+class ConversionApplianceServer(ConversionApplianceBase):
+    """An object to represent a Conversion Appliance Server"""
+
+    def __init__(self, place):
+        password = xenrt.TEC().lookup("DEFAULT_PASSWORD")
+        super(ConversionApplianceServer, self).__init__(place, password)
 
     # To increase the Conversion VM uptime (in seconds) after being idle.
     # The conversion VM automatically shuts down after 300 seconds,
@@ -12833,17 +12887,12 @@ class ConversionApplianceServer(object):
             raise xenrt.XRTError("Failed to find a management interface (PIF).")
         return mgmt
 
-class ConversionApplianceServerHVM(object):
+class ConversionApplianceServerHVM(ConversionApplianceBase):
     """An object to represent a new Conversion Appliance Server, which is a CentOS 7 HVM guest"""
 
     def __init__(self, place):
-        self.place = place
-        self.password = xenrt.TEC().lookup("VPX_DEFAULT_PASSWORD", "citrix") # by default vpx root's password
-        if self.place:
-            self.place.password = self.password
-        self.conv_password = self.password
-        self.conv_username = "convuser"
-        self.conv_port = "8012" # default port
+        password = xenrt.TEC().lookup("VPX_DEFAULT_PASSWORD", "citrix") # by default vpx root's password
+        super(ConversionApplianceServerHVM, self).__init__(place, password)
 
     # To increase the Conversion VM uptime (in seconds) after being idle.
     # The conversion VM automatically shuts down after 300 seconds,
@@ -12859,16 +12908,13 @@ class ConversionApplianceServerHVM(object):
         xenrt.sleep(5)
         xenrt.TEC().logverbose("ConversionVM::VPX Increase Uptime Completed")
 
-    def doFirstbootUnattendedSetup(self, timewait1=60, timewait2=240):
+    def doFirstbootUnattendedSetup(self):
         # xcm_self_configure.sh [hostname] [domainname]
         command = "/etc/init.d/xcm_self_configure.sh %s %s" % ("conversionvm", "xenrt.local")
         self.place.execguest(command)
-        xenrt.sleep(timewait1)
+        xenrt.sleep(60)
         self.place.lifecycleOperation("vm-reboot", force=True)
-        xenrt.sleep(timewait2)
-
-    def doLogin(self):
-        pass
+        self.place.waitReadyAfterStart2(vifindex=1)
 
     def doSanityChecks(self):
         # sanity checks after automated setup
@@ -12876,9 +12922,6 @@ class ConversionApplianceServerHVM(object):
         out = self.place.execguest("netstat -a | grep 443 | wc -l",1,cuthdlines=1).strip()
         if out != "1":
             raise xenrt.XRTFailure("Conversion appliance not listening on expected port 443")
-
-    def installSSH(self):
-        pass
 
 class VifOffloadSettings(object):
 

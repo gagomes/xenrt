@@ -3,6 +3,7 @@ from xenrt.lib.xenserver.dotnetagentlicensing import *
 from xenrt.enum import XenServerLicenseSKU
 from xenrt.lib.xenserver.licensing import LicenseManager, XenServerLicenseFactory
 import datetime
+from xenrt.lib.xenserver.host import Host
 
 class DotNetAgentAdapter(object):
 
@@ -72,6 +73,19 @@ class DotNetAgentTestCases(xenrt.TestCase):
         self.adapter = DotNetAgentAdapter(self.getGuest(xenrt.TEC().lookup("LICENSE_SERVER")))
         self.agent = DotNetAgent(self.getGuest("WS2012"))
 
+    def __pingServer(self,agent,server, shouldbe):
+        startTime = datetime.datetime.now().time()
+        agent.restartAgent()
+        xenrt.sleep(200)
+        pinged = server.isPinged(startTime)
+        xenrt.TEC().logverbose("Server was pinged: %s"%str(pinged))
+        if pinged:
+            if not shouldbe:
+                raise xenrt.XRTFailure("Server was pinged when it shouldn't be")
+        else:
+            if shouldbe:
+                raise xenrt.XRTFailure("Server was not pinged when it should be")     
+
     def postRun(self):
         #self.adapter.cleanupLicense(self.getDefaultPool())
         self.adapter.serverCleanup(self.getGuest("server"))
@@ -87,44 +101,20 @@ class TempTest(DotNetAgentTestCases):
 
 class PoolAutoUpdateToggle(DotNetAgentTestCases):
 
-    def __pingServer(self,agent1,server, shouldbe):
-        startTime = datetime.datetime.now().time()
-        self.agent.restartAgent()
-        xenrt.sleep(200)
-        pinged = server.isPinged(startTime)
-        xenrt.TEC().logverbose("Server was pinged: %s"%str(pinged))
-        if pinged:
-            if not shouldbe:
-                raise xenrt.XRTFailure("Server was pinged when it shouldn't be")
-        else:
-            if shouldbe:
-                raise xenrt.XRTFailure("Server was not pinged when it should be")
-        startTime = datetime.datetime.now().time()
-        agent1.restartAgent()
-        xenrt.sleep(200)
-        pinged = server.isPinged(startTime)
-        xenrt.TEC().logverbose("Server was pinged: %s"%str(pinged))
-        if pinged:
-            if not shouldbe:
-                raise xenrt.XRTFailure("Server was pinged when it shouldn't be")
-        else:
-            if shouldbe:
-                raise xenrt.XRTFailure("Server was not pinged when it should be")
-
     def run(self, arglist):
         server = self.adapter.setUpServer(self.getGuest("server"),"16000")
         agent1 = DotNetAgent(self.getGuest("WS2012(1)"))
         self.adapter.applyLicense(self.getDefaultPool())
-        autoupdate0 = self.agent.getLicensedFeature("AutoUpdate")
-        autoupdate1 = agent1.getLicensedFeature("AutoUpdate")
-        autoupdate0.disable()
-        autoupdate1.disable()
-        autoupdate0.setURL("http://%s:16000"% server.getIP())
+        autoupdate = self.agent.getLicensedFeature("AutoUpdate")
+        autoupdate.disable()
+        autoupdate.setURL("http://%s:16000"% server.getIP())
+        self.__pingServer(self.agent,server,False)
         self.__pingServer(agent1,server,False)
-        autoupdate0.enable()
-        autoupdate1.enable()
+        autoupdate.enable()
+        self.__pingServer(self.agent,server,True)
         self.__pingServer(agent1,server,True)
         self.adapter.releaseLicense(self.getDefaultPool())
+        self.__pingServer(self.agent,server,False)
         self.__pingServer(agent1,server,False)
 
 
@@ -136,31 +126,14 @@ class VMAutoUpdateToggle(DotNetAgentTestCases):
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         autoupdate.setUserVMUser()
         autoupdate.enable()
-        autoupdate.setURL("http://10.81.29.132:16000")
-        startTime = datetime.datetime.now().time()
-        self.agent.restartAgent()
-        xenrt.sleep(200)
-        pinged = server.isPinged(startTime)
-        xenrt.TEC().logverbose("Server was pinged: %s"%str(pinged))
-        if pinged:
-            raise xenrt.XRTFailure("Server was pinged when it shouldn't be")
+        autoupdate.setURL("http://%s:16000"% server.getIP())
+        self.__pingServer(self.agent,server,False)
         autoupdate.enable()
-        startTime = datetime.datetime.now().time()
-        self.agent.restartAgent()
-        xenrt.sleep(200)
-        pinged = server.isPinged(startTime)
-        xenrt.TEC().logverbose("Server was pinged: %s"%str(pinged))
-        if not pinged:
-            raise xenrt.XRTFailure("Server was not pinged when it should be")
+        self.__pingServer(self.agent,server,True)
         self.adapter.releaseLicense(self.getDefaultPool())
         if autoupdate.isLicensed():
             raise xenrt.XRTFailure("autoupdate is licensed when it shouldn't be")
-        time = datetime.datetime.now()
-        self.agent.restartAgent()
-        xenrt.sleep(200)
-        pinged = server.isPinged(startTime)
-        if pinged:
-            raise xenrt.XRTFailure("autoupdate tries to update when unlicensed")
+        self.__pingServer(self.agent,server,False)
 
 class VSSQuiescedSnapshot(DotNetAgentTestCases):
 
@@ -172,3 +145,31 @@ class VSSQuiescedSnapshot(DotNetAgentTestCases):
         self.adapter.releaseLicense(self.getDefaultPool())
         if vss.isSnapshotPossible():
             raise xenrt.XRTFailure("snapshot succeeded in unlicensed pool")
+
+class HTTPRedirects(DotNetAgentTestCases):
+
+    def run(self, arglist):
+        self.adapter.applyLicense(self.getDefaultPool())
+        server = self.adapter.setUpServer(self.getGuest("server"),"16000")
+        server.addRedirect()
+        autoupdate.enable()
+        autoupdate.setURL("http://%s:15000"% server.getIP())
+        self.__pingServer(self.agent,server,True)
+
+class AllHostsLicensed(DotNetAgentTestCases):
+
+    def run(self, arglist):
+        self.adapter.applyLicense(self.getDefaultPool())
+        vss = self.agent.getLicensedFeature("VSS")
+        autoUpdate = self.agent.getLicensedFeature("AutoUpdate")
+        if not vss.isLicensed():
+            raise xenrt.XRTFailure("Xenstore indicates VSS is Not Licensed")
+        if not autoUpdate.isLicensed():
+            raise xenrt.XRTFailure("Xenstore indicates AutoUpdate is Not Licensed")
+        self.adapter.releaseLicense(self.getHost("RESOURCE_HOST_1"))
+        if not vss.isLicensed():
+            raise xenrt.XRTFailure("Xenstore indicates VSS is Licensed")
+        if not autoUpdate.isLicensed():
+            raise xenrt.XRTFailure("Xenstore indicates AutoUpdate is Licensed")
+        
+        

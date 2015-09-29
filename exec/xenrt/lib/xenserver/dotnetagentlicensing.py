@@ -71,7 +71,11 @@ class DotNetAgent(object):
         self.os.execCmd("net stop \"XenSvc\" && net start \"XenSvc\"")
 
     def agentVersion(self):
-        pass
+        major = self.os.winRegLookup("HKLM","SOFTWARE\\Citrix\\XenTools","MajorVersion",healthCheckOnFailure=False)
+        minor = self.os.winRegLookup("HKLM","SOFTWARE\\Citrix\\XenTools","MinorVersion",healthCheckOnFailure=False)
+        micro = self.os.winRegLookup("HKLM","SOFTWARE\\Citrix\\XenTools","MicroVersion",healthCheckOnFailure=False)
+        build = self.os.winRegLookup("HKLM","SOFTWARE\\Citrix\\XenTools","BuildVersion",healthCheckOnFailure=False)
+        return ("%s.%s.%s.%s"%(str(major),str(minor),str(micro),str(build)))
 
     def getLicensedFeature(self,feature):
         '''VSS or AutoUpdate''' 

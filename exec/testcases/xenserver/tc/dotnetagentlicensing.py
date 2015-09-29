@@ -73,7 +73,7 @@ class DotNetAgentTestCases(xenrt.TestCase):
         self.agent = DotNetAgent(self.getGuest("WS2012"))
 
     def postRun(self):
-        self.adapter.cleanupLicense(self.getDefaultPool())
+        #self.adapter.cleanupLicense(self.getDefaultPool())
         self.adapter.serverCleanup(self.getGuest("server"))
         self.adapter.settingsCleanup(self.getGuest("WS2012"))
 
@@ -83,13 +83,7 @@ class TempTest(DotNetAgentTestCases):
         server = self.adapter.setUpServer(self.getGuest("server"),"16000")
         self.adapter.applyLicense(self.getDefaultPool())
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
-        autoupdate.setUserVMUser()
-        autoupdate.enable()
-        autoupdate.setURL("http://%s:16000"%server.getIP())
-        startTime = datetime.datetime.now().time()
-        agent.restartAgent()
-        xenrt.sleep(200)
-        xenrt.TEC().logverbose("Server was pinged: %s"%str(server.isPinged(startTime)))
+        self.getGuest("WS2012").enableVSS()
 
 class PoolAutoUpdateToggle(DotNetAgentTestCases):
 

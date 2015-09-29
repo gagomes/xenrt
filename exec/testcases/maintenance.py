@@ -26,7 +26,7 @@ class _TCSyncDir(xenrt.TestCase):
     """Synchronise local ISO exports with the central repository"""
 
     LOCAL_NFS_PATH = None
-    UNMANAGED_FLAG = None
+    MANAGED_FLAG = None
     SYNC_USER = None
     SYNC_HOST = None
     SYNC_RSH = None
@@ -43,10 +43,10 @@ class _TCSyncDir(xenrt.TestCase):
         # If we do not manage the export (e.g. if we share a NFS server
         # with another site which performs the management) then
         # skip
-        if xenrt.TEC().lookup(self.UNMANAGED_FLAG,
+        if not xenrt.TEC().lookup(self.MANAGED_FLAG,
                               False,
                               boolean=True):
-            self.tec.skip("This site does not manage the ISO export")
+            self.tec.skip("This site does not manage the export")
             return
 
         # Form the stem of the rsync command
@@ -112,7 +112,7 @@ class TCSyncLinuxISOs(_TCSyncDir):
 
     # Names of the site variables for this export
     LOCAL_NFS_PATH = "EXPORT_ISO_NFS_STATIC"
-    UNMANAGED_FLAG = "MASTER_LINUX_ISOS_UNMANAGED"
+    MANAGED_FLAG = "MASTER_LINUX_ISOS_MANAGED"
     SYNC_USER = "MASTER_LINUX_ISOS_SYNC_USER"
     SYNC_HOST = "MASTER_LINUX_ISOS_SYNC_HOST"
     SYNC_RSH = "MASTER_LINUX_ISOS_SYNC_RSH"
@@ -123,7 +123,7 @@ class TCSyncWindowsISOs(_TCSyncDir):
 
     # Names of the site variables for this export
     LOCAL_NFS_PATH = "EXPORT_ISO_NFS"
-    UNMANAGED_FLAG = "MASTER_WINDOWS_ISOS_UNMANAGED"
+    MANAGED_FLAG = "MASTER_WINDOWS_ISOS_MANAGED"
     SYNC_USER = "MASTER_WINDOWS_ISOS_SYNC_USER"
     SYNC_HOST = "MASTER_WINDOWS_ISOS_SYNC_HOST"
     SYNC_RSH = "MASTER_WINDOWS_ISOS_SYNC_RSH"
@@ -134,7 +134,7 @@ class TCSyncDistFiles(_TCSyncDir):
 
     # Names of the site variables for this export
     LOCAL_NFS_PATH = "EXPORT_DISTFILES_NFS"
-    UNMANAGED_FLAG = "MASTER_DISTFILES_UNMANAGED"
+    MANAGED_FLAG = "MASTER_DISTFILES_MANAGED"
     SYNC_USER = "MASTER_DISTFILES_SYNC_USER"
     SYNC_HOST = "MASTER_DISTFILES_SYNC_HOST"
     SYNC_RSH = "MASTER_DISTFILES_SYNC_RSH"

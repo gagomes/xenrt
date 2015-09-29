@@ -5,10 +5,7 @@
     <STATIC_MOCKSERVER>Yes</STATIC_MOCKSERVER>
     <SERVICE>HealthCheck</SERVICE>
   </variables>
-  <scheduler>
-    <resources>memory&gt;=20G/disk1&gt;=140G</resources>
-    <param>MACHINES_REQUIRED=2</param>
-  </scheduler>
+
   <prepare>
     <pool id="0">
       <host id="0">
@@ -27,7 +24,7 @@
       </host>
     </pool>
   </prepare>
-  
+
   <testsequence>
     <serial group="PhoneHome">
       <testcase id="testcases.xenserver.tc.gui.PhoneHome" name="ScheduledUpload" tc="TC-27273">

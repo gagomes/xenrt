@@ -1262,48 +1262,12 @@ class TCSRUpgrade(_ThinLVHDBase):
             if self.guests[guest]["afterWriting"] != self.getDigest(guest, "/dev/" + self.guests[guest]["device"]):
                 raise xenrt.XRTFailure("%s of %s is not rolled back properly" % (self.guests[guest]["device"], guest.getName()))
         
-    # Following codes were planned to running during upgrade to confirm SR OPS during upgrade but 
-    # not possible as SR upgrade takes only a few seconds.
-    #def testsWhileUpgrading(self):
-
-        #if not self.checkSRUpgradeProcess():
-            #raise xenrt.XRTFailure("SR Upgrade failed to run.")
-
-        #xenrt.TEC().logverbose("The operations will be progressing parellely."
-                                    #"We will wait for for all the operations to complete")
-
-        #step("Running IO ops")
-        #pDirTasks = [xenrt.PTask(self.copiedVM.execguest, "dd if=/dev/zero of=/tmp/delete_me bs=1M count=10", retval="code"), # ---> this should succeed.
-                  #xenrt.PTask(self.clonedVM.execguest, "dd if=/dev/zero of=/tmp/delete_me bs=1M count=10", retval="code"), # ---> this should succeed.
-                  #xenrt.PTask(self.copiedVM.execguest, "ls / && ls /home", retval="code"), # ---> this should succeed.
-                  #xenrt.PTask(self.clonedVM.execguest, "ls / && ls /home", retval="code")] # ---> this should succeed.
-        #ioresults = xenrt.pfarm(pDirTasks, exception=False)
-        #log("IO ops results: %s" % ioresults)
-
-        #step("Running VM ops")
-        #pOpTasks = [xenrt.PTask(self.copiedVM.reboot), # ---> this should succeed.
-                    #xenrt.PTask(self.clonedVM.snapshot)] # ---> this should fail.
-        #opsresults = xenrt.pfarm(pOpTasks, exception=False)
-        #log("VM ops results: %s" % opsresults)
-
-        #failed = 0
-        #for result in ioresults + opsresults:
-            #if result:
-                #failed += 1
-        #if failed < 1:
-            #raise xenrt.XRTFailure("Task(s) should fail succeeded.")
-        #if failed > 1:
-            #raise xenrt.XRTFailure("Task(s) should succeed failed.")
-            
-
     def srUpgradeTest(self):
 
         cli = self.host.getCLIInstance()
 
         step("Starting to upgrade the SR to thin provisioned SR")
         output = self.runSRUpgrade(self.sr.uuid)
-
-        #self.testWhileUpgrading()
 
         step("Checking if the SR upgrade is succeeded as expected")
         log("SR upgrade output: %s" % output)

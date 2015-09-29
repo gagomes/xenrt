@@ -7,11 +7,6 @@
     <PREPARE_WORKERS>5</PREPARE_WORKERS>
   </variables>
 
-  <scheduler>
-    <resources>memory&gt;=20G/disk1&gt;=140G</resources>
-    <param>MACHINES_REQUIRED=5</param>
-  </scheduler>
-
   <prepare>
     <pool id="0">
       <host id="0">

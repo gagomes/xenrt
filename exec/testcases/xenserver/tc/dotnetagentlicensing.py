@@ -87,13 +87,13 @@ class DotNetAgentTestCases(xenrt.TestCase):
                 raise xenrt.XRTFailure("Server was not pinged when it should be")     
 
     def postRun(self):
-        #self.adapter.cleanupLicense(self.getDefaultPool())
+        self.adapter.cleanupLicense(self.getDefaultPool())
         self.adapter.serverCleanup(self.getGuest("server"))
         self.adapter.settingsCleanup(self.getGuest("WS2012"))
 
 class TempTest(DotNetAgentTestCases):
-
     def run(self,arglist):
+
         server = self.adapter.setUpServer(self.getGuest("server"),"16000")
         self.adapter.applyLicense(self.getDefaultPool())
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")

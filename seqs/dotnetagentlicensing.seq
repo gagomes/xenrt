@@ -55,6 +55,8 @@
         <testcase id="testcases.xenserver.tc.dotnetagentlicensing.VMAutoUpdateToggle"/>
         <testcase id="testcases.xenserver.tc.dotnetagentlicensing.VSSQuiescedSnapshot"/>
         <testcase id="testcases.xenserver.tc.dotnetagentlicensing.PoolAutoUpdateToggle"/>
+        <testcase id="testcases.xenserver.tc.dotnetagentlicensing.HTTPRedirect"/>
+        <testcase id="testcases.xenserver.tc.dotnetagentlicensing.AllHostsLicensed"/>
     </testsequence>
 
 </xenrt>

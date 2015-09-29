@@ -16,7 +16,9 @@
   </variables>
 
   <scheduler>
-    <param>MACHINES_REQUIRED=5</param>
+    <pool>VMX</pool>
+    <param>FLAGS_3=sdb=ssdintel</param>
+    <param>MACHINES_REQUIRED=4</param>
   </scheduler>
 
   <prepare>
@@ -25,9 +27,8 @@
       <host id="1" />
       <host id="2" />
       <host id="3" />
-      <storage type="lvmoiscsi" name="iscsisr" size="600" vmhost="4" options="ietvm,thin" default="true"/>
+      <storage type="lvmoiscsi" name="iscsisr" size="600" vmhost="3" options="ietvm,thin" default="true"/>
     </pool>
-    <host id="4" />
   </prepare>
 
   <testsequence>

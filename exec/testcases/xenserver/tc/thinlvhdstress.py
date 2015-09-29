@@ -17,7 +17,20 @@ class TCParallelWriting(xenrt.TestCase):
         sr = self.host.lookupDefaultSR()
         self.host.getCLIInstance().execute("sr-scan uuid=%s" % sr)
 
-        return int(self.host.genParamGet("sr", sr, "physical-utilisation"))
+        stat = int(self.host.genParamGet("sr", sr, "physical-utilisation"))
+
+        # TODO: following codes are not required after CP-14242
+        if not xenrt.TEC().lookup("NO_XENVMD", False, boolean=True):
+            srobj = xenrt.lib.xenserver.getStorageRepositoryClass(self.host, sr).fromExistingSR(self.host, sr)
+            if self.host.pool:
+                for host in self.host.pool.getHosts():
+                    output = host.execRawStorageCommand(srobj, "lvs /dev/VG_XenStorage-%s --nosuffix | grep %s-free" % (sr, host.uuid))
+                    stat -= int(output.split()[-1])
+            else:
+                output = self.host.execRawStorageCommand(srobj, "lvs /dev/VG_XenStorage-%s --nosuffix | grep %s-free" % (sr, self.host.uuid))
+                stat -= int(output.split()[-1])
+
+        return stat
 
     def getParam(self, paramname, default=None, boolean=False):
         """Utility function to get argument from seq or TEC"""
@@ -129,7 +142,7 @@ class TCParallelWriting(xenrt.TestCase):
             guest.execguest("chmod u+x /tmp/cmd.sh")
             libsynexec.start_slave(guest, self.jobid)
 
-        libsynexec.start_master_in_dom0(self.host, "/bin/bash /tmp/cmd.sh", self.jobid, self.vdicounti, self.timeout)
+        libsynexec.start_master_in_dom0(self.host, "/bin/bash /tmp/cmd.sh", self.jobid, self.vdicount, self.timeout)
 
         results = {}
         for guest in self.guests:
@@ -288,13 +301,9 @@ class TCParallelWriting(xenrt.TestCase):
                 log("Final physical utilisation: %d" % final)
                 expected = prev + (self.vdicount * self.vdisize)
                 log("Expected Utilisation: %d" % expected)
-
-                # utilisation may not increse up to host pool size. (1 GiB per host per SR)
-                margin = xenrt.GIGA
-                if self.pool:
-                    margin *= len(self.pool.getHosts())
-                if final < expected - margin:
-                    raise xenrt.XRTFailure("After writing SR utilisation has not increased as expected.")
+                if final < expected:
+                    raise xenrt.XRTFailure("After writing, SR utilisation has not increased as expected." \
+                            "Expected: >= %d Found: %d" % (expected, final))
 
                 self.verifyWrittenData()
 

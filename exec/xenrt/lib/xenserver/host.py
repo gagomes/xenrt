@@ -11926,7 +11926,7 @@ class DundeeHost(CreedenceHost):
         return ifs
 
     def getInstallNetwork(self):
-        return self.installnetwork
+        return getattr(self, "installnetwork", None)
         
     def snmpdIsEnabled(self):
         return "enabled" in self.execdom0("service snmpd status | cat")

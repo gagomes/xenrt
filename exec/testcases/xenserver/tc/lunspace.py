@@ -138,7 +138,7 @@ class NetappTrimSupportBase(xenrt.TestCase):
 
         spaceUsedByGuests = {}
         spaceFreedByGuests = {}
-        delta = 2 # Keep delta as 2% space on NetApp lun which is not freed after deleting a VM.
+        delta = 5 #CA-179207:Keep delta as 5% space on NetApp lun which is not freed after deleting a VM.
                   # Workaround for CA-139518
         
         # Creating few linux guests.
@@ -264,7 +264,7 @@ class TrimFunctionalTestSSD(xenrt.TestCase):
         
         spaceUsedByGuests = {}
         spaceFreedByGuests = {}
-        delta = 2 # 2% of space on SR is not freed after deleting a VM.
+        delta = 5 #CA-179207:5% of space on SR is not freed after deleting a VM.
         
         # Creating 1 windows and 4 linux guests on Local SSD SR.
         for i in range(1,3):

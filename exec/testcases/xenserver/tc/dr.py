@@ -1551,20 +1551,26 @@ class DRUtils(object):
         else:
             return
         
-        vms = site['vms'].values()
-        
-        for g in vms:
+        vms = site['vms']
+        newGuests = vms
+        for n,g in vms.iteritems():
+            newGuests[n]['guest'] = host.guestFactory()(n, host=g['guest'].host)
+            g['guest'].populateSubclass(newGuests[n]['guest'])
+            newGuests[n]['guest'].existing(g['guest'].host)
+        vms = newGuests
+
+        for g in vms.values():
             xenrt.TEC().progress("Upgrading VM %s" % (g['guest'].getName()))
             if g['guest'].windows:
                 g['guest'].installDrivers()
             else:
                 # Workaround for CA-78632
-                xenrt.TEC().logverbose("CA-78632 class %s template: %s" % (host.__class__, g['guest'].template))
-                if re.search("Lenny", g['guest'].template) and isinstance(host, xenrt.lib.xenserver.TampaHost):
+                xenrt.TEC().logverbose("CA-78632 class %s distro: %s" % (host.__class__, g['distro']))
+                if g['distro']=="debian50" and isinstance(host, xenrt.lib.xenserver.TampaHost):
                     xenrt.TEC().logverbose("Skipping tools upgrade on %s" % (g['guest'].getName()))
                 else:
                     g['guest'].installTools()
-        for g in vms:
+        for g in vms.values():
             g['guest'].checkHealth()
 
 

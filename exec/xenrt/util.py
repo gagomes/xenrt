@@ -348,17 +348,19 @@ class Timer(object):
         self.measurements = []
         self.starttime = None
         self.float = float
+        self.timing = False
 
     def startMeasurement(self):
-        if self.starttime:
-            raise xenrt.TEC().XRTError("Timer double start.")
+        if self.timing:
+            raise xenrt.XRTError("Timer double start.")
         self.starttime = timenow(float=self.float)
+        self.timing = True
 
     def stopMeasurement(self):
-        if not self.starttime:
-            raise xenrt.TEC().XRTError("Timer stop without start.")
+        if not self.timing:
+            raise xenrt.XRTError("Timer stop without start.")
         self.measurements.append(timenow(float=self.float) - self.starttime)
-        self.starttime = None
+        self.timing = False
 
     def count(self):
         return count(self.measurements)

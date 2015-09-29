@@ -51,11 +51,8 @@ class SimpleServer(object):
     def removeFile(self, key):
         self.ssFiles.pop(key,None)
 
-    def addRedirect(self, dirInit, dirRe):
-        pass
-
-    def removeRedirect(self, dir):
-        pass
+    def addRedirect(self):
+        self.guest.execguest("printf \"HTTP/1.1 301 Moved Permanently\nLocation: http://%s:16000\n\" | nc -l 15000&"%(server.getIP()))
 
     def getIP(self):
         return self.guest.getIP()

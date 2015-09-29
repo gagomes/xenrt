@@ -4,7 +4,7 @@
   <default name="POOLSTRESSSNAP" value="20" />
   <default name="DURATION" value="NA" />
   <default name="ITERATIONS" value="50" />
-  <default name="ISCSIOPTIONS" value="ietvm" />
+  <default name="ISCSIOPTIONS" value="ietvm,thin" />
 
   <scheduler>
     <pool>VMX,SVM</pool>

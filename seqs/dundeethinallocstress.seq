@@ -17,12 +17,12 @@
 
   <testsequence>
     <testcase id="testcases.xenserver.tc.thinlvhdstress.TCParallelWriting" tc="TC-27238" name="SequentialWriting">
-      <arg>iteration=${iteration}</arg>
+      <arg>iteration=${ITERATION}</arg>
       <arg>vdicount=${VDICOUNT}</arg>
       <arg>vdisize=${VDISIZE}</arg> <!-- in GiB -->
     </testcase>
     <testcase id="testcases.xenserver.tc.thinlvhdstress.TCParallelWriting" tc="TC-27239" name="PatternWriting">
-      <arg>iteration=${iteration}</arg>
+      <arg>iteration=${ITERATION}</arg>
       <arg>vdicount=${VDICOUNT}</arg>
       <arg>vdisize=${VDISIZE}</arg> <!-- in GiB -->
       <arg>sequential=no</arg>

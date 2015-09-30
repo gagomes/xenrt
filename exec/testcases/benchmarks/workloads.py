@@ -63,8 +63,8 @@ class Workload(object):
             data = "@echo off\n%s\n" % (string.replace(self.cmdline,
                                                      "%s",
                                                      self.workdir))
-            if self.guest.xmlrpcFileExists("c:\\~1\\alluse~1\\startm~1\\programs\\startup"):
-                startupPath = "c:\\~1\\alluse~1\\startm~1\\programs\\startup"
+            if self.guest.xmlrpcFileExists("c:\\docume~1\\alluse~1\\startm~1\\programs\\startup"):
+                startupPath = "c:\\docume~1\\alluse~1\\startm~1\\programs\\startup"
             elif self.guest.xmlrpcFileExists("c:\\programData\\microsoft\\windows\\start menu\\programs\\startup"):
                 startupPath = "c:\\programData\\microsoft\\windows\\start menu\\programs\\startup"
             else:

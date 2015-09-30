@@ -1539,7 +1539,7 @@ class DRUtils(object):
             g['guest'].changeCD(None)
             
     def upgradeVMs(self, site_name):
-        
+
         # upgrade guest objects
         assert self.sites.has_key(site_name)
         site = self.sites[site_name]
@@ -1550,14 +1550,13 @@ class DRUtils(object):
             pass
         else:
             return
-        
+
         vms = site['vms']
-        newGuests = vms
         for n,g in vms.iteritems():
-            newGuests[n]['guest'] = host.guestFactory()(n, host=g['guest'].host)
-            g['guest'].populateSubclass(newGuests[n]['guest'])
-            newGuests[n]['guest'].existing(g['guest'].host)
-        vms = newGuests
+            newGuest = host.guestFactory()(n, host=g['guest'].host)
+            g['guest'].populateSubclass(newGuest)
+            newGuest.existing(g['guest'].host)
+            vms[n]['guest'] = newGuest
 
         for g in vms.values():
             xenrt.TEC().progress("Upgrading VM %s" % (g['guest'].getName()))

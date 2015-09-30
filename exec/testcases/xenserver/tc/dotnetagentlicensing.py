@@ -146,7 +146,7 @@ class VSSQuiescedSnapshot(DotNetAgentTestCases):
         if vss.isSnapshotPossible():
             raise xenrt.XRTFailure("snapshot succeeded in unlicensed pool")
 
-class HTTPRedirects(DotNetAgentTestCases):
+class HTTPRedirect(DotNetAgentTestCases):
 
     def run(self, arglist):
         self.adapter.applyLicense(self.getDefaultPool())

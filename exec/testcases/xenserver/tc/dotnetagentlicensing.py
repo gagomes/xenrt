@@ -92,10 +92,10 @@ class DotNetAgentTestCases(xenrt.TestCase):
         self.adapter.settingsCleanup(self.getGuest("WS2012"))
 
 class TempTest(DotNetAgentTestCases):
-    def run(self,arglist):
 
+    def run(self,arglist):
         server = self.adapter.setUpServer(self.getGuest("server"),"16000")
-        self.adapter.applyLicense(self.getDefaultPool())
+        #self.adapter.applyLicense(self.getDefaultPool())
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         self.getGuest("WS2012").enableVSS()
 
@@ -171,5 +171,3 @@ class AllHostsLicensed(DotNetAgentTestCases):
             raise xenrt.XRTFailure("Xenstore indicates VSS is Licensed")
         if not autoUpdate.isLicensed():
             raise xenrt.XRTFailure("Xenstore indicates AutoUpdate is Licensed")
-        
-        

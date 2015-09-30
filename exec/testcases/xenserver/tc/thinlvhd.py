@@ -886,13 +886,12 @@ class TCThinLVHDVmOpsSpace(_ThinLVHDBase):
             raise xenrt.XRTFailure("VDI initial allocation is not as expected. (Expected >= %s, found: %s)" %
                     (expectedVdiSize, initialalloc))
 
-    # TODO: This needs to be checked while checkpoint/suspend is on going.
-    # After task is done, they are inflated any way.
-    #def checkVDIPhysicalSize(self, vdiuuid, expectedVdiSize):
-    #    vdiPhysicalSize = self.getPhysicalVDISize(vdiuuid)
-    #    if vdiPhysicalSize < expectedVdiSize:
-    #        raise xenrt.XRTFailure("VDI Physical size not as expected. Expected at least %s bytes but found %s bytes" %
-    #                              (expectedVdiSize, vdiPhysicalSize))
+
+    def checkVDIPhysicalSize(self, vdiuuid, expectedVdiSize):
+        vdiPhysicalSize = self.getPhysicalVDISize(vdiuuid)
+        if vdiPhysicalSize < expectedVdiSize:
+            raise xenrt.XRTFailure("VDI Physical size not as expected. (Expected >= %s, found: %s)" %
+                                  (expectedVdiSize, vdiPhysicalSize))
 
 
     def checkSRPhysicalUtil(self, expectedphysicalUtil):
@@ -905,29 +904,24 @@ class TCThinLVHDVmOpsSpace(_ThinLVHDBase):
     def performVmOps(self):
         """ This function check's that checkpoint/suspend operation on thin-provisioned SR works as expected"""
 
-        self.phyUtilBeforeCheckpoint = self.getPhysicalUtilisation(self.sr) + self.guestMemory
         step("Taking the vm checkpoint...")
         self.checkuuid = self.guest.checkpoint()
-        vdiUuid = self.host.genParamGet("vm", self.checkuuid, "suspend-VDI-uuid")
-        step("check SR Physical utilization...")
-        self.checkSRPhysicalUtil(self.phyUtilBeforeCheckpoint)
-        # TODO: This needs to be checked while checkpoint is on going.
-        #step("Test that VDI created after checkpoint is thick provisioned by checking the size...")
-        #self.checkVDIPhysicalSize(vdiUuid, self.guestMemory)
-        step("Check initial allocation of suspended VDI. This should be bigger than guest memory size.")
-        self.checkVDIInitialAlloc(vdiUuid, self.guestMemory)
 
         expectedphysicalUtil = self.getPhysicalUtilisation(self.sr) + self.guestMemory
         step("Suspending the VM...")
-        self.guest.suspend()
+        cli = self.host.getCLIInstance()
+        cli.execute("vm-suspend", "uuid=%s &" % (self.guest.uuid))        
         suspendVdiUuid = self.guest.paramGet("suspend-VDI-uuid")
-        step("check SR Physical utilization...")
-        self.checkSRPhysicalUtil(expectedphysicalUtil)
-        # TODO: This needs to be checked while suspend is on going.
-        #step("Test that VDI created after suspend is thick provisioned by measuring the size...")
-        #self.checkVDIPhysicalSize(suspendVdiUuid, self.guestMemory) 
+        self.checkVDIPhysicalSize(suspendVdiUuid, self.guestMemory) 
         step("Check initial allocation of suspended VDI. This should be bigger than guest memory size.")
         self.checkVDIInitialAlloc(suspendVdiUuid, self.guestMemory)
+        step("check SR Physical utilization...")
+        self.checkSRPhysicalUtil(expectedphysicalUtil)
+        # Wait for the VM to suspend 
+        started = xenrt.timenow()
+        finishat = started + 600
+        while finishat > xenrt.timenow() and self.guest.getState() != "SUSPENDED":
+            xenrt.sleep(10)
 
     def revertVmOps(self):
         """This function check's that resume/revert on thin-provision SR works as expected"""
@@ -936,6 +930,7 @@ class TCThinLVHDVmOpsSpace(_ThinLVHDBase):
             step("Resuming the VM...")
             self.guest.resume()
             self.guest.check()
+          
         if self.checkuuid:
             step("Reverting the checkpoint...")
             self.guest.revert(self.checkuuid)
@@ -971,6 +966,7 @@ class TCThinLVHDVmOpsSpace(_ThinLVHDBase):
             xenrt.sleep(120) # Gice some time to coalese leaves.
             # Test that resume/revert works as expected on thin-provisioned SR
             self.runSubcase("revertVmOps", (), "vmops-resume/revert", "Guest Memory=%s bytes" % (self.guestMemory))
+            
 
 
 class TCConcurrentAccess(_ThinLVHDBase):

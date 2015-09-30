@@ -29,7 +29,7 @@ class SimpleServer(object):
         self.guest = guest
 
     def isPinged(self, startTime):
-        xenrt.TEC().logverbose("Checking if Server with port:%s is pinged"%self.port)
+        xenrt.TEC().logverbose("-----Checking if Server with port:%s is pinged-----"%self.port)
         line = self.guest.execguest("tail -n 1 logs/server%s.log"%self.port)
         timeRE = re.search('(\d\d:){2}\d\d',line)
         if not timeRE:
@@ -52,7 +52,7 @@ class SimpleServer(object):
         self.ssFiles.pop(key,None)
 
     def addRedirect(self):
-        self.guest.execguest("printf \"HTTP/1.1 301 Moved Permanently\nLocation: http://%s:16000\n\" | nc -l 15000&"%(server.getIP()))
+        self.guest.execguest("printf \"HTTP/1.1 301 Moved Permanently\nLocation: http://%s:16000\n\" | nc -l 15000&"%(self.getIP()))
 
     def getIP(self):
         return self.guest.getIP()

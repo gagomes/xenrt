@@ -78,7 +78,7 @@ class DotNetAgentTestCases(xenrt.TestCase):
         agent.restartAgent()
         xenrt.sleep(200)
         pinged = server.isPinged(startTime)
-        xenrt.TEC().logverbose("Server was pinged: %s"%str(pinged))
+        xenrt.TEC().logverbose("-----Server was pinged: %s-----"%str(pinged))
         if pinged:
             if not shouldbe:
                 raise xenrt.XRTFailure("Server was pinged when it shouldn't be")

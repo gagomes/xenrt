@@ -21,8 +21,8 @@
         <storage>FCOESR</storage>
       </vm>
 
-      <vm name="Red Hat Enterprise Linux 7.0">
-        <distro>rhel7</distro>
+      <vm name="Red Hat Enterprise Linux 6.5">
+        <distro>rhel65</distro>
         <arch>x86-64</arch>
         <memory>2048</memory>
         <vcpus>2</vcpus>
@@ -31,8 +31,8 @@
         <storage>FCOESR</storage>
       </vm>
 
-      <vm name="Ubuntu Trusty Tahr 14.04">
-        <distro>ubuntu1404</distro>
+      <vm name="Ubuntu Precise Pangolin 12.04">
+        <distro>ubuntu1204</distro>
         <arch>x86-64</arch>
         <memory>1024</memory>
         <vcpus>2</vcpus>

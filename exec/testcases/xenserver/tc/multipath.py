@@ -1596,7 +1596,6 @@ class _TC8159(xenrt.TestCase):
         # Create a VM on the SR
         g = host.createBasicGuest(distro='rhel5x',sr=sr.uuid)
         self.guest = g
-        # self.uninstallOnCleanup(g)
         expectedDiskCount = len(self.guest.listVBDUUIDs("Disk"))
 
         # Verify the lun(s) for the VM are using multipathing and that all

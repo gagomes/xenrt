@@ -2565,7 +2565,7 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["debian70"]["MAX_VM_VCPUS"] = "32"
         self.config["GUEST_LIMITATIONS"]["debian70"]["MAX_VM_VCPUS64"] = "32"
         self.config["GUEST_LIMITATIONS"]["debian80"] = {}
-        self.config["GUEST_LIMITATIONS"]["debian80"]["MINMEMORY"] = "512"
+        self.config["GUEST_LIMITATIONS"]["debian80"]["MINMEMORY"] = "256"
         self.config["GUEST_LIMITATIONS"]["debian80"]["STATICMINMEMORY"] = "128"
         self.config["GUEST_LIMITATIONS"]["debian80"]["MAXMEMORY"] = "65536"
         self.config["GUEST_LIMITATIONS"]["debian80"]["MAXMEMORY64"] = "131072"

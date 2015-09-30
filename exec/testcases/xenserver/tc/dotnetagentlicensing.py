@@ -73,7 +73,7 @@ class DotNetAgentTestCases(xenrt.TestCase):
         self.adapter = DotNetAgentAdapter(self.getGuest(xenrt.TEC().lookup("LICENSE_SERVER")))
         self.agent = DotNetAgent(self.getGuest("WS2012"))
 
-    def __pingServer(self,agent,server, shouldbe):
+    def _pingServer(self,agent,server, shouldbe):
         startTime = datetime.datetime.now().time()
         agent.restartAgent()
         xenrt.sleep(200)
@@ -87,7 +87,7 @@ class DotNetAgentTestCases(xenrt.TestCase):
                 raise xenrt.XRTFailure("Server was not pinged when it should be")     
 
     def postRun(self):
-        #self.adapter.cleanupLicense(self.getDefaultPool())
+        self.adapter.cleanupLicense(self.getDefaultPool())
         self.adapter.serverCleanup(self.getGuest("server"))
         self.adapter.settingsCleanup(self.getGuest("WS2012"))
 
@@ -108,14 +108,14 @@ class PoolAutoUpdateToggle(DotNetAgentTestCases):
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         autoupdate.disable()
         autoupdate.setURL("http://%s:16000"% server.getIP())
-        self.__pingServer(self.agent,server,False)
-        self.__pingServer(agent1,server,False)
+        self._pingServer(self.agent,server,False)
+        self._pingServer(agent1,server,False)
         autoupdate.enable()
-        self.__pingServer(self.agent,server,True)
-        self.__pingServer(agent1,server,True)
+        self._pingServer(self.agent,server,True)
+        self._pingServer(agent1,server,True)
         self.adapter.releaseLicense(self.getDefaultPool())
-        self.__pingServer(self.agent,server,False)
-        self.__pingServer(agent1,server,False)
+        self._pingServer(self.agent,server,False)
+        self._pingServer(agent1,server,False)
 
 
 class VMAutoUpdateToggle(DotNetAgentTestCases):
@@ -127,13 +127,13 @@ class VMAutoUpdateToggle(DotNetAgentTestCases):
         autoupdate.setUserVMUser()
         autoupdate.enable()
         autoupdate.setURL("http://%s:16000"% server.getIP())
-        self.__pingServer(self.agent,server,False)
+        self._pingServer(self.agent,server,False)
         autoupdate.enable()
-        self.__pingServer(self.agent,server,True)
+        self._pingServer(self.agent,server,True)
         self.adapter.releaseLicense(self.getDefaultPool())
         if autoupdate.isLicensed():
             raise xenrt.XRTFailure("autoupdate is licensed when it shouldn't be")
-        self.__pingServer(self.agent,server,False)
+        self._pingServer(self.agent,server,False)
 
 class VSSQuiescedSnapshot(DotNetAgentTestCases):
 
@@ -154,7 +154,7 @@ class HTTPRedirect(DotNetAgentTestCases):
         server.addRedirect()
         autoupdate.enable()
         autoupdate.setURL("http://%s:15000"% server.getIP())
-        self.__pingServer(self.agent,server,True)
+        self._pingServer(self.agent,server,True)
 
 class AllHostsLicensed(DotNetAgentTestCases):
 

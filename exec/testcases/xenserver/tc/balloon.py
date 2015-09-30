@@ -425,16 +425,17 @@ class _BalloonSmoketest(_BalloonPerfBase):
             #(ranging from too busy, crashed guest, malicious guest, buggy balloon driver)
             #then the product marks the guest as uncooperative
             #Check for uncooperative tag, if found shut down the VM, print the details and proceed with the test
-            res = self.host.execdom0("xenstore-ls -pf | grep memory | grep -E 'uncoop'")
-            if res and "uncooperative" in res:
-                log("Caught failure: %s" % str(e))
-                log("Guest marked uncooperative")
-                log("Shut down the guest")
-                try:
-                    self.guest.shutdown(force=True)
-                except:
-                    pass
-            raise
+            elif "Memory target not met" in str(e):
+                res = self.host.execdom0("xenstore-ls -pf | grep memory | grep -E 'uncoop'", level=xenrt.RC_OK)
+                if res and "uncooperative" in res:
+                    log("Caught failure: %s" % str(e))
+                    log("Guest marked uncooperative")
+                    log("Shut down the guest")
+                    try:
+                        self.guest.shutdown(force=True)
+                    except:
+                        pass
+                raise
 
     def testMaxRange(self, minMem, maxMem):
         step("Set dynamic-min=dynamic-max=min, static-max=max")

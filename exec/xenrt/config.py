@@ -2594,12 +2594,10 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["sl66"]["MAX_VM_VCPUS64"] = "16"
         self.config["GUEST_LIMITATIONS"]["sl7"] = {}
         self.config["GUEST_LIMITATIONS"]["sl7"]["MINMEMORY"] = "1024"
-        self.config["GUEST_LIMITATIONS"]["sl7"]["STATICMINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["sl7"]["MAXMEMORY64"] = "6291456"
         self.config["GUEST_LIMITATIONS"]["sl7"]["MAX_VM_VCPUS64"] = "240"
         self.config["GUEST_LIMITATIONS"]["sl71"] = {}
         self.config["GUEST_LIMITATIONS"]["sl71"]["MINMEMORY"] = "1024"
-        self.config["GUEST_LIMITATIONS"]["sl71"]["STATICMINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["sl71"]["MAXMEMORY64"] = "6291456"
         self.config["GUEST_LIMITATIONS"]["sl71"]["MAX_VM_VCPUS64"] = "240"
         self.config["GUEST_LIMITATIONS"]["coreos-stable"] = {}

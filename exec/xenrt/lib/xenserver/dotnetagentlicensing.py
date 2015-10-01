@@ -266,13 +266,13 @@ class AutoUpdate(ActorAbstract):
     def checkDownloadedMSI(self):
         if self.os.fileExists("C:\\Windows\\system32\\config\\systemprofile\\AppData\\Local\\citrixguestagentx64.msi"):
             return 64
-        elif self.os.fileExists("C:\\Windows\\system32\\config\\systemprofile\\AppData\\Local\\citrixguestagentx86.msi"):
+        elif self.os.fileExists("C:\\Windows\\System32\\config\\systemprofile\\AppData\\Local\\citrixguestagentx86.msi"):
             return 86
         else:
             return None
 
     def compareMSIArch(self):
-        xenrt.TEC().logverbose("type: {0} value: {0}".format(self.os.getArch()))
+        xenrt.TEC().logverbose("type: %s value: %s".format(type(self.os.getArch()), self.os.getArch()))
 
     def isLicensed(self):
         host = self.guest.host

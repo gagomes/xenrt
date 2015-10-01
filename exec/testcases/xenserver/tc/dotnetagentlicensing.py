@@ -97,7 +97,7 @@ class DotNetAgentTestCases(xenrt.TestCase):
 class TempTest(DotNetAgentTestCases):
 
     def run(self,arglist):
-        self.adapter.cleanupLicense(self.getDefaultPool()
+        self.adapter.cleanupLicense(self.getDefaultPool())
         #server = self.adapter.setUpServer(self.getGuest("server"),"16000")
         self.adapter.applyLicense(self.getDefaultHost())
         #autoupdate = self.agent.getLicensedFeature("AutoUpdate")

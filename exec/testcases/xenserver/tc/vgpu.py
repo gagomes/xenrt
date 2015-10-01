@@ -3740,8 +3740,84 @@ class TCSwitchIntelGPUModes(IntelBase):
             log("Caught expected exception: %s" % e)
         else:
             raise xenrt.XRTFailure(error)
+ 
+ 
+class TCM60HVMBase(FunctionalBase):
+    __metaclass__ = ABCMeta
 
+    def prepare(self, arglist):
+        super(TCM60HVMBase, self).prepare(arglist)        
+        step("Creating %d vGPUs configurations." % (len(self.VGPU_CONFIG)))
+        self.vGPUCreator = {}
+        for config in self.VGPU_CONFIG:
+            self.vGPUCreator[config] = VGPUInstaller(self.host, config)
 
+        for distro in self.REQUIRED_DISTROS:
+            osType = self.getOSType(distro)
+            log("Creating Master VM of type %s" % osType)
+            vm = self.createMaster(osType)
+            vm.enlightenedDrivers = True
+            vm.setState("UP")
+            self.masterVMsSnapshot[osType] = vm.snapshot()
+    
+    @abstractmethod
+    def insideRun(self, vm, config):
+        pass
+
+    def run(self, arglist):
+        for config in self.VGPU_CONFIG:
+            for distro in self.REQUIRED_DISTROS:
+                osType = self.getOSType(distro)
+                vm = self.masterVMs[osType]
+                self.insideRun(vm, config)
+                
+class TCNvidiaM60HVMLifeCycle(TCM60HVMBase):
+    """M60 HVM Linux Guests: Test suspend/resume/checkpoint fails for tied VM"""
+    
+    def insideRun(self, vm, config):
+        super(TCNvidiaM60HVMLifeCycle, self).insideRun(vm, config)
+        self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
+        self.typeOfvGPU.installGuestDrivers(vm, self.getConfigurationName(config))
+        self.typeOfvGPU.assertvGPURunningInVM(vm, self.getConfigurationName(config))
+        vm.setState("DOWN")
+        
+        vm1 = vm.cloneVM()
+        self.uninstallOnCleanup(vm1)
+        vm1.setState("UP")
+        vm1.shutdown()
+       
+        # start this VM
+        vm1.start(specifyOn=False)
+        # check the lifecycle operations pass / fail appropriately
+        step("Check that suspend fails for this VM")
+        self.lifeCycleTest(vm1.suspend, "suspend")
+                    
+        step("Check that checkpoint fails for this VM")
+        self.lifeCycleTest(vm1.checkpoint, "checkpoint")
+        
+        step("Check that live migrate fails for this VM")
+        self.lifeCycleTest(vm1.migrateVM, "live-migrate", self.host, live="true")
+
+        step("Check that 'dead' migrate fails for this VM")
+        self.lifeCycleTest(vm1.migrateVM, "dead-migrate", self.host, live="false")
+
+        step("Check that snapshot succeeds for this VM")
+        vm1.snapshot()
+    
+        step("Check that shutdown succeeds for this VM")
+        vm1.shutdown()
+        
+    def lifeCycleTest(self,lifeCycle, operation,*args, **kwargs):
+        try:
+            lifeCycle(*args, **kwargs)
+             
+        except Exception as e:
+            xenrt.TEC().logverbose("vm-%s failed as expected: %s" % (operation, str(e)))
+            
+        else: 
+            raise xenrt.XRTFailure("vGPU-bound VM did not fail %s as expected" % operation)
+
+            
 class TCAlloModeK200NFS(VGPUAllocationModeBase):
 
     """

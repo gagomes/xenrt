@@ -97,7 +97,7 @@ class DotNetAgentTestCases(xenrt.TestCase):
 class TempTest(DotNetAgentTestCases):
 
     def run(self,arglist):
-        self.adapter.cleanupLicense(self.getDefaultPool())
+        self.adapter.cleanupLicense(self.getDefaultPool()
         #server = self.adapter.setUpServer(self.getGuest("server"),"16000")
         self.adapter.applyLicense(self.getDefaultHost())
         #autoupdate = self.agent.getLicensedFeature("AutoUpdate")
@@ -163,16 +163,15 @@ class HTTPRedirect(DotNetAgentTestCases):
 class AllHostsLicensed(DotNetAgentTestCases):
 
     def run(self, arglist):
-        self.adapter.applyLicense(self.getDefaultHost())
+        self.adapter.applyLicense(self.getDefaultPool())
         vss = self.agent.getLicensedFeature("VSS")
         autoUpdate = self.agent.getLicensedFeature("AutoUpdate")
-     #   if not vss.isLicensed():
-    #        raise xenrt.XRTFailure("Xenstore indicates VSS is Not Licensed")
-     #   if not autoUpdate.isLicensed():
-    #        raise xenrt.XRTFailure("Xenstore indicates AutoUpdate is Not Licensed")
-  
         if not vss.isLicensed():
-            raise xenrt.XRTFailure("Xenstore indicates VSS is Licensed")
+            raise xenrt.XRTFailure("Xenstore indicates VSS is Not Licensed")
         if not autoUpdate.isLicensed():
+            raise xenrt.XRTFailure("Xenstore indicates AutoUpdate is Not Licensed")
+        self.adapter.releaseLicense(self.getHost("RESOURCE_HOST_1"))
+        if vss.isLicensed():
+            raise xenrt.XRTFailure("Xenstore indicates VSS is Licensed")
+        if autoUpdate.isLicensed():
             raise xenrt.XRTFailure("Xenstore indicates AutoUpdate is Licensed")
-        self.adapter.applyLicense(self.getHost("RESOURCE_HOST_1"))

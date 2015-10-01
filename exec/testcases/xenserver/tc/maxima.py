@@ -469,13 +469,17 @@ class _VDIPerVM(xenrt.TestCase):
     VDI_COUNT = 0
     MAX_SIZE = 0
     cli = None
+    GUEST_TYPE = "linux"
     
     def prepare(self, arglist=None):
         # Get a host to install on
         self.host = self.getDefaultHost()
         # Install the VM
         xenrt.TEC().logverbose("Installing VM...")
-        self.guest = self.host.createGenericLinuxGuest()
+        if self.GUEST_TYPE == "linux":
+            self.guest = self.host.createGenericLinuxGuest()
+        else:
+            self.guest = self.host.createGenericWindowsGuest()
         self.uninstallOnCleanup(self.guest)
         xenrt.TEC().logverbose("...VM installed successfully")
         if self.MAX == True:
@@ -534,14 +538,16 @@ class _VDIPerVM(xenrt.TestCase):
         # Plug vbds until we reach allowed VBDs
         for i in range(requiredVBDs):
             try:
-                if xenrt.TEC().lookup("WORKAROUND_CA176781", False, boolean=True):
+                if self.GUEST_TYPE == "linux":                
                     self.guest.createDisk(userdevice=i+1, vdiuuid=self.VDIs[i])
-                else:
-                    self.guest.createDisk(vdiuuid=self.VDIs[i])
+                # For Windows VMs,device number 3 is already assigned to CD-ROM. So, need to avoid userdevice=3
+                elif i!=2:
+                    self.guest.createDisk(userdevice=i+1, vdiuuid=self.VDIs[i])
             except xenrt.XRTFailure, e:
                 xenrt.TEC().comment("Failed to create/plug VBD for VDI %u: %s" %
                                     (i+1,e))
-                break
+                break   
+            
   
         # Add CD VDI
         if self.VCD_COUNT >= 1:
@@ -592,6 +598,7 @@ class TC18842(_VDIPerVM):
     """Class to test VDIs per VM (16 including CD-ROM)"""
     VDI = True
     VCD_COUNT = 1
+    GUEST_TYPE = "linux"
 
 class TC18843(_VDIPerVM):
     """Class to test VDI virtual size (NFS, EXT SR)"""
@@ -602,6 +609,11 @@ class TC18844(_VDIPerVM):
     """Class to test VDI virtual size (LVM SR)"""
     SR_TYPE = "LVM"
     MAX = True
+    
+class TCWinVDIScalability(_VDIPerVM):
+    VDI =  True
+    VCD_COUNT = 1
+    GUEST_TYPE = "windows"
     
 class VLANsPerHost(xenrt.TestCase):
     """Base class for maximum VLANS per Host test"""

@@ -13,7 +13,7 @@
 
   <testsequence>
     
-    <!-- VDIs per VM (including CD-ROM) Limit:16, Virtual CD/DVD drives per VM Limit:1 -->
+    <!-- VDIs per Linux VM (including CD-ROM) Limit:255, Virtual CD/DVD drives per VM Limit:1 -->
     <testcase id="xenserver.tc.maxima.TC18842"/>
     
     <!--VDI virtual size (NFS, EXT SR) Limit:2093058-->
@@ -21,6 +21,9 @@
     
     <!--VDI virtual size (LVM SR)Limit:2097152 MiB-->
     <testcase id="xenserver.tc.maxima.TC18844"/>
+    
+    <!-- VDIs per Windows VM (including CD-ROM) Limit: 255, Virtual CD/DVD drives per VM Limit:2 -->
+    <testcase id="xenserver.tc.maxima.TCWinVDIScalability"/>
     
   </testsequence>
 </xenrt>

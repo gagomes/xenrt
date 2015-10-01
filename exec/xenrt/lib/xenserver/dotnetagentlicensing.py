@@ -264,7 +264,7 @@ class AutoUpdate(ActorAbstract):
         self.setUserPoolAdmin()
 
     def checkDownloadedMSI(self):
-        if self.os.fileExists("C:\\Windows\\system32\\config\\systemprofile\\AppData\\Local\\citrixguestagentx64.msi"):
+        if self.os.fileExists("C:\\Windows\\System32\\config\\systemprofile\\AppData\\Local\\citrixguestagentx64.msi"):
             return 64
         elif self.os.fileExists("C:\\Windows\\System32\\config\\systemprofile\\AppData\\Local\\citrixguestagentx86.msi"):
             return 86

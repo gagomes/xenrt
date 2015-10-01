@@ -90,7 +90,7 @@ class DotNetAgentTestCases(xenrt.TestCase):
                 raise xenrt.XRTFailure("Server was not pinged when it should be")     
 
     def postRun(self):
-        #self.adapter.cleanupLicense(self.getDefaultPool())
+        self.adapter.cleanupLicense(self.getDefaultPool())
         self.adapter.serverCleanup(self.getGuest("server"))
         self.adapter.settingsCleanup(self.getGuest("WS2012"))
 

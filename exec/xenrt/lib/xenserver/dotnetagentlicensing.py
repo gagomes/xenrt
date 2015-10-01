@@ -52,7 +52,7 @@ class SimpleServer(object):
         self.ssFiles.pop(key,None)
 
     def addRedirect(self):
-        self.guest.execguest("printf \"HTTP/1.1 301 Moved Permanently\\nLocation: http://%s:16000\\n\" | nc -l 15000&"%(self.getIP()))
+        self.guest.execguest("printf \"HTTP/1.1 301 Moved Permanently\\nLocation: http://%s:16000\\n\" | nc -l 15000&\n"%(self.getIP()))
 
     def getIP(self):
         return self.guest.getIP()

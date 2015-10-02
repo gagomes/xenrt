@@ -6,13 +6,16 @@ __all__ = [ "SXAPI" ]
 class SXAPI(object):
     """ScaleXtreme Rest API handler class"""
 
-    def __init__(self, apikey, credential, server="https://lifecycle.cloud.com", version="v0"):
+    def __init__(self, apikey, credential, server=None, version="v0"):
         """Constructor.
         SXAPI always gets authenticated and stores access key.
         """
         self.apikey = apikey
         self.credential = credential
-        self.server = server
+        if server:            
+            self.server = server
+        else:
+            self.server = xenrt.TEC().lookup("SXAPI_SERVER", "https://lifecycle.cloud.com")
         self.version = version
         self.accessToken = None
         self.authenticate()

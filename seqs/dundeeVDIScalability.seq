@@ -23,7 +23,7 @@
     <testcase id="xenserver.tc.maxima.TC18844"/>
     
     <!-- VDIs per Windows VM (including CD-ROM) Limit: 255, Virtual CD/DVD drives per VM Limit:2 -->
-    <testcase id="xenserver.tc.maxima.TCWinVDIScalability"/>
+    <testcase id="xenserver.tc.maxima.TCWinVDIScalability" tc="TC-27356"/>
     
   </testsequence>
 </xenrt>

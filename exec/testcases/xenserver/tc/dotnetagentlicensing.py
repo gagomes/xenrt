@@ -173,3 +173,13 @@ class AllHostsLicensed(DotNetAgentTestCases):
             raise xenrt.XRTFailure("Xenstore indicates VSS is Licensed")
         if autoUpdate.isLicensed():
             raise xenrt.XRTFailure("Xenstore indicates AutoUpdate is Licensed")
+
+class ToggleAUHierarchy(DotNetAgentTestCases):
+
+    def run(self, arglist):
+        server = self.adapter.setUpServer(self.getGuest("server"),"16000")
+        self.adapter.applyLicense(self.getDefaultPool())
+        autoupdate = self.agent.getLicensedFeature("AutoUpdate")
+        autoupdate.disable()
+        if not autoupdate.checkKeyPresent() or autoupdate.isActive():
+            raise xenrt.XRTFailure("Xapi does not indicate that AutoUpdate is disabled")

@@ -73,8 +73,10 @@ class DotNetAgentAdapter(object):
         guest.execguest(" echo \"file contents\" > store/dotNetAgent.msi")  
         msi = {"dotNetAgent" : SSFile("dotNetAgent.msi","store/")}
         guest.execguest("python -m SimpleHTTPServer {0} > logs/server{0}.log 2>&1&".format(str(port)))
-        guest.execguest("ps -uax")
         return SimpleServer(str(port), msi, guest)
+
+    def lowerDotNetAgentVersion(self, guest):
+        self.os.winRegAdd("HKLM","SOFTWARE\\Citrix\\XenTools","BuildVersion","DWORD",0)
 
 class DotNetAgentTestCases(xenrt.TestCase):
 
@@ -211,3 +213,10 @@ class ToggleAUHierarchy(DotNetAgentTestCases):
         else:
             raise xenrt.XRTFailure("Xapi does not indicate that AutoUpdate is disabled")
         self._pingServer(self.agent,server,True)
+
+class URLHierarchy(DotNetAgentTestCases):
+
+    def run(self, arglist):
+        self.adapter.applyLicense(self.getDefaultPool())
+        serverForPool = self.adapter.setUpServer(self.getGuest("server"),"16000")
+        serverForVM = self.adapter.setUpServer(self.getGuest("server"),"16001")

@@ -53,7 +53,6 @@ class SimpleServer(object):
 
     def addRedirect(self):
         self.guest.execguest("printf \"HTTP/1.1 301 Moved Permanently\\nLocation: http://%s:16000\\n\" | nc -l 15000 >/dev/null 2>&1&"%(self.getIP()), timeout=10)
-        self.guest.execguest("ps -uax")
 
     def getIP(self):
         return self.guest.getIP()
@@ -66,7 +65,15 @@ class DotNetAgent(object):
         self.licensedFeatures = {'VSS':VSS(self.guest,self.os),'AutoUpdate':AutoUpdate(self.guest,self.os)}
 
     def restartAgent(self):
-        self.os.execCmd("net stop \"XenSvc\" && net start \"XenSvc\"")
+        try:
+            self.os.execCmd("net stop \"XenSvc\" ")
+        except:
+            pass
+        try:
+            self.os.execCmd("net start \"XenSvc\" ")
+        except:
+            pass
+
 
     def agentVersion(self):
         major = self.os.winRegLookup("HKLM","SOFTWARE\\Citrix\\XenTools","MajorVersion",healthCheckOnFailure=False)
@@ -266,14 +273,18 @@ class AutoUpdate(ActorAbstract):
 
     def checkDownloadedMSI(self):
         if self.os.fileExists("C:\\Windows\\System32\\config\\systemprofile\\AppData\\Local\\citrixguestagentx64.msi"):
-            return 64
+            return "64"
         elif self.os.fileExists("C:\\Windows\\System32\\config\\systemprofile\\AppData\\Local\\citrixguestagentx86.msi"):
-            return 86
+            return "86"
         else:
             return None
 
     def compareMSIArch(self):
-        xenrt.TEC().logverbose("type: %s value: %s".format(type(self.os.getArch()), self.os.getArch()))
+        msi = checkDownloadedMSI()
+        if msi != None:
+            if msi in self.os.getArch():
+                return True
+        return False
 
     def isLicensed(self):
         host = self.guest.host

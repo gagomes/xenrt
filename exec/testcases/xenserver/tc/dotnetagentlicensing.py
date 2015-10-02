@@ -54,6 +54,12 @@ class DotNetAgentAdapter(object):
         os.winRegDel("HKLM","SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate")
         os.winRegDel("HKLM","SOFTWARE\\Citrix\\XenTools","update_url")
 
+    def filesCleanup(self,guest):
+        if self.os.fileExists("C:\\Windows\\System32\\config\\systemprofile\\AppData\\Local\\citrixguestagentx64.msi"):
+            self.os.removeFile("C:\\Windows\\System32\\config\\systemprofile\\AppData\\Local\\citrixguestagentx64.msi")
+        if self.os.fileExists("C:\\Windows\\System32\\config\\systemprofile\\AppData\\Local\\citrixguestagentx86.msi"):
+            self.os.removeFile("C:\\Windows\\System32\\config\\systemprofile\\AppData\\Local\\citrixguestagentx86.msi")
+
     def serverCleanup(self,guest):
         xenrt.TEC().logverbose("----Server cleanup-----")
         guest.execguest("rm -rf store")
@@ -94,6 +100,7 @@ class DotNetAgentTestCases(xenrt.TestCase):
         self.adapter.cleanupLicense(self.getDefaultPool())
         self.adapter.serverCleanup(self.getGuest("server"))
         self.adapter.settingsCleanup(self.getGuest("WS2012"))
+        self.adapter.filesCleanup(self.getGuest("WS2012"))
 
 class TempTest(DotNetAgentTestCases):
 
@@ -155,7 +162,7 @@ class HTTPRedirect(DotNetAgentTestCases):
         self.adapter.applyLicense(self.getDefaultPool())
         server = self.adapter.setUpServer(self.getGuest("server"),"16000")
         server.addRedirect()
-        autoUpdate = self.agent.getLicensedFeature("AutoUpdate")
+        autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         autoupdate.enable()
         autoupdate.setURL("http://%s:15000"% server.getIP())
         self._pingServer(self.agent,server,True)
@@ -203,3 +210,4 @@ class ToggleAUHierarchy(DotNetAgentTestCases):
             pass
         else:
             raise xenrt.XRTFailure("Xapi does not indicate that AutoUpdate is disabled")
+        self._pingServer(self.agent,server,True)

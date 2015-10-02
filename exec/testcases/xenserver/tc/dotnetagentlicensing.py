@@ -99,6 +99,7 @@ class DotNetAgentTestCases(xenrt.TestCase):
                 raise xenrt.XRTFailure("Server was not pinged when it should be")     
 
     def postRun(self):
+        self.getGuest("server").execguest("cat logs/server16000.log")
         self.adapter.cleanupLicense(self.getDefaultPool())
         self.adapter.serverCleanup(self.getGuest("server"))
         self.adapter.settingsCleanup(self.getGuest("WS2012"))
@@ -168,7 +169,6 @@ class HTTPRedirect(DotNetAgentTestCases):
         autoupdate.setURL("http://%s:15000"% server.getIP())
         server.addRedirect()
         self._pingServer(self.agent,server,True)
-        self.getGuest("server").execguest("cat logs/server16000.log")
 
 class AllHostsLicensed(DotNetAgentTestCases):
 
@@ -219,6 +219,39 @@ class URLHierarchy(DotNetAgentTestCases):
 
     def run(self, arglist):
         self.adapter.applyLicense(self.getDefaultPool())
+        autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         serverForPool = self.adapter.setUpServer(self.getGuest("server"),"16000")
         serverForVM = self.adapter.setUpServer(self.getGuest("server"),"16001")
-
+        self.agent.restartAgent()
+        xenrt.sleep(200)
+        if autoupdate.checkDownloadedMSI() == None:
+            raise xenrt.XRTFailure("MSI did not download from default url")
+        self.adapter.filesCleanup(self.getGuest("WS2012"))
+        autoupdate.enable()
+        autoupdate.setURL("http://%s:16000"% serverForPool.getIP())
+        self._pingServer(self.agent,serverForPool,True)
+        self._pingServer(self.agent,serverForVM,False)
+        self.agent.restartAgent()
+        xenrt.sleep(200)
+        if autoupdate.checkDownloadedMSI() != None:
+            raise xenrt.XRTFailure("MSI was downloaded when it shouldnt be")
+        self.adapter.filesCleanup(self.getGuest("WS2012"))
+        autoupdate.setUserVMUser()
+        autoupdate.enable()
+        autoupdate.setURL("http://%s:16001"% serverForPool.getIP())
+        self._pingServer(self.agent,serverForPool,False)
+        self._pingServer(self.agent,serverForVM,True)
+        self.agent.restartAgent()
+        xenrt.sleep(200)
+        if autoupdate.checkDownloadedMSI() != None:
+            raise xenrt.XRTFailure("MSI was downloaded when it shouldnt be")
+        self.adapter.filesCleanup(self.getGuest("WS2012"))
+        autoupdate.setUserPoolAdmin()
+        autoupdate.defaultURL()
+        self._pingServer(self.agent,serverForPool,False)
+        self._pingServer(self.agent,serverForVM,True)
+        self.agent.restartAgent()
+        xenrt.sleep(200)
+        if autoupdate.checkDownloadedMSI() != None:
+            raise xenrt.XRTFailure("MSI was downloaded when it shouldnt be")
+        self.adapter.filesCleanup(self.getGuest("WS2012"))

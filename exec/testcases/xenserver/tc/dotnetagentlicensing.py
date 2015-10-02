@@ -67,6 +67,7 @@ class DotNetAgentAdapter(object):
         guest.execguest(" echo \"file contents\" > store/dotNetAgent.msi")  
         msi = {"dotNetAgent" : SSFile("dotNetAgent.msi","store/")}
         guest.execguest("python -m SimpleHTTPServer {0} > logs/server{0}.log 2>&1&".format(str(port)))
+        guest.execguest("ps -uax")
         return SimpleServer(str(port), msi, guest)
 
 class DotNetAgentTestCases(xenrt.TestCase):
@@ -181,5 +182,8 @@ class ToggleAUHierarchy(DotNetAgentTestCases):
         self.adapter.applyLicense(self.getDefaultPool())
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         autoupdate.disable()
-        if not autoupdate.checkKeyPresent() or autoupdate.isActive():
+        if autoupdate.checkKeyPresent() and autoupdate.isActive():
+            pass
+        else:
             raise xenrt.XRTFailure("Xapi does not indicate that AutoUpdate is disabled")
+        autoupdate.setUserVMUser()

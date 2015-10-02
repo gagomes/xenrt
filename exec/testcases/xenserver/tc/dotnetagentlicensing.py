@@ -161,10 +161,10 @@ class HTTPRedirect(DotNetAgentTestCases):
     def run(self, arglist):
         self.adapter.applyLicense(self.getDefaultPool())
         server = self.adapter.setUpServer(self.getGuest("server"),"16000")
-        server.addRedirect()
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         autoupdate.enable()
         autoupdate.setURL("http://%s:15000"% server.getIP())
+        server.addRedirect()
         self._pingServer(self.agent,server,True)
 
 class AllHostsLicensed(DotNetAgentTestCases):

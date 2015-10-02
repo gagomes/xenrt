@@ -168,6 +168,7 @@ class HTTPRedirect(DotNetAgentTestCases):
         autoupdate.setURL("http://%s:15000"% server.getIP())
         server.addRedirect()
         self._pingServer(self.agent,server,True)
+        self.getGuest("server").execguest("cat logs/server16000.log")
 
 class AllHostsLicensed(DotNetAgentTestCases):
 
@@ -220,3 +221,4 @@ class URLHierarchy(DotNetAgentTestCases):
         self.adapter.applyLicense(self.getDefaultPool())
         serverForPool = self.adapter.setUpServer(self.getGuest("server"),"16000")
         serverForVM = self.adapter.setUpServer(self.getGuest("server"),"16001")
+

@@ -66,7 +66,7 @@ class DotNetAgentAdapter(object):
         guest.execguest("mkdir -p logs")
         guest.execguest(" echo \"file contents\" > store/dotNetAgent.msi")  
         msi = {"dotNetAgent" : SSFile("dotNetAgent.msi","store/")}
-        guest.execguest("python -m SimpleHTTPServer {0} > logs/server{0}.log 2>&1&".format(str(port)))
+        #guest.execguest("python -m SimpleHTTPServer {0} > logs/server{0}.log 2>&1&".format(str(port)))
         return SimpleServer(str(port), msi, guest)
 
 class DotNetAgentTestCases(xenrt.TestCase):

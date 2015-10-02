@@ -155,6 +155,7 @@ class HTTPRedirect(DotNetAgentTestCases):
         self.adapter.applyLicense(self.getDefaultPool())
         server = self.adapter.setUpServer(self.getGuest("server"),"16000")
         server.addRedirect()
+        autoUpdate = self.agent.getLicensedFeature("AutoUpdate")
         autoupdate.enable()
         autoupdate.setURL("http://%s:15000"% server.getIP())
         self._pingServer(self.agent,server,True)
@@ -187,3 +188,18 @@ class ToggleAUHierarchy(DotNetAgentTestCases):
         else:
             raise xenrt.XRTFailure("Xapi does not indicate that AutoUpdate is disabled")
         autoupdate.setUserVMUser()
+        if autoupdate.checkKeyPresent():
+            raise xenrt.XRTFailure("DisableAutoUpdate reg key is present")
+        self._pingServer(self.agent,server,False)
+        autoupdate.enable()
+        self._pingServer(self.agent,server, True)
+        autoupdate.setUserPoolAdmin()
+        if autoupdate.checkKeyPresent() and autoupdate.isActive():
+            pass
+        else:
+            raise xenrt.XRTFailure("Xapi does not indicate that AutoUpdate is disabled")
+        autoupdate.setUserVMUser()
+        if autoupdate.checkKeyPresent() and autoupdate.isActive():
+            pass
+        else:
+            raise xenrt.XRTFailure("Xapi does not indicate that AutoUpdate is disabled")

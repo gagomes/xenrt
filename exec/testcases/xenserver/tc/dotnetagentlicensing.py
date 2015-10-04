@@ -100,7 +100,7 @@ class DotNetAgentTestCases(xenrt.TestCase):
 
     def postRun(self):
         xenrt.TEC().logverbose("%s"%self.getGuest("server").execguest("cat logs/server16000.log"))
-        self.adapter.cleanupLicense(self.getDefaultPool())
+        #self.adapter.cleanupLicense(self.getDefaultPool())
         self.adapter.serverCleanup(self.getGuest("server"))
         self.adapter.settingsCleanup(self.getGuest("WS2012"))
         self.adapter.filesCleanup(self.getGuest("WS2012"))

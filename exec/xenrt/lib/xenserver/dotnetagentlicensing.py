@@ -280,7 +280,7 @@ class AutoUpdate(ActorAbstract):
             return None
 
     def compareMSIArch(self):
-        msi = checkDownloadedMSI()
+        msi = self.checkDownloadedMSI()
         if msi != None:
             if msi in self.os.getArch():
                 return True

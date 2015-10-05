@@ -105,6 +105,9 @@ class DotNetAgentTestCases(xenrt.TestCase):
         self.adapter.settingsCleanup(self.getGuest(self.win1))
         self.adapter.filesCleanup(self.getGuest(self.win1))
 
+    def prepare(self, arglist):
+        self.parseArgs(arglist)
+
     def parseArgs(self,arglist):
         for arg in arglist:
             if arg.startswith('win1'):

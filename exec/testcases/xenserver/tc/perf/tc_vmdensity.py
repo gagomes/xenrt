@@ -1816,7 +1816,12 @@ class Experiment_vmrun(Experiment):
                 sharedsr = ""
             else:
                 localsr = "ext"
-                sharedsr = '<storage type="%s" name="%s"/>' % (self.defaultsr, name_defaultsr)
+                options = self.defaultsr.split(":")[1:2] # eg. thin in lvmoiscsi:thin
+                if len(options) == 0:
+                  options = ""
+                else:
+                  options = 'options="%s"' % (options[0],)
+                sharedsr = '<storage type="%s" name="%s" %s/>' % (self.defaultsr, name_defaultsr, options)
 
                 #in the SCALE cluster, we prefer to use the reserved 10Gb network in NSEC
                 hn = xenrt.TEC().lookup("MACHINE", "WARNING: NO MACHINE NAME")

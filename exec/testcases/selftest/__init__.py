@@ -146,6 +146,10 @@ class TCMachineCheck(xenrt.TestCase):
 
     def run(self, arglist):
         self.host = self.getDefaultHost()
+        if not self.host:
+            m = xenrt.PhysicalHost(xenrt.TEC().lookup("RESOURCE_HOST_0"))
+            self.host = xenrt.lib.xenserver.host.DundeeHost(m)
+            self.host.findPassword()
 
         if arglist:
             tests = map(lambda t: t.split("/", 1), arglist)

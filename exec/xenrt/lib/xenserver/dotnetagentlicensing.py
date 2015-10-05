@@ -56,7 +56,7 @@ class SimpleServer(object):
 
     def getIP(self):
         return self.guest.getIP()
-        
+
 class DotNetAgent(object):
 
     def __init__(self, guest):

@@ -74,7 +74,7 @@
         
         <testcase id="testcases.xenserver.tc.dotnetagentlicensing.PoolAutoUpdateToggle">
             <arg>win1=WS</arg>
-            <arg>win1=WS(1)</arg>
+            <arg>win2=WS(1)</arg>
         </testcase>
         
         <testcase id="testcases.xenserver.tc.dotnetagentlicensing.HTTPRedirect">

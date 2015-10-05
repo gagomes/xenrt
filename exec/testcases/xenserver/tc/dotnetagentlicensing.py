@@ -144,7 +144,7 @@ class VMAutoUpdateToggle(DotNetAgentTestCases):
         self.adapter.applyLicense(self.getDefaultPool())
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         autoupdate.setUserVMUser()
-        autoupdate.enable()
+        autoupdate.disable()
         autoupdate.setURL("http://%s:16000"% server.getIP())
         self._pingServer(self.agent,server,False)
         autoupdate.enable()

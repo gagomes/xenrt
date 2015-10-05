@@ -469,17 +469,14 @@ class _VDIPerVM(xenrt.TestCase):
     VDI_COUNT = 0
     MAX_SIZE = 0
     cli = None
-    GUEST_TYPE = "linux"
+    DISTRO = "generic-linux"
     
     def prepare(self, arglist=None):
         # Get a host to install on
         self.host = self.getDefaultHost()
         # Install the VM
         xenrt.TEC().logverbose("Installing VM...")
-        if self.GUEST_TYPE == "linux":
-            self.guest = self.host.createGenericLinuxGuest()
-        else:
-            self.guest = self.host.createGenericWindowsGuest()
+        self.guest = self.host.createBasicGuest(distro = self.DISTRO)
         self.uninstallOnCleanup(self.guest)
         xenrt.TEC().logverbose("...VM installed successfully")
         if self.MAX == True:
@@ -538,7 +535,7 @@ class _VDIPerVM(xenrt.TestCase):
         # Plug vbds until we reach allowed VBDs
         for i in range(requiredVBDs):
             try:
-                if self.GUEST_TYPE == "linux":                
+                if self.DISTRO == "generic-linux":
                     self.guest.createDisk(userdevice=i+1, vdiuuid=self.VDIs[i])
                 # For Windows VMs,device number 3 is already assigned to CD-ROM. So, need to avoid userdevice=3
                 elif i!=2:
@@ -598,7 +595,7 @@ class TC18842(_VDIPerVM):
     """Class to test VDIs per VM (16 including CD-ROM)"""
     VDI = True
     VCD_COUNT = 1
-    GUEST_TYPE = "linux"
+    DISTRO = "generic-linux"
 
 class TC18843(_VDIPerVM):
     """Class to test VDI virtual size (NFS, EXT SR)"""
@@ -613,7 +610,7 @@ class TC18844(_VDIPerVM):
 class TCWinVDIScalability(_VDIPerVM):
     VDI =  True
     VCD_COUNT = 1
-    GUEST_TYPE = "windows"
+    DISTRO = "generic-windows"
     
 class VLANsPerHost(xenrt.TestCase):
     """Base class for maximum VLANS per Host test"""

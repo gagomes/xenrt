@@ -689,7 +689,7 @@ class TC6834(_ImpExpBase):
 
 class TC6835(_ImpExpBase):
     """Import/Export test of RHEL 4.6 guest"""
-    DISTRO="LATEST_rhel4"
+    DISTRO="rhel48"
 
 class TC6836(_ImpExpBase):
     """Import/Export test of RHEL 5.1 guest"""

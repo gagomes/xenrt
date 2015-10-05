@@ -535,11 +535,7 @@ class _VDIPerVM(xenrt.TestCase):
         # Plug vbds until we reach allowed VBDs
         for i in range(requiredVBDs):
             try:
-                if self.DISTRO == "generic-linux":
-                    self.guest.createDisk(userdevice=i+1, vdiuuid=self.VDIs[i])
-                # For Windows VMs,device number 3 is already assigned to CD-ROM. So, need to avoid userdevice=3
-                elif i!=2:
-                    self.guest.createDisk(userdevice=i+1, vdiuuid=self.VDIs[i])
+                self.guest.plugVBDs(self.DISTRO,i,self.VDIs)
             except xenrt.XRTFailure, e:
                 xenrt.TEC().comment("Failed to create/plug VBD for VDI %u: %s" %
                                     (i+1,e))

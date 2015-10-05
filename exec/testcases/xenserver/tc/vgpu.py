@@ -3376,8 +3376,9 @@ class MixedGPUBootstorm(BootstormBase):
         linuxAllocation = passthroughAllocation - windowsAllocation
 
         linuxMaster = masters[self.LINUX_TYPE]
-
-        self.__configureMasterAndPopulate(linuxMaster, config, linuxAllocation, installer, self.nvidLinvGPU)
+        linuxMaster.setState("DOWN")
+        linPassthroughMaster = windowsMaster.cloneVM(noIP=False)
+        self.__configureMasterAndPopulate(linPassthroughMaster, config, linuxAllocation, installer, self.nvidLinvGPU)
 
         # Branch the windows master, so can use for both passthrough and vGPU
         windowsMaster = masters[self.WINDOWS_TYPE]

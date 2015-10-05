@@ -80,11 +80,6 @@ class DotNetAgentAdapter(object):
 
 class DotNetAgentTestCases(xenrt.TestCase):
 
-    def __init__(self):
-        super(DotNetAgentTestCases, self).__init__()
-        self.adapter = DotNetAgentAdapter(self.getGuest(xenrt.TEC().lookup("LICENSE_SERVER")))
-        self.agent = DotNetAgent(self.getGuest(self.win1))
-
     def _pingServer(self,agent,server, shouldbe):
         startTime = datetime.datetime.now().time()
         agent.restartAgent()
@@ -107,6 +102,8 @@ class DotNetAgentTestCases(xenrt.TestCase):
 
     def prepare(self, arglist):
         self.parseArgs(arglist)
+        self.adapter = DotNetAgentAdapter(self.getGuest(xenrt.TEC().lookup("LICENSE_SERVER")))
+        self.agent = DotNetAgent(self.getGuest(self.win1))
 
     def parseArgs(self,arglist):
         for arg in arglist:

@@ -48,6 +48,7 @@ class DotNetAgentAdapter(object):
 
     def importVM(self,vm,host, path):
         vm.importVM(host,path,sr=host.getLocalSR())
+        vm.start()
 
     def settingsCleanup(self,guest):
         xenrt.TEC().logverbose("-----Cleanup settings-----")

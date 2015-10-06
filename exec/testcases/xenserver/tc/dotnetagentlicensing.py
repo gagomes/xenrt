@@ -24,7 +24,8 @@ class DotNetAgentAdapter(object):
             self.licenseManager.addLicensesToServer(self.v6,license, getLicenseInUse=False)
         except:
             pass
-        hostOrPool.licenseApply(self.v6,license)
+        licenseInUse = self.v6.getLicenseInUse(license.getLicenseName())
+        self.licenseManager.applyLicense(self.v6,hostOrPool,license,licenseInUse)
 
     def releaseLicense(self, hostOrPool):
         self.applyLicense(hostOrPool, self.unlicensedEdition)

@@ -54,8 +54,14 @@ class DotNetAgentAdapter(object):
         xenrt.TEC().logverbose("-----Cleanup settings-----")
         host = guest.host
         os = guest.getInstance().os
-        host.execdom0("xe pool-param-remove uuid=%s param-name=guest-agent-config param-key=auto_update_enabled"%host.getPool().getUUID())
-        host.execdom0("xe pool-param-remove uuid=%s param-name=guest-agent-config param-key=auto_update_url"%host.getPool().getUUID())
+        try:
+            host.execdom0("xe pool-param-remove uuid=%s param-name=guest-agent-config param-key=auto_update_enabled"%host.getPool().getUUID())
+        except:
+            pass
+        try:
+            host.execdom0("xe pool-param-remove uuid=%s param-name=guest-agent-config param-key=auto_update_url"%host.getPool().getUUID())
+        except:
+            pass
 
     def filesCleanup(self,guest):
         if self.os.fileExists("C:\\Windows\\System32\\config\\systemprofile\\AppData\\Local\\citrixguestagentx64.msi"):

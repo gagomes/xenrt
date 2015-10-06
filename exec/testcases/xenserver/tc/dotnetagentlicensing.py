@@ -52,8 +52,6 @@ class DotNetAgentAdapter(object):
 
     def settingsCleanup(self,guest):
         xenrt.TEC().logverbose("-----Cleanup settings-----")
-        host = guest.host
-        os = guest.getInstance().os
         try:
             host.execdom0("xe pool-param-remove uuid=%s param-name=guest-agent-config param-key=auto_update_enabled"%host.getPool().getUUID())
         except:
@@ -87,7 +85,7 @@ class DotNetAgentAdapter(object):
         return SimpleServer(str(port), msi, guest)
 
     def lowerDotNetAgentVersion(self, guest):
-        os = guest.getInstance.os
+        os = guest.getInstance().os
         os.winRegAdd("HKLM","SOFTWARE\\Citrix\\XenTools","BuildVersion","DWORD",0)
 
 class DotNetAgentTestCases(xenrt.TestCase):

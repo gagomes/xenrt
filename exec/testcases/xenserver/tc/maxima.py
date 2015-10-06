@@ -605,7 +605,6 @@ class TC18844(_VDIPerVM):
     
 class TCWinVDIScalability(_VDIPerVM):
     VDI =  True
-    VCD_COUNT = 1
     DISTRO = "generic-windows"
     
 class VLANsPerHost(xenrt.TestCase):

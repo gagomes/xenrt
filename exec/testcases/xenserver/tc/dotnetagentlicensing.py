@@ -120,9 +120,9 @@ class DotNetAgentTestCases(xenrt.TestCase):
 class TempTest(DotNetAgentTestCases):
 
     def run(self,arglist):
-        self.adapter.applyLicense(self.getDefaultPool())
+        #self.adapter.applyLicense(self.getDefaultPool())
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
-        autoupdate.compareMSIArch()
+        #autoupdate.compareMSIArch()
 
 class PoolAutoUpdateToggle(DotNetAgentTestCases):
 

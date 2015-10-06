@@ -25,7 +25,7 @@
                     <disk device="0" size="22" />
                 </vm>
                 <vm name="WS(1)">
-                    <distro>win7sp1-x86</distro>
+                    <distro>ws12-x64</distro>
                     <arch>x86-64</arch>
                     <memory>2048</memory>
                     <vcpus>2</vcpus>
@@ -34,8 +34,8 @@
                     <disk device="0" size="22" />
                 </vm>
                 <vm name="Wx86">
-                    <distro>ws12-x64</distro>
-                    <arch>x86-64</arch>
+                    <distro>win7sp1-x86</distro>
+                    <arch>x86</arch>
                     <memory>2048</memory>
                     <vcpus>2</vcpus>
                     <postinstall action="installDrivers" />

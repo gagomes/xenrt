@@ -542,8 +542,8 @@ class _VDIPerVM(xenrt.TestCase):
                 break   
             
   
-        # Add CD VDI
-        if self.VCD_COUNT >= 1:
+        # Add CD VDI if the guest is not windows since for windows guest CD-ROM is attached during installation
+        if self.VCD_COUNT >= 1 and self.DISTRO != "generic-windows":
             args = []
             args.append("uuid=%s" % (self.guest.getUUID()))
             args.append("cd-name=\"xs-tools.iso\"")
@@ -605,6 +605,7 @@ class TC18844(_VDIPerVM):
     
 class TCWinVDIScalability(_VDIPerVM):
     VDI =  True
+    VCD_COUNT = 1
     DISTRO = "generic-windows"
     
 class VLANsPerHost(xenrt.TestCase):

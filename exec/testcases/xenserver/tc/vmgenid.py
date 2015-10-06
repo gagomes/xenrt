@@ -111,7 +111,7 @@ class  _VmGen(xenrt.TestCase):
         preVmGenId = self.guest.retreiveVmGenId()
         
         if self.guest.getState() == "UP":
-            self.guest.shutdown(force=True)        
+            self.guest.shutdown()        
         self.copy_guest = self.guest.copyVM(name= self.vmName + "_copy", sruuid=self.defaultSR)
         self.uninstallOnCleanup(self.copy_guest)
         
@@ -135,7 +135,7 @@ class  _VmGen(xenrt.TestCase):
         preVmGenId = self.guest.retreiveVmGenId()
         
         if self.guest.getState() == "UP":
-            self.guest.shutdown(force=True)            
+            self.guest.shutdown()            
         self.clone_guest = self.guest.cloneVM(self.vmName + "_clone")
         self.uninstallOnCleanup(self.clone_guest)
         

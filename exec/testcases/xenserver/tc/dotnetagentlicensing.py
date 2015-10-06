@@ -64,6 +64,8 @@ class DotNetAgentAdapter(object):
             pass
 
     def filesCleanup(self,guest):
+        host = guest.host
+        os = guest.getInstance().os
         if self.os.fileExists("C:\\Windows\\System32\\config\\systemprofile\\AppData\\Local\\citrixguestagentx64.msi"):
             self.os.removeFile("C:\\Windows\\System32\\config\\systemprofile\\AppData\\Local\\citrixguestagentx64.msi")
         if self.os.fileExists("C:\\Windows\\System32\\config\\systemprofile\\AppData\\Local\\citrixguestagentx86.msi"):

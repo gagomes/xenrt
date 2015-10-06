@@ -535,7 +535,7 @@ class _VDIPerVM(xenrt.TestCase):
         # Plug vbds until we reach allowed VBDs
         for i in range(requiredVBDs):
             try:
-                self.guest.plugVBDs(self.DISTRO,i,self.VDIs)
+                self.guest.createDisk(vdiuuid=self.VDIs[i])
             except xenrt.XRTFailure, e:
                 xenrt.TEC().comment("Failed to create/plug VBD for VDI %u: %s" %
                                     (i+1,e))

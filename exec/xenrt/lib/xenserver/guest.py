@@ -2986,14 +2986,7 @@ exit /B 1
             return self.getHost().genParamGet("vbd", vbduuid, "device")
         else:
             return userdevice
-            
-    def plugVBDs(self,distro,device,VDIs):
-        if distro == "generic-linux":
-            self.createDisk(userdevice=device+1, vdiuuid=VDIs[device])
-            # For Windows VMs,device number 3 is already assigned to CD-ROM. So, need to avoid userdevice=3
-        elif device!=2:
-            self.createDisk(userdevice=device+1, vdiuuid=VDIs[device])
-
+    
     def getDiskSRType(self, device=0):
         vdiuuid = self.getDiskVDIUUID(device)
         sruuid = self.getHost().genParamGet("vdi",

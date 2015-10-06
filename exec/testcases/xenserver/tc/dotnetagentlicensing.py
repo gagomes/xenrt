@@ -88,7 +88,7 @@ class DotNetAgentTestCases(xenrt.TestCase):
     def _pingServer(self,agent,server, shouldbe):
         startTime = datetime.datetime.now().time()
         agent.restartAgent()
-        xenrt.sleep(200)
+        xenrt.sleep(30)
         pinged = server.isPinged(startTime)
         xenrt.TEC().logverbose("-----Server was pinged: %s-----"%str(pinged))
         if pinged:
@@ -234,7 +234,7 @@ class URLHierarchy(DotNetAgentTestCases):
         serverForPool = self.adapter.setUpServer(self.getGuest("server"),"16000")
         serverForVM = self.adapter.setUpServer(self.getGuest("server"),"16001")
         self.agent.restartAgent()
-        xenrt.sleep(200)
+        xenrt.sleep(30)
         if autoupdate.checkDownloadedMSI() == None:
             raise xenrt.XRTFailure("MSI did not download from default url")
         self.adapter.filesCleanup(self.getGuest(self.win1))
@@ -243,7 +243,7 @@ class URLHierarchy(DotNetAgentTestCases):
         self._pingServer(self.agent,serverForPool,True)
         self._pingServer(self.agent,serverForVM,False)
         self.agent.restartAgent()
-        xenrt.sleep(200)
+        xenrt.sleep(30)
         if autoupdate.checkDownloadedMSI() != None:
             raise xenrt.XRTFailure("MSI was downloaded when it shouldnt be")
         self.adapter.filesCleanup(self.getGuest(self.win1))
@@ -253,7 +253,7 @@ class URLHierarchy(DotNetAgentTestCases):
         self._pingServer(self.agent,serverForPool,False)
         self._pingServer(self.agent,serverForVM,True)
         self.agent.restartAgent()
-        xenrt.sleep(200)
+        xenrt.sleep(30)
         if autoupdate.checkDownloadedMSI() != None:
             raise xenrt.XRTFailure("MSI was downloaded when it shouldnt be")
         self.adapter.filesCleanup(self.getGuest(self.win1))
@@ -262,7 +262,7 @@ class URLHierarchy(DotNetAgentTestCases):
         self._pingServer(self.agent,serverForPool,False)
         self._pingServer(self.agent,serverForVM,True)
         self.agent.restartAgent()
-        xenrt.sleep(200)
+        xenrt.sleep(30)
         if autoupdate.checkDownloadedMSI() != None:
             raise xenrt.XRTFailure("MSI was downloaded when it shouldnt be")
         self.adapter.filesCleanup(self.getGuest(self.win1))
@@ -326,6 +326,6 @@ class AUNoDownload(DotNetAgentTestCases):
         self.adapter.lowerDotNetAgentVersion(self.getGuest(self.win1))
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         self.agent.restartAgent()
-        xenrt.sleep(200)
+        xenrt.sleep(30)
         if autoupdate.checkDownloadedMSI() != None:
             xenrt.XRTFailure("Agent Downloaded MSI when it was the latest version")

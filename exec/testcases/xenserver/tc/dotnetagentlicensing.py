@@ -11,17 +11,20 @@ class DotNetAgentAdapter(object):
         self.licenseManager = LicenseManager()
         self.licenseFactory = XenServerLicenseFactory()
         self.v6 = licenseServer.getV6LicenseServer()
-        self.v6.removeAllLicenses()
         self.licensedEdition = xenrt.TEC().lookup("LICENSED_EDITION")
         self.unlicensedEdition = xenrt.TEC().lookup("UNLICENSED_EDITION")
+
 
     def applyLicense(self, hostOrPool, sku = xenrt.TEC().lookup("LICENSED_EDITION")):
         if issubclass(type(hostOrPool),Pool):
             license = self.licenseFactory.licenseForPool(hostOrPool, sku)
         else:
             license = self.licenseFactory.licenseForHost(hostOrPool, sku)
-        licenseinUse = self.licenseManager.addLicensesToServer(self.v6,license)
-        self.licenseManager.applyLicense(self.v6, hostOrPool, license, licenseinUse)
+        try:
+            self.licenseManager.addLicensesToServer(self.v6,license, getLicenseInUse=False)
+        except:
+            pass
+        hostOrPool.licenseApply(self.v6,license)
 
     def releaseLicense(self, hostOrPool):
         self.applyLicense(hostOrPool, self.unlicensedEdition)
@@ -31,6 +34,7 @@ class DotNetAgentAdapter(object):
 
     def cleanupLicense(self, hostOrPool):
         self.licenseManager.releaseLicense(hostOrPool)
+        self.v6.removeAllLicenses()
 
     def exportVM(self, vm):
         vm.setState("DOWN")

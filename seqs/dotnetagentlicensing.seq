@@ -21,8 +21,10 @@
                     <memory>2048</memory>
                     <vcpus>2</vcpus>
                     <postinstall action="installDrivers" />
+                    <postinstall action="shutdown"/>
                     <network device="0" />
                     <disk device="0" size="22" />
+                    <postinstall action="snapshot(name=cleanWS)"/>
                 </vm>
                 <vm name="WS(1)">
                     <distro>ws12-x64</distro>
@@ -30,8 +32,10 @@
                     <memory>2048</memory>
                     <vcpus>2</vcpus>
                     <postinstall action="installDrivers" />
+                    <postinstall action="shutdown"/>
                     <network device="0" />
                     <disk device="0" size="22" />
+                    <postinstall action="snapshot(name=cleanWS(1))"/>
                 </vm>
                 <vm name="Wx86">
                     <distro>win7sp1-x86</distro>
@@ -39,8 +43,10 @@
                     <memory>2048</memory>
                     <vcpus>2</vcpus>
                     <postinstall action="installDrivers" />
+                    <postinstall action="shutdown"/>
                     <network device="0" />
                     <disk device="0" size="22" />
+                    <postinstall action="snapshot(name=cleanwx86)"/>
                 </vm>
             </host>
             <host id="1" license="no" defaultlicense="no">
@@ -102,7 +108,7 @@
         </testcase>
         
         <testcase id="testcases.xenserver.tc.dotnetagentlicensing.NoVSSOnNonServer">
-            <arg>win1=WS</arg>
+            <arg>win1=Wx86</arg>
         </testcase>
         
         <testcase id="testcases.xenserver.tc.dotnetagentlicensing.AUByDefault">

@@ -56,8 +56,6 @@ class DotNetAgentAdapter(object):
         os = guest.getInstance().os
         host.execdom0("xe pool-param-remove uuid=%s param-name=guest-agent-config param-key=auto_update_enabled"%host.getPool().getUUID())
         host.execdom0("xe pool-param-remove uuid=%s param-name=guest-agent-config param-key=auto_update_url"%host.getPool().getUUID())
-        os.winRegDel("HKLM","SOFTWARE\\Citrix\\XenTools","DisableAutoUpdate")
-        os.winRegDel("HKLM","SOFTWARE\\Citrix\\XenTools","update_url")
 
     def filesCleanup(self,guest):
         if self.os.fileExists("C:\\Windows\\System32\\config\\systemprofile\\AppData\\Local\\citrixguestagentx64.msi"):
@@ -81,7 +79,8 @@ class DotNetAgentAdapter(object):
         return SimpleServer(str(port), msi, guest)
 
     def lowerDotNetAgentVersion(self, guest):
-        self.os.winRegAdd("HKLM","SOFTWARE\\Citrix\\XenTools","BuildVersion","DWORD",0)
+        os = guest.getInstance.os
+        os.winRegAdd("HKLM","SOFTWARE\\Citrix\\XenTools","BuildVersion","DWORD",0)
 
 class DotNetAgentTestCases(xenrt.TestCase):
 
@@ -102,20 +101,21 @@ class DotNetAgentTestCases(xenrt.TestCase):
         xenrt.TEC().logverbose("%s"%self.getGuest("server").execguest("cat logs/server16000.log"))
         self.adapter.cleanupLicense(self.getDefaultPool())
         self.adapter.serverCleanup(self.getGuest("server"))
-        self.adapter.settingsCleanup(self.getGuest(self.win1))
-        self.adapter.filesCleanup(self.getGuest(self.win1))
+        self.adapter.settingsCleanup(self.win1)
+        self.adapter.filesCleanup(self.win1)
+        self.win1.revert(self.win1.asXapiObject().snapshot()[1].uuid)
 
     def prepare(self, arglist):
         self.parseArgs(arglist)
         self.adapter = DotNetAgentAdapter(self.getGuest(xenrt.TEC().lookup("LICENSE_SERVER")))
-        self.agent = DotNetAgent(self.getGuest(self.win1))
+        self.agent = DotNetAgent(self.win1)
 
     def parseArgs(self,arglist):
         for arg in arglist:
             if arg.startswith('win1'):
-                self.win1 = arg.split('=')[1]
+                self.win1 = self.getGuest(arg.split('=')[1])
             if arg.startswith('win2'):
-                self.win2 = arg.split('=')[1]
+                self.win2 = self.getGuest(arg.split('=')[1])
 
 class TempTest(DotNetAgentTestCases):
 
@@ -127,8 +127,10 @@ class TempTest(DotNetAgentTestCases):
 class PoolAutoUpdateToggle(DotNetAgentTestCases):
 
     def run(self, arglist):
+        self.win1.start()
+        self.win2.start()
         server = self.adapter.setUpServer(self.getGuest("server"),"16000")
-        agent1 = DotNetAgent(self.getGuest(self.win2))
+        agent1 = DotNetAgent(self.win2)
         self.adapter.applyLicense(self.getDefaultPool())
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         autoupdate.disable()
@@ -141,10 +143,12 @@ class PoolAutoUpdateToggle(DotNetAgentTestCases):
         self.adapter.releaseLicense(self.getDefaultPool())
         self._pingServer(self.agent,server,False)
         self._pingServer(agent1,server,False)
+        self.win2.revert(self.win1.asXapiObject().snapshot()[1].uuid)
 
 class VMAutoUpdateToggle(DotNetAgentTestCases):
 
     def run(self,arglist):
+        self.win1.start()
         server = self.adapter.setUpServer(self.getGuest("server"),"16000")
         self.adapter.applyLicense(self.getDefaultPool())
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
@@ -162,6 +166,7 @@ class VMAutoUpdateToggle(DotNetAgentTestCases):
 class VSSQuiescedSnapshot(DotNetAgentTestCases):
 
     def run(self, arglist):
+        self.win1.start()
         self.adapter.applyLicense(self.getDefaultPool())
         vss = self.agent.getLicensedFeature("VSS")
         if not vss.isSnapshotPossible():
@@ -173,6 +178,7 @@ class VSSQuiescedSnapshot(DotNetAgentTestCases):
 class HTTPRedirect(DotNetAgentTestCases):
 
     def run(self, arglist):
+        self.win1.start()
         self.adapter.applyLicense(self.getDefaultPool())
         server = self.adapter.setUpServer(self.getGuest("server"),"16000")
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
@@ -184,6 +190,7 @@ class HTTPRedirect(DotNetAgentTestCases):
 class AllHostsLicensed(DotNetAgentTestCases):
 
     def run(self, arglist):
+        self.win1.start()
         self.adapter.applyLicense(self.getDefaultPool())
         vss = self.agent.getLicensedFeature("VSS")
         autoUpdate = self.agent.getLicensedFeature("AutoUpdate")
@@ -200,6 +207,7 @@ class AllHostsLicensed(DotNetAgentTestCases):
 class ToggleAUHierarchy(DotNetAgentTestCases):
 
     def run(self, arglist):
+        self.win1.start()
         server = self.adapter.setUpServer(self.getGuest("server"),"16000")
         self.adapter.applyLicense(self.getDefaultPool())
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
@@ -229,6 +237,7 @@ class ToggleAUHierarchy(DotNetAgentTestCases):
 class URLHierarchy(DotNetAgentTestCases):
 
     def run(self, arglist):
+        self.win1.start()
         self.adapter.applyLicense(self.getDefaultPool())
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         serverForPool = self.adapter.setUpServer(self.getGuest("server"),"16000")
@@ -237,7 +246,7 @@ class URLHierarchy(DotNetAgentTestCases):
         xenrt.sleep(30)
         if autoupdate.checkDownloadedMSI() == None:
             raise xenrt.XRTFailure("MSI did not download from default url")
-        self.adapter.filesCleanup(self.getGuest(self.win1))
+        self.adapter.filesCleanup(self.win1)
         autoupdate.enable()
         autoupdate.setURL("http://%s:16000"% serverForPool.getIP())
         self._pingServer(self.agent,serverForPool,True)
@@ -246,7 +255,7 @@ class URLHierarchy(DotNetAgentTestCases):
         xenrt.sleep(30)
         if autoupdate.checkDownloadedMSI() != None:
             raise xenrt.XRTFailure("MSI was downloaded when it shouldnt be")
-        self.adapter.filesCleanup(self.getGuest(self.win1))
+        self.adapter.filesCleanup(self.win1)
         autoupdate.setUserVMUser()
         autoupdate.enable()
         autoupdate.setURL("http://%s:16001"% serverForPool.getIP())
@@ -256,7 +265,7 @@ class URLHierarchy(DotNetAgentTestCases):
         xenrt.sleep(30)
         if autoupdate.checkDownloadedMSI() != None:
             raise xenrt.XRTFailure("MSI was downloaded when it shouldnt be")
-        self.adapter.filesCleanup(self.getGuest(self.win1))
+        self.adapter.filesCleanup(self.win1)
         autoupdate.setUserPoolAdmin()
         autoupdate.defaultURL()
         self._pingServer(self.agent,serverForPool,False)
@@ -265,22 +274,23 @@ class URLHierarchy(DotNetAgentTestCases):
         xenrt.sleep(30)
         if autoupdate.checkDownloadedMSI() != None:
             raise xenrt.XRTFailure("MSI was downloaded when it shouldnt be")
-        self.adapter.filesCleanup(self.getGuest(self.win1))
+        self.adapter.filesCleanup(self.win1)
 
 class ImportAndExport(DotNetAgentTestCases):
 
     def run(self, arglist):
+        self.win1.start()
         self.adapter.applyLicense(self.getDefaultPool())
-        path = self.adapter.exportVM(self.getGuest(self.win1))
+        path = self.adapter.exportVM(self.win1)
         self.adapter.releaseLicense(self.getDefaultPool())
-        self.adapter.importVM(self.getGuest(self.win1),self.getHost("RESOURCE_HOST_1"),path)
+        self.adapter.importVM(self.win1,self.getHost("RESOURCE_HOST_1"),path)
         vss = self.agent.getLicensedFeature("VSS")
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         if vss.isLicensed() or autoupdate.isLicensed():
             raise xenrt.XRTFailure("Auto Update features are licensed when they shouldn't be")
-        path = self.adapter.exportVM(self.getGuest(self.win1))
+        path = self.adapter.exportVM(self.win1)
         self.adapter.applyLicense(self.getDefaultPool())
-        self.adapter.importVM(self.getGuest(self.win1),self.getHost("RESOURCE_HOST_0"),path)
+        self.adapter.importVM(self.win1,self.getHost("RESOURCE_HOST_0"),path)
         vss = self.agent.getLicensedFeature("VSS")
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         if not vss.isLicensed() or not autoupdate.isLicensed():
@@ -289,8 +299,9 @@ class ImportAndExport(DotNetAgentTestCases):
 class CheckDownloadedArch(DotNetAgentTestCases):
 
     def run(self, arglist):
+        self.win1.start()
         self.adapter.applyLicense(self.getDefaultPool())
-        self.adapter.lowerDotNetAgentVersion(self.getGuest(self.win1))
+        self.adapter.lowerDotNetAgentVersion(self.win1)
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         autoupdate.enable()
         xenrt.sleep(60)
@@ -300,6 +311,7 @@ class CheckDownloadedArch(DotNetAgentTestCases):
 class NoVSSOnNonServer(DotNetAgentTestCases):
 
     def run(self, arglist):
+        self.win1.start()
         self.adapter.applyLicense(self.getDefaultPool())
         vss = self.agent.getLicensedFeature("VSS")
         if vss.isSnapshotPossible():
@@ -311,8 +323,9 @@ class NoVSSOnNonServer(DotNetAgentTestCases):
 class AUByDefault(DotNetAgentTestCases):
 
     def run(self, arglist):
+        self.win1.start()
         self.adapter.applyLicense(self.getDefaultPool())
-        self.adapter.lowerDotNetAgentVersion(self.getGuest(self.win1))
+        self.adapter.lowerDotNetAgentVersion(self.win1)
         version = self.agent.agentVersion()
         self.agent.restartAgent()
         xenrt.sleep(200)
@@ -322,8 +335,8 @@ class AUByDefault(DotNetAgentTestCases):
 class AUNoDownload(DotNetAgentTestCases):
 
     def run(self, arglist):
+        self.win1.start()
         self.adapter.applyLicense(self.getDefaultPool())
-        self.adapter.lowerDotNetAgentVersion(self.getGuest(self.win1))
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         self.agent.restartAgent()
         xenrt.sleep(30)

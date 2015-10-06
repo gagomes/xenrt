@@ -104,6 +104,7 @@ class DotNetAgentTestCases(xenrt.TestCase):
         self.adapter.settingsCleanup(self.win1)
         self.adapter.filesCleanup(self.win1)
         self.win1.revert(self.win1.asXapiObject().snapshot()[1].uuid)
+        self.win1.shutdown()
 
     def prepare(self, arglist):
         self.parseArgs(arglist)
@@ -144,6 +145,7 @@ class PoolAutoUpdateToggle(DotNetAgentTestCases):
         self._pingServer(self.agent,server,False)
         self._pingServer(agent1,server,False)
         self.win2.revert(self.win1.asXapiObject().snapshot()[1].uuid)
+        self.win2.shutdown()
 
 class VMAutoUpdateToggle(DotNetAgentTestCases):
 

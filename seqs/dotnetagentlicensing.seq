@@ -46,7 +46,7 @@
                     <postinstall action="shutdown"/>
                     <network device="0" />
                     <disk device="0" size="22" />
-                    <postinstall action="snapshot(name=cleanwx86)"/>
+                    <postinstall action="snapshot(name=cleanWx86)"/>
                 </vm>
             </host>
             <host id="1" license="no" defaultlicense="no">

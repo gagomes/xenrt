@@ -107,7 +107,7 @@ class DotNetAgentTestCases(xenrt.TestCase):
         self.adapter.cleanupLicense(self.getDefaultPool())
         self.adapter.settingsCleanup(self.win1)
         self.adapter.filesCleanup(self.win1)
-        self.win1.revert(self.win1.asXapiObject().snapshot()[1].uuid)
+        self.win1.revert(self.win1.asXapiObject().snapshot()[0].uuid)
         self.win1.shutdown()
         self.adapter.serverCleanup(self.getGuest("server"))
 

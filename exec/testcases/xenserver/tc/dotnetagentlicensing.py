@@ -115,8 +115,10 @@ class DotNetAgentTestCases(xenrt.TestCase):
         for arg in arglist:
             if arg.startswith('win1'):
                 self.win1 = self.getGuest(arg.split('=')[1])
+                self.win1.start()
             if arg.startswith('win2'):
                 self.win2 = self.getGuest(arg.split('=')[1])
+                self.win2.start()
 
 class TempTest(DotNetAgentTestCases):
 
@@ -128,8 +130,6 @@ class TempTest(DotNetAgentTestCases):
 class PoolAutoUpdateToggle(DotNetAgentTestCases):
 
     def run(self, arglist):
-        self.win1.start()
-        self.win2.start()
         server = self.adapter.setUpServer(self.getGuest("server"),"16000")
         agent1 = DotNetAgent(self.win2)
         self.adapter.applyLicense(self.getDefaultPool())
@@ -150,7 +150,6 @@ class PoolAutoUpdateToggle(DotNetAgentTestCases):
 class VMAutoUpdateToggle(DotNetAgentTestCases):
 
     def run(self,arglist):
-        self.win1.start()
         server = self.adapter.setUpServer(self.getGuest("server"),"16000")
         self.adapter.applyLicense(self.getDefaultPool())
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
@@ -168,7 +167,6 @@ class VMAutoUpdateToggle(DotNetAgentTestCases):
 class VSSQuiescedSnapshot(DotNetAgentTestCases):
 
     def run(self, arglist):
-        self.win1.start()
         self.adapter.applyLicense(self.getDefaultPool())
         vss = self.agent.getLicensedFeature("VSS")
         if not vss.isSnapshotPossible():
@@ -180,7 +178,6 @@ class VSSQuiescedSnapshot(DotNetAgentTestCases):
 class HTTPRedirect(DotNetAgentTestCases):
 
     def run(self, arglist):
-        self.win1.start()
         self.adapter.applyLicense(self.getDefaultPool())
         server = self.adapter.setUpServer(self.getGuest("server"),"16000")
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
@@ -192,7 +189,6 @@ class HTTPRedirect(DotNetAgentTestCases):
 class AllHostsLicensed(DotNetAgentTestCases):
 
     def run(self, arglist):
-        self.win1.start()
         self.adapter.applyLicense(self.getDefaultPool())
         vss = self.agent.getLicensedFeature("VSS")
         autoUpdate = self.agent.getLicensedFeature("AutoUpdate")
@@ -209,7 +205,6 @@ class AllHostsLicensed(DotNetAgentTestCases):
 class ToggleAUHierarchy(DotNetAgentTestCases):
 
     def run(self, arglist):
-        self.win1.start()
         server = self.adapter.setUpServer(self.getGuest("server"),"16000")
         self.adapter.applyLicense(self.getDefaultPool())
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
@@ -239,7 +234,6 @@ class ToggleAUHierarchy(DotNetAgentTestCases):
 class URLHierarchy(DotNetAgentTestCases):
 
     def run(self, arglist):
-        self.win1.start()
         self.adapter.applyLicense(self.getDefaultPool())
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         serverForPool = self.adapter.setUpServer(self.getGuest("server"),"16000")
@@ -281,7 +275,6 @@ class URLHierarchy(DotNetAgentTestCases):
 class ImportAndExport(DotNetAgentTestCases):
 
     def run(self, arglist):
-        self.win1.start()
         self.adapter.applyLicense(self.getDefaultPool())
         path = self.adapter.exportVM(self.win1)
         self.adapter.releaseLicense(self.getDefaultPool())
@@ -301,7 +294,6 @@ class ImportAndExport(DotNetAgentTestCases):
 class CheckDownloadedArch(DotNetAgentTestCases):
 
     def run(self, arglist):
-        self.win1.start()
         self.adapter.applyLicense(self.getDefaultPool())
         self.adapter.lowerDotNetAgentVersion(self.win1)
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
@@ -313,7 +305,6 @@ class CheckDownloadedArch(DotNetAgentTestCases):
 class NoVSSOnNonServer(DotNetAgentTestCases):
 
     def run(self, arglist):
-        self.win1.start()
         self.adapter.applyLicense(self.getDefaultPool())
         vss = self.agent.getLicensedFeature("VSS")
         if vss.isSnapshotPossible():
@@ -325,7 +316,6 @@ class NoVSSOnNonServer(DotNetAgentTestCases):
 class AUByDefault(DotNetAgentTestCases):
 
     def run(self, arglist):
-        self.win1.start()
         self.adapter.applyLicense(self.getDefaultPool())
         self.adapter.lowerDotNetAgentVersion(self.win1)
         version = self.agent.agentVersion()
@@ -337,7 +327,6 @@ class AUByDefault(DotNetAgentTestCases):
 class AUNoDownload(DotNetAgentTestCases):
 
     def run(self, arglist):
-        self.win1.start()
         self.adapter.applyLicense(self.getDefaultPool())
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         self.agent.restartAgent()

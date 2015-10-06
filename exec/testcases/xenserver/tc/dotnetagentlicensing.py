@@ -104,7 +104,6 @@ class DotNetAgentTestCases(xenrt.TestCase):
                 raise xenrt.XRTFailure("Server was not pinged when it should be")     
 
     def postRun(self):
-        xenrt.TEC().logverbose("%s"%self.getGuest("server").execguest("cat logs/server16000.log"))
         self.adapter.cleanupLicense(self.getDefaultPool())
         self.adapter.settingsCleanup(self.win1)
         self.adapter.filesCleanup(self.win1)

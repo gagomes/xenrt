@@ -1,0 +1,22 @@
+<xenrt>
+
+  <!-- Dundee R0 Xen Test Framework instllation and running Xen tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <CARBON_EXTRA_CDS>linux.iso</CARBON_EXTRA_CDS>
+    <HOST_INSTALL_METHOD>nfs</HOST_INSTALL_METHOD>
+  </variables>
+
+  <prepare>
+    <host id="0">
+      </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="XenDummyTest">
+      <testcase id="xenserver.tc.ring0.ring0xen.TCRing0XenDummyTest" tc="TC-6649" blocker="yes"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

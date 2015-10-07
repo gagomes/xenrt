@@ -75,7 +75,7 @@ class DotNetAgentAdapter(object):
         guest.execguest("mkdir -p store")
         guest.execguest("mkdir -p logs")
         guest.execguest("python -m SimpleHTTPServer {0} > logs/server{0}.log 2>&1&".format(str(port)))
-        return SimpleServer(str(port), {}, guest)
+        return SimpleServer(str(port), guest)
 
     def lowerDotNetAgentVersion(self, guest):
         os = guest.getInstance().os

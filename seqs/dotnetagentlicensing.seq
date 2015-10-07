@@ -35,7 +35,7 @@
                     <postinstall action="shutdown"/>
                     <network device="0" />
                     <disk device="0" size="22" />
-                    <postinstall action="snapshot(name='cleanWS(1)')"/>
+                    <postinstall action="snapshot(name='cleanWS1')"/>
                 </vm>
                 <vm name="Wx86">
                     <distro>win7sp1-x86</distro>

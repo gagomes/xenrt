@@ -61,14 +61,21 @@ class DotNetAgentAdapter(object):
         except:
             pass
 
+    def nonCryptoMSIInstalled(self,guest):
+        os = guest.getInstance().os
+        try:
+            key = os.winRegLookup("HKLM","SOFTWARE\\Citrix\\XenTools","UncryptographicallySignedMSI",healthCheckOnFailure=False)
+            if key:
+                return True
+        except:
+            return False
+
     def setUpServer(self,guest,port):
         xenrt.TEC().logverbose("-----Setting up server-----")
         guest.execguest("mkdir -p store")
         guest.execguest("mkdir -p logs")
-        guest.execguest(" echo \"file contents\" > store/dotNetAgent.msi")  
-        msi = {"dotNetAgent" : SSFile("dotNetAgent.msi","store/")}
         guest.execguest("python -m SimpleHTTPServer {0} > logs/server{0}.log 2>&1&".format(str(port)))
-        return SimpleServer(str(port), msi, guest)
+        return SimpleServer(str(port), {}, guest)
 
     def lowerDotNetAgentVersion(self, guest):
         os = guest.getInstance().os
@@ -90,7 +97,7 @@ class DotNetAgentTestCases(xenrt.TestCase):
     def _revertVMs(self):
         self.win1.revert(self.win1.asXapiObject().snapshot()[0].uuid)
         if self.win2:
-            self.win2.revert(self.win1.asXapiObject().snapshot()[0].uuid)
+            self.win2.revert(self.win2.asXapiObject().snapshot()[0].uuid)
         self.getGuest("server").revert(self.getGuest("server").asXapiObject().snapshot()[0].uuid)
         self.getGuest(xenrt.TEC().lookup("LICENSE_SERVER")).revert(self.getGuest(xenrt.TEC().lookup("LICENSE_SERVER")).asXapiObject().snapshot()[0].uuid)
 
@@ -324,3 +331,17 @@ class AUNoDownload(DotNetAgentTestCases):
         xenrt.sleep(30)
         if autoupdate.checkDownloadedMSI() != None:
             xenrt.XRTFailure("Agent Downloaded MSI when it was the latest version")
+
+class NonCryptoMSI(DotNetAgentTestCases):
+
+    def run(self, arglist):
+        server = self.adapter.setUpServer(self.getGuest("server"),"16000")
+        server.createCatalog("99.0.0.0")
+        self.adapter.applyLicense(self.getDefaultPool())
+        autoupdate = self.agent.getLicensedFeature("AutoUpdate")
+        autoupdate.enable()
+        autoupdate.setURL("http://%s:16000"%server.getIP())
+        self.agent.restartAgent()
+        xenrt.sleep(200)
+        if self.adapter.nonCryptoMSIInstalled(self.win1):
+            raise xenrt.XRTFailure("Non cryprographically signed msi installed")

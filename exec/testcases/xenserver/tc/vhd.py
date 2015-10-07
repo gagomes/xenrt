@@ -1174,7 +1174,7 @@ class _TCVDICreate(xenrt.TestCase):
                         re.search(r"snapshot or clone not permitted", e.data) or \
                         re.search(r"SR_REQUIRES_UPGRADE", e.data) or \
                         re.search(r"The operation cannot be performed until the SR has been upgraded", e.data) or \
-                        re.search(r"You have attempted a function which is not implemented", e.data):
+                        re.search(r"function which is not implemented", e.data):
                     # This is good
                     xenrt.TEC().logverbose("Snapshot failed as expected")
                 else:

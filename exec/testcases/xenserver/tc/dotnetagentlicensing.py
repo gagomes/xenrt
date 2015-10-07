@@ -112,6 +112,8 @@ class DotNetAgentTestCases(xenrt.TestCase):
         self.agent = DotNetAgent(self.win1)
 
     def parseArgs(self,arglist):
+        self.win1 = None
+        self.win2 = None
         for arg in arglist:
             if arg.startswith('win1'):
                 self.win1 = self.getGuest(arg.split('=')[1])

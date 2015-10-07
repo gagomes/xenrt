@@ -1940,6 +1940,8 @@ if setupsharedhost:
         addr = sh["ADDRESS"]
         machine = xenrt.PhysicalHost(sharedhost,ipaddr=addr)
 
+        config.setVariable("APPLY_ALL_REQUIRED_HFXS", "yes")
+
         xenrt.TEC().setInputDir(sh["INPUTDIR"])
         hosttype=sh["PRODUCT_VERSION"]
 

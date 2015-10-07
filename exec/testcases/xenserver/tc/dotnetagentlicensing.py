@@ -61,20 +61,6 @@ class DotNetAgentAdapter(object):
         except:
             pass
 
-    def filesCleanup(self,guest):
-        host = guest.host
-        os = guest.getInstance().os
-        if os.fileExists("C:\\Windows\\System32\\config\\systemprofile\\AppData\\Local\\citrixguestagentx64.msi"):
-            os.removeFile("C:\\Windows\\System32\\config\\systemprofile\\AppData\\Local\\citrixguestagentx64.msi")
-        if os.fileExists("C:\\Windows\\System32\\config\\systemprofile\\AppData\\Local\\citrixguestagentx86.msi"):
-            os.removeFile("C:\\Windows\\System32\\config\\systemprofile\\AppData\\Local\\citrixguestagentx86.msi")
-
-    def serverCleanup(self,guest):
-        xenrt.TEC().logverbose("----Server cleanup-----")
-        guest.execguest("rm -rf store")
-        guest.execguest("rm -rf logs")
-        guest.reboot()
-
     def setUpServer(self,guest,port):
         xenrt.TEC().logverbose("-----Setting up server-----")
         guest.execguest("mkdir -p store")
@@ -96,28 +82,22 @@ class DotNetAgentTestCases(xenrt.TestCase):
         xenrt.sleep(30)
         pinged = server.isPinged(startTime)
         xenrt.TEC().logverbose("-----Server was pinged: %s-----"%str(pinged))
-        if pinged:
-            if not shouldbe:
+        if pinged and not shouldbe:
                 raise xenrt.XRTFailure("Server was pinged when it shouldn't be")
-        else:
-            if shouldbe:
-                raise xenrt.XRTFailure("Server was not pinged when it should be")     
+        if not pinged and shouldbe:
+                raise xenrt.XRTFailure("Server was not pinged when it should be")
 
     def _revertVMs(self):
         self.win1.revert(self.win1.asXapiObject().snapshot()[0].uuid)
-        self.win1.shutdown()
         if self.win2:
             self.win2.revert(self.win1.asXapiObject().snapshot()[0].uuid)
-            self.win2.shutdown()
-        #self.getGuest("server").revert(self.getGuest("server").asXapiObject().snapshot()[0].uuid)
-        #self.getGuest(xenrt.TEC().lookup("LICENSE_SERVER")).revert(self.getGuest(xenrt.TEC().lookup("LICENSE_SERVER")).asXapiObject().snapshot()[0].uuid)
+        self.getGuest("server").revert(self.getGuest("server").asXapiObject().snapshot()[0].uuid)
+        self.getGuest(xenrt.TEC().lookup("LICENSE_SERVER")).revert(self.getGuest(xenrt.TEC().lookup("LICENSE_SERVER")).asXapiObject().snapshot()[0].uuid)
 
     def postRun(self):
         self.adapter.cleanupLicense(self.getDefaultPool())
         self.adapter.settingsCleanup(self.win1)
-        self.adapter.filesCleanup(self.win1)
         self._revertVMs()
-        self.adapter.serverCleanup(self.getGuest("server"))
 
     def prepare(self, arglist):
         self.parseArgs(arglist)

@@ -3,30 +3,14 @@ import xenrt
 import re
 import datetime
 
-class SSFile(object):
-
-    def __init__(self, name, location):
-        self.setName(name)
-        self.setLocation(location)
-
-    def getName(self):
-        return self.name
-
-    def setName(self, name):
-        self.name = name
-
-    def getLocation(self):
-        return self.location
-
-    def setLocation(self, location):
-        self.location = location
-
 class SimpleServer(object):
 
-    def __init__(self, port, ssFiles, guest):
-        self.ssFiles = ssFiles
+    def __init__(self, port, guest):
         self.port = port
         self.guest = guest
+
+    def createCatalog(self,version):
+        self.guest.execguest("echo > version_%s"%version)
 
     def isPinged(self, startTime):
         xenrt.TEC().logverbose("-----Checking if Server with port:%s is pinged-----"%self.port)
@@ -36,20 +20,6 @@ class SimpleServer(object):
             return False
         logTime = (datetime.datetime.strptime(timeRE.group(0),'%H:%M:%S')).time()
         return logTime > startTime
-
-    def moveFile(self, ssFile):
-        if ssFile.location == "store/":
-            self.guest.execguest("mv store/{0} {0}".format(ssFile.name))
-            ssFile.location = ""
-        else:
-           self.guest.execguest("mv {0} store/{0}".format(ssFile.name))
-           ssFile.location = "store/"
-
-    def addFile(self, ssFile, key):
-        self.ssFiles[key] = ssFile
-
-    def removeFile(self, key):
-        self.ssFiles.pop(key,None)
 
     def addRedirect(self):
         self.guest.execguest("printf \"HTTP/1.1 301 Moved Permanently\\nLocation: http://%s:16000\\n\" | nc -l 15000 >/dev/null 2>&1&"%(self.getIP()), timeout=10)

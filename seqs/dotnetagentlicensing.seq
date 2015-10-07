@@ -24,7 +24,7 @@
                     <postinstall action="shutdown"/>
                     <network device="0" />
                     <disk device="0" size="22" />
-                    <postinstall action="snapshot(name=cleanWS)"/>
+                    <postinstall action="snapshot(name='cleanWS')"/>
                 </vm>
                 <vm name="WS(1)">
                     <distro>ws12-x64</distro>
@@ -35,7 +35,7 @@
                     <postinstall action="shutdown"/>
                     <network device="0" />
                     <disk device="0" size="22" />
-                    <postinstall action="snapshot(name=cleanWS(1))"/>
+                    <postinstall action="snapshot(name='cleanWS(1)')"/>
                 </vm>
                 <vm name="Wx86">
                     <distro>win7sp1-x86</distro>
@@ -46,7 +46,7 @@
                     <postinstall action="shutdown"/>
                     <network device="0" />
                     <disk device="0" size="22" />
-                    <postinstall action="snapshot(name=cleanWx86)"/>
+                    <postinstall action="snapshot(name='cleanWx86')"/>
                 </vm>
             </host>
             <host id="1" license="no" defaultlicense="no">
@@ -56,10 +56,12 @@
                     <vcpus>2</vcpus>
                     <network device="0"/>
                     <disk device="0" size="8" />
+                    <postinstall action="snapshot(name='cleanServer')"/>
                 </vm>
                 <vm name="${LICENSESERVER}">
                     <file>%LICENSE_SERVER_XVA%</file>
                     <postinstall action="installV6LicenseServer"/>
+                    <postinstall action="snapshot(name='cleanLicServer')"/>
                 </vm>
             </host>
         </pool>

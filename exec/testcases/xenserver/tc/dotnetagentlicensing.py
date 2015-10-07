@@ -103,12 +103,20 @@ class DotNetAgentTestCases(xenrt.TestCase):
             if shouldbe:
                 raise xenrt.XRTFailure("Server was not pinged when it should be")     
 
+    def _revertVMs(self):
+        self.win1.revert(self.win1.asXapiObject().snapshot()[0].uuid)
+        self.win1.shutdown()
+        if self.win2:
+            self.win2.revert(self.win1.asXapiObject().snapshot()[0].uuid)
+            self.win2.shutdown()
+        #self.getGuest("server").revert(self.getGuest("server").asXapiObject().snapshot()[0].uuid)
+        #self.getGuest(xenrt.TEC().lookup("LICENSE_SERVER")).revert(self.getGuest(xenrt.TEC().lookup("LICENSE_SERVER")).asXapiObject().snapshot()[0].uuid)
+
     def postRun(self):
         self.adapter.cleanupLicense(self.getDefaultPool())
         self.adapter.settingsCleanup(self.win1)
         self.adapter.filesCleanup(self.win1)
-        self.win1.revert(self.win1.asXapiObject().snapshot()[0].uuid)
-        self.win1.shutdown()
+        self._revertVMs()
         self.adapter.serverCleanup(self.getGuest("server"))
 
     def prepare(self, arglist):
@@ -149,8 +157,6 @@ class PoolAutoUpdateToggle(DotNetAgentTestCases):
         self.adapter.releaseLicense(self.getDefaultPool())
         self._pingServer(self.agent,server,False)
         self._pingServer(agent1,server,False)
-        self.win2.revert(self.win1.asXapiObject().snapshot()[1].uuid)
-        self.win2.shutdown()
 
 class VMAutoUpdateToggle(DotNetAgentTestCases):
 

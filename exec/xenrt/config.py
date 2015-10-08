@@ -679,7 +679,6 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Boston"]["LATEST_rhel4"] = "rhel48"
         self.config["VERSION_CONFIG"]["Boston"]["LATEST_rhel5"] = "rhel56"
         self.config["VERSION_CONFIG"]["Boston"]["LATEST_rhel6"] = "rhel6"
-        self.config["VERSION_CONFIG"]["Boston"]["EARLY_PV_LINUX"] = "rhel5\d*,rhel6\d*,centos5\d*,centos6\d*,sl5\d,sl6\d,debian60"
         self.config["VERSION_CONFIG"]["Boston"]["DOM0_PARTITIONS"] = {1:4*xenrt.GIGA, 2:4*xenrt.GIGA, 3:"*"}
         self.config["VERSION_CONFIG"]["Boston"]["INTERNAL_RPU_HOTFIX"] = "XS62E006.xsupdate"
 
@@ -863,7 +862,6 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Tampa"]["GENERIC_LINUX_OS_64"] = "centos57"
         self.config["VERSION_CONFIG"]["Tampa"]["TILE_WIN_DISTRO"] = "ws08sp2-x86"
         self.config["VERSION_CONFIG"]["Tampa"]["TILE_LINUX_DISTRO"] = "centos57"
-        self.config["VERSION_CONFIG"]["Tampa"]["EARLY_PV_LINUX"] = "rhel5\d*,rhel6\d*,centos5\d*,centos6\d*,sl5\d,sl6\d,debian60"
         self.config["VERSION_CONFIG"]["Tampa"]["EXPECTED_CRASHDUMP_FILES"] = "xen-crashdump-analyser.log,xen.log,dom0.log"
         self.config["VERSION_CONFIG"]["Tampa"]["V6_DBV"] = "2010.0521"
         self.config["VERSION_CONFIG"]["Tampa"]["IDLE_VMs_DOM0_CPU_Utilize"] = "260"
@@ -1193,7 +1191,6 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Creedence"]["LATEST_sl5"] = "sl511"
         self.config["VERSION_CONFIG"]["Creedence"]["LATEST_sl6"] = "sl66"
         self.config["VERSION_CONFIG"]["Creedence"]["LATEST_sl7"] = "sl71"
-        self.config["VERSION_CONFIG"]["Creedence"]["EARLY_PV_LINUX"] = "rhel5\d*,rhel6\d*,centos5\d*,centos6\d*,sl5\d,sl6\d,debian60"
         # XenServer dom0 partitions
         self.config["VERSION_CONFIG"]["Creedence"]["DOM0_PARTITIONS"] = {1:4*xenrt.GIGA, 2:4*xenrt.GIGA, 3:"*"}
         self.config["VERSION_CONFIG"]["Creedence"]["INTERNAL_RPU_HOTFIX"] = "XS65ESP1006.xsupdate"

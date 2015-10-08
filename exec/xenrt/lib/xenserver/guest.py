@@ -4471,6 +4471,9 @@ exit /B 1
         self.paramSet("platform:parallel", "none")
         self.start()
 
+    def getLowMemory(self):
+        if not self.windows:
+            return int(self.execguest("free -l | grep Low | awk '{print $2}'").strip()) / xenrt.KILO
 
 
 #############################################################################

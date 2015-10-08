@@ -14,15 +14,11 @@ from xenrt.lazylog import step, log
 class _BalloonPerfBase(xenrt.TestCase):
     """Base class for balloon driver performance tests"""
     FAIL_BELOW = 0.1 # GiB/Ghz/s
-    DISTRO = "winxpsp3"
+    DISTRO = "win7sp1-x86"
     ARCH = "x86-32"
     SET_PAE = True
     LIMIT_TO_30GB = True
     HAP = "NPT"
-
-    def __init__(self, tcid=None):
-        self.WINDOWS = self.DISTRO.startswith("w") or self.DISTRO.startswith("v")
-        xenrt.TestCase.__init__(self, tcid=tcid)
 
     def prepare(self, arglist=None):
         self.host = self.getDefaultHost()
@@ -133,38 +129,27 @@ class _BalloonPerfBase(xenrt.TestCase):
                                    data="Calculated index %s GiB/Ghz/s" % (index))
     
     def parseArgs(self, arglist):
-        if arglist:
-            for arg in arglist:
-                l = string.split(arg, "=", 1)
-                if l[0] == "DISTRO":
-                    self.DISTRO = l[1]
-                    self.WINDOWS = self.DISTRO.startswith("w") or self.DISTRO.startswith("v")
-                if l[0] == "HAP":
-                    self.HAP = l[1]
-                if l[0] == "DO_LIFECYCLE_OPS":
-                    self.DO_LIFECYCLE_OPS = l[1]
-                if l[0] == "LIMIT_TO_30GB":
-                    self.LIMIT_TO_30GB = l[1]
-        (self.DISTRO, self.ARCH) = xenrt.getDistroAndArch(self.DISTRO)
+        args = self.parseArgsKeyValue(arglist)
+        (self.DISTRO, self.ARCH) = xenrt.getDistroAndArch(args.get("DISTRO", "win7sp1-x86"))
+        self.HAP = args.get("HAP", "NPT")
+        self.DO_LIFECYCLE_OPS = args.get("DO_LIFECYCLE_OPS", False)
+        self.LIMIT_TO_30GB = args.get("LIMIT_TO_30GB", True)
     
     def installGuest(self):
         # Set up the VM
         guest = self.host.getGuest(self.DISTRO+self.ARCH)
         if guest:
             return guest
-        if self.WINDOWS:
-            guest = self.host.createGenericWindowsGuest(distro=self.DISTRO, 
-                                                        arch=self.ARCH, vcpus=2)
-            if self.SET_PAE:
-                guest.forceWindowsPAE()
-        else:
-            guest = self.host.createBasicGuest(distro=self.DISTRO,
+        guest = self.host.createBasicGuest(distro=self.DISTRO,
                                                arch=self.ARCH)
+        if guest.windows and self.SET_PAE:
+            guest.forceWindowsPAE()
+
         return guest
 
 class _BalloonSmoketest(_BalloonPerfBase):
     """Base class for balloon driver smoketests and max range tests"""
-    DISTRO = "w2k3eesp1"
+    DISTRO = "win7sp1-x86"
     WORKLOADS = ["Prime95"]
     DO_LIFECYCLE_OPS = False
     LIMIT_TO_30GB = True
@@ -172,9 +157,10 @@ class _BalloonSmoketest(_BalloonPerfBase):
     SET_PAE = True
     HOST = "RESOURCE_HOST_0"
     HAP = None
-    BALLOON_UP_INITIAL_ALLOC = True
-    LOW_MEMORY_CONSTRAINT = False
-    ALLOWED_TARGET_MISMATCH = 0
+    EARLY_PV_LINUX = "rhel5\d*,rhel6\d*,centos5\d*,centos6\d*,sl5\d,sl6\d,debian60"
+    balloonUpInitialAlloc = True
+    lowMemoryConstraint = False
+    allowedTargetMismatch = 0
 
     def prepare(self, arglist=None):
         # Get the host
@@ -200,12 +186,12 @@ class _BalloonSmoketest(_BalloonPerfBase):
             self.guest.installWorkloads(self.WORKLOADS)
 
         step("Get minimum and maximum memory for the guest")
-        if not self.WINDOWS:
+        if not self.guest.windows:
             self.setLinuxContraints()
         self.findMinMaxMemory()
 
         step("Look up the dynamic range multiplier")
-        if self.WINDOWS:
+        if self.guest.windows:
             lookup = "WIN"
         else:
             lookup = "LINUX"
@@ -232,15 +218,15 @@ class _BalloonSmoketest(_BalloonPerfBase):
     def setLinuxContraints(self):
         # All Linux distros behave differently on memory balloon up.
         # Check the type and accordingly set the class variables
-        if [d for d in self.host.lookup("EARLY_PV_LINUX", "").split(",") if re.match(d,self.DISTRO)]:
+        if [d for d in self.EARLY_PV_LINUX.split(",") if re.match(d,self.DISTRO)]:
             log("This is a early PV guest and it cannot balloon up beyond initial memory allocation")
-            self.BALLOON_UP_INITIAL_ALLOC = False
-        elif [d for d in self.host.lookup("HVM_LINUX", "").split(",") if re.match(d,self.DISTRO)]:
+            self.balloonUpInitialAlloc = False
+        elif self.guest.isHVMLinux():
             log("This is a early HVM PV guest and we need to consider the constraint for 10 MB video memory")
-            self.ALLOWED_TARGET_MISMATCH = 10
+            self.allowedTargetMismatch = 10
         elif self.ARCH == "x86-32":
             log("This is a 32-bit PV guest and it cannot balloon up beyond 10 X Low memory")
-            self.LOW_MEMORY_CONSTRAINT = True
+            self.lowMemoryConstraint = True
 
     def findMinMaxMemory(self):
         step("Find the min and max supported memory for this distro")
@@ -273,8 +259,8 @@ class _BalloonSmoketest(_BalloonPerfBase):
 
         # Check if guest has LOW memory constraint
         # 32-bit pv-ops guests cannot balloon up to more than 10x the amount of low memory 
-        if not self.WINDOWS and self.LOW_MEMORY_CONSTRAINT:
-            lowMemory = int(self.guest.execguest("free -l | grep Low | awk '{print $2}'").strip()) / xenrt.KILO
+        if not self.guest.windows and self.lowMemoryConstraint:
+            lowMemory = self.guest.getLowMemory()
             self.maxSupported = lowMemory * 10
             xenrt.TEC().logverbose("Due to low memory constraint, Capping maximum memory to %s" % (self.maxSupported))
 
@@ -284,10 +270,7 @@ class _BalloonSmoketest(_BalloonPerfBase):
             xenrt.TEC().logverbose("Attempting to start guest for log collection")
             val = max(self.minSupported, 1024)
             self.guest.setMemoryProperties(None, val, val, val)
-            try:
-                self.guest.start()
-            except:
-                pass
+            self.guest.start()
 
     def checkStaticMin(self):
         smin = int(self.guest.paramGet("memory-static-min")) / xenrt.MEGA
@@ -347,7 +330,7 @@ class _BalloonSmoketest(_BalloonPerfBase):
                     break
         finally:
             xenrt.TEC().comment("%u/%u iterations successful" % (success, self.ITERATIONS))
-            if self.WINDOWS:
+            if self.guest.windows:
                 if not self.SET_PAE:
                     arch = "noPAE"
                 else:
@@ -371,7 +354,7 @@ class _BalloonSmoketest(_BalloonPerfBase):
 
     def runCaseInner(self, minMem, maxMem, doLifecycleOps):
         try:
-            if self.BALLOON_UP_INITIAL_ALLOC:
+            if self.balloonUpInitialAlloc:
                 #Guests can balloon up from inital memory allocation
                 self.testMaxRange(minMem, maxMem)
             else:
@@ -472,7 +455,7 @@ class _BalloonSmoketest(_BalloonPerfBase):
             actual = self.guest.getMemoryActual()
             if target != 0:
                 difference = abs(target - actual)
-                difference = min(abs(difference - self.ALLOWED_TARGET_MISMATCH ), difference)
+                difference = min(abs(difference - self.allowedTargetMismatch ), difference)
                 percentage = float(difference) / float(target)
                 if percentage <= 1:
                     return

@@ -163,10 +163,7 @@ def installLinuxVM(site, stationary_vm=False, sr_uuid=None):
     
     sr_uuid = chooseSRUuid(site, stationary_vm, sr_uuid, '10GiB')
     guest_name = randomGuestName()
-    if xenrt.TEC().lookup("USE_DEBIAN50", False, boolean=True):
-        distro = "debian50"
-    else:
-        distro = "generic-linux"
+    distro = "rhel5x"
     guest = host.createBasicGuest(distro, name=guest_name, sr=sr_uuid)
     guest.reboot()
     return (guest, 'linux', sr_uuid, distro)
@@ -1553,9 +1550,7 @@ class DRUtils(object):
 
         vms = site['vms']
         for n,g in vms.iteritems():
-            newGuest = host.guestFactory()(n, host=g['guest'].host)
-            g['guest'].populateSubclass(newGuest)
-            newGuest.existing(g['guest'].host)
+            newGuest = createGuestObject(g['guest'].host, g['vm_uuid'], g['distro'], g['vm_type'])
             vms[n]['guest'] = newGuest
 
         for g in vms.values():
@@ -1563,12 +1558,7 @@ class DRUtils(object):
             if g['guest'].windows:
                 g['guest'].installDrivers()
             else:
-                # Workaround for CA-78632
-                xenrt.TEC().logverbose("CA-78632 class %s distro: %s" % (host.__class__, g['distro']))
-                if g['distro']=="debian50" and isinstance(host, xenrt.lib.xenserver.TampaHost):
-                    xenrt.TEC().logverbose("Skipping tools upgrade on %s" % (g['guest'].getName()))
-                else:
-                    g['guest'].installTools()
+                g['guest'].installTools()
         for g in vms.values():
             g['guest'].checkHealth()
 

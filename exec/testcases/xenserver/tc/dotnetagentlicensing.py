@@ -50,14 +50,14 @@ class DotNetAgentAdapter(object):
         vm.importVM(host,path,sr=host.getLocalSR())
         vm.start()
 
-    def settingsCleanup(self,guest):
+    def settingsCleanup(self,pool):
         xenrt.TEC().logverbose("-----Cleanup settings-----")
         try:
-            host.execdom0("xe pool-param-remove uuid=%s param-name=guest-agent-config param-key=auto_update_enabled"%host.getPool().getUUID())
+            host.execdom0("xe pool-param-remove uuid=%s param-name=guest-agent-config param-key=auto_update_enabled"%pool.getUUID())
         except:
             pass
         try:
-            host.execdom0("xe pool-param-remove uuid=%s param-name=guest-agent-config param-key=auto_update_url"%host.getPool().getUUID())
+            host.execdom0("xe pool-param-remove uuid=%s param-name=guest-agent-config param-key=auto_update_url"%pool.getUUID())
         except:
             pass
 
@@ -105,7 +105,7 @@ class DotNetAgentTestCases(xenrt.TestCase):
 
     def postRun(self):
         self.adapter.cleanupLicense(self.getDefaultPool())
-        self.adapter.settingsCleanup(self.win1)
+        self.adapter.settingsCleanup(self.getDefaultPool())
         self._revertVMs()
 
     def prepare(self, arglist):
@@ -275,6 +275,17 @@ class URLHierarchy(DotNetAgentTestCases):
         self.adapter.filesCleanup(self.win1)
 
 class ImportAndExport(DotNetAgentTestCases):
+
+    def prepare(self, arglist):
+        self.win1Real = self.getGuest(arglist[0].split('=')[1])
+        clone = self.win1Real.cloneVM(name="WSClone")
+        newarglist = ["win1=%s"%clone.name]
+        super(ImportAndExport, self).prepare(newarglist)
+
+    def postRun(self):
+        self.win1.uninstall()
+        self.win1 = self.win1Real()
+        super(ImportAndExport, self).postRun()
 
     def run(self, arglist):
         self.adapter.applyLicense(self.getDefaultPool())

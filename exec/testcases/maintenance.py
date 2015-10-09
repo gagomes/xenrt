@@ -436,6 +436,27 @@ class BiosSetup(xenrt.TestCase):
             h = xenrt.GenericHost(m)
             h.findPassword()
 
+        if h.lookup("BMC_ADDRESS", None):
+            defaultDevice = h.execdom0("ip route show | grep default | awk '{print $5}'").strip()
+            gw = h.execdom0("ip route show | grep default | awk '{print $3}'").strip()
+            subnet = IPy.IP(h.execdom0("ip route show | grep -v default | grep ' %s ' | awk '{print $1}'" % defaultDevice).strip())
+
+            bmcaddr = xenrt.getHostAddress(h.lookup("BMC_ADDRESS"))
+
+            if not IPy.IP(bmcaddr) in subnet:
+                raise xenrt.XRTError("BMC Address not on management network")
+
+            h.execdom0("ipmitool -I open lan set 1 ipsrc static")
+            h.execdom0("ipmitool -I open lan set 1 ipaddr %s" % bmcaddr)
+            h.execdom0("ipmitool -I open lan set 1 netmask %s" % subnet.netmask().strNormal())
+            h.execdom0("ipmitool -I open lan set 1 defgw ipaddr %s" % gw)
+            h.execdom0("ipmitool -I open lan set 1 access on")
+            try:
+                h.execdom0("ipmitool -I open lan set 1 user")
+            except:
+                xenrt.TEC().logverbose("Warning: could not enable default user for IPMI")
+            h.execdom0("ipmitool -I open delloem lcd set mode userdefined %s" % h.getName())
+        
         if "Dell" in h.execdom0("dmidecode -t 1"):
             if h.execdom0("test -e /opt/dell/toolkit/bin/syscfg", retval="code"):
                 try:
@@ -510,23 +531,3 @@ class BiosSetup(xenrt.TestCase):
                 except:
                     xenrt.TEC().warning("Failed to disable memtest")
                 
-        if h.lookup("BMC_ADDRESS", None):
-            defaultDevice = h.execdom0("ip route show | grep default | awk '{print $5}'").strip()
-            gw = h.execdom0("ip route show | grep default | awk '{print $3}'").strip()
-            subnet = IPy.IP(h.execdom0("ip route show | grep -v default | grep ' %s ' | awk '{print $1}'" % defaultDevice).strip())
-
-            bmcaddr = xenrt.getHostAddress(h.lookup("BMC_ADDRESS"))
-
-            if not IPy.IP(bmcaddr) in subnet:
-                raise xenrt.XRTError("BMC Address not on management network")
-
-            h.execdom0("ipmitool -I open lan set 1 ipsrc static")
-            h.execdom0("ipmitool -I open lan set 1 ipaddr %s" % bmcaddr)
-            h.execdom0("ipmitool -I open lan set 1 netmask %s" % subnet.netmask().strNormal())
-            h.execdom0("ipmitool -I open lan set 1 defgw ipaddr %s" % gw)
-            h.execdom0("ipmitool -I open lan set 1 access on")
-            try:
-                h.execdom0("ipmitool -I open lan set 1 user")
-            except:
-                xenrt.TEC().logverbose("Warning: could not enable default user for IPMI")
-            h.execdom0("ipmitool -I open delloem lcd set mode userdefined %s" % h.getName())

@@ -461,11 +461,12 @@ class BiosSetup(xenrt.TestCase):
             if h.execdom0("test -e /opt/dell/toolkit/bin/syscfg", retval="code"):
                 try:
                     h.execdom0("wget -q -O - http://linux.dell.com/repo/hardware/Linux_Repository_15.07.00/bootstrap.cgi | bash")
+                    h.execdom0("yum install -y syscfg")
                 except:
                     h.execdom0("rm -f /etc/yum.repos.d/Citrix.repo")
                     h.execdom0("rm -f /etc/yum.repos.d/CentOS-Base.repo")
                     h.execdom0("wget -q -O - http://linux.dell.com/repo/hardware/Linux_Repository_15.07.00/bootstrap.cgi | bash")
-                h.execdom0("yum install -y syscfg")
+                    h.execdom0("yum install -y syscfg")
                 h.reboot()
             syscfg = h.execdom0("/opt/dell/toolkit/bin/syscfg")
             if xenrt.TEC().lookup("DELL_SERIAL_PORT_SWAP", False, boolean=True):

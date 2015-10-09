@@ -442,6 +442,7 @@ class BiosSetup(xenrt.TestCase):
                     h.execdom0("wget -q -O - http://linux.dell.com/repo/hardware/Linux_Repository_15.07.00/bootstrap.cgi | bash")
                 except:
                     h.execdom0("rm -f /etc/yum.repos.d/Citrix.repo")
+                    h.execdom0("rm -f /etc/yum.repos.d/CentOS-Base.repo")
                     h.execdom0("wget -q -O - http://linux.dell.com/repo/hardware/Linux_Repository_15.07.00/bootstrap.cgi | bash")
                 h.execdom0("yum install -y syscfg")
                 h.reboot()

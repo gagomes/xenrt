@@ -170,7 +170,10 @@ class TCMachineCheck(xenrt.TestCase):
             if self.host.checkAlive():
                 raise xenrt.XRTFailure("Host reachable after powering down")
         finally:
-            powerctl.on()
+            try:
+                powerctl.on()
+            except:
+                pass
             xenrt.sleep(60)
             lock.release()
 

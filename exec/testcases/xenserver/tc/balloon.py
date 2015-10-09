@@ -130,17 +130,16 @@ class _BalloonPerfBase(xenrt.TestCase):
     
     def parseArgs(self, arglist):
         args = self.parseArgsKeyValue(arglist)
-        (self.DISTRO, self.ARCH) = xenrt.getDistroAndArch(args.get("DISTRO", "win7sp1-x86"))
-        self.HAP = args.get("HAP", "NPT")
-        self.DO_LIFECYCLE_OPS = args.get("DO_LIFECYCLE_OPS", False)
-        self.LIMIT_TO_30GB = args.get("LIMIT_TO_30GB", True)
+        (self.DISTRO, self.ARCH) = xenrt.getDistroAndArch(args.get("DISTRO", self.DISTRO))
+        self.HAP = args.get("HAP", self.HAP)
+        self.DO_LIFECYCLE_OPS = args.get("DO_LIFECYCLE_OPS", self.DO_LIFECYCLE_OPS)
+        self.LIMIT_TO_30GB = args.get("LIMIT_TO_30GB", self.LIMIT_TO_30GB)
     
     def installGuest(self):
         # Set up the VM
         guest = self.host.getGuest(self.DISTRO+self.ARCH)
-        if guest:
-            return guest
-        guest = self.host.createBasicGuest(distro=self.DISTRO,
+        if not guest:
+            guest = self.host.createBasicGuest(distro=self.DISTRO,
                                                arch=self.ARCH)
         if guest.windows and self.SET_PAE:
             guest.forceWindowsPAE()
@@ -222,7 +221,7 @@ class _BalloonSmoketest(_BalloonPerfBase):
             log("This is a early PV guest and it cannot balloon up beyond initial memory allocation")
             self.balloonUpInitialAlloc = False
         elif self.guest.isHVMLinux():
-            log("This is a early HVM PV guest and we need to consider the constraint for 10 MB video memory")
+            log("This is HVM PV guest and we need to consider the constraint for 10 MB video memory")
             self.allowedTargetMismatch = 10
         elif self.ARCH == "x86-32":
             log("This is a 32-bit PV guest and it cannot balloon up beyond 10 X Low memory")
@@ -407,7 +406,7 @@ class _BalloonSmoketest(_BalloonPerfBase):
             #If the guest doesn't manage to comply with this target for any of many reasons 
             #(ranging from too busy, crashed guest, malicious guest, buggy balloon driver)
             #then the product marks the guest as uncooperative
-            #Check for uncooperative tag, if found shut down the VM, print the details and proceed with the test
+            #Check for uncooperative tag, if found shut down the VM and raise a failure
             elif "Memory target not met" in str(e):
                 res = self.host.execdom0("xenstore-ls -pf | grep memory | grep -E 'uncoop'", level=xenrt.RC_OK)
                 if res and "uncooperative" in res:
@@ -572,12 +571,8 @@ class TCVmInstallation(xenrt.TestCase):
     def installGuest(self, distroName):
         # Set up the VM
         (distro, arch) = xenrt.getDistroAndArch(distroName)
-        if distro.startswith("w") or distro.startswith("v"):
-            guest = self.host.createGenericWindowsGuest(distro=distro, 
-                                                        arch=arch, vcpus=2, name=distro+arch)
-        else:
-            guest = self.host.createBasicGuest(distro=distro,
-                                               arch=arch, name=distro+arch)
+        guest = self.host.createBasicGuest(distro=distro,
+                                    arch=arch, name=distro+arch)
 
 
 class TC9284(xenrt.TestCase):
@@ -1944,7 +1939,7 @@ class _BalloonBootTime(xenrt.TestCase):
         self.host = self.getDefaultHost()
         self.guest = self.getGuest(self.DISTRO)
         if not self.guest:
-            raise xenrt.XRTError("Could not find guest %s in  registry." % (self.DISTRO))
+            raise xenrt.XRTError("Could not find guest: %s" % (self.DISTRO))
         self.guest.shutdown()
 
     def run(self, arglist=None):

@@ -334,7 +334,7 @@ class AUByDefault(DotNetAgentTestCases):
         version = self.agent.agentVersion()
         self.agent.restartAgent()
         xenrt.sleep(200)
-        if version != self.agent.agentVersion():
+        if version == self.agent.agentVersion():
             xenrt.XRTFailure("Agent Did not install latest version")
 
 class AUNoDownload(DotNetAgentTestCases):

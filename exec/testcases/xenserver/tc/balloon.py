@@ -218,7 +218,7 @@ class _BalloonSmoketest(_BalloonPerfBase):
         # All Linux distros behave differently on memory balloon up.
         # Check the type and accordingly set the class variables
         if [d for d in self.EARLY_PV_LINUX.split(",") if re.match(d,self.DISTRO)]:
-            log("This is a early PV guest and it cannot balloon up beyond initial memory allocation")
+            log("This is an early PV guest and it cannot balloon up beyond initial memory allocation")
             self.balloonUpInitialAlloc = False
         elif self.guest.isHVMLinux():
             log("This is HVM PV guest and we need to consider the constraint for 10 MB video memory")
@@ -260,7 +260,7 @@ class _BalloonSmoketest(_BalloonPerfBase):
         # 32-bit pv-ops guests cannot balloon up to more than 10x the amount of low memory 
         if not self.guest.windows and self.lowMemoryConstraint:
             lowMemory = self.guest.getLowMemory()
-            self.maxSupported = lowMemory * 10
+            self.maxSupported = min(lowMemory * 10, self.maxSupported)
             xenrt.TEC().logverbose("Due to low memory constraint, Capping maximum memory to %s" % (self.maxSupported))
 
     def preLogs(self):

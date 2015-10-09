@@ -473,8 +473,8 @@ class _VDIPerVM(xenrt.TestCase):
     
     def __init__(self):
         xenrt.TestCase.__init__(self)
-        vdis = []
-        cli = None
+        self.vdis = []
+        self.cli = None
         
     
     def prepare(self, arglist=None):

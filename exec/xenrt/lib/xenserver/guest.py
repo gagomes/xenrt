@@ -368,7 +368,7 @@ class Guest(xenrt.GenericGuest):
                                      "(arch %s)" % (distro, arch))
 
         self.isoname = isoname
-        if self.memory and self.isoname and ([i for i in ["win81","ws12r2"] if i in self.isoname]):
+        if self.memory and self.isoname and ([i for i in ["win81","ws12r2","win10"] if i in self.isoname]):
             if rootdisk == self.DEFAULT:
                 rootdisk = max(32768, 20480 + self.memory)
             else:

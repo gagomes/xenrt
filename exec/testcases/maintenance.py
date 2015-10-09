@@ -438,7 +438,11 @@ class BiosSetup(xenrt.TestCase):
 
         if "Dell" in h.execdom0("dmidecode -t 1"):
             if h.execdom0("test -e /opt/dell/toolkit/bin/syscfg", retval="code"):
-                h.execdom0("wget -q -O - http://linux.dell.com/repo/hardware/Linux_Repository_15.07.00/bootstrap.cgi | bash")
+                try:
+                    h.execdom0("wget -q -O - http://linux.dell.com/repo/hardware/Linux_Repository_15.07.00/bootstrap.cgi | bash")
+                except:
+                    h.execdom0("rm -f /etc/yum.repos.d/Citrix.repo")
+                    h.execdom0("wget -q -O - http://linux.dell.com/repo/hardware/Linux_Repository_15.07.00/bootstrap.cgi | bash")
                 h.execdom0("yum install -y syscfg")
                 h.reboot()
             syscfg = h.execdom0("/opt/dell/toolkit/bin/syscfg")

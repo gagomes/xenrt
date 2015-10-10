@@ -497,12 +497,17 @@ class BiosSetup(xenrt.TestCase):
                         h.execdom0("apt-get update")
                     else:
                         try:
-                            h.execdom0("wget -q -O - http://linux.dell.com/repo/hardware/Linux_Repository_15.07.00/bootstrap.cgi | bash")
-                            h.execdom0("yum install -y syscfg")
+                            try:
+                                h.execdom0("wget -q -O - http://linux.dell.com/repo/hardware/Linux_Repository_15.07.00/bootstrap.cgi | bash")
+                                h.execdom0("yum install -y syscfg")
+                            except:
+                                h.execdom0("rm -f /etc/yum.repos.d/Citrix.repo")
+                                h.execdom0("rm -f /etc/yum.repos.d/CentOS-Base.repo")
+                                h.execdom0("wget -q -O - http://linux.dell.com/repo/hardware/Linux_Repository_15.07.00/bootstrap.cgi | bash")
+                                h.execdom0("yum install -y syscfg")
                         except:
-                            h.execdom0("rm -f /etc/yum.repos.d/Citrix.repo")
-                            h.execdom0("rm -f /etc/yum.repos.d/CentOS-Base.repo")
-                            h.execdom0("wget -q -O - http://linux.dell.com/repo/hardware/Linux_Repository_15.07.00/bootstrap.cgi | bash")
+                            # Older version for Creedence
+                            h.execdom0("wget -q -O - http://linux.dell.com/repo/hardware/OMSA_7.4.0/bootstrap.cgi | bash")
                             h.execdom0("yum install -y syscfg")
                     h.reboot()
                 syscfg = h.execdom0("/opt/dell/toolkit/bin/syscfg")
@@ -569,4 +574,4 @@ class BiosSetup(xenrt.TestCase):
                     except:
                         xenrt.TEC().warning("Failed to disable memtest")
         except:
-            xenrt.TEC().warning("Failed to configure Dell extensions")
+            raise

@@ -475,18 +475,30 @@ class BiosSetup(xenrt.TestCase):
                 h.execdom0("ipmitool -I open lan set 1 user")
             except:
                 xenrt.TEC().logverbose("Warning: could not enable default user for IPMI")
-            h.execdom0("ipmitool -I open delloem lcd set mode userdefined %s" % h.getName())
+            try:
+                h.execdom0("ipmitool -I open delloem lcd set mode userdefined %s" % h.getName())
+            except:
+                xenrt.TEC().logverbose("Warning: could not set Dell LCD")
         try: 
             if "Dell" in h.execdom0("dmidecode -t 1"):
                 if h.execdom0("test -e /opt/dell/toolkit/bin/syscfg", retval="code"):
-                    try:
-                        h.execdom0("wget -q -O - http://linux.dell.com/repo/hardware/Linux_Repository_15.07.00/bootstrap.cgi | bash")
-                        h.execdom0("yum install -y syscfg")
-                    except:
-                        h.execdom0("rm -f /etc/yum.repos.d/Citrix.repo")
-                        h.execdom0("rm -f /etc/yum.repos.d/CentOS-Base.repo")
-                        h.execdom0("wget -q -O - http://linux.dell.com/repo/hardware/Linux_Repository_15.07.00/bootstrap.cgi | bash")
-                        h.execdom0("yum install -y syscfg")
+                    if h.execdom0("apt-get", retval="code") == 0:
+                        distro = h.execdom0("""cat /etc/apt/sources.list | grep "^deb" | awk '{print $3}' | cut -d "-" -f 1 | cut -d "/" -f 1 | head -1""").strip()
+                        h.execdom0("rm -f /etc/apt/sources.list.d/linux.dell.com.sources.list")
+                        h.execdom0("""echo 'deb http://linux.dell.com/repo/community/ubuntu %s openmanage' | tee -a /etc/apt/sources.list.d/linux.dell.com.sources.list""" % distro)
+                        h.execdom0("gpg --keyserver hkp://pool.sks-keyservers.net:80 --recv-key 1285491434D8786F")
+                        h.execdom0("gpg -a --export 1285491434D8786F | apt-key add -")
+                        h.execdom0("apt-get update")
+                        h.execdom0("apt-get install -y --force-yes syscfg")
+                    else:
+                        try:
+                            h.execdom0("wget -q -O - http://linux.dell.com/repo/hardware/Linux_Repository_15.07.00/bootstrap.cgi | bash")
+                            h.execdom0("yum install -y syscfg")
+                        except:
+                            h.execdom0("rm -f /etc/yum.repos.d/Citrix.repo")
+                            h.execdom0("rm -f /etc/yum.repos.d/CentOS-Base.repo")
+                            h.execdom0("wget -q -O - http://linux.dell.com/repo/hardware/Linux_Repository_15.07.00/bootstrap.cgi | bash")
+                            h.execdom0("yum install -y syscfg")
                     h.reboot()
                 syscfg = h.execdom0("/opt/dell/toolkit/bin/syscfg")
                 if xenrt.TEC().lookup("DELL_SERIAL_PORT_SWAP", False, boolean=True):

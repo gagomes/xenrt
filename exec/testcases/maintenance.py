@@ -446,6 +446,26 @@ class BiosSetup(xenrt.TestCase):
             if not IPy.IP(bmcaddr) in subnet:
                 raise xenrt.XRTError("BMC Address not on management network")
 
+            try:
+                h.execdom0("modprobe ipmi_devintf")
+                h.execdom0("modprobe ipmi_msghandler")
+                h.execdom0("modprobe ipmi_poweroff")
+                h.execdom0("modprobe ipmi_si")
+                h.execdom0("modprobe ipmi_watchdog")
+                h.execdom0("ipmitool -I open lan print 1")
+            except:
+                try:
+                    h.execdom0("apt-get update")
+                    h.execdom0("apt-get install -y --force-yes openipmi ipmitool")
+                except:
+                    h.execdom0("yum install -y OpenIPMI OpenIPMI-tools")
+                h.execdom0("modprobe ipmi_devintf")
+                h.execdom0("modprobe ipmi_msghandler")
+                h.execdom0("modprobe ipmi_poweroff")
+                h.execdom0("modprobe ipmi_si")
+                h.execdom0("modprobe ipmi_watchdog")
+
+            h.execdom0("ipmitool -I open lan print 1")
             h.execdom0("ipmitool -I open lan set 1 ipsrc static")
             h.execdom0("ipmitool -I open lan set 1 ipaddr %s" % bmcaddr)
             h.execdom0("ipmitool -I open lan set 1 netmask %s" % subnet.netmask().strNormal())
@@ -456,79 +476,80 @@ class BiosSetup(xenrt.TestCase):
             except:
                 xenrt.TEC().logverbose("Warning: could not enable default user for IPMI")
             h.execdom0("ipmitool -I open delloem lcd set mode userdefined %s" % h.getName())
-        
-        if "Dell" in h.execdom0("dmidecode -t 1"):
-            if h.execdom0("test -e /opt/dell/toolkit/bin/syscfg", retval="code"):
-                try:
-                    h.execdom0("wget -q -O - http://linux.dell.com/repo/hardware/Linux_Repository_15.07.00/bootstrap.cgi | bash")
-                    h.execdom0("yum install -y syscfg")
-                except:
-                    h.execdom0("rm -f /etc/yum.repos.d/Citrix.repo")
-                    h.execdom0("rm -f /etc/yum.repos.d/CentOS-Base.repo")
-                    h.execdom0("wget -q -O - http://linux.dell.com/repo/hardware/Linux_Repository_15.07.00/bootstrap.cgi | bash")
-                    h.execdom0("yum install -y syscfg")
-                h.reboot()
-            syscfg = h.execdom0("/opt/dell/toolkit/bin/syscfg")
-            if xenrt.TEC().lookup("DELL_SERIAL_PORT_SWAP", False, boolean=True):
-                try:
-                    h.execdom0("/opt/dell/toolkit/bin/syscfg --serialportaddrsel=alternate")
-                except:
-                    xenrt.TEC().warning("Failed to change serial port config")
-            elif xenrt.TEC().lookup("DELL_SERIAL_PORT_DEFAULT", False, boolean=True):
-                try:
-                    h.execdom0("/opt/dell/toolkit/bin/syscfg --serialportaddrsel=default")
-                except:
-                    xenrt.TEC().warning("Failed to change serial port config")
-            if "--serialcomm" in syscfg:
-                if h.lookup("SERIAL_CONSOLE_PORT", None) == "1":
-                    serial = "com2cr"
-                else:
-                    serial = "com1cr"
-                try:
-                    h.execdom0("/opt/dell/toolkit/bin/syscfg --serialcomm=%s" % serial)
-                except:
-                    xenrt.TEC().warning("Failed to configure serial output")
-            if "--acpower" in syscfg:
-                try:
-                    h.execdom0("/opt/dell/toolkit/bin/syscfg --acpower=on")
-                except:
-                    xenrt.TEC().warning("Failed to change AC power config")
-            if "--f1f2promptonerror" in syscfg:
-                try:
-                    h.execdom0("/opt/dell/toolkit/bin/syscfg --f1f2promptonerror=disable")
-                except:
-                    xenrt.TEC().warning("Failed to change F1/F2 prompt config")
-            if "--sriov" in syscfg:
-                try:
-                    h.execdom0("/opt/dell/toolkit/bin/syscfg --sriov=enable")
-                except:
-                    xenrt.TEC().warning("Failed to enable SRIOV")
-            if "--inteltxt" in syscfg:
-                try:
-                    h.execdom0("/opt/dell/toolkit/bin/syscfg --inteltxt=enable")
-                except:
-                    xenrt.TEC().warning("Failed to enable TXT")
-                try:
-                    h.execdom0("/opt/dell/toolkit/bin/syscfg tpm --tpmsecurity=onwithpbm")
-                except:
-                    xenrt.TEC().warning("Failed to enable TPM security")
-                try:
-                    h.execdom0("/opt/dell/toolkit/bin/syscfg tpm --tpmactivation=enabled")
-                except:
-                    xenrt.TEC().warning("Failed to activate TPM")
-            if h.lookup("ASSET_TAG", None) and "--asset" in syscfg:
-                try:
-                    h.execdom0("/opt/dell/toolkit/bin/syscfg --asset=%s" % (h.lookup("ASSET_TAG")))
-                except:
-                    xenrt.TEC().warning("Failed to enable TXT")
-            if "--virtualization" in syscfg:
-                try:
-                    h.execdom0("/opt/dell/toolkit/bin/syscfg --virtualization=enable")
-                except:
-                    xenrt.TEC().warning("Failed to enable TXT")
-            if "--memtest" in syscfg:
-                try:
-                    h.execdom0("/opt/dell/toolkit/bin/syscfg --memtest=disable")
-                except:
-                    xenrt.TEC().warning("Failed to disable memtest")
-                
+        try: 
+            if "Dell" in h.execdom0("dmidecode -t 1"):
+                if h.execdom0("test -e /opt/dell/toolkit/bin/syscfg", retval="code"):
+                    try:
+                        h.execdom0("wget -q -O - http://linux.dell.com/repo/hardware/Linux_Repository_15.07.00/bootstrap.cgi | bash")
+                        h.execdom0("yum install -y syscfg")
+                    except:
+                        h.execdom0("rm -f /etc/yum.repos.d/Citrix.repo")
+                        h.execdom0("rm -f /etc/yum.repos.d/CentOS-Base.repo")
+                        h.execdom0("wget -q -O - http://linux.dell.com/repo/hardware/Linux_Repository_15.07.00/bootstrap.cgi | bash")
+                        h.execdom0("yum install -y syscfg")
+                    h.reboot()
+                syscfg = h.execdom0("/opt/dell/toolkit/bin/syscfg")
+                if xenrt.TEC().lookup("DELL_SERIAL_PORT_SWAP", False, boolean=True):
+                    try:
+                        h.execdom0("/opt/dell/toolkit/bin/syscfg --serialportaddrsel=alternate")
+                    except:
+                        xenrt.TEC().warning("Failed to change serial port config")
+                elif xenrt.TEC().lookup("DELL_SERIAL_PORT_DEFAULT", False, boolean=True):
+                    try:
+                        h.execdom0("/opt/dell/toolkit/bin/syscfg --serialportaddrsel=default")
+                    except:
+                        xenrt.TEC().warning("Failed to change serial port config")
+                if "--serialcomm" in syscfg:
+                    if h.lookup("SERIAL_CONSOLE_PORT", None) == "1":
+                        serial = "com2cr"
+                    else:
+                        serial = "com1cr"
+                    try:
+                        h.execdom0("/opt/dell/toolkit/bin/syscfg --serialcomm=%s" % serial)
+                    except:
+                        xenrt.TEC().warning("Failed to configure serial output")
+                if "--acpower" in syscfg:
+                    try:
+                        h.execdom0("/opt/dell/toolkit/bin/syscfg --acpower=on")
+                    except:
+                        xenrt.TEC().warning("Failed to change AC power config")
+                if "--f1f2promptonerror" in syscfg:
+                    try:
+                        h.execdom0("/opt/dell/toolkit/bin/syscfg --f1f2promptonerror=disable")
+                    except:
+                        xenrt.TEC().warning("Failed to change F1/F2 prompt config")
+                if "--sriov" in syscfg:
+                    try:
+                        h.execdom0("/opt/dell/toolkit/bin/syscfg --sriov=enable")
+                    except:
+                        xenrt.TEC().warning("Failed to enable SRIOV")
+                if "--inteltxt" in syscfg:
+                    try:
+                        h.execdom0("/opt/dell/toolkit/bin/syscfg --inteltxt=enable")
+                    except:
+                        xenrt.TEC().warning("Failed to enable TXT")
+                    try:
+                        h.execdom0("/opt/dell/toolkit/bin/syscfg tpm --tpmsecurity=onwithpbm")
+                    except:
+                        xenrt.TEC().warning("Failed to enable TPM security")
+                    try:
+                        h.execdom0("/opt/dell/toolkit/bin/syscfg tpm --tpmactivation=enabled")
+                    except:
+                        xenrt.TEC().warning("Failed to activate TPM")
+                if h.lookup("ASSET_TAG", None) and "--asset" in syscfg:
+                    try:
+                        h.execdom0("/opt/dell/toolkit/bin/syscfg --asset=%s" % (h.lookup("ASSET_TAG")))
+                    except:
+                        xenrt.TEC().warning("Failed to enable TXT")
+                if "--virtualization" in syscfg:
+                    try:
+                        h.execdom0("/opt/dell/toolkit/bin/syscfg --virtualization=enable")
+                    except:
+                        xenrt.TEC().warning("Failed to enable TXT")
+                if "--memtest" in syscfg:
+                    try:
+                        h.execdom0("/opt/dell/toolkit/bin/syscfg --memtest=disable")
+                    except:
+                        xenrt.TEC().warning("Failed to disable memtest")
+        except:
+            xenrt.TEC().warning("Failed to configure Dell extensions")

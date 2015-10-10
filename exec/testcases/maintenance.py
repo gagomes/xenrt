@@ -486,10 +486,15 @@ class BiosSetup(xenrt.TestCase):
                         distro = h.execdom0("""cat /etc/apt/sources.list | grep "^deb" | awk '{print $3}' | cut -d "-" -f 1 | cut -d "/" -f 1 | head -1""").strip()
                         h.execdom0("rm -f /etc/apt/sources.list.d/linux.dell.com.sources.list")
                         h.execdom0("""echo 'deb http://linux.dell.com/repo/community/ubuntu %s openmanage' | tee -a /etc/apt/sources.list.d/linux.dell.com.sources.list""" % distro)
-                        h.execdom0("gpg --keyserver hkp://pool.sks-keyservers.net:80 --recv-key 1285491434D8786F")
-                        h.execdom0("gpg -a --export 1285491434D8786F | apt-key add -")
+                        try:
+                            h.execdom0("gpg --keyserver hkp://pool.sks-keyservers.net:80 --recv-key 1285491434D8786F")
+                            h.execdom0("gpg -a --export 1285491434D8786F | apt-key add -")
+                        except:
+                            pass
                         h.execdom0("apt-get update")
                         h.execdom0("apt-get install -y --force-yes syscfg")
+                        h.execdom0("rm -f /etc/apt/sources.list.d/linux.dell.com.sources.list")
+                        h.execdom0("apt-get update")
                     else:
                         try:
                             h.execdom0("wget -q -O - http://linux.dell.com/repo/hardware/Linux_Repository_15.07.00/bootstrap.cgi | bash")

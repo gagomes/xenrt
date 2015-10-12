@@ -63,8 +63,12 @@ class DotNetAgentAdapter(object):
 
     def nonCryptoMSIInstalled(self,guest):
         os = guest.getInstance().os
+        arch = self.os.getArch()
         try:
-            key = os.winRegLookup("HKLM","SOFTWARE\\Citrix\\XenTools","UncryptographicallySignedMSI",healthCheckOnFailure=False)
+            if "64" in arch:
+                key = os.winRegLookup("HKLM","SOFTWARE\\Wow6432Node\\Citrix\\XenTools","UncryptographicallySignedMSI",healthCheckOnFailure=False)
+            else:
+                key = os.winRegLookup("HKLM","SOFTWARE\\Citrix\\XenTools","UncryptographicallySignedMSI",healthCheckOnFailure=False)
             if key:
                 return True
         except:

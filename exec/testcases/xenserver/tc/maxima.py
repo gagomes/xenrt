@@ -476,6 +476,13 @@ class _VDIPerVM(xenrt.TestCase):
         self.vdis = []
         self.cli = None
         
+    def vbdTypeCDDestroy(self):
+        cd_vbds = self.host.minimalList("vbd-list",args="vm-uuid=%s type=CD" % 
+                                                       (self.guest.getUUID()))
+        for vbd in cd_vbds:
+            if self.host.genParamGet("vbd",vbd,"currently-attached") == "true":
+                self.cli.execute("vbd-unplug", "uuid=%s" % (vbd))
+                self.cli.execute("vbd-destroy", "uuid=%s" % (vbd))
     
     def prepare(self, arglist=None):
         # Get a host to install on
@@ -485,7 +492,8 @@ class _VDIPerVM(xenrt.TestCase):
         self.guest = self.host.createBasicGuest(distro = self.DISTRO)
         self.uninstallOnCleanup(self.guest)
         xenrt.TEC().logverbose("...VM installed successfully")
-        self.guest.removeCD()
+        self.cli = self.host.getCLIInstance()
+        self.vbdTypeCDDestroy()
         if self.MAX == True:
             self.MAX_SIZE = int(xenrt.TEC().lookup(["VERSION_CONFIG",xenrt.TEC().lookup("PRODUCT_VERSION"),"MAX_VDI_SIZE_%s" % (self.SR_TYPE)]))
         else:
@@ -511,8 +519,6 @@ class _VDIPerVM(xenrt.TestCase):
             raise xenrt.XRTError("SR is not big enough (%u MB) to test"
                                          " %u required VDIs" % (psize,requiredVBDs))
         
-        # Get the CLI
-        self.cli = self.host.getCLIInstance()
         # Determine how many VBDs we can add to the guest
         vbddevices = self.host.genParamGet("vm",
                                       self.guest.getUUID(),
@@ -580,12 +586,7 @@ class _VDIPerVM(xenrt.TestCase):
                 xenrt.TEC().warning("Exception destroying VDI %s" % (vdi))
         # Delete Virtual CD drive
         try:
-            cd_vbds = self.host.minimalList("vbd-list",args="vm-uuid=%s type=CD" % 
-                                                       (self.guest.getUUID()))
-            for vbd in cd_vbds:
-                if self.host.genParamGet("vbd",vbd,"currently-attached") == "true":
-                    self.cli.execute("vbd-unplug", "uuid=%s" % (vbd))
-                self.cli.execute("vbd-destroy", "uuid=%s" % (vbd))
+            self.vbdTypeCDDestroy()
         except:
             xenrt.TEC().warning("Exception destroying Virtual CD")
         del self.vdis[:]

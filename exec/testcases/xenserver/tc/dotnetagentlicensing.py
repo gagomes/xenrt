@@ -54,11 +54,11 @@ class DotNetAgentAdapter(object):
         xenrt.TEC().logverbose("-----Cleanup settings-----")
         try:
             host.execdom0("xe pool-param-remove uuid=%s param-name=guest-agent-config param-key=auto_update_enabled"%pool.getUUID())
-        except e:
+        except Exception, e:
             xenrt.TEC().logverbose("%s"%e)
         try:
             host.execdom0("xe pool-param-remove uuid=%s param-name=guest-agent-config param-key=auto_update_url"%pool.getUUID())
-        except e:
+        except Exception, e:
             xenrt.TEC().logverbose("%s"%e)
 
     def nonCryptoMSIInstalled(self,guest):

@@ -82,7 +82,7 @@ class ThinLVHDPerfBase(testcases.xenserver.tc.perf.libperf.PerfTestCase):
                     local_disk = self.luntype.split(":")[1]
 
                 # create fast lvm sr in dom0 on the chosen dom0 local_disk
-                diskname = self.host.execdom0("basename `readlink -f %s`" % device).strip()
+                diskname = self.host.execdom0("basename `readlink -f %s`" % local_disk).strip()
                 sr = xenrt.lib.xenserver.LVMStorageRepository(self.host, 'SR-%s' % diskname)
                 sr.create(local_disk)  # TODO: default to what when local_disk is None?
 

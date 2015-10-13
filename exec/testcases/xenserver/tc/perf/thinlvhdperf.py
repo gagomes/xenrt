@@ -69,10 +69,30 @@ class ThinLVHDPerfBase(testcases.xenserver.tc.perf.libperf.PerfTestCase):
 
         if self.srtype=="lvmoiscsi":
             size = srsize * xenrt.KILO # converting size to MiB
-            #lun = xenrt.ISCSITemporaryLun(size)
-            sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.host, "lvmoiscsi", thin_prov=self.thinprov)
-#            sr.create(lun, subtype="lvm", physical_size=size, findSCSIID=True, noiqnset=True)
-            sr.create(subtype="lvm", physical_size=size, findSCSIID=True)
+            if self.luntype=="default": # xenrt default lun for the host, usually a netapp backend
+                sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.host, "lvmoiscsi", thin_prov=self.thinprov)
+                sr.create(subtype="lvm", physical_size=size, findSCSIID=True)
+            elif self.luntype.startswith("controller"): # uses a iscsi server vm in the controller
+                lun = xenrt.ISCSITemporaryLun(size)
+                sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.host, "lvmoiscsi", thin_prov=self.thinprov)
+                sr.create(lun, subtype="lvm", physical_size=size, findSCSIID=True, noiqnset=True)
+            elif self.luntype.startswith("localvm"): # uses a iscsi server vm in the same host as the test vm
+                local_disk = None
+                if len(self.luntype.split(":")) > 1:
+                    local_disk = self.luntype.split(":")[1]
+
+                # create fast lvm sr in dom0 on the chosen dom0 local_disk
+                diskname = self.host.execdom0("basename `readlink -f %s`" % device).strip()
+                sr = xenrt.lib.xenserver.LVMStorageRepository(self.host, 'SR-%s' % diskname)
+                sr.create(local_disk)  # TODO: default to what when local_disk is None?
+
+                # create local iscsi server vm backed by a fast local lvm sr on the chosen dom0 local_disk
+                lun = xenrt.ISCSIVMLun(host=self.host, sruuid=sr.uuid)
+                sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.host, "lvmoiscsi", thin_prov=self.thinprov)
+                sr.create(lun, subtype="lvm", physical_size=size, findSCSIID=True, noiqnset=True)
+            else:
+                raise xenrt.XRTError("LUN Type: %s not supported in the test" % self.luntype)
+
         elif self.srtype=="lvmohba":
             fcLun = self.host.lookup("SR_FCHBA", "LUN0")
             fcSRScsiid = self.host.lookup(["FC", fcLun, "SCSIID"], None)
@@ -122,6 +142,7 @@ class TCIOLatency(ThinLVHDPerfBase):
             "arch": ["x86-64", "arch", "ARCH"],
             "srsize": ["100", "srsize", "SRSIZE"],
             "srtype": ["lvmoiscsi", "srtype", "SRTYPE"],
+            "luntype": ["default", "luntype", "LUNTYPE"],  # eg: default, controller, localvm:/dev/sdb
             "thinprov": [False, "thinprov", "THINPROV"],
             "goldvm": ["vm00", "goldvm"],
             "edisks": [1, "edisks"],
@@ -283,6 +304,7 @@ class TCVDIScalability(ThinLVHDPerfBase):
     ENV_VARS = {"numvms": [100, "numvms", "VMCOUNT"],
             "distro": ["debian70", "distro", "DISTRO"],
             "srtype": ["lvmoiscsi", "srtype", "SRTYPE"],
+            "luntype": ["default", "luntype", "LUNTYPE"],  # eg: default, controller, localvm:/dev/sdb
             "srsize": ["100", "srsize", "SRSIZE"],
             "thinprov": [False, "thinprov", "THINPROV"],
             "outputfile": ["result_vdiscalability.txt", "outputfile", "OUTPUTFILE"],

@@ -369,10 +369,12 @@ class Guest(xenrt.GenericGuest):
 
         self.isoname = isoname
         if self.memory and self.isoname and ([i for i in ["win81","ws12r2","win10"] if i in self.isoname]):
+            minRootDisk = xenrt.TEC().lookup(["GUEST_LIMITATIONS"],self.isoname,"MIN_ROOTDISK")
+            minRootDiskDiff = xenrt.TEC().lookup(["GUEST_LIMITATIONS"],self.isoname,"MIN_ROOTDISK_MEMORY_DIFF")
             if rootdisk == self.DEFAULT:
-                rootdisk = max((xenrt.TEC().lookup(["GUEST_LIMITATIONS"],self.isoname,"MIN_ROOTDISK")),(xenrt.TEC().lookup(["GUEST_LIMITATIONS"],self.isoname,"MIN_ROOTDISK_MEMORY_DIFF")) + self.memory)
+                rootdisk = max(minRootDisk , minRootDiskDiff + self.memory)
             else:
-                rootdisk = max((xenrt.TEC().lookup(["GUEST_LIMITATIONS"],self.isoname,"MIN_ROOTDISK")),(xenrt.TEC().lookup(["GUEST_LIMITATIONS"],self.isoname,"MIN_ROOTDISK_MEMORY_DIFF")) + self.memory, rootdisk)
+                rootdisk = max(minRootDisk , minRootDiskDiff + self.memory, rootdisk)
             xenrt.TEC().logverbose("Increasing root disk to %d" % rootdisk)
 
         if distro:

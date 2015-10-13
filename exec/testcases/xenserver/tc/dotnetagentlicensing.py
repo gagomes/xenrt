@@ -53,11 +53,11 @@ class DotNetAgentAdapter(object):
     def settingsCleanup(self, host):
         xenrt.TEC().logverbose("-----Cleanup settings-----")
         try:
-            host.execdom0("xe pool-param-remove uuid=%s param-name=guest-agent-config param-key=auto_update_enabled"%host.getPool().uuid)
+            host.execdom0("xe pool-param-remove uuid=%s param-name=guest-agent-config param-key=auto_update_enabled"%host.getPool().getUUID())
         except Exception, e:
             xenrt.TEC().logverbose("%s"%e)
         try:
-            host.execdom0("xe pool-param-remove uuid=%s param-name=guest-agent-config param-key=auto_update_url"%host.getPool().uuid)
+            host.execdom0("xe pool-param-remove uuid=%s param-name=guest-agent-config param-key=auto_update_url"%host.getPool().getUUID())
         except Exception, e:
             xenrt.TEC().logverbose("%s"%e)
 

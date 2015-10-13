@@ -192,8 +192,8 @@ class TCMachineCheck(xenrt.TestCase):
     def testPowerPDU(self):
         """Verify the host is on the correct PDU port (either as primary or fallback)"""
         powerctl = self.host.machine.powerctl
-        #if isinstance(powerctl, xenrt.powerctl.IPMIWithPDUFallback):
-        #    powerctl = powerctl.PDU
+        if isinstance(powerctl, xenrt.powerctl.IPMIWithPDUFallback):
+            powerctl = powerctl.PDU
         
         if not isinstance(powerctl, xenrt.powerctl.PDU):
             raise xenrt.XRTSkip("No PDU support found")

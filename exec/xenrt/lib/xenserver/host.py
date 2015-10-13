@@ -808,7 +808,6 @@ class Host(xenrt.GenericHost):
             self.i_upgrade = upgrade
             self.i_async = async
             self.i_suppackcds = suppackcds
-            self.resetDisk()
 
         if upgrade:
             # Default to existing values if not specified

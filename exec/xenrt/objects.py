@@ -6804,19 +6804,6 @@ chain tftp://${next-server}/%s
             guest.existing(self.containerHost)
         return self.containerHost
 
-
-    def resetDisk(self):
-        """Reset the disk before installation if this is a Xen-On-Xen host, to stop thin provisioned VDIs fattening"""
-        container = self.lookup("CONTAINER_HOST", None)
-        if not container:
-            return
-        self.machine.powerctl.off()
-        host = self.getContainerHost()
-        guest = host.guests[self.machine.name]
-        guest.removeDisk(0)
-        disksize = int(self.lookup(("DISK_SIZE"), "50")) * xenrt.GIGA
-        guest.createDisk(sizebytes=disksize, sruuid="DEFAULT", bootable=True)
-
     def _parseNetworkTopology(self, topology, useFriendlySuffix=False):
         """Parse a network topology specification. Takes either a string
         containing XML or a XML DOM node."""

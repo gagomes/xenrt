@@ -1558,10 +1558,7 @@ class TC8982(xenrt.TestCase):
         if self.usevpxwlb:
             xenrt.TEC().logverbose("Using VPXWLB")
             self.vpx_os_version = xenrt.TEC().lookup("VPX_OS_VERSION", "CentOS5")
-            if self.vpx_os_version == "CentOS7":
-                self.wlbappsrv = xenrt.WlbApplianceServerHVM(None)
-            else:
-                self.wlbappsrv = xenrt.WlbApplianceServer(None)
+            self.wlbserver = xenrt.WlbApplianceBase.constructWLBInstance(g, self.vpx_os_version)
             self.WLBSERVER = _KirkwoodBase.WLBSERVER
             self.WLBUSERNAME = self.wlbappsrv.wlb_username #"wlbuser"
             self.WLBPASSWORD = self.wlbappsrv.wlb_password # default password

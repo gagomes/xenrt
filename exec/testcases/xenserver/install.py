@@ -1530,15 +1530,12 @@ class TCVPXWLBSourceCheck(SourceISOCheck): # TC-18000
             password=xenrt.TEC().lookup("DEFAULT_PASSWORD"))
         xenrt.TEC().registry.guestPut(self.APPLIANCE_NAME, g)
         g.host = self.host
-        if self.vpx_os_version == "CentOS7":
-            self.wlbserver = xenrt.WlbApplianceServerHVM(g) # CentOS 7 VPX, HVM guest
-        else:
-            self.wlbserver = xenrt.WlbApplianceServer(g)
+        self.wlbserver = xenrt.WlbApplianceBase.constructWLBInstance(g, self.vpx_os_version)
         g.importVM(self.host, xenrt.TEC().getFile("xe-phase-1/vpx-wlb.xva"))
         g.windows = False
-        g.lifecycleOperation("vm-start", specifyOn=True)
-        # here we should support both old (CentOS5) and new (CentOS7) WLB, disable sshcheck
-        g.waitReadyAfterStart2(sshcheck=False)
+        g.hasSSH = False # here we should support both old (CentOS5) and new (CentOS7) WLB, disable sshcheck
+        g.tailored = True # We do not need tailor for WLB, and old (CentOS5) WLB does not have ssh.
+        g.start()
         self.getLogsFrom(g)
 
         self.wlbserver.doFirstbootUnattendedSetup()
@@ -1605,9 +1602,10 @@ class TCVPXConversionSourceCheck(SourceISOCheck): # TC-18001
         g.importVM(self.host, xenrt.TEC().getFile("xe-phase-1/vpx-conversion.xva"))
         xenrt.TEC().logverbose("Conversion VPX Imported")
         g.windows = False
+        g.hasSSH = False # here we should support both old (CentOS5) and new (CentOS7) XCM, disable sshcheck
+        g.tailored = True # We do not need tailor for XCM, and old (CentOS5) XCM does not have ssh.
         g.lifecycleOperation("vm-start", specifyOn=True)
-        # here we should support both old (CentOS5) and new (CentOS7) XCM, disable sshcheck
-        g.waitReadyAfterStart2(vifindex=1, sshcheck=False)
+        g.waitReadyAfterStart(managenetwork='Pool-wide network associated with eth0') # XenRT eth name-label
         self.getLogsFrom(g)
 
         self.convServer.doFirstbootUnattendedSetup()

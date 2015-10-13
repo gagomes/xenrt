@@ -30,15 +30,12 @@ class _WlbApplianceVM(xenrt.TestCase):
         xenrt.TEC().registry.guestPut(self.WLBSERVER_NAME, g)
         g.host = self.host
         g.addExtraLogFile("/var/log/wlb/LogFile.log")
-        if self.vpx_os_version == "CentOS7":
-            self.wlbserver = xenrt.WlbApplianceServerHVM(g) # CentOS 7 VPX, HVM guest
-        else:
-            self.wlbserver = xenrt.WlbApplianceServer(g)
+        self.wlbserver = xenrt.WlbApplianceBase.constructWLBInstance(g, self.vpx_os_version)
         g.importVM(self.host, xenrt.TEC().getFile("xe-phase-1/vpx-wlb.xva"))
         g.windows = False
-        g.lifecycleOperation("vm-start", specifyOn=True)
-        # here we should support both old (CentOS5) and new (CentOS7) WLB, disable sshcheck
-        g.waitReadyAfterStart2(sshcheck=False)
+        g.hasSSH = False # here we should support both old (CentOS5) and new (CentOS7) WLB, disable sshcheck
+        g.tailored = True # We do not need tailor for WLB, and old (CentOS5) WLB does not have ssh.
+        g.start()
         self.getLogsFrom(g)
 
         #self.uninstallOnCleanup(g)
@@ -46,6 +43,7 @@ class _WlbApplianceVM(xenrt.TestCase):
         self.wlbserver.doLogin()
         self.wlbserver.doSanityChecks()
         self.wlbserver.installSSH()
+        g.hasSSH = True
         time.sleep(30)
         self.wlbserver.doVerboseLogs()
         # restart and see if the wlb services are still up

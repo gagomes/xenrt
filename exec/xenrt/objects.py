@@ -28,7 +28,7 @@ time.strptime('2014-06-12','%Y-%m-%d')
 #End dummy import
 
 __all__ = ["GenericPlace", "GenericHost", "NetPeerHost", "GenericGuest", "productLib",
-           "RunOnLocation", "ActiveDirectoryServer", "PAMServer", "CVSMServer",
+           "RunOnLocation", "ActiveDirectoryServer", "PAMServer", "CVSMServer", "WlbApplianceBase",
            "WlbApplianceServer", "WlbApplianceServerHVM", "DemoLinuxVM", "ConversionApplianceServer",
            "ConversionApplianceServerHVM", "EventObserver", "XenMobileApplianceServer", "_WinPEBase"]
 
@@ -11268,6 +11268,15 @@ class WlbApplianceBase(object):
         self.wlb_username = "wlbuser"
         self.wlb_port = "8012" # default port
 
+    @staticmethod
+    def constructWLBInstance(place, vpx_os_version="CentOS7"):
+        wlb_instance = None
+        if vpx_os_version == "CentOS7":
+            wlb_instance = WlbApplianceServerHVM(place)
+        else:
+            wlb_instance = WlbApplianceServer(place)
+        return wlb_instance
+
     def doFirstbootUnattendedSetup(self):
         pass
         
@@ -12914,7 +12923,7 @@ class ConversionApplianceServerHVM(ConversionApplianceBase):
         self.place.execguest(command)
         xenrt.sleep(60)
         self.place.lifecycleOperation("vm-reboot", force=True)
-        self.place.waitReadyAfterStart2(vifindex=1)
+        self.place.waitReadyAfterStart(managenetwork='Pool-wide network associated with eth0') # XenRT eth name-label
 
     def doSanityChecks(self):
         # sanity checks after automated setup

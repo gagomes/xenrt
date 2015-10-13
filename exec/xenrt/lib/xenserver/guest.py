@@ -97,6 +97,7 @@ class Guest(xenrt.GenericGuest):
                 self.vcpus = v
 
         self.tailored = False
+        self.hasSSH = True
         self.uuid = None
         self.use_ipv6 = xenrt.TEC().lookup('USE_GUEST_IPV6', False, boolean=True)
         self.memory = None # Default to template memory.
@@ -877,10 +878,6 @@ users:
 
     def waitReadyAfterStart(self, skipsniff=False, extratime=False,\
                             managenetwork=None, managebridge=None):
-        self.waitReadyAfterStart2(skipsniff, extratime, managenetwork, managebridge)
-
-    def waitReadyAfterStart2(self, skipsniff=False, extratime=False,\
-            managenetwork=None, managebridge=None, vifindex=0, sshcheck=True):
 
         # we should be able to wipe previous setting by giving
         # managenetwork/bridge = False arguments
@@ -902,6 +899,7 @@ users:
         vifs = ((self.managenetwork or self.managebridge)
                 and self.getVIFs(network=self.managenetwork, bridge=self.managebridge).keys()
                 or map(lambda v: v[0], self.vifs))
+        xenrt.TEC().progress("Get all vifs %s" % vifs)
 
         # Look for an IP address on the first interface (if we have any)
         if len(vifs) > 0:
@@ -912,8 +910,7 @@ users:
                 while 1:
                     tries = tries + 1
 
-                    # by default eth0 is major NIC, but ConversionManager is an exception, eth1
-                    vifname = vifs[vifindex]
+                    vifname = vifs[0]
                     try:
                         mac, ip, vbridge = self.getVIF(vifname)
                         if self.use_ipv6:
@@ -1001,7 +998,7 @@ users:
                 agentTime = 180
             # NOTE: Old CentOS5 VPX (e.g. WLB) does not install ssh by default.
             if not self.windows:
-                if sshcheck:
+                if self.hasSSH:
                     try:
                         self.waitForSSH(boottime, desc="Guest boot")
 

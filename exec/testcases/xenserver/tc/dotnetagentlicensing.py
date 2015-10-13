@@ -153,6 +153,7 @@ class PoolAutoUpdateToggle(DotNetAgentTestCases):
         self._pingServer(self.agent,server,True)
         self._pingServer(agent1,server,True)
         self.adapter.releaseLicense(self.getDefaultPool())
+        xenrt.TEC().logverbose("-----is autoupdate licensed = %s-----"%autoupdate.isLicensed())
         self._pingServer(self.agent,server,False)
         self._pingServer(agent1,server,False)
 

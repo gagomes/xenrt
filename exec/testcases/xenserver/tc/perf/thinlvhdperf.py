@@ -71,7 +71,8 @@ class ThinLVHDPerfBase(testcases.xenserver.tc.perf.libperf.PerfTestCase):
             size = srsize * xenrt.KILO # converting size to MiB
             #lun = xenrt.ISCSITemporaryLun(size)
             sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.host, "lvmoiscsi", thin_prov=self.thinprov)
-            sr.create(subtype="lvm", physical_size=size, findSCSIID=True, noiqnset=True)
+#            sr.create(lun, subtype="lvm", physical_size=size, findSCSIID=True, noiqnset=True)
+            sr.create(subtype="lvm", physical_size=size, findSCSIID=True)
         elif self.srtype=="lvmohba":
             fcLun = self.host.lookup("SR_FCHBA", "LUN0")
             fcSRScsiid = self.host.lookup(["FC", fcLun, "SCSIID"], None)

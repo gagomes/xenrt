@@ -1948,6 +1948,7 @@ if setupsharedhost:
         host = xenrt.lib.xenserver.hostFactory(hosttype)(machine,productVersion=hosttype)
         host.install(installSRType="ext")
         host.license()
+        host.applyRequiredPatches()
         sho = xenrt.SharedHost(sharedhost)
 
         macs = [sh['MAC']]

@@ -120,6 +120,10 @@
         <testcase id="testcases.xenserver.tc.dotnetagentlicensing.AUNoDownload">
             <arg>win1=WS</arg>
         </testcase>
+		
+		<testcase id="testcases.xenserver.tc.dotnetagentlicensing.NonCryptoMSI">
+            <arg>win1=WS</arg>
+        </testcase>
     </testsequence>
 
 </xenrt>

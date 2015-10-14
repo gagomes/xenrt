@@ -184,6 +184,7 @@ class TCIOLatency(ThinLVHDPerfBase):
                             arch=self.arch,
                             vifs=xenrt.productLib(host=self.host).Guest.DEFAULT,
                             sr=sr,
+                            memory=4096,         #4096MB: do not swap during test
                             disks=extraDisks)
 
         self.diskprefix = self.goldenVM.vendorInstallDevicePrefix()

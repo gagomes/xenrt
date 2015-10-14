@@ -368,14 +368,15 @@ class Guest(xenrt.GenericGuest):
                                      "(arch %s)" % (distro, arch))
 
         self.isoname = isoname
-        minRootDisk = xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.isoname, "MIN_ROOTDISK"], None)
-        minRootDiskDiff = xenrt.TEC().lookup(["GUEST_LIMITATIONS",self.isoname,"MIN_ROOTDISK_MEMORY_DIFF"], None)
-        if self.memory and self.isoname and minRootDisk:
-            if rootdisk == self.DEFAULT:
-                rootdisk = max(minRootDisk , minRootDiskDiff + self.memory)
-            else:
-                rootdisk = max(minRootDisk , minRootDiskDiff + self.memory, rootdisk)
-            xenrt.TEC().logverbose("Increasing root disk to %d" % rootdisk)
+        if self.isoname:
+            minRootDisk = xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.isoname, "MIN_ROOTDISK"], None)
+            minRootDiskDiff = xenrt.TEC().lookup(["GUEST_LIMITATIONS",self.isoname,"MIN_ROOTDISK_MEMORY_DIFF"], 0)
+            if self.memory and minRootDisk:
+                if rootdisk == self.DEFAULT:
+                    rootdisk = max(minRootDisk , minRootDiskDiff + self.memory)
+                else:
+                    rootdisk = max(minRootDisk , minRootDiskDiff + self.memory, rootdisk)
+                xenrt.TEC().logverbose("Increasing root disk to %d" % rootdisk)
 
         if distro:
             self.distro = distro

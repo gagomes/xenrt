@@ -183,7 +183,7 @@ class TCIOLatency(ThinLVHDPerfBase):
                             distro=self.distro,
                             arch=self.arch,
                             vifs=xenrt.productLib(host=self.host).Guest.DEFAULT,
-                            sr=sr,
+                            sr=sr.uuid,
                             memory=4096,         #4096MB: do not swap during test
                             disks=extraDisks)
 

@@ -4598,7 +4598,10 @@ def createVMFromFile(host,
             guest.importVM(host, "%s/%s" % (d, os.path.basename(filename)), imageIsOnHost=True, sr=sr, vifs=vifs)
             host.execdom0("umount %s" % d)
         else:
-            guest.importVM(host, xenrt.TEC().getFile(filename), vifs=vifs, sr=sr)
+            vmfile = xenrt.TEC().getFile(filename)
+            if not vmfile:
+                raise xenrt.XRTError("Cannot find %s to import" % filename)
+            guest.importVM(host, vmfile, vifs=vifs, sr=sr)
     guest.paramSet("is-a-template", "false")
     guest.reparseVIFs()
     guest.vifs.sort()

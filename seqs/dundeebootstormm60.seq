@@ -1,0 +1,53 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host installsr="ext" license="enterprise-per-socket" >
+      <vm name="masterwin7sp1-x64">
+        <distro>win7sp1-x64</distro>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <postinstall action="preCloneTailor"/>
+        <network device="0" />
+        <disk device="0" size="24" />
+      </vm>
+      <vm name="mastercentos7_x86-64">
+        <distro>centos7</distro>
+        <arch>x86-64</arch>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="10" />
+        <postinstall action="preCloneTailor"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="NVIDIAM60vGPU">
+
+      <testcase id="testcases.xenserver.tc.vgpu.MixedGPUBootstorm" name="TC-27230" tc="TC-27230">
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+        <arg>vgpuconfig=16</arg>
+        <arg>linuxtype=10</arg>
+        <arg>windowstype=1</arg>
+        <arg>passthroughalloc=1.0</arg>
+        <arg>vgpuconfig=14</arg>
+        <arg>linuxtype=10</arg>
+        <arg>windowstype=1</arg>
+        <arg>passthroughalloc=0.5</arg>
+        <arg>vgpualloctype=16</arg>
+        <arg>others=nvidiawinvgpu,nvidialinuxvgpu</arg>
+        <arg>splitvgpuallocation=true</arg>
+      </testcase>
+      
+    </serial>
+  </testsequence>
+
+</xenrt>

@@ -43,9 +43,9 @@ class Path(object):
     @property
     def methodContent(self):
         if self.masterOnly:
-            ret = """    $path = $("http://" + $XenRTCreds.MasterServer + "/xenrt/api/v2%s")\n""" % self.path.replace("{", "${")
+            ret = """    $path = $("https://" + $XenRTCreds.MasterServer + "/xenrt/api/v2%s")\n""" % self.path.replace("{", "${")
         else:
-            ret = """    $path = $("http://" + $XenRTCreds.Server + "/xenrt/api/v2%s")\n""" % self.path.replace("{", "${")
+            ret = """    $path = $("https://" + $XenRTCreds.Server + "/xenrt/api/v2%s")\n""" % self.path.replace("{", "${")
         ret += """    $paramdict = @{}\n"""
         for p in self.queryParams:
             q = self.powerShellParamName(p)
@@ -257,7 +257,7 @@ param(
         $XenRTCreds.MasterServer=$MasterServer
     }
     if ($UseDefaultCredentials) {
-        $path = $("http://" + $XenRTCreds.Server + "/xenrt/api/v2/apikey")
+        $path = $("https://" + $XenRTCreds.Server + "/xenrt/api/v2/apikey")
         $XenRTCreds.ApiKey=(Invoke-RestMethod -Uri $path -Method GET -UseDefaultCredentials).key
     }
     else {

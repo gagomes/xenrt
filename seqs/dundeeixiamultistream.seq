@@ -11,14 +11,16 @@
         <distro>win7sp1-x86</distro>
         <postinstall action="installDrivers"/>
         <network device="0" />
-        <vcpus>2</vcpus>
+        <vcpus>8</vcpus>
+        <corespersocket>8</corespersocket>
         <memory>2048</memory>
       </vm>
       <vm name="g2">
         <distro>win7-x64</distro>
         <postinstall action="installDrivers"/>
         <network device="0" />
-        <vcpus>2</vcpus>
+        <vcpus>8</vcpus>
+        <corespersocket>8</corespersocket>
         <memory>2048</memory>
       </vm>
     </host>

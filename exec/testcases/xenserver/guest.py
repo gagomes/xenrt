@@ -1114,6 +1114,27 @@ class TCMakeTemplate(xenrt.TestCase):
         except:
             pass
 
+class TCDiskPattern(xenrt.TestCase):
+    """Write or check a deterministic pattern to a named VDI"""
+    def run(self, arglist=None):
+        for arg in arglist:
+            l = string.split(arg, "=", 1)
+            if l[0] == "guest":
+                guest = self.getGuest(l[1])
+            if l[0] == "parameter":
+                parameter = l[1]
+            if l[0] == "vdiindex":
+                uuid = guest.getAttachedVDIs()[int(l[1])]
+
+        size = long(guest.host.genParamGet("vdi", uuid, "virtual-size"))
+        cmd = "%s/remote/patterns.py /dev/$\{DEVICE\} %d %s" % (xenrt.TEC().lookup("REMOTE_SCRIPTDIR"), size, parameter)
+
+        f = "/tmp/" + xenrt.randomGuestName()
+        guest.host.execdom0('echo "%s" > %s' % (cmd, f))
+        guest.host.execdom0('chmod +x %s' % f)
+        guest.host.execdom0("/opt/xensource/debug/with-vdi %s %s || true" % (uuid, f))
+        guest.host.execdom0("/opt/xensource/debug/with-vdi %s %s" % (uuid, f))
+
 class TCClone(xenrt.TestCase):
 
     def __init__(self):
@@ -2195,6 +2216,9 @@ class TCLifeCycleLoop(xenrt.TestCase):
             
         if not self.guest:
             raise xenrt.XRTError("No guest specified")
+            
+        self.vdi = self.guest.getAttachedVDIs()[0]
+        self.sr = self.guest.host.genParamGet("vdi", self.vdi, "sr-uuid")
 
     def run(self, arglist):
 
@@ -2225,10 +2249,18 @@ class TCLifeCycleLoop(xenrt.TestCase):
                 if self.dosnap and (iteration % self.dosnap) == 0:
                     self.guest.host.removeTemplate(snapuuid)
                 iteration = iteration + 1
+                
+                if xenrt.TEC().lookup("POOL_STRESS_LOG_VHD", False, boolean=True):
+                    timer = xenrt.util.Timer(float=True)
+                    timer.startMeasurement()
+                    lines = self.guest.host.execdom0("vhd-util scan -f -l VG_XenStorage-%s -m VHD-%s -a -v" % (self.sr, self.vdi))
+                    timer.stopMeasurement()
+                    self.rageTimings.append("TIME_VM_VHDSCAN_%s_START_%.3f_DURATION_%.3f_LINES_%d" % (self.guest.getName(), timer.starttime, timer.measurements[-1], len(lines.split('\n'))))
+
         finally:
             for timer, op in self.timers:
-                if not timer.starttime and timer.measurements:
-                    self.rageTimings.append("TIME_VM_%s_DURATION_%s:%.3f" % (op.upper(), self.guest.getName(), timer.measurements[-1]))
+                if not timer.timing and timer.measurements:
+                    self.rageTimings.append("TIME_VM_%s_%s_START_%.3f_DURATION_%.3f" % (op.upper(), self.guest.getName(), timer.starttime, timer.measurements[-1]))
             
             dur = xenrt.timenow() - starttime
             xenrt.TEC().comment("Total iterations: %u" % (iteration))

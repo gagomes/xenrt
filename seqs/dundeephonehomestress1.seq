@@ -1,0 +1,84 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <MOCKSERVER>CIS</MOCKSERVER>
+    <STATIC_MOCKSERVER>Yes</STATIC_MOCKSERVER>
+    <SERVICE>HealthCheck</SERVICE>
+    <PREPARE_WORKERS>5</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool id="0">
+      <host id="0">
+        <vm name="Windows7_0">
+        <distro>win7sp1-x86</distro>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <postinstall action="installCarbonWindowsGUI" />
+        <postinstall action="installPowerShell" />
+        <network device="0" />
+        <disk device="0" size="24" />
+        </vm>
+      </host>
+      <host id="1">
+        <vm name="Windows7_1">
+        <distro>win7sp1-x86</distro>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <postinstall action="installCarbonWindowsGUI" />
+        <postinstall action="installPowerShell" />
+        <network device="0" />
+        <disk device="0" size="24" />
+        </vm>
+      </host>
+      <host id="2">
+        <vm name="Windows7_2">
+        <distro>win7sp1-x86</distro>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <postinstall action="installCarbonWindowsGUI" />
+        <postinstall action="installPowerShell" />
+        <network device="0" />
+        <disk device="0" size="24" />
+        </vm>
+      </host>
+      <host id="3">
+        <vm name="Windows7_3">
+        <distro>win7sp1-x86</distro>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <postinstall action="installCarbonWindowsGUI" />
+        <postinstall action="installPowerShell" />
+        <network device="0" />
+        <disk device="0" size="24" />
+        </vm>
+      </host>
+      <host id="4">
+        <vm name="Windows7_4">
+        <distro>win7sp1-x86</distro>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <postinstall action="installCarbonWindowsGUI" />
+        <postinstall action="installPowerShell" />
+        <network device="0" />
+        <disk device="0" size="24" />
+        </vm>
+      </host>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="PhoneHomeStress">
+    <!-- Use different flavours of Windows for different Guests-->
+      <testcase id="testcases.xenserver.tc.gui.VerifySingleUploadMulXC" tc="TC-27275">
+        <arg>trigger_mechanism=UPLOAD_NOW</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+
+</xenrt>

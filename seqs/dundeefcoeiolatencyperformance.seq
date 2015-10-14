@@ -1,0 +1,43 @@
+<xenrt>
+
+ <!-- IO latency test for lvmofcoe sr -->
+
+ <default name="GOLDVM" value="vm00" />
+ <default name="DISTRO" value="debian80" />
+ <default name="ARCH" value="x86-64" />
+ <default name="EDISKS" value="1" />
+
+ <default name="SRTYPE" value="lvmofcoe" />
+ <default name="THINPROV" value="False" />
+
+ <default name="NUMVMS" value="5" />
+ <default name="BUFFSIZE" value="131072" /> <!-- 128KB -->
+ <default name="GROUPSIZE" value="1" />
+
+ <variables>
+   <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+   <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+   <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+   <PREPARE_WORKERS>2</PREPARE_WORKERS>
+ </variables>
+
+ <prepare>
+   <pool>
+     <allhosts />
+   </pool>
+ </prepare>
+
+ <testsequence>
+   <testcase id="xenserver.tc.perf.thinlvhdperf.TCIOLatency" host="RESOURCE_HOST_0">
+     <arg>goldvm=${GOLDVM}</arg>
+     <arg>distro=${DISTRO}</arg>
+     <arg>arch=${ARCH}</arg>
+     <arg>edisks=${EDISKS}</arg>
+     <arg>srtype=${SRTYPE}</arg>
+     <arg>thinprov=${THINPROV}</arg>
+     <arg>numvms=${NUMVMS}</arg>
+     <arg>bufsize=${BUFFSIZE}</arg>
+     <arg>groupsize=${GROUPSIZE}</arg>
+   </testcase>
+ </testsequence>
+</xenrt>

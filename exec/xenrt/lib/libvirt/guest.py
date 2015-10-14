@@ -1100,11 +1100,15 @@ class Guest(xenrt.GenericGuest):
         oldxmlstr = self._getXML()
         oldxmldom = xml.dom.minidom.parseString(oldxmlstr)
 
+        includeReadOnly = True
+
         # find an existing cdrom drive
         for node in oldxmldom.getElementsByTagName("devices")[0].getElementsByTagName("disk"):
             if node.getAttribute("device") == "cdrom":
                 targetxml = node.getElementsByTagName("target")[0].toxml()
                 changeCDFunction = self._updateDevice
+                includeReadOnly = False # sometimes this gets dropped from the device XML, so don't expect it to still be present
+                xenrt.TEC().logverbose("not including <readonly/> in xmlstr")
                 break
         else:
             # no existing cdrom drive; create a block device name
@@ -1121,8 +1125,10 @@ class Guest(xenrt.GenericGuest):
         cdxmlstr  = "<disk type='file' device='cdrom'>"
         cdxmlstr += "<source file='%s'/>" % (isopath, )
         cdxmlstr += targetxml
-        cdxmlstr += "<readonly/>"
+        if includeReadOnly:
+            cdxmlstr += "<readonly/>"
         cdxmlstr += "</disk>"
+        xenrt.TEC().logverbose("cdxmlstr = %s" % (cdxmlstr))
 
         changeCDFunction(cdxmlstr, hotplug=True)
 

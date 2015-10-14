@@ -300,7 +300,7 @@ def start_job(job):
             return
 
 
-    os.system("cd %s && make minimal-install" % (_rootdir))
+    os.system("cd %s && BUILDDIR=%s/venvs/%d/exec make minimal-install" % (_rootdir, _sharedir, job['id']))
     cmd.insert(0, str(job['id']))
     cmd.insert(0, resdir)
     cmd.insert(0, "%s/venvs/%d" % (_sharedir, job['id']))

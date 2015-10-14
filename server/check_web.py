@@ -7,4 +7,5 @@ try:
 except Exception, e:
     print "XenRT broken %s" % str(e)
 
-    os.system("sudo /etc/init.d/xenrt-server restart")
+    os.system("sudo service xenrt-server restart")
+    os.system("sudo service apache2 restart")

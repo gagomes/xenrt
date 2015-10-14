@@ -7,6 +7,8 @@ from testcases.benchmarks import graphics
 from abc import ABCMeta, abstractmethod
 from testcases.xenserver.shellcommandsrunner import Runner
 
+"""This file needs to be refactored as part of CP-14275"""
+
 """
 Enums
 """
@@ -17,7 +19,7 @@ class SRType(object): Local, NFS, ISCSI = range(3)
 class VMStartMethod(object): OneByOne, Simultenous = range(2)
 class CardType(object): K1, K2, Quadro, Intel, M60, NotAvailable = range(6)
 class DriverType(object): Signed, Unsigned = range(2)
-class DiffvGPUType(object): NvidiaWinvGPU, NvidiaLinuxvGPU, IntelWinvGPU = range(3)
+class DiffvGPUType(object): NvidiaWinvGPU, NvidiaLinuxvGPU, IntelWinvGPU, NvidiaLinuxhvmvGPU = range(4)
 
 """
 Constants
@@ -302,7 +304,8 @@ class VGPUTest(object):
     _DIFFVGPUTYPE = {
         DiffvGPUType.NvidiaWinvGPU : "nvidiawinvgpu",
         DiffvGPUType.NvidiaLinuxvGPU : "nvidialinuxvgpu",
-        DiffvGPUType.IntelWinvGPU : "intelwinvgpu"
+        DiffvGPUType.IntelWinvGPU : "intelwinvgpu",
+        DiffvGPUType.NvidiaLinuxhvmvGPU : "nvidialinuxhvmvgpu"
     }
 
     def getDiffvGPUName(self, typeofvGPU):
@@ -419,6 +422,7 @@ class VGPUTest(object):
         guest.installPVHVMNvidiaGpuDrivers()
 
     def installIntelWindowsDrivers(self,guest,vgputype):
+        #workaround, TBR
         # This call was wrapped in a try, excpet block as a workaround.
         try:
             guest.installIntelGPUDriver()
@@ -874,6 +878,10 @@ class TCVGPUSetup(VGPUOwnedVMsTest):
             self.typeofvgpu = NvidiaWindowsvGPU()
         if tofvgpu == self.getDiffvGPUName(DiffvGPUType.IntelWinvGPU):
             self.typeofvgpu = IntelWindowsvGPU()
+        if tofvgpu == self.getDiffvGPUName(DiffvGPUType.NvidiaLinuxvGPU):
+            self.typeofvgpu = NvidiaLinuxvGPU()
+        if tofvgpu == self.getDiffvGPUName(DiffvGPUType.NvidiaLinuxhvmvGPU):
+            self.typeofvgpu = NvidiaLinuxhvmvGPU()
 
         self.hostInstallParams = {}
         if self.args.has_key("blockdom0access"):
@@ -1883,6 +1891,8 @@ class FunctionalBase(VGPUAllocationModeBase):
                     self.nvidLinvGPU = self.typeofvGPU(typeOfvGPU)
                 if typeOfvGPU == self.getDiffvGPUName(DiffvGPUType.IntelWinvGPU):
                     self.nvidWinvGPU = self.typeofvGPU(typeOfvGPU)
+                if typeOfvGPU == self.getDiffvGPUName(DiffvGPUType.NvidiaLinuxhvmvGPU):
+                    self.nvidLinhvmvGPU = self.typeofvGPU(typeOfvGPU)
 
         step("Install host drivers")
         self.typeOfvGPU.installHostDrivers(self.getAllHosts(), self.hostInstallParams)
@@ -1904,6 +1914,8 @@ class FunctionalBase(VGPUAllocationModeBase):
             return NvidiaLinuxvGPU()
         if self.TYPE_OF_VGPU == self.getDiffvGPUName(DiffvGPUType.IntelWinvGPU):
             return IntelWindowsvGPU()
+        if self.TYPE_OF_VGPU == self.getDiffvGPUName(DiffvGPUType.NvidiaLinuxhvmvGPU):
+            return NvidiaLinuxhvmvGPU()
 
     def parseArgs(self,arglist):
 
@@ -2040,9 +2052,8 @@ class NvidiaWindowsvGPU(DifferentGPU):
 class NvidiaLinuxvGPU(DifferentGPU):
 
     def installHostDrivers(self, allHosts, params=None):
-        xenrt.TEC().logverbose("Not implemented")
-        pass
-
+        xenrt.TEC().logverbose("Not implemented as this is not needed by Linux vGPUs, BUT declared as abstract method in base class")
+            
     def installGuestDrivers(self, guest, vGPUType):
         VGPUTest().installNvidiaLinuxDrivers(guest, vGPUType)
 
@@ -2053,20 +2064,24 @@ class NvidiaLinuxvGPU(DifferentGPU):
         VGPUTest().assertvGPUNotRunningInLinuxVM(guest,vGPUType,"Nvidia")
 
     def runWorkload(self,vm):
-        xenrt.TEC().logverbose("Not implemented")
-        pass
-
+        xenrt.TEC().logverbose("Not implemented as this is not needed by Linux vGPUs, BUT declared as abstract method in base class")
+        
     def attachvGPUToVM(self, vgpucreator, vm, groupuuid=None):
         VGPUTest().attachvGPU(vgpucreator, vm, groupuuid)
 
     def blockDom0Access(self, host, reboot=True):
-        xenrt.TEC().logverbose("Not implemented")
-        pass
-
+        xenrt.TEC().logverbose("Not implemented as this is not needed by Linux vGPUs, BUT declared as abstract method in base class")
+        
     def unblockDom0Access(self, host):
-        xenrt.TEC().logverbose("Not implemented")
-        pass
+        xenrt.TEC().logverbose("Not implemented as this is not needed by Linux vGPUs, BUT declared as abstract method in base class")
+        
+        
+class NvidiaLinuxhvmvGPU(NvidiaLinuxvGPU):
 
+    def installHostDrivers(self, allHosts, params=None):
+        VGPUTest().installNvidiaHostDrivers(allHosts)
+
+    
 class IntelWindowsvGPU(DifferentGPU):
 
     def installHostDrivers(self, allHosts, params=[]):
@@ -3361,8 +3376,9 @@ class MixedGPUBootstorm(BootstormBase):
         linuxAllocation = passthroughAllocation - windowsAllocation
 
         linuxMaster = masters[self.LINUX_TYPE]
-
-        self.__configureMasterAndPopulate(linuxMaster, config, linuxAllocation, installer, self.nvidLinvGPU)
+        linuxMaster.setState("DOWN")
+        linPassthroughMaster = linuxMaster.cloneVM(noIP=False)
+        self.__configureMasterAndPopulate(linPassthroughMaster, config, linuxAllocation, installer, self.nvidLinvGPU)
 
         # Branch the windows master, so can use for both passthrough and vGPU
         windowsMaster = masters[self.WINDOWS_TYPE]
@@ -3380,9 +3396,22 @@ class MixedGPUBootstorm(BootstormBase):
             remainingCapacity = self.host.remainingGpuCapacity(installer.groupUUID(), installer.typeUUID())
             xenrt.TEC().logverbose("Space for vGPU: %s" % remainingCapacity)
 
-            self.__configureMasterAndPopulate(windowsMaster, config, remainingCapacity, installer, self.nvidWinvGPU)
+            winVGPUAlloc = int(remainingCapacity / 2)
+            linVGPUAlloc = remainingCapacity - winVGPUAlloc
+
+            if not self.SPLIT_VGPU:
+                winVGPUAlloc = remainingCapacity
+                linVGPUAlloc = 0
+
+            self.__configureMasterAndPopulate(windowsMaster, config, winVGPUAlloc, installer, self.nvidWinvGPU)
+
+            self.__configureMasterAndPopulate(linuxMaster, config, linVGPUAlloc, installer, self.nvidLinvGPU)
 
     def __configureMasterAndPopulate(self, master, config, allocation, installer, typeVgpu):
+
+        if allocation == 0:
+            return
+
         typeVgpu.attachvGPUToVM(installer, master)
         typeVgpu.installGuestDrivers(master, self.getConfigurationName(config))
         master.setState("DOWN")
@@ -3404,7 +3433,10 @@ class MixedGPUBootstorm(BootstormBase):
         self.WINDOWS_TYPE = int(args['windowstype'])
         self.PASSTHROUGH_ALLOCATION = float(args['passthroughalloc'])
         self.VGPU_TYPE = int(args['vgpualloctype'])
-
+        if "splitvgpuallocation" in args:
+            self.SPLIT_VGPU = (args['splitvgpuallocation'] == "true")
+        else:
+            self.SPLIT_VGPU = False
 
 class IntelBase(FunctionalBase):
 
@@ -3709,8 +3741,112 @@ class TCSwitchIntelGPUModes(IntelBase):
             log("Caught expected exception: %s" % e)
         else:
             raise xenrt.XRTFailure(error)
+ 
+ 
+class TCM60HVMBase(FunctionalBase):
+    __metaclass__ = ABCMeta
 
+    def prepare(self, arglist):
+        super(TCM60HVMBase, self).prepare(arglist)        
+        step("Creating %d vGPUs configurations." % (len(self.VGPU_CONFIG)))
+        self.vGPUCreator = {}
+        for config in self.VGPU_CONFIG:
+            self.vGPUCreator[config] = VGPUInstaller(self.host, config)
 
+        for distro in self.REQUIRED_DISTROS:
+            osType = self.getOSType(distro)
+            log("Creating Master VM of type %s" % osType)
+            vm = self.createMaster(osType)
+            vm.enlightenedDrivers = True
+            vm.setState("UP")
+            self.masterVMsSnapshot[osType] = vm.snapshot()
+    
+    @abstractmethod
+    def insideRun(self, vm, config):
+        pass
+
+    def run(self, arglist):
+        for config in self.VGPU_CONFIG:
+            for distro in self.REQUIRED_DISTROS:
+                osType = self.getOSType(distro)
+                vm = self.masterVMs[osType]
+                self.insideRun(vm, config)
+                
+class TCNvidiaM60HVMLifeCycle(TCM60HVMBase):
+    """M60 HVM Linux Guests: Test suspend/resume/checkpoint fails for tied VM"""
+    
+    def insideRun(self, vm, config):
+        super(TCNvidiaM60HVMLifeCycle, self).insideRun(vm, config)
+        self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
+        self.typeOfvGPU.installGuestDrivers(vm, self.getConfigurationName(config))
+        self.typeOfvGPU.assertvGPURunningInVM(vm, self.getConfigurationName(config))
+        vm.setState("DOWN")
+        
+        vm1 = vm.cloneVM()
+        self.uninstallOnCleanup(vm1)
+        vm1.setState("UP")
+        vm1.shutdown()
+       
+        # start this VM
+        vm1.start(specifyOn=False)
+        # check the lifecycle operations pass / fail appropriately
+        step("Check that suspend fails for this VM")
+        self.lifeCycleTest(vm1.suspend, "suspend")
+                    
+        step("Check that checkpoint fails for this VM")
+        self.lifeCycleTest(vm1.checkpoint, "checkpoint")
+        
+        step("Check that live migrate fails for this VM")
+        self.lifeCycleTest(vm1.migrateVM, "live-migrate", self.host, live="true")
+
+        step("Check that 'dead' migrate fails for this VM")
+        self.lifeCycleTest(vm1.migrateVM, "dead-migrate", self.host, live="false")
+
+        step("Check that snapshot succeeds for this VM")
+        vm1.snapshot()
+    
+        step("Check that shutdown succeeds for this VM")
+        vm1.shutdown()
+        
+    def lifeCycleTest(self,lifeCycle, operation,*args, **kwargs):
+        try:
+            lifeCycle(*args, **kwargs)
+             
+        except Exception as e:
+            xenrt.TEC().logverbose("vm-%s failed as expected: %s" % (operation, str(e)))
+            
+        else: 
+            raise xenrt.XRTFailure("vGPU-bound VM did not fail %s as expected" % operation)
+
+class TCM60ReassignGPU(TCM60HVMBase):
+    """ This testcase will check if assigning a vGPU to a VM already containing a vGPU fails"""
+    def insideRun(self, vm, config):
+        super(TCM60ReassignGPU, self).insideRun(vm, config)
+        self.typeOfvGPU.attachvGPUToVM(self.vGPUCreator[config], vm)
+        self.typeOfvGPU.installGuestDrivers(vm, self.getConfigurationName(config))
+        self.typeOfvGPU.assertvGPURunningInVM(vm, self.getConfigurationName(config))
+        
+        step("Calling the reassign method to check if vgpu reassign fails")
+        self.reassignGPU(vm)
+            
+    def reassignGPU(self, vm):
+        cli = self.host.getCLIInstance()
+        step("Get the pGPU Uuid of the M60 pGPUs only")
+        self.pGPUs = GPUGroupManager(self.host).getPGPUUuids()
+        
+        step("Get the group Uuid of the M60 pGPUs only")
+        gpu_group_uuid = cli.execute("pgpu-list", "params=gpu-group-uuid, uuid=%s --minimal" % self.pGPUs[0])
+        vm.setState("DOWN")
+        
+        try:
+            cli.execute("vgpu-create", "vm-uuid=%s gpu-group-uuid=%s" % (vm.getUUID(), gpu_group_uuid)) 
+            
+        except xenrt.XRTFailure as e:
+            xenrt.TEC().logverbose("VGPU attach failed to the VM as expected: %s" % str(e))
+        
+        else:
+            raise xenrt.XRTFailure("vGPU-bound VM DID NOT FAIL to attach the  vGPU as expected") 
+ 
 class TCAlloModeK200NFS(VGPUAllocationModeBase):
 
     """

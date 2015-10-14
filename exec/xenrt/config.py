@@ -884,7 +884,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Tampa"]["MAX_VLANS_PER_HOST_LINUX"] = "800"
         self.config["VERSION_CONFIG"]["Tampa"]["MAX_VLANS_PER_HOST_VSWITCH"] = "800"
         self.config["VERSION_CONFIG"]["Tampa"]["VIF_PER_VM"] = "2"
-        self.config["VERSION_CONFIG"]["Tampa"]["DEFAULT_RPU_LINUX_VERSION"] = "rhel62"
+        self.config["VERSION_CONFIG"]["Tampa"]["DEFAULT_RPU_LINUX_VERSION"] = "rhel57"
         self.config["VERSION_CONFIG"]["Tampa"]["LATEST_rhel4"] = "rhel48"
         self.config["VERSION_CONFIG"]["Tampa"]["LATEST_rhel5"] = "rhel58"
         self.config["VERSION_CONFIG"]["Tampa"]["LATEST_rhel6"] = "rhel62"
@@ -1213,6 +1213,7 @@ class Config(object):
         self.config["VERSION_CONFIG"]["Dundee"]["TEMPLATE_NAME_SLES_114_64"] = "SUSE Linux Enterprise Server 11 SP3 (64-bit),SUSE Linux Enterprise Server 11 SP3 x64"
         self.config["VERSION_CONFIG"]["Dundee"]["TEMPLATE_NAME_SLED_12_64"] = "SUSE Linux Enterprise Desktop 12 (64-bit)"
         self.config["VERSION_CONFIG"]["Dundee"]["MAX_VBDS_PER_HOST"] = "4096"
+        self.config["VERSION_CONFIG"]["Dundee"]["MAX_VDIS_PER_VM"] = "255"
 
         # XenServer dom0 partitions
         self.config["VERSION_CONFIG"]["Dundee"]["DOM0_PARTITIONS"] = {1:18*xenrt.GIGA, 2:18*xenrt.GIGA, 3:"*", 4:512*xenrt.MEGA, 5:4*xenrt.GIGA, 6:1024*xenrt.MEGA}
@@ -1857,8 +1858,10 @@ class Config(object):
         self.config["CLOUD_CONFIG"]["4.6.0"]["SYSTEM_TEMPLATES"]["vmware"] = "/usr/groups/xenrt/cloud/systemvm64template-2015-07-22-4.6.0-vmware.ova"
         self.config["CLOUD_CONFIG"]["4.6.0"]["SYSTEM_TEMPLATES"]["lxc"] = self.config["CLOUD_CONFIG"]["4.6.0"]["SYSTEM_TEMPLATES"]["kvm"]
 
+        self.config["CLOUD_CONFIG"]["4.7.0"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.6.0"])
+
         # Specify which version 'master' currently maps to
-        self.config["CLOUD_MASTER_MAP"] = "4.6.0"
+        self.config["CLOUD_MASTER_MAP"] = "4.7.0"
 
 
         self.config["GUEST_VIFS_centos41"] = "3"
@@ -2098,21 +2101,29 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["win10-x86"]["MAXMEMORY"] = "131072"
         self.config["GUEST_LIMITATIONS"]["win10-x86"]["MAXSOCKETS"] = "2"
         self.config["GUEST_LIMITATIONS"]["win10-x86"]["MAX_VM_VCPUS"] = "16"
+        self.config["GUEST_LIMITATIONS"]["win10-x86"]["MIN_ROOTDISK"] = "32768" 
+        self.config["GUEST_LIMITATIONS"]["win10-x86"]["MIN_ROOTDISK_MEMORY_DIFF"] = "20480"
         self.config["GUEST_LIMITATIONS"]["win10-x64"] = {}
         self.config["GUEST_LIMITATIONS"]["win10-x64"]["MINMEMORY"] = "2048"
         self.config["GUEST_LIMITATIONS"]["win10-x64"]["MAXMEMORY"] = "131072"
         self.config["GUEST_LIMITATIONS"]["win10-x64"]["MAXSOCKETS"] = "2"
         self.config["GUEST_LIMITATIONS"]["win10-x64"]["MAX_VM_VCPUS"] = "16"
+        self.config["GUEST_LIMITATIONS"]["win10-x64"]["MIN_ROOTDISK"] = "32768" 
+        self.config["GUEST_LIMITATIONS"]["win10-x64"]["MIN_ROOTDISK_MEMORY_DIFF"] = "20480"
         self.config["GUEST_LIMITATIONS"]["win81-x86"] = {}
         self.config["GUEST_LIMITATIONS"]["win81-x86"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["win81-x86"]["MAXMEMORY"] = "131072"
         self.config["GUEST_LIMITATIONS"]["win81-x86"]["MAXSOCKETS"] = "2"
         self.config["GUEST_LIMITATIONS"]["win81-x86"]["MAX_VM_VCPUS"] = "16"
+        self.config["GUEST_LIMITATIONS"]["win81-x86"]["MIN_ROOTDISK"] = "32768" 
+        self.config["GUEST_LIMITATIONS"]["win81-x86"]["MIN_ROOTDISK_MEMORY_DIFF"] = "20480"
         self.config["GUEST_LIMITATIONS"]["win81-x64"] = {}
         self.config["GUEST_LIMITATIONS"]["win81-x64"]["MINMEMORY"] = "2048"
         self.config["GUEST_LIMITATIONS"]["win81-x64"]["MAXMEMORY"] = "131072"
         self.config["GUEST_LIMITATIONS"]["win81-x64"]["MAXSOCKETS"] = "2"
         self.config["GUEST_LIMITATIONS"]["win81-x64"]["MAX_VM_VCPUS"] = "16"
+        self.config["GUEST_LIMITATIONS"]["win81-x64"]["MIN_ROOTDISK"] = "32768" 
+        self.config["GUEST_LIMITATIONS"]["win81-x64"]["MIN_ROOTDISK_MEMORY_DIFF"] = "20480"
         self.config["GUEST_LIMITATIONS"]["ws12-x64"] = {}
         self.config["GUEST_LIMITATIONS"]["ws12-x64"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["ws12-x64"]["MAXMEMORY"] = "524288"
@@ -2128,6 +2139,8 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["ws12r2-x64"]["MAXMEMORY"] = "524288"
         self.config["GUEST_LIMITATIONS"]["ws12r2-x64"]["MAXSOCKETS"] = "64"
         self.config["GUEST_LIMITATIONS"]["ws12r2-x64"]["MAX_VM_VCPUS"] = "16"
+        self.config["GUEST_LIMITATIONS"]["ws12r2-x64"]["MIN_ROOTDISK"] = "32768" 
+        self.config["GUEST_LIMITATIONS"]["ws12r2-x64"]["MIN_ROOTDISK_MEMORY_DIFF"] = "20480"
         self.config["GUEST_LIMITATIONS"]["ws12r2core-x64"] = {}
         self.config["GUEST_LIMITATIONS"]["ws12r2core-x64"]["MINMEMORY"] = "2048"
         self.config["GUEST_LIMITATIONS"]["ws12r2core-x64"]["MAXMEMORY"] = "524288"
@@ -2483,7 +2496,7 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["sles114"]["MAX_VM_VCPUS"] = "32"
         self.config["GUEST_LIMITATIONS"]["sles114"]["MAX_VM_VCPUS64"] = "32"
         self.config["GUEST_LIMITATIONS"]["sled113"] = {}
-        self.config["GUEST_LIMITATIONS"]["sled113"]["MINMEMORY"] = "4096"
+        self.config["GUEST_LIMITATIONS"]["sled113"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["sled113"]["STATICMINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["sled113"]["MAXMEMORY"] = "16384"
         self.config["GUEST_LIMITATIONS"]["sled113"]["MAXMEMORY64"] = "524288"
@@ -2495,7 +2508,7 @@ class Config(object):
         self.config["GUEST_LIMITATIONS"]["sles12"]["MAXMEMORY"] = "16384"
         self.config["GUEST_LIMITATIONS"]["sles12"]["MAXMEMORY64"] = "524288"
         self.config["GUEST_LIMITATIONS"]["sled12"] = {}
-        self.config["GUEST_LIMITATIONS"]["sled12"]["MINMEMORY"] = "4096"
+        self.config["GUEST_LIMITATIONS"]["sled12"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["sled12"]["STATICMINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["sled12"]["MAXMEMORY"] = "16384"
         self.config["GUEST_LIMITATIONS"]["sled12"]["MAXMEMORY64"] = "524288"
@@ -3732,6 +3745,9 @@ class Config(object):
         # Sally: xen, xen-device-model. Rolls up XS61E003, XS61E004, XS61E006, XS61E008, XS61E009, XS61E012, XS61E013, XS61E017, XS61E019, XS61E020,XS61E021, XS61E022, XS61E023, XS61E024, XS61E025, XS61E026, XS61E027, XS61E032, XS61E033, XS61E036, XS61E037, XS61E041, XS61E043, XS61E045, XS61E046, XS61E050, XS61E051,XS61E051,XS61E052,XS61E053
         self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E054"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E054/102106/hotfix-XS61E054/XS61E054.xsupdate"
       
+        # AbbeyWrap: Dom0 kernel. Rolls up XS61E014, XS61E018, XS61E028, XS61E030, XS61E035, XS61E039, XS61E042.
+        self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E055"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E055/103772/hotfix-XS61E055/XS61E055.xsupdate"
+      
         # Tardy: xen, xapi, xen-bugtool. Rolls up XS61E003, XS61E004, XS61E006, XS61E008, XS61E009, XS61E012, XS61E013, XS61E017, XS61E019, XS61E020,XS61E021, XS61E022, XS61E023, XS61E024, XS61E025, XS61E026, XS61E027, XS61E032, XS61E033, XS61E036, XS61E037, XS61E041, XS61E043, XS61E045, XS61E046, XS61E050, XS61E051, XS61E052, XS61E053, XS61E054
         self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E056"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E056/102720/hotfix-XS61E056/XS61E056.xsupdate"
         
@@ -3926,7 +3942,7 @@ class Config(object):
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1022"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1022/100367/hotfix-XS62ESP1022/XS62ESP1022.xsupdate"
         
         # Lola - kernel. Rolls up XS62ESP1005, XS62ESP1009
-        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1024"] = "/usr/groups/build/clearwater-sp1-lcm/101109/hotfix-XS62ESP1024/XS62ESP1024.xsupdate"
+        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1024"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1024/101109/hotfix-XS62ESP1024/XS62ESP1024.xsupdate"
         
         # Floppy- xen-device-model. Rolls up XS62E014, XS62E017, XS62ESP1002, XS62ESP1004, XS62ESP1006, XS62ESP1007, XS62ESP1008, XS62ESP1011, XS62ESP1013, XS62ESP1015, XS62ESP1016, XS62ESP1019, XS62ESP1021, XS62ESP1022
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1025"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1025/101557/hotfix-XS62ESP1025/XS62ESP1025.xsupdate"
@@ -4022,6 +4038,9 @@ class Config(object):
         # Dec: xen-tools fixes and windows10 support. rolls up  XS65ESP1003
         self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1010"] = "/usr/groups/release/XenServer-6.x/XS-6.5-SP1/hotfixes/XS65ESP1010/104245/hotfix-XS65ESP1010/XS65ESP1010.xsupdate"
         self.config["TOOLS_HOTFIXES"]["Creedence"]["SP1"].append("XS65ESP1010")
+        
+        # Pixie: xen. Rolls up XS65E009,XS65E010,XS65E013,XS65E014,XS65ESP1002,XS65ESP1004,XS65ESP1008, XS65ESP1009.
+        self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1011"] = "/usr/groups/release/XenServer-6.x/XS-6.5-SP1/hotfixes/XS65ESP1011/104305/hotfix-XS65ESP1011/XS65ESP1011.xsupdate"
         return
 
     def setSecondaryVariables(self):
@@ -4161,10 +4180,10 @@ class Config(object):
         self.config["CARBON_PATCHES_TAMPA"]["HF09"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E009"]
         self.config["CARBON_PATCHES_TAMPA"]["HF20"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E020"]
         self.config["CARBON_PATCHES_TAMPA"]["HF40"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E040"]
-        self.config["CARBON_PATCHES_TAMPA"]["HF42"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E042"]
         self.config["CARBON_PATCHES_TAMPA"]["HF44"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E044"]
         self.config["CARBON_PATCHES_TAMPA"]["HF47"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E047"]
         self.config["CARBON_PATCHES_TAMPA"]["HF48"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E048"]
+        self.config["CARBON_PATCHES_TAMPA"]["HF55"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E055"]
         self.config["CARBON_PATCHES_TAMPA"]["HF58"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E058"]
         
         if not self.config.has_key("CARBON_PATCHES_CLEARWATER"):
@@ -4201,8 +4220,8 @@ class Config(object):
         elif branch == "SP1":
             self.config["CARBON_PATCHES_CREEDENCE"]["HF00"] = self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1"]
             self.config["CARBON_PATCHES_CREEDENCE"]["HF05"] = self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1005"]
-            self.config["CARBON_PATCHES_CREEDENCE"]["HF09"] = self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1009"]
             self.config["CARBON_PATCHES_CREEDENCE"]["HF10"] = self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1010"]
+            self.config["CARBON_PATCHES_CREEDENCE"]["HF11"] = self.config["HOTFIXES"]["Creedence"]["SP1"]["XS65ESP1011"]
             
     def readFromFile(self, filename, path=None):
         """Read config from an XML file."""

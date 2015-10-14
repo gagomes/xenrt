@@ -897,12 +897,15 @@ class TC9284(xenrt.TestCase):
             if "VM didn't acknowledge the need to shutdown" in str(e) or "Failed_to_acknowledge_shutdown_request" in str(e):
                 xenrt.TEC().logverbose("Migration failed as expected")
                 try:
-                    self.guest.poll("DOWN")
-                    self.guest.start()
-                    time.sleep(30)
+                    if self.guest.getState() == "UP":
+                        self.guest.lifecycleOperation("vm-reboot", force=True)
+                    else:
+                        self.guest.lifecycleOperation("vm-start")
                 except:
-                    pass
-                
+                    #Start the VM if vm-reboot fails because VM went down before vm-reboot
+                    self.guest.lifecycleOperation("vm-start")
+            else:
+                raise
         finally:
             self.guest.makeCooperative(True)
             time.sleep(30)

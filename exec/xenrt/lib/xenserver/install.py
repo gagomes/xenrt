@@ -61,7 +61,6 @@ class DundeeInstaller(object):
             self.host.i_upgrade = self.upgrade
             self.host.i_async = async
             self.host.i_suppackcds = suppackcds
-            self.host.resetDisk()
 
         if self.upgrade:
             # Default to existing values if not specified

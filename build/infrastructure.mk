@@ -46,7 +46,7 @@ ifeq ($(APIBUILD), yes)
 	cp $(SHAREDIR)/control/xenrtnew $(SHAREDIR)/api_build/python/scripts/xenrtnew
 	cp $(SHAREDIR)/control/xenrt $(SHAREDIR)/api_build/python/scripts/xenrt
 	cd $(SHAREDIR)/api_build/python/ && python setup.py sdist
-	$(SUDO) ln -sf $(SHAREDIR)/api_build/python/dist/xenrtapi-0.08.tar.gz $(WEBROOT)/xenrtapi.tar.gz
+	$(SUDO) ln -sf $(SHAREDIR)/api_build/python/dist/xenrtapi-0.09.tar.gz $(WEBROOT)/xenrtapi.tar.gz
 	$(SUDO) pip install -I $(WEBROOT)/xenrtapi.tar.gz
 	$(SUDO) pdoc --html --html-dir /var/www --overwrite xenrtapi
 	cd $(SHAREDIR)/api_build/python/ && python setup.py sdist upload -r pypi

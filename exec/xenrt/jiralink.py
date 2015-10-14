@@ -35,7 +35,7 @@ class JiraLink(object):
         self.TRACK_TAG = xenrt.TEC().lookup("JIRA_TRACK_TAG", None)
 
         self.XENRT_WEB = xenrt.TEC().lookup("JIRA_XENRT_WEB", 
-                              "http://xenrt.hq.xensource.com/control/queue.cgi")
+                              "https://xenrt.citrite.net/control/queue.cgi")
 
         self.TESTRUN_URL = xenrt.TEC().lookup("TESTRUN_URL", None)
         self.customFields = None
@@ -221,7 +221,7 @@ class JiraLink(object):
         ccpCommit = xenrt.TEC().lookup("CCP_EXPECTED_COMMIT", None)
         if ccpCommit:
             environment += "\nCCP Commit: %s" % ccpCommit
-        environment += "\nXenRT Job URL: http://xenrt.xs.citrite.net/xenrt/minimalframe?jobs=%s" % jobid
+        environment += "\nXenRT Job URL: https://xenrt.citrite.net/xenrt/minimalframe?jobs=%s" % jobid
         seenagain = ("Seen again on %s\n" % (environment))
 
         assignee = xenrt.TEC().lookup("AUTO_BUG_ASSIGNEE",None)
@@ -383,7 +383,7 @@ class JiraLink(object):
             jenkins = xenrt.TEC().lookup("JENKINS_URL", None)
             if jenkins:
                 environment += "\nJenkins URL: %s" % jenkins
-            environment += "\nXenRT Job URL: http://xenrt.xs.citrite.net/xenrt/minimalframe?jobs=%s" % jobid
+            environment += "\nXenRT Job URL: https://xenrt.citrite.net/xenrt/minimalframe?jobs=%s" % jobid
             seenagain = ("Seen again on %s\nXenRT logs available at "
                          "%s?action=testlogs&id=%s&phase=%s&test=%s" %
                          (environment,self.XENRT_WEB,jobid,phase,test))
@@ -821,7 +821,7 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
         jenkins = xenrt.TEC().lookup("JENKINS_URL", None)
         if jenkins:
             environment += "\nJenkins URL: %s" % jenkins
-        environment += "\nXenRT Job URL: http://xenrt.xs.citrite.net/xenrt/minimalframe?jobs=%s" % jobid
+        environment += "\nXenRT Job URL: https://xenrt.citrite.net/xenrt/minimalframe?jobs=%s" % jobid
         assignee = xenrt.TEC().lookup("AUTO_BUG_ASSIGNEE", None)
 
         sstr = "JobTest/%s: %s" % (tcid, reason)
@@ -995,7 +995,10 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
                     else:
                         tcsku = None
                     xenrt.TEC().logverbose("Replaying %s on SR %s" % (tc,sr))
-                    self.testrunRecordRun(sr,tc,result,ticket,detailid,tcsku)
+                    try:
+                        self.testrunRecordRun(sr,tc,result,ticket,detailid,tcsku)
+                    except: # Fix for buggy saved runs
+                        self.testrunRecordRun(sr,tc,result,ticket,None,detailid)
                 elif recordtype == "Subcase":
                     sr = fitem[1]
                     tc = fitem[2]
@@ -1025,13 +1028,13 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
         if tsr:
             if ticket:
                 if ticketIsFailure:
-                    self.recordRun(tsr,jiratc,"fail",ticket,tcsku)
+                    self.recordRun(tsr,jiratc,"fail",ticket,None,tcsku)
                 else:
-                    self.recordRun(tsr,jiratc,"error",ticket,tcsku)
+                    self.recordRun(tsr,jiratc,"error",ticket,None,tcsku)
             elif blocker:
-                self.recordRun(tsr,jiratc,"notrun",blockedticket,tcsku)
+                self.recordRun(tsr,jiratc,"notrun",blockedticket,None,tcsku)
             else:
-                self.recordRun(tsr,jiratc,"pass",None,tcsku)
+                self.recordRun(tsr,jiratc,"pass",None,None,tcsku)
 
     def fileTicket(self,result,track,summary,description,environment,seenagain,
                    assignee,hosts,jiratc,multipleSubcases=False):
@@ -1406,7 +1409,7 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
         jenkins = xenrt.TEC().lookup("JENKINS_URL", None)
         if jenkins:
             environment += "\nJenkins URL: %s" % jenkins
-        environment += "\nXenRT Job URL: http://xenrt.xs.citrite.net/xenrt/minimalframe?jobs=%s" % jobid
+        environment += "\nXenRT Job URL: https://xenrt.citrite.net/xenrt/minimalframe?jobs=%s" % jobid
 
         j = self.jira
         componentName = xenrt.TEC().lookup("JIRA_TICKET_COMPONENT", None)

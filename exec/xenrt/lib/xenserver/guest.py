@@ -368,12 +368,15 @@ class Guest(xenrt.GenericGuest):
                                      "(arch %s)" % (distro, arch))
 
         self.isoname = isoname
-        if self.memory and self.isoname and ([i for i in ["win81","ws12r2"] if i in self.isoname]):
-            if rootdisk == self.DEFAULT:
-                rootdisk = max(32768, 20480 + self.memory)
-            else:
-                rootdisk = max(32768, 20480 + self.memory, rootdisk)
-            xenrt.TEC().logverbose("Increasing root disk to %d" % rootdisk)
+        if self.isoname:
+            minRootDisk = xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.isoname, "MIN_ROOTDISK"], None)
+            minRootDiskDiff = xenrt.TEC().lookup(["GUEST_LIMITATIONS",self.isoname,"MIN_ROOTDISK_MEMORY_DIFF"], 0)
+            if self.memory and minRootDisk:
+                if rootdisk == self.DEFAULT:
+                    rootdisk = max(minRootDisk , minRootDiskDiff + self.memory)
+                else:
+                    rootdisk = max(minRootDisk , minRootDiskDiff + self.memory, rootdisk)
+                xenrt.TEC().logverbose("Increasing root disk to %d" % rootdisk)
 
         if distro:
             self.distro = distro
@@ -4599,7 +4602,10 @@ def createVMFromFile(host,
             guest.importVM(host, "%s/%s" % (d, os.path.basename(filename)), imageIsOnHost=True, sr=sr, vifs=vifs)
             host.execdom0("umount %s" % d)
         else:
-            guest.importVM(host, xenrt.TEC().getFile(filename), vifs=vifs, sr=sr)
+            vmfile = xenrt.TEC().getFile(filename)
+            if not vmfile:
+                raise xenrt.XRTError("Cannot find %s to import" % filename)
+            guest.importVM(host, vmfile, vifs=vifs, sr=sr)
     guest.paramSet("is-a-template", "false")
     guest.reparseVIFs()
     guest.vifs.sort()

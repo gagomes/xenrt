@@ -16,3 +16,5 @@ elif sys.argv[1] == "updateteams":
         app.utils.update_ad_teams()
 elif sys.argv[1] == "schedule":
     app.api.schedule.XenRTSchedule(None).cli()
+elif sys.argv[1] == "emaillist":
+    app.apiv2.misc.EmailList(None).cli()

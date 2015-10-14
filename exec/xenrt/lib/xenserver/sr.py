@@ -148,6 +148,35 @@ class StorageRepository(object):
     def create(self, physical_size=0, content_type="", smconf={}):
         raise xenrt.XRTError("Unimplemented")
 
+    def createPBDs(self, plug=True):
+        """Create and plug all PBDs associated with this SR
+
+        @param plug: Optional boolean value to indicate plugging created PBDs.
+
+        @return: list of created PBDS.
+        """
+        cli = self.host.getCLIInstance()
+        hosts = self.host.minimalList("host-list")
+        pool = self.host.minimalList("pool-list")[0]
+        master = self.host.genParamGet("pool", pool, "master")
+        pbds = []
+        for h in hosts:
+            args = []
+            args.append("host-uuid=%s" % (h))
+            args.append("sr-uuid=%s" % (self.uuid))
+            args.extend(["device-config:%s=\"%s\"" % (x, y)
+                         for x,y in self.dconf.items()])
+            pbd = cli.execute("pbd-create", string.join(args)).strip()
+            if h == master:
+                pbds.insert(0, pbd)
+            else:
+                pbds.append(pbd)
+        if plug:
+            for pbd in pbds:
+                cli.execute("pbd-plug", "uuid=%s" % (pbd))
+
+        return pbds
+        
     def introduce(self):
         """Re-introduce the SR - it must have been created with this object previously"""
         if not self.uuid:
@@ -165,18 +194,7 @@ class StorageRepository(object):
         if self.SHARED:
             args.append("shared=true")
         cli.execute("sr-introduce", string.join(args))
-        hosts = self.host.minimalList("host-list")
-        pbds = []
-        for h in hosts:
-            args = []
-            args.append("host-uuid=%s" % (h))
-            args.append("sr-uuid=%s" % (self.uuid))
-            args.extend(["device-config:%s=\"%s\"" % (x, y)
-                         for x,y in self.dconf.items()])
-            pbd = cli.execute("pbd-create", string.join(args)).strip()
-            pbds.append(pbd)
-        for pbd in pbds:
-            cli.execute("pbd-plug", "uuid=%s" % (pbd))
+        self.createPBDs()
 
     def unplugPBDs(self):
         """Unplug all PBDs associated with this SR."""
@@ -330,7 +348,7 @@ class StorageRepository(object):
     def remove(self):
         xenrt.TEC().logverbose("Finding VMs/VDIs in SR %s" % (self.uuid))
         usecli = self.host.getCLIInstance()
-        vdilist = self.paramGet("VDIs").split(";")
+        vdilist = self.paramGet("VDIs").strip().split(";")
         # Shutdown and remove all VMs on the SR.
         for vdi in vdilist:
             vdi = vdi.strip()
@@ -352,7 +370,7 @@ class StorageRepository(object):
                                            (vm, self.uuid, str(e)))
                     
         # Try to remove any left over VDIs
-        vdilist = self.paramGet("VDIs").split(";")
+        vdilist = self.paramGet("VDIs").strip().split(";")
         for vdi in vdilist:
             vdi = vdi.strip()
             try:
@@ -363,10 +381,8 @@ class StorageRepository(object):
                                        (vdi, self.uuid, str(e)))
         # Unplug all the PBDs.
         xenrt.TEC().logverbose("Unplugging PBDs")
-        pbdlist = self.paramGet("PBDs").split(";")
-        for pbd in pbdlist:
-            pbd = string.strip(pbd)
-            usecli.execute("pbd-unplug", "uuid=%s" % (pbd)) 
+        self.unplugPBDs()
+
         xenrt.TEC().logverbose("Calling sr-%s" % (self.CLEANUP))
         try:
             usecli.execute("sr-%s" % (self.CLEANUP), "uuid=%s" % (self.uuid))
@@ -376,10 +392,7 @@ class StorageRepository(object):
                                    (self.CLEANUP, self.uuid, str(e)))
             if self.CLEANUP != "forget":
                 xenrt.TEC().logverbose("Try to forget the SR instead...")
-                pbdlist = self.paramGet("PBDs").split(";")
-                for pbd in pbdlist:
-                    pbd = string.strip(pbd)
-                    usecli.execute("pbd-unplug", "uuid=%s" % (pbd)) 
+                self.unplugPBDs()
                 usecli.execute("sr-forget", "uuid=%s" % (self.uuid))
 
     def prepareSlave(self, master, slave, special=None):
@@ -428,6 +441,14 @@ class StorageRepository(object):
             args.append("sm-config:%s=%s" % (key, smconfig[key]))
 
         return cli.execute("vdi-create", string.join(args), strip=True)
+
+    def setDefault(self):
+        """Set given SR to default"""
+
+        pool = self.host.minimalList("pool-list")[0]
+        self.host.genParamSet("pool", pool, "default-SR", self.uuid)
+        self.host.genParamSet("pool", pool, "crash-dump-SR", self.uuid)
+        self.host.genParamSet("pool", pool, "suspend-image-SR", self.uuid)
 
 
 class EXTStorageRepository(StorageRepository):
@@ -800,18 +821,7 @@ class NFSStorageRepository(StorageRepository):
             args.append("sm-config:nosubdir=true")
             
         cli.execute("sr-introduce", string.join(args))
-        hosts = self.host.minimalList("host-list")
-        pbds = []
-        for h in hosts:
-            args = []
-            args.append("host-uuid=%s" % (h))
-            args.append("sr-uuid=%s" % (self.uuid))
-            args.extend(["device-config:%s=\"%s\"" % (x, y)
-                         for x,y in self.dconf.items()])
-            pbd = cli.execute("pbd-create", string.join(args)).strip()
-            pbds.append(pbd)
-        for pbd in pbds:
-            cli.execute("pbd-plug", "uuid=%s" % (pbd))
+        self.createPBDs()
 
     def check(self):
         StorageRepository.checkCommon(self, "nfs")

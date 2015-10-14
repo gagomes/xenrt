@@ -1,0 +1,69 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host installsr="ext" license="enterprise-per-socket" >
+      <vm name="masterrhel7_x86-64">
+        <distro>rhel7</distro>
+        <arch>x86-64</arch>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="10" />
+        <postinstall action="installDrivers" />
+        <postinstall action="preCloneTailor"/>
+      </vm>
+
+      <vm name="masterubuntu1404_x86-64">
+        <distro>ubuntu1404</distro>
+        <arch>x86-64</arch>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="8" />
+        <postinstall action="installDrivers" />
+        <postinstall action="preCloneTailor"/>
+      </vm>
+
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="M60vGPU">
+
+      <testcase id="testcases.xenserver.tc.vgpu.TCBasicVerifOfAllK2config" name="TC-27345" tc="TC-27345">
+        <arg>distro=11,14</arg> <!-- 11 = Distro RHEL7 and 14 = Ubuntu 14.0.4 -->
+        <arg>typeofvgpu=nvidialinuxhvmvgpu</arg>
+        <arg>others=nvidialinuxhvmvgpu</arg>
+        <arg>vgpuconfig=14,15,16,17</arg> <!-- 14 = GPU PT, 15 = M60-0Q, 16 = M60-1Q, 17 = M60-2Q-->
+      </testcase>
+
+      <testcase id="testcases.xenserver.tc.vgpu.TCReuseK2PGPU" name="TC-27346" tc="TC-27346">
+        <arg>distro=11,14</arg> <!-- 11 = Distro RHEL7 and 14 = Ubuntu 14.0.4 -->
+        <arg>vgpuconfig=16,17</arg> <!-- 16 = M60-1Q, 17 = M60-2Q-->
+        <arg>others=nvidialinuxvgpu</arg>
+        <arg>typeofvgpu=nvidialinuxvgpu</arg>
+      </testcase>
+
+      <testcase id="testcases.xenserver.tc.vgpu.TCRevertvGPUSnapshot" name="TC-27347" tc="TC-27347">
+        <arg>distro=11</arg> <!-- 11 = Distro RHEL7  -->
+        <arg>vgpuconfig=18</arg> <!-- 18 = M60-4Q -->
+        <arg>others=nvidialinuxhvmvgpu</arg>
+        <arg>typeofvgpu=nvidialinuxhvmvgpu</arg>
+      </testcase>
+      
+      <testcase id="testcases.xenserver.tc.vgpu.TCM60ReassignGPU" name="TC-27355" tc="TC-27355">
+        <arg>distro=11</arg> <!-- 11 = Distro RHEL7  -->
+        <arg>vgpuconfig=18</arg> <!-- 18 = M60-4Q -->
+        <arg>others=nvidialinuxhvmvgpu</arg>
+        <arg>typeofvgpu=nvidialinuxhvmvgpu</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+
+</xenrt>

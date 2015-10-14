@@ -808,7 +808,6 @@ class Host(xenrt.GenericHost):
             self.i_upgrade = upgrade
             self.i_async = async
             self.i_suppackcds = suppackcds
-            self.resetDisk()
 
         if upgrade:
             # Default to existing values if not specified
@@ -4480,6 +4479,11 @@ fi
         g.makeNonInteractive()
 
         return g
+
+    def setXenLogLevel(self):
+        """Set Xen Log Level to all"""
+        self.execdom0("sed -e 's/\(append .*xen\S*.gz\)/\\0 loglvl=all guest_loglvl=all/' /boot/extlinux.conf > tmp && mv tmp /boot/extlinux.conf -f")
+        self.reboot()
 
     #########################################################################
     # Network operations
@@ -8450,17 +8454,6 @@ rm -f /etc/xensource/xhad.conf || true
 
     def checkSafe2Upgrade(self):
         """Function to check if new partitions will be created on upgrade to dundee- CAR-1866"""
-        #This workaround is required because new plugins are yet to be added to released XS versions
-        if xenrt.TEC().lookup("WORKAROUND_CAR1866", default=False, boolean=True) and not isinstance(self, xenrt.lib.xenserver.DundeeHost):
-            step("Replace prepare_upgrade_plugin with the custom plugin")
-            plugin = xenrt.TEC().getFile("/usr/groups/xenrt/upgrade_plugins/%s_prepare_host_upgrade.py" % (xenrt.TEC().lookup("OLD_PRODUCT_VERSION")))
-            sftp = self.sftpClient()
-            try:
-                xenrt.TEC().logverbose('About to copy "%s to "%s" on host.' \
-                                        % (plugin, "/etc/xapi.d/plugins/prepare_host_upgrade.py"))
-                sftp.copyTo(plugin, "/etc/xapi.d/plugins/prepare_host_upgrade.py")
-            finally:
-                sftp.close()
 
         step("Call testSafe2Upgrade function and check if its output is as expected")
         sruuid = []
@@ -8473,9 +8466,16 @@ rm -f /etc/xensource/xhad.conf || true
             if localSrOnSda:
                 vdis = len(self.minimalList("vdi-list", args="sr-uuid=%s" % (sr)))
                 log("Number of VDIs on local stotage: %d" % vdis)
-                srsize = int(self.genParamGet("sr", sr, "physical-size"))/xenrt.GIGA
+                srsize = int(self.execdom0("blockdev --getsize64 %s" % self.getInventoryItem("PRIMARY_DISK")))/xenrt.GIGA
                 log("Size of disk: %dGiB" % srsize)
-                expectedOutput = "false" if (vdis > 0 or srsize < 38) and not isinstance(self, xenrt.lib.xenserver.DundeeHost) else "true"
+                if srsize < 46:
+                    # Minimum supported primary disk size for new partitions is 46GB
+                    expectedOutput = "not_enough_space"
+                elif (isinstance(self, xenrt.lib.xenserver.DundeeHost) and self.compareDom0Partitions(self.lookup("DOM0_PARTITIONS_OLD"))) or vdis > 0:
+                    expectedOutput = "false"
+                else:
+                    expectedOutput = "true"
+                break
         log("Plugin should return: %s" % expectedOutput)
 
         cli = self.getCLIInstance()
@@ -11032,6 +11032,25 @@ class TampaHost(BostonHost):
             xenrt.TEC().logverbose("The system device wwpn information are %s " % deviceDict)
         return deviceDict
 
+    def scanScsiBus(self, timeout=30):
+        """Scanning SCSI subsystem for new devices"""
+
+        # Scan the scsi subsystem for new devices.
+        self.execdom0("rescan-scsi-bus.sh > rescan-scsi-bus.dat 2>&1 < /dev/null &", retval="code")
+
+        # Wait for some time to complete the scanning of devices.
+        startTime = xenrt.util.timenow()
+        while True:
+            if (xenrt.util.timenow() - startTime) > timeout * 60:
+                raise xenrt.XRTFailure("Scanning SCSI subsystem for new devices took more than %u minutes" %
+                                                                                                        timeout)
+            if self.execdom0("ps -efl | grep [r]escan-scsi-bus.sh",retval="code") > 0:
+                xenrt.TEC().logverbose("Scanning SCSI subsystem for new devices took %u minutes" %
+                                                                ((xenrt.util.timenow() - startTime)/60))
+                break
+
+            xenrt.sleep(30) # 30 seconds.
+
     def scanFibreChannelBus(self):
         """Scans the fibre channel bus for luns."""
 
@@ -11906,7 +11925,7 @@ class DundeeHost(CreedenceHost):
         return ifs
 
     def getInstallNetwork(self):
-        return self.installnetwork
+        return getattr(self, "installnetwork", None)
         
     def snmpdIsEnabled(self):
         return "enabled" in self.execdom0("service snmpd status | cat")
@@ -12071,6 +12090,11 @@ class DundeeHost(CreedenceHost):
         else:
             self.haPath = "/opt/xensource/xha"
         return self.haPath
+
+    def setXenLogLevel(self):
+        """Set Xen Log Level to all"""
+        self.execdom0("/opt/xensource/libexec/xen-cmdline --set-xen loglvl=all guest_loglvl=all")
+        self.reboot()
 
 #############################################################################
 

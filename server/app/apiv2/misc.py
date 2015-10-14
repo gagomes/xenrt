@@ -70,6 +70,12 @@ class GetUsersDetails(XenRTAPIv2Page):
                 ret[u.userid] = {"user": u.userid, "email": u.email, "team": u.team, "admin": u.admin, "groups": u.groups}
         return ret
 
+class EmailList(XenRTAPIv2Page):
+    def cli(self):
+        cur = self.getDB().cursor()
+        cur.execute("SELECT DISTINCT(email) FROM tblusers WHERE email IS NOT NULL AND NOT disabled;")
+        print "; ".join([x[0] for x in cur.fetchall()])
+
 class GetGroupDetails(XenRTAPIv2Page):
     PATH = "/groupdetails/{group}"
     REQTYPE = "GET"

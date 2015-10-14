@@ -4,24 +4,25 @@
   <default name="POOLSTRESSSNAP" value="20" />
   <default name="DURATION" value="NA" />
   <default name="ITERATIONS" value="50" />
-  <default name="ISCSIOPTIONS" value="ietvm" />
+  <default name="ISCSIOPTIONS" value="ietvm,thin" />
 
   <scheduler>
     <pool>VMX,SVM</pool>
     <param>MACHINES_REQUIRED=2</param>
     <resources>memory&gt;=16G/cores&gt;=16</resources>
-    <param>OPTION_NO_BUGTOOL=yes</param>
+    <!--<param>OPTION_NO_BUGTOOL=yes</param>-->
   </scheduler>
 
   <variables>
     <EXTRA_TIME>yes</EXTRA_TIME>
     <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
     <OPTION_CLONE_TEMPLATE>yes</OPTION_CLONE_TEMPLATE>
-    <SR_ON_PRIMARY_DISK>no</SR_ON_PRIMARY_DISK>
+    <!--<SR_ON_PRIMARY_DISK>no</SR_ON_PRIMARY_DISK>-->
     <LINUX_ISCSI_TARGET>LIO</LINUX_ISCSI_TARGET>
     <NO_LOGS_ON_PASS>yes</NO_LOGS_ON_PASS>
     <BUGTOOL_MODE_STRESS>yes</BUGTOOL_MODE_STRESS>
     <ENABLE_VM_CONSOLE_LOGS>no</ENABLE_VM_CONSOLE_LOGS>
+    <POOL_STRESS_LOG_VHD>yes</POOL_STRESS_LOG_VHD>
     <QUICKLOGS>yes</QUICKLOGS>
   </variables>
 

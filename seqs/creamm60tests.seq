@@ -1,0 +1,41 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Cream</PRODUCT_VERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+    <PREPARE_WORKERS>1</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host installsr="ext" license="enterprise-per-socket" >
+      <vm name="masterwin7sp1-x64">
+        <distro>win7sp1-x64</distro>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <network device="0" />
+        <disk device="0" size="24" />
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="NVIDIAM60vGPU">
+
+      <testcase id="testcases.xenserver.tc.vgpu.TCBasicVerifOfAllK2config" tc="TC-27225">
+        <arg>distro=1</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+        <arg>vgpuconfig=15,16,17</arg>
+      </testcase>
+
+      <testcase id="testcases.xenserver.tc.vgpu.TCReuseK2PGPU" tc="TC-27228">
+        <arg>distro=1</arg>
+        <arg>typeofvgpu=nvidiawinvgpu</arg>
+        <arg>vgpuconfig=15</arg>
+        <arg>others=nvidiawinvgpu</arg>
+      </testcase>
+      
+    </serial>
+  </testsequence>
+
+</xenrt>

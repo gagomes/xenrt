@@ -1,9 +1,9 @@
 from setuptools import setup
 
 setup(name='xenrtapi',
-      version='0.08',
+      version='0.09',
       description="API for XenRT",
-      url="http://xenrt.citrite.net",
+      url="https://xenrt.citrite.net",
       author="Citrix",
       author_email="svcacct_xs_xenrt@citrix.com",
       license="Apache",

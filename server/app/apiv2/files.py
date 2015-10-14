@@ -59,9 +59,11 @@ class FileGet(_FilesBase):
 
         try:
             localfilename = app.utils.results_filename(filename, job)
-            self.request.response.body_file = file(localfilename, "r")
+            f = file(localfilename, "r")
+            self.request.response.body_file = f
             self.request.response.content_type=ctype
             self.request.response.content_disposition = "attachment; filename=\"%s\"" % (downloadname)
+            self.request.response.content_length = os.fstat(f.fileno()).st_size
             if encoding:
                 self.request.response.content_encoding=encoding
             return self.request.response

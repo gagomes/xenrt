@@ -75,7 +75,7 @@ class DotNetAgentAdapter(object):
             return False
 
     def getNonCryptoMSIs(self, server):
-        server.guest.execguest("wget '%s/citrixguestagent-Noncrypto.tgz' -O | tar -zx"%(xenrt.TEC().lookup("TEST_TARBALL_BASE")))
+        server.guest.execguest("wget '%s/citrixguestagent-Noncrypto.tgz'| tar -zx"%(xenrt.TEC().lookup("TEST_TARBALL_BASE")))
         server.guest.execguest("mv citrixguestagent-Noncrypto/citrixguestagentx64.msi citrixguestagentx64.msi")
         server.guest.execguest("mv citrixguestagent-Noncrypto/citrixguestagentx86.msi citrixguestagentx86.msi")
 

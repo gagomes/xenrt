@@ -228,7 +228,7 @@ class TCIOLatency(ThinLVHDPerfBase):
         if self.goldenVM.execcmd('test -e /root/perf-latency/diskprofiler/dprofiler', retval='code') != 0:
             self.goldenVM.execguest("cd /root && wget '%s/perf-latency.tgz'" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
             self.goldenVM.execguest("cd /root && tar -xzf perf-latency.tgz")
-            self.goldenVM.execguest("cd /root/perf-latency/diskprofiler && gcc dprofiler.c -o dprofiler && chmod +x dprofiler")
+            self.goldenVM.execguest("cd /root/perf-latency/diskprofiler && gcc dprofiler.c -o dprofiler -lrt && chmod +x dprofiler")
 
         # Check, if installed correctly.
         if self.goldenVM.execcmd('test -e /root/perf-latency/diskprofiler/dprofiler', retval='code') != 0:

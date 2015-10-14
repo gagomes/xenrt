@@ -367,6 +367,7 @@ class Guest(xenrt.GenericGuest):
                 raise xenrt.XRTError("Could not find a suitable ISO for %s "
                                      "(arch %s)" % (distro, arch))
 
+        self.isoname = isoname
         minRootDisk = xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.isoname, "MIN_ROOTDISK"])
         minRootDiskDiff = xenrt.TEC().lookup(["GUEST_LIMITATIONS",self.isoname,"MIN_ROOTDISK_MEMORY_DIFF"])
         if self.memory and self.isoname and minRootDisk:

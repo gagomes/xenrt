@@ -1817,6 +1817,7 @@ class Experiment_vmrun(Experiment):
             else:
                 localsr = "ext"
                 options = self.defaultsr.split(":")[1:2] # eg. thin in lvmoiscsi:thin
+                self.defaultsr = self.defaultsr.split(":")[0]
                 if len(options) == 0:
                   options = ""
                 else:
@@ -1827,7 +1828,7 @@ class Experiment_vmrun(Experiment):
                 hn = xenrt.TEC().lookup("MACHINE", "WARNING: NO MACHINE NAME")
                 if "xrtuk-08-" in hn:
                     xenrt.TEC().logverbose("%s: xrtuk-08-* host detected, using NSEC+jumbo network configuration" % hn)
-                    sharedsr = '<storage type="%s" name="%s" jumbo="true" network="NSEC"/>' % (self.defaultsr, name_defaultsr)
+                    sharedsr = '<storage type="%s" name="%s" %s jumbo="true" network="NSEC"/>' % (self.defaultsr, name_defaultsr, options)
                     networkcfg = """<NETWORK><PHYSICAL network="NPRI"><NIC /><MANAGEMENT /><VMS />%s</PHYSICAL><PHYSICAL network="NSEC"><NIC /><STORAGE /></PHYSICAL></NETWORK>"""
                 else:
                     xenrt.TEC().logverbose("%s: xrtuk-08-* host NOT detected, using default network configuration" % hn)

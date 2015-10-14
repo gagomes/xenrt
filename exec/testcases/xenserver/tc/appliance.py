@@ -30,7 +30,7 @@ class _WlbApplianceVM(xenrt.TestCase):
         xenrt.TEC().registry.guestPut(self.WLBSERVER_NAME, g)
         g.host = self.host
         g.addExtraLogFile("/var/log/wlb/LogFile.log")
-        self.wlbserver = xenrt.WlbApplianceBase.constructWLBInstance(g, self.vpx_os_version)
+        self.wlbserver = xenrt.WlbApplianceFactory().create(g, self.vpx_os_version)
         g.importVM(self.host, xenrt.TEC().getFile("xe-phase-1/vpx-wlb.xva"))
         g.windows = False
         g.hasSSH = False # here we should support both old (CentOS5) and new (CentOS7) WLB, disable sshcheck

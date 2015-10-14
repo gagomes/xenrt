@@ -28,9 +28,10 @@ time.strptime('2014-06-12','%Y-%m-%d')
 #End dummy import
 
 __all__ = ["GenericPlace", "GenericHost", "NetPeerHost", "GenericGuest", "productLib",
-           "RunOnLocation", "ActiveDirectoryServer", "PAMServer", "CVSMServer", "WlbApplianceBase",
-           "WlbApplianceServer", "WlbApplianceServerHVM", "DemoLinuxVM", "ConversionApplianceServer",
-           "ConversionApplianceServerHVM", "EventObserver", "XenMobileApplianceServer", "_WinPEBase"]
+           "RunOnLocation", "ActiveDirectoryServer", "PAMServer", "CVSMServer", "WlbApplianceFactory",
+           "WlbApplianceServer", "WlbApplianceServerHVM", "DemoLinuxVM", "ConversionManagerApplianceFactory",
+           "ConversionApplianceServer", "ConversionApplianceServerHVM", "EventObserver",
+           "XenMobileApplianceServer", "_WinPEBase"]
 
 class MyHTTPConnection(httplib.HTTPConnection):
     XENRT_SOCKET_TIMEOUT = 600
@@ -145,6 +146,7 @@ class GenericPlace(object):
         self.password = None
         self.guestconsolelogs = None
         self.windows = False
+        self.hasSSH = True
         self.distro = None
         self.arch = None
         self.thingsWeHaveReported = []
@@ -11256,6 +11258,33 @@ class DemoLinuxVM(object):
         self.place.writeToConsole("yum -y install openssh-server\\n")
         xenrt.sleep(360)
 
+class ApplianceFactory(object):
+    def create(self, guest, version="CentOS7"):
+        if version == "CentOS7":
+            return self._createHVM(guest)
+        else:
+            return self._createLegacy(guest)
+
+    def _createHVM(self, guest):
+        raise xenrt.XRTError("Not Implemented")
+
+    def _createLegacy(self, guest):
+        raise xenrt.XRTError("Not Implemented")
+
+class WlbApplianceFactory(ApplianceFactory):
+    def _createHVM(self, guest):
+        return WlbApplianceServerHVM(guest)
+
+    def _createLegacy(self, guest):
+        return WlbApplianceServer(guest)
+
+class ConversionManagerApplianceFactory(ApplianceFactory):
+    def _createHVM(self, guest):
+        return ConversionApplianceServerHVM(guest)
+
+    def _createLegacy(self, guest):
+        return ConversionApplianceServer(guest)
+
 class WlbApplianceBase(object):
     """Base WLB Appliance Class for PV WLB Appliance Server and HVM WLB Appliance Server"""
 
@@ -11267,15 +11296,6 @@ class WlbApplianceBase(object):
             self.place.password = self.password
         self.wlb_username = "wlbuser"
         self.wlb_port = "8012" # default port
-
-    @staticmethod
-    def constructWLBInstance(place, vpx_os_version="CentOS7"):
-        wlb_instance = None
-        if vpx_os_version == "CentOS7":
-            wlb_instance = WlbApplianceServerHVM(place)
-        else:
-            wlb_instance = WlbApplianceServer(place)
-        return wlb_instance
 
     def doFirstbootUnattendedSetup(self):
         pass
@@ -11445,7 +11465,13 @@ class WlbApplianceServerHVM(WlbApplianceBase):
         # sanity checks after automated setup
         # check if the wlb server is listening on the expected port
         out = self.place.execguest("netstat -a | grep 8012 | wc -l").strip()
-        if out != "1":
+        try:
+            # Occasionally, pid or inode number equals to 8012, the above out would be 2 or 3.
+            # It has has been observed in test.
+            count = int(out)
+            if count < 1:
+                raise xenrt.XRTFailure("WLB appliance not listening on expected port 8012")
+        except:
             raise xenrt.XRTFailure("WLB appliance not listening on expected port 8012")
 
 class V6LicenseServer(object):

@@ -97,7 +97,6 @@ class Guest(xenrt.GenericGuest):
                 self.vcpus = v
 
         self.tailored = False
-        self.hasSSH = True
         self.uuid = None
         self.use_ipv6 = xenrt.TEC().lookup('USE_GUEST_IPV6', False, boolean=True)
         self.memory = None # Default to template memory.
@@ -996,7 +995,6 @@ users:
             else:
                 boottime = 900
                 agentTime = 180
-            # NOTE: Old CentOS5 VPX (e.g. WLB) does not install ssh by default.
             if not self.windows:
                 if self.hasSSH:
                     try:

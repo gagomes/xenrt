@@ -1601,7 +1601,7 @@ class TCVPXConversionSourceCheck(SourceISOCheck): # TC-18001
         g.windows = False
         g.hasSSH = False # here we should support both old (CentOS5) and new (CentOS7) XCM, disable sshcheck
         g.tailored = True # We do not need tailor for XCM, and old (CentOS5) XCM does not have ssh.
-        g.start(managebridge="xenbr0")
+        g.start(managebridge=g.host.getPrimaryBridge())
         self.getLogsFrom(g)
 
         self.convServer.doFirstbootUnattendedSetup()

@@ -74,8 +74,10 @@ class DotNetAgentAdapter(object):
         except:
             return False
 
-    def getnNonCryptoMSIs(self, server):
-        pass
+    def getNonCryptoMSIs(self, server):
+        server.guest.execguest("wget '%s/citrixguestagent-Noncrypto.tgz' -O | tar-zx"%(xenrt.TEC().lookup("TEST_TARBALL_BASE")))
+        server.guest.execguest("mv citrixguestagent-Noncrypto/citrixguestagentx64.msi citrixguestagentx64.msi")
+        server.guest.execguest("mv citrixguestagent-Noncrypto/citrixguestagentx86.msi citrixguestagentx86.msi")
 
     def setUpServer(self,guest,port):
         xenrt.TEC().logverbose("-----Setting up server-----")
@@ -360,6 +362,7 @@ class NonCryptoMSI(DotNetAgentTestCases):
     def run(self, arglist):
         server = self.adapter.setUpServer(self.getGuest("server"),"16000")
         server.createCatalog("99.0.0.0")
+        self.adapter.getNonCryptoMSIs(server)
         self.adapter.applyLicense(self.getDefaultPool())
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         autoupdate.enable()

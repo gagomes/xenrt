@@ -172,7 +172,7 @@ class TCIOLatency(ThinLVHDPerfBase):
 
         # Check if there any golden image.
         existingGuests = self.host.listGuests()
-        if existingGuests:
+        if existingGuests and not self.luntype.startswith("localvm"):
             vm = map(lambda x:self.host.getGuest(x), existingGuests)
             self.goldenVM = vm[0] # if so, pick the first one available.
         else: # Install a one with name 'vm00' with the specified extra disks.
@@ -183,6 +183,7 @@ class TCIOLatency(ThinLVHDPerfBase):
                             distro=self.distro,
                             arch=self.arch,
                             vifs=xenrt.productLib(host=self.host).Guest.DEFAULT,
+                            sr=sr,
                             disks=extraDisks)
 
         self.diskprefix = self.goldenVM.vendorInstallDevicePrefix()

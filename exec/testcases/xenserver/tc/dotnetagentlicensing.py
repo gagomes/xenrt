@@ -370,5 +370,7 @@ class NonCryptoMSI(DotNetAgentTestCases):
         autoupdate.setURL("http://%s:16000"%server.getIP())
         self.agent.restartAgent()
         xenrt.sleep(200)
+        if autoupdate.checkDownloadedMSI() == None:
+            raise xenrt.XRTFailure("msi has not downloaded")
         if self.adapter.nonCryptoMSIInstalled(self.win1):
             raise xenrt.XRTFailure("Non cryprographically signed msi installed")

@@ -114,6 +114,9 @@ Windows Registry Editor Version 5.00
 
 [HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Policies\Associations]
 "LowRiskFileTypes"=".cmd;.exe;"
+
+[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Internet Settings\]
+"CertificateRevocation"=dword:0
 """
 newregkey_file=basedir+'lowriskfiletypes.reg' 
 open(newregkey_file,'w').write(newregkey)

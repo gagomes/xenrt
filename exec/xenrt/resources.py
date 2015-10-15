@@ -1446,6 +1446,8 @@ class HBALun(CentralResource):
                  minsize=10,
                  maxsize=10000):
         CentralResource.__init__(self)
+        self.scsiid = None
+        self.luntype = None
         xenrt.TEC().logverbose("About to attempt to lock HBA LUN - current central resource status:")
         self.logList()
         luns = hosts[0].lookup("FC", {})

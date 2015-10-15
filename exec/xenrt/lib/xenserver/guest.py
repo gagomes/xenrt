@@ -901,6 +901,7 @@ users:
         vifs = ((self.managenetwork or self.managebridge)
                 and self.getVIFs(network=self.managenetwork, bridge=self.managebridge).keys()
                 or map(lambda v: v[0], self.vifs))
+        xenrt.TEC().progress("Get all vifs %s" % vifs)
 
         # Look for an IP address on the first interface (if we have any)
         if len(vifs) > 0:
@@ -998,19 +999,20 @@ users:
                 boottime = 900
                 agentTime = 180
             if not self.windows:
-                try:
-                    self.waitForSSH(boottime, desc="Guest boot")
+                if self.hasSSH:
+                    try:
+                        self.waitForSSH(boottime, desc="Guest boot")
 
-                    # sometimes SSH can be a little temperamental immediately after boot
-                    # a small sleep should help this.
-                    xenrt.sleep(10)
+                        # sometimes SSH can be a little temperamental immediately after boot
+                        # a small sleep should help this.
+                        xenrt.sleep(10)
 
-                except Exception, e:
-                    # Check the VM is still running
-                    if self.getState() != "UP":
-                        self.checkHealth(noreachcheck=True)
-                        raise xenrt.XRTFailure("VM no longer running while waiting for boot")
-                    raise
+                    except Exception, e:
+                        # Check the VM is still running
+                        if self.getState() != "UP":
+                            self.checkHealth(noreachcheck=True)
+                            raise xenrt.XRTFailure("VM no longer running while waiting for boot")
+                        raise
             else:
                 autologonRetryCount = 5
                 for i in range(autologonRetryCount):

@@ -5,6 +5,8 @@
   <variables>
     <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
     <PREPARE_WORKERS>4</PREPARE_WORKERS>
+    <VPX_OS_VERSION>CentOS7</VPX_OS_VERSION>
+    <VPX_DEFAULT_PASSWORD>citrix</VPX_DEFAULT_PASSWORD>
   </variables>
 
   <prepare>

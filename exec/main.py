@@ -1865,7 +1865,7 @@ if cleanuplocks:
                                 pass
 
                             os.rmdir(path)
-                        if lock[0].startswith("VLAN") or lock[0].startswith("ROUTEDVLAN") or lock[0].startswith("IP4ADDR") or lock[0].startswith("IP6ADDR") or lock[0].startswith("EXT-IP4ADDR"):
+                        if lock[0].startswith("VLAN") or lock[0].startswith("ROUTEDVLAN") or lock[0].startswith("IP4ADDR") or lock[0].startswith("IP6ADDR") or lock[0].startswith("EXT-IP4ADDR") or lock[0].startswith("HBA_LUN"):
                             jobsForMachinePowerOff.append(lock[2]['jobid']) 
                         if lock[0].startswith("GLOBAL"):
                             jobsForGlobalRelease.append(lock[2]['jobid'])

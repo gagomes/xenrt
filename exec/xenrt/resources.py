@@ -1483,7 +1483,7 @@ class HBALun(CentralResource):
                         break
                     except xenrt.XRTError:
                         continue
-                if name:
+                if self.scsiid:
                     break
                 if xenrt.util.timenow() > (startlooking + 3600):
                     xenrt.TEC().logverbose("Could not lock HBA LUN, current central resource status:")

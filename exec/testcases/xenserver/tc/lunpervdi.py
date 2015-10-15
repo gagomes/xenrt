@@ -368,10 +368,9 @@ class TC18349(LunPerVDI):
         self.enableLVMBasedStorage()
 
         # Create a lvmoHBA SR on the host using the available static LUN.
-        fcLun = self.hosts[0].lookup("SR_FCHBA", "LUN0")
-        fcSRScsiid = self.hosts[0].lookup(["FC", fcLun, "SCSIID"], None)
+        fcLun = xenrt.HBALun(self.hosts)
         fcSR = xenrt.lib.xenserver.FCStorageRepository(self.hosts[0], "LVHDoHBA")
-        fcSR.create(fcSRScsiid)
+        fcSR.create(fcLun)
         self.hosts[0].addSR(fcSR)
 
         # Create RawHBA SR.
@@ -384,7 +383,7 @@ class TC18349(LunPerVDI):
         for vdi in vdiList:
             vdiNameLabel = self.hosts[0].genParamGet("vdi", vdi, "name-label")
             if vdiNameLabel:
-                if (vdiNameLabel == fcSRScsiid):
+                if (vdiNameLabel == fcLun.getID()):
                     raise xenrt.XRTFailure("LUN/VDI SR includes LUNs used by LVHDoHBA.")
             else:
                 raise xenrt.XRTFailure("The name-label of vdi uuid: %s is reported to be empty." % vdi)
@@ -972,9 +971,9 @@ class TC18372(LunPerVDI):
         self.pool.master = self.hosts[0]
 
         step("Creating a lvmohba SR")
-        scsiid = self.hosts[0].lookup(["FC", "LUN0", "SCSIID"], None)
+        lun = xenrt.HBALun(self.hosts)
         hba = xenrt.lib.xenserver.HBAStorageRepository(self.hosts[0], "hbasr")
-        hba.create(scsiid)
+        hba.create(lun)
         self.pool.addSRToPool(hba)
         
         step("Enabling HA on the lvmohba SR")

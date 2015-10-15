@@ -1475,17 +1475,17 @@ class HBALun(CentralResource):
         else:
             CentralResource.__init__(self, held=False)
             startlooking = xenrt.util.timenow()
+            mylun = None
             while True:
                 for l in luns.keys():
                     try:
                         self.acquire("HBA_LUN-%s" % (luns[l]['SCSIID']))
-                        self.scsiid = luns[l]['SCSIID']
-                        self.luntype = luns[l].get('TYPE')
+                        mylun = luns[l]
                         self.resourceHeld = True
                         break
                     except xenrt.XRTError:
                         continue
-                if self.scsiid:
+                if mylun:
                     break
                 if xenrt.util.timenow() > (startlooking + 3600):
                     xenrt.TEC().logverbose("Could not lock HBA LUN, current central resource status:")
@@ -1494,11 +1494,22 @@ class HBALun(CentralResource):
                                          "available")
                 xenrt.sleep(60)
    
+        self.scsiid = luns[l]['SCSIID']
+        self.luntype = luns[l].get('TYPE')
+        self.lunid = int(luns[l]['LUNID']) if luns[l].has_key('LUNID') else None
+        self.mpclaim = luns[l].get("MPCLAIM")
+
     def getID(self):
         return self.scsiid
 
     def getType(self):
         return self.luntype
+
+    def getLunID(self):
+        return self.lunid
+
+    def getMPClaim(self):
+        return self.mpclaim
 
     def release(self, atExit=False):
         if xenrt.util.keepSetup():

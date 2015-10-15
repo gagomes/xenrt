@@ -82,10 +82,10 @@ class TC9352(_HostInstall):
 
     def postInstall(self):
         # Create a FC SR on another LUN
-        self.fcLun = self.host.lookup("SR_FCHBA", "LUN0")
-        self.fcSRScsiid = self.host.lookup(["FC", self.fcLun, "SCSIID"], None)
+        self.fcLun = xenrt.HBALun([self.host])
+        self.fcSRScsiid = self.fcLun.getID()
         self.fcSR = xenrt.lib.xenserver.FCStorageRepository(self.host, "fc")
-        self.fcSR.create(self.fcSRScsiid)
+        self.fcSR.create(self.fcLun)
         self.host.addSR(self.fcSR, default=True)
         
         # Create an iSCSI SR

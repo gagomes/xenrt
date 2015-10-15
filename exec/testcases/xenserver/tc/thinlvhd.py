@@ -124,10 +124,9 @@ class _ThinLVHDBase(xenrt.TestCase):
             sr.create(lun, subtype="lvm", physical_size=size, findSCSIID=True, noiqnset=True, smconf=smconf)
 
         elif srtype=="lvmohba":
-            fcLun = host.lookup("SR_FCHBA", "LUN0")
-            fcSRScsiid = host.lookup(["FC", fcLun, "SCSIID"], None)
+            fcLun = xenrt.HBALun([host])
             sr = xenrt.lib.xenserver.FCStorageRepository(host,  name, True)
-            sr.create(fcSRScsiid, physical_size=size, smconf=smconf)
+            sr.create(fcLun, physical_size=size, smconf=smconf)
 
         else:
             raise xenrt.XRTException("Cannot create Thin-LVHD SR with given srtype %s." % srtype)

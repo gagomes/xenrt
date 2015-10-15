@@ -6584,16 +6584,6 @@ chain tftp://${next-server}/%s
                 portCount = portCount + 1
         return portCount
 
-    def getNumOfFCLUNs(self):
-        """Obtain the number of attached fibre channel LUNs"""
-        lunCount = 0
-        fckeys = self.lookup(["FC"], {}).keys()
-        for k in fckeys:
-            m = re.match("LUN(\d+)", k)
-            if m:
-                lunCount = lunCount + 1
-        return lunCount
-
     def enableFCPort(self, hba):
         """Enable the FC port to which the specified HBA is connected."""
         cmd = self.lookup(["FC", "CMD_HBA%u_ENABLE" % (hba)], None)

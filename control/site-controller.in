@@ -134,8 +134,8 @@ def fqdn(host):
 
 def killJob(jobid):
     global _sharedir
-    resdir = "%s/results/jobs/%s" % (_sharedir, jobid)
-    f = os.popen("nice lsof %s" % resdir)
+    resdir = os.popen("realpath %s/results/jobs/%s" % (_sharedir, jobid)).read().strip()
+    f = os.popen("sudo ls -l /proc/*/cwd |  grep  ' %s$" % resdir)
     for l in f.readlines():
         m = re.match("main.py\s+(\d+)", l)
         if m:
@@ -145,7 +145,7 @@ def killJob(jobid):
             os.system(cmd)
             time.sleep(5)
     f.close()
-    f = os.popen("nice lsof %s" % resdir)
+    f = os.popen("sudo ls -l /proc/*/cwd |  grep  ' %s$" % resdir)
     pids = []
     for l in f.readlines():
         m = re.match("\S+\s+(\d+)", l)
@@ -159,8 +159,8 @@ def killJob(jobid):
 def checkJobRunning(jobid):
     pid = None
     global _sharedir
-    resdir = "%s/results/jobs/%s" % (_sharedir, jobid)
-    f = os.popen("nice lsof %s" % resdir)
+    resdir = os.popen("realpath %s/results/jobs/%s" % (_sharedir, jobid)).read().strip()
+    f = os.popen("sudo ls -l /proc/*/cwd |  grep  ' %s$" % resdir)
     for l in f.readlines():
         m = re.match("main.py\s+(\d+)", l)
         if m:

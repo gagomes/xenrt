@@ -27,6 +27,7 @@ __all__ = ["WebDirectory",
            "SpecifiedSMBShare",
            "ISCSIIndividualLun",
            "ISCSILun",
+           "HBALun",
            "ISCSIVMLun",
            "ISCSINativeLinuxLun",
            "ISCSILunSpecified",
@@ -1475,9 +1476,9 @@ class HBALun(CentralResource):
             while True:
                 for l in luns.keys():
                     try:
-                        self.acquire("HBA_LUN-%s" % (luns['l']['SCSIID']))
-                        self.scsiid = luns['l']['SCSIID']
-                        self.luntype = luns['l'].get('TYPE')
+                        self.acquire("HBA_LUN-%s" % (luns[l]['SCSIID']))
+                        self.scsiid = luns[l]['SCSIID']
+                        self.luntype = luns[l].get('TYPE')
                         self.resourceHeld = True
                         break
                     except xenrt.XRTError:

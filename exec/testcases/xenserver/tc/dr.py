@@ -974,7 +974,6 @@ class DRUtils(object):
             return
         
         bad_copy = self.createVDI(site)
-        cli = host.getCLIInstance()
 
         for vm in suspended_vms:
             suspend_vdi = host.genParamGet('vm', vm['vm_uuid'], 'suspend-VDI-uuid')

@@ -135,22 +135,19 @@ def fqdn(host):
 def killJob(jobid):
     global _sharedir
     resdir = os.popen("realpath %s/results/jobs/%s" % (_sharedir, jobid)).read().strip()
-    f = os.popen("sudo ls -l /proc/*/cwd |  grep  ' %s$'" % resdir)
+    f = os.popen("sudo ls -l /proc/*/cwd |  grep  ' %s$' | cut -d '/' -f 3" % resdir)
     for l in f.readlines():
-        m = re.match("main.py\s+(\d+)", l)
-        if m:
-            pid = m.group(1)
+        if "main.py" in open("/proc/%s/cmdline" % l.strip()).read():
+            pid = l.strip()
             cmd = "kill -2 %s" % pid
             trace("Killing job %s using %s\n" % (jobid, cmd))
             os.system(cmd)
             time.sleep(5)
     f.close()
-    f = os.popen("sudo ls -l /proc/*/cwd |  grep  ' %s$'" % resdir)
+    f = os.popen("sudo ls -l /proc/*/cwd |  grep  ' %s$' | cut -d '/' -f 3" % resdir)
     pids = []
     for l in f.readlines():
-        m = re.match("\S+\s+(\d+)", l)
-        if m:
-            pids.append(m.group(1))
+        pids.append(l.strip())
     if len(pids) > 0:
         cmd = "kill -9 %s" % (" ".join(pids))
         trace("Killing job %s using %s\n" % (jobid, cmd))
@@ -160,10 +157,9 @@ def checkJobRunning(jobid):
     pid = None
     global _sharedir
     resdir = os.popen("realpath %s/results/jobs/%s" % (_sharedir, jobid)).read().strip()
-    f = os.popen("sudo ls -l /proc/*/cwd |  grep  ' %s$'" % resdir)
+    f = os.popen("sudo ls -l /proc/*/cwd |  grep  ' %s$' | cut -d '/' -f 3" % resdir)
     for l in f.readlines():
-        m = re.match("main.py\s+(\d+)", l)
-        if m:
+        if "main.py" in open("/proc/%s/cmdline" % l.strip()).read():
             pid = m.group(1)
     f.close()
     return pid

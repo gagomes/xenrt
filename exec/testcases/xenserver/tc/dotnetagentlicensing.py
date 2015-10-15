@@ -82,7 +82,6 @@ class DotNetAgentAdapter(object):
 
     def setUpServer(self,guest,port):
         xenrt.TEC().logverbose("-----Setting up server-----")
-        guest.execguest("mkdir -p store")
         guest.execguest("mkdir -p logs")
         guest.execguest("python -m SimpleHTTPServer {0} > logs/server{0}.log 2>&1&".format(str(port)))
         return SimpleServer(str(port), guest)
@@ -367,7 +366,7 @@ class NonCryptoMSI(DotNetAgentTestCases):
         self.adapter.applyLicense(self.getDefaultPool())
         autoupdate = self.agent.getLicensedFeature("AutoUpdate")
         autoupdate.enable()
-        autoupdate.setURL("http://%s:16000"%server.getIP())
+        autoupdate.setURL("http://%s:16000/"%server.getIP())
         self.agent.restartAgent()
         xenrt.sleep(200)
         if autoupdate.checkDownloadedMSI() == None:

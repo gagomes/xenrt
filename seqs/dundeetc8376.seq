@@ -22,7 +22,7 @@
   <prepare>
     <pool>
       <allhosts />
-      <storage type="fc" name="fcsr" default="true" />
+      <storage type="fc" name="fcsr" default="true" options="thin" />
       <NETWORK>
         <PHYSICAL network="NPRI">
           <NIC />

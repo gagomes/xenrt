@@ -2188,7 +2188,7 @@ class _TCLVHDLeafCoalesce(xenrt.TestCase):
             utilisation = int(self.host.genParamGet("sr",
                                                     sr,
                                                     "physical-utilisation"))
-            reply[sr] = utilisation - size
+            reply[sr] = size - utilisation
         return reply
 
     def prepare(self, arglist):

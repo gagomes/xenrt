@@ -173,11 +173,9 @@
     </parallel>
 
     <!-- Perform a basic HA sanity test -->
-    <!-- Thin LVHD does not support HA, yet. Commenting out for temporary.
     <testcase id="xenserver.tc.ha.TC7829" group="HATests" sku="thin">
       <arg>mypool</arg>
     </testcase>
-    -->
     <testcase id="xenserver.install.TCVerifyLicenseList" tc="TC-17899" sku="thin"/>
 
   </testsequence>

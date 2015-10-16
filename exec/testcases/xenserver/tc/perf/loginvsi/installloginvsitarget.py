@@ -109,13 +109,12 @@ vsi_lic_file=windows_share_drive+'\\_VSI_Configuration\\LoginVSI.lic'
 download(vsi_lic_url,vsi_lic_file)
 
 # disable windows signature verification of executables
-newregkey="""
-Windows Registry Editor Version 5.00
+newregkey="""Windows Registry Editor Version 5.00
 
 [HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Policies\Associations]
 "LowRiskFileTypes"=".cmd;.exe;"
 
-[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Internet Settings\]
+[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Internet Settings]
 "CertificateRevocation"=dword:0
 """
 newregkey_file=basedir+'lowriskfiletypes.reg' 

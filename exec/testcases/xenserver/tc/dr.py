@@ -156,16 +156,23 @@ def chooseSRUuid(site, local_sr, sr_uuid, size):
     assert sr_uuid is None
     return createSR(site, size)
 
-def installLinuxVM(site, stationary_vm=False, sr_uuid=None):
+def installGuest(site, stationary_vm=False, sr_uuid=None, vm_type = 'linux'):
     host = site['pool_master']
-    sr_uuid = chooseSRUuid(site, stationary_vm, sr_uuid, '10GiB')
-    if 'templateLinVM' not in site:
-        installLinuxVMTemplate(site)
-    templateVM = site['templateLinVM']
-
+    if vm_type == 'linux':
+        sr_size = '10GiB'
+        if 'templateLinVM' not in site:
+            installLinuxVMTemplate(site)
+        templateVM = site['templateLinVM']
+    else:
+        sr_size = '30GiB'
+        if 'templateWinVM' not in site:
+            installWindowsVMTemplate(site)
+        templateVM = site['templateWinVM']
+    
+    sr_uuid = chooseSRUuid(site, stationary_vm, sr_uuid, sr_size)
     guest = templateVM.copyVM(name=randomGuestName(), sruuid=sr_uuid)
     guest.start()
-    return (guest, 'linux', sr_uuid, templateVM.distro)
+    return (guest, sr_uuid, templateVM.distro)
 
 def installLinuxVMTemplate(site):
     host = site['pool_master']
@@ -178,19 +185,6 @@ def installLinuxVMTemplate(site):
         site['templateLinVM'] = host.createBasicGuest(distro, name="templateLinVM", sr=sr_uuid)
         site['templateLinVM'].shutdown()
     site['templateLinVM'].distro = distro
-
-def installWindowsVM(site, stationary_vm=False, sr_uuid=None):
-
-    host = site['pool_master']
-    sr_uuid = chooseSRUuid(site, stationary_vm, sr_uuid, '30GiB')
-    if 'templateWinVM' not in site:
-        installWindowsVMTemplate(site)
-    templateVM = site['templateWinVM']
-
-    guest = templateVM.copyVM(name=randomGuestName(), sruuid=sr_uuid)
-    guest.start()
-
-    return (guest, 'windows', sr_uuid, templateVM.distro)
 
 def installWindowsVMTemplate(site):
     host = site['pool_master']
@@ -544,7 +538,8 @@ class DRUtils(object):
         vm_start_delay = site['vm_start_delay']
 
         for i in range(site_params['vms_in_an_appliance']):
-            (guest, vm_type, vm_sr_uuid, distro) = installLinuxVM(site, sr_uuid=sr_uuid)
+            vm_type = 'linux'
+            (guest, vm_sr_uuid, distro) = installGuest(site, sr_uuid=sr_uuid, vm_type = vm_type)
             appliance.addVM(guest, vm_type, vm_sr_uuid, distro)
             guest.getHost().genParamSet('vm', guest.getUUID(), 'order', str(i))
             guest.getHost().genParamSet('vm', guest.getUUID(), 'start-delay', str(vm_start_delay))
@@ -572,7 +567,8 @@ class DRUtils(object):
                 sr_uuid = createSR(site, str(sr_size) + 'GiB')
 
             for i in range(site_params['win_vms']):
-                (guest, vm_type, vm_sr_uuid, distro) = installWindowsVM(site, sr_uuid=sr_uuid)
+                vm_type = 'windows'
+                (guest, vm_sr_uuid, distro) = installGuest(site, sr_uuid=sr_uuid, vm_type = vm_type)
                 site['vms'][guest.getName()] = { 'guest'   : guest, 
                                                  'vm_type' : vm_type, 
                                                  'vm_uuid' : guest.getUUID(), 
@@ -588,7 +584,8 @@ class DRUtils(object):
 
             
             for i in range(site_params['lin_vms']):
-                (guest, vm_type, vm_sr_uuid, distro) = installLinuxVM(site, sr_uuid=sr_uuid)
+                vm_type = 'linux'
+                (guest, vm_sr_uuid, distro) = installGuest(site, sr_uuid=sr_uuid, vm_type=vm_type)
                 site['vms'][guest.getName()] = { 'guest'   : guest, 
                                                  'vm_type' : vm_type, 
                                                  'vm_uuid' : guest.getUUID(), 
@@ -597,7 +594,8 @@ class DRUtils(object):
 
         if site_params.has_key('stationary_vms'):
             for i in range(site_params['stationary_vms']):
-                (guest, vm_type, vm_sr_uuid, distro) = installLinuxVM(site, stationary_vm=True)
+                vm_type = 'linux'
+                (guest, vm_sr_uuid, distro) = installGuest(site, stationary_vm=True, vm_type=vm_type)
                 site['stationary_vms'][guest.getName()] = { 'guest'   : guest, 
                                                             'vm_type' : vm_type, 
                                                             'vm_uuid' : guest.getUUID(), 
